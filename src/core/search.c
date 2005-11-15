@@ -118,6 +118,8 @@ typedef struct search_ctrl {
 
 	gboolean passive;			/**< Is this a passive search? */
 	gboolean frozen;			/**< True => don't update window */
+	gboolean browse;			/**< Special "browse host" search */
+	gboolean active;			/**< Whether to actively issue queries */
 
 	/*
 	 * Keep a record of nodes we've sent this search w/ this muid to.
@@ -134,6 +136,12 @@ typedef struct search_ctrl {
 	guint query_emitted;		/**< # of queries emitted since last retry */
 	guint32 items;				/**< Items displayed in the GUI */
 	guint32 kept_results;		/**< Results we kept for last query */
+
+	/*
+	 * For browse-host requests.
+	 */
+
+	gpointer download;			/**< Associated download for browse-host */
 } search_ctrl_t;
 
 /*
@@ -164,8 +172,6 @@ static query_hashvec_t *query_hashvec = NULL;
 
 #define search_drop_handle(n) \
     idtable_free_id(search_handle_map, n);
-
-static guint32   search_passive  = 0;		/**< Amount of passive searches */
 
 static void search_check_results_set(gnet_results_set_t *rs);
 
@@ -1535,7 +1541,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
     g_assert(sch != NULL);
     g_assert(len != NULL);
     g_assert(sizep != NULL);
-    g_assert(!sch->passive);
+    g_assert(sch->active);
 	g_assert(!sch->frozen);
 	g_assert(sch->muids);
 
@@ -1728,7 +1734,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	guint32 alloclen;
 
     g_assert(sch != NULL);
-    g_assert(!sch->passive);
+    g_assert(sch->active);
 	g_assert(!sch->frozen);
 
 	m = build_search_msg(sch, &alloclen, &size);
@@ -1799,7 +1805,7 @@ node_added_callback(gpointer data)
 	g_assert(node_added != NULL);
 	g_assert(data != NULL);
     g_assert(sch != NULL);
-    g_assert(!sch->passive);
+    g_assert(sch->active);
 
 	/*
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
@@ -1893,7 +1899,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	guint32 tm;
 
 	g_assert(sch != NULL);
-	g_assert(!sch->passive);
+	g_assert(sch->active);
 
 	if (sch->reissue_timeout_id > 0)
 		g_source_remove(sch->reissue_timeout_id);
@@ -1902,6 +1908,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * When a search is frozen or the reissue_timout is zero, all we need
 	 * to do is to remove the timer.
 	 */
+
 	if (sch->frozen || sch->reissue_timeout == 0)
 		return;
 
@@ -2109,6 +2116,78 @@ search_shutdown(void)
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
 	rs_zone = rc_zone = NULL;
+}
+
+/**
+ * This routine is called for each Query Hit packet we receive out of
+ * a browse-host request, since we know the target search result, and
+ * we don't need to bother with forwarding that message.
+ */
+void
+search_browse_results(gnutella_node_t *n, gnet_search_t sh)
+{
+	gnet_results_set_t *rs;
+	GSList *search = NULL;
+	GSList *sl;
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	g_assert(sch != NULL);
+
+	rs = get_results_set(n, FALSE);
+
+	if (rs == NULL)
+		return;
+
+	/*
+	 * Dispatch the results as-is without any ignoring to the GUI, which
+	 * will copy the information for its own perusal (and filtering).
+	 */
+
+	if (!sch->frozen) {
+		search = g_slist_prepend(search, GUINT_TO_POINTER(sch->search_handle));
+		search_fire_got_results(search, rs);	/* Dispatch browse results */
+		g_slist_free(search);
+		search = NULL;
+	}
+
+    /*
+	 * We're also going to dispatch the results to all the opened passive
+	 * searches, since they may have customized filters.
+	 *
+     * Look for records that should be ignored as if a regular query hit
+	 * had been received from the network.
+     */
+
+	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
+		search_ctrl_t *sch = sl->data;
+
+		if (!sch->frozen)
+			search = g_slist_prepend(search,
+				GUINT_TO_POINTER(sch->search_handle));
+	}
+
+    if (
+		search != NULL &&
+		search_handle_ignored_files != SEARCH_IGN_DISPLAY_AS_IS
+	) {
+        for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
+            gnet_record_t *rc = sl->data;
+            enum ignore_val ival;
+
+            ival = ignore_is_requested(rc->name, rc->size, rc->sha1);
+            if (ival != IGNORE_FALSE) {
+				if (search_handle_ignored_files == SEARCH_IGN_NO_DISPLAY)
+					set_flags(rc->flags, SR_DONT_SHOW);
+				else
+					set_flags(rc->flags, SR_IGNORED);
+			}
+		}
+	}
+
+	search_fire_got_results(search, rs);
+	g_slist_free(search);
+
+    search_free_r_set(rs);
 }
 
 /**
@@ -2441,7 +2520,7 @@ search_close(gnet_search_t sh)
 	 * This needs to be done before the handle of the search is reclaimed.
 	 */
 
-	if (!sch->passive)
+	if (sch->active)
 		search_dequeue_all_nodes(sh);
 
     /*
@@ -2454,13 +2533,17 @@ search_close(gnet_search_t sh)
      */
 
 	sl_search_ctrl = g_slist_remove(sl_search_ctrl, sch);
+
 	if (sch->passive)
 		sl_passive_ctrl = g_slist_remove(sl_passive_ctrl, sch);
+
+	if (sch->browse && sch->download != NULL)
+		download_abort_browse_host(sch->download, sh);
 
     search_drop_handle(sch->search_handle);
 	g_hash_table_remove(searches, sch);
 
-	if (!sch->passive) {
+	if (sch->active) {
 		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
 		sch->new_node_hook = NULL;
 
@@ -2477,12 +2560,10 @@ search_close(gnet_search_t sh)
 
 		search_free_sent_nodes(sch);
 		search_free_sent_node_ids(sch);
-	} else {
-		search_passive--;
 	}
 
 	atom_str_free(sch->query);
-	G_FREE_NULL(sch);
+	wfree(sch, sizeof *sch);
 }
 
 /**
@@ -2534,6 +2615,35 @@ search_new_muid(gboolean initial)
 }
 
 /**
+ * @return whether search has expired.
+ */
+static gboolean
+search_expired(const search_ctrl_t *sch)
+{
+	gboolean expired = FALSE;
+	time_t ct;
+	guint lt;
+
+	g_assert(sch);
+	
+	ct = sch->create_time;
+	lt = 3600 * sch->lifetime;
+
+	if (lt) {
+		gint d;
+
+		d = delta_time(tm_time(), ct);
+		d = MAX(0, d);
+		
+		if ((guint) d >= lt)
+			expired = TRUE;
+	} else if (delta_time(start_stamp, ct) > 0)
+		expired = TRUE;
+
+	return expired;
+}
+
+/**
  * Force a reissue of the given search. Restart reissue timer.
  */
 void
@@ -2547,8 +2657,25 @@ search_reissue(gnet_search_t sh)
         return;
     }
 
+	if (!sch->active) {
+        g_warning("trying to reissue a non-active search, aborted");
+		return;
+	}
+
+	/*
+	 * If the search has expired, disable any further invocation.
+	 */
+
+	if (search_expired(sch)) {
+		if (search_debug)
+			g_message("expired search \"%s\" (queries broadcasted: %d)\n",
+				sch->query, sch->query_emitted);
+		sch->reissue_timeout = 0;
+		goto done;
+	}
+
 	if (search_debug)
-		printf("reissuing search \"%s\" (queries broadcasted: %d)\n",
+		g_message("reissuing search \"%s\" (queries broadcasted: %d)\n",
 			sch->query, sch->query_emitted);
 
 	muid = search_new_muid(FALSE);
@@ -2556,6 +2683,8 @@ search_reissue(gnet_search_t sh)
 	sch->query_emitted = 0;
 	search_add_new_muid(sch, muid);
 	search_send_packet_all(sch);
+
+done:
 	update_one_reissue_timeout(sch);
 }
 
@@ -2569,8 +2698,8 @@ search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
 
     g_assert(sch != NULL);
 
-    if (sch->passive) {
-        g_error("Can't set reissue timeout on a passive search");
+    if (!sch->active) {
+        g_error("can't set reissue timeout on a non-active search");
         return;
     }
 
@@ -2643,7 +2772,6 @@ gnet_search_t
 search_new(const gchar *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
 {
-	static const search_ctrl_t zero_sch;
 	const gchar *endptr;
 	search_ctrl_t *sch;
 	gchar *qdup;
@@ -2671,8 +2799,7 @@ search_new(const gchar *query,
 		return (gnet_search_t) -1;
 	}
 
-	sch = g_malloc(sizeof *sch);
-	*sch = zero_sch;
+	sch = walloc0(sizeof *sch);
 
 	sch->search_handle = search_request_handle(sch);
 	sch->id = search_id++;
@@ -2688,8 +2815,10 @@ search_new(const gchar *query,
 
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = TRUE;
-		search_passive++;
+	} else if (flags & SEARCH_BROWSE) {
+		sch->browse = TRUE;
 	} else {
+		sch->active = TRUE;
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = sch;
 		sch->new_node_hook->func =
@@ -2745,7 +2874,7 @@ search_add_kept(gnet_search_t sh, guint32 kept)
 	 * to which we're connected) about the amount of results we got so far.
 	 */
 
-	if (sch->passive || current_peermode != NODE_P_LEAF)
+	if (!sch->active || current_peermode != NODE_P_LEAF)
 		return;
 
 	search_update_results(sch);
@@ -2763,7 +2892,7 @@ search_start(gnet_search_t sh)
 
     sch->frozen = FALSE;
 
-    if (!sch->passive) {
+    if (sch->active) {
 		/*
 		 * If we just created the search with search_new(), there will be
 		 * no message ever sent, and sch->muids will be NULL.
@@ -2794,7 +2923,7 @@ search_stop(gnet_search_t sh)
 
     sch->frozen = TRUE;
 
-    if (!sch->passive)
+    if (sch->active)
 		update_one_reissue_timeout(sch);
 }
 
@@ -2814,7 +2943,7 @@ search_get_kept_results(gchar *muid, guint32 *kept)
 
 	sch = g_hash_table_lookup(search_by_muid, muid);
 
-	g_assert(sch == NULL || !sch->passive);		/* No MUID if passive */
+	g_assert(sch == NULL || sch->active);		/* No MUID if not active */
 
 	if (sch == NULL)
 		return FALSE;
@@ -2962,6 +3091,86 @@ search_is_passive(gnet_search_t sh)
     g_assert(sch != NULL);
 
     return sch->passive;
+}
+
+gboolean
+search_is_active(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+
+    return sch->active;
+}
+
+gboolean
+search_is_expired(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+
+    return search_expired(sch);
+}
+
+/***
+ *** Host Browsing.
+ ***/
+
+/**
+ * Associate download to fill in the opened browse search.
+ *
+ * @param hostname	the DNS name of the host, or NULL if none known
+ * @param addr		the IP address of the host to browse
+ * @param port		the port to contact
+ * @param guid		the GUID of the remote host
+ * @param push		whether a PUSH request is neeed to reach remote host
+ * @param proxies	vector holding known push-proxies
+ *
+ * @return TRUE if we successfully initialized the download layer.
+ */
+gboolean
+search_browse(gnet_search_t sh,
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+	g_assert(sch->browse);
+	g_assert(!sch->frozen);
+	g_assert(sch->download == NULL);
+
+	/*
+	 * Host browsing is done thusly: a non-persistent search was created and
+	 * it is now associated with a special download that will know it will
+	 * receive Gnutella query hits and that those hits should be given back
+	 * to the special search for display.
+	 */
+
+	sch->download = download_browse_start(sch->query, hostname, addr, port,
+		guid, push, proxies, sh);
+
+	return sch->download != NULL;
+}
+
+/**
+ * Notification from the download layer that a browse-host download is being
+ * removed.  This closes the relationship between the given search and
+ * the removed download.
+ */
+void
+search_dissociate_browse(gnet_search_t sh, gpointer download)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+	g_assert(sch->browse);
+	g_assert(sch->download == download);
+
+	sch->download = NULL;
+
+	// XXX notify the GUI that the browse is finished
 }
 
 /* vi: set ts=4 sw=4 cindent: */

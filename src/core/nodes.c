@@ -157,6 +157,7 @@ static GSList *sl_nodes = NULL;
 static GSList *sl_nodes_without_broken_gtkg = NULL;
 static GHashTable *nodes_by_id = NULL;
 static gnutella_node_t *udp_node = NULL;
+static gnutella_node_t *browse_node = NULL;
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
@@ -246,6 +247,7 @@ static void node_bye_all_but_one(
 static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(void);
+static gnutella_node_t *node_browse_create(void);
 static gboolean node_remove_useless_leaf(void);
 
 /***
@@ -1090,6 +1092,7 @@ node_init(void)
 	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
 
 	udp_node = node_udp_create();
+	browse_node = node_browse_create();
 
 	/*
 	 * Limit replies to TCP/UDP crawls from a single IP.
@@ -1582,7 +1585,7 @@ node_recursive_shutdown_v(
 }
 
 /**
- * Removes or shut's down the given node.
+ * Removes or shuts down the given node.
  */
 void
 node_remove_by_handle(gnet_node_t n)
@@ -3072,7 +3075,7 @@ node_is_now_connected(struct gnutella_node *n)
 		args.bs = n->peermode == NODE_P_LEAF ? bws.glin : bws.gin;
 		args.wio = &n->socket->wio;
 
-		n->rx = rx_make_node(n, rx_link_get_ops(), &args);
+		n->rx = rx_make(n, &host, rx_link_get_ops(), &args);
 	}
 
 	if (n->attrs & NODE_A_RX_INFLATE) {
@@ -5232,6 +5235,78 @@ call_node_process_handshake_ack(gpointer obj, header_t *header)
 
 /**
  * Create a "fake" node that is used as a placeholder when processing
+ * Gnutella messages received via host browsing.
+ *
+ * The node instance is shared but needs to be filled with the received
+ * message before parsing of the Gnutella query hit can occur.
+ */
+static gnutella_node_t *
+node_browse_create(void)
+{
+	gnutella_node_t *n;
+
+	n = walloc0(sizeof *n);
+
+	n->magic = NODE_MAGIC;
+    n->node_handle = node_request_handle(n);
+    n->id = node_id++;
+	n->proto_major = 0;
+	n->proto_minor = 6;
+	n->peermode = NODE_P_LEAF;
+	n->hops_flow = MAX_HOP_COUNT;
+	n->last_update = n->last_tx = n->last_rx = tm_time();
+	n->routing_data = NULL;
+	n->status = GTA_NODE_CONNECTED;
+	n->flags = NODE_F_ESTABLISHED | NODE_F_READABLE | NODE_F_VALID;
+	n->up_date = start_stamp;
+	n->connect_date = start_stamp;
+	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
+
+	return n;
+}
+
+/**
+ * Let the "browse host" node hold the supplied Gnutella message as if
+ * coming from the host and from a servent with the supplied vendor
+ * string.
+ *
+ * @return the shared instance, suitable for parsing the received message.
+ */
+gnutella_node_t *
+node_browse_prepare(
+	gnet_host_t *host, const gchar *vendor, struct gnutella_header *header,
+	gchar *data, guint32 size)
+{
+	gnutella_node_t *n = browse_node;
+
+	g_assert(n != NULL);
+
+	n->addr = host->addr;
+	n->port = host->port;
+	n->vendor = deconstify_gchar(vendor);
+	n->country = gip_country(n->addr);
+
+	n->size = size;
+	n->header = *header;		/* Struct copy */
+	n->data = data;
+
+	return n;
+}
+
+/**
+ * Cleanup the "browse host" node.
+ */
+void
+node_browse_cleanup(gnutella_node_t *n)
+{
+	g_assert(n == browse_node);
+
+	n->vendor = NULL;
+	n->data = NULL;
+}
+
+/**
+ * Create a "fake" node that is used as a placeholder when processing
  * Gnutella messages received from UDP.
  */
 static gnutella_node_t *
@@ -7206,6 +7281,9 @@ node_close(void)
 	}
 	node_real_remove(udp_node);
 	udp_node = NULL;
+
+	node_real_remove(browse_node);
+	browse_node = NULL;
 
 	g_slist_free(sl_nodes_without_broken_gtkg);
 	g_slist_free(sl_proxies);

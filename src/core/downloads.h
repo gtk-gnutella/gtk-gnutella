@@ -63,6 +63,8 @@ void download_queue(struct download *d,
 	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 void download_stop(struct download *, guint32,
 	const gchar *, ...) G_GNUC_PRINTF(3, 4);
+void download_stop_v(struct download *d, guint32 new_status,
+    const gchar * reason, va_list ap);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_pickup_queued(void);
@@ -104,6 +106,15 @@ void download_set_socket_rx_size(gint rx_size);
 void download_proxy_newstate(struct download *d);
 void download_proxy_sent(struct download *d);
 void download_proxy_failed(struct download *d);
+
+struct download * download_browse_start(const gchar *name,
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies,
+	gnet_search_t search);
+
+void download_abort_browse_host(gpointer download, gnet_search_t sh);
+void download_got_eof(struct download *d);
+void download_rx_done(struct download *d);
 
 #endif /* _core_downloads_h_ */
 

@@ -215,7 +215,6 @@ struct download {
 	guint32 flags;
 	guint32 cflags;
 
-	gboolean file_size_known;	/**< File size known? */
 	gboolean keep_alive;		/**< Keep HTTP connection? */
 	gboolean visible;			/**< The download is visible in the GUI */
 	gboolean push;				/**< Currently in push mode */
@@ -224,8 +223,8 @@ struct download {
 	gboolean unavailable;		/**< Set on Timout, Push route lost */
 
 	struct cproxy *cproxy;		/**< Push proxy being used currently */
-
 	gpointer queue_status;		/**< Queuing status */
+	struct browse_ctx *browse;	/**< For browse-host requests */
 };
 
 /*
@@ -242,6 +241,8 @@ struct download {
 #define DL_F_ACTIVE_QUEUED	0x00000080	/**< Download is actively queued */
 #define DL_F_PASSIVE_QUEUED	0x00000100	/**< Download is passively queued */
 #define DL_F_DNS_LOOKUP		0x00000200	/**< Attempted DNS lookup */
+#define DL_F_BROWSE			0x00000400	/**< Browse host type (requests "/") */
+#define DL_F_TRANSIENT		0x20000000	/**< Transient, don't persist */
 #define DL_F_SUSPENDED		0x40000000	/**< Suspended, do not schedule */
 #define DL_F_MARK			0x80000000	/**< Marked in traversal */
 

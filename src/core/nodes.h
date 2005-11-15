@@ -585,9 +585,13 @@ void node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features);
 void node_update_udp_socket(void);
 void node_check_remote_ip_header(const host_addr_t peer, header_t *head);
 
-guint
-feed_host_cache_from_headers(header_t *headers,
+guint feed_host_cache_from_headers(header_t *headers,
 	host_type_t sender, gboolean gnet, const host_addr_t peer);
+
+gnutella_node_t *node_browse_prepare(
+	gnet_host_t *host, const gchar *vendor, struct gnutella_header *header,
+	gchar *data, guint32 size);
+void node_browse_cleanup(gnutella_node_t *n);
 
 #endif /* _core_nodes_h_ */
 

@@ -69,6 +69,9 @@ guint32 search_get_kept_results_by_handle(gnet_search_t sh);
 void search_oob_pending_results(
 	gnutella_node_t *n, gchar *muid, gint hits, gboolean udp_firewalled);
 
+void search_dissociate_browse(gnet_search_t sh, gpointer download);
+void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
+
 #endif /* _core_search_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

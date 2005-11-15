@@ -62,6 +62,7 @@
 #include "features.h"
 #include "gnet_stats.h"
 #include "geo_ip.h"
+#include "bh_download.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1092,7 +1093,7 @@ dl_by_time_remove(struct dl_server *server)
  * @returns new list, with every item cloned.
  */
 static GSList *
-hostvec_to_slist(gnet_host_vec_t *vec)
+hostvec_to_slist(const gnet_host_vec_t *vec)
 {
 	GSList *sl = NULL;
 	gint i;
@@ -1549,7 +1550,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
  * Set/change the server's hostname.
  */
 static void
-set_server_hostname(struct dl_server *server, gchar *hostname)
+set_server_hostname(struct dl_server *server, const gchar *hostname)
 {
 	g_assert(dl_server_valid(server));
 
@@ -1899,8 +1900,14 @@ download_info_reget(struct download *d)
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
 
-	/* The GUI uses d->file_info internally, so the download must be
-	 * removed from it before changing the d->file_info. */
+	if (fi->flags & FI_F_TRANSIENT)
+		return;
+
+	/*
+	 * The GUI uses d->file_info internally, so the download must be
+	 * removed from it before changing the d->file_info.
+	 */
+
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_remove(d);
 
@@ -2563,9 +2570,9 @@ download_redirect_to_server(struct download *d,
 /**
  * Vectorized version common to download_stop() and download_unavailable().
  */
-static void
+void
 download_stop_v(struct download *d, guint32 new_status,
-    const gchar * reason, va_list ap)
+    const gchar *reason, va_list ap)
 {
 	gboolean store_queue = FALSE;		/* Shall we call download_store()? */
 	enum dl_list list_target;
@@ -2594,6 +2601,13 @@ download_stop_v(struct download *d, guint32 new_status,
 
 		d->file_info->recvcount--;
 		d->file_info->dirty_status = TRUE;
+
+		/*
+		 * Dismantle RX stack for browse host.
+		 */
+
+		if (d->flags & DL_F_BROWSE)
+			browse_host_dl_close(d->browse);
 	}
 
 	g_assert(d->buffers == NULL);
@@ -2670,6 +2684,11 @@ download_stop_v(struct download *d, guint32 new_status,
 		default:
 			break;
 		}
+	}
+
+	if (d->browse && new_status == GTA_DL_COMPLETED) {
+		browse_host_dl_free(d->browse);
+		d->browse = NULL;
 	}
 
 	if (d->list_idx != list_target)
@@ -3751,10 +3770,10 @@ download_fallback_to_push(struct download *d,
  */
 static struct download *
 create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-	gchar *sha1, time_t stamp,
+	const host_addr_t addr, guint16 port, const gchar *guid,
+	const gchar *hostname, gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, gboolean file_size_known,
-	fileinfo_t *file_info, gnet_host_vec_t *proxies, guint32 cflags)
+	fileinfo_t *file_info, const gnet_host_vec_t *proxies, guint32 cflags)
 {
 	struct dl_server *server;
 	struct download *d;
@@ -3864,7 +3883,6 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	if (!file_size_known)
 		size = 0; /* Value should be updated later when known by HTTP headers */
 
-	d->file_size_known = file_size_known;
 	d->file_size = size;
 
 	/*
@@ -3970,7 +3988,6 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 
 	return d;
 }
-
 
 /**
  * Automatic download request.
@@ -4368,6 +4385,12 @@ download_remove(struct download *d)
 
 	g_assert(d->io_opaque == NULL);
 	g_assert(d->buffers == NULL);
+
+	if (d->browse != NULL) {
+		g_assert(d->flags & DL_F_BROWSE);
+		browse_host_dl_free(d->browse);
+		d->browse = NULL;
+	}
 
 	if (d->push)
 		download_push_remove(d);
@@ -6098,6 +6121,57 @@ lazy_ack_message_to_ui_string(const gchar *src)
 }
 
 /**
+ * Mark download as receiving data: download is becoming active.
+ */
+static void
+download_mark_active(struct download *d)
+{
+	fileinfo_t *fi = d->file_info;
+	struct gnutella_socket *s = d->socket;
+
+	d->start_date = tm_time();
+	d->status = GTA_DL_RECEIVING;
+
+	if (fi->recvcount == 0) {		/* First source to begin receiving */
+		fi->recv_last_time = d->start_date;
+		fi->recv_last_rate = 0;
+	}
+	fi->recvcount++;
+	fi->dirty_status = TRUE;
+
+ 	g_assert(dl_establishing > 0);
+	dl_establishing--;
+	dl_active++;
+	g_assert(d->list_idx == DL_LIST_RUNNING);
+
+	/*
+	 * Update running count.
+	 */
+
+	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
+	gcu_gui_update_download(d, TRUE);
+	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
+
+	/*
+	 * Set TOS to low-delay, so that ACKs flow back faster, and set the RX
+	 * buffer according to their preference (large for better throughput,
+	 * small for better control of the incoming rate).
+	 */
+
+	socket_tos_lowdelay(s);
+	sock_recv_buf(s, download_rx_size * 1024, TRUE);
+
+	/*
+	 * If not a browse-host request, prepare reading buffers.
+	 */
+
+	if (!(d->flags & DL_F_BROWSE)) {
+		buffers_alloc(d);
+		buffers_reset_reading(d);
+	}
+}
+
+/**
  * Called to initiate the download once all the HTTP headers have been read.
  * If `ok' is false, we timed out reading the header, and have therefore
  * something incomplete.
@@ -6126,6 +6200,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	guint hold = 0;
 	gchar *path = NULL;
 	gboolean refusing;
+	guint32 bh_flags = 0;
 
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
@@ -6759,10 +6834,12 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		content_size = parse_uint64(buf, NULL, 10, &error);
 
 		/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
-		if (!error && !d->file_size_known) {
+		if (!error && !fi->file_size_known) {
 			d->size = content_size;
 			fi->size = content_size;
-			fi->file_size_known = TRUE;
+			fi->file_size_known = TRUE;	/* XXX encapsulation violation */
+			d->range_end = download_filesize(d);
+			requested_size = d->range_end - d->skip + d->overlap_size;
 		}
 
 		if (error || content_size == 0) {
@@ -6794,9 +6871,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 		if (0 == http_content_range_parse(buf, &start, &end, &total)) {
 			/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
-			if (!d->file_size_known) {
+			if (!fi->file_size_known) {
 				d->size = total;
 				fi->size = total;
+				fi->file_size_known = TRUE;	/* XXX encapuslation violation */
 			}
 
 			if (check_content_range > total) {
@@ -6944,6 +7022,19 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	}
 
 	/*
+	 * If we don't know the content length yet, see whether they're sending
+	 * chunked data back.  For now, we limit that processing to browse-host
+	 * requests.
+	 */
+
+	if (!got_content_length && (d->flags & DL_F_BROWSE)) {
+		buf = header_get(header, "Transfer-Encoding");
+		if (0 == strcmp(buf, "chunked"))
+			bh_flags |= BH_DL_CHUNKED;
+		got_content_length = TRUE;		/* Not required for browsing anyway */
+	}
+
+	/*
 	 * If neither Content-Length nor Content-Range was seen, abort!
 	 *
 	 * If we were talking to an official web-server, we'd assume the length
@@ -6976,11 +7067,73 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	g_assert(d->size >= 0);
 #endif
 
-	if (d->size == 0) {
+	if (d->size == 0 && fi->file_size_known) {
 		g_assert(d->flags & DL_F_SHRUNK_REPLY);
 		download_queue_delay(d,
 			MAX(delay, download_retry_busy_delay),
 			_("Partial file on server, waiting"));
+		return;
+	}
+
+	/*
+	 * Handle browse-host requests specially: there's no file to save to.
+	 */
+
+	if (d->flags & DL_F_BROWSE) {
+		gnet_host_t host;
+
+		g_assert(d->browse != NULL);
+
+		buf = header_get(header, "Content-Encoding");
+		if (buf) {
+			if (strstr(buf, "deflate"))
+				bh_flags |= BH_DL_INFLATE;
+			else if (strstr(buf, "gzip"))
+				bh_flags |= BH_DL_GUNZIP;
+		}
+
+		/* XXX -- we don't support "gzip" encoding yet (and don't request it) */
+		if (bh_flags & BH_DL_GUNZIP) {
+			download_stop(d, GTA_DL_ERROR, "No support for gzip encoding yet");
+			return;
+		}
+
+		host.addr = download_addr(d);
+		host.port = download_port(d);
+
+		if (
+			!browse_host_dl_receive(d->browse, &host, &d->socket->wio,
+				download_vendor_str(d), bh_flags)
+		) {
+			download_stop(d, GTA_DL_ERROR, "Search already closed");
+			return;
+		}
+	}
+
+	/*
+	 * Cleanup header-reading data structures.
+	 */
+
+	io_free(d->io_opaque);
+	getline_free(s->getline);		/* No longer need this */
+	s->getline = NULL;
+
+	/*
+	 * Done for a browse-host request.
+	 */
+
+	if (d->flags & DL_F_BROWSE) {
+		download_mark_active(d);
+
+		/*
+		 * If we have something in the socket buffer, feed it to the RX stack.
+	 	 */
+
+		if (s->pos > 0) {
+			fi->recv_amount += s->pos;
+			browse_host_dl_write(d->browse, s->buffer, s->pos);
+		}
+
 		return;
 	}
 
@@ -7043,47 +7196,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 * We're ready to receive.
 	 */
 
-	io_free(d->io_opaque);
-
-	getline_free(s->getline);		/* No longer need this */
-	s->getline = NULL;
-
-	d->start_date = tm_time();
-	d->status = GTA_DL_RECEIVING;
-
-	buffers_alloc(d);				/* Prepare reading buffers */
-	buffers_reset_reading(d);
-
-	if (fi->recvcount == 0) {		/* First source to begin receiving */
-		fi->recv_last_time = d->start_date;
-		fi->recv_last_rate = 0;
-	}
-	fi->recvcount++;
-	fi->dirty_status = TRUE;
-
- 	g_assert(dl_establishing > 0);
-	dl_establishing--;
-	dl_active++;
-	g_assert(d->list_idx == DL_LIST_RUNNING);
-
-	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
-	gcu_gui_update_download(d, TRUE);
-	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
+	download_mark_active(d);
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
 
 	d->bio = bsched_source_add(bws.in, &s->wio,
 		BIO_F_READ, download_read, (gpointer) d);
-
-	/*
-	 * Set TOS to low-delay, so that ACKs flow back faster, and set the RX
-	 * buffer according to their preference (large for better throughput,
-	 * small for better control of the incoming rate).
-	 */
-
-	socket_tos_lowdelay(s);
-	sock_recv_buf(s, download_rx_size * 1024, TRUE);
 
 	/*
 	 * If we have something in the input buffer, write the data to the
@@ -7410,6 +7529,11 @@ download_send_request(struct download *d)
 			if (!download_pick_chunk(d))
 				return;
 		}
+	} else if (!fi->file_size_known) {
+		/* XXX -- revisit this encapsulation violation after 0.96 -- RAM */
+		/* XXX (when filesize is not known, fileinfo should handle this) */
+		d->skip = d->pos = fi->done;	/* XXX no overlapping here */
+		d->size = G_MAXUINT64;
 	}
 
 picked:
@@ -7500,6 +7624,12 @@ picked:
 			"X-Token: %s\r\n", tok_version());
 	}
 
+	if (d->flags & DL_F_BROWSE)
+		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"Accept: application/x-gnutella-packets\r\n"
+			"Accept-Encoding: deflate\r\n"
+		);
+
 	/*
 	 * Add X-Queue / X-Queued information into the header
 	 */
@@ -7517,10 +7647,12 @@ picked:
 
 	g_assert(d->skip >= d->overlap_size);
 
-	d->range_end = download_filesize(d);
+	d->range_end = fi->file_size_known ? download_filesize(d) : G_MAXUINT64;
 
-	if (d->server->attrs & DLS_A_HTTP_1_1) {
-		/* Request exact range, unless we're asking for the full file */
+	if (fi->file_size_known && (d->server->attrs & DLS_A_HTTP_1_1)) {
+		/*
+		 * Request exact range, unless we're asking for the full file
+		 */
 
 		if (d->size != download_filesize(d)) {
 			filesize_t start = d->skip - d->overlap_size;
@@ -7534,7 +7666,7 @@ picked:
 	} else {
 		/* Request only a lower-bounded range, if needed */
 
-		if (d->skip)
+		if (d->skip > d->overlap_size)
 			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 				"Range: bytes=%s-\r\n",
 				uint64_to_string(d->skip - d->overlap_size));
@@ -8123,6 +8255,8 @@ download_store(void)
 		if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
 			continue;
 		if (d->always_push)
+			continue;
+		if (d->flags & DL_F_TRANSIENT)
 			continue;
 
 		id = get_parq_dl_id(d);
@@ -8952,6 +9086,8 @@ download_close(void)
 			cproxy_free(d->cproxy);
 		if (d->escaped_name != d->file_name)
 			g_free(d->escaped_name);
+		if (d->browse != NULL)
+			browse_host_dl_free(d->browse);
 
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
@@ -9096,6 +9232,114 @@ download_something_to_clear(void)
 	}
 
 	return clear;
+}
+
+/***
+ *** Browse Host (client-side).
+ ***/
+
+/**
+ * Create special non-persisted download that will request "/" on the
+ * remote host and expect a stream of Gnutella query hits back.  Those
+ * query hits will be feed back to the search given as parameter for
+ * display.
+ *
+ * @param name		the stringified "addr:port" of the host.
+ * @param hostname	the DNS name of the host, or NULL if none known
+ * @param addr		the IP address of the host to browse
+ * @param port		the port to contact
+ * @param guid		the GUID of the remote host
+ * @param push		whether a PUSH request is neeed to reach remote host
+ * @param proxies	vector holding known push-proxies
+ * @param search	the search we have to send back query hits to.
+ *
+ * @return created download, or NULL on error.
+ */
+struct download *
+download_browse_start(const gchar *name, const gchar *hostname,
+	host_addr_t addr, guint16 port, const gchar *guid, gboolean push,
+	const gnet_host_vec_t *proxies, gnet_search_t search)
+{
+	struct download *d;
+	fileinfo_t *fi;
+	gchar *dname;
+
+	gm_snprintf(dl_tmp, sizeof dl_tmp, _("<Browse Host %s>"), name);
+
+	dname = atom_str_get(dl_tmp);
+	fi = file_info_get_browse(dname);
+
+	d = create_download(dname, "/", 0, 0, addr, port, guid, hostname,
+			NULL, tm_time(), push, TRUE, FALSE, fi, proxies, 0);
+
+	atom_str_free(dname);
+
+	if (d != NULL) {
+		gnet_host_t host;
+
+		d->flags |= DL_F_TRANSIENT | DL_F_BROWSE;
+		host.addr = addr;
+		host.port = port;
+
+		d->browse = browse_host_dl_create(d, &host, search);
+	}
+
+	return d;
+}
+
+/**
+ * Abort browse-hosst download when corresponding search is closed.
+ */
+void
+download_abort_browse_host(gpointer download, gnet_search_t sh)
+{
+	struct download *d = download;
+
+	g_assert(d->flags & DL_F_BROWSE);
+	g_assert(browse_host_dl_for_search(d->browse, sh));
+
+	browse_host_dl_search_closed(d->browse, sh);
+
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		download_unqueue(d);
+		gcu_download_gui_add(d);
+	}
+
+	if (!DOWNLOAD_IS_STOPPED(d))
+		download_stop(d, GTA_DL_ERROR, "Browse search closed");
+}
+
+/**
+ * Called when an EOF is received during data reception.
+ */
+void
+download_got_eof(struct download *d)
+{
+	g_assert(d != NULL);
+	g_assert(d->file_info != NULL);
+
+	/*
+	 * If we don't know the file size, then consider EOF as an indication
+	 * we got everything.
+	 */
+
+	if (!d->file_info->file_size_known)
+		download_stop(d, GTA_DL_COMPLETED, no_reason);
+	else
+		download_queue_delay(d, download_retry_busy_delay,
+			_("Stopped data (EOF)"));
+}
+
+/**
+ * Called when all data has been received (during chunked reception).
+ */
+void
+download_rx_done(struct download *d)
+{
+	g_assert(d != NULL);
+	g_assert(d->file_info != NULL);
+
+	download_stop(d, GTA_DL_COMPLETED, no_reason);
 }
 
 /*

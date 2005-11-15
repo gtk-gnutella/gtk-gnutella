@@ -573,6 +573,8 @@ file_info_store_binary(fileinfo_t *fi)
 	int fd;
 	char *path;
 
+	g_assert(!(fi->flags & FI_F_TRANSIENT));
+
 	path = make_pathname(fi->path, fi->file_name);
 	g_return_if_fail(NULL != path);
 
@@ -603,6 +605,8 @@ file_info_strip_binary(fileinfo_t *fi)
 {
 	char *path;
 
+	g_assert(!(fi->flags & FI_F_TRANSIENT));
+
 	path = make_pathname(fi->path, fi->file_name);
 	g_return_if_fail(NULL != path);
 
@@ -621,6 +625,7 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file)
 	fileinfo_t *dfi;
 
 	g_assert(G_DIR_SEPARATOR == file[0]);	/* Absolute path given */
+	g_assert(!(fi->flags & FI_F_TRANSIENT));
 
 	/*
 	 * Before truncating the file, we must be really sure it is reasonnably
@@ -1577,12 +1582,17 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	const GSList *a;
 	struct dl_file_chunk *fc;
 
+	if (fi->flags & FI_F_TRANSIENT)
+		return;
+
 	if (fi->use_swarming && fi->dirty)
 		file_info_store_binary(fi);
+
 	/*
 	 * Keep entries for incomplete or not even started downloads so that the
 	 * download is started/resumed as soon as a search gains a source.
 	 */
+
 	if (0 == fi->refcount && fi->done == fi->size) {
 		gchar *path;
 		struct stat st;
@@ -1900,14 +1910,19 @@ file_info_hash_insert(fileinfo_t *fi)
 	g_assert(fi->size_atom);
 	g_assert(fi->guid);
 
-	if (fileinfo_debug > 4) {
-		printf("FILEINFO insert 0x%p \"%s\" "
-			"(%s/%s bytes done) sha1=%s\n",
+	if (fileinfo_debug > 4)
+		g_message("FILEINFO insert 0x%p \"%s\" "
+			"(%s/%s bytes done) sha1=%s",
 			cast_to_gconstpointer(fi), fi->file_name,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
-		fflush(stdout);
-	}
+
+	/*
+	 * Transient fileinfo is not recorded in any hash table.
+	 */
+
+	if (fi->flags & FI_F_TRANSIENT)
+		goto done;
 
 	/*
 	 * If an entry already exists in the `fi_by_outname' table, then it
@@ -1996,6 +2011,7 @@ file_info_hash_insert(fileinfo_t *fi)
 		g_hash_table_insert(fi_by_size, fi->size_atom, l);
 	}
 
+done:
 	fi->hashed = TRUE;
     fi->fi_handle = file_info_request_handle(fi);
 
@@ -2041,6 +2057,13 @@ file_info_hash_remove(fileinfo_t *fi)
 
 	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count - 1);
 	g_assert((gint) fi_all_count >= 0);
+
+	/*
+	 * Transient fileinfo was not recorded in any hash table.
+	 */
+
+	if (fi->flags & FI_F_TRANSIENT)
+		goto done;
 
 	/*
 	 * Remove from plain hash tables: by output name, by SHA1 and by GUID.
@@ -2106,6 +2129,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	else if (newl != l)
 		g_hash_table_insert(fi_by_size, fi->size_atom, newl);
 
+done:
 	fi->hashed = FALSE;
 }
 
@@ -2127,6 +2151,9 @@ void
 file_info_unlink(fileinfo_t *fi)
 {
 	char *path;
+
+	if (fi->flags & FI_F_TRANSIENT)
+		return;
 
 	path = make_pathname(fi->path, fi->file_name);
 
@@ -3088,6 +3115,38 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 
 	if (!fi->file_size_known)
 		g_assert(!fi->use_swarming);
+
+	return fi;
+}
+
+/**
+ * Create a transient fileinfo structure to be perused by browse host.
+ */
+fileinfo_t *
+file_info_get_browse(const gchar *name)
+{
+	fileinfo_t *fi;
+
+	fi = walloc0(sizeof *fi);
+
+	fi->file_name = atom_str_get(name);
+	fi->path = atom_str_get("/non-existent");
+
+	/* Get unique ID */
+	fi->guid = fi_random_guid_atom();
+
+	fi->size = 0;	/* Will be updated by fi_resize() */
+	fi->file_size_known = FALSE;
+	fi->done = 0;
+	fi->use_swarming = FALSE;
+	fi->ctime = tm_time();
+	fi->seen_on_network = NULL;
+	fi->dirty = TRUE;
+	fi->size_atom = atom_uint64_get(&fi->size);	/* Set now, for fi_resize() */
+
+	fi->flags = FI_F_TRANSIENT;		/* Not persisted to disk */
+
+	file_info_hash_insert(fi);
 
 	return fi;
 }

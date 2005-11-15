@@ -40,8 +40,9 @@ typedef guint32 gnet_search_t;
 /*
  * Flags for search_new()
  */
-#define SEARCH_PASSIVE	 0x01 /**< start a passive ssearch */
-#define SEARCH_ENABLED	 0x02 /**< start an enabled search */
+#define SEARCH_PASSIVE	 (1 << 0)	/**< Start a passive ssearch */
+#define SEARCH_ENABLED	 (1 << 1)	/**< Start an enabled search */
+#define SEARCH_BROWSE	 (1 << 2)	/**< Start a browse-host search */
 
 /*
  * Host vectors held in query hits.
@@ -69,9 +70,9 @@ typedef struct gnet_host_vec {
 /*
  * Processing of ignored files.
  */
-#define SEARCH_IGN_DISPLAY_AS_IS	0		/**< Display normally */
-#define SEARCH_IGN_DISPLAY_MARKED	1		/**< Display marked (lighter color) */
-#define SEARCH_IGN_NO_DISPLAY		2		/**< Don't display */
+#define SEARCH_IGN_DISPLAY_AS_IS	0	/**< Display normally */
+#define SEARCH_IGN_DISPLAY_MARKED	1	/**< Display marked (lighter color) */
+#define SEARCH_IGN_NO_DISPLAY		2	/**< Don't display */
 
 /**
  * A results_set structure factorizes the common information from a Query Hit
@@ -150,7 +151,9 @@ void search_reissue(gnet_search_t sh);
 void search_add_kept(gnet_search_t sh, guint32 kept);
 
 gboolean search_is_passive(gnet_search_t sh);
+gboolean search_is_active(gnet_search_t sh);
 gboolean search_is_frozen(gnet_search_t sh);
+gboolean search_is_expired(gnet_search_t sh);
 
 void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
 guint32 search_get_reissue_timeout(gnet_search_t sh);
@@ -162,6 +165,10 @@ void search_free_alt_locs(gnet_record_t *rc);
 void search_free_proxies(gnet_results_set_t *rs);
 
 void search_update_items(gnet_search_t sh, guint32 items);
+
+gboolean search_browse(gnet_search_t sh,
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_search_h_ */

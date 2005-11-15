@@ -51,6 +51,7 @@
 
 #define FI_F_SUSPEND		0x00000001U	/**< Marked "suspended" new downloads */
 #define FI_F_DISCARD		0x00000002U	/**< Discard fileinfo if refcount = 0 */
+#define FI_F_TRANSIENT		0x40000000U	/**< Don't persist to disk */
 #define FI_F_MARK			0x80000000U	/**< Marked during traversal */
 
 /*
@@ -108,6 +109,8 @@ gboolean file_info_restrict_range(
 
 fileinfo_t *file_info_has_identical(
 	gchar *file, filesize_t size, gchar *sha1);
+
+fileinfo_t *file_info_get_browse(const gchar *name);
 
 /***
  *** Inlined routines.
