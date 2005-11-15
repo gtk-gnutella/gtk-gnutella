@@ -43,6 +43,8 @@ RCSID("$Id$");
 #include "rx_chunk.h"
 #include "rxbuf.h"
 
+#include "if/gnet_property_priv.h"
+
 #include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -280,8 +282,12 @@ parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
 		 *     infinite loop may occur.
 		 */
 
-		if (CHUNK_STATE_DATA == attr->state)
+		if (CHUNK_STATE_DATA == attr->state) {
+			if (dbg > 9)
+				printf("parse_chunk: chunk size %lu bytes\n",
+					(gulong) attr->data_remain);
 			break;
+		}
 
 	} while (len > 0 && CHUNK_STATE_END != attr->state);
 
@@ -435,6 +441,13 @@ rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 		(*rx->data_ind)(rx, imb);
 
 	pmsg_free(mb);
+
+	/*
+	 * When we encountered the end of the stream, let them know.
+	 */
+
+	if ((attr->flags & IF_ENABLED) && attr->state == CHUNK_STATE_END)
+		attr->cb->chunk_end(rx->owner);
 }
 
 /**
