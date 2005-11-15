@@ -100,8 +100,9 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	ret = inflate(inz, Z_SYNC_FLUSH);
 
 	if (ret != Z_OK) {
-		attr->cb->inflate_error(rx->owner, "Decompression failed: %s",
-			zlib_strerror(ret));
+		if (ret != Z_STREAM_END)
+			attr->cb->inflate_error(rx->owner, "Decompression failed: %s",
+				zlib_strerror(ret));
 		goto cleanup;
 	}
 
