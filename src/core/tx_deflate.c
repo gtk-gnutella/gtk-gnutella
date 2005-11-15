@@ -589,7 +589,7 @@ deflate_service(gpointer data)
 		deflate_send(tx);			/* Send buffer `send_idx' */
 
 	if (attr->send_idx >= 0)		/* Could not send it entirely */
-		goto done;					/* Done, servicing still enabled */
+		return;						/* Done, servicing still enabled */
 
 	/*
 	 * NB: In the following operations, order matters.  In particular, we
@@ -611,7 +611,7 @@ deflate_service(gpointer data)
 		deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
 
 		if (tx->flags & TX_ERROR)
-			goto done;
+			return;
 	}
 
 	/*
@@ -644,11 +644,11 @@ deflate_service(gpointer data)
 		deflate_flush_send(tx);
 
 		if (tx->flags & TX_ERROR)
-			goto done;
+			return;
 
 		if (0 == tx_deflate_pending(tx)) {
 			(*attr->closed)(tx, attr->closed_arg);
-			goto done;
+			return;
 		}
 	}
 
@@ -668,13 +668,6 @@ deflate_service(gpointer data)
 		g_assert(tx->srv_routine);
 		tx->srv_routine(tx->srv_arg);
 	}
-
-done:
-	if (dbg > 9)
-		printf("deflate_service: (%s) %sleaving [%c%c]\n",
-			host_to_string(&tx->host), (tx->flags & TX_ERROR) ? "ERROR " : "",
-			(attr->flags & DF_FLOWC) ? 'C' : '-',
-			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
 
 /***
