@@ -7647,7 +7647,7 @@ picked:
 
 	g_assert(d->skip >= d->overlap_size);
 
-	d->range_end = fi->file_size_known ? download_filesize(d) : G_MAXUINT64;
+	d->range_end = fi->file_size_known ? download_filesize(d) : (filesize_t) -1;
 
 	if (fi->file_size_known && (d->server->attrs & DLS_A_HTTP_1_1)) {
 		/*
