@@ -531,7 +531,7 @@ on_popup_search_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_message("on_popup_search_browse_host_activate");
+	search_gui_browse_selected();
 }
 
 void

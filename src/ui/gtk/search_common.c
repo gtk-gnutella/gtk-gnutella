@@ -202,18 +202,44 @@ search_gui_free_alt_locs(record_t *rc)
 }
 
 /**
+ * Clone the proxies list given by the core.
+ */
+gnet_host_vec_t *
+search_gui_proxies_clone(gnet_host_vec_t *v)
+{
+	gnet_host_vec_t *new;
+
+	if (v == NULL)
+		return NULL;
+
+	new = walloc(sizeof *new);
+	new->hvec = walloc(v->hvcnt * sizeof(*v->hvec));
+	new->hvcnt = v->hvcnt;
+
+	memcpy(new->hvec, v->hvec, v->hvcnt * sizeof(*v->hvec));
+
+	return new;
+}
+
+/**
+ * Free the cloned vector of host.
+ */
+void
+search_gui_host_vec_free(gnet_host_vec_t *v)
+{
+	g_assert(v != NULL);
+
+	wfree(v->hvec, v->hvcnt * sizeof(*v->hvec));
+	wfree(v, sizeof *v);
+}
+
+/**
  * Free the push proxies held within a result set.
  */
 void
 search_gui_free_proxies(results_set_t *rs)
 {
-	gnet_host_vec_t *v = rs->proxies;
-
-	g_assert(v != NULL);
-
-	wfree(v->hvec, v->hvcnt * sizeof *v->hvec);
-	wfree(v, sizeof *v);
-
+	search_gui_host_vec_free(rs->proxies);
 	rs->proxies = NULL;
 }
 
@@ -721,7 +747,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 
     rs->num_recs = 0;
     rs->records = NULL;
-	rs->proxies = NULL;
+	rs->proxies = search_gui_proxies_clone(r_set->proxies);
 
     for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
 		gnet_record_t *grc = sl->data;
@@ -1172,30 +1198,12 @@ search_gui_is_expired(const struct search *sch)
 {
 	gboolean expired = FALSE;
 	
-	if (sch && !sch->passive) {
-		time_t ct, start;
-		guint lt;
-		
-		gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
-		ct = guc_search_get_create_time(sch->search_handle);
-		lt = 3600 * guc_search_get_lifetime(sch->search_handle);
-
-		if (lt) {
-			gint d;
-
-			d = delta_time(tm_time(), ct);
-			d = MAX(0, d);
-			
-			if ((guint) d >= lt)
-					expired = TRUE;
-		} else if (delta_time(start, ct) > 0) {
-			expired = TRUE;
-		}
-	}
+	if (sch && !sch->passive)
+		expired = guc_search_is_expired(sch->search_handle);
 
 	return expired;
 }
-	
+
 gboolean
 search_gui_update_expiry(const struct search *sch)
 {
@@ -1777,6 +1785,9 @@ search_gui_history_add(const gchar *s)
     list_search_history = new_hist;
 }
 
+/**
+ * Create a new search from a query entered by the user.
+ */
 void
 search_gui_new_search_entered(void)
 {
@@ -1836,5 +1847,62 @@ search_gui_new_search_entered(void)
 	G_FREE_NULL(text);
 }
 
+/**
+ * Create a new "browse host" type search.
+ *
+ * @param hostname	the DNS name of the host, or NULL if none known
+ * @param addr		the IP address of the host to browse
+ * @param port		the port to contact
+ * @param guid		the GUID of the remote host
+ * @param push		whether a PUSH request is neeed to reach remote host
+ * @param proxies	vector holding known push-proxies
+ *
+ * @return whether the browse host request could be launched.
+ */
+gboolean
+search_gui_new_browse_host(
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies)
+{
+	const gchar *hostport;
+	search_t *search;
+
+	/*
+	 * Browse Host (client-side) works thusly:
+	 *
+	 * We are going to issue a download to request "/" on the remote host.
+	 * Once the HTTP connection is established, the remote servent will
+	 * send back possibly compressed query hits listing all the shared files.
+	 * Those hits will be displayed in the search results.
+	 *
+	 * The core side is responsible for managing the relationship between
+	 * the HTTP packets and the search.  From a GUI standpoint, all we
+	 * want to do is display the results.
+	 *
+	 * However, the "browse host" search is NOT persisted among the searches,
+	 * so its lifetime is implicitely this session only.
+	 */
+
+	hostport = hostname ?
+		hostname_port_to_string(hostname, port) :
+		host_addr_port_to_string(addr, port);
+
+	if (
+		!search_gui_new_search_full(hostport, tm_time(), 0, 0,
+			 search_sort_default_column, search_sort_default_order,
+			 SEARCH_BROWSE | SEARCH_ENABLED, &search)
+	)
+		return FALSE;
+
+	if (
+		!guc_search_browse(search->search_handle, hostname, addr, port,
+			guid, push, proxies)
+	) {
+		search_gui_close_search(search);
+		return FALSE;
+	}
+
+	return TRUE;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
+ * Copyright (c) 2001-2005, Raphael Manfredi, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -32,6 +32,9 @@
  * @author Raphael Manfredi
  * @author Richard Eckart
  * @date 2001-2003
+ *
+ * @author Raphael Manfredi
+ * @date 2005
  */
 
 #include "gtk/gui.h"
@@ -54,6 +57,9 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "if/core/search.h"
+
+#include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/vendors.h"
@@ -62,10 +68,22 @@ RCSID("$Id$");
 
 extern search_t *search_selected;
 
+/**
+ * Record host information pertaining to the last selected row.
+ */
+static struct hostinfo {
+	gboolean valid;				/**< Is information valid? */
+	gchar *hostname;			/**< Known hostname or NULL (atom) */
+	host_addr_t addr;			/**< Address of remote servent */
+	gnet_host_vec_t *proxies;	/**< Known push-proxies */
+	guint16 port;				/**< Port of remote servent */
+	gchar *guid;				/**< Server's GUID */
+	gboolean push;				/**< Whether server is firewalled */
+} last_host;
+
 /***
  *** Private functions
  ***/
-
 
 /**
  *	Activates/deactivates buttons and popups based on what is selected
@@ -85,7 +103,6 @@ refresh_popup(void)
 		{	"popup_search_autodownload" },
 		{	"popup_search_new_from_selected" },
 		{	"popup_search_metadata" },
-		{	"popup_search_browse_host" },
 	};
 	search_t *search = search_gui_get_current_search();
 	gboolean sensitive;
@@ -105,6 +122,10 @@ refresh_popup(void)
         lookup_widget(popup_search, "popup_search_restart"), sensitive);
     gtk_widget_set_sensitive(
         lookup_widget(popup_search, "popup_search_duplicate"), sensitive);
+
+	sensitive = last_host.valid;
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_browse_host"), sensitive);
 
     if (search) {
         gtk_widget_set_sensitive(
@@ -127,7 +148,44 @@ refresh_popup(void)
 }
 
 /**
- * Set or clear (when rc == NULL) the information about the search.
+ * Remember (or forget when rc == NULL) host information about the record.
+ */
+static void
+search_gui_record_host(const record_t *rc)
+{
+	results_set_t *rs;
+
+	if (rc == NULL) {
+		if (last_host.valid) {
+			if (last_host.hostname != NULL)
+				atom_str_free(last_host.hostname);
+			if (last_host.proxies != NULL)
+				search_gui_host_vec_free(last_host.proxies);
+			if (last_host.guid != NULL)
+				atom_guid_free(last_host.guid);
+			last_host.hostname = NULL;
+			last_host.proxies = NULL;
+			last_host.guid = NULL;
+		}
+		last_host.valid = FALSE;
+		return;
+	}
+
+	rs = rc->results_set;
+
+	last_host.hostname = rs->hostname ? atom_str_get(rs->hostname) : NULL;
+	last_host.addr = rs->addr;
+	last_host.port = rs->port;
+	last_host.valid = TRUE;
+	if (rs->proxies)
+		last_host.proxies = search_gui_proxies_clone(rs->proxies);
+	if (rs->guid)
+		last_host.guid = atom_guid_get(rs->guid);
+	last_host.push = (rs->status & ST_FIREWALL) != 0;
+}
+
+/**
+ * Set or clear (when rc == NULL) the information about the record.
  */
 static void
 search_gui_set_details(const record_t *rc)
@@ -291,20 +349,19 @@ search_gui_set_details(const record_t *rc)
 }
 
 /**
- *	Autoselects all searches matching given node in given tree
+ * Autoselects all searches matching given node in given tree, if the
+ * unexpanded root of the tree is selected.  Otherwise, select only the
+ * node on which they clicked.
+ *
+ * @return the amount of entries selected.
  */
 gint
 search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 {
-	GtkCTreeNode *auto_node;
-	GtkCTreeNode *parent, *child;
+	GtkCTreeNode *child;
 	gui_record_t *grc;
-	gui_record_t *grc2;
 	record_t *rc;
-	record_t *rc2;
-	guint32 sel_files = 0;
     guint32 sel_sources = 0;
-    gboolean frozen = FALSE;
 
 	/*
      * Rows with NULL data can appear when inserting new rows
@@ -328,95 +385,38 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 	 * Update details about the selected search.
 	 */
 	search_gui_set_details(rc);
+	search_gui_record_host(rc);
 
-    /* Search the top level of the tree for items to auto-select.
-     * We don't want to search the children, because on the
-     * relevant data, all the children are the same as thier parents
-     * anyway (stored in the shared_record) */
+	/*
+	 * If the selected node is expanded, select it only.
+	 */
+
+	gtk_ctree_select(ctree, node);
+
+	if (GTK_CTREE_ROW(node)->expanded)
+		return 1;
+
+	/*
+	 * Node is not expanded.  Select all its children.
+	 */
+
+	sel_sources++;		/* We already selected the parent (folded) node */
+
 	for (
-        auto_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
-		(NULL != auto_node) && (NULL != rc);
-		auto_node = GTK_CTREE_NODE_SIBLING (auto_node)
-    ) {
-		if (NULL == auto_node)
-			continue;
+		child = GTK_CTREE_ROW(node)->children;
+        child != NULL;
+		child = GTK_CTREE_NODE_SIBLING(child)
+	) {
+		gtk_ctree_select(ctree, child);
+		sel_sources++;
+	}
 
-		grc2 = gtk_ctree_node_get_row_data(ctree, auto_node);
-		rc2 = grc2->shared_record;
-
-        if (rc2 == NULL) {
-        	g_warning("on_ctree_search_results_select_row: "
-                "detected row with NULL data, skipping.");
-            continue;
-		}
-
-		/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 16/03/2004 */
-		if ((gulong) rc2 < 0x1000) {
-			statusbar_gui_message(15,
-				"*** MEMORY CORRUPTED, TRYING TO IGNORE!");
-            g_warning("MEMORY CORRUPTED (in GUI search row data, rc=0x%lx)",
-                (gulong) rc2);
-			continue;
-		}
-
-        /* Check if the current node matches. If this is true, then
-         * we also select all the children without checking further
-         * if they match too. All the children share the same "shared_record"
-         * with thier parents and that contains the only relevant data
-         * on which the matching is done.
-         *     -- Richard, 18/04/2004
-         */
-        if (
-            (NULL != rc) && (NULL != rc2) &&
-			((rc == rc2) || ((rc->sha1 != NULL) && (rc->sha1 == rc2->sha1)))
-        ) {
-			gtk_ctree_select(ctree, auto_node);
-            sel_files ++;
-            sel_sources ++;
-
-            parent = auto_node;
-            child  = GTK_CTREE_ROW(auto_node)->children;
-
-            for (; NULL != child; child = GTK_CTREE_NODE_SIBLING(child)) {
-                if (!frozen && gtk_ctree_is_viewable(ctree, child)) {
-                    gtk_clist_freeze(GTK_CLIST(ctree));
-                    frozen = TRUE;
-                }
-                gtk_ctree_select(ctree, child);
-				sel_sources ++;
-            }
-		}
-	} /* top-level node iteration loop (for)*/
-
-    if (frozen) {
-        gtk_clist_thaw(GTK_CLIST(ctree));
-    }
-
-    if (sel_sources > 1) {
+    if (sel_sources > 1)
         statusbar_gui_message(15,
-            NG_("%d file auto selected with %d sources %s",
-                "%d files auto selected with %d sources %s", sel_files),
-            sel_files, sel_sources, _("by urn:sha1."));
-    }
+            "auto selected %d sources by urn:sha1", sel_sources);
 
-    /* The quest for reduced gui flickering...
-     * Gtk1 seems to have an odd system of determining when to
-     * redraw what. These conditions seem to reduce need to
-     * redraw quite well while still guaranteeing that Gtk1
-     * redraws the gui when necessary:
-     * - If more than one top-level line is affected (sel_files)
-     * - If a visible child was affected (frozen).
-     *     -- Richard, 18/04/2004
-     */
-    if (frozen || (sel_files > 1)) {
-        gtk_widget_queue_draw((GtkWidget *) ctree); /* Force redraw */
-    }
-
-	return sel_files + sel_sources;
+	return sel_sources;
 }
-
-
-
 
 /***
  *** Glade callbacks
@@ -803,8 +803,9 @@ on_ctree_search_results_unselect_row(GtkCTree *unused_ctree, GList *unused_node,
 	(void) unused_column;
 	(void) unused_udata;
 
+	search_gui_set_details(NULL);	/* Clear details about results */
+	search_gui_record_host(NULL);
     refresh_popup();
-	search_gui_set_details(NULL);	/* Clear details about search */
 }
 
 
@@ -871,6 +872,35 @@ on_button_search_passive_clicked(GtkButton *unused_button,
  *** Search results popup
  ***/
 
+/**
+ * Request host browsing for the selected host.
+ */
+void
+search_gui_browse_selected(void)
+{
+	const gchar *hostport;
+
+	if (!last_host.valid) {
+        statusbar_gui_message(15, "*** No search result selected! ***");
+		return;
+	}
+
+	hostport = last_host.hostname ?
+		hostname_port_to_string(last_host.hostname, last_host.port) :
+		host_addr_port_to_string(last_host.addr, last_host.port);
+
+	if (
+		search_gui_new_browse_host(
+			last_host.hostname, last_host.addr, last_host.port,
+			last_host.guid, last_host.push, last_host.proxies)
+	) {
+        statusbar_gui_message(15,
+			"Added search showing browsing results for %s", hostport);
+	} else {
+        statusbar_gui_message(10,
+			"Could not launch browse host for %s", hostport);
+	}
+}
 
 /**
  *	Given a GList of GtkCTreeNodes, return a new list pointing to the shared

@@ -62,7 +62,7 @@ typedef struct results_set {
 	gchar *version;				/**< Version information (atom) */
 	gint country;				/**< Country code -- encoded ISO3166 */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
-	gchar *hostname;			/**< Optional: server's hostname */
+	gchar *hostname;			/**< Optional: server's hostname (atom) */
 	host_addr_t udp_addr;		/**< IP of delivering node, if hit from UDP */
 
 	guint32 num_recs;
@@ -125,6 +125,8 @@ void search_gui_forget_current_search(void);
 void search_gui_current_search(search_t *sch);
 
 void search_gui_free_alt_locs(record_t *rc);
+void search_gui_host_vec_free(gnet_host_vec_t *v);
+gnet_host_vec_t *search_gui_proxies_clone(gnet_host_vec_t *v);
 void search_gui_free_proxies(results_set_t *rs);
 void search_gui_clean_r_set(results_set_t *rs);
 void search_gui_free_r_set(results_set_t *rs);
@@ -150,6 +152,10 @@ const gchar *search_gui_parse_query(const gchar *querystr, GList **rules,
 		const gchar **error);
 void search_gui_filter_new(search_t *sch, GList *rules);
 
+gboolean search_gui_new_browse_host(
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies);
+
 struct filter;
 void search_gui_add_targetted_search(gpointer data, gpointer unused_udata);
 void search_gui_update_items(const struct search *);
@@ -158,6 +164,8 @@ gboolean search_gui_is_expired(const struct search *sch);
 void search_gui_new_search_entered(void);
 void search_gui_option_menu_searches_update(void);
 void search_gui_option_menu_searches_select(const search_t *sch);
+
+void search_gui_browse_selected(void);
 
 gchar *search_xml_indent(const gchar *s);
 

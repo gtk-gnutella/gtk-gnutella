@@ -88,7 +88,7 @@ on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
 
     if (
 		!current_search ||
-		guc_search_is_passive(current_search->search_handle)
+		!guc_search_is_active(current_search->search_handle)
 	) {
         lock = FALSE;
         return;

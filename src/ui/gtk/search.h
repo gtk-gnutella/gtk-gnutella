@@ -68,6 +68,7 @@ struct search {
 
 	gboolean    passive;			/**< Is this a passive search? */
 	gboolean    massive_update;		/**< massive update in process */
+	gboolean    browse;				/**< Is this a browse-host search? */
 
 	hash_list_t *r_sets;			/**< The results sets of this search */
 

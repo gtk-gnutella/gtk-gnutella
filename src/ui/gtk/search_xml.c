@@ -705,6 +705,9 @@ search_to_xml(xmlNodePtr parent, search_t *s)
     g_assert(s->query != NULL);
     g_assert(parent != NULL);
 
+	if (s->browse)
+		return;			/* Don't persist "browse host" searches. */
+
     if (gui_debug >= 6) {
         g_message(
 			"saving search: %s (%p enabled=%d)\n"

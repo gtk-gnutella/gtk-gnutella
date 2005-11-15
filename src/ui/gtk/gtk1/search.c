@@ -342,6 +342,7 @@ search_gui_new_search_full(const gchar *querystr,
 
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
+	sch->browse = (flags & SEARCH_BROWSE) ? TRUE : FALSE;
     sch->search_handle = sch_id;
     sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new(search_gui_hash_func,
@@ -415,8 +416,15 @@ search_gui_new_search_full(const gchar *querystr,
 
 	if (sch->enabled)
 		guc_search_start(sch->search_handle);
+
+	/*
+	 * Make new search the current search, unless it's a browse-host search:
+	 * we need to initiate the download and only if everything is OK will
+	 * we move to the newly created search.
+	 */
 	
-	search_gui_set_current_search(sch);
+	if (!sch->browse)
+		search_gui_set_current_search(sch);
 
 	set_search_color(sch);
 
@@ -635,7 +643,7 @@ void
 search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
 {
 /*
- *  This is the old version by Emile. I the one below seems to work fine
+ *  This is the old version by Emile. The one below seems to work fine
  *  and should be faster because it does not remove/insert. Just in case
  *  my version doesn't work I'll leave the old one in.
  *    -- Richard, 6/2/2004
@@ -651,10 +659,10 @@ search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
     GtkCTreeNode *buf;
 
     buf = g_array_index(array, GtkCTreeNode *, i1);
-    g_array_index(array, GtkCTreeNode *, i1) = g_array_index(array, GtkCTreeNode *, i2);
+    g_array_index(array, GtkCTreeNode *, i1) =
+		g_array_index(array, GtkCTreeNode *, i2);
     g_array_index(array, GtkCTreeNode *, i2) = buf;
 }
-
 
 /**
  * Performs a recursive quick sort on the given array between indicies
@@ -1463,7 +1471,7 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
  * items in the selection within `selected'.
  */
 static guint
-download_selection_of_ctree( GtkCTree *ctree, guint *selected)
+download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 {
 	struct results_set *rs;
 	gui_record_t *grc;
