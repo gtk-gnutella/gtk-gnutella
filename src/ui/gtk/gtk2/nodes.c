@@ -128,8 +128,8 @@ add_column(GtkTreeView *tree, const gchar *title,
 
 struct node_data {
 	gchar *user_agent;	/* Atom */
-	gchar *info;		/* walloc()ed */
 	gchar *host;		/* walloc()ed */
+	gchar *info;		/* walloc()ed */
 	size_t host_size;
 	size_t info_size;
 	guint uptime;
@@ -148,7 +148,19 @@ node_data_free(gpointer value)
 
 	if (data->user_agent)
 		atom_str_free(data->user_agent);
+	WFREE_NULL(data->host, data->host_size);
+	WFREE_NULL(data->info, data->info_size);
 	WFREE_NULL(data, sizeof *data);
+}
+
+static void
+nodes_handles_foreach_free(gpointer unused_key, gpointer value,
+	gpointer unused_udata)
+{
+	(void) unused_key;
+	(void) unused_udata;
+	
+	node_data_free(value);
 }
 
 static GtkTreeStore *
@@ -169,14 +181,32 @@ parent_cell_renderer(GtkCellRenderer *cell,
 	static const GValue zero_value;
 	GValue value = zero_value;
 	const struct node_data *data;
+	const gchar *s;
 
 	gtk_tree_model_get_value(model, iter, 0, &value);
 	data = g_value_peek_pointer(&value);
-	if (id == c_gnet_host)
-		g_object_set(cell,
-			"text", data->host, "xalign", (gfloat) 0.0, (void *) 0);
-	else
-		g_object_set(cell, "text", data->user_agent, (void *) 0);
+	switch (id) {
+	case c_gnet_user_agent:
+		s = data->user_agent;
+		break;
+	case c_gnet_flags:
+		s = data->flags;
+		break;
+	case c_gnet_loc:
+		s = iso3166_country_name(data->country);
+		break;
+	case c_gnet_version:
+		s = data->version;
+		break;
+	case c_gnet_host:
+		s = data->host;
+		g_object_set(cell, "xalign", (gfloat) 0.0, (void *) 0);
+		break;
+	default:
+		s = NULL;
+	}
+
+	g_object_set(cell, "text", s, (void *) 0);
 }
 
 static void
@@ -210,16 +240,13 @@ child_cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 
 	if (column == gtk_tree_view_get_column(tv, 0)) {
 		switch (u) {
-		case c_gnet_loc:		s = _("Country"); break;
 		case c_gnet_connected:	s = _("Connected time"); break;
 		case c_gnet_uptime:		s = _("Uptime"); break;
-		case c_gnet_flags:		s = _("Flags"); break;
 		case c_gnet_info:		s = _("Status"); break;
-		case c_gnet_version:	s = _("Version"); break;
 		default: 				s = NULL; break;
 		}
 		g_object_set(cell, "text", s, "xalign", (gfloat) 1.0, (void *) 0);
-	} else {
+	} else if (column == gtk_tree_view_get_column(tv, 1)) {
 		const struct node_data *data;
 		
 		value = zero_value;
@@ -227,15 +254,14 @@ child_cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		data = g_value_peek_pointer(&value);
 
 		switch (u) {
-		case c_gnet_loc:		s = iso3166_country_name(data->country); break;
 		case c_gnet_connected:	s = short_time(data->connected); break;
 		case c_gnet_uptime:		s = short_time(data->uptime); break;
-		case c_gnet_flags:		s = data->flags; break;
 		case c_gnet_info:		s = data->info; break;
-		case c_gnet_version:	s = data->version; break;
 		default: 				s = NULL; break;
 		}
 		g_object_set(cell, "text", s, (void *) 0);
+	} else {
+		g_object_set(cell, "text", NULL, (void *) 0);
 	}
 }
 
@@ -264,8 +290,11 @@ nodes_gui_create_treeview_nodes(void)
 		const gchar * const title;
 		const guint id;
 	} columns[] = {
-		{ N_("Host"),			c_gnet_host },
-		{ N_("User-Agent"), 	c_gnet_user_agent },
+		{ N_("Host"),		c_gnet_host },
+		{ N_("User-Agent"),	c_gnet_user_agent },
+		{ N_("Flags"),		c_gnet_flags },
+		{ N_("Country"),	c_gnet_loc },
+		{ N_("Version"),	c_gnet_version },
 	};
 	GtkTreeView *tree;
 	guint i;
@@ -581,7 +610,7 @@ nodes_gui_init(void)
     g_object_set(treeview_nodes, "fixed_height_mode", TRUE, (void *) 0);
 #endif /* GTK+ >= 2.4.0 */
 
-	nodes_handles = g_hash_table_new_full(NULL, NULL, NULL, node_data_free);
+	nodes_handles = g_hash_table_new(NULL, NULL);
 
     ht_node_info_changed = g_hash_table_new(NULL, NULL);
     ht_node_flags_changed = g_hash_table_new(NULL, NULL);
@@ -625,6 +654,7 @@ nodes_gui_shutdown(void)
 	nodes_model = NULL;
 	gtk_tree_view_set_model(treeview_nodes, NULL);
 
+	g_hash_table_foreach(nodes_handles, nodes_handles_foreach_free, NULL);
 	g_hash_table_destroy(nodes_handles);
 	nodes_handles = NULL;
 
@@ -646,7 +676,7 @@ nodes_gui_remove_node(gnet_node_t n)
 	struct node_data *data;
 
     /*
-     * Make sure node is remove from the "changed" hash tables so
+     * Make sure node is removed from the "changed" hash tables so
      * we don't try an update later.
      */
     g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
@@ -659,6 +689,7 @@ nodes_gui_remove_node(gnet_node_t n)
 
 	gtk_tree_store_remove(nodes_model, &data->iter);
 	g_hash_table_remove(nodes_handles, GUINT_TO_POINTER(n));
+	node_data_free(data);
 }
 
 /**
@@ -671,12 +702,9 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	struct node_data *data;
 	GtkTreeIter iter;
 	static const guint columns[] = {
-		c_gnet_flags,
 		c_gnet_info,
-		c_gnet_loc,
 		c_gnet_connected,
 		c_gnet_uptime,
-		c_gnet_version,
 	};
 	guint i;
 
@@ -712,8 +740,6 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 {
 	struct node_data *data = value;
 	time_t *now_ptr = user_data, now = *now_ptr;
-	const gchar *s;
-	size_t size;
 	gnet_node_status_t status;
 	gnet_node_t n;
 
@@ -750,16 +776,6 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 
 	if (status.up_date)
 		data->uptime = delta_time(now, status.up_date);
-
-	s = nodes_gui_common_status_str(&status);
-	size = 1 + strlen(s);
-	if (size > data->info_size) {
-		WFREE_NULL(data->info, data->info_size);
-		data->info = wcopy(s, size);
-		data->info_size = size;
-	} else {
-		memcpy(data->info, s, size);
-	}
 }
 
 /**
