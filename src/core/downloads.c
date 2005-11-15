@@ -7533,7 +7533,7 @@ download_send_request(struct download *d)
 		/* XXX -- revisit this encapsulation violation after 0.96 -- RAM */
 		/* XXX (when filesize is not known, fileinfo should handle this) */
 		d->skip = d->pos = fi->done;	/* XXX no overlapping here */
-		d->size = G_MAXUINT64;
+		d->size = -1;
 	}
 
 picked:
