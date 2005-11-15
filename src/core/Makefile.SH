@@ -79,11 +79,12 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.12 2005/08/02 18:27:50 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.14 2005/11/15 21:18:36 rmanfredi Exp $
 
 SRC = \
 	alive.c \
 	ban.c \
+	bh_download.c \
 	bh_upload.c \
 	bitzi.c \
 	bogons.c \
@@ -131,6 +132,7 @@ SRC = \
 	qrp.c \
 	routing.c \
 	rx.c \
+	rx_chunk.c \
 	rx_inflate.c \
 	rx_link.c \
 	rxbuf.c \
@@ -160,6 +162,7 @@ SRC = \
 OBJ = \
 	alive.o \
 	ban.o \
+	bh_download.o \
 	bh_upload.o \
 	bitzi.o \
 	bogons.o \
@@ -207,6 +210,7 @@ OBJ = \
 	qrp.o \
 	routing.o \
 	rx.o \
+	rx_chunk.o \
 	rx_inflate.o \
 	rx_link.o \
 	rxbuf.o \
