@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "downloads.h"
 #include "pmsg.h"
 #include "bsched.h"
+#include "gnet_stats.h"
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
@@ -168,6 +169,9 @@ browse_data_process(struct browse_ctx *bc)
 
 	n = node_browse_prepare(
 		&bc->host, bc->vendor, &bc->header, bc->data, bc->size);
+
+	gnet_stats_count_received_header(n);
+	gnet_stats_count_received_payload(n);
 
 	search_browse_results(n, bc->sh);
 	node_browse_cleanup(n);
