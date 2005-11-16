@@ -2788,15 +2788,17 @@ search_new(const gchar *query,
 			return (gnet_search_t) -1;
 		}
 		qdup = g_strdup(query);
-	} else {
+	} else if (0 == (flags & (SEARCH_BROWSE | SEARCH_PASSIVE))) {
 		qdup = UNICODE_CANONIZE(query);
 		g_assert(qdup != query);
-	}
-
-	if (compact_query(qdup) < 3) {
-		g_warning("Rejected too short query string: \"%s\"", qdup);
-		G_FREE_NULL(qdup);
-		return (gnet_search_t) -1;
+		
+		if (compact_query(qdup) < 3) {
+			g_warning("Rejected too short query string: \"%s\"", qdup);
+			G_FREE_NULL(qdup);
+			return (gnet_search_t) -1;
+		}
+	} else {
+		qdup = g_strdup(query);
 	}
 
 	sch = walloc0(sizeof *sch);
@@ -3170,7 +3172,7 @@ search_dissociate_browse(gnet_search_t sh, gpointer download)
 
 	sch->download = NULL;
 
-	// XXX notify the GUI that the browse is finished
+	/* XXX notify the GUI that the browse is finished */
 }
 
 /* vi: set ts=4 sw=4 cindent: */
