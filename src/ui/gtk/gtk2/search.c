@@ -456,6 +456,7 @@ search_gui_new_search_full(const gchar *querystr,
  
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
+	sch->browse = (flags & SEARCH_BROWSE) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
 	sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->massive_update = FALSE;
@@ -542,7 +543,14 @@ search_gui_new_search_full(const gchar *querystr,
 	if (sch->enabled)
 		guc_search_start(sch->search_handle);
 
-	search_gui_set_current_search(sch);
+	/*
+	 * Make new search the current search, unless it's a browse-host search:
+	 * we need to initiate the download and only if everything is OK will
+	 * we be able to move to the newly created search.
+	 */
+	
+	if (!sch->browse)
+		search_gui_set_current_search(sch);
 
 	if (NULL != search)
 		*search = sch;
