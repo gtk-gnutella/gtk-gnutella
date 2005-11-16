@@ -349,6 +349,9 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 				attr->data_remain = 0;
 				attr->state = CHUNK_STATE_DATA_CRLF;
 			}
+			if (dbg > 9)
+				printf("dechunk_data: returning chunk of %u bytes\n",
+					pmsg_size(nmb));
 			return nmb;
 		}
 
