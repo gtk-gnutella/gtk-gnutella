@@ -1820,7 +1820,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[60].name = "bootstrap_debug";
-    gnet_property->props[60].desc = _("Debug level for bootstraping into the network.");
+    gnet_property->props[60].desc = _("Debug level for bootstrapping into the network.");
     gnet_property->props[60].ev_changed = event_new("bootstrap_debug_changed");
     gnet_property->props[60].save = TRUE;
     gnet_property->props[60].vector_size = 1;
@@ -2260,7 +2260,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[82].name = "parq_optimistic";
-    gnet_property->props[82].desc = _("If set, PARQ will calculate its ETA and retry times more optimistically. If not set PARQ will caclulate using a worst case scenario.  The default is to be optimistic.");
+    gnet_property->props[82].desc = _("If set, PARQ will calculate its ETA and retry times more optimistically. If not set PARQ will calculate using a worst case scenario.  The default is to be optimistic.");
     gnet_property->props[82].ev_changed = event_new("parq_optimistic_changed");
     gnet_property->props[82].save = TRUE;
     gnet_property->props[82].vector_size = 1;
@@ -4908,7 +4908,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[223].name = "node_watch_similar_queries";
-    gnet_property->props[223].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour.  Dropped queries will be accounted for in the 'Message throttle' counter.");
+    gnet_property->props[223].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbor.  Dropped queries will be accounted for in the 'Message throttle' counter.");
     gnet_property->props[223].ev_changed = event_new("node_watch_similar_queries_changed");
     gnet_property->props[223].save = TRUE;
     gnet_property->props[223].vector_size = 1;
@@ -5383,7 +5383,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[247].name = "file_descriptor_runout";
-    gnet_property->props[247].desc = _("When set, gtk-gnutella has run out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurance.");
+    gnet_property->props[247].desc = _("When set, gtk-gnutella has run out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurrence.");
     gnet_property->props[247].ev_changed = event_new("file_descriptor_runout_changed");
     gnet_property->props[247].save = FALSE;
     gnet_property->props[247].vector_size = 1;
@@ -5502,7 +5502,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[254].name = "enable_udp";
-    gnet_property->props[254].desc = _("Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will also listen for UDP traffic on the same port as the one configured for TCP and process incoming Gnutella traffic in almost the same way as if it was received via TCP.  It is safe to leave this set, which is the default behaviour.");
+    gnet_property->props[254].desc = _("Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will also listen for UDP traffic on the same port as the one configured for TCP and process incoming Gnutella traffic in almost the same way as if it was received via TCP.  It is safe to leave this set, which is the default behavior.");
     gnet_property->props[254].ev_changed = event_new("enable_udp_changed");
     gnet_property->props[254].save = TRUE;
     gnet_property->props[254].vector_size = 1;
@@ -5519,7 +5519,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[255].name = "process_oob_queries";
-    gnet_property->props[255].desc = _("Whether gtk-gnutella should honour the request for out-of-band delivery of query hits via UDP, provided UDP support is enabled.  It should not be necessary to add a port forwarding to enable this as your node will be the origin of the UDP traffic and can therefore receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honours the bandwidth limitations.");
+    gnet_property->props[255].desc = _("Whether gtk-gnutella should honor the request for out-of-band delivery of query hits via UDP, provided UDP support is enabled.  It should not be necessary to add a port forwarding to enable this as your node will be the origin of the UDP traffic and can therefore receive replies sent to the transient UDP port opened by a masquerading firewall.  It is enabled by default because it is deemed safe, as your node controls the bulk of the emitted traffic and honors the bandwidth limitations.");
     gnet_property->props[255].ev_changed = event_new("process_oob_queries_changed");
     gnet_property->props[255].save = TRUE;
     gnet_property->props[255].vector_size = 1;
@@ -5678,7 +5678,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[264].name = "overloaded_cpu";
-    gnet_property->props[264].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gntuella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are suspended.");
+    gnet_property->props[264].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gnutella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are suspended.");
     gnet_property->props[264].ev_changed = event_new("overloaded_cpu_changed");
     gnet_property->props[264].save = FALSE;
     gnet_property->props[264].vector_size = 1;

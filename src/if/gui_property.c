@@ -206,20 +206,21 @@ prop_def_choice_t gnet_stats_source_choices[] = {
     {N_("UDP only"), GNET_STATS_UDP_ONLY},
     {NULL, 0}
 };
-guint32  gnet_stats_drop_reasons_type     = 0;
-guint32  gnet_stats_drop_reasons_type_def = 0;
+guint32  gnet_stats_drop_reasons_type     = 11;
+guint32  gnet_stats_drop_reasons_type_def = 11;
 prop_def_choice_t gnet_stats_drop_reasons_type_choices[] = { 
-    {N_("Ping"), 0},
-    {N_("Pong"), 1},
-    {N_("Bye"), 2},
-    {N_("QRP"), 3},
-    {N_("HSEP"), 4},
-    {N_("Vendor spec."), 5},
-    {N_("Vendor std."), 6},
-    {N_("Push"), 7},
-    {N_("Query"), 8},
-    {N_("Query Hit"), 9},
-    {N_("Total"), 10},
+    {N_("Unknown"), 0},
+    {N_("Ping"), 1},
+    {N_("Pong"), 2},
+    {N_("Bye"), 3},
+    {N_("QRP"), 4},
+    {N_("HSEP"), 5},
+    {N_("Vendor spec."), 6},
+    {N_("Vendor std."), 7},
+    {N_("Push"), 8},
+    {N_("Query"), 9},
+    {N_("Query Hit"), 10},
+    {N_("Total"), 11},
     {NULL, 0}
 };
 gboolean gnet_stats_with_headers     = TRUE;
