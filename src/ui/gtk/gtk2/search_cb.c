@@ -44,6 +44,7 @@ RCSID("$Id$");
 
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/search.h"
+#include "gtk/statusbar.h"
 #include "gtk/misc.h"
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
@@ -1082,6 +1083,58 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	search_gui_request_bitzi_data();
 }
 
+/**
+ * Request host browsing for the selected host.
+ */
+void
+search_gui_browse_selected(void)
+{
+	GtkTreeView *tv;
+	GtkTreePath *path;
+	const gchar *hostport;
+	const record_t *rc;
+	search_t *search;
+   
+	search = search_gui_get_current_search();
+	if (!search)
+		return;
+
+	tv = GTK_TREE_VIEW(search->tree_view);
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path) {
+        statusbar_gui_message(15, "*** No search result selected! ***");
+		return;
+	}
+	rc = search_gui_get_record_at_path(tv, path);
+	if (!rc)
+		return;
+
+	if (rc->results_set->hostname)
+		hostport = hostname_port_to_string(rc->results_set->hostname,
+						rc->results_set->port);
+	else
+		hostport = host_addr_port_to_string(rc->results_set->addr,
+						rc->results_set->port);
+
+	if (
+		search_gui_new_browse_host(
+			rc->results_set->hostname,
+			rc->results_set->addr,
+			rc->results_set->port,
+			rc->results_set->guid,
+			0 != (rc->results_set->status & ST_FIREWALL),
+			rc->results_set->proxies)
+	) {
+        statusbar_gui_message(15,
+			"Added search showing browsing results for %s", hostport);
+	} else {
+        statusbar_gui_message(10,
+			"Could not launch browse host for %s", hostport);
+	}
+
+	gtk_tree_path_free(path);
+	path = NULL;
+}
 
 void
 search_callbacks_shutdown(void)
