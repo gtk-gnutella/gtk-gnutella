@@ -7029,7 +7029,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (!got_content_length && (d->flags & DL_F_BROWSE)) {
 		buf = header_get(header, "Transfer-Encoding");
-		if (0 == strcmp(buf, "chunked"))
+		if (buf && 0 == strcmp(buf, "chunked"))
 			bh_flags |= BH_DL_CHUNKED;
 		got_content_length = TRUE;		/* Not required for browsing anyway */
 	}
@@ -9263,11 +9263,22 @@ download_browse_start(const gchar *name, const gchar *hostname,
 	struct download *d;
 	fileinfo_t *fi;
 	gchar *dname;
+	gchar fake_guid[GUID_RAW_SIZE];
+		
 
 	gm_snprintf(dl_tmp, sizeof dl_tmp, _("<Browse Host %s>"), name);
 
 	dname = atom_str_get(dl_tmp);
 	fi = file_info_get_browse(dname);
+
+	if (!guid) {
+		/*
+		 * FIXME: create_download() requires a non-NULL guid but in many cases
+		 * there's no GUID (arbitrary browse host, magnets, arbitrary URLs).
+		 */
+		guid_random_fill(fake_guid);
+		guid = fake_guid;
+	}
 
 	d = create_download(dname, "/", 0, 0, addr, port, guid, hostname,
 			NULL, tm_time(), push, TRUE, FALSE, fi, proxies, 0);
