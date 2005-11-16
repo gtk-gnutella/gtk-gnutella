@@ -423,7 +423,9 @@ search_gui_new_search_full(const gchar *querystr,
 	 * we move to the newly created search.
 	 */
 	
-	if (!sch->browse)
+	if (sch->browse)
+		gui_search_force_update_tab_label(sch);
+	else
 		search_gui_set_current_search(sch);
 
 	set_search_color(sch);
