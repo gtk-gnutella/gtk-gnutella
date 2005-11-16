@@ -1345,7 +1345,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_sidebar", vbox_sidebar,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_sidebar);
-  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox_sidebar, TRUE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox_sidebar, FALSE, FALSE);
 
   vpaned_sidebar = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
@@ -1361,7 +1361,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_menu", viewport_menu,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport_menu);
-  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), viewport_menu, TRUE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), viewport_menu, FALSE, FALSE);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_menu), GTK_SHADOW_NONE);
 
   sw_menu = gtk_scrolled_window_new (NULL, NULL);
@@ -1754,7 +1754,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_right", vbox_right,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_right);
-  gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, FALSE);
+  gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, TRUE);
 
   viewport_searchbar = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport_searchbar, "viewport_searchbar");
@@ -10342,7 +10342,7 @@ create_dlg_about (void)
   gtk_widget_show (label_about_title);
   gtk_box_pack_start (GTK_BOX (hbox170), label_about_title, TRUE, TRUE, 0);
 
-  label_about_rcsid = gtk_label_new ("$Id$");
+  label_about_rcsid = gtk_label_new (_("$Id$"));
   gtk_widget_set_name (label_about_rcsid, "label_about_rcsid");
   gtk_widget_ref (label_about_rcsid);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_rcsid", label_about_rcsid,

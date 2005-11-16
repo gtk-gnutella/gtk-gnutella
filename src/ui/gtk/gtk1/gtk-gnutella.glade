@@ -653,8 +653,8 @@
 	<homogeneous>False</homogeneous>
 	<spacing>0</spacing>
 	<child>
-	  <shrink>True</shrink>
-	  <resize>True</resize>
+	  <shrink>False</shrink>
+	  <resize>False</resize>
 	</child>
 
 	<widget>
@@ -673,8 +673,8 @@
 	    <name>viewport_menu</name>
 	    <shadow_type>GTK_SHADOW_NONE</shadow_type>
 	    <child>
-	      <shrink>True</shrink>
-	      <resize>True</resize>
+	      <shrink>False</shrink>
+	      <resize>False</resize>
 	    </child>
 
 	    <widget>
@@ -1278,7 +1278,7 @@
 	<homogeneous>False</homogeneous>
 	<spacing>0</spacing>
 	<child>
-	  <shrink>False</shrink>
+	  <shrink>True</shrink>
 	  <resize>True</resize>
 	</child>
 

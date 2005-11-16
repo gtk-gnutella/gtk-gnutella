@@ -85,42 +85,6 @@ gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
 
     clist->column[col].title = g_strdup(t);
 }
-
-/**
- * Save visibility of columns in given property which must by a boolean array
- * property with at least as many elements as there are columns.
- */
-void
-gtk_clist_save_visibility(GtkCList *clist, property_t prop)
-{
-	gint i;
-	gboolean val;
-
-	g_assert(clist);
-
-    for (i = 0; i < clist->columns; i++) {
-		val = clist->column[i].visible;
-		gui_prop_set_boolean(prop, &val, i, 1);
-	}
-}
-
-/**
- * Restore visibility of columns from given property which must by a boolean
- * array property with at least as many elements as there are columns.
- */
-void
-gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
-{
-	gint i;
-	gboolean val;
-
-	g_assert(clist);
-
-    for (i = 0; i < clist->columns; i++) {
-		gui_prop_get_boolean(prop, &val, i, 1);
-    	gtk_clist_set_column_visibility(clist, i, val);
-	}
-}
 #endif /* USE_GTK1 */
 
 #define GTK_ITERATION_MAX	100		/* Don't spend too much time in GUI */
@@ -524,82 +488,6 @@ tree_selection_collect_data(GtkTreeSelection *selection,
     g_slist_free(cdata.to_unselect);
 
     return cdata.results;
-}
-
-void
-tree_view_save_widths(GtkTreeView *treeview, property_t prop)
-{
-	gint i;
-
-	g_assert(treeview);
-	for (i = 0; i < INT_MAX; i++) {
-		GtkTreeViewColumn *c;
-		guint32 width;
-
-		c = gtk_tree_view_get_column(treeview, i);
-		if (!c)
-			break;
-
-		width = gtk_tree_view_column_get_width(c);
-		if ((gint) width > 0)
-			gui_prop_set_guint32(prop, &width, i, 1);
-	}
-}
-
-void
-tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
-{
-	gint i;
-
-	g_assert(treeview);
-	for (i = 0; i < INT_MAX; i++) {
-		GtkTreeViewColumn *c;
-		guint32 width;
-
-		c = gtk_tree_view_get_column(treeview, i);
-		if (!c)
-			break;
-		gui_prop_get_guint32(prop, &width, i, 1);
-		g_object_set(G_OBJECT(c),
-			"fixed-width", MAX(1, (gint32) width),
-			(void *) 0);
-	}
-}
-
-void
-tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
-{
-	guint i;
-
-	g_assert(treeview);
-	for (i = 0; i < INT_MAX; i++) {
-		GtkTreeViewColumn *c;
-		gboolean val;
-
-		c = gtk_tree_view_get_column(treeview, i);
-		if (!c)
-			break;
-		val = gtk_tree_view_column_get_visible(c);
-		gui_prop_set_boolean(prop, &val, i, 1);
-	}
-}
-
-void
-tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
-{
-	guint i;
-
-	g_assert(treeview);
-	for (i = 0; i < INT_MAX; i++) {
-		GtkTreeViewColumn *c;
-		gboolean val;
-
-		c = gtk_tree_view_get_column(treeview, i);
-		if (!c)
-			break;
-		gui_prop_get_boolean(prop, &val, i, 1);
-		gtk_tree_view_column_set_visible(c, val);
-	}
 }
 
 struct tree_view_motion {

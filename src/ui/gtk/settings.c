@@ -129,6 +129,18 @@ static prop_set_t *properties = NULL;
 
 static prop_map_t * settings_gui_get_map_entry(property_t prop);
 
+static const struct {
+	const gchar *name;
+	const property_t prop;
+} panes[] = {
+	{ "vpaned_fileinfo",	PROP_FILEINFO_DIVIDER_POS },
+	{ "hpaned_main",		PROP_MAIN_DIVIDER_POS },
+	{ "vpaned_results",		PROP_RESULTS_DIVIDER_POS },
+#ifdef USE_GTK1
+	{ "vpaned_sidebar",		PROP_SIDE_DIVIDER_POS },
+#endif /* USE_GTK1 */
+};
+
 /*
  * Callback declarations (only those whose pre-declaration is needed).
  */
@@ -398,41 +410,6 @@ update_multichoice(property_t prop)
 	} else {
 		g_assert_not_reached();
 	}
-
-    return FALSE;
-}
-
-static gboolean
-update_split_pane(property_t prop)
-{
-    GtkWidget *w;
-    guint32 val = 0;
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
-
-    if (!top)
-        return FALSE;
-
-    w = lookup_widget(top, map_entry->wid);
-    if (w == NULL) {
-		if (gui_debug)
-			g_warning("%s - widget not found: [%s]",
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
-        return FALSE;
-    }
-
-    switch (map_entry->type) {
-        case PROP_TYPE_GUINT32:
-            stub->guint32.get(prop, &val, 0, 1);
-            break;
-        default:
-            val = 0;
-            g_error("update_split_pane: incompatible type: %u",
-                (guint) map_entry->type);
-    }
-
-    gtk_paned_set_position(GTK_PANED(w), val);
 
     return FALSE;
 }
@@ -2924,48 +2901,6 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #endif /* USE_GTK1 */
-    PROP_ENTRY(
-        get_main_window,
-        PROP_MAIN_DIVIDER_POS,
-        update_split_pane,
-        TRUE,
-        "hpaned_main",
-        FREQ_UPDATES, 0
-    ),
-#ifdef USE_GTK1
-    PROP_ENTRY(
-        get_main_window,
-        PROP_SIDE_DIVIDER_POS,
-        update_split_pane,
-        TRUE,
-        "vpaned_sidebar",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_FILEINFO_DIVIDER_POS,
-        update_split_pane,
-        TRUE,
-        "vpaned_fileinfo",
-        FREQ_UPDATES, 0
-    ),
-#endif /* USE_GTK1 */
-    PROP_ENTRY(
-        get_filter_dialog,
-        PROP_FILTER_MAIN_DIVIDER_POS,
-        update_split_pane,
-        TRUE,
-        "hpaned_filter_main",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_RESULTS_DIVIDER_POS,
-        update_split_pane,
-        TRUE,
-        "vpaned_results",
-        FREQ_UPDATES, 0
-    ),
     PROP_ENTRY(
         get_main_window,
         PROP_SIDEBAR_VISIBLE,
@@ -5604,24 +5539,28 @@ settings_gui_init_prop_map(void)
     }
 }
 
-/**
- * Must be called after settings_gui_init_prop_map() and initializes
- * properties requiring update_split_pane. This is used to set up
- * the positions _after_ the window is resized and visible.
- */
 static void
-settings_gui_init_prop_map_late(void)
+settings_gui_save_panes(void)
 {
-    guint n;
+	guint i;
 
-    /*
-     * Now the map is complete and can be processed.
-     */
-    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
-        if (property_map[n].cb == update_split_pane) {
-            update_split_pane(property_map[n].prop);
-        }
-    }
+	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
+		paned_save_position(
+			GTK_PANED(lookup_widget(main_window, panes[i].name)),
+			panes[i].prop);
+	}
+}
+
+void
+settings_gui_restore_panes(void)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
+		paned_restore_position(
+			GTK_PANED(lookup_widget(main_window, panes[i].name)),
+			panes[i].prop);
+	}
 }
 
 void
@@ -5662,17 +5601,9 @@ settings_gui_init(void)
 	 *		--RAM, 27/12/2003
 	 */
 #ifndef USE_REMOTE_CTRL
-	{
-		GtkWidget *w = lookup_widget(dlg_prefs, "checkbutton_enable_shell");
-		gtk_widget_set_sensitive(w, FALSE);
-	}
+	gtk_widget_set_sensitive(
+		lookup_widget(dlg_prefs, "checkbutton_enable_shell"), FALSE);
 #endif /* USE_REMOTE_CTRL */
-}
-
-void
-settings_gui_init_late(void)
-{
-    settings_gui_init_prop_map_late();
 }
 
 void
@@ -5695,21 +5626,8 @@ settings_gui_shutdown(void)
      * There are no Gtk signals to listen to, so we must set those
      * values on exit.
      */
-	*(guint32 *) &fileinfo_divider_pos =
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "vpaned_fileinfo")));
-    *(guint32 *) &main_divider_pos =
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "hpaned_main")));
-#ifdef USE_GTK1
-    *(guint32 *) &side_divider_pos =
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "vpaned_sidebar")));
-#endif /* USE_GTK1 */
-    *(guint32 *) &results_divider_pos =
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "vpaned_results")));
 
+	settings_gui_save_panes();
     /*
      * Save properties to file
      */

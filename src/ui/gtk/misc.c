@@ -47,7 +47,9 @@ RCSID("$Id$");
 #include "gtk-missing.h"
 
 #include "if/gnet_property.h"
+#include "if/gui_property.h"
 #include "if/gui_property_priv.h"
+
 #include "if/core/net_stats.h"
 #include "if/bridge/ui2c.h"
 
@@ -602,5 +604,143 @@ tree_find_iter_by_data(GtkTreeModel *model,
 }
 
 #endif	/* USE_GTK2 */
+
+void
+paned_save_position(GtkPaned *paned, property_t prop)
+{
+	guint32 pos;
+	
+	g_assert(paned);
+
+	pos = gtk_paned_get_position(GTK_PANED(paned));
+	gui_prop_set_guint32_val(prop, pos);
+}
+
+void
+paned_restore_position(GtkPaned *paned, property_t prop)
+{
+	guint32 pos;
+	
+	g_assert(paned);
+
+	gui_prop_get_guint32_val(prop, &pos);
+	gtk_paned_set_position(GTK_PANED(paned), pos);
+}
+
+#ifdef USE_GTK2
+void
+tree_view_save_widths(GtkTreeView *treeview, property_t prop)
+{
+	gint i;
+
+	g_assert(treeview);
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
+		guint32 width;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
+			break;
+
+		width = gtk_tree_view_column_get_width(c);
+		if ((gint) width > 0)
+			gui_prop_set_guint32(prop, &width, i, 1);
+	}
+}
+
+void
+tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
+{
+	gint i;
+
+	g_assert(treeview);
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
+		guint32 width;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
+			break;
+		gui_prop_get_guint32(prop, &width, i, 1);
+		g_object_set(G_OBJECT(c),
+			"fixed-width", MAX(1, (gint32) width),
+			(void *) 0);
+	}
+}
+
+void
+tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
+{
+	guint i;
+
+	g_assert(treeview);
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
+		gboolean val;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
+			break;
+		val = gtk_tree_view_column_get_visible(c);
+		gui_prop_set_boolean(prop, &val, i, 1);
+	}
+}
+
+void
+tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
+{
+	guint i;
+
+	g_assert(treeview);
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
+		gboolean val;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
+			break;
+		gui_prop_get_boolean(prop, &val, i, 1);
+		gtk_tree_view_column_set_visible(c, val);
+	}
+}
+#endif /* USE_GTK2 */
+
+#ifdef USE_GTK1
+/**
+ * Save visibility of columns in given property which must by a boolean array
+ * property with at least as many elements as there are columns.
+ */
+void
+gtk_clist_save_visibility(GtkCList *clist, property_t prop)
+{
+	gint i;
+	gboolean val;
+
+	g_assert(clist);
+
+    for (i = 0; i < clist->columns; i++) {
+		val = clist->column[i].visible;
+		gui_prop_set_boolean(prop, &val, i, 1);
+	}
+}
+
+/**
+ * Restore visibility of columns from given property which must by a boolean
+ * array property with at least as many elements as there are columns.
+ */
+void
+gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
+{
+	gint i;
+	gboolean val;
+
+	g_assert(clist);
+
+    for (i = 0; i < clist->columns; i++) {
+		gui_prop_get_boolean(prop, &val, i, 1);
+    	gtk_clist_set_column_visibility(clist, i, val);
+	}
+}
+#endif /* USE_GTK1 */
 
 /* vi: set ts=4 sw=4 cindent: */

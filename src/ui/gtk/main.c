@@ -771,8 +771,7 @@ main_gui_run(void)
 	}
 #endif /* USE_GTK1 */
 
-    settings_gui_init_late();
-
+	settings_gui_restore_panes();
     gtk_main();
 }
 

@@ -33,7 +33,7 @@
 #include "if/gui_property.h"
 
 void settings_gui_init(void);
-void settings_gui_init_late(void);
+void settings_gui_restore_panes(void);
 const gchar *settings_gui_config_dir(void);
 GtkTooltips *settings_gui_tooltips(void);
 void settings_gui_save_if_dirty(void);

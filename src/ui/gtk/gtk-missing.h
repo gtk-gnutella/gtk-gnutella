@@ -59,8 +59,6 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
     GCompareFunc cfn);
-void gtk_clist_save_visibility(GtkCList *clist, property_t prop);
-void gtk_clist_restore_visibility(GtkCList *clist, property_t prop);
 #endif /* USE_GTK1 */
 
 /*
@@ -130,10 +128,6 @@ void w_tree_iter_free(GtkTreeIter *iter);
 void ht_w_tree_iter_free(gpointer);
 GSList *tree_selection_collect_data(GtkTreeSelection *tsel,
 		tree_selection_get_data_func gdf, GCompareFunc cfn);
-void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
-void tree_view_save_visibility(GtkTreeView *treeview, property_t prop);
-void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop);
-void tree_view_restore_widths(GtkTreeView *treeview, property_t prop);
 tree_view_motion_t *tree_view_motion_set_callback(GtkTreeView *tv,
 	tree_view_motion_callback cb, guint interval);
 void tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tm);
