@@ -668,8 +668,8 @@ on_tree_view_motion_notify(GtkWidget *widget,
 		}
 #undef EVENT_TYPE
 
-		g_message("%s: type=%s, x=%d, y=%d, axes=%p, x_root=%d, y_root=%d",
-				__func__, type,
+		g_message("on_tree_view_motion_notify(): type=%s, x=%d, y=%d, axes=%p, x_root=%d, y_root=%d",
+				type,
 				(gint) event->x, (gint) event->y, event->axes,
 				(gint) event->x_root, (gint) event->y_root);
 	}

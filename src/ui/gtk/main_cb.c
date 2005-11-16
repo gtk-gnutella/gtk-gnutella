@@ -130,7 +130,7 @@ on_menu_keyboard_shortcuts_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_message("%s: This is a stub", __func__);
+	g_message("on_menu_keyboard_shortcuts_activate(): This is a stub");
 }
 
 

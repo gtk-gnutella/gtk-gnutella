@@ -1344,11 +1344,11 @@ get_dh_params(void)
 
 	if (!initialized) {
  		if (gnutls_dh_params_init(&dh_params)) {
-			g_warning("%s: gnutls_dh_params_init() failed", __func__);
+			g_warning("get_dh_params(): gnutls_dh_params_init() failed");
 			return NULL;
 		}
     	if (gnutls_dh_params_generate2(dh_params, TLS_DH_BITS)) {
-			g_warning("%s: gnutls_dh_params_generate2() failed", __func__);
+			g_warning("get_dh_params(): gnutls_dh_params_generate2() failed");
 			return NULL;
 		}
 		initialized = TRUE;
@@ -2314,14 +2314,19 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 				  s->file_desc, g_strerror(error));
 		return;
 	}
-	
+
+	/*
+	 * It might be useful to call socket_udp_accept() several times
+	 * as there are often several packets queued.
+	 */
+
 	for (i = 0; i < 1; i++) {
 		if (socket_udp_accept(s)) {
 			if (errno != EAGAIN)
 				g_warning("ignoring datagram reception error: %s",
 					g_strerror(errno));
 			if (i > 1)
-				g_message("%s: i=%u", __func__, i);
+				g_message("socket_udp_event(): i=%u", i);
 			return;
 		}
 	}
@@ -3109,7 +3114,8 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
 			if (tls_debug)
-				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+				g_message("socket_tls_write(): errno=\"%s\"",
+					g_strerror(errno));
 			errno = EIO;
 			ret = -1;
 			break;
@@ -3158,7 +3164,8 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
 			if (tls_debug)
-				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+				g_message("socket_tls_read(): errno=\"%s\"",
+					g_strerror(errno));
 			errno = EIO;
 			break;
 		default:
@@ -3210,7 +3217,8 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
 				if (tls_debug)
-					g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+					g_message("socket_tls_writev(): errno=\"%s\"",
+						g_strerror(errno));
 				errno = EIO;
 				break;
 			default:
@@ -3247,7 +3255,8 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
 				if (tls_debug)
-					g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+					g_message("socket_tls_writev(): errno=\"%s\"",
+						g_strerror(errno));
 				ret = -1;
 				break;
 			default:
@@ -3318,7 +3327,8 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
 			if (tls_debug)
-				g_message("%s: errno=\"%s\"", __func__, g_strerror(errno));
+				g_message("socket_tls_readv(): errno=\"%s\"",
+					g_strerror(errno));
 			errno = EIO;
 			ret = -1;
 			break;
@@ -3529,7 +3539,7 @@ socket_init(void)
 
 #ifdef HAS_GNUTLS
 	if (gnutls_global_init())
-		g_warning("%s: gnutls_global_init() failed", __func__);
+		g_warning("socket_init(): gnutls_global_init() failed");
 	get_dh_params();
 #endif /* HAS_GNUTLS */
 }
