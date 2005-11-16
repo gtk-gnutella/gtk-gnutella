@@ -348,7 +348,8 @@ void
 icon_init(void)
 {
     create_icon();
-    gtk_widget_realize(icon);
+
+	gtk_widget_realize(icon);
 
     /*
      * For some reason, when a window is the icon for another
@@ -360,7 +361,10 @@ icon_init(void)
      * of whether the icon window is visible or not.
      */
     gtk_widget_map(canvas);
+	/* FIXME: This causes a crash with twm when iconizing the main window. */
+#if 0
     gdk_window_set_icon(main_window->window, icon->window, NULL, NULL);
+#endif
     icon_just_mapped_fg = icon_visible_fg = icon_close_fg = FALSE;
 
     /*   load images   */
