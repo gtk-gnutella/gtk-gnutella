@@ -5,14 +5,15 @@
 # Copyright (C) 2001-2005 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Thomas Schürger <thomas@schuerger.com>, 2004-2005.
+# Christian Biere <christianbiere@gmx.de>, 2005.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-16 17:55+0900\n"
-"PO-Revision-Date: 2005-11-16 14:16+0900\n"
-"Last-Translator: Thomas Schürger <thomas@schuerger.com>\n"
+"PO-Revision-Date: 2005-11-16 18:18+0900\n"
+"Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
