@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "gtk/visual_progress.h"
 #include "gtk/columns.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/misc.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"

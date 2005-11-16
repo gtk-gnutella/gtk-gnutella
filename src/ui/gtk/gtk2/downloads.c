@@ -39,6 +39,7 @@ RCSID("$Id$");
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/misc.h"
 
 #include "if/core/bsched.h"
 #include "if/core/http.h"

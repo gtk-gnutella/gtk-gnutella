@@ -30,6 +30,7 @@ RCSID("$Id$");
 #include "gtk/hcache.h"
 #include "gtk/columns.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/misc.h"
 #include "gtk/notebooks.h"
 
 #include "if/gui_property.h"

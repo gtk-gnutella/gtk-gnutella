@@ -62,6 +62,7 @@ RCSID("$Id$");
 
 #include "gtk/columns.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/misc.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"

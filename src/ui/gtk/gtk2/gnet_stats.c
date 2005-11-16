@@ -30,6 +30,7 @@ RCSID("$Id$");
 #include "gtk/gnet_stats.h"
 #include "gtk/notebooks.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/misc.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
