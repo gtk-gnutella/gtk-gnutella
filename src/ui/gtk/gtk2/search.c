@@ -1789,7 +1789,7 @@ search_gui_request_bitzi_data(void)
 			g_assert(rd);
 			
 			/* set the feedback */
-			rd->meta = g_strdup("Query queued...");
+			rd->meta = g_strdup(_("Query queued..."));
 
 			/* then send the query... */
 	    	guc_query_bitzi_by_urn(rec->sha1);

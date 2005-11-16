@@ -1126,10 +1126,10 @@ search_gui_browse_selected(void)
 			rc->results_set->proxies)
 	) {
         statusbar_gui_message(15,
-			"Added search showing browsing results for %s", hostport);
+			_("Added search showing browsing results for %s"), hostport);
 	} else {
         statusbar_gui_message(10,
-			"Could not launch browse host for %s", hostport);
+			_("Could not launch browse host for %s"), hostport);
 	}
 
 	gtk_tree_path_free(path);
