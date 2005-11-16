@@ -10394,7 +10394,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (checkbutton_config_use_netmasks, "checkbutton_config_use_netmasks");
   gtk_widget_show (checkbutton_config_use_netmasks);
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_use_netmasks, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, _("This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first."), NULL);
+  gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, _("This option can give performance boosts to those on a large network with many peers by trying to locate files on the local networks first."), NULL);
 
   checkbutton_config_no_rfc1918 = gtk_check_button_new_with_mnemonic (_("Allow connections from and to _LAN addresses"));
   gtk_widget_set_name (checkbutton_config_no_rfc1918, "checkbutton_config_no_rfc1918");
@@ -10582,7 +10582,7 @@ create_dlg_prefs_net_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label_clock_skew), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_clock_skew), 4, 0);
 
-  label698 = gtk_label_new (_("Clock synchronisation"));
+  label698 = gtk_label_new (_("Clock synchronization"));
   gtk_widget_set_name (label698, "label698");
   gtk_widget_show (label698);
   gtk_frame_set_label_widget (GTK_FRAME (frame83), label698);
@@ -11553,7 +11553,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
 
-  checkbutton_process_oob_queries = gtk_check_button_new_with_mnemonic (_("Honour OOB flag in queries"));
+  checkbutton_process_oob_queries = gtk_check_button_new_with_mnemonic (_("Honor OOB flag in queries"));
   gtk_widget_set_name (checkbutton_process_oob_queries, "checkbutton_process_oob_queries");
   gtk_widget_show (checkbutton_process_oob_queries);
   gtk_table_attach (GTK_TABLE (table101), checkbutton_process_oob_queries, 0, 1, 1, 2,

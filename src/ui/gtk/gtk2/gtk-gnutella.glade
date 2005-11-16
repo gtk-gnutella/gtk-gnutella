@@ -17742,7 +17742,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckButton" id="checkbutton_config_use_netmasks">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first.</property>
+			      <property name="tooltip" translatable="yes">This option can give performance boosts to those on a large network with many peers by trying to locate files on the local networks first.</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">_Try to connect to local networks first</property>
 			      <property name="use_underline">True</property>
@@ -18257,7 +18257,7 @@ http://maxmind.com/</property>
 		      <child>
 			<widget class="GtkLabel" id="label698">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Clock synchronisation</property>
+			  <property name="label" translatable="yes">Clock synchronization</property>
 			  <property name="use_underline">False</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -19812,7 +19812,7 @@ http://maxmind.com/</property>
 			    <widget class="GtkCheckButton" id="checkbutton_process_oob_queries">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Honour OOB flag in queries</property>
+			      <property name="label" translatable="yes">Honor OOB flag in queries</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
 			      <property name="focus_on_click">True</property>

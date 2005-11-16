@@ -3532,7 +3532,7 @@ create_main_window (void)
   gtk_widget_show (ul_stats_hbox2);
   gtk_box_pack_start (GTK_BOX (vbox19), ul_stats_hbox2, FALSE, TRUE, 0);
 
-  button_ul_stats_clear_deleted = gtk_button_new_with_label (_("Clear nonexistant files"));
+  button_ul_stats_clear_deleted = gtk_button_new_with_label (_("Clear non-existent files"));
   gtk_widget_set_name (button_ul_stats_clear_deleted, "button_ul_stats_clear_deleted");
   gtk_widget_ref (button_ul_stats_clear_deleted);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_ul_stats_clear_deleted", button_ul_stats_clear_deleted,
@@ -12098,7 +12098,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  frame80 = gtk_frame_new (_("Clock synchronisation"));
+  frame80 = gtk_frame_new (_("Clock synchronization"));
   gtk_widget_set_name (frame80, "frame80");
   gtk_widget_ref (frame80);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame80", frame80,
@@ -13000,7 +13000,7 @@ create_dlg_prefs (void)
   gtk_widget_show (checkbutton_send_oob_queries);
   gtk_box_pack_start (GTK_BOX (vbox131), checkbutton_send_oob_queries, FALSE, FALSE, 0);
 
-  checkbutton_process_oob_queries = gtk_check_button_new_with_label (_("Honour OOB flag in queries"));
+  checkbutton_process_oob_queries = gtk_check_button_new_with_label (_("Honor OOB flag in queries"));
   gtk_widget_set_name (checkbutton_process_oob_queries, "checkbutton_process_oob_queries");
   gtk_widget_ref (checkbutton_process_oob_queries);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_process_oob_queries", checkbutton_process_oob_queries,
