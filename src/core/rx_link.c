@@ -57,7 +57,7 @@ struct attr {
 	wrap_io_t *wio;				/**< Cached wrapped IO object */
 	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
 	bsched_t *bs;				/**< Scheduler to attach I/O source to */
-	struct rx_link_cb *cb;		/**< Layer-specific callbacks */
+	const struct rx_link_cb *cb;/**< Layer-specific callbacks */
 };
 
 /**
@@ -124,10 +124,10 @@ error:
  * Always succeeds, so never returns NULL.
  */
 static gpointer
-rx_link_init(rxdrv_t *rx, gpointer args)
+rx_link_init(rxdrv_t *rx, gconstpointer args)
 {
+	const struct rx_link_args *rargs = args;
 	struct attr *attr;
-	struct rx_link_args *rargs = args;
 
 	g_assert(rx);
 	g_assert(rargs);

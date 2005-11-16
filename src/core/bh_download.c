@@ -104,7 +104,7 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 			return FALSE;
 
 		bc->has_header = TRUE;		/* We have read the full header */
-		READ_GUINT32_LE(bc->header.size, bc->size);
+		bc->size = peek_le32(bc->header.size);
 
 		/*
 		 * Protect against too large data.
@@ -196,7 +196,7 @@ browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
  *** RX link callbacks
  ***/
 
-static void
+static G_GNUC_PRINTF(2, 3) void
 browse_rx_error(gpointer o, const gchar *reason, ...)
 {
 	struct browse_ctx *bc = o;
@@ -223,18 +223,18 @@ browse_rx_done(gpointer o)
 	download_rx_done(bc->owner);
 }
 
-static struct rx_link_cb browse_rx_link_cb = {
+static const struct rx_link_cb browse_rx_link_cb = {
 	NULL,					/* add_rx_given */
 	browse_rx_error,		/* read_error */
 	browse_rx_got_eof,		/* got_eof */
 };
 
-static struct rx_chunk_cb browse_rx_chunk_cb = {
+static const struct rx_chunk_cb browse_rx_chunk_cb = {
 	browse_rx_error,		/* chunk_error */
 	browse_rx_done,			/* chunk_end */
 };
 
-static struct rx_inflate_cb browse_rx_inflate_cb = {
+static const struct rx_inflate_cb browse_rx_inflate_cb = {
 	NULL,					/* add_rx_inflated */
 	browse_rx_error,		/* inflate_error */
 };

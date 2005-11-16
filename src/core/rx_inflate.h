@@ -45,14 +45,15 @@ const struct rxdrv_ops* rx_inflate_get_ops(void);
  */
 struct rx_inflate_cb {
 	void (*add_rx_inflated)(gpointer owner, gint amount);
-	void (*inflate_error)(gpointer owner, const gchar *reason, ...);
+	void (*inflate_error)(gpointer owner,
+			const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 };
 
 /**
  * Arguments to be passed when the layer is intantiated.
  */
 struct rx_inflate_args {
-	struct rx_inflate_cb *cb;		/**< Callbacks */
+	const struct rx_inflate_cb *cb;		/**< Callbacks */
 };
 
 #endif	/* _core_rx_inflate_h_ */

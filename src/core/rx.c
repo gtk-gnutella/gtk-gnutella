@@ -155,7 +155,7 @@ rx_attached(rxdrv_t *rx, rxdrv_t *urx)
  * @return NULL if there is an initialization problem.
  */
 rxdrv_t *
-rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gpointer args)
+rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gconstpointer args)
 {
 	rxdrv_t *rx;
 

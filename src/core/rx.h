@@ -72,7 +72,7 @@ typedef struct rxdriver {
  */
 
 struct rxdrv_ops {
-	gpointer (*init)(rxdrv_t *tx, gpointer args);
+	gpointer (*init)(rxdrv_t *tx, gconstpointer args);
 	void (*destroy)(rxdrv_t *tx);
 	void (*recv)(rxdrv_t *tx, pmsg_t *mb);
 	void (*enable)(rxdrv_t *tx);
@@ -88,7 +88,7 @@ rxdrv_t *rx_make(gpointer owner, gnet_host_t *host,
 	const struct rxdrv_ops *ops, gpointer args);
 
 rxdrv_t *rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops,
-	gpointer args);
+	gconstpointer args);
 
 void rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 void rx_free(rxdrv_t *d);

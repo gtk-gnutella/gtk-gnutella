@@ -44,7 +44,8 @@ const struct rxdrv_ops* rx_chunk_get_ops(void);
  * Callbacks used by the inflating layer.
  */
 struct rx_chunk_cb {
-	void (*chunk_error)(gpointer owner, const gchar *reason, ...);
+	void (*chunk_error)(gpointer owner,
+			const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 	void (*chunk_end)(gpointer owner);
 };
 
@@ -52,7 +53,7 @@ struct rx_chunk_cb {
  * Arguments to be passed when the layer is intantiated.
  */
 struct rx_chunk_args {
-	struct rx_chunk_cb *cb;		/**< Callbacks */
+	const struct rx_chunk_cb *cb;		/**< Callbacks */
 };
 
 #endif	/* _core_rx_chunk_h_ */

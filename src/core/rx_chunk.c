@@ -66,7 +66,7 @@ enum chunk_state {
  * Private attributes for the dechunking layer.
  */
 struct attr {
-	struct rx_chunk_cb *cb;		/**< Layer-specific callbacks */
+	const struct rx_chunk_cb *cb;	/**< Layer-specific callbacks */
 	guint64 data_remain;		/**< Amount of remaining chunk payload data */
 	gchar hex_buf[16];			/**< Holds the hex digits of chunk-size */
 	size_t hex_pos;				/**< Current position in hex_buf */
@@ -368,7 +368,7 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 
 			attr->cb->chunk_error(rx->owner,
 					"dechunk() failed: %s", error_str);
-			g_message("%s: %s", __func__, error_str);
+			g_message("dechunk_data(): %s", error_str);
 			break;
 		}
 		g_assert(ret <= size);
@@ -387,10 +387,10 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
  * Initialize the driver.
  */
 static gpointer
-rx_chunk_init(rxdrv_t *rx, gpointer args)
+rx_chunk_init(rxdrv_t *rx, gconstpointer args)
 {
+	const struct rx_chunk_args *rargs = args;
 	struct attr *attr;
-	struct rx_chunk_args *rargs = args;
 
 	g_assert(rx);
 	g_assert(rargs->cb != NULL);

@@ -45,7 +45,8 @@ const struct rxdrv_ops *rx_link_get_ops(void);
  */
 struct rx_link_cb {
 	void (*add_rx_given)(gpointer owner, gint amount);
-	void (*read_error)(gpointer owner, const gchar *reason, ...);
+	void (*read_error)(gpointer owner,
+			const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 	void (*got_eof)(gpointer owner);
 };
 
@@ -53,9 +54,9 @@ struct rx_link_cb {
  * Arguments to be passed when the layer is intantiated.
  */
 struct rx_link_args {
-	struct rx_link_cb *cb;		/**< Callbacks */
-	struct bsched *bs;			/**< Bandwidth scheduler to use */
-	struct wrap_io *wio;		/**< I/O wrapping routines */
+	const struct rx_link_cb *cb;	/**< Callbacks */
+	struct bsched *bs;				/**< Bandwidth scheduler to use */
+	struct wrap_io *wio;			/**< I/O wrapping routines */
 };
 
 #endif	/* _core_rx_link_h_ */

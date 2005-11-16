@@ -53,7 +53,7 @@ RCSID("$Id$");
  * Private attributes for the decompressing layer.
  */
 struct attr {
-	struct rx_inflate_cb *cb;		/**< Layer-specific callbacks */
+	const struct rx_inflate_cb *cb;	/**< Layer-specific callbacks */
 	z_streamp inz;					/**< Decompressing stream */
 	gint flags;
 };
@@ -139,12 +139,12 @@ cleanup:
  * Initialize the driver.
  */
 static gpointer
-rx_inflate_init(rxdrv_t *rx, gpointer args)
+rx_inflate_init(rxdrv_t *rx, gconstpointer args)
 {
+	const struct rx_inflate_args *rargs = args;
 	struct attr *attr;
 	z_streamp inz;
 	gint ret;
-	struct rx_inflate_args *rargs = args;
 
 	g_assert(rx);
 	g_assert(rargs->cb != NULL);
