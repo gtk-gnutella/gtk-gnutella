@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-13 22:16+0900\n"
+"POT-Creation-Date: 2005-11-16 17:55+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -20,184 +20,190 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: src/core/downloads.c:950 src/core/downloads.c:1008
+#: src/core/downloads.c:951 src/core/downloads.c:1009
 msgid "No longer connected"
 msgstr "Ya no está conectado"
 
-#: src/core/downloads.c:997 src/core/nodes.c:849 src/ui/gtk/hcache_common.c:43
+#: src/core/downloads.c:998 src/core/nodes.c:851 src/ui/gtk/hcache_common.c:43
 msgid "Timeout"
 msgstr "Expirado"
 
-#: src/core/downloads.c:1019
+#: src/core/downloads.c:1020
 #, fuzzy
 msgid "Requeued due to timeout"
 msgstr "Reencolado tras datos recortados"
 
-#: src/core/downloads.c:1881
+#: src/core/downloads.c:1882
 msgid "Requeued by file info change"
 msgstr "Reencolado por cambio en los atributos del fichero"
 
-#: src/core/downloads.c:1960 src/core/downloads.c:3046
-#: src/core/downloads.c:3956
+#: src/core/downloads.c:1967 src/core/downloads.c:3065
+#: src/core/downloads.c:3974
 msgid "Suspended (SHA1 checking)"
 msgstr "Suspendido (comprobando SHA1)"
 
-#: src/core/downloads.c:2773
+#: src/core/downloads.c:2792
 #, c-format
 msgid " at %s - rescheduled for %s"
 msgstr ""
 
-#: src/core/downloads.c:3176
+#: src/core/downloads.c:3195
 msgid "Waiting for a free chunk"
 msgstr "Esperando bloques libres"
 
-#: src/core/downloads.c:3330
+#: src/core/downloads.c:3349
 #, fuzzy
 msgid "No download slot (start)"
 msgstr "Ranuras de bajada agotadas"
 
-#: src/core/downloads.c:3376
+#: src/core/downloads.c:3395
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Conexión fallida (¿Descriptores de archivo agotados?)"
 
-#: src/core/downloads.c:3596
+#: src/core/downloads.c:3615
 msgid "Ignoring Push flag"
 msgstr "Ignorando indicación 'Push'"
 
-#: src/core/downloads.c:3627
+#: src/core/downloads.c:3646
 #, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/core/downloads.c:3634 src/core/downloads.c:3648
+#: src/core/downloads.c:3653 src/core/downloads.c:3667
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/core/downloads.c:3638
+#: src/core/downloads.c:3657
 #, fuzzy, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "Conexión reiniciada durante HELLO"
 msgstr[1] "Conexión reiniciada durante HELLO"
 
-#: src/core/downloads.c:3947
+#: src/core/downloads.c:3965
 msgid "Dup SHA1 during creation"
 msgstr "Doble SHA1 durante la creación"
 
-#: src/core/downloads.c:3968
+#: src/core/downloads.c:3986
 #, fuzzy
 msgid "No download slot (create)"
 msgstr "Ranuras de bajada agotadas"
 
-#: src/core/downloads.c:4198
+#: src/core/downloads.c:4215
 msgid "Stopped (Index changed)"
 msgstr "Parado (El índice cambió)"
 
-#: src/core/downloads.c:4523
+#: src/core/downloads.c:4546
 msgid "Explicitly requeued"
 msgstr "Reencolado explícitamente"
 
-#: src/core/downloads.c:4693
+#: src/core/downloads.c:4716
 #, c-format
 msgid "Stopped (%s)"
 msgstr "Parado (%s)"
 
-#: src/core/downloads.c:4696 src/core/downloads.c:4731
+#: src/core/downloads.c:4719 src/core/downloads.c:4754
 #, fuzzy, c-format
 msgid "Too many attempts (%u times)"
 msgstr "Demasiados intentos (%d veces)"
 
-#: src/core/downloads.c:4698 src/core/downloads.c:6067
-#: src/core/downloads.c:7193
+#: src/core/downloads.c:4721 src/core/downloads.c:6090
+#: src/core/downloads.c:7312
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Falló (Error de lectura: %s)"
 
-#: src/core/downloads.c:4727
+#: src/core/downloads.c:4750
 msgid "Connection not kept-alive (EOF)"
 msgstr "Conexión no mantenida (EOF)"
 
-#: src/core/downloads.c:4728
+#: src/core/downloads.c:4751
 msgid "Stopped (EOF)"
 msgstr "Detenido (EOF)"
 
-#: src/core/downloads.c:4844 src/core/downloads.c:7003
+#: src/core/downloads.c:4867 src/core/downloads.c:7156
 msgid "Stopped (Output file size changed)"
 msgstr "Parado (Cambió el tamaño del archivo de salida)"
 
-#: src/core/downloads.c:5052
+#: src/core/downloads.c:5075
 #, c-format
 msgid "Can't save data: %s"
 msgstr "No se pudo guardar: %s"
 
-#: src/core/downloads.c:5192
+#: src/core/downloads.c:5215
 msgid "Requeued by competing download"
 msgstr "Reencolado por bajada de un tercero en competencia"
 
-#: src/core/downloads.c:5258
+#: src/core/downloads.c:5281
 msgid "Requeued after trimmed data"
 msgstr "Reencolado tras datos recortados"
 
-#: src/core/downloads.c:5260
+#: src/core/downloads.c:5283
 msgid "Chunk done, connection closed"
 msgstr "Bloque completado, conexión cerrada"
 
-#: src/core/downloads.c:5448
+#: src/core/downloads.c:5471
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Estado HTTP desconocido (¿desincronización del protocolo?)"
 
-#: src/core/downloads.c:5769
+#: src/core/downloads.c:5792
 msgid "No URN on server, waiting for overlap"
 msgstr "No hay URN en el servidor, esperando el solapamiento"
 
-#: src/core/downloads.c:5775
+#: src/core/downloads.c:5798
 msgid "No URN on server to validate"
 msgstr "No hay URN en el servidor para validar"
 
-#: src/core/downloads.c:5821
+#: src/core/downloads.c:5844
 msgid "URN fileinfo mismatch"
 msgstr "Información de archivo URN no coincide"
 
-#: src/core/downloads.c:5841
+#: src/core/downloads.c:5864
 msgid "Discovered dup SHA1"
 msgstr "Descubierto un SHA1 doble"
 
-#: src/core/downloads.c:6049 src/core/downloads.c:6057
-#: src/core/downloads.c:7145 src/core/downloads.c:7183
+#: src/core/downloads.c:6072 src/core/downloads.c:6080
+#: src/core/downloads.c:7264 src/core/downloads.c:7302
+#: src/core/downloads.c:9341
 msgid "Stopped data (EOF)"
 msgstr "Datos parados (EOF)"
 
-#: src/core/downloads.c:6270
+#: src/core/downloads.c:6345
 #, fuzzy
 msgid "Spammer detected"
 msgstr "Detectado distinto SHA1"
 
-#: src/core/downloads.c:6478 src/core/downloads.c:6983
+#: src/core/downloads.c:6553 src/core/downloads.c:7074
 msgid "Partial file on server, waiting"
 msgstr "Archivo parcial en el servidor, esperando"
 
-#: src/core/downloads.c:6579
+#: src/core/downloads.c:6654
 #, fuzzy, c-format
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "Encolado (ranura %d/%d) ETA: %s"
 
-#: src/core/downloads.c:7151
+#: src/core/downloads.c:7270
 msgid "Stopped (Read buffer full)"
 msgstr "Parado (Búfer de lectura lleno)"
 
-#: src/core/downloads.c:7190
+#: src/core/downloads.c:7309
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "Datos parados (%s)"
 
-#: src/core/downloads.c:8469
+#: src/core/downloads.c:8603
 msgid "SHA1 mismatch detected"
 msgstr "Detectado distinto SHA1"
+
+#: src/core/downloads.c:9269
+#, fuzzy, c-format
+msgid "<Browse Host %s>"
+msgstr "Consultar Nodo Activado"
 
 #: src/core/gnet_stats.c:56 src/ui/gtk/gnet_stats_common.c:83
 msgid "Bad size"
@@ -323,199 +329,199 @@ msgstr "Conectando a la caché web %s"
 msgid "Updated web cache "
 msgstr "Caché web actualizada "
 
-#: src/core/nodes.c:857
+#: src/core/nodes.c:859
 #, c-format
 msgid "Shutdown (%s)"
 msgstr "Cerrando (%s)"
 
-#: src/core/nodes.c:2914
+#: src/core/nodes.c:2917
 #, c-format
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
 msgstr[0] "Recibido %d pong de conexión"
 msgstr[1] "Recibidos %d pongs de conexiones"
 
-#: src/core/nodes.c:2963 src/core/nodes.c:5180 src/core/nodes.c:5204
+#: src/core/nodes.c:2966 src/core/nodes.c:5178 src/core/nodes.c:5202
 msgid "Sent crawling info"
 msgstr ""
 
-#: src/core/nodes.c:3132
+#: src/core/nodes.c:3135
 msgid "Cannot setup compressing TX stack"
 msgstr "Imposible configurar la pila de TX comprimida"
 
-#: src/core/nodes.c:3346
+#: src/core/nodes.c:3344
 #, c-format
 msgid "Got BYE %d %.*s"
 msgstr "Recibido BYE  %d %.*s"
 
-#: src/core/nodes.c:3745
+#: src/core/nodes.c:3743
 #, c-format
 msgid "Weird HELLO %s"
 msgstr "HELLO extraño %s"
 
-#: src/core/nodes.c:3757
+#: src/core/nodes.c:3755
 #, c-format
 msgid "HELLO %s error %d (%s)"
 msgstr "HELLO %s error %d (%s)"
 
-#: src/core/nodes.c:3761
+#: src/core/nodes.c:3759
 msgid "Shielded node"
 msgstr "Nodo acorazado"
 
-#: src/core/nodes.c:3792
+#: src/core/nodes.c:3790
 msgid "Gnet connections disabled"
 msgstr "Conexiones Gnet deshabilitadas"
 
-#: src/core/nodes.c:3817
+#: src/core/nodes.c:3815
 msgid "Unstable IP address"
 msgstr "Dirección IP inestable"
 
-#: src/core/nodes.c:3820
+#: src/core/nodes.c:3818
 msgid "Servent version appears unstable"
 msgstr "La versión del nodo parece inestable"
 
-#: src/core/nodes.c:3823
+#: src/core/nodes.c:3821
 msgid "No vendor string supplied"
 msgstr "Texto del servidor no suministrado"
 
-#: src/core/nodes.c:3828
+#: src/core/nodes.c:3826
 #, c-format
 msgid "Not connecting: %s"
 msgstr "No conectando: %s"
 
-#: src/core/nodes.c:3860 src/core/nodes.c:3898 src/core/nodes.c:3942
-#: src/core/nodes.c:3992 src/core/nodes.c:4046
+#: src/core/nodes.c:3858 src/core/nodes.c:3896 src/core/nodes.c:3940
+#: src/core/nodes.c:3990 src/core/nodes.c:4044
 msgid "Connection not compressed"
 msgstr "Conexión sin comprimir"
 
-#: src/core/nodes.c:3875
+#: src/core/nodes.c:3873
 #, c-format
 msgid "Too many leaves (%d max)"
 msgstr "Demasiadas hojas (%d max)"
 
-#: src/core/nodes.c:3912 src/core/nodes.c:4029
+#: src/core/nodes.c:3910 src/core/nodes.c:4027
 #, c-format
 msgid "Too many ultra nodes (%d max)"
 msgstr "Demasiados nodos ultra (%d max)"
 
-#: src/core/nodes.c:3961
+#: src/core/nodes.c:3959
 #, c-format
 msgid "Rejected normal node (%d max)"
 msgstr "Nodo normal rechazado (%d max)"
 
-#: src/core/nodes.c:3974
+#: src/core/nodes.c:3972
 msgid "Rejected leaf node"
 msgstr "Nodo hoja rechazado"
 
-#: src/core/nodes.c:3980
+#: src/core/nodes.c:3978
 #, c-format
 msgid "Too many nodes (%d max)"
 msgstr "Demasiados nodos (%d max)"
 
-#: src/core/nodes.c:4016
+#: src/core/nodes.c:4014
 msgid "Sent shielded indication"
 msgstr ""
 
-#: src/core/nodes.c:4022
+#: src/core/nodes.c:4020
 msgid "Not an ultra node"
 msgstr "No es un nodo ultra"
 
-#: src/core/nodes.c:4096
+#: src/core/nodes.c:4094
 msgid "Protocol not acceptable"
 msgstr "Protocolo no aceptable"
 
-#: src/core/nodes.c:4379
+#: src/core/nodes.c:4377
 msgid "Servent Shutdown"
 msgstr "Nodo Cerrado"
 
-#: src/core/nodes.c:4665
+#: src/core/nodes.c:4663
 msgid "Too frequent crawling"
 msgstr ""
 
-#: src/core/nodes.c:4835
+#: src/core/nodes.c:4833
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "El tipo de servidor excedería %d%% de las ranuras"
 
-#: src/core/nodes.c:4845
+#: src/core/nodes.c:4843
 msgid "Reserved slot"
 msgstr "Ranura reservada"
 
-#: src/core/nodes.c:4882
+#: src/core/nodes.c:4880
 msgid "Too ancient Gnutella protocol"
 msgstr "Protocolo Gnutella demasiado antiguo"
 
-#: src/core/nodes.c:4900
+#: src/core/nodes.c:4898
 msgid "Cannot connect to a crawler"
 msgstr ""
 
-#: src/core/nodes.c:4935
+#: src/core/nodes.c:4933
 #, fuzzy
 msgid "Not becoming a leaf node"
 msgstr "ultra nodo"
 
-#: src/core/nodes.c:5105
+#: src/core/nodes.c:5103
 #, c-format
 msgid "Failed (Cannot send %s: %s)"
 msgstr "Fracasado (Imposible enviar %s: %s)"
 
-#: src/core/nodes.c:5112
+#: src/core/nodes.c:5110
 #, c-format
 msgid "Failed (Cannot send %s atomically)"
 msgstr "Fracasado (Imposible enviar %s atómicamente)"
 
-#: src/core/nodes.c:5159
+#: src/core/nodes.c:5157
 msgid "Failed (Header line too long)"
 msgstr "Fracasado (Línea de cabecera demasiado larga)"
 
-#: src/core/nodes.c:5171 src/core/uploads.c:1301
+#: src/core/nodes.c:5169 src/core/uploads.c:1301
 #, c-format
 msgid "Failed (%s)"
 msgstr "Fracasado (%s)"
 
-#: src/core/nodes.c:5180 src/core/uploads.c:1307
+#: src/core/nodes.c:5178 src/core/uploads.c:1307
 msgid "Failed (Input Exception)"
 msgstr "Fracasado (Excepción de entrada)"
 
-#: src/core/nodes.c:5186
+#: src/core/nodes.c:5184
 msgid "Failed (Input buffer full)"
 msgstr "Fracasado (Búfer de entrada lleno)"
 
-#: src/core/nodes.c:5192 src/core/uploads.c:1319
+#: src/core/nodes.c:5190 src/core/uploads.c:1319
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr "Fracasado (Error de entrada: %s)"
 
-#: src/core/nodes.c:5204 src/core/uploads.c:1327
+#: src/core/nodes.c:5202 src/core/uploads.c:1327
 msgid "Failed (EOF)"
 msgstr "Fracasado (EOF)"
 
-#: src/core/nodes.c:5210
+#: src/core/nodes.c:5208
 msgid "Failed (Extra HELLO data)"
 msgstr "Fracasado (datos HELLO adicionales)"
 
-#: src/core/nodes.c:5260
+#: src/core/nodes.c:5330
 msgid "Pseudo UDP node"
 msgstr "Pseudo-nodo UDP"
 
-#: src/core/nodes.c:5598
+#: src/core/nodes.c:5668
 msgid "Already connected"
 msgstr "Ya está conectado"
 
-#: src/core/nodes.c:6116 src/core/nodes.c:6297
+#: src/core/nodes.c:6186 src/core/nodes.c:6367
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr "Error de escritura durante HELLO: %s"
 
-#: src/core/nodes.c:6211
+#: src/core/nodes.c:6281
 msgid "Out of memory"
 msgstr "Memoria agotada"
 
-#: src/core/nodes.c:6304
+#: src/core/nodes.c:6374
 msgid "Connection reset during HELLO"
 msgstr "Conexión reiniciada durante HELLO"
 
-#: src/core/nodes.c:6543
+#: src/core/nodes.c:6613
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "Pateado: mensaje %s demasiado grande (%d bytes)"
@@ -656,10 +662,10 @@ msgstr "Archivos"
 #: src/ui/gtk/gtk1/interface-glade.c:4082
 #: src/ui/gtk/gtk1/interface-glade.c:4529
 #: src/ui/gtk/gtk1/interface-glade.c:5850
-#: src/ui/gtk/gtk1/interface-glade.c:13068 src/ui/gtk/gtk1/search.c:2180
-#: src/ui/gtk/gtk1/search.c:2186 src/ui/gtk/gtk2/downloads.c:438
+#: src/ui/gtk/gtk1/interface-glade.c:13046 src/ui/gtk/gtk1/search.c:2188
+#: src/ui/gtk/gtk1/search.c:2194 src/ui/gtk/gtk2/downloads.c:438
 #: src/ui/gtk/gtk2/downloads.c:483 src/ui/gtk/gtk2/fileinfo.c:613
-#: src/ui/gtk/gtk2/gnet_stats.c:461 src/ui/gtk/gtk2/interface-glade.c:11606
+#: src/ui/gtk/gtk2/gnet_stats.c:461 src/ui/gtk/gtk2/interface-glade.c:11587
 #: src/ui/gtk/gtk2/search.c:1489 src/ui/gtk/gtk2/upload_stats.c:269
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Size"
@@ -690,17 +696,17 @@ msgstr "Escritura fallida (Excepción de entrada)"
 msgid "Write failed: %s"
 msgstr "Escritura fallida: %s"
 
-#: src/core/uhc.c:249
+#: src/core/uhc.c:248
 #, c-format
 msgid "Looking for UDP host cache %s"
 msgstr "Buscando caché de nodos UDP %s"
 
-#: src/core/uhc.c:355
+#: src/core/uhc.c:354
 #, c-format
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Ping enviado a la caché de nodos UDP %s:%u"
 
-#: src/core/uhc.c:524
+#: src/core/uhc.c:523
 #, c-format
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
@@ -1308,7 +1314,7 @@ msgstr "Nivel de depurado para las subidas."
 
 #: src/if/gnet_property.c:1823
 #, fuzzy
-msgid "Debug level for bootstraping into the network."
+msgid "Debug level for bootstrapping into the network."
 msgstr "Nivel de depurado para el enrutado de mensajes."
 
 #: src/if/gnet_property.c:1843
@@ -1403,7 +1409,7 @@ msgstr "Nivel de depurado para GGEP."
 #: src/if/gnet_property.c:2263
 msgid ""
 "If set, PARQ will calculate its ETA and retry times more optimistically. If "
-"not set PARQ will caclulate using a worst case scenario.  The default is to "
+"not set PARQ will calculate using a worst case scenario.  The default is to "
 "be optimistic."
 msgstr ""
 
@@ -1504,7 +1510,7 @@ msgstr "Usar [forzar_ip_local] como ip local."
 msgid "Try to connect to local networks first."
 msgstr "Intentar conectar a las redes locales primero."
 
-#: src/if/gnet_property.c:2595 src/ui/gtk/gtk2/interface-glade.c:10422
+#: src/if/gnet_property.c:2595 src/ui/gtk/gtk2/interface-glade.c:10403
 msgid ""
 "Check this button if you want to use Gtk-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
@@ -2183,7 +2189,7 @@ msgid ""
 "downloaders and in query hits."
 msgstr ""
 
-#: src/if/gnet_property.c:4558 src/ui/gtk/gtk2/interface-glade.c:12087
+#: src/if/gnet_property.c:4558 src/ui/gtk/gtk2/interface-glade.c:12068
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
@@ -2335,7 +2341,7 @@ msgid ""
 "Whether gtk-gnutella should actively monitor query strings by TTL and hop "
 "count and drop duplicates.  Only applies when not running as a leaf node, "
 "and only for queries with hop count > 0, i.e. not from our immediate "
-"neighbour.  Dropped queries will be accounted for in the 'Message throttle' "
+"neighbor.  Dropped queries will be accounted for in the 'Message throttle' "
 "counter."
 msgstr ""
 
@@ -2467,10 +2473,11 @@ msgstr ""
 "automáticamente pasados 10 minutos si no hay más escasez."
 
 #: src/if/gnet_property.c:5386
+#, fuzzy
 msgid ""
 "When set, gtk-gnutella has run out of file descriptors, and operations are "
 "necessarily degraded, if not impossible. The condition automatically clears "
-"itself after 10 minutes past the last occurance."
+"itself after 10 minutes past the last occurrence."
 msgstr ""
 "Cuando está habilitado, gtk-gnutella tiene escasez de descriptores de "
 "archivo, y las operaciones se habrán degradado necesariamente, si no se han "
@@ -2517,12 +2524,13 @@ msgstr ""
 "soportadas."
 
 #: src/if/gnet_property.c:5505
+#, fuzzy
 msgid ""
 "Whether UDP shall be used in complement to TCP.  When set, gtk-gnutella will "
 "also listen for UDP traffic on the same port as the one configured for TCP "
 "and process incoming Gnutella traffic in almost the same way as if it was "
 "received via TCP.  It is safe to leave this set, which is the default "
-"behaviour."
+"behavior."
 msgstr ""
 "Si UDP debe ser usado como complemento a TCP. Cuando esté activado, gtk-"
 "gnutella también escuchará tráfico UDP en el mismo puerto que el configurado "
@@ -2532,13 +2540,13 @@ msgstr ""
 
 #: src/if/gnet_property.c:5522
 msgid ""
-"Whether gtk-gnutella should honour the request for out-of-band delivery of "
+"Whether gtk-gnutella should honor the request for out-of-band delivery of "
 "query hits via UDP, provided UDP support is enabled.  It should not be "
 "necessary to add a port forwarding to enable this as your node will be the "
 "origin of the UDP traffic and can therefore receive replies sent to the "
 "transient UDP port opened by a masquerading firewall.  It is enabled by "
 "default because it is deemed safe, as your node controls the bulk of the "
-"emitted traffic and honours the bandwidth limitations."
+"emitted traffic and honors the bandwidth limitations."
 msgstr ""
 
 #: src/if/gnet_property.c:5539
@@ -2605,7 +2613,7 @@ msgstr "Número total de subidas completadas en esta sesión"
 msgid ""
 "The average CPU usage indicates overloading, so gtk-gnutella is reducing the "
 "amount of non-critical processing it is performing. Note that the "
-"overloading can result from gtk-gntuella not getting enough CPU time because "
+"overloading can result from gtk-gnutella not getting enough CPU time because "
 "another process is competing for the CPU. Whilst the overloading condition "
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
 "file moving) are suspended."
@@ -2663,9 +2671,9 @@ msgid "UDP only"
 msgstr "sólo UDP"
 
 #: src/if/gui_property.c:212 src/ui/gtk/gnet_stats_common.c:46
-#: src/ui/gtk/gtk1/interface-glade.c:13793
-#: src/ui/gtk/gtk2/interface-glade.c:12252 src/ui/gtk/gtk2/nodes.c:399
-#: src/ui/gtk/gtk2/nodes.c:458 src/ui/gtk/gtk2/search_cb.c:507
+#: src/ui/gtk/gtk1/interface-glade.c:13771
+#: src/ui/gtk/gtk2/interface-glade.c:12233 src/ui/gtk/gtk2/nodes.c:428
+#: src/ui/gtk/gtk2/nodes.c:487 src/ui/gtk/gtk2/search_cb.c:508
 msgid "Unknown"
 msgstr "Desconocido"
 
@@ -2698,14 +2706,14 @@ msgid "Vendor std."
 msgstr ""
 
 #: src/if/gui_property.c:220 src/ui/gtk/gnet_stats_common.c:54
-#: src/ui/gtk/gtk1/interface-glade.c:9312
-#: src/ui/gtk/gtk2/interface-glade.c:8513
+#: src/ui/gtk/gtk1/interface-glade.c:9290
+#: src/ui/gtk/gtk2/interface-glade.c:8494
 msgid "Push"
 msgstr "Push"
 
 #: src/if/gui_property.c:221 src/ui/gtk/gnet_stats_common.c:55
-#: src/ui/gtk/gtk1/interface-glade.c:13771
-#: src/ui/gtk/gtk2/interface-glade.c:12236 src/ui/gtk/gtk2/monitor.c:148
+#: src/ui/gtk/gtk1/interface-glade.c:13749
+#: src/ui/gtk/gtk2/interface-glade.c:12217 src/ui/gtk/gtk2/monitor.c:148
 msgid "Query"
 msgstr "Petición"
 
@@ -2715,7 +2723,7 @@ msgid "Query Hit"
 msgstr "Petición"
 
 #: src/if/gui_property.c:223 src/ui/gtk/gnet_stats_common.c:57
-#: src/ui/gtk/gtk1/interface-glade.c:5666 src/ui/gtk/gtk2/search_stats.c:384
+#: src/ui/gtk/gtk1/interface-glade.c:5666 src/ui/gtk/gtk2/search_stats.c:382
 msgid "Total"
 msgstr "Total"
 
@@ -4296,7 +4304,7 @@ msgstr ""
 msgid "%ds"
 msgstr ""
 
-#: src/lib/utf8.c:1221
+#: src/lib/utf8.c:1223
 msgid "locale_get_language|en_US"
 msgstr "es_ES"
 
@@ -4400,8 +4408,8 @@ msgstr "coincide con regex"
 msgid "is exactly"
 msgstr "es exactamente"
 
-#: src/ui/gtk/filter.c:280 src/ui/gtk/gtk1/interface-glade.c:7806
-#: src/ui/gtk/gtk1/interface-glade.c:7865
+#: src/ui/gtk/filter.c:280 src/ui/gtk/gtk1/interface-glade.c:7804
+#: src/ui/gtk/gtk1/interface-glade.c:7863
 #: src/ui/gtk/gtk2/interface-glade.c:1072
 msgid "Filter"
 msgstr "Filtro"
@@ -4412,34 +4420,34 @@ msgid "Rule"
 msgstr "Reglas"
 
 #: src/ui/gtk/filter.c:282 src/ui/gtk/filter.c:291
-#: src/ui/gtk/gtk1/interface-glade.c:7822
-#: src/ui/gtk/gtk1/interface-glade.c:7954
+#: src/ui/gtk/gtk1/interface-glade.c:7820
+#: src/ui/gtk/gtk1/interface-glade.c:7952
 msgid "Match"
 msgstr "Coincidencia"
 
-#: src/ui/gtk/filter.c:288 src/ui/gtk/gtk1/interface-glade.c:7930
+#: src/ui/gtk/filter.c:288 src/ui/gtk/gtk1/interface-glade.c:7928
 msgid "!"
 msgstr "!"
 
-#: src/ui/gtk/filter.c:289 src/ui/gtk/gtk1/interface-glade.c:7938
+#: src/ui/gtk/filter.c:289 src/ui/gtk/gtk1/interface-glade.c:7936
 msgid "Condition"
 msgstr "Condición"
 
-#: src/ui/gtk/filter.c:290 src/ui/gtk/gtk1/interface-glade.c:7946
-#: src/ui/gtk/gtk1/interface-glade.c:8254
-#: src/ui/gtk/gtk1/interface-glade.c:8476
-#: src/ui/gtk/gtk1/interface-glade.c:8724
-#: src/ui/gtk/gtk1/interface-glade.c:8900
-#: src/ui/gtk/gtk1/interface-glade.c:9132
-#: src/ui/gtk/gtk1/interface-glade.c:9522
-#: src/ui/gtk/gtk1/interface-glade.c:9888
+#: src/ui/gtk/filter.c:290 src/ui/gtk/gtk1/interface-glade.c:7944
+#: src/ui/gtk/gtk1/interface-glade.c:8252
+#: src/ui/gtk/gtk1/interface-glade.c:8454
+#: src/ui/gtk/gtk1/interface-glade.c:8702
+#: src/ui/gtk/gtk1/interface-glade.c:8878
+#: src/ui/gtk/gtk1/interface-glade.c:9110
+#: src/ui/gtk/gtk1/interface-glade.c:9500
+#: src/ui/gtk/gtk1/interface-glade.c:9866
 #: src/ui/gtk/gtk2/interface-glade.c:6744
-#: src/ui/gtk/gtk2/interface-glade.c:7097
-#: src/ui/gtk/gtk2/interface-glade.c:7485
-#: src/ui/gtk/gtk2/interface-glade.c:7812
-#: src/ui/gtk/gtk2/interface-glade.c:8166
-#: src/ui/gtk/gtk2/interface-glade.c:8827
-#: src/ui/gtk/gtk2/interface-glade.c:9478
+#: src/ui/gtk/gtk2/interface-glade.c:7080
+#: src/ui/gtk/gtk2/interface-glade.c:7466
+#: src/ui/gtk/gtk2/interface-glade.c:7793
+#: src/ui/gtk/gtk2/interface-glade.c:8147
+#: src/ui/gtk/gtk2/interface-glade.c:8808
+#: src/ui/gtk/gtk2/interface-glade.c:9459
 msgid "Target"
 msgstr "Objetivo"
 
@@ -4471,178 +4479,178 @@ msgstr "nada todavía"
 msgid "no default filter"
 msgstr "Sin filtros"
 
-#: src/ui/gtk/filter.c:1331
+#: src/ui/gtk/filter.c:1326
 msgid "[no hash]"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:951
+#: src/ui/gtk/filter_core.c:949
 msgid "(case-sensitive)"
 msgstr "Coincidencia mayúsc/minúsc"
 
-#: src/ui/gtk/filter_core.c:956
+#: src/ui/gtk/filter_core.c:954
 #, c-format
 msgid "If filename begins with \"%s\" %s"
 msgstr "Si el nombre comienza por \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:960
+#: src/ui/gtk/filter_core.c:958
 #, c-format
 msgid "If filename contains the words \"%s\" %s"
 msgstr "Si el nombre contiene las palabras \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:964
+#: src/ui/gtk/filter_core.c:962
 #, c-format
 msgid "If filename ends with \"%s\" %s"
 msgstr "Si el nombre termina por \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:968
+#: src/ui/gtk/filter_core.c:966
 #, c-format
 msgid "If filename contains the substring \"%s\" %s"
 msgstr "Si el nombre constiene la subcadena \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:973
+#: src/ui/gtk/filter_core.c:971
 #, c-format
 msgid "If filename matches the regex \"%s\" %s"
 msgstr "Si el nombre coincide con regexp \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:976
+#: src/ui/gtk/filter_core.c:974
 #, c-format
 msgid "If filename is \"%s\" %s"
 msgstr "Si el nombre es \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:986
-#, c-format
-msgid "If IP address matches %s/%s"
+#: src/ui/gtk/filter_core.c:984
+#, fuzzy, c-format
+msgid "If IP address matches %s/%u"
 msgstr "Si la dirección IP coincide con %s/%s"
 
-#: src/ui/gtk/filter_core.c:994
+#: src/ui/gtk/filter_core.c:992
 #, c-format
 msgid "If filesize is exactly %s (%s)"
 msgstr "Si el tamaño es exactamente %s (%s)"
 
-#: src/ui/gtk/filter_core.c:1001
+#: src/ui/gtk/filter_core.c:999
 #, c-format
 msgid "If filesize is smaller than %s (%s)"
 msgstr "Si el tamaño del archivo es más pequeño que %s (%s)"
 
-#: src/ui/gtk/filter_core.c:1013
+#: src/ui/gtk/filter_core.c:1011
 #, c-format
 msgid "If filesize is between %s and %s (%s - %s)"
 msgstr "Si el tamaño está entre %s y %s (%s - %s)"
 
-#: src/ui/gtk/filter_core.c:1020
+#: src/ui/gtk/filter_core.c:1018
 #, c-format
 msgid "If urn:sha1 is same as for \"%s\""
 msgstr "Si el urn:sha1 es el mismo que \"%s\""
 
-#: src/ui/gtk/filter_core.c:1024
+#: src/ui/gtk/filter_core.c:1022
 msgid "If urn:sha1 is not available"
 msgstr "Si el urn:sha1 no está disponible"
 
-#: src/ui/gtk/filter_core.c:1028
+#: src/ui/gtk/filter_core.c:1026
 msgid "Always"
 msgstr "Siempre"
 
-#: src/ui/gtk/filter_core.c:1041
+#: src/ui/gtk/filter_core.c:1039
 msgid "busy is set"
 msgstr "ocupado está puesto"
 
-#: src/ui/gtk/filter_core.c:1045
+#: src/ui/gtk/filter_core.c:1043
 msgid "busy is not set"
 msgstr "activado no está puesto"
 
-#: src/ui/gtk/filter_core.c:1055
+#: src/ui/gtk/filter_core.c:1053
 msgid "push is set"
 msgstr "\"push\" está puesto"
 
-#: src/ui/gtk/filter_core.c:1060
+#: src/ui/gtk/filter_core.c:1058
 msgid "push is not set"
 msgstr "\"push\" no está puesto"
 
-#: src/ui/gtk/filter_core.c:1070
+#: src/ui/gtk/filter_core.c:1068
 msgid "stable is set"
 msgstr "estable está puesto"
 
-#: src/ui/gtk/filter_core.c:1075
+#: src/ui/gtk/filter_core.c:1073
 msgid "stable is not set"
 msgstr "estable no está puesto"
 
-#: src/ui/gtk/filter_core.c:1083
+#: src/ui/gtk/filter_core.c:1081
 #, c-format
 msgid "If flag %s%s%s%s%s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1087
+#: src/ui/gtk/filter_core.c:1085
 msgid "Always (all flags ignored)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1100
+#: src/ui/gtk/filter_core.c:1098
 msgid "DISPLAY is undefined"
 msgstr "MOSTRAR no está definido"
 
-#: src/ui/gtk/filter_core.c:1104 src/ui/gtk/filter_core.c:2438
-#: src/ui/gtk/gtk1/interface-glade.c:9749
-#: src/ui/gtk/gtk2/interface-glade.c:9263
+#: src/ui/gtk/filter_core.c:1102 src/ui/gtk/filter_core.c:2429
+#: src/ui/gtk/gtk1/interface-glade.c:9727
+#: src/ui/gtk/gtk2/interface-glade.c:9244
 msgid "DISPLAY"
 msgstr "MOSTRAR"
 
-#: src/ui/gtk/filter_core.c:1108 src/ui/gtk/filter_core.c:2439
+#: src/ui/gtk/filter_core.c:1106 src/ui/gtk/filter_core.c:2430
 msgid "DON'T DISPLAY"
 msgstr "NO MOSTRAR"
 
-#: src/ui/gtk/filter_core.c:1120
+#: src/ui/gtk/filter_core.c:1118
 msgid "DOWNLOAD is undefined"
 msgstr "DESCARGA no está definido"
 
-#: src/ui/gtk/filter_core.c:1125 src/ui/gtk/filter_core.c:2440
-#: src/ui/gtk/gtk1/interface-glade.c:9698
-#: src/ui/gtk/gtk2/interface-glade.c:9194
+#: src/ui/gtk/filter_core.c:1123 src/ui/gtk/filter_core.c:2431
+#: src/ui/gtk/gtk1/interface-glade.c:9676
+#: src/ui/gtk/gtk2/interface-glade.c:9175
 msgid "DOWNLOAD"
 msgstr "DESCARGAR"
 
-#: src/ui/gtk/filter_core.c:1130 src/ui/gtk/filter_core.c:2441
+#: src/ui/gtk/filter_core.c:1128 src/ui/gtk/filter_core.c:2432
 msgid "DON'T DOWNLOAD"
 msgstr "NO DESCARGAR"
 
-#: src/ui/gtk/filter_core.c:1140
+#: src/ui/gtk/filter_core.c:1138
 #, c-format
 msgid "If flag %s%s%s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1144
+#: src/ui/gtk/filter_core.c:1142
 msgid "Always (all states ignored)"
 msgstr "Siempre (todos los estados ignorados)"
 
-#: src/ui/gtk/filter_core.c:1169
+#: src/ui/gtk/filter_core.c:1167
 #, c-format
 msgid "%s%s %s jump to \"%s\""
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1170
+#: src/ui/gtk/filter_core.c:1168
 msgid "(Negated) "
 msgstr "(Negado) "
 
-#: src/ui/gtk/filter_core.c:1171
+#: src/ui/gtk/filter_core.c:1169
 msgid "(deactivated)"
 msgstr "(desactivado)"
 
-#: src/ui/gtk/filter_core.c:1173
+#: src/ui/gtk/filter_core.c:1171
 msgid "(invalid)"
 msgstr "(inválido)"
 
-#: src/ui/gtk/filter_core.c:2436
+#: src/ui/gtk/filter_core.c:2427
 msgid "Global (pre)"
 msgstr "Global (pre)"
 
-#: src/ui/gtk/filter_core.c:2437
+#: src/ui/gtk/filter_core.c:2428
 msgid "Global (post)"
 msgstr "Global (post)"
 
-#: src/ui/gtk/filter_core.c:2442
+#: src/ui/gtk/filter_core.c:2433
 msgid "RETURN"
 msgstr ""
 
-#: src/ui/gtk/gnet_stats_common.c:56 src/ui/gtk/gtk1/interface-glade.c:13782
-#: src/ui/gtk/gtk2/interface-glade.c:12244
+#: src/ui/gtk/gnet_stats_common.c:56 src/ui/gtk/gtk1/interface-glade.c:13760
+#: src/ui/gtk/gtk2/interface-glade.c:12225
 msgid "Query hit"
 msgstr ""
 
@@ -5094,8 +5102,8 @@ msgstr "Encolado (%d activos, %d pasivos)"
 msgid "Waiting"
 msgstr "Esperando"
 
-#: src/ui/gtk/gtk1/fileinfo.c:215 src/ui/gtk/gtk1/search_cb.c:235
-#: src/ui/gtk/gtk2/fileinfo.c:130 src/ui/gtk/gtk2/search_cb.c:618
+#: src/ui/gtk/gtk1/fileinfo.c:215 src/ui/gtk/gtk1/search_cb.c:293
+#: src/ui/gtk/gtk2/fileinfo.c:130 src/ui/gtk/gtk2/search_cb.c:619
 #, c-format
 msgid "%s (%s bytes)"
 msgstr "%s (%s bytes)"
@@ -5133,7 +5141,7 @@ msgid "_Preferences"
 msgstr "_Preferencias"
 
 #: src/ui/gtk/gtk1/interface-glade.c:786
-#: src/ui/gtk/gtk1/interface-glade.c:17567
+#: src/ui/gtk/gtk1/interface-glade.c:17545
 #: src/ui/gtk/gtk2/interface-glade.c:2070
 msgid "_Quit"
 msgstr "_Salir"
@@ -5435,41 +5443,41 @@ msgstr "Conexiones GnutellaNet"
 #: src/ui/gtk/gtk1/interface-glade.c:4066
 #: src/ui/gtk/gtk1/interface-glade.c:4513 src/ui/gtk/gtk1/nodes.c:248
 #: src/ui/gtk/gtk2/downloads.c:439 src/ui/gtk/gtk2/downloads.c:484
-#: src/ui/gtk/gtk2/nodes.c:267 src/ui/gtk/gtk2/uploads.c:81
+#: src/ui/gtk/gtk2/nodes.c:293 src/ui/gtk/gtk2/uploads.c:81
 msgid "Host"
 msgstr "Nodo"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1907
 #: src/ui/gtk/gtk1/interface-glade.c:3286
 #: src/ui/gtk/gtk1/interface-glade.c:4074
-#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2196
-#: src/ui/gtk/gtk1/search.c:2202 src/ui/gtk/gtk2/downloads.c:440
+#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2204
+#: src/ui/gtk/gtk1/search.c:2210 src/ui/gtk/gtk2/downloads.c:440
 #: src/ui/gtk/gtk2/downloads.c:485 src/ui/gtk/gtk2/search.c:1491
 #: src/ui/gtk/gtk2/uploads.c:82
 msgid "Loc"
 msgstr "País"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1915
-#: src/ui/gtk/gtk1/interface-glade.c:8142
-#: src/ui/gtk/gtk1/interface-glade.c:8358
-#: src/ui/gtk/gtk1/interface-glade.c:8583
-#: src/ui/gtk/gtk1/interface-glade.c:8831
-#: src/ui/gtk/gtk1/interface-glade.c:9007
-#: src/ui/gtk/gtk1/interface-glade.c:9240
-#: src/ui/gtk/gtk1/interface-glade.c:9629 src/ui/gtk/gtk1/nodes.c:250
+#: src/ui/gtk/gtk1/interface-glade.c:8140
+#: src/ui/gtk/gtk1/interface-glade.c:8356
+#: src/ui/gtk/gtk1/interface-glade.c:8561
+#: src/ui/gtk/gtk1/interface-glade.c:8809
+#: src/ui/gtk/gtk1/interface-glade.c:8985
+#: src/ui/gtk/gtk1/interface-glade.c:9218
+#: src/ui/gtk/gtk1/interface-glade.c:9607 src/ui/gtk/gtk1/nodes.c:250
 #: src/ui/gtk/gtk2/interface-glade.c:6668
-#: src/ui/gtk/gtk2/interface-glade.c:7016
-#: src/ui/gtk/gtk2/interface-glade.c:7372
-#: src/ui/gtk/gtk2/interface-glade.c:7757
-#: src/ui/gtk/gtk2/interface-glade.c:8079
-#: src/ui/gtk/gtk2/interface-glade.c:8480
-#: src/ui/gtk/gtk2/interface-glade.c:9170 src/ui/gtk/gtk2/nodes.c:216
+#: src/ui/gtk/gtk2/interface-glade.c:7014
+#: src/ui/gtk/gtk2/interface-glade.c:7353
+#: src/ui/gtk/gtk2/interface-glade.c:7738
+#: src/ui/gtk/gtk2/interface-glade.c:8060
+#: src/ui/gtk/gtk2/interface-glade.c:8461
+#: src/ui/gtk/gtk2/interface-glade.c:9151 src/ui/gtk/gtk2/nodes.c:295
 msgid "Flags"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:1923
 #: src/ui/gtk/gtk1/interface-glade.c:3310 src/ui/gtk/gtk1/nodes.c:251
-#: src/ui/gtk/gtk2/nodes.c:268 src/ui/gtk/gtk2/uploads.c:85
+#: src/ui/gtk/gtk2/nodes.c:294 src/ui/gtk/gtk2/uploads.c:85
 msgid "User-Agent"
 msgstr "Tipo de servidor"
 
@@ -5478,29 +5486,29 @@ msgid "Ver"
 msgstr "Ver"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1939 src/ui/gtk/gtk1/nodes.c:253
-#: src/ui/gtk/gtk2/nodes.c:214
+#: src/ui/gtk/gtk2/nodes.c:243
 msgid "Connected time"
 msgstr "Tiempo conectado"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1948
 #: src/ui/gtk/gtk1/interface-glade.c:6202 src/ui/gtk/gtk1/nodes.c:254
-#: src/ui/gtk/gtk2/nodes.c:215
+#: src/ui/gtk/gtk2/nodes.c:244
 msgid "Uptime"
 msgstr "Tiempo en ejecución"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2213
-#: src/ui/gtk/gtk1/search.c:2219 src/ui/gtk/gtk2/search.c:1493
+#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2221
+#: src/ui/gtk/gtk1/search.c:2227 src/ui/gtk/gtk2/search.c:1493
 msgid "Info"
 msgstr "Info"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1973
-#: src/ui/gtk/gtk1/interface-glade.c:8310
-#: src/ui/gtk/gtk1/interface-glade.c:8535
-#: src/ui/gtk/gtk1/interface-glade.c:8783
-#: src/ui/gtk/gtk1/interface-glade.c:8959
-#: src/ui/gtk/gtk1/interface-glade.c:9192
-#: src/ui/gtk/gtk1/interface-glade.c:9581
-#: src/ui/gtk/gtk1/interface-glade.c:9947
+#: src/ui/gtk/gtk1/interface-glade.c:8308
+#: src/ui/gtk/gtk1/interface-glade.c:8513
+#: src/ui/gtk/gtk1/interface-glade.c:8761
+#: src/ui/gtk/gtk1/interface-glade.c:8937
+#: src/ui/gtk/gtk1/interface-glade.c:9170
+#: src/ui/gtk/gtk1/interface-glade.c:9559
+#: src/ui/gtk/gtk1/interface-glade.c:9925
 #: src/ui/gtk/gtk2/interface-glade.c:103
 #: src/ui/gtk/gtk2/interface-glade.c:3690
 msgid "Remove"
@@ -5574,7 +5582,7 @@ msgid "Local node"
 msgstr "Nodo local"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2273
-#: src/ui/gtk/gtk2/interface-glade.c:3783 src/ui/gtk/gtk2/search_cb.c:569
+#: src/ui/gtk/gtk2/interface-glade.c:3783 src/ui/gtk/gtk2/search_cb.c:570
 msgid "GUID:"
 msgstr "GUID:"
 
@@ -5584,9 +5592,10 @@ msgstr "IP:Puerto:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2317
 #: src/ui/gtk/gtk2/interface-glade.c:3815
+#, fuzzy
 msgid ""
 "The current IP address and listening port for this node. To change these go "
-"to Settings->Preferences->Network."
+"to File->Preferences->Network."
 msgstr ""
 "La dirección IP actual y el puerto TCP de escucha para este nodo. Para "
 "cambiarlos, ir a Configuración->Red."
@@ -5603,7 +5612,7 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:2483
 #: src/ui/gtk/gtk1/interface-glade.c:2601
 #: src/ui/gtk/gtk1/interface-glade.c:2717
-#: src/ui/gtk/gtk1/interface-glade.c:17104 src/ui/gtk/gtk2/gnet_stats.c:53
+#: src/ui/gtk/gtk1/interface-glade.c:17082 src/ui/gtk/gtk2/gnet_stats.c:53
 #: src/ui/gtk/gtk2/gnet_stats.c:545 src/ui/gtk/gtk2/gnet_stats.c:618
 #: src/ui/gtk/gtk2/gnet_stats.c:708 src/ui/gtk/settings_cb.c:451
 msgid "Type"
@@ -5685,7 +5694,7 @@ msgid "Received"
 msgstr "Recibido"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2734 src/ui/gtk/gtk2/gnet_stats.c:55
-#: src/ui/gtk/search_common.c:1229
+#: src/ui/gtk/search_common.c:1237
 msgid "Expired"
 msgstr "Expirado"
 
@@ -5706,7 +5715,7 @@ msgid "Gen. sent"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:2784
-#: src/ui/gtk/gtk1/interface-glade.c:13494
+#: src/ui/gtk/gtk1/interface-glade.c:13472
 #: src/ui/gtk/gtk2/interface-glade.c:6279
 msgid "_Messages"
 msgstr "_Mensajes"
@@ -5751,7 +5760,7 @@ msgid "#|Gnet Stats"
 msgstr "Estadísticas Gnet"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2979
-#: src/ui/gtk/gtk2/interface-glade.c:9767
+#: src/ui/gtk/gtk2/interface-glade.c:9748
 msgid "Hostcache statistics"
 msgstr "Estadísticas de la caché de nodos"
 
@@ -5768,7 +5777,7 @@ msgid "Misses"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:3041
-#: src/ui/gtk/gtk2/interface-glade.c:9887
+#: src/ui/gtk/gtk2/interface-glade.c:9868
 msgid "Hostcache capacity"
 msgstr "Capacidad de la caché de nodos"
 
@@ -5779,26 +5788,26 @@ msgid "%v/%u (%P%%)"
 msgstr "%v/%u (%P%%)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3084
-#: src/ui/gtk/gtk2/interface-glade.c:9800
+#: src/ui/gtk/gtk2/interface-glade.c:9781
 msgid "Regular hosts"
 msgstr "Nodos normales"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3103
 #: src/ui/gtk/gtk1/interface-glade.c:3155
 #: src/ui/gtk/gtk1/interface-glade.c:3208
-#: src/ui/gtk/gtk2/interface-glade.c:9814
-#: src/ui/gtk/gtk2/interface-glade.c:9848
-#: src/ui/gtk/gtk2/interface-glade.c:9882
+#: src/ui/gtk/gtk2/interface-glade.c:9795
+#: src/ui/gtk/gtk2/interface-glade.c:9829
+#: src/ui/gtk/gtk2/interface-glade.c:9863
 msgid "Clear"
 msgstr "Limpiar"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3137
-#: src/ui/gtk/gtk2/interface-glade.c:9834
+#: src/ui/gtk/gtk2/interface-glade.c:9815
 msgid "Ultrapeers"
 msgstr "Ultranodos"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3189
-#: src/ui/gtk/gtk2/interface-glade.c:9868
+#: src/ui/gtk/gtk2/interface-glade.c:9849
 msgid "Bad hosts"
 msgstr "Nodos incorrectos"
 
@@ -5807,10 +5816,10 @@ msgid "#|Hostcache"
 msgstr "Caché de nodos"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3224
-#: src/ui/gtk/gtk1/interface-glade.c:16541
+#: src/ui/gtk/gtk1/interface-glade.c:16519
 #: src/ui/gtk/gtk2/interface-glade.c:2703
 #: src/ui/gtk/gtk2/interface-glade.c:4153
-#: src/ui/gtk/gtk2/interface-glade.c:14225 src/ui/gtk/main.c:134
+#: src/ui/gtk/gtk2/interface-glade.c:14206 src/ui/gtk/main.c:134
 msgid "Uploads"
 msgstr "Subidas"
 
@@ -5840,7 +5849,7 @@ msgstr "Progreso"
 #: src/ui/gtk/gtk1/interface-glade.c:4114
 #: src/ui/gtk/gtk1/interface-glade.c:4545 src/ui/gtk/gtk1/nodes.c:255
 #: src/ui/gtk/gtk2/downloads.c:444 src/ui/gtk/gtk2/downloads.c:487
-#: src/ui/gtk/gtk2/fileinfo.c:616 src/ui/gtk/gtk2/nodes.c:217
+#: src/ui/gtk/gtk2/fileinfo.c:616 src/ui/gtk/gtk2/nodes.c:245
 #: src/ui/gtk/gtk2/uploads.c:87
 msgid "Status"
 msgstr "Estado"
@@ -5903,7 +5912,8 @@ msgid "Normalized"
 msgstr "Normalizado"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3535
-msgid "Clear nonexistant files"
+#: src/ui/gtk/gtk2/interface-glade.c:4290
+msgid "Clear non-existent files"
 msgstr "Limpiar archivos inexistentes"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3545
@@ -5942,12 +5952,12 @@ msgid "#|Upload Stats"
 msgstr "Estadísticas de Subidas"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3618
-#: src/ui/gtk/gtk2/interface-glade.c:16197
+#: src/ui/gtk/gtk2/interface-glade.c:16178
 msgid "Files to get"
 msgstr "Archivos para descargar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2156
-#: src/ui/gtk/gtk1/search.c:2162 src/ui/gtk/gtk2/fileinfo.c:612
+#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2164
+#: src/ui/gtk/gtk1/search.c:2170 src/ui/gtk/gtk2/fileinfo.c:612
 #: src/ui/gtk/gtk2/search.c:1486
 msgid "File"
 msgstr "Archivo"
@@ -5968,37 +5978,37 @@ msgstr "Archivo:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3752
 #: src/ui/gtk/gtk1/interface-glade.c:4577
-#: src/ui/gtk/gtk2/interface-glade.c:16597
+#: src/ui/gtk/gtk2/interface-glade.c:16578
 #, fuzzy
 msgid "case-sensitive"
 msgstr "Coincidencia mayúsc/minúsc"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3760
-#: src/ui/gtk/gtk2/interface-glade.c:16350
+#: src/ui/gtk/gtk2/interface-glade.c:16331
 msgid "Detail information"
 msgstr "Detalle"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3788
 #: src/ui/gtk/gtk1/interface-glade.c:5002
 #: src/ui/gtk/gtk2/interface-glade.c:5376
-#: src/ui/gtk/gtk2/interface-glade.c:16249
+#: src/ui/gtk/gtk2/interface-glade.c:16230
 msgid "Filename:"
 msgstr "Archivo:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3799
 #: src/ui/gtk/gtk1/interface-glade.c:5200
 #: src/ui/gtk/gtk2/interface-glade.c:5500
-#: src/ui/gtk/gtk2/interface-glade.c:16280 src/ui/gtk/gtk2/search_cb.c:571
+#: src/ui/gtk/gtk2/interface-glade.c:16261 src/ui/gtk/gtk2/search_cb.c:572
 msgid "Size:"
 msgstr "Tamaño:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3850
-#: src/ui/gtk/gtk2/interface-glade.c:16257
+#: src/ui/gtk/gtk2/interface-glade.c:16238
 msgid "Progress:"
 msgstr "Progreso:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3887
-#: src/ui/gtk/gtk2/interface-glade.c:16277
+#: src/ui/gtk/gtk2/interface-glade.c:16258
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
 "downloaded, with the brighter green chunks touched during this session. "
@@ -6013,12 +6023,12 @@ msgstr ""
 "qué partes del archivo se han visto en la red en esta sesión."
 
 #: src/ui/gtk/gtk1/interface-glade.c:3890
-#: src/ui/gtk/gtk2/interface-glade.c:16345
+#: src/ui/gtk/gtk2/interface-glade.c:16326
 msgid "Alternate filenames"
 msgstr "Nombres de archivo alternativos"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3936
-#: src/ui/gtk/gtk2/interface-glade.c:16387
+#: src/ui/gtk/gtk2/interface-glade.c:16368
 msgid "_Purge selected"
 msgstr "_Purgar selección"
 
@@ -6027,7 +6037,7 @@ msgid "[all count]"
 msgstr "[cuenta total]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3980
-#: src/ui/gtk/gtk2/interface-glade.c:16413
+#: src/ui/gtk/gtk2/interface-glade.c:16394
 msgid " registered, "
 msgstr " registrados, "
 
@@ -6036,7 +6046,7 @@ msgid "[with source count]"
 msgstr "[con cuenta de las fuentes]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3997
-#: src/ui/gtk/gtk2/interface-glade.c:16423
+#: src/ui/gtk/gtk2/interface-glade.c:16404
 msgid " with sources"
 msgstr " con fuentes"
 
@@ -6142,20 +6152,20 @@ msgid "("
 msgstr "("
 
 #: src/ui/gtk/gtk1/interface-glade.c:4405
-#: src/ui/gtk/gtk1/interface-glade.c:8167
-#: src/ui/gtk/gtk1/interface-glade.c:8383
-#: src/ui/gtk/gtk1/interface-glade.c:8608
-#: src/ui/gtk/gtk1/interface-glade.c:8848
-#: src/ui/gtk/gtk1/interface-glade.c:9031
-#: src/ui/gtk/gtk1/interface-glade.c:9257
-#: src/ui/gtk/gtk1/interface-glade.c:9654
+#: src/ui/gtk/gtk1/interface-glade.c:8165
+#: src/ui/gtk/gtk1/interface-glade.c:8381
+#: src/ui/gtk/gtk1/interface-glade.c:8586
+#: src/ui/gtk/gtk1/interface-glade.c:8826
+#: src/ui/gtk/gtk1/interface-glade.c:9009
+#: src/ui/gtk/gtk1/interface-glade.c:9235
+#: src/ui/gtk/gtk1/interface-glade.c:9632
 #: src/ui/gtk/gtk2/interface-glade.c:6658
-#: src/ui/gtk/gtk2/interface-glade.c:7006
-#: src/ui/gtk/gtk2/interface-glade.c:7362
-#: src/ui/gtk/gtk2/interface-glade.c:7752
-#: src/ui/gtk/gtk2/interface-glade.c:8069
-#: src/ui/gtk/gtk2/interface-glade.c:8470
-#: src/ui/gtk/gtk2/interface-glade.c:9160
+#: src/ui/gtk/gtk2/interface-glade.c:7004
+#: src/ui/gtk/gtk2/interface-glade.c:7343
+#: src/ui/gtk/gtk2/interface-glade.c:7733
+#: src/ui/gtk/gtk2/interface-glade.c:8050
+#: src/ui/gtk/gtk2/interface-glade.c:8451
+#: src/ui/gtk/gtk2/interface-glade.c:9141
 msgid "active"
 msgstr "activo"
 
@@ -6174,8 +6184,8 @@ msgid ")"
 msgstr ")"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4446
-#: src/ui/gtk/gtk1/interface-glade.c:5392 src/ui/gtk/settings.c:1972
-#: src/ui/gtk/settings.c:2009
+#: src/ui/gtk/gtk1/interface-glade.c:5392 src/ui/gtk/settings.c:1973
+#: src/ui/gtk/settings.c:2010
 msgid "Show settings"
 msgstr "Mostrar configuración"
 
@@ -6185,7 +6195,7 @@ msgid "#|Active"
 msgstr "activo"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4462
-#: src/ui/gtk/gtk2/interface-glade.c:16663
+#: src/ui/gtk/gtk2/interface-glade.c:16644
 msgid "Inactive sources"
 msgstr "Fuentes inactivas"
 
@@ -6194,7 +6204,7 @@ msgid "Select"
 msgstr "Seleccionar"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4617
-#: src/ui/gtk/gtk2/interface-glade.c:16592
+#: src/ui/gtk/gtk2/interface-glade.c:16573
 msgid "Freeze queue"
 msgstr "Congelar cola"
 
@@ -6207,7 +6217,7 @@ msgid "[queued downloads]"
 msgstr "[descargas encoladas]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4682
-#: src/ui/gtk/gtk2/interface-glade.c:16638
+#: src/ui/gtk/gtk2/interface-glade.c:16619
 msgid " queued ("
 msgstr " encolado ("
 
@@ -6216,12 +6226,12 @@ msgid "[hosts alive]"
 msgstr "[nodos vivos]"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4698
-#: src/ui/gtk/gtk2/interface-glade.c:16648
+#: src/ui/gtk/gtk2/interface-glade.c:16629
 msgid " alive with "
 msgstr " vivo con "
 
 #: src/ui/gtk/gtk1/interface-glade.c:4714
-#: src/ui/gtk/gtk2/interface-glade.c:16658
+#: src/ui/gtk/gtk2/interface-glade.c:16639
 msgid " passive)"
 msgstr " pasivo)"
 
@@ -6244,8 +6254,8 @@ msgstr "Búsqueda actual:"
 msgid "Cl_ose search"
 msgstr "_Cerrar búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:397
-#: src/ui/gtk/gtk1/search.c:1862 src/ui/gtk/gtk1/search.c:1958
+#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:398
+#: src/ui/gtk/gtk1/search.c:1870 src/ui/gtk/gtk1/search.c:1966
 #: src/ui/gtk/gtk2/interface-glade.c:5235 src/ui/gtk/gtk2/search.c:528
 #: src/ui/gtk/gtk2/search.c:1197 src/ui/gtk/gtk2/search.c:1315
 msgid "(no search)"
@@ -6287,7 +6297,7 @@ msgstr "Información sobre el archivo seleccionado"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5014
 #: src/ui/gtk/gtk2/interface-glade.c:5400
-#: src/ui/gtk/gtk2/interface-glade.c:16303 src/ui/gtk/gtk2/search_cb.c:567
+#: src/ui/gtk/gtk2/interface-glade.c:16284 src/ui/gtk/gtk2/search_cb.c:568
 msgid "SHA1:"
 msgstr "SHA1:"
 
@@ -6307,13 +6317,13 @@ msgid "Received:"
 msgstr "Recibido:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5082
-#: src/ui/gtk/gtk2/interface-glade.c:5546 src/ui/gtk/gtk2/nodes.c:457
-#: src/ui/gtk/gtk2/search_cb.c:565
+#: src/ui/gtk/gtk2/interface-glade.c:5546 src/ui/gtk/gtk2/nodes.c:486
+#: src/ui/gtk/gtk2/search_cb.c:566
 msgid "Vendor:"
 msgstr "Cliente:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5104 src/ui/gtk/gtk2/nodes.c:454
-#: src/ui/gtk/gtk2/search_cb.c:562
+#: src/ui/gtk/gtk1/interface-glade.c:5104 src/ui/gtk/gtk2/nodes.c:483
+#: src/ui/gtk/gtk2/search_cb.c:563
 msgid "Country:"
 msgstr "País:"
 
@@ -6353,7 +6363,7 @@ msgstr "_Descargar selección"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5372
 #: src/ui/gtk/gtk1/interface-glade.c:6977
-#: src/ui/gtk/gtk1/interface-glade.c:17585
+#: src/ui/gtk/gtk1/interface-glade.c:17563
 #: src/ui/gtk/gtk2/interface-glade.c:5708
 msgid "_Edit filters"
 msgstr "_Editar filtros"
@@ -6364,7 +6374,7 @@ msgstr "_Editar filtros"
 #: src/ui/gtk/gtk1/interface-glade.c:7147
 #: src/ui/gtk/gtk2/interface-glade.c:187 src/ui/gtk/gtk2/interface-glade.c:403
 #: src/ui/gtk/gtk2/interface-glade.c:665
-#: src/ui/gtk/gtk2/interface-glade.c:9659
+#: src/ui/gtk/gtk2/interface-glade.c:9640
 msgid "Expand all"
 msgstr "Expandir todo"
 
@@ -6374,7 +6384,7 @@ msgstr "Expandir todo"
 #: src/ui/gtk/gtk1/interface-glade.c:7155
 #: src/ui/gtk/gtk2/interface-glade.c:197 src/ui/gtk/gtk2/interface-glade.c:413
 #: src/ui/gtk/gtk2/interface-glade.c:675
-#: src/ui/gtk/gtk2/interface-glade.c:9669
+#: src/ui/gtk/gtk2/interface-glade.c:9650
 msgid "Collapse all"
 msgstr "Colapsar todo"
 
@@ -6416,30 +6426,30 @@ msgstr "Intervalo de _actualización (seg)"
 msgid "_Deletion coeff. (0-100)"
 msgstr "Coeficiente de _borrado (0-100)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5649 src/ui/gtk/gtk2/search_stats.c:382
+#: src/ui/gtk/gtk1/interface-glade.c:5649 src/ui/gtk/gtk2/search_stats.c:380
 msgid "Search Term"
 msgstr "Término de búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5658 src/ui/gtk/gtk2/search_stats.c:383
+#: src/ui/gtk/gtk1/interface-glade.c:5658 src/ui/gtk/gtk2/search_stats.c:381
 msgid "This Interval"
 msgstr "Este Intervalo"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5692
-#: src/ui/gtk/gtk1/interface-glade.c:8284
-#: src/ui/gtk/gtk1/interface-glade.c:8509
-#: src/ui/gtk/gtk1/interface-glade.c:8757
-#: src/ui/gtk/gtk1/interface-glade.c:8933
-#: src/ui/gtk/gtk1/interface-glade.c:9166
-#: src/ui/gtk/gtk1/interface-glade.c:9555
-#: src/ui/gtk/gtk1/interface-glade.c:9921
+#: src/ui/gtk/gtk1/interface-glade.c:8282
+#: src/ui/gtk/gtk1/interface-glade.c:8487
+#: src/ui/gtk/gtk1/interface-glade.c:8735
+#: src/ui/gtk/gtk1/interface-glade.c:8911
+#: src/ui/gtk/gtk1/interface-glade.c:9144
+#: src/ui/gtk/gtk1/interface-glade.c:9533
+#: src/ui/gtk/gtk1/interface-glade.c:9899
 #: src/ui/gtk/gtk2/interface-glade.c:6120
 #: src/ui/gtk/gtk2/interface-glade.c:6775
-#: src/ui/gtk/gtk2/interface-glade.c:7128
-#: src/ui/gtk/gtk2/interface-glade.c:7516
-#: src/ui/gtk/gtk2/interface-glade.c:7843
-#: src/ui/gtk/gtk2/interface-glade.c:8197
-#: src/ui/gtk/gtk2/interface-glade.c:8858
-#: src/ui/gtk/gtk2/interface-glade.c:9489
+#: src/ui/gtk/gtk2/interface-glade.c:7111
+#: src/ui/gtk/gtk2/interface-glade.c:7497
+#: src/ui/gtk/gtk2/interface-glade.c:7824
+#: src/ui/gtk/gtk2/interface-glade.c:8178
+#: src/ui/gtk/gtk2/interface-glade.c:8839
+#: src/ui/gtk/gtk2/interface-glade.c:9470
 msgid "_Reset stats"
 msgstr "_Reiniciar estadísticas"
 
@@ -6547,21 +6557,21 @@ msgstr "Ejecutando en el modo ultranodo."
 
 #: src/ui/gtk/gtk1/interface-glade.c:6576
 #: src/ui/gtk/gtk1/interface-glade.c:6794
-#: src/ui/gtk/gtk1/interface-glade.c:8318
-#: src/ui/gtk/gtk1/interface-glade.c:8543
-#: src/ui/gtk/gtk1/interface-glade.c:8791
-#: src/ui/gtk/gtk1/interface-glade.c:8967
-#: src/ui/gtk/gtk1/interface-glade.c:9200
-#: src/ui/gtk/gtk1/interface-glade.c:9589
-#: src/ui/gtk/gtk1/interface-glade.c:9955 src/ui/gtk/gtk2/interface-glade.c:67
+#: src/ui/gtk/gtk1/interface-glade.c:8316
+#: src/ui/gtk/gtk1/interface-glade.c:8521
+#: src/ui/gtk/gtk1/interface-glade.c:8769
+#: src/ui/gtk/gtk1/interface-glade.c:8945
+#: src/ui/gtk/gtk1/interface-glade.c:9178
+#: src/ui/gtk/gtk1/interface-glade.c:9567
+#: src/ui/gtk/gtk1/interface-glade.c:9933 src/ui/gtk/gtk2/interface-glade.c:67
 #: src/ui/gtk/gtk2/interface-glade.c:316
 #: src/ui/gtk/gtk2/interface-glade.c:6855
-#: src/ui/gtk/gtk2/interface-glade.c:7208
-#: src/ui/gtk/gtk2/interface-glade.c:7596
-#: src/ui/gtk/gtk2/interface-glade.c:7923
-#: src/ui/gtk/gtk2/interface-glade.c:8277
-#: src/ui/gtk/gtk2/interface-glade.c:8938
-#: src/ui/gtk/gtk2/interface-glade.c:9529
+#: src/ui/gtk/gtk2/interface-glade.c:7191
+#: src/ui/gtk/gtk2/interface-glade.c:7577
+#: src/ui/gtk/gtk2/interface-glade.c:7904
+#: src/ui/gtk/gtk2/interface-glade.c:8258
+#: src/ui/gtk/gtk2/interface-glade.c:8919
+#: src/ui/gtk/gtk2/interface-glade.c:9510
 msgid "Abort"
 msgstr "Abortar"
 
@@ -6690,27 +6700,27 @@ msgid "New search from selected"
 msgstr "Nueva búsqueda de la selección"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7172
-#: src/ui/gtk/gtk2/interface-glade.c:16023
+#: src/ui/gtk/gtk2/interface-glade.c:16004
 msgid "Stop this search"
 msgstr "Detener esta búsqueda"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7180
-#: src/ui/gtk/gtk2/interface-glade.c:16033
+#: src/ui/gtk/gtk2/interface-glade.c:16014
 msgid "Resume this search"
 msgstr "Continuar con eta búsqueda"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7188
-#: src/ui/gtk/gtk2/interface-glade.c:16043
+#: src/ui/gtk/gtk2/interface-glade.c:16024
 msgid "Restart this search"
 msgstr "Reiniciar esta búsqueda"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7196
-#: src/ui/gtk/gtk2/interface-glade.c:16053
+#: src/ui/gtk/gtk2/interface-glade.c:16034
 msgid "Duplicate this search"
 msgstr "Duplicar esta búsqueda"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7213 src/ui/gtk/gtk1/search_cb.c:690
-#: src/ui/gtk/gtk2/interface-glade.c:691 src/ui/gtk/gtk2/search_cb.c:368
+#: src/ui/gtk/gtk2/interface-glade.c:691 src/ui/gtk/gtk2/search_cb.c:369
 msgid "Show tabs"
 msgstr "Mostrar pestañas"
 
@@ -6718,7 +6728,7 @@ msgstr "Mostrar pestañas"
 #: src/ui/gtk/gtk1/interface-glade.c:7389
 #: src/ui/gtk/gtk2/interface-glade.c:177 src/ui/gtk/gtk2/interface-glade.c:393
 #: src/ui/gtk/gtk2/interface-glade.c:701 src/ui/gtk/gtk2/interface-glade.c:906
-#: src/ui/gtk/gtk2/interface-glade.c:9945
+#: src/ui/gtk/gtk2/interface-glade.c:9926
 msgid "Configure columns"
 msgstr "Configurar columnas"
 
@@ -6744,7 +6754,7 @@ msgid "Add as search"
 msgstr "Añadir como búsqueda"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7372
-#: src/ui/gtk/gtk2/interface-glade.c:9639
+#: src/ui/gtk/gtk2/interface-glade.c:9620
 msgid "Disconnect"
 msgstr "Desconectar"
 
@@ -6752,30 +6762,30 @@ msgstr "Desconectar"
 msgid "Nothing for now"
 msgstr "Nada por ahora"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7723
+#: src/ui/gtk/gtk1/interface-glade.c:7721
 #: src/ui/gtk/gtk2/interface-glade.c:983
 msgid "Ruleset editor"
 msgstr "Editor de reglas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7774
+#: src/ui/gtk/gtk1/interface-glade.c:7772
 #: src/ui/gtk/gtk2/interface-glade.c:1039
 msgid "_Create filter"
 msgstr "_Crear filtro"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7814
+#: src/ui/gtk/gtk1/interface-glade.c:7812
 msgid "Rules"
 msgstr "Reglas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7882
+#: src/ui/gtk/gtk1/interface-glade.c:7880
 #: src/ui/gtk/gtk2/interface-glade.c:1084
 msgid "enabled"
 msgstr "activado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7890
+#: src/ui/gtk/gtk1/interface-glade.c:7888
 msgid "Remove filter"
 msgstr "Borrar filtro"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7897
+#: src/ui/gtk/gtk1/interface-glade.c:7895
 #: src/ui/gtk/gtk2/interface-glade.c:1093
 msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
@@ -6784,7 +6794,7 @@ msgstr ""
 "Un filtro no puede ser borado si está asociado a una búsqueda o si está en "
 "uso (usado como un objetivo en una regla)."
 
-#: src/ui/gtk/gtk1/interface-glade.c:7971
+#: src/ui/gtk/gtk1/interface-glade.c:7969
 #: src/ui/gtk/gtk2/interface-glade.c:1133
 msgid ""
 "Remove all rules\n"
@@ -6793,7 +6803,7 @@ msgstr ""
 "Borrar las reglas\n"
 "de este filtro"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7979
+#: src/ui/gtk/gtk1/interface-glade.c:7977
 #: src/ui/gtk/gtk2/interface-glade.c:1138
 msgid ""
 "Reset all rule stats\n"
@@ -6802,7 +6812,7 @@ msgstr ""
 "Reiniciar todas las esta-\n"
 "dísticas en este filtro"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7987
+#: src/ui/gtk/gtk1/interface-glade.c:7985
 #: src/ui/gtk/gtk2/interface-glade.c:1143
 msgid ""
 "Reset filter stats\n"
@@ -6811,7 +6821,7 @@ msgstr ""
 "Reiniciar las estadís-\n"
 "ticas para este filtro"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7995
+#: src/ui/gtk/gtk1/interface-glade.c:7993
 #: src/ui/gtk/gtk2/interface-glade.c:1148
 msgid ""
 "Reset filter stats\n"
@@ -6820,154 +6830,150 @@ msgstr ""
 "Reiniciar las estadísti-\n"
 "cas para todos los filtros"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8054
+#: src/ui/gtk/gtk1/interface-glade.c:8052
 #: src/ui/gtk/gtk2/interface-glade.c:6520
 msgid "Add name rule"
 msgstr "Añadir regla de nombre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8062
+#: src/ui/gtk/gtk1/interface-glade.c:8060
 #: src/ui/gtk/gtk2/interface-glade.c:6506
 msgid "Add size rule"
 msgstr "Añadir regla de tamaño"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8070
+#: src/ui/gtk/gtk1/interface-glade.c:8068
 #: src/ui/gtk/gtk2/interface-glade.c:6527
 msgid "Add flag rule"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:8086
+#: src/ui/gtk/gtk1/interface-glade.c:8084
 #: src/ui/gtk/gtk2/interface-glade.c:6499
 msgid "Add jump rule"
 msgstr "Añadir regla de salto"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8094
+#: src/ui/gtk/gtk1/interface-glade.c:8092
 #: src/ui/gtk/gtk2/interface-glade.c:6513
 msgid "Add IP rule"
 msgstr "Añadir regla de IP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8102
+#: src/ui/gtk/gtk1/interface-glade.c:8100
 #: src/ui/gtk/gtk2/interface-glade.c:6534
 msgid "Add state rule"
 msgstr "Añadir regla de estado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8110
+#: src/ui/gtk/gtk1/interface-glade.c:8108
 msgid "#|Add/Remove"
 msgstr "Añadir/Quitar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8159
-#: src/ui/gtk/gtk1/interface-glade.c:8375
-#: src/ui/gtk/gtk1/interface-glade.c:8600
-#: src/ui/gtk/gtk1/interface-glade.c:9024
-#: src/ui/gtk/gtk1/interface-glade.c:9646
+#: src/ui/gtk/gtk1/interface-glade.c:8157
+#: src/ui/gtk/gtk1/interface-glade.c:8373
+#: src/ui/gtk/gtk1/interface-glade.c:8578
+#: src/ui/gtk/gtk1/interface-glade.c:9002
+#: src/ui/gtk/gtk1/interface-glade.c:9624
 #: src/ui/gtk/gtk2/interface-glade.c:6653
-#: src/ui/gtk/gtk2/interface-glade.c:7001
-#: src/ui/gtk/gtk2/interface-glade.c:7357
-#: src/ui/gtk/gtk2/interface-glade.c:8065
-#: src/ui/gtk/gtk2/interface-glade.c:9155
+#: src/ui/gtk/gtk2/interface-glade.c:6999
+#: src/ui/gtk/gtk2/interface-glade.c:7338
+#: src/ui/gtk/gtk2/interface-glade.c:8046
+#: src/ui/gtk/gtk2/interface-glade.c:9136
 msgid "invert condition"
 msgstr "invertir condición"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8175
-#: src/ui/gtk/gtk1/interface-glade.c:8391
-#: src/ui/gtk/gtk1/interface-glade.c:8616
-#: src/ui/gtk/gtk1/interface-glade.c:9040
-#: src/ui/gtk/gtk1/interface-glade.c:9265
-#: src/ui/gtk/gtk1/interface-glade.c:9662
+#: src/ui/gtk/gtk1/interface-glade.c:8173
+#: src/ui/gtk/gtk1/interface-glade.c:8389
+#: src/ui/gtk/gtk1/interface-glade.c:8594
+#: src/ui/gtk/gtk1/interface-glade.c:9018
+#: src/ui/gtk/gtk1/interface-glade.c:9243
+#: src/ui/gtk/gtk1/interface-glade.c:9640
 #: src/ui/gtk/gtk2/interface-glade.c:6663
-#: src/ui/gtk/gtk2/interface-glade.c:7011
-#: src/ui/gtk/gtk2/interface-glade.c:7367
-#: src/ui/gtk/gtk2/interface-glade.c:8075
-#: src/ui/gtk/gtk2/interface-glade.c:8475
-#: src/ui/gtk/gtk2/interface-glade.c:9165
+#: src/ui/gtk/gtk2/interface-glade.c:7009
+#: src/ui/gtk/gtk2/interface-glade.c:7348
+#: src/ui/gtk/gtk2/interface-glade.c:8056
+#: src/ui/gtk/gtk2/interface-glade.c:8456
+#: src/ui/gtk/gtk2/interface-glade.c:9146
 msgid "mark only"
 msgstr "sólo marcar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8183
+#: src/ui/gtk/gtk1/interface-glade.c:8181
 #: src/ui/gtk/gtk2/interface-glade.c:6718
 msgid "Condition: If filename matches"
 msgstr "Condición: Si el nombre del archivo coincide"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8236
+#: src/ui/gtk/gtk1/interface-glade.c:8234
 #: src/ui/gtk/gtk2/interface-glade.c:6711
 msgid "case sensitive"
 msgstr "Coincidencia mayúsc/minúsc"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8302
-#: src/ui/gtk/gtk1/interface-glade.c:8527
-#: src/ui/gtk/gtk1/interface-glade.c:8775
-#: src/ui/gtk/gtk1/interface-glade.c:8951
-#: src/ui/gtk/gtk1/interface-glade.c:9184
-#: src/ui/gtk/gtk1/interface-glade.c:9573
-#: src/ui/gtk/gtk1/interface-glade.c:9939
+#: src/ui/gtk/gtk1/interface-glade.c:8300
+#: src/ui/gtk/gtk1/interface-glade.c:8505
+#: src/ui/gtk/gtk1/interface-glade.c:8753
+#: src/ui/gtk/gtk1/interface-glade.c:8929
+#: src/ui/gtk/gtk1/interface-glade.c:9162
+#: src/ui/gtk/gtk1/interface-glade.c:9551
+#: src/ui/gtk/gtk1/interface-glade.c:9917
 msgid "Add/Replace"
 msgstr "Añadir/Reemplazar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8326
+#: src/ui/gtk/gtk1/interface-glade.c:8324
 msgid "#|Filename"
 msgstr "Archivo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8399
-#: src/ui/gtk/gtk2/interface-glade.c:7071
+#: src/ui/gtk/gtk1/interface-glade.c:8397
+#: src/ui/gtk/gtk2/interface-glade.c:7054
 msgid "Condition: If IP address matches"
 msgstr "Condición: Si la dirección IP coincide"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8427
-#: src/ui/gtk/gtk2/interface-glade.c:7040
-msgid "IP address"
+#: src/ui/gtk/gtk1/interface-glade.c:8425
+#: src/ui/gtk/gtk2/interface-glade.c:7038
+#, fuzzy
+msgid "IP address/mask"
 msgstr "Dirección IP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8438
-#: src/ui/gtk/gtk2/interface-glade.c:7049
-msgid "network mask"
-msgstr "máscara de red"
-
-#: src/ui/gtk/gtk1/interface-glade.c:8551
+#: src/ui/gtk/gtk1/interface-glade.c:8529
 msgid "#|IP address"
 msgstr "Dirección IP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8624
-#: src/ui/gtk/gtk2/interface-glade.c:7459
+#: src/ui/gtk/gtk1/interface-glade.c:8602
+#: src/ui/gtk/gtk2/interface-glade.c:7440
 msgid "Condition: If file size matches"
 msgstr "Condición: Si el tamaño del archivo coincide"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8652
-#: src/ui/gtk/gtk2/interface-glade.c:7396
+#: src/ui/gtk/gtk1/interface-glade.c:8630
+#: src/ui/gtk/gtk2/interface-glade.c:7377
 msgid "Minimum size:"
 msgstr "Tamaño mínimo:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8663
-#: src/ui/gtk/gtk2/interface-glade.c:7406
+#: src/ui/gtk/gtk1/interface-glade.c:8641
+#: src/ui/gtk/gtk2/interface-glade.c:7387
 msgid "Maximum size:"
 msgstr "Tamaño máximo:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8674
-#: src/ui/gtk/gtk1/interface-glade.c:8685
-#: src/ui/gtk/gtk1/interface-glade.c:14790
-#: src/ui/gtk/gtk1/interface-glade.c:15202
-#: src/ui/gtk/gtk1/interface-glade.c:15213
+#: src/ui/gtk/gtk1/interface-glade.c:8652
+#: src/ui/gtk/gtk1/interface-glade.c:8663
+#: src/ui/gtk/gtk1/interface-glade.c:14768
+#: src/ui/gtk/gtk1/interface-glade.c:15180
+#: src/ui/gtk/gtk1/interface-glade.c:15191
+#: src/ui/gtk/gtk1/interface-glade.c:15271
 #: src/ui/gtk/gtk1/interface-glade.c:15293
-#: src/ui/gtk/gtk1/interface-glade.c:15315
-#: src/ui/gtk/gtk2/interface-glade.c:7416
-#: src/ui/gtk/gtk2/interface-glade.c:7426
-#: src/ui/gtk/gtk2/interface-glade.c:13510
-#: src/ui/gtk/gtk2/interface-glade.c:13826
-#: src/ui/gtk/gtk2/interface-glade.c:13835
-#: src/ui/gtk/gtk2/interface-glade.c:13878
-#: src/ui/gtk/gtk2/interface-glade.c:13886
+#: src/ui/gtk/gtk2/interface-glade.c:7397
+#: src/ui/gtk/gtk2/interface-glade.c:7407
+#: src/ui/gtk/gtk2/interface-glade.c:13491
+#: src/ui/gtk/gtk2/interface-glade.c:13807
+#: src/ui/gtk/gtk2/interface-glade.c:13816
+#: src/ui/gtk/gtk2/interface-glade.c:13859
+#: src/ui/gtk/gtk2/interface-glade.c:13867
 msgid "bytes"
 msgstr "bytes"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8799
+#: src/ui/gtk/gtk1/interface-glade.c:8777
 msgid "#|Filesize"
 msgstr "Tamaño"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8856
-#: src/ui/gtk/gtk2/interface-glade.c:7781
+#: src/ui/gtk/gtk1/interface-glade.c:8834
+#: src/ui/gtk/gtk2/interface-glade.c:7762
 msgid "Condition: always"
 msgstr "Condición: siempre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8874
-#: src/ui/gtk/gtk2/interface-glade.c:7774
+#: src/ui/gtk/gtk1/interface-glade.c:8852
+#: src/ui/gtk/gtk2/interface-glade.c:7755
 msgid ""
 "There is no condition. When this rule is reached, the matching will continue "
 "in the specified target filter. That's also why you can't invert this "
@@ -6977,135 +6983,135 @@ msgstr ""
 "en el filtro objetivo especificado. También es por eso que no se puede "
 "invertir esta condición. Si se pudiese, esta regla se ignoraría."
 
-#: src/ui/gtk/gtk1/interface-glade.c:8975
+#: src/ui/gtk/gtk1/interface-glade.c:8953
 msgid "#|Jump"
 msgstr "Salto"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9047
-#: src/ui/gtk/gtk2/interface-glade.c:8139
+#: src/ui/gtk/gtk1/interface-glade.c:9025
+#: src/ui/gtk/gtk2/interface-glade.c:8120
 msgid "Condition: If urn:sha1 matches"
 msgstr "Condición: Si urn:sha1 coincide"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9075
-#: src/ui/gtk/gtk2/interface-glade.c:8103
+#: src/ui/gtk/gtk1/interface-glade.c:9053
+#: src/ui/gtk/gtk2/interface-glade.c:8084
 msgid "SHA1 hash (not editable, add from search popup)"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:9107
-#: src/ui/gtk/gtk2/interface-glade.c:8127
+#: src/ui/gtk/gtk1/interface-glade.c:9085
+#: src/ui/gtk/gtk2/interface-glade.c:8108
 msgid "Originally obtained from"
 msgstr "Obtenido originalmente desde"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9208
+#: src/ui/gtk/gtk1/interface-glade.c:9186
 msgid "#|SHA1"
 msgstr "SHA1"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9273
-#: src/ui/gtk/gtk2/interface-glade.c:8801
+#: src/ui/gtk/gtk1/interface-glade.c:9251
+#: src/ui/gtk/gtk2/interface-glade.c:8782
 msgid "Condition: If result has flags"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:9301
-#: src/ui/gtk/gtk2/interface-glade.c:8504 src/ui/gtk/hcache_common.c:44
+#: src/ui/gtk/gtk1/interface-glade.c:9279
+#: src/ui/gtk/gtk2/interface-glade.c:8485 src/ui/gtk/hcache_common.c:44
 msgid "Busy"
 msgstr "Ocupado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9335
-#: src/ui/gtk/gtk1/interface-glade.c:9395
-#: src/ui/gtk/gtk1/interface-glade.c:9486
-#: src/ui/gtk/gtk2/interface-glade.c:8607
-#: src/ui/gtk/gtk2/interface-glade.c:8736
-#: src/ui/gtk/gtk2/interface-glade.c:8796
+#: src/ui/gtk/gtk1/interface-glade.c:9313
+#: src/ui/gtk/gtk1/interface-glade.c:9373
+#: src/ui/gtk/gtk1/interface-glade.c:9464
+#: src/ui/gtk/gtk2/interface-glade.c:8588
+#: src/ui/gtk/gtk2/interface-glade.c:8717
+#: src/ui/gtk/gtk2/interface-glade.c:8777
 msgid "unset"
 msgstr "desactivado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9355
-#: src/ui/gtk/gtk1/interface-glade.c:9375
-#: src/ui/gtk/gtk1/interface-glade.c:9506
-#: src/ui/gtk/gtk2/interface-glade.c:8547
-#: src/ui/gtk/gtk2/interface-glade.c:8577
-#: src/ui/gtk/gtk2/interface-glade.c:8766
+#: src/ui/gtk/gtk1/interface-glade.c:9333
+#: src/ui/gtk/gtk1/interface-glade.c:9353
+#: src/ui/gtk/gtk1/interface-glade.c:9484
+#: src/ui/gtk/gtk2/interface-glade.c:8528
+#: src/ui/gtk/gtk2/interface-glade.c:8558
+#: src/ui/gtk/gtk2/interface-glade.c:8747
 msgid "ignored"
 msgstr "ignorado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9415
-#: src/ui/gtk/gtk1/interface-glade.c:9435
-#: src/ui/gtk/gtk1/interface-glade.c:9466
-#: src/ui/gtk/gtk2/interface-glade.c:8637
-#: src/ui/gtk/gtk2/interface-glade.c:8667
-#: src/ui/gtk/gtk2/interface-glade.c:8706
+#: src/ui/gtk/gtk1/interface-glade.c:9393
+#: src/ui/gtk/gtk1/interface-glade.c:9413
+#: src/ui/gtk/gtk1/interface-glade.c:9444
+#: src/ui/gtk/gtk2/interface-glade.c:8618
+#: src/ui/gtk/gtk2/interface-glade.c:8648
+#: src/ui/gtk/gtk2/interface-glade.c:8687
 msgid "set"
 msgstr "activado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9443
-#: src/ui/gtk/gtk2/interface-glade.c:8672
+#: src/ui/gtk/gtk1/interface-glade.c:9421
+#: src/ui/gtk/gtk2/interface-glade.c:8653
 msgid "Stable"
 msgstr "Estable"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9597
+#: src/ui/gtk/gtk1/interface-glade.c:9575
 msgid "#|Flags"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:9670
-#: src/ui/gtk/gtk2/interface-glade.c:9452
+#: src/ui/gtk/gtk1/interface-glade.c:9648
+#: src/ui/gtk/gtk2/interface-glade.c:9433
 msgid "Condition: If current filter result properties match"
 msgstr "Condición: Si las propiedades del resultado del filtro actual coincide"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9721
-#: src/ui/gtk/gtk1/interface-glade.c:9812
-#: src/ui/gtk/gtk2/interface-glade.c:9228
-#: src/ui/gtk/gtk2/interface-glade.c:9357
+#: src/ui/gtk/gtk1/interface-glade.c:9699
+#: src/ui/gtk/gtk1/interface-glade.c:9790
+#: src/ui/gtk/gtk2/interface-glade.c:9209
+#: src/ui/gtk/gtk2/interface-glade.c:9338
 msgid "don't"
 msgstr "no"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9741
-#: src/ui/gtk/gtk1/interface-glade.c:9832
-#: src/ui/gtk/gtk2/interface-glade.c:9258
-#: src/ui/gtk/gtk2/interface-glade.c:9387
+#: src/ui/gtk/gtk1/interface-glade.c:9719
+#: src/ui/gtk/gtk1/interface-glade.c:9810
+#: src/ui/gtk/gtk2/interface-glade.c:9239
+#: src/ui/gtk/gtk2/interface-glade.c:9368
 msgid "undefined"
 msgstr "indefinido"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9772
-#: src/ui/gtk/gtk1/interface-glade.c:9792
-#: src/ui/gtk/gtk2/interface-glade.c:9297
-#: src/ui/gtk/gtk2/interface-glade.c:9327
+#: src/ui/gtk/gtk1/interface-glade.c:9750
+#: src/ui/gtk/gtk1/interface-glade.c:9770
+#: src/ui/gtk/gtk2/interface-glade.c:9278
+#: src/ui/gtk/gtk2/interface-glade.c:9308
 msgid "do"
 msgstr "hacer"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9852
-#: src/ui/gtk/gtk1/interface-glade.c:9872
-#: src/ui/gtk/gtk2/interface-glade.c:9417
-#: src/ui/gtk/gtk2/interface-glade.c:9447
+#: src/ui/gtk/gtk1/interface-glade.c:9830
+#: src/ui/gtk/gtk1/interface-glade.c:9850
+#: src/ui/gtk/gtk2/interface-glade.c:9398
+#: src/ui/gtk/gtk2/interface-glade.c:9428
 msgid "ignore"
 msgstr "ignorar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9963
+#: src/ui/gtk/gtk1/interface-glade.c:9941
 msgid "#|State"
 msgstr "Estado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9987
+#: src/ui/gtk/gtk1/interface-glade.c:9965
 msgid "Apply"
 msgstr "Aplicar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9996
+#: src/ui/gtk/gtk1/interface-glade.c:9974
 #: src/ui/gtk/gtk2/interface-glade.c:1211
 msgid "Revert"
 msgstr "Revertir"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10005
+#: src/ui/gtk/gtk1/interface-glade.c:9983
 msgid "Ok"
 msgstr "Vale"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10014
+#: src/ui/gtk/gtk1/interface-glade.c:9992
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10218
+#: src/ui/gtk/gtk1/interface-glade.c:10196
 #: src/ui/gtk/gtk2/interface-glade.c:1331
 msgid "gtk-gnutella shutdown"
 msgstr "Cerrar gtk-gnutella"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10240
+#: src/ui/gtk/gtk1/interface-glade.c:10218
 #: src/ui/gtk/gtk2/interface-glade.c:1352
 msgid ""
 "Gtk-Gnutella is shutting down.\n"
@@ -7118,98 +7124,98 @@ msgstr ""
 "\n"
 "Tiempo de gracia restante:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10248
+#: src/ui/gtk/gtk1/interface-glade.c:10226
 msgid "[time]"
 msgstr "[tiempo]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10313
+#: src/ui/gtk/gtk1/interface-glade.c:10291
 #: src/ui/gtk/gtk2/interface-glade.c:1469
 msgid "About gtk-gnutella"
 msgstr "Acerca de gtk-gnutella"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10359
+#: src/ui/gtk/gtk1/interface-glade.c:10337
 msgid "[name and version]"
 msgstr "[nombre y versión]"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10400
+#: src/ui/gtk/gtk1/interface-glade.c:10378
 #: src/ui/gtk/gtk2/interface-glade.c:1517
 msgid "Original author:"
 msgstr "Autor original:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10412
+#: src/ui/gtk/gtk1/interface-glade.c:10390
 #: src/ui/gtk/gtk2/interface-glade.c:1536
 msgid "Core development:"
 msgstr "Desarrollo del núcleo:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10424
+#: src/ui/gtk/gtk1/interface-glade.c:10402
 #: src/ui/gtk/gtk2/interface-glade.c:1555
 msgid "PARQ development:"
 msgstr "desarrollo PARQ:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10436
+#: src/ui/gtk/gtk1/interface-glade.c:10414
 #: src/ui/gtk/gtk2/interface-glade.c:1600
 msgid "Project leader:"
 msgstr "Líder del proyecto:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10447
+#: src/ui/gtk/gtk1/interface-glade.c:10425
 #: src/ui/gtk/gtk2/interface-glade.c:1610
 msgid "GUI development:"
 msgstr "Desarrollo del GUI:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10458
+#: src/ui/gtk/gtk1/interface-glade.c:10436
 #: src/ui/gtk/gtk2/interface-glade.c:1620
 msgid "Swarming development:"
 msgstr "Desarrollo de las descargas distribuídas:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10479
+#: src/ui/gtk/gtk1/interface-glade.c:10457
 msgid "Vidar Madsen"
 msgstr "Vidar Madsen"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10490
+#: src/ui/gtk/gtk1/interface-glade.c:10468
 msgid "Richard Eckart"
 msgstr "Richard Eckart"
 
+#: src/ui/gtk/gtk1/interface-glade.c:10479
 #: src/ui/gtk/gtk1/interface-glade.c:10501
-#: src/ui/gtk/gtk1/interface-glade.c:10523
 msgid "Raphael Manfredi"
 msgstr "Raphael Manfredi"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10512
+#: src/ui/gtk/gtk1/interface-glade.c:10490
 msgid "Yann Grossel"
 msgstr "Yann Grossel"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10534
+#: src/ui/gtk/gtk1/interface-glade.c:10512
 msgid "Jeroen Asselman"
 msgstr "Jeroen Asselman"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10553
+#: src/ui/gtk/gtk1/interface-glade.c:10531
 #: src/ui/gtk/gtk2/interface-glade.c:1671
 msgid "Contributors:"
 msgstr "Colaboradores:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10589
+#: src/ui/gtk/gtk1/interface-glade.c:10567
 #: src/ui/gtk/gtk2/interface-glade.c:1676
 msgid ""
 "==> We are looking for people who want to contribute to this fine tool. <=="
 msgstr ""
 "==> Estamos buscando gente que quiera colaborar con esta herramienta. <=="
 
-#: src/ui/gtk/gtk1/interface-glade.c:10597
+#: src/ui/gtk/gtk1/interface-glade.c:10575
 #: src/ui/gtk/gtk2/interface-glade.c:1682
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "Visite http://gtk-gnutella.sourceforge.net/."
 
-#: src/ui/gtk/gtk1/interface-glade.c:10605
+#: src/ui/gtk/gtk1/interface-glade.c:10583
 #: src/ui/gtk/gtk2/interface-glade.c:1689
 msgid "Join the users or developers mailing lists."
 msgstr "Únase a las listas de correos de usuarios o desarrolladores."
 
-#: src/ui/gtk/gtk1/interface-glade.c:10613
+#: src/ui/gtk/gtk1/interface-glade.c:10591
 #: src/ui/gtk/gtk2/interface-glade.c:1694
 msgid "Meet us on #gtk-gnutella at irc.freenode.net."
 msgstr "Conózcanos en #gtk-gnutella en irc.freenode.net."
 
-#: src/ui/gtk/gtk1/interface-glade.c:10645
+#: src/ui/gtk/gtk1/interface-glade.c:10623
 #: src/ui/gtk/gtk2/interface-glade.c:1707
 msgid ""
 "This product includes GeoIP data created by MaxMind, available from\n"
@@ -7218,144 +7224,144 @@ msgstr ""
 "Este producto incluye datos GeoIP creados por MaxMind, disponibles en\n"
 "http://maxmind.com/"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10663
-#: src/ui/gtk/gtk1/interface-glade.c:17336
+#: src/ui/gtk/gtk1/interface-glade.c:10641
+#: src/ui/gtk/gtk1/interface-glade.c:17314
 #: src/ui/gtk/gtk2/interface-glade.c:1720
 msgid "_Close"
 msgstr "_Cerrar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10702
+#: src/ui/gtk/gtk1/interface-glade.c:10680
 #: src/ui/gtk/gtk2/interface-glade.c:1390
 msgid "Copy rule"
 msgstr "Copiar regla"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10710
+#: src/ui/gtk/gtk1/interface-glade.c:10688
 #: src/ui/gtk/gtk2/interface-glade.c:1400
 msgid "Paste rule"
 msgstr "Pegar regla"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10745
+#: src/ui/gtk/gtk1/interface-glade.c:10723
 #: src/ui/gtk/gtk2/interface-glade.c:3422
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: ¿Salir?"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10756
+#: src/ui/gtk/gtk1/interface-glade.c:10734
 #: src/ui/gtk/gtk2/interface-glade.c:3449
 msgid "Please confirm:"
 msgstr "Confirme por favor:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10765
+#: src/ui/gtk/gtk1/interface-glade.c:10743
 #: src/ui/gtk/gtk2/interface-glade.c:3443
 msgid "Do you really want to quit?"
 msgstr "¿Realmente quiere salir?"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10780 src/ui/gtk/settings.c:1162
+#: src/ui/gtk/gtk1/interface-glade.c:10758 src/ui/gtk/settings.c:1163
 #: src/ui/gtk/settings_cb.c:574 src/ui/gtk/settings_cb.c:637
 msgid "Yes"
 msgstr "Sí"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10792
+#: src/ui/gtk/gtk1/interface-glade.c:10770
 msgid "No, take me back!"
 msgstr "No, ¡quiero volver!"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11531
-#: src/ui/gtk/gtk2/interface-glade.c:9980
+#: src/ui/gtk/gtk1/interface-glade.c:11509
+#: src/ui/gtk/gtk2/interface-glade.c:9961
 msgid "Preferences"
 msgstr "Preferencias"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11574
-#: src/ui/gtk/gtk2/interface-glade.c:10275
+#: src/ui/gtk/gtk1/interface-glade.c:11552
+#: src/ui/gtk/gtk2/interface-glade.c:10256
 msgid "IP settings"
 msgstr "Configuración IP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11599
-#: src/ui/gtk/gtk2/interface-glade.c:10170
+#: src/ui/gtk/gtk1/interface-glade.c:11577
+#: src/ui/gtk/gtk2/interface-glade.c:10151
 msgid "Current IP settings (Address:Port):"
 msgstr "Ajustes IP actuales (Dirección:Puerto):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11616
-#: src/ui/gtk/gtk2/interface-glade.c:10176
+#: src/ui/gtk/gtk1/interface-glade.c:11594
+#: src/ui/gtk/gtk2/interface-glade.c:10157
 msgid "not yet determined"
 msgstr "todavía no determinado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11645
-#: src/ui/gtk/gtk2/interface-glade.c:10237
+#: src/ui/gtk/gtk1/interface-glade.c:11623
+#: src/ui/gtk/gtk2/interface-glade.c:10218
 msgid "Force local _IP to"
 msgstr "Forzar _IP local a"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11659
-#: src/ui/gtk/gtk2/interface-glade.c:10258
+#: src/ui/gtk/gtk1/interface-glade.c:11637
+#: src/ui/gtk/gtk2/interface-glade.c:10239
 msgid "_Listen port"
 msgstr "Puerto de _escucha"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11670
-#: src/ui/gtk/gtk2/interface-glade.c:10196
+#: src/ui/gtk/gtk1/interface-glade.c:11648
+#: src/ui/gtk/gtk2/interface-glade.c:10177
 msgid "Disable: 0, Random: 1"
 msgstr "Desactivado: 0, Aleatorio: 1"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11682
-#: src/ui/gtk/gtk2/interface-glade.c:10244
+#: src/ui/gtk/gtk1/interface-glade.c:11660
+#: src/ui/gtk/gtk2/interface-glade.c:10225
 msgid "Public _hostname"
 msgstr "Nombre _público de la máquina"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11729
-#: src/ui/gtk/gtk2/interface-glade.c:10268
+#: src/ui/gtk/gtk1/interface-glade.c:11707
+#: src/ui/gtk/gtk2/interface-glade.c:10249
 msgid "Enable _UDP"
 msgstr "Activar _UDP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11741
-#: src/ui/gtk/gtk2/interface-glade.c:10390
+#: src/ui/gtk/gtk1/interface-glade.c:11719
+#: src/ui/gtk/gtk2/interface-glade.c:10371
 msgid "Proxy settings"
 msgstr "Configuración del proxy"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11770
-#: src/ui/gtk/gtk2/interface-glade.c:10307
+#: src/ui/gtk/gtk1/interface-glade.c:11748
+#: src/ui/gtk/gtk2/interface-glade.c:10288
 msgid "H_ost:"
 msgstr "N_odo:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11783
-#: src/ui/gtk/gtk2/interface-glade.c:10315
+#: src/ui/gtk/gtk1/interface-glade.c:11761
+#: src/ui/gtk/gtk2/interface-glade.c:10296
 msgid "TCP _Port:"
 msgstr "TCP _Puerto:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11795
-#: src/ui/gtk/gtk2/interface-glade.c:10299
+#: src/ui/gtk/gtk1/interface-glade.c:11773
+#: src/ui/gtk/gtk2/interface-glade.c:10280
 msgid "Proxy _type:"
 msgstr "_Tipo de proxy:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11852
-#: src/ui/gtk/gtk2/interface-glade.c:10357
+#: src/ui/gtk/gtk1/interface-glade.c:11830
+#: src/ui/gtk/gtk2/interface-glade.c:10338
 msgid "Use username and password to _authenticate to proxy"
 msgstr "Usar usuario y contraseña para _autenticarse al proxy"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11866
-#: src/ui/gtk/gtk2/interface-glade.c:10367
+#: src/ui/gtk/gtk1/interface-glade.c:11844
+#: src/ui/gtk/gtk2/interface-glade.c:10348
 msgid "_Username"
 msgstr "_Usuario"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11879
-#: src/ui/gtk/gtk2/interface-glade.c:10379
+#: src/ui/gtk/gtk1/interface-glade.c:11857
+#: src/ui/gtk/gtk2/interface-glade.c:10360
 msgid "Pass_word"
 msgstr "_Contraseña"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11912
-#: src/ui/gtk/gtk1/interface-glade.c:11969
-#: src/ui/gtk/gtk2/interface-glade.c:10441
+#: src/ui/gtk/gtk1/interface-glade.c:11890
+#: src/ui/gtk/gtk1/interface-glade.c:11947
+#: src/ui/gtk/gtk2/interface-glade.c:10422
 msgid "Local networks"
 msgstr "Redes locales"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11939
-#: src/ui/gtk/gtk2/interface-glade.c:10412
+#: src/ui/gtk/gtk1/interface-glade.c:11917
+#: src/ui/gtk/gtk2/interface-glade.c:10393
 msgid "_Try to connect to local networks first"
 msgstr "_Intentar conectarse a las redes locales primero"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11951
-#: src/ui/gtk/gtk2/interface-glade.c:10418
+#: src/ui/gtk/gtk1/interface-glade.c:11929
+#: src/ui/gtk/gtk2/interface-glade.c:10399
 msgid "Allow connections from and to _LAN addresses"
 msgstr "Permitir conexiones desde y hacia direcciones _LAN"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11984
-#: src/ui/gtk/gtk2/interface-glade.c:10439
+#: src/ui/gtk/gtk1/interface-glade.c:11962
+#: src/ui/gtk/gtk2/interface-glade.c:10420
 msgid ""
 "Enter a semicolon separated list of networks that are local to you in the "
 "form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
@@ -7364,239 +7370,240 @@ msgstr ""
 "Introduzca una lista separada por comas de redes locales en la forma ip/bits "
 "o ip/máscara de red (ej. 192.168.1.0/24 or 192.168.1.0/255.255.255.0)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11986
-#: src/ui/gtk/gtk2/interface-glade.c:10546
+#: src/ui/gtk/gtk1/interface-glade.c:11964
+#: src/ui/gtk/gtk2/interface-glade.c:10527
 msgid "Banning"
 msgstr "Banear"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12007
-#: src/ui/gtk/gtk2/interface-glade.c:10460
+#: src/ui/gtk/gtk1/interface-glade.c:11985
+#: src/ui/gtk/gtk2/interface-glade.c:10441
 msgid "Max. file _descriptors reserved"
 msgstr "Número máximo de _descriptores de archivos reservados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12020
-#: src/ui/gtk/gtk2/interface-glade.c:10468
+#: src/ui/gtk/gtk1/interface-glade.c:11998
+#: src/ui/gtk/gtk2/interface-glade.c:10449
 msgid "Max. _percentage of file descriptors"
 msgstr "_Porcentaje máximo de descriptores de archivos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12058
-#: src/ui/gtk/gtk2/interface-glade.c:10476
+#: src/ui/gtk/gtk1/interface-glade.c:12036
+#: src/ui/gtk/gtk2/interface-glade.c:10457
 msgid "Hard limit of _file descriptors used"
 msgstr "Número máximo global de descriptores de archivos usados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12079
-#: src/ui/gtk/gtk2/interface-glade.c:10534
+#: src/ui/gtk/gtk1/interface-glade.c:12057
+#: src/ui/gtk/gtk2/interface-glade.c:10515
 msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
 msgstr ""
 "Cantidad actual de descriptores de archivo usados -- no modificable en "
 "tiempo de ejecución"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12082
-#: src/ui/gtk/gtk2/interface-glade.c:10500
+#: src/ui/gtk/gtk1/interface-glade.c:12060
+#: src/ui/gtk/gtk2/interface-glade.c:10481
 msgid "Currently used"
 msgstr "Actualmente usados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12104
-#: src/ui/gtk/gtk1/interface-glade.c:12178
-#: src/ui/gtk/gtk1/interface-glade.c:12575
-#: src/ui/gtk/gtk1/interface-glade.c:12595
-#: src/ui/gtk/gtk1/interface-glade.c:12723
-#: src/ui/gtk/gtk1/interface-glade.c:12744
-#: src/ui/gtk/gtk1/interface-glade.c:12765
-#: src/ui/gtk/gtk1/interface-glade.c:12786
-#: src/ui/gtk/gtk1/interface-glade.c:12807
-#: src/ui/gtk/gtk1/interface-glade.c:12828
-#: src/ui/gtk/gtk1/interface-glade.c:12849
-#: src/ui/gtk/gtk1/interface-glade.c:12881
-#: src/ui/gtk/gtk1/interface-glade.c:14070
-#: src/ui/gtk/gtk1/interface-glade.c:14090
-#: src/ui/gtk/gtk1/interface-glade.c:14110
-#: src/ui/gtk/gtk1/interface-glade.c:15913
-#: src/ui/gtk/gtk1/interface-glade.c:15934
-#: src/ui/gtk/gtk1/interface-glade.c:16041
-#: src/ui/gtk/gtk1/interface-glade.c:16062
-#: src/ui/gtk/gtk1/interface-glade.c:16083
-#: src/ui/gtk/gtk1/interface-glade.c:16104
-#: src/ui/gtk/gtk1/interface-glade.c:16125
-#: src/ui/gtk/gtk1/interface-glade.c:16146
-#: src/ui/gtk/gtk1/interface-glade.c:16300
-#: src/ui/gtk/gtk1/interface-glade.c:16321
-#: src/ui/gtk/gtk1/interface-glade.c:16342
-#: src/ui/gtk/gtk1/interface-glade.c:16363
-#: src/ui/gtk/gtk1/interface-glade.c:16384
-#: src/ui/gtk/gtk1/interface-glade.c:16405
-#: src/ui/gtk/gtk1/interface-glade.c:16489
-#: src/ui/gtk/gtk1/interface-glade.c:16510
-#: src/ui/gtk/gtk1/interface-glade.c:16531
+#: src/ui/gtk/gtk1/interface-glade.c:12082
+#: src/ui/gtk/gtk1/interface-glade.c:12156
+#: src/ui/gtk/gtk1/interface-glade.c:12553
+#: src/ui/gtk/gtk1/interface-glade.c:12573
+#: src/ui/gtk/gtk1/interface-glade.c:12701
+#: src/ui/gtk/gtk1/interface-glade.c:12722
+#: src/ui/gtk/gtk1/interface-glade.c:12743
+#: src/ui/gtk/gtk1/interface-glade.c:12764
+#: src/ui/gtk/gtk1/interface-glade.c:12785
+#: src/ui/gtk/gtk1/interface-glade.c:12806
+#: src/ui/gtk/gtk1/interface-glade.c:12827
+#: src/ui/gtk/gtk1/interface-glade.c:12859
+#: src/ui/gtk/gtk1/interface-glade.c:14048
+#: src/ui/gtk/gtk1/interface-glade.c:14068
+#: src/ui/gtk/gtk1/interface-glade.c:14088
+#: src/ui/gtk/gtk1/interface-glade.c:15891
+#: src/ui/gtk/gtk1/interface-glade.c:15912
+#: src/ui/gtk/gtk1/interface-glade.c:16019
+#: src/ui/gtk/gtk1/interface-glade.c:16040
+#: src/ui/gtk/gtk1/interface-glade.c:16061
+#: src/ui/gtk/gtk1/interface-glade.c:16082
+#: src/ui/gtk/gtk1/interface-glade.c:16103
+#: src/ui/gtk/gtk1/interface-glade.c:16124
+#: src/ui/gtk/gtk1/interface-glade.c:16278
+#: src/ui/gtk/gtk1/interface-glade.c:16299
+#: src/ui/gtk/gtk1/interface-glade.c:16320
+#: src/ui/gtk/gtk1/interface-glade.c:16341
+#: src/ui/gtk/gtk1/interface-glade.c:16362
+#: src/ui/gtk/gtk1/interface-glade.c:16383
+#: src/ui/gtk/gtk1/interface-glade.c:16467
+#: src/ui/gtk/gtk1/interface-glade.c:16488
+#: src/ui/gtk/gtk1/interface-glade.c:16509
 msgid "[place holder]"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:12113
-#: src/ui/gtk/gtk2/interface-glade.c:10539
+#: src/ui/gtk/gtk1/interface-glade.c:12091
+#: src/ui/gtk/gtk2/interface-glade.c:10520
 msgid "Use global hostiles.txt"
 msgstr "Usar hostiles.txt global"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12123
-#: src/ui/gtk/gtk2/interface-glade.c:10604
-msgid "Clock synchronisation"
+#: src/ui/gtk/gtk1/interface-glade.c:12101
+#: src/ui/gtk/gtk2/interface-glade.c:10585
+#, fuzzy
+msgid "Clock synchronization"
 msgstr "Sincronización del reloj"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12144
-#: src/ui/gtk/gtk2/interface-glade.c:10582
+#: src/ui/gtk/gtk1/interface-glade.c:12122
+#: src/ui/gtk/gtk2/interface-glade.c:10563
 msgid "Host runs _NTP"
 msgstr "El nodo usa _NTP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12156
-#: src/ui/gtk/gtk2/interface-glade.c:10574
+#: src/ui/gtk/gtk1/interface-glade.c:12134
+#: src/ui/gtk/gtk2/interface-glade.c:10555
 msgid "Clock skew:"
 msgstr "Sesgo del reloj:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12187
-#: src/ui/gtk/gtk1/interface-glade.c:14671
-#: src/ui/gtk/gtk1/interface-glade.c:16575
-#: src/ui/gtk/gtk2/interface-glade.c:10632
-#: src/ui/gtk/gtk2/interface-glade.c:13418
-#: src/ui/gtk/gtk2/interface-glade.c:15477
+#: src/ui/gtk/gtk1/interface-glade.c:12165
+#: src/ui/gtk/gtk1/interface-glade.c:14649
+#: src/ui/gtk/gtk1/interface-glade.c:16553
+#: src/ui/gtk/gtk2/interface-glade.c:10613
+#: src/ui/gtk/gtk2/interface-glade.c:13399
+#: src/ui/gtk/gtk2/interface-glade.c:15458
 msgid "Miscellaneous"
 msgstr "Miscelánea"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12206
-#: src/ui/gtk/gtk2/interface-glade.c:10622
+#: src/ui/gtk/gtk1/interface-glade.c:12184
+#: src/ui/gtk/gtk2/interface-glade.c:10603
 msgid "Enable \"_shell\" control interface"
 msgstr "Activar interfaz Remota"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12218
-#: src/ui/gtk/gtk2/interface-glade.c:10627
+#: src/ui/gtk/gtk1/interface-glade.c:12196
+#: src/ui/gtk/gtk2/interface-glade.c:10608
 msgid "Enable \"_Browse Host\" feature"
 msgstr "Activar \"_Consultar Nodo\""
 
-#: src/ui/gtk/gtk1/interface-glade.c:12228
-#: src/ui/gtk/gtk2/interface-glade.c:10701
+#: src/ui/gtk/gtk1/interface-glade.c:12206
+#: src/ui/gtk/gtk2/interface-glade.c:10682
 msgid "Socket receive buffer size"
 msgstr "Tamaño del búfer del socket de recepción"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12249
-#: src/ui/gtk/gtk2/interface-glade.c:10693
+#: src/ui/gtk/gtk1/interface-glade.c:12227
+#: src/ui/gtk/gtk2/interface-glade.c:10674
 msgid "_Gnutella RX buffer:"
 msgstr "Búfer de recepción _Gnutella:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12260
-#: src/ui/gtk/gtk1/interface-glade.c:12271
+#: src/ui/gtk/gtk1/interface-glade.c:12238
+#: src/ui/gtk/gtk1/interface-glade.c:12249
 msgid "KiB"
 msgstr "KiB"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12284
-#: src/ui/gtk/gtk2/interface-glade.c:10685
+#: src/ui/gtk/gtk1/interface-glade.c:12262
+#: src/ui/gtk/gtk2/interface-glade.c:10666
 msgid "_Download RX buffer:"
 msgstr "Búfer de recepción de _descargas: "
 
-#: src/ui/gtk/gtk1/interface-glade.c:12319
-#: src/ui/gtk/gtk2/interface-glade.c:10132
+#: src/ui/gtk/gtk1/interface-glade.c:12297
+#: src/ui/gtk/gtk2/interface-glade.c:10113
 msgid "Network"
 msgstr "Red"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12353
-#: src/ui/gtk/gtk2/interface-glade.c:11468
+#: src/ui/gtk/gtk1/interface-glade.c:12331
+#: src/ui/gtk/gtk2/interface-glade.c:11449
 msgid "Gnutella network mode"
 msgstr "Modo de red Gnutella"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12386
-#: src/ui/gtk/gtk2/interface-glade.c:11155
+#: src/ui/gtk/gtk1/interface-glade.c:12364
+#: src/ui/gtk/gtk2/interface-glade.c:11136
 msgid "Configured peermode"
 msgstr "Tipo de nodo configurado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12399
-#: src/ui/gtk/gtk2/interface-glade.c:11139
+#: src/ui/gtk/gtk1/interface-glade.c:12377
+#: src/ui/gtk/gtk2/interface-glade.c:11120
 msgid "Monitor bad node IP addresses"
 msgstr "Monitorear direcciones IP con nodos incorrectos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12409
-#: src/ui/gtk/gtk2/interface-glade.c:11147
+#: src/ui/gtk/gtk1/interface-glade.c:12387
+#: src/ui/gtk/gtk2/interface-glade.c:11128
 msgid "Monitor and auto-ban unstable servent types"
 msgstr "Monorizar y banear automáticamente tipos de nodos inestables"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12429
-#: src/ui/gtk/gtk2/interface-glade.c:11134
+#: src/ui/gtk/gtk1/interface-glade.c:12407
+#: src/ui/gtk/gtk2/interface-glade.c:11115
 msgid "Ultrapeer mode settings"
 msgstr "Ajustes del modo ultranodo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12449
-#: src/ui/gtk/gtk2/interface-glade.c:11126
+#: src/ui/gtk/gtk1/interface-glade.c:12427
+#: src/ui/gtk/gtk2/interface-glade.c:11107
 msgid "Legacy connections"
 msgstr "Conexiones normales"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12459
-#: src/ui/gtk/gtk2/interface-glade.c:11110
+#: src/ui/gtk/gtk1/interface-glade.c:12437
+#: src/ui/gtk/gtk2/interface-glade.c:11091
 msgid "Maximum # of leaves"
 msgstr "Cantidad máxima de hojas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12512
-#: src/ui/gtk/gtk2/interface-glade.c:11462
+#: src/ui/gtk/gtk1/interface-glade.c:12490
+#: src/ui/gtk/gtk2/interface-glade.c:11443
 msgid "Ultrapeer promotion statistics"
 msgstr "Estadísticas de promoción al ultranodo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12540
-#: src/ui/gtk/gtk2/interface-glade.c:11199
+#: src/ui/gtk/gtk1/interface-glade.c:12518
+#: src/ui/gtk/gtk2/interface-glade.c:11180
 msgid "Last check"
 msgstr "Última comprobación"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12552
-#: src/ui/gtk/gtk2/interface-glade.c:11208
+#: src/ui/gtk/gtk1/interface-glade.c:12530
+#: src/ui/gtk/gtk2/interface-glade.c:11189
 msgid "Last switch"
 msgstr "Último cambio"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12621
-#: src/ui/gtk/gtk2/interface-glade.c:11265
+#: src/ui/gtk/gtk1/interface-glade.c:12599
+#: src/ui/gtk/gtk2/interface-glade.c:11246
 msgid "Large enough uptime"
 msgstr "Tiempo en ejecución suficiente"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12643
-#: src/ui/gtk/gtk2/interface-glade.c:11299
+#: src/ui/gtk/gtk1/interface-glade.c:12621
+#: src/ui/gtk/gtk2/interface-glade.c:11280
 msgid "Not firewalled"
 msgstr "No hay cortafuegos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12654
-#: src/ui/gtk/gtk2/interface-glade.c:11274
+#: src/ui/gtk/gtk1/interface-glade.c:12632
+#: src/ui/gtk/gtk2/interface-glade.c:11255
 msgid "Enough file descriptors"
 msgstr "Suficientes descriptores de archivo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12666
-#: src/ui/gtk/gtk2/interface-glade.c:11308
+#: src/ui/gtk/gtk1/interface-glade.c:12644
+#: src/ui/gtk/gtk2/interface-glade.c:11289
 msgid "Enough physical memory"
 msgstr "Memoria física suficiente"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12677
-#: src/ui/gtk/gtk2/interface-glade.c:11283
+#: src/ui/gtk/gtk1/interface-glade.c:12655
+#: src/ui/gtk/gtk2/interface-glade.c:11264
 msgid "Enough available bandwidth"
 msgstr "El ancho de banda disponible es suficiente"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12689
-#: src/ui/gtk/gtk2/interface-glade.c:11317
+#: src/ui/gtk/gtk1/interface-glade.c:12667
+#: src/ui/gtk/gtk2/interface-glade.c:11298
 msgid "IP address stability"
 msgstr "Estabilidad de la dirección IP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12700
-#: src/ui/gtk/gtk2/interface-glade.c:11256
+#: src/ui/gtk/gtk1/interface-glade.c:12678
+#: src/ui/gtk/gtk2/interface-glade.c:11237
 msgid "Sufficient average uptime"
 msgstr "Tiempo promedio en ejecución suficiente"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12859
-#: src/ui/gtk/gtk2/interface-glade.c:11453
+#: src/ui/gtk/gtk1/interface-glade.c:12837
+#: src/ui/gtk/gtk2/interface-glade.c:11434
 msgid "Enough min # of connections"
 msgstr "Cantidad min. de conexiones"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12891
-#: src/ui/gtk/gtk2/interface-glade.c:11552
+#: src/ui/gtk/gtk1/interface-glade.c:12869
+#: src/ui/gtk/gtk2/interface-glade.c:11533
 msgid "Searches"
 msgstr "Texto de la búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12928
-#: src/ui/gtk/gtk2/interface-glade.c:11525
+#: src/ui/gtk/gtk1/interface-glade.c:12906
+#: src/ui/gtk/gtk2/interface-glade.c:11506
 msgid "Limit search _results to "
 msgstr "Limitar _resultados de búsquedas a "
 
-#: src/ui/gtk/gtk1/interface-glade.c:12950
-#: src/ui/gtk/gtk2/interface-glade.c:11504
+#: src/ui/gtk/gtk1/interface-glade.c:12928
+#: src/ui/gtk/gtk2/interface-glade.c:11485
 msgid ""
 "This limits how many results gnutella returns to other people searching your "
 "files."
@@ -7604,222 +7611,222 @@ msgstr ""
 "Esto limita el número de resultados que gnutella devuelve a otros nodos "
 "buscando sus archivos."
 
-#: src/ui/gtk/gtk1/interface-glade.c:12953
-#: src/ui/gtk/gtk2/interface-glade.c:11516
+#: src/ui/gtk/gtk1/interface-glade.c:12931
+#: src/ui/gtk/gtk2/interface-glade.c:11497
 msgid "items"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:12966
-#: src/ui/gtk/gtk2/interface-glade.c:11535
+#: src/ui/gtk/gtk1/interface-glade.c:12944
+#: src/ui/gtk/gtk2/interface-glade.c:11516
 msgid "Default search _reissue timeout"
 msgstr "Tiempo por defeecto entre repeticiones de búsquedas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12989
-#: src/ui/gtk/gtk1/interface-glade.c:16644
-#: src/ui/gtk/gtk1/interface-glade.c:16677
-#: src/ui/gtk/gtk2/interface-glade.c:15417
-#: src/ui/gtk/gtk2/interface-glade.c:15449
+#: src/ui/gtk/gtk1/interface-glade.c:12967
+#: src/ui/gtk/gtk1/interface-glade.c:16622
+#: src/ui/gtk/gtk1/interface-glade.c:16655
+#: src/ui/gtk/gtk2/interface-glade.c:15398
+#: src/ui/gtk/gtk2/interface-glade.c:15430
 msgid "seconds"
 msgstr "segundos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13000
-#: src/ui/gtk/gtk2/interface-glade.c:11590
+#: src/ui/gtk/gtk1/interface-glade.c:12978
+#: src/ui/gtk/gtk2/interface-glade.c:11571
 msgid "Out of Band Querying"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13017
-#: src/ui/gtk/gtk2/interface-glade.c:11568
+#: src/ui/gtk/gtk1/interface-glade.c:12995
+#: src/ui/gtk/gtk2/interface-glade.c:11549
 msgid "Queries ask for OOB results"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13025
-#: src/ui/gtk/gtk2/interface-glade.c:11575
-msgid "Honour OOB flag in queries"
+#: src/ui/gtk/gtk1/interface-glade.c:13003
+#: src/ui/gtk/gtk2/interface-glade.c:11556
+msgid "Honor OOB flag in queries"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13033
-#: src/ui/gtk/gtk2/interface-glade.c:11583
+#: src/ui/gtk/gtk1/interface-glade.c:13011
+#: src/ui/gtk/gtk2/interface-glade.c:11564
 msgid "Act as OOB proxy for leaves"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13049
-#: src/ui/gtk/gtk2/interface-glade.c:11659
+#: src/ui/gtk/gtk1/interface-glade.c:13027
+#: src/ui/gtk/gtk2/interface-glade.c:11640
 msgid "Search queue"
 msgstr "Cola de búsquedas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13080
-#: src/ui/gtk/gtk2/interface-glade.c:11616
+#: src/ui/gtk/gtk1/interface-glade.c:13058
+#: src/ui/gtk/gtk2/interface-glade.c:11597
 msgid "Spacing"
 msgstr "Espaciado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13115
-#: src/ui/gtk/gtk2/interface-glade.c:11751
+#: src/ui/gtk/gtk1/interface-glade.c:13093
+#: src/ui/gtk/gtk2/interface-glade.c:11732
 msgid "GnutellaNet timeouts (all values in seconds)"
 msgstr "Tiempos de caducidad GnutellaNet (todos los valores en segundos)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13136
-#: src/ui/gtk/gtk1/interface-glade.c:14949
-#: src/ui/gtk/gtk1/interface-glade.c:15624
-#: src/ui/gtk/gtk2/interface-glade.c:11678
-#: src/ui/gtk/gtk2/interface-glade.c:13702
-#: src/ui/gtk/gtk2/interface-glade.c:14474
+#: src/ui/gtk/gtk1/interface-glade.c:13114
+#: src/ui/gtk/gtk1/interface-glade.c:14927
+#: src/ui/gtk/gtk1/interface-glade.c:15602
+#: src/ui/gtk/gtk2/interface-glade.c:11659
+#: src/ui/gtk/gtk2/interface-glade.c:13683
+#: src/ui/gtk/gtk2/interface-glade.c:14455
 #, fuzzy
 msgid "Connectin_g timeout"
 msgstr "Tiempo de caducidad al conectar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13149
-#: src/ui/gtk/gtk1/interface-glade.c:14975
-#: src/ui/gtk/gtk1/interface-glade.c:15637
-#: src/ui/gtk/gtk2/interface-glade.c:11698
-#: src/ui/gtk/gtk2/interface-glade.c:13720
-#: src/ui/gtk/gtk2/interface-glade.c:14484
+#: src/ui/gtk/gtk1/interface-glade.c:13127
+#: src/ui/gtk/gtk1/interface-glade.c:14953
+#: src/ui/gtk/gtk1/interface-glade.c:15615
+#: src/ui/gtk/gtk2/interface-glade.c:11679
+#: src/ui/gtk/gtk2/interface-glade.c:13701
+#: src/ui/gtk/gtk2/interface-glade.c:14465
 msgid "Connected time_out"
 msgstr "Caducidad conectado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13162
-#: src/ui/gtk/gtk2/interface-glade.c:11688
+#: src/ui/gtk/gtk1/interface-glade.c:13140
+#: src/ui/gtk/gtk2/interface-glade.c:11669
 msgid "T_X flow control timeout"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13212
-#: src/ui/gtk/gtk2/interface-glade.c:11707
+#: src/ui/gtk/gtk1/interface-glade.c:13190
+#: src/ui/gtk/gtk2/interface-glade.c:11688
 msgid "Incoming connecting timeout"
 msgstr "Caducidad de conexión entrante"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13242
-#: src/ui/gtk/gtk2/interface-glade.c:11876
+#: src/ui/gtk/gtk1/interface-glade.c:13220
+#: src/ui/gtk/gtk2/interface-glade.c:11857
 msgid "GnutellaNet TTL settings"
 msgstr "Ajustes TTL de GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13263
-#: src/ui/gtk/gtk2/interface-glade.c:11793
+#: src/ui/gtk/gtk1/interface-glade.c:13241
+#: src/ui/gtk/gtk2/interface-glade.c:11774
 msgid "Max _TTL"
 msgstr "_TTL Máximo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13276
-#: src/ui/gtk/gtk2/interface-glade.c:11802
+#: src/ui/gtk/gtk1/interface-glade.c:13254
+#: src/ui/gtk/gtk2/interface-glade.c:11783
 msgid "M_y TTL"
 msgstr "Mi TTL"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13289
-#: src/ui/gtk/gtk2/interface-glade.c:11855
+#: src/ui/gtk/gtk1/interface-glade.c:13267
+#: src/ui/gtk/gtk2/interface-glade.c:11836
 msgid "from _nodes within a"
 msgstr "desde _nodos dentro de una"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13302
-#: src/ui/gtk/gtk2/interface-glade.c:11840
+#: src/ui/gtk/gtk1/interface-glade.c:13280
+#: src/ui/gtk/gtk2/interface-glade.c:11821
 msgid "Max # of _high TTL msg"
 msgstr "Nº máx de mensajes con TTL _alto"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13315
-#: src/ui/gtk/gtk2/interface-glade.c:11811
+#: src/ui/gtk/gtk1/interface-glade.c:13293
+#: src/ui/gtk/gtk2/interface-glade.c:11792
 msgid "H_ard TTL limit"
 msgstr "TTL límite"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13349
-#: src/ui/gtk/gtk2/interface-glade.c:11852
+#: src/ui/gtk/gtk1/interface-glade.c:13327
+#: src/ui/gtk/gtk2/interface-glade.c:11833
 msgid "Amount of tolerable messages above hard TTL limit per node"
 msgstr ""
 "Cantidad de mensajes tolerables por nodo con un TTL mayor que el límite"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13362
-#: src/ui/gtk/gtk2/interface-glade.c:11827
+#: src/ui/gtk/gtk1/interface-glade.c:13340
+#: src/ui/gtk/gtk2/interface-glade.c:11808
 msgid "Max hard TTL limit (hop+ttl) on message"
 msgstr "TTL límite máximo (salto+ttl) en mensaje"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13388
-#: src/ui/gtk/gtk2/interface-glade.c:11867
+#: src/ui/gtk/gtk1/interface-glade.c:13366
+#: src/ui/gtk/gtk2/interface-glade.c:11848
 msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13391
-#: src/ui/gtk/gtk2/interface-glade.c:11870
+#: src/ui/gtk/gtk1/interface-glade.c:13369
+#: src/ui/gtk/gtk2/interface-glade.c:11851
 msgid "hops radius"
 msgstr "Radio de saltos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13401
-#: src/ui/gtk/gtk2/interface-glade.c:12022
+#: src/ui/gtk/gtk1/interface-glade.c:13379
+#: src/ui/gtk/gtk2/interface-glade.c:12003
 msgid "Quality management"
 msgstr "Gestión de calidad"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13422
-#: src/ui/gtk/gtk2/interface-glade.c:11921
+#: src/ui/gtk/gtk1/interface-glade.c:13400
+#: src/ui/gtk/gtk2/interface-glade.c:11902
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "Cantidad de mensajes duplicados tolerables por _nodo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13435
-#: src/ui/gtk/gtk2/interface-glade.c:11930
+#: src/ui/gtk/gtk1/interface-glade.c:13413
+#: src/ui/gtk/gtk2/interface-glade.c:11911
 msgid "Number of tolerable _duplicate messages per node"
 msgstr "Número tolerable de mensajes _duplicados por nodo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13470
-#: src/ui/gtk/gtk2/interface-glade.c:11956
+#: src/ui/gtk/gtk1/interface-glade.c:13448
+#: src/ui/gtk/gtk2/interface-glade.c:11937
 msgid "RX flow control ratio"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13505
-#: src/ui/gtk/gtk1/interface-glade.c:13516
-#: src/ui/gtk/gtk1/interface-glade.c:13611
-#: src/ui/gtk/gtk1/interface-glade.c:13622
-#: src/ui/gtk/gtk1/interface-glade.c:14439
-#: src/ui/gtk/gtk1/interface-glade.c:16257
-#: src/ui/gtk/gtk1/interface-glade.c:16268
-#: src/ui/gtk/gtk1/interface-glade.c:16467
+#: src/ui/gtk/gtk1/interface-glade.c:13483
+#: src/ui/gtk/gtk1/interface-glade.c:13494
+#: src/ui/gtk/gtk1/interface-glade.c:13589
+#: src/ui/gtk/gtk1/interface-glade.c:13600
+#: src/ui/gtk/gtk1/interface-glade.c:14417
+#: src/ui/gtk/gtk1/interface-glade.c:16235
+#: src/ui/gtk/gtk1/interface-glade.c:16246
+#: src/ui/gtk/gtk1/interface-glade.c:16445
 msgid "%"
 msgstr "%"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13537
-#: src/ui/gtk/gtk2/interface-glade.c:12006
+#: src/ui/gtk/gtk1/interface-glade.c:13515
+#: src/ui/gtk/gtk2/interface-glade.c:11987
 msgid "Watch for similar queries"
 msgstr "Vigilar peticiones similares"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13547
-#: src/ui/gtk/gtk2/interface-glade.c:11972
+#: src/ui/gtk/gtk1/interface-glade.c:13525
+#: src/ui/gtk/gtk2/interface-glade.c:11953
 msgid "Similar query half-life"
 msgstr "Vida media de peticiones similares"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13569
-#: src/ui/gtk/gtk2/interface-glade.c:11989
+#: src/ui/gtk/gtk1/interface-glade.c:13547
+#: src/ui/gtk/gtk2/interface-glade.c:11970
 msgid "Leaf requery threshold"
 msgstr "Umbral de repetición para nodos hoja"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13592
-#: src/ui/gtk/gtk2/interface-glade.c:12098
+#: src/ui/gtk/gtk1/interface-glade.c:13570
+#: src/ui/gtk/gtk2/interface-glade.c:12079
 msgid "Connection settings"
 msgstr "Ajustes de la conexión"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13655
-#: src/ui/gtk/gtk2/interface-glade.c:12046
+#: src/ui/gtk/gtk1/interface-glade.c:13633
+#: src/ui/gtk/gtk2/interface-glade.c:12027
 msgid "Connections reserved for gtk-gnutella nodes"
 msgstr "Conexiones reservadas para nodos gtk-gnutella"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13666
-#: src/ui/gtk/gtk2/interface-glade.c:12071
+#: src/ui/gtk/gtk1/interface-glade.c:13644
+#: src/ui/gtk/gtk2/interface-glade.c:12052
 msgid "Max connections allowed per unique vendor"
 msgstr "Conexiones máximas permitidas por una sola aplicación"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13678
-#: src/ui/gtk/gtk2/interface-glade.c:12142
+#: src/ui/gtk/gtk1/interface-glade.c:13656
+#: src/ui/gtk/gtk2/interface-glade.c:12123
 msgid "Other"
 msgstr "Otros"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13697
-#: src/ui/gtk/gtk2/interface-glade.c:12126
+#: src/ui/gtk/gtk1/interface-glade.c:13675
+#: src/ui/gtk/gtk2/interface-glade.c:12107
 msgid "Hops random factor"
 msgstr "Factor de aleatorización de saltos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13708
-#: src/ui/gtk/gtk2/interface-glade.c:12135
+#: src/ui/gtk/gtk1/interface-glade.c:13686
+#: src/ui/gtk/gtk2/interface-glade.c:12116
 msgid "Clean up queries before processing"
 msgstr "Limpiar peticiones antes de su procesamiento"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13730
-#: src/ui/gtk/gtk2/interface-glade.c:12260
+#: src/ui/gtk/gtk1/interface-glade.c:13708
+#: src/ui/gtk/gtk2/interface-glade.c:12241
 msgid "GnutellaNet message size limits"
 msgstr "Límites de tamaño en mensajes GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13749
-#: src/ui/gtk/gtk2/interface-glade.c:12227
+#: src/ui/gtk/gtk1/interface-glade.c:13727
+#: src/ui/gtk/gtk2/interface-glade.c:12208
 msgid ""
 "Forwarded\n"
 "message"
@@ -7827,8 +7834,8 @@ msgstr ""
 "Mensaje\n"
 "Reenviado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13760
-#: src/ui/gtk/gtk2/interface-glade.c:12170
+#: src/ui/gtk/gtk1/interface-glade.c:13738
+#: src/ui/gtk/gtk2/interface-glade.c:12151
 msgid ""
 "Size threshold\n"
 "before kicking"
@@ -7836,13 +7843,13 @@ msgstr ""
 "Umbral del tamaño\n"
 "antes de patear"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13804
-#: src/ui/gtk/gtk2/interface-glade.c:12178
+#: src/ui/gtk/gtk1/interface-glade.c:13782
+#: src/ui/gtk/gtk2/interface-glade.c:12159
 msgid "(not forwarded)"
 msgstr "(no reenviado)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13837
-#: src/ui/gtk/gtk2/interface-glade.c:12161
+#: src/ui/gtk/gtk1/interface-glade.c:13815
+#: src/ui/gtk/gtk2/interface-glade.c:12142
 msgid ""
 "Maximum size\n"
 "allowed"
@@ -7850,130 +7857,130 @@ msgstr ""
 "Tamaño máximo\n"
 "permitido"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13881
-#: src/ui/gtk/gtk2/interface-glade.c:11047 src/ui/gtk/main.c:131
+#: src/ui/gtk/gtk1/interface-glade.c:13859
+#: src/ui/gtk/gtk2/interface-glade.c:11028 src/ui/gtk/main.c:131
 msgid "GnutellaNet"
 msgstr "GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13915
-#: src/ui/gtk/gtk1/interface-glade.c:14137
-#: src/ui/gtk/gtk2/interface-glade.c:12706
-#: src/ui/gtk/gtk2/interface-glade.c:12792
+#: src/ui/gtk/gtk1/interface-glade.c:13893
+#: src/ui/gtk/gtk1/interface-glade.c:14115
+#: src/ui/gtk/gtk2/interface-glade.c:12687
+#: src/ui/gtk/gtk2/interface-glade.c:12773
 msgid "General"
 msgstr "General"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13942
-#: src/ui/gtk/gtk2/interface-glade.c:12567
+#: src/ui/gtk/gtk1/interface-glade.c:13920
+#: src/ui/gtk/gtk2/interface-glade.c:12548
 msgid "Use _surplus bandwidth"
 msgstr "Usar ancho de banda _adicional"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13954
-#: src/ui/gtk/gtk2/interface-glade.c:12574
+#: src/ui/gtk/gtk1/interface-glade.c:13932
+#: src/ui/gtk/gtk2/interface-glade.c:12555
 msgid "Prefer _compressed connections"
 msgstr "Preferir conexiones _comprimidas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13966
-#: src/ui/gtk/gtk2/interface-glade.c:12581
+#: src/ui/gtk/gtk1/interface-glade.c:13944
+#: src/ui/gtk/gtk2/interface-glade.c:12562
 msgid "Use IP _Type of Service (TOS)"
 msgstr "Usar _tipo de servicio IP (TOS)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13976
-#: src/ui/gtk/gtk2/interface-glade.c:12701
+#: src/ui/gtk/gtk1/interface-glade.c:13954
+#: src/ui/gtk/gtk2/interface-glade.c:12682
 msgid "Available bandwidth"
 msgstr "Ancho de banda disponible"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13997
-#: src/ui/gtk/gtk2/interface-glade.c:12608
+#: src/ui/gtk/gtk1/interface-glade.c:13975
+#: src/ui/gtk/gtk2/interface-glade.c:12589
 msgid "Total input bandwidth limit:"
 msgstr "Ancho de banda límite para todas las entradas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14008
-#: src/ui/gtk/gtk1/interface-glade.c:14029
-#: src/ui/gtk/gtk1/interface-glade.c:14156
-#: src/ui/gtk/gtk1/interface-glade.c:14167
-#: src/ui/gtk/gtk1/interface-glade.c:14278
-#: src/ui/gtk/gtk1/interface-glade.c:14289
-#: src/ui/gtk/gtk1/interface-glade.c:14347
-#: src/ui/gtk/gtk1/interface-glade.c:14450
-#: src/ui/gtk/gtk2/interface-glade.c:12632
-#: src/ui/gtk/gtk2/interface-glade.c:12640
-#: src/ui/gtk/gtk2/interface-glade.c:12742
-#: src/ui/gtk/gtk2/interface-glade.c:12751
-#: src/ui/gtk/gtk2/interface-glade.c:12827
-#: src/ui/gtk/gtk2/interface-glade.c:12844
-#: src/ui/gtk/gtk2/interface-glade.c:12895
-#: src/ui/gtk/gtk2/interface-glade.c:12904
+#: src/ui/gtk/gtk1/interface-glade.c:13986
+#: src/ui/gtk/gtk1/interface-glade.c:14007
+#: src/ui/gtk/gtk1/interface-glade.c:14134
+#: src/ui/gtk/gtk1/interface-glade.c:14145
+#: src/ui/gtk/gtk1/interface-glade.c:14256
+#: src/ui/gtk/gtk1/interface-glade.c:14267
+#: src/ui/gtk/gtk1/interface-glade.c:14325
+#: src/ui/gtk/gtk1/interface-glade.c:14428
+#: src/ui/gtk/gtk2/interface-glade.c:12613
+#: src/ui/gtk/gtk2/interface-glade.c:12621
+#: src/ui/gtk/gtk2/interface-glade.c:12723
+#: src/ui/gtk/gtk2/interface-glade.c:12732
+#: src/ui/gtk/gtk2/interface-glade.c:12808
+#: src/ui/gtk/gtk2/interface-glade.c:12825
+#: src/ui/gtk/gtk2/interface-glade.c:12876
+#: src/ui/gtk/gtk2/interface-glade.c:12885
 msgid "KiB/s"
 msgstr "KiB/s"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14018
-#: src/ui/gtk/gtk2/interface-glade.c:12616
+#: src/ui/gtk/gtk1/interface-glade.c:13996
+#: src/ui/gtk/gtk2/interface-glade.c:12597
 msgid "Total output bandwidth limit:"
 msgstr "Ancho de banda límite para todas las salidas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14039
-#: src/ui/gtk/gtk2/interface-glade.c:12624
+#: src/ui/gtk/gtk1/interface-glade.c:14017
+#: src/ui/gtk/gtk2/interface-glade.c:12605
 msgid "Measured HTTP latency:"
 msgstr "Latencia HTTP medida:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14050
+#: src/ui/gtk/gtk1/interface-glade.c:14028
 msgid "secs"
 msgstr "segs"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14120
-#: src/ui/gtk/gtk2/interface-glade.c:12871
+#: src/ui/gtk/gtk1/interface-glade.c:14098
+#: src/ui/gtk/gtk2/interface-glade.c:12852
 msgid "Bandwidth limits for GnutellaNet traffic"
 msgstr "Límites para el ancho de banda del tráfico GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14206
-#: src/ui/gtk/gtk2/interface-glade.c:12785
+#: src/ui/gtk/gtk1/interface-glade.c:14184
+#: src/ui/gtk/gtk2/interface-glade.c:12766
 msgid "_Outgoing traffic"
 msgstr "Tráfico _saliente"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14220
-#: src/ui/gtk/gtk2/interface-glade.c:12778
+#: src/ui/gtk/gtk1/interface-glade.c:14198
+#: src/ui/gtk/gtk2/interface-glade.c:12759
 msgid "_Incoming traffic"
 msgstr "Tráfico _entrante"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14232
-#: src/ui/gtk/gtk2/interface-glade.c:12866
+#: src/ui/gtk/gtk1/interface-glade.c:14210
+#: src/ui/gtk/gtk2/interface-glade.c:12847
 msgid "Ultrapeer mode"
 msgstr "Modo ultranodo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14302
-#: src/ui/gtk/gtk2/interface-glade.c:12859
+#: src/ui/gtk/gtk1/interface-glade.c:14280
+#: src/ui/gtk/gtk2/interface-glade.c:12840
 msgid "Outgoing traffic to lea_ves"
 msgstr "Tráfico saliente para ho_jas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14316
-#: src/ui/gtk/gtk2/interface-glade.c:12852
+#: src/ui/gtk/gtk1/interface-glade.c:14294
+#: src/ui/gtk/gtk2/interface-glade.c:12833
 msgid "Incoming traffic from _leaves"
 msgstr "Tráfico entrante de _hojas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14328
-#: src/ui/gtk/gtk2/interface-glade.c:13014
+#: src/ui/gtk/gtk1/interface-glade.c:14306
+#: src/ui/gtk/gtk2/interface-glade.c:12995
 msgid "Bandwidth limits for HTTP traffic"
 msgstr "Límites para el ancho de banda del tráfico HTTP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14386
-#: src/ui/gtk/gtk2/interface-glade.c:13007
+#: src/ui/gtk/gtk1/interface-glade.c:14364
+#: src/ui/gtk/gtk2/interface-glade.c:12988
 #, fuzzy
 msgid "Cumulative _download rate"
 msgstr "Descargas activas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14400
-#: src/ui/gtk/gtk2/interface-glade.c:13000
+#: src/ui/gtk/gtk1/interface-glade.c:14378
+#: src/ui/gtk/gtk2/interface-glade.c:12981
 msgid "Cumulative _upload rate"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14414
-#: src/ui/gtk/gtk2/interface-glade.c:12992
+#: src/ui/gtk/gtk1/interface-glade.c:14392
+#: src/ui/gtk/gtk2/interface-glade.c:12973
 msgid "Enable dynamic upload slots _allocation"
 msgstr "Activar reserva dinámica de ranuras para subidas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14436
-#: src/ui/gtk/gtk2/interface-glade.c:12938
-#: src/ui/gtk/gtk2/interface-glade.c:12998
+#: src/ui/gtk/gtk1/interface-glade.c:14414
+#: src/ui/gtk/gtk2/interface-glade.c:12919
+#: src/ui/gtk/gtk2/interface-glade.c:12979
 msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
 "additional upload slots on request."
@@ -7981,63 +7988,63 @@ msgstr ""
 "A no ser que este porcentaje del ancho de banda para subidas esté en uso, "
 "permitir nuevas ranuras para subidas."
 
-#: src/ui/gtk/gtk1/interface-glade.c:14463
-#: src/ui/gtk/gtk2/interface-glade.c:12976
+#: src/ui/gtk/gtk1/interface-glade.c:14441
+#: src/ui/gtk/gtk2/interface-glade.c:12957
 msgid "Report an upload connection _speed of"
 msgstr "Informar de una _velocidad de conexión de salida de"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14485
-#: src/ui/gtk/gtk2/interface-glade.c:12948
+#: src/ui/gtk/gtk1/interface-glade.c:14463
+#: src/ui/gtk/gtk2/interface-glade.c:12929
 msgid "What other people see as your connection speed."
 msgstr "Lo que los demás nodos ven como su velocidad de conexión."
 
-#: src/ui/gtk/gtk1/interface-glade.c:14488
-#: src/ui/gtk/gtk2/interface-glade.c:12960
+#: src/ui/gtk/gtk1/interface-glade.c:14466
+#: src/ui/gtk/gtk2/interface-glade.c:12941
 msgid "kbps to peers"
 msgstr "kbps a nodos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14511
-#: src/ui/gtk/gtk2/interface-glade.c:12985
+#: src/ui/gtk/gtk1/interface-glade.c:14489
+#: src/ui/gtk/gtk2/interface-glade.c:12966
 msgid "_Compute upload connection speed"
 msgstr "_Computar velocidad de conexión en subidas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14523
-#: src/ui/gtk/gtk2/interface-glade.c:12530
+#: src/ui/gtk/gtk1/interface-glade.c:14501
+#: src/ui/gtk/gtk2/interface-glade.c:12511
 msgid "Bandwidth"
 msgstr "Ancho de banda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14557
-#: src/ui/gtk/gtk2/interface-glade.c:13288
+#: src/ui/gtk/gtk1/interface-glade.c:14535
+#: src/ui/gtk/gtk2/interface-glade.c:13269
 msgid "Keep downloading/incomplete files in"
 msgstr "Almacenar archivos en descarga/incompletos en"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14585
-#: src/ui/gtk/gtk1/interface-glade.c:14623
-#: src/ui/gtk/gtk1/interface-glade.c:14661
-#: src/ui/gtk/gtk2/interface-glade.c:13283
-#: src/ui/gtk/gtk2/interface-glade.c:13330
-#: src/ui/gtk/gtk2/interface-glade.c:13377
+#: src/ui/gtk/gtk1/interface-glade.c:14563
+#: src/ui/gtk/gtk1/interface-glade.c:14601
+#: src/ui/gtk/gtk1/interface-glade.c:14639
+#: src/ui/gtk/gtk2/interface-glade.c:13264
+#: src/ui/gtk/gtk2/interface-glade.c:13311
+#: src/ui/gtk/gtk2/interface-glade.c:13358
 msgid "_Browse"
 msgstr "_Buscar archivo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14595
-#: src/ui/gtk/gtk2/interface-glade.c:13335
+#: src/ui/gtk/gtk1/interface-glade.c:14573
+#: src/ui/gtk/gtk2/interface-glade.c:13316
 msgid "Move completely downloaded files to"
 msgstr "Mover archivos completamente descargados a"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14633
-#: src/ui/gtk/gtk2/interface-glade.c:13382
+#: src/ui/gtk/gtk1/interface-glade.c:14611
+#: src/ui/gtk/gtk2/interface-glade.c:13363
 msgid "Move corrupted downloaded files to"
 msgstr "Mover archivos descargados corruptos a"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14687
-#: src/ui/gtk/gtk2/interface-glade.c:13397
+#: src/ui/gtk/gtk1/interface-glade.c:14665
+#: src/ui/gtk/gtk2/interface-glade.c:13378
 msgid "Convert spaces to underscores in generated filenames"
 msgstr ""
 "Convertir espacios a caracteres de subrayado en nombres de archivo generados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14697
-#: src/ui/gtk/gtk2/interface-glade.c:13404
+#: src/ui/gtk/gtk1/interface-glade.c:14675
+#: src/ui/gtk/gtk2/interface-glade.c:13385
 msgid ""
 "Convert \"evil\" characters (like shell meta characters) to underscores in "
 "generated filenames"
@@ -8045,8 +8052,8 @@ msgstr ""
 "Convertir caracteres \"malignos\" (como metacaracteres del shell) a "
 "caracteres de subrayado en los nombres de archivo generados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14707
-#: src/ui/gtk/gtk2/interface-glade.c:13411
+#: src/ui/gtk/gtk1/interface-glade.c:14685
+#: src/ui/gtk/gtk2/interface-glade.c:13392
 msgid ""
 "Apply above conversions, upon startup, to existing files in the downloading "
 "directory"
@@ -8054,639 +8061,639 @@ msgstr ""
 "Aplicar conversiones anteriores a los archivos existentes en el directorio "
 "de descarga al arrancar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14717
-#: src/ui/gtk/gtk2/interface-glade.c:13567
+#: src/ui/gtk/gtk1/interface-glade.c:14695
+#: src/ui/gtk/gtk2/interface-glade.c:13548
 msgid "Resume and retry"
 msgstr "Reanudar y reintentar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14738
-#: src/ui/gtk/gtk2/interface-glade.c:13539
+#: src/ui/gtk/gtk1/interface-glade.c:14716
+#: src/ui/gtk/gtk2/interface-glade.c:13520
 msgid "_Overlap when resuming"
 msgstr "_Solapar al reanudar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14751
-#: src/ui/gtk/gtk2/interface-glade.c:13529
+#: src/ui/gtk/gtk1/interface-glade.c:14729
+#: src/ui/gtk/gtk2/interface-glade.c:13510
 msgid "Maximum number of _retries"
 msgstr "Máximo número de _reintentos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14773
-#: src/ui/gtk/gtk2/interface-glade.c:13556
+#: src/ui/gtk/gtk1/interface-glade.c:14751
+#: src/ui/gtk/gtk2/interface-glade.c:13537
 msgid "Maximum attempts to make, not counting HTTP busy indications"
 msgstr "Número máximo de reintentos, sin contar indicaciones HTTP ocupado"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14787
-#: src/ui/gtk/gtk2/interface-glade.c:13526
+#: src/ui/gtk/gtk1/interface-glade.c:14765
+#: src/ui/gtk/gtk2/interface-glade.c:13507
 msgid "Amount of bytes to overlap when resuming download"
 msgstr "Cantidad de bytes a solapar al reanudar una descarga"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14801
-#: src/ui/gtk/gtk2/interface-glade.c:13492
+#: src/ui/gtk/gtk1/interface-glade.c:14779
+#: src/ui/gtk/gtk2/interface-glade.c:13473
 msgid "Source quality"
 msgstr "Calidad del origen"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14822
-#: src/ui/gtk/gtk2/interface-glade.c:13446
+#: src/ui/gtk/gtk1/interface-glade.c:14800
+#: src/ui/gtk/gtk2/interface-glade.c:13427
 msgid "Optimistic first _chunk"
 msgstr "Primer _bloque optimista"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14836
-#: src/ui/gtk/gtk2/interface-glade.c:13453
+#: src/ui/gtk/gtk1/interface-glade.c:14814
+#: src/ui/gtk/gtk2/interface-glade.c:13434
 msgid "Require _URN"
 msgstr "Requerir _URN"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14850
-#: src/ui/gtk/gtk2/interface-glade.c:13460
+#: src/ui/gtk/gtk1/interface-glade.c:14828
+#: src/ui/gtk/gtk2/interface-glade.c:13441
 msgid "Require _server name"
 msgstr "Requerir nombre del _servidor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14862
-#: src/ui/gtk/gtk2/interface-glade.c:13756
+#: src/ui/gtk/gtk1/interface-glade.c:14840
+#: src/ui/gtk/gtk2/interface-glade.c:13737
 msgid "Delays and timeouts (all values in seconds)"
 msgstr "Demoras y tiempos de caducidad (todos los valores en segundos)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14881
-#: src/ui/gtk/gtk2/interface-glade.c:13729
+#: src/ui/gtk/gtk1/interface-glade.c:14859
+#: src/ui/gtk/gtk2/interface-glade.c:13710
 msgid "Retry stopped delay"
 msgstr "Demora para reintentar detenidos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14892
-#: src/ui/gtk/gtk2/interface-glade.c:13738
+#: src/ui/gtk/gtk1/interface-glade.c:14870
+#: src/ui/gtk/gtk2/interface-glade.c:13719
 msgid "Retry refused delay"
 msgstr "Demora para reintentar rechazados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14903
-#: src/ui/gtk/gtk2/interface-glade.c:13747
+#: src/ui/gtk/gtk1/interface-glade.c:14881
+#: src/ui/gtk/gtk2/interface-glade.c:13728
 msgid "Retry busy delay"
 msgstr "Demora para reintentar ocupados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14914
-#: src/ui/gtk/gtk2/interface-glade.c:13675
+#: src/ui/gtk/gtk1/interface-glade.c:14892
+#: src/ui/gtk/gtk2/interface-glade.c:13656
 msgid "Retry timeout delay"
 msgstr "Demora para reintentar caducados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14925
-#: src/ui/gtk/gtk2/interface-glade.c:13684
+#: src/ui/gtk/gtk1/interface-glade.c:14903
+#: src/ui/gtk/gtk2/interface-glade.c:13665
 msgid "Retry timeout max"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14936
-#: src/ui/gtk/gtk2/interface-glade.c:13693
+#: src/ui/gtk/gtk1/interface-glade.c:14914
+#: src/ui/gtk/gtk2/interface-glade.c:13674
 msgid "Retry timeout min"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14962
-#: src/ui/gtk/gtk2/interface-glade.c:13711
+#: src/ui/gtk/gtk1/interface-glade.c:14940
+#: src/ui/gtk/gtk2/interface-glade.c:13692
 msgid "_Push sent timeout"
 msgstr "Caducidad al enviar '_push'"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14996
-#: src/ui/gtk/gtk2/interface-glade.c:13592
+#: src/ui/gtk/gtk1/interface-glade.c:14974
+#: src/ui/gtk/gtk2/interface-glade.c:13573
 msgid "Delay in seconds to wait when running download stops"
 msgstr "Demora a esperar cuando una descarga se detiene, en segundos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15010
-#: src/ui/gtk/gtk2/interface-glade.c:13602
+#: src/ui/gtk/gtk1/interface-glade.c:14988
+#: src/ui/gtk/gtk2/interface-glade.c:13583
 msgid "Delay in seconds to wait if connection is refused"
 msgstr "Demora a esperar si una conexión es rechazada, en segundos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15023
-#: src/ui/gtk/gtk2/interface-glade.c:13612
+#: src/ui/gtk/gtk1/interface-glade.c:15001
+#: src/ui/gtk/gtk2/interface-glade.c:13593
 msgid "Delay in seconds to wait after HTTP busy indication"
 msgstr "Demora a esperar tras una indicación HTTP ocupado, en segundos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15037
-#: src/ui/gtk/gtk2/interface-glade.c:13622
+#: src/ui/gtk/gtk1/interface-glade.c:15015
+#: src/ui/gtk/gtk2/interface-glade.c:13603
 msgid "Delay in seconds to wait after connection failure"
 msgstr "Demora a esperar tras el fracaso de una conexión, en segundos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15050
-#: src/ui/gtk/gtk2/interface-glade.c:13632
+#: src/ui/gtk/gtk1/interface-glade.c:15028
+#: src/ui/gtk/gtk2/interface-glade.c:13613
 msgid "Maximum seconds to wait on auto-retry timeouts"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15063
-#: src/ui/gtk/gtk2/interface-glade.c:13642
+#: src/ui/gtk/gtk1/interface-glade.c:15041
+#: src/ui/gtk/gtk2/interface-glade.c:13623
 msgid "Minimum seconds to wait on auto-retry timeouts"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15076
-#: src/ui/gtk/gtk2/interface-glade.c:13652
+#: src/ui/gtk/gtk1/interface-glade.c:15054
+#: src/ui/gtk/gtk2/interface-glade.c:13633
 msgid "Number of seconds before timeout for a connecting download"
 msgstr "Número de segundos antes de que una descarga al conectar caduque"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15089
-#: src/ui/gtk/gtk2/interface-glade.c:13662
+#: src/ui/gtk/gtk1/interface-glade.c:15067
+#: src/ui/gtk/gtk2/interface-glade.c:13643
 msgid "Number of seconds before timeout for a 'push sent' download"
 msgstr ""
 "Número de segundos antes de que una descarga con 'push' enviado caduque"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15102
-#: src/ui/gtk/gtk2/interface-glade.c:13672
+#: src/ui/gtk/gtk1/interface-glade.c:15080
+#: src/ui/gtk/gtk2/interface-glade.c:13653
 msgid "Number of seconds before timeout for a connected download"
 msgstr "Número de segundos antes de que una descarga conectada caduque"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15105
-#: src/ui/gtk/gtk2/interface-glade.c:13944
+#: src/ui/gtk/gtk1/interface-glade.c:15083
+#: src/ui/gtk/gtk2/interface-glade.c:13925
 msgid "Downloading from multiple sources (swarming)"
 msgstr "Descargas de fuentes múltiples (descargas distribuída)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15124
-#: src/ui/gtk/gtk2/interface-glade.c:13803
+#: src/ui/gtk/gtk1/interface-glade.c:15102
+#: src/ui/gtk/gtk2/interface-glade.c:13784
 msgid "Enable s_warming"
 msgstr "Permitir descargas distribuídas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15154
-#: src/ui/gtk/gtk2/interface-glade.c:13796
+#: src/ui/gtk/gtk1/interface-glade.c:15132
+#: src/ui/gtk/gtk2/interface-glade.c:13777
 msgid "A_ggressive mode"
 msgstr "Modo a_gresivo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15178
-#: src/ui/gtk/gtk2/interface-glade.c:13810
+#: src/ui/gtk/gtk1/interface-glade.c:15156
+#: src/ui/gtk/gtk2/interface-glade.c:13791
 msgid "M_inimum chunk size"
 msgstr "Tamaño de bloque mí_nimo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15191
-#: src/ui/gtk/gtk2/interface-glade.c:13818
+#: src/ui/gtk/gtk1/interface-glade.c:15169
+#: src/ui/gtk/gtk2/interface-glade.c:13799
 msgid "Ma_ximum chunk size"
 msgstr "Tamaño de bloque má_ximo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15259
-#: src/ui/gtk/gtk2/interface-glade.c:13844
+#: src/ui/gtk/gtk1/interface-glade.c:15237
+#: src/ui/gtk/gtk2/interface-glade.c:13825
 #, fuzzy
 msgid "Write buffer size"
 msgstr "Tamaño del búfer del socket de recepción"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15270
-#: src/ui/gtk/gtk2/interface-glade.c:13853
+#: src/ui/gtk/gtk1/interface-glade.c:15248
+#: src/ui/gtk/gtk2/interface-glade.c:13834
 #, fuzzy
 msgid "Read-ahead buffer"
 msgstr "Leyendo cabaceras"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15346
-#: src/ui/gtk/gtk2/interface-glade.c:13482
+#: src/ui/gtk/gtk1/interface-glade.c:15324
+#: src/ui/gtk/gtk2/interface-glade.c:13463
 msgid "Strict SHA_1 matching"
 msgstr "Coincidencias SHA_1 estrictas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15360
-#: src/ui/gtk/gtk2/interface-glade.c:13938
+#: src/ui/gtk/gtk1/interface-glade.c:15338
+#: src/ui/gtk/gtk2/interface-glade.c:13919
 msgid "Use fu_zzy matching"
 msgstr "Usar coincidencias _difusas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15372
-#: src/ui/gtk/gtk2/interface-glade.c:13914
+#: src/ui/gtk/gtk1/interface-glade.c:15350
+#: src/ui/gtk/gtk2/interface-glade.c:13895
 msgid "Fuzzy threshold"
 msgstr "Umbral difuso"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15397
-#: src/ui/gtk/gtk2/interface-glade.c:13931
+#: src/ui/gtk/gtk1/interface-glade.c:15375
+#: src/ui/gtk/gtk2/interface-glade.c:13912
 msgid "_Apply fuzzy filter on download mesh entries"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15411
-#: src/ui/gtk/gtk2/interface-glade.c:13477
+#: src/ui/gtk/gtk1/interface-glade.c:15389
+#: src/ui/gtk/gtk2/interface-glade.c:13458
 msgid "Watch hits for _alternate sources"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15425
-#: src/ui/gtk/gtk2/interface-glade.c:13487
+#: src/ui/gtk/gtk1/interface-glade.c:15403
+#: src/ui/gtk/gtk2/interface-glade.c:13468
 msgid "_Feed mesh from hits"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15437
+#: src/ui/gtk/gtk1/interface-glade.c:15415
 #: src/ui/gtk/gtk2/interface-glade.c:2725
-#: src/ui/gtk/gtk2/interface-glade.c:13225 src/ui/gtk/main.c:136
+#: src/ui/gtk/gtk2/interface-glade.c:13206 src/ui/gtk/main.c:136
 msgid "Downloads"
 msgstr "Bajadas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15471
-#: src/ui/gtk/gtk2/interface-glade.c:14394
+#: src/ui/gtk/gtk1/interface-glade.c:15449
+#: src/ui/gtk/gtk2/interface-glade.c:14375
 msgid "_Path(s) to files"
 msgstr "R_utas a los archivos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15506
-#: src/ui/gtk/gtk2/interface-glade.c:14301
+#: src/ui/gtk/gtk1/interface-glade.c:15484
+#: src/ui/gtk/gtk2/interface-glade.c:14282
 msgid "_Add directory"
 msgstr "_Añadir directorio"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15518
-#: src/ui/gtk/gtk2/interface-glade.c:14351
+#: src/ui/gtk/gtk1/interface-glade.c:15496
+#: src/ui/gtk/gtk2/interface-glade.c:14332
 msgid "_Rescan"
 msgstr "_Reescanear"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15528
-#: src/ui/gtk/gtk2/interface-glade.c:14356
+#: src/ui/gtk/gtk1/interface-glade.c:15506
+#: src/ui/gtk/gtk2/interface-glade.c:14337
 msgid "Files scanned"
 msgstr "Archivos escaneados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15555
-#: src/ui/gtk/gtk2/interface-glade.c:14384
+#: src/ui/gtk/gtk1/interface-glade.c:15533
+#: src/ui/gtk/gtk2/interface-glade.c:14365
 msgid "Ignore symbolically linked _directories"
 msgstr "Ignorar _directorios enlazados simbólicamente"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15567
-#: src/ui/gtk/gtk2/interface-glade.c:14389
+#: src/ui/gtk/gtk1/interface-glade.c:15545
+#: src/ui/gtk/gtk2/interface-glade.c:14370
 msgid "Ignore symbolically linked regular _files"
 msgstr "Ignorar _archivos normales enlazados simbólicamente"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15587
-#: src/ui/gtk/gtk2/interface-glade.c:14368
+#: src/ui/gtk/gtk1/interface-glade.c:15565
+#: src/ui/gtk/gtk2/interface-glade.c:14349
 msgid "Search _extensions"
 msgstr "_Extensiones para la búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15603
-#: src/ui/gtk/gtk2/interface-glade.c:14512
+#: src/ui/gtk/gtk1/interface-glade.c:15581
+#: src/ui/gtk/gtk2/interface-glade.c:14493
 msgid "Timeouts (all values in seconds)"
 msgstr "Tiempos de caducidad (todos los valores en segundos)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15672
-#: src/ui/gtk/gtk2/interface-glade.c:14456
+#: src/ui/gtk/gtk1/interface-glade.c:15650
+#: src/ui/gtk/gtk2/interface-glade.c:14437
 msgid "Partial File Sharing"
 msgstr "Compartir archivos parciales"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15693
-#: src/ui/gtk/gtk2/interface-glade.c:14417
+#: src/ui/gtk/gtk1/interface-glade.c:15671
+#: src/ui/gtk/gtk2/interface-glade.c:14398
 msgid "First chunk _size"
 msgstr "_Tamaño del primer bloque"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15706
-#: src/ui/gtk/gtk2/interface-glade.c:14433
+#: src/ui/gtk/gtk1/interface-glade.c:15684
+#: src/ui/gtk/gtk2/interface-glade.c:14414
 msgid "Enable upload of _partially downloaded files"
 msgstr "Permitir la subida de archivos _parcialmente descargados"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15730
-#: src/ui/gtk/gtk2/interface-glade.c:14448
+#: src/ui/gtk/gtk1/interface-glade.c:15708
+#: src/ui/gtk/gtk2/interface-glade.c:14429
 #, fuzzy
 msgid "Minimum file size"
 msgstr "Tamaño mínimo:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15752
-#: src/ui/gtk/gtk2/interface-glade.c:14574
+#: src/ui/gtk/gtk1/interface-glade.c:15730
+#: src/ui/gtk/gtk2/interface-glade.c:14555
 msgid "Queuing details"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15771
-#: src/ui/gtk/gtk2/interface-glade.c:14551
+#: src/ui/gtk/gtk1/interface-glade.c:15749
+#: src/ui/gtk/gtk2/interface-glade.c:14532
 #, fuzzy
 msgid "Minimum upload time"
 msgstr "Tamaño de bloque mí_nimo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15794
+#: src/ui/gtk/gtk1/interface-glade.c:15772
 #, fuzzy
 msgid "Minimum chunk size"
 msgstr "Tamaño de bloque mí_nimo"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15817
-#: src/ui/gtk/gtk2/interface-glade.c:14559
+#: src/ui/gtk/gtk1/interface-glade.c:15795
+#: src/ui/gtk/gtk2/interface-glade.c:14540
 msgid "Use realistic PARQ estimates"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15827
-#: src/ui/gtk/gtk2/interface-glade.c:15145
+#: src/ui/gtk/gtk1/interface-glade.c:15805
+#: src/ui/gtk/gtk2/interface-glade.c:15126
 msgid "Statistics:"
 msgstr "Estadísticas:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15860
-#: src/ui/gtk/gtk2/interface-glade.c:14664
+#: src/ui/gtk/gtk1/interface-glade.c:15838
+#: src/ui/gtk/gtk2/interface-glade.c:14645
 msgid "Library scanning:"
 msgstr "Escaneo de la biblioteca:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15880
-#: src/ui/gtk/gtk2/interface-glade.c:14614
+#: src/ui/gtk/gtk1/interface-glade.c:15858
+#: src/ui/gtk/gtk2/interface-glade.c:14595
 msgid "Last scan initiated on:"
 msgstr "Último inicio de escaneo:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15891
-#: src/ui/gtk/gtk2/interface-glade.c:14623
+#: src/ui/gtk/gtk1/interface-glade.c:15869
+#: src/ui/gtk/gtk2/interface-glade.c:14604
 msgid "File scanning time:"
 msgstr "Tiempo para escanear los archivos:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15944
-#: src/ui/gtk/gtk2/interface-glade.c:15036
+#: src/ui/gtk/gtk1/interface-glade.c:15922
+#: src/ui/gtk/gtk2/interface-glade.c:15017
 msgid "Query Routing Protocol:"
 msgstr "Protocolo de enrutado de peticiones:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15964
-#: src/ui/gtk/gtk2/interface-glade.c:14889
+#: src/ui/gtk/gtk1/interface-glade.c:15942
+#: src/ui/gtk/gtk2/interface-glade.c:14870
 msgid "Indexing started on:"
 msgstr "Comienzo de la indexación:"
 
+#: src/ui/gtk/gtk1/interface-glade.c:15953
 #: src/ui/gtk/gtk1/interface-glade.c:15975
 #: src/ui/gtk/gtk1/interface-glade.c:15997
-#: src/ui/gtk/gtk1/interface-glade.c:16019
-#: src/ui/gtk/gtk2/interface-glade.c:14916
-#: src/ui/gtk/gtk2/interface-glade.c:14924
-#: src/ui/gtk/gtk2/interface-glade.c:14932
+#: src/ui/gtk/gtk2/interface-glade.c:14897
+#: src/ui/gtk/gtk2/interface-glade.c:14905
+#: src/ui/gtk/gtk2/interface-glade.c:14913
 msgid "and lasted"
 msgstr "y duró"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15986
-#: src/ui/gtk/gtk2/interface-glade.c:14898
+#: src/ui/gtk/gtk1/interface-glade.c:15964
+#: src/ui/gtk/gtk2/interface-glade.c:14879
 msgid "Table generation started on:"
 msgstr "Comienzo de la generación de tablas:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16008
-#: src/ui/gtk/gtk2/interface-glade.c:14907
+#: src/ui/gtk/gtk1/interface-glade.c:15986
+#: src/ui/gtk/gtk2/interface-glade.c:14888
 msgid "Patch generation started on:"
 msgstr "Comienzo de la generación de parches:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16172
-#: src/ui/gtk/gtk2/interface-glade.c:14860
+#: src/ui/gtk/gtk1/interface-glade.c:16150
+#: src/ui/gtk/gtk2/interface-glade.c:14841
 msgid "Query routing table information:"
 msgstr "Información de la tabla de enrutado de peticiones:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16191
-#: src/ui/gtk/gtk2/interface-glade.c:14738
+#: src/ui/gtk/gtk1/interface-glade.c:16169
+#: src/ui/gtk/gtk2/interface-glade.c:14719
 msgid "Keywords:"
 msgstr "Palabras clave:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16202
-#: src/ui/gtk/gtk2/interface-glade.c:14747
+#: src/ui/gtk/gtk1/interface-glade.c:16180
+#: src/ui/gtk/gtk2/interface-glade.c:14728
 msgid "Slots:"
 msgstr "Ranuras:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16213
-#: src/ui/gtk/gtk2/interface-glade.c:14756
+#: src/ui/gtk/gtk1/interface-glade.c:16191
+#: src/ui/gtk/gtk2/interface-glade.c:14737
 msgid "Filled slots:"
 msgstr "Ranuras ocupadas:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16224
-#: src/ui/gtk/gtk2/interface-glade.c:14711
+#: src/ui/gtk/gtk1/interface-glade.c:16202
+#: src/ui/gtk/gtk2/interface-glade.c:14692
 msgid "Generation:"
 msgstr "Generación:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16235
-#: src/ui/gtk/gtk2/interface-glade.c:14720
+#: src/ui/gtk/gtk1/interface-glade.c:16213
+#: src/ui/gtk/gtk2/interface-glade.c:14701
 msgid "Filled ratio:"
 msgstr "Ranuras ocupadas:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16246
-#: src/ui/gtk/gtk2/interface-glade.c:14729
+#: src/ui/gtk/gtk1/interface-glade.c:16224
+#: src/ui/gtk/gtk2/interface-glade.c:14710
 msgid "Conflict ratio:"
 msgstr "Grado de conflicto:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16415
-#: src/ui/gtk/gtk2/interface-glade.c:15140
+#: src/ui/gtk/gtk1/interface-glade.c:16393
+#: src/ui/gtk/gtk2/interface-glade.c:15121
 msgid "Query routing patch information:"
 msgstr "Información de la tabla de enrutado de peticiones:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16434
-#: src/ui/gtk/gtk2/interface-glade.c:15060
+#: src/ui/gtk/gtk1/interface-glade.c:16412
+#: src/ui/gtk/gtk2/interface-glade.c:15041
 msgid "Raw length:"
 msgstr "Longitud en crudo:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16445
-#: src/ui/gtk/gtk2/interface-glade.c:15068
+#: src/ui/gtk/gtk1/interface-glade.c:16423
+#: src/ui/gtk/gtk2/interface-glade.c:15049
 msgid "Compressed length:"
 msgstr "Longitud comprimido:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16456
-#: src/ui/gtk/gtk2/interface-glade.c:15076
+#: src/ui/gtk/gtk1/interface-glade.c:16434
+#: src/ui/gtk/gtk2/interface-glade.c:15057
 msgid "Compression ratio:"
 msgstr "Grado de compresión:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16596
-#: src/ui/gtk/gtk2/interface-glade.c:15464
+#: src/ui/gtk/gtk1/interface-glade.c:16574
+#: src/ui/gtk/gtk2/interface-glade.c:15445
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "Mostrar diáolog de _confirmación al salir de gtk-gnutella"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16610
-#: src/ui/gtk/gtk2/interface-glade.c:15457
+#: src/ui/gtk/gtk1/interface-glade.c:16588
+#: src/ui/gtk/gtk2/interface-glade.c:15438
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "Mostrar _ayudas (Aún no afecta a todos los controles)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16622
-#: src/ui/gtk/gtk2/interface-glade.c:15409
+#: src/ui/gtk/gtk1/interface-glade.c:16600
+#: src/ui/gtk/gtk2/interface-glade.c:15390
 msgid "Try to keep 'dead' entries around for"
 msgstr "Tratar de mantener registros 'muertos' durante"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16655
-#: src/ui/gtk/gtk2/interface-glade.c:15433
+#: src/ui/gtk/gtk1/interface-glade.c:16633
+#: src/ui/gtk/gtk2/interface-glade.c:15414
 msgid "Update search results pane every"
 msgstr "Actualizar el panel de resultados de búsqueda cada"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16688
-#: src/ui/gtk/gtk2/interface-glade.c:15401
+#: src/ui/gtk/gtk1/interface-glade.c:16666
+#: src/ui/gtk/gtk2/interface-glade.c:15382
 msgid "Toolbar style"
 msgstr "Estilo de la barra de herramientas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16709
-#: src/ui/gtk/gtk2/interface-glade.c:15502
+#: src/ui/gtk/gtk1/interface-glade.c:16687
+#: src/ui/gtk/gtk2/interface-glade.c:15483
 msgid "Expert mode"
 msgstr "Modo experto"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16727
-#: src/ui/gtk/gtk2/interface-glade.c:15495
+#: src/ui/gtk/gtk1/interface-glade.c:16705
+#: src/ui/gtk/gtk2/interface-glade.c:15476
 msgid "Show additional information and settings for advanced and _expert users"
 msgstr ""
 "Mostrar ajustes e información adicional para los usuarios avanzados y "
 "_expertos"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16739
-#: src/ui/gtk/gtk2/interface-glade.c:15679
+#: src/ui/gtk/gtk1/interface-glade.c:16717
+#: src/ui/gtk/gtk2/interface-glade.c:15660
 #, fuzzy
 msgid "GnutellaNet display"
 msgstr "GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16772
-#: src/ui/gtk/gtk2/interface-glade.c:15517
+#: src/ui/gtk/gtk1/interface-glade.c:16750
+#: src/ui/gtk/gtk2/interface-glade.c:15498
 msgid "Display detailed traffic information"
 msgstr "Mostrar información detallada del tráfico"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16788
+#: src/ui/gtk/gtk1/interface-glade.c:16766
 msgid "Detailed traffic information to display"
 msgstr "Información detallada del tráfico a mostrar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16808
-#: src/ui/gtk/gtk2/interface-glade.c:15546
+#: src/ui/gtk/gtk1/interface-glade.c:16786
+#: src/ui/gtk/gtk2/interface-glade.c:15527
 msgid "TX compression"
 msgstr "Compresión en la transmisión"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16818
-#: src/ui/gtk/gtk2/interface-glade.c:15581
+#: src/ui/gtk/gtk1/interface-glade.c:16796
+#: src/ui/gtk/gtk2/interface-glade.c:15562
 msgid "RX compression"
 msgstr "Compresión en la recepción"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16828
-#: src/ui/gtk/gtk2/interface-glade.c:15553
+#: src/ui/gtk/gtk1/interface-glade.c:16806
+#: src/ui/gtk/gtk2/interface-glade.c:15534
 msgid "TX speed"
 msgstr "Velocidad de transmisión"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16838
-#: src/ui/gtk/gtk2/interface-glade.c:15588
+#: src/ui/gtk/gtk1/interface-glade.c:16816
+#: src/ui/gtk/gtk2/interface-glade.c:15569
 msgid "RX speed"
 msgstr "Velocidad de recepción"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16848
-#: src/ui/gtk/gtk2/interface-glade.c:15560
+#: src/ui/gtk/gtk1/interface-glade.c:16826
+#: src/ui/gtk/gtk2/interface-glade.c:15541
 msgid "TX queries"
 msgstr "Peticiones de transmisión"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16858
-#: src/ui/gtk/gtk2/interface-glade.c:15595
+#: src/ui/gtk/gtk1/interface-glade.c:16836
+#: src/ui/gtk/gtk2/interface-glade.c:15576
 msgid "RX queries"
 msgstr "Peticiones de recepción"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16868
-#: src/ui/gtk/gtk2/interface-glade.c:15567
+#: src/ui/gtk/gtk1/interface-glade.c:16846
+#: src/ui/gtk/gtk2/interface-glade.c:15548
 msgid "TX query hits"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:16878
-#: src/ui/gtk/gtk2/interface-glade.c:15602
+#: src/ui/gtk/gtk1/interface-glade.c:16856
+#: src/ui/gtk/gtk2/interface-glade.c:15583
 msgid "RX query hits"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:16888
-#: src/ui/gtk/gtk2/interface-glade.c:15616
+#: src/ui/gtk/gtk1/interface-glade.c:16866
+#: src/ui/gtk/gtk2/interface-glade.c:15597
 msgid "Generated queries"
 msgstr "Peticiones generadas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16898
-#: src/ui/gtk/gtk2/interface-glade.c:15623
+#: src/ui/gtk/gtk1/interface-glade.c:16876
+#: src/ui/gtk/gtk2/interface-glade.c:15604
 msgid "Pending local queries"
 msgstr "Peticiones locales pendientes"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16908
-#: src/ui/gtk/gtk2/interface-glade.c:15574
+#: src/ui/gtk/gtk1/interface-glade.c:16886
+#: src/ui/gtk/gtk2/interface-glade.c:15555
 msgid "TX dropped"
 msgstr "Transmisiones abandonadas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16918
-#: src/ui/gtk/gtk2/interface-glade.c:15609
+#: src/ui/gtk/gtk1/interface-glade.c:16896
+#: src/ui/gtk/gtk2/interface-glade.c:15590
 msgid "RX dropped"
 msgstr "Recepciones abandonadas"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16928
-#: src/ui/gtk/gtk2/interface-glade.c:15630
+#: src/ui/gtk/gtk1/interface-glade.c:16906
+#: src/ui/gtk/gtk2/interface-glade.c:15611
 msgid "QRP stats"
 msgstr "Estadísticas QRP"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16938
-#: src/ui/gtk/gtk2/interface-glade.c:15637
+#: src/ui/gtk/gtk1/interface-glade.c:16916
+#: src/ui/gtk/gtk2/interface-glade.c:15618
 msgid "Dup / Bad / Weird"
 msgstr "Duplicado / Inválido / Extraño"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16948
-#: src/ui/gtk/gtk2/interface-glade.c:15644
+#: src/ui/gtk/gtk1/interface-glade.c:16926
+#: src/ui/gtk/gtk2/interface-glade.c:15625
 msgid "Ping / Pong round trip"
 msgstr "Viaje de vuelta del Ping / Pong"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16958
-#: src/ui/gtk/gtk2/interface-glade.c:15651
+#: src/ui/gtk/gtk1/interface-glade.c:16936
+#: src/ui/gtk/gtk2/interface-glade.c:15632
 msgid "Library size"
 msgstr "Tamaño de la biblioteca"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16968
-#: src/ui/gtk/gtk2/interface-glade.c:15658
+#: src/ui/gtk/gtk1/interface-glade.c:16946
+#: src/ui/gtk/gtk2/interface-glade.c:15639
 msgid "Library # of files"
 msgstr "Número de archivos en la librería"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16978
-#: src/ui/gtk/gtk2/interface-glade.c:15672
+#: src/ui/gtk/gtk1/interface-glade.c:16956
+#: src/ui/gtk/gtk2/interface-glade.c:15653
 msgid "RX wire bytes"
 msgstr "mostrar bytes"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16988
-#: src/ui/gtk/gtk2/interface-glade.c:15665
+#: src/ui/gtk/gtk1/interface-glade.c:16966
+#: src/ui/gtk/gtk2/interface-glade.c:15646
 msgid "TX wire bytes"
 msgstr "mostrar bytes"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16998
-#: src/ui/gtk/gtk2/interface-glade.c:15367
+#: src/ui/gtk/gtk1/interface-glade.c:16976
+#: src/ui/gtk/gtk2/interface-glade.c:15348
 msgid "User Interface"
 msgstr "Interfaz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17032
-#: src/ui/gtk/gtk2/interface-glade.c:15868
+#: src/ui/gtk/gtk1/interface-glade.c:17010
+#: src/ui/gtk/gtk2/interface-glade.c:15849
 #, fuzzy
 msgid "Property browser"
 msgstr "Falta la propiedad"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17057
-#: src/ui/gtk/gtk2/interface-glade.c:15807
+#: src/ui/gtk/gtk1/interface-glade.c:17035
+#: src/ui/gtk/gtk2/interface-glade.c:15788
 #, fuzzy
 msgid "Property pattern:"
 msgstr "Falta la propiedad"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17096 src/ui/gtk/settings_cb.c:450
+#: src/ui/gtk/gtk1/interface-glade.c:17074 src/ui/gtk/settings_cb.c:450
 #, fuzzy
 msgid "Saved"
 msgstr "Servidor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17112 src/ui/gtk/settings_cb.c:452
+#: src/ui/gtk/gtk1/interface-glade.c:17090 src/ui/gtk/settings_cb.c:452
 msgid "Property"
 msgstr "Propiedad"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17120 src/ui/gtk/settings_cb.c:453
+#: src/ui/gtk/gtk1/interface-glade.c:17098 src/ui/gtk/settings_cb.c:453
 msgid "Value"
 msgstr "Valor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17138
+#: src/ui/gtk/gtk1/interface-glade.c:17116
 msgid "Selected property:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17146
-#: src/ui/gtk/gtk1/interface-glade.c:17164
-#: src/ui/gtk/gtk1/interface-glade.c:17199
-#: src/ui/gtk/gtk1/interface-glade.c:17225
-#: src/ui/gtk/gtk2/interface-glade.c:15844
-#: src/ui/gtk/gtk2/interface-glade.c:15862 src/ui/gtk/settings_cb.c:426
+#: src/ui/gtk/gtk1/interface-glade.c:17124
+#: src/ui/gtk/gtk1/interface-glade.c:17142
+#: src/ui/gtk/gtk1/interface-glade.c:17177
+#: src/ui/gtk/gtk1/interface-glade.c:17203
+#: src/ui/gtk/gtk2/interface-glade.c:15825
+#: src/ui/gtk/gtk2/interface-glade.c:15843 src/ui/gtk/settings_cb.c:426
 #: src/ui/gtk/settings_cb.c:546 src/ui/gtk/settings_cb.c:612
 #, fuzzy
 msgid "<no property selected>"
 msgstr "_Purgar selección"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17155
-#: src/ui/gtk/gtk2/interface-glade.c:15856
+#: src/ui/gtk/gtk1/interface-glade.c:17133
+#: src/ui/gtk/gtk2/interface-glade.c:15837
 msgid "Min/Max:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17183
-#: src/ui/gtk/gtk2/interface-glade.c:15838
+#: src/ui/gtk/gtk1/interface-glade.c:17161
+#: src/ui/gtk/gtk2/interface-glade.c:15819
 msgid "Default value:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17210
+#: src/ui/gtk/gtk1/interface-glade.c:17188
 #, fuzzy
 msgid "Edit value:"
 msgstr "Editar filtros"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17227
-#: src/ui/gtk/gtk2/interface-glade.c:15945
+#: src/ui/gtk/gtk1/interface-glade.c:17205
+#: src/ui/gtk/gtk2/interface-glade.c:15926
 msgid "Diverse properties"
 msgstr "Propiedades varias"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17246
-#: src/ui/gtk/gtk2/interface-glade.c:15903
+#: src/ui/gtk/gtk1/interface-glade.c:17224
+#: src/ui/gtk/gtk2/interface-glade.c:15884
 msgid "Avg. time between IP address changes:"
 msgstr "Tiempo promedio entre cambios de la IP:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17257
-#: src/ui/gtk/gtk2/interface-glade.c:15894
+#: src/ui/gtk/gtk1/interface-glade.c:17235
+#: src/ui/gtk/gtk2/interface-glade.c:15875
 msgid "Avg. uptime of this servent:"
 msgstr "Tiempo promedio de ejecución:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17268
-#: src/ui/gtk/gtk2/interface-glade.c:15912
+#: src/ui/gtk/gtk1/interface-glade.c:17246
+#: src/ui/gtk/gtk2/interface-glade.c:15893
 msgid "Available physical memory:"
 msgstr "Memoria física disponible:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17312
-#: src/ui/gtk/gtk2/interface-glade.c:15770
+#: src/ui/gtk/gtk1/interface-glade.c:17290
+#: src/ui/gtk/gtk2/interface-glade.c:15751
 msgid "Debugging"
 msgstr "Depuración"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17622
-#: src/ui/gtk/gtk2/interface-glade.c:16720
+#: src/ui/gtk/gtk1/interface-glade.c:17600
+#: src/ui/gtk/gtk2/interface-glade.c:16701
 msgid "gtk-gnutella - Frequently Asked Questions"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17642
-#: src/ui/gtk/gtk2/interface-glade.c:16761
+#: src/ui/gtk/gtk1/interface-glade.c:17620
+#: src/ui/gtk/gtk2/interface-glade.c:16742
 msgid "Frequently Asked Questions:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/nodes.c:249 src/ui/gtk/gtk2/nodes.c:213
+#: src/ui/gtk/gtk1/nodes.c:249 src/ui/gtk/gtk2/nodes.c:296
 #, fuzzy
 msgid "Country"
 msgstr "País:"
@@ -8695,81 +8702,79 @@ msgstr "País:"
 msgid "Failed to create the search"
 msgstr "Imposible crear la búsqueda"
 
-#: src/ui/gtk/gtk1/search.c:1721
+#: src/ui/gtk/gtk1/search.c:1729
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "Creada %u descarga"
 msgstr[1] "Creadas %u descargas"
 
-#: src/ui/gtk/gtk1/search.c:1724
+#: src/ui/gtk/gtk1/search.c:1732
 #, fuzzy, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
 msgstr[0] "Información sobre el archivo seleccionado"
 msgstr[1] "Información sobre el archivo seleccionado"
 
-#: src/ui/gtk/gtk1/search.c:1749
+#: src/ui/gtk/gtk1/search.c:1757
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "Descartado %u resultado"
 msgstr[1] "Descartados %u resultados"
 
-#: src/ui/gtk/gtk1/search.c:2164 src/ui/gtk/gtk1/search.c:2170
+#: src/ui/gtk/gtk1/search.c:2172 src/ui/gtk/gtk1/search.c:2178
 #: src/ui/gtk/gtk2/search.c:1487
 msgid "Extension"
 msgstr "Extensión"
 
-#: src/ui/gtk/gtk1/search.c:2172 src/ui/gtk/gtk1/search.c:2178
+#: src/ui/gtk/gtk1/search.c:2180 src/ui/gtk/gtk1/search.c:2186
 #: src/ui/gtk/gtk2/search.c:1488
 #, fuzzy
 msgid "Encoding"
 msgstr "entrada"
 
-#: src/ui/gtk/gtk1/search.c:2188 src/ui/gtk/gtk1/search.c:2194
+#: src/ui/gtk/gtk1/search.c:2196 src/ui/gtk/gtk1/search.c:2202
 #: src/ui/gtk/gtk2/search.c:1490
 msgid "#"
 msgstr "#"
 
-#: src/ui/gtk/gtk1/search.c:2205 src/ui/gtk/gtk1/search.c:2211
+#: src/ui/gtk/gtk1/search.c:2213 src/ui/gtk/gtk1/search.c:2219
 #: src/ui/gtk/gtk2/search.c:1492
 msgid "Metadata"
 msgstr "Metadatos"
 
-#: src/ui/gtk/gtk1/search.c:2482 src/ui/gtk/gtk2/search.c:1823
+#: src/ui/gtk/gtk1/search.c:2490 src/ui/gtk/gtk2/search.c:1823
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
-#: src/ui/gtk/gtk1/search.c:2516
+#: src/ui/gtk/gtk1/search.c:2524 src/ui/gtk/gtk2/search.c:1792
 msgid "Query queued..."
 msgstr "Petición encolada"
 
-#: src/ui/gtk/gtk1/search_cb.c:211 src/ui/gtk/gtk2/search_cb.c:601
+#: src/ui/gtk/gtk1/search_cb.c:269 src/ui/gtk/gtk2/search_cb.c:602
 msgid "<no SHA1 known>"
 msgstr ""
 
-#: src/ui/gtk/gtk1/search_cb.c:397
-#, c-format
-msgid "%d file auto selected with %d sources %s"
-msgid_plural "%d files auto selected with %d sources %s"
-msgstr[0] ""
-msgstr[1] ""
-
-#: src/ui/gtk/gtk1/search_cb.c:399
-#, fuzzy
-msgid "by urn:sha1."
-msgstr "urn:sha1"
-
-#: src/ui/gtk/gtk1/search_cb.c:689 src/ui/gtk/gtk2/search_cb.c:368
+#: src/ui/gtk/gtk1/search_cb.c:689 src/ui/gtk/gtk2/search_cb.c:369
 msgid "Show search list"
 msgstr "Mostrar lista de búsquedas"
 
-#: src/ui/gtk/gtk1/search_cb.c:848 src/ui/gtk/gtk2/search_cb.c:728
+#: src/ui/gtk/gtk1/search_cb.c:849 src/ui/gtk/gtk2/search_cb.c:729
 msgid "Passive"
 msgstr "Pasivo"
 
-#: src/ui/gtk/gtk1/search_stats.c:399 src/ui/gtk/gtk2/search_stats.c:445
+#: src/ui/gtk/gtk1/search_cb.c:898 src/ui/gtk/gtk2/search_cb.c:1129
+#, c-format
+msgid "Added search showing browsing results for %s"
+msgstr ""
+
+#: src/ui/gtk/gtk1/search_cb.c:901 src/ui/gtk/gtk2/search_cb.c:1132
+#, c-format
+msgid "Could not launch browse host for %s"
+msgstr ""
+
+#: src/ui/gtk/gtk1/search_stats.c:397 src/ui/gtk/gtk2/search_stats.c:443
 #, c-format
 msgid "%u term counted"
 msgid_plural "%u terms counted"
@@ -8842,7 +8847,7 @@ msgstr "Reintento en %ds"
 msgid "Unknown status %u"
 msgstr "Estado desconocido %u"
 
-#: src/ui/gtk/gtk2/fileinfo.c:133 src/ui/gtk/gtk2/search_cb.c:568
+#: src/ui/gtk/gtk2/fileinfo.c:133 src/ui/gtk/gtk2/search_cb.c:569
 msgid "<none>"
 msgstr "<nada>"
 
@@ -8940,10 +8945,6 @@ msgstr "Dirección/Puerto:"
 msgid "Uploaded data:"
 msgstr "Datos subbidos:"
 
-#: src/ui/gtk/gtk2/interface-glade.c:4290
-msgid "Clear non-existent files"
-msgstr "Limpiar archivos inexistentes"
-
 #: src/ui/gtk/gtk2/interface-glade.c:4786
 msgid "Remove completed downloads from list"
 msgstr "Quitar de la lista las descargas completadas"
@@ -8954,7 +8955,7 @@ msgstr "_Limpiar completadas"
 
 #: src/ui/gtk/gtk2/interface-glade.c:4808
 #: src/ui/gtk/gtk2/interface-glade.c:6388
-#: src/ui/gtk/gtk2/interface-glade.c:15886
+#: src/ui/gtk/gtk2/interface-glade.c:15867
 msgid " "
 msgstr " "
 
@@ -9000,150 +9001,151 @@ msgid "Gnutella stats"
 msgstr "Estadísticas generales"
 
 #: src/ui/gtk/gtk2/interface-glade.c:6805
-#: src/ui/gtk/gtk2/interface-glade.c:7158
-#: src/ui/gtk/gtk2/interface-glade.c:7546
-#: src/ui/gtk/gtk2/interface-glade.c:7873
-#: src/ui/gtk/gtk2/interface-glade.c:8227
-#: src/ui/gtk/gtk2/interface-glade.c:8888
-#: src/ui/gtk/gtk2/interface-glade.c:9519
+#: src/ui/gtk/gtk2/interface-glade.c:7141
+#: src/ui/gtk/gtk2/interface-glade.c:7527
+#: src/ui/gtk/gtk2/interface-glade.c:7854
+#: src/ui/gtk/gtk2/interface-glade.c:8208
+#: src/ui/gtk/gtk2/interface-glade.c:8869
+#: src/ui/gtk/gtk2/interface-glade.c:9500
 msgid "New/replace"
 msgstr "Nuevo/reemplazar"
 
 #: src/ui/gtk/gtk2/interface-glade.c:6830
-#: src/ui/gtk/gtk2/interface-glade.c:7183
-#: src/ui/gtk/gtk2/interface-glade.c:7571
-#: src/ui/gtk/gtk2/interface-glade.c:7898
-#: src/ui/gtk/gtk2/interface-glade.c:8252
-#: src/ui/gtk/gtk2/interface-glade.c:8913
-#: src/ui/gtk/gtk2/interface-glade.c:9524
+#: src/ui/gtk/gtk2/interface-glade.c:7166
+#: src/ui/gtk/gtk2/interface-glade.c:7552
+#: src/ui/gtk/gtk2/interface-glade.c:7879
+#: src/ui/gtk/gtk2/interface-glade.c:8233
+#: src/ui/gtk/gtk2/interface-glade.c:8894
+#: src/ui/gtk/gtk2/interface-glade.c:9505
 msgid "Delete"
 msgstr "Borrar"
 
-#: src/ui/gtk/gtk2/interface-glade.c:7450
+#: src/ui/gtk/gtk2/interface-glade.c:7431
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr "Puedes usa sufijos tales como KB, KiB, MB, MiB, GB, GiB etc."
 
-#: src/ui/gtk/gtk2/interface-glade.c:9649
+#: src/ui/gtk/gtk2/interface-glade.c:9630
 msgid "Reverse DNS lookup"
 msgstr "Resolución inversa de nombre en DNS"
 
-#: src/ui/gtk/gtk2/interface-glade.c:10416
+#: src/ui/gtk/gtk2/interface-glade.c:10397
+#, fuzzy
 msgid ""
-"This option can give peformance boosts to those on a large network with many "
-"peers by trying to locate files on the local networks first."
+"This option can give performance boosts to those on a large network with "
+"many peers by trying to locate files on the local networks first."
 msgstr ""
 "Esta opción podría mejorar significativamente a aquellos en una red grande "
 "con muchos nodos tratando de encontrar archivos en las redes locales primero."
 
-#: src/ui/gtk/gtk2/interface-glade.c:10429
+#: src/ui/gtk/gtk2/interface-glade.c:10410
 msgid "_Addresses of local network(s)"
 msgstr "_Dirección(es) de red(es) local(es)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:11544
+#: src/ui/gtk/gtk2/interface-glade.c:11525
 msgid "seconds (0 - disable)"
 msgstr "segundos (0 - desactivar)"
 
-#: src/ui/gtk/gtk2/interface-glade.c:11641
+#: src/ui/gtk/gtk2/interface-glade.c:11622
 #, fuzzy
 msgid "slots"
 msgstr "Ranuras:"
 
-#: src/ui/gtk/gtk2/interface-glade.c:11650
-#: src/ui/gtk/gtk2/interface-glade.c:12013
-#: src/ui/gtk/gtk2/interface-glade.c:12648
+#: src/ui/gtk/gtk2/interface-glade.c:11631
+#: src/ui/gtk/gtk2/interface-glade.c:11994
+#: src/ui/gtk/gtk2/interface-glade.c:12629
 msgid "unit_of_time|s"
 msgstr ""
 
-#: src/ui/gtk/gtk2/interface-glade.c:12096
+#: src/ui/gtk/gtk2/interface-glade.c:12077
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Porcentaje máximo de las conexiones que cada aplicación puede ocupar."
 
-#: src/ui/gtk/gtk2/interface-glade.c:13559
+#: src/ui/gtk/gtk2/interface-glade.c:13540
 #, fuzzy
 msgid "attempts"
 msgstr "Reintentos"
 
-#: src/ui/gtk/gtk2/interface-glade.c:14326
+#: src/ui/gtk/gtk2/interface-glade.c:14307
 #, fuzzy
 msgid "_Remove directory"
 msgstr "_Añadir directorio"
 
-#: src/ui/gtk/gtk2/interface-glade.c:14535
+#: src/ui/gtk/gtk2/interface-glade.c:14516
 #, fuzzy
 msgid "Minimum chunk _size"
 msgstr "Tamaño de bloque mí_nimo"
 
-#: src/ui/gtk/gtk2/interface-glade.c:16007
+#: src/ui/gtk/gtk2/interface-glade.c:15988
 msgid "Edit filters"
 msgstr "Editar filtros"
 
-#: src/ui/gtk/gtk2/interface-glade.c:16058
+#: src/ui/gtk/gtk2/interface-glade.c:16039
 msgid "Close this search"
 msgstr "Cerrar esta búsqueda"
 
-#: src/ui/gtk/gtk2/interface-glade.c:16370
+#: src/ui/gtk/gtk2/interface-glade.c:16351
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
 "download of the selected files."
 msgstr ""
 
-#: src/ui/gtk/gtk2/interface-glade.c:16604
+#: src/ui/gtk/gtk2/interface-glade.c:16585
 msgid "Select all matching regex from queue"
 msgstr "Selecionar de la cola los que coinciden con la expresión regular"
 
-#: src/ui/gtk/gtk2/nodes.c:218
+#: src/ui/gtk/gtk2/nodes.c:297
 #, fuzzy
 msgid "Version"
 msgstr "Extensión"
 
-#: src/ui/gtk/gtk2/nodes.c:385
+#: src/ui/gtk/gtk2/nodes.c:414
 msgid "Leaf"
 msgstr "Hoja"
 
-#: src/ui/gtk/gtk2/nodes.c:387
+#: src/ui/gtk/gtk2/nodes.c:416
 msgid "Ultrapeer"
 msgstr "Ultranodo"
 
-#: src/ui/gtk/gtk2/nodes.c:389
+#: src/ui/gtk/gtk2/nodes.c:418
 msgid "Legacy"
 msgstr "Antiguo"
 
-#: src/ui/gtk/gtk2/nodes.c:391
+#: src/ui/gtk/gtk2/nodes.c:420
 #, fuzzy
 msgid "Crawler"
 msgstr "Limpiar"
 
-#: src/ui/gtk/gtk2/nodes.c:393
+#: src/ui/gtk/gtk2/nodes.c:422
 msgid "UDP"
 msgstr "UDP"
 
-#: src/ui/gtk/gtk2/nodes.c:432 src/ui/gtk/gtk2/search_cb.c:543
+#: src/ui/gtk/gtk2/nodes.c:461 src/ui/gtk/gtk2/search_cb.c:544
 #: src/ui/gtk/settings_cb.c:323
 msgid "Move the cursor over a row to see details."
 msgstr "Mueve el cursor sobre una fila para ver detalles."
 
-#: src/ui/gtk/gtk2/nodes.c:449 src/ui/gtk/gtk2/search_cb.c:559
+#: src/ui/gtk/gtk2/nodes.c:478 src/ui/gtk/gtk2/search_cb.c:560
 msgid "Peer:"
 msgstr "Nodo:"
 
-#: src/ui/gtk/gtk2/nodes.c:451
+#: src/ui/gtk/gtk2/nodes.c:480
 msgid "Peermode:"
 msgstr "Modo:"
 
-#: src/ui/gtk/gtk2/nodes.c:453
+#: src/ui/gtk/gtk2/nodes.c:482
 msgid "incoming"
 msgstr "entrada"
 
-#: src/ui/gtk/gtk2/nodes.c:453
+#: src/ui/gtk/gtk2/nodes.c:482
 msgid "outgoing"
 msgstr "salida"
 
-#: src/ui/gtk/gtk2/nodes.c:530
+#: src/ui/gtk/gtk2/nodes.c:559
 #, c-format
 msgid "Reverse lookup for %s failed"
 msgstr "Resolución inversa de nombre para %s fracasada"
 
-#: src/ui/gtk/gtk2/nodes.c:937
+#: src/ui/gtk/gtk2/nodes.c:953
 msgid "Reverse lookup in progress..."
 msgstr "Resolución inversa de nombre en progreso..."
 
@@ -9198,23 +9200,23 @@ msgstr "Monitor"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:466
+#: src/ui/gtk/main.c:477
 msgid "translation_credit|"
 msgstr "Traducción al español: Paco Arjonilla"
 
-#: src/ui/gtk/main.c:513
+#: src/ui/gtk/main.c:524
 msgid ""
 "\n"
 "The FAQ document is damaged.\n"
 msgstr ""
 
-#: src/ui/gtk/main.c:536
+#: src/ui/gtk/main.c:547
 msgid ""
 "The FAQ document could not be loaded. Please read the online FAQ at http://"
 "gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
 
-#: src/ui/gtk/main.c:863
+#: src/ui/gtk/main.c:876
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
@@ -9277,7 +9279,7 @@ msgstr "proxy"
 msgid "bogus"
 msgstr "erróneo"
 
-#: src/ui/gtk/search_common.c:855
+#: src/ui/gtk/search_common.c:881
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -9288,7 +9290,7 @@ msgstr ""
 "búsquedas se ha guardado con el nuevo formato XML y el archivo\n"
 "antiguo se ha renombrado a %s"
 
-#: src/ui/gtk/search_common.c:859
+#: src/ui/gtk/search_common.c:885
 #, c-format
 msgid ""
 "could not rename %s as %s: %s\n"
@@ -9297,28 +9299,28 @@ msgstr ""
 "No se pudo renombrar %s como %s: %s\n"
 "El archivo XML no se usará hasta que este problema esté resuelto."
 
-#: src/ui/gtk/search_common.c:926
+#: src/ui/gtk/search_common.c:952
 msgid "<unparsed>"
 msgstr "<sin analizar>"
 
-#: src/ui/gtk/search_common.c:934
+#: src/ui/gtk/search_common.c:960
 msgid "udp"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:936
+#: src/ui/gtk/search_common.c:962
 msgid "udp "
 msgstr ""
 
-#: src/ui/gtk/search_common.c:945
+#: src/ui/gtk/search_common.c:971
 msgid ", browsable"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:945
+#: src/ui/gtk/search_common.c:971
 #, fuzzy
 msgid "browsable"
 msgstr "estable"
 
-#: src/ui/gtk/search_common.c:1158
+#: src/ui/gtk/search_common.c:1184
 #, fuzzy, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -9327,172 +9329,172 @@ msgstr ""
 "%s%s%u %s (%u saltados, %u ignorados, %uocultos, %u auto-descarga, %u %s)"
 "Hits: %u (%u TCP, %u UDP)"
 
-#: src/ui/gtk/search_common.c:1161
+#: src/ui/gtk/search_common.c:1187
 #, fuzzy
 msgid "item"
 msgid_plural "items"
 msgstr[0] "Filtro"
 msgstr[1] "Filtro"
 
-#: src/ui/gtk/search_common.c:1163
+#: src/ui/gtk/search_common.c:1189
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "duplicado"
 msgstr[1] "duplicados"
 
-#: src/ui/gtk/search_common.c:1166 src/ui/gtk/search_common.c:1238
+#: src/ui/gtk/search_common.c:1192 src/ui/gtk/search_common.c:1246
 msgid "No search"
 msgstr "Ninguna búsqueda"
 
-#: src/ui/gtk/search_common.c:1206
+#: src/ui/gtk/search_common.c:1214
 #, fuzzy
 msgid "Passive search"
 msgstr "(búsqueda pasiva)"
 
-#: src/ui/gtk/search_common.c:1221
+#: src/ui/gtk/search_common.c:1229
 #, fuzzy, c-format
 msgid "Expires in %s"
 msgstr " reintento en %ds"
 
-#: src/ui/gtk/search_common.c:1225
+#: src/ui/gtk/search_common.c:1233
 #, fuzzy, c-format
 msgid "Expired after %s"
 msgstr "Expirado"
 
-#: src/ui/gtk/search_common.c:1232
+#: src/ui/gtk/search_common.c:1240
 msgid "Expires with this session"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:1235
+#: src/ui/gtk/search_common.c:1243
 #, fuzzy
 msgid "[stopped]"
 msgstr "[parado]"
 
-#: src/ui/gtk/search_common.c:1532
+#: src/ui/gtk/search_common.c:1540
 #, fuzzy
 msgid "The query string is not UTF-8 encoded"
 msgstr "La petición SHA1 no está codificada correctamente"
 
-#: src/ui/gtk/search_common.c:1544
+#: src/ui/gtk/search_common.c:1552
 msgid "The entered query is too long"
 msgstr "La petición es demasiado larga"
 
-#: src/ui/gtk/search_common.c:1561
+#: src/ui/gtk/search_common.c:1569
 msgid "The SHA1 of the magnet is not validly encoded"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:1566
+#: src/ui/gtk/search_common.c:1574
 msgid "Cannot parse magnet"
 msgstr ""
 
-#: src/ui/gtk/search_common.c:1602
+#: src/ui/gtk/search_common.c:1610
 msgid "The SHA1 query is not validly encoded"
 msgstr "La petición SHA1 no está codificada correctamente"
 
-#: src/ui/gtk/settings.c:1099
+#: src/ui/gtk/settings.c:1100
 msgid "Never"
 msgstr "Nunca"
 
-#: src/ui/gtk/settings.c:1162 src/ui/gtk/settings_cb.c:574
+#: src/ui/gtk/settings.c:1163 src/ui/gtk/settings_cb.c:574
 #: src/ui/gtk/settings_cb.c:637
 msgid "No"
 msgstr "No"
 
-#: src/ui/gtk/settings.c:1293
+#: src/ui/gtk/settings.c:1294
 #, c-format
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] "%u/%u nodo (%u%%)"
 msgstr[1] "%u/%u nodos (%u%%)"
 
-#: src/ui/gtk/settings.c:1379 src/ui/gtk/settings.c:1401
+#: src/ui/gtk/settings.c:1380 src/ui/gtk/settings.c:1402
 msgid "loading..."
 msgstr "cargando..."
 
-#: src/ui/gtk/settings.c:1380
+#: src/ui/gtk/settings.c:1381
 msgid "Reading host cache..."
 msgstr "Leyendo cache de hosts..."
 
-#: src/ui/gtk/settings.c:1402
+#: src/ui/gtk/settings.c:1403
 msgid "Reading ultra cache..."
 msgstr "Leyendo cache de ultranodos..."
 
-#: src/ui/gtk/settings.c:1446
+#: src/ui/gtk/settings.c:1447
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** ¡EJECUTANDO VERSIÓN ANTIGUA! ***"
 
-#: src/ui/gtk/settings.c:1471
+#: src/ui/gtk/settings.c:1472
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
 msgstr ""
 
-#: src/ui/gtk/settings.c:1496
+#: src/ui/gtk/settings.c:1497
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** SUBIDAS ATASCADAS, ¿ANCHO DE BANDA INSUFICIENTE? ***"
 
-#: src/ui/gtk/settings.c:1528
+#: src/ui/gtk/settings.c:1529
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
 msgstr "*** ¡NO QUEDAN DESCRIPTORES DE ARCHIVO! ***"
 
-#: src/ui/gtk/settings.c:1533
+#: src/ui/gtk/settings.c:1534
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ¡DESCRIPTORES DE ARCHIVO ESCASOS! ***"
 
-#: src/ui/gtk/settings.c:1548
+#: src/ui/gtk/settings.c:1549
 msgid "*** VERSION WILL SOON BECOME OLD! ***"
 msgstr "*** ¡ESTA VERSIÓN PRONTO SE QUEDARÁ ANTICUADA! ***"
 
-#: src/ui/gtk/settings.c:1551
+#: src/ui/gtk/settings.c:1552
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** ¡ESTA VERSIÓN SE QUEDARÁ ANTICUADA EN %d DÍA! ***"
 msgstr[1] "*** ¡ESTA VERSIÓN SE QUEDARÁ ANTICUADA EN %d DÍAS! ***"
 
-#: src/ui/gtk/settings.c:1966 src/ui/gtk/settings.c:2003
+#: src/ui/gtk/settings.c:1967 src/ui/gtk/settings.c:2004
 msgid "Hide settings"
 msgstr "Ocultar ajustes"
 
-#: src/ui/gtk/settings.c:2044
+#: src/ui/gtk/settings.c:2045
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "Dirección/Puerto modificado a: %s"
 
-#: src/ui/gtk/settings.c:2373
+#: src/ui/gtk/settings.c:2374
 msgid "no sources"
 msgstr "no hay fuentes"
 
-#: src/ui/gtk/settings.c:2377
+#: src/ui/gtk/settings.c:2378
 #, c-format
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u fuente"
 msgstr[1] "%u fuentes"
 
-#: src/ui/gtk/settings.c:2392
+#: src/ui/gtk/settings.c:2393
 #, c-format
 msgid "%u active"
 msgstr "%u activos"
 
-#: src/ui/gtk/settings.c:2420
+#: src/ui/gtk/settings.c:2421
 #, c-format
 msgid "%u queued"
 msgstr "%u encolados"
 
-#: src/ui/gtk/settings.c:2541
+#: src/ui/gtk/settings.c:2542
 #, c-format
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] "%u/%u conexión"
 msgstr[1] "%u/%u conexiones"
 
-#: src/ui/gtk/settings.c:2578
+#: src/ui/gtk/settings.c:2579
 #, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u subida"
 msgstr[1] "%u/%u subidas"
 
-#: src/ui/gtk/settings.c:2603
+#: src/ui/gtk/settings.c:2604
 #, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
@@ -9567,6 +9569,9 @@ msgstr "Enviando QUEUE, reconectando..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
 
+#~ msgid "Clear nonexistant files"
+#~ msgstr "Limpiar archivos inexistentes"
+
 #, fuzzy
-#~ msgid "Charset"
-#~ msgstr "Objetivo"
+#~ msgid "by urn:sha1."
+#~ msgstr "urn:sha1"
