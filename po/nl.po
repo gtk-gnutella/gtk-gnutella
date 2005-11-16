@@ -308,7 +308,7 @@ msgstr "Fout antwoord adres."
 
 #: src/core/gnet_stats.c:82 src/ui/gtk/gnet_stats_common.c:109
 msgid "Hostile IP address"
-msgstr "Vijandig IP adres"
+msgstr "Vijandig IP-adres"
 
 #: src/core/gwcache.c:952
 #, c-format
@@ -990,7 +990,7 @@ msgstr "Laatst bekende IP-adres."
 
 #: src/if/gnet_property.c:925
 msgid "When the current IP address was determined."
-msgstr "Wanneer het huidige IP adres voor het laatst is vastgesteld."
+msgstr "Wanneer het huidige IP-adres voor het laatst is vastgesteld."
 
 #: src/if/gnet_property.c:945
 msgid "Average uptime with the same IP address."
@@ -1797,8 +1797,8 @@ msgid ""
 "instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
 msgstr ""
 "Lijst met netwerken welke als lokaal worden beschouwd. Dit is een lijst met "
-"IP adressen, gescheiden door een ';'. Het IP adres mag volledig worden "
-"gegeven, bijvoorbeeld 192.168.0.1. Eventueel kan het gevolgd  worden met een "
+"IP-adressen, gescheiden door een ';'. Het IP-adres mag volledig worden "
+"opgegeven, bijvoorbeeld 192.168.0.1. Eventueel kan het gevolgd  worden met een "
 "netwerk mask lengte. Bijvoorbeeld: 192.168.0.1/24 staat voor het hele "
 "192.168.0.* netwerk."
 
@@ -2194,7 +2194,7 @@ msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
 msgstr ""
-"Of gtk-gnutella de IP adressen moet bijhouden van instabiele servents die "
+"Of gtk-gnutella de IP-adressen moet bijhouden van instabiele servents die "
 "het tegenkomt, zodat toekomstige pogingen tot verbinding kunnen worden "
 "voorkomen."
 
@@ -2208,7 +2208,7 @@ msgstr ""
 "Of gtk-gnutella moet bepalen welke servent types (zoals geïndentificeerd "
 "door hun leveranciersnaam) instabiel zijn, en zorgen dat we geen nieuwe "
 "connecties van of naar ze maken.  Dit werkt alleen als gtk-gnutella al "
-"bepaalt welke IP adressen instabiel zijn."
+"bepaalt welke IP-adressen instabiel zijn."
 
 #: src/if/gnet_property.c:4483
 msgid ""
@@ -2243,7 +2243,7 @@ msgid ""
 "your node even after a few rotations of your IP address."
 msgstr ""
 "De naam van de server die gebruikt kan worden door downloaders om het IP "
-"adres via DNS te vinden.  Als je een dynamisch IP adres hebt dat gekoppeld "
+"adres via DNS te vinden.  Als je een dynamisch IP-adres hebt dat gekoppeld "
 "is aan de dynamische DNS services, dan is dit waardevol voor downloaders: "
 "zij kunnen dan jouw node vinden zelfs na een paar veranderingen van je IP "
 "adres."
@@ -2330,7 +2330,7 @@ msgid ""
 "become an Ultra node."
 msgstr ""
 "Of we aan de voorwaarde om een Ultra node te worden voldoen dat de "
-"gemiddelde uptime van het IP adres voldoende is."
+"gemiddelde uptime van het IP-adres voldoende is."
 
 #: src/if/gnet_property.c:4732
 msgid ""
@@ -3369,7 +3369,7 @@ msgid ""
 "messages bearing an hostile IP address."
 msgstr ""
 "Of we de berichten teller voor duplicaten, foute en rare berichten van een "
-"vijandig IP adres moeten tonen."
+"vijandig IP-adres moeten tonen."
 
 #: src/if/gui_property.c:2185
 msgid ""
@@ -4661,7 +4661,7 @@ msgstr "Als de bestandsnaam gelijk is aan \"%s\" %s"
 #: src/ui/gtk/filter_core.c:984
 #, c-format
 msgid "If IP address matches %s/%u"
-msgstr "Als het IP adres overeenkomt met %s/%u"
+msgstr "Als het IP-adres overeenkomt met %s/%u"
 
 #: src/ui/gtk/filter_core.c:992
 #, c-format
@@ -6582,7 +6582,7 @@ msgid ""
 "try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
 "both your incoming and outgoing paths."
 msgstr ""
-"Je uploads blijven abnormaal vaak hangen. Dit kan er op wijzen dat al je "
+"Je uploads blijven extreem vaak hangen. Dit kan er op wijzen dat al je "
 "bandbreedte is gebruikt. Je zou niet als ultra-node moeten draaien. Probeer "
 "de hoeveelheid bandbreedte die gtk-gnutella mag gebruikte te verminderen om "
 "te voorkomen dat zowel je ingaande als je uitgaande verbindingen overbelast "
@@ -7049,7 +7049,7 @@ msgstr "#|Bestandsnaam"
 #: src/ui/gtk/gtk1/interface-glade.c:8397
 #: src/ui/gtk/gtk2/interface-glade.c:7054
 msgid "Condition: If IP address matches"
-msgstr "Voorwaarde: Als IP adres overeenkomt"
+msgstr "Voorwaarde: Als IP-adres overeenkomt"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8425
 #: src/ui/gtk/gtk2/interface-glade.c:7038
@@ -7058,7 +7058,7 @@ msgstr "IP-adres/masker"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8529
 msgid "#|IP address"
-msgstr "#|IP adres"
+msgstr "#|IP-adres"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8602
 #: src/ui/gtk/gtk2/interface-glade.c:7440
@@ -7414,7 +7414,7 @@ msgstr "Huidige IP instellingen (Adres:Poort):"
 #: src/ui/gtk/gtk1/interface-glade.c:11594
 #: src/ui/gtk/gtk2/interface-glade.c:10157
 msgid "not yet determined"
-msgstr "nog niet bepaald"
+msgstr "nog niet vastgesteld"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11623
 #: src/ui/gtk/gtk2/interface-glade.c:10218
@@ -7512,7 +7512,7 @@ msgstr "Bannen"
 #: src/ui/gtk/gtk1/interface-glade.c:11985
 #: src/ui/gtk/gtk2/interface-glade.c:10441
 msgid "Max. file _descriptors reserved"
-msgstr "Maximaal aantal \"file descriptors\" reserveren"
+msgstr "Maximaal aantal \"file descriptors\" gereserveerd"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11998
 #: src/ui/gtk/gtk2/interface-glade.c:10449
@@ -7648,7 +7648,7 @@ msgstr "De geconfigureerde peermodus"
 #: src/ui/gtk/gtk1/interface-glade.c:12377
 #: src/ui/gtk/gtk2/interface-glade.c:11120
 msgid "Monitor bad node IP addresses"
-msgstr "Hou IP addressen van slechte nodes in de gaten"
+msgstr "Hou IP-adressen van slechte nodes in de gaten"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12387
 #: src/ui/gtk/gtk2/interface-glade.c:11128
@@ -7713,7 +7713,7 @@ msgstr "Voldoende beschikbare bandbreedte"
 #: src/ui/gtk/gtk1/interface-glade.c:12667
 #: src/ui/gtk/gtk2/interface-glade.c:11298
 msgid "IP address stability"
-msgstr "IP adres stabiliteit"
+msgstr "IP-adres stabiliteit"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12678
 #: src/ui/gtk/gtk2/interface-glade.c:11237
@@ -8793,7 +8793,7 @@ msgstr "Diverse eigenschappen"
 #: src/ui/gtk/gtk1/interface-glade.c:17224
 #: src/ui/gtk/gtk2/interface-glade.c:15884
 msgid "Avg. time between IP address changes:"
-msgstr "Gemiddelde uptime met hetzelfde IP adres:"
+msgstr "Gemiddelde uptime met hetzelfde IP-adres:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:17235
 #: src/ui/gtk/gtk2/interface-glade.c:15875
