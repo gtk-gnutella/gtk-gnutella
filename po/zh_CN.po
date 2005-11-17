@@ -4022,8 +4022,8 @@ msgstr ""
 msgid "%ds"
 msgstr ""
 
-#: src/lib/utf8.c:1223
-msgid "locale_get_language|en_US"
+#: src/lib/utf8.c:1221
+msgid "locale_get_language|en"
 msgstr "zh_CN"
 
 #: src/main.c:876

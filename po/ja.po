@@ -4399,9 +4399,9 @@ msgstr "%d分%d秒"
 msgid "%ds"
 msgstr "%d秒"
 
-#: src/lib/utf8.c:1223
-msgid "locale_get_language|en_US"
-msgstr "ja_JP"
+#: src/lib/utf8.c:1221
+msgid "locale_get_language|en"
+msgstr "ja"
 
 #: src/main.c:876
 msgid "This is an unofficial build which accesses files in this directory:"

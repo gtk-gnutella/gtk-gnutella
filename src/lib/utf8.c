@@ -1220,7 +1220,7 @@ locale_get_language(void)
 	/**
 	 * TRANSLATORS: Put the two-letter ISO 639 code here.
 	 */
-	return Q_("locale_get_language|en_US");
+	return Q_("locale_get_language|en");
 }
 
 struct conv_to_utf8 *
@@ -1518,7 +1518,7 @@ locale_init(void)
 	 * Skip regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.91 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.92 "))
 		regression_checks();
 
 	locale_init_passed = TRUE;
@@ -2269,7 +2269,6 @@ filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 		} else {
 			dbuf = hyper_iconv(t->cd, NULL, 0, src, TRUE);
 			if (dbuf) {
-				g_message("t->name=\"%s\", src=\"%s\"", t->name, src);
 				s = dbuf;
 				break;
 			}

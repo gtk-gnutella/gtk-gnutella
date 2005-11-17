@@ -3926,9 +3926,9 @@ msgstr ""
 msgid "%ds"
 msgstr ""
 
-#: src/lib/utf8.c:1223
-msgid "locale_get_language|en_US"
-msgstr "uk_UK"
+#: src/lib/utf8.c:1221
+msgid "locale_get_language|en"
+msgstr "uk"
 
 #: src/main.c:876
 msgid "This is an unofficial build which accesses files in this directory:"
