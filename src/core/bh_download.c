@@ -200,6 +200,14 @@ browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
  *** RX link callbacks
  ***/
 
+static void
+browse_rx_given(gpointer o, ssize_t r)
+{
+	struct browse_ctx *bc = o;
+
+	download_browse_received(bc->owner, r);
+}
+
 static G_GNUC_PRINTF(2, 3) void
 browse_rx_error(gpointer o, const gchar *reason, ...)
 {
@@ -228,7 +236,7 @@ browse_rx_done(gpointer o)
 }
 
 static const struct rx_link_cb browse_rx_link_cb = {
-	NULL,					/* add_rx_given */
+	browse_rx_given,		/* add_rx_given */
 	browse_rx_error,		/* read_error */
 	browse_rx_got_eof,		/* got_eof */
 };
