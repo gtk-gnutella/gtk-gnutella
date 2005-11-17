@@ -300,6 +300,33 @@ on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
 }
 
 /**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	/* FIXME: Implement this */	
+}
+
+/**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_queue_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	/* FIXME: Implement this */	
+}
+
+
+/**
  * Causes all selected queued downloads to fall back to push.
  */
 void

@@ -36,6 +36,9 @@ void on_button_uploads_kill_clicked(GtkButton *, gpointer);
 void on_button_uploads_remove_clicked(GtkButton *, gpointer);
 void on_button_uploads_clear_completed_clicked(GtkButton *, gpointer);
 
+void on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
+
 #ifdef USE_GTK1
 void on_clist_uploads_click_column(GtkCList *, gint, gpointer);
 void on_clist_uploads_resize_column(GtkCList *, gint, gint, gpointer);

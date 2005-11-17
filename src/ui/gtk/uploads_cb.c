@@ -157,14 +157,6 @@ on_clist_uploads_button_press_event(GtkWidget *unused_widget,
 	return TRUE;
 }
 
-void
-on_popup_uploads_title_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-	/* FIXME */
-}
 #endif /* USE_GTK1 */
 
 
@@ -211,5 +203,19 @@ on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
         (GtkTreeSelectionForeachFunc) uploads_kill_helper, NULL);
 }
 #endif /* USE_GTK2 */
+
+/**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	/* FIXME: Implement this */	
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

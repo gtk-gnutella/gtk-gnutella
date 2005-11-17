@@ -234,6 +234,32 @@ on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
 	g_list_free(node_list);
 }
 
+/**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	/* FIXME: Implement this */	
+}
+
+/**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_queue_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	/* FIXME: Implement this */	
+}
+
 
 /**
  *	Abort all downloads with names identical to any of the selected downloads
