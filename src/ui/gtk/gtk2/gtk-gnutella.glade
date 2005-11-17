@@ -15,7 +15,7 @@
       <signal name="activate" handler="on_button_downloads_abort_clicked"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image546">
+	<widget class="GtkImage" id="image1183">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -77,7 +77,7 @@
       <signal name="activate" handler="on_popup_downloads_remove_file_activate" last_modification_time="Tue, 21 Dec 2004 06:25:52 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image547">
+	<widget class="GtkImage" id="image1184">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -98,7 +98,7 @@
       <signal name="activate" handler="on_button_downloads_resume_clicked"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image548">
+	<widget class="GtkImage" id="image1185">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -119,7 +119,7 @@
       <signal name="activate" handler="on_popup_downloads_queue_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image549">
+	<widget class="GtkImage" id="image1186">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-undo</property>
 	  <property name="icon_size">1</property>
@@ -162,7 +162,7 @@
       <signal name="activate" handler="on_popup_downloads_copy_url_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image550">
+	<widget class="GtkImage" id="image1187">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -183,7 +183,7 @@
       <signal name="activate" handler="on_popup_downloads_connect_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image551">
+	<widget class="GtkImage" id="image1188">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-jump-to</property>
 	  <property name="icon_size">1</property>
@@ -210,7 +210,7 @@
       <signal name="activate" handler="on_popup_downloads_config_cols_activate" last_modification_time="Fri, 18 Jun 2004 02:16:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image552">
+	<widget class="GtkImage" id="image1189">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -231,7 +231,7 @@
       <signal name="activate" handler="on_popup_downloads_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:03:24 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image553">
+	<widget class="GtkImage" id="image1190">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -252,9 +252,30 @@
       <signal name="activate" handler="on_popup_downloads_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:03:24 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image554">
+	<widget class="GtkImage" id="image1191">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="popup_downloads_browse_host">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Browse Host</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_downloads_browse_host_activate" last_modification_time="Thu, 17 Nov 2005 20:23:43 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image1192">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-zoom-in</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -286,7 +307,7 @@
       <signal name="activate" handler="on_popup_queue_abort_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image560">
+	<widget class="GtkImage" id="image1198">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -368,7 +389,7 @@
       <signal name="activate" handler="on_popup_queue_copy_url_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image561">
+	<widget class="GtkImage" id="image1199">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -389,7 +410,7 @@
       <signal name="activate" handler="on_popup_queue_connect_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image562">
+	<widget class="GtkImage" id="image1200">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-jump-to</property>
 	  <property name="icon_size">1</property>
@@ -416,7 +437,7 @@
       <signal name="activate" handler="on_popup_queue_config_cols_activate" last_modification_time="Fri, 18 Jun 2004 02:15:28 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image563">
+	<widget class="GtkImage" id="image1201">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -437,7 +458,7 @@
       <signal name="activate" handler="on_popup_queue_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:04:18 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image564">
+	<widget class="GtkImage" id="image1202">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -458,7 +479,7 @@
       <signal name="activate" handler="on_popup_queue_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:04:18 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image565">
+	<widget class="GtkImage" id="image1203">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -468,6 +489,15 @@
 	  <property name="ypad">0</property>
 	</widget>
       </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkMenuItem" id="popup_queue_browse_host">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Browse Host</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_queue_browse_host_activate" last_modification_time="Thu, 17 Nov 2005 20:25:30 GMT"/>
     </widget>
   </child>
 </widget>
@@ -923,7 +953,7 @@
       <signal name="activate" handler="on_popup_uploads_config_cols_activate" last_modification_time="Fri, 18 Jun 2004 03:50:24 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image353">
+	<widget class="GtkImage" id="image1204">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -933,6 +963,15 @@
 	  <property name="ypad">0</property>
 	</widget>
       </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkMenuItem" id="popup_uploads_browse_host">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Browse Host</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_uploads_browse_host_activate" last_modification_time="Thu, 17 Nov 2005 20:27:30 GMT"/>
     </widget>
   </child>
 </widget>

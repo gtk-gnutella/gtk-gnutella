@@ -6567,6 +6567,7 @@ create_popup_dl_active (void)
   GtkWidget *separator16;
   GtkWidget *popup_downloads_expand_all;
   GtkWidget *popup_downloads_collapse_all;
+  GtkWidget *popup_downloads_browse_host;
 
   popup_dl_active = gtk_menu_new ();
   gtk_widget_set_name (popup_dl_active, "popup_dl_active");
@@ -6712,6 +6713,14 @@ create_popup_dl_active (void)
   gtk_widget_show (popup_downloads_collapse_all);
   gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_collapse_all);
 
+  popup_downloads_browse_host = gtk_menu_item_new_with_label (_("Browse Host"));
+  gtk_widget_set_name (popup_downloads_browse_host, "popup_downloads_browse_host");
+  gtk_widget_ref (popup_downloads_browse_host);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_browse_host", popup_downloads_browse_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_browse_host);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_browse_host);
+
   gtk_signal_connect (GTK_OBJECT (popup_dl_active), "selection_get",
                       GTK_SIGNAL_FUNC (on_popup_downloads_selection_get),
                       NULL);
@@ -6754,6 +6763,9 @@ create_popup_dl_active (void)
   gtk_signal_connect (GTK_OBJECT (popup_downloads_collapse_all), "activate",
                       GTK_SIGNAL_FUNC (on_popup_downloads_collapse_all_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_browse_host), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_browse_host_activate),
+                      NULL);
 
   return popup_dl_active;
 }
@@ -6777,6 +6789,7 @@ create_popup_dl_queued (void)
   GtkWidget *separator17;
   GtkWidget *popup_queue_expand_all;
   GtkWidget *popup_queue_collapse_all;
+  GtkWidget *popup_queue_browse_host;
 
   popup_dl_queued = gtk_menu_new ();
   gtk_widget_set_name (popup_dl_queued, "popup_dl_queued");
@@ -6889,6 +6902,14 @@ create_popup_dl_queued (void)
   gtk_widget_show (popup_queue_collapse_all);
   gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_collapse_all);
 
+  popup_queue_browse_host = gtk_menu_item_new_with_label (_("Browse Host"));
+  gtk_widget_set_name (popup_queue_browse_host, "popup_queue_browse_host");
+  gtk_widget_ref (popup_queue_browse_host);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_browse_host", popup_queue_browse_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_browse_host);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_browse_host);
+
   gtk_signal_connect (GTK_OBJECT (popup_queue_start_now), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_start_now_activate),
                       NULL);
@@ -6915,6 +6936,9 @@ create_popup_dl_queued (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_queue_collapse_all), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_collapse_all_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_browse_host), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_browse_host_activate),
                       NULL);
 
   return popup_dl_queued;
@@ -7409,23 +7433,23 @@ create_popup_uploads (void)
 {
   GtkWidget *popup_uploads;
   GtkAccelGroup *popup_uploads_accels;
-  GtkWidget *popup_uploads_title;
+  GtkWidget *popup_uploads_browse_host;
 
   popup_uploads = gtk_menu_new ();
   gtk_widget_set_name (popup_uploads, "popup_uploads");
   gtk_object_set_data (GTK_OBJECT (popup_uploads), "popup_uploads", popup_uploads);
   popup_uploads_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_uploads));
 
-  popup_uploads_title = gtk_menu_item_new_with_label (_("Nothing for now"));
-  gtk_widget_set_name (popup_uploads_title, "popup_uploads_title");
-  gtk_widget_ref (popup_uploads_title);
-  gtk_object_set_data_full (GTK_OBJECT (popup_uploads), "popup_uploads_title", popup_uploads_title,
+  popup_uploads_browse_host = gtk_menu_item_new_with_label (_("Browse Host"));
+  gtk_widget_set_name (popup_uploads_browse_host, "popup_uploads_browse_host");
+  gtk_widget_ref (popup_uploads_browse_host);
+  gtk_object_set_data_full (GTK_OBJECT (popup_uploads), "popup_uploads_browse_host", popup_uploads_browse_host,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_uploads_title);
-  gtk_container_add (GTK_CONTAINER (popup_uploads), popup_uploads_title);
+  gtk_widget_show (popup_uploads_browse_host);
+  gtk_container_add (GTK_CONTAINER (popup_uploads), popup_uploads_browse_host);
 
-  gtk_signal_connect (GTK_OBJECT (popup_uploads_title), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_uploads_title_activate),
+  gtk_signal_connect (GTK_OBJECT (popup_uploads_browse_host), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_uploads_browse_host_activate),
                       NULL);
 
   return popup_uploads;
