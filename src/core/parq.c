@@ -3535,8 +3535,8 @@ parq_store(gpointer data, gpointer x)
 		  "ID: %s\n"
 		  "SIZE: %s\n"
 		  "IP: %s\n"
-		  "QUEUESSENT: %s\n"
-		  "SENDNEXTQUEUE: %s\n"
+		  "QUEUESSENT: %d\n"
+		  "SENDNEXTQUEUE: %d\n"
 		  ,
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
