@@ -83,6 +83,7 @@ fileinfo_t *file_info_get(
 void file_info_strip_binary(fileinfo_t *fi);
 void file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file);
 gboolean file_info_got_sha1(fileinfo_t *fi, const gchar *sha1);
+void file_info_size_known(struct download *d, filesize_t size);
 void file_info_update(struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
 enum dl_chunk_status file_info_pos_status(fileinfo_t *fi,

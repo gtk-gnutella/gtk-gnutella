@@ -889,7 +889,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 
 	b->held -= amount;
 
-	/* If striping amount was exactly the buffer size, we must one more now */
+	/* If striping amount was exactly the buffer size, we have one more now */
 	g_assert(amount != SOCK_BUFSZ || old_iovcnt + 1 == b->iovcnt);
 }
 
@@ -5195,12 +5195,6 @@ download_write_data(struct download *d)
 			 * on a persistent connection where we'll be able to request
 			 * another chunk data of data.
 			 *
-			 *
-			 *	FIXME: DOWNLOAD_SIZE:
-			 *  This won't work if the fileinfo doesn't have a specified
-			 *	file size. --- Emile
-	 		 *
-			 *
 			 * The only remaining possibility is that we have reached a zone
 			 * where a competing download is busy (aggressive swarming on),
 			 * and since we cannot tell the remote HTTP server that we wish
@@ -6833,13 +6827,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 		content_size = parse_uint64(buf, NULL, 10, &error);
 
-		/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
 		if (!error && !fi->file_size_known) {
+			/* XXX factor this code with the similar one below */
 			d->size = content_size;
-			fi->size = content_size;
-			fi->file_size_known = TRUE;	/* XXX encapsulation violation */
+			file_info_size_known(d, content_size);
 			d->range_end = download_filesize(d);
 			requested_size = d->range_end - d->skip + d->overlap_size;
+			gcu_gui_update_download_size(d);
 		}
 
 		if (error || content_size == 0) {
@@ -6870,11 +6864,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		filesize_t start, end, total;
 
 		if (0 == http_content_range_parse(buf, &start, &end, &total)) {
-			/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
 			if (!fi->file_size_known) {
+				/* XXX factor this code with the similar one above */
 				d->size = total;
-				fi->size = total;
-				fi->file_size_known = TRUE;	/* XXX encapuslation violation */
+				file_info_size_known(d, total);
+				d->range_end = download_filesize(d);
+				requested_size = d->range_end - d->skip + d->overlap_size;
+				gcu_gui_update_download_size(d);
 			}
 
 			if (check_content_range > total) {
@@ -7533,7 +7529,7 @@ download_send_request(struct download *d)
 		/* XXX -- revisit this encapsulation violation after 0.96 -- RAM */
 		/* XXX (when filesize is not known, fileinfo should handle this) */
 		d->skip = d->pos = fi->done;	/* XXX no overlapping here */
-		d->size = -1;
+		d->size = 0;
 	}
 
 picked:
@@ -9334,23 +9330,45 @@ download_got_eof(struct download *d)
 	 * we got everything.
 	 */
 
-	if (!d->file_info->file_size_known)
-		download_stop(d, GTA_DL_COMPLETED, no_reason);
-	else
+	if (!d->file_info->file_size_known) {
+		download_rx_done(d);
+	} else
 		download_queue_delay(d, download_retry_busy_delay,
 			_("Stopped data (EOF)"));
 }
 
 /**
- * Called when all data has been received (during chunked reception).
+ * Called when all data has been received.
  */
 void
 download_rx_done(struct download *d)
 {
+	fileinfo_t *fi = d->file_info;
+
 	g_assert(d != NULL);
 	g_assert(d->file_info != NULL);
 
+	if (!fi->file_size_known) {
+		file_info_size_known(d, fi->done);
+		d->size = fi->size;
+		d->range_end = download_filesize(d);	/* New upper boundary */
+		gcu_gui_update_download_size(d);
+	}
+
 	download_stop(d, GTA_DL_COMPLETED, no_reason);
+}
+
+/**
+ * Called when more data has been received.
+ */
+void
+download_browse_received(struct download *d, ssize_t received)
+{
+	g_assert(d != NULL);
+	g_assert(d->file_info != NULL);
+
+	file_info_update(d, d->pos, d->pos + received, DL_CHUNK_DONE);
+	d->pos += received;
 }
 
 /*

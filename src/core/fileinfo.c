@@ -1728,6 +1728,34 @@ file_info_store_if_dirty(void)
 		file_info_store();
 }
 
+/*
+ * Notify interested parties that file info is being removed and free
+ * it's handle.  Used only during final cleanup.
+ */
+static void
+fi_dispose(fileinfo_t *fi)
+{
+	/*
+	 * Note that normally all fileinfo structures should have been collected
+	 * during the freeing of downloads, so if we come here with a non-zero
+	 * refcount, something is wrong with our memory management.
+	 *
+	 * (refcount of zero is possible if we have a fileinfo entry but no
+	 * download attached to that fileinfo)
+	 */
+
+	if (fi->refcount)
+		g_warning("fi_dispose() refcount = %u for \"%s\"",
+			fi->refcount, fi->file_name);
+
+    event_trigger(fi_events[EV_FI_REMOVED],
+        T_NORMAL(fi_listener_t, (fi->fi_handle)));
+    file_info_drop_handle(fi->fi_handle);
+
+	fi->hashed = FALSE;
+	fi_free(fi);
+}
+
 /**
  * Callback for hash table iterator. Used by file_info_close().
  */
@@ -1780,13 +1808,19 @@ file_info_free_size_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 static void
 file_info_free_guid_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *guid = (const gchar *) key;
-	const fileinfo_t *fi = (const fileinfo_t *) val;
+	const gchar *guid = key;
+	fileinfo_t *fi = val;
 
 	(void) unused_x;
 	g_assert(guid == fi->guid);		/* GUID shared with fi's, don't free */
 
-	/* fi structure in value not freed, shared with other hash tables */
+	/*
+	 * fi structure in value not freed, shared with other hash tables
+	 * However, transient file info are only in this hash, so free them!
+	 */
+
+	if (fi->flags & FI_F_TRANSIENT)
+		fi_dispose(fi);
 }
 
 /**
@@ -1805,31 +1839,9 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 	 * This table is the last one to be freed, and it is also guaranteed to
 	 * contain ALL fileinfo, and only ONCE, by definition.  Thus freeing
 	 * happens here.
-	 *
-	 * Note that normally all fileinfo structures should have been collected
-	 * during the freeing of downloads, so if we come here with a non-zero
-	 * refcount, something is wrong with our memory management.
-	 *
-	 * (refcount of zero is possible if we have a fileinfo entry but no
-	 * download attached to that fileinfo)
 	 */
 
-	if (fi->refcount)
-		g_warning("file_info_free_outname_kv() refcount = %u for \"%s\"",
-			fi->refcount, name);
-
-    /*
-     * Notify interested parties that file info is being removed and free
-     * it's handle.
-     */
-
-    event_trigger(fi_events[EV_FI_REMOVED],
-        T_NORMAL(fi_listener_t, (fi->fi_handle)));
-    file_info_drop_handle(fi->fi_handle);
-
-	fi->hashed = FALSE;
-
-	fi_free(fi);
+	fi_dispose(fi);
 }
 
 /**
@@ -1918,11 +1930,11 @@ file_info_hash_insert(fileinfo_t *fi)
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 
 	/*
-	 * Transient fileinfo is not recorded in any hash table.
+	 * Transient fileinfo is only recorded in then GUID hash table.
 	 */
 
 	if (fi->flags & FI_F_TRANSIENT)
-		goto done;
+		goto transient;
 
 	/*
 	 * If an entry already exists in the `fi_by_outname' table, then it
@@ -1955,18 +1967,6 @@ file_info_hash_insert(fileinfo_t *fi)
 		if (NULL == xfi)
 			g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
 	}
-
-	/*
-	 * Obviously, GUID entries must be unique as well.
-	 */
-
-	xfi = g_hash_table_lookup(fi_by_guid, fi->guid);
-
-	if (NULL != xfi && xfi != fi)		/* See comment above */
-		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
-
-	if (NULL == xfi)
-		g_hash_table_insert(fi_by_guid, fi->guid, fi);
 
 	/*
 	 * The (name, size) tuples also point to a list of entries, one for
@@ -2011,7 +2011,23 @@ file_info_hash_insert(fileinfo_t *fi)
 		g_hash_table_insert(fi_by_size, fi->size_atom, l);
 	}
 
-done:
+transient:
+	/*
+	 * Obviously, GUID entries must be unique as well.
+	 */
+
+	xfi = g_hash_table_lookup(fi_by_guid, fi->guid);
+
+	if (NULL != xfi && xfi != fi)		/* See comment above */
+		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+
+	if (NULL == xfi)
+		g_hash_table_insert(fi_by_guid, fi->guid, fi);
+
+	/*
+	 * Notify interested parties, update counters.
+	 */
+
 	fi->hashed = TRUE;
     fi->fi_handle = file_info_request_handle(fi);
 
@@ -2059,11 +2075,11 @@ file_info_hash_remove(fileinfo_t *fi)
 	g_assert((gint) fi_all_count >= 0);
 
 	/*
-	 * Transient fileinfo was not recorded in any hash table.
+	 * Transient fileinfo is only recorded in the GUID hash table.
 	 */
 
 	if (fi->flags & FI_F_TRANSIENT)
-		goto done;
+		goto transient;
 
 	/*
 	 * Remove from plain hash tables: by output name, by SHA1 and by GUID.
@@ -2073,8 +2089,6 @@ file_info_hash_remove(fileinfo_t *fi)
 
 	if (fi->sha1)
 		g_hash_table_remove(fi_by_sha1, fi->sha1);
-
-	g_hash_table_remove(fi_by_guid, fi->guid);
 
 	/*
 	 * Remove all the aliases from the (name, size) table.
@@ -2129,7 +2143,9 @@ file_info_hash_remove(fileinfo_t *fi)
 	else if (newl != l)
 		g_hash_table_insert(fi_by_size, fi->size_atom, newl);
 
-done:
+transient:
+	g_hash_table_remove(fi_by_guid, fi->guid);
+
 	fi->hashed = FALSE;
 }
 
@@ -3491,6 +3507,61 @@ file_info_merge_adjacent(fileinfo_t *fi)
 }
 
 /**
+ * Signals that file size became known suddenly.
+ *
+ * The download becomes the owner of the "busy" part between what we
+ * have done and the end of the file.
+ */
+void
+file_info_size_known(struct download *d, filesize_t size)
+{
+	fileinfo_t *fi = d->file_info;
+	struct dl_file_chunk *fc;
+
+	g_assert(!fi->file_size_known);
+	g_assert(!fi->use_swarming);
+	g_assert(fi->chunklist == NULL);
+
+	/*
+	 * Mark everything we have so far as done.
+	 */
+
+	if (fi->done) {
+		fc = walloc(sizeof *fc);
+		fc->from = 0;
+		fc->to = fi->done;			/* Byte at that offset is excluded */
+		fc->status = DL_CHUNK_DONE;
+
+		fi->chunklist = g_slist_prepend(fi->chunklist, fc);
+	}
+
+	/*
+	 * If the file size is less than the amount we think we have,
+	 * then ignore it and mark the whole file as done.
+	 */
+
+	if (size > fi->done) {
+		fc = walloc(sizeof *fc);
+		fc->from = fi->done;
+		fc->to = size;				/* Byte at that offset is excluded */
+		fc->status = DL_CHUNK_BUSY;
+		fc->download = d;
+
+		fi->chunklist = g_slist_append(fi->chunklist, fc);
+	}
+
+	fi->file_size_known = TRUE;
+	fi->use_swarming = TRUE;
+	fi->size = size;
+	fi->size_atom = atom_uint64_get(&size);
+	fi->dirty = TRUE;
+
+	g_assert(file_info_check_chunklist(fi, TRUE));
+
+	file_info_changed(fi);
+}
+
+/**
  * Marks a chunk of the file with given status.
  * The bytes range from `from' (included) to `to' (excluded).
  *
@@ -3514,6 +3585,24 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(from < to);
+
+	/*
+	 * If file size is not known yet, the chunk list will be empty.
+	 * Simply update the downloaded amount if the chunk is marked as done.
+	 */
+
+	if (!fi->file_size_known) {
+		g_assert(fi->chunklist == NULL);
+		g_assert(!fi->use_swarming);
+
+		if (status == DL_CHUNK_DONE) {
+			g_assert(from == fi->done);		/* Downloading continuously */
+			fi->done += to - from;
+		}
+
+		goto done;
+	}
+
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	fi->stamp = tm_time();
@@ -3699,11 +3788,15 @@ again:
 	 * i.e. we are writing to it, therefore we can reuse its file descriptor.
 	 */
 
+	if (fi->flags & FI_F_TRANSIENT)
+		goto done;
+
 	if (DL_CHUNK_DONE == status)
 		file_info_fd_store_binary(d->file_info, d->file_desc, FALSE);
 	else if (fi->dirty)
 		file_info_store_binary(d->file_info);
 
+done:
 	file_info_changed(fi);
 }
 
