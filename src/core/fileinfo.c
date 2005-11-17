@@ -3502,7 +3502,13 @@ file_info_merge_adjacent(fileinfo_t *fi)
 		}
 	} while (restart);
 
-	fi->done = done;
+	/*
+	 * When file size is unknown, there may be no chunklist.
+	 */
+
+	if (fi->chunklist != NULL)
+		fi->done = done;
+
 	g_assert(file_info_check_chunklist(fi, TRUE));
 }
 
