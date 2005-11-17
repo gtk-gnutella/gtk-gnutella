@@ -48,6 +48,7 @@
 #define gui_update_download(d, force) ((void) d, (void) force)
 #define gui_update_download_server(d) ((void) d)
 #define gui_update_download_range(d) ((void) d)
+#define gui_update_download_size(d) ((void) d)
 #define gui_update_download_host(d) ((void) d)
 #define gui_update_download_abort_resume()
 #define gui_update_download_clear()
@@ -102,6 +103,12 @@ void
 gcu_gui_update_download_range(struct download *d)
 {
 	gui_update_download_range(d);
+}
+
+void
+gcu_gui_update_download_size(struct download *d)
+{
+	gui_update_download_size(d);
 }
 
 void

@@ -1235,6 +1235,23 @@ gui_update_download_range(download_t *d)
 	gui_update_download_column(d, treeview_downloads, c_dl_range, buf);
 }
 
+/**
+ *	Update the size column of the active downloads treeview
+ */
+void
+gui_update_download_size(download_t *d)
+{
+	gchar buf[256];
+
+	g_assert(d);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+
+	if (!d->file_info->file_size_known)
+		return;
+
+	concat_strings(buf, sizeof buf, short_size(d->size), (void *) 0);
+	gui_update_download_column(d, treeview_downloads, c_dl_size, buf);
+}
 
 /**
  *	Update the host column of the active downloads treeview

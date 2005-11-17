@@ -57,6 +57,7 @@ void gcu_download_enable_start_now(guint32 running_downloads,
 void gcu_gui_update_download(struct download *d, gboolean force);
 void gcu_gui_update_download_server(struct download *d);
 void gcu_gui_update_download_range(struct download *d);
+void gcu_gui_update_download_size(struct download *d);
 void gcu_gui_update_download_host(struct download *d);
 void gcu_gui_update_download_abort_resume(void);
 void gcu_gui_update_download_clear(void);

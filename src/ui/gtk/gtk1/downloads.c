@@ -923,6 +923,27 @@ gui_update_download_range(struct download *d)
 		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_range, tmpstr);
 }
 
+/*
+ * Update the size of the active download.
+ */
+void
+gui_update_download_size(struct download *d)
+{
+	GtkCTreeNode *node;
+
+	g_assert(d);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+
+	if (!d->file_info->file_size_known)
+		return;
+
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s", short_size(d->size));
+
+	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
+	if (NULL != node)
+		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_size, tmpstr);
+}
+
 void
 gui_update_download_host(struct download *d)
 {

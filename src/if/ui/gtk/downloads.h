@@ -45,6 +45,7 @@ void download_gui_remove(struct download *d);
 void gui_update_download(struct download *, gboolean);
 void gui_update_download_server(struct download *);
 void gui_update_download_range(struct download *d);
+void gui_update_download_size(struct download *d);
 void gui_update_download_host(struct download *d);
 void gui_update_download_abort_resume(void);
 void gui_update_download_clear(void);
