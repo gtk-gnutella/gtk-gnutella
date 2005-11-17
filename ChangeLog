@@ -1,5 +1,8 @@
 # since last version
 
+- (2005-11-17 - JA)
+ * PARQ now backsoff everytime a queued failed to send.
+
 - (2005-11-15 - RAM)
  * Added client-side "browse host" support in the core.
  * [GTK1] Initial implementation of client-side "browse host".

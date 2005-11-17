@@ -192,6 +192,7 @@ struct parq_ul_queued {
 							     disconnected again. */
 
 	time_t last_queue_sent;	/**< When we last sent the QUEUE */
+	time_t send_next_queue; /**< When will we send the next QUEUE */
 
 	guint32 queue_sent;		/**< Amount of QUEUE messages we tried to send */
 	guint32 queue_refused;	/**< Amount of QUEUE messages refused remotely */
@@ -1753,7 +1754,7 @@ parq_upload_timer(time_t now)
 
 				if (
 					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
-					now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
+					parq_ul->send_next_queue < now &&
 					parq_ul->queue_sent < MAX_QUEUE &&
 					parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
 					!ban_is_banned(parq_ul->remote_addr) &&
@@ -1773,7 +1774,7 @@ parq_upload_timer(time_t now)
 				parq_ul->expire <= now &&
 				!parq_ul->has_slot &&
 				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
-				now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
+				parq_ul->send_next_queue < now &&
 				parq_ul->queue_sent < MAX_QUEUE &&
 				parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
 				max_uploads > 0 &&
@@ -1907,7 +1908,7 @@ parq_upload_timer(time_t now)
 					(gint) upload_connecting_timeout &&
 				parq_ul->by_addr->last_queue_sent >
 					parq_ul->by_addr->last_queue_connected &&
-				now - parq_ul->by_addr->last_queue_sent < QUEUE_PERIOD
+				parq_ul->send_next_queue < now
 			) {
 
 				if (parq_debug > 3)
@@ -2611,7 +2612,7 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 
 	/*
 	 * If we sent a QUEUE message and we're getting a reply, reset the
-	 * amount of QUEUE messages sent amd clear the flag.
+	 * amount of QUEUE messages sent and clear the flag.
 	 */
 
 	if (parq_ul->flags & PARQ_UL_QUEUE_SENT) {
@@ -3380,6 +3381,8 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 
 	parq_ul->last_queue_sent = now;		/* We tried... */
 	parq_ul->queue_sent++;
+	parq_ul->send_next_queue = 
+		now + QUEUE_PERIOD * (1 + (parq_ul->queue_sent - 1) / (float)2) ;
 	parq_ul->by_addr->last_queue_sent = now;
 
 	if (parq_debug)
@@ -3531,14 +3534,20 @@ parq_store(gpointer data, gpointer x)
 		  "EXPIRE: %d\n"
 		  "ID: %s\n"
 		  "SIZE: %s\n"
-		  "IP: %s\n",
+		  "IP: %s\n"
+		  "QUEUESSENT: %s\n"
+		  "SENDNEXTQUEUE: %s\n"
+		  ,
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
 		  (gint) parq_ul->enter,
 		  expire,
 		  parq_ul->id,
 		  uint64_to_string(parq_ul->file_size),
-		  host_addr_to_string(parq_ul->remote_addr));
+		  host_addr_to_string(parq_ul->remote_addr),
+		  parq_ul->queue_sent,
+		  parq_ul->send_next_queue
+		  );
 
 	if (parq_ul->sha1) {
 		fprintf(f, "SHA1: %s\n", sha1_base32(parq_ul->sha1));
@@ -3603,6 +3612,8 @@ typedef enum {
 	PARQ_TAG_SIZE,
 	PARQ_TAG_XIP,
 	PARQ_TAG_XPORT,
+	PARQ_TAG_QUEUESSENT,
+	PARQ_TAG_SENDNEXTQUEUE,
 
 	NUM_PARQ_TAGS
 } parq_tag_t;
@@ -3621,10 +3632,12 @@ static const struct parq_tag {
 	PARQ_TAG(NAME),
 	PARQ_TAG(POS),
 	PARQ_TAG(QUEUE),
+	PARQ_TAG(QUEUESSENT),
+	PARQ_TAG(SENDNEXTQUEUE),
 	PARQ_TAG(SHA1),
 	PARQ_TAG(SIZE),
 	PARQ_TAG(XIP),
-	PARQ_TAG(XPORT),
+	PARQ_TAG(XPORT),	
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 #undef PARQ_TAG
@@ -3664,6 +3677,8 @@ typedef struct {
 	gint entered;
 	gint expire;
 	gint xport;
+	gint send_next_queue;
+	gint queue_sent;
 	gchar name[1024];
 	gchar id[1024 + 128];
 } parq_entry_t;
@@ -3843,7 +3858,16 @@ parq_upload_load_queue(void)
 				}
 			}
 			break;
-
+		case PARQ_TAG_QUEUESSENT:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
+			entry.queue_sent = v;
+			break;
+		case PARQ_TAG_SENDNEXTQUEUE:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 || *endptr != '\0';
+			entry.send_next_queue = v;
+			break;
 		case PARQ_TAG_NAME:
 			if (
 				g_strlcpy(entry.name, value,
@@ -3893,6 +3917,8 @@ parq_upload_load_queue(void)
 			parq_ul->addr = entry.x_addr;
 			parq_ul->port = entry.xport;
 			parq_ul->sha1 = entry.sha1;
+			parq_ul->send_next_queue = entry.send_next_queue;
+			parq_ul->queue_sent = entry.queue_sent;
 
 			/* During parq_upload_create already created an ID for us */
 			g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
