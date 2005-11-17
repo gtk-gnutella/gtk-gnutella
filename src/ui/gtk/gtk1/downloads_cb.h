@@ -62,6 +62,8 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem, gpointer user_d
 void on_popup_downloads_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_expand_all_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_collapse_all_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
 
 
 /***
@@ -78,6 +80,8 @@ void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data)
 void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_expand_all_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
 void on_popup_downloads_selection_get(GtkWidget *widget,
 	GtkSelectionData *data, guint info, guint eventtime,
 	gpointer user_data);
