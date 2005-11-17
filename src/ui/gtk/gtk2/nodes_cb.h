@@ -36,16 +36,18 @@ void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data);
 void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
 void on_entry_host_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
-gboolean on_popup_nodes_disconnect_activate(GtkItem *item, gpointer user_data);
-gboolean on_popup_nodes_reverse_lookup_activate(GtkItem *unused_item,
+void on_popup_nodes_disconnect_activate(GtkItem *item, gpointer user_data);
+void on_popup_nodes_reverse_lookup_activate(GtkItem *unused_item,
 		gpointer unused_udata);
 gboolean on_popup_nodes_config_cols_activate(GtkItem *item, gpointer user_data);
 gboolean on_treeview_nodes_button_press_event(
 	GtkWidget *widget, GdkEventButton  *event, gpointer user_data);
 
-gboolean on_popup_nodes_collapse_all_activate(GtkItem *unused_item,
+void on_popup_nodes_collapse_all_activate(GtkItem *unused_item,
 	gpointer unused_udata);
-gboolean on_popup_nodes_expand_all_activate(GtkItem *unused_item,
+void on_popup_nodes_expand_all_activate(GtkItem *unused_item,
+	gpointer unused_udata);
+void on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
 
 void nodes_gui_remove_selected(void);

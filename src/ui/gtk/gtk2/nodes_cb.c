@@ -68,26 +68,24 @@ on_button_nodes_remove_clicked(GtkButton *unused_button, gpointer unused_udata)
 	nodes_gui_remove_selected();
 }
 
-gboolean
+void
 on_popup_nodes_disconnect_activate(GtkItem *unused_item, gpointer unused_udata)
 {
 	(void) unused_item;
 	(void) unused_udata;
 	nodes_gui_remove_selected();
-	return TRUE;
 }
 
-gboolean
+void
 on_popup_nodes_reverse_lookup_activate(GtkItem *unused_item,
 		gpointer unused_udata)
 {
 	(void) unused_item;
 	(void) unused_udata;
 	nodes_gui_reverse_lookup_selected();
-	return TRUE;
 }
 
-gboolean
+void
 on_popup_nodes_collapse_all_activate(GtkItem *unused_item,
 		gpointer unused_udata)
 {
@@ -98,10 +96,9 @@ on_popup_nodes_collapse_all_activate(GtkItem *unused_item,
 
 	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
 	gtk_tree_view_collapse_all(tv);
-	return TRUE;
 }
 
-gboolean
+void
 on_popup_nodes_expand_all_activate(GtkItem *unused_item,
 		gpointer unused_udata)
 {
@@ -112,7 +109,6 @@ on_popup_nodes_expand_all_activate(GtkItem *unused_item,
 
 	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
 	gtk_tree_view_expand_all(tv);
-	return TRUE;
 }
 
 void
@@ -180,5 +176,18 @@ on_popup_nodes_config_cols_activate(GtkItem *unused_menuitem,
 	return TRUE;
 }
 #endif
+
+/**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	/* FIXME: Implement this */	
+}
 
 /* vi: set ts=4 sw=4 cindent: */
