@@ -2000,8 +2000,8 @@ search_gui_set_current_search(search_t *sch)
     search_t *old_sch = search_gui_get_current_search();
     GtkWidget *spinbutton_reissue_timeout;
    	GtkCList *clist;
-    gboolean passive;
     gboolean frozen;
+    gboolean active;
     guint32 reissue_timeout;
 	search_t *current_search = old_sch;
 	gint i;
@@ -2016,7 +2016,7 @@ search_gui_set_current_search(search_t *sch)
 	if (old_sch)
 		gui_search_force_update_tab_label(old_sch);
 
-    passive = guc_search_is_passive(sch->search_handle);
+    active = guc_search_is_active(sch->search_handle);
     frozen = guc_search_is_frozen(sch->search_handle);
     reissue_timeout = guc_search_get_reissue_timeout(sch->search_handle);
 
@@ -2057,7 +2057,7 @@ search_gui_set_current_search(search_t *sch)
 
         gtk_spin_button_set_value
             (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
-        gtk_widget_set_sensitive(spinbutton_reissue_timeout, !passive);
+        gtk_widget_set_sensitive(spinbutton_reissue_timeout, active);
         gtk_widget_set_sensitive(
             lookup_widget(main_window, "button_search_download"),
             GTK_CLIST(sch->ctree)->selection != NULL);
@@ -2065,9 +2065,9 @@ search_gui_set_current_search(search_t *sch)
             lookup_widget(main_window, "button_search_clear"),
             sch->items != 0);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_restart"), !passive);
+            lookup_widget(popup_search, "popup_search_restart"), active);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_duplicate"), !passive);
+            lookup_widget(popup_search, "popup_search_duplicate"), active);
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_stop"), !frozen);
         gtk_widget_set_sensitive(
