@@ -7385,6 +7385,7 @@ create_popup_nodes (void)
   GtkWidget *popup_nodes;
   GtkAccelGroup *popup_nodes_accels;
   GtkWidget *popup_nodes_remove;
+  GtkWidget *popup_nodes_browse_host;
   GtkWidget *trennlinie1;
   GtkWidget *popup_nodes_config_cols;
 
@@ -7400,6 +7401,14 @@ create_popup_nodes (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_nodes_remove);
   gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_remove);
+
+  popup_nodes_browse_host = gtk_menu_item_new_with_label (_("Browse Host"));
+  gtk_widget_set_name (popup_nodes_browse_host, "popup_nodes_browse_host");
+  gtk_widget_ref (popup_nodes_browse_host);
+  gtk_object_set_data_full (GTK_OBJECT (popup_nodes), "popup_nodes_browse_host", popup_nodes_browse_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_nodes_browse_host);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_browse_host);
 
   trennlinie1 = gtk_menu_item_new ();
   gtk_widget_set_name (trennlinie1, "trennlinie1");
@@ -7420,6 +7429,9 @@ create_popup_nodes (void)
 
   gtk_signal_connect (GTK_OBJECT (popup_nodes_remove), "activate",
                       GTK_SIGNAL_FUNC (on_popup_nodes_remove_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_nodes_browse_host), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_nodes_browse_host_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_nodes_config_cols), "activate",
                       GTK_SIGNAL_FUNC (on_popup_nodes_config_cols_activate),

@@ -9413,6 +9413,18 @@
 
   <widget>
     <class>GtkMenuItem</class>
+    <name>popup_nodes_browse_host</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_nodes_browse_host_activate</handler>
+      <last_modification_time>Thu, 17 Nov 2005 20:59:23 GMT</last_modification_time>
+    </signal>
+    <label>Browse Host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
     <name>trennlinie1</name>
     <right_justify>False</right_justify>
   </widget>

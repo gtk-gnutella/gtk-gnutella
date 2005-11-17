@@ -46,5 +46,6 @@ void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
  ***/
 void on_popup_nodes_remove_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_nodes_config_cols_activate (GtkMenuItem *menuitem, gpointer user_data);
-
+void on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata);
 #endif /* _gtk1_nodes_cb_h_ */

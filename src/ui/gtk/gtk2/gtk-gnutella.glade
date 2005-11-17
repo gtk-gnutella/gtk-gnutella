@@ -16423,7 +16423,7 @@ http://maxmind.com/</property>
       <signal name="activate" handler="on_popup_nodes_disconnect_activate" last_modification_time="Sat, 26 Jul 2003 00:52:57 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image753">
+	<widget class="GtkImage" id="image1205">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-cancel</property>
 	  <property name="icon_size">1</property>
@@ -16444,7 +16444,7 @@ http://maxmind.com/</property>
       <signal name="activate" handler="on_popup_nodes_reverse_lookup_activate" last_modification_time="Thu, 21 Oct 2004 13:21:51 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image754">
+	<widget class="GtkImage" id="image1206">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-dialog-info</property>
 	  <property name="icon_size">1</property>
@@ -16458,6 +16458,21 @@ http://maxmind.com/</property>
   </child>
 
   <child>
+    <widget class="GtkMenuItem" id="popup_nodes_browse_host">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Browse Host</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_nodes_browse_host_activate" last_modification_time="Thu, 17 Nov 2005 20:58:49 GMT"/>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkSeparatorMenuItem" id="separator30">
+      <property name="visible">True</property>
+    </widget>
+  </child>
+
+  <child>
     <widget class="GtkImageMenuItem" id="popup_nodes_expand_all">
       <property name="visible">True</property>
       <property name="label" translatable="yes">Expand all</property>
@@ -16465,7 +16480,7 @@ http://maxmind.com/</property>
       <signal name="activate" handler="on_popup_nodes_expand_all_activate" last_modification_time="Sat, 05 Nov 2005 08:12:19 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image755">
+	<widget class="GtkImage" id="image1207">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -16486,7 +16501,7 @@ http://maxmind.com/</property>
       <signal name="activate" handler="on_popup_nodes_collapse_all_activate" last_modification_time="Sat, 05 Nov 2005 08:12:19 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image756">
+	<widget class="GtkImage" id="image1208">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>

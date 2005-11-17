@@ -9643,13 +9643,15 @@ create_popup_nodes (void)
 {
   GtkWidget *popup_nodes;
   GtkWidget *popup_nodes_disconnect;
-  GtkWidget *image753;
+  GtkWidget *image1205;
   GtkWidget *popup_nodes_reverse_lookup;
-  GtkWidget *image754;
+  GtkWidget *image1206;
+  GtkWidget *popup_nodes_browse_host;
+  GtkWidget *separator30;
   GtkWidget *popup_nodes_expand_all;
-  GtkWidget *image755;
+  GtkWidget *image1207;
   GtkWidget *popup_nodes_collapse_all;
-  GtkWidget *image756;
+  GtkWidget *image1208;
 
   popup_nodes = gtk_menu_new ();
   gtk_widget_set_name (popup_nodes, "popup_nodes");
@@ -9659,46 +9661,60 @@ create_popup_nodes (void)
   gtk_widget_show (popup_nodes_disconnect);
   gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_disconnect);
 
-  image753 = gtk_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image753, "image753");
-  gtk_widget_show (image753);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_disconnect), image753);
+  image1205 = gtk_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1205, "image1205");
+  gtk_widget_show (image1205);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_disconnect), image1205);
 
   popup_nodes_reverse_lookup = gtk_image_menu_item_new_with_mnemonic (_("Reverse DNS lookup"));
   gtk_widget_set_name (popup_nodes_reverse_lookup, "popup_nodes_reverse_lookup");
   gtk_widget_show (popup_nodes_reverse_lookup);
   gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_reverse_lookup);
 
-  image754 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image754, "image754");
-  gtk_widget_show (image754);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_reverse_lookup), image754);
+  image1206 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1206, "image1206");
+  gtk_widget_show (image1206);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_reverse_lookup), image1206);
+
+  popup_nodes_browse_host = gtk_menu_item_new_with_mnemonic (_("Browse Host"));
+  gtk_widget_set_name (popup_nodes_browse_host, "popup_nodes_browse_host");
+  gtk_widget_show (popup_nodes_browse_host);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_browse_host);
+
+  separator30 = gtk_separator_menu_item_new ();
+  gtk_widget_set_name (separator30, "separator30");
+  gtk_widget_show (separator30);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), separator30);
+  gtk_widget_set_sensitive (separator30, FALSE);
 
   popup_nodes_expand_all = gtk_image_menu_item_new_with_mnemonic (_("Expand all"));
   gtk_widget_set_name (popup_nodes_expand_all, "popup_nodes_expand_all");
   gtk_widget_show (popup_nodes_expand_all);
   gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_expand_all);
 
-  image755 = gtk_image_new_from_stock ("gtk-add", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image755, "image755");
-  gtk_widget_show (image755);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_expand_all), image755);
+  image1207 = gtk_image_new_from_stock ("gtk-add", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1207, "image1207");
+  gtk_widget_show (image1207);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_expand_all), image1207);
 
   popup_nodes_collapse_all = gtk_image_menu_item_new_with_mnemonic (_("Collapse all"));
   gtk_widget_set_name (popup_nodes_collapse_all, "popup_nodes_collapse_all");
   gtk_widget_show (popup_nodes_collapse_all);
   gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_collapse_all);
 
-  image756 = gtk_image_new_from_stock ("gtk-remove", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image756, "image756");
-  gtk_widget_show (image756);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_collapse_all), image756);
+  image1208 = gtk_image_new_from_stock ("gtk-remove", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1208, "image1208");
+  gtk_widget_show (image1208);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_collapse_all), image1208);
 
   g_signal_connect ((gpointer) popup_nodes_disconnect, "activate",
                     G_CALLBACK (on_popup_nodes_disconnect_activate),
                     NULL);
   g_signal_connect ((gpointer) popup_nodes_reverse_lookup, "activate",
                     G_CALLBACK (on_popup_nodes_reverse_lookup_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_nodes_browse_host, "activate",
+                    G_CALLBACK (on_popup_nodes_browse_host_activate),
                     NULL);
   g_signal_connect ((gpointer) popup_nodes_expand_all, "activate",
                     G_CALLBACK (on_popup_nodes_expand_all_activate),
@@ -9710,13 +9726,15 @@ create_popup_nodes (void)
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_nodes, popup_nodes, "popup_nodes");
   GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_disconnect, "popup_nodes_disconnect");
-  GLADE_HOOKUP_OBJECT (popup_nodes, image753, "image753");
+  GLADE_HOOKUP_OBJECT (popup_nodes, image1205, "image1205");
   GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_reverse_lookup, "popup_nodes_reverse_lookup");
-  GLADE_HOOKUP_OBJECT (popup_nodes, image754, "image754");
+  GLADE_HOOKUP_OBJECT (popup_nodes, image1206, "image1206");
+  GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_browse_host, "popup_nodes_browse_host");
+  GLADE_HOOKUP_OBJECT (popup_nodes, separator30, "separator30");
   GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_expand_all, "popup_nodes_expand_all");
-  GLADE_HOOKUP_OBJECT (popup_nodes, image755, "image755");
+  GLADE_HOOKUP_OBJECT (popup_nodes, image1207, "image1207");
   GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_collapse_all, "popup_nodes_collapse_all");
-  GLADE_HOOKUP_OBJECT (popup_nodes, image756, "image756");
+  GLADE_HOOKUP_OBJECT (popup_nodes, image1208, "image1208");
 
   return popup_nodes;
 }

@@ -200,4 +200,17 @@ on_popup_nodes_config_cols_activate(GtkMenuItem *unused_menuitem,
     /* GtkColumnChooser takes care of cleaning up itself */
 }
 
+/**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	/* FIXME: Implement this */	
+}
+
 /* vi: set ts=4 sw=4 cindent: */
