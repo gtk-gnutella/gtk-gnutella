@@ -2606,8 +2606,10 @@ download_stop_v(struct download *d, guint32 new_status,
 		 * Dismantle RX stack for browse host.
 		 */
 
-		if (d->flags & DL_F_BROWSE)
+		if (d->flags & DL_F_BROWSE) {
 			browse_host_dl_close(d->browse);
+			d->bio = NULL;		/* Was a copy via browse_host_io_source() */
+		}
 	}
 
 	g_assert(d->buffers == NULL);
@@ -7104,6 +7106,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			download_stop(d, GTA_DL_ERROR, "Search already closed");
 			return;
 		}
+
+		d->bio = browse_host_io_source(d->browse);
 	}
 
 	/*
@@ -9325,6 +9329,8 @@ download_abort_browse_host(gpointer download, gnet_search_t sh)
 void
 download_got_eof(struct download *d)
 {
+	fileinfo_t *fi;
+
 	g_assert(d != NULL);
 	g_assert(d->file_info != NULL);
 
@@ -9333,9 +9339,13 @@ download_got_eof(struct download *d)
 	 * we got everything.
 	 */
 
-	if (!d->file_info->file_size_known) {
+	fi = d->file_info;
+
+	if (!fi->file_size_known)
 		download_rx_done(d);
-	} else
+	else if (FILE_INFO_COMPLETE(fi))
+		download_rx_done(d);
+	else
 		download_queue_delay(d, download_retry_busy_delay,
 			_("Stopped data (EOF)"));
 }
