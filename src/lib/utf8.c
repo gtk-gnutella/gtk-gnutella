@@ -1514,12 +1514,14 @@ locale_init(void)
 
 	unicode_compose_init();
 
+#if 0
 	/*
 	 * Skip regression_checks() if the current revision is known
 	 * to be alright.
 	 */
 	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.92 "))
 		regression_checks();
+#endif
 
 	locale_init_passed = TRUE;
 	locale_init_show_results();
@@ -2360,6 +2362,25 @@ ui_string_to_utf8(const gchar *src)
 	return deconstify_gchar(src);
 }
 
+static gchar *
+locale_to_ui_string(const gchar *src)
+{
+	g_assert(src);
+
+#ifdef UI_USES_UTF8_ENCODING
+	return locale_to_utf8_normalized(src, UNI_NORM_GUI);
+#else	
+	return deconstify_gchar(src);
+#endif /* UI_USES_UTF8_ENCODING */
+}
+
+static gchar *
+locale_to_ui_string2(const gchar *src)
+{
+	return locale_to_ui_string(src);
+}
+
+
 /**
  * This macro is used to generate "lazy" variants of the converter functions.
  * In this context "lazy" means that the function will either return the
@@ -2428,6 +2449,9 @@ LAZY_CONVERT(unknown_to_utf8_normalized,
 LAZY_CONVERT(ui_string_to_utf8, (const gchar *src), (src))
 LAZY_CONVERT(utf8_to_ui_string, (const gchar *src), (src))
 
+LAZY_CONVERT(locale_to_ui_string, (const gchar *src), (src))
+LAZY_CONVERT(locale_to_ui_string2, (const gchar *src), (src))
+	
 /**
  * Converts a UTF-8 encoded string to a UTF-32 encoded string. The
  * target string ``out'' is always be zero-terminated unless ``size''

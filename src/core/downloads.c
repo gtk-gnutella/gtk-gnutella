@@ -2787,11 +2787,13 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		/* d->remove_msg updated below */
 
 		/* Append times of event/reschedule */
-		timestamp_locale_to_string_buf(tm_time(), event, sizeof event);
-		timestamp_locale_to_string_buf(d->retry_after, resched, sizeof resched);
+		time_locale_to_string_buf(tm_time(), event, sizeof event);
+		time_locale_to_string_buf(d->retry_after, resched, sizeof resched);
 
 		gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
-			_(" at %s - rescheduled for %s"), event, resched);
+			_(" at %s - rescheduled for %s"),
+			lazy_locale_to_ui_string(event),
+			lazy_locale_to_ui_string2(resched));
 	}
 
 	if (DOWNLOAD_IS_VISIBLE(d))
