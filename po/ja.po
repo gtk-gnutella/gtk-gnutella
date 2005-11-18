@@ -71,7 +71,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2005-11-19 00:14+0900\n"
-"PO-Revision-Date: 2005-11-16 17:59+0900\n"
+"PO-Revision-Date: 2005-11-19 00:19+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -209,7 +209,7 @@ msgstr "チャンクの取得完了、接続を切ります"
 
 #: src/core/downloads.c:5465
 msgid "Weird HTTP status (protocol desync?)"
-msgstr "変な HTTP ステータス (プロトコルが非同期？)"
+msgstr "変な HTTP ステータス (プロトコルの同期が破損した可能性があります)"
 
 #: src/core/downloads.c:5786
 msgid "No URN on server, waiting for overlap"
@@ -262,7 +262,7 @@ msgstr "SHA1 の不一致を検出しました"
 #: src/core/downloads.c:9265
 #, c-format
 msgid "<Browse Host %s>"
-msgstr "<ホスト %s を閲覧>"
+msgstr "<ホスト %s の閲覧>"
 
 #: src/core/gnet_stats.c:56 src/ui/gtk/gnet_stats_common.c:83
 msgid "Bad size"
@@ -809,7 +809,7 @@ msgstr "<ホスト閲覧リクエスト>"
 
 #: src/core/uploads.c:2653
 msgid "Browse Host Enabled"
-msgstr "ホスト閲覧が有効にされました"
+msgstr "ホスト閲覧が有効になっています"
 
 #: src/core/uploads.c:2666
 #, c-format
@@ -1629,7 +1629,7 @@ msgstr "代理サーバーが用いるプロトコルです。"
 
 #: src/if/gnet_property.c:2787
 msgid "Network protocols to use."
-msgstr "使用するネットワーク・プロトコルです。"
+msgstr "使用するネットワークのプロトコルです。"
 
 #: src/if/gnet_property.c:2807
 msgid "Current number of hosts in regular node caches."
@@ -1693,9 +1693,9 @@ msgid ""
 "an ultra node, this bandwidth is stolen from the regular HTTP traffic if the "
 "shaper for leaves is enabled."
 msgstr ""
-"ピア内部への Gnet リーフトラフィックの帯域幅の上限です。ウルトラピアとして動"
-"作している時、リーフの状態になれるのであれば、この帯域幅は通常の HTTP トラ"
-"フィックから取得されます。"
+"ピア内への Gnet リーフトラフィックの帯域幅の上限です。ウルトラピアとして動作"
+"している時、リーフへの帯域幅の制限が有効にされているのであれば、この帯域幅は"
+"通常の HTTP トラフィックから取得されます。"
 
 #: src/if/gnet_property.c:3067
 msgid ""
@@ -1703,9 +1703,9 @@ msgid ""
 "an ultra node, this bandwidth is stolen from the regular HTTP traffic, if "
 "the shaper for leaves is enabled."
 msgstr ""
-"ピア外部への Gnet リーフトラフィックの帯域幅の上限です。ウルトラピアとして動"
-"作している時、リーフの形態になれるのであれば、この帯域幅は通常の HTTP トラ"
-"フィックから取得されます。"
+"ピア外への Gnet リーフトラフィックの帯域幅の上限です。ウルトラピアとして動作"
+"している時、リーフへの帯域幅の制限が有効にされているのであれば、この帯域幅は"
+"通常の HTTP トラフィックから取得されます。"
 
 #: src/if/gnet_property.c:3087
 msgid ""
@@ -7543,9 +7543,8 @@ msgstr "UDP を有効にする(_U)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11769
 #: src/ui/gtk/gtk2/interface-glade.c:10320
-#, fuzzy
 msgid "Network protocol:"
-msgstr "使用するネットワーク・プロトコルです。"
+msgstr "ネットワークのプロトコル:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11792
 #: src/ui/gtk/gtk2/interface-glade.c:10444
@@ -8197,7 +8196,7 @@ msgstr "ウルトラピアモード"
 #: src/ui/gtk/gtk1/interface-glade.c:14353
 #: src/ui/gtk/gtk2/interface-glade.c:12915
 msgid "Outgoing traffic to lea_ves"
-msgstr "リーフピアへのピア外トラフィック(_V)"
+msgstr "リーフピアへのピア外へのトラフィック(_V)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14367
 #: src/ui/gtk/gtk2/interface-glade.c:12908
@@ -9831,6 +9830,3 @@ msgstr "QUEUE 送信、折り返し接続中..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE 送信完了、ヘッダーを待受中..."
-
-#~ msgid "Nothing for now"
-#~ msgstr "今は何もありません"
