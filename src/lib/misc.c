@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "sha1.h"
 #include "tm.h"
 #include "walloc.h"
+#include "utf8.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -973,19 +974,20 @@ short_rate(guint64 rate)
 gchar *
 short_time(gint t)
 {
-	static gchar b[4 * SIZE_FIELD_MAX];
-	gint s = MAX(t, 0);
+	static gchar buf[4 * SIZE_FIELD_MAX];
+	guint s = MAX(t, 0);
 
 	if (s > 86400)
-		gm_snprintf(b, sizeof(b), _("%dd %dh"), s / 86400, (s % 86400) / 3600);
+		gm_snprintf(buf, sizeof buf, _("%ud %uh"),
+			s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		gm_snprintf(b, sizeof(b), _("%dh %dm"), s / 3600, (s % 3600) / 60);
+		gm_snprintf(buf, sizeof buf, _("%uh %um"), s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		gm_snprintf(b, sizeof(b), _("%dm %ds"), s / 60, s % 60);
+		gm_snprintf(buf, sizeof buf, _("%um %us"), s / 60, s % 60);
 	else
-		gm_snprintf(b, sizeof(b), _("%ds"), s);
+		gm_snprintf(buf, sizeof buf, _("%us"), s);
 
-	return b;
+	return buf;
 }
 
 /**
@@ -1406,7 +1408,16 @@ timestamp_locale_to_string_buf(time_t date, gchar *dst, size_t size)
 	size_t len;
 
 	g_assert(size > 0);	
-	len = strftime(dst, size, "%X", tm);
+
+	/*
+	 * strftime(dst, size, "%X") is not used because it might use
+	 * the current locale's encoding instead of UTF-8. With GLib 1.2
+	 * the resulting string is encoded according to the current locale,
+	 * whereas it's UTF-8 when using GLib 2.x because that's how we
+	 * use gettext.
+	 */
+	len = gm_snprintf(dst, size, _("%d-%02d-%02d"),
+			tm->tm_year, tm->tm_mon, tm->tm_mday);
 	dst[len] = '\0';
 	return len;
 }
