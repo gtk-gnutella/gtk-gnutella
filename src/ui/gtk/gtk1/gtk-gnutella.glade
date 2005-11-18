@@ -14353,8 +14353,8 @@ http://maxmind.com/</label>
 		<widget>
 		  <class>GtkTable</class>
 		  <name>table5</name>
-		  <rows>4</rows>
-		  <columns>3</columns>
+		  <rows>3</rows>
+		  <columns>7</columns>
 		  <homogeneous>False</homogeneous>
 		  <row_spacing>2</row_spacing>
 		  <column_spacing>4</column_spacing>
@@ -14365,6 +14365,25 @@ http://maxmind.com/</label>
 		  </child>
 
 		  <widget>
+		    <class>GtkVSeparator</class>
+		    <name>vseparator7</name>
+		    <child>
+		      <left_attach>3</left_attach>
+		      <right_attach>4</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>3</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>True</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>True</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_force_ip</name>
 		    <can_focus>True</can_focus>
@@ -14372,86 +14391,10 @@ http://maxmind.com/</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
+		      <left_attach>4</left_attach>
+		      <right_attach>5</right_attach>
 		      <top_attach>0</top_attach>
 		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label129</name>
-		    <label>_Listen port</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <default_focus_target>spinbutton_config_port</default_focus_target>
-		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
-		      <top_attach>1</top_attach>
-		      <bottom_attach>2</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label35</name>
-		    <label>Disable: 0, Random: 1</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <left_attach>2</left_attach>
-		      <right_attach>3</right_attach>
-		      <top_attach>1</top_attach>
-		      <bottom_attach>2</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_give_server_hostname</name>
-		    <can_focus>True</can_focus>
-		    <label>Public _hostname</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
-		      <top_attach>2</top_attach>
-		      <bottom_attach>3</bottom_attach>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
 		      <xexpand>False</xexpand>
@@ -14487,8 +14430,35 @@ http://maxmind.com/</label>
 		    <text_max_length>0</text_max_length>
 		    <text></text>
 		    <child>
-		      <left_attach>1</left_attach>
-		      <right_attach>3</right_attach>
+		      <left_attach>5</left_attach>
+		      <right_attach>7</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label129</name>
+		    <label>_Listen port</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_port</default_focus_target>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
 		      <top_attach>0</top_attach>
 		      <bottom_attach>1</bottom_attach>
 		      <xpad>0</xpad>
@@ -14522,6 +14492,55 @@ http://maxmind.com/</label>
 		    <child>
 		      <left_attach>1</left_attach>
 		      <right_attach>2</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label35</name>
+		    <label>Disable: 0, Random: 1</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>2</left_attach>
+		      <right_attach>3</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_give_server_hostname</name>
+		    <can_focus>True</can_focus>
+		    <label>Public _hostname</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>4</left_attach>
+		      <right_attach>5</right_attach>
 		      <top_attach>1</top_attach>
 		      <bottom_attach>2</bottom_attach>
 		      <xpad>0</xpad>
@@ -14559,10 +14578,10 @@ http://maxmind.com/</label>
 		    <text_max_length>255</text_max_length>
 		    <text></text>
 		    <child>
-		      <left_attach>1</left_attach>
-		      <right_attach>3</right_attach>
-		      <top_attach>2</top_attach>
-		      <bottom_attach>3</bottom_attach>
+		      <left_attach>5</left_attach>
+		      <right_attach>7</right_attach>
+		      <top_attach>1</top_attach>
+		      <bottom_attach>2</bottom_attach>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
 		      <xexpand>False</xexpand>
@@ -14584,8 +14603,8 @@ http://maxmind.com/</label>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
-		      <top_attach>3</top_attach>
-		      <bottom_attach>4</bottom_attach>
+		      <top_attach>1</top_attach>
+		      <bottom_attach>2</bottom_attach>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
 		      <xexpand>False</xexpand>
@@ -14594,6 +14613,54 @@ http://maxmind.com/</label>
 		      <yshrink>False</yshrink>
 		      <xfill>True</xfill>
 		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label778</name>
+		    <label>Network protocol:</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
+		      <top_attach>2</top_attach>
+		      <bottom_attach>3</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkOptionMenu</class>
+		    <name>option_menu_config_network_protocol</name>
+		    <can_focus>True</can_focus>
+		    <items></items>
+		    <initial_choice>0</initial_choice>
+		    <child>
+		      <left_attach>1</left_attach>
+		      <right_attach>3</right_attach>
+		      <top_attach>2</top_attach>
+		      <bottom_attach>3</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>True</yfill>
 		    </child>
 		  </widget>
 		</widget>

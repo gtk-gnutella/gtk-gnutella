@@ -4658,6 +4658,14 @@ static prop_map_t property_map[] = {
 	),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_NETWORK_PROTOCOL,
+        update_multichoice,
+        TRUE,
+        "option_menu_config_network_protocol",
+        FREQ_UPDATES, 0
+	),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_GNET_COMPACT_QUERY,
         update_togglebutton,
         TRUE,

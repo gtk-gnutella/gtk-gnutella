@@ -10087,9 +10087,11 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *entry_server_hostname;
   GtkWidget *checkbutton_config_force_ip;
   GtkWidget *checkbutton_give_server_hostname;
-  GtkWidget *vseparator7;
   GtkWidget *label129;
   GtkWidget *checkbutton_enable_udp;
+  GtkWidget *option_menu_config_network_protocol;
+  GtkWidget *vseparator7;
+  GtkWidget *label986;
   GtkWidget *label287;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
@@ -10222,7 +10224,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table102 = gtk_table_new (2, 6, FALSE);
+  table102 = gtk_table_new (3, 6, FALSE);
   gtk_widget_set_name (table102, "table102");
   gtk_widget_show (table102);
   gtk_box_pack_start (GTK_BOX (vbox30), table102, FALSE, TRUE, 0);
@@ -10284,13 +10286,6 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  vseparator7 = gtk_vseparator_new ();
-  gtk_widget_set_name (vseparator7, "vseparator7");
-  gtk_widget_show (vseparator7);
-  gtk_table_attach (GTK_TABLE (table102), vseparator7, 3, 4, 0, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 4, 0);
-
   label129 = gtk_label_new_with_mnemonic (_("_Listen port"));
   gtk_widget_set_name (label129, "label129");
   gtk_widget_show (label129);
@@ -10307,6 +10302,29 @@ create_dlg_prefs_net_tab (void)
   gtk_table_attach (GTK_TABLE (table102), checkbutton_enable_udp, 0, 3, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  option_menu_config_network_protocol = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_network_protocol, "option_menu_config_network_protocol");
+  gtk_widget_show (option_menu_config_network_protocol);
+  gtk_table_attach (GTK_TABLE (table102), option_menu_config_network_protocol, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  vseparator7 = gtk_vseparator_new ();
+  gtk_widget_set_name (vseparator7, "vseparator7");
+  gtk_widget_show (vseparator7);
+  gtk_table_attach (GTK_TABLE (table102), vseparator7, 3, 4, 0, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
+
+  label986 = gtk_label_new (_("Network protocol:"));
+  gtk_widget_set_name (label986, "label986");
+  gtk_widget_show (label986);
+  gtk_table_attach (GTK_TABLE (table102), label986, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label986), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label986), 4, 0);
 
   label287 = gtk_label_new (_("IP settings"));
   gtk_widget_set_name (label287, "label287");
@@ -10810,9 +10828,11 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_server_hostname, "entry_server_hostname");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_force_ip, "checkbutton_config_force_ip");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vseparator7, "vseparator7");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label129, "label129");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_udp, "checkbutton_enable_udp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, option_menu_config_network_protocol, "option_menu_config_network_protocol");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vseparator7, "vseparator7");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label986, "label986");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label287, "label287");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox28, "vbox28");

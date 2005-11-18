@@ -10848,19 +10848,23 @@ create_dlg_prefs (void)
   GtkWidget *label_current_port;
   GtkWidget *hseparator2;
   GtkWidget *table5;
+  GtkWidget *vseparator7;
   guint checkbutton_config_force_ip_key;
   GtkWidget *checkbutton_config_force_ip;
+  GtkWidget *entry_config_force_ip;
   guint label129_key;
   GtkWidget *label129;
+  GtkObject *spinbutton_config_port_adj;
+  GtkWidget *spinbutton_config_port;
   GtkWidget *label35;
   guint checkbutton_give_server_hostname_key;
   GtkWidget *checkbutton_give_server_hostname;
-  GtkWidget *entry_config_force_ip;
-  GtkObject *spinbutton_config_port_adj;
-  GtkWidget *spinbutton_config_port;
   GtkWidget *entry_server_hostname;
   guint checkbutton_enable_udp_key;
   GtkWidget *checkbutton_enable_udp;
+  GtkWidget *label778;
+  GtkWidget *option_menu_config_network_protocol;
+  GtkWidget *option_menu_config_network_protocol_menu;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox100;
   GtkWidget *table53;
@@ -11644,7 +11648,7 @@ create_dlg_prefs (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table5 = gtk_table_new (4, 3, FALSE);
+  table5 = gtk_table_new (3, 7, FALSE);
   gtk_widget_set_name (table5, "table5");
   gtk_widget_ref (table5);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table5", table5,
@@ -11653,6 +11657,16 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (vbox30), table5, TRUE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table5), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table5), 4);
+
+  vseparator7 = gtk_vseparator_new ();
+  gtk_widget_set_name (vseparator7, "vseparator7");
+  gtk_widget_ref (vseparator7);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vseparator7", vseparator7,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vseparator7);
+  gtk_table_attach (GTK_TABLE (table5), vseparator7, 3, 4, 0, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
 
   checkbutton_config_force_ip = gtk_check_button_new_with_label ("");
   checkbutton_config_force_ip_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_force_ip)->child),
@@ -11664,7 +11678,17 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_force_ip", checkbutton_config_force_ip,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_config_force_ip, 0, 1, 0, 1,
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_config_force_ip, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_config_force_ip = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
+  gtk_widget_ref (entry_config_force_ip);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_config_force_ip", entry_config_force_ip,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 5, 7, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11676,10 +11700,23 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label129", label129,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label129);
-  gtk_table_attach (GTK_TABLE (table5), label129, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table5), label129, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
+
+  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
+  spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
+  gtk_widget_ref (spinbutton_config_port);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_port", spinbutton_config_port,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_port);
+  gtk_table_attach (GTK_TABLE (table5), spinbutton_config_port, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_port, 64, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
 
   label35 = gtk_label_new (_("Disable: 0, Random: 1"));
   gtk_widget_set_name (label35, "label35");
@@ -11687,7 +11724,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label35", label35,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label35);
-  gtk_table_attach (GTK_TABLE (table5), label35, 2, 3, 1, 2,
+  gtk_table_attach (GTK_TABLE (table5), label35, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11701,32 +11738,9 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_give_server_hostname", checkbutton_give_server_hostname,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_give_server_hostname);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_give_server_hostname, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_give_server_hostname, 4, 5, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  entry_config_force_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
-  gtk_widget_ref (entry_config_force_ip);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_config_force_ip", entry_config_force_ip,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 1, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
-  spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
-  gtk_widget_ref (spinbutton_config_port);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_port", spinbutton_config_port,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_port);
-  gtk_table_attach (GTK_TABLE (table5), spinbutton_config_port, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_usize (spinbutton_config_port, 64, -2);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
 
   entry_server_hostname = gtk_entry_new_with_max_length (255);
   gtk_widget_set_name (entry_server_hostname, "entry_server_hostname");
@@ -11734,7 +11748,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_server_hostname", entry_server_hostname,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_server_hostname);
-  gtk_table_attach (GTK_TABLE (table5), entry_server_hostname, 1, 3, 2, 3,
+  gtk_table_attach (GTK_TABLE (table5), entry_server_hostname, 5, 7, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11748,9 +11762,32 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_udp", checkbutton_enable_udp,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_enable_udp);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_enable_udp, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_enable_udp, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  label778 = gtk_label_new (_("Network protocol:"));
+  gtk_widget_set_name (label778, "label778");
+  gtk_widget_ref (label778);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label778", label778,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label778);
+  gtk_table_attach (GTK_TABLE (table5), label778, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label778), 0, 0.5);
+
+  option_menu_config_network_protocol = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_network_protocol, "option_menu_config_network_protocol");
+  gtk_widget_ref (option_menu_config_network_protocol);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_network_protocol", option_menu_config_network_protocol,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (option_menu_config_network_protocol);
+  gtk_table_attach (GTK_TABLE (table5), option_menu_config_network_protocol, 1, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  option_menu_config_network_protocol_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_network_protocol), option_menu_config_network_protocol_menu);
 
   frame_proxy_settings = gtk_frame_new (_("Proxy settings"));
   gtk_widget_set_name (frame_proxy_settings, "frame_proxy_settings");

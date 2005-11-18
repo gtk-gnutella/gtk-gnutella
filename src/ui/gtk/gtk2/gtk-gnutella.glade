@@ -17170,7 +17170,7 @@ http://maxmind.com/</property>
 		      <child>
 			<widget class="GtkTable" id="table102">
 			  <property name="visible">True</property>
-			  <property name="n_rows">2</property>
+			  <property name="n_rows">3</property>
 			  <property name="n_columns">6</property>
 			  <property name="homogeneous">False</property>
 			  <property name="row_spacing">2</property>
@@ -17341,21 +17341,6 @@ http://maxmind.com/</property>
 			  </child>
 
 			  <child>
-			    <widget class="GtkVSeparator" id="vseparator7">
-			      <property name="visible">True</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">3</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="x_padding">4</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
 			    <widget class="GtkLabel" id="label129">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">_Listen port</property>
@@ -17397,6 +17382,61 @@ http://maxmind.com/</property>
 			      <property name="right_attach">3</property>
 			      <property name="top_attach">1</property>
 			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkOptionMenu" id="option_menu_config_network_protocol">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="history">-1</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkVSeparator" id="vseparator7">
+			      <property name="visible">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">3</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">3</property>
+			      <property name="x_padding">4</property>
+			      <property name="x_options">shrink|fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label986">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Network protocol:</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">4</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
