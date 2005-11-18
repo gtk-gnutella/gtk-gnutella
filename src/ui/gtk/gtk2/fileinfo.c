@@ -328,7 +328,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 
         titles[c_fi_status] = fi_status;
 		titles[c_fi_istatus] = GUINT_TO_POINTER(3 * 100 + idone_percent);
-    } else if (s.done == s.size) {
+    } else if (s.size && s.done == s.size) {
 		gint rw;
 
 		rw = gm_snprintf(fi_status, sizeof(fi_status),

@@ -143,7 +143,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 			secs ? short_time(secs) : "-");
 
         titles[c_fi_status] = fi_status;
-    } else if (s.done == s.size){
+    } else if (s.size && s.done == s.size){
 		gint rw;
 
 		rw = gm_snprintf(fi_status, sizeof(fi_status),
