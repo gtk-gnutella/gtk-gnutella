@@ -704,7 +704,10 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 		 */
 
 		len = MIN(len, MAX_TAG_SHOWN);
-		rw = gm_snprintf(info, MIN(len, sizeof info), "%s", rc->tag);
+		len = MIN(len, sizeof info);
+		rw = utf8_strlcpy(info,
+				lazy_unknown_to_utf8_normalized(rc->tag, UNI_NORM_GUI, NULL),
+				len);
 	}
 	if (vinfo) {
 		g_assert(rw < sizeof info);
@@ -716,13 +719,6 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 		g_assert(rw < sizeof info);
 		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
 			info[0] != '\0' ? ", " : "");
-	}
-
-	/* Don't care if it's truncated. It's usually very short anyways. */
-	if (info[0] != '\0') {
-		g_assert(rw < sizeof info);
-		utf8_strlcpy(info,
-			lazy_locale_to_utf8_normalized(info, UNI_NORM_GUI), sizeof info);
 	}
 
 	return info[0] != '\0' ? g_strdup(info) : NULL;
@@ -1572,8 +1568,12 @@ tree_view_search_update(
 
 		widget = GTK_WIDGET(tree_view_search);
 		if (sch->unseen_items > 0) {
+#if 0
     		fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_PRELIGHT]);
     		bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_PRELIGHT]);
+#endif
+			fg = NULL;
+			bg = NULL;
 		} else if (!sch->enabled) {
     		fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_INSENSITIVE]);
     		bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_INSENSITIVE]);
