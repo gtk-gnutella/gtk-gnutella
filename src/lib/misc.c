@@ -1420,7 +1420,7 @@ timestamp_locale_to_string_buf(time_t date, gchar *dst, size_t size)
 	/* TRANSLATORS: This is supposed to be a date (year, month, day).
 	   If desired translate or re-arrange it to a more appropriate format. */
 	len = gm_snprintf(dst, size, _("%d-%02d-%02d"),
-			tm->tm_year, tm->tm_mon, tm->tm_mday);
+			1900 + tm->tm_year, tm->tm_mon, tm->tm_mday);
 	dst[len] = '\0';
 	return len;
 }
