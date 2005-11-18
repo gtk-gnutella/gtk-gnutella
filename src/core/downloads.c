@@ -8819,8 +8819,10 @@ download_verify_sha1(struct download *d)
 	g_assert(!(d->flags & DL_F_SUSPENDED));
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	if (d->flags & DL_F_TRANSIENT)
+	if (d->flags & DL_F_TRANSIENT) {
+		file_info_changed(d->file_info);		/* Update status! */
 		return;
+	}
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
