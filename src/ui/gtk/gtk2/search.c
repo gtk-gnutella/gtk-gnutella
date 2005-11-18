@@ -716,9 +716,12 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 	}
 
 	if (rc->alt_locs != NULL) {
+		gint count = rc->alt_locs->hvcnt;
 		g_assert(rw < sizeof info);
 		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
 			info[0] != '\0' ? ", " : "");
+		if (count > 1)
+			rw += gm_snprintf(&info[rw], sizeof info - rw, "(%d)", count);
 	}
 
 	return info[0] != '\0' ? g_strdup(info) : NULL;

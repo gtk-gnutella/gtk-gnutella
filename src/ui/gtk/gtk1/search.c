@@ -43,6 +43,7 @@
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 #include "gtk/columns.h"
+#include "gtk/misc.h"
 #include "gtk/notebooks.h"
 #include "search_cb.h"
 
@@ -54,6 +55,7 @@
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
@@ -1128,9 +1130,15 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 	}
 
 	if (rc->alt_locs != NULL) {
+		guint32 count = (guint32) rc->alt_locs->hvcnt;
 		if (info->len)
 			g_string_append(info, ", ");
 		g_string_append(info, "alt");
+		if (count > 1) {
+			g_string_append_c(info, '(');
+			g_string_append(info, uint32_to_string(count));
+			g_string_append_c(info, ')');
+		}
 	}
 
 	if (NULL != rc->info)
