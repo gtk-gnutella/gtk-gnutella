@@ -389,7 +389,7 @@ const gchar *timestamp_rfc822_to_string2(time_t date);
 const gchar *timestamp_rfc1123_to_string(time_t date);
 
 size_t timestamp_to_string_buf(time_t date, gchar *dst, size_t size);
-size_t timestamp_locale_to_string_buf(time_t date, gchar *dst, size_t size);
+size_t time_locale_to_string_buf(time_t date, gchar *dst, size_t size);
 /*
  * Time string conversions
  */
