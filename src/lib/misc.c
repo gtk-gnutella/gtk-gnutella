@@ -1416,6 +1416,9 @@ timestamp_locale_to_string_buf(time_t date, gchar *dst, size_t size)
 	 * whereas it's UTF-8 when using GLib 2.x because that's how we
 	 * use gettext.
 	 */
+	
+	/* TRANSLATORS: This is supposed to be a date (year, month, day).
+	   If desired translate or re-arrange it to a more appropriate format. */
 	len = gm_snprintf(dst, size, _("%d-%02d-%02d"),
 			tm->tm_year, tm->tm_mon, tm->tm_mday);
 	dst[len] = '\0';
