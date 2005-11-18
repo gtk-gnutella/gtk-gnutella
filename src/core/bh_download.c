@@ -315,6 +315,18 @@ browse_host_dl_receive(
 }
 
 /**
+ * Fetch the I/O source of the RX stack.
+ */
+struct bio_source *
+browse_host_io_source(struct browse_ctx *bc)
+{
+	g_assert(bc != NULL);
+	g_assert(bc->rx != NULL);
+
+	return rx_bio_source(bc->rx);
+}
+
+/**
  * Received data from outside the RX stack.
  */
 void
