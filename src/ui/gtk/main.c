@@ -100,7 +100,6 @@ GtkWidget *popup_nodes = NULL;
 GtkWidget *popup_monitor = NULL;
 GtkWidget *popup_queue = NULL;
 
-
 /***
  *** Private functions
  ***/
@@ -482,30 +481,25 @@ gui_create_dlg_about(void)
 static GtkWidget *
 gui_create_dlg_faq(void)
 {
-	FILE *f;
+	static const gchar faq_file[] = "FAQ";
+	static file_path_t fp[4];
     GtkWidget *dlg = create_dlg_faq();
 	GtkWidget *text = lookup_widget(dlg, "textview_faq");
-	static file_path_t fp[4];
 	const gchar *lang;
-	gchar *dir;
-	guint i;
+	guint i = 0;
+	FILE *f;
 
 	lang = locale_get_language();
 
-	i = 0;
-	dir = make_pathname(PRIVLIB_EXP, lang);
-	file_path_set(&fp[i++], dir, "FAQ");
-	G_FREE_NULL(dir);
-
-	file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en_US", "FAQ");
+	file_path_set(&fp[i++], make_pathname(PRIVLIB_EXP, lang), faq_file);
+	file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
 	
 #ifndef OFFICIAL_BUILD
-	dir = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
-	file_path_set(&fp[i++], dir, "FAQ");
-	G_FREE_NULL(dir);
+	file_path_set(&fp[i++],
+		make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang), faq_file);
 
 	file_path_set(&fp[i++],
-		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en_US", "FAQ");
+		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", faq_file);
 #endif /* !OFFICIAL_BUILD */
 
 	g_assert(i <= G_N_ELEMENTS(fp));
@@ -600,7 +594,6 @@ main_gui_gtkrc_init(void)
 
 	gtk_rc_parse("." G_DIR_SEPARATOR_S "gtkrc");
 }
-
 
 /***
  *** Public functions
