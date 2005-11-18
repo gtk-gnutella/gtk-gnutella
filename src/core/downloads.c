@@ -9362,7 +9362,6 @@ download_rx_done(struct download *d)
 {
 	fileinfo_t *fi = d->file_info;
 
-	g_assert(d != NULL);
 	g_assert(d->file_info != NULL);
 
 	if (!fi->file_size_known) {
@@ -9381,11 +9380,15 @@ download_rx_done(struct download *d)
 void
 download_browse_received(struct download *d, ssize_t received)
 {
-	g_assert(d != NULL);
+	fileinfo_t *fi = d->file_info;
+
 	g_assert(d->file_info != NULL);
 
 	file_info_update(d, d->pos, d->pos + received, DL_CHUNK_DONE);
+
 	d->pos += received;
+	d->last_update = tm_time();
+	fi->recv_amount += received;
 }
 
 /*
