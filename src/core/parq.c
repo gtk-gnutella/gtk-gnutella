@@ -58,6 +58,7 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/file.h"
+#include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
@@ -1754,7 +1755,7 @@ parq_upload_timer(time_t now)
 
 				if (
 					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
-					parq_ul->send_next_queue < now &&
+					delta_time(parq_ul->send_next_queue, now) < 0 &&
 					parq_ul->queue_sent < MAX_QUEUE &&
 					parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
 					!ban_is_banned(parq_ul->remote_addr) &&
@@ -1774,7 +1775,7 @@ parq_upload_timer(time_t now)
 				parq_ul->expire <= now &&
 				!parq_ul->has_slot &&
 				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
-				parq_ul->send_next_queue < now &&
+				delta_time(parq_ul->send_next_queue, now) < 0 &&
 				parq_ul->queue_sent < MAX_QUEUE &&
 				parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
 				max_uploads > 0 &&
@@ -1908,7 +1909,7 @@ parq_upload_timer(time_t now)
 					(gint) upload_connecting_timeout &&
 				parq_ul->by_addr->last_queue_sent >
 					parq_ul->by_addr->last_queue_connected &&
-				parq_ul->send_next_queue < now
+				delta_time(parq_ul->send_next_queue, now) < 0
 			) {
 
 				if (parq_debug > 3)
@@ -3382,7 +3383,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	parq_ul->last_queue_sent = now;		/* We tried... */
 	parq_ul->queue_sent++;
 	parq_ul->send_next_queue = 
-		now + QUEUE_PERIOD * (1 + (parq_ul->queue_sent - 1) / (float)2) ;
+		now + QUEUE_PERIOD * (1 + (parq_ul->queue_sent - 1) / 2.0);
 	parq_ul->by_addr->last_queue_sent = now;
 
 	if (parq_debug)
@@ -3494,11 +3495,13 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
  * parq_upload_save_queue().
  */
 static inline void
-parq_store(gpointer data, gpointer x)
+parq_store(gpointer data, gpointer file_ptr)
 {
-	FILE *f = (FILE *)x;
+	FILE *f = file_ptr;
 	time_t now = tm_time();
-	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
+	struct parq_ul_queued *parq_ul = data;
+	gchar snq_buf[TIMESTAMP_BUF_LEN];
+	gchar enter_buf[TIMESTAMP_BUF_LEN];
 	gint expire;
 
 	if (parq_ul->had_slot && !parq_ul->has_slot)
@@ -3522,6 +3525,9 @@ parq_store(gpointer data, gpointer x)
 			  host_addr_to_string(parq_ul->remote_addr),
 			  parq_ul->name);
 
+	timestamp_to_string_buf(parq_ul->enter, enter_buf, sizeof enter_buf);
+	timestamp_to_string_buf(parq_ul->send_next_queue, snq_buf, sizeof snq_buf);
+	
 	/*
 	 * Save all needed parq information. The ip and port information gathered
 	 * from X-Node is saved as XIP and XPORT
@@ -3530,23 +3536,23 @@ parq_store(gpointer data, gpointer x)
 	fprintf(f,
 		  "QUEUE: %d\n"
 		  "POS: %d\n"
-		  "ENTERED: %d\n"
+		  "ENTERED: %s\n"
 		  "EXPIRE: %d\n"
 		  "ID: %s\n"
 		  "SIZE: %s\n"
 		  "IP: %s\n"
 		  "QUEUESSENT: %d\n"
-		  "SENDNEXTQUEUE: %d\n"
+		  "SENDNEXTQUEUE: %s\n"
 		  ,
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
-		  (gint) parq_ul->enter,
+		  enter_buf,
 		  expire,
 		  parq_ul->id,
 		  uint64_to_string(parq_ul->file_size),
 		  host_addr_to_string(parq_ul->remote_addr),
 		  parq_ul->queue_sent,
-		  (gint) parq_ul->send_next_queue
+		  snq_buf
 		  );
 
 	if (parq_ul->sha1) {
@@ -3674,10 +3680,10 @@ typedef struct {
 	host_addr_t x_addr;
 	gint queue;
 	gint pos;
-	gint entered;
+	time_t entered;
 	gint expire;
 	gint xport;
-	gint send_next_queue;
+	time_t send_next_queue;
 	gint queue_sent;
 	gchar name[1024];
 	gchar id[1024 + 128];
@@ -3811,9 +3817,19 @@ parq_upload_load_queue(void)
 			break;
 
 		case PARQ_TAG_ENTERED:
-			v = parse_uint64(value, &endptr, 10, &error);
-			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
-			entry.entered = v;
+			{
+				time_t t;
+				
+				t = date2time(value, now);
+				if (t != (time_t) -1) {
+					entry.entered = t; 
+				} else {
+					/* For backwards-compatibility accept a raw integer value */
+					v = parse_uint64(value, &endptr, 10, &error);
+					damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
+					entry.entered = v;
+				}
+			}
 			break;
 
 		case PARQ_TAG_EXPIRE:
@@ -3864,9 +3880,13 @@ parq_upload_load_queue(void)
 			entry.queue_sent = v;
 			break;
 		case PARQ_TAG_SENDNEXTQUEUE:
-			v = parse_uint64(value, &endptr, 10, &error);
-			damaged |= error != 0 || *endptr != '\0';
-			entry.send_next_queue = v;
+			{
+				time_t t;
+				
+				t = date2time(value, now);
+				damaged |= t == (time_t) -1;
+				entry.send_next_queue = t; 
+			}
 			break;
 		case PARQ_TAG_NAME:
 			if (
