@@ -9135,7 +9135,7 @@ download_close(void)
 const gchar *
 build_url_from_download(const struct download *d)
 {
-	static gchar url_tmp[1024];
+	static gchar url_tmp[4096];
 	const gchar *sha1;
 
 	g_return_val_if_fail(d, NULL);
@@ -9145,15 +9145,19 @@ build_url_from_download(const struct download *d)
 		sha1 = d->file_info->sha1;
 
 	/* XXX: "https:" when TLS is possible? */
-	if (sha1) {
-		gm_snprintf(url_tmp, sizeof(url_tmp),
+
+	if (d->browse) {
+		gm_snprintf(url_tmp, sizeof url_tmp, "http://%s/",
+			host_addr_port_to_string(download_addr(d), download_port(d)));
+	} else if (sha1) {
+		gm_snprintf(url_tmp, sizeof url_tmp,
 			"http://%s/uri-res/N2R?urn:sha1:%s",
 			 host_addr_port_to_string(download_addr(d), download_port(d)),
 			 sha1_base32(sha1));
 	} else {
 		gchar *buf = url_escape(d->file_name);
 
-		gm_snprintf(url_tmp, sizeof(url_tmp),
+		gm_snprintf(url_tmp, sizeof url_tmp,
 			   "http://%s/get/%u/%s",
 			   host_addr_port_to_string(download_addr(d), download_port(d)),
 			   d->record_index, buf);
