@@ -578,11 +578,7 @@ tree_view_motion_timeout(gpointer data)
 	g_assert(tvm->tv != NULL);
 	g_assert(tvm->cb != NULL);
 
-	if (
-		tvm->ready &&
-		GTK_WIDGET_REALIZED(GTK_WIDGET(tvm->tv)) &&
-		GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(tvm->tv))
-	) {
+	if (tvm->ready && GTK_WIDGET_REALIZED(GTK_WIDGET(tvm->tv))) {
 		GtkTreePath *path = NULL;
 
 		tvm->ready = FALSE;
