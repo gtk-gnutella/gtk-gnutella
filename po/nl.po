@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-19 00:14+0900\n"
-"PO-Revision-Date: 2005-11-16 10:24+0100\n"
+"POT-Creation-Date: 2005-11-19 16:13+0900\n"
+"PO-Revision-Date: 2005-11-19 17:11+0900\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -37,167 +37,167 @@ msgid "Requeued by file info change"
 msgstr ""
 "Opnieuw in de wachtrij gezet doordat de bestandsinformatie is veranderd."
 
-#: src/core/downloads.c:1967 src/core/downloads.c:3065
-#: src/core/downloads.c:3974
+#: src/core/downloads.c:1967 src/core/downloads.c:3069
+#: src/core/downloads.c:3978
 msgid "Suspended (SHA1 checking)"
 msgstr "Ingeslapen (SHA1 verifieren)"
 
-#: src/core/downloads.c:2792
+#: src/core/downloads.c:2794
 #, c-format
 msgid " at %s - rescheduled for %s"
 msgstr " op %s - opnieuw gepland voor %s"
 
-#: src/core/downloads.c:3195
+#: src/core/downloads.c:3199
 msgid "Waiting for a free chunk"
 msgstr "Wacht op een vrije chunk"
 
-#: src/core/downloads.c:3349
+#: src/core/downloads.c:3353
 msgid "No download slot (start)"
 msgstr "Geen download slot (start)"
 
-#: src/core/downloads.c:3395
+#: src/core/downloads.c:3399
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Connectie mislukt (Niet genoeg file-descriptors?)"
 
-#: src/core/downloads.c:3615
+#: src/core/downloads.c:3619
 msgid "Ignoring Push flag"
 msgstr "Push vlag wordt gengeerd"
 
-#: src/core/downloads.c:3646
+#: src/core/downloads.c:3650
 #, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] "Nog geen directe verbinding (%u poging)"
 msgstr[1] "Nog geen directe verbinding (%u pogingen)"
 
-#: src/core/downloads.c:3653 src/core/downloads.c:3667
+#: src/core/downloads.c:3657 src/core/downloads.c:3671
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
 msgstr[0] "Timeout (%u pogingen)"
 msgstr[1] "Timeout (%u pogingen)"
 
-#: src/core/downloads.c:3657
+#: src/core/downloads.c:3661
 #, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "Verbinding geweigerd (%u poging)"
 msgstr[1] "Verbinding geweigerd (%u pogingen)"
 
-#: src/core/downloads.c:3965
+#: src/core/downloads.c:3969
 msgid "Dup SHA1 during creation"
 msgstr "Dubbele SHA1 tijdens creatie"
 
-#: src/core/downloads.c:3986
+#: src/core/downloads.c:3990
 msgid "No download slot (create)"
 msgstr "Geen download slot (aanmaken)"
 
-#: src/core/downloads.c:4215
+#: src/core/downloads.c:4219
 msgid "Stopped (Index changed)"
 msgstr "Gestopped (Index veranderd)"
 
-#: src/core/downloads.c:4546
+#: src/core/downloads.c:4550
 msgid "Explicitly requeued"
 msgstr "Uitdrukkelijk opnieuw in de wachtrij gezet"
 
-#: src/core/downloads.c:4716
+#: src/core/downloads.c:4720
 #, c-format
 msgid "Stopped (%s)"
 msgstr "Gestopt (%s)"
 
-#: src/core/downloads.c:4719 src/core/downloads.c:4754
+#: src/core/downloads.c:4723 src/core/downloads.c:4758
 #, c-format
 msgid "Too many attempts (%u times)"
 msgstr "Teveel pogingen (%u keer)"
 
-#: src/core/downloads.c:4721 src/core/downloads.c:6084
-#: src/core/downloads.c:7308
+#: src/core/downloads.c:4725 src/core/downloads.c:6088
+#: src/core/downloads.c:7314
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Gefaalt (Leesfout: %s)"
 
-#: src/core/downloads.c:4750
+#: src/core/downloads.c:4754
 msgid "Connection not kept-alive (EOF)"
 msgstr "Connectie bleef niet leven (EOF)"
 
-#: src/core/downloads.c:4751
+#: src/core/downloads.c:4755
 msgid "Stopped (EOF)"
 msgstr "Gestopt (EOF)"
 
-#: src/core/downloads.c:4867 src/core/downloads.c:7152
+#: src/core/downloads.c:4871 src/core/downloads.c:7158
 msgid "Stopped (Output file size changed)"
 msgstr "Gestopt (Bestandsgrootte uitvoerbestand gewijzigd)"
 
-#: src/core/downloads.c:5075
+#: src/core/downloads.c:5079
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Kon data niet opslaan: %s"
 
-#: src/core/downloads.c:5209
+#: src/core/downloads.c:5213
 msgid "Requeued by competing download"
 msgstr "Opnieuw in de wachtrij gezet door een soortgelijke download"
 
-#: src/core/downloads.c:5275
+#: src/core/downloads.c:5279
 msgid "Requeued after trimmed data"
 msgstr "Opnieuw in de wachtrij gezet na het afkappen van data"
 
-#: src/core/downloads.c:5277
+#: src/core/downloads.c:5281
 msgid "Chunk done, connection closed"
 msgstr "Fragment klaar, connectie gesloten"
 
-#: src/core/downloads.c:5465
+#: src/core/downloads.c:5469
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Afwijkende HTTP status (protocol asynchroon?)"
 
-#: src/core/downloads.c:5786
+#: src/core/downloads.c:5790
 msgid "No URN on server, waiting for overlap"
 msgstr "Geen URN op server, wacht op overlap"
 
-#: src/core/downloads.c:5792
+#: src/core/downloads.c:5796
 msgid "No URN on server to validate"
 msgstr "Geen verifieerbare URN op de server"
 
-#: src/core/downloads.c:5838
+#: src/core/downloads.c:5842
 msgid "URN fileinfo mismatch"
 msgstr "URN bestands informatie komt niet overeen"
 
-#: src/core/downloads.c:5858
+#: src/core/downloads.c:5862
 msgid "Discovered dup SHA1"
 msgstr "Dubbele SHA1 ontdekt"
 
-#: src/core/downloads.c:6066 src/core/downloads.c:6074
-#: src/core/downloads.c:7260 src/core/downloads.c:7298
-#: src/core/downloads.c:9337
+#: src/core/downloads.c:6070 src/core/downloads.c:6078
+#: src/core/downloads.c:7266 src/core/downloads.c:7304
+#: src/core/downloads.c:9354
 msgid "Stopped data (EOF)"
 msgstr "Data gestopt (EOF)"
 
-#: src/core/downloads.c:6339
+#: src/core/downloads.c:6343
 msgid "Spammer detected"
 msgstr "Spammer gedetecteerd"
 
-#: src/core/downloads.c:6547 src/core/downloads.c:7070
+#: src/core/downloads.c:6551 src/core/downloads.c:7074
 msgid "Partial file on server, waiting"
 msgstr "Gedeeltelijk bestand op de server, aan het wachten"
 
-#: src/core/downloads.c:6648
+#: src/core/downloads.c:6652
 #, c-format
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "In de wacht (slot %u / %u), geschatte resterende tijd: %s"
 
-#: src/core/downloads.c:7266
+#: src/core/downloads.c:7272
 msgid "Stopped (Read buffer full)"
 msgstr "Gestopped (less buffer vol)"
 
-#: src/core/downloads.c:7305
+#: src/core/downloads.c:7311
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "Data gestopt (%s)"
 
-#: src/core/downloads.c:8599
+#: src/core/downloads.c:8605
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 komt niet overeen"
 
-#: src/core/downloads.c:9265
+#: src/core/downloads.c:9276
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Blader Host %s>"
@@ -657,11 +657,11 @@ msgstr "Bestanden"
 #: src/ui/gtk/gtk1/interface-glade.c:4082
 #: src/ui/gtk/gtk1/interface-glade.c:4529
 #: src/ui/gtk/gtk1/interface-glade.c:5850
-#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2190
-#: src/ui/gtk/gtk1/search.c:2196 src/ui/gtk/gtk2/downloads.c:476
+#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2198
+#: src/ui/gtk/gtk1/search.c:2204 src/ui/gtk/gtk2/downloads.c:476
 #: src/ui/gtk/gtk2/downloads.c:521 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtk2/gnet_stats.c:462 src/ui/gtk/gtk2/interface-glade.c:11662
-#: src/ui/gtk/gtk2/search.c:1495 src/ui/gtk/gtk2/upload_stats.c:270
+#: src/ui/gtk/gtk2/search.c:1498 src/ui/gtk/gtk2/upload_stats.c:270
 #: src/ui/gtk/gtk2/uploads.c:84
 msgid "Size"
 msgstr "Grootte"
@@ -4409,14 +4409,14 @@ msgstr "Zambia"
 msgid "Zimbabwe"
 msgstr "Zimbabwe"
 
-#: src/lib/misc.c:828
+#: src/lib/misc.c:829
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
 msgstr[0] "%u Byte"
 msgstr[1] "%u Bytes"
 
-#: src/lib/misc.c:851
+#: src/lib/misc.c:852
 #, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
@@ -4424,29 +4424,29 @@ msgstr[0] "%u&nbsp;Byte"
 msgstr[1] "%u&nbsp;Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
-#: src/lib/misc.c:955 src/lib/misc.c:966
+#: src/lib/misc.c:956 src/lib/misc.c:967
 msgid "B/s"
 msgstr "B/s"
 
-#: src/lib/misc.c:980
+#: src/lib/misc.c:981
 #, c-format
-msgid "%dd %dh"
-msgstr "%dd %dh"
-
-#: src/lib/misc.c:982
-#, c-format
-msgid "%dh %dm"
-msgstr "%dh %dm"
+msgid "%ud %uh"
+msgstr "%ud %uh"
 
 #: src/lib/misc.c:984
 #, c-format
-msgid "%dm %ds"
-msgstr "%dm %ds"
+msgid "%uh %um"
+msgstr "%uh %um"
 
 #: src/lib/misc.c:986
 #, c-format
-msgid "%ds"
-msgstr "%ds"
+msgid "%um %us"
+msgstr "%um %us"
+
+#: src/lib/misc.c:988
+#, c-format
+msgid "%us"
+msgstr "%us"
 
 #: src/lib/utf8.c:1223
 msgid "locale_get_language|en"
@@ -5462,18 +5462,18 @@ msgstr "Navigator"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1447
 #: src/ui/gtk/gtk1/interface-glade.c:1777
-#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1099
+#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1102
 #: src/ui/gtk/main.c:138
 msgid "Search"
 msgstr "Zoek"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1456
 #: src/ui/gtk/gtk1/interface-glade.c:3025 src/ui/gtk/gtk2/hcache.c:49
-#: src/ui/gtk/gtk2/search.c:1100
+#: src/ui/gtk/gtk2/search.c:1103
 msgid "Hits"
 msgstr "Resultaten"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1101
+#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1104
 msgid "New"
 msgstr "NIeuw"
 
@@ -5569,9 +5569,9 @@ msgstr "Host"
 #: src/ui/gtk/gtk1/interface-glade.c:1907
 #: src/ui/gtk/gtk1/interface-glade.c:3286
 #: src/ui/gtk/gtk1/interface-glade.c:4074
-#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2206
-#: src/ui/gtk/gtk1/search.c:2212 src/ui/gtk/gtk2/downloads.c:478
-#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1497
+#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2214
+#: src/ui/gtk/gtk1/search.c:2220 src/ui/gtk/gtk2/downloads.c:478
+#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1500
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Loc"
 msgstr "Lok"
@@ -5615,8 +5615,8 @@ msgstr "Tijd verbonden"
 msgid "Uptime"
 msgstr "Tijd draaiend"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2223
-#: src/ui/gtk/gtk1/search.c:2229 src/ui/gtk/gtk2/search.c:1499
+#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2231
+#: src/ui/gtk/gtk1/search.c:2237 src/ui/gtk/gtk2/search.c:1502
 msgid "Info"
 msgstr "Informatie"
 
@@ -6064,9 +6064,9 @@ msgstr "#|Upload statistieken"
 msgid "Files to get"
 msgstr "Op te halen bestanden"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2166
-#: src/ui/gtk/gtk1/search.c:2172 src/ui/gtk/gtk2/fileinfo.c:613
-#: src/ui/gtk/gtk2/search.c:1492
+#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2174
+#: src/ui/gtk/gtk1/search.c:2180 src/ui/gtk/gtk2/fileinfo.c:613
+#: src/ui/gtk/gtk2/search.c:1495
 msgid "File"
 msgstr "Bestand"
 
@@ -6359,10 +6359,10 @@ msgstr "Huidige zoekopdracht:"
 msgid "Cl_ose search"
 msgstr "Sluit zoekopdracht"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:398
-#: src/ui/gtk/gtk1/search.c:1872 src/ui/gtk/gtk1/search.c:1968
+#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:400
+#: src/ui/gtk/gtk1/search.c:1880 src/ui/gtk/gtk1/search.c:1976
 #: src/ui/gtk/gtk2/interface-glade.c:5272 src/ui/gtk/gtk2/search.c:529
-#: src/ui/gtk/gtk2/search.c:1203 src/ui/gtk/gtk2/search.c:1321
+#: src/ui/gtk/gtk2/search.c:1206 src/ui/gtk/gtk2/search.c:1324
 msgid "(no search)"
 msgstr "(geen zoek opdrachten)"
 
@@ -8832,56 +8832,56 @@ msgstr "Veel gestelde vragen"
 msgid "Country"
 msgstr "Land"
 
-#: src/ui/gtk/gtk1/search.c:323
+#: src/ui/gtk/gtk1/search.c:325
 msgid "Failed to create the search"
 msgstr "Aanmaken zoekopdracht mislukt"
 
-#: src/ui/gtk/gtk1/search.c:1731
+#: src/ui/gtk/gtk1/search.c:1739
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "%u download aangemaakt"
 msgstr[1] "%u downloads aangemaakt"
 
-#: src/ui/gtk/gtk1/search.c:1734
+#: src/ui/gtk/gtk1/search.c:1742
 #, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
 msgstr[0] "%s van de %u geselecteerde item"
 msgstr[1] "%s van de %u geselecteerde items"
 
-#: src/ui/gtk/gtk1/search.c:1759
+#: src/ui/gtk/gtk1/search.c:1767
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u resultaat genegeerd"
 msgstr[1] "%u resultaten genegeerd"
 
-#: src/ui/gtk/gtk1/search.c:2174 src/ui/gtk/gtk1/search.c:2180
-#: src/ui/gtk/gtk2/search.c:1493
+#: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
+#: src/ui/gtk/gtk2/search.c:1496
 msgid "Extension"
 msgstr "Extenties"
 
-#: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
-#: src/ui/gtk/gtk2/search.c:1494
+#: src/ui/gtk/gtk1/search.c:2190 src/ui/gtk/gtk1/search.c:2196
+#: src/ui/gtk/gtk2/search.c:1497
 msgid "Encoding"
 msgstr "Encoding"
 
-#: src/ui/gtk/gtk1/search.c:2198 src/ui/gtk/gtk1/search.c:2204
-#: src/ui/gtk/gtk2/search.c:1496
+#: src/ui/gtk/gtk1/search.c:2206 src/ui/gtk/gtk1/search.c:2212
+#: src/ui/gtk/gtk2/search.c:1499
 msgid "#"
 msgstr "#"
 
-#: src/ui/gtk/gtk1/search.c:2215 src/ui/gtk/gtk1/search.c:2221
-#: src/ui/gtk/gtk2/search.c:1498
+#: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
+#: src/ui/gtk/gtk2/search.c:1501
 msgid "Metadata"
 msgstr "Metagegevens"
 
-#: src/ui/gtk/gtk1/search.c:2492 src/ui/gtk/gtk2/search.c:1833
+#: src/ui/gtk/gtk1/search.c:2500 src/ui/gtk/gtk2/search.c:1836
 msgid "Not in database"
 msgstr "Niet in de database"
 
-#: src/ui/gtk/gtk1/search.c:2526 src/ui/gtk/gtk2/search.c:1802
+#: src/ui/gtk/gtk1/search.c:2534 src/ui/gtk/gtk2/search.c:1805
 msgid "Query queued..."
 msgstr "Opdracht in de wacht gezet..."
 
@@ -9694,6 +9694,3 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 #: src/ui/gtk/uploads_common.c:205
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
-
-#~ msgid "Nothing for now"
-#~ msgstr "Momenteel nog niets"

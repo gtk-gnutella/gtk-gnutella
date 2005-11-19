@@ -70,8 +70,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-19 00:14+0900\n"
-"PO-Revision-Date: 2005-11-19 00:19+0900\n"
+"POT-Creation-Date: 2005-11-19 16:13+0900\n"
+"PO-Revision-Date: 2005-11-19 16:39+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -96,170 +96,170 @@ msgstr "キューに戻されました (タイムアウト)"
 msgid "Requeued by file info change"
 msgstr "キューに戻されました (ファイル情報変更)"
 
-#: src/core/downloads.c:1967 src/core/downloads.c:3065
-#: src/core/downloads.c:3974
+#: src/core/downloads.c:1967 src/core/downloads.c:3069
+#: src/core/downloads.c:3978
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1 確認中)"
 
 # NOTE: both `s' show localized timestamp
 # XXX: while both `s' in gtk1 show localized strings correctly,
 #      gtk2 doesn't show them.
-#: src/core/downloads.c:2792
+#: src/core/downloads.c:2794
 #, c-format
 msgid " at %s - rescheduled for %s"
 msgstr " (現在時: %s - 再予定時: %s)"
 
-#: src/core/downloads.c:3195
+#: src/core/downloads.c:3199
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
 # FIXME: what does `start' mean?
-#: src/core/downloads.c:3349
+#: src/core/downloads.c:3353
 msgid "No download slot (start)"
 msgstr "ダウンロード受口がありません (開始)"
 
-#: src/core/downloads.c:3395
+#: src/core/downloads.c:3399
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 
-#: src/core/downloads.c:3615
+#: src/core/downloads.c:3619
 msgid "Ignoring Push flag"
 msgstr "PUSH フラッグを無視します"
 
-#: src/core/downloads.c:3646
+#: src/core/downloads.c:3650
 #, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] "まだ直接接続していません (%u 回目)"
 
-#: src/core/downloads.c:3653 src/core/downloads.c:3667
+#: src/core/downloads.c:3657 src/core/downloads.c:3671
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
 msgstr[0] "タイムアウトしました (%u 回目)"
 
-#: src/core/downloads.c:3657
+#: src/core/downloads.c:3661
 #, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "接続を拒否されました (%u 回目)"
 
 # FIXME: gtkg found duplicated SHA1 or duplicates SHA1, which?
-#: src/core/downloads.c:3965
+#: src/core/downloads.c:3969
 msgid "Dup SHA1 during creation"
 msgstr "重複する SHA1 を検出しました"
 
 # FIXME: what does `create' mean?
-#: src/core/downloads.c:3986
+#: src/core/downloads.c:3990
 msgid "No download slot (create)"
 msgstr "ダウンロード受口がありません (作成)"
 
-#: src/core/downloads.c:4215
+#: src/core/downloads.c:4219
 msgid "Stopped (Index changed)"
 msgstr "中断されました (インデックスが変更されました)"
 
-#: src/core/downloads.c:4546
+#: src/core/downloads.c:4550
 msgid "Explicitly requeued"
 msgstr "キューに戻されました (利用者によって戻されました)"
 
-#: src/core/downloads.c:4716
+#: src/core/downloads.c:4720
 #, c-format
 msgid "Stopped (%s)"
 msgstr "中断されました (%s)"
 
-#: src/core/downloads.c:4719 src/core/downloads.c:4754
+#: src/core/downloads.c:4723 src/core/downloads.c:4758
 #, c-format
 msgid "Too many attempts (%u times)"
 msgstr "要求回数が多すぎます (%u 回)"
 
-#: src/core/downloads.c:4721 src/core/downloads.c:6084
-#: src/core/downloads.c:7308
+#: src/core/downloads.c:4725 src/core/downloads.c:6088
+#: src/core/downloads.c:7314
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "失敗しました (読込エラー: %s)"
 
-#: src/core/downloads.c:4750
+#: src/core/downloads.c:4754
 msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
-#: src/core/downloads.c:4751
+#: src/core/downloads.c:4755
 msgid "Stopped (EOF)"
 msgstr "中断されました (EOF)"
 
-#: src/core/downloads.c:4867 src/core/downloads.c:7152
+#: src/core/downloads.c:4871 src/core/downloads.c:7158
 msgid "Stopped (Output file size changed)"
 msgstr "中断されました (出力ファイルサイズが変更されました)"
 
-#: src/core/downloads.c:5075
+#: src/core/downloads.c:5079
 #, c-format
 msgid "Can't save data: %s"
 msgstr "データを保存できません: %s"
 
-#: src/core/downloads.c:5209
+#: src/core/downloads.c:5213
 msgid "Requeued by competing download"
 msgstr "キューに戻されました (ダウンロードが競合しています)"
 
-#: src/core/downloads.c:5275
+#: src/core/downloads.c:5279
 msgid "Requeued after trimmed data"
 msgstr "キューに戻されました (データ整理後)"
 
-#: src/core/downloads.c:5277
+#: src/core/downloads.c:5281
 msgid "Chunk done, connection closed"
 msgstr "チャンクの取得完了、接続を切ります"
 
-#: src/core/downloads.c:5465
+#: src/core/downloads.c:5469
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "変な HTTP ステータス (プロトコルの同期が破損した可能性があります)"
 
-#: src/core/downloads.c:5786
+#: src/core/downloads.c:5790
 msgid "No URN on server, waiting for overlap"
 msgstr "相手側に URN がありません、オーバーラップ待受中"
 
-#: src/core/downloads.c:5792
+#: src/core/downloads.c:5796
 msgid "No URN on server to validate"
 msgstr "検証するための URN が相手側にありません"
 
-#: src/core/downloads.c:5838
+#: src/core/downloads.c:5842
 msgid "URN fileinfo mismatch"
 msgstr "URN ファイル情報が一致しません"
 
-#: src/core/downloads.c:5858
+#: src/core/downloads.c:5862
 msgid "Discovered dup SHA1"
 msgstr "重複する SHA1 を発見しました"
 
-#: src/core/downloads.c:6066 src/core/downloads.c:6074
-#: src/core/downloads.c:7260 src/core/downloads.c:7298
-#: src/core/downloads.c:9337
+#: src/core/downloads.c:6070 src/core/downloads.c:6078
+#: src/core/downloads.c:7266 src/core/downloads.c:7304
+#: src/core/downloads.c:9354
 msgid "Stopped data (EOF)"
 msgstr "データ受信中に中断されました (EOF)"
 
-#: src/core/downloads.c:6339
+#: src/core/downloads.c:6343
 msgid "Spammer detected"
 msgstr "迷惑ファイル送信者を検出しました"
 
-#: src/core/downloads.c:6547 src/core/downloads.c:7070
+#: src/core/downloads.c:6551 src/core/downloads.c:7074
 msgid "Partial file on server, waiting"
 msgstr "相手側の部分ファイルを待受中"
 
-#: src/core/downloads.c:6648
+#: src/core/downloads.c:6652
 #, c-format
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "待機中 (受口 %u/%u) 予定時間: %s"
 
-#: src/core/downloads.c:7266
+#: src/core/downloads.c:7272
 msgid "Stopped (Read buffer full)"
 msgstr "中断されました (読込バッファが一杯です)"
 
-#: src/core/downloads.c:7305
+#: src/core/downloads.c:7311
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "データ受信中に中断されました (%s)"
 
-#: src/core/downloads.c:8599
+#: src/core/downloads.c:8605
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 の不一致を検出しました"
 
-#: src/core/downloads.c:9265
+#: src/core/downloads.c:9276
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<ホスト %s の閲覧>"
@@ -731,11 +731,11 @@ msgstr "ファイル数"
 #: src/ui/gtk/gtk1/interface-glade.c:4082
 #: src/ui/gtk/gtk1/interface-glade.c:4529
 #: src/ui/gtk/gtk1/interface-glade.c:5850
-#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2190
-#: src/ui/gtk/gtk1/search.c:2196 src/ui/gtk/gtk2/downloads.c:476
+#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2198
+#: src/ui/gtk/gtk1/search.c:2204 src/ui/gtk/gtk2/downloads.c:476
 #: src/ui/gtk/gtk2/downloads.c:521 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtk2/gnet_stats.c:462 src/ui/gtk/gtk2/interface-glade.c:11662
-#: src/ui/gtk/gtk2/search.c:1495 src/ui/gtk/gtk2/upload_stats.c:270
+#: src/ui/gtk/gtk2/search.c:1498 src/ui/gtk/gtk2/upload_stats.c:270
 #: src/ui/gtk/gtk2/uploads.c:84
 msgid "Size"
 msgstr "大きさ"
@@ -4362,42 +4362,42 @@ msgstr "ザンビア共和国"
 msgid "Zimbabwe"
 msgstr "ジンバブエ共和国"
 
-#: src/lib/misc.c:828
+#: src/lib/misc.c:829
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
 msgstr[0] "%u バイト"
 
-#: src/lib/misc.c:851
+#: src/lib/misc.c:852
 #, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
 msgstr[0] "%u&nbsp;バイト"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
-#: src/lib/misc.c:955 src/lib/misc.c:966
+#: src/lib/misc.c:956 src/lib/misc.c:967
 msgid "B/s"
 msgstr "B/秒"
 
-#: src/lib/misc.c:980
+#: src/lib/misc.c:981
 #, c-format
-msgid "%dd %dh"
-msgstr "%d日と%d時間"
-
-#: src/lib/misc.c:982
-#, c-format
-msgid "%dh %dm"
-msgstr "%d時間%d分"
+msgid "%ud %uh"
+msgstr "%u日と%u時間"
 
 #: src/lib/misc.c:984
 #, c-format
-msgid "%dm %ds"
-msgstr "%d分%d秒"
+msgid "%uh %um"
+msgstr "%u時間%u分"
 
 #: src/lib/misc.c:986
 #, c-format
-msgid "%ds"
-msgstr "%d秒"
+msgid "%um %us"
+msgstr "%u分%u秒"
+
+#: src/lib/misc.c:988
+#, c-format
+msgid "%us"
+msgstr "%u秒"
 
 #: src/lib/utf8.c:1223
 msgid "locale_get_language|en"
@@ -5472,18 +5472,18 @@ msgstr "ナビゲーター"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1447
 #: src/ui/gtk/gtk1/interface-glade.c:1777
-#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1099
+#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1102
 #: src/ui/gtk/main.c:138
 msgid "Search"
 msgstr "検索"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1456
 #: src/ui/gtk/gtk1/interface-glade.c:3025 src/ui/gtk/gtk2/hcache.c:49
-#: src/ui/gtk/gtk2/search.c:1100
+#: src/ui/gtk/gtk2/search.c:1103
 msgid "Hits"
 msgstr "ヒット数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1101
+#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1104
 msgid "New"
 msgstr "新規"
 
@@ -5586,9 +5586,9 @@ msgstr "ホスト"
 #: src/ui/gtk/gtk1/interface-glade.c:1907
 #: src/ui/gtk/gtk1/interface-glade.c:3286
 #: src/ui/gtk/gtk1/interface-glade.c:4074
-#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2206
-#: src/ui/gtk/gtk1/search.c:2212 src/ui/gtk/gtk2/downloads.c:478
-#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1497
+#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2214
+#: src/ui/gtk/gtk1/search.c:2220 src/ui/gtk/gtk2/downloads.c:478
+#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1500
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Loc"
 msgstr "場所"
@@ -5632,8 +5632,8 @@ msgstr "接続時間"
 msgid "Uptime"
 msgstr "稼動時間"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2223
-#: src/ui/gtk/gtk1/search.c:2229 src/ui/gtk/gtk2/search.c:1499
+#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2231
+#: src/ui/gtk/gtk1/search.c:2237 src/ui/gtk/gtk2/search.c:1502
 msgid "Info"
 msgstr "情報"
 
@@ -6116,9 +6116,9 @@ msgstr "#|Upload Stats"
 msgid "Files to get"
 msgstr "取得ファイル"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2166
-#: src/ui/gtk/gtk1/search.c:2172 src/ui/gtk/gtk2/fileinfo.c:613
-#: src/ui/gtk/gtk2/search.c:1492
+#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2174
+#: src/ui/gtk/gtk1/search.c:2180 src/ui/gtk/gtk2/fileinfo.c:613
+#: src/ui/gtk/gtk2/search.c:1495
 msgid "File"
 msgstr "ファイル"
 
@@ -6426,10 +6426,10 @@ msgstr "現在の検索:"
 msgid "Cl_ose search"
 msgstr "検索を閉じる(_O)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:398
-#: src/ui/gtk/gtk1/search.c:1872 src/ui/gtk/gtk1/search.c:1968
+#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:400
+#: src/ui/gtk/gtk1/search.c:1880 src/ui/gtk/gtk1/search.c:1976
 #: src/ui/gtk/gtk2/interface-glade.c:5272 src/ui/gtk/gtk2/search.c:529
-#: src/ui/gtk/gtk2/search.c:1203 src/ui/gtk/gtk2/search.c:1321
+#: src/ui/gtk/gtk2/search.c:1206 src/ui/gtk/gtk2/search.c:1324
 msgid "(no search)"
 msgstr "(検索無し)"
 
@@ -8937,7 +8937,7 @@ msgstr "よく聞かれる質問:"
 msgid "Country"
 msgstr "国 (地域)"
 
-#: src/ui/gtk/gtk1/search.c:323
+#: src/ui/gtk/gtk1/search.c:325
 msgid "Failed to create the search"
 msgstr "検索の作成に失敗しました。"
 
@@ -8945,14 +8945,14 @@ msgstr "検索の作成に失敗しました。"
 #
 # 'Created 0 downloads from the 0 selected items'
 #
-#: src/ui/gtk/gtk1/search.c:1731
+#: src/ui/gtk/gtk1/search.c:1739
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "%u 件のダウンロードを作成しました。"
 
 # NOTE: see above and below
-#: src/ui/gtk/gtk1/search.c:1734
+#: src/ui/gtk/gtk1/search.c:1742
 #, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
@@ -8962,37 +8962,37 @@ msgstr[0] "選択した %2$u 個のアイテムから %1$s"
 #
 # 'Discarded 0 results from the 0 selected items'
 #
-#: src/ui/gtk/gtk1/search.c:1759
+#: src/ui/gtk/gtk1/search.c:1767
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u 件の結果を破棄しました。"
 
-#: src/ui/gtk/gtk1/search.c:2174 src/ui/gtk/gtk1/search.c:2180
-#: src/ui/gtk/gtk2/search.c:1493
+#: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
+#: src/ui/gtk/gtk2/search.c:1496
 msgid "Extension"
 msgstr "拡張子"
 
-#: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
-#: src/ui/gtk/gtk2/search.c:1494
+#: src/ui/gtk/gtk1/search.c:2190 src/ui/gtk/gtk1/search.c:2196
+#: src/ui/gtk/gtk2/search.c:1497
 msgid "Encoding"
 msgstr "エンコード方式"
 
-#: src/ui/gtk/gtk1/search.c:2198 src/ui/gtk/gtk1/search.c:2204
-#: src/ui/gtk/gtk2/search.c:1496
+#: src/ui/gtk/gtk1/search.c:2206 src/ui/gtk/gtk1/search.c:2212
+#: src/ui/gtk/gtk2/search.c:1499
 msgid "#"
 msgstr "数"
 
-#: src/ui/gtk/gtk1/search.c:2215 src/ui/gtk/gtk1/search.c:2221
-#: src/ui/gtk/gtk2/search.c:1498
+#: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
+#: src/ui/gtk/gtk2/search.c:1501
 msgid "Metadata"
 msgstr "メタデータ"
 
-#: src/ui/gtk/gtk1/search.c:2492 src/ui/gtk/gtk2/search.c:1833
+#: src/ui/gtk/gtk1/search.c:2500 src/ui/gtk/gtk2/search.c:1836
 msgid "Not in database"
 msgstr "データベースにありません"
 
-#: src/ui/gtk/gtk1/search.c:2526 src/ui/gtk/gtk2/search.c:1802
+#: src/ui/gtk/gtk1/search.c:2534 src/ui/gtk/gtk2/search.c:1805
 msgid "Query queued..."
 msgstr "検索クエリーをキューに入れました..."
 

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-19 00:14+0900\n"
+"POT-Creation-Date: 2005-11-19 16:13+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -36,167 +36,167 @@ msgstr "Ξαναμπήκε στη λίστα αναμονής λόγω λήξη�
 msgid "Requeued by file info change"
 msgstr "Ξαναμπήκε στη λίστα αναμονής λόγω αλλαγής πληροφοριών αρχείου"
 
-#: src/core/downloads.c:1967 src/core/downloads.c:3065
-#: src/core/downloads.c:3974
+#: src/core/downloads.c:1967 src/core/downloads.c:3069
+#: src/core/downloads.c:3978
 msgid "Suspended (SHA1 checking)"
 msgstr "Αναβλήθηκε (Έλεγχος SHA1)"
 
-#: src/core/downloads.c:2792
+#: src/core/downloads.c:2794
 #, c-format
 msgid " at %s - rescheduled for %s"
 msgstr " στις %s - επαναπρογραμματίστηκε για %s"
 
-#: src/core/downloads.c:3195
+#: src/core/downloads.c:3199
 msgid "Waiting for a free chunk"
 msgstr "Αναμονή για ελεύθερο κομμάτι"
 
-#: src/core/downloads.c:3349
+#: src/core/downloads.c:3353
 msgid "No download slot (start)"
 msgstr "Δεν υπάρχει υποδοχή λήψης (έναρξη)"
 
-#: src/core/downloads.c:3395
+#: src/core/downloads.c:3399
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Αποτυχία σύνδεσης (Τέλος περιγραφέων;)"
 
-#: src/core/downloads.c:3615
+#: src/core/downloads.c:3619
 msgid "Ignoring Push flag"
 msgstr "Παράβλεψη σημαίας Ώθησης"
 
-#: src/core/downloads.c:3646
+#: src/core/downloads.c:3650
 #, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] "Δεν υπάρχει άμεση σύνδεση ακόμα (%u προσπάθεια)"
 msgstr[1] "Δεν υπάρχει άμεση σύνδεση ακόμα (%u προσπάθειες)"
 
-#: src/core/downloads.c:3653 src/core/downloads.c:3667
+#: src/core/downloads.c:3657 src/core/downloads.c:3671
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
 msgstr[0] "Τέλος χρόνου (%u προσπάθεια)"
 msgstr[1] "Τέλος χρόνου (%u προσπάθειες)"
 
-#: src/core/downloads.c:3657
+#: src/core/downloads.c:3661
 #, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "Άρνηση σύνδεσης (%u προσπάθεια)"
 msgstr[1] "Άρνηση σύνδεσης (%u προσπάθειες)"
 
-#: src/core/downloads.c:3965
+#: src/core/downloads.c:3969
 msgid "Dup SHA1 during creation"
 msgstr ""
 
-#: src/core/downloads.c:3986
+#: src/core/downloads.c:3990
 msgid "No download slot (create)"
 msgstr "Δεν υπάρχει υποδοχή λήψης (δημιουργία)"
 
-#: src/core/downloads.c:4215
+#: src/core/downloads.c:4219
 msgid "Stopped (Index changed)"
 msgstr "Διακόπηκε (Το ευρετήριο άλλαξε)"
 
-#: src/core/downloads.c:4546
+#: src/core/downloads.c:4550
 msgid "Explicitly requeued"
 msgstr "Ξαναμπήκε κατηγορηματικά στη λίστα αναμονής"
 
-#: src/core/downloads.c:4716
+#: src/core/downloads.c:4720
 #, c-format
 msgid "Stopped (%s)"
 msgstr "Διακόπηκε (%s)"
 
-#: src/core/downloads.c:4719 src/core/downloads.c:4754
+#: src/core/downloads.c:4723 src/core/downloads.c:4758
 #, c-format
 msgid "Too many attempts (%u times)"
 msgstr "Πάρα πολλές προσπάθειες (%u φορές)"
 
-#: src/core/downloads.c:4721 src/core/downloads.c:6084
-#: src/core/downloads.c:7308
+#: src/core/downloads.c:4725 src/core/downloads.c:6088
+#: src/core/downloads.c:7314
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Απέτυχε (Σφάλμα ανάγνωσης: %s)"
 
-#: src/core/downloads.c:4750
+#: src/core/downloads.c:4754
 msgid "Connection not kept-alive (EOF)"
 msgstr "Η σύνδεση δε διατηρήθηκε (EOF)"
 
-#: src/core/downloads.c:4751
+#: src/core/downloads.c:4755
 msgid "Stopped (EOF)"
 msgstr "Διακόπηκε (EOF)"
 
-#: src/core/downloads.c:4867 src/core/downloads.c:7152
+#: src/core/downloads.c:4871 src/core/downloads.c:7158
 msgid "Stopped (Output file size changed)"
 msgstr "Διακόπηκε (Το μέγεθος του αρχείου εξόδου άλλαξε)"
 
-#: src/core/downloads.c:5075
+#: src/core/downloads.c:5079
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Δεν είναι δυνατή η αποθήκευση δεδομένων: %s"
 
-#: src/core/downloads.c:5209
+#: src/core/downloads.c:5213
 msgid "Requeued by competing download"
 msgstr "Ξαναμπήκε στην λίστα αναμονής από ανταγωνιστική λήψη"
 
-#: src/core/downloads.c:5275
+#: src/core/downloads.c:5279
 msgid "Requeued after trimmed data"
 msgstr "Ξαναμπήκε στη λίστα αναμονής μετά από περικοπή δεδομένων"
 
-#: src/core/downloads.c:5277
+#: src/core/downloads.c:5281
 msgid "Chunk done, connection closed"
 msgstr "Επιτυχία κομματιού, η σύνδεση έκλεισε"
 
-#: src/core/downloads.c:5465
+#: src/core/downloads.c:5469
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Παράξενη κατάσταση HTTP (ασυγχρονία πρωτοκόλλου;)"
 
-#: src/core/downloads.c:5786
+#: src/core/downloads.c:5790
 msgid "No URN on server, waiting for overlap"
 msgstr "Δεν υπάρχει URN στον εξυπηρετητή, αναμονή για επικάλυψη"
 
-#: src/core/downloads.c:5792
+#: src/core/downloads.c:5796
 msgid "No URN on server to validate"
 msgstr "Δεν υπάρχει URN στο εξυπηρετητή για έγκριση"
 
-#: src/core/downloads.c:5838
+#: src/core/downloads.c:5842
 msgid "URN fileinfo mismatch"
 msgstr "Αταίριαστες πληροφορίες αρχείου URN"
 
-#: src/core/downloads.c:5858
+#: src/core/downloads.c:5862
 msgid "Discovered dup SHA1"
 msgstr ""
 
-#: src/core/downloads.c:6066 src/core/downloads.c:6074
-#: src/core/downloads.c:7260 src/core/downloads.c:7298
-#: src/core/downloads.c:9337
+#: src/core/downloads.c:6070 src/core/downloads.c:6078
+#: src/core/downloads.c:7266 src/core/downloads.c:7304
+#: src/core/downloads.c:9354
 msgid "Stopped data (EOF)"
 msgstr "Παύση δεδομένων (EOF)"
 
-#: src/core/downloads.c:6339
+#: src/core/downloads.c:6343
 msgid "Spammer detected"
 msgstr ""
 
-#: src/core/downloads.c:6547 src/core/downloads.c:7070
+#: src/core/downloads.c:6551 src/core/downloads.c:7074
 msgid "Partial file on server, waiting"
 msgstr "Μερικό αρχείο στον εξυπηρετητή, αναμονή"
 
-#: src/core/downloads.c:6648
+#: src/core/downloads.c:6652
 #, fuzzy, c-format
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %u/%u) ETA: %s"
 
-#: src/core/downloads.c:7266
+#: src/core/downloads.c:7272
 msgid "Stopped (Read buffer full)"
 msgstr "Διακόπηκε (Ενδιάμεση μνήμη ανάγνωσης πλήρης)"
 
-#: src/core/downloads.c:7305
+#: src/core/downloads.c:7311
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "Παύση δεδομένων (%s)"
 
-#: src/core/downloads.c:8599
+#: src/core/downloads.c:8605
 msgid "SHA1 mismatch detected"
 msgstr "Εντοπίστηκαν αταίριαστα SHA1"
 
-#: src/core/downloads.c:9265
+#: src/core/downloads.c:9276
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "Εξερεύνηση Υπολογιστή"
@@ -656,11 +656,11 @@ msgstr "Αρχεία"
 #: src/ui/gtk/gtk1/interface-glade.c:4082
 #: src/ui/gtk/gtk1/interface-glade.c:4529
 #: src/ui/gtk/gtk1/interface-glade.c:5850
-#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2190
-#: src/ui/gtk/gtk1/search.c:2196 src/ui/gtk/gtk2/downloads.c:476
+#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2198
+#: src/ui/gtk/gtk1/search.c:2204 src/ui/gtk/gtk2/downloads.c:476
 #: src/ui/gtk/gtk2/downloads.c:521 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtk2/gnet_stats.c:462 src/ui/gtk/gtk2/interface-glade.c:11662
-#: src/ui/gtk/gtk2/search.c:1495 src/ui/gtk/gtk2/upload_stats.c:270
+#: src/ui/gtk/gtk2/search.c:1498 src/ui/gtk/gtk2/upload_stats.c:270
 #: src/ui/gtk/gtk2/uploads.c:84
 msgid "Size"
 msgstr "Μέγεθος"
@@ -4268,14 +4268,14 @@ msgstr "Ζάμπια, Δημοκρατία της"
 msgid "Zimbabwe"
 msgstr "Ζιμπάμπουε"
 
-#: src/lib/misc.c:828
+#: src/lib/misc.c:829
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
 msgstr[0] "%u Byte"
 msgstr[1] "%u Bytes"
 
-#: src/lib/misc.c:851
+#: src/lib/misc.c:852
 #, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
@@ -4283,28 +4283,28 @@ msgstr[0] "%u&nbsp;Byte"
 msgstr[1] "%u&nbsp;Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
-#: src/lib/misc.c:955 src/lib/misc.c:966
+#: src/lib/misc.c:956 src/lib/misc.c:967
 msgid "B/s"
 msgstr "B/s"
 
-#: src/lib/misc.c:980
-#, c-format
-msgid "%dd %dh"
+#: src/lib/misc.c:981
+#, fuzzy, c-format
+msgid "%ud %uh"
 msgstr "%dd %dh"
 
-#: src/lib/misc.c:982
-#, c-format
-msgid "%dh %dm"
+#: src/lib/misc.c:984
+#, fuzzy, c-format
+msgid "%uh %um"
 msgstr "%dh %dm"
 
-#: src/lib/misc.c:984
-#, c-format
-msgid "%dm %ds"
+#: src/lib/misc.c:986
+#, fuzzy, c-format
+msgid "%um %us"
 msgstr "%dm %ds"
 
-#: src/lib/misc.c:986
-#, c-format
-msgid "%ds"
+#: src/lib/misc.c:988
+#, fuzzy, c-format
+msgid "%us"
 msgstr "%ds"
 
 #: src/lib/utf8.c:1223
@@ -5317,18 +5317,18 @@ msgstr "Περιηγητής"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1447
 #: src/ui/gtk/gtk1/interface-glade.c:1777
-#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1099
+#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1102
 #: src/ui/gtk/main.c:138
 msgid "Search"
 msgstr "Αναζήτηση"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1456
 #: src/ui/gtk/gtk1/interface-glade.c:3025 src/ui/gtk/gtk2/hcache.c:49
-#: src/ui/gtk/gtk2/search.c:1100
+#: src/ui/gtk/gtk2/search.c:1103
 msgid "Hits"
 msgstr "Χτυπήματα"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1101
+#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1104
 msgid "New"
 msgstr "Νέο"
 
@@ -5424,9 +5424,9 @@ msgstr "Υπολογιστής"
 #: src/ui/gtk/gtk1/interface-glade.c:1907
 #: src/ui/gtk/gtk1/interface-glade.c:3286
 #: src/ui/gtk/gtk1/interface-glade.c:4074
-#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2206
-#: src/ui/gtk/gtk1/search.c:2212 src/ui/gtk/gtk2/downloads.c:478
-#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1497
+#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2214
+#: src/ui/gtk/gtk1/search.c:2220 src/ui/gtk/gtk2/downloads.c:478
+#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1500
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Loc"
 msgstr "Τοποθεσία"
@@ -5470,8 +5470,8 @@ msgstr "Χρόνος σύνδεσης"
 msgid "Uptime"
 msgstr "Χρόνος λειτουργίας"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2223
-#: src/ui/gtk/gtk1/search.c:2229 src/ui/gtk/gtk2/search.c:1499
+#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2231
+#: src/ui/gtk/gtk1/search.c:2237 src/ui/gtk/gtk2/search.c:1502
 msgid "Info"
 msgstr "Πληροφορίες"
 
@@ -5920,9 +5920,9 @@ msgstr "#|Στατιστικά Αποστολών"
 msgid "Files to get"
 msgstr "Αρχεία προς λήψη"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2166
-#: src/ui/gtk/gtk1/search.c:2172 src/ui/gtk/gtk2/fileinfo.c:613
-#: src/ui/gtk/gtk2/search.c:1492
+#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2174
+#: src/ui/gtk/gtk1/search.c:2180 src/ui/gtk/gtk2/fileinfo.c:613
+#: src/ui/gtk/gtk2/search.c:1495
 msgid "File"
 msgstr "Αρχείο"
 
@@ -6216,10 +6216,10 @@ msgstr "Τρέχουσα αναζήτηση:"
 msgid "Cl_ose search"
 msgstr "_Κλείσιμο αναζήτησης"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:398
-#: src/ui/gtk/gtk1/search.c:1872 src/ui/gtk/gtk1/search.c:1968
+#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:400
+#: src/ui/gtk/gtk1/search.c:1880 src/ui/gtk/gtk1/search.c:1976
 #: src/ui/gtk/gtk2/interface-glade.c:5272 src/ui/gtk/gtk2/search.c:529
-#: src/ui/gtk/gtk2/search.c:1203 src/ui/gtk/gtk2/search.c:1321
+#: src/ui/gtk/gtk2/search.c:1206 src/ui/gtk/gtk2/search.c:1324
 msgid "(no search)"
 msgstr "(χωρίς αναζήτηση)"
 
@@ -8668,57 +8668,57 @@ msgstr "Συχνές Ερωτήσεις:"
 msgid "Country"
 msgstr "Χώρα"
 
-#: src/ui/gtk/gtk1/search.c:323
+#: src/ui/gtk/gtk1/search.c:325
 msgid "Failed to create the search"
 msgstr "Αποτυχία δημιουργίας αναζήτησης"
 
-#: src/ui/gtk/gtk1/search.c:1731
+#: src/ui/gtk/gtk1/search.c:1739
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "Δημιουργήθηκε %u λήψη"
 msgstr[1] "Δημιουργήθηκαν %u λήψεις"
 
-#: src/ui/gtk/gtk1/search.c:1734
+#: src/ui/gtk/gtk1/search.c:1742
 #, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
 msgstr[0] "%s από το %u επιλεγμένο αντικείμενο"
 msgstr[1] "%s από τα %u επιλεγμένα αντικείμενα"
 
-#: src/ui/gtk/gtk1/search.c:1759
+#: src/ui/gtk/gtk1/search.c:1767
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u αποτέλεσμα απορρίφθηκε"
 msgstr[1] "%u αποτελέσματα απορρίφθηκαν"
 
-#: src/ui/gtk/gtk1/search.c:2174 src/ui/gtk/gtk1/search.c:2180
-#: src/ui/gtk/gtk2/search.c:1493
+#: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
+#: src/ui/gtk/gtk2/search.c:1496
 msgid "Extension"
 msgstr "Επέκταση"
 
-#: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
-#: src/ui/gtk/gtk2/search.c:1494
+#: src/ui/gtk/gtk1/search.c:2190 src/ui/gtk/gtk1/search.c:2196
+#: src/ui/gtk/gtk2/search.c:1497
 #, fuzzy
 msgid "Encoding"
 msgstr "εισερχόμενο"
 
-#: src/ui/gtk/gtk1/search.c:2198 src/ui/gtk/gtk1/search.c:2204
-#: src/ui/gtk/gtk2/search.c:1496
+#: src/ui/gtk/gtk1/search.c:2206 src/ui/gtk/gtk1/search.c:2212
+#: src/ui/gtk/gtk2/search.c:1499
 msgid "#"
 msgstr "#"
 
-#: src/ui/gtk/gtk1/search.c:2215 src/ui/gtk/gtk1/search.c:2221
-#: src/ui/gtk/gtk2/search.c:1498
+#: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
+#: src/ui/gtk/gtk2/search.c:1501
 msgid "Metadata"
 msgstr ""
 
-#: src/ui/gtk/gtk1/search.c:2492 src/ui/gtk/gtk2/search.c:1833
+#: src/ui/gtk/gtk1/search.c:2500 src/ui/gtk/gtk2/search.c:1836
 msgid "Not in database"
 msgstr "Όχι στη βάση δεδομένων"
 
-#: src/ui/gtk/gtk1/search.c:2526 src/ui/gtk/gtk2/search.c:1802
+#: src/ui/gtk/gtk1/search.c:2534 src/ui/gtk/gtk2/search.c:1805
 msgid "Query queued..."
 msgstr "Το ερώτημα μπήκε στη λίστα αναμονής..."
 
