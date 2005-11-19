@@ -359,6 +359,7 @@ typedef guint16 flag_t;
 #define IPV4_ADDR_BUFLEN	(sizeof "255.255.255.255")
 #define IPV6_ADDR_BUFLEN \
 	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
+#define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
 
 gboolean parse_ipv6_addr(const gchar *s, uint8_t *dst, const gchar **endptr);
 const gchar *ipv6_to_string(const guint8 *ipv6);

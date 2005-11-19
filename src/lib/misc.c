@@ -1386,7 +1386,7 @@ timestamp_to_string_buf(time_t date, gchar *dst, size_t size)
 const gchar *
 timestamp_to_string(time_t date)
 {
-	static gchar buf[sizeof "9999-12-31 23:59:61"];
+	static gchar buf[TIMESTAMP_BUF_LEN];
 
 	timestamp_to_string_buf(date, buf, sizeof buf);
 	return buf;
