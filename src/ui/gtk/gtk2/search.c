@@ -143,7 +143,7 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 		text = compact_size(data->record->size);
 		break;
 	case c_sr_count:
-		text = data->count ? uint64_to_string(1 + data->count) : NULL;
+		text = data->count ? uint32_to_string(1 + data->count) : NULL;
 		break;
 	case c_sr_loc:
 		text = iso3166_country_cc(data->record->results_set->country);
@@ -770,10 +770,13 @@ search_gui_add_record(
 		parent = find_parent_with_sha1(sch->parents, rc->sha1);
 		g_assert(data->record->refcount > 0);
 		parent_iter = parent ? &parent->iter : NULL;
-		if (parent)
+		if (parent) {
 			parent->count++;
-		else
+			/* Re-store the parent to refresh the display/sorting */
+			gtk_tree_store_set(model, parent_iter, 0, parent, (-1));
+		} else {
 			add_parent_with_sha1(sch->parents, rc->sha1, data);
+		}
 	} else {
 		parent_iter = NULL;
 	}
@@ -907,19 +910,39 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 		rd->ext = atom_str_get(child_data->ext);
 		rd->meta = child_data->meta;
 		rd->info = child_data->info;
-		g_assert(rd->count > 0);
-		rd->count--;
 		
 		WFREE_NULL(child_data, sizeof *child_data);
 
 		/* And remove the child's row */
 		gtk_tree_store_remove(GTK_TREE_STORE(model), &child);
+		
+		rd->count--;
+		/* Re-store the parent to refresh the display/sorting */
+		gtk_tree_store_set(GTK_TREE_STORE(model), &rd->iter, 0, rd, (-1));
+
 		g_assert(rd->record->refcount > 0);
 	} else {
+		
 		g_assert(rc->refcount > 0);
-		/* The row has no children, remove its sha1 and the row itself */
-		if (rc->sha1)
-			remove_parent_with_sha1(search->parents, rc->sha1);
+		
+		/*
+		 * The row has no children, it's either a child or a top-level node
+		 * without children.
+		 */
+
+		if (rc->sha1) {
+			struct result_data *parent;
+			
+			parent = find_parent_with_sha1(search->parents, rc->sha1);
+			if (rd == parent) {
+				remove_parent_with_sha1(search->parents, rc->sha1);
+			} else {
+				/* Re-store the parent to refresh the display/sorting */
+				parent->count--;
+				gtk_tree_store_set(GTK_TREE_STORE(model), &parent->iter,
+					0, parent, (-1));
+			}
+		}
 		gtk_tree_store_remove(GTK_TREE_STORE(model), iter);
 	}
 
