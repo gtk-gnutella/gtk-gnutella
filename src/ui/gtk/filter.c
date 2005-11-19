@@ -74,7 +74,7 @@ static const gchar * const rule_text_type_labels[] = {
     N_("contains the words"),
     N_("ends with"),
     N_("contains the substring"),
-    N_("matches regex"),
+    N_("matches the regex pattern"),
     N_("is exactly")
 };
 
