@@ -3350,8 +3350,8 @@ parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 				"No port to send QUEUE: %s '%s'",
 				  g_list_position(ul_parqs,
-				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
-				  g_list_length(ul_parqs),
+				  	g_list_find(ul_parqs, parq_ul->queue)) + 1,
+				  	g_list_length(ul_parqs),
 				  parq_ul->position,
 				  parq_ul->relative_position,
 				  parq_ul->queue->size,
@@ -3546,7 +3546,7 @@ parq_store(gpointer data, gpointer x)
 		  uint64_to_string(parq_ul->file_size),
 		  host_addr_to_string(parq_ul->remote_addr),
 		  parq_ul->queue_sent,
-		  parq_ul->send_next_queue
+		  (gint) parq_ul->send_next_queue
 		  );
 
 	if (parq_ul->sha1) {
