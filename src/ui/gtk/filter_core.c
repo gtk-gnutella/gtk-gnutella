@@ -968,7 +968,8 @@ filter_rule_condition_to_string(const rule_t *r)
 				break;
 			case RULE_TEXT_REGEXP:
 				gm_snprintf(tmp, sizeof tmp,
-					_("If filename matches the regex \"%s\" %s"), match, cs);
+					_("If filename matches the regex pattern \"%s\" %s"),
+					match, cs);
 				break;
 			case RULE_TEXT_EXACT:
 				gm_snprintf(tmp, sizeof tmp, _("If filename is \"%s\" %s"),
