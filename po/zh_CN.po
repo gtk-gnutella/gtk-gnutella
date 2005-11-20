@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-19 16:13+0900\n"
+"POT-Creation-Date: 2005-11-20 11:43+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -173,7 +173,7 @@ msgstr "被发现的dup SHA1"
 
 #: src/core/downloads.c:6070 src/core/downloads.c:6078
 #: src/core/downloads.c:7266 src/core/downloads.c:7304
-#: src/core/downloads.c:9354
+#: src/core/downloads.c:9358
 msgid "Stopped data (EOF)"
 msgstr "中止的数据 (EOF)"
 
@@ -204,7 +204,7 @@ msgstr "中止数据 (%s)"
 msgid "SHA1 mismatch detected"
 msgstr "检测到SHA不匹配"
 
-#: src/core/downloads.c:9276
+#: src/core/downloads.c:9280
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "允许浏览主机"
@@ -679,7 +679,7 @@ msgstr "文件"
 #: src/ui/gtk/gtk1/search.c:2204 src/ui/gtk/gtk2/downloads.c:476
 #: src/ui/gtk/gtk2/downloads.c:521 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtk2/gnet_stats.c:462 src/ui/gtk/gtk2/interface-glade.c:11662
-#: src/ui/gtk/gtk2/search.c:1498 src/ui/gtk/gtk2/upload_stats.c:270
+#: src/ui/gtk/gtk2/search.c:1521 src/ui/gtk/gtk2/upload_stats.c:270
 #: src/ui/gtk/gtk2/uploads.c:84
 msgid "Size"
 msgstr "大小"
@@ -4115,7 +4115,7 @@ msgid "contains the substring"
 msgstr ""
 
 #: src/ui/gtk/filter.c:77
-msgid "matches regex"
+msgid "matches the regex pattern"
 msgstr ""
 
 #: src/ui/gtk/filter.c:78
@@ -4222,143 +4222,143 @@ msgstr ""
 
 #: src/ui/gtk/filter_core.c:971
 #, c-format
-msgid "If filename matches the regex \"%s\" %s"
+msgid "If filename matches the regex pattern \"%s\" %s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:974
+#: src/ui/gtk/filter_core.c:975
 #, c-format
 msgid "If filename is \"%s\" %s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:984
+#: src/ui/gtk/filter_core.c:985
 #, fuzzy, c-format
 msgid "If IP address matches %s/%u"
 msgstr "条件：IP地址是否匹配"
 
-#: src/ui/gtk/filter_core.c:992
+#: src/ui/gtk/filter_core.c:993
 #, c-format
 msgid "If filesize is exactly %s (%s)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:999
+#: src/ui/gtk/filter_core.c:1000
 #, c-format
 msgid "If filesize is smaller than %s (%s)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1011
+#: src/ui/gtk/filter_core.c:1012
 #, c-format
 msgid "If filesize is between %s and %s (%s - %s)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1018
+#: src/ui/gtk/filter_core.c:1019
 #, c-format
 msgid "If urn:sha1 is same as for \"%s\""
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1022
+#: src/ui/gtk/filter_core.c:1023
 msgid "If urn:sha1 is not available"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1026
+#: src/ui/gtk/filter_core.c:1027
 msgid "Always"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1039
+#: src/ui/gtk/filter_core.c:1040
 msgid "busy is set"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1043
+#: src/ui/gtk/filter_core.c:1044
 msgid "busy is not set"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1053
+#: src/ui/gtk/filter_core.c:1054
 msgid "push is set"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1058
+#: src/ui/gtk/filter_core.c:1059
 msgid "push is not set"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1068
+#: src/ui/gtk/filter_core.c:1069
 msgid "stable is set"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1073
+#: src/ui/gtk/filter_core.c:1074
 msgid "stable is not set"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1081
+#: src/ui/gtk/filter_core.c:1082
 #, c-format
 msgid "If flag %s%s%s%s%s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1085
+#: src/ui/gtk/filter_core.c:1086
 msgid "Always (all flags ignored)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1098
+#: src/ui/gtk/filter_core.c:1099
 msgid "DISPLAY is undefined"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1102 src/ui/gtk/filter_core.c:2429
+#: src/ui/gtk/filter_core.c:1103 src/ui/gtk/filter_core.c:2430
 #: src/ui/gtk/gtk1/interface-glade.c:9763
 #: src/ui/gtk/gtk2/interface-glade.c:9281
 msgid "DISPLAY"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1106 src/ui/gtk/filter_core.c:2430
+#: src/ui/gtk/filter_core.c:1107 src/ui/gtk/filter_core.c:2431
 msgid "DON'T DISPLAY"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1118
+#: src/ui/gtk/filter_core.c:1119
 msgid "DOWNLOAD is undefined"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1123 src/ui/gtk/filter_core.c:2431
+#: src/ui/gtk/filter_core.c:1124 src/ui/gtk/filter_core.c:2432
 #: src/ui/gtk/gtk1/interface-glade.c:9712
 #: src/ui/gtk/gtk2/interface-glade.c:9212
 msgid "DOWNLOAD"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1128 src/ui/gtk/filter_core.c:2432
+#: src/ui/gtk/filter_core.c:1129 src/ui/gtk/filter_core.c:2433
 msgid "DON'T DOWNLOAD"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1138
+#: src/ui/gtk/filter_core.c:1139
 #, c-format
 msgid "If flag %s%s%s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1142
+#: src/ui/gtk/filter_core.c:1143
 msgid "Always (all states ignored)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1167
+#: src/ui/gtk/filter_core.c:1168
 #, c-format
 msgid "%s%s %s jump to \"%s\""
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1168
+#: src/ui/gtk/filter_core.c:1169
 msgid "(Negated) "
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1169
+#: src/ui/gtk/filter_core.c:1170
 msgid "(deactivated)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1171
+#: src/ui/gtk/filter_core.c:1172
 msgid "(invalid)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:2427
+#: src/ui/gtk/filter_core.c:2428
 msgid "Global (pre)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:2428
+#: src/ui/gtk/filter_core.c:2429
 msgid "Global (post)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:2433
+#: src/ui/gtk/filter_core.c:2434
 msgid "RETURN"
 msgstr ""
 
@@ -5030,18 +5030,18 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:1447
 #: src/ui/gtk/gtk1/interface-glade.c:1777
-#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1102
+#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1125
 #: src/ui/gtk/main.c:138
 msgid "Search"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:1456
 #: src/ui/gtk/gtk1/interface-glade.c:3025 src/ui/gtk/gtk2/hcache.c:49
-#: src/ui/gtk/gtk2/search.c:1103
+#: src/ui/gtk/gtk2/search.c:1126
 msgid "Hits"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1104
+#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1127
 msgid "New"
 msgstr ""
 
@@ -5137,7 +5137,7 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:4074
 #: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2214
 #: src/ui/gtk/gtk1/search.c:2220 src/ui/gtk/gtk2/downloads.c:478
-#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1500
+#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1523
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Loc"
 msgstr ""
@@ -5182,7 +5182,7 @@ msgid "Uptime"
 msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2231
-#: src/ui/gtk/gtk1/search.c:2237 src/ui/gtk/gtk2/search.c:1502
+#: src/ui/gtk/gtk1/search.c:2237 src/ui/gtk/gtk2/search.c:1525
 msgid "Info"
 msgstr ""
 
@@ -5631,7 +5631,7 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2174
 #: src/ui/gtk/gtk1/search.c:2180 src/ui/gtk/gtk2/fileinfo.c:613
-#: src/ui/gtk/gtk2/search.c:1495
+#: src/ui/gtk/gtk2/search.c:1518
 msgid "File"
 msgstr ""
 
@@ -5923,7 +5923,7 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:400
 #: src/ui/gtk/gtk1/search.c:1880 src/ui/gtk/gtk1/search.c:1976
 #: src/ui/gtk/gtk2/interface-glade.c:5272 src/ui/gtk/gtk2/search.c:529
-#: src/ui/gtk/gtk2/search.c:1206 src/ui/gtk/gtk2/search.c:1324
+#: src/ui/gtk/gtk2/search.c:1229 src/ui/gtk/gtk2/search.c:1347
 msgid "(no search)"
 msgstr ""
 
@@ -8366,31 +8366,31 @@ msgid_plural "Discarded %u results"
 msgstr[0] ""
 
 #: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
-#: src/ui/gtk/gtk2/search.c:1496
+#: src/ui/gtk/gtk2/search.c:1519
 msgid "Extension"
 msgstr ""
 
 #: src/ui/gtk/gtk1/search.c:2190 src/ui/gtk/gtk1/search.c:2196
-#: src/ui/gtk/gtk2/search.c:1497
+#: src/ui/gtk/gtk2/search.c:1520
 #, fuzzy
 msgid "Encoding"
 msgstr "流入："
 
 #: src/ui/gtk/gtk1/search.c:2206 src/ui/gtk/gtk1/search.c:2212
-#: src/ui/gtk/gtk2/search.c:1499
+#: src/ui/gtk/gtk2/search.c:1522
 msgid "#"
 msgstr ""
 
 #: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
-#: src/ui/gtk/gtk2/search.c:1501
+#: src/ui/gtk/gtk2/search.c:1524
 msgid "Metadata"
 msgstr ""
 
-#: src/ui/gtk/gtk1/search.c:2500 src/ui/gtk/gtk2/search.c:1836
+#: src/ui/gtk/gtk1/search.c:2500 src/ui/gtk/gtk2/search.c:1859
 msgid "Not in database"
 msgstr ""
 
-#: src/ui/gtk/gtk1/search.c:2534 src/ui/gtk/gtk2/search.c:1805
+#: src/ui/gtk/gtk1/search.c:2534 src/ui/gtk/gtk2/search.c:1828
 msgid "Query queued..."
 msgstr ""
 

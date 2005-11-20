@@ -70,8 +70,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-19 16:13+0900\n"
-"PO-Revision-Date: 2005-11-19 16:39+0900\n"
+"POT-Creation-Date: 2005-11-20 11:43+0900\n"
+"PO-Revision-Date: 2005-11-20 11:46+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -229,7 +229,7 @@ msgstr "重複する SHA1 を発見しました"
 
 #: src/core/downloads.c:6070 src/core/downloads.c:6078
 #: src/core/downloads.c:7266 src/core/downloads.c:7304
-#: src/core/downloads.c:9354
+#: src/core/downloads.c:9358
 msgid "Stopped data (EOF)"
 msgstr "データ受信中に中断されました (EOF)"
 
@@ -259,7 +259,7 @@ msgstr "データ受信中に中断されました (%s)"
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 の不一致を検出しました"
 
-#: src/core/downloads.c:9276
+#: src/core/downloads.c:9280
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<ホスト %s の閲覧>"
@@ -735,7 +735,7 @@ msgstr "ファイル数"
 #: src/ui/gtk/gtk1/search.c:2204 src/ui/gtk/gtk2/downloads.c:476
 #: src/ui/gtk/gtk2/downloads.c:521 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtk2/gnet_stats.c:462 src/ui/gtk/gtk2/interface-glade.c:11662
-#: src/ui/gtk/gtk2/search.c:1498 src/ui/gtk/gtk2/upload_stats.c:270
+#: src/ui/gtk/gtk2/search.c:1521 src/ui/gtk/gtk2/upload_stats.c:270
 #: src/ui/gtk/gtk2/uploads.c:84
 msgid "Size"
 msgstr "大きさ"
@@ -4541,7 +4541,7 @@ msgid "contains the substring"
 msgstr "このサブ文字列を含む"
 
 #: src/ui/gtk/filter.c:77
-msgid "matches regex"
+msgid "matches the regex pattern"
 msgstr "正規表現に一致する"
 
 #: src/ui/gtk/filter.c:78
@@ -4650,143 +4650,143 @@ msgstr "ファイル名がサブ文字列 \"%s\" %s を含む"
 
 #: src/ui/gtk/filter_core.c:971
 #, c-format
-msgid "If filename matches the regex \"%s\" %s"
+msgid "If filename matches the regex pattern \"%s\" %s"
 msgstr "ファイル名が正規表現 \"%s\" %s に一致する"
 
-#: src/ui/gtk/filter_core.c:974
+#: src/ui/gtk/filter_core.c:975
 #, c-format
 msgid "If filename is \"%s\" %s"
 msgstr "ファイル名が \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:984
+#: src/ui/gtk/filter_core.c:985
 #, c-format
 msgid "If IP address matches %s/%u"
 msgstr "IP アドレスが %s/%u に一致する"
 
-#: src/ui/gtk/filter_core.c:992
+#: src/ui/gtk/filter_core.c:993
 #, c-format
 msgid "If filesize is exactly %s (%s)"
 msgstr "大きさが正確に %s バイト (%s)"
 
-#: src/ui/gtk/filter_core.c:999
+#: src/ui/gtk/filter_core.c:1000
 #, c-format
 msgid "If filesize is smaller than %s (%s)"
 msgstr "大きさが %s バイト (%s) より小さい"
 
-#: src/ui/gtk/filter_core.c:1011
+#: src/ui/gtk/filter_core.c:1012
 #, c-format
 msgid "If filesize is between %s and %s (%s - %s)"
 msgstr "大きさが %s 〜 %s バイト (%s - %s)"
 
-#: src/ui/gtk/filter_core.c:1018
+#: src/ui/gtk/filter_core.c:1019
 #, c-format
 msgid "If urn:sha1 is same as for \"%s\""
 msgstr "URN:SHA1 が \"%s\" と同じ"
 
-#: src/ui/gtk/filter_core.c:1022
+#: src/ui/gtk/filter_core.c:1023
 msgid "If urn:sha1 is not available"
 msgstr "URN:SHA1 がない"
 
-#: src/ui/gtk/filter_core.c:1026
+#: src/ui/gtk/filter_core.c:1027
 msgid "Always"
 msgstr "常に"
 
-#: src/ui/gtk/filter_core.c:1039
+#: src/ui/gtk/filter_core.c:1040
 msgid "busy is set"
 msgstr "\"使用中\" が設定されています"
 
-#: src/ui/gtk/filter_core.c:1043
+#: src/ui/gtk/filter_core.c:1044
 msgid "busy is not set"
 msgstr "\"使用中\" は設定されていません"
 
-#: src/ui/gtk/filter_core.c:1053
+#: src/ui/gtk/filter_core.c:1054
 msgid "push is set"
 msgstr "\"プッシュ\" が設定されています"
 
-#: src/ui/gtk/filter_core.c:1058
+#: src/ui/gtk/filter_core.c:1059
 msgid "push is not set"
 msgstr "\"プッシュ\" は設定されていません"
 
-#: src/ui/gtk/filter_core.c:1068
+#: src/ui/gtk/filter_core.c:1069
 msgid "stable is set"
 msgstr "\"安定\" が設定されています"
 
-#: src/ui/gtk/filter_core.c:1073
+#: src/ui/gtk/filter_core.c:1074
 msgid "stable is not set"
 msgstr "\"安定\" は設定されていません"
 
-#: src/ui/gtk/filter_core.c:1081
+#: src/ui/gtk/filter_core.c:1082
 #, c-format
 msgid "If flag %s%s%s%s%s"
 msgstr "フラッグが %s%s%s%s%s"
 
-#: src/ui/gtk/filter_core.c:1085
+#: src/ui/gtk/filter_core.c:1086
 msgid "Always (all flags ignored)"
 msgstr "常に (全てのフラッグを無視)"
 
-#: src/ui/gtk/filter_core.c:1098
+#: src/ui/gtk/filter_core.c:1099
 msgid "DISPLAY is undefined"
 msgstr "\"表示\" が未定義です"
 
-#: src/ui/gtk/filter_core.c:1102 src/ui/gtk/filter_core.c:2429
+#: src/ui/gtk/filter_core.c:1103 src/ui/gtk/filter_core.c:2430
 #: src/ui/gtk/gtk1/interface-glade.c:9763
 #: src/ui/gtk/gtk2/interface-glade.c:9281
 msgid "DISPLAY"
 msgstr "表示"
 
-#: src/ui/gtk/filter_core.c:1106 src/ui/gtk/filter_core.c:2430
+#: src/ui/gtk/filter_core.c:1107 src/ui/gtk/filter_core.c:2431
 msgid "DON'T DISPLAY"
 msgstr "表示しない"
 
-#: src/ui/gtk/filter_core.c:1118
+#: src/ui/gtk/filter_core.c:1119
 msgid "DOWNLOAD is undefined"
 msgstr "\"ダウンロード\" が未定義です"
 
-#: src/ui/gtk/filter_core.c:1123 src/ui/gtk/filter_core.c:2431
+#: src/ui/gtk/filter_core.c:1124 src/ui/gtk/filter_core.c:2432
 #: src/ui/gtk/gtk1/interface-glade.c:9712
 #: src/ui/gtk/gtk2/interface-glade.c:9212
 msgid "DOWNLOAD"
 msgstr "ダウンロード"
 
-#: src/ui/gtk/filter_core.c:1128 src/ui/gtk/filter_core.c:2432
+#: src/ui/gtk/filter_core.c:1129 src/ui/gtk/filter_core.c:2433
 msgid "DON'T DOWNLOAD"
 msgstr "ダウンロードしない"
 
-#: src/ui/gtk/filter_core.c:1138
+#: src/ui/gtk/filter_core.c:1139
 #, c-format
 msgid "If flag %s%s%s"
 msgstr "フラッグが %s%s%s"
 
-#: src/ui/gtk/filter_core.c:1142
+#: src/ui/gtk/filter_core.c:1143
 msgid "Always (all states ignored)"
 msgstr "常に (全ての状態値は無視)"
 
-#: src/ui/gtk/filter_core.c:1167
+#: src/ui/gtk/filter_core.c:1168
 #, c-format
 msgid "%s%s %s jump to \"%s\""
 msgstr "%s%s %s は \"%s\" に分岐"
 
-#: src/ui/gtk/filter_core.c:1168
+#: src/ui/gtk/filter_core.c:1169
 msgid "(Negated) "
 msgstr "(無効化) "
 
-#: src/ui/gtk/filter_core.c:1169
+#: src/ui/gtk/filter_core.c:1170
 msgid "(deactivated)"
 msgstr "(非活生化)"
 
-#: src/ui/gtk/filter_core.c:1171
+#: src/ui/gtk/filter_core.c:1172
 msgid "(invalid)"
 msgstr "(無効)"
 
-#: src/ui/gtk/filter_core.c:2427
+#: src/ui/gtk/filter_core.c:2428
 msgid "Global (pre)"
 msgstr "全般 (事前処理)"
 
-#: src/ui/gtk/filter_core.c:2428
+#: src/ui/gtk/filter_core.c:2429
 msgid "Global (post)"
 msgstr "全般 (事後処理)"
 
-#: src/ui/gtk/filter_core.c:2433
+#: src/ui/gtk/filter_core.c:2434
 msgid "RETURN"
 msgstr "リターン"
 
@@ -5472,18 +5472,18 @@ msgstr "ナビゲーター"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1447
 #: src/ui/gtk/gtk1/interface-glade.c:1777
-#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1102
+#: src/ui/gtk/gtk1/interface-glade.c:5543 src/ui/gtk/gtk2/search.c:1125
 #: src/ui/gtk/main.c:138
 msgid "Search"
 msgstr "検索"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1456
 #: src/ui/gtk/gtk1/interface-glade.c:3025 src/ui/gtk/gtk2/hcache.c:49
-#: src/ui/gtk/gtk2/search.c:1103
+#: src/ui/gtk/gtk2/search.c:1126
 msgid "Hits"
 msgstr "ヒット数"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1104
+#: src/ui/gtk/gtk1/interface-glade.c:1464 src/ui/gtk/gtk2/search.c:1127
 msgid "New"
 msgstr "新規"
 
@@ -5588,7 +5588,7 @@ msgstr "ホスト"
 #: src/ui/gtk/gtk1/interface-glade.c:4074
 #: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2214
 #: src/ui/gtk/gtk1/search.c:2220 src/ui/gtk/gtk2/downloads.c:478
-#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1500
+#: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1523
 #: src/ui/gtk/gtk2/uploads.c:83
 msgid "Loc"
 msgstr "場所"
@@ -5633,7 +5633,7 @@ msgid "Uptime"
 msgstr "稼動時間"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2231
-#: src/ui/gtk/gtk1/search.c:2237 src/ui/gtk/gtk2/search.c:1502
+#: src/ui/gtk/gtk1/search.c:2237 src/ui/gtk/gtk2/search.c:1525
 msgid "Info"
 msgstr "情報"
 
@@ -6118,7 +6118,7 @@ msgstr "取得ファイル"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2174
 #: src/ui/gtk/gtk1/search.c:2180 src/ui/gtk/gtk2/fileinfo.c:613
-#: src/ui/gtk/gtk2/search.c:1495
+#: src/ui/gtk/gtk2/search.c:1518
 msgid "File"
 msgstr "ファイル"
 
@@ -6429,7 +6429,7 @@ msgstr "検索を閉じる(_O)"
 #: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:400
 #: src/ui/gtk/gtk1/search.c:1880 src/ui/gtk/gtk1/search.c:1976
 #: src/ui/gtk/gtk2/interface-glade.c:5272 src/ui/gtk/gtk2/search.c:529
-#: src/ui/gtk/gtk2/search.c:1206 src/ui/gtk/gtk2/search.c:1324
+#: src/ui/gtk/gtk2/search.c:1229 src/ui/gtk/gtk2/search.c:1347
 msgid "(no search)"
 msgstr "(検索無し)"
 
@@ -8969,30 +8969,30 @@ msgid_plural "Discarded %u results"
 msgstr[0] "%u 件の結果を破棄しました。"
 
 #: src/ui/gtk/gtk1/search.c:2182 src/ui/gtk/gtk1/search.c:2188
-#: src/ui/gtk/gtk2/search.c:1496
+#: src/ui/gtk/gtk2/search.c:1519
 msgid "Extension"
 msgstr "拡張子"
 
 #: src/ui/gtk/gtk1/search.c:2190 src/ui/gtk/gtk1/search.c:2196
-#: src/ui/gtk/gtk2/search.c:1497
+#: src/ui/gtk/gtk2/search.c:1520
 msgid "Encoding"
 msgstr "エンコード方式"
 
 #: src/ui/gtk/gtk1/search.c:2206 src/ui/gtk/gtk1/search.c:2212
-#: src/ui/gtk/gtk2/search.c:1499
+#: src/ui/gtk/gtk2/search.c:1522
 msgid "#"
 msgstr "数"
 
 #: src/ui/gtk/gtk1/search.c:2223 src/ui/gtk/gtk1/search.c:2229
-#: src/ui/gtk/gtk2/search.c:1501
+#: src/ui/gtk/gtk2/search.c:1524
 msgid "Metadata"
 msgstr "メタデータ"
 
-#: src/ui/gtk/gtk1/search.c:2500 src/ui/gtk/gtk2/search.c:1836
+#: src/ui/gtk/gtk1/search.c:2500 src/ui/gtk/gtk2/search.c:1859
 msgid "Not in database"
 msgstr "データベースにありません"
 
-#: src/ui/gtk/gtk1/search.c:2534 src/ui/gtk/gtk2/search.c:1805
+#: src/ui/gtk/gtk1/search.c:2534 src/ui/gtk/gtk2/search.c:1828
 msgid "Query queued..."
 msgstr "検索クエリーをキューに入れました..."
 
