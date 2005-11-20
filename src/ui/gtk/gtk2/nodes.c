@@ -355,8 +355,6 @@ static void
 nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
 {
     gnet_node_status_t status;
-	const gchar *s;
-	size_t size;
 
     g_assert(info != NULL);
 
@@ -373,16 +371,6 @@ nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
 		atom_str_free(data->user_agent);
 	data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
 	data->country = info->country;
-
-	s = nodes_gui_common_status_str(&status);
-	size = 1 + strlen(s);
-	if (size > data->info_size) {
-		WFREE_NULL(data->info, data->info_size);
-		data->info = wcopy(s, size);
-		data->info_size = size;
-	} else {
-		memcpy(data->info, s, size);
-	}
 }
 
 /**
@@ -777,6 +765,22 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 
 	if (status.up_date)
 		data->uptime = delta_time(now, status.up_date);
+
+	/* Update the status line */
+	{	
+		const gchar *s;
+		size_t size;
+		
+		s = nodes_gui_common_status_str(&status);
+		size = 1 + strlen(s);
+		if (size > data->info_size) {
+			WFREE_NULL(data->info, data->info_size);
+			data->info = wcopy(s, size);
+			data->info_size = size;
+		} else {
+			memcpy(data->info, s, size);
+		}
+	}
 }
 
 /**
