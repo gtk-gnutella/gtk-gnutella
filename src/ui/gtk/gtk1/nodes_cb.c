@@ -207,10 +207,25 @@ void
 on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
+	GSList *sl;
+    GSList *node_list = NULL;
+    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+
+    g_assert(clist != NULL);
+
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	/* FIXME: Implement this */	
+    node_list = clist_collect_data(clist, TRUE, list_direct_equal);
+
+	for (sl = node_list; sl != NULL; sl = g_slist_next(sl)) {
+		gnet_node_t handle = GPOINTER_TO_UINT(sl->data);
+		gnet_node_info_t *info = guc_node_get_info(handle);
+
+		search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
+			info->gnet_guid, FALSE, NULL);
+		guc_node_free_info(info);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
