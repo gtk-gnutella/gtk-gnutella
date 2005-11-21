@@ -157,7 +157,6 @@ on_treeview_nodes_button_press_event(GtkWidget *unused_widget,
 	return FALSE;
 }
 
-#if 0
 /**
  * Creates and pops up the column chooser for ``treeview_nodes''
  */
@@ -175,7 +174,6 @@ on_popup_nodes_config_cols_activate(GtkItem *unused_menuitem,
     /* GtkColumnChooser takes care of cleaning up itself */
 	return TRUE;
 }
-#endif
 
 /**
  * Initiates a browse host request to the currently selected host.
