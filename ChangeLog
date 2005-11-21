@@ -1,7 +1,17 @@
 # since last version
 
+- (2005-11-21 - RAM)
+ * [GTK1] Added ability to launch a browse-host from a download or a node.
+ * Will now correctly mark as finished browse host entries which have
+   a known size (maked when they're done, that is).
+
+- (2005-11-17 - RAM)
+ * Added counting of received bytes during host browsing.
+ * Better handling of sudden file size knowledge.
+ * Update GUI information when size of browse host is known.
+
 - (2005-11-17 - JA)
- * PARQ now backsoff everytime a queued failed to send.
+ * PARQ now backs-off everytime a QUEUE failed to send.
 
 - (2005-11-15 - RAM)
  * Added client-side "browse host" support in the core.
