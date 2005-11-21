@@ -269,6 +269,7 @@ struct download {
 #define download_port(d)		((d)->server->key->port)
 #define download_vendor(d)		((d)->server->vendor)
 #define download_country(d)		((d)->server->country)
+#define download_hostname(d)	((d)->server->hostname)
 
 #define download_vendor_str(d) \
 	((d)->server->vendor ? (d)->server->vendor : "")
