@@ -3129,8 +3129,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 	if (size > fi->size)
 		fi_resize(fi, size);
 
-	if (!fi->file_size_known)
-		g_assert(!fi->use_swarming);
+	g_assert(fi->file_size_known || !fi->use_swarming);
 
 	return fi;
 }
@@ -4902,26 +4901,13 @@ file_info_timer(void)
 }
 
 /**
- * Purge all handles contained in list.
- */
-void
-fi_purge_by_handle_list(const GSList *list)
-{
-    const GSList *sl;
-
-    for (sl = list; NULL != sl; sl = g_slist_next(sl)) {
-        fi_purge((gnet_fi_t) GPOINTER_TO_UINT(sl->data));
-    }
-}
-
-/**
  * Kill all downloads associated with a fi and remove the fi itself.
  *
  * Will return FALSE if download could not be removed because it was still in
- * use. EG, when it is being verified.
+ * use, e.g. when it is being verified.
  * 		-- JA 25/10/03
  */
-gboolean
+static gboolean
 fi_purge(gnet_fi_t fih)
 {
 	GSList *sl;
@@ -4957,12 +4943,26 @@ fi_purge(gnet_fi_t fih)
 
 		g_assert(0 == fi->refcount);
 
-        file_info_unlink(fi);
+		if (!FILE_INFO_COMPLETE(fi))	/* Paranoid: don't lose if complete */
+			file_info_unlink(fi);
 		file_info_hash_remove(fi);
 		fi_free(fi);
 	}
 
 	return TRUE;
+}
+
+/**
+ * Purge all handles contained in list.
+ */
+void
+fi_purge_by_handle_list(const GSList *list)
+{
+    const GSList *sl;
+
+    for (sl = list; NULL != sl; sl = g_slist_next(sl)) {
+        fi_purge((gnet_fi_t) GPOINTER_TO_UINT(sl->data));
+    }
 }
 
 /**
