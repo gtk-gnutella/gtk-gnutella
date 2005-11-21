@@ -33,6 +33,8 @@ RCSID("$Id$");
 #include "gtk-missing.h"
 #include "columns.h"
 
+#include "gtk/statusbar.h"		/* XXX: whilst we have a FIXME for BH */
+
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
@@ -215,6 +217,7 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
 	/* FIXME: Implement this */	
+	statusbar_gui_warning(10, _("Not fully implemented yet"));
 }
 
 
