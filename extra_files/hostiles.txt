@@ -182,6 +182,10 @@
 70.86.48.0/24
 70.86.75.0/24
 
+# Generic pr0n spammer, adds search term to filenames (mostly WMVs)
+63.243.162.0/27
+63.243.181.0/27
+
 # ZIP files containing setup.exe, uses Shareaza, hosted by surfplanet.de
 85.88.9.0/26
 
