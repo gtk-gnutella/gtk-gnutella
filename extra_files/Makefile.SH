@@ -46,6 +46,11 @@ MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
 
+########################################################################
+# Automatically generated parameters -- do not edit
+
+SUBDIRS = el_GR en_US ja_JP
+
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
@@ -55,7 +60,9 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2005/10/26 08:28:52 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.3 2005/11/21 21:36:24 rmanfredi Exp $
+
+all::
 
 EXTRA_FILES = \
 	bogons.txt \
@@ -150,9 +157,9 @@ update:
 
 emptyrule::
 
-clean: local_clean
-realclean: local_realclean
-clobber: local_clobber
+clean: sub_clean local_clean
+realclean: sub_realclean local_realclean
+clobber: sub_clobber local_clobber
 
 local_clean::
 	if test -f core; then $(RM) core; fi
@@ -163,10 +170,10 @@ local_realclean:: local_clean
 local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
-install: local_install
-install.man: maybe_install.man
-deinstall: local_deinstall
-deinstall.man: maybe_deinstall.man
+install: local_install sub_install
+install.man: maybe_install.man sub_install.man
+deinstall: sub_deinstall local_deinstall
+deinstall.man: sub_deinstall.man maybe_deinstall.man
 
 install.man-no:
 deinstall.man-no:
@@ -195,25 +202,90 @@ local_clobber::
 	$(RM) tags
 
 ########################################################################
-# Empty rules for directories with no sub-directories -- do not edit
+# Rules for building in sub-directories -- do not edit
 
-all:
+subdirs:
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)) || exit 1; \
+	done
 
-local_install::
-	@echo "install in $(CURRENT) done."
+sub_install::
+	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
 
-local_deinstall::
-	@echo "deinstall in $(CURRENT) done."
+sub_deinstall::
+	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall...
 
-local_install.man::
-	@echo "install.man in $(CURRENT) done."
+sub_install.man::
+	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
 
-local_deinstall.man::
-	@echo "deinstall.man in $(CURRENT) done."
+sub_deinstall.man::
+	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall.man...
+
+sub_clean::
+	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "clean...
+
+sub_realclean::
+	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "realclean...
+
+sub_clobber::
+	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=
+	@echo "Back to $(CURRENT) for "clobber...
+
+tag::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  tag) || exit 1; \
+	done
 
 Makefiles::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		echo "Making "Makefiles" in $(DIR)$$i..."; \
+		(cd $$i || exit 1; \
+		if test ! -f Makefile; then /bin/sh Makefile.SH; fi; \
+		$(MAKE) $(MFLAGS) Makefiles) || exit 1;\
+	done
 
-Makefiles.SH::
+Makefiles.SH:: Makefile.SH
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		case "$(DIR)$$i/" in \
+		*/*/*/*/) newtop=../../../..;; \
+		*/*/*/) newtop=../../..;; \
+		*/*/) newtop=../..;; \
+		*/) newtop=..;; \
+		esac; \
+		case "$(TOP)" in \
+		/*) newtop="$(TOP)" ;; \
+		esac; \
+		echo "Making Makefiles.SH in $(DIR)$$i..."; \
+		(cd $$i || exit 1; \
+			if test -f Jmakefile; then \
+				$(MAKE) $(MFLAGS) -f ../Makefile \
+					Makefile TOP=$$newtop CURRENT=$(DIR)$$i && \
+				$(MAKE) $(MFLAGS) Makefiles.SH; \
+			fi; \
+		) || exit 1; \
+	done
+
+all::
+	@$(MAKE) subdirs TARGET=all VERB="Making all" FLAGS=
+
+local_install::
+local_deinstall::
+local_install.man::
+local_deinstall.man::
 
 !NO!SUBS!
 chmod 644 Makefile
