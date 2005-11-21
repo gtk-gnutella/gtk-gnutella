@@ -7489,6 +7489,19 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 
     info->addr = node->addr;
     info->port = node->port;
+
+	if (host_addr_initialized(node->gnet_addr)) {
+		info->gnet_addr = node->gnet_addr;
+		info->gnet_port = node->gnet_port;
+	} else {
+		info->gnet_addr = zero_host_addr;
+		info->gnet_port = 0;
+	}
+
+	if (node->gnet_guid != NULL)
+		memcpy(info->gnet_guid, node->gnet_guid, GUID_RAW_SIZE);
+	else
+		memcpy(info->gnet_guid, blank_guid, GUID_RAW_SIZE);
 }
 
 /**
