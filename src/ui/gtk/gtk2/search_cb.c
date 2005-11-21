@@ -1116,21 +1116,13 @@ search_gui_browse_selected(void)
 		hostport = host_addr_port_to_string(rc->results_set->addr,
 						rc->results_set->port);
 
-	if (
-		search_gui_new_browse_host(
-			rc->results_set->hostname,
-			rc->results_set->addr,
-			rc->results_set->port,
-			rc->results_set->guid,
-			0 != (rc->results_set->status & ST_FIREWALL),
-			rc->results_set->proxies)
-	) {
-        statusbar_gui_message(15,
-			_("Added search showing browsing results for %s"), hostport);
-	} else {
-        statusbar_gui_message(10,
-			_("Could not launch browse host for %s"), hostport);
-	}
+	(void) search_gui_new_browse_host(
+		rc->results_set->hostname,
+		rc->results_set->addr,
+		rc->results_set->port,
+		rc->results_set->guid,
+		0 != (rc->results_set->status & ST_FIREWALL),
+		rc->results_set->proxies);
 
 	gtk_tree_path_free(path);
 	path = NULL;

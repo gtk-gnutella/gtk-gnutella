@@ -878,28 +878,14 @@ on_button_search_passive_clicked(GtkButton *unused_button,
 void
 search_gui_browse_selected(void)
 {
-	const gchar *hostport;
-
 	if (!last_host.valid) {
         statusbar_gui_message(15, "*** No search result selected! ***");
 		return;
 	}
 
-	hostport = last_host.hostname ?
-		hostname_port_to_string(last_host.hostname, last_host.port) :
-		host_addr_port_to_string(last_host.addr, last_host.port);
-
-	if (
-		search_gui_new_browse_host(
-			last_host.hostname, last_host.addr, last_host.port,
-			last_host.guid, last_host.push, last_host.proxies)
-	) {
-        statusbar_gui_message(15,
-			_("Added search showing browsing results for %s"), hostport);
-	} else {
-        statusbar_gui_message(10,
-			_("Could not launch browse host for %s"), hostport);
-	}
+	(void) search_gui_new_browse_host(
+		last_host.hostname, last_host.addr, last_host.port,
+		last_host.guid, last_host.push, last_host.proxies);
 }
 
 /**
