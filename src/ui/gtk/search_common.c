@@ -44,6 +44,8 @@ RCSID("$Id$");
 #include "search_xml.h"
 #include <libxml/parser.h>
 
+#include "gtk/statusbar.h"
+
 #include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
 #include "if/core/downloads.h"
@@ -1892,17 +1894,26 @@ search_gui_new_browse_host(
 			 search_sort_default_column, search_sort_default_order,
 			 SEARCH_BROWSE | SEARCH_ENABLED, &search)
 	)
-		return FALSE;
+		goto failed;
 
 	if (
 		!guc_search_browse(search->search_handle, hostname, addr, port,
 			guid, push, proxies)
 	) {
 		search_gui_close_search(search);
-		return FALSE;
+		goto failed;
 	}
 
+	statusbar_gui_message(15,
+		_("Added search showing browsing results for %s"), hostport);
+
 	return TRUE;
+
+failed:
+	statusbar_gui_message(10,
+		_("Could not launch browse host for %s"), hostport);
+
+	return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
