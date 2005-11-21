@@ -195,7 +195,6 @@ fi_gui_set_details(gnet_fi_t fih)
     gchar **aliases;
     guint n;
     GtkCList *cl_aliases;
-	gboolean in_progress = FALSE;
 	gchar bytes[32];
 
     fi = guc_fi_get_info(fih);
@@ -220,8 +219,6 @@ fi_gui_set_details(gnet_fi_t fih)
         gtk_clist_append(cl_aliases, &aliases[n]);
     gtk_clist_thaw(cl_aliases);
 
-	in_progress = (fis.done != fis.size);
-
     g_strfreev(aliases);
     guc_fi_free_info(fi);
 
@@ -231,7 +228,7 @@ fi_gui_set_details(gnet_fi_t fih)
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 
 	gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
-							 in_progress);
+							 TRUE);
 }
 
 /**
