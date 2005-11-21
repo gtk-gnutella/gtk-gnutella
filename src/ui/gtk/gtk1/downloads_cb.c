@@ -31,6 +31,7 @@ RCSID("$Id$");
 #include "gtk/downloads_common.h"
 #include "gtk/statusbar.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/search.h"
 #include "downloads_cb.h"
 
 #include "if/bridge/ui2c.h"
@@ -235,16 +236,51 @@ on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
 }
 
 /**
+ * Initiate a "browse host" on the selection in the given tree
+ */
+static void
+browse_host_selected(GtkCTree *ctree)
+{
+    struct download *d;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
+
+	node_list = g_list_copy(GTK_CLIST(ctree)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree, node_list, TRUE, TRUE);
+
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
+
+		if (!d) {
+			g_warning("on_popup_downloads_browse_host_activate():"
+                " row has NULL data");
+			continue;
+		}
+
+		search_gui_new_browse_host(
+			download_hostname(d), download_addr(d), download_port(d),
+			download_guid(d), FALSE, NULL);
+	}
+
+	g_list_free(data_list);
+	g_list_free(node_list);
+}
+
+/**
  * Initiates a browse host request to the currently selected host.
  */
 void
 on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	/* FIXME: Implement this */	
+	browse_host_selected(ctree_downloads);
 }
 
 /**
@@ -254,12 +290,14 @@ void
 on_popup_queue_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
+
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	/* FIXME: Implement this */	
+	browse_host_selected(ctree_downloads_queue);
 }
-
 
 /**
  *	Abort all downloads with names identical to any of the selected downloads
