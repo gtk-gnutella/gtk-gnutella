@@ -124,8 +124,12 @@ typedef struct gnet_node_info {
 	gint country;			/**< Country information */
 	union vendor_code vcode;/**< Vendor code (vcode.u32 == 0 when unknown) */
 
-	host_addr_t addr;		/**< ip of the node */
-	guint16 port;			/**< port of the node */
+	host_addr_t addr;		/**< ip of the node (connected) */
+	guint16 port;			/**< port of the node (connected) */
+
+	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
+	guint16 gnet_port;		/**< Advertised Gnutella listening port */
+	gchar gnet_guid[GUID_RAW_SIZE];		/**< Seen on network (can be blank) */
 } gnet_node_info_t;
 
 /*
