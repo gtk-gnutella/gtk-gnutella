@@ -321,12 +321,6 @@ guc_fi_purge_by_handle_list(const GSList *list)
 	fi_purge_by_handle_list(list);
 }
 
-gboolean
-guc_fi_purge(gnet_fi_t fih)
-{
-	return fi_purge(fih);
-}
-
 void
 guc_fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
     frequency_t t, guint32 interval)
