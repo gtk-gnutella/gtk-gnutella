@@ -187,11 +187,28 @@ static void
 browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct browse_ctx *bc = rx_owner(rx);
+	gboolean error = FALSE;
 
 	while (browse_data_read(bc, mb)) {
-		if (!browse_data_process(bc))
+		if (!browse_data_process(bc)) {
+			error = TRUE;
 			break;
+		}
 	}
+
+	/*
+	 * When we receive browse-host data with an advertised size, the remote
+	 * end will simply stop emitting data when we're done and could maintain
+	 * the HTTP connection alive.  Therefore, since we don't intend to
+	 * issue any more request on that connection, we must check for completion.
+	 *
+	 * When chunked data is received (unknown size), the last chunk will
+	 * trigger completion via an RX-callback invoked from the dechunking
+	 * layer, but in that case it is harmless to make the call anyway.
+	 */
+
+	if (!error)
+		download_browse_maybe_finished(bc->owner);
 
 	pmsg_free(mb);
 }

@@ -3920,11 +3920,11 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
 
+	fi->lifecount++;
 	if (stamp == MAGIC_TIME)			/* Download recreated at startup */
 		file_info_add_source(fi, d);	/* Preserve original "ntime" */
 	else
 		file_info_add_new_source(fi, d);
-	fi->lifecount++;
 
 	download_add_to_list(d, DL_LIST_WAITING);
 	sl_downloads = g_slist_prepend(sl_downloads, d);
@@ -9274,22 +9274,17 @@ download_browse_start(const gchar *name, const gchar *hostname,
 	struct download *d;
 	fileinfo_t *fi;
 	gchar *dname;
-	gchar fake_guid[GUID_RAW_SIZE];
-		
+
+	if (!host_addr_initialized(addr))
+		return FALSE;
 
 	gm_snprintf(dl_tmp, sizeof dl_tmp, _("<Browse Host %s>"), name);
 
 	dname = atom_str_get(dl_tmp);
 	fi = file_info_get_browse(dname);
 
-	if (!guid) {
-		/*
-		 * FIXME: create_download() requires a non-NULL guid but in many cases
-		 * there's no GUID (arbitrary browse host, magnets, arbitrary URLs).
-		 */
-		guid_random_fill(fake_guid);
-		guid = fake_guid;
-	}
+	if (!guid)
+		guid = blank_guid;
 
 	d = create_download(dname, "/", 0, 0, addr, port, guid, hostname,
 			NULL, tm_time(), push, TRUE, FALSE, fi, proxies, 0);
@@ -9366,7 +9361,7 @@ download_rx_done(struct download *d)
 {
 	fileinfo_t *fi = d->file_info;
 
-	g_assert(d->file_info != NULL);
+	g_assert(fi != NULL);
 
 	if (!fi->file_size_known) {
 		file_info_size_known(d, fi->done);
@@ -9386,13 +9381,28 @@ download_browse_received(struct download *d, ssize_t received)
 {
 	fileinfo_t *fi = d->file_info;
 
-	g_assert(d->file_info != NULL);
+	g_assert(fi != NULL);
 
 	file_info_update(d, d->pos, d->pos + received, DL_CHUNK_DONE);
 
 	d->pos += received;
 	d->last_update = tm_time();
 	fi->recv_amount += received;
+}
+
+/**
+ * Called when all the received data so far have been processed to
+ * check whether we are done.
+ */
+void
+download_browse_maybe_finished(struct download *d)
+{
+	fileinfo_t *fi = d->file_info;
+
+	g_assert(fi != NULL);
+
+	if (FILE_INFO_COMPLETE(fi))
+		download_rx_done(d);
 }
 
 /*

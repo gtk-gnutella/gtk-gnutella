@@ -116,6 +116,7 @@ void download_abort_browse_host(gpointer download, gnet_search_t sh);
 void download_got_eof(struct download *d);
 void download_rx_done(struct download *d);
 void download_browse_received(struct download *d, ssize_t received);
+void download_browse_maybe_finished(struct download *d);
 
 #endif /* _core_downloads_h_ */
 
