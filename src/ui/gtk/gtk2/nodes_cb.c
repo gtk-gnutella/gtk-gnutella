@@ -185,7 +185,7 @@ on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	/* FIXME: Implement this */	
+	nodes_gui_browse_selected();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

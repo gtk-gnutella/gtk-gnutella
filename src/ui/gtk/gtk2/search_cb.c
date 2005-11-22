@@ -1083,49 +1083,44 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	search_gui_request_bitzi_data();
 }
 
-/**
- * Request host browsing for the selected host.
- */
-void
-search_gui_browse_selected(void)
+static void
+search_gui_browse_selected_helper(gpointer data, gpointer unused_udata)
 {
-	GtkTreeView *tv;
-	GtkTreePath *path;
-	const gchar *hostport;
-	const record_t *rc;
-	search_t *search;
-   
-	search = search_gui_get_current_search();
-	if (!search)
-		return;
+	const record_t *rc = data;
 
-	tv = GTK_TREE_VIEW(search->tree_view);
-	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path) {
-        statusbar_gui_message(15, "*** No search result selected! ***");
-		return;
-	}
-	rc = search_gui_get_record_at_path(tv, path);
-	if (!rc)
-		return;
-
-	if (rc->results_set->hostname)
-		hostport = hostname_port_to_string(rc->results_set->hostname,
-						rc->results_set->port);
-	else
-		hostport = host_addr_port_to_string(rc->results_set->addr,
-						rc->results_set->port);
-
-	(void) search_gui_new_browse_host(
+	(void) unused_udata;
+	
+	search_gui_new_browse_host(
 		rc->results_set->hostname,
 		rc->results_set->addr,
 		rc->results_set->port,
 		rc->results_set->guid,
 		0 != (rc->results_set->status & ST_FIREWALL),
 		rc->results_set->proxies);
+}
 
-	gtk_tree_path_free(path);
-	path = NULL;
+/**
+ * Request host browsing for the selected host.
+ */
+void
+search_gui_browse_selected(void)
+{
+	search_t *search;
+	GtkTreeSelection *selection;
+    GSList *sl;
+   
+	search = search_gui_get_current_search();
+	if (!search)
+		return;
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+    sl = tree_selection_collect_data(
+			gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view)),
+			search_gui_get_record,
+			gui_record_host_eq);
+    g_slist_foreach(sl, search_gui_browse_selected_helper, NULL);
+    g_slist_free(sl);
+
 }
 
 void

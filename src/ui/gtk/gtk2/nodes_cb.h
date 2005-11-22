@@ -52,4 +52,5 @@ void on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 void nodes_gui_remove_selected(void);
 void nodes_gui_reverse_lookup_selected(void);
+void nodes_gui_browse_selected(void);
 #endif /* _gtk2_nodes_cb_h_ */

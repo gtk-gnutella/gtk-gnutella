@@ -48,6 +48,7 @@ RCSID("$Id$");
 #include "gtk/notebooks.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
+#include "gtk/search_common.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -873,15 +874,12 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 {
 	struct node_data *data;
 	gnet_node_info_t info;
-	GtkTreeIter parent;
-	gboolean has_parent;
 	gpointer key;
 
 	(void) unused_path;
 	(void) unused_data;
 
-	has_parent = gtk_tree_model_iter_parent(model, &parent, iter);
-	gtk_tree_model_get(model, has_parent ? &parent : iter, 0, &data, (-1));
+	gtk_tree_model_get(model, iter, 0, &data, (-1));
 	g_assert(NULL != find_node(data->handle));
 
 	key = GUINT_TO_POINTER(data->handle);
@@ -908,13 +906,43 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 void
 nodes_gui_reverse_lookup_selected(void)
 {
-	GtkTreeView *treeview;
+	GtkTreeView *tv;
 	GtkTreeSelection *selection;
 
-	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-	selection = gtk_tree_view_get_selection(treeview);
+	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	selection = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_reverse_lookup_selected_helper, NULL);
+}
+
+static inline void
+nodes_gui_browse_selected_helper(GtkTreeModel *model,
+		GtkTreePath *unused_path, GtkTreeIter *iter, gpointer unused_data)
+{
+	gnet_node_info_t *info;
+	struct node_data *data;
+
+	(void) unused_path;
+	(void) unused_data;
+	
+	gtk_tree_model_get(model, iter, 0, &data, (-1));
+	info = guc_node_get_info(data->handle);
+	search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
+		info->gnet_guid, FALSE, NULL);
+	guc_node_free_info(info);
+}
+
+void
+nodes_gui_browse_selected(void)
+{
+	GtkTreeView *tv;
+	GtkTreeSelection *selection;
+
+	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	selection = gtk_tree_view_get_selection(tv);
+	gtk_tree_selection_selected_foreach(selection,
+		nodes_gui_browse_selected_helper, NULL);
+	
 }
 
 /* vi: set ts=4 sw=4 cindent: */

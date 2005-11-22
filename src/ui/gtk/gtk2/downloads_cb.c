@@ -33,6 +33,7 @@ RCSID("$Id$");
 #include "gtk/statusbar.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/columns.h"
+#include "gtk/search_common.h"
 
 #include "if/gnet_property.h"
 #include "if/gui_property_priv.h"
@@ -47,6 +48,7 @@ typedef enum {
 	DL_ACTION_ABORT_HOST,
 	DL_ACTION_ABORT_NAMED,
 	DL_ACTION_ABORT_SHA1,
+	DL_ACTION_BROWSE,
 	DL_ACTION_CONNECT,
 	DL_ACTION_COPY_URL,
 	DL_ACTION_PUSH,
@@ -60,6 +62,7 @@ typedef enum {
 	DL_ACTION_QUEUED_ABORT_NAMED,
 	DL_ACTION_QUEUED_ABORT_HOST,
 	DL_ACTION_QUEUED_ABORT_SHA1,
+	DL_ACTION_QUEUED_BROWSE,
 	DL_ACTION_QUEUED_CONNECT,
 	DL_ACTION_QUEUED_COPY_URL,
 	DL_ACTION_QUEUED_START,
@@ -92,6 +95,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 	case DL_ACTION_ABORT:
 	case DL_ACTION_ABORT_HOST:
 	case DL_ACTION_ABORT_NAMED:
+	case DL_ACTION_BROWSE:
 	case DL_ACTION_CONNECT:
 	case DL_ACTION_COPY_URL:
 	case DL_ACTION_PUSH:
@@ -102,6 +106,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 	/* Queued stuff goes here */
 	case DL_ACTION_QUEUED_ABORT_HOST:
 	case DL_ACTION_QUEUED_ABORT_NAMED:
+	case DL_ACTION_QUEUED_BROWSE:
 	case DL_ACTION_QUEUED_CONNECT:
 	case DL_ACTION_QUEUED_COPY_URL:
 	case DL_ACTION_QUEUED_PUSH:
@@ -113,6 +118,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 		case DL_ACTION_ABORT_NAMED:
 		case DL_ACTION_REMOVE_FILE:
 		case DL_ACTION_QUEUE:
+		case DL_ACTION_BROWSE:
 		case DL_ACTION_CONNECT:
 		case DL_ACTION_COPY_URL:
 		case DL_ACTION_ABORT:
@@ -125,6 +131,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 		case DL_ACTION_QUEUED_ABORT:
 		case DL_ACTION_QUEUED_ABORT_HOST:
 		case DL_ACTION_QUEUED_ABORT_NAMED:
+		case DL_ACTION_QUEUED_BROWSE:
 		case DL_ACTION_QUEUED_CONNECT:
 		case DL_ACTION_QUEUED_COPY_URL:
 		case DL_ACTION_QUEUED_START:
@@ -169,6 +176,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 		case DL_ACTION_ABORT_NAMED:
 		case DL_ACTION_REMOVE_FILE:
 		case DL_ACTION_QUEUE:
+		case DL_ACTION_BROWSE:
 		case DL_ACTION_CONNECT:
 		case DL_ACTION_COPY_URL:
 		case DL_ACTION_ABORT:
@@ -177,6 +185,7 @@ dl_action(GtkTreeModel *model, GtkTreePath *unused_path,
 		case DL_ACTION_QUEUED_ABORT:
 		case DL_ACTION_QUEUED_ABORT_HOST:
 		case DL_ACTION_QUEUED_ABORT_NAMED:
+		case DL_ACTION_QUEUED_BROWSE:
 		case DL_ACTION_QUEUED_CONNECT:
 		case DL_ACTION_QUEUED_COPY_URL:
 		case DL_ACTION_QUEUED_START:
@@ -306,10 +315,22 @@ void
 on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
+	GSList *sl, *selected;
+
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	/* FIXME: Implement this */	
+   	selected = dl_action_select("treeview_downloads", DL_ACTION_BROWSE);
+	if (!selected)
+		return;
+
+	for (sl = selected; sl; sl = g_slist_next(sl)) {
+		const struct download *d = sl->data;
+   		search_gui_new_browse_host(
+			download_hostname(d), download_addr(d), download_port(d),
+			download_guid(d), FALSE, NULL);
+	}
+	g_slist_free(selected);
 }
 
 /**
@@ -319,10 +340,23 @@ void
 on_popup_queue_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
+	GSList *sl, *selected;
+
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	/* FIXME: Implement this */	
+   	selected = dl_action_select("treeview_downloads_queue",
+					DL_ACTION_QUEUED_BROWSE);
+	if (!selected)
+		return;
+
+	for (sl = selected; sl; sl = g_slist_next(sl)) {
+		const struct download *d = sl->data;
+   		search_gui_new_browse_host(
+			download_hostname(d), download_addr(d), download_port(d),
+			download_guid(d), FALSE, NULL);
+	}
+	g_slist_free(selected);
 }
 
 
