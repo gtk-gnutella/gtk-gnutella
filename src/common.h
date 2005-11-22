@@ -42,12 +42,12 @@
  * Constants
  */
 
-#define GTA_VERSION 0			  /**< major version */
-#define GTA_SUBVERSION 96		  /**< minor version */
-#define GTA_PATCHLEVEL 0		  /**< patch level or teeny version */
-#define GTA_REVISION "unstable"	  /**< unstable, beta, stable */
-#define GTA_REVCHAR "u"			  /**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2005-11-17"  /**< ISO 8601 format YYYY-MM-DD */
+#define GTA_VERSION 0				/**< major version */
+#define GTA_SUBVERSION 96			/**< minor version */
+#define GTA_PATCHLEVEL 0			/**< patch level or teeny version */
+#define GTA_REVISION "beta"			/**< unstable, beta, stable */
+#define GTA_REVCHAR "b"			/**< u - unstable, b - beta, none - stable */
+#define GTA_RELEASE "2005-11-22"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
