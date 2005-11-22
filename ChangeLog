@@ -17,6 +17,7 @@ Improvements:
 Under the hood:
 - Support for the epoll()/kqueue() system calls.
 - More optimistic PARQ ETA, and PARQ back-off when QUEUE are unanswered.
+- NFS-compatible session locking if anyone cares.
 
 - (2005-11-21 - RAM)
  * [GTK1] Added ability to launch a browse-host from a download or a node.
