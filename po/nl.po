@@ -4604,7 +4604,7 @@ msgstr "toon _Navigatie boom"
 #: src/ui/gtk/gtk1/interface-glade.c:1054
 #: src/ui/gtk/gtk2/interface-glade.c:2266
 msgid "show _Downloads"
-msgstr "Loaat _Downloads zien"
+msgstr "Laat _Downloads zien"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1071
 #: src/ui/gtk/gtk2/interface-glade.c:2272
@@ -4712,16 +4712,16 @@ msgstr "Resultaten"
 #: src/ui/gtk/gtk1/interface-glade.c:1464
 #: src/ui/gtk/gtk2/search.c:1127
 msgid "New"
-msgstr "NIeuw"
+msgstr "Nieuw"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1536
 #: src/ui/gtk/gtk2/interface-glade.c:2718
 msgid "Gnet connections"
-msgstr "gNet connecties"
+msgstr "Gnet connecties"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1555
 msgid "%v/%u Gnet nodes"
-msgstr "%v/%u gNet nodes"
+msgstr "%v/%u Gnet nodes"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1572
 msgid "uploads"
@@ -4792,7 +4792,7 @@ msgstr "Een passieve zoek opdracht geeft alle zoekopdrachten weer die langs deze
 #: src/ui/gtk/gtk1/interface-glade.c:1852
 #: src/ui/gtk/gtk2/interface-glade.c:3793
 msgid "GnutellaNet connections"
-msgstr "gnutellaNet verbindingen"
+msgstr "GnutellaNet verbindingen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1898
 #: src/ui/gtk/gtk1/interface-glade.c:3278
