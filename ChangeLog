@@ -7,17 +7,20 @@ New features:
 - Chinese and Greek translations of the user interface.
 - D-BUS plugging.
 - Added hot keys: F2, F8 and F9 (see menu View->...).
+- Searches are now created with a configurable expiration date.
 
 Improvements:
 - Optimization of the UTF-8 processing.
 - Better filename conversion to locale, with automagic charset detection.
 - General performance improvements in QRP and search filters.
 - Full "nl" translation.
+- Sorting persistence.
 
 Under the hood:
 - Support for the epoll()/kqueue() system calls.
 - More optimistic PARQ ETA, and PARQ back-off when QUEUE are unanswered.
 - NFS-compatible session locking if anyone cares.
+- Nifty property browser.
 
 - (2005-11-21 - RAM)
  * [GTK1] Added ability to launch a browse-host from a download or a node.
