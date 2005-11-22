@@ -49,7 +49,7 @@ RM = $rm -f
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = el_GR en_US ja_JP
+SUBDIRS = el en ja
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
@@ -60,7 +60,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.3 2005/11/21 21:36:24 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.4 2005/11/22 19:07:59 rmanfredi Exp $
 
 all::
 
