@@ -26,17 +26,22 @@ signal.
 
 GTKG uses three different ways to allocate memory.
 
-malloc() is the most general way to allocate memory. It is actually a
-wrapper around g_malloc(). It should be used in particular when you
-don't know or can't know the size of what is going to be freed.
+malloc() is the most general way to allocate memory. It is actually used
+through the g_malloc() wrapper. That should be used in particular when you
+don't know or can't know the size of what is going to be freed, or to
+allocate long-lived memory that will stay around for the whole lifetime
+of the process.
 
 zalloc() is a zone allocator. This should only be used when you are
 planning to allocate and free many objects of the exact same size. 
+You need a dedicated zone to allocate and free from, which is created
+through zget().
 
 walloc() is a wrapper around zalloc(). It will call zalloc() on
-privately managed zones is the block is small, and use malloc()
+privately managed zones if the block is small, and use malloc()
 otherwise. To avoid memory fragmentation it is best to use walloc()
-whenever possible.
+whenever possible.  You have to keep track of the allocated size to
+be able to give it back to wfree().
 
 
 
@@ -96,6 +101,10 @@ The defines which can be used are:
 		When supplied in addition to TRACK_MALLOC, and with REMAP_ZALLOC,
 		this keeps track of allocation statistics during the lifetime of
 		the program.
+
+	* note: When compiling with MALLOC_STATS, it's best to use REMAP_ZALLOC
+	  as well since normally zalloc() has its own block tracking features
+	  that will not be accounted for in the malloc stats.
 
 		Those statistics are dumped at the end of the program run, and also
 		when a SIGUSR1 signal is sent.  The SIGUSR2 signal resets the
