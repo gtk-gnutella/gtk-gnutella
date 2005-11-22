@@ -28,7 +28,6 @@
 
 #include "if/core/search.h"
 #include "if/ui/gtk/search.h"
-#include "search.h"
 
 void search_add_got_results_listener(search_got_results_listener_t l);
 void search_remove_got_results_listener(search_got_results_listener_t l);
@@ -109,6 +108,8 @@ typedef struct record {
 	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
     flag_t  flags;              /**< same flags as in gnet_record_t */
 } record_t;
+
+#include "search.h"
 
 /*
  * Global Functions
