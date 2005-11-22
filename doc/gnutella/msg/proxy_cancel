@@ -1,16 +1,10 @@
-              The "Push Proxy Cancel" Vendor-specific Message
+            The "Push Proxy Cancel" Vendor-specific Message
                               Version 1
 
                           Raphael Manfredi
                     <Raphael_Manfredi@pobox.com>
                           August 30th, 2004
                 
-
-INTRODUCTION
-
-Please read the Vendor-Messages specifications if you have not done so
-already.
-
 
 SPECIFICATIONS
 
@@ -25,6 +19,9 @@ SPECIFICATIONS
 DESCRIPTION
 
 This message carries no payload.  It is sent by a servent which no
-longer wishes to have the target node be its push-proxies.  This
+longer wishes to have the target node be its push-proxy.  This
 indicates to the recipient that the sending node has determined that
 it was no longer TCP-firewalled.
+
+Due to its nature, the GTKG/21v1 message is sent unsolicited to
+registered push-proxies, whether or not they advertised support for it..
