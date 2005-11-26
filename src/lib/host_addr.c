@@ -716,6 +716,7 @@ name_to_host_addr(const gchar *host)
 #else /* !HAS_GETADDRINFO */
 {
 	const struct hostent *he;
+	const gchar *endptr;
 	host_addr_t addr;
 
 	/*
@@ -724,7 +725,7 @@ name_to_host_addr(const gchar *host)
 	 * although some support IPv6.
 	 */
 
-	addr = string_to_host_addr(host);
+	addr = string_to_host_addr(host, &endptr);
 	if (is_host_addr(addr) && '\0' == *endptr)
 		return addr;
 	
