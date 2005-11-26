@@ -46,7 +46,7 @@ const struct rxdrv_ops *rx_link_get_ops(void);
 struct rx_link_cb {
 	void (*add_rx_given)(gpointer owner, gint amount);
 	void (*read_error)(gpointer owner,
-			const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
+			const gchar *reason, ...) PRINTF_FUNC_PTR(2, 3);
 	void (*got_eof)(gpointer owner);
 };
 

@@ -46,7 +46,7 @@ const struct rxdrv_ops* rx_inflate_get_ops(void);
 struct rx_inflate_cb {
 	void (*add_rx_inflated)(gpointer owner, gint amount);
 	void (*inflate_error)(gpointer owner,
-			const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
+			const gchar *reason, ...) PRINTF_FUNC_PTR(2, 3);
 };
 
 /**
