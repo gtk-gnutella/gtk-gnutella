@@ -127,6 +127,8 @@ typedef struct gnet_node_info {
 	host_addr_t addr;		/**< ip of the node (connected) */
 	guint16 port;			/**< port of the node (connected) */
 
+	gboolean is_pseudo;		/**< TRUE if it's the pseudo UDP node */
+
 	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
 	guint16 gnet_port;		/**< Advertised Gnutella listening port */
 	gchar gnet_guid[GUID_RAW_SIZE];		/**< Seen on network (can be blank) */
