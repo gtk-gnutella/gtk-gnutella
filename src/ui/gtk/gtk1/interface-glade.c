@@ -159,7 +159,7 @@ create_main_window (void)
   GtkWidget *label_node_uptime;
   GtkWidget *label_node_info;
   GtkWidget *hbox2;
-  GtkWidget *button_nodes_remove;
+  GtkWidget *button_nodes_disconnect;
   GtkWidget *button_nodes_add;
   GtkWidget *entry_host;
   GtkWidget *hbox200;
@@ -1970,15 +1970,15 @@ create_main_window (void)
   gtk_widget_show (hbox2);
   gtk_box_pack_start (GTK_BOX (vbox17), hbox2, FALSE, TRUE, 0);
 
-  button_nodes_remove = gtk_button_new_with_label (_("Remove"));
-  gtk_widget_set_name (button_nodes_remove, "button_nodes_remove");
-  gtk_widget_ref (button_nodes_remove);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_nodes_remove", button_nodes_remove,
+  button_nodes_disconnect = gtk_button_new_with_label (_("Disconnect"));
+  gtk_widget_set_name (button_nodes_disconnect, "button_nodes_disconnect");
+  gtk_widget_ref (button_nodes_disconnect);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_nodes_disconnect", button_nodes_disconnect,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_nodes_remove);
-  gtk_box_pack_start (GTK_BOX (hbox2), button_nodes_remove, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_nodes_remove, FALSE);
-  gtk_tooltips_set_tip (tooltips, button_nodes_remove, _("Disconnect from selected nodes"), NULL);
+  gtk_widget_show (button_nodes_disconnect);
+  gtk_box_pack_start (GTK_BOX (hbox2), button_nodes_disconnect, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (button_nodes_disconnect, FALSE);
+  gtk_tooltips_set_tip (tooltips, button_nodes_disconnect, _("Disconnect from selected nodes"), NULL);
 
   button_nodes_add = gtk_button_new_with_label (_("Add"));
   gtk_widget_set_name (button_nodes_add, "button_nodes_add");
@@ -6351,8 +6351,8 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_nodes_resize_column),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_nodes_remove), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_nodes_remove_clicked),
+  gtk_signal_connect (GTK_OBJECT (button_nodes_disconnect), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_nodes_disconnect_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_nodes_add), "clicked",
                       GTK_SIGNAL_FUNC (on_button_nodes_add_clicked),
@@ -7384,7 +7384,7 @@ create_popup_nodes (void)
 {
   GtkWidget *popup_nodes;
   GtkAccelGroup *popup_nodes_accels;
-  GtkWidget *popup_nodes_remove;
+  GtkWidget *popup_nodes_disconnect;
   GtkWidget *popup_nodes_browse_host;
   GtkWidget *trennlinie1;
   GtkWidget *popup_nodes_config_cols;
@@ -7394,13 +7394,13 @@ create_popup_nodes (void)
   gtk_object_set_data (GTK_OBJECT (popup_nodes), "popup_nodes", popup_nodes);
   popup_nodes_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_nodes));
 
-  popup_nodes_remove = gtk_menu_item_new_with_label (_("Disconnect"));
-  gtk_widget_set_name (popup_nodes_remove, "popup_nodes_remove");
-  gtk_widget_ref (popup_nodes_remove);
-  gtk_object_set_data_full (GTK_OBJECT (popup_nodes), "popup_nodes_remove", popup_nodes_remove,
+  popup_nodes_disconnect = gtk_menu_item_new_with_label (_("Disconnect"));
+  gtk_widget_set_name (popup_nodes_disconnect, "popup_nodes_disconnect");
+  gtk_widget_ref (popup_nodes_disconnect);
+  gtk_object_set_data_full (GTK_OBJECT (popup_nodes), "popup_nodes_disconnect", popup_nodes_disconnect,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_nodes_remove);
-  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_remove);
+  gtk_widget_show (popup_nodes_disconnect);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_disconnect);
 
   popup_nodes_browse_host = gtk_menu_item_new_with_label (_("Browse Host"));
   gtk_widget_set_name (popup_nodes_browse_host, "popup_nodes_browse_host");
@@ -7427,8 +7427,8 @@ create_popup_nodes (void)
   gtk_widget_show (popup_nodes_config_cols);
   gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_config_cols);
 
-  gtk_signal_connect (GTK_OBJECT (popup_nodes_remove), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_nodes_remove_activate),
+  gtk_signal_connect (GTK_OBJECT (popup_nodes_disconnect), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_nodes_disconnect_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_nodes_browse_host), "activate",
                       GTK_SIGNAL_FUNC (on_popup_nodes_browse_host_activate),

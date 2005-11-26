@@ -42,6 +42,25 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
+static void
+update_sensitivity(gboolean sensitive)
+{
+	static const struct {
+		const gchar *name;
+	} items[] = {
+		{ "popup_nodes_disconnect" },
+		{ "popup_nodes_browse_host" },
+	};
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(items); i++) {
+		gtk_widget_set_sensitive(lookup_widget(popup_nodes, items[i].name),
+			sensitive);
+	}
+	gtk_widget_set_sensitive(
+		lookup_widget(main_window, "button_nodes_disconnect"), sensitive);
+}
+
 void
 on_clist_nodes_select_row
     (GtkCList *clist, gint row, gint col, GdkEvent *event, gpointer user_data)
@@ -53,16 +72,12 @@ void
 on_clist_nodes_unselect_row(GtkCList *clist, gint unused_row,
 		gint unused_col, GdkEvent *unused_event, gpointer unused_udata)
 {
-    gboolean sensitive = clist->selection != NULL;
-
 	(void) unused_row;
 	(void) unused_col;
 	(void) unused_event;
 	(void) unused_udata;
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_nodes_remove"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_nodes, "popup_nodes_remove"), sensitive);
+
+	update_sensitivity(clist->selection != NULL);
 }
 
 void
@@ -90,25 +105,18 @@ on_clist_nodes_button_press_event(GtkWidget *unused_widget,
     if (event->button != 3)
 		return FALSE;
 
-	gtk_widget_set_sensitive(
-		lookup_widget(popup_nodes, "popup_nodes_remove"),
-		clist_nodes->selection != NULL);
+	update_sensitivity(clist_nodes->selection != NULL);
 
-    if (!gtk_clist_get_selection_info
-            (clist_nodes, event->x, event->y, &row, &col))
+    if (
+		!gtk_clist_get_selection_info(clist_nodes,
+			event->x, event->y, &row, &col)
+	)
 		return FALSE;
 
-    gtk_menu_popup(
-        GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL,
+    gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL,
         event->button, event->time);
 
 	return TRUE;
-}
-
-static gint
-list_direct_equal(gconstpointer p1, gconstpointer p2)
-{
-    return p1 == p2 ? 0 : 1;
 }
 
 static void
@@ -119,7 +127,7 @@ remove_selected_nodes(void)
 
     g_assert(clist != NULL);
 
-    node_list = clist_collect_data(clist, TRUE, list_direct_equal);
+    node_list = clist_collect_data(clist, TRUE, NULL);
     guc_node_remove_nodes_by_handle(node_list);
     g_slist_free(node_list);
 }
@@ -138,7 +146,7 @@ add_node(void)
 }
 
 void
-on_popup_nodes_remove_activate(GtkMenuItem *unused_menuitem,
+on_popup_nodes_disconnect_activate(GtkMenuItem *unused_menuitem,
 		gpointer unused_udata)
 {
 	(void) unused_menuitem;
@@ -147,7 +155,8 @@ on_popup_nodes_remove_activate(GtkMenuItem *unused_menuitem,
 }
 
 void
-on_button_nodes_remove_clicked(GtkButton *unused_button, gpointer unused_udata)
+on_button_nodes_disconnect_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
 	(void) unused_button;
 	(void) unused_udata;
@@ -217,14 +226,16 @@ on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    node_list = clist_collect_data(clist, TRUE, list_direct_equal);
+    node_list = clist_collect_data(clist, TRUE, NULL);
 
 	for (sl = node_list; sl != NULL; sl = g_slist_next(sl)) {
 		gnet_node_t handle = GPOINTER_TO_UINT(sl->data);
 		gnet_node_info_t *info = guc_node_get_info(handle);
 
-		search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
-			info->gnet_guid, FALSE, NULL);
+		if (!info->is_pseudo) {
+			search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
+				info->gnet_guid, FALSE, NULL);
+		}
 		guc_node_free_info(info);
 	}
 }

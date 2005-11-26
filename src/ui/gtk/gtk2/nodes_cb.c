@@ -61,7 +61,8 @@ add_node(void)
 }
 
 void
-on_button_nodes_remove_clicked(GtkButton *unused_button, gpointer unused_udata)
+on_button_nodes_disconnect_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
 	(void) unused_button;
 	(void) unused_udata;
@@ -83,32 +84,6 @@ on_popup_nodes_reverse_lookup_activate(GtkItem *unused_item,
 	(void) unused_item;
 	(void) unused_udata;
 	nodes_gui_reverse_lookup_selected();
-}
-
-void
-on_popup_nodes_collapse_all_activate(GtkItem *unused_item,
-		gpointer unused_udata)
-{
-	GtkTreeView *tv;
-
-	(void) unused_item;
-	(void) unused_udata;
-
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-	gtk_tree_view_collapse_all(tv);
-}
-
-void
-on_popup_nodes_expand_all_activate(GtkItem *unused_item,
-		gpointer unused_udata)
-{
-	GtkTreeView *tv;
-
-	(void) unused_item;
-	(void) unused_udata;
-
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-	gtk_tree_view_expand_all(tv);
 }
 
 void

@@ -526,8 +526,8 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 void
 nodes_gui_early_init(void)
 {
-    popup_nodes = create_popup_nodes();
-    nodes_gui_create_treeview_nodes();
+	popup_nodes = create_popup_nodes();
+	nodes_gui_create_treeview_nodes();
 }
 
 /**
@@ -816,7 +816,8 @@ nodes_gui_node_removed(gnet_node_t n)
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(gnet_node_t n)
+static void
+nodes_gui_node_added(gnet_node_t n)
 {
     gnet_node_info_t *info;
 
@@ -889,14 +890,16 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 	guc_node_fill_info(data->handle, &info);
 	g_assert(data->handle == info.node_handle);
 
-	WFREE_NULL(data->host, data->host_size);
-	data->host_size = w_concat_strings(&data->host,
-		_("Reverse lookup in progress..."),
-		" (", host_addr_port_to_string(info.addr, info.port), ")",
-		(void *) 0);
+	if (!info.is_pseudo) {
+		WFREE_NULL(data->host, data->host_size);
+		data->host_size = w_concat_strings(&data->host,
+				_("Reverse lookup in progress..."),
+				" (", host_addr_port_to_string(info.addr, info.port), ")",
+				(void *) 0);
 
-	g_hash_table_insert(ht_pending_lookups, key, GINT_TO_POINTER(1));
-	adns_reverse_lookup(info.addr, host_lookup_callback, key);
+		g_hash_table_insert(ht_pending_lookups, key, GINT_TO_POINTER(1));
+		adns_reverse_lookup(info.addr, host_lookup_callback, key);
+	}
 	guc_node_clear_info(&info);
 }
 
@@ -927,8 +930,10 @@ nodes_gui_browse_selected_helper(GtkTreeModel *model,
 	
 	gtk_tree_model_get(model, iter, 0, &data, (-1));
 	info = guc_node_get_info(data->handle);
-	search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
-		info->gnet_guid, FALSE, NULL);
+	if (!info->is_pseudo) {
+		search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
+			info->gnet_guid, FALSE, NULL);
+	}
 	guc_node_free_info(info);
 }
 

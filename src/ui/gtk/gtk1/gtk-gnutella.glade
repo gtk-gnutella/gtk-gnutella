@@ -1607,16 +1607,16 @@
 
 		  <widget>
 		    <class>GtkButton</class>
-		    <name>button_nodes_remove</name>
+		    <name>button_nodes_disconnect</name>
 		    <sensitive>False</sensitive>
 		    <tooltip>Disconnect from selected nodes</tooltip>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>clicked</name>
-		      <handler>on_button_nodes_remove_clicked</handler>
-		      <last_modification_time>Wed, 22 Mar 2000 07:11:42 GMT</last_modification_time>
+		      <handler>on_button_nodes_disconnect_clicked</handler>
+		      <last_modification_time>Sat, 26 Nov 2005 21:14:00 GMT</last_modification_time>
 		    </signal>
-		    <label>Remove</label>
+		    <label>Disconnect</label>
 		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
@@ -9401,11 +9401,11 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_nodes_remove</name>
+    <name>popup_nodes_disconnect</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_nodes_remove_activate</handler>
-      <last_modification_time>Sun, 17 Mar 2002 23:33:22 GMT</last_modification_time>
+      <handler>on_popup_nodes_disconnect_activate</handler>
+      <last_modification_time>Sat, 26 Nov 2005 19:41:39 GMT</last_modification_time>
     </signal>
     <label>Disconnect</label>
     <right_justify>False</right_justify>

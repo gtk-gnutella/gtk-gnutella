@@ -230,10 +230,22 @@ nodes_gui_update_node_flags(
 void
 nodes_gui_early_init(void)
 {
+	static const struct {
+		const gchar *name;
+	} items[] = {
+		{ "popup_nodes_disconnect" },
+		{ "popup_nodes_browse_host" },
+	};
+	guint i;
+	
 	popup_nodes = create_popup_nodes();
-    gtk_widget_set_sensitive(lookup_widget(popup_nodes, "popup_nodes_remove"),
-		FALSE);
+
+	for (i = 0; i < G_N_ELEMENTS(items); i++) {
+    	gtk_widget_set_sensitive(lookup_widget(popup_nodes, items[i].name),
+			FALSE);
+	}
 }
+
 
 /**
  * Initialize the nodes controller. Register callbacks in the backend.
