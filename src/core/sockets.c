@@ -2415,7 +2415,9 @@ created:
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.session = NULL;
 	s->tls.snarf = 0;
-#endif /* HAS_GNUTLS */
+#else	/* HAS_GNUTLS */
+	(void) flags;
+#endif	/* HAS_GNUTLS */
 
 	socket_wio_link(s);
 
