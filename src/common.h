@@ -368,6 +368,16 @@ get_rcsid(void)		\
 #define NON_NULL_PARAM(x)
 #endif
 
+/**
+ * This is the same G_GNUC_FORMAT() but for function pointers. Older versions
+ * of GCC do not allow function attributes for function pointers.
+ */
+#if HAVE_GCC(3, 0)
+#define PRINTF_FUNC_PTR(x, y) __attribute__((format(printf, (x), (y))))
+#else /* GCC < 3.0 */
+#define PRINTF_FUNC_PTR(x, y)
+#endif
+
 /* Functions using this attribute cause a warning if the returned
  * value is not used. */
 #if HAVE_GCC(3, 4)
