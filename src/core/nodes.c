@@ -1597,11 +1597,14 @@ node_remove_by_handle(gnet_node_t n)
     g_assert(node != NULL);
 	g_assert(node->magic == NODE_MAGIC);
 
-	if (node == udp_node)
+	if (node == udp_node) {
+		/* This is too obscure. */
+#if 0
 		gnet_prop_set_boolean_val(PROP_ENABLE_UDP, FALSE);
-	else if (NODE_IS_WRITABLE(node))
+#endif
+	} else if (NODE_IS_WRITABLE(node)) {
         node_bye(node, 201, "User manual removal");
-	else {
+	} else {
         node_remove(node, no_reason);
         node_real_remove(node);
     }
@@ -7489,6 +7492,8 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 
     info->addr = node->addr;
     info->port = node->port;
+
+	info->is_pseudo = node == udp_node;
 
 	if (host_addr_initialized(node->gnet_addr)) {
 		info->gnet_addr = node->gnet_addr;
