@@ -162,6 +162,7 @@
 # URLs and possibly a trojan, SHA1 match fails continously
 69.9.186.0/23
 69.9.188.0/23
+69.9.190.0/24
 
 # hosted by net-sentry.net, suspicious GWebCache polling
 69.26.174.0/24
