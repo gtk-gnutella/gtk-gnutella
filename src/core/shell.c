@@ -37,6 +37,8 @@ RCSID("$Id$");
 #include "version.h"
 
 #include "if/bridge/c2ui.h"
+#include "if/bridge/ui2c.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
@@ -65,7 +67,7 @@ typedef struct gnutella_shell {
 	gchar  *outbuf;	/* FIXME: Always use a newly walloc()ed buffer instead */
 	gint32 outpos;
 	time_t last_update; /**< Last update (needed for timeout) */
-	gchar *msg;         /**< Additional information to reply code */
+	const gchar *msg;   /**< Additional information to reply code */
 	gboolean shutdown;  /**< In shutdown mode? */
 } gnutella_shell_t;
 
@@ -90,7 +92,8 @@ enum {
 	CMD_PRINT,
 	CMD_SET,
 	CMD_WHATIS,
-	CMD_HORIZON
+	CMD_HORIZON,
+	CMD_RESCAN
 };
 
 static const struct {
@@ -105,7 +108,8 @@ static const struct {
 	{	CMD_PRINT,		"PRINT"		},
 	{	CMD_SET,		"SET"		},
 	{	CMD_WHATIS,		"WHATIS"	},
-	{	CMD_HORIZON,	"HORIZON"	}
+	{	CMD_HORIZON,	"HORIZON"	},
+	{	CMD_RESCAN,		"RESCAN"	}
 };
 
 
@@ -590,6 +594,24 @@ error:
 }
 
 /**
+ * Rescan the shared directories for added/removed files.
+ */
+static guint
+shell_exec_rescan(gnutella_shell_t *sh, const gchar *cmd)
+{
+	g_assert(sh);
+	g_assert(cmd);
+
+	shell_write(sh, "100-Scanning shared directories...\n");
+	guc_share_scan();
+	shell_write(sh, "100-Finished\n");
+	sh->msg = "";
+
+	return REPLY_READY;
+}
+
+
+/**
  * Displays horizon size information.
  */
 static guint
@@ -797,6 +819,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"100-SET <property> <value>\n"
 			"100-WHATIS <property>\n"
 			"100-HORIZON [ALL]\n"
+			"100-RESCAN\n"
 			"100-QUIT\n"
 			"100-HELP\n");
 		reply_code = REPLY_READY;
@@ -807,22 +830,25 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		shell_shutdown(sh);
 		break;
 	case CMD_SEARCH:
-		reply_code = shell_exec_search(sh, cmd+pos);
+		reply_code = shell_exec_search(sh, &cmd[pos]);
 		break;
 	case CMD_NODE:
-		reply_code = shell_exec_node(sh, cmd+pos);
+		reply_code = shell_exec_node(sh, &cmd[pos]);
 		break;
 	case CMD_PRINT:
-		reply_code = shell_exec_print(sh, cmd+pos);
+		reply_code = shell_exec_print(sh, &cmd[pos]);
 		break;
 	case CMD_SET:
-		reply_code = shell_exec_set(sh, cmd+pos);
+		reply_code = shell_exec_set(sh, &cmd[pos]);
 		break;
 	case CMD_WHATIS:
-		reply_code = shell_exec_whatis(sh, cmd+pos);
+		reply_code = shell_exec_whatis(sh, &cmd[pos]);
 		break;
 	case CMD_HORIZON:
-		reply_code = shell_exec_horizon(sh, cmd+pos);
+		reply_code = shell_exec_horizon(sh, &cmd[pos]);
+		break;
+	case CMD_RESCAN:
+		reply_code = shell_exec_rescan(sh, &cmd[pos]);
 		break;
 	default:
 		goto error;
