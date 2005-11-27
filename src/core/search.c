@@ -64,7 +64,6 @@ RCSID("$Id$");
 #include "hosts.h"
 #include "bogons.h"
 #include "geo_ip.h"
-#include "clock.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -2638,7 +2637,7 @@ search_expired(const search_ctrl_t *sch)
 		d = MAX(0, d);
 		expired = (guint) d >= lt;
 	} else
-		expired = delta_time(clock_gmt2loc(start_stamp), ct) > 0;
+		expired = FALSE;
 
 	return expired;
 }
