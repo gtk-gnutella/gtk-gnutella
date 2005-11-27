@@ -1178,7 +1178,7 @@ shell_add(struct gnutella_socket *s)
 	g_assert(0 == s->gdk_tag);
 	g_assert(s->getline);
 
-	g_warning("Incoming shell connection from %s\n",
+	g_message("Incoming shell connection from %s",
 		host_addr_port_to_string(s->addr, s->port));
 
 	s->type = SOCK_TYPE_SHELL;
