@@ -117,9 +117,10 @@ typedef struct search_ctrl {
 	GSList *muids;				/**< Message UIDs of this search */
 
 	gboolean passive;			/**< Is this a passive search? */
-	gboolean frozen;			/**< True => don't update window */
+	gboolean frozen;	/**< XXX: If TRUE, the query is not issued to nodes
+					  		anymore and "don't update window" */
 	gboolean browse;			/**< Special "browse host" search */
-	gboolean active;			/**< Whether to actively issue queries */
+	gboolean active;			/**< Whether to actively issue queries. */
 
 	/*
 	 * Keep a record of nodes we've sent this search w/ this muid to.
@@ -2620,7 +2621,7 @@ search_new_muid(gboolean initial)
 static gboolean
 search_expired(const search_ctrl_t *sch)
 {
-	gboolean expired = FALSE;
+	gboolean expired;
 	time_t ct;
 	guint lt;
 
@@ -2635,10 +2636,10 @@ search_expired(const search_ctrl_t *sch)
 		d = delta_time(tm_time(), ct);
 		d = MAX(0, d);
 		
-		if ((guint) d >= lt)
-			expired = TRUE;
-	} else if (delta_time(start_stamp, ct) > 0)
-		expired = TRUE;
+		expired = (guint) d >= lt;
+	} else {
+		expired = FALSE;
+	}
 
 	return expired;
 }
@@ -2788,7 +2789,7 @@ search_new(const gchar *query,
 			return (gnet_search_t) -1;
 		}
 		qdup = g_strdup(query);
-	} else if (0 == (flags & (SEARCH_BROWSE | SEARCH_PASSIVE))) {
+	} else if (0 == (flags & (SEARCH_F_BROWSE | SEARCH_F_PASSIVE))) {
 		qdup = UNICODE_CANONIZE(query);
 		g_assert(qdup != query);
 		
@@ -2815,16 +2816,17 @@ search_new(const gchar *query,
 
 	G_FREE_NULL(qdup);
 
-	if (flags & SEARCH_PASSIVE) {
+	if (flags & SEARCH_F_PASSIVE) {
 		sch->passive = TRUE;
-	} else if (flags & SEARCH_BROWSE) {
+	} else if (flags & SEARCH_F_BROWSE) {
 		sch->browse = TRUE;
 	} else {
 		sch->active = TRUE;
+
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = sch;
 		sch->new_node_hook->func =
-			cast_func_to_gpointer((func_ptr_t) node_added_callback);
+				cast_func_to_gpointer((func_ptr_t) node_added_callback);
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
 		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)

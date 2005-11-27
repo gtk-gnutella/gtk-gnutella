@@ -167,12 +167,12 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-	if (!(SEARCH_PASSIVE & flags))
+	if (!(SEARCH_F_PASSIVE & flags))
 		query = lazy_ui_string_to_utf8(query);
 
     ret = search_gui_new_search_full(query, tm_time(), search_lifetime, timeout,
 			search_sort_default_column, search_sort_default_order,
-			flags | SEARCH_ENABLED, search);
+			flags | SEARCH_F_ENABLED, search);
 
 	return ret;
 }
@@ -978,9 +978,8 @@ search_matched(search_t *sch, results_set_t *rs)
 	 * bother displaying results if they need a push request to succeed.
 	 *		--RAM, 10/03/2002
 	 */
-    gnet_prop_get_boolean
-		(PROP_SEND_PUSHES, &send_pushes, 0, 1);
-    gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
+    gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+    gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &is_firewalled);
 
 	need_push = (rs->status & ST_FIREWALL) != 0;
 	skip_records = (!send_pushes || is_firewalled) && need_push;
@@ -1215,31 +1214,30 @@ search_gui_update_expiry(const struct search *sch)
 		if (sch->passive) {
    			gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
 		} else if (sch->enabled) {
-			time_t ct, start;
-			guint lt;
-
-			gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
-			ct = guc_search_get_create_time(sch->search_handle);
-			lt = 3600 * guc_search_get_lifetime(sch->search_handle);
-
-			if (lt) {
-				gint d;
-				d = delta_time(tm_time(), ct);
-				d = MAX(0, d);
-				if ((guint) d < lt) {
-					gtk_label_printf(label_search_expiry,
-						_("Expires in %s"), short_time(lt - d));
-				} else {
-					expired = TRUE;
-					gtk_label_printf(label_search_expiry,
-						_("Expired after %s"), short_time(lt));
-				}
-			} else if (delta_time(start, ct) > 0) {
-				expired = TRUE;
+			expired = search_gui_is_expired(sch);
+			
+			if (expired) {
         		gtk_label_printf(label_search_expiry, "%s", _("Expired"));
 			} else {
-        		gtk_label_printf(label_search_expiry, "%s",
-					_("Expires with this session"));
+				guint lt;
+
+				lt = 3600 * guc_search_get_lifetime(sch->search_handle);
+				if (lt) {
+					time_t ct, start;
+					gint d;
+					
+					gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
+					ct = guc_search_get_create_time(sch->search_handle);
+					
+					d = delta_time(tm_time(), ct);
+					d = MAX(0, d);
+					d = (guint) d < lt ? lt - d : 0;
+					gtk_label_printf(label_search_expiry,
+						_("Expires in %s"), short_time(d));
+				} else {
+        			gtk_label_printf(label_search_expiry, "%s",
+						_("Expires with this session"));
+				}
 			}
 		} else {
         	gtk_label_printf(label_search_expiry, "%s", _("[stopped]"));
@@ -1408,7 +1406,7 @@ void
 search_gui_add_targetted_search(gpointer data, gpointer unused_udata)
 {
 	const record_t *rec = data;
-    search_t *new_search;
+    search_t *new_search = NULL;
     rule_t *rule;
 
 	(void) unused_udata;
@@ -1794,12 +1792,35 @@ void
 search_gui_new_search_entered(void)
 {
 	GtkWidget *widget;
+	const gchar *ep;
 	gchar *text;
 	
     widget = lookup_widget(main_window, "entry_search");
    	text = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
     g_strstrip(text);
-    if ('\0' != text[0]) {
+	
+	if (NULL != (ep = is_strprefix(text, "browse:"))) {
+		host_addr_t addr;
+		const gchar *s;
+
+		s = ep;
+		if (string_to_host_or_addr(s, &ep, &addr)) {
+			if (':' == *ep) {
+				guint16 port;
+				gint error;
+
+				/* Erase the colon and skip over it */
+				text[ep - text] = '\0';
+				ep++;
+
+				port = parse_uint16(ep, NULL, 10, &error);
+				if (!error) {
+					search_gui_new_browse_host(is_host_addr(addr) ? NULL : s,
+						addr, port, NULL, FALSE, NULL);
+				}
+			}
+		}
+	} else if ('\0' != text[0]) {
         filter_t *default_filter;
         search_t *search;
         gboolean res;
@@ -1892,7 +1913,7 @@ search_gui_new_browse_host(
 	if (
 		!search_gui_new_search_full(hostport, tm_time(), 0, 0,
 			 search_sort_default_column, search_sort_default_order,
-			 SEARCH_BROWSE | SEARCH_ENABLED, &search)
+			 SEARCH_F_BROWSE | SEARCH_F_ENABLED, &search)
 	)
 		goto failed;
 

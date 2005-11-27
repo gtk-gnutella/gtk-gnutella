@@ -1012,11 +1012,11 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_ENABLED));
     if (buf) {
         if (atoi(buf) == 1) {
-			flags |= SEARCH_ENABLED;
+			flags |= SEARCH_F_ENABLED;
 		}
         G_FREE_NULL(buf);
     } else
-		flags |= SEARCH_ENABLED;	 /* Compatibility: searches always began */
+		flags |= SEARCH_F_ENABLED;	 /* Compatibility: searches always began */
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_SPEED));
     if (buf) {
@@ -1033,7 +1033,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_PASSIVE));
     if (buf) {
         if (atol(buf) == 1)
-			flags |= SEARCH_PASSIVE;
+			flags |= SEARCH_F_PASSIVE;
         G_FREE_NULL(buf);
     }
 
@@ -1075,10 +1075,14 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 	/* legacy searches get a 2 week expiration time */
 	lifetime = MIN(14 * 24, lifetime);
 
+	/* A zero lifetime means the search expired with the previous session */
+	if (0 == lifetime && 0 == (flags & SEARCH_F_PASSIVE))
+		flags &= ~SEARCH_F_ENABLED;
+
     if (gui_debug >= 4) {
         g_message("adding new %s %s search: %s",
-			(flags & SEARCH_ENABLED) ? "enabled" : "disabled",
-			(flags & SEARCH_PASSIVE) ? "passive" : "active",
+			(flags & SEARCH_F_ENABLED) ? "enabled" : "disabled",
+			(flags & SEARCH_F_PASSIVE) ? "passive" : "active",
 			query);
 	}
 

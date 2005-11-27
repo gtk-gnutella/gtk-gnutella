@@ -726,7 +726,7 @@ on_button_search_passive_clicked(GtkButton *unused_button,
     default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
 					lookup_widget(main_window, "optionmenu_search_filter")));
 
-	search_gui_new_search(_("Passive"), SEARCH_PASSIVE, &search);
+	search_gui_new_search(_("Passive"), SEARCH_F_PASSIVE, &search);
 
     /*
      * If we should set a default filter, we do that.
@@ -974,7 +974,7 @@ on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
 
 	search_gui_new_search_full(search->query, tm_time(), search_lifetime,
 		timeout, search->sort_col, search->sort_order,
-		search->enabled ? SEARCH_ENABLED : 0, NULL);
+		search->enabled ? SEARCH_F_ENABLED : 0, NULL);
 }
 
 void

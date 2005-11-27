@@ -40,9 +40,11 @@ typedef guint32 gnet_search_t;
 /*
  * Flags for search_new()
  */
-#define SEARCH_PASSIVE	 (1 << 0)	/**< Start a passive ssearch */
-#define SEARCH_ENABLED	 (1 << 1)	/**< Start an enabled search */
-#define SEARCH_BROWSE	 (1 << 2)	/**< Start a browse-host search */
+enum {
+	SEARCH_F_PASSIVE 	= 1 << 0,	/**< Start a passive ssearch */
+	SEARCH_F_ENABLED 	= 1 << 1,	/**< Start an enabled search */
+	SEARCH_F_BROWSE		= 1 << 2	/**< Start a browse-host search */
+};
 
 /*
  * Host vectors held in query hits.

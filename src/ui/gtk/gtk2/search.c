@@ -455,10 +455,10 @@ search_gui_new_search_full(const gchar *querystr,
 	}
  
 	sch->query = atom_str_get(query);
-	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
-	sch->browse = (flags & SEARCH_BROWSE) ? TRUE : FALSE;
+	sch->enabled = (flags & SEARCH_F_ENABLED) ? TRUE : FALSE;
+	sch->browse = (flags & SEARCH_F_BROWSE) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
-	sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
+	sch->passive = (flags & SEARCH_F_PASSIVE) ? TRUE : FALSE;
 	sch->massive_update = FALSE;
 	sch->dups = g_hash_table_new_full(search_gui_hash_func,
 					search_gui_hash_key_compare, ht_unref_record, NULL);
