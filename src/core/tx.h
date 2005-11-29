@@ -104,6 +104,7 @@ txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops,
 	gpointer args);
 
 void tx_free(txdrv_t *tx);
+void tx_collect(void);
 ssize_t tx_write(txdrv_t *tx, gpointer data, size_t len);
 ssize_t tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
 ssize_t tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len);

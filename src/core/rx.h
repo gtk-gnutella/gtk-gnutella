@@ -92,6 +92,7 @@ rxdrv_t *rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops,
 
 void rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 void rx_free(rxdrv_t *d);
+void rx_collect(void);
 void rx_recv(rxdrv_t *rx, pmsg_t *mb);
 void rx_enable(rxdrv_t *rx);
 void rx_disable(rxdrv_t *rx);

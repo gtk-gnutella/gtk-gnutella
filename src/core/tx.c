@@ -65,6 +65,13 @@ RCSID("$Id$");
 #define TX_CLOSE(o,c,a)		((o)->ops->close((o), (c), (a)))
 
 /**
+ * To guarantee that destruction of the stack always happens asynchronously
+ * with respect to the caller (i.e. it is not happening in the same
+ * calling stack), freed stacks are remembered and periodically collected.
+ */
+static GSList *tx_freed = NULL;
+
+/**
  * Create a new network driver, equipped with the `ops' operations and
  * initialize its specific parameters by calling the init routine with `args'.
  *
@@ -181,7 +188,8 @@ tx_deep_free(txdrv_t *tx)
 }
 
 /**
- * Dispose of the driver resources.
+ * Dispose of the driver resources, asynchronously.
+ * It must be called on the top layer only.
  */
 void
 tx_free(txdrv_t *tx)
@@ -189,7 +197,24 @@ tx_free(txdrv_t *tx)
 	g_assert(tx);
 	g_assert(tx->upper == NULL);
 
-	tx_deep_free(tx);
+	tx_freed = g_slist_prepend(tx_freed, tx);
+}
+
+/**
+ * Collect freed stacks.
+ */
+void
+tx_collect(void)
+{
+	GSList *sl;
+
+	for (sl = tx_freed; sl; sl = g_slist_next(sl)) {
+		txdrv_t *tx = sl->data;
+		tx_deep_free(tx);
+	}
+
+	g_slist_free(tx_freed);
+	tx_freed = NULL;
 }
 
 /**

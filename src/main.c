@@ -72,12 +72,14 @@
 #include "core/pcache.h"
 #include "core/pproxy.h"
 #include "core/routing.h"
+#include "core/rx.h"
 #include "core/search.h"
 #include "core/settings.h"
 #include "core/share.h"
 #include "core/sockets.h"
 #include "core/sq.h"
 #include "core/tsync.h"
+#include "core/tx.h"
 #include "core/uhc.h"
 #include "core/upload_stats.h"
 #include "core/verify.h"
@@ -506,6 +508,8 @@ slow_main_timer(time_t now)
 	download_store_if_dirty();		/* Important, so always attempt it */
 	settings_save_if_dirty();		/* Nice to have, and file is small */
 	settings_gui_save_if_dirty();	/* Ditto */
+	tx_collect();					/* Collect freed TX stacks */
+	rx_collect();					/* Idem for freed RX stacks */
 
 	node_slow_timer(now);
 	ignore_timer(now);

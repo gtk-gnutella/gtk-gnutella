@@ -59,6 +59,13 @@ RCSID("$Id$");
 #define RX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 
 /**
+ * To guarantee that destruction of the stack always happens asynchronously
+ * with respect to the caller (i.e. it is not happening in the same
+ * calling stack), freed stacks are remembered and periodically collected.
+ */
+static GSList *rx_freed = NULL;
+
+/**
  * Tell upper layer that it got new data from us.
  */
 static void
@@ -203,7 +210,7 @@ rx_deep_free(rxdrv_t *rx)
 }
 
 /**
- * Dispose of the driver resources, recursively.
+ * Dispose of the driver resources, recursively and asynchronously.
  * It must be called on the top layer only.
  */
 void
@@ -212,7 +219,24 @@ rx_free(rxdrv_t *rx)
 	g_assert(rx);
 	g_assert(rx->upper == NULL);
 
-	rx_deep_free(rx);
+	rx_freed = g_slist_prepend(rx_freed, rx);
+}
+
+/**
+ * Collect freed stacks.
+ */
+void
+rx_collect(void)
+{
+	GSList *sl;
+
+	for (sl = rx_freed; sl; sl = g_slist_next(sl)) {
+		rxdrv_t *rx = sl->data;
+		rx_deep_free(rx);
+	}
+
+	g_slist_free(rx_freed);
+	rx_freed = NULL;
 }
 
 /**
