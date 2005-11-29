@@ -1,5 +1,9 @@
 # since last version
 
+- (2005-11-29 - RAM)
+ * Always collect the TX and RX stacks asynchronously.
+ * Update downloads pane when browse-host is created or when search is closed.
+
 # v 0.96   2005-11.22  [beta]
 
 New features:
