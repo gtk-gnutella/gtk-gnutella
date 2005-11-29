@@ -354,8 +354,10 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 }
 
 static inline gboolean
-host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
+host_addr_6to4_to_ipv4(const host_addr_t unused_from, host_addr_t *to)
 {
+	(void) unused_from;
+
 	if (to)
 		*to = zero_host_addr;
 	return FALSE;
