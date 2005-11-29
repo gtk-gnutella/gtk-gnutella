@@ -1730,7 +1730,7 @@ file_info_store_if_dirty(void)
 
 /*
  * Notify interested parties that file info is being removed and free
- * it's handle.  Used only during final cleanup.
+ * its handle.  Used mainly during final cleanup.
  */
 static void
 fi_dispose(fileinfo_t *fi)
@@ -4877,6 +4877,17 @@ file_info_remove_source(
 			fi_free(fi);
 		}
     }
+}
+
+/**
+ * Remove non-referenced fileinfo and reclaim its data structures.
+ */
+void
+file_info_remove(fileinfo_t *fi)
+{
+	g_assert(fi->refcount == 0);
+
+	fi_dispose(fi);
 }
 
 static void

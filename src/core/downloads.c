@@ -9299,7 +9299,9 @@ download_browse_start(const gchar *name, const gchar *hostname,
 		host.port = port;
 
 		d->browse = browse_host_dl_create(d, &host, search);
-	}
+		file_info_changed(fi);		/* Update status! */
+	} else
+		file_info_remove(fi);
 
 	return d;
 }
@@ -9324,6 +9326,8 @@ download_abort_browse_host(gpointer download, gnet_search_t sh)
 
 	if (!DOWNLOAD_IS_STOPPED(d))
 		download_stop(d, GTA_DL_ERROR, "Browse search closed");
+
+	file_info_changed(d->file_info);		/* Update status! */
 }
 
 /**

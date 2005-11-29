@@ -112,6 +112,7 @@ fileinfo_t *file_info_has_identical(
 	gchar *file, filesize_t size, gchar *sha1);
 
 fileinfo_t *file_info_get_browse(const gchar *name);
+void file_info_remove(fileinfo_t *fi);
 
 /***
  *** Inlined routines.
