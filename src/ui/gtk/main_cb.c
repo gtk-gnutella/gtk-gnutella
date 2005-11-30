@@ -191,6 +191,10 @@ on_button_prefs_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_button;
 	(void) unused_udata;
 
+	g_return_if_fail(dlg_prefs);
+	g_return_if_fail(GTK_WIDGET_REALIZED(dlg_prefs));
+	g_return_if_fail(GTK_WIDGET_VISIBLE(dlg_prefs));
+
 	gui_save_window(dlg_prefs, PROP_PREFS_DLG_COORDS);
     gtk_widget_hide(dlg_prefs);
 }
@@ -202,7 +206,10 @@ on_dlg_prefs_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
+
 	g_return_val_if_fail(dlg_prefs, TRUE);
+	g_return_val_if_fail(GTK_WIDGET_REALIZED(dlg_prefs), TRUE);
+	g_return_val_if_fail(GTK_WIDGET_VISIBLE(dlg_prefs), TRUE);
 
 	gtk_widget_hide(dlg_prefs);
 	return TRUE;
