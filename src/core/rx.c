@@ -219,6 +219,7 @@ rx_free(rxdrv_t *rx)
 	g_assert(rx);
 	g_assert(rx->upper == NULL);
 
+	rx_disable(rx);
 	rx_freed = g_slist_prepend(rx_freed, rx);
 }
 

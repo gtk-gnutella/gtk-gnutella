@@ -214,7 +214,18 @@ rx_link_disable(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 
-	g_assert(attr->bio);
+	/*
+	 * Disabling is blindly called when the RX stack is freed, regardless
+	 * of whether the stack is enabled or not.  Therefore we cannot
+	 * assert that attr->bio is not NULL.
+	 *
+	 * XXX Have the RX stack "rxdrv_t" record whether we're enabled or not
+	 * XXX to have conditional disabling from the upper layers, as it is
+	 * XXX done for TX?		--RAM, 2005-11-30
+	 */
+
+	if (attr->bio == NULL)
+		return;
 
 	bsched_source_remove(attr->bio);
 	attr->bio = NULL;

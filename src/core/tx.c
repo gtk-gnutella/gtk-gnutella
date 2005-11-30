@@ -197,6 +197,15 @@ tx_free(txdrv_t *tx)
 	g_assert(tx);
 	g_assert(tx->upper == NULL);
 
+	/*
+	 * Since we're delaying the free, we must disable servicing immediately
+	 * and prevent the stack from accepting any more data.
+	 */
+
+	tx_eager_mode(tx, FALSE);
+	if (!(tx->flags & TX_DOWN))
+		tx_shutdown(tx);
+
 	tx_freed = g_slist_prepend(tx_freed, tx);
 }
 
