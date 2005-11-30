@@ -253,7 +253,7 @@ struct download {
 #define DLS_A_UNUSED_1		0x00000001	/**< UNUSED */
 #define DLS_A_PUSH_IGN		0x00000002	/**< Ignore pushes, connect directly */
 #define DLS_A_UNUSED_2		0x00000004	/**< UNUSED */
-#define DLS_A_HTTP_1_1		0x00000008	/**< Server supports HTTP/1.1 */
+#define DLS_A_NO_HTTP_1_1	0x00000008	/**< Server does NOT support HTTP/1.1 */
 #define DLS_A_MINIMAL_HTTP	0x00000010	/**< Use minimalist HTTP with server */
 #define DLS_A_BANNING		0x00000020	/**< Server might be banning us */
 #define DLS_A_FAKE_G2		0x00000040	/**< Fake a G2 server */

@@ -6309,11 +6309,11 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (http_major > 1 || (http_major == 1 && http_minor >= 1)) {
 		/* HTTP/1.1 or greater -- defaults to persistent connections */
 		d->keep_alive = TRUE;
-		d->server->attrs |= DLS_A_HTTP_1_1;
 		if (buf && 0 == ascii_strcasecmp(buf, "close"))
 			d->keep_alive = FALSE;
 	} else {
 		/* HTTP/1.0 or lesser -- must request persistence */
+		d->server->attrs |= DLS_A_NO_HTTP_1_1;
 		d->keep_alive = FALSE;
 		if (buf && 0 == ascii_strcasecmp(buf, "keep-alive"))
 			d->keep_alive = TRUE;
@@ -7639,8 +7639,8 @@ picked:
 
 	/*
 	 * If server is known to NOT support keepalives, then request only
-	 * a range starting from d->skip.  Likewise if we don't know whether
-	 * the server supports HTTP/1.1.
+	 * a range starting from d->skip.  Likewise if we know that the
+	 * server does not support HTTP/1.1.
 	 *
 	 * Otherwise, we request a range and expect the server to keep the
 	 * connection alive once the range has been fully served so that
@@ -7651,7 +7651,7 @@ picked:
 
 	d->range_end = fi->file_size_known ? download_filesize(d) : (filesize_t) -1;
 
-	if (fi->file_size_known && (d->server->attrs & DLS_A_HTTP_1_1)) {
+	if (fi->file_size_known && !(d->server->attrs & DLS_A_NO_HTTP_1_1)) {
 		/*
 		 * Request exact range, unless we're asking for the full file
 		 */
@@ -7797,7 +7797,7 @@ picked:
 	} else if (download_debug > 2) {
 		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
-			(d->server->attrs & DLS_A_HTTP_1_1) ? ", http/1.1" : "",
+			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", http/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
 			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
