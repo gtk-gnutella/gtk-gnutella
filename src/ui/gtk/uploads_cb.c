@@ -57,6 +57,20 @@ kill_upload(upload_row_data_t *d, gpointer unused_udata)
         guc_upload_kill(d->handle);
 }
 
+/***
+ *** Public functions
+ ***/
+
+void
+on_button_uploads_clear_completed_clicked(
+    GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+    uploads_gui_clear_completed();
+}
+
+#ifdef USE_GTK1
 /**
  * Suited for use as a GFunc in a g_list_for_each.
  */
@@ -77,20 +91,6 @@ browse_uploading_host(upload_row_data_t *d, gpointer unused_udata)
 		uploads_gui_browse_host(d->handle);
 }
 
-/***
- *** Public functions
- ***/
-
-void
-on_button_uploads_clear_completed_clicked(
-    GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-    uploads_gui_clear_completed();
-}
-
-#ifdef USE_GTK1
 void
 on_clist_uploads_select_row(GtkCList *clist, gint unused_row,
 	gint unused_column, GdkEvent *unused_event, gpointer unused_udata)
@@ -106,7 +106,8 @@ on_clist_uploads_select_row(GtkCList *clist, gint unused_row,
     gtk_widget_set_sensitive(button, clist->selection != NULL);
 }
 
-void on_clist_uploads_unselect_row(GtkCList *clist,
+void
+on_clist_uploads_unselect_row(GtkCList *clist,
     gint unused_row, gint unused_column, GdkEvent *unused_event,
 	gpointer unused_udata)
 {
@@ -180,6 +181,26 @@ on_clist_uploads_button_press_event(GtkWidget *unused_widget,
 	return TRUE;
 }
 
+/**
+ * Initiates a browse host request to the currently selected host.
+ */
+void
+on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GtkCList *clist;
+	GSList *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
+	clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+
+	sl = clist_collect_data(clist, FALSE, NULL);
+	g_slist_foreach(sl, (GFunc) browse_uploading_host, NULL);
+	g_slist_free(sl);
+}
+
 #endif /* USE_GTK1 */
 
 
@@ -222,10 +243,8 @@ on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
 
     treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
-    gtk_tree_selection_selected_foreach(selection,
-        (GtkTreeSelectionForeachFunc) uploads_kill_helper, NULL);
+    gtk_tree_selection_selected_foreach(selection, uploads_kill_helper, NULL);
 }
-#endif /* USE_GTK2 */
 
 /**
  * Initiates a browse host request to the currently selected host.
@@ -234,17 +253,12 @@ void
 on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    GSList *sl = NULL;
-    GtkCList *clist;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
-
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
-
-    sl = clist_collect_data(clist, FALSE, NULL);
-    g_slist_foreach(sl, (GFunc) browse_uploading_host, NULL);
-    g_slist_free(sl);
+	
+	/* FIXME: Implement this */
 }
+
+#endif /* USE_GTK2 */
 
 /* vi: set ts=4 sw=4 cindent: */
