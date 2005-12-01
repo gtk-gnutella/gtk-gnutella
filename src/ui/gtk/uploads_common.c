@@ -29,9 +29,12 @@ RCSID("$Id$");
 
 #include "uploads.h"			/* For upload_row_data_t */
 #include "uploads_common.h"
+#include "search_common.h"
 
 #include "if/gui_property.h"
 #include "if/gnet_property.h"
+#include "if/core/uploads.h"
+#include "if/bridge/ui2c.h"
 
 #include "lib/misc.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
@@ -266,5 +269,19 @@ uploads_gui_host_string(const gnet_upload_info_t *u)
 	return buf;
 }
 
+/**
+ * Initiate a browse host of the uploading host.
+ */
+void
+uploads_gui_browse_host(gnet_upload_t uh)
+{
+	gnet_upload_info_t *u = guc_upload_get_info(uh);
+
+	if (host_addr_is_routable(u->gnet_addr) && u->gnet_port != 0)
+		search_gui_new_browse_host(NULL, u->gnet_addr, u->gnet_port,
+			NULL, FALSE, NULL);
+
+	guc_upload_free_info(u);
+}
 
 /* vi: set ts=4 sw=4 cindent: */

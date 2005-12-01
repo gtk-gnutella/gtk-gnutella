@@ -70,7 +70,9 @@ typedef struct gnet_upload_info {
 
 	gchar  *name;        /**< Name of requested file (converted to UTF-8) */
 
-	host_addr_t addr;          /**< remote IP address */
+	host_addr_t addr;		/**< remote IP address */
+	host_addr_t gnet_addr;	/**< Advertised IP address for browsing */
+	guint16 gnet_port;		/**< Advertised port for browsing */
 
 	filesize_t file_size;	/**< Size of requested file */
 	filesize_t range_start;	/**< First byte to send, inclusive */

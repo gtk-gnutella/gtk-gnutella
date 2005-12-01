@@ -84,6 +84,9 @@ typedef struct upload {
 	filesize_t pos;				/**< Read position in file we're sending */
 	filesize_t sent;			/**< Bytes sent in this request */
 
+	host_addr_t gnet_addr;		/**< Advertised remote IP address */
+	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
+
 	guint32 last_dmesh;			/**< Time when last download mesh was sent */
 	gchar *sha1;				/**< SHA1 of requested file */
 	filesize_t total_requested;	/**< Total amount of bytes requested */
@@ -92,8 +95,7 @@ typedef struct upload {
 
 	gboolean keep_alive;		/**< Keep HTTP connection? */
 	gboolean push;
-	gboolean queue;				/**< Similar to PUSH, but this time it is due
-				                         to parq */
+	gboolean queue;				/**< Similar to PUSH, but for PARQ's QUEUE */
 	gboolean accounted;			/**< True when upload was accounted for */
 	gboolean unavailable_range;	/**< True when last request ended with 416 */
 	gboolean n2r;				/**< True when they sent an N2R request */

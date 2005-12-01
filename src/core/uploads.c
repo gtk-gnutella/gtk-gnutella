@@ -2914,6 +2914,19 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
+	/*
+	 * Look for X-Node or X-Listen-IP, which indicates the host's Gnutella
+	 * address, should they want to browse the host.
+	 */
+
+	buf = header_get(header, "X-Node");
+	if (buf == NULL)
+		buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
+	if (buf == NULL)
+		buf = header_get(header, "Listen-Ip");		/* Gnucleus! */
+
+	if (buf != NULL)
+		string_to_host_addr_port(buf, NULL, &u->gnet_addr, &u->gnet_port);
 
 	/*
 	 * Idea:
@@ -4209,6 +4222,8 @@ upload_get_info(gnet_upload_t uh)
 		: NULL;
 
     info->addr          = u->addr;
+    info->gnet_addr     = u->gnet_addr;
+    info->gnet_port     = u->gnet_port;
     info->file_size     = u->file_size;
     info->range_start   = u->skip;
     info->range_end     = u->end;
