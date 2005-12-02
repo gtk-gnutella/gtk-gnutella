@@ -2432,24 +2432,30 @@ do_stat(const gchar *path, struct stat *buf)
 
 /**
  * Create new pathname from the concatenation of the dirname and the basename
- * of the file.  The resulting string can be freed when it is no longer needed.
+ * of the file. A directory separator is insert, unless "dir" already ends
+ * with one or "filename" starts with one.
+ *
+ * @param dir The directory path.
+ * @param file The filename.
+ *
+ * @return A newly allocated string.
  */
 gchar *
 make_pathname(const gchar *dir, const gchar *file)
 {
 	const gchar *sep;
-	size_t l;
+	size_t n;
 
 	g_assert(dir);
 	g_assert(file);
 
-	l = strlen(dir);
-	if ((l > 0 && dir[l - 1] == G_DIR_SEPARATOR) || file[0] == G_DIR_SEPARATOR)
+	n = strlen(dir);
+	if ((n > 0 && dir[n - 1] == G_DIR_SEPARATOR) || file[0] == G_DIR_SEPARATOR)
 		 sep = "";
 	else
 		 sep = G_DIR_SEPARATOR_S;
 
-	return g_strconcat(dir, sep, file, NULL);
+	return g_strconcat(dir, sep, file, (void *) 0);
 }
 
 /**
