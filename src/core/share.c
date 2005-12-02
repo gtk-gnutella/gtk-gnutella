@@ -987,17 +987,15 @@ contains_control_chars(const gchar *pathname)
  * the whole file system.
  */
 static void
-recurse_scan(gchar *dir, const gchar *basedir)
+recurse_scan(const gchar *dir, const gchar *basedir)
 {
 	GSList *exts = NULL;
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
 	struct dirent *dir_entry;
-	gchar *full = NULL;
 	GSList *files = NULL;
 	GSList *directories = NULL;
-	gchar *dir_slash = NULL;
 	GSList *sl;
-	gint i;
+	guint i;
 	struct stat file_stat;
 	const gchar *entry_end;
 
@@ -1009,35 +1007,31 @@ recurse_scan(gchar *dir, const gchar *basedir)
 		return;
 	}
 
-	if (dir[strlen(dir) - 1] == G_DIR_SEPARATOR)
-		dir_slash = dir;
-	else
-		dir_slash = g_strconcat(dir, G_DIR_SEPARATOR_S, (void *) 0);
-
 	while ((dir_entry = readdir(directory))) {
+		gchar *full;
 
 		if (dir_entry->d_name[0] == '.')	/* Hidden file, or "." or ".." */
 			continue;
 
-		full = g_strconcat(dir_slash, dir_entry->d_name, (void *) 0);
+		full = make_pathname(dir, dir_entry->d_name);
 
-		if (!is_directory(full)) {
-			if (scan_ignore_symlink_regfiles && is_symlink(full)) {
-				G_FREE_NULL(full);
-				continue;
-			}
-			files = g_slist_prepend(files, full);
-		} else {
+		if (is_directory(full)) {
 			if (scan_ignore_symlink_dirs && is_symlink(full)) {
 				G_FREE_NULL(full);
 				continue;
 			}
 			directories = g_slist_prepend(directories, full);
+		} else {
+			if (scan_ignore_symlink_regfiles && is_symlink(full)) {
+				G_FREE_NULL(full);
+				continue;
+			}
+			files = g_slist_prepend(files, full);
 		}
 	}
 
 	for (i = 0, sl = files; sl; i++, sl = g_slist_next(sl)) {
-		const gchar *name;
+		const gchar *full, *name;
 
 		full = sl->data;
 
@@ -1055,7 +1049,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 		entry_end = &name[strlen(name)];
 
 		for (exts = extensions; exts; exts = exts->next) {
-			struct extension *e = (struct extension *) exts->data;
+			struct extension *e = exts->data;
 			const gchar *start = entry_end - (e->len + 1);	/* +1 for "." */
 
 			/*
@@ -1171,7 +1165,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				break;			/* for loop */
 			}
 		}
-		G_FREE_NULL(full);
+		G_FREE_NULL(sl->data);
 
 		if (!(i & 0x3f)) {
 			gcu_gui_update_files_scanned();	/* Interim view */
@@ -1195,9 +1189,6 @@ recurse_scan(gchar *dir, const gchar *basedir)
 		G_FREE_NULL(path);
 	}
 	g_slist_free(directories);
-
-	if (dir_slash != dir)
-		G_FREE_NULL(dir_slash);
 
 	gcu_gui_update_files_scanned();		/* Interim view */
 	gcu_gtk_main_flush();
