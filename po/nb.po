@@ -1,16 +1,17 @@
-# translation of nb.po to
-# This file is distributed under the same license as the PACKAGE package.
-# Copyright (C) YEAR Raphael Manfredi.
+# Norwegian Bokmal translations for gtk-gnutella package.
+# Copyright (C) 2000-2001 Yann Grossel.
+# Copyright (C) 2001-2005 Raphaël Manfredi.
+# This file is distributed under the same license as the gtk-gnutella package.
 # Alexander Nicolaysen Sørnes <alex@thehandofagony.com>, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: nb\n"
+"Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-11-27 06:18+0100\n"
-"PO-Revision-Date: 2005-11-26 21:55+0000\n"
+"POT-Creation-Date: 2005-12-03 00:58+0900\n"
+"PO-Revision-Date: 2005-11-27 16:58+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
-"Language-Team:  <nb@li.org>\n"
+"Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -163,7 +164,7 @@ msgstr ""
 
 #: src/core/downloads.c:6070 src/core/downloads.c:6078
 #: src/core/downloads.c:7266 src/core/downloads.c:7304
-#: src/core/downloads.c:9353
+#: src/core/downloads.c:9357
 msgid "Stopped data (EOF)"
 msgstr "Stoppet data (slutt på fil)"
 
@@ -548,105 +549,105 @@ msgstr "Kan ikke fortsette uten gyldig oppsettskatalog"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Kan kun kjøre som blad når TCP er bak brannmur"
 
-#: src/core/shell.c:272
+#: src/core/shell.c:275
 msgid "Node added"
 msgstr "La til node"
 
-#: src/core/shell.c:274
+#: src/core/shell.c:277
 msgid "Invalid IP/Port"
 msgstr "Ugyldig IP/port"
 
-#: src/core/shell.c:280 src/core/shell.c:328
+#: src/core/shell.c:283 src/core/shell.c:331
 msgid "Unknown operation"
 msgstr "Ukjent operasjon"
 
-#: src/core/shell.c:291 src/core/shell.c:339 src/core/shell.c:415
-#: src/core/shell.c:534 src/core/shell.c:588 src/core/shell.c:671
+#: src/core/shell.c:294 src/core/shell.c:342 src/core/shell.c:418
+#: src/core/shell.c:537 src/core/shell.c:591 src/core/shell.c:692
 msgid "Malformed command"
 msgstr "Feilformet kommando"
 
-#: src/core/shell.c:316
+#: src/core/shell.c:319
 msgid "Query string missing"
 msgstr "Manglende spørringsstreng"
 
-#: src/core/shell.c:323
+#: src/core/shell.c:326
 msgid "Search added"
 msgstr "La til søk"
 
-#: src/core/shell.c:389 src/core/shell.c:436 src/core/shell.c:557
+#: src/core/shell.c:392 src/core/shell.c:439 src/core/shell.c:560
 msgid "Property missing"
 msgstr "Manglende verdi"
 
-#: src/core/shell.c:395 src/core/shell.c:442 src/core/shell.c:563
+#: src/core/shell.c:398 src/core/shell.c:445 src/core/shell.c:566
 msgid "Unknown property"
 msgstr "Ukjent verdi"
 
-#: src/core/shell.c:399
+#: src/core/shell.c:402
 msgid "Value: "
 msgstr "Verdi: "
 
-#: src/core/shell.c:403
+#: src/core/shell.c:406
 msgid "Value found and displayed"
 msgstr "Fant og viser verdi"
 
-#: src/core/shell.c:453
+#: src/core/shell.c:456
 msgid "Value missing"
 msgstr "Manglende verdi"
 
-#: src/core/shell.c:516
+#: src/core/shell.c:519
 msgid "Type not supported"
 msgstr "Typen støttes ikke"
 
-#: src/core/shell.c:520
+#: src/core/shell.c:523
 msgid "Value found and set"
 msgstr "Fant og satt verdi"
 
-#: src/core/shell.c:571
+#: src/core/shell.c:574
 msgid "Help: "
 msgstr "Hjelp: "
 
-#: src/core/shell.c:617
+#: src/core/shell.c:638
 msgid "Unknown parameter"
 msgstr "Ukjent parameter"
 
-#: src/core/shell.c:630
+#: src/core/shell.c:651
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "Total horisontstørrelse (%u/%u noder støtter HSEP):"
 
-#: src/core/shell.c:652
+#: src/core/shell.c:673
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "Horisontstørrelse via HSEP-node %s (%s):"
 
-#: src/core/shell.c:654
+#: src/core/shell.c:675
 msgid "leaf"
 msgstr "blad"
 
-#: src/core/shell.c:655
+#: src/core/shell.c:676
 msgid "ultrapeer"
 msgstr "ultrabruker"
 
-#: src/core/shell.c:655 src/if/gnet_property.c:423
+#: src/core/shell.c:676 src/if/gnet_property.c:423
 msgid "normal node"
 msgstr "normal node"
 
-#: src/core/shell.c:681 src/ui/gtk/gtk1/interface-glade.c:2814
+#: src/core/shell.c:702 src/ui/gtk/gtk1/interface-glade.c:2814
 #: src/ui/gtk/gtk2/gnet_stats.c:459
 msgid "Hops"
 msgstr ""
 
-#: src/core/shell.c:682 src/ui/gtk/gtk1/interface-glade.c:2823
+#: src/core/shell.c:703 src/ui/gtk/gtk1/interface-glade.c:2823
 #: src/ui/gtk/gtk1/interface-glade.c:5814 src/ui/gtk/gtk2/gnet_stats.c:460
 msgid "Nodes"
 msgstr "Noder"
 
-#: src/core/shell.c:683 src/ui/gtk/gtk1/interface-glade.c:2832
+#: src/core/shell.c:704 src/ui/gtk/gtk1/interface-glade.c:2832
 #: src/ui/gtk/gtk1/interface-glade.c:5832 src/ui/gtk/gtk2/gnet_stats.c:461
 msgid "Files"
 msgstr "Filer"
 
-#: src/core/shell.c:684 src/ui/gtk/gtk1/interface-glade.c:2841
+#: src/core/shell.c:705 src/ui/gtk/gtk1/interface-glade.c:2841
 #: src/ui/gtk/gtk1/interface-glade.c:3294
 #: src/ui/gtk/gtk1/interface-glade.c:3495
 #: src/ui/gtk/gtk1/interface-glade.c:3696
@@ -662,11 +663,11 @@ msgstr "Filer"
 msgid "Size"
 msgstr "Størrelse"
 
-#: src/core/shell.c:806
+#: src/core/shell.c:828
 msgid "Good bye"
 msgstr "Farvel"
 
-#: src/core/shell.c:839
+#: src/core/shell.c:864
 msgid "Unknown command"
 msgstr "Ukjent kommando"
 
@@ -755,51 +756,51 @@ msgstr ", gzip"
 msgid ", chunked"
 msgstr ", delt opp"
 
-#: src/core/uploads.c:3330
+#: src/core/uploads.c:3343
 msgid "Stalling upload replaced"
 msgstr ""
 
-#: src/core/uploads.c:3493
+#: src/core/uploads.c:3506
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Lagt i kø (plass %d, forventes ferdig: %s)"
 
-#: src/core/uploads.c:3727
+#: src/core/uploads.c:3740
 msgid "Cannot send whole HTTP status"
 msgstr "Klarte ikke sende hele HTTP-statusen"
 
-#: src/core/uploads.c:3828
+#: src/core/uploads.c:3841
 msgid "Write exception"
 msgstr "Klarte ikke skrive"
 
-#: src/core/uploads.c:3899
+#: src/core/uploads.c:3912
 #, c-format
 msgid "File read error: %s"
 msgstr "Klarte ikke lese fil: %s"
 
-#: src/core/uploads.c:3903
+#: src/core/uploads.c:3916
 msgid "File EOF?"
 msgstr "Slutt på fil?"
 
-#: src/core/uploads.c:3936
+#: src/core/uploads.c:3949
 #, c-format
 msgid "Data write error: %s"
 msgstr "Klarte ikke skrive data: %s"
 
-#: src/core/uploads.c:3940
+#: src/core/uploads.c:3953
 msgid "No bytes written, source may be gone"
 msgstr "Ingen byte skrevet; kilden har kanskje forsvunnet"
 
-#: src/core/uploads.c:4059
+#: src/core/uploads.c:4072
 #, c-format
 msgid "Special read error: %s"
 msgstr "Spesiell lesefeil: %s"
 
-#: src/core/uploads.c:4102
+#: src/core/uploads.c:4115
 msgid "Explicitly killed"
 msgstr "Drept på oppdrag"
 
-#: src/core/uploads.c:4127
+#: src/core/uploads.c:4140
 msgid "IP denying uploads"
 msgstr "IP nekter opplastinger"
 
@@ -4111,7 +4112,7 @@ msgstr ""
 msgid "locale_get_language|en"
 msgstr "nb"
 
-#: src/main.c:876
+#: src/main.c:880
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
 
@@ -4655,7 +4656,7 @@ msgstr[1] ""
 
 #: src/ui/gtk/gtk1/downloads.c:1035 src/ui/gtk/gtk1/downloads.c:1066
 #: src/ui/gtk/gtk1/interface-glade.c:2750 src/ui/gtk/gtk2/downloads.c:1438
-#: src/ui/gtk/gtk2/gnet_stats.c:58 src/ui/gtk/uploads_common.c:180
+#: src/ui/gtk/gtk2/gnet_stats.c:58 src/ui/gtk/uploads_common.c:183
 msgid "Queued"
 msgstr ""
 
@@ -4891,7 +4892,7 @@ msgid "Queued (%d active, %d passive)"
 msgstr ""
 
 #: src/ui/gtk/gtk1/fileinfo.c:181 src/ui/gtk/gtk2/fileinfo.c:370
-#: src/ui/gtk/uploads_common.c:180
+#: src/ui/gtk/uploads_common.c:183
 msgid "Waiting"
 msgstr ""
 
@@ -6851,10 +6852,6 @@ msgstr ""
 msgid "[name and version]"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:10381
-msgid "$Id$"
-msgstr ""
-
 #: src/ui/gtk/gtk1/interface-glade.c:10414
 #: src/ui/gtk/gtk2/interface-glade.c:1568
 msgid "Original author:"
@@ -8483,7 +8480,7 @@ msgstr ""
 msgid "Sending request (%u%%)"
 msgstr ""
 
-#: src/ui/gtk/gtk2/downloads.c:1564 src/ui/gtk/uploads_common.c:114
+#: src/ui/gtk/gtk2/downloads.c:1564 src/ui/gtk/uploads_common.c:117
 msgid "< 1s"
 msgstr ""
 
@@ -9154,61 +9151,61 @@ msgstr ""
 msgid "No property name matches the pattern \"%s\"."
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:100
+#: src/ui/gtk/uploads_common.c:103
 msgid "No output yet..."
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:104
+#: src/ui/gtk/uploads_common.c:107
 msgid "Got push, connecting back..."
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:112
+#: src/ui/gtk/uploads_common.c:115
 #, c-format
 msgid "%sCompleted (%s) %s"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:129
+#: src/ui/gtk/uploads_common.c:132
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:132
+#: src/ui/gtk/uploads_common.c:135
 msgid "stalled"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:138
+#: src/ui/gtk/uploads_common.c:141
 msgid "Waiting for headers..."
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:141
+#: src/ui/gtk/uploads_common.c:144
 msgid "Waiting for further request..."
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:144
+#: src/ui/gtk/uploads_common.c:147
 msgid "Unavailable range, waiting retry..."
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:147
+#: src/ui/gtk/uploads_common.c:150
 msgid "Transmission aborted"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:150
+#: src/ui/gtk/uploads_common.c:153
 msgid "Transmission complete"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:179
+#: src/ui/gtk/uploads_common.c:182
 #, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:185
+#: src/ui/gtk/uploads_common.c:188
 msgid "lifetime:"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:197
+#: src/ui/gtk/uploads_common.c:200
 msgid "Sending QUEUE, connecting back..."
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:205
+#: src/ui/gtk/uploads_common.c:208
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
