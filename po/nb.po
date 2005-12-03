@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-12-03 06:42+0900\n"
-"PO-Revision-Date: 2005-12-03 06:37+0900\n"
+"POT-Creation-Date: 2005-12-04 08:09+0900\n"
+"PO-Revision-Date: 2005-12-04 08:07+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
 "MIME-Version: 1.0\n"
@@ -364,7 +364,7 @@ msgstr "Noden har skjold"
 
 #: src/core/nodes.c:3793
 msgid "Gnet connections disabled"
-msgstr "Gnet-forbindelse er deaktivert"
+msgstr "Gnet-forbindelser er slått av"
 
 #: src/core/nodes.c:3818
 msgid "Unstable IP address"
@@ -733,7 +733,7 @@ msgstr "<Forespørsel om å bla i vert>"
 
 #: src/core/uploads.c:2653
 msgid "Browse Host Enabled"
-msgstr "Bla i vert aktivert"
+msgstr "Bla i vert er slått på"
 
 #: src/core/uploads.c:2666
 #, c-format
@@ -1014,7 +1014,7 @@ msgstr ""
 #: src/if/gnet_property.c:1025
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
-"Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er aktivert."
+"Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er i bruk."
 
 #: src/if/gnet_property.c:1046
 msgid ""
@@ -1399,9 +1399,9 @@ msgid ""
 "not set PARQ will calculate using a worst case scenario.  The default is to "
 "be optimistic."
 msgstr ""
-"Hvis dette aktiveres kalkulerer PARQ forventet nedlastingstid mer "
-"optimistisk. Hvis deaktivert kalkulerer PARQ det aller verste som kan skje. "
-"Standard er å være optimistisk."
+"Hvis dette slås på kalkulerer PARQ forventet nedlastingstid mer optimistisk. "
+"Hvis slått av kalkulerer PARQ det aller verste som kan skje. Standard er å "
+"være optimistisk."
 
 #: src/if/gnet_property.c:2280
 msgid ""
@@ -1418,7 +1418,7 @@ msgstr ""
 "om igjen tas også størrelsen på de ønskede og allerede opplastede bitene "
 "med. Kun hvis størrelsen som bes om er større enn grensen ser vi på den "
 "teoretiske tiden det vil ta å tjene alt sammen for å se hvorvidt vi fortsatt "
-"kan gå utenom køen. Velg 0 for å deaktivere denne størrelsesbaserte "
+"kan gå utenom køen. Velg 0 for å ikke bruke denne størrelsesbaserte "
 "funksjonen og kun se på tid."
 
 #: src/if/gnet_property.c:2300
@@ -1430,7 +1430,7 @@ msgid ""
 msgstr ""
 "PARQ bes om å ike legge en opplasting i køen hvis den forventes å ta mindre "
 "enn denne innstillingen i sekunder. Dette sjekkes ETTER den "
-"filstørrelsebaserte overhoppingen. Velg 0 for å deaktivere funksjonen."
+"filstørrelsebaserte overhoppingen. Velg 0 for å ikke bruke denne funksjonen."
 
 #: src/if/gnet_property.c:2320
 msgid "For development use: track properties."
@@ -1442,31 +1442,31 @@ msgstr "For utviklere: ikke legg til nye verter i vertshurtigminnet."
 
 #: src/if/gnet_property.c:2357
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
-msgstr "Aktiver begrensning av båndbredde for innkommende HTTP-trafikk."
+msgstr "Bruk begrensning av båndbredde for innkommende HTTP-trafikk."
 
 #: src/if/gnet_property.c:2374
 msgid "Enable bandwidth limitation for outgoing HTTP traffic."
-msgstr "Aktiver begrensning av båndbredde for utgående HTTP-trafikk."
+msgstr "Bruk begrensning av båndbredde for utgående HTTP-trafikk."
 
 #: src/if/gnet_property.c:2391
 msgid "Enable bandwidth limitation for incoming Gnet traffic."
-msgstr "Aktiver begrensning av båndbredde for innkommende Gnet-trafikk."
+msgstr "Bruk begrensning av båndbredde for innkommende Gnet-trafikk."
 
 #: src/if/gnet_property.c:2408
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic."
-msgstr "Aktiver begrensning av båndbredde for innkommende Gnet-bladtrafikk."
+msgstr "Bruk begrensning av båndbredde for innkommende Gnet-bladtrafikk."
 
 #: src/if/gnet_property.c:2425
 msgid "Enable bandwidth limitation for outgoing Gnet traffic."
-msgstr "Aktiver begrensning av båndbredde for utgående Gnet-trafikk."
+msgstr "Bruk begrensning av båndbredde for utgående Gnet-trafikk."
 
 #: src/if/gnet_property.c:2442
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic."
-msgstr "Aktiver begrensning av båndbredde for utgående Gnet-bladtrafikk."
+msgstr "Bruk begrensning av båndbredde for utgående Gnet-bladtrafikk."
 
 #: src/if/gnet_property.c:2459
 msgid "Enable dynamic upload slots allocation."
-msgstr "Aktiver dynamisk tildeling av opplastingsplasser."
+msgstr "Bruk dynamisk tildeling av opplastingsplasser."
 
 #: src/if/gnet_property.c:2476
 msgid ""
@@ -1502,7 +1502,7 @@ msgstr "Fjern nedlastede filer fra søkeresultatet."
 
 #: src/if/gnet_property.c:2561
 msgid "Enable to use [forced_local_ip] as local ip."
-msgstr "Aktiver for å bruke [forced_local_ip] som lokal IP-adresse."
+msgstr "Slå dette på for å bruke [forced_local_ip] som lokal IP-adresse."
 
 #: src/if/gnet_property.c:2578
 msgid "Try to connect to local networks first."
@@ -1628,7 +1628,7 @@ msgid ""
 msgstr ""
 "Båndbreddebegrensning for innkommende Gnet-bladtrafikk i byte per sekund. "
 "Denne båndbredden tjeles fra den vanlige HTTP-trafikken hvis du kjører som "
-"ultranode og bladformeren er aktivert."
+"ultranode og bladformeren er slått på."
 
 #: src/if/gnet_property.c:3067
 msgid ""
@@ -1638,7 +1638,7 @@ msgid ""
 msgstr ""
 "Båndbreddebegrensning for utgående Gnet-bladtrafikk i byte per sekund. Denne "
 "båndbredden tjeles fra den vanlige HTTP-trafikken hvis du kjører som "
-"ultranode og bladformeren er aktivert."
+"ultranode og bladformeren er slått påt."
 
 #: src/if/gnet_property.c:3087
 msgid ""
@@ -1700,8 +1700,8 @@ msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
 "[min_dup_ratio])."
 msgstr ""
-"MInste antall dupliserte meldinger nødvendig for å aktivere sparking, per "
-"node (se også [min_dup_ratio])."
+"MInste antall dupliserte meldinger nødvendig for å bruke sparking, per node "
+"(se også [min_dup_ratio])."
 
 #: src/if/gnet_property.c:3244
 msgid ""
@@ -1835,7 +1835,7 @@ msgstr ""
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
-"Hvis detta aktiveres kreves det at SHA1-verdier må stemme. Ellers er navn og "
+"Hvis detta brukes kreves det at SHA1-verdier må stemme. Ellers er navn og "
 "størrelse nok."
 
 #: src/if/gnet_property.c:3646
@@ -1927,7 +1927,7 @@ msgid ""
 "minimum number of connections has been established. Always allows for one "
 "non-compressed connection."
 msgstr ""
-"Hvis dette aktiveres tillates kun komprimerte innkommende forbindelser etter "
+"Hvis dette brukes så tillates kun komprimerte innkommende forbindelser etter "
 "at det minste antallet forbindelser er nådd. Tillater alltid én ukomprimert "
 "forbindelse."
 
@@ -1936,8 +1936,8 @@ msgid ""
 "If deactivated, only uploads and downloads will continue. All Gnet "
 "connections are disabled/terminated."
 msgstr ""
-"Hvis deaktivert fortsetter kun opplastinger og nedlastinger. Alle Gnet-"
-"forbindelser deaktiveres/avbrytes."
+"Hvis dette er av fortsetter kun opplastinger og nedlastinger. Alle Gnet-"
+"forbindelser slås av/avbrytes."
 
 #: src/if/gnet_property.c:3887
 msgid ""
@@ -1949,8 +1949,8 @@ msgstr ""
 "Hvorvidt Gtk-Gnutella skal forsikre seg om at tjeneren bekrefter URN'en til "
 "filen vi ber om når den kjennes lokalt og en tradisjonell forespørsel med "
 "navn brukes (altså at Gtk-Gnutella ikke utsteder en «/uri-res/N2R?»-"
-"forespørsel). Hvis dette aktiveres oversees den optimistiske innstillingen "
-"om første bit."
+"forespørsel). Hvis dette brukes oversees den optimistiske innstillingen om "
+"første bit."
 
 #: src/if/gnet_property.c:3904
 msgid ""
@@ -2072,7 +2072,7 @@ msgid ""
 "of data that should be continuously downloaded at the beginning of the "
 "file.  Don't set it too large."
 msgstr ""
-"Når deling av uferdige filer (PFSP) er aktivert, prøver Gtk-Gnutella å laste "
+"Når deling av uferdige filer (PFSP) er slått på, prøver Gtk-Gnutella å laste "
 "ned biler i en tilfeldig rekkefølge for å øke spredningen av filen i "
 "nettverket. Dette gjør det umulig å se filtype, forhåndsvisning etc. Dette "
 "feltet velger størrelsen i byte på den første biten data som skal lastes ned "
@@ -2083,7 +2083,7 @@ msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will not share "
 "partial files below this filesize. Don't set it too large."
 msgstr ""
-"Når deling av uferdige filer (PFSP) er aktivert, deler ikke Gtk-Gnutella "
+"Når deling av uferdige filer (PFSP) er slått på, deler ikke Gtk-Gnutella "
 "uferdige filer under denne filstørrelsen. Ikke velg et for stort tall."
 
 #: src/if/gnet_property.c:4338
@@ -2096,7 +2096,7 @@ msgid ""
 msgstr ""
 "Hvorvidt et uklart filter skal brukes på oppføringene i nedlastingsmasken. "
 "Målet med dette er å fjerne oppføringer hvis navn er for forskjellige til å "
-"fornuftig være en del av samme nettet. Hvis dette aktiveres blir nettet ditt "
+"fornuftig være en del av samme nettet. Hvis dette slås på blir nettet ditt "
 "antakelig mer sammenhengende, men det bruker ekstra prosessorkraft, og noen "
 "gyldige oppføringer går antakelig tapt i prosessen."
 
@@ -2377,7 +2377,7 @@ msgstr ""
 "bladnoder. Hvis gjenspørringen skjer for tidlig, slippes den og registreres "
 "av meldingskvelingtelleren. Gjenspørringer for ofte er skadelige for "
 "nettverket, men vi må tillate en liten mengde av gjenspørringer på grunn av "
-"Gnutella-forbindelsenes dynamiske natur. Du kan ikke deaktivere denne "
+"Gnutella-forbindelsenes dynamiske natur. Du kan ikke slå av denne "
 "kontrollen, men du kan senke presset betydelig. Avvik fra standardverdien, "
 "1700, har eksponensiell virkning på nettverkstrafikken."
 
@@ -2472,8 +2472,8 @@ msgid ""
 "operations are still possible. The condition automatically clears itself "
 "after 10 minutes without any more shortage."
 msgstr ""
-"Hvis aktivert har Gtk-Gnutella få filbeskrivere, men normale operasjoner er "
-"fortsatt mulig. Tilstanden fjernes automatisk etter 10 minutter hvis det "
+"Hvis dette er på har Gtk-Gnutella få filbeskrivere, men normale operasjoner "
+"er fortsatt mulig. Tilstanden fjernes automatisk etter 10 minutter hvis det "
 "ikke forekommer flere mangler."
 
 #: src/if/gnet_property.c:5386
@@ -2482,25 +2482,25 @@ msgid ""
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurrence."
 msgstr ""
-"Hvis aktivert er Gtk-Gnutella tom for filbeskrivere, og operasjoner kjøres "
-"ikke som normalt, eller ikke i det hele tatt. Tilstanden fjernes automatisk "
-"etter 10 minutter siden siste gang mangelen inntraff."
+"Hvis dette er på er Gtk-Gnutella tom for filbeskrivere, og operasjoner "
+"kjøres ikke som normalt, eller ikke i det hele tatt. Tilstanden fjernes "
+"automatisk etter 10 minutter siden siste gang mangelen inntraff."
 
 #: src/if/gnet_property.c:5403
 msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr "Hvis aktivert aksepterer og håndterer Gtk-Gnutella G2-forbindelser."
+msgstr "Hvis dette er på aksepterer og håndterer Gtk-Gnutella G2-forbindelser."
 
 #: src/if/gnet_property.c:5420
 msgid "If set, spaces in filenames are replaced with underscores."
-msgstr "Hvis aktivert erstattes mellomrom i filnavn med understreker."
+msgstr "Hvis dette er på erstattes mellomrom i filnavn med understreker."
 
 #: src/if/gnet_property.c:5437
 msgid ""
 "If set, meta shell characters in filenames are replaced with underscores. "
 "(This must also be enabled for FAT partitions.)"
 msgstr ""
-"Hvis aktivert erstattes metaskalltegn i filnavn med understreker.  (Dette må "
-"også aktiveres for FAT-partisjoner.)"
+"Hvis dette er på erstattes metaskalltegn i filnavn med understreker.  (Dette "
+"må også brukes for FAT-partisjoner.)"
 
 #: src/if/gnet_property.c:5454
 msgid ""
@@ -2509,21 +2509,21 @@ msgid ""
 "existing filenames in your temporary downloading directory. By default, the "
 "above settings apply only on newly created entries, not existing ones."
 msgstr ""
-"Hvis aktivert kurerer Gtk-Gnutella gale filnavn i katalogen for midlertidige "
-"nedlastinger ved å konvertere mellomrom og/eller onde tegn i dem når "
-"programmet starter. Innstillingene ovenfor gjelder som standard kun for nye "
-"filer."
+"Hvis dette er på kurerer Gtk-Gnutella gale filnavn i katalogen for "
+"midlertidige nedlastinger ved å konvertere mellomrom og/eller onde tegn i "
+"dem når programmet starter. Innstillingene ovenfor gjelder som standard kun "
+"for nye filer."
 
 #: src/if/gnet_property.c:5471
 msgid "If set, all outgoing connections are tunneled over TLS."
 msgstr ""
-"Hvis dette aktiveres legges alle utgående forbindelser i tunnel over TLS."
+"Hvis dette slås på legges alle utgående forbindelser i tunnel over TLS."
 
 #: src/if/gnet_property.c:5488
 msgid "If not set, support for Gnutella connection compression is disabled."
 msgstr ""
-"Hvis ikke aktivert er støtte for komprimering av Gnutella-forbindelser "
-"deaktivert."
+"Hvis dette er av er støtte for komprimering av Gnutella-forbindelser slått "
+"av."
 
 #: src/if/gnet_property.c:5505
 msgid ""
@@ -2533,10 +2533,10 @@ msgid ""
 "received via TCP.  It is safe to leave this set, which is the default "
 "behavior."
 msgstr ""
-"Hvorvidt UPD skal brukes i tillegg til TCP. Hvis dette er aktivert lytter "
-"Gtk-Gnutella også for UPD-trafikk på den samme porten som er satt opp for "
-"TCP, og behandler innkommende Gnutella-trafikk på nesten den samme måten som "
-"om det var mottatt via TCP. Det er helt trygt å la dette være på, som er "
+"Hvorvidt UPD skal brukes i tillegg til TCP. Hvis dette er på lytter Gtk-"
+"Gnutella også for UPD-trafikk på den samme porten som er satt opp for TCP, "
+"og behandler innkommende Gnutella-trafikk på nesten den samme måten som om "
+"det var mottatt via TCP. Det er helt trygt å la dette være på, som er "
 "stanardoppførselen."
 
 #: src/if/gnet_property.c:5522
@@ -2550,13 +2550,13 @@ msgid ""
 "emitted traffic and honors the bandwidth limitations."
 msgstr ""
 "Hvorvidt Gtk-Gnutella skal bri seg om forespørsler om utenfor rekkevidde-"
-"levering av spørringstreff via UDP, så lenge støtte for UDP er aktivert. Det "
-"skal ikke være nødvendig med portvideresending for å aktivere dette siden "
-"noden din kommer til å være opphavet til UDP-trafikken og derfor kan motta "
-"svar sendt til lagringsflyktige UDP-porten åpnet av en maskererende "
-"brannmur. Det er aktivert som standard fordi det vurderes som sikkert, siden "
-"noden din kontrollerer mesteparten av den innslupne trafikken og føyer seg "
-"etter båndbreddebegrensningene."
+"levering av spørringstreff via UDP, så lenge støtte for UDP er på. Det skal "
+"ikke være nødvendig med portvideresending for å bruke dette siden noden din "
+"kommer til å være opphavet til UDP-trafikken og derfor kan motta svar sendt "
+"til lagringsflyktige UDP-porten åpnet av en maskererende brannmur. Det er i "
+"bruk som standard fordi det vurderes som sikkert, siden noden din "
+"kontrollerer mesteparten av den innslupne trafikken og føyer seg etter "
+"båndbreddebegrensningene."
 
 #: src/if/gnet_property.c:5539
 msgid ""
@@ -2571,9 +2571,9 @@ msgstr ""
 "Hvorvidt Gtk-Gnutella skal sende spørringer som ber om utenfor rekkevidde-"
 "levering av spørringstreff via UDP. Denne innstillingen ignoreres hvis du "
 "ser ut til å være bak en UDP-brannmur, siden du da ikke kan motta "
-"uoppfordret UDP-trafikk. Du må aktivere støtte for UDP først. Dette kan føre "
-"til mottaking av store mengder UDP-svar, så du ønsker kanskje å deaktivere "
-"denne funksjonen. Hvis du deaktiverer dette reiser treffene gjennom Gnutella-"
+"uoppfordret UDP-trafikk. Du må slå på støtte for UDP først. Dette kan føre "
+"til mottaking av store mengder UDP-svar, så du ønsker kanskje å slå av denne "
+"funksjonen. Hvis du slår av dette reiser treffene gjennom Gnutella-"
 "nettverket og kan slippes av hvilken som helst flytkontrollerende "
 "relésendende node, noe som begrenser antall treff du kan få."
 
@@ -2592,9 +2592,9 @@ msgstr ""
 "I så tilfelle krever Gtk-Gnutella treffene fra de fjerne nodene og "
 "videresender treffene til det riktige bladet. Dette er veldig nyttig for "
 "bladene, men kan sende store flommer av UPD-trafikk tilbake til deg. Hvis du "
-"deaktiverer dette må alle ultralikemenn som er tilkoblet deg relésende "
-"treffene, og muligens slippe andre spørringsmeldinger og senke "
-"søkenettverkets effektivitet."
+"slår av dette må alle ultralikemenn som er tilkoblet deg relésende treffene, "
+"og muligens slippe andre spørringsmeldinger og senke søkenettverkets "
+"effektivitet."
 
 #: src/if/gnet_property.c:5573
 msgid ""
@@ -2610,7 +2610,7 @@ msgid ""
 "$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
 "list from the global one distributed with Gtk-Gnutella."
 msgstr ""
-"Hvis dette aktiveres, brukes den globale «hostfiles.txt» i tillegg til den "
+"Hvis dette slås på, brukes den globale «hostfiles.txt» i tillegg til den "
 "private «$GTK_GNUTELLA_DIR/hostfiles.txt». Dette gjør det mulig å separere "
 "den private bannlysingslisten din fra den globale som distribueres med Gtk-"
 "Gnutella."
@@ -2622,7 +2622,8 @@ msgstr "Hvis dette er satt til «TRUE» brukes «SO_LINGERfor sokler."
 #: src/if/gnet_property.c:5624
 msgid "If TRUE, other hosts can request a complete list of all shared files."
 msgstr ""
-"Hvis aktivert kan andre verter be om en fullstendig liste over delte filer."
+"Hvis dette er på kan andre verter be om en fullstendig liste over delte "
+"filer."
 
 #: src/if/gnet_property.c:5641
 msgid "Number of HTML browsing requests received in this session."
@@ -2662,9 +2663,9 @@ msgstr ""
 "det skriver til disk. Når du svermer fra mange kilder, hjelper en høyere "
 "verdi med å unngå for mange systemkall og bør også redusere fragmenteringen "
 "på filsystemet. Det dumme er at det bruker mer minne per aktive kilde. Velg "
-"0 for å deaktivere lagring i hurtigminnet (Gtk-Gnutella vil da skrive til "
-"disk så snart det mottar noe data). Velg den høyeste verdien hvis du har en "
-"del RAM."
+"0 for å slå av lagring i hurtigminnet (Gtk-Gnutella vil da skrive til disk "
+"så snart det mottar noe data). Velg den høyeste verdien hvis du har en del "
+"RAM."
 
 #: src/if/gnet_property.c:5718
 msgid ""
@@ -2683,12 +2684,12 @@ msgstr ""
 "forhindrer lesingen av noen få byte før de hurtiglagrede dataene lagres til "
 "disk: når lese foran-plass er tilgjengelig brukes det i tillegg til lagring "
 "i hurtigminne, men lese foran-data lagres på disken med én gang. Hvos du "
-"ikke vil reservere mer minne per aktive kilde kan du deaktivere denne "
-"funksjonen ved å sette hurtigminnet for lese foran til 0."
+"ikke vil reservere mer minne per aktive kilde kan du slå av denne funksjonen "
+"ved å sette hurtigminnet for lese foran til 0."
 
 #: src/if/gui_property.c:179
 msgid "disable"
-msgstr "deaktiver"
+msgstr "slå av"
 
 #: src/if/gui_property.c:180
 msgid "by words"
@@ -2816,7 +2817,7 @@ msgstr "2 uker"
 
 #: src/if/gui_property.c:334
 msgid "Search monitor enabled."
-msgstr "Søkeovervåkning er aktivert."
+msgstr "Søkeovervåkning er på."
 
 #: src/if/gui_property.c:351
 msgid "Maximum number of queries visible in search monitor."
@@ -3176,9 +3177,8 @@ msgid ""
 "message queue info."
 msgstr ""
 "Hvorvidt det skal vises detaljert trafikkinformasjon for noden. Når dette er "
-"aktivert er det mulig å endre på hvor mye informasjon som vises. Når det er "
-"deaktivert vises kun TX- og RX-meldingstellere, etterfulgt av "
-"meldingskøinformasjon."
+"på er det mulig å endre på hvor mye informasjon som vises. Når det er slått "
+"av vises kun TX- og RX-meldingstellere, etterfulgt av meldingskøinformasjon."
 
 #: src/if/gui_property.c:1913
 msgid "Whether TX traffic compression ratio should be displayed."
@@ -4656,7 +4656,7 @@ msgstr "(Negativisert) "
 
 #: src/ui/gtk/filter_core.c:1170
 msgid "(deactivated)"
-msgstr "(deaktivert)"
+msgstr "(slått av)"
 
 #: src/ui/gtk/filter_core.c:1172
 msgid "(invalid)"
@@ -6371,7 +6371,7 @@ msgstr "#|Søk"
 #: src/ui/gtk/gtk1/interface-glade.c:5477
 #: src/ui/gtk/gtk2/interface-glade.c:5994
 msgid "Search _monitor enabled"
-msgstr "Søkeovervåking _aktivert"
+msgstr "Søkeovervåking er s_lått på"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5497
 #: src/ui/gtk/gtk2/interface-glade.c:6005
@@ -6767,7 +6767,7 @@ msgstr "Regler"
 #: src/ui/gtk/gtk1/interface-glade.c:7916
 #: src/ui/gtk/gtk2/interface-glade.c:1135
 msgid "enabled"
-msgstr "aktivert"
+msgstr "slått på"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7924
 msgid "Remove filter"
@@ -7295,7 +7295,7 @@ msgstr "_Lytteport"
 #: src/ui/gtk/gtk1/interface-glade.c:11721
 #: src/ui/gtk/gtk2/interface-glade.c:10238
 msgid "Disable: 0, Random: 1"
-msgstr "Deaktiver: 0, tilfeldig: 1"
+msgstr "Ikke bruk: 0, tilfeldig: 1"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11733
 #: src/ui/gtk/gtk2/interface-glade.c:10286
@@ -7305,7 +7305,7 @@ msgstr "_Offentlig vertsnavn"
 #: src/ui/gtk/gtk1/interface-glade.c:11757
 #: src/ui/gtk/gtk2/interface-glade.c:10303
 msgid "Enable _UDP"
-msgstr "Aktiver _UDP"
+msgstr "Slå på _UDP"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11769
 #: src/ui/gtk/gtk2/interface-glade.c:10324
@@ -7473,12 +7473,12 @@ msgstr "Diverse"
 #: src/ui/gtk/gtk1/interface-glade.c:12257
 #: src/ui/gtk/gtk2/interface-glade.c:10680
 msgid "Enable \"_shell\" control interface"
-msgstr "Aktiver _skallkontroll-grensesnitt"
+msgstr "Slå på _skallkontroll-grensesnitt"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12269
 #: src/ui/gtk/gtk2/interface-glade.c:10685
 msgid "Enable \"_Browse Host\" feature"
-msgstr "Aktiver «Bla i vert»-funksjonen"
+msgstr "Slå på «_Bla i vert»-funksjonen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:12279
 #: src/ui/gtk/gtk2/interface-glade.c:10759
@@ -7683,7 +7683,7 @@ msgstr "Tilkoblin_gstidsavbrudd"
 #: src/ui/gtk/gtk2/interface-glade.c:13780
 #: src/ui/gtk/gtk2/interface-glade.c:14544
 msgid "Connected time_out"
-msgstr "Tilkoblet tidsavbrudd"
+msgstr "Tilk_oblet tidsavbrudd"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13213
 #: src/ui/gtk/gtk2/interface-glade.c:11748
@@ -7708,12 +7708,12 @@ msgstr "Høyeste _TTL"
 #: src/ui/gtk/gtk1/interface-glade.c:13327
 #: src/ui/gtk/gtk2/interface-glade.c:11862
 msgid "M_y TTL"
-msgstr "M&in TTL"
+msgstr "M_in TTL"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13340
 #: src/ui/gtk/gtk2/interface-glade.c:11915
 msgid "from _nodes within a"
-msgstr "fra noder innen et"
+msgstr "fra _noder innen et"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13353
 #: src/ui/gtk/gtk2/interface-glade.c:11900
@@ -7760,7 +7760,7 @@ msgstr "Forhold for tålbare dupliserte meldinger per _node"
 #: src/ui/gtk/gtk1/interface-glade.c:13486
 #: src/ui/gtk/gtk2/interface-glade.c:11990
 msgid "Number of tolerable _duplicate messages per node"
-msgstr "Antall tolererte dupliserte meldinger per node"
+msgstr "Antall tolererte _dupliserte meldinger per node"
 
 #: src/ui/gtk/gtk1/interface-glade.c:13521
 #: src/ui/gtk/gtk2/interface-glade.c:12016
@@ -7978,7 +7978,7 @@ msgstr "Kumulativ _opplastingshastighet"
 #: src/ui/gtk/gtk1/interface-glade.c:14465
 #: src/ui/gtk/gtk2/interface-glade.c:13052
 msgid "Enable dynamic upload slots _allocation"
-msgstr "Aktiver dynamisk tildeling av opplastingsplasser"
+msgstr "Slå på dyn_amisk tildeling av opplastingsplasser"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14487
 #: src/ui/gtk/gtk2/interface-glade.c:12998
@@ -8200,7 +8200,7 @@ msgstr "Nedlasting fra flere kilder (sverming)"
 #: src/ui/gtk/gtk1/interface-glade.c:15175
 #: src/ui/gtk/gtk2/interface-glade.c:13863
 msgid "Enable s_warming"
-msgstr "Aktiver s_verming"
+msgstr "Slå på s_verming"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15205
 #: src/ui/gtk/gtk2/interface-glade.c:13856
@@ -8311,12 +8311,12 @@ msgstr "Deling av uferdige filer"
 #: src/ui/gtk/gtk1/interface-glade.c:15744
 #: src/ui/gtk/gtk2/interface-glade.c:14477
 msgid "First chunk _size"
-msgstr "Størrelse på første bit"
+msgstr "_Størrelse på første bit"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15757
 #: src/ui/gtk/gtk2/interface-glade.c:14493
 msgid "Enable upload of _partially downloaded files"
-msgstr "Aktiver opplasting av _delvis nedlastede filer"
+msgstr "Slå på opplasting av _delvis nedlastede filer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15781
 #: src/ui/gtk/gtk2/interface-glade.c:14508
@@ -9016,7 +9016,7 @@ msgstr "_Adresser til lokale nettverk"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11604
 msgid "seconds (0 - disable)"
-msgstr "sekunder (0 - deaktiver)"
+msgstr "sekunder (0 - av)"
 
 #: src/ui/gtk/gtk2/interface-glade.c:11701
 msgid "slots"
@@ -9042,7 +9042,7 @@ msgstr "Fje_rn katalog"
 
 #: src/ui/gtk/gtk2/interface-glade.c:14595
 msgid "Minimum chunk _size"
-msgstr "Minste bitstørrelse"
+msgstr "Minste bit_størrelse"
 
 #: src/ui/gtk/gtk2/interface-glade.c:16067
 msgid "Edit filters"
