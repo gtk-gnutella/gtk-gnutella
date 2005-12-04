@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-12-04 08:09+0900\n"
-"PO-Revision-Date: 2005-12-04 08:07+0900\n"
+"POT-Creation-Date: 2005-12-04 11:09+0900\n"
+"PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
 "MIME-Version: 1.0\n"
@@ -4335,7 +4335,7 @@ msgstr "%us"
 
 #: src/lib/utf8.c:1223
 msgid "locale_get_language|en"
-msgstr "locale_get_langauge|nb"
+msgstr "nb"
 
 #: src/main.c:880
 msgid "This is an unofficial build which accesses files in this directory:"
@@ -4344,43 +4344,43 @@ msgstr ""
 
 #: src/ui/gtk/bitzi.c:56
 msgid "Bitzi|Unknown"
-msgstr "Bitzi|Ukjent"
+msgstr "Ukjent"
 
 #: src/ui/gtk/bitzi.c:57
 msgid "Bitzi|Dangerous/Misleading"
-msgstr "Bitzi|Farlig/Villedende"
+msgstr "Farlig/Villedende"
 
 #: src/ui/gtk/bitzi.c:58
 msgid "Bitzi|Incomplete/Damaged"
-msgstr "Bitzi|Uferdig/Skadet"
+msgstr "Uferdig/Skadet"
 
 #: src/ui/gtk/bitzi.c:59
 msgid "Bitzi|Substandard"
-msgstr "Bitzi|Understandard"
+msgstr "Understandard"
 
 #: src/ui/gtk/bitzi.c:60
 msgid "Bitzi|Overrated"
-msgstr "Bitzi|Overrangert"
+msgstr "Overrangert"
 
 #: src/ui/gtk/bitzi.c:61
 msgid "Bitzi|Normal"
-msgstr "Bitzi|Normal"
+msgstr "Normal"
 
 #: src/ui/gtk/bitzi.c:62
 msgid "Bitzi|Underrated"
-msgstr "Bitzi|Underrangert"
+msgstr "Underrangert"
 
 #: src/ui/gtk/bitzi.c:63
 msgid "Bitzi|Complete"
-msgstr "Bitzi|Fullført"
+msgstr "Fullført"
 
 #: src/ui/gtk/bitzi.c:64
 msgid "Bitzi|Recommended"
-msgstr "Bitzi|Anbefalt"
+msgstr "Anbefalt"
 
 #: src/ui/gtk/bitzi.c:65
 msgid "Bitzi|Best Version"
-msgstr "Bitzi|Beste versjon"
+msgstr "Beste versjon"
 
 #: src/ui/gtk/bitzi.c:126
 msgid "No other data"
@@ -5589,7 +5589,7 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:2320
 msgid "#|Gnet"
-msgstr "#|Gnet"
+msgstr "Gnet"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2336
 msgid "Message/flow control stats"
@@ -5735,7 +5735,7 @@ msgstr "Vis grunn_er for"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2962
 msgid "#|Gnet Stats"
-msgstr "#|Gnet-statistikk"
+msgstr "Gnet-statistikk"
 
 #: src/ui/gtk/gtk1/interface-glade.c:2979
 #: src/ui/gtk/gtk2/interface-glade.c:9807
@@ -5791,7 +5791,7 @@ msgstr "Dårlige verter"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3216
 msgid "#|Hostcache"
-msgstr "#|Verthurtigminne"
+msgstr "Verthurtigminne"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3224
 #: src/ui/gtk/gtk1/interface-glade.c:16592
@@ -5874,7 +5874,7 @@ msgstr "Høyeste antall opplastinger til samme vert"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3437
 msgid "#|Uploads"
-msgstr "#|Opplastinger"
+msgstr "Opplastinger"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3445
 #: src/ui/gtk/gtk2/interface-glade.c:4402
@@ -5926,7 +5926,7 @@ msgstr " Gnutella-blaforespørsler"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3610
 msgid "#|Upload Stats"
-msgstr "#|Opplastingsstatistikk"
+msgstr "Opplastingsstatistikk"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3618
 #: src/ui/gtk/gtk2/interface-glade.c:16257
@@ -6027,7 +6027,7 @@ msgstr " med kilder"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4005
 msgid "#|Downloads"
-msgstr "#|Nedlastinger"
+msgstr "Nedlastinger"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4013
 #: src/ui/gtk/gtk2/interface-glade.c:4964
@@ -6166,7 +6166,7 @@ msgstr "Vis innstillinger"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4454
 msgid "#|Active"
-msgstr "#|Aktiv"
+msgstr "Aktiv"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4462
 #: src/ui/gtk/gtk2/interface-glade.c:16723
@@ -6211,7 +6211,7 @@ msgstr " passiv)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4722
 msgid "#|Queue"
-msgstr "#|Kø"
+msgstr "Kø"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4730
 #: src/ui/gtk/gtk2/interface-glade.c:5823
@@ -6366,7 +6366,7 @@ msgstr "_Fjern resultater"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5450
 msgid "#|Search"
-msgstr "#|Søk"
+msgstr "Søk"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5477
 #: src/ui/gtk/gtk2/interface-glade.c:5994
@@ -6385,7 +6385,7 @@ msgstr "søk"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5553
 msgid "#|Monitor"
-msgstr "#|Overvåker"
+msgstr "Overvåker"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5590
 #: src/ui/gtk/gtk2/interface-glade.c:6108
@@ -6431,7 +6431,7 @@ msgstr "0 begreper talt"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5729
 msgid "#|Search Stats"
-msgstr "#|Søkestatistikk"
+msgstr "Søkestatistikk"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5778
 #: src/ui/gtk/gtk2/interface-glade.c:3045
@@ -6850,7 +6850,7 @@ msgstr "Legg til tilstandregel"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8144
 msgid "#|Add/Remove"
-msgstr "#|Legg til/Fjern"
+msgstr "Legg til/Fjern"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8193
 #: src/ui/gtk/gtk1/interface-glade.c:8409
@@ -6913,7 +6913,7 @@ msgstr "Fjern"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8360
 msgid "#|Filename"
-msgstr "#|FIlnavn"
+msgstr "FIlnavn"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8433
 #: src/ui/gtk/gtk2/interface-glade.c:7105
@@ -6927,7 +6927,7 @@ msgstr "IP-adresse/maske"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8565
 msgid "#|IP address"
-msgstr "#|IP-adresse"
+msgstr "IP-adresse"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8638
 #: src/ui/gtk/gtk2/interface-glade.c:7491
@@ -6963,7 +6963,7 @@ msgstr "byte"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8813
 msgid "#|Filesize"
-msgstr "#|Filstørrelse"
+msgstr "Filstørrelse"
 
 #: src/ui/gtk/gtk1/interface-glade.c:8870
 #: src/ui/gtk/gtk2/interface-glade.c:7813
@@ -6983,7 +6983,7 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:8989
 msgid "#|Jump"
-msgstr "#|Hopp"
+msgstr "Hopp"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9061
 #: src/ui/gtk/gtk2/interface-glade.c:8171
@@ -7002,7 +7002,7 @@ msgstr "Opprinnelig skaffet fra"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9222
 msgid "#|SHA1"
-msgstr "#|SHA1"
+msgstr "SHA1"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9287
 #: src/ui/gtk/gtk2/interface-glade.c:8833
@@ -7048,7 +7048,7 @@ msgstr "Stabil"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9611
 msgid "#|Flags"
-msgstr "#|Flagg"
+msgstr "Flagg"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9684
 #: src/ui/gtk/gtk2/interface-glade.c:9484
@@ -7085,7 +7085,7 @@ msgstr "ignorer"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9977
 msgid "#|State"
-msgstr "#|Tilstand"
+msgstr "Tilstand"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10001
 msgid "Apply"
@@ -9026,7 +9026,7 @@ msgstr "plasser"
 #: src/ui/gtk/gtk2/interface-glade.c:12073
 #: src/ui/gtk/gtk2/interface-glade.c:12708
 msgid "unit_of_time|s"
-msgstr "init_of_time|s"
+msgstr "s"
 
 #: src/ui/gtk/gtk2/interface-glade.c:12156
 msgid "Maximum percentage of connection slots a vendor can occupy."
