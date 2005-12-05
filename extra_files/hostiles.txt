@@ -127,6 +127,12 @@
 # ServerBeach (Peer 1 network)
 64.34.160.0/19
 
+# Sound Control Media Protection, Ltd.
+65.19.154.160/27
+66.220.11.64/27
+66.220.12.128/27
+66.220.12.192/26
+
 # Minnesota valley television
 65.160.241.0/25
 
