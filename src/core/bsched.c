@@ -1402,6 +1402,8 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	g_assert(len > 0);
 
 	start = *offset;
+	g_assert(start + len > start);
+
 	out_fd = bio->wio->fd(bio->wio);
 
 	/*
@@ -1446,15 +1448,35 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			start < ctx->map_start ||
 			start + amount > ctx->map_end
 		) {
+			static const size_t min_map_size = 256 * 1024;
 			size_t map_len;
 
 			if (ctx->map != NULL) {
 				munmap(ctx->map, ctx->map_end - ctx->map_start);
 				ctx->map = NULL;
 			}
-			map_len = MAX(amount, 256 * 1024U);
-			ctx->map_start = start;
+
+			/*
+			 * Make sure ``off'' is page-aligned for mmap(); some
+			 * implementations require this.
+			 */
+			ctx->map_start = start - (start % compat_pagesize());
+			map_len = amount + (start - ctx->map_start);
+
+			/*
+			 * Map at least 256 KiB so that mmap() isn't called too frequently.
+			 */
+
+			if (
+				map_len < min_map_size &&
+				ctx->map_start + min_map_size > ctx->map_start
+			) {
+				map_len = min_map_size;
+			}
+
 			ctx->map_end = ctx->map_start + map_len;
+			g_assert(ctx->map_start < ctx->map_end);
+
 			ctx->map = mmap(NULL, map_len, PROT_READ, MAP_PRIVATE, in_fd,
 							ctx->map_start);
 			if (MAP_FAILED == ctx->map) {
@@ -1488,9 +1510,16 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 		}
 
 		data = ctx->map;
+
+		g_assert(start >= ctx->map_start);
+		data = &data[start - ctx->map_start];
+		
+		g_assert(ctx->map_end > start);
+		amount = MIN(ctx->map_end - start, amount);
+
 		g_assert(mmap_access == 0);
 		mmap_access = 1;
-		r = write(out_fd, &data[start - ctx->map_start], amount);
+		r = write(out_fd, data, amount);
 		mmap_access = 0;
 
 		switch (r) {
