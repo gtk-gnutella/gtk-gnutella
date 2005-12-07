@@ -522,7 +522,7 @@ size_t html_escape(const gchar *src, gchar *dst, size_t dst_size);
 gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, mode_t mode);
-glong compat_pagesize(void);
+size_t compat_pagesize(void);
 gboolean compat_is_superuser(void);
 
 typedef void (*signal_handler_t)(gint signo);

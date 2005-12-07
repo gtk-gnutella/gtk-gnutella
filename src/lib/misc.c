@@ -3078,8 +3078,8 @@ compat_mkdir(const gchar *path, mode_t mode)
 #endif
 }
 
-glong
-compat_pagesize(void)
+static glong
+compat_pagesize_intern(void)
 #if defined (_SC_PAGE_SIZE)
 {
 	glong ret;
@@ -3097,6 +3097,25 @@ compat_pagesize(void)
 	return getpagesize();
 }
 #endif /* _SC_PAGE_SIZE */
+
+size_t
+compat_pagesize(void)
+{
+	static gboolean initialized;
+	static size_t psize;
+
+	if (!initialized) {
+		glong n;
+		
+		initialized = TRUE;
+		n = compat_pagesize_intern();
+		g_assert(n > 0);
+		psize = n;
+		g_assert((gulong) psize == (gulong) n);
+	}
+
+	return psize;
+}
 
 gboolean
 compat_is_superuser(void)
