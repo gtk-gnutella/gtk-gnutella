@@ -282,7 +282,7 @@ static guint64
 settings_getphysmemsize(void)
 #if defined (_SC_PHYS_PAGES)
 {
-	guint32 pagesize = compat_pagesize();
+	size_t pagesize = compat_pagesize();
 	glong pages;
 
 	errno = 0;
