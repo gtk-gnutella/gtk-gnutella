@@ -779,6 +779,8 @@ main_gui_shutdown(void)
 
     filter_close_dialog(FALSE);
 	gtk_widget_hide(main_window);
+	if (dlg_prefs)
+		gtk_widget_hide(dlg_prefs);
 
 	gui_menu_shutdown();
     search_stats_gui_shutdown();
