@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-12-03 00:58+0900\n"
+"POT-Creation-Date: 2005-12-08 21:45+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -9206,7 +9206,7 @@ msgid ""
 "gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
 
-#: src/ui/gtk/main.c:868
+#: src/ui/gtk/main.c:870
 #, fuzzy, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
