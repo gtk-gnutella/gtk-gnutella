@@ -25,13 +25,14 @@
 # filtering           フィルタ処理 (振り分け)
 # flag                フラッグ (フラグ、標識)
 # forwarding          転送
-# global              大域、全般、システム用
+# global              全体、システム用
 # inactive            動作していない、無効
 # incoming/outgoing   (ピア) 内への/外への
 # invalid             無効な
 # jump                分岐
 # lifetime            有効期限
 # matching            一致
+# matching            一致する、マッチ処理
 # query, queries      検索クエリー (クエリー)、検索語、問合わせ
 # querying            問合わせ
 # queue, queues       キュー、待機列
@@ -44,7 +45,7 @@
 # server              サーバー
 # shutdown            停止 (シャットダウン)
 # slot                受口 (スロット)
-# source              送信源
+# source              送信元
 # stats               統計
 # status              ステータス
 # timeout             タイムアウト (時間切れ)
@@ -70,8 +71,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-12-08 21:45+0900\n"
-"PO-Revision-Date: 2005-12-03 06:52+0900\n"
+"POT-Creation-Date: 2005-12-08 21:48+0900\n"
+"PO-Revision-Date: 2005-12-08 21:59+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -866,7 +867,7 @@ msgstr "データ書込エラー: %s"
 
 #: src/core/uploads.c:3953
 msgid "No bytes written, source may be gone"
-msgstr "書込バイトなし、送信源が無くなったかもしれません"
+msgstr "書込バイトなし、送信元が無くなったかもしれません"
 
 #: src/core/uploads.c:4072
 #, c-format
@@ -1782,7 +1783,7 @@ msgid ""
 "with care."
 msgstr ""
 "指定した拡張子を持つファイルのみが共有されます。特殊な拡張子 --all-- は、拡張"
-"子を持たないファイルにも適合してしまいます。注意して使用して下さい。"
+"子を持たないファイルにもマッチしてしまいます。注意して使用して下さい。"
 
 #: src/if/gnet_property.c:3285
 msgid "Ignore symbolically linked directories when scanning files to share."
@@ -1860,14 +1861,14 @@ msgstr "このピアの識別子 (GUID) です。"
 #: src/if/gnet_property.c:3521
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr ""
-"多源ダウンロードを利用するかどうかを選択します。(有効にする事を推奨します)"
+"多元ダウンロードを利用するかどうかを選択します。(有効にする事を推奨します)"
 
 #: src/if/gnet_property.c:3538
 msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
 msgstr ""
-"多源ダウンロードを行っていて、残っている僅かなチャンクに対して多数の送信源が"
+"多元ダウンロードを行っていて、残っている僅かなチャンクに対して多数の送信元が"
 "利用可能な場合、競合するダウンロードを実行するかどうかを選択します。"
 
 #: src/if/gnet_property.c:3555
@@ -1875,21 +1876,21 @@ msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
 msgstr ""
-"多源ダウンロードする時の最小チャンクサイズです。これはあるファイルを取得する"
+"多元ダウンロードする時の最小チャンクサイズです。これはあるファイルを取得する"
 "のにほんの僅かばかりのバイトで済む、より少ないダウンロードをする時にのみ有用"
 "です..."
 
 #: src/if/gnet_property.c:3575
 msgid "Maximum chunk size when swarming."
-msgstr "多源ダウンロードする時の最大チャンクサイズです。"
+msgstr "多元ダウンロードする時の最大チャンクサイズです。"
 
 #: src/if/gnet_property.c:3595
 msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue."
 msgstr ""
-"ダウンロード待機列にあるファイルに適合するものを、検索結果から自動的に待ち列"
-"に入れるかどうかを選択します。"
+"ダウンロード待機列にあるファイルにマッチするものを、検索結果から自動的に待ち"
+"列に入れるかどうかを選択します。"
 
 #: src/if/gnet_property.c:3612
 msgid ""
@@ -1913,8 +1914,8 @@ msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
 "to be safe)."
 msgstr ""
-"曖昧なファイル名適合を用います。(非推奨; 確実にするには SHA1 適合のみに依拠す"
-"るのが良いでしょう)"
+"ファイル名の曖昧マッチ処理を行います。(非推奨; 確実にするには SHA1 マッチ処理"
+"のみに依拠するのが良いでしょう)"
 
 #: src/if/gnet_property.c:3663
 msgid ""
@@ -1922,9 +1923,9 @@ msgid ""
 "100 means the filenames must be 100% identical.  A value of 0 means any two "
 "filenames will always be considered to be identical.  The minimum is 50%."
 msgstr ""
-"ファイル名適合においての曖昧さの閾値 (高い = 厳密)です。値 100 はファイル名"
-"が 100% 同一のものである事を意味します。値 0 はどのような二つのファイル名も常"
-"に同一のものと見做されます。最小値は 50% です。"
+"ファイル名マッチ処理においての曖昧さの閾値 (高い = 厳密)です。値 100 はファイ"
+"ル名が 100% 同一のものである事を意味します。値 0 はどのような二つのファイル名"
+"も常に同一のものと見做されます。最小値は 50% です。"
 
 #: src/if/gnet_property.c:3683
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
@@ -1957,7 +1958,7 @@ msgid ""
 "result in overlap problems later if the first chunk was actually from a "
 "different file. Use with caution."
 msgstr ""
-"ファイルの最初のチャンクに対する SHA1 値を提供しない送信源も使用します。これ"
+"ファイルの最初のチャンクに対する SHA1 値を提供しない送信元も使用します。これ"
 "は「相手側に URN がありません」というメッセージを激減させますが、最初のチャン"
 "クが実際は異なるファイルからのものであった場合、後にオーバーラップの問題を起"
 "こすかもしれません。注意して使用して下さい。"
@@ -2098,7 +2099,7 @@ msgstr "ファイル情報の数です。"
 
 #: src/if/gnet_property.c:4201
 msgid "How many fileinfo with sources do we have."
-msgstr "送信源のあるファイル情報の数です。"
+msgstr "送信元のあるファイル情報の数です。"
 
 #: src/if/gnet_property.c:4221
 msgid ""
@@ -2615,7 +2616,7 @@ msgid ""
 msgstr ""
 "UDP サポートが有効にされた場合、Gtk-Gnutella が UDP 経由の検索クエリーヒット"
 "の帯域外 (Out-Of-Band) 配送の要求を遵守するかどうかを選択します。あなたのノー"
-"ドが UDP トラフィックの起源になってしまうので、これを有効にするために転送ポー"
+"ドが UDP トラフィックの起元になってしまうので、これを有効にするために転送ポー"
 "トの追加が必要になるべきではありません。したがって、仮装ファイアウォールに"
 "よって開けられた一時的な UDP ポートへ送信された返答を受信することができます。"
 "あなたのピアが発生するトラフィックの大半を管理できて、帯域幅の制限を遵守する"
@@ -2719,11 +2720,11 @@ msgid ""
 "disk as soon as it receives some data. Increase to maximum value if you have "
 "RAM."
 msgstr ""
-"Gtk-Gnutella がディスクに書き込む前にバッファに置いておく送信源ごとのデータ量"
-"です。多くの送信源から多源ダウンロードを行っている時には、より大きな値を設定"
+"Gtk-Gnutella がディスクに書き込む前にバッファに置いておく送信元ごとのデータ量"
+"です。多くの送信元から多元ダウンロードを行っている時には、より大きな値を設定"
 "することで、システムコールを頻繁に使用するのを避けるのに役立つでしょう、また"
 "ファイルシステム上のデータの断片化 (フラグメンテーション) を減らすのにも一役"
-"買います。この負の側面はアクティブな送信源ごとに、より多くのメモリを使用して"
+"買います。この負の側面はアクティブな送信元ごとに、より多くのメモリを使用して"
 "しまう事です。全てのバッファ処理を無効にするには 0 を設定して下さい、つまり"
 "データを受け取り次第ディスクに書き込ませます。RAM があるなら最大値まで上げて"
 "下さい。"
@@ -2739,12 +2740,12 @@ msgid ""
 "don't wish to reserve more memory per active source, you can disable this "
 "feature by setting the read-ahead buffer size to 0."
 msgstr ""
-"Gtk-Gnutella が前もって読み込もうとする送信源ごとの余分なデータ量です。システ"
+"Gtk-Gnutella が前もって読み込もうとする送信元ごとの余分なデータ量です。システ"
 "ムコールを頻発することなく、大量のデータを読み込むゆとりができます。バッファ"
 "に置かれたデータをディスクに書き込む前に、僅かなバイトのデータがあってもそれ"
 "を読み込まないようにするので、バッファ処理をうまく補完します。先読みしておく"
 "スペースが利用可能な場合はバッファ処理に加えて利用されますが、その先読みされ"
-"たデータは即座に書き込まれてしまいます。アクティブな送信源ごとにこれ以上のメ"
+"たデータは即座に書き込まれてしまいます。アクティブな送信元ごとにこれ以上のメ"
 "モリを割り当てたくないのでしたら、先読みバッファサイズを 0 にする事でこの機能"
 "を無効にすることができます。"
 
@@ -2815,7 +2816,7 @@ msgstr "ベンダー標準"
 #: src/ui/gtk/gtk1/interface-glade.c:9326
 #: src/ui/gtk/gtk2/interface-glade.c:8545
 msgid "Push"
-msgstr "Push"
+msgstr "PUSH"
 
 #: src/if/gui_property.c:221 src/ui/gtk/gnet_stats_common.c:55
 #: src/ui/gtk/gtk1/interface-glade.c:13822
@@ -2853,32 +2854,26 @@ msgstr "両方 (水平に並べる)"
 msgid "This session"
 msgstr "このセッションの間"
 
-# NOTE:
 #: src/if/gui_property.c:301
 msgid "1 hour"
 msgstr "1時間"
 
-# NOTE:
 #: src/if/gui_property.c:302
 msgid "4 hours"
 msgstr "4時間"
 
-# NOTE:
 #: src/if/gui_property.c:303
 msgid "1 day"
 msgstr "1日"
 
-# NOTE:
 #: src/if/gui_property.c:304
 msgid "4 days"
 msgstr "4日"
 
-# NOTE:
 #: src/if/gui_property.c:305
 msgid "1 week"
 msgstr "1週間"
 
-# NOTE:
 #: src/if/gui_property.c:306
 msgid "2 weeks"
 msgstr "2週間"
@@ -4508,7 +4503,7 @@ msgstr "このプロトコルはまだ実装されていません"
 
 #: src/ui/gtk/drop.c:181
 msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr "MAGNET URI は未対応プロトコルへの送信源 URL を含んでいます"
+msgstr "MAGNET URI は未対応プロトコルへの送信元 URL を含んでいます"
 
 #: src/ui/gtk/drop.c:254
 msgid "MAGNET URI contained exact topic search other than urn:sha1:"
@@ -4595,7 +4590,7 @@ msgstr "組込ターゲット (編集不可)"
 
 #: src/ui/gtk/filter.c:376 src/ui/gtk/filter.c:434
 msgid "Global filters"
-msgstr "大域フィルター"
+msgstr "全体フィルター"
 
 #: src/ui/gtk/filter.c:377 src/ui/gtk/filter.c:435
 msgid "Search filters"
@@ -4615,7 +4610,7 @@ msgstr "該当無し"
 
 #: src/ui/gtk/filter.c:1169
 msgid "no default filter"
-msgstr "標準フィルター無し"
+msgstr "フィルター無し"
 
 #: src/ui/gtk/filter.c:1326
 msgid "[no hash]"
@@ -4689,29 +4684,35 @@ msgstr "URN:SHA1 がない"
 msgid "Always"
 msgstr "常に"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1040
 msgid "busy is set"
-msgstr "\"使用中\" が設定されています"
+msgstr "「使用中」になっている"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1044
 msgid "busy is not set"
-msgstr "\"使用中\" は設定されていません"
+msgstr "「使用中」になっていない"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1054
 msgid "push is set"
-msgstr "\"プッシュ\" が設定されています"
+msgstr "「PUSH」になっている"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1059
 msgid "push is not set"
-msgstr "\"プッシュ\" は設定されていません"
+msgstr "「PUSH」になっていない"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1069
 msgid "stable is set"
-msgstr "\"安定\" が設定されています"
+msgstr "「安定」になっている"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1074
 msgid "stable is not set"
-msgstr "\"安定\" は設定されていません"
+msgstr "「安定」になっていない"
 
 #: src/ui/gtk/filter_core.c:1082
 #, c-format
@@ -4722,10 +4723,12 @@ msgstr "フラッグが %s%s%s%s%s"
 msgid "Always (all flags ignored)"
 msgstr "常に (全てのフラッグを無視)"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1099
 msgid "DISPLAY is undefined"
-msgstr "\"表示\" が未定義です"
+msgstr "「表示」が未定義"
 
+# FIXME: separation
 #: src/ui/gtk/filter_core.c:1103 src/ui/gtk/filter_core.c:2430
 #: src/ui/gtk/gtk1/interface-glade.c:9763
 #: src/ui/gtk/gtk2/interface-glade.c:9295
@@ -4736,10 +4739,12 @@ msgstr "表示"
 msgid "DON'T DISPLAY"
 msgstr "表示しない"
 
+# FIXME:
 #: src/ui/gtk/filter_core.c:1119
 msgid "DOWNLOAD is undefined"
-msgstr "\"ダウンロード\" が未定義です"
+msgstr "「ダウンロード」が未定義"
 
+# FIXME: separation
 #: src/ui/gtk/filter_core.c:1124 src/ui/gtk/filter_core.c:2432
 #: src/ui/gtk/gtk1/interface-glade.c:9712
 #: src/ui/gtk/gtk2/interface-glade.c:9226
@@ -4762,7 +4767,7 @@ msgstr "常に (全ての状態値は無視)"
 #: src/ui/gtk/filter_core.c:1168
 #, c-format
 msgid "%s%s %s jump to \"%s\""
-msgstr "%s%s %s は \"%s\" に分岐"
+msgstr "%s%s %s は \"%s\" にジャンプ"
 
 #: src/ui/gtk/filter_core.c:1169
 msgid "(Negated) "
@@ -4778,11 +4783,11 @@ msgstr "(無効)"
 
 #: src/ui/gtk/filter_core.c:2428
 msgid "Global (pre)"
-msgstr "全般 (事前処理)"
+msgstr "全体 (振り分け前)"
 
 #: src/ui/gtk/filter_core.c:2429
 msgid "Global (post)"
-msgstr "全般 (事後処理)"
+msgstr "全体 (振り分け後)"
 
 #: src/ui/gtk/filter_core.c:2434
 msgid "RETURN"
@@ -4795,7 +4800,7 @@ msgstr "検索クエリーヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:90
 msgid "Improper hops/TTL combination"
-msgstr "ホップ数/TTL の組合せが無効"
+msgstr "ホップ数/TTLの組合せが無効"
 
 #: src/ui/gtk/gnet_stats_common.c:101
 msgid "Flow control"
@@ -4822,41 +4827,41 @@ msgstr "あなたの検索クエリーが受取った検索クエリーヒット
 
 #: src/ui/gtk/gnet_stats_common.c:133
 msgid "Query hits received for OOB-proxied queries"
-msgstr "OOB 代理検索クエリーで受取った検索クエリーヒット"
+msgstr "OOB代理検索クエリーで受取った検索クエリーヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:134
 msgid "Queries requesting OOB hit delivery"
-msgstr "OOB ヒット配送を要求する検索クエリー"
+msgstr "OOBヒット配送を要求する検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:135
 msgid "Stripped OOB flag on queries"
-msgstr "検索クエリーでの削除済 OOB フラッグ"
+msgstr "検索クエリーでの削除済OOBフラッグ"
 
 #: src/ui/gtk/gnet_stats_common.c:136
 msgid "Duplicates with higher TTL"
-msgstr "高 TTL での重複"
+msgstr "高TTLでの重複"
 
 #: src/ui/gtk/gnet_stats_common.c:137
 msgid "Duplicate OOB-proxied queries"
-msgstr "重複する OOB 代理検索クエリー"
+msgstr "重複するOOB代理検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:138
 msgid "OOB hits received for OOB-proxied queries"
-msgstr "OOB 代理検索クエリーで受取った OOB ヒット"
+msgstr "OOB代理検索クエリーで受取ったOOBヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:139
 msgid "OOB hits bearing alien IP address"
-msgstr "余所の IP アドレスを運ぶ OOB ヒット"
+msgstr "余所のIPアドレスを運ぶOOBヒット"
 
 # FIXME: wtf
 #: src/ui/gtk/gnet_stats_common.c:140
 msgid "Unclaimed locally-generated OOB hits"
-msgstr "催促無しのローカル生成 OOB ヒット"
+msgstr "催促無しのローカル生成OOBヒット"
 
 # FIXME: wtf
 #: src/ui/gtk/gnet_stats_common.c:141
 msgid "Partially claimed locally-generated OOB hits"
-msgstr "部分催促されているローカル生成 OOB ヒット"
+msgstr "部分催促されているローカル生成OOBヒット"
 
 #: src/ui/gtk/gnet_stats_common.c:142
 msgid "Compacted queries"
@@ -4868,27 +4873,27 @@ msgstr "圧縮保存済バイト"
 
 #: src/ui/gtk/gnet_stats_common.c:144
 msgid "UTF8 queries"
-msgstr "UTF8 検索クエリー"
+msgstr "UTF8検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:145
 msgid "SHA1 queries"
-msgstr "SHA1 検索クエリー"
+msgstr "SHA1検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:146
 msgid "Broadcasted push messages"
-msgstr "広域送信 PUSH メッセージ"
+msgstr "広域送信PUSHメッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:147
 msgid "Push proxy relayed messages"
-msgstr "PUSH プロキシ中継メッセージ"
+msgstr "PUSHプロキシ中継メッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:148
 msgid "Push proxy broadcasted messages"
-msgstr "PUSH プロキシ広域送信メッセージ"
+msgstr "PUSHプロキシ広域送信メッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:149
 msgid "Push proxy lookup failures"
-msgstr "PUSH プロキシ参照失敗"
+msgstr "PUSHプロキシ参照失敗"
 
 #: src/ui/gtk/gnet_stats_common.c:150
 msgid "Locally generated dynamic queries"
@@ -4900,7 +4905,7 @@ msgstr "リーフ生成の動的検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:152
 msgid "OOB-proxied leaf queries"
-msgstr "代理 OOB リーフ検索クエリー"
+msgstr "代理OOBリーフ検索クエリー"
 
 # XXX: wtf
 #: src/ui/gtk/gnet_stats_common.c:153
@@ -4933,11 +4938,11 @@ msgstr "後の結果で完成する動的検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:159
 msgid "Queries seen from GTKG"
-msgstr "GTKG からの検索クエリー"
+msgstr "GTKGからの検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:160
 msgid "Queries seen from GTKG that were re-queries"
-msgstr "GTKG からの検索クエリー (再問合わせ)"
+msgstr "GTKGからの検索クエリー (再問合わせ)"
 
 #: src/ui/gtk/gnet_stats_common.c:161
 msgid "Queries advertising support of GGEP \"H\""
@@ -4945,23 +4950,23 @@ msgstr "GGEP「H」への対応を知らせる検索クエリー"
 
 #: src/ui/gtk/gnet_stats_common.c:162
 msgid "GIV callbacks received"
-msgstr "受信した GIV コールバック"
+msgstr "受信したGIVコールバック"
 
 #: src/ui/gtk/gnet_stats_common.c:163
 msgid "QUEUE callbacks received"
-msgstr "受信した QUEUE コールバック"
+msgstr "受信したQUEUEコールバック"
 
 #: src/ui/gtk/gnet_stats_common.c:164
 msgid "UDP messages with bogus source IP"
-msgstr "偽送信 IP での UDP メッセージ"
+msgstr "偽送信IPでのUDPメッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:165
 msgid "Alien UDP messages (non-Gnutella)"
-msgstr "余所の UDP メッセージ (非 Gnutella)"
+msgstr "余所のUDPメッセージ (非Gnutella)"
 
 #: src/ui/gtk/gnet_stats_common.c:166
 msgid "Unprocessed UDP Gnutella messages"
-msgstr "未処理の UDP Gnutella メッセージ"
+msgstr "未処理のUDP Gnutellaメッセージ"
 
 #: src/ui/gtk/gnet_stats_common.c:244
 msgid "node"
@@ -5243,7 +5248,7 @@ msgstr "移動しています"
 # MERGEBLE: not yet reported
 #: src/ui/gtk/gtk1/fileinfo.c:174 src/ui/gtk/gtk2/fileinfo.c:361
 msgid "No sources"
-msgstr "送信源はありません"
+msgstr "送信元はありません"
 
 #: src/ui/gtk/gtk1/fileinfo.c:177 src/ui/gtk/gtk2/fileinfo.c:365
 #, c-format
@@ -5566,7 +5571,7 @@ msgstr "受動検索(_P)"
 #: src/ui/gtk/gtk1/interface-glade.c:1833
 #: src/ui/gtk/gtk2/interface-glade.c:2983
 msgid "A passive search matches any search results routed through this node"
-msgstr "受動検索はこのピアを通過したいずれの検索結果にも適合します。"
+msgstr "受動検索はこのピアを通過したいずれの検索結果にもマッチします。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1852
 #: src/ui/gtk/gtk2/interface-glade.c:3807
@@ -6123,7 +6128,7 @@ msgstr "終了"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3712 src/ui/gtk/gtk2/fileinfo.c:616
 msgid "Sources"
-msgstr "送信源"
+msgstr "送信元"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3736
 msgid "Filename filter:"
@@ -6203,7 +6208,7 @@ msgstr "[with source count]"
 #: src/ui/gtk/gtk1/interface-glade.c:3997
 #: src/ui/gtk/gtk2/interface-glade.c:16483
 msgid " with sources"
-msgstr " 件が送信源有り"
+msgstr " 件が送信元有り"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:4005
@@ -6213,7 +6218,7 @@ msgstr "#|Downloads"
 #: src/ui/gtk/gtk1/interface-glade.c:4013
 #: src/ui/gtk/gtk2/interface-glade.c:4964
 msgid "Active sources"
-msgstr "動作中の送信源"
+msgstr "動作中の送信元"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4098
 #: src/ui/gtk/gtk1/interface-glade.c:4537 src/ui/gtk/gtk2/downloads.c:480
@@ -6360,7 +6365,7 @@ msgstr "#|Active"
 #: src/ui/gtk/gtk1/interface-glade.c:4462
 #: src/ui/gtk/gtk2/interface-glade.c:16723
 msgid "Inactive sources"
-msgstr "待機中の送信源"
+msgstr "待機中の送信元"
 
 #: src/ui/gtk/gtk1/interface-glade.c:4561
 msgid "Select"
@@ -6475,7 +6480,7 @@ msgstr "インデックス:"
 #: src/ui/gtk/gtk1/interface-glade.c:5048
 #: src/ui/gtk/gtk2/interface-glade.c:5443
 msgid "Source:"
-msgstr "送信源:"
+msgstr "送信元:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5060
 #: src/ui/gtk/gtk2/interface-glade.c:5435
@@ -6879,23 +6884,23 @@ msgstr ""
 #: src/ui/gtk/gtk1/interface-glade.c:7062
 #: src/ui/gtk/gtk2/interface-glade.c:634
 msgid "Globally drop results..."
-msgstr "検索結果の広域破棄..."
+msgstr "検索結果を永久に破棄..."
 
 #: src/ui/gtk/gtk1/interface-glade.c:7085
 msgid ""
 "Adds \"don't display\" rules matching the selected files names to the global "
 "pre-filter."
 msgstr ""
-"選択したファイル名に一致する \"表示しない\" ルールを広域プリフィルターに追加"
-"します。"
+"選択したファイル名に一致する「表示しない」ルールを (振り分け前) 全体フィル"
+"ターに追加します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7094
 msgid ""
 "Adds \"don't display\" rules matching the selected files urn:sha1 to the "
 "global pre-filter."
 msgstr ""
-"選択したファイルの URN:SHA1 に一致する \"表示しない\" ルールを広域プリフィル"
-"タに追加します。"
+"選択したファイルの URN:SHA1 に一致する「表示しない」ルールを (振り分け前) 全"
+"体フィルターに追加します。"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7113
 #: src/ui/gtk/gtk2/interface-glade.c:669
@@ -7199,9 +7204,9 @@ msgid ""
 "in the specified target filter. That's also why you can't invert this "
 "condition. If you could, this rule would just be ignored."
 msgstr ""
-"条件はありません。このルールが渡される時は、指定したターゲットフィルターで適"
-"合が続行されます。これはさらに、何故条件を反転させる事が出来ないかを物語って"
-"います。有効にした場合、このルールは無視されます。"
+"条件はありません。このルールが渡される時は、指定したターゲットフィルターで"
+"マッチ処理が続行されます。この条件を反転できないのはそのためです。仮に反転で"
+"きるとしたら、このルールは単に無視されるでしょう。"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 #: src/ui/gtk/gtk1/interface-glade.c:8989
@@ -7245,7 +7250,7 @@ msgstr "使用中"
 #: src/ui/gtk/gtk2/interface-glade.c:8768
 #: src/ui/gtk/gtk2/interface-glade.c:8828
 msgid "unset"
-msgstr "解除"
+msgstr "×"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9369
 #: src/ui/gtk/gtk1/interface-glade.c:9389
@@ -7263,7 +7268,7 @@ msgstr "無視"
 #: src/ui/gtk/gtk2/interface-glade.c:8699
 #: src/ui/gtk/gtk2/interface-glade.c:8738
 msgid "set"
-msgstr "設定"
+msgstr "○"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9457
 #: src/ui/gtk/gtk2/interface-glade.c:8704
@@ -7395,7 +7400,7 @@ msgstr "インターフェイスの開発:"
 #: src/ui/gtk/gtk1/interface-glade.c:10472
 #: src/ui/gtk/gtk2/interface-glade.c:1671
 msgid "Swarming development:"
-msgstr "多源ダウンロードの開発:"
+msgstr "多元ダウンロードの開発:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10493
 msgid "Vidar Madsen"
@@ -8327,7 +8332,7 @@ msgstr "ダウンロード再開時に重なるバイト数"
 #: src/ui/gtk/gtk1/interface-glade.c:14852
 #: src/ui/gtk/gtk2/interface-glade.c:13552
 msgid "Source quality"
-msgstr "送信源の品質"
+msgstr "送信元の品質"
 
 #: src/ui/gtk/gtk1/interface-glade.c:14873
 #: src/ui/gtk/gtk2/interface-glade.c:13506
@@ -8444,7 +8449,7 @@ msgstr "接続されているダウンロードがタイムアウトするまで
 #: src/ui/gtk/gtk1/interface-glade.c:15156
 #: src/ui/gtk/gtk2/interface-glade.c:14004
 msgid "Downloading from multiple sources (swarming)"
-msgstr "多数の送信源からのダウンロード (Swarming)"
+msgstr "多数の送信元からのダウンロード (Swarming)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15175
 #: src/ui/gtk/gtk2/interface-glade.c:13863
@@ -8479,12 +8484,12 @@ msgstr "先読込みバッファ"
 #: src/ui/gtk/gtk1/interface-glade.c:15397
 #: src/ui/gtk/gtk2/interface-glade.c:13542
 msgid "Strict SHA_1 matching"
-msgstr "SHA1 に厳密に一致させる(_1)"
+msgstr "SHA1 に厳密にマッチさせる(_1)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15411
 #: src/ui/gtk/gtk2/interface-glade.c:13998
 msgid "Use fu_zzy matching"
-msgstr "曖昧に一致させる(_Z)"
+msgstr "曖昧にマッチさせる(_Z)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15423
 #: src/ui/gtk/gtk2/interface-glade.c:13974
@@ -8499,7 +8504,7 @@ msgstr "ダウンロードメッシュ項目に曖昧フィルターを適用す
 #: src/ui/gtk/gtk1/interface-glade.c:15462
 #: src/ui/gtk/gtk2/interface-glade.c:13537
 msgid "Watch hits for _alternate sources"
-msgstr "ヒットに別の送信源があるか見張る(_A)"
+msgstr "ヒットに別の送信元があるか見張る(_A)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:15476
 #: src/ui/gtk/gtk2/interface-glade.c:13547
@@ -9098,7 +9103,7 @@ msgid ""
 "Aborts the download from the selected source but not the download of the "
 "file itself."
 msgstr ""
-"選択した送信源からのダウンロードを中断します。ファイルのダウンロード自体は続"
+"選択した送信元からのダウンロードを中断します。ファイルのダウンロード自体は続"
 "行します。"
 
 #: src/ui/gtk/gtk2/interface-glade.c:84
@@ -9106,7 +9111,7 @@ msgid ""
 "Aborts the download from sources matching the selected criteria but not the "
 "download of the file itself."
 msgstr ""
-"選択した評価基準に一致する送信源からのダウンロードを中断します。ファイルのダ"
+"選択した評価基準に一致する送信元からのダウンロードを中断します。ファイルのダ"
 "ウンロード自体は続行します。"
 
 #: src/ui/gtk/gtk2/interface-glade.c:145
@@ -9114,7 +9119,7 @@ msgid ""
 "If the source appears to be firewalled, it may help to enforce push mode to "
 "let the source connect back to us."
 msgstr ""
-"送信源がファイアウォール内にあるなら、その送信源にこちらに接続し返させるよ"
+"送信元がファイアウォール内にあるなら、その送信元にこちらに接続し返させるよ"
 "う、強制 PUSH モードにするとよいかもしれません。"
 
 #: src/ui/gtk/gtk2/interface-glade.c:569
@@ -9449,14 +9454,7 @@ msgstr "モニター"
 #. and append your name to the list.
 #: src/ui/gtk/main.c:476
 msgid "translation_credit|"
-msgstr ""
-"翻訳者 (アルファベット順):\n"
-"\n"
-"Bouklis Panos (ギリシャ語)\t\tDaichi Kawahata (日本語)\n"
-"Jeroen Asselman (オランダ語)\tPaco Arjonilla (スペイン語)\n"
-"Sulyok Péter (ハンガリー語)\t\tT'aZ (フランス語)\n"
-"Thomas Schürger (ドイツ語)\tVitaliy Buyar (ウクライナ語)\n"
-"Wu Xiaoguang (簡体字中国語)"
+msgstr "翻訳者: Daichi Kawahata"
 
 #: src/ui/gtk/main.c:518
 msgid ""
@@ -9529,7 +9527,7 @@ msgstr "安定"
 
 #: src/ui/gtk/search_common.c:92
 msgid "push"
-msgstr "プッシュ"
+msgstr "PUSH"
 
 #: src/ui/gtk/search_common.c:93
 msgid "proxy"
@@ -9718,13 +9716,13 @@ msgstr "アドレス/ポートが変更されました: %s"
 # MERGEBLE: not yet reported
 #: src/ui/gtk/settings.c:2351
 msgid "no sources"
-msgstr "送信源はありません"
+msgstr "送信元はありません"
 
 #: src/ui/gtk/settings.c:2355
 #, c-format
 msgid "%u source"
 msgid_plural "%u sources"
-msgstr[0] "%u 基の送信源"
+msgstr[0] "%u 基の送信元"
 
 #: src/ui/gtk/settings.c:2370
 #, c-format
