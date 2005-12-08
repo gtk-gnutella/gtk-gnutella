@@ -1046,14 +1046,11 @@ http_range_parse(
 			}
 
 			if (val >= size) {
-				if (http_debug)
-					g_warning("weird %s header from <%s>, offset %d "
-						"(%s boundary %s outside resource range 0-%s): %s",
-						field, vendor, (gint) (str - value) - 1,
-						has_start ? "end" : "start",
-						uint64_to_string(val), uint64_to_string2(size - 1),
-						value);
-				goto resync;
+				/* ``last-byte-pos'' may extend beyond the actual
+				 * filesize. It's more a response limit than an exact
+				 * range end specifier.
+				 */
+				val = size - 1;
 			}
 
 			if (has_start) {
@@ -1068,8 +1065,9 @@ http_range_parse(
 				if (start == HTTP_OFFSET_MAX) {			/* Negative range */
 					start = (val > size) ? 0 : size - val;	/* Last bytes */
 					end = size - 1;
-				} else
+				} else {
 					end = val;
+				}
 				has_end = TRUE;
 			} else {
 				start = val;
