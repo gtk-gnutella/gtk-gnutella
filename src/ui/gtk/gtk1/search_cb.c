@@ -68,19 +68,6 @@ RCSID("$Id$");
 
 extern search_t *search_selected;
 
-/**
- * Record host information pertaining to the last selected row.
- */
-static struct hostinfo {
-	gboolean valid;				/**< Is information valid? */
-	gchar *hostname;			/**< Known hostname or NULL (atom) */
-	host_addr_t addr;			/**< Address of remote servent */
-	gnet_host_vec_t *proxies;	/**< Known push-proxies */
-	guint16 port;				/**< Port of remote servent */
-	gchar *guid;				/**< Server's GUID */
-	gboolean push;				/**< Whether server is firewalled */
-} last_host;
-
 /***
  *** Private functions
  ***/
@@ -109,9 +96,12 @@ refresh_popup(void)
 	guint i;
 
 	sensitive = NULL != search && NULL != GTK_CLIST(search->ctree)->selection;
+
 	gtk_widget_set_sensitive(
 			lookup_widget(main_window, "button_search_download"),
 			sensitive);
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_browse_host"), sensitive);
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++)
 		gtk_widget_set_sensitive(lookup_widget(popup_search, menu[i].name),
@@ -122,10 +112,6 @@ refresh_popup(void)
         lookup_widget(popup_search, "popup_search_restart"), sensitive);
     gtk_widget_set_sensitive(
         lookup_widget(popup_search, "popup_search_duplicate"), sensitive);
-
-	sensitive = last_host.valid;
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_browse_host"), sensitive);
 
     if (search) {
         gtk_widget_set_sensitive(
@@ -145,43 +131,6 @@ refresh_popup(void)
 	    gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_resume"), FALSE);
     }
-}
-
-/**
- * Remember (or forget when rc == NULL) host information about the record.
- */
-static void
-search_gui_record_host(const record_t *rc)
-{
-	results_set_t *rs;
-
-	if (rc == NULL) {
-		if (last_host.valid) {
-			if (last_host.hostname != NULL)
-				atom_str_free(last_host.hostname);
-			if (last_host.proxies != NULL)
-				search_gui_host_vec_free(last_host.proxies);
-			if (last_host.guid != NULL)
-				atom_guid_free(last_host.guid);
-			last_host.hostname = NULL;
-			last_host.proxies = NULL;
-			last_host.guid = NULL;
-		}
-		last_host.valid = FALSE;
-		return;
-	}
-
-	rs = rc->results_set;
-
-	last_host.hostname = rs->hostname ? atom_str_get(rs->hostname) : NULL;
-	last_host.addr = rs->addr;
-	last_host.port = rs->port;
-	last_host.valid = TRUE;
-	if (rs->proxies)
-		last_host.proxies = search_gui_proxies_clone(rs->proxies);
-	if (rs->guid)
-		last_host.guid = atom_guid_get(rs->guid);
-	last_host.push = (rs->status & ST_FIREWALL) != 0;
 }
 
 /**
@@ -385,7 +334,6 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 	 * Update details about the selected search.
 	 */
 	search_gui_set_details(rc);
-	search_gui_record_host(rc);
 
 	/*
 	 * If the selected node is expanded, select it only.
@@ -804,7 +752,6 @@ on_ctree_search_results_unselect_row(GtkCTree *unused_ctree, GList *unused_node,
 	(void) unused_udata;
 
 	search_gui_set_details(NULL);	/* Clear details about results */
-	search_gui_record_host(NULL);
     refresh_popup();
 }
 
@@ -873,19 +820,50 @@ on_button_search_passive_clicked(GtkButton *unused_button,
  ***/
 
 /**
- * Request host browsing for the selected host.
+ * Request host browsing for the selected entries.
  */
 void
 search_gui_browse_selected(void)
 {
-	if (!last_host.valid) {
+    search_t *search;
+	GtkCTree *ctree;
+	GList *selected;
+	GList *l;;
+
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+
+    ctree = search->ctree;
+	selected = GTK_CLIST(ctree)->selection;
+
+	if (selected == NULL) {
         statusbar_gui_message(15, "*** No search result selected! ***");
 		return;
 	}
 
-	(void) search_gui_new_browse_host(
-		last_host.hostname, last_host.addr, last_host.port,
-		last_host.guid, last_host.push, last_host.proxies);
+	for (l = selected; l != NULL; l = g_list_next(l)) {
+		GtkCTreeNode *node = l->data;
+		gui_record_t *grc;
+		results_set_t *rs;
+		record_t *rc;
+
+		if (node == NULL)
+			break;
+
+		grc = gtk_ctree_node_get_row_data(ctree, node);
+		rc = grc->shared_record;
+
+		if (!rc)
+			continue;
+
+		rs = rc->results_set;
+
+		(void) search_gui_new_browse_host(
+			rs->hostname, rs->addr, rs->port,
+			rs->guid, (rs->status & ST_FIREWALL) != 0, rs->proxies);
+	}
+
+	gtk_clist_unselect_all(GTK_CLIST(ctree));
 }
 
 /**
