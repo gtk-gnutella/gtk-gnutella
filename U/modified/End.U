@@ -13,10 +13,10 @@
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64 d_ipv6 d_dbus d_gnutls
+	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
-?T:glib_used frontend persistent zlib remote iptos unicode nls 
+?T:glib_used frontend persistent zlib remote iptos unicode nls fastassert
 ?T:gnutls ipv6 dbus
 : end of configuration questions
 echo " "
@@ -61,6 +61,10 @@ nls=no
 case "$d_enablenls" in
 "$define") nls=yes;;
 esac
+fastassert=no
+case "$d_fast_assert" in
+"$define") fastassert=yes;;
+esac
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
@@ -74,6 +78,7 @@ IP TOS (Type of Service)           : $iptos
 IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
 Experimental remote control        : $remote
+Fast assertion support             : $fastassert
 DBus support                       : $dbus
 -------------------------------------------------
 EOM
