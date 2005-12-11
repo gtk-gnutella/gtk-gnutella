@@ -298,6 +298,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_epoll HAS_EPOLL
 
+/* FAST_ASSERTIONS:
+ *	This symbol, when defined, indicates that the program should make
+ *	use of its own asserting and failure reporting code, instead of
+ *	the one from glib.
+ */
+#$d_fast_assert FAST_ASSERTIONS	/**/
+
 /* HAS_GETADDRINFO:
  *	This symbol is defined when getaddrinfo() can be used.
  */

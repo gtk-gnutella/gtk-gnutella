@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Dec 11 15:30:30 MET 2005 [metaconfig 3.0 PL70]
+# Generated on Sun Dec 11 21:35:32 MET 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -299,6 +299,7 @@ d_bindtxtcode=''
 d_const=''
 d_deflate=''
 d_epoll=''
+d_fast_assert=''
 d_getaddrinfo=''
 d_geteuid=''
 aphostname=''
@@ -4805,6 +4806,89 @@ $rm -f try try.c
 set d_epoll
 eval $setvar
 
+: determine whether to enable fast assertions
+echo " "
+case "$d_fast_assert" in
+"$undef")
+	dflt=n;;
+"$define")
+	dflt=y;;
+*)
+	case "$official" in
+	true) dflt=y;;
+	*) dflt=n;;
+	esac
+	;;
+esac
+$cat <<EOM
+$spackage contains code called "fast assertions" which are lightweight
+assertions in terms of code space used.  They use much less code than
+their glib counterpart, and therefore should be more efficient.
+
+EOM
+rp='Shall I enable "fast assertions"'
+. ./myread
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_fast_assert
+eval $setvar
+case "$gccversion" in
+'') ;;
+*)
+	case "$d_fast_assert" in
+	"$define")
+		$cat >try.c <<'EOC'
+int main()
+{
+	return 0;
+}
+EOC
+		if $cc $ccflags -momit-leaf-frame-pointer $ldflags \
+			-o try try.c >/dev/null 2>&1
+		then
+			dflt=y
+		else
+			dflt=n
+		fi
+		$cat <<EOM
+
+You're using gcc$gccversion.
+
+That compiler supports the -momit-leaf-frame-pointer flag, to remove the
+use of the frame pointer for leaf functions and therefore save a register.
+This combines nicely with "fast assertions", which you enabled, to save
+the most code space in leaf routines and allow them to use most of the
+CPU registers.
+
+EOM
+		rp="Shall I enable the -momit-leaf-frame-pointer flag"
+		. ./myread
+		case "$ans" in
+		y)
+			case "$ccflags" in
+			*-momit-leaf-frame-pointer*) ;;
+			*)
+				ccflags="$ccflags -momit-leaf-frame-pointer"
+				echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
+				;;
+			esac
+			;;
+		*)
+			case "$ccflags" in
+			*-momit-leaf-frame-pointer*)
+				echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
+				ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
+				;;
+			esac
+			;;
+		esac
+		;;
+	esac
+	;;
+esac
+
 : can we use getaddrinfo?
 echo " "
 echo "Checking whether getaddrinfo() can be used ..." >&4
@@ -7273,6 +7357,10 @@ nls=no
 case "$d_enablenls" in
 "$define") nls=yes;;
 esac
+fastassert=no
+case "$d_fast_assert" in
+"$define") fastassert=yes;;
+esac
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
@@ -7286,6 +7374,7 @@ IP TOS (Type of Service)           : $iptos
 IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
 Experimental remote control        : $remote
+Fast assertion support             : $fastassert
 DBus support                       : $dbus
 -------------------------------------------------
 EOM
@@ -7415,6 +7504,7 @@ d_enablenls='$d_enablenls'
 d_eofnblk='$d_eofnblk'
 d_epoll='$d_epoll'
 d_eunice='$d_eunice'
+d_fast_assert='$d_fast_assert'
 d_getaddrinfo='$d_getaddrinfo'
 d_geteuid='$d_geteuid'
 d_gethname='$d_gethname'
