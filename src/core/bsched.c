@@ -1486,10 +1486,9 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 				return (ssize_t) -1;
 			}
 			
-#if defined(HAS_MADVISE) || defined(MADV_SEQUENTIAL)
+#ifdef HAS_MADVISE
 			madvise(ctx->map, map_len, MADV_SEQUENTIAL);
-#endif /* MADV_SEQUENTIAL */
-
+#endif
 		}
 
 		g_assert(ctx->map != NULL);

@@ -2886,15 +2886,11 @@ ip_range_split(
  * @param handler the signal handler to install.
  *
  * @return the previous signal handler or SIG_ERR on failure.
- *
- * @todo
- * TODO: Add Configure check for SA_INTERRUPT.
- *
  */
 signal_handler_t
 set_signal(gint signo, signal_handler_t handler)
 {
-#ifndef MINGW32
+#ifdef HAS_SIGACTION
 	static const struct sigaction zero_sa;
 	struct sigaction sa, osa;
 	
@@ -2904,7 +2900,7 @@ set_signal(gint signo, signal_handler_t handler)
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = signo != SIGALRM ? SA_RESTART
-#if defined(HAS_SA_INTERRUPT) || defined(SA_INTERRUPT)
+#ifdef HAS_SA_INTERRUPT
 		: SA_INTERRUPT;
 #else
 		: 0;
@@ -2912,7 +2908,7 @@ set_signal(gint signo, signal_handler_t handler)
 
 	return sigaction(signo, &sa, &osa) ? SIG_ERR : osa.sa_handler;
 #else
-	/* FIXME WIN32: We can't just ignore all signal logic */
+	/* FIXME WIN32, probably: We can't just ignore all signal logic */
 	return NULL;
 #endif
 }
