@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Oct  7 22:52:42 MEST 2005 [metaconfig 3.0 PL70]
+# Generated on Sun Dec 11 15:30:30 MET 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -317,6 +317,7 @@ d_iptos=''
 d_isascii=''
 d_kqueue=''
 d_lstat=''
+d_madvise=''
 d_memcpy=''
 d_msghdr_msg_flags=''
 d_nls=''
@@ -324,7 +325,9 @@ d_open3=''
 d_portable=''
 d_random=''
 d_rusage=''
+d_sa_interrupt=''
 d_sendfile=''
+d_sigaction=''
 d_srandom=''
 d_index=''
 d_strchr=''
@@ -5280,6 +5283,10 @@ esac
 set lstat d_lstat
 eval $inlibc
 
+: see if madvise exists
+set madvise d_madvise
+eval $inlibc
+
 : see if memcpy exists
 set memcpy d_memcpy
 eval $inlibc
@@ -5378,9 +5385,57 @@ eval $inlibc
 set getrusage d_rusage
 eval $inlibc
 
+: can we use SA_INTERRUPT?
+echo " "
+echo "Checking whether SA_INTERRUPT is available in <signal.h>..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <signal.h>
+int
+main(void) {
+  return SA_INTERRUPT + 1;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	echo 'Good, SA_INTERRUPT is defined.'
+else
+	echo 'Sorry, no SA_INTERRUPT flag, will try to do without it.'
+	val="$undef"
+fi
+$rm -f try try.c
+set d_sa_interrupt
+eval $setvar
+
 : see if sendfile exists
 set sendfile d_sendfile
 eval $inlibc
+
+: see if we have sigaction
+echo " "
+if set sigaction val -f d_sigaction; eval $csym; $val; then
+	echo 'sigaction() found.' >&4
+	val="$define"
+else
+	echo 'sigaction NOT found.' >&4
+	val="$undef"
+fi
+$cat > set.c <<'EOP'
+#include <stdio.h>
+#include <sys/types.h>
+#include <signal.h>
+int main()
+{
+    struct sigaction act, oact;
+}
+EOP
+if $cc $ccflags $ldflags -o set set.c $libs >/dev/null 2>&1; then
+	:
+else
+	echo "But you don't seem to have a useable struct sigaction." >&4
+	val="$undef"
+fi
+set d_sigaction; eval $setvar
+$rm -f set set$_o set.c
 
 : see if srandom exists
 set srandom d_srandom
@@ -7380,6 +7435,7 @@ d_kqueue='$d_kqueue'
 d_libxml2='$d_libxml2'
 d_linux='$d_linux'
 d_lstat='$d_lstat'
+d_madvise='$d_madvise'
 d_memcpy='$d_memcpy'
 d_msghdr_msg_flags='$d_msghdr_msg_flags'
 d_nls='$d_nls'
@@ -7397,7 +7453,9 @@ d_pwquota='$d_pwquota'
 d_random='$d_random'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
+d_sa_interrupt='$d_sa_interrupt'
 d_sendfile='$d_sendfile'
+d_sigaction='$d_sigaction'
 d_srandom='$d_srandom'
 d_strchr='$d_strchr'
 d_strlcat='$d_strlcat'

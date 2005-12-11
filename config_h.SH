@@ -152,6 +152,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_rusage HAS_GETRUSAGE		/**/
 
+/* HAS_SIGACTION:
+ *	This symbol, if defined, indicates that Vr4's sigaction() routine
+ *	is available.
+ */
+#$d_sigaction HAS_SIGACTION	/**/
+
 /* HAS_TIMES:
  *	This symbol, if defined, indicates that the times() routine exists.
  *	Note that this became obsolete on some systems (SUNOS), which now
@@ -338,6 +344,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_kqueue HAS_KQUEUE
 
+/* HAS_MADVISE:
+ *	This symbol, if defined, indicates that the madvise routine is
+ *	available.
+ */
+#$d_madvise HAS_MADVISE		/**/
+
 /* HAS_MSGHDR_MSG_FLAGS:
  *	This symbol, if defined, indicates that struct msghdr has a
  *	member msg_flags.
@@ -349,6 +361,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.
  */
 #$d_random HAS_RANDOM		/**/
+
+/* HAS_SA_INTERRUPT:
+ *	This symbol is defined when SA_INTERRUPT can be used in sigaction().
+ */
+#$d_sa_interrupt HAS_SA_INTERRUPT
 
 /* HAS_SENDFILE:
  *	This symbol, if defined, indicates that the sendfile routine is
