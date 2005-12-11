@@ -1,4 +1,14 @@
 # since last version
+# Mention as 0.96 features: download buffering to avoid excessive fragmentation
+
+- (2005-12-11 - RAM)
+ * Allow launching of "browse host" on expired (completed) uploads from the GUI.
+ * Configure updates to allow configuration of madvise(), sigaction(),
+   the SA_INTERRUPT flag for sigaction(), and FAST_ASSERTIONS.
+
+- (2005-12-10 - RAM)
+ * [GTK1] Browse all the hosts of the selected entries like GTK2 does, not
+   simply the host listed in the detailed search information pane.
 
 - (2005-11-29 - RAM)
  * Always collect the TX and RX stacks asynchronously.
