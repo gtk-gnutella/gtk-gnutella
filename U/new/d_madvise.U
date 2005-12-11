@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_madvise: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_madvise:
+?S:	This variable conditionally defines the HAS_MADVISE symbol, which
+?S:	indicates to the C program that the madvise() routine is available.
+?S:.
+?C:HAS_MADVISE:
+?C:	This symbol, if defined, indicates that the madvise routine is
+?C:	available.
+?C:.
+?H:#$d_madvise HAS_MADVISE		/**/
+?H:.
+?LINT:set d_madvise
+: see if madvise exists
+set madvise d_madvise
+eval $inlibc
+

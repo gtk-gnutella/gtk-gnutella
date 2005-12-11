@@ -28,9 +28,11 @@ U/new/d_hstrerror.U
 U/new/d_inflate.U
 U/new/d_iptos.U
 U/new/d_kqueue.U
+U/new/d_madvise.U
 U/new/d_msg_flags.U
 U/new/d_nls.U
 U/new/d_random.U
+U/new/d_sa_interrupt.U
 U/new/d_sendfile.U
 U/new/d_srandom.U
 U/new/d_strcasestr.U
