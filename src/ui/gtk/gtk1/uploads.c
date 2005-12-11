@@ -35,6 +35,7 @@ RCSID("$Id$");
 
 #include "if/bridge/ui2c.h"
 
+#include "lib/host_addr.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/tm.h"
@@ -172,6 +173,20 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
     return -1;
 }
 
+/**
+ * Fetch the GUI row data associated with upload handle.
+ */
+upload_row_data_t *
+uploads_gui_get_row_data(gnet_upload_t uhandle)
+{
+    upload_row_data_t *rd;
+	gint row;
+
+    row =  find_row(uhandle, &rd);
+
+	return row == -1 ? NULL : rd;
+}
+
 static void
 uploads_gui_update_upload_info(gnet_upload_info_t *u)
 {
@@ -306,6 +321,8 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     data->range_end   = u->range_end;
     data->start_date  = u->start_date;
     data->valid       = TRUE;
+    data->gnet_addr   = zero_host_addr;
+    data->gnet_port   = 0;
 
     row = gtk_clist_append(GTK_CLIST(clist_uploads),
 			(gchar **) titles); /* override const */

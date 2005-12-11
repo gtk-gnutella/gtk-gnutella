@@ -43,6 +43,8 @@
 #include "if/core/downloads.h"
 #include "if/core/uploads.h"
 #include "if/core/bitzi.h"
+
+#include "lib/host_addr.h"
 #include "lib/misc.h"
 
 /* Property table includes */
@@ -50,6 +52,10 @@
 
 /* Other includes */
 #include <glib.h>
+
+/* upload interface functions */
+void gcu_uploads_gui_set_gnet_addr(
+	gnet_upload_t u, host_addr_t addr, guint16 port);
 
 /* download interface functions */
 void gcu_download_enable_start_now(guint32 running_downloads,

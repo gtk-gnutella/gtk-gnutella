@@ -73,12 +73,20 @@
 #include "if/ui/gtk/misc.h"
 #include "if/ui/gtk/search.h"
 #include "if/ui/gtk/statusbar.h"
+#include "if/ui/gtk/uploads.h"
 #include "if/ui/gtk/upload_stats.h"
 #endif /* GTK */
 
 /*
  * Functions the CORE uses to access the UI
  */
+
+/*	upload interface functions (CORE -> UI) */
+void
+gcu_uploads_gui_set_gnet_addr(gnet_upload_t u, host_addr_t addr, guint16 port)
+{
+	uploads_gui_set_gnet_addr(u, addr, port);
+}
 
 /*	download interface functions (CORE -> UI) */
 void

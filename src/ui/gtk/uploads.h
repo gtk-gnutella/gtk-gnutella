@@ -37,6 +37,8 @@ typedef struct upload_row_data {
     filesize_t    range_start;
     filesize_t    range_end;
     upload_stage_t status;      /**< last known status */
+	host_addr_t   gnet_addr;	/**< Advertised IP address for browsing */
+	guint16       gnet_port;	/**< Advertised port for browsing */
 #ifdef USE_GTK2
     GtkTreeIter   iter;
 	host_addr_t   addr;

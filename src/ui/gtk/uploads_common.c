@@ -36,12 +36,28 @@ RCSID("$Id$");
 #include "if/core/uploads.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/host_addr.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define IO_STALLED		60		/**< If nothing exchanged after that many secs */
+
+/**
+ * Invoked from the core when we discover the Gnutella address and port
+ * of the uploading party.
+ */
+void
+uploads_gui_set_gnet_addr(gnet_upload_t u, host_addr_t addr, guint16 port)
+{
+	upload_row_data_t *rd = uploads_gui_get_row_data(u);
+
+	if (rd != NULL) {
+		rd->gnet_addr = addr;
+		rd->gnet_port = port;
+	}
+}
 
 /**
  *
@@ -273,15 +289,10 @@ uploads_gui_host_string(const gnet_upload_info_t *u)
  * Initiate a browse host of the uploading host.
  */
 void
-uploads_gui_browse_host(gnet_upload_t uh)
+uploads_gui_browse_host(host_addr_t addr, guint16 port)
 {
-	gnet_upload_info_t *u = guc_upload_get_info(uh);
-
-	if (host_addr_is_routable(u->gnet_addr) && u->gnet_port != 0)
-		search_gui_new_browse_host(NULL, u->gnet_addr, u->gnet_port,
-			NULL, FALSE, NULL);
-
-	guc_upload_free_info(u);
+	if (host_addr_is_routable(addr) && port != 0)
+		search_gui_new_browse_host(NULL, addr, port, NULL, FALSE, NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

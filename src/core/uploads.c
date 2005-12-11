@@ -66,6 +66,7 @@ RCSID("$Id$");
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+#include "if/bridge/c2ui.h"
 
 #include "lib/aging.h"
 #include "lib/atoms.h"
@@ -2925,8 +2926,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (buf == NULL)
 		buf = header_get(header, "Listen-Ip");		/* Gnucleus! */
 
-	if (buf != NULL)
-		string_to_host_addr_port(buf, NULL, &u->gnet_addr, &u->gnet_port);
+	if (buf != NULL) {
+		host_addr_t addr;
+		guint16 port;
+		if (string_to_host_addr_port(buf, NULL, &addr, &port))
+			gcu_uploads_gui_set_gnet_addr(u->upload_handle, addr, port);
+	}
 
 	/*
 	 * Idea:
@@ -4222,8 +4227,6 @@ upload_get_info(gnet_upload_t uh)
 		: NULL;
 
     info->addr          = u->addr;
-    info->gnet_addr     = u->gnet_addr;
-    info->gnet_port     = u->gnet_port;
     info->file_size     = u->file_size;
     info->range_start   = u->skip;
     info->range_end     = u->end;

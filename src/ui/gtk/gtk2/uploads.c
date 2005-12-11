@@ -51,6 +51,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/host_addr.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
@@ -188,6 +189,15 @@ upload_added(gnet_upload_t n, guint32 running, guint32 registered)
     info = guc_upload_get_info(n);
     uploads_gui_add_upload(info);
     guc_upload_free_info(info);
+}
+
+/**
+ * Fetch the GUI row data associated with upload handle.
+ */
+upload_row_data_t *
+uploads_gui_get_row_data(gnet_upload_t uhandle)
+{
+	return find_upload(uhandle);
 }
 
 /**
@@ -366,6 +376,8 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 						? atom_str_get(u->user_agent) : NULL;
 	rd->push		= u->push;
 	rd->valid		= TRUE;
+    rd->gnet_addr   = zero_host_addr;
+    rd->gnet_port   = 0;
 
 	guc_upload_get_status(u->upload_handle, &status);
     rd->status = status.status;

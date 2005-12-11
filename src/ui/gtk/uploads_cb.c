@@ -39,6 +39,7 @@ RCSID("$Id$");
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/host_addr.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /***
@@ -57,6 +58,18 @@ kill_upload(upload_row_data_t *d, gpointer unused_udata)
         guc_upload_kill(d->handle);
 }
 
+/**
+ * Suited for use as a GFunc in a g_list_for_each.
+ */
+static void
+browse_uploading_host(upload_row_data_t *d, gpointer unused_udata)
+{
+	(void) unused_udata;
+
+    if (host_addr_initialized(d->gnet_addr))
+		uploads_gui_browse_host(d->gnet_addr, d->gnet_port);
+}
+
 /***
  *** Public functions
  ***/
@@ -71,26 +84,6 @@ on_button_uploads_clear_completed_clicked(
 }
 
 #ifdef USE_GTK1
-/**
- * Suited for use as a GFunc in a g_list_for_each.
- */
-static void
-browse_uploading_host(upload_row_data_t *d, gpointer unused_udata)
-{
-	(void) unused_udata;
-
-	/*
-	 * Unfortunately, we cannot request browsing of invalid (finished uploads)
-	 * because we don't store the gnet_addr/gnet_portin the row data.
-	 *
-	 * XXX change this to be able to browse any row in the GUI, even completed
-	 * XXX uploads.		--RAM, 2005-12-01
-	 */
-
-    if (d->valid)
-		uploads_gui_browse_host(d->handle);
-}
-
 void
 on_clist_uploads_select_row(GtkCList *clist, gint unused_row,
 	gint unused_column, GdkEvent *unused_event, gpointer unused_udata)
@@ -200,9 +193,7 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	g_slist_foreach(sl, (GFunc) browse_uploading_host, NULL);
 	g_slist_free(sl);
 }
-
 #endif /* USE_GTK1 */
-
 
 #ifdef USE_GTK2
 void
@@ -219,17 +210,17 @@ on_popup_uploads_config_cols_activate(GtkMenuItem *unused_menuitem,
 }
 
 static void
-uploads_kill_helper(GtkTreeModel *model, GtkTreePath *unused_path,
-	GtkTreeIter *iter, gpointer unused_data)
+uploads_func_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer data)
 {
 	upload_row_data_t *d = NULL;
+	GFunc func = data;
 
 	(void) unused_path;
-	(void) unused_data;
 
 	gtk_tree_model_get(model, iter, c_ul_data, &d, (-1));
 	g_assert(NULL != d);
-	kill_upload(d, NULL);
+	(*func)(d, NULL);
 }
 
 void
@@ -243,7 +234,8 @@ on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
 
     treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
-    gtk_tree_selection_selected_foreach(selection, uploads_kill_helper, NULL);
+    gtk_tree_selection_selected_foreach(selection,
+		uploads_func_helper, kill_upload);
 }
 
 /**
@@ -253,12 +245,17 @@ void
 on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
+    GtkTreeView *treeview;
+    GtkTreeSelection *selection;
+
 	(void) unused_menuitem;
 	(void) unused_udata;
 	
-	/* FIXME: Implement this */
+    treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
+    selection = gtk_tree_view_get_selection(treeview);
+    gtk_tree_selection_selected_foreach(selection,
+		uploads_func_helper, browse_uploading_host);
 }
-
 #endif /* USE_GTK2 */
 
 /* vi: set ts=4 sw=4 cindent: */
