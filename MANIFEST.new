@@ -433,6 +433,7 @@ src/if/ui/gtk/misc.h
 src/if/ui/gtk/search.h
 src/if/ui/gtk/statusbar.h
 src/if/ui/gtk/upload_stats.h
+src/if/ui/gtk/uploads.h
 src/lib/Jmakefile
 src/lib/Makefile.SH
 src/lib/adns.c
