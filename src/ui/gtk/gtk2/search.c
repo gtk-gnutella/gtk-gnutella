@@ -1858,6 +1858,10 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		if (rd) {
 			rd->meta = text ? text : g_strdup(_("Not in database"));
 			text = NULL;
+			
+			/* Re-store the parent to refresh the display/sorting */
+			gtk_tree_store_set(GTK_TREE_STORE(search->model), &rd->iter,
+				0, rd, (-1));
 		}
 	}
 
