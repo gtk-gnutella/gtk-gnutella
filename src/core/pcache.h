@@ -50,6 +50,8 @@ typedef struct pong_meta {
 	guchar country[2];    /**< Node's country, from GGEP "LOC" */
 	guint8 guess;	      /**< Node supports GUESS, from GGEP "GUE" */
 
+	host_addr_t ipv6_addr;		/**< For GGEP "IPV6" */
+
 	host_addr_t sender_addr;	/**< For GGEP "IP" */
 	guint16 sender_port;  		/**< For GGEP "IP" */
 
@@ -61,11 +63,14 @@ typedef struct pong_meta {
 	guint8 flags;	      /**< Validation flags */
 } pong_meta_t;
 
-#define PONG_META_HAS_VC	0x01	/**< The "VC" fields are valid */
-#define PONG_META_HAS_GUE	0x02	/**< The "GUE" fields are valid */
-#define PONG_META_HAS_UP	0x04	/**< The "UP" fields are valid */
-#define PONG_META_HAS_LOC	0x08	/**< The "LOC" fields are valid */
-#define PONG_META_HAS_DU	0x10	/**< The "DU" fields are valid */
+enum {
+	PONG_META_HAS_VC	= (1 << 0), /**< The "VC" fields are valid */
+	PONG_META_HAS_GUE	= (1 << 1), /**< The "GUE" fields are valid */
+	PONG_META_HAS_UP	= (1 << 2), /**< The "UP" fields are valid */
+	PONG_META_HAS_LOC	= (1 << 3), /**< The "LOC" fields are valid */
+	PONG_META_HAS_DU	= (1 << 4), /**< The "DU" fields are valid */
+	PONG_META_HAS_IPV6	= (1 << 5)  /**< The "IPV6" fields are valid */
+};
 
 /**
  * Global Functions.
@@ -91,3 +96,4 @@ gboolean pcache_get_recent(host_type_t type, host_addr_t *addr, guint16 *port);
 void pcache_clear_recent(host_type_t type);
 
 #endif /* _core_pcache_h_ */
+/* vi: set ts=4 sw=4 cindent: */
