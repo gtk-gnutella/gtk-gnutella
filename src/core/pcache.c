@@ -313,6 +313,13 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 
+#ifdef USE_IPV6
+		if (meta->flags & PONG_META_HAS_IPV6) {
+			ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6),
+				host_addr_ipv6(&meta->ipv6_addr), 16, 0);
+		}
+#endif /* USE_IPV6 */
+
 	}
 
 	/*
@@ -373,13 +380,6 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		poke_le16(&ip_port[4], sender_port);
 		ggep_stream_pack(&gs, GGEP_NAME(IP), ip_port, sizeof ip_port, 0);
 	}
-
-#ifdef USE_IPV6
-	if (NET_TYPE_IPV6 == host_addr_net(addr)) {
-		ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6),
-			host_addr_ipv6(&addr), 16, 0);
-	}
-#endif /* USE_IPV6 */
 
 	sz += ggep_stream_close(&gs);
 
@@ -563,6 +563,11 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	if ((flags & PING_F_IP)) {
 		local_meta.sender_addr = n->addr;
 		local_meta.sender_port = n->port;
+	}
+
+	if (NET_TYPE_IPV6 == host_addr_net(info.addr)) {
+		local_meta.ipv6_addr = info.addr;
+		local_meta.flags |= PONG_META_HAS_IPV6;
 	}
 
 	send_pong(n, control, flags, 0, MIN((guint) n->header.hops + 1, max_ttl),
@@ -1636,6 +1641,16 @@ pong_extract_metadata(struct gnutella_node *n)
 					meta->version_ua = payload[4];
 			}
 			break;
+		case EXT_T_GGEP_GTKG_IPV6:
+			{
+				host_addr_t addr;
+
+				if (GGEP_OK == ggept_gtkg_ipv6_extract(e, &addr)) {
+					ALLOCATE(IPV6);
+					meta->ipv6_addr = addr;
+				}
+			}
+			break;
 		default:
 			if (ggep_debug > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
@@ -1900,7 +1915,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 /**
  * Called when a pong is received from a node.
  *
- * Here needs brief description for the fllowing list:
+ * Here needs brief description for the following list:
  *
  * - Record node in the main host catching list.
  * - If node is not a "new" client (i.e. flagged as NODE_A_PONG_CACHING),
@@ -1933,9 +1948,20 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	port = peek_le16(&n->data[0]);
-	addr = host_addr_set_ipv4(peek_be32(&n->data[2])); /* @todo TODO: IPv6 */
+	addr = host_addr_set_ipv4(peek_be32(&n->data[2]));
 	files_count = peek_le32(&n->data[6]);
 	kbytes_count = peek_le32(&n->data[10]);
+	
+	/* Check for an IPv6 address */
+	if (n->header.hops == 0) {
+		pong_meta_t *meta;
+		
+		meta = pong_extract_metadata(n);
+		if (meta && meta->flags & PONG_META_HAS_IPV6) {
+			addr = meta->ipv6_addr;
+		}
+		WFREE_NULL(meta, sizeof *meta);
+	}
 
 	/*
 	 * Sanity checks: make sure the files_count is reasonable, or try
