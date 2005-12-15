@@ -797,7 +797,7 @@ filter_close_search(search_t *s)
 
 /**
  * Go through all the shadow filters, and commit the recorded
- * changes to the assosicated filter. We walk through the
+ * changes to the associated filter. We walk through the
  * shadow->current list. Every item in shadow->removed will be
  * removed from the searchs filter and the memory will be freed.
  * Then shadow->current will be set as the new filter for that
@@ -807,6 +807,8 @@ void
 filter_apply_changes(void)
 {
     GList *iter;
+
+	filter_adapt_order();
 
     /*
      * Free memory for all removed filters;
