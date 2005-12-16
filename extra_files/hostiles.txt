@@ -158,6 +158,9 @@
 207.44.144.3
 207.44.144.148
 
+# Another DRM pr0n spammer
+66.63.162.128/25
+
 # isaveclub.com AKA esaveclub.com AKA edirectclub.com
 69.44.155.0/24
 69.44.156.0/24
