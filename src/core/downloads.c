@@ -4310,7 +4310,7 @@ download_free_removed(void)
 		return;
 
 	for (l = sl_removed; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
+		struct download *d = l->data;
 
 		g_assert(d != NULL);
 		g_assert(d->status == GTA_DL_REMOVED);
@@ -4327,7 +4327,7 @@ download_free_removed(void)
 	sl_removed = NULL;
 
 	for (l = sl_removed_servers; l; l = g_slist_next(l)) {
-		struct dl_server *s = (struct dl_server *) l->data;
+		struct dl_server *s = l->data;
 		free_server(s);
 	}
 
@@ -6938,7 +6938,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_stop(d, GTA_DL_ERROR, "Range end too large");
 				return;
 			}
-			if (end < d->skip || start >= d->range_end) {
+			if (
+				end < (d->skip - (d->skip < d->overlap_size ? 0 : d->overlap_size)) ||
+				start >= d->range_end
+			) {
 				gchar got[64];
 
 				gm_snprintf(got, sizeof got, "got %s - %s",
@@ -9226,11 +9229,13 @@ download_get_http_req_percent(const struct download *d)
 gboolean
 download_something_to_clear(void)
 {
-	GSList *sl;
+	const GSList *sl;
 	gboolean clear = FALSE;
 
 	for (sl = sl_unqueued; !clear && sl; sl = g_slist_next(sl)) {
-		switch (((struct download *) sl->data)->status) {
+		const struct download *d = sl->data;
+
+		switch (d->status) {
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
