@@ -2730,8 +2730,9 @@ node_became_firewalled(void)
 			vmsg_send_tcp_connect_back(n, listen_port);
 			sent++;
 
-			g_message("sent TCP connect back request to %s",
-				host_addr_port_to_string(n->addr, n->port));
+			if (node_debug)
+				g_message("sent TCP connect back request to %s",
+					host_addr_port_to_string(n->addr, n->port));
 		}
 
 		if (NODE_IS_LEAF(n))
@@ -2764,7 +2765,8 @@ node_became_udp_firewalled(void)
 			continue;
 
 		vmsg_send_udp_connect_back(n, listen_port);
-		g_message("sent UDP connect back request to %s",
+		if (node_debug)
+			g_message("sent UDP connect back request to %s",
 				host_addr_port_to_string(n->addr, n->port));
 
 		if (3 == ++sent)
@@ -3795,10 +3797,10 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	}
 
 	/*
-	 * Always accept crawler connections.
+	 * Always accept crawler and "forced" connections.
 	 */
 
-	if (n->flags & NODE_F_CRAWLER)
+	if (n->flags & (NODE_F_CRAWLER | NODE_F_FORCE))
 		return TRUE;
 
 	/*
@@ -3905,8 +3907,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 
 			if (
 				handshaking &&
-				node_ultra_count >= ultra_max &&
-				(n->flags & NODE_F_INCOMING)
+				node_ultra_count >= ultra_max
 			) {
 				node_send_error(n, 503,
 					"Too many ultra connections (%d max)", ultra_max);
@@ -5592,7 +5593,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
     n->hello.len = 0;
 
 	n->routing_data = NULL;
-	n->flags = NODE_F_HDSK_PING;
+	n->flags = NODE_F_HDSK_PING | (CONNECT_F_FORCE & flags ? NODE_F_FORCE : 0);
 
 	if (s) {					/* This is an incoming control connection */
 		n->socket = s;
