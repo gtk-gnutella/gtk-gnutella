@@ -6358,7 +6358,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		 * If we made a /uri-res/N2R? request, yet if the download still
 		 * has the old index/name indication, convert it to a /uri-res/.
 	 	 */
-		if (d->record_index != URN_INDEX && (d->flags & DL_F_URIRES))
+		if (d->record_index != URN_INDEX && d->sha1 && (d->flags & DL_F_URIRES))
 			if (!download_convert_to_urires(d))
 				return;
 
