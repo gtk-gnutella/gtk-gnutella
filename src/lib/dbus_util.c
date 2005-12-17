@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Interface to dbus messaging bus
+ * Interface to dbus messaging bus.
  *
  * Gtk-Gnutella will send notifications on the dbus message bus as
  * signals with a string parameter. Depending on the signal the
@@ -58,7 +58,7 @@ RCSID("$Id$");
 static DBusConnection *bus = NULL; /**< D-Bus connection to the message bus */
 
 /**
- * Initialize the bus connection
+ * Initialize the bus connection.
  */
 void
 dbus_util_init(void)

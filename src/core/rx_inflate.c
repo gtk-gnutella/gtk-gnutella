@@ -69,7 +69,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
 	gint ret;
-	pdata_t *db;					/**< Inflated buffer */
+	pdata_t *db;					/* Inflated buffer */
 	z_streamp inz = attr->inz;
 	gint old_size;
 	gint old_avail;

@@ -62,7 +62,7 @@ enum chunk_state {
 	NUM_CHUNK_STATES
 };
 
-/**
+/*
  * Private attributes for the dechunking layer.
  */
 struct attr {
@@ -86,11 +86,11 @@ struct attr {
  * itself must be consumed and this function must not be called again
  * until the state CHUNK_STATE_DATA_CRLF is reached.
  *
- * @param rx is the current RX driver.
- * @param src the chunk data.
- * @param size no document.
- * @param p_error_str if not NULL and parse_chunk() fails, it will point to
- *        an informational error message.
+ * @param rx			the current RX driver.
+ * @param src			the chunk data.
+ * @param size			no document.
+ * @param p_error_str	if not NULL and parse_chunk() fails, it will point
+ *						to an informational error message.
  *
  * @return 0 on failure; non-zero amount of consumed bytes on success.
  */
@@ -429,7 +429,7 @@ static void
 rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
-	pmsg_t *imb;		/**< Dechunked message */
+	pmsg_t *imb;		/* Dechunked message */
 
 	g_assert(rx);
 	g_assert(mb);

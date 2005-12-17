@@ -74,7 +74,7 @@ static GtkButton *button_search_clear = NULL;
 
 static gboolean search_gui_shutting_down = FALSE;
 
-/**
+/*
  * Private function prototypes.
  */
 static void
@@ -98,10 +98,10 @@ struct result_data {
 	const GdkColor *bg;
 
 	record_t *record;
-	gchar *ext;			/* Atom */
-	gchar *meta;		/* g_malloc()ed */
-	gchar *info;		/* g_malloc()ed */
-	guint count;		/* count of children */
+	gchar *ext;			/**< Atom */
+	gchar *meta;		/**< g_malloc()ed */
+	gchar *info;		/**< g_malloc()ed */
+	guint count;		/**< count of children */
 };
 
 static inline struct result_data *

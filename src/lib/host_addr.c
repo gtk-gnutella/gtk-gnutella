@@ -551,9 +551,9 @@ gethostbyname_error(const gchar *host)
  *
  * @todo TODO: Use getnameinfo() if available.
  *
- * @param host The host address to resolve.
- * @return	On success, the hostname is returned. Otherwise, NULL is returned.
- *			The resulting string points to a static buffer.
+ * @param ha	The host address to resolve.
+ * @return		On success, the hostname is returned. Otherwise, NULL is
+ *				returned. The resulting string points to a static buffer.
  */
 const gchar *
 host_addr_to_name(const host_addr_t ha)

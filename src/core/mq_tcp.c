@@ -330,7 +330,6 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 			written = tx_write(q->tx_drv, mbs, size);
 
 			/**
-			 * @fixme
 			 * FIXME: The following assertion check failed.
 			 *			--cbiere, 2005-11-01
 			 */

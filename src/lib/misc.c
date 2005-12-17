@@ -111,6 +111,7 @@ strlcat(gchar *dst, const gchar *src, size_t dst_size)
 
 /**
  * Concatenates a variable number of NUL-terminated strings into ``dst''.
+ *
  * The resulting string will be NUL-terminated unless ``size'' is zero. The
  * returned value is the length of the resulting string if ``dst'' had been
  * large enough. If the returned value is equal to or greater than ``size''
@@ -483,7 +484,7 @@ hostname_port_to_string(const gchar *hostname, guint16 port)
 	return a;
 }
 
-/*
+/**
  * @returns 0 if ``s'' is not a valid IPv4 address. Otherwise, the parsed
  * 			IPv4 address in host byte order.
  */
@@ -781,11 +782,13 @@ is_symlink(const gchar *path)
 #endif /* HAS_LSTAT */
 
 /**
- * Scales v so that quotient and reminder are both in the range 0..1023.
+ * Scales v so that quotient and reminder are both in the range "0..1023".
  *
+ * @param v no document.
  * @param q pointer to a guint; will hold the quotient.
  * @param r pointer to a guint; will hold the reminder.
  * @param s a string holding the scale prefixes; must be sufficiently long.
+ *
  * @return the appropriate prefix character from "s".
  */
 static inline gchar
@@ -1073,12 +1076,13 @@ const gint8 *dec2int_tab = char2int_tabs[1];
 const gint8 *alnum2int_tab = char2int_tabs[2];
 
 /**
- * Converts a hexadecimal char (0-9, A-F, a-f) to an integer. Passing a
- * character which is not a hexadecimal ASCII character causes an
- * assertion failure.
+ * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
+ *
+ * Passing a character which is not a hexadecimal ASCII character
+ * causes an assertion failure.
  *
  * @param c the hexadecimal ASCII character to convert.
- * @return 0..15 for valid hexadecimal ASCII characters.
+ * @return "0..15" for valid hexadecimal ASCII characters.
  */
 gint
 hex2int(guchar c)
@@ -1091,12 +1095,13 @@ hex2int(guchar c)
 }
 
 /**
- * Converts a decimal char (0-9) to an integer. Passing a
- * character which is not a decimal ASCII character causes an
- * assertion failure.
+ * Converts a decimal char (0-9) to an integer.
+ *
+ * Passing a character which is not a decimal ASCII character causes
+ * an assertion failure.
  *
  * @param c the decimal ASCII character to convert.
- * @return 0..9 for valid decimal ASCII characters.
+ * @return "0..9" for valid decimal ASCII characters.
  */
 gint
 dec2int(guchar c)
@@ -1109,12 +1114,13 @@ dec2int(guchar c)
 }
 
 /**
- * Converts an alphanumeric char (0-9, A-Z, a-z) to an integer. Passing a
- * character which is not an alphanumeric ASCII character causes an
- * assertion failure.
+ * Converts an alphanumeric char (0-9, A-Z, a-z) to an integer.
+ *
+ * Passing a character which is not an alphanumeric ASCII character
+ * causes an assertion failure.
  *
  * @param c the decimal ASCII character to convert.
- * @return 0..36 for valid decimal ASCII characters.
+ * @return "0..36" for valid decimal ASCII characters.
  */
 gint
 alnum2int(guchar c)
@@ -1396,10 +1402,11 @@ timestamp_to_string(time_t date)
  * Convert time (without the date) to a human-readable string using the
  * time representation of the current locale.
  *
- * @param t time to convert.
- * @param dst buffer to hold the resulting string.
- * @param size the size of the dst buffer.
- * @return length of the created string.
+ * @param t		time to convert.
+ * @param dst	buffer to hold the resulting string.
+ * @param size	the size of the dst buffer.
+ *
+ * @return		length of the created string.
  */
 size_t
 time_locale_to_string_buf(time_t t, gchar *dst, size_t size)
@@ -2476,13 +2483,15 @@ short_filename(gchar *fullname)
  * Creates the given directory including sub-directories if necessary. The
  * path must be absolute.
  *
- * FIXME: This might fail with ``fancy'' file permissions. The directories
- *        should be created from leaf to root instead of vice-versa.
- *
  * @param dir the pathname of the directory to create.
  *
  * @return On success, zero is returned. On failure, -1 is returned and
  *         errno indicates the reason.
+ *
+ * @bug
+ * FIXME: This might fail with ``fancy'' file permissions. The
+ *        directories should be created from leaf to root instead of
+ *        vice-versa.
  */
 gint
 create_directory(const gchar *dir)
@@ -2663,7 +2672,7 @@ uint64_to_string2(guint64 v)
 	return buf;
 }
 
-/**
+/*
  * Parses an unsigned X-bit integer from an ASCII string.
  *
  * @param src

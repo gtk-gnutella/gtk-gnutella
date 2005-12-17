@@ -386,10 +386,14 @@ utf8_encoded_char_len(guint32 uc)
 }
 
 /**
- * @param uc the unicode character to encode.
- * @param buf the destination buffer. MUST BE at least 4 bytes long.
- * @returns 0 if the unicode character is invalid. Otherwise the
- *          length of the UTF-8 character is returned.
+ * Needs short description here.
+ *
+ * @param uc	the unicode character to encode.
+ * @param buf	the destination buffer. MUST BE at least 4 bytes long.
+ * @param size	no document.
+ *
+ * @returns		0 if the unicode character is invalid. Otherwise the
+ *				length of the UTF-8 character is returned.
  */
 static guint NON_NULL_PARAM((2))
 utf8_encode_char(guint32 uc, gchar *buf, size_t size)
@@ -1551,11 +1555,12 @@ locale_close(void)
  * be truncated. complete_iconv() returns the necessary buffer size.
  * IFF "dst_size" is zero, "dst" may be NULL.
  *
+ * @note
  * NOTE: This assumes 8-bit (char-based) encodings.
  *
  * @param cd an iconv context; if it is (iconv_t) -1, NULL will be returned.
  * @param dst the destination buffer; may be NULL IFF dst_size is zero.
- * @param dst_size the size of the dst buffer.
+ * @param dst_left no document.
  * @param src the source string to convert.
  * @param abort_on_error If TRUE, the conversion is be aborted and zero
  *						 is returned on any error. Otherwise, if iconv()
@@ -1822,8 +1827,10 @@ hyper_ascii_enforce(gchar *dst, size_t dst_size, const gchar *src)
  *
  * In case of an unrecoverable error, NULL is returned.
  *
- * @param str a NUL-terminated string.
- * @return a pointer to a newly allocated buffer holding the converted string.
+ * @param src	a NUL-terminated string.
+ *
+ * @return		a pointer to a newly allocated buffer holding the converted
+ *				string.
  */
 static gchar *
 utf8_to_filename_charset(const gchar *src)
@@ -1871,7 +1878,7 @@ utf8_to_filename(const gchar *src)
  *
  * In case of an unrecoverable error, NULL is returned.
  *
- * @param str a NUL-terminated string.
+ * @param src a NUL-terminated string.
  * @return a pointer to a newly allocated buffer holding the converted string.
  */
 gchar *
@@ -2083,10 +2090,15 @@ looks_like_iso8859_8(const gchar *src)
 }
 
 /**
- * SJIS
- * [\x00-\x7F]                              # ASCII/JIS Roman
- * [\x81-\x9F\xE0-\xFC][\x40-\x7E\x80-\xFC] # JIS X 0208:1997
- * [\xA0-\xDF]                              # Half width Katakana
+ * Matches SJIS encoded strings.
+ *
+ * @param src	no dicument.
+ *
+ * SJIS encoding has code tables below:
+ *
+ * - ASCII/JIS Roman        "[\x00-\x7F]"
+ * - JIS X 0208:1997        "[\x81-\x9F\xE0-\xFC][\x40-\x7E\x80-\xFC]"
+ * - Half width Katakana    "[\xA0-\xDF]"
  */	  
 gboolean
 looks_like_sjis(const gchar *src)
@@ -2116,9 +2128,10 @@ iso8859_is_valid_string(const gchar *src)
 }
 
 /**
- * Converts the string to UTF-8 assuming an appropriate character set. The
- * conversion result might still be rubbish but is guaranteed to be UTF-8
- * encoded.
+ * Converts the string to UTF-8 assuming an appropriate character set.
+ *
+ * The conversion result might still be rubbish but is guaranteed to be
+ * UTF-8 encoded.
  *
  * The returned string is in no defined Unicode normalization form.
  *
@@ -2213,10 +2226,10 @@ convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
  * Converts a string from the locale's character set to UTF-8 encoding and
  * the specified Unicode normalization form.
  *
- * @param str the string to convert.
- * @param norm the Unicode normalization form to use.
+ * @param src	the string to convert.
+ * @param norm	the Unicode normalization form to use.
  *
- * @returns a newly allocated string.
+ * @returns		a newly allocated string.
  */
 gchar *
 locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
@@ -2230,10 +2243,10 @@ locale_to_utf8_normalized(const gchar *src, uni_norm_t norm)
  * Converts a string from the filename character set to UTF-8 encoding and
  * the specified Unicode normalization form.
  *
- * @param str the string to convert.
- * @param norm the Unicode normalization form to use.
+ * @param src	the string to convert.
+ * @param norm	the Unicode normalization form to use.
  *
- * @returns a newly allocated string.
+ * @returns		a newly allocated string.
  */
 gchar *
 filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
@@ -2295,10 +2308,10 @@ filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
  * Converts a string from the ISO-8859-1 character set to UTF-8 encoding and
  * the specified Unicode normalization form.
  *
- * @param str the string to convert.
- * @param norm the Unicode normalization form to use.
+ * @param src	the string to convert.
+ * @param norm	the Unicode normalization form to use.
  *
- * @returns a newly allocated string.
+ * @returns		a newly allocated string.
  */
 gchar *
 iso8859_1_to_utf8_normalized(const gchar *src, uni_norm_t norm)
@@ -2313,10 +2326,11 @@ iso8859_1_to_utf8_normalized(const gchar *src, uni_norm_t norm)
  * Converts a string from the ISO-8859-1 character set to UTF-8 encoding and
  * the specified Unicode normalization form.
  *
- * @param str the string to convert.
- * @param norm the Unicode normalization form to use.
+ * @param src	the string to convert.
+ * @param norm	the Unicode normalization form to use.
+ * @param charset_ptr	no document.
  *
- * @returns Either the original src pointer or a newly allocated string.
+ * @returns		Either the original src pointer or a newly allocated string.
  */
 gchar *
 unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
@@ -2383,6 +2397,7 @@ locale_to_ui_string2(const gchar *src)
 
 /**
  * This macro is used to generate "lazy" variants of the converter functions.
+ *
  * In this context "lazy" means that the function will either return the
  * original string (if appropriate) or a newly allocated string but the newly
  * allocated string MUST NOT be freed. Instead the memory will be released
@@ -2415,12 +2430,15 @@ CAT2(lazy_,func) proto \
 	return dst; \
 }
 
-/**
- * Converts the supplied string ``str'' from the current locale encoding
+/*
+ * Converts the supplied string ``src'' from the current locale encoding
  * to an UTF-8 NFC string.
  *
- * @param str the string to convert.
- * @returns the converted string or ``str'' if no conversion was necessary.
+ * @param src	the string to convert.
+ * @param norm	no document.
+ *
+ * @returns		the converted string or ``src'' if no conversion was
+ *				necessary.
  */
 LAZY_CONVERT(locale_to_utf8_normalized,
 		(const gchar *src, uni_norm_t norm), (src, norm))
@@ -2429,18 +2447,22 @@ LAZY_CONVERT(utf8_to_locale, (const gchar *src), (src))
 
 LAZY_CONVERT(iso8859_1_to_utf8, (const gchar *src), (src))
 
-/**
- * Converts the supplied string ``str'' from a guessed encoding
+/*
+ * Converts the supplied string ``src'' from a guessed encoding
  * to an UTF-8 string using the given normalization form.
  *
- * @param str the string to convert.
- * @returns the converted string or ``str'' if no conversion was necessary.
+ * @param src			the string to convert.
+ * @param norm			no document.
+ * @param charset_ptr	no document.
+ *
+ * @returns		the converted string or ``src'' if no conversion was
+ *				necessary.
  */
 LAZY_CONVERT(unknown_to_utf8_normalized,
 		(const gchar *src, uni_norm_t norm, const gchar **charset_ptr),
 		(src, norm, charset_ptr))
 
-/**
+/*
  * Converts a string as returned by the UI toolkit to UTF-8 but returns the
  * original pointer if no conversion is necessary.  Do not free the returned
  * string. The previously returned pointer may become invalid when calling this
@@ -2453,18 +2475,20 @@ LAZY_CONVERT(locale_to_ui_string, (const gchar *src), (src))
 LAZY_CONVERT(locale_to_ui_string2, (const gchar *src), (src))
 	
 /**
- * Converts a UTF-8 encoded string to a UTF-32 encoded string. The
- * target string ``out'' is always be zero-terminated unless ``size''
- * is zero.
+ * Converts a UTF-8 encoded string to a UTF-32 encoded string.
  *
- * @param in the UTF-8 input string.
- * @param out the target buffer for converted UTF-32 string.
- * @param size the length of the outbuf buffer - characters not bytes!
- *        Whether the buffer was too small can be checked by comparing
- *        ``size'' with the return value. The value of ``size'' MUST NOT
- *        exceed INT_MAX.
+ * The target string ``out'' is always be zero-terminated unless
+ * ``size'' is zero.
  *
- * @returns the length in characters of completely converted string.
+ * @param in	the UTF-8 input string.
+ * @param out	the target buffer for converted UTF-32 string.
+ * @param size	the length of the outbuf buffer - characters not
+ *				bytes! Whether the buffer was too small can be
+ *				checked by comparing ``size'' with the return value.
+ *				The value of ``size'' MUST NOT exceed INT_MAX.
+ *
+ * @returns		the length in characters of completely converted
+ *				string.
  */
 size_t
 utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
@@ -2501,16 +2525,17 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 }
 
 /**
- * Converts a UTF-32 encoded string to a UTF-8 encoded string. The
- * target string ``out'' is always be zero-terminated unless ``size''
- * is zero.
+ * Converts a UTF-32 encoded string to a UTF-8 encoded string.
  *
- * @param in the UTF-32 input string.
- * @param out the target buffer for converted UTF-8 string.
- * @param size the length of the outbuf buffer in bytes.
- *        Whether the buffer was too small can be checked by comparing
- *        ``size'' with the return value. The value of ``size'' MUST NOT
- *        exceed INT_MAX.
+ * The target string ``out'' is always be zero-terminated unless
+ * ``size'' is zero.
+ *
+ * @param src	the UTF-32 input string.
+ * @param dst	the target buffer for converted UTF-8 string.
+ * @param size	the length of the outbuf buffer in bytes.
+ *				Whether the buffer was too small can be checked by
+ *				comparing ``size'' with the return value. The value
+ *				of ``size'' MUST NOT exceed INT_MAX.
  *
  * @returns the length in bytes of completely converted string.
  */
@@ -2548,13 +2573,14 @@ utf32_to_utf8(const guint32 *src, gchar *dst, size_t size)
 }
 
 /**
- * Converts a UTF-32 encoded string to a UTF-8 encoded string. The
- * target string ``out'' is always be zero-terminated unless ``size''
- * is zero.
+ * Converts a UTF-32 encoded string to a UTF-8 encoded string.
  *
- * @param buf the UTF-32 input string.
+ * The target string ``out'' is always be zero-terminated unless
+ * ``size'' is zero.
  *
- * @returns the length in bytes of completely converted string.
+ * @param buf	the UTF-32 input string.
+ *
+ * @returns		the length in bytes of completely converted string.
  */
 size_t
 utf32_to_utf8_inplace(guint32 *buf)
@@ -2611,9 +2637,9 @@ utf32_strcmp(const guint32 *s1, const guint32 *s2)
 /**
  * Looks up the decomposed string for an UTF-32 character.
  *
- * @param uc the unicode character to look up.
- * @param nfkd if TRUE, compatibility composition is used, otherwise
- *			canonical composition.
+ * @param uc	the unicode character to look up.
+ * @param nfkd	if TRUE, compatibility composition is used, otherwise
+ *				canonical composition.
  *
  * @returns NULL if the character is not in decomposition table. Otherwise,
  *          the returned pointer points to a possibly unterminated UTF-32

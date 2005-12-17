@@ -3524,10 +3524,10 @@ feed_host_cache_from_headers(header_t *header,
 	host_type_t sender, gboolean gnet, const host_addr_t peer)
 {
 	static const struct {
-		const gchar *name;	/**< Name of the header */
-		gboolean sender;	/**< Host type is derived from sender */
-		gboolean gnet;		/**< Definitely a Gnutella network header */
-		host_type_t type;	/**< Default type, sender will override */
+		const gchar *name;	/* Name of the header */
+		gboolean sender;	/* Host type is derived from sender */
+		gboolean gnet;		/* Definitely a Gnutella network header */
+		host_type_t type;	/* Default type, sender will override */
 	} headers[] = {
 		{ "X-Alt",				FALSE,	FALSE, HOST_ANY },
 		{ "X-Listen-Ip",		TRUE,	TRUE,  HOST_ANY },

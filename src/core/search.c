@@ -1797,7 +1797,7 @@ cleanup:
  *
  * @bug
  * FIXME: uses node_added which is a global variable in nodes.c. This
- *        should instead be contained with the argument to this call.
+ * should instead be contained with the argument to this call.
  */
 static void
 node_added_callback(gpointer data)
@@ -2761,10 +2761,13 @@ search_set_create_time(gnet_search_t sh, time_t t)
 /**
  * Create a new suspended search and return a handle which identifies it.
  *
- * @param query an UTF-8 encoded query string.
- * @param reissue_timeout delay in seconds before requerying.
- * @param flags option flags for the search.
- * @return -1 if the search could not be created, a valid handle for the
+ * @param query				an UTF-8 encoded query string.
+ * @param create_time		no document.
+ * @param lifetime			no document.
+ * @param flags				option flags for the search.
+ * @param reissue_timeout	delay in seconds before requerying.
+ *
+ * @return	-1 if the search could not be created, a valid handle for the
  *			search otherwise.
  */
 gnet_search_t
@@ -2975,11 +2978,11 @@ search_get_kept_results_by_handle(gnet_search_t sh)
  * Received out-of-band indication of results for search identified by its
  * MUID, on remote node `n'.
  *
- * @param n the remote node which has results for us
- * @param muid the MUID of the search
- * @param hits the amount of hits available (255 mean 255+ hits).
- * @param udp_firewalled the remote host is UDP-firewalled and cannot
- * receive unsolicited UDP traffic.
+ * @param n					the remote node which has results for us.
+ * @param muid				the MUID of the search.
+ * @param hits				the amount of hits available (255 mean 255+ hits).
+ * @param udp_firewalled	the remote host is UDP-firewalled and cannot
+ *							receive unsolicited UDP traffic.
  */
 void
 search_oob_pending_results(
@@ -3122,14 +3125,15 @@ search_is_expired(gnet_search_t sh)
 /**
  * Associate download to fill in the opened browse search.
  *
- * @param hostname	the DNS name of the host, or NULL if none known
- * @param addr		the IP address of the host to browse
- * @param port		the port to contact
- * @param guid		the GUID of the remote host
- * @param push		whether a PUSH request is neeed to reach remote host
- * @param proxies	vector holding known push-proxies
+ * @param sh		no document.
+ * @param hostname	the DNS name of the host, or NULL if none known.
+ * @param addr		the IP address of the host to browse.
+ * @param port		the port to contact.
+ * @param guid		the GUID of the remote host.
+ * @param push		whether a PUSH request is neeed to reach remote host.
+ * @param proxies	vector holding known push-proxies.
  *
- * @return TRUE if we successfully initialized the download layer.
+ * @return	TRUE if we successfully initialized the download layer.
  */
 gboolean
 search_browse(gnet_search_t sh,

@@ -59,8 +59,8 @@ static guint8 msg_weight[256];	/**< For gmsg_cmp() */
  * Ensure that the gnutella message header has the correct size,
  * a TTL greater than zero and that size is at least 23 (GTA_HEADER_SIZE).
  *
- * @param the gnutella message header to check.
- * @param the payload plus header size of the gnutella message.
+ * @param h		the gnutella message header to check.
+ * @param size	the payload plus header size of the gnutella message.
  */
 static inline void
 gmsg_header_check(const struct gnutella_header *h, guint32 size)

@@ -107,11 +107,13 @@ static GtkWidget *default_scrolled_window = NULL;
 
 /**
  *	Add the given tree node to the hashtable.
+ *
  *  The key is an atomized sha1 of the search result.
  *
  *  @bug
- *	FIXME: The "key" is an atom of the record's SHA1, why don't we create that
- * 	atom here, as we free it in "remove_parent_with_sha1"?  Emile 02/15/2004
+ *	FIXME: The "key" is an atom of the record's SHA1, why don't we
+ *	create that atom here, as we free it in "remove_parent_with_sha1"?
+ *	Emile 02/15/2004
  */
 static inline void
 add_parent_with_sha1(GHashTable *ht, gpointer key,

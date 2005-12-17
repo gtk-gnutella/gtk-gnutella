@@ -726,11 +726,11 @@ update_row(gpointer key, gpointer value, gpointer user_data)
  * Update all the nodes at the same time.
  *
  * @bug
- * FIXME: we should remember for every node when it was last
- *       updated and only refresh every node at most once every
- *       second. This information should be kept in a struct pointed
- *       to by the row user_data and should be automatically freed
- *       when removing the row (see upload stats code).
+ * FIXME: We should remember for every node when it was last
+ *        updated and only refresh every node at most once every
+ *        second. This information should be kept in a struct pointed
+ *        to by the row user_data and should be automatically freed
+ *        when removing the row (see upload stats code).
  */
 
 void

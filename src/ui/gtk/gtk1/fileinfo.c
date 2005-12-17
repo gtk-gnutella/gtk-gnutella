@@ -605,7 +605,7 @@ fi_gui_shutdown(void)
 
 /**
  * @bug
- * FIXME: we should remember for every node when it was last
+ * FIXME: We should remember for every node when it was last
  *        updated and only refresh every node at most once every
  *        second. This information should be kept in a struct pointed
  *        to by the row user_data and should be automatically freed
