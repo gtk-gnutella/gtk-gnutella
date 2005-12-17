@@ -708,8 +708,8 @@ gboolean
 adns_resolve(const gchar *hostname,
 	adns_callback_t user_callback, gpointer user_data)
 {
-	gsize hostname_len;
 	static adns_query_t query, reply;
+	size_t hostname_len;
 
 	g_assert(NULL != hostname);
 	g_assert(NULL != user_callback);
