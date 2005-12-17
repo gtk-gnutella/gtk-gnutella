@@ -252,9 +252,8 @@ http_send_status(
 		return FALSE;
 	} else if (sent < rw) {
 		if (http_debug) g_warning(
-			"only sent %d out of %d bytes of status %d (%s) to %s: %s",
-			sent, rw, code, status_msg, host_addr_to_string(s->addr),
-			g_strerror(errno));
+			"only sent %d out of %d bytes of status %d (%s) to %s",
+			sent, rw, code, status_msg, host_addr_to_string(s->addr));
 		return FALSE;
 	} else if (http_debug > 2) {
 		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
