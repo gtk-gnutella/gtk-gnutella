@@ -501,8 +501,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
 
 	g_assert(url_ptr != NULL);
-	if (NULL != *url_ptr)
-		G_FREE_NULL(*url_ptr);
+	G_FREE_NULL(*url_ptr);
 
 	tv = GTK_TREE_VIEW(treeview_fileinfo);
 	gtk_tree_view_get_cursor(tv, &tpath, NULL);
@@ -585,11 +584,11 @@ drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 	gchar **url_ptr = udata;
 
 	(void) unused_drag_ctx;
+
 	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-end");
 
 	g_assert(url_ptr != NULL);
-	if (NULL != *url_ptr)
-		G_FREE_NULL(*url_ptr);
+	G_FREE_NULL(*url_ptr);
 }
 
 void
@@ -680,9 +679,9 @@ fi_gui_init(void)
 	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
 
 	/* Initialize drag support */
-	gtk_tree_view_enable_model_drag_source(treeview_fileinfo,
-		0, targets, G_N_ELEMENTS(targets),
-		GDK_ACTION_COPY | GDK_ACTION_ASK);
+	gtk_drag_source_set(GTK_WIDGET(treeview_fileinfo),
+		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
+		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
 
     g_signal_connect(G_OBJECT(treeview_fileinfo), "drag-data-get",
         G_CALLBACK(drag_data_get), &dnd_url);
