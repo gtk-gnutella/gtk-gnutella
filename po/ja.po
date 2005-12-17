@@ -71,8 +71,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-12-17 18:12+0900\n"
-"PO-Revision-Date: 2005-12-13 23:15+0900\n"
+"POT-Creation-Date: 2005-12-17 18:30+0900\n"
+"PO-Revision-Date: 2005-12-14 17:23+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -2891,11 +2891,11 @@ msgstr "検索モニターに表示する検索クエリーの最大数です。
 
 #: src/if/gui_property.c:371
 msgid "Match queue selection by regexp case sensitive."
-msgstr "正規表現 (大文字・小文字を区別) に一致するキューを選択します。"
+msgstr "正規表現 (大・小文字を区別) に一致するキューを選択します。"
 
 #: src/if/gui_property.c:388
 msgid "Match fileinfo selection by regexp case sensitive."
-msgstr "正規表現 (大文字・小文字を区別) に一致するファイル情報を選択します。"
+msgstr "正規表現 (大・小文字を区別) に一致するファイル情報を選択します。"
 
 #: src/if/gui_property.c:405
 msgid ""
@@ -3127,7 +3127,7 @@ msgstr "ピア外への Gnet リーフトラフィックの帯域幅平均値を
 
 #: src/if/gui_property.c:1481
 msgid "Do a case sensitive sorting."
-msgstr "大文字・小文字を区別して並べ替えます。"
+msgstr "大・小文字を区別して並べ替えます。"
 
 #: src/if/gui_property.c:1498
 msgid "Default sort order for search results."
@@ -4626,37 +4626,37 @@ msgstr "(大・小文字を区別)"
 #: src/ui/gtk/filter_core.c:956
 #, c-format
 msgid "If filename begins with \"%s\" %s"
-msgstr "ファイル名が \"%s\" %s で始まる"
+msgstr "ファイル名が「%s」%s で始まる"
 
 #: src/ui/gtk/filter_core.c:960
 #, c-format
 msgid "If filename contains the words \"%s\" %s"
-msgstr "ファイル名が単語 \"%s\" %s を含む"
+msgstr "ファイル名が単語「%s」%s を含む"
 
 #: src/ui/gtk/filter_core.c:964
 #, c-format
 msgid "If filename ends with \"%s\" %s"
-msgstr "ファイル名が \"%s\" %s で終わる"
+msgstr "ファイル名が「%s」%s で終わる"
 
 #: src/ui/gtk/filter_core.c:968
 #, c-format
 msgid "If filename contains the substring \"%s\" %s"
-msgstr "ファイル名がサブ文字列 \"%s\" %s を含む"
+msgstr "ファイル名がサブ文字列「%s」%s を含む"
 
 #: src/ui/gtk/filter_core.c:973
 #, c-format
 msgid "If filename matches the regex pattern \"%s\" %s"
-msgstr "ファイル名が正規表現 \"%s\" %s に一致する"
+msgstr "ファイル名が正規表現「%s」%s に一致する"
 
 #: src/ui/gtk/filter_core.c:977
 #, c-format
 msgid "If filename is \"%s\" %s"
-msgstr "ファイル名が \"%s\" %s"
+msgstr "ファイル名が「%s」%s"
 
 #: src/ui/gtk/filter_core.c:987
 #, c-format
 msgid "If IP address matches %s/%u"
-msgstr "IP アドレスが %s/%u に一致する"
+msgstr "IPアドレスが %s/%u に一致する"
 
 #: src/ui/gtk/filter_core.c:995
 #, c-format
@@ -4671,16 +4671,16 @@ msgstr "大きさが %s バイト (%s) より小さい"
 #: src/ui/gtk/filter_core.c:1014
 #, c-format
 msgid "If filesize is between %s and %s (%s - %s)"
-msgstr "大きさが %s 〜 %s バイト (%s - %s)"
+msgstr "大きさが %s〜%s バイト (%s - %s)"
 
 #: src/ui/gtk/filter_core.c:1021
 #, c-format
 msgid "If urn:sha1 is same as for \"%s\""
-msgstr "URN:SHA1 が \"%s\" と同じ"
+msgstr "URN:SHA1が「%s」と同じ"
 
 #: src/ui/gtk/filter_core.c:1025
 msgid "If urn:sha1 is not available"
-msgstr "URN:SHA1 がない"
+msgstr "URN:SHA1がない"
 
 #: src/ui/gtk/filter_core.c:1029
 msgid "Always"
@@ -4728,14 +4728,14 @@ msgstr "常に (全てのフラッグを無視)"
 # FIXME:
 #: src/ui/gtk/filter_core.c:1101
 msgid "DISPLAY is undefined"
-msgstr "「表示」が未定義"
+msgstr "「表示する」が未定義"
 
 # FIXME: separation
 #: src/ui/gtk/filter_core.c:1105 src/ui/gtk/filter_core.c:2432
 #: src/ui/gtk/gtk1/interface-glade.c:9763
 #: src/ui/gtk/gtk2/interface-glade.c:9295
 msgid "DISPLAY"
-msgstr "表示"
+msgstr "表示する"
 
 #: src/ui/gtk/filter_core.c:1109 src/ui/gtk/filter_core.c:2433
 msgid "DON'T DISPLAY"
@@ -4744,14 +4744,14 @@ msgstr "表示しない"
 # FIXME:
 #: src/ui/gtk/filter_core.c:1121
 msgid "DOWNLOAD is undefined"
-msgstr "「ダウンロード」が未定義"
+msgstr "「ダウンロードする」が未定義"
 
 # FIXME: separation
 #: src/ui/gtk/filter_core.c:1126 src/ui/gtk/filter_core.c:2434
 #: src/ui/gtk/gtk1/interface-glade.c:9712
 #: src/ui/gtk/gtk2/interface-glade.c:9226
 msgid "DOWNLOAD"
-msgstr "ダウンロード"
+msgstr "ダウンロードする"
 
 #: src/ui/gtk/filter_core.c:1131 src/ui/gtk/filter_core.c:2435
 msgid "DON'T DOWNLOAD"
@@ -4777,7 +4777,7 @@ msgstr "(無効化) "
 
 #: src/ui/gtk/filter_core.c:1172
 msgid "(deactivated)"
-msgstr "(非活生化)"
+msgstr "(無効化)"
 
 #: src/ui/gtk/filter_core.c:1174
 msgid "(invalid)"
@@ -6961,7 +6961,7 @@ msgstr "表示欄の設定"
 #: src/ui/gtk/gtk1/interface-glade.c:7253
 #: src/ui/gtk/gtk2/interface-glade.c:771
 msgid "Make current sorting default"
-msgstr "現在の並び順を標準にする"
+msgstr "現在のソート方法を標準にする"
 
 #: src/ui/gtk/gtk1/interface-glade.c:7270
 #: src/ui/gtk/gtk2/interface-glade.c:579
@@ -7292,7 +7292,7 @@ msgstr "条件: 現フィルターの検索結果のプロパティが一致す�
 #: src/ui/gtk/gtk2/interface-glade.c:9260
 #: src/ui/gtk/gtk2/interface-glade.c:9389
 msgid "don't"
-msgstr "しない"
+msgstr "×"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9755
 #: src/ui/gtk/gtk1/interface-glade.c:9846
@@ -7306,7 +7306,7 @@ msgstr "未定義"
 #: src/ui/gtk/gtk2/interface-glade.c:9329
 #: src/ui/gtk/gtk2/interface-glade.c:9359
 msgid "do"
-msgstr "する"
+msgstr "○"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9866
 #: src/ui/gtk/gtk1/interface-glade.c:9886
