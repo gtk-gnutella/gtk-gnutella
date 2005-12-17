@@ -1,4 +1,4 @@
-?package(gtk-gnutella):needs=X11 section=Apps/Net title="gtk-gnutella" \
+?package(gtk-gnutella):needs="X11" section="Apps/Net" title="gtk-gnutella" \
   icon="/usr/share/gtk-gnutella/pixmaps/icon.xpm" \
-  hint="File Sharing,Peer 2 Peer,Gnutella" \
+  hints="File Sharing,Peer 2 Peer,Gnutella" \
   longtitle="Gnutella (GTK)" command="/usr/bin/gtk-gnutella"

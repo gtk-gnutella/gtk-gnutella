@@ -11,20 +11,25 @@ ifeq ($(DEB_BUILD_ARCH), alpha)
 	EXTRA_FLAGS=-mieee
 endif
 
-
-build:
+config-stamp:
 	$(checkdir)
 	rm -f config.sh
+	touch debian/README.debian
 	./Configure -Dccflags="-Wall $(EXTRA_FLAGS)" -Doptimize="$(OPTFLAGS)" \
-		-Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella -Dofficial=true \
+		-Dgtkversion=2 -Dprefix=/usr -Dipv6=true \
+		-Dprivlib=/usr/share/gtk-gnutella -Dofficial=true \
 		-ders
+	touch config-stamp
+	rm -f debian/README.debian
+
+build: config-stamp
 	$(MAKE)
-#	cp menu.ex debian/tmp/usr/lib/menu/xtranslate 
 	touch build
 
-clean:
+clean: 
 	$(checkdir)
 	-rm -f build
+	-rm -f config-stamp
 	-$(MAKE) clobber
 	-rm -f `find . -name "*~"`
 	-rm -rf debian/tmp debian/files* core debian/substvars
@@ -42,13 +47,18 @@ binary-arch: checkroot build
 	cd debian/tmp && install -d `cat ../dirs`
 	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/tmp
 	$(MAKE) install.man INSTALL_PREFIX=`pwd`/debian/tmp
+	# install .desktop
+	install -D -m 0644 gtk-gnutella.desktop `pwd`/debian/tmp/usr/share/applications/gtk-gnutella.desktop
+	# install .png
+	install -D -m 0644 gtk-gnutella.png `pwd`/debian/tmp/usr/share/pixmaps/gtk-gnutella.png
+	# strip binary
 	strip --remove-section=.comment --remove-section=.note `pwd`/debian/tmp/usr/bin/gtk-gnutella
 # Must have debmake installed for this to work. Otherwise please copy
 # /usr/bin/debstd into the debian directory and change debstd to debian/debstd
-	debstd ChangeLog README TODO 
+	debstd ChangeLog TODO 
 	dpkg-gencontrol -isp
 	chown -R root.root debian/tmp
-	chmod -R go=rX debian/tmp
+	chmod -R go=rX,u+rwX debian/tmp
 # Next line removes spurious symlink -- RAM, 26/08/2001
 	rm -f debian/tmp/.so.
 	dpkg --build debian/tmp ..

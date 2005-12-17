@@ -1,32 +1,157 @@
-gtk-gnutella (0.96.0-0) unstable; urgency=low
+gtk-gnutella (0.96b-1) unstable; urgency=medium
 
-  * 0.96 beta
+  * New upstream release
+  * TLS and IPv6 support
+  * Ability to browse hosts
+  * Fix "Bitzi Metadata" issue, asking for it will add the column and
+    make it a minimum size (Closes: #327188)
+  * Implement saving/restoring of default search order (Closes: #327194)
+  * de.po changes have been included upstream (Closes: #313758)
+  * Urgency set to medium since all current versions of gtk-gnutella have
+    expired
 
- -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Tue, 22 Nov 2005 22:16:00 +0100
+ -- Anand Kumria <wildfire@progsoc.org>  Sat, 26 Nov 2005 11:07:17 +1100
 
-gtk-gnutella (0.95.1-0) unstable; urgency=low
+gtk-gnutella (0.95.4-1) unstable; urgency=low
 
-  * 0.95.1 unstable
+  * New upstream release.
 
- -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Fri, 06 May 2005 17:34:00 +0100
+ -- Anand Kumria <wildfire@progsoc.org>  Thu,  4 Aug 2005 11:32:05 +1000
 
-gtk-gnutella (0.95.0-0) unstable; urgency=low
+gtk-gnutella (0.95.3-2) unstable; urgency=low
 
-  * 0.95.0 unstable
+  * Really fix 64bit build (Closes: #309819)
+    for those paying careful attention they would have noted the large diff
+    which was the update being applied in reverse (i.e. downgrading Debian's
+    version to 0.95.2)
 
- -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Sun, 27 Nov 2004 17:34:00 +0100
+ -- Anand Kumria <wildfire@progsoc.org>  Mon, 18 Jul 2005 23:07:31 +1000
 
-gtk-gnutella (0.94.0-0) unstable; urgency=low
+gtk-gnutella (0.95.3-1) unstable; urgency=low
 
-  * 0.94.0 unstable
+  * New upstream version
+  * Fix build for 64bit arches (Closes: #309819)
 
- -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Sun, 13 Jan 2004 14:15:00 +0100
+ -- Anand Kumria <wildfire@progsoc.org>  Mon, 27 Jun 2005 10:47:05 +1000
 
-gtk-gnutella (0.93.3-0) unstable; urgency=low
+gtk-gnutella (0.95.2-1) unstable; urgency=medium
 
-  * 0.93.3 stable
+  * New stable upstream
+  * Urgency still at medium as this also has important network fixes
+  * (e.g.) Don't send four times the data necessary when talking to an
+    ultrapeer
 
- -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Sun, 25 Jan 2004 19:39:00 +0100
+ -- Anand Kumria <wildfire@progsoc.org>  Sun, 15 May 2005 02:27:20 +1000
+
+gtk-gnutella (0.95.1-2) unstable; urgency=medium
+
+  * Correct .desktop and associated png
+  * Set urgency to medium, as it should have been for the last upload, as this
+    fix network interoperability issues.
+
+ -- Anand Kumria <wildfire@progsoc.org>  Wed, 11 May 2005 03:18:28 +1000
+
+gtk-gnutella (0.95.1-1) unstable; urgency=low
+
+  * New stable upstream
+  * Fix interoperability problems with UTF8 and gnutella servants
+  * 64bit architecture fixes
+  * Many assertion fixups (Closes: #200667, #271595, #287311, #300789)
+  * Don't scroll on new search additions (Closes: #111379)
+  * Use SI prefixes (Closes: #115125)
+
+ -- Anand Kumria <wildfire@progsoc.org>  Sat,  7 May 2005 01:28:29 +1000
+
+gtk-gnutella (0.95-3) unstable; urgency=medium
+
+  * If the sendfile syscall is not implemented, the return code might also
+    be ENOSYS. Note this and disable use of sendfile. Many thanks to Brian
+    Kahly for debugging this issue. (Closes: #288275)
+  * Head off compilation problems with GTK2.6 (hence the urgency)
+
+ -- Anand Kumria <wildfire@progsoc.org>  Sat,  5 Mar 2005 23:53:26 +1100
+
+Gtk-gnutella (0.95-2) unstable; urgency=low
+
+  * Workaround for G_BREAKPOINT not including the right headers on various
+    platforms.  (Closes: #285383)
+  * The Purge button has been moved to the bottom of the 'File'
+    (previously the FileInfo) tab. It being inaccessible should now longer
+    be an issue. (Closes: #205196)
+  * The Download section has been rearranged into three tabs (Active, File
+    and Queue) with Queue replacing 'inactive sources' so you can't cause
+    'show settings' to futz the UI in this screen anymore. (Closes: #271312)
+    However you still can futz it in other screens.
+
+ -- Anand Kumria <wildfire@progsoc.org>  Wed, 15 Dec 2004 04:45:08 +1100
+
+gtk-gnutella (0.95-1) unstable; urgency=low
+
+  * New upstream release
+  * Significant Gnutella servant functionality changes
+  - 'high outdegree' should provide better connectivity
+  - UDP transport
+  - Maximum Time-To-Live (TTL) is now 4 hope
+  - Out Of Band (OOB) queries and proxied queries are supported
+  - Large file support
+  * Integration of geolocation IP database from MaxMind
+  * Integration of meta-data information for searched files from bitzi.com
+  * Many bugs fixed
+  * And many new ones too
+  * Make a separate configure and build target in the rules file
+
+ -- Anand Kumria <wildfire@progsoc.org>  Sat, 11 Dec 2004 23:55:21 +1100
+
+gtk-gnutella (0.94-2) unstable; urgency=low
+
+  * Really ship .desktop file. (Closes: #118774)
+
+ -- Anand Kumria <wildfire@progsoc.org>  Sat, 21 Aug 2004 02:10:24 +1000
+
+gtk-gnutella (0.94-1) unstable; urgency=medium
+
+  * Adopt gtk-gnutella (Closes: #254390). 
+    Thomas if you really want gtk-gnutella let me know.
+  * New upstream release (Closes: #259575)
+  * "a while" means the fix has been in place for more than 6 months
+  * Floating point fix for Alpha has been included for a while
+    (Closes: #199412, #131166)
+  * gtk-gnutella has had a working menu file for a while now (Closes: #130389)
+  * depends field has also been fixed for a while (Closes: #166415)
+  * gtk-gnutella upstream fixed this a while ago (Closes: #166705)
+  * gtk-gnutella banned versions were fixed by upstream a while ago
+    (Closes: #182953)
+  * Goswin, all your suggestions were implemented by upstream many whiles ago. 
+    They were all good ones too. (Closes: #85366)
+  * remove outdated README.Debian. It was of use to neither man nor beast.
+  * Install upstreams supplied .desktop file (Closes: #118774)
+  * GTK2 is good, let's switch the interface to it (Closes: #200824, #244281)
+  * Acknowledge previous NMUs. I'm building off those so I get these fixes too.
+    (Closes: #129976, #240752, #240794)
+
+ -- Anand Kumria <wildfire@progsoc.org>  Sat, 21 Aug 2004 01:27:04 +1000
+
+gtk-gnutella (0.93.3.0-0.1) unstable; urgency=low
+
+  * NMU
+  * make a non-native package by increasing upstream version
+    artificially to 0.93.3.0 (Closes: #129976)
+  * dpatch-ified the package, putting the typo patch into
+    01_fix_manpage_typo
+  * add gettext to build depends (Closes: #240752)
+  * standards version 3.6.1 (3.1.1 was just too old...)
+  * updated debian/copyright (Closes: #240794)
+  * added quotes and fix typo hint -> hints in debian/menu
+  * fix non-standard file permission setting in debian/rules
+  * make build-depends a single-line entry due to lintian warning
+
+ -- Bastian Kleineidam <calvin@debian.org>  Sat, 22 May 2004 15:26:55 +0200
+
+gtk-gnutella (0.93.3-1) unstable; urgency=low
+
+  * new upstream 0.93.3, closes: Bug#203354, Bug#220670, Bug#227374, Bug#129976
+
+ -- Matthias Kabel <mkabel@debian.org>  Sun, 28 Mar 2004 14:39:00 +0100
 
 gtk-gnutella (0.93.2-0) unstable; urgency=low
 
@@ -188,14 +313,14 @@ gtk-gnutella (0.13-2cvs-patch7-mrvn1) unstable; urgency=low
     <thorbenthuermer@gmx.net> at Sun, 18 Feb 2001 19:39:45 +0100
   * patched "download fix" by Thorben Thuermer
     <thorbenthuermer@gmx.net> at Sun, 18 Feb 2001 22:49:12 +0100
-  * removed obsolete HTPP 404 checking
+  * removed obsolete HTTP 404 checking
   * correctly handle non resuming hosts, overwrite existing file (but
     don't delete)
   * warn about unknown headers, stop download unless http status was
     good
   * catch buggy clients that send a "busy" page with a HTTP 200 header
     by comparing sizes
-  * resume old completed downlaods, move them back to the incomplete
+  * resume old completed downloads, move them back to the incomplete
     dir
   * proxy (non socks) support, changes to the html requests and
     parsing
@@ -259,6 +384,4 @@ gtk-gnutella (0.12-3) unstable; urgency=low
 
  -- Matthias Kabel <mkabel@debian.org>  Tue, 31 Oct 2000 22:10:11 +0200
 
-Local variables:
-mode: debian-changelog
-End:
+

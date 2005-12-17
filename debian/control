@@ -1,23 +1,25 @@
 Source: gtk-gnutella
-Build-Depends: debmake, bison, libglib1.2-dev (>= 1.2.10),
- libgtk1.2-dev (>= 1.2.10-4), xlibs-dev (>> 4.1.0), zlib1g-dev (>= 1:1.1.4),
- libxml2-dev (>= 2.4.19)
+Build-Depends: debmake, glade-2, bison, libglib2.0-dev, libgtk2.0-dev, xlibs-dev (>> 4.1.0), zlib1g-dev (>= 1:1.1.4), libxml2-dev (>= 2.4.19), gettext, libgnutls-dev
 Section: net
 Priority: optional
-Maintainer: Matthias Kabel <mkabel@debian.org>
-Standards-Version: 3.1.1
+Maintainer: Anand Kumria <wildfire@progsoc.org>
+Standards-Version: 3.6.2.1
 
 Package: gtk-gnutella
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends} ${misc:Depends}
 Description: shares files in a peer to peer network
  Gtk-Gnutella is a reliable and efficient Gnutella client, supporting the
  latest Gnutella protocol, bandwidth limitation (both incoming and outgoing)
  traffic compression, and advanced search filters among other features.
+ .
  Gnutella is a peer-based file-sharing protocol that allows a user
  running a Gnutella client to search for and download files from other
  Gnutella users, as well as share some files of his/her own.
+ .
  Gtk-Gnutella offers all the extra features you expect from a modern client:
  persistent downloads, searches and filters, intuitive interface, upload
  statistics, queuing, and of course total control over many configuration
  parameters.
+ .
+ Homepage: http://gtk-gnutella.sf.net/
