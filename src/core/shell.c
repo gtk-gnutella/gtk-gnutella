@@ -116,11 +116,11 @@ static const struct {
 static gint
 get_command(const gchar *cmd)
 {
-	guint n;
+	guint i;
 
-	for (n = 0; n < G_N_ELEMENTS(commands); n ++) {
-		if (ascii_strcasecmp(commands[n].cmd, cmd) == 0)
-			return commands[n].id;
+	for (i = 0; i < G_N_ELEMENTS(commands); i++) {
+		if (ascii_strcasecmp(commands[i].cmd, cmd) == 0)
+			return commands[i].id;
 	}
 
 	return CMD_UNKNOWN;
@@ -145,7 +145,7 @@ gchar *shell_token_end(const gchar *s)
 		if (*cur == '\0')
 			return cur; /* ran into end of string */
 
-		if (escape || (*cur == '\\')) {
+		if (escape || *cur == '\\') {
 			escape = !escape;
 			cur ++;
 			continue;
@@ -202,8 +202,7 @@ shell_unescape(gchar *s)
  */
 static gchar *
 shell_get_token(const gchar *s, gint *pos) {
-	const gchar *start;
-	const gchar *end;
+	const gchar *start, *end;
 	gchar *retval;
 
 	g_assert(pos);
@@ -220,13 +219,13 @@ shell_get_token(const gchar *s, gint *pos) {
 	end = shell_token_end(start);
 
 	/* update position before removing quotes */
-	*pos = (*end == '\0') ? -1 : end-s+1;
+	*pos = *end == '\0' ? -1 : end - s + 1;
 
 	/* don't return enclosing quotes */
-	if ((*start == '"') && (*end == '"'))
+	if (*start == '"' && *end == '"')
 		start ++;
 
-	retval = g_strndup(start, end-start);
+	retval = g_strndup(start, end - start);
 	shell_unescape(retval);
 
 	return retval;
@@ -1006,7 +1005,7 @@ shell_read_data(gnutella_shell_t *sh)
 static void
 shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	gnutella_shell_t *sh = (gnutella_shell_t *) data;
+	gnutella_shell_t *sh = data;
 
 	(void) unused_source;
 	g_assert(sh);
@@ -1085,9 +1084,8 @@ shell_auth(const gchar *str)
 	g_warning("auth: [%s] [<cookie not displayed>]", tok_helo);
 
 	if (tok_helo && tok_cookie) {
-		ok =
-			(strcmp("HELO", tok_helo) == 0) &&
-			(strcmp(sha1_base32(auth_cookie), tok_cookie) == 0);
+		ok = strcmp("HELO", tok_helo) == 0 &&
+			strcmp(sha1_base32(auth_cookie), tok_cookie) == 0;
 	} else {
 		ok = FALSE;
 	}
@@ -1236,18 +1234,19 @@ shell_dump_cookie(void)
 void
 shell_timer(time_t now)
 {
-	GSList *to_remove = NULL;
-	GSList *sl;
+	GSList *sl, *to_remove = NULL;
 
 	for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
-		gnutella_shell_t *sh = (gnutella_shell_t *) sl->data;
+		gnutella_shell_t *sh = sl->data;
 
-		if (now - sh->last_update > SHELL_TIMEOUT)
-			g_slist_prepend(to_remove, sh);
+		if (delta_time(now, sh->last_update) > SHELL_TIMEOUT)
+			to_remove = g_slist_prepend(to_remove, sh);
 	}
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-		shell_destroy((gnutella_shell_t *) sl->data);
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		gnutella_shell_t *sh = sl->data;
+		shell_destroy(sh);
+	}
 
 	g_slist_free(to_remove);
 }
@@ -1270,12 +1269,13 @@ shell_init(void)
 void
 shell_close(void)
 {
-	GSList *sl;
-	GSList *to_remove;
+	GSList *sl, *to_remove;
 
 	to_remove = g_slist_copy(sl_shells);
-	for (sl = to_remove; sl; sl = g_slist_next(sl))
-		shell_destroy((gnutella_shell_t *) sl->data);
+	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		gnutella_shell_t *sh = sl->data;
+		shell_destroy(sh);
+	}
 
 	g_slist_free(to_remove);
 	g_assert(NULL == sl_shells);
