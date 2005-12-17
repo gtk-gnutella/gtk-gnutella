@@ -397,7 +397,7 @@ static gint
 compare_size_func(GtkTreeModel *model,
 	GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
-   	download_t *rec[2] = { NULL, NULL };
+   	download_t *rec[2];
    	GtkTreeIter *iter[2];
 	GtkTreeIter child;
 	guint i;
@@ -409,14 +409,21 @@ compare_size_func(GtkTreeModel *model,
 	iter[1] = b;
 
 	for (i = 0; i < G_N_ELEMENTS(rec); i++) {
+		rec[i] = NULL;
     	gtk_tree_model_get(model, iter[i], column, &rec[i], (-1));
+
 		if (DL_GUI_IS_HEADER == rec[i]) {
 			gtk_tree_model_iter_nth_child(model, &child, iter[i], 0);
     		gtk_tree_model_get(model, &child, column, &rec[i], (-1));
 		}
+		
+		if (!rec[i]) {
+			/* This might get triggered by download_gui_add() before
+			 * the child contains valid data. */
+			return 0;
+		}
 	}
 
-	g_return_val_if_fail(rec[0] && rec[1], 0);
 	return CMP(rec[1]->file_size, rec[0]->file_size);
 }
 
@@ -442,16 +449,18 @@ compare_range_func(GtkTreeModel *model,
 			gtk_tree_model_iter_nth_child(model, &child, iter[i], 0);
     		gtk_tree_model_get(model, &child, column, &rec[i], (-1));
 		}
+
+		if (!rec[i]) {
+			/* This might get triggered by download_gui_add() before
+			 * the child contains valid data. */
+			return 0;
+		}
 	}
 
-	r1 = rec[0] ? rec[0]->skip : 0;
-	r2 = rec[1] ? rec[1]->skip : 0;
+	r1 = rec[0]->skip;
+	r2 = rec[1]->skip;
 	if (r1 == r2) {
-		filesize_t s1, s2;
-
-		s1 = rec[0] ? rec[0]->size : 0;
-		s2 = rec[1] ? rec[1]->size : 0;
-		return CMP(s1, s2);
+		return CMP(rec[0]->size, rec[1]->size);
 	} else {
 		return CMP(r1, r2);
 	}
@@ -812,6 +821,10 @@ download_gui_add(download_t *d)
 				iter = tree_iter_new();
 				gtk_tree_store_append(model, iter, parent);
 
+				/* XXX: This will trigger compare_size_func() but the
+				 *		child contains no valid data yet.
+				 */
+				
 				/* Copy the old parents info into the new node */
 				gtk_tree_store_set(model, iter,
 					c_queue_filename, "\"",
@@ -914,6 +927,10 @@ download_gui_add(download_t *d)
 					c_dl_progress, &progress,
 					c_dl_status, &status,
 					(-1));
+
+				/* XXX: This will trigger compare_size_func() but the
+				 *		child contains no valid data yet.
+				 */
 
 				gtk_tree_store_set(model, iter,
 			      	c_dl_filename, "\"",
