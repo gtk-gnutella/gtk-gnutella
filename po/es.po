@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2005-12-08 21:45+0900\n"
+"POT-Creation-Date: 2005-12-17 18:12+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -113,7 +113,7 @@ msgid "Too many attempts (%u times)"
 msgstr "Demasiados intentos (%d veces)"
 
 #: src/core/downloads.c:4725 src/core/downloads.c:6088
-#: src/core/downloads.c:7314
+#: src/core/downloads.c:7317
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Falló (Error de lectura: %s)"
@@ -126,7 +126,7 @@ msgstr "Conexión no mantenida (EOF)"
 msgid "Stopped (EOF)"
 msgstr "Detenido (EOF)"
 
-#: src/core/downloads.c:4871 src/core/downloads.c:7158
+#: src/core/downloads.c:4871 src/core/downloads.c:7161
 msgid "Stopped (Output file size changed)"
 msgstr "Parado (Cambió el tamaño del archivo de salida)"
 
@@ -168,8 +168,8 @@ msgid "Discovered dup SHA1"
 msgstr "Descubierto un SHA1 doble"
 
 #: src/core/downloads.c:6070 src/core/downloads.c:6078
-#: src/core/downloads.c:7266 src/core/downloads.c:7304
-#: src/core/downloads.c:9357
+#: src/core/downloads.c:7269 src/core/downloads.c:7307
+#: src/core/downloads.c:9362
 msgid "Stopped data (EOF)"
 msgstr "Datos parados (EOF)"
 
@@ -178,7 +178,7 @@ msgstr "Datos parados (EOF)"
 msgid "Spammer detected"
 msgstr "Detectado distinto SHA1"
 
-#: src/core/downloads.c:6551 src/core/downloads.c:7074
+#: src/core/downloads.c:6551 src/core/downloads.c:7077
 msgid "Partial file on server, waiting"
 msgstr "Archivo parcial en el servidor, esperando"
 
@@ -187,20 +187,20 @@ msgstr "Archivo parcial en el servidor, esperando"
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "Encolado (ranura %d/%d) ETA: %s"
 
-#: src/core/downloads.c:7272
+#: src/core/downloads.c:7275
 msgid "Stopped (Read buffer full)"
 msgstr "Parado (Búfer de lectura lleno)"
 
-#: src/core/downloads.c:7311
+#: src/core/downloads.c:7314
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "Datos parados (%s)"
 
-#: src/core/downloads.c:8605
+#: src/core/downloads.c:8608
 msgid "SHA1 mismatch detected"
 msgstr "Detectado distinto SHA1"
 
-#: src/core/downloads.c:9281
+#: src/core/downloads.c:9286
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "Consultar Nodo Activado"
@@ -334,194 +334,194 @@ msgstr "Caché web actualizada "
 msgid "Shutdown (%s)"
 msgstr "Cerrando (%s)"
 
-#: src/core/nodes.c:2920
+#: src/core/nodes.c:2922
 #, c-format
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
 msgstr[0] "Recibido %d pong de conexión"
 msgstr[1] "Recibidos %d pongs de conexiones"
 
-#: src/core/nodes.c:2969 src/core/nodes.c:5181 src/core/nodes.c:5205
+#: src/core/nodes.c:2971 src/core/nodes.c:5182 src/core/nodes.c:5206
 msgid "Sent crawling info"
 msgstr ""
 
-#: src/core/nodes.c:3138
+#: src/core/nodes.c:3140
 msgid "Cannot setup compressing TX stack"
 msgstr "Imposible configurar la pila de TX comprimida"
 
-#: src/core/nodes.c:3347
+#: src/core/nodes.c:3349
 #, c-format
 msgid "Got BYE %d %.*s"
 msgstr "Recibido BYE  %d %.*s"
 
-#: src/core/nodes.c:3746
+#: src/core/nodes.c:3748
 #, c-format
 msgid "Weird HELLO %s"
 msgstr "HELLO extraño %s"
 
-#: src/core/nodes.c:3758
+#: src/core/nodes.c:3760
 #, c-format
 msgid "HELLO %s error %d (%s)"
 msgstr "HELLO %s error %d (%s)"
 
-#: src/core/nodes.c:3762
+#: src/core/nodes.c:3764
 msgid "Shielded node"
 msgstr "Nodo acorazado"
 
-#: src/core/nodes.c:3793
+#: src/core/nodes.c:3795
 msgid "Gnet connections disabled"
 msgstr "Conexiones Gnet deshabilitadas"
 
-#: src/core/nodes.c:3818
+#: src/core/nodes.c:3820
 msgid "Unstable IP address"
 msgstr "Dirección IP inestable"
 
-#: src/core/nodes.c:3821
+#: src/core/nodes.c:3823
 msgid "Servent version appears unstable"
 msgstr "La versión del nodo parece inestable"
 
-#: src/core/nodes.c:3824
+#: src/core/nodes.c:3826
 msgid "No vendor string supplied"
 msgstr "Texto del servidor no suministrado"
 
-#: src/core/nodes.c:3829
+#: src/core/nodes.c:3831
 #, c-format
 msgid "Not connecting: %s"
 msgstr "No conectando: %s"
 
-#: src/core/nodes.c:3861 src/core/nodes.c:3899 src/core/nodes.c:3943
-#: src/core/nodes.c:3993 src/core/nodes.c:4047
+#: src/core/nodes.c:3863 src/core/nodes.c:3901 src/core/nodes.c:3944
+#: src/core/nodes.c:3994 src/core/nodes.c:4048
 msgid "Connection not compressed"
 msgstr "Conexión sin comprimir"
 
-#: src/core/nodes.c:3876
+#: src/core/nodes.c:3878
 #, c-format
 msgid "Too many leaves (%d max)"
 msgstr "Demasiadas hojas (%d max)"
 
-#: src/core/nodes.c:3913 src/core/nodes.c:4030
+#: src/core/nodes.c:3914 src/core/nodes.c:4031
 #, c-format
 msgid "Too many ultra nodes (%d max)"
 msgstr "Demasiados nodos ultra (%d max)"
 
-#: src/core/nodes.c:3962
+#: src/core/nodes.c:3963
 #, c-format
 msgid "Rejected normal node (%d max)"
 msgstr "Nodo normal rechazado (%d max)"
 
-#: src/core/nodes.c:3975
+#: src/core/nodes.c:3976
 msgid "Rejected leaf node"
 msgstr "Nodo hoja rechazado"
 
-#: src/core/nodes.c:3981
+#: src/core/nodes.c:3982
 #, c-format
 msgid "Too many nodes (%d max)"
 msgstr "Demasiados nodos (%d max)"
 
-#: src/core/nodes.c:4017
+#: src/core/nodes.c:4018
 msgid "Sent shielded indication"
 msgstr ""
 
-#: src/core/nodes.c:4023
+#: src/core/nodes.c:4024
 msgid "Not an ultra node"
 msgstr "No es un nodo ultra"
 
-#: src/core/nodes.c:4097
+#: src/core/nodes.c:4098
 msgid "Protocol not acceptable"
 msgstr "Protocolo no aceptable"
 
-#: src/core/nodes.c:4380
+#: src/core/nodes.c:4381
 msgid "Servent Shutdown"
 msgstr "Nodo Cerrado"
 
-#: src/core/nodes.c:4666
+#: src/core/nodes.c:4667
 msgid "Too frequent crawling"
 msgstr ""
 
-#: src/core/nodes.c:4836
+#: src/core/nodes.c:4837
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "El tipo de servidor excedería %d%% de las ranuras"
 
-#: src/core/nodes.c:4846
+#: src/core/nodes.c:4847
 msgid "Reserved slot"
 msgstr "Ranura reservada"
 
-#: src/core/nodes.c:4883
+#: src/core/nodes.c:4884
 msgid "Too ancient Gnutella protocol"
 msgstr "Protocolo Gnutella demasiado antiguo"
 
-#: src/core/nodes.c:4901
+#: src/core/nodes.c:4902
 msgid "Cannot connect to a crawler"
 msgstr ""
 
-#: src/core/nodes.c:4936
+#: src/core/nodes.c:4937
 #, fuzzy
 msgid "Not becoming a leaf node"
 msgstr "ultra nodo"
 
-#: src/core/nodes.c:5106
+#: src/core/nodes.c:5107
 #, c-format
 msgid "Failed (Cannot send %s: %s)"
 msgstr "Fracasado (Imposible enviar %s: %s)"
 
-#: src/core/nodes.c:5113
+#: src/core/nodes.c:5114
 #, c-format
 msgid "Failed (Cannot send %s atomically)"
 msgstr "Fracasado (Imposible enviar %s atómicamente)"
 
-#: src/core/nodes.c:5160
+#: src/core/nodes.c:5161
 msgid "Failed (Header line too long)"
 msgstr "Fracasado (Línea de cabecera demasiado larga)"
 
-#: src/core/nodes.c:5172 src/core/uploads.c:1301
+#: src/core/nodes.c:5173 src/core/uploads.c:1302
 #, c-format
 msgid "Failed (%s)"
 msgstr "Fracasado (%s)"
 
-#: src/core/nodes.c:5181 src/core/uploads.c:1307
+#: src/core/nodes.c:5182 src/core/uploads.c:1308
 msgid "Failed (Input Exception)"
 msgstr "Fracasado (Excepción de entrada)"
 
-#: src/core/nodes.c:5187
+#: src/core/nodes.c:5188
 msgid "Failed (Input buffer full)"
 msgstr "Fracasado (Búfer de entrada lleno)"
 
-#: src/core/nodes.c:5193 src/core/uploads.c:1319
+#: src/core/nodes.c:5194 src/core/uploads.c:1320
 #, c-format
 msgid "Failed (Input error: %s)"
 msgstr "Fracasado (Error de entrada: %s)"
 
-#: src/core/nodes.c:5205 src/core/uploads.c:1327
+#: src/core/nodes.c:5206 src/core/uploads.c:1328
 msgid "Failed (EOF)"
 msgstr "Fracasado (EOF)"
 
-#: src/core/nodes.c:5211
+#: src/core/nodes.c:5212
 msgid "Failed (Extra HELLO data)"
 msgstr "Fracasado (datos HELLO adicionales)"
 
-#: src/core/nodes.c:5333
+#: src/core/nodes.c:5334
 msgid "Pseudo UDP node"
 msgstr "Pseudo-nodo UDP"
 
-#: src/core/nodes.c:5671
+#: src/core/nodes.c:5672
 msgid "Already connected"
 msgstr "Ya está conectado"
 
-#: src/core/nodes.c:6189 src/core/nodes.c:6370
+#: src/core/nodes.c:6190 src/core/nodes.c:6371
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr "Error de escritura durante HELLO: %s"
 
-#: src/core/nodes.c:6284
+#: src/core/nodes.c:6285
 msgid "Out of memory"
 msgstr "Memoria agotada"
 
-#: src/core/nodes.c:6377
+#: src/core/nodes.c:6378
 msgid "Connection reset during HELLO"
 msgstr "Conexión reiniciada durante HELLO"
 
-#: src/core/nodes.c:6616
+#: src/core/nodes.c:6617
 #, c-format
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "Pateado: mensaje %s demasiado grande (%d bytes)"
@@ -662,12 +662,12 @@ msgstr "Archivos"
 #: src/ui/gtk/gtk1/interface-glade.c:4082
 #: src/ui/gtk/gtk1/interface-glade.c:4529
 #: src/ui/gtk/gtk1/interface-glade.c:5850
-#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2204
-#: src/ui/gtk/gtk1/search.c:2210 src/ui/gtk/gtk2/downloads.c:476
+#: src/ui/gtk/gtk1/interface-glade.c:13119 src/ui/gtk/gtk1/search.c:2206
+#: src/ui/gtk/gtk1/search.c:2212 src/ui/gtk/gtk2/downloads.c:476
 #: src/ui/gtk/gtk2/downloads.c:521 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtk2/gnet_stats.c:462 src/ui/gtk/gtk2/interface-glade.c:11666
 #: src/ui/gtk/gtk2/search.c:1521 src/ui/gtk/gtk2/upload_stats.c:270
-#: src/ui/gtk/gtk2/uploads.c:84
+#: src/ui/gtk/gtk2/uploads.c:85
 msgid "Size"
 msgstr "Tamaño"
 
@@ -713,104 +713,104 @@ msgid_plural "Got %d hosts from UDP host cache %s:%u"
 msgstr[0] "Recibido %d nodo de la caché de nodos UDP %s:%u"
 msgstr[1] "Recibidos %d nodos de la caché de nodos UDP %s:%u"
 
-#: src/core/uploads.c:422
+#: src/core/uploads.c:423
 #, fuzzy
 msgid "Connect back timeout"
 msgstr "Caducidad de la conexión"
 
-#: src/core/uploads.c:429
+#: src/core/uploads.c:430
 msgid "Lifetime expired"
 msgstr "Tiempo de vida expirado"
 
-#: src/core/uploads.c:511
+#: src/core/uploads.c:512
 #, c-format
 msgid "Banned: %s"
 msgstr "Baneado: %s"
 
-#: src/core/uploads.c:513
+#: src/core/uploads.c:514
 #, c-format
 msgid "Banned for %s"
 msgstr "Baneado por %s"
 
-#: src/core/uploads.c:1651
+#: src/core/uploads.c:1652
 msgid "Unable to send GIV"
 msgstr "Incapaz de enviar GIV"
 
-#: src/core/uploads.c:2520
+#: src/core/uploads.c:2521
 msgid "<Browse Host Request>"
 msgstr "<Petición de Consultar Nodo>"
 
-#: src/core/uploads.c:2653
+#: src/core/uploads.c:2654
 msgid "Browse Host Enabled"
 msgstr "Consultar Nodo Activado"
 
-#: src/core/uploads.c:2666
+#: src/core/uploads.c:2667
 #, fuzzy, c-format
 msgid "<Browse Host Request> [%s%s%s]"
 msgstr "<Petición de Consultar Nodo>"
 
-#: src/core/uploads.c:2667
+#: src/core/uploads.c:2668
 msgid "query hits"
 msgstr ""
 
-#: src/core/uploads.c:2668
+#: src/core/uploads.c:2669
 msgid ", deflate"
 msgstr ""
 
-#: src/core/uploads.c:2669
+#: src/core/uploads.c:2670
 msgid ", gzip"
 msgstr ""
 
-#: src/core/uploads.c:2670
+#: src/core/uploads.c:2671
 msgid ", chunked"
 msgstr ""
 
-#: src/core/uploads.c:3343
+#: src/core/uploads.c:3348
 msgid "Stalling upload replaced"
 msgstr "Subida atascándose reemplazada"
 
-#: src/core/uploads.c:3506
+#: src/core/uploads.c:3511
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Encolado (ranura %d, ETA: %s)"
 
-#: src/core/uploads.c:3740
+#: src/core/uploads.c:3745
 msgid "Cannot send whole HTTP status"
 msgstr "Imposible enviar el estado completo HTTP"
 
-#: src/core/uploads.c:3841
+#: src/core/uploads.c:3846
 msgid "Write exception"
 msgstr "Excepción de escritura"
 
-#: src/core/uploads.c:3912
+#: src/core/uploads.c:3917
 #, c-format
 msgid "File read error: %s"
 msgstr "Error de lectura de archivo: %s"
 
-#: src/core/uploads.c:3916
+#: src/core/uploads.c:3921
 #, fuzzy
 msgid "File EOF?"
 msgstr "Fracasado (EOF)"
 
-#: src/core/uploads.c:3949
+#: src/core/uploads.c:3954
 #, c-format
 msgid "Data write error: %s"
 msgstr "Error de lectura de datos: %s"
 
-#: src/core/uploads.c:3953
+#: src/core/uploads.c:3958
 msgid "No bytes written, source may be gone"
 msgstr ""
 
-#: src/core/uploads.c:4072
+#: src/core/uploads.c:4077
 #, fuzzy, c-format
 msgid "Special read error: %s"
 msgstr "Error de lectura de archivo: %s"
 
-#: src/core/uploads.c:4115
+#: src/core/uploads.c:4120
 msgid "Explicitly killed"
 msgstr "Matado explícitamente"
 
-#: src/core/uploads.c:4140
+#: src/core/uploads.c:4145
 msgid "IP denying uploads"
 msgstr "IP denegando subidas"
 
@@ -4264,14 +4264,14 @@ msgstr "Zambia, República de"
 msgid "Zimbabwe"
 msgstr "Zimbabue"
 
-#: src/lib/misc.c:829
+#: src/lib/misc.c:832
 #, fuzzy, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
 msgstr[0] "%u Bytes"
 msgstr[1] "%u Bytes"
 
-#: src/lib/misc.c:852
+#: src/lib/misc.c:855
 #, fuzzy, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
@@ -4279,32 +4279,32 @@ msgstr[0] "%u Bytes"
 msgstr[1] "%u Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
-#: src/lib/misc.c:956 src/lib/misc.c:967
+#: src/lib/misc.c:959 src/lib/misc.c:970
 #, fuzzy
 msgid "B/s"
 msgstr "%sB/s"
 
-#: src/lib/misc.c:981
+#: src/lib/misc.c:984
 #, c-format
 msgid "%ud %uh"
 msgstr ""
 
-#: src/lib/misc.c:984
+#: src/lib/misc.c:987
 #, c-format
 msgid "%uh %um"
 msgstr ""
 
-#: src/lib/misc.c:986
+#: src/lib/misc.c:989
 #, c-format
 msgid "%um %us"
 msgstr ""
 
-#: src/lib/misc.c:988
+#: src/lib/misc.c:991
 #, c-format
 msgid "%us"
 msgstr ""
 
-#: src/lib/utf8.c:1223
+#: src/lib/utf8.c:1227
 msgid "locale_get_language|en"
 msgstr "es"
 
@@ -4484,169 +4484,169 @@ msgstr "Sin filtros"
 msgid "[no hash]"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:949
+#: src/ui/gtk/filter_core.c:951
 msgid "(case-sensitive)"
 msgstr "Coincidencia mayúsc/minúsc"
 
-#: src/ui/gtk/filter_core.c:954
+#: src/ui/gtk/filter_core.c:956
 #, c-format
 msgid "If filename begins with \"%s\" %s"
 msgstr "Si el nombre comienza por \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:958
+#: src/ui/gtk/filter_core.c:960
 #, c-format
 msgid "If filename contains the words \"%s\" %s"
 msgstr "Si el nombre contiene las palabras \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:962
+#: src/ui/gtk/filter_core.c:964
 #, c-format
 msgid "If filename ends with \"%s\" %s"
 msgstr "Si el nombre termina por \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:966
+#: src/ui/gtk/filter_core.c:968
 #, c-format
 msgid "If filename contains the substring \"%s\" %s"
 msgstr "Si el nombre constiene la subcadena \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:971
+#: src/ui/gtk/filter_core.c:973
 #, fuzzy, c-format
 msgid "If filename matches the regex pattern \"%s\" %s"
 msgstr "Si el nombre coincide con regexp \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:975
+#: src/ui/gtk/filter_core.c:977
 #, c-format
 msgid "If filename is \"%s\" %s"
 msgstr "Si el nombre es \"%s\" %s"
 
-#: src/ui/gtk/filter_core.c:985
+#: src/ui/gtk/filter_core.c:987
 #, fuzzy, c-format
 msgid "If IP address matches %s/%u"
 msgstr "Si la dirección IP coincide con %s/%s"
 
-#: src/ui/gtk/filter_core.c:993
+#: src/ui/gtk/filter_core.c:995
 #, c-format
 msgid "If filesize is exactly %s (%s)"
 msgstr "Si el tamaño es exactamente %s (%s)"
 
-#: src/ui/gtk/filter_core.c:1000
+#: src/ui/gtk/filter_core.c:1002
 #, c-format
 msgid "If filesize is smaller than %s (%s)"
 msgstr "Si el tamaño del archivo es más pequeño que %s (%s)"
 
-#: src/ui/gtk/filter_core.c:1012
+#: src/ui/gtk/filter_core.c:1014
 #, c-format
 msgid "If filesize is between %s and %s (%s - %s)"
 msgstr "Si el tamaño está entre %s y %s (%s - %s)"
 
-#: src/ui/gtk/filter_core.c:1019
+#: src/ui/gtk/filter_core.c:1021
 #, c-format
 msgid "If urn:sha1 is same as for \"%s\""
 msgstr "Si el urn:sha1 es el mismo que \"%s\""
 
-#: src/ui/gtk/filter_core.c:1023
+#: src/ui/gtk/filter_core.c:1025
 msgid "If urn:sha1 is not available"
 msgstr "Si el urn:sha1 no está disponible"
 
-#: src/ui/gtk/filter_core.c:1027
+#: src/ui/gtk/filter_core.c:1029
 msgid "Always"
 msgstr "Siempre"
 
-#: src/ui/gtk/filter_core.c:1040
+#: src/ui/gtk/filter_core.c:1042
 msgid "busy is set"
 msgstr "ocupado está puesto"
 
-#: src/ui/gtk/filter_core.c:1044
+#: src/ui/gtk/filter_core.c:1046
 msgid "busy is not set"
 msgstr "activado no está puesto"
 
-#: src/ui/gtk/filter_core.c:1054
+#: src/ui/gtk/filter_core.c:1056
 msgid "push is set"
 msgstr "\"push\" está puesto"
 
-#: src/ui/gtk/filter_core.c:1059
+#: src/ui/gtk/filter_core.c:1061
 msgid "push is not set"
 msgstr "\"push\" no está puesto"
 
-#: src/ui/gtk/filter_core.c:1069
+#: src/ui/gtk/filter_core.c:1071
 msgid "stable is set"
 msgstr "estable está puesto"
 
-#: src/ui/gtk/filter_core.c:1074
+#: src/ui/gtk/filter_core.c:1076
 msgid "stable is not set"
 msgstr "estable no está puesto"
 
-#: src/ui/gtk/filter_core.c:1082
+#: src/ui/gtk/filter_core.c:1084
 #, c-format
 msgid "If flag %s%s%s%s%s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1086
+#: src/ui/gtk/filter_core.c:1088
 msgid "Always (all flags ignored)"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1099
+#: src/ui/gtk/filter_core.c:1101
 msgid "DISPLAY is undefined"
 msgstr "MOSTRAR no está definido"
 
-#: src/ui/gtk/filter_core.c:1103 src/ui/gtk/filter_core.c:2430
+#: src/ui/gtk/filter_core.c:1105 src/ui/gtk/filter_core.c:2432
 #: src/ui/gtk/gtk1/interface-glade.c:9763
 #: src/ui/gtk/gtk2/interface-glade.c:9295
 msgid "DISPLAY"
 msgstr "MOSTRAR"
 
-#: src/ui/gtk/filter_core.c:1107 src/ui/gtk/filter_core.c:2431
+#: src/ui/gtk/filter_core.c:1109 src/ui/gtk/filter_core.c:2433
 msgid "DON'T DISPLAY"
 msgstr "NO MOSTRAR"
 
-#: src/ui/gtk/filter_core.c:1119
+#: src/ui/gtk/filter_core.c:1121
 msgid "DOWNLOAD is undefined"
 msgstr "DESCARGA no está definido"
 
-#: src/ui/gtk/filter_core.c:1124 src/ui/gtk/filter_core.c:2432
+#: src/ui/gtk/filter_core.c:1126 src/ui/gtk/filter_core.c:2434
 #: src/ui/gtk/gtk1/interface-glade.c:9712
 #: src/ui/gtk/gtk2/interface-glade.c:9226
 msgid "DOWNLOAD"
 msgstr "DESCARGAR"
 
-#: src/ui/gtk/filter_core.c:1129 src/ui/gtk/filter_core.c:2433
+#: src/ui/gtk/filter_core.c:1131 src/ui/gtk/filter_core.c:2435
 msgid "DON'T DOWNLOAD"
 msgstr "NO DESCARGAR"
 
-#: src/ui/gtk/filter_core.c:1139
+#: src/ui/gtk/filter_core.c:1141
 #, c-format
 msgid "If flag %s%s%s"
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1143
+#: src/ui/gtk/filter_core.c:1145
 msgid "Always (all states ignored)"
 msgstr "Siempre (todos los estados ignorados)"
 
-#: src/ui/gtk/filter_core.c:1168
+#: src/ui/gtk/filter_core.c:1170
 #, c-format
 msgid "%s%s %s jump to \"%s\""
 msgstr ""
 
-#: src/ui/gtk/filter_core.c:1169
+#: src/ui/gtk/filter_core.c:1171
 msgid "(Negated) "
 msgstr "(Negado) "
 
-#: src/ui/gtk/filter_core.c:1170
+#: src/ui/gtk/filter_core.c:1172
 msgid "(deactivated)"
 msgstr "(desactivado)"
 
-#: src/ui/gtk/filter_core.c:1172
+#: src/ui/gtk/filter_core.c:1174
 msgid "(invalid)"
 msgstr "(inválido)"
 
-#: src/ui/gtk/filter_core.c:2428
+#: src/ui/gtk/filter_core.c:2430
 msgid "Global (pre)"
 msgstr "Global (pre)"
 
-#: src/ui/gtk/filter_core.c:2429
+#: src/ui/gtk/filter_core.c:2431
 msgid "Global (post)"
 msgstr "Global (post)"
 
-#: src/ui/gtk/filter_core.c:2434
+#: src/ui/gtk/filter_core.c:2436
 msgid "RETURN"
 msgstr ""
 
@@ -4859,7 +4859,7 @@ msgstr[1] "%u nodos"
 
 #: src/ui/gtk/gtk1/downloads.c:1035 src/ui/gtk/gtk1/downloads.c:1066
 #: src/ui/gtk/gtk1/interface-glade.c:2750 src/ui/gtk/gtk2/downloads.c:1438
-#: src/ui/gtk/gtk2/gnet_stats.c:58 src/ui/gtk/uploads_common.c:183
+#: src/ui/gtk/gtk2/gnet_stats.c:58 src/ui/gtk/uploads_common.c:199
 msgid "Queued"
 msgstr "Encolado"
 
@@ -5099,11 +5099,11 @@ msgid "Queued (%d active, %d passive)"
 msgstr "Encolado (%d activos, %d pasivos)"
 
 #: src/ui/gtk/gtk1/fileinfo.c:181 src/ui/gtk/gtk2/fileinfo.c:370
-#: src/ui/gtk/uploads_common.c:183
+#: src/ui/gtk/uploads_common.c:199
 msgid "Waiting"
 msgstr "Esperando"
 
-#: src/ui/gtk/gtk1/fileinfo.c:214 src/ui/gtk/gtk1/search_cb.c:293
+#: src/ui/gtk/gtk1/fileinfo.c:214 src/ui/gtk/gtk1/search_cb.c:242
 #: src/ui/gtk/gtk2/fileinfo.c:131 src/ui/gtk/gtk2/search_cb.c:619
 #, c-format
 msgid "%s (%s bytes)"
@@ -5444,17 +5444,17 @@ msgstr "Conexiones GnutellaNet"
 #: src/ui/gtk/gtk1/interface-glade.c:4066
 #: src/ui/gtk/gtk1/interface-glade.c:4513 src/ui/gtk/gtk1/nodes.c:261
 #: src/ui/gtk/gtk2/downloads.c:477 src/ui/gtk/gtk2/downloads.c:522
-#: src/ui/gtk/gtk2/nodes.c:246 src/ui/gtk/gtk2/uploads.c:82
+#: src/ui/gtk/gtk2/nodes.c:246 src/ui/gtk/gtk2/uploads.c:83
 msgid "Host"
 msgstr "Nodo"
 
 #: src/ui/gtk/gtk1/interface-glade.c:1907
 #: src/ui/gtk/gtk1/interface-glade.c:3286
 #: src/ui/gtk/gtk1/interface-glade.c:4074
-#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2220
-#: src/ui/gtk/gtk1/search.c:2226 src/ui/gtk/gtk2/downloads.c:478
+#: src/ui/gtk/gtk1/interface-glade.c:4521 src/ui/gtk/gtk1/search.c:2222
+#: src/ui/gtk/gtk1/search.c:2228 src/ui/gtk/gtk2/downloads.c:478
 #: src/ui/gtk/gtk2/downloads.c:523 src/ui/gtk/gtk2/search.c:1523
-#: src/ui/gtk/gtk2/uploads.c:83
+#: src/ui/gtk/gtk2/uploads.c:84
 msgid "Loc"
 msgstr "País"
 
@@ -5478,7 +5478,7 @@ msgstr ""
 
 #: src/ui/gtk/gtk1/interface-glade.c:1923
 #: src/ui/gtk/gtk1/interface-glade.c:3310 src/ui/gtk/gtk1/nodes.c:264
-#: src/ui/gtk/gtk2/nodes.c:247 src/ui/gtk/gtk2/uploads.c:86
+#: src/ui/gtk/gtk2/nodes.c:247 src/ui/gtk/gtk2/uploads.c:87
 msgid "User-Agent"
 msgstr "Tipo de servidor"
 
@@ -5497,8 +5497,8 @@ msgstr "Tiempo conectado"
 msgid "Uptime"
 msgstr "Tiempo en ejecución"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2237
-#: src/ui/gtk/gtk1/search.c:2243 src/ui/gtk/gtk2/search.c:1525
+#: src/ui/gtk/gtk1/interface-glade.c:1956 src/ui/gtk/gtk1/search.c:2239
+#: src/ui/gtk/gtk1/search.c:2245 src/ui/gtk/gtk2/search.c:1525
 msgid "Info"
 msgstr "Info"
 
@@ -5823,19 +5823,19 @@ msgstr "Subidas"
 #: src/ui/gtk/gtk1/interface-glade.c:4058
 #: src/ui/gtk/gtk1/interface-glade.c:4505 src/ui/gtk/gtk2/downloads.c:475
 #: src/ui/gtk/gtk2/downloads.c:520 src/ui/gtk/gtk2/upload_stats.c:269
-#: src/ui/gtk/gtk2/uploads.c:81
+#: src/ui/gtk/gtk2/uploads.c:82
 msgid "Filename"
 msgstr "Archivo"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3302
 #: src/ui/gtk/gtk1/interface-glade.c:4090 src/ui/gtk/gtk2/downloads.c:479
-#: src/ui/gtk/gtk2/uploads.c:85
+#: src/ui/gtk/gtk2/uploads.c:86
 msgid "Range"
 msgstr "Rango"
 
 #: src/ui/gtk/gtk1/interface-glade.c:3318
 #: src/ui/gtk/gtk1/interface-glade.c:4106 src/ui/gtk/gtk2/downloads.c:481
-#: src/ui/gtk/gtk2/uploads.c:87
+#: src/ui/gtk/gtk2/uploads.c:88
 msgid "Progress"
 msgstr "Progreso"
 
@@ -5845,7 +5845,7 @@ msgstr "Progreso"
 #: src/ui/gtk/gtk1/interface-glade.c:4545 src/ui/gtk/gtk1/nodes.c:268
 #: src/ui/gtk/gtk2/downloads.c:482 src/ui/gtk/gtk2/downloads.c:525
 #: src/ui/gtk/gtk2/fileinfo.c:617 src/ui/gtk/gtk2/nodes.c:253
-#: src/ui/gtk/gtk2/uploads.c:88
+#: src/ui/gtk/gtk2/uploads.c:89
 msgid "Status"
 msgstr "Estado"
 
@@ -5951,8 +5951,8 @@ msgstr "Estadísticas de Subidas"
 msgid "Files to get"
 msgstr "Archivos para descargar"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2180
-#: src/ui/gtk/gtk1/search.c:2186 src/ui/gtk/gtk2/fileinfo.c:613
+#: src/ui/gtk/gtk1/interface-glade.c:3687 src/ui/gtk/gtk1/search.c:2182
+#: src/ui/gtk/gtk1/search.c:2188 src/ui/gtk/gtk2/fileinfo.c:613
 #: src/ui/gtk/gtk2/search.c:1518
 msgid "File"
 msgstr "Archivo"
@@ -6249,8 +6249,8 @@ msgstr "Búsqueda actual:"
 msgid "Cl_ose search"
 msgstr "_Cerrar búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:406
-#: src/ui/gtk/gtk1/search.c:1886 src/ui/gtk/gtk1/search.c:1982
+#: src/ui/gtk/gtk1/interface-glade.c:4846 src/ui/gtk/gtk1/search.c:408
+#: src/ui/gtk/gtk1/search.c:1888 src/ui/gtk/gtk1/search.c:1984
 #: src/ui/gtk/gtk2/interface-glade.c:5286 src/ui/gtk/gtk2/search.c:529
 #: src/ui/gtk/gtk2/search.c:1229 src/ui/gtk/gtk2/search.c:1347
 msgid "(no search)"
@@ -6724,7 +6724,7 @@ msgstr "Reiniciar esta búsqueda"
 msgid "Duplicate this search"
 msgstr "Duplicar esta búsqueda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7237 src/ui/gtk/gtk1/search_cb.c:690
+#: src/ui/gtk/gtk1/interface-glade.c:7237 src/ui/gtk/gtk1/search_cb.c:638
 #: src/ui/gtk/gtk2/interface-glade.c:751 src/ui/gtk/gtk2/search_cb.c:369
 msgid "Show tabs"
 msgstr "Mostrar pestañas"
@@ -8706,69 +8706,69 @@ msgstr ""
 msgid "Country"
 msgstr "País:"
 
-#: src/ui/gtk/gtk1/search.c:331
+#: src/ui/gtk/gtk1/search.c:333
 msgid "Failed to create the search"
 msgstr "Imposible crear la búsqueda"
 
-#: src/ui/gtk/gtk1/search.c:1745
+#: src/ui/gtk/gtk1/search.c:1747
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "Creada %u descarga"
 msgstr[1] "Creadas %u descargas"
 
-#: src/ui/gtk/gtk1/search.c:1748
+#: src/ui/gtk/gtk1/search.c:1750
 #, fuzzy, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
 msgstr[0] "Información sobre el archivo seleccionado"
 msgstr[1] "Información sobre el archivo seleccionado"
 
-#: src/ui/gtk/gtk1/search.c:1773
+#: src/ui/gtk/gtk1/search.c:1775
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "Descartado %u resultado"
 msgstr[1] "Descartados %u resultados"
 
-#: src/ui/gtk/gtk1/search.c:2188 src/ui/gtk/gtk1/search.c:2194
+#: src/ui/gtk/gtk1/search.c:2190 src/ui/gtk/gtk1/search.c:2196
 #: src/ui/gtk/gtk2/search.c:1519
 msgid "Extension"
 msgstr "Extensión"
 
-#: src/ui/gtk/gtk1/search.c:2196 src/ui/gtk/gtk1/search.c:2202
+#: src/ui/gtk/gtk1/search.c:2198 src/ui/gtk/gtk1/search.c:2204
 #: src/ui/gtk/gtk2/search.c:1520
 #, fuzzy
 msgid "Encoding"
 msgstr "entrada"
 
-#: src/ui/gtk/gtk1/search.c:2212 src/ui/gtk/gtk1/search.c:2218
+#: src/ui/gtk/gtk1/search.c:2214 src/ui/gtk/gtk1/search.c:2220
 #: src/ui/gtk/gtk2/search.c:1522
 msgid "#"
 msgstr "#"
 
-#: src/ui/gtk/gtk1/search.c:2229 src/ui/gtk/gtk1/search.c:2235
+#: src/ui/gtk/gtk1/search.c:2231 src/ui/gtk/gtk1/search.c:2237
 #: src/ui/gtk/gtk2/search.c:1524
 msgid "Metadata"
 msgstr "Metadatos"
 
-#: src/ui/gtk/gtk1/search.c:2506 src/ui/gtk/gtk2/search.c:1859
+#: src/ui/gtk/gtk1/search.c:2508 src/ui/gtk/gtk2/search.c:1859
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
-#: src/ui/gtk/gtk1/search.c:2540 src/ui/gtk/gtk2/search.c:1828
+#: src/ui/gtk/gtk1/search.c:2542 src/ui/gtk/gtk2/search.c:1828
 msgid "Query queued..."
 msgstr "Petición encolada"
 
-#: src/ui/gtk/gtk1/search_cb.c:269 src/ui/gtk/gtk2/search_cb.c:602
+#: src/ui/gtk/gtk1/search_cb.c:218 src/ui/gtk/gtk2/search_cb.c:602
 msgid "<no SHA1 known>"
 msgstr ""
 
-#: src/ui/gtk/gtk1/search_cb.c:689 src/ui/gtk/gtk2/search_cb.c:369
+#: src/ui/gtk/gtk1/search_cb.c:637 src/ui/gtk/gtk2/search_cb.c:369
 msgid "Show search list"
 msgstr "Mostrar lista de búsquedas"
 
-#: src/ui/gtk/gtk1/search_cb.c:849 src/ui/gtk/gtk2/search_cb.c:729
+#: src/ui/gtk/gtk1/search_cb.c:796 src/ui/gtk/gtk2/search_cb.c:729
 msgid "Passive"
 msgstr "Pasivo"
 
@@ -8810,7 +8810,7 @@ msgstr " reintento en %ds"
 msgid "Sending request (%u%%)"
 msgstr "Enviando petición (%d%%)"
 
-#: src/ui/gtk/gtk2/downloads.c:1564 src/ui/gtk/uploads_common.c:117
+#: src/ui/gtk/gtk2/downloads.c:1564 src/ui/gtk/uploads_common.c:133
 msgid "< 1s"
 msgstr "< 1º"
 
@@ -9513,62 +9513,62 @@ msgstr ""
 msgid "No property name matches the pattern \"%s\"."
 msgstr "Si el nombre coincide con regexp \"%s\" %s"
 
-#: src/ui/gtk/uploads_common.c:103
+#: src/ui/gtk/uploads_common.c:119
 msgid "No output yet..."
 msgstr "Todavía no hay salida..."
 
-#: src/ui/gtk/uploads_common.c:107
+#: src/ui/gtk/uploads_common.c:123
 msgid "Got push, connecting back..."
 msgstr "Recibido 'push', conectando..."
 
-#: src/ui/gtk/uploads_common.c:115
+#: src/ui/gtk/uploads_common.c:131
 #, fuzzy, c-format
 msgid "%sCompleted (%s) %s"
 msgstr "Completado (%s) %s"
 
-#: src/ui/gtk/uploads_common.c:132
+#: src/ui/gtk/uploads_common.c:148
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr ""
 
-#: src/ui/gtk/uploads_common.c:135
+#: src/ui/gtk/uploads_common.c:151
 msgid "stalled"
 msgstr "atascado"
 
-#: src/ui/gtk/uploads_common.c:141
+#: src/ui/gtk/uploads_common.c:157
 msgid "Waiting for headers..."
 msgstr "Esperando las cabeceras..."
 
-#: src/ui/gtk/uploads_common.c:144
+#: src/ui/gtk/uploads_common.c:160
 msgid "Waiting for further request..."
 msgstr "Esperando de nuevo la conexión..."
 
-#: src/ui/gtk/uploads_common.c:147
+#: src/ui/gtk/uploads_common.c:163
 msgid "Unavailable range, waiting retry..."
 msgstr "Rango no disponible, esperando el reintento..."
 
-#: src/ui/gtk/uploads_common.c:150
+#: src/ui/gtk/uploads_common.c:166
 msgid "Transmission aborted"
 msgstr "Trnasmisión abortada"
 
-#: src/ui/gtk/uploads_common.c:153
+#: src/ui/gtk/uploads_common.c:169
 msgid "Transmission complete"
 msgstr "Transmisión abortada"
 
-#: src/ui/gtk/uploads_common.c:182
+#: src/ui/gtk/uploads_common.c:198
 #, fuzzy, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (ranura %d/%d)"
 
-#: src/ui/gtk/uploads_common.c:188
+#: src/ui/gtk/uploads_common.c:204
 msgid "lifetime:"
 msgstr "tiempo de vida:"
 
-#: src/ui/gtk/uploads_common.c:200
+#: src/ui/gtk/uploads_common.c:216
 msgid "Sending QUEUE, connecting back..."
 msgstr "Enviando QUEUE, reconectando..."
 
-#: src/ui/gtk/uploads_common.c:208
+#: src/ui/gtk/uploads_common.c:224
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
 
