@@ -1639,9 +1639,8 @@ upload_connect_conf(gnutella_upload_t *u)
 			u->name, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
 		if (upload_debug) g_warning(
-			"only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
-			(gint) sent, (gint) rw, u->name, host_addr_to_string(s->addr),
-			g_strerror(errno));
+			"only sent %d out of %d bytes of GIV for \"%s\" to %s",
+			(gint) sent, (gint) rw, u->name, host_addr_to_string(s->addr));
 	} else if (upload_debug > 2) {
 		g_message(
 			"----Sent GIV to %s:\n%.*s----\n", host_addr_to_string(s->addr),
