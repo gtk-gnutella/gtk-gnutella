@@ -794,7 +794,7 @@ fi_alias(fileinfo_t *fi, gchar *name, gboolean record)
 
 	if (record) {
 		if (NULL != list)
-			g_slist_append(list, fi);
+			list = g_slist_append(list, fi);
 		else {
 			namesize_t *ns = namesize_make(nsk.name, nsk.size);
 			list = g_slist_append(list, fi);
@@ -1984,7 +1984,7 @@ file_info_hash_insert(fileinfo_t *fi)
 		list = g_hash_table_lookup(fi_by_namesize, &nsk);
 
 		if (NULL != list)
-			g_slist_append(list, fi);
+			list = g_slist_append(list, fi);
 		else {
 			namesize_t *ns = namesize_make(nsk.name, nsk.size);
 			list = g_slist_append(list, fi);
@@ -2004,7 +2004,7 @@ file_info_hash_insert(fileinfo_t *fi)
 	l = g_hash_table_lookup(fi_by_size, fi->size_atom);
 
 	if (NULL != l) {
-		g_slist_append(l, fi);
+		l = g_slist_append(l, fi);
 	} else {
 		l = g_slist_append(l, fi);
 		g_assert(NULL != l);
