@@ -91,11 +91,6 @@ void download_move_progress(struct download *d, filesize_t copied);
 void download_move_done(struct download *d, guint elapsed);
 void download_move_error(struct download *d);
 
-gboolean download_new_uri(gchar *file, gchar *uri, filesize_t size,
-	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-			gchar *sha1, time_t stamp, gboolean push, fileinfo_t *fi,
-			gnet_host_vec_t *proxies, guint32 flags);
-
 guint extract_retry_after(struct download *d, const header_t *header);
 gboolean is_faked_download(const struct download *d);
 

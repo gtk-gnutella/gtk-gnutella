@@ -95,6 +95,11 @@ gboolean guc_download_new(gchar *file, filesize_t size,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
 	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
 	guint32 flags);
+gboolean guc_download_new_uri(gchar *file, const gchar *uri, filesize_t size,
+	const host_addr_t addr, guint16 port,
+	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
+	guint32 flags);
 gboolean guc_download_new_unknown_size(gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,

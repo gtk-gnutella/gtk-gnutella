@@ -3773,7 +3773,8 @@ download_fallback_to_push(struct download *d,
  * @returns created download structure, or NULL if none.
  */
 static struct download *
-create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
+create_download(gchar *file, const gchar *uri, filesize_t size,
+	guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
 	const gchar *hostname, gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, gboolean file_size_known,
@@ -3972,7 +3973,6 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 	}
 
 	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
-
 
 	if (d->flags & DL_F_SUSPENDED)
 		download_queue(d, _("Suspended (SHA1 checking)"));
@@ -4260,7 +4260,7 @@ download_new_unknown_size(gchar *file, guint32 record_index,
 }
 
 gboolean
-download_new_uri(gchar *file, gchar *uri, filesize_t size,
+download_new_uri(gchar *file, const gchar *uri, filesize_t size,
 	  const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	  gchar *sha1, time_t stamp, gboolean push,
 	  fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)

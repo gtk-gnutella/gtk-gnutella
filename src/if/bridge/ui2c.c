@@ -257,6 +257,19 @@ guc_download_new(gchar *file, filesize_t size,
 		sha1, stamp, push, fi, proxies, flags);
 }
 
+gboolean
+guc_download_new_uri(gchar *file, const gchar *uri, filesize_t size,
+	const host_addr_t addr, guint16 port,
+	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	gboolean push, fileinfo_t *fi,
+	gnet_host_vec_t *proxies, guint32 flags)
+{
+	return download_new_uri(file, uri, size,
+			addr, port, guid, hostname,
+			sha1, stamp, push, fi, proxies, flags);
+}
+
+
 void
 guc_download_index_changed(const host_addr_t addr, guint16 port,
 	gchar *guid, filesize_t from, filesize_t to)

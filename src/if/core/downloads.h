@@ -346,6 +346,10 @@ gboolean download_new(gchar *,
 	filesize_t, guint32, const host_addr_t addr, guint16,
 	const gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *, guint32 flags);
+gboolean download_new_uri(gchar *file, const gchar *uri, filesize_t size,
+	  const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
+	  gchar *sha1, time_t stamp, gboolean push,
+	  struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
 void download_auto_new(gchar *,
  	filesize_t, guint32, const host_addr_t, guint16, const gchar *,
 	gchar *, gchar *, time_t,
