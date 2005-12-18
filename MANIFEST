@@ -652,3 +652,4 @@ src/ui/gtk/uploads_common.c
 src/ui/gtk/uploads_common.h
 src/ui/gtk/visual_progress.c
 src/ui/gtk/visual_progress.h
+src/ui/topless/gui.h
