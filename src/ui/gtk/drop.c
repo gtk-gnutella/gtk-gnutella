@@ -76,9 +76,63 @@ static const struct {
 	{ "magnet",	handle_magnet },
 };
 
+enum magnet_key {
+	MAGNET_KEY_NONE,
+	MAGNET_KEY_DISPLAY_NAME,	/* Display Name */
+	MAGNET_KEY_KEYWORD_TOPIC,	/* Keyword Topic */
+	MAGNET_KEY_EXACT_LENGTH,	/* eXact file Length */
+	MAGNET_KEY_EXACT_SOURCE,	/* eXact Source */
+	MAGNET_KEY_EXACT_TOPIC,		/* eXact Topic */
+	
+	NUM_MAGNET_KEYS
+};
+
+static const struct {
+	const char * const key;
+	const enum magnet_key id;
+} magnet_keys[] = {
+	{ "",		MAGNET_KEY_NONE },
+	{ "dn",		MAGNET_KEY_DISPLAY_NAME },
+	{ "kt",		MAGNET_KEY_KEYWORD_TOPIC },
+	{ "xl",		MAGNET_KEY_EXACT_LENGTH },
+	{ "xs",		MAGNET_KEY_EXACT_SOURCE },
+	{ "xt",		MAGNET_KEY_EXACT_TOPIC },
+};
+
+struct magnet_download {
+	gchar *display_name;
+	gchar *sha1;
+	filesize_t size;
+	GSList *sources;
+};
+
+struct magnet_source {
+	gchar *hostname;	/* g_malloc()ed */
+	host_addr_t addr;
+	guint16 port;
+	gchar *sha1;		/* g_malloc()ed */
+	gchar *uri;			/* g_malloc()ed */
+};
+
 /*
  * Private functions
  */
+
+static enum magnet_key
+magnet_key_get(const gchar *s)
+{
+	guint i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(magnet_keys) == NUM_MAGNET_KEYS);
+	g_assert(s);
+	
+	for (i = 0; i < G_N_ELEMENTS(magnet_keys); i++) {
+		if (0 == strcmp(magnet_keys[i].key, s))
+			return magnet_keys[i].id;
+	}
+
+	return MAGNET_KEY_NONE;
+}
 
 static gboolean
 handle_not_implemented(gchar *unused_url)
@@ -101,20 +155,107 @@ plus_to_space(gchar *s)
 			*p = ' ';
 }
 
+static struct magnet_source *
+magnet_parse_exact_source(const gchar *q, const struct magnet_download *dl)
+{
+	static const struct magnet_source zero_ms;
+	struct magnet_source ms;
+	const gchar *p, *ep, *host, *host_end;
+	gchar digest[SHA1_RAW_SIZE];
+
+	g_assert(q);
+	g_assert(dl);
+
+	ms = zero_ms;
+
+	/* XXX: This should be handled elsewhere e.g., downloads.c in
+	 *		a generic way. */
+
+	p = is_strprefix(q, "http://");
+	if (NULL == p) {
+		statusbar_gui_warning(10, _("MAGNET URI contained source URL "
+					"for an unsupported protocol"));
+		/* Skip this parameter */
+		return NULL;
+	}
+
+	if (!string_to_host_or_addr(p, &ep, &ms.addr)) {
+		g_message("Expected host part");
+		return NULL;
+	}
+
+	if (!is_host_addr(ms.addr)) {
+		host = p;
+		host_end = ep;
+	} else {
+		host = NULL;
+		host_end = NULL;
+	}
+	p += ep - p;
+
+	if (':' == *p) {
+		const gchar *ep2;
+		gint error;
+		guint16 u;
+
+		p++;
+		u = parse_uint16(p, &ep2, 10, &error);
+		if (error) {
+			g_message("TCP port is out of range");
+			/* Skip this parameter */
+			return NULL;
+		}
+
+		ms.port = u;
+		p += ep2 - p;
+	} else {
+		ms.port = 80;
+	}
+
+	if ('/' != *p) {
+		g_message("Expected port followed by '/'");
+		/* Skip this parameter */
+		return NULL;
+	}
+	g_assert(*p == '/');
+
+	ep = is_strprefix(p, "/uri-res/N2R?");
+	if (ep) {
+		p = ep;
+
+		if (!is_strprefix(p, "urn:sha1:")) {
+			g_message("Expected ``urn:sha1:''");
+			return NULL;
+		}
+
+		if (!urn_get_sha1(p, digest)) {
+			g_message("Bad SHA1 in MAGNET URI (%s)", p);
+			return NULL;
+		}
+
+		if (dl->sha1 && 0 != memcmp(digest, dl->sha1, sizeof digest)) {
+			g_message("Different SHA1 in MAGNET URI (%s)", p);
+			return NULL;
+		}
+		ms.sha1 = g_memdup(digest, sizeof digest);
+	} else {
+		ms.uri = g_strdup(p);
+	}
+
+	ms.hostname = host ? g_strndup(host, host_end - host) : NULL;
+
+	return g_memdup(&ms, sizeof ms);
+}
+
 static gboolean
 handle_magnet(gchar *url)
 {
+	static const struct magnet_download zero_dl;
+	struct magnet_download dl;
+	GSList *sl;
 	gchar *p, *q, *next;
-	struct {
-		gboolean ready;
-		gchar *file;
-		host_addr_t ha;
-		guint16 port;
-		gchar *hostname;
-		gchar *sha1;
-	} dl;
 
-	memset(&dl, 0, sizeof dl);
+	dl = zero_dl;
 
 	p = strchr(url, ':');
 	g_assert(p);
@@ -152,134 +293,119 @@ handle_magnet(gchar *url)
 
 		/* q points to the value; p is free to use */
 
-		if (0 == strcmp(name, "dn")) {
-			/* Descriptive Name */
-			dl.file = q;
-		} else if (0 == strcmp(name, "xs")) {
-			/* eXact Source */
-			static const char n2r_query[] = "/uri-res/N2R?";
-			static const char http_prefix[] = "http://";
-			host_addr_t addr;
-			gchar *hash;
-			gchar digest[SHA1_RAW_SIZE];
-			guint16 port;
-			gchar *hostname = NULL;
-			const gchar *ep;
+		switch (magnet_key_get(name)) {
+		case MAGNET_KEY_DISPLAY_NAME:
+			dl.display_name = q;
+			break;
 
-			/* XXX: This should be handled elsewhere e.g., downloads.c in
-			 *		a generic way. */
-
-			if (dl.ready) {
-				/* TODO:
-				 *			Alternatives sources should be used
-				 */
-				g_message("More than one source; skipping");
-				continue;
-			}
-
-			if (NULL == (p = is_strprefix(q, http_prefix))) {
-				statusbar_gui_warning(10, _("MAGNET URI contained source URL "
-					"for an unsupported protocol"));
-				/* Skip this parameter */
-				continue;
-			}
-
-			if (!string_to_host_or_addr(p, &ep, &addr)) {
-				g_message("Expected host part");
-				continue;
-			}
-
-			if (!is_host_addr(addr)) {
-				hostname = p;
-			}
-			p += ep - p;
-
-			if (':' == *p) {
-				const gchar *ep2;
-				gint error;
-				guint16 u;
-
-				*p++ = '\0'; /* Terminate hostname */
-				u = parse_uint16(p, &ep2, 10, &error);
-				if (error) {
-					g_message("TCP port is out of range");
-					/* Skip this parameter */
-					continue;
+		case MAGNET_KEY_EXACT_SOURCE:
+			{
+				struct magnet_source *ms;
+				
+				ms = magnet_parse_exact_source(q, &dl);
+				if (ms) {
+					dl.sources = g_slist_prepend(dl.sources, ms);
+					if (!dl.sha1)
+						dl.sha1 = ms->sha1;
 				}
-
-				port = u;
-				p += ep2 - p;
-			} else {
-				port = 80;
 			}
+			break;
 
-			if ('/' != *p) {
-				g_message("Expected port followed by '/'");
-				/* Skip this parameter */
-				continue;
-			}
-			g_assert(*p == '/');
-
-			if (!is_strprefix(p, n2r_query)) {
-				/* TODO:
-				 *			Support e.g., "http://example.com/example.txt"
-				 */
-				g_message("Arbitrary HTTP URLs are not supported yet");
-				continue;
-			}
-
-			*p = '\0'; /* terminate hostname */
-			p += sizeof n2r_query - 1;
-			if (!is_strprefix(p, "urn:sha1:")) {
-				g_message("Expected ``urn:sha1:''");
-				continue;
-			}
-
-			hash = p;
-			if (!urn_get_sha1(hash, digest)) {
-				g_message("Bad SHA1 in MAGNET URI (%s)", hash);
-				continue;
-			}
-
-			dl.ha = addr;
-			dl.port = port;
-			dl.sha1 = digest;
-			dl.ready = TRUE;
-			dl.hostname = hostname;
-			if (!dl.file)
-				dl.file = hash;
-		} else if (0 == strcmp(name, "xt")) {
-			/* eXact Topic search (by urn:sha1) */
+		case MAGNET_KEY_EXACT_TOPIC:
 			if (!is_strprefix(q, "urn:sha1:")) {
 				statusbar_gui_warning(10, _("MAGNET URI contained exact topic "
 					"search other than urn:sha1:"));
-				/* Skip this parameter */
-				continue;
+			} else {
+				search_gui_new_search(q, 0, NULL);
 			}
+			break;
+
+		case MAGNET_KEY_KEYWORD_TOPIC:
 			search_gui_new_search(q, 0, NULL);
-		} else if (0 == strcmp(name, "kt")) {
-			/* Keyword Topic search */
-			search_gui_new_search(q, 0, NULL);
-		} else {
+			break;
+
+		case MAGNET_KEY_EXACT_LENGTH:
+			{
+				gint error;
+				guint64 u;
+
+				u = parse_uint64(q, NULL, 10, &error);
+				if (!error)
+					dl.size = u; 
+			}
+			break;
+
+		case MAGNET_KEY_NONE:
 			g_message("Unhandled parameter in MAGNET URI \"%s\"", name);
+			break;
+			
+		case NUM_MAGNET_KEYS:
+			g_assert_not_reached();
 		}
 
 	}
+	dl.sources = g_slist_reverse(dl.sources);
 
-	/* FIXME:	As long as downloading of files without a known size is
-	 *			defective, we cannot initiate downloads this way. */
-#if 0 
-	if (dl.ready) {
+	/* FIXME:
+	 * As long as downloading of files without a known size is
+	 * defective, we can only initiate downloads from magnets that
+	 * specified a file length.
+	 */
+
+	if (dl.size > 0) {
 		gchar *filename;
+		gchar urn[256];
+
+		filename = dl.display_name;
+		if (!filename) {
+			if (dl.sha1) {
+				concat_strings(urn, sizeof urn,
+					"urn:sha1:", sha1_base32(dl.sha1), (void *) 0);
+				filename = urn;
+			} else {
+				filename = "magnet-download";
+			}
+		}
 
 		g_message("Starting download from magnet");
-		guc_download_new_unknown_size(filename, URN_INDEX, dl.ha,
-			dl.port, blank_guid, dl.hostname, dl.sha1, tm_time(),
-			FALSE, NULL, NULL, 0);
-		if (filename != dl.file)
-			G_FREE_NULL(filename);
+		for (sl = dl.sources; sl != NULL; sl = g_slist_next(sl)) {
+			struct magnet_source *ms = sl->data;
+			host_addr_t addr;
+			
+			addr = is_host_addr(ms->addr) ? ms->addr : host_addr_set_ipv4(0);
+			if (ms->port != 0 && (is_host_addr(addr) || ms->hostname)) {
+				if (ms->uri) {
+					/* FIXME: guc_download_new_uri() doesn't work at all */
+#if 0
+					guc_download_new_uri(filename, ms->uri, dl.size,
+						addr, ms->port, blank_guid, ms->hostname,
+						dl.sha1, tm_time(), FALSE, NULL, NULL, 0);
+#endif /* 0 */
+				} else if (ms->sha1) {
+					/*
+					 * This doesn't work either for hostnames because
+					 * guc_download_new() doesn't handle it. 
+					 */
+					guc_download_new(filename, dl.size, URN_INDEX,
+						addr, ms->port, blank_guid, ms->hostname,
+						dl.sha1, tm_time(), FALSE, NULL, NULL, 0);
+				} else {
+					g_message("Unusable magnet source");
+				}
+			}
+		}
 	}
-#endif
+	
+	for (sl = dl.sources; sl != NULL; sl = g_slist_next(sl)) {
+		struct magnet_source *ms = sl->data;
+		
+		G_FREE_NULL(ms->hostname);
+		G_FREE_NULL(ms->uri);
+		G_FREE_NULL(ms->sha1);
+		G_FREE_NULL(ms);
+	}
+	g_slist_free(dl.sources);
+	dl.sources = NULL;
 
 	return TRUE;
 }
@@ -299,9 +425,9 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 		g_message("drag_data_received: x=%d, y=%d, info=%u, t=%u",
 			x, y, info, stamp);
 	if (data->length > 0 && data->format == 8) {
-		guint i;
-		gchar *p, *url = (gchar *) data->data;
+		gchar *p, *url = data->data;
 		size_t len;
+		guint i;
 
 		if (gui_debug > 0)
 			g_message("drag_data_received: url=\"%s\"", url);
@@ -333,7 +459,8 @@ cleanup:
  * Public functions
  */
 
-void drop_init(void)
+void
+drop_init(void)
 {
 	static const GtkTargetEntry targets[] = {
 		{ "STRING",		0, 23 },
@@ -354,19 +481,22 @@ void drop_init(void)
 		G_N_ELEMENTS(targets)));
 }
 
-void drop_close(void)
+void
+drop_close(void)
 {
 	/* Nothing ATM */
 }
 #endif /* USE_GTK2 */
 
 #ifdef USE_GTK1
-void drop_init(void)
+void
+drop_init(void)
 {
 	/* NOT IMPLEMENTED */
 }
 
-void drop_close(void)
+void
+drop_close(void)
 {
 	/* NOT IMPLEMENTED */
 }
