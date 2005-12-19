@@ -111,8 +111,31 @@ get_result_data(GtkTreeModel *model, GtkTreeIter *iter)
 	GValue value = zero_value;
 
 	gtk_tree_model_get_value(model, iter, 0, &value);
-	return g_value_peek_pointer(&value);
+	return g_value_get_pointer(&value);
 }
+
+gpointer
+search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+	struct result_data *data;
+
+	gtk_tree_model_get_value(model, iter, 0, &value);
+	data = g_value_get_pointer(&value);
+	return data->record;
+}
+void
+search_gui_set_data(GtkTreeModel *model, struct result_data *rd)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+
+	g_value_init(&value, G_TYPE_POINTER);
+	g_value_set_pointer(&value, rd);
+	gtk_tree_store_set_value(GTK_TREE_STORE(model), &rd->iter, 0, &value);
+}
+
 
 static void
 cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell, 
@@ -735,7 +758,6 @@ search_gui_add_record(
 	GdkColor *fg,
 	GdkColor *bg)
 {
-	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
 	GtkTreeIter *parent_iter;
 	static const struct result_data zero_data;
 	struct result_data *data;
@@ -773,7 +795,7 @@ search_gui_add_record(
 		if (parent) {
 			parent->count++;
 			/* Re-store the parent to refresh the display/sorting */
-			gtk_tree_store_set(model, parent_iter, 0, parent, (-1));
+			search_gui_set_data(sch->model, parent);
 		} else {
 			add_parent_with_sha1(sch->parents, rc->sha1, data);
 		}
@@ -785,8 +807,8 @@ search_gui_add_record(
 	search_gui_ref_record(rc);
 	g_assert(rc->refcount >= 2);
 
-	gtk_tree_store_append(model, &data->iter, parent_iter);
-	gtk_tree_store_set(model, &data->iter, 0, data, (-1));
+	gtk_tree_store_append(GTK_TREE_STORE(sch->model), &data->iter, parent_iter);
+	search_gui_set_data(sch->model, data);
 
 	/*
 	 * There might be some metadata about this record already in the
@@ -918,7 +940,7 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 		
 		rd->count--;
 		/* Re-store the parent to refresh the display/sorting */
-		gtk_tree_store_set(GTK_TREE_STORE(model), &rd->iter, 0, rd, (-1));
+		search_gui_set_data(model, rd);
 
 		g_assert(rd->record->refcount > 0);
 	} else {
@@ -939,8 +961,7 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 			} else {
 				/* Re-store the parent to refresh the display/sorting */
 				parent->count--;
-				gtk_tree_store_set(GTK_TREE_STORE(model), &parent->iter,
-					0, parent, (-1));
+				search_gui_set_data(model, parent);
 			}
 		}
 		gtk_tree_store_remove(GTK_TREE_STORE(model), iter);
@@ -1115,7 +1136,7 @@ search_gui_discard_files(void)
  ***/
 
 static void
-add_list_columns(GtkTreeView *treeview)
+add_list_columns(GtkTreeView *tv)
 {
 	static const struct {
 		const gchar * const title;
@@ -1135,9 +1156,14 @@ add_list_columns(GtkTreeView *treeview)
 		G_N_ELEMENTS(width));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		add_column(treeview, _(columns[i].title), columns[i].id,
-			width[i], columns[i].align, NULL, c_sl_fg, c_sl_bg);
+		GtkTreeViewColumn *col;
+		
+		col = add_column(tv, _(columns[i].title), columns[i].id,
+				width[i], columns[i].align, NULL, c_sl_fg, c_sl_bg);
+		gtk_tree_view_column_set_sort_column_id(col, columns[i].id);
 	}
+
+	
 }
 
 static void
@@ -1765,17 +1791,6 @@ search_gui_end_massive_update(search_t *sch)
 	sch->massive_update = FALSE;
 }
 
-gpointer
-search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter)
-{
-	static const GValue zero_value;
-	GValue value = zero_value;
-	struct result_data *data;
-
-	gtk_tree_model_get_value(model, iter, 0, &value);
-	data = g_value_peek_pointer(&value);
-	return data->record;
-}
 
 void
 search_gui_request_bitzi_data(void)
@@ -1860,8 +1875,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 			text = NULL;
 			
 			/* Re-store the parent to refresh the display/sorting */
-			gtk_tree_store_set(GTK_TREE_STORE(search->model), &rd->iter,
-				0, rd, (-1));
+			search_gui_set_data(search->model, rd);
 		}
 	}
 
