@@ -502,7 +502,7 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
         } else {
             gm_snprintf(buf[2], sizeof buf[2], "%d/%d (%d%%)",
                 f->match_count, count,
-				(gint)(f->match_count / (count * 100.0)));
+				(gint) (f->match_count * 100.0 / count));
         }
         titles[2] = buf[2];
     } else {
@@ -559,7 +559,7 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
         } else {
             gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
                 f->match_count, count,
-				(gint)(f->match_count / (count * 100.0)));
+				(gint) (f->match_count * 100.0 / count));
         }
     } else {
 		g_strlcpy(buf, "...", sizeof buf);
@@ -919,7 +919,7 @@ filter_get_filter_stats(const filter_t *filter)
 			} else {
 				gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
 						filter->match_count, n,
-						(gint)(filter->match_count / (n * 100.0)));
+						(gint) (filter->match_count * 100.0 / n));
 			}
 			title = buf;
 		} else {
@@ -1019,7 +1019,7 @@ filter_get_rule_stats(const rule_t *rule)
 		if (n != 0) {
 			gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
 					rule->match_count, n,
-					(gint)(rule->match_count / (n * 100.0)));
+					(gint) (rule->match_count * 100.0 / n));
 			title = buf;
 		} else {
 			title = _("none yet");
