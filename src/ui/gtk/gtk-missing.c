@@ -1049,5 +1049,20 @@ gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text)
 }
 #endif
 
+#ifdef USE_GTK1
+GtkWidget *
+gtk_paned_get_child1(GtkPaned *paned)
+{
+	g_return_val_if_fail(paned != NULL, NULL);
+	return paned->child1;
+}
+
+GtkWidget *
+gtk_paned_get_child2(GtkPaned *paned)
+{
+	g_return_val_if_fail(paned != NULL, NULL);
+	return paned->child2;
+}
+#endif
 
 /* vi: set ts=4 sw=4 cindent: */

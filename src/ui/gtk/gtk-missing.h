@@ -76,6 +76,14 @@ gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent);
 #define GTK_CTREE_NODE_PARENT(n) \
     ((n) ? (GTK_CTREE_ROW(n)->parent) : NULL)
 #endif /* USE_GTK1 */
+										
+/**
+ * GtkPaned
+ */
+#ifdef USE_GTK1 /* USE_GTK1 */
+GtkWidget *gtk_paned_get_child1(GtkPaned *paned);
+GtkWidget *gtk_paned_get_child2(GtkPaned *paned);
+#endif /* USE_GTK1 */
 
 /**
  * GtkLabel
