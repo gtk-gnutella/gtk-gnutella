@@ -35,8 +35,6 @@
 
 #include "gui.h"
 
-#ifdef USE_GTK2
-
 RCSID("$Id$");
 
 #include "drop.h"
@@ -64,8 +62,6 @@ static gboolean handle_magnet(gchar *url);
 /*
  * Private data
  */
-
-static GtkClipboard *cb;
 
 static const struct {
 	const char * const proto;
@@ -468,17 +464,33 @@ drop_init(void)
 	};
 	GtkWidget *w = GTK_WIDGET(main_window);
 
-	g_return_if_fail(!cb);
-	cb = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
-	g_return_if_fail(cb);
+	gtk_drag_dest_set(w, GTK_DEST_DEFAULT_ALL, targets,
+		G_N_ELEMENTS(targets), GDK_ACTION_COPY | GDK_ACTION_MOVE);
 
+#ifdef USE_GTK2
+	{
+		static GtkClipboard *clipboard;
+	
+		g_return_if_fail(!clipboard);
+		clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
+		g_return_if_fail(clipboard);
+	}
+	
 	g_signal_connect(G_OBJECT(w), "drag-data-received",
 		G_CALLBACK(drag_data_received), NULL);
 
-	gtk_drag_dest_set(w, GTK_DEST_DEFAULT_ALL, targets,
-		G_N_ELEMENTS(targets), GDK_ACTION_COPY | GDK_ACTION_MOVE);
 	gtk_drag_dest_set_target_list(w, gtk_target_list_new(targets,
 		G_N_ELEMENTS(targets)));
+#endif /* USE_GTK2 */
+
+#ifdef USE_GTK1
+	gtk_signal_connect(GTK_OBJECT(w), "drag-data-received",
+		drag_data_received, NULL);
+
+	gtk_selection_add_targets(w, GDK_SELECTION_TYPE_STRING,
+		targets, G_N_ELEMENTS(targets));
+#endif /* USE_GTK1 */
+	
 }
 
 void
@@ -486,20 +498,5 @@ drop_close(void)
 {
 	/* Nothing ATM */
 }
-#endif /* USE_GTK2 */
-
-#ifdef USE_GTK1
-void
-drop_init(void)
-{
-	/* NOT IMPLEMENTED */
-}
-
-void
-drop_close(void)
-{
-	/* NOT IMPLEMENTED */
-}
-#endif
 
 /* vi: set ts=4 sw=4 cindent: */
