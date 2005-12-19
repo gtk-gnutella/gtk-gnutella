@@ -5553,9 +5553,11 @@ settings_gui_save_panes(void)
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
-		paned_save_position(
-			GTK_PANED(lookup_widget(main_window, panes[i].name)),
-			panes[i].prop);
+		GtkPaned *paned;
+
+		paned = GTK_PANED(lookup_widget(main_window, panes[i].name));
+		if (GTK_WIDGET_VISIBLE(gtk_paned_get_child1(paned)))
+			paned_save_position(paned, panes[i].prop);
 	}
 }
 
@@ -5565,9 +5567,13 @@ settings_gui_restore_panes(void)
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
-		paned_restore_position(
-			GTK_PANED(lookup_widget(main_window, panes[i].name)),
-			panes[i].prop);
+		GtkPaned *paned;
+
+		paned = GTK_PANED(lookup_widget(main_window, panes[i].name));
+		if (GTK_WIDGET_VISIBLE(gtk_paned_get_child1(paned)))
+			paned_restore_position(paned, panes[i].prop);
+		else
+			gtk_paned_set_position(paned, 0);
 	}
 }
 
