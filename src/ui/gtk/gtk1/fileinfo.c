@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/url.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static gnet_fi_t last_shown = 0;
@@ -63,6 +64,97 @@ static GSList *hidden_fi  = NULL;
 static regex_t filter_re;
 
 static GtkCList *clist_fileinfo = NULL;		/* Cached lookup_widget() */
+
+static void
+drag_begin(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
+	gpointer udata)
+{
+	gchar **url_ptr = udata;
+
+	(void) unused_widget;
+	(void) unused_drag_ctx;
+
+	g_assert(url_ptr != NULL);
+	G_FREE_NULL(*url_ptr);
+	
+	if (last_shown_valid) {
+		gnet_fi_info_t *fi = NULL;
+    	gnet_fi_status_t fis;
+
+    	guc_fi_get_status(last_shown, &fis);
+
+		/* Allow partials but not unstarted files */
+		if (fis.done > 0) {
+			const gchar *path;
+			gchar *save_path = NULL;
+
+			fi = guc_fi_get_info(last_shown);
+			g_assert(fi != NULL);
+			if (fis.done < fis.size) {
+				path = fi->path;
+			} else {
+				/* XXX: This is a hack since the final destination might
+				 *		might be different e.g., due to a filename clash
+				 *		or because the PROP_MOVE_FILE_PATH changed in the
+				 *		meantime. */
+				save_path = gnet_prop_get_string(PROP_MOVE_FILE_PATH, NULL, 0);
+				path = save_path;
+			}
+
+			if (path && fi->file_name) {
+				gchar *escaped;
+				gchar *pathname;
+
+				pathname = make_pathname(path, fi->file_name);
+				escaped = url_escape(pathname);
+				if (escaped != pathname)
+					G_FREE_NULL(pathname);
+
+				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
+
+				G_FREE_NULL(escaped);
+			}
+			G_FREE_NULL(save_path);
+
+    		guc_fi_free_info(fi);
+		}
+	}
+}
+
+static void
+drag_data_get(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
+	GtkSelectionData *data, guint unused_info, guint unused_stamp,
+	gpointer udata)
+{
+	gchar **url_ptr = udata;
+
+	(void) unused_widget;
+	(void) unused_drag_ctx;
+	(void) unused_info;
+	(void) unused_stamp;
+
+	g_assert(url_ptr != NULL);
+	if (*url_ptr) {
+		const guchar *drag_data = *url_ptr;
+		
+    	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
+			8 /* CHAR_BIT */, drag_data, strlen(drag_data));
+		G_FREE_NULL(*url_ptr);
+	}
+}
+
+static void
+drag_end(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
+	gpointer udata)
+{
+	gchar **url_ptr = udata;
+
+	(void) unused_widget;
+	(void) unused_drag_ctx;
+
+	g_assert(url_ptr != NULL);
+	G_FREE_NULL(*url_ptr);
+}
 
 void
 on_clist_fileinfo_resize_column(GtkCList *unused_clist,
@@ -562,6 +654,12 @@ on_entry_fi_regex_activate(GtkEditable *editable, gpointer unused_udata)
 void
 fi_gui_init(void)
 {
+    static const GtkTargetEntry targets[] = {
+        { "STRING", 0, 23 },
+        { "text/plain", 0, 23 },
+    };
+	static gchar *dnd_url; /* Holds the URL to set the drag data */
+
 	fi_updates = g_hash_table_new(NULL, NULL);
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
@@ -580,6 +678,18 @@ fi_gui_init(void)
 
     /* Initialize the row filter */
     fi_gui_set_filter_regex(NULL);
+	
+	/* Initialize drag support */
+	gtk_drag_source_set(GTK_WIDGET(clist_fileinfo),
+		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
+		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
+
+    gtk_signal_connect(GTK_OBJECT(clist_fileinfo), "drag-data-get",
+        drag_data_get, &dnd_url);
+    gtk_signal_connect(GTK_OBJECT(clist_fileinfo), "drag-begin",
+        drag_begin, &dnd_url);
+    gtk_signal_connect(GTK_OBJECT(clist_fileinfo), "drag-end",
+        drag_end, &dnd_url);
 }
 
 void
