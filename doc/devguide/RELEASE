@@ -130,6 +130,12 @@ Release steps
 26. Go back to the Summary page of the project and click on "View ALL
     project files".  Make sure only the latest release is available.
 
+26a. Go back to the Summary page and check if the project details are
+     still up-to-date. In particular check the set of languages
+     available in the distribution against the listing with:
+
+	 cat po/*.po|grep 'Language-Team:'|sort
+
 27. Update sourceforge's website: Create a news entry in htdocs/files/en using 
     news_template as a guide and submit it.
 
