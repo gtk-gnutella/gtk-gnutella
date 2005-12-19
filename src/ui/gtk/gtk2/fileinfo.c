@@ -544,7 +544,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 				if (escaped != pathname)
 					G_FREE_NULL(pathname);
 
-				*url_ptr = g_strdup_printf("file://%s", escaped);
+				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
 
 				G_FREE_NULL(escaped);
 			}
