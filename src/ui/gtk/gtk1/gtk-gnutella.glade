@@ -653,8 +653,8 @@
 	<homogeneous>False</homogeneous>
 	<spacing>0</spacing>
 	<child>
-	  <shrink>False</shrink>
-	  <resize>False</resize>
+	  <shrink>True</shrink>
+	  <resize>True</resize>
 	</child>
 
 	<widget>
@@ -662,6 +662,7 @@
 	  <name>vpaned_sidebar</name>
 	  <handle_size>10</handle_size>
 	  <gutter_size>6</gutter_size>
+	  <position>0</position>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -673,8 +674,8 @@
 	    <name>viewport_menu</name>
 	    <shadow_type>GTK_SHADOW_NONE</shadow_type>
 	    <child>
-	      <shrink>False</shrink>
-	      <resize>False</resize>
+	      <shrink>True</shrink>
+	      <resize>True</resize>
 	    </child>
 
 	    <widget>
