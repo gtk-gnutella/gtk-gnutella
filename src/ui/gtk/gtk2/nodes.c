@@ -190,7 +190,7 @@ cell_renderer_func(GtkTreeViewColumn *unused_column,
 	(void) unused_column;
 
 	gtk_tree_model_get_value(model, iter, 0, &value);
-	data = g_value_peek_pointer(&value);
+	data = g_value_get_pointer(&value);
 	switch (GPOINTER_TO_UINT(udata)) {
 	case c_gnet_user_agent:
 		s = data->user_agent;
@@ -644,9 +644,6 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	data = walloc(sizeof *data);
 	*data = zero_data;
 
-    gtk_tree_store_append(nodes_model, &data->iter, NULL);
-    gtk_tree_store_set(nodes_model, &data->iter, 0, data, (-1));
-
 	data->handle = info->node_handle;
 	data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
 	data->country = info->country;
@@ -660,6 +657,10 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	nodes_gui_update_node_flags(data, &flags);
 
 	g_hash_table_insert(nodes_handles, GUINT_TO_POINTER(data->handle), data);
+
+    gtk_tree_store_append(nodes_model, &data->iter, NULL);
+    gtk_tree_store_set(nodes_model, &data->iter, 0, data, (-1));
+
 }
 
 
