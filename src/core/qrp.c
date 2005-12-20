@@ -2801,7 +2801,26 @@ struct qrt_receive {
 	gint current_index;		/**< Current index (after shrinking) in QR table */
 	gchar *expansion;		/**< Temporary expansion arena before shrinking */
 	gboolean deflated;		/**< Is data deflated? */
+	gboolean (*patch)(struct qrt_receive *qrcv, guchar *data, gint len);
 };
+
+/**
+ * A default handler that should never be called.
+ *
+ * @returns FALSE always.
+ */
+static gboolean
+qrt_unknown_patch(struct qrt_receive *qrcv, guchar *data, gint len)
+{
+	(void)qrcv; /* Unused. */
+	(void)data; /* Unused. */
+	(void)len;	/* Unused. */
+
+	g_warning("Patch application pointer uninitialized.");
+	g_assert(FALSE);
+
+	return FALSE;
+}
 
 /**
  * Create a new QRT receiving handler, to process all incoming QRP messages
@@ -2855,6 +2874,7 @@ qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 	qrcv->len = QRT_RECEIVE_BUFSIZE;
 	qrcv->data = g_malloc(qrcv->len);
 	qrcv->expansion = NULL;
+	qrcv->patch = qrt_unknown_patch;
 
 	/*
 	 * We don't know yet whether we'll receive a RESET, but if we already
@@ -3127,6 +3147,187 @@ qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 }
 
 /**
+ * Sanity checks at each patch reception.
+ *
+ * @return FALSE if there was an error reported and the patch message
+ * must be ignored.
+ */
+static gboolean
+qrt_patch_is_valid(struct qrt_receive *qrcv, gint len, gint slots_per_byte)
+{
+	struct routing_table *rt = qrcv->table;
+
+	/*
+	 * Make sure the received table is not full yet.  If that
+	 * test fails, they have already sent more data than the
+	 * advertised table size.
+	 */
+
+	if (qrcv->current_index >= rt->slots) {
+		struct gnutella_node *n = qrcv->node;
+		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
+			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
+			compact_size(rt->client_slots));
+		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
+			compact_size(rt->client_slots));
+		return FALSE;
+	}
+
+	/*
+	 * Make sure they are not providing us with more data than
+	 * the table can hold.
+	 */
+	if ((guint) qrcv->current_slot + len * slots_per_byte > rt->client_slots) {
+		struct gnutella_node *n = qrcv->node;
+		g_warning(
+			"%s node %s <%s> overflowed its QRP patch of %s slots",
+			node_type(n), node_addr(n), node_vendor(n),
+			compact_size(rt->client_slots));
+		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
+			compact_size(rt->client_slots));
+		return FALSE;
+	}
+	
+	return TRUE;
+}
+
+/**
+ * Apply raw 8-bit patch data (uncompressed) to the current routing table.
+ *
+ * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
+ */
+static gboolean
+qrt_apply_patch8(struct qrt_receive *qrcv, guchar *data, gint len)
+{
+	struct routing_table *rt = qrcv->table;
+	gint i;
+
+	g_assert(qrcv->table != NULL);
+
+	/* True for this variant of patch function. 8-bit, no expansion. */
+	g_assert((gint)rt->client_slots == rt->slots);
+	g_assert(qrcv->entry_bits == 8);
+	g_assert(qrcv->shrink_factor == 1);
+
+	if (len == 0)						/* No data, only zlib trailer */
+		return TRUE;
+
+	if (!qrt_patch_is_valid(qrcv, len, 1))
+		return FALSE;
+
+	g_assert(qrcv->current_index + len <= rt->slots);
+	
+	/*
+	 * Compute the amount of entries per byte, and the initial reading mask.
+	 */
+
+	for (i = 0; i < len; i++) {
+		guint8 v = data[i];
+
+		/*
+		 * The only possibilities for the patch are:
+		 *
+		 * . A negative value, to bring the slot value from infinity to 1.
+		 * . A null value for no change.
+		 * . A positive value to bring the slot back to infinity.
+		 *
+		 * In reality, for leaf<->ultrapeer QRT, what matters is presence.
+		 * We consider everything that is less to infinity as being
+		 * present, and therefore forget about the "hops-away" semantics
+		 * of the QRT slot value.
+		 */
+		
+		if (v & 0x80) {		/* Negative value, sign bit is 1 */
+			RT_SLOT_SET(rt->arena, qrcv->current_index);
+			rt->set_count++;
+		}
+		else if (v != 0)			/* Positive value */
+			RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
+
+		/* else... unchanged. */
+		
+		qrcv->current_slot = qrcv->current_index++;
+	}
+
+	return TRUE;
+}
+
+
+/**
+ * Apply raw 4-bit patch data (uncompressed) to the current routing table.
+ *
+ * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
+ */
+static gboolean
+qrt_apply_patch4(struct qrt_receive *qrcv, guchar *data, gint len)
+{
+	struct routing_table *rt = qrcv->table;
+	gint i;
+
+	g_assert(qrcv->table != NULL);
+
+	/* True for this variant of patch function. 8-bit, no expansion. */
+	g_assert((gint)rt->client_slots == rt->slots);
+	g_assert(qrcv->entry_bits == 4);
+	g_assert(qrcv->shrink_factor == 1);
+
+	if (len == 0)						/* No data, only zlib trailer */
+		return TRUE;
+
+	if (!qrt_patch_is_valid(qrcv, len, 1))
+		return FALSE;
+
+	g_assert(qrcv->current_index + len * 2 <= rt->slots);
+	
+	/*
+	 * Compute the amount of entries per byte, and the initial reading mask.
+	 */
+
+	for (i = 0; i < len; i++) {
+		guint8 value = data[i];		/* Patch byte contains `epb' slots */
+		guint8 v1 = value & 0xf0;
+		guint8 v2 = value & 0x0f;
+
+		/*
+		 * The only possibilities for the patch are:
+		 *
+		 * . A negative value, to bring the slot value from infinity to 1.
+		 * . A null value for no change.
+		 * . A positive value to bring the slot back to infinity.
+		 *
+		 * In reality, for leaf<->ultrapeer QRT, what matters is presence.
+		 * We consider everything that is less to infinity as being
+		 * present, and therefore forget about the "hops-away" semantics
+		 * of the QRT slot value.
+		 */
+		
+		if (v1 & 0x80) {		/* Negative value, sign bit is 1 */
+			RT_SLOT_SET(rt->arena, qrcv->current_index);
+			rt->set_count++;
+		}
+		else if (v1 != 0)			/* Positive value */
+			RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
+
+		/* else... unchanged. */
+		
+		qrcv->current_slot = qrcv->current_index++;
+
+		if (v2 & 0x08) {		/* Negative value, sign bit is 1 */
+			RT_SLOT_SET(rt->arena, qrcv->current_index);
+			rt->set_count++;
+		}
+		else if (v2 != 0)			/* Positive value */
+			RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
+
+		/* else... unchanged. */
+		
+		qrcv->current_slot = qrcv->current_index++;
+	}
+
+	return TRUE;
+}
+
+/**
  * Handle reception of QRP RESET.
  *
  * @returns TRUE if we handled the message correctly, FALSE if an error
@@ -3293,12 +3494,22 @@ qrt_handle_patch(
 		qrcv->entry_bits = patch->entry_bits;
 		qrcv->current_index = qrcv->current_slot = 0;
 		qrcv->table->set_count = 0;
+		qrcv->patch = qrt_apply_patch; /* Default handler. */
 
 		switch (qrcv->entry_bits) {
 		case 8:
+			if (qrcv->shrink_factor == 1)
+				qrcv->patch = qrt_apply_patch8;
+			break;
 		case 4:
+			if (qrcv->shrink_factor == 1)
+				qrcv->patch = qrt_apply_patch4;
+			break;
 		case 2:
-		case 1:
+			/* Use default handler. */
+			break;
+		case 1:	
+			/* Use default handler. */
 			break;
 		default:
 			g_warning("node %s <%s> sent invalid QRP entry bits %u for PATCH",
@@ -3372,10 +3583,7 @@ qrt_handle_patch(
 				return FALSE;
 			}
 
-			if (
-				!qrt_apply_patch(qrcv, (gpointer) qrcv->data,
-					qrcv->len - inz->avail_out)
-			)
+			if (!qrcv->patch(qrcv, qrcv->data, qrcv->len - inz->avail_out))
 				return FALSE;
 		}
 
@@ -3394,7 +3602,7 @@ qrt_handle_patch(
 				(guint) patch->seq_no, (guint) patch->seq_size);
 			return FALSE;
 		}
-	} else if (!qrt_apply_patch(qrcv, patch->data, patch->len))
+	} else if (!qrcv->patch(qrcv, patch->data, patch->len))
 		return FALSE;
 
 	/*
