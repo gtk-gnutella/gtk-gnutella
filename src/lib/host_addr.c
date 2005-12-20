@@ -556,7 +556,7 @@ gethostbyname_error(const gchar *host)
  *				returned. The resulting string points to a static buffer.
  */
 const gchar *
-host_addr_to_name(const host_addr_t ha)
+host_addr_to_name(const host_addr_t addr)
 {
 	const struct hostent *he;
 	union {
@@ -565,10 +565,14 @@ host_addr_to_name(const host_addr_t ha)
 		struct in6_addr in6;
 #endif /* USE_IPV6 */
 	} a;
-	gconstpointer addr;
+	host_addr_t ha;
+	gconstpointer sockaddr;
 	int type;
 	socklen_t len;
 
+	if (!host_addr_convert(addr, &ha, NET_TYPE_IPV4))
+		ha = addr;
+	
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
 		{
@@ -578,7 +582,7 @@ host_addr_to_name(const host_addr_t ha)
 			a.in = zero_addr;
 			a.in.s_addr = htonl(host_addr_ipv4(ha));
 
-			addr = cast_to_gpointer(&a.in);
+			sockaddr = cast_to_gpointer(&a.in);
 			len = sizeof a.in;
 		}
 		break;
@@ -592,20 +596,20 @@ host_addr_to_name(const host_addr_t ha)
 			a.in6 = zero_addr;
 			memcpy(&a.in6, host_addr_ipv6(&ha), 16);
 
-			addr = cast_to_gpointer(&a.in6);
+			sockaddr = cast_to_gpointer(&a.in6);
 			len = sizeof a.in6;
 		}
 		break;
 #endif /* USE_IPV6 */
 
 	default:
-		addr = NULL;
+		sockaddr = NULL;
 		type = 0;
 		len = 0;
 		g_assert_not_reached();
 	}
 
-	he = gethostbyaddr(addr, sizeof addr, type);
+	he = gethostbyaddr(sockaddr, sizeof sockaddr, type);
 	if (!he) {
 		gchar buf[128];
 
