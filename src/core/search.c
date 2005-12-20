@@ -568,7 +568,7 @@ search_free_r_set(gnet_results_set_t *rs)
  * were unable to parse it properly.
  */
 static gnet_results_set_t *
-get_results_set(gnutella_node_t *n, gboolean validate_only)
+get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 {
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
@@ -651,8 +651,16 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		goto bad_packet;
 	}
 
-	/* Check for valid IP addresses (unroutable => turn push on) */
+	/*
+	 * Sometimes peers report a private IP address in the results
+	 * even though they're TCP connectible.
+	 *
+	 * XXX: Is this correct or might n->addr be the push-proxy?
+	 */
+	if (browse && is_private_addr(rs->addr))
+		rs->addr = n->addr;
 
+	/* Check for valid IP addresses (unroutable => turn push on) */
 	if (is_private_addr(rs->addr))
 		rs->status |= ST_FIREWALL;
 	else if (rs->port == 0 || bogons_check(rs->addr)) {
@@ -2134,7 +2142,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 
 	g_assert(sch != NULL);
 
-	rs = get_results_set(n, FALSE);
+	rs = get_results_set(n, FALSE, TRUE);
 
 	if (rs == NULL)
 		return;
@@ -2239,7 +2247,7 @@ search_results(gnutella_node_t *n, gint *results)
 	rs = get_results_set(n,
 		   selected_searches != NULL &&
 		   !auto_download_identical &&
-		   !auto_feed_download_mesh);
+		   !auto_feed_download_mesh, FALSE);
 
 	if (rs == NULL) {
         /*
