@@ -3274,7 +3274,7 @@ qrt_apply_patch4(struct qrt_receive *qrcv, guchar *data, gint len)
 	if (len == 0)						/* No data, only zlib trailer */
 		return TRUE;
 
-	if (!qrt_patch_is_valid(qrcv, len, 1))
+	if (!qrt_patch_is_valid(qrcv, len, 2))
 		return FALSE;
 
 	g_assert(qrcv->current_index + len * 2 <= rt->slots);
