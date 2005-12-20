@@ -2953,6 +2953,12 @@ search_get_kept_results(gchar *muid, guint32 *kept)
 	if (sch == NULL)
 		return FALSE;
 
+	if (sch->frozen) {
+		if (search_debug)
+			g_message("Ignoring results because search is stopped");
+		return FALSE;
+	}
+
 	if (search_debug > 1)
 		printf("SCH reporting %u kept results for \"%s\"\n",
 			sch->kept_results, sch->query);
