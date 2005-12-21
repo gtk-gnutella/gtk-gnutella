@@ -3583,7 +3583,10 @@ qrt_handle_patch(
 				return FALSE;
 			}
 
-			if (!qrcv->patch(qrcv, qrcv->data, qrcv->len - inz->avail_out))
+			if (
+				!qrcv->patch(qrcv, (guchar *) qrcv->data,
+					qrcv->len - inz->avail_out)
+			)
 				return FALSE;
 		}
 
