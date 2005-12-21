@@ -366,22 +366,6 @@ version_new_found(const gchar *text, gboolean stable)
 }
 
 /**
- * Check whether GTKG version is newer than supplied timestamp.
- */
-gboolean
-version_newer(const gchar *str, time_t stamp)
-{
-	version_t version;
-
-	if (!version_parse(str, &version))
-		return FALSE;			/* Not gtk-gnutella, or unparseable */
-
-	version_stamp(str, &version);
-
-	return version.timestamp >= stamp;
-}
-
-/**
  * Check version of servent, and if it's a gtk-gnutella more recent than we
  * are, record that fact and change the status bar.
  *
@@ -442,6 +426,20 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 		}
 
 		error = tok_version_valid(str, token, strlen(token), addr);
+
+		/*
+		 * Unfortunately, if our token has expired, we can no longer
+		 * validate the tokens of the remote peers, since they are using
+		 * a different set of keys.
+		 *
+		 * This means an expired GTKG will blindly trust well-formed remote
+		 * tokens at face value.  But it's their fault, they should not run
+		 * an expired version!
+		 *		--RAM, 2005-12-21
+		 */
+
+		if (error == TOK_BAD_KEYS && tok_is_ancient(tm_time()))
+			error = TOK_OK;		/* Our keys have expired, cannot validate */
 
 		if (error != TOK_OK) {
             if (dbg) {
