@@ -647,7 +647,10 @@ string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **endptr)
 		p++;
 	}
 
-	valid = 4 == i;
+	/*
+	 * The check for a dot takes care of addresses like 192.0.2.17.example.com.
+	 */
+	valid = 4 == i && '.' != *p;
 	
 	if (endptr)
 		*endptr = p;
