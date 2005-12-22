@@ -47,28 +47,19 @@
 RCSID("$Id$");
 
 #ifdef PROTECT_ATOMS
+
 /*
- * With PROTECT_ATOMS the arena of atoms will be mapped read-only. This
- * might not be fully portable and should be used for debugging only.
- * The atoms must be page-aligned for this feature. So you'll need
- * much more memory.
+ * With PROTECT_ATOMS all atoms are mapped read-only so that they cannot
+ * be modified accidently. This is achieved through mprotect(). The CPU
+ * overhead is significant and there is also some memory overhead but it's
+ * sufficiently low for testing/debugging purposes.
  */
 
 #include <sys/mman.h>
 
-#ifndef PAGESIZE
-#define PAGESIZE 4096
-#endif
-
-#define PADDING(x) (PAGESIZE - ((x) % PAGESIZE))
-
 typedef enum {
 	ATOM_PROT_MAGIC = 0x3eeb9a27U
 } atom_prot_magic_t;
-
-#else
-
-#define PADDING(x) 0
 
 #endif /* PROTECT_ATOMS */
 
@@ -77,6 +68,16 @@ typedef enum {
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
+
+union mem_chunk {
+  void      *next;
+  guint8   u8;
+  guint16  u16;
+  guint32  u32;
+  guint64  u64;
+  gfloat     f;
+  gdouble    d;
+};
 
 /**
  * Atoms are ref-counted.
@@ -90,61 +91,283 @@ typedef struct atom {
 	GHashTable *get;		/**< Allocation spots */
 	GHashTable *free;		/**< Free spots */
 #endif
-	gint refcnt;			/**< Amount of references */
 #ifdef PROTECT_ATOMS
-	union {
-		struct {
-			guint len;		/**< Length of user arena */
-			atom_prot_magic_t magic;
-		} attr;
-		gchar padding[PAGESIZE - sizeof(guint)];
-	};
-		/* PADDING */
+	atom_prot_magic_t magic;
+	size_t size;
 #endif /* PROTECT_ATOMS */
+	gint refcnt;			/**< Amount of references */
 	/* Ensure `arena' is properly aligned */
-	union {
-		guint64 i64;
-		gpointer p;
-		gdouble d;
-		gulong l;
-		gchar c;
-	} arena[1];			/* Start of user arena */
+	union mem_chunk arena[1];			/* Start of user arena */
 } atom_t;
 
 
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
 
 #ifdef PROTECT_ATOMS
+struct mem_pool {
+	union mem_chunk chunks[1];
+};
+
+struct mem_cache {
+	struct mem_pool **pools; /**< Dynamic array */
+	union mem_chunk *avail;	 /**< First available chunk */
+	size_t num_pools;		 /**< Element count of ``pools''. */
+	size_t size;			 /**< Size of a single chunk */
+	size_t hold;
+};
+
+static struct mem_cache *mc[6];
+
+static struct mem_pool *
+mem_pool_new(size_t size, size_t hold)
+{
+  struct mem_pool *mp;
+  size_t len, ps;
+  
+  g_assert(size >= sizeof mp->chunks[0]);
+  g_assert(0 == size % sizeof mp->chunks[0]);
+  g_assert(hold > 0);
+  
+  ps = compat_pagesize();
+  len = hold * size;
+  
+  mp = compat_page_align(len);
+  if (mp) {
+    size_t i, step = size / sizeof mp->chunks[0];
+    
+	for (i = 0; hold-- > 1; i += step) {
+      mp->chunks[i].next = &mp->chunks[i + step];
+	}
+
+    mp->chunks[i].next = NULL;
+  }
+
+  return mp;
+}
+
+/**
+ * Allocates a mem cache that can be used to allocate memory chunks of
+ * the given size. The cache works as a stack, that means the last freed
+ * chunk will be used for the next allocation.
+ */
+static struct mem_cache *
+mem_new(size_t size)
+{
+  struct mem_cache *mc;
+
+  g_assert(size > 0);
+  
+  mc = g_malloc(sizeof *mc);
+  if (mc) {
+    union mem_chunk chunk;
+    
+    mc->size = round_size(sizeof chunk, size);
+    mc->hold = MAX(1, compat_pagesize() / mc->size);
+    mc->num_pools = 0;
+    mc->avail = NULL;
+    mc->pools = NULL;
+
+    g_message("mem_new(): hold=%d, size=%d", (int) mc->hold, size);
+  }
+  return mc;
+}
+
+/**
+ * Allocate a chunk.
+ */
+static void *
+mem_alloc(struct mem_cache *mc)
+{
+  void *p;
+
+  g_assert(mc);
+  
+  if (NULL != (p = mc->avail)) {
+    mc->avail = mc->avail->next;
+  } else {
+    struct mem_pool *mp;
+    
+    mp = mem_pool_new(mc->size, mc->hold);
+    if (mp) {
+      void *q;
+      
+      q = g_realloc(mc->pools, (1 + mc->num_pools) * sizeof mc->pools[0]);
+      if (q) {
+        mc->pools = q;
+        mc->pools[mc->num_pools++] = mp;
+      
+        mc->avail = &mp->chunks[0];
+        p = mc->avail;
+        mc->avail = mc->avail->next;
+      } else {
+        free(mp);
+      }
+    }
+  }
+
+  return p;
+}
+
+/**
+ * This does not really "free" the chunk at ``p'' but pushes it back to
+ * the mem cache and thus makes it available again for mem_alloc(). 
+ */
+static void
+mem_free(struct mem_cache *mc, void *p)
+{
+  g_assert(mc);
+
+  if (p) {
+    union mem_chunk *c = p;
+   
+    c->next = mc->avail;
+    mc->avail = c;
+  }
+}
+
+/**
+ * Find the appropriate mem cache for the given size.
+ */
+static struct mem_cache *
+atom_get_mc(size_t size)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(mc); i++) {
+		if (size <= mc[i]->size)
+			return mc[i];
+	}
+	return NULL;
+}
+
+/**
+ * Maps the memory chunk at ``ptr'' of length ``size'' read-only.
+ * @note All pages partially overlapped by the chunk will be affected.
+ */
+static inline void
+mem_protect(gpointer ptr, size_t size)
+{
+	gpointer p;
+	size_t ps;
+
+	ps = compat_pagesize();
+	p = (gchar *) ptr - (uintptr_t) ptr % ps;
+	size = round_size(ps, size);
+
+	if (-1 == mprotect(p, size, PROT_READ))
+		g_warning("mem_protect: mprotect(%p, %u, PROT_READ) failed: %s",
+			p, size, g_strerror(errno));
+}
+
+/**
+ * Maps the memory chunk at ``ptr'' of length ``size'' read- and writable.
+ * @note All pages partially overlapped by the chunk will be affected.
+ */
+static inline void
+mem_unprotect(gpointer ptr, size_t size)
+{
+	gpointer p;
+	size_t ps;
+
+	ps = compat_pagesize();
+	p = (gchar *) ptr - (uintptr_t) ptr % ps;
+	size = round_size(ps, size);
+
+	if (-1 == mprotect(p, size, PROT_READ | PROT_WRITE))
+		g_warning("mem_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %s",
+			p, size, g_strerror(errno));
+}
+
+/**
+ * Maps an atom read- and writable.
+ * @note All atoms that reside in the same page will be affected.
+ */
 static inline void
 atom_unprotect(atom_t *a)
 {
-	int ret;
+	g_assert(a);
+	g_assert(ATOM_PROT_MAGIC == a->magic);
 
-	g_assert(ATOM_PROT_MAGIC == a->attr.magic);
-	g_assert(a->attr.len > 0 && 0 == (a->attr.len % PAGESIZE));
-	ret = mprotect(a->arena, a->attr.len, PROT_READ | PROT_WRITE);
-	if (-1 == ret)
-		g_warning("atom_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %s",
-			a->arena, a->attr.len, g_strerror(errno));
+	mem_unprotect(a, a->size);
 }
 
+/**
+ * Maps an atom read-only.
+ * @note All atoms that reside in the same page will be affected.
+ */
 static inline void
-atom_protect(atom_t *a, guint len)
+atom_protect(atom_t *a)
 {
-	int ret;
+	g_assert(a);
+	g_assert(ATOM_PROT_MAGIC == a->magic);
 
-	g_assert(len > 0 && 0 == (len % PAGESIZE));
-	a->attr.len = len;
-	a->attr.magic = ATOM_PROT_MAGIC;
-	ret = mprotect(a->arena, a->attr.len, PROT_READ);
-	if (-1 == ret)
-		g_warning("atom_protect: mprotect(%p, %u, PROT_READ) failed: %s",
-			a->arena, a->attr.len, g_strerror(errno));
+	mem_protect(a, a->size);
+}
+
+/**
+ * Allocates a new atom with the given size. The returned atom is initially
+ * unprotected.
+ */
+static atom_t *
+atom_alloc(size_t size)
+{
+	struct mem_cache *mc_ptr;
+	atom_t *a;
+
+	g_assert(size > 0);
+
+	mc_ptr = atom_get_mc(size);
+	if (mc_ptr) {
+		a = mem_alloc(mc_ptr);
+		mem_unprotect(a, size);
+	} else {
+		a = compat_page_align(size);
+	}
+	a->magic = ATOM_PROT_MAGIC;
+	a->size = size;
+
+	return a;
+}
+
+/**
+ * Virtually frees the given atom. If the atom used a chunk from a mem cache,
+ * it is returned to this cache and further mapped read-only. Otherwise, if
+ * the atom uses ordinary memory returned by malloc(), the memory is released
+ * with free() and not further protected.
+ */
+static void
+atom_dealloc(atom_t *a)
+{
+	struct mem_cache *mc_ptr;
+
+	g_assert(a);
+	g_assert(ATOM_PROT_MAGIC == a->magic);
+
+	mc_ptr = atom_get_mc(a->size);
+	if (mc_ptr) {
+		size_t size = a->size;
+
+		memset(a, 0, size);
+		mem_free(mc_ptr, a);
+		/*
+		 * It would be best to map the atom with PROT_NONE but there
+		 * may be atoms in use that reside in the same page.
+		 */
+		mem_protect(a, size);
+	} else {
+		/* This may cause trouble if any library code (libc for example)
+		 * relies on executable heap-memory because the page is now
+		 * mapped (PROT_READ | PROT_WRITE).
+		 */
+		free(a);
+	}
 }
 #else
 
-#define atom_protect(a, l)
+#define atom_protect(a)
 #define atom_unprotect(a)
+#define atom_alloc(size) g_malloc(size)
+#define atom_dealloc(a) g_free(a)
 
 #endif /* PROTECT_ATOMS */
 
@@ -389,7 +612,9 @@ atoms_init(void)
 	guint i;
 
 #ifdef PROTECT_ATOMS
-	g_assert(ARENA_OFFSET == PAGESIZE);
+	for (i = 0; i < G_N_ELEMENTS(mc); i++) {
+		mc[i] = mem_new(64 << i);
+	}
 #endif /* PROTECT_ATOMS */
 
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
@@ -438,7 +663,9 @@ atom_get(gint type, gconstpointer key)
 
 		g_assert(a->refcnt > 0);
 
+		atom_unprotect(a);
 		a->refcnt++;
+		atom_protect(a);
 		return value;
 	}
 
@@ -448,10 +675,10 @@ atom_get(gint type, gconstpointer key)
 
 	len = (*td->len_func)(key);
 
-	a = g_malloc(ARENA_OFFSET + len + PADDING(len));
+	a = atom_alloc(ARENA_OFFSET + len);
 	a->refcnt = 1;
 	memcpy(a->arena, key, len);
-	atom_protect(a, len + PADDING(len));
+	atom_protect(a);
 
 	/*
 	 * Insert atom in table.
@@ -493,10 +720,12 @@ atom_free(gint type, gconstpointer key)
 	 * Dispose of atom when its reference count reaches 0.
 	 */
 
+	atom_unprotect(a);
 	if (--a->refcnt == 0) {
 		g_hash_table_remove(td->table, key);
-		atom_unprotect(a);
-		g_free(a);
+		atom_dealloc(a);
+	} else {
+		atom_protect(a);
 	}
 }
 
