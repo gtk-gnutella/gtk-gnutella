@@ -282,19 +282,23 @@ qrp_hash(const gchar *s, gint bits)
  *
  * @returns the TRUE if there is something present, FALSE otherwise.
  */
-#define RT_SLOT_READ(a,s) ((a)[(s) >> 3] & (1 << (7 - ((s) & 0x7))))
+#define RT_SLOT_READ(a,s) ((a)[(s) >> 3] & (0x80U >> ((s) & 0x7)))
 
-/**
- * Set slot #`s' in arena `a'.
- */
-#define RT_SLOT_SET(a,s) \
-	do { (a)[(s) >> 3] |= (1 << (7 - ((s) & 0x7))); } while (0)
+static inline void
+qrt_patch_slot(struct routing_table *rt, guint i, guint8 v)
+{
+	if (v) {
+		guint b = 0x80U >> (i & 0x7);
 
-/**
- * Clear slot #`s' in arena `a'.
- */
-#define RT_SLOT_CLEAR(a,s) \
-	do { (a)[(s) >> 3] &= ~(1 << (7 - ((s) & 0x7))); } while (0)
+		if (v & 0x80) {		/* Negative value */
+			rt->arena[i >> 3] |= b;
+			rt->set_count++;
+		} else { 			/* Positive value */
+			rt->arena[i >> 3] &= ~b;
+		}
+	}
+	/* else... unchanged. */
+}
 
 /**
  * Compact routing table in place so that only one bit of information is used
@@ -1284,8 +1288,17 @@ free_word(gpointer key, gpointer unused_value, gpointer unused_udata)
 struct unique_substrings {		/* User data for unique_subtr() callback */
 	GHashTable *unique;
 	GSList *head;
-	gint count;
 };
+
+static inline void
+insert_substr(struct unique_substrings *u, const gchar *word)
+{
+	if (!g_hash_table_lookup(u->unique, word)) {
+		gchar *s = g_strdup(word);
+		g_hash_table_insert(u->unique, s, GINT_TO_POINTER(1));
+		u->head = g_slist_prepend(u->head, s);
+	}
+}
 
 /**
  * Iteration callback on the hashtable containing keywords.
@@ -1294,26 +1307,18 @@ static void
 unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 {
 	struct unique_substrings *u = udata;
-	gchar *word = key;
-	gint len;
+	const gchar *word = key;
+	gchar *s;
+	size_t len, size;
 
 	(void) unused_value;
-
-#define INSERT do { \
-	if (!g_hash_table_lookup(u->unique, (gconstpointer) word)) {	\
-		gchar *newword = g_strdup(word);							\
-		g_hash_table_insert(u->unique, newword, (gpointer) 1);		\
-		u->head = g_slist_prepend(u->head, newword);				\
-		u->count++;													\
-	}																\
-} while (0)
 
 	/*
 	 * Special-case urn:sha1 entries: we insert them as a whole!
 	 */
 
-	if (word[0] == 'u' && is_strcaseprefix(word, "urn:sha1:")) {
-		INSERT;
+	if (is_strcaseprefix(word, "urn:sha1:")) {
+		insert_substr(u, word);
 		return;
 	}
 
@@ -1322,14 +1327,16 @@ unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 	 * anchored at the start, whose length range from 3 to the word length.
 	 */
 
-	for (len = strlen(word); len >= 3; len--) {
-		guchar c = word[len];
-		word[len] = '\0';				/* Truncate word */
-		INSERT;
-		word[len] = c;
+	len = strlen(word);
+	size = len + 1;
+	s = wcopy(word, size);
+
+	while (len-- >= 3) {
+		insert_substr(u, s);
+		s[len] = '\0';				/* Truncate word */
 	}
 
-#undef INSERT
+	WFREE_NULL(s, size);
 }
 
 /**
@@ -1341,14 +1348,12 @@ unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 static GSList *
 unique_substrings(GHashTable *ht, gint *retcount)
 {
-	struct unique_substrings u = { NULL, NULL, 0 };		/* Callback args */
+	struct unique_substrings u = { NULL, NULL };		/* Callback args */
 
 	u.unique = g_hash_table_new(g_str_hash, g_str_equal);
-
 	g_hash_table_foreach(ht, unique_substr, &u);
-
+	*retcount = g_hash_table_size(u.unique);
 	g_hash_table_destroy(u.unique);		/* Created words ref'ed by u.head */
-	*retcount = u.count;
 
 	return u.head;
 }
@@ -2801,7 +2806,7 @@ struct qrt_receive {
 	gint current_index;		/**< Current index (after shrinking) in QR table */
 	gchar *expansion;		/**< Temporary expansion arena before shrinking */
 	gboolean deflated;		/**< Is data deflated? */
-	gboolean (*patch)(struct qrt_receive *qrcv, guchar *data, gint len);
+	gboolean (*patch)(struct qrt_receive *qrcv, const guchar *data, gint len);
 };
 
 /**
@@ -2810,14 +2815,14 @@ struct qrt_receive {
  * @returns FALSE always.
  */
 static gboolean
-qrt_unknown_patch(struct qrt_receive *qrcv, guchar *data, gint len)
+qrt_unknown_patch(struct qrt_receive *unused_qrcv,
+	const guchar *unused_data, gint unused_len)
 {
-	(void)qrcv; /* Unused. */
-	(void)data; /* Unused. */
-	(void)len;	/* Unused. */
+	(void) unused_qrcv;
+	(void) unused_data;
+	(void) unused_len;
 
-	g_warning("Patch application pointer uninitialized.");
-	g_assert(FALSE);
+	g_error("Patch application pointer uninitialized.");
 
 	return FALSE;
 }
@@ -2935,7 +2940,7 @@ qrt_receive_free(gpointer handle)
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
 static gboolean
-qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
+qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 {
 	gint bpe = qrcv->entry_bits;		/* bits per entry */
 	gint epb;							/* entries per byte */
@@ -3113,11 +3118,7 @@ qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 
 				g_assert(qrcv->current_index < rt->slots);
 
-				if (v) {
-					RT_SLOT_SET(rt->arena, qrcv->current_index);
-					rt->set_count++;
-				} else
-					RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
+				qrt_patch_slot(rt, qrcv->current_index, v ? 0x80 : 1);
 
 				qrcv->current_index++;
 			}
@@ -3197,7 +3198,7 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, gint len, gint slots_per_byte)
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
 static gboolean
-qrt_apply_patch8(struct qrt_receive *qrcv, guchar *data, gint len)
+qrt_apply_patch8(struct qrt_receive *qrcv, const guchar *data, gint len)
 {
 	struct routing_table *rt = qrcv->table;
 	gint i;
@@ -3222,8 +3223,6 @@ qrt_apply_patch8(struct qrt_receive *qrcv, guchar *data, gint len)
 	 */
 
 	for (i = 0; i < len; i++) {
-		guint8 v = data[i];
-
 		/*
 		 * The only possibilities for the patch are:
 		 *
@@ -3237,17 +3236,9 @@ qrt_apply_patch8(struct qrt_receive *qrcv, guchar *data, gint len)
 		 * of the QRT slot value.
 		 */
 		
-		if (v & 0x80) {		/* Negative value, sign bit is 1 */
-			RT_SLOT_SET(rt->arena, qrcv->current_index);
-			rt->set_count++;
-		}
-		else if (v != 0)			/* Positive value */
-			RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
-
-		/* else... unchanged. */
-		
-		qrcv->current_slot = qrcv->current_index++;
+		qrt_patch_slot(rt, qrcv->current_index++, data[i]);
 	}
+	qrcv->current_slot = qrcv->current_index - 1;
 
 	return TRUE;
 }
@@ -3259,7 +3250,7 @@ qrt_apply_patch8(struct qrt_receive *qrcv, guchar *data, gint len)
  * @returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
 static gboolean
-qrt_apply_patch4(struct qrt_receive *qrcv, guchar *data, gint len)
+qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, gint len)
 {
 	struct routing_table *rt = qrcv->table;
 	gint i;
@@ -3284,9 +3275,7 @@ qrt_apply_patch4(struct qrt_receive *qrcv, guchar *data, gint len)
 	 */
 
 	for (i = 0; i < len; i++) {
-		guint8 value = data[i];		/* Patch byte contains `epb' slots */
-		guint8 v1 = value & 0xf0;
-		guint8 v2 = value & 0x0f;
+		guint8 v = data[i];	/* Patch byte contains `epb' slots */
 
 		/*
 		 * The only possibilities for the patch are:
@@ -3300,29 +3289,12 @@ qrt_apply_patch4(struct qrt_receive *qrcv, guchar *data, gint len)
 		 * present, and therefore forget about the "hops-away" semantics
 		 * of the QRT slot value.
 		 */
-		
-		if (v1 & 0x80) {		/* Negative value, sign bit is 1 */
-			RT_SLOT_SET(rt->arena, qrcv->current_index);
-			rt->set_count++;
-		}
-		else if (v1 != 0)			/* Positive value */
-			RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
+	
+		qrt_patch_slot(rt, qrcv->current_index++, v & 0xf0);
+		qrt_patch_slot(rt, qrcv->current_index++, (v << 4) & 0xf0);
 
-		/* else... unchanged. */
-		
-		qrcv->current_slot = qrcv->current_index++;
-
-		if (v2 & 0x08) {		/* Negative value, sign bit is 1 */
-			RT_SLOT_SET(rt->arena, qrcv->current_index);
-			rt->set_count++;
-		}
-		else if (v2 != 0)			/* Positive value */
-			RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
-
-		/* else... unchanged. */
-		
-		qrcv->current_slot = qrcv->current_index++;
 	}
+	qrcv->current_slot = qrcv->current_index - 1;
 
 	return TRUE;
 }
