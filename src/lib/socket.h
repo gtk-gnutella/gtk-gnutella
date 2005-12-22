@@ -24,3 +24,5 @@
  */
 
 void socket_set_nonblocking(int fd);
+
+/* vi: set ts=4 sw=4 cindent: */

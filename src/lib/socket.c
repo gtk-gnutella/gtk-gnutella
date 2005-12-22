@@ -43,10 +43,13 @@ socket_set_nonblocking(gint fd)
 }
 #else
 {
-	gint flags;
+	gint ret, flags;
 
-	flags = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, flags | VAL_O_NONBLOCK);
+	ret = fcntl(fd, F_GETFL, 0);
+	flags = ret | VAL_O_NONBLOCK;
+	if (flags != ret)
+		fcntl(fd, F_SETFL, flags);
 }
 #endif
 
+/* vi: set ts=4 sw=4 cindent: */
