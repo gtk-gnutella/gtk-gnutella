@@ -3125,6 +3125,39 @@ compat_pagesize(void)
 	return psize;
 }
 
+/**
+ * Allocates a page-aligned memory chunk.
+ *
+ * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ */
+gpointer
+compat_page_align(size_t size)
+{
+	size_t align = compat_pagesize();
+	void *p;
+	
+	size = round_size(align, size);
+
+#if defined(HAS_POSIX_MEMALIGN)
+	if (posix_memalign(&p, align, size))
+		g_error("posix_memalign() failed: %s", g_strerror(errno));
+#elif defined(HAS_MEMALIGN)
+	p = memalign(align, size);
+#else	/* !HAS_POSIX_MEMALIGN */
+	/*
+	 * On BSD systems malloc() usually returns page-aligned memory
+	 * if ``size'' is at least as large as the pagesize.
+	 */
+	p = malloc(size);
+#endif	/* HAS_POSIX_MEMALIGN */
+	
+	if (0 != (uintptr_t) p % align)
+		g_error("Aligned memory required");
+
+	return p;
+}
+
+
 gboolean
 compat_is_superuser(void)
 {

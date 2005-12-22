@@ -529,6 +529,7 @@ gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, mode_t mode);
 size_t compat_pagesize(void);
+gpointer compat_page_align(size_t size);
 gboolean compat_is_superuser(void);
 
 typedef void (*signal_handler_t)(gint signo);
@@ -582,6 +583,16 @@ netmask_to_cidr(guint32 netmask)
 	return bits;
 }
 #endif /* HAVE_BUILTIN_POPCOUNT */
+
+/**
+ * Rounds ``n'' up so that it matches the given alignment ``align''.
+ */
+static inline size_t
+round_size(size_t align, size_t n)
+{
+	size_t m = n % align;
+	return m ? n + (align - m) : MAX(n, align);
+}
 
 /*
  * Syscall wrappers for errno == 0 bug. --RAM, 27/10/2003
