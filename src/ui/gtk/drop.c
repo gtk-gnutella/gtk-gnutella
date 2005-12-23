@@ -421,7 +421,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 		g_message("drag_data_received: x=%d, y=%d, info=%u, t=%u",
 			x, y, info, stamp);
 	if (data->length > 0 && data->format == 8) {
-		gchar *p, *url = cast_to_guchar_ptr(data->data);
+		gchar *p, *url = cast_to_gchar_ptr(data->data);
 		size_t len;
 		guint i;
 
