@@ -2122,7 +2122,8 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 			}
 		}
 
-		g_warning("accept() failed (%s)", g_strerror(errno));
+		if (errno != ECONNABORTED && errno != EAGAIN)
+			g_warning("accept() failed (%s)", g_strerror(errno));
 		return;
 	}
 
