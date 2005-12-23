@@ -1033,11 +1033,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		if (trailer) {
 			memcpy(rs->vcode.b, trailer, 4);
 		} else {
-			g_warning(
-				"UNKNOWN %d-byte trailer at offset %d in %s from %s "
-				"(%u/%u records parsed)",
-				(gint) tlen, (gint) (s - n->data), gmsg_infostr(&n->header),
-				node_addr(n), (guint) nr, (guint) rs->num_recs);
+			if (search_debug) {
+				g_warning(
+					"UNKNOWN %d-byte trailer at offset %d in %s from %s "
+					"(%u/%u records parsed)",
+					(gint) tlen, (gint) (s - n->data), gmsg_infostr(&n->header),
+					node_addr(n), (guint) nr, (guint) rs->num_recs);
+			}
 			if (search_debug > 1) {
 				dump_hex(stderr, "Query Hit Data (non-empty UNKNOWN trailer?)",
 					n->data, n->size);
