@@ -92,7 +92,6 @@ struct used_uhc {
 static const struct {
 	const gchar *uhc;
 } boot_hosts[] = {
-	{ "abacustechnology.net:1254" },
 	{ "cache.kicks-ass.net:8000" },
 	{ "g6.dns6.org:1337" },
 	{ "gwc.mine.nu:9999" },
