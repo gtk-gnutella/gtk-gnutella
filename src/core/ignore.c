@@ -140,7 +140,8 @@ open_append(const gchar *file)
 /**
  * Initialize the ignore tables.
  */
-void ignore_init(void)
+void
+ignore_init(void)
 {
 	by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 	by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
@@ -454,8 +455,8 @@ free_sha1_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
 
-	atom_sha1_free((gchar *) key);
-	atom_str_free((gchar *) value);
+	atom_sha1_free(key);
+	atom_str_free(value);
 
 	return TRUE;
 }
@@ -470,7 +471,7 @@ free_namesize_kv(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;
-	namesize_free((namesize_t *) key);
+	namesize_free(key);
 	return TRUE;
 }
 
