@@ -4153,7 +4153,6 @@ qrt_build_query_target(
 	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source)
 {
 	GSList *nodes = NULL;		/* Targets for the query */
-	gint count = 0;				/* Amount of selected nodes so far */
 	const GSList *sl;
 	gboolean sha1_query;
 
@@ -4269,7 +4268,6 @@ qrt_build_query_target(
 
 	can_send:
 		nodes = g_slist_prepend(nodes, dn);
-		count++;
 		if (rt != NULL)
 			node_inc_qrp_match(dn);
 	}
