@@ -359,7 +359,7 @@ atom_dealloc(atom_t *a)
 		 * relies on executable heap-memory because the page is now
 		 * mapped (PROT_READ | PROT_WRITE).
 		 */
-		free(a);
+		compat_page_free(a, a->size);
 	}
 }
 #else
@@ -427,22 +427,24 @@ str_str(gconstpointer v)
  * Hash `len' bytes (multiple of 4) starting from `key'.
  */
 guint
-binary_hash(const guchar *key, gint len)
+binary_hash(const guchar *key, guint len)
 {
-	const gchar *buf = (const gchar *) key;
-	gint i;
-	guint hash = 0;
+	guint hash = len;
+	guint i;
 
 	g_assert(0 == (len & 0x3));		/* Multiple of 4 */
 
 	for (i = 0; i < len; i += 4) {
-		guint v =
-			(buf[i])            |
-			(buf[i + 1] << 8)   |
-			(buf[i + 2] << 16)  |
-			(buf[i + 3] << 24);
-
-		hash ^= v;
+		static const guint32 x[] = {
+			0xb0994420, 0x01fa96e3, 0x05066d0e, 0x50c3c22a,
+			0xec99f01f, 0xc0eaa79d, 0x157d4257, 0xde2b8419
+		};
+		hash ^= key[i] |
+			((guint) key[i + 1] << 8) |
+			((guint) key[i + 2] << 16) |
+			((guint) key[i + 3] << 24);
+		hash += x[(i >> 2) & 0x7];
+		hash = (hash << 24) ^ (hash >> 8);
 	}
 
 	return hash;
