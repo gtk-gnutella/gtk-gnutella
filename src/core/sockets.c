@@ -749,28 +749,45 @@ connect_http(struct gnutella_socket *s)
 	switch (s->pos) {
 	case 0:
 		{
-			const gchar *host = host_addr_port_to_string(s->addr, s->port);
-			size_t size;
+			static const struct {
+				const gchar *s;
+			} parts[] = {
+				{ "CONNECT " }, { NULL }, { " HTTP/1.0\r\nHost: " }, { NULL },
+				{ "\r\n\r\n" },
+			};
+			struct iovec iov[G_N_ELEMENTS(parts)];
+			const gchar *host_port = host_addr_port_to_string(s->addr, s->port);
+			size_t size = 0;
+			guint i;
 
-			size = gm_snprintf(s->buffer, sizeof(s->buffer),
-				"CONNECT %s HTTP/1.0\r\nHost: %s\r\n\r\n", host, host);
-			ret = write(s->file_desc, s->buffer, size);
+			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
+				const gchar *s;
+				
+				s = parts[i].s ? parts[i].s : host_port;
+				iov[i].iov_base = deconstify_gchar(s);
+				size += iov[i].iov_len = strlen(iov[i].iov_base);
+			}
+
+			ret = writev(s->file_desc, iov, G_N_ELEMENTS(iov));
 			if ((size_t) ret != size) {
 				g_warning("Sending info to HTTP proxy failed: %s",
 					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
 				return -1;
 			}
-			s->pos++;
-			break;
 		}
+		s->pos++;
+		break;
+
 	case 1:
 		ret = read(s->file_desc, s->buffer, sizeof(s->buffer) - 1);
 		if (ret == (ssize_t) -1) {
-			g_warning("Receiving answer from HTTP proxy faild: %s",
+			g_warning("Receiving answer from HTTP proxy failed: %s",
 				g_strerror(errno));
 			return -1;
 		}
-		s->getline = getline_make(HEAD_MAX_SIZE);
+		if (!s->getline)
+			s->getline = getline_make(HEAD_MAX_SIZE);
+
 		switch (getline_read(s->getline, s->buffer, ret, &parsed)) {
 		case READ_OVERFLOW:
 			g_warning("HTTP proxy returned a too long line");
