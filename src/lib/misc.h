@@ -530,6 +530,7 @@ guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, mode_t mode);
 size_t compat_pagesize(void);
 gpointer compat_page_align(size_t size);
+void compat_page_free(gpointer p, size_t size);
 gboolean compat_is_superuser(void);
 
 typedef void (*signal_handler_t)(gint signo);

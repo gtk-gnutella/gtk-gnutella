@@ -1767,7 +1767,15 @@ random_init(void)
 	 * Finally, can initialize the random number generator.
 	 */
 
+#if defined(HAS_INITSTATE)
+	{
+		static gulong state[256 / sizeof(gulong)];
+		
+		initstate(seed, cast_to_gchar_ptr(state), sizeof state);
+	}
+#else
 	srandom(seed);
+#endif /* HAS_INITSTATE */
 }
 
 /**
@@ -3143,20 +3151,50 @@ compat_page_align(size_t size)
 		g_error("posix_memalign() failed: %s", g_strerror(errno));
 #elif defined(HAS_MEMALIGN)
 	p = memalign(align, size);
-#else	/* !HAS_POSIX_MEMALIGN */
-	/*
-	 * On BSD systems malloc() usually returns page-aligned memory
-	 * if ``size'' is at least as large as the pagesize.
-	 */
-	p = malloc(size);
-#endif	/* HAS_POSIX_MEMALIGN */
+	if (!p)
+		g_error("memalign() failed: %s", g_strerror(errno));
+#else
+	{
+		static gint fd = -1, flags;
+		
+#if defined(MAP_ANON)
+		flags = MAP_ANON;
+#elif defined (MAP_ANONYMOUS)
+		flags = MAP_ANONYMOUS
+#else
+		flags = MAP_PRIVATE;
+		if (-1 == fd)
+			fd = open("/dev/zero", O_RDWR, 0);
+		if (-1 == fd)
+			g_error("compat_page_align(): open() failed for /dev/zero");
+#endif	/* MAP_ANON */
+		
+		p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
+		if (MAP_FAILED == p)
+			g_error("mmap() failed: %s", g_strerror(errno));
+	}
+#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 	
-	if (0 != (uintptr_t) p % align)
+	if (0 != (gulong) /* (uintptr_t) */ p % align)
 		g_error("Aligned memory required");
 
 	return p;
 }
 
+void
+compat_page_free(gpointer p, size_t size)
+{
+	size_t align = compat_pagesize();
+	
+	g_assert(0 == (gulong) /* (uintptr_t) */ p % align);
+	
+#if defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
+	(void) size;
+	free(p);
+#else
+	munmap(p, size);
+#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+}
 
 gboolean
 compat_is_superuser(void)
