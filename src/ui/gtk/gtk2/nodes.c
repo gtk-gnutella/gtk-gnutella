@@ -72,7 +72,7 @@ static GHashTable *ht_node_info_changed = NULL;
 static GHashTable *ht_node_flags_changed = NULL;
 
 static GtkTreeView *treeview_nodes = NULL;
-static GtkTreeStore *nodes_model = NULL;
+static GtkListStore *nodes_model = NULL;
 
 /* hash table for fast handle -> GtkTreeIter mapping */
 static GHashTable *nodes_handles = NULL;
@@ -166,15 +166,15 @@ nodes_handles_foreach_free(gpointer unused_key, gpointer value,
 	node_data_free(value);
 }
 
-static GtkTreeStore *
+static GtkListStore *
 create_nodes_model(void)
 {
 	static GType columns[1];
-	GtkTreeStore *store;
+	GtkListStore *store;
 
 	columns[0] = G_TYPE_POINTER;
-	store = gtk_tree_store_newv(G_N_ELEMENTS(columns), columns);
-	return GTK_TREE_STORE(store);
+	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	return store;
 }
 
 static void
@@ -444,7 +444,7 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 	gnet_node_t n = GPOINTER_TO_UINT(key);
 	gnet_node_info_t info;
 	struct node_data *data;
-	GtkTreeStore *store;
+	GtkListStore *store;
 	GtkTreeView *tv;
 	host_addr_t addr;
 	guint16 port;
@@ -458,7 +458,7 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 	g_hash_table_remove(ht_pending_lookups, key);
 
 	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-	store = GTK_TREE_STORE(gtk_tree_view_get_model(tv));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	data = find_node(n);
 	if (!data)
 		return;
@@ -586,7 +586,7 @@ nodes_gui_shutdown(void)
     guc_node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
     guc_node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
-	gtk_tree_store_clear(nodes_model);
+	gtk_list_store_clear(nodes_model);
 	g_object_unref(G_OBJECT(nodes_model));
 	nodes_model = NULL;
 	gtk_tree_view_set_model(treeview_nodes, NULL);
@@ -624,7 +624,7 @@ nodes_gui_remove_node(gnet_node_t n)
 	g_assert(NULL != data);
 	g_assert(n == data->handle);
 
-	gtk_tree_store_remove(nodes_model, &data->iter);
+	gtk_list_store_remove(nodes_model, &data->iter);
 	g_hash_table_remove(nodes_handles, GUINT_TO_POINTER(n));
 	node_data_free(data);
 }
@@ -658,8 +658,8 @@ nodes_gui_add_node(gnet_node_info_t *info)
 
 	g_hash_table_insert(nodes_handles, GUINT_TO_POINTER(data->handle), data);
 
-    gtk_tree_store_append(nodes_model, &data->iter, NULL);
-    gtk_tree_store_set(nodes_model, &data->iter, 0, data, (-1));
+    gtk_list_store_append(nodes_model, &data->iter);
+    gtk_list_store_set(nodes_model, &data->iter, 0, data, (-1));
 
 }
 
