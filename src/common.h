@@ -176,20 +176,24 @@ struct passwd
 #include <inttypes.h>
 #endif /* I_INTTYPES */
 
+#include <sys/mman.h>
+
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *) -1)
+#endif	/* !MMAP_FAILED */
+
 #ifdef I_SYS_SENDFILE
 #include <sys/sendfile.h>
 #else	/* !I_SYS_SENDFILE */
 #ifdef HAS_SENDFILE
 #define USE_BSD_SENDFILE	/**< No <sys/sendfile.h>, assume BSD version */
 #else
-
-/* mmap() support requires ISO C functions like sigsetjmp(). */
+/*
+ * Proper mmap() support for memory-mapped files requires ISO C functions like
+ * sigsetjmp().
+ */
 #if defined(__STDC_VERSION__)
 #define USE_MMAP 1
-#include <sys/mman.h>
-#ifndef MAP_FAILED
-#define MAP_FAILED ((void *) -1)
-#endif	/* !MMAP_FAILED */
 #endif	/* ISO C */
 
 #endif	/* HAS_SENDFILE */
