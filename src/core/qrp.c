@@ -4155,7 +4155,6 @@ qrt_build_query_target(
 	GSList *nodes = NULL;		/* Targets for the query */
 	gint count = 0;				/* Amount of selected nodes so far */
 	const GSList *sl;
-	gboolean process_ultra = FALSE;
 	gboolean sha1_query;
 
 	g_assert(qhvec != NULL);
@@ -4180,8 +4179,6 @@ qrt_build_query_target(
 	 * provide a reply.  Ultrapeers that don't support last-hop QRP will
 	 * always get the query.
 	 */
-
-	process_ultra = (ttl == 1);
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
@@ -4211,10 +4208,8 @@ qrt_build_query_target(
 				continue;				/* Don't send anything */
 		} else {
 			/* Ultra node */
-			if (!process_ultra)
+			if (ttl != 1)				/* Only deal with last-hop UP */
 				continue;
-			if (ttl == 0)				/* Message expired here */
-				continue;				/* Don't forward to non-leaves */
 			if (rt == NULL)				/* UP has not sent us its table */
 				goto can_send;			/* Forward everything then */
 			if (!NODE_UP_QRP(dn))		/* QRP-unaware host? */
