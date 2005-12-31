@@ -173,6 +173,11 @@
 # Another DRM pr0n spammer
 66.63.162.128/25
 
+# Generic DRM pr0n spammer (mostly ASX files)
+67.159.5.0/24
+208.53.138.0/24
+208.53.158.0/24
+
 # isaveclub.com AKA esaveclub.com AKA edirectclub.com
 69.44.155.0/24
 69.44.156.0/24
