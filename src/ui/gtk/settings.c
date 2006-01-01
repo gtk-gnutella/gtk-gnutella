@@ -4977,6 +4977,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
+        get_main_window,
+        PROP_BROWSE_HOST_MAX_RESULTS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_browse_host_max_results",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         get_prefs_dialog,
         PROP_BW_GNET_LEAF_IN_ENABLED,
         bw_gnet_lin_enabled_changed,
@@ -5286,6 +5294,22 @@ static prop_map_t property_map[] = {
         update_label,
         TRUE,
         "label_qhits_browse_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_HTML_BROWSE_SERVED,
+        update_label,
+        TRUE,
+        "label_html_browse_served",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_QHITS_BROWSE_SERVED,
+        update_label,
+        TRUE,
+        "label_qhits_browse_served",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
