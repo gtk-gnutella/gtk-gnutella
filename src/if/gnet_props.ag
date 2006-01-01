@@ -2035,7 +2035,7 @@ prop = {
 		"you should reserve 32 bytes of bandwidth per leaf.";
     type = guint32;
     data = {
-        default = 100;
+        default = 150;
         min = 50;
         max = 1000;
     };
@@ -3090,8 +3090,28 @@ prop = {
 };
 
 prop = {
+    name = "html_browse_served";
+    desc = "Number of HTML browsing requests fully served in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "qhits_browse_count";
     desc = "Number of Gnutella browsing requests received in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "qhits_browse_served";
+    desc = "Number of Gnutella browsing requests fully served in this session.";
 	save = FALSE;
     type = guint32;
     data = {
