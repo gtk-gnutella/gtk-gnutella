@@ -924,6 +924,7 @@ search_matched(search_t *sch, results_set_t *rs)
     gboolean is_firewalled;
 	guint i;
 	guint32 flags = 0, results_kept = 0;
+	guint32 max_results;
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
@@ -931,6 +932,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	gui_search_get_colors(sch, &mark_color, &ignore_color, &download_color);
 
     vendor = lookup_vendor_name(rs->vcode);
+	max_results = sch->browse ? browse_host_max_results : search_max_results;
 
    	if (vendor) {
 		g_string_append(vinfo, vendor);
@@ -1087,7 +1089,7 @@ search_matched(search_t *sch, results_set_t *rs)
                 FILTER_PROP_STATE_DONT &&
             flt_result->props[FILTER_PROP_DISPLAY].user_data == 0) &&
 			(int) results_kept++ >= 0 && /* Count as kept even if max results */
-            sch->items < search_max_results
+            sch->items < max_results
 		) {
             GdkColor *fg_color = NULL;
             gboolean mark;
@@ -1156,7 +1158,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	 * to make some room to allow the search to continue.
 	 */
 
-	if (sch->items >= search_max_results && !sch->passive)
+	if (sch->items >= max_results && !sch->passive)
 		gui_search_set_enabled(sch, FALSE);
 
 	/*
