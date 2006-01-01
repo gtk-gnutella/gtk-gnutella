@@ -91,6 +91,7 @@ enum bh_type {
 struct browse_host_ctx {
 	struct special_ctx special;	/**< vtable, MUST be first field */
 	enum bh_type type;		/**< Type of data to send back */
+	gint flags;				/**< Opening flags */
 	txdrv_t *tx;			/**< The transmission stack */
 	gchar *w_buf;			/**< Used for dynamically wallocated buffer */
 	size_t w_buf_size;		/**< Size of the wallocated buffer */
@@ -475,7 +476,7 @@ browse_host_flush(gpointer ctx, bh_closed_t cb, gpointer arg)
  * @return An initialized browse host context.
  */
 void
-browse_host_close(gpointer ctx)
+browse_host_close(gpointer ctx, gboolean fully_served)
 {
 	struct browse_host_ctx *bh = ctx;
 	GSList *sl;
@@ -493,6 +494,20 @@ browse_host_close(gpointer ctx)
 		bh->w_buf = NULL;
 	}
 	tx_free(bh->tx);
+
+	/*
+	 * Update statistics if fully served.
+	 */
+
+	if (fully_served) {
+		if (bh->flags & BH_HTML)
+			gnet_prop_set_guint32_val(PROP_HTML_BROWSE_SERVED,
+				html_browse_served + 1);
+		else if (bh->flags & BH_QHITS)
+			gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_SERVED,
+				qhits_browse_served + 1);
+	}
+
 	wfree(bh, sizeof *bh);
 }
 
@@ -536,6 +551,7 @@ browse_host_open(
 	browse_host_next_state(bh, BH_STATE_HEADER);
 	bh->hits = NULL;
 	bh->file_index = 0;
+	bh->flags = flags;
 
 	/*
 	 * Instantiate the TX stack.

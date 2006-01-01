@@ -736,7 +736,7 @@ upload_free_resources(gnutella_upload_t *u)
 		u->sha1 = NULL;
 	}
 	if (u->special) {
-		u->special->close(u->special);
+		u->special->close(u->special, FALSE);
 		u->special = NULL;
 	}
 	/*
@@ -4025,7 +4025,7 @@ upload_special_flushed(gpointer arg)
 	 * for the next request.
 	 */
 
-	u->special->close(u->special);
+	u->special->close(u->special, TRUE);
 	u->special = NULL;
 
 	if (upload_debug)
