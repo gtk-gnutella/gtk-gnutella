@@ -81,6 +81,7 @@ extern const guint32  gnet_stats_divider_pos;
 extern const guint32  side_divider_pos;
 extern const guint32  results_divider_pos;
 extern const guint32  search_max_results;
+extern const guint32  browse_host_max_results;
 extern const guint32  gui_debug;
 extern const guint32  filter_main_divider_pos;
 extern const gboolean search_results_show_tabs;
