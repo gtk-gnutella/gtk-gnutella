@@ -161,6 +161,7 @@
 # Range at FDC Servers.net, LLC, also used by SCMP
 66.90.119.128/27
 
+
 # Minnesota valley television
 65.160.241.0/25
 
@@ -190,6 +191,9 @@
 66.63.162.128/25
 
 # Generic DRM pr0n spammer (mostly ASX files)
+66.90.103.0/24
+67.19.77.0/24
+67.19.221.0/24
 67.159.5.0/24
 208.53.138.0/24
 208.53.158.0/24
