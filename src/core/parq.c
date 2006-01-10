@@ -2120,7 +2120,8 @@ parq_upload_continue(struct parq_ul_queued *uq, gint used_slots)
 		struct parq_ul_queue *queue = l->data;
 		if (!queue->active && queue->alive > 0) {
 			if (uq->queue->active) {
-				g_warning("[PARQ UL] Upload in inactive queue first");
+				if (parq_debug)
+					g_message("[PARQ UL] Upload in inactive queue first");
 				goto check_quick;
 			}
 		}
