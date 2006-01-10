@@ -1488,7 +1488,7 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 		n = q - p;
 		g_assert(n >= 0);
 		if (neg) {
-			if (*p != '\0') {
+			if (*p != '\0' && n > 0) {
 				gchar *w;
 
 				w = g_strndup(p, n + 1);
