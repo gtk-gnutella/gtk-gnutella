@@ -295,12 +295,13 @@ on_main_gui_treeview_menu_cursor_changed(GtkTreeView *treeview,
 
     selection = gtk_tree_view_get_selection(treeview);
     if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gpointer data;
+		gint id = 0;
 
-        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &data, (-1));
+        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &id, (-1));
+		g_assert(id >= 0 && id < nb_main_page_num);
         gtk_notebook_set_current_page(
 			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
-			GPOINTER_TO_UINT(data));
+			id);
     }
 }
 
@@ -309,14 +310,16 @@ on_main_gui_treeview_menu_row_collapsed(GtkTreeView *tree, GtkTreeIter *iter,
 		GtkTreePath *unused_path, gpointer unused_data)
 {
 	GtkTreeModel *model;
-    gint id = 0;
+	gpointer data = NULL;
 	guint32 expanded = FALSE;
+    gint id;
 
 	(void) unused_path;
 	(void) unused_data;
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
-	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 1, &id, (-1));
+	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 1, &data, (-1));
+	id = GPOINTER_TO_UINT(data);
 	g_assert(id >= 0 && id < nb_main_page_num);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
@@ -326,14 +329,16 @@ on_main_gui_treeview_menu_row_expanded(GtkTreeView *tree, GtkTreeIter *iter,
 	GtkTreePath *unused_path, gpointer unused_data)
 {
 	GtkTreeModel *model;
-    gint id = 0;
+	gpointer data = NULL;
 	guint32 expanded = TRUE;
+    gint id;
 
 	(void) unused_path;
 	(void) unused_data;
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
-	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 1, &id, (-1));
+	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 1, &data, (-1));
+	id = GPOINTER_TO_UINT(data);
 	g_assert(id >= 0 && id < nb_main_page_num);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }

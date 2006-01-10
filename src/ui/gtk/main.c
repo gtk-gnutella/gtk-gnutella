@@ -147,10 +147,15 @@ static gboolean
 gui_init_menu_helper(GtkTreeModel *model, GtkTreePath *path,
 	GtkTreeIter *iter, gpointer data)
 {
+	static const GValue zero_value;
+	GValue value;
 	guint32 expanded;
 	gint id;
 
-	gtk_tree_model_get(model, iter, 1, &id, (-1));
+	value = zero_value;
+	gtk_tree_model_get_value(model, iter, 1, &value);
+	id = GPOINTER_TO_UINT(g_value_get_pointer(&value));
+	
 	gui_prop_get_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 	if (expanded)
 		gtk_tree_view_expand_row(GTK_TREE_VIEW(data), path, FALSE);
@@ -162,7 +167,7 @@ gui_init_menu(void)
 {
 	static GType types[] = {
 		G_TYPE_STRING,	/* Label */
-		G_TYPE_POINTER,		/* Notebook page number (casted to a pointer)*/
+		G_TYPE_POINTER,	/* Notebook page number (casted to a pointer) */
 	};
 	GtkTreeView	*treeview;
 	GtkTreeIter	parent, iter;
@@ -200,7 +205,7 @@ gui_init_menu(void)
 		gtk_tree_store_append(store, &iter, depth > 0 ? &parent : NULL);
 		gtk_tree_store_set(store, &iter,
 				0, _(menu[i].title),
-				1, GINT_TO_POINTER(menu[i].page),
+				1, GUINT_TO_POINTER(menu[i].page),
 				(-1));
 	}
 
