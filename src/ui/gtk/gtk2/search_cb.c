@@ -1106,14 +1106,12 @@ void
 search_gui_browse_selected(void)
 {
 	search_t *search;
-	GtkTreeSelection *selection;
     GSList *sl;
    
 	search = search_gui_get_current_search();
 	if (!search)
 		return;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(
 			gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view)),
 			search_gui_get_record,
