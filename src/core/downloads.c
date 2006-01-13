@@ -6979,6 +6979,18 @@ download_request(struct download *d, header_t *header, gboolean ok)
 						uint64_to_string2(end));
 
 				/*
+				 * Make sure there is something sensible served, i.e. the
+				 * upper boundary must be greater than the lower (requested)
+				 * one.		--RAM, 2006-01-13
+				 */
+
+				if (d->skip >= end + 1) {
+					download_stop(d, GTA_DL_ERROR,
+						"Weird server-side chunk shrinking");
+					return;
+				}
+
+				/*
 				 * Since we're getting less than we asked for, we need to
 				 * update the end/size information and mark as DL_CHUNK_EMPTY
 				 * the trailing part of the range we won't be getting.
