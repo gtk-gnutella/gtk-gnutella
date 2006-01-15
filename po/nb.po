@@ -1,6 +1,6 @@
 # Norwegian Bokmal translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2005 Raphaël Manfredi.
+# Copyright (C) 2001-2006 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Alexander Nicolaysen Sørnes <alex@thehandofagony.com>, 2005.
 #
@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-01-02 10:07+0900\n"
+"POT-Creation-Date: 2006-01-15 22:29+0900\n"
 "PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
@@ -108,7 +108,7 @@ msgid "Too many attempts (%u times)"
 msgstr "For mange forsøk (%u ganger)"
 
 #: src/core/downloads.c:4725 src/core/downloads.c:6088
-#: src/core/downloads.c:7317
+#: src/core/downloads.c:7329
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "Feilet (Lesefil: %s)"
@@ -121,7 +121,7 @@ msgstr "Holdt ikke liv i forbindelsen (slutt på fil)"
 msgid "Stopped (EOF)"
 msgstr "Stoppet (slutt på fil)"
 
-#: src/core/downloads.c:4871 src/core/downloads.c:7161
+#: src/core/downloads.c:4871 src/core/downloads.c:7173
 msgid "Stopped (Output file size changed)"
 msgstr "Stoppet (filstørrelsen ble endret)"
 
@@ -163,8 +163,8 @@ msgid "Discovered dup SHA1"
 msgstr "Oppdaget duplisert SHA1"
 
 #: src/core/downloads.c:6070 src/core/downloads.c:6078
-#: src/core/downloads.c:7269 src/core/downloads.c:7307
-#: src/core/downloads.c:9362
+#: src/core/downloads.c:7281 src/core/downloads.c:7319
+#: src/core/downloads.c:9374
 msgid "Stopped data (EOF)"
 msgstr "Stoppet data (slutt på fil)"
 
@@ -172,7 +172,7 @@ msgstr "Stoppet data (slutt på fil)"
 msgid "Spammer detected"
 msgstr "Kjøttmann oppdaget"
 
-#: src/core/downloads.c:6551 src/core/downloads.c:7077
+#: src/core/downloads.c:6551 src/core/downloads.c:7089
 msgid "Partial file on server, waiting"
 msgstr "Del av fil på tjener, venter"
 
@@ -181,20 +181,20 @@ msgstr "Del av fil på tjener, venter"
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "Lagt i kø (plass %u/%u) tid igjen: %s"
 
-#: src/core/downloads.c:7275
+#: src/core/downloads.c:7287
 msgid "Stopped (Read buffer full)"
 msgstr "Stoppet (lesehurtigminnet er fullt)"
 
-#: src/core/downloads.c:7314
+#: src/core/downloads.c:7326
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "Stoppet data (%s)"
 
-#: src/core/downloads.c:8608
+#: src/core/downloads.c:8620
 msgid "SHA1 mismatch detected"
 msgstr "Fant upassende SHA1"
 
-#: src/core/downloads.c:9286
+#: src/core/downloads.c:9298
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Bla i verten %s>"
@@ -9211,11 +9211,11 @@ msgstr "Overvåker"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:477
+#: src/ui/gtk/main.c:482
 msgid "translation_credit|"
 msgstr "Oversatt av Alexander N. Sørnes"
 
-#: src/ui/gtk/main.c:519
+#: src/ui/gtk/main.c:524
 msgid ""
 "\n"
 "The FAQ document is damaged.\n"
@@ -9223,7 +9223,7 @@ msgstr ""
 "\n"
 "Dokumentet med ofte stilte spørsmål er skadet.\n"
 
-#: src/ui/gtk/main.c:542
+#: src/ui/gtk/main.c:547
 msgid ""
 "The FAQ document could not be loaded. Please read the online FAQ at http://"
 "gtk-gnutella.sourceforge.net/?page=faq instead."
@@ -9231,7 +9231,7 @@ msgstr ""
 "Klarte ikke åpne dokumentet med ofte stitle spørsmål. Les det på Internett "
 "på «http://gtk-gnutella.sourceforge.net/?page=faq» i stedet."
 
-#: src/ui/gtk/main.c:871
+#: src/ui/gtk/main.c:876
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"

@@ -2,7 +2,7 @@
 #
 # French translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2005 Raphaël Manfredi.
+# Copyright (C) 2001-2006 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # T'aZ <tazdev@punkass.com>, 2004-2005.
 #
@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-01-02 10:07+0900\n"
+"POT-Creation-Date: 2006-01-15 22:29+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: T'aZ <tazdev@punkass.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -115,7 +115,7 @@ msgid "Too many attempts (%u times)"
 msgstr ""
 
 #: src/core/downloads.c:4725 src/core/downloads.c:6088
-#: src/core/downloads.c:7317
+#: src/core/downloads.c:7329
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr ""
@@ -129,7 +129,7 @@ msgstr ""
 msgid "Stopped (EOF)"
 msgstr "Efface ceux arrêtés"
 
-#: src/core/downloads.c:4871 src/core/downloads.c:7161
+#: src/core/downloads.c:4871 src/core/downloads.c:7173
 msgid "Stopped (Output file size changed)"
 msgstr ""
 
@@ -171,8 +171,8 @@ msgid "Discovered dup SHA1"
 msgstr "Découverte d'un SHA1 double"
 
 #: src/core/downloads.c:6070 src/core/downloads.c:6078
-#: src/core/downloads.c:7269 src/core/downloads.c:7307
-#: src/core/downloads.c:9362
+#: src/core/downloads.c:7281 src/core/downloads.c:7319
+#: src/core/downloads.c:9374
 msgid "Stopped data (EOF)"
 msgstr ""
 
@@ -181,7 +181,7 @@ msgstr ""
 msgid "Spammer detected"
 msgstr "Disparité SHA1 détectée"
 
-#: src/core/downloads.c:6551 src/core/downloads.c:7077
+#: src/core/downloads.c:6551 src/core/downloads.c:7089
 #, fuzzy
 msgid "Partial file on server, waiting"
 msgstr "Partage de fichier partiel (swarming)"
@@ -191,20 +191,20 @@ msgstr "Partage de fichier partiel (swarming)"
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "Dans la file [%d] (slot %d / %d) temps de vie: %s"
 
-#: src/core/downloads.c:7275
+#: src/core/downloads.c:7287
 msgid "Stopped (Read buffer full)"
 msgstr ""
 
-#: src/core/downloads.c:7314
+#: src/core/downloads.c:7326
 #, c-format
 msgid "Stopped data (%s)"
 msgstr ""
 
-#: src/core/downloads.c:8608
+#: src/core/downloads.c:8620
 msgid "SHA1 mismatch detected"
 msgstr "Disparité SHA1 détectée"
 
-#: src/core/downloads.c:9286
+#: src/core/downloads.c:9298
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "Par_courir"
@@ -9809,23 +9809,23 @@ msgstr "Moniteur"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:477
+#: src/ui/gtk/main.c:482
 msgid "translation_credit|"
 msgstr ""
 
-#: src/ui/gtk/main.c:519
+#: src/ui/gtk/main.c:524
 msgid ""
 "\n"
 "The FAQ document is damaged.\n"
 msgstr ""
 
-#: src/ui/gtk/main.c:542
+#: src/ui/gtk/main.c:547
 msgid ""
 "The FAQ document could not be loaded. Please read the online FAQ at http://"
 "gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
 
-#: src/ui/gtk/main.c:871
+#: src/ui/gtk/main.c:876
 #, fuzzy, c-format
 msgid "%d second"
 msgid_plural "%d seconds"

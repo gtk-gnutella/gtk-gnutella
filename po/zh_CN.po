@@ -2,7 +2,7 @@
 #
 # Chinese (Simplified) translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2005 Raphaël Manfredi.
+# Copyright (C) 2001-2006 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Wu Xiaoguang <wxgnj@yahoo.com.cn>, 2005.
 #
@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-01-02 10:07+0900\n"
+"POT-Creation-Date: 2006-01-15 22:29+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -113,7 +113,7 @@ msgid "Too many attempts (%u times)"
 msgstr "尝试次数过多 (%d 次)"
 
 #: src/core/downloads.c:4725 src/core/downloads.c:6088
-#: src/core/downloads.c:7317
+#: src/core/downloads.c:7329
 #, c-format
 msgid "Failed (Read error: %s)"
 msgstr "失败 (读取错误:%s)"
@@ -127,7 +127,7 @@ msgstr "连接未保持活动 (EOF)"
 msgid "Stopped (EOF)"
 msgstr "停止 (EOF)"
 
-#: src/core/downloads.c:4871 src/core/downloads.c:7161
+#: src/core/downloads.c:4871 src/core/downloads.c:7173
 msgid "Stopped (Output file size changed)"
 msgstr "停止 (流出文件大小已改变)"
 
@@ -172,8 +172,8 @@ msgid "Discovered dup SHA1"
 msgstr "被发现的dup SHA1"
 
 #: src/core/downloads.c:6070 src/core/downloads.c:6078
-#: src/core/downloads.c:7269 src/core/downloads.c:7307
-#: src/core/downloads.c:9362
+#: src/core/downloads.c:7281 src/core/downloads.c:7319
+#: src/core/downloads.c:9374
 msgid "Stopped data (EOF)"
 msgstr "中止的数据 (EOF)"
 
@@ -182,7 +182,7 @@ msgstr "中止的数据 (EOF)"
 msgid "Spammer detected"
 msgstr "检测到SHA不匹配"
 
-#: src/core/downloads.c:6551 src/core/downloads.c:7077
+#: src/core/downloads.c:6551 src/core/downloads.c:7089
 msgid "Partial file on server, waiting"
 msgstr "部分文件在服务器上，请等待"
 
@@ -191,20 +191,20 @@ msgstr "部分文件在服务器上，请等待"
 msgid "Queued (slot %u/%u) ETA: %s"
 msgstr "ETA排队(插口%1$d/%2$d)：%3$s"
 
-#: src/core/downloads.c:7275
+#: src/core/downloads.c:7287
 msgid "Stopped (Read buffer full)"
 msgstr "中止(读取缓存已满)"
 
-#: src/core/downloads.c:7314
+#: src/core/downloads.c:7326
 #, fuzzy, c-format
 msgid "Stopped data (%s)"
 msgstr "中止数据 (%s)"
 
-#: src/core/downloads.c:8608
+#: src/core/downloads.c:8620
 msgid "SHA1 mismatch detected"
 msgstr "检测到SHA不匹配"
 
-#: src/core/downloads.c:9286
+#: src/core/downloads.c:9298
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "允许浏览主机"
@@ -8854,23 +8854,23 @@ msgstr ""
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
-#: src/ui/gtk/main.c:477
+#: src/ui/gtk/main.c:482
 msgid "translation_credit|"
 msgstr ""
 
-#: src/ui/gtk/main.c:519
+#: src/ui/gtk/main.c:524
 msgid ""
 "\n"
 "The FAQ document is damaged.\n"
 msgstr ""
 
-#: src/ui/gtk/main.c:542
+#: src/ui/gtk/main.c:547
 msgid ""
 "The FAQ document could not be loaded. Please read the online FAQ at http://"
 "gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
 
-#: src/ui/gtk/main.c:871
+#: src/ui/gtk/main.c:876
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
