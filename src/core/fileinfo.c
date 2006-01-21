@@ -1930,7 +1930,7 @@ file_info_hash_insert(fileinfo_t *fi)
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 
 	/*
-	 * Transient fileinfo is only recorded in then GUID hash table.
+	 * Transient fileinfo is only recorded in the GUID hash table.
 	 */
 
 	if (fi->flags & FI_F_TRANSIENT)
@@ -4887,6 +4887,7 @@ file_info_remove(fileinfo_t *fi)
 {
 	g_assert(fi->refcount == 0);
 
+	file_info_hash_remove(fi);
 	fi_dispose(fi);
 }
 
