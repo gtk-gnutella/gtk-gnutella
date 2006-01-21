@@ -862,8 +862,6 @@ search_gui_browse_selected(void)
 			rs->hostname, rs->addr, rs->port,
 			rs->guid, (rs->status & ST_FIREWALL) != 0, rs->proxies);
 	}
-
-	gtk_clist_unselect_all(GTK_CLIST(ctree));
 }
 
 /**
