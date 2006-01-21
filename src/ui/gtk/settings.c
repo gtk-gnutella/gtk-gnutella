@@ -3543,6 +3543,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
+        PROP_BROWSE_COPIED_TO_PASSIVE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_browse_copied_to_passive",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
         PROP_DL_REMOVE_FILE_ON_MISMATCH,
         update_toggle_remove_on_mismatch,
         TRUE,

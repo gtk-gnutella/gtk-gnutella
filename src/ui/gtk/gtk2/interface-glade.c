@@ -2403,7 +2403,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_faq);
   gtk_tooltips_set_tip (tooltips, menu_faq, _("Frequently Asked Questions"), NULL);
 
-  image1151 = create_pixmap (main_window, "gtk-info");
+  image1151 = gtk_image_new_from_stock ("gtk-info", GTK_ICON_SIZE_BUTTON);
   gtk_widget_set_name (image1151, "image1151");
   gtk_widget_show (image1151);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_faq), image1151);
@@ -5123,6 +5123,7 @@ create_main_window_search_tab (void)
   GtkWidget *alignment136;
   GtkObject *spinbutton_browse_host_max_results_adj;
   GtkWidget *spinbutton_browse_host_max_results;
+  GtkWidget *checkbutton_browse_copied_to_passive;
   GtkWidget *label738;
   GtkWidget *label358;
   GtkWidget *viewport106;
@@ -5435,6 +5436,13 @@ create_main_window_search_tab (void)
   gtk_widget_show (spinbutton_browse_host_max_results);
   gtk_container_add (GTK_CONTAINER (alignment136), spinbutton_browse_host_max_results);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_browse_host_max_results), TRUE);
+
+  checkbutton_browse_copied_to_passive = gtk_check_button_new_with_mnemonic (_("Copy browse-host results to passive searches"));
+  gtk_widget_set_name (checkbutton_browse_copied_to_passive, "checkbutton_browse_copied_to_passive");
+  gtk_widget_show (checkbutton_browse_copied_to_passive);
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_browse_copied_to_passive, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label738 = gtk_label_new (_("Displaying"));
   gtk_widget_set_name (label738, "label738");
@@ -5937,6 +5945,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label993, "label993");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment136, "alignment136");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_browse_host_max_results, "spinbutton_browse_host_max_results");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_browse_copied_to_passive, "checkbutton_browse_copied_to_passive");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label738, "label738");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label358, "label358");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport106, "viewport106");

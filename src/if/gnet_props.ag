@@ -3170,4 +3170,17 @@ prop = {
     };
 };
 
+prop = {
+	name = "browse_copied_to_passive";
+	desc = "When set, all search results from host browsing are dispatched "
+		   "to all opened passive searches.  This is useful if you have "
+		   "different selection filters on your passive searches because it "
+		   "lets you classify files easily, regardless of the origin of "
+		   "the files.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
 /* vi: set ts=4: */

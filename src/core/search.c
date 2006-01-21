@@ -2169,12 +2169,14 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	 * had been received from the network.
      */
 
-	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
-		search_ctrl_t *sch = sl->data;
+	if (browse_copied_to_passive) {
+		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
+			search_ctrl_t *sch = sl->data;
 
-		if (!sch->frozen)
-			search = g_slist_prepend(search,
-				GUINT_TO_POINTER(sch->search_handle));
+			if (!sch->frozen)
+				search = g_slist_prepend(search,
+					GUINT_TO_POINTER(sch->search_handle));
+		}
 	}
 
     if (

@@ -515,6 +515,7 @@ create_main_window (void)
   GtkWidget *alignment38;
   GtkObject *spinbutton_browse_host_max_results_adj;
   GtkWidget *spinbutton_browse_host_max_results;
+  GtkWidget *checkbutton_browse_copied_to_passive;
   GtkWidget *scrolledwindow47;
   GtkWidget *viewport45;
   GtkWidget *frame137;
@@ -4900,7 +4901,7 @@ create_main_window (void)
   gtk_widget_show (frame_search_results_settings);
   gtk_box_pack_start (GTK_BOX (vbox132), frame_search_results_settings, FALSE, TRUE, 0);
 
-  table68 = gtk_table_new (3, 4, FALSE);
+  table68 = gtk_table_new (4, 4, FALSE);
   gtk_widget_set_name (table68, "table68");
   gtk_widget_ref (table68);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table68", table68,
@@ -5036,6 +5037,16 @@ create_main_window (void)
   gtk_widget_show (spinbutton_browse_host_max_results);
   gtk_container_add (GTK_CONTAINER (alignment38), spinbutton_browse_host_max_results);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_browse_host_max_results), TRUE);
+
+  checkbutton_browse_copied_to_passive = gtk_check_button_new_with_label (_("Copy browse-host results to passive searches"));
+  gtk_widget_set_name (checkbutton_browse_copied_to_passive, "checkbutton_browse_copied_to_passive");
+  gtk_widget_ref (checkbutton_browse_copied_to_passive);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_browse_copied_to_passive", checkbutton_browse_copied_to_passive,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_browse_copied_to_passive);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_browse_copied_to_passive, 0, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   scrolledwindow47 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow47, "scrolledwindow47");
