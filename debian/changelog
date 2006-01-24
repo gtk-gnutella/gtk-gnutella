@@ -1,3 +1,9 @@
+gtk-gnutella (0.96-0) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Tue, 24 Jan 2006 22:14:17 +0100
+
 gtk-gnutella (0.96b-1) unstable; urgency=medium
 
   * New upstream release
