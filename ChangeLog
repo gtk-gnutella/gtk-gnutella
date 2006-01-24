@@ -1,5 +1,50 @@
 # since last version
-# Mention as 0.96 features: download buffering to avoid excessive fragmentation
+# v 0.96   2006-01.24  [stable]
+
+New features:
+- Browse Host (HTML and Gnutella), TLS and IPv6 support.
+- Chinese and Greek translations of the user interface.
+- D-BUS plugging.
+- Added hot keys: F2, F8 and F9 (see menu View->...).
+- Searches are now created with a configurable expiration date.
+
+Improvements:
+- Optimization of the UTF-8 processing.
+- Better filename conversion to locale, with automagic charset detection.
+- General performance improvements in QRP and search filters.
+- Full "nl" translation.
+- Sorting persistence.
+
+Under the hood:
+- Buffering of downloaded data to avoid excessive disk fragmentation
+- Support for the epoll()/kqueue() system calls.
+- More optimistic PARQ ETA, and PARQ back-off when QUEUE are unanswered.
+- NFS-compatible session locking if anyone cares.
+- Nifty property browser.
+
+- (2006-01-21 - RAM)
+ * [GTK1] Do not deselect items on menu "browse host" selection.
+ * Added option to copy browse-host results to passive searches (disabled
+   by default).  Setting done in GUI from search option pane.
+ * Added cygwin directory containing rules suitable for building cygwin
+   binaries (on a cygwin platform, no cross-compiling).
+ * Fixed crash on exit when hosts are browsed.
+
+- (2006-01-13 - RAM)
+ * Guard against servers incorrectly shrinking the HTTP range in such a
+   way that the end is lower than the beginning! (Shareaza 2.1.0.0 does this)
+
+- (2006-01-01 - RAM)
+ * Distinguish between fully completed browse host requests and those that
+   are aborted in the middle of the transmission.
+ * Added properties "html_browse_served" and "qhits_browse_served".
+ * Added property "browse_host_max_results".
+
+- (2005-12-21 - RAM)
+ * Use specialized routines for 8-bit and 4-bit patches to increase the speed
+   of QRP patching, which is CPU intensive. [Patch from Bill Pringlemeir]
+ * Blindly accept remote GTKG version identification if we're expired.
+ * Removed unused version_newer() routine.
 
 - (2005-12-11 - RAM)
  * Allow launching of "browse host" on expired (completed) uploads from the GUI.
