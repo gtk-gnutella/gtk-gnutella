@@ -48,9 +48,9 @@ binary-arch: checkroot build
 	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/tmp
 	$(MAKE) install.man INSTALL_PREFIX=`pwd`/debian/tmp
 	# install .desktop
-	install -D -m 0644 gtk-gnutella.desktop `pwd`/debian/tmp/usr/share/applications/gtk-gnutella.desktop
+	install -D -m 0644 extra_files/gtk-gnutella.desktop `pwd`/debian/tmp/usr/share/applications/gtk-gnutella.desktop
 	# install .png
-	install -D -m 0644 gtk-gnutella.png `pwd`/debian/tmp/usr/share/pixmaps/gtk-gnutella.png
+	install -D -m 0644 extra_files/gtk-gnutella.png `pwd`/debian/tmp/usr/share/pixmaps/gtk-gnutella.png
 	# strip binary
 	strip --remove-section=.comment --remove-section=.note `pwd`/debian/tmp/usr/bin/gtk-gnutella
 # Must have debmake installed for this to work. Otherwise please copy
