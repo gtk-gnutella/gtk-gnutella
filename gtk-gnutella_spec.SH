@@ -161,7 +161,7 @@ EOF
 %{_datadir}/icons/hicolor/*/apps/gtk-gnutella.*
 %{_datadir}/locale
 %{_datadir}/pixmaps/gtk-gnutella.png
-${_datadir}/pixmaps/gtk-gnutella.svg
+%{_datadir}/pixmaps/gtk-gnutella.svg
 %{_mandir}/man1
 
 %if %{mdk}
