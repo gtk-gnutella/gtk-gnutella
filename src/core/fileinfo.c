@@ -4888,7 +4888,7 @@ file_info_remove(fileinfo_t *fi)
 	g_assert(fi->refcount == 0);
 
 	file_info_hash_remove(fi);
-	fi_dispose(fi);
+	fi_free(fi);
 }
 
 static void
