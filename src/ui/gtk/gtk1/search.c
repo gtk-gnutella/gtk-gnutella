@@ -315,6 +315,7 @@ search_gui_new_search_full(const gchar *querystr,
 	gnet_search_t sch_id;
     GList *rules;
     gint row;
+	gboolean is_only_search = FALSE;
 
 	if (0 == (flags & (SEARCH_F_PASSIVE | SEARCH_F_BROWSE))) {
 		query = search_gui_parse_query(querystr, &rules, &error);
@@ -418,6 +419,7 @@ search_gui_new_search_full(const gchar *querystr,
 
     gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 
+	is_only_search = (searches == NULL);
 	searches = g_list_append(searches, sch);
 	search_gui_option_menu_searches_update();
 	
@@ -431,9 +433,13 @@ search_gui_new_search_full(const gchar *querystr,
 	 * Make new search the current search, unless it's a browse-host search:
 	 * we need to initiate the download and only if everything is OK will
 	 * we move to the newly created search.
+	 *
+	 * If the browse host is the only search in the list, it must be made
+	 * the current search though, since the code relies on one always being
+	 * set when the list of searches is not empty.
 	 */
 	
-	if (sch->browse)
+	if (sch->browse && !is_only_search)
 		gui_search_force_update_tab_label(sch);
 	else
 		search_gui_set_current_search(sch);
