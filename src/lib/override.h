@@ -92,7 +92,7 @@ G_STMT_START {																  \
 } G_STMT_END
 
 #define g_assert_not_reached(x)												\
-	eject_("\nCode should not be reached in " G_STRLOC "\n");				\
+	eject_("\nCode should not have been reached in " G_STRLOC "\n");		\
 
 #endif /* FAST_ASSERTIONS */
 
