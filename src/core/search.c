@@ -620,6 +620,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	rs->addr = host_addr_set_ipv4(peek_be32(r->host_ip)); /* IP address */
 	rs->port = peek_le16(r->host_port);					 /* Port */
 	rs->speed = peek_le32(r->host_speed);				 /* Connection speed */
+	rs->last_hop = n->addr;
 
 	/*
 	 * Hits coming from UDP should bear the node's address, unless the

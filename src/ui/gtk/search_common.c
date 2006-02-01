@@ -746,6 +746,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
 	rs->country = r_set->country;
 	rs->udp_addr = r_set->udp_addr;
+	rs->last_hop = r_set->last_hop;
 
     rs->num_recs = 0;
     rs->records = NULL;
@@ -966,8 +967,14 @@ search_matched(search_t *sch, results_set_t *rs)
 			g_string_append(vinfo, _("udp "));
 			g_string_append(vinfo, host_addr_to_string(rs->udp_addr));
 		}
-	} else
+	} else {
 		sch->tcp_qhits++;
+
+		if (vinfo->len)
+			g_string_append(vinfo, ", ");
+		g_string_append(vinfo, _("tcp "));
+		g_string_append(vinfo, host_addr_to_string(rs->last_hop));
+	}
 
 	if (rs->status & ST_TLS)
 		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");

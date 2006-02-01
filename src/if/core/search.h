@@ -98,6 +98,7 @@ typedef struct gnet_results_set {
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	gchar *hostname;			/**< Optional: server's hostname */
 	host_addr_t udp_addr;		/**< IP of delivering node, if hit from UDP */
+	host_addr_t last_hop;		/**< IP of delivering node */
 
 	GSList *records;
 	guint32 num_recs;
