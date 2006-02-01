@@ -558,7 +558,7 @@ search_gui_new_search_full(const gchar *querystr,
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget(main_window, "entry_search")),
 		"");
 	
-	is_only_search = NULL == search;
+	is_only_search = NULL == searches;
 	searches = g_list_append(searches, sch);
 	search_gui_option_menu_searches_update();
 
