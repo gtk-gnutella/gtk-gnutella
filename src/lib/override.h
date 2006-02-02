@@ -91,7 +91,7 @@ G_STMT_START {																  \
 		eject_("\nAssertion failure \"" STRINGIFY(x) "\" in " G_STRLOC "\n"); \
 } G_STMT_END
 
-#define g_assert_not_reached(x)												\
+#define g_assert_not_reached()												\
 	eject_("\nCode should not have been reached in " G_STRLOC "\n");		\
 
 #endif /* FAST_ASSERTIONS */
