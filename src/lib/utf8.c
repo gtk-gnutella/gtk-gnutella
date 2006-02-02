@@ -4754,6 +4754,113 @@ unicode_compose_init(void)
 	unicode_compose_init_passed = TRUE;
 }
 
+const gchar *
+utf8_dejap_char(const guint32 uc)
+{
+#define GET_ITEM(i) (jap_tab[(i)].uc)
+#define FOUND(i) G_STMT_START { \
+	return jap_tab[(i)].s; \
+	/* NOTREACHED */ \
+} G_STMT_END
+
+	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(jap_tab), CMP,
+		GET_ITEM, FOUND);
+
+#undef FOUND
+#undef GET_ITEM
+
+	return NULL;
+}
+
+/**
+ * Checks whether the given UTF-8 string contains any convertible
+ * characters.
+ *
+ * @param src an UTF-8 encoded NUL-terminated string.
+ * @return TRUE if utf8_dejap() would convert any characters; otherwise FALSE.
+ */
+gboolean
+utf8_can_dejap(const gchar *src)
+{
+	guint retlen;
+	guint32 uc;
+
+	g_assert(NULL != src);
+
+	while (0x0000 != (uc = utf8_decode_char_fast(src, &retlen))) {
+		if (utf8_dejap_char(uc))
+			return TRUE;
+		src += retlen;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Converts hiragana and katakana characters to ASCII sequences,
+ * strips voice marks and keeps any other characters as is.
+ *
+ * @param dst the destination buffer.
+ * @param dst_size the size of the dst buffer in bytes.
+ * @param src the source string.
+ * @return The length in bytes of the resulting string assuming
+ *         dst_size was sufficient.
+ */
+size_t
+utf8_dejap(gchar *dst, size_t dst_size, const gchar *src)
+{
+	gchar *d = dst;
+	const gchar *s = src;
+
+	g_assert(0 == dst_size || NULL != dst);
+	g_assert(NULL != src);
+
+	if (dst_size-- > 0) {
+		while ('\0' != *s) {
+			guint retlen;
+			const gchar *r;
+			size_t r_len;
+			guint32 uc;
+
+			uc = utf8_decode_char_fast(s, &retlen);
+			if (!uc)
+				break;
+
+			r = utf8_dejap_char(uc);
+			if (r) {
+				r_len = strlen(r);
+			} else {
+				r = s;
+				r_len = retlen;
+			}
+			if (r_len > dst_size)
+				break;
+
+			s += retlen;
+			memmove(d, r, r_len);
+			d += r_len;
+			dst_size -= r_len;
+		}
+		*d = '\0';
+	}
+
+ 	while ('\0' != *s) {
+		const gchar *r;
+		guint retlen;
+		guint32 uc;
+
+		uc = utf8_decode_char_fast(s, &retlen);
+		if (!uc)
+			break;
+
+		s += retlen;
+		r = utf8_dejap_char(uc);
+		d += r ? strlen(r) : retlen;
+	}
+
+	return d - dst;
+}
+
 #if defined(TEST_NORMALIZATION_TEST_TXT)
 /**
  * Checks all cases listed in NormalizationTest.txt. This does not take

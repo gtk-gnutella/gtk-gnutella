@@ -191,6 +191,9 @@ gboolean icu_enabled(void);
 gboolean locale_is_latin(void);
 gboolean locale_is_utf8(void);
 
+gboolean utf8_can_dejap(const gchar *src);
+size_t utf8_dejap(gchar *dst, size_t dst_size, const gchar *src);
+
 #if 0  /* xxxUSE_ICU */
 
 #define UNICODE_CANONIZE(x) \
