@@ -548,15 +548,22 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			gtk_widget_hide(w);
 #endif
 	} else {
-		gchar text[1024];
+		gchar text[4096], extra[1024];
+		gboolean has_extra;
 
+		if (rc->utf8_name && utf8_can_dejap(rc->utf8_name)) {
+			utf8_dejap(extra, sizeof extra, rc->utf8_name);
+		} else {
+			0[extra] = '\0';
+		}
+
+		has_extra = '\0' != 0[extra];
 		gm_snprintf(text, sizeof text,
 			"%s %s\n"
 			"%s %s (%s)\n"
 			"%s %.64s\n"
-			"%s %s\n"
-			"%s %s\n"
-			"%s %s",
+			"%s %s"
+			"%s%s",
 			_("Peer:"),
 			host_addr_port_to_string(rc->results_set->addr,
 				rc->results_set->port),
@@ -565,12 +572,10 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			iso3166_country_cc(rc->results_set->country),
 			_("Vendor:"),
 			search_get_vendor_from_record(rc),
-			_("SHA1:"),
-			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"),
-			_("GUID:"),
-			guid_hex_str(rc->results_set->guid),
 			_("Size:"),
-			short_size(rc->size));
+			short_size(rc->size),
+			has_extra ? "\nExtra: " : "",
+			has_extra ? extra : "");
 
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			text, NULL);
