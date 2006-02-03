@@ -93,14 +93,13 @@ static const struct {
 	const gchar *uhc;
 } boot_hosts[] = {
 	{ "cache.kicks-ass.net:8000" },
-	{ "g6.dns6.org:1337" },
-	{ "gwc.mine.nu:9999" },
-	{ "gwc2.mine.nu:9999" },
+	{ "g6.6dns.org:1337" },
 	{ "kisama.ath.cx:8080" },
 	{ "krill.shacknet.nu:20095" },
 	{ "plankton.merseine.nu:20098" },
 	{ "pokerface.bishopston.net:3558" },
 	{ "secondary.udp-host-cache.com:9999" },
+	{ "tribaldance.bishopston.net:3558" },
 	{ "uhc.udp-host-cache.com:9999" },
 	{ "uhc2.limewire.com:20181" },
 };
