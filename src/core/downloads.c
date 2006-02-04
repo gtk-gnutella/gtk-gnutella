@@ -6939,7 +6939,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				return;
 			}
 			if (
-				end < (d->skip - (d->skip < d->overlap_size ? 0 : d->overlap_size)) ||
+				end < (d->skip -
+					(d->skip < d->overlap_size ? 0 : d->overlap_size)) ||
 				start >= d->range_end
 			) {
 				gchar got[64];
