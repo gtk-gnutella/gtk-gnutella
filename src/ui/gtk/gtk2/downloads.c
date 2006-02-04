@@ -1478,6 +1478,16 @@ gui_update_download(download_t *d, gboolean force)
 					_(" retry in %us"),
 					(guint) (guc_get_parq_dl_retry_delay(d) - elapsed));
 		}
+
+		/*
+		 * If source is a partial source, show it.
+		 */
+
+		if (d->ranges != NULL) {
+			gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
+				" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
+		}
+
 		status_ptr = status_buf;
 		break;
 	case GTA_DL_QUEUED:

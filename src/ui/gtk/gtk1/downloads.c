@@ -1065,6 +1065,16 @@ gui_update_download(struct download *d, gboolean force)
 			)
 				downloads_gui_update_parent_status(d, now, _("Queued"));
 		}
+
+		/*
+		 * If source is a partial source, show it.
+		 */
+
+		if (d->ranges != NULL) {
+			gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
+		}
+
 		a = tmpstr;
 		break;
 	case GTA_DL_QUEUED:
