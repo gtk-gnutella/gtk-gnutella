@@ -59,49 +59,7 @@ RCSID("$Id$");
  * There can be up to 2^5 = 32 keys per version.
  */
 
-static const gchar *keys_093_1[] = {
-	"8bd8 5c21 1f38 b433 f6bb 8b9c d3ed cbdb",
-	"550c 0a1e d6af ba66 11cb 2e38 348a 2cba",
-	"793c 2d05 3eae c7fb 75af 8cc8 5952 cf7b",
-	"3af4 5190 0c8c efde acdf e12d 3687 4fc4",
-	"515d 09ef a9b4 e53e f60f 4a72 6eaa 371a",
-	"f947 8d4b ead0 abae 972a 8d73 e521 f914",
-	"72c0 809a 66ec 4979 345b a28f ad46 4179",
-	"3b43 49d4 5517 38ea 5ab6 b088 1b79 b603",
-	"5cd2 69d4 f187 907e 096c c648 adea c40a",
-	"9ce0 f178 3238 905d b831 8f9b 031e adb2",
-	"6125 2bce 1b0e c97a d5b8 81ac d808 2369",
-	"790f 0ca8 91b9 3d94 86f8 6f1e d3d2 198a",
-	"e01a 668f 9749 9037 fdf4 a78c 1db8 4381",
-	"a019 5ad1 595e 5b72 7fc9 5aea 1799 89ed",
-	"db94 b4c2 6c3d a31e d7e4 8731 0784 1fb8",
-	"ee48 01f0 40d7 e57b fd0d d3be 84f8 fbe8",
-};
-
-static const gchar *keys_095[] = {
-	"a4d6 1ffa 2f74 8377 37bc ed80 d041 3976",
-	"659f 19f0 7649 6b98 a9b6 d792 34f2 b020",
-	"394c 56f2 eff2 ff9b aaae 2b42 9fa6 9b21",
-	"3c1a 4be1 fbb3 407f b890 8b48 473a 7efe",
-	"0ce6 62c8 064d 9d01 86ae c74d 94fe 8729",
-	"245d c44d 485c 955c e5dc c4b4 3377 b51a",
-	"a88a 875e f61f 02db bab7 5dab e419 ad96",
-	"882c 6d4e f847 11a5 2c60 d949 1ee5 b837",
-	"9c22 436c e33b 39bb 4074 b292 4137 b6f0",
-	"482f cc27 dc1e d20b 09d1 fab8 7aae 899f",
-	"b80d 4624 d321 acb9 6257 ab7e 9a85 b614",
-	"3079 31b7 04e3 46fb c417 618a 14b6 812f",
-	"512a 3952 b884 fab5 3144 208f 34c7 b666",
-	"1b73 dabc 00bf 6b7e 9d83 bf6a b8b0 cadd",
-	"a07a fd93 7357 e911 4903 6bac 6401 b593",
-	"4372 2239 823d 2f4d 0dd8 cfd2 e755 f870",
-	"06b6 9797 e289 6cd2 15d4 3380 428e 4725",
-	"a23a 0699 0453 73bd 2e7a 879b 6fec 5151",
-	"91c0 086f 1ba3 12b5 9d0a ee3e 0e83 808f",
-	"5f9f 1935 9e39 495d 0873 9036 c6ff eaae",
-};
-
-static const gchar *keys_096[] = {
+static const gchar *keys_096b[] = {
 	"bea7 69a5 a647 f605 46b0 d155 2ba6 cee7",
 	"68b0 2cf3 2c1a 8ae0 a72d f5c0 e77b bba8",
 	"856e 4221 1470 a903 193e 2cc9 79a5 5337",
@@ -124,6 +82,31 @@ static const gchar *keys_096[] = {
 	"e824 cbee 3b74 9c99 e808 ac6c 079b 1d16",
 };
 
+static const gchar *keys_096[] = {
+	"261c 78d6 fcc5 d96e 2649 061a 4534 29b5",
+	"2629 7de4 8edd 43eb 6c47 2b01 caf1 5e86",
+	"50c2 076a 5a15 5c0c 27fb eda0 381b 2eb7",
+	"851c 2fff 0a31 c6ad 2181 4d31 8fea 492c",
+	"c8f8 01a8 2975 cc75 417c 63aa 5403 5b41",
+	"045b aca8 5227 7d0f 232a 7c6a d713 d5dd",
+	"f281 f0c5 23fb cf66 5ca4 6a3d 9df1 dc6a",
+	"0fc8 ac1f 76da 5f7e 3459 bd7d 3175 76cf",
+	"f981 7fe7 06d1 d3d9 9d69 1e47 b8d0 9adf",
+	"7422 4730 d7d0 9293 002c b700 8979 dccf",
+	"c328 4be8 9008 8d52 cbd6 2f45 30ba 9467",
+	"cdc2 2db6 6bba 312c 10fb 246b b371 be09",
+	"017a 3e68 90e0 e0f0 8124 3cc8 fcf8 3bf7",
+	"2e56 a817 02b3 0819 d971 a245 c33e 42fc",
+	"0ee7 8801 db48 f2d6 64ad 6c42 bac3 f7ee",
+	"c758 af82 e6a3 aa5f 1da0 c127 4541 1ce8",
+	"2edc 2b16 9e66 a191 9e45 2e66 ea98 0c7b",
+	"438a a8ed d27e 711e 631e 2372 a013 d095",
+	"45cf 2974 2086 d00e efec 9277 05a3 bff2",
+	"bb86 594c 74e2 432d 5444 8a85 82c8 d098",
+	"64f4 9829 a541 8625 578c fd90 639c f42b",
+	"3084 a2bc f4ed 8b3c 2a2b 1834 cd8e 3f8b",
+};
+
 /**
  * Describes the keys to use depending on the version.
  */
@@ -134,15 +117,11 @@ struct tokkey {
 } token_keys[] = {
 	/* Keep this array sorted by increasing timestamp */
 	{
-		{ 0, 93, 1, '\0', 0, 1072566000 },			/* 28/12/2003 */
-		keys_093_1, G_N_ELEMENTS(keys_093_1),
-	},
-	{
-		{ 0, 95, 0, 'u', 0, 1101510000 },			/* 2004-11-27 */
-		keys_095, G_N_ELEMENTS(keys_095),
-	},
-	{
 		{ 0, 96, 0, 'b', 0, 1132614000 },			/* 2005-11-22 */
+		keys_096b, G_N_ELEMENTS(keys_096b),
+	},
+	{
+		{ 0, 96, 0, '\0', 0, 1138057200 },			/* 2006-01-24 */
 		keys_096, G_N_ELEMENTS(keys_096),
 	},
 };
