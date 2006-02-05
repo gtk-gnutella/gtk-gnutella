@@ -26,7 +26,7 @@ src/ui/gtk/gtk1/callbacks.c
 src/ui/gtk/gtk1/downloads.c
 src/ui/gtk/gtk1/downloads_cb.c
 src/ui/gtk/gtk1/fileinfo.c
-src/ui/gtk/gtk1/interface-glade.c
+src/ui/gtk/gtk1/interface-glade.t
 src/ui/gtk/gtk1/nodes.c
 src/ui/gtk/gtk1/search.c
 src/ui/gtk/gtk1/search_cb.c

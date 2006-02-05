@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.1u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-02-04 14:10+0900\n"
+"POT-Creation-Date: 2006-02-05 14:39+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -657,29 +657,26 @@ msgstr "átjátszó csomóponthoz"
 msgid "normal node"
 msgstr "Saját pont"
 
-#: src/core/shell.c:701 src/ui/gtk/gtk1/interface-glade.c:2824
+#: src/core/shell.c:701 src/ui/gtk/gtk1/interface-glade.t:118
 #: src/ui/gtk/gtk2/gnet_stats.c:459
 msgid "Hops"
 msgstr "Ugrás"
 
-#: src/core/shell.c:702 src/ui/gtk/gtk1/interface-glade.c:2833
-#: src/ui/gtk/gtk1/interface-glade.c:5897 src/ui/gtk/gtk2/gnet_stats.c:460
+#: src/core/shell.c:702 src/ui/gtk/gtk1/interface-glade.t:119
+#: src/ui/gtk/gtk1/interface-glade.t:281 src/ui/gtk/gtk2/gnet_stats.c:460
 msgid "Nodes"
 msgstr "Csomópont"
 
-#: src/core/shell.c:703 src/ui/gtk/gtk1/interface-glade.c:2842
-#: src/ui/gtk/gtk1/interface-glade.c:5915 src/ui/gtk/gtk2/gnet_stats.c:461
+#: src/core/shell.c:703 src/ui/gtk/gtk1/interface-glade.t:120
+#: src/ui/gtk/gtk1/interface-glade.t:282 src/ui/gtk/gtk2/gnet_stats.c:461
 msgid "Files"
 msgstr "Fájl"
 
-#: src/core/shell.c:704 src/ui/gtk/gtk1/interface-glade.c:2851
-#: src/ui/gtk/gtk1/interface-glade.c:3304
-#: src/ui/gtk/gtk1/interface-glade.c:3505
-#: src/ui/gtk/gtk1/interface-glade.c:3738
-#: src/ui/gtk/gtk1/interface-glade.c:4124
-#: src/ui/gtk/gtk1/interface-glade.c:4571
-#: src/ui/gtk/gtk1/interface-glade.c:5933
-#: src/ui/gtk/gtk1/interface-glade.c:13202 src/ui/gtk/gtk1/search.c:2212
+#: src/core/shell.c:704 src/ui/gtk/gtk1/interface-glade.t:121
+#: src/ui/gtk/gtk1/interface-glade.t:147 src/ui/gtk/gtk1/interface-glade.t:162
+#: src/ui/gtk/gtk1/interface-glade.t:176 src/ui/gtk/gtk1/interface-glade.t:195
+#: src/ui/gtk/gtk1/interface-glade.t:225 src/ui/gtk/gtk1/interface-glade.t:283
+#: src/ui/gtk/gtk1/interface-glade.t:587 src/ui/gtk/gtk1/search.c:2212
 #: src/ui/gtk/gtk1/search.c:2218 src/ui/gtk/gtk2/downloads.c:485
 #: src/ui/gtk/gtk2/downloads.c:530 src/ui/gtk/gtk2/fileinfo.c:613
 #: src/ui/gtk/gtk2/gnet_stats.c:462 src/ui/gtk/gtk2/interface-glade.c:11732
@@ -2812,7 +2809,7 @@ msgid "UDP only"
 msgstr ""
 
 #: src/if/gui_property.c:214 src/ui/gtk/gnet_stats_common.c:46
-#: src/ui/gtk/gtk1/interface-glade.c:13927
+#: src/ui/gtk/gtk1/interface-glade.t:625
 #: src/ui/gtk/gtk2/interface-glade.c:12378 src/ui/gtk/gtk2/nodes.c:363
 #: src/ui/gtk/gtk2/nodes.c:422 src/ui/gtk/gtk2/search_cb.c:508
 msgid "Unknown"
@@ -2849,13 +2846,13 @@ msgid "Vendor std."
 msgstr "Eladó std."
 
 #: src/if/gui_property.c:222 src/ui/gtk/gnet_stats_common.c:54
-#: src/ui/gtk/gtk1/interface-glade.c:9409
+#: src/ui/gtk/gtk1/interface-glade.t:443
 #: src/ui/gtk/gtk2/interface-glade.c:8611
 msgid "Push"
 msgstr "Nyomás"
 
 #: src/if/gui_property.c:223 src/ui/gtk/gnet_stats_common.c:55
-#: src/ui/gtk/gtk1/interface-glade.c:13905
+#: src/ui/gtk/gtk1/interface-glade.t:623
 #: src/ui/gtk/gtk2/interface-glade.c:12362 src/ui/gtk/gtk2/monitor.c:148
 msgid "Query"
 msgstr "Keresés"
@@ -2866,7 +2863,7 @@ msgid "Query Hit"
 msgstr "Találat"
 
 #: src/if/gui_property.c:225 src/ui/gtk/gnet_stats_common.c:57
-#: src/ui/gtk/gtk1/interface-glade.c:5749 src/ui/gtk/gtk2/search_stats.c:383
+#: src/ui/gtk/gtk1/interface-glade.t:277 src/ui/gtk/gtk2/search_stats.c:383
 msgid "Total"
 msgstr "Összesen"
 
@@ -4623,8 +4620,8 @@ msgstr "illik regkif-hez"
 msgid "is exactly"
 msgstr "egyezik"
 
-#: src/ui/gtk/filter.c:280 src/ui/gtk/gtk1/interface-glade.c:7923
-#: src/ui/gtk/gtk1/interface-glade.c:7982
+#: src/ui/gtk/filter.c:280 src/ui/gtk/gtk1/interface-glade.t:356
+#: src/ui/gtk/gtk1/interface-glade.t:359
 #: src/ui/gtk/gtk2/interface-glade.c:1123
 msgid "Filter"
 msgstr "Szűrő"
@@ -4635,27 +4632,23 @@ msgid "Rule"
 msgstr "Szabályok"
 
 #: src/ui/gtk/filter.c:282 src/ui/gtk/filter.c:291
-#: src/ui/gtk/gtk1/interface-glade.c:7939
-#: src/ui/gtk/gtk1/interface-glade.c:8071
+#: src/ui/gtk/gtk1/interface-glade.t:358 src/ui/gtk/gtk1/interface-glade.t:366
 msgid "Match"
 msgstr "Illesztés"
 
-#: src/ui/gtk/filter.c:288 src/ui/gtk/gtk1/interface-glade.c:8047
+#: src/ui/gtk/filter.c:288 src/ui/gtk/gtk1/interface-glade.t:363
 msgid "!"
 msgstr "¬"
 
-#: src/ui/gtk/filter.c:289 src/ui/gtk/gtk1/interface-glade.c:8055
+#: src/ui/gtk/filter.c:289 src/ui/gtk/gtk1/interface-glade.t:364
 msgid "Condition"
 msgstr "Feltétel"
 
-#: src/ui/gtk/filter.c:290 src/ui/gtk/gtk1/interface-glade.c:8063
-#: src/ui/gtk/gtk1/interface-glade.c:8371
-#: src/ui/gtk/gtk1/interface-glade.c:8573
-#: src/ui/gtk/gtk1/interface-glade.c:8821
-#: src/ui/gtk/gtk1/interface-glade.c:8997
-#: src/ui/gtk/gtk1/interface-glade.c:9229
-#: src/ui/gtk/gtk1/interface-glade.c:9619
-#: src/ui/gtk/gtk1/interface-glade.c:9985
+#: src/ui/gtk/filter.c:290 src/ui/gtk/gtk1/interface-glade.t:365
+#: src/ui/gtk/gtk1/interface-glade.t:387 src/ui/gtk/gtk1/interface-glade.t:398
+#: src/ui/gtk/gtk1/interface-glade.t:412 src/ui/gtk/gtk1/interface-glade.t:421
+#: src/ui/gtk/gtk1/interface-glade.t:433 src/ui/gtk/gtk1/interface-glade.t:454
+#: src/ui/gtk/gtk1/interface-glade.t:474
 #: src/ui/gtk/gtk2/interface-glade.c:6861
 #: src/ui/gtk/gtk2/interface-glade.c:7197
 #: src/ui/gtk/gtk2/interface-glade.c:7583
@@ -4810,7 +4803,7 @@ msgid "DISPLAY is undefined"
 msgstr "meghatározatlan"
 
 #: src/ui/gtk/filter_core.c:1105 src/ui/gtk/filter_core.c:2432
-#: src/ui/gtk/gtk1/interface-glade.c:9846
+#: src/ui/gtk/gtk1/interface-glade.t:467
 #: src/ui/gtk/gtk2/interface-glade.c:9361
 msgid "DISPLAY"
 msgstr "MUTAT"
@@ -4826,7 +4819,7 @@ msgid "DOWNLOAD is undefined"
 msgstr "meghatározatlan"
 
 #: src/ui/gtk/filter_core.c:1126 src/ui/gtk/filter_core.c:2434
-#: src/ui/gtk/gtk1/interface-glade.c:9795
+#: src/ui/gtk/gtk1/interface-glade.t:464
 #: src/ui/gtk/gtk2/interface-glade.c:9292
 msgid "DOWNLOAD"
 msgstr "LETÖLTÉS"
@@ -4878,7 +4871,7 @@ msgstr "Globális szűrők"
 msgid "RETURN"
 msgstr ""
 
-#: src/ui/gtk/gnet_stats_common.c:56 src/ui/gtk/gtk1/interface-glade.c:13916
+#: src/ui/gtk/gnet_stats_common.c:56 src/ui/gtk/gtk1/interface-glade.t:624
 #: src/ui/gtk/gtk2/interface-glade.c:12370
 msgid "Query hit"
 msgstr "Találat"
@@ -5088,7 +5081,7 @@ msgid_plural "%u hosts"
 msgstr[0] "%u gazda"
 
 #: src/ui/gtk/gtk1/downloads.c:1035 src/ui/gtk/gtk1/downloads.c:1066
-#: src/ui/gtk/gtk1/interface-glade.c:2760 src/ui/gtk/gtk2/downloads.c:1455
+#: src/ui/gtk/gtk1/interface-glade.t:113 src/ui/gtk/gtk2/downloads.c:1455
 #: src/ui/gtk/gtk2/gnet_stats.c:58 src/ui/gtk/uploads_common.c:199
 msgid "Queued"
 msgstr "Sorban"
@@ -5177,7 +5170,7 @@ msgid "Aborted"
 msgstr "Abbahagyva"
 
 #: src/ui/gtk/gtk1/downloads.c:1180 src/ui/gtk/gtk1/downloads.c:1185
-#: src/ui/gtk/gtk1/interface-glade.c:4326 src/ui/gtk/gtk2/downloads.c:1575
+#: src/ui/gtk/gtk1/interface-glade.t:208 src/ui/gtk/gtk2/downloads.c:1575
 #: src/ui/gtk/gtk2/downloads.c:1580 src/ui/gtk/gtk2/interface-glade.c:4768
 msgid "Completed"
 msgstr "Befejezve"
@@ -5241,7 +5234,7 @@ msgstr "%d után újra"
 msgid "Sinking (%s bytes left)"
 msgstr "Sűllyedés (%u bájt maradt)"
 
-#: src/ui/gtk/gtk1/downloads.c:1381 src/ui/gtk/gtk1/interface-glade.c:3521
+#: src/ui/gtk/gtk1/downloads.c:1381 src/ui/gtk/gtk1/interface-glade.t:164
 #: src/ui/gtk/gtk2/downloads.c:1388 src/ui/gtk/gtk2/upload_stats.c:272
 msgid "Complete"
 msgstr "Kész"
@@ -5338,292 +5331,249 @@ msgstr "Várakozás"
 msgid "%s (%s bytes)"
 msgstr "%s (%lu bájt)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:674
+#: src/ui/gtk/gtk1/interface-glade.t:6
 msgid "gtk-gnutella"
 msgstr "gtk-gnutella"
 
-#: src/ui/gtk/gtk1/interface-glade.c:703
-#: src/ui/gtk/gtk2/interface-glade.c:2062
+#: src/ui/gtk/gtk1/interface-glade.t:7 src/ui/gtk/gtk2/interface-glade.c:2062
 msgid "_File"
 msgstr "_Fájl"
 
-#: src/ui/gtk/gtk1/interface-glade.c:726
-#: src/ui/gtk/gtk2/interface-glade.c:2076
+#: src/ui/gtk/gtk1/interface-glade.t:8 src/ui/gtk/gtk2/interface-glade.c:2076
 #, fuzzy
 msgid "_GnutellaNet"
 msgstr "GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:738
-#: src/ui/gtk/gtk2/interface-glade.c:2086
+#: src/ui/gtk/gtk1/interface-glade.t:9 src/ui/gtk/gtk2/interface-glade.c:2086
 #, fuzzy
 msgid "_Stats"
 msgstr "Statisztika"
 
-#: src/ui/gtk/gtk1/interface-glade.c:750
-#: src/ui/gtk/gtk2/interface-glade.c:2091
+#: src/ui/gtk/gtk1/interface-glade.t:10 src/ui/gtk/gtk2/interface-glade.c:2091
 #, fuzzy
 msgid "_Hostcache"
 msgstr "Gazdatár"
 
-#: src/ui/gtk/gtk1/interface-glade.c:771
-#: src/ui/gtk/gtk2/interface-glade.c:2102
+#: src/ui/gtk/gtk1/interface-glade.t:11 src/ui/gtk/gtk2/interface-glade.c:2102
 msgid "_Preferences"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:795
-#: src/ui/gtk/gtk1/interface-glade.c:17701
+#: src/ui/gtk/gtk1/interface-glade.t:12 src/ui/gtk/gtk1/interface-glade.t:814
 #: src/ui/gtk/gtk2/interface-glade.c:2121
 msgid "_Quit"
 msgstr "_Kilépés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:810
-#: src/ui/gtk/gtk2/interface-glade.c:2134
+#: src/ui/gtk/gtk1/interface-glade.t:13 src/ui/gtk/gtk2/interface-glade.c:2134
 #, fuzzy
 msgid "_Uploads"
 msgstr "Feltöltések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:830
-#: src/ui/gtk/gtk2/interface-glade.c:2148
+#: src/ui/gtk/gtk1/interface-glade.t:14 src/ui/gtk/gtk2/interface-glade.c:2148
 #, fuzzy
 msgid "_Transfers"
 msgstr "Átvitt adat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:842
-#: src/ui/gtk/gtk2/interface-glade.c:2153
+#: src/ui/gtk/gtk1/interface-glade.t:15 src/ui/gtk/gtk2/interface-glade.c:2153
 #, fuzzy
 msgid "_History"
 msgstr "Történet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:854
-#: src/ui/gtk/gtk2/interface-glade.c:2158
+#: src/ui/gtk/gtk1/interface-glade.t:16 src/ui/gtk/gtk2/interface-glade.c:2158
 #, fuzzy
 msgid "_Downloads"
 msgstr "Letöltések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:874
-#: src/ui/gtk/gtk2/interface-glade.c:2172
+#: src/ui/gtk/gtk1/interface-glade.t:17 src/ui/gtk/gtk2/interface-glade.c:2172
 #, fuzzy
 msgid "_Files"
 msgstr "Fájl"
 
-#: src/ui/gtk/gtk1/interface-glade.c:886
-#: src/ui/gtk/gtk2/interface-glade.c:2182
+#: src/ui/gtk/gtk1/interface-glade.t:18 src/ui/gtk/gtk2/interface-glade.c:2182
 #, fuzzy
 msgid "_Active"
 msgstr "aktív"
 
-#: src/ui/gtk/gtk1/interface-glade.c:898
-#: src/ui/gtk/gtk2/interface-glade.c:2192
+#: src/ui/gtk/gtk1/interface-glade.t:19 src/ui/gtk/gtk2/interface-glade.c:2192
 #, fuzzy
 msgid "_Queue"
 msgstr "Sorban"
 
-#: src/ui/gtk/gtk1/interface-glade.c:910
-#: src/ui/gtk/gtk2/interface-glade.c:2202
+#: src/ui/gtk/gtk1/interface-glade.t:20 src/ui/gtk/gtk2/interface-glade.c:2202
 #: src/ui/gtk/gtk2/interface-glade.c:2923
 #, fuzzy
 msgid "_Search"
 msgstr "_Keresés:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:930
-#: src/ui/gtk/gtk2/interface-glade.c:2216
+#: src/ui/gtk/gtk1/interface-glade.t:21 src/ui/gtk/gtk2/interface-glade.c:2216
 #, fuzzy
 msgid "_Results"
 msgstr "Eredmények _törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:942
-#: src/ui/gtk/gtk2/interface-glade.c:2226
+#: src/ui/gtk/gtk1/interface-glade.t:22 src/ui/gtk/gtk2/interface-glade.c:2226
 #, fuzzy
 msgid "_Monitor"
 msgstr "Figyelő"
 
-#: src/ui/gtk/gtk1/interface-glade.c:954
-#: src/ui/gtk/gtk2/interface-glade.c:2231
+#: src/ui/gtk/gtk1/interface-glade.t:23 src/ui/gtk/gtk2/interface-glade.c:2231
 #, fuzzy
 msgid "S_tats"
 msgstr "Statisztika"
 
-#: src/ui/gtk/gtk1/interface-glade.c:966
-#: src/ui/gtk/gtk2/interface-glade.c:2236
+#: src/ui/gtk/gtk1/interface-glade.t:24 src/ui/gtk/gtk2/interface-glade.c:2236
 msgid "_View"
 msgstr "_Nézet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:989
-#: src/ui/gtk/gtk2/interface-glade.c:2250
+#: src/ui/gtk/gtk1/interface-glade.t:25 src/ui/gtk/gtk2/interface-glade.c:2250
 #, fuzzy
 msgid "show Search_bar"
 msgstr "Á_llapotsor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1006
+#: src/ui/gtk/gtk1/interface-glade.t:26
 msgid "show _Toolbar"
 msgstr "_Eszköztár"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1022
-#: src/ui/gtk/gtk2/interface-glade.c:2258
+#: src/ui/gtk/gtk1/interface-glade.t:27 src/ui/gtk/gtk2/interface-glade.c:2258
 #, fuzzy
 msgid "show _Sidebar"
 msgstr "Á_llapotsor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1038
-#: src/ui/gtk/gtk2/interface-glade.c:2266
+#: src/ui/gtk/gtk1/interface-glade.t:28 src/ui/gtk/gtk2/interface-glade.c:2266
 msgid "show _Navigation Tree"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:1063
-#: src/ui/gtk/gtk2/interface-glade.c:2280
+#: src/ui/gtk/gtk1/interface-glade.t:29 src/ui/gtk/gtk2/interface-glade.c:2280
 msgid "show _Downloads"
 msgstr "Le_töltések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1080
-#: src/ui/gtk/gtk2/interface-glade.c:2286
+#: src/ui/gtk/gtk1/interface-glade.t:30 src/ui/gtk/gtk2/interface-glade.c:2286
 msgid "show _Uploads"
 msgstr "_Feltöltések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1097
-#: src/ui/gtk/gtk2/interface-glade.c:2292
+#: src/ui/gtk/gtk1/interface-glade.t:31 src/ui/gtk/gtk2/interface-glade.c:2292
 msgid "show _Connections"
 msgstr "_Kapcsolatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1114
-#: src/ui/gtk/gtk2/interface-glade.c:2298
+#: src/ui/gtk/gtk1/interface-glade.t:32 src/ui/gtk/gtk2/interface-glade.c:2298
 #, fuzzy
 msgid "_HTTP traffic stats"
 msgstr "HTTP-forgalmi adatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1134
-#: src/ui/gtk/gtk2/interface-glade.c:2307
+#: src/ui/gtk/gtk1/interface-glade.t:33 src/ui/gtk/gtk2/interface-glade.c:2307
 #, fuzzy
 msgid "show HTTP _incoming traffic"
 msgstr "bejövő HTTP forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1148
-#: src/ui/gtk/gtk2/interface-glade.c:2313
+#: src/ui/gtk/gtk1/interface-glade.t:34 src/ui/gtk/gtk2/interface-glade.c:2313
 #, fuzzy
 msgid "show HTTP _outgoing traffic"
 msgstr "kimenő HTTP forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1162
+#: src/ui/gtk/gtk1/interface-glade.t:35
 #, fuzzy
 msgid "_Gnet traffic stats"
 msgstr "gnet-forgalmi adatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1182
-#: src/ui/gtk/gtk2/interface-glade.c:2328
+#: src/ui/gtk/gtk1/interface-glade.t:36 src/ui/gtk/gtk2/interface-glade.c:2328
 #, fuzzy
 msgid "show Gnet _incoming traffic"
 msgstr "bejövő gNet forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1196
-#: src/ui/gtk/gtk2/interface-glade.c:2334
+#: src/ui/gtk/gtk1/interface-glade.t:37 src/ui/gtk/gtk2/interface-glade.c:2334
 #, fuzzy
 msgid "show Gnet _outgoing traffic"
 msgstr "kimenő gNet forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1210
-#: src/ui/gtk/gtk2/interface-glade.c:2340
+#: src/ui/gtk/gtk1/interface-glade.t:38 src/ui/gtk/gtk2/interface-glade.c:2340
 #, fuzzy
 msgid "Gnet _leaf traffic stats"
 msgstr "gnet végponti forgalmi adatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1230
-#: src/ui/gtk/gtk2/interface-glade.c:2349
+#: src/ui/gtk/gtk1/interface-glade.t:39 src/ui/gtk/gtk2/interface-glade.c:2349
 #, fuzzy
 msgid "_auto-hide leaf traffic stats"
 msgstr "gnet végpontforgalmi adatok rejtése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1243
-#: src/ui/gtk/gtk2/interface-glade.c:2354
+#: src/ui/gtk/gtk1/interface-glade.t:40 src/ui/gtk/gtk2/interface-glade.c:2354
 #, fuzzy
 msgid "show leaf _incoming traffic"
 msgstr "bejövő végponti forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1256
-#: src/ui/gtk/gtk2/interface-glade.c:2359
+#: src/ui/gtk/gtk1/interface-glade.t:41 src/ui/gtk/gtk2/interface-glade.c:2359
 #, fuzzy
 msgid "show leaf _outgoing traffic"
 msgstr "kimenő végponti forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1278
-#: src/ui/gtk/gtk2/interface-glade.c:2370
+#: src/ui/gtk/gtk1/interface-glade.t:42 src/ui/gtk/gtk2/interface-glade.c:2370
 msgid "show _Statusbar"
 msgstr "Á_llapotsor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1295
-#: src/ui/gtk/gtk2/interface-glade.c:2376
+#: src/ui/gtk/gtk1/interface-glade.t:43 src/ui/gtk/gtk2/interface-glade.c:2376
 #, fuzzy
 msgid "_Help"
 msgstr "Súgó"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1315
-#: src/ui/gtk/gtk2/interface-glade.c:2411
+#: src/ui/gtk/gtk1/interface-glade.t:44 src/ui/gtk/gtk2/interface-glade.c:2411
 msgid "_About"
 msgstr "_Névjegy"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1330
-#: src/ui/gtk/gtk2/interface-glade.c:2400
-msgid "_FAQ"
-msgstr ""
-
-#: src/ui/gtk/gtk1/interface-glade.c:1339
-#: src/ui/gtk/gtk2/interface-glade.c:2404
+#: src/ui/gtk/gtk1/interface-glade.t:45 src/ui/gtk/gtk2/interface-glade.c:2404
 msgid "Frequently Asked Questions"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:1397
+#: src/ui/gtk/gtk1/interface-glade.t:46 src/ui/gtk/gtk2/interface-glade.c:2400
+msgid "_FAQ"
+msgstr ""
+
+#: src/ui/gtk/gtk1/interface-glade.t:47
 msgid "Navigator"
 msgstr "Tájoló"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1457
-#: src/ui/gtk/gtk1/interface-glade.c:1787
-#: src/ui/gtk/gtk1/interface-glade.c:5626 src/ui/gtk/gtk2/search.c:1152
+#: src/ui/gtk/gtk1/interface-glade.t:48 src/ui/gtk/gtk1/interface-glade.t:68
+#: src/ui/gtk/gtk1/interface-glade.t:272 src/ui/gtk/gtk2/search.c:1152
 #: src/ui/gtk/main.c:138
 msgid "Search"
 msgstr "Keresés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1466
-#: src/ui/gtk/gtk1/interface-glade.c:3035 src/ui/gtk/gtk2/hcache.c:49
-#: src/ui/gtk/gtk2/search.c:1153
+#: src/ui/gtk/gtk1/interface-glade.t:49 src/ui/gtk/gtk1/interface-glade.t:131
+#: src/ui/gtk/gtk2/hcache.c:49 src/ui/gtk/gtk2/search.c:1153
 msgid "Hits"
 msgstr "Találat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1474 src/ui/gtk/gtk2/search.c:1154
+#: src/ui/gtk/gtk1/interface-glade.t:50 src/ui/gtk/gtk2/search.c:1154
 msgid "New"
 msgstr "Új"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1546
-#: src/ui/gtk/gtk2/interface-glade.c:2732
+#: src/ui/gtk/gtk1/interface-glade.t:51 src/ui/gtk/gtk2/interface-glade.c:2732
 #, fuzzy
 msgid "Gnet connections"
 msgstr "gNet kapcsolatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1565
+#: src/ui/gtk/gtk1/interface-glade.t:52
 #, fuzzy
 msgid "%v/%u Gnet nodes"
 msgstr "%v/%u gNet csomópont"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1582
+#: src/ui/gtk/gtk1/interface-glade.t:53
 msgid "uploads"
 msgstr "feltöltés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1601
+#: src/ui/gtk/gtk1/interface-glade.t:54
 msgid "%v/%u uploads"
 msgstr "%v/%u feltöltés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1618
+#: src/ui/gtk/gtk1/interface-glade.t:55
 msgid "downloads"
 msgstr "letöltés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1637
+#: src/ui/gtk/gtk1/interface-glade.t:56
 msgid "%v/%u downloads"
 msgstr "%v/%u letöltés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1639
-#: src/ui/gtk/gtk2/interface-glade.c:2815
+#: src/ui/gtk/gtk1/interface-glade.t:57 src/ui/gtk/gtk2/interface-glade.c:2815
 msgid "HTTP traffic"
 msgstr "HTTP-forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1664
-#: src/ui/gtk/gtk1/interface-glade.c:1676
+#: src/ui/gtk/gtk1/interface-glade.t:58 src/ui/gtk/gtk1/interface-glade.t:60
 #: src/ui/gtk/gtk2/interface-glade.c:2805
 #: src/ui/gtk/gtk2/interface-glade.c:2812
 #: src/ui/gtk/gtk2/interface-glade.c:2836
@@ -5633,73 +5583,59 @@ msgstr "HTTP-forgalom"
 msgid "Click to toggle display."
 msgstr "Kattintson a kijelző cseréjéhez!"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1667
-#: src/ui/gtk/gtk1/interface-glade.c:1708
-#: src/ui/gtk/gtk1/interface-glade.c:1748 src/ui/gtk/misc.c:141
+#: src/ui/gtk/gtk1/interface-glade.t:59 src/ui/gtk/gtk1/interface-glade.t:63
+#: src/ui/gtk/gtk1/interface-glade.t:66 src/ui/gtk/misc.c:141
 msgid "in"
 msgstr "be"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1679
-#: src/ui/gtk/gtk1/interface-glade.c:1719
-#: src/ui/gtk/gtk1/interface-glade.c:1759 src/ui/gtk/misc.c:141
+#: src/ui/gtk/gtk1/interface-glade.t:61 src/ui/gtk/gtk1/interface-glade.t:64
+#: src/ui/gtk/gtk1/interface-glade.t:67 src/ui/gtk/misc.c:141
 msgid "out"
 msgstr "ki"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1681
-#: src/ui/gtk/gtk2/interface-glade.c:2846
+#: src/ui/gtk/gtk1/interface-glade.t:62 src/ui/gtk/gtk2/interface-glade.c:2846
 #, fuzzy
 msgid "GnutellaNet traffic"
 msgstr "GNet-forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1721
-#: src/ui/gtk/gtk2/interface-glade.c:2877
+#: src/ui/gtk/gtk1/interface-glade.t:65 src/ui/gtk/gtk2/interface-glade.c:2877
 msgid "Leaf traffic"
 msgstr "Végpontforgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1834
-#: src/ui/gtk/gtk2/interface-glade.c:3004
-msgid "_Passive"
-msgstr "_Passzív"
-
-#: src/ui/gtk/gtk1/interface-glade.c:1843
-#: src/ui/gtk/gtk2/interface-glade.c:2983
+#: src/ui/gtk/gtk1/interface-glade.t:69 src/ui/gtk/gtk2/interface-glade.c:2983
 msgid "A passive search matches any search results routed through this node"
 msgstr "A passzív keresésben minden találat, ami áthalad e ponton"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1862
-#: src/ui/gtk/gtk2/interface-glade.c:3807
+#: src/ui/gtk/gtk1/interface-glade.t:70 src/ui/gtk/gtk2/interface-glade.c:3004
+msgid "_Passive"
+msgstr "_Passzív"
+
+#: src/ui/gtk/gtk1/interface-glade.t:71 src/ui/gtk/gtk2/interface-glade.c:3807
 #, fuzzy
 msgid "GnutellaNet connections"
 msgstr "gnutellaNet kapcsolat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1908
-#: src/ui/gtk/gtk1/interface-glade.c:3288
-#: src/ui/gtk/gtk1/interface-glade.c:4108
-#: src/ui/gtk/gtk1/interface-glade.c:4555 src/ui/gtk/gtk1/nodes.c:261
-#: src/ui/gtk/gtk2/downloads.c:486 src/ui/gtk/gtk2/downloads.c:531
-#: src/ui/gtk/gtk2/nodes.c:246 src/ui/gtk/gtk2/uploads.c:83
+#: src/ui/gtk/gtk1/interface-glade.t:72 src/ui/gtk/gtk1/interface-glade.t:145
+#: src/ui/gtk/gtk1/interface-glade.t:193 src/ui/gtk/gtk1/interface-glade.t:223
+#: src/ui/gtk/gtk1/nodes.c:261 src/ui/gtk/gtk2/downloads.c:486
+#: src/ui/gtk/gtk2/downloads.c:531 src/ui/gtk/gtk2/nodes.c:246
+#: src/ui/gtk/gtk2/uploads.c:83
 msgid "Host"
 msgstr "Gép"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1917
-#: src/ui/gtk/gtk1/interface-glade.c:3296
-#: src/ui/gtk/gtk1/interface-glade.c:4116
-#: src/ui/gtk/gtk1/interface-glade.c:4563 src/ui/gtk/gtk1/search.c:2228
-#: src/ui/gtk/gtk1/search.c:2234 src/ui/gtk/gtk2/downloads.c:487
-#: src/ui/gtk/gtk2/downloads.c:532 src/ui/gtk/gtk2/search.c:1555
-#: src/ui/gtk/gtk2/uploads.c:84
+#: src/ui/gtk/gtk1/interface-glade.t:73 src/ui/gtk/gtk1/interface-glade.t:146
+#: src/ui/gtk/gtk1/interface-glade.t:194 src/ui/gtk/gtk1/interface-glade.t:224
+#: src/ui/gtk/gtk1/search.c:2228 src/ui/gtk/gtk1/search.c:2234
+#: src/ui/gtk/gtk2/downloads.c:487 src/ui/gtk/gtk2/downloads.c:532
+#: src/ui/gtk/gtk2/search.c:1555 src/ui/gtk/gtk2/uploads.c:84
 msgid "Loc"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:1925
-#: src/ui/gtk/gtk1/interface-glade.c:8259
-#: src/ui/gtk/gtk1/interface-glade.c:8475
-#: src/ui/gtk/gtk1/interface-glade.c:8680
-#: src/ui/gtk/gtk1/interface-glade.c:8928
-#: src/ui/gtk/gtk1/interface-glade.c:9104
-#: src/ui/gtk/gtk1/interface-glade.c:9337
-#: src/ui/gtk/gtk1/interface-glade.c:9726 src/ui/gtk/gtk1/nodes.c:263
-#: src/ui/gtk/gtk2/interface-glade.c:6785
+#: src/ui/gtk/gtk1/interface-glade.t:74 src/ui/gtk/gtk1/interface-glade.t:381
+#: src/ui/gtk/gtk1/interface-glade.t:392 src/ui/gtk/gtk1/interface-glade.t:403
+#: src/ui/gtk/gtk1/interface-glade.t:417 src/ui/gtk/gtk1/interface-glade.t:426
+#: src/ui/gtk/gtk1/interface-glade.t:438 src/ui/gtk/gtk1/interface-glade.t:459
+#: src/ui/gtk/gtk1/nodes.c:263 src/ui/gtk/gtk2/interface-glade.c:6785
 #: src/ui/gtk/gtk2/interface-glade.c:7131
 #: src/ui/gtk/gtk2/interface-glade.c:7470
 #: src/ui/gtk/gtk2/interface-glade.c:7855
@@ -5709,123 +5645,112 @@ msgstr ""
 msgid "Flags"
 msgstr "Jelzések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1933
-#: src/ui/gtk/gtk1/interface-glade.c:3320 src/ui/gtk/gtk1/nodes.c:264
-#: src/ui/gtk/gtk2/nodes.c:247 src/ui/gtk/gtk2/uploads.c:87
+#: src/ui/gtk/gtk1/interface-glade.t:75 src/ui/gtk/gtk1/interface-glade.t:149
+#: src/ui/gtk/gtk1/nodes.c:264 src/ui/gtk/gtk2/nodes.c:247
+#: src/ui/gtk/gtk2/uploads.c:87
 msgid "User-Agent"
 msgstr "Alkalmazás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1941 src/ui/gtk/gtk1/nodes.c:265
+#: src/ui/gtk/gtk1/interface-glade.t:76 src/ui/gtk/gtk1/nodes.c:265
 msgid "Ver"
 msgstr "Vál"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1949 src/ui/gtk/gtk1/nodes.c:266
+#: src/ui/gtk/gtk1/interface-glade.t:77 src/ui/gtk/gtk1/nodes.c:266
 #: src/ui/gtk/gtk2/nodes.c:251
 #, fuzzy
 msgid "Connected time"
 msgstr "Csatlakozás türelmi ideje lejárt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1958
-#: src/ui/gtk/gtk1/interface-glade.c:6285 src/ui/gtk/gtk1/nodes.c:267
-#: src/ui/gtk/gtk2/nodes.c:252
+#: src/ui/gtk/gtk1/interface-glade.t:78 src/ui/gtk/gtk1/interface-glade.t:295
+#: src/ui/gtk/gtk1/nodes.c:267 src/ui/gtk/gtk2/nodes.c:252
 msgid "Uptime"
 msgstr "Futási idő"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1966 src/ui/gtk/gtk1/search.c:2245
+#: src/ui/gtk/gtk1/interface-glade.t:79 src/ui/gtk/gtk1/search.c:2245
 #: src/ui/gtk/gtk1/search.c:2251 src/ui/gtk/gtk2/search.c:1557
 msgid "Info"
 msgstr "Tájékoztató"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1983
-#: src/ui/gtk/gtk1/interface-glade.c:7480
+#: src/ui/gtk/gtk1/interface-glade.t:80 src/ui/gtk/gtk2/interface-glade.c:3724
+msgid "Disconnect from selected nodes"
+msgstr "Lekapcsolódás a kijelölt pontokról"
+
+#: src/ui/gtk/gtk1/interface-glade.t:81 src/ui/gtk/gtk1/interface-glade.t:350
 #: src/ui/gtk/gtk2/interface-glade.c:3741
 #: src/ui/gtk/gtk2/interface-glade.c:9738
 msgid "Disconnect"
 msgstr "Szétkapcsol"
 
-#: src/ui/gtk/gtk1/interface-glade.c:1991
-#: src/ui/gtk/gtk2/interface-glade.c:3724
-msgid "Disconnect from selected nodes"
-msgstr "Lekapcsolódás a kijelölt pontokról"
-
-#: src/ui/gtk/gtk1/interface-glade.c:1993
-#: src/ui/gtk/gtk2/interface-glade.c:3681
-msgid "Add"
-msgstr "Hozzáad"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2001
-#: src/ui/gtk/gtk2/interface-glade.c:3664
+#: src/ui/gtk/gtk1/interface-glade.t:82 src/ui/gtk/gtk2/interface-glade.c:3664
 msgid "Try to connect to specified address"
 msgstr "Először a megadott címhez próbál kapcsolódni"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2029
+#: src/ui/gtk/gtk1/interface-glade.t:83 src/ui/gtk/gtk2/interface-glade.c:3681
+msgid "Add"
+msgstr "Hozzáad"
+
+#: src/ui/gtk/gtk1/interface-glade.t:84
 msgid "Minimum"
 msgstr "Legkisebb"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2040
+#: src/ui/gtk/gtk1/interface-glade.t:85
 msgid "Maximum"
 msgstr "Legnagyobb"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2085
+#: src/ui/gtk/gtk1/interface-glade.t:86
 msgid "Ultrapeers in leaf mode"
 msgstr "Átjátszók végpontmódban"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2128
+#: src/ui/gtk/gtk1/interface-glade.t:87
 msgid "Quick-connect pool size"
 msgstr "Gyorskapcsolati tár mérete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2147
+#: src/ui/gtk/gtk1/interface-glade.t:88
 #, fuzzy
 msgid "Transferred data"
 msgstr "Átvitt adat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2166
+#: src/ui/gtk/gtk1/interface-glade.t:89
 #, fuzzy
 msgid "Uploaded:"
 msgstr "Feltöltve"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2178
+#: src/ui/gtk/gtk1/interface-glade.t:90
 #, fuzzy
 msgid "Downloaded:"
 msgstr "Letöltve"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2199
-#: src/ui/gtk/gtk1/interface-glade.c:2211
-#: src/ui/gtk/gtk1/interface-glade.c:3553
+#: src/ui/gtk/gtk1/interface-glade.t:91 src/ui/gtk/gtk1/interface-glade.t:92
+#: src/ui/gtk/gtk1/interface-glade.t:166
 #: src/ui/gtk/gtk2/interface-glade.c:4328
 msgid "Somebody tell me a sensible tooltip for this."
 msgstr "Valaki mondjon egy értelmes tippet erre!"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2214
-#: src/ui/gtk/gtk2/interface-glade.c:4158
+#: src/ui/gtk/gtk1/interface-glade.t:93 src/ui/gtk/gtk2/interface-glade.c:4158
 #: src/ui/gtk/gtk2/interface-glade.c:4969
 #, fuzzy
 msgid "Chunks/Files:"
 msgstr "Darab/Fájl"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2224
-#: src/ui/gtk/gtk2/interface-glade.c:4149
+#: src/ui/gtk/gtk1/interface-glade.t:94 src/ui/gtk/gtk2/interface-glade.c:4149
 #: src/ui/gtk/gtk2/interface-glade.c:4978
 #, fuzzy
 msgid "Volume:"
 msgstr "Méret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2256
-#: src/ui/gtk/gtk2/interface-glade.c:3876
+#: src/ui/gtk/gtk1/interface-glade.t:95 src/ui/gtk/gtk2/interface-glade.c:3876
 msgid "Local node"
 msgstr "Saját pont"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2283
-#: src/ui/gtk/gtk2/interface-glade.c:3834
+#: src/ui/gtk/gtk1/interface-glade.t:96 src/ui/gtk/gtk2/interface-glade.c:3834
 msgid "GUID:"
 msgstr "GUID:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2306
+#: src/ui/gtk/gtk1/interface-glade.t:97
 msgid "IP:Port:"
 msgstr "IP:Kapu:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2327
-#: src/ui/gtk/gtk2/interface-glade.c:3866
+#: src/ui/gtk/gtk1/interface-glade.t:98 src/ui/gtk/gtk2/interface-glade.c:3866
 #, fuzzy
 msgid ""
 "The current IP address and listening port for this node. To change these go "
@@ -5834,436 +5759,329 @@ msgstr ""
 "E pont jelenlegi IP-címe és bejövő kapuja. Megváltoztatása: "
 "Beállítások→Hálózat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2330
-#, fuzzy
-msgid "#|Gnet"
-msgstr "kikapcsolva"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2346
+#: src/ui/gtk/gtk1/interface-glade.t:99
 msgid "Message/flow control stats"
 msgstr "Üzenet/folyamvezérlés stat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2401
-#: src/ui/gtk/gtk1/interface-glade.c:2493
-#: src/ui/gtk/gtk1/interface-glade.c:2611
-#: src/ui/gtk/gtk1/interface-glade.c:2727
-#: src/ui/gtk/gtk1/interface-glade.c:17238 src/ui/gtk/gtk2/gnet_stats.c:54
+#: src/ui/gtk/gtk1/interface-glade.t:100 src/ui/gtk/gtk1/interface-glade.t:105
+#: src/ui/gtk/gtk1/interface-glade.t:107 src/ui/gtk/gtk1/interface-glade.t:109
+#: src/ui/gtk/gtk1/interface-glade.t:798 src/ui/gtk/gtk2/gnet_stats.c:54
 #: src/ui/gtk/gtk2/gnet_stats.c:546 src/ui/gtk/gtk2/gnet_stats.c:619
 #: src/ui/gtk/gtk2/gnet_stats.c:709 src/ui/gtk/settings_cb.c:452
 msgid "Type"
 msgstr "Típus"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2410
-#: src/ui/gtk/gtk1/interface-glade.c:2447 src/ui/gtk/gtk2/gnet_stats.c:583
-#: src/ui/gtk/gtk2/gnet_stats.c:619
+#: src/ui/gtk/gtk1/interface-glade.t:101 src/ui/gtk/gtk1/interface-glade.t:103
+#: src/ui/gtk/gtk2/gnet_stats.c:583 src/ui/gtk/gtk2/gnet_stats.c:619
 msgid "Count"
 msgstr "Szám"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2438 src/ui/gtk/gtk2/gnet_stats.c:583
+#: src/ui/gtk/gtk1/interface-glade.t:102 src/ui/gtk/gtk2/gnet_stats.c:583
 msgid "Reason"
 msgstr "Ok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2457
+#: src/ui/gtk/gtk1/interface-glade.t:104
 #: src/ui/gtk/gtk2/interface-glade.c:6377
 #, fuzzy
 msgid "_General"
 msgstr "Általános"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2501
-#: src/ui/gtk/gtk1/interface-glade.c:2619
-msgid "0"
-msgstr "0"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2509
-#: src/ui/gtk/gtk1/interface-glade.c:2627
-msgid "1"
-msgstr "1"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2517
-#: src/ui/gtk/gtk1/interface-glade.c:2635
-msgid "2"
-msgstr "2"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2525
-#: src/ui/gtk/gtk1/interface-glade.c:2643
-msgid "3"
-msgstr "3"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2533
-#: src/ui/gtk/gtk1/interface-glade.c:2651
-msgid "4"
-msgstr "4"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2541
-#: src/ui/gtk/gtk1/interface-glade.c:2659
-msgid "5"
-msgstr "5"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2549
-#: src/ui/gtk/gtk1/interface-glade.c:2667
-msgid "6"
-msgstr "6"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2557
-#: src/ui/gtk/gtk1/interface-glade.c:2675
-msgid "7"
-msgstr "7"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2565
-#: src/ui/gtk/gtk1/interface-glade.c:2683
-msgid "8+"
-msgstr "8+"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2575
+#: src/ui/gtk/gtk1/interface-glade.t:106
 #, fuzzy
 msgid "FC/_TTL"
 msgstr "FV/TTL"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2693
+#: src/ui/gtk/gtk1/interface-glade.t:108
 #, fuzzy
 msgid "FC/_hops"
 msgstr "FV/ugrás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2736 src/ui/gtk/gtk2/gnet_stats.c:55
+#: src/ui/gtk/gtk1/interface-glade.t:110 src/ui/gtk/gtk2/gnet_stats.c:55
 msgid "Received"
 msgstr "Fogadott"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2744 src/ui/gtk/gtk2/gnet_stats.c:56
+#: src/ui/gtk/gtk1/interface-glade.t:111 src/ui/gtk/gtk2/gnet_stats.c:56
 #: src/ui/gtk/search_common.c:1229
 msgid "Expired"
 msgstr "Lejárt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2752 src/ui/gtk/gtk2/gnet_stats.c:57
+#: src/ui/gtk/gtk1/interface-glade.t:112 src/ui/gtk/gtk2/gnet_stats.c:57
 msgid "Dropped"
 msgstr "Ejtett"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2768 src/ui/gtk/gtk2/gnet_stats.c:59
+#: src/ui/gtk/gtk1/interface-glade.t:114 src/ui/gtk/gtk2/gnet_stats.c:59
 msgid "Relayed"
 msgstr "Továbbított"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2776 src/ui/gtk/gtk2/gnet_stats.c:60
+#: src/ui/gtk/gtk1/interface-glade.t:115 src/ui/gtk/gtk2/gnet_stats.c:60
 #, fuzzy
 msgid "Gen. queued"
 msgstr "Sorban"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2784 src/ui/gtk/gtk2/gnet_stats.c:61
+#: src/ui/gtk/gtk1/interface-glade.t:116 src/ui/gtk/gtk2/gnet_stats.c:61
 #, fuzzy
 msgid "Gen. sent"
 msgstr "kikapcsolva"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2794
-#: src/ui/gtk/gtk1/interface-glade.c:13628
+#: src/ui/gtk/gtk1/interface-glade.t:117 src/ui/gtk/gtk1/interface-glade.t:608
 #: src/ui/gtk/gtk2/interface-glade.c:6396
 msgid "_Messages"
 msgstr "_Üzenetek"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2862
+#: src/ui/gtk/gtk1/interface-glade.t:122
 #: src/ui/gtk/gtk2/interface-glade.c:6456
 #, fuzzy
 msgid "_Horizon"
 msgstr "Látóköri stat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2880
+#: src/ui/gtk/gtk1/interface-glade.t:123
 #: src/ui/gtk/gtk2/interface-glade.c:6482
 #, fuzzy
 msgid "Show _bytes"
 msgstr "Bájtok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2894
+#: src/ui/gtk/gtk1/interface-glade.t:124
 #: src/ui/gtk/gtk2/interface-glade.c:6489
 #, fuzzy
 msgid "Show _percentages"
 msgstr "Százalékok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2908
+#: src/ui/gtk/gtk1/interface-glade.t:125
 #: src/ui/gtk/gtk2/interface-glade.c:6475
 #, fuzzy
 msgid "_Include headers"
 msgstr "Fejlécek fogadása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2922
+#: src/ui/gtk/gtk1/interface-glade.t:126
 #: src/ui/gtk/gtk2/interface-glade.c:6496
 msgid "Show pr_otocol:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:2936
+#: src/ui/gtk/gtk1/interface-glade.t:127
 #, fuzzy
 msgid "Show r_easons for"
 msgstr "Okok megjelenítése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:2972
-#, fuzzy
-msgid "#|Gnet Stats"
-msgstr "gNet stat"
-
-#: src/ui/gtk/gtk1/interface-glade.c:2989
+#: src/ui/gtk/gtk1/interface-glade.t:128
 #: src/ui/gtk/gtk2/interface-glade.c:9873
 msgid "Hostcache statistics"
 msgstr "Gazdatár statisztika"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3019
+#: src/ui/gtk/gtk1/interface-glade.t:129
 msgid "Cache"
 msgstr "Gyorstár"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3027 src/ui/gtk/gtk2/hcache.c:48
+#: src/ui/gtk/gtk1/interface-glade.t:130 src/ui/gtk/gtk2/hcache.c:48
 msgid "Hosts"
 msgstr "Gazda"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3043 src/ui/gtk/gtk2/hcache.c:50
+#: src/ui/gtk/gtk1/interface-glade.t:132 src/ui/gtk/gtk2/hcache.c:50
 msgid "Misses"
 msgstr "Hiány"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3051
+#: src/ui/gtk/gtk1/interface-glade.t:133
 #: src/ui/gtk/gtk2/interface-glade.c:9993
 msgid "Hostcache capacity"
 msgstr "Gazdatár mérete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3084
-#: src/ui/gtk/gtk1/interface-glade.c:3137
-#: src/ui/gtk/gtk1/interface-glade.c:3189
+#: src/ui/gtk/gtk1/interface-glade.t:134 src/ui/gtk/gtk1/interface-glade.t:137
+#: src/ui/gtk/gtk1/interface-glade.t:140
 msgid "%v/%u (%P%%)"
 msgstr "%v/%u (%P%%)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3094
+#: src/ui/gtk/gtk1/interface-glade.t:135
 #: src/ui/gtk/gtk2/interface-glade.c:9906
 msgid "Regular hosts"
 msgstr "Hagyományos gazdák"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3113
-#: src/ui/gtk/gtk1/interface-glade.c:3165
-#: src/ui/gtk/gtk1/interface-glade.c:3218
+#: src/ui/gtk/gtk1/interface-glade.t:136 src/ui/gtk/gtk1/interface-glade.t:139
+#: src/ui/gtk/gtk1/interface-glade.t:142
 #: src/ui/gtk/gtk2/interface-glade.c:9920
 #: src/ui/gtk/gtk2/interface-glade.c:9954
 #: src/ui/gtk/gtk2/interface-glade.c:9988
 msgid "Clear"
 msgstr "Törlés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3147
+#: src/ui/gtk/gtk1/interface-glade.t:138
 #: src/ui/gtk/gtk2/interface-glade.c:9940
 msgid "Ultrapeers"
 msgstr "Átjátszók"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3199
+#: src/ui/gtk/gtk1/interface-glade.t:141
 #: src/ui/gtk/gtk2/interface-glade.c:9974
 msgid "Bad hosts"
 msgstr "Rossz gazdák"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3226
-#, fuzzy
-msgid "#|Hostcache"
-msgstr "Gazdatár"
-
-#: src/ui/gtk/gtk1/interface-glade.c:3234
-#: src/ui/gtk/gtk1/interface-glade.c:16675
+#: src/ui/gtk/gtk1/interface-glade.t:143 src/ui/gtk/gtk1/interface-glade.t:761
 #: src/ui/gtk/gtk2/interface-glade.c:2754
 #: src/ui/gtk/gtk2/interface-glade.c:4204
 #: src/ui/gtk/gtk2/interface-glade.c:14351 src/ui/gtk/main.c:133
 msgid "Uploads"
 msgstr "Feltöltések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3279
-#: src/ui/gtk/gtk1/interface-glade.c:3496
-#: src/ui/gtk/gtk1/interface-glade.c:4100
-#: src/ui/gtk/gtk1/interface-glade.c:4547 src/ui/gtk/gtk2/downloads.c:484
-#: src/ui/gtk/gtk2/downloads.c:529 src/ui/gtk/gtk2/upload_stats.c:269
-#: src/ui/gtk/gtk2/uploads.c:82
+#: src/ui/gtk/gtk1/interface-glade.t:144 src/ui/gtk/gtk1/interface-glade.t:161
+#: src/ui/gtk/gtk1/interface-glade.t:192 src/ui/gtk/gtk1/interface-glade.t:222
+#: src/ui/gtk/gtk2/downloads.c:484 src/ui/gtk/gtk2/downloads.c:529
+#: src/ui/gtk/gtk2/upload_stats.c:269 src/ui/gtk/gtk2/uploads.c:82
 msgid "Filename"
 msgstr "Fájlnév"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3312
-#: src/ui/gtk/gtk1/interface-glade.c:4132 src/ui/gtk/gtk2/downloads.c:488
-#: src/ui/gtk/gtk2/uploads.c:86
+#: src/ui/gtk/gtk1/interface-glade.t:148 src/ui/gtk/gtk1/interface-glade.t:196
+#: src/ui/gtk/gtk2/downloads.c:488 src/ui/gtk/gtk2/uploads.c:86
 msgid "Range"
 msgstr "Rész"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3328
-#: src/ui/gtk/gtk1/interface-glade.c:4148 src/ui/gtk/gtk2/downloads.c:490
-#: src/ui/gtk/gtk2/uploads.c:88
+#: src/ui/gtk/gtk1/interface-glade.t:150 src/ui/gtk/gtk1/interface-glade.t:198
+#: src/ui/gtk/gtk2/downloads.c:490 src/ui/gtk/gtk2/uploads.c:88
 msgid "Progress"
 msgstr "Helyzet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3336
-#: src/ui/gtk/gtk1/interface-glade.c:3762
-#: src/ui/gtk/gtk1/interface-glade.c:4156
-#: src/ui/gtk/gtk1/interface-glade.c:4587 src/ui/gtk/gtk1/nodes.c:268
-#: src/ui/gtk/gtk2/downloads.c:491 src/ui/gtk/gtk2/downloads.c:534
-#: src/ui/gtk/gtk2/fileinfo.c:616 src/ui/gtk/gtk2/nodes.c:253
-#: src/ui/gtk/gtk2/uploads.c:89
+#: src/ui/gtk/gtk1/interface-glade.t:151 src/ui/gtk/gtk1/interface-glade.t:179
+#: src/ui/gtk/gtk1/interface-glade.t:199 src/ui/gtk/gtk1/interface-glade.t:227
+#: src/ui/gtk/gtk1/nodes.c:268 src/ui/gtk/gtk2/downloads.c:491
+#: src/ui/gtk/gtk2/downloads.c:534 src/ui/gtk/gtk2/fileinfo.c:616
+#: src/ui/gtk/gtk2/nodes.c:253 src/ui/gtk/gtk2/uploads.c:89
 msgid "Status"
 msgstr "Állapot"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3352
-#: src/ui/gtk/gtk2/interface-glade.c:4046
-msgid " Kill selected "
-msgstr " Kijelölt lelövése "
-
-#: src/ui/gtk/gtk1/interface-glade.c:3360
+#: src/ui/gtk/gtk1/interface-glade.t:152
 #: src/ui/gtk/gtk2/interface-glade.c:4029
 msgid "Abort and remove all selected uploads"
 msgstr "Minden feltöltést abbahagy és eltávolít"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3362
-#: src/ui/gtk/gtk2/interface-glade.c:4073
-msgid " Clear completed "
-msgstr " Befejezett törlése "
+#: src/ui/gtk/gtk1/interface-glade.t:153
+#: src/ui/gtk/gtk2/interface-glade.c:4046
+msgid " Kill selected "
+msgstr " Kijelölt lelövése "
 
-#: src/ui/gtk/gtk1/interface-glade.c:3370
+#: src/ui/gtk/gtk1/interface-glade.t:154
 #: src/ui/gtk/gtk2/interface-glade.c:4056
 msgid "Clear already completed uploads from list"
 msgstr "Sikeres feltöltések törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3382
+#: src/ui/gtk/gtk1/interface-glade.t:155
+#: src/ui/gtk/gtk2/interface-glade.c:4073
+msgid " Clear completed "
+msgstr " Befejezett törlése "
+
+#: src/ui/gtk/gtk1/interface-glade.t:156
 #: src/ui/gtk/gtk2/interface-glade.c:4086
 msgid "Auto clear completed uploads"
 msgstr "Magától takarítja a befejezett feltöltéseket"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3392
+#: src/ui/gtk/gtk1/interface-glade.t:157
 #: src/ui/gtk/gtk2/interface-glade.c:4093
 msgid "Auto clear failed uploads"
 msgstr "Magától takarítja a sikertelen feltöltéseket"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3402
+#: src/ui/gtk/gtk1/interface-glade.t:158
 #: src/ui/gtk/gtk2/interface-glade.c:4109
 msgid "Max. simultaneous uploads"
 msgstr "Legtöbb egyidejű feltöltés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3412
+#: src/ui/gtk/gtk1/interface-glade.t:159
 #: src/ui/gtk/gtk2/interface-glade.c:4100
 #, fuzzy
 msgid "Max. uploads to a single host"
 msgstr "Legtöbb feltöltés egy gépre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3447
-#, fuzzy
-msgid "#|Uploads"
-msgstr "Feltöltések"
-
-#: src/ui/gtk/gtk1/interface-glade.c:3455
+#: src/ui/gtk/gtk1/interface-glade.t:160
 #: src/ui/gtk/gtk2/interface-glade.c:4426
 msgid "Upload history"
 msgstr "Feltöltés-napló"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3513 src/ui/gtk/gtk2/upload_stats.c:271
+#: src/ui/gtk/gtk1/interface-glade.t:163 src/ui/gtk/gtk2/upload_stats.c:271
 msgid "Attempts"
 msgstr "Próbálkozás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3529 src/ui/gtk/gtk2/upload_stats.c:273
+#: src/ui/gtk/gtk1/interface-glade.t:165 src/ui/gtk/gtk2/upload_stats.c:273
 msgid "Normalized"
 msgstr "Normalizált"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3545
+#: src/ui/gtk/gtk1/interface-glade.t:167
 #: src/ui/gtk/gtk2/interface-glade.c:4345
 msgid "Clear non-existent files"
 msgstr "Nem létező fájlok törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3555
+#: src/ui/gtk/gtk1/interface-glade.t:168
 #: src/ui/gtk/gtk2/interface-glade.c:4370
 msgid "Clear all"
 msgstr "Minden törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3579
+#: src/ui/gtk/gtk1/interface-glade.t:169
 msgid "Fully served "
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:3588
-#: src/ui/gtk/gtk2/interface-glade.c:4386
-msgid "[BH HTML served]"
-msgstr ""
-
-#: src/ui/gtk/gtk1/interface-glade.c:3596
-#: src/ui/gtk/gtk1/interface-glade.c:3628
+#: src/ui/gtk/gtk1/interface-glade.t:170 src/ui/gtk/gtk1/interface-glade.t:172
 #: src/ui/gtk/gtk2/interface-glade.c:4391
 #: src/ui/gtk/gtk2/interface-glade.c:4411
 msgid " / "
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:3604
-#: src/ui/gtk/gtk2/interface-glade.c:4396
-msgid "[BH HTML]"
-msgstr ""
-
-#: src/ui/gtk/gtk1/interface-glade.c:3612
+#: src/ui/gtk/gtk1/interface-glade.t:171
 #: src/ui/gtk/gtk2/interface-glade.c:4401
 msgid " HTML and "
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:3620
-msgid "[BH qhits served]"
-msgstr ""
-
-#: src/ui/gtk/gtk1/interface-glade.c:3636
-#: src/ui/gtk/gtk2/interface-glade.c:4406
-#: src/ui/gtk/gtk2/interface-glade.c:4416
-msgid "[BH qhits]"
-msgstr ""
-
-#: src/ui/gtk/gtk1/interface-glade.c:3644
+#: src/ui/gtk/gtk1/interface-glade.t:173
 #: src/ui/gtk/gtk2/interface-glade.c:4421
 msgid " Gnutella browse requests"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:3652
-#, fuzzy
-msgid "#|Upload Stats"
-msgstr "Feltöltési statisztika"
-
-#: src/ui/gtk/gtk1/interface-glade.c:3660
+#: src/ui/gtk/gtk1/interface-glade.t:174
 #: src/ui/gtk/gtk2/interface-glade.c:16323
 msgid "Files to get"
 msgstr "Várt fájlok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3729 src/ui/gtk/gtk1/search.c:2188
+#: src/ui/gtk/gtk1/interface-glade.t:175 src/ui/gtk/gtk1/search.c:2188
 #: src/ui/gtk/gtk1/search.c:2194 src/ui/gtk/gtk2/fileinfo.c:612
 #: src/ui/gtk/gtk2/search.c:1550
 msgid "File"
 msgstr "Fájl"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3746 src/ui/gtk/gtk2/fileinfo.c:614
+#: src/ui/gtk/gtk1/interface-glade.t:177 src/ui/gtk/gtk2/fileinfo.c:614
 #: src/ui/gtk/gtkcolumnchooser.c:206
 msgid "Done"
 msgstr "Kész"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3754 src/ui/gtk/gtk2/fileinfo.c:615
+#: src/ui/gtk/gtk1/interface-glade.t:178 src/ui/gtk/gtk2/fileinfo.c:615
 msgid "Sources"
 msgstr "Forrás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3778
+#: src/ui/gtk/gtk1/interface-glade.t:180
 #, fuzzy
 msgid "Filename filter:"
 msgstr "Fájlnév:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3794
-#: src/ui/gtk/gtk1/interface-glade.c:4619
+#: src/ui/gtk/gtk1/interface-glade.t:181 src/ui/gtk/gtk1/interface-glade.t:229
 #: src/ui/gtk/gtk2/interface-glade.c:16723
 #, fuzzy
 msgid "case-sensitive"
 msgstr "kis/nagybetűérzékeny"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3802
+#: src/ui/gtk/gtk1/interface-glade.t:182
 #: src/ui/gtk/gtk2/interface-glade.c:16476
 msgid "Detail information"
 msgstr "Részletes tájékoztató"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3830
-#: src/ui/gtk/gtk1/interface-glade.c:5085
+#: src/ui/gtk/gtk1/interface-glade.t:183 src/ui/gtk/gtk1/interface-glade.t:249
 #: src/ui/gtk/gtk2/interface-glade.c:5489
 #: src/ui/gtk/gtk2/interface-glade.c:16375
 msgid "Filename:"
 msgstr "Fájlnév:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3841
-#: src/ui/gtk/gtk1/interface-glade.c:5283
+#: src/ui/gtk/gtk1/interface-glade.t:184 src/ui/gtk/gtk1/interface-glade.t:258
 #: src/ui/gtk/gtk2/interface-glade.c:5613
 #: src/ui/gtk/gtk2/interface-glade.c:16406 src/ui/gtk/gtk2/search_cb.c:575
 msgid "Size:"
 msgstr "Méret:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3892
+#: src/ui/gtk/gtk1/interface-glade.t:185
 #: src/ui/gtk/gtk2/interface-glade.c:16383
 msgid "Progress:"
 msgstr "Állapot:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3929
+#: src/ui/gtk/gtk1/interface-glade.t:186
 #: src/ui/gtk/gtk2/interface-glade.c:16403
 #, fuzzy
 msgid ""
@@ -6278,145 +6096,119 @@ msgstr ""
 "Piros darabok még nincsenek letöltve. A kék vonal jelzi azon részeket, "
 "amelyeket a jelen futási időszakban találtak a hálózatban."
 
-#: src/ui/gtk/gtk1/interface-glade.c:3932
+#: src/ui/gtk/gtk1/interface-glade.t:187
 #: src/ui/gtk/gtk2/interface-glade.c:16471
 msgid "Alternate filenames"
 msgstr "Alternatív fájlnevek"
 
-#: src/ui/gtk/gtk1/interface-glade.c:3978
+#: src/ui/gtk/gtk1/interface-glade.t:188
 #: src/ui/gtk/gtk2/interface-glade.c:16513
 #, fuzzy
 msgid "_Purge selected"
 msgstr "Kijelölt takarítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4013
-msgid "[all count]"
-msgstr "[minden számlálva]"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4022
+#: src/ui/gtk/gtk1/interface-glade.t:189
 #: src/ui/gtk/gtk2/interface-glade.c:16539
 msgid " registered, "
 msgstr " regisztrálva, "
 
-#: src/ui/gtk/gtk1/interface-glade.c:4031
-msgid "[with source count]"
-msgstr "[forrásszámokkal]"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4039
+#: src/ui/gtk/gtk1/interface-glade.t:190
 #: src/ui/gtk/gtk2/interface-glade.c:16549
 msgid " with sources"
 msgstr " forrással"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4047
-#, fuzzy
-msgid "#|Downloads"
-msgstr "Letöltések"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4055
+#: src/ui/gtk/gtk1/interface-glade.t:191
 #: src/ui/gtk/gtk2/interface-glade.c:4992
 msgid "Active sources"
 msgstr "Aktív forrás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4140
-#: src/ui/gtk/gtk1/interface-glade.c:4579 src/ui/gtk/gtk2/downloads.c:489
-#: src/ui/gtk/gtk2/downloads.c:533
+#: src/ui/gtk/gtk1/interface-glade.t:197 src/ui/gtk/gtk1/interface-glade.t:226
+#: src/ui/gtk/gtk2/downloads.c:489 src/ui/gtk/gtk2/downloads.c:533
 msgid "Server"
 msgstr "Kiszolgáló"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4164
+#: src/ui/gtk/gtk1/interface-glade.t:200
 #: src/ui/gtk/gtk2/interface-glade.c:4788
 msgid "Download settings"
 msgstr "Letöltés beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4199
+#: src/ui/gtk/gtk1/interface-glade.t:201
 #: src/ui/gtk/gtk2/interface-glade.c:4686
 msgid "Max. simultaneous downloads"
 msgstr "Legtöbb egyidejű letöltés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4222
+#: src/ui/gtk/gtk1/interface-glade.t:202
 #: src/ui/gtk/gtk2/interface-glade.c:4678
 msgid "Max. downloads from single host"
 msgstr "Legtöbb letöltés egy gépről"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4245
+#: src/ui/gtk/gtk1/interface-glade.t:203
 #: src/ui/gtk/gtk2/interface-glade.c:4695
 msgid "Bytes to back off on mismatch"
 msgstr "bájt vissza hiba esetén"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4270
+#: src/ui/gtk/gtk1/interface-glade.t:204
 #: src/ui/gtk/gtk2/interface-glade.c:4717
 msgid "Never send a push request"
 msgstr "Soha sem kér nyomást"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4280
+#: src/ui/gtk/gtk1/interface-glade.t:205
 #: src/ui/gtk/gtk2/interface-glade.c:4703
 msgid "Delete file on abort"
 msgstr "Abbahagyva fájl törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4290
+#: src/ui/gtk/gtk1/interface-glade.t:206
 #: src/ui/gtk/gtk2/interface-glade.c:4710
 msgid "Remove file on mismatch"
 msgstr "Eltérő fájlok törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4308
+#: src/ui/gtk/gtk1/interface-glade.t:207
 #: src/ui/gtk/gtk2/interface-glade.c:4783
 msgid "Auto clear stopped downloads"
 msgstr "Leállt letöltések önműködő törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4334
+#: src/ui/gtk/gtk1/interface-glade.t:209
 #: src/ui/gtk/gtk2/interface-glade.c:4773
 msgid "Failed"
 msgstr "Sikertelen"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4342
+#: src/ui/gtk/gtk1/interface-glade.t:210
 #: src/ui/gtk/gtk2/interface-glade.c:4778
 msgid "Unavailable"
 msgstr "Nem elérhető"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4360
-#: src/ui/gtk/gtk2/interface-glade.c:4824
-msgid "_Abort selected"
-msgstr "Kijelöltet _abbahagy"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4370
+#: src/ui/gtk/gtk1/interface-glade.t:211
 #: src/ui/gtk/gtk2/interface-glade.c:4807
 msgid "Abort all selected downloads"
 msgstr "Kijelölt letöltések abbahagyása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4374
-#: src/ui/gtk/gtk2/interface-glade.c:4853
-msgid "_Resume selected"
-msgstr "Kijelöltet _folytat"
+#: src/ui/gtk/gtk1/interface-glade.t:212
+#: src/ui/gtk/gtk2/interface-glade.c:4824
+msgid "_Abort selected"
+msgstr "Kijelöltet _abbahagy"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4384
+#: src/ui/gtk/gtk1/interface-glade.t:213
 #: src/ui/gtk/gtk2/interface-glade.c:4836
 msgid "Resume all selected downloads"
 msgstr "Minden kijelölt letöltés folytatása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4386
-msgid "Clear stopped"
-msgstr "Leálltak törlése"
+#: src/ui/gtk/gtk1/interface-glade.t:214
+#: src/ui/gtk/gtk2/interface-glade.c:4853
+msgid "_Resume selected"
+msgstr "Kijelöltet _folytat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4394
+#: src/ui/gtk/gtk1/interface-glade.t:215
 msgid "Clear completed, failed and unavailable downloads from list"
 msgstr "Sikeres, sikertelen és elérhetetlen letöltések törlése a listáról"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4429
-msgid "[running]"
-msgstr "[működik]"
+#: src/ui/gtk/gtk1/interface-glade.t:216
+msgid "Clear stopped"
+msgstr "Leálltak törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4439
-msgid "("
-msgstr "("
-
-#: src/ui/gtk/gtk1/interface-glade.c:4447
-#: src/ui/gtk/gtk1/interface-glade.c:8284
-#: src/ui/gtk/gtk1/interface-glade.c:8500
-#: src/ui/gtk/gtk1/interface-glade.c:8705
-#: src/ui/gtk/gtk1/interface-glade.c:8945
-#: src/ui/gtk/gtk1/interface-glade.c:9128
-#: src/ui/gtk/gtk1/interface-glade.c:9354
-#: src/ui/gtk/gtk1/interface-glade.c:9751
+#: src/ui/gtk/gtk1/interface-glade.t:217 src/ui/gtk/gtk1/interface-glade.t:383
+#: src/ui/gtk/gtk1/interface-glade.t:394 src/ui/gtk/gtk1/interface-glade.t:405
+#: src/ui/gtk/gtk1/interface-glade.t:418 src/ui/gtk/gtk1/interface-glade.t:428
+#: src/ui/gtk/gtk1/interface-glade.t:439 src/ui/gtk/gtk1/interface-glade.t:461
 #: src/ui/gtk/gtk2/interface-glade.c:6775
 #: src/ui/gtk/gtk2/interface-glade.c:7121
 #: src/ui/gtk/gtk2/interface-glade.c:7460
@@ -6427,297 +6219,254 @@ msgstr "("
 msgid "active"
 msgstr "aktív"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4455
+#: src/ui/gtk/gtk1/interface-glade.t:218
 #: src/ui/gtk/gtk2/interface-glade.c:4635
 msgid ", "
 msgstr ", "
 
-#: src/ui/gtk/gtk1/interface-glade.c:4463
-#: src/ui/gtk/gtk1/interface-glade.c:4748
+#: src/ui/gtk/gtk1/interface-glade.t:219 src/ui/gtk/gtk1/interface-glade.t:234
 #, fuzzy
 msgid "queued"
 msgstr "Sorban"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4471
-msgid ")"
-msgstr ")"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4488
-#: src/ui/gtk/gtk1/interface-glade.c:5475 src/ui/gtk/settings.c:1950
-#: src/ui/gtk/settings.c:1987
+#: src/ui/gtk/gtk1/interface-glade.t:220 src/ui/gtk/gtk1/interface-glade.t:265
+#: src/ui/gtk/settings.c:1950 src/ui/gtk/settings.c:1987
 msgid "Show settings"
 msgstr "Beállítások megjelenítése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4496
-#, fuzzy
-msgid "#|Active"
-msgstr "aktív"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4504
+#: src/ui/gtk/gtk1/interface-glade.t:221
 #: src/ui/gtk/gtk2/interface-glade.c:16789
 msgid "Inactive sources"
 msgstr "Inaktív forrás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4603
+#: src/ui/gtk/gtk1/interface-glade.t:228
 msgid "Select"
 msgstr "Kiválaszt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4659
+#: src/ui/gtk/gtk1/interface-glade.t:230
 #: src/ui/gtk/gtk2/interface-glade.c:16718
 msgid "Freeze queue"
 msgstr "Sor befagyasztása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4674
+#: src/ui/gtk/gtk1/interface-glade.t:231
 msgid "Thaw queue"
 msgstr "Sor olvasztása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4715
-msgid "[queued downloads]"
-msgstr "[sorbaállított letöltések]"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4724
+#: src/ui/gtk/gtk1/interface-glade.t:232
 #: src/ui/gtk/gtk2/interface-glade.c:16764
 msgid " queued ("
 msgstr " sorbaállt ("
 
-#: src/ui/gtk/gtk1/interface-glade.c:4732
-msgid "[hosts alive]"
-msgstr "[működő gép]"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4740
+#: src/ui/gtk/gtk1/interface-glade.t:233
 #: src/ui/gtk/gtk2/interface-glade.c:16774
 msgid " alive with "
 msgstr " működik "
 
-#: src/ui/gtk/gtk1/interface-glade.c:4756
+#: src/ui/gtk/gtk1/interface-glade.t:235
 #: src/ui/gtk/gtk2/interface-glade.c:16784
 msgid " passive)"
 msgstr " passzív)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4764
-#, fuzzy
-msgid "#|Queue"
-msgstr "Sorban"
-
-#: src/ui/gtk/gtk1/interface-glade.c:4772
+#: src/ui/gtk/gtk1/interface-glade.t:236
 #: src/ui/gtk/gtk2/interface-glade.c:5885
 msgid "Search results"
 msgstr "Keresési eredmények"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4798
+#: src/ui/gtk/gtk1/interface-glade.t:237
 #, fuzzy
 msgid "Current search:"
 msgstr "Jelenlegi keresés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4845
+#: src/ui/gtk/gtk1/interface-glade.t:238
 #: src/ui/gtk/gtk2/interface-glade.c:5260
 msgid "Cl_ose search"
 msgstr "Keresés be_zárása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4888 src/ui/gtk/gtk1/search.c:409
+#: src/ui/gtk/gtk1/interface-glade.t:239 src/ui/gtk/gtk1/search.c:409
 #: src/ui/gtk/gtk1/search.c:1894 src/ui/gtk/gtk1/search.c:1990
 #: src/ui/gtk/gtk2/interface-glade.c:5319 src/ui/gtk/gtk2/search.c:553
 #: src/ui/gtk/gtk2/search.c:1261 src/ui/gtk/gtk2/search.c:1379
 msgid "(no search)"
 msgstr "(nincs keresés)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4896
+#: src/ui/gtk/gtk1/interface-glade.t:240
 #: src/ui/gtk/gtk2/interface-glade.c:5452
 msgid "General search settings (affect all searches)"
 msgstr "Általános keresési beállítás (minden keresésre hat)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4917
+#: src/ui/gtk/gtk1/interface-glade.t:241
 #: src/ui/gtk/gtk2/interface-glade.c:5362
 msgid "Max. _number of results"
 msgstr "Eredmények leg_nagyobb száma"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4928
+#: src/ui/gtk/gtk1/interface-glade.t:242
 #: src/ui/gtk/gtk2/interface-glade.c:5370
 msgid "Ignored files are"
 msgstr "Mellőzött fájlok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4940
+#: src/ui/gtk/gtk1/interface-glade.t:243
 msgid "Case-sensitive sorting"
 msgstr "Kisbetűérzékeny rendezés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4984
+#: src/ui/gtk/gtk1/interface-glade.t:244
 #: src/ui/gtk/gtk2/interface-glade.c:5404
 msgid "_Hide downloaded files"
 msgstr "Letöltött fájlok el_rejtése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:4998
+#: src/ui/gtk/gtk1/interface-glade.t:245
 #: src/ui/gtk/gtk2/interface-glade.c:5411
 msgid "_Remove manually downloaded files"
 msgstr "Kézi letöltések _törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5010
+#: src/ui/gtk/gtk1/interface-glade.t:246
 #: src/ui/gtk/gtk2/interface-glade.c:5418
 #, fuzzy
 msgid "Max. number of browse host results"
 msgstr "Eredmények leg_nagyobb száma"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5041
+#: src/ui/gtk/gtk1/interface-glade.t:247
 #: src/ui/gtk/gtk2/interface-glade.c:5440
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:5068
+#: src/ui/gtk/gtk1/interface-glade.t:248
 #: src/ui/gtk/gtk2/interface-glade.c:5722
 msgid "Information about selected file"
 msgstr "Tájékoztató a kijelölt fájlról"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5097
+#: src/ui/gtk/gtk1/interface-glade.t:250
 #: src/ui/gtk/gtk2/interface-glade.c:5513
 #: src/ui/gtk/gtk2/interface-glade.c:16429
 msgid "SHA1:"
 msgstr "SHA1:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5109
+#: src/ui/gtk/gtk1/interface-glade.t:251
 #: src/ui/gtk/gtk2/interface-glade.c:5667
 msgid "Index:"
 msgstr "Index:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5131
+#: src/ui/gtk/gtk1/interface-glade.t:252
 #: src/ui/gtk/gtk2/interface-glade.c:5505
 msgid "Source:"
 msgstr "Forrás:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5143
+#: src/ui/gtk/gtk1/interface-glade.t:253
 #: src/ui/gtk/gtk2/interface-glade.c:5497
 #, fuzzy
 msgid "Received:"
 msgstr "Fogadott"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5165
+#: src/ui/gtk/gtk1/interface-glade.t:254
 #: src/ui/gtk/gtk2/interface-glade.c:5659 src/ui/gtk/gtk2/nodes.c:421
 #: src/ui/gtk/gtk2/search_cb.c:573
 msgid "Vendor:"
 msgstr "Eladó:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5187 src/ui/gtk/gtk2/nodes.c:418
+#: src/ui/gtk/gtk1/interface-glade.t:255 src/ui/gtk/gtk2/nodes.c:418
 #: src/ui/gtk/gtk2/search_cb.c:570
 #, fuzzy
 msgid "Country:"
 msgstr "Szám"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5199
+#: src/ui/gtk/gtk1/interface-glade.t:256
 #: src/ui/gtk/gtk2/interface-glade.c:5566
 msgid "Tag:"
 msgstr "Tag:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5221
+#: src/ui/gtk/gtk1/interface-glade.t:257
 #, fuzzy
 msgid "Speed:"
 msgstr "Sebesség"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5315
+#: src/ui/gtk/gtk1/interface-glade.t:259
 #: src/ui/gtk/gtk2/interface-glade.c:5651
 #, fuzzy
 msgid "Servent ID:"
 msgstr "Kiszolgáló-azonosító:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5327
+#: src/ui/gtk/gtk1/interface-glade.t:260
 #: src/ui/gtk/gtk2/interface-glade.c:5605
 msgid "XML data:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:5401
+#: src/ui/gtk/gtk1/interface-glade.t:261
 #: src/ui/gtk/gtk2/interface-glade.c:5751
 msgid "Re_try search every"
 msgstr "Keresést ismétel minden"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5421
+#: src/ui/gtk/gtk1/interface-glade.t:262
 #: src/ui/gtk/gtk2/interface-glade.c:5765
 msgid "secs   "
 msgstr ". mp-ben   "
 
-#: src/ui/gtk/gtk1/interface-glade.c:5439
+#: src/ui/gtk/gtk1/interface-glade.t:263
 #: src/ui/gtk/gtk2/interface-glade.c:5796
 msgid "_Download selected"
 msgstr "Kijelölt le_töltése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5455
-#: src/ui/gtk/gtk1/interface-glade.c:7084
-#: src/ui/gtk/gtk1/interface-glade.c:17719
+#: src/ui/gtk/gtk1/interface-glade.t:264 src/ui/gtk/gtk1/interface-glade.t:321
+#: src/ui/gtk/gtk1/interface-glade.t:815
 #: src/ui/gtk/gtk2/interface-glade.c:5821
 #, fuzzy
 msgid "_Edit filters"
 msgstr "Szűrők szerkesztése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5491
-#: src/ui/gtk/gtk1/interface-glade.c:6783
-#: src/ui/gtk/gtk1/interface-glade.c:6972
-#: src/ui/gtk/gtk1/interface-glade.c:7254
+#: src/ui/gtk/gtk1/interface-glade.t:266 src/ui/gtk/gtk1/interface-glade.t:307
+#: src/ui/gtk/gtk1/interface-glade.t:318 src/ui/gtk/gtk1/interface-glade.t:338
 #: src/ui/gtk/gtk2/interface-glade.c:199 src/ui/gtk/gtk2/interface-glade.c:432
 #: src/ui/gtk/gtk2/interface-glade.c:725
 msgid "Expand all"
 msgstr "Minden kibontása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5500
-#: src/ui/gtk/gtk1/interface-glade.c:6791
-#: src/ui/gtk/gtk1/interface-glade.c:6980
-#: src/ui/gtk/gtk1/interface-glade.c:7262
+#: src/ui/gtk/gtk1/interface-glade.t:267 src/ui/gtk/gtk1/interface-glade.t:308
+#: src/ui/gtk/gtk1/interface-glade.t:319 src/ui/gtk/gtk1/interface-glade.t:339
 #: src/ui/gtk/gtk2/interface-glade.c:209 src/ui/gtk/gtk2/interface-glade.c:442
 #: src/ui/gtk/gtk2/interface-glade.c:735
 msgid "Collapse all"
 msgstr "Minden összecsukása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5519
+#: src/ui/gtk/gtk1/interface-glade.t:268
 #: src/ui/gtk/gtk2/interface-glade.c:5880
 msgid "_Clear results"
 msgstr "Eredmények _törlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5533
-#, fuzzy
-msgid "#|Search"
-msgstr "Keresés"
-
-#: src/ui/gtk/gtk1/interface-glade.c:5560
+#: src/ui/gtk/gtk1/interface-glade.t:269
 #: src/ui/gtk/gtk2/interface-glade.c:6060
 msgid "Search _monitor enabled"
 msgstr "Keresés _figyelése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5580
+#: src/ui/gtk/gtk1/interface-glade.t:270
 #: src/ui/gtk/gtk2/interface-glade.c:6071
 msgid "Show _last"
 msgstr "_Utolsó"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5598
+#: src/ui/gtk/gtk1/interface-glade.t:271
 #: src/ui/gtk/gtk2/interface-glade.c:6084
 msgid "searches"
 msgstr "keresés megjelenítése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5636
-#, fuzzy
-msgid "#|Monitor"
-msgstr "Figyelő"
-
-#: src/ui/gtk/gtk1/interface-glade.c:5673
+#: src/ui/gtk/gtk1/interface-glade.t:273
 #: src/ui/gtk/gtk2/interface-glade.c:6174
 msgid "_Update interval (sec)"
 msgstr "Időszerűsítés időtartama (mp)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5693
+#: src/ui/gtk/gtk1/interface-glade.t:274
 #: src/ui/gtk/gtk2/interface-glade.c:6186
 msgid "_Deletion coeff. (0-100)"
 msgstr "_Törlési együttható (1-100)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5732 src/ui/gtk/gtk2/search_stats.c:381
+#: src/ui/gtk/gtk1/interface-glade.t:275 src/ui/gtk/gtk2/search_stats.c:381
 msgid "Search Term"
 msgstr "Keresés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5741 src/ui/gtk/gtk2/search_stats.c:382
+#: src/ui/gtk/gtk1/interface-glade.t:276 src/ui/gtk/gtk2/search_stats.c:382
 msgid "This Interval"
 msgstr "Ez időtartam"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5775
-#: src/ui/gtk/gtk1/interface-glade.c:8401
-#: src/ui/gtk/gtk1/interface-glade.c:8606
-#: src/ui/gtk/gtk1/interface-glade.c:8854
-#: src/ui/gtk/gtk1/interface-glade.c:9030
-#: src/ui/gtk/gtk1/interface-glade.c:9263
-#: src/ui/gtk/gtk1/interface-glade.c:9652
-#: src/ui/gtk/gtk1/interface-glade.c:10018
+#: src/ui/gtk/gtk1/interface-glade.t:278 src/ui/gtk/gtk1/interface-glade.t:388
+#: src/ui/gtk/gtk1/interface-glade.t:399 src/ui/gtk/gtk1/interface-glade.t:413
+#: src/ui/gtk/gtk1/interface-glade.t:422 src/ui/gtk/gtk1/interface-glade.t:434
+#: src/ui/gtk/gtk1/interface-glade.t:455 src/ui/gtk/gtk1/interface-glade.t:475
 #: src/ui/gtk/gtk2/interface-glade.c:6237
 #: src/ui/gtk/gtk2/interface-glade.c:6892
 #: src/ui/gtk/gtk2/interface-glade.c:7228
@@ -6729,23 +6478,17 @@ msgstr "Ez időtartam"
 msgid "_Reset stats"
 msgstr "Adatok _nullázása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5801
+#: src/ui/gtk/gtk1/interface-glade.t:279
 #: src/ui/gtk/gtk2/interface-glade.c:6248
 msgid "0 terms counted"
 msgstr "0 szó számlálva"
 
-#: src/ui/gtk/gtk1/interface-glade.c:5812
-#, fuzzy
-msgid "#|Search Stats"
-msgstr "Kereső stat"
-
-#: src/ui/gtk/gtk1/interface-glade.c:5861
+#: src/ui/gtk/gtk1/interface-glade.t:280
 #: src/ui/gtk/gtk2/interface-glade.c:3045
 msgid "You seem to be offline."
 msgstr "Úgy tűnik ön nincs vonalban."
 
-#: src/ui/gtk/gtk1/interface-glade.c:5966
-#: src/ui/gtk/gtk1/interface-glade.c:5984
+#: src/ui/gtk/gtk1/interface-glade.t:284 src/ui/gtk/gtk1/interface-glade.t:285
 #: src/ui/gtk/gtk2/interface-glade.c:2453
 #: src/ui/gtk/gtk2/interface-glade.c:2464
 msgid ""
@@ -6755,7 +6498,7 @@ msgid ""
 "both your incoming and outgoing paths."
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:6119
+#: src/ui/gtk/gtk1/interface-glade.t:286
 #: src/ui/gtk/gtk2/interface-glade.c:2553
 #, fuzzy
 msgid ""
@@ -6767,7 +6510,7 @@ msgstr ""
 "Gtk-gnutella szerint tűzfal mögött van. Senki sem csatlakozott be eddig. "
 "Nyomás nem működik, amely megakadályozhatja nagy mennyiségű adat fogadását."
 
-#: src/ui/gtk/gtk1/interface-glade.c:6138
+#: src/ui/gtk/gtk1/interface-glade.t:287
 #: src/ui/gtk/gtk2/interface-glade.c:2566
 msgid ""
 "You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
@@ -6777,7 +6520,7 @@ msgid ""
 "firewall, so you will be able to send out-of-band query hits."
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:6156
+#: src/ui/gtk/gtk1/interface-glade.t:288
 #: src/ui/gtk/gtk2/interface-glade.c:2578
 #, fuzzy
 msgid ""
@@ -6789,7 +6532,7 @@ msgstr ""
 "Nyomás nem működik befelé, ami megakadályozhatja nagy mennyiségű adat "
 "fogadását."
 
-#: src/ui/gtk/gtk1/interface-glade.c:6174
+#: src/ui/gtk/gtk1/interface-glade.t:289
 #: src/ui/gtk/gtk2/interface-glade.c:2590
 msgid ""
 "You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic "
@@ -6797,7 +6540,7 @@ msgid ""
 "delivery of query hits."
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:6192
+#: src/ui/gtk/gtk1/interface-glade.t:290
 #: src/ui/gtk/gtk2/interface-glade.c:2602
 msgid ""
 "People can connect to you via TCP, but you are UDP-firewalled.  However, you "
@@ -6806,19 +6549,19 @@ msgid ""
 "be able to receive any."
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:6210
+#: src/ui/gtk/gtk1/interface-glade.t:291
 #: src/ui/gtk/gtk2/interface-glade.c:2615
 msgid ""
 "People can connect to you, using both TCP and UDP. Push should work and you "
 "will be able to receive out-of-band results for your queries."
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:6229
+#: src/ui/gtk/gtk1/interface-glade.t:292
 #: src/ui/gtk/gtk2/interface-glade.c:2644
 msgid "Running in leaf mode."
 msgstr "Végpont-üzemmód"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6247
+#: src/ui/gtk/gtk1/interface-glade.t:293
 #: src/ui/gtk/gtk2/interface-glade.c:2656
 #, fuzzy
 msgid "Running in legacy mode. Consider switching to auto mode."
@@ -6826,21 +6569,17 @@ msgstr ""
 "Működés hagyományos üzemmódban. Fontolja meg az automatikus üzemmódot! "
 "(Beállítás->gNet beállítás->Aktuális üzemmód)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6265
+#: src/ui/gtk/gtk1/interface-glade.t:294
 #: src/ui/gtk/gtk2/interface-glade.c:2632
 msgid "Running in ultrapeer mode."
 msgstr "Átjátszó üzemmód"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6660
-#: src/ui/gtk/gtk1/interface-glade.c:6890
-#: src/ui/gtk/gtk1/interface-glade.c:8435
-#: src/ui/gtk/gtk1/interface-glade.c:8640
-#: src/ui/gtk/gtk1/interface-glade.c:8888
-#: src/ui/gtk/gtk1/interface-glade.c:9064
-#: src/ui/gtk/gtk1/interface-glade.c:9297
-#: src/ui/gtk/gtk1/interface-glade.c:9686
-#: src/ui/gtk/gtk1/interface-glade.c:10052
-#: src/ui/gtk/gtk2/interface-glade.c:69 src/ui/gtk/gtk2/interface-glade.c:335
+#: src/ui/gtk/gtk1/interface-glade.t:296 src/ui/gtk/gtk1/interface-glade.t:311
+#: src/ui/gtk/gtk1/interface-glade.t:391 src/ui/gtk/gtk1/interface-glade.t:402
+#: src/ui/gtk/gtk1/interface-glade.t:416 src/ui/gtk/gtk1/interface-glade.t:425
+#: src/ui/gtk/gtk1/interface-glade.t:437 src/ui/gtk/gtk1/interface-glade.t:458
+#: src/ui/gtk/gtk1/interface-glade.t:478 src/ui/gtk/gtk2/interface-glade.c:69
+#: src/ui/gtk/gtk2/interface-glade.c:335
 #: src/ui/gtk/gtk2/interface-glade.c:6972
 #: src/ui/gtk/gtk2/interface-glade.c:7308
 #: src/ui/gtk/gtk2/interface-glade.c:7694
@@ -6851,98 +6590,83 @@ msgstr "Átjátszó üzemmód"
 msgid "Abort"
 msgstr "Abbahagy"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6668
-#: src/ui/gtk/gtk1/interface-glade.c:6898 src/ui/gtk/gtk2/interface-glade.c:80
-#: src/ui/gtk/gtk2/interface-glade.c:345
+#: src/ui/gtk/gtk1/interface-glade.t:297 src/ui/gtk/gtk1/interface-glade.t:312
+#: src/ui/gtk/gtk2/interface-glade.c:80 src/ui/gtk/gtk2/interface-glade.c:345
 msgid "Abort all..."
 msgstr "Mindent abbahagy..."
 
-#: src/ui/gtk/gtk1/interface-glade.c:6684
-#: src/ui/gtk/gtk1/interface-glade.c:6914
-#: src/ui/gtk/gtk1/interface-glade.c:7119
-#: src/ui/gtk/gtk1/interface-glade.c:7161 src/ui/gtk/gtk2/interface-glade.c:90
-#: src/ui/gtk/gtk2/interface-glade.c:354 src/ui/gtk/gtk2/interface-glade.c:619
-#: src/ui/gtk/gtk2/interface-glade.c:648
+#: src/ui/gtk/gtk1/interface-glade.t:298 src/ui/gtk/gtk1/interface-glade.t:313
+#: src/ui/gtk/gtk1/interface-glade.t:324 src/ui/gtk/gtk1/interface-glade.t:330
+#: src/ui/gtk/gtk2/interface-glade.c:90 src/ui/gtk/gtk2/interface-glade.c:354
+#: src/ui/gtk/gtk2/interface-glade.c:619 src/ui/gtk/gtk2/interface-glade.c:648
 #, fuzzy
 msgid "with the same name"
 msgstr "név szerint"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6692
-#: src/ui/gtk/gtk1/interface-glade.c:6922
-#: src/ui/gtk/gtk1/interface-glade.c:7128
-#: src/ui/gtk/gtk1/interface-glade.c:7170 src/ui/gtk/gtk2/interface-glade.c:95
-#: src/ui/gtk/gtk2/interface-glade.c:359 src/ui/gtk/gtk2/interface-glade.c:624
-#: src/ui/gtk/gtk2/interface-glade.c:653
+#: src/ui/gtk/gtk1/interface-glade.t:299 src/ui/gtk/gtk1/interface-glade.t:314
+#: src/ui/gtk/gtk1/interface-glade.t:326 src/ui/gtk/gtk1/interface-glade.t:332
+#: src/ui/gtk/gtk2/interface-glade.c:95 src/ui/gtk/gtk2/interface-glade.c:359
+#: src/ui/gtk/gtk2/interface-glade.c:624 src/ui/gtk/gtk2/interface-glade.c:653
 #, fuzzy
 msgid "with the same urn:sha1"
 msgstr "urn:sha1-gyel"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6700
-#: src/ui/gtk/gtk1/interface-glade.c:6930
-#: src/ui/gtk/gtk1/interface-glade.c:7137
-#: src/ui/gtk/gtk1/interface-glade.c:7179
+#: src/ui/gtk/gtk1/interface-glade.t:300 src/ui/gtk/gtk1/interface-glade.t:315
+#: src/ui/gtk/gtk1/interface-glade.t:327 src/ui/gtk/gtk1/interface-glade.t:333
 #: src/ui/gtk/gtk2/interface-glade.c:100 src/ui/gtk/gtk2/interface-glade.c:364
 #: src/ui/gtk/gtk2/interface-glade.c:629 src/ui/gtk/gtk2/interface-glade.c:658
 #, fuzzy
 msgid "from the same host"
 msgstr "gépről"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6708
+#: src/ui/gtk/gtk1/interface-glade.t:301
 msgid "Remove file"
 msgstr "Fájlt eltávolít"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6716
-#: src/ui/gtk/gtk2/interface-glade.c:115
+#: src/ui/gtk/gtk1/interface-glade.t:302 src/ui/gtk/gtk2/interface-glade.c:115
 msgid "Resume"
 msgstr "Folytat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6724
-#: src/ui/gtk/gtk2/interface-glade.c:125
+#: src/ui/gtk/gtk1/interface-glade.t:303 src/ui/gtk/gtk2/interface-glade.c:125
 msgid "Move back to queue"
 msgstr "Sorba visszaállít"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6741
-#: src/ui/gtk/gtk2/interface-glade.c:141 src/ui/gtk/gtk2/interface-glade.c:375
+#: src/ui/gtk/gtk1/interface-glade.t:304 src/ui/gtk/gtk2/interface-glade.c:141
+#: src/ui/gtk/gtk2/interface-glade.c:375
 msgid "Force push mode"
 msgstr "Nyomás-üzemmódot kényszerít"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6758
-#: src/ui/gtk/gtk1/interface-glade.c:6947
+#: src/ui/gtk/gtk1/interface-glade.t:305 src/ui/gtk/gtk1/interface-glade.t:316
 #: src/ui/gtk/gtk2/interface-glade.c:153 src/ui/gtk/gtk2/interface-glade.c:386
 #, fuzzy
 msgid "Copy URL to clipboard"
 msgstr "Url-t vágólapra másol"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6766
-#: src/ui/gtk/gtk1/interface-glade.c:6955
+#: src/ui/gtk/gtk1/interface-glade.t:306 src/ui/gtk/gtk1/interface-glade.t:317
 #: src/ui/gtk/gtk2/interface-glade.c:163 src/ui/gtk/gtk2/interface-glade.c:396
 msgid "Connect to host"
 msgstr "Géphez csatlakozik"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6799
-#: src/ui/gtk/gtk1/interface-glade.c:6988
-#: src/ui/gtk/gtk1/interface-glade.c:7361
-#: src/ui/gtk/gtk1/interface-glade.c:7488
-#: src/ui/gtk/gtk1/interface-glade.c:7538
-#: src/ui/gtk/gtk2/interface-glade.c:173 src/ui/gtk/gtk2/interface-glade.c:406
-#: src/ui/gtk/gtk2/interface-glade.c:589 src/ui/gtk/gtk2/interface-glade.c:952
+#: src/ui/gtk/gtk1/interface-glade.t:309 src/ui/gtk/gtk1/interface-glade.t:320
+#: src/ui/gtk/gtk1/interface-glade.t:348 src/ui/gtk/gtk1/interface-glade.t:351
+#: src/ui/gtk/gtk1/interface-glade.t:353 src/ui/gtk/gtk2/interface-glade.c:173
+#: src/ui/gtk/gtk2/interface-glade.c:406 src/ui/gtk/gtk2/interface-glade.c:589
+#: src/ui/gtk/gtk2/interface-glade.c:952
 #: src/ui/gtk/gtk2/interface-glade.c:9758
 #, fuzzy
 msgid "Browse Host"
 msgstr "_Tallóz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:6882
-#: src/ui/gtk/gtk2/interface-glade.c:330
+#: src/ui/gtk/gtk1/interface-glade.t:310 src/ui/gtk/gtk2/interface-glade.c:330
 msgid "Start now"
 msgstr "Most kezd"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7103
-#: src/ui/gtk/gtk2/interface-glade.c:605
+#: src/ui/gtk/gtk1/interface-glade.t:322 src/ui/gtk/gtk2/interface-glade.c:605
 #, fuzzy
 msgid "Drop results..."
 msgstr "Ejtés indokai"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7126
+#: src/ui/gtk/gtk1/interface-glade.t:323
 msgid ""
 "Adds \"don't display\" rules matching the selected files names to the search "
 "filter."
@@ -6950,7 +6674,7 @@ msgstr ""
 "„elrejtés” szabály felvétele a kijelölt fájlokkal azonos nevűekre a kereső "
 "szűrőbe."
 
-#: src/ui/gtk/gtk1/interface-glade.c:7135
+#: src/ui/gtk/gtk1/interface-glade.t:325
 msgid ""
 "Adds \"don't display\" rules matching the selected files urn:sha1 to the "
 "search filter."
@@ -6958,13 +6682,12 @@ msgstr ""
 "„elrejtés” szabály felvétele a kijelölt fájlokkal azonos urn:sha1-űekre "
 "kereső szűrőbe."
 
-#: src/ui/gtk/gtk1/interface-glade.c:7145
-#: src/ui/gtk/gtk2/interface-glade.c:634
+#: src/ui/gtk/gtk1/interface-glade.t:328 src/ui/gtk/gtk2/interface-glade.c:634
 #, fuzzy
 msgid "Globally drop results..."
 msgstr "Globálisan ejt..."
 
-#: src/ui/gtk/gtk1/interface-glade.c:7168
+#: src/ui/gtk/gtk1/interface-glade.t:329
 msgid ""
 "Adds \"don't display\" rules matching the selected files names to the global "
 "pre-filter."
@@ -6972,7 +6695,7 @@ msgstr ""
 "„elrejtés” szabály felvétele a kijelölt fájlokkal azonos nevűekre a globális "
 "előszűrőbe."
 
-#: src/ui/gtk/gtk1/interface-glade.c:7177
+#: src/ui/gtk/gtk1/interface-glade.t:331
 msgid ""
 "Adds \"don't display\" rules matching the selected files urn:sha1 to the "
 "global pre-filter."
@@ -6980,54 +6703,49 @@ msgstr ""
 "„elrejtés” szabály felvétele a kijelölt fájlokkal egyező urn:sha1-űekre a "
 "globális előszűrőbe."
 
-#: src/ui/gtk/gtk1/interface-glade.c:7196
-#: src/ui/gtk/gtk2/interface-glade.c:669
+#: src/ui/gtk/gtk1/interface-glade.t:334 src/ui/gtk/gtk2/interface-glade.c:669
 #, fuzzy
 msgid "Auto-download selected by..."
 msgstr "Automatikus letöltés kiválasztva a következő szerint"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7212
-#: src/ui/gtk/gtk2/interface-glade.c:693
+#: src/ui/gtk/gtk1/interface-glade.t:335 src/ui/gtk/gtk2/interface-glade.c:693
 msgid "name"
 msgstr "név"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7220
-#: src/ui/gtk/gtk2/interface-glade.c:683
+#: src/ui/gtk/gtk1/interface-glade.t:336 src/ui/gtk/gtk2/interface-glade.c:683
 msgid "urn:sha1"
 msgstr "urn:sha1"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7237
-#: src/ui/gtk/gtk2/interface-glade.c:709
+#: src/ui/gtk/gtk1/interface-glade.t:337 src/ui/gtk/gtk2/interface-glade.c:709
 msgid "New search from selected"
 msgstr "Új keresés a kiválasztottakból"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7279
+#: src/ui/gtk/gtk1/interface-glade.t:340
 #: src/ui/gtk/gtk2/interface-glade.c:16149
 msgid "Stop this search"
 msgstr "Leállítja e keresést"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7287
+#: src/ui/gtk/gtk1/interface-glade.t:341
 #: src/ui/gtk/gtk2/interface-glade.c:16159
 msgid "Resume this search"
 msgstr "Folytatja e keresést"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7295
+#: src/ui/gtk/gtk1/interface-glade.t:342
 #: src/ui/gtk/gtk2/interface-glade.c:16169
 msgid "Restart this search"
 msgstr "Újrakezdi e keresést"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7303
+#: src/ui/gtk/gtk1/interface-glade.t:343
 #: src/ui/gtk/gtk2/interface-glade.c:16179
 msgid "Duplicate this search"
 msgstr "E keresés megkettőzése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7320 src/ui/gtk/gtk1/search_cb.c:638
+#: src/ui/gtk/gtk1/interface-glade.t:344 src/ui/gtk/gtk1/search_cb.c:638
 #: src/ui/gtk/gtk2/interface-glade.c:751 src/ui/gtk/gtk2/search_cb.c:369
 msgid "Show tabs"
 msgstr "Fülek mutatása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7328
-#: src/ui/gtk/gtk1/interface-glade.c:7505
+#: src/ui/gtk/gtk1/interface-glade.t:345 src/ui/gtk/gtk1/interface-glade.t:352
 #: src/ui/gtk/gtk2/interface-glade.c:189 src/ui/gtk/gtk2/interface-glade.c:422
 #: src/ui/gtk/gtk2/interface-glade.c:761 src/ui/gtk/gtk2/interface-glade.c:942
 #: src/ui/gtk/gtk2/interface-glade.c:9774
@@ -7035,47 +6753,40 @@ msgstr "Fülek mutatása"
 msgid "Configure columns"
 msgstr "Oszlopok beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7336
-#: src/ui/gtk/gtk2/interface-glade.c:771
+#: src/ui/gtk/gtk1/interface-glade.t:346 src/ui/gtk/gtk2/interface-glade.c:771
 msgid "Make current sorting default"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:7353
-#: src/ui/gtk/gtk2/interface-glade.c:579
+#: src/ui/gtk/gtk1/interface-glade.t:347 src/ui/gtk/gtk2/interface-glade.c:579
 #, fuzzy
 msgid "Bitzi Metadata"
 msgstr "Kereső stat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7450
-#: src/ui/gtk/gtk2/interface-glade.c:893
+#: src/ui/gtk/gtk1/interface-glade.t:349 src/ui/gtk/gtk2/interface-glade.c:893
 msgid "Add as search"
 msgstr "Keresésként hozzáadás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7840
+#: src/ui/gtk/gtk1/interface-glade.t:354
 #: src/ui/gtk/gtk2/interface-glade.c:1034
 msgid "Ruleset editor"
 msgstr "Szabálytárszerkesztő"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7891
+#: src/ui/gtk/gtk1/interface-glade.t:355
 #: src/ui/gtk/gtk2/interface-glade.c:1090
 #, fuzzy
 msgid "_Create filter"
 msgstr "Szűrő létrehozása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7931
+#: src/ui/gtk/gtk1/interface-glade.t:357
 msgid "Rules"
 msgstr "Szabályok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:7999
+#: src/ui/gtk/gtk1/interface-glade.t:360
 #: src/ui/gtk/gtk2/interface-glade.c:1135
 msgid "enabled"
 msgstr "engedélyezett"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8007
-msgid "Remove filter"
-msgstr "Szűrő eltávolítása"
-
-#: src/ui/gtk/gtk1/interface-glade.c:8014
+#: src/ui/gtk/gtk1/interface-glade.t:361
 #: src/ui/gtk/gtk2/interface-glade.c:1144
 msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
@@ -7084,7 +6795,11 @@ msgstr ""
 "Szűrőt nem lehet eltávolítani, ha kereséshez kötött és használják (szabály "
 "célja)."
 
-#: src/ui/gtk/gtk1/interface-glade.c:8088
+#: src/ui/gtk/gtk1/interface-glade.t:362
+msgid "Remove filter"
+msgstr "Szűrő eltávolítása"
+
+#: src/ui/gtk/gtk1/interface-glade.t:367
 #: src/ui/gtk/gtk2/interface-glade.c:1184
 msgid ""
 "Remove all rules\n"
@@ -7093,7 +6808,7 @@ msgstr ""
 "Minden szabályt\n"
 "töröl e szűrőből"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8096
+#: src/ui/gtk/gtk1/interface-glade.t:369
 #: src/ui/gtk/gtk2/interface-glade.c:1189
 msgid ""
 "Reset all rule stats\n"
@@ -7102,7 +6817,7 @@ msgstr ""
 "Szabálystatisztika-adatok\n"
 "nullázása e szűrőre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8104
+#: src/ui/gtk/gtk1/interface-glade.t:371
 #: src/ui/gtk/gtk2/interface-glade.c:1194
 msgid ""
 "Reset filter stats\n"
@@ -7111,7 +6826,7 @@ msgstr ""
 "Szűrőstatisztika-adatok\n"
 "nullázása e szűrőre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8112
+#: src/ui/gtk/gtk1/interface-glade.t:373
 #: src/ui/gtk/gtk2/interface-glade.c:1199
 msgid ""
 "Reset filter stats\n"
@@ -7120,46 +6835,39 @@ msgstr ""
 "Szűrőstatisztika-adatok\n"
 "nullázása minden szűrőre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8171
+#: src/ui/gtk/gtk1/interface-glade.t:375
 #: src/ui/gtk/gtk2/interface-glade.c:6637
 msgid "Add name rule"
 msgstr "Névszabály"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8179
+#: src/ui/gtk/gtk1/interface-glade.t:376
 #: src/ui/gtk/gtk2/interface-glade.c:6623
 msgid "Add size rule"
 msgstr "Méretszabály"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8187
+#: src/ui/gtk/gtk1/interface-glade.t:377
 #: src/ui/gtk/gtk2/interface-glade.c:6644
 msgid "Add flag rule"
 msgstr "Jelzésszabály"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8203
+#: src/ui/gtk/gtk1/interface-glade.t:378
 #: src/ui/gtk/gtk2/interface-glade.c:6616
 msgid "Add jump rule"
 msgstr "Átugrásszabály"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8211
+#: src/ui/gtk/gtk1/interface-glade.t:379
 #: src/ui/gtk/gtk2/interface-glade.c:6630
 msgid "Add IP rule"
 msgstr "IP-szabály"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8219
+#: src/ui/gtk/gtk1/interface-glade.t:380
 #: src/ui/gtk/gtk2/interface-glade.c:6651
 msgid "Add state rule"
 msgstr "Állapotszabály"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8227
-#, fuzzy
-msgid "#|Add/Remove"
-msgstr "Felvétel/eltávolítás"
-
-#: src/ui/gtk/gtk1/interface-glade.c:8276
-#: src/ui/gtk/gtk1/interface-glade.c:8492
-#: src/ui/gtk/gtk1/interface-glade.c:8697
-#: src/ui/gtk/gtk1/interface-glade.c:9121
-#: src/ui/gtk/gtk1/interface-glade.c:9743
+#: src/ui/gtk/gtk1/interface-glade.t:382 src/ui/gtk/gtk1/interface-glade.t:393
+#: src/ui/gtk/gtk1/interface-glade.t:404 src/ui/gtk/gtk1/interface-glade.t:427
+#: src/ui/gtk/gtk1/interface-glade.t:460
 #: src/ui/gtk/gtk2/interface-glade.c:6770
 #: src/ui/gtk/gtk2/interface-glade.c:7116
 #: src/ui/gtk/gtk2/interface-glade.c:7455
@@ -7168,12 +6876,9 @@ msgstr "Felvétel/eltávolítás"
 msgid "invert condition"
 msgstr "Fordított feltétel"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8292
-#: src/ui/gtk/gtk1/interface-glade.c:8508
-#: src/ui/gtk/gtk1/interface-glade.c:8713
-#: src/ui/gtk/gtk1/interface-glade.c:9137
-#: src/ui/gtk/gtk1/interface-glade.c:9362
-#: src/ui/gtk/gtk1/interface-glade.c:9759
+#: src/ui/gtk/gtk1/interface-glade.t:384 src/ui/gtk/gtk1/interface-glade.t:395
+#: src/ui/gtk/gtk1/interface-glade.t:406 src/ui/gtk/gtk1/interface-glade.t:429
+#: src/ui/gtk/gtk1/interface-glade.t:440 src/ui/gtk/gtk1/interface-glade.t:462
 #: src/ui/gtk/gtk2/interface-glade.c:6780
 #: src/ui/gtk/gtk2/interface-glade.c:7126
 #: src/ui/gtk/gtk2/interface-glade.c:7465
@@ -7183,82 +6888,62 @@ msgstr "Fordított feltétel"
 msgid "mark only"
 msgstr "csak megjelöl"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8300
+#: src/ui/gtk/gtk1/interface-glade.t:385
 #: src/ui/gtk/gtk2/interface-glade.c:6835
 msgid "Condition: If filename matches"
 msgstr "Feltétel: ha a fájlnév illik"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8353
+#: src/ui/gtk/gtk1/interface-glade.t:386
 #: src/ui/gtk/gtk2/interface-glade.c:6828
 msgid "case sensitive"
 msgstr "kis/nagybetűérzékeny"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8419
-#: src/ui/gtk/gtk1/interface-glade.c:8624
-#: src/ui/gtk/gtk1/interface-glade.c:8872
-#: src/ui/gtk/gtk1/interface-glade.c:9048
-#: src/ui/gtk/gtk1/interface-glade.c:9281
-#: src/ui/gtk/gtk1/interface-glade.c:9670
-#: src/ui/gtk/gtk1/interface-glade.c:10036
+#: src/ui/gtk/gtk1/interface-glade.t:389 src/ui/gtk/gtk1/interface-glade.t:400
+#: src/ui/gtk/gtk1/interface-glade.t:414 src/ui/gtk/gtk1/interface-glade.t:423
+#: src/ui/gtk/gtk1/interface-glade.t:435 src/ui/gtk/gtk1/interface-glade.t:456
+#: src/ui/gtk/gtk1/interface-glade.t:476
 msgid "Add/Replace"
 msgstr "Felv/csere"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8427
-#: src/ui/gtk/gtk1/interface-glade.c:8632
-#: src/ui/gtk/gtk1/interface-glade.c:8880
-#: src/ui/gtk/gtk1/interface-glade.c:9056
-#: src/ui/gtk/gtk1/interface-glade.c:9289
-#: src/ui/gtk/gtk1/interface-glade.c:9678
-#: src/ui/gtk/gtk1/interface-glade.c:10044
-#: src/ui/gtk/gtk2/interface-glade.c:105
+#: src/ui/gtk/gtk1/interface-glade.t:390 src/ui/gtk/gtk1/interface-glade.t:401
+#: src/ui/gtk/gtk1/interface-glade.t:415 src/ui/gtk/gtk1/interface-glade.t:424
+#: src/ui/gtk/gtk1/interface-glade.t:436 src/ui/gtk/gtk1/interface-glade.t:457
+#: src/ui/gtk/gtk1/interface-glade.t:477 src/ui/gtk/gtk2/interface-glade.c:105
 msgid "Remove"
 msgstr "Eltávolítás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8443
-#, fuzzy
-msgid "#|Filename"
-msgstr "Fájlnév"
-
-#: src/ui/gtk/gtk1/interface-glade.c:8516
+#: src/ui/gtk/gtk1/interface-glade.t:396
 #: src/ui/gtk/gtk2/interface-glade.c:7171
 msgid "Condition: If IP address matches"
 msgstr "Feltétel: ha az IP-cím illik"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8544
+#: src/ui/gtk/gtk1/interface-glade.t:397
 #: src/ui/gtk/gtk2/interface-glade.c:7155
 #, fuzzy
 msgid "IP address/mask"
 msgstr "IP-cím"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8648
-#, fuzzy
-msgid "#|IP address"
-msgstr "IP-cím"
-
-#: src/ui/gtk/gtk1/interface-glade.c:8721
+#: src/ui/gtk/gtk1/interface-glade.t:407
 #: src/ui/gtk/gtk2/interface-glade.c:7557
 msgid "Condition: If file size matches"
 msgstr "Feltétel: ha a fájlméret illik"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8749
+#: src/ui/gtk/gtk1/interface-glade.t:408
 #: src/ui/gtk/gtk2/interface-glade.c:7494
 #, fuzzy
 msgid "Minimum size:"
 msgstr "legkisebb méret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8760
+#: src/ui/gtk/gtk1/interface-glade.t:409
 #: src/ui/gtk/gtk2/interface-glade.c:7504
 #, fuzzy
 msgid "Maximum size:"
 msgstr "legnagyobb méret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8771
-#: src/ui/gtk/gtk1/interface-glade.c:8782
-#: src/ui/gtk/gtk1/interface-glade.c:14924
-#: src/ui/gtk/gtk1/interface-glade.c:15336
-#: src/ui/gtk/gtk1/interface-glade.c:15347
-#: src/ui/gtk/gtk1/interface-glade.c:15427
-#: src/ui/gtk/gtk1/interface-glade.c:15449
+#: src/ui/gtk/gtk1/interface-glade.t:410 src/ui/gtk/gtk1/interface-glade.t:411
+#: src/ui/gtk/gtk1/interface-glade.t:679 src/ui/gtk/gtk1/interface-glade.t:708
+#: src/ui/gtk/gtk1/interface-glade.t:709 src/ui/gtk/gtk1/interface-glade.t:712
+#: src/ui/gtk/gtk1/interface-glade.t:713
 #: src/ui/gtk/gtk2/interface-glade.c:7514
 #: src/ui/gtk/gtk2/interface-glade.c:7524
 #: src/ui/gtk/gtk2/interface-glade.c:13636
@@ -7269,17 +6954,12 @@ msgstr "legnagyobb méret"
 msgid "bytes"
 msgstr "bájt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8896
-#, fuzzy
-msgid "#|Filesize"
-msgstr "Fájl"
-
-#: src/ui/gtk/gtk1/interface-glade.c:8953
+#: src/ui/gtk/gtk1/interface-glade.t:419
 #: src/ui/gtk/gtk2/interface-glade.c:7879
 msgid "Condition: always"
 msgstr "Feltétel: mindig"
 
-#: src/ui/gtk/gtk1/interface-glade.c:8971
+#: src/ui/gtk/gtk1/interface-glade.t:420
 #: src/ui/gtk/gtk2/interface-glade.c:7872
 msgid ""
 "There is no condition. When this rule is reached, the matching will continue "
@@ -7290,139 +6970,112 @@ msgstr ""
 "célként megadott szűrőben. Ezért nem lehet megfordítani ezt a feltételt. Ha "
 "lehetne, ez a feltétel mellőzve lenne."
 
-#: src/ui/gtk/gtk1/interface-glade.c:9072
-#, fuzzy
-msgid "#|Jump"
-msgstr "Ugrás"
-
-#: src/ui/gtk/gtk1/interface-glade.c:9144
+#: src/ui/gtk/gtk1/interface-glade.t:430
 #: src/ui/gtk/gtk2/interface-glade.c:8237
 msgid "Condition: If urn:sha1 matches"
 msgstr "Feltétel: ha urn:sha1 illik"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9172
+#: src/ui/gtk/gtk1/interface-glade.t:431
 #: src/ui/gtk/gtk2/interface-glade.c:8201
 msgid "SHA1 hash (not editable, add from search popup)"
 msgstr "SHA1 hash (nem szerkeszthető, a kereső felugróból lehet hozzáadni)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9204
+#: src/ui/gtk/gtk1/interface-glade.t:432
 #: src/ui/gtk/gtk2/interface-glade.c:8225
 msgid "Originally obtained from"
 msgstr "Eredetileg jön"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9305
-#, fuzzy
-msgid "#|SHA1"
-msgstr "SHA1:"
-
-#: src/ui/gtk/gtk1/interface-glade.c:9370
+#: src/ui/gtk/gtk1/interface-glade.t:441
 #: src/ui/gtk/gtk2/interface-glade.c:8899
 msgid "Condition: If result has flags"
 msgstr "Feltétel: ha az eredményben vannak jelzések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9398
+#: src/ui/gtk/gtk1/interface-glade.t:442
 #: src/ui/gtk/gtk2/interface-glade.c:8602 src/ui/gtk/hcache_common.c:44
 msgid "Busy"
 msgstr "Foglalt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9432
-#: src/ui/gtk/gtk1/interface-glade.c:9492
-#: src/ui/gtk/gtk1/interface-glade.c:9583
+#: src/ui/gtk/gtk1/interface-glade.t:444 src/ui/gtk/gtk1/interface-glade.t:447
+#: src/ui/gtk/gtk1/interface-glade.t:452
 #: src/ui/gtk/gtk2/interface-glade.c:8705
 #: src/ui/gtk/gtk2/interface-glade.c:8834
 #: src/ui/gtk/gtk2/interface-glade.c:8894
 msgid "unset"
 msgstr "kikapcsolva"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9452
-#: src/ui/gtk/gtk1/interface-glade.c:9472
-#: src/ui/gtk/gtk1/interface-glade.c:9603
+#: src/ui/gtk/gtk1/interface-glade.t:445 src/ui/gtk/gtk1/interface-glade.t:446
+#: src/ui/gtk/gtk1/interface-glade.t:453
 #: src/ui/gtk/gtk2/interface-glade.c:8645
 #: src/ui/gtk/gtk2/interface-glade.c:8675
 #: src/ui/gtk/gtk2/interface-glade.c:8864
 msgid "ignored"
 msgstr "mellőzve"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9512
-#: src/ui/gtk/gtk1/interface-glade.c:9532
-#: src/ui/gtk/gtk1/interface-glade.c:9563
+#: src/ui/gtk/gtk1/interface-glade.t:448 src/ui/gtk/gtk1/interface-glade.t:449
+#: src/ui/gtk/gtk1/interface-glade.t:451
 #: src/ui/gtk/gtk2/interface-glade.c:8735
 #: src/ui/gtk/gtk2/interface-glade.c:8765
 #: src/ui/gtk/gtk2/interface-glade.c:8804
 msgid "set"
 msgstr "bekapcsolva"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9540
+#: src/ui/gtk/gtk1/interface-glade.t:450
 #: src/ui/gtk/gtk2/interface-glade.c:8770
 msgid "Stable"
 msgstr "Stabil"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9694
-#, fuzzy
-msgid "#|Flags"
-msgstr "Jelzések"
-
-#: src/ui/gtk/gtk1/interface-glade.c:9767
+#: src/ui/gtk/gtk1/interface-glade.t:463
 #: src/ui/gtk/gtk2/interface-glade.c:9550
 msgid "Condition: If current filter result properties match"
 msgstr "Feltétel: ha a jelenlegi szűrő eredmény tulajdonságai illenek"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9818
-#: src/ui/gtk/gtk1/interface-glade.c:9909
+#: src/ui/gtk/gtk1/interface-glade.t:465 src/ui/gtk/gtk1/interface-glade.t:470
 #: src/ui/gtk/gtk2/interface-glade.c:9326
 #: src/ui/gtk/gtk2/interface-glade.c:9455
 msgid "don't"
 msgstr "ne"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9838
-#: src/ui/gtk/gtk1/interface-glade.c:9929
+#: src/ui/gtk/gtk1/interface-glade.t:466 src/ui/gtk/gtk1/interface-glade.t:471
 #: src/ui/gtk/gtk2/interface-glade.c:9356
 #: src/ui/gtk/gtk2/interface-glade.c:9485
 msgid "undefined"
 msgstr "meghatározatlan"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9869
-#: src/ui/gtk/gtk1/interface-glade.c:9889
+#: src/ui/gtk/gtk1/interface-glade.t:468 src/ui/gtk/gtk1/interface-glade.t:469
 #: src/ui/gtk/gtk2/interface-glade.c:9395
 #: src/ui/gtk/gtk2/interface-glade.c:9425
 msgid "do"
 msgstr "tegye"
 
-#: src/ui/gtk/gtk1/interface-glade.c:9949
-#: src/ui/gtk/gtk1/interface-glade.c:9969
+#: src/ui/gtk/gtk1/interface-glade.t:472 src/ui/gtk/gtk1/interface-glade.t:473
 #: src/ui/gtk/gtk2/interface-glade.c:9515
 #: src/ui/gtk/gtk2/interface-glade.c:9545
 msgid "ignore"
 msgstr "mellőz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10060
-#, fuzzy
-msgid "#|State"
-msgstr "Állapot"
-
-#: src/ui/gtk/gtk1/interface-glade.c:10084
+#: src/ui/gtk/gtk1/interface-glade.t:479
 msgid "Apply"
 msgstr "Alkalm"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10093
+#: src/ui/gtk/gtk1/interface-glade.t:480
 #: src/ui/gtk/gtk2/interface-glade.c:1262
 msgid "Revert"
 msgstr "Visszaállít"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10102
+#: src/ui/gtk/gtk1/interface-glade.t:481
 msgid "Ok"
 msgstr "OK"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10111
+#: src/ui/gtk/gtk1/interface-glade.t:482
 msgid "Cancel"
 msgstr "Mégsem"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10315
+#: src/ui/gtk/gtk1/interface-glade.t:483
 #: src/ui/gtk/gtk2/interface-glade.c:1382
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutella leállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10337
+#: src/ui/gtk/gtk1/interface-glade.t:484
 #: src/ui/gtk/gtk2/interface-glade.c:1403
 #, fuzzy
 msgid ""
@@ -7436,77 +7089,68 @@ msgstr ""
 "\n"
 "Várakozási idő:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10345
-msgid "[time]"
-msgstr "[idő]"
-
-#: src/ui/gtk/gtk1/interface-glade.c:10410
+#: src/ui/gtk/gtk1/interface-glade.t:488
 #: src/ui/gtk/gtk2/interface-glade.c:1520
 msgid "About gtk-gnutella"
 msgstr "Gtk-gnutella névjegye"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10456
-msgid "[name and version]"
-msgstr "[név és változat]"
-
-#: src/ui/gtk/gtk1/interface-glade.c:10497
+#: src/ui/gtk/gtk1/interface-glade.t:489
 #: src/ui/gtk/gtk2/interface-glade.c:1568
 msgid "Original author:"
 msgstr "Eredeti szerző:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10509
+#: src/ui/gtk/gtk1/interface-glade.t:490
 #: src/ui/gtk/gtk2/interface-glade.c:1587
 msgid "Core development:"
 msgstr "Belső fejlesztés:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10521
+#: src/ui/gtk/gtk1/interface-glade.t:491
 #: src/ui/gtk/gtk2/interface-glade.c:1606
 msgid "PARQ development:"
 msgstr "PARQ fejlesztése:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10533
+#: src/ui/gtk/gtk1/interface-glade.t:492
 #: src/ui/gtk/gtk2/interface-glade.c:1651
 msgid "Project leader:"
 msgstr "Tervvezető:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10544
+#: src/ui/gtk/gtk1/interface-glade.t:493
 #: src/ui/gtk/gtk2/interface-glade.c:1661
 msgid "GUI development:"
 msgstr "Külső fejlesztés:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10555
+#: src/ui/gtk/gtk1/interface-glade.t:494
 #: src/ui/gtk/gtk2/interface-glade.c:1671
 msgid "Swarming development:"
 msgstr "Zsúfolás fejlesztése:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10576
+#: src/ui/gtk/gtk1/interface-glade.t:495
 msgid "Vidar Madsen"
 msgstr "Vidar Madsen"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10587
+#: src/ui/gtk/gtk1/interface-glade.t:496
 msgid "Richard Eckart"
 msgstr "Richard Eckart"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10598
-#: src/ui/gtk/gtk1/interface-glade.c:10620
+#: src/ui/gtk/gtk1/interface-glade.t:497 src/ui/gtk/gtk1/interface-glade.t:499
 #, fuzzy
 msgid "Raphael Manfredi"
 msgstr "Raphaël Manfredi"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10609
+#: src/ui/gtk/gtk1/interface-glade.t:498
 msgid "Yann Grossel"
 msgstr "Yann Grossel"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10631
+#: src/ui/gtk/gtk1/interface-glade.t:500
 msgid "Jeroen Asselman"
 msgstr "Jeroen Asselman"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10650
+#: src/ui/gtk/gtk1/interface-glade.t:501
 #: src/ui/gtk/gtk2/interface-glade.c:1722
 msgid "Contributors:"
 msgstr "Hozzájárultak:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10686
+#: src/ui/gtk/gtk1/interface-glade.t:502
 #: src/ui/gtk/gtk2/interface-glade.c:1727
 #, fuzzy
 msgid ""
@@ -7515,177 +7159,175 @@ msgstr ""
 "⇒ Keresünk további személyeket, akik hozzá akarnak járulni e remek "
 "eszközhöz. ⇐"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10694
+#: src/ui/gtk/gtk1/interface-glade.t:503
 #: src/ui/gtk/gtk2/interface-glade.c:1733
 #, fuzzy
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "Böngészd a „http://gtk-gnutella.sourceforge.net”-et!"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10702
+#: src/ui/gtk/gtk1/interface-glade.t:504
 #: src/ui/gtk/gtk2/interface-glade.c:1740
 msgid "Join the users or developers mailing lists."
 msgstr "Csatlakozz a használói vagy fejlesztői levelező listához."
 
-#: src/ui/gtk/gtk1/interface-glade.c:10710
+#: src/ui/gtk/gtk1/interface-glade.t:505
 #: src/ui/gtk/gtk2/interface-glade.c:1745
 msgid "Meet us on #gtk-gnutella at irc.freenode.net."
 msgstr "Találkozzznk a „#gtk-gnutella” csatornán az „irc.freenode.net”-en!"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10742
+#: src/ui/gtk/gtk1/interface-glade.t:506
 #: src/ui/gtk/gtk2/interface-glade.c:1758
 msgid ""
 "This product includes GeoIP data created by MaxMind, available from\n"
 "http://maxmind.com/"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:10760
-#: src/ui/gtk/gtk1/interface-glade.c:17470
+#: src/ui/gtk/gtk1/interface-glade.t:508 src/ui/gtk/gtk1/interface-glade.t:517
 #: src/ui/gtk/gtk2/interface-glade.c:1771
 msgid "_Close"
 msgstr "_Bezár"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10799
+#: src/ui/gtk/gtk1/interface-glade.t:509
 #: src/ui/gtk/gtk2/interface-glade.c:1441
 msgid "Copy rule"
 msgstr "Szabály másolása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10807
+#: src/ui/gtk/gtk1/interface-glade.t:510
 #: src/ui/gtk/gtk2/interface-glade.c:1451
 msgid "Paste rule"
 msgstr "Szabály beillesztése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10842
+#: src/ui/gtk/gtk1/interface-glade.t:511
 #: src/ui/gtk/gtk2/interface-glade.c:3473
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Kilépés?"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10853
-#: src/ui/gtk/gtk2/interface-glade.c:3500
-msgid "Please confirm:"
-msgstr "Kérem erősítse meg:"
-
-#: src/ui/gtk/gtk1/interface-glade.c:10862
-#: src/ui/gtk/gtk2/interface-glade.c:3494
-msgid "Do you really want to quit?"
-msgstr "Biztosan ki akar lépni?"
-
-#: src/ui/gtk/gtk1/interface-glade.c:10877 src/ui/gtk/settings.c:1140
+#: src/ui/gtk/gtk1/interface-glade.t:512 src/ui/gtk/settings.c:1140
 #: src/ui/gtk/settings_cb.c:575 src/ui/gtk/settings_cb.c:638
 msgid "Yes"
 msgstr "Igen"
 
-#: src/ui/gtk/gtk1/interface-glade.c:10889
+#: src/ui/gtk/gtk1/interface-glade.t:513
 msgid "No, take me back!"
 msgstr "Nem, vissza!"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11632
+#: src/ui/gtk/gtk1/interface-glade.t:514
+#: src/ui/gtk/gtk2/interface-glade.c:3500
+msgid "Please confirm:"
+msgstr "Kérem erősítse meg:"
+
+#: src/ui/gtk/gtk1/interface-glade.t:515
+#: src/ui/gtk/gtk2/interface-glade.c:3494
+msgid "Do you really want to quit?"
+msgstr "Biztosan ki akar lépni?"
+
+#: src/ui/gtk/gtk1/interface-glade.t:516
 #: src/ui/gtk/gtk2/interface-glade.c:10086
 msgid "Preferences"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:11675
+#: src/ui/gtk/gtk1/interface-glade.t:518
 #: src/ui/gtk/gtk2/interface-glade.c:10399
 msgid "IP settings"
 msgstr "IP beállítások"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11700
+#: src/ui/gtk/gtk1/interface-glade.t:519
 #: src/ui/gtk/gtk2/interface-glade.c:10278
 msgid "Current IP settings (Address:Port):"
 msgstr "Jelenlegi IP beállítás (cím:kapu):"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11717
+#: src/ui/gtk/gtk1/interface-glade.t:520
 #: src/ui/gtk/gtk2/interface-glade.c:10284
 msgid "not yet determined"
 msgstr "nincs még meghatározva"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11756
+#: src/ui/gtk/gtk1/interface-glade.t:521
 #: src/ui/gtk/gtk2/interface-glade.c:10345
 #, fuzzy
 msgid "Force local _IP to"
 msgstr "Helyi IP _kényszerítése erre:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11780
+#: src/ui/gtk/gtk1/interface-glade.t:522
 #: src/ui/gtk/gtk2/interface-glade.c:10359
 msgid "_Listen port"
 msgstr "_Bejövő kapu"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11804
+#: src/ui/gtk/gtk1/interface-glade.t:523
 #: src/ui/gtk/gtk2/interface-glade.c:10304
 #, fuzzy
 msgid "Disable: 0, Random: 1"
 msgstr "Alapértelmezés: 6346, Véletlen: 0"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11816
+#: src/ui/gtk/gtk1/interface-glade.t:524
 #: src/ui/gtk/gtk2/interface-glade.c:10352
 #, fuzzy
 msgid "Public _hostname"
 msgstr "Nyilvános gazdanév"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11840
+#: src/ui/gtk/gtk1/interface-glade.t:525
 #: src/ui/gtk/gtk2/interface-glade.c:10369
 #, fuzzy
 msgid "Enable _UDP"
 msgstr "Engedélyezett"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11852
+#: src/ui/gtk/gtk1/interface-glade.t:526
 #: src/ui/gtk/gtk2/interface-glade.c:10390
 #, fuzzy
 msgid "Network protocol:"
 msgstr "Protokoll, amelyet a proxy használ"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11875
+#: src/ui/gtk/gtk1/interface-glade.t:527
 #: src/ui/gtk/gtk2/interface-glade.c:10514
 msgid "Proxy settings"
 msgstr "Proxy beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11904
+#: src/ui/gtk/gtk1/interface-glade.t:528
 #: src/ui/gtk/gtk2/interface-glade.c:10431
 msgid "H_ost:"
 msgstr "G_azda:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11917
+#: src/ui/gtk/gtk1/interface-glade.t:529
 #: src/ui/gtk/gtk2/interface-glade.c:10439
 msgid "TCP _Port:"
 msgstr "TCP _Kapu:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11929
+#: src/ui/gtk/gtk1/interface-glade.t:530
 #: src/ui/gtk/gtk2/interface-glade.c:10423
 msgid "Proxy _type:"
 msgstr "Proxy _típus:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:11986
+#: src/ui/gtk/gtk1/interface-glade.t:531
 #: src/ui/gtk/gtk2/interface-glade.c:10481
 msgid "Use username and password to _authenticate to proxy"
 msgstr "Nevet és jelszót használ az azonosításhoz a proxy"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12000
+#: src/ui/gtk/gtk1/interface-glade.t:532
 #: src/ui/gtk/gtk2/interface-glade.c:10491
 msgid "_Username"
 msgstr "_Felhasználó"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12013
+#: src/ui/gtk/gtk1/interface-glade.t:533
 #: src/ui/gtk/gtk2/interface-glade.c:10503
 msgid "Pass_word"
 msgstr "_Jelszó"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12046
-#: src/ui/gtk/gtk1/interface-glade.c:12103
+#: src/ui/gtk/gtk1/interface-glade.t:534 src/ui/gtk/gtk1/interface-glade.t:537
 #: src/ui/gtk/gtk2/interface-glade.c:10565
 msgid "Local networks"
 msgstr "Helyi hálózatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12073
+#: src/ui/gtk/gtk1/interface-glade.t:535
 #: src/ui/gtk/gtk2/interface-glade.c:10536
 msgid "_Try to connect to local networks first"
 msgstr "A helyi hálózatokhoz _próbál először csatlakozni"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12085
+#: src/ui/gtk/gtk1/interface-glade.t:536
 #: src/ui/gtk/gtk2/interface-glade.c:10542
 #, fuzzy
 msgid "Allow connections from and to _LAN addresses"
 msgstr "Kapcsolatok engedélyezése LAN címekre/ről."
 
-#: src/ui/gtk/gtk1/interface-glade.c:12118
+#: src/ui/gtk/gtk1/interface-glade.t:538
 #: src/ui/gtk/gtk2/interface-glade.c:10563
 msgid ""
 "Enter a semicolon separated list of networks that are local to you in the "
@@ -7696,310 +7338,271 @@ msgstr ""
 "helyiek! Használja a következő alakot: ip/bitek vagy ip/maszk (pl. "
 "192.168.1.0/24 vagy 192.168.1.0/255.255.255.0)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12120
+#: src/ui/gtk/gtk1/interface-glade.t:539
 #: src/ui/gtk/gtk2/interface-glade.c:10670
 msgid "Banning"
 msgstr "Foglalás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12141
+#: src/ui/gtk/gtk1/interface-glade.t:540
 #: src/ui/gtk/gtk2/interface-glade.c:10584
 #, fuzzy
 msgid "Max. file _descriptors reserved"
 msgstr "Legtöbb fájlleíró foglalva"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12154
+#: src/ui/gtk/gtk1/interface-glade.t:541
 #: src/ui/gtk/gtk2/interface-glade.c:10592
 #, fuzzy
 msgid "Max. _percentage of file descriptors"
 msgstr "Használt fájleírók legnagyobb százaléka"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12192
+#: src/ui/gtk/gtk1/interface-glade.t:542
 #: src/ui/gtk/gtk2/interface-glade.c:10600
 #, fuzzy
 msgid "Hard limit of _file descriptors used"
 msgstr "Fájleírók kemény korlátja"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12213
+#: src/ui/gtk/gtk1/interface-glade.t:543
 #: src/ui/gtk/gtk2/interface-glade.c:10658
 msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
 msgstr "A használt fájleírók száma – futási időben nem változtatható"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12216
+#: src/ui/gtk/gtk1/interface-glade.t:544
 #: src/ui/gtk/gtk2/interface-glade.c:10624
 msgid "Currently used"
 msgstr "Jelenleg használt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12238
-#: src/ui/gtk/gtk1/interface-glade.c:12312
-#: src/ui/gtk/gtk1/interface-glade.c:12709
-#: src/ui/gtk/gtk1/interface-glade.c:12729
-#: src/ui/gtk/gtk1/interface-glade.c:12857
-#: src/ui/gtk/gtk1/interface-glade.c:12878
-#: src/ui/gtk/gtk1/interface-glade.c:12899
-#: src/ui/gtk/gtk1/interface-glade.c:12920
-#: src/ui/gtk/gtk1/interface-glade.c:12941
-#: src/ui/gtk/gtk1/interface-glade.c:12962
-#: src/ui/gtk/gtk1/interface-glade.c:12983
-#: src/ui/gtk/gtk1/interface-glade.c:13015
-#: src/ui/gtk/gtk1/interface-glade.c:14204
-#: src/ui/gtk/gtk1/interface-glade.c:14224
-#: src/ui/gtk/gtk1/interface-glade.c:14244
-#: src/ui/gtk/gtk1/interface-glade.c:16047
-#: src/ui/gtk/gtk1/interface-glade.c:16068
-#: src/ui/gtk/gtk1/interface-glade.c:16175
-#: src/ui/gtk/gtk1/interface-glade.c:16196
-#: src/ui/gtk/gtk1/interface-glade.c:16217
-#: src/ui/gtk/gtk1/interface-glade.c:16238
-#: src/ui/gtk/gtk1/interface-glade.c:16259
-#: src/ui/gtk/gtk1/interface-glade.c:16280
-#: src/ui/gtk/gtk1/interface-glade.c:16434
-#: src/ui/gtk/gtk1/interface-glade.c:16455
-#: src/ui/gtk/gtk1/interface-glade.c:16476
-#: src/ui/gtk/gtk1/interface-glade.c:16497
-#: src/ui/gtk/gtk1/interface-glade.c:16518
-#: src/ui/gtk/gtk1/interface-glade.c:16539
-#: src/ui/gtk/gtk1/interface-glade.c:16623
-#: src/ui/gtk/gtk1/interface-glade.c:16644
-#: src/ui/gtk/gtk1/interface-glade.c:16665
-msgid "[place holder]"
-msgstr ""
-
-#: src/ui/gtk/gtk1/interface-glade.c:12247
+#: src/ui/gtk/gtk1/interface-glade.t:545
 #: src/ui/gtk/gtk2/interface-glade.c:10663
 msgid "Use global hostiles.txt"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:12257
+#: src/ui/gtk/gtk1/interface-glade.t:546
 #: src/ui/gtk/gtk2/interface-glade.c:10728
 #, fuzzy
 msgid "Clock synchronization"
 msgstr "Óra szinkronizálása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12278
+#: src/ui/gtk/gtk1/interface-glade.t:547
 #: src/ui/gtk/gtk2/interface-glade.c:10706
 #, fuzzy
 msgid "Host runs _NTP"
 msgstr "NTP használata"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12290
+#: src/ui/gtk/gtk1/interface-glade.t:548
 #: src/ui/gtk/gtk2/interface-glade.c:10698
 msgid "Clock skew:"
 msgstr "Órahiba"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12321
-#: src/ui/gtk/gtk1/interface-glade.c:14805
-#: src/ui/gtk/gtk1/interface-glade.c:16709
+#: src/ui/gtk/gtk1/interface-glade.t:549 src/ui/gtk/gtk1/interface-glade.t:670
+#: src/ui/gtk/gtk1/interface-glade.t:762
 #: src/ui/gtk/gtk2/interface-glade.c:10756
 #: src/ui/gtk/gtk2/interface-glade.c:13544
 #: src/ui/gtk/gtk2/interface-glade.c:15603
 msgid "Miscellaneous"
 msgstr "Egyebek"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12340
+#: src/ui/gtk/gtk1/interface-glade.t:550
 #: src/ui/gtk/gtk2/interface-glade.c:10746
 #, fuzzy
 msgid "Enable \"_shell\" control interface"
 msgstr "A „shell” vezérlőfelület engedélyezése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12352
+#: src/ui/gtk/gtk1/interface-glade.t:551
 #: src/ui/gtk/gtk2/interface-glade.c:10751
 msgid "Enable \"_Browse Host\" feature"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:12362
+#: src/ui/gtk/gtk1/interface-glade.t:552
 #: src/ui/gtk/gtk2/interface-glade.c:10825
 msgid "Socket receive buffer size"
 msgstr "Foglalat fogadó sormérete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12383
+#: src/ui/gtk/gtk1/interface-glade.t:553
 #: src/ui/gtk/gtk2/interface-glade.c:10817
 #, fuzzy
 msgid "_Gnutella RX buffer:"
 msgstr "Gnutella RX sor: "
 
-#: src/ui/gtk/gtk1/interface-glade.c:12394
-#: src/ui/gtk/gtk1/interface-glade.c:12405
+#: src/ui/gtk/gtk1/interface-glade.t:554 src/ui/gtk/gtk1/interface-glade.t:555
 #, fuzzy
 msgid "KiB"
 msgstr "KB"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12418
+#: src/ui/gtk/gtk1/interface-glade.t:556
 #: src/ui/gtk/gtk2/interface-glade.c:10809
 #, fuzzy
 msgid "_Download RX buffer:"
 msgstr "Letöltő RX sor: "
 
-#: src/ui/gtk/gtk1/interface-glade.c:12453
+#: src/ui/gtk/gtk1/interface-glade.t:557
 #: src/ui/gtk/gtk2/interface-glade.c:10240
 msgid "Network"
 msgstr "Hálózat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12487
+#: src/ui/gtk/gtk1/interface-glade.t:558
 #: src/ui/gtk/gtk2/interface-glade.c:11594
 msgid "Gnutella network mode"
 msgstr "Gnutella hálózati üzemmód"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12520
+#: src/ui/gtk/gtk1/interface-glade.t:559
 #: src/ui/gtk/gtk2/interface-glade.c:11281
 msgid "Configured peermode"
 msgstr "Beállított pontmód"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12533
+#: src/ui/gtk/gtk1/interface-glade.t:560
 #: src/ui/gtk/gtk2/interface-glade.c:11265
 msgid "Monitor bad node IP addresses"
 msgstr "Rossz IP címek figyelése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12543
+#: src/ui/gtk/gtk1/interface-glade.t:561
 #: src/ui/gtk/gtk2/interface-glade.c:11273
 msgid "Monitor and auto-ban unstable servent types"
 msgstr "Instabil kiszolgálók figyelése és kizárása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12563
+#: src/ui/gtk/gtk1/interface-glade.t:562
 #: src/ui/gtk/gtk2/interface-glade.c:11260
 msgid "Ultrapeer mode settings"
 msgstr "Átjátszó üzemmód beállításai"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12583
+#: src/ui/gtk/gtk1/interface-glade.t:563
 #: src/ui/gtk/gtk2/interface-glade.c:11252
 msgid "Legacy connections"
 msgstr "Hagyományos kapcsolatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12593
+#: src/ui/gtk/gtk1/interface-glade.t:564
 #: src/ui/gtk/gtk2/interface-glade.c:11236
 #, fuzzy
 msgid "Maximum # of leaves"
 msgstr "Végpontok legnagyobb száma"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12646
+#: src/ui/gtk/gtk1/interface-glade.t:565
 #: src/ui/gtk/gtk2/interface-glade.c:11588
 msgid "Ultrapeer promotion statistics"
 msgstr "Átjátszóvá előléptetés statisztikái"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12674
+#: src/ui/gtk/gtk1/interface-glade.t:566
 #: src/ui/gtk/gtk2/interface-glade.c:11325
 msgid "Last check"
 msgstr "Utolsó ellenőrzés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12686
+#: src/ui/gtk/gtk1/interface-glade.t:567
 #: src/ui/gtk/gtk2/interface-glade.c:11334
 msgid "Last switch"
 msgstr "Utolsó átállás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12755
+#: src/ui/gtk/gtk1/interface-glade.t:568
 #: src/ui/gtk/gtk2/interface-glade.c:11391
 msgid "Large enough uptime"
 msgstr "Elég hosszú futási idő"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12777
+#: src/ui/gtk/gtk1/interface-glade.t:569
 #: src/ui/gtk/gtk2/interface-glade.c:11425
 msgid "Not firewalled"
 msgstr "Nincs tűzfalazva"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12788
+#: src/ui/gtk/gtk1/interface-glade.t:570
 #: src/ui/gtk/gtk2/interface-glade.c:11400
 msgid "Enough file descriptors"
 msgstr "Elég fájleíró"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12800
+#: src/ui/gtk/gtk1/interface-glade.t:571
 #: src/ui/gtk/gtk2/interface-glade.c:11434
 msgid "Enough physical memory"
 msgstr "Elég fizikai memória"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12811
+#: src/ui/gtk/gtk1/interface-glade.t:572
 #: src/ui/gtk/gtk2/interface-glade.c:11409
 msgid "Enough available bandwidth"
 msgstr "Elég használható sávszélesség"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12823
+#: src/ui/gtk/gtk1/interface-glade.t:573
 #: src/ui/gtk/gtk2/interface-glade.c:11443
 msgid "IP address stability"
 msgstr "IP-cím stabilitás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12834
+#: src/ui/gtk/gtk1/interface-glade.t:574
 #: src/ui/gtk/gtk2/interface-glade.c:11382
 msgid "Sufficient average uptime"
 msgstr "Elég átlagos futási idő"
 
-#: src/ui/gtk/gtk1/interface-glade.c:12993
+#: src/ui/gtk/gtk1/interface-glade.t:575
 #: src/ui/gtk/gtk2/interface-glade.c:11579
 #, fuzzy
 msgid "Enough min # of connections"
 msgstr "Bejövő kapcsolat válaszideje"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13025
+#: src/ui/gtk/gtk1/interface-glade.t:576
 #: src/ui/gtk/gtk2/interface-glade.c:11678
 msgid "Searches"
 msgstr "Keresések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13062
+#: src/ui/gtk/gtk1/interface-glade.t:577
 #: src/ui/gtk/gtk2/interface-glade.c:11651
 msgid "Limit search _results to "
 msgstr "Keresés _eredményeinek korlátja "
 
-#: src/ui/gtk/gtk1/interface-glade.c:13084
+#: src/ui/gtk/gtk1/interface-glade.t:578
 #: src/ui/gtk/gtk2/interface-glade.c:11630
 msgid ""
 "This limits how many results gnutella returns to other people searching your "
 "files."
 msgstr "Ez a korlátozza, hogy másoknak mennyi eredményt adunk fájlkeresésekre."
 
-#: src/ui/gtk/gtk1/interface-glade.c:13087
+#: src/ui/gtk/gtk1/interface-glade.t:579
 #: src/ui/gtk/gtk2/interface-glade.c:11642
 msgid "items"
 msgstr "elem"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13100
+#: src/ui/gtk/gtk1/interface-glade.t:580
 #: src/ui/gtk/gtk2/interface-glade.c:11661
 msgid "Default search _reissue timeout"
 msgstr "Alapértelmezett keresés-_ismétlés türelmi ideje"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13123
-#: src/ui/gtk/gtk1/interface-glade.c:16778
-#: src/ui/gtk/gtk1/interface-glade.c:16811
+#: src/ui/gtk/gtk1/interface-glade.t:581 src/ui/gtk/gtk1/interface-glade.t:766
+#: src/ui/gtk/gtk1/interface-glade.t:768
 #: src/ui/gtk/gtk2/interface-glade.c:15543
 #: src/ui/gtk/gtk2/interface-glade.c:15575
 msgid "seconds"
 msgstr "másodperc"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13134
+#: src/ui/gtk/gtk1/interface-glade.t:582
 #: src/ui/gtk/gtk2/interface-glade.c:11716
 msgid "Out of Band Querying"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13151
+#: src/ui/gtk/gtk1/interface-glade.t:583
 #: src/ui/gtk/gtk2/interface-glade.c:11694
 msgid "Queries ask for OOB results"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13159
+#: src/ui/gtk/gtk1/interface-glade.t:584
 #: src/ui/gtk/gtk2/interface-glade.c:11701
 msgid "Honor OOB flag in queries"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13167
+#: src/ui/gtk/gtk1/interface-glade.t:585
 #: src/ui/gtk/gtk2/interface-glade.c:11709
 msgid "Act as OOB proxy for leaves"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:13183
+#: src/ui/gtk/gtk1/interface-glade.t:586
 #: src/ui/gtk/gtk2/interface-glade.c:11785
 msgid "Search queue"
 msgstr "Keresősor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13214
+#: src/ui/gtk/gtk1/interface-glade.t:588
 #: src/ui/gtk/gtk2/interface-glade.c:11742
 msgid "Spacing"
 msgstr "Köz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13249
+#: src/ui/gtk/gtk1/interface-glade.t:589
 #: src/ui/gtk/gtk2/interface-glade.c:11877
 #, fuzzy
 msgid "GnutellaNet timeouts (all values in seconds)"
 msgstr "gnutellaNet türelmi idők (minden érték másodpercben)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13270
-#: src/ui/gtk/gtk1/interface-glade.c:15083
-#: src/ui/gtk/gtk1/interface-glade.c:15758
+#: src/ui/gtk/gtk1/interface-glade.t:590 src/ui/gtk/gtk1/interface-glade.t:691
+#: src/ui/gtk/gtk1/interface-glade.t:729
 #: src/ui/gtk/gtk2/interface-glade.c:11804
 #: src/ui/gtk/gtk2/interface-glade.c:13828
 #: src/ui/gtk/gtk2/interface-glade.c:14600
@@ -8007,163 +7610,151 @@ msgstr "gnutellaNet türelmi idők (minden érték másodpercben)"
 msgid "Connectin_g timeout"
 msgstr "Kapcsolódás türelmi ideje lejárt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13283
-#: src/ui/gtk/gtk1/interface-glade.c:15109
-#: src/ui/gtk/gtk1/interface-glade.c:15771
+#: src/ui/gtk/gtk1/interface-glade.t:591 src/ui/gtk/gtk1/interface-glade.t:693
+#: src/ui/gtk/gtk1/interface-glade.t:730
 #: src/ui/gtk/gtk2/interface-glade.c:11824
 #: src/ui/gtk/gtk2/interface-glade.c:13846
 #: src/ui/gtk/gtk2/interface-glade.c:14610
 msgid "Connected time_out"
 msgstr "Csatlakozás türelmi ideje lejárt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13296
+#: src/ui/gtk/gtk1/interface-glade.t:592
 #: src/ui/gtk/gtk2/interface-glade.c:11814
 msgid "T_X flow control timeout"
 msgstr "T_X folyamvezérlés türelmi ideje"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13346
+#: src/ui/gtk/gtk1/interface-glade.t:593
 #: src/ui/gtk/gtk2/interface-glade.c:11833
 msgid "Incoming connecting timeout"
 msgstr "Bejövő kapcsolat válaszideje"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13376
+#: src/ui/gtk/gtk1/interface-glade.t:594
 #: src/ui/gtk/gtk2/interface-glade.c:12002
 #, fuzzy
 msgid "GnutellaNet TTL settings"
 msgstr "gnutellaNet TTL beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13397
+#: src/ui/gtk/gtk1/interface-glade.t:595
 #: src/ui/gtk/gtk2/interface-glade.c:11919
 msgid "Max _TTL"
 msgstr "Legnagyobb _TTL"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13410
+#: src/ui/gtk/gtk1/interface-glade.t:596
 #: src/ui/gtk/gtk2/interface-glade.c:11928
 msgid "M_y TTL"
 msgstr "_Saját TTL"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13423
+#: src/ui/gtk/gtk1/interface-glade.t:597
 #: src/ui/gtk/gtk2/interface-glade.c:11981
 msgid "from _nodes within a"
 msgstr "_pontoktól a köv-n belül"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13436
+#: src/ui/gtk/gtk1/interface-glade.t:598
 #: src/ui/gtk/gtk2/interface-glade.c:11966
 #, fuzzy
 msgid "Max # of _high TTL msg"
 msgstr "Legtöbb _magas TTL üzenet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13449
+#: src/ui/gtk/gtk1/interface-glade.t:599
 #: src/ui/gtk/gtk2/interface-glade.c:11937
 msgid "H_ard TTL limit"
 msgstr "_Kemény TTL korlát"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13483
+#: src/ui/gtk/gtk1/interface-glade.t:600
 #: src/ui/gtk/gtk2/interface-glade.c:11978
 msgid "Amount of tolerable messages above hard TTL limit per node"
 msgstr "Kemény TTL korlát feletti üzenetek tűrhető mennyisége"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13496
+#: src/ui/gtk/gtk1/interface-glade.t:601
 #: src/ui/gtk/gtk2/interface-glade.c:11953
 msgid "Max hard TTL limit (hop+ttl) on message"
 msgstr "TTL (hop+TTL) kemény felső korlátja üzenetre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13522
+#: src/ui/gtk/gtk1/interface-glade.t:602
 #: src/ui/gtk/gtk2/interface-glade.c:11993
 #, fuzzy
 msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
 msgstr ""
 "Hálózati sugár magas TTL korlát üzenetek számlálásához (sugár kisebb mint...)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13525
+#: src/ui/gtk/gtk1/interface-glade.t:603
 #: src/ui/gtk/gtk2/interface-glade.c:11996
 msgid "hops radius"
 msgstr "hálózati sugár"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13535
+#: src/ui/gtk/gtk1/interface-glade.t:604
 #: src/ui/gtk/gtk2/interface-glade.c:12148
 msgid "Quality management"
 msgstr "Minőségirányítás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13556
+#: src/ui/gtk/gtk1/interface-glade.t:605
 #: src/ui/gtk/gtk2/interface-glade.c:12047
 #, fuzzy
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "Kettőzött üzenetek tűrhető aránya pontonként"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13569
+#: src/ui/gtk/gtk1/interface-glade.t:606
 #: src/ui/gtk/gtk2/interface-glade.c:12056
 msgid "Number of tolerable _duplicate messages per node"
 msgstr "_Kettőzött üzenetek tűrhető száma pontonként"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13604
+#: src/ui/gtk/gtk1/interface-glade.t:607
 #: src/ui/gtk/gtk2/interface-glade.c:12082
 msgid "RX flow control ratio"
 msgstr "RX folyamvezérlés aránya"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13639
-#: src/ui/gtk/gtk1/interface-glade.c:13650
-#: src/ui/gtk/gtk1/interface-glade.c:13745
-#: src/ui/gtk/gtk1/interface-glade.c:13756
-#: src/ui/gtk/gtk1/interface-glade.c:14573
-#: src/ui/gtk/gtk1/interface-glade.c:16391
-#: src/ui/gtk/gtk1/interface-glade.c:16402
-#: src/ui/gtk/gtk1/interface-glade.c:16601
-msgid "%"
-msgstr "%"
-
-#: src/ui/gtk/gtk1/interface-glade.c:13671
+#: src/ui/gtk/gtk1/interface-glade.t:609
 #: src/ui/gtk/gtk2/interface-glade.c:12132
 msgid "Watch for similar queries"
 msgstr "Hasonló keresések figyelése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13681
+#: src/ui/gtk/gtk1/interface-glade.t:610
 #: src/ui/gtk/gtk2/interface-glade.c:12098
 msgid "Similar query half-life"
 msgstr "Hasonló keresés felezése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13703
+#: src/ui/gtk/gtk1/interface-glade.t:611
 #: src/ui/gtk/gtk2/interface-glade.c:12115
 msgid "Leaf requery threshold"
 msgstr "Végponti újrakérés késleltetése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13726
+#: src/ui/gtk/gtk1/interface-glade.t:612
 #: src/ui/gtk/gtk2/interface-glade.c:12224
 msgid "Connection settings"
 msgstr "Kapcsolat beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13789
+#: src/ui/gtk/gtk1/interface-glade.t:613
 #: src/ui/gtk/gtk2/interface-glade.c:12172
 msgid "Connections reserved for gtk-gnutella nodes"
 msgstr "Gtk-gnutella társaknak fenntartott kapcsolatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13800
+#: src/ui/gtk/gtk1/interface-glade.t:614
 #: src/ui/gtk/gtk2/interface-glade.c:12197
 msgid "Max connections allowed per unique vendor"
 msgstr "Legtöbb egy szállítóra jutó kapcsolat"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13812
+#: src/ui/gtk/gtk1/interface-glade.t:615
 #: src/ui/gtk/gtk2/interface-glade.c:12268
 msgid "Other"
 msgstr "Más"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13831
+#: src/ui/gtk/gtk1/interface-glade.t:616
 #: src/ui/gtk/gtk2/interface-glade.c:12252
 msgid "Hops random factor"
 msgstr "Sugár véletlen szorzója"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13842
+#: src/ui/gtk/gtk1/interface-glade.t:617
 #: src/ui/gtk/gtk2/interface-glade.c:12261
 msgid "Clean up queries before processing"
 msgstr "Keresések takarítása feldolgozás előtt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13864
+#: src/ui/gtk/gtk1/interface-glade.t:618
 #: src/ui/gtk/gtk2/interface-glade.c:12386
 #, fuzzy
 msgid "GnutellaNet message size limits"
 msgstr "gnutellaNet üzenetméret korlátok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13883
+#: src/ui/gtk/gtk1/interface-glade.t:619
 #: src/ui/gtk/gtk2/interface-glade.c:12353
 msgid ""
 "Forwarded\n"
@@ -8172,19 +7763,19 @@ msgstr ""
 "Továbbított\n"
 "üzenet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13894
+#: src/ui/gtk/gtk1/interface-glade.t:621
 #: src/ui/gtk/gtk2/interface-glade.c:12296
 msgid ""
 "Size threshold\n"
 "before kicking"
 msgstr "Rúgás előttimérettűrés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13938
+#: src/ui/gtk/gtk1/interface-glade.t:626
 #: src/ui/gtk/gtk2/interface-glade.c:12304
 msgid "(not forwarded)"
 msgstr "(nem továbbított)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:13971
+#: src/ui/gtk/gtk1/interface-glade.t:627
 #: src/ui/gtk/gtk2/interface-glade.c:12287
 msgid ""
 "Maximum size\n"
@@ -8193,54 +7784,49 @@ msgstr ""
 "Engedélyezett\n"
 "legnagyobb méret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14015
+#: src/ui/gtk/gtk1/interface-glade.t:629
 #: src/ui/gtk/gtk2/interface-glade.c:11173 src/ui/gtk/main.c:130
 msgid "GnutellaNet"
 msgstr "GnutellaNet"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14049
-#: src/ui/gtk/gtk1/interface-glade.c:14271
+#: src/ui/gtk/gtk1/interface-glade.t:630 src/ui/gtk/gtk1/interface-glade.t:642
 #: src/ui/gtk/gtk2/interface-glade.c:12832
 #: src/ui/gtk/gtk2/interface-glade.c:12918
 msgid "General"
 msgstr "Általános"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14076
+#: src/ui/gtk/gtk1/interface-glade.t:631
 #: src/ui/gtk/gtk2/interface-glade.c:12693
 #, fuzzy
 msgid "Use _surplus bandwidth"
 msgstr "Többlet sávszélesség használata"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14088
+#: src/ui/gtk/gtk1/interface-glade.t:632
 #: src/ui/gtk/gtk2/interface-glade.c:12700
 #, fuzzy
 msgid "Prefer _compressed connections"
 msgstr "Tömörített kapcsolatokat szereti"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14100
+#: src/ui/gtk/gtk1/interface-glade.t:633
 #: src/ui/gtk/gtk2/interface-glade.c:12707
 #, fuzzy
 msgid "Use IP _Type of Service (TOS)"
 msgstr "IP-szolgáltatástípus használata"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14110
+#: src/ui/gtk/gtk1/interface-glade.t:634
 #: src/ui/gtk/gtk2/interface-glade.c:12827
 msgid "Available bandwidth"
 msgstr "Használható sávszélesség"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14131
+#: src/ui/gtk/gtk1/interface-glade.t:635
 #: src/ui/gtk/gtk2/interface-glade.c:12734
 msgid "Total input bandwidth limit:"
 msgstr "Összes bejövő sávszélesség korlátja:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14142
-#: src/ui/gtk/gtk1/interface-glade.c:14163
-#: src/ui/gtk/gtk1/interface-glade.c:14290
-#: src/ui/gtk/gtk1/interface-glade.c:14301
-#: src/ui/gtk/gtk1/interface-glade.c:14412
-#: src/ui/gtk/gtk1/interface-glade.c:14423
-#: src/ui/gtk/gtk1/interface-glade.c:14481
-#: src/ui/gtk/gtk1/interface-glade.c:14584
+#: src/ui/gtk/gtk1/interface-glade.t:636 src/ui/gtk/gtk1/interface-glade.t:638
+#: src/ui/gtk/gtk1/interface-glade.t:643 src/ui/gtk/gtk1/interface-glade.t:644
+#: src/ui/gtk/gtk1/interface-glade.t:648 src/ui/gtk/gtk1/interface-glade.t:649
+#: src/ui/gtk/gtk1/interface-glade.t:653 src/ui/gtk/gtk1/interface-glade.t:658
 #: src/ui/gtk/gtk2/interface-glade.c:12758
 #: src/ui/gtk/gtk2/interface-glade.c:12766
 #: src/ui/gtk/gtk2/interface-glade.c:12868
@@ -8253,78 +7839,78 @@ msgstr "Összes bejövő sávszélesség korlátja:"
 msgid "KiB/s"
 msgstr "K/s"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14152
+#: src/ui/gtk/gtk1/interface-glade.t:637
 #: src/ui/gtk/gtk2/interface-glade.c:12742
 msgid "Total output bandwidth limit:"
 msgstr "Összes kimenő sávszélesség korlátja:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14173
+#: src/ui/gtk/gtk1/interface-glade.t:639
 #: src/ui/gtk/gtk2/interface-glade.c:12750
 msgid "Measured HTTP latency:"
 msgstr "Mért HTTP késés:"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14184
+#: src/ui/gtk/gtk1/interface-glade.t:640
 msgid "secs"
 msgstr "mp"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14254
+#: src/ui/gtk/gtk1/interface-glade.t:641
 #: src/ui/gtk/gtk2/interface-glade.c:12997
 #, fuzzy
 msgid "Bandwidth limits for GnutellaNet traffic"
 msgstr "GnutellaNet sávszélesség-vezérlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14340
+#: src/ui/gtk/gtk1/interface-glade.t:645
 #: src/ui/gtk/gtk2/interface-glade.c:12911
 #, fuzzy
 msgid "_Outgoing traffic"
 msgstr "kimenő HTTP forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14354
+#: src/ui/gtk/gtk1/interface-glade.t:646
 #: src/ui/gtk/gtk2/interface-glade.c:12904
 #, fuzzy
 msgid "_Incoming traffic"
 msgstr "bejövő HTTP forgalom"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14366
+#: src/ui/gtk/gtk1/interface-glade.t:647
 #: src/ui/gtk/gtk2/interface-glade.c:12992
 msgid "Ultrapeer mode"
 msgstr "Átjátszó üzemmód"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14436
+#: src/ui/gtk/gtk1/interface-glade.t:650
 #: src/ui/gtk/gtk2/interface-glade.c:12985
 #, fuzzy
 msgid "Outgoing traffic to lea_ves"
 msgstr "Végpontokhoz kimenő sávszélesség korlátja"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14450
+#: src/ui/gtk/gtk1/interface-glade.t:651
 #: src/ui/gtk/gtk2/interface-glade.c:12978
 #, fuzzy
 msgid "Incoming traffic from _leaves"
 msgstr "Végpontoktól bejövő sávszélesség korlátja"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14462
+#: src/ui/gtk/gtk1/interface-glade.t:652
 #: src/ui/gtk/gtk2/interface-glade.c:13140
 #, fuzzy
 msgid "Bandwidth limits for HTTP traffic"
 msgstr "HTTP-forgalom sávszélesség-vezérlése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14520
+#: src/ui/gtk/gtk1/interface-glade.t:654
 #: src/ui/gtk/gtk2/interface-glade.c:13133
 msgid "Cumulative _download rate"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14534
+#: src/ui/gtk/gtk1/interface-glade.t:655
 #: src/ui/gtk/gtk2/interface-glade.c:13126
 msgid "Cumulative _upload rate"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14548
+#: src/ui/gtk/gtk1/interface-glade.t:656
 #: src/ui/gtk/gtk2/interface-glade.c:13118
 #, fuzzy
 msgid "Enable dynamic upload slots _allocation"
 msgstr "Dinamikus feltöltő nyílás foglalása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14570
+#: src/ui/gtk/gtk1/interface-glade.t:657
 #: src/ui/gtk/gtk2/interface-glade.c:13064
 #: src/ui/gtk/gtk2/interface-glade.c:13124
 #, fuzzy
@@ -8335,682 +7921,678 @@ msgstr ""
 "Újabb feltöltő-nyílásokat enged, amíg a kimenő HTTP sávszélességből xx% nem "
 "használt."
 
-#: src/ui/gtk/gtk1/interface-glade.c:14597
+#: src/ui/gtk/gtk1/interface-glade.t:659
 #: src/ui/gtk/gtk2/interface-glade.c:13102
 msgid "Report an upload connection _speed of"
 msgstr "A következő feltöltési _sebesség jelentése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14619
+#: src/ui/gtk/gtk1/interface-glade.t:660
 #: src/ui/gtk/gtk2/interface-glade.c:13074
 msgid "What other people see as your connection speed."
 msgstr "Amit a többiek látnak mint kapcsolat sebessége"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14622
+#: src/ui/gtk/gtk1/interface-glade.t:661
 #: src/ui/gtk/gtk2/interface-glade.c:13086
 #, fuzzy
 msgid "kbps to peers"
 msgstr "kbit/s csomópontokhoz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14645
+#: src/ui/gtk/gtk1/interface-glade.t:662
 #: src/ui/gtk/gtk2/interface-glade.c:13111
 #, fuzzy
 msgid "_Compute upload connection speed"
 msgstr "Feltöltési sebesség számítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14657
+#: src/ui/gtk/gtk1/interface-glade.t:663
 #: src/ui/gtk/gtk2/interface-glade.c:12656
 msgid "Bandwidth"
 msgstr "Sávszélesség"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14691
+#: src/ui/gtk/gtk1/interface-glade.t:664
 #: src/ui/gtk/gtk2/interface-glade.c:13414
 msgid "Keep downloading/incomplete files in"
 msgstr "Letöltésfájlok helye"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14719
-#: src/ui/gtk/gtk1/interface-glade.c:14757
-#: src/ui/gtk/gtk1/interface-glade.c:14795
+#: src/ui/gtk/gtk1/interface-glade.t:665 src/ui/gtk/gtk1/interface-glade.t:667
+#: src/ui/gtk/gtk1/interface-glade.t:669
 #: src/ui/gtk/gtk2/interface-glade.c:13409
 #: src/ui/gtk/gtk2/interface-glade.c:13456
 #: src/ui/gtk/gtk2/interface-glade.c:13503
 msgid "_Browse"
 msgstr "_Tallóz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14729
+#: src/ui/gtk/gtk1/interface-glade.t:666
 #: src/ui/gtk/gtk2/interface-glade.c:13461
 msgid "Move completely downloaded files to"
 msgstr "Letöltött fájlok helye"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14767
+#: src/ui/gtk/gtk1/interface-glade.t:668
 #: src/ui/gtk/gtk2/interface-glade.c:13508
 msgid "Move corrupted downloaded files to"
 msgstr "Rossz letöltött fájlok helye"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14821
+#: src/ui/gtk/gtk1/interface-glade.t:671
 #: src/ui/gtk/gtk2/interface-glade.c:13523
 msgid "Convert spaces to underscores in generated filenames"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14831
+#: src/ui/gtk/gtk1/interface-glade.t:672
 #: src/ui/gtk/gtk2/interface-glade.c:13530
 msgid ""
 "Convert \"evil\" characters (like shell meta characters) to underscores in "
 "generated filenames"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14841
+#: src/ui/gtk/gtk1/interface-glade.t:673
 #: src/ui/gtk/gtk2/interface-glade.c:13537
 msgid ""
 "Apply above conversions, upon startup, to existing files in the downloading "
 "directory"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:14851
+#: src/ui/gtk/gtk1/interface-glade.t:674
 #: src/ui/gtk/gtk2/interface-glade.c:13693
 msgid "Resume and retry"
 msgstr "Folytat és ismétel"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14872
+#: src/ui/gtk/gtk1/interface-glade.t:675
 #: src/ui/gtk/gtk2/interface-glade.c:13665
 msgid "_Overlap when resuming"
 msgstr "Át_fedés folytatáskor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14885
+#: src/ui/gtk/gtk1/interface-glade.t:676
 #: src/ui/gtk/gtk2/interface-glade.c:13655
 msgid "Maximum number of _retries"
 msgstr "Ismétlések legnagyobb száma"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14907
+#: src/ui/gtk/gtk1/interface-glade.t:677
 #: src/ui/gtk/gtk2/interface-glade.c:13682
 msgid "Maximum attempts to make, not counting HTTP busy indications"
 msgstr "Legtöbb próbálkozás, nem számítva a HTTP foglalt jelzéseket"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14921
+#: src/ui/gtk/gtk1/interface-glade.t:678
 #: src/ui/gtk/gtk2/interface-glade.c:13652
 msgid "Amount of bytes to overlap when resuming download"
 msgstr "Átfedő bájtok száma folytatáskor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14935
+#: src/ui/gtk/gtk1/interface-glade.t:680
 #: src/ui/gtk/gtk2/interface-glade.c:13618
 msgid "Source quality"
 msgstr "Forrás minősége"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14956
+#: src/ui/gtk/gtk1/interface-glade.t:681
 #: src/ui/gtk/gtk2/interface-glade.c:13572
 msgid "Optimistic first _chunk"
 msgstr "Derűlátó első _darab"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14970
+#: src/ui/gtk/gtk1/interface-glade.t:682
 #: src/ui/gtk/gtk2/interface-glade.c:13579
 #, fuzzy
 msgid "Require _URN"
 msgstr "_Urn-t igénylése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14984
+#: src/ui/gtk/gtk1/interface-glade.t:683
 #: src/ui/gtk/gtk2/interface-glade.c:13586
 msgid "Require _server name"
 msgstr "_Kiszolgálónév igénylése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:14996
+#: src/ui/gtk/gtk1/interface-glade.t:684
 #: src/ui/gtk/gtk2/interface-glade.c:13882
 msgid "Delays and timeouts (all values in seconds)"
 msgstr "Késleltetések és türelmi idők (minden érték másodpercben)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15015
+#: src/ui/gtk/gtk1/interface-glade.t:685
 #: src/ui/gtk/gtk2/interface-glade.c:13855
 msgid "Retry stopped delay"
 msgstr "Ismétlés késleltetése leállításkor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15026
+#: src/ui/gtk/gtk1/interface-glade.t:686
 #: src/ui/gtk/gtk2/interface-glade.c:13864
 msgid "Retry refused delay"
 msgstr "Ismétlés késleltetése elutasításkor"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15037
+#: src/ui/gtk/gtk1/interface-glade.t:687
 #: src/ui/gtk/gtk2/interface-glade.c:13873
 msgid "Retry busy delay"
 msgstr "Ismétlés késleltetése foglalt jelzésnél"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15048
+#: src/ui/gtk/gtk1/interface-glade.t:688
 #: src/ui/gtk/gtk2/interface-glade.c:13801
 msgid "Retry timeout delay"
 msgstr "Ismétlés késleltetése türelem fogytán"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15059
+#: src/ui/gtk/gtk1/interface-glade.t:689
 #: src/ui/gtk/gtk2/interface-glade.c:13810
 msgid "Retry timeout max"
 msgstr "Ismétlés türelmi ideje legfeljebb"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15070
+#: src/ui/gtk/gtk1/interface-glade.t:690
 #: src/ui/gtk/gtk2/interface-glade.c:13819
 msgid "Retry timeout min"
 msgstr "Ismétlés türelmi ideje legalább"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15096
+#: src/ui/gtk/gtk1/interface-glade.t:692
 #: src/ui/gtk/gtk2/interface-glade.c:13837
 msgid "_Push sent timeout"
 msgstr "_Nyomás türelmi ideje lejárt"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15130
+#: src/ui/gtk/gtk1/interface-glade.t:694
 #: src/ui/gtk/gtk2/interface-glade.c:13718
 msgid "Delay in seconds to wait when running download stops"
 msgstr "Késleltetés másodpercben, amikor a letöltés megáll"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15144
+#: src/ui/gtk/gtk1/interface-glade.t:695
 #: src/ui/gtk/gtk2/interface-glade.c:13728
 msgid "Delay in seconds to wait if connection is refused"
 msgstr "Késleltetés másodpercben, ha a kapcsolatot elutasítják"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15157
+#: src/ui/gtk/gtk1/interface-glade.t:696
 #: src/ui/gtk/gtk2/interface-glade.c:13738
 msgid "Delay in seconds to wait after HTTP busy indication"
 msgstr "Késleltetés másodpercben foglalt jelzés után"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15171
+#: src/ui/gtk/gtk1/interface-glade.t:697
 #: src/ui/gtk/gtk2/interface-glade.c:13748
 msgid "Delay in seconds to wait after connection failure"
 msgstr "Késleltetés másodpercben sikertelen csatlakozás után"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15184
+#: src/ui/gtk/gtk1/interface-glade.t:698
 #: src/ui/gtk/gtk2/interface-glade.c:13758
 msgid "Maximum seconds to wait on auto-retry timeouts"
 msgstr "Legtöbb másodperc várakozás auto-ismétlés türelem fogytán"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15197
+#: src/ui/gtk/gtk1/interface-glade.t:699
 #: src/ui/gtk/gtk2/interface-glade.c:13768
 msgid "Minimum seconds to wait on auto-retry timeouts"
 msgstr "Legkevesebb másodperc várakozás auto-ismétlés türelem fogytán"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15210
+#: src/ui/gtk/gtk1/interface-glade.t:700
 #: src/ui/gtk/gtk2/interface-glade.c:13778
 msgid "Number of seconds before timeout for a connecting download"
 msgstr "Letöltő kapcsolódás türelmi ideje másodpercben"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15223
+#: src/ui/gtk/gtk1/interface-glade.t:701
 #: src/ui/gtk/gtk2/interface-glade.c:13788
 msgid "Number of seconds before timeout for a 'push sent' download"
 msgstr "Nyomás-kérés türelmi ideje másodpercben"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15236
+#: src/ui/gtk/gtk1/interface-glade.t:702
 #: src/ui/gtk/gtk2/interface-glade.c:13798
 msgid "Number of seconds before timeout for a connected download"
 msgstr "Kapcsolódott letöltés türelmi ideje másodpercben"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15239
+#: src/ui/gtk/gtk1/interface-glade.t:703
 #: src/ui/gtk/gtk2/interface-glade.c:14070
 msgid "Downloading from multiple sources (swarming)"
 msgstr "Letöltés több forrásból (zsúfolás)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15258
+#: src/ui/gtk/gtk1/interface-glade.t:704
 #: src/ui/gtk/gtk2/interface-glade.c:13929
 msgid "Enable s_warming"
 msgstr "_Zsúfolás engedélyezése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15288
+#: src/ui/gtk/gtk1/interface-glade.t:705
 #: src/ui/gtk/gtk2/interface-glade.c:13922
 msgid "A_ggressive mode"
 msgstr "_Heves üzemmód"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15312
+#: src/ui/gtk/gtk1/interface-glade.t:706
 #: src/ui/gtk/gtk2/interface-glade.c:13936
 msgid "M_inimum chunk size"
 msgstr "Leg_kisebb darabméret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15325
+#: src/ui/gtk/gtk1/interface-glade.t:707
 #: src/ui/gtk/gtk2/interface-glade.c:13944
 msgid "Ma_ximum chunk size"
 msgstr "Leg_nagyobb darabméret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15393
+#: src/ui/gtk/gtk1/interface-glade.t:710
 #: src/ui/gtk/gtk2/interface-glade.c:13970
 #, fuzzy
 msgid "Write buffer size"
 msgstr "Foglalat fogadó sormérete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15404
+#: src/ui/gtk/gtk1/interface-glade.t:711
 #: src/ui/gtk/gtk2/interface-glade.c:13979
 #, fuzzy
 msgid "Read-ahead buffer"
 msgstr "Fejlécek olvasása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15480
+#: src/ui/gtk/gtk1/interface-glade.t:714
 #: src/ui/gtk/gtk2/interface-glade.c:13608
 msgid "Strict SHA_1 matching"
 msgstr "Szigorú SHA_1 illesztés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15494
+#: src/ui/gtk/gtk1/interface-glade.t:715
 #: src/ui/gtk/gtk2/interface-glade.c:14064
 msgid "Use fu_zzy matching"
 msgstr "Laza illesztés használata"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15506
+#: src/ui/gtk/gtk1/interface-glade.t:716
 #: src/ui/gtk/gtk2/interface-glade.c:14040
 msgid "Fuzzy threshold"
 msgstr "Lazaság foka"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15531
+#: src/ui/gtk/gtk1/interface-glade.t:717
 #: src/ui/gtk/gtk2/interface-glade.c:14057
 msgid "_Apply fuzzy filter on download mesh entries"
 msgstr "Laza szűrő _alkalmazása a letöltőháló elemeire"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15545
+#: src/ui/gtk/gtk1/interface-glade.t:718
 #: src/ui/gtk/gtk2/interface-glade.c:13603
 #, fuzzy
 msgid "Watch hits for _alternate sources"
 msgstr "_Alternatív találatok figyelése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15559
+#: src/ui/gtk/gtk1/interface-glade.t:719
 #: src/ui/gtk/gtk2/interface-glade.c:13613
 msgid "_Feed mesh from hits"
 msgstr "Találatok _letöltőhálóba helyezése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15571
+#: src/ui/gtk/gtk1/interface-glade.t:720
 #: src/ui/gtk/gtk2/interface-glade.c:2776
 #: src/ui/gtk/gtk2/interface-glade.c:13351 src/ui/gtk/main.c:135
 msgid "Downloads"
 msgstr "Letöltések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15605
+#: src/ui/gtk/gtk1/interface-glade.t:721
 #: src/ui/gtk/gtk2/interface-glade.c:14520
 msgid "_Path(s) to files"
 msgstr "_Elérési út(ak) a fájlokhoz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15640
+#: src/ui/gtk/gtk1/interface-glade.t:722
 #: src/ui/gtk/gtk2/interface-glade.c:14427
 #, fuzzy
 msgid "_Add directory"
 msgstr " Mappa hozzáadása "
 
-#: src/ui/gtk/gtk1/interface-glade.c:15652
+#: src/ui/gtk/gtk1/interface-glade.t:723
 #: src/ui/gtk/gtk2/interface-glade.c:14477
 msgid "_Rescan"
 msgstr "Újra_felmérés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15662
+#: src/ui/gtk/gtk1/interface-glade.t:724
 #: src/ui/gtk/gtk2/interface-glade.c:14482
 msgid "Files scanned"
 msgstr "Fájl felmérve"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15689
+#: src/ui/gtk/gtk1/interface-glade.t:725
 #: src/ui/gtk/gtk2/interface-glade.c:14510
 #, fuzzy
 msgid "Ignore symbolically linked _directories"
 msgstr "Szimbólikus link-mappák mellőzése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15701
+#: src/ui/gtk/gtk1/interface-glade.t:726
 #: src/ui/gtk/gtk2/interface-glade.c:14515
 #, fuzzy
 msgid "Ignore symbolically linked regular _files"
 msgstr "Szimbólikus link-fájlok mellőzése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15721
+#: src/ui/gtk/gtk1/interface-glade.t:727
 #: src/ui/gtk/gtk2/interface-glade.c:14494
 msgid "Search _extensions"
 msgstr "Keresett _végződések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15737
+#: src/ui/gtk/gtk1/interface-glade.t:728
 #: src/ui/gtk/gtk2/interface-glade.c:14638
 msgid "Timeouts (all values in seconds)"
 msgstr "Türelmi idők (minden érték másodpercben)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15806
+#: src/ui/gtk/gtk1/interface-glade.t:731
 #: src/ui/gtk/gtk2/interface-glade.c:14582
 #, fuzzy
 msgid "Partial File Sharing"
 msgstr "Részleges fájlmegosztás (zsúfolás)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15827
+#: src/ui/gtk/gtk1/interface-glade.t:732
 #: src/ui/gtk/gtk2/interface-glade.c:14543
 #, fuzzy
 msgid "First chunk _size"
 msgstr "Első darab mérete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15840
+#: src/ui/gtk/gtk1/interface-glade.t:733
 #: src/ui/gtk/gtk2/interface-glade.c:14559
 #, fuzzy
 msgid "Enable upload of _partially downloaded files"
 msgstr "Letöltött fájlok kézi eltávolítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15864
+#: src/ui/gtk/gtk1/interface-glade.t:734
 #: src/ui/gtk/gtk2/interface-glade.c:14574
 #, fuzzy
 msgid "Minimum file size"
 msgstr "legkisebb méret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15886
+#: src/ui/gtk/gtk1/interface-glade.t:735
 #: src/ui/gtk/gtk2/interface-glade.c:14700
 msgid "Queuing details"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15905
+#: src/ui/gtk/gtk1/interface-glade.t:736
 #: src/ui/gtk/gtk2/interface-glade.c:14677
 #, fuzzy
 msgid "Minimum upload time"
 msgstr "Leg_kisebb darabméret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15928
+#: src/ui/gtk/gtk1/interface-glade.t:737
 #, fuzzy
 msgid "Minimum chunk size"
 msgstr "Leg_kisebb darabméret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15951
+#: src/ui/gtk/gtk1/interface-glade.t:738
 #: src/ui/gtk/gtk2/interface-glade.c:14685
 msgid "Use realistic PARQ estimates"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:15961
+#: src/ui/gtk/gtk1/interface-glade.t:739
 #: src/ui/gtk/gtk2/interface-glade.c:15271
 #, fuzzy
 msgid "Statistics:"
 msgstr "Statisztika"
 
-#: src/ui/gtk/gtk1/interface-glade.c:15994
+#: src/ui/gtk/gtk1/interface-glade.t:740
 #: src/ui/gtk/gtk2/interface-glade.c:14790
 #, fuzzy
 msgid "Library scanning:"
 msgstr "Könyvtárfelmérés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16014
+#: src/ui/gtk/gtk1/interface-glade.t:741
 #: src/ui/gtk/gtk2/interface-glade.c:14740
 #, fuzzy
 msgid "Last scan initiated on:"
 msgstr "Utolsó felmérés indult"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16025
+#: src/ui/gtk/gtk1/interface-glade.t:742
 #: src/ui/gtk/gtk2/interface-glade.c:14749
 #, fuzzy
 msgid "File scanning time:"
 msgstr "Fájlfelmérés ideje"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16078
+#: src/ui/gtk/gtk1/interface-glade.t:743
 #: src/ui/gtk/gtk2/interface-glade.c:15162
 #, fuzzy
 msgid "Query Routing Protocol:"
 msgstr "Keresés-irányítás protokoll"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16098
+#: src/ui/gtk/gtk1/interface-glade.t:744
 #: src/ui/gtk/gtk2/interface-glade.c:15015
 #, fuzzy
 msgid "Indexing started on:"
 msgstr "Indexelés kezdete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16109
-#: src/ui/gtk/gtk1/interface-glade.c:16131
-#: src/ui/gtk/gtk1/interface-glade.c:16153
+#: src/ui/gtk/gtk1/interface-glade.t:745 src/ui/gtk/gtk1/interface-glade.t:747
+#: src/ui/gtk/gtk1/interface-glade.t:749
 #: src/ui/gtk/gtk2/interface-glade.c:15042
 #: src/ui/gtk/gtk2/interface-glade.c:15050
 #: src/ui/gtk/gtk2/interface-glade.c:15058
 msgid "and lasted"
 msgstr "és tartott"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16120
+#: src/ui/gtk/gtk1/interface-glade.t:746
 #: src/ui/gtk/gtk2/interface-glade.c:15024
 #, fuzzy
 msgid "Table generation started on:"
 msgstr "Táblagenerálás kezdete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16142
+#: src/ui/gtk/gtk1/interface-glade.t:748
 #: src/ui/gtk/gtk2/interface-glade.c:15033
 #, fuzzy
 msgid "Patch generation started on:"
 msgstr "Foltgenerálás kezdete"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16306
+#: src/ui/gtk/gtk1/interface-glade.t:750
 #: src/ui/gtk/gtk2/interface-glade.c:14986
 #, fuzzy
 msgid "Query routing table information:"
 msgstr "Keresésirányítási-táblainformáció"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16325
+#: src/ui/gtk/gtk1/interface-glade.t:751
 #: src/ui/gtk/gtk2/interface-glade.c:14864
 #, fuzzy
 msgid "Keywords:"
 msgstr "Kulcsszók"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16336
+#: src/ui/gtk/gtk1/interface-glade.t:752
 #: src/ui/gtk/gtk2/interface-glade.c:14873
 #, fuzzy
 msgid "Slots:"
 msgstr "Nyílások"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16347
+#: src/ui/gtk/gtk1/interface-glade.t:753
 #: src/ui/gtk/gtk2/interface-glade.c:14882
 #, fuzzy
 msgid "Filled slots:"
 msgstr "Tele nyílások"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16358
+#: src/ui/gtk/gtk1/interface-glade.t:754
 #: src/ui/gtk/gtk2/interface-glade.c:14837
 #, fuzzy
 msgid "Generation:"
 msgstr "Generálás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16369
+#: src/ui/gtk/gtk1/interface-glade.t:755
 #: src/ui/gtk/gtk2/interface-glade.c:14846
 #, fuzzy
 msgid "Filled ratio:"
 msgstr "Telítettség"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16380
+#: src/ui/gtk/gtk1/interface-glade.t:756
 #: src/ui/gtk/gtk2/interface-glade.c:14855
 #, fuzzy
 msgid "Conflict ratio:"
 msgstr "Ütközési arány"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16549
+#: src/ui/gtk/gtk1/interface-glade.t:757
 #: src/ui/gtk/gtk2/interface-glade.c:15266
 #, fuzzy
 msgid "Query routing patch information:"
 msgstr "Keresésirányítási foltinformáció"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16568
+#: src/ui/gtk/gtk1/interface-glade.t:758
 #: src/ui/gtk/gtk2/interface-glade.c:15186
 #, fuzzy
 msgid "Raw length:"
 msgstr "Nyers hossz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16579
+#: src/ui/gtk/gtk1/interface-glade.t:759
 #: src/ui/gtk/gtk2/interface-glade.c:15194
 #, fuzzy
 msgid "Compressed length:"
 msgstr "Tömörített hossz"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16590
+#: src/ui/gtk/gtk1/interface-glade.t:760
 #: src/ui/gtk/gtk2/interface-glade.c:15202
 #, fuzzy
 msgid "Compression ratio:"
 msgstr "Tömörítési arány"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16730
+#: src/ui/gtk/gtk1/interface-glade.t:763
 #: src/ui/gtk/gtk2/interface-glade.c:15590
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "Gtk-gnutellából kilépéskor megerősítés dialógus"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16744
+#: src/ui/gtk/gtk1/interface-glade.t:764
 #: src/ui/gtk/gtk2/interface-glade.c:15583
 #, fuzzy
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "Tippek (még nincs hatással minden tippre)"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16756
+#: src/ui/gtk/gtk1/interface-glade.t:765
 #: src/ui/gtk/gtk2/interface-glade.c:15535
 msgid "Try to keep 'dead' entries around for"
 msgstr "„Holt” bejegyzések tartása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16789
+#: src/ui/gtk/gtk1/interface-glade.t:767
 #: src/ui/gtk/gtk2/interface-glade.c:15559
 msgid "Update search results pane every"
 msgstr "Keresési eredmények lap frissítése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16822
+#: src/ui/gtk/gtk1/interface-glade.t:769
 #: src/ui/gtk/gtk2/interface-glade.c:15527
 msgid "Toolbar style"
 msgstr "Eszöztár-stílus"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16843
+#: src/ui/gtk/gtk1/interface-glade.t:770
 #: src/ui/gtk/gtk2/interface-glade.c:15628
 msgid "Expert mode"
 msgstr "Haladó"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16861
+#: src/ui/gtk/gtk1/interface-glade.t:771
 #: src/ui/gtk/gtk2/interface-glade.c:15621
 #, fuzzy
 msgid "Show additional information and settings for advanced and _expert users"
 msgstr ""
 "További információk és beállítások haladó és _gyakorlott felhasználóknak."
 
-#: src/ui/gtk/gtk1/interface-glade.c:16873
+#: src/ui/gtk/gtk1/interface-glade.t:772
 #: src/ui/gtk/gtk2/interface-glade.c:15805
 #, fuzzy
 msgid "GnutellaNet display"
 msgstr "gnutellaNet kijelző"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16906
+#: src/ui/gtk/gtk1/interface-glade.t:773
 #: src/ui/gtk/gtk2/interface-glade.c:15643
 msgid "Display detailed traffic information"
 msgstr "Részletes forgalmi tájékoztató"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16922
+#: src/ui/gtk/gtk1/interface-glade.t:774
 msgid "Detailed traffic information to display"
 msgstr "Részletes forgalmi tájékoztató kijelzőre"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16942
+#: src/ui/gtk/gtk1/interface-glade.t:775
 #: src/ui/gtk/gtk2/interface-glade.c:15672
 msgid "TX compression"
 msgstr "TX tömörítés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16952
+#: src/ui/gtk/gtk1/interface-glade.t:776
 #: src/ui/gtk/gtk2/interface-glade.c:15707
 msgid "RX compression"
 msgstr "RX tömörítés"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16962
+#: src/ui/gtk/gtk1/interface-glade.t:777
 #: src/ui/gtk/gtk2/interface-glade.c:15679
 msgid "TX speed"
 msgstr "TX Sebesség"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16972
+#: src/ui/gtk/gtk1/interface-glade.t:778
 #: src/ui/gtk/gtk2/interface-glade.c:15714
 msgid "RX speed"
 msgstr "RX sebesség"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16982
+#: src/ui/gtk/gtk1/interface-glade.t:779
 #: src/ui/gtk/gtk2/interface-glade.c:15686
 msgid "TX queries"
 msgstr "TX keresések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:16992
+#: src/ui/gtk/gtk1/interface-glade.t:780
 #: src/ui/gtk/gtk2/interface-glade.c:15721
 msgid "RX queries"
 msgstr "RX keresések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17002
+#: src/ui/gtk/gtk1/interface-glade.t:781
 #: src/ui/gtk/gtk2/interface-glade.c:15693
 msgid "TX query hits"
 msgstr "TX találatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17012
+#: src/ui/gtk/gtk1/interface-glade.t:782
 #: src/ui/gtk/gtk2/interface-glade.c:15728
 msgid "RX query hits"
 msgstr "RX találatok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17022
+#: src/ui/gtk/gtk1/interface-glade.t:783
 #: src/ui/gtk/gtk2/interface-glade.c:15742
 msgid "Generated queries"
 msgstr "Generált keresések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17032
+#: src/ui/gtk/gtk1/interface-glade.t:784
 #: src/ui/gtk/gtk2/interface-glade.c:15749
 msgid "Pending local queries"
 msgstr "Függő helyi keresések"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17042
+#: src/ui/gtk/gtk1/interface-glade.t:785
 #: src/ui/gtk/gtk2/interface-glade.c:15700
 msgid "TX dropped"
 msgstr "TX ejtve"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17052
+#: src/ui/gtk/gtk1/interface-glade.t:786
 #: src/ui/gtk/gtk2/interface-glade.c:15735
 msgid "RX dropped"
 msgstr "RX ejtve"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17062
+#: src/ui/gtk/gtk1/interface-glade.t:787
 #: src/ui/gtk/gtk2/interface-glade.c:15756
 msgid "QRP stats"
 msgstr "QRP statok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17072
+#: src/ui/gtk/gtk1/interface-glade.t:788
 #: src/ui/gtk/gtk2/interface-glade.c:15763
 msgid "Dup / Bad / Weird"
 msgstr "Dup / Rossz / Furcsa"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17082
+#: src/ui/gtk/gtk1/interface-glade.t:789
 #: src/ui/gtk/gtk2/interface-glade.c:15770
 msgid "Ping / Pong round trip"
 msgstr "Kip / Kop körút"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17092
+#: src/ui/gtk/gtk1/interface-glade.t:790
 #: src/ui/gtk/gtk2/interface-glade.c:15777
 msgid "Library size"
 msgstr "Könyvtárméret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17102
+#: src/ui/gtk/gtk1/interface-glade.t:791
 #: src/ui/gtk/gtk2/interface-glade.c:15784
 msgid "Library # of files"
 msgstr "# fájl könyvtára"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17112
+#: src/ui/gtk/gtk1/interface-glade.t:792
 #: src/ui/gtk/gtk2/interface-glade.c:15798
 #, fuzzy
 msgid "RX wire bytes"
 msgstr "bájtok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17122
+#: src/ui/gtk/gtk1/interface-glade.t:793
 #: src/ui/gtk/gtk2/interface-glade.c:15791
 #, fuzzy
 msgid "TX wire bytes"
 msgstr "bájtok"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17132
+#: src/ui/gtk/gtk1/interface-glade.t:794
 #: src/ui/gtk/gtk2/interface-glade.c:15493
 msgid "User Interface"
 msgstr "Felhasználói felület"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17166
+#: src/ui/gtk/gtk1/interface-glade.t:795
 #: src/ui/gtk/gtk2/interface-glade.c:15994
 #, fuzzy
 msgid "Property browser"
 msgstr "Proxy beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17191
+#: src/ui/gtk/gtk1/interface-glade.t:796
 #: src/ui/gtk/gtk2/interface-glade.c:15933
 #, fuzzy
 msgid "Property pattern:"
 msgstr "Proxy beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17230 src/ui/gtk/settings_cb.c:451
+#: src/ui/gtk/gtk1/interface-glade.t:797 src/ui/gtk/settings_cb.c:451
 #, fuzzy
 msgid "Saved"
 msgstr "Kiszolgáló"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17246 src/ui/gtk/settings_cb.c:453
+#: src/ui/gtk/gtk1/interface-glade.t:799 src/ui/gtk/settings_cb.c:453
 #, fuzzy
 msgid "Property"
 msgstr "Proxy beállítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17254 src/ui/gtk/settings_cb.c:454
+#: src/ui/gtk/gtk1/interface-glade.t:800 src/ui/gtk/settings_cb.c:454
 #, fuzzy
 msgid "Value"
 msgstr "Méret"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17272
+#: src/ui/gtk/gtk1/interface-glade.t:801
 msgid "Selected property:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17280
-#: src/ui/gtk/gtk1/interface-glade.c:17298
-#: src/ui/gtk/gtk1/interface-glade.c:17333
-#: src/ui/gtk/gtk1/interface-glade.c:17359
+#: src/ui/gtk/gtk1/interface-glade.t:802 src/ui/gtk/gtk1/interface-glade.t:804
+#: src/ui/gtk/gtk1/interface-glade.t:806 src/ui/gtk/gtk1/interface-glade.t:808
 #: src/ui/gtk/gtk2/interface-glade.c:15970
 #: src/ui/gtk/gtk2/interface-glade.c:15988 src/ui/gtk/settings_cb.c:427
 #: src/ui/gtk/settings_cb.c:547 src/ui/gtk/settings_cb.c:613
@@ -9018,55 +8600,55 @@ msgstr ""
 msgid "<no property selected>"
 msgstr "Kijelölt takarítása"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17289
+#: src/ui/gtk/gtk1/interface-glade.t:803
 #: src/ui/gtk/gtk2/interface-glade.c:15982
 msgid "Min/Max:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17317
+#: src/ui/gtk/gtk1/interface-glade.t:805
 #: src/ui/gtk/gtk2/interface-glade.c:15964
 msgid "Default value:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17344
+#: src/ui/gtk/gtk1/interface-glade.t:807
 #, fuzzy
 msgid "Edit value:"
 msgstr "Szűrők szerkesztése"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17361
+#: src/ui/gtk/gtk1/interface-glade.t:809
 #: src/ui/gtk/gtk2/interface-glade.c:16071
 #, fuzzy
 msgid "Diverse properties"
 msgstr "Nyomkövetés beállításai"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17380
+#: src/ui/gtk/gtk1/interface-glade.t:810
 #: src/ui/gtk/gtk2/interface-glade.c:16029
 #, fuzzy
 msgid "Avg. time between IP address changes:"
 msgstr "Átlagos futási idő ugyanazzal az IP-címmel"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17391
+#: src/ui/gtk/gtk1/interface-glade.t:811
 #: src/ui/gtk/gtk2/interface-glade.c:16020
 msgid "Avg. uptime of this servent:"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17402
+#: src/ui/gtk/gtk1/interface-glade.t:812
 #: src/ui/gtk/gtk2/interface-glade.c:16038
 #, fuzzy
 msgid "Available physical memory:"
 msgstr "Elég fizikai memória"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17446
+#: src/ui/gtk/gtk1/interface-glade.t:813
 #: src/ui/gtk/gtk2/interface-glade.c:15896
 msgid "Debugging"
 msgstr "Hibairányítás"
 
-#: src/ui/gtk/gtk1/interface-glade.c:17756
+#: src/ui/gtk/gtk1/interface-glade.t:816
 #: src/ui/gtk/gtk2/interface-glade.c:16846
 msgid "gtk-gnutella - Frequently Asked Questions"
 msgstr ""
 
-#: src/ui/gtk/gtk1/interface-glade.c:17776
+#: src/ui/gtk/gtk1/interface-glade.t:817
 #: src/ui/gtk/gtk2/interface-glade.c:16887
 msgid "Frequently Asked Questions:"
 msgstr ""
@@ -9320,6 +8902,19 @@ msgstr "Feltöltve"
 #, fuzzy
 msgid "Served "
 msgstr "Kiszolgáló"
+
+#: src/ui/gtk/gtk2/interface-glade.c:4386
+msgid "[BH HTML served]"
+msgstr ""
+
+#: src/ui/gtk/gtk2/interface-glade.c:4396
+msgid "[BH HTML]"
+msgstr ""
+
+#: src/ui/gtk/gtk2/interface-glade.c:4406
+#: src/ui/gtk/gtk2/interface-glade.c:4416
+msgid "[BH qhits]"
+msgstr ""
 
 #: src/ui/gtk/gtk2/interface-glade.c:4865
 msgid "Remove completed downloads from list"

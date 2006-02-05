@@ -18,6 +18,8 @@
   <main_header_file>interface-glade.h</main_header_file>
   <support_source_file>support-glade.c</support_source_file>
   <support_header_file>support-glade.h</support_header_file>
+  <output_translatable_strings>True</output_translatable_strings>
+  <translatable_strings_file>interface-glade.t</translatable_strings_file>
 </project>
 
 <widget>
