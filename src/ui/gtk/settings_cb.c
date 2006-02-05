@@ -185,7 +185,7 @@ on_entry_config_path_activate(GtkEditable *editable, gpointer unused_udata)
     g_free(path);
 }
 FOCUS_TO_ACTIVATE(entry_config_path)
-#endif /* GTK1 */
+#endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
 void
@@ -228,7 +228,7 @@ on_button_config_remove_dir_clicked(GtkButton *unused_button,
 	gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, gs->str);
 	g_string_free(gs, TRUE);
 }
-#endif /* GTK2 */
+#endif /* USE_GTK2 */
 
 void
 on_entry_config_force_ip_activate(GtkEditable *unused_editable,
