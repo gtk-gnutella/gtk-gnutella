@@ -43,6 +43,7 @@
 # routing             経路設定 (ルート設定)
 # servent             サーバント
 # server              サーバー
+# shielded            保護ノード (註: リーフまたはファイアウォール内にある状態)
 # shutdown            停止 (シャットダウン)
 # slot                スロット
 # source              送信元
@@ -72,7 +73,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.1u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2006-02-04 14:10+0900\n"
-"PO-Revision-Date: 2006-01-02 09:23+0900\n"
+"PO-Revision-Date: 2006-02-05 13:50+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -421,17 +422,15 @@ msgstr "変なHELLO %s"
 msgid "HELLO %s error %d (%s)"
 msgstr "HELLO %s エラー %d (%s)"
 
-# FIXME: node -> peer
-# NOTE: shielded == firewalled
 #: src/core/nodes.c:3764
 msgid "Shielded node"
-msgstr "ピアはファイアウォール内にあります"
+msgstr "保護ノードです"
 
 #: src/core/nodes.c:3795
 msgid "Gnet connections disabled"
 msgstr "Gnet 接続が無効になっています"
 
-# FIXME: unstable?
+# FIXME: how's unstable?
 #: src/core/nodes.c:3820
 msgid "Unstable IP address"
 msgstr "不安定な IP アドレスです"
@@ -481,10 +480,9 @@ msgstr "リーフを拒否しました"
 msgid "Too many nodes (%d max)"
 msgstr "ピアの数が多すぎます (最大 %d 基)"
 
-# NOTE: shielded == firewalled
 #: src/core/nodes.c:4018
 msgid "Sent shielded indication"
-msgstr "ファイアウォール内にある事を知らせました"
+msgstr "保護ノードである事を知らせました"
 
 # FIXME: node -> peer
 #: src/core/nodes.c:4024
@@ -523,7 +521,7 @@ msgstr "クロウラーに接続できません"
 # FIXME: node -> peer
 #: src/core/nodes.c:4937
 msgid "Not becoming a leaf node"
-msgstr "リーフにはなりません"
+msgstr "リーフになっていません"
 
 #: src/core/nodes.c:5107
 #, c-format
@@ -2766,6 +2764,9 @@ msgid ""
 "your passive searches because it lets you classify files easily, regardless "
 "of the origin of the files."
 msgstr ""
+"有効にすると、ホスト閲覧からの全検索結果が開かれている全ての受動検索に急いで"
+"送られます。ファイルの送信元に関わらず簡単に分類させますので、受動検索に関し"
+"て異なる選別フィルターを使用しているのなら役立ちます。"
 
 #: src/if/gui_property.c:181
 msgid "disable"
@@ -6506,7 +6507,7 @@ msgstr "ホスト閲覧結果の最大数"
 #: src/ui/gtk/gtk1/interface-glade.c:5041
 #: src/ui/gtk/gtk2/interface-glade.c:5440
 msgid "Copy browse-host results to passive searches"
-msgstr ""
+msgstr "ホスト閲覧の結果を受動検索にコピー"
 
 #: src/ui/gtk/gtk1/interface-glade.c:5068
 #: src/ui/gtk/gtk2/interface-glade.c:5722
@@ -9625,7 +9626,7 @@ msgstr "UDP "
 
 #: src/ui/gtk/search_common.c:975
 msgid "tcp "
-msgstr ""
+msgstr "TCP "
 
 #: src/ui/gtk/search_common.c:982
 msgid ", browsable"
