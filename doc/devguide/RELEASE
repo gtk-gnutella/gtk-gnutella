@@ -19,6 +19,7 @@ Release steps
 
 	cd "top directory"
 	cvs update -Pd
+	cd extra_files
 	make update				# updates bogons.txt and geo-ip.txt
 
 1. Write user summary of changes since last release in ChangeLog.
