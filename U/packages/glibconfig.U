@@ -2,7 +2,8 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:glibconfig glibcflags glibldflags: glibpackage cc ccflags ldflags cat rm gtkversion
+?MAKE:glibconfig glibcflags glibldflags: glibpackage cc ccflags ldflags \
+	cat rm gtkversion Warn
 ?MAKE:	-pick add $@ %<
 ?S:glibconfig:
 ?S:	This variable holds the command to use to grab information about glib.
@@ -30,13 +31,12 @@ else
 	modver=''
 fi
 echo "(I'll use '$glibconfig' to gather that information.)"
-
 glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`
-
+?X:
 ?X: check that we've got the version they asked for
+?X:
 version=`$glibconfig $modver`
-
 echo " "
 echo "Checking whether glib.h can be compiled against..."
 $cat >try.c <<EOC
@@ -59,9 +59,7 @@ if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags  >/dev/null 2>&1;
 then
   echo "We'll be using glib version $version."
 else 
-  echo "Cannot compile against glib version '$version'"
-  echo exit 1
+  ./warn "Cannot compile against glib version '$version'"
 fi
 $rm -f try try.c
-echo " "
 
