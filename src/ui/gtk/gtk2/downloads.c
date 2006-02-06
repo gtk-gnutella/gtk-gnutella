@@ -1368,7 +1368,8 @@ gui_update_download(download_t *d, gboolean force)
 	status_buf[0] = '\0';
 	store = GTK_TREE_STORE(gtk_tree_view_get_model(treeview));
 	parent = find_parent_with_fi_handle(ht, d->file_info->fi_handle);
-	g_assert(parent != NULL);
+	if (!parent)
+		return;
 
 	gtk_tree_model_get(GTK_TREE_MODEL(store), parent,
 		is_queued ? c_queue_record : c_dl_record, &drecord,
