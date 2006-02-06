@@ -135,10 +135,11 @@ drag_data_get(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
 
 	g_assert(url_ptr != NULL);
 	if (*url_ptr) {
-		const guchar *drag_data = *url_ptr;
+		const gchar *drag_data = *url_ptr;
 		
     	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
-			8 /* CHAR_BIT */, drag_data, strlen(drag_data));
+			8 /* CHAR_BIT */, cast_to_gconstpointer(drag_data),
+			strlen(drag_data));
 		G_FREE_NULL(*url_ptr);
 	}
 }
