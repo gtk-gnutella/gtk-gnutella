@@ -2,7 +2,8 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:gtkconfig gtkcflags gtkldflags: gtkversion gtkpackage awk
+?MAKE:gtkconfig gtkcflags gtkldflags: gtkversion gtkpackage awk \
+	glibcflags glibldflags Warn
 ?MAKE:	-pick add $@ %<
 ?S:gtkconfig:
 ?S:	This variable holds the command to use to grab information about GTK.
@@ -14,7 +15,7 @@
 ?S:gtkldflags:
 ?S:	This variable holds the linker flags required to link against GTK.
 ?S:.
-?T:modver version vint
+?T:modver version vint flag missing allok
 : how can we find information about GTK?
 echo " "
 echo "Checking how we can gather information about GTK+..." >&4
@@ -30,7 +31,6 @@ else
 	modver=''
 fi
 echo "(I'll use '$gtkconfig' to gather that information.)"
-
 ?X: check that we've got the version they asked for
 version=`$gtkconfig $modver`
 case "$gtkversion" in
@@ -45,7 +45,7 @@ case "$gtkversion" in
 			echo "OK, you have GTK+ $version"
 		fi
 		;;
-	*) echo "WARNING: you asked for GTK+ $gtkversion, I found $version" >&4;;
+	*) ./warn "you asked for GTK+ $gtkversion, I found $version";;
 	esac
 	;;
 2)
@@ -59,7 +59,7 @@ case "$gtkversion" in
 			echo "OK, you have GTK+ $version"
 		fi
 		;;
-	*) echo "WARNING: you asked for GTK+ $gtkversion, I found $version" >&4;;
+	*) ./warn "you asked for GTK+ $gtkversion, I found $version";;
 	esac
 	;;
 *)
@@ -67,7 +67,38 @@ case "$gtkversion" in
 	exit 1
 	;;
 esac
-
 gtkcflags=`$gtkconfig --cflags`
 gtkldflags=`$gtkconfig --libs`
+?X:
+?X: Make sure all the glib C flags are included, append all if any missing.
+?X:
+missing=false
+allok=true
+for flag in "$glibcflags"; do
+	case "$gtkcflags" in
+	*"$flag"*) ;;
+	*) missing=true; break;;
+	esac
+done
+if $missing; then
+	echo "(Some glib C flags are missing from GTK+ flags, adding all of them.)"
+	gtkcflags="$gtkcflags $glibcflags"
+	allok=false
+fi
+?X: Make sure all the glib ld flags are included, append all if any missing.
+missing=false
+for flag in "$glibldflags"; do
+	case "$gtkldflags" in
+	*"$flag"*) ;;
+	*) missing=true; break;;
+	esac
+done
+if $missing; then
+	echo "(Some glib ld flags are missing from GTK+ flags, adding all of them.)"
+	gtkldflags="$gtkldflags $glibldflags"
+	allok=false
+fi
+if $allok; then
+	echo "Good, all the cc and ld flags from glib are included in GTK+ flags."
+fi
 
