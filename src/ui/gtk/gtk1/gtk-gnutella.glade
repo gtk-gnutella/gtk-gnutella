@@ -2347,7 +2347,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_gnutellanet</name>
-	    <label>#|Gnet</label>
+	    <label>[Gnet]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -3294,7 +3294,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_gnet_stats</name>
-	    <label>#|Gnet Stats</label>
+	    <label>[Gnet Stats]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -3732,7 +3732,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_hostcache</name>
-	    <label>#|Hostcache</label>
+	    <label>[Hostcache]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -4140,7 +4140,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_uploads</name>
-	    <label>#|Uploads</label>
+	    <label>[Uploads]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -4491,7 +4491,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_ul_stats</name>
-	    <label>#|Upload Stats</label>
+	    <label>[Upload Stats]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -5125,7 +5125,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_downloads</name>
-	    <label>#|Downloads</label>
+	    <label>[Downloads]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -5912,7 +5912,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label734</name>
-	    <label>#|Active</label>
+	    <label>[Active]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -6381,7 +6381,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label735</name>
-	    <label>#|Queue</label>
+	    <label>[Queue]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -7807,7 +7807,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_search</name>
-	    <label>#|Search</label>
+	    <label>[Search]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -7971,7 +7971,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_monitor</name>
-	    <label>#|Monitor</label>
+	    <label>[Monitor]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -8242,7 +8242,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_search_stats</name>
-	    <label>#|Search Stats</label>
+	    <label>[Search Stats]</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -10291,7 +10291,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label724</name>
-		  <label>#|Add/Remove</label>
+		  <label>[Add/Remove]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -10633,7 +10633,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label725</name>
-		  <label>#|Filename</label>
+		  <label>[Filename]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -10956,7 +10956,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label726</name>
-		  <label>#|IP address</label>
+		  <label>[IP address]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -11401,7 +11401,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label727</name>
-		  <label>#|Filesize</label>
+		  <label>[Filesize]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -11657,7 +11657,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label728</name>
-		  <label>#|Jump</label>
+		  <label>[Jump]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -12037,7 +12037,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label729</name>
-		  <label>#|SHA1</label>
+		  <label>[SHA1]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -12689,7 +12689,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label730</name>
-		  <label>#|Flags</label>
+		  <label>[Flags]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -13291,7 +13291,7 @@ for all filters</label>
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label731</name>
-		  <label>#|State</label>
+		  <label>[State]</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>

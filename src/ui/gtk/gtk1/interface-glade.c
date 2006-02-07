@@ -2327,7 +2327,7 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, entry_nodes_ip, _("The current IP address and listening port for this node. To change these go to File->Preferences->Network."), NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
 
-  label_gnutellanet = gtk_label_new (_("#|Gnet"));
+  label_gnutellanet = gtk_label_new (_("[Gnet]"));
   gtk_widget_set_name (label_gnutellanet, "label_gnutellanet");
   gtk_widget_ref (label_gnutellanet);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_gnutellanet", label_gnutellanet,
@@ -2969,7 +2969,7 @@ create_main_window (void)
   option_menu_gnet_stats_type_menu = gtk_menu_new ();
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_gnet_stats_type), option_menu_gnet_stats_type_menu);
 
-  label_gnet_stats = gtk_label_new (_("#|Gnet Stats"));
+  label_gnet_stats = gtk_label_new (_("[Gnet Stats]"));
   gtk_widget_set_name (label_gnet_stats, "label_gnet_stats");
   gtk_widget_ref (label_gnet_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_gnet_stats", label_gnet_stats,
@@ -3223,7 +3223,7 @@ create_main_window (void)
   gtk_widget_show (button_hostcache_clear_bad);
   gtk_box_pack_start (GTK_BOX (hbox204), button_hostcache_clear_bad, FALSE, FALSE, 0);
 
-  label_hostcache = gtk_label_new (_("#|Hostcache"));
+  label_hostcache = gtk_label_new (_("[Hostcache]"));
   gtk_widget_set_name (label_hostcache, "label_hostcache");
   gtk_widget_ref (label_hostcache);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_hostcache", label_hostcache,
@@ -3444,7 +3444,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_uploads_ip), TRUE);
 
-  label_uploads = gtk_label_new (_("#|Uploads"));
+  label_uploads = gtk_label_new (_("[Uploads]"));
   gtk_widget_set_name (label_uploads, "label_uploads");
   gtk_widget_ref (label_uploads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_uploads", label_uploads,
@@ -3649,7 +3649,7 @@ create_main_window (void)
   gtk_widget_show (label749);
   gtk_box_pack_start (GTK_BOX (hbox2101), label749, FALSE, FALSE, 0);
 
-  label_ul_stats = gtk_label_new (_("#|Upload Stats"));
+  label_ul_stats = gtk_label_new (_("[Upload Stats]"));
   gtk_widget_set_name (label_ul_stats, "label_ul_stats");
   gtk_widget_ref (label_ul_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_ul_stats", label_ul_stats,
@@ -4044,7 +4044,7 @@ create_main_window (void)
   gtk_widget_show (label545);
   gtk_box_pack_start (GTK_BOX (hbox175), label545, FALSE, FALSE, 0);
 
-  label_downloads = gtk_label_new (_("#|Downloads"));
+  label_downloads = gtk_label_new (_("[Downloads]"));
   gtk_widget_set_name (label_downloads, "label_downloads");
   gtk_widget_ref (label_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_downloads", label_downloads,
@@ -4493,7 +4493,7 @@ create_main_window (void)
   gtk_widget_show (label_dl_show_settings);
   gtk_container_add (GTK_CONTAINER (checkbutton_dl_show_settings), label_dl_show_settings);
 
-  label734 = gtk_label_new (_("#|Active"));
+  label734 = gtk_label_new (_("[Active]"));
   gtk_widget_set_name (label734, "label734");
   gtk_widget_ref (label734);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label734", label734,
@@ -4761,7 +4761,7 @@ create_main_window (void)
   gtk_widget_show (label539);
   gtk_box_pack_start (GTK_BOX (hbox169), label539, FALSE, FALSE, 0);
 
-  label735 = gtk_label_new (_("#|Queue"));
+  label735 = gtk_label_new (_("[Queue]"));
   gtk_widget_set_name (label735, "label735");
   gtk_widget_ref (label735);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label735", label735,
@@ -5530,7 +5530,7 @@ create_main_window (void)
                               GDK_c, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  label_search = gtk_label_new (_("#|Search"));
+  label_search = gtk_label_new (_("[Search]"));
   gtk_widget_set_name (label_search, "label_search");
   gtk_widget_ref (label_search);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search", label_search,
@@ -5633,7 +5633,7 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label70), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label70), 7.45058e-09, 0.5);
 
-  label_monitor = gtk_label_new (_("#|Monitor"));
+  label_monitor = gtk_label_new (_("[Monitor]"));
   gtk_widget_set_name (label_monitor, "label_monitor");
   gtk_widget_ref (label_monitor);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_monitor", label_monitor,
@@ -5809,7 +5809,7 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label_search_stats_count), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_search_stats_count), 5, 0);
 
-  label_search_stats = gtk_label_new (_("#|Search Stats"));
+  label_search_stats = gtk_label_new (_("[Search Stats]"));
   gtk_widget_set_name (label_search_stats, "label_search_stats");
   gtk_widget_ref (label_search_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_stats", label_search_stats,
@@ -8224,7 +8224,7 @@ create_dlg_filters (void)
   gtk_widget_show (button_filter_add_rule_state);
   gtk_box_pack_start (GTK_BOX (vbox138), button_filter_add_rule_state, FALSE, TRUE, 0);
 
-  label724 = gtk_label_new (_("#|Add/Remove"));
+  label724 = gtk_label_new (_("[Add/Remove]"));
   gtk_widget_set_name (label724, "label724");
   gtk_widget_ref (label724);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label724", label724,
@@ -8440,7 +8440,7 @@ create_dlg_filters (void)
   gtk_widget_show (button16);
   gtk_box_pack_start (GTK_BOX (hbox138), button16, FALSE, FALSE, 0);
 
-  label725 = gtk_label_new (_("#|Filename"));
+  label725 = gtk_label_new (_("[Filename]"));
   gtk_widget_set_name (label725, "label725");
   gtk_widget_ref (label725);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label725", label725,
@@ -8645,7 +8645,7 @@ create_dlg_filters (void)
   gtk_widget_show (button17);
   gtk_box_pack_start (GTK_BOX (hbox139), button17, FALSE, FALSE, 0);
 
-  label726 = gtk_label_new (_("#|IP address"));
+  label726 = gtk_label_new (_("[IP address]"));
   gtk_widget_set_name (label726, "label726");
   gtk_widget_ref (label726);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label726", label726,
@@ -8893,7 +8893,7 @@ create_dlg_filters (void)
   gtk_widget_show (button18);
   gtk_box_pack_start (GTK_BOX (hbox140), button18, FALSE, FALSE, 0);
 
-  label727 = gtk_label_new (_("#|Filesize"));
+  label727 = gtk_label_new (_("[Filesize]"));
   gtk_widget_set_name (label727, "label727");
   gtk_widget_ref (label727);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label727", label727,
@@ -9069,7 +9069,7 @@ create_dlg_filters (void)
   gtk_widget_show (button19);
   gtk_box_pack_start (GTK_BOX (hbox141), button19, FALSE, FALSE, 0);
 
-  label728 = gtk_label_new (_("#|Jump"));
+  label728 = gtk_label_new (_("[Jump]"));
   gtk_widget_set_name (label728, "label728");
   gtk_widget_ref (label728);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label728", label728,
@@ -9302,7 +9302,7 @@ create_dlg_filters (void)
   gtk_widget_show (button20);
   gtk_box_pack_start (GTK_BOX (hbox142), button20, FALSE, FALSE, 0);
 
-  label729 = gtk_label_new (_("#|SHA1"));
+  label729 = gtk_label_new (_("[SHA1]"));
   gtk_widget_set_name (label729, "label729");
   gtk_widget_ref (label729);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label729", label729,
@@ -9691,7 +9691,7 @@ create_dlg_filters (void)
   gtk_widget_show (button21);
   gtk_box_pack_start (GTK_BOX (hbox143), button21, FALSE, FALSE, 0);
 
-  label730 = gtk_label_new (_("#|Flags"));
+  label730 = gtk_label_new (_("[Flags]"));
   gtk_widget_set_name (label730, "label730");
   gtk_widget_ref (label730);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label730", label730,
@@ -10057,7 +10057,7 @@ create_dlg_filters (void)
   gtk_widget_show (button22);
   gtk_box_pack_start (GTK_BOX (hbox144), button22, FALSE, FALSE, 0);
 
-  label731 = gtk_label_new (_("#|State"));
+  label731 = gtk_label_new (_("[State]"));
   gtk_widget_set_name (label731, "label731");
   gtk_widget_ref (label731);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label731", label731,
