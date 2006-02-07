@@ -1,8 +1,30 @@
+gtk-gnutella (0.96cvs200602040801-2) unstable; urgency=medium
+
+  * Urgency medium to get this out in the field quickly
+
+ -- Anand Kumria <wildfire@progsoc.org>  Mon,  6 Feb 2006 11:11:48 +1100
+
+gtk-gnutella (0.96cvs200602040801-1) unstable; urgency=low
+
+  * Merge with latest 0.96 and some fixes from CVS (Closes: #350358)
+  * Remove xlibs Build-Dep (Closes: #346677)
+  * Activate D-BUS support
+  * Update Spam and hostiles and ultra host lists
+  * A few IPv6 bug fixes
+
+ -- Anand Kumria <wildfire@progsoc.org>  Mon,  6 Feb 2006 03:02:29 +1100
+
 gtk-gnutella (0.96-0) unstable; urgency=medium
 
   * New upstream release
 
  -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Tue, 24 Jan 2006 22:14:17 +0100
+
+gtk-gnutella (0.96b-2) unstable; urgency=low
+
+  * Convert to using debhelper rather than debmake
+
+ -- Anand Kumria <wildfire@progsoc.org>  Sun,  5 Feb 2006 13:07:36 +1100
 
 gtk-gnutella (0.96b-1) unstable; urgency=medium
 
@@ -77,7 +99,7 @@ gtk-gnutella (0.95-3) unstable; urgency=medium
 
  -- Anand Kumria <wildfire@progsoc.org>  Sat,  5 Mar 2005 23:53:26 +1100
 
-Gtk-gnutella (0.95-2) unstable; urgency=low
+gtk-gnutella (0.95-2) unstable; urgency=low
 
   * Workaround for G_BREAKPOINT not including the right headers on various
     platforms.  (Closes: #285383)
@@ -127,7 +149,7 @@ gtk-gnutella (0.94-1) unstable; urgency=medium
   * gtk-gnutella upstream fixed this a while ago (Closes: #166705)
   * gtk-gnutella banned versions were fixed by upstream a while ago
     (Closes: #182953)
-  * Goswin, all your suggestions were implemented by upstream many whiles ago. 
+  * Goswin, all your suggestions were implemented by upstream many whiles ago.
     They were all good ones too. (Closes: #85366)
   * remove outdated README.Debian. It was of use to neither man nor beast.
   * Install upstreams supplied .desktop file (Closes: #118774)
@@ -284,11 +306,11 @@ gtk-gnutella (0.13.3-4) unstable; urgency=low
 
   * build-dependecies corrected closes: Bug#92775, #87252
 
- -- Matthias Kabel <mkabel@debian.org>  Son, 15 Jul 2001 18:13:44 +0100
+ -- Matthias Kabel <mkabel@debian.org>  Sun, 15 Jul 2001 18:13:44 +0100
 
 gtk-gnutella (0.13.3-3) unstable; urgency=low
 
-  * build-dependecies corrected closes: Bug#104625
+  * build-dependencies corrected closes: Bug#104625
 
  -- Matthias Kabel <mkabel@debian.org>  Sat, 14 Jul 2001 21:23:52 +0100
 

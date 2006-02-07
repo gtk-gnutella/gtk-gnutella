@@ -1,26 +1,32 @@
-This package was debianized by Matthias Kabel mkabel@debian.org on
-Tue, 18 Jul 2000 22:22:11 +0200.
 
 It was downloaded from http://sourceforge.net/projects/gtk-gnutella/
 
-gtk-gnutella was written by: Yann Grossel <olrick@users.sourceforge.net>,
-Raphael Manfredi <Raphael_Manfredi@pobox.com>,
-Jeroen Asselman <jeroen@asselman.com> and others
- 
- Copyright:
- 
-Copyright (c) 2000-2001 Yann Grossel
-Copyright (c) 2001-2005 Raphael Manfredi
+Copyright Holder:
+	Yann Grossel <olrick@users.sourceforge.net>,
+	Raphael Manfredi <Raphael_Manfredi@pobox.com>,
+	Jeroen Asselman <jeroen@asselman.com> and others
 
 License:
- 
-You are free to distribute this software under the terms of
-the GNU General Public License.
-On Debian systems, the complete text of the GNU General Public
-License can be found in the file `/usr/share/common-licenses/GPL'.
+
+   This package is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This package is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this package; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+On Debian systems, the complete text of the GNU General
+Public License can be found in `/usr/share/common-licenses/GPL'.
 
 This package also included geographic information on IP addresses
-which is under the following license:
+which is under the following licence:
 
 OPEN DATA LICENSE (GeoIP Free Country Database)
 
@@ -35,23 +41,23 @@ Redistribution and use with or without modification, are permitted provided
 that the following conditions are met:
 1. Redistributions must retain the above copyright notice, this list of
 conditions and the following disclaimer in the documentation and/or other
-materials provided with the distribution. 
+materials provided with the distribution.
 2. All advertising materials and documentation mentioning features or use of
-this database must display the following acknowledgment:
+this database must display the following acknowledgement:
 "This product includes GeoIP data created by MaxMind, available from
 http://maxmind.com/"
 3. "MaxMind" may not be used to endorse or promote products derived from this
 database without specific prior written permission.
 
-THIS DATABASE IS PROVIDED BY MAXMIND.COM ``AS IS'' AND ANY 
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-DISCLAIMED. IN NO EVENT SHALL MAXMIND.COM BE LIABLE FOR ANY 
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+THIS DATABASE IS PROVIDED BY MAXMIND.COM ``AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL MAXMIND.COM BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 DATABASE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Some parts of this software distribution are derived from the APNIC, ARIN and
@@ -64,7 +70,7 @@ The files are freely available for download and use on the condition that APNIC
 will not be held responsible for any loss or damage arising from the application
 of the information contained in these reports.
 
-APNIC endeavors to the best of its ability to ensure the accuracy of these
+APNIC endeavours to the best of its ability to ensure the accuracy of these
 reports; however, APNIC makes no guarantee in this regard.
 
 In particular, it should be noted that these reports seek to indicate the
@@ -88,4 +94,3 @@ permission of the RIPE NCC on behalf of the copyright holders. Any use of this
 material to target advertising or similar activities is explicitly forbidden and
 may be prosecuted. The RIPE NCC requests to be notified of any such activities
 or suspicions thereof."
-
