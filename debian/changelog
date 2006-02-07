@@ -304,7 +304,7 @@ gtk-gnutella (0.16.0-0) unstable; urgency=low
 
 gtk-gnutella (0.13.3-4) unstable; urgency=low
 
-  * build-dependecies corrected closes: Bug#92775, #87252
+  * build-dependencies corrected closes: Bug#92775, #87252
 
  -- Matthias Kabel <mkabel@debian.org>  Sun, 15 Jul 2001 18:13:44 +0100
 
@@ -327,7 +327,7 @@ gtk-gnutella (0.13.3-1) unstable; urgency=low
 
   * new upstream cvs
   * revoced part of the non socks proxy code
-  * requeue on error and timeout (indefinetly)
+  * requeue on error and timeout (indefinitely)
   * start at most one download per second
   * cvs checkout is now orig.tar.gz
 
