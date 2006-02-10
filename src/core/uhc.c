@@ -102,6 +102,7 @@ static const struct {
 	{ "tribaldance.bishopston.net:3558" },
 	{ "uhc.udp-host-cache.com:9999" },
 	{ "uhc2.limewire.com:20181" },
+	{ "zomfg.gtkg.org:40000" },
 };
 
 static gboolean uhc_connecting = FALSE;
