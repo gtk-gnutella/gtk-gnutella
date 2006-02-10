@@ -5863,6 +5863,11 @@ node_parse(struct gnutella_node *node)
             drop = TRUE;
             gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
         }
+		if (n->size < GUID_RAW_SIZE) {
+			n->n_bad++;
+            drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
+		}
 		break;
 
 	case GTA_MSG_VENDOR:
