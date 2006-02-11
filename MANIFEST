@@ -73,7 +73,6 @@ config_h.SH                  Produces config.h
 configure.gnu                GNU configure-like wrapper
 cygwin/dirs
 cygwin/rules
-debian/README.debian
 debian/changelog
 debian/control
 debian/copyright
@@ -572,6 +571,7 @@ src/ui/gtk/gtk1/gtk-gnutella.glade
 src/ui/gtk/gtk1/hcache.c
 src/ui/gtk/gtk1/interface-glade.c
 src/ui/gtk/gtk1/interface-glade.h
+src/ui/gtk/gtk1/interface-glade.t
 src/ui/gtk/gtk1/monitor.c
 src/ui/gtk/gtk1/monitor_cb.c
 src/ui/gtk/gtk1/nodes.c
