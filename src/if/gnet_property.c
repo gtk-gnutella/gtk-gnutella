@@ -480,8 +480,8 @@ gboolean give_server_hostname     = FALSE;
 gboolean give_server_hostname_def = FALSE;
 guint32  reserve_gtkg_nodes     = 20;
 guint32  reserve_gtkg_nodes_def = 20;
-guint32  unique_nodes     = 60;
-guint32  unique_nodes_def = 60;
+guint32  unique_nodes     = 90;
+guint32  unique_nodes_def = 90;
 guint32  download_rx_size     = 64;
 guint32  download_rx_size_def = 64;
 guint32  node_rx_size     = 16;
@@ -1517,7 +1517,7 @@ gnet_prop_init(void) {
     gnet_property->props[44].data.guint32.value = &node_connecting_timeout;
     gnet_property->props[44].data.guint32.choices = NULL;
     gnet_property->props[44].data.guint32.max   = 100000;
-    gnet_property->props[44].data.guint32.min   = 10;
+    gnet_property->props[44].data.guint32.min   = 15;
 
 
     /*

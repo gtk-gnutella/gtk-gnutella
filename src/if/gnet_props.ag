@@ -554,7 +554,7 @@ prop = {
     type = guint32;
     data = {
         default = 30;
-        min     = 10;
+        min     = 15;
         max     = 100000;
     };
 };
@@ -2433,7 +2433,7 @@ prop = {
 	desc = "Maximum percentage of slots a vendor can occupy.";
 	type = guint32;
 	data = {
-		default = 60;
+		default = 90;
 		min = 10;
 		max = 100;
 	};
