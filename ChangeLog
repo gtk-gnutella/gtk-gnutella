@@ -1,4 +1,25 @@
 # since last version
+
+- (2006-16-01 - RAM)
+ * Minimum connection timeout is set to 15 seconds.
+ * Default for "maximum % of slots / vendor" raised to 90.
+ * Forgot to reset download buffers on incomplete writes (fixes bug #1429981).
+
+- (2006-04-01 - RAM)
+ * Print PFS indication for actively queued entries as well.
+
+- (2006-02-01 - RAM)
+ * Fixed issue when browse host is the only search in the list: it could not
+   be closed, and GTKG would dump a core at exit time.  Fixes bug #1421196.
+ * Use conditionnal form when reaching "code that should not have been".
+
+- (2006-01-30 - RAM)
+ * Fixed line incorrectly starting with a leading $ instead of %.
+
+- (2006-01-26 - RAM)
+ * Desktop and png files are located in extra_files now, no longer at the
+   root of the source tree: fixed debian/rules accordingly.
+
 # v 0.96   2006-01.24  [stable]
 
 New features:
