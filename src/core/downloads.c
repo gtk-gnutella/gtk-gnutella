@@ -5090,6 +5090,9 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		g_warning("partial write of %lu out of %lu bytes to file \"%s\"",
 			(gulong) written, (gulong) b->held, download_outname(d));
 
+		/* Prevent download_stop() from trying flushing again */
+		buffers_discard(d);
+
 		if (may_stop)
 			download_queue_delay(d, download_retry_busy_delay,
 				"Partial write to file");
