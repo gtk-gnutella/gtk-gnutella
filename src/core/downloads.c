@@ -5085,6 +5085,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 
 	file_info_update(d, d->pos, d->pos + written, DL_CHUNK_DONE);
 	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
+	d->pos += written;
 
 	if ((size_t) written < b->held) {
 		g_warning("partial write of %lu out of %lu bytes to file \"%s\"",
@@ -5102,7 +5103,6 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 
 	g_assert((size_t) written == b->held);
 
-	d->pos += written;
 	buffers_discard(d);			/* Since we wrote everything... */
 
 	return TRUE;
@@ -5154,32 +5154,18 @@ download_write_data(struct download *d)
 
 	should_flush = buffers_should_flush(d);		/* Enough buffered data? */
 
-	if (!should_flush) {
-		if (fi->use_swarming) {
-			status = file_info_pos_status(fi, d->pos + b->held);
-			switch (status) {
-			case DL_CHUNK_BUSY:
-				if (d->pos + b->held >= d->range_end)
-					should_flush = TRUE;		/* Moving past our range */
-				break;
-			case DL_CHUNK_DONE:
-				/* May supersede old data in the buffered span -- that's OK */
-				should_flush = TRUE;
-				break;
-			case DL_CHUNK_EMPTY:
-				/* In virgin territory, continue buffering */
-				break;
-			}
-		} else if (FILE_INFO_COMPLETE_AFTER(fi, b->held))
-			should_flush = TRUE;
-	}
+	if (!should_flush && d->pos + b->held >= d->range_end)
+		should_flush = TRUE;		/* Moving past our range */
 
-	if (!should_flush) {
-		if (download_debug > 5)
-			g_message("not flushing pending %lu bytes for \"%s\"",
-				(gulong) b->held, download_outname(d));
+	if (download_debug > 5)
+		g_message(
+			"%sflushing pending %lu bytes for \"%s\", pos=%lu, range_end=%lu",
+			should_flush ? "" : "NOT ",
+			(gulong) b->held, download_outname(d),
+			(gulong) d->pos, (gulong) d->range_end);
+
+	if (!should_flush)
 		return;
-	}
 
 	if (!download_flush(d, &trimmed, TRUE))
 		return;
@@ -5189,7 +5175,7 @@ download_write_data(struct download *d)
 	 */
 
 	if (fi->use_swarming) {
-		/* status was computed above, before trying to flush */
+		status = file_info_pos_status(fi, d->pos);
 
 		switch (status) {
 		case DL_CHUNK_DONE:
