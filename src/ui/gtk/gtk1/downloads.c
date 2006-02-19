@@ -975,7 +975,6 @@ gui_update_download(struct download *d, gboolean force)
 	fileinfo_t *fi;
 	gpointer key;
 	gint active_src, tot_src;
-	gdouble percent_done = 0;
 	guint32 s = 0;
 	gboolean copy_status_to_parent = FALSE;
 
@@ -1262,18 +1261,20 @@ gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_RECEIVING:
-		if (d->pos - d->skip > 0) {
+		if (d->pos + download_buffered(d) > d->skip) {
 			gdouble p = 0;
 			gint bps;
 			guint32 avg_bps;
+			filesize_t downloaded;
 
+			downloaded = d->pos - d->skip + download_buffered(d);
 			p = guc_download_source_progress(d);
 
 			bps = bio_bps(d->bio);
 			avg_bps = bio_avg_bps(d->bio);
 
 			if (avg_bps <= 10 && d->last_update != d->start_date)
-				avg_bps = (d->pos - d->skip) / (d->last_update - d->start_date);
+				avg_bps = downloaded / (d->last_update - d->start_date);
 
 			rw = 0;
 
@@ -1281,8 +1282,8 @@ gui_update_download(struct download *d, gboolean force)
 				filesize_t remain = 0;
 				guint32 s;
 
-                if (d->size > (d->pos - d->skip))
-                    remain = d->size - (d->pos - d->skip);
+                if (d->size > downloaded)
+                    remain = d->size - downloaded;
 
                 s = remain / avg_bps;
 
@@ -1385,43 +1386,10 @@ gui_update_download(struct download *d, gboolean force)
 					/* There is a header entry, we need to update it */
 
 					/* Download is done */
-					if (GTA_DL_DONE == d->status) {
-
-						gm_snprintf(tmpstr, sizeof(tmpstr),
-							_("Complete"));
+					if (FILE_INFO_COMPLETE(d->file_info)) {
+						gm_snprintf(tmpstr, sizeof(tmpstr), _("Complete"));
 						gtk_ctree_node_set_text(ctree_downloads_queue, parent,
 							c_queue_status, tmpstr);
-
-					} else {
-						if ((GTA_DL_RECEIVING == d->status) &&
-							(d->pos - d->skip > 0)) {
-
-							s = 0;
-							percent_done = 100.0 *
-								guc_download_total_progress(d);
-							active_src = fi->recvcount;
-							tot_src = fi->lifecount;
-
-							if (fi->recv_last_rate)
-								s = (fi->size - fi->done) / fi->recv_last_rate;
-
-							if (s) {
-								gm_snprintf(tmpstr, sizeof(tmpstr),
-									_("%4.02f%%  (%s)  [%d/%d]  TR:  %s"),
-									percent_done,
-									short_rate(fi->recv_last_rate),
-									active_src, tot_src, short_time(s));
-							} else {
-								gm_snprintf(tmpstr, sizeof(tmpstr),
-									_("%4.02f%%  (%s)  [%d/%d]  TR:  -"),
-									percent_done,
-									short_rate(fi->recv_last_rate),
-									active_src, tot_src);
-							}
-
-							gtk_ctree_node_set_text(ctree_downloads_queue,
-								parent, c_queue_status, tmpstr);
-						}
 					}
 				}
 			}
@@ -1465,33 +1433,29 @@ gui_update_download(struct download *d, gboolean force)
 							c_dl_status, a);
 						record_parent_gui_update(key, now);
 
-					} else {
-						if ((GTA_DL_RECEIVING == d->status) &&
-							(d->pos - d->skip > 0)) {
+					} else if (GTA_DL_RECEIVING == d->status) {
+						s = 0;
+						active_src = fi->recvcount;
+						tot_src = fi->lifecount;
 
-							s = 0;
-							active_src = fi->recvcount;
-							tot_src = fi->lifecount;
+						if (fi->recv_last_rate)
+							s = (fi->size - fi->done) / fi->recv_last_rate;
 
-							if (fi->recv_last_rate)
-								s = (fi->size - fi->done) / fi->recv_last_rate;
-
-							if (s) {
-								gm_snprintf(tmpstr, sizeof(tmpstr),
-									_("(%s)  [%d/%d]  TR:  %s"),
-									short_rate(fi->recv_last_rate),
-									active_src, tot_src, short_time(s));
-							} else {
-								gm_snprintf(tmpstr, sizeof(tmpstr),
-									_("(%s)  [%d/%d]  TR:  -"),
-									short_rate(fi->recv_last_rate),
-									active_src, tot_src);
-							}
-
-							gtk_ctree_node_set_text(ctree_downloads,
-								parent, c_dl_status, tmpstr);
-							record_parent_gui_update(key, now);
+						if (s) {
+							gm_snprintf(tmpstr, sizeof(tmpstr),
+								_("(%s)  [%d/%d]  TR:  %s"),
+								short_rate(fi->recv_last_rate),
+								active_src, tot_src, short_time(s));
+						} else {
+							gm_snprintf(tmpstr, sizeof(tmpstr),
+								_("(%s)  [%d/%d]  TR:  -"),
+								short_rate(fi->recv_last_rate),
+								active_src, tot_src);
 						}
+
+						gtk_ctree_node_set_text(ctree_downloads,
+							parent, c_dl_status, tmpstr);
+						record_parent_gui_update(key, now);
 					}
 				}
 			}

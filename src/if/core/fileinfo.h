@@ -98,7 +98,8 @@ typedef struct dl_file_info {
 	time_t ntime;			/**< Last time a new source was added */
 	time_t last_flush;		/**< When last flush to disk occurred */
 	time_t last_dmesh;		/**< When last dmesh query was used */
-	filesize_t done;		/**< Total number of bytes completed */
+	filesize_t done;		/**< Total number of bytes completed (flushed) */
+	filesize_t buffered;	/**< Amount of buffered data (unflushed) */
 	GSList *chunklist;		/**< List of ranges within file */
 	GSList *seen_on_network;  /**< List of ranges available on network */
 	guint32 generation;		/**< Generation number, incremented on disk update */

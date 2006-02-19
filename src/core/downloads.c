@@ -426,7 +426,7 @@ download_source_progress(const struct download *d)
 	if (!DOWNLOAD_IS_ACTIVE(d))
 		return download_total_progress(d);
 
-	return size < 1 ? 0.0 : (d->pos - d->skip) / size;
+	return size < 1 ? 0.0 : (d->pos - d->skip + download_buffered(d)) / size;
 }
 
 /**
@@ -623,9 +623,15 @@ static inline void
 buffers_discard(struct download *d)
 {
 	struct dl_buffers *b = d->buffers;
+	fileinfo_t *fi = d->file_info;
 
 	g_assert(b);
 	g_assert(b->held <= b->size);
+
+	if (fi->buffered >= b->held)
+		fi->buffered -= b->held;
+	else
+		fi->buffered = 0;		/* Be fault-tolerent, this is not critical */
 
 	b->held = 0;
 	buffers_reset_reading(d);
@@ -671,6 +677,7 @@ buffers_add_read(struct download *d, ssize_t amount)
 	ssize_t n;
 	struct iovec *iov;
 	gint cnt;
+	fileinfo_t *fi = d->file_info;
 
 	g_assert(d != NULL);
 	g_assert(amount >= 0);
@@ -715,6 +722,7 @@ buffers_add_read(struct download *d, ssize_t amount)
 	 */
 
 	b->held += amount;
+	fi->buffered += amount;
 
 	g_assert(b->held <= b->size);
 	g_assert(b->iovcnt != 0 || b->held == b->size);
@@ -757,6 +765,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 	struct iovec *iov;
 	size_t pos;
 	gint old_iovcnt;			/* For assertions */
+	fileinfo_t *fi = d->file_info;
 
 	g_assert(d != NULL);
 	g_assert(d->buffers != NULL);
@@ -888,6 +897,11 @@ buffers_strip_leading(struct download *d, size_t amount)
 	}
 
 	b->held -= amount;
+
+	if (fi->buffered >= amount)
+		fi->buffered -= amount;
+	else
+		fi->buffered = 0;		/* Not critical, be fault-tolerant */
 
 	/* If striping amount was exactly the buffer size, we have one more now */
 	g_assert(amount != SOCK_BUFSZ || old_iovcnt + 1 == b->iovcnt);

@@ -1652,19 +1652,20 @@ gui_update_download(download_t *d, gboolean force)
 		break;
 
 	case GTA_DL_RECEIVING:
-		if (d->pos > d->skip) {
+		if (d->pos + download_buffered(d) > d->skip) {
 			gint bps;
 			guint32 avg_bps;
 			gfloat progress_source;
+			filesize_t downloaded;
 
+			downloaded = d->pos - d->skip + download_buffered(d);
 			progress_source = guc_download_source_progress(d);
 
 			bps = bio_bps(d->bio);
 			avg_bps = bio_avg_bps(d->bio);
 
 			if (avg_bps <= 10 && d->last_update != d->start_date) {
-				avg_bps = (d->pos - d->skip) /
-					(d->last_update - d->start_date);
+				avg_bps = downloaded / (d->last_update - d->start_date);
 			}
 
 			rw = 0;
@@ -1673,8 +1674,8 @@ gui_update_download(download_t *d, gboolean force)
 				filesize_t remain = 0, s;
 				gfloat bs;
 
-                if (d->size > (d->pos - d->skip))
-                    remain = d->size - (d->pos - d->skip);
+                if (d->size > downloaded)
+                    remain = d->size - downloaded;
 
                 s = remain / avg_bps;
 

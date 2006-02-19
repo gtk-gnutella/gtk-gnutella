@@ -277,7 +277,8 @@ struct download {
 #define download_path(d)		((d)->file_info->path)
 #define download_outname(d)		((d)->file_info->file_name)
 #define download_filesize(d)	((d)->file_info->size)
-#define download_filedone(d)	((d)->file_info->done)
+#define download_filedone(d)	((d)->file_info->done + (d)->file_info->buffered)
+#define download_buffered(d)	((d)->buffers == NULL ? 0 : (d)->buffers->held)
 
 /*
  * State inspection macros.
