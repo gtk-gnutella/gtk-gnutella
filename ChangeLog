@@ -1,5 +1,9 @@
 # since last version
 
+- (2006-19-01 - RAM)
+ * Fixed misdetection of chunk completion, causing undue abortion of downloads
+   each time a chunk was completed.
+
 - (2006-16-01 - RAM)
  * Minimum connection timeout is set to 15 seconds.
  * Default for "maximum % of slots / vendor" raised to 90.
