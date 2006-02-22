@@ -6333,12 +6333,26 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		goto http_version_nofix;
 
 	http_version_fix:
-		http_major = 1;
-		http_minor = 1;
-		if (download_debug)
-			g_message("assuming \"HTTP/1.1 %d\" for %s <%s>", ack_code,
+		/*
+		 * If there's no Content-Length, HTTP/1.1 is no good to us anyway,
+		 * since there cannot be any keep-alive performed.
+		 */
+
+		buf = header_get(header, "Content-Length");
+		if (buf != NULL) {
+			http_major = 1;
+			http_minor = 1;
+			if (download_debug) g_message(
+				"assuming \"HTTP/1.1 %d\" for %s <%s>", ack_code,
 				host_addr_port_to_string(download_addr(d), download_port(d)),
 				download_vendor_str(d));
+		} else if (download_debug) {
+			g_message(
+				"no HTTP version nor Content-Length given by "
+				"%s <%s> (status %d)",
+				host_addr_port_to_string(download_addr(d), download_port(d)),
+				download_vendor_str(d), ack_code);
+		}
 		/* FALL THROUGH */
 	}
 
