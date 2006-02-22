@@ -34,13 +34,9 @@ endif
 
 config-stamp: Configure
 	dh_testdir
-	# we don't ship a debian/README.debian but the configure script
-	# wants one, so fake it up
-	touch debian/README.debian
 	./Configure -Dccflags="$(CFLAGS)" -Dgtkversion=2 -Dprefix=/usr \
 		-Dipv6=true -Dprivlib=/usr/share/gtk-gnutella -Dofficial=true \
 		-ders
-	rm -f debian/README.debian
 	touch $@
 
 #Architecture
