@@ -87,9 +87,9 @@ install-arch:
 	dh_installdirs -s
 
 	# Add here commands to install the arch part of the package into
-	# debian/tmp.
-	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/gtk-gnutella
-	$(MAKE) install.man INSTALL_PREFIX=`pwd`/debian/gtk-gnutella
+	# debian/tmp
+	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/tmp
+	$(MAKE) install.man INSTALL_PREFIX=`pwd`/debian/tmp
 
 	dh_install -s
 # Must not depend on anything. This is to be called by
