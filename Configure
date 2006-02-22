@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Feb  6 11:09:53 MET 2006 [metaconfig 3.0 PL70]
+# Generated on Tue Feb 21 00:01:50 MET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -337,6 +337,7 @@ d_strlcpy=''
 d_sysctl=''
 clocktype=''
 d_times=''
+d_usleep=''
 d_voidsig=''
 signal_t=''
 d_volatile=''
@@ -5842,6 +5843,10 @@ case "$d_phostname" in
 '') d_phostname="$undef";;
 esac
 
+: see if usleep exists
+set usleep d_usleep
+eval $inlibc
+
 : check for volatile keyword
 echo " "
 echo 'Checking to see if your C compiler knows about "volatile"...' >&4
@@ -7578,6 +7583,7 @@ d_useglib1='$d_useglib1'
 d_useglib2='$d_useglib2'
 d_usegtk1='$d_usegtk1'
 d_usegtk2='$d_usegtk2'
+d_usleep='$d_usleep'
 d_voidsig='$d_voidsig'
 d_volatile='$d_volatile'
 d_vsnprintf='$d_vsnprintf'
