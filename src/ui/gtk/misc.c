@@ -409,22 +409,34 @@ gui_restore_window(GtkWidget *widget, property_t prop)
 
 		/* The first call to gtk_window_get_position() makes the window
 		 * visible but x and y are always set to zero. The second call
-		 * yields the *real* values. */
+		 * yields the *real* values.
+		 *
+		 * Must wait some time between subsequent calls, and if we get both
+		 * x and y set to 0, assume we did not correctly compute the position
+		 * and leave it unaltered..
+		 */
 
-		for (i = 0; i < 2; i++)
+		for (i = 0; i < 2; i++) {
+#ifdef HAS_USLEEP
+			usleep(20000);
+#endif
 			gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
+			if (x || y)
+				break;
+		}
 
 		gtk_window_resize(GTK_WINDOW(widget), coord[2], coord[3]);
 
-		/* (At least) FVWM2 doesn't take the window decoration into account
+		/*
+		 * (At least) FVWM2 doesn't take the window decoration into account
 		 * when handling positions requests. Readjust the window position
-		 * if we detect that the window manager added an offset. */
+		 * if we detect that the window manager added an offset.
+		 */
 
 		dx = (gint) coord[0] - x;
 		dy = (gint) coord[1] - y;
-		if (dx || dy) {
+		if ((x || y) && (dx || dy))
         	gtk_window_move(GTK_WINDOW(widget), coord[0] + dx, coord[1] + dy);
-		}
 	}
 #else	/* !USE_GTK2 */
     if (coord[2] != 0 && coord[3] != 0) {
@@ -434,16 +446,24 @@ gui_restore_window(GtkWidget *widget, property_t prop)
 		/* This causes a wandering window -- make it optional */
 		{
 			gint x, y, dx, dy;
+			gint i;
 
 			/* (At least) FVWM2 doesn't take the window decoration into account
 			 * when handling positions requests. Readjust the window position
 			 * if we detect that the window manager added an offset.
 			 */
 
-			gdk_window_get_root_origin(widget->window, &x, &y);
+			for (i = 0; i < 2; i++) {
+#ifdef HAS_USLEEP
+				usleep(20000);
+#endif
+				gdk_window_get_root_origin(widget->window, &x, &y);
+				if (x || y)
+					break;
+			}
 			dx = (gint) coord[0] - x;
 			dy = (gint) coord[1] - y;
-			if (dx || dy)
+			if ((x || y) && (dx || dy))
 				gdk_window_move(widget->window, coord[0] + dx, coord[1] + dy);
 		}
 	}
@@ -612,7 +632,7 @@ paned_save_position(GtkPaned *paned, property_t prop)
 	
 	g_assert(paned);
 
-	pos = gtk_paned_get_position(GTK_PANED(paned));
+	pos = gtk_paned_get_position(paned);
 	gui_prop_set_guint32_val(prop, pos);
 }
 
@@ -624,7 +644,10 @@ paned_restore_position(GtkPaned *paned, property_t prop)
 	g_assert(paned);
 
 	gui_prop_get_guint32_val(prop, &pos);
-	gtk_paned_set_position(GTK_PANED(paned), pos);
+	gtk_paned_set_position(paned, pos);
+
+guint32 after = gtk_paned_get_position(paned);
+printf("paned_restore_position: pos=%d, after=%d\n", pos, after);
 }
 
 #ifdef USE_GTK2
