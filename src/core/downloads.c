@@ -6300,6 +6300,51 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	check_date(header, addr, d);	/* Update clock skew if we have a Date: */
 
 	/*
+	 * Provision for broken HTTP engines, such as the one used by
+	 * GnucDNA (morpheus, Gnucleus, etc..), which send replies such
+	 * as "HTTP 503" without any version.
+	 *
+	 * We try to guess whether they're recent enough to be flagged as
+	 * HTTP/1.1 or not, depending on the headers they sent.  What a shame.
+	 *
+	 *		--RAM, 2006-02-22
+	 */
+
+	if (http_major == 0 && !ancient_version) {
+		buf = header_get(header, "X-Available-Ranges");
+		if (buf != NULL)
+			goto http_version_fix;	/* PFS implies HTTP/1.1 hopefully */
+
+		buf = header_get(header, "X-Queue");
+		if (buf != NULL)
+			goto http_version_fix;	/* Active queuing -> HTTP/1.1 hopefully */
+
+		buf = header_get(header, "Connection");
+		if (buf && 0 == ascii_strcasecmp(buf, "close"))
+			goto http_version_fix;	/* "Connection: close" is HTTP/1.1 */
+
+		if (ack_code >= 200 && ack_code <= 299) {
+			/* We're downloading */
+			buf = header_get(header, "Content-Range");
+			if (buf != NULL)
+				goto http_version_fix;	/* HTTP/1.1 hopefully */
+		}
+
+		goto http_version_nofix;
+
+	http_version_fix:
+		http_major = 1;
+		http_minor = 1;
+		if (download_debug)
+			g_message("assuming \"HTTP/1.1 %d\" for %s <%s>", ack_code,
+				host_addr_port_to_string(download_addr(d), download_port(d)),
+				download_vendor_str(d));
+		/* FALL THROUGH */
+	}
+
+http_version_nofix:
+
+	/*
 	 * Do we have to keep the connection after this request?
 	 *
 	 * If server supports HTTP/1.1, record it.  This will help us determine
@@ -6312,6 +6357,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (http_major > 1 || (http_major == 1 && http_minor >= 1)) {
 		/* HTTP/1.1 or greater -- defaults to persistent connections */
 		d->keep_alive = TRUE;
+		d->server->attrs &= ~DLS_A_NO_HTTP_1_1;
 		if (buf && 0 == ascii_strcasecmp(buf, "close"))
 			d->keep_alive = FALSE;
 	} else {
@@ -7591,7 +7637,6 @@ picked:
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_add(d);
-	gcu_gui_update_download_range(d);
 	gcu_gui_update_download(d, TRUE);
 
 	/*
@@ -7692,6 +7737,8 @@ picked:
 				"Range: bytes=%s-\r\n",
 				uint64_to_string(d->skip - d->overlap_size));
 	}
+
+	gcu_gui_update_download_range(d);		/* Now that we know d->range_end */
 
 	g_assert(rw + 3U < sizeof(dl_tmp));		/* Should not have filled yet! */
 
