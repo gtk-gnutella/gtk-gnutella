@@ -642,7 +642,6 @@
       <name>hpaned_main</name>
       <handle_size>10</handle_size>
       <gutter_size>10</gutter_size>
-      <position>110</position>
       <child>
 	<padding>0</padding>
 	<expand>True</expand>
@@ -656,7 +655,7 @@
 	<spacing>0</spacing>
 	<child>
 	  <shrink>True</shrink>
-	  <resize>True</resize>
+	  <resize>False</resize>
 	</child>
 
 	<widget>

@@ -1346,7 +1346,6 @@ create_main_window (void)
   gtk_widget_show (hpaned_main);
   gtk_box_pack_start (GTK_BOX (vbox12), hpaned_main, TRUE, TRUE, 0);
   gtk_paned_set_gutter_size (GTK_PANED (hpaned_main), 10);
-  gtk_paned_set_position (GTK_PANED (hpaned_main), 110);
 
   vbox_sidebar = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox_sidebar, "vbox_sidebar");
@@ -1354,7 +1353,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_sidebar", vbox_sidebar,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_sidebar);
-  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox_sidebar, TRUE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox_sidebar, FALSE, TRUE);
 
   vpaned_sidebar = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
