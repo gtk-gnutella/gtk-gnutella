@@ -1362,7 +1362,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vpaned_sidebar);
   gtk_box_pack_start (GTK_BOX (vbox_sidebar), vpaned_sidebar, TRUE, TRUE, 0);
-  gtk_paned_set_position (GTK_PANED (vpaned_sidebar), 0);
 
   viewport_menu = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport_menu, "viewport_menu");
@@ -1370,7 +1369,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_menu", viewport_menu,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport_menu);
-  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), viewport_menu, TRUE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), viewport_menu, FALSE, TRUE);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_menu), GTK_SHADOW_NONE);
 
   sw_menu = gtk_scrolled_window_new (NULL, NULL);

@@ -663,7 +663,6 @@
 	  <name>vpaned_sidebar</name>
 	  <handle_size>10</handle_size>
 	  <gutter_size>6</gutter_size>
-	  <position>0</position>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -676,7 +675,7 @@
 	    <shadow_type>GTK_SHADOW_NONE</shadow_type>
 	    <child>
 	      <shrink>True</shrink>
-	      <resize>True</resize>
+	      <resize>False</resize>
 	    </child>
 
 	    <widget>
