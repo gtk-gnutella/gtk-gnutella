@@ -1710,7 +1710,7 @@ gui_update_download(download_t *d, gboolean force)
 
 						rw += gm_snprintf(&status_buf[rw],
 								sizeof status_buf - rw,
-								" (%s)", short_rate(bps));
+								" (%s)", short_rate(fi->recv_last_rate));
 					}
 				}
 			} else if (delta_time(now, d->last_update) > IO_STALLED) {
@@ -1721,11 +1721,18 @@ gui_update_download(download_t *d, gboolean force)
 			/*
 			 * If source is a partial source, show it.
 			 */
-			if (d->ranges != NULL) {
+			if (d->ranges != NULL)
 				gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
-			}
 
+			/*
+			 * If more than one request served with the same connection,
+			 * show them how many were served (adding 1 for current request).
+			 */
+
+			if (d->served_reqs)
+				gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
+					" #%u", d->served_reqs + 1);
 		} else {
 			status_ptr = _("Connected");
 		}

@@ -1306,7 +1306,7 @@ gui_update_download(struct download *d, gboolean force)
 
 					if (fi->recvcount > 1) {
 						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%s)", short_rate(bps));
+							" (%s)", short_rate(fi->recv_last_rate));
 					}
 				}
 			} else {
@@ -1318,10 +1318,18 @@ gui_update_download(struct download *d, gboolean force)
 			 * If source is a partial source, show it.
 			 */
 
-			if (d->ranges != NULL) {
+			if (d->ranges != NULL)
 				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
-			}
+
+			/*
+			 * If more than one request served with the same connection,
+			 * show them how many were served (adding 1 for current request).
+			 */
+
+			if (d->served_reqs)
+				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					" #%u", d->served_reqs + 1);
 
 			a = tmpstr;
 		} else
