@@ -45,7 +45,6 @@ if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
     $cat <<'EOM'
 It looks like kqueue() is usable on your system, good.
 EOM
-
 else
 	echo "Sorry, I will not be using kqueue()."
 	val="$undef"
