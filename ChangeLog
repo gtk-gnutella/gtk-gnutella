@@ -1,8 +1,44 @@
 # since last version
+# v 0.96.1   2006-02.22  [stable]
+
+Bug fixes:
+- Fixed issue when browse host is the only search in the list (bug #1421196).
+- Reset download buffers on incomplete writes (fixes bug #1429981).
+- Fixed ever-growing sidebar at each relaunch under GTK1 (bug #1421940).
+- Fixed misdetection of chunk completion, causing undue abortion of downloads.
+- Was wrongly showing the source download speed twice in download status.
+- Range column was sometimes inexact in downloads.
+
+Improvements:
+ - Print PFS indication for actively queued entries as well.
+ - Take buffered data into account when showing download progress.
+ - Downloads now show how many HTTP requests were made on the same connection.
+ - Try to reposition the main window correctly.
+
+Configuration Changes:
+ - Minimum connection timeout is set to 15 seconds.
+ - Default for "maximum % of slots / vendor" raised to 90.
+
+- (2006-22-01 - RAM)
+ * Further fix for #1421940, regarding the vertical position of the search
+   list on the sidebar, which continuously went off after each restart.
+ * Made root window position fixup more robust to avoid random jumps when
+   we cannot determine the window position correctly.
+ * Was wrongly showing twice the same b/w rate in downloads with more than one
+   source: the second rate is supposed to be the aggregated rate of all the
+   sources.
+ * Downloads now show how many HTTP requests were made on the same connection,
+   if more than one, by appending a "#n" at the end of the status.
+ * Only update the range in the GUI after we decided which boundaries we'll use.
+ * Added workaround against broken HTTP servers such as GnucDNA which don't
+   show us the HTTP version in their statuses.
+ * No longer need to fake presence of a README.debian: manifests were updated!
 
 - (2006-19-01 - RAM)
  * Fixed misdetection of chunk completion, causing undue abortion of downloads
    each time a chunk was completed.
+ * Take into account buffered data when showing download progress, instead
+   of waiting for the data to be flused on disk to update the counters.
 
 - (2006-16-01 - RAM)
  * Minimum connection timeout is set to 15 seconds.
