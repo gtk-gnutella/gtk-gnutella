@@ -3570,10 +3570,10 @@ feed_host_cache_from_headers(header_t *header,
 
 			if (node_debug > 0) {
 				if (r > 0)
-					g_message("peer %s sent %u pong%s in %s header\n",
+					g_message("peer %s sent %u pong%s in %s header",
 						host_addr_to_string(peer), r, 1 == r ? "" : "s", name);
 				else
-					g_message("peer %s sent an unparseable %s header\n",
+					g_message("peer %s sent an unparseable %s header",
 						host_addr_to_string(peer), name);
 			}
 		}

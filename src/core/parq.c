@@ -968,7 +968,11 @@ parq_download_add_header(
 	 * we're claiming is "valid".
 	 */
 
-	if (!is_firewalled && host_is_valid(listen_addr(), listen_port))
+	if (
+		!is_firewalled &&
+		host_is_valid(listen_addr(), listen_port) &&
+		!(d->server->attrs & DLS_A_FAKE_G2)
+	)
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n",
 			  host_addr_port_to_string(listen_addr(), listen_port));
