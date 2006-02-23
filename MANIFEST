@@ -74,6 +74,7 @@ configure.gnu                GNU configure-like wrapper
 cygwin/dirs
 cygwin/rules
 debian/changelog
+debian/compat
 debian/control
 debian/copyright
 debian/dirs
