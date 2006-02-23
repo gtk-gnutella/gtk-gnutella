@@ -78,7 +78,7 @@ Release steps
 
 12. Build the debian package:
 
-	fakeroot make -f debian/rules binary
+	fakeroot debian/rules binary
 
 	This will generate file ../gtk-gnutella_0.92.1-0_i386.deb
 

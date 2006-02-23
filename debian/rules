@@ -28,9 +28,9 @@ else
 	CFLAGS += -O2
 endif
 
-  ifeq ($(DEB_BUILD_ARCH), alpha)
+ifeq ($(DEB_BUILD_ARCH), alpha)
 	CFLAGS += -mieee
-  endif
+endif
 
 config-stamp: Configure
 	dh_testdir
@@ -63,7 +63,6 @@ clean:
 
 	# Add here commands to clean up after the build process.
 	-$(MAKE) clobber
-	rm -f debian/README.debian
 
 	dh_clean
 
@@ -87,9 +86,9 @@ install-arch:
 	dh_installdirs -s
 
 	# Add here commands to install the arch part of the package into
-	# debian/tmp
-	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/tmp
-	$(MAKE) install.man INSTALL_PREFIX=`pwd`/debian/tmp
+	# debian/gtk-gnutella
+	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/gtk-gnutella
+	$(MAKE) install.man INSTALL_PREFIX=`pwd`/debian/gtk-gnutella
 
 	dh_install -s
 # Must not depend on anything. This is to be called by
