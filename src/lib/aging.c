@@ -249,6 +249,7 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 		aval->ttl -= delta_time(now, aval->last_insert);
 		aval->ttl += ag->delay;
 		aval->ttl = MAX(aval->ttl, 1);
+		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
 		aval->last_insert = now;
 
 		cq_resched(callout_queue, aval->cq_ev, 1000 * aval->ttl);
@@ -258,6 +259,8 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 		aval->value = value;
 		aval->key = key;
 		aval->ttl = ag->delay;
+		aval->ttl = MAX(aval->ttl, 1);
+		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
 		aval->last_insert = now;
 		aval->ag = ag;
 		aval->cq_ev = cq_insert(callout_queue,
