@@ -71,8 +71,10 @@ RCSID("$Id$");
 #define BAN_REMIND		5		/**< Every so many attemps, tell them about it */
 
 static GHashTable *info;		/**< Info by IP address */
-static gfloat decay_coeff;		/**< Decay coefficient, per second */
 static zone_t *ipf_zone;		/**< Zone for addr_info allocation */
+
+/**< Decay coefficient, per second */
+static const gfloat decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
 
 /***
  *** Hammering-specific banning.
@@ -119,9 +121,13 @@ ipf_make(const host_addr_t addr, time_t now)
 	 * so it will reach 0 in 1/decay_coeff seconds.  The callout queue takes
 	 * time in milli-seconds.
 	 */
-
-	ipf->cq_ev = cq_insert(callout_queue,
-		(gint) (1000.0 / decay_coeff), ipf_destroy, ipf);
+	{
+		gint delay;
+		
+		delay = 1000.0 / decay_coeff;
+		delay = MAX(delay, 1);
+		ipf->cq_ev = cq_insert(callout_queue, delay, ipf_destroy, ipf);
+	}
 
 	return ipf;
 }
@@ -195,7 +201,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	 * Compute new scheduling delay.
 	 */
 
-	delay = (gint) (1000.0 * ipf->counter / decay_coeff);
+	delay = 1000.0 * ipf->counter / decay_coeff;
 
 	/**
 	 * If counter is negative or null, we can remove the entry.
@@ -324,9 +330,13 @@ ban_allow(const host_addr_t addr)
 	/*
 	 * OK, we accept this connection.  Reschedule cleanup.
 	 */
+	{
+		gint delay;
 
-	cq_resched(callout_queue, ipf->cq_ev,
-		(gint) (1000.0 * ipf->counter / decay_coeff));
+		delay = 1000.0 * ipf->counter / decay_coeff;
+		delay = MAX(delay, 1);
+		cq_resched(callout_queue, ipf->cq_ev, delay);
+	}
 
 	return BAN_OK;
 }
@@ -537,7 +547,6 @@ void
 ban_init(void)
 {
 	info = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
-	decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
 	ipf_zone = zget(sizeof(struct addr_info), 0);
 
 	ban_max_recompute();

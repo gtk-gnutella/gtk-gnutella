@@ -142,6 +142,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	 */
 
 	q->swift_elapsed = node_flowc_swift_period(q->node) * 1000;
+	q->swift_elapsed = MAX(q->swift_elapsed, 1);
 
 	/*
 	 * Compute target to reach the low watermark, and then the amount we
@@ -315,6 +316,8 @@ mq_enter_flowc(mqueue_t *q)
 	q->flowc_written = 0;
 	q->last_size = q->size;
 	q->swift_elapsed = node_flowc_swift_grace(q->node) * 1000;
+	q->swift_elapsed = MAX(q->swift_elapsed, 1);
+
 	q->swift_ev =
 		cq_insert(callout_queue, q->swift_elapsed, mq_enter_swift, q);
 
