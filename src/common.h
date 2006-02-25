@@ -288,6 +288,12 @@ typedef void (*GCallback) (void);
 #define STDERR_FILENO 2
 #endif /* STDERR_FILENO */
 
+#ifndef TIME_T_MAX
+/* This assumes time_t is an integer, not a float */
+#define TIME_T_MAX \
+	((time_t) 1 << (CHAR_BIT * sizeof(time_t) - 1 - ((time_t) -1 < 0))) \
+   	- 1 + ((time_t) 1 << (CHAR_BIT * sizeof(time_t) - 1 - ((time_t) -1 < 0)))
+#endif /* TIME_T_MAX */
 
 /*
  * Other common macros.
