@@ -420,6 +420,31 @@ gchar *short_uptime(gint s);
 #define delta_time(a, b) ((gint64) ((a) - (b)))
 #endif
 
+/**
+ * Advances the given timestamp by delta using saturation arithmetic.
+ * @param t the timestamp to advance.
+ * @param delta the amount of seconds to advance.
+ * @return the advanced timestamp or TIME_T_MAX.
+ */
+static inline time_t
+time_advance(time_t t, unsigned delta)
+{
+	/* Using time_t for delta and TIME_T_MAX instead of INT_MAX
+	 * would be cleaner but give a confusing interface. Jumping 136
+	 * years in time should be enough for everyone. Most systems
+	 * don't allow us to advance a time_t beyond 2038 anyway.
+	 */
+
+	while (delta > 0) {
+		int d;
+
+		d = MIN(delta, (unsigned) INT_MAX);
+		t = TIME_T_MAX - t > d ? (t + d) : TIME_T_MAX;
+		delta -= d;
+	}
+	return t;
+}
+
 /*
  * Size string conversions
  */
