@@ -645,9 +645,6 @@ paned_restore_position(GtkPaned *paned, property_t prop)
 
 	gui_prop_get_guint32_val(prop, &pos);
 	gtk_paned_set_position(paned, pos);
-
-guint32 after = gtk_paned_get_position(paned);
-printf("paned_restore_position: pos=%d, after=%d\n", pos, after);
 }
 
 #ifdef USE_GTK2
