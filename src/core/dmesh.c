@@ -284,6 +284,7 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 */
 
 	lifetime -= delta_time(now, stamp);
+	lifetime = MIN(lifetime, INT_MAX / 1000);
 
 	if (lifetime <= 0)
 		return;
