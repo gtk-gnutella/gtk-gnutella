@@ -127,8 +127,16 @@ tm_now(tm_t *tm)
 void
 tm_now_exact(tm_t *tm)
 {
+	tm_t past = now;
+	
 	g_get_current_time(&now);
-	*tm = now;
+	if (past.tv_sec >= now.tv_sec) {
+		now.tv_sec = past.tv_sec;
+		if (past.tv_usec > now.tv_usec)
+			now.tv_usec = past.tv_usec;
+	}
+	if (tm)
+		*tm = now;
 }
 
 /**
@@ -146,7 +154,7 @@ tm_time(void)
 time_t
 tm_time_exact(void)
 {
-	g_get_current_time(&now);
+	tm_now_exact(NULL);
 	return (time_t) now.tv_sec;
 }
 
