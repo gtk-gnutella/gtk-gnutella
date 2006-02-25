@@ -56,7 +56,7 @@ RCSID("$Id$");
 #define EV_HASH(x) (((x) >> 5) & HASH_MASK)
 #define EV_OVER(x) (((x) >> 5) & ~HASH_MASK)
 
-#define valid_ptr(a)	((gpointer) (a) > GUINT_TO_POINTER(100U))
+#define valid_ptr(a)	(cast_to_gconstpointer(a) > GUINT_TO_POINTER(100U))
 
 cqueue_t *callout_queue;
 
@@ -69,13 +69,13 @@ cq_make(time_t now)
 {
 	cqueue_t *cq;
 
-	cq = (cqueue_t *) g_malloc(sizeof(*cq));
+	cq = g_malloc(sizeof *cq);
 
 	/*
 	 * The cq_hash hash list is used to speed up insert/delete operations.
 	 */
 
-	cq->cq_hash = (struct chash *) g_malloc0(HASH_SIZE * sizeof(struct chash));
+	cq->cq_hash = g_malloc0(HASH_SIZE * sizeof(struct chash));
 	cq->cq_items = 0;
 	cq->cq_ticks = 0;
 	cq->cq_time = now;
@@ -101,7 +101,7 @@ cq_free(cqueue_t *cq)
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
 			ev_next = ev->ce_bnext;
-			wfree(ev, sizeof(*ev));
+			wfree(ev, sizeof *ev);
 		}
 	}
 
@@ -133,7 +133,7 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 	 * cq_clock() run.
 	 */
 
-	if (trigger  <= cq->cq_time)
+	if (trigger <= cq->cq_time)
 		ch = cq->cq_current;
 	else
 		ch = &cq->cq_hash[EV_HASH(trigger)];
@@ -253,10 +253,10 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	g_assert(valid_ptr(cast_func_to_gpointer((func_ptr_t) fn)));
 	g_assert(delay > 0);
 
-	ev = (cevent_t *) walloc(sizeof(*ev));
+	ev = walloc(sizeof *ev);
 
 	ev->ce_magic = EV_MAGIC;
-	ev->ce_time = cq->cq_time + delay; /* XXX: MIGHTY BROKEN, INT OVERFLOW */
+	ev->ce_time = time_advance(cq->cq_time, delay);
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
 
@@ -277,7 +277,7 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 void
 cq_cancel(cqueue_t *cq, gpointer handle)
 {
-	cevent_t *ev = (cevent_t *) handle;
+	cevent_t *ev = handle;
 
 	g_assert(valid_ptr(cq));
 	g_assert(valid_ptr(handle));
@@ -286,7 +286,7 @@ cq_cancel(cqueue_t *cq, gpointer handle)
 
 	ev_unlink(cq, ev);
 	ev->ce_magic = 0;			/* Prevent further use as a valid event */
-	wfree(ev, sizeof(*ev));
+	wfree(ev, sizeof *ev);
 }
 
 /**
@@ -297,7 +297,7 @@ cq_cancel(cqueue_t *cq, gpointer handle)
 void
 cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 {
-	cevent_t *ev = (cevent_t *) handle;
+	cevent_t *ev = handle;
 
 	g_assert(valid_ptr(cq));
 	g_assert(valid_ptr(handle));
@@ -323,7 +323,7 @@ cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 	 */
 
 	ev_unlink(cq, ev);
-	ev->ce_time = cq->cq_time + delay; /* XXX: MIGHTY BROKEN, INT OVERFLOW */
+	ev->ce_time = time_advance(cq->cq_time, delay);
 	ev_link(cq, ev);
 }
 
@@ -371,8 +371,8 @@ cq_clock(cqueue_t *cq, gint elapsed)
 	g_assert(cq->cq_current == NULL);
 
 	cq->cq_ticks++;
-	cq->cq_time += elapsed;
-	now = cq->cq_time;
+	now = time_advance(cq->cq_time, elapsed);
+	cq->cq_time = now;
 
 	bucket = cq->cq_last_bucket;		/* Bucket we traversed last time */
 	ch = &cq->cq_hash[bucket];
@@ -439,21 +439,21 @@ done:
  * Called every CALLOUT_PERIOD to heartbeat the callout queue.
  */
 static gboolean
-callout_timer(gpointer p)
+callout_timer(gpointer unused_p)
 {
-	static tm_t last_period = { 0L, 0L };
+	static tm_t last_period;
 	GTimeVal tv;
 	gint delay;
 
-	(void) p;
+	(void) unused_p;
 	tm_now_exact(&tv);
 
 	/*
 	 * How much elapsed since last call?
 	 */
 
-	delay = (gint) ((tv.tv_sec - last_period.tv_sec) * 1000 +
-		(tv.tv_usec - last_period.tv_usec) / 1000);
+	delay = (tv.tv_sec - last_period.tv_sec) * 1000 +
+		(tv.tv_usec - last_period.tv_usec) / 1000;
 
 	last_period = tv;		/* struct copy */
 
@@ -480,8 +480,7 @@ callout_timer(gpointer p)
 gdouble
 callout_queue_coverage(gint old_ticks)
 {
-	return 
-		(callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;
+	return (callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;
 }
 
 /**
@@ -504,4 +503,4 @@ cq_close(void)
 	callout_queue = NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
