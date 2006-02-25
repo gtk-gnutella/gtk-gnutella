@@ -557,7 +557,7 @@ check_cpu_usage(void)
 	if (elapsed == 0.0)
 		elapsed = 0.000001;			/* Paranoid: avoid division by zero */
 
-	cpu_percent = 100.0 * (cpu - last_cpu) / elapsed,
+	cpu_percent = 100.0 * (cpu - last_cpu) / elapsed;
 
 	coverage = callout_queue_coverage(ticks);
 	if (coverage == 0.0)
