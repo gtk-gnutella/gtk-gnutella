@@ -554,14 +554,12 @@ check_cpu_usage(void)
 	tm_elapsed(&elapsed_tm, &cur_tm, &last_tm);
 
 	elapsed = tm2f(&elapsed_tm);
-	if (elapsed == 0.0)
-		elapsed = 0.000001;			/* Paranoid: avoid division by zero */
-
+	elapsed = MAX(elapsed, 0.000001);	/* Prevent division by zero */
 	cpu_percent = 100.0 * (cpu - last_cpu) / elapsed;
+	cpu_percent = MIN(cpu_percent, 100.0);
 
 	coverage = callout_queue_coverage(ticks);
-	if (coverage == 0.0)
-		coverage = 0.001;			/* Paranoid again */
+	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
 
 	/*
 	 * Correct the percentage of CPU that would have been actually used
