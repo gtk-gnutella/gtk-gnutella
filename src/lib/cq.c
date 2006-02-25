@@ -256,7 +256,7 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	ev = (cevent_t *) walloc(sizeof(*ev));
 
 	ev->ce_magic = EV_MAGIC;
-	ev->ce_time = cq->cq_time + delay;
+	ev->ce_time = cq->cq_time + delay; /* XXX: MIGHTY BROKEN, INT OVERFLOW */
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
 
@@ -323,7 +323,7 @@ cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 	 */
 
 	ev_unlink(cq, ev);
-	ev->ce_time = cq->cq_time + delay;
+	ev->ce_time = cq->cq_time + delay; /* XXX: MIGHTY BROKEN, INT OVERFLOW */
 	ev_link(cq, ev);
 }
 
