@@ -98,6 +98,7 @@ static const struct {
 	{ "krill.shacknet.nu:20095" },
 	{ "plankton.merseine.nu:20098" },
 	{ "pokerface.bishopston.net:3558" },
+	{ "prowler.pimpworks.org:6346" },
 	{ "secondary.udp-host-cache.com:9999" },
 	{ "tribaldance.bishopston.net:3558" },
 	{ "uhc.udp-host-cache.com:9999" },
