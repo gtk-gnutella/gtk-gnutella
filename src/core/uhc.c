@@ -104,6 +104,7 @@ static const struct {
 	{ "uhc.udp-host-cache.com:9999" },
 	{ "uhc2.limewire.com:20181" },
 	{ "zomfg.gtkg.org:40000" },
+	{ "guruz.udp-host-cache.com:6666" }
 };
 
 static gboolean uhc_connecting = FALSE;
