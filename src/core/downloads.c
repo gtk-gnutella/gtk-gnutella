@@ -5171,6 +5171,20 @@ download_write_data(struct download *d)
 	if (!should_flush && d->pos + b->held >= d->range_end)
 		should_flush = TRUE;		/* Moving past our range */
 
+	/*
+	 * When we are overcommitting by doing aggressive swarming (i.e. we
+	 * have in our buffers more than the total file size), then we must
+	 * revert to more frequent flushing to avoid long waiting time, if we
+	 * are downloading from slow sources and can't flush to disk because
+	 * we have incomplete buffers: the earlier we flush, the sooner the
+	 * fileinfo's range will be updated and we will avoid spending our
+	 * time requesting parts we already have in memory.
+	 *		--RAM, 2006-03-11
+	 */
+
+	if (!should_flush && download_filedone(d) >= download_filesize(d))
+		should_flush = TRUE;
+
 	if (download_debug > 5)
 		g_message(
 			"%sflushing pending %lu bytes for \"%s\", pos=%lu, range_end=%lu",
