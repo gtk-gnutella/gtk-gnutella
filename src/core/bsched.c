@@ -69,7 +69,7 @@ static gint bws_in_ema = 0;
 #define BW_OUT_LEAF_MIN	32	 /**< Minimum out bandwidth per leaf connection */
 
 #define BW_TCP_MSG		40	 /**< Smallest size of a TCP message */
-#define BW_UDP_MSG		20	 /**< Minimal IP overhead for a UDP message */
+#define BW_UDP_MSG		28	 /**< Minimal IP+UDP overhead for a UDP message */
 
 #define BW_UDP_OVERSIZE	512	 /**< Allow that many bytes over available b/w */
 
