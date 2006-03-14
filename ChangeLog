@@ -1,4 +1,10 @@
 # since last version
+
+- (2006-03-11 - RAM)
+ * Fixed improper UDP overhead accounting.
+ * Flush ASAP when file is overcommitted: we have more data buffered than
+   there are in the file.
+
 # v 0.96.1   2006-02.22  [stable]
 
 Bug fixes:
