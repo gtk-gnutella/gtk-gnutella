@@ -464,7 +464,7 @@ The main files can be found here:
 * src/hsep.h
 * src/nodes.h
 
-Please refer to the CVS_repository (specifically, the src/ directory) if you
+Please refer to the SVN repository (specifically, the src/ directory) if you
 need any other files.
 
 
