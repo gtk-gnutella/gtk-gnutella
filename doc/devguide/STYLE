@@ -82,7 +82,8 @@ Ladies and gentleman, here's the
          * @date [year]
          */
 
-    The tag $Id$ is expanded by CVS when the file is committed.
+    The tag $Id$ is expanded
+    by SVN when the file is committed.
 
     The bracketed sections "[...]" have to be replaced by the respective
     things they describe. "(...)" sections are optional, also you can use
