@@ -65,6 +65,8 @@
 #define statusbar_gui_warning(sec, fmt, message) g_message((fmt), (message))
 #define statusbar_gui_message(sec, fmt, message) g_message((fmt), (message))
 #define bitzi_gui_update(bitzi_data) ((void) bitzi_data)
+#define uploads_gui_set_gnet_addr(u, addr, port) \
+	((void) u, (void) addr, (void) port)
 #endif /* USE_TOPLESS */
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
@@ -186,8 +188,7 @@ gcu_gtk_main_flush(void)
 #endif /* GTK */
 }
 
-
-/**	dearch interface functions (CORE -> UI) */
+/**	search interface functions (CORE -> UI) */
 gboolean
 gcu_search_gui_new_search(const gchar *query, flag_t flags)
 {
