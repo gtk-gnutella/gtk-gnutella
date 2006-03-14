@@ -1,22 +1,17 @@
 This file contains documentation regarding maintenance of the
-Gtk-Gnutella homepage at http://gtk-gnutella.sourceforge.net.
+Gtk-Gnutella homepage at http://gtk-gnutella.sourceforge.net/.
 
-1. CVS
+1. SVN 
 
-  Most of the homepage content is maintained with CVS.
+  Most of the homepage content is maintained with SVN.
 
-  Non-developers can checkout the tree as follows:
-  $ cvs -d:pserver:anonymous@cvs.sf.net:/cvsroot/gtk-gnutella login
-  $ cvs -d:pserver:anonymous@cvs.sf.net:/cvsroot/gtk-gnutella co htdocs
-
-  Developers use:
-  $ cvs -d:ext:developer@cvs.sf.net:/cvsroot/gtk-gnutella co htdocs
+  You can checkout the tree as follows:
+  $ svn co https://svn.sourceforge.net/svnroot/gtk-gnutella/trunk htdocs
 
 2. Structure
 
-  The CVS repository (modulo uninteresting files) looks as follows:
+  The SVN repository (modulo uninteresting files) looks as follows:
 
-    htdocs/.cvsignore               # Files to be ignored by CVS
     htdocs/.htaccess                # Apache htaccess
     htdocs/default.css              # Common CSS file
     htdocs/files/common.php         # Used by index.php
@@ -24,27 +19,22 @@ Gtk-Gnutella homepage at http://gtk-gnutella.sourceforge.net.
     htdocs/files/<ISO 639 code>/    # Translated sub-documents
 
   The homepage repository on the webserver has additional directories
-  which are not CVS-managed:
+  which are not SVN-managed:
 
     htdocs/doxygen/                 # Doxygen source code documentation
-    htdocs/images/                  # Images used by HTML documents
-    htdocs/<ISO 639 code>/files     # Symlink to htdocs/files/
-    htdocs/<ISO 639 code>/index.php # Symlink to htdocs/index.php
-    htdocs/<ISO 639 code>/rss.xml   # Generated RSS file (news)
 
-
-  All text files are strictly UTF-8 encoded.  The PHP script index.php
+  All text files are strictly UTF-8 encoded. The PHP script index.php
   is the core of the homepage. The default language code is "en"
   (English). If a file is missing from "files/<ISO 639 code>/", the
   script will fall back to the file from "files/en/". This allows
-  partial translations of the homepage.  The symlinks on the webserver
+  partial translations of the homepage. The symlinks on the webserver
   in "htdocs/<ISO 639 code>/" make sure that files can be accessed at
   <URL>/en/, <URL>/nl/ etc.
 
 
 3. Translation
 
-  After you have checked out "htdocs" from CVS, create a new directory
+  After you have checked out "htdocs" from SVN, create a new directory
   below "files/" with the ISO 639 code of the target language as name.
   The files to translate are in "files/en/". The files "intro" and
   "sidenav" should be translated first because these are what a visitor
@@ -133,12 +123,11 @@ Gtk-Gnutella homepage at http://gtk-gnutella.sourceforge.net.
 
 4. Updating
 
-  After modifying files in the CVS repository, it is required to update
+  After modifying files in the SVN repository, it is required to update
   the homepage contents to make the changes effective:
 
     $ ssh developername@shell.sf.net
-    $ cd /home/groups/g/gt/gtk-gnutella/
-    $ ./update_homepage.sh
+    $ /home/groups/g/gt/gtk-gnutella/update_homepage.sh
 
 
 5. Language Multiplexing
