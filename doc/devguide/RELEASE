@@ -18,7 +18,7 @@ Release steps
    local files:
 
 	cd "top directory"
-	cvs update -Pd
+	svn update
 	cd extra_files
 	make update				# updates bogons.txt and geo-ip.txt
 
@@ -49,16 +49,18 @@ Release steps
 
 7. From the "top directory", run:
 
-	cvs diff -u > ~/tmp/xxx
+	svn diff > ~/tmp/xxx
 
    Look at the ~/tmp/xxx file to see whether there are still uncommitted
    changes that require to be checked-in before the release is made.
    Commit them if needed.
 
-8. Tag whole CVS:
+8. Tag whole SVN:
 
 	cd "top directory"
-	cvs tag V-0-91
+	svn mkdir V-0-91
+	svn copy https://svn.sourceforge.net/svnroot/gtk-gnutella/trunk \
+	         https://svn.sourceforge.net/svnroot/gtk-gnutella/tags/V-0-91
 
 9. Make a clean distribution package:
 
