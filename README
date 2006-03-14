@@ -315,7 +315,7 @@ mail list know that you posted a patch to the patch tracker.
 If you find bugs, please use the bug tracker on sourceforge (or fix them!).  
 Once you get a copy from SVN (see the SVN page for instructions), and you 
 make some modifications, from a shell make sure you cd into the 
-"gtk-gnutella-current" directory, type "svn diff -u > output-diff.txt" and a 
+"gtk-gnutella-current" directory, type "svn diff > output-diff.txt" and a 
 patch file will be created, referencing the current SVN version.  You can then 
 upload this file so others can patch their version with your changes. We use 
 the "unified" format for patches, thus the "-u".  If your patch requires other 
