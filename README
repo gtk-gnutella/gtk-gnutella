@@ -129,7 +129,7 @@ interface:
 -U d_enablenls
 
 The option "official" should be set to "true" unless you want to test
-Gtk-Gnutella from CVS or are a developer. Currently, an "inofficial" build
+Gtk-Gnutella from SVN or are a developer. Currently, an "inofficial" build
 will access files in the sources directory to ease the process of testing.
 However, the meaning of this option might change at any time.  Therefore,
 software distributions and admins are urged to provide "official" builds
@@ -300,7 +300,7 @@ Feel free to sign up and participate in the mail list. To get up to speed, you
 might want to read some of the past messages in the archives and see what we 
 have been up to lately.
 
-If you want contribute code, please follow the style guide in the CVS version:
+If you want contribute code, please follow the style guide in the SVN version:
 gtk-gnutella-current/doc/devguide/STYLE
 
 Read the "Development" and "Developers Howto" pages on the gtk-gnutella home 
@@ -313,10 +313,10 @@ up a patch file, although you can attach files. You should let everyone on the
 mail list know that you posted a patch to the patch tracker.
 
 If you find bugs, please use the bug tracker on sourceforge (or fix them!).  
-Once you get a copy from anon CVS (see the CVS page for instructions), and you 
+Once you get a copy from SVN (see the SVN page for instructions), and you 
 make some modifications, from a shell make sure you cd into the 
-"gtk-gnutella-current" directory, type "cvs diff -u > output-diff.txt" and a 
-patch file will be created, referencing the current CVS version.  You can then 
+"gtk-gnutella-current" directory, type "svn diff -u > output-diff.txt" and a 
+patch file will be created, referencing the current SVN version.  You can then 
 upload this file so others can patch their version with your changes. We use 
 the "unified" format for patches, thus the "-u".  If your patch requires other 
 patches, you should include them also.  Before starting a big project, you may 
