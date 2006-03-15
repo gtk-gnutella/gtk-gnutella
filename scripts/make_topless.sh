@@ -11,7 +11,7 @@
 #	Execute this shell script in a directory that contains
 #	a copy of the gtk-gnutella sources or use lndir:
 #
-#	$ lndir /path/to/gtk-gnutella-current
+#	$ lndir /path/to/gtk-gnutella/
 #
 #	The reason for using a "copy" is that the sources respectively
 #	the directory structure are slightly modified. Thus, building
@@ -28,6 +28,10 @@
 # replacement.
 rm -f src/if/gui_property.c || exit
 echo > src/if/gui_property.c || exit
+
+# Prevent that gui_props.ag is re-evaluated which would regenerated the
+# above file.
+touch src/if/gui_property.h src/if/gui_property_priv.h || exit
 
 # Fake building of GTK2 UI code by creating an empty library just to
 # meet the build rules of the Makefile.
