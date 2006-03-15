@@ -245,4 +245,3 @@ void gui_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gui_prop_get_storage(property_t, gchar *, size_t);
 
 #endif /* _gui_property_h_ */
-

@@ -162,4 +162,3 @@ void gui_prop_shutdown(void);
 #endif /* GUI_SOURCES */
 
 #endif /* _gui_property_priv_h_ */
-

@@ -321,4 +321,3 @@ void gnet_prop_shutdown(void);
 #endif /* CORE_SOURCES */
 
 #endif /* _gnet_property_priv_h_ */
-

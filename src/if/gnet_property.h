@@ -403,4 +403,3 @@ void gnet_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gnet_prop_get_storage(property_t, gchar *, size_t);
 
 #endif /* _gnet_property_h_ */
-
