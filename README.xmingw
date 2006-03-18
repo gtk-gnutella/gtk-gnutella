@@ -18,7 +18,7 @@ is as easy as:
 $ emerge xmingw-binutils xmingw-gcc xmingw-w32api xmingw-runtime
 
 By the way, if you also want a C++ compiler under your xmingw, you need to
-emerge xmingw-gcc twice. gtk-gnutella doesn't one though.
+emerge xmingw-gcc twice. Gtk-gnutella doesn't need one though.
 
 Next thing we need is the gtk+ devel packages for mingw. You could either
 compile all needed packages by hand, or take the easy road and grab them from
@@ -130,7 +130,11 @@ $ PATH=/opt/xmingw/bin:$PATH \
     --host=i386-mingw32msvc \
     --prefix=/usr/local/
 
-$ make
+$ PATH=/opt/xmingw/bin:$PATH \
+  make -k
+
+ignore any build errors regarding tex like:
+"make[1]: tex: Command not found"
 
 and last, build a library:
 
@@ -158,6 +162,7 @@ $ ./Configure -S && make depend
 
 The final step is of course to build gtk-gnutella:
 
+$ export PATH=/opt/xmingw/bin:$PATH
 $ make
 
 Next thing to do is to compile libxml2 using xmingw. I picked the
@@ -165,6 +170,11 @@ libxml2-2.6.19 package from
 
   http://xmlsoft.org/downloads.html
 
+  or
+
+  ftp://xmlsoft.org/
+
+  
 I was unsuccessful with the win32 packages, that's why I choose to
 cross-compile the package myself. First we need to compile the package:
 
@@ -187,6 +197,9 @@ that we are _not_ using the --build flag, as we are building on the machine
 which configure can detect itself.  Neither do we use python, nor readline.
 Also I want my xml package to install in /opt/xmingw/local.
 
+$ PATH=/opt/xmingw/bin:$PATH make
+$ PATH=/opt/xmingw/bin:$PATH make install
+
 /* Author: Jeroen Asselman */
 /* Last-Edited: $Id$ */
-/* vi: set tw=78: */
+/*i vi: set tw=78: */
