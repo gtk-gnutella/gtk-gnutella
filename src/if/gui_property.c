@@ -25,6 +25,10 @@
  *----------------------------------------------------------------------
  */
 
+
+#ifndef USE_TOPLESS
+
+
 #include "lib/prop.h"
 #include "lib/eval.h"
 #include "gui_property.h"
@@ -2620,4 +2624,7 @@ gui_prop_get_stub(void)
 
     return stub;
 }
+
+
+#endif /* !USE_TOPLESS */
 

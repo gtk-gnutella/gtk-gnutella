@@ -75,6 +75,7 @@ Generating files:
 #ifndef _[=(. set-name-down)=]_h_
 #define _[=(. set-name-down)=]_h_
 
+
 #include "lib/prop.h"
 
 #define [=(. prop-min)=] ([=offset=])
@@ -235,6 +236,10 @@ void [=(. func-prefix)=]_shutdown(void);
 (out-switch (sprintf "%s.c" (. set-name-down)))
 (. license)
 =]
+
+[=	IF (= (get "property_set") "gui_property")	=]
+[=	(sprintf "#ifndef USE_TOPLESS")	=]
+[=	ENDIF	=]
 
 #include "lib/prop.h"
 #include "lib/eval.h"
@@ -711,3 +716,7 @@ prop_set_stub_t *
 
     return stub;
 }
+
+[=	IF (= (get "property_set") "gui_property")	=]
+[=	(sprintf "#endif /* !USE_TOPLESS */")	=]
+[=	ENDIF	=]

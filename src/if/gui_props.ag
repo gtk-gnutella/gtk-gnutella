@@ -1,5 +1,7 @@
 autogen definitions 'props.tpl';
 
+#ifndef USE_TOPLESS
+
 /*
  * $Id$
  */
@@ -1261,4 +1263,5 @@ prop = {
     };
 };
 
+#endif /* !USE_TOPLESS */
 /* vi: set ts=4: */

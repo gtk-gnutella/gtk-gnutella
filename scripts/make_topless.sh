@@ -17,23 +17,17 @@
 #	the directory structure are slightly modified. Thus, building
 #	gtk-gnutella with a GUI will fail after this.
 
+if [ "x${GTK_VERSION}" = x ]; then
+	GTK_VERSION=2
+fi
+export GTK_VERSION
+
 ./Configure -Oders \
 	-Dccflags="$CFLAGS -DUSE_TOPLESS" \
 	-Dldflags="${LDFLAGS:--Unone}" \
-	-Dgtkversion=2 || exit
+	-Dgtkversion="${GTK_VERSION}" || exit
 
-# gui_property.c requires special treatment as it's generated and doesn't
-# conditionally skip code when USE_TOPLESS is defined. The file (or rather
-# the link when using lndir) is removed and an empty file is used as
-# replacement.
-rm -f src/if/gui_property.c || exit
-echo > src/if/gui_property.c || exit
-
-# Prevent that gui_props.ag is re-evaluated which would regenerated the
-# above file.
-touch src/if/gui_property.h src/if/gui_property_priv.h || exit
-
-# Fake building of GTK2 UI code by creating an empty library just to
+# Fake building of GTK+ UI code by creating an empty library just to
 # meet the build rules of the Makefile.
 (
 	cd src/ui || exit 1
@@ -42,8 +36,8 @@ touch src/if/gui_property.h src/if/gui_property_priv.h || exit
 	ln -s topless gtk && \
 	cd gtk && \
 	printf "all depend clean clobber install:\n\t\n" > Makefile && \
-	mkdir -p gtk2 && \
-	cp Makefile gtk2 && \
+	mkdir -p "gtk${GTK_VERSION}" && \
+	cp Makefile "gtk${GTK_VERSION}" && \
 	echo > blah.c && \
 	cc -c blah.c && \
 	ar r libgtkx.a blah.o && \
