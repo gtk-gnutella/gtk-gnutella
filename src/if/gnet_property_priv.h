@@ -128,6 +128,7 @@ extern const guint32  parq_debug;
 extern const gboolean parq_optimistic;
 extern const guint32  parq_size_always_continue;
 extern const guint32  parq_time_always_continue;
+extern const guint32  parq_ban_bad_maxcountwait;
 extern const guint32  track_props;
 extern const gboolean stop_host_get;
 extern const gboolean bws_in_enabled;
@@ -321,3 +322,4 @@ void gnet_prop_shutdown(void);
 #endif /* CORE_SOURCES */
 
 #endif /* _gnet_property_priv_h_ */
+

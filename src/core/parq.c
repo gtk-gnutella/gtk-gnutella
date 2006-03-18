@@ -191,6 +191,9 @@ struct parq_ul_queued {
 							     out of the queue when retry isn't obeyed */
 	time_t disc_timeout;	/**< Time after which we allow the upload to be
 							     disconnected again. */
+	int ban_countwait;		/**< Counter is increased everytime a client did
+								 not obey the retry-after header, used to
+								 ban a client. */
 
 	time_t last_queue_sent;	/**< When we last sent the QUEUE */
 	time_t send_next_queue; /**< When will we send the next QUEUE */
@@ -2594,7 +2597,12 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 			upload_vendor_str(u),
 			u->name, (gint) (org_retry - now));
 
-		if (parq_ul->ban_timeout > now) {
+		if (parq_ul->ban_timeout > now &&
+			parq_ban_bad_maxcountwait != 0)
+			parq_ul->ban_countwait++;
+		
+		if (parq_ul->ban_timeout > now &&
+			parq_ul->ban_countwait >= parq_ban_bad_maxcountwait) {
 			/*
 			 * Bye bye, the client did it again, and is removed from the PARQ
 		 	 * queue now.

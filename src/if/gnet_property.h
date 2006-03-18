@@ -120,6 +120,7 @@ typedef enum {
     PROP_PARQ_OPTIMISTIC,
     PROP_PARQ_SIZE_ALWAYS_CONTINUE,
     PROP_PARQ_TIME_ALWAYS_CONTINUE,
+    PROP_PARQ_BAN_BAD_MAXCOUNTWAIT,
     PROP_TRACK_PROPS,
     PROP_STOP_HOST_GET,
     PROP_BW_HTTP_IN_ENABLED,
@@ -403,3 +404,4 @@ void gnet_prop_set_storage(property_t, const gchar *, size_t);
 gchar *gnet_prop_get_storage(property_t, gchar *, size_t);
 
 #endif /* _gnet_property_h_ */
+
