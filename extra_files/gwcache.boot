@@ -14,6 +14,6 @@ http://gwebcache.bearshare.net/
 http://kisama.ath.cx:8080/
 http://krill.shacknet.nu:20095/gwc
 http://loot.alumnigroup.org/
-http://pokerface.bishopston.net:3558/
-http://tribaldance.bishopston.net:3558/
+http://pokerface.ibiza.bishopston.net:3558/
+http://tribaldance.ibiza.bishopston.net:3558/
 http://www.deepnetexplorer.co.uk/webcache/index.asp
