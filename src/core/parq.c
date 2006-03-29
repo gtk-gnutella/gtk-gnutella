@@ -191,7 +191,7 @@ struct parq_ul_queued {
 							     out of the queue when retry isn't obeyed */
 	time_t disc_timeout;	/**< Time after which we allow the upload to be
 							     disconnected again. */
-	int ban_countwait;		/**< Counter is increased everytime a client did
+	guint ban_countwait;	/**< Counter is increased everytime a client did
 								 not obey the retry-after header, used to
 								 ban a client. */
 
