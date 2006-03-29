@@ -1049,7 +1049,8 @@ gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text)
 }
 #endif
 
-#ifdef USE_GTK1
+
+#if !GTK_CHECK_VERSION(2, 4, 0)
 GtkWidget *
 gtk_paned_get_child1(GtkPaned *paned)
 {
