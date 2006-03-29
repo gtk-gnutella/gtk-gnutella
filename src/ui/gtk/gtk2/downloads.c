@@ -413,7 +413,8 @@ compare_size_func(GtkTreeModel *model,
     	gtk_tree_model_get(model, iter[i], column, &rec[i], (-1));
 
 		if (DL_GUI_IS_HEADER == rec[i]) {
-			gtk_tree_model_iter_nth_child(model, &child, iter[i], 0);
+			if (!gtk_tree_model_iter_nth_child(model, &child, iter[i], 0))
+				return 0;
     		gtk_tree_model_get(model, &child, column, &rec[i], (-1));
 		}
 		
@@ -446,7 +447,8 @@ compare_range_func(GtkTreeModel *model,
 	for (i = 0; i < G_N_ELEMENTS(rec); i++) {
     	gtk_tree_model_get(model, iter[i], column, &rec[i], (-1));
 		if (DL_GUI_IS_HEADER == rec[i]) {
-			gtk_tree_model_iter_nth_child(model, &child, iter[i], 0);
+			if (!gtk_tree_model_iter_nth_child(model, &child, iter[i], 0))
+				return 0;
     		gtk_tree_model_get(model, &child, column, &rec[i], (-1));
 		}
 

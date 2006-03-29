@@ -220,14 +220,16 @@ gnet_stats_update_general(const gnet_stats_t *stats)
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(
 				treeview_gnet_stats_general));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+		return;
 
 	for (n = 0; n < GNR_TYPE_COUNT; n++) {
 		gchar buf[32];
 
 		general_stat_str(buf, sizeof buf, stats, n);
 		gtk_list_store_set(store, &iter, 1, buf, (-1));
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+			break;
 	}
 }
 
@@ -240,7 +242,8 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(
 				treeview_gnet_stats_drop_reasons));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+		return;
 
 	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
 		gchar buf[32];
@@ -248,7 +251,8 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 		drop_stat_str(buf, sizeof buf, stats, n,
 			gnet_stats_drop_reasons_type, gnet_stats_bytes);
 		gtk_list_store_set(store, &iter, 1, buf, (-1));
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+			break;
 	}
 }
 
@@ -270,7 +274,8 @@ gnet_stats_update_messages(const gnet_stats_t *stats)
 	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+		return;
 
 	for (n = 0; n < msg_type_str_size(); n++) {
 		if (!bytes) {
@@ -308,7 +313,8 @@ gnet_stats_update_messages(const gnet_stats_t *stats)
 									len, stats->byte.generated, n, perc),
 				(-1));
 		}
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+			break;
 	}
 
 }
@@ -338,7 +344,8 @@ gnet_stats_update_types(
 	gui_prop_get_boolean_val(PROP_GNET_STATS_WITH_HEADERS, &with_headers);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(treeview)));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+		return;
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		gint i;
@@ -366,7 +373,8 @@ gnet_stats_update_types(
 		gtk_list_store_set(store, &iter,
 			1, str[0], 2, str[1], 3, str[2], 4, str[3], 5, str[4],
 			6, str[5], 7, str[6], 8, str[7], 9, str[8], (-1));
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+			break;
 	}
 
 }
@@ -436,7 +444,8 @@ gnet_stats_update_horizon(void)
 		return;
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+		return;
 
 	global_table_size = guc_hsep_get_table_size();
 	/* Skip the first element */
@@ -446,7 +455,8 @@ gnet_stats_update_horizon(void)
 		    c_horizon_files, horizon_stat_str(i, c_horizon_files),
 		    c_horizon_size,	 horizon_stat_str(i, c_horizon_size),
 			(-1));
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+			break;
 	}
 
 	last_horizon_update = now;

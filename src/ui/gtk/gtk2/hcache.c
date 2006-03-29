@@ -155,7 +155,8 @@ hcache_gui_update(time_t now)
     guc_hcache_get_stats(stats);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview_hcache));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+		goto cleanup;
 
 	for (n = 0; n < HCACHE_MAX; n++) {
 		if (n == HCACHE_NONE)
@@ -167,7 +168,8 @@ hcache_gui_update(time_t now)
             c_hcs_misses,     stats[n].misses,
             (-1));
 
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+			break;
 	}
 
 	gtk_tree_view_set_model(treeview_hcache, GTK_TREE_MODEL(store));

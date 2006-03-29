@@ -846,7 +846,8 @@ search_gui_get_record_at_path(GtkTreeView *tv, GtkTreePath *path)
 	g_return_val_if_fail(NULL != sch, NULL);
 
 	model = GTK_TREE_MODEL(sch->model);
-	gtk_tree_model_get_iter(model, &iter, path);
+	if (!gtk_tree_model_get_iter(model, &iter, path))
+		return NULL;
 	data = get_result_data(model, &iter);
 
 	return data->record;

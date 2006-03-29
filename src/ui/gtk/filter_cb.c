@@ -739,7 +739,10 @@ on_treeview_filter_filters_select_row(GtkTreeView *tv,
 		gpointer p;
 
 		model = gtk_tree_view_get_model(tv);
-		gtk_tree_model_get_iter(model, &iter, path);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_assert_not_reached();
+			return;
+		}
 		gtk_tree_path_free(path);
 		path = NULL;
 
@@ -796,7 +799,10 @@ on_treeview_filter_rules_select_row(GtkTreeView *tv, gpointer unused_udata)
 		gpointer p;
 
 		model = gtk_tree_view_get_model(tv);
-		gtk_tree_model_get_iter(model, &iter, path);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_assert_not_reached();
+			return;
+		}
 		gtk_tree_path_free(path);
 		path = NULL;
 
@@ -932,7 +938,10 @@ on_button_filter_add_rule_clicked(GtkButton *unused_button,
 		gpointer p;
 
 		model = gtk_tree_view_get_model(tv);
-		gtk_tree_model_get_iter(model, &iter, path);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_assert_not_reached();
+			return;
+		}
 		gtk_tree_path_free(path);
 		path = NULL;
 
@@ -1004,7 +1013,10 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
 		gpointer p;
 
 		model = gtk_tree_view_get_model(tv);
-		gtk_tree_model_get_iter(model, &iter, path);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_assert_not_reached();
+			return;
+		}
 		gtk_tree_path_free(path);
 		path = NULL;
 
@@ -1035,7 +1047,10 @@ on_button_filter_reset_rule_clicked(GtkButton *unused_button,
 		gpointer p;
 
 		model = gtk_tree_view_get_model(tv);
-		gtk_tree_model_get_iter(model, &iter, path);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_assert_not_reached();
+			return;
+		}
 		gtk_tree_path_free(path);
 		path = NULL;
 
@@ -1096,7 +1111,10 @@ on_popup_filter_rule_copy_activate(GtkMenuItem *unused_menuitem,
 		gpointer p;
 
 		model = gtk_tree_view_get_model(tv);
-		gtk_tree_model_get_iter(model, &iter, path);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_assert_not_reached();
+			return;
+		}
 		gtk_tree_path_free(path);
 		path = NULL;
 
