@@ -77,6 +77,7 @@
 #include "core/settings.h"
 #include "core/share.h"
 #include "core/sockets.h"
+#include "core/spam.h"
 #include "core/sq.h"
 #include "core/tsync.h"
 #include "core/tx.h"
@@ -410,6 +411,7 @@ gtk_gnutella_exit(gint n)
 	settings_close();	/* Must come after hcache_close() */
 	bogons_close();		/* Idem, since host_close() can touch the cache */
 	hostiles_close();
+	spam_close();
 	gip_close();
 	ban_close();
 	inet_close();
@@ -908,6 +910,7 @@ main(int argc, char **argv)
 	settings_init();
     hcache_retrieve_all();	/* after settings_init() */
 	hostiles_init();
+	spam_init();
 	bogons_init();
 	gip_init();
 	guid_init();

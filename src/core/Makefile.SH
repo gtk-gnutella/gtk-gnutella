@@ -141,6 +141,7 @@ SRC = \
 	share.c \
 	shell.c \
 	sockets.c \
+	spam.c \
 	sq.c \
 	token.c \
 	tsync.c \
@@ -219,6 +220,7 @@ OBJ = \
 	share.o \
 	shell.o \
 	sockets.o \
+	spam.o \
 	sq.o \
 	token.o \
 	tsync.o \

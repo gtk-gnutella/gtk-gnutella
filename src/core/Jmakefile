@@ -87,6 +87,7 @@ SRC = \
 	share.c \
 	shell.c \
 	sockets.c \
+	spam.c \
 	sq.c \
 	token.c \
 	tsync.c \

@@ -58,6 +58,7 @@ RCSID("$Id$");
 #include "share.h"
 #include "sockets.h"
 #include "vmsg.h"
+#include "spam.h"
 #include "sq.h"
 #include "settings.h"		/* For listen_ip() */
 #include "oob_proxy.h"
@@ -585,6 +586,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
+	gboolean is_spam = FALSE;
 	gint multiple_alt = 0;
 	const gchar *vendor = NULL;
 	gchar hostname[256];
@@ -807,6 +809,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								paylen, sha1_digest, &n->header, TRUE)
 					) {
 						count_sha1(sha1_digest);
+						is_spam |= spam_check(sha1_digest);
+
 						if (!validate_only) {
 							if (rc->sha1 != NULL) {
 								multiple_sha1 = TRUE;
@@ -839,6 +843,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							sha1_errors++;
 						} else {
 							count_sha1(sha1_digest);
+							is_spam |= spam_check(sha1_digest);
+
 							if (
 								huge_improbable_sha1(sha1_digest,
 									SHA1_RAW_SIZE)
@@ -860,6 +866,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					if (ret == GGEP_OK) {
 						has_hash = TRUE;
 						count_sha1(sha1_digest);
+						is_spam |= spam_check(sha1_digest);
+
 						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
 							sha1_errors++;
 						else if (!validate_only) {
@@ -1049,6 +1057,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		}
 	}
 
+	if (is_spam) {
+		/* FIXME: Add MSG_DROP_SPAM
+		 * gnet_stats_count_dropped(n, MSG_DROP_SPAM);
+		 */
+		goto bad_packet;
+	}
+	
 	if (nr != rs->num_recs) {
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		goto bad_packet;
