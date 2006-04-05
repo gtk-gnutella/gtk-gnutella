@@ -342,6 +342,8 @@ src/core/shell.c
 src/core/shell.h
 src/core/sockets.c
 src/core/sockets.h
+src/core/spam.c
+src/core/spam.h
 src/core/sq.c
 src/core/sq.h
 src/core/token.c
