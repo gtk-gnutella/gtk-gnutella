@@ -344,13 +344,15 @@ spam_init(void)
 	spam_retrieve();
 }
 
-static gboolean
+static void
 spam_item_free(gpointer unused_key, gpointer value, gpointer unused_x)
 {
+	spam_item_t *item = value;
+	
 	(void) unused_key;
 	(void) unused_x;
-	wfree(value);
-	return TRUE;
+
+	wfree(item, sizeof *item);
 }
 
 /**
