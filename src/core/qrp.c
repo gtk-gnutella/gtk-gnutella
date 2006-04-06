@@ -1332,8 +1332,12 @@ unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 	s = wcopy(word, size);
 
 	while (len-- >= 3) {
-		insert_substr(u, s);
-		s[len] = '\0';				/* Truncate word */
+		guint retlen;
+
+		if (utf8_decode_char_fast(&s[len], &retlen)) {
+			insert_substr(u, s);
+			s[len] = '\0';				/* Truncate word */
+		}
 	}
 
 	WFREE_NULL(s, size);
