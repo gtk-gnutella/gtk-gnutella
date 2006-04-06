@@ -238,6 +238,7 @@
 206.223.156.128/26
 
 # DRM spam
+63.246.153.64
 64.40.98.106
 # drmspace.com, 66103.vidlock.com
 216.55.178.165
@@ -454,4 +455,8 @@
 213.175.181.5
 217.27.162.57
 218.94.61.136
+
+# Fakes User-Agent randomly for each connection; uploads noisy
+# MP3 files using an extremely aggressive buzzword filter.
+216.58.72.33
 
