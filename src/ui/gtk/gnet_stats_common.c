@@ -107,6 +107,7 @@ msg_drop_str(gint value)
 		N_("Malformed Query Hit"),
 		N_("Bad return address"),
 		N_("Hostile IP address"),
+		N_("Spam"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_DROP_REASON_COUNT);

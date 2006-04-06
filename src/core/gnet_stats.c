@@ -80,6 +80,7 @@ static const gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
 	N_("Malformed Query Hit"),				/**< MSG_DROP_BAD_RESULT */
 	N_("Bad return address"),				/**< MSG_DROP_BAD_RETURN_ADDRESS */
 	N_("Hostile IP address"),				/**< MSG_DROP_HOSTILE_IP */
+	N_("Spam"),								/**< MSG_DROP_SPAM */
 };
 
 /***

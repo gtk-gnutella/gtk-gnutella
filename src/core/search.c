@@ -1058,9 +1058,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	}
 
 	if (is_spam) {
-		/* FIXME: Add MSG_DROP_SPAM
-		 * gnet_stats_count_dropped(n, MSG_DROP_SPAM);
-		 */
+		gnet_stats_count_dropped(n, MSG_DROP_SPAM);
 		goto bad_packet;
 	}
 	
