@@ -186,7 +186,7 @@ spam_load(FILE *f)
 
 		tag = spam_string_to_tag(tag_name);
 		g_assert((gint) tag >= 0 && tag <= G_N_ELEMENTS(tag_used));
-		if (0 == (tag_used[tag] ^= 1)) {
+		if (SPAM_TAG_UNKNOWN != tag && 0 == (tag_used[tag] ^= 1)) {
 			g_warning("spam_load(): duplicate tag \"%s\" in entry in line %u",
 				tag_name, line_no);
 			break;
