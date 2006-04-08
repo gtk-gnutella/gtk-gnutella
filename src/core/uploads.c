@@ -2499,6 +2499,37 @@ select_encoding(header_t *header)
 }
 
 /**
+ * Checks whether the HTTP client can handle the transfer-encoding "chunked".
+ * @return TRUE if the client seems to support it and otherwise FALSE.
+ */
+static gboolean
+supports_chunked(const gnutella_upload_t *u, header_t *header)
+{
+	gboolean chunked;
+
+	g_assert(u);
+	g_assert(header);
+
+	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
+    	const gchar *buf;
+
+		/*
+		 * It's assumed that LimeWire-based clients cannot handle 
+		 * "chunked" properly.
+		 */
+    	buf = header_get(header, "User-Agent");
+		chunked = NULL == buf || (
+			!is_strprefix(buf, "LimeWire/") &&
+			!is_strprefix(buf, "FrostWire/"));
+	} else {
+		/* HTTP/1.0 and older doesn't know about "chunked" */
+		chunked = FALSE;
+	}
+
+	return chunked;
+}
+
+/**
  * Prepare the browse host request.
  *
  * @return TRUE if we may go on, FALSE if we've replied to the remote
@@ -2636,7 +2667,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 	 * Starting at HTTP/1.1, we can send chunked data back.
 	 */
 
-	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
+	if (supports_chunked(u, header)) {
 		bh_flags |= BH_CHUNKED;
 
 		g_assert(hevcnt < hevlen);
