@@ -18,8 +18,8 @@
 ?LINT:set d_msghdr_msg_flags
 : check for msg_flags in struct msghdr
 echo " "
-$cat << 'EOM'
-Checking whether "struct msghdr" has a member "msg_flags" ..." >&4
+$cat >&4 << 'EOM'
+Checking whether "struct msghdr" has a member "msg_flags"...
 EOM
 $cat >try.c <<EOC
 #include <sys/types.h>

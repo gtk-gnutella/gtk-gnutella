@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Feb 21 00:01:50 MET 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Apr  8 22:18:31 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5378,8 +5378,8 @@ eval $inlibc
 
 : check for msg_flags in struct msghdr
 echo " "
-$cat << 'EOM'
-Checking whether "struct msghdr" has a member "msg_flags" ..." >&4
+$cat >&4 << 'EOM'
+Checking whether "struct msghdr" has a member "msg_flags"...
 EOM
 $cat >try.c <<EOC
 #include <sys/types.h>
