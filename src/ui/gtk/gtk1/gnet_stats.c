@@ -86,7 +86,8 @@ on_clist_gnet_stats_fc_ttl_resize_column(GtkCList *unused_clist,
     for (n = 0; n < G_N_ELEMENTS(buf); n ++)
         buf[n] = width;
 
-    gui_prop_set_guint32(PROP_GNET_STATS_FC_TTL_COL_WIDTHS, buf, 1, 9);
+    gui_prop_set_guint32(PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
+		buf, 1, G_N_ELEMENTS(buf));
 
     lock = FALSE;
 }
@@ -112,7 +113,8 @@ on_clist_gnet_stats_fc_hops_resize_column(GtkCList *unused_clist,
     for (n = 0; n < G_N_ELEMENTS(buf); n ++)
         buf[n] = width;
 
-    gui_prop_set_guint32(PROP_GNET_STATS_FC_HOPS_COL_WIDTHS, buf, 1, 9);
+    gui_prop_set_guint32(PROP_GNET_STATS_FC_HOPS_COL_WIDTHS,
+		buf, 1, G_N_ELEMENTS(buf));
 
     lock = FALSE;
 }
