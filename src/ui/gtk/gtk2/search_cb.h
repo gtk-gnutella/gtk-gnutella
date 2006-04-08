@@ -84,4 +84,7 @@ void on_popup_search_collapse_all_activate (GtkMenuItem *menuitem, gpointer user
 void on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data);
 
 gpointer search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter);
+gboolean search_gui_update_rank(GtkTreeModel *model,
+		GtkTreePath *path, GtkTreeIter *iter, gpointer udata);
+
 #endif /* _gtk2_search_cb_h_ */

@@ -102,6 +102,7 @@ struct result_data {
 	gchar *meta;		/**< g_malloc()ed */
 	gchar *info;		/**< g_malloc()ed */
 	guint count;		/**< count of children */
+	guint32 rank;		/**< for stable sorting */
 };
 
 static inline struct result_data *
@@ -117,14 +118,9 @@ get_result_data(GtkTreeModel *model, GtkTreeIter *iter)
 gpointer
 search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter)
 {
-	static const GValue zero_value;
-	GValue value = zero_value;
-	struct result_data *data;
-
-	gtk_tree_model_get_value(model, iter, 0, &value);
-	data = g_value_get_pointer(&value);
-	return data->record;
+	return get_result_data(model, iter)->record;
 }
+
 void
 search_gui_set_data(GtkTreeModel *model, struct result_data *rd)
 {
@@ -134,6 +130,25 @@ search_gui_set_data(GtkTreeModel *model, struct result_data *rd)
 	g_value_init(&value, G_TYPE_POINTER);
 	g_value_set_pointer(&value, rd);
 	gtk_tree_store_set_value(GTK_TREE_STORE(model), &rd->iter, 0, &value);
+}
+
+/**
+ * Callback handler used with gtk_tree_model_foreach() to record the current
+ * rank/position in tree enabling stable sorting. 
+ */
+gboolean
+search_gui_update_rank(
+	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer udata)
+{
+	guint32 *rank_ptr = udata;
+	struct result_data *data;
+
+	(void) path;
+	
+	data = get_result_data(model, iter);
+	data->rank = *rank_ptr;
+	(*rank_ptr)++;
+	return FALSE;
 }
 
 
@@ -596,13 +611,14 @@ search_gui_cmp_size(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 	
 	(void) unused_udata;
 	
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-
-	return CMP(d1->record->size, d2->record->size);
+	ret = CMP(d1->record->size, d2->record->size);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 static gint
@@ -610,16 +626,14 @@ search_gui_cmp_count(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-
-	if (d1->count == d2->count)
-		return CMP(d1->record->size, d2->record->size);
-	else
-		return CMP(d1->count, d2->count);
+	ret = CMP(d1->count, d2->count);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 static inline gint
@@ -636,12 +650,14 @@ search_gui_cmp_filename(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	return search_gui_cmp_strings(d1->record->utf8_name, d2->record->utf8_name);
+	ret = search_gui_cmp_strings(d1->record->utf8_name, d2->record->utf8_name);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 static gint
@@ -649,12 +665,14 @@ search_gui_cmp_charset(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	return search_gui_cmp_strings(d1->record->charset, d2->record->charset);
+	ret = search_gui_cmp_strings(d1->record->charset, d2->record->charset);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 
@@ -663,12 +681,14 @@ search_gui_cmp_ext(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	return search_gui_cmp_strings(d1->ext, d2->ext);
+	ret = search_gui_cmp_strings(d1->ext, d2->ext);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 static gint
@@ -676,12 +696,14 @@ search_gui_cmp_meta(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	return search_gui_cmp_strings(d1->meta, d2->meta);
+	ret = search_gui_cmp_strings(d1->meta, d2->meta);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 
@@ -690,14 +712,16 @@ search_gui_cmp_country(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 
-	return CMP(d1->record->results_set->country,
+	ret = CMP(d1->record->results_set->country,
 					d2->record->results_set->country);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 static gint
@@ -705,12 +729,14 @@ search_gui_cmp_info(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	return search_gui_cmp_strings(d1->info, d2->info);
+	ret = search_gui_cmp_strings(d1->info, d2->info);
+	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
 }
 
 static gchar *
