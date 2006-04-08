@@ -151,14 +151,14 @@ http_send_status(
 	if (saturated && code >= 300) {
 		xlive[0] = '\0';
 		version = version_short_string;
-		token = tok_short_version();
+		token = socket_omit_token(s) ? NULL : tok_short_version();
 		header_size = 512;
 		cb_flags |= HTTP_CBF_SMALL_REPLY;
 	} else {
 		gm_snprintf(xlive, sizeof(xlive)-1,
 			"X-Live-Since: %s\r\n", start_rfc822_date);
 		version = version_string;
-		token = tok_version();
+		token = socket_omit_token(s) ? NULL : tok_version();
 	}
 
 	for (i = 0; i < hevcnt; i++) {
@@ -182,10 +182,14 @@ http_send_status(
 		"Server: %s\r\n"
 		"Date: %s\r\n"
 		"%s"			/* Connection */
-		"X-Token: %s\r\n"
+		"%s%s%s"		/* X-Token (optional) */
 		"%s"			/* X-Live-Since */
 		"%s",			/* Content length */
-		code, status_msg, version, date, conn_close, token, xlive, no_content);
+		code, status_msg, version, date, conn_close,
+		token ? "X-Token: " : "",
+		token ? token : "",
+		token ? "\r\n" : "",
+		xlive, no_content);
 
 	mrw = rw;		/* Minimal header length */
 
