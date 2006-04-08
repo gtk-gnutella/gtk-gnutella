@@ -237,6 +237,10 @@
 # (Sansui Ltd. has 206.223.156.0/24)
 206.223.156.128/26
 
+# WMA-DRM spam; affiliated with artistdirect.com et al.
+# hosted by Fastserve
+66.172.60.0/24
+
 # DRM spam
 63.246.153.64
 64.40.98.106
