@@ -431,14 +431,6 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	model = GTK_TREE_SORTABLE(
 				gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view)));
 
-	/* Iterate over all rows and record their current rank/position so
-	 * that re-sorting is stable. */
-	{
-		guint32 rank = 0;
-		gtk_tree_model_foreach(GTK_TREE_MODEL(model),
-			search_gui_update_rank, &rank);
-	}
-
 	/*
 	 * Here we enforce a tri-state sorting. Normally, Gtk+ would only
 	 * switch between ascending and descending but never switch back
@@ -458,8 +450,17 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gtk_tree_sortable_get_sort_column_id(model, &sort_col, NULL);
 
 	/* If the user switched to another sort column, reset the sort order. */
-	if (sch->sort_col != sort_col)
+	if (sch->sort_col != sort_col) {
+		guint32 rank = 0;
+
 		sch->sort_order = SORT_NONE;
+		/*
+		 * Iterate over all rows and record their current rank/position so
+	 	 * that re-sorting is stable.
+		 */
+		gtk_tree_model_foreach(GTK_TREE_MODEL(model),
+			search_gui_update_rank, &rank);
+	}
 
 	sch->sort_col = sort_col;
 

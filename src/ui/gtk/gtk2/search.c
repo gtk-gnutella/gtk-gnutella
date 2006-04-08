@@ -618,7 +618,7 @@ search_gui_cmp_size(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = CMP(d1->record->size, d2->record->size);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 static gint
@@ -633,7 +633,7 @@ search_gui_cmp_count(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = CMP(d1->count, d2->count);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 static inline gint
@@ -657,7 +657,7 @@ search_gui_cmp_filename(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_strings(d1->record->utf8_name, d2->record->utf8_name);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 static gint
@@ -672,7 +672,7 @@ search_gui_cmp_charset(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_strings(d1->record->charset, d2->record->charset);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 
@@ -688,7 +688,7 @@ search_gui_cmp_ext(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_strings(d1->ext, d2->ext);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 static gint
@@ -703,7 +703,7 @@ search_gui_cmp_meta(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_strings(d1->meta, d2->meta);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 
@@ -721,7 +721,7 @@ search_gui_cmp_country(
 
 	ret = CMP(d1->record->results_set->country,
 					d2->record->results_set->country);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 static gint
@@ -736,7 +736,7 @@ search_gui_cmp_info(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_strings(d1->info, d2->info);
-	return 0 != ret ? ret : CMP(d2->rank, d1->rank);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 static gchar *
