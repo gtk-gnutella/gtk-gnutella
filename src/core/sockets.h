@@ -113,6 +113,7 @@ struct gnutella_socket {
 	enum socket_direction direction;
 	enum socket_type type;
 	enum net_type net;
+	gboolean omit_token;	/**< TRUE if the connection needs no token */
 	gboolean corked;
 	gboolean was_shutdown;	/**< Set if shutdown() was used */
 	gint adns;				/**< status of ADNS resolution */
@@ -205,6 +206,8 @@ void socket_tos_throughput(const struct gnutella_socket *s);
 void socket_tos_lowdelay(const struct gnutella_socket *s);
 void socket_tos_normal(const struct gnutella_socket *s);
 gboolean socket_bad_hostname(struct gnutella_socket *s);
+void socket_disable_token(struct gnutella_socket *s);
+gboolean socket_omit_token(struct gnutella_socket *s);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);

@@ -2829,6 +2829,20 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	return s;
 }
 
+void
+socket_disable_token(struct gnutella_socket *s)
+{
+	g_assert(s);
+	s->omit_token = TRUE;
+}
+
+gboolean
+socket_omit_token(struct gnutella_socket *s)
+{
+	g_assert(s);
+	return s->omit_token;
+}
+
 /**
  * Set/clear TCP_CORK on the socket.
  *
