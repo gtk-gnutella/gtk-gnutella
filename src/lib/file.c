@@ -42,6 +42,8 @@ RCSID("$Id$");
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
+static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
+
 static const gchar orig_ext[] = "orig";
 static const gchar new_ext[] = "new";
 static const gchar instead_str[] = " instead";
@@ -122,8 +124,8 @@ open_read(
 			g_warning("[%s] failed to retrieve from \"%s\": %s", what, path,
 				g_strerror(errno));
 		}
-        if (fvcnt > 1)
-            g_warning("[%s] trying to load from alternate locations...", what);
+        if (fvcnt > 1 && common_dbg > 0)
+            g_message("[%s] trying to load from alternate locations...", what);
     }
 
 	/*
@@ -164,21 +166,21 @@ open_read(
 		}
 	}
 
-	if (in)
-		g_warning("[%s] retrieving from \"%s\"%s", what, path, instead);
-	else if (instead == instead_str)
+	if (in) {
+		if (common_dbg > 0)
+			g_message("[%s] retrieving from \"%s\"%s", what, path, instead);
+	} else if (instead == instead_str) {
 		g_warning("[%s] unable to retrieve: tried %d alternate location%s",
 			what, fvcnt, fvcnt == 1 ? "" : "s");
-    else
+    } else {
 		g_warning("[%s] unable to retrieve: no alternate locations known",
 			what);
+	}
 
 out:
 
-	if (NULL != path)
-		G_FREE_NULL(path);
-	if (NULL != path_orig)
-		G_FREE_NULL(path_orig);
+	G_FREE_NULL(path);
+	G_FREE_NULL(path_orig);
 	if (in != NULL && chosen != NULL)
 		*chosen = idx;
 
