@@ -631,7 +631,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	 */
 
 	if (NODE_IS_UDP(n)) {
-		rs->udp_addr = n->addr;
 		rs->status |= ST_UDP;
 
 		if (
@@ -1379,7 +1378,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		 * Prefer an UDP source IP for the country computation.
 		 */
 
-		c_addr = (rs->status & ST_UDP) ? rs->udp_addr : rs->addr;
+		c_addr = (rs->status & ST_UDP) ? rs->last_hop : rs->addr;
 		rs->country = gip_country(c_addr);
 	}
 
