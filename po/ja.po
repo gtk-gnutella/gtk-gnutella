@@ -72,7 +72,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.1u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-03-19 01:43+0900\n"
+"POT-Creation-Date: 2006-04-10 00:27+0900\n"
 "PO-Revision-Date: 2006-02-06 16:35+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -301,6 +301,9 @@ msgstr "不正な返却アドレス"
 
 msgid "Hostile IP address"
 msgstr "有害IPアドレス"
+
+msgid "Spam"
+msgstr ""
 
 #, c-format
 msgid "Got %d host from %s"

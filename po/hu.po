@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.1u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-03-19 01:43+0900\n"
+"POT-Creation-Date: 2006-04-10 00:27+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -243,6 +243,9 @@ msgstr ""
 
 msgid "Hostile IP address"
 msgstr "Ellenséges IP-cím"
+
+msgid "Spam"
+msgstr ""
 
 #, c-format
 msgid "Got %d host from %s"
