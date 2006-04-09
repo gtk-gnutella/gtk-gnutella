@@ -2587,15 +2587,18 @@ send_error(
 	if (saturated) {
 		xlive[0] = '\0';
 		version = version_short_string;
-		token = tok_short_version();
+		token = socket_omit_token(s) ? NULL : tok_short_version();
 	} else {
 		gm_snprintf(xlive, sizeof(xlive),
 			"X-Live-Since: %s\r\n", start_rfc822_date);
 		version = version_string;
-		token = tok_version();
+		token = socket_omit_token(s) ? NULL : tok_version();
 	}
 
-	gm_snprintf(xtoken, sizeof(xtoken), "X-Token: %s\r\n", token);
+	if (token)
+		gm_snprintf(xtoken, sizeof(xtoken), "X-Token: %s\r\n", token);
+	else
+		xtoken[0] = '\0';
 
 	/*
 	 * If we have a node and we know that it is NOT a gtk-gnutella node,
@@ -4396,6 +4399,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
         node_set_vendor(n, field);
 	}
 
+	if (NULL == field || !is_strprefix(field, gtkg_vendor)) {
+		socket_disable_token(n->socket);
+	}
+
 	/*
 	 * Spot remote GTKG nodes (even if faked name).
 	 */
@@ -5008,7 +5015,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"\r\n",
 				version_string, node_crawler_headers(n), start_rfc822_date);
 		else {
+			const gchar *token;
 			gchar degree[100];
+			
+			token = socket_omit_token(n->socket) ? NULL : tok_version();
 
 			/*
 			 * Special hack for LimeWire, which really did not find anything
@@ -5055,7 +5065,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s"		/* X-Ultrapeer-Query-Routing */
 				"%s"		/* X-Degree + X-Max-TTL */
 				"%s"		/* X-Dynamic-Querying */
-				"X-Token: %s\r\n"
+				"%s%s%s"	/* X-Token (optional) */
 				"X-Live-Since: %s\r\n",
 				version_string,
 				host_addr_to_string(n->socket->addr),
@@ -5081,7 +5091,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				degree,
 				current_peermode == NODE_P_ULTRA ?
 					"X-Dynamic-Querying: 0.1\r\n" : "",
-				tok_version(), start_rfc822_date);
+	 			token ? "X-Token: " : "",
+				token ? token : "",
+				token ? "\r\n" : "",
+				start_rfc822_date);
 
 			header_features_generate(&xfeatures.connections,
 				gnet_response, sizeof(gnet_response), &rw);

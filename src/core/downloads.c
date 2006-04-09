@@ -5415,14 +5415,14 @@ download_moved_permanently(struct download *d, header_t *header)
 static gboolean
 download_get_server_name(struct download *d, header_t *header)
 {
-	const gchar *buf;
+	const gchar *user_agent;
 	gboolean got_new_server = FALSE;
 
-	buf = header_get(header, "Server");			/* Mandatory */
-	if (!buf)
-		buf = header_get(header, "User-Agent"); /* Maybe they're confused */
+	user_agent = header_get(header, "Server");			/* Mandatory */
+	if (!user_agent)
+		user_agent = header_get(header, "User-Agent"); /* Are they confused? */
 
-	if (buf) {
+	if (user_agent) {
 		struct dl_server *server = d->server;
 		const gchar *vendor;
 		gchar *wbuf = NULL;
@@ -5431,19 +5431,23 @@ download_get_server_name(struct download *d, header_t *header)
 	   
 		g_assert(dl_server_valid(server));
 
-		faked = !version_check(buf, header_get(header, "X-Token"),
+		if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
+			socket_disable_token(d->socket);
+		}
+			
+		faked = !version_check(user_agent, header_get(header, "X-Token"),
 					download_addr(d));
 
 		if (server->vendor == NULL) {
 			got_new_server = TRUE;
 			if (faked)
-				size = w_concat_strings(&wbuf, "!", buf, (void *) 0);
-			vendor = wbuf ? wbuf : buf;
-		} else if (!faked && 0 != strcmp(server->vendor, buf)) {
+				size = w_concat_strings(&wbuf, "!", user_agent, (void *) 0);
+			vendor = wbuf ? wbuf : user_agent;
+		} else if (!faked && 0 != strcmp(server->vendor, user_agent)) {
 			/* Name changed? */
 			got_new_server = TRUE;
 			atom_str_free(server->vendor);
-			vendor = buf;
+			vendor = user_agent;
 		} else {
 			vendor = NULL;
 		}

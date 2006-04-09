@@ -2811,6 +2811,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (user_agent == NULL)
 		user_agent = header_get(header, "Server");
 
+	if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
+		socket_disable_token(s);
+	}
+
 	if (u->user_agent == NULL && user_agent != NULL) {
 		gboolean faked = !version_check(user_agent, token, u->addr);
 		if (faked) {
