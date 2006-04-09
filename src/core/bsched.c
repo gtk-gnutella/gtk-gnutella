@@ -73,6 +73,13 @@ static gint bws_in_ema = 0;
 
 #define BW_UDP_OVERSIZE	512	 /**< Allow that many bytes over available b/w */
 
+static inline void
+bio_check(const bio_source_t *bio)
+{
+	g_assert(bio);
+	g_assert(BIO_SOURCE_MAGIC == bio->magic);
+}
+
 /**
  * Create a new bandwidth scheduler.
  *
@@ -121,11 +128,12 @@ bsched_make(gchar *name, gint type, guint32 mode, gint bandwidth, gint period)
 static void
 bsched_free(bsched_t *bs)
 {
-	GList *l;
+	GList *iter;
 
-	for (l = bs->sources; l; l = g_list_next(l)) {
-		bio_source_t *bio = (bio_source_t *) l->data;
+	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+		bio_source_t *bio = iter->data;
 
+		bio_check(bio);
 		g_assert(bio->bs == bs);
 		bio->bs = NULL;				/* Mark orphan source */
 	}
@@ -166,10 +174,10 @@ bsched_reset_stealers(bsched_t *bs)
 void
 bsched_config_steal_http_gnet(void)
 {
-	GSList *l;
+	GSList *iter;
 
-	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = (bsched_t *) l->data;
+	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
+		bsched_t *bs = iter->data;
 		bsched_reset_stealers(bs);
 	}
 
@@ -212,10 +220,10 @@ bsched_config_steal_http_gnet(void)
 void
 bsched_config_steal_gnet(void)
 {
-	GSList *l;
+	GSList *iter;
 
-	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = (bsched_t *) l->data;
+	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
+		bsched_t *bs = iter->data;
 		bsched_reset_stealers(bs);
 	}
 
@@ -299,10 +307,10 @@ bsched_init(void)
 void
 bsched_close(void)
 {
-	GSList *l;
+	GSList *iter;
 
-	for (l = bws_list; l; l = g_slist_next(l))
-		bsched_free(l->data);
+	for (iter = bws_list; iter; iter = g_slist_next(iter))
+		bsched_free(iter->data);
 
 	g_slist_free(bws_list);
 	g_slist_free(bws_out_list);
@@ -440,6 +448,7 @@ bsched_shutdown(void)
 static void
 bio_enable(bio_source_t *bio)
 {
+	bio_check(bio);
 	g_assert(0 == bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
@@ -460,6 +469,7 @@ bio_enable(bio_source_t *bio)
 static void
 bio_disable(bio_source_t *bio)
 {
+	bio_check(bio);
 	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
@@ -473,7 +483,7 @@ bio_disable(bio_source_t *bio)
 void
 bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, gpointer arg)
 {
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->io_callback == NULL);	/* "passive" source */
 	g_assert(callback);
 
@@ -490,7 +500,7 @@ bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, gpointer arg)
 void
 bio_remove_callback(bio_source_t *bio)
 {
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->io_callback);		/* Not a "passive" source */
 
 	if (bio->io_tag)
@@ -507,12 +517,12 @@ bio_remove_callback(bio_source_t *bio)
 static void
 bsched_no_more_bandwidth(bsched_t *bs)
 {
-	GList *l;
+	GList *iter;
 
-	for (l = bs->sources; l; l = g_list_next(l)) {
-		bio_source_t *bio = (bio_source_t *) l->data;
+	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+		bio_source_t *bio = iter->data;
 
-		g_assert(bio != NULL);
+		bio_check(bio);
 
 		if (bio->io_tag)
 			bio_disable(bio);
@@ -527,13 +537,12 @@ bsched_no_more_bandwidth(bsched_t *bs)
 static void
 bsched_clear_active(bsched_t *bs)
 {
-	GList *l;
+	GList *iter;
 
-	for (l = bs->sources; l; l = g_list_next(l)) {
-		bio_source_t *bio = (bio_source_t *) l->data;
+	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+		bio_source_t *bio = iter->data;
 
-		g_assert(bio != NULL);
-
+		bio_check(bio);
 		bio->flags &= ~BIO_F_ACTIVE;
 	}
 }
@@ -548,18 +557,18 @@ bsched_clear_active(bsched_t *bs)
 static void
 bsched_begin_timeslice(bsched_t *bs)
 {
-	GList *l;
+	GList *iter;
 	GList *last = NULL;
 	gdouble norm_factor = 1000.0 / bs->period;
 	gint count;
 
-	for (count = 0, l = bs->sources; l; l = g_list_next(l)) {
-		bio_source_t *bio = (bio_source_t *) l->data;
+	for (count = 0, iter = bs->sources; iter; iter = g_list_next(iter)) {
+		bio_source_t *bio = iter->data;
 		guint32 actual;
 
-		g_assert(bio != NULL);
+		bio_check(bio);
 
-		last = l;			/* Remember last seen source  for rotation */
+		last = iter;		/* Remember last seen source  for rotation */
 		count++;			/* Count them for assertion */
 
 		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
@@ -602,9 +611,10 @@ bsched_begin_timeslice(bsched_t *bs)
 
 	if (last != NULL && last != bs->sources) {
 		bio_source_t *bio;
+
 		g_assert(bs->sources != NULL);
-		bio = (bio_source_t *) bs->sources->data;
-		g_assert(bio != NULL);
+		bio = bs->sources->data;
+		bio_check(bio);
 		bs->sources = g_list_remove(bs->sources, bio);
 		bs->sources = gm_list_insert_after(bs->sources, last, bio);
 	}
@@ -667,7 +677,7 @@ bsched_begin_timeslice(bsched_t *bs)
 static void
 bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 {
-	g_assert(bio != NULL);
+	bio_check(bio);
 
 	bs->sources = g_list_append(bs->sources, bio);
 	bs->count++;
@@ -689,7 +699,7 @@ bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 static void
 bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
 {
-	g_assert(bio != NULL);
+	bio_check(bio);
 
 	bs->sources = g_list_remove(bs->sources, bio);
 	bs->count--;
@@ -729,6 +739,7 @@ bsched_source_add(
 
 	bio = walloc0(sizeof *bio);
 
+	bio->magic = BIO_SOURCE_MAGIC;
 	bio->bs = bs;
 	bio->wio = wio;
 	bio->flags = flags;
@@ -757,8 +768,11 @@ bsched_source_add(
 void
 bsched_source_remove(bio_source_t *bio)
 {
-	bsched_t *bs = bio->bs;
+	bsched_t *bs;
+	
+	bio_check(bio);
 
+	bs = bio->bs;
 	if (bs)
 		bsched_bio_remove(bs, bio);
 	if (bio->io_tag) {
@@ -766,6 +780,7 @@ bsched_source_remove(bio_source_t *bio)
 		bio->io_tag = 0;
 	}
 
+	bio->magic = 0;
 	wfree(bio, sizeof *bio);
 }
 
@@ -815,13 +830,16 @@ bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 static gint
 bw_available(bio_source_t *bio, gint len)
 {
-	bsched_t *bs = bio->bs;
+	bsched_t *bs;
 	gint available;
 	gint result;
 	gboolean capped = FALSE;
 	gboolean used;
 	gboolean active;
 
+	bio_check(bio);
+
+	bs = bio->bs;
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return len;							/* Use amount requested */
 
@@ -1081,7 +1099,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	size_t amount;
 	ssize_t r;
 
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
 
 	/*
@@ -1141,7 +1159,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	struct iovec *siov;
 	gint slen = -1;			/* Avoid "may be used uninitialized" warning */
 
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
 
 	/*
@@ -1263,7 +1281,7 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 	size_t available;
 	ssize_t r;
 
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
 
 	/*
@@ -1395,7 +1413,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	off_t start;
 
 	g_assert(ctx);
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->wio);
 	g_assert(bio->flags & BIO_F_WRITE);
 	g_assert(offset);
@@ -1600,7 +1618,7 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 	size_t amount;
 	ssize_t r;
 
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->flags & BIO_F_READ);
 
 	/*
@@ -1644,7 +1662,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	struct iovec *siov;
 	gint slen = -1;			/* Avoid "may be used uninitialized" warning */
 
-	g_assert(bio);
+	bio_check(bio);
 	g_assert(bio->flags & BIO_F_READ);
 
 	/*
@@ -2020,7 +2038,7 @@ bws_can_connect(enum socket_type type)
 static void
 bsched_heartbeat(bsched_t *bs, tm_t *tv)
 {
-	GList *l;
+	GList *iter;
 	gint delay;
 	gint overused;
 	gint theoric;
@@ -2166,10 +2184,10 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 
 	last_used = 0;
 
-	for (l = bs->sources; l; l = g_list_next(l)) {
-		bio_source_t *bio = (bio_source_t *) l->data;
+	for (iter = bs->sources; iter; iter = g_list_next(iter)) {
+		bio_source_t *bio = iter->data;
 
-		g_assert(bio != NULL);
+		bio_check(bio);
 
 		if (bio->flags & BIO_F_USED)
 			last_used++;
@@ -2284,7 +2302,7 @@ bsched_stealbeat(bsched_t *bs)
 	 */
 
 	for (l = bs->stealers; l; l = g_slist_next(l)) {
-		bsched_t *xbs = (bsched_t *) l->data;
+		bsched_t *xbs = l->data;
 
 		steal_count++;
 
@@ -2305,7 +2323,7 @@ bsched_stealbeat(bsched_t *bs)
 
 	if (all_used_count == 0) {
 		for (l = bs->stealers; l; l = g_slist_next(l)) {
-			bsched_t *xbs = (bsched_t *) l->data;
+			bsched_t *xbs = l->data;
 			xbs->bw_stolen += underused / steal_count;
 
 			if (dbg > 4)
@@ -2314,7 +2332,7 @@ bsched_stealbeat(bsched_t *bs)
 		}
 	} else {
 		for (l = all_used; l; l = g_slist_next(l)) {
-			bsched_t *xbs = (bsched_t *) l->data;
+			bsched_t *xbs = l->data;
 			gdouble amount;
 
 			if (xbs->bw_max == 0)
@@ -2376,7 +2394,7 @@ bsched_timer(void)
 	 */
 
 	for (l = bws_out_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = (bsched_t *) l->data;
+		bsched_t *bs = l->data;
 		out_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
 	}
 
@@ -2386,7 +2404,7 @@ bsched_timer(void)
 		printf("Outgoing b/w EMA = %d bytes/s\n", bws_out_ema);
 
 	for (l = bws_in_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = (bsched_t *) l->data;
+		bsched_t *bs = l->data;
 
 		in_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
 
