@@ -549,7 +549,7 @@ version_init(void)
 	{
 		static struct utsname un;	/* Must survive this scope */
 	
-		if (0 == uname(&un)) {
+		if (-1 != uname(&un)) {
 			sysname = un.sysname;
 			machine = un.machine;
 		} else {
