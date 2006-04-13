@@ -941,9 +941,19 @@ listen_port_changed(property_t prop)
 		inet_udp_firewalled();
 	}
 
-	random_port = listen_port == 1;
+	/*
+	 * 1 is a magic port number for us, which means "pick a random port"
+	 * whereas 0 means "don't listen on any port".
+	 */
+	random_port = 1 == listen_port;
+
+	/* Mark ports below 1024 as already tried, these ports can
+	 * be configured manually but we don't want to pick one of
+	 * these when not explicitely told so as it may grab the
+	 * port of an important service (which is currently down).
+	 */
 	memset(tried, 0, sizeof tried);
-	memset(tried, 0xff, 1024 / 8);	/* Mark ports below 1024 as already tried */
+	memset(tried, 0xff, 1024 / 8);
 
 	do {
 		host_addr_t listen_ha = zero_host_addr;
