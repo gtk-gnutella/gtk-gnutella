@@ -394,6 +394,7 @@ static void socket_wio_link(struct gnutella_socket *s);
 static gboolean sol_got = FALSE;
 static gint sol_tcp_cached = -1;
 static gint sol_ip_cached = -1;
+static gint sol_ipv6_cached = -1;
 
 /**
  * Compute and cache values for SOL_TCP and SOL_IP.
@@ -403,12 +404,26 @@ get_sol(void)
 {
 	struct protoent *pent;
 
-	pent = getprotobyname("tcp");
-	if (NULL != pent)
-		sol_tcp_cached = pent->p_proto;
+#ifdef IPPROTO_IP
+	sol_ip_cached = IPPROTO_IP;
+#endif /* IPPROTO_IP */
+#ifdef IPPROTO_IPV6
+	sol_ipv6_cached = IPPROTO_IPV6;
+#endif /* IPPROTO_IPV6 */
+#ifdef IPPROTO_TCP
+	sol_tcp_cached = IPPROTO_TCP;
+#endif /* IPPROTO_TCP */
+
 	pent = getprotobyname("ip");
 	if (NULL != pent)
 		sol_ip_cached = pent->p_proto;
+	pent = getprotobyname("ipv6");
+	if (NULL != pent)
+		sol_ipv6_cached = pent->p_proto;
+	pent = getprotobyname("tcp");
+	if (NULL != pent)
+		sol_tcp_cached = pent->p_proto;
+
 	sol_got = TRUE;
 }
 
@@ -432,6 +447,18 @@ sol_ip(void)
 	return sol_ip_cached;
 }
 
+#if defined(USE_IPV6)
+/**
+ * @returns SOL_IPV6.
+ */
+static gint
+sol_ipv6(void)
+{
+	g_assert(sol_got);
+	return sol_ipv6_cached;
+}
+#endif /* USE_IPV6 */
+
 #ifdef USE_IP_TOS
 
 /**
@@ -446,19 +473,20 @@ socket_tos(const struct gnutella_socket *s, gint tos)
 		NET_TYPE_IPV4 == s->net &&
 		-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)
 	) {
-		const gchar *tosname = "default";
+		if (ECONNRESET != errno) {
+			const gchar *tosname;
 
-		switch (tos) {
-		case 0: break;
-		case IPTOS_LOWDELAY: tosname = "low delay"; break;
-		case IPTOS_THROUGHPUT: tosname = "throughput"; break;
-		default:
-			g_assert_not_reached();
-		}
-
-		if (ECONNRESET != errno)
+			switch (tos) {
+			case 0: tosname = "default"; break;
+			case IPTOS_LOWDELAY: tosname = "low delay"; break;
+			case IPTOS_THROUGHPUT: tosname = "throughput"; break;
+			default:
+				tosname = NULL;			
+				g_assert_not_reached();
+			}
 			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
 				tosname, tos, s->file_desc, g_strerror(errno));
+		}
 		return -1;
 	}
 
@@ -2214,6 +2242,62 @@ accepted:
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 }
 
+
+static gboolean
+socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
+#if defined(CMSG_FIRSTHDR) && defined(IP_RECVDSTADDR)
+{
+	const struct cmsghdr *p;
+
+	g_assert(msg);
+	g_assert(dst_addr);
+
+	for (p = CMSG_FIRSTHDR(msg); NULL != p; p = CMSG_NXTHDR(msg, p)) {
+		if (IP_RECVDSTADDR == p->cmsg_type && p->cmsg_level == sol_ip()) {
+			struct in_addr addr;
+			const gchar *data;
+
+			data = CMSG_DATA(p);
+			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
+				memcpy(&addr, data, sizeof addr);
+				*dst_addr = host_addr_set_ipv4(ntohl(addr.s_addr));
+				return TRUE;
+			}
+#ifdef USE_IPV6
+		} else if (
+			IPV6_RECVDSTADDR == p->cmsg_type &&
+			p->cmsg_level == sol_ipv6()
+		) {
+			struct in6_addr addr;
+			const gchar *data;
+
+			data = CMSG_DATA(p);
+			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
+				memcpy(&addr, data, sizeof addr);
+				host_addr_set_ipv6(dst_addr, addr.s6_addr);
+				return TRUE;
+			}
+#endif /* USE_IPV6 */
+		} else {
+			if (socket_debug)
+				g_message("socket_udp_extract_dst_addr(): "
+					"CMSG type=%u, level=%u, len=%u",
+					(unsigned) p->cmsg_type,
+					(unsigned) p->cmsg_level,
+					(unsigned) p->cmsg_len);
+		}
+	}
+
+	return FALSE;
+}
+#else
+{
+	(void) msg;
+	(void) dst_addr;
+	return FALSE;
+}
+#endif /* CMSG_FIRSTHDR && IP_RECVDSTADDR */
+
 /**
  * Someone is sending us a datagram.
  */
@@ -2224,7 +2308,8 @@ socket_udp_accept(struct gnutella_socket *s)
 	gpointer from;
 	socklen_t from_len;
 	ssize_t r;
-	gboolean truncated;
+	gboolean truncated, has_dst_addr = FALSE;
+	host_addr_t dst_addr;
 
 	g_assert(s->flags & SOCK_F_UDP);
 	g_assert(s->type == SOCK_TYPE_UDP);
@@ -2276,9 +2361,32 @@ socket_udp_accept(struct gnutella_socket *s)
 		msg.msg_namelen = from_len;
 		msg.msg_iov = &iov;
 		msg.msg_iovlen = 1;
+
+		/* Some implementations have msg_accrights and msg_accrightslen
+		 * instead of msg_control and msg_controllen.
+		 */
+#if defined(CMSG_LEN) && defined(CMSG_SPACE)
+		{
+			static const size_t cmsg_size = 512;
+			static gchar *cmsg_buf;
+			static size_t cmsg_len;
+
+			if (!cmsg_buf) {
+				cmsg_len = CMSG_LEN(cmsg_size);
+				cmsg_buf = g_malloc0(CMSG_SPACE(cmsg_size));
+			}
+			
+			msg.msg_control = cmsg_buf; 
+			msg.msg_controllen = cmsg_len;
+		}
+#endif /* CMSG_LEN && CMSG_SPACE */
 		
 		r = recvmsg(s->file_desc, &msg, 0);
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
+
+		if ((ssize_t) -1 != r && !force_local_ip) {
+			has_dst_addr = socket_udp_extract_dst_addr(&msg, &dst_addr);
+		}
 	}
 #else
 	{
@@ -2303,6 +2411,13 @@ socket_udp_accept(struct gnutella_socket *s)
 
 	s->addr = socket_addr_get_addr(from_addr);
 	s->port = socket_addr_get_port(from_addr);
+
+	if (has_dst_addr) {
+		settings_addr_changed(dst_addr, s->addr);
+		if (socket_debug)
+			g_message("socket_udp_accept(): dst_addr=%s",
+				host_addr_to_string(dst_addr));
+	}
 
 	/*
 	 * Signal reception of a datagram to the UDP layer.
@@ -2362,7 +2477,7 @@ socket_set_linger(gint fd)
 	{
 		gint timeout = 20;	/* timeout in seconds for FIN_WAIT_2 */
 
-		if (setsockopt(fd, SOL_TCP, TCP_LINGER2, &timeout, sizeof timeout))
+		if (setsockopt(fd, sol_tcp(), TCP_LINGER2, &timeout, sizeof timeout))
 			g_warning("setsockopt() for TCP_LINGER2 failed: %s",
 				g_strerror(errno));
 	}
@@ -2666,7 +2781,7 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 
 	/* Create a socket, then bind() and listen() it */
 
- 	if (port < 1024)
+ 	if (port < 2)
 		return NULL;
 	if (NET_TYPE_NONE == host_addr_net(ha))
 		return NULL;
@@ -2740,19 +2855,56 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 	return s;
 }
 
+static void
+socket_enable_recvdstaddr(const struct gnutella_socket *s)
+{
+	static const gint enable = 1;
+	gint level = -1, opt = -1;
+
+	g_assert(s);
+	g_assert(s->file_desc >= 0);
+
+#ifdef IP_RECVDSTADDR
+	switch (s->net) {
+	case NET_TYPE_IPV4:
+		level = sol_ip();
+		opt = IP_RECVDSTADDR;
+		break;
+#if defined(USE_IPV6)
+	case NET_TYPE_IPV6:
+		level = sol_ipv6(); 
+		opt = IPV6_RECVDSTADDR;
+		break;
+#endif /* USE_IPV6 */
+	case NET_TYPE_NONE:
+		break;
+	}
+#endif /* IP_RECVDSTADDR */
+			
+	if (
+		-1 != level &&
+		-1 != opt &&
+		0 != setsockopt(s->file_desc, level, opt, &enable, sizeof enable)
+	) {
+		g_warning("socket_recv_dst_addr(): setsockopt() failed: %s",
+			g_strerror(errno));
+	}
+}
+
 /**
  * Creates a non-blocking listening UDP socket.
  */
 struct gnutella_socket *
 socket_udp_listen(const host_addr_t ha, guint16 port)
 {
+	static const int enable = 1;
 	struct gnutella_socket *s;
 	const struct sockaddr *sa;
 	socket_addr_t addr;
 	socklen_t len;
-	int sd, option;
+	int sd;
 
-	if (port < 1024)
+	if (port < 2)
 		return NULL;
 	if (NET_TYPE_NONE == host_addr_net(ha))
 		return NULL;
@@ -2778,8 +2930,8 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	option = 1;
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
+	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
+	socket_enable_recvdstaddr(s);
 
 	/* Set the file descriptor non blocking */
 	socket_set_nonblocking(sd);
@@ -2852,31 +3004,35 @@ socket_omit_token(struct gnutella_socket *s)
  */
 void
 sock_cork(struct gnutella_socket *s, gboolean on)
+#if defined(TCP_CORK) || defined(TCP_NOPUSH)
 {
-#if !defined(TCP_CORK) && defined(TCP_NOPUSH)
-#define TCP_CORK TCP_NOPUSH		/* FreeBSD names it TCP_NOPUSH */
-#endif
-
-#ifdef TCP_CORK
+	static const gint option =
+#if defined(TCP_CORK)
+		TCP_CORK;
+#else	/* !TCP_CORK*/
+		TCP_NOPUSH;
+#endif /* TCP_CORK */
 	gint arg = on ? 1 : 0;
 
-	if (-1 == setsockopt(s->file_desc, sol_tcp(), TCP_CORK, &arg, sizeof(arg)))
+	if (-1 == setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg))
 		g_warning("unable to %s TCP_CORK on fd#%d: %s",
 			on ? "set" : "clear", s->file_desc, g_strerror(errno));
 	else
 		s->corked = on;
+}
 #else
+{
 	static gboolean warned = FALSE;
 
 	(void) s;
 	(void) on;
 
-	if (!warned)
+	if (!warned && socket_debug) {
+		warned = TRUE;
 		g_warning("TCP_CORK is not implemented on this system");
-
-	warned = TRUE;
-#endif /* TCP_CORK */
+	}
 }
+#endif /* TCP_CORK || TCP_NOPUSH */
 
 /*
  * Internal routine for sock_send_buf() and sock_recv_buf().
