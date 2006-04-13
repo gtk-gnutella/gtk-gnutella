@@ -275,14 +275,14 @@ static time_t release_date;
 static void
 qhit_send_node(gpointer data, size_t len, gpointer udata)
 {
-	gnutella_node_t *n = (gnutella_node_t *) udata;
-	struct gnutella_header *packet_head = (struct gnutella_header *) data;
+	gnutella_node_t *n = udata;
+	struct gnutella_header *packet_head = data;
 
 	if (dbg > 3) {
-		g_message("flushing query hit (%d entr%s, %d bytes sofar) to %s\n",
-			(gint) found_file_count(),
+		g_message("flushing query hit (%u entr%s, %u bytes sofar) to %s\n",
+			(guint) found_file_count(),
 			found_file_count() == 1 ? "y" : "ies",
-			(gint) found_size(),
+			(guint) found_size(),
 			node_addr(n));
 	}
 
@@ -761,7 +761,7 @@ qhit_send_results(
 	found_reset(QHIT_SIZE_THRESHOLD, muid, use_ggep_h, qhit_send_node, n);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
-		shared_file_t *sf = (shared_file_t *) sl->data;
+		shared_file_t *sf = sl->data;
 		if (add_file(sf))
 			sent++;
 		shared_file_unref(sf);
