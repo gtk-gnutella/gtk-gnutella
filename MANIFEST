@@ -220,6 +220,7 @@ po/zh_CN.po
 scripts/gtkg-dbus-listener.py
 src/Jmakefile
 src/Makefile.SH
+src/casts.h
 src/common.h
 src/core/Jmakefile
 src/core/Makefile.SH

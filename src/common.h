@@ -516,6 +516,8 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  */
 #define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
 
+#include "casts.h"
+
 #endif /* _common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
