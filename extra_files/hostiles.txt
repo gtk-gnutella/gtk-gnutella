@@ -249,6 +249,13 @@
 # vidlock.com
 217.116.225.250
 
+# Gnucleus-based DRM WMV spammer hosted by HopOne
+209.160.32.221
+209.160.40.147
+
+# Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
+72.51.37.145
+
 # University of Mississippi
 130.74.0.0/16
 
