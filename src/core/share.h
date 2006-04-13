@@ -127,6 +127,7 @@ shared_file_t * shared_file_ref(shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(gchar *sha1_digest);
 shared_file_t *shared_special(const gchar *path);
 void shared_file_unref(shared_file_t *sf);
+void shared_file_remove(shared_file_t *sf);
 
 gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
 void parse_extensions(const gchar *);

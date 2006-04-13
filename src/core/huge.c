@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "dmesh.h"
 #include "version.h"
 #include "settings.h"
+#include "spam.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -113,7 +114,8 @@ static gboolean cache_dirty = FALSE;
  *
  * Copy the ASCII representation of a SHA1 digest from source to dest.
  */
-static void copy_sha1(char *dest, const char *source)
+static void
+copy_sha1(char *dest, const char *source)
 {
 	memcpy(dest, source, SHA1_RAW_SIZE);
 }
@@ -125,8 +127,6 @@ static void copy_sha1(char *dest, const char *source)
 /* In-memory cache */
 
 /**
- * update_volatile_cache
- *
  * Takes an in-memory cached entry, and update its content.
  */
 static void update_volatile_cache(
@@ -142,8 +142,6 @@ static void update_volatile_cache(
 }
 
 /**
- * add_volatile_cache_entry
- *
  * Add a new entry to the in-memory cache.
  */
 static void
@@ -487,14 +485,16 @@ sha1_computation_context_free(gpointer u)
 
 	G_FREE_NULL(ctx->buffer);
 
-	wfree(ctx, sizeof(*ctx));
+	wfree(ctx, sizeof *ctx);
 }
 
 /**
  * When SHA1 is computed, and we know what struct share it's related
  * to, we call this function to update set the share SHA1 value.
+ *
+ * @return FALSE if the pointer "sf" is not valid any longer; TRUE otherwise.
  */
-static void
+static gboolean
 put_sha1_back_into_share_library(struct shared_file *sf,
 	const char *file_name, const char *digest)
 {
@@ -505,7 +505,7 @@ put_sha1_back_into_share_library(struct shared_file *sf,
 
 	if (!sf) {
 		g_warning("got SHA1 for unknown file: %s", file_name);
-		return;
+		return FALSE;
 	}
 
 	if (0 != strcmp(sf->file_path, file_name)) {
@@ -517,7 +517,7 @@ put_sha1_back_into_share_library(struct shared_file *sf,
 
 		g_warning("name of file #%d changed from \"%s\" to \"%s\" (rescan?): "
 				"discarding SHA1", sf->file_index, file_name, sf->file_path);
-		return;
+		return TRUE;
 	}
 
 	/*
@@ -527,23 +527,29 @@ put_sha1_back_into_share_library(struct shared_file *sf,
 	if (-1 == stat(sf->file_path, &buf)) {
 		g_warning("discarding SHA1 for file #%d \"%s\": can't stat(): %s",
 			sf->file_index, sf->file_path, g_strerror(errno));
-		return;
+		return TRUE;
 	}
 
 	if (buf.st_mtime != sf->mtime) {
 		g_warning("file #%d \"%s\" was modified whilst SHA1 was computed",
 			sf->file_index, sf->file_path);
 		sf->mtime = buf.st_mtime;
-		request_sha1(sf);					/* Retry! */
-		return;
+		return request_sha1(sf);					/* Retry! */
+	}
+
+	if (spam_check(digest)) {
+		g_warning("file #%d \"%s\" is listed as spam",
+			sf->file_index, sf->file_path);
+		shared_file_remove(sf);
+		return FALSE;
 	}
 
 	set_sha1(sf, digest);
 
 	/* Update cache */
 
-	cached_sha1 = (struct sha1_cache_entry *)
-		g_hash_table_lookup(sha1_cache, (gconstpointer) sf->file_path);
+	cached_sha1 = g_hash_table_lookup(sha1_cache,
+					cast_to_gconstpointer(sf->file_path));
 
 	if (cached_sha1) {
 		update_volatile_cache(cached_sha1, sf->file_size, sf->mtime, digest);
@@ -554,6 +560,8 @@ put_sha1_back_into_share_library(struct shared_file *sf,
 		add_persistent_cache_entry(sf->file_path,
 			sf->file_size, sf->mtime, digest);
 	}
+
+	return TRUE;
 }
 
 /**
@@ -943,7 +951,8 @@ cached_entry_up_to_date(const struct sha1_cache_entry *cache_entry,
 /**
  * External interface to check whether the sha1 for shared_file is known.
  */
-gboolean sha1_is_cached(const struct shared_file *sf)
+gboolean
+sha1_is_cached(const struct shared_file *sf)
 {
 	const struct sha1_cache_entry *cached_sha1;
 
@@ -955,8 +964,11 @@ gboolean sha1_is_cached(const struct shared_file *sf)
 
 /**
  * External interface to call for getting the hash for a shared_file.
+ *
+ * @return if shared_file_remove() was called, FALSE is returned and
+ *         "sf" is no longer valid. Otherwise TRUE is returned.
  */
-void
+gboolean
 request_sha1(struct shared_file *sf)
 {
 	struct sha1_cache_entry *cached_sha1;
@@ -964,9 +976,16 @@ request_sha1(struct shared_file *sf)
 	cached_sha1 = g_hash_table_lookup(sha1_cache, sf->file_path);
 
 	if (cached_sha1 && cached_entry_up_to_date(cached_sha1, sf)) {
+		if (spam_check(cached_sha1->digest)) {
+			g_warning("file #%d \"%s\" is listed as spam",
+					sf->file_index, sf->file_path);
+			shared_file_remove(sf);
+			return FALSE;
+		}
+
 		set_sha1(sf, cached_sha1->digest);
 		cached_sha1->shared = TRUE;
-		return;
+		return TRUE;
 	}
 
 	if (dbg > 4) {
@@ -979,6 +998,7 @@ request_sha1(struct shared_file *sf)
 	}
 
 	queue_shared_file_for_sha1_computation(sf->file_index, sf->file_path);
+	return TRUE;
 }
 
 /**
@@ -1070,8 +1090,6 @@ huge_improbable_sha1(const gchar *buf, size_t len)
 }
 
 /**
- * huge_sha1_extract32
- *
  * Validate `len' bytes starting from `buf' as a proper base32 encoding
  * of a SHA1 hash, and write decoded value in `retval'.
  * Also make sure that the SHA1 is not an improbable value.

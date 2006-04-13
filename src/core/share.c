@@ -724,6 +724,19 @@ shared_file(guint idx)
 	return file_table[idx - 1];
 }
 
+static guint
+shared_file_get_index(const gchar *basename)
+{
+	guint idx;
+
+	idx = GPOINTER_TO_UINT(g_hash_table_lookup(file_basenames, basename));
+	if (idx == 0 || idx == FILENAME_CLASH)
+		return 0;
+
+	g_assert(idx >= 1 && idx <= files_scanned);
+	return idx;	
+}
+
 /**
  * Given a file basename, returns the `struct shared_file' entry describing
  * the shared file bearing that basename, provided it is unique, NULL if
@@ -739,14 +752,7 @@ shared_file_by_name(const gchar *basename)
 		return SHARE_REBUILDING;
 
 	g_assert(file_basenames);
-
-	idx = GPOINTER_TO_UINT(g_hash_table_lookup(file_basenames, basename));
-
-	if (idx == 0 || idx == FILENAME_CLASH)
-		return NULL;
-
-	g_assert(idx >= 1 && idx <= files_scanned);
-
+	idx = shared_file_get_index(basename);
 	return file_table[idx - 1];
 }
 
@@ -1154,14 +1160,17 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 					break;
 				}
 
-				request_sha1(found);
-				st_insert_item(&search_table, found->name_canonic, found);
-				shared_files = g_slist_prepend(shared_files,
-					shared_file_ref(found));
+				if (request_sha1(found)) {
+					st_insert_item(&search_table, found->name_canonic, found);
+					shared_files = g_slist_prepend(shared_files,
+							shared_file_ref(found));
 
-				bytes_scanned += file_stat.st_size;
-				kbytes_scanned += bytes_scanned >> 10;
-				bytes_scanned &= (1 << 10) - 1;
+					bytes_scanned += file_stat.st_size;
+					kbytes_scanned += bytes_scanned >> 10;
+					bytes_scanned &= (1 << 10) - 1;
+				} else {
+					found = NULL;
+				}
 				break;			/* for loop */
 			}
 		}
@@ -2434,6 +2443,24 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 	}
 
 	return TRUE;
+}
+
+void
+shared_file_remove(struct shared_file *sf)
+{
+	const struct shared_file *sfc;
+	
+	g_assert(sf);
+
+	sfc = shared_file(sf->file_index);
+	if (SHARE_REBUILDING != sfc) {
+		g_assert(sfc == sf);
+		file_table[sf->file_index - 1] = NULL;
+	}
+	g_hash_table_remove(file_basenames, sf->name_nfc);
+	if (0 == sf->refcnt) {
+		shared_file_free(sf);
+	}
 }
 
 /**

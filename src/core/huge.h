@@ -54,7 +54,7 @@ void huge_close(void);		/**< Call this when servent is shutdown */
  * the computed value is saved in the cache.
  */
 
-void request_sha1(struct shared_file *);
+gboolean request_sha1(struct shared_file *);
 gboolean sha1_is_cached(const struct shared_file *sf);
 
 gboolean huge_improbable_sha1(const gchar *buf, size_t len);
