@@ -2519,8 +2519,8 @@ supports_chunked(const gnutella_upload_t *u, header_t *header)
 		 */
     	buf = header_get(header, "User-Agent");
 		chunked = NULL == buf || (
-			!is_strprefix(buf, "LimeWire/") &&
-			!is_strprefix(buf, "FrostWire/"));
+			!is_strprefix(buf, "LimeWire") &&
+			!is_strprefix(buf, "FrostWire"));
 	} else {
 		/* HTTP/1.0 and older doesn't know about "chunked" */
 		chunked = FALSE;
