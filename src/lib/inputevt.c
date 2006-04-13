@@ -48,6 +48,20 @@ RCSID("$Id$");
 
 #ifdef HAS_KQUEUE
 #include <sys/event.h>
+/*
+ * Some kqueue() implementations have a "struct kevent" with "udata"
+ * being of type (void *) while others have "udata" of type "intptr_t".
+ * To prevent incorrect casts and compiler warnings the two macros below
+ * should be used to access this struct member.
+ */
+/* FIXME: Add the Configure check */
+#if defined(HAS_KEVENT_INT_UDATA)
+#define KEVENT_UDATA_TO_PTR(x) cast_uintptr_to_ptr(x)
+#define PTR_TO_KEVENT_UDATA(x) cast_ptr_to_uintptr(x)
+#else
+#define KEVENT_UDATA_TO_PTR(x) (x)
+#define PTR_TO_KEVENT_UDATA(x) (x)
+#endif /* HAVE_KEVENT_INT_UDATA */
 
 /* In case any system has both, kqueue() is preferred */
 #ifdef HAS_EPOLL
@@ -143,7 +157,7 @@ get_poll_event_udata(gpointer p)
 #ifdef HAS_KQUEUE 
 {
 	struct kevent *ev = p;
-	return (gpointer) (gulong) ev->udata;
+	return KEVENT_UDATA_TO_PTR(ev->udata);
 }
 #else /* !HAS_KQUEUE */
 {
@@ -189,26 +203,26 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 	static const struct timespec zero_ts;
 	struct kevent kev[2];
 	size_t i;
-	gulong udata;
+	gpointer udata;
 	gint ret;
 
 	if ((INPUT_EVENT_RW & old) == (INPUT_EVENT_RW & cur))
 		return 0;
 
 	i = 0;
-	udata = (gulong) GINT_TO_POINTER(fd);
+	udata = GINT_TO_POINTER(fd);
 
 	if ((INPUT_EVENT_R & old) != (INPUT_EVENT_R & cur)) {
 		EV_SET(&kev[i], fd, EVFILT_READ,
 			(INPUT_EVENT_R & cur) ? EV_ADD : (EV_DELETE | EV_DISABLE),
-			0, 0, udata);
+			0, 0, PTR_TO_KEVENT_UDATA(udata));
 		i++;
 	}
 
 	if ((INPUT_EVENT_W & old) != (INPUT_EVENT_W & cur)) {
 		EV_SET(&kev[i], fd, EVFILT_WRITE,
 			(INPUT_EVENT_W & cur) ? EV_ADD : (EV_DELETE | EV_DISABLE),
-			0, 0, udata);
+			0, 0, PTR_TO_KEVENT_UDATA(udata));
 		i++;
 	}
 
