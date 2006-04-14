@@ -260,6 +260,7 @@
 206.222.26.34
 
 # Shareaza-based DRM WMV spammer hosted by Peer 1
+64.34.248.165
 69.90.216.73
 
 # University of Mississippi
