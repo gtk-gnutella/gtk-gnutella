@@ -1405,6 +1405,17 @@ local_addr_changed(property_t prop)
 }
 
 static gboolean
+ipv6_trt_prefix_changed(property_t prop)
+{
+	static host_addr_t addr;
+
+	(void) prop;
+
+	socket_set_ipv6_trt_prefix(string_to_host_addr(ipv6_trt_prefix, NULL));
+	return FALSE;
+}
+
+static gboolean
 configured_peermode_changed(property_t prop)
 {
     guint32 val;
@@ -1748,6 +1759,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_LOCAL_IP,
 		local_addr_changed,
+		TRUE,
+	},
+	{
+		PROP_IPV6_TRT_PREFIX,
+		ipv6_trt_prefix_changed,
 		TRUE,
 	},
 	{

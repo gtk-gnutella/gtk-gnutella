@@ -107,6 +107,43 @@ typedef union socket_addr {
 #endif
 } socket_addr_t;
 
+#if defined(USE_IPV6)
+static host_addr_t ipv6_trt_addr;
+#endif /* USE_IPV6 */
+
+void
+socket_set_ipv6_trt_prefix(const host_addr_t addr)
+#if defined(USE_IPV6)
+{
+	if (NET_TYPE_IPV6 == host_addr_net(addr)) {
+		ipv6_trt_addr = addr;
+	}
+}
+#else	/* !USE_IPV6 */
+{
+	(void) addr;
+}
+#endif /* USE_IPV6 */
+
+host_addr_t
+socket_ipv6_trt_map(const host_addr_t addr)
+{
+#ifdef USE_IPV6
+	if (
+		use_ipv6_trt &&
+		NET_TYPE_IPV4 == host_addr_net(addr) &&
+		NET_TYPE_IPV6 == host_addr_net(ipv6_trt_addr)
+	) {
+		host_addr_t ret;
+
+		ret = ipv6_trt_addr;
+		poke_be32(&ret.addr.ipv6[12], host_addr_ipv4(addr));
+		return ret;
+	}
+#endif /* USE_IPV6 */
+	return addr;
+}
+
 /**
  * Initializes addr with an IPv4 address and a port number.
  *
@@ -115,7 +152,7 @@ typedef union socket_addr {
  * @param port a 16-bit port number in host byte order
  */
 static void
-socket_addr_set(socket_addr_t *addr, const host_addr_t ha, guint16 port)
+socket_addr_set(socket_addr_t *addr, host_addr_t ha, guint16 port)
 {
 	static const socket_addr_t zero_addr;
 
@@ -125,9 +162,17 @@ socket_addr_set(socket_addr_t *addr, const host_addr_t ha, guint16 port)
 
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
-		addr->inet4.sin_family = AF_INET;	/* host byte order */
-		addr->inet4.sin_port = htons(port);
-		addr->inet4.sin_addr.s_addr = htonl(host_addr_ipv4(ha));
+#if defined(USE_IPV6)
+		ha = socket_ipv6_trt_map(ha);
+		if (NET_TYPE_IPV6 == host_addr_net(ha)) {
+			socket_addr_set(addr, ha, port);
+		} else
+#endif /* USE_IPV6 */
+		{
+			addr->inet4.sin_family = AF_INET;	/* host byte order */
+			addr->inet4.sin_port = htons(port);
+			addr->inet4.sin_addr.s_addr = htonl(host_addr_ipv4(ha));
+		}
 		return;
 
 #if defined(USE_IPV6)
@@ -2507,12 +2552,17 @@ socket_set_linger(gint fd)
  */
 static gint
 socket_connect_prepare(struct gnutella_socket *s,
-	const host_addr_t ha, guint16 port, enum socket_type type, guint32 flags)
+	host_addr_t addr, guint16 port, enum socket_type type, guint32 flags)
 {
 	gint sd, option;
 
 	g_assert(s);
-	sd = socket(host_addr_family(ha), SOCK_STREAM, 0);
+
+	if (use_ipv6_trt) {
+		addr = socket_ipv6_trt_map(addr);
+	}
+	
+	sd = socket(host_addr_family(addr), SOCK_STREAM, 0);
 
 	if (-1 == sd) {
 		/*
@@ -2524,7 +2574,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 			(errno == EMFILE || errno == ENFILE) &&
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
-			sd = socket(host_addr_family(ha), SOCK_STREAM, 0);
+			sd = socket(host_addr_family(addr), SOCK_STREAM, 0);
 			if (sd >= 0) {
 				g_warning("had to close a banned fd to prepare new connection");
 				goto created;
@@ -2538,7 +2588,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 created:
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
-	s->net = host_addr_net(ha);
+	s->net = host_addr_net(addr);
 	s->file_desc = sd;
 	s->port = port;
 	s->flags |= SOCK_F_TCP;
