@@ -1407,8 +1407,6 @@ local_addr_changed(property_t prop)
 static gboolean
 ipv6_trt_prefix_changed(property_t prop)
 {
-	static host_addr_t addr;
-
 	(void) prop;
 
 	socket_set_ipv6_trt_prefix(string_to_host_addr(ipv6_trt_prefix, NULL));
