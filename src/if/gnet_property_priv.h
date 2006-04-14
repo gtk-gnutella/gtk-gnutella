@@ -156,6 +156,8 @@ extern const gchar   *proxy_hostname;
 extern const guint32  proxy_port;
 extern const guint32  proxy_protocol;
 extern const guint32  network_protocol;
+extern const gboolean use_ipv6_trt;
+extern const gchar   *ipv6_trt_prefix;
 extern const guint32  hosts_in_catcher;
 extern const guint32  hosts_in_ultra_catcher;
 extern const guint32  hosts_in_bad_catcher;

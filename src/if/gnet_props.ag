@@ -1313,6 +1313,26 @@ prop = {
     };
 };
 
+prop = {
+    name = "use_ipv6_trt";
+    desc = "Use an IPv6-to-IPv4 Transport Relay Translator as"
+		   "specified by RFC 3142.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "ipv6_trt_prefix";
+    desc = "The IPv6 address prefix used by the IPv6-to-IPv4 "
+           "Transport Relay Translator.";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
 
 prop = {
     name = "hosts_in_catcher";

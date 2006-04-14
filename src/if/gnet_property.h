@@ -28,6 +28,7 @@
 #ifndef _gnet_property_h_
 #define _gnet_property_h_
 
+
 #include "lib/prop.h"
 
 #define GNET_PROPERTY_MIN ((NO_PROP+1))
@@ -148,6 +149,8 @@ typedef enum {
     PROP_PROXY_PORT,
     PROP_PROXY_PROTOCOL,
     PROP_NETWORK_PROTOCOL,
+    PROP_USE_IPV6_TRT,
+    PROP_IPV6_TRT_PREFIX,
     PROP_HOSTS_IN_CATCHER,
     PROP_HOSTS_IN_ULTRA_CATCHER,
     PROP_HOSTS_IN_BAD_CATCHER,
