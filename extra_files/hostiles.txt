@@ -257,6 +257,9 @@
 209.160.32.221
 209.160.40.147
 
+# Gnucleus-based DRM WMV spammer hosted by DMG Networks
+209.165.244.242
+
 # Gnucleus-based DRM WMV spammer hosted by CNAP
 209.190.122.186
 
