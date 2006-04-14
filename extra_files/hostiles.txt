@@ -256,6 +256,9 @@
 # Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
 72.51.37.145
 
+# Gnucleus-based DRM WMV spammer hosted by eNET
+206.222.26.34
+
 # University of Mississippi
 130.74.0.0/16
 
