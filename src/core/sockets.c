@@ -492,7 +492,6 @@ sol_ip(void)
 	return sol_ip_cached;
 }
 
-#if defined(USE_IPV6)
 /**
  * @returns SOL_IPV6.
  */
@@ -502,7 +501,6 @@ sol_ipv6(void)
 	g_assert(sol_got);
 	return sol_ipv6_cached;
 }
-#endif /* USE_IPV6 */
 
 #ifdef USE_IP_TOS
 
@@ -2287,7 +2285,6 @@ accepted:
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 }
 
-
 static gboolean
 socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #if defined(CMSG_FIRSTHDR)
@@ -2306,7 +2303,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 			p->cmsg_level == sol_ip()
 		) {
 			struct in_addr addr;
-			const gchar *data;
+			const void *data;
 
 			data = CMSG_DATA(p);
 			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
@@ -2321,7 +2318,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 			p->cmsg_level == sol_ipv6()
 		) {
 			struct in6_addr addr;
-			const gchar *data;
+			const void *data;
 
 			data = CMSG_DATA(p);
 			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
@@ -2922,18 +2919,22 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	g_assert(s->file_desc >= 0);
 
 	switch (s->net) {
-#if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
 	case NET_TYPE_IPV4:
+#if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
 		level = sol_ip();
 		opt = IP_RECVDSTADDR;
-		break;
 #endif /* IP_RECVDSTADDR && IP_RECVDSTADDR */
-#if defined(USE_IPV6) && defined(IPV6_RECVDSTADDR)
+		break;
+
+#if defined(USE_IPV6)
 	case NET_TYPE_IPV6:
+#if defined(IPV6_RECVDSTADDR)
 		level = sol_ipv6(); 
 		opt = IPV6_RECVDSTADDR;
+#endif /* IPV6_RECVDSTADDR */
 		break;
-#endif /* USE_IPV6 && IPV6_RECVDSTADDR */
+#endif /* USE_IPV6 */
+
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -3783,6 +3784,7 @@ void
 socket_init(void)
 {
 	get_sol();
+	(void) sol_ipv6(); /* Get rid of warning "defined but unused" */
 
 #ifdef HAS_GNUTLS
 	if (gnutls_global_init())
