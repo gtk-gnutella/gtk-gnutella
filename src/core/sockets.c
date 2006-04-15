@@ -107,8 +107,34 @@ typedef union socket_addr {
 #endif
 } socket_addr_t;
 
+static host_addr_t
+socket_bind_address(const host_addr_t *addr)
+{
+	static host_addr_t bind_addr;
+	if (addr) {
+		g_assert(host_addr_initialized(*addr));
+		bind_addr = *addr;
+	}
+	return bind_addr;
+}
+
+void
+socket_set_bind_address(const host_addr_t addr)
+{
+	if (host_addr_initialized(addr)) {
+		socket_bind_address(&addr);
+	}
+}
+
+static host_addr_t 
+socket_get_bind_address(void)
+{
+	return socket_bind_address(NULL);
+}
+
+
 #if defined(USE_IPV6)
-static host_addr_t ipv6_trt_addr;
+static host_addr_t socket_ipv6_trt_addr;
 #endif /* USE_IPV6 */
 
 void
@@ -116,7 +142,7 @@ socket_set_ipv6_trt_prefix(const host_addr_t addr)
 #if defined(USE_IPV6)
 {
 	if (NET_TYPE_IPV6 == host_addr_net(addr)) {
-		ipv6_trt_addr = addr;
+		socket_ipv6_trt_addr = addr;
 	}
 }
 #else	/* !USE_IPV6 */
@@ -132,11 +158,11 @@ socket_ipv6_trt_map(const host_addr_t addr)
 	if (
 		use_ipv6_trt &&
 		NET_TYPE_IPV4 == host_addr_net(addr) &&
-		NET_TYPE_IPV6 == host_addr_net(ipv6_trt_addr)
+		NET_TYPE_IPV6 == host_addr_net(socket_ipv6_trt_addr)
 	) {
 		host_addr_t ret;
 
-		ret = ipv6_trt_addr;
+		ret = socket_ipv6_trt_addr;
 		poke_be32(&ret.addr.ipv6[12], host_addr_ipv4(addr));
 		return ret;
 	}
@@ -2562,10 +2588,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	g_assert(s);
 
-	if (use_ipv6_trt) {
-		addr = socket_ipv6_trt_map(addr);
-	}
-	
+	addr = socket_ipv6_trt_map(addr);
 	sd = socket(host_addr_family(addr), SOCK_STREAM, 0);
 
 	if (-1 == sd) {
@@ -2652,19 +2675,24 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	 *   --JSL
 	 */
 	if (force_local_ip) {
-		socket_addr_t local;
-		const struct sockaddr *sa;
-		socklen_t len;
+		host_addr_t bind_addr;
 
-		socket_addr_set(&local, string_to_host_addr(forced_local_ip, NULL), 0);
-		len = socket_addr_get(&local, &sa);
+		bind_addr = socket_get_bind_address();
+		if (host_addr_initialized(bind_addr)) {
+			const struct sockaddr *sa;
+			socket_addr_t local;
+			socklen_t len;
+			
+			socket_addr_set(&local, bind_addr, 0);
+			len = socket_addr_get(&local, &sa);
 
-		/*
-		 * Note: we ignore failures: it will be automatic at connect()
-		 * It's useful only for people forcing the IP without being
-		 * behind a masquerading firewall --RAM.
-		 */
-		(void) bind(s->file_desc, sa, len);
+			/*
+			 * Note: we ignore failures: it will be automatic at connect()
+			 * It's useful only for people forcing the IP without being
+			 * behind a masquerading firewall --RAM.
+			 */
+			(void) bind(s->file_desc, sa, len);
+		}
 	}
 
 	if (proxy_protocol != PROXY_NONE) {
@@ -2825,7 +2853,7 @@ socket_connect_by_name(const gchar *host, guint16 port,
  * resource of `type'.
  */
 struct gnutella_socket *
-socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
+socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 {
 	struct gnutella_socket *s;
 	const struct sockaddr *sa;
@@ -2837,12 +2865,12 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 
  	if (port < 2)
 		return NULL;
-	if (NET_TYPE_NONE == host_addr_net(ha))
+	if (NET_TYPE_NONE == host_addr_net(bind_addr))
 		return NULL;
-
-	socket_addr_set(&addr, ha, port);
-
-	sd = socket(host_addr_family(ha), SOCK_STREAM, 0);
+	
+	bind_addr = socket_ipv6_trt_map(bind_addr);
+	socket_addr_set(&addr, bind_addr, port);
+	sd = socket(host_addr_family(bind_addr), SOCK_STREAM, 0);
 	if (-1 == sd) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
@@ -2866,7 +2894,7 @@ socket_tcp_listen(const host_addr_t ha, guint16 port, enum socket_type type)
 	/* Set the file descriptor non blocking */
 	socket_set_nonblocking(sd);
 
-	s->net = host_addr_net(ha);
+	s->net = host_addr_net(bind_addr);
 
 	/* bind() the socket */
 
@@ -2953,7 +2981,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
  * Creates a non-blocking listening UDP socket.
  */
 struct gnutella_socket *
-socket_udp_listen(const host_addr_t ha, guint16 port)
+socket_udp_listen(host_addr_t bind_addr, guint16 port)
 {
 	static const int enable = 1;
 	struct gnutella_socket *s;
@@ -2964,14 +2992,12 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 
 	if (port < 2)
 		return NULL;
-	if (NET_TYPE_NONE == host_addr_net(ha))
+	if (NET_TYPE_NONE == host_addr_net(bind_addr))
 		return NULL;
 
-	socket_addr_set(&addr, ha, port);
-
-	/* Create a socket, then bind() it */
-
-	sd = socket(host_addr_family(ha), SOCK_DGRAM, 0);
+	socket_addr_set(&addr, bind_addr, port);
+	bind_addr = socket_ipv6_trt_map(bind_addr);
+	sd = socket(host_addr_family(bind_addr), SOCK_DGRAM, 0);
 	if (-1 == sd) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
@@ -2984,7 +3010,7 @@ socket_udp_listen(const host_addr_t ha, guint16 port)
 	s->file_desc = sd;
 	s->pos = 0;
 	s->flags |= SOCK_F_UDP;
-	s->net = host_addr_net(ha);
+	s->net = host_addr_net(bind_addr);
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 

@@ -209,6 +209,7 @@ gboolean socket_bad_hostname(struct gnutella_socket *s);
 void socket_disable_token(struct gnutella_socket *s);
 gboolean socket_omit_token(struct gnutella_socket *s);
 void socket_set_ipv6_trt_prefix(const host_addr_t addr);
+void socket_set_bind_address(const host_addr_t addr);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);

@@ -113,6 +113,7 @@ listen_address(gboolean update)
 
 		val = force_local_ip ? forced_local_ip : local_ip;
 		addr = string_to_host_addr(val, NULL);
+		socket_set_bind_address(addr);
 	}
 	return addr;
 }
