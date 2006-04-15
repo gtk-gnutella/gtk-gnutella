@@ -2290,7 +2290,7 @@ accepted:
 
 static gboolean
 socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
-#if defined(CMSG_FIRSTHDR) && defined(IP_RECVDSTADDR)
+#if defined(CMSG_FIRSTHDR)
 {
 	const struct cmsghdr *p;
 
@@ -2298,7 +2298,13 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 	g_assert(dst_addr);
 
 	for (p = CMSG_FIRSTHDR(msg); NULL != p; p = CMSG_NXTHDR(msg, p)) {
-		if (IP_RECVDSTADDR == p->cmsg_type && p->cmsg_level == sol_ip()) {
+		if (0) {
+			/* NOTHING */
+#if defined(IP_RECVDSTADDR)
+		} else if (
+			IP_RECVDSTADDR == p->cmsg_type &&
+			p->cmsg_level == sol_ip()
+		) {
 			struct in_addr addr;
 			const gchar *data;
 
@@ -2308,7 +2314,8 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 				*dst_addr = host_addr_set_ipv4(ntohl(addr.s_addr));
 				return TRUE;
 			}
-#ifdef USE_IPV6
+#endif /* IP_RECVDSTADDR */
+#if defined(USE_IPV6) && defined(IPV6_RECVDSTADDR)
 		} else if (
 			IPV6_RECVDSTADDR == p->cmsg_type &&
 			p->cmsg_level == sol_ipv6()
@@ -2322,7 +2329,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 				host_addr_set_ipv6(dst_addr, addr.s6_addr);
 				return TRUE;
 			}
-#endif /* USE_IPV6 */
+#endif /* USE_IPV6 && IPV6_RECVDSTADDR */
 		} else {
 			if (socket_debug)
 				g_message("socket_udp_extract_dst_addr(): "
@@ -2335,13 +2342,13 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 
 	return FALSE;
 }
-#else
+#else	/* !CMSG_FIRSTHDR */
 {
 	(void) msg;
 	(void) dst_addr;
 	return FALSE;
 }
-#endif /* CMSG_FIRSTHDR && IP_RECVDSTADDR */
+#endif /* CMSG_FIRSTHDR */
 
 /**
  * Someone is sending us a datagram.
@@ -2914,22 +2921,22 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	g_assert(s);
 	g_assert(s->file_desc >= 0);
 
-#ifdef IP_RECVDSTADDR
 	switch (s->net) {
+#if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
 	case NET_TYPE_IPV4:
 		level = sol_ip();
 		opt = IP_RECVDSTADDR;
 		break;
-#if defined(USE_IPV6)
+#endif /* IP_RECVDSTADDR && IP_RECVDSTADDR */
+#if defined(USE_IPV6) && defined(IPV6_RECVDSTADDR)
 	case NET_TYPE_IPV6:
 		level = sol_ipv6(); 
 		opt = IPV6_RECVDSTADDR;
 		break;
-#endif /* USE_IPV6 */
+#endif /* USE_IPV6 && IPV6_RECVDSTADDR */
 	case NET_TYPE_NONE:
 		break;
 	}
-#endif /* IP_RECVDSTADDR */
 			
 	if (
 		-1 != level &&
