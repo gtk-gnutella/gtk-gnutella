@@ -724,6 +724,10 @@ shared_file(guint idx)
 	return file_table[idx - 1];
 }
 
+/**
+ * Get index of shared file indentified by its name.
+ * @return index > 0 if found, 0 if file is not known.
+ */
 static guint
 shared_file_get_index(const gchar *basename)
 {
@@ -753,7 +757,7 @@ shared_file_by_name(const gchar *basename)
 
 	g_assert(file_basenames);
 	idx = shared_file_get_index(basename);
-	return file_table[idx - 1];
+	return idx == 0 ? NULL : file_table[idx - 1];
 }
 
 /**
