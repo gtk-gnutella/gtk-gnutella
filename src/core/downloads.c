@@ -9157,9 +9157,7 @@ download_close(void)
 	GSList *l;
 
 	download_store();			/* Save latest copy */
-	file_info_store();
 	download_freeze_queue();
-
 	download_free_removed();
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
@@ -9201,6 +9199,8 @@ download_close(void)
 
 		wfree(d, sizeof(*d));
 	}
+
+	file_info_store();		/* Now that pending data was flushed */
 
 	/*
 	 * FIXME:
