@@ -175,7 +175,7 @@ ensure_unicity(const gchar *file)
 	if (!locking_failed)
 		goto done;
 
-	if (VAL_EAGAIN == e || EACCES == e)
+	if (is_temporary_error(e) || EACCES == e)
 		goto failed;		/* The file appears to be locked */
 
 	/* Maybe F_SETLK is not supported by the OS or filesystem,

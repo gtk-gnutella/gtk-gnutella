@@ -6098,14 +6098,14 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	r = bio_read(d->bio, s->buffer, sizeof(s->buffer));
+	r = bio_read(d->bio, s->buffer, sizeof s->buffer);
 	if (r == 0) {
 		socket_eof(s);
 		download_queue_delay(d, download_retry_busy_delay,
 			_("Stopped data (EOF)"));
 		return;
 	} else if ((ssize_t) -1 == r) {
-		if (errno != VAL_EAGAIN) {
+		if (!is_temporary_error(errno)) {
 			socket_eof(s);
 			if (errno == ECONNRESET)
 				download_queue_delay(d, download_retry_busy_delay,
@@ -7407,7 +7407,7 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 				_("Stopped data (EOF)"));
 		return;
 	} else if ((ssize_t) -1 == r) {
-		if (errno != VAL_EAGAIN) {
+		if (!is_temporary_error(errno)) {
 			socket_eof(s);
 			if (errno == ECONNRESET)
 				download_queue_delay(d, download_retry_busy_delay,

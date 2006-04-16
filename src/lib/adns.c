@@ -264,7 +264,7 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 		else
 			ret = read(fd, buf, n);
 
-		if ((ssize_t) -1 == ret && errno != VAL_EAGAIN && errno != EINTR) {
+		if ((ssize_t) -1 == ret && !is_temporary_error(errno)) {
             /* Ignore the failure, if the parent process is gone.
                This prevents an unnecessary warning when quitting. */
             if (!is_helper || getppid() != 1)
@@ -439,7 +439,7 @@ again:
 		}
 		/* FALL THROUGH */
 		if ((ssize_t) -1 == ret) {
-			if (errno != VAL_EAGAIN && errno != EINTR) {
+			if (!is_temporary_error(errno)) {
 				g_warning("adns_reply_callback: read() failed: %s",
 					g_strerror(errno));
 				inputevt_remove(adns_reply_event_id);
@@ -541,7 +541,7 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 		}
 		/* FALL THROUGH */
 		if ((ssize_t) -1 == ret) {
-			if (errno != VAL_EAGAIN && errno != EINTR)
+			if (!is_temporary_error(errno))
 				goto error;
 			return;
 		}
@@ -659,7 +659,7 @@ adns_send_query(const adns_query_t *query)
 
 	written = write(adns_query_fd, &q, sizeof q);
 	if (written == (ssize_t) -1) {
-		if (errno != EINTR && errno != VAL_EAGAIN) {
+		if (!is_temporary_error(errno)) {
 			g_warning("adns_resolve: write() failed: %s",
 				g_strerror(errno));
 			inputevt_remove(adns_reply_event_id);

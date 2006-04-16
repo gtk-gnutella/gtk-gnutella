@@ -887,7 +887,7 @@ shell_write_data(gnutella_shell_t *sh)
 	written = s->wio.write(&s->wio, sh->outbuf, sh->outpos);
 	switch (written) {
 	case (ssize_t) -1:
-		if (errno == VAL_EAGAIN || errno == EINTR)
+		if (is_temporary_error(errno))
 			return;
 
 		/* FALL THRU */

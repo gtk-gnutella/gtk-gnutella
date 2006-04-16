@@ -2155,7 +2155,7 @@ http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct http_async *ha = (struct http_async *) data;
 	struct gnutella_socket *s = ha->socket;
-	gint r;
+	ssize_t r;
 
 	(void) unused_source;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
@@ -2166,7 +2166,7 @@ http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	g_assert((gint) s->pos >= 0 && s->pos <= sizeof(s->buffer));
+	g_assert((gint) s->pos >= 0 && s->pos <= sizeof s->buffer);
 
 	if (s->pos == sizeof(s->buffer)) {
 		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
@@ -2178,11 +2178,11 @@ http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		socket_eof(s);
 		http_got_data(ha, TRUE);			/* Signals EOF */
 		return;
-	} else if (r < 0 && errno == VAL_EAGAIN)
-		return;
-	else if (r < 0) {
-		socket_eof(s);
-		http_async_syserr(ha, errno);
+	} else if ((ssize_t) -1 == r) {
+		if (!is_temporary_error(errno)) {
+			socket_eof(s);
+			http_async_syserr(ha, errno);
+		}
 		return;
 	}
 

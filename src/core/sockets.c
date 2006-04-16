@@ -1310,7 +1310,7 @@ socket_linger_cb(gpointer data, gint fd, inputevt_cond_t unused_cond)
 	if (close(fd)) {
 		gint e = errno;
 
-		if (VAL_EAGAIN != e && EINTR != e)
+		if (!is_temporary_error(e))
 			g_warning("close(%d) failed: %s", fd, g_strerror(e));
 
 		/* remove the handler in case of EBADF because it would
@@ -1391,7 +1391,7 @@ socket_free(struct gnutella_socket *s)
 		if (close(s->file_desc)) {
 			gint e = errno;
 
-			if (VAL_EAGAIN != e && EINTR != e)
+			if (!is_temporary_error(e))
 				g_warning("close(%d) failed: %s", s->file_desc, g_strerror(e));
 
 			if (EBADF != e) /* just in case, as it would cause looping */
@@ -1616,7 +1616,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			}
 		} else {
 
-			if (ret == 0 || (errno != EINTR && errno != VAL_EAGAIN))
+			if (ret == 0 || !is_temporary_error(errno))
 				socket_destroy(s, "Connection reset");
 
 			/* If recv() failed only temporarily, wait for further data. */
@@ -1656,7 +1656,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		socket_destroy(s, "Got EOF");
 		return;
 	case (ssize_t) -1:
-		if (errno != VAL_EAGAIN)
+		if (!is_temporary_error(errno))
 			socket_destroy(s, _("Read error"));
 		return;
 	default:
@@ -2188,7 +2188,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 			}
 		}
 
-		if (errno != ECONNABORTED && errno != EAGAIN)
+		if (errno != ECONNABORTED && !is_temporary_error(errno))
 			g_warning("accept() failed (%s)", g_strerror(errno));
 		return;
 	}
@@ -2482,7 +2482,7 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	for (i = 0; i < 1; i++) {
 		if (socket_udp_accept(s)) {
-			if (errno != EAGAIN)
+			if (!is_temporary_error(errno))
 				g_warning("ignoring datagram reception error: %s",
 					g_strerror(errno));
 			if (i > 1)
@@ -2663,7 +2663,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 			proxy_protocol != PROXY_NONE &&
 			(!is_host_addr(proxy_addr) || !proxy_port)
 		) {
-			if (errno != VAL_EAGAIN) {
+			if (!is_temporary_error(errno)) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
 					proxy_hostname, proxy_port);
 			}

@@ -394,7 +394,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 		(*ih->error->header_read_eof)(ih->resource);
 		return;
 	} else if ((ssize_t) -1 == r) {
-	  	if (errno != VAL_EAGAIN) {
+	  	if (!is_temporary_error(errno)) {
 			socket_eof(s);
 			(*ih->error->header_read_error)(ih->resource, errno);
 		}

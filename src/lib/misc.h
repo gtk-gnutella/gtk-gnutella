@@ -557,6 +557,20 @@ extern gint do_errno;
 
 gint do_stat(const gchar *path, struct stat *buf);
 
+static inline gboolean
+is_temporary_error(gint error)
+{
+  switch (error) {
+  case EAGAIN:
+#if defined(EWOULDBLOCK) && EAGAIN != EWOULDBLOCK
+  case EWOULDBLOCK:
+#endif /* EWOULDBLOCK != EAGAIN */
+  case EINTR:
+    return TRUE;
+  }
+  return FALSE;
+}
+
 /*
  * CIDR split of IP range.
  */

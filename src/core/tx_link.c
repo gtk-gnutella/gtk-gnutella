@@ -65,8 +65,8 @@ struct attr {
 static void
 is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	txdrv_t *tx = (txdrv_t *) data;
-	struct attr *attr = (struct attr *) tx->opaque;
+	txdrv_t *tx = data;
+	struct attr *attr = tx->opaque;
 
 	(void) unused_source;
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
@@ -97,14 +97,14 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 static gpointer
 tx_link_init(txdrv_t *tx, gpointer args)
 {
-	struct tx_link_args *targs = (struct tx_link_args *) args;
+	struct tx_link_args *targs = args;
 	struct attr *attr;
 	bsched_t *bs;
 
 	g_assert(tx);
 	g_assert(targs->cb != NULL);
 
-	attr = walloc(sizeof(*attr));
+	attr = walloc(sizeof *attr);
 
 	/*
 	 * Because we handle servicing of the upper layers explicitely within
@@ -133,11 +133,11 @@ tx_link_init(txdrv_t *tx, gpointer args)
 static void
 tx_link_destroy(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	bsched_source_remove(attr->bio);
 
-	wfree(attr, sizeof(*attr));
+	wfree(attr, sizeof *attr);
 }
 
 static inline gint
@@ -145,14 +145,10 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 {
 	struct attr *attr = tx->opaque;
 
-	switch (errno) {
-	case EAGAIN:
-#if defined(EWOULDBLOCK) && (EAGAIN != EWOULDBLOCK)
-	case EWOULDBLOCK:
-#endif
-	case EINTR:
-	case ENOBUFS:
+	if (is_temporary_error(errno) || ENOBUFS == errno)
 		return 0;
+
+	switch (errno) {
 	/*
 	 * The following are probably due to bugs in the libc, but this is in
 	 * the same vein as write() failing with -1 whereas errno == 0!  Be more
@@ -251,7 +247,7 @@ tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 static void
 tx_link_enable(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }
@@ -262,7 +258,7 @@ tx_link_enable(txdrv_t *tx)
 static void
 tx_link_disable(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	bio_remove_callback(attr->bio);
 
@@ -313,7 +309,7 @@ tx_link_shutdown(txdrv_t *unused_tx)
 static struct bio_source *
 tx_link_bio_source(txdrv_t *tx)
 {
-	struct attr *attr = (struct attr *) tx->opaque;
+	struct attr *attr = tx->opaque;
 
 	return attr->bio;
 }
