@@ -69,7 +69,10 @@ typedef enum {
 } hostiles_t;
 
 static const gchar hostiles_file[] = "hostiles.txt";
-static const gchar hostiles_what[] = "hostile IP addresses";
+static const gchar * const hostiles_what[NUM_HOSTILES] = {
+	"hostile IP addresses (global)",
+	"hostile IP addresses (private)"
+};
 
 static gpointer hostile_db[NUM_HOSTILES];		/**< The hostile database */
 
@@ -249,7 +252,8 @@ hostiles_retrieve(hostiles_t which)
 
 			file_path_set(&fp_private[0], settings_config_dir(), hostiles_file);
 			f = file_config_open_read_norename_chosen(
-				hostiles_what, fp_private, G_N_ELEMENTS(fp_private), &idx);
+					hostiles_what[HOSTILE_PRIVATE],
+					fp_private, G_N_ELEMENTS(fp_private), &idx);
 
 			if (f) {
 				hostiles_retrieve_from_file(f, HOSTILE_PRIVATE,
@@ -272,7 +276,7 @@ hostiles_retrieve(hostiles_t which)
 
 
 			f = file_config_open_read_norename_chosen(
-				hostiles_what, fp, G_N_ELEMENTS(fp), &idx);
+					hostiles_what[HOSTILE_GLOBAL], fp, G_N_ELEMENTS(fp), &idx);
 			if (f) {
 				hostiles_retrieve_from_file(f,
 				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
