@@ -72,6 +72,7 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+/* FIXME: This character set handling stuff should be elsewhere. */
 static const guchar iso_8859_1[96] = {
 	' ', 			/**< 160 - NO-BREAK SPACE */
 	' ', 			/**< 161 - INVERTED EXCLAMATION MARK */
@@ -419,7 +420,7 @@ share_query_context_make(void)
 {
 	struct query_context *ctx;
 
-	ctx = walloc(sizeof(*ctx));
+	ctx = walloc(sizeof *ctx);
 	ctx->found_indices = g_hash_table_new(NULL, NULL);	/**< direct hashing */
 	ctx->files = NULL;
 	ctx->found = 0;
@@ -438,7 +439,7 @@ share_query_context_free(struct query_context *ctx)
 	 */
 
 	g_hash_table_destroy(ctx->found_indices);
-	wfree(ctx, sizeof(*ctx));
+	wfree(ctx, sizeof *ctx);
 }
 
 /**
@@ -469,7 +470,7 @@ shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
 static void
 got_match(gpointer context, shared_file_t *sf)
 {
-	struct query_context *qctx = (struct query_context *) context;
+	struct query_context *qctx = context;
 
 	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 
@@ -725,7 +726,7 @@ shared_file(guint idx)
 }
 
 /**
- * Get index of shared file indentified by its name.
+ * Get index of shared file identified by its name.
  * @return index > 0 if found, 0 if file is not known.
  */
 static guint
