@@ -28,6 +28,7 @@
 
 #include "common.h"
 #include "event.h"
+#include "host_addr.h"
 
 #define NO_PROP (0)
 
@@ -117,6 +118,14 @@ typedef void (*prop_set_timestamp_t)
 typedef time_t *(*prop_get_timestamp_t)
     (property_t, time_t *, size_t, size_t);
 
+typedef struct prop_def_ip {
+    host_addr_t *value;		/**< current value */
+} prop_def_ip_t;
+
+typedef void (*prop_set_ip_t)
+    (property_t, const host_addr_t *, size_t, size_t);
+typedef host_addr_t *(*prop_get_ip_t)
+    (property_t, host_addr_t *, size_t, size_t);
 
 typedef struct prop_def_storage {
     gchar *value;		/**< current data */
@@ -159,6 +168,7 @@ typedef struct prop_def {
         prop_def_boolean_t  boolean;
         prop_def_storage_t  storage;
         prop_def_timestamp_t  timestamp;
+        prop_def_ip_t  ip;
     } data;
     gboolean save; /* persist across sessions */
     size_t vector_size; /* number of items in array, 1 for non-vector */
@@ -203,6 +213,10 @@ typedef struct prop_set_stub {
         prop_get_timestamp_t get;
         prop_set_timestamp_t set;
     } timestamp;
+    struct {
+        prop_get_ip_t get;
+        prop_set_ip_t set;
+    } ip;
 } prop_set_stub_t;
 
 /**
@@ -279,6 +293,11 @@ void prop_set_timestamp(
     prop_set_t *, property_t, const time_t *, size_t, size_t);
 time_t *prop_get_timestamp(
     prop_set_t *, property_t, time_t *, size_t, size_t);
+
+void prop_set_ip(
+    prop_set_t *, property_t, const host_addr_t *, size_t, size_t);
+host_addr_t *prop_get_ip(
+    prop_set_t *, property_t, host_addr_t *, size_t, size_t);
 
 void prop_set_storage(prop_set_t *, property_t, const gchar *, size_t);
 gchar *prop_get_storage(prop_set_t *, property_t, gchar *, size_t);

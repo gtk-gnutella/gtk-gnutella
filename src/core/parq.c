@@ -973,12 +973,12 @@ parq_download_add_header(
 
 	if (
 		!is_firewalled &&
-		host_is_valid(listen_addr(), listen_port) &&
+		host_is_valid(listen_addr(), socket_listen_port()) &&
 		!(d->server->attrs & DLS_A_FAKE_G2)
 	)
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n",
-			  host_addr_port_to_string(listen_addr(), listen_port));
+			  host_addr_port_to_string(listen_addr(), socket_listen_port()));
 }
 
 /**
@@ -3467,8 +3467,9 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 	 * Send the QUEUE header.
 	 */
 
-	rw = gm_snprintf(queue, sizeof(queue), "QUEUE %s %s\r\n",
-		parq_ul->id, host_addr_port_to_string(listen_addr(), listen_port));
+	rw = gm_snprintf(queue, sizeof queue, "QUEUE %s %s\r\n",
+			parq_ul->id,
+			host_addr_port_to_string(listen_addr(), socket_listen_port()));
 
 	s = u->socket;
 
@@ -3795,8 +3796,7 @@ parq_upload_load_queue(void)
 			{
 				host_addr_t addr;
 
-				addr = string_to_host_addr(value, NULL);
-				if (!is_host_addr(addr)) {
+				if (!string_to_host_addr(value, NULL, &addr)) {
 					damaged = TRUE;
 					g_warning("Not a valid IP address.");
 				} else {

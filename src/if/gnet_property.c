@@ -70,8 +70,7 @@ guint32  max_uploads     = 4;
 guint32  max_uploads_def = 4;
 guint32  max_uploads_ip     = 1;
 guint32  max_uploads_ip_def = 1;
-gchar   *local_ip     = "";
-gchar   *local_ip_def = "";
+host_addr_t   local_ip;
 time_t  current_ip_stamp     = 0;
 time_t  current_ip_stamp_def = 0;
 guint32  average_ip_uptime     = 0;
@@ -82,8 +81,7 @@ guint32  average_servent_uptime     = 0;
 guint32  average_servent_uptime_def = 0;
 guint32  listen_port     = 1;
 guint32  listen_port_def = 1;
-gchar   *forced_local_ip     = "";
-gchar   *forced_local_ip_def = "";
+host_addr_t   forced_local_ip;
 guint32  connection_speed     = 0;
 guint32  connection_speed_def = 0;
 gboolean compute_connection_speed     = TRUE;
@@ -258,8 +256,7 @@ gchar   *socks_user     = "username";
 gchar   *socks_user_def = "username";
 gchar   *socks_pass     = "password";
 gchar   *socks_pass_def = "password";
-gchar   *proxy_addr     = "";
-gchar   *proxy_addr_def = "";
+host_addr_t   proxy_addr;
 gchar   *proxy_hostname     = "";
 gchar   *proxy_hostname_def = "";
 guint32  proxy_port     = 0x0000;
@@ -283,8 +280,7 @@ prop_def_choice_t network_protocol_choices[] = {
 };
 gboolean use_ipv6_trt     = FALSE;
 gboolean use_ipv6_trt_def = FALSE;
-gchar   *ipv6_trt_prefix     = "";
-gchar   *ipv6_trt_prefix_def = "";
+host_addr_t   ipv6_trt_prefix;
 guint32  hosts_in_catcher     = 0;
 guint32  hosts_in_catcher_def = 0;
 guint32  hosts_in_ultra_catcher     = 0;
@@ -921,13 +917,8 @@ gnet_prop_init(void) {
     gnet_property->props[14].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[14].type               = PROP_TYPE_STRING;
-    gnet_property->props[14].data.string.def    = &local_ip_def;
-    gnet_property->props[14].data.string.value  = &local_ip;
-    if (gnet_property->props[14].data.string.def) {
-        *gnet_property->props[14].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[14].data.string.def));
-    }
+    gnet_property->props[14].type               = PROP_TYPE_IP;
+    gnet_property->props[14].data.ip.value = &local_ip;
 
 
     /*
@@ -1042,13 +1033,8 @@ gnet_prop_init(void) {
     gnet_property->props[20].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[20].type               = PROP_TYPE_STRING;
-    gnet_property->props[20].data.string.def    = &forced_local_ip_def;
-    gnet_property->props[20].data.string.value  = &forced_local_ip;
-    if (gnet_property->props[20].data.string.def) {
-        *gnet_property->props[20].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[20].data.string.def));
-    }
+    gnet_property->props[20].type               = PROP_TYPE_IP;
+    gnet_property->props[20].data.ip.value = &forced_local_ip;
 
 
     /*
@@ -2742,13 +2728,8 @@ gnet_prop_init(void) {
     gnet_property->props[108].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[108].type               = PROP_TYPE_STRING;
-    gnet_property->props[108].data.string.def    = &proxy_addr_def;
-    gnet_property->props[108].data.string.value  = &proxy_addr;
-    if (gnet_property->props[108].data.string.def) {
-        *gnet_property->props[108].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[108].data.string.def));
-    }
+    gnet_property->props[108].type               = PROP_TYPE_IP;
+    gnet_property->props[108].data.ip.value = &proxy_addr;
 
 
     /*
@@ -2861,13 +2842,8 @@ gnet_prop_init(void) {
     gnet_property->props[114].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[114].type               = PROP_TYPE_STRING;
-    gnet_property->props[114].data.string.def    = &ipv6_trt_prefix_def;
-    gnet_property->props[114].data.string.value  = &ipv6_trt_prefix;
-    if (gnet_property->props[114].data.string.def) {
-        *gnet_property->props[114].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[114].data.string.def));
-    }
+    gnet_property->props[114].type               = PROP_TYPE_IP;
+    gnet_property->props[114].data.ip.value = &ipv6_trt_prefix;
 
 
     /*
@@ -5987,6 +5963,21 @@ gnet_prop_get_timestamp(
 }
 
 void
+gnet_prop_set_ip(
+    property_t prop, const host_addr_t *src, size_t offset, size_t length)
+{
+    prop_set_ip(gnet_property, prop, src, offset, length);
+}
+
+host_addr_t *
+gnet_prop_get_ip(
+    property_t prop, host_addr_t *t, size_t offset, size_t length)
+{
+    return prop_get_ip(gnet_property, prop, t, offset, length);
+}
+
+
+void
 gnet_prop_set_string(property_t prop, const gchar *val)
 {
     prop_set_string(gnet_property, prop, val);
@@ -6106,6 +6097,8 @@ gnet_prop_get_stub(void)
     stub->timestamp.get = gnet_prop_get_timestamp;
     stub->timestamp.set = gnet_prop_set_timestamp;
 
+    stub->ip.get = gnet_prop_get_ip;
+    stub->ip.set = gnet_prop_set_ip;
 
     return stub;
 }

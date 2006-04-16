@@ -1996,29 +1996,20 @@ update_address_information(void)
 {
     static host_addr_t old_address;
     static guint16 old_port = 0;
-    gboolean force_local_addr;
 	host_addr_t current_addr;
-    guint32 listen_port;
+	gboolean force_local_addr;
+    guint32 port;
 
+    gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &port);
     gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_addr);
-    gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &listen_port);
+   	gnet_prop_get_ip_val(force_local_addr
+		? PROP_FORCED_LOCAL_IP : PROP_LOCAL_IP, &current_addr);
 
-	{
-		gchar *val;
-
-    	val = gnet_prop_get_string(
-				force_local_addr ? PROP_FORCED_LOCAL_IP : PROP_LOCAL_IP,
-				NULL, 0);
-
-		current_addr = string_to_host_addr(val, NULL);
-		G_FREE_NULL(val);
-	}
-
-	{
-		const gchar *s = host_addr_port_to_string(current_addr, listen_port);
+	if (old_port != port || !host_addr_equal(old_address, current_addr)) {
+		const gchar *s = host_addr_port_to_string(current_addr, port);
 
         old_address = current_addr;
-        old_port = listen_port;
+        old_port = port;
         statusbar_gui_message(15, _("Address/port changed to: %s"), s);
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")), s);
@@ -2042,8 +2033,7 @@ update_input_bw_display(void)
 	guint32 val = 0;
 	guint32 bw;
 
-	gnet_prop_get_boolean_val
-		(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
+	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 	if (enabled) {
 		gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
 		val += bw;

@@ -156,26 +156,39 @@ struct gnutella_socket {
 #define SOCK_F_UDP				0x40000000 /**< Is a UDP socket */
 #define SOCK_F_TCP				0x80000000 /**< Is a TCP socket */
 
-/**
- * Access macros.
- */
-
-#define sock_is_corked(x)		((x)->corked)
-
-/**
- * This macro verifies whether UDP support is enabled and if the UDP socket
- * has been initialized.
- */
-#define udp_active()	(enable_udp && NULL != s_udp_listen)
-
-
-
 /*
  * Global Data
  */
 
 extern struct gnutella_socket *s_tcp_listen;
 extern struct gnutella_socket *s_udp_listen;
+
+
+/**
+ * Access macros.
+ */
+
+static inline gboolean
+sock_is_corked(const struct gnutella_socket *s)
+{
+	return s->corked;
+}
+
+/**
+ * This verifies whether UDP support is enabled and if the UDP socket
+ * has been initialized.
+ */
+static inline gboolean
+udp_active(void)
+{
+	return NULL != s_udp_listen;
+}
+
+static inline guint16
+socket_listen_port(void)
+{
+	return s_tcp_listen ? s_tcp_listen->local_port : 0;
+}
 
 /*
  * Global Functions
@@ -208,7 +221,6 @@ void socket_tos_normal(const struct gnutella_socket *s);
 gboolean socket_bad_hostname(struct gnutella_socket *s);
 void socket_disable_token(struct gnutella_socket *s);
 gboolean socket_omit_token(struct gnutella_socket *s);
-void socket_set_ipv6_trt_prefix(const host_addr_t addr);
 void socket_set_bind_address(const host_addr_t addr);
 
 void socket_timer(time_t now);

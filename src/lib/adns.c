@@ -720,8 +720,7 @@ adns_resolve(const gchar *hostname,
 	query.addr = zero_host_addr;
 	reply = query;
 
-	reply.addr = string_to_host_addr(hostname, NULL);
-	if (is_host_addr(reply.addr)) {
+	if (string_to_host_addr(hostname, NULL, &reply.addr)) {
 		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
 	}

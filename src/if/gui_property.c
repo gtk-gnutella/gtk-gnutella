@@ -2502,6 +2502,21 @@ gui_prop_get_timestamp(
 }
 
 void
+gui_prop_set_ip(
+    property_t prop, const host_addr_t *src, size_t offset, size_t length)
+{
+    prop_set_ip(gui_property, prop, src, offset, length);
+}
+
+host_addr_t *
+gui_prop_get_ip(
+    property_t prop, host_addr_t *t, size_t offset, size_t length)
+{
+    return prop_get_ip(gui_property, prop, t, offset, length);
+}
+
+
+void
 gui_prop_set_string(property_t prop, const gchar *val)
 {
     prop_set_string(gui_property, prop, val);
@@ -2621,6 +2636,8 @@ gui_prop_get_stub(void)
     stub->timestamp.get = gui_prop_get_timestamp;
     stub->timestamp.set = gui_prop_set_timestamp;
 
+    stub->ip.get = gui_prop_get_ip;
+    stub->ip.set = gui_prop_set_ip;
 
     return stub;
 }

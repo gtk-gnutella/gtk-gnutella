@@ -127,14 +127,14 @@ void [=(. func-prefix)=]_set_boolean(
 gboolean *[=(. func-prefix)=]_get_boolean(
     property_t, gboolean *, size_t, size_t);
 
-#define [=(. func-prefix)=]_set_boolean_val(p, v) do { \
+#define [=(. func-prefix)=]_set_boolean_val(p, v) G_STMT_START { \
 	gboolean value = v; \
 	[=(. func-prefix)=]_set_boolean(p, &value, 0, 1); \
-} while (0)
+} G_STMT_END
 
-#define [=(. func-prefix)=]_get_boolean_val(p, v) do { \
+#define [=(. func-prefix)=]_get_boolean_val(p, v) G_STMT_START { \
 	[=(. func-prefix)=]_get_boolean(p, v, 0, 1); \
-} while (0)
+} G_STMT_END
 
 
 void [=(. func-prefix)=]_set_string(property_t, const gchar *);
@@ -145,42 +145,57 @@ void [=(. func-prefix)=]_set_guint32(
 guint32 *[=(. func-prefix)=]_get_guint32(
     property_t, guint32 *, size_t, size_t);
 
-#define [=(. func-prefix)=]_set_guint32_val(p, v) do { \
+#define [=(. func-prefix)=]_set_guint32_val(p, v) G_STMT_START { \
 	guint32 value = v; \
 	[=(. func-prefix)=]_set_guint32(p, &value, 0, 1); \
-} while (0)
+} G_STMT_END
 
-#define [=(. func-prefix)=]_get_guint32_val(p, v) do { \
+#define [=(. func-prefix)=]_get_guint32_val(p, v) G_STMT_START { \
 	[=(. func-prefix)=]_get_guint32(p, v, 0, 1); \
-} while (0)
+} G_STMT_END
 
 void [=(. func-prefix)=]_set_guint64(
     property_t, const guint64 *, size_t, size_t);
 guint64 *[=(. func-prefix)=]_get_guint64(
     property_t, guint64 *, size_t, size_t);
 
-#define [=(. func-prefix)=]_set_guint64_val(p, v) do { \
+#define [=(. func-prefix)=]_set_guint64_val(p, v) G_STMT_START { \
 	guint64 value = v; \
 	[=(. func-prefix)=]_set_guint64(p, &value, 0, 1); \
-} while (0)
+} G_STMT_END
 
-#define [=(. func-prefix)=]_get_guint64_val(p, v) do { \
+#define [=(. func-prefix)=]_get_guint64_val(p, v) G_STMT_START { \
 	[=(. func-prefix)=]_get_guint64(p, v, 0, 1); \
-} while (0)
+} G_STMT_END
 
 void [=(. func-prefix)=]_set_timestamp(
     property_t, const time_t *, size_t, size_t);
 time_t *[=(. func-prefix)=]_get_timestamp(
     property_t, time_t *, size_t, size_t);
 
-#define [=(. func-prefix)=]_set_timestamp_val(p, v) do { \
+#define [=(. func-prefix)=]_set_timestamp_val(p, v) G_STMT_START { \
 	time_t value = v; \
 	[=(. func-prefix)=]_set_timestamp(p, &value, 0, 1); \
-} while (0)
+} G_STMT_END
 
-#define [=(. func-prefix)=]_get_timestamp_val(p, v) do { \
+#define [=(. func-prefix)=]_get_timestamp_val(p, v) G_STMT_START { \
 	[=(. func-prefix)=]_get_timestamp(p, v, 0, 1); \
-} while (0)
+} G_STMT_END
+
+void [=(. func-prefix)=]_set_ip(
+    property_t, const host_addr_t *, size_t, size_t);
+host_addr_t *[=(. func-prefix)=]_get_ip(
+    property_t, host_addr_t *, size_t, size_t);
+
+#define [=(. func-prefix)=]_set_ip_val(p, v) G_STMT_START { \
+	host_addr_t value = v; \
+	[=(. func-prefix)=]_set_ip(p, &value, 0, 1); \
+} G_STMT_END
+
+#define [=(. func-prefix)=]_get_ip_val(p, v) G_STMT_START { \
+	[=(. func-prefix)=]_get_ip(p, v, 0, 1); \
+} G_STMT_END
+
 void [=(. func-prefix)=]_set_storage(property_t, const gchar *, size_t);
 gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, size_t);
 
@@ -216,7 +231,7 @@ CASE type=][=
 = boolean=]extern const gboolean [=(. item)=][=
 = guint32=]extern const guint32  [=(. item)=][=
 = guint64=]extern const guint64  [=(. item)=][=
-= ip     =]extern const guint32  [=(. item)=][=
+= ip     =]extern const host_addr_t  [=(. item)=][=
 = multichoice=]extern const guint32  [=(. item)=][=
 = string =]extern const gchar   *[=(. item)=][=
 = storage=]extern const gchar    [=(. item)=][=
@@ -259,6 +274,8 @@ FOR prop =][=
         (define item (string-downcase (get "name"))))=][=
     IF (= (get "type") "storage")=]
 gchar   [=(. item)=][[=vector_size=]];[=
+    ELSE=][=IF (= (get "type") "ip")=]
+host_addr_t   [=(. item)=];[=
     ELSE=][=
         (cond
             ((= (get "type") "boolean")
@@ -270,21 +287,20 @@ gchar   [=(. item)=][[=vector_size=]];[=
             ((= (get "type") "guint64")
                 (define vtype "guint64  ")
                 (define vdef (get "data.default")))
-            ((= (get "type") "ip")
-                (define vtype "guint32  ")
-                (define vdef (get "data.default")))
             ((= (get "type") "multichoice")
                 (define vtype "guint32  ")
                 (define vdef (get "data.default")))
             ((= (get "type") "timestamp")
                 (define vtype "time_t  ")
                 (define vdef (get "data.default")))
+            ((= (get "type") "ip")
+                (define vtype "host_addr_t  "))
             ((= (get "type") "string")
                 (define vtype "gchar   *")
                 (if (= (get "data.default") "NULL")
                     (define vdef (sprintf "NULL"))
                     (define vdef (sprintf "\"%s\"" (get "data.default"))))))
-        =][=
+            =][=
         IF (exist? "vector_size")=]
 [=  (. vtype)=][=(. item)=][[=vector_size=]]     = [=(. vdef)=];
 [=  (. vtype)=][=(. item)=]_def[[=vector_size=]] = [=(. vdef)=];[=
@@ -292,7 +308,7 @@ gchar   [=(. item)=][[=vector_size=]];[=
 [=  (. vtype)=][=(. item)=]     = [=(. vdef)=];
 [=  (. vtype)=][=(. item)=]_def = [=(. vdef)=];[=
         ENDIF=][=
-        IF (= (get "type") "multichoice")=]
+    IF (= (get "type") "multichoice")=]
 prop_def_choice_t [=(. item)=]_choices[] = { [=
             FOR choice =]
     {N_("[=name=]"), [=value=]},[=
@@ -300,6 +316,7 @@ prop_def_choice_t [=(. item)=]_choices[] = { [=
     {NULL, 0}
 };[=
         ENDIF =][=
+    ENDIF=][=
     ENDIF=][=
 ENDFOR prop =]
 
@@ -337,7 +354,8 @@ FOR prop =][=
         (define prop-var-name (get "data.value"))
         (define prop-var-name (string-downcase (get "name"))))
 
-    (if (and (not (exist? "data.default")) (not (= (get "type") "storage")))
+    (if (and (not (exist? "data.default"))
+	(not (or (= (get "type") "storage") (= (get "type") "ip"))))
         (error "no default value given"))
 
     (if (and (not (exist? "vector_size")) (= (get "type") "storage"))
@@ -438,11 +456,7 @@ FOR prop =][=
 
 	= ip =]
     [=(. current-prop)=].type               = PROP_TYPE_IP;
-    [=(. current-prop)=].data.guint32.def   = [=(. prop-def-var)=];
-    [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];
-    [=(. current-prop)=].data.guint32.choices = NULL;
-    [=(. current-prop)=].data.guint32.max   = 0xFFFFFFFF;
-    [=(. current-prop)=].data.guint32.min   = 0x00000000;[=
+    [=(. current-prop)=].data.ip.value = [=(. prop-var)=];[=
 
     = multichoice =]
     [=(. current-prop)=].type               = PROP_TYPE_MULTICHOICE;
@@ -594,6 +608,21 @@ time_t *
 }
 
 void
+[=(. func-prefix)=]_set_ip(
+    property_t prop, const host_addr_t *src, size_t offset, size_t length)
+{
+    prop_set_ip([=(. prop-set)=], prop, src, offset, length);
+}
+
+host_addr_t *
+[=(. func-prefix)=]_get_ip(
+    property_t prop, host_addr_t *t, size_t offset, size_t length)
+{
+    return prop_get_ip([=(. prop-set)=], prop, t, offset, length);
+}
+
+
+void
 [=(. func-prefix)=]_set_string(property_t prop, const gchar *val)
 {
     prop_set_string([=(. prop-set)=], prop, val);
@@ -713,6 +742,8 @@ prop_set_stub_t *
     stub->timestamp.get = [=(. func-prefix)=]_get_timestamp;
     stub->timestamp.set = [=(. func-prefix)=]_set_timestamp;
 
+    stub->ip.get = [=(. func-prefix)=]_get_ip;
+    stub->ip.set = [=(. func-prefix)=]_set_ip;
 
     return stub;
 }

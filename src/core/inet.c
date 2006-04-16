@@ -39,6 +39,7 @@ RCSID("$Id$");
 
 #include "inet.h"
 #include "nodes.h"				/* For node_become_firewalled() */
+#include "sockets.h"
 #include "settings.h"
 
 #include "if/gnet_property.h"
@@ -204,7 +205,7 @@ is_local_addr(const host_addr_t addr)
 			static host_addr_t loopback;
 
 			if (!is_host_addr(loopback))
-				loopback = string_to_host_addr("127.0.0.0", NULL);
+				string_to_host_addr("127.0.0.0", NULL, &loopback);
 
 			return	host_addr_matches(addr, loopback, 8) ||
 					host_addr_matches(addr, our_addr, 24); /* Same LAN/24 */
@@ -307,8 +308,8 @@ got_no_connection(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_obj;
 
 	if (dbg)
-		printf("FW: got no connection to port %u for %d secs\n",
-			listen_port, FW_INCOMING_WINDOW);
+		g_message("FW: got no connection to port %u for %d secs",
+			socket_listen_port(), FW_INCOMING_WINDOW);
 
 	incoming_ev = NULL;
 	inet_firewalled();
@@ -325,8 +326,8 @@ got_no_udp_unsolicited(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_obj;
 
 	if (dbg)
-		printf("FW: got no unsolicited UDP datagram to port %u for %d secs\n",
-			listen_port, FW_INCOMING_WINDOW);
+		g_message("FW: got no unsolicited UDP datagram to port %u for %d secs",
+			socket_listen_port(), FW_INCOMING_WINDOW);
 
 	incoming_udp_ev = NULL;
 	inet_udp_firewalled();
@@ -343,7 +344,8 @@ inet_not_firewalled(void)
 	node_proxy_cancel_all();
 
 	if (dbg)
-		printf("FW: we're not TCP-firewalled for port %u\n", listen_port);
+		g_message("FW: we're not TCP-firewalled for port %u",
+			socket_listen_port());
 }
 
 /**
@@ -355,7 +357,8 @@ inet_udp_not_firewalled(void)
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, FALSE);
 
 	if (dbg)
-		printf("FW: we're not UDP-firewalled for port %u\n", listen_port);
+		g_message("FW: we're not UDP-firewalled for port %u",
+			socket_listen_port());
 }
 
 /**

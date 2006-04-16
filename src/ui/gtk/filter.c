@@ -1958,7 +1958,7 @@ filter_gui_get_ip_rule(void)
         	GTK_EDITABLE(lookup_widget(filter_dialog,
 								"entry_filter_ip_address")),
         	0, -1));
-	addr = string_to_host_addr(s, &ep);
+	string_to_host_addr(s, &ep, &addr);
 	if (*ep == '/')
 		mask = parse_uint32(&ep[1], NULL, 10, &error);
 	else

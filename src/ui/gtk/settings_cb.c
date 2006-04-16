@@ -112,13 +112,10 @@ static void
 on_entry_config_proxy_hostname_activate_helper(const host_addr_t *addr,
 		gpointer unused_udata)
 {
-	const gchar *s;
-
 	(void) unused_udata;
 
 	if (addr) {
-		s = host_addr_to_string(*addr);
-    	gnet_prop_set_string(PROP_PROXY_ADDR, s);
+    	gnet_prop_set_ip_val(PROP_PROXY_ADDR, *addr);
 	}
 }
 
@@ -235,6 +232,8 @@ on_entry_config_force_ip_activate(GtkEditable *unused_editable,
 		gpointer unused_udata)
 {
    	gchar *text;
+	host_addr_t addr;
+	const gchar *endptr;
 
 	(void) unused_editable;
 	(void) unused_udata;
@@ -242,7 +241,9 @@ on_entry_config_force_ip_activate(GtkEditable *unused_editable,
         GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ip")),
         0, -1));
 	g_strstrip(text);
-	gnet_prop_set_string(PROP_FORCED_LOCAL_IP, text);
+	if (string_to_host_addr(text, &endptr, &addr) && '\0' == endptr[0]) {
+		gnet_prop_set_ip_val(PROP_FORCED_LOCAL_IP, addr);
+	}
 	G_FREE_NULL(text);
 }
 FOCUS_TO_ACTIVATE(entry_config_force_ip)
@@ -251,12 +252,13 @@ void
 on_entry_config_force_ip_changed(GtkEditable *editable, gpointer unused_udata)
 {
     gchar *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+	const gchar *endptr;
 
 	(void) unused_udata;
 	g_strstrip(text);
 	gtk_widget_set_sensitive(
         lookup_widget(dlg_prefs, "checkbutton_config_force_ip"),
-        is_host_addr(string_to_host_addr(text, NULL)));
+        string_to_host_addr(text, &endptr, NULL) && '\0' == endptr[0]);
 	G_FREE_NULL(text);
 }
 

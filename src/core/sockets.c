@@ -107,50 +107,6 @@ typedef union socket_addr {
 #endif
 } socket_addr_t;
 
-static host_addr_t
-socket_bind_address(const host_addr_t *addr)
-{
-	static host_addr_t bind_addr;
-	if (addr) {
-		g_assert(host_addr_initialized(*addr));
-		bind_addr = *addr;
-	}
-	return bind_addr;
-}
-
-void
-socket_set_bind_address(const host_addr_t addr)
-{
-	if (host_addr_initialized(addr)) {
-		socket_bind_address(&addr);
-	}
-}
-
-static host_addr_t 
-socket_get_bind_address(void)
-{
-	return socket_bind_address(NULL);
-}
-
-
-#if defined(USE_IPV6)
-static host_addr_t socket_ipv6_trt_addr;
-#endif /* USE_IPV6 */
-
-void
-socket_set_ipv6_trt_prefix(const host_addr_t addr)
-#if defined(USE_IPV6)
-{
-	if (NET_TYPE_IPV6 == host_addr_net(addr)) {
-		socket_ipv6_trt_addr = addr;
-	}
-}
-#else	/* !USE_IPV6 */
-{
-	(void) addr;
-}
-#endif /* USE_IPV6 */
-
 host_addr_t
 socket_ipv6_trt_map(const host_addr_t addr)
 {
@@ -158,11 +114,11 @@ socket_ipv6_trt_map(const host_addr_t addr)
 	if (
 		use_ipv6_trt &&
 		NET_TYPE_IPV4 == host_addr_net(addr) &&
-		NET_TYPE_IPV6 == host_addr_net(socket_ipv6_trt_addr)
+		NET_TYPE_IPV6 == host_addr_net(ipv6_trt_prefix)
 	) {
 		host_addr_t ret;
 
-		ret = socket_ipv6_trt_addr;
+		ret = ipv6_trt_prefix;
 		poke_be32(&ret.addr.ipv6[12], host_addr_ipv4(addr));
 		return ret;
 	}
@@ -654,17 +610,16 @@ static void
 proxy_connect_helper(const host_addr_t *addr, gpointer udata)
 {
 	gboolean *in_progress = udata;
-	const gchar *s;
 
 	g_assert(NULL != in_progress);
 	*in_progress = FALSE;
 
-	if (!addr) {
-		g_message("Could not resolve proxy name \"%s\"", proxy_hostname);
+	if (addr) {
+		gnet_prop_set_ip_val(PROP_PROXY_ADDR, *addr);
+		g_message("Resolved proxy name \"%s\" to %s", proxy_hostname,
+			host_addr_to_string(*addr));
 	} else {
-		s = host_addr_to_string(*addr);
-		gnet_prop_set_string(PROP_PROXY_ADDR, s);
-		g_message("Resolved proxy name \"%s\" to %s", proxy_hostname, s);
+		g_message("Could not resolve proxy name \"%s\"", proxy_hostname);
 	}
 }
 
@@ -679,11 +634,9 @@ proxy_connect(int fd)
 	socket_addr_t server;
 	const struct sockaddr *sa;
 	socklen_t len;
-	host_addr_t addr;
 
-	addr = string_to_host_addr(proxy_addr, NULL);
 	if (
-		!is_host_addr(addr) &&
+		!is_host_addr(proxy_addr) &&
 		0 != proxy_port &&
 		'\0' != proxy_hostname[0]
 	) {
@@ -699,12 +652,12 @@ proxy_connect(int fd)
 		}
 	}
 
-	if (!is_host_addr(addr) || !proxy_port) {
+	if (!is_host_addr(proxy_addr) || !proxy_port) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	socket_addr_set(&server, addr, proxy_port);
+	socket_addr_set(&server, proxy_addr, proxy_port);
 	len = socket_addr_get(&server, &sa);
 
 	return connect(fd, sa, len);
@@ -2148,7 +2101,7 @@ guess_local_addr(int fd)
 {
 	gboolean can_supersede;
 	socket_addr_t addr;
-	host_addr_t ha, local_ha;
+	host_addr_t ha;
 
 	if (0 != socket_addr_getsockname(&addr, fd))
 		return;
@@ -2162,15 +2115,14 @@ guess_local_addr(int fd)
 	 *		--RAM, 17/05/2002
 	 */
 
-	local_ha = string_to_host_addr(local_ip, NULL);
-	can_supersede = !is_private_addr(ha) || is_private_addr(local_ha);
+	can_supersede = !is_private_addr(ha) || is_private_addr(local_ip);
 
 	if (!ip_computed) {
-		if (!is_host_addr(local_ha) || can_supersede)
-			gnet_prop_set_string(PROP_LOCAL_IP, host_addr_to_string(ha));
+		if (!is_host_addr(local_ip) || can_supersede)
+			gnet_prop_set_ip_val(PROP_LOCAL_IP, ha);
 		ip_computed = TRUE;
 	} else if (can_supersede) {
-		gnet_prop_set_string(PROP_LOCAL_IP, host_addr_to_string(ha));
+		gnet_prop_set_ip_val(PROP_LOCAL_IP, ha);
 	}
 }
 
@@ -2677,7 +2629,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	if (force_local_ip) {
 		host_addr_t bind_addr;
 
-		bind_addr = socket_get_bind_address();
+		bind_addr = listen_addr();
 		if (host_addr_initialized(bind_addr)) {
 			const struct sockaddr *sa;
 			socket_addr_t local;
@@ -2707,10 +2659,13 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	}
 
 	if (-1 == res && EINPROGRESS != errno) {
-		if (proxy_protocol != PROXY_NONE && (!proxy_addr || !proxy_port)) {
+		if (
+			proxy_protocol != PROXY_NONE &&
+			(!is_host_addr(proxy_addr) || !proxy_port)
+		) {
 			if (errno != VAL_EAGAIN) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
-					proxy_addr, proxy_port);
+					proxy_hostname, proxy_port);
 			}
 			socket_destroy(s, "Check the proxy configuration");
 			return -1;

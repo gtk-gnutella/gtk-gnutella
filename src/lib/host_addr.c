@@ -408,34 +408,38 @@ host_addr_port_to_string(const host_addr_t ha, guint16 port)
  * Parses IPv4 and IPv6 addresses. The latter requires IPv6 support to be
  * enabled.
  *
- * "0.0.0.0" and "::" cannot be distinguished from unparsable addresses.
- *
  * @param s The string to parse.
  * @param endptr This will point to the first character after the parsed
  *        address.
- * @return Returns the host address or ``zero_host_addr'' on failure.
+ * @param addr_ptr If not NULL, it is set to the parsed host address or
+ *        ``zero_host_addr'' on failure.
+ * @return Returns TRUE on success; otherwise FALSE.
  */
-host_addr_t
-string_to_host_addr(const char *s, const gchar **endptr)
+gboolean
+string_to_host_addr(const char *s, const gchar **endptr, host_addr_t *addr_ptr)
 {
-	host_addr_t ha;
 	guint32 ip;
 
 	g_assert(s);
 
 	if (string_to_ip_strict(s, &ip, endptr)) {
-		ha = host_addr_set_ipv4(ip);
-		return ha;
+		if (addr_ptr)
+			*addr_ptr = host_addr_set_ipv4(ip);
+		return TRUE;
 #ifdef USE_IPV6
 	} else {
 		guint8 ipv6[16];
 		if (parse_ipv6_addr(s, ipv6, endptr)) {
-			host_addr_set_ipv6(&ha, ipv6);
-			return ha;
+			if (addr_ptr)
+				host_addr_set_ipv6(addr_ptr, ipv6);
+			return TRUE;
 		}
 #endif
 	}
-	return zero_host_addr;
+
+	if (addr_ptr)
+		*addr_ptr = zero_host_addr;
+	return FALSE;
 }
 
 /**
@@ -480,8 +484,7 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 		}
 	}
 
-	addr = string_to_host_addr(s, endptr);
-	if (is_host_addr(addr)) {
+	if (string_to_host_addr(s, endptr, &addr)) {
 		if (ha)
 			*ha = addr;
 
@@ -660,8 +663,7 @@ name_to_host_addr(const gchar *host)
 	 * independence.
 	 */
 
-	addr = string_to_host_addr(host, &endptr);
-	if (is_host_addr(addr) && '\0' == *endptr)
+	if (string_to_host_addr(host, &endptr, &addr) && '\0' == *endptr)
 		return addr;
 	
 	hints = zero_hints;
@@ -729,8 +731,7 @@ name_to_host_addr(const gchar *host)
 	 * although some support IPv6.
 	 */
 
-	addr = string_to_host_addr(host, &endptr);
-	if (is_host_addr(addr) && '\0' == *endptr)
+	if (string_to_host_addr(host, &endptr, &addr) && '\0' == *endptr)
 		return addr;
 	
    	he = gethostbyname(host);

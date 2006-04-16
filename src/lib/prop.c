@@ -188,18 +188,18 @@ static gint
 prop_parse_ip(const gchar *name,
 	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
 {
-	guint32 ip;
+	host_addr_t addr;
 	gint error;
 	
 	g_assert(name);
 	g_assert(str);
 
-	error = string_to_ip_strict(str, &ip, endptr) ? 0 : EINVAL;
+	error = string_to_host_addr(str, endptr, &addr) ? 0 : EINVAL;
 	if (error) {
 		g_warning("prop_parse_ip: (prop=\"%s\") "
 			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
 	} else if (vec) {
-		((guint32 *) vec)[i] = ip;
+		((host_addr_t *) vec)[i] = addr;
 	}
 	
 	return error;
@@ -317,7 +317,7 @@ prop_parse_guint32_vector(const gchar *name, const gchar *str,
 
 static void
 prop_parse_ip_vector(const gchar *name, const gchar *str,
-	size_t size, guint32 *vec)
+	size_t size, host_addr_t *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_ip);
 }
@@ -419,7 +419,6 @@ prop_get_def(prop_set_t *ps, property_t p)
 		}
 		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
-	case PROP_TYPE_IP:
 	case PROP_TYPE_GUINT32:
 		buf->data.guint32.def = g_memdup(
 			PROP(ps,p).data.guint32.def,
@@ -445,6 +444,11 @@ prop_get_def(prop_set_t *ps, property_t p)
 		buf->data.timestamp.value = g_memdup(
 			PROP(ps,p).data.timestamp.value,
 			sizeof(time_t) * PROP(ps,p).vector_size);
+		break;
+
+	case PROP_TYPE_IP:
+		buf->data.ip.value = g_memdup(PROP(ps,p).data.ip.value,
+			sizeof buf->data.ip.value * PROP(ps,p).vector_size);
 		break;
 
 	case PROP_TYPE_STRING:
@@ -487,7 +491,6 @@ prop_free_def(prop_def_t *d)
 		G_FREE_NULL(d->data.guint32.choices);
 		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
-	case PROP_TYPE_IP:
 	case PROP_TYPE_GUINT32:
 		G_FREE_NULL(d->data.guint32.value);
 		G_FREE_NULL(d->data.guint32.def);
@@ -499,6 +502,9 @@ prop_free_def(prop_def_t *d)
 	case PROP_TYPE_TIMESTAMP:
 		G_FREE_NULL(d->data.timestamp.value);
 		G_FREE_NULL(d->data.timestamp.def);
+		break;
+	case PROP_TYPE_IP:
+		G_FREE_NULL(d->data.ip.value);
 		break;
 	case PROP_TYPE_STRING:
 		if (*d->data.string.value)
@@ -783,14 +789,12 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 	if (!prop_in_range(ps, prop))
 		g_error("prop_set_guint32: unknown property %d", prop);
 	if ((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
-	   (PROP(ps,prop).type != PROP_TYPE_IP) &&
 	   (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
 		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s, %s or %s was expected",
+			" %s when %s or %s was expected",
 			PROP(ps,prop).name,
 			prop_type_str[PROP(ps,prop).type].name,
 			prop_type_str[PROP_TYPE_GUINT32].name,
-			prop_type_str[PROP_TYPE_IP].name,
 			prop_type_str[PROP_TYPE_MULTICHOICE].name);
 
 	if (length == 0)
@@ -871,14 +875,8 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 		printf("updated property [%s] = ( ", PROP(ps,prop).name);
 
 		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
-			if (PROP(ps,prop).type == PROP_TYPE_IP) {
-				printf("%s%s ", ip_to_string(
-					PROP(ps,prop).data.guint32.value[n]),
+			printf("%u%s ", PROP(ps,prop).data.guint32.value[n],
 					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
-			} else {
-				printf("%u%s ", PROP(ps,prop).data.guint32.value[n],
-					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
-			}
 		}
 
 		printf(")\n");
@@ -899,14 +897,12 @@ prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
 	if (!prop_in_range(ps, prop))
 		g_error("prop_get_guint32: unknown property %d", prop);
 	if ((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
-	   (PROP(ps,prop).type != PROP_TYPE_IP) &&
 	   (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
 		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s, %s or %s was expected",
+			" %s when %s or %s was expected",
 			PROP(ps,prop).name,
 			prop_type_str[PROP(ps,prop).type].name,
 			prop_type_str[PROP_TYPE_GUINT32].name,
-			prop_type_str[PROP_TYPE_IP].name,
 			prop_type_str[PROP_TYPE_MULTICHOICE].name);
 
    	if (length == 0)
@@ -1031,6 +1027,88 @@ prop_get_timestamp(prop_set_t *ps, property_t prop, time_t *t,
 	n = length * sizeof *target;
 	target = t != NULL ? (gpointer) t : g_malloc(n);
 	memcpy(target, &PROP(ps,prop).data.timestamp.value[offset], n);
+
+	return target;
+}
+
+void
+prop_set_ip(prop_set_t *ps, property_t prop, const host_addr_t *src,
+	size_t offset, size_t length)
+{
+	gboolean differ = FALSE;
+
+	g_assert(ps != NULL);
+	g_assert(src != NULL);
+
+	if (!prop_in_range(ps, prop))
+		g_error("prop_set_ip: unknown property %d", prop);
+	if ((PROP(ps,prop).type != PROP_TYPE_IP) )
+		g_error("Type mismatch setting value for [%s] of type"
+			" %s when %s was expected",
+			PROP(ps,prop).name,
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_IP].name);
+
+	if (length == 0)
+		length = PROP(ps,prop).vector_size;
+
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+
+	differ = 0 != memcmp(&PROP(ps,prop).data.ip.value[offset], src,
+					length * sizeof *src);
+
+	if (!differ)
+		return;
+
+	/*
+	 * Only do bounds-checking on non-vector properties.
+	 */
+	memcpy(&PROP(ps,prop).data.ip.value[offset], src, length * sizeof *src);
+
+	if (debug >= 5) {
+		size_t n;
+
+		printf("updated property [%s] = ( ", PROP(ps,prop).name);
+
+		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
+			printf("%s%s ",
+				host_addr_to_string(PROP(ps,prop).data.ip.value[n]),
+				n < (PROP(ps,prop).vector_size-1) ? "," : "");
+		}
+
+		printf(")\n");
+	}
+
+	prop_emit_prop_changed(ps, prop);
+}
+
+
+host_addr_t *
+prop_get_ip(prop_set_t *ps, property_t prop, host_addr_t *t,
+	size_t offset, size_t length)
+{
+	host_addr_t *target;
+	size_t n;
+
+	g_assert(ps != NULL);
+
+	if (!prop_in_range(ps, prop))
+		g_error("prop_get_ip: unknown property %d", prop);
+	if ((PROP(ps,prop).type != PROP_TYPE_IP))
+		g_error("Type mismatch setting value for [%s] of type"
+			" %s when %s was expected",
+			PROP(ps,prop).name,
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_IP].name);
+
+   if (length == 0)
+		length = PROP(ps,prop).vector_size;
+
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+
+	n = length * sizeof *target;
+	target = t != NULL ? (gpointer) t : g_malloc(n);
+	memcpy(target, &PROP(ps,prop).data.ip.value[offset], n);
 
 	return target;
 }
@@ -1281,10 +1359,10 @@ prop_to_string(prop_set_t *ps, property_t prop)
 		break;
 	case PROP_TYPE_IP:
 		{
-			guint32 val;
+			host_addr_t addr;
 
-			prop_get_guint32(ps, prop, &val, 0, 1);
-			g_strlcpy(s, ip_to_string(val), sizeof s);
+			prop_get_ip(ps, prop, &addr, 0, 1);
+			host_addr_to_string_buf(addr, s, sizeof s);
 		}
 		break;
 	case PROP_TYPE_BOOLEAN:
@@ -1352,7 +1430,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 		g_strlcpy(s, *p->data.string.def ? *p->data.string.def : "", sizeof s);
 		break;
 	case PROP_TYPE_IP:
-		g_strlcpy(s, ip_to_string(p->data.guint32.def[0]), sizeof s);
+		g_strlcpy(s, "", sizeof s);
 		break;
 	case PROP_TYPE_BOOLEAN:
 		g_strlcpy(s, p->data.boolean.def[0] ? "TRUE" : "FALSE", sizeof s);
@@ -1620,17 +1698,16 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			break;
 		case PROP_TYPE_IP:
 			for (i = 0; i < p->vector_size; i++) {
-				guint32 v;
+				host_addr_t addr;
 
-				v = p->data.guint32.value[i];
-				if (v != p->data.guint32.def[i])
-					defaultvalue = FALSE;
-				vbuf[i] = g_strdup(ip_to_string(v));
+				addr = p->data.ip.value[i];
+				vbuf[i] = g_strdup(host_addr_to_string(addr));
 			}
 			vbuf[p->vector_size] = NULL;
 
 			val = g_strjoinv(",", vbuf);
 			quotes = TRUE;
+			defaultvalue = FALSE;
 			break;
 		case PROP_TYPE_STORAGE:
 			val = g_malloc((p->vector_size * 2) + 1);
@@ -1696,6 +1773,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 		guint32		uint32[100];
 		guint64		uint64[100];
 		time_t		timestamp[100];
+		host_addr_t	addr[100];
 	} vecbuf;
 
 	g_assert(NULL != ps);
@@ -1756,12 +1834,12 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 		break;
 	case PROP_TYPE_IP:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(guint32) < sizeof(vecbuf.uint32));
+			p->vector_size * sizeof(host_addr_t) < sizeof vecbuf.addr);
 
 		/* Initialize vector with defaults */
-		stub->guint32.get(prop, vecbuf.uint32, 0, 0);
-		prop_parse_ip_vector(p->name, val, p->vector_size, vecbuf.uint32);
-		stub->guint32.set(prop, vecbuf.uint32, 0, 0);
+		stub->ip.get(prop, vecbuf.addr, 0, 0);
+		prop_parse_ip_vector(p->name, val, p->vector_size, vecbuf.addr);
+		stub->ip.set(prop, vecbuf.addr, 0, 0);
 		break;
 	case PROP_TYPE_STORAGE:
 		{

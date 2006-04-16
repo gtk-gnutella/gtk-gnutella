@@ -191,10 +191,7 @@ prop = {
 prop = {
     name = "local_ip";
     desc = "Local IP address last determined.";
-    type = string;
-    data = {
-        default = "";
-    };
+    type = ip;
 };
 
 prop = {
@@ -254,10 +251,7 @@ prop = {
     name = "forced_local_ip";
     desc = "Use this IP address as source address if 'force local ip' "
            "is activated.";
-    type = string;
-    data = {
-        default = "";
-    };
+    type = ip;
 };
 
 prop = {
@@ -1241,10 +1235,7 @@ prop = {
     name = "proxy_addr";
     desc = "Address of the proxy.";
     save = FALSE;
-    type = string;
-    data = {
-        default = "";
-    };
+    type = ip; 
 };
 
 prop = {
@@ -1327,10 +1318,7 @@ prop = {
     name = "ipv6_trt_prefix";
     desc = "The IPv6 address prefix used by the IPv6-to-IPv4 "
            "Transport Relay Translator.";
-    type = string;
-    data = {
-        default = "";
-    };
+    type = ip;
 };
 
 
