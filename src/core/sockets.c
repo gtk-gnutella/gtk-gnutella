@@ -2626,25 +2626,20 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	 * Now we check if we're forcing a local IP, and make it happen if so.
 	 *   --JSL
 	 */
-	if (force_local_ip) {
-		host_addr_t bind_addr;
+	if (force_local_ip && host_addr_initialized(listen_addr())) {
+		const struct sockaddr *sa;
+		socket_addr_t local;
+		socklen_t len;
 
-		bind_addr = listen_addr();
-		if (host_addr_initialized(bind_addr)) {
-			const struct sockaddr *sa;
-			socket_addr_t local;
-			socklen_t len;
-			
-			socket_addr_set(&local, bind_addr, 0);
-			len = socket_addr_get(&local, &sa);
+		socket_addr_set(&local, listen_addr(), 0);
+		len = socket_addr_get(&local, &sa);
 
-			/*
-			 * Note: we ignore failures: it will be automatic at connect()
-			 * It's useful only for people forcing the IP without being
-			 * behind a masquerading firewall --RAM.
-			 */
-			(void) bind(s->file_desc, sa, len);
-		}
+		/*
+		 * Note: we ignore failures: it will be automatic at connect()
+		 * It's useful only for people forcing the IP without being
+		 * behind a masquerading firewall --RAM.
+		 */
+		(void) bind(s->file_desc, sa, len);
 	}
 
 	if (proxy_protocol != PROXY_NONE) {
@@ -2823,7 +2818,6 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 	if (NET_TYPE_NONE == host_addr_net(bind_addr))
 		return NULL;
 	
-	bind_addr = socket_ipv6_trt_map(bind_addr);
 	socket_addr_set(&addr, bind_addr, port);
 	sd = socket(host_addr_family(bind_addr), SOCK_STREAM, 0);
 	if (-1 == sd) {
@@ -2951,7 +2945,6 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 		return NULL;
 
 	socket_addr_set(&addr, bind_addr, port);
-	bind_addr = socket_ipv6_trt_map(bind_addr);
 	sd = socket(host_addr_family(bind_addr), SOCK_DGRAM, 0);
 	if (-1 == sd) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
