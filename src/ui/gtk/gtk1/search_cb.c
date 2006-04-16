@@ -1262,7 +1262,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 			  g_slist_position(data_list, g_slist_last(data_list)) + 1,
 			  cast_to_gconstpointer(data_list));
 
-	G_SLIST_FOREACH(data_list, search_gui_queue_bitzi_by_sha1, NULL);
+	G_SLIST_FOREACH(data_list, search_gui_queue_bitzi_by_sha1);
 
 	gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_slist_free(data_list);

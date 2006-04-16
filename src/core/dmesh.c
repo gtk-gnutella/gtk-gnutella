@@ -1478,9 +1478,8 @@ dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
  * list itself needs to be freed afterwards
  */
 static inline void
-dmesh_free_deferred_altloc(dmesh_deferred_url_t *info, gpointer unused_udata)
+dmesh_free_deferred_altloc(dmesh_deferred_url_t *info)
 {
-	(void) unused_udata;
 	atom_str_free(info->dmesh_url->name);
 	wfree(info->dmesh_url, sizeof *info->dmesh_url);
 	wfree(info, sizeof *info);
@@ -1666,7 +1665,7 @@ dmesh_check_deferred_altlocs(gchar *sha1, GSList *deferred_urls)
 	} else
 		dmesh_check_deferred_against_themselves(sha1, deferred_urls);
 
-	G_SLIST_FOREACH(deferred_urls, dmesh_free_deferred_altloc, NULL);
+	G_SLIST_FOREACH(deferred_urls, dmesh_free_deferred_altloc);
     g_slist_free(deferred_urls);
 }
 

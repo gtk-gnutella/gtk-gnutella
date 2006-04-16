@@ -573,10 +573,8 @@ uploads_gui_init(void)
 }
 
 static inline void
-free_row_data(upload_row_data_t *rd, gpointer user_data)
+free_row_data(upload_row_data_t *rd)
 {
-	(void) user_data;
-
 	if (NULL != rd->user_agent) {
 		atom_str_free(rd->user_agent);
 		rd->user_agent = NULL;
@@ -595,7 +593,7 @@ free_handle(gpointer key, gpointer value,
 	(void) key;
 	(void) user_data;
 
-	free_row_data(value, NULL);
+	free_row_data(value);
 }
 
 static inline void
@@ -604,7 +602,7 @@ remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 	g_assert(NULL != rd);
 	if (ctx->force || upload_should_remove(ctx->now, rd)) {
     	gtk_list_store_remove(store_uploads, &rd->iter);
-		free_row_data(rd, NULL);
+		free_row_data(rd);
 	} else
 		ctx->sl_remaining = g_slist_prepend(ctx->sl_remaining, rd);
 }
@@ -673,7 +671,7 @@ uploads_gui_update_display(time_t now)
 		locked = TRUE;
 
 		/* Remove all rows with `removed' uploads. */
-		G_SLIST_FOREACH(sl_removed_uploads, remove_row, &ctx);
+		G_SLIST_FOREACH_WITH_DATA(sl_removed_uploads, remove_row, &ctx);
 		g_slist_free(sl_removed_uploads);
 		sl_removed_uploads = ctx.sl_remaining;
 
@@ -701,7 +699,7 @@ uploads_clear_helper(gpointer user_data)
 
 	/* Remove all rows with `removed' uploads. */
 
-	G_SLIST_FOREACH(sl_removed_uploads, remove_row, &ctx);
+	G_SLIST_FOREACH_WITH_DATA(sl_removed_uploads, remove_row, &ctx);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = ctx.sl_remaining;
 
@@ -757,7 +755,7 @@ uploads_gui_shutdown(void)
 	g_hash_table_foreach(upload_handles, free_handle, NULL);
 	g_hash_table_destroy(upload_handles);
 	upload_handles = NULL;
-	G_SLIST_FOREACH(sl_removed_uploads, free_row_data, NULL);
+	G_SLIST_FOREACH(sl_removed_uploads, free_row_data);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = NULL;
 }

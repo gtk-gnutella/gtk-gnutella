@@ -3606,9 +3606,9 @@ parq_upload_save_queue(void)
 	for (
 		queues = g_list_last(ul_parqs) ; queues != NULL; queues = queues->prev
 	) {
-		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
+		struct parq_ul_queue *queue = queues->data;
 
-		G_LIST_FOREACH(queue->by_position, parq_store, f);
+		G_LIST_FOREACH_WITH_DATA(queue->by_position, parq_store, f);
 	}
 
 	file_config_close(f, &fp);

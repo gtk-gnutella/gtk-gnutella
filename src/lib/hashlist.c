@@ -524,7 +524,7 @@ hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 	g_assert(equiv(hl->len == 0, hl->last == NULL));
 	hash_list_regression(hl);
 
-	G_LIST_FOREACH(hl->l, func, user_data);
+	G_LIST_FOREACH_WITH_DATA(hl->l, func, user_data);
 
 	hash_list_regression(hl);
 }

@@ -81,40 +81,60 @@ gchar *gm_sanitize_filename(const gchar *filename,
  */
 
 /* NB: Sub-statement func is evaluated more than once! */
-#define G_LIST_FOREACH(list, func, user_data) \
-	do { \
+#define G_LIST_FOREACH(list, func) \
+	G_STMT_START { \
+		GList *l_ = (list); \
+		while (NULL != l_) { \
+			func(l_->data); \
+			l_ = g_list_next(l_); \
+		} \
+	} G_STMT_END
+
+#define G_LIST_FOREACH_WITH_DATA(list, func, user_data) \
+	G_STMT_START { \
 		GList *l_ = (list); \
 		gpointer user_data_ = (user_data); \
 		while (NULL != l_) { \
 			func(l_->data, user_data_); \
 			l_ = g_list_next(l_); \
 		} \
-	} while(0)
+	} G_STMT_END
 
 #define G_LIST_FOREACH_SWAPPED(list, func, user_data) \
-	do { \
+	G_STMT_START { \
 		GList *l_ = (list); \
 		gpointer user_data_ = (user_data); \
 		while (NULL != l_) { \
 			func(user_data_, l_->data); \
 			l_ = g_list_next(l_); \
 		} \
-	} while(0)
+	} G_STMT_END
 
 /* NB: Sub-statement func is evaluated more than once! */
-#define G_SLIST_FOREACH(slist, func, user_data) \
-	do { \
+#define G_SLIST_FOREACH(slist, func) \
+	G_STMT_START { \
+		GSList *sl_ = (slist); \
+		while (NULL != sl_) { \
+			func(sl_->data); \
+			sl_ = g_slist_next(sl_); \
+		} \
+	} G_STMT_END
+
+/* NB: Sub-statement func is evaluated more than once! */
+#define G_SLIST_FOREACH_WITH_DATA(slist, func, user_data) \
+	G_STMT_START { \
 		GSList *sl_ = (slist); \
 		gpointer user_data_ = (user_data); \
 		while (NULL != sl_) { \
 			func(sl_->data, user_data_); \
 			sl_ = g_slist_next(sl_); \
 		} \
-	} while(0)
+	} G_STMT_END
+
 
 /* NB: Sub-statement func is evaluated more than once! */
 #define G_SLIST_FOREACH_SWAPPED(slist, func, user_data) \
-	do { \
+	G_STMT_START { \
 		GSList *sl_ = (slist); \
 		gpointer user_data_ = (user_data); \
 		while (NULL != sl_) { \

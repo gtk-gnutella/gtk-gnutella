@@ -2520,15 +2520,14 @@ search_gui_metadata_update(const bitzi_data_t *data)
 
 /**
  * Update the search displays with the correct meta-data.
- * (called from seach_cb.c)
+ * (called from search_cb.c)
  */
 void
-search_gui_queue_bitzi_by_sha1(const record_t *rec, gpointer unused_udata)
+search_gui_queue_bitzi_by_sha1(const record_t *rec)
 {
 	GList *l;
 	GtkCTreeNode *parent;
 
-	(void) unused_udata;
 	g_assert(rec != NULL);
 
 	if (!rec->sha1)
