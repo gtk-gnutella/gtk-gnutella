@@ -142,14 +142,10 @@ tx_dgram_destroy(txdrv_t *tx)
 static inline gint
 tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 {
-	switch (errno) {
-	case EAGAIN:
-	case EINTR:
-	case ENOBUFS:
-#if defined(EWOULDBLOCK) && (EAGAIN != EWOULDBLOCK)
-	case EWOULDBLOCK:
-#endif
+	if (is_temporary_error(errno) || ENOBUFS == errno)
 		return 0;
+
+	switch (errno) {
 	/*
 	 * The following are probably due to bugs in the libc, but this is in
 	 * the same vein as write() failing with -1 whereas errno == 0!  Be more
@@ -157,7 +153,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 	 */
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
 	{
-		struct attr *attr = (struct attr *) tx->opaque;
+		const struct attr *attr = tx->opaque;
 		g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
 			"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
 			g_strerror(errno));
