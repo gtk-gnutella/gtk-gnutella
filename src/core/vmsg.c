@@ -45,6 +45,7 @@ RCSID("$Id$");
 #include "gnet_stats.h"
 #include "dq.h"
 #include "udp.h"
+#include "sockets.h"		/* For socket_listen_addr() */
 #include "settings.h"		/* For listen_addr() */
 #include "guid.h"			/* For blank_guid[] */
 #include "inet.h"
@@ -756,7 +757,7 @@ vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
 		payload = poke_be32(payload, host_addr_ipv4(listen_addr()));
 	}
 
-	poke_le16(payload, listen_port);
+	poke_le16(payload, socket_listen_port());
 
 	/*
 	 * Reply with a control message, so that the issuer knows that we can

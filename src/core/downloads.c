@@ -3597,6 +3597,9 @@ download_push(struct download *d, gboolean on_timeout)
 	if (use_push_proxy(d))
 		return;
 
+	if (0 == socket_listen_port())
+		return;
+
 	if (send_push_request(download_guid(d), d->record_index, listen_port))
 		return;
 
@@ -4661,6 +4664,9 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	GSList *nodes;
 	const gchar *packet;
 	size_t size;
+
+	if (0 == port)
+		return FALSE;
 
 	if (NULL == (nodes = route_towards_guid(guid)))
 		return FALSE;
