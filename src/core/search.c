@@ -1650,7 +1650,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 
 		if (
 			host_addr_equal(addr, listen_addr()) &&
-			port == listen_port && host_is_valid(addr, port)
+			port == socket_listen_port() && host_is_valid(addr, port)
 		)
 			speed |= QUERY_SPEED_OOB_REPLY;
 	}
@@ -2630,7 +2630,7 @@ search_new_muid(gboolean initial)
 			NET_TYPE_IPV4 == host_addr_net(addr) &&
 			host_addr_is_routable(addr)
 		)
-			guid_query_oob_muid(muid, addr, listen_port, initial);
+			guid_query_oob_muid(muid, addr, socket_listen_port(), initial);
 		else
 			guid_query_muid(muid, initial);
 

@@ -43,6 +43,7 @@ RCSID("$Id$");
 #include "hcache.h"
 #include "version.h"
 #include "settings.h"
+#include "sockets.h"		/* For socket_listen_addr() */
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
@@ -1172,10 +1173,10 @@ gwc_update_this(gchar *cache_url)
 	if (
 		!is_firewalled &&
 		current_peermode == NODE_P_ULTRA &&
-		host_is_valid(listen_addr(), listen_port)
+		host_is_valid(listen_addr(), socket_listen_port())
 	) {
-		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
-			"ip=%s&", host_addr_port_to_string(listen_addr(), listen_port));
+		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw, "ip=%s&",
+			host_addr_port_to_string(listen_addr(), socket_listen_port()));
 		has_data = TRUE;
 	}
 

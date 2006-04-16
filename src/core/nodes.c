@@ -2304,7 +2304,7 @@ node_is_connected(const host_addr_t addr, guint16 port, gboolean incoming)
 {
 	const GSList *sl;
 
-	if (host_addr_equal(addr, listen_addr()) && port == listen_port) {
+	if (host_addr_equal(addr, listen_addr()) && port == socket_listen_port()) {
 		/* yourself */
 		return TRUE;
 	}
@@ -2729,8 +2729,8 @@ node_became_firewalled(void)
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
-		if (0 != listen_port && sent < 3 && n->attrs & NODE_A_CAN_VENDOR) {
-			vmsg_send_tcp_connect_back(n, listen_port);
+		if (socket_listen_port() && sent < 3 && n->attrs & NODE_A_CAN_VENDOR) {
+			vmsg_send_tcp_connect_back(n, socket_listen_port());
 			sent++;
 
 			if (node_debug)
@@ -2758,7 +2758,7 @@ node_became_udp_firewalled(void)
 
 	g_assert(is_udp_firewalled);
 
-	if (0 == listen_port)
+	if (0 == socket_listen_port())
 		return;
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -2767,7 +2767,7 @@ node_became_udp_firewalled(void)
 		if (0 == (n->attrs & NODE_A_CAN_VENDOR))
 			continue;
 
-		vmsg_send_udp_connect_back(n, listen_port);
+		vmsg_send_udp_connect_back(n, socket_listen_port());
 		if (node_debug)
 			g_message("sent UDP connect back request to %s",
 				host_addr_port_to_string(n->addr, n->port));
@@ -3222,16 +3222,16 @@ node_is_now_connected(struct gnutella_node *n)
 	if (n->attrs & NODE_A_CAN_VENDOR) {
 		vmsg_send_messages_supported(n);
 		if (is_firewalled) {
-			if (0 != listen_port)
-				vmsg_send_tcp_connect_back(n, listen_port);
+			if (0 != socket_listen_port())
+				vmsg_send_tcp_connect_back(n, socket_listen_port());
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
 		}
 		if (udp_active()) {
 			if (!recv_solicited_udp)
 				udp_send_ping(n->addr, n->port);
-			else if (is_udp_firewalled && 0 != listen_port)
-				vmsg_send_udp_connect_back(n, listen_port);
+			else if (is_udp_firewalled && 0 != socket_listen_port())
+				vmsg_send_udp_connect_back(n, socket_listen_port());
 		}
 	}
 
@@ -3475,7 +3475,7 @@ feed_host_cache_from_string(const gchar *s, host_type_t type, const gchar *name)
 			s++;
 
 		s = skip_ascii_spaces(s);
-		addr = string_to_host_addr(s, &s);
+		string_to_host_addr(s, &s, &addr);
 		if (!is_host_addr(addr))
 			continue;
 
@@ -3609,15 +3609,18 @@ static host_addr_t
 extract_my_addr(header_t *header)
 {
 	const gchar *field;
+	host_addr_t addr;
 
 	field = header_get(header, "Remote-Ip");
 	if (!field)
 		field = header_get(header, "X-Remote-Ip");
 
-	if (!field)
-		return zero_host_addr;
+	if (field)
+		string_to_host_addr(field, NULL, &addr);
+	else
+		addr = zero_host_addr;
 
-	return string_to_host_addr(field, NULL);
+	return addr;
 }
 
 /**
@@ -3648,10 +3651,7 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 		return;
 
 	addr = extract_my_addr(head);
-	if (
-		!is_host_addr(addr) ||
-		host_addr_equal(addr, string_to_host_addr(local_ip, NULL))
-	)
+	if (!is_host_addr(addr) || host_addr_equal(addr, local_ip))
 		return;
 
 	if (node_debug > 0) {
@@ -6337,7 +6337,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s",		/* X-Dynamic-Querying */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
-			host_addr_port_to_string(listen_addr(), listen_port),
+			host_addr_port_to_string(listen_addr(), socket_listen_port()),
 			host_addr_to_string(n->addr),
 			version_string,
 			gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
@@ -7837,11 +7837,11 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 	 * If our IP is not reacheable, deny as well.
 	 */
 
-	if (!host_is_valid(listen_addr(), listen_port)) {
+	if (!host_is_valid(listen_addr(), socket_listen_port())) {
 		if (node_debug) g_warning(
 			"denying push-proxyfication for %s <%s>: current IP %s is invalid",
 			node_addr(n), node_vendor(n),
-			host_addr_port_to_string(listen_addr(), listen_port));
+			host_addr_port_to_string(listen_addr(), socket_listen_port()));
 		return FALSE;
 	}
 

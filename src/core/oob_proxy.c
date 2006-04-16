@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "nodes.h"
 #include "routing.h"
 #include "settings.h"
+#include "sockets.h"		/* For socket_listen_addr() */
 #include "dq.h"
 #include "dh.h"
 #include "gnet_stats.h"
@@ -174,7 +175,7 @@ oob_proxy_create(gnutella_node_t *n)
 	ip = host_addr_ipv4(listen_addr()); /* @todo TODO: IPv6 */
 	memcpy(proxied_muid, n->header.muid, 16);
 	poke_be32(&proxied_muid[0], ip);
-	poke_le16(&proxied_muid[13], listen_port);
+	poke_le16(&proxied_muid[13], socket_listen_port());
 
 	/*
 	 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.

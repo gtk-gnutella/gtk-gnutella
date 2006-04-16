@@ -223,9 +223,9 @@ found_set_header(void)
 	}
 	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
 
-	WRITE_GUINT16_LE(listen_port, search_head->host_port);
-	WRITE_GUINT32_BE(host_addr_ipv4(listen_addr()), search_head->host_ip);
-	WRITE_GUINT32_LE(connect_speed, search_head->host_speed);
+	poke_le16(search_head->host_port, socket_listen_port());
+	poke_be32(search_head->host_ip, host_addr_ipv4(listen_addr()));
+	poke_le32(search_head->host_speed, connect_speed);
 }
 
 static void

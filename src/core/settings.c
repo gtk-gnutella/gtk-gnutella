@@ -103,34 +103,13 @@ static void update_uptimes(void);
 
 /* ----------------------------------------- */
 
-static host_addr_t
-listen_address(gboolean update)
-{
-	static host_addr_t addr;
-
-	if (update) {
-		const gchar *val;
-
-		val = force_local_ip ? forced_local_ip : local_ip;
-		addr = string_to_host_addr(val, NULL);
-		socket_set_bind_address(addr);
-	}
-	return addr;
-}
-
-static inline void
-listen_address_update(void)
-{
-	listen_address(TRUE);
-}
-
 /**
  * @return the currently used local listening address.
  */
 host_addr_t
 listen_addr(void)
 {
-	return listen_address(FALSE);
+	return force_local_ip ? forced_local_ip : local_ip;
 }
 
 /**
@@ -576,10 +555,10 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 	for (i = 0; i < G_N_ELEMENTS(peers); i++)
 		peers[0] = zero_host_addr;
 
-	if (host_addr_equal(new_addr, string_to_host_addr(local_ip, NULL)))
+	if (host_addr_equal(new_addr, local_ip))
 		return;
 
-    gnet_prop_set_string(PROP_LOCAL_IP, host_addr_to_string(new_addr));
+    gnet_prop_set_ip_val(PROP_LOCAL_IP, new_addr);
 }
 
 /**
@@ -908,6 +887,9 @@ enable_udp_changed(property_t prop)
 	if (enabled) {
 		if (s_udp_listen == NULL && listen_port)
 			s_udp_listen = socket_udp_listen(zero_host_addr, listen_port);
+			if (!s_udp_listen) {
+				gcu_statusbar_warning(_("Failed to create UDP socket"));
+			}
 	} else {
 		if (s_udp_listen) {
 			socket_free(s_udp_listen);
@@ -922,22 +904,22 @@ enable_udp_changed(property_t prop)
 static gboolean
 listen_port_changed(property_t prop)
 {
-	static guint32 old_listen_port = (guint32) -1;
+	static guint32 old_port = (guint32) -1;
 	gboolean random_port = FALSE;
-    guint32 listen_port;
+    guint32 port;
 	guint num_tried = 0;
 	guint32 tried[65536 / (8 * sizeof(guint32))]; /* Use bits as bool flags */
 
-    gnet_prop_get_guint32_val(prop, &listen_port);
+	port = listen_port;
 
 	/*
 	 * If port did not change values, do nothing.
 	 */
 
-	if (listen_port == old_listen_port && listen_port != 0)
+	if (port == old_port && port != 0)
 		return FALSE;
 
-	if (old_listen_port != (guint32) -1) {
+	if (old_port != (guint32) -1) {
 		inet_firewalled();			/* Assume we're firewalled on port change */
 		inet_udp_firewalled();
 	}
@@ -946,7 +928,7 @@ listen_port_changed(property_t prop)
 	 * 1 is a magic port number for us, which means "pick a random port"
 	 * whereas 0 means "don't listen on any port".
 	 */
-	random_port = 1 == listen_port;
+	random_port = 1 == port;
 
 	/* Mark ports below 1024 as already tried, these ports can
 	 * be configured manually but we don't want to pick one of
@@ -962,23 +944,23 @@ listen_port_changed(property_t prop)
 		if (random_port) {
 			guint32 i, b, r;
 
-			listen_port = r = random_value(65535 - 1024) + 1024;
+			port = r = random_value(65535 - 1024) + 1024;
 			/* Check whether this port was tried before */
 			do {
 				i = r / (8 * sizeof tried[0]);
 				b = 1 << (r % (8 * sizeof tried[0]));
 				if ((tried[i] & b) == 0) {
 					tried[i] |= b;
-					listen_port = r;
+					port = r;
 					break;
 				}
 				r = (r + 101) & 0xffff;
-			} while (r != listen_port);
+			} while (r != port);
 
-			g_assert(listen_port > 1023);
+			g_assert(port > 1023);
 		}
 
-		old_listen_port = listen_port;
+		old_port = port;
 
 		/*
 		 * Close old ports.
@@ -998,7 +980,7 @@ listen_port_changed(property_t prop)
 		 * If the new port != 0, open the new port
 		 */
 
-		if (listen_port) {
+		if (port) {
 
 			switch (network_protocol) {
 			case NET_USE_BOTH:
@@ -1017,7 +999,7 @@ listen_port_changed(property_t prop)
 			}
 
 			s_tcp_listen = socket_tcp_listen(listen_ha,
-							listen_port, SOCK_TYPE_CONTROL);
+							port, SOCK_TYPE_CONTROL);
 		}
 
 		/*
@@ -1025,8 +1007,8 @@ listen_port_changed(property_t prop)
 		 */
 
 		if (enable_udp) {
-			if (listen_port)
-				s_udp_listen = socket_udp_listen(listen_ha, listen_port);
+			if (port)
+				s_udp_listen = socket_udp_listen(listen_ha, port);
 			if (random_port && s_udp_listen == NULL) {
 				socket_free(s_tcp_listen);
 				s_tcp_listen = NULL;
@@ -1039,19 +1021,14 @@ listen_port_changed(property_t prop)
      * If socket allocation failed, reset the property
      */
 
-    if ((s_tcp_listen == NULL) && (listen_port != 0)) {
-		if (random_port) {
-			old_listen_port = (guint32) -1;
-			listen_port = 0;
-		} else
-        	old_listen_port = listen_port = 0;
-
-        gnet_prop_set_guint32_val(prop, listen_port);
+    if (s_tcp_listen == NULL && port != 0) {
+		gcu_statusbar_warning(_("Failed to create listening sockets"));
+		old_port = (guint32) -1;
         return TRUE;
     }
 
 	if (random_port)
-		gnet_prop_set_guint32_val(prop, listen_port);
+		gnet_prop_set_guint32_val(prop, port);
 
     return FALSE;
 }
@@ -1391,7 +1368,6 @@ static gboolean
 force_local_addr_changed(property_t prop)
 {
 	g_assert(PROP_FORCE_LOCAL_IP == prop);
-	listen_address_update();
 	update_address_lifetime();
     return FALSE;
 }
@@ -1400,18 +1376,8 @@ static gboolean
 local_addr_changed(property_t prop)
 {
 	g_assert(PROP_LOCAL_IP == prop);
-	listen_address_update();
 	update_address_lifetime();
     return FALSE;
-}
-
-static gboolean
-ipv6_trt_prefix_changed(property_t prop)
-{
-	(void) prop;
-
-	socket_set_ipv6_trt_prefix(string_to_host_addr(ipv6_trt_prefix, NULL));
-	return FALSE;
 }
 
 static gboolean
@@ -1758,11 +1724,6 @@ static prop_map_t property_map[] = {
 	{
 		PROP_LOCAL_IP,
 		local_addr_changed,
-		TRUE,
-	},
-	{
-		PROP_IPV6_TRT_PREFIX,
-		ipv6_trt_prefix_changed,
 		TRUE,
 	},
 	{

@@ -536,7 +536,7 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	 */
 
 	info.addr = listen_addr();
-	info.port = listen_port;
+	info.port = socket_listen_port();
 	info.files_count = files;
 	info.kbytes_count = kbytes;
 

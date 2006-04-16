@@ -2193,7 +2193,7 @@ upload_http_xhost_add(gchar *buf, gint *retval,
 	g_assert(!is_firewalled);
 
 	addr = listen_addr();
-	port = listen_port;
+	port = socket_listen_port();
 
 	if (host_is_valid(addr, port)) {
 		const gchar *xhost = host_addr_port_to_string(addr, port);

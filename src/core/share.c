@@ -2187,7 +2187,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	if (
 		!oob && udp_active() && proxy_oob_queries && !is_udp_firewalled &&
-		NODE_IS_LEAF(n) && host_is_valid(listen_addr(), listen_port)
+		NODE_IS_LEAF(n) && host_is_valid(listen_addr(), socket_listen_port())
 	) {
 		oob_proxy_create(n);
 		oob = TRUE;

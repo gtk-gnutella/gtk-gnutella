@@ -913,10 +913,10 @@ pproxy_close(void)
 	GSList *l;
 
 	for (l = pproxies; l; l = g_slist_next(l)) {
-		struct pproxy *pp = (struct pproxy *) l->data;
+		struct pproxy *pp = l->data;
 
 		pproxy_free_resources(pp);
-		wfree(pp, sizeof(*pp));
+		wfree(pp, sizeof *pp);
 	}
 
 	g_slist_free(pproxies);
@@ -957,7 +957,7 @@ cproxy_free(struct cproxy *cp)
 	}
 
 	cp->magic = 0;
-	wfree(cp, sizeof(*cp));
+	wfree(cp, sizeof *cp);
 }
 
 /**
@@ -1096,7 +1096,7 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 		"\r\n",
 		verb, path, version_string,
 		tok_version(),
-		host_addr_port_to_string(listen_addr(), listen_port));
+		host_addr_port_to_string(listen_addr(), socket_listen_port()));
 }
 
 /**
@@ -1105,7 +1105,7 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 static void
 cproxy_http_newstate(gpointer handle, http_state_t newstate)
 {
-	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
+	struct cproxy *cp = http_async_get_opaque(handle);
 
 	g_assert(cp != NULL);
 	g_assert(cp->d != NULL);
