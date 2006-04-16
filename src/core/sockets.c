@@ -2244,7 +2244,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 accepted:
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
-	if (!local_ip)
+	if (!force_local_ip)
 		guess_local_addr(sd);
 
 	/*
