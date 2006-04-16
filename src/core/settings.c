@@ -1036,19 +1036,25 @@ listen_port_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
-network_protocol_changed(property_t prop)
+static void
+request_new_sockets(void)
 {
 	guint32 port;
-
-	(void) prop;
-    gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &port);
 	/*
 	 * Trigger a change of the listening port to create a new listening
 	 * socket.
 	 */
+    port = listen_port;
     gnet_prop_set_guint32_val(PROP_LISTEN_PORT, 0);
     gnet_prop_set_guint32_val(PROP_LISTEN_PORT, port);
+}
+
+static gboolean
+network_protocol_changed(property_t prop)
+{
+
+	(void) prop;
+	request_new_sockets();
 	return FALSE;
 }
 
@@ -1372,6 +1378,17 @@ force_local_addr_changed(property_t prop)
 {
 	g_assert(PROP_FORCE_LOCAL_IP == prop);
 	update_address_lifetime();
+	request_new_sockets();
+    return FALSE;
+}
+
+static gboolean
+forced_local_ip_changed(property_t prop)
+{
+	g_assert(PROP_FORCED_LOCAL_IP == prop);
+	if (force_local_ip) {
+		request_new_sockets();
+	}
     return FALSE;
 }
 
@@ -1722,6 +1739,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_FORCE_LOCAL_IP,
 		force_local_addr_changed,
+		TRUE,
+	},
+	{
+		PROP_FORCED_LOCAL_IP,
+		forced_local_ip_changed,
 		TRUE,
 	},
 	{
