@@ -144,6 +144,7 @@ extern const gboolean clear_failed_downloads;
 extern const gboolean clear_unavailable_downloads;
 extern const gboolean search_remove_downloaded;
 extern const gboolean force_local_ip;
+extern const gboolean bind_to_forced_local_ip;
 extern const gboolean use_netmasks;
 extern const gboolean allow_private_network_connection;
 extern const gboolean use_ip_tos;

@@ -1165,6 +1165,16 @@ prop = {
 };
 
 prop = {
+    name = "bind_to_forced_local_ip";
+    desc = "If 'forced_local_ip' is enabled, bind the socket to the forced "
+		   "IP address.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "use_netmasks";
     desc = "Try to connect to local networks first.";
     type = boolean;

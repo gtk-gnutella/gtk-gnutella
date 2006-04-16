@@ -982,23 +982,27 @@ listen_port_changed(property_t prop)
 
 		if (port) {
 
-			switch (network_protocol) {
-			case NET_USE_BOTH:
-			case NET_USE_IPV4:
-				bind_addr = force_local_ip
-					? listen_addr()
-					: host_addr_set_ipv4(INADDR_ANY);
-				break;
+			if (
+				force_local_ip &&
+				bind_to_forced_local_ip &&
+				host_addr_initialized(listen_addr())
+			) {
+				bind_addr = listen_addr();
+			} else {
+				switch (network_protocol) {
+					case NET_USE_BOTH:
+					case NET_USE_IPV4:
+						bind_addr = host_addr_set_ipv4(INADDR_ANY);
+						break;
 #ifdef USE_IPV6
-			case NET_USE_IPV6:
-				if (force_local_ip) {
-					bind_addr = listen_addr();
-				} else {
-					static const guint8 zero_ipv6_addr[16];
-					host_addr_set_ipv6(&bind_addr, zero_ipv6_addr);
-				}
-				break;
+					case NET_USE_IPV6:
+						{
+							static const guint8 zero_ipv6_addr[16];
+							host_addr_set_ipv6(&bind_addr, zero_ipv6_addr);
+						}
+						break;
 #endif /* USE_IPV6 */
+				}
 			}
 
 			s_tcp_listen = socket_tcp_listen(bind_addr,
