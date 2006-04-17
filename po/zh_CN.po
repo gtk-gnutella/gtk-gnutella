@@ -8,9 +8,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.1u\n"
+"Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-10 00:27+0900\n"
+"POT-Creation-Date: 2006-04-17 23:32+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -440,6 +440,12 @@ msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "没有合适的配置目录则无法继续"
+
+msgid "Failed to create UDP socket"
+msgstr ""
+
+msgid "Failed to create listening sockets"
+msgstr ""
 
 #, fuzzy
 msgid "Can only run as a leaf when TCP-firewalled"
@@ -1159,6 +1165,10 @@ msgstr "从搜索结果中去掉已下载的文件。"
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "采用[forced_local_ip]作为本地IP。"
 
+msgid ""
+"If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
 msgid "Try to connect to local networks first."
 msgstr "首先尝试连接本地网络。"
 
@@ -1205,6 +1215,13 @@ msgstr "代理用的协议"
 #, fuzzy
 msgid "Network protocols to use."
 msgstr "代理用的协议"
+
+msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgstr ""
+
+msgid ""
+"The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
+msgstr ""
 
 msgid "Current number of hosts in regular node caches."
 msgstr "目前正常节点缓存中的主机数量"
@@ -6098,9 +6115,6 @@ msgid ""
 msgstr ""
 
 msgid "<unparsed>"
-msgstr ""
-
-msgid "udp"
 msgstr ""
 
 msgid "udp "

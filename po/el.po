@@ -8,9 +8,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.1u\n"
+"Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-10 00:27+0900\n"
+"POT-Creation-Date: 2006-04-17 23:32+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -424,6 +424,14 @@ msgstr "Φαίνεται ότι τρέχει ένα άλλο gtk-gnutella\n"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Δεν είναι δυνατή η συνέχεια χωρίς έναν έγκυρο κατάλογο ρυθμίσεων"
+
+#, fuzzy
+msgid "Failed to create UDP socket"
+msgstr "Αποτυχία δημιουργίας αναζήτησης"
+
+#, fuzzy
+msgid "Failed to create listening sockets"
+msgstr "Αποτυχία δημιουργίας αναζήτησης"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Τρέχει μόνο ως δικτυακός όταν έχει τοίχος προστασίας TCP"
@@ -1203,6 +1211,10 @@ msgstr "Αφαίρεση των ληφθέντων αρχείων από το α
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Ενεργοποίηση χρήσης [forced_local_ip] ως τοπική ip."
 
+msgid ""
+"If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
 msgid "Try to connect to local networks first."
 msgstr "Προσπάθεια σύνδεσης στα τοπικά δίκτυα πρώτα."
 
@@ -1246,6 +1258,13 @@ msgstr "Πρωτόκολλο διαμεσολαβητή."
 
 msgid "Network protocols to use."
 msgstr "Δικτυακά πρωτόκολλα."
+
+msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgstr ""
+
+msgid ""
+"The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
+msgstr ""
 
 msgid "Current number of hosts in regular node caches."
 msgstr "Αριθμός υπολογιστών στις λανθάνουσες μνήμες συνήθων κόμβων."
@@ -6454,9 +6473,6 @@ msgstr ""
 
 msgid "<unparsed>"
 msgstr "<δεν έχει αναλυθεί>"
-
-msgid "udp"
-msgstr "udp"
 
 msgid "udp "
 msgstr "udp "

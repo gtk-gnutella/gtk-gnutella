@@ -9,9 +9,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.1u\n"
+"Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-10 00:27+0900\n"
+"POT-Creation-Date: 2006-04-17 23:32+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -429,6 +429,14 @@ msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "No se puede continuar sin una configuración de directorio válida"
+
+#, fuzzy
+msgid "Failed to create UDP socket"
+msgstr "Imposible crear la búsqueda"
+
+#, fuzzy
+msgid "Failed to create listening sockets"
+msgstr "Imposible crear la búsqueda"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
@@ -1201,6 +1209,10 @@ msgstr "Quitar archivos descargados del resultado de búsquedas."
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Usar [forzar_ip_local] como ip local."
 
+msgid ""
+"If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
 msgid "Try to connect to local networks first."
 msgstr "Intentar conectar a las redes locales primero."
 
@@ -1250,6 +1262,13 @@ msgstr "Protocolo que usa el proxy."
 #, fuzzy
 msgid "Network protocols to use."
 msgstr "Protocolo que usa el proxy."
+
+msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgstr ""
+
+msgid ""
+"The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
+msgstr ""
 
 msgid "Current number of hosts in regular node caches."
 msgstr "Número de nodos actualmente en la reserva de nodos normales."
@@ -6490,9 +6509,6 @@ msgstr ""
 
 msgid "<unparsed>"
 msgstr "<sin analizar>"
-
-msgid "udp"
-msgstr ""
 
 msgid "udp "
 msgstr ""

@@ -1,3 +1,5 @@
+# $Id$
+#
 # Norwegian Bokmal translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2006 Raphaël Manfredi.
@@ -6,9 +8,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.1u\n"
+"Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-10 00:27+0900\n"
+"POT-Creation-Date: 2006-04-17 23:32+0900\n"
 "PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
@@ -422,6 +424,14 @@ msgstr "Det ser ut til at Gtk-Gnutella kjører allerede\n"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Kan ikke fortsette uten gyldig oppsettskatalog"
+
+#, fuzzy
+msgid "Failed to create UDP socket"
+msgstr "Klarte ikke lage søket"
+
+#, fuzzy
+msgid "Failed to create listening sockets"
+msgstr "Klarte ikke lage søket"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Kan kun kjøre som blad når TCP er bak brannmur"
@@ -1199,6 +1209,10 @@ msgstr "Fjern nedlastede filer fra søkeresultatet."
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Slå dette på for å bruke [forced_local_ip] som lokal IP-adresse."
 
+msgid ""
+"If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
 msgid "Try to connect to local networks first."
 msgstr "Prøv å koble til lokale nettverk først."
 
@@ -1246,6 +1260,13 @@ msgstr "Protokollen tjeneren bruker."
 
 msgid "Network protocols to use."
 msgstr "Nettverksprotokoller som skal brukes."
+
+msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgstr ""
+
+msgid ""
+"The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
+msgstr ""
 
 msgid "Current number of hosts in regular node caches."
 msgstr "Gjeldende antall verter i normalt nodehurtigminne."
@@ -6467,9 +6488,6 @@ msgstr ""
 
 msgid "<unparsed>"
 msgstr "<uspaltet>"
-
-msgid "udp"
-msgstr "UDP"
 
 msgid "udp "
 msgstr "UDP "
