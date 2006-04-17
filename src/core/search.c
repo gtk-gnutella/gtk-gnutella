@@ -808,8 +808,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								paylen, sha1_digest, &n->header, TRUE)
 					) {
 						count_sha1(sha1_digest);
-						if (!is_spam)
-							is_spam = spam_check(sha1_digest);
+						is_spam = is_spam || spam_check(sha1_digest);
 
 						if (!validate_only) {
 							if (rc->sha1 != NULL) {
@@ -843,8 +842,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							sha1_errors++;
 						} else {
 							count_sha1(sha1_digest);
-							if (!is_spam)
-								is_spam = spam_check(sha1_digest);
+							is_spam = is_spam || spam_check(sha1_digest);
 
 							if (
 								huge_improbable_sha1(sha1_digest,
@@ -867,8 +865,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					if (ret == GGEP_OK) {
 						has_hash = TRUE;
 						count_sha1(sha1_digest);
-						if (!is_spam)
-							is_spam = spam_check(sha1_digest);
+						is_spam = is_spam || spam_check(sha1_digest);
 
 						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
 							sha1_errors++;

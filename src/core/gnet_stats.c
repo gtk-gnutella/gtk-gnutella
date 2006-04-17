@@ -283,8 +283,11 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	DROP_STATS(stats, type, size);
 	node_inc_rxdrop(n);
 
-	if (reason == MSG_DROP_HOSTILE_IP)
-		n->n_hostile++;
+	switch (reason) {
+	case MSG_DROP_HOSTILE_IP: n->n_hostile++; break;
+	case MSG_DROP_SPAM: n->n_spam++; break;
+	default: ;
+	}
 
 	if (dbg > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
