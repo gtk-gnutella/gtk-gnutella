@@ -698,7 +698,8 @@ buffers_add_read(struct download *d, ssize_t amount)
 
 	for (n = amount, cnt = 0, iov = b->iov_cur; n > 0; iov++, cnt++) {
 		if (iov->iov_len > (size_t) n) {
-			iov->iov_base += n;		/* Buffer incompletely filled */
+			/* Buffer incompletely filled */
+			iov->iov_base = cast_to_gchar_ptr(iov->iov_base) + n;
 			iov->iov_len -= n;
 			break;					/* Can still fill this buffer */
 		} else {
@@ -822,7 +823,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 				memmove(piov->iov_base, buf, move);
 
 			piov->iov_len -= move;
-			piov->iov_base += move;
+			piov->iov_base = cast_to_gchar_ptr(piov->iov_base) + move;
 
 			/*
 			 * Check whether we are done scanning, and exit the loop if
