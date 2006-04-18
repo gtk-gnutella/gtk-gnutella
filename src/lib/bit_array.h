@@ -99,11 +99,13 @@ bit_array_clear(bit_array_t *base, size_t i)
 /**
  * Flips bit number "i" of the bit array "base".
  * @note: For optimum performance, there are no checks at all.
+ *
+ * @return The new state of the bit.
  */
-static inline void 
+static inline gboolean
 bit_array_flip(bit_array_t *base, size_t i)
 {
-	BIT_ARRAY_WORD(base, i) ^= BIT_ARRAY_BIT(base, i);
+	return (BIT_ARRAY_WORD(base, i) ^= BIT_ARRAY_BIT(base, i));
 }
 
 /**
