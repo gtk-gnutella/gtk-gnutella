@@ -59,6 +59,7 @@
 
 #include "if/bridge/c2ui.h"
 
+#include "lib/bit_array.h"
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
@@ -908,7 +909,7 @@ listen_port_changed(property_t prop)
 	gboolean random_port = FALSE;
     guint32 port;
 	guint num_tried = 0;
-	guint32 tried[65536 / (8 * sizeof(guint32))]; /* Use bits as bool flags */
+	bit_array_t tried[BIT_ARRAY_SIZE(65536)];
 
 	port = listen_port;
 
@@ -935,27 +936,27 @@ listen_port_changed(property_t prop)
 	 * these when not explicitely told so as it may grab the
 	 * port of an important service (which is currently down).
 	 */
-	memset(tried, 0, sizeof tried);
-	memset(tried, 0xff, 1024 / 8);
+
+	bit_array_set_range(tried, 0, 1023);
+	bit_array_clear_range(tried, 1024, 65535);
 
 	do {
 		host_addr_t bind_addr = zero_host_addr;
 
 		if (random_port) {
-			guint32 i, b, r;
+			guint32 i;
 
-			port = r = random_value(65535 - 1024) + 1024;
+			i = random_value(65535 - 1024) + 1024;
+			port = i;
+
 			/* Check whether this port was tried before */
 			do {
-				i = r / (8 * sizeof tried[0]);
-				b = 1 << (r % (8 * sizeof tried[0]));
-				if ((tried[i] & b) == 0) {
-					tried[i] |= b;
-					port = r;
+				if (!bit_array_get(tried, i)) {
+					port = i;
 					break;
 				}
-				r = (r + 101) & 0xffff;
-			} while (r != port);
+				i = (i + 101) & 0xffff;
+			} while (i != port);
 
 			g_assert(port > 1023);
 		}
