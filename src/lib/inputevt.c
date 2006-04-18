@@ -77,6 +77,7 @@ RCSID("$Id$");
 #include "inputevt.h"
 #include "misc.h"
 #include "walloc.h"
+#include "bit_array.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -137,7 +138,7 @@ struct poll_ctx {
 #endif /* !HAS_KQUEUE */
 
 	inputevt_relay_t **relay;	/**< The relay contexts */
-	gulong *used;				/**< A bit array, which ID slots are used */
+	bit_array_t *used;			/**< A bit array, which ID slots are used */
 	GSList *removed;			/**< List of removed IDs */
 	GHashTable *ht;				/**< Records file descriptors */
 	guint num_ev;				/**< Length of the "ev" and "relay" arrays */
@@ -296,82 +297,6 @@ check_poll_events(struct poll_ctx *poll_ctx)
 #endif /* HAS_KQUEUE */
 
 #endif /* HAS_EPOLL || HAS_KQUEUE */
-
-/*
- * Functions for handling arrays of bits. On BSD systems, the * macros from
- * <bitstring.h> could be used for better efficiency. So far, the following
- * implementation does not eliminate loop overhead by handling all bits
- * of a "gulong" at once where possible.
- */
-
-/* @todo TODO: Move these functions to bit_array.h */
-
-static inline gulong *
-bit_array_realloc(gulong *base, size_t n)
-{
-	size_t size;
-	
-	size = (n / 8) + (n % (8 * sizeof base[0]) ? sizeof base[0] : 0);
-	return g_realloc(base, size);
-}
-
-#define BIT_ARRAY_BYTE(base, i) base[i / (8 * sizeof base[0])]
-#define BIT_ARRAY_BIT(base, i) (1UL << (i % (8 * sizeof base[0]))) 
-
-static inline void
-bit_array_set(gulong *base, size_t i)
-{
-	BIT_ARRAY_BYTE(base, i) |= BIT_ARRAY_BIT(base, i);
-}
-
-static inline void 
-bit_array_clear(gulong *base, size_t i)
-{
-	BIT_ARRAY_BYTE(base, i) &= ~BIT_ARRAY_BIT(base, i);
-}
-
-static inline void 
-bit_array_flip(gulong *base, size_t i)
-{
-	BIT_ARRAY_BYTE(base, i) ^= BIT_ARRAY_BIT(base, i);
-}
-
-static inline gboolean
-bit_array_get(const gulong *base, size_t i)
-{
-	return 0 != (BIT_ARRAY_BYTE(base, i) & BIT_ARRAY_BIT(base, i));
-}
-
-static inline void 
-bit_array_clear_range(gulong *base, size_t from, size_t to)
-{
-	g_assert(from <= to);
-
-	if (from <= to) {
-		size_t i = from;
-	
-		do
-			bit_array_clear(base, i);
-		while (i++ != to);
-	}
-}
-
-static inline size_t
-bit_array_first_clear(const gulong *base, size_t from, size_t to)
-{
-	g_assert(from <= to);
-
-	if (from <= to) {
-		size_t i = from;
-	
-		do
-			if (0 == bit_array_get(base, i))
-				return i;
-		while (i++ != to);
-	}
-
-	return (size_t) -1;
-}
 
 /**
  * Frees the relay structure when its time comes.
