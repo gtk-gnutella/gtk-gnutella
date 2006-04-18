@@ -48,6 +48,7 @@ RCSID("$Id: hostiles.c 10580 2006-03-14 22:58:17Z cbiere $");
 #include "nodes.h"
 
 #include "lib/atoms.h"
+#include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/misc.h"
@@ -135,7 +136,7 @@ spam_load(FILE *f)
 	spam_item_t item;
 	gchar line[1024];
 	guint line_no = 0;
-	gchar tag_used[NUM_SPAM_TAGS];
+	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_SPAM_TAGS)];
 	gboolean done = FALSE;
 
 	g_assert(f);
@@ -143,7 +144,7 @@ spam_load(FILE *f)
 	/* Reset state */
 	done = FALSE;
 	item = zero_item;
-	memset(tag_used, 0, sizeof tag_used);
+	bit_array_clear_range(tag_used, 0, (guint) NUM_SPAM_TAGS - 1);
 
 	spam_ht = g_hash_table_new(sha1_hash, sha1_eq);
 
@@ -185,8 +186,8 @@ spam_load(FILE *f)
 		tag_name = line;
 
 		tag = spam_string_to_tag(tag_name);
-		g_assert((gint) tag >= 0 && tag <= G_N_ELEMENTS(tag_used));
-		if (SPAM_TAG_UNKNOWN != tag && 0 == (tag_used[tag] ^= 1)) {
+		g_assert((gint) tag >= 0 && tag < NUM_SPAM_TAGS);
+		if (SPAM_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning("spam_load(): duplicate tag \"%s\" in entry in line %u",
 				tag_name, line_no);
 			break;
@@ -224,11 +225,11 @@ spam_load(FILE *f)
 			break;
 
 		case SPAM_TAG_END:
-			if (!tag_used[SPAM_TAG_SHA1]) {
+			if (!bit_array_get(tag_used, SPAM_TAG_SHA1)) {
 				g_warning("spam_load(): missing SHA1 tag");
 				damaged = TRUE;
 			}
-			if (!tag_used[SPAM_TAG_ADDED]) {
+			if (!bit_array_get(tag_used, SPAM_TAG_ADDED)) {
 				g_warning("spam_load(): missing ADDED tag");
 				damaged = TRUE;
 			}
@@ -265,7 +266,7 @@ spam_load(FILE *f)
 			/* Reset state */
 			done = FALSE;
 			item = zero_item;
-			memset(tag_used, 0, sizeof tag_used);
+			bit_array_clear_range(tag_used, 0, (guint) NUM_SPAM_TAGS - 1);
 		}
 	}
 
