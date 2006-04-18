@@ -613,6 +613,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	rs->proxies   = NULL;
 	rs->hostname  = NULL;
 	rs->country   = -1;
+	rs->hops	  = n->header.hops;
+	rs->ttl		  = n->header.ttl;
 
 	r = cast_to_gpointer(n->data);
 
