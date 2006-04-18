@@ -710,8 +710,8 @@ local_hostname(void)
  *
  * @returns new string length.
  */
-gint
-str_chomp(gchar *str, gint len)
+size_t
+str_chomp(gchar *str, size_t len)
 {
 	if (len == 0) {
 		len = strlen(str);

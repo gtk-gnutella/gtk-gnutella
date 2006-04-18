@@ -442,7 +442,7 @@ void guid_random_fill(gchar *xuid);
  * Stuff
  */
 void misc_init(void);
-gint str_chomp(gchar *str, gint len);
+size_t str_chomp(gchar *str, size_t len);
 gint hex2int(guchar c);
 gboolean is_printable(const gchar *buf, gint len);
 void dump_hex(FILE *, const gchar *, gconstpointer, gint);
