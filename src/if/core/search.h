@@ -85,22 +85,26 @@ typedef struct gnet_host_vec {
  * various searches in presence.
  */
 typedef struct gnet_results_set {
-	gchar *guid;				/**< Servent's GUID (atom) */
 	host_addr_t addr;
-	guint16 port;
-	guint16 status;				/**< Parsed status bits from trailer */
-	guint32 speed;
-	time_t  stamp;				/**< Reception time of the hit */
-	union vendor_code vcode;	/**< Vendor code */
-	gchar *version;				/**< Version information (atom) */
-	gint country;				/**< Country code -- encoded ISO3166 */
-    flag_t  flags;
-	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
-	gchar *hostname;			/**< Optional: server's hostname */
 	host_addr_t last_hop;		/**< IP of delivering node */
 
+	gchar *guid;				/**< Servent's GUID (atom) */
+	gchar *hostname;			/**< Optional: server's hostname */
+	gchar *version;				/**< Version information (atom) */
+	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	GSList *records;
+	time_t  stamp;				/**< Reception time of the hit */
+
+	gint country;				/**< Country code -- encoded ISO3166 */
+	union vendor_code vcode;	/**< Vendor code */
+	guint32 speed;
 	guint32 num_recs;
+	
+    flag_t  flags;
+	guint16 port;
+	guint16 status;				/**< Parsed status bits from trailer */
+	guint8 hops;
+	guint8 ttl;
 } gnet_results_set_t;
 
 /*
