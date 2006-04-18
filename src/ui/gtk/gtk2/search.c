@@ -189,6 +189,9 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 	case c_sr_charset:
 		text = data->record->charset;
 		break;
+	case c_sr_route:
+		text = search_gui_get_route(data->record);
+		break;
 	default:
 		text = NULL;
 	}
@@ -736,6 +739,33 @@ search_gui_cmp_info(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_strings(d1->info, d2->info);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_route(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	const struct results_set *rs1, *rs2;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	rs1 = d1->record->results_set;
+	rs2 = d2->record->results_set;
+	ret = host_addr_cmp(rs1->last_hop, rs2->last_hop);
+	if (0 == ret) {
+		ret = CMP((ST_UDP & rs1->status) , (ST_UDP & rs2->status));
+		if (0 == ret) {
+			ret = CMP(rs1->hops, rs2->hops);
+			if (0 == ret)
+				ret = CMP(rs1->ttl, rs2->ttl);
+		}
+	}
+
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -1581,7 +1611,8 @@ add_results_columns(GtkTreeView *treeview, gpointer udata)
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_cmp_count },
 		{ N_("Loc"),	   c_sr_loc,	  0.0, search_gui_cmp_country },
 		{ N_("Metadata"),  c_sr_meta,	  0.0, search_gui_cmp_meta },
-		{ N_("Info"),	   c_sr_info,	  0.0, search_gui_cmp_info }
+		{ N_("Info"),	   c_sr_info,	  0.0, search_gui_cmp_info },
+		{ N_("Route"),	   c_sr_route,	  0.0, search_gui_cmp_route }
 	};
 	guint32 width[G_N_ELEMENTS(columns)];
 	guint i;

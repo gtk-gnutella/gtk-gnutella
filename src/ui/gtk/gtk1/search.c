@@ -532,6 +532,10 @@ search_gui_compare_records(gint sort_col,
 
         case c_sr_meta:
 			break;				/* XXX Can't sort, metadata not in record! */
+			
+        case c_sr_route:
+			/* XXX: Sort properly */
+			break;
         }
     }
 
@@ -1178,6 +1182,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 	titles[c_sr_size] = empty;
 	titles[c_sr_count] = empty;
 	titles[c_sr_loc] = iso3166_country_cc(rs->country);
+	titles[c_sr_route] = search_gui_get_route(rc);
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 
@@ -2156,11 +2161,23 @@ search_gui_set_current_search(search_t *sch)
 static void
 gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 {
-	GtkWidget *label;
-    GtkWidget *hbox;
     GtkWidget *ctree_widget;
-
-	gint i;
+	static const struct {
+		const gchar *title;
+		const gint id;
+		const gboolean visible;
+	} columns[] = {
+		{ N_("File"), c_sr_filename, TRUE },
+		{ N_("Extension"), c_sr_ext, TRUE },
+		{ N_("Encoding"), c_sr_charset, FALSE },
+		{ N_("Size"), c_sr_size, TRUE },
+		{ N_("#"), c_sr_count, TRUE },
+		{ N_("Loc"), c_sr_loc, FALSE },
+		{ N_("Metadata"), c_sr_meta, TRUE },
+		{ N_("Info"), c_sr_info, TRUE },
+		{ N_("Route"), c_sr_route, FALSE },
+	};
+	guint i;
 
 	*sw = gtk_scrolled_window_new(NULL, NULL);
 
@@ -2185,70 +2202,24 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
     gtk_clist_set_column_justification(GTK_CLIST(*ctree),
         c_sr_count, GTK_JUSTIFY_RIGHT);
 
-	label = gtk_label_new(_("File"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_filename, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_filename, _("File"));
-
-	label = gtk_label_new(_("Extension"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_ext, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_ext, _("Extension"));
-
-	label = gtk_label_new(_("Encoding"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_charset, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_charset, _("Encoding"));
-
-	label = gtk_label_new(_("Size"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_size, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_size, _("Size"));
-
-	label = gtk_label_new(_("#"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_count, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_count, _("#"));
-
-	label = gtk_label_new(_("Loc"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_loc, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_loc, _("Loc"));
-	gtk_clist_set_column_visibility(GTK_CLIST(*ctree), c_sr_loc, FALSE);
-
-	label = gtk_label_new(_("Metadata"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_meta, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_meta, _("Metadata"));
-
-	label = gtk_label_new(_("Info"));
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
-    hbox = gtk_hbox_new(FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_info, hbox);
-    gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_info, _("Info"));
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		GtkWidget *label, *hbox;
+		const gchar *title;
+		gint id;
+	
+		title = _(columns[i].title);
+		id = columns[i].id;
+		label = gtk_label_new(title);
+    	gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    	hbox = gtk_hbox_new(FALSE, 4);
+    	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+		gtk_clist_set_column_widget(GTK_CLIST(*ctree), id, hbox);
+    	gtk_widget_show_all(hbox);
+    	gtk_clist_set_column_name(GTK_CLIST(*ctree), id,
+			deconstify_gchar(title));
+		if (!columns[i].visible)
+			gtk_clist_set_column_visibility(GTK_CLIST(*ctree), c_sr_loc, FALSE);
+	}
 
 	gtk_widget_show_all(*sw);
 
