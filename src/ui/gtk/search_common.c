@@ -746,6 +746,8 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
 	rs->country = r_set->country;
 	rs->last_hop = r_set->last_hop;
+	rs->hops = r_set->hops;
+	rs->ttl = r_set->ttl;
 
     rs->num_recs = 0;
     rs->records = NULL;
@@ -906,6 +908,34 @@ search_gui_retrieve_searches(void)
 }
 
 /**
+ * @return a string showing the route information for the given
+ *         result record. The return string uses a static buffer.
+ */
+const gchar *
+search_gui_get_route(const record_t *rc)
+{
+	static gchar buf[1024];
+	static gchar addr_buf[128];
+	const results_set_t *rs;
+	
+	g_assert(rc);
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
+	
+	rs = rc->results_set;
+	g_assert(rs);
+	
+	host_addr_to_string_buf(rs->last_hop,
+		addr_buf, sizeof addr_buf);
+	gm_snprintf(buf, sizeof buf, "%s %s %u/%u",
+		addr_buf,
+		ST_UDP & rs->status ? _("UDP") : _("TCP"),
+		rs->hops,
+		rs->ttl);
+	return buf;
+}
+
+/**
  * Called to dispatch results to the search window.
  */
 void
@@ -956,16 +986,11 @@ search_matched(search_t *sch, results_set_t *rs)
 		g_string_append(vinfo, _("<unparsed>"));
 	}
 
-	if (vinfo->len)
-		g_string_append(vinfo, ", ");
 	if (rs->status & ST_UDP) {
 		sch->udp_qhits++;
-		g_string_append(vinfo, _("udp "));
 	} else {
 		sch->tcp_qhits++;
-		g_string_append(vinfo, _("tcp "));
 	}
-	g_string_append(vinfo, host_addr_to_string(rs->last_hop));
 
 	if (rs->status & ST_TLS)
 		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");

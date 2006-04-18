@@ -53,6 +53,8 @@ typedef struct results_set {
 
 	gchar *guid;			/**< Servent's GUID (atom) */
 	host_addr_t addr;
+	guint8 hops;
+	guint8 ttl;
 	guint16 port;
 	guint16 status;				/**< Parsed status bits from trailer */
 	guint16 speed;
@@ -139,6 +141,7 @@ guint search_gui_hash_func(gconstpointer key);
 gint search_gui_hash_key_compare(gconstpointer a, gconstpointer b);
 void search_gui_remove_r_set(search_t *sch, results_set_t *rs);
 gboolean search_gui_result_is_dup(search_t *sch, record_t *rc);
+const gchar * search_gui_get_route(const record_t *rc);
 search_t *search_gui_find(gnet_search_t sh);
 gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
