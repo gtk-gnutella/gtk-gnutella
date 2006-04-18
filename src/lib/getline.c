@@ -57,13 +57,13 @@ RCSID("$Id$");
  * `maxlen' bytes.
  */
 getline_t *
-getline_make(gint maxlen)
+getline_make(size_t maxlen)
 {
 	getline_t *o;
 
 	g_assert(maxlen > 0);
 
-	o = walloc0(sizeof(*o));
+	o = walloc0(sizeof *o);
 
 	o->maxlen = maxlen;
 	o->size = MIN(START_LENGTH, maxlen);
@@ -82,7 +82,7 @@ getline_free(getline_t *o)
 	g_assert(o->line);
 
 	G_FREE_NULL(o->line);
-	wfree(o, sizeof(*o));
+	wfree(o, sizeof *o);
 }
 
 /**
@@ -113,14 +113,11 @@ getline_reset(getline_t *o)
  *
  * The trailing "\r\n" or "\n" is stripped from the accumulated line.
  */
-gint
-getline_read(getline_t *o, gchar *data, gint len, gint *used)
+getline_result_t
+getline_read(getline_t *o, const gchar *data, size_t len, size_t *used)
 {
-	gchar c;
-	gint orig_len = len;
-	gint used_bytes;
-	gint needed;
-	gint missing;
+	getline_result_t result = READ_MORE;
+	size_t used_bytes, needed, missing;
 
 	/*
 	 * Make sure we have enough room to either grab all `len' bytes or
@@ -131,7 +128,7 @@ getline_read(getline_t *o, gchar *data, gint len, gint *used)
 	missing = o->pos + MIN(len, needed) - o->size + 1;	/* Trailing NUL */
 
 	if (missing > 0) {
-		guint new_size = o->size + MAX(missing, GROW_LENGTH);
+		size_t new_size = o->size + MAX(missing, GROW_LENGTH);
 		new_size = MIN(new_size, o->maxlen);
 
 		g_assert(new_size <= INT_MAX);
@@ -139,29 +136,30 @@ getline_read(getline_t *o, gchar *data, gint len, gint *used)
 		o->size = new_size;
 
 		g_assert(o->size <= o->maxlen);
-
 	}
 
 	/*
 	 * Read data until the end of the line.
 	 */
 
-	while (len-- > 0) {
+	for (used_bytes = 0; used_bytes < len; /* NOTHING */) {
+		gchar c;
+
 		if (o->pos >= (o->size - 1))			/* Leave room for final NUL */
 			return READ_OVERFLOW;
-		c = *data++;
-		o->line[o->pos++] = c;
+		c = data[used_bytes++];
 		if (c == '\n') {
 			/*
 			 * Reached the end of the line.
 			 */
 
-			o->pos--;							/* We strip "\n" */
 			if (o->pos > 0 && o->line[o->pos - 1] == '\r')
 				o->pos--;						/* We strip "\r" */
 			o->line[o->pos] = '\0';				/* NUL-terminate string */
+			result = READ_DONE;
 			break;
 		}
+		o->line[o->pos++] = c;
 	}
 
 	/*
@@ -169,18 +167,17 @@ getline_read(getline_t *o, gchar *data, gint len, gint *used)
 	 * end of the line.
 	 */
 
-	used_bytes = (len >= 0) ? orig_len - len : orig_len;
 	if (used)
 		*used = used_bytes;
 
-	return (len >= 0) ? READ_DONE : READ_MORE;
+	return result;
 }
 
 /**
  * @return a C string (NUL-terminated) corresponding to the line we currently
  * have in the buffer.
  */
-gchar *
+const gchar *
 getline_str(getline_t *o)
 {
 	g_assert(o->pos < o->size);
@@ -192,7 +189,7 @@ getline_str(getline_t *o)
 /**
  * @return the length of the currently accumulated line.
  */
-gint
+size_t
 getline_length(getline_t *o)
 {
 	return o->pos;

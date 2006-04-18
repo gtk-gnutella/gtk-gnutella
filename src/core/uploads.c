@@ -1774,7 +1774,7 @@ upload_error_not_found(gnutella_upload_t *u, const gchar *request)
  * @return TRUE if ok or FALSE otherwise (upload must then be aborted)
  */
 static gboolean
-upload_http_version(gnutella_upload_t *u, gchar *request, gint len)
+upload_http_version(gnutella_upload_t *u, const gchar *request, size_t len)
 {
 	guint http_major, http_minor;
 
@@ -2724,8 +2724,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
     guint32 idx = 0;
 	filesize_t skip = 0, end = 0;
 	const gchar *fpath = NULL;
-	gchar *user_agent = 0;
-	gchar *buf, *search, *uri, *request = getline_str(s->getline);
+	gchar *user_agent = NULL;
+	gchar *buf, *search, *uri;
+	const gchar *request = getline_str(s->getline);
 	GSList *sl;
 	gboolean head_only;
 	gboolean has_end = FALSE;
@@ -2854,25 +2855,27 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	/* Separate the HTTP method (like GET or HEAD) */
 	{
-		gchar *end = request;
+		const gchar *end;
 
-		while ('\0' != *end && !is_ascii_blank(*end))
-			end++;
+		/*
+		 * If `head_only' is true, the request was a HEAD and we're only going
+		 * to send back the headers.
+		 */
+		
+		if (NULL != (end = is_strprefix(request, "HEAD"))) {
+			head_only = TRUE;
+			method = "HEAD";
+		} else if (NULL != (end = is_strprefix(request, "GET"))) {
+			head_only = FALSE;
+			method = "GET";
+		}
 
-		uri = skip_ascii_blanks(end);
-		*end = '\0';
-	}
-	method = request;
-
-	/*
-	 * If `head_only' is true, the request was a HEAD and we're only going
-	 * to send back the headers.
-	 */
-
-	head_only = 0 == strcmp(method, "HEAD");
-	if (!head_only && 0 != strcmp(method, "GET")) {
-		upload_error_remove(u, NULL, 501, "Not Implemented");
-		return;
+		if (end && is_ascii_blank(end[0])) {
+			uri = skip_ascii_blanks(end);
+		} else {
+			upload_error_remove(u, NULL, 501, "Not Implemented");
+			return;
+		}
 	}
 
 	search = strchr(uri, '?');

@@ -44,19 +44,21 @@
  * getline() return codes.
  */
 
-#define READ_MORE		0		/**< OK, expecting more */
-#define READ_DONE		1		/**< OK, got whole line */
-#define READ_OVERFLOW	2		/**< Reached max line size */
+typedef enum getline_result {
+	READ_MORE,		/**< OK, expecting more */
+	READ_DONE,		/**< OK, got whole line */
+	READ_OVERFLOW,	/**< Reached max line size */
+} getline_result_t;
 
 /**
  * A getline "object".
  */
 
 typedef struct getline {
-	guint maxlen;				/**< Maximum authorized length */
-	guint size;					/**< Current allocated size for `line' */
+	size_t maxlen;				/**< Maximum authorized length */
+	size_t size;				/**< Current allocated size for `line' */
 	gchar *line;				/**< Accumulator, NUL terminated when done */
-	guint pos;					/**< Next writing position in line[] */
+	size_t pos;					/**< Next writing position in line[] */
 } getline_t;
 
 #define getline_maxlen(o)	((o)->maxlen)
@@ -65,12 +67,12 @@ typedef struct getline {
  * Public interface.
  */
 
-getline_t *getline_make(gint maxsize);
+getline_t *getline_make(size_t maxsize);
 void getline_free(getline_t *o);
 void getline_reset(getline_t *o);
-gint getline_read(getline_t *o, gchar *data, gint len, gint *used);
-gchar *getline_str(getline_t *o);
-gint getline_length(getline_t *o);
+size_t getline_read(getline_t *o, const gchar *data, size_t len, size_t *used);
+const gchar *getline_str(getline_t *o);
+getline_result_t getline_length(getline_t *o);
 void getline_copy(getline_t *source, getline_t *dest);
 
 #endif	/* _getline_h_ */

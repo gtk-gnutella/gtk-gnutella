@@ -792,9 +792,9 @@ static gint
 connect_http(struct gnutella_socket *s)
 {
 	ssize_t ret;
-	gint parsed;
+	size_t parsed;
 	gint status;
-	gchar *str;
+	const gchar *str;
 
 	switch (s->pos) {
 	case 0:
@@ -843,13 +843,12 @@ connect_http(struct gnutella_socket *s)
 			g_warning("HTTP proxy returned a too long line");
 			return -1;
 		case READ_DONE:
-			if (ret != parsed)
+			if ((size_t) ret != parsed)
 				memmove(s->buffer, s->buffer + parsed, ret - parsed);
 			ret -= parsed;
 			break;
 		case READ_MORE:
-		default:
-			g_assert(parsed == ret);
+			g_assert(parsed == (size_t) ret);
 			return 0;
 		}
 		str = getline_str(s->getline);
@@ -870,7 +869,7 @@ connect_http(struct gnutella_socket *s)
 				g_warning("HTTP proxy returned a too long line");
 				return -1;
 			case READ_DONE:
-				if (ret != parsed)
+				if ((size_t) ret != parsed)
 					memmove(s->buffer, s->buffer + parsed, ret - parsed);
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
@@ -881,8 +880,7 @@ connect_http(struct gnutella_socket *s)
 				}
 				break;
 			case READ_MORE:
-			default:
-				g_assert(parsed == ret);
+				g_assert(parsed == (size_t) ret);
 				return 0;
 			}
 		}
@@ -901,7 +899,7 @@ connect_http(struct gnutella_socket *s)
 				g_warning("HTTP proxy returned a too long line");
 				return -1;
 			case READ_DONE:
-				if (ret != parsed)
+				if ((size_t) ret != parsed)
 					memmove(s->buffer, s->buffer + parsed, ret - parsed);
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
@@ -912,8 +910,7 @@ connect_http(struct gnutella_socket *s)
 				}
 				break;
 			case READ_MORE:
-			default:
-				g_assert(parsed == ret);
+				g_assert(parsed == (size_t) ret);
 				return 0;
 			}
 		}
@@ -1563,8 +1560,8 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	struct gnutella_socket *s = data;
 	size_t count;
 	ssize_t r;
-	gint parsed;
-	gchar *first;
+	size_t parsed;
+	const gchar *first;
 	time_t banlimit;
 
 	(void) source;
@@ -1682,13 +1679,13 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		socket_destroy(s, "Requested URL too large");
 		return;
 	case READ_DONE:
-		if (s->pos != (guint) parsed)
-			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
+		if (s->pos != parsed)
+			memmove(s->buffer, &s->buffer[parsed], s->pos - parsed);
 		s->pos -= parsed;
 		break;
 	case READ_MORE:		/* ok, but needs more data */
 	default:
-		g_assert((guint) parsed == s->pos);
+		g_assert(parsed == s->pos);
 		s->pos = 0;
 		return;
 	}
@@ -1777,11 +1774,10 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 */
 
 	banlimit = parq_banned_source_expire(s->addr);
-
-	if (banlimit > 0) {
+	if (banlimit) {
 		if (socket_debug)
-			g_warning("[sockets] PARQ has banned ip %s until %d",
-				host_addr_to_string(s->addr), (gint) banlimit);
+			g_warning("[sockets] PARQ has banned host %s until %s",
+				host_addr_to_string(s->addr), timestamp_to_string(banlimit));
 		ban_force(s);
 		goto cleanup;
 	}
@@ -1814,7 +1810,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		/* Incoming control connection */
 		node_add_socket(s, s->addr, s->port, 0);
 	} else if (is_strprefix(first, "GET ") || is_strprefix(first, "HEAD ")) {
-		gchar *uri;
+		const gchar *uri;
 
 		/*
 		 * We have to decide whether this is an upload request or a
@@ -1845,7 +1841,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 unknown:
 	if (socket_debug) {
-		gint len = getline_length(s->getline);
+		size_t len = getline_length(s->getline);
 		g_warning("socket_read(): got unknown incoming connection from %s, "
 			"dropping!", host_addr_to_string(s->addr));
 		if (len > 0)
@@ -2440,10 +2436,19 @@ socket_udp_accept(struct gnutella_socket *s)
 	s->port = socket_addr_get_port(from_addr);
 
 	if (has_dst_addr) {
+		static host_addr_t last_addr;
+
 		settings_addr_changed(dst_addr, s->addr);
-		if (socket_debug)
-			g_message("socket_udp_accept(): dst_addr=%s",
-				host_addr_to_string(dst_addr));
+
+		/* Show the destination address only when it differs from
+		 * the last seen or if the debug level is higher than 1.
+		 */
+		if (socket_debug > 1 || !host_addr_equal(last_addr, dst_addr)) {
+			last_addr = dst_addr;
+			if (socket_debug)
+				g_message("socket_udp_accept(): dst_addr=%s",
+					host_addr_to_string(dst_addr));
+		}
 	}
 
 	/*

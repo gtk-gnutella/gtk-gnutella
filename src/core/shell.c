@@ -918,7 +918,7 @@ static void
 shell_read_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
-	gint parsed;
+	size_t parsed;
 	ssize_t rc = -1;
 
 	g_assert(sh);
@@ -965,13 +965,12 @@ shell_read_data(gnutella_shell_t *sh)
 			shell_destroy(sh);
 			return;
 		case READ_DONE:
-			if (s->pos != (size_t) parsed)
+			if (s->pos != parsed)
 				memmove(s->buffer, &s->buffer[parsed], s->pos - parsed);
 			s->pos -= parsed;
 			break;
 		case READ_MORE:
-		default:
-			g_assert((size_t) parsed == s->pos);
+			g_assert(parsed == s->pos);
 
 			return;
 		}

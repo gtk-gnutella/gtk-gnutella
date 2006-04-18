@@ -163,7 +163,7 @@ io_header_parse(struct io_header *ih)
 	struct gnutella_socket *s = ih->socket;
 	getline_t *getline = ih->getline;
 	header_t *header = ih->header;
-	gint parsed;
+	size_t parsed;
 	gint error;
 
 	/*
@@ -184,13 +184,12 @@ nextline:
 		return;
 		/* NOTREACHED */
 	case READ_DONE:
-		if (s->pos != (size_t) parsed)
-			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
+		if (s->pos != parsed)
+			memmove(s->buffer, &s->buffer[parsed], s->pos - parsed);
 		s->pos -= parsed;
 		break;
 	case READ_MORE:		/* ok, but needs more data */
-	default:
-		g_assert((size_t) parsed == s->pos);
+		g_assert(parsed == s->pos);
 		s->pos = 0;
 		return;
 	}
@@ -221,9 +220,8 @@ nextline:
 		 * the following header lines.
 		 */
 
-		g_assert(s->getline == 0);
+		g_assert(NULL == s->getline);
 		s->getline = getline_make(getline_length(getline) + 1);
-
 		getline_copy(getline, s->getline);
 		getline_reset(getline);
 		ih->flags &= ~IO_SAVE_FIRST;
@@ -246,7 +244,7 @@ nextline:
 
 	error = header_append(header,
 		getline_str(getline), getline_length(getline));
-
+	
 	switch (error) {
 	case HEAD_OK:
 		getline_reset(getline);

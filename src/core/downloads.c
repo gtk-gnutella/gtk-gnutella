@@ -5492,10 +5492,12 @@ download_check_status(struct download *d, getline_t *line, gint code)
 		 * What we read was probably still data coming through.
 		 */
 
-		if (d->keep_alive)
+		if (d->keep_alive) {
 			download_queue(d, _("Weird HTTP status (protocol desync?)"));
-		else
+		} else {
+			download_bad_source(d);
 			download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
+		}
 		return FALSE;
 	}
 
@@ -6485,7 +6487,7 @@ http_version_nofix:
 	update_available_ranges(d, header);		/* Updates `d->ranges' */
 
 	delay = extract_retry_after(d, header);
-	d->retry_after = (delay > 0) ? (tm_time() + delay) : 0;
+	d->retry_after = (delay > 0) ? time_advance(tm_time(), delay) : 0;
 
 	/*
 	 * Partial File Sharing Protocol (PFSP) -- client-side
@@ -6572,6 +6574,14 @@ http_version_nofix:
 				}
 
 				v = parse_uint64(buf, NULL, 10, &error);
+				if (error) {
+					g_message( "Cannot parse Content-Length header from "
+						"%s <%s>: \"%s\"",
+						host_addr_port_to_string(download_addr(d),
+							download_port(d)),
+						download_vendor_str(d),
+						buf);
+				}
 				d->sinkleft = v;
 
 				if (d->sinkleft > DOWNLOAD_MAX_SINK) {
@@ -7921,7 +7931,7 @@ picked:
 static void
 download_push_ready(struct download *d, getline_t *empty)
 {
-	gint len = getline_length(empty);
+	size_t len = getline_length(empty);
 
 	if (len != 0) {
 		g_message("file \"%s\": push reply was not followed by an empty line",
@@ -8134,7 +8144,7 @@ void
 download_push_ack(struct gnutella_socket *s)
 {
 	struct download *d = NULL;
-	gchar *giv;
+	const gchar *giv;
 	guint file_index;			/* The requested file index */
 	gchar hex_guid[33];			/* The hexadecimal GUID */
 	gchar guid[GUID_RAW_SIZE];	/* The decoded (binary) GUID */
