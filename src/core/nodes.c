@@ -3690,7 +3690,7 @@ static gboolean
 analyse_status(struct gnutella_node *n, gint *code)
 {
 	struct gnutella_socket *s = n->socket;
-	gchar *status;
+	const gchar *status;
 	gint ack_code;
 	guint major = 0, minor = 0;
 	const gchar *ack_message = "";
@@ -7629,6 +7629,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     status->n_hard_ttl = node->n_hard_ttl;
     status->n_weird    = node->n_weird;
     status->n_hostile  = node->n_hostile;
+    status->n_spam     = node->n_spam;
 
     status->squeue_sent         = NODE_SQUEUE_SENT(node);
     status->squeue_count        = NODE_SQUEUE_COUNT(node);
