@@ -315,7 +315,7 @@ pproxy_create(struct gnutella_socket *s)
  * we also return an error to the calling party.
  */
 static gboolean
-get_params(struct pproxy *pp, gchar *request,
+get_params(struct pproxy *pp, const gchar *request,
 	gchar **guid_atom, guint32 *file_idx)
 {
 	static const struct {
@@ -634,7 +634,7 @@ static void
 pproxy_request(struct pproxy *pp, header_t *header)
 {
 	struct gnutella_socket *s = pp->socket;
-	gchar *request = getline_str(s->getline);
+	const gchar *request = getline_str(s->getline);
 	struct gnutella_node *n;
 	gchar *buf;
 	gchar *token;

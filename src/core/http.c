@@ -462,10 +462,10 @@ http_status_parse(const gchar *line,
  */
 gboolean
 http_extract_version(
-	const gchar *request, gint len, guint *major, guint *minor)
+	const gchar *request, size_t len, guint *major, guint *minor)
 {
 	const gchar *p;
-	gint limit, i;
+	size_t limit, i;
 
 	/*
 	 * The smallest request would be "X / HTTP/1.0".
@@ -474,7 +474,7 @@ http_extract_version(
 	limit = sizeof("X / HTTP/1.0") - 1;
 
 	if (http_debug > 4)
-		printf("HTTP req (%d bytes): %s\n", len, request);
+		printf("HTTP req (%lu bytes): %s\n", (gulong) len, request);
 
 	if (len < limit)
 		return FALSE;
@@ -490,7 +490,7 @@ http_extract_version(
 	}
 
 	if (http_debug > 4)
-		printf("HTTP i = %d, limit = %d\n", i, limit);
+		printf("HTTP i = %lu, limit = %d\n", (gulong) i, limit);
 
 	if (i == limit)
 		return FALSE;		/* Reached our limit without finding a space */
@@ -507,7 +507,8 @@ http_extract_version(
 		0 != parse_major_minor(p, NULL, major, minor)
 	) {
 		if (http_debug > 1)
-			printf("HTTP req (%d bytes): no protocol tag: %s\n", len, request);
+			printf("HTTP req (%lu bytes): no protocol tag: %s\n",
+				(gulong) len, request);
 		return FALSE;
 	}
 
@@ -2198,7 +2199,7 @@ static void
 http_got_header(struct http_async *ha, header_t *header)
 {
 	struct gnutella_socket *s = ha->socket;
-	gchar *status = getline_str(s->getline);
+	const gchar *status = getline_str(s->getline);
 	gint ack_code;
 	const gchar *ack_message = "";
 	gchar *buf;

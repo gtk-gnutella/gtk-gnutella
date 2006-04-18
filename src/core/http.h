@@ -220,7 +220,7 @@ gint http_status_parse(const gchar *line,
 	const gchar *proto, const gchar **msg, guint *major, guint *minor);
 
 gboolean http_extract_version(
-	const gchar *request, gint len, guint *major, guint *minor);
+	const gchar *request, size_t len, guint *major, guint *minor);
 
 http_buffer_t *http_buffer_alloc(gchar *buf, size_t len, size_t written);
 void http_buffer_free(http_buffer_t *b);

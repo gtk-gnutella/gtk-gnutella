@@ -637,7 +637,7 @@ struct parse_context {
 };
 
 typedef gboolean (parse_dispatch_t)
-	(struct parse_context *c, gchar *buf, gint len);
+	(struct parse_context *c, const gchar *buf, size_t len);
 typedef void (parse_eof_t)(struct parse_context *c);
 
 /**
@@ -680,23 +680,20 @@ parse_context_set(gpointer handle, gint maxlines)
  * to finalize parsing.
  */
 static void
-parse_dispatch_lines(gpointer handle, gchar *buf, gint len,
+parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 		parse_dispatch_t cb, parse_eof_t eof)
 {
 	struct parse_context *ctx;
 	getline_t *getline;
-	gchar *p = buf;
-	gint remain = len;
-	gint parsed;
-	gint linelen;
-	gchar *linep;
+	const gchar *p = buf;
+	size_t remain = len;
 
 	/*
 	 * Retrieve parsing context, stored as an opaque attribute in the
 	 * asynchronous HTTP request handle.
 	 */
 
-	ctx = (struct parse_context *) http_async_get_opaque(handle);
+	ctx = http_async_get_opaque(handle);
 
 	g_assert(ctx->handle == handle);	/* Make sure it's the right context */
 
@@ -713,6 +710,11 @@ parse_dispatch_lines(gpointer handle, gchar *buf, gint len,
 	getline = ctx->getline;
 
 	for (;;) {
+		gchar *line;
+		gboolean error;
+		size_t line_len;
+		size_t parsed;
+
 		switch (getline_read(getline, p, remain, &parsed)) {
 		case READ_OVERFLOW:
 			http_async_cancel(handle);
@@ -722,7 +724,6 @@ parse_dispatch_lines(gpointer handle, gchar *buf, gint len,
 			remain -= parsed;
 			break;
 		case READ_MORE:			/* ok, but needs more data */
-		default:
 			g_assert(parsed == remain);
 			return;
 		}
@@ -731,11 +732,15 @@ parse_dispatch_lines(gpointer handle, gchar *buf, gint len,
 		 * We come here everytime we get a full line.
 		 */
 
-		linep = getline_str(getline);
-		linelen = str_chomp(linep, getline_length(getline));
+		line = g_strdup(getline_str(getline));
+		line_len = getline_length(getline);
+		line_len = str_chomp(line, line_len);
 
-		if (!(*cb)(ctx, linep, linelen)) {
-			clear_current_url(FALSE);	/* An ERROR was reported */
+		error = !(*cb)(ctx, line, line_len); /* An ERROR was reported */
+		G_FREE_NULL(line);
+
+		if (error) {
+	   		clear_current_url(FALSE);
 			return;
 		}
 
@@ -767,10 +772,10 @@ parse_dispatch_lines(gpointer handle, gchar *buf, gint len,
  * @return FALSE to stop processing of any remaining data.
  */
 static gboolean
-gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
+gwc_url_line(struct parse_context *ctx, const gchar *buf, size_t len)
 {
 	if (gwc_debug > 3)
-		g_message("GWC URL line (%d bytes): %s", len, buf);
+		g_message("GWC URL line (%lu bytes): %s", (gulong) len, buf);
 
 	if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",
@@ -905,10 +910,10 @@ gwc_is_waiting(void)
  * @return FALSE to stop processing of any remaining data.
  */
 static gboolean
-gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
+gwc_host_line(struct parse_context *ctx, const gchar *buf, size_t len)
 {
 	if (gwc_debug > 3 || bootstrap_debug > 2)
-		g_message("BOOT GWC host line (%d bytes): %s", len, buf);
+		g_message("BOOT GWC host line (%lu bytes): %s", (gulong) len, buf);
 
 	if (is_strprefix(buf, "ERROR")) {
 		g_warning("GWC cache \"%s\" returned %s",
@@ -1078,10 +1083,10 @@ gwc_get_hosts(void)
  * @return FALSE to stop processing of any remaining data.
  */
 static gboolean
-gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
+gwc_update_line(struct parse_context *ctx, const gchar *buf, size_t len)
 {
 	if (gwc_debug > 3)
-		printf("GWC update line (%d bytes): %s\n", len, buf);
+		printf("GWC update line (%lu bytes): %s\n", (gulong) len, buf);
 
 	if (is_strprefix(buf, "OK")) {
 		if (gwc_debug > 2)
