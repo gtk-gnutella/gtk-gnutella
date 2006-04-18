@@ -453,6 +453,7 @@ src/lib/base64.c
 src/lib/base64.h
 src/lib/bg.c
 src/lib/bg.h
+src/lib/bit_array.h
 src/lib/cobs.c
 src/lib/cobs.h
 src/lib/cq.c
