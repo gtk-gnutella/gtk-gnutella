@@ -352,6 +352,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_iptos USE_IP_TOS		/**/
 
+/* HAS_KEVENT_INT_UDATA:
+ *	This symbol, if defined, indicates that struct kevent has an
+ *	integer member udata.
+ */
+#$d_kevent_int_udata HAS_KEVENT_INT_UDATA		/**/
+
 /* HAS_KQUEUE:
  *	This symbol is defined when kqueue() can be used.
  */
