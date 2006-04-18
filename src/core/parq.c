@@ -57,6 +57,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
@@ -993,7 +994,7 @@ parq_download_add_header(
 void
 parq_download_queue_ack(struct gnutella_socket *s)
 {
-	gchar *queue;
+	const gchar *queue;
 	gchar *id;
 	gchar *ip_str;
 	struct download *dl;
@@ -3722,7 +3723,7 @@ parq_upload_load_queue(void)
 	guint64 v;
 	gint error;
 	const gchar *endptr;
-	gchar tag_used[NUM_PARQ_TAGS];
+	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_PARQ_TAGS)];
 
 	file_path_set(fp, settings_config_dir(), file_parq_file);
 	f = file_config_open_read("PARQ upload queue data", fp, G_N_ELEMENTS(fp));
@@ -3734,7 +3735,7 @@ parq_upload_load_queue(void)
 
 	/* Reset state */
 	entry = zero_entry;
-	memset(tag_used, 0, sizeof tag_used);
+	bit_array_clear_range(tag_used, 0, (guint) NUM_PARQ_TAGS - 1);
 
 	while (fgets(line, sizeof(line), f)) {
 		const gchar *tag_name, *value;
@@ -3782,8 +3783,8 @@ parq_upload_load_queue(void)
 		value++;	/* skip blank after colon */
 
 		tag = parq_string_to_tag(tag_name);
-		g_assert((gint) tag >= 0 && tag <= G_N_ELEMENTS(tag_used));
-		if (0 == (tag_used[tag] ^= 1)) {
+		g_assert((gint) tag >= 0 && tag < NUM_PARQ_TAGS);
+		if (PARQ_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning("parq_upload_load_queue(): "
 				"duplicate tag \"%s\" in entry in line %u",
 				tag_name, line_no);
@@ -3977,7 +3978,7 @@ parq_upload_load_queue(void)
 
 			/* Reset state */
 			entry = zero_entry;
-			memset(tag_used, 0, sizeof tag_used);
+			bit_array_clear_range(tag_used, 0, (guint) NUM_PARQ_TAGS - 1);
 		}
 	}
 
@@ -4048,13 +4049,13 @@ parq_del_banned_source(const host_addr_t addr)
 time_t
 parq_banned_source_expire(const host_addr_t addr)
 {
-	struct parq_banned *banned;
+	const struct parq_banned *banned;
 
 	g_assert(ht_banned_source != NULL);
 
 	banned = g_hash_table_lookup(ht_banned_source, &addr);
 
-	return (banned == NULL) ? 0 : banned->expire;
+	return banned ? banned->expire : 0;
 }
 
 /**
