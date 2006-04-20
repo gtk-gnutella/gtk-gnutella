@@ -708,6 +708,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 	const struct hostent *he;
 	GHashTable *ht;
 	GSList *sl_addr;
+	gint af;
 	size_t i;
 
 	g_assert(host);
@@ -716,6 +717,10 @@ resolve_hostname(const gchar *host, enum net_type net)
 		gethostbyname_error(host);
 		return NULL;
 	}
+
+	af = net_type_to_af(net);
+	if (af != he->h_addrtype && af != AF_UNSPEC)
+		return NULL;
 
 	switch (he->h_addrtype) {
 	case AF_INET:
@@ -742,7 +747,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 	
 	sl_addr = NULL;
 	ht = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
-	for (i = 0; NULL != he->h_addr[i]; i++) {
+	for (i = 0; NULL != he->h_addr_list[i]; i++) {
 		host_addr_t addr;
 
 		switch (he->h_addrtype) {
@@ -768,7 +773,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 			g_hash_table_insert(ht, addr_copy, GINT_TO_POINTER(1));
 		}
 	}
-	g_hash_list_destroy(ht);
+	g_hash_table_destroy(ht);
 
 	return g_slist_reverse(sl_addr);
 }
