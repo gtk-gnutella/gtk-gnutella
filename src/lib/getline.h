@@ -70,9 +70,10 @@ typedef struct getline {
 getline_t *getline_make(size_t maxsize);
 void getline_free(getline_t *o);
 void getline_reset(getline_t *o);
-size_t getline_read(getline_t *o, const gchar *data, size_t len, size_t *used);
+getline_result_t getline_read(getline_t *o,
+					const gchar *data, size_t len, size_t *used);
 const gchar *getline_str(getline_t *o);
-getline_result_t getline_length(getline_t *o);
+size_t getline_length(getline_t *o);
 void getline_copy(getline_t *source, getline_t *dest);
 
 #endif	/* _getline_h_ */
