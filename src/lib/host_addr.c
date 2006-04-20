@@ -717,6 +717,8 @@ resolve_hostname(const gchar *host, enum net_type net)
 		gethostbyname_error(host);
 		return NULL;
 	}
+	if (!he->h_addr_list)
+		return NULL;
 
 	af = net_type_to_af(net);
 	if (af != he->h_addrtype && af != AF_UNSPEC)
@@ -752,13 +754,13 @@ resolve_hostname(const gchar *host, enum net_type net)
 
 		switch (he->h_addrtype) {
 		case AF_INET:
-			addr = host_addr_set_ipv4(peek_be32(he->h_addr_list[0]));
+			addr = host_addr_set_ipv4(peek_be32(he->h_addr_list[i]));
 			break;
 
 #ifdef USE_IPV6
 		case AF_INET6:
 			host_addr_set_ipv6(&addr,
-				cast_to_gconstpointer(he->h_addr_list[0]));
+				cast_to_gconstpointer(he->h_addr_list[i]));
 			break;
 #endif /* !USE_IPV6 */
 		default:
