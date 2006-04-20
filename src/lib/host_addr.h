@@ -46,6 +46,39 @@ enum net_type {
 	NET_TYPE_IPV6	= 6,
 };
 
+static inline gint
+net_type_to_pf(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_NONE: return PF_UNSPEC;
+	case NET_TYPE_IPV4: return PF_INET;
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		return PF_INET6;
+#else
+		return PF_UNSPEC;
+#endif /* USE_IPV6 */
+	}
+	g_assert_not_reached();
+}
+
+static inline gint
+net_type_to_af(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_NONE: return AF_UNSPEC;
+	case NET_TYPE_IPV4: return AF_INET;
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		return AF_INET6;
+#else
+		return AF_UNSPEC;
+#endif /* USE_IPV6 */
+	}
+	g_assert_not_reached();
+}
+
+
 #ifdef USE_IPV6
 typedef struct host_addr {
 	guint32 net;	/**< The address network type */
@@ -109,38 +142,6 @@ gboolean host_addr_convert(const host_addr_t from, host_addr_t *to,
 	enum net_type to_net);
 gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
 gboolean host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to);
-
-static inline gint
-net_type_to_pf(enum net_type net)
-{
-	switch (net) {
-	case NET_TYPE_NONE: return PF_UNSPEC;
-	case NET_TYPE_IPV4: return PF_INET;
-	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
-		return PF_INET6;
-#else
-		return PF_UNSPEC;
-#endif /* USE_IPV6 */
-	}
-	g_assert_not_reached();
-}
-
-static inline gint
-net_type_to_af(enum net_type net)
-{
-	switch (net) {
-	case NET_TYPE_NONE: return AF_UNSPEC;
-	case NET_TYPE_IPV4: return AF_INET;
-	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
-		return AF_INET6;
-#else
-		return AF_UNSPEC;
-#endif /* USE_IPV6 */
-	}
-	g_assert_not_reached();
-}
 
 
 static inline gboolean

@@ -2914,14 +2914,12 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 #endif /* IP_RECVDSTADDR && IP_RECVDSTADDR */
 		break;
 
-#if defined(USE_IPV6)
 	case NET_TYPE_IPV6:
-#if defined(IPV6_RECVDSTADDR)
+#if defined(USE_IPV6) && defined(IPV6_RECVDSTADDR)
 		level = sol_ipv6(); 
 		opt = IPV6_RECVDSTADDR;
-#endif /* IPV6_RECVDSTADDR */
+#endif /* USE_IPV6 && IPV6_RECVDSTADDR */
 		break;
-#endif /* USE_IPV6 */
 
 	case NET_TYPE_NONE:
 		break;
