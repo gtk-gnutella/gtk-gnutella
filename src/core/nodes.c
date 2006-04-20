@@ -2899,7 +2899,7 @@ static struct rx_inflate_cb node_rx_inflate_cb = {
  ***/
 
 static void
-node_add_rx_given(gpointer o, gint amount)
+node_add_rx_given(gpointer o, ssize_t amount)
 {
 	gnutella_node_t *n = o;
 

@@ -490,7 +490,7 @@ http_extract_version(
 	}
 
 	if (http_debug > 4)
-		printf("HTTP i = %lu, limit = %d\n", (gulong) i, limit);
+		g_message("HTTP i = %lu, limit = %lu", (gulong) i, (gulong) limit);
 
 	if (i == limit)
 		return FALSE;		/* Reached our limit without finding a space */

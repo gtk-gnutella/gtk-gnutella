@@ -2045,9 +2045,13 @@ prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error)
 		return NULL;
 	}
 
+	g_assert(ps->offset + ps->size - 1 < (guint) -1);
+
 	for (i = 0; i < ps->size; i++) {
-		if (0 == regexec(&re, ps->props[i].name, 0, NULL, 0))
-			sl = g_slist_prepend(sl, GUINT_TO_POINTER(ps->offset + i));
+		if (0 == regexec(&re, ps->props[i].name, 0, NULL, 0)) {
+			guint n = ps->offset + i;
+			sl = g_slist_prepend(sl, GUINT_TO_POINTER(n));
+		}
 	}
 
 	regfree(&re);
