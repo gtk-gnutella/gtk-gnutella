@@ -1648,6 +1648,15 @@ random_value(guint32 max)
 }
 
 /**
+ * @return random value between (0..RAND_MAX).
+ */
+guint32
+random_raw(void)
+{
+	return (guint32) random() & RANDOM_MASK;
+}
+
+/**
  * Initialize random number generator.
  */
 void
