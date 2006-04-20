@@ -110,6 +110,39 @@ gboolean host_addr_convert(const host_addr_t from, host_addr_t *to,
 gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
 gboolean host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to);
 
+static inline gint
+net_type_to_pf(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_NONE: return PF_UNSPEC;
+	case NET_TYPE_IPV4: return PF_INET;
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		return PF_INET6;
+#else
+		return PF_UNSPEC;
+#endif /* USE_IPV6 */
+	}
+	g_assert_not_reached();
+}
+
+static inline gint
+net_type_to_af(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_NONE: return AF_UNSPEC;
+	case NET_TYPE_IPV4: return AF_INET;
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		return AF_INET6;
+#else
+		return AF_UNSPEC;
+#endif /* USE_IPV6 */
+	}
+	g_assert_not_reached();
+}
+
+
 static inline gboolean
 host_addr_initialized(const host_addr_t ha)
 {
@@ -389,7 +422,8 @@ size_t host_addr_port_to_string_buf(const host_addr_t addr,
 				guint16 port, gchar *, size_t);
 gboolean string_to_host_addr_port(const gchar *str, const gchar **endptr,
 	host_addr_t *addr_ptr, guint16 *port_ptr);
-host_addr_t name_to_host_addr(const gchar *host);
+GSList *name_to_host_addr(const gchar *host, enum net_type net);
+host_addr_t name_to_single_host_addr(const gchar *host, enum net_type net);
 const gchar *host_addr_to_name(const host_addr_t addr);
 gboolean string_to_host_or_addr(const char *s, const gchar **endptr,
 		host_addr_t *ha);

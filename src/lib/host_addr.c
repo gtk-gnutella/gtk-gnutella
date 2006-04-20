@@ -634,58 +634,37 @@ host_addr_to_name(const host_addr_t addr)
 	return he->h_name;
 }
 
-/**
- * Resolves a hostname to an IP address per DNS.
- *
- * @todo TODO: This should return all resolved address not just the first
- *             and it should be possible to request only IPv4 or IPv6
- *             addresses.
- *
- * @param host A NUL-terminated string holding the hostname to resolve.
- * @return On success, the first address IPv4 or IPv6 address is returned.
- *         On failure, zero_host_addr is returned.
- */
-host_addr_t
-name_to_host_addr(const gchar *host)
+static GSList *
+resolve_hostname(const gchar *host, enum net_type net)
 #if defined(HAS_GETADDRINFO)
 {
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
-	gboolean finished = FALSE;
-	host_addr_t addr;
-	const gchar *endptr;
+	GHashTable *ht;
+	GSList *sl_addr;
 	gint error;
 
 	g_assert(host);
-
-	/* As far as I know, some broken implementations won't resolve numeric
-	 * addresses although getaddrinfo() must support exactly this for protocol
-	 * independence.
-	 */
-
-	if (string_to_host_addr(host, &endptr, &addr) && '\0' == *endptr)
-		return addr;
 	
 	hints = zero_hints;
-	hints.ai_family =
-#ifdef USE_IPV6
-		PF_UNSPEC;
-#else	/* !USE_IPV6 */
-		PF_INET;
-#endif	/* USE_IPV6 */
+	hints.ai_family = net_type_to_pf(net);
 
 	error = getaddrinfo(host, NULL, &hints, &ai0);
 	if (error) {
 		g_message("getaddrinfo() failed for \"%s\": %s",
 				host, gai_strerror(error));
-		return zero_host_addr;
+		return NULL;
 	}
 
-	addr = zero_host_addr;
-	for (ai = ai0; ai && !finished; ai = ai->ai_next) {
+	sl_addr = NULL;
+	ht = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	for (ai = ai0; ai; ai = ai->ai_next) {
+		host_addr_t addr;
+
 		if (!ai->ai_addr)
 			continue;
 
+		addr = zero_host_addr;
 		switch (ai->ai_family) {
 		case PF_INET:
 			if (ai->ai_addrlen >= 4) {
@@ -693,7 +672,6 @@ name_to_host_addr(const gchar *host)
 
 				sin = cast_to_gconstpointer(ai->ai_addr);
 				addr = host_addr_set_ipv4(ntohl(sin->sin_addr.s_addr));
-				finished = TRUE;
 			}
 			break;
 
@@ -705,77 +683,171 @@ name_to_host_addr(const gchar *host)
 				sin6 = cast_to_gconstpointer(ai->ai_addr);
 				host_addr_set_ipv6(&addr,
 					cast_to_gconstpointer(sin6->sin6_addr.s6_addr));
-				finished = TRUE;
 			}
 			break;
 #endif /* USE_IPV6 */
+		}
 
-		default:;
+		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
+			host_addr_t *addr_copy;
+
+			addr_copy = wcopy(&addr, sizeof addr);
+			sl_addr = g_slist_prepend(sl_addr, addr_copy);
+			g_hash_table_insert(ht, addr_copy, GINT_TO_POINTER(1));
 		}
 	}
+	g_hash_table_destroy(ht);
 
 	if (ai0)
 		freeaddrinfo(ai0);
 
-	return addr;
+	return g_slist_reverse(sl_addr);
 }
 #else /* !HAS_GETADDRINFO */
 {
 	const struct hostent *he;
-	const gchar *endptr;
-	host_addr_t addr;
+	GHashTable *ht;
+	GSList *sl_addr;
+	size_t i;
 
-	/*
-	 * Make sure we can "resolve" stringyfied addresses because some
-	 * gethostbyname() implementations won't do this especially not for IPv6
-	 * although some support IPv6.
-	 */
-
-	if (string_to_host_addr(host, &endptr, &addr) && '\0' == *endptr)
-		return addr;
-	
+	g_assert(host);
    	he = gethostbyname(host);
 	if (!he) {
 		gethostbyname_error(host);
-		return zero_host_addr;
+		return NULL;
 	}
-
-#if 0
-	g_message("h_name=\"%s\"", NULL_STRING(he->h_name));
-	if (he->h_aliases) {
-		size_t i;
-
-		for (i = 0; he->h_aliases[i]; i++)
-			g_message("h_aliases[%u]=\"%s\"", (unsigned) i, he->h_aliases[i]);
-	}
-#endif
 
 	switch (he->h_addrtype) {
 	case AF_INET:
 		if (4 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv4 address "
-				"(host=\"%s\")", host);
-			return zero_host_addr;
+			g_warning("host_to_addr: Wrong length of IPv4 address (\"%s\")",
+				host);
+			return NULL;
 		}
-
-		addr = host_addr_set_ipv4(peek_be32(he->h_addr_list[0]));
-		return addr;
-
+		break;
+		
 #ifdef USE_IPV6
 	case AF_INET6:
 		if (16 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv6 address "
-				"(host=\"%s\")", host);
-			return zero_host_addr;
+			g_warning("host_to_addr: Wrong length of IPv6 address (\"%s\")",
+				host);
+			return NULL;
 		}
-		host_addr_set_ipv6(&addr, cast_to_gconstpointer(he->h_addr_list[0]));
-		return addr;
-#endif /* !USE_IPV6 */
+		break;
+#endif /* USE_IPV6 */
+		
+	default:
+		return NULL;
 	}
+	
+	sl_addr = NULL;
+	ht = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	for (i = 0; NULL != he->h_addr[i]; i++) {
+		host_addr_t addr;
 
-	return zero_host_addr;
+		switch (he->h_addrtype) {
+		case AF_INET:
+			addr = host_addr_set_ipv4(peek_be32(he->h_addr_list[0]));
+			break;
+
+#ifdef USE_IPV6
+		case AF_INET6:
+			host_addr_set_ipv6(&addr,
+				cast_to_gconstpointer(he->h_addr_list[0]));
+			break;
+#endif /* !USE_IPV6 */
+		default:
+			g_assert_not_reached();
+		}
+
+		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
+			host_addr_t *addr_copy;
+
+			addr_copy = wcopy(&addr, sizeof addr);
+			sl_addr = g_slist_prepend(sl_addr, addr_copy);
+			g_hash_table_insert(ht, addr_copy, GINT_TO_POINTER(1));
+		}
+	}
+	g_hash_list_destroy(ht);
+
+	return g_slist_reverse(sl_addr);
 }
 #endif /* HAS_GETADDRINFO */
+
+/**
+ * Resolves a hostname to IP addresses per DNS.
+ *
+ * @todo TODO: This should return all resolved address not just the first
+ *             and it should be possible to request only IPv4 or IPv6
+ *             addresses.
+ *
+ * @param host A NUL-terminated string holding the hostname to resolve.
+ * @param net Use NET_TYPE_IPV4 if you want only IPv4 addresses or like-wise
+              NET_TYPE_IPV6. If you don't care, use NET_TYPE_NONE.
+ * @return On success, a single-linked list of walloc()ated host_addr_t
+ *         items is returned.
+ *         On failure, NULL is returned.
+ */
+GSList *
+name_to_host_addr(const gchar *host, enum net_type net)
+{
+	const gchar *endptr;
+	host_addr_t addr;
+	
+	g_assert(host);
+
+	/* As far as I know, some broken implementations won't resolve numeric
+	 * addresses although getaddrinfo() must support exactly this for protocol
+	 * independence. gethostbyname() implementations won't do this especially
+	 * not for IPv6 although some support IPv6.
+	 */
+
+	if (string_to_host_addr(host, &endptr, &addr) && '\0' == *endptr) {
+		return g_slist_append(NULL, wcopy(&addr, sizeof addr));
+	}
+
+	return resolve_hostname(host, net);
+}
+
+/**
+ * Resolves a hostname to an IP address per DNS. This is the same as
+ * name_to_host_addr() but we pick a random item from the result list
+ * and return it.
+ */
+host_addr_t
+name_to_single_host_addr(const gchar *host, enum net_type net)
+{
+	GSList *sl_addr;
+	host_addr_t addr;
+	
+	addr = zero_host_addr;
+	sl_addr = name_to_host_addr(host, net);
+	if (sl_addr) {
+		GSList *sl;
+		size_t i, len;
+
+		len = g_slist_length(sl_addr);
+		i = len > 1 ? (random_raw() % len) : 0;
+
+		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+			const host_addr_t *addr_ptr = sl->data;
+
+			g_assert(addr_ptr);
+			if (0 == i--) {
+				addr = *addr_ptr;
+				break;
+			}
+		}
+
+		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+			host_addr_t *addr_ptr = sl->data;
+			wfree(addr_ptr, sizeof *addr_ptr);
+		}
+		g_slist_free(sl_addr);
+	}
+
+	return addr;
+}
 
 guint
 host_addr_hash_func(gconstpointer key)
