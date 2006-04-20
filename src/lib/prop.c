@@ -190,11 +190,21 @@ prop_parse_ip(const gchar *name,
 {
 	host_addr_t addr;
 	gint error;
+	const gchar *ep;
 	
 	g_assert(name);
 	g_assert(str);
 
-	error = string_to_host_addr(str, endptr, &addr) ? 0 : EINVAL;
+	ep = is_strprefix(str, "<none>");
+	if (ep) {
+		error = 0;
+		addr = zero_host_addr;	
+		if (endptr) {
+			*endptr = ep;
+		}
+	} else {
+		error = string_to_host_addr(str, endptr, &addr) ? 0 : EINVAL;
+	}
 	if (error) {
 		g_warning("prop_parse_ip: (prop=\"%s\") "
 			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
