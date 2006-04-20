@@ -464,6 +464,27 @@ settings_home_dir(void)
 }
 
 /**
+ * @return The "net" parameter to use for name_to_host_addr() according
+ *         to the current configuration.
+ */
+enum net_type
+settings_dns_net(void)
+{
+	switch (network_protocol) {
+	case NET_USE_BOTH: return NET_TYPE_NONE;
+	case NET_USE_IPV4: return NET_TYPE_IPV4;
+	case NET_USE_IPV6:
+#ifdef USE_IPV6
+	return NET_TYPE_IPV6;
+#else
+	return NET_TYPE_NONE;
+#endif /* USE_IPV6 */
+	}
+	g_assert_not_reached();
+	return NET_TYPE_NONE;
+}
+
+/**
  * Remove pidfile.
  */
 static void
@@ -991,17 +1012,17 @@ listen_port_changed(property_t prop)
 				bind_addr = listen_addr();
 			} else {
 				switch (network_protocol) {
-					case NET_USE_BOTH:
-					case NET_USE_IPV4:
-						bind_addr = host_addr_set_ipv4(INADDR_ANY);
-						break;
+				case NET_USE_BOTH:
+				case NET_USE_IPV4:
+					bind_addr = host_addr_set_ipv4(INADDR_ANY);
+					break;
 #ifdef USE_IPV6
-					case NET_USE_IPV6:
-						{
-							static const guint8 zero_ipv6_addr[16];
-							host_addr_set_ipv6(&bind_addr, zero_ipv6_addr);
-						}
-						break;
+				case NET_USE_IPV6:
+					{
+						static const guint8 zero_ipv6_addr[16];
+						host_addr_set_ipv6(&bind_addr, zero_ipv6_addr);
+					}
+					break;
 #endif /* USE_IPV6 */
 				}
 			}
