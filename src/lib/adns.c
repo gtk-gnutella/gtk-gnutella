@@ -52,43 +52,100 @@ static guint32 common_dbg = 0;	/**< @bug XXX need to init lib's props --RAM */
 
 /* private data types */
 
-typedef struct adns_query {
+struct adns_common {
 	void (*user_callback)(void);
 	gpointer user_data;
-	host_addr_t addr;
 	gboolean reverse;
+};
+
+struct adns_reverse_query {
+	host_addr_t addr;
+};
+
+struct adns_query {
+	enum net_type net;
 	gchar hostname[MAX_HOSTLEN + 1];
-} adns_query_t;
+};
+
+struct adns_reply {
+	gchar hostname[MAX_HOSTLEN + 1];
+	host_addr_t addrs[10];
+};
+
+struct adns_reverse_reply {
+	gchar hostname[MAX_HOSTLEN + 1];
+	host_addr_t addr;
+};
+
+struct adns_request {
+	struct adns_common common;
+	union {
+		struct adns_query by_addr;
+		struct adns_reverse_query reverse;
+	} query;
+};
+
+struct adns_response {
+	struct adns_common common;
+	union {
+		struct adns_reply by_addr;
+		struct adns_reverse_reply reverse;
+	} reply;
+};
 
 typedef struct adns_async_write {
-	adns_query_t *query;	/**< Original query */
-	gchar *buf;				/**< Remaining data to write */
-	gint n;					/**< Amount to write still */
+	struct adns_request req;	/**< The original ADNS request */
+	gchar *buf;					/**< Remaining data to write; walloc()ed */
+	size_t pos;					/**< Read position */
+	size_t size;				/**< Size of the buffer */
 } adns_async_write_t;
 
 typedef struct adns_cache_entry {
 	gchar *hostname;		/**< atom */
-	host_addr_t addr;
 	time_t timestamp;
+	size_t n;				/**< Number of addr items */
+	guint id;
+	host_addr_t addrs[1 /* pseudo-size */];
 } adns_cache_entry_t;
 
+static inline size_t
+adns_cache_entry_size(size_t n)
+{
+	struct adns_cache_entry *entry;
+	g_assert(n > 0);
+	g_assert(((size_t) -1 - sizeof *entry) / sizeof entry->addrs[0] > n);
+
+	return sizeof *entry + n * sizeof entry->addrs[0];
+}
+
+static inline size_t
+count_addrs(const host_addr_t *addrs, size_t m)
+{
+	size_t n;
+
+	for (n = 0; n < m; n++) {
+		if (!is_host_addr(addrs[n]))
+			break;
+	}
+	return n;
+}
+	
 /**
  * Cache entries will expire after ADNS_CACHE_TIMEOUT seconds.
  */
-#define ADNS_CACHE_TIMEOUT (5 * 60)
+#define ADNS_CACHE_TIMEOUT (60)
 /**
- * Cache max. ADNS_CACHED_NUM of adns_cache_entry_t entries.
+ * Cache max. ADNS_CACHE_SIZE of adns_cache_entry_t entries.
  */
-#define ADNS_CACHED_NUM (1024)
+#define ADNS_CACHE_MAX_SIZE (1024)
 
-#define ADNS_PROCESS_TITLE "DNS helper for gtk-gnutella"
+static const gchar adns_process_title[] = "DNS helper for gtk-gnutella";
 
 typedef struct adns_cache_struct {
-	guint size;
-	guint oldest;
-	guint timeout;
-	GHashTable *hashtab;
-	adns_cache_entry_t entries[ADNS_CACHED_NUM];
+	GHashTable *ht;
+	guint pos;
+	gint timeout;
+	adns_cache_entry_t *entries[ADNS_CACHE_MAX_SIZE];
 } adns_cache_t;
 
 static adns_cache_t *adns_cache = NULL;
@@ -120,16 +177,58 @@ static adns_cache_t *
 adns_cache_init(void)
 {
 	adns_cache_t *cache;
-	guint i;
+	size_t i;
 
-	cache = g_malloc(sizeof(*cache));
-	cache->size = G_N_ELEMENTS(cache->entries);
-	cache->oldest = 0;
+	cache = g_malloc(sizeof *cache);
 	cache->timeout = ADNS_CACHE_TIMEOUT;
-	cache->hashtab = g_hash_table_new(NULL, NULL);
-	for (i = 0; i < cache->size; i++)
-		cache->entries[i].hostname = NULL;
+	cache->ht = g_hash_table_new(g_str_hash, g_str_equal);
+	cache->pos = 0;
+	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
+		cache->entries[i] = NULL;
+	}
 	return cache;
+}
+
+/* these are not needed anywhere else so undefine them */
+#undef ADNS_CACHE_MAX_SIZE
+#undef ADNS_CACHE_TIMEOUT
+
+static inline adns_cache_entry_t *
+adns_cache_get_entry(adns_cache_t *cache, guint i)
+{
+	adns_cache_entry_t *entry;
+	
+	g_assert(cache);
+	g_assert(i < G_N_ELEMENTS(cache->entries));
+
+	entry = cache->entries[i];
+	if (entry) {
+		g_assert(i == entry->id);
+		g_assert(entry->hostname);
+		g_assert(entry->n > 0);
+	}
+	return entry;
+}
+
+static void
+adns_cache_free_entry(adns_cache_t *cache, guint i)
+{
+	adns_cache_entry_t *entry;
+
+	g_assert(cache);
+	g_assert(i < G_N_ELEMENTS(cache->entries));
+
+	entry = cache->entries[i];
+	if (entry) {
+		g_assert(i == entry->id);
+		g_assert(entry->hostname);
+		g_assert(entry->n > 0);
+
+		atom_str_free(entry->hostname);
+		entry->hostname = NULL;
+		wfree(entry, adns_cache_entry_size(entry->n));
+		cache->entries[i] = NULL;
+	}
 }
 
 /**
@@ -140,18 +239,16 @@ adns_cache_free(adns_cache_t *cache)
 {
 	guint i;
 
-	g_hash_table_destroy(cache->hashtab);
-	cache->hashtab = NULL;
-	for (i = 0; i < cache->size; i++)
-		if (NULL != cache->entries[i].hostname)
-			atom_str_free(cache->entries[i].hostname);
-	cache->size = 0;
+	g_assert(cache);
+	g_assert(cache->ht);
+
+	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
+		adns_cache_free_entry(cache, i);
+	}
+	g_hash_table_destroy(cache->ht);
+	cache->ht = NULL;
 	G_FREE_NULL(cache);
 }
-
-/* these are not needed anywhere else so undefine them */
-#undef ADNS_CACHED_NUM
-#undef ADNS_CACHE_TIMEOUT
 
 /**
  * Adds ``hostname'' and ``addr'' to the cache. The cache is implemented
@@ -160,28 +257,41 @@ adns_cache_free(adns_cache_t *cache)
  */
 static void
 adns_cache_add(adns_cache_t *cache, time_t now,
-	const gchar *hostname, const host_addr_t addr)
+	const gchar *hostname, const host_addr_t *addrs, size_t n)
 {
 	adns_cache_entry_t *entry;
-	gchar *atom;
+	size_t i;
+	
+	g_assert(NULL != addrs);
 	g_assert(NULL != cache);
 	g_assert(NULL != hostname);
+	g_assert(n > 0);
 
-	entry = &cache->entries[cache->oldest];
-	atom = atom_str_get(hostname);
-	g_assert(NULL == g_hash_table_lookup(cache->hashtab, atom));
-	if (NULL != entry->hostname) {
-		g_hash_table_remove(cache->hashtab, entry->hostname);
-		atom_str_free(entry->hostname);
+	g_assert(NULL == g_hash_table_lookup(cache->ht, hostname));
+
+	g_assert(cache->pos < G_N_ELEMENTS(cache->entries));
+	
+	entry = adns_cache_get_entry(cache, cache->pos);
+	if (entry) {
+		g_assert(entry->hostname);
+		g_assert(g_hash_table_lookup(cache->ht, entry->hostname) == entry);
+
+		g_hash_table_remove(cache->ht, entry->hostname);
+		adns_cache_free_entry(cache, cache->pos);
+		entry = NULL;
 	}
-	entry->hostname = atom;
-	entry->timestamp = now;
-	entry->addr = addr;
-	g_hash_table_insert(cache->hashtab, entry->hostname,
-		GUINT_TO_POINTER(cache->oldest));
 
-	cache->oldest++;
-	cache->oldest %= cache->size;
+	entry = walloc(adns_cache_entry_size(n));
+	entry->n = n;
+	entry->hostname = atom_str_get(hostname);
+	entry->timestamp = now;
+	entry->id = cache->pos;
+	for (i = 0; i < entry->n; i++) {
+		entry->addrs[i] = addrs[i];
+	}
+	g_hash_table_insert(cache->ht, entry->hostname, entry);
+	cache->entries[cache->pos++] = entry;
+	cache->pos %= G_N_ELEMENTS(cache->entries);
 }
 
 /**
@@ -190,56 +300,49 @@ adns_cache_add(adns_cache_t *cache, time_t now,
  * returned. Expired entries will be removed! ``addr'' is allowed to
  * be NULL, otherwise the cached IP will be stored into the variable
  * ``addr'' points to.
+ *
+ * @param addrs An array of host_addr_t items. If not NULL, up to
+ *              ``n'' items will be copied from the cache.
+ * @param n The number of items "addrs" can hold.
+ * @return The number of cached addresses for the given hostname.
  */
-static gboolean
+static size_t
 adns_cache_lookup(adns_cache_t *cache, time_t now,
-	const gchar *hostname, host_addr_t *addr)
+	const gchar *hostname, host_addr_t *addrs, size_t n)
 {
-	guint i;
-	gpointer key;
-	gpointer val;
 	adns_cache_entry_t *entry;
-	gpointer atom;
-	gboolean found;
 
 	g_assert(NULL != cache);
 	g_assert(NULL != hostname);
+	g_assert(0 == n || NULL != addrs);
 
-	atom = atom_str_get(hostname);
-	found = g_hash_table_lookup_extended(cache->hashtab, atom, &key, &val);
-	g_assert(!found || atom == key);
+	entry = g_hash_table_lookup(cache->ht, hostname);
+	if (entry) {
+		if (delta_time(now, entry->timestamp) < cache->timeout) {
+			size_t i;
 
-	if (!found) {
-		atom_str_free(atom);
-		return FALSE;
+			for (i = 0; i < n; i++) {
+				if (i < entry->n) {
+					addrs[i] = entry->addrs[i];
+					if (common_dbg > 0)
+						g_message("adns_cache_lookup: \"%s\" cached (addr=%s)",
+							entry->hostname, host_addr_to_string(addrs[i]));
+				} else {
+					addrs[i] = zero_host_addr;
+				}
+			}
+		} else {
+			if (common_dbg > 0)
+				g_message("adns_cache_lookup: removing \"%s\" from cache",
+						entry->hostname);
+
+			g_hash_table_remove(cache->ht, hostname);
+			adns_cache_free_entry(cache, entry->id);
+			entry = NULL;
+		}
 	}
 
-	i = GPOINTER_TO_UINT(val);
-	g_assert(i < cache->size);
-	entry = &cache->entries[i];
-	g_assert(atom == entry->hostname);
-	atom_str_free(atom);
-	atom = NULL;
-
-	if (delta_time(now, entry->timestamp) < cache->timeout) {
-		if (NULL != addr)
-			*addr = entry->addr;
-		if (common_dbg > 0)
-			g_warning("adns_cache_lookup: \"%s\" cached (addr=%s)",
-				entry->hostname, host_addr_to_string(entry->addr));
-		return TRUE;
-	} else {
-		if (common_dbg > 0)
-			g_warning("adns_cache_lookup: removing \"%s\" from cache",
-				entry->hostname);
-		g_hash_table_remove(cache->hashtab, key);
-		atom_str_free(key);
-		entry->hostname = NULL;
-		entry->timestamp = 0;
-		entry->addr = zero_host_addr;
-	}
-
-	return FALSE;
+	return entry ? entry->n : 0;
 }
 
 /**
@@ -257,7 +360,8 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 
 	while (n > 0) {
 		if (common_dbg > 2)
-			g_warning("adns_do_transfer: n=%lu", (gulong) n);
+			g_message("adns_do_transfer (%s): n=%lu",
+			    do_write ? "write" : "read", (gulong) n);
 
 		if (do_write)
 			ret = write(fd, buf, n);
@@ -268,8 +372,8 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
             /* Ignore the failure, if the parent process is gone.
                This prevents an unnecessary warning when quitting. */
             if (!is_helper || getppid() != 1)
-			    g_warning("adns_do_transfer: %s (errno=%d, do_write=%d)",
-				    g_strerror(errno), errno, (gint) do_write);
+			    g_warning("adns_do_transfer (%s): %s (errno=%d)",
+				    do_write ? "write" : "read", g_strerror(errno), errno);
 			return FALSE;
 		} else if (0 == ret) {
 			/*
@@ -277,7 +381,7 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 			 * parent is gone.
 			 */
 			if (!do_write && !(is_helper && getppid() == 1))
-				g_warning("adns_do_transfer: EOF (%s)",
+				g_warning("adns_do_transfer (%s): EOF",
 					do_write ? "write" : "read");
 			return FALSE;
 		} else if (ret > 0) {
@@ -317,30 +421,57 @@ adns_do_write(gint fd, gpointer buf, size_t len)
  * fails ``reply->addr'' will be set to zero.
  */
 static void
-adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
+adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 {
-	const gchar *host;
+	g_assert(NULL != req);
+	g_assert(NULL != ans);
 
-	g_assert(NULL != query);
-	g_assert(NULL != reply);
+	ans->common = req->common;
 
-	if (common_dbg > 1) {
-		g_message("adns_gethostbyname: Resolving \"%s\" ...",
-			query->reverse
-				? host_addr_to_string(query->addr)
-				: query->hostname);
+	if (req->common.reverse) {
+		const struct adns_reverse_query *query = &req->query.reverse;
+		struct adns_reverse_reply *reply = &ans->reply.reverse;
+		const gchar *host;
+
+
+		if (common_dbg > 1) {
+			g_message("adns_gethostbyname: Resolving \"%s\" ...",
+					host_addr_to_string(query->addr));
+		}
+
+		reply->addr = query->addr;
+		host = host_addr_to_name(query->addr);
+		g_strlcpy(reply->hostname, host ? host : "", sizeof reply->hostname);
+	} else {
+		const struct adns_query *query = &req->query.by_addr;
+		struct adns_reply *reply = &ans->reply.by_addr;
+		GSList *sl_addr, *sl;
+		size_t i = 0;
+
+		if (common_dbg > 1) {
+			g_message("adns_gethostbyname: Resolving \"%s\" ...",
+				query->hostname);
+		}
+		g_strlcpy(reply->hostname, query->hostname, sizeof reply->hostname);
+
+		sl_addr = name_to_host_addr(query->hostname, query->net);
+		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+			host_addr_t *addr;
+
+			addr = sl->data;
+			g_assert(addr);
+			if (i < G_N_ELEMENTS(reply->addrs)) {
+				reply->addrs[i++] = *addr;
+			}
+			wfree(addr, sizeof *addr);
+		}
+		g_slist_free(sl_addr);
+		sl_addr = NULL;
+
+		if (i < G_N_ELEMENTS(reply->addrs)) {
+			reply->addrs[i] = zero_host_addr;
+		}
 	}
-
-	reply->user_callback = query->user_callback;
-	reply->user_data = query->user_data;
-	reply->reverse = query->reverse;
-	reply->addr = query->reverse
-		? query->addr
-		: name_to_host_addr(query->hostname);
-	host = query->reverse
-		? host_addr_to_name(query->addr)
-		: query->hostname;
-	g_strlcpy(reply->hostname, host ? host : "", sizeof reply->hostname);
 }
 
 /**
@@ -353,9 +484,7 @@ adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
 static void
 adns_helper(gint fd_in, gint fd_out)
 {
-	static adns_query_t query, reply;
-
-	g_set_prgname(ADNS_PROCESS_TITLE);
+	g_set_prgname(adns_process_title);
 	gm_setproctitle(g_get_prgname());
 
 #ifdef SIGQUIT 
@@ -365,10 +494,39 @@ adns_helper(gint fd_in, gint fd_out)
 	is_helper = TRUE;
 
 	for (;;) {
-		if (!adns_do_read(fd_in, &query, sizeof(query)))
+		struct adns_request req;
+		struct adns_response ans;
+		size_t size;
+		gpointer buf;
+
+		if (!adns_do_read(fd_in, &req.common, sizeof req.common))
 			break;
-		adns_gethostbyname(&query, &reply);
-		if (!adns_do_write(fd_out, &reply, sizeof(reply)))
+	
+		if (req.common.reverse) {	
+			size = sizeof req.query.reverse;
+			buf = &req.query.reverse;
+		} else {
+			size = sizeof req.query.by_addr;
+			buf = &req.query.by_addr;
+		}
+
+		if (!adns_do_read(fd_in, buf, size))
+			break;
+
+		adns_gethostbyname(&req, &ans);
+
+		if (!adns_do_write(fd_out, &ans.common, sizeof ans.common))
+			break;
+
+		if (ans.common.reverse) {	
+			size = sizeof ans.reply.reverse;
+			buf = &ans.reply.reverse;
+		} else {
+			size = sizeof ans.reply.by_addr;
+			buf = &ans.reply.by_addr;
+		}
+
+		if (!adns_do_write(fd_out, buf, size))
 			break;
 	}
 
@@ -378,19 +536,23 @@ adns_helper(gint fd_in, gint fd_out)
 }
 
 static inline void
-adns_invoke_user_callback(adns_query_t *reply)
+adns_invoke_user_callback(const struct adns_response *ans)
 {
-	if (reply->reverse) {
+	if (ans->common.reverse) {
+		const struct adns_reverse_reply *reply = &ans->reply.reverse;
 		adns_reverse_callback_t func;
 
-		func = (adns_reverse_callback_t) reply->user_callback;
+		func = (adns_reverse_callback_t) ans->common.user_callback;
 		func(reply->hostname[0] != '\0' ? reply->hostname : NULL,
-			reply->user_data);
+			ans->common.user_data);
 	} else {
+		const struct adns_reply *reply = &ans->reply.by_addr;
 		adns_callback_t func;
-
-		func = (adns_callback_t) reply->user_callback;
-		func(is_host_addr(reply->addr) ? &reply->addr : NULL, reply->user_data);
+		size_t n;
+	
+		n = count_addrs(reply->addrs, G_N_ELEMENTS(reply->addrs));
+		func = (adns_callback_t) ans->common.user_callback;
+		func(reply->addrs, n, ans->common.user_data);
 	}
 }
 
@@ -400,14 +562,55 @@ adns_invoke_user_callback(adns_query_t *reply)
  * helper is dead.
  */
 static void
-adns_fallback(const adns_query_t *query)
+adns_fallback(const struct adns_request *req)
 {
-	adns_query_t reply;
+	struct adns_response ans;
 
-	g_assert(NULL != query);
-	adns_gethostbyname(query, &reply);
-	g_assert(NULL != reply.user_callback);
-	adns_invoke_user_callback(&reply);
+	g_assert(req);
+	adns_gethostbyname(req, &ans);
+	g_assert(ans.common.user_callback);
+	adns_invoke_user_callback(&ans);
+}
+
+static void
+adns_reply_ready(const struct adns_response *ans)
+{
+	time_t now = tm_time();
+
+	g_assert(ans);
+
+	if (ans->common.reverse) {
+		if (common_dbg > 1) {
+			const struct adns_reverse_reply *reply = &ans->reply.reverse;
+			
+			g_message("adns_reply_ready: Resolved \"%s\" to \"%s\".",
+				host_addr_to_string(reply->addr), reply->hostname);
+		}
+	} else {
+		const struct adns_reply *reply = &ans->reply.by_addr;
+		size_t num;
+
+		num = count_addrs(reply->addrs, G_N_ELEMENTS(reply->addrs));
+		num = MAX(1, num); /* For negative caching */
+		
+		if (common_dbg > 1) {
+			size_t i;
+			
+			for (i = 0; i < num; i++) {
+				g_message("adns_reply_ready: Resolved \"%s\" to \"%s\".",
+					reply->hostname, host_addr_to_string(reply->addrs[i]));
+			}
+		}
+
+		
+		if (!adns_cache_lookup(adns_cache, now, reply->hostname, NULL, 0)) {
+			adns_cache_add(adns_cache, now, reply->hostname, reply->addrs, num);
+		}
+	}
+
+
+	g_assert(ans->common.user_callback);
+	adns_invoke_user_callback(ans);
 }
 
 /**
@@ -419,83 +622,84 @@ adns_fallback(const adns_query_t *query)
 static void
 adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 {
-	static size_t n = 0;
-	static adns_query_t reply;
+	static struct adns_response ans;
+	static gpointer buf;
+	static size_t size, pos;
 
 	g_assert(NULL == data);
 	g_assert(condition & INPUT_EVENT_RX);
-	g_assert(sizeof reply >= n);
 
-again:
-	if (sizeof reply > n) {
-		gpointer buf = cast_to_gchar_ptr(&reply) + n;
+	for (;;) {
 		ssize_t ret;
+		size_t n;
 
-		ret = read(source, buf, sizeof reply - n);
+		if (pos == size) {
 
+			pos = 0;
+			if (cast_to_gpointer(&ans.common) == buf) {
+				if (ans.common.reverse) {
+					buf = &ans.reply.reverse;
+					size = sizeof ans.reply.reverse;
+				} else {
+					buf = &ans.reply.by_addr;
+					size = sizeof ans.reply.by_addr;
+				}
+			} else {
+				if (buf) {
+					adns_reply_ready(&ans);
+				}
+				buf = &ans.common;
+				size = sizeof ans.common;
+			}
+		}
+
+		g_assert(buf);
+		g_assert(size > 0);
+		g_assert(pos < size);
+
+		n = size - pos;
+		ret = read(source, cast_to_gchar_ptr(buf) + pos, n);
 		if (0 == ret) {
 			errno = ECONNRESET;
 			ret = (ssize_t) -1;
 		}
-		/* FALL THROUGH */
 		if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
 				g_warning("adns_reply_callback: read() failed: %s",
-					g_strerror(errno));
+						g_strerror(errno));
 				inputevt_remove(adns_reply_event_id);
 				adns_reply_event_id = 0;
 				g_warning("adns_reply_callback: removed myself");
 				close(source);
-				return;
 			}
-			goto again;
+			break;
+		} else {
+			g_assert(ret > 0);
+			g_assert((size_t) ret <= n);
+			pos += (size_t) ret;
 		}
-
-		g_assert(ret > 0);
-		n += (size_t) ret;
 	}
-	/* FALL THROUGH */
-	if (sizeof reply == n) {
-		time_t now = tm_time();
-
-		if (common_dbg > 1) {
-			const gchar *host, *addr;
-
-			host = reply.hostname;
-			addr = host_addr_to_string(reply.addr);
-			g_warning("adns_reply_callback: Resolved \"%s\" to \"%s\".",
-				reply.reverse ? addr : host, reply.reverse ? host : addr);
-		}
-
-		g_assert(NULL != reply.user_callback);
-		if (
-				!reply.reverse &&
-				!adns_cache_lookup(adns_cache, now, reply.hostname, NULL)
-		) {
-			adns_cache_add(adns_cache, now, reply.hostname, reply.addr);
-		}
-
-		adns_invoke_user_callback(&reply);
-		n = 0;
-	}
+	return;
 }
 
 /**
- * Allocate a the "spill" buffer for the query, with `n' bytes being already
- * written into the pipe.  The query is cloned.
+ * Allocate a "spill" buffer of size `size'.
  */
 static adns_async_write_t *
-adns_async_write_alloc(const adns_query_t *query, size_t n)
+adns_async_write_alloc(const struct adns_request *req,
+	gconstpointer buf, size_t size)
 {
 	adns_async_write_t *remain;
 
-	g_assert(n < sizeof *query);
-
+	g_assert(req);
+	g_assert(buf);
+	g_assert(size > 0);
+	
 	remain = walloc(sizeof *remain);
-	remain->query = walloc(sizeof *query);
-	memcpy(remain->query, query, sizeof *query);
-	remain->buf = cast_to_gchar_ptr(remain->query) + n;
-	remain->n = sizeof *query - n;
+	remain->req = *req;
+	remain->size = size;
+	remain->buf = wcopy(buf, remain->size);
+	remain->pos = 0;
 
 	return remain;
 }
@@ -506,7 +710,11 @@ adns_async_write_alloc(const adns_query_t *query, size_t n)
 static void
 adns_async_write_free(adns_async_write_t *remain)
 {
-	wfree(remain->query, sizeof *remain->query);
+	g_assert(remain);
+	g_assert(remain->buf);
+	g_assert(remain->size > 0);
+	
+	wfree(remain->buf, remain->size);
 	wfree(remain, sizeof *remain);
 }
 
@@ -522,6 +730,8 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 	adns_async_write_t *remain = data;
 
 	g_assert(NULL != remain);
+	g_assert(NULL != remain->buf);
+	g_assert(remain->pos < remain->size);
 	g_assert(dest == adns_query_fd);
 	g_assert(0 != adns_query_event_id);
 
@@ -530,10 +740,12 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 		goto abort;
 	}
 
-	while (remain->n > 0) {
+	while (remain->pos < remain->size) {
 		ssize_t ret;
+		size_t n;
 
-		ret = write(dest, remain->buf, remain->n);
+		n = remain->size - remain->pos;
+		ret = write(dest, &remain->buf[remain->pos], n);
 
 		if (0 == ret) {
 			errno = ECONNRESET;
@@ -547,17 +759,16 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 		}
 
 		g_assert(ret > 0);
-		remain->n -= (size_t) ret;
-		remain->buf += (size_t) ret;
-		g_assert(remain->n >= 0);
+		g_assert((size_t) ret <= n);
+		remain->pos += (size_t) ret;
 	}
+	g_assert(remain->pos == remain->size);
 
 	inputevt_remove(adns_query_event_id);
 	adns_query_event_id = 0;
-	
-	adns_async_write_free(remain);
 
-	return;
+	goto done;	
+
 
 error:
 	g_warning("adns_query_callback: write() failed: %s", g_strerror(errno));
@@ -567,7 +778,10 @@ abort:
 	adns_query_event_id = 0;
 	CLOSE_IF_VALID(adns_query_fd);
 	g_warning("adns_query_callback: using fallback");
-	adns_fallback(remain->query);
+	adns_fallback(&remain->req);
+done:
+	adns_async_write_free(remain);
+	return;
 }
 
 /* public functions */
@@ -642,22 +856,41 @@ prefork_failure:
  * @return TRUE on success, FALSE on failure.
  */
 static gboolean
-adns_send_query(const adns_query_t *query)
+adns_send_request(const struct adns_request *req)
 {
+	gchar buf[sizeof *req];
+	size_t size;
 	ssize_t written;
-	adns_query_t q;
+
+	g_assert(req);
 
 	if (!adns_reply_event_id || 0 != adns_query_event_id)
 		return FALSE;
 
 	g_assert(adns_query_fd >= 0);
-	q = *query;
+	
+	memcpy(buf, &req->common, sizeof req->common);
+	size = sizeof req->common;
+	{
+		gconstpointer p;
+		size_t n;
+		
+		if (req->common.reverse) {
+			n = sizeof req->query.reverse;
+			p = &req->query.reverse;
+		} else {
+			n = sizeof req->query.by_addr;
+			p = &req->query.by_addr;
+		}
+		memcpy(&buf[size], p, n);
+		size += n;
+	}
 
 	/*
 	 * Try to write the query atomically into the pipe.
 	 */
 
-	written = write(adns_query_fd, &q, sizeof q);
+	written = write(adns_query_fd, buf, size);
 	if (written == (ssize_t) -1) {
 		if (!is_temporary_error(errno)) {
 			g_warning("adns_resolve: write() failed: %s",
@@ -678,9 +911,10 @@ adns_send_query(const adns_query_t *query)
 	 * can absorb new data.
 	 */
 
-	if (written < (ssize_t) sizeof q) {
-		adns_async_write_t *aq = adns_async_write_alloc(&q, written);
-
+	if ((size_t) written < size) {
+		adns_async_write_t *aq;
+	   
+		aq = adns_async_write_alloc(req, &buf[written], size - written);
 		adns_query_event_id = inputevt_add(adns_query_fd, INPUT_EVENT_WX,
 								adns_query_callback, aq);
 	}
@@ -705,50 +939,61 @@ adns_send_query(const adns_query_t *query)
  * returned, adns_resolve() returns FALSE.
  */
 gboolean
-adns_resolve(const gchar *hostname,
+adns_resolve(const gchar *hostname, enum net_type net,
 	adns_callback_t user_callback, gpointer user_data)
 {
-	static adns_query_t query, reply;
+	struct adns_request req;
+	struct adns_response ans;
+	struct adns_query *query = &req.query.by_addr;
+	struct adns_reply *reply = &ans.reply.by_addr;
 	size_t hostname_len;
+	host_addr_t addr;
 
 	g_assert(NULL != hostname);
 	g_assert(NULL != user_callback);
 
-	query.user_callback = (void (*)(void)) user_callback;
-	query.user_data = user_data;
-	query.reverse = FALSE;
-	query.addr = zero_host_addr;
-	reply = query;
+	req.common.user_callback = (void (*)(void)) user_callback;
+	req.common.user_data = user_data;
+	req.common.reverse = FALSE;
+	ans.common = req.common;
+	
+	query->net = net;
+	reply->hostname[0] = '\0';
+	reply->addrs[0] = zero_host_addr;
 
-	if (string_to_host_addr(hostname, NULL, &reply.addr)) {
-		adns_invoke_user_callback(&reply);
-		return FALSE; /* synchronous */
-	}
-
-	hostname_len = g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
-	if (hostname_len >= sizeof(query.hostname)) {
+	hostname_len = g_strlcpy(query->hostname, hostname, sizeof query->hostname);
+	if (hostname_len >= sizeof query->hostname) {
 		/* truncation detected */
-		reply.addr = zero_host_addr;
-		adns_invoke_user_callback(&reply);
+		adns_invoke_user_callback(&ans);
 		return FALSE; /* synchronous */
 	}
 
-	ascii_strlower(query.hostname, hostname);
+	if (string_to_host_addr(hostname, NULL, &addr)) {
+		reply->addrs[0] = addr;
+		reply->addrs[1] = zero_host_addr;
+		adns_invoke_user_callback(&ans);
+		return FALSE; /* synchronous */
+	}
+
+	ascii_strlower(query->hostname, hostname);
+	g_strlcpy(reply->hostname, query->hostname, sizeof reply->hostname);
+	
 	if (
-		adns_cache_lookup(adns_cache, tm_time(), query.hostname, &reply.addr)
+		adns_cache_lookup(adns_cache, tm_time(), query->hostname,
+			reply->addrs, G_N_ELEMENTS(reply->addrs))
 	) {
-		adns_invoke_user_callback(&reply);
+		adns_invoke_user_callback(&ans);
 		return FALSE; /* synchronous */
 	}
 
-	if (adns_send_query(&query))
+	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
 	if (adns_reply_event_id)
 		g_warning("adns_resolve: using synchronous resolution for \"%s\"",
-			query.hostname);
+			query->hostname);
 
-	adns_fallback(&query);
+	adns_fallback(&req);
 
 	return FALSE; /* synchronous */
 }
@@ -770,23 +1015,23 @@ gboolean
 adns_reverse_lookup(const host_addr_t addr,
 	adns_reverse_callback_t user_callback, gpointer user_data)
 {
-	static adns_query_t query;
+	struct adns_request req;
+	struct adns_reverse_query *query = &req.query.reverse;
 
 	g_assert(user_callback);
 
-	query.user_callback = (void (*)(void)) user_callback;
-	query.user_data = user_data;
-	query.addr = addr;
-	query.reverse = TRUE;
-	query.hostname[0] = '\0';
+	req.common.user_callback = (void (*)(void)) user_callback;
+	req.common.user_data = user_data;
+	req.common.reverse = TRUE;
+	query->addr = addr;
 
-	if (adns_send_query(&query))
+	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
 	g_warning("adns_reverse_lookup: using synchronous resolution for \"%s\"",
-		host_addr_to_string(query.addr));
+		host_addr_to_string(query->addr));
 
-	adns_fallback(&query);
+	adns_fallback(&req);
 
 	return FALSE; /* synchronous */
 }
