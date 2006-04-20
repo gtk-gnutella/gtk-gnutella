@@ -607,17 +607,19 @@ socket_eof(struct gnutella_socket *s)
 }
 
 static void
-proxy_connect_helper(const host_addr_t *addr, gpointer udata)
+proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
 {
 	gboolean *in_progress = udata;
 
-	g_assert(NULL != in_progress);
+	g_assert(addr);
+	g_assert(in_progress);
 	*in_progress = FALSE;
 
-	if (addr) {
-		gnet_prop_set_ip_val(PROP_PROXY_ADDR, *addr);
+	if (n > 0) {
+		/* Just pick the first address */
+		gnet_prop_set_ip_val(PROP_PROXY_ADDR, addr[0]);
 		g_message("Resolved proxy name \"%s\" to %s", proxy_hostname,
-			host_addr_to_string(*addr));
+			host_addr_to_string(addr[0]));
 	} else {
 		g_message("Could not resolve proxy name \"%s\"", proxy_hostname);
 	}
@@ -643,7 +645,8 @@ proxy_connect(int fd)
 		if (!in_progress) {
 			in_progress = TRUE;
 			g_warning("Resolving proxy name \"%s\"", proxy_hostname);
-			adns_resolve(proxy_hostname, proxy_connect_helper, &in_progress);
+			adns_resolve(proxy_hostname, settings_dns_net(),
+				proxy_connect_helper, &in_progress);
 		}
 
 		if (in_progress) {
@@ -2731,34 +2734,36 @@ socket_bad_hostname(struct gnutella_socket *s)
  * @todo TODO: All resolved addresses should be attempted.
  */
 static void
-socket_connect_by_name_helper(const host_addr_t *addr, gpointer user_data)
+socket_connect_by_name_helper(const host_addr_t *addr, size_t n,
+	gpointer user_data)
 {
 	struct gnutella_socket *s = user_data;
 
 	g_assert(NULL != s);
+	g_assert(addr);
 
 	s->adns &= ~SOCK_ADNS_PENDING;
 
-	if (NULL == addr || s->type == SOCK_TYPE_DESTROYING) {
+	if (0 == n || s->type == SOCK_TYPE_DESTROYING) {
 		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
 		return;
 	}
 
-	if (s->net != host_addr_net(*addr)) {
-		s->net = host_addr_net(*addr);
+	if (s->net != host_addr_net(addr[0])) {
+		s->net = host_addr_net(addr[0]);
 
 		if (-1 != s->file_desc) {
 			close(s->file_desc);
 			s->file_desc = -1;
 		}
-		if (0 != socket_connect_prepare(s, *addr, s->port, s->type, s->flags)) {
+		if (socket_connect_prepare(s, addr[0], s->port, s->type, s->flags)) {
 			s->adns |= SOCK_ADNS_FAILED;
 			return;
 		}
 	}
 
-	if (0 != socket_connect_finalize(s, *addr)) {
+	if (socket_connect_finalize(s, addr[0])) {
 		s->adns |= SOCK_ADNS_FAILED;
 		return;
 	}
@@ -2789,7 +2794,8 @@ socket_connect_by_name(const gchar *host, guint16 port,
 
 	s->adns |= SOCK_ADNS_PENDING;
 	if (
-		!adns_resolve(host, &socket_connect_by_name_helper, s)
+		!adns_resolve(host, settings_dns_net(),
+			&socket_connect_by_name_helper, s)
 		&& (s->adns & SOCK_ADNS_FAILED)
 	) {
 		/*	socket_connect_by_name_helper() was already invoked! */

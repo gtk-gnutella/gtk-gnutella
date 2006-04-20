@@ -246,33 +246,37 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 
 	switch (get_command(tok)) {
 	case CMD_ADD: {
-		gchar *tok_buf;
-		host_addr_t addr;
+		gchar *tok_buf, *tok_buf2;
+		const gchar *host, *end;
 		guint32 port = GTA_PORT;
+		gint flags = CONNECT_F_FORCE;
 
-		tok_buf = shell_get_token(cmd, &pos);
-
-		if (tok_buf) {
-			addr = name_to_host_addr(tok_buf);
-			G_FREE_NULL(tok_buf);
-		} else
+		tok_buf2 = shell_get_token(cmd, &pos);
+		if (!tok_buf2)
 			goto error;
+		
+		host = tok_buf2;
+		end = is_strprefix(host, "tls:");
+		if (end) {
+			host = end;
+			flags |= CONNECT_F_TLS;
+		}
 
 		tok_buf = shell_get_token(cmd, &pos);
-
 		if (tok_buf) {
 			gint error;
-			guint32 u;
 			
-			u = parse_uint32(tok_buf, NULL, 10, &error);
-			port = error || u > 65535 ? 0 : u;
+			port = parse_uint16(tok_buf, NULL, 10, &error);
 			G_FREE_NULL(tok_buf);
 		}
 
-		if (is_host_addr(addr) && port) {
-			node_add(addr, port, CONNECT_F_FORCE);
+		if (port) {
+			node_add_by_name(host, port, flags);
 			sh->msg = _("Node added");
-		} else {
+		}
+		G_FREE_NULL(tok_buf2);
+		
+		if (!port) {
 			sh->msg = _("Invalid IP/Port");
 			goto error;
 		}

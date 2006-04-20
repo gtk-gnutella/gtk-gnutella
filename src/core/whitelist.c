@@ -83,11 +83,13 @@ whitelist_retrieve(void)
     whitelist_mtime = st.st_mtime;
 
     while (fgets(line, sizeof line, f)) {
+		GSList *sl_addr, *sl;
 		const gchar *endptr;
 		host_addr_t addr;
     	guint16 port;
 		guint8 bits;
 		gchar *p;
+		gboolean item_ok;
 
         linenum++;
         if ('#' == line[0]) continue;
@@ -103,6 +105,7 @@ whitelist_retrieve(void)
         if ('\0' == line[0])
             continue;
 
+		sl_addr = NULL;
 		addr = zero_host_addr;
 		endptr = NULL;
 
@@ -113,7 +116,9 @@ whitelist_retrieve(void)
 			continue;
 		}
 
-        if (!is_host_addr(addr)) {
+        if (is_host_addr(addr)) {
+			sl_addr = g_slist_prepend(sl_addr, wcopy(&addr, sizeof addr));
+		} else {
 			guchar c = *endptr;
 			size_t len;
 
@@ -138,18 +143,19 @@ whitelist_retrieve(void)
 			line[len] = '\0'; /* Terminate the string for name_to_host_addr() */
 
 			/* @todo TODO: This should use the ADNS resolver. */
-        	addr = name_to_host_addr(line);
-
-        	if (!is_host_addr(addr)) {
-            	g_warning("whitelist_retrieve(): "
-				"Line %d: Could not resolve hostname \"%s\"", linenum, line);
+       		sl_addr = name_to_host_addr(line, settings_dns_net());
+       		if (!sl_addr) {
+           		g_warning("whitelist_retrieve(): "
+					"Line %d: Could not resolve hostname \"%s\"",
+					linenum, line);
             	continue;
-        	}
+			}
 		}
 
-       	g_assert(is_host_addr(addr));
+       	g_assert(sl_addr);
 		g_assert(NULL != endptr);
 		port = bits = 0;
+		item_ok = TRUE;
 
 		/* Ignore trailing items separated by a space */
 		while ('\0' != *endptr && !is_ascii_space(*endptr)) {
@@ -162,7 +168,7 @@ whitelist_retrieve(void)
 				if (0 != port) {
 					g_warning("whitelist_retrieve(): Line %d:"
 						"Multiple colons after host", linenum);
-					addr = zero_host_addr;
+					item_ok = FALSE;
 					break;
 				}
 
@@ -171,7 +177,7 @@ whitelist_retrieve(void)
 				if (0 == port) {
 					g_warning("whitelist_retrieve(): Line %d: "
 						"Invalid port value after host", linenum);
-					addr = zero_host_addr;
+					item_ok = FALSE;
 					break;
 				}
 			} else if ('/' == c) {
@@ -181,7 +187,7 @@ whitelist_retrieve(void)
 				if (0 != bits) {
 					g_warning("whitelist_retrieve(): Line %d:"
 						"Multiple slashes after host", linenum);
-					addr = zero_host_addr;
+					item_ok = FALSE;
 					break;
 				}
 
@@ -189,7 +195,7 @@ whitelist_retrieve(void)
 					if (NET_TYPE_IPV4 != host_addr_net(addr)) {
 						g_warning("whitelist_retrieve(): Line %d: "
 							"IPv4 netmask after non-IPv4 address", linenum);
-						addr = zero_host_addr;
+						item_ok = FALSE;
 						break;
 					}
 					endptr = ep;
@@ -197,7 +203,7 @@ whitelist_retrieve(void)
 					if (0 == (bits = netmask_to_cidr(mask))) {
 						g_warning("whitelist_retrieve(): Line %d: "
 							"IPv4 netmask after non-IPv4 address", linenum);
-						addr = zero_host_addr;
+						item_ok = FALSE;
 						break;
 					}
 
@@ -214,7 +220,7 @@ whitelist_retrieve(void)
 					) {
 						g_warning("whitelist_retrieve(): Line %d: "
 							"Invalid numeric netmask after host", linenum);
-						addr = zero_host_addr;
+						item_ok = FALSE;
 						break;
 					}
 					bits = v;
@@ -222,13 +228,9 @@ whitelist_retrieve(void)
 			} else {
 				g_warning("whitelist_retrieve(): Line %d: "
 					"Unexpected character after host", linenum);
-				addr = zero_host_addr;
+				item_ok = FALSE;
 				break;
 			}
-		}
-
-        if (!is_host_addr(addr)) {
-			continue;
 		}
 
 		if (0 == bits)	{
@@ -246,16 +248,28 @@ whitelist_retrieve(void)
 			g_assert(0 != bits);
 		}
 
-		{
-    		struct whitelist *item;
+		if (item_ok) {
+			for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+				host_addr_t *addr_ptr = sl->data;
+				struct whitelist *item;
 
-        	item = walloc0(sizeof *item);
-			item->addr = addr;
-        	item->port = port;
-        	item->bits = bits;
+				g_assert(addr_ptr);
 
-        	sl_whitelist = g_slist_prepend(sl_whitelist, item);
+				item = walloc0(sizeof *item);
+				item->addr = *addr_ptr;
+				item->port = port;
+				item->bits = bits;
+
+				sl_whitelist = g_slist_prepend(sl_whitelist, item);
+			}
 		}
+
+		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
+			host_addr_t *addr_ptr = sl->data;
+			wfree(addr_ptr, sizeof *addr_ptr);
+		}
+		g_slist_free(sl_addr);
+		sl_addr = NULL;
     }
 
     sl_whitelist = g_slist_reverse(sl_whitelist);

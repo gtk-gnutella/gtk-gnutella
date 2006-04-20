@@ -38,6 +38,7 @@
 RCSID("$Id$");
 
 #include "ntp.h"
+#include "settings.h"
 #include "sockets.h"
 
 #include "if/core/hosts.h"
@@ -186,7 +187,7 @@ ntp_send_probes(void)
 	for (i = 0; i < G_N_ELEMENTS(hosts); i++) {
 		host_addr_t addr;
 
-		addr = name_to_host_addr(hosts[i].addr);
+		addr = name_to_single_host_addr(hosts[i].addr, settings_dns_net());
 		if (!is_host_addr(addr))
 			continue;
 		

@@ -230,6 +230,7 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
  * Nodes public interface
  */
 void node_add(const host_addr_t addr, guint16, guint32 flags);
+void node_add_by_name(const gchar *host, guint16, guint32 flags);
 void node_remove_by_handle(gnet_node_t n);
 void node_remove_nodes_by_handle(GSList *node_list);
 void node_get_status(const gnet_node_t n, gnet_node_status_t *s);

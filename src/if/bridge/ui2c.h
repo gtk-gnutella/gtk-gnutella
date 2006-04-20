@@ -59,14 +59,14 @@
 #include <glib.h>
 
 /* adns interface functions */
-gboolean guc_adns_resolve(
-	const gchar *hostname, adns_callback_t user_callback, gpointer user_data);
+gboolean guc_adns_resolve(const gchar *hostname,
+			adns_callback_t user_callback, gpointer user_data);
 
 /* download and src interface functions */
 const gchar *guc_build_url_from_download(const struct download *d);
 gint guc_download_get_http_req_percent(const struct download *d);
-void guc_download_fallback_to_push
-	(struct download *d, gboolean on_timeout, gboolean user_request);
+void guc_download_fallback_to_push(struct download *d, gboolean on_timeout,
+		gboolean user_request);
 gint guc_download_remove_all_from_peer(gchar *guid, const host_addr_t addr,
 	guint16 port, gboolean unavailable);
 gint guc_download_remove_all_named(const gchar *name);

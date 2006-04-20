@@ -34,6 +34,7 @@
 
 const gchar *settings_config_dir(void);
 const gchar *settings_home_dir(void);
+enum net_type settings_dns_net(void);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_settings_h */

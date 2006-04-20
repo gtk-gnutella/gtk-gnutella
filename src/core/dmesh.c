@@ -408,7 +408,10 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 		return FALSE;
 	}
 
-	addr = name_to_host_addr(host);	/* FIXME: This can block */
+	/* FIXME:	This can block; we should never keep resolved hostnames as IP
+	 *			addresses around but always resolve hostnames just in time.
+	 */
+	addr = name_to_single_host_addr(host, settings_dns_net());
 	if (!is_host_addr(addr))
 		return FALSE;
 

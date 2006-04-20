@@ -109,13 +109,15 @@ on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
 }
 
 static void
-on_entry_config_proxy_hostname_activate_helper(const host_addr_t *addr,
-		gpointer unused_udata)
+on_entry_config_proxy_hostname_activate_helper(const host_addr_t *addrs,
+		size_t n, gpointer unused_udata)
 {
 	(void) unused_udata;
 
-	if (addr) {
-    	gnet_prop_set_ip_val(PROP_PROXY_ADDR, *addr);
+	g_assert(addrs);
+	if (n > 0) {
+		/* Just pick the first address */
+    	gnet_prop_set_ip_val(PROP_PROXY_ADDR, addrs[0]);
 	}
 }
 

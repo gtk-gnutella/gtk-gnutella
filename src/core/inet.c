@@ -189,12 +189,13 @@ is_local_addr(const host_addr_t addr)
 
 	if (!is_host_addr(our_addr)) {
 		/* This should not change */
-		our_addr = name_to_host_addr(local_hostname());
+		our_addr = name_to_single_host_addr(local_hostname(),
+						settings_dns_net());
 	}
 	if (!is_host_addr(our_addr))
 		our_addr = listen_addr();
 	if (!is_host_addr(our_addr))
-		our_addr = name_to_host_addr("localhost");
+		our_addr = name_to_single_host_addr("localhost", settings_dns_net());
 
 	if (host_addr_equal(addr, listen_addr()))	/* Ourselves */
 		return TRUE;

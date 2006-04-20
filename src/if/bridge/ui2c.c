@@ -73,7 +73,7 @@ gboolean
 guc_adns_resolve(const gchar *hostname,
 	adns_callback_t user_callback, gpointer user_data)
 {
-	return adns_resolve(hostname, user_callback, user_data);
+	return adns_resolve(hostname, settings_dns_net(), user_callback, user_data);
 }
 
 /*	bitzi interface functions (UI -> Core)*/

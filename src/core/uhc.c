@@ -56,6 +56,7 @@ RCSID("$Id$");
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
+#include "if/core/settings.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -109,7 +110,8 @@ static const struct {
 
 static gboolean uhc_connecting = FALSE;
 
-static void uhc_host_resolved(const host_addr_t *addr, gpointer uu_udata);
+static void uhc_host_resolved(const host_addr_t *addr, size_t n,
+				gpointer uu_udata);
 
 /**
  * Parse hostname:port and return the hostname and port parts.
@@ -291,7 +293,8 @@ uhc_try_random(void)
 	 * we're protected by the `attempts' counter.
 	 */
 
-	(void) adns_resolve(uhc_ctx.host, uhc_host_resolved, NULL);
+	(void) adns_resolve(uhc_ctx.host, settings_dns_net(),
+				uhc_host_resolved, NULL);
 }
 
 /**
@@ -367,15 +370,16 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
  * Callback for adns_resolve(), invoked when the resolution is complete.
  */
 static void
-uhc_host_resolved(const host_addr_t *addr, gpointer uu_udata)
+uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 {
 	(void) uu_udata;
+	g_assert(addrs);
 
 	/*
 	 * If resolution failed, try again if possible.
 	 */
 
-	if (!addr || !host_is_valid(*addr, uhc_ctx.port)) {
+	if (0 == n) {
 		if (gwc_debug)
 			g_warning("could not resolve UDP host cache \"%s\"",
 				uhc_ctx.host);
@@ -384,11 +388,12 @@ uhc_host_resolved(const host_addr_t *addr, gpointer uu_udata)
 		return;
 	}
 
+	uhc_ctx.addr = addrs[random_raw() % n];
+	
 	if (gwc_debug || bootstrap_debug)
 		g_message("BOOT UDP host cache \"%s\" resolved to %s",
-			uhc_ctx.host, host_addr_to_string(*addr));
+			uhc_ctx.host, host_addr_to_string(uhc_ctx.addr));
 
-	uhc_ctx.addr = *addr;
 
 	/*
 	 * Now send the ping.

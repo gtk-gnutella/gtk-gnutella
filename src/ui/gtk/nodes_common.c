@@ -391,15 +391,17 @@ struct add_node_context {
 };
 
 static void
-add_node_helper(const host_addr_t *addr, gpointer data)
+add_node_helper(const host_addr_t *addrs, size_t n, gpointer data)
 {
 	struct add_node_context *ctx = data;
 
+	g_assert(addrs);
 	g_assert(ctx);
 	g_assert(0 != ctx->port);
 
-	if (addr)
-		guc_node_add(*addr, ctx->port, ctx->flags);
+	if (n > 0) {
+		guc_node_add(addrs[random_raw() % n], ctx->port, ctx->flags);
+	}
 
 	wfree(ctx, sizeof *ctx);
 }

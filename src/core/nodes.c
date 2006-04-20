@@ -87,6 +87,7 @@ RCSID("$Id$");
 #include "g2/g2nodes.h"
 #endif
 
+#include "lib/adns.h"
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
@@ -5454,7 +5455,8 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 /**
  * Show UDP node in the GUI
  */
-void node_udp_gui_show(void)
+void
+node_udp_gui_show(void)
 {
     node_fire_node_added(udp_node);
     node_fire_node_flags_changed(udp_node);
@@ -5463,7 +5465,8 @@ void node_udp_gui_show(void)
 /**
  * Remove UDP node from the GUI
  */
-void node_udp_gui_remove(void)
+void
+node_udp_gui_remove(void)
 {
   	node_fire_node_removed(udp_node);
 }
@@ -5485,6 +5488,61 @@ node_add(const host_addr_t addr, guint16 port, guint32 flags)
 
    	node_add_socket(NULL, addr, port, flags);
 }
+
+struct node_add_by_name_data {
+	guint32 flags;
+	guint16 port;	
+};
+
+/**
+ * Called when we got a reply from the ADNS process.
+ *
+ * @todo TODO: All resolved addresses should be attempted.
+ */
+static void
+node_add_by_name_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
+{
+	struct node_add_by_name_data *data = user_data;
+
+	g_assert(addrs);
+	g_assert(data);
+	g_assert(data->port);
+
+	if (n > 0) {
+		size_t i = random_raw() % n;
+		node_add(addrs[i], data->port, data->flags);
+	}
+	wfree(data, sizeof *data);
+}
+
+/**
+ * Add new node by hostname.
+ */
+void
+node_add_by_name(const gchar *host, guint16 port, guint32 flags)
+{
+	struct node_add_by_name_data *data;
+	
+	g_assert(host);
+
+	if (!port)
+		return;
+
+	data = walloc(sizeof *data);
+	data->port = port;
+	data->flags = flags;
+
+	if (
+		!adns_resolve(host, settings_dns_net(), &node_add_by_name_helper, data)
+	) {
+		/*	node_add_by_name_helper() was already invoked! */
+		if (node_debug > 0)
+			g_warning("node_add_by_name: "
+				"adns_resolve() failed in synchronous mode");
+		return;
+	}
+}
+
 
 /**
  * Add new node, to which we possibly have an existing connection if
