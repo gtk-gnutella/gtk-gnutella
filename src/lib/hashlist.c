@@ -88,6 +88,7 @@ struct hash_list_iter {
 static void inline hash_list_regression(const hash_list_t *hl)
 {
 	g_assert(NULL != hl->ht);
+	g_assert(hl->len >= 0);
 	g_assert(g_list_first(hl->l) == hl->l);
 	g_assert(g_list_first(hl->last) == hl->l);
 	g_assert(g_list_last(hl->l) == hl->last);
@@ -312,7 +313,7 @@ hash_list_first(const hash_list_t *hl)
 /**
  * @returns the length of the list.
  */
-gint
+guint
 hash_list_length(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);

@@ -39,7 +39,7 @@ void hash_list_append(hash_list_t *hl, gpointer data);
 void hash_list_prepend(hash_list_t *hl, gpointer data);
 gpointer hash_list_first(const hash_list_t *hl);
 gpointer hash_list_last(const hash_list_t *hl);
-gint hash_list_length(const hash_list_t *hl);
+guint hash_list_length(const hash_list_t *hl);
 hash_list_iter_t *hash_list_iterator(hash_list_t *hl);
 hash_list_iter_t *hash_list_iterator_last(hash_list_t *hl);
 void hash_list_release(hash_list_iter_t *i);
