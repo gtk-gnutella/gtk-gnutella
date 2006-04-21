@@ -959,14 +959,21 @@ shared_file_unref(shared_file_t *sf)
 		shared_file_free(sf);
 }
 
+static inline gint
+off_t_cmp(off_t a, off_t b)
+{
+	return CMP(a, b);	
+}
+
 /**
  * Is file too big to be shared on Gnutella?
  */
 static inline gboolean
-too_big_for_gnutella(off_t size)
+too_big_for_gnutella(gint size)
 {
 	g_return_val_if_fail(size >= 0, TRUE);
-	return size > MAX_INT_VAL(gint64);
+	return size > MAX_INT_VAL(gint32) &&
+		off_t_cmp(size, MAX_INT_VAL(gint64)) > 0;
 }
 
 /**
