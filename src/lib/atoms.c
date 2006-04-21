@@ -394,6 +394,8 @@ static gint sha1_len(gconstpointer v);
 static const gchar *sha1_str(gconstpointer v);
 static gint uint64_len(gconstpointer v);
 static const gchar *uint64_str(gconstpointer v);
+static gint filesize_len(gconstpointer v);
+static const gchar *filesize_str(gconstpointer v);
 
 /**
  * The set of all atom types we know about.
@@ -403,6 +405,8 @@ static table_desc_t atoms[] = {
 	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
 	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
 	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 3 */
+	{ "filesize",
+		NULL, filesize_hash, filesize_eq, filesize_len, filesize_str},  /* 4 */
 };
 
 /**
@@ -561,7 +565,7 @@ sha1_str(gconstpointer sha1)
 }
 
 /**
- * @return length of an int.
+ * @return length of a 64-bit integer.
  */
 static int
 uint64_len(gconstpointer unused_v)
@@ -571,7 +575,17 @@ uint64_len(gconstpointer unused_v)
 }
 
 /**
- * @return printable form of an int, as pointer to static data.
+ * @return length of a filesize_t.
+ */
+static int
+filesize_len(gconstpointer unused_v)
+{
+	(void) unused_v;
+	return sizeof(filesize_t);
+}
+
+/**
+ * @return printable form of a 64-bit integer, as pointer to static data.
  */
 static const gchar *
 uint64_str(gconstpointer v)
@@ -604,6 +618,42 @@ uint64_hash(gconstpointer p)
 	guint64 v = *(const guint64 *) p;
 	return v ^ (v >> 32);
 }
+
+/**
+ * @return printable form of a filesize_t, as pointer to static data.
+ */
+static const gchar *
+filesize_str(gconstpointer v)
+{
+	static gchar buf[UINT64_DEC_BUFLEN];
+
+	uint64_to_string_buf(*(const filesize_t *) v, buf, sizeof buf);
+	return buf;
+}
+
+/**
+ * Test two filesize_t for equality.
+ *
+ * @return whether both referenced 64-bit integers are equal.
+ */
+gint
+filesize_eq(gconstpointer a, gconstpointer b)
+{
+	return *(const filesize_t *) a == *(const filesize_t *) b;
+}
+
+/**
+ * Calculate the 32-bit hash of a filesize_t.
+ *
+ * @return the 32-bit hash value for the referenced 64-bit integer.
+ */
+guint
+filesize_hash(gconstpointer p)
+{
+	guint64 v = *(const filesize_t *) p;
+	return v ^ (v >> 32);
+}
+
 
 /**
  * Initialize atom structures.
