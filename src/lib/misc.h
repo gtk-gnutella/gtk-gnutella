@@ -293,6 +293,8 @@ typedef guint16 flag_t;
 #define IPV6_ADDR_BUFLEN \
 	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
 #define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
+#define OFF_T_DEC_BUFLEN	(sizeof(off_t) * CHAR_BIT) /* very roughly */
+#define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
 
 gboolean parse_ipv6_addr(const gchar *s, uint8_t *dst, const gchar **endptr);
 const gchar *ipv6_to_string(const guint8 *ipv6);
@@ -468,11 +470,15 @@ guint32 parse_uint32(const gchar *, gchar const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
 guint64 parse_uint64(const gchar *, gchar const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
-size_t uint32_to_string_buf(guint64 v, gchar *dst, size_t size);
+size_t uint32_to_string_buf(guint32 v, gchar *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, gchar *dst, size_t size);
+size_t off_t_to_string_buf(off_t v, gchar *dst, size_t size);
+size_t time_t_to_string_buf(time_t v, gchar *dst, size_t size);
 const gchar *uint32_to_string(guint32 v);
 const gchar *uint64_to_string(guint64 v);
 const gchar *uint64_to_string2(guint64 v);
+const gchar *off_t_to_string(off_t v);
+const gchar *time_t_to_string(time_t v);
 gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
 gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;

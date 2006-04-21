@@ -2597,13 +2597,48 @@ filepath_exists(const gchar *dir, const gchar *file)
 	return exists;
 }
 
+/**
+ * Copies "src_len" chars from "src" to "dst" reversing their order.
+ * The resulting string is always NUL-terminated unless "size" is zero.
+ * If "size" is not larger than "src_len", the resulting string will
+ * be truncated. NUL chars copied from "src" are not treated as string
+ * terminations.
+ *
+ * @param dst The destination buffer.
+ * @param size The size of the destination buffer.
+ * @param src The source buffer.
+ * @param src_len The size of the source buffer.
+ *
+ * @return The resulting length of string not counting the termating NUL.
+ *         Note that NULs that might have been copied from "src" are
+ *         included in this count. Thus strlen(dst) would return a lower
+ *         value in this case. 
+ */
+static inline size_t
+reverse_strlcpy(gchar * const dst, size_t size,
+	const gchar *src, size_t src_len)
+{
+	gchar *p = dst;
+	
+	if (size-- > 0) {
+		const gchar *q = &src[src_len], *end = &dst[MIN(src_len, size)];
+		gchar *p = dst;
+
+		while (p != end) {
+			*p++ = *--q;
+		}
+		*p = '\0';
+	}
+
+	return p - dst;
+}
+
 size_t
-uint32_to_string_buf(guint64 v, gchar *dst, size_t size)
+uint32_to_string_buf(guint32 v, gchar *dst, size_t size)
 {
 	static const gchar dec_alphabet[] = "0123456789";
 	gchar buf[UINT32_DEC_BUFLEN];
 	gchar *p;
-	size_t len;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
@@ -2613,19 +2648,8 @@ uint32_to_string_buf(guint64 v, gchar *dst, size_t size)
 		if (v < 10)
 			break;
 	}
-	len = p - buf;
 
-	if (size > 0) {
-		const gchar *end = &dst[size - 1];
-		gchar *q;
-
-		for (q = dst; q != end && p != buf; q++)
-			*q = *--p;
-
-		*q = '\0';
-	}
-
-	return len;
+	return reverse_strlcpy(dst, size, buf, p - buf);
 }
 
 size_t
@@ -2634,7 +2658,6 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 	static const gchar dec_alphabet[] = "0123456789";
 	gchar buf[UINT64_DEC_BUFLEN];
 	gchar *p;
-	size_t len;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
@@ -2644,19 +2667,60 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 		if (v < 10)
 			break;
 	}
-	len = p - buf;
 
-	if (size > 0) {
-		const gchar *end = &dst[size - 1];
-		gchar *q;
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
 
-		for (q = dst; q != end && p != buf; q++)
-			*q = *--p;
+size_t
+off_t_to_string_buf(off_t v, gchar *dst, size_t size)
+{
+	static const gchar dec_alphabet[] = "0123456789";
+	gchar buf[OFF_T_DEC_BUFLEN];
+	gchar *p;
+	gboolean neg;
 
-		*q = '\0';
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	p = buf;
+	neg = v < 0;
+	do {
+		gint d = v % 10;
+
+		v /= 10;
+		*p++ = dec_alphabet[neg ? -d : d];
+	} while (0 != v);
+	if (neg) {
+		*p++ = '-';
 	}
 
-	return len;
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
+time_t_to_string_buf(time_t v, gchar *dst, size_t size)
+{
+	static const gchar dec_alphabet[] = "0123456789";
+	gchar buf[TIME_T_DEC_BUFLEN];
+	gchar *p;
+	gboolean neg;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	p = buf;
+	neg = v < 0;
+	do {
+		gint d = v % 10;
+
+		v /= 10;
+		*p++ = dec_alphabet[neg ? -d : d];
+	} while (0 != v);
+	if (neg) {
+		*p++ = '-';
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
 }
 
 const gchar *
@@ -2688,6 +2752,28 @@ uint64_to_string2(guint64 v)
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const gchar *
+off_t_to_string(off_t v)
+{
+	static gchar buf[OFF_T_DEC_BUFLEN];
+	size_t n;
+
+	n = off_t_to_string_buf(v, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const gchar *
+time_t_to_string(time_t v)
+{
+	static gchar buf[TIME_T_DEC_BUFLEN];
+	size_t n;
+
+	n = time_t_to_string_buf(v, buf, sizeof buf);
 	g_assert(n < sizeof buf);
 	return buf;
 }
