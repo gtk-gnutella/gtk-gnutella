@@ -3611,12 +3611,14 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 * This only applies when we're not going to use sendile().
 		 */
 
-		if (!using_sendfile && u->skip > 0) {
-			if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
-				upload_error_remove(u, NULL,
-					500, "File seek error: %s", g_strerror(errno));
-				return;
-			}
+		if (
+			!using_sendfile &&
+			u->skip > 0 &&
+			0 != seek_to_filepos(u->file_desc, u->skip)
+		) {
+			upload_error_remove(u, NULL, 500, "File seek error: %s",
+				g_strerror(errno));
+			return;
 		}
 	}
 

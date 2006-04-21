@@ -4852,8 +4852,7 @@ download_overlap_check(struct download *d)
 	struct stat buf;
 	gchar *data = NULL;
 	ssize_t r;
-	filesize_t offset, begin, end;
-	off_t seek_offs;
+	filesize_t begin, end;
 	guint32 backout;
 
 	g_assert(fi->lifecount > 0);
@@ -4893,12 +4892,10 @@ download_overlap_check(struct download *d)
 		goto out;
 	}
 
-	offset = d->skip - d->overlap_size;
-	seek_offs = offset;
-	if (	(guint64) seek_offs != offset ||
-			seek_offs != lseek(fd, seek_offs, SEEK_SET)
-	) {
-		download_stop(d, GTA_DL_ERROR, "Unable to seek: %s", g_strerror(errno));
+	g_assert(d->skip >= d->overlap_size);
+	if (0 != seek_to_filepos(fd, d->skip - d->overlap_size)) {
+		download_stop(d, GTA_DL_ERROR, "Unable to seek to position %s: %s",
+			uint64_to_string(d->skip - d->overlap_size), g_strerror(errno));
 		goto out;
 	}
 
@@ -5020,7 +5017,6 @@ static gboolean
 download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 {
 	struct dl_buffers *b = d->buffers;
-	off_t offset;
 	ssize_t written;
 
 	g_assert(b != NULL);
@@ -5029,12 +5025,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		g_message("flushing %lu bytes for \"%s\"%s",
 			(gulong) b->held, download_outname(d), may_stop ? "" : " on stop");
 
-	offset = d->pos;
-	if (
-		offset < 0 ||
-		(guint64) offset != d->pos ||
-		offset != lseek(d->file_desc, offset, SEEK_SET)
-	) {
+	if (0 != seek_to_filepos(d->file_desc, d->pos)) {
 		const char *error = g_strerror(errno);
 
 		g_warning("failed to seek at offset %s (%s) for \"%s\" "
@@ -7293,19 +7284,11 @@ http_version_nofix:
 
 	G_FREE_NULL(path);
 
-	if (d->skip) {
-		off_t offset;
-
-		offset = d->skip;
-		if (
-			offset < 0 ||
-			(guint64) offset != d->skip ||
-			offset != lseek(d->file_desc, offset, SEEK_SET)
-		) {
-			download_stop(d, GTA_DL_ERROR, "Unable to seek: %s",
-				g_strerror(errno));
-			return;
-		}
+	if (d->skip > 0 && 0 != seek_to_filepos(d->file_desc, d->skip)) {
+		download_stop(d, GTA_DL_ERROR, "Unable to seek to position %s: %s",
+			uint64_to_string(d->skip),
+			g_strerror(errno));
+		return;
 	}
 
 	/*
