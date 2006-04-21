@@ -578,6 +578,9 @@ is_temporary_error(gint error)
   return FALSE;
 }
 
+/* Wrapper around lseek() to handle filesize -> off_t conversion. */
+gint seek_to_filepos(gint fd, filesize_t pos);
+
 /*
  * CIDR split of IP range.
  */

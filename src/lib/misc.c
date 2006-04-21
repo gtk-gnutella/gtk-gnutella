@@ -785,6 +785,43 @@ is_symlink(const gchar *path)
 #endif /* HAS_LSTAT */
 
 /**
+ * A wrapper around lseek() for handling filesize_t to off_t conversion.
+ *
+ * @param fd A valid file descriptor.
+ * @param pos The position to seek to.
+ * @return 0 on success and -1 on failure.
+ */
+gint
+seek_to_filepos(gint fd, filesize_t pos)
+{
+	off_t offset;
+
+	offset = pos > OFF_T_MAX ? (off_t) -1 : (off_t) pos;
+
+	/* Handle -1 explicitly just in case there might be platform with
+	 * an non-standard unsigned off_t.
+	 */
+	if ((off_t) -1 == offset || offset < 0) {
+		errno = ERANGE;
+		return -1;
+	} else {
+		gint saved_errno = errno;
+		off_t ret;
+
+		/* Clear errno to be sure we get no bogus errno code, if
+		 * the system does not agree with us that the lseek()
+		 * failed. */
+		errno = 0;
+		ret = lseek(fd, offset, SEEK_SET);
+		if ((off_t) -1 == ret || ret != offset) {
+			return -1;
+		}
+		errno = saved_errno;
+	}
+	return 0;
+}
+	
+/**
  * Scales v so that quotient and reminder are both in the range "0..1023".
  *
  * @param v no document.
