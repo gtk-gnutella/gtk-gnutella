@@ -288,12 +288,21 @@ typedef void (*GCallback) (void);
 #define STDERR_FILENO 2
 #endif /* STDERR_FILENO */
 
+/* Determines the maximum value of the given integer type "t". This
+ * works for signed as well as unsigned types. However, it's assumed
+ * the type consists of exactly sizeof (type) * CHAR_BIT bits. */
+#define MAX_INT_VAL(t) \
+	(((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 0))) \
+   	- 1 + ((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 0))))
+
 #ifndef TIME_T_MAX
 /* This assumes time_t is an integer, not a float */
-#define TIME_T_MAX \
-	((time_t) 1 << (CHAR_BIT * sizeof(time_t) - 1 - ((time_t) -1 < 0))) \
-   	- 1 + ((time_t) 1 << (CHAR_BIT * sizeof(time_t) - 1 - ((time_t) -1 < 0)))
+#define TIME_T_MAX MAX_INT_VAL(time_t)
 #endif /* TIME_T_MAX */
+
+#ifndef OFF_T_MAX
+#define OFF_T_MAX MAX_INT_VAL(off_t)
+#endif /* OFF_T_MAX */
 
 /*
  * Other common macros.
