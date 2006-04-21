@@ -488,10 +488,10 @@ file_info_fd_store_binary(fileinfo_t *fi, int fd, gboolean force)
 	 * Write trailer at the far end.
 	 */
 
-	if (fi->size != (guint64) lseek(fd, fi->size, SEEK_SET)) {
+	if (0 != seek_to_filepos(fd, fi->size)) {
 		g_warning("file_info_store_binary(): "
-			"lseek() to offset %s in \"%s\" failed: %s",
-			uint64_to_string(fi->size), fi->file_name, g_strerror(errno));
+			"seek_to_filepos(%d, %s) in \"%s\" failed: %s",
+			fd, uint64_to_string(fi->size), fi->file_name, g_strerror(errno));
 		return;
 	}
 
@@ -543,7 +543,9 @@ file_info_fd_store_binary(fileinfo_t *fi, int fd, gboolean force)
 	fi->generation++;
 
 	WRITE_INT32(FILE_INFO_FIELD_END);
-	WRITE_INT32(((guint32) (fi->size >> 32)));
+
+	STATIC_ASSERT((guint64) -1 >= (filesize_t) -1);
+	WRITE_INT32((guint32) ((guint64) fi->size >> 32));
 	WRITE_INT32((guint32) fi->size);
 	WRITE_INT32(fi->generation);
 
@@ -698,7 +700,7 @@ fi_free(fileinfo_t *fi)
 	if (fi->guid)
 		atom_guid_free(fi->guid);
 	if (fi->size_atom)
-		atom_uint64_free(fi->size_atom);
+		atom_filesize_free(fi->size_atom);
 	if (fi->file_name)
 		atom_str_free(fi->file_name);
 	if (fi->path)
@@ -748,9 +750,9 @@ fi_resize(fileinfo_t *fi, filesize_t size)
 
 	g_assert(fi->size_atom);
 
-	atom_uint64_free(fi->size_atom);
+	atom_filesize_free(fi->size_atom);
 	fi->size = size;
-	fi->size_atom = atom_uint64_get(&size);
+	fi->size_atom = atom_filesize_get(&size);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 }
 
@@ -845,6 +847,7 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 
 	offset = buf.st_size - sizeof tr;		/* Start of trailer */
 
+	/* No wrapper because this is a native off_t value. */
 	if (offset != lseek(fd, offset, SEEK_SET)) {
 		g_warning("file_info_get_trailer(): "
 			"error seek()ing in file \"%s\": %s", name, g_strerror(errno));
@@ -1332,10 +1335,21 @@ G_STMT_START {				\
 	}
 	t64 = trailer_is_64bit(&trailer);
 
-	if (trailer.filesize != (guint64) lseek(fd, trailer.filesize, SEEK_SET)) {
-		g_warning("seek to position %s within \"%s\" failed: %s",
-			uint64_to_string(trailer.filesize), pathname, g_strerror(errno));
-		goto eof;
+	{
+		gboolean ret;
+		
+		if (trailer.filesize > (filesize_t) -1) {
+			errno = ERANGE;
+			ret = -1;
+		} else {
+			ret = seek_to_filepos(fd, trailer.filesize);
+		}
+		if (0 != ret) {
+			g_warning("seek to position %s within \"%s\" failed: %s",
+				uint64_to_string(trailer.filesize),
+				pathname, g_strerror(errno));
+			goto eof;
+		}
 	}
 
 	/*
@@ -1361,7 +1375,7 @@ G_STMT_START {				\
 	fi->file_name = atom_str_get(file);
 	fi->path = atom_str_get(path);
 	fi->size = trailer.filesize;
-	fi->size_atom = atom_uint64_get(&fi->size);
+	fi->size_atom = atom_filesize_get(&fi->size);
 	fi->generation = trailer.generation;
 	fi->file_size_known = fi->use_swarming = 1;		/* Must assume swarming */
 	fi->refcount = 0;
@@ -2866,7 +2880,7 @@ file_info_retrieve(void)
 				|| v >= ((guint64) 1UL << 63)
 				|| (!fi->file_size_known && 0 == v);
 			fi->size = v;
-			fi->size_atom = atom_uint64_get(&fi->size);
+			fi->size_atom = atom_filesize_get(&fi->size);
 			break;
 		case FI_TAG_FSKN:
 			v = parse_uint32(value, &ep, 10, &error);
@@ -3124,7 +3138,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 	}
 	G_FREE_NULL(pathname);
 
-	fi->size_atom = atom_uint64_get(&fi->size);	/* Set now, for fi_resize() */
+	fi->size_atom = atom_filesize_get(&fi->size); /* Set now, for fi_resize() */
 
 	if (size > fi->size)
 		fi_resize(fi, size);
@@ -3157,7 +3171,7 @@ file_info_get_browse(const gchar *name)
 	fi->ctime = tm_time();
 	fi->seen_on_network = NULL;
 	fi->dirty = TRUE;
-	fi->size_atom = atom_uint64_get(&fi->size);	/* Set now, for fi_resize() */
+	fi->size_atom = atom_filesize_get(&fi->size); /* Set now, for fi_resize() */
 
 	fi->flags = FI_F_TRANSIENT;		/* Not persisted to disk */
 
@@ -3558,7 +3572,7 @@ file_info_size_known(struct download *d, filesize_t size)
 	fi->file_size_known = TRUE;
 	fi->use_swarming = TRUE;
 	fi->size = size;
-	fi->size_atom = atom_uint64_get(&size);
+	fi->size_atom = atom_filesize_get(&size);
 	fi->dirty = TRUE;
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
@@ -4008,6 +4022,23 @@ fi_busy_count(fileinfo_t *fi, struct download *d)
 	return count;
 }
 
+static filesize_t
+get_random_offset(filesize_t size)
+{
+	filesize_t offset;
+
+	offset = 0;
+	if (size > 1) {
+		guint i;
+		
+		for (i = 0; i < sizeof(offset); i++) {
+			offset ^= (filesize_t) random_raw() << (i * CHAR_BIT);
+		}
+		offset %= size - 1;
+	}
+	return offset;
+}
+
 /**
  * Clone fileinfo's chunk list, shifting the origin of the list to a randomly
  * selected offset within the file.  If the first chunk is not completed
@@ -4030,9 +4061,8 @@ list_clone_shift(fileinfo_t *fi)
 	if (DL_CHUNK_DONE != fc->status || fc->to < pfsp_first_chunk)
 		return fi->chunklist;
 
-	offset = ((((guint64) random_value(~0U)) << 32) | random_value(~0U))
-		% (fi->size - 1);
-
+	offset = get_random_offset(fi->size);
+	
 	/*
 	 * First pass: clone the list starting at the first chunk whose start is
 	 * after the offset.
@@ -5306,7 +5336,7 @@ file_info_init(void)
 
 	fi_by_sha1     = g_hash_table_new(sha1_hash, sha1_eq);
 	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
-	fi_by_size     = g_hash_table_new(uint64_hash, uint64_eq);
+	fi_by_size     = g_hash_table_new(filesize_hash, filesize_eq);
 	fi_by_guid     = g_hash_table_new(guid_hash, guid_eq);
 	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
 

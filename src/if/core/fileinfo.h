@@ -87,7 +87,7 @@ typedef struct dl_file_info {
 	gchar *path;			/**< Output file path (atom) */
 	GSList *alias;			/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
-	guint64 *size_atom;		/**< File size (atom -- points to value in memory) */
+	filesize_t *size_atom;	/**< File size (atom -- points to value in memory) */
 	gchar *sha1;			/**< server SHA1 (atom) if known, NULL if not. */
 	gchar *cha1;			/**< computed SHA1 (atom) if known, NULL if not. */
 	gint32 refcount;		/**< Reference count of file (number of sources)*/
