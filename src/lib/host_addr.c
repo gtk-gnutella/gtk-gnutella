@@ -369,10 +369,10 @@ host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
 {
 	size_t n;
 	gchar host_buf[64];
-	gchar port_buf[UINT64_DEC_BUFLEN];
+	gchar port_buf[UINT32_DEC_BUFLEN];
 
 	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
-	uint64_to_string_buf(port, port_buf, sizeof port_buf);
+	uint32_to_string_buf(port, port_buf, sizeof port_buf);
 
 	if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 		n = concat_strings(dst, size, "[", host_buf, "]:",
