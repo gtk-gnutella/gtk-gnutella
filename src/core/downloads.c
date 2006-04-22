@@ -8845,6 +8845,7 @@ download_move_done(struct download *d, guint elapsed)
 	g_assert(d->status == GTA_DL_MOVING);
 
 	d->status = GTA_DL_DONE;
+	d->last_update = tm_time();
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
 	file_info_changed(fi);
