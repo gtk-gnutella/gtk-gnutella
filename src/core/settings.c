@@ -923,22 +923,81 @@ enable_udp_changed(property_t prop)
 	return FALSE;
 }
 
+static void
+request_new_sockets(guint16 port)
+{
+	host_addr_t bind_addr = zero_host_addr;
+
+	/*
+	 * Close old ports.
+	 */
+
+	if (s_tcp_listen) {
+		socket_free(s_tcp_listen);
+		s_tcp_listen = NULL;
+	}
+
+	if (s_udp_listen) {
+		socket_free(s_udp_listen);
+		s_udp_listen = NULL;
+	}
+
+	/*
+	 * If the new port != 0, open the new port
+	 */
+
+	if (0 == port)
+		return;
+
+	if (
+		force_local_ip &&
+		bind_to_forced_local_ip &&
+		host_addr_initialized(listen_addr())
+   ) {
+		bind_addr = listen_addr();
+	} else {
+		switch (network_protocol) {
+		case NET_USE_BOTH:
+		case NET_USE_IPV4:
+			bind_addr = host_addr_set_ipv4(INADDR_ANY);
+			break;
+#ifdef USE_IPV6
+		case NET_USE_IPV6:
+			{
+				static const guint8 zero_ipv6_addr[16];
+				host_addr_set_ipv6(&bind_addr, zero_ipv6_addr);
+			}
+			break;
+#endif /* USE_IPV6 */
+		}
+	}
+
+	s_tcp_listen = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
+
+	/*
+	 * If UDP is enabled, also listen on the same UDP port.
+	 */
+
+	if (enable_udp && s_tcp_listen) {
+		s_udp_listen = socket_udp_listen(bind_addr, port);
+		if (s_udp_listen == NULL) {
+			socket_free(s_tcp_listen);
+			s_tcp_listen = NULL;
+		}
+		node_update_udp_socket();
+	}
+}
+
 static gboolean
 listen_port_changed(property_t prop)
 {
 	static guint32 old_port = (guint32) -1;
-	gboolean random_port = FALSE;
-    guint32 port;
-	guint num_tried = 0;
-	bit_array_t tried[BIT_ARRAY_SIZE(65536)];
-
-	port = listen_port;
 
 	/*
 	 * If port did not change values, do nothing.
 	 */
 
-	if (port == old_port && port != 0)
+	if (listen_port == old_port && listen_port != 0)
 		return FALSE;
 
 	if (old_port != (guint32) -1) {
@@ -950,21 +1009,24 @@ listen_port_changed(property_t prop)
 	 * 1 is a magic port number for us, which means "pick a random port"
 	 * whereas 0 means "don't listen on any port".
 	 */
-	random_port = 1 == port;
 
-	/* Mark ports below 1024 as already tried, these ports can
-	 * be configured manually but we don't want to pick one of
-	 * these when not explicitely told so as it may grab the
-	 * port of an important service (which is currently down).
-	 */
+	if (1 != listen_port) {
+		request_new_sockets(listen_port);
+	} else {
+		bit_array_t tried[BIT_ARRAY_SIZE(65536)];
+		guint num_tried = 0;
+    	guint32 port = listen_port;
 
-	bit_array_set_range(tried, 0, 1023);
-	bit_array_clear_range(tried, 1024, 65535);
+		/* Mark ports below 1024 as already tried, these ports can
+		 * be configured manually but we don't want to pick one of
+		 * these when not explicitely told so as it may grab the
+		 * port of an important service (which is currently down).
+		 */
 
-	do {
-		host_addr_t bind_addr = zero_host_addr;
+		bit_array_set_range(tried, 0, 1023);
+		bit_array_clear_range(tried, 1024, 65535);
 
-		if (random_port) {
+		do {
 			guint32 i;
 
 			i = random_value(65535 - 1024) + 1024;
@@ -980,99 +1042,26 @@ listen_port_changed(property_t prop)
 			} while (i != port);
 
 			g_assert(port > 1023);
-		}
+			request_new_sockets(port);
+		} while (s_tcp_listen == NULL && ++num_tried < 65535 - 1024);
 
 		old_port = port;
-
-		/*
-		 * Close old ports.
-		 */
-
-		if (s_tcp_listen) {
-			socket_free(s_tcp_listen);
-			s_tcp_listen = NULL;
-		}
-
-		if (s_udp_listen) {
-			socket_free(s_udp_listen);
-			s_udp_listen = NULL;
-		}
-
-		/*
-		 * If the new port != 0, open the new port
-		 */
-
-		if (port) {
-
-			if (
-				force_local_ip &&
-				bind_to_forced_local_ip &&
-				host_addr_initialized(listen_addr())
-			) {
-				bind_addr = listen_addr();
-			} else {
-				switch (network_protocol) {
-				case NET_USE_BOTH:
-				case NET_USE_IPV4:
-					bind_addr = host_addr_set_ipv4(INADDR_ANY);
-					break;
-#ifdef USE_IPV6
-				case NET_USE_IPV6:
-					{
-						static const guint8 zero_ipv6_addr[16];
-						host_addr_set_ipv6(&bind_addr, zero_ipv6_addr);
-					}
-					break;
-#endif /* USE_IPV6 */
-				}
-			}
-
-			s_tcp_listen = socket_tcp_listen(bind_addr,
-							port, SOCK_TYPE_CONTROL);
-		}
-
-		/*
-		 * If UDP is enabled, also listen on the same UDP port.
-		 */
-
-		if (enable_udp) {
-			if (port)
-				s_udp_listen = socket_udp_listen(bind_addr, port);
-			if (random_port && s_udp_listen == NULL) {
-				socket_free(s_tcp_listen);
-				s_tcp_listen = NULL;
-			}
-			node_update_udp_socket();
-		}
-	} while (random_port && s_tcp_listen == NULL && ++num_tried < 65535 - 1024);
-
-    /*
+		gnet_prop_set_guint32_val(prop, port);
+	}
+		
+	/*
      * If socket allocation failed, reset the property
      */
 
-    if (s_tcp_listen == NULL && port != 0) {
+    if (s_tcp_listen == NULL && listen_port != 0) {
 		gcu_statusbar_warning(_("Failed to create listening sockets"));
 		old_port = (guint32) -1;
         return TRUE;
-    }
-
-	if (random_port)
-		gnet_prop_set_guint32_val(prop, port);
+    } else {
+		old_port = listen_port;
+	}
 
     return FALSE;
-}
-
-static void
-request_new_sockets(void)
-{
-	guint32 port;
-	/*
-	 * Trigger a change of the listening port to create a new listening
-	 * socket.
-	 */
-    port = listen_port;
-    gnet_prop_set_guint32_val(PROP_LISTEN_PORT, 0);
-    gnet_prop_set_guint32_val(PROP_LISTEN_PORT, port);
 }
 
 static gboolean
@@ -1080,7 +1069,7 @@ network_protocol_changed(property_t prop)
 {
 
 	(void) prop;
-	request_new_sockets();
+	request_new_sockets(listen_port);
 	return FALSE;
 }
 
@@ -1404,7 +1393,7 @@ force_local_addr_changed(property_t prop)
 {
 	g_assert(PROP_FORCE_LOCAL_IP == prop);
 	update_address_lifetime();
-	request_new_sockets();
+	request_new_sockets(listen_port);
     return FALSE;
 }
 
@@ -1413,7 +1402,7 @@ forced_local_ip_changed(property_t prop)
 {
 	g_assert(PROP_FORCED_LOCAL_IP == prop);
 	if (force_local_ip) {
-		request_new_sockets();
+		request_new_sockets(listen_port);
 	}
     return FALSE;
 }
