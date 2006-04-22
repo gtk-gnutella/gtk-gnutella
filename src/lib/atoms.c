@@ -167,7 +167,8 @@ mem_new(size_t size)
     mc->avail = NULL;
     mc->pools = NULL;
 
-    g_message("mem_new(): hold=%d, size=%d", (int) mc->hold, size);
+    g_message("mem_new(): hold=%u, size=%lu",
+		(guint) mc->hold, (gulong) size);
   }
   return mc;
 }
@@ -371,7 +372,7 @@ atom_dealloc(atom_t *a)
 
 #endif /* PROTECT_ATOMS */
 
-typedef gint (*len_func_t)(gconstpointer v);
+typedef size_t (*len_func_t)(gconstpointer v);
 typedef const gchar *(*str_func_t)(gconstpointer v);
 
 /**
@@ -386,15 +387,15 @@ typedef struct table_desc {
 	str_func_t str_func;		/**< Atom to human-readable string */
 } table_desc_t;
 
-static gint str_len(gconstpointer v);
+static size_t str_len(gconstpointer v);
 static const gchar *str_str(gconstpointer v);
-static gint guid_len(gconstpointer v);
+static size_t guid_len(gconstpointer v);
 static const gchar *guid_str(gconstpointer v);
-static gint sha1_len(gconstpointer v);
+static size_t sha1_len(gconstpointer v);
 static const gchar *sha1_str(gconstpointer v);
-static gint uint64_len(gconstpointer v);
+static size_t uint64_len(gconstpointer v);
 static const gchar *uint64_str(gconstpointer v);
-static gint filesize_len(gconstpointer v);
+static size_t filesize_len(gconstpointer v);
 static const gchar *filesize_str(gconstpointer v);
 
 /**
@@ -412,7 +413,7 @@ static table_desc_t atoms[] = {
 /**
  * @return length of string + trailing NUL.
  */
-static gint
+static size_t 
 str_len(gconstpointer v)
 {
 	return strlen((const gchar *) v) + 1;
@@ -490,7 +491,7 @@ guid_eq(gconstpointer a, gconstpointer b)
 /**
  * @return length of GUID.
  */
-static gint
+static size_t 
 guid_len(gconstpointer unused_guid)
 {
 	(void) unused_guid;
@@ -548,7 +549,7 @@ sha1_eq(gconstpointer a, gconstpointer b)
 /**
  * @return length of SHA1.
  */
-static gint
+static size_t 
 sha1_len(gconstpointer unused_sha1)
 {
 	(void) unused_sha1;
@@ -567,7 +568,7 @@ sha1_str(gconstpointer sha1)
 /**
  * @return length of a 64-bit integer.
  */
-static int
+static size_t
 uint64_len(gconstpointer unused_v)
 {
 	(void) unused_v;
@@ -577,7 +578,7 @@ uint64_len(gconstpointer unused_v)
 /**
  * @return length of a filesize_t.
  */
-static int
+static size_t
 filesize_len(gconstpointer unused_v)
 {
 	(void) unused_v;
@@ -683,14 +684,14 @@ atoms_init(void)
  * @return the atom's value.
  */
 gpointer
-atom_get(gint type, gconstpointer key)
+atom_get(enum atom_type type, gconstpointer key)
 {
 	table_desc_t *td;
 	gboolean found;
 	gpointer value;
 	gpointer x;
 	atom_t *a;
-	gint len;
+	size_t len;
 
 #ifdef __GNUC__
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
@@ -700,7 +701,7 @@ atom_get(gint type, gconstpointer key)
 #endif /* __GNUC__ */
 	
     g_assert(key != NULL);
-	g_assert(type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
+	g_assert((gint) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -746,7 +747,7 @@ atom_get(gint type, gconstpointer key)
  * Dispose of atom if nobody references it anymore.
  */
 void
-atom_free(gint type, gconstpointer key)
+atom_free(enum atom_type type, gconstpointer key)
 {
 	table_desc_t *td;
 	gboolean found;
@@ -755,7 +756,7 @@ atom_free(gint type, gconstpointer key)
 	atom_t *a;
 
     g_assert(key != NULL);
-	g_assert(type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
+	g_assert((gint) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -794,7 +795,7 @@ struct spot {
  * @returns the atom's value.
  */
 gpointer
-atom_get_track(gint type, gconstpointer key, gchar *file, gint line)
+atom_get_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
 {
 	gpointer atom;
 	atom_t *a;
@@ -858,7 +859,7 @@ destroy_tracking_table(GHashTable *h)
  * Dispose of atom if nobody references it anymore.
  */
 void
-atom_free_track(gint type, gconstpointer key, gchar *file, gint line)
+atom_free_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
 {
 	atom_t *a;
 	gchar buf[512];
@@ -910,9 +911,9 @@ dump_tracking_entry(gpointer key, gpointer value, gpointer user)
 static void
 dump_tracking_table(gpointer atom, GHashTable *h, gchar *what)
 {
-	gint count = g_hash_table_size(h);
+	guint count = g_hash_table_size(h);
 
-	g_warning("all %d %s spot%s for 0x%lx:",
+	g_warning("all %u %s spot%s for 0x%lx:",
 		count, what, count == 1 ? "" : "s", (gulong) atom);
 
 	g_hash_table_foreach(h, dump_tracking_entry, what);

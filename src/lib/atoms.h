@@ -42,15 +42,17 @@
  * Atom types.
  */
 
-#define ATOM_STRING		0		/**< Strings */
-#define ATOM_GUID		1		/**< GUIDs (binary, 16 bytes) */
-#define ATOM_SHA1		2		/**< SHA1 (binary, 20 bytes) */
-#define ATOM_UINT64		3		/**< integers (binary, 8 bytes) */
-#define ATOM_FILESIZE	4		/**< filesize_t (binary) */
+enum atom_type {
+	ATOM_STRING,	/**< Strings */
+	ATOM_GUID,		/**< GUIDs (binary, 16 bytes) */
+	ATOM_SHA1,		/**< SHA1 (binary, 20 bytes) */
+	ATOM_UINT64,	/**< integers (binary, 8 bytes) */
+	ATOM_FILESIZE	/**< filesize_t (binary) */
+};
 
 #if !defined(TRACK_ATOMS) || defined(ATOMS_SOURCE)
-gpointer atom_get(gint type, gconstpointer key);
-void atom_free(gint type, gconstpointer key);
+gpointer atom_get(enum atom_type type, gconstpointer key);
+void atom_free(enum atom_type type, gconstpointer key);
 #endif
 
 /*
@@ -166,8 +168,9 @@ gint uint64_eq(gconstpointer a, gconstpointer b);
 guint binary_hash(const guchar *key, guint len);
 
 #ifdef TRACK_ATOMS
-gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line);
-void atom_free_track(gint type, gconstpointer key, gchar *file, gint line);
+gpointer atom_get_track(enum atom_type, gconstpointer key,
+			gchar *file, gint line);
+void atom_free_track(enum atom_type, gconstpointer key, gchar *file, gint line);
 #endif
 
 #endif	/* _atoms_h_ */
