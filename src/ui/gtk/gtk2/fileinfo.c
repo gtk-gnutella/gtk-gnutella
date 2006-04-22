@@ -276,7 +276,7 @@ fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 	}
 }
 
-/* XXX -- factorize thiw code with GTK1's one */
+/* XXX -- factorize this code with GTK1's one */
 static void
 fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
