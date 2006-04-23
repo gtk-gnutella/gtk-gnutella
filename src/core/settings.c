@@ -924,7 +924,7 @@ enable_udp_changed(property_t prop)
 }
 
 static void
-request_new_sockets(guint16 port)
+request_new_sockets(guint16 port, gboolean check_firewalled)
 {
 	host_addr_t bind_addr = zero_host_addr;
 
@@ -986,6 +986,11 @@ request_new_sockets(guint16 port)
 		}
 		node_update_udp_socket();
 	}
+
+	if (check_firewalled) {
+		inet_firewalled();
+		inet_udp_firewalled();
+	}
 }
 
 static gboolean
@@ -999,11 +1004,7 @@ listen_port_changed(property_t prop)
 
 	if (listen_port == old_port && listen_port != 0)
 		return FALSE;
-
-	if (old_port != (guint32) -1) {
-		inet_firewalled();			/* Assume we're firewalled on port change */
-		inet_udp_firewalled();
-	}
+	old_port = listen_port;
 
 	/*
 	 * 1 is a magic port number for us, which means "pick a random port"
@@ -1011,7 +1012,7 @@ listen_port_changed(property_t prop)
 	 */
 
 	if (1 != listen_port) {
-		request_new_sockets(listen_port);
+		request_new_sockets(listen_port, FALSE);
 	} else {
 		bit_array_t tried[BIT_ARRAY_SIZE(65536)];
 		guint num_tried = 0;
@@ -1042,13 +1043,16 @@ listen_port_changed(property_t prop)
 			} while (i != port);
 
 			g_assert(port > 1023);
-			request_new_sockets(port);
+			request_new_sockets(port, FALSE);
 		} while (s_tcp_listen == NULL && ++num_tried < 65535 - 1024);
 
 		old_port = port;
 		gnet_prop_set_guint32_val(prop, port);
 	}
-		
+
+	inet_firewalled();
+	inet_udp_firewalled();
+
 	/*
      * If socket allocation failed, reset the property
      */
@@ -1069,7 +1073,7 @@ network_protocol_changed(property_t prop)
 {
 
 	(void) prop;
-	request_new_sockets(listen_port);
+	request_new_sockets(listen_port, TRUE);
 	return FALSE;
 }
 
@@ -1393,7 +1397,7 @@ force_local_addr_changed(property_t prop)
 {
 	g_assert(PROP_FORCE_LOCAL_IP == prop);
 	update_address_lifetime();
-	request_new_sockets(listen_port);
+	request_new_sockets(listen_port, TRUE);
     return FALSE;
 }
 
@@ -1402,7 +1406,7 @@ forced_local_ip_changed(property_t prop)
 {
 	g_assert(PROP_FORCED_LOCAL_IP == prop);
 	if (force_local_ip) {
-		request_new_sockets(listen_port);
+		request_new_sockets(listen_port, TRUE);
 	}
     return FALSE;
 }
