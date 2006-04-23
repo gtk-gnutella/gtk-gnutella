@@ -2730,7 +2730,7 @@ node_became_firewalled(void)
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
-		if (socket_listen_port() && sent < 3 && n->attrs & NODE_A_CAN_VENDOR) {
+		if (socket_listen_port() && sent < 10 && n->attrs & NODE_A_CAN_VENDOR) {
 			vmsg_send_tcp_connect_back(n, socket_listen_port());
 			sent++;
 
@@ -2773,7 +2773,7 @@ node_became_udp_firewalled(void)
 			g_message("sent UDP connect back request to %s",
 				host_addr_port_to_string(n->addr, n->port));
 
-		if (3 == ++sent)
+		if (10 == ++sent)
 			break;
 	}
 }
