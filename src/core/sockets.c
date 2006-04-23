@@ -77,6 +77,10 @@ RCSID("$Id$");
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
+#ifdef HAS_SOCKER_GET
+#include <socker.h>
+#endif /* HAS_SOCKER_GET */
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef HAS_GNUTLS
@@ -2809,6 +2813,70 @@ socket_connect_by_name(const gchar *host, guint16 port,
 	return s;
 }
 
+gint
+socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
+{
+	gboolean socket_failed;
+	gint sd, saved_errno;
+
+	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
+	
+	if (port < 2) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (NET_TYPE_NONE == host_addr_net(bind_addr)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	sd = socket(host_addr_family(bind_addr), type, 0);
+	if (sd < 0) {
+		socket_failed = TRUE;
+		saved_errno = errno;
+	} else {
+		const struct sockaddr *sa;
+		socket_addr_t addr;
+		socklen_t len;
+		
+		/* bind() the socket */
+		socket_failed = FALSE;
+		socket_addr_set(&addr, bind_addr, port);
+		len = socket_addr_get(&addr, &sa);
+		if (-1 == bind(sd, sa, len)) {
+			saved_errno = errno;
+			close(sd);
+			sd = -1;
+		}
+	}
+	
+#if defined(HAS_SOCKER_GET)
+	if (sd < 0 && (EACCES == saved_errno || EPERM == saved_errno)) {
+		gchar addr_str[128];
+		
+		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
+		sd = socker_get(host_addr_family(bind_addr), type, 0, addr_str, port);
+		if (sd < 0) {
+			g_warning("socker_get() failed (%s)", g_strerror(errno));
+		}
+	}
+#endif /* HAS_SOCKER_GET */
+
+	if (sd < 0) {
+		const gchar *s_type = SOCK_DGRAM == type ? "datagram" : "stream";
+		
+		if (socket_failed) {
+			g_warning("Unable to create the %s socket (%s)",
+				s_type, g_strerror(errno));
+		} else {
+			g_warning("Unable to bind() the %s socket on port %u (%s)",
+				s_type, port, g_strerror(errno));
+		}
+	}
+
+	return sd;
+}
+
 /**
  * Creates a non-blocking TCP listening socket with an attached
  * resource of `type'.
@@ -2816,25 +2884,14 @@ socket_connect_by_name(const gchar *host, guint16 port,
 struct gnutella_socket *
 socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 {
+	static const int enable = 1;
 	struct gnutella_socket *s;
-	const struct sockaddr *sa;
-	socket_addr_t addr;
-	socklen_t len;
-	int sd, option;
+	int sd;
 
 	/* Create a socket, then bind() and listen() it */
-
- 	if (port < 2)
+	sd = socket_create_and_bind(bind_addr, port, SOCK_STREAM);
+	if (sd < 0)
 		return NULL;
-	if (NET_TYPE_NONE == host_addr_net(bind_addr))
-		return NULL;
-	
-	socket_addr_set(&addr, bind_addr, port);
-	sd = socket(host_addr_family(bind_addr), SOCK_STREAM, 0);
-	if (-1 == sd) {
-		g_warning("Unable to create a socket (%s)", g_strerror(errno));
-		return NULL;
-	}
 
 	s = walloc0(sizeof *s);
 
@@ -2844,10 +2901,8 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 	s->pos = 0;
 	s->flags |= SOCK_F_TCP;
 
-	option = 1;
-	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &option, sizeof option);
-	option = 1;
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
+	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
+	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
 	socket_set_linger(s->file_desc);
 
@@ -2855,16 +2910,6 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 	socket_set_nonblocking(sd);
 
 	s->net = host_addr_net(bind_addr);
-
-	/* bind() the socket */
-
-	len = socket_addr_get(&addr, &sa);
-	if (-1 == bind(sd, sa, len)) {
-		g_warning("Unable to bind() the socket on port %u (%s)",
-				  (guint) port, g_strerror(errno));
-		socket_destroy(s, "Unable to bind socket");
-		return NULL;
-	}
 
 	/* listen() the socket */
 
@@ -2879,6 +2924,8 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 	if (port) {
 		s->local_port = port;
 	} else {
+		socket_addr_t addr;
+
 		if (0 != socket_addr_getsockname(&addr, sd)) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
@@ -2943,22 +2990,12 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 {
 	static const int enable = 1;
 	struct gnutella_socket *s;
-	const struct sockaddr *sa;
-	socket_addr_t addr;
-	socklen_t len;
 	int sd;
 
-	if (port < 2)
+	/* Create a socket, then bind() */
+	sd = socket_create_and_bind(bind_addr, port, SOCK_DGRAM);
+	if (sd < 0)
 		return NULL;
-	if (NET_TYPE_NONE == host_addr_net(bind_addr))
-		return NULL;
-
-	socket_addr_set(&addr, bind_addr, port);
-	sd = socket(host_addr_family(bind_addr), SOCK_DGRAM, 0);
-	if (-1 == sd) {
-		g_warning("Unable to create a socket (%s)", g_strerror(errno));
-		return NULL;
-	}
 
 	s = walloc0(sizeof *s);
 
@@ -2977,16 +3014,6 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	/* Set the file descriptor non blocking */
 	socket_set_nonblocking(sd);
 
-	/* bind() the socket */
-
-	len = socket_addr_get(&addr, &sa);
-	if (-1 == bind(sd, sa, len)) {
-		g_warning("Unable to bind() the socket on port %u (%s)",
-				  port, g_strerror(errno));
-		socket_destroy(s, "Unable to bind socket");
-		return NULL;
-	}
-
 	/*
 	 * Attach the socket information so that we may record the origin
 	 * of the datagrams we receive.
@@ -2999,6 +3026,8 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	if (port) {
 		s->local_port = port;
 	} else {
+		socket_addr_t addr;
+
 		if (0 != socket_addr_getsockname(&addr, sd)) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
