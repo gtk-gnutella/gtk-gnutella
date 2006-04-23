@@ -1,0 +1,52 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_socker_get: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:	-pick add $@ %<
+?S:d_socker_get:
+?S:	This variable conditionally defines the HAS_SOCKER_GET symbol, which
+?S:	indicates to the C program that socker_get() support is available.
+?S:.
+?C:HAS_SOCKER_GET:
+?C:	This symbol is defined when socker_get() can be used.
+?C:.
+?H:#$d_socker_get HAS_SOCKER_GET
+?H:.
+?T:socker_cflags socker_ldflags
+?LINT: set d_has_socker_get
+: can we use socker_get?
+?LINT:change ccflags
+?LINT:change ldflags
+: determine whether socker_get() is available
+echo " "
+echo "Checking whether socker_get() is available..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <socker.h>
+int
+main(void)
+{
+  int fd;
+  
+  fd = socker_get(1, 2, 3, "", 5);
+  return 0;
+}
+EOC
+
+{
+  socker_cflags=$(socker-config --cflags)
+  socker_ldflags=$(socker-config --libs)
+} >/dev/null 2>&1
+
+if $cc $ccflags $socker_cflags $ldflags $socker_ldflags -o try try.c >/dev/null 2>&1; then
+	echo "(Adding $socker_cflags)"; ccflags="$ccflags $socker_cflags"
+	echo "(Adding $socker_ldflags)"; ldflags="$ldflags $socker_ldflags"
+else
+	echo "(Could not compile the test program)" >&4
+	val="$undef"
+fi
+
+$rm -f try try.c
+set d_socker_get
+eval $setvar
