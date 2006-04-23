@@ -9,16 +9,16 @@
 ?S:	indicates to the C program that socker_get() support is available.
 ?S:.
 ?C:HAS_SOCKER_GET:
-?C:	This symbol is defined when socker_get() can be used.
+?C:	This symbol is defined when socker_get() can be used to get sockets
+?C:	bound to privileged ports.
 ?C:.
 ?H:#$d_socker_get HAS_SOCKER_GET
 ?H:.
 ?T:socker_cflags socker_ldflags
-?LINT: set d_has_socker_get
-: can we use socker_get?
+?LINT:set d_socker_get
 ?LINT:change ccflags
 ?LINT:change ldflags
-: determine whether socker_get() is available
+: determine whether socker_get is available
 echo " "
 echo "Checking whether socker_get() is available..." >&4
 val="$define"
@@ -33,20 +33,20 @@ main(void)
   return 0;
 }
 EOC
-
-{
-  socker_cflags=$(socker-config --cflags)
-  socker_ldflags=$(socker-config --libs)
-} >/dev/null 2>&1
-
-if $cc $ccflags $socker_cflags $ldflags $socker_ldflags -o try try.c >/dev/null 2>&1; then
-	echo "(Adding $socker_cflags)"; ccflags="$ccflags $socker_cflags"
-	echo "(Adding $socker_ldflags)"; ldflags="$ldflags $socker_ldflags"
+socker_cflags=`socker-config --cflags 2>/dev/null`
+socker_ldflags=`socker-config --libs 2>/dev/null`
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	echo "Excellent, I see you got socker installed!"
+elif $cc $ccflags $socker_cflags $ldflags $socker_ldflags \
+	-o try try.c >/dev/null 2>&1
+then
+	echo "(Adding $socker_cflags for cc)"; ccflags="$ccflags $socker_cflags"
+	echo "(Adding $socker_ldflags for ld)"; ldflags="$ldflags $socker_ldflags"
 else
-	echo "(Could not compile the test program)" >&4
+	echo "(Could not compile the test program, socker will not be used)" >&4
 	val="$undef"
 fi
-
 $rm -f try try.c
 set d_socker_get
 eval $setvar
+
