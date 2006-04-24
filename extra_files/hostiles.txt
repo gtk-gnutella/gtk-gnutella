@@ -247,6 +247,8 @@
 # drmspace.com, 66103.vidlock.com
 216.55.178.165
 # vidlock.com
+38.99.20.240/28
+216.255.180.114
 217.116.225.250
 
 # Gnucleus-based DRM WMV spammer hosted by GoDaddy
