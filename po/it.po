@@ -3170,8 +3170,8 @@ msgstr ""
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
-msgstr[0] "Byte"
-msgstr[1] "Byte"
+msgstr[0] "%u Byte"
+msgstr[1] "%u Byte"
 
 #, c-format
 msgid "%u&nbsp;Byte"

@@ -3423,14 +3423,14 @@ msgstr ""
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
-msgstr[0] "Byte"
-msgstr[1] "Bytes"
+msgstr[0] "%u Byte"
+msgstr[1] "%u Bytes"
 
 #, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
-msgstr[0] "Byte"
-msgstr[1] "Bytes"
+msgstr[0] "%u&nbsp;Byte"
+msgstr[1] "%u&nbsp;Bytes"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
@@ -6338,8 +6338,8 @@ msgstr ""
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
-msgstr[0] "Sekunde"
-msgstr[1] "Sekunden"
+msgstr[0] "%d Sekunde"
+msgstr[1] "%d Sekunden"
 
 #, c-format
 msgid "%lu file shared (%s)"
