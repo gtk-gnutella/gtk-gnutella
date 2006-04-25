@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-17 23:32+0900\n"
+"POT-Creation-Date: 2006-04-25 23:53+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -6048,6 +6048,10 @@ msgstr "#"
 msgid "Metadata"
 msgstr ""
 
+#, fuzzy
+msgid "Route"
+msgstr "έξω"
+
 msgid "Not in database"
 msgstr "Όχι στη βάση δεδομένων"
 
@@ -6471,14 +6475,11 @@ msgstr ""
 "δεν είναι δυνατή η μετονομασία του %s σε %s: %s\n"
 "Το αρχείο XML δε θα χρησιμοποιηθεί εκτός αν λυθεί αυτό το πρόβλημα."
 
+msgid "TCP"
+msgstr ""
+
 msgid "<unparsed>"
 msgstr "<δεν έχει αναλυθεί>"
-
-msgid "udp "
-msgstr "udp "
-
-msgid "tcp "
-msgstr ""
 
 msgid ", browsable"
 msgstr ", εξερευνήσιμο"

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-17 23:32+0900\n"
+"POT-Creation-Date: 2006-04-25 23:53+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -5712,6 +5712,10 @@ msgstr ""
 msgid "Metadata"
 msgstr ""
 
+#, fuzzy
+msgid "Route"
+msgstr "路由丢失"
+
 msgid "Not in database"
 msgstr ""
 
@@ -6114,13 +6118,10 @@ msgid ""
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 
+msgid "TCP"
+msgstr ""
+
 msgid "<unparsed>"
-msgstr ""
-
-msgid "udp "
-msgstr ""
-
-msgid "tcp "
 msgstr ""
 
 msgid ", browsable"

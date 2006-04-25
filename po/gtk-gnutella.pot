@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-17 23:32+0900\n"
+"POT-Creation-Date: 2006-04-25 23:53+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5562,6 +5562,9 @@ msgstr ""
 msgid "Metadata"
 msgstr ""
 
+msgid "Route"
+msgstr ""
+
 msgid "Not in database"
 msgstr ""
 
@@ -5961,13 +5964,10 @@ msgid ""
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 
+msgid "TCP"
+msgstr ""
+
 msgid "<unparsed>"
-msgstr ""
-
-msgid "udp "
-msgstr ""
-
-msgid "tcp "
 msgstr ""
 
 msgid ", browsable"

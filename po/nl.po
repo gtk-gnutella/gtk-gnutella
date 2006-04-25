@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-17 23:32+0900\n"
+"POT-Creation-Date: 2006-04-25 23:53+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -6210,6 +6210,10 @@ msgstr "#"
 msgid "Metadata"
 msgstr "Metagegevens"
 
+#, fuzzy
+msgid "Route"
+msgstr "uitgaand"
+
 msgid "Not in database"
 msgstr "Niet in de database"
 
@@ -6633,14 +6637,11 @@ msgstr ""
 "kon \"%s\"niet hernomen naar \"%s\": %s\n"
 "Het XML bestand zal niet worden gebruikt totdat dit probleem is opgelost."
 
+msgid "TCP"
+msgstr ""
+
 msgid "<unparsed>"
 msgstr "<niet verwerkt>"
-
-msgid "udp "
-msgstr "udp "
-
-msgid "tcp "
-msgstr ""
 
 msgid ", browsable"
 msgstr ", bladerbaar"

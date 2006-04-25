@@ -72,8 +72,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-17 23:32+0900\n"
-"PO-Revision-Date: 2006-02-06 16:35+0900\n"
+"POT-Creation-Date: 2006-04-25 23:53+0900\n"
+"PO-Revision-Date: 2006-04-17 23:39+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -303,7 +303,7 @@ msgid "Hostile IP address"
 msgstr "有害IPアドレス"
 
 msgid "Spam"
-msgstr ""
+msgstr "スパム"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -494,13 +494,11 @@ msgstr "他の gtk-gnutella を走らせたままにしているようです\n"
 msgid "Cannot proceed without valid configuration directory"
 msgstr "適当な設定フォルダが無いと先に進めません"
 
-#, fuzzy
 msgid "Failed to create UDP socket"
-msgstr "検索の作成に失敗しました。"
+msgstr "UDPソケットの作成に失敗しました"
 
-#, fuzzy
 msgid "Failed to create listening sockets"
-msgstr "検索の作成に失敗しました。"
+msgstr "待ち受けポートの作成に失敗しました"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
@@ -6277,6 +6275,14 @@ msgstr "数"
 msgid "Metadata"
 msgstr "メタデータ"
 
+# NOTE: this string is used as follows
+#
+# '17KiB/s out (avg)'
+#
+#, fuzzy
+msgid "Route"
+msgstr "(平均) で外へ"
+
 msgid "Not in database"
 msgstr "データベースにありません"
 
@@ -6728,14 +6734,11 @@ msgstr ""
 "%s を %s に名前変更できませんでした: %s \n"
 "XML ファイルはこの問題が解決されるまで使用されません。"
 
+msgid "TCP"
+msgstr ""
+
 msgid "<unparsed>"
 msgstr "<未解析>"
-
-msgid "udp "
-msgstr "UDP "
-
-msgid "tcp "
-msgstr "TCP "
 
 msgid ", browsable"
 msgstr ", 閲覧可"

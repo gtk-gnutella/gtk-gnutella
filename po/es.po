@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-17 23:32+0900\n"
+"POT-Creation-Date: 2006-04-25 23:53+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -6082,6 +6082,10 @@ msgstr "#"
 msgid "Metadata"
 msgstr "Metadatos"
 
+#, fuzzy
+msgid "Route"
+msgstr "salida"
+
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
@@ -6507,14 +6511,11 @@ msgstr ""
 "No se pudo renombrar %s como %s: %s\n"
 "El archivo XML no se usará hasta que este problema esté resuelto."
 
+msgid "TCP"
+msgstr ""
+
 msgid "<unparsed>"
 msgstr "<sin analizar>"
-
-msgid "udp "
-msgstr ""
-
-msgid "tcp "
-msgstr ""
 
 msgid ", browsable"
 msgstr ""

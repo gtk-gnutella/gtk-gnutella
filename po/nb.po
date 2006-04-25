@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-17 23:32+0900\n"
+"POT-Creation-Date: 2006-04-25 23:53+0900\n"
 "PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
@@ -6065,6 +6065,10 @@ msgstr "#"
 msgid "Metadata"
 msgstr "Metadata"
 
+#, fuzzy
+msgid "Route"
+msgstr "ut"
+
 msgid "Not in database"
 msgstr "Ikke i databasen"
 
@@ -6486,14 +6490,11 @@ msgstr ""
 "Klarte ikke gi «%s» det nye navnet «%s»: %s\n"
 "XML-filen brukes ikke med mindre dette problemet løses."
 
+msgid "TCP"
+msgstr ""
+
 msgid "<unparsed>"
 msgstr "<uspaltet>"
-
-msgid "udp "
-msgstr "UDP "
-
-msgid "tcp "
-msgstr ""
 
 msgid ", browsable"
 msgstr ", kan leses i"
