@@ -3100,6 +3100,19 @@ prop = {
 };
 
 prop = {
+	name = "tcp_defer_accept_timeout";
+	desc = "See the man page for tcp(7). This feature typically only available"
+		" on Linux systems.";
+	type = guint32;
+	data = {
+		default = 10;
+        min = 0;
+        max = 600;
+	};
+};
+
+
+prop = {
 	name = "browse_host_enabled";
 	desc = "If TRUE, other hosts can request a complete list of all "
 		   "shared files.";

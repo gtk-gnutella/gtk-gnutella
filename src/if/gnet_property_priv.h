@@ -308,6 +308,7 @@ extern const gboolean proxy_oob_queries;
 extern const gboolean uploads_stalling;
 extern const gboolean use_global_hostiles_txt;
 extern const gboolean use_so_linger;
+extern const guint32  tcp_defer_accept_timeout;
 extern const gboolean browse_host_enabled;
 extern const guint32  html_browse_count;
 extern const guint32  html_browse_served;

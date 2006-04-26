@@ -598,6 +598,8 @@ gboolean use_global_hostiles_txt     = TRUE;
 gboolean use_global_hostiles_txt_def = TRUE;
 gboolean use_so_linger     = FALSE;
 gboolean use_so_linger_def = FALSE;
+guint32  tcp_defer_accept_timeout     = 10;
+guint32  tcp_defer_accept_timeout_def = 10;
 gboolean browse_host_enabled     = FALSE;
 gboolean browse_host_enabled_def = FALSE;
 guint32  html_browse_count     = 0;
@@ -5683,20 +5685,40 @@ gnet_prop_init(void) {
 
 
     /*
-     * PROP_BROWSE_HOST_ENABLED:
+     * PROP_TCP_DEFER_ACCEPT_TIMEOUT:
      *
      * General data:
      */
-    gnet_property->props[265].name = "browse_host_enabled";
-    gnet_property->props[265].desc = _("If TRUE, other hosts can request a complete list of all shared files.");
-    gnet_property->props[265].ev_changed = event_new("browse_host_enabled_changed");
+    gnet_property->props[265].name = "tcp_defer_accept_timeout";
+    gnet_property->props[265].desc = _("See the man page for tcp(7). This feature typically only available on Linux systems.");
+    gnet_property->props[265].ev_changed = event_new("tcp_defer_accept_timeout_changed");
     gnet_property->props[265].save = TRUE;
     gnet_property->props[265].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[265].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[265].data.boolean.def   = &browse_host_enabled_def;
-    gnet_property->props[265].data.boolean.value = &browse_host_enabled;
+    gnet_property->props[265].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[265].data.guint32.def   = &tcp_defer_accept_timeout_def;
+    gnet_property->props[265].data.guint32.value = &tcp_defer_accept_timeout;
+    gnet_property->props[265].data.guint32.choices = NULL;
+    gnet_property->props[265].data.guint32.max   = 600;
+    gnet_property->props[265].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_BROWSE_HOST_ENABLED:
+     *
+     * General data:
+     */
+    gnet_property->props[266].name = "browse_host_enabled";
+    gnet_property->props[266].desc = _("If TRUE, other hosts can request a complete list of all shared files.");
+    gnet_property->props[266].ev_changed = event_new("browse_host_enabled_changed");
+    gnet_property->props[266].save = TRUE;
+    gnet_property->props[266].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[266].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[266].data.boolean.def   = &browse_host_enabled_def;
+    gnet_property->props[266].data.boolean.value = &browse_host_enabled;
 
 
     /*
@@ -5704,19 +5726,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[266].name = "html_browse_count";
-    gnet_property->props[266].desc = _("Number of HTML browsing requests received in this session.");
-    gnet_property->props[266].ev_changed = event_new("html_browse_count_changed");
-    gnet_property->props[266].save = FALSE;
-    gnet_property->props[266].vector_size = 1;
+    gnet_property->props[267].name = "html_browse_count";
+    gnet_property->props[267].desc = _("Number of HTML browsing requests received in this session.");
+    gnet_property->props[267].ev_changed = event_new("html_browse_count_changed");
+    gnet_property->props[267].save = FALSE;
+    gnet_property->props[267].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[266].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[266].data.guint32.def   = &html_browse_count_def;
-    gnet_property->props[266].data.guint32.value = &html_browse_count;
-    gnet_property->props[266].data.guint32.choices = NULL;
-    gnet_property->props[266].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[266].data.guint32.min   = 0x00000000;
+    gnet_property->props[267].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[267].data.guint32.def   = &html_browse_count_def;
+    gnet_property->props[267].data.guint32.value = &html_browse_count;
+    gnet_property->props[267].data.guint32.choices = NULL;
+    gnet_property->props[267].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[267].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5724,19 +5746,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[267].name = "html_browse_served";
-    gnet_property->props[267].desc = _("Number of HTML browsing requests fully served in this session.");
-    gnet_property->props[267].ev_changed = event_new("html_browse_served_changed");
-    gnet_property->props[267].save = FALSE;
-    gnet_property->props[267].vector_size = 1;
+    gnet_property->props[268].name = "html_browse_served";
+    gnet_property->props[268].desc = _("Number of HTML browsing requests fully served in this session.");
+    gnet_property->props[268].ev_changed = event_new("html_browse_served_changed");
+    gnet_property->props[268].save = FALSE;
+    gnet_property->props[268].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[267].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[267].data.guint32.def   = &html_browse_served_def;
-    gnet_property->props[267].data.guint32.value = &html_browse_served;
-    gnet_property->props[267].data.guint32.choices = NULL;
-    gnet_property->props[267].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[267].data.guint32.min   = 0x00000000;
+    gnet_property->props[268].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[268].data.guint32.def   = &html_browse_served_def;
+    gnet_property->props[268].data.guint32.value = &html_browse_served;
+    gnet_property->props[268].data.guint32.choices = NULL;
+    gnet_property->props[268].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[268].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5744,19 +5766,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[268].name = "qhits_browse_count";
-    gnet_property->props[268].desc = _("Number of Gnutella browsing requests received in this session.");
-    gnet_property->props[268].ev_changed = event_new("qhits_browse_count_changed");
-    gnet_property->props[268].save = FALSE;
-    gnet_property->props[268].vector_size = 1;
+    gnet_property->props[269].name = "qhits_browse_count";
+    gnet_property->props[269].desc = _("Number of Gnutella browsing requests received in this session.");
+    gnet_property->props[269].ev_changed = event_new("qhits_browse_count_changed");
+    gnet_property->props[269].save = FALSE;
+    gnet_property->props[269].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[268].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[268].data.guint32.def   = &qhits_browse_count_def;
-    gnet_property->props[268].data.guint32.value = &qhits_browse_count;
-    gnet_property->props[268].data.guint32.choices = NULL;
-    gnet_property->props[268].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[268].data.guint32.min   = 0x00000000;
+    gnet_property->props[269].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[269].data.guint32.def   = &qhits_browse_count_def;
+    gnet_property->props[269].data.guint32.value = &qhits_browse_count;
+    gnet_property->props[269].data.guint32.choices = NULL;
+    gnet_property->props[269].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[269].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5764,19 +5786,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[269].name = "qhits_browse_served";
-    gnet_property->props[269].desc = _("Number of Gnutella browsing requests fully served in this session.");
-    gnet_property->props[269].ev_changed = event_new("qhits_browse_served_changed");
-    gnet_property->props[269].save = FALSE;
-    gnet_property->props[269].vector_size = 1;
+    gnet_property->props[270].name = "qhits_browse_served";
+    gnet_property->props[270].desc = _("Number of Gnutella browsing requests fully served in this session.");
+    gnet_property->props[270].ev_changed = event_new("qhits_browse_served_changed");
+    gnet_property->props[270].save = FALSE;
+    gnet_property->props[270].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[269].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[269].data.guint32.def   = &qhits_browse_served_def;
-    gnet_property->props[269].data.guint32.value = &qhits_browse_served;
-    gnet_property->props[269].data.guint32.choices = NULL;
-    gnet_property->props[269].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[269].data.guint32.min   = 0x00000000;
+    gnet_property->props[270].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[270].data.guint32.def   = &qhits_browse_served_def;
+    gnet_property->props[270].data.guint32.value = &qhits_browse_served;
+    gnet_property->props[270].data.guint32.choices = NULL;
+    gnet_property->props[270].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[270].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -5784,16 +5806,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[270].name = "overloaded_cpu";
-    gnet_property->props[270].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gnutella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are suspended.");
-    gnet_property->props[270].ev_changed = event_new("overloaded_cpu_changed");
-    gnet_property->props[270].save = FALSE;
-    gnet_property->props[270].vector_size = 1;
+    gnet_property->props[271].name = "overloaded_cpu";
+    gnet_property->props[271].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gnutella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are suspended.");
+    gnet_property->props[271].ev_changed = event_new("overloaded_cpu_changed");
+    gnet_property->props[271].save = FALSE;
+    gnet_property->props[271].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[270].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[270].data.boolean.def   = &overloaded_cpu_def;
-    gnet_property->props[270].data.boolean.value = &overloaded_cpu;
+    gnet_property->props[271].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[271].data.boolean.def   = &overloaded_cpu_def;
+    gnet_property->props[271].data.boolean.value = &overloaded_cpu;
 
 
     /*
@@ -5801,19 +5823,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[271].name = "download_buffer_size";
-    gnet_property->props[271].desc = _("Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM.");
-    gnet_property->props[271].ev_changed = event_new("download_buffer_size_changed");
-    gnet_property->props[271].save = TRUE;
-    gnet_property->props[271].vector_size = 1;
+    gnet_property->props[272].name = "download_buffer_size";
+    gnet_property->props[272].desc = _("Amount of data per downloading source that gtk-gnutella will buffer before writing to disk.  When swarming from many sources, a larger value will help avoid using too many system calls and should also reduce the fragmentation on the filesystem.  The downside is that it uses more memory per active source.  Use 0 to disable all buffering, i.e. have gtk-gnutella write to disk as soon as it receives some data. Increase to maximum value if you have RAM.");
+    gnet_property->props[272].ev_changed = event_new("download_buffer_size_changed");
+    gnet_property->props[272].save = TRUE;
+    gnet_property->props[272].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[271].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[271].data.guint32.def   = &download_buffer_size_def;
-    gnet_property->props[271].data.guint32.value = &download_buffer_size;
-    gnet_property->props[271].data.guint32.choices = NULL;
-    gnet_property->props[271].data.guint32.max   = 131072;
-    gnet_property->props[271].data.guint32.min   = 0;
+    gnet_property->props[272].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[272].data.guint32.def   = &download_buffer_size_def;
+    gnet_property->props[272].data.guint32.value = &download_buffer_size;
+    gnet_property->props[272].data.guint32.choices = NULL;
+    gnet_property->props[272].data.guint32.max   = 131072;
+    gnet_property->props[272].data.guint32.min   = 0;
 
 
     /*
@@ -5821,19 +5843,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[272].name = "download_buffer_read_ahead";
-    gnet_property->props[272].desc = _("Extra amount of data per downloading source that gtk-gnutella will try to read-ahead.  This gives more room for reading large amount of data without issuing too many system calls. It complements buffering nicely because it prevents reading a few bytes before committing the buffered data to disk: when read-ahead space is available, it will be used in addition to buffering, but read-ahead data is committed to disk immediately.  If you don't wish to reserve more memory per active source, you can disable this feature by setting the read-ahead buffer size to 0.");
-    gnet_property->props[272].ev_changed = event_new("download_buffer_read_ahead_changed");
-    gnet_property->props[272].save = TRUE;
-    gnet_property->props[272].vector_size = 1;
+    gnet_property->props[273].name = "download_buffer_read_ahead";
+    gnet_property->props[273].desc = _("Extra amount of data per downloading source that gtk-gnutella will try to read-ahead.  This gives more room for reading large amount of data without issuing too many system calls. It complements buffering nicely because it prevents reading a few bytes before committing the buffered data to disk: when read-ahead space is available, it will be used in addition to buffering, but read-ahead data is committed to disk immediately.  If you don't wish to reserve more memory per active source, you can disable this feature by setting the read-ahead buffer size to 0.");
+    gnet_property->props[273].ev_changed = event_new("download_buffer_read_ahead_changed");
+    gnet_property->props[273].save = TRUE;
+    gnet_property->props[273].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[272].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[272].data.guint32.def   = &download_buffer_read_ahead_def;
-    gnet_property->props[272].data.guint32.value = &download_buffer_read_ahead;
-    gnet_property->props[272].data.guint32.choices = NULL;
-    gnet_property->props[272].data.guint32.max   = 16384;
-    gnet_property->props[272].data.guint32.min   = 0;
+    gnet_property->props[273].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[273].data.guint32.def   = &download_buffer_read_ahead_def;
+    gnet_property->props[273].data.guint32.value = &download_buffer_read_ahead;
+    gnet_property->props[273].data.guint32.choices = NULL;
+    gnet_property->props[273].data.guint32.max   = 16384;
+    gnet_property->props[273].data.guint32.min   = 0;
 
 
     /*
@@ -5841,16 +5863,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[273].name = "browse_copied_to_passive";
-    gnet_property->props[273].desc = _("When set, all search results from host browsing are dispatched to all opened passive searches.  This is useful if you have different selection filters on your passive searches because it lets you classify files easily, regardless of the origin of the files.");
-    gnet_property->props[273].ev_changed = event_new("browse_copied_to_passive_changed");
-    gnet_property->props[273].save = TRUE;
-    gnet_property->props[273].vector_size = 1;
+    gnet_property->props[274].name = "browse_copied_to_passive";
+    gnet_property->props[274].desc = _("When set, all search results from host browsing are dispatched to all opened passive searches.  This is useful if you have different selection filters on your passive searches because it lets you classify files easily, regardless of the origin of the files.");
+    gnet_property->props[274].ev_changed = event_new("browse_copied_to_passive_changed");
+    gnet_property->props[274].save = TRUE;
+    gnet_property->props[274].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[273].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[273].data.boolean.def   = &browse_copied_to_passive_def;
-    gnet_property->props[273].data.boolean.value = &browse_copied_to_passive;
+    gnet_property->props[274].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[274].data.boolean.def   = &browse_copied_to_passive_def;
+    gnet_property->props[274].data.boolean.value = &browse_copied_to_passive;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
