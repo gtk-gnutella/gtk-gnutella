@@ -60,6 +60,7 @@ net_type_to_pf(enum net_type net)
 #endif /* USE_IPV6 */
 	}
 	g_assert_not_reached();
+	return PF_UNSPEC;
 }
 
 static inline gint
@@ -76,6 +77,7 @@ net_type_to_af(enum net_type net)
 #endif /* USE_IPV6 */
 	}
 	g_assert_not_reached();
+	return AF_UNSPEC;
 }
 
 
