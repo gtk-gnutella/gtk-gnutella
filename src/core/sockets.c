@@ -2561,18 +2561,15 @@ socket_set_accept_filters(gint fd)
 	{
 		static const struct accept_filter_arg zero_arg;
 		struct accept_filter_arg arg;
-		static const char name[] = "dataready";
+		static const gchar name[] = "dataready";
 
 		arg = zero_arg;
-		STATIC_ASSERT(sizeof arg.af_name >= STATIC_STRLEN(name));
+		STATIC_ASSERT(sizeof arg.af_name >= CONST_STRLEN(name));
 		strncpy(arg.af_name, name, sizeof arg.af_name);
 
-		if (
-			setsockopt(PRIV(c).fd, SOL_SOCKET, SO_ACCEPTFILTER,
-				&arg, sizeof arg)
-		) {
+		if (setsockopt(fd, SOL_SOCKET, SO_ACCEPTFILTER, &arg, sizeof arg)) {
 			g_warning("Cannot set SO_ACCEPTFILTER (%s): %s",
-				name, compat_strerror(errno));
+				name, g_strerror(errno));
 		}
 	}
 #endif /* SO_ACCEPTFILTER */
