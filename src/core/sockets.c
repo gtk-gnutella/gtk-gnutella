@@ -2535,6 +2535,50 @@ socket_set_linger(gint fd)
 #endif /* TCP_LINGER */
 }
 
+static void
+socket_set_accept_filters(gint fd)
+{
+	g_assert(fd >= 0);
+
+#if defined(TCP_DEFER_ACCEPT)
+	if (tcp_defer_accept_timeout > 0) {
+		gint timeout;
+
+		/* Assured by the property framework which enforces a maximum value */
+		g_assert(tcp_defer_accept_timeout <= INT_MAX);
+		timeout = tcp_defer_accept_timeout;	
+
+		if (
+			setsockopt(fd, sol_tcp(), TCP_DEFER_ACCEPT,
+				&timeout, sizeof timeout)
+		) {
+			g_warning("setsockopt() for TCP_DEFER_ACCEPT(%d) failed: %s",
+				timeout, g_strerror(errno));
+		}
+	}
+#endif /* TCP_DEFER_ACCEPT */
+#if defined(SO_ACCEPTFILTER)
+	{
+		static const struct accept_filter_arg zero_arg;
+		struct accept_filter_arg arg;
+		static const char name[] = "dataready";
+
+		arg = zero_arg;
+		STATIC_ASSERT(sizeof arg.af_name >= STATIC_STRLEN(name));
+		strncpy(arg.af_name, name, sizeof arg.af_name);
+
+		if (
+			setsockopt(PRIV(c).fd, SOL_SOCKET, SO_ACCEPTFILTER,
+				&arg, sizeof arg)
+		) {
+			g_warning("Cannot set SO_ACCEPTFILTER (%s): %s",
+				name, compat_strerror(errno));
+		}
+	}
+#endif /* SO_ACCEPTFILTER */
+}
+
+
 /*
  * Sockets creation
  */
@@ -2905,6 +2949,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
 	socket_set_linger(s->file_desc);
+	socket_set_accept_filters(s->file_desc);
 
 	/* Set the file descriptor non blocking */
 	socket_set_nonblocking(sd);
