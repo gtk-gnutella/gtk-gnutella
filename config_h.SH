@@ -392,6 +392,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sendfile HAS_SENDFILE		/**/
 
+/* HAS_SOCKER_GET:
+ *	This symbol is defined when socker_get() can be used to get sockets
+ *	bound to privileged ports.
+ */
+#$d_socker_get HAS_SOCKER_GET
+
 /* HAS_SRANDOM:
  *	This symbol, if defined, indicates that the srandom routine is
  *	available.
