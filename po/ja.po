@@ -72,8 +72,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-25 23:53+0900\n"
-"PO-Revision-Date: 2006-04-17 23:39+0900\n"
+"POT-Creation-Date: 2006-04-29 13:53+0900\n"
+"PO-Revision-Date: 2006-04-25 23:57+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -2231,6 +2231,11 @@ msgstr ""
 
 msgid "If set to TRUE, SO_LINGER is used for sockets."
 msgstr "有効にすると、ソケットに SO_LINGER が使用されます。"
+
+msgid ""
+"See the man page for tcp(7). This feature typically only available on Linux "
+"systems."
+msgstr ""
 
 msgid "If TRUE, other hosts can request a complete list of all shared files."
 msgstr ""
@@ -6275,13 +6280,9 @@ msgstr "数"
 msgid "Metadata"
 msgstr "メタデータ"
 
-# NOTE: this string is used as follows
-#
-# '17KiB/s out (avg)'
-#
-#, fuzzy
+# FIXME:
 msgid "Route"
-msgstr "(平均) で外へ"
+msgstr "経路"
 
 msgid "Not in database"
 msgstr "データベースにありません"
@@ -6735,7 +6736,7 @@ msgstr ""
 "XML ファイルはこの問題が解決されるまで使用されません。"
 
 msgid "TCP"
-msgstr ""
+msgstr "TCP"
 
 msgid "<unparsed>"
 msgstr "<未解析>"
