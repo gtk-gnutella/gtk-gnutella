@@ -1123,8 +1123,7 @@ search_gui_menu_select(gint page)
 	treeview = GTK_TREE_VIEW(
 		lookup_widget(main_window, "treeview_menu"));
 	model = GTK_TREE_MODEL(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_foreach(
-		model, search_gui_menu_select_helper, &mh);
+	gtk_tree_model_foreach(model, search_gui_menu_select_helper, &mh);
 	selection = gtk_tree_view_get_selection(treeview);
 	gtk_tree_selection_select_iter(selection, &mh.iter);
 }
