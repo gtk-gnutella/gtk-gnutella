@@ -317,19 +317,17 @@ ignore_sha1_filename(const gchar *sha1)
 }
 
 /**
- * Is ignoring requested for `file' of size `size' and SHA1 `sha1'?
- * Priority is given to the SHA1, if supplied.
+ * Is ignoring requested for `filename' of size `size' and SHA1 `sha1'?
+ * `filename' and `size' are only used if `sha1' is NULL.
  *
- * @param file Must be a basename, without any directory separator
+ * @param filename Must be a basename, without any directory separator
  * @param size the filesize
  * @param sha1 must point to a SHA1 (binary) or NULL
  */
 enum ignore_val
-ignore_is_requested(const gchar *file, filesize_t size, gchar *sha1)
+ignore_is_requested(const gchar *filename, filesize_t size, gchar *sha1)
 {
-	namesize_t ns;
-
-	g_assert(file != NULL);
+	g_assert(filename != NULL);
 
 	if (sha1) {
 		const struct shared_file *sf;
@@ -338,13 +336,15 @@ ignore_is_requested(const gchar *file, filesize_t size, gchar *sha1)
 		sf = shared_file_by_sha1(sha1);
 		if (sf && sf != SHARE_REBUILDING && sf->fi == NULL)
 			return IGNORE_LIBRARY;
+	} else {
+		namesize_t ns;
+
+		ns.name = deconstify_gchar(filename);
+		ns.size = size;
+
+		if (g_hash_table_lookup(by_namesize, &ns))
+			return IGNORE_NAMESIZE;
 	}
-
-	ns.name = deconstify_gchar(file);
-	ns.size = size;
-
-	if (g_hash_table_lookup(by_namesize, &ns))
-		return IGNORE_NAMESIZE;
 
 	return IGNORE_FALSE;
 }
