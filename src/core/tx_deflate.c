@@ -979,24 +979,24 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 
 	tx_deflate_flush(tx);
 
+	if (attr->gzip.enabled && 0 == tx_deflate_pending(tx)) {
+		/* See RFC 1952 - GZIP file format specification version 4.3 */
+		struct buffer *b;
+		guint32 trailer[2]; /* 0: CRC32, 1: SIZE % (1 << 32) */
+
+		attr->send_idx = 0;
+		b = &attr->buf[attr->send_idx];
+		poke_le32(&trailer[0], (guint32) attr->gzip.crc);
+		poke_le32(&trailer[1], attr->gzip.size);
+
+		g_assert(sizeof trailer <= (size_t) (b->end - b->wptr));
+		memcpy(b->wptr, trailer, sizeof trailer);
+		b->wptr += sizeof trailer;
+
+		deflate_send(tx);
+	}
+
 	if (0 == tx_deflate_pending(tx)) {
-		if (attr->gzip.enabled) {
-			/* See RFC 1952 - GZIP file format specification version 4.3 */
-			struct buffer *b;
-			guint32 trailer[2]; /* 0: CRC32, 1: SIZE % (1 << 32) */
-
-			attr->send_idx = 0;
-			b = &attr->buf[attr->send_idx];
-			poke_le32(&trailer[0], (guint32) attr->gzip.crc);
-			poke_le32(&trailer[1], attr->gzip.size);
-
-			g_assert(sizeof trailer <= (size_t) (b->end - b->wptr));
-			memcpy(b->wptr, trailer, sizeof trailer);
-			b->wptr += sizeof trailer;
-
-			deflate_send(tx);
-		}
-
 		if (dbg > 9)
 			printf("tx_deflate_close: flushed everything immediately\n");
 
