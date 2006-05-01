@@ -984,6 +984,9 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 		struct buffer *b;
 		guint32 trailer[2]; /* 0: CRC32, 1: SIZE % (1 << 32) */
 
+		/* We don't want to send the trailer more than once */
+		attr->gzip.enabled = FALSE;
+
 		attr->send_idx = 0;
 		b = &attr->buf[attr->send_idx];
 		poke_le32(&trailer[0], (guint32) attr->gzip.crc);
