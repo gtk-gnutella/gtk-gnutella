@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Apr 27 07:45:11 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Tue May  2 08:26:41 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -331,6 +331,8 @@ d_sa_interrupt=''
 d_sendfile=''
 d_sigaction=''
 d_socker_get=''
+sockercflags=''
+sockerldflags=''
 d_srandom=''
 d_index=''
 d_strchr=''
@@ -5570,17 +5572,14 @@ main(void)
   return 0;
 }
 EOC
-socker_cflags=`socker-config --cflags 2>/dev/null`
-socker_ldflags=`socker-config --libs 2>/dev/null`
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	echo "Excellent, I see you got socker installed!"
-elif $cc $ccflags $socker_cflags $ldflags $socker_ldflags \
-	-o try try.c >/dev/null 2>&1
+sockercflags=`socker-config --cflags 2>/dev/null`
+sockerldflags=`socker-config --libs 2>/dev/null`
+if $cc $ccflags  $sockercflags $ldflags -o try try.c $sockerldflags \
+	>/dev/null 2>&1
 then
-	echo "(Adding $socker_cflags for cc)"; ccflags="$ccflags $socker_cflags"
-	echo "(Adding $socker_ldflags for ld)"; ldflags="$ldflags $socker_ldflags"
+	echo "Good, you have socker: we'll be able to bind to privileged ports."
 else
-	echo "(Could not compile the test program, socker will not be used)" >&4
+	echo "Seems like socker is missing: privileged ports won't be usable." >&4
 	val="$undef"
 fi
 $rm -f try try.c
@@ -7818,6 +7817,8 @@ sleep='$sleep'
 smail='$smail'
 small='$small'
 so='$so'
+sockercflags='$sockercflags'
+sockerldflags='$sockerldflags'
 sort='$sort'
 spackage='$spackage'
 spitshell='$spitshell'

@@ -60,6 +60,7 @@ SED = $sed
 SUBDIRS = core lib ui if
 USRINC = $usrinc
 SOURCES =   \$(SRC)
+SOCKER_CFLAGS =  $sockercflags
 GTK_CFLAGS =  $gtkcflags
 GNUTLS_LDFLAGS =  $gnutlsldflags
 GNUTLS_CFLAGS =  $gnutlscflags
@@ -67,6 +68,7 @@ DBUS_LDFLAGS =  $dbusldflags
 XML2_LDFLAGS =  $xmlldflags
 GTK_LDFLAGS =  $gtkldflags
 OBJECTS =   \$(OBJ) \$(EXTRA)
+SOCKER_LDFLAGS =  $sockerldflags
 DBUS_CFLAGS =  $dbuscflags
 XML2_CFLAGS =  $xmlcflags
 
@@ -92,7 +94,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.33 2005/08/13 19:13:26 cbiere Exp $
+# $X-Id: Jmakefile 9132 2005-08-13 19:13:26Z cbiere $
 
 all::
 
@@ -118,6 +120,7 @@ CFLAGS = -I.. -I. \
 	$(XML2_CFLAGS) \
 	$(DBUS_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
+	$(SOCKER_CFLAGS) \
 	-DCURDIR=$(CURRENT)
 
 DPFLAGS = $(CFLAGS)
@@ -126,7 +129,8 @@ LDFLAGS = \
 	-Lui/gtk \
 	-lgtk-common -lgtkx -lgtk-common -lcore \
 	-Llib -lshared \
-	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS)
+	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
+	$(SOCKER_LDFLAGS)
 
 .FORCE:
 
