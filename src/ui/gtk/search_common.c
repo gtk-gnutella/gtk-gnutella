@@ -691,6 +691,15 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->results_set = rs;
     rc->refcount = 0;
 
+    rc->size = r->size;
+    rc->index = r->index;
+    rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
+    rc->xml = r->xml != NULL ? atom_str_get(r->xml) : NULL;
+    rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
+	rc->info = NULL;
+   	rc->flags = r->flags;
+	rc->alt_locs = NULL;
+
     rc->ext = NULL;
 	rc->name = atom_str_get(r->name);
 	{
@@ -710,14 +719,6 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 		rc->utf8_name = atom_str_get(name);
 		WFREE_NULL(buf, size);
 	}
-    rc->size = r->size;
-    rc->index = r->index;
-    rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
-    rc->xml = r->xml != NULL ? atom_str_get(r->xml) : NULL;
-    rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
-	rc->info = NULL;
-   	rc->flags = r->flags;
-	rc->alt_locs = NULL;
 
 	if (NULL != r->alt_locs) {
 		{
