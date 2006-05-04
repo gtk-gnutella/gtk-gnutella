@@ -57,24 +57,28 @@ typedef struct gnet_host_vec {
 /*
  * Result sets `status' flags.
  */
-#define ST_TLS				(1 << 10)	/**< Indicated support for TLS */
-#define ST_BH				(1 << 9)	/**< Browse Host support */
-#define ST_KNOWN_VENDOR		(1 << 8)	/**< Found known vendor code */
-#define ST_PARSED_TRAILER	(1 << 7)	/**< Was able to parse trailer */
-#define ST_UDP				(1 << 6)	/**< Got hit via UDP */
-#define ST_BOGUS			(1 << 5)	/**< Bogus IP address */
-#define ST_PUSH_PROXY		(1 << 4)	/**< Listed some push proxies */
-#define ST_GGEP				(1 << 3)	/**< Trailer has a GGEP extension */
-#define ST_UPLOADED			(1 << 2)	/**< Is "stable", people downloaded */
-#define ST_BUSY				(1 << 1)	/**< Has currently no slots */
-#define ST_FIREWALL			(1 << 0)	/**< Is behind a firewall */
+enum {
+	 ST_TLS					= (1 << 10), /**< Indicated support for TLS */
+	 ST_BH					= (1 << 9),	 /**< Browse Host support */
+	 ST_KNOWN_VENDOR		= (1 << 8),	 /**< Found known vendor code */
+	 ST_PARSED_TRAILER		= (1 << 7),	 /**< Was able to parse trailer */
+	 ST_UDP					= (1 << 6),	 /**< Got hit via UDP */
+	 ST_BOGUS				= (1 << 5),	 /**< Bogus IP address */
+	 ST_PUSH_PROXY			= (1 << 4),	 /**< Listed some push proxies */
+	 ST_GGEP				= (1 << 3),	 /**< Trailer has a GGEP extension */
+	 ST_UPLOADED			= (1 << 2),	 /**< Is "stable", people downloaded */
+	 ST_BUSY				= (1 << 1),	 /**< Has currently no slots */
+	 ST_FIREWALL			= (1 << 0)	 /**< Is behind a firewall */
+};
 
 /*
  * Processing of ignored files.
  */
-#define SEARCH_IGN_DISPLAY_AS_IS	0	/**< Display normally */
-#define SEARCH_IGN_DISPLAY_MARKED	1	/**< Display marked (lighter color) */
-#define SEARCH_IGN_NO_DISPLAY		2	/**< Don't display */
+enum {
+	SEARCH_IGN_DISPLAY_AS_IS,	/**< Display normally */
+	SEARCH_IGN_DISPLAY_MARKED,	/**< Display marked (lighter color) */
+	SEARCH_IGN_NO_DISPLAY,		/**< Don't display */
+};
 
 /**
  * A results_set structure factorizes the common information from a Query Hit
@@ -110,9 +114,12 @@ typedef struct gnet_results_set {
 /*
  * Result record flags
  */
-#define SR_DOWNLOADED	0x0001
-#define SR_IGNORED		0x0002
-#define SR_DONT_SHOW	0x0004
+enum {
+	SR_DOWNLOADED	= (1 << 0),
+	SR_IGNORED		= (1 << 1),
+	SR_DONT_SHOW	= (1 << 2),
+	SR_SPAM			= (1 << 3)
+};
 
 /**
  * An individual hit.  It referes to a file entry on the remote servent,

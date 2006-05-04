@@ -573,7 +573,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 {
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
-	gchar *e, *s, *fname, *tag;
+	gchar *endptr, *s, *fname, *tag;
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
 	struct gnutella_search_results *r;
@@ -586,7 +586,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
-	gboolean is_spam = FALSE;
+	gboolean has_spam = FALSE;
 	gint multiple_alt = 0;
 	const gchar *vendor = NULL;
 	gchar hostname[256];
@@ -686,12 +686,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 	STATIC_ASSERT(11 == sizeof *r);
 	s = cast_to_gpointer(&r[1]);	/* Start of the records */
-	e = s + n->size - 11 - 16;	/* End of the records, less header, GUID */
+	endptr = &s[n->size - 11 - 16];	/* End of the records, less header, GUID */
 
 	if (search_debug > 7)
 		dump_hex(stdout, "Query Hit Data", n->data, n->size);
 
-	while (s < e && nr < rs->num_recs) {
+	while (endptr - s > 10 && nr < rs->num_recs) {
 		READ_GUINT32_LE(s, idx);
 		s += 4;					/* File Index */
 		READ_GUINT32_LE(s, size);
@@ -700,50 +700,45 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		/* Followed by file name, and termination (double NUL) */
 		fname = s;
 
-		while (s < e && *s)
-			s++;				/* move s up to the next double NUL */
-
-		if (s >= (e-1))	{		/* There cannot be two NULs: end of packet! */
+		s = memchr(s, '\0', endptr - s);
+		if (!s) {
+			/* There cannot be two NULs: end of packet! */
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 			goto bad_packet;
         }
+		s++;
 
 		/*
-		 * `s' point to the first NUL of the double NUL sequence.
+		 * `s' points after the first NUL of the double NUL sequence.
 		 *
 		 * Between the two NULs at the end of each record, servents may put
 		 * some extra information about the file (a tag), but this information
 		 * may not contain any NUL.
 		 */
 
-		tag = NULL;
-		taglen = 0;
-
-		if (s[1]) {
+		if (s[0]) {
 			/* Not a NUL, so we're *probably* within the tag info */
 
-			s++;				/* Skip first NUL */
 			tag = s;
 
 			/*
 			 * Inspect the tag, looking for next NUL.
 			 */
 
-			while (s < e) {		/* On the way to second NUL */
-				if ('\0' == *s)
-					break;		/* Reached second nul */
-				s++;
-				taglen++;
-			}
-
-			if (s >= e) {
+			/* Find to second NUL */
+			s = memchr(s, '\0', endptr - s);
+			if (s) {
+				/* Found second NUL */
+				taglen = s - tag;
+			} else {
                 gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 				goto bad_packet;
             }
-
-			s++;				/* Now points to next record */
-		} else
-			s += 2;				/* Skip double NUL */
+		} else {
+			tag = NULL;
+			taglen = 0;
+		}
+		s++;				/* Skip second NUL */
 
 		/*
 		 * Okay, one more record
@@ -809,8 +804,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						huge_sha1_extract32(ext_payload(e),
 								paylen, sha1_digest, &n->header, TRUE)
 					) {
+						gboolean is_spam;
+						
 						count_sha1(sha1_digest);
-						is_spam = is_spam || spam_check(sha1_digest);
+						is_spam = spam_check(sha1_digest);
+						has_spam |= is_spam;
 
 						if (!validate_only) {
 							if (rc->sha1 != NULL) {
@@ -818,6 +816,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								atom_sha1_free(rc->sha1);
 							}
 							rc->sha1 = atom_sha1_get(sha1_digest);
+							if (is_spam) {
+								set_flags(rc->flags, SR_SPAM);
+							}
 						}
 					} else
 						sha1_errors++;
@@ -843,8 +844,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						if (!urn_get_sha1_no_prefix(buf, sha1_digest)) {
 							sha1_errors++;
 						} else {
+							gboolean is_spam;
+							
 							count_sha1(sha1_digest);
-							is_spam = is_spam || spam_check(sha1_digest);
+							is_spam = spam_check(sha1_digest);
+							has_spam |= is_spam;
 
 							if (
 								huge_improbable_sha1(sha1_digest,
@@ -857,6 +861,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 									atom_sha1_free(rc->sha1);
 								}
 								rc->sha1 = atom_sha1_get(sha1_digest);
+								if (is_spam)
+									set_flags(rc->flags, SR_SPAM);
 							}
 						}
 						wfree(buf, paylen + 1);
@@ -865,9 +871,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
 					if (ret == GGEP_OK) {
+						gboolean is_spam;
+						
 						has_hash = TRUE;
 						count_sha1(sha1_digest);
-						is_spam = is_spam || spam_check(sha1_digest);
+						is_spam = spam_check(sha1_digest);
+						has_spam |= is_spam;
 
 						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
 							sha1_errors++;
@@ -877,6 +886,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								atom_sha1_free(rc->sha1);
 							}
 							rc->sha1 = atom_sha1_get(sha1_digest);
+							if (is_spam)
+								set_flags(rc->flags, SR_SPAM);
 						}
 						seen_ggep_h = TRUE;
 					} else if (ret == GGEP_INVALID) {
@@ -1033,8 +1044,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	 * Followed by open data (flags usually), and opaque data.
 	 */
 
-	if (s < e) {
-		guint32 tlen = e - s;			/* Trailer length, starts at `s' */
+	if (s < endptr) {
+		guint32 tlen = endptr - s;			/* Trailer length, starts at `s' */
 		guchar *x = (guchar *) s;
 
 		if ((gint) tlen >= 5 && x[4] + 5 <= (gint) tlen)
@@ -1058,7 +1069,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		}
 	}
 
-	if (is_spam && !browse) {
+	if (has_spam && !browse) {
 		gnet_stats_count_dropped(n, MSG_DROP_SPAM);
 		goto bad_packet;
 	}
@@ -1070,7 +1081,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 	/* We now have the guid of the node */
 
-	rs->guid = atom_guid_get(e);
+	rs->guid = atom_guid_get(endptr);
 	rs->stamp = tm_time();
 
 	/*
@@ -1176,7 +1187,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 		if (rs->status & ST_GGEP) {
 			gchar *priv = &trailer[5] + open_size;
-			gint privlen = e - priv;
+			gint privlen = endptr - priv;
 			gint exvcnt = 0;
 			extvec_t exv[MAX_EXTVEC];
 			gboolean seen_ggep = FALSE;

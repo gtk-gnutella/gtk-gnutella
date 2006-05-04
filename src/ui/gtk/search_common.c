@@ -693,8 +693,23 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 
     rc->ext = NULL;
 	rc->name = atom_str_get(r->name);
-	rc->utf8_name = atom_str_get(lazy_unknown_to_utf8_normalized(r->name,
-						UNI_NORM_GUI, &rc->charset));
+	{
+		const gchar *name;
+		gchar *buf;
+		size_t size;
+		
+		name = lazy_unknown_to_utf8_normalized(r->name,
+					UNI_NORM_GUI, &rc->charset);
+		if (0 != (SR_SPAM & rc->flags)) {
+			size = w_concat_strings(&buf, "<SPAM> ", name, (void *) 0);
+			name = buf;
+		} else {
+			buf = NULL;
+			size = 0;
+		}
+		rc->utf8_name = atom_str_get(name);
+		WFREE_NULL(buf, size);
+	}
     rc->size = r->size;
     rc->index = r->index;
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
