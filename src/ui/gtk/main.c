@@ -460,6 +460,12 @@ gui_create_dlg_about(void)
 		"Dave Rutherford <polymath69@users.sourceforge.net>",
 		"Ian Sheldon <shellgeekorguk@users.sourceforge.net>",
 		"Bill Pringlemeir <bpringle@sympatico.ca>",
+		"Bouklis Panos <panos@echidna-band.com>",
+		"Sulyok P\303\251ter <sp@elte.hu>",
+		"Alexander N. S\303\270rnes <alex@thehandofagony.com>",
+		"Vitaliy Buyar <vetal18@users.sourceforge.net>",
+		"Wu Xiaoguang <wxgnj@yahoo.com.cn>",
+		"Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>",
     };
  	GtkWidget *dlg = create_dlg_about();
 	GtkWidget *text = lookup_widget(dlg, "textview_about_contributors");
