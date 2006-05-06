@@ -408,11 +408,12 @@ gchar *base32_to_guid(const gchar *base32);
 /*
  * Tests
  */
-gboolean is_absolute_path(const char *);
-gboolean is_directory(const gchar *);
-gboolean is_regular(const gchar *);
-gboolean is_symlink(const gchar *);
-gboolean file_exists(const gchar *);
+gboolean is_absolute_path(const char *pathname);
+gboolean is_directory(const gchar *pathname);
+gboolean is_regular(const gchar *pathname);
+gboolean is_symlink(const gchar *pathname);
+gboolean file_exists(const gchar *pathname);
+gboolean file_does_not_exist(const gchar *pathname);
 guint32 next_pow2(guint32 n);
 
 /**
@@ -453,7 +454,8 @@ void locale_strlower(gchar *, const gchar *);
 void ascii_strlower(gchar *dst, const gchar *src);
 gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 gint strcasecmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
-char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
+char *unique_filename(const gchar *path, const gchar *file, const gchar *ext,
+		gboolean (*name_is_uniq)(const gchar *pathname));
 gchar *hex_escape(const gchar *name, gboolean strict);
 gchar *control_escape(const gchar *s);
 const gchar *lazy_string_to_printf_escape(const gchar *src);
@@ -464,6 +466,7 @@ gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
+const gchar * filepath_basename(const gchar *pathname);
 guint16 parse_uint16(const gchar *, gchar const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
 guint32 parse_uint32(const gchar *, gchar const **, guint, gint *)

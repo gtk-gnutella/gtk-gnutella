@@ -8746,7 +8746,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	 */
 
 	if (0 == strcmp(dir, fi->path)) {
-		dest = unique_filename(dir, name, ext);
+		dest = unique_filename(dir, name, ext, NULL);
 		if (NULL == dest || -1 == rename(src, dest))
 			goto error;
 		goto renamed;
@@ -8761,7 +8761,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 
 	common_dir = (0 == strcmp(move_file_path, bad_file_path));
 
-	dest = unique_filename(dir, name, common_dir ? ext : "");
+	dest = unique_filename(dir, name, common_dir ? ext : "", NULL);
 	if (NULL == dest)
 		goto error;
 
@@ -8885,7 +8885,7 @@ download_move_error(struct download *d)
 
 	src = make_pathname(fi->path, fi->file_name);
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
-	dest = unique_filename(fi->path, name, ext);
+	dest = unique_filename(fi->path, name, ext, NULL);
 
 	file_info_strip_binary(fi);
 

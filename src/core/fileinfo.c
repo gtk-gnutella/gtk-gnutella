@@ -124,8 +124,6 @@ static const gchar file_info_what[] = "the fileinfo database";
 static gboolean fileinfo_dirty = FALSE;
 static gboolean can_swarm = FALSE;		/**< Set by file_info_retrieve() */
 
-static gchar fi_tmp[4096];
-
 #define	FILE_INFO_MAGIC32 0xD1BB1ED0U
 #define	FILE_INFO_MAGIC64 0X91E63640U
 
@@ -2996,6 +2994,18 @@ file_info_retrieve(void)
 	fclose(f);
 }
 
+static gboolean
+file_info_name_is_uniq(const gchar *pathname)
+{
+	const gchar *filename;
+	
+	g_assert(pathname);
+
+	filename = filepath_basename(pathname);
+	return !g_hash_table_lookup(fi_by_outname, filename) &&
+	   	file_does_not_exist(pathname);
+}
+
 /**
  * Allocate unique output name for file `name', stored in `dir'.
  *
@@ -3004,21 +3014,22 @@ file_info_retrieve(void)
 static gchar *
 file_info_new_outname(const gchar *name, const gchar *dir)
 {
-	static const gchar empty[] = "noname";
-	gchar xuid[GUID_RAW_SIZE];
-	gchar ext[32] = "";
-	gchar *s, *result, *to_free = NULL;
-	size_t flen;
-	gint i;
+	gchar *result, *to_free = NULL;
 
-	s = gm_sanitize_filename(name, convert_spaces, convert_evil_chars);
-	if (name != s) {
-		to_free = s;
-		name = s;
+	{
+		gchar *s;
+
+		s = gm_sanitize_filename(name, convert_spaces, convert_evil_chars);
+		if (name != s) {
+			to_free = s;
+			name = s;
+		}
 	}
 
-	if ('\0' == *name)			/* Don't allow empty names */
-		name = empty;
+	if ('\0' == name[0]) {
+		/* Don't allow empty names */
+		name = "noname";
+	}
 
 	/*
 	 * If `name' (sanitized form) is not taken yet, it will do.
@@ -3029,63 +3040,48 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 		!filepath_exists(dir, name)
 	) {
 		result = atom_str_get(name);
-		goto ok;
-	}
+	} else {
+		gchar *ext, *name_copy;
 
-	/*
-	 * OK, insert .01 before the extension (if any), then .02, etc...
-	 */
+		name_copy = g_strdup(name);
+		{
+			gchar *dot;
 
-	flen = utf8_strlcpy(fi_tmp, name, sizeof fi_tmp);
-	if ((size_t) flen >= sizeof fi_tmp) {
-		g_warning("file_info_new_outname: filename was truncated: \"%s\"",
-			fi_tmp);
-	}
-
-	for (i = flen; i > 0; i--) {
-		if ('.' != name[i])
-			continue;
-		if (utf8_strlcpy(ext, &name[i], sizeof ext) >= sizeof ext) {
-			ext[0] = '\0'; /* Probably not an extension, don't preserve */
-		} else {
-			flen = i;
+			dot = strrchr(name_copy, '.');
+			if (!dot || strlen(dot) > 32) {
+				/* Probably not an extension, don't preserve */
+				dot = strchr(name_copy, '\0');
+			}
+			ext = g_strdup(dot);
+			*dot = '\0';
 		}
-		break;
-	}
 
-	flen = MIN(sizeof fi_tmp, flen);
+		{
+			const gchar *filename;
+			gchar *uniq;
 
-	for (i = 1; i < 100; i++) {
-		gm_snprintf(&fi_tmp[flen], sizeof fi_tmp - flen, ".%02d%s", i, ext);
-		if (
-			NULL == g_hash_table_lookup(fi_by_outname, fi_tmp) &&
-			!filepath_exists(dir, fi_tmp)
-		) {
-			result = atom_str_get(fi_tmp);
-			goto ok;
+			uniq = unique_filename(dir, name_copy, ext, file_info_name_is_uniq);
+			if (!uniq) {
+				/* Should NOT happen */
+				g_error("no luck with random number generator");
+			}
+			/*
+			 * unique_filename() returns a full pathname, thus we
+			 * have to extract the basename here.
+			 */
+			filename = filepath_basename(uniq);
+			g_assert('\0' != filename[0]);
+			g_assert(!g_hash_table_lookup(fi_by_outname, filename));
+
+			result = atom_str_get(filename);
+
+			G_FREE_NULL(uniq);
 		}
+		
+		G_FREE_NULL(name_copy);
+		G_FREE_NULL(ext);
 	}
 
-	/*
-	 * No luck, allocate random GUID and append it.
-	 */
-
-	guid_random_fill(xuid);
-
-	gm_snprintf(&fi_tmp[flen], sizeof fi_tmp - flen, "-%s%s",
-		guid_hex_str(xuid), ext);
-	if (
-		NULL == g_hash_table_lookup(fi_by_outname, fi_tmp) &&
-		!filepath_exists(dir, fi_tmp)
-	) {
-		result = atom_str_get(fi_tmp);
-		goto ok;
-	}
-
-	g_error("no luck with random number generator");	/* Should NOT happen */
-	return NULL;
-
-ok:
 	G_FREE_NULL(to_free);
 	return result;
 }
@@ -3189,12 +3185,12 @@ file_info_get_browse(const gchar *name)
  */
 static void
 fi_rename_dead(fileinfo_t *fi,
-	const gchar *path, const gchar *basename)
+	const gchar *path, const gchar *filename)
 {
 	gchar *dead;
 	gchar *pathname;
 
-	pathname = make_pathname(path, basename);
+	pathname = make_pathname(path, filename);
 	dead = g_strconcat(pathname, ".DEAD", (void *) 0);
 
 	if (
@@ -4431,7 +4427,7 @@ file_info_find_available_hole(
 		 */
 
 		for (l = ranges; l; l = g_slist_next(l)) {
-			http_range_t *r = (http_range_t *) l->data;
+			http_range_t *r = l->data;
 
 			if (r->start > fc->to)
 				break;					/* No further range will intersect */

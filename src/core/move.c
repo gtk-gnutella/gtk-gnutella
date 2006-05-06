@@ -225,7 +225,7 @@ d_start(gpointer h, gpointer ctx, gpointer item)
 
 	name = file_info_readable_filename(d->file_info);
 
-	md->target = unique_filename(we->dest, name, we->ext);
+	md->target = unique_filename(we->dest, name, we->ext, NULL);
 	if (NULL == md->target)
 		goto abort_read;
 

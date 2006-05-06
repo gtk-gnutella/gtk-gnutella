@@ -275,12 +275,24 @@ is_strcaseprefix(const gchar *str, const gchar *prefix)
  * Check for file existence.
  */
 gboolean
-file_exists(const gchar *f)
+file_exists(const gchar *pathname)
 {
   	struct stat st;
 
-    g_assert(f != NULL);
-    return stat(f, &st) != -1;
+    g_assert(pathname);
+    return 0 == do_stat(pathname, &st);
+}
+
+/**
+ * Check for file non-existence.
+ */
+gboolean
+file_does_not_exist(const gchar *pathname)
+{
+  	struct stat st;
+
+    g_assert(pathname);
+	return 0 != do_stat(pathname, &st) && ENOENT == do_errno;
 }
 
 /**
@@ -735,20 +747,22 @@ str_chomp(gchar *str, size_t len)
  * Check whether path is an absolute path.
  */
 gboolean
-is_absolute_path(const char *path)
+is_absolute_path(const char *pathname)
 {
-	g_assert(path != NULL);
-	return '/' == path[0];
+	g_assert(pathname);
+	return '/' == pathname[0] || G_DIR_SEPARATOR == pathname[0];
 }
 
 /**
  * Check whether path is a directory.
  */
 gboolean
-is_directory(const gchar *path)
+is_directory(const gchar *pathname)
 {
 	struct stat st;
-	if (stat(path, &st) == -1)
+
+	g_assert(pathname);
+	if (0 != do_stat(pathname, &st))
 		return FALSE;
 	return S_ISDIR(st.st_mode);
 }
@@ -757,10 +771,12 @@ is_directory(const gchar *path)
  * Check whether path points to a regular file.
  */
 gboolean
-is_regular(const gchar *path)
+is_regular(const gchar *pathname)
 {
 	struct stat st;
-	if (stat(path, &st) == -1)
+
+	g_assert(pathname);
+	if (0 != do_stat(pathname, &st))
 		return FALSE;
 	return S_ISREG(st.st_mode);
 }
@@ -769,17 +785,19 @@ is_regular(const gchar *path)
  * Check whether path is a symbolic link.
  */
 gboolean
-is_symlink(const gchar *path)
+is_symlink(const gchar *pathname)
 #if defined(HAS_LSTAT)
 {
 	struct stat st;
-	if (-1 == lstat(path, &st))
+
+	g_assert(pathname);
+	if (0 != lstat(pathname, &st))
 		return FALSE;
 	return (st.st_mode & S_IFMT) == S_IFLNK;
 }
 #else /* !HAS_LSTAT */
 {
-	(void) path;
+	g_assert(pathname);
 	return FALSE;
 }
 #endif /* HAS_LSTAT */
@@ -2139,48 +2157,67 @@ guid_random_fill(gchar *xuid)
 	}
 }
 
-
 /**
  * Determine unique filename for `file' in `path', with optional trailing
  * extension `ext'.  If no `ext' is wanted, one must supply an empty string.
+ *
+ * @param path A directory path.
+ * @param file The basename for the resulting pathname.
+ * @param ext An optional filename extension to be appended to the basename.
+ * @param name_is_uniq An optional callback to decide whether a created
+ *        pathname is uniq. If omitted, the default is file_does_not_exist().
  *
  * @returns the chosen unique complete filename as a pointer which must be
  * freed.
  */
 gchar *
-unique_filename(const gchar *path, const gchar *file, const gchar *ext)
+unique_filename(const gchar *path, const gchar *file, const gchar *ext,
+		gboolean (*name_is_uniq)(const gchar *pathname))
 {
 	static const gchar extra_bytes[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-	const gchar *sep;
-	gchar *filename;
-	size_t size;
-	size_t len;
-	struct stat buf;
+	size_t avail;
+	gchar *filename, *endptr;
 	gint i;
-	gchar xuid[GUID_RAW_SIZE];
 
 	g_assert(path);
 	g_assert(file);
 	g_assert(ext);
 
-	sep = strrchr(path, G_DIR_SEPARATOR);
-	g_assert(sep);	/* This is supposed to an absolute path */
-	/* Insert G_DIR_SEPARATOR_S only if necessary */
-	sep = sep[1] != '\0' ? G_DIR_SEPARATOR_S : "";
+	if (!name_is_uniq) {
+		name_is_uniq = file_does_not_exist;
+	}
 
 	/* Use extra_bytes so we can easily append a few chars later */
-	filename = g_strconcat(path, sep, file, ext, extra_bytes, (void *) 0);
-	size = strlen(filename);
-	g_assert(size > sizeof extra_bytes);
-	len = size - CONST_STRLEN(extra_bytes);
-	g_assert(filename[len] == extra_bytes[0]);
-	filename[len] = '\0';
+	{
+		size_t size, len;
+		const gchar *sep;
+
+		sep = strrchr(path, G_DIR_SEPARATOR);
+		g_assert(sep);	/* This is supposed to an absolute path */
+		/* Insert G_DIR_SEPARATOR_S only if necessary */
+		sep = sep[1] != '\0' ? G_DIR_SEPARATOR_S : "";
+
+		filename = g_strconcat(path, sep, file, extra_bytes, ext, (void *) 0);
+		size = strlen(filename);
+		len = strlen(path) + strlen(sep) + strlen(file);
+		g_assert(size - CONST_STRLEN(extra_bytes) - strlen(ext) == len);
+		
+		/* These much bytes can be append to create a unique name */
+		avail = size - len;
+		g_assert(avail >= CONST_STRLEN(extra_bytes));
+
+		endptr = &filename[len];
+		g_assert(endptr[0] == extra_bytes[0]);
+		*endptr = '\0';
+	}
 
 	/*
-	 * Append file and extension, then try to see whether this file exists.
+	 * Append the extension to the filenae, then try to see whether
+	 * this filename is unique.
 	 */
 
-	if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
+	g_strlcpy(endptr, ext, avail);
+	if (name_is_uniq(filename))
 		return filename;
 
 	/*
@@ -2189,8 +2226,8 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 */
 
 	for (i = 0; i < 100; i++) {
-		gm_snprintf(&filename[len], size - len, ".%02d%s", i, ext);
-		if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
+		gm_snprintf(endptr, avail, ".%02d%s", i, ext);
+		if (name_is_uniq(filename))
 			return filename;
 	}
 
@@ -2199,20 +2236,23 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 */
 
 	for (i = 0; i < 100; i++) {
-		guint32 rnum = random_value((guint32) -1);
-		gm_snprintf(&filename[len], size - len, ".%x%s", rnum, ext);
-		if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
+		guint32 rnum = random_raw();
+		gm_snprintf(endptr, avail, ".%x%s", rnum, ext);
+		if (name_is_uniq(filename))
 			return filename;
 	}
 
 	/*
 	 * Bad luck.  Allocate a random GUID then.
 	 */
+	{
+		gchar xuid[GUID_RAW_SIZE];
 
-	guid_random_fill(xuid);
-	gm_snprintf(&filename[len], size - len, ".%s%s", guid_hex_str(xuid), ext);
+		guid_random_fill(xuid);
+		concat_strings(endptr, avail, ".", guid_hex_str(xuid), ext, (void *) 0);
+	}
 
-	if (-1 == do_stat(filename, &buf))
+	if (name_is_uniq(filename))
 		return filename;
 
 	g_error("no luck with random number generator");	/* Should NOT happen */
@@ -2612,6 +2652,37 @@ failure:
 
 	G_FREE_NULL(path);
 	return -1;
+}
+
+/**
+ * Returns a pointer to the basename of the given pathname. A slash is
+ * always considered a  separator but G_DIR_SEPARATOR is considered as
+ * well. Thus "/whatever/blah\\yadda" returns a pointer to yadda iff
+ * G_DIR_SEPARATOR is a backslash and otherwise points to "blah[...]".
+ *
+ * @param pathname A pathname to extract basename from. This may be a relative
+ *			path or just a basename.
+ * @return	A pointer to the basename of "pathname". The pointer points into
+ *			the buffer holding pathname.
+ */
+const gchar *
+filepath_basename(const gchar *pathname)
+{
+	const gchar *p, *q;
+	
+	g_assert(pathname);
+	
+	p = strrchr(pathname, '/');
+	if (p) {
+		p++;
+	} else {
+		p = pathname;
+	}
+	q = strrchr(p, G_DIR_SEPARATOR);
+	if (q) {
+		p = &q[1];
+	}
+	return p;
 }
 
 /**

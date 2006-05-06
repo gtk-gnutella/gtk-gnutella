@@ -730,11 +730,11 @@ shared_file(guint idx)
  * @return index > 0 if found, 0 if file is not known.
  */
 static guint
-shared_file_get_index(const gchar *basename)
+shared_file_get_index(const gchar *filename)
 {
 	guint idx;
 
-	idx = GPOINTER_TO_UINT(g_hash_table_lookup(file_basenames, basename));
+	idx = GPOINTER_TO_UINT(g_hash_table_lookup(file_basenames, filename));
 	if (idx == 0 || idx == FILENAME_CLASH)
 		return 0;
 
@@ -749,7 +749,7 @@ shared_file_get_index(const gchar *basename)
  * is being rebuilt.
  */
 shared_file_t *
-shared_file_by_name(const gchar *basename)
+shared_file_by_name(const gchar *filename)
 {
 	guint idx;
 
@@ -757,7 +757,7 @@ shared_file_by_name(const gchar *basename)
 		return SHARE_REBUILDING;
 
 	g_assert(file_basenames);
-	idx = shared_file_get_index(basename);
+	idx = shared_file_get_index(filename);
 	return idx == 0 ? NULL : file_table[idx - 1];
 }
 
