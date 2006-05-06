@@ -245,9 +245,23 @@ skip_ascii_spaces(const gchar *s)
 }
 
 /**
+ * Skips over all characters which are not ASCII spaces starting at ``s''.
+ *
+ * @return a pointer to the first space or NUL character starting from s.
+ */
+static inline WARN_UNUSED_RESULT gchar *
+skip_ascii_non_spaces(const gchar *s)
+{
+	while ('\0' != *s && !is_ascii_space(*s))
+		s++;
+
+	return deconstify_gchar(s);
+}
+
+/**
  * Skips over all ASCII blank characters starting at ``s''.
  *
- * @return a pointer to the first non-blank character starting from s.
+ * @return A pointer to the first non-blank character starting from s.
  */
 static inline WARN_UNUSED_RESULT gchar *
 skip_ascii_blanks(const gchar *s)
