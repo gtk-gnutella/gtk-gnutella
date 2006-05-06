@@ -478,7 +478,8 @@ gui_create_dlg_about(void)
   	for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
 		if (i > 0)
 			text_widget_append(GTK_WIDGET(text), "\n");
-		text_widget_append(GTK_WIDGET(text), contributors[i]);
+		text_widget_append(GTK_WIDGET(text),
+			lazy_utf8_to_ui_string(contributors[i]));
 	}
 
 	gtk_label_set_text(
