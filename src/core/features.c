@@ -74,11 +74,11 @@ features_close(void)
  */
 void
 header_features_add(struct xfeature_t *xfeatures,
-	gchar *feature_name,
+	const gchar *feature_name,
 	int feature_version_major,
 	int feature_version_minor)
 {
-	struct header_x_feature *feature = walloc(sizeof(*feature));
+	struct header_x_feature *feature = walloc(sizeof *feature);
 
 	feature->name = g_strdup(feature_name);
 	feature->major = feature_version_major;
