@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "gtk/columns.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -129,7 +130,7 @@ fi_gui_set_details(gnet_fi_t fih)
 
 	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
     gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
-		short_size(fis.size), bytes);
+		short_size(fis.size, show_metric_units()), bytes);
     gtk_label_printf(label_fi_sha1, "%s%s",
 		fi->sha1 ? "urn:sha1:" : _("<none>"),
 		fi->sha1 ? sha1_base32(fi->sha1) : "");
@@ -299,7 +300,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 		gfloat done = ((gfloat) s.done / s.size) * 100.0;
 
         gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)",
-            short_size(s.done), done);
+            short_size(s.done, show_metric_units()), done);
         titles[c_fi_done] = fi_done;
 		idone = done * ((1 << 30) / 101);
 		idone_percent = done;
@@ -309,7 +310,8 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 		idone_percent = 0;
     }
 
-    g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
+    g_strlcpy(fi_size,
+		short_size(s.size, show_metric_units()), sizeof fi_size);
 	titles[c_fi_size]  = fi_size;
 	isize = s.size;
     titles[c_fi_isize] = cast_to_gpointer(&isize);
@@ -323,7 +325,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 
         gm_snprintf(fi_status, sizeof(fi_status),
             _("Downloading (%s)  TR: %s"),
-			short_rate(s.recv_last_rate),
+			short_rate(s.recv_last_rate, show_metric_units()),
 			secs ? short_time(secs) : "-");
 
         titles[c_fi_status] = fi_status;
@@ -344,14 +346,14 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 			else
 				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 						"; %s %s (%.1f%%)", _("Computing SHA1"),
-						short_size(s.sha1_hashed),
+						short_size(s.sha1_hashed, show_metric_units()),
 						((float) s.sha1_hashed / s.size) * 100.0);
 		}
 
 		if (s.copied > 0 && s.copied < s.size) 
 			rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 					"; %s %s (%.1f%%)", _("Moving"),
-					short_size(s.copied),
+					short_size(s.copied, show_metric_units()),
 					((float) s.copied / s.size) * 100.0);
 
 		titles[c_fi_istatus] = GUINT_TO_POINTER(4 * 100 + idone_percent);

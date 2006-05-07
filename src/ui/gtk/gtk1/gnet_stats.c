@@ -29,6 +29,7 @@ RCSID("$Id$");
 
 #include "gtk/gnet_stats.h"
 #include "gtk/notebooks.h"
+#include "gtk/settings.h"
 
 #include "if/core/hsep.h"
 #include "if/core/gnutella.h"
@@ -206,11 +207,11 @@ byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 		guint64 total_size = val_tbl[MSG_TOTAL];
 		if (!gnet_stats_with_headers)
 			size -= nb_packets[MSG_TOTAL] * GTA_HEADER_SIZE;
-        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
+        gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) size / total_size * 100.0);
         return strbuf;
     } else
-        return compact_size(size);
+        return compact_size(size, show_metric_units());
 }
 
 const gchar *
@@ -242,7 +243,7 @@ general_stat_str(const gnet_stats_t *stats, gint type)
         return "-";
 
     if (type == GNR_QUERY_COMPACT_SIZE) {
-        return compact_size(stats->general[type]);
+        return compact_size(stats->general[type], show_metric_units());
     } else {
         uint64_to_string_buf(stats->general[type], strbuf, sizeof strbuf);
         return strbuf;
@@ -276,10 +277,10 @@ flowc_stat_str_byte(const guint64 *val_tbl, gint type)
         return gnet_stats_perc ? "-  " : "-";
 
 	if (gnet_stats_perc) {
-		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
+		gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
-       	return compact_size(val_tbl[type]);
+       	return compact_size(val_tbl[type], show_metric_units());
     }
 
     return strbuf;

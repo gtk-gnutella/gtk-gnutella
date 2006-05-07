@@ -207,7 +207,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					" file",
 					shared_files_scanned() == 1 ? "" : "s",
 					" ",
-					short_kb_size(shared_kbytes_scanned()),
+					short_kb_size(shared_kbytes_scanned(), FALSE),
 					" total</h3>\r\n"
 					"<ul>\r\n", (void *) 0);
 				bh->b_data = bh->w_buf;
@@ -262,7 +262,8 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 							"<li><a href=\"/uri-res/N2R?urn:sha1:",
 							sha1_base32(sf->sha1_digest),
 							"\">", html_name, "</a>&nbsp;[",
-							short_html_size(sf->file_size),
+							short_html_size(sf->file_size,
+								display_metric_units),
 							"]</li>\r\n",
 							(void *) 0);
 					} else {
@@ -273,7 +274,8 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 							"<li><a href=\"/get/",
 							uint64_to_string(sf->file_index),
 							"/", escaped, "\">", html_name, "</a>"
-							"&nbsp;[", short_html_size(sf->file_size),
+							"&nbsp;[", short_html_size(sf->file_size,
+											display_metric_units),
 							"]</li>\r\n", (void *) 0);
 
 						if (escaped != sf->name_nfc)

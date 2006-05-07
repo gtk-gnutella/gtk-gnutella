@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "gtk/bitzi.h"			/* Bitzi GTK functions */
 #include "gtk/columns.h"
 #include "gtk/misc.h"
+#include "gtk/settings.h"
 #include "search_cb.h"
 
 #include "if/gui_property.h"
@@ -240,7 +241,7 @@ search_gui_set_details(const record_t *rc)
 				
 				uint64_to_string_buf(rc->size, bytes, sizeof bytes);
 				gtk_entry_printf(e, _("%s (%s bytes)"),
-					short_size(rc->size), bytes);
+					short_size(rc->size, show_metric_units()), bytes);
 			}
 			break;
 

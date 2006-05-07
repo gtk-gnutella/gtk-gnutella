@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "filter.h"
 #include "filter_core.h"
 #include "search.h"
+#include "settings.h"
 #include "gtk-missing.h"
 
 #ifdef USE_GTK1
@@ -993,20 +994,26 @@ filter_rule_condition_to_string(const rule_t *r)
 
 			uint64_to_string_buf(r->u.size.upper, smax_64, sizeof smax_64);
 			gm_snprintf(tmp, sizeof tmp , _("If filesize is exactly %s (%s)"),
-				smax_64, short_size(r->u.size.upper));
+				smax_64,
+				short_size(r->u.size.upper, show_metric_units()));
 		} else if (r->u.size.lower == 0) {
             gchar smax_64[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(r->u.size.upper + 1, smax_64, sizeof smax_64);
 			gm_snprintf(tmp, sizeof tmp,
 				_("If filesize is smaller than %s (%s)"),
-				smax_64, short_size(r->u.size.upper + 1));
+				smax_64,
+				short_size(r->u.size.upper + 1, show_metric_units()));
 		} else {
             gchar smin[256], smax[256];
             gchar smin_64[UINT64_DEC_BUFLEN], smax_64[UINT64_DEC_BUFLEN];
 
-            g_strlcpy(smin, short_size(r->u.size.lower), sizeof smin);
-            g_strlcpy(smax, short_size(r->u.size.upper), sizeof smax);
+            g_strlcpy(smin,
+				short_size(r->u.size.lower, show_metric_units()),
+				sizeof smin);
+            g_strlcpy(smax,
+				short_size(r->u.size.upper, show_metric_units()),
+				sizeof smax);
 			uint64_to_string_buf(r->u.size.lower, smin_64, sizeof smin_64);
 			uint64_to_string_buf(r->u.size.upper, smax_64, sizeof smax_64);
 

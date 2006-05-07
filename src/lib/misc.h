@@ -344,6 +344,7 @@ size_t time_locale_to_string_buf(time_t date, gchar *dst, size_t size);
  * Time string conversions
  */
 gchar *short_time(gint s);
+gchar *short_time_ascii(gint t);
 gchar *short_uptime(gint s);
 
 /* Use the direct difference instead of difftime() for systems that are
@@ -391,15 +392,15 @@ time_advance(time_t t, unsigned delta)
 /*
  * Size string conversions
  */
-const gchar *short_size(guint64 size);
-const gchar *short_html_size(guint64 size);
-const gchar *short_kb_size(guint64 size);
-const gchar *short_rate(guint64 rate);
-const gchar *compact_size(guint64 size);
-const gchar *compact_rate(guint64 rate);
-const gchar *compact_kb_size(guint32 size);
-gchar *short_value(gchar *buf, size_t size, guint64 v);
-gchar *compact_value(gchar *buf, size_t size, guint64 v);
+const gchar *short_size(guint64 size, gboolean metric);
+const gchar *short_html_size(guint64 size, gboolean metric);
+const gchar *short_kb_size(guint64 size, gboolean metric);
+const gchar *short_rate(guint64 rate, gboolean metric);
+const gchar *compact_size(guint64 size, gboolean metric);
+const gchar *compact_rate(guint64 rate, gboolean metric);
+const gchar *compact_kb_size(guint32 size, gboolean metric);
+gchar *short_value(gchar *buf, size_t size, guint64 v, gboolean metric);
+gchar *compact_value(gchar *buf, size_t size, guint64 v, gboolean metric);
 
 /*
  * SHA1<->base32 string conversion

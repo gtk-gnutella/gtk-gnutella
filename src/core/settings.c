@@ -408,8 +408,10 @@ settings_init(void)
 	prop_load_from_file(properties, config_dir, config_file);
 
 	if (debugging(0)) {
-		g_message("detected amount of physical RAM: %s", short_kb_size(memory));
-		g_message("process can use at maximum: %s", short_kb_size(amount));
+		g_message("detected amount of physical RAM: %s",
+			short_kb_size(memory, display_metric_units));
+		g_message("process can use at maximum: %s",
+			short_kb_size(amount, display_metric_units));
 		g_message("process can use %u file descriptors", max_fd);
 		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
 	}

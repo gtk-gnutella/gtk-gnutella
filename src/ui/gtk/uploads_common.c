@@ -30,6 +30,7 @@ RCSID("$Id$");
 #include "uploads.h"			/* For upload_row_data_t */
 #include "uploads_common.h"
 #include "search_common.h"
+#include "settings.h"
 
 #include "if/gui_property.h"
 #include "if/gnet_property.h"
@@ -130,7 +131,8 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("%sCompleted (%s) %s"),
 				u->parq_quick ? "* " : "",
-				t > 0 ? short_rate(requested / t) : _("< 1s"),
+				t > 0 ? short_rate(requested / t, show_metric_units())
+						: _("< 1s"),
 				t > 0 ? short_time(t) : "");
 		}
         break;
@@ -148,7 +150,8 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gm_snprintf(tmpstr, sizeof tmpstr, _("%s%s(%s) TR: %s"),
 				u->parq_quick ? "* " : "",
 				p > 1.0 ? pbuf : "",
-				stalled ? _("stalled") : short_rate(u->bps),
+				stalled ? _("stalled")
+					: short_rate(u->bps, show_metric_units()),
 				short_time(tr));
 		}
 		break;

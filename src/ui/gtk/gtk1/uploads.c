@@ -32,6 +32,7 @@ RCSID("$Id$");
 #include "gtk/uploads_common.h"
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
+#include "gtk/settings.h"
 
 #include "if/bridge/ui2c.h"
 
@@ -215,16 +216,17 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		gtk_clist_set_text(clist_uploads, row, c_ul_size, "...");
 		gtk_clist_set_text(clist_uploads, row, c_ul_range, "...");
 	} else {
-		g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
+		g_strlcpy(size_tmp, short_size(u->file_size, show_metric_units()),
+			sizeof size_tmp);
 
-		range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s%s",
+		range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
 			u->partial ? "*" : "",
-			short_size(u->range_end - u->range_start + 1));
+			short_size(u->range_end - u->range_start + 1, show_metric_units()));
 
 		if (u->range_start)
 			range_len += gm_snprintf(
 				&range_tmp[range_len], sizeof(range_tmp)-range_len,
-					" @ %s", short_size(u->range_start));
+					" @ %s", short_size(u->range_start, show_metric_units()));
 
 		g_assert(range_len < sizeof(range_tmp));
 
@@ -288,16 +290,17 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     if ((u->range_start == 0) && (u->range_end == 0)) {
         titles[c_ul_size] = titles[c_ul_range] =  "...";
     } else {
-        g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
+        g_strlcpy(size_tmp, short_size(u->file_size, show_metric_units()),
+			sizeof size_tmp);
 
-        range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s%s",
+        range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
 			u->partial ? "*" : "",
-            short_size(u->range_end - u->range_start + 1));
+            short_size(u->range_end - u->range_start + 1, show_metric_units()));
 
         if (u->range_start)
             range_len += gm_snprintf(
                 &range_tmp[range_len], sizeof(range_tmp)-range_len,
-                " @ %s", short_size(u->range_start));
+                " @ %s", short_size(u->range_start, show_metric_units()));
 
         g_assert(range_len < sizeof(range_tmp));
 

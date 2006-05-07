@@ -1221,7 +1221,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 		} else { /* Add as a parent */
 			key = atom_sha1_get(rc->sha1);	/* New parent, need new atom ref */
 
-			titles[c_sr_size] = short_size(rc->size);
+			titles[c_sr_size] = short_size(rc->size, show_metric_units());
 
 			/* Add node as a parent */
 			node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
@@ -1235,7 +1235,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 		}
 
 	} else { /* Add node as a parent with no SHA1 */
-		titles[c_sr_size] = short_size(rc->size);
+		titles[c_sr_size] = short_size(rc->size, show_metric_units());
 
 		node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
 					(gchar **) titles, /* override */
@@ -1441,7 +1441,7 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			gtk_ctree_node_set_text(ctree, child_node,
                 c_sr_count, tmpstr);
 			gtk_ctree_node_set_text(ctree, child_node,
-                c_sr_size, short_size(rc->size));
+                c_sr_size, short_size(rc->size, show_metric_units()));
 
 			/* Our hashtable contains the hash for the original parent (which we
 			 * just removed) so we must remove that hash entry and create one

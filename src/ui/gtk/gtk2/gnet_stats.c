@@ -31,6 +31,7 @@ RCSID("$Id$");
 #include "gtk/notebooks.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -71,14 +72,13 @@ enum gnet_stats_nb_page {
 	NUM_GNET_STATS_NB_PAGES
 };
 
-static void hide_column_by_title(GtkTreeView *, const gchar *, gboolean);
 static void gnet_stats_update_drop_reasons(const gnet_stats_t *);
 
 /***
  *** Private functions
  ***/
 
-static void
+void
 hide_column_by_title(GtkTreeView *treeview, const gchar *header_title,
 	gboolean hidden)
 {
@@ -127,7 +127,7 @@ byte_stat_str(gchar *dst, gulong n, const guint64 *val_tbl,
 	if (0 == val_tbl[type])
 		g_strlcpy(dst, "-", n);
 	else if (!perc)
-		g_strlcpy(dst, compact_size(val_tbl[type]), n);
+		g_strlcpy(dst, compact_size(val_tbl[type], show_metric_units()), n);
 	else
 		gm_snprintf(dst, n, "%.2f%%",
 		    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
@@ -159,27 +159,10 @@ general_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint type)
 	if (stats->general[type] == 0)
 		g_strlcpy(dst, "-", size);
 	else if (type == GNR_QUERY_COMPACT_SIZE)
-		g_strlcpy(dst, compact_size(stats->general[type]), size);
+		g_strlcpy(dst,
+			compact_size(stats->general[type], show_metric_units()), size);
 	else
 		uint64_to_string_buf(stats->general[type], dst, size);
-
-	return dst;
-}
-
-static const gchar *
-type_stat_str(gchar *dst, size_t size, gulong value, gulong total,
-	gboolean perc, gboolean bytes)
-{
-	if (value == 0 || total == 0)
-		g_strlcpy(dst, "-", size);
-	else if (perc)
-		gm_snprintf(dst, size, "%.2f%%", (gfloat) value / total * 100.0);
-	else {
-		if (bytes)
-			g_strlcpy(dst, compact_size(value), size);
-		else
-			gm_snprintf(dst, size, "%lu", (gulong) value);
-	}
 
 	return dst;
 }
@@ -319,104 +302,18 @@ gnet_stats_update_messages(const gnet_stats_t *stats)
 
 }
 
-typedef guint64 stat_counters_t[MSG_TYPE_COUNT];
-
-static void
-gnet_stats_update_types(
-	const gnet_stats_t *unused_stats,
-	GtkTreeView *treeview,
-	gint columns,
-	const stat_counters_t *byte_counters,
-	const stat_counters_t *pkg_counters)
-{
-	static gchar str[MSG_TYPE_COUNT][32];
-	GtkListStore *store;
-	GtkTreeIter iter;
-	gboolean perc = FALSE;
-	gboolean bytes = FALSE;
-	gboolean with_headers = FALSE;
-	gint n;
-
-	(void) unused_stats;
-
-	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
-	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
-	gui_prop_get_boolean_val(PROP_GNET_STATS_WITH_HEADERS, &with_headers);
-
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(treeview)));
-	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
-		return;
-
-	for (n = 0; n < MSG_TYPE_COUNT; n++) {
-		gint i;
-
-		if (!bytes)
-			for (i = 0; i < columns; i++)
-				type_stat_str(str[i], sizeof(str[0]),
-					(gulong) pkg_counters[i][n],
-					(gulong) pkg_counters[i][MSG_TOTAL],
-					perc, FALSE);
-		else
-			for (i = 0; i < columns; i++) {
-				gulong	value;
-				gulong	total;
-
-				value = byte_counters[i][n];
-				total = byte_counters[i][MSG_TOTAL];
-				if (!with_headers) {
-					value -= pkg_counters[i][n] * GTA_HEADER_SIZE;
-					total -= pkg_counters[i][MSG_TOTAL] * GTA_HEADER_SIZE;
-				}
-				type_stat_str(str[i], sizeof(str[0]), value, total, perc, TRUE);
-			}
-
-		gtk_list_store_set(store, &iter,
-			1, str[0], 2, str[1], 3, str[2], 4, str[3], 5, str[4],
-			6, str[5], 7, str[6], 8, str[7], 9, str[8], (-1));
-		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
-			break;
-	}
-
-}
-
 static void
 gnet_stats_update_flowc(const gnet_stats_t *stats)
 {
-	const stat_counters_t *byte_counters, *pkg_counters;
-	GtkTreeView *treeview = treeview_gnet_stats_flowc;
-	gboolean hops = FALSE;
-
-	gui_prop_get_boolean_val(PROP_GNET_STATS_HOPS, &hops);
-	if (hops) {
-		pkg_counters = stats->pkg.flowc_hops;
-		byte_counters = stats->byte.flowc_hops;
-	} else {
-		pkg_counters = stats->pkg.flowc_ttl;
-		byte_counters = stats->byte.flowc_ttl;
-	}
-	hide_column_by_title(treeview, "0", !hops);
-	gnet_stats_update_types(stats, treeview, STATS_FLOWC_COLUMNS,
-		byte_counters, pkg_counters);
+	/* FIXME: Implement this.  */
+	(void) stats;
 }
 
 static void
 gnet_stats_update_recv(const gnet_stats_t *stats)
 {
-	const stat_counters_t *byte_counters, *pkg_counters;
-	GtkTreeView *treeview = treeview_gnet_stats_recv;
-	gboolean hops = FALSE;
-
-	gui_prop_get_boolean_val(PROP_GNET_STATS_HOPS, &hops);
-	if (hops) {
-		pkg_counters = stats->pkg.received_hops;
-		byte_counters = stats->byte.received_hops;
-	} else {
-		pkg_counters = stats->pkg.received_ttl;
-		byte_counters = stats->byte.received_ttl;
-	}
-	hide_column_by_title(treeview, "0", !hops);
-	gnet_stats_update_types(stats, treeview, STATS_FLOWC_COLUMNS,
-		byte_counters, pkg_counters);
+	/* FIXME: Implement this. */
+	(void) stats;
 }
 
 static void

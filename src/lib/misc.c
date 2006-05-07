@@ -838,7 +838,26 @@ seek_to_filepos(gint fd, filesize_t pos)
 	}
 	return 0;
 }
-	
+
+static inline guint
+kilo(gboolean metric)
+{
+	return metric ? 1000 : 1024;
+}
+
+static inline const gchar *
+byte_suffix(gboolean metric)
+{
+	static const gchar suffix[] = "iB";
+	return &suffix[metric ? 1 : 0];
+}
+
+static inline const gchar *
+scale_prefixes(gboolean metric)
+{
+	return metric ? "\0kMGTPEZ" : "\0KMGTPEZ";
+}
+
 /**
  * Scales v so that quotient and reminder are both in the range "0..1023".
  *
@@ -850,51 +869,56 @@ seek_to_filepos(gint fd, filesize_t pos)
  * @return the appropriate prefix character from "s".
  */
 static inline gchar
-size_scale(guint64 v, guint *q, guint *r, const gchar *s)
+size_scale(guint64 v, guint *q, guint *r, const gchar *s, gboolean metric)
 {
-	if (v < 1024) {
+	const guint base = kilo(metric);
+
+	if (v < base) {
 		*q = v;
 		*r = 0;
 	} else {
-		for (s++; v >= (1 << 20); v /= 1024)
+		const guint thresh = base * base;
+
+		for (s++; v >= thresh; v /= base)
 			s++;
 	
-		*q = (guint) v / 1024;
-		*r = (guint) v % 1024;
+		*q = (guint) v / base;
+		*r = (guint) v % base;
 	}
 	return *s;
 }
 
 static inline gchar
-norm_size_scale(guint64 v, guint *q, guint *r)
+norm_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 {
-	return size_scale(v, q, r, "\0KMGTPEZ");
+	return size_scale(v, q, r, scale_prefixes(metric), metric);
 }
 
 /**
- * Same as norm_size_scale() but assumes v is already divided by 1024.
+ * Same as norm_size_scale_base2() but assumes v is already divided
+ * by 1024 (binary) respectively 1000 (metric).
  */
 static inline gchar
-kb_size_scale(guint64 v, guint *q, guint *r)
+kb_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 {
-	return size_scale(v, q, r, "KMGTPEZ");
+	return size_scale(v, q, r, scale_prefixes(metric) + 1, metric);
 }
 
 const gchar *
-short_size(guint64 size)
+short_size(guint64 size, gboolean metric)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
-	if (size < 1024) {
+	if (size < kilo(metric)) {
 		guint n = size;
 		gm_snprintf(b, sizeof b, NG_("%u Byte", "%u Bytes", n), n);
 	} else {
 		guint q, r;
 		gchar c;
 
-		c = norm_size_scale(size, &q, &r);
-		r /= 10.24;
-		gm_snprintf(b, sizeof b, "%u.%02u %ciB", q, r, c);
+		c = norm_size_scale(size, &q, &r, metric);
+		r /= metric ? 10.0 : 10.24;
+		gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
 	return b;
@@ -904,38 +928,41 @@ short_size(guint64 size)
  * Like short_size() but with unbreakable space between the digits and unit.
  */
 const gchar *
-short_html_size(guint64 size)
+short_html_size(guint64 size, gboolean metric)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
-	if (size < 1024) {
+	if (size < kilo(metric)) {
 		guint n = size;
 		gm_snprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
 	} else {
 		guint q, r;
 		gchar c;
 
-		c = norm_size_scale(size, &q, &r);
-		r /= 10.24;
-		gm_snprintf(b, sizeof b, "%u.%02u&nbsp;%ciB", q, r, c);
+		c = norm_size_scale(size, &q, &r, metric);
+		r /= metric ? 10.0 : 10.24;
+		gm_snprintf(b, sizeof b, "%u.%02u&nbsp;%c%s", q, r, c,
+			byte_suffix(metric));
 	}
 
 	return b;
 }
 
 const gchar *
-short_kb_size(guint64 size)
+short_kb_size(guint64 size, gboolean metric)
 {
 	static gchar b[SIZE_FIELD_MAX];
 	guint q, r;
 	gchar c;
 	
-	if (size < 1024) {
-		gm_snprintf(b, sizeof b, "%u KiB", (guint) size);
+	if (size < kilo(metric)) {
+		const gchar c = scale_prefixes(metric)[1];
+		gm_snprintf(b, sizeof b, "%u %c%s",
+			(guint) size, c, byte_suffix(metric));
 	} else {
-		c = kb_size_scale(size, &q, &r);
-		r /= 10.24;
-		gm_snprintf(b, sizeof b, "%u.%02u %ciB", q, r, c);
+		c = kb_size_scale(size, &q, &r, metric);
+		r /= metric ? 10.0 : 10.24;
+		gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
 	return b;
@@ -945,18 +972,18 @@ short_kb_size(guint64 size)
  * @return a number of Kbytes in a compact readable form
  */
 const gchar *
-compact_kb_size(guint32 size)
+compact_kb_size(guint32 size, gboolean metric)
 {
 	static gchar b[SIZE_FIELD_MAX];
 	guint q, r;
 	gchar c;
 
-	c = kb_size_scale(size, &q, &r);
+	c = kb_size_scale(size, &q, &r, metric);
 	if (0 != r) {
 		r /= 102.4;
-		gm_snprintf(b, sizeof b, "%u.%u%ciB", q, r, c);
+		gm_snprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
 	} else {
-		gm_snprintf(b, sizeof b, "%u%ciB", q, c);
+		gm_snprintf(b, sizeof b, "%u%c%s", q, c, byte_suffix(metric));
 	}
 
 	return b;
@@ -964,73 +991,74 @@ compact_kb_size(guint32 size)
 
 
 gchar *
-compact_value(gchar *buf, size_t size, guint64 v)
+compact_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 {
 	guint q, r;
 	gchar c;
 
-	c = norm_size_scale(v, &q, &r);
+	c = norm_size_scale(v, &q, &r, metric);
 	if (0 != r) {
 		r /= 102.4;
-		gm_snprintf(buf, size, "%u.%u%ci", q, r, c);
+		gm_snprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
 	} else {
-		gm_snprintf(buf, size, "%u%ci", q, c);
+		gm_snprintf(buf, size, "%u%c%s", q, c, metric ? "" : "i");
 	}
 
 	return buf;
 }
 
 gchar *
-short_value(gchar *buf, size_t size, guint64 v)
+short_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 {
 	guint q, r;
 	gchar c;
 
-	c = norm_size_scale(v, &q, &r);
+	c = norm_size_scale(v, &q, &r, metric);
 	if (0 != r) {
 		r /= 10.24;
-		gm_snprintf(buf, size, "%u.%02u %ci", q, r, c);
+		gm_snprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	} else {
-		gm_snprintf(buf, size, "%u %ci", q, c);
+		gm_snprintf(buf, size, "%u %c%s", q, c, metric ? "" : "i");
 	}
 	
 	return buf;
 }
 
 const gchar *
-compact_size(guint64 size)
+compact_size(guint64 size, gboolean metric)
 {
 	static gchar buf[SIZE_FIELD_MAX];
 
-	compact_value(buf, sizeof buf, size);
+	compact_value(buf, sizeof buf, size, metric);
 	g_strlcat(buf, "B", sizeof buf);
 	return buf;
 }
 
 const gchar *
-compact_rate(guint64 rate)
+compact_rate(guint64 rate, gboolean metric)
 {
 	static gchar buf[SIZE_FIELD_MAX];
 
-	compact_value(buf, sizeof buf, rate);
+	compact_value(buf, sizeof buf, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
 	g_strlcat(buf, _("B/s"), sizeof buf);
 	return buf;
 }
 
 const gchar *
-short_rate(guint64 rate)
+short_rate(guint64 rate, gboolean metric)
 {
 	static gchar buf[SIZE_FIELD_MAX];
 
-	short_value(buf, sizeof buf, rate);
+	short_value(buf, sizeof buf, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
 	g_strlcat(buf, _("B/s"), sizeof buf);
 	return buf;
 }
 
 /**
- * @return time spent in seconds in a consise short readable form
+ * @return time spent in seconds in a consise short readable form.
+ * @note The returned string may be translated and non-ASCII.
  */
 gchar *
 short_time(gint t)
@@ -1050,6 +1078,30 @@ short_time(gint t)
 
 	return buf;
 }
+
+/**
+ * @return time spent in seconds in a consise short readable form.
+ * @note The returned string is in English and ASCII encoded.
+ */
+gchar *
+short_time_ascii(gint t)
+{
+	static gchar buf[4 * SIZE_FIELD_MAX];
+	guint s = MAX(t, 0);
+
+	if (s > 86400)
+		gm_snprintf(buf, sizeof buf, "%ud %uh",
+			s / 86400, (s % 86400) / 3600);
+	else if (s > 3600)
+		gm_snprintf(buf, sizeof buf, "%uh %um", s / 3600, (s % 3600) / 60);
+	else if (s > 60)
+		gm_snprintf(buf, sizeof buf, "%um %us", s / 60, s % 60);
+	else
+		gm_snprintf(buf, sizeof buf, "%us", s);
+
+	return buf;
+}
+
 
 /**
  * Alternate time formatter for uptime.
@@ -2259,24 +2311,25 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext,
 	return NULL;
 }
 
-#define ESCAPE_CHAR		'\\'
+static const gchar escape_char = '\\';
 
-/*
- * CHAR_IS_SPACE
- *
+/**
  * Allow spaces, tabs or new-lines as "spacing" chars.
  */
-#define CHAR_IS_SPACE(c) \
-	((c) == ' ' || (c) == '\t' || (c) == '\n')
+static inline gboolean
+char_is_space(guchar c)
+{
+	return c == ' ' || c == '\t' || c == '\n';
+}
 
-/*
- * CHAR_IS_SAFE
- *
+/**
  * Nearly the same as isprint() but allows additional safe chars if !strict.
  */
-#define CHAR_IS_SAFE(c, strict) \
-	(isprint((c)) || (!(strict) && CHAR_IS_SPACE(c)))
-
+static inline gboolean
+char_is_safe(guchar c, gboolean strict)
+{
+	return isprint(c) || (!strict && char_is_space(c));
+}
 
 /**
  * Escape all non-printable chars into the hexadecimal "\xhh" form.
@@ -2293,7 +2346,7 @@ hex_escape(const gchar *name, gboolean strict)
 	gchar *new;
 
 	for (p = name, c = *p++; c; c = *p++)
-		if (!CHAR_IS_SAFE(c, strict))
+		if (!char_is_safe(c, strict))
 			need_escape++;
 
 	if (need_escape == 0)
@@ -2302,10 +2355,10 @@ hex_escape(const gchar *name, gboolean strict)
 	new = g_malloc(p - name + 3 * need_escape);
 
 	for (p = name, q = new, c = *p++; c; c = *p++) {
-		if (CHAR_IS_SAFE(c, strict))
+		if (char_is_safe(c, strict))
 			*q++ = c;
 		else {
-			*q++ = ESCAPE_CHAR;
+			*q++ = escape_char;
 			*q++ = 'x';
 			*q++ = hex_alphabet[c >> 4];
 			*q++ = hex_alphabet[c & 0xf];
@@ -2325,11 +2378,12 @@ hex_escape(const gchar *name, gboolean strict)
 static inline gboolean
 escape_control_char(guchar c)
 {
-	return is_ascii_cntrl(c) && !CHAR_IS_SPACE(c);
+	return is_ascii_cntrl(c) && !char_is_space(c);
 }
 
 /**
- * Escape all ASCII control chars (except into the hexadecimal "\xhh" form.
+ * Escape all ASCII control chars except LF into the hexadecimal "\xhh" form.
+ * When a CR LF sequence is seen, the CR character is dropped.
  *
  * @returns new escaped string, or the original string if no escaping occurred.
  */
@@ -2351,10 +2405,14 @@ control_escape(const gchar *s)
 
 		for (p = s; '\0' != (c = *p); p++) {
 			if (escape_control_char(c)) {
-				*q++ = ESCAPE_CHAR;
-				*q++ = 'x';
-				*q++ = hex_alphabet[c >> 4];
-				*q++ = hex_alphabet[c & 0xf];
+				if ('\r' == c && '\n' == p[1]) {
+					/* Skip CR in CR LF sequences */
+				} else {
+					*q++ = escape_char;
+					*q++ = 'x';
+					*q++ = hex_alphabet[c >> 4];
+					*q++ = hex_alphabet[c & 0xf];
+				}
 			} else {
 				*q++ = c;
 			}

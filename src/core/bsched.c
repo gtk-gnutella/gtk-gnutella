@@ -1648,6 +1648,8 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 }
 
 /**
+ * XXX: This is copy-paste bullshit:
+ *
  * Read at most `len' bytes from `iov' to source's fd, as bandwidth permits,
  * `len' being determined by the size of the supplied I/O vector.
  * If we cannot write anything due to bandwidth constraints, return -1 with

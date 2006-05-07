@@ -780,7 +780,8 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 		s1 = uint64_to_string(t[i][HSEP_IDX_NODES] + non_hsep[HSEP_IDX_NODES]);
 		s2 = uint64_to_string2(t[i][HSEP_IDX_FILES] + non_hsep[HSEP_IDX_FILES]);
-		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB]);
+		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB],
+				display_metric_units);
 
 		gm_snprintf(buf, sizeof buf, "%*d  %*s  %*s  %*s\n",
 			maxlen[0], i + 1,

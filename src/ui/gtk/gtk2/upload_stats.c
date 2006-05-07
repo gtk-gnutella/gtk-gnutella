@@ -63,6 +63,7 @@ RCSID("$Id$");
 #include "gtk/columns.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
@@ -120,7 +121,8 @@ cell_render_size_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	g_assert(iter != NULL);
 
 	gtk_tree_model_get(model, iter, c_us_size, &val, (-1));
-	g_object_set(cell, "text", short_size(val), (void *) 0);
+	g_object_set(cell, "text",
+		short_size(val, show_metric_units()), (void *) 0);
 }
 
 /**

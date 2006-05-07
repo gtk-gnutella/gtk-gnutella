@@ -29,6 +29,7 @@ RCSID("$Id$");
 
 #include "gnet_stats_common.h"
 #include "gtk-missing.h"
+#include "settings.h"
 
 #include "if/core/net_stats.h"
 #include "if/bridge/ui2c.h"
@@ -252,7 +253,7 @@ gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	val = table[hops][HSEP_IDX_KIB] + other[HSEP_IDX_KIB];
 	gtk_label_printf(GTK_LABEL(
 			lookup_widget(main_window, "label_statusbar_horizon_kb_count")),
-		"%s", short_kb_size(val));
+		"%s", short_kb_size(val, show_metric_units()));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

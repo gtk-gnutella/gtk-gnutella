@@ -1025,7 +1025,7 @@ hsep_get_static_str(gint row, gint column)
 			/* Make a copy because concurrent usage of short_kb_size()
 	 	 	 * could be hard to discover. */
 			v = hsep_table[row][HSEP_IDX_KIB] + other[0][HSEP_IDX_KIB];
-			g_strlcpy(buf, short_kb_size(v), sizeof buf);
+			g_strlcpy(buf, short_kb_size(v, display_metric_units), sizeof buf);
   			ret = buf;
 		}
 		break;

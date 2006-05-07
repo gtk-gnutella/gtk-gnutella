@@ -582,7 +582,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			_("Vendor:"),
 			search_get_vendor_from_record(rc),
 			_("Size:"),
-			short_size(rc->size),
+			short_size(rc->size, show_metric_units()),
 			has_extra ? "\nExtra: " : "",
 			has_extra ? extra : "");
 
@@ -630,7 +630,8 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
 	gtk_entry_printf(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
-			_("%s (%s bytes)"), short_size(rc->size), bytes);
+			_("%s (%s bytes)"), short_size(rc->size, show_metric_units()),
+			bytes);
 
 	gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid")),

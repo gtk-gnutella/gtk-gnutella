@@ -49,6 +49,7 @@ RCSID("$Id$");
 
 #include "sockets.h"
 #include "downloads.h"
+#include "features.h"
 #include "uploads.h"
 #include "parq.h"
 #include "nodes.h"
@@ -1756,7 +1757,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	case BAN_FIRST:				/* Connection refused, negative ack */
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, "Banned for %s",
-				short_time(ban_delay(s->addr)));
+				short_time_ascii(ban_delay(s->addr)));
 		else {
 			gint delay = ban_delay(s->addr);
 			gchar msg[80];
@@ -1768,7 +1769,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			hev.he_msg = msg;
 
 			http_send_status(s, 550, FALSE, &hev, 1, "Banned for %s",
-				short_time(delay));
+				short_time_ascii(delay));
 		}
 		goto cleanup;
 	default:
@@ -2888,6 +2889,8 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 			saved_errno = errno;
 			close(sd);
 			sd = -1;
+		} else {
+			saved_errno = 0;
 		}
 	}
 	
@@ -3841,9 +3844,23 @@ socket_init(void)
 	(void) sol_ipv6(); /* Get rid of warning "defined but unused" */
 
 #ifdef HAS_GNUTLS
-	if (gnutls_global_init())
-		g_warning("socket_init(): gnutls_global_init() failed");
-	get_dh_params();
+	{
+		static const struct {
+			const gchar * const name;
+			const gint major;
+			const gint minor;
+		} f = {
+			"tls", 1, 0
+		};
+
+		if (gnutls_global_init()) {
+			g_error("socket_init(): gnutls_global_init() failed");
+		}
+		get_dh_params();
+		header_features_add(&xfeatures.connections, f.name, f.major, f.minor);
+		header_features_add(&xfeatures.downloads, f.name, f.major, f.minor);
+		header_features_add(&xfeatures.uploads, f.name, f.major, f.minor);
+	}
 #endif /* HAS_GNUTLS */
 }
 

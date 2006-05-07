@@ -38,5 +38,6 @@ const gchar *settings_gui_config_dir(void);
 GtkTooltips *settings_gui_tooltips(void);
 void settings_gui_save_if_dirty(void);
 void settings_gui_shutdown(void);
+gboolean show_metric_units(void);
 
 #endif /* _gtk_settings_h_ */

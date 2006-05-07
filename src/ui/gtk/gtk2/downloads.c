@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "gtk/notebooks.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
+#include "gtk/settings.h"
 
 #include "if/core/bsched.h"
 #include "if/core/http.h"
@@ -791,7 +792,8 @@ download_gui_add(download_t *d)
 			d_file_name = to_free;
 
 			if (d->file_info->file_size_known)
-				d_file_size = short_size(d->file_info->size);
+				d_file_size = short_size(d->file_info->size,
+								show_metric_units());
 			else
 				d_file_size = unknown_size_str;
 		} else {
@@ -892,7 +894,8 @@ download_gui_add(download_t *d)
 			d_file_name = to_free;
 
 			if (d->file_info->file_size_known)
-				d_file_size = short_size(d->file_info->size);
+				d_file_size = short_size(d->file_info->size,
+								show_metric_units());
 			else
 				d_file_size = unknown_size_str;
 		} else {
@@ -1284,9 +1287,11 @@ gui_update_download_range(download_t *d)
 	len += d->overlap_size;
 
 	concat_strings(buf, sizeof buf,
-		compact_size(len), and_more, d->skip ? " @ " : "", (void *) 0);
+		compact_size(len, show_metric_units()),
+		and_more, d->skip ? " @ " : "", (void *) 0);
+
 	if (d->skip)
-		g_strlcat(buf, compact_size(d->skip), sizeof buf);
+		g_strlcat(buf, compact_size(d->skip, show_metric_units()), sizeof buf);
 
 	gui_update_download_column(d, treeview_downloads, c_dl_range, buf);
 }
@@ -1305,7 +1310,8 @@ gui_update_download_size(download_t *d)
 	if (!d->file_info->file_size_known)
 		return;
 
-	concat_strings(buf, sizeof buf, short_size(d->size), (void *) 0);
+	concat_strings(buf, sizeof buf,
+		short_size(d->size, show_metric_units()), (void *) 0);
 	gui_update_download_column(d, treeview_downloads, c_dl_size, buf);
 }
 
@@ -1395,7 +1401,7 @@ gui_update_download(download_t *d, gboolean force)
 				guint s = (fi->size - fi->done) / fi->recv_last_rate;
 
 				gm_snprintf(tmp, sizeof tmp, _("(%s)  [%d/%d]  TR:  %s"),
-					short_rate(fi->recv_last_rate),
+					short_rate(fi->recv_last_rate, show_metric_units()),
 					fi->recvcount, fi->lifecount, short_time(s));
 			} else {
 				gm_snprintf(tmp, sizeof tmp, "[%d/%d]",
@@ -1586,7 +1592,8 @@ gui_update_download(download_t *d, gboolean force)
 
 			gm_snprintf(status_buf, sizeof status_buf, "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
-				short_rate((d->range_end - d->skip + d->overlap_size) / t),
+				short_rate((d->range_end - d->skip + d->overlap_size) / t,
+					show_metric_units()),
 				short_time(t));
 		} else {
 			gm_snprintf(status_buf, sizeof status_buf, "%s (%s)",
@@ -1626,7 +1633,8 @@ gui_update_download(download_t *d, gboolean force)
 				guint elapsed = fi->cha1_elapsed;
 				rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 					" (%s) %s",
-					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
+					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1),
+						show_metric_units()),
 					short_time(fi->cha1_elapsed));
 			}
 
@@ -1643,7 +1651,8 @@ gui_update_download(download_t *d, gboolean force)
 				if (fi->copy_elapsed) {
 					gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
 						_("; Moved (%s) %s"),
-						short_rate(fi->copied / fi->copy_elapsed),
+						short_rate(fi->copied / fi->copy_elapsed,
+							show_metric_units()),
 						short_time(fi->copy_elapsed));
 				}
 				break;
@@ -1691,7 +1700,7 @@ gui_update_download(download_t *d, gboolean force)
 							"%s ", _("(stalled)"));
 				else
 					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
-						"(%s) ", short_rate(bps));
+						"(%s) ", short_rate(bps, show_metric_units()));
 
 				if (!has_header) {
 					rw += gm_snprintf(&status_buf[rw], sizeof status_buf - rw,
@@ -1712,7 +1721,8 @@ gui_update_download(download_t *d, gboolean force)
 
 						rw += gm_snprintf(&status_buf[rw],
 								sizeof status_buf - rw,
-								" (%s)", short_rate(fi->recv_last_rate));
+								" (%s)", short_rate(fi->recv_last_rate,
+											show_metric_units()));
 					}
 				}
 			} else if (delta_time(now, d->last_update) > IO_STALLED) {

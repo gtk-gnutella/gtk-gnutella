@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "gtk/visual_progress.h"
 #include "gtk/columns.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
@@ -215,13 +216,15 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 
     if (s.done) {
         gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)",
-            short_size(s.done), ((float) s.done / s.size)*100.0);
+            short_size(s.done, show_metric_units()),
+			((float) s.done / s.size) * 100.0);
         titles[c_fi_done] = fi_done;
     } else {
         titles[c_fi_done] = "-";
     }
 
-    g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
+    g_strlcpy(fi_size, short_size(s.size, show_metric_units()),
+		sizeof(fi_size));
     titles[c_fi_size]    = fi_size;
 
     if (s.recvcount) {
@@ -232,7 +235,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 
         gm_snprintf(fi_status, sizeof(fi_status),
             _("Downloading (%s)  TR: %s"),
-			short_rate(s.recv_last_rate),
+			short_rate(s.recv_last_rate, show_metric_units()),
 			secs ? short_time(secs) : "-");
 
         titles[c_fi_status] = fi_status;
@@ -252,14 +255,14 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 			else
 				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 						"; %s %s (%.1f%%)", _("Computing SHA1"),
-						short_size(s.sha1_hashed),
+						short_size(s.sha1_hashed, show_metric_units()),
 						((float) s.sha1_hashed / s.size) * 100.0);
 		}
 
 		if (s.copied > 0 && s.copied < s.size) 
 			rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 					"; %s %s (%.1f%%)", _("Moving"),
-					short_size(s.copied),
+					short_size(s.copied, show_metric_units()),
 					((float) s.copied / s.size) * 100.0);
 
         titles[c_fi_status] = fi_status;
@@ -304,7 +307,7 @@ fi_gui_set_details(gnet_fi_t fih)
 	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
-        _("%s (%s bytes)"), short_size(fis.size), bytes);
+        _("%s (%s bytes)"), short_size(fis.size, show_metric_units()), bytes);
 
     gtk_clist_freeze(cl_aliases);
     gtk_clist_clear(cl_aliases);

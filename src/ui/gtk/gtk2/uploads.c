@@ -46,6 +46,7 @@
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
@@ -281,13 +282,15 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 		else {
 			range_len = gm_snprintf(str, sizeof str, "%s%s",
 				u->partial ? "*" : "",
-				short_size(u->range_end - u->range_start + 1));
+				short_size(u->range_end - u->range_start + 1,
+					show_metric_units()));
 
 			if ((guint) range_len < sizeof str) {
 				if (u->range_start)
 					range_len += gm_snprintf(&str[range_len],
 									sizeof str - range_len,
-									" @ %s", short_size(u->range_start));
+									" @ %s", short_size(u->range_start,
+												show_metric_units()));
 				g_assert((guint) range_len < sizeof str);
 			}
 		}
@@ -298,7 +301,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	if (u->file_size != rd->size) {
 		rd->size = u->file_size;
 		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_size, short_size(rd->size),
+			c_ul_size, short_size(rd->size, show_metric_units()),
 			(-1));
 	}
 
@@ -389,19 +392,21 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
         range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
 			u->partial ? "*" : "",
-            short_size(u->range_end - u->range_start + 1));
+            short_size(u->range_end - u->range_start + 1,
+				show_metric_units()));
 
         if (u->range_start)
             range_len += gm_snprintf(
                 &range_tmp[range_len], sizeof range_tmp - range_len,
-                " @ %s", short_size(u->range_start));
+                " @ %s", short_size(u->range_start, show_metric_units()));
 
         g_assert((guint) range_len < sizeof range_tmp);
 
         titles[c_ul_range] = range_tmp;
     }
 
-	g_strlcpy(size_tmp, short_size(u->file_size), sizeof size_tmp);
+	g_strlcpy(size_tmp, short_size(u->file_size, show_metric_units()),
+		sizeof size_tmp);
     titles[c_ul_size] = size_tmp;
 
    	titles[c_ul_agent] = u->user_agent ? u->user_agent : "...";

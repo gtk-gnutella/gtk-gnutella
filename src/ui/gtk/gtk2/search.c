@@ -178,7 +178,7 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 		text = data->info;
 		break;
 	case c_sr_size:
-		text = compact_size(data->record->size);
+		text = compact_size(data->record->size, show_metric_units());
 		break;
 	case c_sr_count:
 		text = data->count ? uint32_to_string(1 + data->count) : NULL;

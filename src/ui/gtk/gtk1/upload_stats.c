@@ -61,6 +61,7 @@ RCSID("$Id$");
 
 #include "gtk/upload_stats.h"
 #include "gtk/columns.h"
+#include "gtk/settings.h"
 
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
@@ -126,10 +127,11 @@ upload_stats_gui_add(struct ul_stats *s)
 	gchar norm_tmp[16];
     GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
-	g_strlcpy(size_tmp, short_size(s->size), sizeof(size_tmp));
-	gm_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", s->attempts);
-	gm_snprintf(complete_tmp, sizeof(complete_tmp), "%u", s->complete);
-	gm_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", s->norm);
+	g_strlcpy(size_tmp, short_size(s->size, show_metric_units()),
+		sizeof size_tmp);
+	gm_snprintf(attempts_tmp, sizeof attempts_tmp, "%u", s->attempts);
+	gm_snprintf(complete_tmp, sizeof complete_tmp, "%u", s->complete);
+	gm_snprintf(norm_tmp, sizeof norm_tmp, "%.3f", s->norm);
 
 	rowdata[c_us_filename] = s->filename;
 	rowdata[c_us_size] = size_tmp;

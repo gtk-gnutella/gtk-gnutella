@@ -2969,9 +2969,9 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
 			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
-			compact_size(rt->client_slots));
+			compact_size(rt->client_slots, display_metric_units));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots));
+			compact_size(rt->client_slots, display_metric_units));
 		return FALSE;
 	}
 
@@ -3138,10 +3138,10 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 					g_warning(
 						"%s node %s <%s> overflowed its QRP patch of %s slots",
 						node_type(n), node_addr(n), node_vendor(n),
-						compact_size(rt->client_slots));
+						compact_size(rt->client_slots, display_metric_units));
 					node_bye_if_writable(n, 413,
 						"QRP patch overflowed table (%s slots)",
-						compact_size(rt->client_slots));
+						compact_size(rt->client_slots, display_metric_units));
 					return FALSE;
 				}
 			}
@@ -3172,9 +3172,9 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, gint len, gint slots_per_byte)
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
 			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
-			compact_size(rt->client_slots));
+			compact_size(rt->client_slots, display_metric_units));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots));
+			compact_size(rt->client_slots, display_metric_units));
 		return FALSE;
 	}
 
@@ -3187,9 +3187,9 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, gint len, gint slots_per_byte)
 		g_warning(
 			"%s node %s <%s> overflowed its QRP patch of %s slots",
 			node_type(n), node_addr(n), node_vendor(n),
-			compact_size(rt->client_slots));
+			compact_size(rt->client_slots, display_metric_units));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots));
+			compact_size(rt->client_slots, display_metric_units));
 		return FALSE;
 	}
 	

@@ -33,6 +33,7 @@ RCSID("$Id$");
 #include "gtk/statusbar.h"
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
+#include "gtk/settings.h"
 
 #include "if/core/pproxy.h"
 #include "if/core/bsched.h"
@@ -582,7 +583,8 @@ download_gui_add(struct download *d)
 	titles[c_queue_status] = "";
 
 	if (d->file_info->file_size_known)
-		titles[c_queue_size] = short_size(d->file_info->size);
+		titles[c_queue_size] = short_size(d->file_info->size,
+									show_metric_units());
 	else
 		titles[c_queue_size] = UNKNOWN_SIZE_STR;
 
@@ -716,7 +718,8 @@ download_gui_add(struct download *d)
 		titles[c_dl_status] = "";
 
 		if (d->file_info->file_size_known)
-			titles[c_dl_size] = short_size(d->file_info->size);
+			titles[c_dl_size] = short_size(d->file_info->size,
+									show_metric_units());
 		else
 			titles[c_dl_size] = UNKNOWN_SIZE_STR;
 		titles[c_dl_range] = "";
@@ -912,11 +915,11 @@ gui_update_download_range(struct download *d)
 	len += d->overlap_size;
 
 	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-			compact_size(len), and_more);
+			compact_size(len, show_metric_units()), and_more);
 
 	if (d->skip)
 		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			compact_size(d->skip));
+			compact_size(d->skip, show_metric_units()));
 
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
 	if (NULL != node)
@@ -937,7 +940,8 @@ gui_update_download_size(struct download *d)
 	if (!d->file_info->file_size_known)
 		return;
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s", short_size(d->size));
+	gm_snprintf(tmpstr, sizeof tmpstr, "%s",
+		short_size(d->size, show_metric_units()));
 
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
 	if (NULL != node)
@@ -1187,7 +1191,8 @@ gui_update_download(struct download *d, gboolean force)
 			
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
-				short_rate((d->range_end - d->skip + d->overlap_size) / t),
+				short_rate((d->range_end - d->skip + d->overlap_size) / t,
+					show_metric_units()),
 				short_time(t));
 		} else {
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
@@ -1232,7 +1237,8 @@ gui_update_download(struct download *d, gboolean force)
 			
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%s) %s",
-					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
+					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1),
+						show_metric_units()),
 					short_time(fi->cha1_elapsed));
 			}
 
@@ -1249,7 +1255,8 @@ gui_update_download(struct download *d, gboolean force)
 				if (fi->copy_elapsed) {
 					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						_("; Moved (%s) %s"),
-						short_rate(fi->copied / fi->copy_elapsed),
+						short_rate(fi->copied / fi->copy_elapsed,
+							show_metric_units()),
 						short_time(fi->copy_elapsed));
 				}
 				break;
@@ -1292,7 +1299,7 @@ gui_update_download(struct download *d, gboolean force)
 						_("(stalled)"));
 				else
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" (%s)", short_rate(bps));
+						" (%s)", short_rate(bps, show_metric_units()));
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_(" [%d/%d] TR: %s"), fi->recvcount, fi->lifecount,
@@ -1306,7 +1313,8 @@ gui_update_download(struct download *d, gboolean force)
 
 					if (fi->recvcount > 1) {
 						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%s)", short_rate(fi->recv_last_rate));
+							" (%s)", short_rate(fi->recv_last_rate,
+										show_metric_units()));
 					}
 				}
 			} else {
@@ -1452,12 +1460,14 @@ gui_update_download(struct download *d, gboolean force)
 						if (s) {
 							gm_snprintf(tmpstr, sizeof(tmpstr),
 								_("(%s)  [%d/%d]  TR:  %s"),
-								short_rate(fi->recv_last_rate),
+								short_rate(fi->recv_last_rate,
+									show_metric_units()),
 								active_src, tot_src, short_time(s));
 						} else {
 							gm_snprintf(tmpstr, sizeof(tmpstr),
 								_("(%s)  [%d/%d]  TR:  -"),
-								short_rate(fi->recv_last_rate),
+								short_rate(fi->recv_last_rate,
+									show_metric_units()),
 								active_src, tot_src);
 						}
 

@@ -459,7 +459,8 @@ update_size_entry(property_t prop)
     }
 
     gtk_entry_set_text(GTK_ENTRY(w),
-		short_kb_size(*stub->guint64.get(prop, NULL, 0, 0)));
+		short_kb_size(*stub->guint64.get(prop, NULL, 0, 0),
+			show_metric_units()));
 
     return FALSE;
 }
@@ -709,6 +710,21 @@ update_bandwidth_spinbutton(property_t prop)
 /***
  *** III. Special case callbacks
  ***/
+
+static gboolean current_display_metric_units;
+
+static gboolean
+display_metric_units_changed(property_t prop)
+{
+    gnet_prop_get_boolean_val(prop, &current_display_metric_units);
+    return FALSE;
+}
+
+gboolean
+show_metric_units(void)
+{
+	return current_display_metric_units;
+}
 
 static gboolean
 bw_gnet_lin_enabled_changed(property_t prop)
@@ -1011,7 +1027,7 @@ update_byte_size_entry(property_t prop)
 
 	gnet_prop_get_guint64_val(prop, &value);
     gtk_entry_printf(GTK_ENTRY(w), "%s (%s)",
-		short_size(value), stub->to_string(prop));
+		short_size(value, show_metric_units()), stub->to_string(prop));
 
     return FALSE;
 }
@@ -4980,6 +4996,14 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_browse_host_max_results",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_DISPLAY_METRIC_UNITS,
+        display_metric_units_changed,
+        TRUE,
+        "checkbutton_config_metric",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

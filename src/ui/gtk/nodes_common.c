@@ -39,6 +39,7 @@
 RCSID("$Id$");
 
 #include "nodes_common.h"
+#include "settings.h"
 
 #include "gtk/statusbar.h"
 
@@ -107,13 +108,14 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 				if (show_gnet_info_tx_wire) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s", compact_size(n->tx_written));
+					"%s", compact_size(n->tx_written, show_metric_units()));
 					is_first = FALSE;
 				}
 
 				if (show_gnet_info_tx_speed)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s%s", is_first ? "" : ", ", compact_rate(n->tx_bps));
+						"%s%s", is_first ? "" : ", ",
+						compact_rate(n->tx_bps, show_metric_units()));
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
@@ -135,13 +137,14 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 				if (show_gnet_info_rx_wire) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s", compact_size(n->rx_given));
+						"%s", compact_size(n->rx_given, show_metric_units()));
 					is_first = FALSE;
 				}
 
 				if (show_gnet_info_rx_speed)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s%s", is_first ? "" : ", ", compact_rate(n->rx_bps));
+						"%s%s", is_first ? "" : ", ",
+						compact_rate(n->rx_bps, show_metric_units()));
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
@@ -225,8 +228,9 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 				if (show_gnet_info_shared_size && n->gnet_info_known) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s", compact_kb_size(
-							n->gnet_files_count ? n->gnet_kbytes_count : 0));
+						"%s",
+						compact_kb_size(n->gnet_files_count
+							? n->gnet_kbytes_count : 0, show_metric_units()));
 					is_first = FALSE;
 				}
 				if (show_gnet_info_shared_files && n->gnet_info_known)
@@ -246,7 +250,8 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 				if (n->qrt_slots != 0)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						" QRT(%s, g=%d, f=%d%%, t=%d%%, e=%d%%)",
-						compact_size(n->qrt_slots), n->qrt_generation,
+						compact_size(n->qrt_slots, show_metric_units()),
+						n->qrt_generation,
 						n->qrt_fill_ratio, n->qrt_pass_throw,
 						(guint) (n->qrp_efficiency * 100.0));
 			}

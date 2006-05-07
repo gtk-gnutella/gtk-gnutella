@@ -511,7 +511,8 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 		if (msg != NULL)
 			upload_remove(u, _("Banned: %s"), msg);
 		else
-			upload_remove(u, _("Banned for %s"), short_time(ban_delay(addr)));
+			upload_remove(u, _("Banned for %s"),
+				short_time_ascii(ban_delay(addr)));
 		return;
 	}
 
@@ -3526,7 +3527,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				send_upload_error(u, reqfile, 503,
 					  "Queued (slot %d, ETA: %s)",
 					  parq_upload_lookup_position(u),
-					  short_time(parq_upload_lookup_eta(u)));
+					  short_time_ascii(parq_upload_lookup_eta(u)));
 
 				u->error_sent = 0;	/* Any new request should be allowed
 									   to retrieve an error code */
@@ -3547,7 +3548,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				upload_error_remove(u, reqfile,	503,
 					N_("Queued (slot %d, ETA: %s)"),
 					parq_upload_lookup_position(u),
-					short_time(parq_upload_lookup_eta(u)));
+					short_time_ascii(parq_upload_lookup_eta(u)));
 			}
 			return;
 		}
