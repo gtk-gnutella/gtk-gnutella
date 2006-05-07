@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-29 13:53+0900\n"
+"POT-Creation-Date: 2006-05-08 01:09+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -18,6 +18,13 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+
+#, c-format
+msgid "%s%s%s%s%s fps, %s kbps"
+msgstr ""
+
+msgid "times|x"
+msgstr ""
 
 msgid "No longer connected"
 msgstr "已断开"
@@ -1971,6 +1978,12 @@ msgid ""
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
 "of the origin of the files."
+msgstr ""
+
+msgid ""
+"Enables this if all units should be displayed using the metric system with "
+"SI prefixes. If disabled, certain units, for example, filesizes will be "
+"displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
 msgid "disable"
@@ -5554,6 +5567,10 @@ msgstr ""
 
 msgid "Toolbar style"
 msgstr "工具栏风格"
+
+#, fuzzy
+msgid "Show _metric units"
+msgstr "显示搜索列表"
 
 msgid "Expert mode"
 msgstr "高级模式"

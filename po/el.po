@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-29 13:53+0900\n"
+"POT-Creation-Date: 2006-05-08 01:09+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -19,6 +19,14 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms:  nplurals=2; plural=(1 != n);\n"
 "X-Generator: KBabel 1.10.2\n"
+
+#, c-format
+msgid "%s%s%s%s%s fps, %s kbps"
+msgstr ""
+
+#, fuzzy
+msgid "times|x"
+msgstr "Χρόνος λειτουργίας"
 
 msgid "No longer connected"
 msgstr "Όχι συνδεδεμένο πια"
@@ -2217,6 +2225,12 @@ msgid ""
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
 "of the origin of the files."
+msgstr ""
+
+msgid ""
+"Enables this if all units should be displayed using the metric system with "
+"SI prefixes. If disabled, certain units, for example, filesizes will be "
+"displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
 msgid "disable"
@@ -5887,6 +5901,10 @@ msgstr "Ανανέωση παραθύρου αναζήτησης κάθε"
 
 msgid "Toolbar style"
 msgstr "Στυλ εργαλειοθήκης"
+
+#, fuzzy
+msgid "Show _metric units"
+msgstr "Εμφάνιση _ποσοστών"
 
 msgid "Expert mode"
 msgstr "Λειτουργία για προχωρημένους"

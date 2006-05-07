@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-04-29 13:53+0900\n"
+"POT-Creation-Date: 2006-05-08 01:09+0900\n"
 "PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
@@ -19,6 +19,14 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: KBabel 1.10.1\n"
+
+#, c-format
+msgid "%s%s%s%s%s fps, %s kbps"
+msgstr ""
+
+#, fuzzy
+msgid "times|x"
+msgstr "Oppetid"
 
 msgid "No longer connected"
 msgstr "Ikke lenger tilkoblet"
@@ -2254,6 +2262,12 @@ msgid ""
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
 "of the origin of the files."
+msgstr ""
+
+msgid ""
+"Enables this if all units should be displayed using the metric system with "
+"SI prefixes. If disabled, certain units, for example, filesizes will be "
+"displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
 msgid "disable"
@@ -5906,6 +5920,10 @@ msgstr "Oppdater søkeresultatruten hvert"
 
 msgid "Toolbar style"
 msgstr "Verktøylinjestil"
+
+#, fuzzy
+msgid "Show _metric units"
+msgstr "Vis _prosenter"
 
 msgid "Expert mode"
 msgstr "Ekspertmodus"
