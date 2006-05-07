@@ -1,3 +1,4 @@
+src/core/bitzi.c
 src/core/downloads.c
 src/core/gnet_stats.c
 src/core/gwcache.c

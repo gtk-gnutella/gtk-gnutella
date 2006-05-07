@@ -388,8 +388,8 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	s = xml_get_string(node, "format");
 	if (s) {
 		if (xmlStrstr(string_to_xmlChar(s), string_to_xmlChar("video"))) {
-			gchar *xml_sizex = xml_get_string(node, "videoWidth");
-			gchar *xml_sizey = xml_get_string(node, "videoHeight");
+			gchar *xml_width = xml_get_string(node, "videoWidth");
+			gchar *xml_height = xml_get_string(node, "videoHeight");
 			gchar *xml_bitrate = xml_get_string(node, "videoBitrate");
 			gchar *xml_fps = xml_get_string(node, "videoFPS");
 
@@ -401,16 +401,20 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 			/*
 			 * format the mime details
 			 */
-			if (xml_sizex && xml_sizey) {
+			{
+				gboolean has_res = xml_width && xml_height;
+				/**
+	 			 * TRANSLATORS: This describes video parameters;
+				 * The first part is used as <width>x<height> (resolution).
+				 * fps stands for "frames per second".
+				 * kbps stands for "kilobit per second" (metric kilo).
+	 			 */
 				data->mime_desc =
-					g_strdup_printf("%sx%s, %s fps, %s bitrate",
-						(xml_sizex != NULL) ? xml_sizex : "?",
-						(xml_sizey != NULL) ? xml_sizey : "?",
-						(xml_fps != NULL) ? xml_fps : "?",
-						(xml_bitrate != NULL) ? xml_bitrate : "?");
-			} else if (xml_fps || xml_bitrate) {
-				data->mime_desc =
-					g_strdup_printf("%s fps %s bitrate",
+					g_strdup_printf(_("%s%s%s%s%s fps, %s kbps"),
+						has_res ? xml_width : "",
+						has_res ? Q_("times|x") : "",
+						has_res ? xml_height : "",
+						has_res ? ", " : "",
 						(xml_fps != NULL) ? xml_fps : "?",
 						(xml_bitrate != NULL) ? xml_bitrate : "?");
 			}
@@ -455,7 +459,10 @@ process_bitzi_ticket(xmlNode *a_node, bitzi_data_t *data)
 				g_message("node type: Element, name: %s, children %p",
 					cur_node->name, cast_to_gconstpointer(cur_node->children));
 
-			if (0 == xmlStrcmp(cur_node->name, (const xmlChar *) "Description"))
+			if (
+				0 == xmlStrcmp(cur_node->name,
+					string_to_xmlChar("Description"))
+			)
 				process_rdf_description(cur_node, data);
 			else
 				process_bitzi_ticket(cur_node->children, data);
