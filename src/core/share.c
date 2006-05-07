@@ -1062,7 +1062,7 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 		g_assert(name && G_DIR_SEPARATOR == name[0]);
 		name++;						/* Start of file name */
 
-		entry_end = &name[strlen(name)];
+		entry_end = strchr(name, '\0');
 
 		for (exts = extensions; exts; exts = exts->next) {
 			struct extension *e = exts->data;
