@@ -11547,6 +11547,8 @@ create_dlg_prefs (void)
   GtkWidget *label657;
   GtkWidget *option_menu_config_toolbar_style;
   GtkWidget *option_menu_config_toolbar_style_menu;
+  guint checkbutton_config_metric_key;
+  GtkWidget *checkbutton_config_metric;
   GtkWidget *frame64;
   GtkWidget *table45;
   guint checkbutton_expert_mode_key;
@@ -16712,7 +16714,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame52);
   gtk_box_pack_start (GTK_BOX (vbox77), frame52, FALSE, TRUE, 0);
 
-  table35 = gtk_table_new (5, 3, FALSE);
+  table35 = gtk_table_new (6, 3, FALSE);
   gtk_widget_set_name (table35, "table35");
   gtk_widget_ref (table35);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table35", table35,
@@ -16822,7 +16824,7 @@ create_dlg_prefs (void)
   gtk_widget_ref (label657);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label657", label657,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_table_attach (GTK_TABLE (table35), label657, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table35), label657, 0, 1, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label657), 0, 0.5);
@@ -16832,11 +16834,25 @@ create_dlg_prefs (void)
   gtk_widget_ref (option_menu_config_toolbar_style);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_toolbar_style", option_menu_config_toolbar_style,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_table_attach (GTK_TABLE (table35), option_menu_config_toolbar_style, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table35), option_menu_config_toolbar_style, 1, 2, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   option_menu_config_toolbar_style_menu = gtk_menu_new ();
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_toolbar_style), option_menu_config_toolbar_style_menu);
+
+  checkbutton_config_metric = gtk_check_button_new_with_label ("");
+  checkbutton_config_metric_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_metric)->child),
+                                   _("Show _metric units"));
+  gtk_widget_add_accelerator (checkbutton_config_metric, "clicked", accel_group,
+                              checkbutton_config_metric_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_metric, "checkbutton_config_metric");
+  gtk_widget_ref (checkbutton_config_metric);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_metric", checkbutton_config_metric,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_metric);
+  gtk_table_attach (GTK_TABLE (table35), checkbutton_config_metric, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame64 = gtk_frame_new (_("Expert mode"));
   gtk_widget_set_name (frame64, "frame64");

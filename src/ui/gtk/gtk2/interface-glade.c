@@ -1594,7 +1594,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label498), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label494 = gtk_label_new ("Raphaël Manfredi");
+  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_table_attach (GTK_TABLE (table105), label494, 1, 2, 1, 2,
@@ -1621,7 +1621,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label704), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label704), 4, 0);
 
-  label493 = gtk_label_new ("Raphaël Manfredi");
+  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_table_attach (GTK_TABLE (table105), label493, 4, 5, 0, 1,
@@ -13901,7 +13901,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
@@ -13910,7 +13910,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
@@ -14548,7 +14548,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
 
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   gtk_widget_show (spinbutton_pfsp_first_chunk);
@@ -14666,7 +14666,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label928), 0, 0.5);
 
-  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_parq_min_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_size, "spinbutton_parq_min_size");
   gtk_widget_show (spinbutton_parq_min_size);
@@ -14689,7 +14689,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_parq_min_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_time_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_time, "spinbutton_parq_min_time");
   gtk_widget_show (spinbutton_parq_min_time);
@@ -15444,7 +15444,6 @@ create_dlg_prefs_ui_tab (void)
   GtkWidget *vbox80;
   GtkWidget *frame52;
   GtkWidget *table35;
-  GtkWidget *label553;
   GtkWidget *label749;
   GtkWidget *label750;
   GtkObject *spinbutton_entry_removal_timeout_adj;
@@ -15455,7 +15454,9 @@ create_dlg_prefs_ui_tab (void)
   GtkWidget *label834;
   GtkWidget *checkbutton_config_show_tooltips;
   GtkWidget *checkbutton_config_confirm_quit;
+  GtkWidget *label553;
   GtkWidget *option_menu_config_toolbar_style;
+  GtkWidget *checkbutton_config_metric;
   GtkWidget *label373;
   GtkWidget *frame53;
   GtkWidget *table34;
@@ -15516,21 +15517,13 @@ create_dlg_prefs_ui_tab (void)
   gtk_widget_show (frame52);
   gtk_box_pack_start (GTK_BOX (vbox80), frame52, FALSE, TRUE, 0);
 
-  table35 = gtk_table_new (5, 4, FALSE);
+  table35 = gtk_table_new (6, 4, FALSE);
   gtk_widget_set_name (table35, "table35");
   gtk_widget_show (table35);
   gtk_container_add (GTK_CONTAINER (frame52), table35);
   gtk_container_set_border_width (GTK_CONTAINER (table35), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table35), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table35), 4);
-
-  label553 = gtk_label_new (_("Toolbar style"));
-  gtk_widget_set_name (label553, "label553");
-  gtk_table_attach (GTK_TABLE (table35), label553, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label553), GTK_JUSTIFY_RIGHT);
-  gtk_misc_set_alignment (GTK_MISC (label553), 0, 0.5);
 
   label749 = gtk_label_new (_("Try to keep 'dead' entries around for"));
   gtk_widget_set_name (label749, "label749");
@@ -15594,11 +15587,26 @@ create_dlg_prefs_ui_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
 
-  option_menu_config_toolbar_style = gtk_option_menu_new ();
-  gtk_widget_set_name (option_menu_config_toolbar_style, "option_menu_config_toolbar_style");
-  gtk_table_attach (GTK_TABLE (table35), option_menu_config_toolbar_style, 1, 3, 2, 3,
+  label553 = gtk_label_new (_("Toolbar style"));
+  gtk_widget_set_name (label553, "label553");
+  gtk_table_attach (GTK_TABLE (table35), label553, 0, 1, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label553), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label553), 0, 0.5);
+
+  option_menu_config_toolbar_style = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_toolbar_style, "option_menu_config_toolbar_style");
+  gtk_table_attach (GTK_TABLE (table35), option_menu_config_toolbar_style, 1, 3, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_metric = gtk_check_button_new_with_mnemonic (_("Show _metric units"));
+  gtk_widget_set_name (checkbutton_config_metric, "checkbutton_config_metric");
+  gtk_widget_show (checkbutton_config_metric);
+  gtk_table_attach (GTK_TABLE (table35), checkbutton_config_metric, 0, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
 
   label373 = gtk_label_new (_("Miscellaneous"));
   gtk_widget_set_name (label373, "label373");
@@ -15814,7 +15822,6 @@ create_dlg_prefs_ui_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, vbox80, "vbox80");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, frame52, "frame52");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, table35, "table35");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label553, "label553");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label749, "label749");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label750, "label750");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, spinbutton_entry_removal_timeout, "spinbutton_entry_removal_timeout");
@@ -15823,7 +15830,9 @@ create_dlg_prefs_ui_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label834, "label834");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_config_show_tooltips, "checkbutton_config_show_tooltips");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_config_confirm_quit, "checkbutton_config_confirm_quit");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label553, "label553");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, option_menu_config_toolbar_style, "option_menu_config_toolbar_style");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_config_metric, "checkbutton_config_metric");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label373, "label373");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, frame53, "frame53");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, table34, "table34");
