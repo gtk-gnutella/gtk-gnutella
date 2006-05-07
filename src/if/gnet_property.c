@@ -618,6 +618,8 @@ guint32  download_buffer_read_ahead     = 4096;
 guint32  download_buffer_read_ahead_def = 4096;
 gboolean browse_copied_to_passive     = FALSE;
 gboolean browse_copied_to_passive_def = FALSE;
+gboolean display_metric_units     = FALSE;
+gboolean display_metric_units_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -5873,6 +5875,23 @@ gnet_prop_init(void) {
     gnet_property->props[274].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[274].data.boolean.def   = &browse_copied_to_passive_def;
     gnet_property->props[274].data.boolean.value = &browse_copied_to_passive;
+
+
+    /*
+     * PROP_DISPLAY_METRIC_UNITS:
+     *
+     * General data:
+     */
+    gnet_property->props[275].name = "display_metric_units";
+    gnet_property->props[275].desc = _("Enables this if all units should be displayed using the metric system with SI prefixes. If disabled, certain units, for example, filesizes will be displayed using the historical base2 convention with binary prefixes.");
+    gnet_property->props[275].ev_changed = event_new("display_metric_units_changed");
+    gnet_property->props[275].save = TRUE;
+    gnet_property->props[275].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[275].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[275].data.boolean.def   = &display_metric_units_def;
+    gnet_property->props[275].data.boolean.value = &display_metric_units;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -318,6 +318,7 @@ extern const gboolean overloaded_cpu;
 extern const guint32  download_buffer_size;
 extern const guint32  download_buffer_read_ahead;
 extern const gboolean browse_copied_to_passive;
+extern const gboolean display_metric_units;
 
 
 prop_set_t *gnet_prop_init(void);
