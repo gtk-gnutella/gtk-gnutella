@@ -1489,44 +1489,53 @@ config_boolean(gboolean b)
 }
 
 /**
- * Creates a string containing aset of lines from with words taken from s,
- * each line no longer than 80 chars (except when a single words is very long)
- * and prepended with "# ".
+ * Creates a string containing a set of lines from with words taken from s,
+ * each line no longer than about 72 characters unless there is no whitespace
+ * within 72 characters (e.g. Japanese). Every line is prepended with "# ".
+ * A final newline is NOT appended.
+ *
+ * @return A newly allocated string holding the formatted comment.
  */
 static gchar *
 config_comment(const gchar *s)
 {
-	gchar **sv;
-	gchar *tok;
-	gint n;
-	gint len = 0;		 /* length without "# " at the beginning */
+	gchar *result;
+	const gchar *word;
+	size_t line_len;
 	GString *out;
-	static gchar result[2048];
 
 	g_assert(s != NULL);
 
-	out = g_string_new("# ");
-	sv = g_strsplit(s, " ", 0);
+	out = g_string_new(NULL);
+	word = skip_ascii_spaces(s); /* Ignore leading whitespace. */
+	line_len = 0;
 
-	for (tok = sv[0], n = 0; tok != NULL; ++n, tok = sv[n]) {
-		if ((len == 0) || ((len + strlen(sv[n]) < 72))) {
-			/* append to this line */
-			if (n > 0)
-				g_string_append_c(out, ' ');
-			g_string_append(out, sv[n]);
-			len += strlen(sv[n]) + (n == 0 ? 0 : 1);
-		} else {
-			/* end line and append to new line */
-			g_string_append(out, "\n# ");
-			g_string_append(out, sv[n]);
-			len = strlen(sv[n]);
+	while ('\0' != word[0]) {
+		static const size_t max_len = 72;
+		const gchar *endptr;
+		size_t word_len;
+
+		endptr = skip_ascii_non_spaces(word);
+		word_len = endptr - word;
+		if (line_len >= max_len || word_len >= max_len - line_len) {
+			if (line_len > 0)
+				g_string_append(out, "\n");
+			line_len = 0;
 		}
+		if (0 == line_len) {
+			g_string_append(out, "#");
+			line_len++;
+		}
+		/* All kind of ASCII whitespace is normalized to a single space. */
+		g_string_append(out, " ");
+		line_len++;
+		g_string_append_len(out, word, word_len);
+		line_len += word_len;
+		word = skip_ascii_spaces(endptr);
 	}
 
-	g_strlcpy(result, out->str, sizeof(result));
-	g_strfreev(sv);
-
-	g_string_free(out, TRUE);
+	result = out->str;
+	g_string_free(out, FALSE); /* Don't free the string itself */
 
 	return result;
 }
@@ -1615,10 +1624,15 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 #endif
 			GTA_RELEASE, GTA_WEBSITE);
 
-	fprintf(config,
-		"#\n# Description of contents\n"
-		"%s\n\n",
-		config_comment(ps->desc));
+	{
+		gchar *comment = config_comment(ps->desc);
+
+		fprintf(config,
+			"#\n# Description of contents\n"
+			"%s\n\n",
+			comment);
+		G_FREE_NULL(comment);
+	}
 
 	for (n = 0; n < ps->size; n++) {
 		prop_def_t *p = &ps->props[n];
@@ -1635,7 +1649,12 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		vbuf = g_new(gchar*, p->vector_size+1);
 		vbuf[0] = NULL;
 
-		fprintf(config, "%s\n", config_comment(p->desc));
+		{
+			gchar *comment = config_comment(p->desc);
+
+			fprintf(config, "%s\n", comment);
+			G_FREE_NULL(comment);
+		}
 
 		switch (p->type) {
 		case PROP_TYPE_BOOLEAN:
@@ -1891,8 +1910,9 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	static gchar prop_tmp[4096];
 	FILE *config;
 	gchar *path;
-	guint32 n = 0;
+	guint n = 1;
 	struct stat buf;
+	gboolean truncated = FALSE;
 
 	g_assert(dir != NULL);
 	g_assert(filename != NULL);
@@ -1934,18 +1954,30 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	 * ([[:blank:]]*)(("[^"]*")|([^[:space:]]*))
 	 *
 	 */
-	while (fgets(prop_tmp, sizeof(prop_tmp), config)) {
+	while (fgets(prop_tmp, sizeof prop_tmp, config)) {
 		property_t i;
 		gchar *s, *k, *v;
 		gint c;
 
+		s = strchr(prop_tmp, '\n');
+		if (!s) {
+			g_warning("config file, line %u: line too long or unterminated, "
+				"ignored", n);
+			truncated = TRUE;
+			continue;
+		}
 		n++; /* Increase line counter */
+		if (truncated) {
+			truncated = FALSE;
+			continue;
+		}
+		*s = '\0';
+
 		k = v = NULL;
 		s = prop_tmp;
 		/* Skip leading blanks */
-		while ((c = (guchar) *s) != '\0' && is_ascii_blank(c))
-			s++;
-
+		s = skip_ascii_blanks(s);
+		c = (guchar) *s;
 		if (!is_ascii_alpha(c))	/* <keyword> must start with a letter */
 			continue;
 
@@ -1953,18 +1985,14 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		k = s;
 		while ((c = (guchar) *s) == '_' || is_ascii_alnum(c))
 			s++;
+
 		*s = '\0'; /* Terminate <keyword>, original value is stored in c */
-
-		if (c != '=' && !is_ascii_blank(c)) {
-			/* <keyword> must be followed by a '=' and optional blanks */
-			g_warning(fmt, n);
-			continue;
+		if (is_ascii_blank(c)) {
+			s = skip_ascii_blanks(&s[1]);
+			c = (guchar) *s;
 		}
-		while (c != '\0' && is_ascii_blank(c))
-			c = *(++s);
-
 		if (c != '=') {
-			/* <keyword> must be followed by a '=' and optionally blanks */
+			/* <keyword> must be followed by a '=' and optional blanks */
 			g_warning(fmt, n);
 			continue;
 		}
@@ -1973,19 +2001,17 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		s++; /* Skip '=' (maybe already overwritten with a '\0') */
 
 		/* Skip optional blanks */
-		while ((c = (guchar) *s) != '\0' && is_ascii_blank(c))
-			s++;
+		s = skip_ascii_blanks(s);
+		c = (guchar) *s;
 
 		if (c == '"') {
 			/* Here starts the <value> part (quoted) */
 			v = ++s; /* Skip double-quote '"' */
 
 			/* Scan for terminating double-quote '"' */
-			while ((c = (guchar) *s) != '\0' && c != '\n' && c != '"')
-				s++;
-
+			s = strchr(s, '"');
 			/* Check for proper quote termination */
-			if (c == '\0' || c == '\n') {
+			if (!s) {
 				/* Missing terminating double-quote '"' */
 				g_warning(fmt, n);
 				continue;
@@ -1995,9 +2021,9 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			/* Here starts the <value> part (unquoted) */
 			v = s;
 			/* The first space terminates the value */
-			while ((c = (guchar) *s) != '\0' && !is_ascii_space(c))
-				s++;
+			s = skip_ascii_non_spaces(s);
 		}
+		c = (guchar) *s;
 
 		g_assert(*s == '\0' || *s == '"' || is_ascii_space(c));
 		*s = '\0'; /* Terminate value in case of trailing characters */
@@ -2013,7 +2039,7 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 
 		if (i >= ps->size)
 			g_warning("config file, line %u: unknown keyword '%s', ignored",
-					(guint) n, k);
+				n, k);
 	}
 
 	fclose(config);
