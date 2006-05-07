@@ -767,6 +767,7 @@ gchar *s = N_("seconds");
 gchar *s = N_("Update search results pane every");
 gchar *s = N_("seconds");
 gchar *s = N_("Toolbar style");
+gchar *s = N_("Show _metric units");
 gchar *s = N_("Expert mode");
 gchar *s = N_("Show additional information and settings for advanced and _expert users");
 gchar *s = N_("GnutellaNet display");
