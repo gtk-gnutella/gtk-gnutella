@@ -3830,7 +3830,7 @@ download_fallback_to_push(struct download *d,
  * @returns created download structure, or NULL if none.
  */
 static struct download *
-create_download(gchar *file, const gchar *uri, filesize_t size,
+create_download(const gchar *file, const gchar *uri, filesize_t size,
 	guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
 	const gchar *hostname, gchar *sha1, time_t stamp,
@@ -3878,7 +3878,7 @@ create_download(gchar *file, const gchar *uri, filesize_t size,
 		if (file != s)
 			G_FREE_NULL(s);
 	} else {
-    	file_name = file;
+    	file_name = deconstify_gchar(file);
 	}
 
 
@@ -4056,7 +4056,7 @@ create_download(gchar *file, const gchar *uri, filesize_t size,
  * Automatic download request.
  */
 void
-download_auto_new(gchar *file, filesize_t size, guint32 record_index,
+download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	gboolean file_size_known, fileinfo_t *fi,
@@ -4322,9 +4322,11 @@ download_request_free(struct download_request **req_ptr)
 	if (req->uri) {
 		atom_str_free(req->uri);
 	}
+	if (req->sha1) {
+		atom_sha1_free(req->sha1);
+	}
 	atom_str_free(req->hostname);
 	atom_str_free(req->file);
-	atom_sha1_free(req->sha1);
 	atom_guid_free(req->guid);
 	wfree(req, sizeof *req);
 }
@@ -4371,7 +4373,7 @@ download_new_by_hostname(struct download_request *req)
  * @return whether download was created.
  */
 gboolean
-download_new(gchar *file, filesize_t size, guint32 record_index,
+download_new(const gchar *file, filesize_t size, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
@@ -4390,7 +4392,7 @@ download_new(gchar *file, filesize_t size, guint32 record_index,
 		req->port = port;
 		req->guid = atom_guid_get(guid);
 		req->hostname = atom_str_get(hostname);
-		req->sha1 = atom_sha1_get(sha1);
+		req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 		req->stamp = stamp;
 		req->push = push;
 		req->fi = fi;	/* XXX: Increase ref counter or what? */
@@ -4413,7 +4415,7 @@ download_new(gchar *file, filesize_t size, guint32 record_index,
  * Create a new download whose total size is unknown.
  */
 gboolean
-download_new_unknown_size(gchar *file, guint32 record_index,
+download_new_unknown_size(const gchar *file, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
@@ -4424,7 +4426,7 @@ download_new_unknown_size(gchar *file, guint32 record_index,
 }
 
 gboolean
-download_new_uri(gchar *file, const gchar *uri, filesize_t size,
+download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 	  const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	  gchar *sha1, time_t stamp, gboolean push,
 	  fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
@@ -4443,7 +4445,7 @@ download_new_uri(gchar *file, const gchar *uri, filesize_t size,
 		req->port = port;
 		req->guid = atom_guid_get(guid);
 		req->hostname = atom_str_get(hostname);
-		req->sha1 = atom_sha1_get(sha1);
+		req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 		req->stamp = stamp;
 		req->push = push;
 		req->fi = fi;	/* XXX: Increase ref counter or what? */
