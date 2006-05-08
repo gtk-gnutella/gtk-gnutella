@@ -350,10 +350,22 @@ handle_magnet(gchar *url)
 	 */
 
 	if (dl.size > 0) {
-		gchar *filename;
+		const gchar *filename;
 		gchar urn[256];
 
 		filename = dl.display_name;
+		if (!filename) {
+			for (sl = dl.sources; sl != NULL; sl = g_slist_next(sl)) {
+				struct magnet_source *ms = sl->data;
+
+				if (ms->uri) {
+					filename = filepath_basename(ms->uri);
+					if ('\0' != filename[0])
+						break;
+					filename = NULL;
+				}
+			}
+		}
 		if (!filename) {
 			if (dl.sha1) {
 				concat_strings(urn, sizeof urn,
