@@ -85,22 +85,22 @@ void guc_download_thaw_queue(void);
 gint guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
-void guc_download_auto_new(gchar *file, filesize_t size,
+void guc_download_auto_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
 	gboolean push, gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags);
-gboolean guc_download_new(gchar *file, filesize_t size,
+gboolean guc_download_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
 	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
 	guint32 flags);
-gboolean guc_download_new_uri(gchar *file, const gchar *uri, filesize_t size,
+gboolean guc_download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 	const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
 	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
 	guint32 flags);
-gboolean guc_download_new_unknown_size(gchar *file,
+gboolean guc_download_new_unknown_size(const gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
 	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,

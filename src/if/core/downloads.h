@@ -346,15 +346,15 @@ struct download {
 void download_index_changed(const host_addr_t, guint16, gchar *,
 		guint32, guint32);
 
-gboolean download_new(gchar *,
+gboolean download_new(const gchar *,
 	filesize_t, guint32, const host_addr_t addr, guint16,
 	const gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *, guint32 flags);
-gboolean download_new_uri(gchar *file, const gchar *uri, filesize_t size,
+gboolean download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 	  const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	  gchar *sha1, time_t stamp, gboolean push,
 	  struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
-void download_auto_new(gchar *,
+void download_auto_new(const gchar *,
  	filesize_t, guint32, const host_addr_t, guint16, const gchar *,
 	gchar *, gchar *, time_t,
     gboolean, gboolean, struct dl_file_info *, gnet_host_vec_t *,
@@ -382,7 +382,7 @@ void download_freeze_queue(void);
 void download_thaw_queue(void);
 gint download_queue_is_frozen(void);
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
-gboolean download_new_unknown_size(gchar *file, guint32 record_index,
+gboolean download_new_unknown_size(const gchar *file, guint32 record_index,
 	 const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
