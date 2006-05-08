@@ -2941,7 +2941,7 @@ download_queue_hold_delay_v(struct download *d,
 	 */
 
 	d->last_update = now;
-	d->retry_after = now + delay;
+	d->retry_after = time_advance(now, delay);
 
 	download_queue_v(d, fmt, ap);
 	download_server_retry_after(d->server, now, hold);
@@ -3332,7 +3332,7 @@ download_bad_source(struct download *d)
 {
 	download_passively_queued(d, FALSE);
 
-	if (!d->always_push && d->sha1)
+	if (!d->always_push && d->sha1 && !d->uri)
 		dmesh_remove(d->sha1, download_addr(d), download_port(d),
 			d->record_index, d->file_name);
 }
@@ -6192,6 +6192,13 @@ update_available_ranges(struct download *d, header_t *header)
 		goto send_event;
 
 	/*
+	 * LimeWire seemingly sends this to imply support for the feature
+	 * when it has no availble ranges.
+	 */
+	if (0 == strcmp(buf, "bytes"))
+		goto send_event;
+		
+	/*
 	 * Update available range list and total size available remotely.
 	 */
 
@@ -6388,6 +6395,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
+	gboolean is_chunked = FALSE;
 	filesize_t check_content_range = 0, requested_size;
 	host_addr_t addr;	
 	guint16 port;
@@ -6619,11 +6627,14 @@ http_version_nofix:
 		 * If we made a /uri-res/N2R? request, yet if the download still
 		 * has the old index/name indication, convert it to a /uri-res/.
 	 	 */
-#if 0
-		if (d->record_index != URN_INDEX && d->sha1 && (d->flags & DL_F_URIRES))
-			if (!download_convert_to_urires(d))
+		if (
+			!d->uri &&
+			d->record_index != URN_INDEX &&
+			d->sha1 && (d->flags & DL_F_URIRES) &&
+			!download_convert_to_urires(d)
+		) {
 				return;
-#endif
+		}
 
 		/*
 		 * The download could be remotely queued. Check this now before
@@ -6642,7 +6653,7 @@ http_version_nofix:
 					if (check_content_urn(d, header)) {
 
 						/* Update mesh */
-						if (!d->always_push && d->sha1)
+						if (!d->always_push && d->sha1 && !d->uri)
 							dmesh_add(d->sha1, addr, port, d->record_index,
 								d->file_name, 0);
 
@@ -7111,9 +7122,9 @@ http_version_nofix:
 			gcu_gui_update_download_size(d);
 		}
 
-		if (error || content_size == 0) {
+		if (error) {
 			download_bad_source(d);
-			download_stop(d, GTA_DL_ERROR, "Zero Content-Length");
+			download_stop(d, GTA_DL_ERROR, "Unparseable Content-Length");
 			return;
 		} else if (content_size != requested_size) {
 			if (content_size == fi->size) {
@@ -7314,11 +7325,13 @@ http_version_nofix:
 	 * requests.
 	 */
 
-	if (!got_content_length && (d->flags & DL_F_BROWSE)) {
-		buf = header_get(header, "Transfer-Encoding");
-		if (buf && 0 == strcmp(buf, "chunked"))
+	buf = header_get(header, "Transfer-Encoding");
+	if (buf && 0 == strcmp(buf, "chunked")) {
+		is_chunked = TRUE;
+		if (d->flags & DL_F_BROWSE) {
 			bh_flags |= BH_DL_CHUNKED;
-		got_content_length = TRUE;		/* Not required for browsing anyway */
+			got_content_length = TRUE;	/* Not required for browsing anyway */
+		}
 	}
 
 	/*
@@ -7482,8 +7495,7 @@ http_version_nofix:
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
 
-	d->bio = bsched_source_add(bws.in, &s->wio,
-		BIO_F_READ, download_read, (gpointer) d);
+	d->bio = bsched_source_add(bws.in, &s->wio, BIO_F_READ, download_read, d);
 
 	/*
 	 * If we have something in the input buffer, write the data to the
@@ -7523,7 +7535,7 @@ download_incomplete_header(struct download *d)
 static void
 download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	struct download *d = (struct download *) data;
+	struct download *d = data;
 	struct gnutella_socket *s;
 	ssize_t r;
 	fileinfo_t *fi;
