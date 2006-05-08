@@ -4003,7 +4003,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 * Insert in download mesh if it does not require a push and has a SHA1.
 	 */
 
-	if (!d->always_push && d->sha1)
+	if (!d->always_push && d->sha1 && !d->uri)
 		dmesh_add(d->sha1, addr, port, record_index, file_name, stamp);
 
 	/*
@@ -5697,6 +5697,7 @@ download_convert_to_urires(struct download *d)
 	struct download *xd;
 
 	download_check(d);
+	g_assert(d->uri == NULL);
 	g_assert(d->record_index != URN_INDEX);
 	g_assert(d->sha1 != NULL);
 	g_assert(d->file_info->sha1 == d->sha1);
@@ -6087,7 +6088,7 @@ check_content_urn(struct download *d, header_t *header)
 		 * as the mesh timestamp.
 		 */
 
-		if (!d->always_push)
+		if (!d->always_push && !d->uri)
 			dmesh_add(d->sha1,
 				download_addr(d), download_port(d), d->record_index,
 				d->file_name, 0);
@@ -6716,7 +6717,7 @@ http_version_nofix:
 				return;
 
 			/* Update mesh -- we're about to return */
-			if (!d->always_push && d->sha1)
+			if (!d->always_push && d->sha1 && !d->uri)
 				dmesh_add(d->sha1, addr, port,
 					d->record_index, d->file_name, 0);
 
@@ -6841,7 +6842,7 @@ http_version_nofix:
 
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* OK -- Update mesh */
-		if (!d->always_push && d->sha1)
+		if (!d->always_push && d->sha1 && !d->uri)
 			dmesh_add(d->sha1, addr, port, d->record_index, d->file_name, 0);
 
 		download_passively_queued(d, FALSE);
@@ -6918,7 +6919,7 @@ http_version_nofix:
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
 			/* Update mesh */
-			if (!d->always_push && d->sha1)
+			if (!d->always_push && d->sha1 && !d->uri)
 				dmesh_add(d->sha1, addr, port, d->record_index,
 					d->file_name, 0);
 
