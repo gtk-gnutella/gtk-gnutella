@@ -68,6 +68,7 @@
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
 
+#include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/dbus_util.h"
@@ -4291,6 +4292,79 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
     }
 }
 
+struct download_request {
+	host_addr_t addr;
+	const gchar *guid;
+	gchar *hostname;
+	gchar *file;
+	gchar *sha1;
+	gchar *uri;
+	fileinfo_t *fi;
+	filesize_t size;
+	time_t stamp;
+	guint32 flags;
+	guint32 record_index;
+	guint16 port;
+	gboolean push;
+};
+
+static void
+download_request_free(struct download_request **req_ptr)
+{
+	struct download_request *req;
+	
+	g_assert(req_ptr);
+
+	req = *req_ptr;
+	g_assert(req);
+
+	*req_ptr = NULL;
+	if (req->uri) {
+		atom_str_free(req->uri);
+	}
+	atom_str_free(req->hostname);
+	atom_str_free(req->file);
+	atom_sha1_free(req->sha1);
+	atom_guid_free(req->guid);
+	wfree(req, sizeof *req);
+}
+
+/**
+ * Called when we got a reply from the ADNS process.
+ */
+static void
+download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
+	gpointer user_data)
+{
+	struct download_request *req = user_data;
+
+	g_assert(addrs);
+	g_assert(req);
+
+	if (n > 0) {
+		size_t i = random_raw() % n;
+
+		/**
+		 * @todo TODO: All resolved addresses should be attempted.
+		 */
+		create_download(req->file, req->uri, req->size,
+			req->record_index, addrs[i],
+			req->port, req->guid, req->hostname, req->sha1, req->stamp,
+			req->push, TRUE, TRUE, req->fi, NULL, req->flags);
+	}
+	download_request_free(&req);
+}
+
+static void
+download_new_by_hostname(struct download_request *req)
+{
+	g_assert(req);
+	g_assert(req->hostname);
+
+	adns_resolve(req->hostname, settings_dns_net(),
+		download_new_by_hostname_helper, req);
+}
+
 /**
  * Create a new download, usually called from an interactive user action.
  *
@@ -4298,12 +4372,41 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
  */
 gboolean
 download_new(gchar *file, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-	gchar *sha1, time_t stamp, gboolean push,
+	const host_addr_t addr, guint16 port, const gchar *guid,
+	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
-	return NULL != create_download(file, NULL, size, record_index, addr, port,
-		guid, hostname, sha1, stamp, push, TRUE, TRUE, fi, proxies, flags);
+	if (hostname) {
+		static struct download_request zero_req;
+		struct download_request *req;
+
+		req = walloc(sizeof *req);
+		*req = zero_req;
+
+		req->file = atom_str_get(file);
+		req->size = size;
+		req->record_index = record_index;
+		req->addr = addr;
+		req->port = port;
+		req->guid = atom_guid_get(guid);
+		req->hostname = atom_str_get(hostname);
+		req->sha1 = atom_sha1_get(sha1);
+		req->stamp = stamp;
+		req->push = push;
+		req->fi = fi;	/* XXX: Increase ref counter or what? */
+		req->flags = flags;
+
+		/*
+		 * Ignore proxies because they might be freed before the hostname
+		 * has been resolved.
+		 */
+
+		download_new_by_hostname(req);
+		return TRUE;
+	}
+	return NULL != create_download(file, NULL, size, record_index, addr,
+					port, guid, hostname, sha1, stamp, push, TRUE,
+					TRUE, fi, proxies, flags);
 }
 
 /**
@@ -4316,7 +4419,8 @@ download_new_unknown_size(gchar *file, guint32 record_index,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	return NULL != create_download(file, NULL, 0, record_index, addr, port,
-		guid, hostname, sha1, stamp, push, TRUE, FALSE, fi, proxies, flags);
+						guid, hostname, sha1, stamp, push, TRUE, FALSE, fi,
+						proxies, flags);
 }
 
 gboolean
@@ -4325,9 +4429,37 @@ download_new_uri(gchar *file, const gchar *uri, filesize_t size,
 	  gchar *sha1, time_t stamp, gboolean push,
 	  fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
+	if (hostname) {
+		static struct download_request zero_req;
+		struct download_request *req;
+
+		req = walloc(sizeof *req);
+		*req = zero_req;
+
+		req->file = atom_str_get(file);
+		req->uri = atom_str_get(uri);
+		req->size = size;
+		req->addr = addr;
+		req->port = port;
+		req->guid = atom_guid_get(guid);
+		req->hostname = atom_str_get(hostname);
+		req->sha1 = atom_sha1_get(sha1);
+		req->stamp = stamp;
+		req->push = push;
+		req->fi = fi;	/* XXX: Increase ref counter or what? */
+		req->flags = flags;
+
+		/*
+		 * Ignore proxies because they might be freed before the hostname
+		 * has been resolved.
+		 */
+
+		download_new_by_hostname(req);
+		return TRUE;
+	}
 	return NULL != create_download(file, uri, size, 0, addr, port,
-		guid, hostname, sha1, stamp, push, TRUE, size != 0 ? TRUE : FALSE, fi,
-		proxies, flags);
+						guid, hostname, sha1, stamp, push, TRUE,
+						size != 0 ? TRUE : FALSE, fi, proxies, flags);
 }
 
 /**
@@ -6485,9 +6617,11 @@ http_version_nofix:
 		 * If we made a /uri-res/N2R? request, yet if the download still
 		 * has the old index/name indication, convert it to a /uri-res/.
 	 	 */
+#if 0
 		if (d->record_index != URN_INDEX && d->sha1 && (d->flags & DL_F_URIRES))
 			if (!download_convert_to_urires(d))
 				return;
+#endif
 
 		/*
 		 * The download could be remotely queued. Check this now before
@@ -7753,7 +7887,9 @@ picked:
 	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n",
-		host_addr_port_to_string(download_addr(d), download_port(d)),
+		d->server->hostname
+			? d->server->hostname
+			: host_addr_port_to_string(download_addr(d), download_port(d)),
 		(d->server->attrs & DLS_A_BANNING) ?
 			download_vendor_str(d) : version_string);
 
