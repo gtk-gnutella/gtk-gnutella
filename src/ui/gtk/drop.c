@@ -219,11 +219,6 @@ magnet_parse_exact_source(const gchar *q, const struct magnet_download *dl)
 	if (ep) {
 		p = ep;
 
-		if (!is_strprefix(p, "urn:sha1:")) {
-			g_message("Expected ``urn:sha1:''");
-			return NULL;
-		}
-
 		if (!urn_get_sha1(p, digest)) {
 			g_message("Bad SHA1 in MAGNET URI (%s)", p);
 			return NULL;
@@ -308,11 +303,17 @@ handle_magnet(gchar *url)
 			break;
 
 		case MAGNET_KEY_EXACT_TOPIC:
-			if (!is_strprefix(q, "urn:sha1:")) {
-				statusbar_gui_warning(10, _("MAGNET URI contained exact topic "
-					"search other than urn:sha1:"));
-			} else {
-				search_gui_new_search(q, 0, NULL);
+			{
+				gchar digest[SHA1_RAW_SIZE];
+				
+				if (urn_get_sha1(q, digest)) {
+					if (!dl.sha1) {
+						dl.sha1 = g_memdup(digest, sizeof digest);
+					}
+				} else {
+					statusbar_gui_warning(10,
+						_("MAGNET URI contained unsupported exact topic."));
+				}
 			}
 			break;
 
@@ -371,13 +372,10 @@ handle_magnet(gchar *url)
 			addr = is_host_addr(ms->addr) ? ms->addr : host_addr_set_ipv4(0);
 			if (ms->port != 0 && (is_host_addr(addr) || ms->hostname)) {
 				if (ms->uri) {
-					/* FIXME: guc_download_new_uri() doesn't work at all */
-#if 0
 					guc_download_new_uri(filename, ms->uri, dl.size,
 						addr, ms->port, blank_guid, ms->hostname,
 						dl.sha1, tm_time(), FALSE, NULL, NULL, 0);
-#endif /* 0 */
-				} else if (ms->sha1) {
+				} else if (ms->sha1 || dl.sha1) {
 					/*
 					 * This doesn't work either for hostnames because
 					 * guc_download_new() doesn't handle it. 
