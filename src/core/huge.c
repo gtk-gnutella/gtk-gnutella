@@ -1193,6 +1193,7 @@ huge_collect_locations(gchar *sha1, header_t *header)
 
 	if (alt) {
 		dmesh_collect_compact_locations(sha1, alt);
+		dmesh_collect_locations(sha1, alt, TRUE);
     }
 }
 
