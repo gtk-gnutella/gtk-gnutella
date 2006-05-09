@@ -149,7 +149,7 @@ urlinfo_hash(gconstpointer key)
 	guint hash;
 
 	hash = host_addr_hash(info->addr);
-	hash ^= (info->port << 16) | info->port;
+	hash ^= ((guint32) info->port << 16) | info->port;
 	hash ^= info->idx;
 	hash ^= g_str_hash(info->name);
 
@@ -164,9 +164,9 @@ urlinfo_eq(gconstpointer a, gconstpointer b)
 {
 	const dmesh_urlinfo_t *ia = a, *ib = b;
 
-	return host_addr_equal(ia->addr, ib->addr) &&
-		ia->port == ib->port	&&
-		ia->idx == ib->idx		&&
+	return ia->port == ib->port &&
+		ia->idx == ib->idx &&
+		host_addr_equal(ia->addr, ib->addr) &&
 		(ia->name == ib->name || 0 == strcmp(ia->name, ib->name));
 }
 
@@ -350,7 +350,7 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
  * Check whether URL is banned from the mesh.
  */
 static gboolean
-dmesh_is_banned(dmesh_urlinfo_t *info)
+dmesh_is_banned(const dmesh_urlinfo_t *info)
 {
 	return NULL != g_hash_table_lookup(ban_mesh, info);
 }
@@ -366,6 +366,7 @@ static const gchar * const parse_errstr[] = {
 	"Index in /get/index is reserved",		/**< DMESH_URL_RESERVED_INDEX */
 	"No filename after /get/index",			/**< DMESH_URL_NO_FILENAME */
 	"Bad URL encoding",						/**< DMESH_URL_BAD_ENCODING */
+	"Malformed /uri-res/N2R?",				/**< DMESH_URL_BAD_URI_RES */
 };
 
 /**
@@ -476,8 +477,16 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 		info->name = atom_str_get(unescaped);
 		if (unescaped != file)
 			G_FREE_NULL(unescaped);
-	} else
+	} else {
+		gchar digest[SHA1_RAW_SIZE];
+		
+		if (!urn_get_sha1(file, digest)) {
+			dmesh_url_errno = DMESH_URL_BAD_URI_RES;
+			return FALSE;
+		}
 		info->name = atom_str_get(file);
+	}
+
 
 	dmesh_url_errno = DMESH_URL_OK;
 
@@ -612,7 +621,7 @@ dmesh_dispose(const gchar *sha1)
 static void
 dmesh_fill_info(dmesh_urlinfo_t *info,
 	const gchar *sha1, const host_addr_t addr,
-	guint16 port, guint idx, gchar *name)
+	guint16 port, guint idx, const gchar *name)
 {
 	static const gchar urnsha1[] = "urn:sha1:";
 	static gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
@@ -633,7 +642,7 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
  */
 gboolean
 dmesh_remove(const gchar *sha1, const host_addr_t addr, guint16 port,
-	guint idx, gchar *name)
+	guint idx, const gchar *name)
 {
 	struct dmesh *dm;
 	dmesh_urlinfo_t info;
@@ -700,7 +709,7 @@ dmesh_count(const gchar *sha1)
  * it was the oldest record and we have enough already.
  */
 static gboolean
-dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
+dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
@@ -708,7 +717,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	host_addr_t addr = info->addr;
 	guint16 port = info->port;
 	guint idx = info->idx;
-	gchar *name = info->name;
+	const gchar *name = info->name;
 
 	if (stamp == 0 || delta_time(stamp, now) > 0)
 		stamp = now;
@@ -797,8 +806,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	dm->last_update = now;
 
 	if (dm->count == MAX_ENTRIES) {
-		struct dmesh_entry *last =
-			(struct dmesh_entry *) g_slist_last(dm->entries)->data;
+		struct dmesh_entry *last = g_slist_last(dm->entries)->data;
 
 		dm->entries = g_slist_remove(dm->entries, last);
 
@@ -814,8 +822,14 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * downloading that file.
 	 */
 
-	if (dme != NULL)
-		file_info_try_to_swarm_with(name, idx, addr, port, sha1);
+	if (dme != NULL) {
+		/*
+		 * If this is from a uri-res URI, don't use the SHA1 as
+		 * filename, so that the existing name is used instead.
+		 */
+		file_info_try_to_swarm_with(URN_INDEX == idx && sha1 ? NULL : name,
+			idx, addr, port, sha1);
+	}
 
 	return dme != NULL;			/* TRUE means we added the entry */
 }
@@ -825,7 +839,7 @@ dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
  */
 gboolean
 dmesh_add(gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
-	gchar *name, time_t stamp)
+	const gchar *name, time_t stamp)
 {
 	dmesh_urlinfo_t info;
 
@@ -1462,8 +1476,7 @@ dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
 	 * Copy the structure, beware of atoms.
 	 */
 
-    defer->dmesh_url = walloc(sizeof *defer->dmesh_url);
-	*defer->dmesh_url = *url;		/* struct copy */
+    defer->dmesh_url = wcopy(url, sizeof *url);
     defer->dmesh_url->name = atom_str_get(url->name);
     defer->stamp = stamp;
 
@@ -1483,8 +1496,7 @@ dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
 static inline void
 dmesh_free_deferred_altloc(dmesh_deferred_url_t *info)
 {
-	atom_str_free(info->dmesh_url->name);
-	wfree(info->dmesh_url, sizeof *info->dmesh_url);
+	dmesh_urlinfo_free(info->dmesh_url);
 	wfree(info, sizeof *info);
 }
 
@@ -1503,7 +1515,7 @@ dmesh_free_deferred_altloc(dmesh_deferred_url_t *info)
  * and `n' the amount of existing entries.
  */
 static void
-dmesh_check_deferred_against_existing(gchar *sha1,
+dmesh_check_deferred_against_existing(const gchar *sha1,
 	GSList *existing_urls, GSList *deferred_urls)
 {
     GSList *ex, *def;
@@ -1581,7 +1593,8 @@ dmesh_check_deferred_against_existing(gchar *sha1,
  * after itself yet.
  */
 static void
-dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
+dmesh_check_deferred_against_themselves(const gchar *sha1,
+	GSList *deferred_urls)
 {
     dmesh_deferred_url_t *first;
     GSList *sl = deferred_urls;
@@ -1652,7 +1665,7 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
  *
  */
 static void
-dmesh_check_deferred_altlocs(gchar *sha1, GSList *deferred_urls)
+dmesh_check_deferred_altlocs(const gchar *sha1, GSList *deferred_urls)
 {
     GSList *existing_urls;
 
@@ -1711,76 +1724,59 @@ dmesh_collect_sha1(const gchar *value, gchar *digest)
  * for a given SHA1 key given in the new compact form.
  */
 void
-dmesh_collect_compact_locations(gchar *sha1, gchar *value)
+dmesh_collect_compact_locations(const gchar *sha1, const gchar *value)
 {
 	time_t now = tm_time();
-	guchar c;
-	gchar *p = value;
+	const gchar *p = value;
 
-	for (;;) {
-		gboolean has_port = FALSE;
-		gboolean got_full = FALSE;
-		gchar *start = p = skip_ascii_blanks(p);
+	do {
+		const gchar *start, *endptr;
+		host_addr_t addr;
+		guint16 port;
+		gboolean ok;
 
-		for (;;) {
-			c = *p;
-			switch (c) {
-			case ':':
-				has_port = TRUE;	/* Remember there is a port */
-				break;
-			case ',':
-			case '\0':
-				got_full = TRUE;	/* Reached end of header or separator */
-				break;
-			default:
-				break;
-			}
+		start = skip_ascii_blanks(p);
+		if ('\0' == *start)
+			break;
 
-			/*
-			 * If we got the full address, parse it.
-			 */
-
-			if (got_full) {
-				host_addr_t addr;
-				guint16 port = GTA_PORT;	/* Could be missing in address */
-				gboolean ok;
-
-				*p = '\0';
-				if (has_port)
-					ok = string_to_host_addr_port(start, NULL, &addr, &port);
-				else {
-					ok = string_to_host_addr(start, NULL, &addr);
-				}
-				ok = ok && is_host_addr(addr);
-
-				if (ok) {
-					dmesh_urlinfo_t info;
-
-					dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
-					ok = dmesh_raw_add(sha1, &info, now);
-
-					if (dmesh_debug > 4)
-						g_message("MESH %s: %s compact \"%s\", stamp=%u",
-							sha1_base32(sha1),
-							ok ? "added" : "rejected",
-							dmesh_urlinfo_to_string(&info), (guint) now);
-				} else if (dmesh_debug)
-					g_warning("ignoring invalid compact alt-loc \"%s\"", start);
-
-				*p = c;
-				p++;
-
-				break;
-			}
-
-			p++;
+		endptr = strchr(start, ',');
+		if (!endptr) {
+			endptr = strchr(start, ';');
+			if (!endptr)
+				endptr = strchr(start, '\0');
 		}
 
-		if (c == '\0')
-			return;
-	}
+		/*
+		 * There could be a GUID here if the host is not directly connectible
+		 * but we ignore this apparently.
+		 */	
+		ok = string_to_host_addr(start, &endptr, &addr);
+		if (ok && ':' == *endptr) {
+			gint error;
+				
+			port = parse_uint16(&endptr[1], &endptr, 10, &error);
+			ok = !error && port > 0; 
+		} else {
+			port = GTA_PORT;
+		}
+		
+		if (ok) {
+			dmesh_urlinfo_t info;
 
-	/* NOTREACHED */
+			dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
+			ok = dmesh_raw_add(sha1, &info, now);
+
+			if (dmesh_debug > 4)
+				g_message("MESH %s: %s compact \"%s\", stamp=%u",
+						sha1_base32(sha1),
+						ok ? "added" : "rejected",
+						dmesh_urlinfo_to_string(&info), (guint) now);
+		} else if (dmesh_debug) {
+			g_warning("ignoring invalid compact alt-loc \"%s\"", start);
+		}
+
+		p = '\0' != *endptr ? &endptr[1] : NULL;
+	} while (p);
 }
 
 /**
@@ -1788,20 +1784,20 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
  * sources for a given SHA1 key.
  */
 void
-dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
+dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 {
 	gchar *p = value;
 	guchar c;
 	time_t now = tm_time();
     GSList *nonurn_altlocs = NULL;
+	gboolean finished = FALSE;
 
-	for (;;) {
+	do {
 		gchar *url;
 		gchar *date;
 		time_t stamp;
 		gboolean ok;
 		dmesh_urlinfo_t info;
-		gboolean non_space_seen;
 		gboolean skip_date;
 		gboolean in_quote;
 
@@ -1811,20 +1807,17 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		 * All leading spaces are skipped.
 		 */
 
-		url = NULL;
-		non_space_seen = FALSE;
 		in_quote = FALSE;
 		info.name = NULL;
 		info.addr = zero_host_addr;
 
-		while ((c = *p)) {
-			if (!non_space_seen) {
-				if (is_ascii_space(c))
-					goto next;
-				non_space_seen = TRUE;
-				url = p;
-			}
+		p = skip_ascii_spaces(p);
+		if ('\0' == *p) {				/* Only seen spaces */
+			finished = TRUE;
+			goto free_urlinfo;
+		}
 
+		for (url = p; '\0' != (c = *p); p++) {
 			/*
 			 * Quoted identifiers are one big token.
 			 */
@@ -1840,7 +1833,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			}
 
 			if (in_quote)
-				goto next;
+				continue;
 
 			/*
 			 * The "," may appear un-escaped in the URL.
@@ -1857,25 +1850,13 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			if (c == ',') {
 				if (is_strcaseprefix(&p[1], "http://"))
 					break;
-				if (p[1] != ' ')
-					goto next;
+				if (!is_ascii_space(p[1]))
+					continue;
 			}
 
-			if (c == ' ' || c == ',')
+			if (is_ascii_space(c) || c == ',')
 				break;
-
-		next:
-			p++;
 		}
-
-		if (url == NULL) {				/* Only seen spaces */
-			if (c == '\0')
-				goto finish;
-			continue;
-		}
-
-		if (c == '\0' && p == url)		/* Empty string remained */
-			goto finish;
 
 		/*
 		 * Parse URL.
@@ -1916,8 +1897,6 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		 * Maybe there is no date following the URL?
 		 */
 
-		if (c == '\0')				/* Reached end of string */
-			goto finish;
 		if (c == ',') {				/* There's no following date then */
 			p++;					/* Skip separator */
 			goto free_urlinfo;		/* continue */
@@ -1929,7 +1908,10 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		 * Advance to next ',', expecting a date.
 		 */
 
-		date = ++p;
+		if (c != '\0')
+			p++;
+
+		date = p;
 
 	more_date:
 		for (/* NOTHING */; '\0' != (c = *p); p++) {
@@ -1954,8 +1936,8 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 
 		if (skip_date) {				/* URL was not parsed, just skipping */
 			if (c == '\0')				/* Reached end of string */
-				goto finish;
-            if (c == ',')
+				finished = TRUE;
+			else if (c == ',')
                 p++;					/* Skip the "," separator */
 			goto free_urlinfo;			/* continue */
 		}
@@ -1990,13 +1972,9 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 
 		if (info.idx == URN_INDEX) {
 			gchar digest[SHA1_RAW_SIZE];
-
+		
 			ok = urn_get_sha1(info.name, digest);
-			if (!ok) {
-				g_warning("malformed /uri-res/N2R? Alternate-Location: %s",
-					info.name);
-				goto skip_add;
-			}
+			g_assert(ok);
 
 			ok = sha1_eq(sha1, digest);
 			if (!ok) {
@@ -2021,7 +1999,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 				 * all in one block.
 				 */
 				nonurn_altlocs = dmesh_defer_nonurn_altloc(nonurn_altlocs,
-						&info, stamp);
+									&info, stamp);
 				goto nolog;
 			} else
 				ok = dmesh_raw_add(sha1, &info, stamp);
@@ -2037,23 +2015,15 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 
 	nolog:
 		if (c == '\0')				/* Reached end of string */
-			goto finish;
-
-        if (c == ',')
+			finished = TRUE;
+		else if (c == ',')
             p++;					/* Skip separator */
 
 	free_urlinfo:
 		if (info.name)
 			atom_str_free(info.name);
 
-		continue;
-
-	finish:
-		if (info.name)
-			atom_str_free(info.name);
-
-		break;
-	}
+	} while (!finished);
 
 	/*
 	 * Once everyone is done we can sort out deferred urls, if any.
@@ -2092,17 +2062,12 @@ dmesh_alt_loc_fill(const gchar *sha1, dmesh_urlinfo_t *buf, gint count)
 
 	for (i = 0, sl = dm->entries; sl && i < count; sl = g_slist_next(sl)) {
 		struct dmesh_entry *dme = sl->data;
-		dmesh_urlinfo_t *from, *to;
+		dmesh_urlinfo_t *from;
 
 		g_assert(i < MAX_ENTRIES);
 
 		from = &dme->url;
-		to = &buf[i++];
-
-		to->addr = from->addr;
-		to->port = from->port;
-		to->idx = from->idx;
-		to->name = from->name;
+		buf[i++] = *from;
 	}
 
 	return i;
@@ -2184,7 +2149,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
  * @param `fi' no brief description.
  */
 void
-dmesh_multiple_downloads(gchar *sha1, filesize_t size, fileinfo_t *fi)
+dmesh_multiple_downloads(const gchar *sha1, filesize_t size, fileinfo_t *fi)
 {
 	dmesh_urlinfo_t buffer[DMESH_MAX], *p;
 	gint n;
@@ -2197,10 +2162,15 @@ dmesh_multiple_downloads(gchar *sha1, filesize_t size, fileinfo_t *fi)
 	now = tm_time();
 
 	for (p = buffer; n > 0; n--, p++) {
+		const gchar *filename;
+
 		if (dmesh_debug > 2)
 			g_message("ALT-LOC queuing from MESH: %s",
 				dmesh_urlinfo_to_string(p));
 
+		filename = URN_INDEX == p->idx && fi && fi->file_name
+			? fi->file_name
+			: p->name;
 		download_auto_new(p->name, size, p->idx, p->addr, p->port,
 			blank_guid, NULL, sha1, now, FALSE,
 			fi->file_size_known, fi, NULL, /* XXX: TLS? */ 0);
@@ -2424,7 +2394,7 @@ dmesh_ban_retrieve(void)
 	 * Lines starting with a # are skipped.
 	 */
 
-	while (fgets(tmp, sizeof(tmp), in)) {
+	while (fgets(tmp, sizeof tmp, in)) {
 		line++;
 
 		if (tmp[0] == '#')
@@ -2464,14 +2434,14 @@ dmesh_ban_retrieve(void)
 static gboolean
 dmesh_free_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
-	struct dmesh *dm = (struct dmesh *) value;
+	struct dmesh *dm = value;
 	GSList *sl;
 
 	(void) unused_udata;
 	atom_sha1_free(key);
 
 	for (sl = dm->entries; sl; sl = g_slist_next(sl))
-		dmesh_entry_free((struct dmesh_entry *) sl->data);
+		dmesh_entry_free(sl->data);
 
 	g_slist_free(dm->entries);
 	wfree(dm, sizeof *dm);
@@ -2517,7 +2487,7 @@ dmesh_close(void)
 	g_hash_table_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
 
 	for (sl = banned; sl; sl = g_slist_next(sl)) {
-		struct dmesh_banned *dmb = (struct dmesh_banned *) sl->data;
+		struct dmesh_banned *dmb = sl->data;
 		cq_cancel(callout_queue, dmb->cq_ev);
 		dmesh_ban_expire(callout_queue, dmb);
 	}

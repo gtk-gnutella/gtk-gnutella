@@ -53,7 +53,7 @@
  * it's an URN.
  */
 typedef struct {
-	gchar *name;				/**< File name or URN string (atom) */
+	const gchar *name;			/**< File name (atom) */
 	guint idx;					/**< File index (URN_INDEX means URN access) */
 	host_addr_t addr;			/**< Host address */
 	guint16 port;				/**< Host port */
@@ -69,7 +69,8 @@ typedef enum {
 	DMESH_URL_BAD_FILE_PREFIX,	/**< File prefix neither /uri-res nor /get */
 	DMESH_URL_RESERVED_INDEX,	/**< Index in /get/index is reserved */
 	DMESH_URL_NO_FILENAME,		/**< No filename after /get/index */
-	DMESH_URL_BAD_ENCODING		/**< Bad URL encoding */
+	DMESH_URL_BAD_ENCODING,		/**< Bad URL encoding */
+	DMESH_URL_BAD_URI_RES		/**< Malformed /uri-res/N2R? */
 } dmesh_url_error_t;
 
 extern dmesh_url_error_t dmesh_url_errno;
@@ -85,18 +86,18 @@ const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
-	gchar *sha1, const host_addr_t addr, guint16 port, guint idx, gchar *name,
-	time_t stamp);
+	gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
+	const gchar *name, time_t stamp);
 
 gboolean dmesh_remove(
 	const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
-	gchar *name);
+	const gchar *name);
 
 gint dmesh_count(const gchar *sha1);
 
 gboolean dmesh_collect_sha1(const gchar *value, gchar *digest);
-void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer);
-void dmesh_collect_compact_locations(gchar *sha1, gchar *value);
+void dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer);
+void dmesh_collect_compact_locations(const gchar *sha1, const gchar *value);
 gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
@@ -105,7 +106,7 @@ gint dmesh_alternate_location(
 	gboolean request);
 
 void dmesh_multiple_downloads(
-	gchar *sha1, filesize_t size, fileinfo_t *fi);
+	const gchar *sha1, filesize_t size, fileinfo_t *fi);
 
 void dmesh_check_results_set(gnet_results_set_t *rs);
 
