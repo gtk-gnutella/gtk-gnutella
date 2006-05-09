@@ -2078,8 +2078,8 @@ update_input_bw_display(void)
 		"%.2f", val / 1024.0);
 }
 
-static
-gboolean spinbutton_input_bw_changed(property_t prop)
+static gboolean
+spinbutton_input_bw_changed(property_t prop)
 {
 	gboolean ret;
 
