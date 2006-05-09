@@ -3811,6 +3811,19 @@ download_fallback_to_push(struct download *d,
 	gcu_gui_update_download(d, TRUE);
 }
 
+static gchar *
+download_escape_name(const gchar *name)
+{
+	gchar *escaped, *atom;
+		
+	escaped = url_escape_cntrl(deconstify_gchar(name));
+	atom = atom_str_get(escaped);
+	if (name != escaped) {
+		G_FREE_NULL(escaped);
+	}
+	return atom;
+}
+
 /*
  * Downloads creation and destruction
  */
@@ -3833,7 +3846,7 @@ static struct download *
 create_download(const gchar *file, const gchar *uri, filesize_t size,
 	guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
-	const gchar *hostname, gchar *sha1, time_t stamp,
+	const gchar *hostname, const gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, gboolean file_size_known,
 	fileinfo_t *file_info, const gnet_host_vec_t *proxies, guint32 cflags)
 {
@@ -3940,7 +3953,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 		push = FALSE;
 
 	d->file_name = file_name;
-	d->escaped_name = url_escape_cntrl(file_name);
+	d->escaped_name = download_escape_name(file_name);
 
 	d->uri = file_uri;
 
@@ -4057,8 +4070,8 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
  */
 void
 download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-	gchar *sha1, time_t stamp, gboolean push,
+	const host_addr_t addr, guint16 port, const gchar *guid,
+	const gchar *hostname, const gchar *sha1, time_t stamp, gboolean push,
 	gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
 {
@@ -4157,14 +4170,10 @@ download_clone(struct download *d)
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = DL_LIST_INVALID;
 	cd->file_name = atom_str_get(d->file_name);
+	cd->file_name = atom_str_get(d->escaped_name);
 	cd->push = FALSE;
 	cd->status = GTA_DL_CONNECTING;
 	cd->server->refcnt++;
-
-	if (d->escaped_name == d->file_name)
-		cd->escaped_name = cd->file_name;
-	else
-		cd->escaped_name = url_escape_cntrl(cd->file_name);
 
 	download_add_to_list(cd, DL_LIST_WAITING);
 
@@ -4623,10 +4632,8 @@ download_remove(struct download *d)
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
-	if (d->escaped_name != d->file_name)
-		g_free(d->escaped_name);
-
 	d->file_name = NULL;
+	atom_str_free(d->escaped_name);
 	d->escaped_name = NULL;
 
 	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
@@ -5563,11 +5570,10 @@ download_moved_permanently(struct download *d, header_t *header)
 		g_assert(d->list_idx == DL_LIST_RUNNING);
 
 		atom_str_free(d->file_name);
-		if (d->escaped_name != d->file_name)
-			g_free(d->escaped_name);
+		atom_str_free(d->escaped_name);
 
-		d->file_name = info.name;			/* Already an atom */
-		d->escaped_name = url_escape_cntrl(info.name);
+		d->file_name = deconstify_gchar(info.name);		/* Already an atom */
+		d->escaped_name = download_escape_name(info.name);
 	} else
 		atom_str_free(info.name);
 
@@ -6940,6 +6946,13 @@ http_version_nofix:
 			} else {
 				/* No hammering -- hold further requests on server */
 				download_passively_queued(d, FALSE);
+
+#if 0
+				if (d->sha1 && d->file_size) {
+					dmesh_multiple_downloads(d->sha1,
+							d->file_size, d->file_info);
+				}
+#endif
 				download_queue_hold(d,
 					delay ? delay : download_retry_busy_delay,
 					"%sHTTP %u %s", short_read, ack_code, ack_message);
@@ -8558,6 +8571,13 @@ download_store(void)
 			continue;
 		if (d->flags & DL_F_TRANSIENT)
 			continue;
+		if (d->uri) {
+			/* XXX: If we have a custom URI, we have to store this URI
+			 *		and load it on startup. Currently, the URI isn't
+			 *		stored and we would create a bogus URI from the
+			 *		SHA1 or the index. */
+			continue;
+		}
 
 		id = get_parq_dl_id(d);
 		guid = has_blank_guid(d) ? NULL : download_guid(d);
@@ -9396,14 +9416,13 @@ download_close(void)
 			http_buffer_free(d->req);
 		if (d->cproxy)
 			cproxy_free(d->cproxy);
-		if (d->escaped_name != d->file_name)
-			g_free(d->escaped_name);
 		if (d->browse != NULL)
 			browse_host_dl_free(d->browse);
 
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
 		download_remove_from_server(d, TRUE);
+		atom_str_free(d->escaped_name);
 		atom_str_free(d->file_name);
 
 		download_free(&d);
