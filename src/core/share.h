@@ -124,7 +124,7 @@ const gchar *share_mime_type(enum share_mime_type type);
 shared_file_t *shared_file(guint idx);
 shared_file_t *shared_file_by_name(const gchar *filename);
 shared_file_t * shared_file_ref(shared_file_t *sf);
-shared_file_t *shared_file_by_sha1(gchar *sha1_digest);
+shared_file_t *shared_file_by_sha1(const gchar *sha1_digest);
 shared_file_t *shared_special(const gchar *path);
 void shared_file_unref(shared_file_t *sf);
 void shared_file_remove(shared_file_t *sf);

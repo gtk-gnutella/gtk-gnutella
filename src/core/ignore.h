@@ -52,7 +52,7 @@ enum ignore_val {
 
 void ignore_timer(time_t now);
 enum ignore_val ignore_is_requested(
-	const gchar *file, filesize_t size, gchar *sha1);
+	const gchar *file, filesize_t size, const gchar *sha1);
 
 void ignore_add_filesize(const gchar *file, filesize_t size);
 void ignore_add_sha1(const gchar *file, const gchar *sha1);

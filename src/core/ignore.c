@@ -325,7 +325,7 @@ ignore_sha1_filename(const gchar *sha1)
  * @param sha1 must point to a SHA1 (binary) or NULL
  */
 enum ignore_val
-ignore_is_requested(const gchar *filename, filesize_t size, gchar *sha1)
+ignore_is_requested(const gchar *filename, filesize_t size, const gchar *sha1)
 {
 	g_assert(filename != NULL);
 

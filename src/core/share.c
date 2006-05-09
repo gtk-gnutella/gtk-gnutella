@@ -2479,7 +2479,7 @@ shared_file_remove(struct shared_file *sf)
  * set of shared file is being rebuilt.
  */
 static struct shared_file *
-shared_file_complete_by_sha1(gchar *sha1_digest)
+shared_file_complete_by_sha1(const gchar *sha1_digest)
 {
 	struct shared_file *f;
 
@@ -2513,7 +2513,7 @@ shared_file_complete_by_sha1(gchar *sha1_digest)
  * then it means it is a partially shared file.
  */
 shared_file_t *
-shared_file_by_sha1(gchar *sha1_digest)
+shared_file_by_sha1(const gchar *sha1_digest)
 {
 	struct shared_file *f;
 
