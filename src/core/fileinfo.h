@@ -78,7 +78,7 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_reset(fileinfo_t *fi);
 void file_info_recreate(struct download *d);
 fileinfo_t *file_info_get(
-	gchar *file, const gchar *path, filesize_t size, gchar *sha1,
+	const gchar *file, const gchar *path, filesize_t size, const gchar *sha1,
 	gboolean file_size_known);
 void file_info_strip_binary(fileinfo_t *fi);
 void file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file);
@@ -91,8 +91,8 @@ enum dl_chunk_status file_info_pos_status(fileinfo_t *fi,
 void file_info_close(void);
 void file_info_close_pre(void);
 void file_info_try_to_swarm_with(
-	gchar *file_name, guint32 idx, const host_addr_t addr,
-	guint16 port, gchar *sha1);
+	const gchar *file_name, guint32 idx, const host_addr_t addr,
+	guint16 port, const gchar *sha1);
 void file_info_spot_completed_orphans(void);
 void file_info_add_source(fileinfo_t *fi, struct download *dl);
 void file_info_add_new_source(fileinfo_t *fi, struct download *dl);
