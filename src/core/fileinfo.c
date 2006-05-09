@@ -759,9 +759,9 @@ fi_resize(fileinfo_t *fi, filesize_t size)
  * If `record' is TRUE, also record new alias entry in `fi_by_namesize'.
  */
 static void
-fi_alias(fileinfo_t *fi, gchar *name, gboolean record)
+fi_alias(fileinfo_t *fi, const gchar *name, gboolean record)
 {
-	namesize_t nsk;
+	namesize_t *ns;
 	GSList *list;
 
 	g_assert(fi);
@@ -772,35 +772,33 @@ fi_alias(fileinfo_t *fi, gchar *name, gboolean record)
 	 * fi_by_namesize table, since all the aliases are inserted into
 	 * that table.
 	 */
-
-	nsk.name = name;
-	nsk.size = fi->size;
-
-	list = g_hash_table_lookup(fi_by_namesize, &nsk);
-
-	if (NULL != list && NULL != g_slist_find(list, fi))
-		return;					/* Alias already known */
-
-	if (looks_like_urn(name)) {
+	
+	ns = namesize_make(name, fi->size);
+	list = g_hash_table_lookup(fi_by_namesize, ns);
+	if (NULL != list && NULL != g_slist_find(list, fi)) {
+		/* Alias already known */
+	} else if (looks_like_urn(name)) {
 		/* This is often caused by (URN entries in) the dmesh */
-		return;
-	}
+	} else {
 
 		/*
-	 * Insert new alias for `fi'.
-	 */
+		 * Insert new alias for `fi'.
+		 */
 
-	fi->alias = g_slist_append(fi->alias, atom_str_get(name));
+		fi->alias = g_slist_append(fi->alias, atom_str_get(name));
 
-	if (record) {
-		if (NULL != list)
-			list = g_slist_append(list, fi);
-		else {
-			namesize_t *ns = namesize_make(nsk.name, nsk.size);
-			list = g_slist_append(list, fi);
-			g_hash_table_insert(fi_by_namesize, ns, list);
+		if (record) {
+			if (NULL != list)
+				list = g_slist_append(list, fi);
+			else {
+				list = g_slist_append(list, fi);
+				g_hash_table_insert(fi_by_namesize, ns, list);
+				ns = NULL; /* Prevent freeing */
+			}
 		}
 	}
+	if (ns)
+		namesize_free(ns);
 }
 
 /**
@@ -934,9 +932,9 @@ file_info_has_trailer(const gchar *path)
  * and FALSE if not.
  */
 static gboolean
-file_info_has_filename(fileinfo_t *fi, gchar *file)
+file_info_has_filename(fileinfo_t *fi, const gchar *file)
 {
-	GSList *sl;
+	const GSList *sl;
 
 	for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
 		/* XXX: UTF-8, locale, what's the proper encoding here? */
@@ -949,7 +947,7 @@ file_info_has_filename(fileinfo_t *fi, gchar *file)
 			gulong score = 100 * fuzzy_compare(sl->data, file);
 			if (score >= (fuzzy_threshold << FUZZY_SHIFT)) {
 				g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
-					(gchar *) sl->data, file, score / 100.0);
+					cast_to_gchar_ptr(sl->data), file, score / 100.0);
 				fi_alias(fi, file, TRUE);
 				return TRUE;
 			}
@@ -967,10 +965,9 @@ file_info_has_filename(fileinfo_t *fi, gchar *file)
  * @returns the fileinfo structure if found, NULL otherwise.
  */
 static fileinfo_t *
-file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
+file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
 {
 	fileinfo_t *fi;
-	struct namesize nsk;
 	GSList *list, *sl;
 
 	/*
@@ -996,11 +993,14 @@ file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 	/*
 	 * Look for a matching (name, size) tuple.
 	 */
+	{
+		struct namesize nsk;
 
-	nsk.name = name;
-	nsk.size = size;
+		nsk.name = deconstify_gchar(name);
+		nsk.size = size;
 
-	list = g_hash_table_lookup(fi_by_namesize, &nsk);
+		list = g_hash_table_lookup(fi_by_namesize, &nsk);
+	}
 
 	if (NULL != list && NULL == g_slist_next(list)) {
 		fi = list->data;
@@ -3223,8 +3223,8 @@ done:
  * name, size and/or SHA1. A new struct will be allocated if necessary.
  */
 fileinfo_t *
-file_info_get(gchar *file, const gchar *path, filesize_t size,
-	gchar *sha1, gboolean file_size_known)
+file_info_get(const gchar *file, const gchar *path, filesize_t size,
+	const gchar *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
 	gchar *outname, *to_free = NULL;
@@ -4488,8 +4488,8 @@ file_info_active(const gchar *sha1)
  */
 void
 file_info_try_to_swarm_with(
-	gchar *file_name, guint32 idx, const host_addr_t addr, guint16 port,
-	gchar *sha1)
+	const gchar *file_name, guint32 idx, const host_addr_t addr, guint16 port,
+	const gchar *sha1)
 {
 	fileinfo_t *fi;
 
@@ -4500,7 +4500,8 @@ file_info_try_to_swarm_with(
 	if (!fi)
 		return;
 
-	download_auto_new(file_name, fi->size, idx, addr, port, blank_guid, NULL,
+	download_auto_new(file_name ? file_name : fi->file_name,
+		fi->size, idx, addr, port, blank_guid, NULL,
 		sha1, tm_time(), FALSE, TRUE, fi, NULL, /* XXX: TLS? */ 0);
 }
 
