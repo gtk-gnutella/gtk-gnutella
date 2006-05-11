@@ -342,16 +342,20 @@ prop_parse_boolean_vector(const gchar *name, const gchar *str,
 
 /**
  * Parse a hex string into a gchar array.
+ *
+ * @return TRUE if the data was fully parsed. FALSE on failure.
  */
-static void
+static gboolean 
 prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
 {
 	size_t i;
 
 	g_assert(size > 0);
-	if (size * 2 != strlen(str))
-		g_error("prop_parse_storage: (prop=\"%s\") "
+	if (size * 2 != strlen(str)) {
+		g_warning("prop_parse_storage: (prop=\"%s\") "
 			"storage does not match requested size", name);
+		return FALSE;
+	}
 
 	for (i = 0; i < size; i++) {
 		gchar h, l;
@@ -362,10 +366,11 @@ prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
 			t[i] = '\0';
 			g_warning("prop_parse_storage: (prop=\"%s\") "
 				"storage is damaged: \"%s\"", name, str);
-			return;
+			return FALSE;
 		}
 		t[i] = (hex2int(h) << 4) + hex2int(l);
 	}
+	return TRUE;
 }
 
 
@@ -1882,8 +1887,9 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 				d = NULL;
 				buf = s;
 			}
-			prop_parse_storage(p->name, val, p->vector_size, buf);
-			stub->storage.set(prop, buf, p->vector_size);
+			if (prop_parse_storage(p->name, val, p->vector_size, buf)) {
+				stub->storage.set(prop, buf, p->vector_size);
+			}
 
 			G_FREE_NULL(d);
 		}
