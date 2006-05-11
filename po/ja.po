@@ -72,8 +72,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-08 01:09+0900\n"
-"PO-Revision-Date: 2006-05-05 13:49+0900\n"
+"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"PO-Revision-Date: 2006-05-08 01:17+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -83,11 +83,10 @@ msgstr ""
 
 #, c-format
 msgid "%s%s%s%s%s fps, %s kbps"
-msgstr ""
+msgstr "%s%s%s%s%s フレーム/秒, %s kb/秒"
 
-#, fuzzy
 msgid "times|x"
-msgstr "稼動時間"
+msgstr "回"
 
 msgid "No longer connected"
 msgstr "もう接続していません"
@@ -3681,8 +3680,9 @@ msgstr "このプロトコルはまだ実装されていません"
 msgid "MAGNET URI contained source URL for an unsupported protocol"
 msgstr "MAGNET URI は未対応プロトコルへの送信元 URL を含んでいます"
 
-msgid "MAGNET URI contained exact topic search other than urn:sha1:"
-msgstr "MAGNET URI は URN:SHA1 の他に正確なトピック検索を含んでいます"
+#, fuzzy
+msgid "MAGNET URI contained unsupported exact topic."
+msgstr "MAGNET URI は未対応プロトコルへの送信元 URL を含んでいます"
 
 msgid "Cannot handle the dropped data"
 msgstr "この破棄データを扱えません"
@@ -6133,7 +6133,7 @@ msgstr "ツールバーのスタイル"
 
 #, fuzzy
 msgid "Show _metric units"
-msgstr "割合を表示(_P)"
+msgstr "単位を表示(_M)"
 
 msgid "Expert mode"
 msgstr "上級者モード"
