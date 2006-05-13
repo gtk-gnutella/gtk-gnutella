@@ -747,7 +747,7 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 	if (safer != message)
 		G_FREE_NULL(safer);
 
-#if 0 
+#if 0
 	/* Define to debug Glib or Gtk problems */
 	if (domain) {
 		guint i;
@@ -810,7 +810,15 @@ close_fds(gint fd)
 extern char **environ;
 
 #ifdef FAST_ASSERTIONS
-const char *assert_msg_;
+const struct eject_point *assert_point_;
+
+static inline void
+print_str(const gchar *s)
+{
+	if (s) {
+		write(STDERR_FILENO, s, strlen(s));
+	}
+}
 
 /**
  * This a SIGSEGV signal handler used for "fast" assertions.
@@ -825,9 +833,26 @@ assertion_failure(int signo)
 
 	/* Prevent looping, if the following crashes. */
 	set_signal(signo, SIG_DFL);
-	if (!assert_msg_)
-		assert_msg_ = SIGSEGV == signo ? "\nSegmentation fault\n" : "\nTrap\n";
-	write(STDERR_FILENO, assert_msg_, strlen(assert_msg_));
+
+	if (!assert_point_) {
+		print_str(SIGSEGV == signo ? "\nSegmentation fault\n" : "\nTrap\n");
+	} else {
+		if (assert_point_->expr) {
+			print_str("\nAssertion failure (");
+		} else {
+			print_str("\nCode should not have been reached (");
+		}
+		print_str(assert_point_->file);
+		print_str(":");
+		print_str(assert_point_->line);
+		print_str(")");
+		if (assert_point_->expr) {
+			print_str(" \"");
+			print_str(assert_point_->expr);
+			print_str("\"");
+		}
+		print_str("\n");
+	}
 
 	raise(signo);
 }

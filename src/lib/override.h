@@ -61,17 +61,22 @@
 #undef g_assert
 #undef g_assert_not_reached
 
+struct eject_point {
+	const gchar *line, *file, *expr;
+};
+
 /**
  * eject_() is the userland equivalent of panic(). Don't use it directly,
  * it should only used by assertion checks.
  */
 static inline G_GNUC_NORETURN NON_NULL_PARAM((1)) void
-eject_(const gchar *msg)
+eject_(const struct eject_point *eject_point_)
 {
-	extern const char *assert_msg_;
+	extern const struct eject_point *assert_point_;
 
-	assert_msg_ = msg;
-	
+	assert_point_ = eject_point_;
+
+	for (;;)	
 #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 	{
 		/* This should raise a SIGTRAP with minimum code */
@@ -85,14 +90,27 @@ eject_(const gchar *msg)
 #endif /* GCC/x86 */
 }
 
-#define g_assert(x)															  \
-G_STMT_START {																  \
-	if (G_UNLIKELY(!(x)))												 	  \
-		eject_("\nAssertion failure \"" STRINGIFY(x) "\" in " G_STRLOC "\n"); \
+#define g_assert(x) \
+G_STMT_START { \
+	if (G_UNLIKELY(!(x))) { \
+		static const struct eject_point eject_point_ = { \
+			STRINGIFY(__LINE__), \
+			__FILE__, \
+			STRINGIFY(x) \
+		}; \
+		eject_(&eject_point_); \
+	} \
 } G_STMT_END
 
-#define g_assert_not_reached()												\
-	eject_("\nCode should not have been reached in " G_STRLOC "\n");		\
+#define g_assert_not_reached() \
+G_STMT_START { \
+	static const struct eject_point eject_point_ = { \
+		STRINGIFY(__LINE__), \
+		__FILE__, \
+		NULL, \
+	}; \
+	eject_(&eject_point_); \
+} G_STMT_END
 
 #endif /* FAST_ASSERTIONS */
 
