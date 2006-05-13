@@ -451,18 +451,15 @@ download_total_progress(const struct download *d)
  * @param d The download structure which we are interested
  * in knowing the progress of.
  *
- * @return The percent completed for this source, or for the whole file
- * completion percentage if the source is not receiving at the moment.
+ * @return  The percent completed for this source, or zero
+ *			if the source is not receiving at the moment.
  */
 gdouble
 download_source_progress(const struct download *d)
 {
-	gdouble size = d->size;
-
-	if (!DOWNLOAD_IS_ACTIVE(d))
-		return download_total_progress(d);
-
-	return size < 1 ? 0.0 : (d->pos - d->skip + download_buffered(d)) / size;
+	return !DOWNLOAD_IS_ACTIVE(d) || d->size < 1
+		? 0.0
+		: (d->pos - d->skip + download_buffered(d)) / (gdouble) d->size;
 }
 
 /**
@@ -4170,7 +4167,7 @@ download_clone(struct download *d)
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = DL_LIST_INVALID;
 	cd->file_name = atom_str_get(d->file_name);
-	cd->file_name = atom_str_get(d->escaped_name);
+	cd->escaped_name = atom_str_get(d->escaped_name);
 	cd->push = FALSE;
 	cd->status = GTA_DL_CONNECTING;
 	cd->server->refcnt++;
