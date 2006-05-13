@@ -2486,7 +2486,7 @@ shared_file_complete_by_sha1(const gchar *sha1_digest)
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
-	f = g_tree_lookup(sha1_to_share, sha1_digest);
+	f = g_tree_lookup(sha1_to_share, deconstify_gchar(sha1_digest));
 
 	if (!f || !sha1_hash_available(f)) {
 		/*
