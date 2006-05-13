@@ -333,6 +333,13 @@ struct download {
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
 #define DOWNLOAD_IS_VISIBLE(d)		(d->visible)
 
+static inline void
+download_check(const struct download * const d)
+{
+	g_assert(d);
+	g_assert(DOWNLOAD_MAGIC == d->magic);
+}
+
 /*
  * Public interface, visible only from the bridge.
  */
@@ -394,13 +401,6 @@ struct download *src_get_download(gnet_src_t src_handle);
 void src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
 	frequency_t t, guint32 interval);
 void src_remove_listener(src_listener_t cb, gnet_src_ev_t ev);
-
-static inline void
-download_check(const struct download * const d)
-{
-	g_assert(d);
-	g_assert(DOWNLOAD_MAGIC == d->magic);
-}
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_downloads_h_ */
