@@ -2180,6 +2180,8 @@ file_info_unlink(fileinfo_t *fi)
 {
 	char *path;
 
+	g_assert(fi);
+
 	if (fi->flags & FI_F_TRANSIENT)
 		return;
 
