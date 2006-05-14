@@ -613,8 +613,8 @@ fileinfo_numeric_status(const struct fileinfo_data *data)
 
 	v = fileinfo_percent_done(data);
 	if (!data->is_download) {
-		v += data->size > 0 && data->size == data->done ? 400 : 0;
-		v += data->file.recv_count > 0 ? 300 : 0;
+		v += data->size > 0 && data->size == data->done ? 800 : 0;
+		v += data->file.recv_count > 0 ? 400 : 0;
 		v += data->file.actively_queued || data->file.passively_queued? 200 : 0;
 		v += data->file.life_count > 0 ? 100 : 0;
 	}
