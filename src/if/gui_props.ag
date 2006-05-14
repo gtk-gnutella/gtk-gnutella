@@ -1172,7 +1172,7 @@ prop = {
     type = guint32;
     vector_size = nb_main_page_num;
     data = {
-        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }";
+        default = "{ 1, 1, 1, 1, 1, 1, 1, 1,  }";
     };
 };
 

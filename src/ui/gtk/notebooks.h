@@ -37,10 +37,16 @@ enum {
     nb_main_page_uploads,
     nb_main_page_uploads_stats,
 
+#ifdef USE_GTK1
     nb_main_page_dl_files,
     nb_main_page_dl_active,
     nb_main_page_dl_queue,
+#endif
 
+#ifdef USE_GTK2
+    nb_main_page_downloads,
+#endif
+	
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,

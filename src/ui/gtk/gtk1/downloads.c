@@ -78,32 +78,11 @@ static GtkNotebook *notebook = NULL;
 static gboolean ctree_downloads_frozen = FALSE;
 static gboolean ctree_downloads_queue_frozen = FALSE;
 
-#define IO_STALLED			60	/**< If nothing exchanged after that many secs */
 #define DL_GUI_TREE_SPACE	5	/**< Space between a child node and a parent */
 
 /***
  *** Private functions
  ***/
-
-static inline const gchar *
-download_progress_to_string(const struct download *d)
-{
-	static gchar buf[32];
-
-	gm_snprintf(buf, sizeof buf, "%5.2f%%",
-		100.0 * guc_download_total_progress(d));
-	return buf;
-}
-
-static inline const gchar *
-source_progress_to_string(const struct download *d)
-{
-	static gchar buf[32];
-
-	gm_snprintf(buf, sizeof buf, "%5.2f%%",
-		100.0 * guc_download_source_progress(d));
-	return buf;
-}
 
 /**
  * Add the given tree node to the hashtable.

@@ -272,9 +272,14 @@ GENERATE_MENU_HANDLER(net_stats, gnet_stats);
 GENERATE_MENU_HANDLER(net_hostcache, hostcache);
 GENERATE_MENU_HANDLER(uploads_transfers, uploads);
 GENERATE_MENU_HANDLER(uploads_history, uploads_stats);
+#ifdef USE_GTK1
 GENERATE_MENU_HANDLER(downloads_files, dl_files);
 GENERATE_MENU_HANDLER(downloads_active, dl_active);
 GENERATE_MENU_HANDLER(downloads_queue, dl_queue);
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+GENERATE_MENU_HANDLER(downloads, downloads);
+#endif /* USE_GTK2 */
 GENERATE_MENU_HANDLER(search_results, search);
 GENERATE_MENU_HANDLER(search_monitor, monitor);
 GENERATE_MENU_HANDLER(search_stats, search_stats);

@@ -28,11 +28,16 @@
 
 #include "if/ui/gtk/downloads.h"
 
+#define IO_STALLED	60 /**< If nothing exchanged after that many secs */
+
 void gui_update_c_downloads(gint, gint);
 
 void on_button_downloads_clear_stopped_clicked(
 	GtkButton *button, gpointer user_data);
 void on_togglebutton_queue_freeze_toggled(
 	GtkToggleButton *togglebutton, gpointer user_data);
+
+const gchar *download_progress_to_string(const struct download *d);
+const gchar *source_progress_to_string(const struct download *d);
 
 #endif /* _gtk_downloads_common_h_ */

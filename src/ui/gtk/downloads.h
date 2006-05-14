@@ -50,10 +50,10 @@ void downloads_gui_collapse_all(GtkCTree *ctree);
 void downloads_update_active_pane(void);
 void downloads_update_queue_pane(void);
 #else
-void downloads_gui_expand_all(GtkTreeView *tree_view);
-void downloads_gui_collapse_all(GtkTreeView *tree_view);
+void downloads_gui_expand_all(void);
+void downloads_gui_collapse_all(void);
 #endif
 
 #endif /* _gtk_downloads_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

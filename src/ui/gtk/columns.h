@@ -156,20 +156,13 @@ enum {
  * Fileinfo table columns.
  */
 
-enum {
+enum c_fi {
 	c_fi_filename = 0,
 	c_fi_size,
 	c_fi_done,
 	c_fi_sources,
 	c_fi_status,
 #define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_status + 1)
-#ifdef USE_GTK2
-	c_fi_handle,
-	c_fi_isize,
-	c_fi_idone,
-	c_fi_isources,
-	c_fi_istatus,
-#endif
 	c_fi_num
 };
 

@@ -132,9 +132,14 @@ static const struct {
 	{     1, N_("Hostcache"),		nb_main_page_hostcache },
 	{   0,	 N_("Uploads"),			nb_main_page_uploads },
 	{     1, N_("History"), 		nb_main_page_uploads_stats },
+#ifdef USE_GTK1
 	{   0,	 N_("Downloads"),		nb_main_page_dl_files },
 	{     1, N_("Active"),			nb_main_page_dl_active },
 	{     1, N_("Queue"),			nb_main_page_dl_queue },
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+	{   0,	 N_("Downloads"),		nb_main_page_downloads },
+#endif /* USE_GTK1 */
 	{   0,	 N_("Search"),			nb_main_page_search },
 	{     1, N_("Monitor"),			nb_main_page_monitor },
 	{     1, N_("Stats"),			nb_main_page_search_stats },
@@ -276,9 +281,15 @@ gui_create_main_window(void)
 	tab_window[nb_main_page_uploads_stats] =
 		create_main_window_upload_stats_tab();
 
+#ifdef USE_GTK1
 	tab_window[nb_main_page_dl_active] = create_main_window_dl_active_tab();
 	tab_window[nb_main_page_dl_files] = create_main_window_dl_files_tab();
 	tab_window[nb_main_page_dl_queue] = create_main_window_dl_queue_tab();
+#endif /* USE_GTK1 */
+
+#ifdef USE_GTK2
+	tab_window[nb_main_page_downloads] = create_main_window_downloads_tab();
+#endif /* USE_GTK1 */
 
 	tab_window[nb_main_page_search] = create_main_window_search_tab();
 	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
@@ -641,13 +652,17 @@ main_gui_early_init(gint argc, gchar **argv)
 	/* popup menus */
 	popup_search = create_popup_search();
 #ifdef USE_GTK2
+	popup_downloads = create_popup_downloads();
 	/* XXX: Create the equivalent popup for GTK+ 1.2 */
 	popup_search_list = create_popup_search_list();
 #endif /* USE_GTK2 */
-
-	popup_monitor = create_popup_monitor();
+	
+#ifdef USE_GTK1
 	popup_downloads = create_popup_dl_active();
 	popup_queue = create_popup_dl_queued();
+#endif /* USE_GTK1 */
+
+	popup_monitor = create_popup_monitor();
 
     nodes_gui_early_init();
     uploads_gui_early_init();
@@ -690,6 +705,7 @@ main_gui_init(void)
 	GTK_WINDOW(main_window)->allow_shrink = TRUE;
 #endif /* USE_GTK2 */
 
+#ifdef USE_GTK1
     /* FIXME: those gtk_widget_set_sensitive should become obsolete when
      * all property-change callbacks are set up properly
      */
@@ -709,10 +725,11 @@ main_gui_init(void)
             GTK_TOGGLE_BUTTON
                 (lookup_widget(main_window,
                                "checkbutton_downloads_never_push"))));
+#endif /* USE_GTK1 */
 
     settings_gui_init();
-	downloads_gui_init();
     fi_gui_init();
+	downloads_gui_init();
     vp_gui_init();
     nodes_gui_init();
     gui_init_menu();

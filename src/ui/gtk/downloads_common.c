@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 #include "if/gui_property_priv.h"
 
+#include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define IO_STALLED		60		/**< If nothing exchanged after that many secs */
@@ -80,9 +81,9 @@ gui_update_download_clear_now(void)
 void
 gui_update_queue_frozen(void)
 {
+#ifdef USE_GTK1
     static gboolean msg_displayed = FALSE;
     static statusbar_msgid_t id = {0, 0};
-
     GtkWidget *togglebutton_queue_freeze;
 
     togglebutton_queue_freeze =
@@ -94,10 +95,8 @@ gui_update_queue_frozen(void)
 	    	(gint) msg_displayed);
 
     if (guc_download_queue_is_frozen() > 0) {
-#ifdef USE_GTK1
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
-#endif
     	/*
 		gtk_label_set_text(
             GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
@@ -108,10 +107,8 @@ gui_update_queue_frozen(void)
           	id = statusbar_gui_message(0, _("Queue frozen"));
         }
     } else {
-#ifdef USE_GTK1
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_thaw"));
-#endif
     	/*
 		gtk_label_set_text(
             GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
@@ -136,6 +133,7 @@ gui_update_queue_frozen(void)
         GTK_OBJECT(togglebutton_queue_freeze),
         GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
         NULL);
+#endif /* USE_GTK1 */
 }
 
 /**
@@ -143,16 +141,21 @@ gui_update_queue_frozen(void)
  */
 void
 gui_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
+#ifdef USE_GTK1
 {
 	GtkWidget *w = lookup_widget(popup_queue, "popup_queue_start_now");
 	gboolean selected = TRUE;
 
-#ifdef USE_GTK1
 	selected = GTK_CLIST(
 		lookup_widget(main_window, "ctree_downloads_queue"))->selection != NULL;
-#endif
 	gtk_widget_set_sensitive(w, selected && running_downloads < max_downloads);
 }
+#else
+{
+	(void) running_downloads;
+	(void) max_downloads;
+}
+#endif
 
 
 /**
@@ -171,7 +174,8 @@ on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
 /**
  *	Freeze the downloads queue.
  */
-void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
+void
+on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
 	gpointer unused_udata)
 {
 	(void) unused_udata;
@@ -181,6 +185,26 @@ void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
     } else {
         guc_download_thaw_queue();
     }
+}
+
+const gchar *
+download_progress_to_string(const struct download *d)
+{
+	static gchar buf[32];
+
+	gm_snprintf(buf, sizeof buf, "%5.2f%%",
+		100.0 * guc_download_total_progress(d));
+	return buf;
+}
+
+ const gchar *
+source_progress_to_string(const struct download *d)
+{
+	static gchar buf[32];
+
+	gm_snprintf(buf, sizeof buf, "%5.2f%%",
+		100.0 * guc_download_source_progress(d));
+	return buf;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
