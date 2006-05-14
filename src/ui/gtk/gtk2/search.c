@@ -77,8 +77,8 @@ static gboolean search_gui_shutting_down = FALSE;
 /*
  * Private function prototypes.
  */
-static void
-gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv, gpointer udata);
+static void gui_search_create_tree_view(GtkWidget ** sw,
+				GtkWidget ** tv, gpointer udata);
 
 /*
  * If no search are currently allocated
@@ -150,7 +150,6 @@ search_gui_update_rank(
 	(*rank_ptr)++;
 	return FALSE;
 }
-
 
 static void
 cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell, 
@@ -546,7 +545,18 @@ search_gui_new_search_full(const gchar *querystr,
 		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
 			sch->sort_col, SORT_ASC == sch->sort_order
 							? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+	} else {
+		gint id;
+		
+#if GTK_CHECK_VERSION(2,6,0)
+		id = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+#else
+		id = c_sr_count;
+#endif /* Gtk+ >= 2.6.0 */
+		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
+			id, GTK_SORT_ASCENDING);
 	}
+
 
 	/* Add the search to the TreeView in pane on the left */
 	model = GTK_LIST_STORE(gtk_tree_view_get_model(tree_view_search));
