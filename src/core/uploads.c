@@ -2808,6 +2808,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	user_agent = header_get(header, "User-Agent");
 
 	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr);
+	
+	if (
+		SOCKET_USES_TLS(s) ||
+		(u->push && header_get_feature("tls", header, NULL, NULL))
+	) {
+		node_add_tls_host(u->addr, u->socket->port);
+	}
 
 	/* Maybe they sent a Server: line, thinking they're a server? */
 	if (user_agent == NULL)
