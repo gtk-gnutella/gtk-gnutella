@@ -211,7 +211,15 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 		break;
 	case c_fi_sources:
 		if (data->is_download) {
-			text = data->download.hostname;
+			static gchar buf[256];
+			const gchar *vendor = data->download.vendor;
+
+			concat_strings(buf, sizeof buf,
+				data->download.hostname,
+				" [", data->download.country, "]",
+				vendor ? " " : "", vendor ? vendor : "",
+				(void *) 0);
+			text = buf;
 		} else {
 			static gchar buf[256];
 
@@ -554,14 +562,7 @@ fi_gui_update_download(struct download *d)
 	
 	data->filename = atom_str_get(
 						guc_file_info_readable_filename(d->file_info));
-	{
-		gchar vendor[256];
-
-		concat_strings(vendor, sizeof vendor,
-			(d->server->attrs & DLS_A_BANNING) ? "*" : "",
-			download_vendor_str(d), (void *) 0);
-		data->download.vendor = atom_str_get(vendor);
-	}
+	data->download.vendor = atom_str_get(download_vendor_str(d));
 	data->download.hostname = atom_str_get(guc_download_get_hostname(d));
 	data->download.country = guc_download_get_country(d);
 
@@ -778,7 +779,8 @@ on_treeview_downloads_column_clicked(GtkTreeViewColumn *column,
 
 
 static GtkTreeViewColumn *
-add_column(GtkTreeView *tv, gint column_id, const gchar *title, gfloat xalign)
+add_column(GtkTreeView *tv, GtkTreeCellDataFunc cell_data_func,
+ 	gint column_id, const gchar *title, gfloat xalign)
 {
     GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
@@ -786,8 +788,17 @@ add_column(GtkTreeView *tv, gint column_id, const gchar *title, gfloat xalign)
 	renderer = create_cell_renderer(xalign);
 	column = gtk_tree_view_column_new_with_attributes(title,
 				renderer, (void *) 0);
-	gtk_tree_view_column_set_cell_data_func(column, renderer,
-			cell_renderer, GUINT_TO_POINTER(column_id), NULL);
+
+	if (cell_data_func) {
+		column = gtk_tree_view_column_new_with_attributes(title, renderer,
+					(void *) 0);
+		gtk_tree_view_column_set_cell_data_func(column, renderer,
+			cell_data_func, GUINT_TO_POINTER(column_id), NULL);
+	} else {
+		column = gtk_tree_view_column_new_with_attributes(title, renderer,
+					"text", column_id, (void *) 0);
+	}
+
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 1,
 		"min-width", 1,
@@ -964,7 +975,7 @@ fi_gui_init(void)
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		GtkTreeViewColumn *column;
 		
-    	column = add_column(treeview_downloads,
+    	column = add_column(treeview_downloads, cell_renderer,
 					columns[i].id, _(columns[i].title), columns[i].align);
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
 			columns[i].id, fileinfo_data_cmp, GUINT_TO_POINTER(columns[i].id),
@@ -992,7 +1003,7 @@ fi_gui_init(void)
     g_signal_connect(G_OBJECT(treeview_downloads), "drag-end",
         G_CALLBACK(drag_end), &dnd_url);
 
-    add_column(treeview_fi_aliases, 0, _("Aliases"), 0.0);
+    add_column(treeview_fi_aliases, NULL, 0, _("Aliases"), 0.0);
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
@@ -1323,9 +1334,17 @@ fi_gui_download_select(gboolean unselect)
 void
 gui_update_download_server(download_t *d)
 {
-	download_check(d);
-}
+	struct fileinfo_data *data;
 
+	download_check(d);
+
+	data = g_hash_table_lookup(fi_downloads, d);
+	g_return_if_fail(data);
+	g_return_if_fail(data->is_download);
+
+	data->download.vendor = atom_str_get(download_vendor_str(d));
+	set_fileinfo_data(data);
+}
 
 /**
  *	Update the range column of the active downloads treeview
