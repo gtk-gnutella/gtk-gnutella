@@ -2594,6 +2594,10 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	g_assert(s);
 
+	if (node_supports_tls(addr, port)) {
+		flags |= CONNECT_F_TLS;
+	}
+
 	addr = socket_ipv6_trt_map(addr);
 	sd = socket(host_addr_family(addr), SOCK_STREAM, 0);
 
@@ -2790,7 +2794,7 @@ socket_connect_by_name_helper(const host_addr_t *addr, size_t n,
 
 	s->adns &= ~SOCK_ADNS_PENDING;
 
-	if (0 == n || s->type == SOCK_TYPE_DESTROYING) {
+	if (n < 1 || s->type == SOCK_TYPE_DESTROYING) {
 		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
 		return;
