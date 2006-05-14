@@ -443,7 +443,7 @@ search_gui_dispose_results(results_set_t *rs)
 	for (l = search_gui_get_searches(); NULL != l; l = g_list_next(l)) {
 		search_t *sch = l->data;
 
-		if (NULL != sch->r_sets && hash_list_contains(sch->r_sets, rs)) {
+		if (NULL != sch->r_sets && hash_list_contains(sch->r_sets, rs, NULL)) {
 			refs++;			/* Found one more reference to this search */
 			hash_list_remove(sch->r_sets, rs);
 		}
@@ -1169,14 +1169,14 @@ search_matched(search_t *sch, results_set_t *rs)
      */
 
 	if (NULL != sch->r_sets)
-    	g_assert(!hash_list_contains(sch->r_sets, rs));
+    	g_assert(!hash_list_contains(sch->r_sets, rs, NULL));
 	else
-		sch->r_sets = hash_list_new();
+		sch->r_sets = hash_list_new(NULL, NULL);
 
 	/* Adds the set to the list */
-	hash_list_prepend(sch->r_sets, (gpointer) rs);
+	hash_list_prepend(sch->r_sets, rs, rs);
 	rs->refcount++;
-   	g_assert(hash_list_contains(sch->r_sets, rs));
+   	g_assert(hash_list_contains(sch->r_sets, rs, NULL));
 	g_assert(hash_list_first(sch->r_sets) == rs);
 
 	if (old_items == 0 && sch == current_search && sch->items > 0)

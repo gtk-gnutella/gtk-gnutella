@@ -78,6 +78,11 @@ struct hash_list_iter {
 	guint stamp;
 };
 
+struct hash_list_item {
+	GList *list;
+	gpointer data;
+};
+
 #if 0
 #define USE_HASH_LIST_REGRESSION 1
 #endif
@@ -129,11 +134,11 @@ static void inline hash_list_regression(const hash_list_t *hl)
  * Create a new hash list.
  */
 hash_list_t *
-hash_list_new(void)
+hash_list_new(GHashFunc hash_func, GEqualFunc eq_func)
 {
-	hash_list_t *hl = walloc(sizeof(*hl));
+	hash_list_t *hl = walloc(sizeof *hl);
 	hl->l = NULL;
-	hl->ht = g_hash_table_new(NULL, NULL);
+	hl->ht = g_hash_table_new(hash_func, eq_func);
 	hl->last = NULL;
 	hl->refcount = 1;
 	hl->len = 0;
@@ -167,18 +172,22 @@ hash_list_free(hash_list_t *hl)
 	hl->len = 0;
 	hl->magic = 0;
 
-	wfree(hl, sizeof(*hl));
+	wfree(hl, sizeof *hl);
 }
 
 /**
  * Hash table removal iterator -- always returns TRUE.
  */
 static gboolean
-hash_list_rt(gpointer uu_key, gpointer uu_value, gpointer uu_udata)
+hash_list_rt(gpointer uu_key, gpointer value, gpointer uu_udata)
 {
+	struct hash_list_item *item;
+	
 	(void) uu_key;
-	(void) uu_value;
 	(void) uu_udata;
+
+	item = value;
+	wfree(item, sizeof *item);
 
 	return TRUE;
 }
@@ -209,20 +218,27 @@ hash_list_clear(hash_list_t *hl)
  * Append `data' to the list.
  */
 void
-hash_list_append(hash_list_t *hl, gpointer data)
+hash_list_append(hash_list_t *hl, gpointer key, gpointer data)
 {
-	g_assert(NULL != data);
+	struct hash_list_item *item;
+	
 	g_assert(NULL != hl);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(1 == hl->refcount);
 	g_assert(equiv(hl->len == 0, hl->last == NULL));
 	hash_list_regression(hl);
 
-	hl->last = g_list_last(g_list_append(hl->last, data));
+	item = walloc(sizeof *item);
+	item->data = data;
+
+	hl->last = g_list_last(g_list_append(hl->last, item));
 	if (NULL == hl->l)
 		hl->l = hl->last;
-	g_assert(NULL == g_hash_table_lookup(hl->ht, data));
-	g_hash_table_insert(hl->ht, data, hl->last);
+	item->list = hl->last;
+
+	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
+	g_hash_table_insert(hl->ht, key, item);
+
 	hl->len++;
 	hl->stamp++;
 
@@ -233,20 +249,27 @@ hash_list_append(hash_list_t *hl, gpointer data)
  * Prepend `data' to the list.
  */
 void
-hash_list_prepend(hash_list_t *hl, gpointer data)
+hash_list_prepend(hash_list_t *hl, gpointer key, gpointer data)
 {
-	g_assert(NULL != data);
+	struct hash_list_item *item;
+
 	g_assert(NULL != hl);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(1 == hl->refcount);
 	g_assert(equiv(hl->len == 0, hl->last == NULL));
 	hash_list_regression(hl);
 
-	hl->l = g_list_prepend(hl->l, data);
+	item = walloc(sizeof *item);
+	item->data = data;
+
+	hl->l = g_list_prepend(hl->l, item);
 	if (NULL == hl->last)
 		hl->last = hl->l;
-	g_assert(NULL == g_hash_table_lookup(hl->ht, data));
-	g_hash_table_insert(hl->ht, data, hl->l);
+	item->list = hl->l;
+
+	g_assert(NULL == g_hash_table_lookup(hl->ht, item));
+	g_hash_table_insert(hl->ht, key, item);
+
 	hl->len++;
 	hl->stamp++;
 
@@ -255,33 +278,38 @@ hash_list_prepend(hash_list_t *hl, gpointer data)
 
 /**
  * Remove `data' from the list.
+ * @return The data that associated with the given key.
  */
-void
-hash_list_remove(hash_list_t *hl, gpointer data)
+gpointer
+hash_list_remove(hash_list_t *hl, gpointer key)
 {
-	GList *l;
+	struct hash_list_item *item;
+	gpointer data;
 
-	g_assert(NULL != data);
 	g_assert(1 == hl->refcount);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(equiv(hl->len == 0, hl->last == NULL));
 	g_assert(hl->len > 0);
 	hash_list_regression(hl);
 
-	l = (GList *) g_hash_table_lookup(hl->ht, data);
-	g_assert(NULL != l);
-	if (hl->last == l)
+	item = g_hash_table_lookup(hl->ht, key);
+	g_assert(item);
+	data = item->data;
+	if (hl->last == item->list)
 		hl->last = g_list_previous(hl->last);
-	hl->l = g_list_delete_link(hl->l, l);
-	g_hash_table_remove(hl->ht, data);
+	hl->l = g_list_delete_link(hl->l, item->list);
+	g_hash_table_remove(hl->ht, key);
+	wfree(item, sizeof *item);
+
 	hl->len--;
 	hl->stamp++;
 
 	hash_list_regression(hl);
+	return data;
 }
 
 /**
- * @returns the last item of the list, or NULL if none.
+ * @returns The data associated with the last item, or NULL if none.
  */
 gpointer
 hash_list_last(const hash_list_t *hl)
@@ -292,7 +320,14 @@ hash_list_last(const hash_list_t *hl)
 	g_assert(equiv(hl->len == 0, hl->last == NULL));
 	hash_list_regression(hl);
 
-	return NULL != hl->last ? hl->last->data : NULL;
+	if (hl->last) {
+		struct hash_list_item *item;
+
+		item = hl->last->data;
+		g_assert(item);
+		return item->data;
+	}
+	return NULL;
 }
 
 /**
@@ -307,7 +342,14 @@ hash_list_first(const hash_list_t *hl)
 	g_assert(equiv(hl->len == 0, hl->l == NULL));
 	hash_list_regression(hl);
 
-	return NULL != hl->l ? hl->l->data : NULL;
+	if (hl->l) {
+		struct hash_list_item *item;
+
+		item = hl->l->data;
+		g_assert(item);
+		return item->data;
+	}
+	return NULL;
 }
 
 /**
@@ -396,7 +438,12 @@ hash_list_next(hash_list_iter_t *i)
 
 	g_assert(i->l != NULL || i->pos >= i->hl->len);
 
-	return NULL != i->l ? i->l->data : NULL;
+	if (i->l) {
+		struct hash_list_item *item;
+		item = i->l->data;
+		return item->data;
+	}
+	return NULL;
 }
 
 /**
@@ -432,7 +479,12 @@ hash_list_previous(hash_list_iter_t *i)
 
 	g_assert(i->l != NULL || i->pos < 0);
 
-	return NULL != i->l ? i->l->data : NULL;
+	if (i->l) {
+		struct hash_list_item *item;
+		item = i->l->data;
+		return item->data;
+	}
+	return NULL;
 }
 
 /**
@@ -497,19 +549,21 @@ hash_list_release(hash_list_iter_t *i)
  * Check whether hashlist contains the `data'.
  */
 gboolean
-hash_list_contains(hash_list_t *hl, gpointer data)
+hash_list_contains(hash_list_t *hl, gpointer key, gpointer *data_ptr)
 {
-	GList *l;
+	struct hash_list_item *item;
 
 	g_assert(NULL != hl);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(NULL != hl->ht);
-	g_assert(NULL != data);
 	g_assert(hl->refcount > 0);
 	hash_list_regression(hl);
 
-	l = g_hash_table_lookup(hl->ht, data);
-	return NULL != l && l->data == data;
+	item = g_hash_table_lookup(hl->ht, key);
+	if (item && data_ptr) {
+		*data_ptr = item->data;
+	}
+	return NULL != item;
 }
 
 /**
@@ -518,6 +572,8 @@ hash_list_contains(hash_list_t *hl, gpointer data)
 void
 hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 {
+	GList *list;
+	
 	g_assert(NULL != hl);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(NULL != func);
@@ -525,7 +581,12 @@ hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 	g_assert(equiv(hl->len == 0, hl->last == NULL));
 	hash_list_regression(hl);
 
-	G_LIST_FOREACH_WITH_DATA(hl->l, func, user_data);
+	for (list = hl->l; NULL != list; list = g_list_next(list)) {
+		struct hash_list_item *item;
+
+		item = list->data;
+		func(item->data, user_data);
+	}
 
 	hash_list_regression(hl);
 }

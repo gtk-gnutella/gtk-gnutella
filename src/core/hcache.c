@@ -400,7 +400,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 	hash_list_free(to->hostlist);
     to->hostlist = from->hostlist;
     to->host_count = from->host_count;
-    from->hostlist = hash_list_new();
+    from->hostlist = hash_list_new(NULL, NULL);
     from->host_count = 0;
 
     /*
@@ -464,7 +464,7 @@ static void
 hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 {
 	g_assert(hc->host_count > 0 && hc->hostlist != NULL);
-	g_assert(hash_list_contains(hc->hostlist, host));
+	g_assert(hash_list_contains(hc->hostlist, host, NULL));
 
 	hash_list_remove(hc->hostlist, host);
     hc->host_count--;
@@ -653,11 +653,11 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 		 * OK, we can move it from the `hce->type' cache to the `type' one.
 		 */
 
-		g_assert(hash_list_contains(caches[hce->type]->hostlist, host));
+		g_assert(hash_list_contains(caches[hce->type]->hostlist, host, NULL));
 
 		hash_list_remove(caches[hce->type]->hostlist, host);
 		caches[hce->type]->host_count--;
-		hash_list_prepend(hc->hostlist, host);
+		hash_list_prepend(hc->hostlist, host, host);
 		hc->host_count++;
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
@@ -678,7 +678,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_FRESH_ULTRA:
-        hash_list_append(hc->hostlist, host);
+        hash_list_append(hc->hostlist, host, host);
         break;
 
     case HCACHE_VALID_ANY:
@@ -688,7 +688,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
          * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
          * in effect using the most recent hosts we know about.
          */
-        hash_list_prepend(hc->hostlist, host);
+        hash_list_prepend(hc->hostlist, host, host);
         break;
 
     default:
@@ -696,7 +696,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
          * hcache_expire() depends on the fact that new entries are
          * added to the beginning of the list
          */
-        hash_list_prepend(hc->hostlist, host);
+        hash_list_prepend(hc->hostlist, host, host);
         break;
     }
 
@@ -1262,7 +1262,7 @@ hcache_alloc(hcache_type_t type, gnet_property_t reading,
 
 	hc = g_malloc0(sizeof *hc);
 
-	hc->hostlist = hash_list_new();
+	hc->hostlist = hash_list_new(NULL, NULL);
 	hc->name = name;
 	hc->type = type;
 	hc->reading = reading;
