@@ -4737,7 +4737,7 @@ void
 download_requeue(struct download *d)
 {
 	download_check(d);
-	g_assert(!DOWNLOAD_IS_QUEUED(d));
+	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
 
 	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
 		return;
@@ -6507,6 +6507,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	addr = download_addr(d);
 	port = download_port(d);
 
+	if (
+		SOCKET_USES_TLS(s) ||
+		(!d->got_giv && header_get_feature("tls", header, NULL, NULL))
+	) {
+		node_add_tls_host(addr, port);
+	}
+
 	check_date(header, addr, d);	/* Update clock skew if we have a Date: */
 
 	/*
@@ -7790,8 +7797,8 @@ download_send_request(struct download *d)
 	) {
 		change_server_addr(d->server, s->addr);
 		g_assert(host_addr_equal(download_addr(d), s->addr));
-		gcu_gui_update_download_host(d);
 	}
+	gcu_gui_update_download_host(d);
 
 	/*
 	 * If we have d->always_push set, yet we did not use a Push, it means we
