@@ -1690,7 +1690,7 @@ alloc_dump(FILE *f, gboolean total)
 	fprintf(f, "--- distinct allocation spots found: %d at %s\n",
 		count, short_time(now - init_time));
 
-	filler.stats = (struct stats **) malloc(sizeof(struct stats *) * count);
+	filler.stats = malloc(sizeof(struct stats *) * count);
 	filler.count = count;
 	filler.idx = 0;
 
