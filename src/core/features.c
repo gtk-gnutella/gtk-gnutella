@@ -162,17 +162,22 @@ header_features_generate(struct xfeature_t *xfeatures,
 
 /**
  * Retrieves the major and minor version from a feature in the X-Features
- * header, if no support was found both major and minor are 0.
+ * header, if no support was found both major and minor are 0 and FALSE
+ * is returned.
  */
-void
+gboolean
 header_get_feature(const gchar *feature_name, const header_t *header,
 	guint *feature_version_major, guint *feature_version_minor)
 {
 	gchar *buf = NULL;
 	gchar *start;
 
-	*feature_version_major = 0;
-	*feature_version_minor = 0;
+	if (feature_version_major) {
+		*feature_version_major = 0;
+	}
+	if (feature_version_minor) {
+		*feature_version_minor = 0;
+	}
 
 	buf = header_get(header, "X-Features");
 
@@ -190,7 +195,7 @@ header_get_feature(const gchar *feature_name, const header_t *header,
 		 * Better safe than sorry.
 		 */
 
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -204,7 +209,7 @@ header_get_feature(const gchar *feature_name, const header_t *header,
 		buf = ascii_strcasestr(buf, feature_name);
 
 		if (buf == NULL)
-			return;
+			return FALSE;
 		if (buf == start)
 			break;
 
@@ -228,15 +233,17 @@ header_get_feature(const gchar *feature_name, const header_t *header,
 		if (dbg > 2)
 			header_dump(header, stderr);
 
-		return;
+		return FALSE;
 	}
 
 	buf++;
 
 	if (*buf == '\0')
-		return;
+		return FALSE;
 
-	parse_major_minor(buf, NULL, feature_version_major, feature_version_minor);
+	
+	return 0 == parse_major_minor(buf, NULL,
+					feature_version_major, feature_version_minor);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

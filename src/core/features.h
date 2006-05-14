@@ -56,7 +56,7 @@ typedef struct xfeatures_t {
 
 extern xfeatures_t xfeatures;
 
-void header_get_feature(const gchar *feature_name, const header_t *header,
+gboolean header_get_feature(const gchar *feature_name, const header_t *header,
 	guint *feature_version_major, guint *feature_version_minor);
 void header_features_add(struct xfeature_t *xfeatures,
 	const gchar *feature_name,
