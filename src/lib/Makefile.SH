@@ -109,6 +109,7 @@ LSRC = \
 	inputevt.c \
 	iprange.c \
 	iso3166.c \
+	magnet.c \
 	malloc.c \
 	misc.c \
 	palloc.c \
@@ -156,6 +157,7 @@ LOBJ = \
 	inputevt.o \
 	iprange.o \
 	iso3166.o \
+	magnet.o \
 	malloc.o \
 	misc.o \
 	palloc.o \

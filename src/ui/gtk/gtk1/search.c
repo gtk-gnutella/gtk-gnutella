@@ -323,6 +323,10 @@ search_gui_new_search_full(const gchar *querystr,
 			statusbar_gui_message(5, "%s", error);
 			return FALSE;
 		}
+    	gtk_entry_set_text(GTK_ENTRY(entry_search), "");
+		if ('\0' == query[0]) {
+			return FALSE;
+		}
 	} else {
 		query = querystr;
 		rules = NULL;
@@ -416,8 +420,6 @@ search_gui_new_search_full(const gchar *querystr,
         lookup_widget(main_window, "button_search_expand_all"), TRUE);
     gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_search_collapse_all"), TRUE);
-
-    gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 
 	is_only_search = (searches == NULL);
 	searches = g_list_append(searches, sch);

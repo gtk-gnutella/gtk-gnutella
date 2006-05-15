@@ -55,15 +55,16 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
-#include "lib/fuzzy.h"
 #include "lib/file.h"
+#include "lib/fuzzy.h"
 #include "lib/glib-missing.h"
-#include "lib/vendors.h"
+#include "lib/magnet.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
-#include "lib/zalloc.h"
+#include "lib/vendors.h"
 #include "lib/walloc.h"
+#include "lib/zalloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 static search_t *current_search  = NULL; /**< The search currently displayed */
@@ -1553,6 +1554,93 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 	query->neg = g_list_reverse(query->neg);
 }
 
+gboolean
+search_gui_handle_magnet(const gchar *url, const gchar **error_str)
+{
+	struct magnet_resource *res;
+
+	res = magnet_parse(url, error_str);
+	if (!res) {
+		if (error_str && *error_str) {
+			statusbar_gui_warning(10, "%s", *error_str);
+		}
+		return FALSE;
+	}
+
+
+	/* FIXME:
+	 * As long as downloading of files without a known size is
+	 * defective, we can only initiate downloads from magnets that
+	 * specified a file length.
+	 */
+
+	if (res->size > 0) {
+		const gchar *filename;
+		gchar urn[256];
+		GSList *sl;
+		guint started = 0;
+
+		filename = res->display_name;
+		if (!filename) {
+			for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
+				struct magnet_source *ms = sl->data;
+
+				if (ms->uri) {
+					filename = filepath_basename(ms->uri);
+					if ('\0' != filename[0])
+						break;
+					filename = NULL;
+				}
+			}
+		}
+		if (!filename) {
+			if (res->sha1) {
+				concat_strings(urn, sizeof urn,
+					"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
+				filename = urn;
+			} else {
+				filename = "magnet-download";
+			}
+		}
+
+		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
+			struct magnet_source *ms = sl->data;
+			host_addr_t addr;
+
+			/* Note: We use 0.0.0.0 instead of zero_host_addr because
+			 *       the core would bark when using the latter.
+			 */
+			addr = is_host_addr(ms->addr) ? ms->addr : host_addr_set_ipv4(0);
+			if (ms->port != 0 && (is_host_addr(addr) || ms->hostname)) {
+				if (ms->uri) {
+					guc_download_new_uri(filename, ms->uri, res->size,
+						addr, ms->port, blank_guid, ms->hostname,
+						res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+					started++;
+				} else if (res->sha1) {
+					guc_download_new(filename, res->size, URN_INDEX,
+						addr, ms->port, blank_guid, ms->hostname,
+						res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+					started++;
+				} else {
+					g_message("Unusable magnet source");
+				}
+			}
+		}
+
+		if (started > 0) {
+			statusbar_gui_message(15,
+				NG_("Started %u download from magnet.",
+					"Started %u downloads from magnet.", started),
+				started);
+		}
+
+	}
+
+	magnet_resource_free(res);
+	return TRUE;
+}
+
 /**
  * Parses a query string as entered by the user.
  *
@@ -1595,24 +1683,9 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 	}
 
 	if (is_strcaseprefix(query, "magnet:")) {
-		const gchar *s;
-
-		/* FIXME: strcasestr() is a hack, parse this properly */
-		s = ascii_strcasestr(query, urnsha1);
-		if (NULL != s) {
-			gchar raw[SHA1_RAW_SIZE];
-
-			if (urn_get_sha1(s, raw)) {
-				concat_strings(query, sizeof query,
-					urnsha1, sha1_base32(raw), (void *) 0);
-				return query;
-			} else {
-				*error = _("The SHA1 of the magnet is not validly encoded");
-				return NULL;		/* Entry refused */
-			}
+		if (search_gui_handle_magnet(query, error)) {
+			return "";
 		}
-
-		*error = _("Cannot parse magnet");
 		return NULL;
 	} else if (is_strcaseprefix(query, urnsha1)) {
 		gchar raw[SHA1_RAW_SIZE];
