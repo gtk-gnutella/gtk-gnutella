@@ -441,16 +441,15 @@ file_info_check_chunklist(fileinfo_t *fi, gboolean assertion)
 	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
 		struct dl_file_chunk *fc = sl->data;
 
-		if (
-				last != fc->from ||
-				fc->from >= fc->to ||
-				fc->from >= fi->size ||
-				fc->to > fi->size
-		) {
+		if (last != fc->from || fc->from >= fc->to)
 			return FALSE;
-		}
 
 		last = fc->to;
+		if (!fi->file_size_known || 0 == fi->size)
+			continue;
+		
+		if (fc->from >= fi->size || fc->to > fi->size)
+			return FALSE;
 	}
 
 	return TRUE;
@@ -988,6 +987,10 @@ file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
 
 		if (strict_sha1_matching)
 			return NULL;
+	}
+
+	if (0 == size) {
+		return NULL;
 	}
 
 	/*
@@ -1919,6 +1922,60 @@ file_info_close(void)
 	G_FREE_NULL(tbuf.arena);
 }
 
+static void
+file_info_hash_insert_name_size(fileinfo_t *fi)
+{
+	namesize_t nsk;
+	GSList *l;
+
+	g_assert(fi);
+	g_assert(fi->file_size_known);
+	g_assert(fi->size_atom);
+	
+	/*
+	 * The (name, size) tuples also point to a list of entries, one for
+	 * each of the name aliases.  Ideally, we'd want only one, but there
+	 * can be name conflicts.  This does not matter unless they disabled
+	 * strict SHA1 matching...  but that is a dangerous move.
+	 */
+
+	nsk.size = fi->size;
+
+	for (l = fi->alias; l; l = l->next) {
+		GSList *list;
+		nsk.name = l->data;
+
+		list = g_hash_table_lookup(fi_by_namesize, &nsk);
+
+		if (NULL != list)
+			list = g_slist_append(list, fi);
+		else {
+			namesize_t *ns = namesize_make(nsk.name, nsk.size);
+			list = g_slist_append(list, fi);
+			g_hash_table_insert(fi_by_namesize, ns, list);
+		}
+	}
+
+	/*
+	 * Finally, for a given size, maintain a list of fi's.
+	 *
+	 * NB: the key used here is the size_atom, as it must be shared accross
+	 * all the `fi' structs with the same size!
+	 */
+
+	g_assert(*(const filesize_t *) fi->size_atom == fi->size);
+
+	l = g_hash_table_lookup(fi_by_size, fi->size_atom);
+
+	if (NULL != l) {
+		l = g_slist_append(l, fi);
+	} else {
+		l = g_slist_append(l, fi);
+		g_assert(NULL != l);
+		g_hash_table_insert(fi_by_size, fi->size_atom, l);
+	}
+}
+
 /**
  * Inserts a file_info struct into the hash tables.
  */
@@ -1926,8 +1983,6 @@ static void
 file_info_hash_insert(fileinfo_t *fi)
 {
 	fileinfo_t *xfi;
-	namesize_t nsk;
-	GSList *l;
 
 	g_assert(fi);
 	g_assert(!fi->hashed);
@@ -1980,47 +2035,8 @@ file_info_hash_insert(fileinfo_t *fi)
 			g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
 	}
 
-	/*
-	 * The (name, size) tuples also point to a list of entries, one for
-	 * each of the name aliases.  Ideally, we'd want only one, but there
-	 * can be name conflicts.  This does not matter unless they disabled
-	 * strict SHA1 matching...  but that is a dangerous move.
-	 */
-
-	nsk.size = fi->size;
-
-	for (l = fi->alias; l; l = l->next) {
-		GSList *list;
-		nsk.name = l->data;
-
-		list = g_hash_table_lookup(fi_by_namesize, &nsk);
-
-		if (NULL != list)
-			list = g_slist_append(list, fi);
-		else {
-			namesize_t *ns = namesize_make(nsk.name, nsk.size);
-			list = g_slist_append(list, fi);
-			g_hash_table_insert(fi_by_namesize, ns, list);
-		}
-	}
-
-	/*
-	 * Finally, for a given size, maintain a list of fi's.
-	 *
-	 * NB: the key used here is the size_atom, as it must be shared accross
-	 * all the `fi' structs with the same size!
-	 */
-
-	g_assert(*(const filesize_t *) fi->size_atom == fi->size);
-
-	l = g_hash_table_lookup(fi_by_size, fi->size_atom);
-
-	if (NULL != l) {
-		l = g_slist_append(l, fi);
-	} else {
-		l = g_slist_append(l, fi);
-		g_assert(NULL != l);
-		g_hash_table_insert(fi_by_size, fi->size_atom, l);
+	if (fi->file_size_known) {
+		file_info_hash_insert_name_size(fi);
 	}
 
 transient:
@@ -2102,58 +2118,60 @@ file_info_hash_remove(fileinfo_t *fi)
 	if (fi->sha1)
 		g_hash_table_remove(fi_by_sha1, fi->sha1);
 
-	/*
-	 * Remove all the aliases from the (name, size) table.
-	 */
+	if (fi->file_size_known) {
+		/*
+		 * Remove all the aliases from the (name, size) table.
+		 */
 
-	nsk.size = fi->size;
+		nsk.size = fi->size;
 
-	for (l = fi->alias; l; l = l->next) {
-		namesize_t *ns;
-		GSList *list;
-		GSList *head;
-		gpointer key, value;
+		for (l = fi->alias; l; l = l->next) {
+			namesize_t *ns;
+			GSList *list;
+			GSList *head;
+			gpointer key, value;
 
-		nsk.name = l->data;
+			nsk.name = l->data;
 
-		found = g_hash_table_lookup_extended(fi_by_namesize, &nsk,
+			found = g_hash_table_lookup_extended(fi_by_namesize, &nsk,
 					&key, &value);
 
-		ns = key;
-		list = value;
-		g_assert(found);
-		g_assert(NULL != list);
-		g_assert(ns->size == fi->size);
+			ns = key;
+			list = value;
+			g_assert(found);
+			g_assert(NULL != list);
+			g_assert(ns->size == fi->size);
 
-		head = list;
-		list = g_slist_remove(list, fi);
+			head = list;
+			list = g_slist_remove(list, fi);
 
-		if (NULL == list) {
-			g_hash_table_remove(fi_by_namesize, ns);
-			namesize_free(ns);
-		} else if (head != list)
-			g_hash_table_insert(fi_by_namesize, ns, list);	/* Head changed */
+			if (NULL == list) {
+				g_hash_table_remove(fi_by_namesize, ns);
+				namesize_free(ns);
+			} else if (head != list)
+				g_hash_table_insert(fi_by_namesize, ns, list);	/* Head changed */
+		}
+
+		/*
+		 * Remove from the "by filesize" table.
+		 *
+		 * NB: the key used here is the size_atom, as it must be shared accross
+		 * all the `fi' structs with the same size (in case we free `fi' now)!
+		 */
+
+		g_assert(*(const filesize_t *) fi->size_atom == fi->size);
+
+		l = g_hash_table_lookup(fi_by_size, &fi->size);
+
+		g_assert(NULL != l);
+
+		newl = g_slist_remove(l, fi);
+
+		if (NULL == newl)
+			g_hash_table_remove(fi_by_size, fi->size_atom);
+		else if (newl != l)
+			g_hash_table_insert(fi_by_size, fi->size_atom, newl);
 	}
-
-	/*
-	 * Remove from the "by filesize" table.
-	 *
-	 * NB: the key used here is the size_atom, as it must be shared accross
-	 * all the `fi' structs with the same size (in case we free `fi' now)!
-	 */
-
-	g_assert(*(const filesize_t *) fi->size_atom == fi->size);
-
-	l = g_hash_table_lookup(fi_by_size, &fi->size);
-
-	g_assert(NULL != l);
-
-	newl = g_slist_remove(l, fi);
-
-	if (NULL == newl)
-		g_hash_table_remove(fi_by_size, fi->size_atom);
-	else if (newl != l)
-		g_hash_table_insert(fi_by_size, fi->size_atom, newl);
 
 transient:
 	g_hash_table_remove(fi_by_guid, fi->guid);
@@ -2456,18 +2474,21 @@ fi_copy_chunks(fileinfo_t *fi, fileinfo_t *trailer)
 {
 	GSList *sl;
 
+	g_assert(NULL == fi->chunklist);
+	g_assert(file_info_check_chunklist(trailer, TRUE));
+
 	fi->generation = trailer->generation;
 	if (trailer->cha1)
 		fi->cha1 = atom_sha1_get(trailer->cha1);
 
 	for (sl = trailer->chunklist; NULL != sl; sl = g_slist_next(sl)) {
 		struct dl_file_chunk *fc = sl->data;
-		struct dl_file_chunk *nfc;
 
-		nfc = wcopy(fc, sizeof *fc);
-
+		g_assert(fc);
+		g_assert(fc->from <= fc->to);
+		g_assert(sl != trailer->chunklist || 0 == fc->from);
 		/* Prepend now and reverse later for better efficiency */
-		fi->chunklist = g_slist_prepend(fi->chunklist, fc);
+		fi->chunklist = g_slist_prepend(fi->chunklist, wcopy(fc, sizeof *fc));
 	}
 
 	fi->chunklist = g_slist_reverse(fi->chunklist);
@@ -2572,6 +2593,10 @@ file_info_retrieve(void)
 				fi_free(fi);
 				fi = NULL;
 				continue;
+			}
+
+			if (0 == fi->size) {
+				fi->file_size_known = FALSE;
 			}
 
 			/*
@@ -2720,11 +2745,13 @@ file_info_retrieve(void)
 				g_warning("found OUTDATED metainfo in \"%s%s%s\"",
 					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
 				fi_free(dfi);
+				dfi = NULL;
 				upgraded = FALSE;				/* No need to flush twice */
 				file_info_store_binary(fi);		/* Resync metainfo */
 			} else {
 				g_assert(dfi->generation == fi->generation);
 				fi_free(dfi);
+				dfi = NULL;
 			}
 
 			/*
@@ -3385,15 +3412,6 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 	fileinfo_t *fi;
 	namesize_t nsk;
 
-	/*
-	 * Compute list of entries whose size matches.  If none, it is a
-	 * certainety we won't have any identical entry!
-	 */
-
-	sizelist = g_hash_table_lookup(fi_by_size, &size);
-	if (NULL == sizelist)
-		return NULL;
-
 	if (strict_sha1_matching) {
 		if (!sha1)
 			return NULL;
@@ -3405,6 +3423,18 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 		if (fi)
 			return fi;
 	}
+
+	if (0 == size)
+		return NULL;
+
+	/*
+	 * Compute list of entries whose size matches.  If none, it is a
+	 * certainety we won't have any identical entry!
+	 */
+
+	sizelist = g_hash_table_lookup(fi_by_size, &size);
+	if (NULL == sizelist)
+		return NULL;
 
 	/*
 	 * Only retain entry by (name, size) if it is unique.
@@ -3572,6 +3602,8 @@ file_info_size_known(struct download *d, filesize_t size)
 	fi->size = size;
 	fi->size_atom = atom_filesize_get(&size);
 	fi->dirty = TRUE;
+
+	file_info_hash_insert_name_size(fi);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
@@ -4641,18 +4673,20 @@ fi_get_info(gnet_fi_t fih)
 {
     fileinfo_t *fi = file_info_find_by_handle(fih);
     gnet_fi_info_t *info;
+	const gchar *sha1;
 	GSList *l;
 
     info = walloc(sizeof *info);
 
     info->path = fi->path ? atom_str_get(fi->path) : NULL;
     info->file_name = fi->file_name ? atom_str_get(fi->file_name) : NULL;
-    info->sha1 = fi->sha1 ? atom_sha1_get(fi->sha1) : NULL;
+	sha1 = fi->sha1 ? fi->sha1 : fi->cha1;
+    info->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
     info->fi_handle = fi->fi_handle;
 	info->aliases   = NULL;
 
 	for (l = fi->alias; l; l = g_slist_next(l)) {
-		const gchar *alias = (const gchar *) l->data;
+		const gchar *alias = l->data;
 		info->aliases = g_slist_prepend(info->aliases, atom_str_get(alias));
 	}
 

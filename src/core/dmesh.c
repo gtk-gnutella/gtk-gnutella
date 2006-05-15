@@ -1268,7 +1268,8 @@ dmesh_alternate_location(const gchar *sha1,
 	 */
 
 	if (
-		fi != NULL && fi->done != 0 && pfsp_server && !is_firewalled &&
+		fi != NULL && fi->size != 0 && fi->file_size_known && fi->done != 0 &&
+		pfsp_server && !is_firewalled &&
 		(
 			fi->done >= MIN_PFSP_SIZE ||
 			fi->done * 100 / fi->size > MIN_PFSP_PCT

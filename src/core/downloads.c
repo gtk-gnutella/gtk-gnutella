@@ -4358,7 +4358,7 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 		create_download(req->file, req->uri, req->size,
 			req->record_index, addrs[i],
 			req->port, req->guid, req->hostname, req->sha1, req->stamp,
-			req->push, TRUE, TRUE, req->fi, NULL, req->flags);
+			req->push, TRUE, 0 != req->size, req->fi, NULL, req->flags);
 	}
 	download_request_free(&req);
 }
@@ -4414,7 +4414,7 @@ download_new(const gchar *file, filesize_t size, guint32 record_index,
 	}
 	return NULL != create_download(file, NULL, size, record_index, addr,
 					port, guid, hostname, sha1, stamp, push, TRUE,
-					TRUE, fi, proxies, flags);
+					0 != size, fi, proxies, flags);
 }
 
 /**
