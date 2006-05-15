@@ -4695,7 +4695,8 @@ void
 download_resume(struct download *d)
 {
 	download_check(d);
-	g_assert(!DOWNLOAD_IS_QUEUED(d));
+
+	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
 
 	if (DOWNLOAD_IS_RUNNING(d) || DOWNLOAD_IS_WAITING(d))
 		return;
