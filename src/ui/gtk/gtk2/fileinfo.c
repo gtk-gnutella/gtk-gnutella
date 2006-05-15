@@ -98,21 +98,12 @@ struct fileinfo_data {
 static void
 fi_gui_clear_data(struct fileinfo_data *data)
 {
-	if (data->filename) {
-		atom_str_free(data->filename);
-		data->filename = NULL;
-	}
+	atom_str_free_null(&data->filename);
 	G_FREE_NULL(data->status);
 	G_FREE_NULL(data->download.range);
 	if (data->is_download) {
-		if (data->download.vendor) {
-			atom_str_free(data->download.vendor);
-			data->download.vendor = NULL;
-		}
-		if (data->download.hostname) {
-			atom_str_free(data->download.hostname);
-			data->download.hostname = NULL;
-		}
+		atom_str_free_null(&data->download.vendor);
+		atom_str_free_null(&data->download.hostname);
 	}
 }
 
@@ -1424,9 +1415,7 @@ gui_update_download_host(download_t *d)
 	g_return_if_fail(data);
 	g_return_if_fail(data->is_download);
 	
-	if (data->download.hostname) {
-		atom_str_free(data->download.hostname);
-	}
+	atom_str_free_null(&data->download.hostname);
 	data->download.hostname = atom_str_get(guc_download_get_hostname(d));
 
 	set_fileinfo_data(data);
