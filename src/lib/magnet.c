@@ -273,7 +273,7 @@ magnet_handle_key(struct magnet_resource *res,
 }
 
 struct magnet_resource * 
-magnet_parse(const gchar *url, gchar **error_str)
+magnet_parse(const gchar *url, const gchar **error_str)
 {
 	static const struct magnet_resource zero_resource;
 	struct magnet_resource res;
