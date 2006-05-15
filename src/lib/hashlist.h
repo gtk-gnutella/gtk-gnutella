@@ -26,7 +26,7 @@
 #ifndef _hashlist_h_
 #define _hashlist_h_
 
-#include <glib.h>
+#include "glib-missing.h"
 
 typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
