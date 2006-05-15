@@ -60,6 +60,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/magnet.h"
 #include "lib/tm.h"
+#include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
@@ -1574,7 +1575,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	 * specified a file length.
 	 */
 
-	if (res->size > 0) {
+	{
 		const gchar *filename;
 		gchar urn[256];
 		GSList *sl;
@@ -1641,6 +1642,27 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	return TRUE;
 }
 
+gboolean
+search_gui_handle_http(const gchar *url, const gchar **error_str)
+{
+	gchar *magnet, *escaped_url;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	escaped_url = url_escape(url);
+	magnet = g_strconcat("magnet:?xs=", escaped_url, (void *) 0);
+	success = search_gui_handle_magnet(magnet, error_str);
+
+	G_FREE_NULL(magnet);
+	if (url != escaped_url) {
+		G_FREE_NULL(escaped_url);
+	}
+
+	return TRUE;
+}
+
+
 /**
  * Parses a query string as entered by the user.
  *
@@ -1684,6 +1706,11 @@ search_gui_parse_query(const gchar *querystr, GList **rules,
 
 	if (is_strcaseprefix(query, "magnet:")) {
 		if (search_gui_handle_magnet(query, error)) {
+			return "";
+		}
+		return NULL;
+	} else if (is_strcaseprefix(query, "http:")) {
+		if (search_gui_handle_http(query, error)) {
 			return "";
 		}
 		return NULL;
