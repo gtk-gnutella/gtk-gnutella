@@ -99,11 +99,11 @@ magnet_key_get(const gchar *s)
 static void
 plus_to_space(gchar *s)
 {
-	gchar c, *p;
-
-	for (p = s; (c = *p) != '\0'; p++) {
-		if (c == '+')
-			*p = ' ';
+	while (s) {
+		s = strchr(s, '+');
+		if (s) {
+			*s++ = ' ';
+		}
 	}
 }
 
