@@ -66,6 +66,7 @@ RCSID("$Id$");
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/tm.h"
+#include "lib/url.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/glib-missing.h"
@@ -5221,6 +5222,75 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 	return FALSE;	/* Sorry, cannot satisfy this request */
 }
 
+/**
+ * Creates a URL which points to a downloads (e.g. you can move this to a
+ * browser and download the file there with this URL).
+ */
+gchar *
+file_info_build_magnet(gnet_fi_t handle)
+{
+	const gchar *separator = "";
+	const fileinfo_t *fi;
+	const GSList *sl;
+	gint n;
+	GString *gs;
+	gchar *url;
+   
+	fi = file_info_find_by_handle(handle);
+	g_return_val_if_fail(fi, NULL);
+
+	gs = g_string_new("magnet:?");
+	if (fi->file_name) {
+		gchar *escaped_name;
+
+		escaped_name = url_escape(fi->file_name);
+		gs = g_string_append(gs, separator);
+		gs = g_string_append(gs, "dn=");
+		gs = g_string_append(gs, escaped_name);
+		if (escaped_name != fi->file_name) {
+			G_FREE_NULL(escaped_name);
+		}
+		separator = "&";
+	}
+	if (fi->file_size_known && fi->size) {
+		gchar buf[UINT64_DEC_BUFLEN];
+
+		uint64_to_string_buf(fi->size, buf, sizeof buf),
+		gs = g_string_append(gs, separator);
+		gs = g_string_append(gs, "xl=");
+		gs = g_string_append(gs, buf);
+		separator = "&";
+	}
+	if (fi->sha1) {
+		gs = g_string_append(gs, separator);
+		gs = g_string_append(gs, "xt=urn:sha1:");
+		gs = g_string_append(gs, sha1_base32(fi->sha1));
+		separator = "&";
+	}
+
+	n = 0;
+	for (sl = fi->sources; NULL != sl && n < 10; sl = g_slist_next(sl)) {
+		struct download *src = sl->data;
+		gchar *src_url;
+
+		g_assert(src);
+		src_url = download_build_url(src);
+		if (src_url) {
+			gs = g_string_append(gs, separator);
+			gs = g_string_append(gs, "xs=");
+			gs = g_string_append(gs, src_url);
+			G_FREE_NULL(src_url);
+			separator = "&";
+			n++;
+		}
+	}
+
+	url = gs->str;
+	g_string_free(gs, FALSE); /* Don't free the string itself */
+	return url;
+}
+
+
 
 
 /**
@@ -5287,7 +5357,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	if (fileinfo_debug > 5)
 		printf("*** Fileinfo: %s\n", d->file_info->file_name);
 	for (l = d->file_info->sources; l; l = g_slist_next(l)) {
-		struct download *src = (struct download *)l->data;
+		struct download *src = l->data;
 		/*
 		 * We only count the ranges of a file if it has replied to a recent
 		 * request, and if the download request is not done or in an error
