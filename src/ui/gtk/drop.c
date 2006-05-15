@@ -47,26 +47,6 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
- * Private prototypes;
- */
-
-static gboolean handle_not_implemented(const gchar *url);
-static gboolean handle_magnet(const gchar *url);
-
-/*
- * Private data
- */
-
-static const struct {
-	const char * const proto;
-	gboolean (* handler)(const gchar *url);
-} proto_handlers[] = {
-	{ "http",	handle_not_implemented },
-	{ "ftp",	handle_not_implemented },
-	{ "magnet",	handle_magnet },
-};
-
-/*
  * Private functions
  */
 
@@ -93,6 +73,35 @@ handle_magnet(const gchar *url)
 	}
 	return success;
 }
+
+static gboolean
+handle_http(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_http(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
+/*
+ * Private data
+ */
+
+static const struct {
+	const char * const proto;
+	gboolean (* handler)(const gchar *url);
+} proto_handlers[] = {
+	{ "ftp",	handle_not_implemented },
+	{ "http",	handle_http },
+	{ "magnet",	handle_magnet },
+};
+
 
 /* FIXME: We shouldn't try to handle from ourselves without a confirmation
  *        because an URL might have been accidently while dragging it
