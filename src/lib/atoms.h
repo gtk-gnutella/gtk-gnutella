@@ -173,6 +173,24 @@ gpointer atom_get_track(enum atom_type, gconstpointer key,
 void atom_free_track(enum atom_type, gconstpointer key, gchar *file, gint line);
 #endif
 
+static inline void
+atom_str_free_null(gchar **k_ptr)
+{
+	if (*k_ptr) {
+		atom_free(ATOM_STRING, *k_ptr);
+		*k_ptr = NULL;
+	}
+}
+
+static inline void
+atom_sha1_free_null(gchar **k_ptr)
+{
+	if (*k_ptr) {
+		atom_free(ATOM_SHA1, *k_ptr);
+		*k_ptr = NULL;
+	}
+}
+
 #endif	/* _atoms_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
