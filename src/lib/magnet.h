@@ -42,6 +42,7 @@
 struct magnet_source {
 	gchar *hostname;	/* string atom */
 	gchar *uri;			/* string atom */
+	gchar *sha1;		/* sha1 atom */
 	host_addr_t addr;
 	guint16 port;
 };
@@ -55,6 +56,10 @@ struct magnet_resource {
 };
 
 struct magnet_resource *magnet_parse(const gchar *url, const gchar **error_str);
+struct magnet_source *magnet_parse_exact_source(const gchar *uri,
+							const gchar **error_str);
+
+void magnet_source_free(struct magnet_source *ms);
 void magnet_resource_free(struct magnet_resource *res);
 
 #endif /* _magnet_h_ */

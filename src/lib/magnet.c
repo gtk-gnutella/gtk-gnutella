@@ -107,16 +107,14 @@ plus_to_space(gchar *s)
 	}
 }
 
-static struct magnet_source *
-magnet_parse_exact_source(struct magnet_resource *res,
-	const gchar *uri, const gchar **error_str)
+struct magnet_source *
+magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
 {
 	static const struct magnet_source zero_ms;
 	struct magnet_source ms;
 	const gchar *p, *ep, *host, *host_end;
 	const gchar *error_dummy;
 
-	g_return_val_if_fail(res, NULL);
 	g_return_val_if_fail(uri, NULL);
 
 	if (!error_str) {
@@ -185,15 +183,7 @@ magnet_parse_exact_source(struct magnet_resource *res,
 			*error_str = "Bad SHA1 in MAGNET URI";
 			return NULL;
 		}
-
-		if (res->sha1) {
-		   	if (0 != memcmp(digest, res->sha1, sizeof digest)) {
-				*error_str = "Different SHA1 in MAGNET URI";
-				return NULL;
-			}
-		} else {
-			res->sha1 = atom_sha1_get(digest);
-		}
+		ms.sha1 = atom_sha1_get(digest);
 	} else {
 		ms.uri = atom_str_get(p);
 	}
@@ -226,9 +216,16 @@ magnet_handle_key(struct magnet_resource *res,
 		{
 			struct magnet_source *ms;
 
-			ms = magnet_parse_exact_source(res, value, NULL);
+			ms = magnet_parse_exact_source(value, NULL);
 			if (ms) {
-				res->sources = g_slist_prepend(res->sources, ms);
+				if (!res->sha1 && ms->sha1) {
+					res->sha1 = atom_sha1_get(ms->sha1);
+				}
+				if (!ms->sha1 || sha1_eq(res->sha1, ms->sha1)) {
+					res->sources = g_slist_prepend(res->sources, ms);
+				} else {
+					magnet_source_free(ms);
+				}
 			}
 		}
 		break;
@@ -349,6 +346,17 @@ magnet_parse(const gchar *url, const gchar **error_str)
 }
 
 void
+magnet_source_free(struct magnet_source *ms)
+{
+	if (ms) {
+		atom_str_free_null(&ms->hostname);
+		atom_str_free_null(&ms->uri);
+		atom_sha1_free_null(&ms->sha1);
+		wfree(ms, sizeof *ms);
+	}
+}
+
+void
 magnet_resource_free(struct magnet_resource *res)
 {
 	if (res) {
@@ -359,10 +367,7 @@ magnet_resource_free(struct magnet_resource *res)
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
-
-			atom_str_free_null(&ms->hostname);
-			atom_str_free_null(&ms->uri);
-			wfree(ms, sizeof *ms);
+			magnet_source_free(ms);
 		}
 		g_slist_free(res->sources);
 		res->sources = NULL;
