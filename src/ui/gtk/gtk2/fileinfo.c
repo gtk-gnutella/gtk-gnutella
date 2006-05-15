@@ -197,7 +197,9 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 		if (data->is_download) {
 			text = data->download.range;
 		} else {
-			text = compact_size(data->size, show_metric_units());
+			text = 0 != data->size
+				? compact_size(data->size, show_metric_units())
+				: "?";
 		}
 		break;
 	case c_fi_sources:
@@ -321,6 +323,7 @@ fi_gui_set_details(gnet_fi_t handle)
 	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
     gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
 		short_size(fis.size, show_metric_units()), bytes);
+
     gtk_label_printf(label_fi_sha1, "%s%s",
 		fi->sha1 ? "urn:sha1:" : _("<none>"),
 		fi->sha1 ? sha1_base32(fi->sha1) : "");
@@ -1364,13 +1367,18 @@ gui_update_download_range(download_t *d)
 		if (d->flags & DL_F_SHRUNK_REPLY)		/* Chunk shrunk by server! */
 			and_more = "-";
 	} else {
-		len = d->range_end - d->skip;
+		if (d->file_info->file_size_known) {
+			len = d->range_end - d->skip;
+		} else {
+			len = 0;
+		}
 	}
 	len += d->overlap_size;
 
 	metric = show_metric_units();
 	G_FREE_NULL(data->download.range);
-	data->download.range = g_strconcat(compact_size(len, metric),
+	data->download.range = g_strconcat(
+							len ? compact_size(len, metric) : "?",
 							and_more, d->skip ? " @ " : "",
 							d->skip ? compact_size(d->skip, metric) : "",
 							(void *) 0);
