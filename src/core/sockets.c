@@ -2594,7 +2594,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	g_assert(s);
 
-	if (node_supports_tls(addr, port)) {
+	if (0 == (CONNECT_F_TLS & flags) && node_supports_tls(addr, port)) {
 		flags |= CONNECT_F_TLS;
 	}
 
@@ -2784,13 +2784,15 @@ socket_bad_hostname(struct gnutella_socket *s)
  * @todo TODO: All resolved addresses should be attempted.
  */
 static void
-socket_connect_by_name_helper(const host_addr_t *addr, size_t n,
+socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 	gpointer user_data)
 {
 	struct gnutella_socket *s = user_data;
+	host_addr_t addr;
+	gboolean can_tls;
 
 	g_assert(NULL != s);
-	g_assert(addr);
+	g_assert(addrs);
 
 	s->adns &= ~SOCK_ADNS_PENDING;
 
@@ -2800,20 +2802,29 @@ socket_connect_by_name_helper(const host_addr_t *addr, size_t n,
 		return;
 	}
 
-	if (s->net != host_addr_net(addr[0])) {
-		s->net = host_addr_net(addr[0]);
+	addr = addrs[random_raw() % n];
+	can_tls = node_supports_tls(addr, s->port);
+	
+	if (
+		s->net != host_addr_net(addr) ||
+		(can_tls && 0 == (CONNECT_F_TLS & s->flags))
+	) {
+		s->net = host_addr_net(addr);
 
 		if (-1 != s->file_desc) {
 			close(s->file_desc);
 			s->file_desc = -1;
 		}
-		if (socket_connect_prepare(s, addr[0], s->port, s->type, s->flags)) {
+		if (can_tls) {
+			s->flags |= CONNECT_F_TLS;
+		}
+		if (socket_connect_prepare(s, addr, s->port, s->type, s->flags)) {
 			s->adns |= SOCK_ADNS_FAILED;
 			return;
 		}
 	}
 
-	if (socket_connect_finalize(s, addr[0])) {
+	if (socket_connect_finalize(s, addr)) {
 		s->adns |= SOCK_ADNS_FAILED;
 		return;
 	}
