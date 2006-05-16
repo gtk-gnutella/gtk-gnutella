@@ -750,7 +750,9 @@ fi_resize(fileinfo_t *fi, filesize_t size)
 
 	atom_filesize_free(fi->size_atom);
 	fi->size = size;
-	fi->size_atom = atom_filesize_get(&size);
+	fi->size_atom = atom_filesize_get(&fi->size);
+	file_info_hash_insert_name_size(fi);
+
 	g_assert(file_info_check_chunklist(fi, TRUE));
 }
 
@@ -3601,7 +3603,7 @@ file_info_size_known(struct download *d, filesize_t size)
 	fi->file_size_known = TRUE;
 	fi->use_swarming = TRUE;
 	fi->size = size;
-	fi->size_atom = atom_filesize_get(&size);
+	fi->size_atom = atom_filesize_get(&fi->size);
 	fi->dirty = TRUE;
 
 	file_info_hash_insert_name_size(fi);
