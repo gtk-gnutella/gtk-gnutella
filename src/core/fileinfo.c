@@ -723,6 +723,60 @@ fi_free(fileinfo_t *fi)
 	wfree(fi, sizeof *fi);
 }
 
+static void
+file_info_hash_insert_name_size(fileinfo_t *fi)
+{
+	namesize_t nsk;
+	GSList *l;
+
+	g_assert(fi);
+	g_assert(fi->file_size_known);
+	g_assert(fi->size_atom);
+	
+	/*
+	 * The (name, size) tuples also point to a list of entries, one for
+	 * each of the name aliases.  Ideally, we'd want only one, but there
+	 * can be name conflicts.  This does not matter unless they disabled
+	 * strict SHA1 matching...  but that is a dangerous move.
+	 */
+
+	nsk.size = fi->size;
+
+	for (l = fi->alias; l; l = l->next) {
+		GSList *list;
+		nsk.name = l->data;
+
+		list = g_hash_table_lookup(fi_by_namesize, &nsk);
+
+		if (NULL != list)
+			list = g_slist_append(list, fi);
+		else {
+			namesize_t *ns = namesize_make(nsk.name, nsk.size);
+			list = g_slist_append(list, fi);
+			g_hash_table_insert(fi_by_namesize, ns, list);
+		}
+	}
+
+	/*
+	 * Finally, for a given size, maintain a list of fi's.
+	 *
+	 * NB: the key used here is the size_atom, as it must be shared accross
+	 * all the `fi' structs with the same size!
+	 */
+
+	g_assert(*(const filesize_t *) fi->size_atom == fi->size);
+
+	l = g_hash_table_lookup(fi_by_size, fi->size_atom);
+
+	if (NULL != l) {
+		l = g_slist_append(l, fi);
+	} else {
+		l = g_slist_append(l, fi);
+		g_assert(NULL != l);
+		g_hash_table_insert(fi_by_size, fi->size_atom, l);
+	}
+}
+
 /**
  * Resize fileinfo to be `size' bytes, by adding empty chunk at the tail.
  */
@@ -1923,60 +1977,6 @@ file_info_close(void)
 	g_hash_table_destroy(fi_by_outname);
 
 	G_FREE_NULL(tbuf.arena);
-}
-
-static void
-file_info_hash_insert_name_size(fileinfo_t *fi)
-{
-	namesize_t nsk;
-	GSList *l;
-
-	g_assert(fi);
-	g_assert(fi->file_size_known);
-	g_assert(fi->size_atom);
-	
-	/*
-	 * The (name, size) tuples also point to a list of entries, one for
-	 * each of the name aliases.  Ideally, we'd want only one, but there
-	 * can be name conflicts.  This does not matter unless they disabled
-	 * strict SHA1 matching...  but that is a dangerous move.
-	 */
-
-	nsk.size = fi->size;
-
-	for (l = fi->alias; l; l = l->next) {
-		GSList *list;
-		nsk.name = l->data;
-
-		list = g_hash_table_lookup(fi_by_namesize, &nsk);
-
-		if (NULL != list)
-			list = g_slist_append(list, fi);
-		else {
-			namesize_t *ns = namesize_make(nsk.name, nsk.size);
-			list = g_slist_append(list, fi);
-			g_hash_table_insert(fi_by_namesize, ns, list);
-		}
-	}
-
-	/*
-	 * Finally, for a given size, maintain a list of fi's.
-	 *
-	 * NB: the key used here is the size_atom, as it must be shared accross
-	 * all the `fi' structs with the same size!
-	 */
-
-	g_assert(*(const filesize_t *) fi->size_atom == fi->size);
-
-	l = g_hash_table_lookup(fi_by_size, fi->size_atom);
-
-	if (NULL != l) {
-		l = g_slist_append(l, fi);
-	} else {
-		l = g_slist_append(l, fi);
-		g_assert(NULL != l);
-		g_hash_table_insert(fi_by_size, fi->size_atom, l);
-	}
 }
 
 /**
