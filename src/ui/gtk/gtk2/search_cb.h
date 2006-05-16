@@ -82,9 +82,11 @@ void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem, gpointer 
 void on_popup_search_expand_all_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_collapse_all_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_copy_magnet_activate(GtkMenuItem *menuitem, gpointer user_data);
 
 gpointer search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter);
 gboolean search_gui_update_rank(GtkTreeModel *model,
 		GtkTreePath *path, GtkTreeIter *iter, gpointer udata);
+gchar *search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter);
 
 #endif /* _gtk2_search_cb_h_ */

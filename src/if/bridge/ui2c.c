@@ -91,10 +91,16 @@ guc_querycache_bitzi_by_urn(const gchar *urnsha1)
 }
 
 /*	download and src interface functions (UI -> Core)*/
-const gchar *
-guc_build_url_from_download(const struct download *d)
+gchar *
+guc_download_build_url(const struct download *d)
 {
-	return build_url_from_download(d);
+	return download_build_url(d);
+}
+
+gchar *
+guc_file_info_build_magnet(gnet_fi_t handle)
+{
+	return file_info_build_magnet(handle);
 }
 
 gint

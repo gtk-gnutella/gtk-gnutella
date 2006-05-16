@@ -3892,8 +3892,9 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	}
 
 
-    if (uri)
+    if (uri) {
 	    file_uri = atom_str_get(uri);
+	}
 
 	/*
 	 * Create server if none exists already.
@@ -7890,9 +7891,12 @@ picked:
 	 */
 
 	if (d->uri) {
+		gchar *escaped = url_escape(d->uri);
+
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET %s HTTP/1.1\r\n",
-			d->uri);
+				"GET %s HTTP/1.1\r\n", escaped);
+		if (escaped != d->uri)
+			G_FREE_NULL(escaped);
 	} else if (n2r) {
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
@@ -9463,35 +9467,32 @@ download_close(void)
  * Creates a URL which points to a downloads (e.g. you can move this to a
  * browser and download the file there with this URL).
  */
-const gchar *
-build_url_from_download(const struct download *d)
+gchar *
+download_build_url(const struct download *d)
 {
-	static gchar url_tmp[4096];
 	const gchar *sha1;
+	gchar *url;
 
 	g_return_val_if_fail(d, NULL);
+	download_check(d);
 
-	sha1 = d->sha1;
-	if (sha1 == NULL)
-		sha1 = d->file_info->sha1;
+	sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
 
 	/* XXX: "https:" when TLS is possible? */
 
 	if (d->browse) {
-		gm_snprintf(url_tmp, sizeof url_tmp, "http://%s/",
+		url = g_strdup_printf("http://%s/",
 			host_addr_port_to_string(download_addr(d), download_port(d)));
 	} else if (sha1) {
-		gm_snprintf(url_tmp, sizeof url_tmp,
-			"http://%s/uri-res/N2R?urn:sha1:%s",
+		url = g_strdup_printf("http://%s/uri-res/N2R?urn:sha1:%s",
 			 host_addr_port_to_string(download_addr(d), download_port(d)),
 			 sha1_base32(sha1));
 	} else {
 		gchar *buf = url_escape(d->file_name);
 
-		gm_snprintf(url_tmp, sizeof url_tmp,
-			   "http://%s/get/%u/%s",
-			   host_addr_port_to_string(download_addr(d), download_port(d)),
-			   d->record_index, buf);
+		url = g_strdup_printf("http://%s/get/%u/%s",
+		   		host_addr_port_to_string(download_addr(d), download_port(d)),
+		   		d->record_index, buf);
 
 		/*
 	 	* Since url_escape() creates a new string ONLY if
@@ -9504,7 +9505,7 @@ build_url_from_download(const struct download *d)
 			G_FREE_NULL(buf);
 	}
 
-	return url_tmp;
+	return url;
 }
 
 const gchar *

@@ -58,6 +58,7 @@
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/tm.h"
+#include "lib/url.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -930,6 +931,74 @@ search_gui_set_clear_button_sensitive(gboolean flag)
 
 /* ----------------------------------------- */
 
+
+gchar *
+search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	GtkTreeIter parent_iter;
+	struct result_data *parent;
+	GString *gs;
+	gchar *url;
+
+	gs = g_string_new("magnet:?");
+
+	if (gtk_tree_model_iter_parent(model, &parent_iter, iter)) {
+		iter = &parent_iter;
+	}
+	parent = get_result_data(model, iter);
+
+	gs = g_string_append(gs, "dn=");
+	{
+		gchar *escaped_name;
+
+		escaped_name = url_escape(parent->record->utf8_name);
+		gs = g_string_append(gs, escaped_name);
+		if (escaped_name != parent->record->utf8_name) {
+			G_FREE_NULL(escaped_name);
+		}
+	}
+
+	if (parent->record->sha1) {
+		GtkTreeIter child;
+
+		gs = g_string_append(gs, "&xt=urn:sha1:");
+		gs = g_string_append(gs, sha1_base32(parent->record->sha1));
+		gs = g_string_append(gs, "&xl=");
+		gs = g_string_append(gs, uint64_to_string(parent->record->size));
+		
+		if (0 == (ST_FIREWALL & parent->record->results_set->status)) {
+			gs = g_string_append(gs, "&xs=http://");
+			gs = g_string_append(gs,
+					host_addr_port_to_string(parent->record->results_set->addr,
+						parent->record->results_set->port));
+			gs = g_string_append(gs, "/uri-res/N2R?urn:sha1:");
+			gs = g_string_append(gs, sha1_base32(parent->record->sha1));
+		}
+
+		if (gtk_tree_model_iter_children(model, &child, &parent->iter)) {
+			do {	
+				struct result_data *data;
+
+				data = get_result_data(model, &child);
+				g_assert(data);
+
+				if (0 != (ST_FIREWALL & data->record->results_set->status))
+					continue;
+
+				gs = g_string_append(gs, "&xs=http://");
+				gs = g_string_append(gs,
+					host_addr_port_to_string(data->record->results_set->addr,
+						data->record->results_set->port));
+				gs = g_string_append(gs, "/uri-res/N2R?urn:sha1:");
+				gs = g_string_append(gs, sha1_base32(data->record->sha1));
+			} while (gtk_tree_model_iter_next(model, &child));
+		}
+	}
+
+	url = gs->str;
+	g_string_free(gs, FALSE);	
+	return url;
+}
 
 static void
 download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)

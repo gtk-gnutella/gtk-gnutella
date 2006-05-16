@@ -80,8 +80,6 @@ create_pixmap                          (GtkWidget       *widget,
   gchar *pathname = NULL;
   GtkWidget *pixmap;
 
-  (void) widget;
-
   if (!filename || !filename[0])
       return gtk_image_new ();
 

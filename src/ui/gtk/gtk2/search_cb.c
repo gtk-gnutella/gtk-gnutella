@@ -1135,6 +1135,47 @@ search_gui_browse_selected(void)
 }
 
 void
+on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item, gpointer unused_udata)
+{
+	search_t *search;
+	GtkTreeView *tv;
+	GtkTreeIter iter;
+	GtkTreePath *path;
+	GtkTreeModel *model;
+
+	(void) unused_item;
+	(void) unused_udata;
+
+	search = search_gui_get_current_search();
+	if (!search)
+		return;
+
+	tv = GTK_TREE_VIEW(search->tree_view);
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path) {
+		return;
+	}
+	
+	model = gtk_tree_view_get_model(tv);
+	if (gtk_tree_model_get_iter(model, &iter, path)) {
+		gchar *url;
+
+		url = search_gui_get_magnet(model, &iter);
+		if (url) {
+			gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
+			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
+				url, -1);
+			gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
+				url, -1);
+			G_FREE_NULL(url);
+		}
+	}
+	gtk_tree_path_free(path);
+}
+
+
+void
 search_callbacks_shutdown(void)
 {
 	/*

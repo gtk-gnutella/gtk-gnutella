@@ -1645,19 +1645,18 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 gboolean
 search_gui_handle_http(const gchar *url, const gchar **error_str)
 {
-	gchar *magnet, *escaped_url;
+	gchar *magnet;
 	gboolean success;
 
 	g_return_val_if_fail(url, FALSE);
 
-	escaped_url = url_escape(url);
-	magnet = g_strconcat("magnet:?xs=", escaped_url, (void *) 0);
+	/* FIXME: The URL might have to be escaped or might be invalid.
+	 *        However, just blindly escaping isn't right.
+	 */
+	magnet = g_strconcat("magnet:?xs=", url, (void *) 0);
 	success = search_gui_handle_magnet(magnet, error_str);
 
 	G_FREE_NULL(magnet);
-	if (url != escaped_url) {
-		G_FREE_NULL(escaped_url);
-	}
 
 	return TRUE;
 }
@@ -2077,5 +2076,6 @@ failed:
 
 	return FALSE;
 }
+
 
 /* vi: set ts=4 sw=4 cindent: */

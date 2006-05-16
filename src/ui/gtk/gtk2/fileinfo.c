@@ -1429,5 +1429,48 @@ gui_update_download_host(download_t *d)
 	set_fileinfo_data(data);
 }
 
+void
+on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GtkTreeView *tv;
+	GtkTreeIter iter;
+	GtkTreePath *path;
+	GtkTreeModel *model;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads"));
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path) {
+		return;
+	}
+	
+	model = gtk_tree_view_get_model(tv);
+	if (gtk_tree_model_get_iter(model, &iter, path)) {
+		struct fileinfo_data *data;
+
+		data = get_fileinfo_data(model, &iter);
+		if (data) {
+			gchar *url;
+			gnet_fi_t handle;
+
+			handle = data->is_download
+				? data->download.handle->file_info->fi_handle
+				: data->file.handle;
+
+			url = guc_file_info_build_magnet(handle);
+			gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
+			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
+				url, -1);
+			gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
+				url, -1);
+			G_FREE_NULL(url);
+		}
+	}
+	gtk_tree_path_free(path);
+}
 
 /* vi: set ts=4 sw=4 cindent: */

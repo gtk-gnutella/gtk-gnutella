@@ -173,6 +173,7 @@ gchar **fi_get_aliases(gnet_fi_t fih);
 void fi_purge_by_handle_list(const GSList *list);
 
 const gchar *file_info_readable_filename(const struct dl_file_info *fi);
+gchar *file_info_build_magnet(gnet_fi_t fih);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_fileinfo_h_ */

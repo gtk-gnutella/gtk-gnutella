@@ -581,7 +581,7 @@ on_popup_downloads_copy_url_activate(GtkMenuItem *unused_menuitem,
             G_FREE_NULL(selected_url);
         }
 
-        selected_url = g_strdup(guc_build_url_from_download(d));
+        selected_url = guc_download_build_url(d);
     }
 }
 
@@ -870,7 +870,7 @@ on_popup_queue_copy_url_activate(GtkMenuItem *unused_menuitem,
             G_FREE_NULL(selected_url);
         }
 
-        selected_url = g_strdup(guc_build_url_from_download(d));
+        selected_url = guc_download_build_url(d);
     }
 }
 

@@ -90,6 +90,8 @@ void on_popup_downloads_expand_all_activate(
 	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_collapse_all_activate(
 	GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_copy_magnet_activate(
+	GtkMenuItem *unused_menuitem, gpointer unused_udata);
 
 #endif /* _gtk2_downloads_cb_h_ */
 /* vi: set ts=4 sw=4 cindent: */
