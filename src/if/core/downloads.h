@@ -29,6 +29,10 @@
 #include "lib/tm.h"				/* For tm_t */
 #include "lib/event.h"			/* For frequency_t */
 
+#include "core/rx.h"
+#include "core/rx_link.h"
+#include "core/rx_chunk.h"
+
 #include "if/core/search.h"		/* For gnet_host_vec_t */
 
 /***
@@ -170,6 +174,7 @@ struct download {
 	gchar error_str[256];		/**< Used to snprintf() error strings */
 	download_status_t status;   /**< Current status of the download */
 	gpointer io_opaque;			/**< Opaque I/O callback information */
+	rxdrv_t *rx;					/**< RX stack top */
 
 	struct bio_source *bio;		/**< Bandwidth-limited source */
 

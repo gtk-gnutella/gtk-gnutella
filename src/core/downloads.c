@@ -120,7 +120,7 @@ static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
-static void download_read(gpointer data, gint source, inputevt_cond_t cond);
+static void download_read(struct download *d, pmsg_t *mb);
 static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
@@ -131,8 +131,9 @@ static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
 static gboolean use_push_proxy(struct download *d);
-static void download_unavailable(struct download *d, guint32 new_status,
-	const gchar * reason, ...) G_GNUC_PRINTF(3, 4);
+static void download_unavailable(struct download *d,
+		download_status_t new_status,
+		const gchar * reason, ...) G_GNUC_PRINTF(3, 4);
 static void download_queue_delay(struct download *d, guint32 delay,
 	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_queue_hold(struct download *d, guint32 hold,
@@ -259,6 +260,99 @@ src_get_download(gnet_src_t src_handle)
 {
 	return idtable_get_value(src_handle_map, src_handle);
 }
+
+/***
+ *** RX link callbacks
+ ***/
+
+static G_GNUC_PRINTF(2, 3) void
+download_rx_error(gpointer o, const gchar *reason, ...)
+{
+	struct download *d = o;
+	va_list args;
+
+	download_check(d);
+	va_start(args, reason);
+	download_stop_v(d, GTA_DL_ERROR, reason, args);
+	va_end(args);
+}
+
+static void
+download_rx_got_eof(gpointer o)
+{
+	struct download *d = o;
+
+	download_check(d);
+	download_got_eof(d);
+}
+
+/**
+ * RX data indication callback used to give us some new Gnet traffic in a
+ * low-level message structure (which can contain several Gnet messages).
+ */
+static void
+download_data_ind(rxdrv_t *rx, pmsg_t *mb)
+{
+	struct download *d = rx_owner(rx);
+
+	download_read(d, mb);
+
+	if (0 == pmsg_size(mb)) {
+		pmsg_free(mb);
+	}
+}
+
+static const struct rx_link_cb download_rx_link_cb = {
+	NULL,					/* add_rx_given */
+	download_rx_error,		/* read_error */
+	download_rx_got_eof,	/* got_eof */
+};
+
+static void
+download_chunk_rx_done(gpointer o)
+{
+	struct download *d = o;
+
+	download_check(d);
+	download_rx_done(d);
+}
+
+static const struct rx_chunk_cb download_rx_chunk_cb = {
+	download_rx_error,		/* chunk_error */
+	download_chunk_rx_done,			/* chunk_end */
+};
+
+static const struct rx_inflate_cb download_rx_inflate_cb = {
+	NULL,					/* add_rx_inflated */
+	download_rx_error,		/* inflate_error */
+};
+
+/**
+ * Received data from outside the RX stack.
+ */
+void
+download_write(struct download *d, const gchar *data, size_t len)
+{
+	pdata_t *db;
+	pmsg_t *mb;
+
+	download_check(d);
+
+	/*
+	 * Prepare data buffer to feed the RX stack.
+	 */
+
+	db = pdata_allocb_ext(data, len, pdata_free_nop, NULL);
+	mb = pmsg_alloc(PMSG_P_DATA, db, 0, len);
+
+	/*
+	 * The message is given to the RX stack, and it will be freed by
+	 * the last function consuming it.
+	 */
+
+	rx_recv(rx_bottom(d->rx), mb);
+}
+
 
 /**
  * The only place to allocate a struct download.
@@ -2621,7 +2715,7 @@ download_redirect_to_server(struct download *d,
  * Vectorized version common to download_stop() and download_unavailable().
  */
 void
-download_stop_v(struct download *d, guint32 new_status,
+download_stop_v(struct download *d, download_status_t new_status,
     const gchar *reason, va_list ap)
 {
 	gboolean store_queue = FALSE;		/* Shall we call download_store()? */
@@ -2659,6 +2753,14 @@ download_stop_v(struct download *d, guint32 new_status,
 		if (d->flags & DL_F_BROWSE) {
 			browse_host_dl_close(d->browse);
 			d->bio = NULL;		/* Was a copy via browse_host_io_source() */
+		}
+
+		/*
+		 * Dismantle RX stack for normal downloads.
+		 */
+		if (d->rx) {
+			rx_disable(d->rx);
+			d->bio = NULL;		/* Was a copy via rx_bio_source() */
 		}
 	}
 
@@ -2699,6 +2801,10 @@ download_stop_v(struct download *d, guint32 new_status,
 	} else
 		d->remove_msg = NULL;
 
+	if (d->rx) {
+		rx_free(d->rx);
+		d->rx = NULL;
+	}
 	if (d->bio) {
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
@@ -2781,7 +2887,8 @@ download_stop_v(struct download *d, guint32 new_status,
  * Stop an active download, close its socket and its data file descriptor.
  */
 void
-download_stop(struct download *d, guint32 new_status, const gchar * reason, ...)
+download_stop(struct download *d,
+	download_status_t new_status, const gchar * reason, ...)
 {
 	va_list args;
 
@@ -2796,7 +2903,7 @@ download_stop(struct download *d, guint32 new_status, const gchar * reason, ...)
  * Like download_stop(), but flag the download as "unavailable".
  */
 static void
-download_unavailable(struct download *d, guint32 new_status,
+download_unavailable(struct download *d, download_status_t new_status,
 	const gchar * reason, ...)
 {
 	va_list args;
@@ -3094,13 +3201,16 @@ download_unqueue(struct download *d)
 gboolean
 download_start_prepare_running(struct download *d)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 
 	download_check(d);
-	g_assert(!DOWNLOAD_IS_QUEUED(d));
-	g_assert(d->list_idx == DL_LIST_RUNNING);
-	g_assert(fi != NULL);
-	g_assert(fi->lifecount > 0);
+
+	g_return_val_if_fail(d->file_info, FALSE);
+	fi = d->file_info;
+
+	g_return_val_if_fail(!DOWNLOAD_IS_QUEUED(d), FALSE);
+	g_return_val_if_fail(d->list_idx == DL_LIST_RUNNING, FALSE);
+	g_return_val_if_fail(fi->lifecount > 0, FALSE);
 
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
 
@@ -3382,12 +3492,12 @@ download_start(struct download *d, gboolean check_allowed)
 	guint16 port = download_port(d);
 
 	download_check(d);
-	g_assert(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
-	g_assert(d->file_info);
-	g_assert(d->file_info->refcount > 0);
-	g_assert(d->file_info->lifecount > 0);
-	g_assert(d->file_info->lifecount <= d->file_info->refcount);
-	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+	g_return_if_fail(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
+	g_return_if_fail(d->file_info);
+	g_return_if_fail(d->file_info->refcount > 0);
+	g_return_if_fail(d->file_info->lifecount > 0);
+	g_return_if_fail(d->file_info->lifecount <= d->file_info->refcount);
+	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
@@ -4162,6 +4272,7 @@ download_clone(struct download *d)
 
 	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
 
+	cd->rx = NULL;
 	cd->bio = NULL;						/* Recreated on each transfer */
 	cd->file_desc = -1;					/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
@@ -4956,7 +5067,7 @@ err_header_read_eof(gpointer o)
 	if (d->retries++ < download_max_retries)
 		download_queue_delay(d, download_retry_stopped_delay,
 			d->keep_alive ? _("Connection not kept-alive (EOF)") :
-			_("Stopped (EOF)"));
+			_("Stopped (EOF) <err_header_read_eof>"));
 	else
 		download_unavailable(d, GTA_DL_ERROR,
 			_("Too many attempts (%u times)"), d->retries - 1);
@@ -6269,27 +6380,22 @@ download_sink(struct download *d)
  * Read callback for file data.
  */
 static void
-download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
+download_sink_read(gpointer data, gint unused_source,
+	inputevt_cond_t unused_cond)
 {
-	struct download *d = (struct download *) data;
+	struct download *d = data;
 	struct gnutella_socket *s = d->socket;
 	ssize_t r;
 
 	(void) unused_source;
+	(void) unused_cond;
 	g_assert(s);
-
-	if (cond & INPUT_EVENT_EXCEPTION) {		/* Treat as EOF */
-		socket_eof(s);
-		download_queue_delay(d, download_retry_busy_delay,
-			_("Stopped data (EOF)"));
-		return;
-	}
 
 	r = bio_read(d->bio, s->buffer, sizeof s->buffer);
 	if (r == 0) {
 		socket_eof(s);
 		download_queue_delay(d, download_retry_busy_delay,
-			_("Stopped data (EOF)"));
+			_("Stopped data (EOF) <download_sink_read>"));
 		return;
 	} else if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno)) {
@@ -6401,7 +6507,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
-	gboolean is_chunked = FALSE;
+	gboolean is_chunked = FALSE, is_deflated = FALSE;
 	filesize_t check_content_range = 0, requested_size;
 	host_addr_t addr;	
 	guint16 port;
@@ -6831,7 +6937,7 @@ http_version_nofix:
 					d->status = GTA_DL_SINKING;
 
 					d->bio = bsched_source_add(bws.in, &s->wio,
-						BIO_F_READ, download_sink_read, (gpointer) d);
+						BIO_F_READ, download_sink_read, d);
 
 					if (s->pos > 0)
 						download_sink(d);
@@ -7112,7 +7218,7 @@ http_version_nofix:
 	 * at this stage, stop.
 	 */
 
-	if (download_require_server_name && download_vendor(d) == NULL) {
+	if (!d->uri && download_require_server_name && download_vendor(d) == NULL) {
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "Server did not supply identification");
 		return;
@@ -7346,14 +7452,22 @@ http_version_nofix:
 	 */
 
 	buf = header_get(header, "Transfer-Encoding");
-	if (buf && 0 == strcmp(buf, "chunked")) {
-		is_chunked = TRUE;
-		if (d->flags & DL_F_BROWSE) {
-			bh_flags |= BH_DL_CHUNKED;
-			got_content_length = TRUE;	/* Not required for browsing anyway */
+	if (buf) {
+		is_chunked = 0 == strcmp(buf, "chunked");
+	}
+
+	buf = header_get(header, "Content-Encoding");
+	if (buf) {
+		is_deflated = NULL != strstr(buf, "deflate");
+
+		/* XXX -- we don't support "gzip" encoding yet (and don't request it) */
+		if (NULL != strstr(buf, "gzip")) {
+			download_stop(d, GTA_DL_ERROR, "No support for gzip encoding yet");
+			return;
 		}
 	}
 
+#if 0
 	/*
 	 * If neither Content-Length nor Content-Range was seen, abort!
 	 *
@@ -7363,7 +7477,7 @@ http_version_nofix:
 	 *		--RAM, 09/01/2002
 	 */
 
-	if (!got_content_length) {
+	if (!got_content_length && !is_chunked) {
 		const char *ua = header_get(header, "Server");
 		ua = ua ? ua : header_get(header, "User-Agent");
 		if (ua && download_debug)
@@ -7372,6 +7486,7 @@ http_version_nofix:
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
 		return;
 	}
+#endif
 
 	/*
 	 * Since we may request some overlap, ensure that the server did not
@@ -7404,22 +7519,15 @@ http_version_nofix:
 
 		g_assert(d->browse != NULL);
 
-		buf = header_get(header, "Content-Encoding");
-		if (buf) {
-			if (strstr(buf, "deflate"))
-				bh_flags |= BH_DL_INFLATE;
-			else if (strstr(buf, "gzip"))
-				bh_flags |= BH_DL_GUNZIP;
-		}
-
-		/* XXX -- we don't support "gzip" encoding yet (and don't request it) */
-		if (bh_flags & BH_DL_GUNZIP) {
-			download_stop(d, GTA_DL_ERROR, "No support for gzip encoding yet");
-			return;
-		}
-
 		host.addr = download_addr(d);
 		host.port = download_port(d);
+
+		if (is_deflated) {
+			bh_flags |= BH_DL_INFLATE;
+		}
+		if (is_chunked) {
+			bh_flags |= BH_DL_CHUNKED;
+		}
 
 		if (
 			!browse_host_dl_receive(d->browse, &host, &d->socket->wio,
@@ -7458,6 +7566,44 @@ http_version_nofix:
 
 		return;
 	}
+
+	/*
+	 * Freeing of the RX stack must be asynchronous: each time we establish
+	 * a new connection, dismantle the previous stack.  Otherwise the RX
+	 * stack will be freed when the corresponding download structure is
+	 * reclaimed.
+	 */
+
+	if (d->rx != NULL) {
+		rx_free(d->rx);
+		d->rx = NULL;
+	}
+	{
+		struct rx_link_args args;
+		gnet_host_t host;
+
+		args.cb = &download_rx_link_cb;
+		args.bs = bws.in;
+		args.wio = &d->socket->wio;
+
+		host.addr = download_addr(d); 
+		host.port = download_port(d); 
+		d->rx = rx_make(d, &host, rx_link_get_ops(), &args);
+	}
+	if (is_chunked) {
+		struct rx_chunk_args args;
+
+		args.cb = &download_rx_chunk_cb;
+		d->rx = rx_make_above(d->rx, rx_chunk_get_ops(), &args);
+	}
+	if (is_deflated) {
+		struct rx_inflate_args args;
+
+		args.cb = &download_rx_inflate_cb;
+		d->rx = rx_make_above(d->rx, rx_inflate_get_ops(), &args);
+	}
+	rx_set_data_ind(d->rx, download_data_ind);
+	rx_enable(d->rx);
 
 	/*
 	 * Open output file.
@@ -7515,26 +7661,18 @@ http_version_nofix:
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
 
-	d->bio = bsched_source_add(bws.in, &s->wio, BIO_F_READ, download_read, d);
+	d->bio = rx_bio_source(d->rx);
 
 	/*
-	 * If we have something in the input buffer, write the data to the
-	 * file now (unless they want buffering in which case we may delay).
-	 * Note that this may close the download immediately if the whole file
-	 * was already read in the socket buffer.
+	 * If we have something in the socket buffer, feed it to the RX stack.
 	 */
 
 	if (s->pos > 0) {
-		/*
-		 * The first buffer in our reception set is the socket's buffer.
-		 * Reset the I/O vector for reading and tell it we read
-		 * the amount of bytes currently present inside.
-		 */
-
-		buffers_add_read(d, s->pos);
-		fi->recv_amount += s->pos;
-
-		download_write_data(d);
+		size_t n = s->pos;
+		
+		s->pos = 0;
+		download_write(d, s->buffer, n);
+		fi->recv_amount += n;
 	}
 }
 
@@ -7549,19 +7687,44 @@ download_incomplete_header(struct download *d)
 	download_request(d, header, FALSE);
 }
 
+ssize_t
+download_pmsg_readv(pmsg_t *mb, struct iovec *iov, gint iov_cnt)
+{
+	size_t size;
+	ssize_t r;
+	gint i;
+
+	/*
+	 * Compute I/O vector's length.
+	 */
+
+	size = pmsg_size(mb);
+	size = MIN(size, (size_t) SSIZE_MAX);
+	r = 0;
+
+	for (i = 0; i < iov_cnt && size > 0; i++) {
+		size_t n;
+
+		n = pmsg_read(mb, iov[i].iov_base, iov[i].iov_len);
+		size -= n;
+		r += n;
+	}
+
+	return r;
+}
+
+
 /**
  * Read callback for file data.
  */
 static void
-download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
+download_read(struct download *d, pmsg_t *mb)
 {
-	struct download *d = data;
 	struct gnutella_socket *s;
 	ssize_t r;
 	fileinfo_t *fi;
 	struct dl_buffers *b;
 
-	(void) unused_source;
 	download_check(d);
 	g_assert(d->file_info->recvcount > 0);
 
@@ -7571,27 +7734,19 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(s);
 	g_assert(fi);
 
-	if (cond & INPUT_EVENT_EXCEPTION) {		/* Treat as EOF */
-		socket_eof(s);
-		download_queue_delay(d, download_retry_stopped_delay,
-			_("Stopped data (EOF)"));
-		return;
-	}
-
 	if (buffers_full(d)) {
 		download_queue_delay(d, download_retry_stopped_delay,
 			_("Stopped (Read buffer full)"));
 		return;
 	}
 
-	g_assert(d->pos <= fi->size);
+	if (fi->file_size_known) {
+		g_assert(d->pos <= fi->size);
 
-	if (d->pos == fi->size) {
-		if (fi->file_size_known)
+		if (d->pos == fi->size) {
 			download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
-		else
-			download_stop(d, GTA_DL_COMPLETED, "FIXME: !file_size_known");
-		return;
+			return;
+		}
 	}
 
 	/*
@@ -7599,7 +7754,7 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 */
 
 	b = d->buffers;
-	r = bio_readv(d->bio, b->iov_cur, b->iovcnt);
+	r = download_pmsg_readv(mb, b->iov_cur, b->iovcnt);
 
 	/*
 	 * Don't hammer remote server if we get an EOF during data reception.
@@ -7612,7 +7767,7 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	if (r == 0) {
 		socket_eof(s);
 		download_queue_delay(d, download_retry_busy_delay,
-				_("Stopped data (EOF)"));
+				_("Stopped data (EOF) <download_read>"));
 		return;
 	} else if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno)) {
@@ -7891,12 +8046,14 @@ picked:
 	 */
 
 	if (d->uri) {
-		gchar *escaped = url_escape(d->uri);
+		gchar *escaped_uri;
 
+		escaped_uri = url_escape_special(d->uri);
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
-				"GET %s HTTP/1.1\r\n", escaped);
-		if (escaped != d->uri)
-			G_FREE_NULL(escaped);
+				"GET %s HTTP/1.1\r\n", escaped_uri);
+		if (escaped_uri != d->uri) {
+			G_FREE_NULL(escaped_uri);
+		}
 	} else if (n2r) {
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
@@ -7938,8 +8095,13 @@ picked:
 		header_features_generate(&xfeatures.downloads,
 			dl_tmp, sizeof(dl_tmp), &rw);
 
-		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-			"X-Token: %s\r\n", tok_version());
+		/* If we request the file by an custom URI it's most likely
+		 * not a Gnutella peer.
+		 */
+		if (!d->uri) {
+			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+					"X-Token: %s\r\n", tok_version());
+		}
 	}
 
 	if (d->flags & DL_F_BROWSE)
@@ -9483,6 +9645,8 @@ download_build_url(const struct download *d)
 	if (d->browse) {
 		url = g_strdup_printf("http://%s/",
 			host_addr_port_to_string(download_addr(d), download_port(d)));
+	} else if (d->uri) {
+		url = g_strdup(d->uri);
 	} else if (sha1) {
 		url = g_strdup_printf("http://%s/uri-res/N2R?urn:sha1:%s",
 			 host_addr_port_to_string(download_addr(d), download_port(d)),
@@ -9689,7 +9853,7 @@ download_got_eof(struct download *d)
 		download_rx_done(d);
 	else
 		download_queue_delay(d, download_retry_busy_delay,
-			_("Stopped data (EOF)"));
+			_("Stopped data (EOF) <download_got_eof>"));
 }
 
 /**
@@ -9710,6 +9874,7 @@ download_rx_done(struct download *d)
 	}
 
 	download_stop(d, GTA_DL_COMPLETED, no_reason);
+	download_verify_sha1(d);
 }
 
 /**

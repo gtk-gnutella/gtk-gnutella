@@ -357,8 +357,13 @@ gui_update_download(download_t *d, gboolean force)
 			downloaded = d->pos - d->skip + download_buffered(d);
 			p = guc_download_source_progress(d);
 
-			bps = bio_bps(d->bio);
-			avg_bps = bio_avg_bps(d->bio);
+			if (d->bio) {
+				bps = bio_bps(d->bio);
+				avg_bps = bio_avg_bps(d->bio);
+			} else {
+				bps = 0;
+				avg_bps = 0;
+			}
 
 			if (avg_bps <= 10 && d->last_update != d->start_date)
 				avg_bps = downloaded / (d->last_update - d->start_date);
