@@ -5072,7 +5072,7 @@ fi_purge(gnet_fi_t fih)
 	csl = g_slist_copy(fi->sources);	/* Clone list, orig can be modified */
 
 	for (sl = csl; NULL != sl; sl = g_slist_next(sl)) {
-		struct download *dl = (struct download *) sl->data;
+		struct download *dl = sl->data;
 
 		download_abort(dl);
 		if (!download_remove(dl)) {

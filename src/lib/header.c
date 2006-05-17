@@ -209,7 +209,7 @@ free_header_data(gpointer key, gpointer value, gpointer unused_udata)
 	(void) unused_udata;
 
 	G_FREE_NULL(key);		/* XXX if shared, don't do that */
-	g_string_free((GString *) value, TRUE);
+	g_string_free(value, TRUE);
 	return TRUE;
 }
 
@@ -635,7 +635,7 @@ header_fmt_free(gpointer o)
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 
 	g_string_free(hf->header, TRUE);
-	wfree(hf, sizeof(*hf));
+	wfree(hf, sizeof *hf);
 }
 
 /**
