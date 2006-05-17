@@ -3111,7 +3111,7 @@ node_is_now_connected(struct gnutella_node *n)
 	n->flags |= NODE_F_READABLE;
 
 	/*
-	 * Create the TX stack, as we're going to tranmit Gnet messages.
+	 * Create the TX stack, as we're going to transmit Gnet messages.
 	 */
 
 	{
