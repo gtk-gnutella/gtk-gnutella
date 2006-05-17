@@ -79,7 +79,12 @@ typedef struct gnet_fi_chunks {
     gboolean old;
 } gnet_fi_chunks_t;
 
+enum fi_magic {
+	FI_MAGIC = 0xd99892e7
+};
+
 typedef struct dl_file_info {
+	enum fi_magic magic;	
     gnet_fi_t fi_handle;    /**< Handle */
 	gchar *guid;			/**< Unique fileinfo ID */
 	guint32 flags;			/**< Operating flags */
@@ -131,10 +136,26 @@ typedef struct dl_file_info {
 	filesize_t copied;		/**< Amount of bytes copied so far */
 } fileinfo_t;
 
-#define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)
+static inline void
+file_info_check(const fileinfo_t *fi)
+{
+	g_assert(fi);
+	g_assert(FI_MAGIC == fi->magic);
+}
 
-#define FILE_INFO_COMPLETE_AFTER(x,z)	\
-	((x)->done + (z) >= (x)->size && (x)->file_size_known)
+static inline gboolean
+FILE_INFO_COMPLETE(const fileinfo_t *fi)
+{
+	file_info_check(fi);
+	return fi->file_size_known && fi->done == fi->size;
+}
+
+static inline gboolean
+FILE_INFO_COMPLETE_AFTER(const fileinfo_t *fi, filesize_t off)
+{
+	file_info_check(fi);
+	return fi->file_size_known && off >= fi->size - fi->done;
+}
 
 typedef void (*fi_listener_t) (gnet_fi_t);
 typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);

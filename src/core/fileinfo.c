@@ -65,6 +65,7 @@ RCSID("$Id$");
 #include "lib/fuzzy.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
+#include "lib/magnet.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/utf8.h"
@@ -437,7 +438,7 @@ file_info_check_chunklist(fileinfo_t *fi, gboolean assertion)
 	if (assertion && !fileinfo_debug)
 		return TRUE;
 
-	g_assert(NULL != fi);
+	file_info_check(fi);
 
 	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
 		struct dl_file_chunk *fc = sl->data;
@@ -669,7 +670,7 @@ file_info_chunklist_free(fileinfo_t *fi)
 {
 	GSList *sl;
 
-	g_assert(fi);
+	file_info_check(fi);
 
 	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl))
 		wfree(sl->data, sizeof(struct dl_file_chunk));
@@ -683,7 +684,7 @@ file_info_chunklist_free(fileinfo_t *fi)
 static void
 fi_free(fileinfo_t *fi)
 {
-	g_assert(fi);
+	file_info_check(fi);
 	g_assert(!fi->hashed);
 
 	/*
@@ -695,10 +696,9 @@ fi_free(fileinfo_t *fi)
 		g_assert(NULL == fi->sf);
 	}
 
+	atom_filesize_free_null(&fi->size_atom);
 	if (fi->guid)
 		atom_guid_free(fi->guid);
-	if (fi->size_atom)
-		atom_filesize_free(fi->size_atom);
 	if (fi->file_name)
 		atom_str_free(fi->file_name);
 	if (fi->path)
@@ -720,6 +720,8 @@ fi_free(fileinfo_t *fi)
 	}
 	if (fi->seen_on_network)
 		fi_free_ranges(fi->seen_on_network);
+
+	fi->magic = 0;
 	wfree(fi, sizeof *fi);
 }
 
@@ -729,7 +731,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 	namesize_t nsk;
 	GSList *l;
 
-	g_assert(fi);
+	file_info_check(fi);
 	g_assert(fi->file_size_known);
 	g_assert(fi->size_atom);
 	
@@ -785,7 +787,7 @@ fi_resize(fileinfo_t *fi, filesize_t size)
 {
 	struct dl_file_chunk *fc;
 
-	g_assert(fi);
+	file_info_check(fi);
 	g_assert(fi->size < size);
 	g_assert(!fi->hashed);
 
@@ -802,10 +804,9 @@ fi_resize(fileinfo_t *fi, filesize_t size)
 
 	g_assert(fi->size_atom);
 
-	atom_filesize_free(fi->size_atom);
+	atom_filesize_free_null(&fi->size_atom);
 	fi->size = size;
 	fi->size_atom = atom_filesize_get(&fi->size);
-	file_info_hash_insert_name_size(fi);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 }
@@ -820,7 +821,7 @@ fi_alias(fileinfo_t *fi, const gchar *name, gboolean record)
 	namesize_t *ns;
 	GSList *list;
 
-	g_assert(fi);
+	file_info_check(fi);
 	g_assert(!record || fi->hashed);	/* record => fi->hashed */
 
 	/*
@@ -1032,9 +1033,10 @@ file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
 
 	if (NULL != sha1) {
 		fi = g_hash_table_lookup(fi_by_sha1, sha1);
-
-		if (fi)
+		if (fi) {
+			file_info_check(fi);
 			return fi;
+		}
 
 		/*
 		 * No need to continue if strict SHA1 matching is enabled.
@@ -1064,6 +1066,7 @@ file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
 
 	if (NULL != list && NULL == g_slist_next(list)) {
 		fi = list->data;
+		file_info_check(fi);
 
 		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
 		 *	-- JA 2004-07-21
@@ -1081,6 +1084,7 @@ file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
 
 	for (sl = list; sl; sl = g_slist_next(sl)) {
 		fi = sl->data;
+		file_info_check(fi);
 
 		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
 		 *	-- JA 2004-07-21
@@ -1105,10 +1109,13 @@ file_info_lookup_dup(fileinfo_t *fi)
 {
 	fileinfo_t *dfi;
 
-	dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+	file_info_check(fi);
 
-	if (dfi)
+	dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+	if (dfi) {
+		file_info_check(dfi);
 		return dfi;
+	}
 
 	/*
 	 * If `fi' has a SHA1, find any other entry bearing the same SHA1.
@@ -1116,15 +1123,22 @@ file_info_lookup_dup(fileinfo_t *fi)
 
 	if (fi->sha1) {
 		dfi = g_hash_table_lookup(fi_by_sha1, fi->sha1);
-		if (dfi)
+		if (dfi) {
+			file_info_check(dfi);
 			return dfi;
+		}
 	}
 
 	/*
 	 * The file ID must also be unique.
 	 */
 
-	return g_hash_table_lookup(fi_by_guid, fi->guid);
+	dfi = g_hash_table_lookup(fi_by_guid, fi->guid);
+	if (dfi) {
+		file_info_check(dfi);
+		return dfi;
+	}
+	return NULL;
 }
 
 /**
@@ -1177,6 +1191,8 @@ file_info_readable_filename(const fileinfo_t *fi)
 {
 	const GSList *sl;
 
+	file_info_check(fi);
+
 	if (looks_like_urn(fi->file_name)) {
 		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
 			const gchar *name = sl->data;
@@ -1203,8 +1219,11 @@ file_info_shared_sha1(const gchar *sha1)
 	fileinfo_t *fi;
 
 	fi = g_hash_table_lookup(fi_by_sha1, sha1);
+	if (!fi)
+		return NULL;
 
-	if (NULL == fi || 0 == fi->done || fi->size < pfsp_minimum_filesize)
+	file_info_check(fi);
+	if (0 == fi->done || fi->size < pfsp_minimum_filesize)
 		return NULL;
 
 	g_assert(NULL != fi->sha1);
@@ -1310,6 +1329,8 @@ static gboolean
 fi_upgrade_older_version(fileinfo_t *fi)
 {
 	gboolean upgraded = FALSE;
+
+	file_info_check(fi);
 
 	/*
 	 * Ensure proper timestamps for creation and update times.
@@ -1430,6 +1451,7 @@ G_STMT_START {				\
 
 	fi = walloc0(sizeof *fi);
 
+	fi->magic = FI_MAGIC;
 	fi->file_name = atom_str_get(file);
 	fi->path = atom_str_get(path);
 	fi->size = trailer.filesize;
@@ -1654,6 +1676,8 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	const GSList *a;
 	struct dl_file_chunk *fc;
 
+	file_info_check(fi);
+
 	if (fi->flags & FI_F_TRANSIENT)
 		return;
 
@@ -1731,16 +1755,19 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 static void
 file_info_store_list(gpointer key, gpointer val, gpointer x)
 {
-	GSList *sl;
-	fileinfo_t *fi;
-	FILE *f = (FILE *)x;
+	const filesize_t *size_ptr;
+	const GSList *sl;
+	FILE *f = x;
 
-	for (sl = (GSList *) val; sl; sl = g_slist_next(sl)) {
-		fi = (fileinfo_t *) sl->data;
-		g_assert(*(const filesize_t *) key == fi->size);
+	size_ptr = key;
+	for (sl = val; sl; sl = g_slist_next(sl)) {
+		fileinfo_t *fi;
+		
+		fi = sl->data;
+		file_info_check(fi);
+		g_assert(*size_ptr == fi->size);
 		file_info_store_one(f, fi);
 	}
-
 }
 
 /**
@@ -1807,6 +1834,7 @@ file_info_store_if_dirty(void)
 static void
 fi_dispose(fileinfo_t *fi)
 {
+	file_info_check(fi);
 	/*
 	 * Note that normally all fileinfo structures should have been collected
 	 * during the freeing of downloads, so if we come here with a non-zero
@@ -1834,10 +1862,11 @@ fi_dispose(fileinfo_t *fi)
 static void
 file_info_free_sha1_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *sha1 = (const gchar *) key;
-	const fileinfo_t *fi = (const fileinfo_t *) val;
+	const gchar *sha1 = key;
+	const fileinfo_t *fi = val;
 
 	(void) unused_x;
+	file_info_check(fi);
 	g_assert(sha1 == fi->sha1);		/* SHA1 shared with fi's, don't free */
 
 	/* fi structure in value not freed, shared with other hash tables */
@@ -1849,8 +1878,8 @@ file_info_free_sha1_kv(gpointer key, gpointer val, gpointer unused_x)
 static void
 file_info_free_namesize_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	namesize_t *ns = (namesize_t *) key;
-	GSList *list = (GSList *) val;
+	namesize_t *ns = key;
+	GSList *list = val;
 
 	(void) unused_x;
 	namesize_free(ns);
@@ -1865,7 +1894,7 @@ file_info_free_namesize_kv(gpointer key, gpointer val, gpointer unused_x)
 static void
 file_info_free_size_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 {
-	GSList *list = (GSList *) val;
+	GSList *list = val;
 
 	(void) unused_key;
 	(void) unused_x;
@@ -1884,6 +1913,7 @@ file_info_free_guid_kv(gpointer key, gpointer val, gpointer unused_x)
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
+	file_info_check(fi);
 	g_assert(guid == fi->guid);		/* GUID shared with fi's, don't free */
 
 	/*
@@ -1905,6 +1935,7 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
+	file_info_check(fi);
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
 
 	/*
@@ -1923,6 +1954,7 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 void
 file_info_changed(fileinfo_t *fi)
 {
+	file_info_check(fi);
     event_trigger(fi_events[EV_FI_STATUS_CHANGED],
         T_NORMAL(fi_listener_t, (fi->fi_handle)));
 }
@@ -1987,7 +2019,7 @@ file_info_hash_insert(fileinfo_t *fi)
 {
 	fileinfo_t *xfi;
 
-	g_assert(fi);
+	file_info_check(fi);
 	g_assert(!fi->hashed);
 	g_assert(fi->size_atom);
 	g_assert(fi->guid);
@@ -2079,7 +2111,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	GSList *l;
 	GSList *newl;
 
-	g_assert(fi);
+	file_info_check(fi);
 	g_assert(fi->hashed);
 	g_assert(fi->size_atom);
 	g_assert(fi->guid);
@@ -2201,7 +2233,7 @@ file_info_unlink(fileinfo_t *fi)
 {
 	char *path;
 
-	g_assert(fi);
+	file_info_check(fi);
 
 	if (fi->flags & FI_F_TRANSIENT)
 		return;
@@ -2244,6 +2276,8 @@ file_info_unlink(fileinfo_t *fi)
 static void
 file_info_reparent_all(fileinfo_t *from, fileinfo_t *to)
 {
+	file_info_check(from);
+	file_info_check(to);
 	g_assert(0 == from->done);
 	g_assert(0 != strcmp(from->file_name, to->file_name));
 
@@ -2274,7 +2308,7 @@ file_info_got_sha1(fileinfo_t *fi, const gchar *sha1)
 {
 	fileinfo_t *xfi;
 
-	g_assert(fi);
+	file_info_check(fi);
 	g_assert(sha1);
 	g_assert(NULL == fi->sha1);
 
@@ -2451,6 +2485,7 @@ file_info_string_to_tag(const gchar *s)
 static void
 fi_reset_chunks(fileinfo_t *fi)
 {
+	file_info_check(fi);
 	if (fi->file_size_known) {
 		struct dl_file_chunk *fc;
 
@@ -2477,6 +2512,8 @@ fi_copy_chunks(fileinfo_t *fi, fileinfo_t *trailer)
 {
 	GSList *sl;
 
+	file_info_check(fi);
+	file_info_check(trailer);
 	g_assert(NULL == fi->chunklist);
 	g_assert(file_info_check_chunklist(trailer, TRUE));
 
@@ -2819,6 +2856,7 @@ file_info_retrieve(void)
 
 		if (!fi) {
 			fi = walloc0(sizeof *fi);
+			fi->magic = FI_MAGIC;
 			fi->refcount = 0;
 			fi->seen_on_network = NULL;
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
@@ -3132,6 +3170,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 	char *pathname;
 
 	fi = walloc0(sizeof *fi);
+	fi->magic = FI_MAGIC;
 
 	/* Get unique file name */
 	fi->file_name = file_info_new_outname(file, path);
@@ -3185,6 +3224,7 @@ file_info_get_browse(const gchar *name)
 	fileinfo_t *fi;
 
 	fi = walloc0(sizeof *fi);
+	fi->magic = FI_MAGIC;
 
 	fi->file_name = atom_str_get(name);
 	fi->path = atom_str_get("/non-existent");
@@ -3222,6 +3262,7 @@ fi_rename_dead(fileinfo_t *fi,
 	gchar *dead;
 	gchar *pathname;
 
+	file_info_check(fi);
 	pathname = make_pathname(path, filename);
 	dead = g_strconcat(pathname, ".DEAD", (void *) 0);
 
@@ -3266,11 +3307,15 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	 */
 
 	fi = file_info_lookup(file, size, sha1);
+	if (fi) {
+		file_info_check(fi);
+		if (sha1 && fi->sha1 && !sha1_eq(sha1, fi->sha1))
+			fi = NULL;
+	}
 
-	if (fi && sha1 && fi->sha1 && !sha1_eq(sha1, fi->sha1))
-		fi = NULL;
 
 	if (fi) {
+
 		/*
 		 * If download size is greater, we need to resize the output file.
 		 * This can only happen for a download with a SHA1, because otherwise
@@ -3462,7 +3507,8 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 	 */
 
 	for (p = sizelist; p; p = p->next) {
-		fi = (fileinfo_t *) p->data;
+		fi = p->data;
+		file_info_check(fi);
 
 		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
 		 *	-- JA 2004-07-21
@@ -3497,7 +3543,7 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 void
 file_info_set_discard(fileinfo_t *fi, gboolean state)
 {
-	g_assert(fi);
+	file_info_check(fi);
 
 	if (state)
 		fi->flags |= FI_F_DISCARD;
@@ -3516,6 +3562,7 @@ file_info_merge_adjacent(fileinfo_t *fi)
 	gboolean restart;
 	filesize_t done;
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	do {
@@ -3568,6 +3615,7 @@ file_info_size_known(struct download *d, filesize_t size)
 	fileinfo_t *fi = d->file_info;
 	struct dl_file_chunk *fc;
 
+	file_info_check(fi);
 	g_assert(!fi->file_size_known);
 	g_assert(!fi->use_swarming);
 	g_assert(fi->chunklist == NULL);
@@ -3631,9 +3679,10 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 	struct dl_file_chunk *prevfc;
 	gboolean found = FALSE;
 	int againcount = 0;
-	gboolean need_merging = (DL_CHUNK_DONE != status);
-	struct download *newval = (DL_CHUNK_EMPTY == status) ? NULL : d;
+	gboolean need_merging = DL_CHUNK_DONE != status;
+	struct download *newval = DL_CHUNK_EMPTY == status ? NULL : d;
 
+	file_info_check(fi);
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(from < to);
@@ -3867,7 +3916,9 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 	fileinfo_t *fi = d->file_info;
 	gint busy;			/**< For assertions only */
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
+
 	for (fclist = fi->chunklist, busy = 0; fclist; fclist = fclist->next) {
 		fc = fclist->data;
 		if (DL_CHUNK_BUSY == fc->status)
@@ -3901,6 +3952,7 @@ file_info_reset(fileinfo_t *fi)
 	GSList *l;
 	struct dl_file_chunk *fc;
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	if (fi->cha1) {
@@ -3944,6 +3996,7 @@ file_info_chunk_status(fileinfo_t *fi, filesize_t from, filesize_t to)
 	GSList *fclist;
 	struct dl_file_chunk *fc;
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
@@ -3972,6 +4025,7 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 	GSList *fclist;
 	struct dl_file_chunk *fc;
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
@@ -4016,6 +4070,7 @@ fi_check_file(fileinfo_t *fi)
 	char *path;
 	struct stat buf;
 
+	file_info_check(fi);
 	g_assert(fi->done);			/* Or file will not exist */
 
 	/*
@@ -4041,6 +4096,7 @@ fi_busy_count(fileinfo_t *fi, struct download *d)
 	GSList *l;
 	gint count = 0;
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {
@@ -4087,6 +4143,7 @@ list_clone_shift(fileinfo_t *fi)
 	GSList *l;
 	GSList *tail;
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	fc = fi->chunklist->data;		/* First chunk */
@@ -4183,6 +4240,8 @@ fi_chunksize(fileinfo_t *fi)
 	filesize_t chunksize;
 	gint src_count;
 
+	file_info_check(fi);
+
 	/*
 	 * Chunk size is estimated based on the amount of potential concurrent
 	 * downloads we can face (roughly given by the amount of queued sources
@@ -4230,6 +4289,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	GSList *cklist;
 	gboolean cloned = FALSE;
 
+	file_info_check(fi);
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(0 == fi_busy_count(fi, d));	/* No reservation for `d' yet */
@@ -4419,6 +4479,7 @@ file_info_find_available_hole(
 	g_assert(ranges);
 
 	fi = d->file_info;
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	/*
@@ -4537,6 +4598,7 @@ file_info_try_to_swarm_with(
 	if (!fi)
 		return;
 
+	file_info_check(fi);
 	download_auto_new(file_name ? file_name : fi->file_name,
 		fi->size, idx, addr, port, blank_guid, NULL,
 		sha1, tm_time(), FALSE, TRUE, fi, NULL, /* XXX: TLS? */ 0);
@@ -4591,6 +4653,7 @@ file_info_scandir(const gchar *dir)
 
 		if (file_info_lookup_dup(fi)) {		/* Already know about this */
 			fi_free(fi);
+			fi = NULL;
 			continue;
 		}
 
@@ -4616,10 +4679,11 @@ file_info_scandir(const gchar *dir)
 static void
 fi_spot_completed_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *name = (const gchar *) key;
-	fileinfo_t *fi = (fileinfo_t *) val;
+	const gchar *name = key;
+	fileinfo_t *fi = val;
 
 	(void) unused_x;
+	file_info_check(fi);
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
 
 	if (fi->refcount)					/* Attached to a download */
@@ -4674,10 +4738,13 @@ fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev)
 gnet_fi_info_t *
 fi_get_info(gnet_fi_t fih)
 {
-    fileinfo_t *fi = file_info_find_by_handle(fih);
+    fileinfo_t *fi;
     gnet_fi_info_t *info;
 	const gchar *sha1;
 	GSList *l;
+
+    fi = file_info_find_by_handle(fih);
+	file_info_check(fi);
 
     info = walloc(sizeof *info);
 
@@ -4731,6 +4798,7 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 {
     fileinfo_t *fi = file_info_find_by_handle(fih);
 
+	file_info_check(fi);
     g_assert(NULL != s);
 
     s->recvcount      = fi->recvcount;
@@ -4765,7 +4833,7 @@ fi_get_chunks(gnet_fi_t fih)
     fileinfo_t *fi = file_info_find_by_handle(fih);
     GSList *l, *chunks = NULL;
 
-    g_assert(fi);
+    file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
     for (l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
@@ -4812,11 +4880,11 @@ fi_get_ranges(gnet_fi_t fih)
     http_range_t *range = NULL;
     GSList *l, *ranges = NULL;
 
-    g_assert(fi);
+    file_info_check(fi);
 
     for (l = fi->seen_on_network; NULL != l; l = g_slist_next(l)) {
         http_range_t *r = l->data;
-        range = (http_range_t *) walloc(sizeof(http_range_t));
+        range = walloc(sizeof *range);
         range->start = r->start;
         range->end   = r->end;
 
@@ -4884,6 +4952,7 @@ file_info_add_new_source(fileinfo_t *fi, struct download *dl)
 void
 file_info_add_source(fileinfo_t *fi, struct download *dl)
 {
+	file_info_check(fi);
     g_assert(NULL == dl->file_info);
     g_assert(!DOWNLOAD_IS_VISIBLE(dl)); /* Must be removed from the GUI first */
 
@@ -4912,6 +4981,7 @@ void
 file_info_remove_source(
 	fileinfo_t *fi, struct download *dl, gboolean discard)
 {
+	file_info_check(fi);
     g_assert(NULL != dl->file_info);
     g_assert(fi->refcount > 0);
 	g_assert(fi->hashed);
@@ -4951,6 +5021,7 @@ file_info_remove_source(
 void
 file_info_remove(fileinfo_t *fi)
 {
+	file_info_check(fi);
 	g_assert(fi->refcount == 0);
 
 	file_info_hash_remove(fi);
@@ -4960,11 +5031,12 @@ file_info_remove(fileinfo_t *fi)
 static void
 fi_notify_helper(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
-    fileinfo_t *fi = (fileinfo_t *) value;
+    fileinfo_t *fi = value;
 
 	(void) unused_key;
 	(void) unused_udata;
 
+	file_info_check(fi);
     if (!fi->dirty_status)
         return;
 
@@ -4993,7 +5065,7 @@ fi_purge(gnet_fi_t fih)
 	fileinfo_t *fi = file_info_find_by_handle(fih);
 	gboolean do_remove;
 
-	g_assert(NULL != fi);
+	file_info_check(fi);
 	g_assert(fi->hashed);
 
 	do_remove = !(fi->flags & FI_F_DISCARD) || NULL == fi->sources;
@@ -5067,6 +5139,7 @@ file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
 	struct dl_file_chunk **fc_ary;
 	gint length;
 
+	file_info_check(fi);
 	g_assert(size >= 0);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 	fmt = header_fmt_make("X-Available-Ranges", ", ", size);
@@ -5198,6 +5271,7 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 {
 	GSList *l;
 
+	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
@@ -5231,69 +5305,39 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 gchar *
 file_info_build_magnet(gnet_fi_t handle)
 {
-	const gchar *separator = "";
+	struct magnet_resource *magnet;
 	const fileinfo_t *fi;
 	const GSList *sl;
-	gint n;
-	GString *gs;
 	gchar *url;
+	gint n;
    
 	fi = file_info_find_by_handle(handle);
 	g_return_val_if_fail(fi, NULL);
+	file_info_check(fi);
 
-	gs = g_string_new("magnet:?");
+	magnet = magnet_resource_new();
+	if (fi->sha1) {
+		magnet_set_sha1(magnet, fi->sha1);
+	}
 	if (fi->file_name) {
-		gchar *escaped_name;
-
-		escaped_name = url_escape(fi->file_name);
-		gs = g_string_append(gs, separator);
-		gs = g_string_append(gs, "dn=");
-		gs = g_string_append(gs, escaped_name);
-		if (escaped_name != fi->file_name) {
-			G_FREE_NULL(escaped_name);
-		}
-		separator = "&";
+		magnet_set_display_name(magnet, fi->file_name);
 	}
 	if (fi->file_size_known && fi->size) {
-		gchar buf[UINT64_DEC_BUFLEN];
-
-		uint64_to_string_buf(fi->size, buf, sizeof buf),
-		gs = g_string_append(gs, separator);
-		gs = g_string_append(gs, "xl=");
-		gs = g_string_append(gs, buf);
-		separator = "&";
-	}
-	if (fi->sha1) {
-		gs = g_string_append(gs, separator);
-		gs = g_string_append(gs, "xt=urn:sha1:");
-		gs = g_string_append(gs, sha1_base32(fi->sha1));
-		separator = "&";
+		magnet_set_filesize(magnet, fi->size);
 	}
 
 	n = 0;
-	for (sl = fi->sources; NULL != sl && n < 10; sl = g_slist_next(sl)) {
-		struct download *src = sl->data;
-		gchar *src_url;
+	for (sl = fi->sources; NULL != sl && n++ < 20; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
 
-		g_assert(src);
-		src_url = download_build_url(src);
-		if (src_url) {
-			gs = g_string_append(gs, separator);
-			gs = g_string_append(gs, "xs=");
-			gs = g_string_append(gs, src_url);
-			G_FREE_NULL(src_url);
-			separator = "&";
-			n++;
-		}
+		g_assert(d);
+		magnet_add_source_by_url(magnet, download_build_url(d));
 	}
 
-	url = gs->str;
-	g_string_free(gs, FALSE); /* Don't free the string itself */
+	url = magnet_to_string(magnet);
+	magnet_resource_free(magnet);
 	return url;
 }
-
-
-
 
 /**
  * Create a ranges list with one item covering the whole file.
