@@ -1586,8 +1586,8 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 				struct magnet_source *ms = sl->data;
 
-				if (ms->uri) {
-					filename = filepath_basename(ms->uri);
+				if (ms->path) {
+					filename = filepath_basename(ms->path);
 					if ('\0' != filename[0])
 						break;
 					filename = NULL;
@@ -1613,8 +1613,8 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			 */
 			addr = is_host_addr(ms->addr) ? ms->addr : host_addr_set_ipv4(0);
 			if (ms->port != 0 && (is_host_addr(addr) || ms->hostname)) {
-				if (ms->uri) {
-					guc_download_new_uri(filename, ms->uri, res->size,
+				if (ms->path) {
+					guc_download_new_uri(filename, ms->path, res->size,
 						addr, ms->port, blank_guid, ms->hostname,
 						res->sha1, tm_time(), FALSE, NULL, NULL, 0);
 					started++;
@@ -1645,18 +1645,32 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 gboolean
 search_gui_handle_http(const gchar *url, const gchar **error_str)
 {
-	gchar *magnet;
+	gchar *magnet_url;
 	gboolean success;
 
 	g_return_val_if_fail(url, FALSE);
 
-	/* FIXME: The URL might have to be escaped or might be invalid.
-	 *        However, just blindly escaping isn't right.
+	/* Assume the URL was entered by a human; humans don't escape
+	 * URLs except on accident and probably incorrectly.
 	 */
-	magnet = g_strconcat("magnet:?xs=", url, (void *) 0);
-	success = search_gui_handle_magnet(magnet, error_str);
+	{
+		struct magnet_resource *magnet;
+		gchar *unescaped_url;
 
-	G_FREE_NULL(magnet);
+		unescaped_url = url_unescape(deconstify_gchar(url), FALSE);
+
+		/* Magnet values are ALWAYS escaped. */
+		magnet = magnet_resource_new();
+		magnet_add_source_by_url(magnet, unescaped_url);
+		if (unescaped_url != url) {
+			G_FREE_NULL(unescaped_url);
+		}
+		magnet_url = magnet_to_string(magnet);
+		magnet_resource_free(magnet);
+	}
+	
+	success = search_gui_handle_magnet(magnet_url, error_str);
+	G_FREE_NULL(magnet_url);
 
 	return TRUE;
 }
