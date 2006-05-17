@@ -66,8 +66,8 @@ struct attr {
 static void
 is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	rxdrv_t *rx = (rxdrv_t *) data;
-	struct attr *attr = (struct attr *) rx->opaque;
+	rxdrv_t *rx = data;
+	struct attr *attr = rx->opaque;
 	pdata_t *db;
 	pmsg_t *mb;
 	ssize_t r;
@@ -151,14 +151,14 @@ rx_link_init(rxdrv_t *rx, gconstpointer args)
 static void
 rx_link_destroy(rxdrv_t *rx)
 {
-	struct attr *attr = (struct attr *) rx->opaque;
+	struct attr *attr = rx->opaque;
 
 	if (attr->bio) {
 		bsched_source_remove(attr->bio);
 		attr->bio = NULL;					/* Paranoid */
 	}
 
-	wfree(attr, sizeof(*attr));
+	wfree(attr, sizeof *attr);
 }
 
 /**
@@ -192,7 +192,7 @@ rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 static void
 rx_link_enable(rxdrv_t *rx)
 {
-	struct attr *attr = (struct attr *) rx->opaque;
+	struct attr *attr = rx->opaque;
 
 	g_assert(attr->bio == NULL);
 
@@ -201,7 +201,7 @@ rx_link_enable(rxdrv_t *rx)
 	 */
 
 	attr->bio = bsched_source_add(attr->bs, attr->wio, BIO_F_READ,
-		is_readable, (gpointer) rx);
+					is_readable, rx);
 
 	g_assert(attr->bio);
 }
@@ -212,7 +212,7 @@ rx_link_enable(rxdrv_t *rx)
 static void
 rx_link_disable(rxdrv_t *rx)
 {
-	struct attr *attr = (struct attr *) rx->opaque;
+	struct attr *attr = rx->opaque;
 
 	/*
 	 * Disabling is blindly called when the RX stack is freed, regardless
@@ -237,7 +237,7 @@ rx_link_disable(rxdrv_t *rx)
 static struct
 bio_source *rx_link_bio_source(rxdrv_t *rx)
 {
-	struct attr *attr = (struct attr *) rx->opaque;
+	struct attr *attr = rx->opaque;
 
 	return attr->bio;
 }
