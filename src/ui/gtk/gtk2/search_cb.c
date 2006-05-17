@@ -87,6 +87,7 @@ refresh_popups(void)
 		{	"popup_search_new_from_selected" },
 		{	"popup_search_metadata" },
 		{	"popup_search_browse_host" },
+		{	"popup_search_copy_magnet" },
 	};
 	search_t *search = search_gui_get_current_search();
 	gboolean sensitive;
@@ -105,9 +106,14 @@ refresh_popups(void)
 		lookup_widget(main_window, "button_search_download"),
 		sensitive);
 
-	for (i = 0; i < G_N_ELEMENTS(menu); i++)
-		gtk_widget_set_sensitive(lookup_widget(popup_search, menu[i].name),
-			sensitive);
+	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
+		GtkWidget *w;
+
+		w = lookup_widget(popup_search, menu[i].name);
+		if (w) {
+			gtk_widget_set_sensitive(w, sensitive);
+		}
+	}
 
     if (search) {
         gtk_widget_set_sensitive(
