@@ -61,9 +61,9 @@ void download_orphan_new(
 	gchar *file, filesize_t size, gchar *sha1, fileinfo_t *fi);
 void download_queue(struct download *d,
 	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
-void download_stop(struct download *, guint32,
+void download_stop(struct download *, download_status_t,
 	const gchar *, ...) G_GNUC_PRINTF(3, 4);
-void download_stop_v(struct download *d, guint32 new_status,
+void download_stop_v(struct download *d, download_status_t new_status,
     const gchar * reason, va_list ap);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);

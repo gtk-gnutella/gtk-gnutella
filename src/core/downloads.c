@@ -330,8 +330,8 @@ static const struct rx_inflate_cb download_rx_inflate_cb = {
 /**
  * Received data from outside the RX stack.
  */
-void
-download_write(struct download *d, const gchar *data, size_t len)
+static void
+download_write(struct download *d, gpointer data, size_t len)
 {
 	pdata_t *db;
 	pmsg_t *mb;
