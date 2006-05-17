@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -3581,6 +3581,9 @@ msgstr "Zambia"
 msgid "Zimbabwe"
 msgstr ""
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr ""
+
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3656,12 +3659,6 @@ msgid "Queue frozen"
 msgstr ""
 
 msgid "Support for this protocol is not yet implemented"
-msgstr ""
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr ""
-
-msgid "MAGNET URI contained unsupported exact topic."
 msgstr ""
 
 msgid "Cannot handle the dropped data"
@@ -6225,10 +6222,6 @@ msgid "Error loading pixmap file: %s"
 msgstr "Errore di lettura del file pixmap: %s"
 
 #, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr ""
-
-#, c-format
 msgid " (slot %u"
 msgstr " (posizione %u"
 
@@ -6240,62 +6233,37 @@ msgstr " ritenta in %us"
 msgid "Sending request (%u%%)"
 msgstr "Invio richiesta (%u%%)"
 
-msgid "< 1s"
-msgstr ""
-
-msgid "SHA1 figure"
-msgstr "Rappresentazione SHA1"
-
-msgid "SHA1 check"
-msgstr "Controllo SHA1"
-
-msgid "ERROR"
-msgstr "ERRORE"
-
-msgid "FAILED"
-msgstr "FALLITO"
-
-#, c-format
-msgid " TR: %s"
-msgstr ""
-
 #, c-format
 msgid "Retry in %us"
 msgstr "Ritenta in %us"
 
 #, c-format
-msgid "Unknown status %u"
-msgstr "Stato sconosciuto %u"
+msgid "(%s)  [%u/%u]  TR:  %s"
+msgstr ""
 
 msgid "<none>"
 msgstr "<niente>"
 
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "Accodati (%d attivi, %d passivi)"
+
 msgid "Aliases"
 msgstr "Sininimi"
+
+#, fuzzy, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] "Selezionato %u scaricamento di %u accodati corrispondenti a \"%s\"."
+msgstr[1] ""
+"Selezionato %u scaricamenti di %u accodati corrispondenti a \\\"%s\\\"."
 
 msgid "Cache contains"
 msgstr "Contenuti cache"
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-"Annulla lo scaricamento dalla sorgente selezionata ma non lo scaricamento "
-"del file."
-
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-"Annulla lo scaricamento dalle sorgenti corrispondenti ai criteri selezionati "
-"ma non lo scaricamento del file."
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
-msgstr ""
-"Se la sorgente è vista dietro a un firewall può essere utile forzare il modo "
-"spinta per consentire alla sorgente di riconnettersi con noi."
+#, fuzzy
+msgid "Copy Magnet to clipboard"
+msgstr "Copia negli appunti"
 
 msgid "Download selected files"
 msgstr "Scarica i file selezionati"
@@ -6360,26 +6328,14 @@ msgstr ""
 msgid "[BH qhits]"
 msgstr "[BH qtent.]"
 
-msgid "Remove completed downloads from list"
-msgstr "Rimuovi dall'elenco gli scaricamenti completati"
-
-msgid "_Clear completed"
-msgstr "Ri_pulisci completati"
-
-msgid " "
-msgstr ""
-
-msgid "Sho_w settings"
-msgstr "Mostra _impostazioni"
-
-msgid "Downloaded data:"
-msgstr "Dati scaricati:"
-
 msgid "Current _search:"
 msgstr "Ricerca _corrente"
 
 msgid "Displaying"
 msgstr "Visualizzazione"
+
+msgid "Sho_w settings"
+msgstr "Mostra _impostazioni"
 
 msgid "Flow _control"
 msgstr "_Controllo di flusso"
@@ -6389,6 +6345,9 @@ msgstr "_Ricevuti"
 
 msgid "_Columns show hops"
 msgstr "Mostra salti nelle colonne"
+
+msgid " "
+msgstr ""
 
 msgid "Show reasons _for"
 msgstr "Mostra motivo _per"
@@ -6452,9 +6411,19 @@ msgstr ""
 "Elimina tutti i file selezionati se il loro scaricamento è incompleto o "
 "discontinuo."
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr "Rimuovi dall'elenco gli scaricamenti completati"
+
+msgid "_Clear completed"
+msgstr "Ri_pulisci completati"
+
+#, fuzzy
+msgid "Select all matching regex"
 msgstr ""
 "Seleziona tutte le corrispondenze di una espressione regolare dalla coda"
+
+msgid "Downloaded data:"
+msgstr "Dati scaricati:"
 
 msgid "Version"
 msgstr "Versione"
@@ -6664,17 +6633,17 @@ msgstr "Spira al termine di questa sessione"
 msgid "[stopped]"
 msgstr "[arrestata]"
 
+#, fuzzy, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] "Creato %u scaricamento"
+msgstr[1] "Creati %u scaricamenti"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "La stringa della query non è codificata UTF-8"
 
 msgid "The entered query is too long"
 msgstr "La query introdotta è troppo lunga"
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr ""
-
-msgid "Cannot parse magnet"
-msgstr ""
 
 msgid "The SHA1 query is not validly encoded"
 msgstr "La query SHA1 non è codificata validamente"
@@ -6791,6 +6760,9 @@ msgstr "Spinta ottenuta, riconnessione..."
 msgid "%sCompleted (%s) %s"
 msgstr "%sCompletato (%s) %s"
 
+msgid "< 1s"
+msgstr ""
+
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr ""
@@ -6825,3 +6797,39 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#~ msgid "SHA1 figure"
+#~ msgstr "Rappresentazione SHA1"
+
+#~ msgid "SHA1 check"
+#~ msgstr "Controllo SHA1"
+
+#~ msgid "ERROR"
+#~ msgstr "ERRORE"
+
+#~ msgid "FAILED"
+#~ msgstr "FALLITO"
+
+#~ msgid "Unknown status %u"
+#~ msgstr "Stato sconosciuto %u"
+
+#~ msgid ""
+#~ "Aborts the download from the selected source but not the download of the "
+#~ "file itself."
+#~ msgstr ""
+#~ "Annulla lo scaricamento dalla sorgente selezionata ma non lo scaricamento "
+#~ "del file."
+
+#~ msgid ""
+#~ "Aborts the download from sources matching the selected criteria but not "
+#~ "the download of the file itself."
+#~ msgstr ""
+#~ "Annulla lo scaricamento dalle sorgenti corrispondenti ai criteri "
+#~ "selezionati ma non lo scaricamento del file."
+
+#~ msgid ""
+#~ "If the source appears to be firewalled, it may help to enforce push mode "
+#~ "to let the source connect back to us."
+#~ msgstr ""
+#~ "Se la sorgente è vista dietro a un firewall può essere utile forzare il "
+#~ "modo spinta per consentire alla sorgente di riconnettersi con noi."

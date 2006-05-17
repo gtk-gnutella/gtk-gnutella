@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2005-08-30 14:17+0900\n"
 "Last-Translator: Vitaliy Buyar <vetal17@gmail.com>\n"
 "Language-Team: Ukrainian <translation-team-uk@lists.sourceforge.net>\n"
@@ -3075,6 +3075,9 @@ msgstr ""
 msgid "Zimbabwe"
 msgstr ""
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr ""
+
 #, fuzzy, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3150,12 +3153,6 @@ msgid "Queue frozen"
 msgstr "Черга затримана"
 
 msgid "Support for this protocol is not yet implemented"
-msgstr ""
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr ""
-
-msgid "MAGNET URI contained unsupported exact topic."
 msgstr ""
 
 msgid "Cannot handle the dropped data"
@@ -5651,10 +5648,6 @@ msgid "Error loading pixmap file: %s"
 msgstr ""
 
 #, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr ""
-
-#, c-format
 msgid " (slot %u"
 msgstr ""
 
@@ -5666,55 +5659,34 @@ msgstr ""
 msgid "Sending request (%u%%)"
 msgstr ""
 
-msgid "< 1s"
-msgstr ""
-
-msgid "SHA1 figure"
-msgstr ""
-
-msgid "SHA1 check"
-msgstr ""
-
-msgid "ERROR"
-msgstr ""
-
-msgid "FAILED"
-msgstr ""
-
-#, c-format
-msgid " TR: %s"
-msgstr ""
-
 #, c-format
 msgid "Retry in %us"
 msgstr ""
 
 #, c-format
-msgid "Unknown status %u"
+msgid "(%s)  [%u/%u]  TR:  %s"
 msgstr ""
 
 msgid "<none>"
 msgstr ""
 
+#, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr ""
+
 msgid "Aliases"
 msgstr ""
+
+#, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Cache contains"
 msgstr ""
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
+msgid "Copy Magnet to clipboard"
 msgstr ""
 
 msgid "Download selected files"
@@ -5778,25 +5750,13 @@ msgstr ""
 msgid "[BH qhits]"
 msgstr ""
 
-msgid "Remove completed downloads from list"
-msgstr ""
-
-msgid "_Clear completed"
-msgstr ""
-
-msgid " "
-msgstr ""
-
-msgid "Sho_w settings"
-msgstr ""
-
-msgid "Downloaded data:"
-msgstr ""
-
 msgid "Current _search:"
 msgstr ""
 
 msgid "Displaying"
+msgstr ""
+
+msgid "Sho_w settings"
 msgstr ""
 
 msgid "Flow _control"
@@ -5806,6 +5766,9 @@ msgid "_Received"
 msgstr ""
 
 msgid "_Columns show hops"
+msgstr ""
+
+msgid " "
 msgstr ""
 
 msgid "Show reasons _for"
@@ -5867,7 +5830,16 @@ msgid ""
 "download of the selected files."
 msgstr ""
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr ""
+
+msgid "_Clear completed"
+msgstr ""
+
+msgid "Select all matching regex"
+msgstr ""
+
+msgid "Downloaded data:"
 msgstr ""
 
 msgid "Version"
@@ -6067,16 +6039,16 @@ msgstr ""
 msgid "[stopped]"
 msgstr ""
 
+#, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "The query string is not UTF-8 encoded"
 msgstr ""
 
 msgid "The entered query is too long"
-msgstr ""
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr ""
-
-msgid "Cannot parse magnet"
 msgstr ""
 
 msgid "The SHA1 query is not validly encoded"
@@ -6192,6 +6164,9 @@ msgstr ""
 
 #, c-format
 msgid "%sCompleted (%s) %s"
+msgstr ""
+
+msgid "< 1s"
 msgstr ""
 
 #, c-format

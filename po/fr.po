@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: T'aZ <tazdev@punkass.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -3830,6 +3830,9 @@ msgstr ""
 msgid "Zimbabwe"
 msgstr ""
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr ""
+
 #, fuzzy, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3913,12 +3916,6 @@ msgstr ""
 
 msgid "Support for this protocol is not yet implemented"
 msgstr "Le support de ce protocol n'est pas encore implémenté"
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr ""
-
-msgid "MAGNET URI contained unsupported exact topic."
-msgstr ""
 
 msgid "Cannot handle the dropped data"
 msgstr "Ne sait que faire des données ignorées"
@@ -6679,10 +6676,6 @@ msgid "Error loading pixmap file: %s"
 msgstr "Ne peut trouver le fichier pixmap: %s"
 
 #, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr ""
-
-#, c-format
 msgid " (slot %u"
 msgstr ""
 
@@ -6694,59 +6687,40 @@ msgstr "Réessaye dans %ds"
 msgid "Sending request (%u%%)"
 msgstr "Envoi de la requête en cours (%d%%)"
 
-msgid "< 1s"
-msgstr ""
-
-msgid "SHA1 figure"
-msgstr "Valeur SHA1"
-
-msgid "SHA1 check"
-msgstr "Vérification SHA1"
-
-msgid "ERROR"
-msgstr "ERREUR"
-
-msgid "FAILED"
-msgstr "ÉCHOUÉ"
-
-#, c-format
-msgid " TR: %s"
-msgstr ""
-
 #, fuzzy, c-format
 msgid "Retry in %us"
 msgstr "Nouvel essai dans %ds"
 
 #, c-format
-msgid "Unknown status %u"
-msgstr "Status inconnu %u"
+msgid "(%s)  [%u/%u]  TR:  %s"
+msgstr ""
 
 msgid "<none>"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "Mis dans la file (%d active/ %d passive)"
+
 msgid "Aliases"
 msgstr "Alias"
+
+#, fuzzy, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] ""
+" %u de %u téléchargements en file d'attente sélectionné correspondant à \"%s"
+"\"."
+msgstr[1] ""
+" %u de %u téléchargements en file d'attente sélectionné correspondant à \"%s"
+"\"."
 
 msgid "Cache contains"
 msgstr "Le cache contient"
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-
 #, fuzzy
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-"Ajoute au pré-filtre global les règles \"ne pas afficher\" correspondant aux "
-"fichiers sélectionnés par urn:sha1."
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
-msgstr ""
+msgid "Copy Magnet to clipboard"
+msgstr "Copier l'url vers le presse-papiers"
 
 msgid "Download selected files"
 msgstr "Télécharger les fichiers sélectionnés"
@@ -6816,28 +6790,15 @@ msgstr ""
 msgid "[BH qhits]"
 msgstr ""
 
-msgid "Remove completed downloads from list"
-msgstr "Enlever les téléchargement terminés de la liste"
-
-msgid "_Clear completed"
-msgstr "Effa_ce ceux terminés"
-
-msgid " "
-msgstr " "
-
-msgid "Sho_w settings"
-msgstr "Affiche les para_mètres"
-
-#, fuzzy
-msgid "Downloaded data:"
-msgstr "Téléchargé"
-
 #, fuzzy
 msgid "Current _search:"
 msgstr "Recherche actuelle"
 
 msgid "Displaying"
 msgstr "Affichant"
+
+msgid "Sho_w settings"
+msgstr "Affiche les para_mètres"
 
 msgid "Flow _control"
 msgstr "_Contrôle de flux"
@@ -6848,6 +6809,9 @@ msgstr "_Reçu"
 #, fuzzy
 msgid "_Columns show hops"
 msgstr "Colonnes affiches les hops"
+
+msgid " "
+msgstr " "
 
 #, fuzzy
 msgid "Show reasons _for"
@@ -6920,8 +6884,19 @@ msgid ""
 "download of the selected files."
 msgstr ""
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr "Enlever les téléchargement terminés de la liste"
+
+msgid "_Clear completed"
+msgstr "Effa_ce ceux terminés"
+
+#, fuzzy
+msgid "Select all matching regex"
 msgstr "Sélectionner tous les regex correspondant de la file"
+
+#, fuzzy
+msgid "Downloaded data:"
+msgstr "Téléchargé"
 
 #, fuzzy
 msgid "Version"
@@ -7137,18 +7112,18 @@ msgstr ""
 msgid "[stopped]"
 msgstr "Efface ceux arrêtés"
 
+#, fuzzy, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] "Enlevé %u téléchargements"
+msgstr[1] "Enlevé %u téléchargements"
+
 #, fuzzy
 msgid "The query string is not UTF-8 encoded"
 msgstr "La requête SHA1 n'est pas correctement encodée"
 
 msgid "The entered query is too long"
 msgstr "La recherche entrée est trop longue"
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr "Le SHA1 du magnet n'est pas correctement encodé"
-
-msgid "Cannot parse magnet"
-msgstr ""
 
 msgid "The SHA1 query is not validly encoded"
 msgstr "La requête SHA1 n'est pas correctement encodée"
@@ -7265,6 +7240,9 @@ msgstr "Reçu Push, se connecte..."
 msgid "%sCompleted (%s) %s"
 msgstr "Terminé (%.1f k/s) %s"
 
+msgid "< 1s"
+msgstr ""
+
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr ""
@@ -7300,3 +7278,29 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "SHA1 figure"
+#~ msgstr "Valeur SHA1"
+
+#~ msgid "SHA1 check"
+#~ msgstr "Vérification SHA1"
+
+#~ msgid "ERROR"
+#~ msgstr "ERREUR"
+
+#~ msgid "FAILED"
+#~ msgstr "ÉCHOUÉ"
+
+#~ msgid "Unknown status %u"
+#~ msgstr "Status inconnu %u"
+
+#, fuzzy
+#~ msgid ""
+#~ "Aborts the download from sources matching the selected criteria but not "
+#~ "the download of the file itself."
+#~ msgstr ""
+#~ "Ajoute au pré-filtre global les règles \"ne pas afficher\" correspondant "
+#~ "aux fichiers sélectionnés par urn:sha1."
+
+#~ msgid "The SHA1 of the magnet is not validly encoded"
+#~ msgstr "Le SHA1 du magnet n'est pas correctement encodé"

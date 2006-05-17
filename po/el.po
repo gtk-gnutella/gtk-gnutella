@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -3464,6 +3464,10 @@ msgstr "Ζάμπια, Δημοκρατία της"
 msgid "Zimbabwe"
 msgstr "Ζιμπάμπουε"
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr ""
+"Το MAGNET URI περιείχε ένα πηγαίο URL για ένα μη υποστηριζόμενο πρωτόκολλο"
+
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3541,15 +3545,6 @@ msgstr "Η λίστα αναμονής πάγωσε"
 
 msgid "Support for this protocol is not yet implemented"
 msgstr "Αυτό το πρωτόκολλο δεν υποστηρίζεται ακόμα"
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr ""
-"Το MAGNET URI περιείχε ένα πηγαίο URL για ένα μη υποστηριζόμενο πρωτόκολλο"
-
-#, fuzzy
-msgid "MAGNET URI contained unsupported exact topic."
-msgstr ""
-"Το MAGNET URI περιείχε ένα πηγαίο URL για ένα μη υποστηριζόμενο πρωτόκολλο"
 
 msgid "Cannot handle the dropped data"
 msgstr "Δεν είναι δυνατή η διαχείριση των απορριφθέντων δεδομένων"
@@ -6106,10 +6101,6 @@ msgid "Error loading pixmap file: %s"
 msgstr "Σφάλμα κατά το φόρτωμα του αρχείου pixmap: %s"
 
 #, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr "[%u/%u]  TR:  -"
-
-#, c-format
 msgid " (slot %u"
 msgstr " (υποδοχή %u"
 
@@ -6121,63 +6112,36 @@ msgstr " προσπάθεια ξανά σε %us"
 msgid "Sending request (%u%%)"
 msgstr "Αποστολή αιτήματος (%u%%)"
 
-msgid "< 1s"
-msgstr "< 1s"
-
-msgid "SHA1 figure"
-msgstr ""
-
-msgid "SHA1 check"
-msgstr "έλεγχος SHA1"
-
-msgid "ERROR"
-msgstr "ΣΦΑΛΜΑ"
-
-msgid "FAILED"
-msgstr "ΑΠΕΤΥΧΕ"
-
-#, c-format
-msgid " TR: %s"
-msgstr " TR: %s"
-
 #, c-format
 msgid "Retry in %us"
 msgstr "Προσπάθεια ξανά σε %us"
 
-#, c-format
-msgid "Unknown status %u"
-msgstr "Άγνωστη κατάσταση %u"
+#, fuzzy, c-format
+msgid "(%s)  [%u/%u]  TR:  %s"
+msgstr "(%s)  [%d/%d]  TR:  %s"
 
 msgid "<none>"
 msgstr "<κανένα>"
 
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "Μπήκε στη λίστα αναμονής (%d ενεργές, %d παθητικές)"
+
 msgid "Aliases"
 msgstr "Εναλλακτικές ονομασίες"
+
+#, fuzzy, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] "Επιλογή %u από τις %u αναμένουσα λήψη που ταιριάζουν \"%s\"."
+msgstr[1] "Επιλογή %u από τις %u αναμένουσες λήψεις που ταιριάζουν \"%s\"."
 
 msgid "Cache contains"
 msgstr "Η λανθάνουσα μνήμη περιέχει"
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-"Εγκαταλείπει τη λήψη από την επιλεγμένη πηγή αλλά όχι την ίδια τη λήψη του "
-"αρχείου."
-
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-"Εγκαταλείπει τη λήψη από τις πηγές που ταιριάζουν με τα επιλεγμένα κριτήρια "
-"αλλά ότι την ίδια τη λήψη του αρχείου."
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
-msgstr ""
-"Αν η πηγή φαίνεται να έχει τοίχος προστασίας, μπορεί να βοηθήσει να "
-"εξαναγκάσετε λειτουργία ώθησης για να επιτρέψετε στην πηγή να συνδεθεί πίσω "
-"με εμάς."
+#, fuzzy
+msgid "Copy Magnet to clipboard"
+msgstr "Αντιγραφή στο πρόχειρο"
 
 msgid "Download selected files"
 msgstr "Λήψη επιλεγμένων αρχείων"
@@ -6241,26 +6205,14 @@ msgstr "[BH HTML]"
 msgid "[BH qhits]"
 msgstr ""
 
-msgid "Remove completed downloads from list"
-msgstr "Αφαίρεση ολοκληρωμένων λήψεων από τη λίστα"
-
-msgid "_Clear completed"
-msgstr "_Καθαρισμός ολοκληρωμένων"
-
-msgid " "
-msgstr " "
-
-msgid "Sho_w settings"
-msgstr "Εμφάνιση _ρυθμίσεων"
-
-msgid "Downloaded data:"
-msgstr "Ληφθέντα δεδομένα:"
-
 msgid "Current _search:"
 msgstr "Τρέχουσα_ αναζήτηση:"
 
 msgid "Displaying"
 msgstr "Εμφάνιση"
+
+msgid "Sho_w settings"
+msgstr "Εμφάνιση _ρυθμίσεων"
 
 msgid "Flow _control"
 msgstr "Έλεγ_χος ροής"
@@ -6270,6 +6222,9 @@ msgstr "_Ελήφθησαν"
 
 msgid "_Columns show hops"
 msgstr ""
+
+msgid " "
+msgstr " "
 
 msgid "Show reasons _for"
 msgstr "Εμφάνιση αιτιών _για"
@@ -6334,8 +6289,17 @@ msgstr ""
 "Σβήνει όλα τα επιλεγμένα αρχεία εφόσον είναι ανολοκλήρωτα και σταματάει τη "
 "λήψη τους."
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr "Αφαίρεση ολοκληρωμένων λήψεων από τη λίστα"
+
+msgid "_Clear completed"
+msgstr "_Καθαρισμός ολοκληρωμένων"
+
+msgid "Select all matching regex"
 msgstr ""
+
+msgid "Downloaded data:"
+msgstr "Ληφθέντα δεδομένα:"
 
 msgid "Version"
 msgstr "Έκδοση"
@@ -6547,17 +6511,17 @@ msgstr ""
 msgid "[stopped]"
 msgstr "[Διακόπηκε] "
 
+#, fuzzy, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] "Δημιουργήθηκε %u λήψη"
+msgstr[1] "Δημιουργήθηκαν %u λήψεις"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "Το ερώτημα SHA1 δεν είναι κωδικοποιημένο σε UTF-8"
 
 msgid "The entered query is too long"
 msgstr "Το ερώτημα που υποβλήθηκε είναι πολύ μεγάλο"
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr ""
-
-msgid "Cannot parse magnet"
-msgstr ""
 
 msgid "The SHA1 query is not validly encoded"
 msgstr "Το ερώτημα SHA1 δεν είναι έγκυρα κωδικοποιημένο"
@@ -6674,6 +6638,9 @@ msgstr "Ελήφθη ώθηση, γίνεται σύνδεση πίσω..."
 msgid "%sCompleted (%s) %s"
 msgstr "%s Ολοκληρώθηκε (%s) %s"
 
+msgid "< 1s"
+msgstr "< 1s"
+
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr "%s%s(%s) TR: %s"
@@ -6708,3 +6675,48 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#, fuzzy
+#~ msgid "MAGNET URI contained unsupported exact topic."
+#~ msgstr ""
+#~ "Το MAGNET URI περιείχε ένα πηγαίο URL για ένα μη υποστηριζόμενο πρωτόκολλο"
+
+#~ msgid "[%u/%u]  TR:  -"
+#~ msgstr "[%u/%u]  TR:  -"
+
+#~ msgid "SHA1 check"
+#~ msgstr "έλεγχος SHA1"
+
+#~ msgid "ERROR"
+#~ msgstr "ΣΦΑΛΜΑ"
+
+#~ msgid "FAILED"
+#~ msgstr "ΑΠΕΤΥΧΕ"
+
+#~ msgid " TR: %s"
+#~ msgstr " TR: %s"
+
+#~ msgid "Unknown status %u"
+#~ msgstr "Άγνωστη κατάσταση %u"
+
+#~ msgid ""
+#~ "Aborts the download from the selected source but not the download of the "
+#~ "file itself."
+#~ msgstr ""
+#~ "Εγκαταλείπει τη λήψη από την επιλεγμένη πηγή αλλά όχι την ίδια τη λήψη "
+#~ "του αρχείου."
+
+#~ msgid ""
+#~ "Aborts the download from sources matching the selected criteria but not "
+#~ "the download of the file itself."
+#~ msgstr ""
+#~ "Εγκαταλείπει τη λήψη από τις πηγές που ταιριάζουν με τα επιλεγμένα "
+#~ "κριτήρια αλλά ότι την ίδια τη λήψη του αρχείου."
+
+#~ msgid ""
+#~ "If the source appears to be firewalled, it may help to enforce push mode "
+#~ "to let the source connect back to us."
+#~ msgstr ""
+#~ "Αν η πηγή φαίνεται να έχει τοίχος προστασίας, μπορεί να βοηθήσει να "
+#~ "εξαναγκάσετε λειτουργία ώθησης για να επιτρέψετε στην πηγή να συνδεθεί "
+#~ "πίσω με εμάς."

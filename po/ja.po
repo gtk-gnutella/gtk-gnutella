@@ -72,7 +72,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2006-05-11 13:14+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -3559,6 +3559,9 @@ msgstr "ザンビア共和国"
 msgid "Zimbabwe"
 msgstr "ジンバブエ共和国"
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr "MAGNET URI は未対応プロトコルへの送信元 URL を含んでいます"
+
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3682,12 +3685,6 @@ msgstr "キューが凍結されました"
 
 msgid "Support for this protocol is not yet implemented"
 msgstr "このプロトコルはまだ実装されていません"
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr "MAGNET URI は未対応プロトコルへの送信元 URL を含んでいます"
-
-msgid "MAGNET URI contained unsupported exact topic."
-msgstr "MAGNET URI は未対応の完全トピックを含んでいます"
 
 msgid "Cannot handle the dropped data"
 msgstr "この破棄データを扱えません"
@@ -6340,11 +6337,6 @@ msgstr "Pixmap ファイルがありません: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Pixmap ファイルを読み込み中にエラー: %s"
 
-# MERGEBLE:
-#, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr "[%u/%u]  残り時間:  -"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (スロット %u"
@@ -6357,64 +6349,36 @@ msgstr " %u秒後に再実行"
 msgid "Sending request (%u%%)"
 msgstr "リクエストを送信しています (%u%%)"
 
-msgid "< 1s"
-msgstr "1秒未満"
-
-# FIXME: wtf
-msgid "SHA1 figure"
-msgstr "SHA1形態"
-
-msgid "SHA1 check"
-msgstr "SHA1確認"
-
-msgid "ERROR"
-msgstr "エラー"
-
-msgid "FAILED"
-msgstr "失敗"
-
-# MERGEBLE:
-#, c-format
-msgid " TR: %s"
-msgstr " 残り時間: %s"
-
 #, c-format
 msgid "Retry in %us"
 msgstr "%u秒後に再実行"
 
-#, c-format
-msgid "Unknown status %u"
-msgstr "不明なステータス %u"
+# MERGEBLE:
+#, fuzzy, c-format
+msgid "(%s)  [%u/%u]  TR:  %s"
+msgstr "(%s)  [%d/%d]  残り時間:  %s"
 
 msgid "<none>"
 msgstr "<無し>"
 
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "待機中 (%d 件が動作、%d 件が受動)"
+
 msgid "Aliases"
 msgstr "別名"
+
+#, fuzzy, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] "選択された %u/%u 件の待機ダウンロードが \"%s\" に一致します。"
 
 msgid "Cache contains"
 msgstr "キャッシュ内容"
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-"選択した送信元からのダウンロードを中断します。ファイルのダウンロード自体は続"
-"行します。"
-
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-"選択した評価基準に一致する送信元からのダウンロードを中断します。ファイルのダ"
-"ウンロード自体は続行します。"
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
-msgstr ""
-"送信元がファイアウォール内にあるなら、その送信元にこちらに接続し返させるよ"
-"う、強制 PUSH モードにするとよいかもしれません。"
+#, fuzzy
+msgid "Copy Magnet to clipboard"
+msgstr "クリップボードへコピー"
 
 msgid "Download selected files"
 msgstr "ダウンロード"
@@ -6500,27 +6464,14 @@ msgstr "[BH HTML]"
 msgid "[BH qhits]"
 msgstr "[BH qhits]"
 
-msgid "Remove completed downloads from list"
-msgstr "完了したダウンロードを一覧から削除する"
-
-msgid "_Clear completed"
-msgstr "完了したものを消去(_C)"
-
-# FIXME: could be removed
-msgid " "
-msgstr " "
-
-msgid "Sho_w settings"
-msgstr "設定の表示(_W)"
-
-msgid "Downloaded data:"
-msgstr "ダウンロード済データ:"
-
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
 
 msgid "Displaying"
 msgstr "表示内容"
+
+msgid "Sho_w settings"
+msgstr "設定の表示(_W)"
 
 msgid "Flow _control"
 msgstr "フロー制御(_C)"
@@ -6530,6 +6481,10 @@ msgstr "受信(_R)"
 
 msgid "_Columns show hops"
 msgstr "ホップ数を表示(_C)"
+
+# FIXME: could be removed
+msgid " "
+msgstr " "
 
 msgid "Show reasons _for"
 msgstr "原因の表示(_F)"
@@ -6593,8 +6548,18 @@ msgstr ""
 "選択した複数のファイルを、それが不完全なものである限り、すべて削除してそれら"
 "のファイルのダウンロードを打ち切ります。"
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr "完了したダウンロードを一覧から削除する"
+
+msgid "_Clear completed"
+msgstr "完了したものを消去(_C)"
+
+#, fuzzy
+msgid "Select all matching regex"
 msgstr "正規表現に一致する全てのキューを選択"
+
+msgid "Downloaded data:"
+msgstr "ダウンロード済データ:"
 
 msgid "Version"
 msgstr "バージョン"
@@ -6808,17 +6773,20 @@ msgstr "このセッションで無効になります"
 msgid "[stopped]"
 msgstr "[打ち切られました]"
 
+# NOTE: this string is used as follows
+#
+# 'Created 0 downloads from the 0 selected items'
+#
+#, fuzzy, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] "%u 件のダウンロードを作成しました。"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "この検索クエリーは UTF-8 でエンコードされていません"
 
 msgid "The entered query is too long"
 msgstr "入力した検索クエリーは長すぎます"
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr "このマグネットの SHA1 は適切にエンコードされていません"
-
-msgid "Cannot parse magnet"
-msgstr "マグネットを解析できません"
 
 msgid "The SHA1 query is not validly encoded"
 msgstr "この SHA1 検索クエリーは適切にエンコードされていません"
@@ -6930,6 +6898,9 @@ msgstr "PUSH されました、折り返し接続中..."
 msgid "%sCompleted (%s) %s"
 msgstr "%s完了しました (%s) %s"
 
+msgid "< 1s"
+msgstr "1秒未満"
+
 # MERGEBLE:
 #, c-format
 msgid "%s%s(%s) TR: %s"
@@ -6965,3 +6936,57 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
+
+#~ msgid "MAGNET URI contained unsupported exact topic."
+#~ msgstr "MAGNET URI は未対応の完全トピックを含んでいます"
+
+# MERGEBLE:
+#~ msgid "[%u/%u]  TR:  -"
+#~ msgstr "[%u/%u]  残り時間:  -"
+
+# FIXME: wtf
+#~ msgid "SHA1 figure"
+#~ msgstr "SHA1形態"
+
+#~ msgid "SHA1 check"
+#~ msgstr "SHA1確認"
+
+#~ msgid "ERROR"
+#~ msgstr "エラー"
+
+#~ msgid "FAILED"
+#~ msgstr "失敗"
+
+# MERGEBLE:
+#~ msgid " TR: %s"
+#~ msgstr " 残り時間: %s"
+
+#~ msgid "Unknown status %u"
+#~ msgstr "不明なステータス %u"
+
+#~ msgid ""
+#~ "Aborts the download from the selected source but not the download of the "
+#~ "file itself."
+#~ msgstr ""
+#~ "選択した送信元からのダウンロードを中断します。ファイルのダウンロード自体は"
+#~ "続行します。"
+
+#~ msgid ""
+#~ "Aborts the download from sources matching the selected criteria but not "
+#~ "the download of the file itself."
+#~ msgstr ""
+#~ "選択した評価基準に一致する送信元からのダウンロードを中断します。ファイルの"
+#~ "ダウンロード自体は続行します。"
+
+#~ msgid ""
+#~ "If the source appears to be firewalled, it may help to enforce push mode "
+#~ "to let the source connect back to us."
+#~ msgstr ""
+#~ "送信元がファイアウォール内にあるなら、その送信元にこちらに接続し返させるよ"
+#~ "う、強制 PUSH モードにするとよいかもしれません。"
+
+#~ msgid "The SHA1 of the magnet is not validly encoded"
+#~ msgstr "このマグネットの SHA1 は適切にエンコードされていません"
+
+#~ msgid "Cannot parse magnet"
+#~ msgstr "マグネットを解析できません"

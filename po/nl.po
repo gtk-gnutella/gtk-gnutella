@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -3605,6 +3605,9 @@ msgstr "Zambia"
 msgid "Zimbabwe"
 msgstr "Zimbabwe"
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr "MAGNET URL bevatte een bron URL voor een niet ondersteund protocol"
+
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3683,13 +3686,6 @@ msgstr "Wachtrij bevroren"
 
 msgid "Support for this protocol is not yet implemented"
 msgstr "Ondersteuning voor die protocol is niet geïmplementeerd."
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr "MAGNET URL bevatte een bron URL voor een niet ondersteund protocol"
-
-#, fuzzy
-msgid "MAGNET URI contained unsupported exact topic."
-msgstr "MAGNET URL bevatte een bron URL voor een niet ondersteund protocol"
 
 msgid "Cannot handle the dropped data"
 msgstr "Kan de geplaatste data niet afhandelen"
@@ -6268,10 +6264,6 @@ msgid "Error loading pixmap file: %s"
 msgstr "Fout tijdens het laden van pixmap bestand \"%s\""
 
 #, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr "[%u/%u]  Resterende tijd:  -"
-
-#, c-format
 msgid " (slot %u"
 msgstr " (slot %u"
 
@@ -6283,62 +6275,37 @@ msgstr "opnieuw proberen over %us"
 msgid "Sending request (%u%%)"
 msgstr "Verzoek wordt verstuurd (%u%%)"
 
-msgid "< 1s"
-msgstr "< 1s"
-
-msgid "SHA1 figure"
-msgstr "SHA1 signatuur-"
-
-msgid "SHA1 check"
-msgstr "SHA1 controle"
-
-msgid "ERROR"
-msgstr "ERROR"
-
-msgid "FAILED"
-msgstr "MISLUKT"
-
-#, c-format
-msgid " TR: %s"
-msgstr " Resterende tijd: %s"
-
 #, c-format
 msgid "Retry in %us"
 msgstr "Opnieuw proberen in %us"
 
-#, c-format
-msgid "Unknown status %u"
-msgstr "Onbekende status %u"
+#, fuzzy, c-format
+msgid "(%s)  [%u/%u]  TR:  %s"
+msgstr "(%s)  [%d/%d]  Resterende tijd:  %s"
 
 msgid "<none>"
 msgstr "<geen>"
 
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "In de wacht(%d actief, %d passief)"
+
 msgid "Aliases"
 msgstr "Alias"
+
+#, fuzzy, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] "%u van %u wachtende download overeenkomend met \"%s\" geselecteerd."
+msgstr[1] ""
+"%u van %u wachtende downloads overeenkomend met \"%s\" geselecteerd."
 
 msgid "Cache contains"
 msgstr "Cache bevat"
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-"Breekt de download van de geselecteerde bron af, maar niet de download van "
-"het bestand zelf."
-
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-"Breekt de download af met bronnen die overeenkomen met de geselecteerde "
-"criteria maar niet met de download van het bestand zelf."
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
-msgstr ""
-"Als de bron afgeschermd lijkt te zijn, dan kan het helpen om een push mode "
-"te forceren zodat de bron naar ons terug verbind."
+#, fuzzy
+msgid "Copy Magnet to clipboard"
+msgstr "Kopieer naar klembord"
 
 msgid "Download selected files"
 msgstr "Download de geselecteerde bestanden"
@@ -6403,26 +6370,14 @@ msgstr "[BH HTML]"
 msgid "[BH qhits]"
 msgstr "[BH qhits]"
 
-msgid "Remove completed downloads from list"
-msgstr "Verwijderde de afgeronde downloads van de lijst"
-
-msgid "_Clear completed"
-msgstr "Verwijder afgeronde"
-
-msgid " "
-msgstr " "
-
-msgid "Sho_w settings"
-msgstr "Geef instellingen _weer"
-
-msgid "Downloaded data:"
-msgstr "Gedownloade data:"
-
 msgid "Current _search:"
 msgstr "Huidige zoekopdracht:"
 
 msgid "Displaying"
 msgstr "Weergave"
+
+msgid "Sho_w settings"
+msgstr "Geef instellingen _weer"
 
 msgid "Flow _control"
 msgstr "Flow control"
@@ -6432,6 +6387,9 @@ msgstr "Ontvangen"
 
 msgid "_Columns show hops"
 msgstr "Kolommen tonen hops"
+
+msgid " "
+msgstr " "
 
 msgid "Show reasons _for"
 msgstr "Toon de reden voor"
@@ -6496,8 +6454,18 @@ msgstr ""
 "Verwijder alle geselecteerde bestanden zover ze zijn ze zijn incompleet en "
 "stopt met het downloaden van de geselecteerde bestanden."
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr "Verwijderde de afgeronde downloads van de lijst"
+
+msgid "_Clear completed"
+msgstr "Verwijder afgeronde"
+
+#, fuzzy
+msgid "Select all matching regex"
 msgstr "Selecteer alle overeenkomstige regex in de wachtrij"
+
+msgid "Downloaded data:"
+msgstr "Gedownloade data:"
 
 msgid "Version"
 msgstr "Versie"
@@ -6707,17 +6675,17 @@ msgstr "Vervalt in deze sessie"
 msgid "[stopped]"
 msgstr "[gestopped]"
 
+#, fuzzy, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] "%u download aangemaakt"
+msgstr[1] "%u downloads aangemaakt"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "De opdracht tekst is niet in UTF-8 gecodeerd"
 
 msgid "The entered query is too long"
 msgstr "De opgegeven opdracht is te lang"
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr "De SHA1 van de magneet is niet geldig geencodeerd"
-
-msgid "Cannot parse magnet"
-msgstr "Kon de magneet niet verwerken"
 
 msgid "The SHA1 query is not validly encoded"
 msgstr "De SHA1 opdracht is ongeldig gecodeerd"
@@ -6834,6 +6802,9 @@ msgstr "Ontving een 'push', probeert een verbinding terug te maken..."
 msgid "%sCompleted (%s) %s"
 msgstr "%sAfgerond (%s) %s"
 
+msgid "< 1s"
+msgstr "< 1s"
+
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr "%s%s(%s) Resterende tijd: %s"
@@ -6868,3 +6839,55 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#, fuzzy
+#~ msgid "MAGNET URI contained unsupported exact topic."
+#~ msgstr "MAGNET URL bevatte een bron URL voor een niet ondersteund protocol"
+
+#~ msgid "[%u/%u]  TR:  -"
+#~ msgstr "[%u/%u]  Resterende tijd:  -"
+
+#~ msgid "SHA1 figure"
+#~ msgstr "SHA1 signatuur-"
+
+#~ msgid "SHA1 check"
+#~ msgstr "SHA1 controle"
+
+#~ msgid "ERROR"
+#~ msgstr "ERROR"
+
+#~ msgid "FAILED"
+#~ msgstr "MISLUKT"
+
+#~ msgid " TR: %s"
+#~ msgstr " Resterende tijd: %s"
+
+#~ msgid "Unknown status %u"
+#~ msgstr "Onbekende status %u"
+
+#~ msgid ""
+#~ "Aborts the download from the selected source but not the download of the "
+#~ "file itself."
+#~ msgstr ""
+#~ "Breekt de download van de geselecteerde bron af, maar niet de download "
+#~ "van het bestand zelf."
+
+#~ msgid ""
+#~ "Aborts the download from sources matching the selected criteria but not "
+#~ "the download of the file itself."
+#~ msgstr ""
+#~ "Breekt de download af met bronnen die overeenkomen met de geselecteerde "
+#~ "criteria maar niet met de download van het bestand zelf."
+
+#~ msgid ""
+#~ "If the source appears to be firewalled, it may help to enforce push mode "
+#~ "to let the source connect back to us."
+#~ msgstr ""
+#~ "Als de bron afgeschermd lijkt te zijn, dan kan het helpen om een push "
+#~ "mode te forceren zodat de bron naar ons terug verbind."
+
+#~ msgid "The SHA1 of the magnet is not validly encoded"
+#~ msgstr "De SHA1 van de magneet is niet geldig geencodeerd"
+
+#~ msgid "Cannot parse magnet"
+#~ msgstr "Kon de magneet niet verwerken"

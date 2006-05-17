@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -3649,6 +3649,9 @@ msgstr ""
 msgid "Zimbabwe"
 msgstr ""
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr ""
+
 #, fuzzy, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3729,12 +3732,6 @@ msgid "Queue frozen"
 msgstr ""
 
 msgid "Support for this protocol is not yet implemented"
-msgstr ""
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr ""
-
-msgid "MAGNET URI contained unsupported exact topic."
 msgstr ""
 
 msgid "Cannot handle the dropped data"
@@ -6441,10 +6438,6 @@ msgid "Error loading pixmap file: %s"
 msgstr "Hiba %s képfájl betöltése közben!"
 
 #, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr ""
-
-#, c-format
 msgid " (slot %u"
 msgstr ""
 
@@ -6456,59 +6449,35 @@ msgstr " %d után újra"
 msgid "Sending request (%u%%)"
 msgstr "(%d%%) kérelem elküldése"
 
-msgid "< 1s"
-msgstr ""
-
-msgid "SHA1 figure"
-msgstr "SHA1 érték"
-
-msgid "SHA1 check"
-msgstr "SHA1 ellenőrzés"
-
-msgid "ERROR"
-msgstr "HIBA"
-
-msgid "FAILED"
-msgstr "ROSSZ"
-
-#, c-format
-msgid " TR: %s"
-msgstr ""
-
 #, fuzzy, c-format
 msgid "Retry in %us"
 msgstr "%d után újra"
 
 #, c-format
-msgid "Unknown status %u"
+msgid "(%s)  [%u/%u]  TR:  %s"
 msgstr ""
 
 msgid "<none>"
 msgstr "<semmi>"
 
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "Várósorban (%d aktív/ %d passzív)"
+
 msgid "Aliases"
 msgstr "Álnevek"
+
+#, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] ""
 
 msgid "Cache contains"
 msgstr "Gyorstár tartalmaz"
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-
 #, fuzzy
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-"„elrejtés” szabály felvétele a kijelölt fájlokkal egyező urn:sha1-űekre a "
-"globális előszűrőbe."
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
-msgstr ""
+msgid "Copy Magnet to clipboard"
+msgstr "Url-t vágólapra másol"
 
 msgid "Download selected files"
 msgstr "Kijelölt fájlok letöltése"
@@ -6578,28 +6547,15 @@ msgstr ""
 msgid "[BH qhits]"
 msgstr ""
 
-msgid "Remove completed downloads from list"
-msgstr "Sikeres letöltéseket töröl a listáról"
-
-msgid "_Clear completed"
-msgstr "Sikeres _törlése"
-
-msgid " "
-msgstr " "
-
-msgid "Sho_w settings"
-msgstr "_Beállítások megjelenítése"
-
-#, fuzzy
-msgid "Downloaded data:"
-msgstr "Letöltve"
-
 #, fuzzy
 msgid "Current _search:"
 msgstr "Jelenlegi keresés"
 
 msgid "Displaying"
 msgstr "Kijelzés"
+
+msgid "Sho_w settings"
+msgstr "_Beállítások megjelenítése"
 
 msgid "Flow _control"
 msgstr "Folyamvezérlés"
@@ -6610,6 +6566,9 @@ msgstr "_Kapott"
 #, fuzzy
 msgid "_Columns show hops"
 msgstr "Ugrások"
+
+msgid " "
+msgstr " "
 
 #, fuzzy
 msgid "Show reasons _for"
@@ -6680,8 +6639,19 @@ msgid ""
 "download of the selected files."
 msgstr ""
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr "Sikeres letöltéseket töröl a listáról"
+
+msgid "_Clear completed"
+msgstr "Sikeres _törlése"
+
+#, fuzzy
+msgid "Select all matching regex"
 msgstr "Minden illeszkedő reg.kif. törlése a sorból"
+
+#, fuzzy
+msgid "Downloaded data:"
+msgstr "Letöltve"
 
 #, fuzzy
 msgid "Version"
@@ -6898,16 +6868,15 @@ msgstr ""
 msgid "[stopped]"
 msgstr "Leálltak törlése"
 
+#, fuzzy, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] "%v/%u letöltés"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr ""
 
 msgid "The entered query is too long"
-msgstr ""
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr ""
-
-msgid "Cannot parse magnet"
 msgstr ""
 
 msgid "The SHA1 query is not validly encoded"
@@ -7019,6 +6988,9 @@ msgstr ""
 msgid "%sCompleted (%s) %s"
 msgstr "; Áthelyezve (%.1f k/s) %s"
 
+msgid "< 1s"
+msgstr ""
+
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr ""
@@ -7055,3 +7027,23 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "SHA1 figure"
+#~ msgstr "SHA1 érték"
+
+#~ msgid "SHA1 check"
+#~ msgstr "SHA1 ellenőrzés"
+
+#~ msgid "ERROR"
+#~ msgstr "HIBA"
+
+#~ msgid "FAILED"
+#~ msgstr "ROSSZ"
+
+#, fuzzy
+#~ msgid ""
+#~ "Aborts the download from sources matching the selected criteria but not "
+#~ "the download of the file itself."
+#~ msgstr ""
+#~ "„elrejtés” szabály felvétele a kijelölt fájlokkal egyező urn:sha1-űekre a "
+#~ "globális előszűrőbe."

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-11 12:55+0900\n"
+"POT-Creation-Date: 2006-05-17 11:06+0900\n"
 "PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
@@ -3490,6 +3490,9 @@ msgstr "Zambia, Republikken"
 msgid "Zimbabwe"
 msgstr "Zimbabwe"
 
+msgid "MAGNET URI contained source URL for an unsupported protocol"
+msgstr "MAGNET-URI inneholdt en kilde-URL for en protokoll som ikke støttes"
+
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
@@ -3567,13 +3570,6 @@ msgstr "Køen er frosset"
 
 msgid "Support for this protocol is not yet implemented"
 msgstr "Støtte for denne protokollen er ikke implementert ennå"
-
-msgid "MAGNET URI contained source URL for an unsupported protocol"
-msgstr "MAGNET-URI inneholdt en kilde-URL for en protokoll som ikke støttes"
-
-#, fuzzy
-msgid "MAGNET URI contained unsupported exact topic."
-msgstr "MAGNET-URI inneholdt en kilde-URL for en protokoll som ikke støttes"
 
 msgid "Cannot handle the dropped data"
 msgstr "Klarte ikke håndtere de slupne dataene"
@@ -6123,10 +6119,6 @@ msgid "Error loading pixmap file: %s"
 msgstr "Klarte ikke åpne pikselkartfilen «%s»"
 
 #, c-format
-msgid "[%u/%u]  TR:  -"
-msgstr "[%u/%u]  Tid igjen:  -"
-
-#, c-format
 msgid " (slot %u"
 msgstr " (plass %u"
 
@@ -6138,62 +6130,36 @@ msgstr " nytt forsøk om %us"
 msgid "Sending request (%u%%)"
 msgstr "Sender forespørsel (%u%%)"
 
-msgid "< 1s"
-msgstr "< 1s"
-
-msgid "SHA1 figure"
-msgstr "SHA1-figur"
-
-msgid "SHA1 check"
-msgstr "SHA1-kontroll"
-
-msgid "ERROR"
-msgstr "FEIL"
-
-msgid "FAILED"
-msgstr "FEILET"
-
-#, c-format
-msgid " TR: %s"
-msgstr "Tid igjen: %s"
-
 #, c-format
 msgid "Retry in %us"
 msgstr "Nytt forsøk om %us"
 
-#, c-format
-msgid "Unknown status %u"
-msgstr "Ukjent status «%u»"
+#, fuzzy, c-format
+msgid "(%s)  [%u/%u]  TR:  %s"
+msgstr "(%s)  [%d/%d]  Igjen:  %s"
 
 msgid "<none>"
 msgstr "<ingen>"
 
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "I kø (%d aktiv, %d passiv)"
+
 msgid "Aliases"
 msgstr "Aliaser"
+
+#, fuzzy, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] "Valgte %u av %u nedlasting i kø som passer til «%s»."
+msgstr[1] "Valgte %u av %u nedlastinger i kø som passer til «%s»."
 
 msgid "Cache contains"
 msgstr "Hurtigminne inneholder"
 
-msgid ""
-"Aborts the download from the selected source but not the download of the "
-"file itself."
-msgstr ""
-"Avbryter nedlastingen fra den valgte kilden, men ikke nedlastingen av selve "
-"filen."
-
-msgid ""
-"Aborts the download from sources matching the selected criteria but not the "
-"download of the file itself."
-msgstr ""
-"Avbryt nedlastingen fra kildene som passer til de valgte kriteriene, men "
-"ikke nedlastingen av selve filen."
-
-msgid ""
-"If the source appears to be firewalled, it may help to enforce push mode to "
-"let the source connect back to us."
-msgstr ""
-"Hvis kilden ser ut til å være brannmurt, kan det hjelpe å håndheve "
-"dyttemodus for å la kilden koble tilbake til oss."
+#, fuzzy
+msgid "Copy Magnet to clipboard"
+msgstr "Kopier til utklippstavlen"
 
 msgid "Download selected files"
 msgstr "Last ned valgte filer"
@@ -6257,26 +6223,14 @@ msgstr "[BH HTML]"
 msgid "[BH qhits]"
 msgstr "[BH qtreff]"
 
-msgid "Remove completed downloads from list"
-msgstr "Fjern ferdige nedlastinger fra listen"
-
-msgid "_Clear completed"
-msgstr "_Fjern ferdige"
-
-msgid " "
-msgstr " "
-
-msgid "Sho_w settings"
-msgstr "_Vis innstillinger"
-
-msgid "Downloaded data:"
-msgstr "Nedlastet data:"
-
 msgid "Current _search:"
 msgstr "Gjeldende _søk:"
 
 msgid "Displaying"
 msgstr "Viser"
+
+msgid "Sho_w settings"
+msgstr "_Vis innstillinger"
 
 msgid "Flow _control"
 msgstr "Flyt_kontroll"
@@ -6286,6 +6240,9 @@ msgstr "_Mottatt"
 
 msgid "_Columns show hops"
 msgstr "_Kolonner viser hops"
+
+msgid " "
+msgstr " "
 
 msgid "Show reasons _for"
 msgstr "Vis grunner _for"
@@ -6349,8 +6306,18 @@ msgstr ""
 "Sletter de valgte filene så lenge de er uferdige og stopper nedlastingen av "
 "dem."
 
-msgid "Select all matching regex from queue"
+msgid "Remove completed downloads from list"
+msgstr "Fjern ferdige nedlastinger fra listen"
+
+msgid "_Clear completed"
+msgstr "_Fjern ferdige"
+
+#, fuzzy
+msgid "Select all matching regex"
 msgstr "Velg alle passende regulære uttrykk fra køen"
+
+msgid "Downloaded data:"
+msgstr "Nedlastet data:"
 
 msgid "Version"
 msgstr "Versjon"
@@ -6560,17 +6527,17 @@ msgstr "Utløper med denne økten"
 msgid "[stopped]"
 msgstr "[stoppet]"
 
+#, fuzzy, c-format
+msgid "Started %u download from magnet."
+msgid_plural "Started %u downloads from magnet."
+msgstr[0] "Laget %u nedlasting"
+msgstr[1] "Laget %u nedlastinger"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "Spørringsstrengen er ikke kodet i UTF-8"
 
 msgid "The entered query is too long"
 msgstr "Den oppgitte spørringen er for lang"
-
-msgid "The SHA1 of the magnet is not validly encoded"
-msgstr "Magnetens SHA1-verdi er ikke kodet riktig"
-
-msgid "Cannot parse magnet"
-msgstr "Klarte ikke spalte magnet"
 
 msgid "The SHA1 query is not validly encoded"
 msgstr "SHA1-spørringen er ikke kodet riktig"
@@ -6687,6 +6654,9 @@ msgstr "Fikk dytt, kobler tilbake . . ."
 msgid "%sCompleted (%s) %s"
 msgstr "%s ferdig (%s) %s"
 
+msgid "< 1s"
+msgstr "< 1s"
+
 #, c-format
 msgid "%s%s(%s) TR: %s"
 msgstr "%s%s(%s) Tid igjen: %s"
@@ -6721,3 +6691,55 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#, fuzzy
+#~ msgid "MAGNET URI contained unsupported exact topic."
+#~ msgstr "MAGNET-URI inneholdt en kilde-URL for en protokoll som ikke støttes"
+
+#~ msgid "[%u/%u]  TR:  -"
+#~ msgstr "[%u/%u]  Tid igjen:  -"
+
+#~ msgid "SHA1 figure"
+#~ msgstr "SHA1-figur"
+
+#~ msgid "SHA1 check"
+#~ msgstr "SHA1-kontroll"
+
+#~ msgid "ERROR"
+#~ msgstr "FEIL"
+
+#~ msgid "FAILED"
+#~ msgstr "FEILET"
+
+#~ msgid " TR: %s"
+#~ msgstr "Tid igjen: %s"
+
+#~ msgid "Unknown status %u"
+#~ msgstr "Ukjent status «%u»"
+
+#~ msgid ""
+#~ "Aborts the download from the selected source but not the download of the "
+#~ "file itself."
+#~ msgstr ""
+#~ "Avbryter nedlastingen fra den valgte kilden, men ikke nedlastingen av "
+#~ "selve filen."
+
+#~ msgid ""
+#~ "Aborts the download from sources matching the selected criteria but not "
+#~ "the download of the file itself."
+#~ msgstr ""
+#~ "Avbryt nedlastingen fra kildene som passer til de valgte kriteriene, men "
+#~ "ikke nedlastingen av selve filen."
+
+#~ msgid ""
+#~ "If the source appears to be firewalled, it may help to enforce push mode "
+#~ "to let the source connect back to us."
+#~ msgstr ""
+#~ "Hvis kilden ser ut til å være brannmurt, kan det hjelpe å håndheve "
+#~ "dyttemodus for å la kilden koble tilbake til oss."
+
+#~ msgid "The SHA1 of the magnet is not validly encoded"
+#~ msgstr "Magnetens SHA1-verdi er ikke kodet riktig"
+
+#~ msgid "Cannot parse magnet"
+#~ msgstr "Klarte ikke spalte magnet"

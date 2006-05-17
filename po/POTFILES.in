@@ -14,6 +14,7 @@ src/core/version.c
 src/if/gnet_property.c
 src/if/gui_property.c
 src/lib/iso3166.c
+src/lib/magnet.c
 src/lib/misc.c
 src/lib/utf8.c
 src/main.c
