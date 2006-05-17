@@ -2276,7 +2276,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 	g_assert(msg);
 	g_assert(dst_addr);
 
-	for (p = CMSG_FIRSTHDR(msg); NULL != p; p = CMSG_NXTHDR(msg, p)) {
+	for (p = CMSG_FIRSTHDR(msg); p; p = CMSG_NXTHDR(deconstify_void(msg), p)) {
 		if (0) {
 			/* NOTHING */
 #if defined(IP_RECVDSTADDR)
