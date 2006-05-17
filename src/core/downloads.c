@@ -8048,7 +8048,7 @@ picked:
 	if (d->uri) {
 		gchar *escaped_uri;
 
-		escaped_uri = url_escape_special(d->uri);
+		escaped_uri = url_fix_escape(d->uri);
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 				"GET %s HTTP/1.1\r\n", escaped_uri);
 		if (escaped_uri != d->uri) {
