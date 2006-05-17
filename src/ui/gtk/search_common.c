@@ -1576,31 +1576,55 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	 */
 
 	{
-		const gchar *filename;
-		gchar urn[256];
+		gchar *filename;	/* strdup */
 		GSList *sl;
 		guint started = 0;
 
-		filename = res->display_name;
+		filename = g_strdup(res->display_name);
 		if (!filename) {
 			for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 				struct magnet_source *ms = sl->data;
 
 				if (ms->path) {
-					filename = filepath_basename(ms->path);
-					if ('\0' != filename[0])
+					const gchar *endptr;
+					
+					/*
+					 * If the path contains a '?', this is most-likely a
+					 * `search' with parameters e.g., "/index.php?yadda=1",
+					 * so we cut the search part off for the filename.
+					 */
+					endptr = strchr(ms->path, '?');
+					if (!endptr) {
+						endptr = strchr(ms->path, '\0');
+					}
+
+					{
+						gchar *path, *unescaped;
+
+						path = g_strndup(ms->path, endptr - ms->path);
+						unescaped = url_unescape(path, FALSE);
+						if (unescaped) {
+							filename = g_strdup(filepath_basename(unescaped));
+							if (unescaped != path) {
+								G_FREE_NULL(unescaped);
+							}
+						}
+						G_FREE_NULL(path);
+					}
+
+					if (filename && '\0' != filename[0]) {
 						break;
-					filename = NULL;
+					}
+					G_FREE_NULL(filename);
 				}
 			}
 		}
 		if (!filename) {
 			if (res->sha1) {
-				concat_strings(urn, sizeof urn,
-					"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
-				filename = urn;
+				filename = g_strconcat("urn:sha1:",
+								sha1_base32(res->sha1), (void *) 0);
 			} else {
-				filename = "magnet-download";
+				filename = g_strdup("magnet-download");
 			}
 		}
 
@@ -1629,6 +1653,8 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			}
 		}
 
+		G_FREE_NULL(filename);
+
 		if (started > 0) {
 			statusbar_gui_message(15,
 				NG_("Started %u download from magnet.",
@@ -1649,21 +1675,23 @@ search_gui_handle_http(const gchar *url, const gchar **error_str)
 	gboolean success;
 
 	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(is_strcaseprefix(url, "http://"), FALSE);
 
-	/* Assume the URL was entered by a human; humans don't escape
-	 * URLs except on accident and probably incorrectly.
-	 */
 	{
 		struct magnet_resource *magnet;
-		gchar *unescaped_url;
+		gchar *escaped_url;
 
-		unescaped_url = url_unescape(deconstify_gchar(url), FALSE);
+		/* Assume the URL was entered by a human; humans don't escape
+		 * URLs except on accident and probably incorrectly. Try to
+		 * correct the escaping but don't touch '?', '&', '=', ':'.
+		 */
+		escaped_url = url_fix_escape(url);
 
 		/* Magnet values are ALWAYS escaped. */
 		magnet = magnet_resource_new();
-		magnet_add_source_by_url(magnet, unescaped_url);
-		if (unescaped_url != url) {
-			G_FREE_NULL(unescaped_url);
+		magnet_add_source_by_url(magnet, escaped_url);
+		if (escaped_url != url) {
+			G_FREE_NULL(escaped_url);
 		}
 		magnet_url = magnet_to_string(magnet);
 		magnet_resource_free(magnet);
@@ -1835,10 +1863,9 @@ search_gui_filter_new(search_t *sch, GList *rules)
 gchar *
 search_xml_indent(const gchar *s)
 {
-	GString *gs;
 	const gchar *p, *q;
 	guint i, depth = 0;
-	gchar *res;
+	GString *gs;
 
 	gs = g_string_new("");
 
@@ -1891,10 +1918,7 @@ search_xml_indent(const gchar *s)
 			q++;
 	}
 
-	res = gs->str;
-	g_string_free(gs, FALSE);		/* glib1.x returns nothing here */
-
-	return res;
+	return gm_string_finalize(gs);
 }
 
 /**
