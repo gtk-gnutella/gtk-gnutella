@@ -185,7 +185,7 @@ magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
 		}
 		ms.sha1 = atom_sha1_get(digest);
 	} else {
-		ms.uri = atom_str_get(p);
+		ms.path = atom_str_get(p);
 	}
 
 	if (host) {
@@ -306,7 +306,7 @@ magnet_parse(const gchar *url, const gchar **error_str)
 			if (name_len < sizeof name) {  /* Ignore overlong key */
 				strncat(name, p, name_len);
 			}
-			p = &endptr[1]; /* Pointer after the '=' */
+			p = &endptr[1]; /* Point behind the '=' */
 		}
 
 		endptr = strchr(p, '&');
@@ -350,7 +350,8 @@ magnet_source_free(struct magnet_source *ms)
 {
 	if (ms) {
 		atom_str_free_null(&ms->hostname);
-		atom_str_free_null(&ms->uri);
+		atom_str_free_null(&ms->path);
+		atom_str_free_null(&ms->url);
 		atom_sha1_free_null(&ms->sha1);
 		wfree(ms, sizeof *ms);
 	}
@@ -381,6 +382,226 @@ magnet_resource_free(struct magnet_resource *res)
 		
 		wfree(res, sizeof *res);
 	}
+}
+
+struct magnet_resource *
+magnet_resource_new(void)
+{
+	static const struct magnet_resource zero_resource;
+	return wcopy(&zero_resource, sizeof zero_resource);
+}
+
+struct magnet_source *
+magnet_source_new(void)
+{
+	static const struct magnet_source zero_source;
+	return wcopy(&zero_source, sizeof zero_source);
+}
+
+void
+magnet_add_source(struct magnet_resource *res, struct magnet_source *s)
+{
+	g_return_if_fail(res);
+	g_return_if_fail(s);
+	
+	res->sources = g_slist_prepend(res->sources, s);
+}
+
+void
+magnet_add_source_by_url(struct magnet_resource *res, const gchar *url)
+{
+	struct magnet_source *s;
+
+	g_return_if_fail(res);
+	g_return_if_fail(url);
+
+	s = magnet_source_new();
+	s->url = atom_str_get(url);
+	magnet_add_source(res, s);
+}
+
+void
+magnet_add_sha1_source(struct magnet_resource *res, const gchar *sha1,
+	const host_addr_t addr, const guint16 port)
+{
+	struct magnet_source *s;
+
+	g_return_if_fail(res);
+	g_return_if_fail(sha1);
+	g_return_if_fail(!res->sha1 || sha1_eq(res->sha1, sha1));
+	g_return_if_fail(port > 0);
+
+	if (!res->sha1) {
+		magnet_set_sha1(res, sha1);
+	}
+
+	s = magnet_source_new();
+	s->addr = addr;
+	s->port = port;
+	s->sha1 = atom_sha1_get(sha1);
+	magnet_add_source(res, s);
+}
+
+void
+magnet_add_search(struct magnet_resource *res, const gchar *search)
+{
+	g_return_if_fail(res);
+	g_return_if_fail(search);
+
+	res->searches = g_slist_prepend(res->searches, atom_str_get(search));
+}
+
+
+void
+magnet_set_sha1(struct magnet_resource *res, const gchar *sha1)
+{
+	gchar *atom;
+
+	g_return_if_fail(res);
+	g_return_if_fail(sha1);
+
+	atom = atom_sha1_get(sha1);
+	atom_sha1_free_null(&res->sha1);
+	res->sha1 = atom;
+}
+
+void
+magnet_set_display_name(struct magnet_resource *res, const gchar *name)
+{
+	gchar *atom;
+
+	g_return_if_fail(res);
+	g_return_if_fail(name);
+
+	atom = atom_str_get(name);
+	atom_str_free_null(&res->display_name);
+	res->display_name = atom;
+}
+
+void
+magnet_set_filesize(struct magnet_resource *res, filesize_t size)
+{
+	res->size = size;
+}
+
+static inline void
+magnet_append_item(GString **gs_ptr, gboolean escape_value,
+	const gchar *key, const gchar *value)
+{
+	GString *gs;
+
+	g_return_if_fail(gs_ptr);
+	g_return_if_fail(*gs_ptr);
+	g_return_if_fail(key);
+	g_return_if_fail(value);
+
+	gs = *gs_ptr;
+
+	if (0 == gs->len) {
+		gs = g_string_append(gs, "magnet:?");
+	} else {
+		gs = g_string_append_c(gs, '&');
+	}
+	gs = g_string_append(gs, key);
+	gs = g_string_append_c(gs, '=');
+
+	
+	if (escape_value) {
+		gchar *escaped;
+
+		escaped = url_escape(value);
+		gs = g_string_append(gs, escaped);
+		if (escaped != value) {
+			G_FREE_NULL(escaped);
+		}
+	} else {
+		gs = g_string_append(gs, value);
+	}
+
+	*gs_ptr = gs;
+}
+
+gchar *
+magnet_source_to_string(struct magnet_source *s)
+{
+	gchar *url;
+
+	g_return_val_if_fail(s, NULL);
+
+	if (s->url) {
+		url = g_strdup(s->url);
+	} else {
+		const gchar *host;
+		gchar port_buf[16];
+
+		g_return_val_if_fail(0 != s->port, NULL);
+		g_return_val_if_fail(s->hostname || is_host_addr(s->addr), NULL);
+		g_return_val_if_fail(s->path || s->sha1, NULL);
+		
+		port_buf[0] = '\0';
+		if (s->hostname) {
+			host = s->hostname;
+			if (80 != s->port) {
+				gm_snprintf(port_buf, sizeof port_buf, ":%u",
+					(unsigned) s->port);
+			}
+		} else {
+			host = host_addr_port_to_string(s->addr, s->port);
+		}
+		if (s->path) {
+			url = g_strconcat("http://", host, port_buf, s->path, (void *) 0);
+		} else {
+			url = g_strconcat("http://", host, port_buf,
+					"/uri-res/N2R?urn:sha1:", sha1_base32(s->sha1),
+					(void *) 0);
+		}
+	}
+
+	return url;
+}
+
+gchar *
+magnet_to_string(struct magnet_resource *res)
+{
+	GString *gs;
+	GSList *sl;
+	gchar *url;
+
+	g_return_val_if_fail(res, NULL);
+	
+	gs = g_string_new(NULL);
+	if (res->display_name) {
+		magnet_append_item(&gs, TRUE, "dn", res->display_name);
+	}
+	if (0 != res->size) {
+		gchar buf[UINT64_DEC_BUFLEN];
+
+		uint64_to_string_buf(res->size, buf, sizeof buf);
+		magnet_append_item(&gs, FALSE, "xl", buf);
+	}
+	if (res->sha1) {
+		gchar buf[64];
+
+		concat_strings(buf, sizeof buf, "urn:sha1:", sha1_base32(res->sha1),
+			(void *) 0);
+		magnet_append_item(&gs, FALSE, "xt", buf);
+	}
+
+	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
+		gchar *url;
+
+		url = magnet_source_to_string(sl->data);
+		magnet_append_item(&gs, TRUE, "xs", url);
+		G_FREE_NULL(url);
+	}
+
+	for (sl = res->searches; NULL != sl; sl = g_slist_next(sl)) {
+		magnet_append_item(&gs, TRUE, "kt", sl->data);
+	}
+
+	url = gs->str;
+	g_string_free(gs, FALSE); /* Don't free the string itself */
+	return url;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

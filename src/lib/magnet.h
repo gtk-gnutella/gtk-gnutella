@@ -40,8 +40,9 @@
 #include "host_addr.h"
 
 struct magnet_source {
+	gchar *url;			/* string atom */
 	gchar *hostname;	/* string atom */
-	gchar *uri;			/* string atom */
+	gchar *path;		/* string atom */
 	gchar *sha1;		/* sha1 atom */
 	host_addr_t addr;
 	guint16 port;
@@ -61,6 +62,16 @@ struct magnet_source *magnet_parse_exact_source(const gchar *uri,
 
 void magnet_source_free(struct magnet_source *ms);
 void magnet_resource_free(struct magnet_resource *res);
+
+struct magnet_resource *magnet_resource_new(void);
+struct magnet_source *magnet_source_new(void);
+gchar *magnet_to_string(struct magnet_resource *res);
+void magnet_set_filesize(struct magnet_resource *res, filesize_t size);
+void magnet_set_display_name(struct magnet_resource *res, const gchar *name);
+void magnet_set_sha1(struct magnet_resource *res, const gchar *sha1);
+void magnet_add_source_by_url(struct magnet_resource *res, const gchar *url);
+void magnet_add_sha1_source(struct magnet_resource *res,
+		const gchar *sha1, const host_addr_t addr, const guint16 port);
 
 #endif /* _magnet_h_ */
 /* vi: set ts=4 sw=4 cindent: */
