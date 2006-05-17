@@ -62,6 +62,8 @@ GList *g_list_delete_link(GList *l, GList *lnk);
 GString *g_string_append_len(GString *gs, const gchar *val, gssize len);
 #endif
 
+gchar *gm_string_finalize(GString *gs);
+
 size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
 size_t gm_snprintf(gchar *str, size_t n,
 	gchar const *fmt, ...) G_GNUC_PRINTF (3, 4);

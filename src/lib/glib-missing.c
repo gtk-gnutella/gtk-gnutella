@@ -415,4 +415,23 @@ gm_sanitize_filename(const gchar *filename,
 	return q ? q : deconstify_gchar(s);
 }
 
+/**
+ * Frees the GString context but keeps the string data itself and returns
+ * it. With Gtk+ 2.x g_string_free(gs, FALSE) would do the job but the
+ * variant in Gtk+ 1.2 returns nothing.
+ *
+ * @return The string data.
+ */
+gchar *
+gm_string_finalize(GString *gs)
+{
+	gchar *s;
+
+	g_return_val_if_fail(gs, NULL);
+	g_return_val_if_fail(gs->str, NULL);
+	s = gs->str;
+	g_string_free(gs, FALSE);
+	return s;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
