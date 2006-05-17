@@ -37,6 +37,7 @@
 
 RCSID("$Id$");
 
+#include "glib-missing.h"
 #include "host_addr.h"
 #include "url.h"
 #include "misc.h"
@@ -54,20 +55,22 @@ extern guint32 lib_debug;
  *
  * - Bit 0 encodes regular transparent set (pathnames, '/' is transparent).
  * - Bit 1 encodes regular transparent set minus '+' (query string).
+ * - Bit 2 encodes the set for fixing an incomplete escaping.
  */
 static const guint8 is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
-    0,3,0,0,3,0,0,3,3,3,3,0,3,3,3,3,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
-    3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
-    0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
-    3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,3,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
-    0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* `abcdefghijklmno -  96 -> 111 */
-    3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,	/* pqrstuvwxyz{|}~  - 112 -> 127 */
+    0,7,0,0,7,0,4,7,7,7,7,0,7,7,7,7,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
+    7,7,7,7,7,7,7,7,7,7,4,0,0,4,0,4,	/* 0123456789:;<=>? -  48 -> 63  */
+    0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
+    7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,7,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
+    0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,	/* `abcdefghijklmno -  96 -> 111 */
+    7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,0,	/* pqrstuvwxyz{|}~  - 112 -> 127 */
 };
 
 enum escape_mask {
-	PATH_MASK	= 1,
-	QUERY_MASK	= 2
+	PATH_MASK	= (1 << 0),
+	QUERY_MASK	= (1 << 1),
+	FIX_MASK	= (1 << 2)
 };
 
 static inline gboolean
@@ -191,62 +194,34 @@ url_escape_into(const gchar *url, gchar *target, gint len)
 }
 
 /**
+ * Don't touch '?', '&', '=', ':', %HH.
  */
 gchar *
-url_escape_special(const gchar *url)
+url_fix_escape(const gchar *url)
 {
 	const gchar *p;
-	gchar *escaped_url;
+	GString *gs;
+	guchar c;
 
-	p = strchr(url, '?');
-	if (p) {
-		GString *gs;
-		
-		gs = g_string_new_len(url, p - url + 1); /* path + '?' */
-		
-		p++; /* skip '?' */
-		while ('\0' != *p) {
-			const gchar *endptr, *q;
+	gs = g_string_new(NULL);
 
-			endptr = strchr(p, '&');
-			if (!endptr) {
-				endptr = strchr(p, '\0');
-			}
-			q = memchr(p, '=', endptr - p);
-			if (!q) {
-				q = endptr;
-			}
-			gs = g_string_append_len(gs, p, q - p + 1); /* name + '=' */
-			if ('=' == *q) {
-				gchar c;
+	for (p = url; '\0' != (c = *p); p++) {
+		if (
+			is_transparent_char(c, FIX_MASK) ||
+			('%' == c && is_ascii_xdigit(p[1]) && is_ascii_xdigit(p[2]))
+		) {
+			gs = g_string_append_c(gs, c);
+		} else {
+			gchar buf[3];
 
-				for (q++; '\0' != (c = *q) && '&' != c; q++) {
-
-					if (is_transparent_char(c, QUERY_MASK)) {
-						gs = g_string_append_c(gs, c);
-					} else {
-						gchar buf[3];
-
-						buf[0] = ESCAPE_CHAR;
-						buf[1] = hex_alphabet[c >> 4];
-						buf[2] = hex_alphabet[c & 0xf];
-						gs = g_string_append_len(gs, buf, sizeof buf);
-					}
-				}
-			}
-			p = endptr;
-			if ('&' == *p) {
-				gs = g_string_append_c(gs, '&');
-				p++;
-			}
+			buf[0] = ESCAPE_CHAR;
+			buf[1] = hex_alphabet[c >> 4];
+			buf[2] = hex_alphabet[c & 0xf];
+			gs = g_string_append_len(gs, buf, sizeof buf);
 		}
-	
-		escaped_url = gs->str;
-		g_string_free(gs, FALSE);
-	} else {
-		escaped_url = url_escape(url);
 	}
-	return escaped_url;
+
+	return gm_string_finalize(gs);
 }
 
 /**
