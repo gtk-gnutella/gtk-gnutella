@@ -1504,7 +1504,6 @@ config_boolean(gboolean b)
 static gchar *
 config_comment(const gchar *s)
 {
-	gchar *result;
 	const gchar *word;
 	size_t line_len;
 	GString *out;
@@ -1539,10 +1538,7 @@ config_comment(const gchar *s)
 		word = skip_ascii_spaces(endptr);
 	}
 
-	result = out->str;
-	g_string_free(out, FALSE); /* Don't free the string itself */
-
-	return result;
+	return gm_string_finalize(out);
 }
 
 /**

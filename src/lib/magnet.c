@@ -565,7 +565,6 @@ magnet_to_string(struct magnet_resource *res)
 {
 	GString *gs;
 	GSList *sl;
-	gchar *url;
 
 	g_return_val_if_fail(res, NULL);
 	
@@ -599,9 +598,7 @@ magnet_to_string(struct magnet_resource *res)
 		magnet_append_item(&gs, TRUE, "kt", sl->data);
 	}
 
-	url = gs->str;
-	g_string_free(gs, FALSE); /* Don't free the string itself */
-	return url;
+	return gm_string_finalize(gs);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
