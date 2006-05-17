@@ -2267,6 +2267,12 @@ accepted:
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 }
 
+static inline struct msghdr *
+deconstify_msghdr(const struct msghdr *msg)
+{
+	return (struct msghdr *) msg;
+}
+
 static gboolean
 socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #if defined(CMSG_FIRSTHDR)
@@ -2276,7 +2282,8 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 	g_assert(msg);
 	g_assert(dst_addr);
 
-	for (p = CMSG_FIRSTHDR(msg); p; p = CMSG_NXTHDR(deconstify_void(msg), p)) {
+	p = CMSG_FIRSTHDR(msg);
+	for (/* NOTHING */; NULL != p; p = CMSG_NXTHDR(deconstify_msghdr(msg), p)) {
 		if (0) {
 			/* NOTHING */
 #if defined(IP_RECVDSTADDR)
