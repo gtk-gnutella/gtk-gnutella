@@ -54,6 +54,7 @@
 #include "if/core/sockets.h"
 
 #include "lib/atoms.h"
+#include "lib/magnet.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
@@ -937,42 +938,28 @@ search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 {
 	GtkTreeIter parent_iter;
 	struct result_data *parent;
-	GString *gs;
+	struct magnet_resource *magnet;
 	gchar *url;
 
-	gs = g_string_new("magnet:?");
+	magnet = magnet_resource_new();
 
 	if (gtk_tree_model_iter_parent(model, &parent_iter, iter)) {
 		iter = &parent_iter;
 	}
 	parent = get_result_data(model, iter);
 
-	gs = g_string_append(gs, "dn=");
-	{
-		gchar *escaped_name;
-
-		escaped_name = url_escape(parent->record->utf8_name);
-		gs = g_string_append(gs, escaped_name);
-		if (escaped_name != parent->record->utf8_name) {
-			G_FREE_NULL(escaped_name);
-		}
-	}
+	magnet_set_display_name(magnet, parent->record->utf8_name);
 
 	if (parent->record->sha1) {
 		GtkTreeIter child;
 
-		gs = g_string_append(gs, "&xt=urn:sha1:");
-		gs = g_string_append(gs, sha1_base32(parent->record->sha1));
-		gs = g_string_append(gs, "&xl=");
-		gs = g_string_append(gs, uint64_to_string(parent->record->size));
+		magnet_set_sha1(magnet, parent->record->sha1);
+		magnet_set_filesize(magnet, parent->record->size);
 		
 		if (0 == (ST_FIREWALL & parent->record->results_set->status)) {
-			gs = g_string_append(gs, "&xs=http://");
-			gs = g_string_append(gs,
-					host_addr_port_to_string(parent->record->results_set->addr,
-						parent->record->results_set->port));
-			gs = g_string_append(gs, "/uri-res/N2R?urn:sha1:");
-			gs = g_string_append(gs, sha1_base32(parent->record->sha1));
+			magnet_add_sha1_source(magnet, parent->record->sha1,
+				parent->record->results_set->addr,
+				parent->record->results_set->port);
 		}
 
 		if (gtk_tree_model_iter_children(model, &child, &parent->iter)) {
@@ -985,18 +972,15 @@ search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 				if (0 != (ST_FIREWALL & data->record->results_set->status))
 					continue;
 
-				gs = g_string_append(gs, "&xs=http://");
-				gs = g_string_append(gs,
-					host_addr_port_to_string(data->record->results_set->addr,
-						data->record->results_set->port));
-				gs = g_string_append(gs, "/uri-res/N2R?urn:sha1:");
-				gs = g_string_append(gs, sha1_base32(data->record->sha1));
+				magnet_add_sha1_source(magnet, data->record->sha1,
+					data->record->results_set->addr,
+					data->record->results_set->port);
 			} while (gtk_tree_model_iter_next(model, &child));
 		}
 	}
 
-	url = gs->str;
-	g_string_free(gs, FALSE);	
+	url = magnet_to_string(magnet);
+	magnet_resource_free(magnet);	
 	return url;
 }
 
