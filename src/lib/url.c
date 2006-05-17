@@ -46,8 +46,6 @@ RCSID("$Id$");
 extern guint32 lib_debug;
 
 #define ESCAPE_CHAR		'%'
-#define TRANSPARENT_CHAR(x,m) \
-	((x) >= 32 && (x) < 128 && (is_transparent[(x)-32] & (m)))
 
 /**
  * - Reserved chars: ";", "/", "?", ":", "@", "=" and "&"
@@ -59,7 +57,7 @@ extern guint32 lib_debug;
  */
 static const guint8 is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
-    0,3,0,0,3,0,0,3,3,3,3,1,3,3,3,3,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
+    0,3,0,0,3,0,0,3,3,3,3,0,3,3,3,3,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
     3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
     0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
     3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,3,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
@@ -67,8 +65,16 @@ static const guint8 is_transparent[96] = {
     3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,	/* pqrstuvwxyz{|}~  - 112 -> 127 */
 };
 
-#define PATH_MASK		0x1
-#define QUERY_MASK		0x2
+enum escape_mask {
+	PATH_MASK	= 1,
+	QUERY_MASK	= 2
+};
+
+static inline gboolean
+is_transparent_char(const gint c, const enum escape_mask m)
+{
+	return c >= 32 && c < 128 && (is_transparent[c - 32] & (guint8) m);
+}
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
 
@@ -90,7 +96,7 @@ url_escape_mask(const gchar *url, guint8 mask)
 	gchar *new;
 
 	for (p = url, c = *p++; c; c = *p++)
-		if (!TRANSPARENT_CHAR(c, mask))
+		if (!is_transparent_char(c, mask))
 			need_escape++;
 
 	if (need_escape == 0)
@@ -99,7 +105,7 @@ url_escape_mask(const gchar *url, guint8 mask)
 	new = g_malloc(p - url + (need_escape << 1));
 
 	for (p = url, q = new, c = *p++; c; c = *p++) {
-		if (TRANSPARENT_CHAR(c, mask))
+		if (is_transparent_char(c, mask))
 			*q++ = c;
 		else {
 			*q++ = ESCAPE_CHAR;
@@ -129,7 +135,7 @@ url_escape_mask_into(const gchar *url, gchar *target, gint len, guint8 mask)
 	gchar *end = target + len;
 
 	for (q = target, c = *p++; c && q < end; c = *p++) {
-		if (TRANSPARENT_CHAR(c, mask))
+		if (is_transparent_char(c, mask))
 			*q++ = c;
 		else if (end - q >= 3) {
 			*q++ = ESCAPE_CHAR;
@@ -182,6 +188,65 @@ gint
 url_escape_into(const gchar *url, gchar *target, gint len)
 {
 	return url_escape_mask_into(url, target, len, PATH_MASK);
+}
+
+/**
+ */
+gchar *
+url_escape_special(const gchar *url)
+{
+	const gchar *p;
+	gchar *escaped_url;
+
+	p = strchr(url, '?');
+	if (p) {
+		GString *gs;
+		
+		gs = g_string_new_len(url, p - url + 1); /* path + '?' */
+		
+		p++; /* skip '?' */
+		while ('\0' != *p) {
+			const gchar *endptr, *q;
+
+			endptr = strchr(p, '&');
+			if (!endptr) {
+				endptr = strchr(p, '\0');
+			}
+			q = memchr(p, '=', endptr - p);
+			if (!q) {
+				q = endptr;
+			}
+			gs = g_string_append_len(gs, p, q - p + 1); /* name + '=' */
+			if ('=' == *q) {
+				gchar c;
+
+				for (q++; '\0' != (c = *q) && '&' != c; q++) {
+
+					if (is_transparent_char(c, QUERY_MASK)) {
+						gs = g_string_append_c(gs, c);
+					} else {
+						gchar buf[3];
+
+						buf[0] = ESCAPE_CHAR;
+						buf[1] = hex_alphabet[c >> 4];
+						buf[2] = hex_alphabet[c & 0xf];
+						gs = g_string_append_len(gs, buf, sizeof buf);
+					}
+				}
+			}
+			p = endptr;
+			if ('&' == *p) {
+				gs = g_string_append_c(gs, '&');
+				p++;
+			}
+		}
+	
+		escaped_url = gs->str;
+		g_string_free(gs, FALSE);
+	} else {
+		escaped_url = url_escape(url);
+	}
+	return escaped_url;
 }
 
 /**
