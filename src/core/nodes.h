@@ -44,11 +44,6 @@
 
 #include "lib/header.h"
 
-typedef enum node_protocol_types {
-	PROTOCOL_TYPE_GNUTELLA = 0,
-	PROTOCOL_TYPE_G2
-} node_protocol_types_t;
-
 typedef enum {
 	NODE_MAGIC = 0x67f8e02f
 } node_magic_t;
@@ -106,7 +101,6 @@ typedef struct gnutella_node {
 	struct gnutella_socket *socket;		/**< Socket of the node */
 	guint8 proto_major;			/**< Handshaking protocol major number */
 	guint8 proto_minor;			/**< Handshaking protocol minor number */
-	node_protocol_types_t protocol_type;
 
 	guint8 qrp_major;			/**< Query routing protocol major number */
 	guint8 qrp_minor;			/**< Query routing protocol minor number */
