@@ -123,6 +123,8 @@ tm_now(tm_t *tm)
 
 /**
  * Fill supplied structure with current time (recomputed).
+ * If the time jumps backward the previously recorded timestamp
+ * is used instead to enforce a monotonic flow of time.
  */
 void
 tm_now_exact(tm_t *tm)
@@ -130,8 +132,9 @@ tm_now_exact(tm_t *tm)
 	tm_t past = now;
 	
 	g_get_current_time(&now);
-	if (past.tv_sec >= now.tv_sec) {
-		now.tv_sec = past.tv_sec;
+	if (now.tv_sec < past.tv_sec) {
+		now = past;
+	} else if (now.tv_sec == now.tv_sec) {
 		if (past.tv_usec > now.tv_usec)
 			now.tv_usec = past.tv_usec;
 	}
