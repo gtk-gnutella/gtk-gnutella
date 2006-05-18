@@ -295,7 +295,6 @@ extern const gchar   *ancient_version_force;
 extern const guint32  ancient_version_left_days;
 extern const gboolean file_descriptor_shortage;
 extern const gboolean file_descriptor_runout;
-extern const gboolean enable_g2_support;
 extern const gboolean convert_spaces;
 extern const gboolean convert_evil_chars;
 extern const gboolean convert_old_filenames;
