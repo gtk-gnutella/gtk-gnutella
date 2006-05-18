@@ -381,16 +381,6 @@ src/core/vmsg.c
 src/core/vmsg.h
 src/core/whitelist.c
 src/core/whitelist.h
-src/g2/Jmakefile
-src/g2/Makefile.SH
-src/g2/g2node.c
-src/g2/g2node.h
-src/g2/g2nodes.h
-src/g2/packet.c
-src/g2/packet.h
-src/g2/packetstream.c
-src/g2/packetstream.h
-src/g2/udp_transceiver.c
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH
@@ -499,6 +489,8 @@ src/lib/iso3166.h
 src/lib/listener.h
 src/lib/malloc.c
 src/lib/malloc.h
+src/lib/magnet.c
+src/lib/magnet.h
 src/lib/misc.c
 src/lib/misc.h
 src/lib/override.h
