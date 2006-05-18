@@ -946,11 +946,6 @@ parq_download_add_header(
 	g_assert((int) *rw >= 0 && *rw <= INT_MAX);
 	g_assert(len >= *rw);
 
-	if (d->server->attrs & DLS_A_FAKE_G2) {
-		major = 0;
-		minor = 1;
-	}
-
 	*rw += gm_snprintf(&buf[*rw], len - *rw,
 		"X-Queue: %d.%d\r\n", major, minor);
 
@@ -972,11 +967,7 @@ parq_download_add_header(
 	 * we're claiming is "valid".
 	 */
 
-	if (
-		!is_firewalled &&
-		host_is_valid(listen_addr(), socket_listen_port()) &&
-		!(d->server->attrs & DLS_A_FAKE_G2)
-	)
+	if (!is_firewalled && host_is_valid(listen_addr(), socket_listen_port()))
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n",
 			  host_addr_port_to_string(listen_addr(), socket_listen_port()));

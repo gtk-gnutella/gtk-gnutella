@@ -7103,7 +7103,6 @@ http_version_nofix:
 
 			d->server->attrs &= ~DLS_A_BANNING;
 			d->server->attrs &= ~DLS_A_MINIMAL_HTTP;
-			d->server->attrs &= ~DLS_A_FAKE_G2;
 
 			if (was_banning)
 				gcu_gui_update_download_server(d);
@@ -7116,7 +7115,6 @@ http_version_nofix:
 				break;
 			case 403:
 				if (is_strprefix(ack_message, "Network Disabled")) {
-					d->server->attrs |= DLS_A_FAKE_G2;
 					hold = MAX(delay, 320);				/* To be safe */
 				}
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
@@ -8087,10 +8085,6 @@ picked:
 		(d->server->attrs & DLS_A_BANNING) ?
 			download_vendor_str(d) : version_string);
 
-	if (d->server->attrs & DLS_A_FAKE_G2)
-		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-			"X-Features: g2/1.0\r\n");
-
 	if (!(d->server->attrs & DLS_A_BANNING)) {
 		header_features_generate(&xfeatures.downloads,
 			dl_tmp, sizeof(dl_tmp), &rw);
@@ -8275,12 +8269,11 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (download_debug > 2) {
-		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):\n%.*s----\n",
+		g_message("----Sent Request (%s%s%s%s) to %s (%u bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
-			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", http/1.1",
+			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
-			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(guint) rw, (gint) rw, dl_tmp);
 	}
