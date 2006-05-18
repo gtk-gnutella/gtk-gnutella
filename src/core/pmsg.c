@@ -91,7 +91,7 @@ pmsg_close(void)
  * Compute message's size.
  */
 int
-pmsg_size(pmsg_t *mb)
+pmsg_size(const pmsg_t *mb)
 {
 	int msize = 0;
 
@@ -419,6 +419,21 @@ pmsg_read(pmsg_t *mb, gpointer data, gint len)
 	mb->m_rptr += readable;
 
 	return readable;
+}
+
+/**
+ * Discard data from the message, returning the amount of bytes discarded.
+ */
+gint
+pmsg_discard(pmsg_t *mb, gint len)
+{
+	gint available = mb->m_wptr - mb->m_rptr;
+	gint n = len >= available ? available : len;
+
+	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
+
+	mb->m_rptr += n;
+	return n;
 }
 
 /**

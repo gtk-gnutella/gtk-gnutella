@@ -131,7 +131,7 @@ typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
 void pmsg_init(void);
 void pmsg_close(void);
 
-gint pmsg_size(pmsg_t *mb);
+gint pmsg_size(const pmsg_t *mb);
 pmsg_t *pmsg_new(gint prio, gconstpointer buf, gint len);
 pmsg_t * pmsg_new_extend(
 	gint prio, gconstpointer buf, gint len,
@@ -146,6 +146,7 @@ pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
 void pmsg_free(pmsg_t *mb);
 gint pmsg_write(pmsg_t *mb, gconstpointer data, gint len);
 gint pmsg_read(pmsg_t *mb, gpointer data, gint len);
+gint pmsg_discard(pmsg_t *mb, gint len);
 
 pdata_t *pdata_new(gint len);
 pdata_t *pdata_allocb(void *buf, gint len,
