@@ -901,12 +901,21 @@ bg_sched_timer(void)
 		 */
 
 		if (bt->tick_cost) {
+			g_assert(bt->tick_cost > 0);
+			g_assert(bt->prev_ticks >= 0);
+			g_assert(bt->prev_ticks <= INT_MAX / DELTA_FACTOR);
+
 			ticks = 1 + target / bt->tick_cost;
+
 			if (bt->prev_ticks) {
-				if (ticks > bt->prev_ticks * DELTA_FACTOR)
+				if (ticks > bt->prev_ticks * DELTA_FACTOR) {
 					ticks = bt->prev_ticks * DELTA_FACTOR;
-				else if (DELTA_FACTOR * ticks < bt->prev_ticks)
-					ticks = bt->prev_ticks / DELTA_FACTOR;
+				} else if (ticks < bt->prev_ticks / DELTA_FACTOR) {
+					if (bt->prev_ticks > DELTA_FACTOR)
+						ticks = bt->prev_ticks / DELTA_FACTOR;
+					else
+						ticks = 1;
+				}
 			}
 			g_assert(ticks > 0);
 		} else
