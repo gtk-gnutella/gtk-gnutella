@@ -155,12 +155,9 @@ enum dl_bufmode {
  */
 struct dl_buffers {
 	enum dl_bufmode mode;		/**< I/O vector mode */
-	gint count;					/**< Number of buffers for reading */
-	gchar **buffers;			/**< Array of `count' buffers */
-	struct iovec *iov;			/**< I/O vector of buffers */
-	struct iovec *iov_cur;		/**< Current base of I/O vector for reading */
-	gint iovcnt;				/**< Remaining entries in I/O vector */
-	size_t size;				/**< Total size of buffers */
+	GSList *buffers;			/**< List of pmsg_t items */
+	GSList *last;				/**< Pointer to last item */
+	size_t count;				/**< Amount of buffers */
 	size_t amount;				/**< Amount to buffer (extra is read-ahead) */
 	size_t held;				/**< Amount of data held in read buffers */
 };

@@ -296,10 +296,6 @@ download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	struct download *d = rx_owner(rx);
 
 	download_read(d, mb);
-
-	if (0 == pmsg_size(mb)) {
-		pmsg_free(mb);
-	}
 }
 
 static const struct rx_link_cb download_rx_link_cb = {
@@ -596,58 +592,19 @@ download_restore_state(void)
 static void
 buffers_alloc(struct download *d)
 {
+	static const struct dl_buffers zero_buffers;
 	struct dl_buffers *b;
-	gint count;
-	guint32 total_size;
-	guint32 size;
-	gint i;
 
 	download_check(d);
 	g_assert(d->buffers == NULL);
 	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
 
-	d->buffers = b = walloc0(sizeof *b);
-
-	/*
-	 * How many buffers do we need to allocate?
-	 *
-	 * The first buffer in the I/O vector is going to be the socket's one.
-	 * Other buffers will be allocated from the buffer pool.
-	 */
-
-	STATIC_ASSERT(sizeof(d->socket->buffer) == SOCK_BUFSZ);
-
-	total_size = download_buffer_size + download_buffer_read_ahead;
-	if (total_size < SOCK_BUFSZ)
-		total_size = SOCK_BUFSZ;	/* Since this one is already allocated */
-
-	count = (gint) (total_size / SOCK_BUFSZ);
-	size = count * SOCK_BUFSZ;
-	if (size != total_size)			/* Fractional amount truncated? */
-		count++;					/* Last one will be incompletely filled */
-
-	/*
-	 * Allocate the buffer array and the buffers.
-	 */
-
-	b->buffers = walloc(count * sizeof(gchar *));
-	b->count = count;
-	b->buffers[0] = d->socket->buffer;
-
-	for (i = 1; i < count; i++)
-		b->buffers[i] = palloc(buffer_pool);
-
-	b->size = count * SOCK_BUFSZ;
+	b = walloc(sizeof *b);
+	*b = zero_buffers;
 	b->amount = download_buffer_size;
 
-	/*
-	 * Allocate the I/O vector used for reading.
-	 */
-
-	b->iov = walloc(count * sizeof(*b->iov));
-	b->iov_cur = b->iov;
-	b->iovcnt = count;
+	d->buffers = b;
 }
 
 /**
@@ -657,24 +614,19 @@ static void
 buffers_free(struct download *d)
 {
 	struct dl_buffers *b;
-	gint i;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
 	g_assert(d->buffers->held == 0);	/* No pending data */
 
-	/*
-	 * The first buffer is the socket's buffer, so it must not be freed.
-	 */
-
 	b = d->buffers;
 
-	for (i = b->count - 1; i > 0; i--)
-		pfree(buffer_pool, b->buffers[i]);
+	G_SLIST_FOREACH(b->buffers, pmsg_free);
+	g_slist_free(b->buffers);
+	b->buffers = NULL;
+	b->last = NULL;
 
-	wfree(b->buffers, b->count * sizeof(gchar *));
-	wfree(b->iov, b->count * sizeof(*b->iov));
-	wfree(b, sizeof(*b));
+	wfree(b, sizeof *b);
 
 	d->buffers = NULL;
 }
@@ -686,9 +638,6 @@ static void
 buffers_reset_reading(struct download *d)
 {
 	struct dl_buffers *b;
-	gint i;
-	gint count;
-	struct iovec *iov;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
@@ -697,30 +646,29 @@ buffers_reset_reading(struct download *d)
 	g_assert(d->buffers->held == 0);
 
 	b = d->buffers;
-	count = b->count;
 
-	for (i = 0, iov = b->iov; i < count; i++, iov++) {
-		iov->iov_base = b->buffers[i];
-		iov->iov_len = SOCK_BUFSZ;
-	}
+	G_SLIST_FOREACH(b->buffers, pmsg_free);
+	g_slist_free(b->buffers);
+	b->buffers = NULL;
+	b->last = NULL;
 
-	b->iov_cur = b->iov;
-	b->iovcnt = count;			/* Amount of buffers holding data to be read */
+	b->count = 0;
 	b->mode = DL_BUF_READING;
 }
 
 /**
  * Reset the I/O vector for writing the whole data held in the buffer.
  */
-static void
-buffers_reset_writing(struct download *d)
+static struct iovec *
+buffers_to_iovec(struct download *d)
 {
 	struct dl_buffers *b;
-	gint i;
-	gint n;
 	struct iovec *iov;
+	GSList *sl;
+	size_t i;
 
 	download_check(d);
+
 	g_assert(d->buffers != NULL);
 	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
@@ -728,19 +676,27 @@ buffers_reset_writing(struct download *d)
 	b = d->buffers;
 
 	g_assert(b->held > 0);
-	g_assert(b->held <= d->buffers->size);
+	g_assert(b->count > 0);
+	g_assert(b->buffers);
+	g_assert(b->last);
 	g_assert(b->mode == DL_BUF_READING);
 
+	iov = walloc(b->count * sizeof *iov);
 
-	for (i = 0, n = b->held, iov = b->iov; n > 0; i++, iov++) {
-		iov->iov_base = b->buffers[i];
-		iov->iov_len = MIN(SOCK_BUFSZ, n);
-		n -= iov->iov_len;
+	for (i = 0, sl = b->buffers; NULL != sl; sl = g_slist_next(sl), i++) {
+		pmsg_t *mb;
+	  
+		mb = sl->data;
+	   	g_assert(mb);
+		g_assert(i < b->count);
+
+		iov[i].iov_base = pmsg_read_base(mb);
+		iov[i].iov_len = pmsg_size(mb);
 	}
 
-	b->iov_cur = b->iov;
-	b->iovcnt = i;				/* Amount of buffers holding data to write */
 	b->mode = DL_BUF_WRITING;
+
+	return iov;
 }
 
 /**
@@ -753,12 +709,11 @@ buffers_discard(struct download *d)
 	fileinfo_t *fi = d->file_info;
 
 	g_assert(b);
-	g_assert(b->held <= b->size);
 
 	if (fi->buffered >= b->held)
 		fi->buffered -= b->held;
 	else
-		fi->buffered = 0;		/* Be fault-tolerent, this is not critical */
+		fi->buffered = 0;		/* Be fault-tolerant, this is not critical */
 
 	b->held = 0;
 	buffers_reset_reading(d);
@@ -773,9 +728,8 @@ buffers_full(struct download *d)
 	struct dl_buffers *b = d->buffers;
 
 	g_assert(b);
-	g_assert(b->held <= b->size);
 
-	return b->held == b->size;
+	return b->held >= download_buffer_size;
 }
 
 /**
@@ -787,27 +741,22 @@ buffers_should_flush(struct download *d)
 	struct dl_buffers *b = d->buffers;
 
 	g_assert(b);
-	g_assert(b->held <= b->size);
 
 	return b->held >= b->amount;
 }
 
 /**
  * Update the buffer structure after having read "amount" more bytes:
- * prepare `iov_cur' and `iovcnt' for the next read and increase
- * the amount of data held.
+ * prepare `iovcnt' for the next read and increase the amount of data held.
  */
 static void
-buffers_add_read(struct download *d, ssize_t amount)
+buffers_add_read(struct download *d, pmsg_t *mb)
 {
 	struct dl_buffers *b;
-	ssize_t n;
-	struct iovec *iov;
-	gint cnt;
 	fileinfo_t *fi = d->file_info;
+	size_t size;
 
 	download_check(d);
-	g_assert(amount >= 0);
 	g_assert(d->buffers != NULL);
 	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
@@ -815,71 +764,58 @@ buffers_add_read(struct download *d, ssize_t amount)
 	b = d->buffers;
 
 	g_assert(b->mode == DL_BUF_READING);
-	g_assert(b->held + amount <= b->size);
-	g_assert(b->iovcnt != 0);
-
-	/*
-	 * b->iov_cur is where readv() started to fill data, into at most
-	 * b->iovcnt buffers..
-	 */
-
-	for (n = amount, cnt = 0, iov = b->iov_cur; n > 0; iov++, cnt++) {
-		if (iov->iov_len > (size_t) n) {
-			/* Buffer incompletely filled */
-			iov->iov_base = cast_to_gchar_ptr(iov->iov_base) + n;
-			iov->iov_len -= n;
-			break;					/* Can still fill this buffer */
-		} else {
-			n -= iov->iov_len;		/* Whole buffer was filled */
-			iov->iov_len = 0;
-		}
+	
+	b->last = g_slist_append(b->last, mb);
+	if (!b->buffers) {
+		b->buffers = b->last;
 	}
+	b->count++;
 
-	/*
-	 * Update the amount of buffers remaining, and the next place where
-	 * readv() will start filling data.
-	 */
-
-	b->iov_cur = iov;
-	b->iovcnt -= cnt;
-
-	g_assert(b->iovcnt >= 0);
+	size = pmsg_size(mb);
+	b->held += size;
 
 	/*
 	 * Update read statistics.
 	 */
 
-	b->held += amount;
-	fi->buffered += amount;
-
-	g_assert(b->held <= b->size);
-	g_assert(b->iovcnt != 0 || b->held == b->size);
-	g_assert(b->held != b->size || b->iovcnt == 0);
+	fi->buffered += size;
 }
 
 /**
  * Compare data held in the read buffers with the data chunk supplied.
  *
  * @return TRUE if data match.
- *
- * @note precondition is: len <= SOCK_BUFSZ, the size of the socket buffer.
  */
 static gboolean
 buffers_match(const struct download *d, const gchar *data, size_t len)
 {
 	const struct dl_buffers *b;
+	GSList *sl;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
 	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
+	g_assert(len <= b->held);
 
 	b = d->buffers;
 
-	g_assert(len <= b->held);
-	g_assert(len <= SOCK_BUFSZ);		/* Simplifies our work */
+	for (sl = b->buffers; len > 0 && NULL != sl; sl = g_slist_next(sl)) {
+		const pmsg_t *mb;
+		size_t n;
+	
+		mb = sl->data;
+		g_assert(mb);
 
-	return 0 == memcmp(b->buffers[0], data, len);
+		n = pmsg_size(mb);
+		n = MIN(n, len);
+		if (0 != memcmp(pmsg_read_base(mb), data, n)) {
+			return FALSE;
+		}
+		len -= n;
+	}
+
+	return 0 == len;
 }
 
 /**
@@ -889,10 +825,8 @@ static void
 buffers_strip_leading(struct download *d, size_t amount)
 {
 	struct dl_buffers *b;
-	gint i;
-	struct iovec *iov;
-	size_t pos;
-	gint old_iovcnt;			/* For assertions */
+	size_t n;
+	GSList *sl;
 	fileinfo_t *fi = d->file_info;
 
 	download_check(d);
@@ -902,127 +836,35 @@ buffers_strip_leading(struct download *d, size_t amount)
 
 	g_assert(b->mode == DL_BUF_READING);
 	g_assert(amount <= b->held);
-	g_assert(amount <= SOCK_BUFSZ);		/* Simplifies our work */
 
 	if (b->held <= amount) {
 		buffers_discard(d);
 		return;
 	}
 
-	old_iovcnt = b->iovcnt;
+	n = amount;
+	sl = b->buffers;
+	while (n > 0) {
+		pmsg_t *mb;
+		size_t size;
 
-	/*
-	 * Since we know the shifting amount is less than each buffer's size,
-	 * there is no leading buffer to drop.
-	 *
-	 * We're going to simply shift down all the data in all the buffers,
-	 * taking care of the cross-overs.
-	 */
+		mb = sl->data;
+		g_assert(mb);
 
-	for (i = 0, iov = b->iov, pos = 0; i < b->count; i++, iov++) {
-		gchar *buf = b->buffers[i];
-		size_t held = SOCK_BUFSZ - iov->iov_len;	/* Data held in iov */
-
-		pos += held;		/* Position at the end of this buffer */
-
-		g_assert(pos <= b->held);
-
-		/*
-		 * Move the leading `amount' bytes (or whatever we have if less)
-		 * to the tail of the previous buffer.  Naturally not for the
-		 * first buffer, whose leading data are discarded.
-		 */
-
-		if (i > 0) {
-			size_t move = MIN(held, amount);
-			struct iovec *piov = iov - 1;
-
-			/* Either we don't hold anything, or previous buffer was full */
-			g_assert(held == 0 || piov->iov_len == amount);
-
-			/*
-			 * Move `held' bytes in the trailing `amount' bytes of the
-			 * previous buffer, fixing its length (which is the amount of
-			 * data it can still absorb during reading).
-			 */
-
-			if (move)
-				memmove(piov->iov_base, buf, move);
-
-			piov->iov_len -= move;
-			piov->iov_base = cast_to_gchar_ptr(piov->iov_base) + move;
-
-			/*
-			 * Check whether we are done scanning, and exit the loop if
-			 * we moved at most "amount" bytes back, meaning there's
-			 * nothing left in the buffer to shift down..
-			 */
-
-			if (pos == b->held && held <= amount) {
-				/*
-				 * This is the last I/O vector we'll scan, and it's now
-				 * completely empty if the amount of bytes initially held
-				 * is less than "amount".
-				 */
-
-				iov->iov_len = SOCK_BUFSZ;
-				iov->iov_base = buf;
-
-				/*
-				 * If there is room left in the previous buffer and the
-				 * current I/O vector is not the previous one, update it.
-				 */
-
-				if (piov->iov_len && b->iov_cur != piov) {
-					g_assert(b->iov_cur == iov);
-
-					b->iov_cur = piov;
-					b->iovcnt++;
-				} else if (amount == SOCK_BUFSZ) {
-					b->iov_cur = iov;	/* This buffer was fully emptied */
-					b->iovcnt++;
-				}
-
-				break;		/* Nothing left to shift back in that buffer */
-			}
-
-			/*
-			 * If pos != b->held, there is necessarily a vector after us,
-			 * meaning we necessarily held more than the shifting amount
-			 * because the shifting amount is at most one buffer size and
-			 * data are contiguous.
-			 */
+		size = pmsg_size(mb);
+		if (size > n) {
+			pmsg_discard(mb, n);
+			break;
+		} else {
+			pmsg_free(mb);
+			n -= size;
+			sl = g_slist_delete_link(sl, sl);
 		}
-
-		/*
-		 * Shift back the current buffer by `amount' bytes.
-		 */
-
-		g_assert(i == 0 || held >= amount);	/* Or we'd have exited above */
-
-		if (held != amount)
-			memmove(buf, buf + amount, held - amount);
-
-		/*
-		 * Update current iov.
-		 */
-
-		iov->iov_len += amount;			/* We just freed that much */
-		iov->iov_base = buf + SOCK_BUFSZ - iov->iov_len;
-
-		/*
-		 * Continue, even if pos == b->held.  We'll break out of the loop
-		 * because the next buffer won't hold anything, or because we were
-		 * at the last buffer in the vector.
-		 *
-		 * Note that if amount == SOCK_BUFSZ, we can't be at the last buffer
-		 * because we would have exited above.  That's an important assertion
-		 * because we need to run through the explicit "break" above to
-		 * increase the iovcnt (when the last buffer is completely emptied).
-		 */
-
-		g_assert(amount != SOCK_BUFSZ || pos != b->held);
 	}
+
+	b->buffers = sl;
+	if (!b->buffers) 
+		b->last = NULL;
 
 	b->held -= amount;
 
@@ -1030,9 +872,6 @@ buffers_strip_leading(struct download *d, size_t amount)
 		fi->buffered -= amount;
 	else
 		fi->buffered = 0;		/* Not critical, be fault-tolerant */
-
-	/* If striping amount was exactly the buffer size, we have one more now */
-	g_assert(amount != SOCK_BUFSZ || old_iovcnt + 1 == b->iovcnt);
 }
 
 /* ----------------------------------------- */
@@ -5363,13 +5202,18 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	/*
 	 * Prepare I/O vector for writing.
 	 */
+	
+	{
+		struct iovec *iov;
 
-	buffers_reset_writing(d);
-
-	if (b->iovcnt > MAX_IOV_COUNT)
-		written = safe_writev_fd(d->file_desc, b->iov, b->iovcnt);
-	else
-		written = writev(d->file_desc, b->iov, b->iovcnt);
+		iov = buffers_to_iovec(d); 
+		if (b->count > MAX_IOV_COUNT) {
+			written = safe_writev_fd(d->file_desc, iov, b->count);
+		} else {
+			written = writev(d->file_desc, iov, b->count);
+		}
+		wfree(iov, b->count * sizeof *iov);
+	}
 
 	if ((ssize_t) -1 == written) {
 		const char *error = g_strerror(errno);
@@ -7685,52 +7529,21 @@ download_incomplete_header(struct download *d)
 	download_request(d, header, FALSE);
 }
 
-ssize_t
-download_pmsg_readv(pmsg_t *mb, struct iovec *iov, gint iov_cnt)
-{
-	size_t size;
-	ssize_t r;
-	gint i;
-
-	/*
-	 * Compute I/O vector's length.
-	 */
-
-	size = pmsg_size(mb);
-	size = MIN(size, (size_t) SSIZE_MAX);
-	r = 0;
-
-	for (i = 0; i < iov_cnt && size > 0; i++) {
-		size_t n;
-
-		n = pmsg_read(mb, iov[i].iov_base, iov[i].iov_len);
-		size -= n;
-		r += n;
-	}
-
-	return r;
-}
-
-
 /**
  * Read callback for file data.
  */
 static void
 download_read(struct download *d, pmsg_t *mb)
 {
-	struct gnutella_socket *s;
-	ssize_t r;
 	fileinfo_t *fi;
-	struct dl_buffers *b;
 
 	download_check(d);
 	g_assert(d->file_info->recvcount > 0);
 
-	fi = d->file_info;
-	s = d->socket;
+	g_assert(d->socket);
+	g_assert(d->file_info);
 
-	g_assert(s);
-	g_assert(fi);
+	fi = d->file_info;
 
 	if (buffers_full(d)) {
 		download_queue_delay(d, download_retry_stopped_delay,
@@ -7747,47 +7560,10 @@ download_read(struct download *d, pmsg_t *mb)
 		}
 	}
 
-	/*
-	 * Prepare read buffers if they don't hold any data yet.
-	 */
-
-	b = d->buffers;
-	r = download_pmsg_readv(mb, b->iov_cur, b->iovcnt);
-
-	/*
-	 * Don't hammer remote server if we get an EOF during data reception.
-	 * The servent may have shutdown, or the user killed our download.
-	 * The latter is not nice, but it's the user's choice.
-	 *
-	 * Therefore, we use the "busy" delay instead of the "stopped" delay.
-	 */
-
-	if (r == 0) {
-		socket_eof(s);
-		download_queue_delay(d, download_retry_busy_delay,
-				_("Stopped data (EOF) <download_read>"));
-		return;
-	} else if ((ssize_t) -1 == r) {
-		if (!is_temporary_error(errno)) {
-			socket_eof(s);
-			if (errno == ECONNRESET)
-				download_queue_delay(d, download_retry_busy_delay,
-					_("Stopped data (%s)"), g_strerror(errno));
-			else
-				download_stop(d, GTA_DL_ERROR,
-					_("Failed (Read error: %s)"), g_strerror(errno));
-		}
-		return;
-	}
-
-	/*
-	 * Update reception stats, preparing buffers for the next readv().
-	 */
-
-	buffers_add_read(d, r);
+	buffers_add_read(d, mb);
 
 	d->last_update = tm_time();
-	fi->recv_amount += r;
+	fi->recv_amount += pmsg_size(mb);
 
 	/*
 	 * Possibly write data if we reached the end of the chunk we requested,
