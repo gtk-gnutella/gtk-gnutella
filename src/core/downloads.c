@@ -796,9 +796,9 @@ buffers_match(const struct download *d, const gchar *data, size_t len)
 	g_assert(d->buffers != NULL);
 	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
-	g_assert(len <= b->held);
 
 	b = d->buffers;
+	g_assert(len <= b->held);
 
 	for (sl = b->buffers; len > 0 && NULL != sl; sl = g_slist_next(sl)) {
 		const pmsg_t *mb;
