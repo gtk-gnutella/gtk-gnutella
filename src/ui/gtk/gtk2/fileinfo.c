@@ -137,6 +137,11 @@ fi_gui_remove_data(struct fileinfo_data *data)
 	g_assert(data);
 
 	if (data->is_download) {
+		gpointer key;
+
+		g_assert(data->download.handle->file_info);
+		key = GUINT_TO_POINTER(data->download.handle->file_info->fi_handle);
+		g_assert(NULL != g_hash_table_lookup(fi_handles, key));
 		g_hash_table_remove(fi_downloads, data->download.handle);
 	} else {
 		gpointer key = GUINT_TO_POINTER(data->file.handle);
@@ -290,11 +295,9 @@ fi_gui_fi_removed(gnet_fi_t handle)
 	g_return_if_fail(data);
 	g_return_if_fail(!data->is_download);
 	g_return_if_fail(handle == data->file.handle);
-#if 0
 	g_return_if_fail(
 		!gtk_tree_model_iter_has_child(GTK_TREE_MODEL(store_fileinfo),
 			&data->iter));
-#endif
 
 	fi_gui_remove_data(data);
 }
