@@ -1687,27 +1687,14 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		G_FREE_NULL(filename);
 
 		if (n_downloads > 0 || n_searches > 0) {
-			gchar msg_search[1024], msg_download[1024];
+			gchar msg_search[128], msg_download[128];
 
-			if (n_downloads > 0) {
-				gm_snprintf(msg_download, sizeof msg_download,
-					NG_("Started %u download from magnet.",
-						"Started %u downloads from magnet.",
-						n_downloads),
-					n_downloads);
-			} else {
-				msg_download[0] = '\0';
-			}
-			if (n_searches > 0) {
-				gm_snprintf(msg_search, sizeof msg_search,
-					NG_("Started %u search from magnet.",
-						"Started %u searches from magnet.",
-						n_searches),
-					n_searches);
-			} else {
-				msg_search[0] = '\0';
-			}
-			statusbar_gui_message(15, "%s %s", msg_download, msg_search);
+			gm_snprintf(msg_download, sizeof msg_download,
+				NG_("%u download", "%u downloads", n_downloads), n_downloads);
+			gm_snprintf(msg_search, sizeof msg_search,
+				NG_("%u search", "%u searches", n_searches), n_searches);
+			statusbar_gui_message(15, _("Handled magnet link (%s, %s)."),
+				msg_download, msg_search);
 		}
 	}
 
