@@ -1578,7 +1578,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	{
 		gchar *filename;	/* strdup */
 		GSList *sl;
-		guint started = 0;
+		guint n_downloads = 0, n_searches = 0;
 
 		filename = g_strdup(res->display_name);
 		if (!filename) {
@@ -1632,36 +1632,83 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			struct magnet_source *ms = sl->data;
 			host_addr_t addr;
 
+			if (!ms->path && !res->sha1) {
+				g_message("Unusable magnet source");
+				continue;
+			}
+			
 			/* Note: We use 0.0.0.0 instead of zero_host_addr because
 			 *       the core would bark when using the latter.
 			 */
 			addr = is_host_addr(ms->addr) ? ms->addr : host_addr_set_ipv4(0);
-			if (ms->port != 0 && (is_host_addr(addr) || ms->hostname)) {
-				if (ms->path) {
-					guc_download_new_uri(filename, ms->path, res->size,
-						addr, ms->port, blank_guid, ms->hostname,
-						res->sha1, tm_time(), FALSE, NULL, NULL, 0);
-					started++;
-				} else if (res->sha1) {
-					guc_download_new(filename, res->size, URN_INDEX,
-						addr, ms->port, blank_guid, ms->hostname,
-						res->sha1, tm_time(), FALSE, NULL, NULL, 0);
-					started++;
-				} else {
-					g_message("Unusable magnet source");
-				}
+			if (ms->path) {
+				guc_download_new_uri(filename, ms->path, res->size,
+					addr, ms->port, blank_guid, ms->hostname,
+					res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+			} else if (res->sha1) {
+				guc_download_new(filename, res->size, URN_INDEX,
+					addr, ms->port, blank_guid, ms->hostname,
+					res->sha1, tm_time(), FALSE, NULL, NULL, 0);
 			}
+			n_downloads += ((is_host_addr(addr) || ms->hostname) &&
+								0 != ms->port);
+		}
+
+		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
+			const gchar *query;
+
+			query = sl->data;
+			g_assert(query);
+			if (
+				search_gui_new_search_full(query, tm_time(), 0, 0,
+			 		search_sort_default_column, search_sort_default_order,
+			 		SEARCH_F_ENABLED, NULL)
+			) {
+				n_searches++;
+			}
+		}
+
+		if (!res->sources && res->sha1) {
+			const gchar *query = sha1_base32(res->sha1);
+
+			if (
+				search_gui_new_search_full(query, tm_time(), 0, 0,
+			 		search_sort_default_column, search_sort_default_order,
+			 		SEARCH_F_ENABLED, NULL)
+			) {
+				n_searches++;
+			}
+			guc_download_new(filename, res->size, URN_INDEX,
+				host_addr_set_ipv4(0), 0, blank_guid, NULL,
+				res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+			n_downloads++;
 		}
 
 		G_FREE_NULL(filename);
 
-		if (started > 0) {
-			statusbar_gui_message(15,
-				NG_("Started %u download from magnet.",
-					"Started %u downloads from magnet.", started),
-				started);
-		}
+		if (n_downloads > 0 || n_searches > 0) {
+			gchar msg_search[1024], msg_download[1024];
 
+			if (n_downloads > 0) {
+				gm_snprintf(msg_download, sizeof msg_download,
+					NG_("Started %u download from magnet.",
+						"Started %u downloads from magnet.",
+						n_downloads),
+					n_downloads);
+			} else {
+				msg_download[0] = '\0';
+			}
+			if (n_searches > 0) {
+				gm_snprintf(msg_search, sizeof msg_search,
+					NG_("Started %u search from magnet.",
+						"Started %u searches from magnet.",
+						n_searches),
+					n_searches);
+			} else {
+				msg_search[0] = '\0';
+			}
+			statusbar_gui_message(15, "%s %s", msg_download, msg_search);
+		}
 	}
 
 	magnet_resource_free(res);
