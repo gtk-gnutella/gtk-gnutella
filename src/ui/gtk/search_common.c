@@ -1669,7 +1669,10 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		}
 
 		if (!res->sources && res->sha1) {
-			const gchar *query = sha1_base32(res->sha1);
+			gchar query[128];
+			
+			concat_strings(query, sizeof query,
+				"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
 
 			if (
 				search_gui_new_search_full(query, tm_time(), 0, 0,
