@@ -109,11 +109,21 @@ gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 GList *
 g_list_delete_link(GList *l, GList *lnk)
 {
-	GList *new;
+	GList *head;
 
-	new = g_list_remove_link(l, lnk);
+	head = g_list_remove_link(l, lnk);
 	g_list_free_1(lnk);
-	return new;
+	return head;
+}
+
+GSList *
+g_slist_delete_link(GSList *sl, GSList *lnk)
+{
+	GSList *head;
+
+	head = g_slist_remove_link(sl, lnk);
+	g_slist_free_1(lnk);
+	return head;
 }
 #endif /* USE_GLIB1 */
 
