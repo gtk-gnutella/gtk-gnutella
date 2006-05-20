@@ -200,6 +200,22 @@ ntp_send_probes(void)
 		if (!is_host_addr(addr))
 			continue;
 		
+		if (NET_USE_BOTH != network_protocol) {
+			switch (host_addr_net(addr)) {
+			case NET_TYPE_IPV4:
+				if (NET_USE_IPV4 != network_protocol)
+					continue;
+				break;
+			case NET_TYPE_IPV6:
+				if (NET_USE_IPV6 != network_protocol)
+					continue;
+				break;
+			case NET_TYPE_NONE:
+				g_assert_not_reached();
+			}
+		}
+		
+		
 		if (ntp_send_probe(addr)) {
 			/* Send probes to all addresses because a successful sendto()
 			 * does not guarantee anything. */
