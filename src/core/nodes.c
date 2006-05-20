@@ -6883,7 +6883,6 @@ static gboolean
 node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct gnutella_node *n = rx_owner(rx);
-	gboolean error = FALSE;
 
 	g_assert(mb);
 	g_assert(NODE_IS_CONNECTED(n));
@@ -6902,13 +6901,12 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	n->flags |= NODE_F_ESTABLISHED;		/* Since we've got Gnutella data */
 
 	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
-		error = !node_read(n, mb);
-		if (error)
+		if (!node_read(n, mb))
 			break;
 	}
 
 	pmsg_free(mb);
-	return !error;
+	return n->status == GTA_NODE_CONNECTED;
 }
 
 /**
