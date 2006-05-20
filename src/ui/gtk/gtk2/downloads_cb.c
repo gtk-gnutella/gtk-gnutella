@@ -261,13 +261,16 @@ copy_selection_to_clipboard(void)
 		struct download *d = sl->data;
 		gchar *url;
 
-       	url = guc_download_build_url(d);
 		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
-		gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
-			url, -1);
 		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
-		gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
-			url, -1);
+
+       	url = guc_download_build_url(d);
+		if (url) {
+			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
+					url, -1);
+			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
+					url, -1);
+		}
 		G_FREE_NULL(url);
 	}
 	g_slist_free(selected);
