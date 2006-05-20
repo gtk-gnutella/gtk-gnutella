@@ -425,10 +425,11 @@ rx_chunk_destroy(rxdrv_t *rx)
 /**
  * Got data from lower layer.
  */
-static void
+static gboolean
 rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
+	gboolean error = FALSE;
 	pmsg_t *imb;		/* Dechunked message */
 
 	g_assert(rx);
@@ -440,8 +441,11 @@ rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 	 * disabled, in which case we must stop.
 	 */
 
-	while ((attr->flags & IF_ENABLED) && (imb = dechunk_data(rx, mb)))
-		(*rx->data_ind)(rx, imb);
+	while ((attr->flags & IF_ENABLED) && (imb = dechunk_data(rx, mb))) {
+		error = !(*rx->data_ind)(rx, imb);
+		if (error)
+			break;
+	}
 
 	pmsg_free(mb);
 
@@ -451,6 +455,8 @@ rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 
 	if ((attr->flags & IF_ENABLED) && attr->state == CHUNK_STATE_END)
 		attr->cb->chunk_end(rx->owner);
+
+	return !error;
 }
 
 /**

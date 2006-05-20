@@ -197,10 +197,11 @@ rx_inflate_destroy(rxdrv_t *rx)
 /**
  * Got data from lower layer.
  */
-static void
+static gboolean 
 rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
+	gboolean error = FALSE;
 	pmsg_t *imb;		/**< Inflated message */
 
 	g_assert(rx);
@@ -212,10 +213,14 @@ rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 	 * disabled, in which case we must stop.
 	 */
 
-	while ((attr->flags & IF_ENABLED) && (imb = inflate_data(rx, mb)))
-		(*rx->data_ind)(rx, imb);
+	while ((attr->flags & IF_ENABLED) && (imb = inflate_data(rx, mb))) {
+		error = !(*rx->data_ind)(rx, imb);
+		if (error)
+			break;
+	}
 
 	pmsg_free(mb);
+	return !error;
 }
 
 /**
