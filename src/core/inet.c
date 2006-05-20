@@ -185,32 +185,37 @@ ip_record_destroy(cqueue_t *unused_cq, gpointer obj)
 static gboolean
 is_local_addr(const host_addr_t addr)
 {
-	static host_addr_t our_addr;
-	static host_addr_t our_addr_v6;
+	static host_addr_t our_addr, our_addr_v6;
 
-	if (!is_host_addr(our_addr)) {
-		/* This should not change */
-		our_addr = name_to_single_host_addr(local_hostname(), NET_TYPE_IPV4);
+	if (NET_USE_IPV4 == network_protocol || NET_USE_BOTH == network_protocol) {
+		
+		if (!is_host_addr(our_addr)) {
+			/* This should not change */
+			our_addr = name_to_single_host_addr(local_hostname(),
+						NET_TYPE_IPV4);
+		}
+		if (!is_host_addr(our_addr))
+			our_addr = listen_addr();
+		if (!is_host_addr(our_addr))
+			our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV4);
+		if (host_addr_equal(addr, listen_addr()))	/* Ourselves */
+			return TRUE;
 	}
-	if (!is_host_addr(our_addr_v6)) {
-		/* This should not change */
-		our_addr_v6 = name_to_single_host_addr(local_hostname(), NET_TYPE_IPV6);
+	
+	if (NET_USE_IPV6 == network_protocol || NET_USE_BOTH == network_protocol) {
+		if (!is_host_addr(our_addr_v6)) {
+			/* This should not change */
+			our_addr_v6 = name_to_single_host_addr(local_hostname(),
+							NET_TYPE_IPV6);
+		}
+		if (!is_host_addr(our_addr_v6))
+			our_addr = listen_addr6();
+		if (!is_host_addr(our_addr_v6))
+			our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV6);
+
+		if (host_addr_equal(addr, listen_addr6()))	/* Ourselves */
+			return TRUE;
 	}
-
-	if (!is_host_addr(our_addr))
-		our_addr = listen_addr();
-	if (!is_host_addr(our_addr_v6))
-		our_addr = listen_addr6();
-
-	if (!is_host_addr(our_addr))
-		our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV4);
-	if (!is_host_addr(our_addr_v6))
-		our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV6);
-
-	if (host_addr_equal(addr, listen_addr()))	/* Ourselves */
-		return TRUE;
-	if (host_addr_equal(addr, listen_addr6()))	/* Ourselves */
-		return TRUE;
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
