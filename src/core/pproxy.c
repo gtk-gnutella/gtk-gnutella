@@ -1123,8 +1123,8 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 	const gchar *verb, const gchar *path, const gchar *unused_host,
 	guint16 unused_port)
 {
-	gchar addr_buf[HOST_ADDR_PORT_BUFLEN];
-	gchar addr_buf_v6[HOST_ADDR_PORT_BUFLEN];
+	gchar addr_buf[128];
+	gchar addr_v6_buf[128];
 	host_addr_t addr;
 
 	/*
@@ -1139,26 +1139,30 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 
 	addr = listen_addr();
 	if (is_host_addr(addr)) {
-		host_addr_port_to_string_buf(addr, listen_port,
-			addr_buf, sizeof addr_buf);
+		gm_snprintf(addr_buf, sizeof addr_buf, "X-Node: %s\r\n",
+			host_addr_port_to_string(addr, listen_port));
+	} else {
+		addr_buf[0] = '\0';
 	}
 	addr = listen_addr6();
 	if (is_host_addr(addr)) {
-		host_addr_port_to_string_buf(addr, listen_port,
-			addr_buf_v6, sizeof addr_buf_v6);
+		gm_snprintf(addr_v6_buf, sizeof addr_v6_buf, "X-Node: %s\r\n",
+			host_addr_port_to_string(addr, listen_port));
+	} else {
+		addr_v6_buf[0] = '\0';
 	}
 	
 	return gm_snprintf(buf, len,
 		"%s %s HTTP/1.0\r\n"
 		"User-Agent: %s\r\n"
 		"X-Token: %s\r\n"
-		"X-Node: %s%s%s\r\n"
+		"%s"
+		"%s"
 		"\r\n",
 		verb, path, version_string,
 		tok_version(),
 		addr_buf,
-		('\0' != addr_buf[0] && '\0' != addr_buf_v6[0]) ? ", " : "",
-		addr_buf_v6);
+		addr_v6_buf);
 }
 
 /**
