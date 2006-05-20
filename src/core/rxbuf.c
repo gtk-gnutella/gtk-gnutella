@@ -52,7 +52,7 @@ RCSID("$Id$");
  */
 
 #define BUF_COUNT	5		/**< Max amount of buffers we want in pool */
-#define BUF_SIZE	4096	/**< Size of each buffer */
+#define BUF_SIZE	2048	/**< Size of each buffer */
 
 static pool_t *rxpool;
 
