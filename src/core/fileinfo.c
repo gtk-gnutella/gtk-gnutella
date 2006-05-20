@@ -697,16 +697,12 @@ fi_free(fileinfo_t *fi)
 	}
 
 	atom_filesize_free_null(&fi->size_atom);
-	if (fi->guid)
-		atom_guid_free(fi->guid);
-	if (fi->file_name)
-		atom_str_free(fi->file_name);
-	if (fi->path)
-		atom_str_free(fi->path);
-	if (fi->sha1)
-		atom_sha1_free(fi->sha1);
-	if (fi->cha1)
-		atom_sha1_free(fi->cha1);
+	atom_guid_free_null(&fi->guid);
+	atom_str_free_null(&fi->file_name);
+	atom_str_free_null(&fi->path);
+	atom_sha1_free_null(&fi->sha1);
+	atom_sha1_free_null(&fi->cha1);
+
 	if (fi->chunklist) {
 		g_assert(file_info_check_chunklist(fi, TRUE));
 		file_info_chunklist_free(fi);
@@ -714,9 +710,12 @@ fi_free(fileinfo_t *fi)
 	if (fi->alias) {
 		GSList *sl;
 
-		for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl))
-			atom_str_free(sl->data);
+		for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
+			gchar *s = sl->data;
+			atom_str_free_null(&s);
+		}
 		g_slist_free(fi->alias);
+		fi->alias = NULL;
 	}
 	if (fi->seen_on_network)
 		fi_free_ranges(fi->seen_on_network);
@@ -2498,10 +2497,7 @@ fi_reset_chunks(fileinfo_t *fi)
 
 	fi->generation = 0;		/* Restarting from scratch... */
 	fi->done = 0;
-	if (NULL != fi->cha1) {
-		atom_sha1_free(fi->cha1);
-		fi->cha1 = NULL;
-	}
+	atom_sha1_free_null(&fi->cha1);
 }
 
 /**
@@ -2688,7 +2684,7 @@ file_info_retrieve(void)
 				gboolean renamed = TRUE;
 
 				new_filename = file_info_new_outname(fi->file_name, fi->path);
-				atom_str_free(fi->file_name);
+				atom_str_free_null(&fi->file_name);
 
 				old_pathname = make_pathname(fi->path, old_filename);
 				new_pathname = make_pathname(fi->path, new_filename);
@@ -2704,13 +2700,13 @@ file_info_retrieve(void)
 					g_warning("renamed \"%s\" into sanitized \"%s\" in \"%s\"",
 						old_filename, new_filename, fi->path);
 					fi->file_name = new_filename;	/* Already an atom */
-					atom_str_free(old_filename);
+					atom_str_free_null(&old_filename);
 				} else {
 					g_warning("cannot rename \"%s\" into \"%s\" in \"%s\": %s",
 						old_filename, new_filename, fi->path,
 						g_strerror(errno));
 					fi->file_name = old_filename;	/* Already an atom */
-					atom_str_free(new_filename);
+					atom_str_free_null(&new_filename);
 				}
 
 				G_FREE_NULL(old_pathname);
@@ -2841,9 +2837,9 @@ file_info_retrieve(void)
 				aliases = g_slist_reverse(fi->alias);
 				fi->alias = NULL;
 				for (sl = aliases; NULL != sl; sl = g_slist_next(sl)) {
-					fi_alias(fi, sl->data, TRUE);
-					atom_str_free(sl->data);
-					sl->data = NULL;
+					gchar *s = sl->data;
+					fi_alias(fi, s, TRUE);
+					atom_str_free_null(&s);
 				}
 				g_slist_free(aliases);
 				aliases = NULL;
@@ -3440,7 +3436,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	if (sha1)
 		dmesh_multiple_downloads(sha1, size, fi);
 
-	atom_str_free(outname);
+	atom_str_free_null(&outname);
 	G_FREE_NULL(to_free);
 
 	return fi;
@@ -3955,10 +3951,7 @@ file_info_reset(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	if (fi->cha1) {
-		atom_sha1_free(fi->cha1);
-		fi->cha1 = NULL;
-	}
+	atom_sha1_free_null(&fi->cha1);
 
 	if (NULL != fi->sf)				/* File possibly shared */
 		file_info_upload_stop(fi, "File info being reset");
@@ -4769,22 +4762,20 @@ fi_get_info(gnet_fi_t fih)
 void
 fi_free_info(gnet_fi_info_t *info)
 {
-	GSList *l;
+	GSList *sl;
 
     g_assert(NULL != info);
 
-	if (info->path)
-		atom_str_free(info->path);
-	if (info->file_name)
-		atom_str_free(info->file_name);
-	if (info->sha1)
-		atom_sha1_free(info->sha1);
+	atom_str_free_null(&info->path);
+	atom_str_free_null(&info->file_name);
+	atom_sha1_free_null(&info->sha1);
 
-	for (l = info->aliases; l; l = g_slist_next(l)) {
-		const gchar *alias = l->data;
-		atom_str_free(alias);
+	for (sl = info->aliases; NULL != sl; sl = g_slist_next(sl)) {
+		gchar *s = sl->data;
+		atom_str_free_null(&s);
 	}
 	g_slist_free(info->aliases);
+	info->aliases = NULL;
 
     wfree(info, sizeof *info);
 }
