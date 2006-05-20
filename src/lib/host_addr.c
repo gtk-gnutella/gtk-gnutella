@@ -76,10 +76,8 @@ is_private_addr(const host_addr_t ha)
 		if ((ip & 0xffff0000) == 0xc0a80000)
 			return TRUE;
 		
-#ifdef USE_IPV6
 	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 		return host_addr_equal(ha, ipv6_loopback);
-#endif /* USE_IPV6 */
 	}
 
 	return FALSE;
@@ -108,7 +106,6 @@ ipv4_addr_is_routable(guint32 ip)
 	return TRUE;
 }
 
-#ifdef USE_IPV6
 static inline guint32
 host_addr_is_6to4(const host_addr_t ha)
 {
@@ -135,7 +132,6 @@ host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
 		return FALSE;
 	}
 }
-#endif /* USE_IPV6 */
 
 /**
  * Checks whether the given address is 127.0.0.1 or ::1.
@@ -153,9 +149,7 @@ host_addr_is_loopback(const host_addr_t addr)
 		return host_addr_ipv4(ha) == 0x7f000001; /* 127.0.0.1 in host endian */
 
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
 		return host_addr_equal(ha, ipv6_loopback);
-#endif /* USE_IPV6 */
 
 	case NET_TYPE_NONE:
 		break;
@@ -185,14 +179,12 @@ host_addr_is_routable(const host_addr_t addr)
 		return ipv4_addr_is_routable(host_addr_ipv4(ha));
 
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
 		return 	!host_addr_matches(ha, ipv6_unspecified, 8) &&
 				!host_addr_matches(ha, ipv6_multicast, 8) &&
 				!(
 						host_addr_is_6to4(ha) &&
 						!ipv4_addr_is_routable(host_addr_6to4_ipv4(ha))
 				);
-#endif /* USE_IPV6 */
 
 	case NET_TYPE_NONE:
 		break;
@@ -202,7 +194,6 @@ host_addr_is_routable(const host_addr_t addr)
 	return FALSE;
 }
 
-#ifdef USE_IPV6
 gboolean
 host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 {
@@ -295,7 +286,6 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 	*to = zero_host_addr;
 	return FALSE;
 }
-#endif /* USE_IPV6 */
 
 /**
  * Prints the host address ``ha'' to ``dst''. The string written to ``dst''
@@ -320,10 +310,8 @@ host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 			return g_strlcpy(dst, inet_ntoa(ia), size);
 		}
 
-#if defined(USE_IPV6)
 	case NET_TYPE_IPV6:
 		return ipv6_to_string_buf(host_addr_ipv6(&ha), dst, size);
-#endif /* USE_IPV6*/
 
 	case NET_TYPE_NONE:
 		return g_strlcpy(dst, "<none>", size);
@@ -404,6 +392,17 @@ host_addr_port_to_string(const host_addr_t ha, guint16 port)
 	return buf;
 }
 
+const gchar *
+host_addr_port_to_string2(const host_addr_t ha, guint16 port)
+{
+	static gchar buf[IPV6_ADDR_BUFLEN + sizeof "[]:65535"];
+	size_t n;
+
+	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
 /**
  * Parses IPv4 and IPv6 addresses. The latter requires IPv6 support to be
  * enabled.
@@ -426,7 +425,6 @@ string_to_host_addr(const char *s, const gchar **endptr, host_addr_t *addr_ptr)
 		if (addr_ptr)
 			*addr_ptr = host_addr_set_ipv4(ip);
 		return TRUE;
-#ifdef USE_IPV6
 	} else {
 		guint8 ipv6[16];
 		if (parse_ipv6_addr(s, ipv6, endptr)) {
@@ -434,7 +432,6 @@ string_to_host_addr(const char *s, const gchar **endptr, host_addr_t *addr_ptr)
 				host_addr_set_ipv6(addr_ptr, ipv6);
 			return TRUE;
 		}
-#endif
 	}
 
 	if (addr_ptr)
@@ -470,12 +467,7 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 		if (parse_ipv6_addr(&s[1], ipv6, &ep) && ']' == *ep) {
 
 			if (ha) {
-#ifdef USE_IPV6
 				host_addr_set_ipv6(ha, ipv6);
-#else
-				/* If IPv6 is disabled, consider [::] a hostname */
-				*ha = zero_host_addr;
-#endif /* USE_IPV6 */
 			}
 			if (endptr)
 				*endptr = ++ep;

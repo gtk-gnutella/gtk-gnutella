@@ -81,7 +81,6 @@ net_type_to_af(enum net_type net)
 }
 
 
-#ifdef USE_IPV6
 typedef struct host_addr {
 	guint32 net;	/**< The address network type */
 	union {
@@ -94,14 +93,6 @@ typedef struct host_addr {
 	} addr;
 } host_addr_t;
 
-#else /* !USE_IPV6 */
-
-/* For an IPv4-only configuration */
-typedef guint32 host_addr_t; /**< @attention: Always in host byte order! */
-
-#endif /* USE_IPV6*/
-
-#if defined(USE_IPV6)
 static const host_addr_t ipv6_unspecified = {	/* :: */
 	NET_TYPE_IPV6,
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
@@ -158,6 +149,18 @@ host_addr_initialized(const host_addr_t ha)
 	}
 	g_assert_not_reached();
 	return FALSE;
+}
+
+static inline const gchar *
+net_type_to_string(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_IPV4: return "IPv4";
+	case NET_TYPE_IPV6: return "IPv6";
+	case NET_TYPE_NONE: return "<none>";
+	}
+	g_assert_not_reached();
+	return NULL;
 }
 
 static inline enum net_type 
@@ -361,55 +364,6 @@ host_addr_hash(host_addr_t ha)
 	return -1;
 }
 
-#else
-
-/* IPv4 only */
-
-#define host_addr_initialized(x)	TRUE
-#define host_addr_net(x) (((void) (x)), NET_TYPE_IPV4)
-#define host_addr_family(x) (((void) (x)), AF_INET)
-#define host_addr_ipv4(x) (x)
-#define host_addr_set_ipv4(x) (x)
-#define host_addr_set_net(x, y) G_STMT_START { (void) ((x), (y)) } G_STMT_END
-#define is_host_addr(x) (0 != (x))
-#define host_addr_equal(a, b) ((a) == (b))
-#define host_addr_cmp(a, b) (CMP((a), (b)))
-#define host_addr_hash(x) (x)
-#define zero_host_addr 0
-
-static inline gboolean
-host_addr_convert(const host_addr_t from, host_addr_t *to,
-	enum net_type to_net)
-{
-	if (NET_TYPE_IPV4 == to_net) {
-		*to = from;
-		return TRUE;
-	}
-	*to = zero_host_addr;
-	return FALSE;
-}
-
-static inline gboolean
-host_addr_6to4_to_ipv4(const host_addr_t unused_from, host_addr_t *to)
-{
-	(void) unused_from;
-
-	if (to)
-		*to = zero_host_addr;
-	return FALSE;
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-host_addr_matches(guint32 a, guint32 b, guint8 bits)
-{
-	guint8 shift;
-
-	shift = bits < 32 ? 32 - bits : 0;
-	return (a >> shift) == (b >> shift);
-}
-
-#endif /* USE_IPV6 */
-
 guint host_addr_hash_func(gconstpointer key);
 gboolean host_addr_eq_func(gconstpointer p, gconstpointer q);
 void wfree_host_addr(gpointer key, gpointer unused_data);
@@ -421,6 +375,7 @@ const gchar *host_addr_to_string(const host_addr_t addr);
 size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
 gboolean string_to_host_addr(const gchar *s, const gchar **endptr, host_addr_t *addr_ptr);
 const gchar *host_addr_port_to_string(const host_addr_t addr, guint16 port);
+const gchar *host_addr_port_to_string2(const host_addr_t addr, guint16 port);
 size_t host_addr_port_to_string_buf(const host_addr_t addr,
 				guint16 port, gchar *, size_t);
 gboolean string_to_host_addr_port(const gchar *str, const gchar **endptr,
