@@ -161,7 +161,9 @@ struct gnutella_socket {
  */
 
 extern struct gnutella_socket *s_tcp_listen;
+extern struct gnutella_socket *s_tcp_listen6;
 extern struct gnutella_socket *s_udp_listen;
+extern struct gnutella_socket *s_udp_listen6;
 
 
 /**
@@ -181,13 +183,17 @@ sock_is_corked(const struct gnutella_socket *s)
 static inline gboolean
 udp_active(void)
 {
-	return NULL != s_udp_listen;
+	return NULL != s_udp_listen || NULL != s_udp_listen6;
 }
 
 static inline guint16
 socket_listen_port(void)
 {
-	return s_tcp_listen ? s_tcp_listen->local_port : 0;
+	if (s_tcp_listen)
+		return s_tcp_listen->local_port;
+	if (s_tcp_listen6)
+		return s_tcp_listen6->local_port;
+	return 0;
 }
 
 /*
@@ -197,7 +203,7 @@ socket_listen_port(void)
 void socket_init(void);
 void socket_register_fd_reclaimer(reclaim_fd_t callback);
 void socket_eof(struct gnutella_socket *s);
-void socket_free(struct gnutella_socket *);
+void socket_free_null(struct gnutella_socket **s_ptr);
 struct gnutella_socket *socket_connect(const host_addr_t, guint16,
 		enum socket_type, guint32 flags);
 struct gnutella_socket *socket_connect_by_name(

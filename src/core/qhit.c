@@ -449,19 +449,17 @@ flush_match(void)
 				"in query hit");
 	}
 
-#ifdef USE_IPV6
-	if (
-		NET_TYPE_IPV6 == host_addr_net(listen_addr()) &&
-		!host_addr_can_convert(listen_addr(), NET_TYPE_IPV4)
-	) {
-		const host_addr_t addr = listen_addr();
-		const guint8 *ipv6 = host_addr_ipv6(&addr);
+	{
+		const host_addr_t addr = listen_addr6();
 
-		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0))
-			g_warning("could not write GGEP \"GTKG.IPV6\" extension "
-				"into query hit");
+		if (NET_TYPE_IPV6 == host_addr_net(addr)) {
+			const guint8 *ipv6 = host_addr_ipv6(&addr);
+
+			if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0))
+				g_warning("could not write GGEP \"GTKG.IPV6\" extension "
+						"into query hit");
+		}
 	}
-#endif /* USE_IPV6 */
 
 #ifdef HAS_GNUTLS
 	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))

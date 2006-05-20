@@ -142,6 +142,7 @@ static gboolean
 ntp_send_probe(const host_addr_t addr)
 {
 	static const struct ntp_msg zero_m;
+	struct gnutella_socket *s;
 	struct ntp_msg m;
 	gnet_host_t to;
 	tm_t now;
@@ -155,7 +156,15 @@ ntp_send_probe(const host_addr_t addr)
 	to.addr = addr;
 	to.port = NTP_PORT;
 
-	r = s_udp_listen->wio.sendto(&s_udp_listen->wio, &to, &m, sizeof m);
+	s = NULL;
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4: s = s_udp_listen;
+	case NET_TYPE_IPV6: s = s_udp_listen6;
+	case NET_TYPE_NONE: break;
+	}
+	g_return_val_if_fail(NULL != s, FALSE);
+	
+	r = s->wio.sendto(&s->wio, &to, &m, sizeof m);
 	/* Reset errno if there was no "real" error to prevent getting a
 	 * bogus and possibly misleading error message later. */
 	if ((ssize_t) -1 != r)

@@ -281,7 +281,7 @@ servent_service(cqueue_t *cq, gpointer obj)
 	if (mb == NULL)
 		goto remove;
 
-	q = node_udp_get_outq();
+	q = node_udp_get_outq(host_addr_net(s->host->addr));
 	if (q == NULL)
 		goto udp_disabled;
 
@@ -548,8 +548,13 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 static void
 oob_send_reply_ind(struct oob_results *r)
 {
+	mqueue_t *q;
 	pmsg_t *mb;
 	pmsg_t *emb;
+
+	q = node_udp_get_outq(host_addr_net(r->dest.addr));
+	if (q == NULL)
+		return;
 
 	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255));
 	emb = pmsg_clone_extend(mb, oob_pmsg_free, r);
@@ -562,7 +567,7 @@ oob_send_reply_ind(struct oob_results *r)
 				r->dest.port),
 			r->count, r->count == 1 ? "" : "s", r->notify_requeued);
 
-	mq_udp_putq(node_udp_get_outq(), emb, &r->dest);
+	mq_udp_putq(q, emb, &r->dest);
 }
 
 /**

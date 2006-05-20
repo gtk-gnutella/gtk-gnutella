@@ -102,7 +102,7 @@ tx_dgram_init(txdrv_t *tx, gpointer args)
 
 	g_assert(tx);
 	g_assert(targs->cb != NULL);
-	g_assert(s_udp_listen != NULL);
+	g_assert(s_udp_listen != NULL || s_udp_listen6 != NULL);
 
 	attr = walloc(sizeof *attr);
 

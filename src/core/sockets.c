@@ -96,14 +96,16 @@ RCSID("$Id$");
 #endif
 
 #define RQST_LINE_LENGTH	256		/**< Reasonable estimate for request line */
-#define SOCK_UDP_RECV_BUF	131072	/**< 128K -- Large to avoid loosing dgrams */
+#define SOCK_UDP_RECV_BUF	131072	/**< 128K - Large to avoid loosing dgrams */
 
 #define SOCK_ADNS_PENDING	0x01	/**< Don't free() the socket too early */
 #define SOCK_ADNS_FAILED	0x02	/**< Signals error in the ADNS callback */
 #define SOCK_ADNS_BADNAME	0x04	/**< Signals bad host name */
 
 struct gnutella_socket *s_tcp_listen = NULL;
+struct gnutella_socket *s_tcp_listen6 = NULL;
 struct gnutella_socket *s_udp_listen = NULL;
+struct gnutella_socket *s_udp_listen6 = NULL;
 
 typedef union socket_addr {
 	struct sockaddr_in inet4;
@@ -115,7 +117,6 @@ typedef union socket_addr {
 host_addr_t
 socket_ipv6_trt_map(const host_addr_t addr)
 {
-#ifdef USE_IPV6
 	if (
 		use_ipv6_trt &&
 		NET_TYPE_IPV4 == host_addr_net(addr) &&
@@ -127,7 +128,6 @@ socket_ipv6_trt_map(const host_addr_t addr)
 		poke_be32(&ret.addr.ipv6[12], host_addr_ipv4(addr));
 		return ret;
 	}
-#endif /* USE_IPV6 */
 	return addr;
 }
 
@@ -149,13 +149,10 @@ socket_addr_set(socket_addr_t *addr, host_addr_t ha, guint16 port)
 
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
-#if defined(USE_IPV6)
 		ha = socket_ipv6_trt_map(ha);
 		if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 			socket_addr_set(addr, ha, port);
-		} else
-#endif /* USE_IPV6 */
-		{
+		} else {
 			addr->inet4.sin_family = AF_INET;	/* host byte order */
 			addr->inet4.sin_port = htons(port);
 			addr->inet4.sin_addr.s_addr = htonl(host_addr_ipv4(ha));
@@ -1224,18 +1221,18 @@ socket_timer(time_t now)
 void
 socket_shutdown(void)
 {
-	while (sl_incoming)
-		socket_destroy((struct gnutella_socket *) sl_incoming->data, NULL);
+	while (sl_incoming) {
+		struct gnutella_socket *s;
 
-	if (s_tcp_listen) {
-		socket_free(s_tcp_listen);		/* No longer accept connections */
-		s_tcp_listen = NULL;
+		s = sl_incoming->data;
+		socket_destroy(s, NULL);
 	}
 
-	if (s_udp_listen) {
-		socket_free(s_udp_listen);		/* No longer accept connections */
-		s_udp_listen = NULL;
-	}
+	/* No longer accept connections or UDP packets */
+	socket_free_null(&s_tcp_listen);
+	socket_free_null(&s_tcp_listen6);
+	socket_free_null(&s_udp_listen);
+	socket_free_null(&s_udp_listen6);
 }
 
 /* ----------------------------------------- */
@@ -1295,7 +1292,7 @@ socket_destroy(struct gnutella_socket *s, const gchar *reason)
 	 * No attached resource, we can simply free this socket then.
 	 */
 
-	socket_free(s);
+	socket_free_null(&s);
 }
 
 struct socket_linger {
@@ -1346,7 +1343,7 @@ socket_linger_close(gint fd)
  * Dispose of socket, closing connection, removing input callback, and
  * reclaiming attached getline buffer.
  */
-void
+static void
 socket_free(struct gnutella_socket *s)
 {
 	g_assert(s);
@@ -1405,6 +1402,17 @@ socket_free(struct gnutella_socket *s)
 		s->file_desc = -1;
 	}
 	wfree(s, sizeof *s);
+}
+
+void
+socket_free_null(struct gnutella_socket **s_ptr)
+{
+	g_assert(s_ptr);
+
+	if (*s_ptr) {
+		socket_free(*s_ptr);
+		*s_ptr = NULL;
+	}
 }
 
 #ifdef HAS_GNUTLS
@@ -2078,7 +2086,6 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 		port = sin.sin_port;
 	}
 
-#ifdef USE_IPV6
 	if (!is_host_addr(ha)) {
 		struct sockaddr_in6 sin6;
 
@@ -2088,7 +2095,6 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 			port = sin6.sin6_port;
 		}
 	}
-#endif /* USE_IPV6 */
 
 	if (!is_host_addr(ha))
 		return -1;
@@ -2104,13 +2110,31 @@ static void
 guess_local_addr(int fd)
 {
 	gboolean can_supersede;
-	socket_addr_t addr;
-	host_addr_t ha;
+	host_addr_t addr, current;
+	property_t prop;
 
-	if (0 != socket_addr_getsockname(&addr, fd))
-		return;
+	g_return_if_fail(fd >= 0);
 
-	ha = socket_addr_get_addr(&addr);
+	{
+		socket_addr_t saddr;
+
+		if (0 != socket_addr_getsockname(&saddr, fd))
+			return;
+
+		addr = socket_addr_get_addr(&saddr);
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			prop = PROP_LOCAL_IP;
+			current = local_ip;
+			break;
+		case NET_TYPE_IPV6:
+			prop = PROP_LOCAL_IP6;
+			current = local_ip6;
+			break;
+		default:
+			return;
+		}
+	}
 
 	/*
 	 * If local IP was unknown, keep what we got here, even if it's a
@@ -2119,14 +2143,14 @@ guess_local_addr(int fd)
 	 *		--RAM, 17/05/2002
 	 */
 
-	can_supersede = !is_private_addr(ha) || is_private_addr(local_ip);
+	can_supersede = !is_private_addr(addr) || is_private_addr(current);
 
 	if (!ip_computed) {
-		if (!is_host_addr(local_ip) || can_supersede)
-			gnet_prop_set_ip_val(PROP_LOCAL_IP, ha);
+		if (!is_host_addr(current) || can_supersede)
+			gnet_prop_set_ip_val(prop, addr);
 		ip_computed = TRUE;
 	} else if (can_supersede) {
-		gnet_prop_set_ip_val(PROP_LOCAL_IP, ha);
+		gnet_prop_set_ip_val(prop, addr);
 	}
 }
 
@@ -2363,13 +2387,11 @@ socket_udp_accept(struct gnutella_socket *s)
 		from = &from_addr->inet4;
 		from_len = sizeof from_addr->inet4;
 		break;
-#ifdef USE_IPV6
 	case NET_TYPE_IPV6:
 		from = &from_addr->inet6;
 		from_len = sizeof from_addr->inet6;
 		break;
 	case NET_TYPE_NONE:
-#endif /* USE_IPV6 */
 	default:
 		from = NULL;
 		from_len = 0;
@@ -2691,20 +2713,39 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	 * Now we check if we're forcing a local IP, and make it happen if so.
 	 *   --JSL
 	 */
-	if (force_local_ip && host_addr_initialized(listen_addr())) {
-		const struct sockaddr *sa;
-		socket_addr_t local;
-		socklen_t len;
+	if (force_local_ip || force_local_ip6) {
+		host_addr_t bind_addr = zero_host_addr;
 
-		socket_addr_set(&local, listen_addr(), 0);
-		len = socket_addr_get(&local, &sa);
+		switch (s->net) {
+		case NET_TYPE_IPV4:
+			if (force_local_ip) {
+				bind_addr = listen_addr();
+			}
+			break;
+		case NET_TYPE_IPV6:
+			if (force_local_ip6) {
+				bind_addr = listen_addr6();
+			}
+			break;
+		case NET_TYPE_NONE:
+			break;
+		}
 
-		/*
-		 * Note: we ignore failures: it will be automatic at connect()
-		 * It's useful only for people forcing the IP without being
-		 * behind a masquerading firewall --RAM.
-		 */
-		(void) bind(s->file_desc, sa, len);
+		if (host_addr_initialized(bind_addr)) {
+			const struct sockaddr *sa;
+			socket_addr_t local;
+			socklen_t len;
+
+			socket_addr_set(&local, bind_addr, 0);
+			len = socket_addr_get(&local, &sa);
+
+			/*
+			 * Note: we ignore failures: it will be automatic at connect()
+			 * It's useful only for people forcing the IP without being
+			 * behind a masquerading firewall --RAM.
+			 */
+			(void) bind(s->file_desc, sa, len);
+		}
 	}
 
 	if (proxy_protocol != PROXY_NONE) {
@@ -2930,13 +2971,18 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 
 	if (sd < 0) {
 		const gchar *s_type = SOCK_DGRAM == type ? "datagram" : "stream";
+		const gchar *s_net = net_type_to_string(host_addr_net(bind_addr));
 		
 		if (socket_failed) {
-			g_warning("Unable to create the %s socket (%s)",
-				s_type, g_strerror(errno));
+			g_warning("Unable to create the %s (%s) socket (%s)",
+				s_type, s_net, g_strerror(errno));
 		} else {
-			g_warning("Unable to bind() the %s socket on port %u (%s)",
-				s_type, port, g_strerror(errno));
+			gchar s_bind_addr[HOST_ADDR_PORT_BUFLEN];
+
+			host_addr_port_to_string_buf(bind_addr, port,
+				s_bind_addr, sizeof s_bind_addr);
+			g_warning("Unable to bind() the %s (%s) socket to %s (%s)",
+				s_type, s_net, s_bind_addr, g_strerror(errno));
 		}
 	}
 

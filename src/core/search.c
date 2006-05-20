@@ -1658,10 +1658,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 
 		guid_oob_get_addr_port(m->header.muid, &addr, &port);
 
-		if (
-			host_addr_equal(addr, listen_addr()) &&
-			port == socket_listen_port() && host_is_valid(addr, port)
-		)
+		if (is_my_address(addr, port))
 			speed |= QUERY_SPEED_OOB_REPLY;
 	}
 

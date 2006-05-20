@@ -729,7 +729,7 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 	 * Reject if this is for our host, or if the host is a private/hostile IP.
 	 */
 
-	if (host_addr_equal(addr, listen_addr()) && port == listen_port)
+	if (is_my_address(addr, port))
 		return FALSE;
 
 	if (!host_is_valid(addr, port))
@@ -1268,8 +1268,13 @@ dmesh_alternate_location(const gchar *sha1,
 	 */
 
 	if (
-		fi != NULL && fi->size != 0 && fi->file_size_known && fi->done != 0 &&
-		pfsp_server && !is_firewalled &&
+		fi != NULL &&
+		fi->size != 0 &&
+		fi->file_size_known &&
+		fi->done != 0 &&
+		pfsp_server &&
+		!is_firewalled &&
+		is_host_addr(listen_addr()) &&
 		(
 			fi->done >= MIN_PFSP_SIZE ||
 			fi->done * 100 / fi->size > MIN_PFSP_PCT
@@ -1278,6 +1283,8 @@ dmesh_alternate_location(const gchar *sha1,
 		size_t url_len;
 		struct dmesh_entry ourselves;
 		time_t now = tm_time();
+
+		file_info_check(fi);
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;

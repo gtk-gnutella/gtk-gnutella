@@ -2648,10 +2648,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
 	}
-	if (d->socket) {				/* Close socket */
-		socket_free(d->socket);
-		d->socket = NULL;
-	}
+	socket_free_null(&d->socket);	/* Close socket */
 	if (d->file_desc != -1) {		/* Close output file */
 		close(d->file_desc);
 		d->file_desc = -1;
@@ -2958,10 +2955,7 @@ download_ignore_requested(struct download *d)
 	 * if someone echoes back our own alt-locs to us with PFSP).
 	 */
 
-	if (
-		host_addr_equal(download_addr(d), listen_addr()) &&
-		download_port(d) == listen_port
-	)
+	if (is_my_address(download_addr(d), download_port(d)))
 		reason = IGNORE_OURSELVES;
 	else if (hostiles_check(download_addr(d)))
 		reason = IGNORE_HOSTILE;
@@ -3737,8 +3731,7 @@ download_fallback_to_push(struct download *d,
 		if (d->server->hostname != NULL && !(d->flags & DL_F_DNS_LOOKUP))
 			d->server->attrs |= DLS_A_DNS_LOOKUP;
 
-		socket_free(d->socket);
-		d->socket = NULL;
+		socket_free_null(&d->socket);
 	}
 
 	if (d->file_desc != -1) {
@@ -4795,6 +4788,12 @@ download_proxy_failed(struct download *d)
 static gboolean
 send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 {
+	static const gboolean supports_tls =
+#ifdef HAS_GNUTLS
+		TRUE;
+#else
+		FALSE;
+#endif /* HAS_GNUTLS */
 	GSList *nodes;
 	const gchar *packet;
 	size_t size;
@@ -4811,8 +4810,9 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	 * used has been broken).
 	 */
 
+	
 	packet = build_push(&size, hard_ttl_limit, 0, guid,
-				listen_addr(), port, file_id);
+				listen_addr(), listen_addr6(), port, file_id, supports_tls);
 
 	if (NULL == packet) {
 		g_warning("Failed to send push to %s (index=%lu)",
@@ -8398,7 +8398,7 @@ download_push_ack(struct gnutella_socket *s)
 
 discard:
 	g_assert(s->resource.download == NULL);	/* Hence socket_free() below */
-	socket_free(s);
+	socket_free_null(&s);
 }
 
 void
@@ -9346,8 +9346,7 @@ download_close(void)
 			io_free(d->io_opaque);
 		if (d->bio)
 			bsched_source_remove(d->bio);
-		if (d->socket)
-			socket_free(d->socket);
+		socket_free_null(&d->socket);
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
 		if (d->ranges)
@@ -9397,6 +9396,7 @@ download_close(void)
 /**
  * Creates a URL which points to a downloads (e.g. you can move this to a
  * browser and download the file there with this URL).
+ * @return NULL on failure, an URL string which must be freed with g_free().
  */
 gchar *
 download_build_url(const struct download *d)
@@ -9408,6 +9408,9 @@ download_build_url(const struct download *d)
 	download_check(d);
 
 	sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
+
+	if (!is_host_addr(download_addr(d)) || 0 == download_port(d))
+		return NULL;
 
 	/* XXX: "https:" when TLS is possible? */
 

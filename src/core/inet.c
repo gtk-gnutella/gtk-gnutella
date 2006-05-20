@@ -186,18 +186,30 @@ static gboolean
 is_local_addr(const host_addr_t addr)
 {
 	static host_addr_t our_addr;
+	static host_addr_t our_addr_v6;
 
 	if (!is_host_addr(our_addr)) {
 		/* This should not change */
-		our_addr = name_to_single_host_addr(local_hostname(),
-						settings_dns_net());
+		our_addr = name_to_single_host_addr(local_hostname(), NET_TYPE_IPV4);
 	}
+	if (!is_host_addr(our_addr_v6)) {
+		/* This should not change */
+		our_addr_v6 = name_to_single_host_addr(local_hostname(), NET_TYPE_IPV6);
+	}
+
 	if (!is_host_addr(our_addr))
 		our_addr = listen_addr();
+	if (!is_host_addr(our_addr_v6))
+		our_addr = listen_addr6();
+
 	if (!is_host_addr(our_addr))
-		our_addr = name_to_single_host_addr("localhost", settings_dns_net());
+		our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV4);
+	if (!is_host_addr(our_addr_v6))
+		our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV6);
 
 	if (host_addr_equal(addr, listen_addr()))	/* Ourselves */
+		return TRUE;
+	if (host_addr_equal(addr, listen_addr6()))	/* Ourselves */
 		return TRUE;
 
 	switch (host_addr_net(addr)) {
@@ -212,10 +224,8 @@ is_local_addr(const host_addr_t addr)
 					host_addr_matches(addr, our_addr, 24); /* Same LAN/24 */
 		}
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
 		return	host_addr_matches(addr, ipv6_link_local, 64) ||
 				host_addr_matches(addr, ipv6_site_local, 64);
-#endif /* USE_IPV6 */
 	case NET_TYPE_NONE:
 		return FALSE;
 	}
@@ -498,18 +508,15 @@ inet_udp_record_sent(const host_addr_t addr)
 gboolean
 inet_can_answer_ping(void)
 {
-	host_addr_t addr;
 	gint elapsed;
 
 	if (!is_firewalled)
 		return current_peermode != NODE_P_LEAF;	/* Leaves don't send pongs */
 
-	addr = listen_addr();
-
-	if (!is_host_addr(addr))
+	if (!is_host_addr(listen_addr()) && !is_host_addr(listen_addr6()))
 		return FALSE;		/* We don't know our local IP, we can't reply */
 
-	if (is_private_addr(addr))
+	if (is_private_addr(listen_addr()) && is_private_addr(listen_addr6()))
 		return FALSE;
 
 	elapsed = delta_time(tm_time(), fw_time);	/* Since last status change */

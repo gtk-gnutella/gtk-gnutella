@@ -965,11 +965,6 @@ enable_udp_changed(property_t prop)
 	changed = update_togglebutton(prop);
 	(void) is_firewalled_changed(prop);
 
-	if (enabled)
-		guc_node_udp_gui_show();
-	else
-		guc_node_udp_gui_remove();
-
 	return changed;
 }
 
@@ -2011,31 +2006,48 @@ static gboolean
 update_address_information(void)
 {
     static host_addr_t old_address;
+    static host_addr_t old_v6_address;
     static guint16 old_port = 0;
-	host_addr_t current_addr;
-	gboolean force_local_addr;
-    guint32 port;
+	host_addr_t addr, addr_v6;
+    guint16 port;
 
-    gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &port);
-    gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_addr);
-   	gnet_prop_get_ip_val(force_local_addr
-		? PROP_FORCED_LOCAL_IP : PROP_LOCAL_IP, &current_addr);
+	port = guc_listen_port();
+	addr = guc_listen_addr(NET_TYPE_IPV4);
+	addr_v6 = guc_listen_addr(NET_TYPE_IPV6);
 
-	if (old_port != port || !host_addr_equal(old_address, current_addr)) {
-		const gchar *s = host_addr_port_to_string(current_addr, port);
+	if (
+		old_port != port ||
+		!host_addr_equal(old_address, addr) ||
+		!host_addr_equal(old_v6_address, addr_v6)
+	) {
+		gchar addr_buf[HOST_ADDR_PORT_BUFLEN];
+		gchar addr_v6_buf[HOST_ADDR_PORT_BUFLEN];
+		gchar buf[256];
 
-        old_address = current_addr;
+		host_addr_port_to_string_buf(addr, port,
+			addr_buf, sizeof addr_buf);
+		host_addr_port_to_string_buf(addr_v6, port,
+			addr_v6_buf, sizeof addr_v6_buf);
+		concat_strings(buf, sizeof buf,
+			addr_buf,
+			", ",
+			addr_v6_buf,
+			(void *) 0);
+		
+        old_address = addr;
+        old_v6_address = addr_v6;
         old_port = port;
-        statusbar_gui_message(15, _("Address/port changed to: %s"), s);
+
+        statusbar_gui_message(15, _("Address/port changed to: %s"), buf);
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")), s);
+            GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")), buf);
 
 #ifdef USE_GTK2
         gtk_label_set_text(
-			GTK_LABEL(lookup_widget(main_window, "label_nodes_ip")), s);
+			GTK_LABEL(lookup_widget(main_window, "label_nodes_ip")), buf);
 #else
         gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip")), s);
+			GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip")), buf);
 #endif /* USE_GTK2 */
     }
 
@@ -2151,8 +2163,7 @@ listen_port_changed(property_t prop)
 static gboolean
 local_address_changed(property_t prop)
 {
-	g_return_val_if_fail(PROP_LOCAL_IP == prop, FALSE);
-
+	(void) prop;
     update_address_information();
     return FALSE;
 }

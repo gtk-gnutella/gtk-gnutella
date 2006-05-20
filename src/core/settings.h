@@ -53,7 +53,8 @@ extern struct in_addr *local_netmasks;
  * Global Functions
  */
 
-host_addr_t listen_addr(void);
+gboolean is_my_address(const host_addr_t addr, guint16 port);
+
 void settings_init(void);
 void settings_save_if_dirty(void);
 void settings_shutdown(void);
@@ -64,7 +65,7 @@ void settings_ask_for_property(const gchar *name,
 	const gchar *value) G_GNUC_NORETURN;
 
 guint32 get_average_servent_uptime(time_t now);
-guint32 get_average_ip_lifetime(time_t now);
+guint32 get_average_ip_lifetime(time_t now, enum net_type net);
 
 #endif /* _core_settings_h_ */
 /* vi: set ts=4 sw=4 cindent: */

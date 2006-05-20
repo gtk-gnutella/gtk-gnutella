@@ -32,6 +32,10 @@
 
 #ifdef CORE_SOURCES
 
+#include "lib/host_addr.h"
+
+host_addr_t listen_addr(void);
+host_addr_t listen_addr6(void);
 const gchar *settings_config_dir(void);
 const gchar *settings_home_dir(void);
 enum net_type settings_dns_net(void);

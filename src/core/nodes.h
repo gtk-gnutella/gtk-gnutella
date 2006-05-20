@@ -569,7 +569,7 @@ void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);
 
-mqueue_t *node_udp_get_outq(void);
+mqueue_t *node_udp_get_outq(enum net_type net);
 void node_udp_enable(void);
 void node_udp_disable(void);
 void node_udp_process(struct gnutella_socket *s);

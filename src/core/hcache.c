@@ -575,7 +575,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 			return FALSE;
 	}
 
-	if (host_addr_equal(addr, listen_addr()) && port == listen_port) {
+	if (is_my_address(addr, port)) {
         stats[HCACHE_LOCAL_INSTANCE]++;
 		return FALSE;
     }

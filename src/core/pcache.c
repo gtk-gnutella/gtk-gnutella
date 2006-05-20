@@ -313,12 +313,10 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 
-#ifdef USE_IPV6
 		if (meta->flags & PONG_META_HAS_IPV6) {
 			ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6),
 				host_addr_ipv6(&meta->ipv6_addr), 16, 0);
 		}
-#endif /* USE_IPV6 */
 
 	}
 
@@ -565,8 +563,8 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		local_meta.sender_port = n->port;
 	}
 
-	if (NET_TYPE_IPV6 == host_addr_net(info.addr)) {
-		local_meta.ipv6_addr = info.addr;
+	if (NET_TYPE_IPV6 == host_addr_net(listen_addr6())) {
+		local_meta.ipv6_addr = listen_addr6();
 		local_meta.flags |= PONG_META_HAS_IPV6;
 	}
 
@@ -2088,7 +2086,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 * (tests) or someone is trying to fool us.
 	 */
 
-	if (host_addr_equal(addr, listen_addr()) && port == listen_port)
+	if (is_my_address(addr, port))
 		return;
 
 	/*

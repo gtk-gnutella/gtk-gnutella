@@ -114,6 +114,25 @@ listen_addr(void)
 }
 
 /**
+ * @return the currently used local listening address.
+ */
+host_addr_t
+listen_addr6(void)
+{
+	return force_local_ip6 ? forced_local_ip6 : local_ip6;
+}
+
+gboolean
+is_my_address(const host_addr_t addr, guint16 port)
+{
+	return port == listen_port && (
+		host_addr_equal(addr, listen_addr()) ||
+		host_addr_equal(addr, listen_addr6())
+	);
+}
+
+
+/**
  * Look for any existing PID file. If found, look at the pid recorded
  * there and make sure it has died. Abort operations if it hasn't...
  *
@@ -502,46 +521,16 @@ settings_remove_pidfile(void)
 	G_FREE_NULL(path);
 }
 
-/**
- * This routine is called when we determined that our IP was no longer the
- * one we computed.
- *
- * We base this on some headers sent back when we handshake with other nodes,
- * and as a result, cannot trust the information.
- *
- * What we do henceforth is trust 3 successive indication that our IP changed,
- * provided we get the same information each time.
- *
- *		--RAM, 13/01/2002
- *
- * @param `new_addr' the newly suggested address.
- * @param `peer' the IP address of peer which reported the new IP address.
- *
- * There must be 3 peers from 3 different /16 networks before a change is
- * accepted. Otherwise, it would be very easy to confuse GTKG by connecting
- * 3 times in a row and submitting a *wrong* IP address.
- *
- *		--cbiere, 2004-08-01
- */
-void
-settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
+static void
+addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 {
 	static guint same_addr_count = 0;
 	static host_addr_t peers[3], last_addr_seen;
 	guint i;
 
-	g_assert(!force_local_ip);	  /* Must be called when IP isn't forced */
-	g_assert(is_host_addr(new_addr)); /* The new IP must be valid */
-
-	if (!host_addr_is_routable(new_addr) || !host_addr_is_routable(peer))
-		return;
-
-	/*
-	 * Don't accept updates for private addresses from non-private addresses
-	 * and vice-versa.
-	 */
-	if (is_private_addr(new_addr) ^ is_private_addr(peer))
-		return;
+	g_return_if_fail(!force_local_ip); /* Must be called when IP isn't forced */
+	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(new_addr));
+	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(peer));
 
 	/*
 	 * Accept updates for private addresses only from peer in the same /16
@@ -555,7 +544,6 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
-	/* FIXME: Correct this for IPv6 */
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
 		if (host_addr_matches(peer, new_addr, 16)) /* CIDR /16 */
 			return;
@@ -583,6 +571,111 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP, new_addr);
+}
+
+static void
+addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
+{
+	static guint same_addr_count = 0;
+	static host_addr_t peers[3], last_addr_seen;
+	guint i;
+
+	g_return_if_fail(!force_local_ip6); /* Must not be called if IP is forced */
+	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(new_addr));
+	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(peer));
+
+	/*
+	 * Accept updates for private addresses only from peer in the same /64
+	 * network; addresses are in host byte order.
+	 */
+	if (
+		is_private_addr(new_addr) &&
+		is_private_addr(peer) &&
+		!host_addr_matches(peer, new_addr, 64) /* CIDR /64 */
+	) {
+		return;
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+		if (host_addr_matches(peer, new_addr, 64)) /* CIDR /64 */
+			return;
+	}
+
+	if (!host_addr_equal(new_addr, last_addr_seen)) {
+		last_addr_seen = new_addr;
+		same_addr_count = 1;
+		peers[0] = peer;
+		return;
+	}
+
+	g_assert(same_addr_count > 0 && same_addr_count < G_N_ELEMENTS(peers));
+	peers[same_addr_count] = peer;
+
+	if (++same_addr_count < G_N_ELEMENTS(peers))
+		return;
+
+	last_addr_seen = zero_host_addr;
+	same_addr_count = 0;
+	for (i = 0; i < G_N_ELEMENTS(peers); i++)
+		peers[0] = zero_host_addr;
+
+	if (host_addr_equal(new_addr, local_ip6))
+		return;
+
+    gnet_prop_set_ip_val(PROP_LOCAL_IP6, new_addr);
+}
+
+
+/**
+ * This routine is called when we determined that our IP was no longer the
+ * one we computed.
+ *
+ * We base this on some headers sent back when we handshake with other nodes,
+ * and as a result, cannot trust the information.
+ *
+ * What we do henceforth is trust 3 successive indication that our IP changed,
+ * provided we get the same information each time.
+ *
+ *		--RAM, 13/01/2002
+ *
+ * @param `new_addr' the newly suggested address.
+ * @param `peer' the IP address of peer which reported the new IP address.
+ *
+ * There must be 3 peers from 3 different /16 networks before a change is
+ * accepted. Otherwise, it would be very easy to confuse GTKG by connecting
+ * 3 times in a row and submitting a *wrong* IP address.
+ *
+ *		--cbiere, 2004-08-01
+ */
+void
+settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
+{
+	g_assert(is_host_addr(new_addr)); /* The new IP must be valid */
+	g_assert(is_host_addr(peer)); /* The peer's IP must be valid */
+
+	if (!host_addr_is_routable(new_addr) || !host_addr_is_routable(peer))
+		return;
+
+	/*
+	 * Don't accept updates for private addresses from non-private addresses
+	 * and vice-versa.
+	 */
+	if (is_private_addr(new_addr) ^ is_private_addr(peer))
+		return;
+
+	if (host_addr_net(new_addr) != host_addr_net(peer))
+		return;
+
+	switch (host_addr_net(new_addr)) {
+	case NET_TYPE_IPV4:
+		addr_ipv4_changed(new_addr, peer);
+		break;
+	case NET_TYPE_IPV6:
+		addr_ipv6_changed(new_addr, peer);
+		break;
+	case NET_TYPE_NONE:
+		break;
+	}
 }
 
 /**
@@ -730,14 +823,24 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
  * update the property.
  */
 guint32
-get_average_ip_lifetime(time_t now)
+get_average_ip_lifetime(time_t now, enum net_type net)
 {
 	time_t current_ip_stamp;
 	guint32 average_ip_uptime;
 	glong lifetime;
 
-	gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
-	gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
+	switch (net) {
+	case NET_TYPE_IPV4: 
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+		gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
+		break;
+	case NET_TYPE_IPV6: 
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
+		gnet_prop_get_guint32_val(PROP_AVERAGE_IP6_UPTIME, &average_ip_uptime);
+		break;
+	default:
+		return 0;
+	}
 
 	if (current_ip_stamp) {
 		lifetime = delta_time(now, current_ip_stamp);
@@ -762,12 +865,11 @@ get_average_ip_lifetime(time_t now)
 static void
 update_address_lifetime(void)
 {
-	static host_addr_t old_addr;
+	static host_addr_t old_addr, old_addr_v6;
 	time_t current_ip_stamp;
 	host_addr_t addr;
 
 	addr = listen_addr();
-
 	if (!is_host_addr(old_addr)) {				/* First time */
 		old_addr = addr;
 		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
@@ -789,9 +891,35 @@ update_address_lifetime(void)
 
 		if (current_ip_stamp)
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
-					get_average_ip_lifetime(now));
+					get_average_ip_lifetime(now, host_addr_net(addr)));
 
 		gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, now);
+	}
+
+	addr = listen_addr6();
+	if (!is_host_addr(old_addr_v6)) {				/* First time */
+		old_addr_v6 = addr;
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
+		if (0 == current_ip_stamp)
+			gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, tm_time());
+	}
+
+	if (!host_addr_equal(old_addr_v6, addr)) {
+		time_t now;
+
+		/*
+		 * IP address changed, update lifetime information.
+		 */
+
+		now = tm_time();
+		old_addr_v6 = addr;
+
+		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
+		if (current_ip_stamp)
+			gnet_prop_set_guint32_val(PROP_AVERAGE_IP6_UPTIME,
+					get_average_ip_lifetime(now, host_addr_net(addr)));
+
+		gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, now);
 	}
 }
 
@@ -835,7 +963,9 @@ update_uptimes(void)
 		get_average_servent_uptime(now));
 
 	gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
-		get_average_ip_lifetime(now));
+		get_average_ip_lifetime(now, NET_TYPE_IPV4));
+	gnet_prop_set_guint32_val(PROP_AVERAGE_IP6_UPTIME,
+		get_average_ip_lifetime(now, NET_TYPE_IPV6));
 }
 
 /***
@@ -909,16 +1039,21 @@ enable_udp_changed(property_t prop)
 
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
-		if (s_udp_listen == NULL && listen_port)
+		if (s_tcp_listen) {
 			s_udp_listen = socket_udp_listen(zero_host_addr, listen_port);
 			if (!s_udp_listen) {
-				gcu_statusbar_warning(_("Failed to create UDP socket"));
+				gcu_statusbar_warning(_("Failed to create IPv4 UDP socket"));
 			}
-	} else {
-		if (s_udp_listen) {
-			socket_free(s_udp_listen);
-			s_udp_listen = NULL;
 		}
+		if (s_tcp_listen6) {
+			s_udp_listen6 = socket_udp_listen(zero_host_addr, listen_port);
+			if (!s_udp_listen) {
+				gcu_statusbar_warning(_("Failed to create IPv6 UDP socket"));
+			}
+		}
+	} else {
+		socket_free_null(&s_udp_listen);
+		socket_free_null(&s_udp_listen6);
 	}
 	node_update_udp_socket();
 
@@ -929,20 +1064,16 @@ static void
 request_new_sockets(guint16 port, gboolean check_firewalled)
 {
 	host_addr_t bind_addr = zero_host_addr;
+	host_addr_t bind_addr6 = zero_host_addr;
 
 	/*
 	 * Close old ports.
 	 */
 
-	if (s_tcp_listen) {
-		socket_free(s_tcp_listen);
-		s_tcp_listen = NULL;
-	}
-
-	if (s_udp_listen) {
-		socket_free(s_udp_listen);
-		s_udp_listen = NULL;
-	}
+	socket_free_null(&s_tcp_listen);
+	socket_free_null(&s_tcp_listen6);
+	socket_free_null(&s_udp_listen);
+	socket_free_null(&s_udp_listen6);
 
 	/*
 	 * If the new port != 0, open the new port
@@ -951,41 +1082,48 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	if (0 == port)
 		return;
 
+	bind_addr = host_addr_set_ipv4(INADDR_ANY);
+	bind_addr6 = ipv6_unspecified;
+	
 	if (
 		force_local_ip &&
 		bind_to_forced_local_ip &&
 		host_addr_initialized(listen_addr())
-   ) {
+    ) {
 		bind_addr = listen_addr();
-	} else {
-		switch (network_protocol) {
-		case NET_USE_BOTH:
-		case NET_USE_IPV4:
-			bind_addr = host_addr_set_ipv4(INADDR_ANY);
-			break;
-#ifdef USE_IPV6
-		case NET_USE_IPV6:
-			{
-				static const guint8 zero_ipv6_addr[16];
-				host_addr_set_ipv6(&bind_addr, zero_ipv6_addr);
-			}
-			break;
-#endif /* USE_IPV6 */
-		}
+	}
+	if (
+		force_local_ip6 &&
+		bind_to_forced_local_ip6 &&
+		host_addr_initialized(listen_addr6())
+    ) {
+		bind_addr6 = listen_addr6();
 	}
 
-	s_tcp_listen = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
-
+	if (NET_USE_BOTH == network_protocol || NET_USE_IPV4 == network_protocol) {
+		s_tcp_listen = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
+		if (enable_udp) {
+			s_udp_listen = socket_udp_listen(bind_addr, port);
+			if (!s_udp_listen) {
+				socket_free_null(&s_tcp_listen);
+			}
+		}
+	}
+	if (NET_USE_BOTH == network_protocol || NET_USE_IPV6 == network_protocol) {
+		s_tcp_listen6 = socket_tcp_listen(bind_addr6, port, SOCK_TYPE_CONTROL);
+		if (enable_udp) {
+			s_udp_listen6 = socket_udp_listen(bind_addr6, port);
+			if (!s_udp_listen6) {
+				socket_free_null(&s_tcp_listen6);
+			}
+		}
+	}
+	
 	/*
 	 * If UDP is enabled, also listen on the same UDP port.
 	 */
 
-	if (enable_udp && s_tcp_listen) {
-		s_udp_listen = socket_udp_listen(bind_addr, port);
-		if (s_udp_listen == NULL) {
-			socket_free(s_tcp_listen);
-			s_tcp_listen = NULL;
-		}
+	if (enable_udp) {
 		node_update_udp_socket();
 	}
 
@@ -1046,7 +1184,11 @@ listen_port_changed(property_t prop)
 
 			g_assert(port > 1023);
 			request_new_sockets(port, FALSE);
-		} while (s_tcp_listen == NULL && ++num_tried < 65535 - 1024);
+
+			if (s_tcp_listen || s_tcp_listen6)
+				break;
+
+		} while (++num_tried < 65535 - 1024);
 
 		old_port = port;
 		gnet_prop_set_guint32_val(prop, port);
@@ -1397,7 +1539,20 @@ lib_debug_changed(property_t unused_prop)
 static gboolean
 force_local_addr_changed(property_t prop)
 {
-	g_assert(PROP_FORCE_LOCAL_IP == prop);
+	(void) prop;
+
+	if (
+		NET_TYPE_NONE != host_addr_net(local_ip) &&
+		NET_TYPE_IPV4 != host_addr_net(local_ip)
+	) {
+		gnet_prop_set_ip_val(PROP_LOCAL_IP, zero_host_addr);
+	}
+	if (
+		NET_TYPE_NONE != host_addr_net(local_ip6) &&
+		NET_TYPE_IPV6 != host_addr_net(local_ip6)
+	) {
+		gnet_prop_set_ip_val(PROP_LOCAL_IP6, zero_host_addr);
+	}
 	update_address_lifetime();
 	request_new_sockets(listen_port, TRUE);
     return FALSE;
@@ -1406,8 +1561,8 @@ force_local_addr_changed(property_t prop)
 static gboolean
 forced_local_ip_changed(property_t prop)
 {
-	g_assert(PROP_FORCED_LOCAL_IP == prop);
-	if (force_local_ip) {
+	(void) prop;
+	if (force_local_ip || force_local_ip6) {
 		request_new_sockets(listen_port, TRUE);
 	}
     return FALSE;
@@ -1416,7 +1571,7 @@ forced_local_ip_changed(property_t prop)
 static gboolean
 local_addr_changed(property_t prop)
 {
-	g_assert(PROP_LOCAL_IP == prop);
+	(void) prop;
 	update_address_lifetime();
     return FALSE;
 }
@@ -1763,12 +1918,27 @@ static prop_map_t property_map[] = {
 		TRUE,
 	},
 	{
+		PROP_FORCE_LOCAL_IP6,
+		force_local_addr_changed,
+		TRUE,
+	},
+	{
 		PROP_FORCED_LOCAL_IP,
 		forced_local_ip_changed,
 		TRUE,
 	},
 	{
+		PROP_FORCED_LOCAL_IP6,
+		forced_local_ip_changed,
+		TRUE,
+	},
+	{
 		PROP_LOCAL_IP,
+		local_addr_changed,
+		TRUE,
+	},
+	{
+		PROP_LOCAL_IP6,
 		local_addr_changed,
 		TRUE,
 	},
