@@ -7377,9 +7377,7 @@ http_version_nofix:
 		}
 
 		d->bio = browse_host_io_source(d->browse);
-	}
-
-	if (d->size == 0 && fi->file_size_known) {
+	} else if (d->size == 0 && fi->file_size_known) {
 		g_assert(d->flags & DL_F_SHRUNK_REPLY);
 		download_queue_delay(d,
 			MAX(delay, download_retry_busy_delay),
@@ -9645,7 +9643,7 @@ download_rx_done(struct download *d)
 
 	g_assert(fi != NULL);
 
-	if (!fi->file_size_known) {
+	if (!d->browse && !fi->file_size_known) {
 		file_info_size_known(d, fi->done);
 		d->size = fi->size;
 		d->range_end = download_filesize(d);	/* New upper boundary */
