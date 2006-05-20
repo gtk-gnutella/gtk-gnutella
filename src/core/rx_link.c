@@ -68,11 +68,11 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = data;
 	struct attr *attr = rx->opaque;
-	pdata_t *db[4];
+	pdata_t *db[16];
 	struct iovec iov[G_N_ELEMENTS(db)];
 	pmsg_t *mb;
 	ssize_t r;
-	guint i;
+	guint i, iov_cnt, avail;
 
 	(void) unused_source;
 	g_assert(attr->bio);			/* Input enabled */
@@ -82,54 +82,62 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
+	avail = inputevt_data_available();
+
 	/*
-	 * Grab an RX buffer, and try to fill as much as we can.
+	 * Grab RX buffers, and try to fill as much as we can.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(db); i++) {
+	i = 0;
+	for (i = 0; i < G_N_ELEMENTS(db); /* NOTHING */) {
+		size_t len;
+		
 		db[i] = rxbuf_new();
+		len = pdata_len(db[i]);
 		iov[i].iov_base = pdata_start(db[i]);
-		iov[i].iov_len = pdata_len(db[i]);
-	}
+		iov[i].iov_len = len;
+		i++;
 
-	r = bio_readv(attr->bio, iov, G_N_ELEMENTS(iov));
+		if (len >= avail)
+			break;
+		avail -= len;
+	}
+	iov_cnt = i;
+
+	i = 0;	/* To free all buffers on error */
+	r = bio_readv(attr->bio, iov, iov_cnt);
 	if (r == 0) {
 		attr->cb->got_eof(rx->owner);
-		goto error;
 	} else if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno))
 			attr->cb->read_error(rx->owner, _("Read error: %s"),
 				g_strerror(errno));
-		goto error;
-	}
+	} else {
+		/*
+		 * Got something, build a message and send it to the upper layer.
+		 * NB: `mb' is expected to be freed by the last layer using it.
+		 */
 
-	/*
-	 * Got something, build a message and send it to the upper layer.
-	 * NB: `mb' is expected to be freed by the last layer using it.
-	 */
+		if (attr->cb->add_rx_given != NULL)
+			attr->cb->add_rx_given(rx->owner, r);
 
-	if (attr->cb->add_rx_given != NULL)
-		attr->cb->add_rx_given(rx->owner, r);
+		while (r > 0 && i < iov_cnt) {
+			size_t n = pdata_len(db[i]);
 
-	for (i = 0; i < G_N_ELEMENTS(db) && r > 0; i++) {
-		size_t n = pdata_len(db[i]);
-
-		n = MIN(n, (size_t) r);
-		r -= n;
-		mb = pmsg_alloc(PMSG_P_DATA, db[i], 0, n);
-		if (!(*rx->data_ind)(rx, mb)) {
-			r = 0; /* let i increase b/c the buffer was freed */
+			if (n > (size_t) r) {
+				n = (size_t) r;
+				r = 0;
+			} else {
+				r -= n;
+			}
+			mb = pmsg_alloc(PMSG_P_DATA, db[i], 0, n);
+			i++;
+			if (!(*rx->data_ind)(rx, mb))
+				break;
 		}
 	}
 
-	
-	for (/* CONTINUE*/; i < G_N_ELEMENTS(db); i++) {
-		rxbuf_free(db[i], NULL);
-	}
-	return;
-
-error:
-	for (i = 0; i < G_N_ELEMENTS(db); i++) {
+	for (/* CONTINUE*/; i < iov_cnt; i++) {
 		rxbuf_free(db[i], NULL);
 	}
 }
