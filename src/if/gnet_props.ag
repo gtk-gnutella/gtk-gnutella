@@ -190,13 +190,19 @@ prop = {
 
 prop = {
     name = "local_ip";
-    desc = "Local IP address last determined.";
+    desc = "Local IPv4 address last determined.";
+    type = ip;
+};
+
+prop = {
+    name = "local_ip6";
+    desc = "Local IPv6 address last determined.";
     type = ip;
 };
 
 prop = {
     name = "current_ip_stamp";
-    desc = "When the current IP address was determined.";
+    desc = "When the current IPv4 address was determined.";
     type = timestamp;
     data = {
         default = 0;
@@ -204,13 +210,33 @@ prop = {
 };
 
 prop = {
+    name = "current_ip6_stamp";
+    desc = "When the current IPv6 address was determined.";
+    type = timestamp;
+    data = {
+        default = 0;
+    };
+};
+
+
+prop = {
     name = "average_ip_uptime";
-    desc = "Average uptime with the same IP address.";
+    desc = "Average uptime with the same IPv4 address.";
     type = guint32;
     data = {
         default = 0;
     };
 };
+
+prop = {
+    name = "average_ip6_uptime";
+    desc = "Average uptime with the same IPv6 address.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 
 prop = {
     name = "start_stamp";
@@ -250,6 +276,13 @@ prop = {
 prop = {
     name = "forced_local_ip";
     desc = "Use this IP address as source address if 'force local ip' "
+           "is activated.";
+    type = ip;
+};
+
+prop = {
+    name = "forced_local_ip6";
+    desc = "Use this IPv6 address as source address if 'force local ip' "
            "is activated.";
     type = ip;
 };
@@ -1165,8 +1198,28 @@ prop = {
 };
 
 prop = {
+    name = "force_local_ip6";
+    desc = "Enable to use [forced_local_ip6] as local ip.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+
+prop = {
     name = "bind_to_forced_local_ip";
     desc = "If 'forced_local_ip' is enabled, bind the socket to the forced "
+		   "IP address.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "bind_to_forced_local_ip6";
+    desc = "If 'forced_local_ip6' is enabled, bind the socket to the forced "
 		   "IP address.";
     type = boolean;
     data = {
