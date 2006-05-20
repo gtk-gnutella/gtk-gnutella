@@ -575,6 +575,7 @@ gui_create_dlg_faq(void)
 				}
 				*p++ = *s;
 			}
+			*p = '\0';
 			
 			text_widget_append(GTK_WIDGET(text), lazy_utf8_to_ui_string(buf));
 		}
