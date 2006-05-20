@@ -5404,7 +5404,7 @@ download_write_data(struct download *d)
 	else
 		gcu_gui_update_download(d, FALSE);
 
-	return TRUE;
+	return DOWNLOAD_IS_RUNNING(d);
 
 	/*
 	 * Requested chunk is done.
