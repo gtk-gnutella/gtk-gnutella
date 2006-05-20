@@ -5329,9 +5329,13 @@ file_info_build_magnet(gnet_fi_t handle)
 	n = 0;
 	for (sl = fi->sources; NULL != sl && n++ < 20; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
+		gchar *dl_url;
 
 		g_assert(d);
-		magnet_add_source_by_url(magnet, download_build_url(d));
+		dl_url = download_build_url(d);
+		if (dl_url) {
+			magnet_add_source_by_url(magnet, dl_url);
+		}
 	}
 
 	url = magnet_to_string(magnet);
