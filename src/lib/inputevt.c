@@ -197,6 +197,36 @@ get_poll_event_cond(gpointer p)
 }
 #endif /* HAS_KQUEUE */
 
+#ifdef HAS_KQUEUE
+static guint data_available;
+
+/**
+ * @return The amount of data available in the buffer if this was read
+ *         event. If the amount is unknown zero is returned. Thus zero
+ *         does not mean there's nothing avaible. This should only be
+ *         considered a good guess. 
+ */
+guint
+inputevt_data_available(void)
+{
+	return data_available;
+}
+#endif /* HAS_KQUEUE */
+
+static inline void
+poll_event_set_data_avail(gpointer p)
+#ifdef HAS_KQUEUE 
+{
+	struct kevent *ev = p;
+
+	data_available = EVFILT_READ == ev->filter ? MIN(INT_MAX, ev->data) : 0;
+}
+#else	/* !HAS_KQUEUE */
+{
+	(void) p;
+}
+#endif /* HAS_KQUEUE */
+
 static gint
 update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
@@ -416,8 +446,10 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 			if (zero_handler == relay->handler)
 				continue;
 
-			if (relay->condition & cond)
+			if (relay->condition & cond) {
+				poll_event_set_data_avail(&poll_ctx->ev[i]);
 				relay->handler(relay->data, fd, cond);
+			}
 		}
 	}
 	

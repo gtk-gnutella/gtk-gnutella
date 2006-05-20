@@ -80,6 +80,12 @@ guint inputevt_add(gint source, inputevt_cond_t condition,
 
 const gchar *inputevt_cond_to_string(inputevt_cond_t cond);
 
+#if defined(HAS_KQUEUE)
+guint inputevt_data_available(void);
+#else /* HAS_KQUEUE */
+#define inputevt_data_available() 0U
+#endif /* !HAS_KQUEUE */
+
 #if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 void inputevt_remove(guint id);
 #else /* !(HAS_EPOLL || HAS_KQUEUE) */
