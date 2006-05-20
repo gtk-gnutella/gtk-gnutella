@@ -2363,7 +2363,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 /**
  * Someone is sending us a datagram.
  */
-static gboolean
+static ssize_t
 socket_udp_accept(struct gnutella_socket *s)
 {
 	socket_addr_t *from_addr;
@@ -2455,7 +2455,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	}
 
 	if ((ssize_t) -1 == r)
-		return TRUE;
+		return (ssize_t) -1;
 
 	g_assert((size_t) r <= sizeof s->buffer);
 
@@ -2490,7 +2490,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	 */
 
 	udp_received(s, truncated);
-	return FALSE;
+	return r;
 }
 
 /**
@@ -2500,7 +2500,7 @@ static void
 socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
-	guint i;
+	guint i, avail;
 	
 	(void) unused_source;
 
@@ -2519,15 +2519,20 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * as there are often several packets queued.
 	 */
 
-	for (i = 0; i < 1; i++) {
-		if (socket_udp_accept(s)) {
+	avail = inputevt_data_available();
+	for (i = 0; i < 16; i++) {
+		ssize_t r;
+
+		r = socket_udp_accept(s);
+		if ((ssize_t) -1 == r) {
 			if (!is_temporary_error(errno))
 				g_warning("ignoring datagram reception error: %s",
 					g_strerror(errno));
-			if (i > 1)
-				g_message("socket_udp_event(): i=%u", i);
-			return;
+			break;
 		}
+		if ((size_t) r >= avail)
+			break;
+		avail -= r;
 	}
 }
 
