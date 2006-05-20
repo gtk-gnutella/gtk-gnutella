@@ -189,6 +189,7 @@ static gboolean
 browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct browse_ctx *bc = rx_owner(rx);
+	struct download *d;
 	gboolean error = FALSE;
 
 	while (browse_data_read(bc, mb)) {
@@ -209,11 +210,16 @@ browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	 * layer, but in that case it is harmless to make the call anyway.
 	 */
 
-	if (!error)
-		download_browse_maybe_finished(bc->owner);
+	d = bc->owner;
+	download_check(d);
+
+	if (!error) {
+		download_browse_maybe_finished(d);
+		download_check(d);
+	}
 
 	pmsg_free(mb);
-	return !error;
+	return !error && DOWNLOAD_IS_RUNNING(d);
 }
 
 /***
