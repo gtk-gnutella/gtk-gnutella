@@ -60,6 +60,7 @@ RCSID("$Id$");
 #include "settings.h"			/* For listen_addr() */
 #include "token.h"
 #include "downloads.h"
+#include "features.h"
 
 #include "lib/misc.h"
 #include "lib/atoms.h"
@@ -106,8 +107,7 @@ pproxy_free_resources(struct pproxy *pp)
 	}
 	if (pp->socket != NULL) {
 		g_assert(pp->socket->resource.pproxy == pp);
-		socket_free(pp->socket);
-		pp->socket = NULL;
+		socket_free_null(&pp->socket);
 	}
 }
 
@@ -504,7 +504,8 @@ error:
  */
 const gchar *
 build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
-	host_addr_t addr, guint16 port, guint32 file_idx)
+	host_addr_t addr_v4, host_addr_t addr_v6, guint16 port,
+	guint32 file_idx, gboolean supports_tls)
 {
 	static union {
 		struct gnutella_msg_push_request m;
@@ -513,7 +514,6 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	gchar *p = packet.data;
 	size_t len = 0, size = sizeof packet;
 	ggep_stream_t gs;
-	guint32 ip;
 
 	g_assert(size_ptr);
 	g_assert(guid);
@@ -534,46 +534,30 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	ggep_stream_init(&gs, p, size);
 
 #ifdef HAS_GNUTLS
-	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0)) {
-		g_warning("could not write GGEP \"GTKG.TLS\" extension into PUSH");
-			ggep_stream_close(&gs);
-			return NULL;
+	if (is_host_addr(addr_v4)) {
+		supports_tls |= is_my_address(addr_v4, port);
+	}
+	if (is_host_addr(addr_v6)) {
+		supports_tls |= is_my_address(addr_v6, port);
 	}
 #endif /* HAS_GNUTLS */
-
-	ip = 0;
-	switch (host_addr_net(addr)) {
-	case NET_TYPE_IPV6:
-#ifndef USE_IPV6
-		g_assert_not_reached();
-		break;
-#else /* USE_IPV6 */
-		{
-			const host_addr_t from = addr;
-
-			if (!host_addr_convert(from, &addr, NET_TYPE_IPV4)) {
-				const guint8 *ipv6 = host_addr_ipv6(&from);
-
-				if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {
-					g_warning("could not write GGEP \"GTKG.IPV6\" extension "
-						"into PUSH");
-					ggep_stream_close(&gs);
-					return NULL;
-				}
-
-				break;
-			}
+	
+	if (supports_tls) {
+		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0)) {
+			g_warning("could not write GGEP \"GTKG.TLS\" extension into PUSH");
+			ggep_stream_close(&gs);
+			return NULL;
 		}
+	}
 
-#endif	/* !USE_IPV6 */
+	if (is_host_addr(addr_v6) && NET_TYPE_IPV6 == host_addr_net(addr_v6)) {
+		const guint8 *ipv6 = host_addr_ipv6(&addr_v6);
 
-		/* FALL THROUGH */
-	case NET_TYPE_IPV4:
-		ip = host_addr_ipv4(addr);
-		break;
-	case NET_TYPE_NONE:
-		g_assert_not_reached();
-		break;
+		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {
+			g_warning("could not write GGEP \"GTKG.IPV6\" extension into PUSH");
+			ggep_stream_close(&gs);
+			return NULL;
+		}
 	}
 
 	{
@@ -590,7 +574,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	g_assert(len < sizeof packet);
 
 	poke_le32(packet.m.request.file_id, file_idx == URN_INDEX ? 0 : file_idx);
-	poke_be32(packet.m.request.host_ip, ip);
+	poke_be32(packet.m.request.host_ip, host_addr_ipv4(addr_v4));
 	poke_le16(packet.m.request.host_port, port);
 	poke_le32(packet.m.header.size, len);
 
@@ -640,6 +624,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	gchar *token;
 	gchar *user_agent;
 	GSList *nodes;
+	gboolean supports_tls;
 
 	if (dbg > 2) {
 		printf("----Push-proxy request from %s:\n",
@@ -671,6 +656,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
 			pp->file_idx);
 
+	supports_tls = header_get_feature("tls", header, NULL, NULL);
+			
 	/*
 	 * Make sure they provide an X-Node header so we know whom to set up
 	 * as the originator of the push.  Then validate the address.
@@ -684,23 +671,75 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		return;
 	}
 
-	if (!string_to_host_addr_port(buf, NULL, &pp->addr, &pp->port)) {
+	{
+		const gchar *endptr;
+		host_addr_t addr;
+		guint16 port;
+
+		if (!string_to_host_addr_port(buf, &endptr, &addr, &port)) {
+			pproxy_error_remove(pp, 400,
+				"Malformed push-proxy request: cannot parse X-Node");
+			return;
+		}
+
+		pp->addr_v4 = zero_host_addr;
+		pp->addr_v6 = zero_host_addr;
+		pp->port = port;
+
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			pp->addr_v4 = addr;
+			break;
+		case NET_TYPE_IPV6:
+			pp->addr_v6 = addr;
+			break;
+		case NET_TYPE_NONE:
+			break;
+		}
+		
+		endptr = skip_ascii_spaces(endptr);
+		if (',' == *endptr) {
+			endptr = skip_ascii_spaces(&endptr[1]);
+			if (
+				string_to_host_addr_port(endptr, NULL, &addr, &port) &&
+				port == pp->port
+			) {
+				switch (host_addr_net(addr)) {
+				case NET_TYPE_IPV4:
+					pp->addr_v4 = addr;
+					break;
+				case NET_TYPE_IPV6:
+					pp->addr_v6 = addr;
+					break;
+				case NET_TYPE_NONE:
+					break;
+				}
+			}
+		}
+	}
+
+	if (!host_is_valid(pp->addr_v4, pp->port)) {
+		pp->addr_v4 = zero_host_addr;
+	}
+	if (!host_is_valid(pp->addr_v6, pp->port)) {
+		pp->addr_v6 = zero_host_addr;
+	}
+	
+	if (!is_host_addr(pp->addr_v4) && !is_host_addr(pp->addr_v6)) {
 		pproxy_error_remove(pp, 400,
-			"Malformed push-proxy request: cannot parse X-Node");
+			"Malformed push-proxy request: supplied address is unreachable");
 		return;
 	}
 
-	if (!host_is_valid(pp->addr, pp->port)) {
-		pproxy_error_remove(pp, 400,
-			"Malformed push-proxy request: supplied address %s unreachable",
-			host_addr_port_to_string(pp->addr, pp->port));
-		return;
-	}
-
-	if (!host_addr_equal(pp->addr, s->addr))
-		g_warning("push-proxy request from %s (%s) said node was at %s",
+	if (
+		!host_addr_equal(pp->addr_v4, s->addr) &&
+		!host_addr_equal(pp->addr_v6, s->addr)
+	) {
+		g_warning("push-proxy request from %s (%s) said node was at %s/%s",
 			host_addr_to_string(s->addr), pproxy_vendor_str(pp),
-			host_addr_port_to_string(pp->addr, pp->port));
+			host_addr_port_to_string(pp->addr_v4, pp->port),
+			host_addr_port_to_string2(pp->addr_v6, pp->port));
+	}
 
 	/*
 	 * Locate a route to that servent.
@@ -718,11 +757,13 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		 */
 
 		packet = build_push(&size, max_ttl - 1, 1, pp->guid,
-					pp->addr, pp->port, pp->file_idx);
+					pp->addr_v4, pp->addr_v6, pp->port, pp->file_idx,
+					supports_tls);
 
 		if (NULL == packet) {
-			g_warning("Failed to send push to %s (index=%lu)",
-				host_addr_port_to_string(pp->addr, pp->port),
+			g_warning("Failed to send push for %s/%s (index=%lu)",
+				host_addr_port_to_string(pp->addr_v4, pp->port),
+				host_addr_port_to_string2(pp->addr_v6, pp->port),
 				(gulong) pp->file_idx);
 		} else {
 			gmsg_sendto_one(n, &packet, size);
@@ -753,11 +794,13 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		 */
 
 		packet = build_push(&size, max_ttl - 1, 1,
-					pp->guid, pp->addr, pp->port, pp->file_idx);
+					pp->guid, pp->addr_v4, pp->addr_v6, pp->port,
+					pp->file_idx, supports_tls);
 
 		if (NULL == packet) {
-			g_warning("Failed to send push to %s (index=%lu)",
-				host_addr_port_to_string(pp->addr, pp->port),
+			g_warning("Failed to send push to %s/%s (index=%lu)",
+				host_addr_port_to_string(pp->addr_v4, pp->port),
+				host_addr_port_to_string2(pp->addr_v6, pp->port),
 				(gulong) pp->file_idx);
 		} else {
 			gint cnt;
@@ -787,7 +830,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 */
 
 	if (guid_eq(pp->guid, servent_guid)) {
-		upload_send_giv(pp->addr, pp->port, 0, 1, 0,
+		upload_send_giv(pp->addr_v4, pp->port, 0, 1, 0,
 			"<from push-proxy>", FALSE, pp->flags);
 
 		http_send_status(pp->socket, 202, FALSE, NULL, 0,
@@ -814,7 +857,11 @@ pproxy_request(struct pproxy *pp, header_t *header)
  *** I/O header parsing callbacks.
  ***/
 
-#define PPROXY(x)	((struct pproxy *) (x))
+static inline struct pproxy *
+PPROXY(gpointer obj)
+{
+	return obj;
+}
 
 static void
 err_line_too_long(gpointer obj)
@@ -880,8 +927,6 @@ call_pproxy_request(gpointer obj, header_t *header)
 {
 	pproxy_request(PPROXY(obj), header);
 }
-
-#undef PPROXY
 
 /**
  * Create new push-proxy request and begin reading HTTP headers.
@@ -993,7 +1038,7 @@ static gboolean
 cproxy_http_header_ind(gpointer handle, header_t *header,
 	gint code, const gchar *message)
 {
-	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
+	struct cproxy *cp = http_async_get_opaque(handle);
 	gchar *token;
 	gchar *server;
 
@@ -1078,6 +1123,10 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 	const gchar *verb, const gchar *path, const gchar *unused_host,
 	guint16 unused_port)
 {
+	gchar addr_buf[HOST_ADDR_PORT_BUFLEN];
+	gchar addr_buf_v6[HOST_ADDR_PORT_BUFLEN];
+	host_addr_t addr;
+
 	/*
 	 * Note that we send an HTTP/1.0 request here, hence we need neither
 	 * the Host: nor the Connection: header.
@@ -1088,15 +1137,28 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 	(void) unused_port;
 	g_assert(len <= INT_MAX);
 
+	addr = listen_addr();
+	if (is_host_addr(addr)) {
+		host_addr_port_to_string_buf(addr, listen_port,
+			addr_buf, sizeof addr_buf);
+	}
+	addr = listen_addr6();
+	if (is_host_addr(addr)) {
+		host_addr_port_to_string_buf(addr, listen_port,
+			addr_buf_v6, sizeof addr_buf_v6);
+	}
+	
 	return gm_snprintf(buf, len,
 		"%s %s HTTP/1.0\r\n"
 		"User-Agent: %s\r\n"
 		"X-Token: %s\r\n"
-		"X-Node: %s\r\n"
+		"X-Node: %s%s%s\r\n"
 		"\r\n",
 		verb, path, version_string,
 		tok_version(),
-		host_addr_port_to_string(listen_addr(), socket_listen_port()));
+		addr_buf,
+		('\0' != addr_buf[0] && '\0' != addr_buf_v6[0]) ? ", " : "",
+		addr_buf_v6);
 }
 
 /**

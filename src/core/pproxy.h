@@ -52,7 +52,8 @@ struct pproxy {
 	gint error_sent;		/**< HTTP error code sent back */
 	time_t last_update;
 
-	host_addr_t addr;		/**< IP of the requesting servent */
+	host_addr_t addr_v4;	/**< IPv4 of the requesting servent */
+	host_addr_t addr_v6;	/**< IPv6 of the requesting servent */
 	guint16 port;			/**< Port where GIV should be sent back */
 	gchar *user_agent;		/**< User-Agent string */
 	gchar *guid;			/**< GUID (atom) to which push should be sent */
@@ -79,7 +80,8 @@ void cproxy_free(struct cproxy *cp);
 void cproxy_reparent(struct download *d, struct download *cd);
 
 const gchar *build_push(size_t *size_ptr, guint8 ttl, guint8 hops,
-	const gchar *guid, host_addr_t addr, guint16 port, guint32 file_idx);
+	const gchar *guid, host_addr_t addr_v4, host_addr_t addr_v6,
+	guint16 port, guint32 file_idx, gboolean supports_tls);
 
 #endif	/* _core_pproxy_h_ */
 
