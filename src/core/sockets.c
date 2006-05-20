@@ -3104,7 +3104,6 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 struct gnutella_socket *
 socket_udp_listen(host_addr_t bind_addr, guint16 port)
 {
-	static const int enable = 1;
 	struct gnutella_socket *s;
 	int sd;
 
