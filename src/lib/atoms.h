@@ -200,6 +200,16 @@ atom_filesize_free_null(filesize_t **k_ptr)
 	}
 }
 
+static inline void
+atom_guid_free_null(gchar **k_ptr)
+{
+	if (*k_ptr) {
+		atom_free(ATOM_GUID, *k_ptr);
+		*k_ptr = NULL;
+	}
+}
+
+
 #endif	/* _atoms_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
