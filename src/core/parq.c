@@ -1131,7 +1131,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 ignore:
 	g_assert(s->resource.download == NULL); /* Hence socket_free() allowed */
-	socket_free(s);
+	socket_free_null(&s);
 	return;
 }
 

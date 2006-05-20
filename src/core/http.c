@@ -1575,8 +1575,7 @@ http_async_free_recursive(struct http_async *ha)
 		io_free(ha->io_opaque);
 	if (ha->bio)
 		bsched_source_remove(ha->bio);
-	if (ha->socket)
-		socket_free(ha->socket);
+	socket_free_null(&ha->socket);
 	if (ha->user_free)
 		(*ha->user_free)(ha->user_opaque);
 	if (ha->delayed)
@@ -2090,8 +2089,7 @@ http_redirect(struct http_async *ha, gchar *url)
 
 	g_assert(ha->socket);
 
-	socket_free(ha->socket);
-	ha->socket = NULL;
+	socket_free_null(&ha->socket);
 	http_async_newstate(ha, HTTP_AS_REDIRECTED);
 
 	/*

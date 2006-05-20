@@ -1154,8 +1154,7 @@ shell_destroy(gnutella_shell_t *sh)
 		sh->outbuf = NULL;
 	}
 
-	socket_free(sh->socket);
-	sh->socket = NULL;
+	socket_free_null(&sh->socket);
 	shell_free(sh);
 }
 

@@ -746,8 +746,7 @@ upload_free_resources(gnutella_upload_t *u)
 	 */
 	if (u->socket != NULL) {
 		g_assert(u->socket->resource.upload == u);
-		socket_free(u->socket);
-		u->socket = NULL;
+		socket_free_null(&u->socket);
 	}
 
     upload_free_handle(u->upload_handle);
