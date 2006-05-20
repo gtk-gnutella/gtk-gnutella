@@ -2940,10 +2940,14 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 		socket_failed = TRUE;
 		saved_errno = errno;
 	} else {
+		static const int enable = 1;
 		const struct sockaddr *sa;
 		socket_addr_t addr;
 		socklen_t len;
-		
+
+		/* Linux absolutely wants this before bind() unlike BSD */		
+		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
+
 		/* bind() the socket */
 		socket_failed = FALSE;
 		socket_addr_set(&addr, bind_addr, port);
@@ -3014,7 +3018,6 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 	s->flags |= SOCK_F_TCP;
 
 	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
 	socket_set_linger(s->file_desc);
 	socket_set_accept_filters(s->file_desc);
@@ -3121,7 +3124,6 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 	socket_enable_recvdstaddr(s);
 
 	/* Set the file descriptor non blocking */
