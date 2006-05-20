@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
@@ -104,8 +104,8 @@ msgstr "Feilet (Lesefil: %s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr "Holdt ikke liv i forbindelsen (slutt på fil)"
 
-msgid "Stopped (EOF)"
-msgstr "Stoppet (slutt på fil)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "Stoppet (filstørrelsen ble endret)"
@@ -138,7 +138,8 @@ msgstr "URN-filinformasjon stemmer ikke"
 msgid "Discovered dup SHA1"
 msgstr "Oppdaget duplisert SHA1"
 
-msgid "Stopped data (EOF)"
+#, fuzzy
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "Stoppet data (slutt på fil)"
 
 msgid "Spammer detected"
@@ -154,16 +155,16 @@ msgstr "Lagt i kø (plass %u/%u) tid igjen: %s"
 msgid "Stopped (Read buffer full)"
 msgstr "Stoppet (lesehurtigminnet er fullt)"
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr "Stoppet data (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "Fant upassende SHA1"
 
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Bla i verten %s>"
+
+#, fuzzy
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr "Stoppet data (slutt på fil)"
 
 msgid "Bad size"
 msgstr "Ugyldig størrelse"
@@ -434,7 +435,11 @@ msgid "Cannot proceed without valid configuration directory"
 msgstr "Kan ikke fortsette uten gyldig oppsettskatalog"
 
 #, fuzzy
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr "Klarte ikke lage søket"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "Klarte ikke lage søket"
 
 #, fuzzy
@@ -770,13 +775,28 @@ msgid ""
 msgstr ""
 "Ikke last opp mer enn dette antallet filer parallelt til en enkelt vert."
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "Hva den lokale IP-adressen sist ble oppdaget å være."
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "Hva den lokale IP-adressen sist ble oppdaget å være."
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "Når den gjeldende IP-adressen ble funnet."
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "Når den gjeldende IP-adressen ble funnet."
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "Gjennomsnittlig oppetid med den samme IP-adressen."
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "Gjennomsnittlig oppetid med den samme IP-adressen."
 
 msgid "Timestamp at which servent was started."
@@ -799,6 +819,12 @@ msgstr ""
 "TCP-porten 6346 til å verne mot urettverdig sensurering."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+"Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er i bruk."
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er i bruk."
 
@@ -1217,8 +1243,16 @@ msgstr "Fjern nedlastede filer fra søkeresultatet."
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Slå dette på for å bruke [forced_local_ip] som lokal IP-adresse."
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "Slå dette på for å bruke [forced_local_ip] som lokal IP-adresse."
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -2061,9 +2095,6 @@ msgstr ""
 "Hvis dette er på er Gtk-Gnutella tom for filbeskrivere, og operasjoner "
 "kjøres ikke som normalt, eller ikke i det hele tatt. Tilstanden fjernes "
 "automatisk etter 10 minutter siden siste gang mangelen inntraff."
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr "Hvis dette er på aksepterer og håndterer Gtk-Gnutella G2-forbindelser."
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr "Hvis dette er på erstattes mellomrom i filnavn med understreker."
@@ -6528,10 +6559,20 @@ msgid "[stopped]"
 msgstr "[stoppet]"
 
 #, fuzzy, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "Laget %u nedlasting"
-msgstr[1] "Laget %u nedlastinger"
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u/%u nedlasting"
+msgstr[1] "%u/%u nedlastinger"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "Intet søk"
+msgstr[1] "Intet søk"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "Feilet (Klarte ikke sende %s: %s)"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "Spørringsstrengen er ikke kodet i UTF-8"
@@ -6691,55 +6732,3 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
-
-#, fuzzy
-#~ msgid "MAGNET URI contained unsupported exact topic."
-#~ msgstr "MAGNET-URI inneholdt en kilde-URL for en protokoll som ikke støttes"
-
-#~ msgid "[%u/%u]  TR:  -"
-#~ msgstr "[%u/%u]  Tid igjen:  -"
-
-#~ msgid "SHA1 figure"
-#~ msgstr "SHA1-figur"
-
-#~ msgid "SHA1 check"
-#~ msgstr "SHA1-kontroll"
-
-#~ msgid "ERROR"
-#~ msgstr "FEIL"
-
-#~ msgid "FAILED"
-#~ msgstr "FEILET"
-
-#~ msgid " TR: %s"
-#~ msgstr "Tid igjen: %s"
-
-#~ msgid "Unknown status %u"
-#~ msgstr "Ukjent status «%u»"
-
-#~ msgid ""
-#~ "Aborts the download from the selected source but not the download of the "
-#~ "file itself."
-#~ msgstr ""
-#~ "Avbryter nedlastingen fra den valgte kilden, men ikke nedlastingen av "
-#~ "selve filen."
-
-#~ msgid ""
-#~ "Aborts the download from sources matching the selected criteria but not "
-#~ "the download of the file itself."
-#~ msgstr ""
-#~ "Avbryt nedlastingen fra kildene som passer til de valgte kriteriene, men "
-#~ "ikke nedlastingen av selve filen."
-
-#~ msgid ""
-#~ "If the source appears to be firewalled, it may help to enforce push mode "
-#~ "to let the source connect back to us."
-#~ msgstr ""
-#~ "Hvis kilden ser ut til å være brannmurt, kan det hjelpe å håndheve "
-#~ "dyttemodus for å la kilden koble tilbake til oss."
-
-#~ msgid "The SHA1 of the magnet is not validly encoded"
-#~ msgstr "Magnetens SHA1-verdi er ikke kodet riktig"
-
-#~ msgid "Cannot parse magnet"
-#~ msgstr "Klarte ikke spalte magnet"

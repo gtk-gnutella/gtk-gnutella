@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -105,8 +105,8 @@ msgstr "Gefaalt (Leesfout: %s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr "Connectie bleef niet leven (EOF)"
 
-msgid "Stopped (EOF)"
-msgstr "Gestopt (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "Gestopt (Bestandsgrootte uitvoerbestand gewijzigd)"
@@ -139,7 +139,8 @@ msgstr "URN bestands informatie komt niet overeen"
 msgid "Discovered dup SHA1"
 msgstr "Dubbele SHA1 ontdekt"
 
-msgid "Stopped data (EOF)"
+#, fuzzy
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "Data gestopt (EOF)"
 
 msgid "Spammer detected"
@@ -155,16 +156,16 @@ msgstr "In de wacht (slot %u / %u), geschatte resterende tijd: %s"
 msgid "Stopped (Read buffer full)"
 msgstr "Gestopped (less buffer vol)"
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr "Data gestopt (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 komt niet overeen"
 
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Blader Host %s>"
+
+#, fuzzy
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr "Data gestopt (EOF)"
 
 msgid "Bad size"
 msgstr "Verkeerde grootte"
@@ -435,7 +436,11 @@ msgid "Cannot proceed without valid configuration directory"
 msgstr "Kan niet doorgaan zonder geldige configuratie directorie"
 
 #, fuzzy
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr "Aanmaken zoekopdracht mislukt"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "Aanmaken zoekopdracht mislukt"
 
 #, fuzzy
@@ -775,13 +780,28 @@ msgid ""
 "Don't upload more than this number of files in parallel to a single host."
 msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host."
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "Laatst bekende IP-adres."
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "Laatst bekende IP-adres."
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "Wanneer het huidige IP-adres voor het laatst is vastgesteld."
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "Wanneer het huidige IP-adres voor het laatst is vastgesteld."
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "Gemiddelde uptime met hetzelfde IP-adres."
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "Gemiddelde uptime met hetzelfde IP-adres."
 
 msgid "Timestamp at which servent was started."
@@ -804,6 +824,12 @@ msgstr ""
 "voorzorgsmaatregel tegen onnodige censuur."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+"Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Gebruik dit IP-adres als bron adres als 'forceer lokaal ip' is geactiveerd."
 
@@ -1233,8 +1259,16 @@ msgstr "Verberg gedownloade bestanden in de zoekresultaten."
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Activeer het gebruik van [forced_local_ip] als lokaal ip."
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "Activeer het gebruik van [forced_local_ip] als lokaal ip."
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -2147,10 +2181,6 @@ msgstr ""
 "zijn beschikking. Gtk-gnutella functioneert waarschijnlijk met gereduceerde "
 "prestaties. Zodra deze conditie zich na 10 minuten niet meer voordoet zal "
 "deze automatisch worden gereset."
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr ""
-"Gtk-gnutella zal G2 verbindingen accepteren en behandelen indien geactiveerd."
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
@@ -6676,10 +6706,20 @@ msgid "[stopped]"
 msgstr "[gestopped]"
 
 #, fuzzy, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "%u download aangemaakt"
-msgstr[1] "%u downloads aangemaakt"
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u/%u downloads"
+msgstr[1] "%u/%u downloads"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "Geen zoekopdrachten"
+msgstr[1] "Geen zoekopdrachten"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "Mislukt (Kon '%s' niet versturen: %s)"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "De opdracht tekst is niet in UTF-8 gecodeerd"
@@ -6839,55 +6879,3 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
-
-#, fuzzy
-#~ msgid "MAGNET URI contained unsupported exact topic."
-#~ msgstr "MAGNET URL bevatte een bron URL voor een niet ondersteund protocol"
-
-#~ msgid "[%u/%u]  TR:  -"
-#~ msgstr "[%u/%u]  Resterende tijd:  -"
-
-#~ msgid "SHA1 figure"
-#~ msgstr "SHA1 signatuur-"
-
-#~ msgid "SHA1 check"
-#~ msgstr "SHA1 controle"
-
-#~ msgid "ERROR"
-#~ msgstr "ERROR"
-
-#~ msgid "FAILED"
-#~ msgstr "MISLUKT"
-
-#~ msgid " TR: %s"
-#~ msgstr " Resterende tijd: %s"
-
-#~ msgid "Unknown status %u"
-#~ msgstr "Onbekende status %u"
-
-#~ msgid ""
-#~ "Aborts the download from the selected source but not the download of the "
-#~ "file itself."
-#~ msgstr ""
-#~ "Breekt de download van de geselecteerde bron af, maar niet de download "
-#~ "van het bestand zelf."
-
-#~ msgid ""
-#~ "Aborts the download from sources matching the selected criteria but not "
-#~ "the download of the file itself."
-#~ msgstr ""
-#~ "Breekt de download af met bronnen die overeenkomen met de geselecteerde "
-#~ "criteria maar niet met de download van het bestand zelf."
-
-#~ msgid ""
-#~ "If the source appears to be firewalled, it may help to enforce push mode "
-#~ "to let the source connect back to us."
-#~ msgstr ""
-#~ "Als de bron afgeschermd lijkt te zijn, dan kan het helpen om een push "
-#~ "mode te forceren zodat de bron naar ons terug verbind."
-
-#~ msgid "The SHA1 of the magnet is not validly encoded"
-#~ msgstr "De SHA1 van de magneet is niet geldig geencodeerd"
-
-#~ msgid "Cannot parse magnet"
-#~ msgstr "Kon de magneet niet verwerken"

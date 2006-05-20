@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -104,8 +104,8 @@ msgstr "Fehler (Lesefehler: %s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr ""
 
-msgid "Stopped (EOF)"
-msgstr "Angehalten (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr ""
@@ -138,7 +138,7 @@ msgstr "URN aus Fileinfo stimmt nicht überein"
 msgid "Discovered dup SHA1"
 msgstr "SHA1-Duplikat entdeckt"
 
-msgid "Stopped data (EOF)"
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr ""
 
 msgid "Spammer detected"
@@ -154,15 +154,14 @@ msgstr ""
 msgid "Stopped (Read buffer full)"
 msgstr "Angehalten (Lesepuffer voll)"
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr "Datentransfer angehalten (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "SHA1-Prüfsummenfehler"
 
 #, c-format
 msgid "<Browse Host %s>"
+msgstr ""
+
+msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
 msgid "Bad size"
@@ -434,7 +433,11 @@ msgid "Cannot proceed without valid configuration directory"
 msgstr "Kann ohne gültiges Konfigurationsverzeichnis nicht fortfahren"
 
 #, fuzzy
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr "Suche konnte nicht gestartet werden"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "Suche konnte nicht gestartet werden"
 
 #, fuzzy
@@ -771,13 +774,28 @@ msgid ""
 msgstr ""
 "Begrenze die Anzahl der gleichzeitigen Uploads zu einem Host auf diese Zahl."
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "Zuletzt ermittelte lokale IP-Adresse."
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "Zuletzt ermittelte lokale IP-Adresse."
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "Wann die derzeitige IP-Adresse ermittelt wurde."
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "Wann die derzeitige IP-Adresse ermittelt wurde."
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "Mittlere Laufzeit mit derselben IP-Adresse."
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "Mittlere Laufzeit mit derselben IP-Adresse."
 
 msgid "Timestamp at which servent was started."
@@ -800,6 +818,13 @@ msgstr ""
 "Standardmäßig wird Port 6346 nicht benutzt, um Zensur zu vermeiden."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+"Benutze diese Adresse als Quelladresse, wenn 'Lokale IP setzen' aktiviert "
+"ist."
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Benutze diese Adresse als Quelladresse, wenn 'Lokale IP setzen' aktiviert "
 "ist."
@@ -1204,8 +1229,16 @@ msgstr "Heruntergeladene Dateien aus den Suchergebnissen entfernen."
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Falls aktiviert, wird [forced_local_ip] als lokale IP-Adresse benutzt."
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "Falls aktiviert, wird [forced_local_ip] als lokale IP-Adresse benutzt."
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -2062,9 +2095,6 @@ msgstr ""
 "Wenn gesetzt, stehen Gtk-Gnutella so wenig Dateideskriptoren zur Verfügnug, "
 "dass die Benutzung eingeschränkt ist. Der Zustand wird nach 10 Minuten "
 "zurückgesetzt, wenn wieder genügend Dateideskriptoren zur Verfügung stehen."
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr ""
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
@@ -6446,10 +6476,20 @@ msgid "[stopped]"
 msgstr "[angehalten]"
 
 #, fuzzy, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "%u Download gestartet"
-msgstr[1] "%u Downloads gestartet"
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u/%u Download"
+msgstr[1] "%u/%u Downloads"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "Keine Suche"
+msgstr[1] "Keine Suche"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "Fehler (%s kann nicht gesendet werden: %s)"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "Der Suchterm ist nicht UTF-8-kodiert"
@@ -6609,22 +6649,3 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
-
-#, fuzzy
-#~ msgid "MAGNET URI contained unsupported exact topic."
-#~ msgstr "MAGNET-URL enthielt nicht unterstütztes Protokoll"
-
-#~ msgid "SHA1 figure"
-#~ msgstr "SHA1-Wert"
-
-#~ msgid "SHA1 check"
-#~ msgstr "SHA1-Überprüfung"
-
-#~ msgid "ERROR"
-#~ msgstr "FEHLER"
-
-#~ msgid "FAILED"
-#~ msgstr "FEHLGESCHLAGEN"
-
-#~ msgid "The SHA1 of the magnet is not validly encoded"
-#~ msgstr "Die SHA1-Hashsumme im Magnet-Link ist nicht korrekt kodiert."

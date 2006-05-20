@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -107,8 +107,8 @@ msgstr "Falló (Error de lectura: %s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr "Conexión no mantenida (EOF)"
 
-msgid "Stopped (EOF)"
-msgstr "Detenido (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "Parado (Cambió el tamaño del archivo de salida)"
@@ -141,7 +141,8 @@ msgstr "Información de archivo URN no coincide"
 msgid "Discovered dup SHA1"
 msgstr "Descubierto un SHA1 doble"
 
-msgid "Stopped data (EOF)"
+#, fuzzy
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "Datos parados (EOF)"
 
 #, fuzzy
@@ -158,16 +159,16 @@ msgstr "Encolado (ranura %d/%d) ETA: %s"
 msgid "Stopped (Read buffer full)"
 msgstr "Parado (Búfer de lectura lleno)"
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr "Datos parados (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "Detectado distinto SHA1"
 
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "Consultar Nodo Activado"
+
+#, fuzzy
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr "Datos parados (EOF)"
 
 msgid "Bad size"
 msgstr "Tamaño incorrecto"
@@ -439,7 +440,11 @@ msgid "Cannot proceed without valid configuration directory"
 msgstr "No se puede continuar sin una configuración de directorio válida"
 
 #, fuzzy
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr "Imposible crear la búsqueda"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "Imposible crear la búsqueda"
 
 #, fuzzy
@@ -781,13 +786,28 @@ msgid ""
 "Don't upload more than this number of files in parallel to a single host."
 msgstr "No subir más de este número de archivos paralelamente a un único nodo."
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "Última vez que se determinó la dirección IP."
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "Última vez que se determinó la dirección IP."
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "Cuándo se determinó la dirección IP actual."
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "Cuándo se determinó la dirección IP actual."
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "Tiempo de ejecución promedio con la misma IP."
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "Tiempo de ejecución promedio con la misma IP."
 
 msgid "Timestamp at which servent was started."
@@ -810,6 +830,13 @@ msgstr ""
 "defecto el puerto 6346 no suele estar protegido."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+"Usar esta dirección IP como dirección de origen si 'forzar ip local' está "
+"activada."
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Usar esta dirección IP como dirección de origen si 'forzar ip local' está "
 "activada."
@@ -1217,8 +1244,16 @@ msgstr "Quitar archivos descargados del resultado de búsquedas."
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Usar [forzar_ip_local] como ip local."
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "Usar [forzar_ip_local] como ip local."
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -2057,10 +2092,6 @@ msgstr ""
 "archivo, y las operaciones se habrán degradado necesariamente, si no se han "
 "hecho imposibles. La condición se limpia automáticamente pasados 10 minutos "
 "si no hay más escasez."
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr ""
-"Cuando esté habilitado, gtk-gnutella aceptará y gestionará conexiones G2. "
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
@@ -6558,10 +6589,20 @@ msgid "[stopped]"
 msgstr "[parado]"
 
 #, fuzzy, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "Creada %u descarga"
-msgstr[1] "Creadas %u descargas"
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u/%u bajada"
+msgstr[1] "%u/%u bajadas"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "Ninguna búsqueda"
+msgstr[1] "Ninguna búsqueda"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "Fracasado (Imposible enviar %s: %s)"
 
 #, fuzzy
 msgid "The query string is not UTF-8 encoded"
@@ -6722,28 +6763,3 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
-
-#~ msgid "SHA1 figure"
-#~ msgstr "Figura SHA1"
-
-#~ msgid "SHA1 check"
-#~ msgstr "Comprobación SHA1"
-
-#~ msgid "ERROR"
-#~ msgstr "ERROR"
-
-#~ msgid "FAILED"
-#~ msgstr "FALLIDO"
-
-#, fuzzy
-#~ msgid " TR: %s"
-#~ msgstr ", ETA: %s"
-
-#~ msgid "Unknown status %u"
-#~ msgstr "Estado desconocido %u"
-
-#, fuzzy
-#~ msgid ""
-#~ "Aborts the download from sources matching the selected criteria but not "
-#~ "the download of the file itself."
-#~ msgstr "Añade \"NO MOSTRAR\""

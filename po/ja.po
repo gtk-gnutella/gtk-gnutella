@@ -72,7 +72,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2006-05-17 12:18+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -166,8 +166,8 @@ msgstr "失敗しました (読込エラー: %s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
-msgid "Stopped (EOF)"
-msgstr "中断されました (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "中断されました (出力ファイルのサイズが変更されました)"
@@ -200,7 +200,8 @@ msgstr "URN ファイル情報が一致しません"
 msgid "Discovered dup SHA1"
 msgstr "重複する SHA1 を発見しました"
 
-msgid "Stopped data (EOF)"
+#, fuzzy
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "データ受信中に中断されました (EOF)"
 
 msgid "Spammer detected"
@@ -216,16 +217,16 @@ msgstr "待機中 (スロット %u/%u) 予定時間: %s"
 msgid "Stopped (Read buffer full)"
 msgstr "中断されました (読込バッファが一杯です)"
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr "データ受信中に中断されました (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 の不一致を検出しました"
 
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<ホスト %s の閲覧>"
+
+#, fuzzy
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr "データ受信中に中断されました (EOF)"
 
 msgid "Bad size"
 msgstr "不正な大きさ"
@@ -501,7 +502,12 @@ msgstr "他の gtk-gnutella を走らせたままにしているようです\n"
 msgid "Cannot proceed without valid configuration directory"
 msgstr "適当な設定フォルダが無いと先に進めません"
 
-msgid "Failed to create UDP socket"
+#, fuzzy
+msgid "Failed to create IPv4 UDP socket"
+msgstr "UDPソケットの作成に失敗しました"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "UDPソケットの作成に失敗しました"
 
 msgid "Failed to create listening sockets"
@@ -848,13 +854,28 @@ msgid ""
 msgstr ""
 "この数以上のファイルを一つのホストに対して並行してアップロードしません。"
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "最新のローカル IP アドレスです。"
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "最新のローカル IP アドレスです。"
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "現在の IP アドレスの決定日時です。"
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "現在の IP アドレスの決定日時です。"
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "同じ IP アドレスでの平均稼働時間です。"
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "同じ IP アドレスでの平均稼働時間です。"
 
 msgid "Timestamp at which servent was started."
@@ -877,6 +898,11 @@ msgstr ""
 "ため、標準では TCP 6346番ポートは使用されない事を覚えておいて下さい。"
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr "「強制ローカルIP」を有効にすると、これを発信元アドレスとして用います。"
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr "「強制ローカルIP」を有効にすると、これを発信元アドレスとして用います。"
 
 msgid ""
@@ -1283,8 +1309,18 @@ msgstr "ダウンロードされたファイルは検索結果から削除しま
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "入力した「強制ローカルIP」をローカルIPアドレスとして使います。"
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "入力した「強制ローカルIP」をローカルIPアドレスとして使います。"
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+"「強制ローカルIP」を有効にすると、このIPアドレスにソケットをバインドします。"
+
+#, fuzzy
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 "「強制ローカルIP」を有効にすると、このIPアドレスにソケットをバインドします。"
 
@@ -2132,9 +2168,6 @@ msgstr ""
 "Gtk-Gnutella がファイル記述子を使いきっていますので、無理でなければ、操作のグ"
 "レードを下げる必要があります。最後に発生してから 10 分経過後に、この状態自体"
 "を自動的にクリアします。"
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr "Gtk-Gnutella は G2 接続を受け入れて取り扱います。"
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr "有効にすると、ファイル名の空白が下線で置き換えられます。"
@@ -6769,10 +6802,19 @@ msgstr "このセッションで無効になります"
 msgid "[stopped]"
 msgstr "[打ち切られました]"
 
-#, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "マグネットから %u 件のダウンロードを開始しました。"
+#, fuzzy, c-format
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u/%u 件のダウンロード"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "検索無し"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "失敗しました (%s を送信できません: %s)"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "この検索クエリーは UTF-8 でエンコードされていません"

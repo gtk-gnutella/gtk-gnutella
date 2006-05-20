@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -105,9 +105,8 @@ msgstr ""
 msgid "Connection not kept-alive (EOF)"
 msgstr ""
 
-#, fuzzy
-msgid "Stopped (EOF)"
-msgstr "Leálltak törlése"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr ""
@@ -140,7 +139,7 @@ msgstr "URN fájlinfó eltérés"
 msgid "Discovered dup SHA1"
 msgstr "SHA1 készítve"
 
-msgid "Stopped data (EOF)"
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr ""
 
 #, fuzzy
@@ -158,16 +157,15 @@ msgstr ""
 msgid "Stopped (Read buffer full)"
 msgstr ""
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr ""
-
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 eltérés érzékelve"
 
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "_Tallóz"
+
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr ""
 
 msgid "Bad size"
 msgstr "Rossz méret"
@@ -447,7 +445,11 @@ msgid "Cannot proceed without valid configuration directory"
 msgstr "Nem lehet továbblépni érvényes beállításmappa nélkül"
 
 #, fuzzy
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr "E keresés megkettőzése"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "E keresés megkettőzése"
 
 #, fuzzy
@@ -809,15 +811,27 @@ msgid ""
 msgstr "Nem tölt fel ennél több fájlt egyidejűleg egy gépre."
 
 #, fuzzy
-msgid "Local IP address last determined."
+msgid "Local IPv4 address last determined."
 msgstr "Az utoljára meghatározott helyi IP-cím."
 
 #, fuzzy
-msgid "When the current IP address was determined."
+msgid "Local IPv6 address last determined."
+msgstr "Az utoljára meghatározott helyi IP-cím."
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "Amikor a jelenlegi IP-címet meghatározták"
 
 #, fuzzy
-msgid "Average uptime with the same IP address."
+msgid "When the current IPv6 address was determined."
+msgstr "Amikor a jelenlegi IP-címet meghatározták"
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "Átlagos futási idő ugyanazzal az IP-címmel"
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "Átlagos futási idő ugyanazzal az IP-címmel"
 
 #, fuzzy
@@ -845,6 +859,13 @@ msgstr ""
 
 #, fuzzy
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+"Ezt az IP-címet használja forráscímként ha a „helyi ip kényszerítését” "
+"bekapcsolta"
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Ezt az IP-címet használja forráscímként ha a „helyi ip kényszerítését” "
 "bekapcsolta"
@@ -1302,8 +1323,16 @@ msgstr "Letöltött fájlok eltávolítása a találatok közül"
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "A kényszerített ip használata helyi ip-ként"
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "A kényszerített ip használata helyi ip-ként"
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 #, fuzzy
@@ -2199,9 +2228,6 @@ msgstr ""
 "Felkapcsolva gtk-gnutella kifogyott a fájlleírókból, és a működés "
 "szükségszerűen csökkent, ha nem lehetetlen. Az állapot automatikusan "
 "megszűnik 10 perccel az utolsó ilyen eset után."
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr ""
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
@@ -6869,9 +6895,18 @@ msgid "[stopped]"
 msgstr "Leálltak törlése"
 
 #, fuzzy, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "%v/%u letöltés"
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u/%u letöltés"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "Nincs keresés"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "Nyomás elküldése sikertelen"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr ""
@@ -7027,23 +7062,3 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
-
-#~ msgid "SHA1 figure"
-#~ msgstr "SHA1 érték"
-
-#~ msgid "SHA1 check"
-#~ msgstr "SHA1 ellenőrzés"
-
-#~ msgid "ERROR"
-#~ msgstr "HIBA"
-
-#~ msgid "FAILED"
-#~ msgstr "ROSSZ"
-
-#, fuzzy
-#~ msgid ""
-#~ "Aborts the download from sources matching the selected criteria but not "
-#~ "the download of the file itself."
-#~ msgstr ""
-#~ "„elrejtés” szabály felvétele a kijelölt fájlokkal egyező urn:sha1-űekre a "
-#~ "globális előszűrőbe."

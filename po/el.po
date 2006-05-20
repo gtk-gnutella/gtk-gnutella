@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -104,8 +104,8 @@ msgstr "Απέτυχε (Σφάλμα ανάγνωσης: %s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr "Η σύνδεση δε διατηρήθηκε (EOF)"
 
-msgid "Stopped (EOF)"
-msgstr "Διακόπηκε (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "Διακόπηκε (Το μέγεθος του αρχείου εξόδου άλλαξε)"
@@ -138,7 +138,8 @@ msgstr "Αταίριαστες πληροφορίες αρχείου URN"
 msgid "Discovered dup SHA1"
 msgstr ""
 
-msgid "Stopped data (EOF)"
+#, fuzzy
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "Παύση δεδομένων (EOF)"
 
 msgid "Spammer detected"
@@ -154,16 +155,16 @@ msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %u/%u) ETA
 msgid "Stopped (Read buffer full)"
 msgstr "Διακόπηκε (Ενδιάμεση μνήμη ανάγνωσης πλήρης)"
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr "Παύση δεδομένων (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "Εντοπίστηκαν αταίριαστα SHA1"
 
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "Εξερεύνηση Υπολογιστή"
+
+#, fuzzy
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr "Παύση δεδομένων (EOF)"
 
 msgid "Bad size"
 msgstr "Κακό μέγεθος"
@@ -434,7 +435,11 @@ msgid "Cannot proceed without valid configuration directory"
 msgstr "Δεν είναι δυνατή η συνέχεια χωρίς έναν έγκυρο κατάλογο ρυθμίσεων"
 
 #, fuzzy
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr "Αποτυχία δημιουργίας αναζήτησης"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "Αποτυχία δημιουργίας αναζήτησης"
 
 #, fuzzy
@@ -780,13 +785,28 @@ msgstr ""
 "Δεν αποστέλλονται περισσότερα από αυτόν τον αριθμό αρχεία παράλληλα σε έναν "
 "υπολογιστή."
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "Η τοπική διεύθυνση IP που ορίστηκε τελευταία."
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "Η τοπική διεύθυνση IP που ορίστηκε τελευταία."
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "Όταν ορίστηκε η τρέχουσα διεύθυνση IP."
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "Όταν ορίστηκε η τρέχουσα διεύθυνση IP."
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "Μέσος χρόνος λειτουργίας με την ίδια διεύθυνση IP."
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "Μέσος χρόνος λειτουργίας με την ίδια διεύθυνση IP."
 
 msgid "Timestamp at which servent was started."
@@ -810,6 +830,13 @@ msgstr ""
 "την προστασία από άδικη λογοκρισία."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+"Χρήση αυτής της διεύθυνσης IP ως πηγαία διεύθυνση αν είναι ενεργό το "
+"'εξαναγκασμός τοπικής ip'."
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Χρήση αυτής της διεύθυνσης IP ως πηγαία διεύθυνση αν είναι ενεργό το "
 "'εξαναγκασμός τοπικής ip'."
@@ -1219,8 +1246,16 @@ msgstr "Αφαίρεση των ληφθέντων αρχείων από το α
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Ενεργοποίηση χρήσης [forced_local_ip] ως τοπική ip."
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "Ενεργοποίηση χρήσης [forced_local_ip] ως τοπική ip."
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -2043,10 +2078,6 @@ msgstr ""
 "Όταν οριστεί, τελειώνουν οι περιγραφείς αρχείων του gtk-gnutella, και οι "
 "διαδικασίες αναγκαστικά υποβαθμίζονται, αν δε γίνονται αδύνατες. Η συνθήκη "
 "καθαρίζεται αυτόματα μετά από 10 λεπτά από το τελευταίο συμβάν."
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr ""
-"Όταν οριστεί, το gtk-gnutella θα αποδεχτεί και θα χειριστείτις συνδέσεις G2."
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
@@ -6512,10 +6543,20 @@ msgid "[stopped]"
 msgstr "[Διακόπηκε] "
 
 #, fuzzy, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "Δημιουργήθηκε %u λήψη"
-msgstr[1] "Δημιουργήθηκαν %u λήψεις"
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u/%u λήψη"
+msgstr[1] "%u/%u λήψεις"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "Χωρίς αναζήτηση"
+msgstr[1] "Χωρίς αναζήτηση"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "Απέτυχε (Δεν είναι δυνατή η αποστολή %s: %s)"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "Το ερώτημα SHA1 δεν είναι κωδικοποιημένο σε UTF-8"
@@ -6675,48 +6716,3 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
-
-#, fuzzy
-#~ msgid "MAGNET URI contained unsupported exact topic."
-#~ msgstr ""
-#~ "Το MAGNET URI περιείχε ένα πηγαίο URL για ένα μη υποστηριζόμενο πρωτόκολλο"
-
-#~ msgid "[%u/%u]  TR:  -"
-#~ msgstr "[%u/%u]  TR:  -"
-
-#~ msgid "SHA1 check"
-#~ msgstr "έλεγχος SHA1"
-
-#~ msgid "ERROR"
-#~ msgstr "ΣΦΑΛΜΑ"
-
-#~ msgid "FAILED"
-#~ msgstr "ΑΠΕΤΥΧΕ"
-
-#~ msgid " TR: %s"
-#~ msgstr " TR: %s"
-
-#~ msgid "Unknown status %u"
-#~ msgstr "Άγνωστη κατάσταση %u"
-
-#~ msgid ""
-#~ "Aborts the download from the selected source but not the download of the "
-#~ "file itself."
-#~ msgstr ""
-#~ "Εγκαταλείπει τη λήψη από την επιλεγμένη πηγή αλλά όχι την ίδια τη λήψη "
-#~ "του αρχείου."
-
-#~ msgid ""
-#~ "Aborts the download from sources matching the selected criteria but not "
-#~ "the download of the file itself."
-#~ msgstr ""
-#~ "Εγκαταλείπει τη λήψη από τις πηγές που ταιριάζουν με τα επιλεγμένα "
-#~ "κριτήρια αλλά ότι την ίδια τη λήψη του αρχείου."
-
-#~ msgid ""
-#~ "If the source appears to be firewalled, it may help to enforce push mode "
-#~ "to let the source connect back to us."
-#~ msgstr ""
-#~ "Αν η πηγή φαίνεται να έχει τοίχος προστασίας, μπορεί να βοηθήσει να "
-#~ "εξαναγκάσετε λειτουργία ώθησης για να επιτρέψετε στην πηγή να συνδεθεί "
-#~ "πίσω με εμάς."

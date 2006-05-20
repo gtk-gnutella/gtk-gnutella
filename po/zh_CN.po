@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -107,8 +107,8 @@ msgstr "失败 (读取错误:%s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr "连接未保持活动 (EOF)"
 
-msgid "Stopped (EOF)"
-msgstr "停止 (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "停止 (流出文件大小已改变)"
@@ -144,7 +144,8 @@ msgstr "URN文件信息不匹配"
 msgid "Discovered dup SHA1"
 msgstr "被发现的dup SHA1"
 
-msgid "Stopped data (EOF)"
+#, fuzzy
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "中止的数据 (EOF)"
 
 #, fuzzy
@@ -161,16 +162,16 @@ msgstr "ETA排队(插口%1$d/%2$d)：%3$s"
 msgid "Stopped (Read buffer full)"
 msgstr "中止(读取缓存已满)"
 
-#, fuzzy, c-format
-msgid "Stopped data (%s)"
-msgstr "中止数据 (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "检测到SHA不匹配"
 
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "允许浏览主机"
+
+#, fuzzy
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr "中止的数据 (EOF)"
 
 msgid "Bad size"
 msgstr "大小错误"
@@ -448,7 +449,10 @@ msgstr ""
 msgid "Cannot proceed without valid configuration directory"
 msgstr "没有合适的配置目录则无法继续"
 
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr ""
+
+msgid "Failed to create IPv6 UDP socket"
 msgstr ""
 
 msgid "Failed to create listening sockets"
@@ -773,13 +777,28 @@ msgid ""
 "Don't upload more than this number of files in parallel to a single host."
 msgstr "对一个主机，同时上传文件的最大文件数。"
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "最近的本地IP地址。"
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "最近的本地IP地址。"
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "当前IP地址产生时。"
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "当前IP地址产生时。"
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "同一IP地址平均在线时间。"
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "同一IP地址平均在线时间。"
 
 msgid "Timestamp at which servent was started."
@@ -800,6 +819,11 @@ msgstr ""
 "为避免被监视，不要使用默认的TCP端口6346。"
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr "如果本地IP地址固定，则使用该IP作为源地址。"
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr "如果本地IP地址固定，则使用该IP作为源地址。"
 
 msgid ""
@@ -1172,8 +1196,16 @@ msgstr "从搜索结果中去掉已下载的文件。"
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "采用[forced_local_ip]作为本地IP。"
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "采用[forced_local_ip]作为本地IP。"
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -1845,9 +1877,6 @@ msgid ""
 "When set, gtk-gnutella has run out of file descriptors, and operations are "
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurrence."
-msgstr ""
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
 msgstr ""
 
 msgid "If set, spaces in filenames are replaced with underscores."
@@ -6156,10 +6185,19 @@ msgstr ""
 msgid "[stopped]"
 msgstr "[停止]"
 
-#, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] ""
+#, fuzzy, c-format
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "下载 %1$u/%2$u"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "无搜索"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "失败 (无法发送 %1$s：%2$s)"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr ""
@@ -6313,6 +6351,3 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
-
-#~ msgid "Unknown status %u"
-#~ msgstr "未知状态 %u"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -100,7 +100,7 @@ msgstr ""
 msgid "Connection not kept-alive (EOF)"
 msgstr ""
 
-msgid "Stopped (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
 msgid "Stopped (Output file size changed)"
@@ -134,7 +134,7 @@ msgstr ""
 msgid "Discovered dup SHA1"
 msgstr ""
 
-msgid "Stopped data (EOF)"
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr ""
 
 msgid "Spammer detected"
@@ -150,15 +150,14 @@ msgstr ""
 msgid "Stopped (Read buffer full)"
 msgstr ""
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr ""
-
 msgid "SHA1 mismatch detected"
 msgstr ""
 
 #, c-format
 msgid "<Browse Host %s>"
+msgstr ""
+
+msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
 msgid "Bad size"
@@ -429,7 +428,10 @@ msgstr ""
 msgid "Cannot proceed without valid configuration directory"
 msgstr ""
 
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr ""
+
+msgid "Failed to create IPv6 UDP socket"
 msgstr ""
 
 msgid "Failed to create listening sockets"
@@ -740,13 +742,22 @@ msgid ""
 "Don't upload more than this number of files in parallel to a single host."
 msgstr ""
 
-msgid "Local IP address last determined."
+msgid "Local IPv4 address last determined."
 msgstr ""
 
-msgid "When the current IP address was determined."
+msgid "Local IPv6 address last determined."
 msgstr ""
 
-msgid "Average uptime with the same IP address."
+msgid "When the current IPv4 address was determined."
+msgstr ""
+
+msgid "When the current IPv6 address was determined."
+msgstr ""
+
+msgid "Average uptime with the same IPv4 address."
+msgstr ""
+
+msgid "Average uptime with the same IPv6 address."
 msgstr ""
 
 msgid "Timestamp at which servent was started."
@@ -764,6 +775,10 @@ msgid ""
 msgstr ""
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 
 msgid ""
@@ -1091,8 +1106,15 @@ msgstr ""
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr ""
 
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr ""
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -1744,9 +1766,6 @@ msgid ""
 "When set, gtk-gnutella has run out of file descriptors, and operations are "
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurrence."
-msgstr ""
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
 msgstr ""
 
 msgid "If set, spaces in filenames are replaced with underscores."
@@ -6002,10 +6021,20 @@ msgid "[stopped]"
 msgstr ""
 
 #, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
+msgid "%u download"
+msgid_plural "%u downloads"
 msgstr[0] ""
 msgstr[1] ""
+
+#, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr ""
 
 msgid "The query string is not UTF-8 encoded"
 msgstr ""

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-17 11:06+0900\n"
+"POT-Creation-Date: 2006-05-20 21:44+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -104,8 +104,8 @@ msgstr "Fallito (Errore lettura: %s)"
 msgid "Connection not kept-alive (EOF)"
 msgstr "Connessione non mantenuta attiva (EOF)"
 
-msgid "Stopped (EOF)"
-msgstr "Fermato (EOF)"
+msgid "Stopped (EOF) <err_header_read_eof>"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "Fermato (dimensione del file di output cambiata)"
@@ -138,7 +138,8 @@ msgstr "Errore nelle informazioni del file dell'URN"
 msgid "Discovered dup SHA1"
 msgstr "Riscontrata duplicazione SHA1"
 
-msgid "Stopped data (EOF)"
+#, fuzzy
+msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "Dati fermati (EOF)"
 
 msgid "Spammer detected"
@@ -154,16 +155,16 @@ msgstr "Accodato (posizione %u/%u) ETA: %s"
 msgid "Stopped (Read buffer full)"
 msgstr "Arrestato (contenitore lettura pieno)"
 
-#, c-format
-msgid "Stopped data (%s)"
-msgstr "Dati arrestati (%s)"
-
 msgid "SHA1 mismatch detected"
 msgstr "Rilevato errore SHA1"
 
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Sfoglia host %s>"
+
+#, fuzzy
+msgid "Stopped data (EOF) <download_got_eof>"
+msgstr "Dati fermati (EOF)"
 
 msgid "Bad size"
 msgstr "Dimensione errata"
@@ -434,7 +435,11 @@ msgid "Cannot proceed without valid configuration directory"
 msgstr "Non posso procedere senza una cartella di configurazione valida"
 
 #, fuzzy
-msgid "Failed to create UDP socket"
+msgid "Failed to create IPv4 UDP socket"
+msgstr "Creazione ricerca fallita"
+
+#, fuzzy
+msgid "Failed to create IPv6 UDP socket"
 msgstr "Creazione ricerca fallita"
 
 #, fuzzy
@@ -779,13 +784,28 @@ msgstr ""
 "Non caricare da un singolo host in parallelo un numero di file maggiore di "
 "questo."
 
-msgid "Local IP address last determined."
+#, fuzzy
+msgid "Local IPv4 address last determined."
 msgstr "Ultimo indirizzo IP locale determinato."
 
-msgid "When the current IP address was determined."
+#, fuzzy
+msgid "Local IPv6 address last determined."
+msgstr "Ultimo indirizzo IP locale determinato."
+
+#, fuzzy
+msgid "When the current IPv4 address was determined."
 msgstr "Quando è stato determinato l'indirizzo IP locale."
 
-msgid "Average uptime with the same IP address."
+#, fuzzy
+msgid "When the current IPv6 address was determined."
+msgstr "Quando è stato determinato l'indirizzo IP locale."
+
+#, fuzzy
+msgid "Average uptime with the same IPv4 address."
+msgstr "Media tempo di funzionamento con il medesimo indirizzo IP."
+
+#, fuzzy
+msgid "Average uptime with the same IPv6 address."
 msgstr "Media tempo di funzionamento con il medesimo indirizzo IP."
 
 msgid "Timestamp at which servent was started."
@@ -809,6 +829,13 @@ msgstr ""
 "utilizzata per ovviare a una eccessiva censura."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
+msgstr ""
+"Utilizza questo indirizzo IP come indirizzo sorgente se l'opzione 'forza "
+"l'IP locale' è attivata."
+
+#, fuzzy
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Utilizza questo indirizzo IP come indirizzo sorgente se l'opzione 'forza "
 "l'IP locale' è attivata."
@@ -1244,8 +1271,16 @@ msgstr "Rimuovi i file scaricati dai risultati della ricerca."
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Abilita l'uso come ip locale (forced_local_ip)"
 
+#, fuzzy
+msgid "Enable to use [forced_local_ip6] as local ip."
+msgstr "Abilita l'uso come ip locale (forced_local_ip)"
+
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr ""
+
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -2124,9 +2159,6 @@ msgid ""
 "necessarily degraded, if not impossible. The condition automatically clears "
 "itself after 10 minutes past the last occurrence."
 msgstr ""
-
-msgid "When set, gtk-gnutella will accept and handle G2 connections. "
-msgstr "Se impostato gtk-gnutella accetterà e gestirà connessioni G2."
 
 msgid "If set, spaces in filenames are replaced with underscores."
 msgstr ""
@@ -6634,10 +6666,20 @@ msgid "[stopped]"
 msgstr "[arrestata]"
 
 #, fuzzy, c-format
-msgid "Started %u download from magnet."
-msgid_plural "Started %u downloads from magnet."
-msgstr[0] "Creato %u scaricamento"
-msgstr[1] "Creati %u scaricamenti"
+msgid "%u download"
+msgid_plural "%u downloads"
+msgstr[0] "%u scaricamento di %u"
+msgstr[1] "%u scaricamenti di %u"
+
+#, fuzzy, c-format
+msgid "%u search"
+msgid_plural "%u searches"
+msgstr[0] "Nessuna ricerca"
+msgstr[1] "Nessuna ricerca"
+
+#, fuzzy, c-format
+msgid "Handled magnet link (%s, %s)."
+msgstr "Fallito (non è possibile inviare %s: %s)"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "La stringa della query non è codificata UTF-8"
@@ -6797,39 +6839,3 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
-
-#~ msgid "SHA1 figure"
-#~ msgstr "Rappresentazione SHA1"
-
-#~ msgid "SHA1 check"
-#~ msgstr "Controllo SHA1"
-
-#~ msgid "ERROR"
-#~ msgstr "ERRORE"
-
-#~ msgid "FAILED"
-#~ msgstr "FALLITO"
-
-#~ msgid "Unknown status %u"
-#~ msgstr "Stato sconosciuto %u"
-
-#~ msgid ""
-#~ "Aborts the download from the selected source but not the download of the "
-#~ "file itself."
-#~ msgstr ""
-#~ "Annulla lo scaricamento dalla sorgente selezionata ma non lo scaricamento "
-#~ "del file."
-
-#~ msgid ""
-#~ "Aborts the download from sources matching the selected criteria but not "
-#~ "the download of the file itself."
-#~ msgstr ""
-#~ "Annulla lo scaricamento dalle sorgenti corrispondenti ai criteri "
-#~ "selezionati ma non lo scaricamento del file."
-
-#~ msgid ""
-#~ "If the source appears to be firewalled, it may help to enforce push mode "
-#~ "to let the source connect back to us."
-#~ msgstr ""
-#~ "Se la sorgente è vista dietro a un firewall può essere utile forzare il "
-#~ "modo spinta per consentire alla sorgente di riconnettersi con noi."
