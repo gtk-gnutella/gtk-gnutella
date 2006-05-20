@@ -2407,7 +2407,6 @@ socket_udp_accept(struct gnutella_socket *s)
 	 * log them as being "too large", so we'll check msg_flag to see
 	 * whether the message is truncated.
 	 */
-#ifdef HAS_MSGHDR_MSG_FLAGS
 	{
 		static const struct msghdr zero_msg;
 		struct msghdr msg;
@@ -2442,21 +2441,19 @@ socket_udp_accept(struct gnutella_socket *s)
 #endif /* CMSG_LEN && CMSG_SPACE */
 		
 		r = recvmsg(s->file_desc, &msg, 0);
+
+		/* msg_flags is missing at least in some versions of IRIX. */
+#ifdef HAS_MSGHDR_MSG_FLAGS
 		truncated = 0 != (MSG_TRUNC & msg.msg_flags);
+#else	/* HAS_MSGHDR_MSG_FLAGS */
+		truncated = FALSE;	/* We can't detect truncation with recvfrom() */
+#endif /* HAS_MSGHDR_MSG_FLAGS */
 
 		if ((ssize_t) -1 != r && !force_local_ip) {
 			has_dst_addr = socket_udp_extract_dst_addr(&msg, &dst_addr);
 		}
 	}
-#else
-	{
-		/* msg_flags is missing at least in some versions of IRIX. */
-		truncated = FALSE;	/* We can't detect truncation with recvfrom() */
-		r = recvfrom(s->file_desc, s->buffer, sizeof s->buffer, 0,
-				from, &from_len);
-	}
-#endif /* HAS_MSGHDR_MSG_FLAGS */
-	
+
 	if ((ssize_t) -1 == r)
 		return TRUE;
 
