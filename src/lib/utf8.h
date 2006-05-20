@@ -95,6 +95,7 @@ gchar *utf8_strupper_copy(const gchar *src);
 gchar *utf8_canonize(const gchar *src);
 gchar *utf8_normalize(const gchar *src, uni_norm_t norm);
 
+guint NON_NULL_PARAM((2)) utf8_encode_char(guint32 uc, gchar *buf, size_t size);
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 guint32 utf32_lowercase(guint32 uc);
 

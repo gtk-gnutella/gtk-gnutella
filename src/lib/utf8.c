@@ -395,7 +395,7 @@ utf8_encoded_char_len(guint32 uc)
  * @returns		0 if the unicode character is invalid. Otherwise the
  *				length of the UTF-8 character is returned.
  */
-static guint NON_NULL_PARAM((2))
+guint NON_NULL_PARAM((2))
 utf8_encode_char(guint32 uc, gchar *buf, size_t size)
 {
 	guint len, i;
