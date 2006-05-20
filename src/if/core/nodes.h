@@ -240,9 +240,6 @@ void node_free_info(gnet_node_info_t *info);
 void node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
 void node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
 
-void node_udp_gui_show(void);
-void node_udp_gui_remove(void);
-
 #endif /* CORE_SOURCES */
 
 #endif /* _if_core_nodes_h */
