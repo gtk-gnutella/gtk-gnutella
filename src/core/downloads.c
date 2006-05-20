@@ -7349,14 +7349,6 @@ http_version_nofix:
 	g_assert(d->size >= 0);
 #endif
 
-	if (d->size == 0 && fi->file_size_known) {
-		g_assert(d->flags & DL_F_SHRUNK_REPLY);
-		download_queue_delay(d,
-			MAX(delay, download_retry_busy_delay),
-			_("Partial file on server, waiting"));
-		return;
-	}
-
 	/*
 	 * Handle browse-host requests specially: there's no file to save to.
 	 */
@@ -7385,6 +7377,14 @@ http_version_nofix:
 		}
 
 		d->bio = browse_host_io_source(d->browse);
+	}
+
+	if (d->size == 0 && fi->file_size_known) {
+		g_assert(d->flags & DL_F_SHRUNK_REPLY);
+		download_queue_delay(d,
+			MAX(delay, download_retry_busy_delay),
+			_("Partial file on server, waiting"));
+		return;
 	}
 
 	/*
@@ -9568,6 +9568,8 @@ download_browse_start(const gchar *name, const gchar *hostname,
 
 	if (d != NULL) {
 		gnet_host_t host;
+
+		download_check(d);
 
 		d->flags |= DL_F_TRANSIENT | DL_F_BROWSE;
 		host.addr = addr;
