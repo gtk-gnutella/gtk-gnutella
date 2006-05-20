@@ -67,8 +67,9 @@ static GSList *rx_freed = NULL;
 
 /**
  * Tell upper layer that it got new data from us.
+ * @return FALSE if there was on error or the receiver wants no more data.
  */
-static void
+static gboolean
 rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	g_assert(rx);
@@ -76,7 +77,7 @@ rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	if (rx->upper == NULL)
 		g_error("Forgot to call rx_set_data_ind() on the RX stack.");
 
-	rx_recv(rx->upper, mb);
+	return rx_recv(rx->upper, mb);
 }
 
 /*
@@ -243,13 +244,13 @@ rx_collect(void)
 /**
  * Inject data into driver, from lower layer.
  */
-void
+gboolean
 rx_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	g_assert(rx);
 	g_assert(mb);
 
-	RX_RECV(rx, mb);
+	return RX_RECV(rx, mb);
 }
 
 /**

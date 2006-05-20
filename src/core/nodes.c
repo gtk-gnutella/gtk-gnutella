@@ -246,7 +246,7 @@ static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
 static query_hashvec_t *query_hashvec = NULL;
 
 static void node_disable_read(struct gnutella_node *n);
-static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
+static gboolean node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static void node_bye_sent(struct gnutella_node *n);
 static void call_node_process_handshake_ack(gpointer obj, header_t *header);
 static void node_send_qrt(struct gnutella_node *n, gpointer query_table);
@@ -6876,11 +6876,14 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 /**
  * RX data indication callback used to give us some new Gnet traffic in a
  * low-level message structure (which can contain several Gnet messages).
+ *
+ * @return FALSE if an error occurred.
  */
-static void
+static gboolean 
 node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct gnutella_node *n = rx_owner(rx);
+	gboolean error = FALSE;
 
 	g_assert(mb);
 	g_assert(NODE_IS_CONNECTED(n));
@@ -6899,11 +6902,13 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	n->flags |= NODE_F_ESTABLISHED;		/* Since we've got Gnutella data */
 
 	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
-		if (!node_read(n, mb))
+		error = !node_read(n, mb);
+		if (error)
 			break;
 	}
 
 	pmsg_free(mb);
+	return !error;
 }
 
 /**

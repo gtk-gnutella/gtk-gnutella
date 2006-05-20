@@ -68,9 +68,11 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = data;
 	struct attr *attr = rx->opaque;
-	pdata_t *db;
+	pdata_t *db[4];
+	struct iovec iov[G_N_ELEMENTS(db)];
 	pmsg_t *mb;
 	ssize_t r;
+	guint i;
 
 	(void) unused_source;
 	g_assert(attr->bio);			/* Input enabled */
@@ -84,9 +86,13 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * Grab an RX buffer, and try to fill as much as we can.
 	 */
 
-	db = rxbuf_new();
+	for (i = 0; i < G_N_ELEMENTS(db); i++) {
+		db[i] = rxbuf_new();
+		iov[i].iov_base = pdata_start(db[i]);
+		iov[i].iov_len = pdata_len(db[i]);
+	}
 
-	r = bio_read(attr->bio, pdata_start(db), pdata_len(db));
+	r = bio_readv(attr->bio, iov, G_N_ELEMENTS(iov));
 	if (r == 0) {
 		attr->cb->got_eof(rx->owner);
 		goto error;
@@ -105,13 +111,27 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	if (attr->cb->add_rx_given != NULL)
 		attr->cb->add_rx_given(rx->owner, r);
 
-	mb = pmsg_alloc(PMSG_P_DATA, db, 0, r);
+	for (i = 0; i < G_N_ELEMENTS(db) && r > 0; i++) {
+		size_t n = pdata_len(db[i]);
 
-	(*rx->data_ind)(rx, mb);
+		n = MIN(n, (size_t) r);
+		r -= n;
+		mb = pmsg_alloc(PMSG_P_DATA, db[i], 0, n);
+		if (!(*rx->data_ind)(rx, mb)) {
+			r = 0; /* let i increase b/c the buffer was freed */
+		}
+	}
+
+	
+	for (/* CONTINUE*/; i < G_N_ELEMENTS(db); i++) {
+		rxbuf_free(db[i], NULL);
+	}
 	return;
 
 error:
-	rxbuf_free(db, NULL);
+	for (i = 0; i < G_N_ELEMENTS(db); i++) {
+		rxbuf_free(db[i], NULL);
+	}
 }
 
 /***
@@ -166,8 +186,10 @@ rx_link_destroy(rxdrv_t *rx)
  *
  * Since we normally read from the network, we don't have to process those
  * data and can forward them directly to the upper layer.
+ *
+ * @return FALSE if there was an error or the receiver wants no more data.
  */
-static void
+static gboolean
 rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
@@ -183,7 +205,7 @@ rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 	 * NB: `mb' is expected to be freed by the last layer using it.
 	 */
 
-	(*rx->data_ind)(rx, mb);
+	return (*rx->data_ind)(rx, mb);
 }
 
 /**

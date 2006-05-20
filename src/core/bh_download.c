@@ -182,8 +182,10 @@ browse_data_process(struct browse_ctx *bc)
 /**
  * RX data indication callback used to give us some new Gnet traffic in a
  * low-level message structure (which can contain several Gnet messages).
+ *
+ * @return FALSE if an error occurred.
  */
-static void
+static gboolean
 browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct browse_ctx *bc = rx_owner(rx);
@@ -211,6 +213,7 @@ browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
 		download_browse_maybe_finished(bc->owner);
 
 	pmsg_free(mb);
+	return !error;
 }
 
 /***

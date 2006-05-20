@@ -120,7 +120,7 @@ static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
-static void download_read(struct download *d, pmsg_t *mb);
+static gboolean download_read(struct download *d, pmsg_t *mb);
 static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
@@ -289,13 +289,15 @@ download_rx_got_eof(gpointer o)
 /**
  * RX data indication callback used to give us some new Gnet traffic in a
  * low-level message structure (which can contain several Gnet messages).
+ *
+ * @return FALSE if an error occurred.
  */
-static void
+static gboolean
 download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct download *d = rx_owner(rx);
 
-	download_read(d, mb);
+	return download_read(d, mb);
 }
 
 static const struct rx_link_cb download_rx_link_cb = {
@@ -5260,8 +5262,10 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 
 /**
  * Write data in socket buffer to file.
+ *
+ * @return FALSE if an error occurred.
  */
-static void
+static gboolean
 download_write_data(struct download *d)
 {
 	struct dl_buffers *b = d->buffers;
@@ -5284,12 +5288,12 @@ download_write_data(struct download *d)
 	if (d->overlap_size && !(d->flags & DL_F_OVERLAPPED)) {
 		g_assert(d->pos == d->skip);
 		if (b->held < d->overlap_size)		/* Not enough bytes yet */
-			return;							/* Don't even write anything */
+			return TRUE;						/* Don't even write anything */
 		if (!download_overlap_check(d))		/* Mismatch on overlapped bytes? */
-			return;							/* Download was stopped */
+			return FALSE;					/* Download was stopped */
 		d->flags |= DL_F_OVERLAPPED;		/* Don't come here again */
 		if (b->held == 0)					/* No bytes left to write */
-			return;
+			return TRUE;
 		/* FALL THROUGH */
 	}
 
@@ -5329,10 +5333,10 @@ download_write_data(struct download *d)
 			(gulong) d->pos, (gulong) d->range_end);
 
 	if (!should_flush)
-		return;
+		return TRUE;
 
 	if (!download_flush(d, &trimmed, TRUE))
-		return;
+		return FALSE;
 
 	/*
 	 * End download if we have completed it.
@@ -5400,7 +5404,7 @@ download_write_data(struct download *d)
 	else
 		gcu_gui_update_download(d, FALSE);
 
-	return;
+	return TRUE;
 
 	/*
 	 * Requested chunk is done.
@@ -5440,7 +5444,7 @@ partial_done:
 		}
 	}
 
-	return;
+	return FALSE;
 
 	/*
 	 * We have completed the download of the requested file.
@@ -5451,6 +5455,7 @@ done:
 	download_verify_sha1(d);
 
 	gnet_prop_set_guint32_val(PROP_TOTAL_DOWNLOADS, total_downloads + 1);
+	return FALSE;
 }
 
 /**
@@ -7532,7 +7537,7 @@ download_incomplete_header(struct download *d)
 /**
  * Read callback for file data.
  */
-static void
+static gboolean
 download_read(struct download *d, pmsg_t *mb)
 {
 	fileinfo_t *fi;
@@ -7548,7 +7553,7 @@ download_read(struct download *d, pmsg_t *mb)
 	if (buffers_full(d)) {
 		download_queue_delay(d, download_retry_stopped_delay,
 			_("Stopped (Read buffer full)"));
-		return;
+		return FALSE;
 	}
 
 	if (fi->file_size_known) {
@@ -7556,7 +7561,7 @@ download_read(struct download *d, pmsg_t *mb)
 
 		if (d->pos == fi->size) {
 			download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
-			return;
+			return FALSE;
 		}
 	}
 
@@ -7570,7 +7575,7 @@ download_read(struct download *d, pmsg_t *mb)
 	 * or if the buffers hold enough data.
 	 */
 
-	download_write_data(d);
+	return download_write_data(d);
 }
 
 /**

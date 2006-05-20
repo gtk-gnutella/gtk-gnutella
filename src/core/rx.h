@@ -44,7 +44,7 @@
 struct rxdriver;
 struct gnutella_node;
 
-typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
+typedef gboolean (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
 
 /**
  * A network driver.
@@ -74,7 +74,7 @@ typedef struct rxdriver {
 struct rxdrv_ops {
 	gpointer (*init)(rxdrv_t *tx, gconstpointer args);
 	void (*destroy)(rxdrv_t *tx);
-	void (*recv)(rxdrv_t *tx, pmsg_t *mb);
+	gboolean (*recv)(rxdrv_t *tx, pmsg_t *mb);
 	void (*enable)(rxdrv_t *tx);
 	void (*disable)(rxdrv_t *tx);
 	struct bio_source *(*bio_source)(rxdrv_t *tx);
@@ -93,7 +93,7 @@ rxdrv_t *rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops,
 void rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 void rx_free(rxdrv_t *d);
 void rx_collect(void);
-void rx_recv(rxdrv_t *rx, pmsg_t *mb);
+gboolean rx_recv(rxdrv_t *rx, pmsg_t *mb);
 void rx_enable(rxdrv_t *rx);
 void rx_disable(rxdrv_t *rx);
 rxdrv_t *rx_bottom(rxdrv_t *rx);
