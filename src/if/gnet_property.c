@@ -5980,7 +5980,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[280].name = "display_metric_units";
-    gnet_property->props[280].desc = _("Enables this if all units should be displayed using the metric system with SI prefixes. If disabled, certain units, for example, filesizes will be displayed using the historical base2 convention with binary prefixes.");
+    gnet_property->props[280].desc = _("Enable this if all units should be displayed using the metric system with SI prefixes. If disabled, certain units, for example, filesizes will be displayed using the historical base2 convention with binary prefixes.");
     gnet_property->props[280].ev_changed = event_new("display_metric_units_changed");
     gnet_property->props[280].save = TRUE;
     gnet_property->props[280].vector_size = 1;

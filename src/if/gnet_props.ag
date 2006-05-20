@@ -3272,7 +3272,7 @@ prop = {
 
 prop = {
 	name = "display_metric_units";
-	desc = "Enables this if all units should be displayed using "
+	desc = "Enable this if all units should be displayed using "
 		"the metric system with SI prefixes. If disabled, certain units, for "
 		"example, filesizes will be displayed using the historical base2 "
 		"convention with binary prefixes.";
