@@ -556,6 +556,26 @@ gui_create_dlg_faq(void)
 			}
 			*p = '\0';
 			
+			/* Convert entities */
+			p = buf;
+			for (s = buf; '\0' != *s; s++) {
+				if ('&' == *s) {
+					const gchar *endptr;
+					guint32 uc;
+
+					uc = html_decode_entity(s, &endptr);
+					if ((guint32) -1 != uc) {
+						guint n;
+
+						n = utf8_encode_char(uc, p, (endptr - s) + 1);
+						p += n;
+						s = endptr;
+						continue;
+					}
+				}
+				*p++ = *s;
+			}
+			
 			text_widget_append(GTK_WIDGET(text), lazy_utf8_to_ui_string(buf));
 		}
 
