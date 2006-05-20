@@ -73,7 +73,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2006-05-20 21:44+0900\n"
-"PO-Revision-Date: 2006-05-17 12:18+0900\n"
+"PO-Revision-Date: 2006-05-20 22:02+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -167,7 +167,7 @@ msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
 msgid "Stopped (EOF) <err_header_read_eof>"
-msgstr ""
+msgstr "中断されました (EOF) <err_header_read_eof>"
 
 msgid "Stopped (Output file size changed)"
 msgstr "中断されました (出力ファイルのサイズが変更されました)"
@@ -200,9 +200,8 @@ msgstr "URN ファイル情報が一致しません"
 msgid "Discovered dup SHA1"
 msgstr "重複する SHA1 を発見しました"
 
-#, fuzzy
 msgid "Stopped data (EOF) <download_sink_read>"
-msgstr "データ受信中に中断されました (EOF)"
+msgstr "データ転送が中断されました (EOF) <download_sink_read>"
 
 msgid "Spammer detected"
 msgstr "迷惑ファイル送信者を検知しました"
@@ -224,9 +223,8 @@ msgstr "SHA1 の不一致を検出しました"
 msgid "<Browse Host %s>"
 msgstr "<ホスト %s の閲覧>"
 
-#, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
-msgstr "データ受信中に中断されました (EOF)"
+msgstr "データ転送が中断されました (EOF) <download_got_eof>"
 
 msgid "Bad size"
 msgstr "不正な大きさ"
@@ -502,13 +500,11 @@ msgstr "他の gtk-gnutella を走らせたままにしているようです\n"
 msgid "Cannot proceed without valid configuration directory"
 msgstr "適当な設定フォルダが無いと先に進めません"
 
-#, fuzzy
 msgid "Failed to create IPv4 UDP socket"
-msgstr "UDPソケットの作成に失敗しました"
+msgstr "IPv4 UDPソケットの作成に失敗しました"
 
-#, fuzzy
 msgid "Failed to create IPv6 UDP socket"
-msgstr "UDPソケットの作成に失敗しました"
+msgstr "IPv6 UDPソケットの作成に失敗しました"
 
 msgid "Failed to create listening sockets"
 msgstr "待ち受けポートの作成に失敗しました"
@@ -854,29 +850,23 @@ msgid ""
 msgstr ""
 "この数以上のファイルを一つのホストに対して並行してアップロードしません。"
 
-#, fuzzy
 msgid "Local IPv4 address last determined."
-msgstr "最新のローカル IP アドレスです。"
+msgstr "最新のローカル IPv4 アドレスです。"
 
-#, fuzzy
 msgid "Local IPv6 address last determined."
-msgstr "最新のローカル IP アドレスです。"
+msgstr "最新のローカル IPv6 アドレスです。"
 
-#, fuzzy
 msgid "When the current IPv4 address was determined."
-msgstr "現在の IP アドレスの決定日時です。"
+msgstr "現在の IPv4 アドレスの割り当て日時です。"
 
-#, fuzzy
 msgid "When the current IPv6 address was determined."
-msgstr "現在の IP アドレスの決定日時です。"
+msgstr "現在の IPv6 アドレスの割り当て日時です。"
 
-#, fuzzy
 msgid "Average uptime with the same IPv4 address."
-msgstr "同じ IP アドレスでの平均稼働時間です。"
+msgstr "同じ IPv4 アドレスでの平均稼働時間です。"
 
-#, fuzzy
 msgid "Average uptime with the same IPv6 address."
-msgstr "同じ IP アドレスでの平均稼働時間です。"
+msgstr "同じ IPv6 アドレスでの平均稼働時間です。"
 
 msgid "Timestamp at which servent was started."
 msgstr "サーバントの起動日時です。"
@@ -900,10 +890,9 @@ msgstr ""
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr "「強制ローカルIP」を有効にすると、これを発信元アドレスとして用います。"
 
-#, fuzzy
 msgid ""
 "Use this IPv6 address as source address if 'force local ip' is activated."
-msgstr "「強制ローカルIP」を有効にすると、これを発信元アドレスとして用います。"
+msgstr "「強制ローカルIP」を有効にすると、これを発信元IPv6アドレスとして用います。"
 
 msgid ""
 "The connection bandwidth reported to other hosts. This is the speed at which "
@@ -1309,20 +1298,17 @@ msgstr "ダウンロードされたファイルは検索結果から削除しま
 msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "入力した「強制ローカルIP」をローカルIPアドレスとして使います。"
 
-#, fuzzy
 msgid "Enable to use [forced_local_ip6] as local ip."
-msgstr "入力した「強制ローカルIP」をローカルIPアドレスとして使います。"
+msgstr "入力した「強制ローカルIPv6」をローカルIPアドレスとして使います。"
 
 msgid ""
 "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
 msgstr ""
 "「強制ローカルIP」を有効にすると、このIPアドレスにソケットをバインドします。"
 
-#, fuzzy
 msgid ""
 "If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
-msgstr ""
-"「強制ローカルIP」を有効にすると、このIPアドレスにソケットをバインドします。"
+msgstr "「強制ローカルIPv6」を有効にすると、このIPアドレスにソケットをバインドします。"
 
 msgid "Try to connect to local networks first."
 msgstr "最初にローカルネットへの接続を試みます。"
@@ -4226,7 +4212,7 @@ msgstr[0] "%u 件のダウンロードを消却しました。"
 #, c-format
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-msgstr[0] "選択された %u/%u 件の待機ダウンロードが \"%s\" に一致します。"
+msgstr[0] "選択された %u/%u 件の待機ダウンロードが「%s」に一致します。"
 
 #, c-format
 msgid "Downloading (%s)  TR: %s"
@@ -4383,7 +4369,7 @@ msgid "_About"
 msgstr "このプログラムについて(_A)"
 
 msgid "Frequently Asked Questions"
-msgstr "よく訊かれる質問を表示します。"
+msgstr "よくある質問を表示します。"
 
 msgid "_FAQ"
 msgstr "_FAQ"
@@ -4422,7 +4408,7 @@ msgid "HTTP traffic"
 msgstr "HTTPトラフィック"
 
 msgid "Click to toggle display."
-msgstr "クリックで表示を切替えます。"
+msgstr "クリックで表示を切り替えます。"
 
 # NOTE: this string is used as follows
 #
@@ -6802,28 +6788,29 @@ msgstr "このセッションで無効になります"
 msgid "[stopped]"
 msgstr "[打ち切られました]"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%u download"
 msgid_plural "%u downloads"
-msgstr[0] "%u/%u 件のダウンロード"
+msgstr[0] "%u 件のダウンロード"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%u search"
 msgid_plural "%u searches"
-msgstr[0] "検索無し"
+msgstr[0] "%u 件の検索"
 
-#, fuzzy, c-format
+# FIXME: without a doubt
+#, c-format
 msgid "Handled magnet link (%s, %s)."
-msgstr "失敗しました (%s を送信できません: %s)"
+msgstr "マグネットリンク (%s, %s)。"
 
 msgid "The query string is not UTF-8 encoded"
-msgstr "この検索クエリーは UTF-8 でエンコードされていません"
+msgstr "この検索クエリーは UTF-8 でエンコードされていません。"
 
 msgid "The entered query is too long"
-msgstr "入力した検索クエリーは長すぎます"
+msgstr "入力した検索クエリーは長すぎます。"
 
 msgid "The SHA1 query is not validly encoded"
-msgstr "この SHA1 検索クエリーは適切にエンコードされていません"
+msgstr "この SHA1 検索クエリーは正しくエンコードされていません。"
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -6920,7 +6907,7 @@ msgstr "説明を見るにはプロパティを選択して下さい。"
 
 #, c-format
 msgid "No property name matches the pattern \"%s\"."
-msgstr "パターン \"%s\" に一致するプロパティはありません。"
+msgstr "パターン「%s」に一致するプロパティはありません。"
 
 msgid "No output yet..."
 msgstr "まだ出力はありません..."
