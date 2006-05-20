@@ -181,17 +181,12 @@ void guc_node_remove_node_flags_changed_listener
 void guc_node_add(const host_addr_t addr, guint16 port, guint32 flags);
 void guc_node_remove_by_handle(gnet_node_t n);
 void guc_node_remove_nodes_by_handle(GSList *node_list);
-void guc_node_get_status
-	(const gnet_node_t n, gnet_node_status_t *s);
+void guc_node_get_status(const gnet_node_t n, gnet_node_status_t *s);
 gnet_node_info_t *guc_node_get_info(const gnet_node_t n);
 void guc_node_clear_info(gnet_node_info_t *info);
 void guc_node_free_info(gnet_node_info_t *info);
-void guc_node_fill_flags
-	(gnet_node_t n, gnet_node_flags_t *flags);
-void guc_node_fill_info
-	(const gnet_node_t n, gnet_node_info_t *info);
-void guc_node_udp_gui_show(void);
-void guc_node_udp_gui_remove(void);
+void guc_node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
+void guc_node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
 
 /* parq interface functions */
 gint guc_get_parq_dl_position(const struct download *d);
@@ -223,6 +218,8 @@ void guc_search_stop(gnet_search_t sh);
 void guc_search_add_kept(gnet_search_t sh, guint32 kept);
 
 /* settings interface functions */
+guint16 guc_listen_port(void);
+host_addr_t guc_listen_addr(enum net_type net);
 const gchar *guc_settings_home_dir(void);
 const gchar *guc_settings_config_dir(void);
 

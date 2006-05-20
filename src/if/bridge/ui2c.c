@@ -573,18 +573,6 @@ guc_node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 	node_fill_info(n, info);
 }
 
-void
-guc_node_udp_gui_show(void)
-{
-	node_udp_gui_show();
-}
-
-void
-guc_node_udp_gui_remove(void)
-{
-	node_udp_gui_remove();
-}
-
 /*	parq interface functions (UI -> Core)*/
 gint
 guc_get_parq_dl_position(const struct download *d)
@@ -712,6 +700,25 @@ guc_search_stop(gnet_search_t sh)
 
 
 /*	settings interface functions (UI -> Core)*/
+guint16
+guc_listen_port(void)
+{
+	guint32 port;
+	gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &port);
+	return port;
+}
+
+host_addr_t
+guc_listen_addr(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_IPV4: return listen_addr();
+	case NET_TYPE_IPV6: return listen_addr6();
+	case NET_TYPE_NONE: break;
+	}
+	return zero_host_addr;
+}
+
 const gchar *
 guc_settings_home_dir(void)
 {
