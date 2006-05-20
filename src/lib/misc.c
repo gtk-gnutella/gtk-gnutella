@@ -39,6 +39,7 @@ RCSID("$Id$");
 
 #include "base32.h"
 #include "endian.h"
+#include "html.h"
 #include "misc.h"
 #include "glib-missing.h"
 #include "sha1.h"
@@ -3263,6 +3264,30 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 	}
 
 	return d - dst;
+}
+
+guint32
+html_decode_entity(const gchar *src, const gchar **endptr)
+{
+	guint i;
+	guint32 uc = -1;
+
+	if ('&' == src[0]) {
+		for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
+			const gchar *end;
+
+			end = is_strprefix(&src[1], html_entities[i].name);
+			if (end && *end == ';') {
+				uc = html_entities[i].uc;
+				src = end;
+				break;
+			}
+		}
+	}
+	if (endptr) {
+		*endptr = src;
+	}
+	return uc;
 }
 
 /**

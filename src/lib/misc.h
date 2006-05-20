@@ -310,6 +310,9 @@ typedef guint16 flag_t;
 #define OFF_T_DEC_BUFLEN	(sizeof(off_t) * CHAR_BIT) /* very roughly */
 #define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
 
+#define HOST_ADDR_BUFLEN	(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
+#define HOST_ADDR_PORT_BUFLEN	(HOST_ADDR_BUFLEN + sizeof ":[65535]")
+
 gboolean parse_ipv6_addr(const gchar *s, uint8_t *dst, const gchar **endptr);
 const gchar *ipv6_to_string(const guint8 *ipv6);
 size_t ipv6_to_string_buf(const guint8 *ipv6, gchar *dst, size_t size);
@@ -502,6 +505,7 @@ gint parse_major_minor(const gchar *src, gchar const **endptr,
 gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
 gchar *is_strcaseprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
 size_t html_escape(const gchar *src, gchar *dst, size_t dst_size);
+guint32 html_decode_entity(const gchar *src, const gchar **endptr);
 gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, mode_t mode);
