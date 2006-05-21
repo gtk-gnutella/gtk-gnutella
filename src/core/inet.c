@@ -229,8 +229,8 @@ is_local_addr(const host_addr_t addr)
 					host_addr_matches(addr, our_addr, 24); /* Same LAN/24 */
 		}
 	case NET_TYPE_IPV6:
-		return	host_addr_matches(addr, ipv6_link_local, 64) ||
-				host_addr_matches(addr, ipv6_site_local, 64);
+		return	host_addr_matches(addr, ipv6_link_local, 10) ||
+				host_addr_matches(addr, ipv6_site_local, 10);
 	case NET_TYPE_NONE:
 		return FALSE;
 	}
