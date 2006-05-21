@@ -1,0 +1,20 @@
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:i_netif: Inhdr
+?MAKE:	-pick add $@ %<
+?S:i_netif:
+?S:    This variable conditionally defines the I_NET_IF symbol, and indicates
+?S:    whether a C program should include <net/if.h>.
+?S:.
+?C:I_NET_IF:
+?C:    This symbol, if defined, indicates to the C program that it should
+?C:    include <net/if.h>.
+?C:.
+?H:#$i_netif I_NET_IF         /**/
+?H:.
+?LINT:set i_netif
+: see if this is a net/if.h system
+set net/if.h i_netif
+eval $inhdr
+
