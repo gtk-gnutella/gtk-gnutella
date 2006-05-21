@@ -564,8 +564,9 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 
 	last_addr_seen = zero_host_addr;
 	same_addr_count = 0;
-	for (i = 0; i < G_N_ELEMENTS(peers); i++)
-		peers[0] = zero_host_addr;
+	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+		peers[i] = zero_host_addr;
+	}
 
 	if (host_addr_equal(new_addr, local_ip))
 		return;
@@ -616,8 +617,9 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 
 	last_addr_seen = zero_host_addr;
 	same_addr_count = 0;
-	for (i = 0; i < G_N_ELEMENTS(peers); i++)
-		peers[0] = zero_host_addr;
+	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+		peers[i] = zero_host_addr;
+	}
 
 	if (host_addr_equal(new_addr, local_ip6))
 		return;
