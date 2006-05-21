@@ -93,37 +93,37 @@ typedef struct host_addr {
 	} addr;
 } host_addr_t;
 
-static const host_addr_t ipv6_unspecified = {	/* :: */
+static const host_addr_t ipv6_unspecified = {	/* ::/128 */
 	NET_TYPE_IPV6,
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
 
-static const host_addr_t ipv6_loopback = {	/* ::1 */
+static const host_addr_t ipv6_loopback = {	/* ::1/128 */
 	NET_TYPE_IPV6,
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } },
 };
 
-static const host_addr_t ipv6_ipv4_mapped = {	/* ::ffff:0:0 */
+static const host_addr_t ipv6_ipv4_mapped = {	/* ::ffff:0:0/96 */
 	NET_TYPE_IPV6,
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0 } },
 };
 
-static const host_addr_t ipv6_multicast = {		/* ff00:: */
+static const host_addr_t ipv6_multicast = {		/* ff00::/8 */
 	NET_TYPE_IPV6,
 	{ { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
 
-static const host_addr_t ipv6_link_local = {	/* fe80:: */
+static const host_addr_t ipv6_link_local = {	/* fe80::/10 */
 	NET_TYPE_IPV6,
 	{ { 0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
 
-static const host_addr_t ipv6_site_local = {	/* fec0:: */
+static const host_addr_t ipv6_site_local = {	/* fec0::/10 */
 	NET_TYPE_IPV6,
 	{ { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
 
-static const host_addr_t ipv6_6to4 = {			/* 2002:: */
+static const host_addr_t ipv6_6to4 = {			/* 2002::/16 */
 	NET_TYPE_IPV6,
 	{ { 0x20, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
@@ -385,6 +385,8 @@ host_addr_t name_to_single_host_addr(const gchar *host, enum net_type net);
 const gchar *host_addr_to_name(const host_addr_t addr);
 gboolean string_to_host_or_addr(const char *s, const gchar **endptr,
 		host_addr_t *ha);
+GSList *host_addr_get_interface_addrs(void);
+void host_addr_get_interface_addrs_free(GSList **sl_ptr);
 
 #endif /* _host_addr_h_ */
 /* vi: set ts=4 sw=4 cindent: */

@@ -38,9 +38,17 @@
 
 RCSID("$Id$");
 
+#ifdef I_NET_IF
+#include <net/if.h>		/* For IFF_* flags */
+#endif /* I_NET_IF */
+
+#ifdef I_IFADDRS
+#include <ifaddrs.h>	/* For getifaddrs() */
+#endif /* I_IFADDRS */
+
 #ifdef I_NETDB
 #include <netdb.h>				/* For gethostbyname() */
-#endif
+#endif /* I_NETDB */
 
 #include "host_addr.h"
 #include "misc.h"
@@ -181,6 +189,8 @@ host_addr_is_routable(const host_addr_t addr)
 	case NET_TYPE_IPV6:
 		return 	!host_addr_matches(ha, ipv6_unspecified, 8) &&
 				!host_addr_matches(ha, ipv6_multicast, 8) &&
+				!host_addr_matches(ha, ipv6_site_local, 10) &&
+				!host_addr_matches(ha, ipv6_link_local, 10) &&
 				!(
 						host_addr_is_6to4(ha) &&
 						!ipv4_addr_is_routable(host_addr_6to4_ipv4(ha))
@@ -867,6 +877,85 @@ wfree_host_addr(gpointer key, gpointer unused_data)
 {
 	(void) unused_data;
 	wfree(key, sizeof (host_addr_t));
+}
+
+/**
+ * @return	A list of all IPv4 and IPv6 addresses assigned to interfaces
+ *			of the machine.
+ */
+GSList *
+host_addr_get_interface_addrs(void)
+#if defined(HAS_GETIFADDRS)
+{
+	GSList *sl_addrs = NULL;
+	struct ifaddrs *ifa0, ifa;
+
+	if (0 != getifaddrs(&ifa0)) {
+		return NULL;
+	}
+
+	for (ifa = ifa0; ifa != NULL; ifa = ifa->ifa_next) {
+		host_addr_t addr;
+
+		if (NULL == ifa->ifa_addr)
+			continue;
+		if ((IFF_LOOPBACK & ifa->ifa_flags)) /* skip loopback interfaces */
+			continue;
+		if (0 == (IFF_UP & ifa->ifa_flags)) /* interface down */
+			continue;
+		if (0 == (IFF_RUNNING & ifa->ifa_flags)) /* interface not running */
+			continue;
+		if (NULL == ifa->ifa_netmask) /* no netmask */
+			continue;
+
+		if (AF_INET == ifa->ifa_addr->sa_family) {
+            const struct sockaddr_in *sin6 = ifa->ifa_addr;
+			
+			addr = host_addr_set_ipv4(ntohl(sin->sin_addr.s_addr));
+#ifdef USE_IPV6
+		} else if (AF_INET6 == ifa->ifa_addr->sa_family) {
+            const struct sockaddr_in6 *sin6 = ifa->ifa_addr;
+			host_addr_t addr;
+
+			host_addr_set_ipv6(&addr, sin6->sin6_addr.s6_addr);
+#endif /* USE_IPV6 */
+		} else {
+			addr = zero_host_addr;
+		}
+
+		if (is_host_addr(addr)) {
+			sl_addrs = g_slist_prepend(sl_addrs, wcopy(addr, sizeof addr))
+		}
+	}
+
+	freeifaddrs(ifa0);
+	return g_slist_reverse(sl_addrs);
+}
+#else	/* !HAS_GETIFADDRS */
+{
+	return NULL;
+}
+#endif	/* HAS_GETIFADDRS */
+
+/**
+ * Frees a list along with its item returned by
+ * host_addr_get_interface_addrs() and nullifies the given pointer.
+ */
+void
+host_addr_free_interface_addrs(GSList **sl_ptr)
+{
+	g_assert(sl_ptr);
+	if (*sl_ptr) {
+		GSList *sl;
+
+		for (sl = *sl_ptr; NULL != sl; sl = g_slist_next(sl)) {
+            host_addr_t *addr = sl->data;
+			g_assert(host_addr_initialized(*addr));
+			wfree(addr, sizeof *addr);
+		}
+		g_slist_free(*sl_ptr);
+		*sl_ptr = NULL;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
