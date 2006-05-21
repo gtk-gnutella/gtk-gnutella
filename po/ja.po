@@ -9,6 +9,7 @@
 # 対訳一覧:
 #
 # Horizon Size Estimation Protocol    到達領域サイズ推計プロトコル (HSEP)
+# Host Browse                         ホスト参照
 # Partial File Sharing Protocol       部分ファイル共有プロトコル (PFSP)
 # Passive/Active Remote Queuing       受動/能動遠隔キューイング (RARQ)
 # Swarming                            多元 (マルチソース) ダウンロード
@@ -73,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2006-05-22 00:59+0900\n"
-"PO-Revision-Date: 2006-05-20 22:02+0900\n"
+"PO-Revision-Date: 2006-05-22 01:03+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -221,7 +222,7 @@ msgstr "SHA1 の不一致を検出しました"
 
 #, c-format
 msgid "<Browse Host %s>"
-msgstr "<ホスト %s の閲覧>"
+msgstr "<ホスト %s の参照>"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "データ転送が中断されました (EOF) <download_got_eof>"
@@ -642,14 +643,14 @@ msgid "Unable to send GIV"
 msgstr "GIV を送信できません"
 
 msgid "<Browse Host Request>"
-msgstr "<ホスト閲覧リクエスト>"
+msgstr "<ホスト参照リクエスト>"
 
 msgid "Browse Host Enabled"
-msgstr "ホスト閲覧が有効になっています"
+msgstr "ホスト参照が有効になっています"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
-msgstr "<ホスト閲覧リクエスト> [%s%s%s]"
+msgstr "<ホスト参照リクエスト> [%s%s%s]"
 
 msgid "query hits"
 msgstr "検索クエリーヒット"
@@ -2282,16 +2283,16 @@ msgstr ""
 "きるようになります。"
 
 msgid "Number of HTML browsing requests received in this session."
-msgstr "このセッション中に受信した HTML 閲覧クエストの回数です。"
+msgstr "このセッション中に受信した HTML 参照クエストの回数です。"
 
 msgid "Number of HTML browsing requests fully served in this session."
-msgstr "このセッション中に完全に送信された HTML 閲覧クエストの回数です。"
+msgstr "このセッション中に完全に送信された HTML 参照クエストの回数です。"
 
 msgid "Number of Gnutella browsing requests received in this session."
-msgstr "このセッション中に受信した Gnutella 閲覧リクエストの回数です。"
+msgstr "このセッション中に受信した Gnutella 参照リクエストの回数です。"
 
 msgid "Number of Gnutella browsing requests fully served in this session."
-msgstr "このセッション中に完全に送信された Gnutella 閲覧リクエストの回数です。"
+msgstr "このセッション中に完全に送信された Gnutella 参照リクエストの回数です。"
 
 msgid ""
 "The average CPU usage indicates overloading, so gtk-gnutella is reducing the "
@@ -2350,19 +2351,18 @@ msgid ""
 "your passive searches because it lets you classify files easily, regardless "
 "of the origin of the files."
 msgstr ""
-"有効にすると、ホスト閲覧からの全検索結果が開かれている全ての受動検索に急いで"
+"有効にすると、ホスト参照からの全検索結果が開かれている全ての受動検索に急いで"
 "送られます。ファイルの送信元に関わらず簡単に分類させますので、受動検索に関し"
 "て異なる選別フィルターを使用しているのなら役立ちます。"
 
-#, fuzzy
 msgid ""
 "Enable this if all units should be displayed using the metric system with SI "
 "prefixes. If disabled, certain units, for example, filesizes will be "
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
-"有効にすると、SI プリフィックスが付く計測法を使って全ての単位を表示します。無"
-"効にした場合、例えばファイルサイズの単位は、バイナリー・プリフィックスが付く"
-"旧来の Base2 変換を使用して表示されます。"
+"有効にすると、全ての単位を SI プリフィックスが付く計測法を使って表示します。"
+"無効にした場合、例えばファイルサイズの単位は、バイナリー・プリフィックスが付"
+"く旧来の Base2 変換を使用して表示されます。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -2572,7 +2572,7 @@ msgid "Maximum number of results to show in any search."
 msgstr "検索で表示する検索結果の最大数です。"
 
 msgid "Maximum number of results to show in a browse_host request."
-msgstr "ホスト閲覧リクエストで表示する最大数です。"
+msgstr "ホスト参照リクエストで表示する最大数です。"
 
 msgid "Debug level for the gui."
 msgstr "GUI のバグ解析レベルです。"
@@ -4696,7 +4696,7 @@ msgstr " 件のHTMLと "
 # 'Served 0 HTML and 0 Gnutella browse requests'
 #
 msgid " Gnutella browse requests"
-msgstr " 件のGnutella閲覧リクエストを受信しました。"
+msgstr " 件のGnutella参照リクエストを受信しました。"
 
 msgid "Files to get"
 msgstr "取得ファイル"
@@ -4878,10 +4878,10 @@ msgid "_Remove manually downloaded files"
 msgstr "ダウンロードしたファイルは削除する(_R)"
 
 msgid "Max. number of browse host results"
-msgstr "ホスト閲覧結果の最大数"
+msgstr "ホスト参照結果の最大数"
 
 msgid "Copy browse-host results to passive searches"
-msgstr "ホスト閲覧の結果を受動検索にコピー"
+msgstr "ホスト参照の結果を受動検索にコピー"
 
 msgid "Information about selected file"
 msgstr "選択したファイルに関する情報"
@@ -5100,7 +5100,7 @@ msgid "Connect to host"
 msgstr "ホストへ接続"
 
 msgid "Browse Host"
-msgstr "ホストの閲覧"
+msgstr "ホストの参照"
 
 msgid "Start now"
 msgstr "すぐに開始する"
@@ -5557,7 +5557,7 @@ msgid "Enable \"_shell\" control interface"
 msgstr "「シェル」制御インターフェイスを有効にする(_S)"
 
 msgid "Enable \"_Browse Host\" feature"
-msgstr "「ホスト閲覧」機能を有効にする(_B)"
+msgstr "「ホスト参照」機能を有効にする(_B)"
 
 msgid "Socket receive buffer size"
 msgstr "ソケット受信バッファサイズ"
@@ -6755,10 +6755,10 @@ msgid "<unparsed>"
 msgstr "<未解析>"
 
 msgid ", browsable"
-msgstr ", 閲覧可"
+msgstr ", 参照可"
 
 msgid "browsable"
-msgstr "閲覧可"
+msgstr "参照可"
 
 #, c-format
 msgid ""
@@ -6818,11 +6818,11 @@ msgstr "この SHA1 検索クエリーは正しくエンコードされていま
 
 #, c-format
 msgid "Added search showing browsing results for %s"
-msgstr "ホスト %s の閲覧結果を検索リストに追加しました。"
+msgstr "ホスト %s の参照結果を検索リストに追加しました。"
 
 #, c-format
 msgid "Could not launch browse host for %s"
-msgstr "ホスト %s を閲覧できませんでした。"
+msgstr "ホスト %s を参照できませんでした。"
 
 msgid "Never"
 msgstr "未発生"
