@@ -1573,7 +1573,48 @@ forced_local_ip_changed(property_t prop)
 static gboolean
 local_addr_changed(property_t prop)
 {
-	(void) prop;
+	enum net_type net;
+	host_addr_t addr;
+
+	switch (prop) {
+	case PROP_LOCAL_IP:
+		net = NET_TYPE_IPV4;
+		break;
+	case PROP_LOCAL_IP6:
+		net = NET_TYPE_IPV6;
+		break;
+	default:
+		net = NET_TYPE_NONE;
+		g_assert_not_reached();
+	}
+
+	gnet_prop_get_ip_val(prop, &addr);
+
+	/* If the address is invalid or does not match the network type;
+	 * reset it and try to guess the correct one by looking at all
+	 * network interfaces.
+	 */	
+	if (!is_host_addr(addr) || net != host_addr_net(addr)) {
+		GSList *sl_addrs, *sl;
+
+		addr = zero_host_addr;
+		sl_addrs = host_addr_get_interface_addrs();
+		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
+			host_addr_t *addr_ptr;
+
+			addr_ptr = sl->data;
+			if (
+				net == host_addr_net(*addr_ptr) &&
+				host_addr_is_routable(*addr_ptr)
+			) {
+				addr = *addr_ptr;
+				break;
+			}
+		}
+		host_addr_free_interface_addrs(&sl_addrs);
+		gnet_prop_set_ip_val(prop, addr);
+	}
+
 	update_address_lifetime();
     return FALSE;
 }
