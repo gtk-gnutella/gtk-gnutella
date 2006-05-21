@@ -887,8 +887,8 @@ GSList *
 host_addr_get_interface_addrs(void)
 #if defined(HAS_GETIFADDRS)
 {
+	struct ifaddrs *ifa0, *ifa;
 	GSList *sl_addrs = NULL;
-	struct ifaddrs *ifa0, ifa;
 
 	if (0 != getifaddrs(&ifa0)) {
 		return NULL;
@@ -909,14 +909,15 @@ host_addr_get_interface_addrs(void)
 			continue;
 
 		if (AF_INET == ifa->ifa_addr->sa_family) {
-            const struct sockaddr_in *sin6 = ifa->ifa_addr;
+            const struct sockaddr_in *sin;
 			
+			sin = cast_to_gconstpointer(ifa->ifa_addr);
 			addr = host_addr_set_ipv4(ntohl(sin->sin_addr.s_addr));
 #ifdef USE_IPV6
 		} else if (AF_INET6 == ifa->ifa_addr->sa_family) {
-            const struct sockaddr_in6 *sin6 = ifa->ifa_addr;
-			host_addr_t addr;
+            const struct sockaddr_in6 *sin6;
 
+			sin6 = cast_to_gconstpointer(ifa->ifa_addr);
 			host_addr_set_ipv6(&addr, sin6->sin6_addr.s6_addr);
 #endif /* USE_IPV6 */
 		} else {
@@ -924,7 +925,7 @@ host_addr_get_interface_addrs(void)
 		}
 
 		if (is_host_addr(addr)) {
-			sl_addrs = g_slist_prepend(sl_addrs, wcopy(addr, sizeof addr))
+			sl_addrs = g_slist_prepend(sl_addrs, wcopy(&addr, sizeof addr));
 		}
 	}
 

@@ -386,7 +386,7 @@ const gchar *host_addr_to_name(const host_addr_t addr);
 gboolean string_to_host_or_addr(const char *s, const gchar **endptr,
 		host_addr_t *ha);
 GSList *host_addr_get_interface_addrs(void);
-void host_addr_get_interface_addrs_free(GSList **sl_ptr);
+void host_addr_free_interface_addrs(GSList **sl_ptr);
 
 #endif /* _host_addr_h_ */
 /* vi: set ts=4 sw=4 cindent: */
