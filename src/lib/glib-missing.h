@@ -53,6 +53,7 @@ typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
  * Public interface.
  */
 
+gboolean gm_slist_is_looping(const GSList *slist);
 GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data);
 
 GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);

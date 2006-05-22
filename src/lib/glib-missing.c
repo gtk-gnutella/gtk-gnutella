@@ -444,4 +444,26 @@ gm_string_finalize(GString *gs)
 	return s;
 }
 
+/**
+ * Detects a loop in a singly-linked list.
+ *
+ * @return TRUE if the given slist contains a loop; FALSE otherwise.
+ */
+gboolean
+gm_slist_is_looping(const GSList *slist)
+{
+	const GSList *sl, *p;
+
+	p = slist;
+	sl = slist;
+	for (sl = slist; /* NOTHING */; sl = g_slist_next(sl)) {
+		p = g_slist_next(g_slist_next(p));
+		if (p == sl || p == g_slist_next(sl)) {
+			break;
+		}
+	}
+
+	return NULL != p;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
