@@ -538,7 +538,7 @@ string_to_host_addr_port(const gchar *str, const gchar **endptr,
 	return ret;
 }
 
-static void
+void
 gethostbyname_error(const gchar *host)
 {
 #if defined(HAS_HSTRERROR)
@@ -552,88 +552,131 @@ gethostbyname_error(const gchar *host)
 }
 
 /**
- * Resolves an IP address to a hostname per DNS.
+ * Initializes sa_ptr from a host address and a port number.
  *
- * @todo TODO: Use getnameinfo() if available.
+ * @param addr The host address.
+ * @param port The port number.
+ * @param sa_ptr a pointer to a socket_addr_t
+ *
+ * @return The length of the initialized structure.
+ */
+socklen_t
+socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, guint16 port)
+{
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		if (sa_ptr) {
+			static const struct sockaddr_in zero_sin;
+
+			sa_ptr->inet4 = zero_sin;
+			/* Note: The next line is a cheap(?) hack to be used until
+			 *       HAS_SIN_LEN is initialized by Configure. sin_len if
+			 *       available.
+			 */
+			sa_ptr->len = sizeof sa_ptr->inet4;
+#ifdef HAS_SIN_LEN
+			sa_ptr->inet4.sin_len = sizeof sa_ptr->inet4;
+#endif /* HAS_SIN_LEN */
+			sa_ptr->inet4.sin_family = AF_INET;
+			sa_ptr->inet4.sin_port = htons(port);
+			sa_ptr->inet4.sin_addr.s_addr = htonl(host_addr_ipv4(addr));
+		}
+		return sizeof sa_ptr->inet4;
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		if (sa_ptr) {
+			static const struct sockaddr_in6 zero_sin6;
+
+			sa_ptr->inet6 = zero_sin6;
+#ifdef SIN6_LEN
+			sa_ptr->inet6.sin6_len = sizeof sa_ptr->inet6;
+#endif /* SIN6_LEN */
+			sa_ptr->inet6.sin6_family = AF_INET6;
+			sa_ptr->inet6.sin6_port = htons(port);
+			memcpy(sa_ptr->inet6.sin6_addr.s6_addr, addr.addr.ipv6, 16);
+		}
+		return sizeof sa_ptr->inet6;
+#endif	/* USE_IPV6 */
+	case NET_TYPE_NONE:
+		if (sa_ptr) {
+			static const socket_addr_t zero_sa;
+			*sa_ptr = zero_sa;
+		}
+		return 0;
+	}
+	g_assert_not_reached();
+	return 0;
+}
+
+/**
+ * Resolves an IP address to a hostname per DNS.
  *
  * @param ha	The host address to resolve.
  * @return		On success, the hostname is returned. Otherwise, NULL is
  *				returned. The resulting string points to a static buffer.
  */
 const gchar *
-host_addr_to_name(const host_addr_t addr)
+host_addr_to_name(host_addr_t addr)
 {
-	const struct hostent *he;
-	union {
-		struct in_addr in;
-#ifdef USE_IPV6	
-		struct in6_addr in6;
-#endif /* USE_IPV6 */
-	} a;
-	host_addr_t ha;
-	gconstpointer sockaddr;
-	int type;
-	socklen_t len;
+	socket_addr_t sa;
 
-	if (!host_addr_convert(addr, &ha, NET_TYPE_IPV4))
-		ha = addr;
-	
-	switch (host_addr_net(ha)) {
-	case NET_TYPE_IPV4:
-		{
-			static const struct in_addr zero_addr;
-
-			type = AF_INET;
-			a.in = zero_addr;
-			a.in.s_addr = htonl(host_addr_ipv4(ha));
-
-			sockaddr = cast_to_gpointer(&a.in);
-			len = sizeof a.in;
-		}
-		break;
-
-#ifdef USE_IPV6
-	case NET_TYPE_IPV6:
-		{
-			static const struct in6_addr zero_addr;
-
-			type = AF_INET6;
-			a.in6 = zero_addr;
-			memcpy(&a.in6, host_addr_ipv6(&ha), 16);
-
-			sockaddr = cast_to_gpointer(&a.in6);
-			len = sizeof a.in6;
-		}
-		break;
-#endif /* USE_IPV6 */
-
-	default:
-		sockaddr = NULL;
-		type = 0;
-		len = 0;
-		g_assert_not_reached();
+	if (host_addr_can_convert(addr, NET_TYPE_IPV4)) {
+		(void) host_addr_convert(addr, &addr, NET_TYPE_IPV4);
 	}
-
-	he = gethostbyaddr(sockaddr, sizeof sockaddr, type);
-	if (!he) {
-		gchar buf[128];
-
-		host_addr_to_string_buf(ha, buf, sizeof buf);
-		gethostbyname_error(buf);
+	if (0 == socket_addr_set(&sa, addr, 0)) {
 		return NULL;
 	}
 
-#if 0
-	g_message("h_name=\"%s\"", NULL_STRING(he->h_name));
-	if (he->h_aliases) {
-		size_t i;
+#ifdef HAS_GETNAMEINFO
+	{
+		static gchar host[1025];
+		gint error;
 
-		for (i = 0; he->h_aliases[i]; i++)
-			g_message("h_aliases[%u]=\"%s\"", (unsigned) i, he->h_aliases[i]);
+		error = getnameinfo(socket_addr_get_sockaddr(&sa),
+					socket_addr_get_len(&sa), host, sizeof host, NULL, 0, 0);
+		if (error) {
+			gchar buf[HOST_ADDR_BUFLEN];
+
+			host_addr_to_string_buf(addr, buf, sizeof buf);
+			g_message("getnameinfo() failed for \"%s\": %s",
+				buf, gai_strerror(error));
+			return NULL;
+		}
+		return host;
 	}
-#endif
+#else	/* !HAS_GETNAMEINFO */
+	{
+		const struct hostent *he;
+		socklen_t len;
+		const gchar *ptr = NULL;
 
-	return he->h_name;
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			ptr = cast_to_gchar_ptr(&sa.inet4.sin_addr);
+			len = sizeof sa.inet4.sin_addr;
+			break;
+		case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+			ptr = cast_to_gchar_ptr(&sa.inet6.sin6_addr);
+			len = sizeof sa.inet6.sin6_addr;
+			break;
+#endif /* USE_IPV6 */
+		case NET_TYPE_NONE:
+			return NULL;
+		}
+		g_return_val_if_fail(ptr, NULL);
+
+		he = gethostbyaddr(ptr, len, socket_addr_get_family(&sa));
+		if (!he) {
+			gchar buf[128];
+
+			host_addr_to_string_buf(addr, buf, sizeof buf);
+			gethostbyname_error(buf);
+			return NULL;
+		}
+		return he->h_name;
+	}
+#endif	/* HAS_GETNAMEINFO */
 }
 
 static GSList *
