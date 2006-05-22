@@ -1972,7 +1972,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 done:
 	routing_log_flush(&log);
 
-	if (sender->header.hops != 255)		/* Paranoid: avoid hop overflow */
+	if (sender->header.hops < 255)		/* Paranoid: avoid hop overflow */
 		sender->header.hops++;			/* Mark passage through our node */
 	if (sender->header.ttl)
 		sender->header.ttl--;
