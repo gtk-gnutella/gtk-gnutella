@@ -20,6 +20,7 @@ U/new/d_epoll.U
 U/new/d_fast_assert.U
 U/new/d_getaddrinfo.U
 U/new/d_geteuid.U
+U/new/d_getifaddrs.U
 U/new/d_getinvent.U
 U/new/d_gettext.U
 U/new/d_getuid.U
@@ -44,11 +45,13 @@ U/new/d_sysctl.U
 U/new/d_ucnv_open_2_6.U
 U/new/d_vsnprintf.U
 U/new/enablenls.U
+U/new/i_ifaddrs.U
 U/new/i_invent.U
 U/new/i_langinfo.U
 U/new/i_libcharset.U
 U/new/i_libintl.U
 U/new/i_netdb.U
+U/new/i_netif.U
 U/new/i_niip.U
 U/new/i_syssendfile.U
 U/new/i_syssysctl.U
