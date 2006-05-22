@@ -696,15 +696,17 @@ fi_free(fileinfo_t *fi)
 		}
 
 		sl = g_hash_table_lookup(fi_by_size, &fi->size);
-		while (sl) {
-			g_assert(NULL != sl->data);
-			g_assert(fi != sl->data);
-			sl = g_slist_next(sl);
-		}
+		g_assert(!gm_slist_is_looping(sl));
+		g_assert(!g_slist_find(sl, fi));
+		g_assert(!g_slist_find(sl, NULL));
 	}
+
+#if 0
+	/* This does not seem to be a bug; see file_info_remove_source(). */
 	if (fi->sha1) {
 		g_assert(fi != g_hash_table_lookup(fi_by_sha1, fi->sha1));
 	}
+#endif
 
 	/*
 	 * Stop all uploads occurring for this file.
@@ -790,6 +792,10 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 	g_assert(*(const filesize_t *) fi->size_atom == fi->size);
 
 	sl = g_hash_table_lookup(fi_by_size, fi->size_atom);
+	g_assert(!gm_slist_is_looping(sl));
+	g_assert(!g_slist_find(sl, NULL));
+	g_assert(!g_slist_find(sl, fi));
+	
 	if (NULL != sl) {
 		sl = g_slist_append(sl, fi);
 	} else {
@@ -797,6 +803,9 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 		g_assert(NULL != sl);
 		g_hash_table_insert(fi_by_size, fi->size_atom, sl);
 	}
+	g_assert(!gm_slist_is_looping(sl));
+	g_assert(!g_slist_find(sl, NULL));
+	g_assert(g_slist_find(sl, fi));
 }
 
 /**
@@ -1082,6 +1091,8 @@ file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
 		nsk.size = size;
 
 		list = g_hash_table_lookup(fi_by_namesize, &nsk);
+		g_assert(!gm_slist_is_looping(list));
+		g_assert(!g_slist_find(list, NULL));
 	}
 
 	if (NULL != list && NULL == g_slist_next(list)) {
@@ -1101,6 +1112,8 @@ file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
 	 */
 
 	list = g_hash_table_lookup(fi_by_size, &size);
+	g_assert(!gm_slist_is_looping(list));
+	g_assert(!g_slist_find(list, NULL));
 
 	for (sl = list; sl; sl = g_slist_next(sl)) {
 		fi = sl->data;
@@ -1911,16 +1924,27 @@ file_info_free_namesize_kv(gpointer key, gpointer val, gpointer unused_x)
 /**
  * Callback for hash table iterator. Used by file_info_close().
  */
-static void
+static gboolean
 file_info_free_size_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 {
-	GSList *list = val;
+	GSList *slist = val, *sl;
 
 	(void) unused_key;
 	(void) unused_x;
-	g_slist_free(list);
+	
+	g_assert(!gm_slist_is_looping(slist));
+	for (sl = slist; sl; sl = g_slist_next(sl)) {
+		const fileinfo_t *fi = sl->data;
+		file_info_check(fi);
+		g_assert(fi->size_atom);
+		g_assert(fi->size == *fi->size_atom);
+		g_assert(*(const filesize_t *) unused_key == fi->size);
+	}
+	
+	g_slist_free(slist);
 
 	/* fi structure in value not freed, shared with other hash tables */
+	return TRUE;
 }
 
 /**
@@ -2006,7 +2030,7 @@ file_info_close(void)
 
 	g_hash_table_foreach(fi_by_sha1, file_info_free_sha1_kv, NULL);
 	g_hash_table_foreach(fi_by_namesize, file_info_free_namesize_kv, NULL);
-	g_hash_table_foreach(fi_by_size, file_info_free_size_kv, NULL);
+	g_hash_table_foreach_remove(fi_by_size, file_info_free_size_kv, NULL);
 	g_hash_table_foreach(fi_by_guid, file_info_free_guid_kv, NULL);
 	g_hash_table_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
 
@@ -2220,12 +2244,19 @@ file_info_hash_remove(fileinfo_t *fi)
 		sl = g_hash_table_lookup(fi_by_size, &fi->size);
 		g_assert(NULL != sl);
 
+		g_assert(!gm_slist_is_looping(sl));
+		g_assert(!g_slist_find(sl, NULL));
+		g_assert(g_slist_find(sl, fi));
+	
 		head = g_slist_remove(sl, fi);
 		if (NULL == head) {
 			g_hash_table_remove(fi_by_size, fi->size_atom);
 		} else if (head != sl) {
 			g_hash_table_insert(fi_by_size, fi->size_atom, head);
 		}
+		g_assert(!gm_slist_is_looping(head));
+		g_assert(!g_slist_find(head, NULL));
+		g_assert(!g_slist_find(head, fi));
 	}
 
 transient:
@@ -3500,6 +3531,8 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 	sizelist = g_hash_table_lookup(fi_by_size, &size);
 	if (NULL == sizelist)
 		return NULL;
+	g_assert(!gm_slist_is_looping(sizelist));
+	g_assert(!g_slist_find(sizelist, NULL));
 
 	/*
 	 * Only retain entry by (name, size) if it is unique.
@@ -3511,6 +3544,9 @@ file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 
 	list = g_hash_table_lookup(fi_by_namesize, &nsk);
 	fi = NULL;
+	
+	g_assert(!gm_slist_is_looping(list));
+	g_assert(!g_slist_find(list, NULL));
 
 	if (NULL != list && NULL == g_slist_next(list))
 		fi = list->data;
