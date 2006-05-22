@@ -5725,7 +5725,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 			node_ultra_count + node_normal_count >= max_connections)
 	) {
         if (!already_connected) {
-			if ((CONNECT_F_FORCE & flags) || whitelist_check(addr)) {
+			if (forced || whitelist_check(addr)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
 				(void) node_remove_worst(FALSE);
 			} else if (use_netmasks && host_is_nearby(addr)) {
@@ -5760,7 +5760,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
     n->hello.len = 0;
 
 	n->routing_data = NULL;
-	n->flags = NODE_F_HDSK_PING | (CONNECT_F_FORCE & flags ? NODE_F_FORCE : 0);
+	n->flags = NODE_F_HDSK_PING | (forced ? NODE_F_FORCE : 0);
 
 	if (s) {					/* This is an incoming control connection */
 		n->socket = s;
