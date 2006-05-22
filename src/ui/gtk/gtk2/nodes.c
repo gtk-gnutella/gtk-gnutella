@@ -411,7 +411,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			"%s %s (%s)\n"
 			"%s %.64s",
 			_("Peer:"),
-			host_addr_port_to_string(info.addr, info.port),
+			host_addr_port_to_string(info.gnet_addr, info.gnet_port),
 			_("Peermode:"),
 			peermode_to_string(flags.peermode),
 			flags.incoming ? _("incoming") : _("outgoing"),
