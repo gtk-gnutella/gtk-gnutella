@@ -478,6 +478,14 @@ void wfree_host_addr(gpointer key, gpointer unused_data);
 gboolean is_private_addr(const host_addr_t addr);
 gboolean host_addr_is_routable(const host_addr_t addr);
 gboolean host_addr_is_loopback(const host_addr_t addr);
+
+static inline gboolean
+host_addr_is_ipv4_mapped(const host_addr_t addr)
+{
+	return NET_TYPE_IPV6 == host_addr_net(addr) && 
+		host_addr_matches(addr, ipv6_ipv4_mapped, 96);
+}
+
 const gchar *host_addr_to_string(const host_addr_t addr);
 size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
 gboolean string_to_host_addr(const gchar *s, const gchar **endptr, host_addr_t *addr_ptr);
