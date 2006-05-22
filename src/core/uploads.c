@@ -1628,8 +1628,8 @@ upload_connect_conf(gnutella_upload_t *u)
 	 * Send the GIV string, using our servent GUID.
 	 */
 
-	rw = gm_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
-		u->index, guid_hex_str(servent_guid), u->name);
+	rw = gm_snprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+			(gulong) u->index, guid_hex_str(servent_guid));
 
 	s = u->socket;
 	sent = bws_write(bws.out, &s->wio, giv, rw);
