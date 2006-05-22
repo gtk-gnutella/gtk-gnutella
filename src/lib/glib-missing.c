@@ -264,20 +264,30 @@ gm_savemain(gint argc, gchar **argv, gchar **env)
  * Change the process title as seen by "ps".
  */
 void
-gm_setproctitle(gchar *title)
+gm_setproctitle(const gchar *title)
+#if defined(HAS_SETPROCTITLE_WITHOUT_FORMAT)
 {
-	static gint sysarglen = 0;		/* Length of the exec() arguments */
-	gint tlen;
+	setproctitle(title)
+}
+#elif defined(HAS_SETPROCTITLE_WITH_FORMAT)
+{
+	setproctitle("%s", title)
+}
+#else /* !HAS_SETPROCTITLE && HAS_SETPROCTITLE_WITH_FORMAT */
+{
+	static size_t sysarg_size;		/* Size of the exec() arguments */
+	static gboolean initialized;
 	gint i;
 
 	/*
 	 * Compute the length of the exec() arguments that were given to us.
 	 */
 
-	if (sysarglen == 0) {
-		gchar *s = orig_argv[0];
+	if (!initialized) {
+		const gchar *s = orig_argv[0];
 
-		s += strlen(s) + 1;			/* Go past trailing NUL */
+		initialized = TRUE;
+		s = 1 + strchr(s, '\0'); /* Go past trailing NUL */
 
 		/*
 		 * Let's see whether all the argv[] arguments were contiguous.
@@ -286,7 +296,7 @@ gm_setproctitle(gchar *title)
 		for (i = 1; i < orig_argc; i++) {
 			if (orig_argv[i] != s)
 				break;
-			s += strlen(s) + 1;		/* Yes, still contiguous */
+			s = 1 + strchr(s, '\0'); /* Yes, still contiguous */
 		}
 
 		/*
@@ -296,25 +306,20 @@ gm_setproctitle(gchar *title)
 		for (i = 0; orig_env[i] != NULL; i++) {
 			if (orig_env[i] != s)
 				break;
-			s += strlen(s) + 1;		/* Yes, still contiguous */
+			s = 1 + strchr(s, '\0');
 		}
 
-		sysarglen = s - orig_argv[0] - 1;	/* -1: leave room for NUL */
+		sysarg_size = s - orig_argv[0];
 
 #if 0
-		g_message("exec() args used %d contiguous bytes", sysarglen + 1);
+		g_message("exec() args used %lu contiguous bytes",
+			(gulong) sysarg_size);
 #endif
 	}
 
-	tlen = strlen(title);
-
-	if (tlen >= sysarglen) {		/* If too large, needs truncation */
-		memcpy(orig_argv[0], title, sysarglen);
-		(orig_argv[0])[sysarglen] = '\0';
-	} else {
-		memcpy(orig_argv[0], title, tlen + 1);	/* Copy trailing NUL */
-		if (tlen + 1 < sysarglen)
-			memset(orig_argv[0] + tlen + 1, ' ', sysarglen - tlen - 1);
+	strncpy(orig_argv[0], title, sysarg_size);
+	if (sysarg_size > 0) {
+		orig_argv[sysarg_size - 1] = '\0';
 	}
 
 	/*
@@ -324,6 +329,7 @@ gm_setproctitle(gchar *title)
 	for (i = 1; i < orig_argc; i++)
 		orig_argv[i] = NULL;
 }
+#endif /* HAS_SETPROCTITLE_WITHOUT_FORMAT */
 
 #ifdef USE_GLIB1
 /**
