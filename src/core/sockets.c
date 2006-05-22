@@ -2811,6 +2811,17 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 		/* Linux absolutely wants this before bind() unlike BSD */		
 		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
+#if defined(USE_IPV6) && defined(IPV6_V6ONLY)
+		if (
+			sd >= 0 &&
+			NET_TYPE_IPV6 == host_addr_net(bind_addr) &&
+			setsockopt(sd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
+		) {
+			g_warning("setsockopt() failed for IPV6_V6ONLY (%s)",
+				g_strerror(errno));
+		}
+#endif /* USE_IPV6 && IPV6_V6ONLY */
+
 		/* bind() the socket */
 		socket_failed = FALSE;
 		len = socket_addr_set(&addr, bind_addr, port);
