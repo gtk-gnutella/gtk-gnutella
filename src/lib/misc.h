@@ -374,7 +374,7 @@ gchar *short_uptime(gint s);
  * @return the advanced timestamp or TIME_T_MAX.
  */
 static inline time_t
-time_advance(time_t t, unsigned delta)
+time_advance(time_t t, gulong delta)
 {
 	/* Using time_t for delta and TIME_T_MAX instead of INT_MAX
 	 * would be cleaner but give a confusing interface. Jumping 136
@@ -382,13 +382,18 @@ time_advance(time_t t, unsigned delta)
 	 * don't allow us to advance a time_t beyond 2038 anyway.
 	 */
 
-	while (delta > 0) {
-		int d;
+	do {
+		glong d;
 
-		d = MIN(delta, (unsigned) INT_MAX);
-		t = TIME_T_MAX - t > d ? (t + d) : TIME_T_MAX;
+		d = MIN(delta, (gulong) LONG_MAX);
+		if (d >= TIME_T_MAX - t) {
+			t = TIME_T_MAX;
+			break;
+		}
+		t += d;
 		delta -= d;
-	}
+	} while (delta > 0);
+
 	return t;
 }
 
