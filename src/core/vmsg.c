@@ -496,9 +496,9 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 		if (msg->vendor == T_0000)		/* Don't send info about ourselves */
 			continue;
 
-		poke_be32(&payload[0], msg->vendor);
-		poke_le16(&payload[4], msg->id);
-		poke_le16(&payload[6], msg->version);
+		payload = poke_be32(payload, msg->vendor);
+		payload = poke_le16(payload, msg->id);
+		payload = poke_le16(payload, msg->version);
 
 		count++;
 	}
