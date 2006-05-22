@@ -8275,6 +8275,43 @@ select_servers(const gchar *guid, const host_addr_t addr, gint *count)
 }
 
 /**
+ * @return FALSE on failure, TRUE if the GIV was successfully parsed.
+ */
+static gboolean
+parse_giv(const gchar *line, gchar *hex_guid, size_t size)
+{
+	static const guint hex_guid_len = 32;
+	const gchar *endptr;
+	guint i;
+	gint error;
+
+	g_return_val_if_fail(line, FALSE);
+	g_return_val_if_fail(hex_guid, FALSE);
+	g_return_val_if_fail(size > hex_guid_len, FALSE);
+
+	endptr = is_strprefix(line, "GIV ");
+	if (!endptr)
+		return FALSE;
+
+	/* A file index must be given but we don't care about its value. */
+	(void) parse_uint32(endptr, &endptr, 10, &error);
+	if (error || ':' != *endptr)
+		return FALSE;
+
+	endptr++;
+	for (i = 0; i < hex_guid_len; i++) {
+		gchar c = *endptr++;
+
+		if (!is_ascii_xdigit(c))
+			return FALSE;
+		hex_guid[i] = c;
+	}
+	hex_guid[i] = '\0';
+
+	return '/' == *endptr;
+}
+
+/**
  * Initiate download on the remotely initiated connection.
  *
  * This is called when an incoming "GIV" request is received in answer to
@@ -8285,7 +8322,6 @@ download_push_ack(struct gnutella_socket *s)
 {
 	struct download *d = NULL;
 	const gchar *giv;
-	guint file_index;			/* The requested file index */
 	gchar hex_guid[33];			/* The hexadecimal GUID */
 	gchar guid[GUID_RAW_SIZE];	/* The decoded (binary) GUID */
 	GSList *servers;			/* Potential targets for the download */
@@ -8304,8 +8340,7 @@ download_push_ack(struct gnutella_socket *s)
 	 * To find out which download this is, we have to parse the incoming
 	 * GIV request, which is stored in "s->getline".
 	 */
-
-	if (!sscanf(giv, "GIV %u:%32c/", &file_index, hex_guid)) {
+	if (!parse_giv(giv, hex_guid, sizeof hex_guid)) {
 		g_warning("malformed GIV string \"%s\" from %s",
 			giv, host_addr_to_string(s->addr));
 		goto discard;
@@ -8315,7 +8350,6 @@ download_push_ack(struct gnutella_socket *s)
 	 * Look for a recorded download.
 	 */
 
-	hex_guid[32] = '\0';
 	if (!hex_to_guid(hex_guid, guid)) {
 		g_warning("discarding GIV with malformed GUID %s from %s",
 			hex_guid, host_addr_to_string(s->addr));
