@@ -2024,15 +2024,22 @@ update_address_information(void)
 		gchar addr_v6_buf[HOST_ADDR_PORT_BUFLEN];
 		gchar buf[256];
 
-		host_addr_port_to_string_buf(addr, port,
-			addr_buf, sizeof addr_buf);
-		host_addr_port_to_string_buf(addr_v6, port,
-			addr_v6_buf, sizeof addr_v6_buf);
+		if (is_host_addr(addr)) {
+			host_addr_port_to_string_buf(addr, port,
+				addr_buf, sizeof addr_buf);
+		} else {
+			addr_buf[0] = '\0';
+		}
+		if (is_host_addr(addr_v6)) {
+			host_addr_port_to_string_buf(addr_v6, port,
+				addr_v6_buf, sizeof addr_v6_buf);
+		} else {
+			addr_v6_buf[0] = '\0';
+		}
 		concat_strings(buf, sizeof buf,
 			addr_buf,
-			", ",
-			addr_v6_buf,
-			(void *) 0);
+			'\0' != addr_buf[0] && '\0' != addr_v6_buf[0] ? ", " : "",
+			addr_v6_buf, (void *) 0);
 		
         old_address = addr;
         old_v6_address = addr_v6;
