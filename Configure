@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue May  2 08:26:41 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Mon May 22 21:47:56 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -306,6 +306,7 @@ aphostname=''
 d_gethname=''
 d_phostname=''
 d_uname=''
+d_getifaddrs=''
 d_getinvent=''
 d_gettext=''
 d_getuid=''
@@ -376,12 +377,14 @@ gtkpackage=''
 gtkversion=''
 h_fcntl=''
 h_sysfile=''
+i_ifaddrs=''
 i_inttypes=''
 i_invent=''
 i_langinfo=''
 i_libcharset=''
 i_libintl=''
 i_netdb=''
+i_netif=''
 i_niin=''
 i_sysin=''
 i_niip=''
@@ -4965,6 +4968,44 @@ $rm -f try try.c
 set d_geteuid
 eval $setvar
 
+: can we use getifaddrs?
+echo " "
+echo "Checking whether getifaddrs() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
+
+int
+main(void) {
+  struct ifaddrs *ifa0, *ifa;
+  static ret;
+
+  ret |= getifaddrs(&ifa0);
+
+  for (ifa = ifa0; ifa; ifa = ifa->ifa_next) {
+    (void) ifa->ifa_flags;
+    (void) ifa->ifa_addr;
+    (void) ifa->ifa_addr->sa_family;
+    (void) ifa->ifa_netmask;
+  }
+  freeifaddrs(ifa0);
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like getifaddrs() is usable on your system, good.
+EOM
+else
+	echo "Sorry, I will not be using getifaddrs()."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_getifaddrs
+eval $setvar
+
 : see if getinvent exists
 set getinvent d_getinvent
 eval $inlibc
@@ -7177,6 +7218,10 @@ none) yaccflags='';;
 *) yaccflags="$ans";;
 esac
 
+: see if this is a ifaddrs.h system
+set ifaddrs.h i_ifaddrs
+eval $inhdr
+
 : see if this is a inttypes.h system
 set inttypes.h i_inttypes
 eval $inhdr
@@ -7195,6 +7240,10 @@ eval $inhdr
 
 : see if this is a netdb.h system
 set netdb.h i_netdb
+eval $inhdr
+
+: see if this is a net/if.h system
+set net/if.h i_netif
 eval $inhdr
 
 : see if this is a pwd.h system
@@ -7598,6 +7647,7 @@ d_fast_assert='$d_fast_assert'
 d_getaddrinfo='$d_getaddrinfo'
 d_geteuid='$d_geteuid'
 d_gethname='$d_gethname'
+d_getifaddrs='$d_getifaddrs'
 d_getinvent='$d_getinvent'
 d_gettblsz='$d_gettblsz'
 d_gettext='$d_gettext'
@@ -7699,12 +7749,14 @@ h_sysfile='$h_sysfile'
 hint='$hint'
 hostcat='$hostcat'
 huge='$huge'
+i_ifaddrs='$i_ifaddrs'
 i_inttypes='$i_inttypes'
 i_invent='$i_invent'
 i_langinfo='$i_langinfo'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
 i_netdb='$i_netdb'
+i_netif='$i_netif'
 i_niin='$i_niin'
 i_niip='$i_niip'
 i_pwd='$i_pwd'

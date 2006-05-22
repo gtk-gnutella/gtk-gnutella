@@ -321,6 +321,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_geteuid HAS_GETEUID
 
+/* HAS_GETIFADDRS:
+ *	This symbol is defined when getifaddrs() can be used.
+ */
+#$d_getifaddrs HAS_GETIFADDRS
+
 /* HAS_GETINVENT:
  *    This symbol, if defined, indicates that the getinvent routine is
  *    available.
@@ -434,6 +439,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_enablenls ENABLE_NLS	/**/
 
+/* I_IFADDRS:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <ifaddrs.h>.
+ */
+#$i_ifaddrs I_IFADDRS         /**/
+
 /* I_INVENT:
  *    This symbol, if defined, indicates to the C program that it should
  *    include <invent.h>.
@@ -457,6 +468,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *    include <netdb.h>.
  */
 #$i_netdb I_NETDB         /**/
+
+/* I_NET_IF:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <net/if.h>.
+ */
+#$i_netif I_NET_IF         /**/
 
 /* I_NETINET_IP:
  *	This symbol, if defined, indicates to the C program that it should
