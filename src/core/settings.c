@@ -1594,7 +1594,11 @@ local_addr_changed(property_t prop)
 	 * reset it and try to guess the correct one by looking at all
 	 * network interfaces.
 	 */	
-	if (!is_host_addr(addr) || net != host_addr_net(addr)) {
+	if (
+		!is_host_addr(addr) ||
+		net != host_addr_net(addr) ||
+		host_addr_is_ipv4_mapped(addr)
+	) {
 		GSList *sl_addrs, *sl;
 
 		addr = zero_host_addr;
