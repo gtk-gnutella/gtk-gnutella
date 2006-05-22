@@ -93,6 +93,14 @@ typedef struct host_addr {
 	} addr;
 } host_addr_t;
 
+typedef union socket_addr {
+	guint8 len;
+	struct sockaddr_in inet4;
+#ifdef USE_IPV6
+	struct sockaddr_in6 inet6;
+#endif /* USE_IPV6 */
+} socket_addr_t;
+
 static const host_addr_t ipv6_unspecified = {	/* ::/128 */
 	NET_TYPE_IPV6,
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
@@ -363,6 +371,105 @@ host_addr_hash(host_addr_t ha)
 	g_assert_not_reached();
 	return -1;
 }
+
+/**
+ * Retrieves the address from a socket_addr_t.
+ *
+ * @param addr a pointer to an initialized socket_addr_t
+ * @return the address.
+ */
+static inline host_addr_t
+socket_addr_get_addr(const socket_addr_t *addr)
+{
+	host_addr_t ha;
+
+	g_assert(addr);
+
+	if (AF_INET == addr->inet4.sin_family) {
+		ha = host_addr_set_ipv4(ntohl(addr->inet4.sin_addr.s_addr));
+#if defined(USE_IPV6)
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		host_addr_set_ipv6(&ha, addr->inet6.sin6_addr.s6_addr);
+#endif /* USE_IPV6 */
+	} else {
+		ha = zero_host_addr;
+	}
+
+	return ha;
+}
+
+/**
+ * Retrieves the port number from a socket_addr_t.
+ *
+ * @param addr a pointer to an initialized socket_addr_t
+ * @return the port number in host byte order
+ */
+static inline guint16
+socket_addr_get_port(const socket_addr_t *addr)
+{
+	g_assert(addr != NULL);
+
+	if (AF_INET == addr->inet4.sin_family) {
+		return ntohs(addr->inet4.sin_port);
+#if defined(USE_IPV6)
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		return ntohs(addr->inet6.sin6_port);
+#endif /* USE_IPV6 */
+	}
+
+	return 0;
+}
+
+static inline socklen_t
+socket_addr_get_len(const socket_addr_t *addr)
+{
+	g_assert(addr != NULL);
+
+	if (AF_INET == addr->inet4.sin_family) {
+		return sizeof addr->inet4;
+#if defined(USE_IPV6)
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		return sizeof addr->inet6;
+#endif /* USE_IPV6 */
+	}
+
+	return 0;
+}
+
+static inline const struct sockaddr *
+socket_addr_get_sockaddr(const socket_addr_t *addr)
+{
+	g_assert(addr != NULL);
+
+	if (AF_INET == addr->inet4.sin_family) {
+		return cast_to_gconstpointer(&addr->inet4);
+#if defined(USE_IPV6)
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		return cast_to_gconstpointer(&addr->inet6);
+#endif /* USE_IPV6 */
+	}
+
+	return NULL;
+}
+
+static inline gint
+socket_addr_get_family(const socket_addr_t *addr)
+{
+	g_assert(addr != NULL);
+
+	if (AF_INET == addr->inet4.sin_family) {
+		return AF_INET;
+#if defined(USE_IPV6)
+	} else if (AF_INET6 == addr->inet6.sin6_family) {
+		return AF_INET6;
+#endif /* USE_IPV6 */
+	}
+
+	return 0;
+}
+
+socklen_t socket_addr_set(socket_addr_t *sa_ptr,
+			const host_addr_t addr, guint16 port);
 
 guint host_addr_hash_func(gconstpointer key);
 gboolean host_addr_eq_func(gconstpointer p, gconstpointer q);

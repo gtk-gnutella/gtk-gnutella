@@ -107,13 +107,6 @@ struct gnutella_socket *s_tcp_listen6 = NULL;
 struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 
-typedef union socket_addr {
-	struct sockaddr_in inet4;
-#if defined(USE_IPV6)
-	struct sockaddr_in6 inet6;
-#endif
-} socket_addr_t;
-
 host_addr_t
 socket_ipv6_trt_map(const host_addr_t addr)
 {
@@ -129,129 +122,6 @@ socket_ipv6_trt_map(const host_addr_t addr)
 		return ret;
 	}
 	return addr;
-}
-
-/**
- * Initializes addr with an IPv4 address and a port number.
- *
- * @param addr a pointer to a socket_addr_t
- * @param ha an IPv4 address in host(!) byte order
- * @param port a 16-bit port number in host byte order
- */
-static void
-socket_addr_set(socket_addr_t *addr, host_addr_t ha, guint16 port)
-{
-	static const socket_addr_t zero_addr;
-
-	g_assert(addr != NULL);
-
-	*addr = zero_addr;
-
-	switch (host_addr_net(ha)) {
-	case NET_TYPE_IPV4:
-		ha = socket_ipv6_trt_map(ha);
-		if (NET_TYPE_IPV6 == host_addr_net(ha)) {
-			socket_addr_set(addr, ha, port);
-		} else {
-			addr->inet4.sin_family = AF_INET;	/* host byte order */
-			addr->inet4.sin_port = htons(port);
-			addr->inet4.sin_addr.s_addr = htonl(host_addr_ipv4(ha));
-		}
-		return;
-
-#if defined(USE_IPV6)
-	case NET_TYPE_IPV6:
-		addr->inet6.sin6_family = AF_INET6;	/* host byte order */
-		addr->inet6.sin6_port = htons(port);
-		memcpy(addr->inet6.sin6_addr.s6_addr, ha.addr.ipv6, 16);
-		return;
-#endif /* USE_IPV6 */
-
-	case NET_TYPE_NONE:
-		break;
-	}
-	g_assert_not_reached();
-}
-
-/**
- * Retrieves the address from a socket_addr_t.
- *
- * @param addr a pointer to an initialized socket_addr_t
- * @return the address.
- */
-static inline host_addr_t
-socket_addr_get_addr(const socket_addr_t *addr)
-{
-	host_addr_t ha;
-
-	g_assert(addr);
-
-	if (AF_INET == addr->inet4.sin_family) {
-		ha = host_addr_set_ipv4(ntohl(addr->inet4.sin_addr.s_addr));
-#if defined(USE_IPV6)
-	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		host_addr_set_ipv6(&ha, addr->inet6.sin6_addr.s6_addr);
-#endif /* USE_IPV6 */
-	} else {
-		ha = zero_host_addr;
-	}
-
-	return ha;
-}
-
-/**
- * Retrieves the port number from a socket_addr_t.
- *
- * @param addr a pointer to an initialized socket_addr_t
- * @return the port number in host byte order
- */
-static inline guint16
-socket_addr_get_port(const socket_addr_t *addr)
-{
-	g_assert(addr != NULL);
-
-	if (AF_INET == addr->inet4.sin_family) {
-		return ntohs(addr->inet4.sin_port);
-#if defined(USE_IPV6)
-	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		return ntohs(addr->inet6.sin6_port);
-#endif /* USE_IPV6 */
-	}
-
-	return 0;
-}
-
-/**
- * Grab a generic sockaddr structure pointer from the socket address `addr'
- * which can be either an IPv4 or IPv6 socket address.
- *
- * @return the length of the generic sockaddr structure, with `p_sa' filled
- * with the pointer to the start of the structure.
- */
-static socklen_t
-socket_addr_get(const socket_addr_t *addr, const struct sockaddr **p_sa)
-{
-	const struct sockaddr *sa;
-	socklen_t len;
-
-	g_assert(addr);
-	g_assert(p_sa);
-
-	if (AF_INET == addr->inet4.sin_family) {
-		sa = cast_to_gconstpointer(&addr->inet4);
-		len = sizeof addr->inet4;
-#ifdef USE_IPV6
-	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		sa = cast_to_gconstpointer(&addr->inet6);
-		len = sizeof addr->inet6;
-#endif /* USE_IPV6 */
-	} else {
-		sa = NULL;
-		len = 0;
-	}
-
-	*p_sa = sa;
-	return len;
 }
 
 /**
@@ -636,7 +506,6 @@ proxy_connect(int fd)
 {
 	static gboolean in_progress = FALSE;
 	socket_addr_t server;
-	const struct sockaddr *sa;
 	socklen_t len;
 
 	if (
@@ -662,10 +531,8 @@ proxy_connect(int fd)
 		return -1;
 	}
 
-	socket_addr_set(&server, proxy_addr, proxy_port);
-	len = socket_addr_get(&server, &sa);
-
-	return connect(fd, sa, len);
+	len = socket_addr_set(&server, proxy_addr, proxy_port);
+	return connect(fd, socket_addr_get_sockaddr(&server), len);
 }
 
 static gint
@@ -2077,29 +1944,29 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 {
 	struct sockaddr_in sin;
 	socklen_t len;
-	host_addr_t ha = zero_host_addr;
+	host_addr_t addr = zero_host_addr;
 	guint16 port = 0;
 
 	len = sizeof sin;
 	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &len)) {
-		ha = host_addr_set_ipv4(ntohl(sin.sin_addr.s_addr));
+		addr = host_addr_set_ipv4(ntohl(sin.sin_addr.s_addr));
 		port = sin.sin_port;
 	}
 
-	if (!is_host_addr(ha)) {
+	if (!is_host_addr(addr)) {
 		struct sockaddr_in6 sin6;
 
 		len = sizeof sin6;
 		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
-			host_addr_set_ipv6(&ha, sin6.sin6_addr.s6_addr);
+			host_addr_set_ipv6(&addr, sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
 		}
 	}
 
-	if (!is_host_addr(ha))
+	if (!is_host_addr(addr))
 		return -1;
 
-	socket_addr_set(p_addr, ha, port);
+	socket_addr_set(p_addr, addr, port);
 	return 0;
 }
 
@@ -2696,6 +2563,7 @@ static gint
 socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 {
 	socket_addr_t addr;
+	socklen_t addr_len;
 	gint res;
 
 	g_assert(NULL != s);
@@ -2707,7 +2575,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	}
 
 	s->addr = ha;
-	socket_addr_set(&addr, s->addr, s->port);
+	addr_len = socket_addr_set(&addr, s->addr, s->port);
 
 	inet_connection_attempted(s->addr);
 
@@ -2734,19 +2602,17 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		}
 
 		if (host_addr_initialized(bind_addr)) {
-			const struct sockaddr *sa;
 			socket_addr_t local;
 			socklen_t len;
 
-			socket_addr_set(&local, bind_addr, 0);
-			len = socket_addr_get(&local, &sa);
+			len = socket_addr_set(&local, bind_addr, 0);
 
 			/*
 			 * Note: we ignore failures: it will be automatic at connect()
 			 * It's useful only for people forcing the IP without being
 			 * behind a masquerading firewall --RAM.
 			 */
-			(void) bind(s->file_desc, sa, len);
+			(void) bind(s->file_desc, socket_addr_get_sockaddr(&local), len);
 		}
 	}
 
@@ -2754,11 +2620,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		s->direction = SOCK_CONN_PROXY_OUTGOING;
 		res = proxy_connect(s->file_desc);
 	} else {
-		const struct sockaddr *sa;
-		socklen_t len;
-
-		len = socket_addr_get(&addr, &sa);
-		res = connect(s->file_desc, sa, len);
+		res = connect(s->file_desc, socket_addr_get_sockaddr(&addr), addr_len);
 	}
 
 	if (-1 == res && EINPROGRESS != errno) {
@@ -2943,7 +2805,6 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 		saved_errno = errno;
 	} else {
 		static const int enable = 1;
-		const struct sockaddr *sa;
 		socket_addr_t addr;
 		socklen_t len;
 
@@ -2952,9 +2813,8 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 
 		/* bind() the socket */
 		socket_failed = FALSE;
-		socket_addr_set(&addr, bind_addr, port);
-		len = socket_addr_get(&addr, &sa);
-		if (-1 == bind(sd, sa, len)) {
+		len = socket_addr_set(&addr, bind_addr, port);
+		if (-1 == bind(sd, socket_addr_get_sockaddr(&addr), len)) {
 			saved_errno = errno;
 			close(sd);
 			sd = -1;
@@ -3383,7 +3243,6 @@ socket_plain_sendto(
 	struct wrap_io *wio, gnet_host_t *to, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
-	const struct sockaddr *sa;
 	socklen_t len;
 	socket_addr_t addr;
 	host_addr_t ha;
@@ -3396,10 +3255,9 @@ socket_plain_sendto(
 		return -1;
 	}
 
-	socket_addr_set(&addr, ha, to->port);
-	len = socket_addr_get(&addr, &sa);
-
-	ret = sendto(s->file_desc, buf, size, 0, sa, len);
+	len = socket_addr_set(&addr, ha, to->port);
+	ret = sendto(s->file_desc, buf, size, 0,
+			socket_addr_get_sockaddr(&addr), len);
 
 	if ((ssize_t) -1 == ret && udp_debug) {
 		gint e = errno;
