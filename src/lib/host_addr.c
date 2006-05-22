@@ -647,7 +647,7 @@ host_addr_to_name(host_addr_t addr)
 #else	/* !HAS_GETNAMEINFO */
 	{
 		const struct hostent *he;
-		socklen_t len;
+		socklen_t len = 0;
 		const gchar *ptr = NULL;
 
 		switch (host_addr_net(addr)) {
@@ -665,6 +665,7 @@ host_addr_to_name(host_addr_t addr)
 			return NULL;
 		}
 		g_return_val_if_fail(ptr, NULL);
+		g_return_val_if_fail(0 != len, NULL);
 
 		he = gethostbyaddr(ptr, len, socket_addr_get_family(&sa));
 		if (!he) {
