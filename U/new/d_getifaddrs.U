@@ -26,7 +26,7 @@ $cat >try.c <<'EOC'
 int
 main(void) {
   struct ifaddrs *ifa0, *ifa;
-  static ret;
+  static int ret;
 
   ret |= getifaddrs(&ifa0);
 
