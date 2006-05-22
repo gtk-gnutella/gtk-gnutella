@@ -5651,6 +5651,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	struct gnutella_node *n;
 	gboolean incoming = FALSE, already_connected = FALSE;
 	guint major = 0, minor = 0;
+	gboolean forced = 0 != (CONNECT_F_FORCE & flags);
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
@@ -5683,7 +5684,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		s->getline = NULL;
 	}
 
-	if (!allow_private_network_connection && is_private_addr(addr)) {
+	if (!forced && !allow_private_network_connection && is_private_addr(addr)) {
 		if (s) {
 			if (major > 0 || minor > 4)
 				send_node_error(s, 404, "Denied access from private IP");
