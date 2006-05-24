@@ -992,6 +992,53 @@ utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 }
 
 /**
+ * Works similar to strlcpy() but preserves a valid UTF-8 encoding, if
+ * the string has to be truncated and copies at maximum ``max_chars''
+ * UTF-8 characters. Thus, it's more useful for visual truncation in
+ * contrast to just making it sure it fits into a certain buffer.
+ *
+ * @param dst the target buffer to copy the string to.
+ * @param dst_size the number of bytes ``dst'' can hold.
+ * @param src the source buffer to copy the string from.
+ * @param max_chars the maximum amount of characters to copy.
+ */
+size_t
+utf8_strcpy_max(gchar *dst, size_t dst_size, const gchar *src, size_t max_chars)
+{
+	gchar *d = dst;
+	const gchar *s = src;
+
+	g_assert(NULL != dst);
+	g_assert(NULL != src);
+
+	if (dst_size-- > 0) {
+		while ('\0' != *s && max_chars > 0) {
+			size_t clen;
+
+			clen = utf8_char_len(s);
+			clen = MAX(1, clen);
+			if (clen > dst_size)
+				break;
+			max_chars--;
+
+			if (clen == 1) {
+				*d++ = *s++;
+				dst_size--;
+			} else {
+				memmove(d, s, clen);
+				d += clen;
+				s += clen;
+				dst_size -= clen;
+			}
+		}
+		*d = '\0';
+	}
+ 	while (*s)
+		s++;
+	return s - src;
+}
+
+/**
  * Encodes a single UTF-32 character as UTF-16 into a buffer.
  * See also RFC 2781.
  *
