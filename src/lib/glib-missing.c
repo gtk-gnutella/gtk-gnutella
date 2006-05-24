@@ -299,16 +299,6 @@ gm_setproctitle(const gchar *title)
 			s = 1 + strchr(s, '\0'); /* Yes, still contiguous */
 		}
 
-		/*
-		 * Maybe the environment is contiguous as well...
-		 */
-
-		for (i = 0; orig_env[i] != NULL; i++) {
-			if (orig_env[i] != s)
-				break;
-			s = 1 + strchr(s, '\0');
-		}
-
 		sysarg_size = s - orig_argv[0];
 
 #if 0
