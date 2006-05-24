@@ -299,7 +299,7 @@ search_gui_close_search(search_t *sch)
  * search is stored there.
  */
 gboolean
-search_gui_new_search_full(const gchar *querystr,
+search_gui_new_search_full(const gchar *query_str,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
@@ -308,31 +308,29 @@ search_gui_new_search_full(const gchar *querystr,
         lookup_widget(main_window, "notebook_search_results");
     GtkWidget *button_search_close =
         lookup_widget(main_window, "button_search_close");
-    GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
     const gchar *titles[c_sl_num];
-    const gchar *error, *query;
+    const gchar *error_str;
+	struct query *query;
     search_t *sch;
 	gnet_search_t sch_id;
-    GList *rules;
     gint row;
 	gboolean is_only_search = FALSE;
 
-	if (0 == (flags & (SEARCH_F_PASSIVE | SEARCH_F_BROWSE))) {
-		query = search_gui_parse_query(querystr, &rules, &error);
-		if (!query) {
-			statusbar_gui_message(5, "%s", error);
-			return FALSE;
-		}
-    	gtk_entry_set_text(GTK_ENTRY(entry_search), "");
-		if ('\0' == query[0]) {
-			return FALSE;
-		}
-	} else {
-		query = querystr;
-		rules = NULL;
+	query = search_gui_handle_query(query_str, flags, &error_str);
+	if (query || !error_str) {
+		gtk_entry_set_text(
+				GTK_ENTRY(lookup_widget(main_window, "entry_search")), "");
 	}
-	
-    sch_id = guc_search_new(query, create_time, lifetime,
+	if (!query) {
+		if (error_str) {
+			statusbar_gui_warning(5, "%s", error_str);
+		}
+		return FALSE;
+	}
+	g_assert(query);
+	g_assert(query->text);
+
+    sch_id = guc_search_new(query->text, create_time, lifetime,
 				reissue_timeout, flags);
 	if ((gnet_search_t) -1 == sch_id) {
 		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
@@ -355,7 +353,7 @@ search_gui_new_search_full(const gchar *querystr,
 		sch->sort_order = SORT_NONE;
 	}
 
-	sch->query = atom_str_get(query);
+	sch->query = atom_str_get(query->text);
 	sch->enabled = (flags & SEARCH_F_ENABLED) ? TRUE : FALSE;
 	sch->browse = (flags & SEARCH_F_BROWSE) ? TRUE : FALSE;
     sch->search_handle = sch_id;
@@ -365,9 +363,7 @@ search_gui_new_search_full(const gchar *querystr,
 
 	sch->parents = g_hash_table_new(NULL, NULL);
 
-	search_gui_filter_new(sch, rules);
-	g_list_free(rules);
-	rules = NULL;
+	search_gui_filter_new(sch, query->rules);
 
     titles[c_sl_name] = lazy_utf8_to_ui_string(sch->query);
     titles[c_sl_hit] = "0";
@@ -380,9 +376,7 @@ search_gui_new_search_full(const gchar *querystr,
 	if (searches) {
 		/* We have to create a new ctree for this search */
 		gui_search_create_ctree(&sch->scrolled_window, &sch->ctree);
-
-		gtk_object_set_user_data((GtkObject *) sch->scrolled_window, sch);
-
+		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
 		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
 								 sch->scrolled_window, NULL);
 	} else {
@@ -394,10 +388,10 @@ search_gui_new_search_full(const gchar *querystr,
 			default_search_ctree = NULL;
 			default_scrolled_window = NULL;
 		} else
-			g_warning
-				("new_search(): No current search but no default ctree !?\n");
+			g_warning("search_gui_new_search_full(): "
+				"No current search but no default ctree !?");
 
-		gtk_object_set_user_data((GtkObject *) sch->scrolled_window, sch);
+		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
 	}
 
 	gui_search_update_tab_label(sch);
@@ -405,11 +399,10 @@ search_gui_new_search_full(const gchar *querystr,
         (GtkFunction)gui_search_update_tab_label, sch);
 
     if (!searches) {
-        GtkWidget * w = gtk_notebook_get_nth_page(
-            GTK_NOTEBOOK(notebook_search_results), 0);
-
-		gtk_notebook_set_tab_label_text(
-            GTK_NOTEBOOK(notebook_search_results),
+        GtkWidget *w;
+	   
+		w = gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook_search_results), 0);
+		gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results),
             w, _("(no search)"));
     }
 
@@ -450,6 +443,8 @@ search_gui_new_search_full(const gchar *querystr,
 
 	if (search)
 		*search = sch;
+
+	search_gui_query_free(&query);
 	return TRUE;
 }
 

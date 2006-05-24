@@ -449,35 +449,39 @@ search_gui_close_search(search_t *sch)
  * search is stored there.
  */
 gboolean
-search_gui_new_search_full(const gchar *querystr,
+search_gui_new_search_full(const gchar *query_str,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
 	static const search_t zero_sch;
-	const gchar *query, *error;
+	const gchar *error_str;
+	struct query *query;
 	search_t *sch;
-	GList *rules;
 	gnet_search_t sch_id;
 	GtkListStore *model;
 	GtkTreeIter iter;
 	gboolean is_only_search;
 	
-	query = search_gui_parse_query(querystr, &rules, &error);
+	query = search_gui_handle_query(query_str, flags, &error_str);
+	if (query || !error_str) {
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_search")), "");
+	}
 	if (!query) {
-		statusbar_gui_warning(5, "%s", error);
+		if (error_str) {
+			statusbar_gui_warning(5, "%s", error_str);
+		}
 		return FALSE;
 	}
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget(main_window, "entry_search")),
-		"");
-	if ('\0' == query[0]) {
-		return FALSE;
-	}
-	sch_id = guc_search_new(query, create_time, lifetime, reissue_timeout,
-				flags);
+	g_assert(query);
+	g_assert(query->text);
+	
+	sch_id = guc_search_new(query->text, create_time, lifetime,
+				reissue_timeout, flags);
 	if ((gnet_search_t) -1 == sch_id) {
 		/*
 		 * An invalidly encoded SHA1 is already detected by
-		 * search_gui_parse_query(), so a too short query is the only reason
+		 * search_gui_query_parse(), so a too short query is the only reason
 		 * this may fail at the moment.
 		 */
 		statusbar_gui_warning(5, "%s",
@@ -502,7 +506,7 @@ search_gui_new_search_full(const gchar *querystr,
 		sch->sort_order = SORT_NONE;
 	}
  
-	sch->query = atom_str_get(query);
+	sch->query = atom_str_get(query->text);
 	sch->enabled = (flags & SEARCH_F_ENABLED) ? TRUE : FALSE;
 	sch->browse = (flags & SEARCH_F_BROWSE) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
@@ -513,9 +517,7 @@ search_gui_new_search_full(const gchar *querystr,
 
 	sch->parents = g_hash_table_new(sha1_hash, sha1_eq);
 
-	search_gui_filter_new(sch, rules);
-	g_list_free(rules);
-	rules = NULL;
+	search_gui_filter_new(sch, query->rules);
 
 	/* Create a new TreeView if needed, or use the default TreeView */
 
@@ -523,9 +525,7 @@ search_gui_new_search_full(const gchar *querystr,
 		/* We have to create a new TreeView for this search */
 		gui_search_create_tree_view(&sch->scrolled_window,
 			&sch->tree_view, sch);
-
 		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
-
 		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
 			 sch->scrolled_window, NULL);
 	} else {
@@ -618,6 +618,8 @@ search_gui_new_search_full(const gchar *querystr,
 
 	if (NULL != search)
 		*search = sch;
+
+	search_gui_query_free(&query);
 	return TRUE;
 }
 
@@ -1787,17 +1789,19 @@ gui_search_force_update_tab_label(search_t *sch, time_t now)
 
     search = search_gui_get_current_search();
 
-	if (sch == search || sch->unseen_items == 0)
+	if (sch == search || sch->unseen_items == 0) {
 		gm_snprintf(buf, sizeof buf, "%s\n(%d)", sch->query, sch->items);
-	else
+	} else {
 		gm_snprintf(buf, sizeof buf, "%s\n(%d, %d)", sch->query,
 		   sch->items, sch->unseen_items);
+	}
 	sch->last_update_items = sch->items;
 	gtk_notebook_set_tab_label_text(notebook_search_results,
 		sch->scrolled_window, buf);
 	model = gtk_tree_view_get_model(tree_view_search);
 	gtk_tree_model_foreach(model, tree_view_search_update, sch);
 	sch->last_update_time = now;
+
 }
 
 /**

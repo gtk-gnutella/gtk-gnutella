@@ -111,6 +111,13 @@ typedef struct record {
     flag_t  flags;              /**< same flags as in gnet_record_t */
 } record_t;
 
+struct query {
+	gchar *text;
+	GList *rules;
+	guint flags;
+};
+
+
 #include "search.h"
 
 /*
@@ -152,8 +159,9 @@ void search_gui_retrieve_searches(void);
 void search_gui_restart_search(search_t *sch);
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
 void search_gui_flush(time_t);
-const gchar *search_gui_parse_query(const gchar *querystr, GList **rules,
-		const gchar **error);
+struct query *search_gui_handle_query(const gchar *query_str, flag_t flags,
+						const gchar **error_str);
+void search_gui_query_free(struct query **query_ptr);
 void search_gui_filter_new(search_t *sch, GList *rules);
 
 gboolean search_gui_new_browse_host(
@@ -172,6 +180,7 @@ void search_gui_option_menu_searches_select(const search_t *sch);
 void search_gui_browse_selected(void);
 gboolean search_gui_handle_magnet(const gchar *url, const gchar **error_str);
 gboolean search_gui_handle_http(const gchar *url, const gchar **error_str);
+gboolean search_gui_handle_urn(const gchar *url, const gchar **error_str);
 
 gchar *search_xml_indent(const gchar *s);
 

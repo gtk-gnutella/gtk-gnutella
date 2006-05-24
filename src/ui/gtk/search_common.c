@@ -126,7 +126,28 @@ search_gui_option_menu_searches_update(void)
 		GtkWidget *item;
 		search_t *s = iter->data;
 
-		item = gtk_menu_item_new_with_label(lazy_utf8_to_ui_string(s->query));
+		/*
+		 * Limit the title length of the menu item to a certain amount
+		 * of characters (not bytes) because overlong query strings
+		 * would cause a very wide menu.
+		 */
+		{
+			static const size_t max_chars = 41; /* Long enough for urn:sha1: */
+			const gchar ellipse[] = "[...]";
+			gchar title[max_chars * 4 + sizeof ellipse];
+			const gchar *ui_query;
+			size_t title_size;
+
+			ui_query = lazy_utf8_to_ui_string(s->query);
+			title_size = sizeof title - sizeof ellipse;
+			utf8_strcpy_max(title, title_size, ui_query, max_chars);
+			if (strlen(title) < strlen(ui_query)) {
+				strncat(title, ellipse, CONST_STRLEN(ellipse));
+			}
+
+			item = gtk_menu_item_new_with_label(title);
+		}
+	
 		gtk_widget_show(item);
 		gtk_object_set_user_data(GTK_OBJECT(item), s);
 		gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), item);
@@ -299,8 +320,11 @@ search_gui_extract_ext(const gchar *filename)
 
     ext[0] = '\0';
     p = strrchr(filename, '.');
+	if (p) {
+		p++;
+	}
 
-	rw = g_strlcpy(ext, p ? ++p : "", sizeof ext);
+	rw = g_strlcpy(ext, p ? p : "", sizeof ext);
 	if (rw >= sizeof ext) {
 		/* If the guessed extension is really this long, assume the
 		 * part after the dot isn't an extension at all. */
@@ -333,13 +357,13 @@ search_gui_clean_r_set(results_set_t *rs)
      * Collect empty searches.
      */
     for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
-		record_t *rc = (record_t *) sl->data;
+		record_t *rc = sl->data;
 
 		g_assert(rc->results_set == rs);
 		g_assert(rc->magic == RECORD_MAGIC);
 		g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 		if (rc->refcount == 0)
-			sl_remove = g_slist_prepend(sl_remove, (gpointer) rc);
+			sl_remove = g_slist_prepend(sl_remove, rc);
     }
 
     /*
@@ -1492,59 +1516,73 @@ search_gui_restart_search(search_t *sch)
 	search_gui_update_expiry(sch);
 }
 
-struct query {
-	gchar *text;
-	GList *neg;
-};
-
 /**
- *
+ * Parse the given query text and looks for negative patterns. That means
+ * "blah -zadda" will be converted to "blah" and a word filter is added
+ * to discard results matching "zadda". A minus followed by a space or
+ * another minus is always used literally.
  */
 static void
-search_gui_parse_text_query(const gchar *s, struct query *query)
+search_gui_parse_text_query(const gchar *text, struct query *query)
 {
-	static const struct query zero_query;
 	const gchar *p, *q;
 	gchar *dst;
 
-	g_assert(s);
+	g_assert(text);
 	g_assert(query);
+	g_assert(NULL == query->text);
 
-	*query = zero_query;
-	dst = query->text = g_strdup(s);
+	query->text = g_strdup(text);
+	dst = query->text;
 
-	for (p = s; *p != '\0'; p = q) {
+	for (p = text; *p != '\0'; p = q) {
 		gboolean neg;
-		gint n;
+		size_t n;
 
 		q = strchr(p, ' ');
 		if (!q)
 			q = strchr(p, '\0');
 
 		/* Treat word after '-' (if preceded by a blank) as negative pattern */
-		neg = *p == '-' && (p != s && ' ' == *(p - 1)) && p[1] != '-';
-		if (neg)
+		if (
+			'-' == *p &&
+			p != text &&
+			is_ascii_blank(*(p - 1)) &&
+			p[1] != '-' &&
+			!is_ascii_blank(p[1])
+		) {
+			neg = TRUE;
 			p++;
+		} else {
+			neg = FALSE;
+		}
 
 		n = q - p;
-		g_assert(n >= 0);
-		if (neg) {
-			if (*p != '\0' && n > 0) {
-				gchar *w;
+		if (neg && n > 0) {
+			filter_t *target;
+			gchar *word;
 
-				w = g_strndup(p, n + 1);
-				g_strchomp(w);
-				if (gui_debug)
-					g_message("neg: \"%s\"", w);
-				query->neg = g_list_prepend(query->neg, w);
+			word = g_strndup(p, n + 1);
+			g_strchomp(word);
+			if (gui_debug) {
+				g_message("neg: \"%s\"", word);
 			}
-		} else {
-			if (dst != query->text)
-				*dst++ = ' ';
 
+			target = filter_get_drop_target();
+			g_assert(target != NULL);
+
+			query->rules = g_list_prepend(query->rules,
+								filter_new_text_rule(word, RULE_TEXT_WORDS,
+									FALSE, target, RULE_FLAG_ACTIVE));
+			G_FREE_NULL(word);
+		} else {
+			if (dst != query->text) {
+				*dst++ = ' ';
+			}
 			g_strlcpy(dst, p, n + 1);
-			if (gui_debug)
+			if (gui_debug) {
 				g_message("pos: \"%s\"", dst);
+			}
 			dst += n;
 		}
 
@@ -1552,7 +1590,7 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 			q = skip_ascii_blanks(++q);
 	}
 
-	query->neg = g_list_reverse(query->neg);
+	query->rules = g_list_reverse(query->rules);
 }
 
 gboolean
@@ -1567,7 +1605,6 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		}
 		return FALSE;
 	}
-
 
 	/* FIXME:
 	 * As long as downloading of files without a known size is
@@ -1657,12 +1694,14 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
 			const gchar *query;
 
+			/* Note that SEARCH_F_LITERAL is used to prevent that these
+			 * searches are parsed for magnets or other special items. */
 			query = sl->data;
 			g_assert(query);
 			if (
 				search_gui_new_search_full(query, tm_time(), 0, 0,
 			 		search_sort_default_column, search_sort_default_order,
-			 		SEARCH_F_ENABLED, NULL)
+			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, NULL)
 			) {
 				n_searches++;
 			}
@@ -1674,17 +1713,30 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			concat_strings(query, sizeof query,
 				"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
 
+			/* Note that SEARCH_F_LITERAL is used to prevent an infinite
+			 * recursion between search_gui_new_search_full() and this
+			 * function. */
 			if (
 				search_gui_new_search_full(query, tm_time(), 0, 0,
 			 		search_sort_default_column, search_sort_default_order,
-			 		SEARCH_F_ENABLED, NULL)
+			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, NULL)
 			) {
 				n_searches++;
 			}
-			guc_download_new(filename, res->size, URN_INDEX,
-				host_addr_set_ipv4(0), 0, blank_guid, NULL,
-				res->sha1, tm_time(), FALSE, NULL, NULL, 0);
-			n_downloads++;
+
+			/*
+			 * When we know the urn:sha1: and a proper name, we reserve
+			 * a download immediately so that it starts as soon as a
+			 * source is found. Don't do this for a plain "urn:sha1:"
+			 * though as the user might not have an idea what the search
+			 * is supposed to find.
+			 */
+			if (res->display_name) {
+				guc_download_new(filename, res->size, URN_INDEX,
+					host_addr_set_ipv4(0), 0, blank_guid, NULL,
+					res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+				n_downloads++;
+			}
 		}
 
 		G_FREE_NULL(filename);
@@ -1737,130 +1789,135 @@ search_gui_handle_http(const gchar *url, const gchar **error_str)
 	success = search_gui_handle_magnet(magnet_url, error_str);
 	G_FREE_NULL(magnet_url);
 
-	return TRUE;
+	return success;
 }
 
-
-/**
- * Parses a query string as entered by the user.
- *
- * @param	querystr must point to the query string.
- * @param	**rules
- * @param	*error will point to an descriptive error message on failure.
- * @return	NULL if the query was not valid. Otherwise, the decoded query
- *			is returned.
- */
-const gchar *
-search_gui_parse_query(const gchar *querystr, GList **rules,
-	const gchar **error)
+gboolean
+search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 {
-	static const gchar urnsha1[] = "urn:sha1:";
-	static gchar query[512];
-	struct query qs;
+	gchar *magnet_url;
+	gboolean success;
 
-	g_assert(querystr != NULL);
-	g_assert(error != NULL);
+	g_return_val_if_fail(urn, FALSE);
+	g_return_val_if_fail(is_strcaseprefix(urn, "urn:"), FALSE);
 
-	*error = NULL;
-	if (rules)
-		*rules = NULL;
+	{
+		struct magnet_resource *magnet;
+		gchar *escaped_urn;
 
-	if (!utf8_is_valid_string(querystr)) {
-		*error = _("The query string is not UTF-8 encoded");
-		return NULL;
+		/* Assume the URL was entered by a human; humans don't escape
+		 * URLs except on accident and probably incorrectly. Try to
+		 * correct the escaping but don't touch '?', '&', '=', ':'.
+		 */
+		escaped_urn = url_fix_escape(urn);
+
+		/* Magnet values are ALWAYS escaped. */
+		magnet = magnet_resource_new();
+		success = magnet_set_exact_topic(magnet, escaped_urn);
+		if (escaped_urn != urn) {
+			G_FREE_NULL(escaped_urn);
+		}
+		if (!success) {
+			if (error_str) {
+				*error_str = _("The given urn type is not supported.");
+			}
+			magnet_resource_free(magnet);
+			return FALSE;
+		}
+		magnet_url = magnet_to_string(magnet);
+		magnet_resource_free(magnet);
 	}
 	
+	success = search_gui_handle_magnet(magnet_url, error_str);
+	G_FREE_NULL(magnet_url);
+
+	return success;
+}
+
+/**
+ * Frees a "struct query" and nullifies the given pointer.
+ */
+void
+search_gui_query_free(struct query **query_ptr)
+{
+	g_assert(query_ptr);
+	if (*query_ptr) {
+		struct query *query = *query_ptr;
+
+		G_FREE_NULL(query->text);	
+		g_list_free(query->rules);
+		query->rules = NULL;
+		wfree(query, sizeof *query);
+		*query_ptr = NULL;
+	}
+}
+
+/**
+ * Handles a query string as entered by the user. This does also handle
+ * magnets and special search strings. These will be handled immediately
+ * which means that multiple searches and downloads might have been
+ * initiated when the functions returns.
+ *
+ * @param	query_str must point to the query string.
+ * @param	flags Diverse SEARCH_F_* flags.
+ * @param	error_str Will be set to NULL on success or point to an
+ *          error message for the user on failure.
+ * @return	NULL if no search should be created. This is not necessarily
+ *			a failure condition, check error_str instead. If a search
+ *			should be created, an initialized "struct query" is returned.
+ */
+struct query *
+search_gui_handle_query(const gchar *query_str, flag_t flags,
+	const gchar **error_str)
+{
+	gboolean parse;
+
+	g_assert(query_str != NULL);
+	if (!error_str) {
+		static const gchar *dummy;
+		error_str = &dummy;
+	}
+	*error_str = NULL;
+
+	if (!utf8_is_valid_string(query_str)) {
+		*error_str = _("The query string is not UTF-8 encoded");
+		return NULL;
+	}
+
 	/*
-	 * If the text is a magnet link we extract the SHA1 urn
-	 * and put it back into the search field string so that the
-	 * code for urn searches below can handle it.
-	 *		--DBelius   11/11/2002
+	 * Prevent recursively parsing special search strings i.e., magnet links.
 	 */
-
-	if (utf8_strlcpy(query, querystr, sizeof query) >= sizeof query) {
-		*error = _("The entered query is too long");
-		return NULL;
-	}
-
-	if (is_strcaseprefix(query, "magnet:")) {
-		if (search_gui_handle_magnet(query, error)) {
-			return "";
-		}
-		return NULL;
-	} else if (is_strcaseprefix(query, "http:")) {
-		if (search_gui_handle_http(query, error)) {
-			return "";
-		}
-		return NULL;
-	} else if (is_strcaseprefix(query, urnsha1)) {
-		gchar raw[SHA1_RAW_SIZE];
-		gchar *b = is_strcaseprefix(query, urnsha1);
-
-		/*
-		 * If string begins with "urn:sha1:", then it's an URN search.
-		 * Validate the base32 representation, and if not valid, beep
-		 * and refuse the entry.
-		 *		--RAM, 28/06/2002
-		 */
-
-		if (strlen(b) >= SHA1_BASE32_SIZE) {
-
-			if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof raw))
-				return query;
-
-			/*
-		 	 * If they gave us an old base32 representation, convert it to
-		 	 * the new one on the fly.
-		 	 */
-			if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof raw)) {
-				gchar b32[SHA1_BASE32_SIZE + 1];
-
-				base32_encode_into(raw, sizeof raw, b32, sizeof b32);
-				b32[sizeof b32 - 1] = '\0';
-				concat_strings(query, sizeof query, urnsha1, b32, (void *) 0);
-				return query;
-			}
-
-		}
-
-		/*
-	 	 * Entry refused.
-	 	 */
-		*error = _("The SHA1 query is not validly encoded");
-		return NULL;
-	}
-
-	search_gui_parse_text_query(query, &qs);
-	g_assert(qs.text != NULL);
-	g_strlcpy(query, qs.text, sizeof query);
-	if (qs.neg) {
-		filter_t *target;
-		GList *l;
-
-		target = filter_get_drop_target();
-		g_assert(target != NULL);
-		for (l = qs.neg; l != NULL; l = g_list_next(l)) {
-			gchar *w;
-
-			w = l->data;
-			g_assert(w != NULL);
-			if (rules) {
-				/* recycle this list */
-				l->data = filter_new_text_rule(w, RULE_TEXT_WORDS, FALSE,
-							target, RULE_FLAG_ACTIVE);
-			}
-			G_FREE_NULL(w);
+	parse = !((SEARCH_F_PASSIVE | SEARCH_F_BROWSE | SEARCH_F_LITERAL) & flags);
+	if (parse) {
+		if (is_strcaseprefix(query_str, "magnet:")) {
+			search_gui_handle_magnet(query_str, error_str);
+			return NULL;
+		} else if (is_strcaseprefix(query_str, "http:")) {
+			search_gui_handle_http(query_str, error_str);
+			return NULL;
+		} else if (is_strcaseprefix(query_str, "local:")) {
+			*error_str = "Not implemented";
+			return NULL;
+		} else if (is_strcaseprefix(query_str, "urn:")) {
+			search_gui_handle_urn(query_str, error_str);
+			return NULL;
 		}
 	}
 
-	if (rules)
-		*rules = qs.neg;
-	else
-		g_list_free(qs.neg);
+	{	
+		static const struct query zero_query;
+		struct query *query;
 
-	G_FREE_NULL(qs.text);
+		query = walloc(sizeof *query);
+		*query = zero_query;
 
-	return query;
+		if (parse) {
+			search_gui_parse_text_query(query_str, query);
+		} else {
+			query->text = g_strdup(query_str);
+		}
+		return query;
+	}
 }
 
 /**
