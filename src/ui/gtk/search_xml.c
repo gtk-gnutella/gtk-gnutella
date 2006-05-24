@@ -1090,6 +1090,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 			query);
 	}
 
+	flags |= SEARCH_F_LITERAL;
 	search_gui_new_search_full(query, create_time, lifetime, reissue_timeout,
 		sort_col, sort_order, flags, &search);
 
