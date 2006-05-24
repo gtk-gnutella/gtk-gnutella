@@ -68,7 +68,10 @@ struct magnet_source *magnet_source_new(void);
 gchar *magnet_to_string(struct magnet_resource *res);
 void magnet_set_filesize(struct magnet_resource *res, filesize_t size);
 void magnet_set_display_name(struct magnet_resource *res, const gchar *name);
+gboolean magnet_set_exact_topic(struct magnet_resource *res,
+			const gchar *topic);
 void magnet_set_sha1(struct magnet_resource *res, const gchar *sha1);
+void magnet_add_search(struct magnet_resource *res, const gchar *search);
 void magnet_add_source_by_url(struct magnet_resource *res, const gchar *url);
 void magnet_add_sha1_source(struct magnet_resource *res,
 		const gchar *sha1, const host_addr_t addr, const guint16 port);

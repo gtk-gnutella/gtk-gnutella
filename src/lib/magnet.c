@@ -208,7 +208,7 @@ magnet_handle_key(struct magnet_resource *res,
 	switch (magnet_key_get(name)) {
 	case MAGNET_KEY_DISPLAY_NAME:
 		if (!res->display_name) {
-			res->display_name = atom_str_get(value);
+			magnet_set_display_name(res, value);
 		}
 		break;
 
@@ -231,21 +231,13 @@ magnet_handle_key(struct magnet_resource *res,
 		break;
 
 	case MAGNET_KEY_EXACT_TOPIC:
-		{
-			gchar digest[SHA1_RAW_SIZE];
-
-			if (urn_get_sha1(value, digest)) {
-				if (!res->sha1) {
-					res->sha1 = atom_sha1_get(digest);
-				}
-			} else {
-				g_message("MAGNET URI contained unsupported exact topic.");
-			}
+		if (!magnet_set_exact_topic(res, value)) {
+			g_message("MAGNET URI contained unsupported exact topic.");
 		}
 		break;
 
 	case MAGNET_KEY_KEYWORD_TOPIC:
-		res->searches = g_slist_prepend(res->searches, atom_str_get(value));
+		magnet_add_search(res, value);
 		break;
 
 	case MAGNET_KEY_EXACT_LENGTH:
@@ -255,7 +247,7 @@ magnet_handle_key(struct magnet_resource *res,
 
 			u = parse_uint64(value, NULL, 10, &error);
 			if (!error) {
-				res->size = u; 
+				magnet_set_filesize(res, u);
 			}
 		}
 		break;
@@ -463,6 +455,20 @@ magnet_set_sha1(struct magnet_resource *res, const gchar *sha1)
 	atom = atom_sha1_get(sha1);
 	atom_sha1_free_null(&res->sha1);
 	res->sha1 = atom;
+}
+
+gboolean
+magnet_set_exact_topic(struct magnet_resource *res, const gchar *topic)
+{
+	gchar digest[SHA1_RAW_SIZE];
+
+	if (!urn_get_sha1(topic, digest)) {
+		return FALSE;
+	}
+	if (!res->sha1) {
+		magnet_set_sha1(res, digest);
+	}
+	return TRUE;
 }
 
 void
