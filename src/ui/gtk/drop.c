@@ -89,6 +89,21 @@ handle_http(const gchar *url)
 	return success;
 }
 
+static gboolean
+handle_urn(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_urn(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
 /*
  * Private data
  */
@@ -100,6 +115,7 @@ static const struct {
 	{ "ftp",	handle_not_implemented },
 	{ "http",	handle_http },
 	{ "magnet",	handle_magnet },
+	{ "urn",	handle_urn },
 };
 
 
