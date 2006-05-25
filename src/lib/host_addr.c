@@ -608,6 +608,22 @@ socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, guint16 port)
 	return 0;
 }
 
+socklen_t
+socket_addr_init(socket_addr_t *sa_ptr, enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_IPV4:
+		return socket_addr_set(sa_ptr, host_addr_set_ipv4(0), 0);
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		return socket_addr_set(sa_ptr, ipv6_unspecified, 0);
+#endif
+	case NET_TYPE_NONE:
+		break;
+	}
+	return 0;
+}
+
 /**
  * Resolves an IP address to a hostname per DNS.
  *

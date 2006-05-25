@@ -476,6 +476,7 @@ socket_addr_get_family(const socket_addr_t *addr)
 
 socklen_t socket_addr_set(socket_addr_t *sa_ptr,
 			const host_addr_t addr, guint16 port);
+socklen_t socket_addr_init(socket_addr_t *sa_ptr, enum net_type net);
 
 guint host_addr_hash_func(gconstpointer key);
 gboolean host_addr_eq_func(gconstpointer p, gconstpointer q);
