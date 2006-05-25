@@ -1942,7 +1942,7 @@ search_send_packet_all(search_ctrl_t *sch)
 static gboolean
 search_reissue_timeout_callback(gpointer data)
 {
-	search_ctrl_t *sch = (search_ctrl_t *) data;
+	search_ctrl_t *sch = data;
 
 	search_reissue(sch->search_handle);
 	return TRUE;
@@ -3331,7 +3331,7 @@ search_locally(gnet_search_t sh, const gchar *query)
 	} else {
 		sf = NULL;
 		re = walloc(sizeof *re);
-		error = regcomp(re, query, REG_EXTENDED | REG_NOSUB);
+		error = regcomp(re, query, REG_EXTENDED | REG_NOSUB | REG_ICASE);
 		if (error) {
 			goto done;
 		}
