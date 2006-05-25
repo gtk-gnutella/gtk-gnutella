@@ -275,49 +275,77 @@ gm_setproctitle(const gchar *title)
 }
 #else /* !HAS_SETPROCTITLE && HAS_SETPROCTITLE_WITH_FORMAT */
 {
-	static size_t sysarg_size;		/* Size of the exec() arguments */
 	static gboolean initialized;
-	gint i;
+	static struct {
+		gchar *ptr;
+		size_t size;
+	} args[64];
 
 	/*
 	 * Compute the length of the exec() arguments that were given to us.
 	 */
 
 	if (!initialized) {
-		const gchar *s = orig_argv[0];
+		gint i, n;
 
 		initialized = TRUE;
-		s = 1 + strchr(s, '\0'); /* Go past trailing NUL */
 
 		/*
-		 * Let's see whether all the argv[] arguments were contiguous.
+		 * Let's see how many argv[] arguments were contiguous.
+		 */
+
+		n = MIN((gint) G_N_ELEMENTS(args), orig_argc);
+		for (i = 0; i < n; i++) {
+			if (i > 0) {
+				const gchar *s = args[i - 1].ptr;
+				size_t size = args[i - 1].size;
+
+				if (orig_argv[i] != &s[size])
+					break;
+			}
+			/* Yes, still contiguous */
+			args[i].ptr = orig_argv[i];
+			args[i].size = 1 + strlen(orig_argv[i]);
+		}
+		
+		/*
+		 * Scrap references to the arguments.
 		 */
 
 		for (i = 1; i < orig_argc; i++) {
-			if (orig_argv[i] != s)
-				break;
-			s = 1 + strchr(s, '\0'); /* Yes, still contiguous */
+			orig_argv[i] = NULL;
 		}
-
-		sysarg_size = s - orig_argv[0];
-
-#if 0
-		g_message("exec() args used %lu contiguous bytes",
-			(gulong) sysarg_size);
-#endif
 	}
 
-	strncpy(orig_argv[0], title, sysarg_size);
-	if (sysarg_size > 0) {
-		orig_argv[sysarg_size - 1] = '\0';
+	{
+		size_t i, n = 1 + strlen(title);
+
+		/* Scatter the title over the argv[] elements */
+		for (i = 0; i < G_N_ELEMENTS(args); i++) {
+			strncpy(args[i].ptr, title, args[i].size);
+			if (args[i].size >= n || 0 == args[i].size) {
+				break;
+			}
+			n -= args[i].size;
+		}
+		
+		/* If the title is too long, insert a NUL character. */
+		if (n > 0) {
+			if (i-- > 0) {
+				size_t size = args[i].size;
+				gchar *p = args[i].ptr;
+
+				if (size > 0) {
+					p[size - 1] = '\0';
+				}
+			}
+		} else {
+			/* Clear trailing memory */
+			for (/* CONTINUE */; i < G_N_ELEMENTS(args); i++) {
+				memset(args[i].ptr, 0, args[i].size);
+			}
+		}
 	}
-
-	/*
-	 * Scrap references to the arguments.
-	 */
-
-	for (i = 1; i < orig_argc; i++)
-		orig_argv[i] = NULL;
 }
 #endif /* HAS_SETPROCTITLE_WITHOUT_FORMAT */
 
