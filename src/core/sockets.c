@@ -378,7 +378,7 @@ socket_tos(const struct gnutella_socket *s, gint tos)
 			case IPTOS_LOWDELAY: tosname = "low delay"; break;
 			case IPTOS_THROUGHPUT: tosname = "throughput"; break;
 			default:
-				tosname = NULL;			
+				tosname = NULL;
 				g_assert_not_reached();
 			}
 			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
@@ -412,7 +412,7 @@ socket_tos_default(const struct gnutella_socket *s)
 	}
 }
 #else
-static gint 
+static gint
 socket_tos(const struct gnutella_socket *unused_s, gint unused_tos)
 {
 	(void) unused_s;
@@ -447,7 +447,7 @@ void
 socket_tos_lowdelay(const struct gnutella_socket *s)
 {
 	static gboolean failed;
-	
+
 	if (!failed)
 		failed = 0 != socket_tos(s, IPTOS_LOWDELAY);
 }
@@ -462,7 +462,7 @@ void
 socket_tos_throughput(const struct gnutella_socket *s)
 {
 	static gboolean failed;
-	
+
 	if (!failed)
 		failed = 0 != socket_tos(s, IPTOS_THROUGHPUT);
 }
@@ -532,7 +532,7 @@ proxy_connect(int fd)
 	}
 
 	len = socket_addr_set(&server, proxy_addr, proxy_port);
-	return connect(fd, socket_addr_get_sockaddr(&server), len);
+	return connect(fd, socket_addr_get_const_sockaddr(&server), len);
 }
 
 static gint
@@ -684,7 +684,7 @@ connect_http(struct gnutella_socket *s)
 
 			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
 				const gchar *s;
-				
+
 				s = parts[i].s ? parts[i].s : host_port;
 				iov[i].iov_base = deconstify_gchar(s);
 				size += iov[i].iov_len = strlen(iov[i].iov_base);
@@ -824,8 +824,8 @@ connect_socksv5(struct gnutella_socket *s)
 		case NET_TYPE_IPV4:
 			ok = TRUE;
 			break;
-#ifdef USE_IPV6
 		case NET_TYPE_IPV6:
+#ifdef USE_IPV6
 			ok = TRUE;
 			break;
 #endif /* USE_IPV6 */
@@ -2158,10 +2158,10 @@ accepted:
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 }
 
-static inline struct msghdr *
-deconstify_msghdr(const struct msghdr *msg)
+static inline const struct cmsghdr *
+cmsg_nxthdr(const struct msghdr *msg, const struct cmsghdr *cmsg)
 {
-	return (struct msghdr *) msg;
+	return CMSG_NXTHDR((struct msghdr *) msg, (struct cmsghdr *) cmsg);
 }
 
 static gboolean
@@ -2173,8 +2173,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 	g_assert(msg);
 	g_assert(dst_addr);
 
-	p = CMSG_FIRSTHDR(msg);
-	for (/* NOTHING */; NULL != p; p = CMSG_NXTHDR(deconstify_msghdr(msg), p)) {
+	for (p = CMSG_FIRSTHDR(msg); NULL != p; p = cmsg_nxthdr(msg, p)) {
 		if (0) {
 			/* NOTHING */
 #if defined(IP_RECVDSTADDR)
@@ -2234,7 +2233,7 @@ static ssize_t
 socket_udp_accept(struct gnutella_socket *s)
 {
 	socket_addr_t *from_addr;
-	gpointer from;
+	struct sockaddr *from;
 	socklen_t from_len;
 	ssize_t r;
 	gboolean truncated, has_dst_addr = FALSE;
@@ -2249,23 +2248,12 @@ socket_udp_accept(struct gnutella_socket *s)
 
 	from_addr = s->resource.handle;
 
-	switch (s->net) {
-	case NET_TYPE_IPV4:
-		from = &from_addr->inet4;
-		from_len = sizeof from_addr->inet4;
-		break;
-	case NET_TYPE_IPV6:
-		from = &from_addr->inet6;
-		from_len = sizeof from_addr->inet6;
-		break;
-	case NET_TYPE_NONE:
-	default:
-		from = NULL;
-		from_len = 0;
-		g_assert_not_reached();
-	}
-	g_assert(from);
+	/* Initialize from_addr so that it matches the socket's network type. */
+	from_len = socket_addr_set(from_addr, s->addr, 0);
 	g_assert(from_len > 0);
+
+	from = socket_addr_get_sockaddr(from_addr);
+	g_assert(from);
 
 	/*
 	 * Detect truncation of the UDP message via MSG_TRUNC.
@@ -2278,10 +2266,10 @@ socket_udp_accept(struct gnutella_socket *s)
 		static const struct msghdr zero_msg;
 		struct msghdr msg;
 		struct iovec iov;
-		
+
 		iov.iov_base = s->buffer;
 		iov.iov_len = sizeof s->buffer;
-		
+
 		msg = zero_msg;
 		msg.msg_name = from;
 		msg.msg_namelen = from_len;
@@ -2301,12 +2289,12 @@ socket_udp_accept(struct gnutella_socket *s)
 				cmsg_len = CMSG_LEN(cmsg_size);
 				cmsg_buf = g_malloc0(CMSG_SPACE(cmsg_size));
 			}
-			
-			msg.msg_control = cmsg_buf; 
+
+			msg.msg_control = cmsg_buf;
 			msg.msg_controllen = cmsg_len;
 		}
 #endif /* CMSG_LEN && CMSG_SPACE */
-		
+
 		r = recvmsg(s->file_desc, &msg, 0);
 
 		/* msg_flags is missing at least in some versions of IRIX. */
@@ -2368,7 +2356,7 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
 	guint i, avail;
-	
+
 	(void) unused_source;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -2445,7 +2433,7 @@ socket_set_accept_filters(gint fd)
 
 		/* Assured by the property framework which enforces a maximum value */
 		g_assert(tcp_defer_accept_timeout <= INT_MAX);
-		timeout = tcp_defer_accept_timeout;	
+		timeout = tcp_defer_accept_timeout;
 
 		if (
 			setsockopt(fd, sol_tcp(), TCP_DEFER_ACCEPT,
@@ -2612,7 +2600,8 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 			 * It's useful only for people forcing the IP without being
 			 * behind a masquerading firewall --RAM.
 			 */
-			(void) bind(s->file_desc, socket_addr_get_sockaddr(&local), len);
+			(void) bind(s->file_desc,
+					socket_addr_get_const_sockaddr(&local), len);
 		}
 	}
 
@@ -2620,7 +2609,8 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		s->direction = SOCK_CONN_PROXY_OUTGOING;
 		res = proxy_connect(s->file_desc);
 	} else {
-		res = connect(s->file_desc, socket_addr_get_sockaddr(&addr), addr_len);
+		res = connect(s->file_desc,
+				socket_addr_get_const_sockaddr(&addr), addr_len);
 	}
 
 	if (-1 == res && EINPROGRESS != errno) {
@@ -2716,7 +2706,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 
 	addr = addrs[random_raw() % n];
 	can_tls = node_supports_tls(addr, s->port);
-	
+
 	if (
 		s->net != host_addr_net(addr) ||
 		(can_tls && 0 == (CONNECT_F_TLS & s->flags))
@@ -2789,7 +2779,7 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 	gint sd, saved_errno;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
-	
+
 	if (port < 2) {
 		errno = EINVAL;
 		return -1;
@@ -2808,7 +2798,7 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 		socket_addr_t addr;
 		socklen_t len;
 
-		/* Linux absolutely wants this before bind() unlike BSD */		
+		/* Linux absolutely wants this before bind() unlike BSD */
 		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
 #if defined(USE_IPV6) && defined(IPV6_V6ONLY)
@@ -2825,7 +2815,7 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 		/* bind() the socket */
 		socket_failed = FALSE;
 		len = socket_addr_set(&addr, bind_addr, port);
-		if (-1 == bind(sd, socket_addr_get_sockaddr(&addr), len)) {
+		if (-1 == bind(sd, socket_addr_get_const_sockaddr(&addr), len)) {
 			saved_errno = errno;
 			close(sd);
 			sd = -1;
@@ -2833,11 +2823,11 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 			saved_errno = 0;
 		}
 	}
-	
+
 #if defined(HAS_SOCKER_GET)
 	if (sd < 0 && (EACCES == saved_errno || EPERM == saved_errno)) {
 		gchar addr_str[128];
-		
+
 		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
 		sd = socker_get(host_addr_family(bind_addr), type, 0, addr_str, port);
 		if (sd < 0) {
@@ -2849,7 +2839,7 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 	if (sd < 0) {
 		const gchar *s_type = SOCK_DGRAM == type ? "datagram" : "stream";
 		const gchar *s_net = net_type_to_string(host_addr_net(bind_addr));
-		
+
 		if (socket_failed) {
 			g_warning("Unable to create the %s (%s) socket (%s)",
 				s_type, s_net, g_strerror(errno));
@@ -2952,7 +2942,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 
 	case NET_TYPE_IPV6:
 #if defined(USE_IPV6) && defined(IPV6_RECVDSTADDR)
-		level = sol_ipv6(); 
+		level = sol_ipv6();
 		opt = IPV6_RECVDSTADDR;
 #endif /* USE_IPV6 && IPV6_RECVDSTADDR */
 		break;
@@ -2960,7 +2950,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	case NET_TYPE_NONE:
 		break;
 	}
-			
+
 	if (
 		-1 != level &&
 		-1 != opt &&
@@ -3268,7 +3258,7 @@ socket_plain_sendto(
 
 	len = socket_addr_set(&addr, ha, to->port);
 	ret = sendto(s->file_desc, buf, size, 0,
-			socket_addr_get_sockaddr(&addr), len);
+			socket_addr_get_const_sockaddr(&addr), len);
 
 	if ((ssize_t) -1 == ret && udp_debug) {
 		gint e = errno;
