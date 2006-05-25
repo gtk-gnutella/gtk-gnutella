@@ -424,7 +424,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	)
 		udp = node_udp_get_addr_port(n->gnet_addr, n->gnet_port);
 
-	tn = udp == NULL ? n : udp;
+	tn = (udp && udp->outq) ? udp : n;
 	if (!host_is_valid(tn->addr, tn->port))
 		return;
 
@@ -4919,7 +4919,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		!(n->flags & NODE_F_CRAWLER) &&
 		(n->degree < 2 * NODE_LEGACY_DEGREE || !(n->attrs & NODE_A_DYN_QUERY))
 	) {
-		static const gchar msg[] = N_("Too ancient Gnutella protocol");
+		static const gchar msg[] = N_("High Outdegree and Dynamic Querying Required");
 
 		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "%s", _(msg));
@@ -7689,7 +7689,10 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 
 	info->is_pseudo = node == udp_node || node == udp6_node;
 
-	if (host_addr_initialized(node->gnet_addr)) {
+	if (info->is_pseudo) {
+		info->gnet_addr = node->addr;
+		info->gnet_port = node->port;
+	} else if (host_addr_initialized(node->gnet_addr)) {
 		info->gnet_addr = node->gnet_addr;
 		info->gnet_port = node->gnet_port;
 	} else {
