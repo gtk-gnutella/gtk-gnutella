@@ -9685,7 +9685,10 @@ download_rx_done(struct download *d)
 	}
 
 	download_stop(d, GTA_DL_COMPLETED, no_reason);
-	download_verify_sha1(d);
+
+	if (!d->browse && fi->file_size_known) {
+		download_verify_sha1(d);
+	}
 }
 
 /**
