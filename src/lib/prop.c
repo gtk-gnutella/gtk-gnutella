@@ -2070,7 +2070,7 @@ prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error)
 	if (0 != ret) {
 		if (error)
 			*error = ret;
-		return NULL;
+		goto done;
 	}
 
 	g_assert(ps->offset + ps->size - 1 < (guint) -1);
@@ -2082,8 +2082,8 @@ prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error)
 		}
 	}
 
+done:
 	regfree(&re);
-
 	return g_slist_reverse(sl);
 }
 
