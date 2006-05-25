@@ -121,6 +121,7 @@ typedef struct search_ctrl {
 	gboolean frozen;	/**< XXX: If TRUE, the query is not issued to nodes
 					  		anymore and "don't update window" */
 	gboolean browse;			/**< Special "browse host" search */
+	gboolean local;				/**< Special "local" search */
 	gboolean active;			/**< Whether to actively issue queries. */
 
 	/*
@@ -480,20 +481,41 @@ search_already_sent_to_node(const search_ctrl_t *sch, const gnutella_node_t *n)
 	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
 }
 
+static void
+alt_locs_free(gnet_host_vec_t **alt_ptr)
+{
+	g_assert(alt_ptr != NULL);
+
+	if (*alt_ptr) {
+		gnet_host_vec_t *alt;
+	
+		alt = *alt_ptr;
+		wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
+		wfree(alt, sizeof *alt);
+		*alt_ptr = NULL;
+	}
+}
+
+static gnet_host_vec_t *
+alt_locs_copy(const gnet_host_vec_t *alt)
+{
+	gnet_host_vec_t *alt_copy;
+
+	g_return_val_if_fail(alt, NULL);
+	g_return_val_if_fail(alt->hvcnt > 0, NULL);
+
+	alt_copy = wcopy(alt, sizeof *alt);
+	alt_copy->hvec = wcopy(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
+	return alt_copy;
+}
+
 /**
  * Free the alternate locations held within a file record.
  */
 void
 search_free_alt_locs(gnet_record_t *rc)
 {
-	gnet_host_vec_t *alt = rc->alt_locs;
-
-	g_assert(alt != NULL);
-
-	wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
-	wfree(alt, sizeof *alt);
-
-	rc->alt_locs = NULL;
+	alt_locs_free(&rc->alt_locs);
 }
 
 /**
@@ -518,15 +540,11 @@ search_free_proxies(gnet_results_set_t *rs)
 static void
 search_free_record(gnet_record_t *rc)
 {
-	atom_str_free(rc->name);
-	if (rc->tag != NULL)
-		atom_str_free(rc->tag);
-	if (rc->sha1 != NULL)
-		atom_sha1_free(rc->sha1);
-	if (rc->xml != NULL)
-		atom_str_free(rc->xml);
-	if (rc->alt_locs != NULL)
-		search_free_alt_locs(rc);
+	atom_str_free_null(&rc->name);
+	atom_str_free_null(&rc->tag);
+	atom_sha1_free_null(&rc->sha1);
+	atom_str_free_null(&rc->xml);
+	search_free_alt_locs(rc);
 	zfree(rc_zone, rc);
 }
 
@@ -556,6 +574,19 @@ search_free_r_set(gnet_results_set_t *rs)
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
 }
+
+
+static gnet_record_t *
+search_record_new(void)
+{
+	static const gnet_record_t zero_record;
+	gnet_record_t *rc;
+
+	rc = zalloc(rc_zone);
+	*rc = zero_record;
+	return rc;
+}
+
 
 /**
  * Parse Query Hit and extract the embedded records, plus the optional
@@ -747,15 +778,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		nr++;
 
 		if (!validate_only) {
-			rc = zalloc(rc_zone);
+			rc = search_record_new();
 
-			rc->sha1  = rc->tag = NULL;
 			rc->index = idx;
 			rc->size  = size;
 			rc->name  = atom_str_get(fname);
-			rc->xml   = NULL;
-            rc->flags = 0;
-            rc->alt_locs = NULL;
 		}
 
 		/*
@@ -1027,7 +1054,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		}
 
 		if (!validate_only) 
-			rs->records = g_slist_prepend(rs->records, (gpointer) rc);
+			rs->records = g_slist_prepend(rs->records, rc);
 	}
 
 	/*
@@ -1835,7 +1862,7 @@ cleanup:
 static void
 node_added_callback(gpointer data)
 {
-	search_ctrl_t *sch = (search_ctrl_t *) data;
+	search_ctrl_t *sch = data;
 	g_assert(node_added != NULL);
 	g_assert(data != NULL);
     g_assert(sch != NULL);
@@ -2825,7 +2852,7 @@ search_new(const gchar *query,
 			return (gnet_search_t) -1;
 		}
 		qdup = g_strdup(query);
-	} else if (0 == (flags & (SEARCH_F_BROWSE | SEARCH_F_PASSIVE))) {
+	} else if (!(flags & (SEARCH_F_LOCAL | SEARCH_F_BROWSE | SEARCH_F_PASSIVE))) {
 		qdup = UNICODE_CANONIZE(query);
 		g_assert(qdup != query);
 		
@@ -2856,6 +2883,8 @@ search_new(const gchar *query,
 		sch->passive = TRUE;
 	} else if (flags & SEARCH_F_BROWSE) {
 		sch->browse = TRUE;
+	} else if (flags & SEARCH_F_LOCAL) {
+		sch->local = TRUE;
 	} else {
 		sch->active = TRUE;
 
@@ -3218,6 +3247,158 @@ search_dissociate_browse(gnet_search_t sh, gpointer download)
 	sch->download = NULL;
 
 	/* XXX notify the GUI that the browse is finished */
+}
+
+static void
+search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
+	const gnet_host_vec_t *alt_locs)
+{
+	gnet_record_t *rc;
+
+	g_return_if_fail(rs);
+	g_return_if_fail(sf);
+	g_return_if_fail(SHARE_REBUILDING != sf);
+
+	rc = search_record_new();
+	rc->index = sf->file_index;
+	rc->size  = sf->file_size;
+	rc->name  = atom_str_get(sf->name_nfc);
+	if (sha1_hash_available(sf)) {
+		rc->sha1 = atom_sha1_get(sf->sha1_digest);
+	}
+	if (rc->alt_locs) {
+		rc->alt_locs = alt_locs_copy(alt_locs);
+	}
+
+	{
+		const gchar *sep;
+
+		sep = strrchr(sf->file_path, G_DIR_SEPARATOR);
+		if (sep) {
+			gchar *dir_utf8, *dir;
+
+			dir = g_strndup(sf->file_path, sep - sf->file_path);
+			dir_utf8 = filename_to_utf8_normalized(dir, UNI_NORM_NETWORK);
+			rc->path = atom_str_get(dir_utf8);
+			if (dir_utf8 != dir) {
+				G_FREE_NULL(dir_utf8);
+			}
+			G_FREE_NULL(dir);
+		}
+	}
+
+	rs->records = g_slist_prepend(rs->records, rc);
+	rs->num_recs++;
+}
+
+gboolean
+search_locally(gnet_search_t sh, const gchar *query)
+{
+	static const gnet_results_set_t zero_rs;
+	gnet_results_set_t *rs;
+    search_ctrl_t *sch;
+	shared_file_t *sf;
+	regex_t *re;
+	gint error;
+	gnet_host_vec_t *alt_loc;
+
+    g_assert(query);
+
+   	sch = search_find_by_handle(sh);
+    g_assert(sch != NULL);
+	g_assert(!sch->browse);
+	g_assert(!sch->frozen);
+	g_assert(sch->local);
+	g_assert(sch->download == NULL);
+
+	if ('\0' == query[0]) {
+		error = FALSE;
+		re = NULL;
+		sf = NULL;
+	} else if (is_strprefix(query, "urn:sha1:")) {
+		gchar digest[SHA1_RAW_SIZE];
+
+		re = NULL;
+		error = !urn_get_sha1(query, digest);
+		if (error) {
+			goto done;
+		}
+		sf = shared_file_by_sha1(digest);
+		error = !sf || SHARE_REBUILDING == sf;
+		if (error) {
+			goto done;
+		}
+	} else {
+		sf = NULL;
+		re = walloc(sizeof *re);
+		error = regcomp(re, query, REG_EXTENDED | REG_NOSUB);
+		if (error) {
+			goto done;
+		}
+	}
+
+	rs = zalloc(rs_zone);
+	*rs = zero_rs;
+
+	rs->addr = listen_addr();
+	if (is_host_addr(rs->addr)) {
+		host_addr_t addr_v6 = listen_addr6();
+
+		if (is_host_addr(addr_v6)) {
+			alt_loc = walloc(sizeof *alt_loc);	
+			alt_loc->hvcnt = 1;
+			alt_loc->hvec = walloc(alt_loc->hvcnt * sizeof *alt_loc->hvec);
+			alt_loc->hvec[0].addr = addr_v6;
+			alt_loc->hvec[0].port = listen_port;
+		} else {
+			alt_loc = NULL;
+		}
+	} else {
+		rs->addr = listen_addr6();
+		alt_loc = NULL;
+	}
+	rs->port = listen_port;
+	rs->last_hop = zero_host_addr;
+	rs->country = -1;
+	rs->guid = atom_guid_get(servent_guid);
+	poke_be32(&rs->vcode.be32, T_GTKG);
+    rs->status |= ST_KNOWN_VENDOR;
+
+	if (sf) {
+		search_add_local_file(rs, sf, alt_loc);
+	} else {
+		guint num_files, idx;
+
+		num_files = MIN((guint) -1, shared_files_scanned());
+		for (idx = 1; idx > 0 && idx <= num_files; idx++) {
+			sf = shared_file(idx);
+			if (!sf) {
+				continue;
+			} else if (SHARE_REBUILDING == sf) {
+				break;
+			} else if (!re || 0 == regexec(re, sf->name_nfc, 0, NULL, 0)) {
+				search_add_local_file(rs, sf, alt_loc);	
+			}
+		}
+	}
+	alt_locs_free(&alt_loc);
+
+	if (rs->records) {	
+		GSList *search;
+		
+		search = g_slist_prepend(NULL, GUINT_TO_POINTER(sch->search_handle));
+		search_fire_got_results(search, rs);	/* Dispatch browse results */
+		g_slist_free(search);
+		search = NULL;
+	}
+    search_free_r_set(rs);
+
+done:
+	if (re) {
+		regfree(re);
+		wfree(re, sizeof *re);
+	}
+	return !error;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

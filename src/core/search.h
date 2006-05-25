@@ -71,6 +71,7 @@ void search_oob_pending_results(
 
 void search_dissociate_browse(gnet_search_t sh, gpointer download);
 void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
+gboolean search_locally(gnet_search_t sh, const gchar *query);
 
 #endif /* _core_search_h_ */
 

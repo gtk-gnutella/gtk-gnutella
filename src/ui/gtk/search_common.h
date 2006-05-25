@@ -107,6 +107,7 @@ typedef struct record {
 	gchar  *xml;				/**< Optional XML data string (atom) */
 	gchar  *tag;				/**< Optional tag data string (atom) */
 	gchar  *info;				/**< Short version of tag (atom) */
+	gchar  *path;				/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
     flag_t  flags;              /**< same flags as in gnet_record_t */
 } record_t;

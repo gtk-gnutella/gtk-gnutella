@@ -125,6 +125,17 @@ search_gui_option_menu_searches_update(void)
 	for (/* NOTHING */; iter != NULL; iter = g_list_previous(iter)) {
 		GtkWidget *item;
 		search_t *s = iter->data;
+		gchar *name;
+
+		if (s->browse) {
+			name = g_strconcat("browse:", s->query, (void *) 0);
+		} else if (s->passive) {
+			name = g_strconcat("passive:", s->query, (void *) 0);
+		} else if (s->local) {
+			name = g_strconcat("local:", s->query, (void *) 0);
+		} else {
+			name = s->query;
+		}
 
 		/*
 		 * Limit the title length of the menu item to a certain amount
@@ -138,7 +149,7 @@ search_gui_option_menu_searches_update(void)
 			const gchar *ui_query;
 			size_t title_size;
 
-			ui_query = lazy_utf8_to_ui_string(s->query);
+			ui_query = lazy_utf8_to_ui_string(name);
 			title_size = sizeof title - sizeof ellipse;
 			utf8_strcpy_max(title, title_size, ui_query, max_chars);
 			if (strlen(title) < strlen(ui_query)) {
@@ -146,6 +157,9 @@ search_gui_option_menu_searches_update(void)
 			}
 
 			item = gtk_menu_item_new_with_label(title);
+		}
+		if (name != s->query) {
+			G_FREE_NULL(name);
 		}
 	
 		gtk_widget_show(item);
@@ -285,18 +299,14 @@ search_gui_free_record(record_t *rc)
 	g_assert(rc->refcount == 0);
 	g_assert(NULL == rc->results_set);
 
-	atom_str_free(rc->name);
-	atom_str_free(rc->utf8_name);
-	if (rc->ext != NULL)
-        atom_str_free(rc->ext);
-	if (rc->tag != NULL)
-		atom_str_free(rc->tag);
-	if (rc->info != NULL)
-		atom_str_free(rc->info);
-	if (rc->sha1 != NULL)
-		atom_sha1_free(rc->sha1);
-	if (rc->xml != NULL)
-		atom_str_free(rc->xml);
+	atom_str_free_null(&rc->name);
+	atom_str_free_null(&rc->utf8_name);
+    atom_str_free_null(&rc->ext);
+	atom_str_free_null(&rc->tag);
+	atom_str_free_null(&rc->info);
+	atom_str_free_null(&rc->path);
+	atom_sha1_free_null(&rc->sha1);
+	atom_str_free_null(&rc->xml);
 	if (rc->alt_locs != NULL)
 		search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
@@ -722,6 +732,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
     rc->xml = r->xml != NULL ? atom_str_get(r->xml) : NULL;
     rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
+    rc->path = r->path != NULL ? atom_str_get(r->path) : NULL;
 	rc->info = NULL;
    	rc->flags = r->flags;
 	rc->alt_locs = NULL;
@@ -1834,6 +1845,32 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 	return success;
 }
 
+gboolean
+search_gui_handle_local(const gchar *query, const gchar **error_str)
+{
+	gboolean success;
+	search_t *search;
+	const gchar *text;
+
+	g_return_val_if_fail(query, FALSE);
+
+	text = is_strcaseprefix(query, "local:");
+	g_return_val_if_fail(text, FALSE);
+	
+	success = search_gui_new_search_full(text, tm_time(), 0, 0,
+			 	search_sort_default_column, search_sort_default_order,
+			 	SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED, &search);
+
+	if (success) {
+		g_assert(search);
+		success = guc_search_locally(search->search_handle, text);
+	}
+	if (error_str) {
+		*error_str = NULL;
+	}
+	return success;
+}
+
 /**
  * Frees a "struct query" and nullifies the given pointer.
  */
@@ -1896,7 +1933,7 @@ search_gui_handle_query(const gchar *query_str, flag_t flags,
 			search_gui_handle_http(query_str, error_str);
 			return NULL;
 		} else if (is_strcaseprefix(query_str, "local:")) {
-			*error_str = "Not implemented";
+			search_gui_handle_local(query_str, error_str);
 			return NULL;
 		} else if (is_strcaseprefix(query_str, "urn:")) {
 			search_gui_handle_urn(query_str, error_str);

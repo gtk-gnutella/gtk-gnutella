@@ -176,7 +176,7 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 		text = data->meta;
 		break;
 	case c_sr_info:
-		text = data->info;
+		text = data->record->path ? data->record->path : data->info;
 		break;
 	case c_sr_size:
 		text = compact_size(data->record->size, show_metric_units());
@@ -509,6 +509,7 @@ search_gui_new_search_full(const gchar *query_str,
 	sch->query = atom_str_get(query->text);
 	sch->enabled = (flags & SEARCH_F_ENABLED) ? TRUE : FALSE;
 	sch->browse = (flags & SEARCH_F_BROWSE) ? TRUE : FALSE;
+	sch->local = (flags & SEARCH_F_LOCAL) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
 	sch->passive = (flags & SEARCH_F_PASSIVE) ? TRUE : FALSE;
 	sch->massive_update = FALSE;
@@ -749,13 +750,16 @@ search_gui_cmp_info(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	const gchar *s1, *s2;
 	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->info, d2->info);
+	s1 = d1->record->path ? d1->record->path : d1->info;
+	s2 = d2->record->path ? d2->record->path : d2->info;
+	ret = search_gui_cmp_strings(s1, s2);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 

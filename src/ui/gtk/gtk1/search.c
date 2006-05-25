@@ -356,6 +356,7 @@ search_gui_new_search_full(const gchar *query_str,
 	sch->query = atom_str_get(query->text);
 	sch->enabled = (flags & SEARCH_F_ENABLED) ? TRUE : FALSE;
 	sch->browse = (flags & SEARCH_F_BROWSE) ? TRUE : FALSE;
+	sch->local = (flags & SEARCH_F_LOCAL) ? TRUE : FALSE;
     sch->search_handle = sch_id;
     sch->passive = (flags & SEARCH_F_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new(search_gui_hash_func,
@@ -1156,9 +1157,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 		}
 	}
 
-	if (NULL != rc->info)
-		atom_str_free(rc->info);
-	rc->info = atom_str_get(info->str);
+	atom_str_free_null(&rc->info);
+	rc->info = rc->path ? rc->path : atom_str_get(info->str);
 
 	g_string_free(info, TRUE);
 

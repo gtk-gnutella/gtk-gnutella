@@ -674,6 +674,13 @@ guc_search_browse(gnet_search_t sh,
 	return search_browse(sh, hostname, addr, port, guid, push, proxies);
 }
 
+gboolean
+guc_search_locally(gnet_search_t sh, const gchar *query)
+{
+	return search_locally(sh, query);
+}
+
+
 void
 guc_search_reissue(gnet_search_t sh)
 {

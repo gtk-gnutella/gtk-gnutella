@@ -211,6 +211,7 @@ gnet_search_t guc_search_new(const gchar *query,
 gboolean guc_search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
 	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies);
+gboolean guc_search_locally(gnet_search_t sh, const gchar *query);
 void guc_search_reissue(gnet_search_t sh);
 void guc_search_close(gnet_search_t sh);
 void guc_search_start(gnet_search_t sh);

@@ -44,7 +44,8 @@ enum {
 	SEARCH_F_PASSIVE 	= 1 << 0,	/**< Start a passive ssearch */
 	SEARCH_F_ENABLED 	= 1 << 1,	/**< Start an enabled search */
 	SEARCH_F_BROWSE		= 1 << 2,	/**< Start a browse-host search */
-	SEARCH_F_LITERAL	= 1 << 3	/**< Don't parse the query string */
+	SEARCH_F_LITERAL	= 1 << 3,	/**< Don't parse the query string */
+	SEARCH_F_LOCAL		= 1 << 4	/**< Search in local files */
 };
 
 /*
@@ -133,6 +134,7 @@ typedef struct gnet_record {
 	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
 	gchar  *tag;				/**< Optional tag data string (atom) */
 	gchar  *xml;				/**< Optional XML data string (atom) */
+	gchar  *path;				/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
     flag_t  flags;
 } gnet_record_t;

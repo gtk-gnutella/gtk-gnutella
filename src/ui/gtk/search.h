@@ -69,6 +69,7 @@ struct search {
 	gboolean    passive;			/**< Is this a passive search? */
 	gboolean    massive_update;		/**< massive update in process */
 	gboolean    browse;				/**< Is this a browse-host search? */
+	gboolean    local;				/**< Is this a local search? */
 
 	hash_list_t *r_sets;			/**< The results sets of this search */
 
@@ -80,7 +81,7 @@ struct search {
 	 * Search stats.
 	 */
 
-	guint32     items;				/**< Total number of items for this search */
+	guint32     items;				/**< Total number of items for the search */
 	guint32		tcp_qhits;			/**< Query hits received from TCP */
 	guint32		udp_qhits;			/**< Query hits received from UDP */
 	guint32		skipped;			/**< Ignored hits (skipped over) */
