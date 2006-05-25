@@ -2249,7 +2249,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	from_addr = s->resource.handle;
 
 	/* Initialize from_addr so that it matches the socket's network type. */
-	from_len = socket_addr_set(from_addr, s->addr, 0);
+	from_len = socket_addr_init(from_addr, s->net);
 	g_assert(from_len > 0);
 
 	from = socket_addr_get_sockaddr(from_addr);
