@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-22 00:59+0900\n"
+"POT-Creation-Date: 2006-05-27 21:51+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -354,8 +354,8 @@ msgstr "L'offerente eccederebbe di %d%% delle nostre posizioni"
 msgid "Reserved slot"
 msgstr "Posizione riservata"
 
-msgid "Too ancient Gnutella protocol"
-msgstr "Protocollo Gnutella troppo vecchio"
+msgid "High Outdegree and Dynamic Querying Required"
+msgstr ""
 
 msgid "Cannot connect to a crawler"
 msgstr "Non riesco a connettere un robot"
@@ -6681,14 +6681,12 @@ msgstr[1] "Nessuna ricerca"
 msgid "Handled magnet link (%s, %s)."
 msgstr "Fallito (non è possibile inviare %s: %s)"
 
+#, fuzzy
+msgid "The given urn type is not supported."
+msgstr "Tipo non supportato"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "La stringa della query non è codificata UTF-8"
-
-msgid "The entered query is too long"
-msgstr "La query introdotta è troppo lunga"
-
-msgid "The SHA1 query is not validly encoded"
-msgstr "La query SHA1 non è codificata validamente"
 
 #, c-format
 msgid "Added search showing browsing results for %s"

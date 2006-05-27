@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-22 00:59+0900\n"
+"POT-Creation-Date: 2006-05-27 21:51+0900\n"
 "PO-Revision-Date: 2005-12-04 11:09+0900\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <i18n-nb@lister.ping.uio.no>\n"
@@ -354,8 +354,8 @@ msgstr "Selgeren ville bruke mer enn %d%% av plassene våre"
 msgid "Reserved slot"
 msgstr "Reservert plass"
 
-msgid "Too ancient Gnutella protocol"
-msgstr "For gammel Gnutella-protokoll"
+msgid "High Outdegree and Dynamic Querying Required"
+msgstr ""
 
 msgid "Cannot connect to a crawler"
 msgstr "Kan ikke koble til en kryper"
@@ -6574,14 +6574,12 @@ msgstr[1] "Intet søk"
 msgid "Handled magnet link (%s, %s)."
 msgstr "Feilet (Klarte ikke sende %s: %s)"
 
+#, fuzzy
+msgid "The given urn type is not supported."
+msgstr "Typen støttes ikke"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "Spørringsstrengen er ikke kodet i UTF-8"
-
-msgid "The entered query is too long"
-msgstr "Den oppgitte spørringen er for lang"
-
-msgid "The SHA1 query is not validly encoded"
-msgstr "SHA1-spørringen er ikke kodet riktig"
 
 #, c-format
 msgid "Added search showing browsing results for %s"

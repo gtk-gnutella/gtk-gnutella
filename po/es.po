@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-22 00:59+0900\n"
+"POT-Creation-Date: 2006-05-27 21:51+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -358,8 +358,8 @@ msgstr "El tipo de servidor excedería %d%% de las ranuras"
 msgid "Reserved slot"
 msgstr "Ranura reservada"
 
-msgid "Too ancient Gnutella protocol"
-msgstr "Protocolo Gnutella demasiado antiguo"
+msgid "High Outdegree and Dynamic Querying Required"
+msgstr ""
 
 msgid "Cannot connect to a crawler"
 msgstr ""
@@ -6605,13 +6605,11 @@ msgid "Handled magnet link (%s, %s)."
 msgstr "Fracasado (Imposible enviar %s: %s)"
 
 #, fuzzy
+msgid "The given urn type is not supported."
+msgstr "Tipo no soportado"
+
+#, fuzzy
 msgid "The query string is not UTF-8 encoded"
-msgstr "La petición SHA1 no está codificada correctamente"
-
-msgid "The entered query is too long"
-msgstr "La petición es demasiado larga"
-
-msgid "The SHA1 query is not validly encoded"
 msgstr "La petición SHA1 no está codificada correctamente"
 
 #, c-format

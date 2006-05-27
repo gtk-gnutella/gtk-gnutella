@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-22 00:59+0900\n"
+"POT-Creation-Date: 2006-05-27 21:51+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -352,8 +352,8 @@ msgstr ""
 msgid "Reserved slot"
 msgstr "Reservierter Slot"
 
-msgid "Too ancient Gnutella protocol"
-msgstr "Veraltetes Gnutella-Protokoll"
+msgid "High Outdegree and Dynamic Querying Required"
+msgstr ""
 
 msgid "Cannot connect to a crawler"
 msgstr ""
@@ -6491,14 +6491,12 @@ msgstr[1] "Keine Suche"
 msgid "Handled magnet link (%s, %s)."
 msgstr "Fehler (%s kann nicht gesendet werden: %s)"
 
+#, fuzzy
+msgid "The given urn type is not supported."
+msgstr "Typ nicht unterstützt"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "Der Suchterm ist nicht UTF-8-kodiert"
-
-msgid "The entered query is too long"
-msgstr "Der eingebene Suchtext ist zu lang"
-
-msgid "The SHA1 query is not validly encoded"
-msgstr "Die SHA1-Hashsumme im Suchtext ist nicht korrekt kodiert."
 
 #, c-format
 msgid "Added search showing browsing results for %s"

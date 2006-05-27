@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-22 00:59+0900\n"
+"POT-Creation-Date: 2006-05-27 21:51+0900\n"
 "PO-Revision-Date: 2005-08-30 14:17+0900\n"
 "Last-Translator: Vitaliy Buyar <vetal17@gmail.com>\n"
 "Language-Team: Ukrainian <translation-team-uk@lists.sourceforge.net>\n"
@@ -353,8 +353,8 @@ msgstr ""
 msgid "Reserved slot"
 msgstr ""
 
-msgid "Too ancient Gnutella protocol"
-msgstr "Застарий протокол GNutella"
+msgid "High Outdegree and Dynamic Querying Required"
+msgstr ""
 
 msgid "Cannot connect to a crawler"
 msgstr ""
@@ -6074,13 +6074,11 @@ msgstr[1] "Пошук"
 msgid "Handled magnet link (%s, %s)."
 msgstr ""
 
+#, fuzzy
+msgid "The given urn type is not supported."
+msgstr "Протокол не підтримується"
+
 msgid "The query string is not UTF-8 encoded"
-msgstr ""
-
-msgid "The entered query is too long"
-msgstr ""
-
-msgid "The SHA1 query is not validly encoded"
 msgstr ""
 
 #, c-format

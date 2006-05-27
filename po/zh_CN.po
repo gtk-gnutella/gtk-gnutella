@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-22 00:59+0900\n"
+"POT-Creation-Date: 2006-05-27 21:51+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -369,8 +369,8 @@ msgstr "制造商可能超出我们的插口%d%%"
 msgid "Reserved slot"
 msgstr "保留的插口"
 
-msgid "Too ancient Gnutella protocol"
-msgstr "Gnutella协议太古老了"
+msgid "High Outdegree and Dynamic Querying Required"
+msgstr ""
 
 msgid "Cannot connect to a crawler"
 msgstr "无法连接到一个网络爬虫"
@@ -6199,13 +6199,11 @@ msgstr[0] "无搜索"
 msgid "Handled magnet link (%s, %s)."
 msgstr "失败 (无法发送 %1$s：%2$s)"
 
+#, fuzzy
+msgid "The given urn type is not supported."
+msgstr "不支持的类型"
+
 msgid "The query string is not UTF-8 encoded"
-msgstr ""
-
-msgid "The entered query is too long"
-msgstr "输入的查询过长"
-
-msgid "The SHA1 query is not validly encoded"
 msgstr ""
 
 #, c-format

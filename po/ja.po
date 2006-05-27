@@ -73,7 +73,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-05-22 00:59+0900\n"
+"POT-Creation-Date: 2006-05-27 21:51+0900\n"
 "PO-Revision-Date: 2006-05-22 01:03+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -419,8 +419,8 @@ msgstr "このベンダーはスロットの予約分 (%d%%) を越えます"
 msgid "Reserved slot"
 msgstr "スロットは予約されています"
 
-msgid "Too ancient Gnutella protocol"
-msgstr "Gnutella プロトコルが古すぎます"
+msgid "High Outdegree and Dynamic Querying Required"
+msgstr ""
 
 msgid "Cannot connect to a crawler"
 msgstr "クロウラーに接続できません"
@@ -6807,14 +6807,12 @@ msgstr[0] "%u 件の検索"
 msgid "Handled magnet link (%s, %s)."
 msgstr "マグネットリンク (%s, %s)。"
 
+#, fuzzy
+msgid "The given urn type is not supported."
+msgstr "この種類は対応されません"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "この検索クエリーは UTF-8 でエンコードされていません。"
-
-msgid "The entered query is too long"
-msgstr "入力した検索クエリーは長すぎます。"
-
-msgid "The SHA1 query is not validly encoded"
-msgstr "この SHA1 検索クエリーは正しくエンコードされていません。"
 
 #, c-format
 msgid "Added search showing browsing results for %s"
