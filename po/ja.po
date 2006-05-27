@@ -35,7 +35,7 @@
 # matching            一致
 # matching            一致する、マッチ処理
 # query, queries      検索クエリー (クエリー)、検索語、問合わせ
-# querying            問合わせ
+# querying            問い合わせ
 # queue, queues       キュー、待機列
 # queued              待機中、キュー/待機列へ入れられる
 # requery             再問合わせ
@@ -74,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2006-05-27 21:51+0900\n"
-"PO-Revision-Date: 2006-05-22 01:03+0900\n"
+"PO-Revision-Date: 2006-05-27 21:59+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -419,8 +419,9 @@ msgstr "このベンダーはスロットの予約分 (%d%%) を越えます"
 msgid "Reserved slot"
 msgstr "スロットは予約されています"
 
+# FIXME: wtf
 msgid "High Outdegree and Dynamic Querying Required"
-msgstr ""
+msgstr "高い出次数と動的問い合わせが必要です"
 
 msgid "Cannot connect to a crawler"
 msgstr "クロウラーに接続できません"
@@ -548,7 +549,7 @@ msgid "Value missing"
 msgstr "値がありません"
 
 msgid "Type not supported"
-msgstr "この種類は対応されません"
+msgstr "このタイプはサポートしません"
 
 msgid "Value found and set"
 msgstr "値発見、設定します"
@@ -6807,9 +6808,8 @@ msgstr[0] "%u 件の検索"
 msgid "Handled magnet link (%s, %s)."
 msgstr "マグネットリンク (%s, %s)。"
 
-#, fuzzy
 msgid "The given urn type is not supported."
-msgstr "この種類は対応されません"
+msgstr "このタイプのURNには対応しません。"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "この検索クエリーは UTF-8 でエンコードされていません。"
