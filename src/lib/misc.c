@@ -2745,6 +2745,29 @@ filepath_basename(const gchar *pathname)
 }
 
 /**
+ * Creates a copy with the given pathname with the basename cut off. A slash
+ * is always considered a separator but G_DIR_SEPARATOR is considered as
+ * well. Thus "/whatever/blah\\yadda" returns "/whatever/blah".
+ *
+ * @return	A newly allocated string holding the given pathname with the
+ *			basename cut off. If the string contained no directory separator,
+ *			NULL is returned.
+ */
+gchar *
+filepath_directory(const gchar *pathname)
+{
+	const gchar *sep, *slash;
+	gchar *dir;
+
+	slash = strrchr(pathname, '/');
+	sep = strrchr(slash ? slash : pathname, G_DIR_SEPARATOR);
+	if (!sep) {
+		sep = slash;
+	}
+	return sep ? g_strndup(pathname, sep - pathname) : NULL;
+}
+
+/**
  * Check whether file given by its dirname and its basename exists.
  */
 gboolean

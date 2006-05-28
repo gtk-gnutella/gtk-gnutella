@@ -490,6 +490,7 @@ gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
 const gchar * filepath_basename(const gchar *pathname);
+gchar * filepath_directory(const gchar *pathname);
 guint16 parse_uint16(const gchar *, gchar const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
 guint32 parse_uint32(const gchar *, gchar const **, guint, gint *)
