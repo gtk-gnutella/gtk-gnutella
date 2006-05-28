@@ -542,8 +542,9 @@ search_free_record(gnet_record_t *rc)
 {
 	atom_str_free_null(&rc->name);
 	atom_str_free_null(&rc->tag);
-	atom_sha1_free_null(&rc->sha1);
 	atom_str_free_null(&rc->xml);
+	atom_str_free_null(&rc->path);
+	atom_sha1_free_null(&rc->sha1);
 	search_free_alt_locs(rc);
 	zfree(rc_zone, rc);
 }
@@ -3263,28 +3264,12 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
 	rc->index = sf->file_index;
 	rc->size  = sf->file_size;
 	rc->name  = atom_str_get(sf->name_nfc);
+	rc->path  = atom_str_get(sf->file_path);
 	if (sha1_hash_available(sf)) {
 		rc->sha1 = atom_sha1_get(sf->sha1_digest);
 	}
 	if (rc->alt_locs) {
 		rc->alt_locs = alt_locs_copy(alt_locs);
-	}
-
-	{
-		const gchar *sep;
-
-		sep = strrchr(sf->file_path, G_DIR_SEPARATOR);
-		if (sep) {
-			gchar *dir_utf8, *dir;
-
-			dir = g_strndup(sf->file_path, sep - sf->file_path);
-			dir_utf8 = filename_to_utf8_normalized(dir, UNI_NORM_NETWORK);
-			rc->path = atom_str_get(dir_utf8);
-			if (dir_utf8 != dir) {
-				G_FREE_NULL(dir_utf8);
-			}
-			G_FREE_NULL(dir);
-		}
 	}
 
 	rs->records = g_slist_prepend(rs->records, rc);
