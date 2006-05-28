@@ -303,10 +303,10 @@ search_gui_free_record(record_t *rc)
 	atom_str_free_null(&rc->utf8_name);
     atom_str_free_null(&rc->ext);
 	atom_str_free_null(&rc->tag);
-	atom_str_free_null(&rc->info);
 	atom_str_free_null(&rc->path);
-	atom_sha1_free_null(&rc->sha1);
 	atom_str_free_null(&rc->xml);
+	atom_str_free_null(&rc->info);
+	atom_sha1_free_null(&rc->sha1);
 	if (rc->alt_locs != NULL)
 		search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
@@ -710,12 +710,14 @@ search_gui_get_filename_extension(const gchar *filename_utf8)
 	return ext;
 }
 
+
 /**
  * Create a new GUI record within `rs' from a Gnutella record.
  */
 record_t *
 search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 {
+    static const record_t zero_record;
     record_t *rc;
 
     g_assert(r != NULL);
@@ -723,21 +725,31 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 
     rc = zalloc(rc_zone);
 
+	*rc = zero_record;
 	rc->magic = RECORD_MAGIC;
     rc->results_set = rs;
-    rc->refcount = 0;
 
     rc->size = r->size;
     rc->index = r->index;
-    rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
-    rc->xml = r->xml != NULL ? atom_str_get(r->xml) : NULL;
-    rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
-    rc->path = r->path != NULL ? atom_str_get(r->path) : NULL;
-	rc->info = NULL;
+	if (r->sha1) {
+    	rc->sha1 = atom_sha1_get(r->sha1);
+	}
+	if (r->xml) {
+    	rc->xml = atom_str_get(r->xml);
+	}
+	if (r->tag) {
+    	rc->tag = atom_str_get(r->tag);
+	}
+	if (r->path) {
+		gchar *dir;
+		
+    	rc->path = atom_str_get(r->path);
+		dir = filepath_directory(r->path);
+		rc->info = atom_str_get(lazy_filename_to_ui_string(dir));
+		G_FREE_NULL(dir);
+	}
    	rc->flags = r->flags;
-	rc->alt_locs = NULL;
 
-    rc->ext = NULL;
 	rc->name = atom_str_get(r->name);
 	{
 		const gchar *name;
