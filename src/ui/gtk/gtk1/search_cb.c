@@ -597,6 +597,8 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
 		if (event->type == GDK_BUTTON_PRESS) {
 			static guint click_time = 0;
 
+			search_gui_set_cursor_position(event->x, event->y);
+
 			if ((event->time - click_time) <= 250) {
 				gint row = 0;
 				gint column = 0;

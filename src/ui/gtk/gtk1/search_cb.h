@@ -28,6 +28,8 @@
 
 #include <gtk/gtk.h>
 
+void search_gui_set_cursor_position(gint x, gint y);
+
 void on_search_popdown_switch(GtkWidget * w, gpointer data);
 void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, gint page_num, gpointer user_data);
 void on_clist_search_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);

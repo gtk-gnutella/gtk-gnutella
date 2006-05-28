@@ -81,6 +81,7 @@ static gboolean search_gui_shutting_down = FALSE;
  */
 static void gui_search_create_tree_view(GtkWidget ** sw,
 				GtkWidget ** tv, gpointer udata);
+static void search_gui_init_dnd(GtkTreeView *tv);
 
 /*
  * If no search are currently allocated
@@ -176,7 +177,7 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 		text = data->meta;
 		break;
 	case c_sr_info:
-		text = data->record->path ? data->record->path : data->info;
+		text = data->info ? data->info : data->record->info;
 		break;
 	case c_sr_size:
 		text = compact_size(data->record->size, show_metric_units());
@@ -621,6 +622,10 @@ search_gui_new_search_full(const gchar *query_str,
 		*search = sch;
 
 	search_gui_query_free(&query);
+
+	if (sch->local) {
+		search_gui_init_dnd(GTK_TREE_VIEW(sch->tree_view));
+	}
 	return TRUE;
 }
 
@@ -750,16 +755,13 @@ search_gui_cmp_info(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
-	const gchar *s1, *s2;
 	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	s1 = d1->record->path ? d1->record->path : d1->info;
-	s2 = d2->record->path ? d2->record->path : d2->info;
-	ret = search_gui_cmp_strings(s1, s2);
+	ret = search_gui_cmp_strings(d1->info, d2->info);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -865,7 +867,11 @@ search_gui_add_record(
 	if (data->ext)
 		data->ext = atom_str_get(data->ext);
 
-	data->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL);
+	if (rc->info) {
+		data->info = NULL;
+	} else {
+		data->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL);
+	}
 	data->fg = fg;
 	data->bg = bg;
 
@@ -1350,6 +1356,105 @@ create_searches_model(void)
 	return GTK_TREE_MODEL(store);
 }
 
+static void
+drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
+{
+	GtkTreeView *tv;
+	GtkTreePath *path;
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gchar **url_ptr = udata;
+
+	(void) unused_drag_ctx;
+
+	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
+
+	g_assert(url_ptr != NULL);
+	G_FREE_NULL(*url_ptr);
+
+	tv = GTK_TREE_VIEW(widget);
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path)
+		return;
+
+	model = gtk_tree_view_get_model(tv);
+	if (gtk_tree_model_get_iter(model, &iter, path)) {
+		const struct result_data *data;
+		const gchar *pathname;
+		gchar *escaped;
+		
+		data = get_result_data(model, &iter);
+		pathname = data->record->path;
+		if (!pathname) {
+			pathname = "(null)";
+		}
+		escaped = url_escape(pathname);
+		*url_ptr = g_strconcat("file://", escaped, (void *) 0);
+		if (escaped != pathname) {
+			G_FREE_NULL(escaped);
+		}
+	}
+
+	gtk_tree_path_free(path);
+}
+
+static void
+drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
+	GtkSelectionData *data, guint unused_info, guint unused_stamp,
+	gpointer udata)
+{
+	gchar **url_ptr = udata;
+
+	(void) unused_drag_ctx;
+	(void) unused_info;
+	(void) unused_stamp;
+
+	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-data-get");
+
+	g_assert(url_ptr != NULL);
+	if (NULL == *url_ptr)
+		return;
+
+	gtk_selection_data_set_text(data, *url_ptr, -1);
+	G_FREE_NULL(*url_ptr);
+}
+
+static void
+drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
+{
+	gchar **url_ptr = udata;
+
+	(void) unused_drag_ctx;
+
+	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-end");
+
+	g_assert(url_ptr != NULL);
+	G_FREE_NULL(*url_ptr);
+}
+
+static void
+search_gui_init_dnd(GtkTreeView *tv)
+{
+    static const GtkTargetEntry targets[] = {
+        { "STRING", 0, 23 },
+        { "text/plain", 0, 23 },
+    };
+	static gchar *dnd_url; /* Holds the URL to set the drag data */
+
+	g_return_if_fail(tv);
+
+	/* Initialize drag support */
+	gtk_drag_source_set(GTK_WIDGET(tv),
+		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
+		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
+
+    g_signal_connect(G_OBJECT(tv), "drag-data-get",
+        G_CALLBACK(drag_data_get), &dnd_url);
+    g_signal_connect(G_OBJECT(tv), "drag-begin",
+        G_CALLBACK(drag_begin), &dnd_url);
+    g_signal_connect(G_OBJECT(tv), "drag-end",
+        G_CALLBACK(drag_end), &dnd_url);
+}
 
 /***
  *** Public functions
