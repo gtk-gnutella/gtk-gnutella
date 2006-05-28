@@ -1073,7 +1073,8 @@ search_matched(search_t *sch, results_set_t *rs)
 		record_t *rc = l->data;
         filter_result_t *flt_result;
         gboolean downloaded = FALSE;
-		gboolean is_dup;
+		gboolean is_dup, add_record, mark;
+        GdkColor *fg_color;
 
 		g_assert(rc->magic == RECORD_MAGIC);
 		g_assert(rc->refcount >= 0);
@@ -1097,6 +1098,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
 
 		g_assert(rc->refcount >= 0);
+	
 		is_dup = search_gui_result_is_dup(sch, rc);
 		g_assert(rc->refcount >= 0);
 
@@ -1105,101 +1107,113 @@ search_matched(search_t *sch, results_set_t *rs)
 			continue;
 		}
 
-       	if (skip_records) {
-			sch->skipped++;
-			continue;
-		}
+		mark = FALSE;	
+		fg_color = NULL;
 
-		if (rc->size == 0) {
-			sch->ignored++;
-			continue;
-		}
+		if (sch->local) {
+			add_record = TRUE;
+		} else {
+			add_record = FALSE;
 
-		g_assert(rc->refcount >= 0);
-        flt_result = filter_record(sch, rc);
-		g_assert(rc->refcount >= 0);
+			if (skip_records) {
+				sch->skipped++;
+				continue;
+			}
 
-        /*
-         * Check whether this record was already scheduled for
-         * download by the backend.
-         */
-        downloaded = rc->flags & SR_DOWNLOADED;
+			if (rc->size == 0) {
+				sch->ignored++;
+				continue;
+			}
 
-        /*
-         * Now we check for the different filter result properties.
-         */
-
-        /*
-         * Check for FILTER_PROP_DOWNLOAD:
-         */
-        if (!downloaded &&
-            (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
-				FILTER_PROP_STATE_DO)
-		) {
-            guc_download_auto_new(rc->name, rc->size, rc->index,
-				rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
-				rs->stamp, need_push, TRUE, NULL, rs->proxies, flags);
-
-			if (rs->proxies != NULL)
-				search_gui_free_proxies(rs);
-
-            downloaded = TRUE;
-			sch->auto_downloaded++;
-        }
-
-		/*
-		 * Don't show something we downloaded if they don't want it.
-		 */
-
-		if (downloaded && search_hide_downloaded) {
-            filter_free_result(flt_result);
-			results_kept++;
-			sch->hidden++;
-			continue;
-        }
-
-        /*
-         * We start with FILTER_PROP_DISPLAY:
-         */
-        if (!(flt_result->props[FILTER_PROP_DISPLAY].state ==
-                FILTER_PROP_STATE_DONT &&
-            flt_result->props[FILTER_PROP_DISPLAY].user_data == 0) &&
-			(int) results_kept++ >= 0 && /* Count as kept even if max results */
-            sch->items < max_results
-		) {
-            GdkColor *fg_color = NULL;
-            gboolean mark;
-
-            sch->items++;
 			g_assert(rc->refcount >= 0);
-            g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
+			flt_result = filter_record(sch, rc);
 			g_assert(rc->refcount >= 0);
-            search_gui_ref_record(rc);
+
+			/*
+			 * Check whether this record was already scheduled for
+			 * download by the backend.
+			 */
+			downloaded = rc->flags & SR_DOWNLOADED;
+
+			/*
+			 * Now we check for the different filter result properties.
+			 */
+
+			/*
+			 * Check for FILTER_PROP_DOWNLOAD:
+			 */
+			if (!downloaded &&
+					(flt_result->props[FILTER_PROP_DOWNLOAD].state ==
+					 FILTER_PROP_STATE_DO)
+			   ) {
+				guc_download_auto_new(rc->name, rc->size, rc->index,
+						rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
+						rs->stamp, need_push, TRUE, NULL, rs->proxies, flags);
+
+				if (rs->proxies != NULL)
+					search_gui_free_proxies(rs);
+
+				downloaded = TRUE;
+				sch->auto_downloaded++;
+			}
+
+			/*
+			 * Don't show something we downloaded if they don't want it.
+			 */
+
+			if (downloaded && search_hide_downloaded) {
+				filter_free_result(flt_result);
+				results_kept++;
+				sch->hidden++;
+				continue;
+			}
+
+			/*
+			 * We start with FILTER_PROP_DISPLAY:
+			 */
+			if (!(flt_result->props[FILTER_PROP_DISPLAY].state ==
+				FILTER_PROP_STATE_DONT &&
+				flt_result->props[FILTER_PROP_DISPLAY].user_data == 0) &&
+				/* Count as kept even if max results */
+				(int) results_kept++ >= 0 &&
+				sch->items < max_results
+		     ) {
+
+				mark =
+					(flt_result->props[FILTER_PROP_DISPLAY].state ==
+					 FILTER_PROP_STATE_DONT) &&
+					(flt_result->props[FILTER_PROP_DISPLAY].user_data ==
+					 GINT_TO_POINTER(1));
+
+				if (rc->flags & SR_IGNORED) {
+					/*
+					 * Check whether this record will be ignored by the backend.
+					 */
+					fg_color = ignore_color;
+				} else if (downloaded) {
+					fg_color = download_color;
+				}
+
+				add_record = TRUE;
+				filter_free_result(flt_result);
+			}
+
+		}
+		if (add_record) {
+			sch->items++;
+
+			g_assert(rc->refcount >= 0);
+			g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
+			g_assert(rc->refcount >= 0);
+			search_gui_ref_record(rc);
 			g_assert(rc->refcount >= 1);
 
-            mark =
-                (flt_result->props[FILTER_PROP_DISPLAY].state ==
-                    FILTER_PROP_STATE_DONT) &&
-                (flt_result->props[FILTER_PROP_DISPLAY].user_data ==
-					GINT_TO_POINTER(1));
-
-            if (rc->flags & SR_IGNORED) {
-                /*
-                 * Check whether this record will be ignored by the backend.
-                 */
-                fg_color = ignore_color;
-            } else if (downloaded)
-                fg_color = download_color;
-            else
-                fg_color = NULL;
-
-            search_gui_add_record(sch, rc, vinfo, fg_color,
-                mark ? mark_color : NULL);
-        } else
+			search_gui_add_record(sch, rc, vinfo, fg_color,
+					mark ? mark_color : NULL);
+		} else {
 			sch->ignored++;
-
-        filter_free_result(flt_result);
-    }
+		}
+	}
 
     /*
      * A result set may not be added more then once to a search!
