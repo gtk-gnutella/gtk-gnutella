@@ -101,6 +101,16 @@ typedef union socket_addr {
 #endif /* USE_IPV6 */
 } socket_addr_t;
 
+static const host_addr_t ipv4_unspecified = {	/* 0.0.0.0/32 */
+	NET_TYPE_IPV4,
+	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+};
+
+static const host_addr_t ipv4_loopback = {	/* 0.0.0.0/32 */
+	NET_TYPE_IPV4,
+	{ { 0x7f, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+};
+
 static const host_addr_t ipv6_unspecified = {	/* ::/128 */
 	NET_TYPE_IPV6,
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
