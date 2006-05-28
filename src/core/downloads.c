@@ -3697,6 +3697,12 @@ download_fallback_to_push(struct download *d,
 		return;
 	}
 
+	/* If we're receiving data or already sent push, we're wrong
+	 * here. Most likely it was unnecessarily requested by the user.
+	 */
+	if (DOWNLOAD_IS_ACTIVE(d) || DOWNLOAD_IS_EXPECTING_GIV(d))
+		return;
+
 	if (DOWNLOAD_IS_STOPPED(d))
 		return;
 
@@ -5308,7 +5314,7 @@ download_write_data(struct download *d)
 
 	should_flush = buffers_should_flush(d);		/* Enough buffered data? */
 
-	if (!should_flush && d->pos + b->held >= d->range_end)
+	if (!should_flush && b->held >= d->range_end - d->pos)
 		should_flush = TRUE;		/* Moving past our range */
 
 	/*
@@ -7610,7 +7616,7 @@ download_request_sent(struct download *d)
 static void
 download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	struct download *d = (struct download *) data;
+	struct download *d = data;
 	struct gnutella_socket *s = d->socket;
 	http_buffer_t *r = d->req;
 	gint sent;
