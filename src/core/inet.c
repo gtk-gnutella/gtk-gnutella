@@ -187,31 +187,65 @@ is_local_addr(const host_addr_t addr)
 {
 	static host_addr_t our_addr, our_addr_v6;
 
+	/* Note: DNS resolution of the hostname(s) is only attempted once per
+	 *  	 session. While /etc/hosts can be corrected on the fly. It's
+	 *		 unlikely that will actually happen and the resolution can
+	 *		 cause blocking of several seconds which is not acceptable
+	 *		 except during the startup phase.
+	 */
 	if (NET_USE_IPV4 == network_protocol || NET_USE_BOTH == network_protocol) {
-		
 		if (!is_host_addr(our_addr)) {
-			/* This should not change */
-			our_addr = name_to_single_host_addr(local_hostname(),
+			static gboolean tried;
+
+			if (!tried) {
+				tried = TRUE;
+				/* This should not change */
+				our_addr = name_to_single_host_addr(local_hostname(),
 						NET_TYPE_IPV4);
+			}
 		}
 		if (!is_host_addr(our_addr))
 			our_addr = listen_addr();
-		if (!is_host_addr(our_addr))
-			our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV4);
+		if (!is_host_addr(our_addr)) {
+			static gboolean tried;
+
+			if (!tried) {
+				tried = TRUE;
+				our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV4);
+				if (!is_host_addr(our_addr)) {
+					g_warning("No \"127.0.0.1 localhost\" in /etc/hosts!?!");
+					our_addr = ipv4_loopback;
+				}
+			}
+		}
 		if (host_addr_equal(addr, listen_addr()))	/* Ourselves */
 			return TRUE;
 	}
 	
 	if (NET_USE_IPV6 == network_protocol || NET_USE_BOTH == network_protocol) {
 		if (!is_host_addr(our_addr_v6)) {
-			/* This should not change */
-			our_addr_v6 = name_to_single_host_addr(local_hostname(),
-							NET_TYPE_IPV6);
+			static gboolean tried;
+
+			if (!tried) {
+				/* This should not change */
+				our_addr_v6 = name_to_single_host_addr(local_hostname(),
+								NET_TYPE_IPV6);
+			}
 		}
 		if (!is_host_addr(our_addr_v6))
 			our_addr = listen_addr6();
-		if (!is_host_addr(our_addr_v6))
-			our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV6);
+		if (!is_host_addr(our_addr_v6)) {
+			static gboolean tried;
+
+			if (!tried) {
+				tried = TRUE;
+				our_addr = name_to_single_host_addr("localhost", NET_TYPE_IPV6);
+				if (!is_host_addr(our_addr)) {
+					g_warning("No \"::1 localhost\" in /etc/hosts!?!");
+					our_addr = ipv6_loopback;
+				}
+			}
+		}
 
 		if (host_addr_equal(addr, listen_addr6()))	/* Ourselves */
 			return TRUE;
