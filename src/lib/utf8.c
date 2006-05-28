@@ -68,19 +68,24 @@ RCSID("$Id$");
 #include "override.h"		/* Must be the last header included */
 
 /**
- * If UI_USES_UTF8_ENCODING is defined, it is assumed that the user-interface
- * passes only valid UTF-8 strings. It affects only those functions that are
- * explicitely defined to handle UI strings as input or output. This allows to
- * reduce the number of conversions. For example, if a function specification
- * permits that the original string may be returned, we will do that instead of
- * creating a copy. If UI_USES_UTF8_ENCODING is undefined, it is assumed that
- * the user-interface uses the locale's encoding for its strings.
+ * If ui_uses_utf8_encoding() returns TRUE, it is assumed that the
+ * user-interface passes only valid UTF-8 strings. It affects only those
+ * functions that are explicitely defined to handle UI strings as input or
+ * output. This allows to reduce the number of conversions. For example, if a
+ * function specification permits that the original string may be returned, we
+ * will do that instead of creating a copy. If ui_uses_utf8_encoding() returns
+ * FALSE, it is assumed that the user-interface uses the locale's encoding for
+ * its strings.
  */
+static inline gboolean
+ui_uses_utf8_encoding(void)
+{
 #ifdef USE_GTK2 
-#define UI_USES_UTF8_ENCODING
+	return TRUE;
 #else  /* !USE_GTK2 */
-#undef UI_USES_UTF8_ENCODING
+	return FALSE;
 #endif /* USE_GTK2 */
+}
 
 static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
@@ -2401,12 +2406,11 @@ utf8_to_ui_string(const gchar *src)
 	g_assert(src);
 	g_assert(utf8_is_valid_string(src));
 
-#ifndef UI_USES_UTF8_ENCODING
-	if (!locale_is_utf8())
+	if (ui_uses_utf8_encoding() || locale_is_utf8()) {
+		return deconstify_gchar(src);
+	} else {
 		return utf8_to_locale(src);
-#endif /* UI_USES_UTF8_ENCODING */
-	
-	return deconstify_gchar(src);
+	}
 }
 
 gchar *
@@ -2414,13 +2418,15 @@ ui_string_to_utf8(const gchar *src)
 {
 	g_assert(src);
 
-#ifndef UI_USES_UTF8_ENCODING
-	if (!locale_is_utf8())
+	if (ui_uses_utf8_encoding() || locale_is_utf8()) {
+		/* XXX: If the implementation is too crappy to filter invalid
+		 * 		UTF-8 codepoints the assertion below might actually fail.
+		 */
+		g_assert(utf8_is_valid_string(src));
+		return deconstify_gchar(src);
+	} else {
 		return locale_to_utf8(src);
-#endif /* UI_USES_UTF8_ENCODING */
-
-	g_assert(utf8_is_valid_string(src));
-	return deconstify_gchar(src);
+	}
 }
 
 static gchar *
@@ -2428,11 +2434,11 @@ locale_to_ui_string(const gchar *src)
 {
 	g_assert(src);
 
-#ifdef UI_USES_UTF8_ENCODING
-	return locale_to_utf8_normalized(src, UNI_NORM_GUI);
-#else	
-	return deconstify_gchar(src);
-#endif /* UI_USES_UTF8_ENCODING */
+	if (ui_uses_utf8_encoding()) {
+		return locale_to_utf8_normalized(src, UNI_NORM_GUI);
+	} else {
+		return deconstify_gchar(src);
+	}
 }
 
 static gchar *
@@ -2441,6 +2447,17 @@ locale_to_ui_string2(const gchar *src)
 	return locale_to_ui_string(src);
 }
 
+static gchar *
+filename_to_ui_string(const gchar *src)
+{
+	g_assert(src);
+
+	if (ui_uses_utf8_encoding()) {
+		return filename_to_utf8_normalized(src, UNI_NORM_GUI);
+	} else {
+		return deconstify_gchar(src);
+	}
+}
 
 /**
  * This macro is used to generate "lazy" variants of the converter functions.
@@ -2493,6 +2510,7 @@ LAZY_CONVERT(locale_to_utf8, (const gchar *src), (src))
 LAZY_CONVERT(utf8_to_locale, (const gchar *src), (src))
 
 LAZY_CONVERT(iso8859_1_to_utf8, (const gchar *src), (src))
+LAZY_CONVERT(filename_to_ui_string, (const gchar *src), (src))
 
 /*
  * Converts the supplied string ``src'' from a guessed encoding
