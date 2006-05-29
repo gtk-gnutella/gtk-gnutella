@@ -2757,7 +2757,6 @@ gchar *
 filepath_directory(const gchar *pathname)
 {
 	const gchar *sep, *slash;
-	gchar *dir;
 
 	slash = strrchr(pathname, '/');
 	sep = strrchr(slash ? slash : pathname, G_DIR_SEPARATOR);
