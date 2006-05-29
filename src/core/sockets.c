@@ -2271,7 +2271,7 @@ socket_udp_accept(struct gnutella_socket *s)
 		iov.iov_len = sizeof s->buffer;
 
 		msg = zero_msg;
-		msg.msg_name = from;
+		msg.msg_name = cast_to_gpointer(from);
 		msg.msg_namelen = from_len;
 		msg.msg_iov = &iov;
 		msg.msg_iovlen = 1;
