@@ -766,7 +766,8 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 	b = d->buffers;
 
 	g_assert(b->mode == DL_BUF_READING);
-	
+
+	g_assert(NULL == g_slist_next(b->last));	
 	b->last = g_slist_append(b->last, mb);
 	if (!b->buffers) {
 		b->buffers = b->last;
