@@ -74,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2006-05-27 21:51+0900\n"
-"PO-Revision-Date: 2006-05-27 21:59+0900\n"
+"PO-Revision-Date: 2006-05-28 11:35+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -4683,21 +4683,21 @@ msgstr "完全に送信済 "
 
 # # NOTE: it shouldn't be translated, you can simply copy & paste
 msgid " / "
-msgstr " / "
+msgstr "/"
 
 # NOTE: this string is used as follows
 #
-# 'Served 0 HTML and 0 Gnutella browse requests'
+# 'Served 0 / 0 HTML and 0 / 0 Gnutella browse requests'
 #
 msgid " HTML and "
-msgstr " 件のHTMLと "
+msgstr "件のHTMLと"
 
 # NOTE: this string is used as follows
 #
-# 'Served 0 HTML and 0 Gnutella browse requests'
+# 'Served 0 / 0 HTML and 0 / 0 Gnutella browse requests'
 #
 msgid " Gnutella browse requests"
-msgstr " 件のGnutella参照リクエストを受信しました。"
+msgstr "件のGnutella参照リクエストを受信しました。"
 
 msgid "Files to get"
 msgstr "取得ファイル"
