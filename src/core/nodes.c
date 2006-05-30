@@ -4372,12 +4372,13 @@ node_supports_tls(const host_addr_t addr, guint16 port)
 {
 	gnet_host_t host;
 
-	g_return_val_if_fail(is_host_addr(addr), FALSE);
-	g_return_val_if_fail(0 != port, FALSE);
-
-	host.addr = addr;
-	host.port = port;
-	return hash_list_contains(tls_hosts, &host, NULL);
+	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {
+		host.addr = addr;
+		host.port = port;
+		return hash_list_contains(tls_hosts, &host, NULL);
+	} else {
+		return FALSE;
+	}
 }
 
 /**
