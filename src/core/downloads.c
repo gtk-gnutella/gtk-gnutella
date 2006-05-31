@@ -6386,7 +6386,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 */
 
 	if (!ok && s->getline == NULL) {
-		download_queue_delay(d, download_retry_busy_delay,
+		download_queue_delay(d, download_retry_refused_delay,
 			"Timeout reading HTTP status");
 		return;
 	}
@@ -6411,7 +6411,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 */
 
 	if (!ok && getline_length(s->getline) == 0) {
-		download_queue_delay(d, download_retry_busy_delay,
+		download_queue_delay(d, download_retry_refused_delay,
 			"Timeout reading headers");
 		return;
 	}
