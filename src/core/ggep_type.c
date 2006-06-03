@@ -219,6 +219,7 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 	gint slen;
 	const gchar *payload;
 
+	g_assert(len >= 0);
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_HNAME);
 
@@ -228,17 +229,32 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 	 */
 
 	tlen = ext_paylen(exv);
-
-	if (tlen <= 0)
+	if (tlen <= 0 || tlen >= len)
 		return GGEP_INVALID;
 
 	payload = ext_payload(exv);
 	slen = MIN(tlen, len - 1);
 
 	memcpy(buf, payload, slen);
-
 	buf[slen] = '\0';
 
+	/*
+	 * Make sure the full string qualifies as hostname and is not an
+	 * IP address.
+	 */
+	{
+		const gchar *endptr;
+		host_addr_t addr;
+
+		if (
+			!string_to_host_or_addr(buf, &endptr, &addr) ||
+			&buf[slen] != endptr ||
+			is_host_addr(addr)
+		) {
+			return GGEP_INVALID;
+		}
+	}
+	
 	return GGEP_OK;
 }
 
