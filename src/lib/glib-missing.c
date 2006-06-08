@@ -322,11 +322,13 @@ gm_setproctitle(const gchar *title)
 
 		/* Scatter the title over the argv[] elements */
 		for (i = 0; i < G_N_ELEMENTS(args); i++) {
-			strncpy(args[i].ptr, title, args[i].size);
-			if (args[i].size >= n || 0 == args[i].size) {
+			size_t size = args[i].size;
+
+			strncpy(args[i].ptr, title, size);
+			if (size > n || 0 == size) {
 				break;
 			}
-			n -= args[i].size;
+			n -= size;
 		}
 		
 		/* If the title is too long, insert a NUL character. */
