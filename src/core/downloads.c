@@ -7558,7 +7558,7 @@ download_read(struct download *d, pmsg_t *mb)
 	if (buffers_full(d)) {
 		download_queue_delay(d, download_retry_stopped_delay,
 			_("Stopped (Read buffer full)"));
-		return FALSE;
+		goto error;
 	}
 
 	if (fi->file_size_known) {
@@ -7566,7 +7566,7 @@ download_read(struct download *d, pmsg_t *mb)
 
 		if (d->pos == fi->size) {
 			download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
-			return FALSE;
+			goto error;
 		}
 	}
 
@@ -7581,6 +7581,10 @@ download_read(struct download *d, pmsg_t *mb)
 	 */
 
 	return download_write_data(d);
+
+error:
+	pmsg_free(mb);
+	return FALSE;
 }
 
 /**
