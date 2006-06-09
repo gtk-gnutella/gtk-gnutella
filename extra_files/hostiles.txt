@@ -241,6 +241,11 @@
 # hosted by Fastserve
 66.172.60.0/24
 
+# WMA-DRM spam; files are 99% compressible (zero-filled); filenames
+# imitate scene releases; WMA header contains URL pointing to
+# artistdirect.com. In other words, this is MediaDefender.
+66.180.205.0/24
+
 # DRM spam
 63.246.153.64
 64.40.98.106
