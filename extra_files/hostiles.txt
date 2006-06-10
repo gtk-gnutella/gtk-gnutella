@@ -287,6 +287,12 @@
 64.34.248.165
 69.90.216.73
 
+# Gnoozle; "sponsored results" exploiting a brain-dead LimeWire feature
+# The SHA-1s are obviously faked and the files are not downloadable.
+68.178.144.2
+68.178.160.177
+68.178.206.62
+
 # University of Mississippi
 130.74.0.0/16
 
