@@ -30,8 +30,6 @@
 
 #define IO_STALLED	60 /**< If nothing exchanged after that many secs */
 
-void gui_update_c_downloads(gint, gint);
-
 void on_button_downloads_clear_stopped_clicked(
 	GtkButton *button, gpointer user_data);
 void on_togglebutton_queue_freeze_toggled(
