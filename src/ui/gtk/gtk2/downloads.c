@@ -177,7 +177,12 @@ gui_update_download(download_t *d, gboolean force)
 		status = tmpstr;
 		break;
 	case GTA_DL_QUEUED:
-		status = d->remove_msg ? d->remove_msg : "";
+		if (FILE_INFO_COMPLETE(d->file_info)) {
+			gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
+			status = tmpstr;
+		} else {
+			status = d->remove_msg ? d->remove_msg : "";
+		}
 		break;
 
 	case GTA_DL_CONNECTING:
@@ -349,14 +354,12 @@ gui_update_download(download_t *d, gboolean force)
 
 	case GTA_DL_RECEIVING:
 		if (d->pos + download_buffered(d) > d->skip) {
-			gdouble p = 0;
 			gint bps;
 			guint32 avg_bps;
 			filesize_t downloaded;
+			gboolean stalled;
 
 			downloaded = d->pos - d->skip + download_buffered(d);
-			p = guc_download_source_progress(d);
-
 			if (d->bio) {
 				bps = bio_bps(d->bio);
 				avg_bps = bio_avg_bps(d->bio);
@@ -365,46 +368,34 @@ gui_update_download(download_t *d, gboolean force)
 				avg_bps = 0;
 			}
 
-			if (avg_bps <= 10 && d->last_update != d->start_date)
-				avg_bps = downloaded / (d->last_update - d->start_date);
+			if (avg_bps <= 10 && d->last_update != d->start_date) {
+				avg_bps = downloaded / delta_time(d->last_update,
+											d->start_date);
+			}
 
+			stalled = delta_time(now, d->last_update) > IO_STALLED;
 			rw = 0;
 
-			if (avg_bps) {
-				filesize_t remain = 0;
+			if (!bps) {
+				bps = avg_bps;
+			}
+			if (bps && !stalled) {
+				filesize_t remain;
 				guint32 s;
 
-                if (d->size > downloaded)
+                if (d->size > downloaded) {
                     remain = d->size - downloaded;
-
-                s = remain / avg_bps;
-
-				if (now - d->last_update > IO_STALLED)
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " %s",
-						_("(stalled)"));
-				else
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" (%s)", short_rate(bps, show_metric_units()));
-
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					_(" [%d/%d] TR: %s"), fi->recvcount, fi->lifecount,
-					s ? short_time(s) : "-");
-
-				if (fi->recv_last_rate) {
-					s = (fi->size - fi->done) / fi->recv_last_rate;
-
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" / %s", short_time(s));
-
-					if (fi->recvcount > 1) {
-						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%s)", short_rate(fi->recv_last_rate,
-										show_metric_units()));
-					}
+				} else {
+					remain = 0;
 				}
+                s = remain / bps;
+				rw += gm_snprintf(&tmpstr[rw], sizeof tmpstr - rw,
+						"(%s) TR: %s",
+						short_rate(bps, show_metric_units()),
+						short_time(s));
 			} else {
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%4.02f%% %s", p,
-					(now - d->last_update > IO_STALLED) ? _("(stalled)") : "");
+				rw += gm_snprintf(tmpstr, sizeof tmpstr - rw, "%s",
+						stalled	? _("(stalled)") : _("Connected"));
 			}
 
 			/*
@@ -458,26 +449,6 @@ gui_update_download(download_t *d, gboolean force)
 
     if (d->status == GTA_DL_QUEUED) {
 		/* Download is done */
-		if (FILE_INFO_COMPLETE(d->file_info)) {
-			gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
-			status = tmpstr;
-		}
-	} else if (GTA_DL_RECEIVING == d->status) {
-		guint active_src, tot_src, remain;
-
-		active_src = fi->recvcount;
-		tot_src = fi->lifecount;
-
-		if (fi->recv_last_rate) {
-			remain = (fi->size - fi->done) / fi->recv_last_rate;
-		} else {
-			remain = 0;
-		}
-		gm_snprintf(tmpstr, sizeof tmpstr, _("(%s)  [%u/%u]  TR:  %s"),
-			short_rate(fi->recv_last_rate,
-			show_metric_units()),
-			active_src, tot_src, remain > 0 ? short_time(remain) : "-");
-		status = tmpstr;
 	}
 	fi_gui_download_set_status(d, status);
 }
