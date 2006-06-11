@@ -755,13 +755,16 @@ search_gui_cmp_info(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
+	const gchar *s1, *s2;
 	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->info, d2->info);
+	s1 = d1->info ? d1->info : d1->record->info;
+	s2 = d2->info ? d2->info : d2->record->info;
+	ret = search_gui_cmp_strings(s1, s2);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
