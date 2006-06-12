@@ -116,7 +116,7 @@ urn_get_sha1(const gchar *buf, gchar *digest)
 		NULL == (sha1 = is_strcaseprefix(buf, "urn:sha1:")) &&
 		NULL == (sha1 = is_strcaseprefix(buf, "urn:bitprint:"))
 	)
-		return TRUE;
+		return FALSE;
 
 	return urn_get_http_sha1(sha1, digest);
 }
