@@ -8628,10 +8628,11 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 			if (remains < dlen)
 				g_warning("crawler cannot include %d bytes user-agent: "
 					"only %d bytes left in buffer", dlen, remains);
-			else
+			else {
 				pmsg_write(mb, dpayload, dlen);
-
-			g_assert((size_t) dlen == pmsg_size(mb) - pdata_len(db) + remains);
+				g_assert((size_t) dlen ==
+					pmsg_size(mb) - pdata_len(db) + remains);
+			}
 		}
 
 		zlib_deflater_free(zd, TRUE);
