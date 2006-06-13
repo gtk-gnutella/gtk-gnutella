@@ -939,9 +939,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						break;
 					}
 					ret = ggept_alt_extract(e, &hvec, &hvcnt);
-					if (ret == GGEP_OK)
+					if (ret == GGEP_OK) {
 						seen_ggep_alt = TRUE;
-					else {
+						has_spam |= hvcnt > 10;
+					} else {
 						alt_errors++;
 						if (search_debug > 3) {
 							g_warning("%s bad GGEP \"ALT\" (dumping)",
@@ -2485,9 +2486,9 @@ static void
 search_check_alt_locs(
 	gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 {
-	gint i;
 	gnet_host_vec_t *alt = rc->alt_locs;
 	gint ignored = 0;
+	gint i;
 
 	g_assert(alt != NULL);
 
