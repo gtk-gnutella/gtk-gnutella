@@ -588,6 +588,33 @@ search_record_new(void)
 	return rc;
 }
 
+/**
+ * This checks XML data appended to search results for Gnoozle spam. It's
+ * a weak heuristic but it should be sufficient for now. Gnoozle exploits a
+ * feature of LimeWire and sends results for faked, non-existent files with
+ * bogus SHA-1s. This will be fixed in LimeWire soon, so there's no need
+ * to invest too much into it and it can probably be removed in a couple of
+ * months from now (2006-06-14).
+ *
+ * @param xml_buf a NUL-terminated string of XML data.
+ * @return TRUE if spam was detected, FALSE if it looks alright.
+ */
+static gboolean
+is_gnoozle_spam(const gchar *xml_buf)
+{
+	const gchar *p;
+
+	g_assert(xml_buf);
+
+	p = strstr(xml_buf, "http://www.limewire.com/schemas/");
+	if (p) {
+		if (strstr(p, "<audio action=\"http://"))
+			return TRUE;
+		if (strstr(p, "<video action=\"http://"))
+			return TRUE;
+	}
+	return FALSE;
+}
 
 /**
  * Parse Query Hit and extract the embedded records, plus the optional
@@ -618,7 +645,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
-	gboolean has_spam = FALSE;
 	gint multiple_alt = 0;
 	const gchar *vendor = NULL;
 	gchar hostname[256];
@@ -836,7 +862,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						
 						count_sha1(sha1_digest);
 						is_spam = spam_check(sha1_digest);
-						has_spam |= is_spam;
+						if (is_spam) {
+							rs->status |= ST_SPAM;
+						}
 
 						if (!validate_only) {
 							if (rc->sha1 != NULL) {
@@ -876,7 +904,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							
 							count_sha1(sha1_digest);
 							is_spam = spam_check(sha1_digest);
-							has_spam |= is_spam;
+							if (is_spam) {
+								rs->status |= ST_SPAM;
+							}
 
 							if (
 								huge_improbable_sha1(sha1_digest,
@@ -904,7 +934,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						has_hash = TRUE;
 						count_sha1(sha1_digest);
 						is_spam = spam_check(sha1_digest);
-						has_spam |= is_spam;
+						if (is_spam) {
+							rs->status |= ST_SPAM;
+						}
 
 						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
 							sha1_errors++;
@@ -941,7 +973,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					ret = ggept_alt_extract(e, &hvec, &hvcnt);
 					if (ret == GGEP_OK) {
 						seen_ggep_alt = TRUE;
-						has_spam |= hvcnt > 10;
+						if (hvcnt > 10) {
+							rs->status |= ST_SPAM;
+							if (rc) {
+								set_flags(rc->flags, SR_SPAM);
+							}
+						}
 					} else {
 						alt_errors++;
 						if (search_debug > 3) {
@@ -956,9 +993,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						guint64 fs;
 
 					   	ret = ggept_lf_extract(e, &fs);
-						if (ret == GGEP_OK)
-							rc->size = fs;
-						else {
+						if (ret == GGEP_OK) {
+							if (rc) {
+								rc->size = fs;
+							}
+						} else {
 							g_warning("%s bad GGEP \"LF\" (dumping)",
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -968,15 +1007,20 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				case EXT_T_GGEP_LIME_XML:
 					paylen = ext_paylen(e);
 					payload = ext_payload(e);
-					if (!rc->xml && paylen > 0) {
+					if (rc && !rc->xml && paylen > 0) {
 						size_t len;
 						gchar buf[4096];
 
 						len = MIN((size_t) paylen, sizeof buf - 1);
 						memcpy(buf, payload, len);
 						buf[len] = '\0';
-						if (utf8_is_valid_string(buf))
+						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
+							if (is_gnoozle_spam(buf)) {
+								rs->status |= ST_SPAM;
+								set_flags(rc->flags, SR_SPAM);
+							}
+						}
 					}
 					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
@@ -1098,11 +1142,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		}
 	}
 
-	if (has_spam && !browse) {
-		gnet_stats_count_dropped(n, MSG_DROP_SPAM);
-		goto bad_packet;
-	}
-	
+
 	if (nr != rs->num_recs) {
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		goto bad_packet;
@@ -1341,8 +1381,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							len = MIN((size_t) paylen, sizeof buf - 1);
 							memcpy(buf, payload, len);
 							buf[len] = '\0';
-							if (utf8_is_valid_string(buf))
+							if (utf8_is_valid_string(buf)) {
 								rc->xml = atom_str_get(buf);
+								if (is_gnoozle_spam(buf)) {
+									rs->status |= ST_SPAM;
+									set_flags(rc->flags, SR_SPAM);
+								}
+							}
 						}
 					}
 					break;
@@ -2197,7 +2242,6 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	g_assert(sch != NULL);
 
 	rs = get_results_set(n, FALSE, TRUE);
-
 	if (rs == NULL)
 		return;
 
@@ -2341,41 +2385,47 @@ search_results(gnutella_node_t *n, gint *results)
 	 * `drop_it' as this is reserved for bad packets.
 	 */
 
-	if (!dq_got_results(n->header.muid, rs->num_recs))
+	if (rs->status & ST_SPAM) {
 		forward_it = FALSE;
-
-	/*
-	 * If we got results for an OOB-proxied query, we'll forward
-	 * the hit to the proper leaf, but we don't want to route this
-	 * message any further.
-	 *
-	 * Also, the DH layer is invoked directly from the OOB-proxy layer
-	 * if the MUID is for a proxied query, using the unmangled original
-	 * MUID of the query, as sent by the leaf.  Therefore, we can only
-	 * call dh_got_results() when oob_proxy_got_results() returns FALSE.
-	 */
-
-	if (forward_it) {
-		if (proxy_oob_queries && oob_proxy_got_results(n, rs->num_recs))
+		/* It's not really dropped, just not forwarded, count it anyway. */
+		gnet_stats_count_dropped(n, MSG_DROP_SPAM);
+	} else {
+		if (!dq_got_results(n->header.muid, rs->num_recs))
 			forward_it = FALSE;
-		else
-			dh_got_results(n->header.muid, rs->num_recs);
+
+		/*
+		 * If we got results for an OOB-proxied query, we'll forward
+		 * the hit to the proper leaf, but we don't want to route this
+		 * message any further.
+		 *
+		 * Also, the DH layer is invoked directly from the OOB-proxy layer
+		 * if the MUID is for a proxied query, using the unmangled original
+		 * MUID of the query, as sent by the leaf.  Therefore, we can only
+		 * call dh_got_results() when oob_proxy_got_results() returns FALSE.
+		 */
+
+		if (forward_it) {
+			if (proxy_oob_queries && oob_proxy_got_results(n, rs->num_recs))
+				forward_it = FALSE;
+			else
+				dh_got_results(n->header.muid, rs->num_recs);
+		}
+
+		/*
+		 * Look for records that match entries in the download queue.
+		 */
+
+		if (auto_download_identical)
+			search_check_results_set(rs);
+
+		/*
+		 * Look for records whose SHA1 matches files we own and add
+		 * those entries to the mesh.
+		 */
+
+		if (auto_feed_download_mesh)
+			dmesh_check_results_set(rs);
 	}
-
-    /*
-     * Look for records that match entries in the download queue.
-	 */
-
-    if (auto_download_identical)
-		search_check_results_set(rs);
-
-	/*
-	 * Look for records whose SHA1 matches files we own and add
-	 * those entries to the mesh.
-     */
-
-	if (auto_feed_download_mesh)
-		dmesh_check_results_set(rs);
 
     /*
      * Look for records that should be ignored.
