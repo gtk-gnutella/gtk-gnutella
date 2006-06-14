@@ -291,6 +291,7 @@
 # The SHA-1s are obviously faked and the files are not downloadable.
 68.178.144.2
 68.178.160.177
+68.178.194.60
 68.178.198.68
 68.178.206.62
 68.178.250.209
