@@ -74,6 +74,7 @@
 #define T_GNUC	MAKE_CODE('G','N','U','C')
 #define T_GNUM  MAKE_CODE('G','N','U','M')
 #define T_GNUT	MAKE_CODE('G','N','U','T')
+#define T_GNZL	MAKE_CODE('G','N','Z','L')
 #define T_GTKG	MAKE_CODE('G','T','K','G')
 #define T_HSLG	MAKE_CODE('H','S','L','G')
 #define T_HUIT  MAKE_CODE('H','U','I','T')

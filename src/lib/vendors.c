@@ -74,6 +74,7 @@ struct vendor {
     { T_GNUC, "Gnucleus" },
     { T_GNUM, "Gnuminous" },
     { T_GNUT, "Gnut" },
+    { T_GNZL, "Gnoozle" },
     { T_GTKG, "gtk-gnutella" },
     { T_HSLG, "Hagelslag" },
     { T_HUIT, "Huitella" },
