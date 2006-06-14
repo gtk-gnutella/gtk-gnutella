@@ -759,7 +759,13 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 		name = lazy_unknown_to_utf8_normalized(r->name,
 					UNI_NORM_GUI, &rc->charset);
 		if (0 != (SR_SPAM & rc->flags)) {
+			/* This record was considered spam */
 			size = w_concat_strings(&buf, "<SPAM> ", name, (void *) 0);
+			name = buf;
+		} else if (0 != (ST_SPAM & rs->status)) {
+			/* This record itself was NOT considered spam but the result set
+			 * carried some spam. */
+			size = w_concat_strings(&buf, "<spam> ", name, (void *) 0);
 			name = buf;
 		} else {
 			buf = NULL;
@@ -1003,7 +1009,7 @@ search_gui_get_route(const record_t *rc)
 /**
  * Called to dispatch results to the search window.
  */
-void
+static void
 search_matched(search_t *sch, results_set_t *rs)
 {
 	guint32 old_items = sch->items;
@@ -1132,7 +1138,11 @@ search_matched(search_t *sch, results_set_t *rs)
 				continue;
 			}
 
-			if (rc->size == 0) {
+			if (
+				rc->size == 0 ||
+				(!rc->sha1 && !search_show_hashless) ||
+				((ST_SPAM & rs->status) && !search_show_spam)
+			) {
 				sch->ignored++;
 				continue;
 			}
@@ -1154,10 +1164,12 @@ search_matched(search_t *sch, results_set_t *rs)
 			/*
 			 * Check for FILTER_PROP_DOWNLOAD:
 			 */
-			if (!downloaded &&
-					(flt_result->props[FILTER_PROP_DOWNLOAD].state ==
+			if (
+				!downloaded &&
+				!(rs->status & ST_SPAM) &&
+				(flt_result->props[FILTER_PROP_DOWNLOAD].state ==
 					 FILTER_PROP_STATE_DO)
-			   ) {
+		   ) {
 				guc_download_auto_new(rc->name, rc->size, rc->index,
 						rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
 						rs->stamp, need_push, TRUE, NULL, rs->proxies, flags);
@@ -1398,13 +1410,15 @@ search_gui_flush(time_t now)
 
     last = now;
 
-    if (accumulated_rs && (gui_debug >= 6)) {
+    if (accumulated_rs && gui_debug >= 6) {
         guint32 recs = 0;
         guint32 rscount = 0;
 
         for (sl = accumulated_rs; sl != NULL; sl = g_slist_next(sl)) {
-            recs += ((results_set_t *)sl->data)->num_recs;
-            rscount ++;
+            const results_set_t *rs = sl->data;
+
+            recs += rs->num_recs;
+            rscount++;
         }
 
         printf("flushing %d rsets (%d recs, %d recs avg)...\n",
@@ -1435,8 +1449,10 @@ search_gui_flush(time_t now)
                 search_gui_start_massive_update(sch);
                 frozen = g_slist_prepend(frozen, sch);
                 search_matched(sch, rs);
-            } else if (gui_debug >= 6) printf(
-				"no search for cached search result while dispatching\n");
+            } else if (gui_debug >= 6) {
+				g_message(
+					"no search for cached search result while dispatching");
+			}
         }
 
         /*
@@ -1467,9 +1483,10 @@ search_gui_flush(time_t now)
          */
 
         if (rs->num_recs == 0) {
-            for (sl = schl; sl; sl = sl->next) {
-                search_t *sch = search_gui_find(
-                    (gnet_search_t) GPOINTER_TO_UINT(sl->data));
+            for (sl = schl; sl; sl = g_slist_next(sl)) {
+                search_t *sch;
+			   
+				sch = search_gui_find(GPOINTER_TO_UINT(sl->data));
 
                 /*
                  * Since we keep results around for a while, the search may
@@ -1478,10 +1495,12 @@ search_gui_flush(time_t now)
                  * --BLUE, 4/1/2004
                  */
 
-                if (sch)
+                if (sch) {
                     search_gui_remove_r_set(sch, rs);
-                else if (gui_debug >= 6) printf(
-					"no search for cached search result while cleaning\n");
+				} else if (gui_debug >= 6) {
+					g_message(
+						"no search for cached search result while cleaning");
+				}
             }
         }
 		g_slist_free(schl);
@@ -1491,7 +1510,7 @@ search_gui_flush(time_t now)
      * Unfreeze all we have frozen before.
      */
     for (sl = frozen; sl != NULL; sl = g_slist_next(sl)) {
-		search_gui_end_massive_update((search_t *) sl->data);
+		search_gui_end_massive_update(sl->data);
     }
     g_slist_free(frozen);
 
