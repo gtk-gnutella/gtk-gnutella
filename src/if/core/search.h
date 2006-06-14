@@ -60,6 +60,7 @@ typedef struct gnet_host_vec {
  * Result sets `status' flags.
  */
 enum {
+	 ST_SPAM				= (1 << 11), /**< Carries spam */
 	 ST_TLS					= (1 << 10), /**< Indicated support for TLS */
 	 ST_BH					= (1 << 9),	 /**< Browse Host support */
 	 ST_KNOWN_VENDOR		= (1 << 8),	 /**< Found known vendor code */
