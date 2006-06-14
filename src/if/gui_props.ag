@@ -691,6 +691,25 @@ prop = {
 };
 
 prop = {
+    name = "search_show_spam";
+    desc = "Display search results which are considered spam.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "search_show_hashless";
+    desc = "Display search results which carry no hashsum.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+
+prop = {
     name = "show_dl_settings";
     desc = "Display download settings.";
     type = boolean;
