@@ -125,8 +125,6 @@ struct query {
  * Global Functions
  */
 
-void search_matched(search_t *sch, results_set_t *rs);
-
 void search_gui_common_init(void);
 void search_gui_common_shutdown(void);
 
