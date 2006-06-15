@@ -333,9 +333,6 @@
 212.71.252.0/24
 216.151.154.0/24
 
-# Foundation of Research and Technology (Greece)
-139.91.0.0/16
-
 # Time Warner Telecom
 64.128.109.144/28
 66.162.178.96/28
