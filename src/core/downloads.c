@@ -5391,15 +5391,21 @@ download_write_data(struct download *d)
 	 *		--RAM, 2006-03-11
 	 */
 
-	if (!should_flush && download_filedone(d) >= download_filesize(d))
+	if (
+		!should_flush &&
+		download_filedone(d) >= download_filesize(d)
+	) {
 		should_flush = TRUE;
+	}
 
-	if (download_debug > 5)
+	if (download_debug > 5) {
 		g_message(
-			"%sflushing pending %lu bytes for \"%s\", pos=%lu, range_end=%lu",
+			"%sflushing pending %lu bytes for \"%s\", pos=%s, range_end=%s",
 			should_flush ? "" : "NOT ",
 			(gulong) b->held, download_outname(d),
-			(gulong) d->pos, (gulong) d->range_end);
+			uint64_to_string(d->pos),
+			uint64_to_string2(d->range_end));
+	}
 
 	if (!should_flush)
 		return TRUE;
