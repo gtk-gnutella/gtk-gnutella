@@ -2289,6 +2289,15 @@ file_info_unlink(fileinfo_t *fi)
 	if (fi->flags & FI_F_TRANSIENT)
 		return;
 
+	/*
+	 * Only try to unlink partials because completed files are
+	 * already moved or renamed and this could in theory match
+	 * the filename of another download started afterwards which 
+	 * means the wrong file would be removed.
+	 */
+	if (fi->file_size_known && fi->size == fi->done)
+		return;
+
 	path = make_pathname(fi->path, fi->file_name);
 
 	if (NULL == path || -1 == unlink(path)) {
@@ -3628,6 +3637,10 @@ file_info_merge_adjacent(fileinfo_t *fi)
 			fc1 = fc2;
 			fc2 = fclist->data;
 
+			if (fc2->download) {
+				download_check(fc2->download);
+			}
+
 			if (DL_CHUNK_DONE == fc2->status)
 				done += fc2->to - fc2->from;
 
@@ -3665,10 +3678,14 @@ file_info_merge_adjacent(fileinfo_t *fi)
 void
 file_info_size_known(struct download *d, filesize_t size)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 	struct dl_file_chunk *fc;
 
+	download_check(d);
+
+	fi = d->file_info;
 	file_info_check(fi);
+
 	g_assert(!fi->file_size_known);
 	g_assert(!fi->use_swarming);
 	g_assert(fi->chunklist == NULL);
@@ -4004,8 +4021,8 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 void
 file_info_reset(fileinfo_t *fi)
 {
-	GSList *l;
 	struct dl_file_chunk *fc;
+	GSList *list;
 
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
@@ -4016,20 +4033,23 @@ file_info_reset(fileinfo_t *fi)
 		file_info_upload_stop(fi, "File info being reset");
 
 restart:
-	for (l = fi->chunklist; l; l = g_slist_next(l)) {
+	for (list = fi->chunklist; list; list = g_slist_next(list)) {
 		struct download *d;
 
-		fc = (struct dl_file_chunk *) l->data;
+		fc = list->data;
 		d = fc->download;
+		if (d) {
+			download_check(d);
 
-		if (d && DOWNLOAD_IS_RUNNING(d)) {
-			download_queue(d, "Requeued due to file removal");
-			goto restart;		/* Because file_info_clear_download() called */
+			if (DOWNLOAD_IS_RUNNING(d)) {
+				download_queue(d, "Requeued due to file removal");
+				goto restart;	/* Because file_info_clear_download() called */
+			}
 		}
 	}
 
-	for (l = fi->chunklist; l; l = g_slist_next(l)) {
-		fc = (struct dl_file_chunk *) l->data;
+	for (list = fi->chunklist; list; list = g_slist_next(list)) {
+		fc = list->data;
 		fc->status = DL_CHUNK_EMPTY;
 	}
 
@@ -4148,14 +4168,18 @@ fi_busy_count(fileinfo_t *fi, struct download *d)
 	GSList *l;
 	gint count = 0;
 
+	download_check(d);
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
 
-		if (fc->download == d && DL_CHUNK_BUSY == fc->status)
-			count++;
+		if (fc->download) {
+			download_check(d);
+			if (fc->download == d && DL_CHUNK_BUSY == fc->status)
+				count++;
+		}
 	}
 
 	g_assert(fi->lifecount >= count);
@@ -4245,6 +4269,10 @@ list_clone_shift(fileinfo_t *fi)
 				nfc->status = fc->status;
 				nfc->download = fc->download;
 				fc->to = nfc->from;
+
+				if (nfc->download) {
+					download_check(nfc->download);
+				}
 
 				fi->chunklist = gm_slist_insert_after(fi->chunklist, l, nfc);
 				clone = g_slist_copy(g_slist_next(l));
