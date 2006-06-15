@@ -41,6 +41,12 @@
 
 #define HTTP_PORT		80		/**< Registered HTTP port */
 
+typedef enum {
+	HTTP_CONTENT_ENCODING_IDENTITY,
+	HTTP_CONTENT_ENCODING_DEFLATE,
+	HTTP_CONTENT_ENCODING_GZIP
+} http_content_encoding_t;
+
 /**
  * http_send_status() additional header description:
  */
