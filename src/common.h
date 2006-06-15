@@ -464,10 +464,12 @@ get_rcsid(void)		\
 #define SHA1_BASE32_SIZE 	32		/**< 160 bits in base32 representation */
 #define SHA1_RAW_SIZE		20		/**< 160 bits in binary representation */
 
+#define TTH_BASE32_SIZE 	39		/**< 160 bits in base32 representation */
+#define TTH_RAW_SIZE		24		/**< 160 bits in binary representation */
+
 #define BITPRINT_BASE32_SIZE 	72	/**< 352 bits in base32 representation
 									 **  includes dot between sha1 and tiger */
 #define BITPRINT_RAW_SIZE		44	/**< 352 bits in binary representation */
-
 
 /*
  * Forbidden glib calls.
