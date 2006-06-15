@@ -6425,8 +6425,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
-	gboolean is_chunked = FALSE;
-	http_content_encoding_t content_encoding = HTTP_CONTENT_ENCODING_IDENTITY;
+	gboolean is_chunked;
+	http_content_encoding_t content_encoding;
 	filesize_t check_content_range = 0, requested_size;
 	host_addr_t addr;	
 	guint16 port;
@@ -6542,6 +6542,27 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	}
 
 	check_date(header, addr, d);	/* Update clock skew if we have a Date: */
+
+	buf = header_get(header, "Transfer-Encoding");
+	if (buf) {
+		is_chunked = 0 == strcmp(buf, "chunked");
+	} else {
+		is_chunked = FALSE;
+	}
+
+	buf = header_get(header, "Content-Encoding");
+	if (buf) {
+		/* TODO: we don't support "gzip" encoding yet (and don't request it) */
+		if (0 == strcmp(buf, "deflate")) {
+			content_encoding = HTTP_CONTENT_ENCODING_DEFLATE;
+		} else {
+			download_stop(d, GTA_DL_ERROR,
+				"No support for Content-Encoding (%s)", buf);
+			return;
+		}
+	} else {
+		content_encoding = HTTP_CONTENT_ENCODING_IDENTITY;
+	}
 
 	/*
 	 * Provision for broken HTTP engines, such as the one used by
@@ -7173,7 +7194,10 @@ http_version_nofix:
 			download_bad_source(d);
 			download_stop(d, GTA_DL_ERROR, "Unparseable Content-Length");
 			return;
-		} else if (content_size != requested_size) {
+		} else if (
+			HTTP_CONTENT_ENCODING_IDENTITY == content_encoding &&
+			content_size != requested_size
+		) {
 			if (content_size == fi->size) {
 				g_message("file \"%s\": server seems to have "
 					"ignored our range request of %s-%s.",
@@ -7364,29 +7388,6 @@ http_version_nofix:
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
 		return;
-	}
-
-	/*
-	 * If we don't know the content length yet, see whether they're sending
-	 * chunked data back.  For now, we limit that processing to browse-host
-	 * requests.
-	 */
-
-	buf = header_get(header, "Transfer-Encoding");
-	if (buf) {
-		is_chunked = 0 == strcmp(buf, "chunked");
-	}
-
-	buf = header_get(header, "Content-Encoding");
-	if (buf) {
-		/* TODO: we don't support "gzip" encoding yet (and don't request it) */
-		if (0 == strcmp(buf, "deflate")) {
-			content_encoding = HTTP_CONTENT_ENCODING_DEFLATE;
-		} else {
-			download_stop(d, GTA_DL_ERROR,
-				"No support for Content-Encoding (%s)", buf);
-			return;
-		}
 	}
 
 #if 0
