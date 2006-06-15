@@ -436,6 +436,23 @@ pmsg_discard(pmsg_t *mb, gint len)
 	return n;
 }
 
+
+/**
+ * Discard trailing data from the message, returning the amount of
+ * bytes discarded.
+ */
+gint
+pmsg_discard_trailing(pmsg_t *mb, gint len)
+{
+	gint available = mb->m_wptr - mb->m_rptr;
+	gint n = len >= available ? available : len;
+
+	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
+
+	mb->m_wptr -= n;
+	return n;
+}
+
 /**
  * Allocate a new data block of given size.
  * The block header is at the start of the allocated block.

@@ -147,6 +147,7 @@ void pmsg_free(pmsg_t *mb);
 gint pmsg_write(pmsg_t *mb, gconstpointer data, gint len);
 gint pmsg_read(pmsg_t *mb, gpointer data, gint len);
 gint pmsg_discard(pmsg_t *mb, gint len);
+gint pmsg_discard_trailing(pmsg_t *mb, gint len);
 
 pdata_t *pdata_new(gint len);
 pdata_t *pdata_allocb(void *buf, gint len,
