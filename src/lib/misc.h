@@ -417,6 +417,16 @@ gchar *sha1_base32(const gchar *sha1);
 gchar *base32_sha1(const gchar *base32);
 
 /*
+ * TTH <-> base32 string conversion
+ */
+struct tth {
+	gchar data[TTH_RAW_SIZE];
+};
+
+const gchar *tth_base32(const struct tth *tth);
+const struct tth *base32_tth(const gchar *base32);
+
+/*
  * GUID<->hex string conversion
  */
 gchar *guid_hex_str(const gchar *guid);

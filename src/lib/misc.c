@@ -1458,6 +1458,43 @@ base32_sha1(const gchar *base32)
 }
 
 /**
+ * Convert binary TTH into a base32 string.
+ *
+ * @return pointer to static data.
+ */
+const gchar *
+tth_base32(const struct tth *tth)
+{
+	static gchar digest_b32[TTH_BASE32_SIZE + 1];
+
+	base32_encode_into(tth->data, sizeof tth->data,
+		digest_b32, sizeof digest_b32);
+	digest_b32[sizeof digest_b32 - 1] = '\0';
+
+	return digest_b32;
+}
+
+/**
+ * Convert base32 string into a binary TTH.
+ *
+ * @param base32 a buffer holding TTH_BASE32_SIZE or more bytes.
+ *
+ * @return	Returns pointer to static data or NULL if the input wasn't a
+ *			validly base32 encoded TTH.
+ */
+const struct tth *
+base32_tth(const gchar *base32)
+{
+	static struct tth tth;
+	gint len;
+
+	len = base32_decode_into(base32, TTH_BASE32_SIZE,
+			tth.data, sizeof tth.data);
+
+	return TTH_RAW_SIZE == len ? &tth : NULL;
+}
+
+/**
  * Convert time to an ISO 8601 timestamp, e.g. "2002-06-09T14:54:42Z".
  *
  * @return pointer to static data.
