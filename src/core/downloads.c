@@ -877,6 +877,68 @@ buffers_strip_leading(struct download *d, size_t amount)
 		fi->buffered = 0;		/* Not critical, be fault-tolerant */
 }
 
+/**
+ * Strip trailing `amount' bytes from the read buffers.
+ */
+static void
+buffers_strip_trailing(struct download *d, size_t amount)
+{
+	struct dl_buffers *b;
+	GSList *sl;
+	size_t n;
+	fileinfo_t *fi = d->file_info;
+
+	download_check(d);
+	g_assert(d->buffers != NULL);
+
+	b = d->buffers;
+
+	g_assert(b->mode == DL_BUF_READING);
+	g_assert(amount <= b->held);
+
+	if (b->held <= amount) {
+		buffers_discard(d);
+		return;
+	}
+	n = b->held - amount;
+	b->last = b->buffers;
+
+	for (sl = b->buffers; NULL != sl; /* NOTHING */) {
+		pmsg_t *mb;
+		size_t size;
+
+		mb = sl->data;
+		g_assert(mb);
+
+		if (n > 0) {
+			size = pmsg_size(mb);
+			if (size < n) {
+				n -= size;
+			} else {
+				b->last = sl;
+				if (size > n) {
+					pmsg_discard_trailing(mb, size - n);
+				}
+				n = 0;
+			}
+			sl = g_slist_next(sl);
+		} else {
+			pmsg_free(mb);
+			sl = g_slist_delete_link(sl, sl);
+		}
+	}
+
+	g_assert(NULL != b->last);
+	b->last->next = NULL; /* Was already deleted if any */
+
+	b->held -= amount;
+
+	if (fi->buffered >= amount)
+		fi->buffered -= amount;
+	else
+		fi->buffered = 0;		/* Not critical, be fault-tolerant */
+}
+
 /* ----------------------------------------- */
 
 /**
@@ -5191,8 +5253,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	 * being capable of handling keep-alive connections correctly!
 	 */
 
-	if (d->pos + b->held > d->range_end) {
-		filesize_t extra = (d->pos + b->held) - d->range_end;
+	if (b->held > d->range_end - d->pos) {
+		filesize_t extra = b->held - (d->range_end - d->pos);
 
 		if (download_debug) g_message(
 			"server %s (%s) gave us %s more byte%s than requested for \"%s\"",
@@ -5200,7 +5262,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 			download_vendor_str(d), uint64_to_string(extra),
 			extra == 1 ? "" : "s", download_outname(d));
 
-		b->held -= extra;
+		buffers_strip_trailing(d, extra);
 		if (trimmed)
 			*trimmed = TRUE;
 
@@ -6363,7 +6425,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
-	gboolean is_chunked = FALSE, is_deflated = FALSE;
+	gboolean is_chunked = FALSE;
+	http_content_encoding_t content_encoding = HTTP_CONTENT_ENCODING_IDENTITY;
 	filesize_t check_content_range = 0, requested_size;
 	host_addr_t addr;	
 	guint16 port;
@@ -7093,7 +7156,11 @@ http_version_nofix:
 
 		content_size = parse_uint64(buf, NULL, 10, &error);
 
-		if (!error && !fi->file_size_known) {
+		if (
+			!error &&
+			!fi->file_size_known &&
+			HTTP_CONTENT_ENCODING_IDENTITY == content_encoding
+		) {
 			/* XXX factor this code with the similar one below */
 			d->size = content_size;
 			file_info_size_known(d, content_size);
@@ -7312,11 +7379,12 @@ http_version_nofix:
 
 	buf = header_get(header, "Content-Encoding");
 	if (buf) {
-		is_deflated = NULL != strstr(buf, "deflate");
-
-		/* XXX -- we don't support "gzip" encoding yet (and don't request it) */
-		if (NULL != strstr(buf, "gzip")) {
-			download_stop(d, GTA_DL_ERROR, "No support for gzip encoding yet");
+		/* TODO: we don't support "gzip" encoding yet (and don't request it) */
+		if (0 == strcmp(buf, "deflate")) {
+			content_encoding = HTTP_CONTENT_ENCODING_DEFLATE;
+		} else {
+			download_stop(d, GTA_DL_ERROR,
+				"No support for Content-Encoding (%s)", buf);
 			return;
 		}
 	}
@@ -7368,7 +7436,7 @@ http_version_nofix:
 		host.addr = download_addr(d);
 		host.port = download_port(d);
 
-		if (is_deflated) {
+		if (HTTP_CONTENT_ENCODING_DEFLATE == content_encoding) {
 			bh_flags |= BH_DL_INFLATE;
 		}
 		if (is_chunked) {
@@ -7448,7 +7516,7 @@ http_version_nofix:
 		args.cb = &download_rx_chunk_cb;
 		d->rx = rx_make_above(d->rx, rx_chunk_get_ops(), &args);
 	}
-	if (is_deflated) {
+	if (HTTP_CONTENT_ENCODING_DEFLATE == content_encoding) {
 		struct rx_inflate_args args;
 
 		args.cb = &download_rx_inflate_cb;
@@ -7890,10 +7958,10 @@ picked:
 
 	if (d->flags & DL_F_BROWSE)
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-			"Accept: application/x-gnutella-packets\r\n"
-			"Accept-Encoding: deflate\r\n"
-		);
+				"Accept: application/x-gnutella-packets\r\n");
 
+	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"Accept-Encoding: deflate\r\n");
 	/*
 	 * Add X-Queue / X-Queued information into the header
 	 */
