@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-01 23:21+0900\n"
+"POT-Creation-Date: 2006-06-17 00:13+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: T'aZ <tazdev@punkass.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2888,6 +2888,12 @@ msgstr "Taille des colonnes dans les tables des résultats des recherches"
 #, fuzzy
 msgid "Display search settings."
 msgstr "Affiche les paramètres de recherche"
+
+msgid "Display search results which are considered spam."
+msgstr ""
+
+msgid "Display search results which carry no hashsum."
+msgstr ""
 
 #, fuzzy
 msgid "Display download settings."
@@ -6717,10 +6723,6 @@ msgstr "Envoi de la requête en cours (%d%%)"
 #, fuzzy, c-format
 msgid "Retry in %us"
 msgstr "Nouvel essai dans %ds"
-
-#, c-format
-msgid "(%s)  [%u/%u]  TR:  %s"
-msgstr ""
 
 msgid "<none>"
 msgstr ""

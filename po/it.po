@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-01 23:21+0900\n"
+"POT-Creation-Date: 2006-06-17 00:13+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -2684,6 +2684,12 @@ msgstr "Ordinamento predefinito delle colonne per i risultati delle ricerche."
 
 msgid "Display search settings."
 msgstr "Mostra le impostazioni delle ricerche."
+
+msgid "Display search results which are considered spam."
+msgstr ""
+
+msgid "Display search results which carry no hashsum."
+msgstr ""
 
 msgid "Display download settings."
 msgstr "Mostra le impostazioni di scaricamento."
@@ -6270,10 +6276,6 @@ msgstr "Invio richiesta (%u%%)"
 #, c-format
 msgid "Retry in %us"
 msgstr "Ritenta in %us"
-
-#, c-format
-msgid "(%s)  [%u/%u]  TR:  %s"
-msgstr ""
 
 msgid "<none>"
 msgstr "<niente>"

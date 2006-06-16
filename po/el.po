@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-01 23:21+0900\n"
+"POT-Creation-Date: 2006-06-17 00:13+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -2559,6 +2559,12 @@ msgstr "Προεπιλεγμένη στήλη ταξινόμησης των απ
 
 msgid "Display search settings."
 msgstr "Εμφάνιση ρυθμίσεων αναζήτησης."
+
+msgid "Display search results which are considered spam."
+msgstr ""
+
+msgid "Display search results which carry no hashsum."
+msgstr ""
 
 msgid "Display download settings."
 msgstr "Εμφάνιση ρυθμίσεων λήψης."
@@ -6147,10 +6153,6 @@ msgstr "Αποστολή αιτήματος (%u%%)"
 #, c-format
 msgid "Retry in %us"
 msgstr "Προσπάθεια ξανά σε %us"
-
-#, fuzzy, c-format
-msgid "(%s)  [%u/%u]  TR:  %s"
-msgstr "(%s)  [%d/%d]  TR:  %s"
 
 msgid "<none>"
 msgstr "<κανένα>"

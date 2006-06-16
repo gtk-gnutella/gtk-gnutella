@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-01 23:21+0900\n"
+"POT-Creation-Date: 2006-06-17 00:13+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -2695,6 +2695,12 @@ msgstr "Breedte van de kolommen in de zoekopdrachten tabel."
 
 msgid "Display search settings."
 msgstr "Zoek instellingen weergeven."
+
+msgid "Display search results which are considered spam."
+msgstr ""
+
+msgid "Display search results which carry no hashsum."
+msgstr ""
 
 msgid "Display download settings."
 msgstr "Download instellingen weergeven."
@@ -6309,10 +6315,6 @@ msgstr "Verzoek wordt verstuurd (%u%%)"
 #, c-format
 msgid "Retry in %us"
 msgstr "Opnieuw proberen in %us"
-
-#, fuzzy, c-format
-msgid "(%s)  [%u/%u]  TR:  %s"
-msgstr "(%s)  [%d/%d]  Resterende tijd:  %s"
 
 msgid "<none>"
 msgstr "<geen>"

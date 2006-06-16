@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-01 23:21+0900\n"
+"POT-Creation-Date: 2006-06-17 00:13+0900\n"
 "PO-Revision-Date: 2006-05-28 23:37+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <nb@li.org>\n"
@@ -2602,6 +2602,12 @@ msgstr "Standard sorteringskolonne for søkeresultater."
 
 msgid "Display search settings."
 msgstr "Vis søkeinnstillinger."
+
+msgid "Display search results which are considered spam."
+msgstr ""
+
+msgid "Display search results which carry no hashsum."
+msgstr ""
 
 msgid "Display download settings."
 msgstr "Vis nedlastingsinnstillinger."
@@ -6168,10 +6174,6 @@ msgstr "Sender forespørsel (%u%%)"
 #, c-format
 msgid "Retry in %us"
 msgstr "Nytt forsøk om %us"
-
-#, c-format
-msgid "(%s)  [%u/%u]  TR:  %s"
-msgstr "(%s)  [%u av %u]  Igjen:  %s"
 
 msgid "<none>"
 msgstr "<ingen>"

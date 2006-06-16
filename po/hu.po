@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-01 23:21+0900\n"
+"POT-Creation-Date: 2006-06-17 00:13+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -2727,6 +2727,12 @@ msgstr "Az oszlopok szélessége a keresés eredményei táblán"
 #, fuzzy
 msgid "Display search settings."
 msgstr "Kereső-beállításokat mutat"
+
+msgid "Display search results which are considered spam."
+msgstr ""
+
+msgid "Display search results which carry no hashsum."
+msgstr ""
 
 #, fuzzy
 msgid "Display download settings."
@@ -6479,10 +6485,6 @@ msgstr "(%d%%) kérelem elküldése"
 #, fuzzy, c-format
 msgid "Retry in %us"
 msgstr "%d után újra"
-
-#, c-format
-msgid "(%s)  [%u/%u]  TR:  %s"
-msgstr ""
 
 msgid "<none>"
 msgstr "<semmi>"
