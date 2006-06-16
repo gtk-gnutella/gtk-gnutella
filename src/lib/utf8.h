@@ -149,6 +149,27 @@ utf16_encode_char_compact(guint32 uc)
 	return (guint32) -1;
 }
 
+static inline gboolean
+utf8_byte_is_allowed(guchar c)
+{
+	switch (c) {
+	case 0xC0:
+	case 0xC1:
+	case 0xF5:
+	case 0xF6:
+	case 0xF7:
+	case 0xF8:
+	case 0xFA:
+	case 0xFB:
+	case 0xFC:
+	case 0xFD:
+	case 0xFE:
+	case 0xFF:
+		return FALSE;
+	}
+	return TRUE;
+}
+
 /**
  * Lazy converters either return a pointer to a static buffer or manage
  * the allocated memory themselves. They may also return the original
