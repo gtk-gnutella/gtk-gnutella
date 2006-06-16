@@ -64,48 +64,23 @@
 #ifndef _core_matching_h_
 #define _core_matching_h_
 
-struct shared_file;
-
-struct st_entry {
-	gchar *string;
-	struct shared_file *data;
-	guint32 mask;
-};
-
-struct st_bin {
-	gint nslots, nvals;
-	struct st_entry **vals;
-};
-
-typedef	guint8 char_map_t[256];		/**< Maps one char to another */
-
-typedef struct _search_table {
-	gint nentries, nchars, nbins;
-	struct st_bin **bins;
-	struct st_bin all_entries;
-	char_map_t index_map, fold_map;
-} search_table_t;
-
+typedef struct _search_table search_table_t;
 
 struct query_hashvec;
 
-size_t match_map_string(char_map_t map, gchar *string);
-
-void st_initialize(search_table_t *, char_map_t);
+search_table_t *st_alloc(void);
+void st_initialize(search_table_t *);
 void st_create(search_table_t *table);
 void st_destroy(search_table_t *);
-void st_insert_item(search_table_t *, const gchar *, struct shared_file *);
+gboolean st_insert_item(search_table_t *, const gchar *key, gpointer data);
 void st_compact(search_table_t *);
 
 struct shared_file;
 
 /**
  * Needs brief description here.
- *
- * @bug
- * FIXME: The type of this callback is too specific.
  */
-typedef void (*st_search_callback)(gpointer ctx, struct shared_file *sf);
+typedef void (*st_search_callback)(gpointer ctx, gpointer data);
 
 void st_search(
 	search_table_t *table,

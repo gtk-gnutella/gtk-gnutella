@@ -132,7 +132,6 @@ struct routing_patch {
 	gboolean compressed;
 };
 
-static char_map_t qrp_map;
 static struct routing_table *routing_table = NULL; /**< Our table */
 static struct routing_patch *routing_patch = NULL; /**< Against empty table */
 static struct routing_table *local_table = NULL;   /**< Table for local files */
@@ -1178,8 +1177,6 @@ static void qrp_cancel_computation(void);
 void
 qrp_prepare_computation(void)
 {
-	g_assert(qrp_map != NULL);			/* qrp_init() called */
-
 	qrp_cancel_computation();			/* Cancel any running computation */
 	g_assert(ht_seen_words == NULL);	/* Not already in computation */
 
@@ -3786,15 +3783,8 @@ qrp_monitor(cqueue_t *unused_cq, gpointer unused_obj)
  * Initialize QRP.
  */
 void
-qrp_init(char_map_t map)
+qrp_init(void)
 {
-	gint c;
-
-	g_assert(map);
-
-	for (c = 0; c < 256; c++)
-		qrp_map[c] = map[c];
-
 	/*
 	 * Having a working hash function is critical.
 	 * Check that the implementation is not broken by accident.

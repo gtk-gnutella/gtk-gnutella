@@ -33,6 +33,7 @@ RCSID("$Id$");
 #include "qrp.h"				/* For qhvec_add() */
 #include "share.h"
 
+#include "lib/atoms.h"
 #include "lib/pattern.h"
 #include "lib/misc.h"
 #include "lib/utf8.h"
@@ -80,15 +81,34 @@ RCSID("$Id$");
 
 #define ST_MIN_BIN_SIZE		4
 
+struct shared_file;
+
+struct st_entry {
+	gchar *string;				/* atom */
+	struct shared_file *data;
+	guint32 mask;
+};
+
+struct st_bin {
+	gint nslots, nvals;
+	struct st_entry **vals;
+};
+
+struct _search_table {
+	gint nentries, nchars, nbins;
+	struct st_bin **bins;
+	struct st_bin all_entries;
+	guchar index_map[(guchar) -1];
+};
 
 static void
 destroy_entry(struct st_entry *entry)
 {
 	g_assert(entry != NULL);
 
-	G_FREE_NULL(entry->string);
+	atom_str_free_null(&entry->string);
 	shared_file_unref(entry->data);
-	wfree(entry, sizeof(*entry));
+	wfree(entry, sizeof *entry);
 }
 
 /**
@@ -155,54 +175,61 @@ bin_compact(struct st_bin *bin)
 	bin->nslots = bin->nvals;
 }
 
-/**
- * Apply a char map to a string, inplace.
- *
- * @returns length of string.
- */
-size_t
-match_map_string(char_map_t map, gchar *string)
+static guchar map[(guchar) -1];
+
+static void
+setup_map(void)
 {
-	gchar *ptr = string;
-	guchar c;
+	guint i;
 
-	while ((c = (guchar) *ptr))
-		*ptr++ = map[c];
+	for (i = 0; i < G_N_ELEMENTS(map); i++)	{
+		guchar c;
 
-	return ptr - string;
+		if (i > 0 && utf8_byte_is_allowed(i)) {
+			if (is_ascii_upper(i)) {
+				c = ascii_tolower(i);
+			} else if (
+				is_ascii_punct(i) || is_ascii_cntrl(i) || is_ascii_space(i)
+			) {
+				c = ' ';
+			} else { 
+				c = i;
+			}
+		} else {
+			c = 0;
+		}
+		map[i] = c;
+	}
 }
 
 /**
  * Initialize permanent data in search table.
  */
 void
-st_initialize(search_table_t *table, char_map_t map)
+st_initialize(search_table_t *table)
 {
-	gint i;
-	guchar cur_char = '\0', map_char;
+	static guchar fold_map[(guchar) -1];
+	guchar cur_char = '\0';
+	guint i;
 
 	table->nentries = table->nchars = 0;
-
-	for (i = 0; i < 256; i++)
-		table->fold_map[i] = 0;
+	setup_map();
 
 	/*
 	 * The indexing map is used to avoid having 256*256 bins.
 	 */
 
-	for (i = 0; i < 256; i++) {
-		map_char = map[i];
-		if (!table->fold_map[map_char]) {
-			table->fold_map[map_char] = cur_char;
+	for (i = 0; i < G_N_ELEMENTS(table->index_map); i++) {
+		guchar map_char = map[i];
+
+		if (fold_map[map_char]) {
+			table->index_map[i] = fold_map[map_char];
+		} else {
+			fold_map[map_char] = cur_char;
 			table->index_map[i] = cur_char;
 			cur_char++;
-		} else {
-			table->index_map[i] = table->fold_map[map_char];
 		}
 	}
-
-	for (i = 0; i < 256; i++)
-		table->fold_map[i] = map[i];
 
 	table->nchars = cur_char;
 	table->nbins = table->nchars * table->nchars;
@@ -212,6 +239,16 @@ st_initialize(search_table_t *table, char_map_t map)
 	if (dbg > 3)
 		printf("search table will use max of %d bins (%d indexing chars)\n",
 			table->nbins, table->nchars);
+}
+
+/**
+ * Allocates a new search_table_t. Use G_FREE_NULL() to free it.
+ */
+search_table_t *
+st_alloc(void)
+{
+	search_table_t *table = g_malloc0(sizeof *table);
+	return table;
 }
 
 /**
@@ -285,7 +322,7 @@ mask_hash(const gchar *s) {
  * Get key of two-char pair.
  */
 static inline gint
-st_key(search_table_t *table, gchar k[2])
+st_key(search_table_t *table, const gchar k[2])
 {
 	return table->index_map[(guchar) k[0]] * table->nchars +
 		table->index_map[(guchar) k[1]];
@@ -294,39 +331,30 @@ st_key(search_table_t *table, gchar k[2])
 /**
  * Insert an item into the search_table
  * one-char strings are silently ignored.
+ *
+ * @return TRUE if the item was inserted; FALSE otherwise.
  */
-void
-st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
+gboolean
+st_insert_item(search_table_t *table, const gchar *s, gpointer data)
 {
 	size_t i, len;
 	struct st_entry *entry;
 	GHashTable *seen_keys;
-	gchar *string;
 
 	len = utf8_char_count(s);
 	if ((size_t) -1 == len || len < 2)
-		return;
-
-	string = g_strdup(s);
-
-#if 0
-	len = match_map_string(table->fold_map, string);
-	if (len < 2) {
-		G_FREE_NULL(string);
-		return;
-	}
-#endif
+		return FALSE;
 
 	seen_keys = g_hash_table_new(NULL, NULL);
 
 	entry = walloc(sizeof *entry);
-	entry->string = string;
-	entry->data = shared_file_ref(sf);
-	entry->mask = mask_hash(string);
+	entry->string = atom_str_get(s);
+	entry->data = shared_file_ref(data);
+	entry->mask = mask_hash(entry->string);
 
-	len = strlen(string);
+	len = strlen(entry->string);
 	for (i = 0; i < len - 1; i++) {
-		gint key = st_key(table, &string[i]);
+		gint key = st_key(table, &entry->string[i]);
 
 		/* don't insert item into same bin twice */
 		if (g_hash_table_lookup(seen_keys, GINT_TO_POINTER(key)))
@@ -345,6 +373,7 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 	table->nentries++;
 
 	g_hash_table_destroy(seen_keys);
+	return TRUE;
 }
 
 /**
@@ -369,7 +398,7 @@ st_compact(search_table_t *table)
  * Patterns are lazily compiled as needed, using pattern_compile_fast().
  */
 static gboolean
-entry_match(gchar *text, size_t tlen,
+entry_match(const gchar *text, size_t tlen,
 	cpattern_t **pw, word_vec_t *wovec, size_t wn)
 {
 	size_t i;
@@ -403,7 +432,7 @@ void
 st_search(
 	search_table_t *table,
 	gchar *search,
-	void (*callback)(gpointer, shared_file_t *),
+	st_search_callback callback,
 	gpointer ctx,
 	gint max_res,
 	query_hashvec_t *qhv)
@@ -421,7 +450,6 @@ st_search(
 	guint32 search_mask;
 	size_t minlen;
 
-	/* We don't need of the map because the strings are normalized */
 	len = strlen(search);
 
 	/*

@@ -51,6 +51,7 @@ RCSID("$Id$");
 #include "search.h"		/* For QUERY_SPEED_MARK */
 #include "guid.h"
 #include "hostiles.h"
+#include "matching.h"
 #include "qhit.h"
 #include "oob.h"
 #include "oob_proxy.h"
@@ -366,7 +367,7 @@ GSList *extensions = NULL;
 GSList *shared_dirs = NULL;
 static GSList *shared_files = NULL;
 static struct shared_file **file_table = NULL;
-static search_table_t search_table;
+static search_table_t *search_table;
 static GHashTable *file_basenames = NULL;
 
 static gchar stmp_1[4096];
@@ -468,10 +469,12 @@ shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
  * Invoked for each new match we get.
  */
 static void
-got_match(gpointer context, shared_file_t *sf)
+got_match(gpointer context, gpointer data)
 {
 	struct query_context *qctx = context;
+	shared_file_t *sf = data;
 
+	g_assert(sf);
 	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 
 	/*
@@ -490,78 +493,6 @@ got_match(gpointer context, shared_file_t *sf)
 /* ----------------------------------------- */
 
 #define FILENAME_CLASH 0xffffffff			/**< Indicates basename clashes */
-
-static char_map_t query_map;
-
-/**
- * Set up keymapping table for Gnutella.
- */
-static void
-setup_char_map(char_map_t map)
-{
-	const gchar *charset = locale_get_charset();
-	gint c;
-
-	for (c = 0; c < 256; c++)	{
-		if (!isupper(c)) {  /* not same than islower, cf ssharp */
-			map[c] = tolower(toupper(c)); /* not same than c, cf ssharp */
-			map[toupper(c)] = c;
-		} else if (isupper(c)) {
-			/* handled by previous case */
-		} else if (ispunct(c) || isspace(c)) {
-			map[c] = ' ';
-		} else if (isdigit(c)) {
-			map[c] = c;
-		} else if (isalnum(c)) {
-			map[c] = c;
-		} else {
-			map[c] = ' ';			/* unknown in our locale */
-		}
-	}
-
-	if (locale_is_latin()) {
-		gboolean b_iso_8859_1 = FALSE;
-		gboolean b_cp1252 = FALSE;
-		gboolean b_macroman = FALSE;
-
-		if (
-				0 == strcmp(charset, "ISO-8859-1") ||
-				0 == strcmp(charset, "ISO-8859-15")
-		   ) {
-			b_iso_8859_1 = TRUE;
-		} else if (0 == strcmp(charset, "CP1252")) {
-			b_cp1252 = TRUE;
-		} else if (0 == strcmp(charset, "MacRoman")) {
-			b_macroman = TRUE;
-		}
-
-		if (b_iso_8859_1 || b_cp1252) {
-			for (c = 160; c < 256; c++)
-				map[c] = iso_8859_1[c - 160];
-		}
-		if (b_cp1252) {
-			for (c = 130; c < 160; c++)
-				map[c] = cp1252[c - 130];
-		} else if (b_macroman) {
-			for (c = 130; c < 256; c++)
-				map[c] = macroman[c - 130];
-		}
-	}
-}
-
-/**
- * Apply the proper charset mapping on the query, depending on their
- * locale, so that the query has no accent.
- */
-void
-use_map_on_query(gchar *query, int len)
-{
-	query += len - 1;
-	for (/* empty */; len > 0; len--) {
-		*query = query_map[(guchar) *query];
-		query--;
-	}
-}
 
 /* ----------------------------------------- */
 
@@ -681,10 +612,10 @@ shared_special(const gchar *path)
 void
 share_init(void)
 {
-	setup_char_map(query_map);
 	huge_init();
-	st_initialize(&search_table, query_map);
-	qrp_init(query_map);
+	search_table = st_alloc();
+	st_initialize(search_table);
+	qrp_init();
 	qhit_init();
 	oob_init();
 	oob_proxy_init();
@@ -703,7 +634,7 @@ share_init(void)
 	 *		--RAM, 15/08/2002.
 	 */
 
-	st_create(&search_table);
+	st_create(search_table);
 }
 
 /**
@@ -1171,7 +1102,8 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 				}
 
 				if (request_sha1(found)) {
-					st_insert_item(&search_table, found->name_canonic, found);
+					st_insert_item(search_table, found->name_canonic, found);
+
 					shared_files = g_slist_prepend(shared_files,
 							shared_file_ref(found));
 
@@ -1221,7 +1153,7 @@ share_free(void)
 {
 	GSList *sl;
 
-	st_destroy(&search_table);
+	st_destroy(search_table);
 
 	if (file_basenames) {
 		g_hash_table_destroy(file_basenames);
@@ -1283,7 +1215,8 @@ share_scan(void)
 
 	g_assert(file_basenames == NULL);
 
-	st_create(&search_table);
+	g_assert(search_table);
+	st_create(search_table);
 	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
 
 	/*
@@ -1312,7 +1245,7 @@ share_scan(void)
 	 * Done scanning all the files.
 	 */
 
-	st_compact(&search_table);
+	st_compact(search_table);
 
 	/*
 	 * In order to quickly locate files based on indicies, build a table
@@ -1433,6 +1366,7 @@ share_close(void)
 	oob_proxy_close();
 	oob_close();
 	qhit_close();
+	G_FREE_NULL(search_table);
 }
 
 #define MIN_WORD_LENGTH 1		/**< For compaction */
@@ -2265,7 +2199,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		search_len -= offset;
 		memcpy(stmp_1, &search[offset], search_len + 1);
 
-		st_search(&search_table, stmp_1, got_match, qctx, max_replies, qhv);
+		st_search(search_table, stmp_1, got_match, qctx, max_replies, qhv);
 	}
 
 finish:

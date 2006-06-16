@@ -38,8 +38,6 @@
 
 #include <glib.h>
 
-#include "matching.h"		/* For char_map_t */
-
 #define QRP_MIN_WORD_LENGTH		3	/**< Minimal word length */
 
 /*
@@ -81,8 +79,9 @@ typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
  */
 
 struct gnutella_node;
+struct shared_file;
 
-void qrp_init(char_map_t map);
+void qrp_init(void);
 void qrp_close(void);
 
 void qrp_leaf_changed(void);
