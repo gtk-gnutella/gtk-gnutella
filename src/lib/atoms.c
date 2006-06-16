@@ -805,6 +805,7 @@ atom_free(enum atom_type type, gconstpointer key)
 	atom_unprotect(a);
 	if (--a->refcnt == 0) {
 		g_hash_table_remove(td->table, key);
+		g_hash_table_remove(ht_all_atoms, key);
 		atom_dealloc(a);
 	} else {
 		atom_protect(a);
