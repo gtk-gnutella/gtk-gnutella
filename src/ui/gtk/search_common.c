@@ -1662,12 +1662,6 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		return FALSE;
 	}
 
-	/* FIXME:
-	 * As long as downloading of files without a known size is
-	 * defective, we can only initiate downloads from magnets that
-	 * specified a file length.
-	 */
-
 	{
 		gchar *filename;	/* strdup */
 		GSList *sl;
