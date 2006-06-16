@@ -102,7 +102,7 @@ struct result_data {
 
 	record_t *record;
 	gchar *ext;			/**< Atom */
-	gchar *meta;		/**< g_malloc()ed */
+	gchar *meta;		/**< Atom */
 	gchar *info;		/**< g_malloc()ed */
 	guint count;		/**< count of children */
 	guint32 rank;		/**< for stable sorting */
@@ -320,11 +320,8 @@ unref_record(GtkTreeModel *model, GtkTreePath *unused_path, GtkTreeIter *iter,
 	 * rd->record may point to freed memory now if this was the last reference
 	 */
 
-	if (rd->ext) {
-		atom_str_free(rd->ext);
-		rd->ext = NULL;
-	}
-	G_FREE_NULL(rd->meta);
+	atom_str_free_null(&rd->ext);
+	atom_str_free_null(&rd->meta);
 	G_FREE_NULL(rd->info);
 	WFREE_NULL(rd, sizeof *rd);
 
@@ -1065,11 +1062,8 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 		child_data = get_result_data(model, &child);
 		g_assert(child_data->record->refcount > 0);
 
-		if (rd->ext) {
-			atom_str_free(rd->ext);
-			rd->ext = NULL;
-		}
-		G_FREE_NULL(rd->meta);
+		atom_str_free_null(&rd->ext);
+		atom_str_free_null(&rd->meta);
 		G_FREE_NULL(rd->info);
 		
 		rd->record = child_data->record;
@@ -2085,7 +2079,7 @@ search_gui_request_bitzi_data(void)
 			g_assert(rd);
 			
 			/* set the feedback */
-			rd->meta = g_strdup(_("Query queued..."));
+			rd->meta = atom_str_get(_("Query queued..."));
 
 			/* then send the query... */
 	    	guc_query_bitzi_by_urn(rec->sha1);
@@ -2116,7 +2110,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 
 	   	rd = find_parent_with_sha1(search->parents, data->urnsha1);
 		if (rd) {
-			rd->meta = text ? text : g_strdup(_("Not in database"));
+			rd->meta = atom_str_get(text ? text : _("Not in database"));
 			text = NULL;
 			
 			/* Re-store the parent to refresh the display/sorting */
