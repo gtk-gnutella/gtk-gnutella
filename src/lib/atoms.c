@@ -166,9 +166,6 @@ mem_new(size_t size)
     mc->num_pools = 0;
     mc->avail = NULL;
     mc->pools = NULL;
-
-    g_message("mem_new(): hold=%u, size=%lu",
-		(guint) mc->hold, (gulong) size);
   }
   return mc;
 }
@@ -409,6 +406,8 @@ static table_desc_t atoms[] = {
 	{ "filesize",
 		NULL, filesize_hash, filesize_eq, filesize_len, filesize_str},  /* 4 */
 };
+
+static GHashTable *ht_all_atoms;
 
 /**
  * @return length of string + trailing NUL.
@@ -675,6 +674,24 @@ atoms_init(void)
 
 		td->table = g_hash_table_new(td->hash_func, td->eq_func);
 	}
+	ht_all_atoms = g_hash_table_new(NULL, NULL);
+}
+
+static inline gboolean
+atom_is_registered(enum atom_type type, gconstpointer key)
+{
+	gpointer value;
+
+	if (g_hash_table_lookup_extended(ht_all_atoms, key, NULL, &value)) {
+		/* If the address is already registered in the global atom table,
+		 * this is definitely an atom. However, the same memory object
+		 * could be shared by atoms of different types (in theory at least),
+		 * thus we must check whether the types are identical. Otherwise,
+		 * a new atom must be created.
+		 */
+		return (guint) type == GPOINTER_TO_UINT(value);
+	}
+	return FALSE;
 }
 
 /**
@@ -688,8 +705,7 @@ atom_get(enum atom_type type, gconstpointer key)
 {
 	table_desc_t *td;
 	gboolean found;
-	gpointer value;
-	gpointer x;
+	gpointer orig_key;
 	atom_t *a;
 	size_t len;
 
@@ -705,21 +721,33 @@ atom_get(enum atom_type type, gconstpointer key)
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
+	/* If the address is already registered in the global atom table,
+	 * this is definitely an atom. However, the same memory object
+	 * could be shared by atoms of different types (in theory at least),
+	 * thus we must check whether the types are identical. Otherwise,
+	 * a new atom must be created.
+	 */
+
+	found = atom_is_registered(type, key);
+	if (found) {
+		orig_key = deconstify_gpointer(key);
+	} else {
+		found = g_hash_table_lookup_extended(td->table, key, &orig_key, NULL);
+	}
+
 	/*
 	 * If atom exists, increment ref count and return it.
 	 */
 
-	found = g_hash_table_lookup_extended(td->table, key, &value, &x);
-
 	if (found) {
-		a = (atom_t *) ((gchar *) value - ARENA_OFFSET);
+		a = (atom_t *) ((gchar *) orig_key - ARENA_OFFSET);
 
 		g_assert(a->refcnt > 0);
 
 		atom_unprotect(a);
 		a->refcnt++;
 		atom_protect(a);
-		return value;
+		return orig_key;
 	}
 
 	/*
@@ -737,6 +765,7 @@ atom_get(enum atom_type type, gconstpointer key)
 	 * Insert atom in table.
 	 */
 
+	g_hash_table_insert(ht_all_atoms, a->arena, GUINT_TO_POINTER((guint) type));
 	g_hash_table_insert(td->table, a->arena, GINT_TO_POINTER(1));
 
 	return a->arena;
@@ -965,6 +994,7 @@ atoms_close(void)
 		g_hash_table_foreach_remove(td->table, atom_warn_free, td);
 		g_hash_table_destroy(td->table);
 	}
+	g_hash_table_destroy(ht_all_atoms);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
