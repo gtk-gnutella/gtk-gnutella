@@ -105,7 +105,7 @@ typedef struct gnet_upload_info {
 
 
 struct ul_stats {
-	gchar  *filename;
+	gchar  *filename;	/**< Atom */
 	filesize_t size;
 	guint32 attempts;
 	guint32 complete;

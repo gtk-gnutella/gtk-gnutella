@@ -60,6 +60,7 @@ RCSID("$Id$");
 
 #include "if/bridge/c2ui.h"
 
+#include "lib/atoms.h"
 #include "lib/file.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -76,12 +77,16 @@ upload_stats_add(const gchar *filename,
 	struct ul_stats *stat;
 
 	stat = g_malloc0(sizeof(struct ul_stats));
-	stat->filename = g_strdup(filename);
+	stat->filename = atom_str_get(filename);
 	stat->size = size;
 	stat->attempts = attempts;
 	stat->complete = complete;
 	stat->norm = size > 0 ? (gfloat) ul_bytes / (gfloat) size : 0;
 	stat->bytes_sent = ul_bytes;
+
+	/* FIXME: This is unnecessarily O(n) instead of O(1). Use a
+	 *		  hashtable instead.
+	 */
 	upload_stats_list = g_list_append(upload_stats_list, stat);
 	gcu_upload_stats_gui_add(stat);
 }
@@ -174,7 +179,7 @@ upload_stats_dump_history(const gchar *ul_history_file_name)
 {
 	FILE *out;
 	time_t now = tm_time();
-	GList *l;
+	GList *list;
 
 	/* open file for writing */
 	out = file_fopen(ul_history_file_name, "w");
@@ -197,11 +202,11 @@ upload_stats_dump_history(const gchar *ul_history_file_name)
 		ctime(&now));
 
 	/* for each element in uploads_stats_list, write out to hist file */
-	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
+	for (list = upload_stats_list; NULL != list; list = g_list_next(list)) {
 		gchar *escaped;
 		struct ul_stats *stat;
 
-		stat = l->data;
+		stat = list->data;
 		g_assert(NULL != stat);
 		escaped = url_escape_cntrl(stat->filename);
 		fprintf(out, "%s\t%s\t%u\t%u\t%u\t%u\n", escaped,
@@ -238,12 +243,13 @@ upload_stats_flush_if_dirty(void)
 static struct ul_stats *
 upload_stats_find(const gchar *name, guint64 size)
 {
-    GList *l;
+    GList *list;
 
-	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
+	/* FIXME: Use a hashtable and the SHA-1 instead. */
+	for (list = upload_stats_list; NULL != list; list = g_list_next(list)) {
 		struct ul_stats *s;
 
-		s = l->data;
+		s = list->data;
 		if (size == s->size && 0 == strcmp(name, s->filename))
 			return s;
 	}
@@ -337,13 +343,16 @@ upload_stats_prune_nonexistent(void)
 /**
  * Clear all the upload stats data structure.
  */
-static void upload_stats_free_all(void)
+static void
+upload_stats_free_all(void)
 {
-    GList *l;
+    GList *list;
 
-	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
-		G_FREE_NULL(((struct ul_stats *)(l->data))->filename);
-		G_FREE_NULL(l->data);
+	for (list = upload_stats_list; NULL != list; list = g_list_next(list)) {
+		struct ul_stats *stat = list->data;
+
+		atom_str_free_null(&stat->filename);
+		G_FREE_NULL(list->data);
 	}
 
 	g_list_free(upload_stats_list);
@@ -354,7 +363,8 @@ static void upload_stats_free_all(void)
 /**
  * Like upload_stats_free_all() but also clears the GUI.
  */
-void upload_stats_clear_all(void)
+void
+upload_stats_clear_all(void)
 {
 	gcu_upload_stats_gui_clear_all();
 	upload_stats_free_all();
