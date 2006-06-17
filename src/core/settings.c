@@ -1034,21 +1034,55 @@ max_bad_hosts_cached_changed(property_t prop)
     return FALSE;
 }
 
+static host_addr_t
+get_bind_addr(enum net_type net)
+{
+	host_addr_t addr = zero_host_addr;
+	
+	switch (net) {
+	case NET_TYPE_IPV4:
+		addr = listen_addr();
+		if (
+			!force_local_ip ||
+			!bind_to_forced_local_ip ||
+			!host_addr_initialized(addr)
+		) {
+			addr = ipv4_unspecified;
+		}
+		break;
+	case NET_TYPE_IPV6:
+		addr = listen_addr6();
+		if (
+			!force_local_ip6 ||
+			!bind_to_forced_local_ip6 ||
+			!host_addr_initialized(addr)
+		) {
+			addr = ipv6_unspecified;
+		}
+		break;
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+	return addr;
+}
+
 static gboolean
 enable_udp_changed(property_t prop)
 {
 	gboolean enabled;
-
+	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (s_tcp_listen) {
-			s_udp_listen = socket_udp_listen(zero_host_addr, listen_port);
+			s_udp_listen = socket_udp_listen(get_bind_addr(NET_TYPE_IPV4),
+								listen_port);
 			if (!s_udp_listen) {
 				gcu_statusbar_warning(_("Failed to create IPv4 UDP socket"));
 			}
 		}
 		if (s_tcp_listen6) {
-			s_udp_listen6 = socket_udp_listen(zero_host_addr, listen_port);
+			s_udp_listen6 = socket_udp_listen(get_bind_addr(NET_TYPE_IPV6),
+								listen_port);
 			if (!s_udp_listen) {
 				gcu_statusbar_warning(_("Failed to create IPv6 UDP socket"));
 			}
@@ -1084,28 +1118,11 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	if (0 == port)
 		return;
 
-	bind_addr = host_addr_set_ipv4(INADDR_ANY);
-	bind_addr6 = ipv6_unspecified;
-	
-	if (
-		force_local_ip &&
-		bind_to_forced_local_ip &&
-		host_addr_initialized(listen_addr())
-    ) {
-		bind_addr = listen_addr();
-	}
-	if (
-		force_local_ip6 &&
-		bind_to_forced_local_ip6 &&
-		host_addr_initialized(listen_addr6())
-    ) {
-		bind_addr6 = listen_addr6();
-	}
-
 	if (NET_USE_BOTH == network_protocol || NET_USE_IPV4 == network_protocol) {
 		s_tcp_listen = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
 		if (enable_udp) {
-			s_udp_listen = socket_udp_listen(bind_addr, port);
+			s_udp_listen = socket_udp_listen(get_bind_addr(NET_TYPE_IPV4),
+							port);
 			if (!s_udp_listen) {
 				socket_free_null(&s_tcp_listen);
 			}
@@ -1114,7 +1131,8 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	if (NET_USE_BOTH == network_protocol || NET_USE_IPV6 == network_protocol) {
 		s_tcp_listen6 = socket_tcp_listen(bind_addr6, port, SOCK_TYPE_CONTROL);
 		if (enable_udp) {
-			s_udp_listen6 = socket_udp_listen(bind_addr6, port);
+			s_udp_listen6 = socket_udp_listen(get_bind_addr(NET_TYPE_IPV6),
+								port);
 			if (!s_udp_listen6) {
 				socket_free_null(&s_tcp_listen6);
 			}
