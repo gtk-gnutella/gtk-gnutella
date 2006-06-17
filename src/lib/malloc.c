@@ -803,9 +803,13 @@ hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
  * Wrapper over hash_list_new().
  */
 hash_list_t *
-hash_list_new_track(gchar *file, gint line)
+hash_list_new_track(
+	GHashFunc hash_func, GEqualFunc eq_func, gchar *file, gint line)
 {
-	return malloc_record(hash_list_new(), 28, file, line);	/* Approx. size */
+	return malloc_record(
+		hash_list_new(hash_func, eq_func),
+		28,				/* Approx. size */
+		file, line);
 }
 
 /**
@@ -903,8 +907,18 @@ slist_remove_track(GSList *l, gpointer data, gchar *file, gint line)
 	if (lk == NULL)
 		return l;
 
-	free_record(lk, file, line);
-	return g_slist_remove(l, data);
+	return slist_delete_link_track(l, lk, file, line);
+}
+
+GSList *
+slist_delete_link_track(GSList *l, GSList *lk, gchar *file, gint line)
+{
+	GSList *new;
+
+	new = g_slist_remove_link(l, lk);
+	slist_free1_track(lk, file, line);
+
+	return new;
 }
 
 GSList *
@@ -1622,15 +1636,15 @@ stats_array_dump(FILE *f, struct afiller *filler)
 		gint remains = st->allocated + st->reallocated - st->freed;
 		gint total_remains =
 			st->total_allocated + st->total_reallocated - st->total_freed;
-		gchar *c_allocated = strdup(compact_size(st->allocated));
-		gchar *c_freed = strdup(compact_size(st->freed));
-		gchar *c_reallocated = strdup(compact_size(ABS(st->reallocated)));
-		gchar *c_remains = strdup(compact_size(ABS(remains)));
-		gchar *c_tallocated = strdup(compact_size(st->total_allocated));
-		gchar *c_tfreed = strdup(compact_size(st->total_freed));
+		gchar *c_allocated = strdup(compact_size(st->allocated, FALSE));
+		gchar *c_freed = strdup(compact_size(st->freed, FALSE));
+		gchar *c_reallocated = strdup(compact_size(ABS(st->reallocated), FALSE));
+		gchar *c_remains = strdup(compact_size(ABS(remains), FALSE));
+		gchar *c_tallocated = strdup(compact_size(st->total_allocated, FALSE));
+		gchar *c_tfreed = strdup(compact_size(st->total_freed, FALSE));
 		gchar *c_treallocated =
-			strdup(compact_size(ABS(st->total_reallocated)));
-		gchar *c_tremains = strdup(compact_size(ABS(total_remains)));
+			strdup(compact_size(ABS(st->total_reallocated), FALSE));
+		gchar *c_tremains = strdup(compact_size(ABS(total_remains), FALSE));
 
 #ifdef MALLOC_FRAMES
 		alloc_stacks = st->alloc_frames == NULL ?

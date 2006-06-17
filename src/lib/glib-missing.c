@@ -106,6 +106,8 @@ gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 }
 
 #ifdef USE_GLIB1
+#undef g_list_delete_link		/* Remaped under -DTRACK_MALLOC */
+#undef g_slist_delete_link
 GList *
 g_list_delete_link(GList *l, GList *lnk)
 {
@@ -352,12 +354,13 @@ gm_setproctitle(const gchar *title)
 #endif /* HAS_SETPROCTITLE_WITHOUT_FORMAT */
 
 #ifdef USE_GLIB1
+#undef g_string_append_len		/* Macro when -DTRACK_MALLOC */
 /**
  * Appends len bytes of val to string. Because len is provided, val may
  * contain embedded nuls and need not be nul-terminated.
  */
 GString *
-g_string_append_len(GString *gs, const gchar *val,  gssize len)
+g_string_append_len(GString *gs, const gchar *val, gssize len)
 {
 	const gchar *p = val;
 

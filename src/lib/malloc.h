@@ -101,7 +101,7 @@
 #define g_hash_table_new(x,y)	hashtable_new_track(x, y, _WHERE_, __LINE__)
 #define g_hash_table_destroy(x)	hashtable_destroy_track(x, _WHERE_, __LINE__)
 
-#define hash_list_new()			hash_list_new_track(_WHERE_, __LINE__)
+#define hash_list_new_(h,c)		hash_list_new_track((h),(c),_WHERE_, __LINE__)
 #define hash_list_free(h)		hash_list_free_track((h), _WHERE_, __LINE__)
 
 #define g_slist_alloc()			slist_alloc_track(_WHERE_, __LINE__)
@@ -116,6 +116,8 @@
 	slist_insert_track((l),(d),(p), _WHERE_, __LINE__)
 #define g_slist_insert_sorted(l,d,c) \
 	slist_insert_sorted_track((l),(d),(c), _WHERE_, __LINE__)
+#define g_slist_delete_link(l,x) \
+	slist_delete_link_track((l),(x), _WHERE_, __LINE__)
 #define gm_slist_insert_after(l,lk,d) \
 	slist_insert_after_track((l),(lk),(d), _WHERE_, __LINE__)
 
@@ -205,7 +207,8 @@ GHashTable *hashtable_new_track(
 	GHashFunc h, GCompareFunc y, gchar *file, gint line);
 void hashtable_destroy_track(GHashTable *h, gchar *file, gint line);
 
-hash_list_t *hash_list_new_track(gchar *file, gint line);
+hash_list_t *hash_list_new_track(
+	GHashFunc hash_func, GEqualFunc eq_func, gchar *file, gint line);
 void hash_list_free_track(hash_list_t *h, gchar *file, gint line);
 
 GSList *slist_alloc_track(gchar *file, gint line);
@@ -221,6 +224,7 @@ GSList *slist_insert_sorted_track(
 	GSList *l, gpointer d, GCompareFunc c, gchar *file, gint line);
 GSList *slist_insert_after_track(
 	GSList *l, GSList *lk, gpointer data, gchar *file, gint line);
+GSList *slist_delete_link_track(GSList *l, GSList *lk, gchar *file, gint line);
 
 GList *list_alloc_track(gchar *file, gint line);
 GList *list_append_track(GList *l, gpointer data, gchar *file, gint line);
