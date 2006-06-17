@@ -1099,9 +1099,6 @@ enable_udp_changed(property_t prop)
 static void
 request_new_sockets(guint16 port, gboolean check_firewalled)
 {
-	host_addr_t bind_addr = zero_host_addr;
-	host_addr_t bind_addr6 = zero_host_addr;
-
 	/*
 	 * Close old ports.
 	 */
@@ -1119,20 +1116,22 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 		return;
 
 	if (NET_USE_BOTH == network_protocol || NET_USE_IPV4 == network_protocol) {
+		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV4);
+
 		s_tcp_listen = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
 		if (enable_udp) {
-			s_udp_listen = socket_udp_listen(get_bind_addr(NET_TYPE_IPV4),
-							port);
+			s_udp_listen = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen) {
 				socket_free_null(&s_tcp_listen);
 			}
 		}
 	}
 	if (NET_USE_BOTH == network_protocol || NET_USE_IPV6 == network_protocol) {
-		s_tcp_listen6 = socket_tcp_listen(bind_addr6, port, SOCK_TYPE_CONTROL);
+		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV6);
+
+		s_tcp_listen6 = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
 		if (enable_udp) {
-			s_udp_listen6 = socket_udp_listen(get_bind_addr(NET_TYPE_IPV6),
-								port);
+			s_udp_listen6 = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen6) {
 				socket_free_null(&s_tcp_listen6);
 			}
