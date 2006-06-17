@@ -277,79 +277,63 @@ gm_setproctitle(const gchar *title)
 }
 #else /* !HAS_SETPROCTITLE && HAS_SETPROCTITLE_WITH_FORMAT */
 {
-	static gboolean initialized;
-	static struct {
-		gchar *ptr;
-		size_t size;
-	} args[64];
+	static gint sysarglen = 0;		/* Length of the exec() arguments */
+	gint tlen;
+	gint i;
 
 	/*
 	 * Compute the length of the exec() arguments that were given to us.
 	 */
 
-	if (!initialized) {
-		gint i, n;
+	if (sysarglen == 0) {
+		gchar *s = orig_argv[0];
 
-		initialized = TRUE;
+		s += strlen(s) + 1;			/* Go past trailing NUL */
 
 		/*
-		 * Let's see how many argv[] arguments were contiguous.
-		 */
-
-		n = MIN((gint) G_N_ELEMENTS(args), orig_argc);
-		for (i = 0; i < n; i++) {
-			if (i > 0) {
-				const gchar *s = args[i - 1].ptr;
-				size_t size = args[i - 1].size;
-
-				if (orig_argv[i] != &s[size])
-					break;
-			}
-			/* Yes, still contiguous */
-			args[i].ptr = orig_argv[i];
-			args[i].size = 1 + strlen(orig_argv[i]);
-		}
-		
-		/*
-		 * Scrap references to the arguments.
+		 * Let's see whether all the argv[] arguments were contiguous.
 		 */
 
 		for (i = 1; i < orig_argc; i++) {
-			orig_argv[i] = NULL;
-		}
-	}
-
-	{
-		size_t i, n = 1 + strlen(title);
-
-		/* Scatter the title over the argv[] elements */
-		for (i = 0; i < G_N_ELEMENTS(args); i++) {
-			size_t size = args[i].size;
-
-			strncpy(args[i].ptr, title, size);
-			if (size > n || 0 == size) {
+			if (orig_argv[i] != s)
 				break;
-			}
-			n -= size;
+			s += strlen(s) + 1;		/* Yes, still contiguous */
 		}
-		
-		/* If the title is too long, insert a NUL character. */
-		if (n > 0) {
-			if (i-- > 0) {
-				size_t size = args[i].size;
-				gchar *p = args[i].ptr;
 
-				if (size > 0) {
-					p[size - 1] = '\0';
-				}
-			}
-		} else {
-			/* Clear trailing memory */
-			for (/* CONTINUE */; i < G_N_ELEMENTS(args); i++) {
-				memset(args[i].ptr, 0, args[i].size);
-			}
+		/*
+		 * Maybe the environment is contiguous as well...
+		 */
+
+		for (i = 0; orig_env[i] != NULL; i++) {
+			if (orig_env[i] != s)
+				break;
+			s += strlen(s) + 1;		/* Yes, still contiguous */
 		}
+
+		sysarglen = s - orig_argv[0];	/* Includes trailing NUL */
+
+#if 0
+		g_message("exec() args used %d contiguous bytes", sysarglen + 1);
+#endif
 	}
+
+	tlen = strlen(title);
+
+	if (tlen >= sysarglen) {		/* If too large, needs truncation */
+		memcpy(orig_argv[0], title, sysarglen);
+		(orig_argv[0])[sysarglen] = '\0';
+	} else {
+		memcpy(orig_argv[0], title, tlen + 1);	/* Copy trailing NUL */
+		if (tlen + 1 < sysarglen)
+			memset(orig_argv[0] + tlen + 1, ' ', sysarglen - tlen - 1);
+	}
+
+	/*
+	 * Scrap references to the arguments.
+	 */
+
+	for (i = 1; i < orig_argc; i++)
+		orig_argv[i] = NULL;
 }
 #endif /* HAS_SETPROCTITLE_WITHOUT_FORMAT */
 
