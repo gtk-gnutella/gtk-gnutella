@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "lib/iso3166.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
+#include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
 #define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
@@ -266,7 +267,7 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 static void
 free_data(gpointer o)
 {
-	g_free(o);
+	wfree(o, sizeof upload_row_data_t);
 }
 
 /**
@@ -318,7 +319,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	titles[c_ul_progress]   = "...";
 	titles[c_ul_status]   = "...";
 
-    data = g_new(upload_row_data_t, 1);
+    data = walloc0(sizeof *data);
     data->handle      = u->upload_handle;
     data->range_start = u->range_start;
     data->range_end   = u->range_end;
