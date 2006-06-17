@@ -1459,48 +1459,29 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 #ifdef HAS_GNUTLS
 	if (s->tls.enabled && s->direction == SOCK_CONN_INCOMING) {
 		ssize_t ret;
-		size_t i;
-		gchar buf[32];
+		guchar c;
 
 		/* Peek at the socket buffer to check whether the incoming
 		 * connection uses TLS or not. */
-		ret = recv(s->file_desc, buf, sizeof buf, MSG_PEEK);
-		if (ret > 0) {
-			static const struct {
-				const gchar *prefix;
-			} shakes[] = {
-				{ "GET " },					/* HTTP GET request			*/
-				{ "GIV " },					/* Gnutella PUSH upload 	*/
-				{ "GNUTELLA CONNECT/" },
-				{ "HEAD " },				/* HTTP HEAD request		*/
-				{ "HELO " },				/* GTKG remote shell		*/
-				{ "QUEUE " },				/* PARQ						*/
-				{ "\n\n" },					/* Gnutella connect back	*/
-			};
-
-			/* We use strncmp() but the buffer might contain dirt. */
-			g_assert(ret > 0 && (size_t) ret <= sizeof buf);
-			buf[ret - 1] = '\0';
-
-			if (tls_debug)
-				g_message("socket_read(): buf=\"%s\"", buf);
-
-			/* Check whether the buffer contents match a known clear
-			 * text handshake. */
-			for (i = 0; i < G_N_ELEMENTS(shakes); i++) {
-				if (is_strprefix(buf, shakes[i].prefix)) {
-					/* The socket doesn't use TLS. */
-					s->tls.enabled = FALSE;
-					break;
-				}
+		ret = recv(s->file_desc, &c, sizeof c, MSG_PEEK);
+		if ((ssize_t) -1 == ret) {
+			if (!is_temporary_error(errno)) {
+				socket_destroy(s, _("Read error"));
 			}
-		} else {
-
-			if (ret == 0 || !is_temporary_error(errno))
-				socket_destroy(s, "Connection reset");
-
 			/* If recv() failed only temporarily, wait for further data. */
 			return;
+		} else if (0 == ret) {
+			socket_destroy(s, _("Got EOF"));
+			return;
+		} else {
+			g_assert(1 == ret);
+
+			if (tls_debug)
+				g_message("socket_read(): c=0x%02x", c);
+
+			if (is_ascii_alnum(c) || '\n' == c || '\r' == c) {
+				s->tls.enabled = FALSE;
+			}
 		}
 
 		if (s->tls.enabled && !socket_tls_setup(s))
