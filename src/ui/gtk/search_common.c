@@ -1186,7 +1186,6 @@ search_matched(search_t *sch, results_set_t *rs)
 			 */
 
 			if (downloaded && search_hide_downloaded) {
-				filter_free_result(flt_result);
 				results_kept++;
 				sch->hidden++;
 				goto next;
