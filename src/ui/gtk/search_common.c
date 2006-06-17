@@ -1089,7 +1089,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
   	for (l = rs->records; l && !skip_records; l = l->next) {
 		record_t *rc = l->data;
-        filter_result_t *flt_result;
+        filter_result_t *flt_result = NULL;
         gboolean downloaded = FALSE;
 		gboolean is_dup, add_record, mark;
         GdkColor *fg_color;
@@ -1189,7 +1189,7 @@ search_matched(search_t *sch, results_set_t *rs)
 				filter_free_result(flt_result);
 				results_kept++;
 				sch->hidden++;
-				continue;
+				goto next;
 			}
 
 			/*
@@ -1219,7 +1219,6 @@ search_matched(search_t *sch, results_set_t *rs)
 				}
 
 				add_record = TRUE;
-				filter_free_result(flt_result);
 			}
 
 		}
@@ -1237,6 +1236,9 @@ search_matched(search_t *sch, results_set_t *rs)
 		} else {
 			sch->ignored++;
 		}
+	next:
+		if (flt_result != NULL)
+			filter_free_result(flt_result);
 	}
 
     /*
