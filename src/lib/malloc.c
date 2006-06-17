@@ -1636,15 +1636,15 @@ stats_array_dump(FILE *f, struct afiller *filler)
 		gint remains = st->allocated + st->reallocated - st->freed;
 		gint total_remains =
 			st->total_allocated + st->total_reallocated - st->total_freed;
-		gchar *c_allocated = strdup(compact_size(st->allocated, FALSE));
-		gchar *c_freed = strdup(compact_size(st->freed, FALSE));
-		gchar *c_reallocated = strdup(compact_size(ABS(st->reallocated), FALSE));
-		gchar *c_remains = strdup(compact_size(ABS(remains), FALSE));
-		gchar *c_tallocated = strdup(compact_size(st->total_allocated, FALSE));
-		gchar *c_tfreed = strdup(compact_size(st->total_freed, FALSE));
+		gchar *c_allocated = strdup(compact_size(st->allocated, TRUE));
+		gchar *c_freed = strdup(compact_size(st->freed, TRUE));
+		gchar *c_reallocated = strdup(compact_size(ABS(st->reallocated), TRUE));
+		gchar *c_remains = strdup(compact_size(ABS(remains), TRUE));
+		gchar *c_tallocated = strdup(compact_size(st->total_allocated, TRUE));
+		gchar *c_tfreed = strdup(compact_size(st->total_freed, TRUE));
 		gchar *c_treallocated =
-			strdup(compact_size(ABS(st->total_reallocated), FALSE));
-		gchar *c_tremains = strdup(compact_size(ABS(total_remains), FALSE));
+			strdup(compact_size(ABS(st->total_reallocated), TRUE));
+		gchar *c_tremains = strdup(compact_size(ABS(total_remains), TRUE));
 
 #ifdef MALLOC_FRAMES
 		alloc_stacks = st->alloc_frames == NULL ?
