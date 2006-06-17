@@ -45,11 +45,12 @@ CC = $cc
 CTAGS = ctags
 _EXE = $_exe
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCPPFLAGS = $cppflags
 JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
 L = $manext
 LIBS = $libs
 MANSRC = $installmansrc
-MKDEP = $mkdep \$(DPFLAGS) --
+MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RM = $rm -f
 SED = $sed
@@ -94,7 +95,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 9132 2005-08-13 19:13:26Z cbiere $
+# $X-Id: Jmakefile 10799 2006-05-02 06:29:43Z rmanfredi $
 
 all::
 

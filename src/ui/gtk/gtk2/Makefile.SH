@@ -41,7 +41,8 @@ CC = $cc
 CP = $cp
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
-MKDEP = $mkdep \$(DPFLAGS) --
+JCPPFLAGS = $cppflags
+MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
 RM = $rm -f
@@ -82,7 +83,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.4 2005/01/24 19:39:59 rmanfredi Exp $
+# $X-Id: Jmakefile 8273 2005-05-07 13:19:24Z graaff $
 
 # Those files lie in the ../gtk-shared directory
 REMOTE_GLADE_C = callbacks.c

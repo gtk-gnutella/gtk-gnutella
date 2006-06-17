@@ -40,8 +40,9 @@ AR = ar rc
 CC = $cc
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCPPFLAGS = $cppflags
 LN = $ln
-MKDEP = $mkdep \$(DPFLAGS) --
+MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
 RM = $rm -f
@@ -82,7 +83,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.3 2004/10/04 11:00:06 rmanfredi Exp $
+# $X-Id: Jmakefile 6930 2004-10-04 11:00:09Z rmanfredi $
 
 LSRC = \
 	bitzi.c \

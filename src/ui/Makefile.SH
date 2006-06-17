@@ -37,6 +37,7 @@ DIR = $DIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
+JCPPFLAGS = $cppflags
 MV = $mv
 RM = $rm -f
 
@@ -54,7 +55,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:39 rmanfredi Exp $
+# $X-Id: Jmakefile 6494 2004-08-25 05:40:41Z rmanfredi $
 
 all::
 

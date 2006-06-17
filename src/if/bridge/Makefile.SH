@@ -39,7 +39,8 @@ DIR = $DIR
 CC = $cc
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
-MKDEP = $mkdep \$(DPFLAGS) --
+JCPPFLAGS = $cppflags
+MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RM = $rm -f
 SED = $sed
@@ -73,7 +74,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.3 2004/08/28 06:36:27 rmanfredi Exp $
+# $X-Id: Jmakefile 6535 2004-08-28 06:36:27Z rmanfredi $
 
 SRC = c2ui.c ui2c.c
 OBJ = \
