@@ -13,7 +13,7 @@
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert
+	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_sqlite
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend persistent zlib remote iptos unicode nls fastassert
@@ -65,6 +65,9 @@ fastassert=no
 case "$d_fast_assert" in
 "$define") fastassert=yes;;
 esac
+case "$d_sqlite" in
+"$define") sqlite=yes;;
+esac
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
@@ -80,6 +83,7 @@ NLS (Native Language Support)      : $nls
 Experimental remote control        : $remote
 Fast assertion support             : $fastassert
 DBus support                       : $dbus
+SQLite                             : $sqlite
 -------------------------------------------------
 EOM
 
