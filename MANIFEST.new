@@ -36,6 +36,7 @@ U/new/d_nls.U
 U/new/d_random.U
 U/new/d_sa_interrupt.U
 U/new/d_sendfile.U
+U/new/d_setproctitle.U
 U/new/d_socker_get.U
 U/new/d_srandom.U
 U/new/d_strcasestr.U
