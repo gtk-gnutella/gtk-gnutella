@@ -16,7 +16,7 @@
 	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_sqlite
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
-?T:glib_used frontend persistent zlib remote iptos unicode nls fastassert
+?T:glib_used frontend persistent zlib remote iptos unicode nls fastassert sqlite
 ?T:gnutls ipv6 dbus
 : end of configuration questions
 echo " "
@@ -65,6 +65,7 @@ fastassert=no
 case "$d_fast_assert" in
 "$define") fastassert=yes;;
 esac
+sqlite=no
 case "$d_sqlite" in
 "$define") sqlite=yes;;
 esac
