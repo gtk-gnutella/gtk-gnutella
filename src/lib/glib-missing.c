@@ -266,7 +266,7 @@ gm_savemain(gint argc, gchar **argv, gchar **env)
  * Allocates an array of "struct iov" elements.
  * @param n The desired array length in elements.
  */
-static struct iovec *
+static inline struct iovec *
 iov_alloc_n(size_t n)
 {
 	struct iovec *iov;
@@ -298,7 +298,7 @@ iov_get(gpointer base, size_t size)
  * @param iov The array base.
  * @param n The array length in elements.
  */
-static void
+static inline void
 iov_reset_n(struct iovec *iov, size_t n)
 {
 	size_t i;
@@ -320,7 +320,7 @@ iov_reset_n(struct iovec *iov, size_t n)
  * @param size The amount of bytes to copy from "src".
  * @return The amount of elements initialized. Thus, MIN(iov_cnt, argc).
  */
-static size_t 
+static inline size_t 
 iov_init_from_string_vector(struct iovec *iov, size_t iov_cnt,
 	gchar *argv[], size_t argc)
 {
@@ -359,7 +359,7 @@ iov_is_contiguous(const struct iovec * const a, const struct iovec * const b)
  * @param iov_cnt The array length of iov.
  * @return The amount contiguous bytes.
  */
-static size_t 
+static inline size_t 
 iov_contiguous_size(const struct iovec *iov, size_t iov_cnt)
 {
 	struct iovec iov0;
@@ -404,7 +404,7 @@ iov_clear(struct iovec *iov, size_t byte_offset)
  * Scatters a string over an array of struct iovec buffers. The trailing
  * buffer space is zero-filled.
  */
-static size_t
+static inline size_t
 iov_scatter_string(struct iovec *iov, size_t iov_cnt, const gchar *s)
 {
 	size_t i, size, avail;
@@ -435,7 +435,7 @@ iov_scatter_string(struct iovec *iov, size_t iov_cnt, const gchar *s)
 	return size - avail;
 }
 
-static size_t
+static inline size_t
 str_vec_count(gchar *strv[])
 {
 	size_t i = 0;
@@ -506,7 +506,7 @@ void
 gm_setproctitle(const gchar *title)
 #if defined(HAS_SETPROCTITLE)
 {
-	setproctitle("%s", title)
+	setproctitle("%s", title);
 }
 #else /* !HAS_SETPROCTITLE */
 {
