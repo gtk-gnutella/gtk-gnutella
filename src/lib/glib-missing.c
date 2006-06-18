@@ -263,79 +263,268 @@ gm_savemain(gint argc, gchar **argv, gchar **env)
 }
 
 /**
- * Change the process title as seen by "ps".
+ * Allocates an array of "struct iov" elements.
+ * @param n The desired array length in elements.
  */
-void
-gm_setproctitle(const gchar *title)
-#if defined(HAS_SETPROCTITLE_WITHOUT_FORMAT)
+static struct iovec *
+iov_alloc_n(size_t n)
 {
-	setproctitle(title)
+	struct iovec *iov;
+
+	if (n > (size_t) -1 / sizeof *iov) {
+		g_assert_not_reached(); /* We don't want to handle failed allocations */
+		return NULL;
+	}
+	iov = g_malloc(n * sizeof *iov);
+	return iov;
 }
-#elif defined(HAS_SETPROCTITLE_WITH_FORMAT)
+
+static inline struct iovec
+iov_get(gpointer base, size_t size)
 {
-	setproctitle("%s", title)
+	static const struct iovec zero_iov;
+	struct iovec iov;
+
+	iov = zero_iov;
+	iov.iov_base = base;
+	iov.iov_len = size;
+	return iov;
 }
-#else /* !HAS_SETPROCTITLE && HAS_SETPROCTITLE_WITH_FORMAT */
+
+/**
+ * Resets an array of "struct iov" elements, so that iov_base is NULL
+ * and iov_len is 0 for each element.
+ *
+ * @param iov The array base.
+ * @param n The array length in elements.
+ */
+static void
+iov_reset_n(struct iovec *iov, size_t n)
 {
-	static size_t sysarglen = 0;	/* Length of the exec() arguments */
-	size_t tlen;
-	gint i;
+	size_t i;
+
+	g_assert(iov);
+	for (i = 0; i < n; i++) {
+		static const struct iovec zero_iov;
+		iov[i] = zero_iov;
+	}
+}
+
+/**
+ * Initializes the elements of an struct iovec array from an array of strings.
+ * iov_len is set to string length plus one to include the trailing NUL.
+ *
+ * @param iov An array of writable initialized memory buffers.
+ * @param iov_cnt The array length of iov.
+ * @param src The source buffer to copy.
+ * @param size The amount of bytes to copy from "src".
+ * @return The amount of elements initialized. Thus, MIN(iov_cnt, argc).
+ */
+static size_t 
+iov_init_from_string_vector(struct iovec *iov, size_t iov_cnt,
+	gchar *argv[], size_t argc)
+{
+	size_t i, n;
+
+	g_assert(iov);
+	g_assert(iov_cnt >= argc);
+	g_assert(argv);
+
+	n = MIN(iov_cnt, argc);
+	for (i = 0; i < n; i++) {
+		iov[i].iov_base = argv[i];
+		iov[i].iov_len = argv[i] ? (1 + strlen(argv[i])) : 0;
+	}
+	return n;
+}
+
+/**
+ * Checks whether two given struct iovec point to contiguous memory.
+ *
+ * @return TRUE if b->iov_base directly follows after &a->iov_base[a->iov_len].
+ */
+static inline gboolean
+iov_is_contiguous(const struct iovec * const a, const struct iovec * const b)
+{
+	g_assert(a);
+	g_assert(b);
+
+	return (size_t) a->iov_base + a->iov_len == (size_t) b->iov_base;
+}
+
+/**
+ * Returns the size of contiguous memory buffers.
+ *
+ * @param iov An array of initialized memory buffers.
+ * @param iov_cnt The array length of iov.
+ * @return The amount contiguous bytes.
+ */
+static size_t 
+iov_contiguous_size(const struct iovec *iov, size_t iov_cnt)
+{
+	struct iovec iov0;
+	size_t i;
+
+	g_assert(iov);
+
+	iov0 = iov[0];
+
+	for (i = 1; i < iov_cnt && iov_is_contiguous(&iov0, &iov[i]); i++) {
+		size_t n = iov[i].iov_len;
+
+		if (n >= (size_t) -1 - iov0.iov_len) {
+			/* Abort if size would overflow */
+			iov0.iov_len = (size_t) -1;
+			break;
+		}
+		iov0.iov_len += n;
+	}
+	return iov0.iov_len;
+}
+
+/**
+ * Clear all bytes in the buffer starting at the given offset. If the
+ * offset is beyond iov->iov_len, nothing happens.
+ *
+ * @param iov An initialized struct iovec.
+ * @param byte_offset The offset relative to iov->iov_base.
+ */
+static inline void
+iov_clear(struct iovec *iov, size_t byte_offset)
+{
+	g_assert(iov);
+	
+	if (byte_offset <= iov->iov_len) {
+		gchar *p = iov->iov_base;
+		memset(&p[byte_offset], 0, iov->iov_len - byte_offset);
+	}
+}
+
+/**
+ * Scatters a string over an array of struct iovec buffers. The trailing
+ * buffer space is zero-filled.
+ */
+static size_t
+iov_scatter_string(struct iovec *iov, size_t iov_cnt, const gchar *s)
+{
+	size_t i, size, avail;
+
+	g_assert(iov);
+	g_assert(s);
+
+	size = 1 + strlen(s);
+	avail = size;
+
+	for (i = 0; i < iov_cnt; i++) {
+		size_t n;
+
+		n = MIN(iov[i].iov_len, avail);
+		memmove(iov[i].iov_base, s, n);
+		avail -= n;
+		s += n;
+		if (0 == avail) {
+			iov_clear(&iov[i], iov[i].iov_len - n);
+			i++;
+			break;
+		}
+	}
+	while (i < iov_cnt) {
+		iov_clear(&iov[i], 0);
+		i++;
+	}
+	return size - avail;
+}
+
+static size_t
+str_vec_count(gchar *strv[])
+{
+	size_t i = 0;
+
+	while (strv[i]) {
+		i++;
+	}
+	return i;
+}
+
+#if !defined(HAS_SETPROCTITLE)
+/**
+ * Compute the length of the exec() arguments that were given to us.
+ *
+ * @param argc The original ``argc'' argument from main().
+ * @param argv The original ``argv'' argument from main().
+ * @param env_ptr The original ``env'' variable.
+ */
+static struct iovec
+gm_setproctitle_init(gint argc, gchar *argv[], gchar *env_ptr[])
+{
+	size_t env_count, n;
+	struct iovec *iov;
+
+	g_assert(argc > 0);
+	g_assert(argv);
+	g_assert(env_ptr);
+
+	env_count = str_vec_count(env_ptr);
+	n = argc + env_count;
+	iov = iov_alloc_n(n);
+
+	iov_reset_n(iov, n);
+
+	iov_init_from_string_vector(&iov[0], n, argv, argc);
+	iov_init_from_string_vector(&iov[argc], n, env_ptr, env_count);
 
 	/*
-	 * Compute the length of the exec() arguments that were given to us.
+	 * Let's see how many argv[] arguments were contiguous.
 	 */
-
-	if (sysarglen == 0) {
-		gchar *s = orig_argv[0];
-
-		s += strlen(s) + 1;			/* Go past trailing NUL */
-
-		/*
-		 * Let's see whether all the argv[] arguments were contiguous.
-		 */
-
-		for (i = 1; i < orig_argc; i++) {
-			if (orig_argv[i] != s)
-				break;
-			s += strlen(s) + 1;		/* Yes, still contiguous */
-		}
-
-		/*
-		 * Maybe the environment is contiguous as well...
-		 */
-
-		for (i = 0; orig_env[i] != NULL; i++) {
-			if (orig_env[i] != s)
-				break;
-			s += strlen(s) + 1;		/* Yes, still contiguous */
-		}
-
-		sysarglen = s - orig_argv[0] - 1;	/* -1 for trailing NUL */
-
-#if 0
-		g_message("exec() args used %d contiguous bytes", sysarglen + 1);
-#endif
-	}
-
-	tlen = strlen(title);
-
-	if (tlen >= sysarglen) {		/* If too large, needs truncation */
-		memcpy(orig_argv[0], title, sysarglen);
-		(orig_argv[0])[sysarglen] = '\0';
-	} else {
-		memcpy(orig_argv[0], title, tlen + 1);	/* Copy trailing NUL */
-		if (tlen + 1 < sysarglen)
-			memset(orig_argv[0] + tlen + 1, ' ', sysarglen - tlen - 1);
+	{
+		size_t size;
+		
+		size = iov_contiguous_size(iov, n);
+		g_message("%lu bytes available for gm_setproctitle().",
+			(gulong) size);
 	}
 
 	/*
 	 * Scrap references to the arguments.
 	 */
+	{
+		gint i;
 
-	for (i = 1; i < orig_argc; i++)
-		orig_argv[i] = NULL;
+		for (i = 1; i < argc; i++)
+			argv[i] = NULL;
+	}
+	
+	
+	return iov_get(iov, n);
 }
-#endif /* HAS_SETPROCTITLE_WITHOUT_FORMAT */
+#endif /* !HAS_SETPROCTITLE */
+
+/**
+ * Change the process title as seen by "ps".
+ */
+void
+gm_setproctitle(const gchar *title)
+#if defined(HAS_SETPROCTITLE)
+{
+	setproctitle("%s", title)
+}
+#else /* !HAS_SETPROCTITLE */
+{
+	static struct iovec *args;
+	static size_t n;
+
+	if (!args) {
+		struct iovec iov;
+		
+		iov = gm_setproctitle_init(orig_argc, orig_argv, orig_env);
+		args = iov.iov_base;
+		n = iov.iov_len;
+	}
+
+	/* Scatter the title over the argv[] and env[] elements */
+	iov_scatter_string(args, n, title);
+}
+#endif /* HAS_SETPROCTITLE */
 
 #ifdef USE_GLIB1
 #undef g_string_append_len		/* Macro when -DTRACK_MALLOC */
