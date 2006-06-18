@@ -21,6 +21,7 @@ echo " "
 echo "Checking whether setproctitle() is available ..." >&4
 val="$define"
 $cat >try.c <<'EOC'
+#include <stdlib.h>
 int
 main(void) {
   setproctitle("%s %d %s %c", "blah", 1, "x", 'X');
