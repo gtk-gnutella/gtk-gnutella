@@ -1,0 +1,69 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:sqliteconfig sqlitecflags sqliteldflags d_sqlite: awk cat Myread Setvar
+?MAKE:	-pick add $@ %<
+?S:d_sqlite:
+?S: This variable determines if HAS_SQLITE will be defined.
+?S:.
+?S:sqliteconfig:
+?S:	This variable holds the command to use to grab information
+?S:	about SQLite.
+?S: Typically something "pkg-config sqlite".
+?S:.
+?S:sqlitecflags:
+?S:	This variable holds the compiler flags required to compile with SQLite.
+?S:.
+?S:sqliteldflags:
+?S:	This variable holds the linker flags required to link against SQLite.
+?S:.
+?C:HAS_SQLITE:
+?C: This symbol is defined when SQLite is present
+?C:.
+?H:#$d_sqlite HAS_SQLITE  /**/
+?H:.
+?T:modver version vint sqlite
+?LINT: set d_sqlite
+: how can we find information about SQLite?
+echo " "
+case "$d_sqlite" in
+"$undef") sqlite="$undef";;
+*) sqlite="$define";;
+esac
+echo "Checking how we can gather information about SQLite..." >&4
+if pkg-config sqlite --cflags >/dev/null 2>&1; then
+	sqliteconfig="pkg-config sqlite"
+	modver=--modversion
+else
+	echo "You've don't seem to have SQLite installed?" >&4
+	sqliteconfig='false'
+	modver=''
+fi
+echo "(I'll use '$sqliteconfig' to gather that information.)"
+
+?X: Make sure we have a good enough version
+sqlitecflags=""
+sqliteldflags=""
+version=`$sqliteconfig $modver`
+val="$undef"
+case "$version" in
+'') ;;
+*)
+	sqlitecflags=`$sqliteconfig --cflags`
+	sqliteldflags=`$sqliteconfig --libs`
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 020080; then
+		echo "Sorry, you have SQLite $version, I need at least 2.8.0." >&4
+	else
+		echo "Good, you have SQLite $version."
+		
+		$cat <<'EOM'
+
+For more information, see http://www.sqlite.org/.
+
+EOM
+esac
+set d_sqlite
+eval $setvar
+
