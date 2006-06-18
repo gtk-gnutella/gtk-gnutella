@@ -1,0 +1,41 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_setproctitle: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:	-pick add $@ %<
+?S:d_setproctitle:
+?S:	This variable conditionally defines the HAS_SETPROCTITLE
+?S:	symbol, which indicates to the C program that setproctitle()
+?S:	is available.
+?S:.
+?C:HAS_SETPROCTITLE:
+?C:	This symbol is defined when setproctitle() can be used and takes a
+?C:	format string.
+?C:.
+?H:#$d_setproctitle HAS_SETPROCTITLE
+?H:.
+?LINT: set d_setproctitle
+: can we use setproctitle?
+echo " "
+echo "Checking whether setproctitle() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+int
+main(void) {
+  setproctitle("%s %d %s %c", "blah", 1, "x", 'X');
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like setproctitle() is usable on your system, good.
+EOM
+else
+	echo "Sorry, I will not be using setproctitle()."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_setproctitle
+eval $setvar
+
