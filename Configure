@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon May 22 21:47:56 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sun Jun 18 18:24:30 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -330,6 +330,7 @@ d_random=''
 d_rusage=''
 d_sa_interrupt=''
 d_sendfile=''
+d_setproctitle=''
 d_sigaction=''
 d_socker_get=''
 sockercflags=''
@@ -5571,6 +5572,29 @@ eval $setvar
 set sendfile d_sendfile
 eval $inlibc
 
+: can we use setproctitle?
+echo " "
+echo "Checking whether setproctitle() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+int
+main(void) {
+  setproctitle("%s %d %s %c", "blah", 1, "x", 'X');
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like setproctitle() is usable on your system, good.
+EOM
+else
+	echo "Sorry, I will not be using setproctitle()."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_setproctitle
+eval $setvar
+
 : see if we have sigaction
 echo " "
 if set sigaction val -f d_sigaction; eval $csym; $val; then
@@ -7686,6 +7710,7 @@ d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
 d_sa_interrupt='$d_sa_interrupt'
 d_sendfile='$d_sendfile'
+d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'
 d_socker_get='$d_socker_get'
 d_srandom='$d_srandom'

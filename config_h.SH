@@ -397,6 +397,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sendfile HAS_SENDFILE		/**/
 
+/* HAS_SETPROCTITLE:
+ *	This symbol is defined when setproctitle() can be used and takes a
+ *	format string.
+ */
+#$d_setproctitle HAS_SETPROCTITLE
+
 /* HAS_SOCKER_GET:
  *	This symbol is defined when socker_get() can be used to get sockets
  *	bound to privileged ports.
