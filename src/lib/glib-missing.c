@@ -277,8 +277,8 @@ gm_setproctitle(const gchar *title)
 }
 #else /* !HAS_SETPROCTITLE && HAS_SETPROCTITLE_WITH_FORMAT */
 {
-	static gint sysarglen = 0;		/* Length of the exec() arguments */
-	gint tlen;
+	static size_t sysarglen = 0;	/* Length of the exec() arguments */
+	size_t tlen;
 	gint i;
 
 	/*
@@ -310,7 +310,7 @@ gm_setproctitle(const gchar *title)
 			s += strlen(s) + 1;		/* Yes, still contiguous */
 		}
 
-		sysarglen = s - orig_argv[0];	/* Includes trailing NUL */
+		sysarglen = s - orig_argv[0] - 1;	/* -1 for trailing NUL */
 
 #if 0
 		g_message("exec() args used %d contiguous bytes", sysarglen + 1);
