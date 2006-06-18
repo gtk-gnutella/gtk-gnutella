@@ -72,6 +72,7 @@ U/packages/gnutlsconfig.U
 U/packages/gtkconfig.U
 U/packages/gtkversion.U
 U/packages/remotectrl.U
+U/packages/sqliteconfig.U
 U/packages/xmlconfig.U
 U/specific/gtkgversion.U
 config_h.SH                  Produces config.h
