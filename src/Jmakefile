@@ -55,6 +55,10 @@ OBJ = main.o
 ++SOCKER_CFLAGS $sockercflags
 ++SOCKER_LDFLAGS $sockerldflags
 
+/* Add the SQLite flags */
+++SQLITE_CFLAGS $sqlitecflags
+++SQLITE_LDFLAGS $sqliteldflags
+
 /*
  * Due to cross-referencing between the GUI and the core, libcore.a wraps
  * the GUI libraries and the libgtk-common.a library wraps the libgtkx.a
