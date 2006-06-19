@@ -7511,6 +7511,7 @@ case "$version" in
 	if test 0$vint -lt 020080; then
 		echo "Sorry, you have SQLite $version, I need at least 2.8.0." >&4
 	else
+		val="$define"
 		echo "Good, you have SQLite $version."
 		
 		$cat <<'EOM'
