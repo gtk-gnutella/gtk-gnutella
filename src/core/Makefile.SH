@@ -56,6 +56,7 @@ OBJECTS =   \$(OBJ)
 GLIB_CFLAGS =  $glibcflags
 XML2_CFLAGS =  $xmlcflags
 GNUTLS_CFLAGS =  $gnutlscflags
+SQLITE_CFLAGS =  $sqlitecflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -80,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 10622 2006-04-05 23:14:47Z cbiere $
+# $X-Id: Jmakefile 11114 2006-06-19 15:06:21Z cbiere $
 
 SRC = \
 	alive.c \
@@ -242,6 +243,7 @@ OBJ = \
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
+	$(SQLITE_CFLAGS) \
 	-DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 

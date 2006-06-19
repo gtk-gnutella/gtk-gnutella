@@ -66,9 +66,11 @@ GTK_CFLAGS =  $gtkcflags
 GNUTLS_LDFLAGS =  $gnutlsldflags
 GNUTLS_CFLAGS =  $gnutlscflags
 DBUS_LDFLAGS =  $dbusldflags
+SQLITE_CFLAGS =  $sqlitecflags
 XML2_LDFLAGS =  $xmlldflags
 GTK_LDFLAGS =  $gtkldflags
 OBJECTS =   \$(OBJ) \$(EXTRA)
+SQLITE_LDFLAGS =  $sqliteldflags
 SOCKER_LDFLAGS =  $sockerldflags
 DBUS_CFLAGS =  $dbuscflags
 XML2_CFLAGS =  $xmlcflags
@@ -95,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 10799 2006-05-02 06:29:43Z rmanfredi $
+# $X-Id: Jmakefile 11114 2006-06-19 15:06:21Z cbiere $
 
 all::
 
@@ -122,6 +124,7 @@ CFLAGS = -I.. -I. \
 	$(DBUS_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) \
+	$(SQLITE_CFLAGS) \
 	-DCURDIR=$(CURRENT)
 
 DPFLAGS = $(CFLAGS)
@@ -131,7 +134,7 @@ LDFLAGS = \
 	-lgtk-common -lgtkx -lgtk-common -lcore \
 	-Llib -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
-	$(SOCKER_LDFLAGS)
+	$(SOCKER_LDFLAGS) $(SQLITE_LDFLAGS)
 
 .FORCE:
 

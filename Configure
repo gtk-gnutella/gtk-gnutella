@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jun 18 23:20:58 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Mon Jun 19 18:15:12 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5581,6 +5581,7 @@ echo " "
 echo "Checking whether setproctitle() is available ..." >&4
 val="$define"
 $cat >try.c <<'EOC'
+#include <stdlib.h>
 int
 main(void) {
   setproctitle("%s %d %s %c", "blah", 1, "x", 'X');
@@ -7086,6 +7087,49 @@ else
 fi
 $rm -f foo* bar* 
 
+: how can we find information about SQLite?
+echo " "
+case "$d_sqlite" in
+"$undef") sqlite="$undef";;
+*) sqlite="$define";;
+esac
+echo "Checking how we can gather information about SQLite..." >&4
+if pkg-config sqlite --cflags >/dev/null 2>&1; then
+	sqliteconfig="pkg-config sqlite"
+	modver=--modversion
+else
+	echo "You've don't seem to have SQLite installed?" >&4
+	sqliteconfig='false'
+	modver=''
+fi
+echo "(I'll use '$sqliteconfig' to gather that information.)"
+
+sqlitecflags=""
+sqliteldflags=""
+version=`$sqliteconfig $modver`
+val="$undef"
+case "$version" in
+'') ;;
+*)
+	sqlitecflags=`$sqliteconfig --cflags`
+	sqliteldflags=`$sqliteconfig --libs`
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 020080; then
+		echo "Sorry, you have SQLite $version, I need at least 2.8.0." >&4
+	else
+		val="$define"
+		echo "Good, you have SQLite $version."
+		
+		$cat <<'EOM'
+
+For more information, see http://www.sqlite.org/.
+
+EOM
+	fi
+esac
+set d_sqlite
+eval $setvar
+
 : check for void type
 echo " "
 echo "Checking to see how well your C compiler groks the void type..." >&4
@@ -7480,49 +7524,6 @@ EOC
 	echo "No <sys/sendfile.h>, sendfile() should be safe with large files." >&4
 	;;
 esac
-
-: how can we find information about SQLite?
-echo " "
-case "$d_sqlite" in
-"$undef") sqlite="$undef";;
-*) sqlite="$define";;
-esac
-echo "Checking how we can gather information about SQLite..." >&4
-if pkg-config sqlite --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite"
-	modver=--modversion
-else
-	echo "You've don't seem to have SQLite installed?" >&4
-	sqliteconfig='false'
-	modver=''
-fi
-echo "(I'll use '$sqliteconfig' to gather that information.)"
-
-sqlitecflags=""
-sqliteldflags=""
-version=`$sqliteconfig $modver`
-val="$undef"
-case "$version" in
-'') ;;
-*)
-	sqlitecflags=`$sqliteconfig --cflags`
-	sqliteldflags=`$sqliteconfig --libs`
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 020080; then
-		echo "Sorry, you have SQLite $version, I need at least 2.8.0." >&4
-	else
-		val="$define"
-		echo "Good, you have SQLite $version."
-		
-		$cat <<'EOM'
-
-For more information, see http://www.sqlite.org/.
-
-EOM
-	fi
-esac
-set d_sqlite
-eval $setvar
 
 : end of configuration questions
 echo " "
