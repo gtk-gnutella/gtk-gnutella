@@ -2486,8 +2486,10 @@ select_encoding(header_t *header)
 	if (buf) {
 
 		if (strstr(buf, "deflate")) {
-			buf = header_get(header, "User-Agent");
-			if (NULL == buf || NULL == strstr(buf, "AppleWebKit"))
+			const gchar *ua;
+			
+			ua = header_get(header, "User-Agent");
+			if (NULL == ua || NULL == strstr(ua, "AppleWebKit"))
 				return BH_DEFLATE;
 		}
 
