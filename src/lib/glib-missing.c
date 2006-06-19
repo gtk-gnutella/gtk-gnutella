@@ -401,19 +401,58 @@ iov_clear(struct iovec *iov, size_t byte_offset)
 }
 
 /**
- * Scatters a string over an array of struct iovec buffers. The trailing
- * buffer space is zero-filled.
+ * Calculates the cumulative size of the memory buffers. This uses
+ * saturation arithmetic, so the returned value can never overflow.
+ *
+ * @param iov An array of initialized memory buffers.
+ * @param iov_cnt The array length of iov.
+ * @return The sum of all buffer sizes.
+ */
+static inline size_t
+iov_calculate_size(struct iovec *iov, size_t iov_cnt)
+{
+	size_t size, i;
+
+	g_assert(iov);
+
+	for (i = 0; i < iov_cnt; i++) {
+		size_t n = iov[i].iov_len;
+
+		if (n >= (size_t) -1 - size) {
+			/* Abort if size would overflow */
+			size = (size_t) -1;
+			break;
+		}
+		size += n;
+	}
+	return size;
+}
+
+/**
+ * Scatters a NUL-terminated string over an array of struct iovec buffers. The
+ * trailing buffer space is zero-filled. If the string is too long, it is
+ * truncated, so that there is a terminating NUL in any case, except if the
+ * buffer space is zero.
+ *
+ * @param iov An array of initialized memory buffers.
+ * @param iov_cnt The array length of iov.
+ * @return The amount of bytes copied excluding the terminating NUL.
  */
 static inline size_t
 iov_scatter_string(struct iovec *iov, size_t iov_cnt, const gchar *s)
 {
-	size_t i, size, avail;
+	size_t i, len, avail, size;
 
 	g_assert(iov);
 	g_assert(s);
 
-	size = 1 + strlen(s);
-	avail = size;
+	/* Reserve one byte for the trailing NUL */
+	size = iov_calculate_size(iov, iov_cnt);
+	len = strlen(s);
+	if (len >= size) {
+		len = size > 0 ? (size - 1) : 0;
+	}
+	avail = len;
 
 	for (i = 0; i < iov_cnt; i++) {
 		size_t n;
@@ -432,7 +471,7 @@ iov_scatter_string(struct iovec *iov, size_t iov_cnt, const gchar *s)
 		iov_clear(&iov[i], 0);
 		i++;
 	}
-	return size - avail;
+	return len;
 }
 
 static inline size_t
