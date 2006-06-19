@@ -5539,7 +5539,7 @@ done:
  *
  * @returns TRUE if we managed to parse the new location.
  */
-static gboolean
+gboolean
 download_moved_permanently(struct download *d, header_t *header)
 {
 	gchar *buf;
@@ -6952,6 +6952,12 @@ http_version_nofix:
 		}
 		switch (ack_code) {
 		case 301:				/* Moved permanently */
+		case 302:				/* Moved temporarily */
+			/* FIXME: Disabled because we have no loop detection and
+			 *		  send no Referer: header. This could be abused
+			 *		  for DoS attacks.
+			 */
+#if 0
 			if (!download_moved_permanently(d, header))
 				break;
 			download_passively_queued(d, FALSE);
@@ -6959,6 +6965,9 @@ http_version_nofix:
 				delay ? delay : download_retry_busy_delay,
 				"%sHTTP %u %s", short_read, ack_code, ack_message);
 			return;
+#else
+			break;
+#endif
 		case 416:				/* Requested range not available */
 			/*
 			 * There was no ranges supplied (or we'd have gone through the
