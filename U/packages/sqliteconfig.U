@@ -63,6 +63,7 @@ case "$version" in
 For more information, see http://www.sqlite.org/.
 
 EOM
+	fi
 esac
 set d_sqlite
 eval $setvar
