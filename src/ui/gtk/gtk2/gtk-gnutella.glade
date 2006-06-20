@@ -23,7 +23,7 @@
       <signal name="activate" handler="on_popup_downloads_abort_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1563">
+	<widget class="GtkImage" id="image1713">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -84,7 +84,7 @@
       <signal name="activate" handler="on_popup_downloads_remove_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1564">
+	<widget class="GtkImage" id="image1714">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -105,7 +105,7 @@
       <signal name="activate" handler="on_popup_downloads_resume_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1565">
+	<widget class="GtkImage" id="image1715">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-undo</property>
 	  <property name="icon_size">1</property>
@@ -126,7 +126,7 @@
       <signal name="activate" handler="on_popup_downloads_queue_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1566">
+	<widget class="GtkImage" id="image1716">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -169,10 +169,9 @@
       <accelerator key="M" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1567">
+	<widget class="GtkImage" id="image1717">
 	  <property name="visible">True</property>
-	  <property name="stock">gtk-convert</property>
-	  <property name="icon_size">1</property>
+	  <property name="pixbuf">magnet.16x16.png</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
 	  <property name="xpad">0</property>
@@ -190,7 +189,7 @@
       <signal name="activate" handler="on_popup_downloads_copy_url_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1568">
+	<widget class="GtkImage" id="image1718">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -211,7 +210,7 @@
       <signal name="activate" handler="on_popup_downloads_connect_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1569">
+	<widget class="GtkImage" id="image1719">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-jump-to</property>
 	  <property name="icon_size">1</property>
@@ -232,7 +231,7 @@
       <signal name="activate" handler="on_popup_downloads_browse_host_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1570">
+	<widget class="GtkImage" id="image1720">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-zoom-in</property>
 	  <property name="icon_size">1</property>
@@ -259,7 +258,7 @@
       <signal name="activate" handler="on_popup_downloads_config_cols_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1571">
+	<widget class="GtkImage" id="image1721">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -280,7 +279,7 @@
       <signal name="activate" handler="on_popup_downloads_expand_all_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1572">
+	<widget class="GtkImage" id="image1722">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -301,7 +300,7 @@
       <signal name="activate" handler="on_popup_downloads_collapse_all_activate" last_modification_time="Fri, 12 May 2006 02:43:11 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1573">
+	<widget class="GtkImage" id="image1723">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -326,7 +325,7 @@
       <signal name="activate" handler="on_popup_search_download_activate" last_modification_time="Sun, 30 Mar 2003 12:52:08 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1694">
+	<widget class="GtkImage" id="image1778">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-save</property>
 	  <property name="icon_size">1</property>
@@ -348,7 +347,7 @@
       <accelerator key="I" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1695">
+	<widget class="GtkImage" id="image1779">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-dialog-info</property>
 	  <property name="icon_size">1</property>
@@ -370,7 +369,7 @@
       <accelerator key="B" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1696">
+	<widget class="GtkImage" id="image1780">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-zoom-in</property>
 	  <property name="icon_size">1</property>
@@ -392,10 +391,9 @@
       <accelerator key="M" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1697">
+	<widget class="GtkImage" id="image1781">
 	  <property name="visible">True</property>
-	  <property name="stock">gtk-convert</property>
-	  <property name="icon_size">1</property>
+	  <property name="pixbuf">magnet.16x16.png</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
 	  <property name="xpad">0</property>
@@ -418,7 +416,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1698">
+	<widget class="GtkImage" id="image1782">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -470,7 +468,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1699">
+	<widget class="GtkImage" id="image1783">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -528,7 +526,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1700">
+	<widget class="GtkImage" id="image1784">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-execute</property>
 	  <property name="icon_size">1</property>
@@ -550,7 +548,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_sha1_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image1701">
+		<widget class="GtkImage" id="image1785">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -571,7 +569,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_name_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image1702">
+		<widget class="GtkImage" id="image1786">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -602,7 +600,7 @@
       <signal name="activate" handler="on_popup_search_new_from_selected_activate" last_modification_time="Sun, 15 Sep 2002 11:07:06 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1703">
+	<widget class="GtkImage" id="image1787">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-new</property>
 	  <property name="icon_size">1</property>
@@ -624,7 +622,7 @@
       <accelerator key="S" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1704">
+	<widget class="GtkImage" id="image1788">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -645,9 +643,9 @@
       <signal name="activate" handler="on_popup_search_resume_activate" last_modification_time="Sat, 13 May 2006 17:18:22 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1705">
+	<widget class="GtkImage" id="image1789">
 	  <property name="visible">True</property>
-	  <property name="stock">gtk-go-forward</property>
+	  <property name="stock">gtk-media-forward</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -667,7 +665,7 @@
       <accelerator key="R" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1706">
+	<widget class="GtkImage" id="image1790">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -695,7 +693,7 @@
       <accelerator key="plus" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1707">
+	<widget class="GtkImage" id="image1791">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -717,7 +715,7 @@
       <accelerator key="minus" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1708">
+	<widget class="GtkImage" id="image1792">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -744,7 +742,7 @@
       <accelerator key="P" modifiers="0" signal="activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image1709">
+	<widget class="GtkImage" id="image1793">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-properties</property>
 	  <property name="icon_size">1</property>
@@ -766,7 +764,7 @@
 	      <signal name="activate" handler="on_popup_search_toggle_tabs_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image1710">
+		<widget class="GtkImage" id="image1794">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-index</property>
 		  <property name="icon_size">1</property>
@@ -787,7 +785,7 @@
 	      <signal name="activate" handler="on_popup_search_config_cols_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image1711">
+		<widget class="GtkImage" id="image1795">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-preferences</property>
 		  <property name="icon_size">1</property>
@@ -808,7 +806,7 @@
 	      <signal name="activate" handler="on_popup_search_sort_defaults_activate" last_modification_time="Sun, 11 Sep 2005 12:55:56 GMT"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image1712">
+		<widget class="GtkImage" id="image1796">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-media-record</property>
 		  <property name="icon_size">1</property>
