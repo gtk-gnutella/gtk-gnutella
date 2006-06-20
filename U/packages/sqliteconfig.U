@@ -35,6 +35,9 @@ echo "Checking how we can gather information about SQLite..." >&4
 if pkg-config sqlite --cflags >/dev/null 2>&1; then
 	sqliteconfig="pkg-config sqlite"
 	modver=--modversion
+elif pkg-config sqlite3 --cflags >/dev/null 2>&1; then
+	sqliteconfig="pkg-config sqlite3"
+	modver=--modversion
 else
 	echo "You've don't seem to have SQLite installed?" >&4
 	sqliteconfig='false'
