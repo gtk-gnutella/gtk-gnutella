@@ -7094,9 +7094,10 @@ case "$d_sqlite" in
 *) sqlite="$define";;
 esac
 echo "Checking how we can gather information about SQLite..." >&4
-if pkg-config sqlite --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite"
+if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
+	sqliteconfig="pkg-config sqlite3"
 	modver=--modversion
+elif pkg-config sqlite --cflags >/dev/null 2>&1; then
 else
 	echo "You've don't seem to have SQLite installed?" >&4
 	sqliteconfig='false'
@@ -7114,8 +7115,8 @@ case "$version" in
 	sqlitecflags=`$sqliteconfig --cflags`
 	sqliteldflags=`$sqliteconfig --libs`
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 020080; then
-		echo "Sorry, you have SQLite $version, I need at least 2.8.0." >&4
+	if test 0$vint -lt 030200; then
+		echo "Sorry, you have SQLite $version, I need at least 3.2.0." >&4
 	else
 		val="$define"
 		echo "Good, you have SQLite $version."
