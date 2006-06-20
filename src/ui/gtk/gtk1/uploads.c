@@ -267,7 +267,7 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 static void
 free_data(gpointer o)
 {
-	wfree(o, sizeof upload_row_data_t);
+	wfree(o, sizeof(upload_row_data_t));
 }
 
 /**
