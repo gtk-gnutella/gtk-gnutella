@@ -169,6 +169,7 @@ extra_files/hostiles.txt
 extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
+extra_files/magnet.svg
 extra_files/robots.txt       Default hints for web crawlers
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
@@ -194,6 +195,9 @@ pixmaps/freeze.xpm
 pixmaps/icon.xpm
 pixmaps/leaf.xpm
 pixmaps/legacy.xpm
+pixmaps/magnet.16x16.png
+pixmaps/magnet.32x32.png
+pixmaps/magnet.64x64.png
 pixmaps/no_firewall.xpm
 pixmaps/offline.xpm
 pixmaps/online.xpm

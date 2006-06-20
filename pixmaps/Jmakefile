@@ -48,6 +48,9 @@ PIXMAPS = \
 	icon.xpm \
 	leaf.xpm \
 	legacy.xpm \
+	magnet.16x16.png \
+	magnet.32x32.png \
+	magnet.64x64.png \
 	no_firewall.xpm \
 	offline.xpm \
 	online.xpm \
@@ -57,7 +60,8 @@ PIXMAPS = \
 	thaw.xpm \
 	ultra.xpm \
 	upload.xpm \
-	warning.xpm
+	warning.xpm \
+
 
 all::
 
