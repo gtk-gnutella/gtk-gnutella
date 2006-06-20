@@ -276,10 +276,7 @@ tiger(gconstpointer data, guint64 length, guint64 res[3])
 
 	temp.u64[7] = length << 3;
 	tiger_compress(temp.u64, res);
-
-	res[0] = guint64_to_LE(res[0]);
-	res[1] = guint64_to_LE(res[1]);
-	res[2] = guint64_to_LE(res[2]);
+	tiger_fix_endian(res);
 }
 
 /**

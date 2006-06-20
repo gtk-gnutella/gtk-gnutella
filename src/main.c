@@ -98,6 +98,7 @@
 #include "lib/iso3166.h"
 #include "lib/pattern.h"
 #include "lib/tiger.h"
+#include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
@@ -913,6 +914,7 @@ main(int argc, char **argv)
 
 	inputevt_init();
 	tiger_init();
+	tt_check();
 	random_init();
 	locale_init();
 	adns_init();

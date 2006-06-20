@@ -81,9 +81,10 @@ typedef struct tt_context {
 } TT_CONTEXT;
 
 void tt_init(TT_CONTEXT *ctx);
-void tt_update(TT_CONTEXT *ctx, gchar *buffer, gint32 len);
+void tt_update(TT_CONTEXT *ctx, const gchar *buffer, gint32 len);
 void tt_digest(TT_CONTEXT *ctx, gchar *hash);
 void tt_copy(TT_CONTEXT *dest, TT_CONTEXT *src);
+void tt_check(void);
 
 /* vi: set ts=4 sw=4 cindent: */
 #endif /* _tigertree_h_ */

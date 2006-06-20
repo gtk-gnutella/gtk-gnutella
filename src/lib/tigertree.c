@@ -79,6 +79,7 @@
 
 RCSID("$Id$");
 
+#include "base32.h"
 #include "endian.h"
 #include "misc.h"
 #include "tigertree.h"
@@ -87,17 +88,8 @@ RCSID("$Id$");
 static inline void
 tt_endian(gchar *s)
 {
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
-	(void) s;
-#else
-	guint64 *p;
-
-	p = (guint64 *) s;
-
-	p[0] = guint64_to_LE(p[0]);
-	p[1] = guint64_to_LE(p[1]);
-	p[2] = guint64_to_LE(p[2]);
-#endif /* G_LITTLE_ENDIAN */
+	guint64 *p = (guint64 *) s;
+	tiger_fix_endian(p);
 }
 
 /**
@@ -133,9 +125,7 @@ tt_block(TT_CONTEXT *ctx)
 	gint64 b;
 
 	tiger(ctx->leaf, ctx->index + 1, (guint64 *) ctx->top);
-
 	tt_endian(ctx->top);
-
 	ctx->top += TIGERSIZE;
 	++ctx->count;
 	b = ctx->count;
@@ -147,18 +137,18 @@ tt_block(TT_CONTEXT *ctx)
 }
 
 void
-tt_update(TT_CONTEXT *ctx, gchar *buffer, gint32 len)
+tt_update(TT_CONTEXT *ctx, const gchar *buffer, gint32 len)
 {
 	/* Try to fill partial block */
 	if (ctx->index) {
 		gint32 left = BLOCKSIZE - ctx->index;
 
 		if (len < left) {
-			memmove(ctx->block + ctx->index, buffer, len);
+			memmove(&ctx->block[ctx->index], buffer, len);
 			ctx->index += len;
 			return; /* Finished */
 		} else {
-			memmove(ctx->block + ctx->index, buffer, left);
+			memmove(&ctx->block[ctx->index], buffer, left);
 			ctx->index = BLOCKSIZE;
 			tt_block(ctx);
 			buffer += left;
@@ -174,7 +164,8 @@ tt_update(TT_CONTEXT *ctx, gchar *buffer, gint32 len)
 		len -= BLOCKSIZE;
 	}
 
-	if (0 != (ctx->index = len)) {
+	ctx->index = len;
+	if (0 != len) {
 		/* Buffer leftovers */
 		memmove(ctx->block, buffer, len);
 	}
@@ -217,6 +208,56 @@ tt_copy(TT_CONTEXT *dest, TT_CONTEXT *src)
 	dest->index = src->index;
 	memcpy(dest->nodes, src->nodes, sizeof dest->nodes);
 	dest->top = src->top;
+}
+
+/**
+ * Runs some test cases to check whether the implementation is alright.
+ */
+void
+tt_check(void)
+{
+    static const struct {
+		const char *digest;
+		const char *data;
+		size_t size;
+	} tests[] = {
+#define D(x) x x
+#define Ax1024 D(D(D(D(D(D(D(D(D(D("A"))))))))))
+#define Ax1025 Ax1024 "A"
+		{ "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ", "", 0 },
+		{ "VK54ZIEEVTWNAUI5D5RDFIL37LX2IQNSTAXFKSA", "", 1 },
+		{ "L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA", Ax1024, 1024 },
+		{ "PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY", Ax1025, 1025 },
+#undef Ax1025
+#undef Ax1024
+#undef D
+	};
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+		char digest[TTH_BASE32_SIZE + 1];
+		struct tth hash;
+		TT_CONTEXT ctx;
+
+		tt_init(&ctx);
+		tt_update(&ctx, tests[i].data, tests[i].size);
+		tt_digest(&ctx, hash.data);
+	
+		memset(digest, 0, sizeof digest);	
+		base32_encode_into(hash.data, sizeof hash.data, digest, sizeof digest);
+		digest[G_N_ELEMENTS(digest) - 1] = '\0';
+
+		if (0 != strcmp(tests[i].digest, digest)) {
+			guint j;
+
+			g_warning("i=%u, digest=\"%s\"", i, digest);
+			for (j = 0; j < G_N_ELEMENTS(hash.data); j++) {
+				printf("%02x", (guint8) hash.data[j]);
+			}
+			printf("\n");
+			g_assert_not_reached();
+		}
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
