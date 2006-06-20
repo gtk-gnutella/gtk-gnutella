@@ -162,7 +162,10 @@ ntp_send_probe(const host_addr_t addr)
 	case NET_TYPE_IPV6: s = s_udp_listen6;
 	case NET_TYPE_NONE: break;
 	}
-	g_return_val_if_fail(NULL != s, FALSE);
+	if (!s) {
+		errno = EINVAL;
+		return FALSE;
+	}
 	
 	r = s->wio.sendto(&s->wio, &to, &m, sizeof m);
 	/* Reset errno if there was no "real" error to prevent getting a
@@ -199,22 +202,6 @@ ntp_send_probes(void)
 		addr = name_to_single_host_addr(hosts[i].addr, settings_dns_net());
 		if (!is_host_addr(addr))
 			continue;
-		
-		if (NET_USE_BOTH != network_protocol) {
-			switch (host_addr_net(addr)) {
-			case NET_TYPE_IPV4:
-				if (NET_USE_IPV4 != network_protocol)
-					continue;
-				break;
-			case NET_TYPE_IPV6:
-				if (NET_USE_IPV6 != network_protocol)
-					continue;
-				break;
-			case NET_TYPE_NONE:
-				g_assert_not_reached();
-			}
-		}
-		
 		
 		if (ntp_send_probe(addr)) {
 			/* Send probes to all addresses because a successful sendto()
