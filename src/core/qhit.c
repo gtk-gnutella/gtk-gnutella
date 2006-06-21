@@ -298,8 +298,7 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 	 */
 
 	if (n->header.hops == 0) {
-		g_warning
-			("search_request(): hops=0, bug in route_message()?\n");
+		g_warning("qhit_send_node(): hops=0, bug in route_message()?");
 		n->header.hops++;	/* Can't send message with TTL=0 */
 	}
 
