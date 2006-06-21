@@ -179,7 +179,6 @@ time_t search_get_create_time(gnet_search_t sh);
 void search_set_create_time(gnet_search_t sh, time_t t);
 
 void search_free_alt_locs(gnet_record_t *rc);
-void search_free_proxies(gnet_results_set_t *rs);
 
 void search_update_items(gnet_search_t sh, guint32 items);
 

@@ -521,17 +521,19 @@ search_free_alt_locs(gnet_record_t *rc)
 /**
  * Free the push proxies held within a result set.
  */
-void
+static void
 search_free_proxies(gnet_results_set_t *rs)
 {
-	gnet_host_vec_t *v = rs->proxies;
+	g_assert(rs);
 
-	g_assert(v != NULL);
+	if (rs->proxies) {
+		gnet_host_vec_t *v;
 
-	wfree(v->hvec, v->hvcnt * sizeof *v->hvec);
-	wfree(v, sizeof *v);
-
-	rs->proxies = NULL;
+		v = rs->proxies;
+		wfree(v->hvec, v->hvcnt * sizeof *v->hvec);
+		wfree(v, sizeof *v);
+		rs->proxies = NULL;
+	}
 }
 
 /**
@@ -540,6 +542,7 @@ search_free_proxies(gnet_results_set_t *rs)
 static void
 search_free_record(gnet_record_t *rc)
 {
+	g_assert(rc);
 	atom_str_free_null(&rc->name);
 	atom_str_free_null(&rc->tag);
 	atom_str_free_null(&rc->xml);
@@ -560,17 +563,10 @@ search_free_r_set(gnet_results_set_t *rs)
 	for (m = rs->records; m; m = m->next)
 		search_free_record((gnet_record_t *) m->data);
 
-	if (rs->guid)
-		atom_guid_free(rs->guid);
-
-	if (rs->version)
-		atom_str_free(rs->version);
-
-	if (rs->proxies)
-		search_free_proxies(rs);
-
-	if (rs->hostname)
-		atom_str_free(rs->hostname);
+	atom_guid_free_null(&rs->guid);
+	atom_str_free_null(&rs->version);
+	atom_str_free_null(&rs->hostname);
+	search_free_proxies(rs);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -1576,8 +1572,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 					n->n_weird, node_addr(n), node_vendor(n),
 					old, guid_hex_str(rs->guid), gmsg_infostr(&n->header));
 			}
-			atom_guid_free(n->gnet_guid);
-			n->gnet_guid = NULL;
+			atom_guid_free_null(&n->gnet_guid);
 		}
 	}
 
@@ -2555,8 +2550,7 @@ search_check_alt_locs(
 			rc->sha1, rs->stamp, FALSE, TRUE, fi, rs->proxies,
 			(rs->status & ST_TLS) ? CONNECT_F_TLS : 0);
 
-		if (rs->proxies != NULL)
-			search_free_proxies(rs);
+		search_free_proxies(rs);
 	}
 
 	search_free_alt_locs(rc);
@@ -2595,8 +2589,7 @@ search_check_results_set(gnet_results_set_t *rs)
 					rs->proxies, (rs->status & ST_TLS) ? CONNECT_F_TLS : 0);
 
 
-			if (rs->proxies != NULL)
-				search_free_proxies(rs);
+			search_free_proxies(rs);
 
             set_flags(rc->flags, SR_DOWNLOADED);
 
@@ -2677,7 +2670,7 @@ search_close(gnet_search_t sh)
 		search_free_sent_node_ids(sch);
 	}
 
-	atom_str_free(sch->query);
+	atom_str_free_null(&sch->query);
 	wfree(sch, sizeof *sch);
 }
 
