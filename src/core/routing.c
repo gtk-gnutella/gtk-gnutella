@@ -351,7 +351,8 @@ routing_log_flush(struct route_log *log)
  *
  * @return copy of mangled MUID as pointer to static data.
  */
-static const gchar *route_mangled_oob_muid(const gchar *muid)
+static const gchar *
+route_mangled_oob_muid(const gchar *muid)
 {
 	static gchar mangled[GUID_RAW_SIZE];
 
@@ -366,10 +367,10 @@ static const gchar *route_mangled_oob_muid(const gchar *muid)
 /**
  * Used to ensure type safety when accessing the routing_data field
  */
-static struct route_data *
+static inline struct route_data *
 get_routing_data(struct gnutella_node *n)
 {
-	return (struct route_data *)(n->routing_data);
+	return n->routing_data;
 }
 
 /**
@@ -388,7 +389,7 @@ init_routing_data(struct gnutella_node *node)
 	 * Allocate and link some routing data to it
 	 */
 
-	route = (struct route_data *) walloc(sizeof(struct route_data));
+	route = walloc(sizeof(struct route_data));
 
 	route->node = node;
 	route->saved_messages = 0;
@@ -628,7 +629,7 @@ node_sent_message(struct gnutella_node *n, struct message *m)
 		return FALSE;
 
 	for (l = m->routes; l; l = l->next) {
-		if (route == ((struct route_data *) l->data))
+		if (route == l->data)
 			return TRUE;
 	}
 
@@ -648,7 +649,7 @@ node_ttl_higher(struct gnutella_node *n, struct message *m, guint8 ttl)
 {
 	GSList *l;
 	gint i;
-	struct route_data * route;
+	struct route_data *route;
 
 	g_assert(n != fake_node);
 	g_assert(
@@ -660,7 +661,7 @@ node_ttl_higher(struct gnutella_node *n, struct message *m, guint8 ttl)
 	g_assert(route != NULL);
 
 	for (l = m->routes, i = 0; l; l = g_slist_next(l), i++) {
-		if (route == ((struct route_data *) l->data)) {
+		if (route == l->data) {
 			GSList *t = g_slist_nth(m->ttls, i);
 			guint8 old_ttl;
 
@@ -682,13 +683,11 @@ node_ttl_higher(struct gnutella_node *n, struct message *m, guint8 ttl)
  * compares two message structures
  */
 static gint
-message_compare_func(gconstpointer a, gconstpointer b)
+message_compare_func(gconstpointer p, gconstpointer q)
 {
-	return
-		0 == memcmp(((const struct message *) a)->muid,
-			((const struct message *) b)->muid, 16)
-		&& ((const struct message *) a)->function ==
-			((const struct message *) b)->function;
+	const struct message *a = p, *b = q;
+
+	return a->function == b->function && 0 == memcmp(a->muid, b->muid, 16);
 }
 
 /**
@@ -697,21 +696,13 @@ message_compare_func(gconstpointer a, gconstpointer b)
 static guint
 message_hash_func(gconstpointer key)
 {
-	int count;
-	guint hash = 0;
+	const struct message *msg = key;
+	guint hash, i;
 
-	for (count = 0; count <= 12; count += 4) {
-		guint hashadd =
-			( (const struct message *) key)->muid[count]            |
-			(((const struct message *) key)->muid[count + 1] << 8)  |
-			(((const struct message *) key)->muid[count + 2] << 16) |
-			(((const struct message *) key)->muid[count + 3] << 24);
-
-		hash ^= hashadd;
+	hash = msg->function;
+	for (i = 0; i < 4; i++) {
+		hash ^= peek_le32(&msg->muid[i * 4]);
 	}
-
-	hash ^= (guint) ((const struct message *) key)->function;
-
 	return hash;
 }
 
@@ -882,7 +873,7 @@ free_route_list(struct message *m)
 	g_assert(m);
 
 	for (l = m->routes; l; l = l->next)
-		remove_one_message_reference((struct route_data *) l->data);
+		remove_one_message_reference(l->data);
 
 	g_slist_free(m->routes);
 	m->routes = NULL;
@@ -1093,8 +1084,7 @@ find_message(const gchar *muid, guint8 function, struct message **m)
 	memcpy(dummyMessage.muid, muid, 16);
 	dummyMessage.function = function;
 
-	found_message = (struct message *)
-		g_hash_table_lookup(routing.messages_hashed, &dummyMessage);
+	found_message = g_hash_table_lookup(routing.messages_hashed, &dummyMessage);
 
 	if (!found_message) {
 		*m = NULL;
@@ -1789,7 +1779,7 @@ route_query_hit(struct route_log *log,
 	 */
 
 	for (found = NULL, l = m->routes; l; l = g_slist_next(l)) {
-		struct route_data *route = (struct route_data *) l->data;
+		struct route_data *route = l->data;
 		if (route->node != sender) {
 			found = route->node;
 			break;
@@ -2069,7 +2059,7 @@ route_proxy_add(gchar *guid, struct gnutella_node *n)
 struct gnutella_node *
 route_proxy_find(gchar *guid)
 {
-	return (struct gnutella_node *) g_hash_table_lookup(ht_proxyfied, guid);
+	return g_hash_table_lookup(ht_proxyfied, guid);
 }
 
 /**
@@ -2080,7 +2070,7 @@ free_banned_push(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;
-	atom_guid_free((gchar *) key);
+	atom_guid_free(key);
 }
 
 /**
