@@ -535,6 +535,24 @@ signal_handler_t set_signal(gint signo, signal_handler_t handler);
 
 gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 
+/**
+ * Determines the length of a NUL-terminated string looking only at the first
+ * "src_size" bytes. If src[0..size] contains no NUL byte, (size_t) -1 is
+ * returned. Otherwise, the returned value is identical to strlen(str). Thus,
+ * it is safe to pass a possibly non-terminated buffer.
+ * 
+ * @return (size_t) -1, if the string as long or longer than "src_size".
+ *         Otherwise, the result is identical to strlen(str).
+ */
+static inline size_t
+str_len_capped(const gchar *src, size_t src_size)
+{
+	const gchar *p;
+	
+	p = memchr(src, '\0', src_size);
+	return p ? (size_t) (p - src) : (size_t) -1;
+}
+
 #define NULL_STRING(s) (NULL != (s) ? (s) : "(null)")
 #define EMPTY_STRING(s) (NULL != (s) ? (s) : "")
 
