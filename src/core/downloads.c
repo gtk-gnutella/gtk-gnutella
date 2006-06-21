@@ -6414,6 +6414,33 @@ download_mark_active(struct download *d)
 }
 
 /**
+ * Checks whether the given vendor is evil.
+ *
+ * @param vendor Value of a User-Agent respectively Server header.
+ * @returns TRUE if the given vendor string is known to be used by evil
+ * 			guys only, FALSE otherwise.
+ */
+static gboolean
+vendor_is_evil(const gchar *vendor)
+{
+	const gchar *endptr;
+
+	g_return_val_if_fail(vendor, FALSE);
+	
+	endptr = is_strcaseprefix(vendor, "LimeWire/");
+	if (endptr) {
+		if (is_strprefix(endptr, "3.6.") || is_strprefix(endptr, "4.8.10.")) {
+			return TRUE;
+		}
+	} else {
+		if (is_strcaseprefix(vendor, "Morpheous/")) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/**
  * Called to initiate the download once all the HTTP headers have been read.
  * If `ok' is false, we timed out reading the header, and have therefore
  * something incomplete.
@@ -6668,15 +6695,10 @@ http_version_nofix:
 			"[short %u line%s header] ", count, count == 1 ? "" : "s");
 	}
 
-	{
-		const gchar *s;
-		
-		s = is_strcaseprefix(download_vendor_str(d), "LimeWire/");
-		if (s && (is_strprefix(s, "3.6.") || is_strprefix(s, "4.8.10."))) {
-			download_bad_source(d);
-			download_stop(d, GTA_DL_ERROR, "%s", _("Spammer detected"));
-			return;
-		}
+	if (vendor_is_evil(download_vendor_str(d))) {	
+		download_bad_source(d);
+		download_stop(d, GTA_DL_ERROR, "%s", _("Spammer detected"));
+		return;
 	}
 
 #ifdef TIGERTREE
