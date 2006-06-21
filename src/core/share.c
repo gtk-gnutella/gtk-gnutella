@@ -1560,9 +1560,10 @@ query_set_oob_flag(gnutella_node_t *n, gchar *data)
 gboolean
 search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 {
+	static const gchar qtrax2_con[] = "QTRAX2_CONNECTION";
 	guint16 req_speed;
 	gchar *search;
-	size_t search_len;
+	size_t search_len, max_len;
 	gboolean decoded = FALSE;
 	guint32 max_replies;
 	gboolean skip_file_search = FALSE;
@@ -1594,43 +1595,33 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	search = n->data + 2;
-	search_len = 0;
-
-	/* open a block, since C doesn't allow variables to be declared anywhere */
-	{
-		static const gchar qtrax2_con[] = "QTRAX2_CONNECTION";
-		gchar *s = search;
-		guint32 max_len = n->size - 3;		/* Payload size - Speed - NUL */
-
-        while (search_len <= max_len && *s++)
-            search_len ++;
-
-		if (search_len > max_len) {
-			g_assert(n->data[n->size - 1] != '\0');
-			if (share_debug)
-				g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
+	max_len = n->size > 2 ? (n->size - 3) : 0; /* Payload size - Speed - NUL */
+	search_len = str_len_capped(search, max_len + 1);
+	
+	if (search_len > max_len) {
+		g_assert(n->data[n->size - 1] != '\0');
+		if (share_debug)
+			g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
 					n->header.hops, n->header.ttl, n->size - 2,
 					n->size == 3 ? "" : "s");
-			if (share_debug > 4)
-				dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
+		if (share_debug > 4)
+			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
-            gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
-			return TRUE;		/* Drop the message! */
-		}
-		/* We can now use `search' safely as a C string: it embeds a NUL */
+		gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
+		return TRUE;		/* Drop the message! */
+	}
+	/* We can now use `search' safely as a C string: it embeds a NUL */
 
-		/*
-		 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
-		 */
-
-		if (
-			search_len >= CONST_STRLEN(qtrax2_con) &&
-			is_strprefix(search, qtrax2_con)
-		) {
-            gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
-			return TRUE;		/* Drop the message! */
-		}
-    }
+	/*
+	 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
+	 */
+	if (
+		search_len >= CONST_STRLEN(qtrax2_con) &&
+		is_strprefix(search, qtrax2_con)
+	) {
+		gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
+		return TRUE;		/* Drop the message! */
+	}
 
 	/*
 	 * Compact query, if requested and we're going to relay that message.
