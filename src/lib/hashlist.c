@@ -79,8 +79,8 @@ struct hash_list_iter {
 };
 
 struct hash_list_item {
+	gpointer orig_key;
 	GList *list;
-	gpointer data;
 };
 
 #if 0
@@ -218,7 +218,7 @@ hash_list_clear(hash_list_t *hl)
  * Append `data' to the list.
  */
 void
-hash_list_append(hash_list_t *hl, gpointer key, gpointer data)
+hash_list_append(hash_list_t *hl, gpointer key)
 {
 	struct hash_list_item *item;
 	
@@ -229,7 +229,7 @@ hash_list_append(hash_list_t *hl, gpointer key, gpointer data)
 	hash_list_regression(hl);
 
 	item = walloc(sizeof *item);
-	item->data = data;
+	item->orig_key = key;
 
 	hl->last = g_list_last(g_list_append(hl->last, item));
 	if (NULL == hl->l)
@@ -237,7 +237,7 @@ hash_list_append(hash_list_t *hl, gpointer key, gpointer data)
 	item->list = hl->last;
 
 	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
-	g_hash_table_insert(hl->ht, key, item);
+	g_hash_table_insert(hl->ht, deconstify_gpointer(key), item);
 
 	hl->len++;
 	hl->stamp++;
@@ -249,7 +249,7 @@ hash_list_append(hash_list_t *hl, gpointer key, gpointer data)
  * Prepend `data' to the list.
  */
 void
-hash_list_prepend(hash_list_t *hl, gpointer key, gpointer data)
+hash_list_prepend(hash_list_t *hl, gpointer key)
 {
 	struct hash_list_item *item;
 
@@ -260,7 +260,7 @@ hash_list_prepend(hash_list_t *hl, gpointer key, gpointer data)
 	hash_list_regression(hl);
 
 	item = walloc(sizeof *item);
-	item->data = data;
+	item->orig_key = key;
 
 	hl->l = g_list_prepend(hl->l, item);
 	if (NULL == hl->last)
@@ -268,7 +268,7 @@ hash_list_prepend(hash_list_t *hl, gpointer key, gpointer data)
 	item->list = hl->l;
 
 	g_assert(NULL == g_hash_table_lookup(hl->ht, item));
-	g_hash_table_insert(hl->ht, key, item);
+	g_hash_table_insert(hl->ht, deconstify_gpointer(key), item);
 
 	hl->len++;
 	hl->stamp++;
@@ -280,11 +280,10 @@ hash_list_prepend(hash_list_t *hl, gpointer key, gpointer data)
  * Remove `data' from the list.
  * @return The data that associated with the given key.
  */
-gpointer
+void
 hash_list_remove(hash_list_t *hl, gpointer key)
 {
 	struct hash_list_item *item;
-	gpointer data;
 
 	g_assert(1 == hl->refcount);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
@@ -294,7 +293,6 @@ hash_list_remove(hash_list_t *hl, gpointer key)
 
 	item = g_hash_table_lookup(hl->ht, key);
 	g_assert(item);
-	data = item->data;
 	if (hl->last == item->list)
 		hl->last = g_list_previous(hl->last);
 	hl->l = g_list_delete_link(hl->l, item->list);
@@ -305,7 +303,6 @@ hash_list_remove(hash_list_t *hl, gpointer key)
 	hl->stamp++;
 
 	hash_list_regression(hl);
-	return data;
 }
 
 /**
@@ -325,7 +322,7 @@ hash_list_last(const hash_list_t *hl)
 
 		item = hl->last->data;
 		g_assert(item);
-		return item->data;
+		return item->orig_key;
 	}
 	return NULL;
 }
@@ -347,7 +344,7 @@ hash_list_first(const hash_list_t *hl)
 
 		item = hl->l->data;
 		g_assert(item);
-		return item->data;
+		return item->orig_key;
 	}
 	return NULL;
 }
@@ -441,7 +438,7 @@ hash_list_next(hash_list_iter_t *i)
 	if (i->l) {
 		struct hash_list_item *item;
 		item = i->l->data;
-		return item->data;
+		return item->orig_key;
 	}
 	return NULL;
 }
@@ -482,7 +479,7 @@ hash_list_previous(hash_list_iter_t *i)
 	if (i->l) {
 		struct hash_list_item *item;
 		item = i->l->data;
-		return item->data;
+		return item->orig_key;
 	}
 	return NULL;
 }
@@ -549,7 +546,7 @@ hash_list_release(hash_list_iter_t *i)
  * Check whether hashlist contains the `data'.
  */
 gboolean
-hash_list_contains(hash_list_t *hl, gpointer key, gpointer *data_ptr)
+hash_list_contains(hash_list_t *hl, gconstpointer key, gpointer *orig_key_ptr)
 {
 	struct hash_list_item *item;
 
@@ -560,8 +557,8 @@ hash_list_contains(hash_list_t *hl, gpointer key, gpointer *data_ptr)
 	hash_list_regression(hl);
 
 	item = g_hash_table_lookup(hl->ht, key);
-	if (item && data_ptr) {
-		*data_ptr = item->data;
+	if (item && orig_key_ptr) {
+		*orig_key_ptr = item->orig_key;
 	}
 	return NULL != item;
 }
@@ -585,7 +582,7 @@ hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 		struct hash_list_item *item;
 
 		item = list->data;
-		func(item->data, user_data);
+		func(item->orig_key, user_data);
 	}
 
 	hash_list_regression(hl);

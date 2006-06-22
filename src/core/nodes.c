@@ -4357,7 +4357,7 @@ node_add_tls_host(const host_addr_t addr, guint16 port)
 		}
 		host_ptr = wcopy(&host, sizeof host);
 	}
-	hash_list_append(tls_hosts, host_ptr, host_ptr);
+	hash_list_append(tls_hosts, host_ptr);
 
 	/* Remove the oldest host once we hit a reasonable limit */
 	if (hash_list_length(tls_hosts) > 10000) {

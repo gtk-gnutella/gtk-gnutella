@@ -657,7 +657,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 
 		hash_list_remove(caches[hce->type]->hostlist, host);
 		caches[hce->type]->host_count--;
-		hash_list_prepend(hc->hostlist, host, host);
+		hash_list_prepend(hc->hostlist, host);
 		hc->host_count++;
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
@@ -678,7 +678,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_FRESH_ULTRA:
-        hash_list_append(hc->hostlist, host, host);
+        hash_list_append(hc->hostlist, host);
         break;
 
     case HCACHE_VALID_ANY:
@@ -688,7 +688,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
          * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
          * in effect using the most recent hosts we know about.
          */
-        hash_list_prepend(hc->hostlist, host, host);
+        hash_list_prepend(hc->hostlist, host);
         break;
 
     default:
@@ -696,7 +696,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
          * hcache_expire() depends on the fact that new entries are
          * added to the beginning of the list
          */
-        hash_list_prepend(hc->hostlist, host, host);
+        hash_list_prepend(hc->hostlist, host);
         break;
     }
 
