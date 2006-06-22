@@ -406,22 +406,23 @@ record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
 	
 	g_assert(muid);
 	g_assert(query);
-	
-	if (hash_list_contains(query_muids, muid, &key)) {
-		gchar *old_query;
-		
-		/* We'll append the new value to the list */
-		hash_list_remove(query_muids, deconstify_gpointer(muid));
-		old_query = g_hash_table_lookup(muid_to_query_map, key);
-		atom_str_free_null(&old_query);
-		g_hash_table_remove(muid_to_query_map, old_query);
-	} else {
-		key = atom_guid_get(muid);
+
+	if (search_muid_track_amount > 0) {
+		if (hash_list_contains(query_muids, muid, &key)) {
+			gchar *old_query;
+
+			/* We'll append the new value to the list */
+			hash_list_remove(query_muids, deconstify_gpointer(muid));
+			old_query = g_hash_table_lookup(muid_to_query_map, key);
+			atom_str_free_null(&old_query);
+			g_hash_table_remove(muid_to_query_map, old_query);
+		} else {
+			key = atom_guid_get(muid);
+		}
+
+		g_hash_table_insert(muid_to_query_map, key, atom_str_get(query));
+		hash_list_append(query_muids, key);
 	}
-
-	g_hash_table_insert(muid_to_query_map, key, atom_str_get(query));
-	hash_list_append(query_muids, key);
-
 	query_muid_map_garbage_collect();
 }
 
@@ -430,7 +431,6 @@ map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE])
 {
 	gpointer key;
 	
-	query_muid_map_garbage_collect();
 	if (hash_list_contains(query_muids, muid, &key)) {
 		return g_hash_table_lookup(muid_to_query_map, key);
 	}
