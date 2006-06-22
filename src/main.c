@@ -913,7 +913,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(sizeof(ssize_t) == sizeof(gssize));
 
 	inputevt_init();
-	tiger_init();
+	tiger_check();
 	tt_check();
 	random_init();
 	locale_init();

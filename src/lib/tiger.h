@@ -38,24 +38,8 @@
 
 #include <glib.h>
 
-void tiger_init(void);
-void tiger(gconstpointer data, guint64 length, guint64 res[3]);
-
-/* This only used internally by tiger and tigertree */
-static inline void
-tiger_fix_endian(guint64 res[3])
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
-{
-	(void) res;
-}
-#else /* !little-endian */
-{
-	res[0] = guint64_to_LE(res[0]);
-	res[1] = guint64_to_LE(res[1]);
-	res[2] = guint64_to_LE(res[2]);
-}
-#endif /* little-endian */
+void tiger_check(void);
+void tiger(gconstpointer data, guint64 length, guchar hash[24]);
 
 #endif /* _tiger_h_ */
 /* vi: set ts=4 sw=4 cindent: */
-
