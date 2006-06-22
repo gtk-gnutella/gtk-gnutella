@@ -29,7 +29,7 @@
  *
  * Created and released into the public domain by Eli Biham
  *
- * $Id$
+ * $Bitzi: tiger.c,v 1.4 2004/02/01 06:19:31 gojomo Exp $
  */
 
 /**
