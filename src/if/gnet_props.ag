@@ -1604,6 +1604,19 @@ prop = {
 };
 
 prop = {
+    name = "search_muid_track_amount";
+    desc =  "Maximum number of Query MUIDs to track. This allows mapping "
+			"MUIDs of Query Hits to the original search term. In the worst "
+			"case this causes about 300 bytes per Query of memory overhead.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 1000000;
+    };
+};
+
+prop = {
     name = "other_messages_kick_size";
     desc = "Maximum size of unknown messages we allow, otherwise close the "
            "connection (in bytes).";

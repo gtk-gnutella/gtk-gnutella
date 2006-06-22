@@ -183,6 +183,7 @@ extern const guint32  search_queries_forward_size;
 extern const guint32  search_queries_kick_size;
 extern const guint32  search_answers_forward_size;
 extern const guint32  search_answers_kick_size;
+extern const guint32  search_muid_track_amount;
 extern const guint32  other_messages_kick_size;
 extern const guint32  hops_random_factor;
 extern const gboolean send_pushes;
