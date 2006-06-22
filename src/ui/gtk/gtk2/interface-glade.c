@@ -4828,7 +4828,7 @@ create_main_window_search_tab (void)
   gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_filename), FALSE);
   gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_filename), FALSE);
 
-  label662 = gtk_label_new (_("Tag:"));
+  label662 = gtk_label_new (_("Query:"));
   gtk_widget_set_name (label662, "label662");
   gtk_widget_show (label662);
   gtk_table_attach (GTK_TABLE (table66), label662, 0, 1, 4, 5,

@@ -273,7 +273,7 @@ search_gui_set_details(const record_t *rc)
 			break;
 
 		case info_tag:
-			gtk_entry_set_text(e, EMPTY_STRING(rc->tag));
+			gtk_entry_set_text(e, EMPTY_STRING(rc->results_set->query));
 			break;
 			
 		case info_speed:

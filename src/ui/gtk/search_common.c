@@ -278,8 +278,12 @@ search_gui_host_vec_free(gnet_host_vec_t *v)
 void
 search_gui_free_proxies(results_set_t *rs)
 {
-	search_gui_host_vec_free(rs->proxies);
-	rs->proxies = NULL;
+	g_assert(rs);
+
+	if (rs->proxies) {
+		search_gui_host_vec_free(rs->proxies);
+		rs->proxies = NULL;
+	}
 }
 
 /**
@@ -444,14 +448,11 @@ search_gui_free_r_set(results_set_t *rs)
 		rs->num_recs--;
 	}
 
-    if (rs->guid)
-		atom_guid_free(rs->guid);
-	if (rs->version)
-		atom_str_free(rs->version);
-	if (rs->proxies)
-		search_gui_free_proxies(rs);
-	if (rs->hostname)
-		atom_str_free(rs->hostname);
+	atom_guid_free_null(&rs->guid);
+	atom_str_free_null(&rs->version);
+	atom_str_free_null(&rs->hostname);
+	atom_str_free_null(&rs->query);
+	search_gui_free_proxies(rs);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -815,6 +816,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     rs->vcode = r_set->vcode;
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
+	rs->query = r_set->query ? atom_str_get(r_set->query) : NULL;
 	rs->country = r_set->country;
 	rs->last_hop = r_set->last_hop;
 	rs->hops = r_set->hops;
@@ -1174,8 +1176,7 @@ search_matched(search_t *sch, results_set_t *rs)
 						rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
 						rs->stamp, need_push, TRUE, NULL, rs->proxies, flags);
 
-				if (rs->proxies != NULL)
-					search_gui_free_proxies(rs);
+				search_gui_free_proxies(rs);
 
 				downloaded = TRUE;
 				sch->auto_downloaded++;
@@ -1250,7 +1251,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		sch->r_sets = hash_list_new(NULL, NULL);
 
 	/* Adds the set to the list */
-	hash_list_prepend(sch->r_sets, rs, rs);
+	hash_list_prepend(sch->r_sets, rs);
 	rs->refcount++;
    	g_assert(hash_list_contains(sch->r_sets, rs, NULL));
 	g_assert(hash_list_first(sch->r_sets) == rs);

@@ -98,6 +98,7 @@ typedef struct gnet_results_set {
 	gchar *guid;				/**< Servent's GUID (atom) */
 	gchar *hostname;			/**< Optional: server's hostname */
 	gchar *version;				/**< Version information (atom) */
+	gchar *query;				/**< Optional: Original query string (atom) */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	GSList *records;
 	time_t  stamp;				/**< Reception time of the hit */

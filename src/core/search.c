@@ -566,6 +566,7 @@ search_free_r_set(gnet_results_set_t *rs)
 	atom_guid_free_null(&rs->guid);
 	atom_str_free_null(&rs->version);
 	atom_str_free_null(&rs->hostname);
+	atom_str_free_null(&rs->query);
 	search_free_proxies(rs);
 
 	g_slist_free(rs->records);
@@ -669,6 +670,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	rs->country   = -1;
 	rs->hops	  = n->header.hops;
 	rs->ttl		  = n->header.ttl;
+	{
+		const gchar *query;
+
+		query = map_muid_to_query_string(n->header.muid);
+		rs->query = query ? atom_str_get(query) : NULL;
+	}
 
 	r = cast_to_gpointer(n->data);
 

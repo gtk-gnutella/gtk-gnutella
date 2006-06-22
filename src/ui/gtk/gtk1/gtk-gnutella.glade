@@ -7146,7 +7146,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <name>label705</name>
-			  <label>Tag:</label>
+			  <label>Query:</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>1</xalign>

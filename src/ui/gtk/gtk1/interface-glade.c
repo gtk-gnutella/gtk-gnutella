@@ -5194,7 +5194,7 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label710), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label710), 4, 0);
 
-  label705 = gtk_label_new (_("Tag:"));
+  label705 = gtk_label_new (_("Query:"));
   gtk_widget_set_name (label705, "label705");
   gtk_widget_ref (label705);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label705", label705,
