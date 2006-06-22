@@ -655,16 +655,22 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 			"%lu", (gulong) rc->index);
 
 	{
-		gchar *s;
+		const gchar *query = rc->results_set->query;
+		GtkEntry *entry;
+	   
+		entry = GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag"));
+		query = rc->results_set->query;
+		if (query) {
+			gchar *s;
 
-		s = rc->tag
-				? unknown_to_utf8_normalized(rc->tag, UNI_NORM_GUI, NULL)
-				: NULL;
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
-			s ? s : "");
-		if (rc->tag != s)
-			G_FREE_NULL(s);
+			s = unknown_to_utf8_normalized(query, UNI_NORM_GUI, NULL);
+			gtk_entry_set_text(entry, s ? s : "");
+			if (query != s) {
+				G_FREE_NULL(s);
+			}
+		} else {
+			gtk_entry_set_text(entry, "");
+		}
 	}
 
 	/* Display XML data from the result if any */
