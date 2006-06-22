@@ -197,5 +197,19 @@ poke_le32(gpointer p, guint32 v)
 	return &q[4];
 }
 
+static inline gpointer
+poke_le64(gpointer p, guint64 v)
+{
+	guint8 *q = p;
+	guint i;
+
+	for (i = 0; i < 8; i++) {
+		q[i] = v;
+		v >>= 8;
+	}
+
+	return &q[8];
+}
+
 #endif /* _endian_h_ */
 /* vi: set ts=4 sw=4 cindent: */
