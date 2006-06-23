@@ -43,6 +43,10 @@
 
 RCSID("$Id: hostiles.c 10580 2006-03-14 22:58:17Z cbiere $");
 
+#ifdef HAS_SQLITE
+#include <sqlite3.h>
+#endif /* HAS_SQLITE */
+
 #include "spam.h"
 #include "settings.h"
 #include "nodes.h"
@@ -62,10 +66,21 @@ RCSID("$Id: hostiles.c 10580 2006-03-14 22:58:17Z cbiere $");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const gchar spam_file[] = "spam.txt";
+static const gchar spam_text_file[] = "spam.txt";
+static const gchar spam_db_file[] = "spam.db";
 static const gchar spam_what[] = "Spam database";
 
-static GHashTable *spam_ht;
+struct spam_lut {
+#ifdef HAS_SQLITE
+	sqlite3 *db;
+	sqlite3_stmt *lookup_stmt;
+	sqlite3_stmt *insert_stmt;
+#else  /* HAS_SQLITE */
+	GHashTable *ht;
+#endif /* HAS_SQLITE */
+};
+
+struct spam_lut spam_lut;
 
 typedef enum {
 	SPAM_TAG_UNKNOWN = 0,
@@ -75,6 +90,11 @@ typedef enum {
 
 	NUM_SPAM_TAGS
 } spam_tag_t;
+
+struct spam_item {
+	gchar sha1[SHA1_RAW_SIZE];
+	time_t added;
+};
 
 static const struct spam_tag {
 	spam_tag_t	tag;
@@ -112,10 +132,153 @@ spam_string_to_tag(const gchar *s)
 	return SPAM_TAG_UNKNOWN;
 }
 
-typedef struct {
-	gchar sha1[SHA1_RAW_SIZE];
-	time_t added;
-} spam_item_t;
+static int
+spam_db_begin(struct spam_lut *lut)
+{
+#ifdef HAS_SQLITE
+	gchar *errmsg;
+	gint ret;
+
+	ret = sqlite3_exec(lut->db, "BEGIN;", NULL, NULL, &errmsg);
+	if (SQLITE_OK != ret) {
+		g_warning("%s: sqlite3_exec() failed: %s", "spam_db_begin", errmsg);
+		sqlite3_free(errmsg);
+		return -1;
+	}
+#else
+	(void) lut;
+#endif
+	return 0;
+}
+
+static int
+spam_db_commit(struct spam_lut *lut)
+{
+#ifdef HAS_SQLITE
+	gchar *errmsg;
+	gint ret;
+
+	ret = sqlite3_exec(lut->db, "COMMIT;", NULL, NULL, &errmsg);
+	if (SQLITE_OK != ret) {
+		g_warning("%s: sqlite3_exec() failed: %s", "spam_db_commit", errmsg);
+		sqlite3_free(errmsg);
+		return -1;
+	}
+#else
+	(void) lut;
+#endif
+	return 0;
+}
+
+static gint
+spam_db_open(struct spam_lut *lut)
+#ifdef HAS_SQLITE
+{
+	gchar *pathname;
+	gint error;
+
+	g_assert(lut);
+
+	pathname = make_pathname(settings_config_dir(), spam_db_file);
+	error = sqlite3_open(pathname, &lut->db);
+	G_FREE_NULL(pathname);
+	
+	if (error) {
+		g_warning("Cannot open spam database: %s", sqlite3_errmsg(lut->db));
+		goto failure;
+	}
+
+	{
+		static const gchar cmd[] =
+			"DROP TABLE IF EXISTS spam;"
+			"VACUUM;"
+			"CREATE TABLE spam (sha1 BLOB PRIMARY KEY);";
+		gchar *errmsg;
+		gint ret;
+
+		ret = sqlite3_exec(lut->db, cmd, NULL, NULL, &errmsg);
+		if (SQLITE_OK != ret) {
+			g_warning("sqlite3_exec() failed: %s", errmsg);
+			sqlite3_free(errmsg);
+			goto failure;
+		}
+	}
+
+	{
+		static const gchar cmd[] = "INSERT INTO spam VALUES($x);";
+		gint ret;
+	   
+		ret = sqlite3_prepare(lut->db, cmd, (-1), &lut->insert_stmt, NULL);
+		if (SQLITE_OK != ret) {
+			g_warning("sqlite3_prepare() failed: %s", sqlite3_errmsg(lut->db));
+			goto failure;
+		}
+	}
+
+	{
+		static const gchar cmd[] = "SELECT OID FROM spam WHERE sha1 = $x;";
+		gint ret;
+
+		ret = sqlite3_prepare(lut->db, cmd, (-1), &lut->lookup_stmt, NULL);
+		if (SQLITE_OK != ret) {
+			g_warning("sqlite3_prepare() failed: %s", sqlite3_errmsg(lut->db));
+			goto failure;
+		}
+	}
+	return 0;
+	
+failure:
+	spam_close();
+	return -1;
+}
+#else	/* !HAS_SQLITE */
+{
+	g_assert(lut);
+
+	lut->ht = g_hash_table_new(sha1_hash, sha1_eq);
+	return 0;
+}
+#endif	/* HAS_SQLITE */
+
+void
+spam_add(const struct spam_item *item)
+{
+	g_assert(item);
+
+#ifdef HAS_SQLITE
+	if (spam_lut.db) {
+		sqlite3_stmt *stmt = spam_lut.insert_stmt;
+		gint ret;
+		
+		ret = sqlite3_reset(stmt);
+		if (SQLITE_OK == ret) {
+			ret = sqlite3_bind_blob(stmt, 1,
+					item->sha1, sizeof item->sha1, SQLITE_STATIC);
+			if (SQLITE_OK == ret) {
+				ret = sqlite3_step(stmt);
+				if (SQLITE_DONE != ret) {
+					g_warning("%s: sqlite3_step() failed: %s",
+						"spam_add", sqlite3_errmsg(spam_lut.db));
+				}
+			} else {
+				g_warning("%s: sqlite3_bind_blob() failed: %s",
+					"spam_add", sqlite3_errmsg(spam_lut.db));
+			}
+		} else {
+			g_warning("%s: sqlite3_reset() failed: %s",
+				"spam_add", sqlite3_errmsg(spam_lut.db));
+		}
+	}
+#else	/* HAS_SQLITE */
+	if (spam_lut.ht) {
+		struct spam_item *item_copy;
+
+		item_copy = wcopy(item, sizeof *item);
+		g_hash_table_insert(spam_lut.ht, &item_copy->sha1, item_copy);
+	}
+#endif	/* HAS_SQLITE */
+}
+
 
 /**
  * Load spam database from the supplied FILE.
@@ -127,17 +290,18 @@ typedef struct {
  * ADDED <date>
  * END
  *
- * @returns the amount of entries loaded.
+ * @returns the amount of entries loaded or -1 on failure.
  */
-static gint
+static glong
 spam_load(FILE *f)
 {
-	static const spam_item_t zero_item;
-	spam_item_t item;
+	static const struct spam_item zero_item;
+	struct spam_item item;
 	gchar line[1024];
 	guint line_no = 0;
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_SPAM_TAGS)];
 	gboolean done = FALSE;
+	gulong item_count = 0;
 
 	g_assert(f);
 
@@ -146,7 +310,10 @@ spam_load(FILE *f)
 	item = zero_item;
 	bit_array_clear_range(tag_used, 0, (guint) NUM_SPAM_TAGS - 1);
 
-	spam_ht = g_hash_table_new(sha1_hash, sha1_eq);
+	if (0 != spam_db_open(&spam_lut)) {
+		return -1;
+	}
+	spam_db_begin(&spam_lut);
 
 	while (fgets(line, sizeof line, f)) {
 		const gchar *tag_name, *value;
@@ -253,14 +420,13 @@ spam_load(FILE *f)
 		}
 
 		if (done) {
-			if (g_hash_table_lookup(spam_ht, &item.sha1)) {
-				g_warning("Ignoring duplicate spam item around line %u",
-					line_no);
+			if (spam_check(item.sha1)) {
+				g_warning(
+					"Ignoring duplicate spam item around line %u (sha1=%s)",
+				   	line_no, sha1_base32(item.sha1));
 			} else {
-				spam_item_t *spam;
-
-				spam = wcopy(&item, sizeof item);
-				g_hash_table_insert(spam_ht, &spam->sha1, spam);
+				spam_add(&item);
+				item_count++;
 			}
 			
 			/* Reset state */
@@ -270,7 +436,9 @@ spam_load(FILE *f)
 		}
 	}
 
-	return g_hash_table_size(spam_ht);
+	spam_db_commit(&spam_lut);
+
+	return item_count;
 }
 
 /**
@@ -281,21 +449,21 @@ static void
 spam_changed(const gchar *filename, gpointer unused_udata)
 {
 	FILE *f;
-	gchar buf[80];
-	guint count;
 
 	(void) unused_udata;
 
 	f = file_fopen(filename, "r");
-	if (f == NULL)
-		return;
+	if (f) {
+		gchar buf[80];
+		gulong count;
 
-	spam_close();
-	count = spam_load(f);
-	fclose(f);
+		spam_close();
+		count = spam_load(f);
+		fclose(f);
 
-	gm_snprintf(buf, sizeof(buf), "Reloaded %u spam items.", count);
-	gcu_statusbar_message(buf);
+		gm_snprintf(buf, sizeof(buf), "Reloaded %lu spam items.", count);
+		gcu_statusbar_message(buf);
+	}
 }
 
 static void
@@ -326,7 +494,7 @@ spam_retrieve(void)
 	gint idx;
 	file_path_t fp[1];
 
-	file_path_set(&fp[0], settings_config_dir(), spam_file);
+	file_path_set(&fp[0], settings_config_dir(), spam_text_file);
 	f = file_config_open_read_norename_chosen(spam_what,
 			fp, G_N_ELEMENTS(fp), &idx);
 
@@ -345,16 +513,18 @@ spam_init(void)
 	spam_retrieve();
 }
 
+#ifndef HAS_SQLITE
 static void
 spam_item_free(gpointer unused_key, gpointer value, gpointer unused_x)
 {
-	spam_item_t *item = value;
+	struct spam_item *item = value;
 	
 	(void) unused_key;
 	(void) unused_x;
 
 	wfree(item, sizeof *item);
 }
+#endif /* HAS_SQLITE */
 
 /**
  * Frees all entries in the spam database.
@@ -362,11 +532,32 @@ spam_item_free(gpointer unused_key, gpointer value, gpointer unused_x)
 void
 spam_close(void)
 {
-	if (spam_ht) {
-		g_hash_table_foreach(spam_ht, spam_item_free, NULL);
-		g_hash_table_destroy(spam_ht);
-		spam_ht = NULL;
+#ifdef HAS_SQLITE
+	if (spam_lut.insert_stmt) {
+		sqlite3_finalize(spam_lut.insert_stmt);
+		spam_lut.insert_stmt = NULL;
 	}
+	if (spam_lut.lookup_stmt) {
+		sqlite3_finalize(spam_lut.lookup_stmt);
+		spam_lut.lookup_stmt = NULL;
+	}
+	if (spam_lut.db) {
+		gint ret;
+		
+		ret = sqlite3_close(spam_lut.db);
+		if (SQLITE_OK != ret) {
+			g_warning("sqlite3_close() failed: %s",
+				sqlite3_errmsg(spam_lut.db));
+		}
+		spam_lut.db = NULL;
+	}
+#else /* HAS_SQLITE */
+	if (spam_lut.ht) {
+		g_hash_table_foreach(spam_lut.ht, spam_item_free, NULL);
+		g_hash_table_destroy(spam_lut.ht);
+		spam_lut.ht = NULL;
+	}
+#endif /* HAS_SQLITE */
 }
 
 /**
@@ -378,16 +569,42 @@ spam_close(void)
 gboolean
 spam_check(const char *sha1)
 {
-	gboolean found;
-
 	g_assert(sha1);
 
-	if (spam_ht) {
-		found = NULL != g_hash_table_lookup(spam_ht, sha1);
-	} else {
-		found = FALSE;
+#ifdef HAS_SQLITE
+	if (spam_lut.db) {
+		sqlite3_stmt *stmt = spam_lut.lookup_stmt;
+		gint ret;
+		
+		ret = sqlite3_reset(stmt);
+		if (SQLITE_OK == ret) {
+			ret = sqlite3_bind_blob(stmt, 1,
+					sha1, SHA1_RAW_SIZE, SQLITE_STATIC);
+			if (SQLITE_OK == ret) {
+				ret = sqlite3_step(stmt);
+				if (SQLITE_ROW == ret) {
+					return TRUE;
+				}
+				if (SQLITE_DONE != ret) {
+					g_warning("%s: sqlite3_step() failed: %s",
+						"spam_check", sqlite3_errmsg(spam_lut.db));
+				}
+			} else {
+				g_warning("%s: sqlite3_bind_blob() failed: %s",
+					"spam_check", sqlite3_errmsg(spam_lut.db));
+			}
+		} else {
+			g_warning("%s: sqlite3_reset() failed: %s",
+				"spam_check", sqlite3_errmsg(spam_lut.db));
+		}
+		return FALSE;
 	}
-	return found;
+#else	/* HAS_SQLITE */
+	if (spam_lut.ht) {
+		return NULL != g_hash_table_lookup(spam_lut.ht, sha1);
+	}
+#endif	/* HAS_SQLITE */
+	return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
