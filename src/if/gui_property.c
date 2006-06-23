@@ -177,10 +177,10 @@ guint32  search_sort_default_column     = -1;
 guint32  search_sort_default_column_def = -1;
 gboolean show_search_results_settings     = FALSE;
 gboolean show_search_results_settings_def = FALSE;
-gboolean search_show_spam     = FALSE;
-gboolean search_show_spam_def = FALSE;
-gboolean search_show_hashless     = FALSE;
-gboolean search_show_hashless_def = FALSE;
+gboolean search_discard_spam     = TRUE;
+gboolean search_discard_spam_def = TRUE;
+gboolean search_discard_hashless     = TRUE;
+gboolean search_discard_hashless_def = TRUE;
 gboolean show_dl_settings     = FALSE;
 gboolean show_dl_settings_def = FALSE;
 guint32  search_stats_mode     = 0;
@@ -1577,37 +1577,37 @@ gui_prop_init(void) {
 
 
     /*
-     * PROP_SEARCH_SHOW_SPAM:
+     * PROP_SEARCH_DISCARD_SPAM:
      *
      * General data:
      */
-    gui_property->props[67].name = "search_show_spam";
-    gui_property->props[67].desc = _("Display search results which are considered spam.");
-    gui_property->props[67].ev_changed = event_new("search_show_spam_changed");
+    gui_property->props[67].name = "search_discard_spam";
+    gui_property->props[67].desc = _("Discard search results which are considered spam.");
+    gui_property->props[67].ev_changed = event_new("search_discard_spam_changed");
     gui_property->props[67].save = TRUE;
     gui_property->props[67].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[67].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[67].data.boolean.def   = &search_show_spam_def;
-    gui_property->props[67].data.boolean.value = &search_show_spam;
+    gui_property->props[67].data.boolean.def   = &search_discard_spam_def;
+    gui_property->props[67].data.boolean.value = &search_discard_spam;
 
 
     /*
-     * PROP_SEARCH_SHOW_HASHLESS:
+     * PROP_SEARCH_DISCARD_HASHLESS:
      *
      * General data:
      */
-    gui_property->props[68].name = "search_show_hashless";
-    gui_property->props[68].desc = _("Display search results which carry no hashsum.");
-    gui_property->props[68].ev_changed = event_new("search_show_hashless_changed");
+    gui_property->props[68].name = "search_discard_hashless";
+    gui_property->props[68].desc = _("Discard search results which carry no hashsum.");
+    gui_property->props[68].ev_changed = event_new("search_discard_hashless_changed");
     gui_property->props[68].save = TRUE;
     gui_property->props[68].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[68].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[68].data.boolean.def   = &search_show_hashless_def;
-    gui_property->props[68].data.boolean.value = &search_show_hashless;
+    gui_property->props[68].data.boolean.def   = &search_discard_hashless_def;
+    gui_property->props[68].data.boolean.value = &search_discard_hashless;
 
 
     /*

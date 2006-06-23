@@ -691,20 +691,20 @@ prop = {
 };
 
 prop = {
-    name = "search_show_spam";
-    desc = "Display search results which are considered spam.";
+    name = "search_discard_spam";
+    desc = "Discard search results which are considered spam.";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
 prop = {
-    name = "search_show_hashless";
-    desc = "Display search results which carry no hashsum.";
+    name = "search_discard_hashless";
+    desc = "Discard search results which carry no hashsum.";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 

@@ -1142,8 +1142,8 @@ search_matched(search_t *sch, results_set_t *rs)
 
 			if (
 				rc->size == 0 ||
-				(!rc->sha1 && !search_show_hashless) ||
-				((ST_SPAM & rs->status) && !search_show_spam)
+				(!rc->sha1 && search_discard_hashless) ||
+				((ST_SPAM & rs->status) && search_discard_spam)
 			) {
 				sch->ignored++;
 				continue;
