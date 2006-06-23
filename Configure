@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Jun 19 18:15:12 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Jun 24 00:13:42 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -329,6 +329,7 @@ d_portable=''
 d_random=''
 d_rusage=''
 d_sa_interrupt=''
+d_select=''
 d_sendfile=''
 d_setproctitle=''
 d_sigaction=''
@@ -5572,6 +5573,10 @@ $rm -f try try.c
 set d_sa_interrupt
 eval $setvar
 
+: see if select exists
+set select d_select
+eval $inlibc
+
 : see if sendfile exists
 set sendfile d_sendfile
 eval $inlibc
@@ -5654,6 +5659,52 @@ else
 fi
 $rm -f try try.c
 set d_socker_get
+eval $setvar
+
+: how can we find information about SQLite?
+echo " "
+case "$d_sqlite" in
+"$undef") sqlite="$undef";;
+*) sqlite="$define";;
+esac
+echo "Checking how we can gather information about SQLite..." >&4
+if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
+	sqliteconfig="pkg-config sqlite3"
+	modver=--modversion
+elif pkg-config sqlite --cflags >/dev/null 2>&1; then
+	sqliteconfig="pkg-config sqlite"
+	modver=--modversion
+else
+	echo "You've don't seem to have SQLite installed?" >&4
+	sqliteconfig='false'
+	modver=''
+fi
+echo "(I'll use '$sqliteconfig' to gather that information.)"
+
+sqlitecflags=""
+sqliteldflags=""
+version=`$sqliteconfig $modver`
+val="$undef"
+case "$version" in
+'') ;;
+*)
+	sqlitecflags=`$sqliteconfig --cflags`
+	sqliteldflags=`$sqliteconfig --libs`
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 030200; then
+		echo "Sorry, you have SQLite $version, I need at least 3.2.0." >&4
+	else
+		val="$define"
+		echo "Good, you have SQLite $version."
+		
+		$cat <<'EOM'
+
+For more information, see http://www.sqlite.org/.
+
+EOM
+	fi
+esac
+set d_sqlite
 eval $setvar
 
 : see if srandom exists
@@ -7087,52 +7138,6 @@ else
 fi
 $rm -f foo* bar* 
 
-: how can we find information about SQLite?
-echo " "
-case "$d_sqlite" in
-"$undef") sqlite="$undef";;
-*) sqlite="$define";;
-esac
-echo "Checking how we can gather information about SQLite..." >&4
-if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite3"
-	modver=--modversion
-elif pkg-config sqlite --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite"
-	modver=--modversion
-else
-	echo "You've don't seem to have SQLite installed?" >&4
-	sqliteconfig='false'
-	modver=''
-fi
-echo "(I'll use '$sqliteconfig' to gather that information.)"
-
-sqlitecflags=""
-sqliteldflags=""
-version=`$sqliteconfig $modver`
-val="$undef"
-case "$version" in
-'') ;;
-*)
-	sqlitecflags=`$sqliteconfig --cflags`
-	sqliteldflags=`$sqliteconfig --libs`
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 030200; then
-		echo "Sorry, you have SQLite $version, I need at least 3.2.0." >&4
-	else
-		val="$define"
-		echo "Good, you have SQLite $version."
-		
-		$cat <<'EOM'
-
-For more information, see http://www.sqlite.org/.
-
-EOM
-	fi
-esac
-set d_sqlite
-eval $setvar
-
 : check for void type
 echo " "
 echo "Checking to see how well your C compiler groks the void type..." >&4
@@ -7765,6 +7770,7 @@ d_random='$d_random'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
 d_sa_interrupt='$d_sa_interrupt'
+d_select='$d_select'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'

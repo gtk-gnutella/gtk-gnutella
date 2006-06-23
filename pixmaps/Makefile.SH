@@ -41,6 +41,7 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
+JCPPFLAGS = $cppflags
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -54,7 +55,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.8 2005/09/16 21:48:34 rmanfredi Exp $
+# $X-Id: Jmakefile 11129 2006-06-20 22:13:22Z cbiere $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -77,6 +78,9 @@ PIXMAPS = \
 	icon.xpm \
 	leaf.xpm \
 	legacy.xpm \
+	magnet.16x16.png \
+	magnet.32x32.png \
+	magnet.64x64.png \
 	no_firewall.xpm \
 	offline.xpm \
 	online.xpm \
@@ -86,7 +90,7 @@ PIXMAPS = \
 	thaw.xpm \
 	ultra.xpm \
 	upload.xpm \
-	warning.xpm
+	warning.xpm \
 
 all::
 
