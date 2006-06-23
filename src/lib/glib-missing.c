@@ -567,6 +567,7 @@ gm_setproctitle(const gchar *title)
 
 #ifdef USE_GLIB1
 #undef g_string_append_len		/* Macro when -DTRACK_MALLOC */
+#undef g_string_append_c		/* Macro when -DTRACK_MALLOC */
 /**
  * Appends len bytes of val to string. Because len is provided, val may
  * contain embedded nuls and need not be nul-terminated.
