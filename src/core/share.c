@@ -354,7 +354,7 @@ query_muid_map_init(void)
 static gboolean
 query_muid_map_remove_oldest(void)
 {
-	gchar *old_muid, *old_query;
+	gchar *old_muid;
 
 	old_muid = hash_list_first(query_muids);
 	if (old_muid) {
