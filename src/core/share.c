@@ -358,6 +358,8 @@ query_muid_map_remove_oldest(void)
 
 	old_muid = hash_list_first(query_muids);
 	if (old_muid) {
+		gchar *old_query;
+		
 		hash_list_remove(query_muids, old_muid);
 
 		old_query = g_hash_table_lookup(muid_to_query_map, old_muid);
@@ -365,8 +367,10 @@ query_muid_map_remove_oldest(void)
 
 		atom_guid_free_null(&old_muid);
 		atom_str_free_null(&old_query);
+		return TRUE;
+	} else {
+		return FALSE;
 	}
-	return NULL != old_muid;
 }
 
 static void
