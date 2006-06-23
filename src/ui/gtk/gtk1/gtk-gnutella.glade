@@ -6837,7 +6837,53 @@
 			<active>False</active>
 			<draw_indicator>True</draw_indicator>
 			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>4</right_attach>
+			  <top_attach>3</top_attach>
+			  <bottom_attach>4</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_search_discard_spam</name>
+			<can_focus>True</can_focus>
+			<label>Discard spam</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
 			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>3</top_attach>
+			  <bottom_attach>4</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_search_discard_hashless</name>
+			<can_focus>True</can_focus>
+			<label>Discard results without SHA-1 hashes</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>1</left_attach>
 			  <right_attach>2</right_attach>
 			  <top_attach>3</top_attach>
 			  <bottom_attach>4</bottom_attach>

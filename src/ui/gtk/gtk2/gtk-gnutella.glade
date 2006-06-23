@@ -6858,7 +6858,7 @@ http://maxmind.com/</property>
 					    <widget class="GtkTable" id="table78">
 					      <property name="border_width">2</property>
 					      <property name="visible">True</property>
-					      <property name="n_rows">3</property>
+					      <property name="n_rows">4</property>
 					      <property name="n_columns">4</property>
 					      <property name="homogeneous">False</property>
 					      <property name="row_spacing">2</property>
@@ -6996,27 +6996,6 @@ http://maxmind.com/</property>
 					      </child>
 
 					      <child>
-						<widget class="GtkCheckButton" id="checkbutton_search_remove_downloaded">
-						  <property name="visible">True</property>
-						  <property name="can_focus">True</property>
-						  <property name="label" translatable="yes">_Remove manually downloaded files</property>
-						  <property name="use_underline">True</property>
-						  <property name="relief">GTK_RELIEF_NORMAL</property>
-						  <property name="focus_on_click">True</property>
-						  <property name="active">False</property>
-						  <property name="inconsistent">False</property>
-						  <property name="draw_indicator">True</property>
-						</widget>
-						<packing>
-						  <property name="left_attach">2</property>
-						  <property name="right_attach">4</property>
-						  <property name="top_attach">2</property>
-						  <property name="bottom_attach">3</property>
-						  <property name="y_options"></property>
-						</packing>
-					      </child>
-
-					      <child>
 						<widget class="GtkLabel" id="label993">
 						  <property name="visible">True</property>
 						  <property name="label" translatable="yes">Max. number of browse host results</property>
@@ -7076,10 +7055,31 @@ http://maxmind.com/</property>
 					      </child>
 
 					      <child>
-						<widget class="GtkCheckButton" id="checkbutton_browse_copied_to_passive">
+						<widget class="GtkCheckButton" id="checkbutton_search_remove_downloaded">
 						  <property name="visible">True</property>
 						  <property name="can_focus">True</property>
-						  <property name="label" translatable="yes">Copy browse-host results to passive searches</property>
+						  <property name="label" translatable="yes">_Remove manually downloaded files</property>
+						  <property name="use_underline">True</property>
+						  <property name="relief">GTK_RELIEF_NORMAL</property>
+						  <property name="focus_on_click">True</property>
+						  <property name="active">False</property>
+						  <property name="inconsistent">False</property>
+						  <property name="draw_indicator">True</property>
+						</widget>
+						<packing>
+						  <property name="left_attach">2</property>
+						  <property name="right_attach">4</property>
+						  <property name="top_attach">2</property>
+						  <property name="bottom_attach">3</property>
+						  <property name="y_options"></property>
+						</packing>
+					      </child>
+
+					      <child>
+						<widget class="GtkCheckButton" id="checkbutton_search_discard_hashless">
+						  <property name="visible">True</property>
+						  <property name="can_focus">True</property>
+						  <property name="label" translatable="yes">Discard results without SHA-1 hashes</property>
 						  <property name="use_underline">True</property>
 						  <property name="relief">GTK_RELIEF_NORMAL</property>
 						  <property name="focus_on_click">True</property>
@@ -7092,6 +7092,50 @@ http://maxmind.com/</property>
 						  <property name="right_attach">2</property>
 						  <property name="top_attach">2</property>
 						  <property name="bottom_attach">3</property>
+						  <property name="x_options">fill</property>
+						  <property name="y_options"></property>
+						</packing>
+					      </child>
+
+					      <child>
+						<widget class="GtkCheckButton" id="checkbutton_search_discard_spam">
+						  <property name="visible">True</property>
+						  <property name="can_focus">True</property>
+						  <property name="label" translatable="yes">Discard spam</property>
+						  <property name="use_underline">True</property>
+						  <property name="relief">GTK_RELIEF_NORMAL</property>
+						  <property name="focus_on_click">True</property>
+						  <property name="active">False</property>
+						  <property name="inconsistent">False</property>
+						  <property name="draw_indicator">True</property>
+						</widget>
+						<packing>
+						  <property name="left_attach">0</property>
+						  <property name="right_attach">2</property>
+						  <property name="top_attach">3</property>
+						  <property name="bottom_attach">4</property>
+						  <property name="x_options">fill</property>
+						  <property name="y_options"></property>
+						</packing>
+					      </child>
+
+					      <child>
+						<widget class="GtkCheckButton" id="checkbutton_browse_copied_to_passive">
+						  <property name="visible">True</property>
+						  <property name="can_focus">True</property>
+						  <property name="label" translatable="yes">Copy browse-host results to passive searches</property>
+						  <property name="use_underline">True</property>
+						  <property name="relief">GTK_RELIEF_NORMAL</property>
+						  <property name="focus_on_click">True</property>
+						  <property name="active">False</property>
+						  <property name="inconsistent">False</property>
+						  <property name="draw_indicator">True</property>
+						</widget>
+						<packing>
+						  <property name="left_attach">2</property>
+						  <property name="right_attach">4</property>
+						  <property name="top_attach">3</property>
+						  <property name="bottom_attach">4</property>
 						  <property name="x_options">fill</property>
 						  <property name="y_options"></property>
 						</packing>

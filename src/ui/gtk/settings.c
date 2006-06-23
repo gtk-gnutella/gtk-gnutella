@@ -5454,6 +5454,22 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #endif /* USE_GTK1 */
+    PROP_ENTRY(
+        get_main_window,
+        PROP_SEARCH_DISCARD_SPAM,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_discard_spam",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_SEARCH_DISCARD_HASHLESS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_discard_hashless",
+        FREQ_UPDATES, 0
+    ),
 };
 
 /* Not needed any longer */

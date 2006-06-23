@@ -516,6 +516,8 @@ create_main_window (void)
   GtkObject *spinbutton_browse_host_max_results_adj;
   GtkWidget *spinbutton_browse_host_max_results;
   GtkWidget *checkbutton_browse_copied_to_passive;
+  GtkWidget *checkbutton_search_discard_spam;
+  GtkWidget *checkbutton_search_discard_hashless;
   GtkWidget *scrolledwindow47;
   GtkWidget *viewport45;
   GtkWidget *frame137;
@@ -5042,7 +5044,27 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_browse_copied_to_passive", checkbutton_browse_copied_to_passive,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_browse_copied_to_passive);
-  gtk_table_attach (GTK_TABLE (table68), checkbutton_browse_copied_to_passive, 0, 2, 3, 4,
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_browse_copied_to_passive, 2, 4, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_search_discard_spam = gtk_check_button_new_with_label (_("Discard spam"));
+  gtk_widget_set_name (checkbutton_search_discard_spam, "checkbutton_search_discard_spam");
+  gtk_widget_ref (checkbutton_search_discard_spam);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_discard_spam", checkbutton_search_discard_spam,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_discard_spam);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_search_discard_spam, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_search_discard_hashless = gtk_check_button_new_with_label (_("Discard results without SHA-1 hashes"));
+  gtk_widget_set_name (checkbutton_search_discard_hashless, "checkbutton_search_discard_hashless");
+  gtk_widget_ref (checkbutton_search_discard_hashless);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_discard_hashless", checkbutton_search_discard_hashless,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_discard_hashless);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_search_discard_hashless, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

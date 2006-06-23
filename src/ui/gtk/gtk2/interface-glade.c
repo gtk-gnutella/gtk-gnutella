@@ -4383,11 +4383,13 @@ create_main_window_search_tab (void)
   GtkWidget *frame137;
   GtkWidget *option_menu_search_handle_ignored_files;
   GtkWidget *checkbutton_search_hide_downloaded;
-  GtkWidget *checkbutton_search_remove_downloaded;
   GtkWidget *label993;
   GtkWidget *alignment136;
   GtkObject *spinbutton_browse_host_max_results_adj;
   GtkWidget *spinbutton_browse_host_max_results;
+  GtkWidget *checkbutton_search_remove_downloaded;
+  GtkWidget *checkbutton_search_discard_hashless;
+  GtkWidget *checkbutton_search_discard_spam;
   GtkWidget *checkbutton_browse_copied_to_passive;
   GtkWidget *label738;
   GtkWidget *label358;
@@ -4616,7 +4618,7 @@ create_main_window_search_tab (void)
   gtk_container_add (GTK_CONTAINER (viewport460), frame91);
   gtk_container_set_border_width (GTK_CONTAINER (frame91), 2);
 
-  table78 = gtk_table_new (3, 4, FALSE);
+  table78 = gtk_table_new (4, 4, FALSE);
   gtk_widget_set_name (table78, "table78");
   gtk_widget_show (table78);
   gtk_container_add (GTK_CONTAINER (frame91), table78);
@@ -4673,13 +4675,6 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_search_remove_downloaded = gtk_check_button_new_with_mnemonic (_("_Remove manually downloaded files"));
-  gtk_widget_set_name (checkbutton_search_remove_downloaded, "checkbutton_search_remove_downloaded");
-  gtk_widget_show (checkbutton_search_remove_downloaded);
-  gtk_table_attach (GTK_TABLE (table78), checkbutton_search_remove_downloaded, 2, 4, 2, 3,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   label993 = gtk_label_new (_("Max. number of browse host results"));
   gtk_widget_set_name (label993, "label993");
   gtk_widget_show (label993);
@@ -4702,10 +4697,31 @@ create_main_window_search_tab (void)
   gtk_container_add (GTK_CONTAINER (alignment136), spinbutton_browse_host_max_results);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_browse_host_max_results), TRUE);
 
+  checkbutton_search_remove_downloaded = gtk_check_button_new_with_mnemonic (_("_Remove manually downloaded files"));
+  gtk_widget_set_name (checkbutton_search_remove_downloaded, "checkbutton_search_remove_downloaded");
+  gtk_widget_show (checkbutton_search_remove_downloaded);
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_search_remove_downloaded, 2, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_search_discard_hashless = gtk_check_button_new_with_mnemonic (_("Discard results without SHA-1 hashes"));
+  gtk_widget_set_name (checkbutton_search_discard_hashless, "checkbutton_search_discard_hashless");
+  gtk_widget_show (checkbutton_search_discard_hashless);
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_search_discard_hashless, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_search_discard_spam = gtk_check_button_new_with_mnemonic (_("Discard spam"));
+  gtk_widget_set_name (checkbutton_search_discard_spam, "checkbutton_search_discard_spam");
+  gtk_widget_show (checkbutton_search_discard_spam);
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_search_discard_spam, 0, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   checkbutton_browse_copied_to_passive = gtk_check_button_new_with_mnemonic (_("Copy browse-host results to passive searches"));
   gtk_widget_set_name (checkbutton_browse_copied_to_passive, "checkbutton_browse_copied_to_passive");
   gtk_widget_show (checkbutton_browse_copied_to_passive);
-  gtk_table_attach (GTK_TABLE (table78), checkbutton_browse_copied_to_passive, 0, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_browse_copied_to_passive, 2, 4, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -5206,10 +5222,12 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, frame137, "frame137");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, option_menu_search_handle_ignored_files, "option_menu_search_handle_ignored_files");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_hide_downloaded, "checkbutton_search_hide_downloaded");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_remove_downloaded, "checkbutton_search_remove_downloaded");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label993, "label993");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment136, "alignment136");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_browse_host_max_results, "spinbutton_browse_host_max_results");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_remove_downloaded, "checkbutton_search_remove_downloaded");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_discard_hashless, "checkbutton_search_discard_hashless");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_discard_spam, "checkbutton_search_discard_spam");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_browse_copied_to_passive, "checkbutton_browse_copied_to_passive");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label738, "label738");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label358, "label358");
