@@ -174,6 +174,20 @@ poke_be32(gpointer p, guint32 v)
 }
 
 static inline gpointer
+poke_be64(gpointer p, guint64 v)
+{
+	guint8 *q = p;
+	guint i;
+
+	for (i = 0; i < 8; i++) {
+		q[i ^ 7] = v;
+		v >>= 8;
+	}
+
+	return &q[8];
+}
+
+static inline gpointer
 poke_le16(gpointer p, guint16 v)
 {
 	guint8 *q = p;
