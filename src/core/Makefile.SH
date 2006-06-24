@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11114 2006-06-19 15:06:21Z cbiere $
+# $X-Id: Jmakefile 11157 2006-06-24 07:36:10Z cbiere $
 
 SRC = \
 	alive.c \
