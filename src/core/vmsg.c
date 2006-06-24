@@ -846,7 +846,7 @@ handle_proxy_ack(struct gnutella_node *n,
 	}
 
 	if (vmsg->version >= 2) {
-		ha = host_addr_set_ipv4(peek_be32(payload));
+		ha = host_addr_get_ipv4(peek_be32(payload));
 		payload += 4;
 	} else {
 		ha = n->addr;

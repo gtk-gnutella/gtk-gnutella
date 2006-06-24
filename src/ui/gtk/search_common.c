@@ -1729,7 +1729,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			/* Note: We use 0.0.0.0 instead of zero_host_addr because
 			 *       the core would bark when using the latter.
 			 */
-			addr = is_host_addr(ms->addr) ? ms->addr : host_addr_set_ipv4(0);
+			addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
 			if (ms->path) {
 				guc_download_new_uri(filename, ms->path, res->size,
 					addr, ms->port, blank_guid, ms->hostname,
@@ -1785,7 +1785,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			 */
 			if (res->display_name) {
 				guc_download_new(filename, res->size, URN_INDEX,
-					host_addr_set_ipv4(0), 0, blank_guid, NULL,
+					ipv4_unspecified, 0, blank_guid, NULL,
 					res->sha1, tm_time(), FALSE, NULL, NULL, 0);
 				n_downloads++;
 			}

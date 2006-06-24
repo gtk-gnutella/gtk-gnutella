@@ -432,14 +432,16 @@ string_to_host_addr(const char *s, const gchar **endptr, host_addr_t *addr_ptr)
 	g_assert(s);
 
 	if (string_to_ip_strict(s, &ip, endptr)) {
-		if (addr_ptr)
-			*addr_ptr = host_addr_set_ipv4(ip);
+		if (addr_ptr) {
+			*addr_ptr = host_addr_get_ipv4(ip);
+		}
 		return TRUE;
 	} else {
 		guint8 ipv6[16];
 		if (parse_ipv6_addr(s, ipv6, endptr)) {
-			if (addr_ptr)
-				host_addr_set_ipv6(addr_ptr, ipv6);
+			if (addr_ptr) {
+				*addr_ptr = host_addr_get_ipv6(ipv6);
+			}
 			return TRUE;
 		}
 	}
@@ -477,7 +479,7 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 		if (parse_ipv6_addr(&s[1], ipv6, &ep) && ']' == *ep) {
 
 			if (ha) {
-				host_addr_set_ipv6(ha, ipv6);
+				*ha = host_addr_get_ipv6(ipv6);
 			}
 			if (endptr)
 				*endptr = ++ep;
@@ -613,7 +615,7 @@ socket_addr_init(socket_addr_t *sa_ptr, enum net_type net)
 {
 	switch (net) {
 	case NET_TYPE_IPV4:
-		return socket_addr_set(sa_ptr, host_addr_set_ipv4(0), 0);
+		return socket_addr_set(sa_ptr, ipv4_unspecified, 0);
 	case NET_TYPE_IPV6:
 #ifdef USE_IPV6
 		return socket_addr_set(sa_ptr, ipv6_unspecified, 0);
@@ -733,7 +735,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 				const struct sockaddr_in *sin;
 
 				sin = cast_to_gconstpointer(ai->ai_addr);
-				addr = host_addr_set_ipv4(ntohl(sin->sin_addr.s_addr));
+				addr = host_addr_get_ipv4(ntohl(sin->sin_addr.s_addr));
 			}
 			break;
 
@@ -743,8 +745,8 @@ resolve_hostname(const gchar *host, enum net_type net)
 				const struct sockaddr_in6 *sin6;
 
 				sin6 = cast_to_gconstpointer(ai->ai_addr);
-				host_addr_set_ipv6(&addr,
-					cast_to_gconstpointer(sin6->sin6_addr.s6_addr));
+				addr = host_addr_get_ipv6(cast_to_gconstpointer(
+							sin6->sin6_addr.s6_addr));
 			}
 			break;
 #endif /* USE_IPV6 */
@@ -816,13 +818,13 @@ resolve_hostname(const gchar *host, enum net_type net)
 
 		switch (he->h_addrtype) {
 		case AF_INET:
-			addr = host_addr_set_ipv4(peek_be32(he->h_addr_list[i]));
+			addr = host_addr_get_ipv4(peek_be32(he->h_addr_list[i]));
 			break;
 
 #ifdef USE_IPV6
 		case AF_INET6:
-			host_addr_set_ipv6(&addr,
-				cast_to_gconstpointer(he->h_addr_list[i]));
+			addr = host_addr_get_ipv6(
+						cast_to_gconstpointer(he->h_addr_list[i]));
 			break;
 #endif /* !USE_IPV6 */
 		default:
@@ -972,13 +974,13 @@ host_addr_get_interface_addrs(void)
             const struct sockaddr_in *sin;
 			
 			sin = cast_to_gconstpointer(ifa->ifa_addr);
-			addr = host_addr_set_ipv4(ntohl(sin->sin_addr.s_addr));
+			addr = host_addr_get_ipv4(ntohl(sin->sin_addr.s_addr));
 #ifdef USE_IPV6
 		} else if (AF_INET6 == ifa->ifa_addr->sa_family) {
             const struct sockaddr_in6 *sin6;
 
 			sin6 = cast_to_gconstpointer(ifa->ifa_addr);
-			host_addr_set_ipv6(&addr, sin6->sin6_addr.s6_addr);
+			addr = host_addr_get_ipv6(sin6->sin6_addr.s6_addr);
 #endif /* USE_IPV6 */
 		} else {
 			addr = zero_host_addr;
@@ -1017,6 +1019,57 @@ host_addr_free_interface_addrs(GSList **sl_ptr)
 		g_slist_free(*sl_ptr);
 		*sl_ptr = NULL;
 	}
+}
+
+struct packed_host_addr
+host_addr_pack(const host_addr_t addr)
+{
+	struct packed_host_addr paddr;
+	enum net_type net;
+
+	net = host_addr_net(addr);
+	switch (net) {
+	case NET_TYPE_IPV4:
+		poke_be32(paddr.addr, host_addr_ipv4(addr));
+		break;
+	case NET_TYPE_IPV6:
+		memcpy(paddr.addr, host_addr_ipv6(&addr), sizeof addr.addr.ipv6);
+		break;
+	case NET_TYPE_NONE:
+		break;
+	default:
+		net = NET_TYPE_NONE;
+		g_assert_not_reached();
+	}
+	paddr.net = net;
+	return paddr;
+}
+
+host_addr_t
+packed_host_addr_unpack(const struct packed_host_addr paddr)
+{
+	switch (paddr.net) {
+	case NET_TYPE_IPV4:
+		return host_addr_get_ipv4(peek_be32(paddr.addr));
+	case NET_TYPE_IPV6:
+		return host_addr_get_ipv6(paddr.addr);
+	case NET_TYPE_NONE:
+		return zero_host_addr;
+	}
+	g_assert_not_reached();
+	return zero_host_addr;
+}
+
+guint
+packed_host_addr_size(const struct packed_host_addr paddr)
+{
+	switch (paddr.net) {
+	case NET_TYPE_IPV4:	return 5;
+	case NET_TYPE_IPV6: return 17;
+	case NET_TYPE_NONE:	return 1;
+	}
+	g_assert_not_reached();
+	return 0;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

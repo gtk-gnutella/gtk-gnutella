@@ -589,9 +589,6 @@ gnutella_node_t *node_browse_prepare(
 	gchar *data, guint32 size);
 void node_browse_cleanup(gnutella_node_t *n);
 
-gboolean node_supports_tls(const host_addr_t addr, guint16 port);
-void node_add_tls_host(const host_addr_t addr, guint16 port);
-
 #endif /* _core_nodes_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

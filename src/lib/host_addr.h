@@ -93,6 +93,11 @@ typedef struct host_addr {
 	} addr;
 } host_addr_t;
 
+struct packed_host_addr {
+	guchar net;
+	guchar addr[sizeof ((host_addr_t *) 0)->addr];
+};
+
 typedef union socket_addr {
 	guint8 len;
 	struct sockaddr_in inet4;
@@ -200,7 +205,7 @@ host_addr_ipv6(const host_addr_t *ha)
 }
 
 static inline host_addr_t
-host_addr_set_ipv4(guint32 ip)
+host_addr_get_ipv4(guint32 ip)
 {
 	host_addr_t ha;
 
@@ -209,11 +214,14 @@ host_addr_set_ipv4(guint32 ip)
 	return ha;
 }
 
-static inline void
-host_addr_set_ipv6(host_addr_t *ha, const guint8 *ipv6)
+static inline host_addr_t
+host_addr_get_ipv6(const guint8 *ipv6)
 {
-	ha->net = NET_TYPE_IPV6;
-	memcpy(ha->addr.ipv6, ipv6, 16);
+	host_addr_t ha;
+	
+	ha.net = NET_TYPE_IPV6;
+	memcpy(ha.addr.ipv6, ipv6, 16);
+	return ha;
 }
 
 static inline gboolean
@@ -396,10 +404,10 @@ socket_addr_get_addr(const socket_addr_t *addr)
 	g_assert(addr);
 
 	if (AF_INET == addr->inet4.sin_family) {
-		ha = host_addr_set_ipv4(ntohl(addr->inet4.sin_addr.s_addr));
+		ha = host_addr_get_ipv4(ntohl(addr->inet4.sin_addr.s_addr));
 #if defined(USE_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		host_addr_set_ipv6(&ha, addr->inet6.sin6_addr.s6_addr);
+		ha = host_addr_get_ipv6(addr->inet6.sin6_addr.s6_addr);
 #endif /* USE_IPV6 */
 	} else {
 		ha = zero_host_addr;
@@ -519,6 +527,10 @@ gboolean string_to_host_or_addr(const char *s, const gchar **endptr,
 		host_addr_t *ha);
 GSList *host_addr_get_interface_addrs(void);
 void host_addr_free_interface_addrs(GSList **sl_ptr);
+
+guint packed_host_addr_size(const struct packed_host_addr paddr);
+struct packed_host_addr host_addr_pack(const host_addr_t addr);
+host_addr_t packed_host_addr_unpack(const struct packed_host_addr paddr);
 
 #endif /* _host_addr_h_ */
 /* vi: set ts=4 sw=4 cindent: */

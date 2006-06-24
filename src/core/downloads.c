@@ -63,6 +63,7 @@
 #include "gnet_stats.h"
 #include "geo_ip.h"
 #include "bh_download.h"
+#include "tls_cache.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -4498,7 +4499,7 @@ download_orphan_new(
 			NULL,	/* uri */
 		   	size,
 			0,		/* record_index */
-			host_addr_set_ipv4(0),	/* for host_addr_initialized() */
+			ipv4_unspecified,	/* for host_addr_initialized() */
 			0,		/* port */
 			blank_guid,
 			NULL,	/* hostname*/
@@ -6571,7 +6572,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		SOCKET_USES_TLS(s) ||
 		(!d->got_giv && header_get_feature("tls", header, NULL, NULL))
 	) {
-		node_add_tls_host(addr, port);
+		tls_cache_add(addr, port);
 	}
 
 	check_date(header, addr, d);	/* Update clock skew if we have a Date: */
@@ -8871,7 +8872,7 @@ download_retrieve(void)
 				g_message("download_retrieve(): "
 					"bad IP:port at line #%u: %s", line, dl_tmp);
 				d_port = 0;
-				d_addr = host_addr_set_ipv4(0);
+				d_addr = ipv4_unspecified;
 				d_push = TRUE;		/* Will drop download when scheduling it */
 			}
 

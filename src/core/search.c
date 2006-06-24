@@ -682,7 +682,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	/* Transfer the Query Hit info to our internal results_set struct */
 
 	rs->num_recs = (guint8) r->num_recs;				 /* Number of hits */
-	rs->addr = host_addr_set_ipv4(peek_be32(r->host_ip)); /* IP address */
+	rs->addr = host_addr_get_ipv4(peek_be32(r->host_ip)); /* IP address */
 	rs->port = peek_le16(r->host_port);					 /* Port */
 	rs->speed = peek_le32(r->host_speed);				 /* Connection speed */
 	rs->last_hop = n->addr;

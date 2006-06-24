@@ -157,7 +157,7 @@ ggept_ip_vec_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 	vec = walloc(cnt * sizeof *vec);
 
 	for (i = 0; i < cnt; i++) {
-		vec[i].addr = host_addr_set_ipv4(peek_be32(p));
+		vec[i].addr = host_addr_get_ipv4(peek_be32(p));
 		p += 4;
 		vec[i].port = peek_le16(p);
 		p += 2;
@@ -315,11 +315,8 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 		if (0 == len) {
 			*addr = zero_host_addr;
 		} else {
-			const gchar *ipv6;
-
 			g_assert(len >= 16);
-			ipv6 = ext_payload(exv);
-			host_addr_set_ipv6(addr, cast_to_gconstpointer(ipv6));
+			*addr = host_addr_get_ipv6(cast_to_gconstpointer(ext_payload(exv)));
 		}
 	}
 

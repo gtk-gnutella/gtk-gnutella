@@ -63,6 +63,7 @@ RCSID("$Id$");
 #include "ignore.h"
 #include "tx_link.h"		/* for callback structures */
 #include "tx_deflate.h"
+#include "tls_cache.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -550,7 +551,7 @@ handle_push_request(struct gnutella_node *n)
 	info = n->data + 16;					/* Start of file information */
 
 	file_index = peek_le32(&info[0]);
-	ha = host_addr_set_ipv4(peek_be32(&info[4]));
+	ha = host_addr_get_ipv4(peek_be32(&info[4]));
 	port = peek_le16(&info[8]);
 
 	if (n->size > push_size) {
@@ -2814,7 +2815,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		SOCKET_USES_TLS(s) ||
 		(u->push && header_get_feature("tls", header, NULL, NULL))
 	) {
-		node_add_tls_host(u->addr, u->socket->port);
+		tls_cache_add(u->addr, u->socket->port);
 	}
 
 	/* Maybe they sent a Server: line, thinking they're a server? */

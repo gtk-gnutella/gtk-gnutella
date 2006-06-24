@@ -61,6 +61,7 @@ RCSID("$Id$");
 #include "pproxy.h"
 #include "udp.h"
 #include "settings.h"
+#include "tls_cache.h"
 
 #ifdef USE_REMOTE_CTRL
 #include "shell.h"
@@ -1930,7 +1931,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 
 	len = sizeof sin;
 	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &len)) {
-		addr = host_addr_set_ipv4(ntohl(sin.sin_addr.s_addr));
+		addr = host_addr_get_ipv4(ntohl(sin.sin_addr.s_addr));
 		port = sin.sin_port;
 	}
 
@@ -1939,7 +1940,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 
 		len = sizeof sin6;
 		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
-			host_addr_set_ipv6(&addr, sin6.sin6_addr.s6_addr);
+			addr = host_addr_get_ipv6(sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
 		}
 	}
@@ -2168,7 +2169,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 			data = CMSG_DATA(p);
 			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
 				memcpy(&addr, data, sizeof addr);
-				*dst_addr = host_addr_set_ipv4(ntohl(addr.s_addr));
+				*dst_addr = host_addr_get_ipv4(ntohl(addr.s_addr));
 				return TRUE;
 			}
 #endif /* IP_RECVDSTADDR */
@@ -2183,7 +2184,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 			data = CMSG_DATA(p);
 			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
 				memcpy(&addr, data, sizeof addr);
-				host_addr_set_ipv6(dst_addr, addr.s6_addr);
+				*dst_addr = host_addr_get_ipv6(addr.s6_addr);
 				return TRUE;
 			}
 #endif /* USE_IPV6 && IPV6_RECVDSTADDR */
@@ -2461,7 +2462,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	g_assert(s);
 
-	if (0 == (CONNECT_F_TLS & flags) && node_supports_tls(addr, port)) {
+	if (0 == (CONNECT_F_TLS & flags) && tls_cache_lookup(addr, port)) {
 		flags |= CONNECT_F_TLS;
 	}
 
@@ -2686,7 +2687,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 	}
 
 	addr = addrs[random_raw() % n];
-	can_tls = node_supports_tls(addr, s->port);
+	can_tls = tls_cache_lookup(addr, s->port);
 
 	if (
 		s->net != host_addr_net(addr) ||
@@ -2728,7 +2729,7 @@ socket_connect_by_name(const gchar *host, guint16 port,
 
 	/* The socket is closed and re-created if the hostname resolves
 	 * to an IPv6 address. */
-	ha = host_addr_set_ipv4(0);
+	ha = ipv4_unspecified;
 
 	s = walloc0(sizeof *s);
 	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {

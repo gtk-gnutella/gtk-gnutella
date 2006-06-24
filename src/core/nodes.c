@@ -83,6 +83,7 @@ RCSID("$Id$");
 #include "geo_ip.h"
 #include "extensions.h"
 #include "bh_upload.h"
+#include "tls_cache.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"
@@ -167,8 +168,6 @@ static guint32     connected_node_count = 0;
 
 static GHashTable *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
-
-static hash_list_t *tls_hosts = NULL;
 
 static gpointer tcp_crawls = NULL;
 static gpointer udp_crawls = NULL;
@@ -612,7 +611,7 @@ node_extract_host(const struct gnutella_node *n,
 	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
 	READ_GUINT16_LE(r->host_port, hport);	/* Port */
 
-	*ha = host_addr_set_ipv4(hip);
+	*ha = host_addr_get_ipv4(hip);
 	*port = hport;
 }
 
@@ -1099,7 +1098,6 @@ node_init(void)
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
 	nodes_by_id        = g_hash_table_new(NULL, NULL);
-	tls_hosts		   = hash_list_new(host_hash, host_eq);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
 	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
@@ -1107,6 +1105,8 @@ node_init(void)
 	udp_node = node_udp_create(NET_TYPE_IPV4);
 	udp6_node = node_udp_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
+
+	tls_cache_init();
 
 	/*
 	 * Limit replies to TCP/UDP crawls from a single IP.
@@ -4332,55 +4332,6 @@ node_query_routing_header(struct gnutella_node *n)
 		return "X-Query-Routing: 0.1\r\n";	/* Only other possible level */
 }
 
-void
-node_add_tls_host(const host_addr_t addr, guint16 port)
-{
-	gnet_host_t host;
-	gpointer host_ptr;
-
-	g_return_if_fail(is_host_addr(addr));
-	g_return_if_fail(0 != port);
-
-	host.addr = addr;
-	host.port = port;
-	if (hash_list_contains(tls_hosts, &host, &host_ptr)) {
-		/* We'll move the host to the end of the list */
-		hash_list_remove(tls_hosts, &host);
-		if (tls_debug) {
-			g_message("Refreshing TLS host %s",
-				host_addr_port_to_string(addr, port));
-		}
-	} else {
-		if (tls_debug) {
-			g_message("Adding TLS host %s",
-				host_addr_port_to_string(addr, port));
-		}
-		host_ptr = wcopy(&host, sizeof host);
-	}
-	hash_list_append(tls_hosts, host_ptr);
-
-	/* Remove the oldest host once we hit a reasonable limit */
-	if (hash_list_length(tls_hosts) > 10000) {
-		host_ptr = hash_list_first(tls_hosts);
-		hash_list_remove(tls_hosts, host_ptr);
-		wfree(host_ptr, sizeof host);
-	}
-}
-
-gboolean
-node_supports_tls(const host_addr_t addr, guint16 port)
-{
-	gnet_host_t host;
-
-	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {
-		host.addr = addr;
-		host.port = port;
-		return hash_list_contains(tls_hosts, &host, NULL);
-	} else {
-		return FALSE;
-	}
-}
-
 /**
  * This routine is called to process a 0.6+ handshake header.
  *
@@ -4901,7 +4852,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			(NODE_F_TLS & n->flags) ||
 			header_get_feature("tls", head, NULL, NULL)
 		) {
-			node_add_tls_host(n->addr, n->port);
+			tls_cache_add(n->addr, n->port);
 		}
 	}
 
@@ -8670,6 +8621,5 @@ node_update_udp_socket(void)
 	if ((udp_node || udp6_node) && udp_active())
 		node_udp_enable();
 }
-
 
 /* vi: set ts=4 sw=4 cindent: */

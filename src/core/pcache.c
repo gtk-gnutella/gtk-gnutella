@@ -1946,7 +1946,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	port = peek_le16(&n->data[0]);
-	addr = host_addr_set_ipv4(peek_be32(&n->data[2]));
+	addr = host_addr_get_ipv4(peek_be32(&n->data[2]));
 	files_count = peek_le32(&n->data[6]);
 	kbytes_count = peek_le32(&n->data[10]);
 	

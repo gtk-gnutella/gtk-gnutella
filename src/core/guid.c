@@ -430,10 +430,7 @@ void
 guid_oob_get_addr_port(const gchar *guid, host_addr_t *addr, guint16 *port)
 {
 	if (addr) {
-		guint32 ip;
-
-		ip = peek_be32(&guid[0]);
-		*addr = host_addr_set_ipv4(ip); /* @todo TODO: IPv6 */
+		*addr = host_addr_get_ipv4(peek_be32(&guid[0])); /* @todo TODO: IPv6 */
 	}
 	if (port) {
 		*port = peek_le16(&guid[13]);
