@@ -420,7 +420,7 @@ gchar *base32_sha1(const gchar *base32);
  * TTH <-> base32 string conversion
  */
 struct tth {
-	gchar data[TTH_RAW_SIZE];
+	guchar data[TTH_RAW_SIZE];
 };
 
 const gchar *tth_base32(const struct tth *tth);

@@ -318,13 +318,14 @@ tiger_check(void)
 
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 		guchar hash[24];
-		gchar buf[64];
+		gchar buf[40];
 		gboolean ok;
 
 		memset(buf, 0, sizeof buf);	
 		tiger(tests[i].s, tests[i].len, hash);
-		base32_encode_into(hash, sizeof hash, buf, sizeof buf);
-		buf[39] = '\0';
+		base32_encode_into(cast_to_gpointer(hash), sizeof hash,
+			buf, sizeof buf);
+		buf[G_N_ELEMENTS(buf) - 1] = '\0';
 
 		ok = 0 == strcmp(tests[i].r, buf);
 		if (!ok) {
