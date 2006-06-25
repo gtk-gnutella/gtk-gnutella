@@ -39,6 +39,7 @@
 
 #define CORE_SOURCES
 
+#include "core/storage_sqlite3.h"
 #include "core/ban.h"
 #include "core/bitzi.h"
 #include "core/bogons.h"
@@ -409,6 +410,9 @@ gtk_gnutella_exit(gint n)
 	dmesh_close();
 	host_close();
 	hcache_close();		/* After host_close() */
+#ifdef HAS_SQLITE
+	database_close();
+#endif
 	settings_close();	/* Must come after hcache_close() */
 	bogons_close();		/* Idem, since host_close() can touch the cache */
 	hostiles_close();
@@ -439,7 +443,6 @@ gtk_gnutella_exit(gint n)
 #ifdef TRACK_MALLOC
 	malloc_close();
 #endif
-
 
 	if (debugging(0) || signal_received)
 		g_message("gtk-gnutella shut down cleanly.");
@@ -935,6 +938,9 @@ main(int argc, char **argv)
 	watcher_init();
 	hcache_init();			/* before settings_init() */
 	settings_init();
+#ifdef HAS_SQLITE
+	database_init();
+#endif	
     hcache_retrieve_all();	/* after settings_init() */
 	hostiles_init();
 	spam_init();
