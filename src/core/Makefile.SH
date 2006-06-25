@@ -126,6 +126,7 @@ SRC = \
 	ntp.c \
 	oob.c \
 	oob_proxy.c \
+	storage_sqlite3.c \
 	parq.c \
 	pcache.c \
 	pmsg.c \
@@ -206,6 +207,7 @@ OBJ = \
 	ntp.o \
 	oob.o \
 	oob_proxy.o \
+	storage_sqlite3.o \
 	parq.o \
 	pcache.o \
 	pmsg.o \
