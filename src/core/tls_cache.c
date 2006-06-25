@@ -1,5 +1,5 @@
 /*
- * $Id: nodes.c 11140 2006-06-22 04:04:39Z cbiere $
+ * $Id$
  *
  * Copyright (c) 2006, Christian Biere
  *
@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id: nodes.c 11140 2006-06-22 04:04:39Z cbiere $");
+RCSID("$Id$");
 
 #ifdef HAS_SQLITE
 #include <sqlite3.h>

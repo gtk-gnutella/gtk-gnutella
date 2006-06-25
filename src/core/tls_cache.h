@@ -1,5 +1,5 @@
 /*
- * $Id: nodes.h 10928 2006-05-20 05:49:00Z cbiere $
+ * $Id$
  *
  * Copyright (c) 2006, Christian Biere
  *

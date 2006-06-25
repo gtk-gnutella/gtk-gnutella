@@ -1,5 +1,5 @@
 /*
- * $Id: hostiles.h 10580 2006-03-14 22:58:17Z cbiere $
+ * $Id$
  *
  * Copyright (c) 2003, Markus Goetz & Raphael Manfredi
  *
