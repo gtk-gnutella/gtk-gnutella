@@ -147,7 +147,7 @@ database_set_config_value(const char *key, const char *value)
 	if (sqlite3_bind_text (
 		set_config_value_stmt,
 		1,  /* Parameter key */
-        key, strlen(key),
+        key, (-1),
 		SQLITE_TRANSIENT
         ) != SQLITE_OK)
 			g_error("Could not bind key to parameter.");
@@ -155,7 +155,7 @@ database_set_config_value(const char *key, const char *value)
 	if (sqlite3_bind_text (
 		set_config_value_stmt,
 		2,  /* Parameter value */
-        value, strlen(value),
+        value, (-1),
 		SQLITE_TRANSIENT
         ) != SQLITE_OK)
 			g_error("Could not bind value to parameter.");
@@ -174,7 +174,7 @@ database_begin(void)
 
 	ret = sqlite3_exec(persistent_db, "BEGIN;", NULL, NULL, &errmsg);
 	if (SQLITE_OK != ret) {
-		g_warning("%s: sqlite3_exec() failed: %s", "spam_db_begin", errmsg);
+		g_warning("%s: sqlite3_exec() failed: %s", "database_begin", errmsg);
 		sqlite3_free(errmsg);
 		return -1;
 	}
@@ -189,8 +189,7 @@ database_commit(void)
 
 	ret = sqlite3_exec(persistent_db, "COMMIT;", NULL, NULL, &errmsg);
 	if (SQLITE_OK != ret) {
-		g_warning("%s: sqlite3_exec() failed: %s",
-			"database_commit", errmsg);
+		g_warning("%s: sqlite3_exec() failed: %s", "database_commit", errmsg);
 		sqlite3_free(errmsg);
 		return -1;
 	}
