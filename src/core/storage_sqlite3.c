@@ -23,14 +23,14 @@
  *----------------------------------------------------------------------
  */
  
-#include "storage_sqlite3.h"
+#include "gdb.h"
 #include "settings.h"
 
 #ifdef HAS_SQLITE
 
 #include <sqlite3.h>
 
-struct database_stmt {
+struct gdb_stmt {
 	sqlite3_stmt *stmt;
 };
 
@@ -38,13 +38,13 @@ static sqlite3 *persistent_db;
 static sqlite3_stmt *get_config_value_stmt;
 static sqlite3_stmt *set_config_value_stmt;
 
-static void database_create(void);
+static void gdb_create(void);
 
 /**
  * Initialize the "gtkg.db" database.
  */
 void
-database_init(void)
+gdb_init(void)
 {
 	char *error_message, *db_pathname;
 	int result;
@@ -57,7 +57,7 @@ database_init(void)
 		"SELECT count(*) FROM config", NULL, 0, &error_message);
   
 	if (result == SQLITE_ERROR) {
-		database_create();
+		gdb_create();
 		sqlite3_free(error_message);
 	} else if (result != SQLITE_OK) {
 		g_error("Error opening database (%d) %s", result, error_message);
@@ -69,12 +69,12 @@ database_init(void)
  * Close the "gtkg.db" database.
  */
 void
-database_close(void)
+gdb_close(void)
 {
 	if (persistent_db) {
 		if (SQLITE_OK != sqlite3_close(persistent_db)) {
 			g_warning("%s: sqlite3_close() failed: %s",
-				"database_close", sqlite3_errmsg(persistent_db));
+				"gdb_close", sqlite3_errmsg(persistent_db));
 		} else {
 			persistent_db = NULL;
 		}
@@ -88,7 +88,7 @@ database_close(void)
  * store the schema versions.
  */
 void
-database_create(void)
+gdb_create(void)
 {
 	int result;
 	char *error_message;
@@ -108,7 +108,7 @@ database_create(void)
  * Gets a config value from the database.
  */
 const char *
-database_get_config_value(const char *key)
+gdb_get_config_value(const char *key)
 {
 	const unsigned char *value;
 	
@@ -147,7 +147,7 @@ database_get_config_value(const char *key)
  * Stores a config value in the database.
  */
 void
-database_set_config_value(const char *key, const char *value)
+gdb_set_config_value(const char *key, const char *value)
 {
 	if (set_config_value_stmt == NULL) {
 		if (
@@ -193,14 +193,14 @@ database_set_config_value(const char *key, const char *value)
  * Begin SQL transaction.
  */
 int
-database_begin(void)
+gdb_begin(void)
 {
 	char *errmsg;
 	int ret;
 
 	ret = sqlite3_exec(persistent_db, "BEGIN;", NULL, NULL, &errmsg);
 	if (SQLITE_OK != ret) {
-		g_warning("%s: sqlite3_exec() failed: %s", "database_begin", errmsg);
+		g_warning("%s: sqlite3_exec() failed: %s", "gdb_begin", errmsg);
 		sqlite3_free(errmsg);
 		return -1;
 	}
@@ -211,14 +211,14 @@ database_begin(void)
  * Commit SQL transaction.
  */
 int
-database_commit(void)
+gdb_commit(void)
 {
 	char *errmsg;
 	int ret;
 
 	ret = sqlite3_exec(persistent_db, "COMMIT;", NULL, NULL, &errmsg);
 	if (SQLITE_OK != ret) {
-		g_warning("%s: sqlite3_exec() failed: %s", "database_commit", errmsg);
+		g_warning("%s: sqlite3_exec() failed: %s", "gdb_commit", errmsg);
 		sqlite3_free(errmsg);
 		return -1;
 	}
@@ -229,7 +229,7 @@ database_commit(void)
  * Execute SQL statement, return error message in `error_message'.
  */
 int
-database_exec(const char *cmd, char **error_message)
+gdb_exec(const char *cmd, char **error_message)
 {
 	int result;
 	
@@ -238,10 +238,10 @@ database_exec(const char *cmd, char **error_message)
 }
 
 /**
- * Free error message returned by database_exec().
+ * Free error message returned by gdb_exec().
  */
 void
-database_free(char *error_message)
+gdb_free(char *error_message)
 {
 	sqlite3_free(error_message);
 }
@@ -250,7 +250,7 @@ database_free(char *error_message)
  * Return error message from SQL backend.
  */
 const char *
-database_error_message(void)
+gdb_error_message(void)
 {
 	return sqlite3_errmsg(persistent_db);
 }
@@ -259,7 +259,7 @@ database_error_message(void)
  * Prepare SQL statement.
  */
 int
-database_stmt_prepare(const char *cmd, struct database_stmt **db_stmt)
+gdb_stmt_prepare(const char *cmd, struct gdb_stmt **db_stmt)
 {
 	sqlite3_stmt *stmt;
 	int ret;
@@ -280,8 +280,8 @@ database_stmt_prepare(const char *cmd, struct database_stmt **db_stmt)
 /**
  * ?
  */
-enum database_step
-database_stmt_step(struct database_stmt *db_stmt)
+enum gdb_step
+gdb_stmt_step(struct gdb_stmt *db_stmt)
 {
 	if (db_stmt) {
 		switch (sqlite3_step(db_stmt->stmt)) {
@@ -296,7 +296,7 @@ database_stmt_step(struct database_stmt *db_stmt)
  * ?
  */
 int
-database_stmt_bind_static_blob(struct database_stmt *db_stmt,
+gdb_stmt_bind_static_blob(struct gdb_stmt *db_stmt,
 	int parameter, const void *data, size_t size)
 {
 	int len, ret;
@@ -314,7 +314,7 @@ database_stmt_bind_static_blob(struct database_stmt *db_stmt,
  * Reset database.
  */
 int
-database_stmt_reset(struct database_stmt *db_stmt)
+gdb_stmt_reset(struct gdb_stmt *db_stmt)
 {
 	int ret;
 	
@@ -328,7 +328,7 @@ database_stmt_reset(struct database_stmt *db_stmt)
  * Finalize SQL statement.
  */
 int
-database_stmt_finalize(struct database_stmt **db_stmt)
+gdb_stmt_finalize(struct gdb_stmt **db_stmt)
 {
 	g_return_val_if_fail(db_stmt, -1);
 
@@ -348,7 +348,7 @@ database_stmt_finalize(struct database_stmt **db_stmt)
  * Placeholder -- can't call this routine, defined when no SQLite.
  */
 const char *
-database_get_config_value(const char *key)
+gdb_get_config_value(const char *key)
 {
 	(void) key;
 	g_assert_not_reached();
