@@ -74,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2006-06-25 20:10+0900\n"
-"PO-Revision-Date: 2006-06-17 00:17+0900\n"
+"PO-Revision-Date: 2006-06-25 22:58+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -140,7 +140,7 @@ msgstr[0] "接続を拒否されました (%u 回目)"
 
 # FIXME: gtkg found duplicated SHA1 or duplicates SHA1, which?
 msgid "Dup SHA1 during creation"
-msgstr "重複する SHA1 を検知しました"
+msgstr "重複するSHA1を検知しました"
 
 # FIXME: what does `create' mean?
 msgid "No download slot (create)"
@@ -199,7 +199,7 @@ msgid "URN fileinfo mismatch"
 msgstr "URN ファイル情報が一致しません"
 
 msgid "Discovered dup SHA1"
-msgstr "重複する SHA1 を発見しました"
+msgstr "重複するSHA1を発見しました"
 
 msgid "Stopped data (EOF) <download_sink_read>"
 msgstr "データ転送が中断されました (EOF) <download_sink_read>"
@@ -218,7 +218,7 @@ msgid "Stopped (Read buffer full)"
 msgstr "中断されました (読込バッファが一杯です)"
 
 msgid "SHA1 mismatch detected"
-msgstr "SHA1 の不一致を検出しました"
+msgstr "SHA1が合致していません"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -604,7 +604,7 @@ msgid "Read error"
 msgstr "読込エラー"
 
 msgid "Got EOF"
-msgstr ""
+msgstr "EOFを受信しました"
 
 msgid "Connection failed"
 msgstr "接続に失敗しました"
@@ -1615,15 +1615,15 @@ msgstr ""
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
-"有効にすると、必ず SHA1 で一致させるようにします。無効にすると、名前と大きさ"
-"が十分なら一致します。"
+"有効にすると、必ず SHA1 でマッチ処理を行います。無効にすると、名前と大きさで"
+"マッチ処理を行います。"
 
 msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
 "to be safe)."
 msgstr ""
-"ファイル名の曖昧マッチ処理を行います。(非推奨; 確実にするには SHA1 マッチ処理"
-"のみに依拠するのが良いでしょう)"
+"ファイル名の曖昧マッチ処理を行います。(非推奨; 確実にするにはSHA1マッチ処理だ"
+"けを使用してください)"
 
 msgid ""
 "Fuzziness threshold for filename matching (higher = stricter). A value of "
@@ -2666,13 +2666,11 @@ msgstr "検索結果ペインでの標準の表示欄の並び順です。"
 msgid "Display search settings."
 msgstr "検索設定を表示します。"
 
-#, fuzzy
 msgid "Discard search results which are considered spam."
-msgstr "スパムと思われる検索結果を表示します。"
+msgstr "スパムと思われる検索結果を破棄します。"
 
-#, fuzzy
 msgid "Discard search results which carry no hashsum."
-msgstr "ハッシュ値の無い検索結果を表示します。"
+msgstr "ハッシュ値の無い検索結果を破棄します。"
 
 msgid "Display download settings."
 msgstr "ダウンロード設定を表示します。"
@@ -3844,7 +3842,7 @@ msgid "If urn:sha1 is same as for \"%s\""
 msgstr "URN:SHA1が「%s」と同じ"
 
 msgid "If urn:sha1 is not available"
-msgstr "URN:SHA1がない"
+msgstr "URN:SHA1が無い"
 
 msgid "Always"
 msgstr "常に"
@@ -6038,7 +6036,7 @@ msgid "Read-ahead buffer"
 msgstr "先読込みバッファ"
 
 msgid "Strict SHA_1 matching"
-msgstr "SHA1に厳密にマッチさせる(_1)"
+msgstr "SHA1で確実にマッチさせる(_1)"
 
 msgid "Use fu_zzy matching"
 msgstr "曖昧にマッチさせる(_Z)"
@@ -6511,17 +6509,16 @@ msgid "Current _search:"
 msgstr "現在の検索(_S):"
 
 msgid "Discard results without SHA-1 hashes"
-msgstr ""
+msgstr "SHA1ハッシュの無い検索結果を破棄する"
 
 msgid "Discard spam"
-msgstr ""
+msgstr "スパムを破棄する"
 
 msgid "Displaying"
 msgstr "表示内容"
 
-#, fuzzy
 msgid "Query:"
-msgstr "検索クエリー"
+msgstr "クエリー:"
 
 msgid "Sho_w settings"
 msgstr "設定の表示(_W)"
