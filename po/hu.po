@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-17 00:13+0900\n"
+"POT-Creation-Date: 2006-06-25 20:10+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -551,6 +551,9 @@ msgid "Unknown command"
 msgstr "Ismeretlen hiba"
 
 msgid "Read error"
+msgstr ""
+
+msgid "Got EOF"
 msgstr ""
 
 #, fuzzy
@@ -1503,6 +1506,12 @@ msgid ""
 msgstr ""
 "A legnagyobb engedélyezett találat-üzenetméret bájtban, különben lezárja a "
 "kapcsolatot."
+
+msgid ""
+"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
+"Hits to the original search term. In the worst case this causes about 300 "
+"bytes per Query of memory overhead."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -2728,10 +2737,10 @@ msgstr "Az oszlopok szélessége a keresés eredményei táblán"
 msgid "Display search settings."
 msgstr "Kereső-beállításokat mutat"
 
-msgid "Display search results which are considered spam."
+msgid "Discard search results which are considered spam."
 msgstr ""
 
-msgid "Display search results which carry no hashsum."
+msgid "Discard search results which carry no hashsum."
 msgstr ""
 
 #, fuzzy
@@ -6580,8 +6589,18 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Jelenlegi keresés"
 
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
+msgid "Discard spam"
+msgstr ""
+
 msgid "Displaying"
 msgstr "Kijelzés"
+
+#, fuzzy
+msgid "Query:"
+msgstr "Keresés"
 
 msgid "Sho_w settings"
 msgstr "_Beállítások megjelenítése"

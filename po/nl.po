@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-17 00:13+0900\n"
+"POT-Creation-Date: 2006-06-25 20:10+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -532,6 +532,9 @@ msgstr "Commando onbekend"
 
 msgid "Read error"
 msgstr "Lees fout"
+
+msgid "Got EOF"
+msgstr ""
 
 msgid "Connection failed"
 msgstr "Verbinding mislukt"
@@ -1418,6 +1421,12 @@ msgid ""
 msgstr ""
 "Maximale grootte van de antwoorden op zoek opdrachten die we accepteren, "
 "anders wordt de verbinding gesloten (in bytes)."
+
+msgid ""
+"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
+"Hits to the original search term. In the worst case this causes about 300 "
+"bytes per Query of memory overhead."
+msgstr ""
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -2696,10 +2705,10 @@ msgstr "Breedte van de kolommen in de zoekopdrachten tabel."
 msgid "Display search settings."
 msgstr "Zoek instellingen weergeven."
 
-msgid "Display search results which are considered spam."
+msgid "Discard search results which are considered spam."
 msgstr ""
 
-msgid "Display search results which carry no hashsum."
+msgid "Discard search results which carry no hashsum."
 msgstr ""
 
 msgid "Display download settings."
@@ -6406,8 +6415,18 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "Huidige zoekopdracht:"
 
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
+msgid "Discard spam"
+msgstr ""
+
 msgid "Displaying"
 msgstr "Weergave"
+
+#, fuzzy
+msgid "Query:"
+msgstr "Zoekopdracht"
 
 msgid "Sho_w settings"
 msgstr "Geef instellingen _weer"

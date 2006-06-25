@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-17 00:13+0900\n"
+"POT-Creation-Date: 2006-06-25 20:10+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -531,6 +531,9 @@ msgstr "Άγνωστη εντολή"
 
 msgid "Read error"
 msgstr "Σφάλμα ανάγνωσης"
+
+msgid "Got EOF"
+msgstr ""
 
 msgid "Connection failed"
 msgstr "Η σύνδεση απέτυχε"
@@ -1395,6 +1398,12 @@ msgid ""
 msgstr ""
 "Μέγιστο μέγεθος μηνυμάτων απαντήσεων αναζητήσεων που επιτρέπονται, αλλιώς "
 "γίνεται κλείσιμο της σύνδεσης (σε bytes)."
+
+msgid ""
+"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
+"Hits to the original search term. In the worst case this causes about 300 "
+"bytes per Query of memory overhead."
+msgstr ""
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -2560,10 +2569,10 @@ msgstr "Προεπιλεγμένη στήλη ταξινόμησης των απ
 msgid "Display search settings."
 msgstr "Εμφάνιση ρυθμίσεων αναζήτησης."
 
-msgid "Display search results which are considered spam."
+msgid "Discard search results which are considered spam."
 msgstr ""
 
-msgid "Display search results which carry no hashsum."
+msgid "Discard search results which carry no hashsum."
 msgstr ""
 
 msgid "Display download settings."
@@ -6242,8 +6251,18 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Τρέχουσα_ αναζήτηση:"
 
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
+msgid "Discard spam"
+msgstr ""
+
 msgid "Displaying"
 msgstr "Εμφάνιση"
+
+#, fuzzy
+msgid "Query:"
+msgstr "Ερώτημα"
 
 msgid "Sho_w settings"
 msgstr "Εμφάνιση _ρυθμίσεων"

@@ -73,7 +73,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-17 00:13+0900\n"
+"POT-Creation-Date: 2006-06-25 20:10+0900\n"
 "PO-Revision-Date: 2006-06-17 00:17+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -602,6 +602,9 @@ msgstr "不明なコマンドエラーです"
 
 msgid "Read error"
 msgstr "読込エラー"
+
+msgid "Got EOF"
+msgstr ""
 
 msgid "Connection failed"
 msgstr "接続に失敗しました"
@@ -1458,6 +1461,12 @@ msgid ""
 msgstr ""
 "受取りを許可する検索回答メッセージの最大数です、これを越えると接続を閉じま"
 "す。(バイト単位)"
+
+msgid ""
+"Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
+"Hits to the original search term. In the worst case this causes about 300 "
+"bytes per Query of memory overhead."
+msgstr ""
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -2657,10 +2666,12 @@ msgstr "検索結果ペインでの標準の表示欄の並び順です。"
 msgid "Display search settings."
 msgstr "検索設定を表示します。"
 
-msgid "Display search results which are considered spam."
+#, fuzzy
+msgid "Discard search results which are considered spam."
 msgstr "スパムと思われる検索結果を表示します。"
 
-msgid "Display search results which carry no hashsum."
+#, fuzzy
+msgid "Discard search results which carry no hashsum."
 msgstr "ハッシュ値の無い検索結果を表示します。"
 
 msgid "Display download settings."
@@ -6499,8 +6510,18 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
 
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
+msgid "Discard spam"
+msgstr ""
+
 msgid "Displaying"
 msgstr "表示内容"
+
+#, fuzzy
+msgid "Query:"
+msgstr "検索クエリー"
 
 msgid "Sho_w settings"
 msgstr "設定の表示(_W)"
