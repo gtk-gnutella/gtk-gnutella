@@ -411,7 +411,8 @@ iov_clear(struct iovec *iov, size_t byte_offset)
 static inline size_t
 iov_calculate_size(struct iovec *iov, size_t iov_cnt)
 {
-	size_t size, i;
+	size_t size = 0;
+	size_t i;
 
 	g_assert(iov);
 
