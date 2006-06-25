@@ -97,7 +97,7 @@ database_create(void)
 const char *
 database_get_config_value(const char *key)
 {
-	const char *value;
+	const unsigned char *value;
 	
 	if (get_config_value_stmt == NULL)
 	{
@@ -123,7 +123,7 @@ database_get_config_value(const char *key)
 		get_config_value_stmt, 
 		1 /* first column is our result */);
 
-	return value;
+	return (const char *) value;
 }
 
 /**
