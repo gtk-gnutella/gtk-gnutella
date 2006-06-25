@@ -103,7 +103,7 @@ database_get_config_value(const char *key)
 	{
 		if ( sqlite3_prepare(
 			persistent_db, 
-			"select value from config where key = '?';",  /* stmt */
+			"SELECT value FROM config WHERE key = '?1';",  /* stmt */
 			-1, /* If than zero, then stmt is read up to the first nul terminator */
 			&get_config_value_stmt,
 			0  /* Pointer to unused portion of stmt */
@@ -136,7 +136,7 @@ database_set_config_value(const char *key, const char *value)
 	{
 		if ( sqlite3_prepare(
 			persistent_db, 
-			"INSERT OR REPLACE INTO config ('key', 'value') VALUES(?, ?);",
+			"INSERT OR REPLACE INTO config ('key', 'value') VALUES(?1, ?2);",
 			-1, /* If than zero, then stmt is read up to the first nul terminator */
 			&set_config_value_stmt,
 			0  /* Pointer to unused portion of stmt */
