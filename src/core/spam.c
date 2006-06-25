@@ -44,7 +44,7 @@
 RCSID("$Id$");
 
 #ifdef HAS_SQLITE
-#include "storage_sqlite3.h"
+#include "gdb.h"
 #endif /* HAS_SQLITE */
 
 #include "spam.h"
@@ -71,8 +71,8 @@ static const gchar spam_what[] = "Spam database";
 
 struct spam_lut {
 #ifdef HAS_SQLITE
-	struct database_stmt *lookup_stmt;
-	struct database_stmt *insert_stmt;
+	struct gdb_stmt *lookup_stmt;
+	struct gdb_stmt *insert_stmt;
 #else  /* HAS_SQLITE */
 	GHashTable *ht;
 #endif /* HAS_SQLITE */
@@ -143,10 +143,10 @@ spam_db_open(struct spam_lut *lut)
 		gchar *errmsg;
 		gint ret;
 
-		ret = database_exec(cmd, &errmsg);
+		ret = gdb_exec(cmd, &errmsg);
 		if (0 != ret) {
-			g_warning("database_exec() failed: %s", errmsg);
-			database_free(errmsg);
+			g_warning("gdb_exec() failed: %s", errmsg);
+			gdb_free(errmsg);
 			goto failure;
 		}
 	}
@@ -154,9 +154,9 @@ spam_db_open(struct spam_lut *lut)
 	{
 		static const gchar cmd[] = "INSERT INTO spam VALUES($x);";
 	  
-		if (0 != database_stmt_prepare(cmd, &lut->insert_stmt)) {
-			g_warning("database_prepare() failed: %s",
-				database_error_message());
+		if (0 != gdb_stmt_prepare(cmd, &lut->insert_stmt)) {
+			g_warning("gdb_prepare() failed: %s",
+				gdb_error_message());
 			goto failure;
 		}
 	}
@@ -164,9 +164,9 @@ spam_db_open(struct spam_lut *lut)
 	{
 		static const gchar cmd[] = "SELECT OID FROM spam WHERE sha1 = $x;";
 
-		if (0 != database_stmt_prepare(cmd, &lut->lookup_stmt)) {
-			g_warning("database_prepare() failed: %s",
-				database_error_message());
+		if (0 != gdb_stmt_prepare(cmd, &lut->lookup_stmt)) {
+			g_warning("gdb_prepare() failed: %s",
+				gdb_error_message());
 			goto failure;
 		}
 	}
@@ -193,26 +193,26 @@ spam_add(const struct spam_item *item)
 
 #ifdef HAS_SQLITE
 	if (spam_lut.insert_stmt) {
-		struct database_stmt *stmt = spam_lut.insert_stmt;
+		struct gdb_stmt *stmt = spam_lut.insert_stmt;
 		gint ret;
 		
-		ret = database_stmt_reset(stmt);
+		ret = gdb_stmt_reset(stmt);
 		if (0 == ret) {
-			ret = database_stmt_bind_static_blob(stmt,
+			ret = gdb_stmt_bind_static_blob(stmt,
 					1, item->sha1, sizeof item->sha1);
 			if (0 == ret) {
-				ret = database_stmt_step(stmt);
+				ret = gdb_stmt_step(stmt);
 				if (DATABASE_STEP_DONE != ret) {
-					g_warning("%s: database_stmt_step() failed: %s",
-						"spam_add", database_error_message());
+					g_warning("%s: gdb_stmt_step() failed: %s",
+						"spam_add", gdb_error_message());
 				}
 			} else {
-				g_warning("%s: database_stmt_bind_static_blob() failed: %s",
-					"spam_add", database_error_message());
+				g_warning("%s: gdb_stmt_bind_static_blob() failed: %s",
+					"spam_add", gdb_error_message());
 			}
 		} else {
-			g_warning("%s: database_stmt_reset() failed: %s",
-				"spam_add", database_error_message());
+			g_warning("%s: gdb_stmt_reset() failed: %s",
+				"spam_add", gdb_error_message());
 		}
 	}
 #else	/* HAS_SQLITE */
@@ -259,7 +259,7 @@ spam_load(FILE *f)
 	if (0 != spam_db_open(&spam_lut)) {
 		return -1;
 	}
-	database_begin();
+	gdb_begin();
 
 	while (fgets(line, sizeof line, f)) {
 		const gchar *tag_name, *value;
@@ -382,7 +382,7 @@ spam_load(FILE *f)
 		}
 	}
 
-	database_commit();
+	gdb_commit();
 
 	return item_count;
 }
@@ -479,8 +479,8 @@ void
 spam_close(void)
 {
 #ifdef HAS_SQLITE
-	database_stmt_finalize(&spam_lut.insert_stmt);
-	database_stmt_finalize(&spam_lut.lookup_stmt);
+	gdb_stmt_finalize(&spam_lut.insert_stmt);
+	gdb_stmt_finalize(&spam_lut.lookup_stmt);
 #else /* HAS_SQLITE */
 	if (spam_lut.ht) {
 		g_hash_table_foreach(spam_lut.ht, spam_item_free, NULL);
@@ -503,31 +503,31 @@ spam_check(const char *sha1)
 
 #ifdef HAS_SQLITE
 	if (spam_lut.lookup_stmt) {
-		struct database_stmt *stmt;
+		struct gdb_stmt *stmt;
 		gint ret;
 	
 		stmt = spam_lut.lookup_stmt;	
-		ret = database_stmt_reset(stmt);
+		ret = gdb_stmt_reset(stmt);
 		if (0 == ret) {
-			ret = database_stmt_bind_static_blob(stmt, 1, sha1, SHA1_RAW_SIZE);
+			ret = gdb_stmt_bind_static_blob(stmt, 1, sha1, SHA1_RAW_SIZE);
 			if (0 == ret) {
-				enum database_step step;
+				enum gdb_step step;
 				
-				step = database_stmt_step(stmt);
+				step = gdb_stmt_step(stmt);
 				if (DATABASE_STEP_ROW == step) {
 					return TRUE;
 				}
 				if (DATABASE_STEP_DONE != step) {
-					g_warning("%s: database_step() failed: %s",
-						"spam_check", database_error_message());
+					g_warning("%s: gdb_step() failed: %s",
+						"spam_check", gdb_error_message());
 				}
 			} else {
-				g_warning("%s: database_stmt_bind_static_blob() failed: %s",
-					"spam_check", database_error_message());
+				g_warning("%s: gdb_stmt_bind_static_blob() failed: %s",
+					"spam_check", gdb_error_message());
 			}
 		} else {
-			g_warning("%s: database_stmt_reset() failed: %s",
-				"spam_check", database_error_message());
+			g_warning("%s: gdb_stmt_reset() failed: %s",
+				"spam_check", gdb_error_message());
 		}
 		return FALSE;
 	}

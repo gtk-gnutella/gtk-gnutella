@@ -89,7 +89,7 @@ SRC = \
 	sockets.c \
 	spam.c \
 	sq.c \
-	storage_sqlite3.c \
+	gdb.c \
 	tls_cache.c \
 	token.c \
 	tsync.c \

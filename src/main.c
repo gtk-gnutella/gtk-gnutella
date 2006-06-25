@@ -39,7 +39,7 @@
 
 #define CORE_SOURCES
 
-#include "core/storage_sqlite3.h"
+#include "core/gdb.h"
 #include "core/ban.h"
 #include "core/bitzi.h"
 #include "core/bogons.h"
@@ -410,7 +410,7 @@ gtk_gnutella_exit(gint n)
 	dmesh_close();
 	host_close();
 	hcache_close();		/* After host_close() */
-	database_close();
+	gdb_close();
 	settings_close();	/* Must come after hcache_close() */
 	bogons_close();		/* Idem, since host_close() can touch the cache */
 	hostiles_close();
@@ -936,7 +936,7 @@ main(int argc, char **argv)
 	watcher_init();
 	hcache_init();			/* before settings_init() */
 	settings_init();
-	database_init();
+	gdb_init();
     hcache_retrieve_all();	/* after settings_init() */
 	hostiles_init();
 	spam_init();

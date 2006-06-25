@@ -265,6 +265,8 @@ src/core/features.c
 src/core/features.h
 src/core/fileinfo.c
 src/core/fileinfo.h
+src/core/gdb.c
+src/core/gdb.h
 src/core/geo_ip.c
 src/core/geo_ip.h
 src/core/ggep.c
