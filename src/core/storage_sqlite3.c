@@ -33,6 +33,7 @@
 #include <sqlite3.h>
 
 sqlite3_stmt *get_config_value_stmt;
+sqlite3_stmt *set_config_value_stmt;
 
 static void database_create();
 
@@ -90,8 +91,10 @@ void database_create()
 	g_message("[SQLITE3] Database created");
 }
 
-
-char* database_get_config_value(char* key)
+/**
+ * Gets a config value from the database.
+ */
+char* database_get_config_value(const char* key)
 {
 	char *result;
 	
@@ -99,29 +102,71 @@ char* database_get_config_value(char* key)
 	{
 		if ( sqlite3_prepare(
 			persistent_db, 
-			"select value from config where key = '?'",  // stmt
+			"select value from config where key = '?';",  // stmt
 			-1, // If than zero, then stmt is read up to the first nul terminator
 			&get_config_value_stmt,
 			0  // Pointer to unused portion of stmt
 		) != SQLITE_OK) 
-			g_error("\nCould not prepare statement.");
+			g_error("Could not prepare statement.");
 	}
 	
 	if (sqlite3_bind_text (
 		get_config_value_stmt,
-		0,  // Parameter 0
+		1,  // Parameter 0
         key, strlen(key),
-		SQLITE_STATIC
+		SQLITE_TRANSIENT
         ) != SQLITE_OK)
-			g_error("\nCould not bind key to parameter.\n");
-	
-	result = (char *) sqlite3_column_text(
-		get_config_value_stmt, 
-		0 /* first column is our result */);
-	
+			g_error("Could not bind key to parameter.\n");
+
+	if (sqlite3_step(get_config_value_stmt) != SQLITE_DONE) 
+		g_warning("Could not retrieve %s ", key);
+	else
+		result = (char *) sqlite3_column_text(
+			get_config_value_stmt, 
+			1 /* first column is our result */);	
+
 	sqlite3_reset(get_config_value_stmt);
 	
 	return result;
+}
+
+/**
+ * Stores a config value in the database.
+ */
+void database_set_config_value(const char* key, const char* value)
+{
+	if (set_config_value_stmt == NULL)
+	{
+		if ( sqlite3_prepare(
+			persistent_db, 
+			"INSERT OR REPLACE INTO config ('key', 'value') VALUES(?, ?);",
+			-1, //If than zero, then stmt is read up to the first nul terminator
+			&set_config_value_stmt,
+			0  // Pointer to unused portion of stmt
+		) != SQLITE_OK) 
+			g_error("Could not prepare statement.");
+	}
+	
+	if (sqlite3_bind_text (
+		set_config_value_stmt,
+		1,  // Parameter key
+        key, strlen(key),
+		SQLITE_TRANSIENT
+        ) != SQLITE_OK)
+			g_error("Could not bind key to parameter.");
+
+	if (sqlite3_bind_text (
+		set_config_value_stmt,
+		2,  // Parameter value
+        value, strlen(value),
+		SQLITE_TRANSIENT
+        ) != SQLITE_OK)
+			g_error("Could not bind value to parameter.");
+	
+	if (sqlite3_step(set_config_value_stmt) != SQLITE_DONE) 
+		g_warning("Could not store %s ", key);
+		
+	sqlite3_reset(get_config_value_stmt);
 }
 
 

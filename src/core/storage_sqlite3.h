@@ -36,7 +36,8 @@ sqlite3 *persistent_db;
 void database_init();
 void database_close();
 
-char* database_get_config_value(char* key);
+char* database_get_config_value(const char* key);
+void database_set_config_value(const char* key, const char* value);
 
 #endif
 
