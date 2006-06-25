@@ -34,3 +34,4 @@ gboolean tls_cache_lookup(const host_addr_t addr, guint16 port);
 void tls_cache_close(void);
 
 #endif /* _tls_cache_h_ */
+/* vi: set ts=4 sw=4 cindent: */
