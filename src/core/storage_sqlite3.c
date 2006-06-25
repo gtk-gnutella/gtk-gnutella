@@ -57,7 +57,7 @@ database_init(void)
 		database_create();
 		sqlite3_free(error_message);
 	} else if (result != SQLITE_OK) {
-		g_error("Error opening databaset (%d) %s", result, error_message);
+		g_error("Error opening database (%d) %s", result, error_message);
 		sqlite3_free(error_message);
 	}
 }
@@ -65,7 +65,14 @@ database_init(void)
 void
 database_close(void)
 {
-	sqlite3_close(persistent_db);
+	if (persistent_db) {
+		if (SQLITE_OK != sqlite3_close(persistent_db)) {
+			g_warning("%s: sqlite3_close() failed: %s",
+				"database_close", sqlite3_errmsg(persistent_db));
+		} else {
+			persistent_db = NULL;
+		}
+	}
 }
 
 /**
