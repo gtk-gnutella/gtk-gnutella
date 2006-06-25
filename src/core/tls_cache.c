@@ -146,7 +146,7 @@ tls_cache_bind_key(sqlite3_stmt *stmt, const host_addr_t addr, guint16 port)
 	gint ret;
 
 	key = host_addr_port_to_string(addr, port);
-	ret = sqlite3_bind_text(stmt, 1, &key, (-1), SQLITE_STATIC);
+	ret = sqlite3_bind_text(stmt, 1, key, (-1), SQLITE_STATIC);
 	if (SQLITE_OK != ret) {
 		g_warning("%s: sqlite3_bind_text() failed: %s",
 			"tls_cache_bind_key", sqlite3_errmsg(db));
