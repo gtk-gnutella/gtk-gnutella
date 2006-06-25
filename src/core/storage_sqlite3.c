@@ -81,8 +81,8 @@ void database_create()
 	
 	result = sqlite3_exec(persistent_db,
 		"CREATE TABLE config ("
-		"key   VARCHAR(255)    NOT NULL,"
-		"value VARCHAR(1024)   NOT NULL"
+		" key   VARCHAR(255)    NOT NULL PRIMARY KEY,"
+		" value VARCHAR(1024)   NOT NULL"
 		");", NULL, 0, &error_message);
 		
 	g_assert(result == SQLITE_OK);
