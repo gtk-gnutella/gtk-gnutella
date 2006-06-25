@@ -27,18 +27,41 @@
 #ifndef _core_sqlite3_h_
 #define _core_sqlite3_h_
 
+#include "common.h"
+
 #ifdef HAS_SQLITE
 
-#include <sqlite3.h>
+struct database_stmt;
 
-sqlite3 *persistent_db;
+enum database_step {
+	DATABASE_STEP_ROW = 1,
+	DATABASE_STEP_DONE = 2,
+		
+	DATABASE_STEP_ERROR
+};
 
-void database_init();
-void database_close();
+void database_init(void);
+void database_close(void);
 
-char* database_get_config_value(const char* key);
-void database_set_config_value(const char* key, const char* value);
+int database_exec(const char *cmd, char **error_message);
+void database_set_config_value(const char *key, const char *value);
+const char *database_get_config_value(const char *key);
+void database_free(char *error_message);
+const char *database_error_message(void);
+int database_begin(void);
+int database_commit(void);
 
-#endif
+int database_stmt_prepare(const char *cmd, struct database_stmt **db_stmt);
+enum database_step database_stmt_step(struct database_stmt *db_stmt);
+int database_stmt_reset(struct database_stmt *db_stmt);
+int database_stmt_bind_static_blob(struct database_stmt *db_stmt,
+	int parameter, const void *data, size_t size);
+int database_stmt_finalize(struct database_stmt **db_stmt);
 
-#endif
+#else	/* !HAS_SQLITE */
+#define database_init()
+#define database_close()
+#endif	/* HAS_SQLITE */
+
+#endif	/* _core_sqlite3_h_ */
+/* vi: set ts=4 sw=4 cindent: */
