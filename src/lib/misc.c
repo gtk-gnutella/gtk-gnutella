@@ -1467,7 +1467,7 @@ tth_base32(const struct tth *tth)
 {
 	static gchar digest_b32[TTH_BASE32_SIZE + 1];
 
-	base32_encode_into(cast_to_gpointer(tth->data), sizeof tth->data,
+	base32_encode_into(cast_to_gconstpointer(tth->data), sizeof tth->data,
 		digest_b32, sizeof digest_b32);
 	digest_b32[sizeof digest_b32 - 1] = '\0';
 
