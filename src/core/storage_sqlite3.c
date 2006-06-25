@@ -103,17 +103,17 @@ database_get_config_value(const char *key)
 	{
 		if ( sqlite3_prepare(
 			persistent_db, 
-			"select value from config where key = '?';",  // stmt
-			-1, // If than zero, then stmt is read up to the first nul terminator
+			"select value from config where key = '?';",  /* stmt */
+			-1, /* If than zero, then stmt is read up to the first nul terminator */
 			&get_config_value_stmt,
-			0  // Pointer to unused portion of stmt
+			0  /* Pointer to unused portion of stmt */
 		) != SQLITE_OK) 
 			g_error("Could not prepare statement.");
 	}
 	
 	if (sqlite3_bind_text (
 		get_config_value_stmt,
-		1,  // Parameter 0
+		1,  /* Parameter 0 */
         key, (-1),
 		SQLITE_TRANSIENT
         ) != SQLITE_OK)
@@ -137,16 +137,16 @@ database_set_config_value(const char *key, const char *value)
 		if ( sqlite3_prepare(
 			persistent_db, 
 			"INSERT OR REPLACE INTO config ('key', 'value') VALUES(?, ?);",
-			-1, //If than zero, then stmt is read up to the first nul terminator
+			-1, /* If than zero, then stmt is read up to the first nul terminator */
 			&set_config_value_stmt,
-			0  // Pointer to unused portion of stmt
+			0  /* Pointer to unused portion of stmt */
 		) != SQLITE_OK) 
 			g_error("Could not prepare statement.");
 	}
 	
 	if (sqlite3_bind_text (
 		set_config_value_stmt,
-		1,  // Parameter key
+		1,  /* Parameter key */
         key, strlen(key),
 		SQLITE_TRANSIENT
         ) != SQLITE_OK)
@@ -154,7 +154,7 @@ database_set_config_value(const char *key, const char *value)
 
 	if (sqlite3_bind_text (
 		set_config_value_stmt,
-		2,  // Parameter value
+		2,  /* Parameter value */
         value, strlen(value),
 		SQLITE_TRANSIENT
         ) != SQLITE_OK)
