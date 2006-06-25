@@ -36,7 +36,7 @@ struct database_stmt {
 
 static sqlite3 *persistent_db;
 static sqlite3_stmt *get_config_value_stmt;
-sqlite3_stmt *set_config_value_stmt;
+static sqlite3_stmt *set_config_value_stmt;
 
 static void database_create(void);
 
@@ -117,7 +117,7 @@ database_get_config_value(const char *key)
         key, (-1),
 		SQLITE_TRANSIENT
         ) != SQLITE_OK)
-			g_error("\nCould not bind key to parameter.\n");
+			g_error("Could not bind key to parameter.");
 	
 	value = sqlite3_column_text(
 		get_config_value_stmt, 
