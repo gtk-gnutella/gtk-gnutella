@@ -195,6 +195,12 @@
 208.53.138.0/24
 208.53.158.0/23
 
+# DRM WMV pr0n spammer "Hollywood Interactive, Inc." using Mutella
+# DRM header links to smutlounge dot com
+64.27.0.0/19
+216.240.128.48/28
+216.240.128.64/30
+
 # isaveclub.com AKA esaveclub.com AKA edirectclub.com
 69.44.155.0/24
 69.44.156.0/24
