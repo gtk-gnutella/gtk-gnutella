@@ -40,6 +40,9 @@ static sqlite3_stmt *set_config_value_stmt;
 
 static void database_create(void);
 
+/**
+ * Initialize the "gtkg.db" database.
+ */
 void
 database_init(void)
 {
@@ -49,7 +52,7 @@ database_init(void)
 	db_pathname = make_pathname(settings_config_dir(), "gtkg.db");
 	sqlite3_open(db_pathname, &persistent_db);
 	G_FREE_NULL(db_pathname);
-	
+
 	result = sqlite3_exec(persistent_db, 
 		"SELECT count(*) FROM config", NULL, 0, &error_message);
   
@@ -62,6 +65,9 @@ database_init(void)
 	}
 }
 
+/**
+ * Close the "gtkg.db" database.
+ */
 void
 database_close(void)
 {
@@ -106,25 +112,29 @@ database_get_config_value(const char *key)
 {
 	const unsigned char *value;
 	
-	if (get_config_value_stmt == NULL)
-	{
-		if ( sqlite3_prepare(
-			persistent_db, 
-			"SELECT value FROM config WHERE key = '?1';",  /* stmt */
-			-1, /* If than zero, then stmt is read up to the first nul terminator */
-			&get_config_value_stmt,
-			0  /* Pointer to unused portion of stmt */
-		) != SQLITE_OK) 
-			g_error("Could not prepare statement.");
+	if (get_config_value_stmt == NULL) {
+		if (
+			sqlite3_prepare(
+				persistent_db, 
+				"SELECT value FROM config WHERE key = '?1';",  /* stmt */
+				/* If <0, then stmt is read up to the first nul terminator */
+				-1,
+				&get_config_value_stmt,
+				0  /* Pointer to unused portion of stmt */
+			) != SQLITE_OK
+		) 
+			g_error("Could not prepare SELECT statement.");
 	}
 	
-	if (sqlite3_bind_text (
-		get_config_value_stmt,
-		1,  /* Parameter 0 */
-        key, (-1),
-		SQLITE_TRANSIENT
-        ) != SQLITE_OK)
-			g_error("Could not bind key to parameter.");
+	if (
+		sqlite3_bind_text(
+			get_config_value_stmt,
+			1,  /* Parameter 0 */
+			key, (-1),
+			SQLITE_TRANSIENT
+			) != SQLITE_OK
+		)
+			g_error("Could not bind key to parameter in SELECT.");
 	
 	value = sqlite3_column_text(
 		get_config_value_stmt, 
@@ -139,33 +149,39 @@ database_get_config_value(const char *key)
 void
 database_set_config_value(const char *key, const char *value)
 {
-	if (set_config_value_stmt == NULL)
-	{
-		if ( sqlite3_prepare(
-			persistent_db, 
-			"INSERT OR REPLACE INTO config ('key', 'value') VALUES(?1, ?2);",
-			-1, /* If than zero, then stmt is read up to the first nul terminator */
-			&set_config_value_stmt,
-			0  /* Pointer to unused portion of stmt */
-		) != SQLITE_OK) 
-			g_error("Could not prepare statement.");
+	if (set_config_value_stmt == NULL) {
+		if (
+			sqlite3_prepare(
+				persistent_db, 
+				"INSERT OR REPLACE INTO config ('key', 'value') VALUES(?1, ?2);",
+				/* If <0, then stmt is read up to the first nul terminator */
+				-1,
+				&set_config_value_stmt,
+				0  /* Pointer to unused portion of stmt */
+			) != SQLITE_OK
+		) 
+			g_error("Could not prepare INSERT statement.");
 	}
 	
-	if (sqlite3_bind_text (
-		set_config_value_stmt,
-		1,  /* Parameter key */
-        key, (-1),
-		SQLITE_TRANSIENT
-        ) != SQLITE_OK)
-			g_error("Could not bind key to parameter.");
+	if (
+		sqlite3_bind_text(
+			set_config_value_stmt,
+			1, /* Parameter key */
+			key, (-1),
+			SQLITE_TRANSIENT
+        ) != SQLITE_OK
+	)
+		g_error("Could not bind key to parameter in INSERT.");
 
-	if (sqlite3_bind_text (
-		set_config_value_stmt,
-		2,  /* Parameter value */
-        value, (-1),
-		SQLITE_TRANSIENT
-        ) != SQLITE_OK)
-			g_error("Could not bind value to parameter.");
+	if (
+		sqlite3_bind_text(
+			set_config_value_stmt,
+			2,  /* Parameter value */
+			value, (-1),
+			SQLITE_TRANSIENT
+        ) != SQLITE_OK
+	)
+		g_error("Could not bind value to parameter in INSERT.");
 	
 	if (sqlite3_step(set_config_value_stmt) != SQLITE_DONE) 
 		g_warning("Could not store %s ", key);
@@ -173,6 +189,9 @@ database_set_config_value(const char *key, const char *value)
 	sqlite3_reset(get_config_value_stmt);
 }
 
+/**
+ * Begin SQL transaction.
+ */
 int
 database_begin(void)
 {
@@ -188,6 +207,9 @@ database_begin(void)
 	return 0;
 }
 
+/**
+ * Commit SQL transaction.
+ */
 int
 database_commit(void)
 {
@@ -203,6 +225,9 @@ database_commit(void)
 	return 0;
 }
 
+/**
+ * Execute SQL statement, return error message in `error_message'.
+ */
 int
 database_exec(const char *cmd, char **error_message)
 {
@@ -212,18 +237,27 @@ database_exec(const char *cmd, char **error_message)
 	return result;
 }
 
+/**
+ * Free error message returned by database_exec().
+ */
 void
 database_free(char *error_message)
 {
 	sqlite3_free(error_message);
 }
 
+/**
+ * Return error message from SQL backend.
+ */
 const char *
 database_error_message(void)
 {
 	return sqlite3_errmsg(persistent_db);
 }
 
+/**
+ * Prepare SQL statement.
+ */
 int
 database_stmt_prepare(const char *cmd, struct database_stmt **db_stmt)
 {
@@ -243,6 +277,9 @@ database_stmt_prepare(const char *cmd, struct database_stmt **db_stmt)
 	}
 }
 
+/**
+ * ?
+ */
 enum database_step
 database_stmt_step(struct database_stmt *db_stmt)
 {
@@ -255,6 +292,9 @@ database_stmt_step(struct database_stmt *db_stmt)
 	return DATABASE_STEP_ERROR;
 }
 
+/**
+ * ?
+ */
 int
 database_stmt_bind_static_blob(struct database_stmt *db_stmt,
 	int parameter, const void *data, size_t size)
@@ -270,6 +310,9 @@ database_stmt_bind_static_blob(struct database_stmt *db_stmt,
 	return SQLITE_OK == ret ? 0 : -1;
 }
 
+/**
+ * Reset database.
+ */
 int
 database_stmt_reset(struct database_stmt *db_stmt)
 {
@@ -281,6 +324,9 @@ database_stmt_reset(struct database_stmt *db_stmt)
 	return SQLITE_OK == ret ? 0 : -1;
 }
 
+/**
+ * Finalize SQL statement.
+ */
 int
 database_stmt_finalize(struct database_stmt **db_stmt)
 {
@@ -298,6 +344,9 @@ database_stmt_finalize(struct database_stmt **db_stmt)
 
 #else	/* !HAS_SQLITE */
 
+/**
+ * Placeholder -- can't call this routine, defined when no SQLite.
+ */
 const char *
 database_get_config_value(const char *key)
 {
