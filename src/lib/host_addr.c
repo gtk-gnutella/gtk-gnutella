@@ -1072,4 +1072,55 @@ packed_host_addr_size(const struct packed_host_addr paddr)
 	return 0;
 }
 
+struct packed_host
+host_pack(const host_addr_t addr, guint16 port)
+{
+	struct packed_host phost;
+
+	phost.ha = host_addr_pack(addr);
+	poke_be16(&phost.port, port);
+	return phost;
+}
+
+gboolean
+packed_host_unpack(const struct packed_host phost,
+	host_addr_t *addr_ptr, guint16 *port_ptr)
+{
+	if (port_ptr) {
+		*port_ptr = peek_be16(&phost.port);
+	}
+	switch (phost.ha.net) {
+	case NET_TYPE_IPV4:
+		if (addr_ptr) {
+			*addr_ptr = host_addr_get_ipv4(peek_be32(phost.ha.addr));
+		}
+		return TRUE;
+	case NET_TYPE_IPV6:
+		if (addr_ptr) {
+			*addr_ptr = host_addr_get_ipv6(phost.ha.addr);
+		}
+		return TRUE;
+	case NET_TYPE_NONE:
+		if (addr_ptr) {
+			*addr_ptr = zero_host_addr;
+		}
+		return TRUE;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+
+guint
+packed_host_size(const struct packed_host phost)
+{
+	switch (phost.ha.net) {
+	case NET_TYPE_IPV4:	return 1 + 4 + 2;
+	case NET_TYPE_IPV6: return 1 + 16 + 2;
+	case NET_TYPE_NONE:	return 1 + 2;
+	}
+	g_assert_not_reached();
+	return 0;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

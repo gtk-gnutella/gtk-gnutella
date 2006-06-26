@@ -98,6 +98,11 @@ struct packed_host_addr {
 	guchar addr[sizeof ((host_addr_t *) 0)->addr];
 };
 
+struct packed_host {
+	guchar port[sizeof (guint16)];
+	struct packed_host_addr ha;
+};
+
 typedef union socket_addr {
 	guint8 len;
 	struct sockaddr_in inet4;
@@ -531,6 +536,12 @@ void host_addr_free_interface_addrs(GSList **sl_ptr);
 guint packed_host_addr_size(const struct packed_host_addr paddr);
 struct packed_host_addr host_addr_pack(const host_addr_t addr);
 host_addr_t packed_host_addr_unpack(const struct packed_host_addr paddr);
+
+guint packed_host_size(const struct packed_host paddr);
+struct packed_host host_addr_port_pack(const host_addr_t addr, guint16 port);
+gboolean packed_host_unpack(const struct packed_host phost,
+		host_addr_t *addr_ptr, guint16 *port_ptr);
+
 
 #endif /* _host_addr_h_ */
 /* vi: set ts=4 sw=4 cindent: */
