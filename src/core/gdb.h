@@ -61,6 +61,8 @@ int gdb_stmt_finalize(struct gdb_stmt **db_stmt);
 #else	/* !HAS_SQLITE */
 #define gdb_init()
 #define gdb_close()
+#define gdb_begin()
+#define gdb_commit()
 #endif	/* HAS_SQLITE */
 
 #endif	/* _core_sqlite3_h_ */
