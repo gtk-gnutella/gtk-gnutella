@@ -243,6 +243,25 @@ gdb_commit(void)
 }
 
 /**
+ * Perform a SQL transaction rollback.
+ */
+int
+gdb_rollback(void)
+{
+	char *errmsg;
+	int ret;
+
+	ret = sqlite3_exec(persistent_db, "ROLLBACK;", NULL, NULL, &errmsg);
+	if (SQLITE_OK != ret) {
+		g_warning("%s: sqlite3_exec() failed: %s", "gdb_rollback", errmsg);
+		sqlite3_free(errmsg);
+		return -1;
+	}
+	return 0;
+}
+
+
+/**
  * Execute SQL statement, return error message in `error_message'.
  */
 int
@@ -379,6 +398,85 @@ gdb_stmt_finalize(struct gdb_stmt **db_stmt)
 		return SQLITE_OK == ret ? 0 : -1;
 	}
 	return 0;
+}
+
+static const char *
+gdb_type_to_string(enum gdb_type col_type)
+{
+	switch (col_type) {
+#define CASE(x) case (GDB_CT_ ## x) : return #x;
+	CASE(INTEGER)
+	CASE(FLOAT)
+	CASE(TEXT)
+	
+	CASE(SHA1)
+	CASE(HOST)
+#undef CASE
+	}
+	return NULL;
+}
+
+/**
+ * Declares the extended types of the given columns in the given table.
+ * The variable argument list must be terminated with (void *) 0.
+ *
+ * @param table The name of table in the database.
+ * @param first_column The name of the first column.
+ * @param ... An "enum gdb_type" declaring the type of the column.
+ */
+int
+gdb_declare_types(const char *table, const char *first_column, ...)
+{
+	static const char create_meta_types[] =
+		"CREATE TABLE IF NOT EXISTS meta_types ("
+		" tab TEXT,"
+		" col TEXT,"
+		" type TEXT,"
+		" PRIMARY KEY(tab, col)"
+		");";
+	va_list ap;
+	const char *col_name;
+	gchar *error_message;
+
+	va_start(ap, first_column);
+	gdb_begin();
+	
+	if (0 != gdb_exec(create_meta_types, &error_message)) {
+		g_warning("%s: gdb_exec(create_meta_types, ...) failed: %s",
+				"gdb_declare_types", error_message);
+		gdb_free(error_message);
+		goto rollback;
+	}
+
+	col_name = first_column;
+	while (col_name) {
+		static const char fmt[] =
+			"INSERT OR REPLACE INTO meta_types (tab, col, type)"
+			" VALUES('%q', '%q', '%q');";
+		enum gdb_type col_type;
+		char *cmd;
+
+		col_type = va_arg(ap, enum gdb_type);
+		cmd = sqlite3_mprintf(fmt,
+				table, col_name, gdb_type_to_string(col_type));
+		if (0 != gdb_exec(cmd, &error_message)) {
+			g_warning("%s: gdb_exec() failed: %s",
+				"gdb_declare_types", error_message);
+			gdb_free(error_message);
+			goto rollback;
+		}
+		sqlite3_free(cmd);
+		col_name = va_arg(ap, const char *);
+	}
+
+	gdb_commit();
+	va_end(ap);
+	return 0;
+
+rollback:
+	gdb_rollback();
+	va_end(ap);
+	return -1;
 }
 
 #endif	/* HAS_SQLITE */

@@ -40,6 +40,15 @@ enum gdb_step {
 	GDB_STEP_ERROR
 };
 
+enum gdb_type {
+	GDB_CT_INTEGER,
+	GDB_CT_FLOAT,
+	GDB_CT_TEXT,
+	
+	GDB_CT_SHA1,	/* 20 bytes, binary SHA-1 */
+	GDB_CT_HOST,	/* 3..18 bytes, struct packed_host */
+};
+
 void gdb_init(void);
 void gdb_close(void);
 
@@ -57,6 +66,8 @@ int gdb_stmt_reset(struct gdb_stmt *db_stmt);
 int gdb_stmt_bind_static_blob(struct gdb_stmt *db_stmt,
 	int parameter, const void *data, size_t size);
 int gdb_stmt_finalize(struct gdb_stmt **db_stmt);
+int gdb_declare_types(const char *table,
+		const char *first_column, ...) WARN_NEED_SENTINEL;
 
 #else	/* !HAS_SQLITE */
 #define gdb_init()
