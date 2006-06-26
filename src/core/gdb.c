@@ -57,7 +57,7 @@ gdb_create(void)
 		");", NULL, 0, &error_message);
 
 	if (SQLITE_OK != ret) {
-		g_critical("gdb_create() failed: %s", error_message);
+		g_warning("gdb_create() failed: %s", error_message);
 		sqlite3_free(error_message);
 		return -1;
 	} else {
@@ -82,7 +82,7 @@ gdb_init(void)
 		
 		pathname = make_pathname(settings_config_dir(), "gtkg.db");
 		if (SQLITE_OK != sqlite3_open(pathname, &persistent_db)) {
-			g_critical("sqlite3_open(\"%s\") failed: %s",
+			g_warning("sqlite3_open(\"%s\") failed: %s",
 				pathname, sqlite3_errmsg(persistent_db));
 			goto error;
 		}
@@ -100,7 +100,7 @@ gdb_init(void)
 				goto error;
 			}
 		} else {
-			g_critical("Error opening database (%d) %s", result, error_message);
+			g_warning("Error opening database (%d) %s", result, error_message);
 			sqlite3_free(error_message);
 			goto error;
 		}
