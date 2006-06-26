@@ -202,7 +202,7 @@ spam_add(const struct spam_item *item)
 					1, item->sha1, sizeof item->sha1);
 			if (0 == ret) {
 				ret = gdb_stmt_step(stmt);
-				if (DATABASE_STEP_DONE != ret) {
+				if (GDB_STEP_DONE != ret) {
 					g_warning("%s: gdb_stmt_step() failed: %s",
 						"spam_add", gdb_error_message());
 				}
@@ -514,10 +514,10 @@ spam_check(const char *sha1)
 				enum gdb_step step;
 				
 				step = gdb_stmt_step(stmt);
-				if (DATABASE_STEP_ROW == step) {
+				if (GDB_STEP_ROW == step) {
 					return TRUE;
 				}
-				if (DATABASE_STEP_DONE != step) {
+				if (GDB_STEP_DONE != step) {
 					g_warning("%s: gdb_step() failed: %s",
 						"spam_check", gdb_error_message());
 				}

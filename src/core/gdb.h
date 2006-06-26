@@ -34,10 +34,10 @@
 struct gdb_stmt;
 
 enum gdb_step {
-	DATABASE_STEP_ROW = 1,
-	DATABASE_STEP_DONE = 2,
+	GDB_STEP_ROW = 1,
+	GDB_STEP_DONE = 2,
 		
-	DATABASE_STEP_ERROR
+	GDB_STEP_ERROR
 };
 
 void gdb_init(void);
