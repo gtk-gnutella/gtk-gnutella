@@ -410,7 +410,6 @@ gtk_gnutella_exit(gint n)
 	dmesh_close();
 	host_close();
 	hcache_close();		/* After host_close() */
-	gdb_close();
 	settings_close();	/* Must come after hcache_close() */
 	bogons_close();		/* Idem, since host_close() can touch the cache */
 	hostiles_close();
@@ -435,6 +434,7 @@ gtk_gnutella_exit(gint n)
 	atom_str_free(start_rfc822_date);
 	adns_close();
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
+	gdb_close();
 	atoms_close();
 	wdestroy();
 	locale_close();
