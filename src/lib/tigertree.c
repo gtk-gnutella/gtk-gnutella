@@ -215,7 +215,8 @@ tt_check(void)
 		tt_digest(&ctx, hash.data);
 	
 		memset(digest, 0, sizeof digest);	
-		base32_encode_into(hash.data, sizeof hash.data, digest, sizeof digest);
+		base32_encode_into(cast_to_gconstpointer(hash.data),
+			sizeof hash.data, digest, sizeof digest);
 		digest[G_N_ELEMENTS(digest) - 1] = '\0';
 
 		if (0 != strcmp(tests[i].digest, digest)) {
