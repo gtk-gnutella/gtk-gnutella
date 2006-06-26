@@ -43,10 +43,7 @@
 
 RCSID("$Id$");
 
-#ifdef HAS_SQLITE
 #include "gdb.h"
-#endif /* HAS_SQLITE */
-
 #include "spam.h"
 #include "settings.h"
 #include "nodes.h"
