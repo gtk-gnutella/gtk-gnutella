@@ -200,6 +200,7 @@
 64.27.0.0/19
 216.240.128.48/28
 216.240.128.64/30
+217.115.128.48/29
 
 # isaveclub.com AKA esaveclub.com AKA edirectclub.com
 69.44.155.0/24
