@@ -79,13 +79,13 @@ guc_adns_resolve(const gchar *hostname,
 /*	bitzi interface functions (UI -> Core)*/
 
 void
-guc_query_bitzi_by_urn(const gchar *sha1)
+guc_query_bitzi_by_sha1(const gchar *sha1)
 {
     bitzi_query_by_sha1(sha1);
 }
 
 bitzi_data_t *
-guc_querycache_bitzi_by_urn(const gchar *sha1)
+guc_query_cache_bitzi_by_sha1(const gchar *sha1)
 {
     return bitzi_query_cache_by_sha1(sha1);
 }

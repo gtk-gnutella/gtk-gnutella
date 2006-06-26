@@ -904,7 +904,7 @@ search_gui_add_record(
 	 * cache. If so lets update the GUI to reflect this.
 	 */
 	if (NULL != rc->sha1) {
-		bitzi_data_t *bd = guc_querycache_bitzi_by_urn(rc->sha1);
+		bitzi_data_t *bd = guc_query_cache_bitzi_by_sha1(rc->sha1);
 
 		if (bd)
 			search_gui_metadata_update(bd);
@@ -2082,7 +2082,7 @@ search_gui_request_bitzi_data(void)
 			rd->meta = atom_str_get(_("Query queued..."));
 
 			/* then send the query... */
-	    	guc_query_bitzi_by_urn(rec->sha1);
+	    	guc_query_bitzi_by_sha1(rec->sha1);
 		}
     }
 

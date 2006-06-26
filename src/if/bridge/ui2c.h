@@ -261,8 +261,8 @@ void guc_upload_stats_clear_all(void);
 const gchar *guc_version_get_version_string(void);
 
 /* bitzi interface functions*/
-void guc_query_bitzi_by_urn(const gchar *urnsha1);
-bitzi_data_t * guc_querycache_bitzi_by_urn(const gchar *urnsha1);
+void guc_query_bitzi_by_sha1(const gchar *sha1);
+bitzi_data_t *guc_query_cache_bitzi_by_sha1(const gchar *sha1);
 
 /** main functions */
 void guc_gtk_gnutella_exit(gint code);
