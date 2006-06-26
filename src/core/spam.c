@@ -149,10 +149,16 @@ spam_db_open(struct spam_lut *lut)
 			gdb_free(errmsg);
 			goto failure;
 		}
+		ret = gdb_declare_types("spam", "sha1", GDB_CT_SHA1, (void *) 0);
+		if (0 != ret) {
+			g_warning("gdb_exec() failed: %s", gdb_error_message());
+			goto failure;
+		}
 	}
 
 	{
-		static const gchar cmd[] = "INSERT INTO spam VALUES($x);";
+		static const gchar cmd[] =
+			"INSERT INTO spam VALUES($x);";
 	  
 		if (0 != gdb_stmt_prepare(cmd, &lut->insert_stmt)) {
 			g_warning("gdb_prepare() failed: %s",
@@ -162,7 +168,8 @@ spam_db_open(struct spam_lut *lut)
 	}
 
 	{
-		static const gchar cmd[] = "SELECT OID FROM spam WHERE sha1 = $x;";
+		static const gchar cmd[] =
+			"SELECT OID FROM spam WHERE sha1 = $x;";
 
 		if (0 != gdb_stmt_prepare(cmd, &lut->lookup_stmt)) {
 			g_warning("gdb_prepare() failed: %s",
