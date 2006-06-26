@@ -53,7 +53,7 @@ typedef enum {
  * bitzi_data_t
  */
 typedef struct {
-	gchar		*urnsha1;		/**< pointer to urnsha1 atom */
+	gchar		*sha1;			/**< pointer to SHA-1 atom */
 	gchar		*mime_type;		/**< mime type */
 	gchar		*mime_desc;		/**< mime details (fps, bitrate etc) */
 	filesize_t	size;			/**< size of file */
@@ -65,17 +65,17 @@ typedef struct {
 #ifdef CORE_SOURCES
 
 /*
- * Bitzi Core API declartions
+ * Bitzi Core API declarations
  *
  * bitzi_query_* are initiated via the gui and will generate
  * notification events
  *
- * bitzi_querycache_* are used internally for gui querys as well as
+ * bitzi_query_cache_* are used internally for gui querys as well as
  * from within the core. They do not generate notification events
  */
 
-gpointer bitzi_query_byurnsha1(const gchar *urnsha1);
-bitzi_data_t *bitzi_querycache_byurnsha1(const gchar *urnsha1);
+gpointer bitzi_query_by_sha1(const gchar *sha1);
+bitzi_data_t *bitzi_query_cache_by_sha1(const gchar *sha1);
 
 #endif /* CORE_SOURCES */
 

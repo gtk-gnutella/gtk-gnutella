@@ -2108,7 +2108,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		struct result_data *rd;
 		search_t *search = iter->data;
 
-	   	rd = find_parent_with_sha1(search->parents, data->urnsha1);
+	   	rd = find_parent_with_sha1(search->parents, data->sha1);
 		if (rd) {
 			rd->meta = atom_str_get(text ? text : _("Not in database"));
 			text = NULL;

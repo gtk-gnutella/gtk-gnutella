@@ -70,7 +70,7 @@
 static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
 
 typedef struct {
-	gchar *urnsha1;			/**< urnsha1, atom */
+	gchar *sha1;			/**< binary SHA-1, atom */
 	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
 
 	/*
@@ -142,16 +142,13 @@ xmlChar_to_gchar(const xmlChar *s)
 static bitzi_data_t *
 bitzi_create(void)
 {
-	bitzi_data_t *data = walloc(sizeof(bitzi_data_t));
+	static const bitzi_data_t zero_data;
+	bitzi_data_t *data = walloc(sizeof *data);
 
 	/*
 	 * defaults
 	 */
-	data->urnsha1 = NULL;
-	data->mime_type = NULL;
-	data->mime_desc = NULL;
-	data->size = 0;
-	data->goodness = 0;
+	*data = zero_data;
 	data->judgement = BITZI_FJ_UNKNOWN;
 	data->expiry = (time_t) -1;
 
@@ -161,20 +158,17 @@ bitzi_create(void)
 static void
 bitzi_destroy(bitzi_data_t *data)
 {
-	if (bitzi_debug)
-		g_message("bitzi_destory: %p", cast_to_gconstpointer(data));
+	if (bitzi_debug) {
+		g_message("bitzi_destroy: %p", cast_to_gconstpointer(data));
+	}
 
-	if (data->urnsha1)
-		atom_sha1_free(data->urnsha1);
+	atom_sha1_free_null(&data->sha1);
+	G_FREE_NULL(data->mime_type);
+	G_FREE_NULL(data->mime_desc);
 
-	if (data->mime_type)
-		G_FREE_NULL(data->mime_type);
-
-	if (data->mime_desc)
-		G_FREE_NULL(data->mime_desc);
-
-	if (bitzi_debug)
-		g_message("bitzi_destory: freeing data");
+	if (bitzi_debug) {
+		g_message("bitzi_destroy: freeing data");
+	}
 	wfree(data, sizeof *data);
 }
 
@@ -313,10 +307,10 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		if (!sha1) {
 			g_warning("process_rdf_description: bad 'about' string: \"%s\"", s);
 		} else {
-			data->urnsha1 = atom_sha1_get(sha1);
+			data->sha1 = atom_sha1_get(sha1);
 		}
 	} else {
-		g_warning("process_rdf_description: No urnsha!");
+		g_warning("process_rdf_description: No SHA-1!");
 	}
 
 
@@ -512,8 +506,8 @@ process_meta_data(bitzi_request_t *request)
 
 		root = xmlDocGetRootElement(doc);
 		process_bitzi_ticket(root, data);
-		if (!data->urnsha1) {
-			g_warning("process_meta_data: missing urn:sha1");
+		if (!data->sha1) {
+			g_warning("process_meta_data: missing SHA-1");
 		} else {
 
 			/*
@@ -544,8 +538,7 @@ process_meta_data(bitzi_request_t *request)
 	 * free used memory by the request
 	 */
 
-	if (request->urnsha1)
-		atom_sha1_free(request->urnsha1);
+	atom_sha1_free_null(&request->sha1);
 
 	wfree(request, sizeof *request);
 }
@@ -569,7 +562,7 @@ do_metadata_query(bitzi_request_t *req)
 	/*
 	 * check we haven't already got a response from a previous query
 	 */
-	if (NULL != bitzi_querycache_byurnsha1(req->urnsha1))
+	if (NULL != bitzi_query_cache_by_sha1(req->sha1))
 		return FALSE;
 
 	current_bitzi_request = req;
@@ -632,14 +625,14 @@ static gboolean
 bitzi_cache_add(bitzi_data_t *data)
 {
 	g_assert(data);
-	g_assert(data->urnsha1);
+	g_assert(data->sha1);
 
-	if (g_hash_table_lookup(bitzi_cache_ht, data->urnsha1) != NULL) {
+	if (g_hash_table_lookup(bitzi_cache_ht, data->sha1) != NULL) {
 		g_warning("bitzi_cache_add: duplicate entry!");
 		return FALSE;
 	}
 
-	g_hash_table_insert(bitzi_cache_ht, data->urnsha1, data);
+	g_hash_table_insert(bitzi_cache_ht, data->sha1, data);
 	bitzi_cache = g_list_insert_sorted(bitzi_cache, data, bitzi_date_compare);
 
 	if (bitzi_debug)
@@ -656,9 +649,9 @@ bitzi_cache_remove(bitzi_data_t * data)
 		g_message("bitzi_cache_remove: %p", cast_to_gconstpointer(data));
 
 	g_assert(data);
-	g_assert(data->urnsha1);
+	g_assert(data->sha1);
 
-	g_hash_table_remove(bitzi_cache_ht, data->urnsha1);
+	g_hash_table_remove(bitzi_cache_ht, data->sha1);
 	bitzi_cache = g_list_remove(bitzi_cache, data);
 
 	/*
@@ -731,14 +724,14 @@ bitzi_heartbeat(gpointer unused_data)
  *************************************************************/
 
 /**
- * Query the bitzi cache for this given urnsha1, return NULL if
+ * Query the bitzi cache for this given SHA-1, return NULL if
  * nothing otherwise we return the
  */
 bitzi_data_t *
-bitzi_querycache_byurnsha1(const gchar *urnsha1)
+bitzi_query_cache_by_sha1(const gchar *sha1)
 {
-	g_return_val_if_fail(NULL != urnsha1, NULL);
-	return g_hash_table_lookup(bitzi_cache_ht, urnsha1);
+	g_return_val_if_fail(NULL != sha1, NULL);
+	return g_hash_table_lookup(bitzi_cache_ht, sha1);
 }
 
 /**
@@ -750,14 +743,14 @@ bitzi_querycache_byurnsha1(const gchar *urnsha1)
  * should always get some sort of data back from the service.
  */
 gpointer
-bitzi_query_byurnsha1(const gchar *urnsha1)
+bitzi_query_by_sha1(const gchar *sha1)
 {
 	bitzi_data_t *data = NULL;
 	bitzi_request_t	*request;
 
-	g_return_val_if_fail(NULL != urnsha1, NULL);
+	g_return_val_if_fail(NULL != sha1, NULL);
 
-	data = bitzi_querycache_byurnsha1(urnsha1);
+	data = bitzi_query_cache_by_sha1(sha1);
 	if (data == NULL) {
 		size_t len;
 
@@ -766,14 +759,14 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 		/*
 		 * build the bitzi url
 		 */
-		request->urnsha1 = atom_sha1_get(urnsha1);
+		request->sha1 = atom_sha1_get(sha1);
 		len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
-				bitzi_url_fmt, sha1_base32(urnsha1));
+				bitzi_url_fmt, sha1_base32(sha1));
 		g_assert(len < sizeof request->bitzi_url);
 
 		bitzi_rq = g_slist_append(bitzi_rq, request);
 		if (bitzi_debug) {
-			g_message("bitzi_queryby_urnsha1: queued query, %d in queue",
+			g_message("bitzi_query_by_sha1: queued query, %d in queue",
 				g_slist_position(bitzi_rq, g_slist_last(bitzi_rq)) + 1);
 		}
 
@@ -782,24 +775,19 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 		 */
 	} else {
 		if (bitzi_debug)
-			g_message("bitzi_queryby_urnsha1: result already in cache");
+			g_message("bitzi_query_by_sha1: result already in cache");
 				gcu_bitzi_result(data);
 	}
 
 	return data;
 }
 
-/**
- * Initialise any bitzi specific stuff we want to here.
- */
-void
-bitzi_init(void)
+static void
+bitzi_load_cache(void)
 {
 	FILE *old_data;
-	gchar *path, *oldpath;
 	gint ticket_count = 0;
-
-	bitzi_cache_ht = g_hash_table_new(NULL, NULL);
+	gchar *path, *oldpath;
 
 	/*
 	 * Rename the old file , overwritting stuff if we have to
@@ -871,7 +859,7 @@ bitzi_init(void)
 			if (eot) {
 				/* new pseudo request */
 				request = walloc(sizeof *request);
-				request->urnsha1 = NULL;
+				request->sha1 = NULL;
 
 				request->ctxt = xmlCreatePushParserCtxt(
 					NULL, NULL, NULL, 0, NULL);
@@ -910,6 +898,17 @@ bitzi_init(void)
 	/* clean-up */
 	G_FREE_NULL(path);
 	G_FREE_NULL(oldpath);
+}
+
+/**
+ * Initialise any bitzi specific stuff we want to here.
+ */
+void
+bitzi_init(void)
+{
+	bitzi_cache_ht = g_hash_table_new(NULL, NULL);
+
+	bitzi_load_cache();
 
 	/*
 	 * Finally start the bitzi heart beat that will send requests when

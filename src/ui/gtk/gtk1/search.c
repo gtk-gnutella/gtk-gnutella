@@ -2596,7 +2596,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		GtkCTree *ctree = GTK_CTREE(search->ctree);
     	GtkCTreeNode *parent;
 
-		parent = find_parent_with_sha1(search->parents, data->urnsha1);
+		parent = find_parent_with_sha1(search->parents, data->sha1);
 		if (parent)
 			gtk_ctree_node_set_text(ctree, parent,
 					c_sr_meta, text ? text : _("Not in database"));
