@@ -3,6 +3,7 @@
  * Add this file to your project's POTFILES.in.
  * DO NOT compile it as part of your application.
  */
+
 gchar *s = N_("gtk-gnutella");
 gchar *s = N_("_File");
 gchar *s = N_("_GnutellaNet");
@@ -245,6 +246,8 @@ gchar *s = N_("_Hide downloaded files");
 gchar *s = N_("_Remove manually downloaded files");
 gchar *s = N_("Max. number of browse host results");
 gchar *s = N_("Copy browse-host results to passive searches");
+gchar *s = N_("Discard spam");
+gchar *s = N_("Discard results without SHA-1 hashes");
 gchar *s = N_("Information about selected file");
 gchar *s = N_("Filename:");
 gchar *s = N_("SHA1:");
@@ -253,7 +256,7 @@ gchar *s = N_("Source:");
 gchar *s = N_("Received:");
 gchar *s = N_("Vendor:");
 gchar *s = N_("Country:");
-gchar *s = N_("Tag:");
+gchar *s = N_("Query:");
 gchar *s = N_("Speed:");
 gchar *s = N_("Size:");
 gchar *s = N_("Servent ID:");
