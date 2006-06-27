@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-25 20:10+0900\n"
+"POT-Creation-Date: 2006-06-27 13:57+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4291,6 +4291,12 @@ msgstr ""
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
+msgid "Discard spam"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
 msgid "Information about selected file"
 msgstr ""
 
@@ -4312,7 +4318,7 @@ msgstr ""
 msgid "Country:"
 msgstr ""
 
-msgid "Tag:"
+msgid "Query:"
 msgstr ""
 
 msgid "Speed:"
@@ -5747,16 +5753,7 @@ msgstr ""
 msgid "Current _search:"
 msgstr ""
 
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
 msgid "Displaying"
-msgstr ""
-
-msgid "Query:"
 msgstr ""
 
 msgid "Sho_w settings"

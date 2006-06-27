@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-25 20:10+0900\n"
+"POT-Creation-Date: 2006-06-27 13:57+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -4858,6 +4858,12 @@ msgstr "Max. aantal resultaten"
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
+msgid "Discard spam"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
 msgid "Information about selected file"
 msgstr "Informatie over het geselecteerde bestand"
 
@@ -4879,8 +4885,9 @@ msgstr "Maker:"
 msgid "Country:"
 msgstr "Land:"
 
-msgid "Tag:"
-msgstr "Tag:"
+#, fuzzy
+msgid "Query:"
+msgstr "Zoekopdracht"
 
 msgid "Speed:"
 msgstr "Snelheid:"
@@ -6415,18 +6422,8 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "Huidige zoekopdracht:"
 
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
 msgid "Displaying"
 msgstr "Weergave"
-
-#, fuzzy
-msgid "Query:"
-msgstr "Zoekopdracht"
 
 msgid "Sho_w settings"
 msgstr "Geef instellingen _weer"

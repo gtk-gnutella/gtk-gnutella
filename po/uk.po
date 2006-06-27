@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-25 20:10+0900\n"
+"POT-Creation-Date: 2006-06-27 13:57+0900\n"
 "PO-Revision-Date: 2005-08-30 14:17+0900\n"
 "Last-Translator: Vitaliy Buyar <vetal17@gmail.com>\n"
 "Language-Team: Ukrainian <translation-team-uk@lists.sourceforge.net>\n"
@@ -4320,6 +4320,12 @@ msgstr ""
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
+msgid "Discard spam"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
 msgid "Information about selected file"
 msgstr ""
 
@@ -4341,7 +4347,7 @@ msgstr ""
 msgid "Country:"
 msgstr ""
 
-msgid "Tag:"
+msgid "Query:"
 msgstr ""
 
 msgid "Speed:"
@@ -5784,16 +5790,7 @@ msgstr ""
 msgid "Current _search:"
 msgstr ""
 
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
 msgid "Displaying"
-msgstr ""
-
-msgid "Query:"
 msgstr ""
 
 msgid "Sho_w settings"

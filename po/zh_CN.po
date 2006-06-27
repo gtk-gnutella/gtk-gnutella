@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-25 20:10+0900\n"
+"POT-Creation-Date: 2006-06-27 13:57+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -4409,6 +4409,12 @@ msgstr ""
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
+msgid "Discard spam"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
 msgid "Information about selected file"
 msgstr ""
 
@@ -4430,8 +4436,9 @@ msgstr ""
 msgid "Country:"
 msgstr ""
 
-msgid "Tag:"
-msgstr ""
+#, fuzzy
+msgid "Query:"
+msgstr "变形的查询命中"
 
 msgid "Speed:"
 msgstr ""
@@ -5909,18 +5916,8 @@ msgstr ""
 msgid "Current _search:"
 msgstr "当前使用"
 
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
 msgid "Displaying"
 msgstr "正显示"
-
-#, fuzzy
-msgid "Query:"
-msgstr "变形的查询命中"
 
 msgid "Sho_w settings"
 msgstr "显示设置 (_w)"

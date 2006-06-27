@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-25 20:10+0900\n"
+"POT-Creation-Date: 2006-06-27 13:57+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: T'aZ <tazdev@punkass.com>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -5162,6 +5162,12 @@ msgstr "_Nombre max de résultats"
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
+msgid "Discard spam"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
 msgid "Information about selected file"
 msgstr "Information à propos du fichier sélectionné"
 
@@ -5185,8 +5191,9 @@ msgstr "Vendeur:"
 msgid "Country:"
 msgstr "Nombre"
 
-msgid "Tag:"
-msgstr ""
+#, fuzzy
+msgid "Query:"
+msgstr "Query hits TX"
 
 #, fuzzy
 msgid "Speed:"
@@ -6832,18 +6839,8 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Recherche actuelle"
 
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
 msgid "Displaying"
 msgstr "Affichant"
-
-#, fuzzy
-msgid "Query:"
-msgstr "Query hits TX"
 
 msgid "Sho_w settings"
 msgstr "Affiche les para_mètres"

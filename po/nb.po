@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-25 20:10+0900\n"
+"POT-Creation-Date: 2006-06-27 13:57+0900\n"
 "PO-Revision-Date: 2006-05-28 23:37+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <nb@li.org>\n"
@@ -4738,6 +4738,12 @@ msgstr "Høyeste antall bla i vert-resultater"
 msgid "Copy browse-host results to passive searches"
 msgstr "Kopier bla i vert-resultater til passive søk"
 
+msgid "Discard spam"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
 msgid "Information about selected file"
 msgstr "Informasjon om valgt fil"
 
@@ -4759,8 +4765,9 @@ msgstr "Selger:"
 msgid "Country:"
 msgstr "Land:"
 
-msgid "Tag:"
-msgstr "Merkelapp:"
+#, fuzzy
+msgid "Query:"
+msgstr "Spørring"
 
 msgid "Speed:"
 msgstr "Fart:"
@@ -6270,18 +6277,8 @@ msgstr "[BH qtreff]"
 msgid "Current _search:"
 msgstr "Gjeldende _søk:"
 
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
 msgid "Displaying"
 msgstr "Viser"
-
-#, fuzzy
-msgid "Query:"
-msgstr "Spørring"
 
 msgid "Sho_w settings"
 msgstr "_Vis innstillinger"

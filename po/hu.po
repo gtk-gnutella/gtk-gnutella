@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-25 20:10+0900\n"
+"POT-Creation-Date: 2006-06-27 13:57+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -4966,6 +4966,12 @@ msgstr "Eredmények leg_nagyobb száma"
 msgid "Copy browse-host results to passive searches"
 msgstr ""
 
+msgid "Discard spam"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
 msgid "Information about selected file"
 msgstr "Tájékoztató a kijelölt fájlról"
 
@@ -4989,8 +4995,9 @@ msgstr "Eladó:"
 msgid "Country:"
 msgstr "Szám"
 
-msgid "Tag:"
-msgstr "Tag:"
+#, fuzzy
+msgid "Query:"
+msgstr "Keresés"
 
 #, fuzzy
 msgid "Speed:"
@@ -6589,18 +6596,8 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Jelenlegi keresés"
 
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
 msgid "Displaying"
 msgstr "Kijelzés"
-
-#, fuzzy
-msgid "Query:"
-msgstr "Keresés"
 
 msgid "Sho_w settings"
 msgstr "_Beállítások megjelenítése"
