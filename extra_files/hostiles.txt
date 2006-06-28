@@ -274,11 +274,17 @@
 68.178.200.89
 68.178.225.162
 
+# DRM License server used by DRM WMV spam
+216.93.188.81
+
 # Spams DRM WMV files with license URL pointing to 68.178.225.162; filenames
 # are bogus but are neither random nor matching the query. Examples are
 # "basketball*wmv", "flytrain*wmv", "landing*wmv" etc. with variations in the
 # trailing part like "_full-l", "part-l", "part-s" etc.)
 64.182.136.130
+
+# Same as above; DRM header links to 216.93.188.81; WhenU/SaveNow spam
+206.51.230.2
 
 # Gnucleus-based DRM WMV spammer hosted by HopOne
 209.160.32.221
