@@ -7760,6 +7760,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     status->n_weird    = node->n_weird;
     status->n_hostile  = node->n_hostile;
     status->n_spam     = node->n_spam;
+    status->n_evil     = node->n_evil;
 
     status->squeue_sent         = NODE_SQUEUE_SENT(node);
     status->squeue_count        = NODE_SQUEUE_COUNT(node);

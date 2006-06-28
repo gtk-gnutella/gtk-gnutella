@@ -764,6 +764,11 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 			size = w_concat_strings(&buf, "<SPAM> ", name, (void *) 0);
 			name = buf;
 		} else if (0 != (ST_SPAM & rs->status)) {
+			/* This record itself was NOT considered evil but the result set
+			 * carried some evil filename. */
+			size = w_concat_strings(&buf, "<evil> ", name, (void *) 0);
+			name = buf;
+		} else if (0 != (ST_SPAM & rs->status)) {
 			/* This record itself was NOT considered spam but the result set
 			 * carried some spam. */
 			size = w_concat_strings(&buf, "<spam> ", name, (void *) 0);
@@ -887,6 +892,9 @@ search_gui_common_shutdown(void)
 
     g_list_free(list_search_history);
     list_search_history = NULL;
+	
+	/* Discard pending accumulated search results */
+    search_gui_flush(tm_time(), TRUE);
 }
 
 /**
@@ -1398,7 +1406,7 @@ search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
  * dispatch them to the GUI.
  */
 void
-search_gui_flush(time_t now)
+search_gui_flush(time_t now, gboolean force)
 {
     GSList *sl;
     GSList *curs;
@@ -1406,9 +1414,11 @@ search_gui_flush(time_t now)
 	guint32 period;
     GSList *frozen = NULL;
 
-	gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
-    if (last && difftime(now, last) < period)
-        return;
+	if (force) {
+		gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
+		if (last && difftime(now, last) < period)
+			return;
+	}
 
     last = now;
 

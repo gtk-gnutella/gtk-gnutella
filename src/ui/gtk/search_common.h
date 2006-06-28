@@ -158,7 +158,7 @@ void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
 void search_gui_restart_search(search_t *sch);
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
-void search_gui_flush(time_t);
+void search_gui_flush(time_t now, gboolean force);
 struct query *search_gui_handle_query(const gchar *query_str, flag_t flags,
 						const gchar **error_str);
 void search_gui_query_free(struct query **query_ptr);

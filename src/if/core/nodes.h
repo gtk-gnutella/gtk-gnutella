@@ -63,6 +63,7 @@ typedef struct gnet_node_status {
 	guint32  n_weird;			/**< Number of weird messages from that node */
 	guint32  n_hostile;			/**< Number of messages from hostile IP */
 	guint32  n_spam;			/**< Number of messages rated as spam */
+	guint32  n_evil;			/**< Number of messages with evil filenames */
 
     gint     squeue_sent;
     gint     squeue_count;

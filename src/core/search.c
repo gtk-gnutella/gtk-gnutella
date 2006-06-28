@@ -903,6 +903,17 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			rc->name  = atom_str_get(fname);
 		}
 
+		if (is_evil_filename(fname)) {
+			if (search_debug) {
+				g_message("get_results_set(): Ignoring evil filename \"%s\"",
+					fname);
+			}
+			rs->status |= ST_EVIL;
+			if (rc) {
+				set_flags(rc->flags, SR_IGNORED);
+			}
+		}
+
 		/*
 		 * If we have a tag, parse it for extensions.
 		 */
@@ -2475,10 +2486,11 @@ search_results(gnutella_node_t *n, gint *results)
 	 * `drop_it' as this is reserved for bad packets.
 	 */
 
-	if (rs->status & ST_SPAM) {
+	if (rs->status & (ST_SPAM | ST_EVIL)) {
 		forward_it = FALSE;
 		/* It's not really dropped, just not forwarded, count it anyway. */
-		gnet_stats_count_dropped(n, MSG_DROP_SPAM);
+		gnet_stats_count_dropped(n,
+			(rs->status & ST_EVIL) ? MSG_DROP_EVIL : MSG_DROP_SPAM);
 	} else {
 		if (!dq_got_results(n->header.muid, rs->num_recs))
 			forward_it = FALSE;

@@ -78,6 +78,7 @@ typedef enum msg_drop_reason {
 	MSG_DROP_BAD_RETURN_ADDRESS,
 	MSG_DROP_HOSTILE_IP,
 	MSG_DROP_SPAM,
+	MSG_DROP_EVIL,
 	
 	MSG_DROP_REASON_COUNT /**< number of known reasons to drop a message */
 } msg_drop_reason_t;

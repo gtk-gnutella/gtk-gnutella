@@ -143,6 +143,7 @@ typedef struct gnutella_node {
 	guint32 n_weird;			/**< Number of weird messages from that node */
 	guint32 n_hostile;			/**< Number of messages from hostile IP */
 	guint32 n_spam;				/**< Number of messages rated as spam */
+	guint32 n_evil;				/**< Number of messages with evil filenames */
 
 	guint32 allocated;			/**< Size of allocated buffer data, 0 for none */
 	gboolean have_header;		/**< TRUE if we have got a full message header */

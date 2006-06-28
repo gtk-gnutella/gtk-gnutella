@@ -81,6 +81,7 @@ static const gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
 	N_("Bad return address"),				/**< MSG_DROP_BAD_RETURN_ADDRESS */
 	N_("Hostile IP address"),				/**< MSG_DROP_HOSTILE_IP */
 	N_("Spam"),								/**< MSG_DROP_SPAM */
+	N_("Evil filename"),					/**< MSG_DROP_EVIL */
 };
 
 /***
@@ -286,6 +287,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	switch (reason) {
 	case MSG_DROP_HOSTILE_IP: n->n_hostile++; break;
 	case MSG_DROP_SPAM: n->n_spam++; break;
+	case MSG_DROP_EVIL: n->n_evil++; break;
 	default: ;
 	}
 
