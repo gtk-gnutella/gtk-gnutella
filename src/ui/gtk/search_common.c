@@ -763,7 +763,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 			/* This record was considered spam */
 			size = w_concat_strings(&buf, "<SPAM> ", name, (void *) 0);
 			name = buf;
-		} else if (0 != (ST_SPAM & rs->status)) {
+		} else if (0 != (ST_EVIL & rs->status)) {
 			/* This record itself was NOT considered evil but the result set
 			 * carried some evil filename. */
 			size = w_concat_strings(&buf, "<evil> ", name, (void *) 0);
