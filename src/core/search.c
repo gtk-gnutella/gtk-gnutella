@@ -614,6 +614,97 @@ is_gnoozle_spam(const gchar *xml_buf)
 }
 
 /**
+ * Normalizes characters from an URL (partially or completely) encoded
+ * string.
+ * Conversion rules:
+ *
+ * '\' -> '/'
+ * %HH -> decoded character; %00 is not treated specially.
+ * % or %H, as well as all other characters are kept as-is.
+ *
+ * @param p A pointer to a string.
+ * @param endptr A pointer to the next character; this necessary for
+ *	      decoding %HH sequences as we skip 3 bytes in this case instead
+ *        of one.
+ * @return The normalized character.
+ */
+static inline gchar
+url_normalize_char(const gchar *p, const gchar **endptr)
+{
+	gchar c;
+
+	g_assert(p);
+	g_assert(endptr);
+
+	c = *p;
+	if ('\\' == c) {
+		c = '/';
+	} else if ('%' == c) {
+		gint hi, lo;
+
+		hi = hex2int_inline(p[1]);
+		if (hi >= 0) {
+			lo = hex2int_inline(p[2]);
+			if (lo >= 0) {
+				c = (hi << 4) | lo;
+				p += 2;
+			}
+		}
+	}
+
+	*endptr = ++p;
+	return c;
+}
+
+/**
+ * Some clients add paths to filenames, that is they contain '/' or '\'. We
+ * tolerate this but we consider "/../" and variants as evil because
+ * it can be abused in combination with poorly written clients.
+ */
+static gboolean
+is_evil_filename(const gchar *filename)
+{
+	const gchar *p = filename;
+	gchar win[4];
+	guint i;
+
+	g_assert(filename);
+
+	win[0] = '/';	/* Implicit by "/get/<index>/<filename>" */
+
+	for (i = 1; i < G_N_ELEMENTS(win); i++) {
+		const gchar *endptr;
+
+		win[i] = url_normalize_char(p, &endptr);
+		if ('\0' == *p)
+			break;
+		p = endptr;
+	}
+	
+	for (;;) {
+		const gchar *endptr;
+
+		if (
+			0 == memcmp(win, "/", 2) ||
+			0 == memcmp(win, "/.", 3) ||
+			0 == memcmp(win, "/..", 4) ||
+			0 == memcmp(win, "/../", 4)
+		) {
+			return TRUE;
+		}
+		
+		if ('\0' == *p)
+			break;
+
+		win[0] = win[1];
+		win[1] = win[2];
+		win[2] = win[3];
+		win[3] = url_normalize_char(p, &endptr);
+	}
+	return FALSE;
+}
+
+/**
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
  *
