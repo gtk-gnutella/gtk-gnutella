@@ -274,6 +274,12 @@
 68.178.200.89
 68.178.225.162
 
+# Spams DRM WMV files with license URL pointing to 68.178.225.162; filenames
+# are bogus but are neither random nor matching the query. Examples are
+# "basketball*wmv", "flytrain*wmv", "landing*wmv" etc. with variations in the
+# trailing part like "_full-l", "part-l", "part-s" etc.)
+64.182.136.130
+
 # Gnucleus-based DRM WMV spammer hosted by HopOne
 209.160.32.221
 209.160.40.147
