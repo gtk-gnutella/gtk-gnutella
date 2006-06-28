@@ -664,7 +664,7 @@ url_normalize_char(const gchar *p, const gchar **endptr)
 static gboolean
 is_evil_filename(const gchar *filename)
 {
-	const gchar *p = filename;
+	const gchar *endptr, *p = filename;
 	gchar win[4];
 	guint i;
 
@@ -673,8 +673,6 @@ is_evil_filename(const gchar *filename)
 	win[0] = '/';	/* Implicit by "/get/<index>/<filename>" */
 
 	for (i = 1; i < G_N_ELEMENTS(win); i++) {
-		const gchar *endptr;
-
 		win[i] = url_normalize_char(p, &endptr);
 		if ('\0' == *p)
 			break;
@@ -682,8 +680,6 @@ is_evil_filename(const gchar *filename)
 	}
 	
 	for (;;) {
-		const gchar *endptr;
-
 		if (
 			0 == memcmp(win, "/", 2) ||
 			0 == memcmp(win, "/.", 3) ||
@@ -695,6 +691,7 @@ is_evil_filename(const gchar *filename)
 		
 		if ('\0' == *p)
 			break;
+		p = endptr;
 
 		win[0] = win[1];
 		win[1] = win[2];
