@@ -37,6 +37,7 @@
 #define GTA_MSG_VENDOR					0x31	/**< Vendor-specific */
 #define GTA_MSG_STANDARD				0x32	/**< Standard vendor-specific */
 #define GTA_MSG_PUSH_REQUEST			0x40
+#define GTA_MSG_RUDP					0x41
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
 #define GTA_MSG_HSEP_DATA 				0xcd
