@@ -59,6 +59,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "if/core/search.h"
+#include "if/core/sockets.h"
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
@@ -849,6 +850,7 @@ search_gui_browse_selected(void)
 		gui_record_t *grc;
 		results_set_t *rs;
 		record_t *rc;
+		guint32 flags = 0;
 
 		if (node == NULL)
 			break;
@@ -860,10 +862,12 @@ search_gui_browse_selected(void)
 			continue;
 
 		rs = rc->results_set;
+		flags |= 0 != (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
+		flags |= 0 != (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 		(void) search_gui_new_browse_host(
-			rs->hostname, rs->addr, rs->port,
-			rs->guid, (rs->status & ST_FIREWALL) != 0, rs->proxies);
+				rs->hostname, rs->addr, rs->port,
+				rs->guid, rs->proxies, flags);
 	}
 }
 

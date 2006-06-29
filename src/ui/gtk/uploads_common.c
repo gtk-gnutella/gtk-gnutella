@@ -295,7 +295,7 @@ void
 uploads_gui_browse_host(host_addr_t addr, guint16 port)
 {
 	if (host_addr_is_routable(addr) && port != 0)
-		search_gui_new_browse_host(NULL, addr, port, NULL, FALSE, NULL);
+		search_gui_new_browse_host(NULL, addr, port, NULL, NULL, 0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

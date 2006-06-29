@@ -2180,7 +2180,7 @@ dmesh_multiple_downloads(const gchar *sha1, filesize_t size, fileinfo_t *fi)
 			? fi->file_name
 			: p->name;
 		download_auto_new(p->name, size, p->idx, p->addr, p->port,
-			blank_guid, NULL, sha1, now, FALSE,
+			blank_guid, NULL, sha1, now,
 			fi->file_size_known, fi, NULL, /* XXX: TLS? */ 0);
 	}
 }

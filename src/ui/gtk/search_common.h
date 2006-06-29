@@ -166,7 +166,7 @@ void search_gui_filter_new(search_t *sch, GList *rules);
 
 gboolean search_gui_new_browse_host(
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies);
+	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
 
 struct filter;
 void search_gui_add_targetted_search(gpointer data, gpointer unused_udata);

@@ -119,7 +119,7 @@ on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
 		const struct download *d = sl->data;
    		search_gui_new_browse_host(
 			download_hostname(d), download_addr(d), download_port(d),
-			download_guid(d), FALSE, NULL);
+			download_guid(d), NULL, 0);
 	}
 	g_slist_free(selected);
 }

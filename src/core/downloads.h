@@ -104,8 +104,8 @@ void download_proxy_failed(struct download *d);
 
 struct download * download_browse_start(const gchar *name,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies,
-	gnet_search_t search);
+	const gchar *guid, const gnet_host_vec_t *proxies,
+	gnet_search_t search, guint32 flags);
 
 void download_abort_browse_host(gpointer download, gnet_search_t sh);
 void download_got_eof(struct download *d);

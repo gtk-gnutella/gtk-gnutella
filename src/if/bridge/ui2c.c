@@ -204,22 +204,21 @@ void
 guc_download_auto_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, gboolean file_size_known, fileinfo_t *fi,
+	gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
 {
 	download_auto_new(file, size, record_index, addr, port, guid, hostname,
-		sha1, stamp, push, file_size_known, fi, proxies, flags);
+		sha1, stamp, file_size_known, fi, proxies, flags);
 }
 
 gboolean
 guc_download_new_unknown_size(const gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-			gboolean push, fileinfo_t *fi,
-			gnet_host_vec_t *proxies, guint32 flags)
+	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	return download_new_unknown_size(file, record_index, addr, port, guid,
-		hostname, sha1, stamp, push, fi, proxies, flags);
+		hostname, sha1, stamp, fi, proxies, flags);
 }
 
 const gchar *
@@ -256,23 +255,21 @@ gboolean
 guc_download_new(const gchar *file, filesize_t size,
 			guint32 record_index, const host_addr_t addr, guint16 port,
 			const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-			gboolean push, fileinfo_t *fi,
-			gnet_host_vec_t *proxies, guint32 flags)
+			fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	return download_new(file, size, record_index, addr, port, guid, hostname,
-		sha1, stamp, push, fi, proxies, flags);
+			sha1, stamp, fi, proxies, flags);
 }
 
 gboolean
 guc_download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 	const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, fileinfo_t *fi,
-	gnet_host_vec_t *proxies, guint32 flags)
+	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	return download_new_uri(file, uri, size,
 			addr, port, guid, hostname,
-			sha1, stamp, push, fi, proxies, flags);
+			sha1, stamp, fi, proxies, flags);
 }
 
 
@@ -669,9 +666,9 @@ guc_search_new(const gchar *query,
 gboolean
 guc_search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies)
+	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
-	return search_browse(sh, hostname, addr, port, guid, push, proxies);
+	return search_browse(sh, hostname, addr, port, guid, proxies, flags);
 }
 
 gboolean

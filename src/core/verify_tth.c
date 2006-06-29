@@ -329,7 +329,7 @@ tt_parse_header(struct download *d, header_t *header)
 		NULL, NULL,
 #endif
 		blank_guid, NULL /* hostname */, NULL /* SHA1 */, tm_time(),
-		FALSE /* PUSH */, NULL /* fi */, NULL /* proxies */, 0 /* flags */);
+		NULL /* fi */, NULL /* proxies */, 0 /* flags */);
 
 }
 

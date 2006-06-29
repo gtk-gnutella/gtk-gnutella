@@ -186,7 +186,7 @@ void search_update_items(gnet_search_t sh, guint32 items);
 
 gboolean search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies);
+	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean search_locally(gnet_search_t sh, const gchar *query);
 
 #endif /* CORE_SOURCES */

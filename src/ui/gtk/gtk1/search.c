@@ -1510,12 +1510,10 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 	gui_record_t *grc;
 	record_t *rc;
 	GList *sel_list;
-	gboolean need_push;
     gboolean remove_downloaded;
 	gboolean resort = FALSE;
 	guint created = 0;
 	guint count = 0;
-	guint32 flags;
 	GtkCTreeNode *node;
 	GtkCTreeRow *row;
 	search_t *current_search = search_gui_get_current_search();
@@ -1533,6 +1531,8 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 		sel_list != NULL;
 		sel_list = GTK_CLIST(ctree)->selection
 	) {
+		guint32 flags = 0;
+
 		node = sel_list->data;
 		if (NULL == node)
 			break;
@@ -1548,12 +1548,12 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
         }
 
 		rs = rc->results_set;
-		need_push = 0 != (rs->status & ST_FIREWALL);
-		flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+		flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
+		flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 		if (guc_download_new(rc->name, rc->size, rc->index,
 				rs->addr, rs->port, rs->guid, rs->hostname,
-				rc->sha1, rs->stamp, need_push, NULL, rs->proxies, flags)
+				rc->sha1, rs->stamp, NULL, rs->proxies, flags)
 		) {
 			created++;
 		}

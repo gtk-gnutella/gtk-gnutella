@@ -3858,7 +3858,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
 	const gchar *hostname, const gchar *sha1, time_t stamp,
-	gboolean push, gboolean interactive, gboolean file_size_known,
+	gboolean interactive, gboolean file_size_known,
 	fileinfo_t *file_info, const gnet_host_vec_t *proxies, guint32 cflags)
 {
 	struct dl_server *server;
@@ -3961,8 +3961,9 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 * the push flag. --RAM, 18/08/2002.
 	 */
 
-	if (d->server->attrs & DLS_A_PUSH_IGN)
-		push = FALSE;
+	if (d->server->attrs & DLS_A_PUSH_IGN) {
+		cflags &= ~CONNECT_F_PUSH;
+	}
 
 	d->file_name = file_name;
 	d->escaped_name = download_escape_name(file_name);
@@ -3980,9 +3981,9 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 */
 	d->size = size;					/* Will be changed if range requested */
 	d->file_desc = -1;
-	d->always_push = push;
+	d->always_push = 0 != (CONNECT_F_PUSH & cflags);
 	d->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
-	if (push)
+	if (0 != (CONNECT_F_PUSH & cflags))
 		download_push_insert(d);
 	else
 		d->push = FALSE;
@@ -4083,7 +4084,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 void
 download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
-	const gchar *hostname, const gchar *sha1, time_t stamp, gboolean push,
+	const gchar *hostname, const gchar *sha1, time_t stamp,
 	gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
 {
@@ -4096,8 +4097,8 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	 * which cannot access the bogus IP database.
 	 */
 
-	if (!push && !host_is_valid(addr, port)) {
-		push = TRUE;
+	if (0 == (CONNECT_F_PUSH & flags) && !host_is_valid(addr, port)) {
+		flags |= CONNECT_F_PUSH;
 		if (guid_eq(guid, blank_guid))
 			return;
 	}
@@ -4135,7 +4136,7 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	file_name = atom_str_get(file);
 
 	create_download(file_name, NULL, size, record_index, addr, port,
-		guid, hostname, sha1, stamp, push, FALSE, file_size_known, fi,
+		guid, hostname, sha1, stamp, FALSE, file_size_known, fi,
 		proxies, flags);
 
 	return;
@@ -4327,7 +4328,6 @@ struct download_request {
 	guint32 flags;
 	guint32 record_index;
 	guint16 port;
-	gboolean push;
 };
 
 static void
@@ -4374,7 +4374,7 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 		create_download(req->file, req->uri, req->size,
 			req->record_index, addrs[i],
 			req->port, req->guid, req->hostname, req->sha1, req->stamp,
-			req->push, TRUE, 0 != req->size, req->fi, NULL, req->flags);
+			TRUE, 0 != req->size, req->fi, NULL, req->flags);
 	}
 	download_request_free(&req);
 }
@@ -4397,7 +4397,7 @@ download_new_by_hostname(struct download_request *req)
 gboolean
 download_new(const gchar *file, filesize_t size, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
-	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
+	gchar *hostname, gchar *sha1, time_t stamp,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	if (hostname) {
@@ -4416,7 +4416,6 @@ download_new(const gchar *file, filesize_t size, guint32 record_index,
 		req->hostname = atom_str_get(hostname);
 		req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 		req->stamp = stamp;
-		req->push = push;
 		req->fi = fi;	/* XXX: Increase ref counter or what? */
 		req->flags = flags;
 
@@ -4429,7 +4428,7 @@ download_new(const gchar *file, filesize_t size, guint32 record_index,
 		return TRUE;
 	}
 	return NULL != create_download(file, NULL, size, record_index, addr,
-					port, guid, hostname, sha1, stamp, push, TRUE,
+					port, guid, hostname, sha1, stamp, TRUE,
 					0 != size, fi, proxies, flags);
 }
 
@@ -4439,18 +4438,18 @@ download_new(const gchar *file, filesize_t size, guint32 record_index,
 gboolean
 download_new_unknown_size(const gchar *file, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-	gchar *sha1, time_t stamp, gboolean push,
+	gchar *sha1, time_t stamp,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	return NULL != create_download(file, NULL, 0, record_index, addr, port,
-						guid, hostname, sha1, stamp, push, TRUE, FALSE, fi,
+						guid, hostname, sha1, stamp, TRUE, FALSE, fi,
 						proxies, flags);
 }
 
 gboolean
 download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 	  const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-	  gchar *sha1, time_t stamp, gboolean push,
+	  gchar *sha1, time_t stamp,
 	  fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	if (hostname) {
@@ -4469,7 +4468,6 @@ download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 		req->hostname = atom_str_get(hostname);
 		req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 		req->stamp = stamp;
-		req->push = push;
 		req->fi = fi;	/* XXX: Increase ref counter or what? */
 		req->flags = flags;
 
@@ -4482,7 +4480,7 @@ download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 		return TRUE;
 	}
 	return NULL != create_download(file, uri, size, 0, addr, port,
-						guid, hostname, sha1, stamp, push, TRUE,
+						guid, hostname, sha1, stamp, TRUE,
 						size != 0 ? TRUE : FALSE, fi, proxies, flags);
 }
 
@@ -4505,7 +4503,6 @@ download_orphan_new(
 			NULL,	/* hostname*/
 			sha1,
 			tm_time(),
-			FALSE,	/* push */
 			TRUE,	/* interactive */
 			TRUE,	/* file_size_known */
 			fi,
@@ -4615,15 +4612,8 @@ download_remove(struct download *d)
 	if (d->push)
 		download_push_remove(d);
 
-	if (d->sha1) {
-		atom_sha1_free(d->sha1);
-		d->sha1 = NULL;
-	}
-
-	if (d->uri) {
-		atom_str_free(d->uri);
-		d->uri = NULL;
-	}
+	atom_sha1_free_null(&d->sha1);
+	atom_str_free_null(&d->uri);
 
 	if (d->ranges) {
 		http_range_free(d->ranges);
@@ -8724,10 +8714,10 @@ download_retrieve(void)
 	guint64 size64;
 	gint error;
 	gchar *d_name;
-	gboolean d_push;
 	host_addr_t d_addr;
 	guint16 d_port;
 	guint32 d_index = 0;
+	guint32 flags;
 	gchar d_hexguid[33];
 	gchar d_hostname[256];	/* Server hostname */
 	gint recline;			/* Record line number */
@@ -8762,7 +8752,7 @@ download_retrieve(void)
 
 	line = recline = 0;
 	d_name = NULL;
-	d_push = FALSE;
+	flags = 0;
 
 	while (fgets(dl_tmp, sizeof(dl_tmp) - 1, in)) { /* Room for trailing NUL */
 		line++;
@@ -8870,7 +8860,8 @@ download_retrieve(void)
 					"bad IP:port at line #%u: %s", line, dl_tmp);
 				d_port = 0;
 				d_addr = ipv4_unspecified;
-				d_push = TRUE;		/* Will drop download when scheduling it */
+				/* Will drop download when scheduling it */
+				flags |= CONNECT_F_PUSH;
 			}
 
 			if (',' == *endptr) {
@@ -8946,7 +8937,7 @@ download_retrieve(void)
 
 		d = create_download(d_name, NULL, d_size, d_index, d_addr,
 				d_port, d_guid, d_hostname, has_sha1 ? sha1_digest : NULL,
-				1, d_push, FALSE, TRUE, NULL, NULL, 0);
+				1, FALSE, TRUE, NULL, NULL, flags);
 
 		if (d == NULL) {
 			if (download_debug)
@@ -8971,7 +8962,7 @@ download_retrieve(void)
 
 	next_entry:
 		d_name = NULL;
-		d_push = FALSE;
+		flags = 0;
 		recline = 0;				/* Mark the end */
 		has_sha1 = FALSE;
 		G_FREE_NULL(parq_id);
@@ -9499,8 +9490,7 @@ download_close(void)
 		if (d->bio)
 			bsched_source_remove(d->bio);
 		socket_free_null(&d->socket);
-		if (d->sha1)
-			atom_sha1_free(d->sha1);
+		atom_sha1_free_null(&d->sha1);
 		if (d->ranges)
 			http_range_free(d->ranges);
 		if (d->req)
@@ -9513,8 +9503,8 @@ download_close(void)
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
 		download_remove_from_server(d, TRUE);
-		atom_str_free(d->escaped_name);
-		atom_str_free(d->file_name);
+		atom_str_free_null(&d->escaped_name);
+		atom_str_free_null(&d->file_name);
 
 		download_free(&d);
 	}
@@ -9690,8 +9680,8 @@ download_something_to_clear(void)
  */
 struct download *
 download_browse_start(const gchar *name, const gchar *hostname,
-	host_addr_t addr, guint16 port, const gchar *guid, gboolean push,
-	const gnet_host_vec_t *proxies, gnet_search_t search)
+	host_addr_t addr, guint16 port, const gchar *guid,
+	const gnet_host_vec_t *proxies, gnet_search_t search, guint32 flags)
 {
 	struct download *d;
 	fileinfo_t *fi;
@@ -9709,7 +9699,7 @@ download_browse_start(const gchar *name, const gchar *hostname,
 		guid = blank_guid;
 
 	d = create_download(dname, "/", 0, 0, addr, port, guid, hostname,
-			NULL, tm_time(), push, TRUE, FALSE, fi, proxies, 0);
+			NULL, tm_time(), TRUE, FALSE, fi, proxies, flags);
 
 	atom_str_free(dname);
 

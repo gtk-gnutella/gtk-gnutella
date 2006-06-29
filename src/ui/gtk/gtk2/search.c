@@ -1002,8 +1002,7 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	struct result_data *rd;
 	struct results_set *rs;
 	struct record *rc;
-	guint32 flags;
-	gboolean need_push;
+	guint32 flags = 0;
 
 	g_assert(model != NULL);
 	g_assert(iter != NULL);
@@ -1017,12 +1016,12 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	g_assert(rc->refcount > 0);
 
 	rs = rc->results_set;
-	need_push = 0 != (rs->status & ST_FIREWALL);
-	flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+	flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
+	flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 	guc_download_new(rc->name, rc->size, rc->index, rs->addr,
 		rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
-		need_push, NULL, rs->proxies, flags);
+		NULL, rs->proxies, flags);
 
 	if (rs->proxies != NULL)
 		search_gui_free_proxies(rs);
@@ -2007,11 +2006,10 @@ search_gui_start_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
-   	if (sch == search_gui_get_current_search() || sch->massive_update)
+   	if (sch->massive_update)
 		return;
 
-	g_object_ref(sch->model);
-	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view), NULL);
+	g_object_freeze_notify(G_OBJECT(sch->tree_view));
 	sch->massive_update = TRUE;
 }
 
@@ -2024,9 +2022,7 @@ search_gui_end_massive_update(search_t *sch)
 		return;
 
     gui_search_force_update_tab_label(sch, tm_time());
-	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view),
-		GTK_TREE_MODEL(sch->model));
-	g_object_unref(GTK_TREE_MODEL(sch->model));
+	g_object_thaw_notify(G_OBJECT(sch->tree_view));
 	sch->massive_update = FALSE;
 }
 

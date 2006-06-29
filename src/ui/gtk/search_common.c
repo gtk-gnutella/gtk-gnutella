@@ -116,17 +116,21 @@ search_gui_option_menu_searches_update(void)
 	GtkOptionMenu *option_menu;
 	GtkMenu *menu;
 	const GList *iter;
+	guint idx = 0, n = 0;
 
 	option_menu = GTK_OPTION_MENU(lookup_widget(main_window,
 						"option_menu_searches"));	
 	menu = GTK_MENU(gtk_menu_new());
 
 	iter = g_list_last(deconstify_gpointer(search_gui_get_searches()));
-	for (/* NOTHING */; iter != NULL; iter = g_list_previous(iter)) {
+	for (/* NOTHING */; iter != NULL; n++, iter = g_list_previous(iter)) {
 		GtkWidget *item;
 		search_t *s = iter->data;
 		gchar *name;
 
+		if (search_gui_get_current_search() == s) {
+			idx = n;
+		}
 		if (s->browse) {
 			name = g_strconcat("browse:", s->query, (void *) 0);
 		} else if (s->passive) {
@@ -175,7 +179,10 @@ search_gui_option_menu_searches_update(void)
 #endif /* USE_GTK2 */
 
 	}
+	idx = n - idx;
+
 	gtk_option_menu_set_menu(option_menu, GTK_WIDGET(menu));
+	gtk_option_menu_set_history(option_menu, idx);
 }
 
 void
@@ -921,7 +928,7 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 
 		guc_download_auto_new(rc->name, rc->size, URN_INDEX,
 			h->addr, h->port, blank_guid, rs->hostname,
-			rc->sha1, rs->stamp, FALSE, TRUE, NULL, NULL, 0);
+			rc->sha1, rs->stamp, TRUE, NULL, NULL, 0);
 	}
 
 	search_gui_free_alt_locs(rc);
@@ -1023,7 +1030,6 @@ static void
 search_matched(search_t *sch, results_set_t *rs)
 {
 	guint32 old_items = sch->items;
-   	gboolean need_push;			/* Would need a push to get this file? */
 	gboolean skip_records;		/* Shall we skip those records? */
 	GString *vinfo = g_string_sized_new(40);
 	const gchar *vendor;
@@ -1077,7 +1083,8 @@ search_matched(search_t *sch, results_set_t *rs)
 		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");
 	if (rs->status & ST_BH)
 		g_string_append(vinfo, vinfo->len ? _(", browsable") : _("browsable"));
-	flags = (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+	
+	flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
 
 	/*
 	 * If we're firewalled, or they don't want to send pushes, then don't
@@ -1087,15 +1094,15 @@ search_matched(search_t *sch, results_set_t *rs)
     gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
     gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &is_firewalled);
 
-	need_push = (rs->status & ST_FIREWALL) != 0;
-	skip_records = (!send_pushes || is_firewalled) && need_push;
+	flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
+	skip_records = (!send_pushes || is_firewalled) && (flags & CONNECT_F_PUSH);
 
 	if (gui_debug > 6)
 		printf("search_matched: [%s] got hit with %d record%s (from %s) "
 			"need_push=%d, skipping=%d\n",
 			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
-			need_push, skip_records);
+			(flags & CONNECT_F_PUSH), skip_records);
 
   	for (l = rs->records; l && !skip_records; l = l->next) {
 		record_t *rc = l->data;
@@ -1182,7 +1189,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		   ) {
 				guc_download_auto_new(rc->name, rc->size, rc->index,
 						rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
-						rs->stamp, need_push, TRUE, NULL, rs->proxies, flags);
+						rs->stamp, TRUE, NULL, rs->proxies, flags);
 
 				search_gui_free_proxies(rs);
 
@@ -1743,11 +1750,11 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			if (ms->path) {
 				guc_download_new_uri(filename, ms->path, res->size,
 					addr, ms->port, blank_guid, ms->hostname,
-					res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+					res->sha1, tm_time(), NULL, NULL, 0);
 			} else if (res->sha1) {
 				guc_download_new(filename, res->size, URN_INDEX,
 					addr, ms->port, blank_guid, ms->hostname,
-					res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+					res->sha1, tm_time(), NULL, NULL, 0);
 			}
 			n_downloads += ((is_host_addr(addr) || ms->hostname) &&
 								0 != ms->port);
@@ -1796,7 +1803,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			if (res->display_name) {
 				guc_download_new(filename, res->size, URN_INDEX,
 					ipv4_unspecified, 0, blank_guid, NULL,
-					res->sha1, tm_time(), FALSE, NULL, NULL, 0);
+					res->sha1, tm_time(), NULL, NULL, 0);
 				n_downloads++;
 			}
 		}
@@ -2162,8 +2169,15 @@ search_gui_new_search_entered(void)
 	if (NULL != (ep = is_strprefix(text, "browse:"))) {
 		host_addr_t addr;
 		const gchar *s;
+		guint32 flags = 0;
 
 		s = ep;
+		ep = is_strprefix(s, "tls:");
+		if (ep) {
+			s = ep;
+			flags |= CONNECT_F_TLS;
+		}
+		
 		if (string_to_host_or_addr(s, &ep, &addr)) {
 			if (':' == *ep) {
 				guint16 port;
@@ -2176,7 +2190,7 @@ search_gui_new_search_entered(void)
 				port = parse_uint16(ep, NULL, 10, &error);
 				if (!error) {
 					search_gui_new_browse_host(is_host_addr(addr) ? NULL : s,
-						addr, port, NULL, FALSE, NULL);
+						addr, port, NULL, NULL, flags);
 				}
 			}
 		}
@@ -2237,15 +2251,15 @@ search_gui_new_search_entered(void)
  * @param addr		the IP address of the host to browse
  * @param port		the port to contact
  * @param guid		the GUID of the remote host
- * @param push		whether a PUSH request is neeed to reach remote host
  * @param proxies	vector holding known push-proxies
+ * @param flags		connection flags like CONNECT_F_PUSH, CONNECT_F_TLS etc.
  *
  * @return whether the browse host request could be launched.
  */
 gboolean
 search_gui_new_browse_host(
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies)
+	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
 	const gchar *hostport;
 	search_t *search;
@@ -2279,7 +2293,7 @@ search_gui_new_browse_host(
 
 	if (
 		!guc_search_browse(search->search_handle, hostname, addr, port,
-			guid, push, proxies)
+			guid, proxies, flags)
 	) {
 		search_gui_close_search(search);
 		goto failed;

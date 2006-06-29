@@ -250,7 +250,7 @@ browse_host_selected(GtkCTree *ctree)
 	data_list = downloads_gui_collect_ctree_data(ctree, node_list, TRUE, TRUE);
 
 	for (l = data_list; NULL != l; l = g_list_next(l)) {
-		d = (struct download *) l->data;
+		d = l->data;
 
 		if (!d) {
 			g_warning("on_popup_downloads_browse_host_activate():"
@@ -260,7 +260,7 @@ browse_host_selected(GtkCTree *ctree)
 
 		search_gui_new_browse_host(
 			download_hostname(d), download_addr(d), download_port(d),
-			download_guid(d), FALSE, NULL);
+			download_guid(d), NULL, 0);
 	}
 
 	g_list_free(data_list);

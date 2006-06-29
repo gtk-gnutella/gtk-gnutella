@@ -2654,7 +2654,7 @@ search_check_alt_locs(
 
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->addr,
 			h->port, blank_guid, rs->hostname,
-			rc->sha1, rs->stamp, FALSE, TRUE, fi, rs->proxies,
+			rc->sha1, rs->stamp, TRUE, fi, rs->proxies,
 			(rs->status & ST_TLS) ? CONNECT_F_TLS : 0);
 
 		search_free_proxies(rs);
@@ -2687,13 +2687,15 @@ search_check_results_set(gnet_results_set_t *rs)
 		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
 
 		if (fi) {
-			gboolean need_push = (rs->status & ST_FIREWALL) ||
-				!host_is_valid(rs->addr, rs->port);
-
+			guint32 flags = 0;
+			
+			flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
+			flags |= !host_is_valid(rs->addr, rs->port) ? CONNECT_F_PUSH : 0;
+			flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+			
 			download_auto_new(rc->name, rc->size, rc->index, rs->addr, rs->port,
-					rs->guid, rs->hostname,
-					rc->sha1, rs->stamp, need_push, TRUE, fi,
-					rs->proxies, (rs->status & ST_TLS) ? CONNECT_F_TLS : 0);
+				rs->guid, rs->hostname, rc->sha1, rs->stamp, TRUE, fi,
+				rs->proxies, flags);
 
 
 			search_free_proxies(rs);
@@ -3360,7 +3362,7 @@ search_is_expired(gnet_search_t sh)
 gboolean
 search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies)
+	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -3377,7 +3379,7 @@ search_browse(gnet_search_t sh,
 	 */
 
 	sch->download = download_browse_start(sch->query, hostname, addr, port,
-		guid, push, proxies, sh);
+						guid, proxies, sh, flags);
 
 	return sch->download != NULL;
 }

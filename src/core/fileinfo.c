@@ -4681,7 +4681,7 @@ file_info_try_to_swarm_with(
 	file_info_check(fi);
 	download_auto_new(file_name ? file_name : fi->file_name,
 		fi->size, idx, addr, port, blank_guid, NULL,
-		sha1, tm_time(), FALSE, TRUE, fi, NULL, /* XXX: TLS? */ 0);
+		sha1, tm_time(), TRUE, fi, NULL, /* XXX: TLS? */ 0);
 }
 
 /**

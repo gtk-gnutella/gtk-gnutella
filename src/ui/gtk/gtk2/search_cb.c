@@ -55,6 +55,7 @@ RCSID("$Id$");
 #include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
+#include "if/core/sockets.h"
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
@@ -1112,16 +1113,20 @@ static void
 search_gui_browse_selected_helper(gpointer data, gpointer unused_udata)
 {
 	const record_t *rc = data;
+	guint32 flags = 0;
 
 	(void) unused_udata;
+	
+	flags |= (rc->results_set->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
+	flags |= (rc->results_set->status & ST_TLS) ? CONNECT_F_TLS : 0;
 	
 	search_gui_new_browse_host(
 		rc->results_set->hostname,
 		rc->results_set->addr,
 		rc->results_set->port,
 		rc->results_set->guid,
-		0 != (rc->results_set->status & ST_FIREWALL),
-		rc->results_set->proxies);
+		rc->results_set->proxies,
+		flags);
 }
 
 /**

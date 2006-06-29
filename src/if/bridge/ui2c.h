@@ -89,22 +89,20 @@ void guc_download_clear_stopped(gboolean complete,
 void guc_download_auto_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, gboolean file_size_known, fileinfo_t *fi,
+	gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
-	guint32 flags);
-gboolean guc_download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
-	const host_addr_t addr, guint16 port,
+	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags);
+gboolean guc_download_new_uri(const gchar *file, const gchar *uri,
+	filesize_t size, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
-	guint32 flags);
+	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new_unknown_size(const gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
-	gboolean push, fileinfo_t *fi, gnet_host_vec_t *proxies,
+	fileinfo_t *fi, gnet_host_vec_t *proxies,
 	guint32 flags);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
@@ -210,7 +208,7 @@ gnet_search_t guc_search_new(const gchar *query,
 	guint32 reissue_timeout, flag_t flags);
 gboolean guc_search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, gboolean push, const gnet_host_vec_t *proxies);
+	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_search_locally(gnet_search_t sh, const gchar *query);
 void guc_search_reissue(gnet_search_t sh);
 void guc_search_close(gnet_search_t sh);
