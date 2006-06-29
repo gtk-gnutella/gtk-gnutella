@@ -363,6 +363,61 @@ gdb_stmt_bind_static_blob(struct gdb_stmt *db_stmt,
 }
 
 /**
+ * Binds the value of the `n'-th parameter of the prepared SQL statement
+ * `db_stmt' to the given UTF-8 encoded string.
+ *
+ * @param db_stmt A prepared SQL statement.
+ * @param n The parameter index of the statement to bind.
+ * @param str A pointer to the string to bind.
+ *
+ * @return 0 on success, -1 on failure.
+ */
+int
+gdb_stmt_bind_static_text(struct gdb_stmt *db_stmt, int n, const char *str)
+{
+	size_t len;
+	int ret;
+	
+	g_return_val_if_fail(db_stmt, -1);
+
+	len = strlen(str);
+	g_return_val_if_fail(len < INT_MAX, -1);
+	
+	ret = sqlite3_bind_text(db_stmt->stmt, n, str, len, SQLITE_STATIC);
+
+	return SQLITE_OK == ret ? 0 : -1;
+}
+
+/**
+ * Binds the value of the `n'-th parameter of the prepared SQL statement
+ * `db_stmt' to the given 64-bit integer value.
+ *
+ * @param db_stmt A prepared SQL statement.
+ * @param n The parameter index of the statement to bind.
+ * @param value The value to be bound to the parameter.
+ *
+ * @return 0 on success, -1 on failure.
+ */
+int
+gdb_stmt_bind_int64(struct gdb_stmt *db_stmt, int n, gint64 value)
+{
+	int ret;
+	
+	g_return_val_if_fail(db_stmt, -1);
+
+	ret = sqlite3_bind_int64(db_stmt->stmt, n, value);
+
+	return SQLITE_OK == ret ? 0 : -1;
+}
+
+gint64
+gdb_stmt_column_int64(struct gdb_stmt *db_stmt, int n)
+{
+	g_assert(db_stmt);
+	return sqlite3_column_int64(db_stmt->stmt, n);
+}
+
+/**
  * Reset a database SQL statement.
  *
  * @param db_stmt A prepared SQL statement.

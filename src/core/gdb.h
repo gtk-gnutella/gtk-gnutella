@@ -64,7 +64,11 @@ int gdb_stmt_prepare(const char *cmd, struct gdb_stmt **db_stmt);
 enum gdb_step gdb_stmt_step(struct gdb_stmt *db_stmt);
 int gdb_stmt_reset(struct gdb_stmt *db_stmt);
 int gdb_stmt_bind_static_blob(struct gdb_stmt *db_stmt,
-	int parameter, const void *data, size_t size);
+		int n, const void *data, size_t size);
+int gdb_stmt_bind_static_text(struct gdb_stmt *db_stmt,
+		int n, const char *str);
+int gdb_stmt_bind_int64(struct gdb_stmt *db_stmt, int n, gint64 value);
+gint64 gdb_stmt_column_int64(struct gdb_stmt *db_stmt, int n);
 int gdb_stmt_finalize(struct gdb_stmt **db_stmt);
 int gdb_declare_types(const char *table,
 		const char *first_column, ...) WARN_NEED_SENTINEL;
