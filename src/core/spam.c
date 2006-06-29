@@ -135,8 +135,8 @@ spam_db_open(struct spam_lut *lut)
 
 	{
 		static const gchar cmd[] =
-			"DROP TABLE IF EXISTS spam;"
-			"CREATE TABLE spam (sha1 BLOB PRIMARY KEY);";
+			"CREATE TABLE IF NOT EXISTS spam (sha1 BLOB PRIMARY KEY);"
+			"DELETE FROM spam;";
 		gchar *errmsg;
 		gint ret;
 
