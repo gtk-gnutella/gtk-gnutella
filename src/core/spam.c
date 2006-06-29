@@ -148,7 +148,7 @@ spam_db_open(struct spam_lut *lut)
 		}
 		ret = gdb_declare_types("spam", "sha1", GDB_CT_SHA1, (void *) 0);
 		if (0 != ret) {
-			g_warning("gdb_exec() failed: %s", gdb_error_message());
+			g_warning("gdb_declare_types() failed: %s", gdb_error_message());
 			goto failure;
 		}
 	}
