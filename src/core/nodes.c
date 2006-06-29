@@ -4847,12 +4847,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * For incoming connections it's not clear whether the
 	 * given address is correct, it could be a proxy.
 	 */
-	if (0 == (NODE_F_INCOMING & n->flags & NODE_F_INCOMING)) {
-		if (
-			(NODE_F_TLS & n->flags) ||
-			header_get_feature("tls", head, NULL, NULL)
-		) {
-			tls_cache_add(n->addr, n->port);
+	if (0 == (NODE_F_INCOMING & n->flags)) {
+		if (header_get_feature("tls", head, NULL, NULL)) {
+			tls_cache_insert(n->addr, n->port);
 		}
 	}
 
@@ -7449,6 +7446,7 @@ node_close(void)
 	aging_destroy(tcp_crawls);
 	aging_destroy(udp_crawls);
 
+	tls_cache_close();
 	rxbuf_close();
 }
 
@@ -7900,7 +7898,7 @@ node_connect_back(const gnutella_node_t *n, guint16 port)
 	 * from the socket layer.
 	 */
 
-	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, 0);
+	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, CONNECT_F_TLS);
 
 	if (s == NULL)
 		return;
