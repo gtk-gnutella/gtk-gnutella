@@ -1106,8 +1106,6 @@ node_init(void)
 	udp6_node = node_udp_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
 
-	tls_cache_init();
-
 	/*
 	 * Limit replies to TCP/UDP crawls from a single IP.
 	 */
@@ -7446,7 +7444,6 @@ node_close(void)
 	aging_destroy(tcp_crawls);
 	aging_destroy(udp_crawls);
 
-	tls_cache_close();
 	rxbuf_close();
 }
 

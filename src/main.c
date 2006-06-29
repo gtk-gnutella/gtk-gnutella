@@ -434,6 +434,7 @@ gtk_gnutella_exit(gint n)
 	atom_str_free(start_rfc822_date);
 	adns_close();
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
+	tls_cache_close();
 	gdb_close();
 	atoms_close();
 	wdestroy();
@@ -937,6 +938,7 @@ main(int argc, char **argv)
 	hcache_init();			/* before settings_init() */
 	settings_init();
 	gdb_init();
+	tls_cache_init();
     hcache_retrieve_all();	/* after settings_init() */
 	hostiles_init();
 	spam_init();
