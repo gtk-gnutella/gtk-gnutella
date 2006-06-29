@@ -1418,6 +1418,9 @@ socket_tls_setup(struct gnutella_socket *s)
 		if (tls_debug)
 			g_message("TLS handshake succeeded");
 
+		if (SOCK_CONN_OUTGOING == s->direction) {
+			tls_cache_insert(s->addr, s->port);
+		}
 		socket_evt_change(s, INPUT_EVENT_W);
 		socket_wio_link(s); /* Link to the TLS I/O functions */
 	}
