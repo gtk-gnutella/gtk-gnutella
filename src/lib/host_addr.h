@@ -538,7 +538,7 @@ struct packed_host_addr host_addr_pack(const host_addr_t addr);
 host_addr_t packed_host_addr_unpack(const struct packed_host_addr paddr);
 
 guint packed_host_size(const struct packed_host paddr);
-struct packed_host host_addr_port_pack(const host_addr_t addr, guint16 port);
+struct packed_host host_pack(const host_addr_t addr, guint16 port);
 gboolean packed_host_unpack(const struct packed_host phost,
 		host_addr_t *addr_ptr, guint16 *port_ptr);
 
