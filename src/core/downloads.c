@@ -6568,11 +6568,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	addr = download_addr(d);
 	port = download_port(d);
 
-	if (
-		SOCKET_USES_TLS(s) ||
-		(!d->got_giv && header_get_feature("tls", header, NULL, NULL))
-	) {
-		tls_cache_add(addr, port);
+	if (!d->got_giv && header_get_feature("tls", header, NULL, NULL)) {
+		tls_cache_insert(addr, port);
 	}
 
 	check_date(header, addr, d);	/* Update clock skew if we have a Date: */
