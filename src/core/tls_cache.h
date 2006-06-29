@@ -29,7 +29,7 @@
 #include "common.h"
 
 void tls_cache_init(void);
-void tls_cache_add(const host_addr_t addr, guint16 port);
+void tls_cache_insert(const host_addr_t addr, guint16 port);
 gboolean tls_cache_lookup(const host_addr_t addr, guint16 port);
 void tls_cache_close(void);
 
