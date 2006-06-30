@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -242,6 +242,9 @@ msgid "Hostile IP address"
 msgstr ""
 
 msgid "Spam"
+msgstr ""
+
+msgid "Evil filename"
 msgstr ""
 
 #, c-format
@@ -1914,6 +1917,9 @@ msgid ""
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -3374,6 +3380,9 @@ msgid "Global (post)"
 msgstr ""
 
 msgid "RETURN"
+msgstr ""
+
+msgid "RUDP"
 msgstr ""
 
 msgid "Query hit"

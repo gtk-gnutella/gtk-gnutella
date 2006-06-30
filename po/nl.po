@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -250,6 +250,10 @@ msgstr "Vijandig IP-adres"
 
 msgid "Spam"
 msgstr ""
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Bestandsnaam"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -2395,6 +2399,10 @@ msgid ""
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr "Debug level voor de bestanden delen code."
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -3923,6 +3931,10 @@ msgstr "Algemeen (achteraf)"
 
 msgid "RETURN"
 msgstr "TERUG"
+
+#, fuzzy
+msgid "RUDP"
+msgstr "UDP"
 
 msgid "Query hit"
 msgstr "Zoekresultaat"

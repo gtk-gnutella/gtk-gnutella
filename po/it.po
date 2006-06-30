@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -249,6 +249,10 @@ msgstr "Indirizzo IP ostile"
 
 msgid "Spam"
 msgstr ""
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Nome del file"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -2385,6 +2389,10 @@ msgid ""
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr "Livello di collaudo per il codice condiviso dei file."
+
 msgid "disable"
 msgstr "disabilita"
 
@@ -3900,6 +3908,9 @@ msgid "Global (post)"
 msgstr "Globale (post)"
 
 msgid "RETURN"
+msgstr ""
+
+msgid "RUDP"
 msgstr ""
 
 msgid "Query hit"

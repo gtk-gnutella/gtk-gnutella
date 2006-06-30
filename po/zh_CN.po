@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -263,6 +263,9 @@ msgid "Hostile IP address"
 msgstr "有害的IP地址"
 
 msgid "Spam"
+msgstr ""
+
+msgid "Evil filename"
 msgstr ""
 
 #, c-format
@@ -2025,6 +2028,10 @@ msgid ""
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr "用于上传的debug级别。"
+
 msgid "disable"
 msgstr ""
 
@@ -3486,6 +3493,9 @@ msgid "Global (post)"
 msgstr ""
 
 msgid "RETURN"
+msgstr ""
+
+msgid "RUDP"
 msgstr ""
 
 msgid "Query hit"

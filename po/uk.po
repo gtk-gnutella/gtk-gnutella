@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2005-08-30 14:17+0900\n"
 "Last-Translator: Vitaliy Buyar <vetal17@gmail.com>\n"
 "Language-Team: Ukrainian <translation-team-uk@lists.sourceforge.net>\n"
@@ -248,6 +248,10 @@ msgstr ""
 
 msgid "Spam"
 msgstr ""
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Назва файла:"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -1919,6 +1923,9 @@ msgid ""
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -3379,6 +3386,9 @@ msgid "Global (post)"
 msgstr ""
 
 msgid "RETURN"
+msgstr ""
+
+msgid "RUDP"
 msgstr ""
 
 msgid "Query hit"

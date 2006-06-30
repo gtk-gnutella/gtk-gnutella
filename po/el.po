@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -249,6 +249,10 @@ msgstr "Εχθρική διεύθυνση IP"
 
 msgid "Spam"
 msgstr ""
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Όνομα αρχείου"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -2274,6 +2278,10 @@ msgid ""
 "displayed using the historical base2 convention with binary prefixes."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα ανταλλαγής αρχείων."
+
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -3783,6 +3791,10 @@ msgstr "Παγκόσμιο (μετά)"
 
 msgid "RETURN"
 msgstr "ΕΠΙΣΤΡΟΦΗ"
+
+#, fuzzy
+msgid "RUDP"
+msgstr "UDP"
 
 msgid "Query hit"
 msgstr "Χτύπημα ερωτήματος"

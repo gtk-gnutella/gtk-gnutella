@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2006-05-28 23:37+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <nb@li.org>\n"
@@ -246,6 +246,10 @@ msgstr "Fiendtlig IP-adresse"
 
 msgid "Spam"
 msgstr "Reklame"
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Filnavn"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -2317,6 +2321,10 @@ msgstr ""
 "prefikser. Hvis dette er av vises noen måleenheter, for eksempel "
 "filstørrelser, med den historiske base2-konverteringen med binær-prefikser."
 
+#, fuzzy
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr "Feilsøkingsnivå for fildelingskode."
+
 msgid "disable"
 msgstr "slå av"
 
@@ -3814,6 +3822,10 @@ msgstr "Global (etter)"
 
 msgid "RETURN"
 msgstr "RETUR"
+
+#, fuzzy
+msgid "RUDP"
+msgstr "UDP"
 
 msgid "Query hit"
 msgstr "Spørringstreff"

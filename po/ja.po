@@ -73,7 +73,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2006-06-25 22:58+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -311,6 +311,10 @@ msgstr "有害IPアドレス"
 
 msgid "Spam"
 msgstr "スパム"
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "ファイル名"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -2375,6 +2379,10 @@ msgstr ""
 "無効にした場合、例えばファイルサイズの単位は、バイナリー・プリフィックスが付"
 "く旧来の Base2 変換を使用して表示されます。"
 
+#, fuzzy
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr "ファイル共有コードのバグ解析レベルです。"
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -3928,6 +3936,10 @@ msgstr "全体 (振り分け後)"
 
 msgid "RETURN"
 msgstr "リターン"
+
+#, fuzzy
+msgid "RUDP"
+msgstr "UDP"
 
 msgid "Query hit"
 msgstr "検索クエリーヒット"

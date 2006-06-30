@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-06-27 13:57+0900\n"
+"POT-Creation-Date: 2006-07-01 01:13+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -252,6 +252,10 @@ msgstr "Ellenséges IP-cím"
 
 msgid "Spam"
 msgstr ""
+
+#, fuzzy
+msgid "Evil filename"
+msgstr "Fájlnév"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -2380,6 +2384,10 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "Debug level for Reliable UDP (RUDP) code."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
 msgid "disable"
 msgstr "biztos"
 
@@ -3981,6 +3989,9 @@ msgid "Global (post)"
 msgstr "Globális szűrők"
 
 msgid "RETURN"
+msgstr ""
+
+msgid "RUDP"
 msgstr ""
 
 msgid "Query hit"
