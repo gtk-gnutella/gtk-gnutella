@@ -50,6 +50,7 @@ msg_type_str(gint value)
 		N_("Bye"),
 		N_("QRP"),
 		N_("HSEP"),
+		N_("RUDP"),
 		N_("Vendor spec."),
 		N_("Vendor std."),
 		N_("Push"),

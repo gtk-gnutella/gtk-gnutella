@@ -780,18 +780,25 @@ retry:
 	 * Initialize message type array for routing logs.
 	 */
 
-	for (i = 0; i < 256; i++)
-		debug_msg[i] = "UNKN ";
+	for (i = 0; i < 256; i++) {
+		const gchar *s;
 
-	debug_msg[GTA_MSG_INIT]           = "Ping ";
-	debug_msg[GTA_MSG_INIT_RESPONSE]  = "Pong ";
-	debug_msg[GTA_MSG_SEARCH]         = "Query";
-	debug_msg[GTA_MSG_SEARCH_RESULTS] = "Q-Hit";
-	debug_msg[GTA_MSG_PUSH_REQUEST]   = "Push ";
-	debug_msg[GTA_MSG_VENDOR]         = "Vndor";
-	debug_msg[GTA_MSG_STANDARD]       = "Vstd ";
-	debug_msg[GTA_MSG_QRP]            = "QRP  ";
-	debug_msg[GTA_MSG_HSEP_DATA]      = "HSEP ";
+		s = "UNKN ";
+		switch ((enum gta_msg) i) {
+		case GTA_MSG_INIT:           s = "Ping "; break;
+		case GTA_MSG_INIT_RESPONSE:  s = "Pong "; break;
+		case GTA_MSG_SEARCH:         s = "Query"; break;
+		case GTA_MSG_SEARCH_RESULTS: s = "Q-Hit"; break;
+		case GTA_MSG_PUSH_REQUEST:   s = "Push "; break;
+		case GTA_MSG_RUDP:   		 s = "RUDP "; break;
+		case GTA_MSG_VENDOR:         s = "Vndor"; break;
+		case GTA_MSG_STANDARD:       s = "Vstd "; break;
+		case GTA_MSG_QRP:            s = "QRP  "; break;
+		case GTA_MSG_HSEP_DATA:      s = "HSEP "; break;
+		case GTA_MSG_BYE:      		 s = "Bye  "; break;
+		}
+		debug_msg[i] = s;
+	}
 
 	/*
 	 * Should be around for life of program, so should *never*
@@ -825,13 +832,14 @@ message_set_muid(struct gnutella_header *header, guint8 function)
 	case GTA_MSG_STANDARD:
 	case GTA_MSG_VENDOR:		/* When a non-blank random GUID is needed */
 		guid_random_muid(header->muid);
-		break;
+		return;
 	case GTA_MSG_INIT:
 		guid_ping_muid(header->muid);
-		break;
-	default:
-		g_error("unexpected message type %d", function);
+		return;
+	case GTA_MSG_RUDP:
+		g_assert_not_reached();
 	}
+	g_error("unexpected message type %d", function);
 }
 
 /**

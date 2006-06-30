@@ -111,16 +111,13 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	case GTA_MSG_STANDARD:
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH_RESULTS:
-		break;
+	case GTA_MSG_RUDP:
+		return TRUE;
 	case GTA_MSG_SEARCH:
 		msg = "Queries not yet processed from UDP";
 		goto drop;			/* XXX don't handle GUESS queries for now */
-	default:
-		msg = "Gnutella message not processed from UDP";
-		goto drop;
 	}
-
-	return TRUE;
+	msg = "Gnutella message not processed from UDP";
 
 drop:
 	gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
@@ -219,7 +216,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 */
 
 	if (udp_debug > 19)
-		printf("UDP got %s from %s%s\n", gmsg_infostr_full(s->buffer),
+		g_message("UDP got %s from %s%s", gmsg_infostr_full(s->buffer),
 			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
 	node_udp_process(s);
@@ -230,7 +227,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
  * forming a valid Gnutella message.
  */
 void
-udp_send_msg(gnutella_node_t *n, gpointer buf, gint len)
+udp_send_msg(const gnutella_node_t *n, gconstpointer buf, gint len)
 {
 	g_assert(NODE_IS_UDP(n));
 

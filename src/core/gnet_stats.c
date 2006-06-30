@@ -91,18 +91,27 @@ static const gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
 void
 gnet_stats_init(void)
 {
-    memset(stats_lut, MSG_UNKNOWN, sizeof(stats_lut));
-    stats_lut[GTA_MSG_INIT] = MSG_INIT;
-    stats_lut[GTA_MSG_INIT_RESPONSE]= MSG_INIT_RESPONSE;
-    stats_lut[GTA_MSG_BYE] = MSG_BYE;
-    stats_lut[GTA_MSG_QRP] = MSG_QRP;
-    stats_lut[GTA_MSG_VENDOR] = MSG_VENDOR;
-    stats_lut[GTA_MSG_STANDARD] = MSG_STANDARD;
-    stats_lut[GTA_MSG_PUSH_REQUEST] = MSG_PUSH_REQUEST;
-    stats_lut[GTA_MSG_SEARCH] = MSG_SEARCH;
-    stats_lut[GTA_MSG_SEARCH_RESULTS] = MSG_SEARCH_RESULTS;
-    stats_lut[GTA_MSG_HSEP_DATA] = MSG_HSEP;
+	guint i;
 
+	for (i = 0; i < 256; i++) {
+		guchar m = MSG_UNKNOWN;
+		
+    	switch ((enum gta_msg) i) {
+		case GTA_MSG_INIT:           m = MSG_INIT; break;
+		case GTA_MSG_INIT_RESPONSE:  m = MSG_INIT_RESPONSE; break;
+		case GTA_MSG_SEARCH:         m = MSG_SEARCH; break;
+		case GTA_MSG_SEARCH_RESULTS: m = MSG_SEARCH_RESULTS; break;
+		case GTA_MSG_PUSH_REQUEST:   m = MSG_PUSH_REQUEST; break;
+		case GTA_MSG_RUDP:			 m = MSG_RUDP; break;
+		case GTA_MSG_VENDOR:		 m = MSG_VENDOR; break;
+		case GTA_MSG_STANDARD:		 m = MSG_STANDARD; break;
+		case GTA_MSG_QRP:            m = MSG_QRP; break;
+		case GTA_MSG_HSEP_DATA:		 m = MSG_HSEP; break;
+		case GTA_MSG_BYE:      		 m = MSG_BYE; break;
+		}
+		stats_lut[i] = m;
+	}
+		
     memset(&gnet_stats, 0, sizeof(gnet_stats));
     memset(&gnet_udp_stats, 0, sizeof(gnet_udp_stats));
 }

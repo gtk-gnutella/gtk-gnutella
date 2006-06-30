@@ -109,28 +109,29 @@ gmsg_init(void)
 {
 	gint i;
 
-	for (i = 0; i < 256; i++)
-		msg_name[i] = "unknown";
+	for (i = 0; i < 256; i++) {
+		const gchar *s;
+		guint w;
 
-	msg_name[GTA_MSG_INIT]				= "ping";
-	msg_name[GTA_MSG_INIT_RESPONSE]		= "pong";
-	msg_name[GTA_MSG_BYE]				= "bye";
-	msg_name[GTA_MSG_SEARCH]			= "query";
-	msg_name[GTA_MSG_SEARCH_RESULTS]	= "query hit";
-	msg_name[GTA_MSG_PUSH_REQUEST]		= "push";
-	msg_name[GTA_MSG_QRP]				= "QRP";
-	msg_name[GTA_MSG_VENDOR]			= "vendor";
+		s = "unknown";
+		w = 0;
 
-	for (i = 0; i < 256; i++)
-		msg_weight[i] = 0;
-
-	msg_weight[GTA_MSG_INIT]			= 1;
-	msg_weight[GTA_MSG_SEARCH]			= 2;
-	msg_weight[GTA_MSG_INIT_RESPONSE]	= 3;
-	msg_weight[GTA_MSG_SEARCH_RESULTS]	= 4;
-	msg_weight[GTA_MSG_PUSH_REQUEST]	= 5;
-	msg_weight[GTA_MSG_QRP]				= 6;
-	msg_weight[GTA_MSG_VENDOR]			= 7;	/* deemed important */
+		switch ((enum gta_msg) i) {
+		case GTA_MSG_INIT:           w = 1; s = "Ping"; break;
+		case GTA_MSG_INIT_RESPONSE:  w = 3; s = "Pong"; break;
+		case GTA_MSG_SEARCH:         w = 2; s = "Query"; break;
+		case GTA_MSG_SEARCH_RESULTS: w = 4; s = "Q-Hit"; break;
+		case GTA_MSG_PUSH_REQUEST:   w = 5; s = "Push"; break;
+		case GTA_MSG_RUDP:   		 		s = "RUDP"; break;
+		case GTA_MSG_VENDOR:         		s = "Vndor"; break;
+		case GTA_MSG_STANDARD:       		s = "Vstd"; break;
+		case GTA_MSG_QRP:            w = 6; s = "QRP"; break;
+		case GTA_MSG_HSEP_DATA:      		s = "HSEP"; break;
+		case GTA_MSG_BYE:      		 w = 7; s = "BYE"; break;
+		}
+		msg_name[i] = s;
+		msg_weight[i] = w;
+	}
 }
 
 /**
