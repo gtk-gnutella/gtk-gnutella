@@ -108,7 +108,7 @@ mq_udp_pmsg_free_extended(pmsg_t *mb, gpointer arg)
  * new message block to use.
  */
 static pmsg_t *
-mq_udp_attach_metadata(pmsg_t *mb, gnet_host_t *to)
+mq_udp_attach_metadata(pmsg_t *mb, const gnet_host_t *to)
 {
 	pmsg_t *result;
 
@@ -273,7 +273,7 @@ mq_udp_service(gpointer data)
  * immediately by the caller.
  */
 void
-mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
+mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 {
 	size_t size = pmsg_size(mb);
 	gchar *mbs = pmsg_start(mb);
@@ -392,7 +392,7 @@ cleanup:
  * Enqueue message to be sent to the ip:port held in the supplied node.
  */
 void
-mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, gnutella_node_t *n)
+mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, const gnutella_node_t *n)
 {
 	gnet_host_t to;
 

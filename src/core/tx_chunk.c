@@ -306,11 +306,11 @@ tx_chunk_destroy(txdrv_t *tx)
  * @return amount of data bytes written, or -1 on error.
  */
 static ssize_t
-tx_chunk_write(txdrv_t *tx, gpointer data, size_t len)
+tx_chunk_write(txdrv_t *tx, gconstpointer data, size_t len)
 {
 	struct attr *attr = tx->opaque;
 	size_t remain = len;
-	gchar *ptr = data;
+	const gchar *ptr = data;
 	size_t written = 0;
 
 	g_assert((size_t) -1 != len && len > 0);

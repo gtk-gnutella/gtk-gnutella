@@ -806,7 +806,7 @@ tx_deflate_destroy(txdrv_t *tx)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_deflate_write(txdrv_t *tx, gpointer data, size_t len)
+tx_deflate_write(txdrv_t *tx, gconstpointer data, size_t len)
 {
 	struct attr *attr = tx->opaque;
 

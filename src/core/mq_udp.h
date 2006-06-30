@@ -49,8 +49,8 @@ struct txdriver;
 mqueue_t *mq_udp_make(
 	gint maxsize, struct gnutella_node *n, struct txdriver *nd);
 
-void mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to);
-void mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, struct gnutella_node *n);
+void mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to);
+void mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *n);
 
 #endif	/* _core_mq_udp_h_ */
 

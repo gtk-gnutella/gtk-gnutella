@@ -3226,7 +3226,7 @@ socket_plain_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 
 static ssize_t
 socket_plain_sendto(
-	struct wrap_io *wio, gnet_host_t *to, gconstpointer buf, size_t size)
+	struct wrap_io *wio, const gnet_host_t *to, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 	socklen_t len;
@@ -3255,7 +3255,7 @@ socket_plain_sendto(
 }
 
 static ssize_t
-socket_no_sendto(struct wrap_io *unused_wio, gnet_host_t *unused_to,
+socket_no_sendto(struct wrap_io *unused_wio, const gnet_host_t *unused_to,
 	gconstpointer unused_buf, size_t unused_size)
 {
 	(void) unused_wio;

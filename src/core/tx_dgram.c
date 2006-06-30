@@ -140,7 +140,7 @@ tx_dgram_destroy(txdrv_t *tx)
 }
 
 static inline gint
-tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
+tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 {
 	if (is_temporary_error(errno) || ENOBUFS == errno)
 		return 0;
@@ -209,7 +209,8 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
  * @returns amount of bytes written, or -1 on error with errno set.
  */
 static ssize_t
-tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
+tx_dgram_sendto(txdrv_t *tx, const gnet_host_t *to,
+	gconstpointer data, size_t len)
 {
 	ssize_t r;
 	struct attr *attr = tx->opaque;

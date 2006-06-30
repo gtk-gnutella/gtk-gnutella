@@ -45,8 +45,8 @@ struct gnutella_node;
 struct route_dest;
 struct mqueue;
 
-#define gmsg_function(p) (((struct gnutella_header *) p)->function)
-#define gmsg_hops(p)     (((struct gnutella_header *) p)->hops)
+#define gmsg_function(p) (((const struct gnutella_header *) p)->function)
+#define gmsg_hops(p)     (((const struct gnutella_header *) p)->hops)
 
 /*
  * Public interface

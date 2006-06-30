@@ -181,7 +181,7 @@ void bio_add_callback(bio_source_t *bio,
 void bio_remove_callback(bio_source_t *bio);
 ssize_t bio_write(bio_source_t *bio, gconstpointer data, size_t len);
 ssize_t bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
-ssize_t bio_sendto(bio_source_t *bio, gnet_host_t *to,
+ssize_t bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	gconstpointer data, size_t len);
 ssize_t bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd,
 	off_t *offset, size_t len);

@@ -232,7 +232,7 @@ tx_collect(void)
  * @return the amount of bytes written, or -1 with errno set on error.
  */
 ssize_t
-tx_write(txdrv_t *tx, gpointer data, size_t len)
+tx_write(txdrv_t *tx, gconstpointer data, size_t len)
 {
 	g_assert(tx);
 
@@ -268,7 +268,7 @@ tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
  * @return amount of bytes written, or -1 on error with errno set.
  */
 ssize_t
-tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
+tx_sendto(txdrv_t *tx, const gnet_host_t *to, gconstpointer data, size_t len)
 {
 	g_assert(tx);
 
@@ -547,7 +547,7 @@ tx_close_noop(txdrv_t *tx, tx_closed_t cb, gpointer arg)
  * The write() operation is forbidden.
  */
 ssize_t
-tx_no_write(txdrv_t *unused_tx, gpointer unused_data, size_t unused_len)
+tx_no_write(txdrv_t *unused_tx, gconstpointer unused_data, size_t unused_len)
 {
 	(void) unused_tx;
 	(void) unused_data;
@@ -575,8 +575,8 @@ tx_no_writev(txdrv_t *unused_tx, struct iovec *unused_iov, gint unused_iovcnt)
  * The sendto() operation is forbidden.
  */
 ssize_t
-tx_no_sendto(txdrv_t *unused_tx, gnet_host_t *unused_to,
-		gpointer unused_data, size_t unused_len)
+tx_no_sendto(txdrv_t *unused_tx, const gnet_host_t *unused_to,
+		gconstpointer unused_data, size_t unused_len)
 {
 	(void) unused_tx;
 	(void) unused_to;

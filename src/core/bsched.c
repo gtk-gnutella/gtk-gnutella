@@ -1276,7 +1276,8 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
  * to bandwidth constraints.
  */
 ssize_t
-bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
+bio_sendto(bio_source_t *bio, const gnet_host_t *to,
+	gconstpointer data, size_t len)
 {
 	size_t available;
 	ssize_t r;
