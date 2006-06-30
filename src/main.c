@@ -80,6 +80,7 @@
 #include "core/sockets.h"
 #include "core/spam.h"
 #include "core/sq.h"
+#include "core/tls_cache.h"
 #include "core/tsync.h"
 #include "core/tx.h"
 #include "core/uhc.h"
