@@ -3294,4 +3294,13 @@ prop = {
 	};
 };
 
+prop = {
+	name = "rudp_debug";
+    desc = "Debug level for Reliable UDP (RUDP) code.";
+	type = guint32;
+	data = {
+		default = 0;
+	};
+};
+
 /* vi: set ts=4: */
