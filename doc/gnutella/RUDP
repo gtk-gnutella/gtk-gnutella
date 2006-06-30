@@ -1,0 +1,171 @@
+Reliable UDP (RUDP) File Transfer Spec 1.03
+===========================================
+
+This is a converted version of the RUDP documentation provided by
+Julian of BearShare. The original PDF document is available here:
+
+http://groups.yahoo.com/group/the_gdf/files/Proposals/Pending%20Proposals/F2F/Reliable%20UDP%20version%201.03.pdf
+
+
+Packet Type
+===========
+
+There are five different RUDP packets. The RUDP packet header is a
+Gnutella header with function field set to 0x41.  The RUDP packets
+headers are saved in  the first 16 bytes of the Gnutella header (which
+is normally the GUID field).   The five types are: SYN, ACK, KEEPALIVE,
+DATA, and FIN.
+
+enum PacketType {
+	OP_SYN 	     = 0x0,
+	OP_ACK 	     = 0x1,
+	OP_KEEPALIVE = 0x2,
+	OP_DATA      = 0x3,
+	OP_FIN       = 0x4
+};
+
+
+Basic RUDP message definition:
+==============================
+
+struct UdpConnMsg {
+	unsigned long peerConnID :8; // first 8 bits is peer's connection id.
+	unsigned long data1Size : 4; // second 4 bits is data1 length. Only
+                               	     // DATA packets use it.
+	unsigned long opcode :4;     // third 4 bits is the packet type
+	unsigned long seqNumber :16; // last 16 bits is sequence number.
+};
+
+The seqNumber should be incremented only after sending a DATA or SYN
+message. Message retransmissions do not change the seqNumber.
+Bearshare set data1Size to 0 except Data packet.
+
+
+SYN
+===
+
+struct UdpSynMsg : UdpConnMsg {
+	unsigned char connID; // the connID used in this connection
+	unsigned __int16 protocolVersionNumber; // set to 0 for first version
+};
+
+Receiver of SYN should remember this connID, and set the
+UdpConnMsg.peerConnID = this connID for all following packets.  Timeout
+for SYN is 20 seconds. The initial sequence number is 0.
+
+
+ACK
+===
+
+struct UdpAckMsg : UdpConnMsg {
+	unsigned __int16 windowStart;  // Highest seqNumber received so far.
+	unsigned __int16 windowSpace;  // this is reserved
+};
+
+ACK message's seqNumber is copied from the message it ACKs.    KEEPALIVE
+Same as ACK, the only difference is its opcode is set to 0x2. 
+
+Because UDP hole may close if no data passes, this message is used to
+keep the hole open.   Bearshare will send KEEPALIVE if no data sent or
+received in 10 seconds.  Bearshare will close connection if no message (
+include KEEPALIVE  message ) received in 20 seconds.   DATA  
+
+struct UdpDataMsg : UdpConnMsg {
+	unsigned char data1[MAX_GUID_DATA];
+};
+
+MAX_GUID_DATA = 12, because GUID length is 16, and UdpConnMsg length is
+4. So we can store 12 bytes of data in the header.  The data1Size in
+UdpConnMsg defines how many of those bytes are valid. The Gnutella
+header's length field defines total size of the payload.    Size of
+Bearshare send packet:  1472 (UDP MTU for Ethernet and PPP)
+-GNUTELLA_HEADER_SIZE + MAX_GUID_DATA - 40( compensate for PPP
+encapsulations ) which comes to 1421 bytes.  
+
+Bearshare will drop a UDP packet if its size > 4K bytes. Rules:
+
+1) When out of order seqNumber was received, if it is 25 bigger than
+   current received max in order seqNumber, it will be drop.  Otherwise it
+   will be stored.  The timeout for Data packet is get from RTT. If no ack
+   for the  packet is received, sender will re-send.
+
+2) If retry 5 times still not get ack, connection will be dropped.
+
+FIN
+===
+
+struct UdpFinMsg : UdpConnMsg {
+	unsigned char reasonCode;
+};
+
+enum CloseReason  {
+	REASON_NORMAL_CLOSE     = 0x0,
+	REASON_YOU_CLOSED       = 0x1,
+	REASON_TIMEOUT          = 0x2,
+	REASON_LARGE_PACKET     = 0x3,
+	REASON_TOO_MANY_RESENDS = 0x4,
+};    
+
+Connection sequence Suppose we have two nodes A and B. A tries to
+download from B. The steps are: 
+
+1)  A sends a push to B and at the same time A starts sending SYN
+    messages to B, A will re-send the SYN message every 1 second until the
+    connection is  established.
+2)  B receives push, and starts sending SYN messages to A. B will also
+    keep resending every 1 second until the connection is established
+3)  At some point, the firewall for each node opens a corresponding
+    hole. Both A and B receive the SYN sent by the other node.
+4)  Both A and B send ACK to the SYN. Connection established.
+5)  A and B send DATA messages to each other.
+6)  A or B sends FIN, closing the connection. 
+
+
+RTT
+===
+
+Only calculate the RTT of a data packet if we are receiving the first
+ACK to the first send of the data packet. Otherwise, no RTT or cumulative
+effect is recorded. Given a low failure rate of generally less than 2%,
+this works  reasonably well. It could be an issue if the RTT was
+shooting up during failures but if failures are occurring then
+exponential backoff and such  should fix that situation.
+
+
+Congestion Control Used by Bearshare
+====================================
+
+Congestion control is handled by the sender using its Sliding Window.
+The window size determines how many packets can be sent and outstanding
+(waiting for an ack) at any given time.   Basically, it is the same as the TCP
+congestion avoidance algorithm.     A simplified description -
+implementation details are left to the client:
+
+1) Initial Sliding Window size is 5. Maximum size is 25.  Minimum size is 1.
+2) Reduce Window when receiving out of order Ack. Increase Window when
+   receiving in order Ack.
+3) Reduce Window to 1 when retransmit.
+4) Check send buffer queue size each second, reduce window when send buffer
+   queue has data, increase Window when send buffer queue is empty.
+
+
+Setup test 
+
+Controlled test In order to setup a Controlled test environment, you
+should have at least one of the following setups:
+
+1)  2 computers with public IPs and firewall software installed
+2)  2 computers with private IPs, each connected to a different router
+
+Install 3 Bearshares or 2 Bearshares and 1 limewire. One Bearshare works
+as UP, others work as leaves. None of them connect to Gnutella network.
+Manually connect both leaves to the UP.    Make sure the two leaves run
+on different machines and are totally firewalled.  Send a query from one
+leaf that will return hits from the other leaf, and start a download off
+of one of those hits.   In both Bearshare's upload and download list
+views, you will see the host color is purple, meaning UDP connection.
+In Bearshare, the Udplogic Console reporters show sending and receiving
+udp packets.  DownloadStream, Upload Console reporters it is same as
+before.  Uncontrolled test  Try to download and upload from Limewire
+4.2.6, which supports firewall to firewall transfer.
+
