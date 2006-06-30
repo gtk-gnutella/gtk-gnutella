@@ -1075,7 +1075,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					ret = ggept_alt_extract(e, &hvec, &hvcnt);
 					if (ret == GGEP_OK) {
 						seen_ggep_alt = TRUE;
-						if (hvcnt > 10) {
+						if (hvcnt > 16) {
+							/* Known limits: LIME: 10, GTKG: 6, BEAR: >10? */
 							rs->status |= ST_SPAM;
 							if (rc) {
 								set_flags(rc->flags, SR_SPAM);
