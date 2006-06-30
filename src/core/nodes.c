@@ -6039,6 +6039,8 @@ node_parse(struct gnutella_node *node)
 			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 		}
 		break;
+	case GTA_MSG_RUDP:
+		break;
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
 		n->n_bad++;
@@ -6131,6 +6133,13 @@ node_parse(struct gnutella_node *node)
 	case GTA_MSG_HSEP_DATA:
 		hsep_process_msg(n, tm_time());
 		goto reset_header;
+	case GTA_MSG_RUDP:
+		/* Not ready for prime time */
+#if 0
+		rudp_handle_packet(n->addr, n->port,
+			n->socket->buffer, n->size + GTA_HEADER_SIZE);
+#endif
+		return;
 	default:
 		break;
 	}
