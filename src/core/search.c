@@ -77,6 +77,7 @@ RCSID("$Id$");
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
@@ -87,6 +88,7 @@ RCSID("$Id$");
 #include "lib/zalloc.h"
 #include "lib/utf8.h"
 #include "lib/urn.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK2
@@ -701,6 +703,159 @@ is_evil_filename(const gchar *filename)
 	return FALSE;
 }
 
+static hash_list_t *oob_reply_acks;
+static const time_delta_t oob_reply_ack_timeout = 60;
+
+struct ora {
+	gchar *muid;	/* GUID atom */
+	time_t sent;
+	host_addr_t addr;
+	guint16 port;
+};
+
+struct ora *
+ora_alloc(const gchar muid[GUID_RAW_SIZE], const host_addr_t addr, guint16 port)
+{
+	struct ora *ora;
+
+	ora = walloc(sizeof *ora);
+	ora->muid = atom_guid_get(muid);
+	ora->addr = addr;
+	ora->port = port;
+	return ora;
+}
+
+void
+ora_free(struct ora **ora_ptr)
+{
+	struct ora *ora;
+
+	ora = *ora_ptr;
+	if (ora) {
+		atom_guid_free_null(&ora->muid);
+		wfree(ora, sizeof *ora);
+	}
+}
+
+static guint
+ora_hash(gconstpointer key)
+{
+	const struct ora *ora = key;
+
+	return guid_hash(ora->muid) ^
+		host_addr_hash(ora->addr) ^
+		(((guint32) ora->port << 16) | ora->port);
+}
+
+static gint
+ora_eq(gconstpointer v1, gconstpointer v2)
+{
+	const struct ora *a = v1, *b = v2;
+
+	return a->port == b->port &&
+		host_addr_equal(a->addr, b->addr) &&
+		guid_eq(a->muid, b->muid);
+}
+
+static struct ora *
+ora_lookup(const gchar muid[GUID_RAW_SIZE],
+	const host_addr_t addr, guint16 port)
+{
+	struct ora ora;
+	gpointer key;
+
+	ora.muid = deconstify_gchar(muid);
+	ora.sent = 0;
+	ora.addr = addr;
+	ora.port = port;
+
+	if (hash_list_contains(oob_reply_acks, &ora, &key)) {
+		return key;
+	}
+	return NULL;
+}
+
+static gboolean
+oob_reply_acks_remove_oldest(void)
+{
+	struct ora *ora;
+
+	ora = hash_list_first(oob_reply_acks);
+	if (ora) {
+		hash_list_remove(oob_reply_acks, ora);
+		ora_free(&ora);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static void
+oob_reply_acks_garbage_collect(void)
+{
+	time_t now = tm_time();
+	
+	do {
+		struct ora *ora;
+
+		ora = hash_list_first(oob_reply_acks);
+		if (!ora || delta_time(now, ora->sent <= oob_reply_ack_timeout))
+			break;
+	} while (oob_reply_acks_remove_oldest());
+}
+
+static void
+oob_reply_acks_init(void)
+{
+	oob_reply_acks = hash_list_new(ora_hash, ora_eq);
+}
+
+static void
+oob_reply_acks_close(void)
+{
+	while (oob_reply_acks_remove_oldest()) {
+		continue;
+	}
+	hash_list_free(oob_reply_acks);
+	oob_reply_acks = NULL;
+}
+
+static void
+oob_reply_ack_record(const gchar muid[GUID_RAW_SIZE],
+	const host_addr_t addr, guint16 port)
+{
+	struct ora *ora;
+	
+	g_assert(muid);
+
+	ora = ora_lookup(muid, addr, port);
+	if (ora) {
+		/* We'll append the new value to the list */
+		hash_list_remove(oob_reply_acks, ora);
+	} else {
+		ora = ora_alloc(muid, addr, port);
+	}
+	ora->sent = tm_time();
+
+	hash_list_append(oob_reply_acks, ora);
+	oob_reply_acks_garbage_collect();
+}
+
+gboolean
+search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
+	const host_addr_t addr, guint16 port)
+{
+	struct ora *ora;
+
+	ora = ora_lookup(muid, addr, port);
+	if (ora) {
+		if (delta_time(tm_time(), ora->sent) <= oob_reply_ack_timeout) {
+			return TRUE;
+		}
+		hash_list_remove(oob_reply_acks, ora);
+	}
+	return FALSE;
+}
+
 /**
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
@@ -789,6 +944,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			!is_private_addr(rs->addr)
 		)
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
+
+		if (!search_results_are_requested(n->header.muid, n->addr, n->port)) {
+			rs->status |= ST_UNREQUESTED;
+			g_message("Received unrequested query hit from %s",
+                host_addr_port_to_string(n->addr, n->port));
+		}
 	}
 
 	count_host(rs->addr);
@@ -2299,6 +2460,7 @@ search_init(void)
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
     search_handle_map = idtable_new(32, 32);
 	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
+	oob_reply_acks_init();
 }
 
 void
@@ -2326,6 +2488,8 @@ search_shutdown(void)
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
 	rs_zone = rc_zone = NULL;
+
+	oob_reply_acks_close();
 }
 
 /**
@@ -3301,6 +3465,7 @@ search_oob_pending_results(
 	g_assert(ask < 255);
 
 	vmsg_send_oob_reply_ack(n, muid, ask);
+	oob_reply_ack_record(muid, n->addr, n->port);
 }
 
 gboolean
