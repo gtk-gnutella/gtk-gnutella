@@ -351,18 +351,35 @@ gchar *short_time_ascii(gint t);
 gchar *short_uptime(gint s);
 
 /*
- * Use the direct difference instead of difftime(). Just in case there is
- * any system which requires difftime(), USE_DIFFTIME should be defined.
+ * We use the direct difference of time_t values instead of difftime()
+ * for performance. Just in case there is any system which requires difftime()
+ * e.g. if time_t is BCD-encoded, define USE_DIFFTIME.
  */
-static inline glong
+#if defined(USE_DIFFTIME)
+typedef gint64 time_delta_t;
+
+static inline time_delta_t
 delta_time(time_t t1, time_t t0)
 {
-#if defined(USE_DIFFTIME)
 	return difftime(t1, t0);
-#else
-	return t1 - t0;
-#endif	/* USE_DIFFTIME */
 }
+#else	/* !USE_DIFFTIME */
+typedef time_t time_delta_t;
+
+static inline time_delta_t
+delta_time(time_t t1, time_t t0)
+{
+	return t1 - t0;
+}
+
+static inline void
+time_t_check(void)
+{
+	/* If time_t is not a signed integer type, we cannot calculate properly
+	 * with the raw values. Define USE_DIFFTIME, if this check fails.*/
+	STATIC_ASSERT((time_t) -1 < 0);
+}
+#endif /* USE_DIFFTIME*/
 
 /**
  * Advances the given timestamp by delta using saturation arithmetic.
