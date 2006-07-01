@@ -734,6 +734,7 @@ ora_free(struct ora **ora_ptr)
 	if (ora) {
 		atom_guid_free_null(&ora->muid);
 		wfree(ora, sizeof *ora);
+		*ora_ptr = NULL;
 	}
 }
 
