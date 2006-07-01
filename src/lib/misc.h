@@ -350,22 +350,19 @@ gchar *short_time(gint s);
 gchar *short_time_ascii(gint t);
 gchar *short_uptime(gint s);
 
-/* Use the direct difference instead of difftime() for systems that are
- * known to use a flat time_t encoding. */
-#if !defined(LINUX_SYSTEM) && \
-	!defined(__FreeBSD__) && \
-	!defined(__NetBSD__) && \
-	!defined(__OpenBSD__)
-#define USE_DIFFTIME
-#endif
-
-/* Use a macro so that's possible to not use difftime where it's not
- * necessary because time_t is flat encoded */
+/*
+ * Use the direct difference instead of difftime(). Just in case there is
+ * any system which requires difftime(), USE_DIFFTIME should be defined.
+ */
+static inline glong
+delta_time(time_t t1, time_t t0)
+{
 #if defined(USE_DIFFTIME)
-#define delta_time(a, b) ((gint64) difftime((a), (b)))
+	return difftime(t1, t0);
 #else
-#define delta_time(a, b) ((gint64) ((a) - (b)))
-#endif
+	return t1 - t0;
+#endif	/* USE_DIFFTIME */
+}
 
 /**
  * Advances the given timestamp by delta using saturation arithmetic.
