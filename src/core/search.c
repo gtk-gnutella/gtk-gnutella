@@ -799,7 +799,7 @@ oob_reply_acks_garbage_collect(void)
 		struct ora *ora;
 
 		ora = hash_list_first(oob_reply_acks);
-		if (!ora || delta_time(now, ora->sent <= oob_reply_ack_timeout))
+		if (!ora || delta_time(now, ora->sent) <= oob_reply_ack_timeout)
 			break;
 	} while (oob_reply_acks_remove_oldest());
 }
