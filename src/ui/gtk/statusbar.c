@@ -298,8 +298,9 @@ statusbar_gui_clear_timeouts(time_t now)
 
 	for (sl = sl_statusbar_timeouts; sl; sl = g_slist_next(sl)) {
 		struct statusbar_timeout *t = sl->data;
+		const time_delta_t timeout = t->timeout;
 
-		if (delta_time(now, t->stamp) > t->timeout)
+		if (delta_time(now, t->stamp) > timeout)
 			to_remove = g_slist_prepend(to_remove, t);
 	}
 

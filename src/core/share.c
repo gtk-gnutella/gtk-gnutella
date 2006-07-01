@@ -1666,6 +1666,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gpointer atom;
 		gpointer seenp;
 		gchar *query = search;
+		time_delta_t threshold = node_requery_threshold;
 
 		g_assert(NODE_IS_LEAF(n));
 
@@ -1679,7 +1680,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (found)
 			seen = (time_t) GPOINTER_TO_INT(seenp);
 
-		if (delta_time(now, (time_t) 0) - seen < node_requery_threshold) {
+		if (delta_time(now, (time_t) 0) - seen < threshold) {
 			if (share_debug) g_warning(
 				"node %s (%s) re-queried \"%s\" after %d secs",
 				node_addr(n), node_vendor(n), query, (gint) (now - seen));

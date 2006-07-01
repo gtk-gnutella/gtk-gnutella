@@ -426,8 +426,9 @@ void
 search_stats_gui_update(time_t now)
 {
 	static time_t last_update = 0;
+	const time_delta_t interval = search_stats_update_interval;
 
-    if (delta_time(now, last_update) < search_stats_update_interval)
+    if (delta_time(now, last_update) < interval)
         return;
 
     last_update = now;

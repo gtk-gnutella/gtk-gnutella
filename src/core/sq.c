@@ -366,6 +366,7 @@ sq_global_putq(gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 void
 sq_process(squeue_t *sq, time_t now)
 {
+    time_delta_t spacing = search_queue_spacing;
 	GList *item;
 	smsg_t *sb;
 	struct gnutella_node *n;
@@ -389,7 +390,7 @@ retry:
 	if (sq->count == 0)
 		return;
 
-    if (delta_time(now, sq->last_sent) < search_queue_spacing)
+    if (delta_time(now, sq->last_sent) < spacing)
 		return;
 
 	n = sq->node;					/* Will be NULL for the global SQ */

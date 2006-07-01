@@ -261,14 +261,17 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 	}
 
 	if (0 != prop) {
-		guint32 grace;
+		guint32 val;
+		time_delta_t grace;
 
-		gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
+		gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &val);
+		grace = val;
+
 		if (delta_time(now, ul->last_update) > grace) {
-			gboolean val;
+			gboolean auto_remove;
 
-			gui_prop_get_boolean_val(prop, &val);
-			return val;
+			gui_prop_get_boolean_val(prop, &auto_remove);
+			return auto_remove;
 		}
 	}
 

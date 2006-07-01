@@ -232,7 +232,9 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 
 		step = gdb_stmt_step(stmt);
 		if (GDB_STEP_ROW == step) {
+			const time_delta_t max_delta = tls_cache_max_time;
 			time_t seen, now;
+			time_delta_t delta;
 			gint64 value;
 
 			value = gdb_stmt_column_int64(stmt, 0);
@@ -249,15 +251,9 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 				seen = value;
 			}
 			now = tm_time();
-			
-			if (
-				delta_time(now, seen) >= 0 &&
-				delta_time(now, seen) < tls_cache_max_time
-			) {
-				found = TRUE;
-			} else {
-				delete = TRUE;
-			}
+			delta = delta_time(now, seen);
+			delete = delta < 0 || delta > max_delta;
+			found = !delete;
 		} else if (GDB_STEP_DONE != step) {
 			g_warning("%s: gdb_stmt_step() failed: %s",
 				"tls_cache_lookup", gdb_error_message());
