@@ -3037,6 +3037,7 @@ download_ignore_requested(struct download *d)
 			reason == IGNORE_OURSELVES ? "Points to ourselves" :
 			reason == IGNORE_HOSTILE ? "Hostile IP" :
 			reason == IGNORE_SHA1 ? "SHA1" :
+			reason == IGNORE_SPAM ? "Known Spam" :
 			reason == IGNORE_LIBRARY ? "Already Owned" : "Name & Size");
 
 		/*

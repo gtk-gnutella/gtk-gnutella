@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "share.h"
 #include "settings.h"
 #include "namesize.h"
+#include "spam.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -333,6 +334,8 @@ ignore_is_requested(const gchar *filename, filesize_t size, const gchar *sha1)
 		const struct shared_file *sf;
 		if (g_hash_table_lookup(by_sha1, sha1))
 			return IGNORE_SHA1;
+		if (spam_check(sha1))
+			return IGNORE_SPAM;
 		sf = shared_file_by_sha1(sha1);
 		if (sf && sf != SHARE_REBUILDING && sf->fi == NULL)
 			return IGNORE_LIBRARY;

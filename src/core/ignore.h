@@ -47,7 +47,8 @@ enum ignore_val {
 	IGNORE_NAMESIZE = 2,	/**< Ignore because of Name & Size */
 	IGNORE_LIBRARY = 3,		/**< Ignore because SHA1 present in library */
 	IGNORE_HOSTILE = 4,		/**< Ignore because IP address is hostile */
-	IGNORE_OURSELVES = 5	/**< Ignore because IP:port points to ourselves */
+	IGNORE_OURSELVES = 5,	/**< Ignore because IP:port points to ourselves */
+	IGNORE_SPAM = 6,		/**< Ignore because SHA1 is known spam */
 };
 
 void ignore_timer(time_t now);
