@@ -56,6 +56,7 @@ RCSID("$Id$");
 #include "tsync.h"
 #include "hosts.h"
 #include "pmsg.h"
+#include "hostiles.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -848,6 +849,7 @@ handle_proxy_ack(struct gnutella_node *n,
 	if (vmsg->version >= 2) {
 		ha = host_addr_get_ipv4(peek_be32(payload));
 		payload += 4;
+
 	} else {
 		ha = n->addr;
 	}
@@ -863,6 +865,11 @@ handle_proxy_ack(struct gnutella_node *n,
 		g_warning("got improper address %s in %s from %s <%s>",
 			host_addr_port_to_string(ha, port), vmsg->name,
 			node_addr(n), node_vendor(n));
+		return;
+	}
+	if (hostiles_check(ha)) {
+		g_message("got proxy ACK from hostile host %s <%s>: proxy at %s",
+			node_addr(n), node_vendor(n), host_addr_port_to_string(ha, port));
 		return;
 	}
 
