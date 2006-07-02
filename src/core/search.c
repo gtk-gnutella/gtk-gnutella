@@ -841,6 +841,13 @@ oob_reply_ack_record(const gchar muid[GUID_RAW_SIZE],
 	oob_reply_acks_garbage_collect();
 }
 
+/**
+ * Check whether we have explicitly claimed some OOB hits.
+ *
+ * @param muid	the query MUID used, as seen from the query hit
+ * @param addr	the address from which the results come via UDP
+ * @param port	the port from which results come
+ */
 gboolean
 search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
 	const host_addr_t addr, guint16 port)
@@ -849,9 +856,8 @@ search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
 
 	ora = ora_lookup(muid, addr, port);
 	if (ora) {
-		if (delta_time(tm_time(), ora->sent) <= oob_reply_ack_timeout) {
+		if (delta_time(tm_time(), ora->sent) <= oob_reply_ack_timeout)
 			return TRUE;
-		}
 		hash_list_remove(oob_reply_acks, ora);
 	}
 	return FALSE;
