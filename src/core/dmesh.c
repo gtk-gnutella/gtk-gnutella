@@ -498,14 +498,14 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
  * `sha1' is only passed in case we want to log the removal.
  */
 static void
-dm_expire(struct dmesh *dm, guint32 agemax, const gchar *sha1)
+dm_expire(struct dmesh *dm, glong agemax, const gchar *sha1)
 {
 	GSList *l;
 	GSList *prev;
 	time_t now = tm_time();
 
 	for (prev = NULL, l = dm->entries; l; /* empty */) {
-		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+		struct dmesh_entry *dme = l->data;
 		GSList *next;
 
 		if (delta_time(now, dme->stamp) <= agemax) {
