@@ -2788,7 +2788,6 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 
 #if defined(USE_IPV6) && defined(IPV6_V6ONLY)
 		if (
-			sd >= 0 &&
 			NET_TYPE_IPV6 == host_addr_net(bind_addr) &&
 			setsockopt(sd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
 		) {
