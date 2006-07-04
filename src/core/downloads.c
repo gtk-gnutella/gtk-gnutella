@@ -3034,15 +3034,15 @@ download_ignore_requested(struct download *d)
 		reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1);
 
 	if (reason != IGNORE_FALSE) {
+		const gchar *s_reason;
+		
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_add(d);
 
-		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
-			reason == IGNORE_OURSELVES ? "Points to ourselves" :
-			reason == IGNORE_HOSTILE ? "Hostile IP" :
-			reason == IGNORE_SHA1 ? "SHA1" :
-			reason == IGNORE_SPAM ? "Known Spam" :
-			reason == IGNORE_LIBRARY ? "Already Owned" : "Name & Size");
+		s_reason = ignore_reason_to_string(reason);
+		g_assert(s_reason);
+		
+		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)", s_reason);
 
 		/*
 		 * If we're ignoring this file, make sure we don't keep any
@@ -3056,14 +3056,20 @@ download_ignore_requested(struct download *d)
 		case IGNORE_HOSTILE:
 		case IGNORE_OURSELVES:
 			break;
-		default:
+		case IGNORE_SHA1:
+		case IGNORE_SPAM:
+		case IGNORE_LIBRARY:
+		case IGNORE_NAMESIZE:
 			file_info_set_discard(d->file_info, TRUE);
 			queue_remove_downloads_with_file(fi, d);
-			if (!FILE_INFO_COMPLETE(fi))
+			if (!FILE_INFO_COMPLETE(fi)) {
 				download_remove_file(d, FALSE);
+			}
 			break;
+		case IGNORE_FALSE:
+			g_assert_not_reached();
 		}
-
+		
 		return TRUE;
 	}
 
@@ -4120,25 +4126,13 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 		fi ? fi->size : size,
 		fi ? fi->sha1 : sha1);
 
-	switch (ign_reason) {
-	case IGNORE_FALSE:
-		break;
-	case IGNORE_SHA1:
-		reason = "ignore by SHA1 requested";
+	if (IGNORE_FALSE != ign_reason) {
+		reason = ignore_reason_to_string(ign_reason);
+		if (!reason) {
+			g_error("ignore_is_requested() returned unexpected %u",
+					(guint) ign_reason);
+		}
 		goto abort_download;
-	case IGNORE_NAMESIZE:
-		reason = "ignore by name & size requested";
-		goto abort_download;
-	case IGNORE_LIBRARY:
-		reason = "SHA1 is already in library";
-		goto abort_download;
-	case IGNORE_SPAM:
-		reason = "known spam file";
-		goto abort_download;
-	/* Following are part of the enum but cannot be returned */
-	case IGNORE_HOSTILE:
-	case IGNORE_OURSELVES:
-		break;
 	}
 
 	/*
