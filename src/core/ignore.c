@@ -317,6 +317,22 @@ ignore_sha1_filename(const gchar *sha1)
 	return g_hash_table_lookup(by_sha1, sha1);
 }
 
+
+const gchar *
+ignore_reason_to_string(enum ignore_val reason)
+{
+	switch (reason) {
+	case IGNORE_OURSELVES:	return "Points to ourselves";
+	case IGNORE_HOSTILE:	return "Hostile IP";
+	case IGNORE_SHA1:		return "SHA1";
+	case IGNORE_SPAM:		return "Known Spam";
+	case IGNORE_LIBRARY:	return "Already Owned";
+	case IGNORE_NAMESIZE:	return "Name & Size";
+	case IGNORE_FALSE:		return "NOT ignored";
+	}
+	return NULL;
+}
+
 /**
  * Is ignoring requested for `filename' of size `size' and SHA1 `sha1'?
  * `filename' and `size' are only used if `sha1' is NULL.

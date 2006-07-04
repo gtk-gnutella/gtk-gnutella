@@ -43,17 +43,18 @@ void ignore_close(void);
 
 enum ignore_val {
 	IGNORE_FALSE = 0,		/**< Do not ignore */
-	IGNORE_SHA1 = 1,		/**< Ignore because of SHA1 */
-	IGNORE_NAMESIZE = 2,	/**< Ignore because of Name & Size */
-	IGNORE_LIBRARY = 3,		/**< Ignore because SHA1 present in library */
-	IGNORE_HOSTILE = 4,		/**< Ignore because IP address is hostile */
-	IGNORE_OURSELVES = 5,	/**< Ignore because IP:port points to ourselves */
-	IGNORE_SPAM = 6,		/**< Ignore because SHA1 is known spam */
+	IGNORE_SHA1,			/**< Ignore because of SHA1 */
+	IGNORE_NAMESIZE,		/**< Ignore because of Name & Size */
+	IGNORE_LIBRARY,			/**< Ignore because SHA1 present in library */
+	IGNORE_HOSTILE,			/**< Ignore because IP address is hostile */
+	IGNORE_OURSELVES,		/**< Ignore because IP:port points to ourselves */
+	IGNORE_SPAM				/**< Ignore because SHA1 is known spam */
 };
 
 void ignore_timer(time_t now);
 enum ignore_val ignore_is_requested(
 	const gchar *file, filesize_t size, const gchar *sha1);
+const gchar *ignore_reason_to_string(enum ignore_val);
 
 void ignore_add_filesize(const gchar *file, filesize_t size);
 void ignore_add_sha1(const gchar *file, const gchar *sha1);
