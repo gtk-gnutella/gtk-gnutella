@@ -1017,7 +1017,7 @@ download_timer(time_t now)
 				break;
 			}
 
-			if (delta_time(now, d->last_update) > t) {
+			if (delta_time(now, d->last_update) > (time_delta_t) t) {
 				/*
 				 * When the 'timeout' has expired, first check whether the
 				 * download was activly queued. If so, tell parq to retry the
@@ -1057,7 +1057,10 @@ download_timer(time_t now)
 				break;
 			}
 
-			if (delta_time(now, d->last_update) > d->timeout_delay)
+			if (
+				delta_time(now, d->last_update) >
+					(time_delta_t) d->timeout_delay
+			)
 				download_start(d, TRUE);
 			else {
 				/* Move the download back to the waiting queue.
@@ -2306,7 +2309,8 @@ download_clear_stopped(gboolean complete,
 
 		if (
 			now ||
-			delta_time(current_time, d->last_update) > entry_removal_timeout
+			delta_time(current_time, d->last_update) >
+				(time_delta_t) entry_removal_timeout
 		) {
 			if (
 				complete && (
@@ -3565,7 +3569,10 @@ download_pickup_queued(void)
 				)
 					continue;
 
-				if (delta_time(now, d->last_update) <= d->timeout_delay)
+				if (
+					delta_time(now, d->last_update) <=
+						(time_delta_t) d->timeout_delay
+				)
 					continue;
 
 				if (now < d->retry_after)
