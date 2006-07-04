@@ -4125,9 +4125,13 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	case IGNORE_LIBRARY:
 		reason = "SHA1 is already in library";
 		goto abort_download;
-	default:
-		g_error("ignore_is_requested() returned unexpected %u",
-			(guint) ign_reason);
+	case IGNORE_SPAM:
+		reason = "known spam file";
+		goto abort_download;
+	/* Following are part of the enum but cannot be returned */
+	case IGNORE_HOSTILE:
+	case IGNORE_OURSELVES:
+		break;
 	}
 
 	/*
