@@ -343,7 +343,7 @@
 
 # DRM WMV pr0n spammer; filenames are all caps; license server is 74.52.9.122
 88.85.65.130
-88.85.66.138
+88.85.66.138/31
 88.85.66.140
 
 # University of Mississippi
