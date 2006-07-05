@@ -290,6 +290,8 @@
 
 # Same as above; DRM header links to 216.93.188.81; WhenU/SaveNow spam
 206.51.230.2
+206.51.230.176
+206.51.230.180
 66.240.254.18
 
 # Gnucleus-based DRM WMV spammer hosted by HopOne
