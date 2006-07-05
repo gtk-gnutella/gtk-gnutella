@@ -338,6 +338,12 @@
 # address is always at port 80 at its own /24.
 128.108.111.0/24
 
+# swapexits.com; DRM license server
+74.52.9.122
+
+# DRM WMV pr0n spammer; filenames are all caps; license server is 74.52.9.122
+88.85.65.130
+
 # University of Mississippi
 130.74.0.0/16
 
