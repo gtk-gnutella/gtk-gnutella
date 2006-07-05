@@ -302,6 +302,9 @@
 # Gnucleus-based DRM WMV spammer hosted by CNAP
 209.190.122.186
 
+# DRM WMV spammer; license URL links to 209.190.122.186
+68.178.144.112
+
 # Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
 72.51.37.145
 
