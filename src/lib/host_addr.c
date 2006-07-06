@@ -124,19 +124,21 @@ host_addr_is_6to4(const host_addr_t ha)
 static inline guint32
 host_addr_6to4_ipv4(const host_addr_t ha)
 {
-	return peek_be32(&ha.addr.u16[1]);	/* 2002:AABBCCDD::/48 */
+	return peek_be32(&ha.addr.ipv6[2]);	/* 2002:AABBCCDD::/48 */
 }
 
 gboolean
 host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
 {
 	if (host_addr_is_6to4(from)) {
-		if (to)
-			to->addr.ipv4 = peek_be32(&from.addr.u16[1]);
+		if (to) {
+			*to = host_addr_get_ipv4(peek_be32(&from.addr.ipv6[2]));
+		}
 		return TRUE;
 	} else {
-		if (to)
+		if (to) {
 			*to = zero_host_addr;
+		}
 		return FALSE;
 	}
 }
