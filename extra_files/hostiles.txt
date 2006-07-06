@@ -326,6 +326,7 @@
 
 # Shareaza-based DRM WMV spammer hosted by Peer 1
 64.34.248.165
+64.34.248.168
 69.90.216.73
 
 # Gnoozle; "sponsored results" exploiting a brain-dead LimeWire feature
