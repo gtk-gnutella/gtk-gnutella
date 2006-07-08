@@ -1921,14 +1921,14 @@ random_init(void)
 	 * Finally, can initialize the random number generator.
 	 */
 
+	srandom(seed);	/* Just in case initstate() enables the alarm device */
+
 #if defined(HAS_INITSTATE)
 	{
 		static gulong state[256 / sizeof(gulong)];
 		
 		initstate(seed, cast_to_gchar_ptr(state), sizeof state);
 	}
-#else
-	srandom(seed);
 #endif /* HAS_INITSTATE */
 }
 
