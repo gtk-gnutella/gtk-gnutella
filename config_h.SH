@@ -152,13 +152,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_rusage HAS_GETRUSAGE		/**/
 
-/* HAS_SELECT:
- *	This symbol, if defined, indicates that the select routine is
- *	available to select active file descriptors. If the timeout field
- *	is used, <sys/time.h> may need to be included.
- */
-#$d_select HAS_SELECT	/**/
-
 /* HAS_SIGACTION:
  *	This symbol, if defined, indicates that Vr4's sigaction() routine
  *	is available.
@@ -355,6 +348,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.
  */
 #$d_hstrerror HAS_HSTRERROR		/**/
+
+/* HAS_INITSTATE:
+ *	This symbol, if defined, indicates that the initstate routine is
+ *	available to initialize the random() number generator.
+ */
+#$d_initstate HAS_INITSTATE		/**/
 
 /* USE_IP_TOS:
  *	This symbol, if defined, indicates that the IP TOS services are

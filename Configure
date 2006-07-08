@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Jun 24 00:13:42 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Jul  8 16:45:52 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -315,6 +315,7 @@ gnulibc_version=''
 d_herror=''
 d_hstrerror=''
 d_inflate=''
+d_initstate=''
 d_iptos=''
 d_isascii=''
 d_kevent_int_udata=''
@@ -329,7 +330,6 @@ d_portable=''
 d_random=''
 d_rusage=''
 d_sa_interrupt=''
-d_select=''
 d_sendfile=''
 d_setproctitle=''
 d_sigaction=''
@@ -5189,6 +5189,10 @@ eval $inlibc
 set hstrerror d_hstrerror
 eval $inlibc
 
+: see if initstate exists
+set initstate d_initstate
+eval $inlibc
+
 : see if this is a netinet/in.h or sys/in.h system
 set netinet/in.h i_niin sys/in.h i_sysin
 eval $inhdr
@@ -5573,10 +5577,6 @@ $rm -f try try.c
 set d_sa_interrupt
 eval $setvar
 
-: see if select exists
-set select d_select
-eval $inlibc
-
 : see if sendfile exists
 set sendfile d_sendfile
 eval $inlibc
@@ -5700,7 +5700,6 @@ case "$version" in
 		$cat <<'EOM'
 
 For more information, see http://www.sqlite.org/.
-
 EOM
 	fi
 esac
@@ -7743,6 +7742,7 @@ d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
 d_index='$d_index'
 d_inflate='$d_inflate'
+d_initstate='$d_initstate'
 d_iptos='$d_iptos'
 d_ipv6='$d_ipv6'
 d_isascii='$d_isascii'
@@ -7770,7 +7770,6 @@ d_random='$d_random'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
 d_sa_interrupt='$d_sa_interrupt'
-d_select='$d_select'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'

@@ -89,6 +89,7 @@
 #include "core/version.h"
 #include "core/vmsg.h"
 #include "core/whitelist.h"
+#include "dht/kuid.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -981,6 +982,8 @@ main(int argc, char **argv)
 	bitzi_init();
 	sq_init();
 	file_info_init_post();
+
+	kuid_init();			/* DHT */
 
 	main_gui_init();
 	node_post_init();

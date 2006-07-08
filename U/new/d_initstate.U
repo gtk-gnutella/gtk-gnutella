@@ -1,0 +1,22 @@
+?RCS: $Id: d_srandom.U 3903 2003-08-10 14:46:44Z rmanfredi $
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_initstate: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_initstate:
+?S:	This variable conditionally defines the HAS_INITSTATE symbol, which
+?S:	indicates to the C program that the initstate() routine is available
+?S:	to initialize the random() number generator.
+?S:.
+?C:HAS_INITSTATE:
+?C:	This symbol, if defined, indicates that the initstate routine is
+?C:	available to initialize the random() number generator.
+?C:.
+?H:#$d_initstate HAS_INITSTATE		/**/
+?H:.
+?LINT:set d_initstate
+: see if initstate exists
+set initstate d_initstate
+eval $inlibc
+

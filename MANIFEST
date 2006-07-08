@@ -1,13 +1,13 @@
 AUTHORS
-GEO_LICENSE
-LICENSE
-MANIFEST                     This shipping list
-README
-TODO
 ChangeLog
 Configure                    Portability tool
+GEO_LICENSE
 Jmakefile
+LICENSE
+MANIFEST                     This shipping list
 Makefile.SH
+README
+TODO
 U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
@@ -28,6 +28,7 @@ U/new/d_gnugettext.U
 U/new/d_herror.U
 U/new/d_hstrerror.U
 U/new/d_inflate.U
+U/new/d_initstate.U
 U/new/d_iptos.U
 U/new/d_kqueue.U
 U/new/d_madvise.U
@@ -394,6 +395,10 @@ src/core/vmsg.c
 src/core/vmsg.h
 src/core/whitelist.c
 src/core/whitelist.h
+src/dht/Jmakefile
+src/dht/Makefile.SH
+src/dht/kuid.c
+src/dht/kuid.h
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH

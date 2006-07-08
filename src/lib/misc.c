@@ -2241,7 +2241,7 @@ guid_random_fill(gchar *xuid)
 	gint i;
 	guint32 v;
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < GUID_RAW_SIZE; i++) {
 		v = random_raw();
 		xuid[i] = v ^ (v >> 8) ^ (v >> 16) ^ (v >> 24);
 	}

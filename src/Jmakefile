@@ -83,14 +83,16 @@ CFLAGS = -I.. -I. \
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lcore -lcore \
+	-Ldht -ldht \
 	-Lui/gtk \
-	-lgtk-common -lgtkx -lgtk-common -lcore \
+	-lgtk-common -lgtkx -lgtk-common -ldht -lcore \
 	-Llib -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
 	$(SOCKER_LDFLAGS) $(SQLITE_LDFLAGS)
 
 RemoteTargetDependency(gtk-gnutella, lib, libshared.a)
 RemoteTargetDependency(gtk-gnutella, core, libcore.a)
+RemoteTargetDependency(gtk-gnutella, dht, libdht.a)
 RemoteTargetDependency(gtk-gnutella, ui/gtk, libgtk-common.a)
 RemoteTargetDependency(gtk-gnutella, ui/gtk, libgtkx.a)
 RemoteTargetDependency(gtk-gnutella, if/bridge, ui2c.o)

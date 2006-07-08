@@ -130,8 +130,9 @@ CFLAGS = -I.. -I. \
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lcore -lcore \
+	-Ldht -ldht \
 	-Lui/gtk \
-	-lgtk-common -lgtkx -lgtk-common -lcore \
+	-lgtk-common -lgtkx -lgtk-common -ldht -lcore \
 	-Llib -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
 	$(SOCKER_LDFLAGS) $(SQLITE_LDFLAGS)
@@ -151,6 +152,13 @@ core/libcore.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  core/libcore.a
+
+dht/libdht.a: .FORCE
+	@echo "Checking "libdht.a" in "dht"..."
+	cd dht; $(MAKE) libdht.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  dht/libdht.a
 
 ui/gtk/libgtk-common.a: .FORCE
 	@echo "Checking "libgtk-common.a" in "ui/gtk"..."
