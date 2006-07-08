@@ -350,6 +350,93 @@ hash_list_first(const hash_list_t *hl)
 }
 
 /**
+ * Move entry to the head of the list.
+ */
+void
+hash_list_moveto_head(hash_list_t *hl, gpointer key)
+{
+	struct hash_list_item *item;
+
+	g_assert(1 == hl->refcount);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
+	g_assert(equiv(hl->len == 0, hl->last == NULL));
+	g_assert(hl->len > 0);
+	hash_list_regression(hl);
+
+
+	item = g_hash_table_lookup(hl->ht, key);
+	g_assert(item);
+
+	if (hl->l == item->list)
+		goto done;				/* Item already at the head */
+
+	/*
+	 * Remove item from list
+	 */
+
+	if (hl->last == item->list)
+		hl->last = g_list_previous(hl->last);
+	hl->l = g_list_delete_link(hl->l, item->list);
+
+	g_assert(hl->l != NULL);		/* Or item would be at the head */
+	g_assert(hl->last != NULL);		/* Item not the head and not sole entry */
+
+	/*
+	 * Insert link back at the head.
+	 */
+
+	hl->l = g_list_prepend(hl->l, item);
+	item->list = hl->l;
+
+done:
+	hl->stamp++;
+
+	hash_list_regression(hl);
+}
+
+/**
+ * Move entry to the tail of the list.
+ */
+void
+hash_list_moveto_tail(hash_list_t *hl, gpointer key)
+{
+	struct hash_list_item *item;
+
+	g_assert(1 == hl->refcount);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
+	g_assert(equiv(hl->len == 0, hl->last == NULL));
+	g_assert(hl->len > 0);
+	hash_list_regression(hl);
+
+
+	item = g_hash_table_lookup(hl->ht, key);
+	g_assert(item);
+
+	if (hl->last == item->list)
+		goto done;				/* Item already at the tail */
+
+	/*
+	 * Remove item from list
+	 */
+
+	hl->l = g_list_delete_link(hl->l, item->list);
+
+	g_assert(hl->l != NULL);		/* Or item would be at the tail */
+
+	/*
+	 * Insert link back at the tail.
+	 */
+
+	hl->last = g_list_last(g_list_append(hl->last, item));
+	item->list = hl->last;
+
+done:
+	hl->stamp++;
+
+	hash_list_regression(hl);
+}
+
+/**
  * @returns the length of the list.
  */
 guint
