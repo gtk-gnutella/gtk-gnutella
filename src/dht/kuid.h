@@ -40,13 +40,17 @@
 
 #define KUID_RAW_SIZE	20
 
+typedef struct kuid {
+	guchar v[KUID_RAW_SIZE];
+} kuid_t;
+
 /*
  * Public interface.
  */
 
 void kuid_init(void);
-void kuid_random_fill(gchar *kuid);
-gint kuid_cmp(const gchar *target, const gchar *kuid1, const gchar *kuid2);
+void kuid_random_fill(kuid_t *kuid);
+gint kuid_cmp(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2);
 
 #endif /* _dht_kuid_h_ */
 

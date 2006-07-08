@@ -54,14 +54,14 @@ kuid_init(void)
  * Generate a new random KUID within given `kuid'.
  */
 void
-kuid_random_fill(gchar *kuid)
+kuid_random_fill(kuid_t *kuid)
 {
 	gint i;
 	guint32 v;
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
 		v = random_raw();
-		kuid[i] = v ^ (v >> 8) ^ (v >> 16) ^ (v >> 24);
+		kuid->v[i] = v ^ (v >> 8) ^ (v >> 16) ^ (v >> 24);
 	}
 }
 
@@ -77,13 +77,13 @@ kuid_random_fill(gchar *kuid)
  * farther away from target than KUID #2, and 0 if both are equidistant.
  */
 gint
-kuid_cmp(const gchar *target, const gchar *kuid1, const gchar *kuid2)
+kuid_cmp(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2)
 {
 	gint i;
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		guint d1 = ((guchar) kuid1[i]) ^ ((guchar) target[i]);
-		guint d2 = ((guchar) kuid2[i]) ^ ((guchar) target[i]);
+		guint d1 = kuid1->v[i] ^ target->v[i];
+		guint d2 = kuid2->v[i] ^ target->v[i];
 
 		if (d1 < d2)
 			return -1;
