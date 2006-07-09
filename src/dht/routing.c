@@ -1,5 +1,5 @@
 /*
- * $Id: kuid.c 11286 2006-07-08 15:40:25Z rmanfredi $
+ * $Id$
  *
  * Copyright (c) 2006, Raphael Manfredi
  *
@@ -38,7 +38,7 @@
 
 #include "common.h"
 
-RCSID("$Id: kuid.c 11286 2006-07-08 15:40:25Z rmanfredi $");
+RCSID("$Id$");
 
 #include "routing.h"
 #include "kuid.h"
