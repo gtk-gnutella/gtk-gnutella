@@ -274,7 +274,10 @@ pproxy_timer(time_t now)
 		 * from the list we are traversing.
 		 */
 
-		if (delta_time(now, pp->last_update) > upload_connecting_timeout) {
+		if (
+			delta_time(now, pp->last_update) >
+				(time_delta_t) upload_connecting_timeout
+		) {
 			to_remove = g_slist_prepend(to_remove, pp);
 		}
 	}
