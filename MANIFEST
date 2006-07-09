@@ -399,6 +399,8 @@ src/dht/Jmakefile
 src/dht/Makefile.SH
 src/dht/kuid.c
 src/dht/kuid.h
+src/dht/routing.c
+src/dht/routing.h
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH

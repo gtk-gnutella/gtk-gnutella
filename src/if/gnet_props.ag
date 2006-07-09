@@ -13,6 +13,7 @@ uses = "core/sockets.h";
 uses = "core/bsched.h";
 uses = "lib/misc.h";
 uses = "if/core/nodes.h";
+uses = "dht/kuid.h";
 
 prop = {
     name = "reading_hostfile";
@@ -1846,6 +1847,13 @@ prop = {
 };
 
 prop = {
+    name = "servent_kuid";
+    desc = "Kademlia Unique IDentifier of this node in the DHT.";
+    type = storage;
+    vector_size = KUID_RAW_SIZE;
+};
+
+prop = {
     name = "use_swarming";
     desc = "Whether or not to use swarming (recommended = YES).";
     type = boolean;
@@ -3297,6 +3305,15 @@ prop = {
 prop = {
 	name = "rudp_debug";
     desc = "Debug level for Reliable UDP (RUDP) code.";
+	type = guint32;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "dht_debug";
+    desc = "Debug level for the Distributed Hash Table (DHT) code.";
 	type = guint32;
 	data = {
 		default = 0;

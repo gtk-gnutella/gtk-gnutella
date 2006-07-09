@@ -58,7 +58,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = core lib ui if
+SUBDIRS = core dht lib ui if
 USRINC = $usrinc
 SOURCES =   \$(SRC)
 SOCKER_CFLAGS =  $sockercflags
@@ -97,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11114 2006-06-19 15:06:21Z cbiere $
+# $X-Id: Jmakefile 11283 2006-07-08 15:23:23Z rmanfredi $
 
 all::
 

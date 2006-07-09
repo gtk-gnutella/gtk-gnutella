@@ -41,6 +41,7 @@
 #include "core/bsched.h"
 #include "lib/misc.h"
 #include "if/core/nodes.h"
+#include "dht/kuid.h"
 
 
 extern const gboolean reading_hostfile;
@@ -202,6 +203,7 @@ extern const guint32  ul_running;
 extern const guint32  ul_registered;
 extern const guint32  total_uploads;
 extern const gchar    servent_guid[GUID_RAW_SIZE];
+extern const gchar    servent_kuid[KUID_RAW_SIZE];
 extern const gboolean use_swarming;
 extern const gboolean use_aggressive_swarming;
 extern const guint32  dl_minchunksize;
@@ -326,6 +328,7 @@ extern const guint32  download_buffer_read_ahead;
 extern const gboolean browse_copied_to_passive;
 extern const gboolean display_metric_units;
 extern const guint32  rudp_debug;
+extern const guint32  dht_debug;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id: guid.h 9304 2005-08-27 14:54:28Z rmanfredi $
  *
  * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,32 +23,30 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * Kademlia Unique ID (KUID) manager.
+ *
+ * @author Raphael Manfredi
+ * @date 2006
+ */
 
-SRC = \
-	kuid.c \
-	routing.c
+#ifndef _dht_routing_h_
+#define _dht_routing_h_
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#define K_BUCKET_PUBLIC		20		/* Supposed to keep only 20 per bucket */
+#define K_BUCKET_GOOD		30		/* Really keep 30 contacts per bucket */
+#define K_BUCKET_STALE		20		/* Keep 20 possibly "stale" contacts */
+#define K_BUCKET_PENDING	10		/* Keep 10 pending contacts */
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/*
+ * Public interface.
+ */
 
-/* Add the SQLite flags */
-++SQLITE_CFLAGS $sqlitecflags
+void dht_route_init(void);
+void dht_route_close(void);
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(SQLITE_CFLAGS) \
-	-DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
-
-IF = ../if
-GNET_PROPS = gnet_property.h
-
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
+#endif /* _dht_routing_h_ */
 

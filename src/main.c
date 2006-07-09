@@ -90,6 +90,7 @@
 #include "core/vmsg.h"
 #include "core/whitelist.h"
 #include "dht/kuid.h"
+#include "dht/routing.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -397,6 +398,7 @@ gtk_gnutella_exit(gint n)
 		sleep(1);
 	}
 
+	dht_route_close();
 	ntp_close();
 	sq_close();
 	dh_close();
@@ -984,6 +986,7 @@ main(int argc, char **argv)
 	file_info_init_post();
 
 	kuid_init();			/* DHT */
+	dht_route_init();
 
 	main_gui_init();
 	node_post_init();
