@@ -37,6 +37,7 @@
  * Includes specified by "uses"-statement in .ag file
  */
 #include "if/ui/gtk/gnet_stats.h"
+#include "if/core/net_stats.h"
 #include "ui/gtk/columns.h"
 #include "ui/gtk/notebooks.h"
 
@@ -216,21 +217,22 @@ prop_def_choice_t gnet_stats_source_choices[] = {
     {N_("UDP only"), GNET_STATS_UDP_ONLY},
     {NULL, 0}
 };
-guint32  gnet_stats_drop_reasons_type     = 11;
-guint32  gnet_stats_drop_reasons_type_def = 11;
+guint32  gnet_stats_drop_reasons_type     = MSG_TOTAL;
+guint32  gnet_stats_drop_reasons_type_def = MSG_TOTAL;
 prop_def_choice_t gnet_stats_drop_reasons_type_choices[] = { 
-    {N_("Unknown"), 0},
-    {N_("Ping"), 1},
-    {N_("Pong"), 2},
-    {N_("Bye"), 3},
-    {N_("QRP"), 4},
-    {N_("HSEP"), 5},
-    {N_("Vendor spec."), 6},
-    {N_("Vendor std."), 7},
-    {N_("Push"), 8},
-    {N_("Query"), 9},
-    {N_("Query Hit"), 10},
-    {N_("Total"), 11},
+    {N_("Unknown"), MSG_UNKNOWN},
+    {N_("Ping"), MSG_INIT},
+    {N_("Pong"), MSG_INIT_RESPONSE},
+    {N_("Bye"), MSG_BYE},
+    {N_("QRP"), MSG_QRP},
+    {N_("HSEP"), MSG_HSEP},
+    {N_("RUDP"), MSG_RUDP},
+    {N_("Vendor spec."), MSG_VENDOR},
+    {N_("Vendor std."), MSG_STANDARD},
+    {N_("Push"), MSG_PUSH_REQUEST},
+    {N_("Query"), MSG_SEARCH},
+    {N_("Query Hit"), MSG_SEARCH_RESULTS},
+    {N_("Total"), MSG_TOTAL},
     {NULL, 0}
 };
 gboolean gnet_stats_with_headers     = TRUE;

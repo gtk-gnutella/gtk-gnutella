@@ -38,6 +38,7 @@
  * Includes specified by "uses"-statement in .ag file
  */
 #include "if/ui/gtk/gnet_stats.h"
+#include "if/core/net_stats.h"
 #include "ui/gtk/columns.h"
 #include "ui/gtk/notebooks.h"
 

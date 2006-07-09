@@ -12,6 +12,7 @@ offset       = 1000;
 private_src  = "GUI_SOURCES";
 
 uses = "if/ui/gtk/gnet_stats.h";
+uses = "if/core/net_stats.h";
 uses = "ui/gtk/columns.h";
 uses = "ui/gtk/notebooks.h";
 
@@ -849,55 +850,59 @@ prop = {
     desc = "Choose message type for drop reasons.";
     type = multichoice;
     data = {
-        default = 11;
+        default = MSG_TOTAL;
     };
 	choice = {
 		name = "Unknown";
-		value = 0;		/* MSG_UNKNOWN */
+		value = MSG_UNKNOWN;
 	};
 	choice = {
 		name = "Ping";
-		value = 1;		/* MSG_INIT */
+		value = MSG_INIT;
 	};
 	choice = {
 		name = "Pong";
-		value = 2;		/* MSG_INIT_RESPONSE */
+		value = MSG_INIT_RESPONSE;
 	};
 	choice = {
-		name = "Bye";		/* MSG_BYE */
-		value = 3;
+		name = "Bye";
+		value = MSG_BYE;
 	};
 	choice = {
-		name = "QRP";		/* MSG_QRP */
-		value = 4;
+		name = "QRP";
+		value = MSG_QRP;
 	};
 	choice = {
-		name = "HSEP";		/* MSG_HSEP */
-		value = 5;
+		name = "HSEP";
+		value = MSG_HSEP;
 	};
 	choice = {
-		name = "Vendor spec.";	/* MSG_VENDOR */
-		value = 6;
+		name = "RUDP";
+		value = MSG_RUDP;
 	};
 	choice = {
-		name = "Vendor std.";	/* MSG_STANDARD */
-		value = 7;
+		name = "Vendor spec.";
+		value = MSG_VENDOR;
 	};
 	choice = {
-		name = "Push";		/* MSG_PUSH_REQUEST */
-		value = 8;
+		name = "Vendor std.";
+		value = MSG_STANDARD;
 	};
 	choice = {
-		name = "Query";		/* MSG_SEARCH */
-		value = 9;
+		name = "Push";
+		value = MSG_PUSH_REQUEST;
 	};
 	choice = {
-		name = "Query Hit";	/* MSG_SEARCH_RESULTS */
-		value = 10;
+		name = "Query";
+		value = MSG_SEARCH;
 	};
 	choice = {
-		name = "Total";		/* MSG_TOTAL */
-		value = 11;
+		name = "Query Hit";
+		value = MSG_SEARCH_RESULTS;
+	};
+	choice = {
+		name = "Total";
+		value = MSG_TOTAL;
 	};
 };
 
