@@ -157,7 +157,7 @@ typedef struct gnutella_node {
 	time_t shutdown_date;		/**< When we entered in shutdown mode */
 	time_t up_date;				/**< When remote server started (0 if unknown) */
 	time_t leaf_flowc_start;	/**< Time when leaf flow-controlled queries */
-	guint32 shutdown_delay;		/**< How long we can stay in shutdown mode */
+	time_delta_t shutdown_delay; /**< How long we can stay in shutdown mode */
 
 	const gchar *remove_msg;	/**< Reason of removing */
 
@@ -181,7 +181,7 @@ typedef struct gnutella_node {
 
 	gpointer alive_pings;		/**< Opaque info, for alive ping checks */
 	time_t last_alive_ping;		/**< Last time we sent an alive ping */
-	guint alive_period;			/**< Period for sending alive pings (secs) */
+	time_delta_t alive_period;	/**< Period for sending alive pings (secs) */
 
 	wrap_buf_t hello;			/**< Spill buffer for GNUTELLA HELLO */
 

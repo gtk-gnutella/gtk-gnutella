@@ -721,7 +721,7 @@ node_slow_timer(time_t now)
 	if (
 		configured_peermode == NODE_P_AUTO &&
 		current_peermode == NODE_P_LEAF &&
-		delta_time(now, last_switch) > leaf_to_up_switch &&
+		delta_time(now, last_switch) > (time_delta_t) leaf_to_up_switch &&
 		can_become_ultra(now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
@@ -853,12 +853,18 @@ node_timer(time_t now)
 
 		if (!(in_shutdown || stop_host_get)) {
 			if (n->status == GTA_NODE_REMOVING) {
-				if (delta_time(now, n->last_update) > entry_removal_timeout) {
+				if (
+					delta_time(now, n->last_update) >
+						(time_delta_t) entry_removal_timeout
+				) {
 					node_real_remove(n);
 					continue;
 				}
 			} else if (NODE_IS_CONNECTING(n)) {
-				if (delta_time(now, n->last_update) > node_connecting_timeout) {
+				if (
+					delta_time(now, n->last_update) >
+						(time_delta_t) node_connecting_timeout
+				) {
 					node_remove(n, _("Timeout"));
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0, "timeout");
 				}
@@ -893,7 +899,8 @@ node_timer(time_t now)
 					node_bye_if_writable(n, 405, "Activity timeout");
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
-					delta_time(now, n->tx_flowc_date) > node_tx_flowc_timeout
+					delta_time(now, n->tx_flowc_date) >
+						(time_delta_t) node_tx_flowc_timeout
 				) {
                     hcache_add(HCACHE_UNSTABLE, n->addr, 0,
                         "flow-controlled too long");
@@ -958,7 +965,7 @@ node_timer(time_t now)
 			) {
 				guint32 last;
 				guint32 avg;
-				guint32 period;
+				time_delta_t period;
 
 				/*
 				 * Take the round-trip time of the ping/pongs as a base for
@@ -972,7 +979,7 @@ node_timer(time_t now)
 
 				alive_get_roundtrip_ms(n->alive_pings, &avg, &last);
 				last = MAX(avg, last) / 1000;	/* Convert ms to seconds */
-				period = MAX(n->alive_period, last);
+				period = MAX(n->alive_period, (time_delta_t) last);
 
 				if (
 					delta_time(now, n->last_alive_ping) > period &&
@@ -1054,7 +1061,8 @@ node_timer(time_t now)
 
 		if (
 			n->qrelayed != NULL &&
-			delta_time(now, n->qrelayed_created) >= node_queries_half_life
+			delta_time(now, n->qrelayed_created) >=
+				(time_delta_t) node_queries_half_life
 		) {
 			GHashTable *new;
 
