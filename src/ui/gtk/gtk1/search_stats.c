@@ -373,7 +373,10 @@ search_stats_gui_update(time_t now)
     GtkWidget *clist_search_stats;
     GtkWidget *label_search_stats_count;
 
-    if (delta_time(now, last_update) < search_stats_update_interval)
+    if (
+		delta_time(now, last_update) <
+			(time_delta_t) search_stats_update_interval
+	)
         return;
 
     last_update = now;

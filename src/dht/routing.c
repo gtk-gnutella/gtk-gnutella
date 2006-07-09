@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/hashlist.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -78,7 +79,7 @@ dht_route_init(void)
 	gint i;
 	gboolean need_kuid = TRUE;
 
-	/**
+	/*
 	 * Only generate a new KUID for this servent if all entries are 0.
 	 * The empty initialization happens in config_init(), but it can be
 	 * overridden by the KUID read from the configuration file.
@@ -101,6 +102,53 @@ dht_route_init(void)
 
 	if (dht_debug)
 		g_message("DHT local node ID is %s", sha1_base32(our_kuid.v));
+
+	/*
+	 * Allocate root node for the routing table.
+	 */
+
+	root = walloc0(sizeof *root);
+	root->ours = TRUE;
+}
+
+/**
+ * Free bucket's hashlist.
+ */
+static void
+dht_free_node_hashlist(hash_list_t *hl)
+{
+	guint count;
+
+	g_assert(hl != NULL);
+
+	count = hash_list_length(hl);
+
+	if (count)
+		g_warning("freeing hashlist with %u items at %s", count, _WHERE_);
+
+	hash_list_free(hl);
+}
+
+/**
+ * Free bucket node.
+ */
+static void
+dht_free_knode(struct knode *kn)
+{
+	if (kn->good != NULL) {
+		dht_free_node_hashlist(kn->good);
+		kn->good = NULL;
+	}
+	if (kn->stale != NULL) {
+		dht_free_node_hashlist(kn->stale);
+		kn->good = NULL;
+	}
+	if (kn->pending != NULL) {
+		dht_free_node_hashlist(kn->pending);
+		kn->good = NULL;
+	}
+
+	wfree(kn, sizeof *kn);
 }
 
 /**
