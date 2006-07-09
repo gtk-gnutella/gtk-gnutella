@@ -1,5 +1,5 @@
 /*
- * $Id: guid.h 9304 2005-08-27 14:54:28Z rmanfredi $
+ * $Id$
  *
  * Copyright (c) 2006, Raphael Manfredi
  *
