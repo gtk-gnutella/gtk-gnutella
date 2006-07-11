@@ -394,7 +394,7 @@ iov_clear(struct iovec *iov, size_t byte_offset)
 {
 	g_assert(iov);
 	
-	if (byte_offset <= iov->iov_len) {
+	if (byte_offset < iov->iov_len) {
 		gchar *p = iov->iov_base;
 		memset(&p[byte_offset], 0, iov->iov_len - byte_offset);
 	}
@@ -511,7 +511,7 @@ gm_setproctitle_init(gint argc, gchar *argv[], gchar *env_ptr[])
 	iov_reset_n(iov, n);
 
 	iov_init_from_string_vector(&iov[0], n, argv, argc);
-	iov_init_from_string_vector(&iov[argc], n, env_ptr, env_count);
+	iov_init_from_string_vector(&iov[argc], n - argc, env_ptr, env_count);
 
 	/*
 	 * Let's see how many argv[] arguments were contiguous.
@@ -520,8 +520,7 @@ gm_setproctitle_init(gint argc, gchar *argv[], gchar *env_ptr[])
 		size_t size;
 		
 		size = iov_contiguous_size(iov, n);
-		g_message("%lu bytes available for gm_setproctitle().",
-			(gulong) size);
+		g_message("%lu bytes available for gm_setproctitle().", (gulong) size);
 	}
 
 	/*
