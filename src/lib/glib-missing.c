@@ -463,7 +463,7 @@ iov_scatter_string(struct iovec *iov, size_t iov_cnt, const gchar *s)
 		avail -= n;
 		s += n;
 		if (0 == avail) {
-			iov_clear(&iov[i], iov[i].iov_len - n);
+			iov_clear(&iov[i], n);
 			i++;
 			break;
 		}
