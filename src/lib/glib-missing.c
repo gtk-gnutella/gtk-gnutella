@@ -565,6 +565,15 @@ gm_setproctitle(const gchar *title)
 }
 #endif /* HAS_SETPROCTITLE */
 
+/**
+ * Return the process title as seen by "ps"
+ */
+const gchar *
+gm_getproctitle(void)
+{
+	return orig_argv[0];
+}
+
 #ifdef USE_GLIB1
 #undef g_string_append_len		/* Macro when -DTRACK_MALLOC */
 #undef g_string_append_c		/* Macro when -DTRACK_MALLOC */

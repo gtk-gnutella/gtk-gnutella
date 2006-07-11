@@ -71,6 +71,7 @@ size_t gm_snprintf(gchar *str, size_t n,
 	gchar const *fmt, ...) G_GNUC_PRINTF (3, 4);
 
 void gm_savemain(gint argc, gchar **argv, gchar **env);
+const gchar *gm_getproctitle(void);
 void gm_setproctitle(const gchar *title);
 gchar *gm_sanitize_filename(const gchar *filename,
 	gboolean no_spaces, gboolean no_evil);
