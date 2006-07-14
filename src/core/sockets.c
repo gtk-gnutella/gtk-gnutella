@@ -1304,6 +1304,12 @@ get_dh_params(void)
 	return dh_params;
 }
 
+/**
+ * @return -1 if the TLS handshake failed; the socket is destroyed then.
+ * 			0 if the handshake is incomplete; thus socket_tls_setup() must
+ *			  be called again on the next I/O event.
+ *			1 if the TLS handshake succeeded or was skipped if TLS is disabled.
+ */
 static int
 socket_tls_setup(struct gnutella_socket *s)
 {
@@ -1430,7 +1436,7 @@ socket_tls_setup(struct gnutella_socket *s)
 destroy:
 
 	socket_destroy(s, "TLS handshake failed");
-	return 0;
+	return -1;
 }
 #endif /* HAS_GNUTLS */
 
@@ -1461,35 +1467,38 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(0 == s->pos);		/* We read a line, then leave this callback */
 
 #ifdef HAS_GNUTLS
-	if (s->tls.enabled && s->direction == SOCK_CONN_INCOMING) {
-		ssize_t ret;
-		guchar c;
+	if (s->direction == SOCK_CONN_INCOMING) {
+		if (s->tls.enabled && s->tls.stage < SOCK_TLS_INITIALIZED) {
+			ssize_t ret;
+			guchar c;
 
-		/* Peek at the socket buffer to check whether the incoming
-		 * connection uses TLS or not. */
-		ret = recv(s->file_desc, &c, sizeof c, MSG_PEEK);
-		if ((ssize_t) -1 == ret) {
-			if (!is_temporary_error(errno)) {
-				socket_destroy(s, _("Read error"));
-			}
-			/* If recv() failed only temporarily, wait for further data. */
-			return;
-		} else if (0 == ret) {
-			socket_destroy(s, _("Got EOF"));
-			return;
-		} else {
-			g_assert(1 == ret);
+			/* Peek at the socket buffer to check whether the incoming
+			 * connection uses TLS or not. */
+			ret = recv(s->file_desc, &c, sizeof c, MSG_PEEK);
+			if ((ssize_t) -1 == ret) {
+				if (!is_temporary_error(errno)) {
+					socket_destroy(s, _("Read error"));
+				}
+				/* If recv() failed only temporarily, wait for further data. */
+				return;
+			} else if (0 == ret) {
+				socket_destroy(s, _("Got EOF"));
+				return;
+			} else {
+				g_assert(1 == ret);
 
-			if (tls_debug)
-				g_message("socket_read(): c=0x%02x", c);
+				if (tls_debug)
+					g_message("socket_read(): c=0x%02x", c);
 
-			if (is_ascii_alnum(c) || '\n' == c || '\r' == c) {
-				s->tls.enabled = FALSE;
+				if (is_ascii_alnum(c) || '\n' == c || '\r' == c) {
+					s->tls.enabled = FALSE;
+				}
 			}
 		}
 
-		if (s->tls.enabled && !socket_tls_setup(s))
+		if (s->tls.enabled && 1 != socket_tls_setup(s)) {
 			return;
+		}
 	}
 #endif /* HAS_GNUTLS */
 
@@ -1754,7 +1763,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 	bws_sock_connected(s->type);
 
 #ifdef HAS_GNUTLS
-	if (!socket_tls_setup(s)) {
+	if (1 != socket_tls_setup(s)) {
 		return;
 	}
 #endif /* HAS_GNUTLS */
