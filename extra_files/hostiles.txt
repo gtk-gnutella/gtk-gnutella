@@ -385,6 +385,13 @@
 88.85.66.138/31
 88.85.66.140
 
+# MOV pr0n spammer; giFT-based; results do not match queries at all;
+# links to adultpeak dot com.
+66.154.124.2/31
+66.63.170.32/28
+72.11.158.128/27
+216.144.227.99
+
 # University of Mississippi
 130.74.0.0/16
 
