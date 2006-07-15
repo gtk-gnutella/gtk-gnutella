@@ -129,13 +129,13 @@ tm_now(tm_t *tm)
 void
 tm_now_exact(tm_t *tm)
 {
-	tm_t past = now;
+	const tm_t past = now;
 	
 	g_get_current_time(&now);
 	if (now.tv_sec < past.tv_sec) {
 		now = past;
-	} else if (now.tv_sec == now.tv_sec) {
-		if (past.tv_usec > now.tv_usec)
+	} else if (now.tv_sec == past.tv_sec) {
+		if (now.tv_usec < past.tv_usec)
 			now.tv_usec = past.tv_usec;
 	}
 	if (tm)
