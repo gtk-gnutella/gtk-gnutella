@@ -862,12 +862,13 @@ main_gui_update_coords(void)
 void
 main_gui_timer(time_t now)
 {
+	static const gint num_states = 10;
 	gboolean overloaded;
+	gint i;
 
 	gnet_prop_get_boolean_val(PROP_OVERLOADED_CPU, &overloaded);
 
     gui_general_timer(now);
-    search_gui_flush(now, FALSE);
     gui_update_traffic_stats();
 
 	/*
@@ -875,17 +876,7 @@ main_gui_timer(time_t now)
 	 * updated every second.
 	 */
 
-	if (!overloaded) {
-		hcache_gui_update(now);
-		gnet_stats_gui_update(now);
-		search_stats_gui_update(now);
-		nodes_gui_update_nodes_display(now);
-		downloads_gui_update_display(now);
-		uploads_gui_update_display(now);
-		fi_gui_update_display(now);
-		statusbar_gui_clear_timeouts(now);
-		filter_timer();				/* Update the filter stats */
-	} else {
+	for (i = 0; i < num_states; i++) {
 		static guint counter = 0;
 
 		switch (counter) {
@@ -898,11 +889,15 @@ main_gui_timer(time_t now)
 		case 6: statusbar_gui_clear_timeouts(now);		break;
 		case 7: filter_timer();							break;
 		case 8: downloads_gui_update_display(now);		break;
+		case 9: search_gui_flush(now, FALSE);			break;
 		default:
 			g_error("bad modulus computation (counter is %d)", counter);
 			break;
 		}
-		counter = (counter + 1) % 9;
+		counter = (counter + 1) % num_states;
+
+		if (overloaded)
+			break;
 	}
 }
 
