@@ -704,7 +704,7 @@ is_evil_filename(const gchar *filename)
 }
 
 static hash_list_t *oob_reply_acks;
-static const time_delta_t oob_reply_ack_timeout = 60;
+static const time_delta_t oob_reply_ack_timeout = 120;
 
 struct ora {
 	gchar *muid;	/* GUID atom */
