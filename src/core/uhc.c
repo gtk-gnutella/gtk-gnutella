@@ -94,12 +94,12 @@ static const struct {
 	const gchar *uhc;
 } boot_hosts[] = {
 	{ "cache.kicks-ass.net:8000" },
-	{ "crabcake.dynalias.net:9627" },
 	{ "g6.6dns.org:1337" },
 	{ "galvatron.dyndns.org:59009" },
 	{ "guruz.udp-host-cache.com:6666" },
 	{ "kisama.ath.cx:8080" },
 	{ "krill.shacknet.nu:20095" },
+	{ "navini.kicks-ass.org:8181" },
 	{ "plankton.merseine.nu:20098" },
 	{ "pokerface.ibiza.bishopston.net:3558" },
 	{ "secondary.udp-host-cache.com:9999" },
