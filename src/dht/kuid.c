@@ -94,4 +94,17 @@ kuid_cmp(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2)
 	return 0;
 }
 
+/**
+ * Convert a KUID to a base32 string.
+ *
+ * @return pointer to static data.
+ */
+const gchar *
+kuid_to_string(const kuid_t *kuid)
+{
+	static gchar buf[SHA1_BASE32_SIZE + 1];
+
+	return sha1_to_base32_buf(cast_to_gconstpointer(&kuid->v), buf, sizeof buf);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

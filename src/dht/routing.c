@@ -101,7 +101,7 @@ dht_route_init(void)
 	}
 
 	if (dht_debug)
-		g_message("DHT local node ID is %s", sha1_base32(our_kuid.v));
+		g_message("DHT local node ID is %s", kuid_to_string(&our_kuid));
 
 	/*
 	 * Allocate root node for the routing table.
