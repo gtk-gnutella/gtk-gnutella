@@ -202,6 +202,7 @@ static guint dl_active = 0;				/**< Active downloads */
 static inline guint
 server_list_length(const struct dl_server *server, enum dl_list idx)
 {
+	g_assert(dl_server_valid(server));
 	g_assert((guint) idx < DL_LIST_SZ);		
 	return server->list[idx] ? list_length(server->list[idx]) : 0;
 }
@@ -1289,6 +1290,8 @@ server_list_free_all(struct dl_server *server)
 {
 	guint i;
 
+	g_assert(dl_server_valid(server));
+
 	for (i = 0; i < DL_LIST_SZ; i++) {
 		list_free(&server->list[i]);
 	}
@@ -1735,7 +1738,9 @@ static struct download *
 server_list_lookup(const struct dl_server *server, enum dl_list idx,
 	const gchar *sha1, const gchar *file, filesize_t size)
 {
+	g_assert(dl_server_valid(server));
 	g_assert((guint) idx < DL_LIST_SZ);		
+
 	if (server->list[idx]) {
 		struct download key;
 		gpointer orig_key;
@@ -1755,7 +1760,9 @@ server_list_lookup(const struct dl_server *server, enum dl_list idx,
 static list_t *
 server_list_by_index(struct dl_server *server, enum dl_list idx)
 {
-	g_assert((guint) idx < DL_LIST_SZ);		
+	g_assert(dl_server_valid(server));
+	g_assert((guint) idx < DL_LIST_SZ);	
+
 	if (!server->list[idx]) {
 		server->list[idx] = list_new();
 	}
@@ -1766,7 +1773,9 @@ static void
 server_list_insert_download_sorted(struct dl_server *server, enum dl_list idx,
 	struct download *d)
 {
+	g_assert(dl_server_valid(server));
 	download_check(d);
+
 	list_insert_sorted(server_list_by_index(server, idx), d, dl_retry_cmp);
 }
 
@@ -1774,7 +1783,9 @@ static void
 server_list_append_download(struct dl_server *server, enum dl_list idx,
 	struct download *d)
 {
+	g_assert(dl_server_valid(server));
 	download_check(d);
+
 	list_append(server_list_by_index(server, idx), d);
 }
 
@@ -1782,13 +1793,17 @@ static void
 server_list_prepend_download(struct dl_server *server, enum dl_list idx,
 	struct download *d)
 {
+	g_assert(dl_server_valid(server));
 	download_check(d);
+
 	list_prepend(server_list_by_index(server, idx), d);
 }
 
 static struct download *
 server_list_head(struct dl_server *server, enum dl_list idx)
 {
+	g_assert(dl_server_valid(server));
+
 	return server_list_length(server, idx) > 0 
 		? list_head(server_list_by_index(server, idx))
 		: NULL;
@@ -1798,8 +1813,9 @@ static void
 server_list_remove_download(struct dl_server *server, enum dl_list idx,
 	struct download *d)
 {
-	download_check(d);
+	g_assert(dl_server_valid(server));
 	g_assert((guint) idx < DL_LIST_SZ);		
+	download_check(d);
 		
 	g_return_if_fail(server->list[idx]);
 
