@@ -1416,10 +1416,10 @@ void
 search_gui_flush(time_t now, gboolean force)
 {
     GSList *sl;
-    GSList *curs;
     static time_t last = 0;
 	guint32 period;
     GSList *frozen = NULL;
+	tm_t t0;
 
 	if (force) {
 		gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
@@ -1444,9 +1444,26 @@ search_gui_flush(time_t now, gboolean force)
             rscount, recs, recs / rscount);
     }
 
-    for (curs = accumulated_rs; curs != NULL; curs = g_slist_next(curs)) {
-        results_set_t *rs = curs->data;
-        GSList *schl = g_slist_copy(rs->schl);
+	tm_now_exact(&t0);
+
+	while (accumulated_rs) {
+        results_set_t *rs;
+        GSList *schl;
+		tm_t t1, elapsed;
+		time_delta_t delta;
+
+		tm_now_exact(&t1);
+		tm_elapsed(&elapsed, &t1, &t0);
+		delta = tm2ms(&elapsed);
+		if (delta > 200) {
+			g_message("interrupted dispatching of results after %lu ms",
+				(gulong) delta);
+			break;
+		}
+
+        rs = accumulated_rs->data;
+		accumulated_rs = g_slist_delete_link(accumulated_rs, accumulated_rs);
+        schl = g_slist_copy(rs->schl);
 
         /*
          * Dispatch to all searches and freeze display where necessary
@@ -1465,8 +1482,10 @@ search_gui_flush(time_t now, gboolean force)
              */
 
             if (sch) {
-                search_gui_start_massive_update(sch);
-                frozen = g_slist_prepend(frozen, sch);
+				if (!g_slist_find(frozen, sch)) {
+                	search_gui_start_massive_update(sch);
+                	frozen = g_slist_prepend(frozen, sch);
+				}
                 search_matched(sch, rs);
             } else if (gui_debug >= 6) {
 				g_message(
@@ -1532,9 +1551,6 @@ search_gui_flush(time_t now, gboolean force)
 		search_gui_end_massive_update(sl->data);
     }
     g_slist_free(frozen);
-
-    g_slist_free(accumulated_rs);
-    accumulated_rs = NULL;
 }
 
 /**

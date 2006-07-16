@@ -510,7 +510,6 @@ search_gui_new_search_full(const gchar *query_str,
 	sch->local = (flags & SEARCH_F_LOCAL) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
 	sch->passive = (flags & SEARCH_F_PASSIVE) ? TRUE : FALSE;
-	sch->massive_update = FALSE;
 	sch->dups = g_hash_table_new_full(search_gui_hash_func,
 					search_gui_hash_key_compare, ht_unref_record, NULL);
 
@@ -2006,11 +2005,7 @@ search_gui_start_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
-   	if (sch->massive_update)
-		return;
-
 	g_object_freeze_notify(G_OBJECT(sch->tree_view));
-	sch->massive_update = TRUE;
 }
 
 void
@@ -2018,12 +2013,8 @@ search_gui_end_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
-	if (!sch->massive_update)
-		return;
-
     gui_search_force_update_tab_label(sch, tm_time());
 	g_object_thaw_notify(G_OBJECT(sch->tree_view));
-	sch->massive_update = FALSE;
 }
 
 
