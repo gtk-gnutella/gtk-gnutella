@@ -1284,6 +1284,16 @@ allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
 	return server;
 }
 
+static void
+server_list_free_all(struct dl_server *server)
+{
+	guint i;
+
+	for (i = 0; i < DL_LIST_SZ; i++) {
+		list_free(&server->list[i]);
+	}
+}
+
 /**
  * Free server structure.
  */
@@ -1304,9 +1314,8 @@ free_server(struct dl_server *server)
 	dl_by_time_remove(server);
 	g_hash_table_remove(dl_by_host, server->key);
 
-	if (server->vendor)
-		atom_str_free(server->vendor);
-	atom_guid_free(server->key->guid);
+	atom_str_free_null(&server->vendor);
+	atom_guid_free_null(&server->key->guid);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -1345,8 +1354,9 @@ free_server(struct dl_server *server)
 	if (server->proxies)
 		free_proxies(server);
 
-	if (server->hostname != NULL)
-		atom_str_free(server->hostname);
+	atom_str_free_null(&server->hostname);
+
+	server_list_free_all(server);
 
 	wfree(server->key, sizeof(struct dl_key));
 	server->magic = 0;
