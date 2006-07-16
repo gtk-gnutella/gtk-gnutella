@@ -196,8 +196,8 @@ host_addr_t *[=(. func-prefix)=]_get_ip(
 	[=(. func-prefix)=]_get_ip(p, v, 0, 1); \
 } G_STMT_END
 
-void [=(. func-prefix)=]_set_storage(property_t, const gchar *, size_t);
-gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, size_t);
+void [=(. func-prefix)=]_set_storage(property_t, gconstpointer, size_t);
+gpointer [=(. func-prefix)=]_get_storage(property_t, gpointer, size_t);
 
 #endif /* _[=(. set-name-down)=]_h_ */
 
@@ -635,13 +635,13 @@ gchar *
 }
 
 void
-[=(. func-prefix)=]_set_storage(property_t p, const gchar *v, size_t l)
+[=(. func-prefix)=]_set_storage(property_t p, gconstpointer v, size_t l)
 {
     prop_set_storage([=(. prop-set)=], p, v, l);
 }
 
-gchar *
-[=(. func-prefix)=]_get_storage(property_t p, gchar *t, size_t l)
+gpointer
+[=(. func-prefix)=]_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
 }

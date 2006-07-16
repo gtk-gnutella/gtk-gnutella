@@ -128,11 +128,11 @@ typedef host_addr_t *(*prop_get_ip_t)
     (property_t, host_addr_t *, size_t, size_t);
 
 typedef struct prop_def_storage {
-    gchar *value;		/**< current data */
+    gpointer value;		/**< current data */
 } prop_def_storage_t;
 
-typedef void (*prop_set_storage_t)(property_t, const gchar *, size_t);
-typedef gchar *(*prop_get_storage_t)(property_t, gchar *, size_t);
+typedef void (*prop_set_storage_t)(property_t, gconstpointer, size_t);
+typedef gpointer (*prop_get_storage_t)(property_t, gpointer, size_t);
 
 
 typedef struct prop_def_string {

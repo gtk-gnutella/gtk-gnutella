@@ -1740,21 +1740,25 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			defaultvalue = FALSE;
 			break;
 		case PROP_TYPE_STORAGE:
-			val = g_malloc((p->vector_size * 2) + 1);
+			{
+				const guchar *data = p->data.storage.value;
 
-			for (i = 0; i < p->vector_size; i++) {
-				static const char hex_alphabet_lower[] = "0123456789abcdef";
-				gint c = (guchar) p->data.storage.value[i];
+				val = g_malloc((p->vector_size * 2) + 1);
 
-				val[i * 2] = hex_alphabet_lower[c >> 4];
-				val[i * 2 + 1] = hex_alphabet_lower[c & 0x0f];
+				for (i = 0; i < p->vector_size; i++) {
+					static const char hex_alphabet_lower[] = "0123456789abcdef";
+					gint c = data[i];
+
+					val[i * 2] = hex_alphabet_lower[c >> 4];
+					val[i * 2 + 1] = hex_alphabet_lower[c & 0x0f];
+				}
+
+				val[i * 2] = '\0';
+				quotes = TRUE;
+
+				/* No default values for storage type properties. */
+				defaultvalue = FALSE;
 			}
-
-			val[i * 2] = '\0';
-			quotes = TRUE;
-
-			/* No default values for storage type properties. */
-			defaultvalue = FALSE;
 			break;
 		case NUM_PROP_TYPES:
 			g_assert_not_reached();

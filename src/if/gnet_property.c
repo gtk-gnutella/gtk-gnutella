@@ -6232,13 +6232,13 @@ gnet_prop_get_string(property_t prop, gchar *t, size_t size)
 }
 
 void
-gnet_prop_set_storage(property_t p, const gchar *v, size_t l)
+gnet_prop_set_storage(property_t p, gconstpointer v, size_t l)
 {
     prop_set_storage(gnet_property, p, v, l);
 }
 
-gchar *
-gnet_prop_get_storage(property_t p, gchar *t, size_t l)
+gpointer
+gnet_prop_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage(gnet_property, p, t, l);
 }

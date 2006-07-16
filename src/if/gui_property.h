@@ -259,8 +259,8 @@ host_addr_t *gui_prop_get_ip(
 	gui_prop_get_ip(p, v, 0, 1); \
 } G_STMT_END
 
-void gui_prop_set_storage(property_t, const gchar *, size_t);
-gchar *gui_prop_get_storage(property_t, gchar *, size_t);
+void gui_prop_set_storage(property_t, gconstpointer, size_t);
+gpointer gui_prop_get_storage(property_t, gpointer, size_t);
 
 #endif /* _gui_property_h_ */
 

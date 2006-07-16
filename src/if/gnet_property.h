@@ -430,8 +430,8 @@ host_addr_t *gnet_prop_get_ip(
 	gnet_prop_get_ip(p, v, 0, 1); \
 } G_STMT_END
 
-void gnet_prop_set_storage(property_t, const gchar *, size_t);
-gchar *gnet_prop_get_storage(property_t, gchar *, size_t);
+void gnet_prop_set_storage(property_t, gconstpointer, size_t);
+gpointer gnet_prop_get_storage(property_t, gpointer, size_t);
 
 #endif /* _gnet_property_h_ */
 
