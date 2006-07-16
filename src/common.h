@@ -405,6 +405,13 @@ get_rcsid(void)		\
 #define WARN_UNUSED_RESULT
 #endif
 
+/* The antidote for WARN_UNUSED_RESULT. This attribute is sometimes
+ * misused for functions that return a result which SHOULD NOT be
+ * ignored in contrast to MUST NOT. Unfortunately, a simple "(void)"
+ * does not suppress this warning.
+ */
+#define IGNORE_RESULT(x) G_STMT_START { (void) (0 != (x)); }  G_STMT_END
+
 /* Functions using this attribute cause a warning if the variable
  * argument list does not contain a NULL pointer. */
 #if HAVE_GCC(4, 0)
