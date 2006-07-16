@@ -54,6 +54,7 @@ LSRC = \
 	inputevt.c \
 	iprange.c \
 	iso3166.c \
+	list.c \
 	magnet.c \
 	malloc.c \
 	misc.c \
