@@ -28,6 +28,7 @@
 
 #include "lib/tm.h"				/* For tm_t */
 #include "lib/event.h"			/* For frequency_t */
+#include "lib/list.h"
 
 #include "core/rx.h"
 #include "core/rx_link.h"
@@ -94,8 +95,7 @@ struct dl_server {
 	enum dl_server_magic magic;	/**< Magic number */
 	gint refcnt;			 /**< Reference count */
 	struct dl_key *key;		 /**< Key properties */
-	GList *list[DL_LIST_SZ]; /**< Download lists */
-	guint count[DL_LIST_SZ]; /**< Amount of downloads in list */
+	list_t *list[DL_LIST_SZ]; /**< Download lists */
 	const gchar *vendor;	 /**< Remote server vendor string (atom) */
 	const gchar *hostname;	 /**< Remote hostname, if known (atom) */
 	gint country;			 /**< Country of origin -- encoded ISO3166 */

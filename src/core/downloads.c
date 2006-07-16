@@ -197,7 +197,14 @@ static guint dl_establishing = 0;		/**< Establishing downloads */
 static guint dl_active = 0;				/**< Active downloads */
 
 #define count_running_downloads()	(dl_establishing + dl_active)
-#define count_running_on_server(s)	(s->count[DL_LIST_RUNNING])
+#define count_running_on_server(s)	(server_list_length(s, DL_LIST_RUNNING))
+
+static inline guint
+server_list_length(const struct dl_server *server, enum dl_list idx)
+{
+	g_assert((guint) idx < DL_LIST_SZ);		
+	return server->list[idx] ? list_length(server->list[idx]) : 0;
+}
 
 #define MAGIC_TIME	1		/**< For recreation upon starup */
 
@@ -1287,9 +1294,9 @@ free_server(struct dl_server *server)
 
 	g_assert(dl_server_valid(server));
 	g_assert(server->refcnt == 0);
-	g_assert(server->count[DL_LIST_RUNNING] == 0);
-	g_assert(server->count[DL_LIST_WAITING] == 0);
-	g_assert(server->count[DL_LIST_STOPPED] == 0);
+	g_assert(server_list_length(server, DL_LIST_RUNNING) == 0);
+	g_assert(server_list_length(server, DL_LIST_WAITING) == 0);
+	g_assert(server_list_length(server, DL_LIST_STOPPED) == 0);
 	g_assert(server->list[DL_LIST_RUNNING] == NULL);
 	g_assert(server->list[DL_LIST_WAITING] == NULL);
 	g_assert(server->list[DL_LIST_STOPPED] == NULL);
@@ -1674,6 +1681,124 @@ downloads_with_name_dec(gchar *name)
 		g_hash_table_remove(dl_count_by_name, name);
 }
 
+static gboolean
+download_eq(gconstpointer p, gconstpointer q)
+{
+	const struct download *a = p, *b = q;
+
+	download_check(a);
+	download_check(b);
+
+	if (a == b)
+		return TRUE;
+
+	if (a->sha1) {
+		if (b->sha1 && sha1_eq(a->sha1, b->sha1))
+			return TRUE;
+	} else if (
+		a->file_size == b->file_size &&
+		(
+		 	a->file_name == b->file_name ||
+		 	0 == strcmp(a->file_name, b->file_name)
+		)
+	) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * This is only for use by server_list_lookup(). This cannot be used
+ * for sorting! This does not return TRUE/FALSE because g_list_find_custom()
+ * uses GCompareFunc (only checking for 0) instead of GEqFunc.
+ *
+ * @return 0 if the downloads are logically equal, -1 otherwise.
+ */
+static gint
+download_cmp(gconstpointer p, gconstpointer q)
+{
+	return download_eq(p, q) ? 0 : -1;
+}
+
+static struct download *
+server_list_lookup(const struct dl_server *server, enum dl_list idx,
+	const gchar *sha1, const gchar *file, filesize_t size)
+{
+	g_assert((guint) idx < DL_LIST_SZ);		
+	if (server->list[idx]) {
+		struct download key;
+		gpointer orig_key;
+
+		key.magic = DOWNLOAD_MAGIC;
+		key.sha1 = deconstify_gpointer(sha1);
+		key.file_name = deconstify_gpointer(file);
+		key.file_size = size;
+
+		if (list_contains(server->list[idx], &key, download_cmp, &orig_key)) {
+			return orig_key;
+		}
+	}
+	return NULL;
+}
+
+static list_t *
+server_list_by_index(struct dl_server *server, enum dl_list idx)
+{
+	g_assert((guint) idx < DL_LIST_SZ);		
+	if (!server->list[idx]) {
+		server->list[idx] = list_new();
+	}
+	return server->list[idx];
+}
+
+static void
+server_list_insert_download_sorted(struct dl_server *server, enum dl_list idx,
+	struct download *d)
+{
+	download_check(d);
+	list_insert_sorted(server_list_by_index(server, idx), d, dl_retry_cmp);
+}
+
+static void
+server_list_append_download(struct dl_server *server, enum dl_list idx,
+	struct download *d)
+{
+	download_check(d);
+	list_append(server_list_by_index(server, idx), d);
+}
+
+static void
+server_list_prepend_download(struct dl_server *server, enum dl_list idx,
+	struct download *d)
+{
+	download_check(d);
+	list_prepend(server_list_by_index(server, idx), d);
+}
+
+static struct download *
+server_list_head(struct dl_server *server, enum dl_list idx)
+{
+	return server_list_length(server, idx) > 0 
+		? list_head(server_list_by_index(server, idx))
+		: NULL;
+}
+
+static void
+server_list_remove_download(struct dl_server *server, enum dl_list idx,
+	struct download *d)
+{
+	download_check(d);
+	g_assert((guint) idx < DL_LIST_SZ);		
+		
+	g_return_if_fail(server->list[idx]);
+
+	list_remove(server->list[idx], d);
+	if (0 == server_list_length(server, idx)) {
+		list_free(&server->list[idx]);
+	}
+}
+
 /**
  * Check whether we already have an identical (same file, same SHA1, same host)
  * running or queued download.
@@ -1687,8 +1812,7 @@ has_same_download(
 {
 	static const enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
-	GList *l;
-	guint n;
+	guint i;
 
 	if (server == NULL)
 		return NULL;
@@ -1702,21 +1826,13 @@ has_same_download(
 	 * running!
 	 */
 
-	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
-		for (l = server->list[n]; l; l = g_list_next(l)) {
-			struct download *d = l->data;
+	for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
+		struct download *d;
 
+		d = server_list_lookup(server, i, sha1, file, size);
+		if (d) {
 			g_assert(!DOWNLOAD_IS_STOPPED(d));
-
-			if (sha1) {
-				if (d->sha1 && sha1_eq(d->sha1, sha1))
-					return d;
-			} else if (
-				size == d->file_size &&
-				0 == strcmp(file, d->file_name)
-			) {
-				return d;
-			}
+			return d;
 		}
 	}
 
@@ -2116,17 +2232,20 @@ download_remove_all_from_peer(gchar *guid, const host_addr_t addr, guint16 port,
 
 		for (j = 0; j < G_N_ELEMENTS(listnum); j++) {
 			enum dl_list idx = listnum[j];
-			GList *l;
+			list_iter_t *iter;
+			
+			iter = list_iter_head(server[i]->list[idx]);
+			while (list_has_next(iter)) {
+				struct download *d;
 
-			for (l = server[i]->list[idx]; l; l = g_list_next(l)) {
-				struct download *d = l->data;
-
+				d = list_next(iter);
 				download_check(d);
 				g_assert(d->status != GTA_DL_REMOVED);
 
 				n++;
 				to_remove = g_slist_prepend(to_remove, d);
 			}
+			list_iter_free(&iter);
 		}
 	}
 
@@ -2358,11 +2477,11 @@ download_add_to_list(struct download *d, enum dl_list idx)
 	 * The DL_LIST_WAITING list is sorted by increasing retry after.
 	 */
 
-	server->list[idx] = (idx == DL_LIST_WAITING) ?
-		g_list_insert_sorted(server->list[idx], d, dl_retry_cmp) :
-		g_list_prepend(server->list[idx], d);
-
-	server->count[idx]++;
+	if (idx == DL_LIST_WAITING) {
+		server_list_insert_download_sorted(server, idx, d);
+	} else {
+		server_list_prepend_download(server, idx, d);
+	}
 }
 
 /**
@@ -2403,16 +2522,14 @@ download_move_to_list(struct download *d, enum dl_list idx)
 	 * The DL_LIST_WAITING list is sorted by increasing retry after.
 	 */
 
-	g_assert(server->count[old_idx] > 0);
+	g_assert(server_list_length(server, old_idx) > 0);
+	server_list_remove_download(server, old_idx, d);
 
-	server->list[old_idx] = g_list_remove(server->list[old_idx], d);
-	server->count[old_idx]--;
-
-	server->list[idx] = (idx == DL_LIST_WAITING) ?
-		g_list_insert_sorted(server->list[idx], d, dl_retry_cmp) :
-		g_list_append(server->list[idx], d);
-
-	server->count[idx]++;
+	if (idx == DL_LIST_WAITING) {
+		server_list_insert_download_sorted(server, idx, d);
+	} else {
+		server_list_append_download(server, idx, d);
+	}
 
 	d->list_idx = idx;
 }
@@ -2429,7 +2546,7 @@ download_server_retry_after(struct dl_server *server, time_t now, gint hold)
 	time_t after;
 
 	g_assert(dl_server_valid(server));
-	g_assert(server->count[DL_LIST_WAITING]);	/* We have queued something */
+	g_assert(server_list_length(server, DL_LIST_WAITING) > 0);
 
 	/*
 	 * Always consider the earliest time in the future for all the downloads
@@ -2442,7 +2559,7 @@ download_server_retry_after(struct dl_server *server, time_t now, gint hold)
 	 *		--RAM, 16/07/2003
 	 */
 
-	d = (struct download *) server->list[DL_LIST_WAITING]->data;
+	d = server_list_head(server, DL_LIST_WAITING);
 	after = d->retry_after;
 
 	/*
@@ -2503,9 +2620,9 @@ download_reclaim_server(struct download *d, gboolean delayed)
 	 */
 
 	if (
-		server->count[DL_LIST_RUNNING] == 0 &&
-		server->count[DL_LIST_WAITING] == 0 &&
-		server->count[DL_LIST_STOPPED] == 0
+		server_list_length(server, DL_LIST_RUNNING) == 0 &&
+		server_list_length(server, DL_LIST_WAITING) == 0 &&
+		server_list_length(server, DL_LIST_STOPPED) == 0
 	) {
 		if (delayed) {
 			if (!(server->attrs & DLS_A_REMOVED))
@@ -2533,10 +2650,8 @@ download_remove_from_server(struct download *d, gboolean reclaim)
 	server = d->server;
 	d->list_idx = DL_LIST_INVALID;
 
-	g_assert(server->count[idx] > 0);
-	server->list[idx] = g_list_remove(server->list[idx], d);
-	server->count[idx]--;
-
+	g_assert(server_list_length(server, idx) > 0);
+	server_list_remove_download(server, idx, d);
 
 	if (reclaim)
 		download_reclaim_server(d, FALSE);
@@ -3540,8 +3655,10 @@ download_pickup_queued(void)
 		last_change = dl_by_time.change[i];
 
 		for (/* empty */; l && running < max_downloads; l = g_list_next(l)) {
-			struct dl_server *server = (struct dl_server *) l->data;
-			GList *w;
+			struct dl_server *server = l->data;
+			list_iter_t *iter;
+			struct download *d;
+			gboolean found;
 
 			g_assert(dl_server_valid(server));
 
@@ -3554,7 +3671,7 @@ download_pickup_queued(void)
 				break;
 
 			if (
-				server->count[DL_LIST_WAITING] == 0 ||
+				server_list_length(server, DL_LIST_WAITING) == 0 ||
 				count_running_on_server(server) >= max_host_downloads
 			)
 				continue;
@@ -3566,8 +3683,12 @@ download_pickup_queued(void)
 
 			g_assert(server->list[DL_LIST_WAITING]);	/* Since count != 0 */
 
-			for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
-				struct download *d = (struct download *) w->data;
+			found = FALSE;
+			iter = list_iter_head(server->list[DL_LIST_WAITING]);
+			while (list_has_next(iter)) {
+
+				d = list_next(iter);
+				download_check(d);
 
 				if (
 					!d->file_info->use_swarming &&
@@ -3581,19 +3702,23 @@ download_pickup_queued(void)
 				)
 					continue;
 
-				if (now < d->retry_after)
+				if (delta_time(now, d->retry_after) < 0)
 					break;	/* List is sorted */
 
 				if (d->flags & DL_F_SUSPENDED)
 					continue;
 
-				download_start(d, FALSE);
-
-				if (DOWNLOAD_IS_RUNNING(d))
-					running++;
-
+				found = TRUE;
 				break;		/* Don't schedule all files on same host at once */
 			}
+			list_iter_free(&iter);
+
+			if (found) {
+				download_start(d, FALSE);
+				if (DOWNLOAD_IS_RUNNING(d))
+					running++;
+			}
+
 
 			/*
 			 * It's possible that download_start() ended-up changing the
@@ -3884,13 +4009,19 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	g_assert(size == 0 || file_size_known);
 	g_assert(host_addr_initialized(addr));
 
+	if (!file_size_known) {
+		size = 0;
+		/* Value should be updated later when known by HTTP headers */
+	}
+
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
     /*
      * Never try to download from ports 80 or 443.
      */
-    if ((port == 80) || (port == 443))
+    if ((port == 80) || (port == 443)) {
         return NULL;
+	}
 #endif
 
 	/*
@@ -3981,12 +4112,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 
 	d->file_name = file_name;
 	d->escaped_name = download_escape_name(file_name);
-
 	d->uri = file_uri;
-
-	if (!file_size_known)
-		size = 0; /* Value should be updated later when known by HTTP headers */
-
 	d->file_size = size;
 
 	/*
@@ -4062,8 +4188,9 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 				sha1_base32(d->sha1), uint64_to_string(fi->done),
 				fi->done == 1 ? "" : "s",
 				download_outname(d));
-			if (DOWNLOAD_IS_QUEUED(d))		/* file_info_got_sha1() can queue */
+			if (DOWNLOAD_IS_QUEUED(d)) {	/* file_info_got_sha1() can queue */
 				return d;
+			}
 		} else {
 			download_info_reget(d);
 			download_queue(d, _("Dup SHA1 during creation"));
@@ -4240,7 +4367,6 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 	guint32 from, guint32 to)
 {
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
-	GList *l;
 	guint nfound = 0;
 	GSList *to_stop = NULL;
 	GSList *sl;
@@ -4253,9 +4379,13 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 	g_assert(dl_server_valid(server));
 
 	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
-		for (l = server->list[n]; l; l = g_list_next(l)) {
-			struct download *d = l->data;
+		list_iter_t *iter;
 
+		iter = list_iter_head(server->list[n]);
+		while (list_has_next(iter)) {
+			struct download *d;
+
+			d = list_next(iter);
 			download_check(d);
 			if (d->record_index != from)
 				continue;
@@ -4301,6 +4431,7 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 				break;
 			}
 		}
+		list_iter_free(&iter);
 	}
 
 	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
@@ -8213,6 +8344,8 @@ select_push_download(GSList *servers)
 {
 	GSList *sl;
 	time_t now = tm_time();
+	struct download *d = NULL;
+	gboolean found = FALSE;
 
 	/*
 	 * We do not limit by download slots for GIV... Indeed, pushes are
@@ -8226,7 +8359,7 @@ select_push_download(GSList *servers)
 
 	for (sl = servers; sl; sl = g_slist_next(sl)) {
 		struct dl_server *server = sl->data;
-		GList *w;
+		list_iter_t *iter;
 
 		g_assert(dl_server_valid(server));
 
@@ -8238,9 +8371,10 @@ select_push_download(GSList *servers)
 		 * are connected).
 		 */
 
-		for (w = server->list[DL_LIST_RUNNING]; w; w = g_list_next(w)) {
-			struct download *d = w->data;
+		iter = list_iter_head(server->list[DL_LIST_RUNNING]);
+		while (list_has_next(iter)) {
 
+			d = list_next(iter);
 			g_assert(DOWNLOAD_IS_RUNNING(d));
 
 			if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
@@ -8250,9 +8384,14 @@ select_push_download(GSList *servers)
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d));
-				return d;
+				found = TRUE;
+				break;
 			}
 		}
+		list_iter_free(&iter);
+
+		if (found)
+			break;
 
 		/*
 		 * No luck so far.  Look for waiting downloads for this host.
@@ -8266,9 +8405,10 @@ select_push_download(GSList *servers)
 		 * he can accept us.
 		 */
 
-		for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
-			struct download *d = w->data;
+		iter = list_iter_head(server->list[DL_LIST_WAITING]);
+		while (list_has_next(iter)) {
 
+			d = list_next(iter);
 			download_check(d);
 			g_assert(!DOWNLOAD_IS_RUNNING(d));
 			g_assert(d->file_info);
@@ -8318,12 +8458,14 @@ select_push_download(GSList *servers)
 						download_port(d)),
 					download_vendor_str(d));
 
-				return d;
+				found = TRUE;
+				break;
 			}
 		}
+		list_iter_free(&iter);
 	}
 
-	return NULL;
+	return found ? d : NULL;
 }
 
 /*
@@ -8584,26 +8726,32 @@ struct download *
 download_find_waiting_unparq(const host_addr_t addr, guint16 port)
 {
 	struct dl_server *server = get_server(blank_guid, addr, port, FALSE);
-	GList *w;
+	list_iter_t *iter;
+	struct download *d = NULL;
+	gboolean found = FALSE;
 
 	if (server == NULL)
 		return NULL;
 
 	g_assert(dl_server_valid(server));
 
-	for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
-		struct download *d = w->data;
+	iter = list_iter_head(server->list[DL_LIST_WAITING]);
+	while (list_has_next(iter)) {
 
+		d = list_next(iter);
 		g_assert(!DOWNLOAD_IS_RUNNING(d));
 
 		if (d->flags & DL_F_SUSPENDED)		/* Suspended, cannot pick */
 			continue;
 
-		if (d->queue_status == NULL)		/* No PARQ information yet */
-			return d;						/* Found it! */
+		if (d->queue_status == NULL) {		/* No PARQ information yet */
+			found = TRUE;
+			break;
+		}
 	}
+	list_iter_free(&iter);
 
-	return NULL;
+	return found ? d : NULL;
 }
 
 /***
