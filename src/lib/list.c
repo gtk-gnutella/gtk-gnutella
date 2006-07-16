@@ -73,7 +73,7 @@ struct list_iter {
 	guint stamp;
 };
 
-#if 1 
+#if 0
 #define USE_LIST_REGRESSION 1
 #endif
 
@@ -451,9 +451,12 @@ list_next(list_iter_t *iter)
 gboolean
 list_has_next(const list_iter_t *iter)
 {
-	list_iter_check(iter);
-
-	return NULL != g_list_next(iter->next);
+	if (iter) {
+		list_iter_check(iter);
+		return NULL != g_list_next(iter->next);
+	} else {
+		return FALSE;
+	}
 }
 
 /**
@@ -492,9 +495,12 @@ list_current(list_iter_t *iter)
 gboolean
 list_has_previous(const list_iter_t *iter)
 {
-	list_iter_check(iter);
-
-	return NULL != iter->prev;
+	if (iter) {
+		list_iter_check(iter);
+		return NULL != iter->prev;
+	} else {
+		return FALSE;
+	}
 }
 
 /**
