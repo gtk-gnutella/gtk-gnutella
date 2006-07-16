@@ -179,10 +179,13 @@ search_gui_option_menu_searches_update(void)
 #endif /* USE_GTK2 */
 
 	}
-	idx = n - idx;
 
 	gtk_option_menu_set_menu(option_menu, GTK_WIDGET(menu));
-	gtk_option_menu_set_history(option_menu, idx);
+
+	if (n > 0) {
+		idx = n - idx - 1;
+		gtk_option_menu_set_history(option_menu, idx);
+	}
 }
 
 void
