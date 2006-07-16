@@ -109,7 +109,7 @@
 #define g_slist_prepend(l,d)	track_slist_prepend((l),(d), _WHERE_, __LINE__)
 #define g_slist_copy(l)			track_slist_copy((l), _WHERE_, __LINE__)
 #define g_slist_free(l)			track_slist_free((l), _WHERE_, __LINE__)
-#define g_slist_free_1(l)		slist_free1_track((l), _WHERE_, __LINE__)
+#define g_slist_free_1(l)		track_slist_free1((l), _WHERE_, __LINE__)
 #define g_slist_remove(l,d)		track_slist_remove((l),(d), _WHERE_, __LINE__)
 
 #define g_slist_insert(l,d,p) \
@@ -126,7 +126,7 @@
 #define g_list_prepend(l,d)		track_list_prepend((l),(d), _WHERE_, __LINE__)
 #define g_list_copy(l)			track_list_copy((l), _WHERE_, __LINE__)
 #define g_list_free(l)			track_list_free((l), _WHERE_, __LINE__)
-#define g_list_free_1(l)		list_free1_track((l), _WHERE_, __LINE__)
+#define g_list_free_1(l)		track_list_free1((l), _WHERE_, __LINE__)
 #define g_list_remove(l,d)		track_list_remove((l),(d), _WHERE_, __LINE__)
 
 #define g_list_insert(l,d,p) \
@@ -216,7 +216,7 @@ GSList *track_slist_append(GSList *l, gpointer data, gchar *file, gint line);
 GSList *track_slist_prepend(GSList *l, gpointer data, gchar *file, gint line);
 GSList *track_slist_copy(GSList *l, gchar *file, gint line);
 void track_slist_free(GSList *l, gchar *file, gint line);
-void slist_free1_track(GSList *l, gchar *file, gint line);
+void track_slist_free1(GSList *l, gchar *file, gint line);
 GSList *track_slist_remove(GSList *l, gpointer data, gchar *file, gint line);
 GSList *track_slist_insert(
 	GSList *l, gpointer d, gint pos, gchar *file, gint line);
@@ -231,7 +231,7 @@ GList *track_list_append(GList *l, gpointer data, gchar *file, gint line);
 GList *track_list_prepend(GList *l, gpointer data, gchar *file, gint line);
 GList *track_list_copy(GList *l, gchar *file, gint line);
 void track_list_free(GList *l, gchar *file, gint line);
-void list_free1_track(GList *l, gchar *file, gint line);
+void track_list_free1(GList *l, gchar *file, gint line);
 GList *track_list_remove(GList *l, gpointer data, gchar *file, gint line);
 GList *track_list_insert(
 	GList *l, gpointer d, gint pos, gchar *file, gint line);

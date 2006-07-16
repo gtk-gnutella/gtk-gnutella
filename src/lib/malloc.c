@@ -889,7 +889,7 @@ track_slist_free(GSList *l, gchar *file, gint line)
 }
 
 void
-slist_free1_track(GSList *l, gchar *file, gint line)
+track_slist_free1(GSList *l, gchar *file, gint line)
 {
 	if (l == NULL)
 		return;
@@ -916,7 +916,7 @@ track_slist_delete_link(GSList *l, GSList *lk, gchar *file, gint line)
 	GSList *new;
 
 	new = g_slist_remove_link(l, lk);
-	slist_free1_track(lk, file, line);
+	track_slist_free1(lk, file, line);
 
 	return new;
 }
@@ -1062,7 +1062,7 @@ track_list_free(GList *l, gchar *file, gint line)
 }
 
 void
-list_free1_track(GList *l, gchar *file, gint line)
+track_list_free1(GList *l, gchar *file, gint line)
 {
 	if (l == NULL)
 		return;
@@ -1168,7 +1168,7 @@ track_list_delete_link(GList *l, GList *lk, gchar *file, gint line)
 	GList *new;
 
 	new = g_list_remove_link(l, lk);
-	list_free1_track(lk, file, line);
+	track_list_free1(lk, file, line);
 
 	return new;
 }
