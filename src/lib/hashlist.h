@@ -33,10 +33,10 @@ typedef struct hash_list hash_list_t;
 
 hash_list_t *hash_list_new(GHashFunc hash_func, GEqualFunc eq_func);
 void hash_list_free(hash_list_t *hl);
-void hash_list_clear(hash_list_t *hl);
 void hash_list_remove(hash_list_t *hl, gpointer key);
 void hash_list_append(hash_list_t *hl, gpointer key);
 void hash_list_prepend(hash_list_t *hl, gpointer key);
+void hash_list_insert_sorted(hash_list_t *hl, gpointer key, GCompareFunc func);
 void hash_list_moveto_head(hash_list_t *hl, gpointer key);
 void hash_list_moveto_tail(hash_list_t *hl, gpointer key);
 gpointer hash_list_first(const hash_list_t *hl);
