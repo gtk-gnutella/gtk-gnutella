@@ -1424,6 +1424,25 @@ base32_to_guid(const gchar *base32)
 /**
  * Convert binary SHA1 into a base32 string.
  *
+ * @param dst The destination buffer for the string.
+ * @param size The size of "dst" in bytes; should be larger than
+ *             SHA1_BASE32_SIZE, otherwise the resulting string will be
+ *             truncated.
+ * @return dst.
+ */
+gchar *
+sha1_to_base32_buf(const gchar *sha1, gchar *dst, size_t size)
+{
+	if (size > 0) {
+		base32_encode_into(sha1, SHA1_RAW_SIZE, dst, size);
+		dst[size - 1] = '\0';
+	}
+	return dst;
+}
+
+/**
+ * Convert binary SHA1 into a base32 string.
+ *
  * @return pointer to static data.
  */
 gchar *
@@ -1431,10 +1450,7 @@ sha1_base32(const gchar *sha1)
 {
 	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
 
-	base32_encode_into(sha1, SHA1_RAW_SIZE, digest_b32, sizeof(digest_b32));
-	digest_b32[SHA1_BASE32_SIZE] = '\0';
-
-	return digest_b32;
+	return sha1_to_base32_buf(sha1, digest_b32, sizeof digest_b32);
 }
 
 /**

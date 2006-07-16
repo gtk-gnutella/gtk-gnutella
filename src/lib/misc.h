@@ -427,6 +427,7 @@ gchar *compact_value(gchar *buf, size_t size, guint64 v, gboolean metric);
 /*
  * SHA1<->base32 string conversion
  */
+gchar *sha1_to_base32_buf(const gchar *sha1, gchar *dst, size_t size);
 gchar *sha1_base32(const gchar *sha1);
 gchar *base32_sha1(const gchar *base32);
 
