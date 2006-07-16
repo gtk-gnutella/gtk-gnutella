@@ -3684,6 +3684,7 @@ download_pickup_queued(void)
 			g_assert(server->list[DL_LIST_WAITING]);	/* Since count != 0 */
 
 			found = FALSE;
+			d = NULL;
 			iter = list_iter_head(server->list[DL_LIST_WAITING]);
 			while (list_has_next(iter)) {
 
