@@ -104,39 +104,39 @@
 #define hash_list_new_(h,c)		hash_list_new_track((h),(c),_WHERE_, __LINE__)
 #define hash_list_free(h)		hash_list_free_track((h), _WHERE_, __LINE__)
 
-#define g_slist_alloc()			slist_alloc_track(_WHERE_, __LINE__)
-#define g_slist_append(l,d)		slist_append_track((l),(d), _WHERE_, __LINE__)
-#define g_slist_prepend(l,d)	slist_prepend_track((l),(d), _WHERE_, __LINE__)
-#define g_slist_copy(l)			slist_copy_track((l), _WHERE_, __LINE__)
-#define g_slist_free(l)			slist_free_track((l), _WHERE_, __LINE__)
+#define g_slist_alloc()			track_slist_alloc(_WHERE_, __LINE__)
+#define g_slist_append(l,d)		track_slist_append((l),(d), _WHERE_, __LINE__)
+#define g_slist_prepend(l,d)	track_slist_prepend((l),(d), _WHERE_, __LINE__)
+#define g_slist_copy(l)			track_slist_copy((l), _WHERE_, __LINE__)
+#define g_slist_free(l)			track_slist_free((l), _WHERE_, __LINE__)
 #define g_slist_free_1(l)		slist_free1_track((l), _WHERE_, __LINE__)
-#define g_slist_remove(l,d)		slist_remove_track((l),(d), _WHERE_, __LINE__)
+#define g_slist_remove(l,d)		track_slist_remove((l),(d), _WHERE_, __LINE__)
 
 #define g_slist_insert(l,d,p) \
-	slist_insert_track((l),(d),(p), _WHERE_, __LINE__)
+	track_slist_insert((l),(d),(p), _WHERE_, __LINE__)
 #define g_slist_insert_sorted(l,d,c) \
-	slist_insert_sorted_track((l),(d),(c), _WHERE_, __LINE__)
+	track_slist_insert_sorted((l),(d),(c), _WHERE_, __LINE__)
 #define g_slist_delete_link(l,x) \
-	slist_delete_link_track((l),(x), _WHERE_, __LINE__)
+	track_slist_delete_link((l),(x), _WHERE_, __LINE__)
 #define gm_slist_insert_after(l,lk,d) \
-	slist_insert_after_track((l),(lk),(d), _WHERE_, __LINE__)
+	track_slist_insert_after((l),(lk),(d), _WHERE_, __LINE__)
 
-#define g_list_alloc()			list_alloc_track(_WHERE_, __LINE__)
-#define g_list_append(l,d)		list_append_track((l),(d), _WHERE_, __LINE__)
-#define g_list_prepend(l,d)		list_prepend_track((l),(d), _WHERE_, __LINE__)
-#define g_list_copy(l)			list_copy_track((l), _WHERE_, __LINE__)
-#define g_list_free(l)			list_free_track((l), _WHERE_, __LINE__)
+#define g_list_alloc()			track_list_alloc(_WHERE_, __LINE__)
+#define g_list_append(l,d)		track_list_append((l),(d), _WHERE_, __LINE__)
+#define g_list_prepend(l,d)		track_list_prepend((l),(d), _WHERE_, __LINE__)
+#define g_list_copy(l)			track_list_copy((l), _WHERE_, __LINE__)
+#define g_list_free(l)			track_list_free((l), _WHERE_, __LINE__)
 #define g_list_free_1(l)		list_free1_track((l), _WHERE_, __LINE__)
-#define g_list_remove(l,d)		list_remove_track((l),(d), _WHERE_, __LINE__)
+#define g_list_remove(l,d)		track_list_remove((l),(d), _WHERE_, __LINE__)
 
 #define g_list_insert(l,d,p) \
-	list_insert_track((l),(d),(p), _WHERE_, __LINE__)
+	track_list_insert((l),(d),(p), _WHERE_, __LINE__)
 #define g_list_insert_sorted(l,d,c) \
-	list_insert_sorted_track((l),(d),(c), _WHERE_, __LINE__)
+	track_list_insert_sorted((l),(d),(c), _WHERE_, __LINE__)
 #define gm_list_insert_after(l,lk,d) \
-	list_insert_after_track((l),(lk),(d), _WHERE_, __LINE__)
+	track_list_insert_after((l),(lk),(d), _WHERE_, __LINE__)
 #define g_list_delete_link(l,lk) \
-	list_delete_link_track((l),(lk), _WHERE_, __LINE__)
+	track_list_delete_link((l),(lk), _WHERE_, __LINE__)
 
 #define g_string_new(p)			string_new_track((p), _WHERE_, __LINE__)
 #define g_string_sized_new(s)	string_sized_new_track((s), _WHERE_, __LINE__)
@@ -211,35 +211,35 @@ hash_list_t *hash_list_new_track(
 	GHashFunc hash_func, GEqualFunc eq_func, gchar *file, gint line);
 void hash_list_free_track(hash_list_t *h, gchar *file, gint line);
 
-GSList *slist_alloc_track(gchar *file, gint line);
-GSList *slist_append_track(GSList *l, gpointer data, gchar *file, gint line);
-GSList *slist_prepend_track(GSList *l, gpointer data, gchar *file, gint line);
-GSList *slist_copy_track(GSList *l, gchar *file, gint line);
-void slist_free_track(GSList *l, gchar *file, gint line);
+GSList *track_slist_alloc(gchar *file, gint line);
+GSList *track_slist_append(GSList *l, gpointer data, gchar *file, gint line);
+GSList *track_slist_prepend(GSList *l, gpointer data, gchar *file, gint line);
+GSList *track_slist_copy(GSList *l, gchar *file, gint line);
+void track_slist_free(GSList *l, gchar *file, gint line);
 void slist_free1_track(GSList *l, gchar *file, gint line);
-GSList *slist_remove_track(GSList *l, gpointer data, gchar *file, gint line);
-GSList *slist_insert_track(
+GSList *track_slist_remove(GSList *l, gpointer data, gchar *file, gint line);
+GSList *track_slist_insert(
 	GSList *l, gpointer d, gint pos, gchar *file, gint line);
-GSList *slist_insert_sorted_track(
+GSList *track_slist_insert_sorted(
 	GSList *l, gpointer d, GCompareFunc c, gchar *file, gint line);
-GSList *slist_insert_after_track(
+GSList *track_slist_insert_after(
 	GSList *l, GSList *lk, gpointer data, gchar *file, gint line);
-GSList *slist_delete_link_track(GSList *l, GSList *lk, gchar *file, gint line);
+GSList *track_slist_delete_link(GSList *l, GSList *lk, gchar *file, gint line);
 
-GList *list_alloc_track(gchar *file, gint line);
-GList *list_append_track(GList *l, gpointer data, gchar *file, gint line);
-GList *list_prepend_track(GList *l, gpointer data, gchar *file, gint line);
-GList *list_copy_track(GList *l, gchar *file, gint line);
-void list_free_track(GList *l, gchar *file, gint line);
+GList *track_list_alloc(gchar *file, gint line);
+GList *track_list_append(GList *l, gpointer data, gchar *file, gint line);
+GList *track_list_prepend(GList *l, gpointer data, gchar *file, gint line);
+GList *track_list_copy(GList *l, gchar *file, gint line);
+void track_list_free(GList *l, gchar *file, gint line);
 void list_free1_track(GList *l, gchar *file, gint line);
-GList *list_remove_track(GList *l, gpointer data, gchar *file, gint line);
-GList *list_insert_track(
+GList *track_list_remove(GList *l, gpointer data, gchar *file, gint line);
+GList *track_list_insert(
 	GList *l, gpointer d, gint pos, gchar *file, gint line);
-GList *list_insert_sorted_track(
+GList *track_list_insert_sorted(
 	GList *l, gpointer d, GCompareFunc c, gchar *file, gint line);
-GList *list_insert_after_track(
+GList *track_list_insert_after(
 	GList *l, GList *lk, gpointer data, gchar *file, gint line);
-GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line);
+GList *track_list_delete_link(GList *l, GList *lk, gchar *file, gint line);
 
 GString *string_new_track(const gchar *p, gchar *file, gint line);
 GString *string_sized_new_track(guint size, gchar *file, gint line);
@@ -289,3 +289,4 @@ void alloc_reset(FILE *f, gboolean total);
 
 #endif /* _malloc_h_ */
 
+/* vi: set ts=4 sw=4 cindent:  */
