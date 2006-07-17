@@ -519,10 +519,13 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	kbytes = MIN(shared_kbytes_scanned(), ~((guint32) 0U));
 
 	if (current_peermode == NODE_P_ULTRA) {
-		if (kbytes <= 8)
-			kbytes = 8;
-		else
-			kbytes = next_pow2(kbytes);
+		guint32 next, prev;
+		
+		next = next_pow2(kbytes);
+		prev = next / 2;
+		/* Pick power of 2 which is closest to the actual value. */
+		kbytes = (next - kbytes) < (kbytes - prev) ? next : prev;
+		kbytes = MAX(8, kbytes);
 	} else if (kbytes)
 		kbytes |= 1;		/* Ensure not a power of two */
 
