@@ -8386,6 +8386,7 @@ select_push_download(GSList *servers)
 
 	for (sl = servers; sl; sl = g_slist_next(sl)) {
 		struct dl_server *server = sl->data;
+		list_t *prepare;
 		list_iter_t *iter;
 
 		g_assert(dl_server_valid(server));
@@ -8432,9 +8433,9 @@ select_push_download(GSList *servers)
 		 * he can accept us.
 		 */
 
+		prepare = list_new();
 		iter = list_iter_head(server->list[DL_LIST_WAITING]);
 		while (list_has_next(iter)) {
-
 			d = list_next(iter);
 			download_check(d);
 			g_assert(!DOWNLOAD_IS_RUNNING(d));
@@ -8446,7 +8447,7 @@ select_push_download(GSList *servers)
 			)
 				continue;
 
-			if (now < d->retry_after)
+			if (delta_time(now, d->retry_after) < 0)
 				break;		/* List is sorted */
 
 			if (d->flags & DL_F_SUSPENDED)
@@ -8459,13 +8460,25 @@ select_push_download(GSList *servers)
 					download_port(d)),
 				download_vendor_str(d));
 
+			g_assert(d->socket == NULL);
+
+			/* Potential candidates are recorded into a new list because
+			 * download_start_prepare() modifies the list which is just
+			 * being traversed.
+			 */
+			list_append(prepare, d);
+		}
+		list_iter_free(&iter);
+
+		iter = list_iter_head(prepare);
+		while (list_has_next(iter)) {
+			d = list_next(iter);
+
 			/*
 			 * Only prepare the download, don't call download_start(): we
 			 * already have the connection, and simply need to prepare the
 			 * range offset.
 			 */
-
-			g_assert(d->socket == NULL);
 
 			if (download_start_prepare(d)) {
 				d->status = GTA_DL_CONNECTING;
@@ -8473,8 +8486,7 @@ select_push_download(GSList *servers)
 					gcu_download_gui_add(d);
 
 				gcu_gui_update_download(d, TRUE);
-				gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT,
-					dl_active);
+				gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 				gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 					count_running_downloads());
 
@@ -8490,6 +8502,7 @@ select_push_download(GSList *servers)
 			}
 		}
 		list_iter_free(&iter);
+		list_free(&prepare);
 	}
 
 	return found ? d : NULL;
