@@ -122,7 +122,8 @@ static gchar **zn_extend(zone_t *);
  * Moreover, periodic calls to the zone gc are needed to collect unused chunks
  * when peak allocations are infrequent or occur at random.
  */
-gpointer zalloc(zone_t *zone)
+gpointer
+zalloc(zone_t *zone)
 {
 	gchar **blk;		/**< Allocated block */
 
@@ -176,7 +177,8 @@ gpointer zalloc(zone_t *zone)
 /**
  * Tracking version of zalloc().
  */
-gpointer zalloc_track(zone_t *zone, gchar *file, gint line)
+gpointer
+zalloc_track(zone_t *zone, gchar *file, gint line)
 {
 	gchar *blk = zalloc(zone);
 	gchar *p;
@@ -194,7 +196,8 @@ gpointer zalloc_track(zone_t *zone, gchar *file, gint line)
  * the user part of it.  The block is known to be of size `size' and should
  * be also recorded in the `leakset' for summarizing of all the leaks.
  */
-static void zblock_log(gchar *p, gint size, gpointer leakset)
+static void
+zblock_log(gchar *p, gint size, gpointer leakset)
 {
 	gchar *uptr;			/* User pointer */
 	gchar *file;
@@ -214,7 +217,8 @@ static void zblock_log(gchar *p, gint size, gpointer leakset)
 /**
  * Go through the whole zone and dump all the used blocks.
  */
-static void zdump_used(zone_t *zone)
+static void
+zdump_used(zone_t *zone)
 {
 	gint used = 0;
 	struct subzone *next;
@@ -261,7 +265,8 @@ static void zdump_used(zone_t *zone)
  *
  * Warning: returning a block to the wrong zone may lead to disasters.
  */
-void zfree(zone_t *zone, gpointer ptr)
+void
+zfree(zone_t *zone, gpointer ptr)
 {
 	g_assert(ptr);
 	g_assert(zone);
@@ -296,7 +301,8 @@ void zfree(zone_t *zone, gpointer ptr)
  * expected objects of a given type. Leaving it a 0 selects the default hint
  * value.
  */
-zone_t *zcreate(gint size, gint hint)
+zone_t *
+zcreate(gint size, gint hint)
 {
 	zone_t *zone;			/* Zone descriptor */
 
@@ -308,7 +314,8 @@ zone_t *zcreate(gint size, gint hint)
 /**
  * Create a new zone able to hold items of 'size' bytes.
  */
-static zone_t *zn_create(zone_t *zone, gint size, gint hint)
+static zone_t *
+zn_create(zone_t *zone, gint size, gint hint)
 {
 	gint asked;		/* Amount of bytes requested */
 	gchar *arena;	/* Zone arena we got */
@@ -388,7 +395,8 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
  * Destroy a zone chunk by releasing its memory to the system if possible,
  * converting it into a malloc chunk otherwise.
  */
-void zdestroy(zone_t *zone)
+void
+zdestroy(zone_t *zone)
 {
 	struct subzone *sz;
 	struct subzone *next;
@@ -431,7 +439,8 @@ void zdestroy(zone_t *zone)
  * For instance, walloc() requests zones for power-of-two sizes and uses
  * zget() to get the zone, instead of zcreate() to maximize sharing.
  */
-zone_t *zget(gint size, gint hint)
+zone_t *
+zget(gint size, gint hint)
 {
 	static GHashTable *zt;	/* Keeps size (modulo ZALLOC_ALIGNBYTES) -> zone */
 	zone_t *zone;
@@ -489,7 +498,8 @@ zone_t *zget(gint size, gint hint)
  * A zone consists of linked blocks, where the address of the next free block
  * is written in the first bytes of each free block.
  */
-static void zn_cram(zone_t *zone, gchar *arena, gint size)
+static void
+zn_cram(zone_t *zone, gchar *arena, gint size)
 {
 	gchar *end;		/* End address (first address beyond zone scope) */
 	gchar *next;	/* Next free block in arena */
@@ -507,7 +517,8 @@ static void zn_cram(zone_t *zone, gchar *arena, gint size)
  * @return the address of the first new free block within the extended
  *         chunk arena.
  */
-static gchar **zn_extend(zone_t *zone)
+static gchar **
+zn_extend(zone_t *zone)
 {
 	struct subzone *new;		/* New sub-zone */
 
