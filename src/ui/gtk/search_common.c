@@ -59,6 +59,7 @@ RCSID("$Id$");
 #include "lib/fuzzy.h"
 #include "lib/glib-missing.h"
 #include "lib/magnet.h"
+#include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
@@ -75,7 +76,7 @@ static zone_t *rc_zone;		/**< Allocation of record */
 
 static const gchar search_file[] = "searches"; /**< "old" file to searches */
 
-static GSList *accumulated_rs = NULL;
+static slist_t *accumulated_rs = NULL;
 static GList *list_search_history = NULL;
 
 static GtkLabel *label_items_found = NULL;
@@ -882,6 +883,7 @@ search_gui_common_init(void)
 {
 	rs_zone = zget(sizeof(results_set_t), 1024);
 	rc_zone = zget(sizeof(record_t), 1024);
+	accumulated_rs = slist_new();
 
 	label_items_found = GTK_LABEL(
 		lookup_widget(main_window, "label_items_found"));
@@ -1406,9 +1408,31 @@ search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
     if (gui_debug >= 12)
         printf("got incoming results...\n");
 
-    g_assert(!g_slist_find(accumulated_rs, rs));
+	/* XXX: Use a hash list or remove the assertion? */
+    g_assert(!slist_contains_identical(accumulated_rs, rs));
 
-    accumulated_rs = g_slist_prepend(accumulated_rs, rs);
+    slist_append(accumulated_rs, rs);
+}
+
+static void
+search_gui_flush_info(void)
+{
+    guint rs_count = slist_length(accumulated_rs);
+
+    if (gui_debug >= 6 && rs_count > 0) {
+        const results_set_t *rs;
+		slist_iter_t *iter;
+        guint recs = 0;
+
+		iter = slist_iter_before_head(accumulated_rs);
+		while (NULL != (rs = slist_iter_next(iter))) {
+            recs += rs->num_recs;
+        }
+		slist_iter_free(&iter);
+
+        g_message("flushing %u rsets (%u recs, %u recs avg)...",
+            rs_count, recs, recs / rs_count);
+    }
 }
 
 /**
@@ -1418,10 +1442,10 @@ search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
 void
 search_gui_flush(time_t now, gboolean force)
 {
-    GSList *sl;
     static time_t last = 0;
+	slist_iter_t *iter;
 	guint32 period;
-    GSList *frozen = NULL;
+    GSList *frozen = NULL, *sl;
 	tm_t t0;
 
 	if (force) {
@@ -1429,27 +1453,13 @@ search_gui_flush(time_t now, gboolean force)
 		if (last && difftime(now, last) < period)
 			return;
 	}
-
     last = now;
-
-    if (accumulated_rs && gui_debug >= 6) {
-        guint32 recs = 0;
-        guint32 rscount = 0;
-
-        for (sl = accumulated_rs; sl != NULL; sl = g_slist_next(sl)) {
-            const results_set_t *rs = sl->data;
-
-            recs += rs->num_recs;
-            rscount++;
-        }
-
-        printf("flushing %d rsets (%d recs, %d recs avg)...\n",
-            rscount, recs, recs / rscount);
-    }
-
+	
+	search_gui_flush_info();
 	tm_now_exact(&t0);
 
-	while (accumulated_rs) {
+	iter = slist_iter_on_head(accumulated_rs);
+	while (slist_iter_has_item(iter)) {
         results_set_t *rs;
         GSList *schl;
 		tm_t t1, elapsed;
@@ -1464,8 +1474,8 @@ search_gui_flush(time_t now, gboolean force)
 			break;
 		}
 
-        rs = accumulated_rs->data;
-		accumulated_rs = g_slist_delete_link(accumulated_rs, accumulated_rs);
+        rs = slist_iter_current(iter);
+		slist_iter_remove(iter);
         schl = g_slist_copy(rs->schl);
 
         /*
@@ -1546,6 +1556,7 @@ search_gui_flush(time_t now, gboolean force)
         }
 		g_slist_free(schl);
     }
+	slist_iter_free(&iter);
 
     /*
      * Unfreeze all we have frozen before.
