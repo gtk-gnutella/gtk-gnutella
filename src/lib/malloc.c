@@ -210,7 +210,7 @@ stats_eq(gconstpointer a, gconstpointer b)
 static void
 malloc_init(void)
 {
-	blocks = g_hash_table_new(g_direct_hash, g_direct_equal);
+	blocks = g_hash_table_new(NULL, NULL);
 
 #ifdef MALLOC_STATS
 	stats = g_hash_table_new(stats_hash, stats_eq);

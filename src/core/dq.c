@@ -1859,7 +1859,7 @@ dq_get_results_wanted(gchar *muid, guint32 *wanted)
 void
 dq_init(void)
 {
-	dqueries = g_hash_table_new(g_direct_hash, 0);
+	dqueries = g_hash_table_new(NULL, NULL);
 	by_node_id = g_hash_table_new(NULL, NULL);
 	by_muid = g_hash_table_new(guid_hash, guid_eq);
 	fill_hosts();

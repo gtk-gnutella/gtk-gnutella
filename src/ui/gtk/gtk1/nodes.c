@@ -268,8 +268,8 @@ nodes_gui_init(void)
     gtk_clist_set_column_name(clist, c_gnet_info, _("Status"));
 	gtk_clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
 
-    ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
-    ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
+    ht_node_info_changed = g_hash_table_new(NULL, NULL);
+    ht_node_flags_changed = g_hash_table_new(NULL, NULL);
 
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);

@@ -450,7 +450,7 @@ zget(gint size, gint hint)
 	 */
 
 	if (zt == NULL)
-		zt = g_hash_table_new(g_direct_hash, 0);
+		zt = g_hash_table_new(NULL, NULL);
 
 	/*
 	 * Make sure size is big enough to store the free-list pointer used to
