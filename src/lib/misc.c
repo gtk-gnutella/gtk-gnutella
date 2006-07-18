@@ -325,6 +325,83 @@ print_uint16_hex(gchar *dst, guint16 v)
 }
 
 /**
+ * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
+ * this is just a convenience function.
+ *
+ * @param x An integer between 0 and 15.
+ * @return The ASCII character corresponding to the hex digit [0-9a-f].
+ */
+static inline guchar
+hex_digit(guchar x)
+{
+	return hex_alphabet_lower[x & 0xf]; 
+}
+
+/**
+ * Converts an integer to a single decimal ASCII digit. The are no checks,
+ * this is just a convenience function.
+ *
+ * @param x An integer between 0 and 9.
+ * @return The ASCII character corresponding to the decimal digit [0-9].
+ */
+static inline guchar
+dec_digit(guchar x)
+{
+	static const gchar dec_alphabet[] = "0123456789";
+	return dec_alphabet[x % 10];
+}
+
+/**
+ * Converts an IPv4 address in host-endian order to a string.
+ *
+ * @param ipv4 An 32-bit integer holding an IPv4 address in host-endian order.
+ * @param dst The destination buffer to hold the resulting string.
+ * @param size The size of the `dst' buffer in bytes. This should be
+ *             IPV4_ADDR_BUFLEN or larger, otherwise the string will be
+               truncated.
+ * @return The length of the resulting string assuming `size' was sufficiently
+ *         large.
+ */
+size_t
+ipv4_to_string_buf(guint32 ipv4, gchar *dst, size_t size)
+{
+	gchar buf[IPV4_ADDR_BUFLEN];
+	gchar * const p0 = size < sizeof buf ? buf : dst;
+	gchar *p = p0;
+	guint i;
+
+	for (i = 0; i < 4; i++) {
+		guchar v;
+	   
+		v = (ipv4 >> 24) & 0xff;
+		ipv4 <<= 8;
+
+		if (v >= 10) {
+			div_t r;
+
+			if (v >= 100) {
+				r = div(v, 100);
+				*p++ = dec_digit(r.quot);
+				v = r.rem;
+			}
+
+			r = div(v, 10);
+			*p++ = dec_digit(r.quot);
+			v = r.rem;
+		}
+		*p++ = dec_digit(v);
+		if (i < 3)
+			*p++ = '.';
+	}
+	*p = '\0';
+
+	if (p0 != dst) {
+		g_strlcpy(dst, p0, size);
+	}
+	return p - p0;
+}
+
+/**
  * Prints the IPv6 address ``ipv6'' to ``dst''. The string written to ``dst''
  * is always NUL-terminated unless ``size'' is zero. If ``size''
  * is too small, the string will be truncated.
@@ -407,7 +484,7 @@ ipv6_to_string_buf(const uint8_t *ipv6, gchar *dst, size_t size)
 			size_t n;
 
 			n = sizeof buf - (p - q);
-			p += ip_to_string_buf(peek_be32(&ipv6[12]), p, n);
+			p += ipv4_to_string_buf(peek_be32(&ipv6[12]), p, n);
 			break;
 		}
 
@@ -444,48 +521,13 @@ ipv6_to_string(const guint8 *ipv6)
 	return buf;
 }
 
-size_t
-ip_to_string_buf(guint32 ip, gchar *buf, size_t size)
-{
-	struct in_addr ia;
-
-	g_assert(buf != NULL);
-	g_assert(size <= INT_MAX);
-
-	ia.s_addr = htonl(ip);
-	return g_strlcpy(buf, inet_ntoa(ia), size);
-}
-
 const gchar *
 ip_to_string(guint32 ip)
 {
-	static gchar buf[32];
+	static gchar buf[IPV4_ADDR_BUFLEN];
 
-	ip_to_string_buf(ip, buf, sizeof buf);
+	ipv4_to_string_buf(ip, buf, sizeof buf);
 	return buf;
-}
-
-const gchar *
-ip_to_string2(guint32 ip)
-{
-	static gchar buf[32];
-
-	ip_to_string_buf(ip, buf, sizeof buf);
-	return buf;
-}
-
-const gchar *
-ip_port_to_string(guint32 ip, guint16 port)
-{
-	static gchar a[32];
-	size_t len;
-	struct in_addr ia;
-
-	ia.s_addr = htonl(ip);
-	len = g_strlcpy(a, inet_ntoa(ia), sizeof(a));
-	if (len < sizeof(a) - 1)
-		gm_snprintf(a + len, sizeof(a) - len, ":%u", port);
-	return a;
 }
 
 const gchar *
@@ -2488,12 +2530,11 @@ char_to_printf_escape(guchar c, gchar *esc)
 		
 		return 1;
 	} else {
-		static const gchar hexa[] = "0123456789abcdef";
 		if (esc) {
 			esc[0] = '\\';
 			esc[1] = 'x';
-			esc[2] = hexa[(c >> 4) & 0xf];
-			esc[3] = hexa[c & 0x0f];
+			esc[2] = hex_digit((c >> 4) & 0xf);
+			esc[3] = hex_digit(c & 0x0f);
 		}
 		return 4;
 	}
@@ -2878,7 +2919,6 @@ reverse_strlcpy(gchar * const dst, size_t size,
 size_t
 uint32_to_string_buf(guint32 v, gchar *dst, size_t size)
 {
-	static const gchar dec_alphabet[] = "0123456789";
 	gchar buf[UINT32_DEC_BUFLEN];
 	gchar *p;
 
@@ -2886,7 +2926,7 @@ uint32_to_string_buf(guint32 v, gchar *dst, size_t size)
 	g_assert(size <= INT_MAX);
 
 	for (p = buf; /* NOTHING */; v /= 10) {
-		*p++ = dec_alphabet[v % 10];
+		*p++ = dec_digit(v % 10);
 		if (v < 10)
 			break;
 	}
@@ -2897,7 +2937,6 @@ uint32_to_string_buf(guint32 v, gchar *dst, size_t size)
 size_t
 uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 {
-	static const gchar dec_alphabet[] = "0123456789";
 	gchar buf[UINT64_DEC_BUFLEN];
 	gchar *p;
 
@@ -2905,7 +2944,7 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 	g_assert(size <= INT_MAX);
 
 	for (p = buf; /* NOTHING */; v /= 10) {
-		*p++ = dec_alphabet[v % 10];
+		*p++ = dec_digit(v % 10);
 		if (v < 10)
 			break;
 	}
@@ -2916,7 +2955,6 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 size_t
 off_t_to_string_buf(off_t v, gchar *dst, size_t size)
 {
-	static const gchar dec_alphabet[] = "0123456789";
 	gchar buf[OFF_T_DEC_BUFLEN];
 	gchar *p;
 	gboolean neg;
@@ -2930,7 +2968,7 @@ off_t_to_string_buf(off_t v, gchar *dst, size_t size)
 		gint d = v % 10;
 
 		v /= 10;
-		*p++ = dec_alphabet[neg ? -d : d];
+		*p++ = dec_digit(neg ? -d : d);
 	} while (0 != v);
 	if (neg) {
 		*p++ = '-';
@@ -2942,7 +2980,6 @@ off_t_to_string_buf(off_t v, gchar *dst, size_t size)
 size_t
 time_t_to_string_buf(time_t v, gchar *dst, size_t size)
 {
-	static const gchar dec_alphabet[] = "0123456789";
 	gchar buf[TIME_T_DEC_BUFLEN];
 	gchar *p;
 	gboolean neg;
@@ -2956,7 +2993,7 @@ time_t_to_string_buf(time_t v, gchar *dst, size_t size)
 		gint d = v % 10;
 
 		v /= 10;
-		*p++ = dec_alphabet[neg ? -d : d];
+		*p++ = dec_digit(neg ? -d : d);
 	} while (0 != v);
 	if (neg) {
 		*p++ = '-';

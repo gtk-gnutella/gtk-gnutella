@@ -325,9 +325,7 @@ gboolean string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **ep);
 gboolean string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 gboolean string_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
 const gchar *ip_to_string(guint32);
-const gchar *ip_to_string2(guint32);
-size_t ip_to_string_buf(guint32 ip, gchar *buf, size_t size);
-const gchar *ip_port_to_string(guint32, guint16);
+size_t ipv4_to_string_buf(guint32 ip, gchar *buf, size_t size);
 const gchar *hostname_port_to_string(const gchar *hostname, guint16 port);
 const gchar *local_hostname(void);
 #define port_is_valid(port) (port != 0)

@@ -315,16 +315,9 @@ host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 {
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
-		{
-			struct in_addr ia;
-
-			ia.s_addr = htonl(host_addr_ipv4(ha));
-			return g_strlcpy(dst, inet_ntoa(ia), size);
-		}
-
+		return ipv4_to_string_buf(host_addr_ipv4(ha), dst, size);
 	case NET_TYPE_IPV6:
 		return ipv6_to_string_buf(host_addr_ipv6(&ha), dst, size);
-
 	case NET_TYPE_NONE:
 		return g_strlcpy(dst, "<none>", size);
 	}
