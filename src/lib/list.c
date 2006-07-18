@@ -347,11 +347,11 @@ list_length(const list_t *list)
 }
 
 /**
- * Get an iterator on the list, positionned before first item.
+ * Get an iterator on the list, positioned before first item.
  * Get items with list_next().
  */
 list_iter_t *
-list_iter_head(list_t *list)
+list_iter_before_head(list_t *list)
 {
 	list_iter_t *iter;
 
@@ -377,11 +377,11 @@ list_iter_head(list_t *list)
 }
 
 /**
- * Get an iterator on the list, positionned after tail item.
+ * Get an iterator on the list, positioned after tail item.
  * Get items with list_previous().
  */
 list_iter_t *
-list_iter_tail(list_t *list)
+list_iter_after_tail(list_t *list)
 {
 	list_iter_t *iter;
 
@@ -411,7 +411,7 @@ list_iter_tail(list_t *list)
  * there is no next element, NULL is returned.
  */
 gpointer
-list_next(list_iter_t *iter)
+list_iter_next(list_iter_t *iter)
 {
 	GList *next;
 
@@ -432,7 +432,7 @@ list_next(list_iter_t *iter)
  * Checks whether there is a next item to be iterated over.
  */
 gboolean
-list_has_next(const list_iter_t *iter)
+list_iter_has_next(const list_iter_t *iter)
 {
 	if (iter) {
 		list_iter_check(iter);
@@ -447,7 +447,7 @@ list_has_next(const list_iter_t *iter)
  * there is no previous element, NULL is returned.
  */
 gpointer
-list_previous(list_iter_t *iter)
+list_iter_previous(list_iter_t *iter)
 {
 	GList *prev;
 
@@ -465,7 +465,7 @@ list_previous(list_iter_t *iter)
 }
 
 gpointer
-list_current(list_iter_t *iter)
+list_iter_current(list_iter_t *iter)
 {
 	list_iter_check(iter);
 
@@ -476,7 +476,7 @@ list_current(list_iter_t *iter)
  * Checks whether there is a previous item in the iterator.
  */
 gboolean
-list_has_previous(const list_iter_t *iter)
+list_iter_has_previous(const list_iter_t *iter)
 {
 	if (iter) {
 		list_iter_check(iter);

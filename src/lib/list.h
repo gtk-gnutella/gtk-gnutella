@@ -42,16 +42,17 @@ gboolean list_moveto_tail(list_t *list, gpointer key);
 gpointer list_head(const list_t *list);
 gpointer list_tail(const list_t *list);
 guint list_length(const list_t *list);
-list_iter_t *list_iter_head(list_t *list);
-list_iter_t *list_iter_tail(list_t *list);
-void list_iter_free(list_iter_t **iter_ptr);
-gboolean list_has_next(const list_iter_t *iter);
-gboolean list_has_previous(const list_iter_t *iter);
-gpointer list_next(list_iter_t *iter);
-gpointer list_previous(list_iter_t *iter);
-gpointer list_current(list_iter_t *iter);
 gboolean list_contains(list_t *list, gconstpointer key,
 		GCompareFunc func, gpointer *orig_key);
 void list_foreach(const list_t *list, GFunc func, gpointer user_data);
+
+list_iter_t *list_iter_before_head(list_t *list);
+list_iter_t *list_iter_after_tail(list_t *list);
+void list_iter_free(list_iter_t **iter_ptr);
+gboolean list_iter_has_next(const list_iter_t *iter);
+gboolean list_iter_has_previous(const list_iter_t *iter);
+gpointer list_iter_next(list_iter_t *iter);
+gpointer list_iter_previous(list_iter_t *iter);
+gpointer list_iter_current(list_iter_t *iter);
 
 #endif	/* _list_h_ */
