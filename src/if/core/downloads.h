@@ -105,6 +105,7 @@ struct dl_server {
 	guint32 attrs;
 	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
 	time_t proxies_stamp;	/**< Time when list was last updated */
+	GHashTable *sha1_counts;
 };
 
 #define dl_server_valid(x)	((x) != NULL && (x)->magic == DL_SERVER_MAGIC)
