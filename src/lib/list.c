@@ -83,7 +83,6 @@ struct list_iter {
 static inline void
 list_regression(const list_t *list)
 {
-	g_assert(list->length >= 0);
 	g_assert(g_list_first(list->head) == list->head);
 	g_assert(g_list_first(list->tail) == list->head);
 	g_assert(g_list_last(list->head) == list->tail);
@@ -92,6 +91,18 @@ list_regression(const list_t *list)
 #else
 #define list_regression(list)
 #endif
+
+static inline void
+list_check(const list_t *list)
+{
+	g_assert(list);
+	g_assert(LIST_MAGIC == list->magic);
+	g_assert(list->refcount > 0);
+	g_assert(list->length >= 0);
+	g_assert(equiv(list->length == 0, !list->head && !list->tail));
+
+	list_regression(list);
+}
 
 /*
  * With TRACK_MALLOC, the routines list_new() and list_free()
@@ -130,7 +141,7 @@ list_iter_check(const list_iter_t *iter)
 }
 
 /**
- * Create a new hash list.
+ * Create a new list.
  */
 list_t *
 list_new(void)
@@ -165,7 +176,7 @@ list_free(list_t **list_ptr)
 		list_regression(list);
 
 		if (--list->refcount != 0) {
-			g_warning("list_free: hash list is still referenced! "
+			g_warning("list_free: list is still referenced! "
 					"(list=%p, list->refcount=%d)",
 					cast_to_gconstpointer(list), list->refcount);
 		}
@@ -187,11 +198,8 @@ list_free(list_t **list_ptr)
 void
 list_append(list_t *list, gpointer key)
 {
-	g_assert(NULL != list);
-	g_assert(LIST_MAGIC == list->magic);
+	list_check(list);
 	g_assert(1 == list->refcount);
-	g_assert(equiv(list->length == 0, list->tail == NULL));
-	list_regression(list);
 
 	list->tail = g_list_append(list->tail, key);
 	list->tail = g_list_last(list->tail);
@@ -211,11 +219,8 @@ list_append(list_t *list, gpointer key)
 void
 list_prepend(list_t *list, gpointer key)
 {
-	g_assert(NULL != list);
-	g_assert(LIST_MAGIC == list->magic);
+	list_check(list);
 	g_assert(1 == list->refcount);
-	g_assert(equiv(list->length == 0, list->tail == NULL));
-	list_regression(list);
 
 	list->head = g_list_prepend(list->head, key);
 	if (!list->tail) {
@@ -234,12 +239,9 @@ list_prepend(list_t *list, gpointer key)
 void
 list_insert_sorted(list_t *list, gpointer key, GCompareFunc func)
 {
-	g_assert(NULL != list);
-	g_assert(NULL != func);
-	g_assert(LIST_MAGIC == list->magic);
+	list_check(list);
 	g_assert(1 == list->refcount);
-	g_assert(equiv(list->length == 0, list->tail == NULL));
-	list_regression(list);
+	g_assert(func);
 
 	list->head = g_list_insert_sorted(list->head, key, func);
 	if (list->tail) {
@@ -263,11 +265,7 @@ list_remove(list_t *list, gpointer key)
 {
 	GList *item;
 
-	g_assert(1 == list->refcount);
-	g_assert(LIST_MAGIC == list->magic);
-	g_assert(equiv(list->length == 0, list->tail == NULL));
-	g_assert(list->length > 0);
-	list_regression(list);
+	list_check(list);
 
 	item = g_list_find(list->head, key);
 	if (item) {
@@ -295,11 +293,7 @@ list_remove(list_t *list, gpointer key)
 gpointer
 list_tail(const list_t *list)
 {
-	g_assert(NULL != list);
-	g_assert(list->refcount > 0);
-	g_assert(LIST_MAGIC == list->magic);
-	g_assert(equiv(list->length == 0, list->tail == NULL));
-	list_regression(list);
+	list_check(list);
 
 	return list->tail ? list->tail->data : NULL;
 }
@@ -310,11 +304,7 @@ list_tail(const list_t *list)
 gpointer
 list_head(const list_t *list)
 {
-	g_assert(NULL != list);
-	g_assert(list->refcount > 0);
-	g_assert(LIST_MAGIC == list->magic);
-	g_assert(equiv(list->length == 0, list->head == NULL));
-	list_regression(list);
+	list_check(list);
 
 	return list->head ? list->head->data : NULL;
 }
@@ -351,10 +341,7 @@ list_moveto_tail(list_t *list, gpointer key)
 guint
 list_length(const list_t *list)
 {
-	g_assert(NULL != list);
-	g_assert(list->refcount > 0);
-	g_assert(LIST_MAGIC == list->magic);
-	list_regression(list);
+	list_check(list);
 
 	return list->length;
 }
@@ -369,9 +356,7 @@ list_iter_head(list_t *list)
 	list_iter_t *iter;
 
 	if (list) {
-		g_assert(list->refcount > 0);
-		g_assert(LIST_MAGIC == list->magic);
-		g_assert(equiv(list->length == 0, list->tail == NULL));
+		list_check(list);
 
 		iter = walloc(sizeof *iter);
 
@@ -401,9 +386,7 @@ list_iter_tail(list_t *list)
 	list_iter_t *iter;
 
 	if (list) {
-		g_assert(LIST_MAGIC == list->magic);
-		g_assert(list->refcount > 0);
-		g_assert(equiv(list->length == 0, list->tail == NULL));
+		list_check(list);
 
 		iter = walloc(sizeof *iter);
 
@@ -526,7 +509,8 @@ list_iter_free(list_iter_t **iter_ptr)
 }
 
 /**
- * Check whether list contains the `key'.
+ * Check whether list contains the `key' whereas equalness is determined
+ * using `func'.
  */
 gboolean
 list_contains(list_t *list, gconstpointer key, GCompareFunc func,
@@ -534,11 +518,8 @@ list_contains(list_t *list, gconstpointer key, GCompareFunc func,
 {
 	GList *item;
 
-	g_assert(NULL != list);
-	g_assert(NULL != func);
-	g_assert(LIST_MAGIC == list->magic);
-	g_assert(list->refcount > 0);
-	list_regression(list);
+	list_check(list);
+	g_assert(func);
 
 	item = g_list_find_custom(list->head, key, func);
 	if (item) {
@@ -556,12 +537,8 @@ list_contains(list_t *list, gconstpointer key, GCompareFunc func,
 void
 list_foreach(const list_t *list, GFunc func, gpointer user_data)
 {
-	g_assert(NULL != list);
-	g_assert(LIST_MAGIC == list->magic);
-	g_assert(NULL != func);
-	g_assert(list->refcount > 0);
-	g_assert(equiv(list->length == 0, list->tail == NULL));
-	list_regression(list);
+	list_check(list);
+	g_assert(func);
 
 	g_list_foreach(list->head, func, user_data);
 
