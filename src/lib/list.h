@@ -43,7 +43,7 @@ gpointer list_head(const list_t *list);
 gpointer list_tail(const list_t *list);
 guint list_length(const list_t *list);
 gboolean list_contains(list_t *list, gconstpointer key,
-		GCompareFunc func, gpointer *orig_key);
+		GEqualFunc func, gpointer *orig_key);
 void list_foreach(const list_t *list, GFunc func, gpointer user_data);
 
 list_iter_t *list_iter_before_head(list_t *list);

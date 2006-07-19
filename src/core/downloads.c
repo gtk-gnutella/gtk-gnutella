@@ -1762,19 +1762,6 @@ download_eq(gconstpointer p, gconstpointer q)
 	return FALSE;
 }
 
-/**
- * This is only for use by server_list_lookup(). This cannot be used
- * for sorting! This does not return TRUE/FALSE because g_list_find_custom()
- * uses GCompareFunc (only checking for 0) instead of GEqFunc.
- *
- * @return 0 if the downloads are logically equal, -1 otherwise.
- */
-static gint
-download_cmp(gconstpointer p, gconstpointer q)
-{
-	return download_eq(p, q) ? 0 : -1;
-}
-
 static struct download *
 server_list_lookup(const struct dl_server *server, enum dl_list idx,
 	const gchar *sha1, const gchar *file, filesize_t size)
@@ -1793,7 +1780,7 @@ server_list_lookup(const struct dl_server *server, enum dl_list idx,
 		key.file_name = deconstify_gpointer(file);
 		key.file_size = size;
 
-		if (list_contains(server->list[idx], &key, download_cmp, &orig_key)) {
+		if (list_contains(server->list[idx], &key, download_eq, &orig_key)) {
 			d = orig_key;
 		}
 		atom_sha1_free_null(&key.sha1);
@@ -6341,7 +6328,7 @@ check_content_urn(struct download *d, header_t *header)
 
 		/*
 		 * Discovery of the SHA1 for a download should be infrequent enough,
-		 * yet is very important.   This jusifies immediately storing that
+		 * yet is very important.   This justifies immediately storing that
 		 * new information without waiting for the "dirty timer" to trigger.
 		 */
 

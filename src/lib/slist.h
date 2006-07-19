@@ -43,7 +43,7 @@ gpointer slist_head(const slist_t *slist);
 gpointer slist_tail(const slist_t *slist);
 guint slist_length(const slist_t *slist);
 gboolean slist_contains(const slist_t *slist, gconstpointer key,
-		GCompareFunc func, gpointer *orig_key);
+		GEqualFunc func, gpointer *orig_key);
 gboolean slist_contains_identical(const slist_t *slist, gconstpointer key);
 void slist_foreach(const slist_t *slist, GFunc func, gpointer user_data);
 

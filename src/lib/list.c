@@ -509,11 +509,11 @@ list_iter_free(list_iter_t **iter_ptr)
 }
 
 /**
- * Check whether list contains the `key' whereas equalness is determined
+ * Check whether list contains the `key' whereas equality is determined
  * using `func'.
  */
 gboolean
-list_contains(list_t *list, gconstpointer key, GCompareFunc func,
+list_contains(list_t *list, gconstpointer key, GEqualFunc func,
 	gpointer *orig_key)
 {
 	GList *item;
@@ -521,12 +521,13 @@ list_contains(list_t *list, gconstpointer key, GCompareFunc func,
 	list_check(list);
 	g_assert(func);
 
-	item = g_list_find_custom(list->head, key, func);
-	if (item) {
-		if (orig_key) {
-			*orig_key = item->data;
+	for (item = list->head; NULL != item; item = g_list_next(item)) {
+		if (func(key, item->data)) {
+			if (orig_key) {
+				*orig_key = item->data;
+			}
+			return TRUE;
 		}
-		return TRUE;
 	}
 	return FALSE;
 }
