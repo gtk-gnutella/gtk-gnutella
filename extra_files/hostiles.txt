@@ -324,10 +324,21 @@
 206.222.26.34
 206.222.26.38
 
-# Shareaza-based DRM WMV spammer hosted by Peer 1
-64.34.248.165
-64.34.248.168
-69.90.216.73
+# Shareaza-based DRM WMV spammer hosted by Peer 1 (PEER1-CALYEUNG-*)
+# The ranges are assigned to "Calvin Yeung". Servers host thousands of
+# DRMed ASX and WMV files; all about 100KB large; files point to
+# p2ptips dot com which is owned by the same person/organization.
+64.34.248.160/27
+65.39.185.240/28
+65.39.195.64/27
+66.199.142.0/26
+66.199.142.224/28
+69.28.230.192/27
+69.90.74.0/25
+69.90.216.64/26
+# PEER1-NYCAT1AVLAN1-03; seemingly not part of PEER1-CALYEUNG-*
+# but the servers are.
+66.199.177.64/27
 
 # Gnoozle; "sponsored results" exploiting a brain-dead LimeWire feature
 # The SHA-1s are obviously faked and the files are not downloadable.
