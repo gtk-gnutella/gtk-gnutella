@@ -336,7 +336,7 @@ host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 const gchar *
 host_addr_to_string(const host_addr_t ha)
 {
-	static gchar buf[128];
+	static gchar buf[HOST_ADDR_BUFLEN];
 	size_t n;
 
 	n = host_addr_to_string_buf(ha, buf, sizeof buf);
@@ -360,9 +360,9 @@ size_t
 host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
 		gchar *dst, size_t size)
 {
-	size_t n;
-	gchar host_buf[64];
+	gchar host_buf[HOST_ADDR_BUFLEN];
 	gchar port_buf[UINT32_DEC_BUFLEN];
+	size_t n;
 
 	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
 	uint32_to_string_buf(port, port_buf, sizeof port_buf);
@@ -389,7 +389,7 @@ host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
 const gchar *
 host_addr_port_to_string(const host_addr_t ha, guint16 port)
 {
-	static gchar buf[IPV6_ADDR_BUFLEN + sizeof "[]:65535"];
+	static gchar buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
 
 	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
@@ -400,7 +400,7 @@ host_addr_port_to_string(const host_addr_t ha, guint16 port)
 const gchar *
 host_addr_port_to_string2(const host_addr_t ha, guint16 port)
 {
-	static gchar buf[IPV6_ADDR_BUFLEN + sizeof "[]:65535"];
+	static gchar buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
 
 	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
@@ -682,7 +682,7 @@ host_addr_to_name(host_addr_t addr)
 
 		he = gethostbyaddr(ptr, len, socket_addr_get_family(&sa));
 		if (!he) {
-			gchar buf[128];
+			gchar buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(addr, buf, sizeof buf);
 			gethostbyname_error(buf);
