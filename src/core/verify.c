@@ -55,13 +55,13 @@ RCSID("$Id$");
 
 static gpointer verify_daemon = NULL;
 
-#define VERIFYD_MAGIC	0x000e31f8
+enum verifyd_magic { VERIFYD_MAGIC = 0x000e31f8 };
 
 /**
  * Verification daemon context.
  */
 struct verifyd {
-	gint magic;				/**< Magic number */
+	enum verifyd_magic magic;	/**< Magic number */
 	struct download *d;		/**< Current download */
 	gint fd;				/**< Opened file descriptor, -1 if none */
 	time_t start;			/**< Start time, to determine computation rate */
@@ -78,15 +78,18 @@ struct verifyd {
 static void
 d_free(gpointer ctx)
 {
-	struct verifyd *vd = (struct verifyd *) ctx;
+	struct verifyd *vd = ctx;
 
 	g_assert(vd->magic == VERIFYD_MAGIC);
 
-	if (vd->fd != -1)
+	if (vd->fd != -1) {
 		close(vd->fd);
+		vd->fd = -1;
+	}
 
-	g_free(vd->buffer);
-	wfree(vd, sizeof(*vd));
+	G_FREE_NULL(vd->buffer);
+	vd->magic = 0;
+	wfree(vd, sizeof *vd);
 }
 
 /**
@@ -105,8 +108,8 @@ d_notify(gpointer unused_h, gboolean on)
 static void
 d_start(gpointer unused_h, gpointer ctx, gpointer item)
 {
-	struct verifyd *vd = (struct verifyd *) ctx;
-	struct download *d = (struct download *) item;
+	struct verifyd *vd = ctx;
+	struct download *d = item;
 	gchar *filename;
 
 	(void) unused_h;
@@ -147,9 +150,9 @@ d_start(gpointer unused_h, gpointer ctx, gpointer item)
 static void
 d_end(gpointer unused_h, gpointer ctx, gpointer item)
 {
-	struct verifyd *vd = (struct verifyd *) ctx;
-	struct download *d = (struct download *) item;
-	time_t elapsed = 0;
+	struct verifyd *vd = ctx;
+	struct download *d = item;
+	time_delta_t elapsed = 0;
 	guint8 digest[SHA1HashSize];
 
 	(void) unused_h;
@@ -171,7 +174,7 @@ d_end(gpointer unused_h, gpointer ctx, gpointer item)
 		SHA1Result(&vd->context, digest);
 	}
 
-	elapsed = tm_time() - vd->start;
+	elapsed = delta_time(tm_time(), vd->start);
 	elapsed = MAX(1, elapsed);
 
 	if (dbg > 1)
@@ -240,13 +243,14 @@ d_step_compute(gpointer h, gpointer u, gint ticks)
 	 * Any partially read block counts as one block, hence the second term.
 	 */
 
-	used = (r >> HASH_BLOCK_SHIFT) +
-		((r & ((1 << HASH_BLOCK_SHIFT) - 1)) ? 1 : 0);
+	amount = (size_t) r;
+	used = (amount >> HASH_BLOCK_SHIFT) +
+		((amount & ((1 << HASH_BLOCK_SHIFT) - 1)) ? 1 : 0);
 
 	if (used != ticks)
 		bg_task_ticks_used(h, used);
 
-	res = SHA1Input(&vd->context, (guint8 *) vd->buffer, r);
+	res = SHA1Input(&vd->context, cast_to_gconstpointer(vd->buffer), r);
 	if (res != shaSuccess) {
 		g_warning("SHA1 computation error for %s", download_outname(vd->d));
 		vd->error = -1;
@@ -277,7 +281,7 @@ verify_init(void)
 	struct verifyd *vd;
 	bgstep_cb_t step = d_step_compute;
 
-	vd = walloc(sizeof(*vd));
+	vd = walloc(sizeof *vd);
 	vd->magic = VERIFYD_MAGIC;
 	vd->fd = -1;
 	vd->buffer = g_malloc(HASH_BUF_SIZE);
