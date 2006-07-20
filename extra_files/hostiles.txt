@@ -398,10 +398,14 @@
 
 # MOV pr0n spammer; giFT-based; results do not match queries at all;
 # links to adultpeak dot com.
+66.154.112.240/28
 66.154.124.2/31
+66.63.168.128/27
 66.63.170.32/28
+72.11.143.0/27
 72.11.158.128/27
-216.144.227.99
+216.144.227.64/26
+216.144.235.64/26
 
 # University of Mississippi
 130.74.0.0/16
