@@ -486,8 +486,10 @@ qlink_create(mqueue_t *q)
 	 * gmsg_cmp() routine to compare the Gnutella messages.
 	 */
 
-	for (l = q->qhead, n = 0; l && n < q->count; l = g_list_next(l), n++)
+	for (l = q->qhead, n = 0; l && n < q->count; l = g_list_next(l), n++) {
+		g_assert(l->data != NULL);
 		qlink[n] = l;
+	}
 
 	if (l || n != q->count)
 		g_warning("BUG: queue count of %d for 0x%lx is wrong (found %d)",
@@ -523,6 +525,7 @@ qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 {
 	g_assert(hint >= 0 && hint < q->qlink_count);
 	g_assert(qlink_cmp(&q->qlink[hint], &l) >= 0);	/* `hint' >= `l' */
+	g_assert(l->data != NULL);
 
 	/*
 	 * Lookup before the message for a NULL entry that we could fill.
@@ -554,6 +557,8 @@ qlink_insert(mqueue_t *q, GList *l)
 	gint low = 0;
 	gint high = q->qlink_count - 1;
 	GList **qlink = q->qlink;
+
+	g_assert(l->data != NULL);
 
 	/*
 	 * If `qlink' is empty, create a slot for the new entry.
@@ -708,6 +713,7 @@ qlink_remove(mqueue_t *q, GList *l)
 
 	g_assert(qlink);
 	g_assert(n > 0);
+	g_assert(l->data != NULL);
 
 	/*
 	 * If more entries in `qlink' than 3 times the amount of queued messages,
@@ -776,6 +782,7 @@ make_room_header(
 {
 	gint n;
 	gint dropped = 0;				/* Amount of messages dropped */
+	gboolean qlink_corrupted = FALSE;	/* BUG catcher */
 
 	g_assert(needed > 0);
 
@@ -812,6 +819,7 @@ make_room_header(
 	 * network, so we can NULLify the corresponding slot in the qlink array.
 	 */
 
+restart:
 	for (n = 0; needed >= 0 && n < q->qlink_count; n++) {
 		GList *item = q->qlink[n];
 		pmsg_t *cmb;
@@ -824,6 +832,35 @@ make_room_header(
 
 		if (item == NULL)
 			continue;
+
+		/*
+		 * BUG catcher -- I've seen situations where item->data is NULL
+		 * at this point, which means something is deeply corrupted...
+		 *		--RAM, 2006-07-14
+		 */
+
+		if (item->data == NULL) {
+			g_warning("BUG: NULL data for qlink item #%d"
+				" in queue 0x%lx for %s %s node %s at %s:%d",
+				n, (gulong) q, NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+				NODE_IS_ULTRA(q->node) ? "ultra" : "leaf",
+				node_addr(q->node), _WHERE_, __LINE__);
+
+			if (qlink_corrupted) {
+				g_warning(
+					"BUG: trying to ignore still invalid qlink entry at %s:%d",
+						_WHERE_, __LINE__);
+				continue;
+			}
+
+			qlink_corrupted = TRUE;		/* Try to mend it */
+			qlink_free(q);
+			qlink_create(q);
+
+			g_warning("BUG: recreated qlink and restarting at %s:%d",
+				_WHERE_, __LINE__);
+			goto restart;
+		}
 
 		cmb = (pmsg_t *) item->data;
 		cmb_start = pmsg_start(cmb);
