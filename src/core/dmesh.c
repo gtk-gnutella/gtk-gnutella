@@ -615,8 +615,7 @@ dmesh_dispose(const gchar *sha1)
 
 /**
  * Fill URL info from externally supplied sha1, addr, port, idx and name.
- * When `idx' is URN_INDEX, then `name' is ignored, and we use the
- * stringified SHA1.
+ * If sha1 is NULL, we use the name, otherwise the urn:sha1.
  */
 static void
 dmesh_fill_info(dmesh_urlinfo_t *info,
@@ -630,11 +629,12 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
 	info->port = port;
 	info->idx = idx;
 
-	if (idx == URN_INDEX) {
+	if (sha1) {
 		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), (void *) 0);
 		info->name = urn;
-	} else
+	} else {
 		info->name = name;
+	}
 }
 
 /**
@@ -1986,6 +1986,7 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 
 			ok = sha1_eq(sha1, digest);
 			if (!ok) {
+				g_assert(sha1);
 				g_warning("mismatch in /uri-res/N2R? Alternate-Location "
 					"for SHA1=%s: got %s", sha1_base32(sha1), info.name);
 				goto skip_add;
@@ -2195,6 +2196,7 @@ dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
 	FILE *out = udata;
 	GSList *sl;
 
+	g_assert(key);
 	fprintf(out, "%s\n", sha1_base32(key));
 
 	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
