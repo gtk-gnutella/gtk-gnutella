@@ -135,9 +135,9 @@ gui_update_download(download_t *d, gboolean force)
 	switch (d->status) {
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
-			gint elapsed = delta_time(now, d->last_update);
+			time_delta_t elapsed = delta_time(now, d->last_update);
 
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), _("Queued"));
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
 
 			if (guc_get_parq_dl_position(d) > 0) {
 
@@ -170,7 +170,7 @@ gui_update_download(download_t *d, gboolean force)
 		 */
 
 		if (d->ranges != NULL) {
-			gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 				" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 		}
 
@@ -178,7 +178,7 @@ gui_update_download(download_t *d, gboolean force)
 		break;
 	case GTA_DL_QUEUED:
 		if (FILE_INFO_COMPLETE(d->file_info)) {
-			gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
+			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
 			status = tmpstr;
 		} else {
 			status = d->remove_msg ? d->remove_msg : "";
@@ -253,8 +253,9 @@ gui_update_download(download_t *d, gboolean force)
 
 	case GTA_DL_REQ_SENDING:
 		if (d->req != NULL) {
-			gm_snprintf(tmpstr, sizeof(tmpstr), _("Sending request (%u%%)"),
-				(guint) guc_download_get_http_req_percent(d));
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+					_("Sending request (%u%%)"),
+					(guint) guc_download_get_http_req_percent(d));
 			status = tmpstr;
 		} else
 			status = _("Sending request");
@@ -276,13 +277,13 @@ gui_update_download(download_t *d, gboolean force)
 		if (d->last_update != d->start_date) {
 			guint32 t = delta_time(d->last_update, d->start_date);
 			
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
 				short_rate((d->range_end - d->skip + d->overlap_size) / t,
 					show_metric_units()),
 				short_time(t));
 		} else {
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"));
 		}
 		status = tmpstr;
@@ -328,17 +329,17 @@ gui_update_download(download_t *d, gboolean force)
 
 			switch (d->status) {
 			case GTA_DL_MOVE_WAIT:
-				g_strlcpy(&tmpstr[rw], _("; Waiting for moving..."),
-					sizeof(tmpstr)-rw);
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						"%s", _("; Waiting for moving..."));
 				break;
 			case GTA_DL_MOVING:
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_("; Moving (%.02f%%)"),
 					((gdouble) fi->copied / fi->size) * 100.0);
 				break;
 			case GTA_DL_DONE:
 				if (fi->copy_elapsed) {
-					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						_("; Moved (%s) %s"),
 						short_rate(fi->copied / fi->copy_elapsed,
 							show_metric_units()),
@@ -403,7 +404,7 @@ gui_update_download(download_t *d, gboolean force)
 			 */
 
 			if (d->ranges != NULL)
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 
 			/*
@@ -412,7 +413,7 @@ gui_update_download(download_t *d, gboolean force)
 			 */
 
 			if (d->served_reqs)
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" #%u", d->served_reqs + 1);
 
 			status = tmpstr;
@@ -428,7 +429,7 @@ gui_update_download(download_t *d, gboolean force)
 	case GTA_DL_TIMEOUT_WAIT:
 		{
 			guint when = d->timeout_delay - delta_time(now, d->last_update);
-			gm_snprintf(tmpstr, sizeof(tmpstr), _("Retry in %us"), when);
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr), _("Retry in %us"), when);
 		}
 		status = tmpstr;
 		break;
@@ -437,13 +438,13 @@ gui_update_download(download_t *d, gboolean force)
 			gchar buf[UINT64_DEC_BUFLEN];
 			
 			uint64_to_string_buf(d->sinkleft, buf, sizeof buf);
-			gm_snprintf(tmpstr, sizeof tmpstr,
+			rw = gm_snprintf(tmpstr, sizeof tmpstr,
 				_("Sinking (%s bytes left)"), buf);
 		}
 		status = tmpstr;
 		break;
 	default:
-		gm_snprintf(tmpstr, sizeof tmpstr, "UNKNOWN STATUS %u", d->status);
+		rw = gm_snprintf(tmpstr, sizeof tmpstr, "UNKNOWN STATUS %u", d->status);
 		status = tmpstr;
 	}
 
