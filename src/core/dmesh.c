@@ -525,7 +525,7 @@ dm_expire(struct dmesh *dm, glong agemax, const gchar *sha1)
 
 		if (dmesh_debug > 4)
 			g_message("MESH %s: EXPIRED \"%s\", age=%d",
-				sha1_base32(sha1),
+				sha1 ? sha1_base32(sha1) : "<no SHA-1 known>",
 				dmesh_urlinfo_to_string(&dme->url),
 				(gint) delta_time(now, dme->stamp));
 
@@ -755,7 +755,7 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 	 * than the one we're trying to add).
 	 */
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = sha1 ? g_hash_table_lookup(mesh, sha1) : NULL;
 
 	if (dm == NULL) {
 		dm = walloc(sizeof *dm);
