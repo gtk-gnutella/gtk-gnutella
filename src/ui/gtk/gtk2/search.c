@@ -1171,11 +1171,13 @@ static gboolean
 search_gui_menu_select_helper(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
-	gint page = -1;
 	struct menu_helper *mh = data;
+	gpointer value;
+	gint page;
 
 	(void) path;
-	gtk_tree_model_get(model, iter, 1, &page, (-1));
+	gtk_tree_model_get(model, iter, 1, &value, (-1));
+	page = GPOINTER_TO_INT(value);
 	if (page == mh->page) {
 		mh->iter = *iter;
 		return TRUE;
