@@ -8034,7 +8034,6 @@ download_send_request(struct download *d)
 	fileinfo_t *fi;
 	size_t rw;
 	ssize_t sent;
-	gboolean n2r = FALSE;
 	const gchar *sha1;
 
 	download_check(d);
@@ -8124,14 +8123,8 @@ picked:
 	 * we assigned the fileinfo based on name only).
 	 */
 
-	sha1 = d->sha1;
-	if (sha1 == NULL)
-		sha1 = fi->sha1;
-
+	sha1 = d->sha1 ? d->sha1 : fi->sha1;
 	if (sha1)
-		n2r = TRUE;
-
-	if (n2r)
 		d->flags |= DL_F_URIRES;
 	else
 		d->flags &= ~DL_F_URIRES;
@@ -8162,10 +8155,9 @@ picked:
 		if (escaped_uri != d->uri) {
 			G_FREE_NULL(escaped_uri);
 		}
-	} else if (n2r) {
+	} else if (sha1) {
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
-			sha1_base32(sha1));
+			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n", sha1_base32(sha1));
 	} else {
 		gchar *escaped = url_escape(d->file_name);
 
@@ -8326,10 +8318,12 @@ picked:
 		 * redundant.  We only send it if we sent mesh information.
 		 */
 
-		if (!n2r || wmesh)
+		if (wmesh) {
+			g_assert(sha1);
 			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 				sha1_base32(sha1));
+		}
 	}
 
 	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw, "\r\n");
