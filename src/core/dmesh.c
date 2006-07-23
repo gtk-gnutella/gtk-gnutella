@@ -274,7 +274,7 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 {
 	time_t now = tm_time();
 	struct dmesh_banned *dmb;
-	gint lifetime = BAN_LIFETIME;
+	time_delta_t lifetime = BAN_LIFETIME;
 
 	if (stamp == 0)
 		stamp = now;
