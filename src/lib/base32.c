@@ -140,7 +140,8 @@ static const gint8 old_values[256] = {
  * Furthermore, if `pad' is a non-NULL pointer, it is filled with the amount
  * of padding chars that would be necessary.
  */
-static gint encode_pad_length(gint len, gint *pad)
+static gint
+encode_pad_length(gint len, gint *pad)
 {
 	gint ndigits;			/* Base32 digits necessary */
 	gint npad = 0;			/* Final padding chars necessary */
@@ -177,8 +178,8 @@ static gint encode_pad_length(gint len, gint *pad)
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
  * Caller must have ensured that there was EXACTLY the needed room in encbuf.
  */
-static void base32_encode_exactly(const gchar *buf, guint len,
-	gchar *encbuf, gint enclen)
+static void
+base32_encode_exactly(const gchar *buf, guint len, gchar *encbuf, gint enclen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
 	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
@@ -256,8 +257,8 @@ static void base32_encode_exactly(const gchar *buf, guint len,
  * @attention
  * NB: No trailing NUL is emitted.
  */
-void base32_encode_into(const gchar *buf, gint len,
-	gchar *encbuf, gint enclen)
+void
+base32_encode_into(const gchar *buf, gint len, gchar *encbuf, gint enclen)
 {
 	gint pad;
 	gint exactlen = encode_pad_length(len, &pad);
@@ -275,7 +276,8 @@ void base32_encode_into(const gchar *buf, gint len,
  * A trailing NUL is emitted at the end of the encoded buffer.
  * Caller must have ensured that there was enough room in encbuf.
  */
-void base32_encode_str_into(const gchar *buf, gint len,
+void
+base32_encode_str_into(const gchar *buf, gint len,
 	gchar *encbuf, gint enclen, gboolean padding)
 {
 	gint pad;
@@ -300,7 +302,8 @@ void base32_encode_str_into(const gchar *buf, gint len,
  * @returns the new encoded buffer, NUL-terminated, and the added amount
  * of padding chars in `retpad' if it is a non-NULL pointer.
  */
-gchar *base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding)
+gchar *
+base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding)
 {
 	gint pad;
 	gint enclen = encode_pad_length(len, &pad);
@@ -332,7 +335,8 @@ gchar *base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding)
  *
  * @return decoded bytes if successful, 0 if the input was not valid base32.
  */
-static gint base32_decode_alphabet(const gint8 valmap[256],
+static gint
+base32_decode_alphabet(const gint8 valmap[256],
 	const gchar *buf, gint len, gchar *decbuf, gint declen, gint padding)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
@@ -478,8 +482,8 @@ static gint base32_decode_alphabet(const gint8 valmap[256],
  * @returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base32.
  */
-gint base32_decode_into(const gchar *buf, gint len,
-	gchar *decbuf, gint declen)
+gint
+base32_decode_into(const gchar *buf, gint len, gchar *decbuf, gint declen)
 {
 	gint padding = 0;
 
@@ -499,8 +503,8 @@ gint base32_decode_into(const gchar *buf, gint len,
  * @returns the amount of bytes decoded (without trailing padding) if successful,
  * 0 if the input was not valid base32.
  */
-gint base32_decode_old_into(const gchar *buf, gint len,
-	gchar *decbuf, gint declen)
+gint
+base32_decode_old_into(const gchar *buf, gint len, gchar *decbuf, gint declen)
 {
 	gint padding = 0;
 
@@ -520,7 +524,8 @@ gint base32_decode_old_into(const gchar *buf, gint len,
  * it is filled with the amount of bytes decoded into the buffer (without
  * trailing padding).
  */
-gchar *base32_decode(const gchar *buf, gint len, gint *outlen)
+gchar *
+base32_decode(const gchar *buf, gint len, gint *outlen)
 {
 	gint declen;
 	gchar *decbuf;
@@ -545,4 +550,4 @@ gchar *base32_decode(const gchar *buf, gint len, gint *outlen)
 	return decbuf;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
