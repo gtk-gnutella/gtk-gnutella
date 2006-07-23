@@ -2243,8 +2243,10 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 		to_remove = g_slist_prepend(to_remove, d);
 	}
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-		download_remove((struct download *) sl->data);
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		download_remove(d);
+	}
 
 	g_slist_free(to_remove);
 }
@@ -6203,7 +6205,7 @@ check_content_urn(struct download *d, header_t *header)
 		 * we're writing to the SAME file.
 		 */
 
-		if (d->record_index == URN_INDEX)
+		if (d->record_index == URN_INDEX && d->sha1)
 			n2r = TRUE;
 		else if (d->flags & DL_F_URIRES)
 			n2r = TRUE;
@@ -6215,8 +6217,10 @@ check_content_urn(struct download *d, header_t *header)
 		 *		--RAM, 15/11/2002
 		 */
 
-		if (n2r)
+		if (n2r) {
+			g_assert(d->sha1);
 			goto collect_locations;		/* Should be correct in reply */
+		}
 
 		/*
 		 * If "download_require_urn" is set, stop.
