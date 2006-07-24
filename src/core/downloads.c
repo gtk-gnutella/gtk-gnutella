@@ -6217,11 +6217,8 @@ check_content_urn(struct download *d, header_t *header)
 		 *		--RAM, 15/11/2002
 		 */
 
-		if (n2r) {
-			g_assert(d->file_info != NULL);
-			g_assert(d->sha1 || d->file_info->sha1);
+		if (n2r)
 			goto collect_locations;		/* Should be correct in reply */
-		}
 
 		/*
 		 * If "download_require_urn" is set, stop.
@@ -6357,7 +6354,16 @@ check_content_urn(struct download *d, header_t *header)
 	 */
 
 collect_locations:
-	huge_collect_locations(d->sha1, header);
+	{
+		const gchar *sha1;
+
+		g_assert(d->file_info != NULL);
+		g_assert(d->sha1 || d->file_info->sha1);
+
+		sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
+
+		huge_collect_locations(sha1, header);
+	}
 
 	return TRUE;
 }
