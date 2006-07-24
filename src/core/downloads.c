@@ -6218,7 +6218,8 @@ check_content_urn(struct download *d, header_t *header)
 		 */
 
 		if (n2r) {
-			g_assert(d->sha1);
+			g_assert(d->file_info != NULL);
+			g_assert(d->sha1 || d->file_info->sha1);
 			goto collect_locations;		/* Should be correct in reply */
 		}
 
