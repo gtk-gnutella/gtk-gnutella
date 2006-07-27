@@ -91,6 +91,7 @@
 #include "core/whitelist.h"
 #include "dht/kuid.h"
 #include "dht/routing.h"
+#include "dht/rpc.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -398,6 +399,7 @@ gtk_gnutella_exit(gint n)
 		sleep(1);
 	}
 
+	dht_rpc_close();
 	dht_route_close();
 	ntp_close();
 	sq_close();
@@ -692,8 +694,9 @@ main_timer(gpointer p)
 
 	if (!overloaded_cpu) {
 		icon_timer();
-		bg_sched_timer();			/* Background tasks */
 	}
+
+	bg_sched_timer(overloaded_cpu);			/* Background tasks */
 
 	return TRUE;
 }
@@ -987,6 +990,7 @@ main(int argc, char **argv)
 
 	kuid_init();			/* DHT */
 	dht_route_init();
+	dht_rpc_init();
 
 	main_gui_init();
 	node_post_init();

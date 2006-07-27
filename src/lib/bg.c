@@ -862,9 +862,11 @@ bg_task_ended(struct bgtask *bt)
 
 /**
  * Main task scheduling timer, called once per second.
+ *
+ * @param overloaded	when TRUE, CPU is already deemed to be busy enough
  */
 void
-bg_sched_timer(void)
+bg_sched_timer(gboolean overloaded)
 {
 	struct bgtask * volatile bt;
 	volatile gint remain = MAX_LIFE;
@@ -875,6 +877,9 @@ bg_sched_timer(void)
 	g_assert(current_task == NULL);
 	g_assert(runcount >= 0);
 
+	if (overloaded)
+		remain /= 2;	/* Use less CPU time when overloaded */
+
 	/*
 	 * Loop as long as there are tasks to be scheduled and we have some
 	 * time left to spend.
@@ -883,9 +888,12 @@ bg_sched_timer(void)
 	while (runcount > 0 && remain > 0) {
 		/*
 		 * Compute how much time we can spend for this task.
+		 * Slow things down if overloaded.
 		 */
 
 		target = MAX(MIN_LIFE, MAX_LIFE / runcount);
+		if (overloaded)
+			target /= 2;
 
 		bt = bg_sched_pick();
 		g_assert(bt);					/* runcount > 0 => there is a task */

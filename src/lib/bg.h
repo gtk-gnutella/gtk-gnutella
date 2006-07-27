@@ -95,7 +95,7 @@ typedef void (*bgnotify_cb_t)(gpointer h, gboolean on);
  */
 
 void bg_close(void);
-void bg_sched_timer(void);
+void bg_sched_timer(gboolean overloaded);
 
 gpointer bg_task_create(
 	gchar *name,						/**< Task name (for tracing) */

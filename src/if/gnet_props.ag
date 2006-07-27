@@ -3233,7 +3233,7 @@ prop = {
 		"Note that the overloading can result from gtk-gnutella not getting "
 		"enough CPU time because another process is competing for the CPU. "
 		"Whilst the overloading condition persists, GUI refreshing is reduced "
-		"and background tasks (SHA1 computation, file moving) are suspended.";
+		"and background tasks (SHA1 computation, file moving) are slowed down.";
 	save = FALSE;
     type = boolean;
     data = {

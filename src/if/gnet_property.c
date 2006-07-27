@@ -5951,7 +5951,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[278].name = "overloaded_cpu";
-    gnet_property->props[278].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gnutella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are suspended.");
+    gnet_property->props[278].desc = _("The average CPU usage indicates overloading, so gtk-gnutella is reducing the amount of non-critical processing it is performing. Note that the overloading can result from gtk-gnutella not getting enough CPU time because another process is competing for the CPU. Whilst the overloading condition persists, GUI refreshing is reduced and background tasks (SHA1 computation, file moving) are slowed down.");
     gnet_property->props[278].ev_changed = event_new("overloaded_cpu_changed");
     gnet_property->props[278].save = FALSE;
     gnet_property->props[278].vector_size = 1;
