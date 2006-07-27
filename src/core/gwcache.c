@@ -1057,7 +1057,7 @@ gwc_get_hosts(void)
 		"%s?hostfile=1&%s", current_url, CLIENT_INFO);
 
 	if (gwc_debug > 2)
-		printf("GWC host request: %s\n", gwc_tmp);
+		g_message("GWC host request: %s", gwc_tmp);
 
 	handle = http_async_get(gwc_tmp,
 		NULL, gwc_host_data_ind, gwc_host_error_ind);
@@ -1074,7 +1074,7 @@ gwc_get_hosts(void)
 }
 
 /***
- *** GET ...?ip=....&url=....
+ *** GET ...?ip=....
  ***/
 
 /**
@@ -1086,11 +1086,11 @@ static gboolean
 gwc_update_line(struct parse_context *ctx, const gchar *buf, size_t len)
 {
 	if (gwc_debug > 3)
-		printf("GWC update line (%lu bytes): %s\n", (gulong) len, buf);
+		g_message("GWC update line (%lu bytes): %s", (gulong) len, buf);
 
 	if (is_strprefix(buf, "OK")) {
 		if (gwc_debug > 2)
-			printf("GWC update OK for \"%s\"\n",
+			g_message("GWC update OK for \"%s\"",
 				http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
 		http_async_close(ctx->handle);		/* OK, don't read more */
 		return FALSE;
@@ -1130,45 +1130,12 @@ static void
 gwc_update_this(gchar *cache_url)
 {
 	gpointer handle;
-	gchar *url = NULL;
-	gboolean found_alternate = FALSE;
-	gboolean has_data = FALSE;
 	size_t rw;
-	gint i;
 
 	g_assert(cache_url != NULL);
 
 	rw = concat_strings(gwc_tmp, sizeof gwc_tmp, cache_url, "?", (void *) 0);
 	g_return_if_fail(rw < sizeof gwc_tmp);
-
-	/*
-	 * Choose another URL randomly.
-	 */
-
-	for (i = 0; i < MAX_GWC_URLS; i++) {
-		url = gwc_pick();
-		if (NULL != url && 0 != strcmp(url, cache_url)) {
-			found_alternate = TRUE;
-			break;
-		}
-	}
-
-	/*
-	 * If we found an URL different from the cache we're going to update,
-	 * publish the escaped URL in the request.
-	 */
-
-	if (found_alternate) {
-		gchar *escaped_url = url_escape_query(url);		/* For query string */
-
-		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
-			"url=%s&", escaped_url);
-
-		if (escaped_url != url)
-			G_FREE_NULL(escaped_url);
-
-		has_data = TRUE;		/* We have something to submit */
-	}
 
 	/*
 	 * Send our IP:port information if we're connectible, we are
@@ -1182,16 +1149,14 @@ gwc_update_this(gchar *cache_url)
 	) {
 		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw, "ip=%s&",
 			host_addr_port_to_string(listen_addr(), socket_listen_port()));
-		has_data = TRUE;
-	}
+	} else {
 
-	/*
-	 * If we don't have anything to submit, we're done.
-	 */
+		/*
+		 * If we don't have anything to submit, we're done.
+		 */
 
-	if (!has_data) {
 		if (gwc_debug > 2)
-			printf("GWC update has nothing to send\n");
+			g_message("GWC update has nothing to send");
 		return;
 	}
 
@@ -1202,7 +1167,7 @@ gwc_update_this(gchar *cache_url)
 	g_strlcpy(&gwc_tmp[rw], CLIENT_INFO, sizeof(gwc_tmp)-rw);
 
 	if (gwc_debug > 2)
-		printf("GWC update request: %s\n", gwc_tmp);
+		g_message("GWC update request: %s", gwc_tmp);
 
 	/*
 	 * Launch the asynchronous request and attach parsing information.
