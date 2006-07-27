@@ -40,13 +40,19 @@
 
 RCSID("$Id$");
 
+#include <glib.h>
+
 #include "routing.h"
 #include "kuid.h"
+#include "knode.h"
+#include "rpc.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/atoms.h"
 #include "lib/hashlist.h"
+#include "lib/host_addr.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -54,21 +60,45 @@ RCSID("$Id$");
  * The routing table is a binary tree.  Each node holds a k-bucket containing
  * the contacts whose KUID falls within the range of the k-bucket.
  */
-struct knode {
+struct kbucket {
 	kuid_t prefix;				/**< Node prefix of the k-bucket */
-	struct knode *parent;		/**< Parent node in the tree */
-	struct knode *zero;			/**< Child node for "0" prefix */
-	struct knode *one;			/**< Child node for "1" prefix */
+	struct kbucket *parent;		/**< Parent node in the tree */
+	struct kbucket *zero;		/**< Child node for "0" prefix */
+	struct kbucket *one;		/**< Child node for "1" prefix */
 	hash_list_t *good;			/**< The good nodes */
 	hash_list_t *stale;			/**< The (possibly) stale nodes */
 	hash_list_t *pending;		/**< The nodes which are awaiting decision */
+	GHashTable *all;			/**< All nodes in one of the lists */
 	time_t last_refresh;		/**< Last time bucket was refreshed */
 	guchar depth;				/**< Depth in tree (meaningful bits) */
 	gboolean ours;				/**< Whether our KUID falls in that bucket */
 };
 
-static struct knode *root = NULL;	/**< The root of the routing table tree. */
-static kuid_t our_kuid;				/**< Our own KUID */
+static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
+static kuid_t *our_kuid;			/**< Our own KUID (atom) */
+
+/**
+ * Hashing of knodes,
+ */
+static guint
+knode_hash(gconstpointer key)
+{
+	const knode_t *kn = key;
+
+	return sha1_hash(kn->id);
+}
+
+/**
+ * Equality of knodes.
+ */
+static gint
+knode_eq(gconstpointer a, gconstpointer b)
+{
+	const knode_t *k1 = a;
+	const knode_t *k2 = b;
+
+	return k1->id == k2->id;		/* We know IDs are atoms */
+}
 
 /**
  * Initialize routing table management.
@@ -78,6 +108,7 @@ dht_route_init(void)
 {
 	gint i;
 	gboolean need_kuid = TRUE;
+	kuid_t buf;
 
 	/*
 	 * Only generate a new KUID for this servent if all entries are 0.
@@ -85,10 +116,10 @@ dht_route_init(void)
 	 * overridden by the KUID read from the configuration file.
 	 */
 
-	gnet_prop_get_storage(PROP_SERVENT_KUID, our_kuid.v, sizeof our_kuid.v);
+	gnet_prop_get_storage(PROP_SERVENT_KUID, buf.v, sizeof buf.v);
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		if (our_kuid.v[i]) {
+		if (buf.v[i]) {
 			need_kuid = FALSE;
 			break;
 		}
@@ -96,12 +127,14 @@ dht_route_init(void)
 
 	if (need_kuid) {
 		if (dht_debug) g_message("generating new DHT node ID");
-		kuid_random_fill(&our_kuid);
-		gnet_prop_set_storage(PROP_SERVENT_KUID, our_kuid.v, sizeof our_kuid.v);
+		kuid_random_fill(&buf);
+		gnet_prop_set_storage(PROP_SERVENT_KUID, buf.v, sizeof buf.v);
 	}
 
 	if (dht_debug)
 		g_message("DHT local node ID is %s", kuid_to_string(&our_kuid));
+
+	our_kuid = (kuid_t *) atom_sha1_get(buf.v);
 
 	/*
 	 * Allocate root node for the routing table.
@@ -109,6 +142,172 @@ dht_route_init(void)
 
 	root = walloc0(sizeof *root);
 	root->ours = TRUE;
+}
+
+/**
+ * Does the specified bucket manage the KUID?
+ */
+static gboolean
+dht_bucket_manages(struct kbucket *kb, kuid_t *id)
+{
+	gint bits = kb->depth;
+	gint i;
+
+	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
+		guchar mask = 0xff;
+	
+		if (bits < 8)
+			mask = ~((1 << (8 - bits)) - 1) & 0xff;
+
+		if ((kb->prefix.v[i] & mask) != (id->v[i] & mask))
+			return FALSE;
+	}
+
+	/*
+	 * We know that the prefix matched.  Now we have a real match only
+	 * if there are no children.
+	 */
+
+	return kb->zero == NULL && kb->one == NULL;
+}
+
+/**
+ * Find bucket responsible for handling the given KUID.
+ */
+static struct kbucket *
+dht_find_bucket(kuid_t *id)
+{
+	gint i;
+	struct kbucket *kb = root;
+	struct kbucket *result;
+
+	for (i = 0; i < KUID_RAW_SIZE; i++) {
+		guchar mask;
+		guchar val = id->v[i];
+		gint j;
+
+		for (j = 0, mask = 0x80; j < 8; j++, mask >>= 1) {
+			result = (val & mask) ? kb->one : kb->zero;
+			if (result == NULL)
+				return kb;		/* Found the leaf of the tree */
+			kb = result;		/* Will need to test one more level */
+		}
+	}
+
+	/*
+	 * It's not possible to come here because at some point above we'll reach
+	 * a leaf node where there is no successor, whatever the bit is...  This
+	 * is guaranteeed at a depth of 160.  Hence the following assertion.
+	 */
+
+	g_assert_not_reached();
+
+	return NULL;
+}
+
+/**
+ * Try to add node into the routing table at the specified bucket.
+ *
+ * If the bucket that should manage the node is already full, we need to see
+ * whether we don't have stale nodes in there so the addition is pending,
+ * until we know for sure.
+ *
+ * @return whether node was added (even if pending).
+ */
+static gboolean
+dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb)
+{
+	g_assert(kb->all != NULL);
+
+	if (g_hash_table_lookup(kb->all, kn->id))
+		return FALSE;			/* Already in table */
+
+	if (kb->good == NULL)
+		kb->good = hash_list_new(knode_hash, knode_eq);
+
+	if (hash_list_length(kb->good) < K_BUCKET_GOOD) {
+		kn->status = KNODE_GOOD;
+		hash_list_append(kb->good, kn);
+		g_hash_table_insert(kb->all, kn->id, kn);
+		return TRUE;
+	}
+
+	// XXX
+	return FALSE;
+}
+
+// XXX move to knode.c?
+/**
+ * RPC callback for the address verification.
+ */
+static void
+dht_addr_verify_cb(
+	enum dht_rpc_ret type, const kuid_t *unused_kuid, const gnet_host_t *host,
+	const gchar *unused_payload, size_t unused_len, gpointer arg)
+{
+	knode_t *kn = arg;
+
+	(void) unused_kuid;
+	(void) unused_payload;
+	(void) unused_len;
+
+	if (type == DHT_RPC_TIMEOUT)
+		goto out;
+
+	// XXX
+
+out:
+	kn->flags &= ~KNODE_F_VERIFYING;
+	knode_free(kn);
+}
+
+/**
+ * Add KUID to the table.
+ *
+ * @param id	the KUID of the host
+ * @param addr	the IP address where the host can be reached
+ * @param port	the UDP port at which we can contact the node
+ */
+void
+dht_add(kuid_t *id, host_addr_t addr, guint16 port)
+{
+	struct kbucket *kb;
+	struct knode *kn;
+
+	kb = dht_find_bucket(id);
+	g_assert(kb != NULL);
+
+	if (kb->all == NULL)
+		kb->all = g_hash_table_new(sha1_hash, sha1_eq);
+
+	kn = g_hash_table_lookup(kb->all, id);
+
+	/*
+	 * If node is already known, check whether it's the same IP:port as
+	 * the one we know about.  If it is, just ignore.  If it isn't, record
+	 * a node address verification and return.
+	 */
+
+	if (kn != NULL) {
+		if (host_addr_equal(addr, kn->addr) && port == kn->port)
+			return;
+
+		// XXX move to knode.c?
+		if (kn->flags & KNODE_F_VERIFYING)
+			return;			/* Already verifying address */
+
+		if (dht_debug)
+			g_message("DHT node %s was at %s, now %s:%u -- verifying",
+				sha1_base32(kn->id->v),
+				host_addr_port_to_string(kn->addr, kn->port),
+				host_addr_to_string(addr), port);
+
+		kn->flags |= KNODE_F_VERIFYING;
+		dht_rpc_ping(kn, dht_addr_verify_cb, knode_refcnt_inc(kn));
+		return;
+	}
+
+	// XXX
 }
 
 /**
@@ -133,22 +332,32 @@ dht_free_node_hashlist(hash_list_t *hl)
  * Free bucket node.
  */
 static void
-dht_free_knode(struct knode *kn)
+dht_free_kbucket(struct kbucket *kb)
 {
-	if (kn->good != NULL) {
-		dht_free_node_hashlist(kn->good);
-		kn->good = NULL;
+	if (kb->good != NULL) {
+		dht_free_node_hashlist(kb->good);
+		kb->good = NULL;
 	}
-	if (kn->stale != NULL) {
-		dht_free_node_hashlist(kn->stale);
-		kn->good = NULL;
+	if (kb->stale != NULL) {
+		dht_free_node_hashlist(kb->stale);
+		kb->good = NULL;
 	}
-	if (kn->pending != NULL) {
-		dht_free_node_hashlist(kn->pending);
-		kn->good = NULL;
+	if (kb->pending != NULL) {
+		dht_free_node_hashlist(kb->pending);
+		kb->good = NULL;
+	}
+	if (kb->all != NULL) {
+		/*
+		 * All the nodes listed in that table were actually also held in one
+		 * of the above hash lists.  Since we expect those lists to all be
+		 * empty, it means this table should also be empty.
+		 */
+
+		g_hash_table_destroy(kb->all);
+		kb->all = NULL;
 	}
 
-	wfree(kn, sizeof *kn);
+	wfree(kb, sizeof *kb);
 }
 
 /**
@@ -157,6 +366,7 @@ dht_free_knode(struct knode *kn)
 void
 dht_route_close(void)
 {
+	atom_sha1_free(our_kuid->v);
 }
 
 

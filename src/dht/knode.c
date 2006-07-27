@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id$
  *
  * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,34 +23,67 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * A Kademlia node.
+ *
+ * @author Raphael Manfredi
+ * @date 2006
+ */
 
-SRC = \
-	knode.c \
-	kuid.c \
-	routing.c \
-	rpc.c
+#include "common.h"
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+RCSID("$Id$");
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+#include "knode.h"
 
-/* Add the SQLite flags */
-++SQLITE_CFLAGS $sqlitecflags
+#include "lib/atoms.h"
+#include "lib/walloc.h"
+#include "lib/override.h"		/* Must be the last header included */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(SQLITE_CFLAGS) \
-	-DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+/**
+ * Allocate new Kademlia node.
+ */
+knode_t *
+knode_new(kuid_t *id, host_addr_t addr, guint16 port)
+{
+	knode_t *kn;
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+	kn = walloc0(sizeof *kn);
+	kn->id = (kuid_t *) atom_sha1_get(id->v);
+	kn->refcnt = 1;
+	kn->addr = addr;
+	kn->port = port;
+	kn->status = KNODE_UNKNOWN;
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
+	return kn;
+}
 
+/**
+ * Reclaim memory used by Kademlia node.
+ */
+static void
+knode_dispose(knode_t *kn)
+{
+	g_assert(kn->refcnt == 0);
+
+	atom_sha1_free(kn->id->v);
+	wfree(kn, sizeof *kn);
+}
+
+/**
+ * Remove a reference on a Kademlia node, disposing of the structure when
+ * none remain.
+ */
+void
+knode_free(knode_t *kn)
+{
+	if (--kn->refcnt)
+		return;
+
+	knode_dispose(kn);
+}
+
+/* vi: set ts=4 sw=4 cindent: */

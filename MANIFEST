@@ -397,10 +397,14 @@ src/core/whitelist.c
 src/core/whitelist.h
 src/dht/Jmakefile
 src/dht/Makefile.SH
+src/dht/knode.c
+src/dht/knode.h
 src/dht/kuid.c
 src/dht/kuid.h
 src/dht/routing.c
 src/dht/routing.h
+src/dht/rpc.c
+src/dht/rpc.h
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH

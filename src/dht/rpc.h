@@ -27,30 +27,56 @@
  * @ingroup dht
  * @file
  *
- * Kademlia Unique ID (KUID) manager.
+ * Kademlia Remote Procedure Call management.
  *
  * @author Raphael Manfredi
  * @date 2006
  */
 
-#ifndef _dht_routing_h_
-#define _dht_routing_h_
+#ifndef _dht_rpc_h_
+#define _dht_rpc_h_
 
+#include "knode.h"
 #include "kuid.h"
-#include "lib/host_addr.h"
 
-#define K_BUCKET_PUBLIC		20		/* Supposed to keep only 20 per bucket */
-#define K_BUCKET_GOOD		30		/* Really keep 30 contacts per bucket */
-#define K_BUCKET_STALE		20		/* Keep 20 possibly "stale" contacts */
-#define K_BUCKET_PENDING	10		/* Keep 10 pending contacts */
+#include "if/core/hosts.h"
+#include "if/core/guid.h"
+
+#define DHT_RPC_MAXDELAY	30000	/* 30 secs max to get a reply */
+
+/**
+ * RPC operations.
+ */
+enum dht_rpc_op {
+	DHT_RPC_PING = 0,		/**< ping remote node */
+};
+
+/**
+ * RPC replies.
+ */
+enum dht_rpc_ret {
+	DHT_RPC_TIMEOUT = 0,	/**< timed out */
+	DHT_RPC_PONG,			/**< pong from remote node */
+};
+
+/**
+ * An RPC callback.
+ */
+typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
+	const kuid_t *kuid, const gnet_host_t *host,
+	const gchar *payload, size_t len, gpointer arg);
 
 /*
  * Public interface.
  */
 
-void dht_route_init(void);
-void dht_route_close(void);
-void dht_add(kuid_t *id, host_addr_t addr, guint16 port);
+void dht_rpc_init(void);
+void dht_rpc_close(void);
 
-#endif /* _dht_routing_h_ */
+void dht_rpc_answer(const guid_t *guid, const kuid_t *kuid,
+	const gnet_host_t *host, gconstpointer payload, size_t len, gpointer arg);
+
+void dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg);
+
+#endif /* _dht_rpc_h_ */
 

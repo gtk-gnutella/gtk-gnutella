@@ -30,6 +30,10 @@
 
 #include "lib/misc.h"		/* For GUID_RAW_SIZE */
 
+typedef struct guid {
+	guchar v[GUID_RAW_SIZE];
+} guid_t;
+
 extern const gchar blank_guid[GUID_RAW_SIZE];
 
 #endif /* _if_core_guid_h_ */
