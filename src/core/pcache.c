@@ -506,6 +506,7 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	guint32 files;
 	struct pong_info info;
 	guint32 ip_uptime;
+	guint32 avg_uptime;
 
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
@@ -549,7 +550,8 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 
 	ip_uptime = delta_time(tm_time(), current_ip_stamp);
 	ip_uptime = MAX(ip_uptime, average_ip_uptime);
-	local_meta.daily_uptime = MIN(average_servent_uptime, ip_uptime);
+	avg_uptime = get_average_servent_uptime(tm_time());
+	local_meta.daily_uptime = MIN(avg_uptime, ip_uptime);
 
 	/*
 	 * Activate "UP" only if we're an ultrapeer right now.
