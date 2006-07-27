@@ -387,6 +387,24 @@
 216.144.227.64/26
 216.144.235.64/26
 
+# DRM WMV pr0n spammer; files link to videoaccesspoint dot com; giFT-based
+64.45.229.50
+204.69.113.9
+# The one below identifies as "LemonWire"; spams for videoaccesspoint too
+65.37.238.145
+
+# DRM WMA spam without SHA-1s; the uploaded chunks are JPEGs;
+# sends very weird HTTP responses:
+# HTTP 200 OK
+# Server: Gnucleus 1.8.4.0
+# Content-type:application/binary
+# Accept-Ranges: bytes
+# Content-Range: bytes=125197-649484/125197
+# Content-Length: 524288
+# X-Gnutella-Content-URN: urn:sha1:K4JPX22BKXHMEQOJR3FNCUF2DSSK2SHQ
+#
+67.159.21.0/27
+
 # University of Mississippi
 130.74.0.0/16
 
