@@ -8478,7 +8478,7 @@ select_push_download(GSList *servers)
 		 */
 
 		iter = list_iter_before_head(server->list[DL_LIST_RUNNING]);
-		while (list_iter_has_next(iter)) {
+		while (!found && list_iter_has_next(iter)) {
 
 			d = list_iter_next(iter);
 			g_assert(DOWNLOAD_IS_RUNNING(d));
@@ -8491,7 +8491,6 @@ select_push_download(GSList *servers)
 						download_port(d)),
 					download_vendor_str(d));
 				found = 1;		/* Found in running list */
-				break;
 			}
 		}
 		list_iter_free(&iter);
@@ -8532,7 +8531,7 @@ select_push_download(GSList *servers)
 				continue;
 
 			if (download_debug > 2) g_message(
-				"GIV: trying alternate download \"%s\" from %s at %s <%s>",
+				"GIV: will try alternate download \"%s\" from %s at %s <%s>",
 				download_outname(d), guid_hex_str(server->key->guid),
 				host_addr_port_to_string(download_addr(d),
 					download_port(d)),
@@ -8549,7 +8548,7 @@ select_push_download(GSList *servers)
 		list_iter_free(&iter);
 
 		iter = list_iter_before_head(prepare);
-		while (list_iter_has_next(iter)) {
+		while (!found && list_iter_has_next(iter)) {
 			d = list_iter_next(iter);
 
 			/*
@@ -8577,16 +8576,15 @@ select_push_download(GSList *servers)
 						download_port(d)),
 					download_vendor_str(d));
 
-				g_assert(d->socket == NULL);	/* Not connected yet! */
-
 				found = 2;			/* Found in waiting list */
 				break;
 			}
-
-			g_assert(d->socket == NULL);	/* No side effect */
 		}
 		list_iter_free(&iter);
 		list_free(&prepare);
+
+		if (found)
+			break;
 	}
 
 	g_assert(!found || d->socket == NULL);
