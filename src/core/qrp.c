@@ -127,6 +127,7 @@ struct routing_patch {
 	gint refcnt;			/**< Amount of references */
 	guint8 *arena;
 	gint size;				/**< Number of entries in table */
+	gint infinity;			/**< Value of infinity for the table patched */
 	gint len;				/**< Length of arena in bytes */
 	gint entry_bits;
 	gboolean compressed;
@@ -472,6 +473,7 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 	rp->magic = ROUTING_PATCH_MAGIC;
 	rp->refcnt = 1;
 	rp->size = new->slots;
+	rp->infinity = new->infinity;
 	rp->len = rp->size / 2;			/* Each entry stored on 4 bits */
 	rp->entry_bits = 4;
 	rp->compressed = FALSE;
@@ -2498,9 +2500,28 @@ qrt_compressed(gpointer unused_h, gpointer unused_u,
 	qup->seqno = 1;					/* Numbering starts at 1 */
 	qup->seqsize = msgcount;
 
+	/*
+	 * Although we referenced `routing_patch' freely above, we cannot
+	 * reference `routing_table' here to get its size and infinity values.
+	 * We MUST use the values from the computed routing patch, since the
+	 * global routing table might have already been changed whilst we were
+	 * compressing the patch: we'll send a stale patch, but that's OK.
+	 *
+	 * If the table size has grown since the time we started the patch
+	 * computation, we'd send a bad size for the RESET and that could explain
+	 * the bugs we've seen whereby UP <-> UP routing table updates fail with
+	 * a message like "Incomplete 4-bit QRP patch covered 16384/65536 slots".
+	 *
+	 * This is more likely to happen for UP <-> UP updates because in an UP
+	 * the recomputation of the routing table happens each time there is a
+	 * change detected, but the bug was also latent for Leaf -> UP updates,
+	 * although of course less frequent.
+	 *
+	 *		--RAM, 2006-07-28, hoping to have nailed down that bug
+	 */
+
 	if (qup->reset_needed)
-		qrp_send_reset(qup->node,
-			routing_table->slots, routing_table->infinity);
+		qrp_send_reset(qup->node, rp->size, rp->infinity);
 
 	return;
 
