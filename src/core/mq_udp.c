@@ -210,9 +210,8 @@ mq_udp_service(gpointer data)
 		if (r != mb_size) {
 			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
 				r, host_addr_port_to_string(mi->to.addr, mi->to.port), mb_size);
-			l = q->cops->rmlink_prev(q, l, mb_size);
 			dropped++;
-			continue;
+			goto skip;
 		}
 
 		node_add_tx_given(q->node, r);
