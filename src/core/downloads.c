@@ -3310,14 +3310,23 @@ download_start_prepare_running(struct download *d)
 {
 	fileinfo_t *fi;
 
+	/*
+	 * Do NOT use g_return_val_if_fail(blah, FALSE) in this routine.
+	 * It MUST be g_assert() because before returning FALSE, some
+	 * cleanup would be necessary to move back the download to the queue.
+	 *
+	 * Also if some of the assertions here are false, there is an important
+	 * bug we need to tackle.
+	 */
+
 	download_check(d);
 
-	g_return_val_if_fail(d->file_info, FALSE);
+	g_assert(d->file_info);
 	fi = d->file_info;
 
-	g_return_val_if_fail(!DOWNLOAD_IS_QUEUED(d), FALSE);
-	g_return_val_if_fail(d->list_idx == DL_LIST_RUNNING, FALSE);
-	g_return_val_if_fail(fi->lifecount > 0, FALSE);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+	g_assert(d->list_idx == DL_LIST_RUNNING);
+	g_assert(fi->lifecount > 0);
 
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
 
@@ -3427,6 +3436,12 @@ download_start_prepare(struct download *d)
 	 */
 
 	d->flags &= ~DL_F_SUNK_DATA;		/* Restarting, nothing sunk yet */
+
+	/*
+	 * download_start_prepare_running() promises that it will dispose of
+	 * the download properly if it returns FALSE (e.g. moving it back to
+	 * the waiting list).
+	 */
 
 	return download_start_prepare_running(d);
 }
@@ -8435,7 +8450,7 @@ select_push_download(GSList *servers)
 	GSList *sl;
 	time_t now = tm_time();
 	struct download *d = NULL;
-	gboolean found = FALSE;
+	gint found = 0;		/* No a boolean to trace where it was found from */
 
 	/*
 	 * We do not limit by download slots for GIV... Indeed, pushes are
@@ -8475,7 +8490,7 @@ select_push_download(GSList *servers)
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d));
-				found = TRUE;
+				found = 1;		/* Found in running list */
 				break;
 			}
 		}
@@ -8543,6 +8558,8 @@ select_push_download(GSList *servers)
 			 * range offset.
 			 */
 
+			g_assert(d->socket == NULL);
+
 			if (download_start_prepare(d)) {
 				d->status = GTA_DL_CONNECTING;
 				if (!DOWNLOAD_IS_VISIBLE(d))
@@ -8560,13 +8577,19 @@ select_push_download(GSList *servers)
 						download_port(d)),
 					download_vendor_str(d));
 
-				found = TRUE;
+				g_assert(d->socket == NULL);	/* Not connected yet! */
+
+				found = 2;			/* Found in waiting list */
 				break;
 			}
+
+			g_assert(d->socket == NULL);	/* No side effect */
 		}
 		list_iter_free(&iter);
 		list_free(&prepare);
 	}
+
+	g_assert(!found || d->socket == NULL);
 
 	return found ? d : NULL;
 }
