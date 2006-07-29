@@ -376,8 +376,7 @@
 
 # DRM WMV pr0n spammer; filenames are all caps; license server is 74.52.9.122
 88.85.65.130
-88.85.66.138/31
-88.85.66.140
+88.85.66.128/25
 
 # MOV pr0n spammer; giFT-based; results do not match queries at all;
 # links to adultpeak dot com.
@@ -392,7 +391,11 @@
 
 # DRM WMV pr0n spammer; files link to videoaccesspoint dot com; giFT-based
 64.45.229.50
+65.221.229.56
+69.45.233.2
 204.69.113.9
+204.69.119.132
+
 # The one below identifies as "LemonWire"; spams for videoaccesspoint too
 65.37.238.145
 
