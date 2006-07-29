@@ -368,6 +368,9 @@
 204.11.222.128/28
 204.11.223.0/26
 
+# Aggressivly connecting; getting disconnected due to security violations
+128.108.211.103
+
 # swapexits.com; DRM license server
 74.52.9.122
 
