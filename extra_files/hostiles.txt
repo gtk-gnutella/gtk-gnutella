@@ -405,6 +405,9 @@
 #
 67.159.21.0/27
 
+# .exe spam from fake LimeWire; does not match query at all
+216.255.178.18
+
 # University of Mississippi
 130.74.0.0/16
 
