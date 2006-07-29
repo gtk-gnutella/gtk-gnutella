@@ -56,6 +56,22 @@ static const gchar whitelist_file[] = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
 static gchar *whitelist_path = NULL;
 
+static guint
+addr_default_mask(const host_addr_t addr)
+{
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		return 32;
+	case NET_TYPE_IPV6:
+		return 128;
+	case NET_TYPE_NONE:
+		break;
+	}
+	g_assert_not_reached();
+	return 0;
+}
+
+
 /**
  * Loads the whitelist into memory.
  */
@@ -119,6 +135,7 @@ whitelist_retrieve(void)
         if (is_host_addr(addr)) {
 			sl_addr = g_slist_prepend(sl_addr, wcopy(&addr, sizeof addr));
 		} else {
+			gchar *name;
 			guchar c = *endptr;
 			size_t len;
 
@@ -139,22 +156,27 @@ whitelist_retrieve(void)
 				continue;
 			}
 
+			/* Terminate the string for name_to_host_addr() */
 			len = endptr - line;
-			line[len] = '\0'; /* Terminate the string for name_to_host_addr() */
-
+			name = g_strndup(line, len); 
+			
 			/* @todo TODO: This should use the ADNS resolver. */
-       		sl_addr = name_to_host_addr(line, settings_dns_net());
+       		sl_addr = name_to_host_addr(name, settings_dns_net());
        		if (!sl_addr) {
            		g_warning("whitelist_retrieve(): "
 					"Line %d: Could not resolve hostname \"%s\"",
 					linenum, line);
-            	continue;
+			}
+			G_FREE_NULL(name);
+       		if (!sl_addr) {
+				continue;
 			}
 		}
 
        	g_assert(sl_addr);
 		g_assert(NULL != endptr);
-		port = bits = 0;
+		bits = 0;
+		port = 0;
 		item_ok = TRUE;
 
 		/* Ignore trailing items separated by a space */
@@ -233,21 +255,6 @@ whitelist_retrieve(void)
 			}
 		}
 
-		if (0 == bits)	{
-			/* Default mask */
-			switch (host_addr_net(addr)) {
-			case NET_TYPE_IPV4:
-        		bits = 32;
-				break;
-			case NET_TYPE_IPV6:
-        		bits = 128;
-				break;
-			case NET_TYPE_NONE:
-				break;
-			}
-			g_assert(0 != bits);
-		}
-
 		if (item_ok) {
 			for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
 				host_addr_t *addr_ptr = sl->data;
@@ -258,7 +265,7 @@ whitelist_retrieve(void)
 				item = walloc0(sizeof *item);
 				item->addr = *addr_ptr;
 				item->port = port;
-				item->bits = bits;
+				item->bits = bits ? bits : addr_default_mask(item->addr);
 
 				sl_whitelist = g_slist_prepend(sl_whitelist, item);
 			}
