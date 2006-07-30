@@ -99,7 +99,6 @@ static const struct {
 	{ "guruz.udp-host-cache.com:6666" },
 	{ "kisama.ath.cx:8080" },
 	{ "krill.shacknet.nu:20095" },
-	{ "navini.kicks-ass.org:8181" },
 	{ "plankton.merseine.nu:20098" },
 	{ "pokerface.ibiza.bishopston.net:3558" },
 	{ "secondary.udp-host-cache.com:9999" },
