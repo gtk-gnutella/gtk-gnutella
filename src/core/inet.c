@@ -228,6 +228,7 @@ is_local_addr(const host_addr_t addr)
 
 			if (!tried) {
 				/* This should not change */
+				tried = TRUE;
 				our_addr_v6 = name_to_single_host_addr(local_hostname(),
 								NET_TYPE_IPV6);
 			}
