@@ -1,5 +1,5 @@
 Source: gtk-gnutella
-Build-Depends: debhelper (>= 4.0.0), libglib2.0-dev, libgtk2.0-dev, zlib1g-dev (>= 1:1.1.4), libxml2-dev (>= 2.4.19), gettext, libgnutls-dev, libdbus-1-dev, libsqlite3-dev (>= 3.2.0)
+Build-Depends: debhelper (>= 4.0.0), libglib2.0-dev, libgtk2.0-dev, zlib1g-dev (>= 1:1.1.4), libxml2-dev (>= 2.4.19), gettext, libgnutls-dev, libdbus-1-dev, libsqlite3-dev (>= 3.3.0)
 Section: net
 Priority: optional
 Maintainer: Anand Kumria <wildfire@progsoc.org>
