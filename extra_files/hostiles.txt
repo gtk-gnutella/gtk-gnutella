@@ -264,6 +264,9 @@
 64.72.124.0/24
 64.72.126.0/24
 
+# www.getlaidquickly.com
+38.99.20.116
+
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
 63.216.80.0/24
 205.177.5.0/24
