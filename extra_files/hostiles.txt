@@ -264,7 +264,8 @@
 64.72.124.0/24
 64.72.126.0/24
 
-# www.getlaidquickly.com
+# getlaidquickly dot com; spam results for files which do not even exist;
+# seemingly just an attempt to make the website well-known
 38.99.20.116
 
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
@@ -392,6 +393,8 @@
 72.11.158.128/27
 216.144.227.64/26
 216.144.235.64/26
+38.100.236.6
+38.100.236.9
 
 # MOV pr0n spammer; giFT-based; links to i2cams dot com.
 204.69.118.138
@@ -402,6 +405,7 @@
 64.45.229.50
 65.221.229.56
 69.45.233.2
+69.45.227.3
 204.69.113.9
 204.69.119.132
 
