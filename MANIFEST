@@ -229,7 +229,12 @@ po/quot.sed
 po/remove-potcdate.sin
 po/uk.po
 po/zh_CN.po
+scripts/fix_copyright.pl
+scripts/geo-to-db.pl
 scripts/gtkg-dbus-listener.py
+scripts/make_topless.sh
+scripts/sha1_cache.pl
+scripts/sha1_cache.sh
 src/Jmakefile
 src/Makefile.SH
 src/casts.h
