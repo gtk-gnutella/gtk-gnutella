@@ -143,6 +143,7 @@ RCSID("$Id$");
 
 #define NODE_AUTO_SWITCH_MIN	1800	/**< Don't switch too often UP - leaf */
 #define NODE_AUTO_SWITCH_MAX	61200	/**< Max between switches (17 hours) */
+#define NODE_UP_NO_LEAF_MAX		3600	/**< Don't remain UP if no leaves */
 
 #define NODE_TSYNC_WAIT_MS		5000	/**< Wait time after connecting (5s) */
 #define NODE_TSYNC_PERIOD_MS	300000	/**< Synchronize every 5 minutes */
@@ -239,6 +240,7 @@ static guint compressed_leaf_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
 static guint32 leaf_to_up_switch = NODE_AUTO_SWITCH_MIN;
+static time_t no_leaves_connected = 0;
 
 static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
 
@@ -714,12 +716,31 @@ node_slow_timer(time_t now)
 	time_t last_switch = node_last_ultra_leaf_switch;	/* Property */
 
 	/*
+	 * Clear `no_leaves_connected' if we have something connected, or
+	 * record the first time at which we came here with no leaf connected.
+	 */
+
+	if (current_peermode == NODE_P_ULTRA) {
+		if (node_leaf_count)
+			no_leaves_connected = 0;
+		else if (no_leaves_connected == 0)
+			no_leaves_connected = now;
+	} else
+		no_leaves_connected = 0;
+
+	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,
 	 * evaluate our ability to become an ultra node.
+	 *
+	 * NB: we test for configured_peermode == NODE_P_ULTRA because we
+	 * can switch to leaf even when the user wants to be an ultra node
+	 * when we make a very bad ultra peer and it is best for the network
+	 * that we be a leaf node.
 	 */
 
 	if (
-		configured_peermode == NODE_P_AUTO &&
+		(configured_peermode == NODE_P_AUTO ||
+			configured_peermode == NODE_P_ULTRA) &&
 		current_peermode == NODE_P_LEAF &&
 		delta_time(now, last_switch) > (time_delta_t) leaf_to_up_switch &&
 		can_become_ultra(now)
@@ -759,13 +780,43 @@ node_slow_timer(time_t now)
 	/*
 	 * If we're running in ultra node and we are TCP-firewalled, then
 	 * switch to leaf mode.
+	 *
+	 * We don't check whether they are firewalled if they asked to run as
+	 * an ultranode here -- this will be caught by the check below when
+	 * no leaf can connect.
 	 */
+
 	if (
 		configured_peermode == NODE_P_AUTO &&
 		current_peermode == NODE_P_ULTRA &&
 		is_firewalled
 	) {
 		g_warning("firewalled node being demoted from Ultrapeer status");
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
+		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
+		return;
+	}
+
+	/*
+	 * If we're running as an ultra node (whether automaatically promoted
+	 * or configured explicitly to run as such) and we have seen no leaf
+	 * node connection for some time, then we're a bad node: we're taking
+	 * an ultranode slot in a high outdegree network with a low TTL and
+	 * are therefore harming the propagation of queries to leaf nodes,
+	 * since we have none.
+	 *
+	 * Therefore, we'll be better off running as a leaf node.
+	 */
+
+	if (
+		current_peermode == NODE_P_ULTRA &&
+		no_leaves_connected != 0 &&
+		delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
+	) {
+		leaf_to_up_switch *= 2;
+		leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
+		g_warning("rogue node being demoted from Ultrapeer status for %d secs",
+			leaf_to_up_switch);
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
 		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
 		return;
