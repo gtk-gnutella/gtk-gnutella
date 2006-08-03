@@ -153,6 +153,7 @@ mq_udp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 
 	q = walloc0(sizeof(*q));
 
+	q->magic = MQ_MAGIC;
 	q->node = n;
 	q->tx_drv = nd;
 	q->maxsize = maxsize;
@@ -178,6 +179,7 @@ mq_udp_service(gpointer data)
 	gint sent;
 	gint dropped;
 
+	mq_check(q, 0);
 	g_assert(q->count);		/* Queue is serviced, we must have something */
 
 	sent = 0;
@@ -240,6 +242,7 @@ mq_udp_service(gpointer data)
 		l = q->cops->rmlink_prev(q, l, mb_size);
 	}
 
+	mq_check(q, 0);
 	g_assert(q->size >= 0 && q->count >= 0);
 
 	if (sent)
@@ -263,6 +266,8 @@ mq_udp_service(gpointer data)
 		tx_srv_disable((txdrv_t *) q->tx_drv);
 		node_tx_service(q->node, FALSE);
 	}
+
+	mq_check(q, 0);
 }
 
 /**
@@ -284,6 +289,7 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
 	g_assert(q->ops == &mq_udp_ops);	/* Is an UDP queue */
+	mq_check(q, 0);
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
@@ -362,28 +368,12 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	mbe = mq_udp_attach_metadata(mb, to);
 
 	q->cops->puthere(q, mbe, size);
+	mq_check(q, 0);
 	return;
 
 cleanup:
-
-#if 0
-	/* XXX: This is a temporary additional check for debugging purposes */
-	{
-		gint i;
-
-		for (i = 0; i < q->qlink_count; i++) {
-			GList *l;
-			gpointer found;
-
-			l = q->qlink[i];
-			g_assert(l != NULL);
-			found = g_list_find(l, mb);
-			g_assert(!found);
-		}
-	}
-#endif
-
 	pmsg_free(mb);
+	mq_check(q, 0);
 	return;
 }
 

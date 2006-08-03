@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "gnet_stats.h"
 
 #include "lib/walloc.h"
+#include "lib/glib-missing.h"	/* For gm_snprintf() */
 #include "lib/cq.h"
 
 #include "if/gnet_property_priv.h"
@@ -55,6 +56,154 @@ static void mq_update_flowc(mqueue_t *q);
 static gboolean make_room_header(
 	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset);
 static void mq_swift_timer(cqueue_t *cq, gpointer obj);
+
+/**
+ * Compute readable queue information.
+ */
+static const gchar *
+mq_info(const mqueue_t *q)
+{
+	static gchar buf[160];
+
+	if (q->magic != MQ_MAGIC) {
+		gm_snprintf(buf, sizeof(buf),
+			"queue 0x%lx INVALID (bad magic)", (gulong) q);
+	} else {
+		gboolean udp = NODE_IS_UDP(q->node);
+
+		gm_snprintf(buf, sizeof(buf),
+			"queue 0x%lx [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
+			(gulong) q, udp ? "UDP" : "TCP",
+			NODE_IS_ULTRA(q->node) ? "ultra" :
+			udp ? "remote" : "leaf", node_addr(q->node),
+			(q->flags & MQ_FLOWC) ? " FLOWC" : "",
+			(q->flags & MQ_DISCARD) ? " DISCARD" : "",
+			(q->flags & MQ_SWIFT) ? " SWIFT" : "",
+			(q->flags & MQ_WARNZONE) ? " WARNZONE" : "",
+			q->count, q->count == 1 ? "" : "s",
+			q->size, q->size == 1 ? "" : "s"
+		);
+	}
+
+	return buf;
+}
+
+#ifdef MQ_DEBUG
+/*
+ * This hashtable tracks the queue owning a given glist linkable.
+ */
+static GHashTable *qown = NULL;
+
+/**
+ * Add linkable into queue
+ */
+static void mq_add_linkable(mqueue_t *q, GList *l)
+{
+	mqueue_t *owner;
+
+	g_assert(q->magic == MQ_MAGIC);
+	g_assert(l != NULL);
+	g_assert(l->data != NULL);
+	
+	if (qown == NULL)
+		qown = g_hash_table_new(NULL, NULL);
+
+	owner = g_hash_table_lookup(qown, l);
+	if (owner) {
+		g_warning("BUG: added linkable 0x%lx already owned by %s%s",
+			(gulong) l, owner == q ? "ourselves" : "other", mq_info(owner));
+		if (owner != q)
+			g_warning("BUG: will make linkable 0x%lx belong to %s",
+				(gulong) l, mq_info(q));
+	}
+
+	g_hash_table_insert(qown, l, q);
+}
+
+/**
+ * Remove linkable from queue
+ */
+static void mq_remove_linkable(mqueue_t *q, GList *l)
+{
+	mqueue_t *owner;
+
+	g_assert(q->magic == MQ_MAGIC);
+	g_assert(l != NULL);
+	g_assert(l->data != NULL);
+	g_assert(qown != NULL);		/* Must have added something before */
+
+	owner = g_hash_table_lookup(qown, l);
+
+	if (owner == NULL)
+		g_warning("BUG: removed linkable 0x%lx from %s belongs to no queue!",
+			(gulong) l, mq_info(q));
+	else if (owner != q)
+		g_warning("BUG: removed linkable 0x%lx from %s is from another queue!",
+			(gulong) l, mq_info(q));
+	else
+		g_hash_table_remove(qown, l);
+}
+
+/**
+ * Check queue's sanity.
+ */
+void
+mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line)
+{
+	gint qcount;
+	gint qlink_alive = 0;
+	gint n;
+
+	if (qown == NULL)
+		qown = g_hash_table_new(NULL, NULL);
+
+	if (q->magic != MQ_MAGIC)
+		g_error("BUG: %s at %s:%d", mq_info(q), where, line);
+
+	qcount = g_list_length(q->qhead);
+	if (qcount != q->count) g_warning(
+		"BUG: %s has wrong q->count of %d (counted %d in list) at %s:%d",
+		mq_info(q), q->count, qcount, where, line);
+
+	if (q->qlink == NULL)
+		return;
+
+	for (n = 0; n < q->qlink_count; n++) {
+		GList *item = q->qlink[n];
+		mqueue_t *owner;
+
+		if (item == NULL)
+			continue;
+
+		qlink_alive++;
+		if (item->data == NULL) g_warning(
+			"BUG: linkable #%d/%d from %s is NULL at %s:%d",
+			n, q->qlink_count, mq_info(q), where, line);
+
+		g_assert(qown);		/* If we have a qlink, we have added items */
+
+		owner = g_hash_table_lookup(qown, item);
+		if (owner != q)
+			g_warning("BUG: linkable #%d/%d from %s "
+				"%s at %s:%d",
+				n, q->qlink_count, mq_info(q),
+				owner == NULL ?
+					"does not belong to any queue" :
+					"belongs to foreign queue",
+				where, line);
+	}
+
+	if (qlink_alive != qcount + offset) g_warning(
+		"BUG: qlink discrepancy for %s "
+		"(counted %d alive linkable, expected %d, queue has %d items) at %s:%d",
+		mq_info(q), qlink_alive, qcount + offset, qcount, where, line);
+}
+#else	/* !MQ_DEBUG */
+
+#define	mq_add_linkable(x,y)
+#define	mq_remove_linkable(x,y)
+
+#endif	/* MQ_DEBUG */
 
 /*
  * Polymorphic operations.
@@ -79,6 +228,7 @@ mq_free(mqueue_t *q)
 	for (n = 0, l = q->qhead; l; l = g_list_next(l)) {
 		n++;
 		pmsg_free((pmsg_t *) l->data);
+		mq_remove_linkable(q, l);
 	}
 
 	g_assert(n == q->count);
@@ -90,6 +240,7 @@ mq_free(mqueue_t *q)
 		cq_cancel(callout_queue, q->swift_ev);
 
 	g_list_free(q->qhead);
+	q->magic = 0;
 	wfree(q, sizeof(*q));
 }
 
@@ -105,6 +256,7 @@ mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 {
 	GList *prev = g_list_previous(l);
 
+	mq_remove_linkable(q, l);
 	q->qhead = g_list_remove_link(q->qhead, l);
 	if (q->qtail == l)
 		q->qtail = prev;
@@ -492,8 +644,8 @@ qlink_create(mqueue_t *q)
 	}
 
 	if (l || n != q->count)
-		g_warning("BUG: queue count of %d for 0x%lx is wrong (found %d)",
-			q->count, (gulong) q, n);
+		g_warning("BUG: queue count of %d for 0x%lx is wrong (has %d)",
+			q->count, (gulong) q, g_list_length(q->qhead));
 
 	/*
 	 * We use `n' and not `q->count' in case the warning above is emitted,
@@ -502,6 +654,8 @@ qlink_create(mqueue_t *q)
 
 	q->qlink_count = n;
 	qsort(qlink, n, sizeof(GList *), qlink_cmp);
+
+	mq_check(q, 0);
 }
 
 /**
@@ -526,6 +680,8 @@ qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 	g_assert(hint >= 0 && hint < q->qlink_count);
 	g_assert(qlink_cmp(&q->qlink[hint], &l) >= 0);	/* `hint' >= `l' */
 	g_assert(l->data != NULL);
+
+	mq_check(q, -1);
 
 	/*
 	 * Lookup before the message for a NULL entry that we could fill.
@@ -559,6 +715,8 @@ qlink_insert(mqueue_t *q, GList *l)
 	GList **qlink = q->qlink;
 
 	g_assert(l->data != NULL);
+
+	mq_check(q, -1);
 
 	/*
 	 * If `qlink' is empty, create a slot for the new entry.
@@ -703,7 +861,11 @@ qlink_insert(mqueue_t *q, GList *l)
 }
 
 /**
- * Remove the entry in the `qlink' linkable array.
+ * Remove the entry in the `qlink' linkable array, allowing compaction
+ * when there are too many holes.
+ *
+ * @param q			the message queue
+ * @param l			the linkable to remove from the qlink indexer
  */
 static void
 qlink_remove(mqueue_t *q, GList *l)
@@ -715,21 +877,24 @@ qlink_remove(mqueue_t *q, GList *l)
 	g_assert(n > 0);
 	g_assert(l->data != NULL);
 
+	mq_check(q, 0);
+
 	/*
 	 * If more entries in `qlink' than 3 times the amount of queued messages,
 	 * we have too many NULL in the array.
 	 */
 
-	if  (n > q->count * 3) {
+	if (n > q->count * 3) {
 		GList **dest = qlink;
 		gint copied = 0;
 		gboolean found = FALSE;
 
 		while (n-- > 0) {
 			GList *entry = *qlink++;;
-			if (l == entry || entry == NULL) {
-				if (entry == l)
-					found = TRUE;
+			if (entry == NULL)
+				continue;
+			else if (l == entry) {
+				found = TRUE;
 				continue;
 			}
 			*dest++ = entry;
@@ -738,8 +903,8 @@ qlink_remove(mqueue_t *q, GList *l)
 
 		q->qlink_count = copied;
 
-		g_assert(found);
-
+		if (found)
+			return;
 	} else {
 		while (n-- > 0) {
 			if (l == *qlink++) {
@@ -748,8 +913,19 @@ qlink_remove(mqueue_t *q, GList *l)
 			}
 		}
 
-		g_assert(0);		/* Must have been found */
+		/* Should have been found -- FALL THROUGH */
 	}
+
+	/*
+	 * Used to be an assertion, but it is non-fatal.  Warn copiously though.
+	 */
+
+	g_warning(
+		"BUG: linkable 0x%lx for %s not found "
+		"(qlink has %d slots, queue has %d counted items, really %d) at %s:%d",
+		(gulong) l, mq_info(q),
+		q->qlink_count, q->count, g_list_length(q->qhead),
+		_WHERE_, __LINE__);
 }
 
 /**
@@ -785,6 +961,7 @@ make_room_header(
 	gboolean qlink_corrupted = FALSE;	/* BUG catcher */
 
 	g_assert(needed > 0);
+	mq_check(q, 0);
 
 	if (dbg > 5)
 		printf("%s try to make room for %d bytes in queue 0x%lx (node %s)\n",
@@ -840,11 +1017,8 @@ restart:
 		 */
 
 		if (item->data == NULL) {
-			g_warning("BUG: NULL data for qlink item #%d"
-				" in queue 0x%lx for %s %s node %s at %s:%d",
-				n, (gulong) q, NODE_IS_UDP(q->node) ? "UDP" : "TCP",
-				NODE_IS_ULTRA(q->node) ? "ultra" : "leaf",
-				node_addr(q->node), _WHERE_, __LINE__);
+			g_warning("BUG: NULL data for qlink item #%d/%d in %s at %s:%d",
+				n, q->qlink_count, mq_info(q), _WHERE_, __LINE__);
 
 			if (qlink_corrupted) {
 				g_warning(
@@ -913,10 +1087,15 @@ restart:
 		gnet_stats_count_flowc(pmsg_start(cmb));
 		cmb_size = pmsg_size(cmb);
 
+		g_assert(q->qlink[n] == item);
+
 		needed -= cmb_size;
-		(void) mq_rmlink_prev(q, q->qlink[n], cmb_size);
+		(void) mq_rmlink_prev(q, item, cmb_size);
 		q->qlink[n] = NULL;
+
 		dropped++;
+
+		mq_check(q, 0);
 	}
 
 	if (dropped)
@@ -965,6 +1144,8 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	GList *new = NULL;
 	gboolean make_room_called = FALSE;
 	gboolean has_normal_prio = (pmsg_prio(mb) == PMSG_P_DATA);
+
+	mq_check(q, 0);
 
 	/*
 	 * If we're flow-controlled and the message can be dropped, acccept it
@@ -1117,6 +1298,8 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 				q->qtail = q->qhead;
 		}
 	}
+
+	mq_add_linkable(q, new);
 
 	q->size += msize;
 	q->count++;

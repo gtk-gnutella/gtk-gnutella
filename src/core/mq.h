@@ -59,6 +59,10 @@ struct mq_cops {
 	void (*update_flowc)(mqueue_t *q);
 };
 
+enum mq_magic {
+	MQ_MAGIC = 0x33990ee
+};
+
 /**
  * A message queue.
  *
@@ -78,6 +82,7 @@ struct mq_cops {
  * to be used as a comparison point when speeding up dropping in flow-control.
  */
 struct mqueue {
+	enum mq_magic magic;	/**< Magic number */
 	struct gnutella_header header;	/**< Comparison point during flow control */
 	struct gnutella_node *node;		/**< Node to which this queue belongs */
 	const struct mq_ops *ops;		/**< Polymorphic operations */
@@ -132,6 +137,18 @@ void mq_shutdown(mqueue_t *q);
 void mq_fill_ops(struct mq_ops *ops);
 
 const struct mq_cops *mq_get_cops(void);
+
+/*
+ * Message queue assertions.
+ */
+
+#ifdef MQ_DEBUG
+void mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line);
+
+#define mq_check(x,y)	mq_check_track((x), (y), _WHERE_, __LINE__)
+#else
+#define mq_check(x,y)
+#endif
 
 #endif	/* _core_mq_h_ */
 

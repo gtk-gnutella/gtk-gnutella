@@ -73,6 +73,7 @@ mq_tcp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 
 	q = walloc0(sizeof *q);
 
+	q->magic = MQ_MAGIC;
 	q->node = n;
 	q->tx_drv = nd;
 	q->maxsize = maxsize;
@@ -105,6 +106,7 @@ mq_tcp_service(gpointer data)
 	gboolean has_prioritary = FALSE;
 
 again:
+	mq_check(q, 0);
 	g_assert(q->count);		/* Queue is serviced, we must have something */
 
 	iovcnt = 0;
@@ -161,6 +163,7 @@ again:
 		}
 	}
 
+	mq_check(q, 0);
 	g_assert(iovcnt > 0 || dropped > 0);
 
 	if (dropped > 0)
@@ -244,6 +247,7 @@ again:
 		}
 	}
 
+	mq_check(q, 0);
 	g_assert(r == 0 || iovsize > 0);
 	g_assert(q->size >= 0 && q->count >= 0);
 
@@ -303,6 +307,7 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	g_assert(q);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
+	mq_check(q, 0);
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
@@ -382,10 +387,12 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	 */
 
 	q->cops->puthere(q, mb, size);
+	mq_check(q, 0);
 	return;
 
 cleanup:
 	pmsg_free(mb);
+	mq_check(q, 0);
 	return;
 }
 
