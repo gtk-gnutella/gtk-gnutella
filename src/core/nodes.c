@@ -120,6 +120,7 @@ RCSID("$Id$");
 #define NODE_LEGACY_DEGREE		8	  /**< Older node without X-Degree */
 #define NODE_LEGACY_TTL			7	  /**< Older node without X-Max-TTL */
 #define NODE_USELESS_GRACE		20	  /**< No kick if condition too recent */
+#define NODE_UP_USELESS_GRACE	600	  /**< No kick if condition too recent */
 
 #define SHUTDOWN_GRACE_DELAY	120	  /**< Grace time for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	  /**< Bye sent, give time to propagate */
@@ -259,7 +260,8 @@ static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(enum net_type net);
 static gnutella_node_t *node_browse_create(void);
-static gboolean node_remove_useless_leaf(void);
+static gboolean node_remove_useless_leaf(gboolean *is_gtkg);
+static gboolean node_remove_useless_ultra(gboolean *is_gtkg);
 
 /***
  *** Callbacks
@@ -595,6 +597,23 @@ message_dump(const struct gnutella_node *n)
 	}
 
 	printf("\n");
+}
+
+/**
+ * Check whether node is a gtk-gnutella node.
+ */
+static gboolean
+node_is_gtkg(const struct gnutella_node *n)
+{
+	static const gchar gtkg_vendor[] = "gtk-gnutella";
+
+	if (n->vendor == NULL)
+		return FALSE;
+
+	if (0 == strcmp_delimit(gtkg_vendor, n->vendor, "/ "))
+		return TRUE;
+
+	return FALSE;
 }
 
 /**
@@ -1937,17 +1956,17 @@ node_avoid_monopoly(struct gnutella_node *n)
 static gboolean
 node_reserve_slot(struct gnutella_node *n)
 {
-	static const gchar gtkg_vendor[] = "gtk-gnutella";
 	guint up_cnt = 0;		/* GTKG UPs */
 	guint leaf_cnt = 0;		/* GTKG leafs */
 	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
 
 	g_assert((gint) reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);
-	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || !reserve_gtkg_nodes)
+
+	if (node_is_gtkg(n))
 		return FALSE;
 
-	if (0 == strcmp_delimit(gtkg_vendor, n->vendor, "/ "))
+	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || !reserve_gtkg_nodes)
 		return FALSE;
 
 	for (sl = sl_nodes; sl; sl = sl->next) {
@@ -1956,8 +1975,12 @@ node_reserve_slot(struct gnutella_node *n)
 		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
 			continue;
 
-		if (0 != strcasecmp_delimit(node->vendor, gtkg_vendor, "/ 0123456789"))
+		if (!node_is_gtkg(node))
 			continue;
+
+		/*
+		 * Count GTKG nodes we are already connected to, by type
+		 */
 
 		if ((node->attrs & NODE_A_ULTRA) || (node->attrs & NODE_F_ULTRA))
 			up_cnt++;
@@ -1985,10 +2008,39 @@ node_reserve_slot(struct gnutella_node *n)
 		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
 			gint max = max_connections - normal_connections;
 			gint gtkg_min = reserve_gtkg_nodes * max / 100;
+
+			/*
+			 * If we would reserve a slot to GTKG but we can get rid of
+			 * a useless ultra, then do so before checking.  If we don't
+			 * remove a useless GTKG node, then this will make room for
+			 * the current connection.
+			 */
+
+			if (node_ultra_count >= max + up_cnt - gtkg_min) {
+				gboolean is_gtkg;
+
+				if (node_remove_useless_ultra(&is_gtkg) && is_gtkg)
+					up_cnt--;
+			}
+
 			if (node_ultra_count >= max + up_cnt - gtkg_min)
 				return TRUE;
 		} else if (n->flags & NODE_F_LEAF) {
 			gint gtkg_min = reserve_gtkg_nodes * max_leaves / 100;
+
+			/*
+			 * If we would reserve a slot to GTKG but we can get rid of
+			 * a useless leaf, then do so before checking.  If we don't
+			 * remove a useless GTKG node, then this will make room for
+			 * the current connection.
+			 */
+
+			if (node_leaf_count >= max_leaves + leaf_cnt - gtkg_min) {
+				gboolean is_gtkg;
+				if (node_remove_useless_leaf(&is_gtkg) && is_gtkg)
+					leaf_cnt--;
+			}
+
 			if (node_leaf_count >= max_leaves + leaf_cnt - gtkg_min)
 				return TRUE;
 		} else {
@@ -3939,7 +3991,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 */
 
 			if (node_leaf_count >= max_leaves)
-				(void) node_remove_useless_leaf();
+				(void) node_remove_useless_leaf(NULL);
 
 			if (handshaking && node_leaf_count >= max_leaves) {
 				node_send_error(n, 503,
@@ -3973,6 +4025,9 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 
 			ultra_max = max_connections > normal_connections
 				? max_connections - normal_connections : 0;
+
+			if (node_ultra_count >= ultra_max)
+				(void) node_remove_useless_ultra(NULL);
 
 			if (
 				handshaking &&
@@ -7053,10 +7108,12 @@ node_bye_pending(void)
  * for the greatest amount of time, or which are not sharing anything, based
  * on the QRP.
  *
+ * @param is_gtkg	if non-NULL, returns whether the node removed is a GTKG
+ *
  * @return TRUE if we were able to remove one connection.
  */
 static gboolean
-node_remove_useless_leaf(void)
+node_remove_useless_leaf(gboolean *is_gtkg)
 {
     GSList *sl;
 	struct gnutella_node *worst = NULL;
@@ -7109,10 +7166,98 @@ node_remove_useless_leaf(void)
 	if (worst == NULL)
 		return FALSE;
 
+	if (is_gtkg != NULL)
+		*is_gtkg = node_is_gtkg(worst);
+
 	node_bye_if_writable(worst, 202, "Making room for another leaf");
 
 	return TRUE;
 }
+
+/**
+ * Try to spot a "useless" ultra node.
+ *
+ * i.e. one that is either not having leaves or is firewalled, or which
+ * does not support inter-UP QRP tables.
+ *
+ * @param is_gtkg	if non-NULL, returns whether the node removed is a GTKG
+ *
+ * @return TRUE if we were able to remove one connection.
+ */
+static gboolean
+node_remove_useless_ultra(gboolean *is_gtkg)
+{
+    GSList *sl;
+	struct gnutella_node *worst = NULL;
+	gint greatest = 0;
+	time_t now = (time_t) -1;
+
+	/*
+	 * Only operate when we're an ultra node ourselves.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA)
+		return FALSE;
+
+    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = sl->data;
+		time_t target = (time_t) -1;
+		gint diff;
+
+		if (!NODE_IS_ESTABLISHED(n))
+			continue;
+
+		if (!NODE_IS_ULTRA(n))
+			continue;
+
+        /* Don't kick whitelisted nodes. */
+        if (whitelist_check(n->addr))
+            continue;
+
+		/*
+		 * Our targets are firewalled nodes, nodes which do not support
+		 * the inter-QRP table, nodes which have no leaves (as detected
+		 * by the fact that they do not send QRP updates on a regular
+		 * basis).
+		 */
+
+		if (n->flags & NODE_F_PROXIED)		/* Firewalled node */
+			target = n->connect_date;
+
+		if (n->qrt_receive == NULL && n->recv_query_table == NULL)
+			target = n->connect_date;
+
+		if (n->qrt_info && n->qrt_info->generation == 0)
+			target = n->connect_date;
+
+		if ((time_t) -1 == target)
+			continue;
+
+		if ((time_t) -1 == now)
+			now = tm_time();
+
+		diff = delta_time(now, target);
+
+		if (diff < NODE_UP_USELESS_GRACE)
+			continue;
+
+		if (diff > greatest) {
+			greatest = diff;
+			worst = n;
+		}
+	}
+
+	if (worst == NULL)
+		return FALSE;
+
+	if (is_gtkg != NULL)
+		*is_gtkg = node_is_gtkg(worst);
+
+	node_bye_if_writable(worst, 202, "Making room for another ultra node");
+
+	return TRUE;
+}
+
 
 /**
  * Removes the node with the worst stats, considering the number of
