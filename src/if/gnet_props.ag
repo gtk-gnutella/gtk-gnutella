@@ -2139,7 +2139,7 @@ prop = {
     type = guint32;
     data = {
         default = 150;
-        min = 50;
+        min = 25;
         max = 1000;
     };
 };

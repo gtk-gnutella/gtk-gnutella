@@ -4199,7 +4199,7 @@ gnet_prop_init(void) {
     gnet_property->props[185].data.guint32.value = &max_leaves;
     gnet_property->props[185].data.guint32.choices = NULL;
     gnet_property->props[185].data.guint32.max   = 1000;
-    gnet_property->props[185].data.guint32.min   = 50;
+    gnet_property->props[185].data.guint32.min   = 25;
 
 
     /*
