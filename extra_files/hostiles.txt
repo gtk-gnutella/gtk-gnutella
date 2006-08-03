@@ -310,7 +310,9 @@
 # Gnucleus-based DRM WMV spammer hosted by DMG Networks
 209.165.244.242
 
-# Gnucleus-based DRM WMV spammer hosted by CNAP
+# Gnucleus-based DRM WMV spammer hosted by CNAP; it's no typo, the IP
+# address are really very similar
+209.190.22.86
 209.190.122.186
 
 # DRM WMV spammer; license URL links to 209.190.122.186
@@ -431,6 +433,12 @@
 # The JPEGs show nothing but an URL at celebs dot deltaporn dot com on a white
 # background; Shareaza; standard port
 216.144.224.89
+
+# DRM WMV spammer
+61.129.51.119
+
+# DRM license server; PetaAd dot com
+207.36.209.113
 
 # University of Mississippi
 130.74.0.0/16
