@@ -3334,6 +3334,7 @@ qrt_handle_reset(
 	struct routing_table *rt;
 	gint ret;
 	gint slots;
+	gint old_generation = -1;
 
 	ret = inflateReset(qrcv->inz);
 	if (ret != Z_OK) {
@@ -3380,8 +3381,10 @@ qrt_handle_reset(
 
 	node_qrt_discard(n);
 
-	if (qrcv->table)
+	if (qrcv->table) {
+		old_generation = qrcv->table->generation;
 		qrt_unref(qrcv->table);
+	}
 
 	if (qrcv->expansion)
 		wfree(qrcv->expansion, qrcv->shrink_factor);
@@ -3391,7 +3394,7 @@ qrt_handle_reset(
 	rt->magic = QRP_ROUTE_MAGIC;
 	rt->name = g_strdup_printf("QRT node %s", node_addr(n));
 	rt->refcnt = 1;
-	rt->generation = 0;
+	rt->generation = old_generation + 1;
 	rt->infinity = reset->infinity;
 	rt->client_slots = reset->table_length;
 	rt->compacted = TRUE;		/* We'll compact it on the fly */
@@ -3413,7 +3416,7 @@ qrt_handle_reset(
 	}
 
 	if (qrp_debug && qrcv->shrink_factor > 1)
-		g_warning("QRT from %s <%s> will be shrank by a factor of %d",
+		g_warning("QRT from %s <%s> will be shrunk by a factor of %d",
 			node_addr(n), node_vendor(n), qrcv->shrink_factor);
 
 	qrcv->expansion = walloc(qrcv->shrink_factor);
