@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Jul  8 16:45:52 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Fri Aug  4 21:06:00 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4826,10 +4826,19 @@ case "$d_fast_assert" in
 "$undef")
 	dflt=n;;
 "$define")
-	dflt=y;;
+	case " $optimize " in
+	*" -g "*) dflt=n;;
+	*) dflt=y;;
+	esac
+	;;
 *)
 	case "$official" in
-	true) dflt=y;;
+	true)
+		case " $optimize " in
+		*" -g "*) dflt=n;;
+		*) dflt=y;;
+		esac
+		;;
 	*) dflt=n;;
 	esac
 	;;

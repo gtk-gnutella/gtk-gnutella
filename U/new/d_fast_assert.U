@@ -3,7 +3,7 @@
 ?RCS: @COPYRIGHT@
 ?RCS:
 ?MAKE:d_fast_assert: Myread Setvar cat gccversion official spackage \
-	sed +ccflags +cc +ldflags
+	sed +optimize +ccflags +cc +ldflags
 ?MAKE:	-pick add $@ %<
 ?S:d_fast_assert:
 ?S:	This variable conditionally defines FAST_ASSERTIONS.
@@ -24,10 +24,21 @@ case "$d_fast_assert" in
 "$undef")
 	dflt=n;;
 "$define")
-	dflt=y;;
+?X: Turn off fast-assertion when compiling for debugging since they mess up
+?X: the stack frames.
+	case " $optimize " in
+	*" -g "*) dflt=n;;
+	*) dflt=y;;
+	esac
+	;;
 *)
 	case "$official" in
-	true) dflt=y;;
+	true)
+		case " $optimize " in
+		*" -g "*) dflt=n;;
+		*) dflt=y;;
+		esac
+		;;
 	*) dflt=n;;
 	esac
 	;;
