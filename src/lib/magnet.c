@@ -557,6 +557,7 @@ magnet_source_to_string(struct magnet_source *s)
 		if (s->path) {
 			url = g_strconcat("http://", host, port_buf, s->path, (void *) 0);
 		} else {
+			g_assert(s->sha1);
 			url = g_strconcat("http://", host, port_buf,
 					"/uri-res/N2R?urn:sha1:", sha1_base32(s->sha1),
 					(void *) 0);
