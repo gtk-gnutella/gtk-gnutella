@@ -96,8 +96,6 @@ RCSID("$Id$");
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
 #define STALL_THRESH	3			/**< If more stalls than that, workaround */
 
-#define RQST_LINE_LENGTH	256		/**< Reasonable estimate for request line */
-
 static GSList *list_uploads = NULL;
 static guint stalled = 0;			/**< Counts stalled connections */
 static time_t last_stalled;			/**< Time at which last stall occurred */
