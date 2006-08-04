@@ -1171,7 +1171,13 @@ bad:
 void
 huge_collect_locations(const gchar *sha1, header_t *header)
 {
-	gchar *alt = header_get(header, "X-Gnutella-Alternate-Location");
+	gchar *alt;
+   
+
+	g_return_if_fail(sha1);
+	g_return_if_fail(header);
+
+	alt = header_get(header, "X-Gnutella-Alternate-Location");
 
 	/*
 	 * Unfortunately, clueless people broke the HUGE specs and made up their
