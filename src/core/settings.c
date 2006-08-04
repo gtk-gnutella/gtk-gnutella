@@ -162,7 +162,7 @@ ensure_unicity(const gchar *file)
 		fl = zero_flock;
 		fl.l_type = F_WRLCK;
 		fl.l_whence = SEEK_SET;
-		/* l_start and l_len are zero, which means the whole is locked */
+		/* l_start and l_len are zero, which means the whole file is locked */
 
 		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
 		if (locking_failed) {
@@ -173,7 +173,7 @@ ensure_unicity(const gchar *file)
 				fd, file, g_strerror(e));
 
 			/*
-			 * Use F_GETLK to determing the PID of the process, the
+			 * Use F_GETLK to determine the PID of the process, the
 			 * reinitialization of "fl" might be unnecessary but who
 			 * knows.
 			 */
@@ -385,7 +385,7 @@ settings_init(void)
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, max_fd);
 	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
 
-	memset(deconstify_gchar(servent_guid), 0, sizeof servent_guid);
+	memset(deconstify_gpointer(servent_guid), 0, sizeof servent_guid);
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	home_dir = g_strdup(eval_subst("~"));
 	if (!home_dir)
@@ -1614,9 +1614,11 @@ local_addr_changed(property_t prop)
 	if (
 		!is_host_addr(addr) ||
 		net != host_addr_net(addr) ||
-		host_addr_is_ipv4_mapped(addr)
+		host_addr_is_ipv4_mapped(addr) ||
+		NET_TYPE_IPV6 == net
 	) {
 		GSList *sl_addrs, *sl;
+		host_addr_t old_addr = addr;
 
 		addr = zero_host_addr;
 		sl_addrs = host_addr_get_interface_addrs();
@@ -1633,7 +1635,9 @@ local_addr_changed(property_t prop)
 			}
 		}
 		host_addr_free_interface_addrs(&sl_addrs);
-		gnet_prop_set_ip_val(prop, addr);
+		if (!host_addr_equal(old_addr, addr)) {
+			gnet_prop_set_ip_val(prop, addr);
+		}
 	}
 
 	update_address_lifetime();
