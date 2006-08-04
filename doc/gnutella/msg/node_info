@@ -36,7 +36,7 @@ UDP host caches to know which hosts can accept connections, for instance.
     Version: 1
     TTL: 1
     Payload: (big-endian)
-		unsigned int: flags
+		uint32: flags
 
 The flags are used to customize the reply that we wish to get, since some
 of the fields are optional:
@@ -58,21 +58,21 @@ of the fields are optional:
     Payload: (big-endian represenation for multibyte values)
 		char[4]: vendor code, e.g. { 'G', 'T', 'K', 'G' }
         byte: running mode (0 = auto, 1 = leaf, 2 = ultra)
-		unsigned int: operating flags
+		uint32: operating flags
         byte: max amount of ultra nodes
         byte: current amount of ultra nodes
-        unsigned short: max amount of leaves
-        unsigned short: current amount of leaves
+        uint16: max amount of leaves
+        uint16: current amount of leaves
 	if (flags & 0x10) {
 		byte: bandwidth flags
-		unsigned short: Gnutella input b/w limit in KiB/sec (0 = none)
-		unsigned short: Gnutella output b/w limit in KiB/sec (0 = none)
-		unsigned short: Leaf input b/w limit in KiB/sec (0 = none)
-		unsigned short: Leaf output b/w limit in KiB/sec (0 = none)
+		uint16: Gnutella input b/w limit in KiB/sec (0 = none)
+		uint16: Gnutella output b/w limit in KiB/sec (0 = none)
+		uint16: Leaf input b/w limit in KiB/sec (0 = none)
+		uint16: Leaf output b/w limit in KiB/sec (0 = none)
 	}
 	if (flags & 0x20) {
-		unsigned int: dropped TX packets on this TCP connection
-		unsigned int: dropped RX packets on this TCP connection
+		uint32: dropped TX packets on this TCP connection
+		uint32: dropped RX packets on this TCP connection
 	}
 		<optional GGEP block with requested information>
 
