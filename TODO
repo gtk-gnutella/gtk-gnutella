@@ -7,7 +7,6 @@ This documents describes briefly the things we want to have in gtk-gnutella
 	* Tigertree support 					(JA: started)
 	* HTTP chunked / unknown filesize support		(JA: started)
 	* GUI: Add / remove of gwebcaches
-	* Magnet URI support
 	* Keep track of long uptime ultrapeers
 	* PARQ: Update to 1.1 (to be specified)
 	* PARQ: PFS aware
