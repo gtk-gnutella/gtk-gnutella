@@ -91,6 +91,7 @@ SRC = \
 	sq.c \
 	gdb.c \
 	tls_cache.c \
+	tls_common.c \
 	token.c \
 	tsync.c \
 	tx.c \

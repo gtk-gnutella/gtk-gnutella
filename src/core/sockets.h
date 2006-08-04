@@ -41,13 +41,12 @@
 
 #include "common.h"
 
+#include "tls_common.h"
+
 #include "if/core/wrap.h"			/* For wrap_io_t */
 #include "if/core/sockets.h"
 
 #include "lib/inputevt.h"
-
-#ifdef HAS_GNUTLS
-#include <gnutls/gnutls.h>
 
 enum socket_tls_stage {
 	SOCK_TLS_NONE			= 0,
@@ -56,7 +55,7 @@ enum socket_tls_stage {
 };
 
 struct socket_tls_ctx {
-	gnutls_session		 	session;
+	tls_context_t		 	ctx;
 	gboolean			 	enabled;
 	enum socket_tls_stage	stage;
 	size_t snarf;			/**< Pending bytes if write failed temporarily. */
@@ -70,10 +69,6 @@ struct socket_tls_ctx {
 	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_INITIALIZED)
 #define SOCKET_USES_TLS(s) \
 	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_ESTABLISHED)
-#else /* !HAS_GNUTLS */
-#define SOCKET_WITH_TLS(s) ((void) (s), 0)
-#define SOCKET_USES_TLS(s) ((void) (s), 0)
-#endif /* HAS_GNUTLS */
 
 struct sockaddr;
 
@@ -228,6 +223,7 @@ gboolean socket_bad_hostname(struct gnutella_socket *s);
 void socket_disable_token(struct gnutella_socket *s);
 gboolean socket_omit_token(struct gnutella_socket *s);
 void socket_set_bind_address(const host_addr_t addr);
+gint socket_evt_fd(struct gnutella_socket *s);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);

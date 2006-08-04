@@ -368,6 +368,8 @@ src/core/sq.c
 src/core/sq.h
 src/core/tls_cache.c
 src/core/tls_cache.h
+src/core/tls_common.c
+src/core/tls_common.h
 src/core/token.c
 src/core/token.h
 src/core/tsync.c

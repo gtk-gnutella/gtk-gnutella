@@ -147,6 +147,7 @@ SRC = \
 	spam.c \
 	sq.c \
 	tls_cache.c \
+	tls_common.c \
 	token.c \
 	tsync.c \
 	tx.c \
@@ -228,6 +229,7 @@ OBJ = \
 	spam.o \
 	sq.o \
 	tls_cache.o \
+	tls_common.o \
 	token.o \
 	tsync.o \
 	tx.o \

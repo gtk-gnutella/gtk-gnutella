@@ -33,16 +33,28 @@
 #ifndef _core_tls_common_h_
 #define _core_tls_common_h_
 
-#include <gnutls/gnutls.h>
-
 #define TLS_DH_BITS 768
 
-typedef void *tls_session_t;
+#include "if/core/wrap.h"			/* For wrap_io_t */
 
-tls_session_t tls_init(gboolean is_incoming);
-int tls_handshake(tls_session_t session);
+enum tls_handshake_result {
+	TLS_HANDSHAKE_FINISHED,
+	TLS_HANDSHAKE_RETRY,
+	TLS_HANDSHAKE_ERROR
+};
+
+struct gnutella_socket;
+struct tls_context;
+
+typedef struct tls_context *tls_context_t;
+
+tls_context_t tls_init(gboolean is_incoming);
+enum tls_handshake_result tls_handshake(struct gnutella_socket *s);
+void tls_bye(tls_context_t ctx, gboolean is_incoming);
+void tls_free(tls_context_t *ctx_ptr);
+void tls_wio_link(struct wrap_io *wio);
 
 void tls_global_init(void);
-gnutls_dh_params_t get_dh_params(void);
 
 #endif /* _core_tls_common_h_ */
+/* vi: set ts=4 sw=4 cindent: */
