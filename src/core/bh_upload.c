@@ -171,9 +171,13 @@ static ssize_t
 browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 {
 	static const gchar header[] =
-		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
-		"<html><head><title>Browse Host</title></head><body>\r\n";
-	static const gchar trailer[] = "</ul></body></html>";
+		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">\r\n"
+		"<html>\r\n"
+		"<head>\r\n"
+		"<title>Browse Host</title>\r\n"
+		"</head>\r\n"
+		"<body>\r\n";
+	static const gchar trailer[] = "</ul>\r\n</body>\r\n</html>\r\n";
 	struct browse_host_ctx *bh = ctx;
 	gchar *p = dest;
 
