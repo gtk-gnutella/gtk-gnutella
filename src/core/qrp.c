@@ -873,7 +873,7 @@ qrt_unref(gpointer obj)
 void
 qrt_get_info(gpointer obj, qrt_info_t *qi)
 {
-	struct routing_table *rt = (struct routing_table *) obj;
+	struct routing_table *rt = obj;
 
 	g_assert(obj);
 	g_assert(rt->magic == QRP_ROUTE_MAGIC);
@@ -919,7 +919,7 @@ merge_context_free(gpointer p)
 	merge_ctx = NULL;
 
 	for (sl = ctx->tables; sl; sl = g_slist_next(sl)) {
-		struct routing_table *rt = (struct routing_table *) sl->data;
+		struct routing_table *rt = sl->data;
 
 		qrt_unref(rt);
 	}
@@ -935,7 +935,7 @@ merge_context_free(gpointer p)
 static bgret_t
 mrg_step_get_list(gpointer unused_h, gpointer u, gint unused_ticks)
 {
-	struct merge_context *ctx = (struct merge_context *) u;
+	struct merge_context *ctx = u;
 	const GSList *sl;
 	gint max_size = 0;			/* Max # of slots seen in all QRT */
 
@@ -944,9 +944,8 @@ mrg_step_get_list(gpointer unused_h, gpointer u, gint unused_ticks)
 	g_assert(MERGE_MAGIC == ctx->magic);
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		struct routing_table *rt =
-			(struct routing_table *) dn->recv_query_table;
+		struct gnutella_node *dn = sl->data;
+		struct routing_table *rt = dn->recv_query_table;
 
 		if (rt == NULL || !NODE_IS_LEAF(dn))
 			continue;
@@ -1030,7 +1029,7 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
 static bgret_t
 mrg_step_merge_one(gpointer unused_h, gpointer u, gint ticks)
 {
-	struct merge_context *ctx = (struct merge_context *) u;
+	struct merge_context *ctx = u;
 	gint ticks_used = 0;
 
 	(void) unused_h;
@@ -1045,7 +1044,7 @@ mrg_step_merge_one(gpointer unused_h, gpointer u, gint ticks)
 		return BGR_DONE;
 
 	while (ctx->tables != NULL && ticks_used < ticks) {
-		struct routing_table *rt = (struct routing_table *) ctx->tables->data;
+		struct routing_table *rt = ctx->tables->data;
 
 		ctx->tables = g_slist_remove(ctx->tables, rt);
 
@@ -1071,7 +1070,7 @@ mrg_step_merge_one(gpointer unused_h, gpointer u, gint ticks)
 static bgret_t
 mrg_step_install_table(gpointer unused_h, gpointer u, gint unused_ticks)
 {
-	struct merge_context *ctx = (struct merge_context *) u;
+	struct merge_context *ctx = u;
 
 	(void) unused_h;
 	(void) unused_ticks;
@@ -2286,7 +2285,7 @@ qrp_send_patch(struct gnutella_node *n,
 
 	g_assert(msglen > (gint) sizeof *m);
 	if (msglen <= (gint) sizeof tmp)
-		m = (struct gnutella_msg_qrp_patch *) cast_to_gpointer(tmp);
+		m = cast_to_gpointer(tmp);
 	else
 		m = g_malloc(msglen);
 
@@ -2866,7 +2865,7 @@ qrt_unknown_patch(struct qrt_receive *unused_qrcv,
 gpointer
 qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 {
-	struct routing_table *table = (struct routing_table *) query_table;
+	struct routing_table *table = query_table;
 	struct qrt_receive *qrcv;
 	z_streamp inz;
 	gint ret;
@@ -2942,7 +2941,7 @@ qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 void
 qrt_receive_free(gpointer handle)
 {
-	struct qrt_receive *qrcv = (struct qrt_receive *) handle;
+	struct qrt_receive *qrcv = handle;
 
 	g_assert(qrcv->magic == QRT_RECEIVE_MAGIC);
 
@@ -4139,7 +4138,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 gboolean
 qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
 {
-	struct routing_table *rt = (struct routing_table *) n->recv_query_table;
+	struct routing_table *rt = n->recv_query_table;
 
 	if (!NODE_IS_WRITABLE(n))
 		return FALSE;
@@ -4320,7 +4319,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 		gint ultras = 0;
 
 		for (sl = nodes; sl; sl = g_slist_next(sl)) {
-			struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+			struct gnutella_node *dn = sl->data;
 
 			if (NODE_IS_LEAF(dn))
 				leaves++;
