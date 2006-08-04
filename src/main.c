@@ -81,6 +81,7 @@
 #include "core/spam.h"
 #include "core/sq.h"
 #include "core/tls_cache.h"
+#include "core/tls_common.h"
 #include "core/tsync.h"
 #include "core/tx.h"
 #include "core/uhc.h"
@@ -308,7 +309,7 @@ void
 gtk_gnutella_exit(gint n)
 {
 	time_t exit_time = time(NULL);
-	gint exit_grace = EXIT_GRACE;
+	time_delta_t exit_grace = EXIT_GRACE;
 	static gboolean safe_to_exit = FALSE;
 
 	if (exiting) {
@@ -391,7 +392,7 @@ gtk_gnutella_exit(gint n)
 
 	while (node_bye_pending()) {
 		time_t now = time(NULL);
-		gint d;
+		time_delta_t d;
 
 		if ((d = delta_time(now, exit_time)) >= exit_grace)
 			break;
@@ -945,6 +946,7 @@ main(int argc, char **argv)
 	hcache_init();			/* before settings_init() */
 	settings_init();
 	gdb_init();
+	tls_global_init();
 	tls_cache_init();
     hcache_retrieve_all();	/* after settings_init() */
 	hostiles_init();
