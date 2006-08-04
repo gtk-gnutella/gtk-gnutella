@@ -138,7 +138,7 @@ rpc_add_timeout(struct rpc_cb *rcb, gint delay)
 {
 	g_assert(rcb->timeout == NULL);
 
-	// XXX should be generic to all -- rpc_call_prepare().
+	/* XXX should be generic to all -- rpc_call_prepare(). */
 
 	rcb->timeout = cq_insert(callout_queue, delay, rpc_timed_out, rcb);
 }
@@ -149,7 +149,7 @@ rpc_add_timeout(struct rpc_cb *rcb, gint delay)
 void
 dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg)
 {
-	// XXX
+	/* XXX */
 }
 
 /**

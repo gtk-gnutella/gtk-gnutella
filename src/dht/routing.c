@@ -132,7 +132,7 @@ dht_route_init(void)
 	}
 
 	if (dht_debug)
-		g_message("DHT local node ID is %s", kuid_to_string(&our_kuid));
+		g_message("DHT local node ID is %s", kuid_to_string(our_kuid));
 
 	our_kuid = (kuid_t *) atom_sha1_get(buf.v);
 
@@ -232,11 +232,11 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb)
 		return TRUE;
 	}
 
-	// XXX
+	/* XXX */
 	return FALSE;
 }
 
-// XXX move to knode.c?
+/* XXX move to knode.c? */
 /**
  * RPC callback for the address verification.
  */
@@ -254,7 +254,7 @@ dht_addr_verify_cb(
 	if (type == DHT_RPC_TIMEOUT)
 		goto out;
 
-	// XXX
+	/* XXX */
 
 out:
 	kn->flags &= ~KNODE_F_VERIFYING;
@@ -292,7 +292,7 @@ dht_add(kuid_t *id, host_addr_t addr, guint16 port)
 		if (host_addr_equal(addr, kn->addr) && port == kn->port)
 			return;
 
-		// XXX move to knode.c?
+		/* XXX move to knode.c? */
 		if (kn->flags & KNODE_F_VERIFYING)
 			return;			/* Already verifying address */
 
@@ -307,7 +307,7 @@ dht_add(kuid_t *id, host_addr_t addr, guint16 port)
 		return;
 	}
 
-	// XXX
+	/* XXX */
 }
 
 /**
