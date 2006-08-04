@@ -237,6 +237,9 @@ tls_init(gboolean is_incoming)
 	};
 	static const int kx_list[] = {
 		GNUTLS_KX_ANON_DH,
+		GNUTLS_KX_RSA,
+		GNUTLS_KX_DHE_DSS,
+		GNUTLS_KX_DHE_RSA,
 		0
 	};
 	static const int mac_list[] = {
@@ -267,7 +270,6 @@ tls_init(gboolean is_incoming)
 			g_warning("gnutls_init() failed");
 			return NULL;
 		}
-		gnutls_set_default_priority(ctx->session);
 		gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
 		if (gnutls_credentials_set(ctx->session,
@@ -292,29 +294,29 @@ tls_init(gboolean is_incoming)
 			g_warning("gnutls_init() failed");
 			return NULL;
 		}
-		gnutls_set_default_priority(ctx->session);
 		if (gnutls_credentials_set(ctx->session,
 				GNUTLS_CRD_ANON, ctx->client_cred)) {
 			g_warning("gnutls_credentials_set() failed");
 			return NULL;
 		}
+	}
 
-		if (gnutls_cipher_set_priority(ctx->session, cipher_list)) {
-			g_warning("gnutls_cipher_set_priority() failed");
-			return NULL;
-		}
-		if (gnutls_kx_set_priority(ctx->session, kx_list)) {
-			g_warning("gnutls_kx_set_priority() failed");
-			return NULL;
-		}
-		if (gnutls_mac_set_priority(ctx->session, mac_list)) {
-			g_warning("gnutls_mac_set_priority() failed");
-			return NULL;
-		}
-		if (gnutls_certificate_type_set_priority(ctx->session, cert_list)) {
-			g_warning("gnutls_certificate_type_set_priority() failed");
-			return NULL;
-		}
+	gnutls_set_default_priority(ctx->session);
+	if (gnutls_cipher_set_priority(ctx->session, cipher_list)) {
+		g_warning("gnutls_cipher_set_priority() failed");
+		return NULL;
+	}
+	if (gnutls_kx_set_priority(ctx->session, kx_list)) {
+		g_warning("gnutls_kx_set_priority() failed");
+		return NULL;
+	}
+	if (gnutls_mac_set_priority(ctx->session, mac_list)) {
+		g_warning("gnutls_mac_set_priority() failed");
+		return NULL;
+	}
+	if (gnutls_certificate_type_set_priority(ctx->session, cert_list)) {
+		g_warning("gnutls_certificate_type_set_priority() failed");
+		return NULL;
 	}
 	if (gnutls_compression_set_priority(ctx->session, comp_list)) {
 		g_warning("gnutls_compression_set_priority() failed");
@@ -383,6 +385,8 @@ tls_global_init(void)
 	if (ret < 0) {
 		g_warning("gnutls_certificate_set_x509_key_file() failed: %s",
 			gnutls_strerror(ret));
+		gnutls_certificate_free_credentials(server_cert_cred);
+		server_cert_cred = NULL;
 	} else {
 		gnutls_certificate_set_dh_params(server_cert_cred, get_dh_params());
 	}
