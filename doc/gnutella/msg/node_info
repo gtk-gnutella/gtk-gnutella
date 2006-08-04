@@ -1,0 +1,95 @@
+              The "Node Info" Vendor-specific Messages
+                              Version 1
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                          August 4th, 2006
+                
+
+INTRODUCTION
+
+An ultra node should be ideally positionned in the network: it must be
+connected to well-connected ultra peers.  In order for an ultra node to
+assess its connectivity, we are introducing an information exchange between
+ultra nodes, allowing them to make sure they connected to "good" peers.
+
+Indeed, in a network with high outdegree and low TTL, keeping a connection
+with a poorly connected ultra node is not good for the "density" of the
+network and not good for our leaves which have a lower search horizon.
+
+Great care must be taken however to not peruse the information that can be
+gathered through those messages to isolate poorly connected nodes.  That
+would push them at the border of the network and never give them a chance
+to become good peers.
+
+SPECIFICATIONS
+
+Those messages are meant to be used on a TCP connection to gather information
+about connected peers.  However, they can also be sent via UDP in order for
+UDP host caches to know which hosts can accept connections, for instance.
+
+* Node Info Request
+
+    Name: Node Info Request
+    Vendor: GTKG
+    ID: 22
+    Version: 1
+    TTL: 1
+    Payload: (big-endian)
+		unsigned int: flags
+
+The flags are used to customize the reply that we wish to get, since some
+of the fields are optional:
+
+	0x00000001		include GGEP "DU" (daily average uptime) extension
+	0x00000002		include GGEP "LOC" (locale) extension
+	0x00000004		include GGEP "GTKG.IPV6" (IPv6 support) extension
+	0x00000008		include GGEP "GTKGV1" (version info) extension
+	0x00000010		include bandwidth information
+	0x00000020		include TX/RX dropped packets information
+
+* Node Info Reply
+
+    Name: Node Info Reply
+    Vendor: GTKG
+    ID: 23
+    Version: 1
+    TTL: 1
+    Payload: (big-endian represenation for multibyte values)
+		char[4]: vendor code, e.g. { 'G', 'T', 'K', 'G' }
+        byte: running mode (0 = auto, 1 = leaf, 2 = ultra)
+		unsigned int: operating flags
+        byte: max amount of ultra nodes
+        byte: current amount of ultra nodes
+        unsigned short: max amount of leaves
+        unsigned short: current amount of leaves
+	if (flags & 0x10) {
+		byte: bandwidth flags
+		unsigned short: Gnutella input b/w limit in KiB/sec (0 = none)
+		unsigned short: Gnutella output b/w limit in KiB/sec (0 = none)
+		unsigned short: Leaf input b/w limit in KiB/sec (0 = none)
+		unsigned short: Leaf output b/w limit in KiB/sec (0 = none)
+	}
+	if (flags & 0x20) {
+		unsigned int: dropped TX packets on this TCP connection
+		unsigned int: dropped RX packets on this TCP connection
+	}
+		<optional GGEP block with requested information>
+
+The operating flags are defined as:
+
+	0x00000001			is TCP-firewalled
+	0x00000002			is UDP-firewalled
+	0x00000004			supports TLS connections
+	0x00000008			is an ancient version
+	0x00000010			time synchronized via NTP
+	0x00000020			running headless as a server
+	0x00000040			is DHT-capable
+
+The bandwidth flags are defined as:
+
+	0x01				uses strict b/w pools (no stealing of unused b/w)
+	0x02				makes uses of IP TOS
+
+The "Node Info Reply" should be sent like an "alive pong", i.e. with an urgent
+priority (put ahead of the transmission queue) when replying through TCP.
