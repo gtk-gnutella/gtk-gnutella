@@ -112,6 +112,7 @@ struct routing_table {
 	gint pass_throw;		/**< Query must pass a d100 throw to be forwarded */
 	gchar *digest;			/**< SHA1 digest of the whole table (atom) */
 	gchar *name;			/**< Name for dumping purposes */
+	gboolean reset;			/**< This is a new table, after a RESET */
 	gboolean compacted;
 };
 
@@ -733,6 +734,7 @@ qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
 	rt->infinity = max;
 	rt->compacted = FALSE;
 	rt->digest = NULL;
+	rt->reset = FALSE;
 
 	gnet_prop_set_guint32_val(PROP_QRP_GENERATION, (guint32) rt->generation);
 
@@ -2915,6 +2917,7 @@ qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 		gint length = table->client_slots;
 
 		table->generation++;
+		table->reset = FALSE;
 
 		/*
 		 * Since we know the table_length is a power of two, to
@@ -3399,6 +3402,7 @@ qrt_handle_reset(
 	rt->client_slots = reset->table_length;
 	rt->compacted = TRUE;		/* We'll compact it on the fly */
 	rt->digest = NULL;
+	rt->reset = TRUE;
 
 	qrcv->shrink_factor = 1;		/* Assume none for now */
 	qrcv->seqsize = 0;				/* Unknown yet */
@@ -3683,11 +3687,11 @@ qrt_handle_patch(
 				rt->digest ? sha1_base32(rt->digest) : "<not computed>");
 
 		/*
-		 * Install the table in the node, if it was a generation 0 table.
+		 * Install the table in the node, if it was a new table.
 		 * Otherwise, we only finished patching it.
 		 */
 
-		if (rt->generation == 0)
+		if (rt->reset)
 			node_qrt_install(n, rt);
 		else
 			node_qrt_patched(n, rt);
