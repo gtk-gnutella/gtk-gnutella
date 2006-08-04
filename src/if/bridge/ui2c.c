@@ -629,7 +629,7 @@ guc_search_get_create_time(gnet_search_t sh)
 void
 guc_search_set_create_time(gnet_search_t sh, time_t t)
 {
-	return search_set_create_time(sh, t);
+	search_set_create_time(sh, t);
 }
 
 gboolean
