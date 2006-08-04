@@ -2816,7 +2816,7 @@ parq_upload_remove(gnutella_upload_t *u)
 
 	/*
 	 * If we're still in the GTA_UL_QUEUE_WAITING state, we did not get any
-	 * HTTP requesst after sending the QUEUE callback.  However, if we sent
+	 * HTTP request after sending the QUEUE callback.  However, if we sent
 	 * a QUEUE request and went further, reset the amount of refused QUEUE.
 	 *		--RAM, 17/05/2003
 	 */
@@ -2890,8 +2890,7 @@ parq_upload_remove(gnutella_upload_t *u)
 		/* Tell next waiting upload that a slot is available, using QUEUE */
 		for (lnext = g_list_first(parq_ul->queue->by_rel_pos); lnext != NULL;
 			  lnext = g_list_next(lnext)) {
-				struct parq_ul_queued *parq_ul_next =
-					  (struct parq_ul_queued *) lnext->data;
+				struct parq_ul_queued *parq_ul_next = lnext->data;
 
 			if (!parq_ul_next->has_slot) {
 				g_assert(parq_ul_next->queue->active <= 1);
