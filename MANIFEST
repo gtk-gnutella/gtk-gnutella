@@ -115,6 +115,7 @@ doc/gnutella/min_speed
 doc/gnutella/msg/GTKG.lst
 doc/gnutella/msg/README
 doc/gnutella/msg/connect_back
+doc/gnutella/msg/node_info
 doc/gnutella/msg/proxy_cancel
 doc/gnutella/msg/route_lost
 doc/gnutella/out-of-band
