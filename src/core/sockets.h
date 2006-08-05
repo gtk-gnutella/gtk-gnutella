@@ -65,10 +65,22 @@ struct socket_tls_ctx {
 	gpointer				cb_data;
 };
 
-#define SOCKET_WITH_TLS(s) \
-	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_INITIALIZED)
-#define SOCKET_USES_TLS(s) \
-	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_ESTABLISHED)
+#ifdef HAS_GNUTLS
+static inline gboolean
+SOCKET_WITH_TLS(struct gnutella_socket *s)
+{
+	return s->tls.enabled && s->tls.stage >= SOCK_TLS_INITIALIZED;
+}
+
+static inline gboolean
+SOCKET_USES_TLS(struct gnutella_socket *s)
+{
+	return s->tls.enabled && s->tls.stage >= SOCK_TLS_ESTABLISHED;
+}
+#else
+#define SOCKET_WITH_TLS(s) FALSE
+#define SOCKET_USES_TLS(s) FALSE
+#endif	/* HAS_GNUTLS */
 
 struct sockaddr;
 

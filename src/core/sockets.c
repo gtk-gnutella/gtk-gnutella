@@ -1202,12 +1202,14 @@ socket_free(struct gnutella_socket *s)
 		s->getline = NULL;
 	}
 
+#ifdef HAS_GNUTLS
 	if (s->tls.ctx) {
 		if (s->file_desc != -1) {
 			tls_bye(s->tls.ctx, SOCK_CONN_INCOMING == s->direction);
 		}
 		tls_free(&s->tls.ctx);
 	}
+#endif	/* HAS_GNUTLS */
 
 	if (s->file_desc != -1) {
 		if (s->corked)
@@ -1239,18 +1241,19 @@ socket_free_null(struct gnutella_socket **s_ptr)
 }
 
 /**
- * @return	TRUE on success; FALSE otherwise. In the latter case, the socket
- *			might have been destroyed. Otherwise, the handshake was incomplete
+ * @return	0 on success. On failure -1 is returned and errno is set.
+ *			If the error is temporary, the handshake was incomplete
  *			and the same I/O handler will be called again which must call
  *			socket_tls_setup() once more.
  */
 static gboolean
 socket_tls_setup(struct gnutella_socket *s)
+#ifdef HAS_GNUTLS
 {
 	gboolean is_incoming;
 
 	if (!s->tls.enabled) {
-		return TRUE;
+		return 0;
 	}
 
 	is_incoming = SOCK_CONN_INCOMING == s->direction;
@@ -1267,24 +1270,31 @@ socket_tls_setup(struct gnutella_socket *s)
 		case TLS_HANDSHAKE_ERROR:
 			goto destroy;
 		case TLS_HANDSHAKE_RETRY:
-			return FALSE;
+			errno = VAL_EAGAIN;
+			return -1;
 		case TLS_HANDSHAKE_FINISHED:
 			s->tls.stage = SOCK_TLS_ESTABLISHED;
 			if (!is_incoming) {
 				tls_cache_insert(s->addr, s->port);
 			}
 			socket_wio_link(s);				/* Link to the I/O functions */
-			return TRUE;
+			return 0;
 		}
 		g_assert_not_reached();
 		goto destroy;
 	}
-	return TRUE;
+	return 0;
 
 destroy:
-	socket_destroy(s, "TLS handshake failed");
-	return FALSE;
+	errno = EIO;
+	return -1;
 }
+#else	/* HAVE_GNUTLS */
+{
+	(void) s;
+	return 0;
+}
+#endif	/* HAVE_GNUTLS */
 
 /**
  * Used for incoming connections, for outgoing too??
@@ -1342,7 +1352,10 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			}
 		}
 
-		if (!socket_tls_setup(s)) {
+		if (0 != socket_tls_setup(s)) {
+			if (!is_temporary_error(errno)) {
+				socket_destroy(s, "TLS handshake failed");
+			}
 			return;
 		}
 	}
@@ -1608,7 +1621,10 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 	s->flags |= SOCK_F_ESTABLISHED;
 	bws_sock_connected(s->type);
 
-	if (!socket_tls_setup(s)) {
+	if (0 != socket_tls_setup(s)) {
+		if (!is_temporary_error(errno)) {
+			socket_destroy(s, "TLS handshake failed");
+		}
 		return;
 	}
 
@@ -1950,14 +1966,16 @@ accepted:
 	t->getline = getline_make(MAX_LINE_SIZE);
 	t->flags |= SOCK_F_TCP;
 
+#ifdef HAS_GNUTLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
 	t->tls.stage = SOCK_TLS_NONE;
 	t->tls.ctx = NULL;
 	t->tls.snarf = 0;
 
-	if (tls_debug)
+	if (tls_debug > 2)
 		g_message("Incoming connection");
-
+#endif	/* HAS_GNUTLS */
+        
 	socket_wio_link(t);
 
 	t->flags |= SOCK_F_ESTABLISHED;
@@ -2352,11 +2370,13 @@ created:
 	s->port = port;
 	s->flags |= SOCK_F_TCP;
 
+#ifdef HAS_GNUTLS
 	s->tls.enabled = tls_enforce || (CONNECT_F_TLS & flags);
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.ctx = NULL;
 	s->tls.snarf = 0;
-
+#endif	/* HAS_GNUTLS */
+        
 	socket_wio_link(s);
 
 	option = 1;

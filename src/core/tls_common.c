@@ -701,13 +701,13 @@ tls_wio_link(struct wrap_io *wio)
 #else	/* !HAS_GNUTLS*/
 
 enum tls_handshake_result
-tls_handshake(tls_context_t ctx)
+tls_handshake(struct gnutella_socket *s)
 {
-	(void) ctx;
+	(void) s;
 	return TLS_HANDSHAKE_FINISHED;
 }
 
-tls_ctx_t
+tls_context_t 
 tls_init(gboolean is_incoming)
 {
 	(void) is_incoming;
