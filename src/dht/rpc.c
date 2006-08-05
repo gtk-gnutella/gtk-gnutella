@@ -147,18 +147,24 @@ rpc_add_timeout(struct rpc_cb *rcb, gint delay)
  * Ping remote node.
  */
 void
-dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg)
+dht_rpc_ping(knode_t *unused_kn, dht_rpc_cb_t unused_cb, gpointer unused_arg)
 {
 	/* XXX */
+	(void) unused_kn;
+	(void) unused_cb;
+	(void) unused_arg;
 }
 
 /**
  * Free the RPC callback descriptor held in the hash table at shutdown time.
  */
 static void
-rpc_free_kv(gpointer key, gpointer val, gpointer unused_x)
+rpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 {
-	rpc_cb_free((struct rpc_cb *) val);
+	(void) unused_key;
+	(void) unused_x;
+
+	rpc_cb_free(val);
 }
 
 /**

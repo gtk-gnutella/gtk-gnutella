@@ -242,12 +242,14 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb)
  */
 static void
 dht_addr_verify_cb(
-	enum dht_rpc_ret type, const kuid_t *unused_kuid, const gnet_host_t *host,
+	enum dht_rpc_ret type,
+	const kuid_t *unused_kuid, const gnet_host_t *unused_host,
 	const gchar *unused_payload, size_t unused_len, gpointer arg)
 {
 	knode_t *kn = arg;
 
 	(void) unused_kuid;
+	(void) unused_host;
 	(void) unused_payload;
 	(void) unused_len;
 
