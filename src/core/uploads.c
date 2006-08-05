@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "parq.h"
 #include "huge.h"
 #include "settings.h"
+#include "spam.h"
 #include "features.h"
 #include "geo_ip.h"
 #include "ggep.h"
@@ -1878,6 +1879,10 @@ get_file_to_upload_from_index(
 
 	if (sent_sha1) {
 		struct shared_file *sfn;
+		
+		if (spam_check(digest)) {
+			goto not_found;
+		}
 
 		/*
 		 * If they sent a SHA1, maybe they have a download mesh as well?
@@ -2032,8 +2037,7 @@ get_file_to_upload_from_index(
 	}
 
 	if (NULL == sf) {
-		upload_error_not_found(u, uri);
-		return NULL;
+		goto not_found;
 	}
 
 	if (!upload_file_present(u, sf, uri))
@@ -2049,6 +2053,10 @@ urn_not_found:
 
 sha1_recomputed:
 	upload_error_remove(u, NULL, 503, "SHA1 is being recomputed");
+	return NULL;
+
+not_found:
+	upload_error_not_found(u, uri);
 	return NULL;
 }
 
@@ -2075,6 +2083,10 @@ get_file_to_upload_from_urn(
 	if (!sha1_extract_from_uri(uri, digest, &malformed)) {
 		if (malformed)
 			goto malformed;
+		goto not_found;
+	}
+
+	if (spam_check(digest)) {
 		goto not_found;
 	}
 
