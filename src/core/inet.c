@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "inet.h"
 #include "nodes.h"				/* For node_become_firewalled() */

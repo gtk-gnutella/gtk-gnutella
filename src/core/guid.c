@@ -39,7 +39,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "guid.h"
 #include "lib/misc.h"

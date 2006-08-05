@@ -27,7 +27,7 @@
 
 #ifdef USE_REMOTE_CTRL
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "shell.h"
 #include "sockets.h"

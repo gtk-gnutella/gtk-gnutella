@@ -37,7 +37,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "fileinfo.h"
 #include "sockets.h"

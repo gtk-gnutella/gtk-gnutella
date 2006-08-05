@@ -60,7 +60,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 /*
  * TODO: Allow adding of a complete tree, including allready calculated

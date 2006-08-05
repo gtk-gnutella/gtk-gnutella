@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "glib-missing.h"
 #include "host_addr.h"

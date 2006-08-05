@@ -44,7 +44,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "visual_progress.h"
 

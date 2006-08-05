@@ -32,7 +32,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>

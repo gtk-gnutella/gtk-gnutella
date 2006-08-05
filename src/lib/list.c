@@ -40,7 +40,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "list.h"
 #include "misc.h"

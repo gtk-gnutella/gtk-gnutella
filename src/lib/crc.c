@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "crc.h"
 #include "override.h"		/* Must be the last header included */

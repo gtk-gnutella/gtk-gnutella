@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include <math.h>
 #include <zlib.h>

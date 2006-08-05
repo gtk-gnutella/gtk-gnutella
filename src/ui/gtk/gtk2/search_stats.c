@@ -46,7 +46,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gtk/search_stats.h"
 #include "gtk/gtk-missing.h"

@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #ifdef HAS_SQLITE
 #include <sqlite3.h>

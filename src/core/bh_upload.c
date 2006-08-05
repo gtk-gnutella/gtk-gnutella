@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "bh_upload.h"
 #include "share.h"

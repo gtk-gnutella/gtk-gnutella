@@ -46,7 +46,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "sq.h"					/* search_queue structures */
 #include "pmsg.h"

@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #ifdef I_NET_IF
 #include <net/if.h>		/* For IFF_* flags */

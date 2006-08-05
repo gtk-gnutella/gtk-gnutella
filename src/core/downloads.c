@@ -87,7 +87,7 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #if defined(S_IROTH)
 #define DOWNLOAD_FILE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) /* 0644 */

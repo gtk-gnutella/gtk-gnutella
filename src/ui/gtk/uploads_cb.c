@@ -25,7 +25,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "uploads_cb.h"
 #include "uploads.h"

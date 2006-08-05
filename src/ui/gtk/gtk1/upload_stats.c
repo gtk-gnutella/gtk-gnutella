@@ -57,7 +57,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gtk/upload_stats.h"
 #include "gtk/columns.h"

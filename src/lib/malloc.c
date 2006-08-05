@@ -44,7 +44,7 @@
  */
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
-RCSID("$Id$");
+RCSID("$Id$")
 
 /*
  * When MALLOC_FRAMES is supplied, we keep information about the allocation

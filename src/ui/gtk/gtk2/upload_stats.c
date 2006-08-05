@@ -56,7 +56,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "interface-glade.h" /* for create_popup_upload_stats */
 

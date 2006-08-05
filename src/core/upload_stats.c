@@ -54,7 +54,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "upload_stats.h"
 

@@ -25,7 +25,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "interface-glade.h"
 #include "gtk/uploads.h"

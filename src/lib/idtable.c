@@ -25,7 +25,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "idtable.h"
 #include "override.h"			/* Must be the last header included */

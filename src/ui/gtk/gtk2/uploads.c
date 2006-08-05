@@ -60,7 +60,7 @@
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
 

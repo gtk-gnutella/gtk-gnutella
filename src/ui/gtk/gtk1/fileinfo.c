@@ -35,7 +35,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gtk/filter.h"
 #include "gtk/statusbar.h"

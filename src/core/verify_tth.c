@@ -38,7 +38,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "verify_tth.h"
 #include "downloads.h"

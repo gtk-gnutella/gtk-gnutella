@@ -40,7 +40,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #ifdef ENABLE_NLS
 #include <libintl.h>

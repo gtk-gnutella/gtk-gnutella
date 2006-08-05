@@ -44,7 +44,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #ifdef HAS_KQUEUE
 #include <sys/event.h>

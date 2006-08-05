@@ -25,7 +25,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "hcache_common.h"
 #include "lib/override.h"		/* Must be the last header included */

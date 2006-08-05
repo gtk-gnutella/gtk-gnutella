@@ -52,7 +52,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "hosts.h"
 #include "hcache.h"

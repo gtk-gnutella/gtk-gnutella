@@ -36,7 +36,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gtk/monitor.h"
 #include "gtk/monitor_cb.h"

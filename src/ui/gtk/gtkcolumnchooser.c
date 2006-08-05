@@ -25,7 +25,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include <gtk/gtkcheckmenuitem.h>
 

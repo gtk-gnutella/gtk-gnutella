@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "pmsg.h"
 #include "hosts.h"				/* For host_ip() */

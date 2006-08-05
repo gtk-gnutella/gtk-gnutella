@@ -38,7 +38,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #ifdef I_NETDB
 #include <netdb.h>

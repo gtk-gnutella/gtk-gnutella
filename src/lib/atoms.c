@@ -44,7 +44,7 @@
 
 #include "atoms.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #ifdef PROTECT_ATOMS
 

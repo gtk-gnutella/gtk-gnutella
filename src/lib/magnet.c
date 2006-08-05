@@ -35,7 +35,7 @@
 
 #include "magnet.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"

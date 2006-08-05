@@ -25,7 +25,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #if !GTK_CHECK_VERSION(2,5,0)
 #include "pbarcellrenderer.h"

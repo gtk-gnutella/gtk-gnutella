@@ -39,7 +39,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "cobs.h"
 #include "walloc.h"

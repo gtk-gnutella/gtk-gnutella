@@ -37,7 +37,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gtk-missing.h"
 #include "columns.h"

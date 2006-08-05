@@ -35,7 +35,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>

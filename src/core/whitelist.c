@@ -38,7 +38,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "whitelist.h"
 #include "settings.h"

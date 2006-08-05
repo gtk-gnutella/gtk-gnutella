@@ -38,7 +38,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "upload_stats_cb.h"
 #include "upload_stats.h"

@@ -66,7 +66,7 @@
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #define debug dbg
 

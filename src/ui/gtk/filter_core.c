@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "filter.h"
 #include "filter_core.h"

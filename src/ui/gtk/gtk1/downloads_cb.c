@@ -25,7 +25,7 @@
 
 #include "gtk/gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gtk/downloads.h"
 #include "gtk/downloads_common.h"

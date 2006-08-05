@@ -95,7 +95,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gmsg.h"
 #include "routing.h"

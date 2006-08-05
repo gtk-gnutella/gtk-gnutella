@@ -27,7 +27,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "matching.h"
 #include "qrp.h"				/* For qhvec_add() */

@@ -25,7 +25,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 #include "downloads_common.h"
 #include "downloads.h"
 #include "statusbar.h"

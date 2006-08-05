@@ -25,7 +25,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "gnet_stats_common.h"
 #include "gtk-missing.h"

@@ -42,7 +42,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "hashlist.h"
 #include "misc.h"

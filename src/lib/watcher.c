@@ -38,7 +38,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "watcher.h"
 #include "atoms.h"

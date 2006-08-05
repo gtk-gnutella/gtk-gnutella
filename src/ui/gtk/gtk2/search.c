@@ -64,7 +64,7 @@
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #define MAX_TAG_SHOWN	60		/**< Show only first chars of tag */
 

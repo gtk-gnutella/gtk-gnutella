@@ -35,7 +35,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "settings.h"
 #include "monitor.h"

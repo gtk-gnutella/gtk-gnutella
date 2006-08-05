@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "aging.h"
 #include "cq.h"

@@ -36,7 +36,7 @@
 
 #include "gui.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "nodes_common.h"
 #include "settings.h"

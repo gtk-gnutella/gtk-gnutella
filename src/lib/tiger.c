@@ -48,7 +48,7 @@
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "endian.h"
 #include "misc.h"

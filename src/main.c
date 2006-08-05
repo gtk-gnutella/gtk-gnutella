@@ -136,7 +136,7 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #define SLOW_UPDATE_PERIOD		20	/**< Update period for `main_slow_update' */
 #define EXIT_GRACE				30	/**< Seconds to wait before exiting */

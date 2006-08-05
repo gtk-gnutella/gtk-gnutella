@@ -35,7 +35,7 @@
 
 #include "common.h"			/* For safe compilation under USE_DMALLOC */
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "namesize.h"
 
