@@ -8831,4 +8831,85 @@ node_update_udp_socket(void)
 		node_udp_enable();
 }
 
+/**
+ * Display a summary of the node flags.
+ *
+ * The stuff in the Flags column means:
+ *
+ *  - 012345678AB (offset)
+ *  - NIrwqxZPFhE
+ *  - ^^^^^^^^^^^
+ *  - ||||||||||+ E indicates a TLS encrypted connection
+ *  - |||||||||+  hops flow triggerd (h), or total query flow control (f)
+ *  - ||||||||+   flow control (F), or pending data in queue (d)
+ *  - |||||||+    indicates whether we're a push proxy (P) / node is proxy (p)
+ *  - ||||||+     indicates whether RX, TX or both (Z) are compressed
+ *  - |||||+      indicates whether we sent our last-hop QRT to remote UP
+ *  - ||||+       indicates whether we sent/received a QRT, or send/receive one
+ *  - |||+        indicates whether node is writable
+ *  - ||+         indicates whether node is readable
+ *  - |+          indicates connection type (Incoming, Outgoing, Ponging)
+ *  - +           indicates peer mode (Normal, Ultra, Leaf)
+ */
+const gchar *
+node_flags_to_string(const gnet_node_flags_t *flags)
+{
+	static gchar status[] = "NIrwqTRPFhE";
+
+	switch (flags->peermode) {
+	case NODE_P_UNKNOWN:	status[0] = '-'; break;
+	case NODE_P_ULTRA:		status[0] = 'U'; break;
+	case NODE_P_NORMAL:		status[0] = 'N'; break;
+	case NODE_P_LEAF:		status[0] = 'L'; break;
+	case NODE_P_CRAWLER:	status[0] = 'C'; break;
+	case NODE_P_UDP:		status[0] = 'P'; break;
+	default:				g_assert_not_reached(); break;
+	}
+
+	status[1] = flags->incoming ? 'I' : 'O';
+	status[2] = flags->readable ? 'r' : '-';
+	status[3] = flags->writable ? 'w' : '-';
+
+	switch (flags->qrt_state) {
+	case QRT_S_SENT: case QRT_S_RECEIVED:		status[4] = 'Q'; break;
+	case QRT_S_SENDING: case QRT_S_RECEIVING:	status[4] = 'q'; break;
+	case QRT_S_PATCHING:						status[4] = 'p'; break;
+	default:									status[4] = '-';
+	}
+
+	switch (flags->uqrt_state) {
+	case QRT_S_SENT:		status[5] = 'X'; break;
+	case QRT_S_SENDING:		status[5] = 'x'; break;
+	case QRT_S_PATCHING:	status[5] = 'p'; break;
+	default:				status[5] = '-';
+	}
+
+	status[6] =
+		flags->tx_compressed && flags->rx_compressed ? 'Z' :
+		flags->tx_compressed ? 'T' :
+		flags->rx_compressed ? 'R' : '-';
+
+	if (flags->is_push_proxied)  status[7] = 'P';
+	else if (flags->is_proxying) status[7] = 'p';
+	else status[7] = '-';
+
+	if (flags->in_tx_swift_control) status[8]     = 'S';
+	else if (flags->in_tx_flow_control) status[8] = 'F';
+	else if (flags->mqueue_above_lowat) status[8] = 'D';
+	else if (!flags->mqueue_empty) status[8]      = 'd';
+	else status[8]                                = '-';
+
+	if (flags->hops_flow == 0)
+		status[9] = 'f';
+	else if (flags->hops_flow < GTA_NORMAL_TTL)
+		status[9] = 'h';
+	else
+		status[9] = '-';
+
+	status[10] = flags->tls ? 'E' : '-';
+
+	status[sizeof(status) - 1] = '\0';
+	return status;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

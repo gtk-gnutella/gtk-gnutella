@@ -570,6 +570,13 @@ guc_node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 	node_fill_info(n, info);
 }
 
+const gchar *
+guc_node_flags_to_string(const gnet_node_flags_t *flags)
+{
+	return node_flags_to_string(flags);
+}
+
+
 /*	parq interface functions (UI -> Core)*/
 gint
 guc_get_parq_dl_position(const struct download *d)

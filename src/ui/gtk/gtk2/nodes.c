@@ -317,8 +317,7 @@ nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
     guc_node_get_status(info->node_handle, &status);
     gm_snprintf(data->version, sizeof data->version, "%u.%u",
 		info->proto_major, info->proto_minor);
-	if (data->user_agent)
-		atom_str_free(data->user_agent);
+	atom_str_free_null(&data->user_agent);
 	data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
 	data->country = info->country;
 }
@@ -334,7 +333,7 @@ nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 	g_assert(NULL != data);
 
 	concat_strings(data->flags, sizeof data->flags,
-		"<tt>", nodes_gui_common_flags_str(flags), "</tt>", (void *) 0);
+		"<tt>", guc_node_flags_to_string(flags), "</tt>", (void *) 0);
 
 	ultra = NODE_P_ULTRA == flags->peermode;
     data->fg = &(gtk_widget_get_style(GTK_WIDGET(treeview_nodes))

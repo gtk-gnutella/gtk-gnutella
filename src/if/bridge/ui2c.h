@@ -185,6 +185,7 @@ void guc_node_clear_info(gnet_node_info_t *info);
 void guc_node_free_info(gnet_node_info_t *info);
 void guc_node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
 void guc_node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
+const gchar *guc_node_flags_to_string(const gnet_node_flags_t *flags);
 
 /* parq interface functions */
 gint guc_get_parq_dl_position(const struct download *d);

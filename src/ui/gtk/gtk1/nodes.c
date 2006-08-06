@@ -208,7 +208,7 @@ nodes_gui_update_node_flags(
 
     if (row != -1) {
         gtk_clist_set_text(clist, row, c_gnet_flags,
-			nodes_gui_common_flags_str(flags));
+			guc_node_flags_to_string(flags));
 	if (NODE_P_LEAF == flags->peermode || NODE_P_NORMAL == flags->peermode) {
 		GdkColor *color = &(gtk_widget_get_style(GTK_WIDGET(clist))
 			->fg[GTK_STATE_INSENSITIVE]);
