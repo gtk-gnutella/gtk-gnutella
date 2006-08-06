@@ -589,6 +589,7 @@ gnutella_node_t *node_browse_prepare(
 	gnet_host_t *host, const gchar *vendor, struct gnutella_header *header,
 	gchar *data, guint32 size);
 void node_browse_cleanup(gnutella_node_t *n);
+void node_kill_hostiles(void);
 
 #endif /* _core_nodes_h_ */
 

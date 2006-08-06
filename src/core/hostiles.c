@@ -206,6 +206,8 @@ hostiles_changed(const gchar *filename, gpointer udata)
 
 	gm_snprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
 	gcu_statusbar_message(buf);
+
+	node_kill_hostiles();
 }
 
 static void

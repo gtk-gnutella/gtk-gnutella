@@ -849,7 +849,7 @@ node_error_cleanup(void)
 	GSList *to_remove = NULL;
 
 	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_client_t *bad_node = (node_bad_client_t *) sl->data;
+		node_bad_client_t *bad_node = sl->data;
 
 		g_assert(bad_node != NULL);
 
@@ -858,7 +858,7 @@ node_error_cleanup(void)
 	}
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_client_t *bad_node = (node_bad_client_t *) sl->data;
+		node_bad_client_t *bad_node = sl->data;
 
 		g_assert(bad_node != NULL);
 		g_assert(bad_node->vendor != NULL);
@@ -898,7 +898,7 @@ node_timer(time_t now)
 	}
 
 	for (sl = sl_nodes; NULL != sl; /* empty */ ) {
-		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+		struct gnutella_node *n = sl->data;
 
 		/*
 		 * NB:	As the list `sl_nodes' might be modified, the next
@@ -8910,6 +8910,31 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 
 	status[sizeof(status) - 1] = '\0';
 	return status;
+}
+
+/**
+ * Disconnects all connected nodes which are considered hostile. This
+ * is mainly for disconnecting nodes after hostiles.txt has been reloaded.
+ */
+void
+node_kill_hostiles(void)
+{
+	GSList *sl, *to_remove = NULL;
+
+	for (sl = sl_nodes; sl != NULL; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = sl->data;
+
+		if (0 == (NODE_F_FORCE & n->flags) && hostiles_check(n->addr)) {
+			to_remove = g_slist_prepend(to_remove, n);
+		}
+	}
+
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = sl->data;
+
+        node_remove(n, no_reason);
+	}
+	g_slist_free(to_remove);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
