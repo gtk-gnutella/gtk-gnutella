@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
+#include "lib/iso3166.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -81,7 +82,7 @@ static void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 static void shell_handle_data(gpointer data, gint unused_source,
 	inputevt_cond_t cond);
 
-enum {
+enum shell_cmd {
 	CMD_UNKNOWN,
 	CMD_NOOP,
 	CMD_QUIT,
@@ -93,7 +94,8 @@ enum {
 	CMD_SET,
 	CMD_WHATIS,
 	CMD_HORIZON,
-	CMD_RESCAN
+	CMD_RESCAN,
+	CMD_NODES
 };
 
 static const struct {
@@ -109,11 +111,12 @@ static const struct {
 	{	CMD_SET,		"SET"		},
 	{	CMD_WHATIS,		"WHATIS"	},
 	{	CMD_HORIZON,	"HORIZON"	},
-	{	CMD_RESCAN,		"RESCAN"	}
+	{	CMD_RESCAN,		"RESCAN"	},
+	{	CMD_NODES,		"NODES"		}
 };
 
 
-static gint
+static enum shell_cmd
 get_command(const gchar *cmd)
 {
 	guint i;
@@ -794,6 +797,77 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 }
 
+static void
+print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
+{
+	gnet_node_flags_t flags;
+	time_delta_t up, con;
+	time_t now;
+	gchar buf[1024];
+	gchar vendor_escaped[20];
+
+	g_return_if_fail(sh);
+	g_return_if_fail(n);
+	
+	if (!NODE_IS_ESTABLISHED(n)) {
+		return;
+	}
+
+	now = tm_time();
+	con = n->connect_date ? delta_time(now, n->connect_date) : 0;
+	up = n->up_date ? delta_time(now, n->up_date) : 0;
+	node_fill_flags(n->node_handle, &flags);
+
+	{
+		const gchar *vendor;
+		gchar *escaped;
+		
+		vendor = node_vendor(n);
+		escaped = hex_escape(vendor, TRUE);
+		g_strlcpy(vendor_escaped, escaped, sizeof vendor_escaped);
+		if (escaped != vendor) {
+			G_FREE_NULL(escaped);
+		}
+	}
+
+	gm_snprintf(buf, sizeof buf, "100- %-21.45s %5.u %s %s %s %s %.30s",
+		node_addr(n),
+		(guint) n->gnet_port,
+		node_flags_to_string(&flags),
+		iso3166_country_cc(n->country),
+		con > 0 ? short_time(con) : "?",
+		up > 0 ? short_time(up) : "?",
+		vendor_escaped);
+
+	shell_write(sh, buf);
+	shell_write(sh, "\n");
+}
+
+/**
+ * Displays all connected nodes
+ */
+static guint
+shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
+{
+	const GSList *sl;
+
+	g_assert(sh);
+	g_assert(cmd);
+	g_assert(!IS_PROCESSING(sh));
+
+	sh->msg = "";
+
+	shell_write(sh,
+		"100- Node (Port) Flags User-Agent Country Conn. Uptime\n"
+		"100- \n");
+
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		const struct gnutella_node *n = sl->data;
+		print_node_info(sh, n);
+	}
+
+	return REPLY_READY;
+}
 
 
 /**
@@ -819,6 +893,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"100-Help:\n"
 			"100-SEARCH ADD <query>\n"
 			"100-NODE ADD <ip> [port]\n"
+			"100-NODES\n"
 			"100-PRINT <property>\n"
 			"100-SET <property> <value>\n"
 			"100-WHATIS <property>\n"
@@ -854,7 +929,12 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 	case CMD_RESCAN:
 		reply_code = shell_exec_rescan(sh, &cmd[pos]);
 		break;
-	default:
+	case CMD_NODES:
+		reply_code = shell_exec_nodes(sh, &cmd[pos]);
+		break;
+	case CMD_ADD:
+	case CMD_NOOP:
+	case CMD_UNKNOWN:
 		goto error;
 	}
 
