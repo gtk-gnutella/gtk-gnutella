@@ -52,7 +52,7 @@ knode_new(kuid_t *id, host_addr_t addr, guint16 port)
 	knode_t *kn;
 
 	kn = walloc0(sizeof *kn);
-	kn->id = (kuid_t *) atom_sha1_get(id->v);
+	kn->id = kuid_get_atom(id);
 	kn->refcnt = 1;
 	kn->addr = addr;
 	kn->port = port;
@@ -69,7 +69,7 @@ knode_dispose(knode_t *kn)
 {
 	g_assert(kn->refcnt == 0);
 
-	atom_sha1_free(kn->id->v);
+	kuid_atom_free(kn->id);
 	wfree(kn, sizeof *kn);
 }
 

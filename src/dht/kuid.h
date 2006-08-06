@@ -53,5 +53,8 @@ void kuid_random_fill(kuid_t *kuid);
 gint kuid_cmp(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2);
 const gchar *kuid_to_string(const kuid_t *kuid);
 
+kuid_t *kuid_get_atom(const kuid_t *k);
+void kuid_atom_free(const kuid_t *k);
+
 #endif /* _dht_kuid_h_ */
 

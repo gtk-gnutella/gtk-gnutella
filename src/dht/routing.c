@@ -134,7 +134,7 @@ dht_route_init(void)
 	if (dht_debug)
 		g_message("DHT local node ID is %s", kuid_to_string(our_kuid));
 
-	our_kuid = (kuid_t *) atom_sha1_get(buf.v);
+	our_kuid = kuid_get_atom(&buf);
 
 	/*
 	 * Allocate root node for the routing table.
@@ -368,7 +368,7 @@ dht_free_kbucket(struct kbucket *kb)
 void
 dht_route_close(void)
 {
-	atom_sha1_free(our_kuid->v);
+	kuid_atom_free(our_kuid);
 }
 
 

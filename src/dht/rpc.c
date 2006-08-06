@@ -101,7 +101,7 @@ static void
 rpc_cb_free(struct rpc_cb *rcb)
 {
 	atom_guid_free(rcb->guid->v);
-	atom_sha1_free(rcb->kuid->v);
+	kuid_atom_free(rcb->kuid);
 
 	if (rcb->timeout != NULL) {
 		cq_cancel(callout_queue, rcb->timeout);

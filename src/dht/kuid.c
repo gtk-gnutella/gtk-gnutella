@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "kuid.h"
 
+#include "lib/atoms.h"
 #include "lib/misc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -105,6 +106,18 @@ kuid_to_string(const kuid_t *kuid)
 	static gchar buf[SHA1_BASE32_SIZE + 1];
 
 	return sha1_to_base32_buf(cast_to_gconstpointer(&kuid->v), buf, sizeof buf);
+}
+
+kuid_t *
+kuid_get_atom(const kuid_t *k)
+{
+	return (kuid_t *) atom_sha1_get((const gchar *) k);
+}
+
+void
+kuid_atom_free(const kuid_t *k)
+{
+	atom_sha1_free((const gchar *) k);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
