@@ -267,6 +267,7 @@
 # getlaidquickly dot com; spam results for files which do not even exist;
 # seemingly just an attempt to make the website well-known
 38.99.20.116
+38.99.21.38
 
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
 63.216.80.0/24
@@ -320,6 +321,7 @@
 
 # Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
 72.51.37.145
+72.51.42.70
 
 # Gnucleus-based DRM WMV spammer hosted by eNET
 206.222.26.34
@@ -650,5 +652,4 @@
 # Fakes User-Agent randomly for each connection; uploads noisy
 # MP3 files using an extremely aggressive buzzword filter.
 216.58.72.33
-
 
