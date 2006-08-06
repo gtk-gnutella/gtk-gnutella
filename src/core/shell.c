@@ -858,7 +858,7 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 	sh->msg = "";
 
 	shell_write(sh,
-		"100- Node (Port) Flags User-Agent Country Conn. Uptime\n"
+		"100- Node                  Port  Flags       CC Conn. Up. User-Agent\n"
 		"100- \n");
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
