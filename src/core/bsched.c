@@ -1421,7 +1421,8 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	g_assert(len > 0);
 
 	start = *offset;
-	g_assert(start + len > start);
+	g_assert(start >= 0);
+	g_assert(start + (off_t) len > start);
 
 	out_fd = bio->wio->fd(bio->wio);
 
