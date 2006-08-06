@@ -70,7 +70,7 @@ rpc_cb_hash(gconstpointer key)
 {
 	const struct rpc_cb *cb = key;
 
-	return guid_hash(cb->guid->v);
+	return guid_hash(cb->guid);
 }
 
 /**
@@ -100,7 +100,7 @@ dht_rpc_init(void)
 static void
 rpc_cb_free(struct rpc_cb *rcb)
 {
-	atom_guid_free(rcb->guid->v);
+	atom_guid_free(rcb->guid);
 	kuid_atom_free(rcb->kuid);
 
 	if (rcb->timeout != NULL) {

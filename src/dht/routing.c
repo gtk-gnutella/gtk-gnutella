@@ -300,7 +300,7 @@ dht_add(kuid_t *id, host_addr_t addr, guint16 port)
 
 		if (dht_debug)
 			g_message("DHT node %s was at %s, now %s:%u -- verifying",
-				sha1_base32(kn->id->v),
+				kuid_to_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
 				host_addr_to_string(addr), port);
 
