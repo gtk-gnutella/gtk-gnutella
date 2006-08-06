@@ -917,7 +917,7 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 		return FALSE;
 	}
 
-	if (buf.st_size < sizeof tr)
+	if (buf.st_size < (off_t) sizeof tr)
 		return FALSE;
 
 	/*
