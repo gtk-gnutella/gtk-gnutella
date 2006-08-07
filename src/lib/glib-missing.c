@@ -44,8 +44,10 @@
 RCSID("$Id$")
 
 #include "glib-missing.h"
-#include "utf8.h"
+#include "iovec.h"
 #include "misc.h"
+#include "utf8.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #ifndef TRACK_MALLOC
