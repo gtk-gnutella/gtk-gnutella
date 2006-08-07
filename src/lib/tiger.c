@@ -208,13 +208,6 @@ tiger_compress(const guint64 *data, guint64 state[3])
   tiger_compress_macro(data, state);
 }
 
-#ifdef OPTIMIZE_FOR_ALPHA
-/* The compress function is inlined: works better on Alpha.        */
-/* Still leaves the function above in the code, in case some other */
-/* module calls it directly.                                       */
-#define tiger_compress(str, state) tiger_compress_macro((str), (state))
-#endif /* OPTIMIZE_FOR_ALPHA */
-
 void
 tiger(gconstpointer data, guint64 length, guchar hash[24])
 {
