@@ -2807,7 +2807,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 		-1 != opt &&
 		0 != setsockopt(s->file_desc, level, opt, &enable, sizeof enable)
 	) {
-		g_warning("socket_recv_dst_addr(): setsockopt() failed: %s",
+		g_warning("socket_enable_recvdstaddr(): setsockopt() failed: %s",
 			g_strerror(errno));
 	}
 }
@@ -3238,19 +3238,17 @@ safe_readv(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
+safe_writev(wrap_io_t *wio, const struct iovec *iov, gint iovcnt)
 {
-	size_t sent = 0;
-	struct iovec *end = iov + iovcnt;
-	struct iovec *siov;
+	const struct iovec *siov, *end = &iov[iovcnt];
 	gint siovcnt = MAX_IOV_COUNT;
 	gint iovsent = 0;
+	size_t sent = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
-		ssize_t r;
+		const struct iovec *xiv, *xend;
 		size_t size;
-		struct iovec *xiv;
-		struct iovec *xend;
+		ssize_t r;
 
 		siovcnt = iovcnt - iovsent;
 		if (siovcnt > MAX_IOV_COUNT)
@@ -3288,19 +3286,17 @@ safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_writev_fd(gint fd, struct iovec *iov, gint iovcnt)
+safe_writev_fd(gint fd, const struct iovec *iov, gint iovcnt)
 {
-	size_t sent = 0;
-	struct iovec *end = iov + iovcnt;
-	struct iovec *siov;
+	const struct iovec *siov, *end = &iov[iovcnt];
 	gint siovcnt = MAX_IOV_COUNT;
 	gint iovsent = 0;
+	size_t sent = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
-		ssize_t r;
+		const struct iovec *xiv, *xend;
 		size_t size;
-		struct iovec *xiv;
-		struct iovec *xend;
+		ssize_t r;
 
 		siovcnt = iovcnt - iovsent;
 		if (siovcnt > MAX_IOV_COUNT)

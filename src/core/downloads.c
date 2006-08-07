@@ -43,6 +43,7 @@
 #include "bsched.h"
 #include "huge.h"
 #include "dmesh.h"
+#include "file_object.h"
 #include "http.h"
 #include "version.h"
 #include "ignore.h"
@@ -2916,10 +2917,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		d->bio = NULL;
 	}
 	socket_free_null(&d->socket);	/* Close socket */
-	if (d->file_desc != -1) {		/* Close output file */
-		close(d->file_desc);
-		d->file_desc = -1;
-	}
+	file_object_release(&d->out_file);/* Close output file */
 	if (d->io_opaque) {				/* I/O data */
 		io_free(d->io_opaque);
 		g_assert(d->io_opaque == NULL);
@@ -4043,10 +4041,7 @@ download_fallback_to_push(struct download *d,
 		socket_free_null(&d->socket);
 	}
 
-	if (d->file_desc != -1) {
-		close(d->file_desc);
-		d->file_desc = -1;
-	}
+	file_object_release(&d->out_file);
 
 	if (user_request)
 		d->status = GTA_DL_PUSH_SENT;
@@ -4218,7 +4213,6 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 * if we use swarming.
 	 */
 	d->size = size;					/* Will be changed if range requested */
-	d->file_desc = -1;
 	d->record_stamp = stamp;
 	download_set_sha1(d, sha1);
 	d->always_push = 0 != (CONNECT_F_PUSH & cflags);
@@ -4411,7 +4405,7 @@ download_clone(struct download *d)
 
 	cd->rx = NULL;
 	cd->bio = NULL;						/* Recreated on each transfer */
-	cd->file_desc = -1;					/* File re-opened each time */
+	cd->out_file = NULL;				/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = DL_LIST_INVALID;
@@ -5459,24 +5453,6 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		g_message("flushing %lu bytes for \"%s\"%s",
 			(gulong) b->held, download_outname(d), may_stop ? "" : " on stop");
 
-	if (0 != seek_to_filepos(d->file_desc, d->pos)) {
-		const char *error = g_strerror(errno);
-
-		g_warning("failed to seek at offset %s (%s) for \"%s\" "
-			"-- discarding %lu bytes",
-			uint64_to_string(d->pos), error, download_outname(d),
-			(gulong) b->held);
-
-		/* Prevent download_stop() from trying flushing again */
-		buffers_discard(d);
-
-		if (may_stop)
-			download_stop(d, GTA_DL_ERROR, "Can't seek to offset %s: %s",
-				uint64_to_string(d->pos), error);
-
-		return FALSE;
-	}
-
 	/*
 	 * We can't have data going farther than what we requested from the
 	 * server.  But if we do, trim and warn.  And mark the server as not
@@ -5508,11 +5484,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		struct iovec *iov;
 
 		iov = buffers_to_iovec(d); 
-		if (b->count > MAX_IOV_COUNT) {
-			written = safe_writev_fd(d->file_desc, iov, b->count);
-		} else {
-			written = writev(d->file_desc, iov, b->count);
-		}
+		written = file_object_pwritev(d->out_file, iov, b->count, d->pos);
 		wfree(iov, b->count * sizeof *iov);
 	}
 
@@ -5521,6 +5493,14 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 
 		g_warning("write of %lu bytes to file \"%s\" failed: %s",
 			(gulong) b->held, download_outname(d), error);
+
+		/* FIXME: We should never discard downloaded data! This
+		 * causes a re-download of the same data. Instead we should
+		 * keep the buffered data around and periodically try to
+		 * flush the buffers. At least in the case of ENOSPC or
+		 * EDQUOT when the disk filled up and the condition can
+		 * be solved by the user but may hold for a long duration.
+		 */
 
 		/* Prevent download_stop() from trying flushing again */
 		buffers_discard(d);
@@ -7803,7 +7783,7 @@ http_version_nofix:
 	 * Open output file.
 	 */
 
-	g_assert(d->file_desc == -1);
+	g_assert(NULL == d->out_file);
 
 	path = make_pathname(fi->path, fi->file_name);
 	g_return_if_fail(NULL != path);
@@ -7820,17 +7800,17 @@ http_version_nofix:
 			return;
 		}
 
-		d->file_desc = file_open(path, O_WRONLY);
+		d->out_file = file_object_open_writable(path);
 	} else {
 		if (!fi->use_swarming && d->skip) {
 			download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
 			G_FREE_NULL(path);
 			return;
 		}
-		d->file_desc = file_create(path, O_WRONLY, DOWNLOAD_FILE_MODE);
+		d->out_file = file_object_create_writable(path, DOWNLOAD_FILE_MODE);
 	}
 
-	if (d->file_desc == -1) {
+	if (NULL == d->out_file) {
 		const gchar *error = g_strerror(errno);
 		download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
 		G_FREE_NULL(path);
@@ -7839,12 +7819,14 @@ http_version_nofix:
 
 	G_FREE_NULL(path);
 
+#if 0
 	if (d->skip > 0 && 0 != seek_to_filepos(d->file_desc, d->skip)) {
 		download_stop(d, GTA_DL_ERROR, "Unable to seek to position %s: %s",
 			uint64_to_string(d->skip),
 			g_strerror(errno));
 		return;
 	}
+#endif
 
 	/*
 	 * We're ready to receive.

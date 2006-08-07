@@ -1,0 +1,48 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2004, Christian Biere
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#ifndef _core_file_object_h_
+#define _core_file_object_h_
+
+#include "common.h"
+
+void file_object_init(void);
+void file_object_close(void);
+
+struct file_object *file_object_create_writable(const char *pathname,
+					mode_t mode);
+struct file_object *file_object_open_writable(const char *pathname);
+ssize_t file_object_pwrite(const struct file_object *fo,
+					const void *data, size_t buf, filesize_t offset);
+ssize_t file_object_pwritev(const struct file_object *fo,
+					const struct iovec *iov, int iov_cnt, filesize_t offset);
+
+int file_object_get_fd(const struct file_object *fo);
+const char *file_object_get_pathname(const struct file_object *fo);
+
+void file_object_release(struct file_object **fo_ptr);
+
+#endif /* _core_file_object_h_ */
+/* vi: set ts=4 sw=4 cindent: */

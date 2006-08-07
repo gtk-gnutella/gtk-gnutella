@@ -40,6 +40,7 @@
 RCSID("$Id$")
 
 #include "fileinfo.h"
+#include "file_object.h"
 #include "sockets.h"
 #include "downloads.h"
 #include "uploads.h"
@@ -384,14 +385,22 @@ tbuf_extend(guint32 x, gboolean writing)
  * Write trailer buffer at current position on `fd', whose name is `name'.
  */
 static void
-tbuf_write(gint fd, gchar *name)
+tbuf_write(const struct file_object *fo, filesize_t offset)
 {
-	g_assert(fd >= 0);
-	g_assert(TBUF_WRITTEN_LEN() > 0);
+	size_t size = TBUF_WRITTEN_LEN();
+	ssize_t ret;
 
-	if (-1 == write(fd, tbuf.arena, TBUF_WRITTEN_LEN()))
+	g_assert(fo);
+	g_assert(size > 0);
+
+	ret = file_object_pwrite(fo, tbuf.arena, size, offset);
+	if ((ssize_t) -1 == ret || (size_t) ret != size) {
+		const gchar *error;
+
+		error = (ssize_t) -1 == ret ? g_strerror(errno) : "Unknown error";
 		g_warning("error while flushing trailer info for \"%s\": %s",
-			name, g_strerror(errno));
+			file_object_get_pathname(fo), error);
+	}
 }
 
 /**
@@ -465,14 +474,15 @@ file_info_check_chunklist(fileinfo_t *fi, gboolean assertion)
  * have elapsed since last flush to disk.
  */
 static void
-file_info_fd_store_binary(fileinfo_t *fi, int fd, gboolean force)
+file_info_fd_store_binary(fileinfo_t *fi,
+	const struct file_object *fo, gboolean force)
 {
 	GSList *fclist;
 	GSList *a;
 	guint32 checksum = 0;
 	guint32 length;
 
-	g_assert(fd >= 0);
+	g_assert(fo);
 
 	/*
 	 * Don't flush unless required or some delay occurred since last flush.
@@ -482,17 +492,6 @@ file_info_fd_store_binary(fileinfo_t *fi, int fd, gboolean force)
 		fi->last_flush = fi->stamp;
 	else
 		return;
-
-	/*
-	 * Write trailer at the far end.
-	 */
-
-	if (0 != seek_to_filepos(fd, fi->size)) {
-		g_warning("file_info_store_binary(): "
-			"seek_to_filepos(%d, %s) in \"%s\" failed: %s",
-			fd, uint64_to_string(fi->size), fi->file_name, g_strerror(errno));
-		return;
-	}
 
 	TBUF_INIT_WRITE();
 	WRITE_INT32(FILE_INFO_VERSION);
@@ -554,9 +553,10 @@ file_info_fd_store_binary(fileinfo_t *fi, int fd, gboolean force)
 	WRITE_INT32(checksum);
 	WRITE_UINT32(FILE_INFO_MAGIC64);
 
-	tbuf_write(fd, fi->file_name);		/* Flush buffer at current position */
+	/* Flush buffer at current position */
+	tbuf_write(fo, fi->size);
 
-	if (0 != ftruncate(fd, fi->size + length))
+	if (0 != ftruncate(file_object_get_fd(fo), fi->size + length))
 		g_warning("file_info_fd_store_binary(): truncate() failed: %s",
 			g_strerror(errno));
 
@@ -571,13 +571,9 @@ file_info_fd_store_binary(fileinfo_t *fi, int fd, gboolean force)
 void
 file_info_store_binary(fileinfo_t *fi)
 {
-	int fd;
-	char *path;
+	struct file_object *fo;
 
 	g_assert(!(fi->flags & FI_F_TRANSIENT));
-
-	path = make_pathname(fi->path, fi->file_name);
-	g_return_if_fail(NULL != path);
 
 	/*
 	 * We don't create the file if it does not already exist.  That way,
@@ -585,17 +581,18 @@ file_info_store_binary(fileinfo_t *fi)
 	 * since then we'll go directly to file_info_fd_store_binary().
 	 */
 
-	fd = file_open_missing(path, O_WRONLY);
+	{
+		char *path = make_pathname(fi->path, fi->file_name);
 
-	if (fd < 0) {
+		fo = file_object_open_writable(path);
 		G_FREE_NULL(path);
-		return;
 	}
 
-	G_FREE_NULL(path);
-	fi->stamp = tm_time();
-	file_info_fd_store_binary(fi, fd, TRUE);	/* Force flush */
-	close(fd);
+	if (fo) {
+		fi->stamp = tm_time();
+		file_info_fd_store_binary(fi, fo, TRUE);	/* Force flush */
+		file_object_release(&fo);
+	}
 }
 
 /**
@@ -3965,7 +3962,7 @@ again:
 		goto done;
 
 	if (DL_CHUNK_DONE == status)
-		file_info_fd_store_binary(d->file_info, d->file_desc, FALSE);
+		file_info_fd_store_binary(d->file_info, d->out_file, FALSE);
 	else if (fi->dirty)
 		file_info_store_binary(d->file_info);
 

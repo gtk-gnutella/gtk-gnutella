@@ -857,12 +857,8 @@ seek_to_filepos(gint fd, filesize_t pos)
 {
 	off_t offset;
 
-	offset = pos > OFF_T_MAX ? (off_t) -1 : (off_t) pos;
-
-	/* Handle -1 explicitly just in case there might be platform with
-	 * an non-standard unsigned off_t.
-	 */
-	if ((off_t) -1 == offset || offset < 0) {
+	offset = filesize_to_off_t(pos);
+	if ((off_t) -1 == offset) {
 		errno = ERANGE;
 		return -1;
 	} else {
@@ -2527,9 +2523,12 @@ control_escape(const gchar *s)
 }
 
 static guint
-char_to_printf_escape(guchar c, gchar *esc)
+char_to_printf_escape(guchar c, gchar *esc, const char *safe_chars)
 {
-	if (is_ascii_alnum(c) || (c < 0x80 && strchr("._-", c))) {
+	if (!safe_chars) {
+		safe_chars = "";
+	}
+	if (is_ascii_alnum(c) || (c < 0x80 && strchr(safe_chars, c))) {
 		if (esc)
 			*esc = c;
 		
@@ -2560,6 +2559,7 @@ char_to_printf_escape(guchar c, gchar *esc)
 const gchar *
 lazy_string_to_printf_escape(const gchar *src)
 {
+	static const gchar safe_chars[] = ".-_";
 	static gchar *prev;
 	const gchar *s;
 	gchar *p;
@@ -2572,14 +2572,14 @@ lazy_string_to_printf_escape(const gchar *src)
 	G_FREE_NULL(prev);
 	
 	for (s = src, n = 0; '\0' != (c = *s); s++)
-		n += char_to_printf_escape(c, NULL);
+		n += char_to_printf_escape(c, NULL, safe_chars);
 
 	if (n == (size_t) (s - src))
 		return src;
 	
 	prev = g_malloc(n + 1);
 	for (s = src, p = prev; '\0' != (c = *s); s++) {
-		guint len = char_to_printf_escape(c, p);
+		guint len = char_to_printf_escape(c, p, safe_chars);
 		p += len;
 	}
 	*p = '\0';

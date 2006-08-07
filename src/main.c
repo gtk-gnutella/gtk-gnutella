@@ -52,6 +52,7 @@
 #include "core/extensions.h"
 #include "core/features.h"
 #include "core/fileinfo.h"
+#include "core/file_object.h"
 #include "core/geo_ip.h"
 #include "core/gmsg.h"
 #include "core/gnet_stats.h"
@@ -443,6 +444,7 @@ gtk_gnutella_exit(gint n)
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
 	tls_cache_close();
 	gdb_close();
+	file_object_close();
 	atoms_close();
 	wdestroy();
 	locale_close();
@@ -929,6 +931,7 @@ main(int argc, char **argv)
 	locale_init();
 	adns_init();
 	atoms_init();
+	file_object_init();
 	eval_init();
 	version_init();
 	socket_init();

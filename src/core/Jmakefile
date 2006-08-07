@@ -43,6 +43,7 @@ SRC = \
 	extensions.c \
 	features.c \
 	fileinfo.c \
+	file_object.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \

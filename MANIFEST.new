@@ -272,6 +272,8 @@ src/core/features.c
 src/core/features.h
 src/core/fileinfo.c
 src/core/fileinfo.h
+src/core/file_object.c
+src/core/file_object.h
 src/core/gdb.c
 src/core/gdb.h
 src/core/geo_ip.c
@@ -515,6 +517,7 @@ src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c
 src/lib/inputevt.h
+src/lib/iovec.h
 src/lib/iprange.c
 src/lib/iprange.h
 src/lib/iso3166.c

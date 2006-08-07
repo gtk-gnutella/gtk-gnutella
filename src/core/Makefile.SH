@@ -99,6 +99,7 @@ SRC = \
 	extensions.c \
 	features.c \
 	fileinfo.c \
+	file_object.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
@@ -181,6 +182,7 @@ OBJ = \
 	extensions.o \
 	features.o \
 	fileinfo.o \
+	file_object.o \
 	geo_ip.o \
 	ggep.o \
 	ggep_type.o \

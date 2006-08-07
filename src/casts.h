@@ -137,7 +137,27 @@ ptr_diff(gconstpointer a, gconstpointer b)
 {
 	return (gchar *) a - (gchar *) b;
 }
-	
+
+/**
+ * Converts a filesize_t to off_t.
+ *
+ * @return On failure (off_t) -1 is returned.
+ */
+static inline off_t
+filesize_to_off_t(filesize_t pos)
+{
+	off_t offset = pos > OFF_T_MAX ? (off_t) -1 : (off_t) pos;
+
+	/* Handle -1 explicitly just in case there might be platform with
+	 * an non-standard unsigned off_t.
+	 */
+	if ((off_t) -1 == offset || offset < 0) {
+		return (off_t) -1;
+	}
+	return offset;
+}
+
+
 #endif /* _casts_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

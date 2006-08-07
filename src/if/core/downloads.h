@@ -163,6 +163,8 @@ struct dl_buffers {
 	size_t held;				/**< Amount of data held in read buffers */
 };
 
+struct file_object;
+
 enum download_magic { DOWNLOAD_MAGIC = 0x2dd6efe9 };	/**< Magic number */
 
 struct download {
@@ -191,7 +193,7 @@ struct download {
 	filesize_t range_end;		/**< 1st byte offset AFTER requested range */
 
 	struct gnutella_socket *socket;
-	gint file_desc;				/**< FD for writing into downloaded file */
+	struct file_object *out_file;	/**< downloaded file */
 	guint32 overlap_size;		/**< Size of the overlapping window on resume */
 	struct http_buffer *req;	/**< HTTP request, when partially sent */
 	struct dl_buffers *buffers;	/**< Buffers for reading, only when active */
