@@ -58,18 +58,11 @@ RCSID("$Id$")
 
 /*
  * The following macro denotes that an optimization
- * for 64-bit CPUs is required. It is used only for
+ * for 32-bit CPUs is desired. It is used only for
  * optimization of time. Otherwise it does nothing.
  */
-#if (G_MAXULONG > 0xffffffffUL)
-#define OPTIMIZE_FOR_64BIT
-#endif
-
-/* The following macro denotes that an optimization    */
-/* for Alpha is required. It is used only for          */
-/* optimization of time. Otherwise it does nothing.    */
-#ifdef __alpha
-#define OPTIMIZE_FOR_ALPHA
+#if (G_MAXULONG == 0xffffffffUL)
+#define OPTIMIZE_FOR_32BIT 1
 #endif
 
 /* NOTE that this code is NOT FULLY OPTIMIZED for any  */
@@ -97,7 +90,7 @@ RCSID("$Id$")
       bb = b; \
       cc = c;
 
-#ifdef OPTIMIZE_FOR_ALPHA
+#if !defined(OPTIMIZE_FOR_32BIT)
 /* This is the official definition of round */
 #define round(a,b,c,x,mul) \
       c ^= x; \
@@ -155,7 +148,7 @@ RCSID("$Id$")
       b -= bb; \
       c += cc;
 
-#ifdef OPTIMIZE_FOR_ALPHA
+#if !defined(OPTIMIZE_FOR_32BIT)
 /* The loop is unrolled: works better on Alpha */
 #define compress \
       save_abc \
