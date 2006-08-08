@@ -6675,7 +6675,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	guint ack_code;
 	const gchar *ack_message = "";
 	gchar *buf;
-	struct stat st;
 	gboolean got_content_length = FALSE;
 	gboolean is_chunked;
 	http_content_encoding_t content_encoding;
@@ -7786,9 +7785,16 @@ http_version_nofix:
 	g_assert(NULL == d->out_file);
 
 	path = make_pathname(fi->path, fi->file_name);
-	g_return_if_fail(NULL != path);
 
-	if (stat(path, &st) != -1) {
+	d->out_file = file_object_get_writable(path);
+	if (!d->out_file) {
+		gint fd = file_open_missing(path, O_WRONLY);
+		if (fd >= 0) {
+			d->out_file = file_object_new_writable(fd, path);
+		}
+	}
+	if (d->out_file) {
+
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->skip)) {
 			g_message("File '%s' changed size (now %s, but was %s)",
@@ -7799,34 +7805,25 @@ http_version_nofix:
 			G_FREE_NULL(path);
 			return;
 		}
-
-		d->out_file = file_object_open_writable(path);
+	} else if (!fi->use_swarming && d->skip) {
+		download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
+		G_FREE_NULL(path);
+		return;
 	} else {
-		if (!fi->use_swarming && d->skip) {
-			download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
+		gint fd = file_create(path, O_WRONLY, DOWNLOAD_FILE_MODE);
+		if (fd >= 0) {
+			d->out_file = file_object_new_writable(fd, path);
+		}
+		if (!d->out_file) {
+			const gchar *error = g_strerror(errno);
+			download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
 			G_FREE_NULL(path);
 			return;
 		}
-		d->out_file = file_object_create_writable(path, DOWNLOAD_FILE_MODE);
 	}
-
-	if (NULL == d->out_file) {
-		const gchar *error = g_strerror(errno);
-		download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
-		G_FREE_NULL(path);
-		return;
-	}
-
 	G_FREE_NULL(path);
 
-#if 0
-	if (d->skip > 0 && 0 != seek_to_filepos(d->file_desc, d->skip)) {
-		download_stop(d, GTA_DL_ERROR, "Unable to seek to position %s: %s",
-			uint64_to_string(d->skip),
-			g_strerror(errno));
-		return;
-	}
-#endif
+	g_assert(d->out_file);
 
 	/*
 	 * We're ready to receive.

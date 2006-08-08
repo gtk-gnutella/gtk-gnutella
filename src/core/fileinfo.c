@@ -584,10 +584,15 @@ file_info_store_binary(fileinfo_t *fi)
 	{
 		char *path = make_pathname(fi->path, fi->file_name);
 
-		fo = file_object_open_writable(path);
+		fo = file_object_get_writable(path);
+		if (!fo) {
+			gint fd = file_open_missing(path, O_WRONLY);
+			if (fd >= 0) {
+				fo = file_object_new_writable(fd, path);
+			}
+		}
 		G_FREE_NULL(path);
 	}
-
 	if (fo) {
 		fi->stamp = tm_time();
 		file_info_fd_store_binary(fi, fo, TRUE);	/* Force flush */

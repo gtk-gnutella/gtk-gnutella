@@ -31,9 +31,9 @@
 void file_object_init(void);
 void file_object_close(void);
 
-struct file_object *file_object_create_writable(const char *pathname,
-					mode_t mode);
-struct file_object *file_object_open_writable(const char *pathname);
+struct file_object *file_object_new_writable(int fd, const char *pathname);
+struct file_object *file_object_get_writable(const char *pathname);
+
 ssize_t file_object_pwrite(const struct file_object *fo,
 					const void *data, size_t buf, filesize_t offset);
 ssize_t file_object_pwritev(const struct file_object *fo,

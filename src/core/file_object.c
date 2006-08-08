@@ -147,17 +147,30 @@ file_object_free(struct file_object * const fo)
 	wfree(fo, sizeof *fo);
 }
 
+static inline gboolean
+fd_is_writable(int fd)
+{
+	int flags;
+
+	g_return_val_if_fail(fd >= 0, FALSE);
+
+	flags = fcntl(fd, F_GETFL);
+	g_return_val_if_fail(-1 != flags, FALSE);
+
+	flags &= O_ACCMODE;
+	return O_WRONLY == flags || O_RDWR == flags;
+}
+
 /**
- * Acquires a file object for a given pathname. If the file does not
- * exist, NULL is returned.
+ * Acquires a file object for a given pathname. If no file object exist
+ * for the pathname, NULL is returned.
  *
  * @param pathname An absolute pathname.
- * @param mode The filemode to use when creating a new file.
  * @return	On failure NULL is returned. On success a file object is
  *			returned.
  */
 struct file_object *
-file_object_open_writable(const char * const pathname)
+file_object_get_writable(const char * const pathname)
 {
 	struct file_object *fo;
 
@@ -168,47 +181,29 @@ file_object_open_writable(const char * const pathname)
 	fo = file_object_find(pathname);
 	if (fo) {
 		fo->ref_count++;
-	} else {
-		int fd;
-
-		fd = file_open(pathname, O_WRONLY);
-		if (fd >= 0) {
-			fo = file_object_alloc(fd, pathname);
-		}
 	}
 	return fo;
 }
 
 /**
- * Acquires a file object for a given pathname, creating it if it does
- * not already exist.
+ * Acquires a new file object for a given pathname. There must not be any
+ * file object registered for this pathname already.
  *
  * @param pathname An absolute pathname.
- * @param mode The filemode to use when creating a new file.
  * @return	On failure NULL is returned. On success a file object is
  *			returned.
  */
 struct file_object *
-file_object_create_writable(const char * const pathname, mode_t mode)
+file_object_new_writable(const int fd, const char * const pathname)
 {
-	struct file_object *fo;
-
 	g_return_val_if_fail(ht_file_objects, NULL);
+	g_return_val_if_fail(fd >= 0, NULL);
+	g_return_val_if_fail(fd_is_writable(fd), NULL);
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
+	g_return_val_if_fail(!file_object_find(pathname), NULL);
 
-	fo = file_object_find(pathname);
-	if (fo) {
-		fo->ref_count++;
-	} else {
-		int fd;
-
-		fd = file_create(pathname, O_WRONLY, mode);
-		if (fd >= 0) {
-			fo = file_object_alloc(fd, pathname);
-		}
-	}
-	return fo;
+	return file_object_alloc(fd, pathname);
 }
 
 /**
