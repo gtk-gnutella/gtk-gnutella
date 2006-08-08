@@ -149,7 +149,6 @@ typedef struct rule {
 extern filter_t *work_filter;
 
 
-
 /*
  * Public interface.
  */
@@ -177,6 +176,7 @@ rule_t *filter_new_state_rule
     filter_t *target, guint16 flags);
 void filter_adapt_order(void);
 void filter_append_rule(filter_t *f, rule_t * const r);
+void filter_prepend_rule(filter_t *f, rule_t * const r);
 void filter_append_rule_to_session(filter_t * f, rule_t * const r);
 void filter_revert_changes(void);
 void filter_apply_changes(void);

@@ -77,6 +77,8 @@ typedef struct shadow {
     guint32 fail_count;
 } shadow_t;
 
+typedef GList *filter_add_rule_func_t(GList *, gpointer);
+
 /**
  * Structure holding "global" variables during filtering.
  */
@@ -1415,18 +1417,19 @@ filter_free_rule(rule_t *r)
 
 
 /**
- * Append a new rule to a filter. If necessary also update the shadow.
+ * Add a new rule to a filter. If necessary also update the shadow.
  * The addition of the rule cannot be cancelled by canceling the
  * shadow. If no shadow for the filters exists, none is created.
  */
 void
-filter_append_rule(filter_t *f, rule_t * const r)
+filter_add_rule(filter_t *f, rule_t * const r, filter_add_rule_func_t func)
 {
     shadow_t *shadow;
     shadow_t *target_shadow;
 
     g_assert(f != NULL);
     g_assert(r != NULL);
+    g_assert(func);
     g_assert(r->target != NULL);
 
     shadow = shadow_find(f);
@@ -1442,7 +1445,7 @@ filter_append_rule(filter_t *f, rule_t * const r)
     /*
      * We add the rule to the filter increase the refcount on the target.
      */
-    f->ruleset = g_list_append(f->ruleset, r);
+    f->ruleset = (*func)(f->ruleset, r);
     r->target->refcount ++;
     if (gui_debug >= 6)
         g_message("increased refcount on \"%s\" to %d",
@@ -1452,7 +1455,7 @@ filter_append_rule(filter_t *f, rule_t * const r)
      * If a shadow for our filter exists, we add it there also.
      */
     if (shadow != NULL)
-        shadow->current = g_list_append(shadow->current, r);
+        shadow->current = (*func)(shadow->current, r);
 
     /*
      * If a shadow for the target exists, we increase refcount there too.
@@ -1479,7 +1482,23 @@ filter_append_rule(filter_t *f, rule_t * const r)
     }
 }
 
+/**
+ * Append a new rule to a filter. If necessary also update the shadow.
+ */
+void
+filter_append_rule(filter_t *f, rule_t * const r)
+{
+  filter_add_rule(f, r, g_list_append);
+}
 
+/**
+ * Prepend a new rule to a filter. If necessary also update the shadow.
+ */
+void
+filter_prepend_rule(filter_t *f, rule_t * const r)
+{
+  filter_add_rule(f, r, g_list_prepend);
+}
 
 /**
  * Append a new rule to the filter shadow. This call will fail
@@ -2673,7 +2692,7 @@ filter_add_drop_sha1_rule(const struct record *rec, filter_t *filter)
     rule = filter_new_sha1_rule(rec->sha1, s,
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
-    filter_append_rule(filter, rule);
+    filter_prepend_rule(filter, rule);
 	if (s != rec->name)
 		G_FREE_NULL(s);
 }
@@ -2696,7 +2715,7 @@ filter_add_drop_name_rule(const struct record *rec, filter_t *filter)
     rule = filter_new_text_rule(s, RULE_TEXT_EXACT, TRUE,
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
-    filter_append_rule(filter, rule);
+    filter_prepend_rule(filter, rule);
 	if (s != rec->name)
 		G_FREE_NULL(s);
 }
@@ -2717,7 +2736,7 @@ filter_add_drop_host_rule(const struct record *rec, filter_t *filter)
     rule = filter_new_ip_rule(rec->results_set->addr, -1,
         		filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
-    filter_append_rule(filter, rule);
+    filter_prepend_rule(filter, rule);
 }
 
 /**
