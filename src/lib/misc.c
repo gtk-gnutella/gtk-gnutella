@@ -1141,6 +1141,30 @@ short_time_ascii(gint t)
 	return buf;
 }
 
+/**
+ * A variant of short_time_ascii() without whitespace.
+ *
+ * @return time spent in seconds in a consise short readable form.
+ * @note The returned string is in English and ASCII encoded.
+ */
+const gchar *
+compact_time(gint t)
+{
+	static gchar buf[4 * SIZE_FIELD_MAX];
+	guint s = MAX(t, 0);
+
+	if (s > 86400)
+		gm_snprintf(buf, sizeof buf, "%ud%uh",
+			s / 86400, (s % 86400) / 3600);
+	else if (s > 3600)
+		gm_snprintf(buf, sizeof buf, "%uh%um", s / 3600, (s % 3600) / 60);
+	else if (s > 60)
+		gm_snprintf(buf, sizeof buf, "%um%us", s / 60, s % 60);
+	else
+		gm_snprintf(buf, sizeof buf, "%us", s);
+
+	return buf;
+}
 
 /**
  * Alternate time formatter for uptime.

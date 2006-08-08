@@ -347,6 +347,7 @@ size_t time_locale_to_string_buf(time_t date, gchar *dst, size_t size);
 gchar *short_time(gint s);
 gchar *short_time_ascii(gint t);
 gchar *short_uptime(gint s);
+const gchar *compact_time(gint t);
 
 /*
  * We use the direct difference of time_t values instead of difftime()
