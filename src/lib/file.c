@@ -376,7 +376,7 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 	) {
 		fd = open(path, flags, mode);
 		if (fd >= 0) {
-			g_warning("had to close a banned fd to %s file", what);
+			g_warning("do_open(): had to close a banned fd to %s file", what);
 			return fd;
 		}
 	}
@@ -389,12 +389,15 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 	 */
 
 	if (errno == 0) {
-		g_warning("open() returned -1 with errno = 0, assuming ENOENT");
+		g_warning("do_open(): "
+			"open() returned -1 with errno = 0, assuming ENOENT");
 		errno = ENOENT;
 	}
 
-	if (!missing || errno != ENOENT)
-		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
+	if (!missing || errno != ENOENT) {
+		g_warning("do_open(): can't %s file \"%s\": %s",
+			what, path, g_strerror(errno));
+	}
 
 	return -1;
 }
