@@ -805,6 +805,8 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 	time_t now;
 	gchar buf[1024];
 	gchar vendor_escaped[20];
+	gchar uptime_buf[8];
+	gchar contime_buf[8];
 
 	g_return_if_fail(sh);
 	g_return_if_fail(n);
@@ -830,13 +832,19 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 		}
 	}
 
-	gm_snprintf(buf, sizeof buf, "100- %-21.45s %5.u %s %s %s %s %.30s",
+	g_strlcpy(uptime_buf, up > 0 ? compact_time(up) : "?",
+		sizeof uptime_buf);
+	g_strlcpy(contime_buf, con > 0 ? compact_time(con) : "?",
+		sizeof contime_buf);
+
+	gm_snprintf(buf, sizeof buf,
+		"100- %-21.45s %5.u %s %2.2s %6.6s %6.6s %.30s",
 		node_addr(n),
 		(guint) n->gnet_port,
 		node_flags_to_string(&flags),
 		iso3166_country_cc(n->country),
-		con > 0 ? short_time(con) : "?",
-		up > 0 ? short_time(up) : "?",
+		uptime_buf,
+		contime_buf,
 		vendor_escaped);
 
 	shell_write(sh, buf);
@@ -858,7 +866,8 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 	sh->msg = "";
 
 	shell_write(sh,
-		"100- Node                  Port  Flags       CC Conn. Up. User-Agent\n"
+		"100- "
+	   	"Node                  Port  Flags       CC Conn.  Uptime User-Agent\n"
 		"100- \n");
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
