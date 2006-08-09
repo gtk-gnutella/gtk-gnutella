@@ -521,7 +521,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 
 	version =  version_str(&their_version);
 
-	g_warning("more recent %s version of gtk-gnutella: %s",
+	g_message("more recent %s version of gtk-gnutella: %s",
 		target_version == &last_dev_version ? "development" : "released",
 		version);
 
