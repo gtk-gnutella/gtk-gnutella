@@ -278,6 +278,7 @@
 207.176.42.0/24
 207.226.148.0/24
 209.8.0.0/24
+209.9.79.0/24
 
 # WMV spammer with over-sensitive buzzword sensor; LimeWire
 38.96.5.174
