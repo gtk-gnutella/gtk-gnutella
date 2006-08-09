@@ -51,7 +51,7 @@ die "Usage: $me file_1 ... file_n\n" unless @ARGV;
 
 foreach my $file (@ARGV) {
 	# Normalize the filename by removing unnecessary "/." and "//" sub strings.
-	1 while $file =~ s,/[./],/,;
+	1 while $file =~ s,/[./]?/,/,;
 
 	unless (-f $file) {
 		warn "$me: skipping non-plain file $file\n";

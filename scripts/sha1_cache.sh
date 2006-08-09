@@ -83,7 +83,7 @@ while [ $# -gt 0 ]; do
   file_norm=${file}
   while :; do
     file=${file_norm}
-    file_norm=$(printf '%s' "${file_norm}" | sed 's,[/][./],/,g')
+    file_norm=$(printf '%s' "${file_norm}" | sed 's,/[./]/,/,g; s,//,/,g')
     if [ "${file}" = "${file_norm}" ]; then
       break
     fi
