@@ -1224,7 +1224,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			/*
 			 * We start with FILTER_PROP_DISPLAY:
 			 */
-			if (FILTER_PROP_STATE_DONT == filter_state || !filter_udata) {
+			if (FILTER_PROP_STATE_DONT == filter_state && !filter_udata) {
 				sch->ignored++;
 				continue;
 			}
