@@ -1363,7 +1363,12 @@ free_server(struct dl_server *server)
 
 	server_list_free_all(server);
 
-	g_assert(0 == g_hash_table_size(server->sha1_counts));
+	{
+		guint n = g_hash_table_size(server->sha1_counts);
+		if (0 != n) {
+			g_warning("server->sha1_counts contains still %u items", n);
+		}
+	}
 	g_hash_table_destroy(server->sha1_counts);
 	server->sha1_counts = NULL;
 
@@ -1700,56 +1705,83 @@ downloads_with_name_dec(gchar *name)
 		g_hash_table_remove(dl_count_by_name, name);
 }
 
+static inline gchar *
+download_get_sha1(const struct download *d)
+{
+	if (d->sha1) {
+		/* These are atoms */
+		if (d->file_info && d->file_info->sha1) {
+			g_assert(d->sha1 == d->file_info->sha1);
+		}
+		return d->sha1;
+	} else if (d->file_info) {
+		return d->file_info->sha1;
+	} else {
+		return NULL;
+	}
+}
+
 static inline void
 server_sha1_count_inc(struct dl_server *server, struct download *d)
 {
+	gchar *sha1;
+
 	g_assert(server == d->server);
 
-	if (d->sha1) {
+	sha1 = download_get_sha1(d);
+	if (sha1) {
 		gpointer value;
 		guint n;
 
-		value = g_hash_table_lookup(server->sha1_counts, d->sha1);
+		value = g_hash_table_lookup(server->sha1_counts, sha1);
 		n = GPOINTER_TO_UINT(value);
 		g_assert(n < (guint) -1);
 		n++;
 		value = GUINT_TO_POINTER(n);
-		g_hash_table_insert(server->sha1_counts, d->sha1, value);
+		g_hash_table_insert(server->sha1_counts, sha1, value);
 	}
 }
 
 static inline void
 server_sha1_count_dec(struct dl_server *server, struct download *d)
 {
+	gchar *sha1;
+
 	g_assert(server == d->server);
 
-	if (d->sha1) {
+	sha1 = download_get_sha1(d);
+	if (sha1) {
 		gpointer value;
 		guint n;
 
-		value = g_hash_table_lookup(server->sha1_counts, d->sha1);
+		value = g_hash_table_lookup(server->sha1_counts, sha1);
 		n = GPOINTER_TO_UINT(value);
 		g_assert(n > 0);
 		n--;
 		if (n > 0) {
 			value = GUINT_TO_POINTER(n);
-			g_hash_table_insert(server->sha1_counts, d->sha1, value);
+			g_hash_table_insert(server->sha1_counts, sha1, value);
 		} else {
-			g_hash_table_remove(server->sha1_counts, d->sha1);
+			g_hash_table_remove(server->sha1_counts, sha1);
 		}
 	}
 }
+
 
 static gboolean
 download_eq(gconstpointer p, gconstpointer q)
 {
 	const struct download *a = p, *b = q;
+	const char *a_sha1, *b_sha1;
 
 	if (a == b)
 		return TRUE;
 
-	if (a->sha1 || b->sha1) {
-		return a->sha1 == b->sha1; /* These are atoms! */
+	a_sha1 = download_get_sha1(a);
+	b_sha1 = download_get_sha1(b);
+	
+	if (a_sha1 || b_sha1) {
+		return a_sha1 == b_sha1; /* These are atoms! */
 	} else if (
 		a->file_size == b->file_size &&
 		(
@@ -1773,7 +1805,8 @@ server_list_lookup(const struct dl_server *server, enum dl_list idx,
 	g_assert((guint) idx < DL_LIST_SZ);		
 
 	if (server->list[idx]) {
-		struct download key;
+		static const struct download zero_key;
+		struct download key = zero_key;
 		gpointer orig_key;
 
 		key.magic = DOWNLOAD_MAGIC;
@@ -2461,7 +2494,9 @@ download_set_sha1(struct download *d, const gchar *sha1)
 	if (DL_LIST_INVALID != d->list_idx) {
 		g_assert(d->server);
 		server_sha1_count_dec(d->server, d);
-		d->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
+	}
+	d->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
+	if (DL_LIST_INVALID != d->list_idx) {
 		server_sha1_count_inc(d->server, d);
 	}
 	atom_sha1_free_null(&old_atom);
@@ -4221,6 +4256,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	} else {
 		d->push = FALSE;
 	}
+	download_add_to_list(d, DL_LIST_WAITING);
 
 	/*
 	 * If fileinfo is marked with FI_F_SUSPEND, it means we are in the process
@@ -4245,7 +4281,6 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	else
 		file_info_add_new_source(fi, d);
 
-	download_add_to_list(d, DL_LIST_WAITING);
 	sl_downloads = g_slist_prepend(sl_downloads, d);
 	sl_unqueued = g_slist_prepend(sl_unqueued, d);
 
