@@ -1111,7 +1111,6 @@ search_matched(search_t *sch, results_set_t *rs)
 
   	for (l = rs->records; l && !skip_records; l = l->next) {
 		record_t *rc = l->data;
-        filter_result_t *flt_result = NULL;
         gboolean downloaded = FALSE;
 		gboolean is_dup, add_record, mark;
         GdkColor *fg_color;
@@ -1153,6 +1152,9 @@ search_matched(search_t *sch, results_set_t *rs)
 		if (sch->local) {
 			add_record = TRUE;
 		} else {
+			enum filter_prop_state filter_state, filter_download;
+			gpointer filter_udata;
+
 			add_record = FALSE;
 
 			if (skip_records) {
@@ -1170,7 +1172,15 @@ search_matched(search_t *sch, results_set_t *rs)
 			}
 
 			g_assert(rc->refcount >= 0);
-			flt_result = filter_record(sch, rc);
+			{
+        		filter_result_t *flt_result;
+				
+				flt_result = filter_record(sch, rc);
+				filter_state = flt_result->props[FILTER_PROP_DISPLAY].state;
+				filter_udata = flt_result->props[FILTER_PROP_DISPLAY].user_data;
+				filter_download = flt_result->props[FILTER_PROP_DOWNLOAD].state;
+				filter_free_result(flt_result);
+			}
 			g_assert(rc->refcount >= 0);
 
 			/*
@@ -1189,8 +1199,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			if (
 				!downloaded &&
 				!(rs->status & ST_SPAM) &&
-				(flt_result->props[FILTER_PROP_DOWNLOAD].state ==
-					 FILTER_PROP_STATE_DO)
+				FILTER_PROP_STATE_DO == filter_download
 		   ) {
 				guc_download_auto_new(rc->name, rc->size, rc->index,
 						rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
@@ -1209,38 +1218,40 @@ search_matched(search_t *sch, results_set_t *rs)
 			if (downloaded && search_hide_downloaded) {
 				results_kept++;
 				sch->hidden++;
-				goto next;
+				continue;
 			}
 
 			/*
 			 * We start with FILTER_PROP_DISPLAY:
 			 */
-			if (!(flt_result->props[FILTER_PROP_DISPLAY].state ==
-				FILTER_PROP_STATE_DONT &&
-				flt_result->props[FILTER_PROP_DISPLAY].user_data == 0) &&
-				/* Count as kept even if max results */
-				(int) results_kept++ >= 0 &&
-				sch->items < max_results
-		     ) {
-
-				mark =
-					(flt_result->props[FILTER_PROP_DISPLAY].state ==
-					 FILTER_PROP_STATE_DONT) &&
-					(flt_result->props[FILTER_PROP_DISPLAY].user_data ==
-					 GINT_TO_POINTER(1));
-
-				if (rc->flags & SR_IGNORED) {
-					/*
-					 * Check whether this record will be ignored by the backend.
-					 */
-					fg_color = ignore_color;
-				} else if (downloaded) {
-					fg_color = download_color;
-				}
-
-				add_record = TRUE;
+			if (FILTER_PROP_STATE_DONT == filter_state || !filter_udata) {
+				sch->ignored++;
+				continue;
 			}
 
+			/* Count as kept even if max results but not spam */
+			if (0 == (SR_SPAM & rc->flags)) {
+				results_kept++;
+			}
+
+			if (sch->items >= max_results) {
+				sch->ignored++;
+				continue;
+			}
+			
+			mark = FILTER_PROP_STATE_DONT == filter_state &&
+					GINT_TO_POINTER(1) == filter_udata;
+
+			if (rc->flags & SR_IGNORED) {
+				/*
+				 * Check whether this record will be ignored by the backend.
+				 */
+				fg_color = ignore_color;
+			} else if (downloaded) {
+				fg_color = download_color;
+			}
+
+			add_record = TRUE;
 		}
 		if (add_record) {
 			sch->items++;
@@ -1256,9 +1267,6 @@ search_matched(search_t *sch, results_set_t *rs)
 		} else {
 			sch->ignored++;
 		}
-	next:
-		if (flt_result != NULL)
-			filter_free_result(flt_result);
 	}
 
     /*
