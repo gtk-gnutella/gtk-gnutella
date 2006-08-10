@@ -719,6 +719,8 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 	guint idx = info->idx;
 	const gchar *name = info->name;
 
+	g_return_val_if_fail(sha1, FALSE);
+
 	if (stamp == 0 || delta_time(stamp, now) > 0)
 		stamp = now;
 
@@ -755,8 +757,7 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 	 * than the one we're trying to add).
 	 */
 
-	dm = sha1 ? g_hash_table_lookup(mesh, sha1) : NULL;
-
+	dm =  g_hash_table_lookup(mesh, sha1);
 	if (dm == NULL) {
 		dm = walloc(sizeof *dm);
 
