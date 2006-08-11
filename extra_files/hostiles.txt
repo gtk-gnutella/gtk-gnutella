@@ -256,7 +256,7 @@
 66.180.205.0/24
 
 # DRM spam
-63.246.153.64
+63.246.153.64/28
 64.40.98.106
 # drmspace.com, 66103.vidlock.com
 216.55.178.165
@@ -305,8 +305,11 @@
 206.51.230.2
 206.51.230.176
 206.51.230.180
+66.232.104.50
+66.232.111.196
 66.232.112.62
 66.240.254.18
+72.21.50.90
 
 # Gnucleus-based DRM WMV spammer hosted by HopOne
 209.160.32.221
@@ -392,6 +395,7 @@
 
 # DRM WMV pr0n spammer; filenames are all caps; license server is 74.52.9.122
 88.85.65.130
+88.85.65.175
 88.85.66.128/25
 
 # MOV pr0n spammer; giFT-based; results do not match queries at all;
@@ -500,6 +504,12 @@
 209.10.143.0/24
 212.71.252.0/24
 216.151.154.0/24
+
+# This is supposedly on a dynamic range but it's a very interesting caught.
+# It's listening on the standard port. It's a fake LimeWire that responds with
+# a Gnutella handshake no matter what was sent. It passes completely bogus
+# addresses. Its job is either wasting resources or sniffing.
+81.179.74.227
 
 # Time Warner Telecom
 64.128.109.144/28
