@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "version.h"
 #include "nodes.h"
 #include "ioheader.h"
+#include "file_object.h"
 #include "ban.h"
 #include "parq.h"
 #include "huge.h"
@@ -438,9 +439,12 @@ upload_timer(time_t now)
 gnutella_upload_t *
 upload_create(struct gnutella_socket *s, gboolean push)
 {
+	static const gnutella_upload_t zero_upload;
 	gnutella_upload_t *u;
 
-	u = walloc0(sizeof *u);
+	u = walloc(sizeof *u);
+	*u = zero_upload;
+
     u->upload_handle = upload_new_handle(u);
 
 	u->socket = s;
@@ -451,7 +455,6 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
 	u->last_update = tm_time();
-	u->file_desc = -1;
 	u->sendfile_ctx.map = NULL;
 	u->parq_status = FALSE;
 
@@ -699,14 +702,9 @@ upload_free_resources(gnutella_upload_t *u)
 {
 	parq_upload_upload_got_freed(u);
 
-	if (u->name != NULL) {
-		atom_str_free(u->name);
-		u->name = NULL;
-	}
-	if (u->file_desc != -1) {
-		close(u->file_desc);
-		u->file_desc = -1;
-	}
+	atom_str_free_null(&u->name);
+	file_object_release(&u->file);
+
 #ifdef USE_MMAP
 	if (u->sendfile_ctx.map != NULL) {
 		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_start;
@@ -716,10 +714,8 @@ upload_free_resources(gnutella_upload_t *u)
 		u->sendfile_ctx.map = NULL;
 	}
 #endif /* USE_MMAP */
-	if (u->buffer != NULL) {
-		g_free(u->buffer);
-		u->buffer = NULL;
-	}
+
+	G_FREE_NULL(u->buffer);
 	if (u->io_opaque) {				/* I/O data */
 		io_free(u->io_opaque);
 		g_assert(u->io_opaque == NULL);
@@ -728,14 +724,8 @@ upload_free_resources(gnutella_upload_t *u)
 		bsched_source_remove(u->bio);
 		u->bio = NULL;
 	}
-	if (u->user_agent) {
-		atom_str_free(u->user_agent);
-		u->user_agent = NULL;
-	}
-	if (u->sha1) {
-		atom_sha1_free(u->sha1);
-		u->sha1 = NULL;
-	}
+	atom_str_free_null(&u->user_agent);
+	atom_sha1_free_null(&u->sha1);
 	if (u->special) {
 		u->special->close(u->special, FALSE);
 		u->special = NULL;
@@ -771,7 +761,7 @@ upload_clone(gnutella_upload_t *u)
 
     cu->upload_handle = upload_new_handle(cu); /* fetch new handle */
 	cu->bio = NULL;						/* Recreated on each transfer */
-	cu->file_desc = -1;					/* File re-opened each time */
+	cu->file = NULL;					/* File re-opened each time */
 	cu->sendfile_ctx.map = NULL;		/* File re-opened each time */
 	cu->socket->resource.upload = cu;	/* Takes ownership of socket */
 	cu->accounted = FALSE;
@@ -1542,7 +1532,7 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 	struct gnutella_socket *s = u->socket;
 
 	g_assert(s->resource.upload == u);
-	g_assert(-1 == u->file_desc);		/* File not opened */
+	g_assert(NULL == u->file);		/* File not opened */
 
 	/*
 	 * Cleanup data structures if not already done.
@@ -1589,11 +1579,7 @@ upload_wait_new_request(gnutella_upload_t *u)
 	 * File will be re-opened each time a new request is made.
 	 */
 
-	if (u->file_desc != -1) {
-		close(u->file_desc);
-		u->file_desc = -1;
-	}
-
+	file_object_release(&u->file);
  	socket_tos_normal(u->socket);
 	expect_http_header(u, GTA_UL_WAITING);
 }
@@ -3615,26 +3601,18 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 
-		g_assert(-1 == u->file_desc);		/* File opened each time */
+		g_assert(NULL == u->file);		/* File opened each time */
 
 		/* Open the file for reading. */
-		if ((u->file_desc = file_open(fpath, O_RDONLY)) < 0) {
-			upload_error_not_found(u, uri);
-			return;
+		u->file = file_object_open(fpath, O_RDONLY);
+		if (!u->file) {
+			gint fd = file_open(fpath, O_RDONLY);
+			if (fd >= 0) {
+				u->file = file_object_new(fd, fpath, O_RDONLY);
+			}
 		}
-
-		/*
-		 * If we got a valid skip amount then jump ahead to that position.
-		 * This only applies when we're not going to use sendile().
-		 */
-
-		if (
-			!using_sendfile &&
-			u->skip > 0 &&
-			0 != seek_to_filepos(u->file_desc, u->skip)
-		) {
-			upload_error_remove(u, NULL, 500, "File seek error: %s",
-				g_strerror(errno));
+		if (!u->file) {
+			upload_error_not_found(u, uri);
 			return;
 		}
 	}
@@ -3942,8 +3920,8 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 		available = MIN(amount, READ_BUF_SIZE);
 		before = pos = u->pos;
-		written = bio_sendfile(&u->sendfile_ctx, u->bio, u->file_desc,
-					&pos, available);
+		written = bio_sendfile(&u->sendfile_ctx, u->bio,
+					file_object_get_fd(u->file), &pos, available);
 
 		g_assert((ssize_t) -1 == written || (off_t) written == pos - before);
 		u->pos = pos;
@@ -3968,7 +3946,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 			g_assert(u->buffer != NULL);
 			g_assert(u->buf_size > 0);
-			u->bsize = ret = read(u->file_desc, u->buffer, u->buf_size);
+			ret = file_object_pread(u->file, u->buffer, u->buf_size, u->pos);
 			if ((ssize_t) -1 == ret) {
 				upload_remove(u, _("File read error: %s"), g_strerror(errno));
 				return;
@@ -3977,7 +3955,9 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 				upload_remove(u, _("File EOF?"));
 				return;
 			}
+			u->bsize = (size_t) ret;
 			u->bpos = 0;
+			u->pos += (size_t) ret;
 		}
 
 		available = u->bsize - u->bpos;
@@ -4127,7 +4107,7 @@ upload_special_writable(gpointer up)
 
 		g_assert(u->buffer != NULL);
 		g_assert(u->buf_size > 0);
-		ret = u->bsize = upload_special_read(u);
+		ret = upload_special_read(u);
 		if ((ssize_t) -1 == ret) {
 			upload_remove(u, _("Special read error: %s"), g_strerror(errno));
 			return;
@@ -4140,6 +4120,7 @@ upload_special_writable(gpointer up)
 			upload_special_flush(u);
 			return;
 		}
+		u->bsize = (size_t) ret;
 		u->bpos = 0;
 	}
 

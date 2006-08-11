@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2004, Christian Biere
+ * Copyright (c) 2006, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,13 +31,17 @@
 void file_object_init(void);
 void file_object_close(void);
 
-struct file_object *file_object_new_writable(int fd, const char *pathname);
-struct file_object *file_object_get_writable(const char *pathname);
+struct file_object *file_object_new(int fd, const char *pathname, int accmode);
+struct file_object *file_object_open(const char *pathname, int accmode);
 
 ssize_t file_object_pwrite(const struct file_object *fo,
 					const void *data, size_t buf, filesize_t offset);
 ssize_t file_object_pwritev(const struct file_object *fo,
 					const struct iovec *iov, int iov_cnt, filesize_t offset);
+ssize_t file_object_pread(const struct file_object *fo,
+					void *data, size_t size, filesize_t pos);
+ssize_t file_object_preadv(const struct file_object *fo,
+					struct iovec *iov, int iov_cnt, filesize_t offset);
 
 int file_object_get_fd(const struct file_object *fo);
 const char *file_object_get_pathname(const struct file_object *fo);

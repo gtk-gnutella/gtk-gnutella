@@ -4480,9 +4480,16 @@ download_clone(struct download *d)
 	 * free them.
 	 */
 
+#if 0
+	/* FIXME: This is probably incorrect because d->file_info still
+	 * exists and download_get_sha1() looks at d->file_info->sha1 too.
+	 * At least commenting this out fixed crash-on-purging-a-finished-file.
+	 */
 	if (DL_LIST_INVALID != d->list_idx) {
 		server_sha1_count_dec(d->server, d);
 	}
+#endif
+
 	d->sha1 = NULL;
 	d->socket = NULL;
 	d->ranges = NULL;
@@ -5309,80 +5316,84 @@ call_download_push_ready(gpointer o, header_t *unused_header)
 static gboolean
 download_overlap_check(struct download *d)
 {
-	gchar *path;
 	fileinfo_t *fi = d->file_info;
-	gint fd = -1;
-	struct stat buf;
+	struct file_object *fo;
+	gboolean success = FALSE;
 	gchar *data = NULL;
-	ssize_t r;
-	filesize_t begin, end;
-	guint32 backout;
 
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
 
-	path = make_pathname(fi->path, fi->file_name);
-	if (NULL == path)
-		goto out;
+	{
+		gchar *path = make_pathname(fi->path, fi->file_name);
 
-	fd = file_open(path, O_RDONLY);
-	G_FREE_NULL(path);
-	if (fd == -1) {
-		const gchar *error = g_strerror(errno);
-		g_message("cannot check resuming for \"%s\": %s", fi->file_name, error);
-		download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s", error);
+		fo = file_object_open(path, O_RDONLY);
+		if (!fo) {
+			gint fd = file_open(path, O_RDONLY);
+			if (fd >= 0) {
+				fo = file_object_new(fd, path, O_RDONLY);
+			} else {
+				const gchar *error = g_strerror(errno);
+				g_message("cannot check resuming for \"%s\": %s",
+						fi->file_name, error);
+				download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s",
+						error);
+			}
+		}
+		G_FREE_NULL(path);
+	}
+
+	if (!fo) {
 		goto out;
 	}
 
-	if (-1 == fstat(fd, &buf)) {			/* Should never happen */
-		const gchar *error = g_strerror(errno);
-		g_message("cannot stat opened \"%s\": %s", fi->file_name, error);
-		download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
-		goto out;
+	{
+		struct stat sb;
+
+		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
+			/* Should never happen */
+			const gchar *error = g_strerror(errno);
+			g_message("cannot stat opened \"%s\": %s", fi->file_name, error);
+			download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
+			goto out;
+		}
+
+		/*
+		 * Sanity check: if the file is bigger than when we started, abort
+		 * immediately.
+		 */
+
+		if (!fi->use_swarming && d->skip != fi->done) {
+			g_message("file '%s' changed size (now %s, but was %s)",
+					fi->file_name, uint64_to_string(sb.st_size),
+					uint64_to_string2(d->skip));
+			download_queue_delay(d, download_retry_stopped_delay,
+					_("Stopped (Output file size changed)"));
+			goto out;
+		}
 	}
 
-	/*
-	 * Sanity check: if the file is bigger than when we started, abort
-	 * immediately.
-	 */
+	{
+		ssize_t r;
 
-	if (!fi->use_swarming && d->skip != fi->done) {
-		g_message("file '%s' changed size (now %s, but was %s)",
-			fi->file_name, uint64_to_string(buf.st_size),
-			uint64_to_string2(d->skip));
-		download_queue_delay(d, download_retry_stopped_delay,
-			_("Stopped (Output file size changed)"));
-		goto out;
-	}
+		data = walloc(d->overlap_size);
+		g_assert(d->skip >= d->overlap_size);
+		r = file_object_pread(fo, data, d->overlap_size,
+				d->skip - d->overlap_size);
 
-	g_assert(d->skip >= d->overlap_size);
-	if (0 != seek_to_filepos(fd, d->skip - d->overlap_size)) {
-		download_stop(d, GTA_DL_ERROR, "Unable to seek to position %s: %s",
-			uint64_to_string(d->skip - d->overlap_size), g_strerror(errno));
-		goto out;
-	}
-
-	/*
-	 * We're now at the overlapping start.	Read the data.
-	 */
-
-	data = walloc(d->overlap_size);
-	r = read(fd, data, d->overlap_size);
-
-	if ((ssize_t) -1 == r) {
-		const gchar *error = g_strerror(errno);
-		g_message("cannot read resuming data for \"%s\": %s",
-			fi->file_name, error);
-		download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
-		goto out;
-	}
-
-	if ((size_t) r != d->overlap_size) {
-		g_message(
-            "short read (%u instead of %u bytes) on resuming data "
-			"for \"%s\"", (guint) r, (guint) d->overlap_size, fi->file_name);
-		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
-		goto out;
+		if ((ssize_t) -1 == r) {
+			const gchar *error = g_strerror(errno);
+			g_message("cannot read resuming data for \"%s\": %s",
+					fi->file_name, error);
+			download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
+			goto out;
+		} else if ((size_t) r != d->overlap_size) {
+			g_message(
+				"short read (%u instead of %u bytes) on resuming data for "
+				"\"%s\"", (guint) r, (guint) d->overlap_size, fi->file_name);
+			download_stop(d, GTA_DL_ERROR, "Short read on resume data");
+			goto out;
+		}
 	}
 
 	if (!buffers_match(d, data, d->overlap_size)) {
@@ -5401,6 +5412,9 @@ download_overlap_check(struct download *d)
 				uint64_to_string(d->skip - d->overlap_size));
 			download_remove_file(d, TRUE);
 		} else {
+			filesize_t begin, end;
+			guint32 backout;
+
 			/*
 			 * It is most likely that we have a mismatch because
 			 * the other guy's data is not in order, but we could
@@ -5447,24 +5461,19 @@ download_overlap_check(struct download *d)
 
 	buffers_strip_leading(d, d->overlap_size);
 
-	wfree(data, d->overlap_size);
-	close(fd);
-
 	if (download_debug > 3)
 		g_message("%u overlapping bytes MATCHED "
 			"at offset %s for \"%s\"",
 			(guint) d->overlap_size,
 			uint64_to_string(d->skip - d->overlap_size), download_outname(d));
 
-	return TRUE;
+	success = TRUE;
 
 out:
-	if (fd != -1)
-		close(fd);
-	if (data)
-		wfree(data, d->overlap_size);
+	WFREE_NULL(data, d->overlap_size);
+	file_object_release(&fo);
 
-	return FALSE;
+	return success;
 }
 
 /**
@@ -7821,11 +7830,11 @@ http_version_nofix:
 
 	path = make_pathname(fi->path, fi->file_name);
 
-	d->out_file = file_object_get_writable(path);
+	d->out_file = file_object_open(path, O_WRONLY);
 	if (!d->out_file) {
-		gint fd = file_open_missing(path, O_WRONLY);
+		gint fd = file_open_missing(path, O_RDWR);
 		if (fd >= 0) {
-			d->out_file = file_object_new_writable(fd, path);
+			d->out_file = file_object_new(fd, path, O_RDWR);
 		}
 	}
 	if (d->out_file) {
@@ -7845,9 +7854,9 @@ http_version_nofix:
 		G_FREE_NULL(path);
 		return;
 	} else {
-		gint fd = file_create(path, O_WRONLY, DOWNLOAD_FILE_MODE);
+		gint fd = file_create(path, O_RDWR, DOWNLOAD_FILE_MODE);
 		if (fd >= 0) {
-			d->out_file = file_object_new_writable(fd, path);
+			d->out_file = file_object_new(fd, path, O_RDWR);
 		}
 		if (!d->out_file) {
 			const gchar *error = g_strerror(errno);

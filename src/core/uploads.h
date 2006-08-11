@@ -57,7 +57,7 @@ typedef struct upload {
 	gpointer io_opaque;				/**< Opaque I/O callback information */
 	gpointer parq_opaque;			/**< Opaque parq information */
 
-	gint file_desc;
+	struct file_object *file;		/**< uploaded file */
 	bio_source_t *bio;				/**< Bandwidth-limited source */
 	sendfile_ctx_t sendfile_ctx;
 	struct special_ctx *special;	/**< For special ops like browsing */

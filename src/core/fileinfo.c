@@ -584,11 +584,11 @@ file_info_store_binary(fileinfo_t *fi)
 	{
 		char *path = make_pathname(fi->path, fi->file_name);
 
-		fo = file_object_get_writable(path);
+		fo = file_object_open(path, O_WRONLY);
 		if (!fo) {
 			gint fd = file_open_missing(path, O_WRONLY);
 			if (fd >= 0) {
-				fo = file_object_new_writable(fd, path);
+				fo = file_object_new(fd, path, O_WRONLY);
 			}
 		}
 		G_FREE_NULL(path);
