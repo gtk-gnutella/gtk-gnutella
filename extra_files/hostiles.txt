@@ -112,7 +112,10 @@
 
 32.105.110.0/24
 
-# Polls GWebCaches, highly suspicious
+# Performance Systems International (PSI) is an extremely hostile range
+# Macrovision has SmokeBlowers there; they poll GWebCaches etc. pp.
+# There are certainly non-hostile hosts but it's not worth or possible to
+# differ.
 38.112.0.0/12
 
 64.15.0.0/16
@@ -355,6 +358,7 @@
 68.178.242.167
 68.178.250.209
 208.109.21.57
+208.109.28.45
 208.109.104.191
 216.69.164.211
 
@@ -403,9 +407,10 @@
 38.100.236.0/28
 
 # MOV pr0n spammer; giFT-based; links to i2cams dot com.
-204.69.118.138
+204.69.64.0/18
 65.240.96.251
-69.45.227.3
+69.45.227.0/28
+65.37.226.0/28
 
 # DRM WMV pr0n spammer; files link to videoaccesspoint dot com; giFT-based
 64.45.229.50
@@ -444,6 +449,12 @@
 # DRM license server; PetaAd dot com
 207.36.209.113
 
+# Eros Digital Technologies; WMV DRM spam; giFT-based
+67.128.53.72/29
+
+# Little DRM WMV spammer with fake Morpheus
+212.47.3.250
+
 # University of Mississippi
 130.74.0.0/16
 
@@ -461,11 +472,25 @@
 207.234.131.147
 207.234.131.148
 
+# Macrovision Corporation, Inc. - Smokeblower Networks
+# Extremely oversensitive buzzword spammers returning bogus results
+64.92.245.0/24
+64.92.246.0/23
+209.10.214.0/24
+209.11.121.0/24
+209.11.134.0/24
+209.11.141.64/26
+209.11.141.128/26
+209.11.142.0/23
+209.193.136.96/27
+209.195.16.0/24
+209.195.58.192/26
+
 # Strange client pool of Windoze(?) machines; they connect in hordes; most
 # of them identify as LimeWire/4.0.5; Macrovision and Xeex are behind this.
-63.216.76.0/24
-63.220.57.0/24
 63.219.21.0/24
+63.220.57.0/24
+63.216.76.0/24
 154.37.66.0/24
 204.193.134.0/24
 204.193.136.0/24
@@ -473,8 +498,6 @@
 207.171.61.0/25
 208.49.28.0/24
 209.10.143.0/24
-209.11.134.0/24
-209.195.16.0/24
 209.195.58.0/24
 212.71.252.0/24
 216.151.154.0/24
