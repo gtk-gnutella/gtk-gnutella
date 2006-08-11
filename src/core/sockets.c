@@ -3234,6 +3234,56 @@ safe_readv(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
 }
 
 /**
+ * Wrapper over readv() ensuring that we don't request more than
+ * MAX_IOV_COUNT entries at a time.
+ */
+ssize_t
+safe_readv_fd(gint fd, struct iovec *iov, gint iovcnt)
+{
+	size_t got = 0;
+	struct iovec *end = iov + iovcnt;
+	struct iovec *siov;
+	gint siovcnt = MAX_IOV_COUNT;
+	gint iovgot = 0;
+
+	for (siov = iov; siov < end; siov += siovcnt) {
+		ssize_t r;
+		size_t size;
+		struct iovec *xiv;
+		struct iovec *xend;
+
+		siovcnt = iovcnt - iovgot;
+		if (siovcnt > MAX_IOV_COUNT)
+			siovcnt = MAX_IOV_COUNT;
+		g_assert(siovcnt > 0);
+
+		r = readv(fd, siov, siovcnt);
+
+		if ((ssize_t) -1 == r || 0 == r) {
+			if (r == 0 || got)
+				break;				/* Don't flag error if we read bytes */
+			return -1;				/* Propagate error */
+		}
+
+		got += r;
+		iovgot += siovcnt;		/* We'll break out if we did not get it all */
+
+		/*
+		 * How much did we get?  If not the whole vector, we're blocking,
+		 * so stop reading and return amount we got.
+		 */
+
+		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
+			size += xiv->iov_len;
+
+		if ((size_t) r < size)
+			break;
+	}
+
+	return got;
+}
+
+/**
  * Wrapper over writev() ensuring that we don't request more than
  * MAX_IOV_COUNT entries at a time.
  */
