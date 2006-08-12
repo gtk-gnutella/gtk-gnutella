@@ -55,7 +55,6 @@ RCSID("$Id$")
 #define SHELL_BUFFER_SIZE 64000
 
 #define IS_PROCESSING(sh) (sh->outpos > 0)
-#define SHELL_TIMEOUT 60
 
 #define REPLY_READY       100
 #define REPLY_ERROR       400
@@ -838,7 +837,7 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 		sizeof contime_buf);
 
 	gm_snprintf(buf, sizeof buf,
-		"100- %-21.45s %5.u %s %2.2s %6.6s %6.6s %.30s",
+		"%-21.45s %5.u %s %2.2s %6.6s %6.6s %.30s",
 		node_addr(n),
 		(guint) n->gnet_port,
 		node_flags_to_string(&flags),
@@ -848,7 +847,7 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 		vendor_escaped);
 
 	shell_write(sh, buf);
-	shell_write(sh, "\n");
+	shell_write(sh, "\n");	/* Terminate line */
 }
 
 /**
@@ -866,14 +865,15 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 	sh->msg = "";
 
 	shell_write(sh,
-		"100- "
+		"100~ "
 	   	"Node                  Port  Flags       CC Conn.  Uptime User-Agent\n"
-		"100- \n");
+		"\n");
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		const struct gnutella_node *n = sl->data;
 		print_node_info(sh, n);
 	}
+	shell_write(sh, ".\n");	/* Terminate message body */
 
 	return REPLY_READY;
 }
@@ -1330,8 +1330,9 @@ shell_timer(time_t now)
 
 	for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
 		gnutella_shell_t *sh = sl->data;
+		time_delta_t timeout = remote_shell_timeout;
 
-		if (delta_time(now, sh->last_update) > SHELL_TIMEOUT)
+		if (timeout > 0 && delta_time(now, sh->last_update) > timeout)
 			to_remove = g_slist_prepend(to_remove, sh);
 	}
 
