@@ -55,26 +55,32 @@ of the fields are optional:
     ID: 23
     Version: 1
     TTL: 1
-    Payload: (big-endian represenation for multibyte values)
+    Payload: (big-endian representation for multibyte values)
 		char[4]: vendor code, e.g. { 'G', 'T', 'K', 'G' }
         byte: running mode (0 = auto, 1 = leaf, 2 = ultra)
+		uint32: answer flags
 		uint32: operating flags
         byte: max amount of ultra nodes
         byte: current amount of ultra nodes
         uint16: max amount of leaves
         uint16: current amount of leaves
-	if (flags & 0x10) {
+	if (answer_flags & 0x10) {
 		byte: bandwidth flags
 		uint16: Gnutella input b/w limit in KiB/sec (0 = none)
 		uint16: Gnutella output b/w limit in KiB/sec (0 = none)
 		uint16: Leaf input b/w limit in KiB/sec (0 = none)
 		uint16: Leaf output b/w limit in KiB/sec (0 = none)
 	}
-	if (flags & 0x20) {
+	if (answer_flags & 0x20) {
 		uint32: dropped TX packets on this TCP connection
 		uint32: dropped RX packets on this TCP connection
 	}
 		<optional GGEP block with requested information>
+
+The GUID of the Node Info Reply request is a copy of the one used in the
+Node Info Request.  This allows the requester to know which of its requests
+was finally processed (requests can be lost during UDP transport, or get
+discarded by the flow-control of the Gnutella TCP connection).
 
 The operating flags are defined as:
 
@@ -85,6 +91,14 @@ The operating flags are defined as:
 	0x00000010			time synchronized via NTP
 	0x00000020			running headless as a server
 	0x00000040			is DHT-capable
+
+The answer flags is simply an echoing of the flags that were present in the
+Node Info Request.  That way, the issuer of the request does not need to
+remember the GUID of the request to recall which information it asked for.
+Furthermore, if some information was requested but the node answering does
+not know how to report that information, the corresponding bit is zero-ed.
+In other words, the answer flags represents the information being returned
+in the Node Info Reply.
 
 The bandwidth flags are defined as:
 
