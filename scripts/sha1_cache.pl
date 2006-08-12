@@ -49,9 +49,17 @@ use Convert::Base32;
 
 die "Usage: $me file_1 ... file_n\n" unless @ARGV;
 
+my $cwd = `pwd`;
+chomp($cwd);
+
+die "$me: can't compute current directory\n" unless $cwd =~ m|^/|;
+
 foreach my $file (@ARGV) {
+	my $path = $file;
+	$path = "$cwd/$file" unless $file =~ m|^/|;
+
 	# Normalize the filename by removing unnecessary "/." and "//" sub strings.
-	1 while $file =~ s,/[./]?/,/,;
+	1 while $path =~ s,/[./]?/,/,;
 
 	unless (-f $file) {
 		warn "$me: skipping non-plain file $file\n";
@@ -67,7 +75,7 @@ foreach my $file (@ARGV) {
 
 	my $digest = digest_fd(\*FILE);
 	my $sha1 = uc(encode_base32($digest));
-	printf "%s\t%s\t%s\t%s\n", $sha1, $size, $mtime, $file;
+	printf "%s\t%s\t%s\t%s\n", $sha1, $size, $mtime, $path;
 }
 
 sub digest_fd {
