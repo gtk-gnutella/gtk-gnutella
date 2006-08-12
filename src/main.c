@@ -439,7 +439,7 @@ gtk_gnutella_exit(gint n)
 	bg_close();
 	eval_close();
 	iso3166_close();
-	atom_str_free(start_rfc822_date);
+	atom_str_free_null(&start_rfc822_date);
 	adns_close();
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
 	tls_cache_close();
