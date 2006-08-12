@@ -384,6 +384,43 @@ file_object_release(struct file_object **fo_ptr)
  * Write the given data to a file object at the given offset.
  *
  * @param fo An initialized file object.
+ * @param data An initialized buffer holding the data to write.
+ * @param size The amount of bytes to write (i.e., the size of data).
+ * @param offset The file offset at which to start writing the data.
+ *
+ * @return On failure -1 is returned and errno is set. On success the
+ *		   amount of bytes written is returned.
+ */
+ssize_t
+file_object_pwrite(const struct file_object * const fo,
+	const void * const data, const size_t size, const filesize_t pos)
+#ifdef HAS_PWRITE
+{
+	off_t offset;
+
+	file_object_check(fo);
+	offset = filesize_to_off_t(pos);
+	if ((off_t) -1 == offset) {
+		return -1;
+	} else {
+		return pwrite(fo->fd, data, size, offset);
+	}
+}
+#else	/* !HAS_PWRITE */
+{
+	struct iovec iov;
+
+	file_object_check(fo);
+	iov = iov_get(deconstify_gpointer(data), size);
+	return file_object_pwritev(fo, &iov, 1, pos);
+}
+#endif	/* HAS_PWRITE */
+
+
+/**
+ * Write the given data to a file object at the given offset.
+ *
+ * @param fo An initialized file object.
  * @param iov An initialized I/O vector buffer.
  * @param iov_cnt The number of initialized buffer in iov (i.e., its size).
  * @param offset The file offset at which to start writing the data.
@@ -417,6 +454,12 @@ file_object_pwritev(const struct file_object * const fo,
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
 
+#ifdef HAS_PWRITE
+	if (1 == iov_cnt) {
+		return file_object_pwrite(fo, iov->iov_base, iov->iov_len, pos);
+	}
+#endif /* HAS_PWRITE */
+	
 	if (0 != seek_to_filepos(fo->fd, pos)) {
 		int saved_errno = errno;
 
@@ -437,20 +480,20 @@ file_object_pwritev(const struct file_object * const fo,
 #endif	/* HAS_PWRITEV */
 
 /**
- * Write the given data to a file object at the given offset.
+ * Read data from the file object from the given offset.
  *
  * @param fo An initialized file object.
- * @param data An initialized buffer holding the data to write.
- * @param size The amount of bytes to write (i.e., the size of data).
- * @param offset The file offset at which to start writing the data.
+ * @param data A buffer for holding the data to be read.
+ * @param size The amount of bytes to read (i.e., the size of data).
+ * @param offset The file offset from which to start reading data.
  *
  * @return On failure -1 is returned and errno is set. On success the
- *		   amount of bytes written is returned.
+ *		   amount of bytes read is returned.
  */
 ssize_t
-file_object_pwrite(const struct file_object * const fo,
-	const void * const data, const size_t size, const filesize_t pos)
-#ifdef HAS_PWRITE
+file_object_pread(const struct file_object * const fo,
+	void * const data, const size_t size, const filesize_t pos)
+#ifdef HAS_PREAD
 {
 	off_t offset;
 
@@ -459,18 +502,19 @@ file_object_pwrite(const struct file_object * const fo,
 	if ((off_t) -1 == offset) {
 		return -1;
 	} else {
-		return pwrite(fo->fd, data, size, offset);
+		return pread(fo->fd, data, size, offset);
 	}
 }
-#else	/* !HAS_PWRITE */
+#else	/* !HAS_PREAD */
 {
 	struct iovec iov;
 
 	file_object_check(fo);
-	iov = iov_get(deconstify_gpointer(data), size);
-	return file_object_pwritev(fo, &iov, 1, pos);
+	iov = iov_get(data, size);
+	return file_object_preadv(fo, &iov, 1, pos);
 }
-#endif	/* HAS_PWRITE */
+#endif	/* HAS_PREAD */
+
 
 /**
  * Read data from a file object from the given offset.
@@ -509,6 +553,12 @@ file_object_preadv(const struct file_object * const fo,
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
 
+#ifdef HAS_PREAD
+	if (1 == iov_cnt) {
+		return file_object_pread(fo, iov->iov_base, iov->iov_len, pos);
+	}
+#endif /* HAS_PREAD */
+
 	if (0 != seek_to_filepos(fo->fd, pos)) {
 		int saved_errno = errno;
 
@@ -527,42 +577,6 @@ file_object_preadv(const struct file_object * const fo,
 	return ret;
 }
 #endif	/* HAS_PREADV */
-
-/**
- * Read data from the file object from the given offset.
- *
- * @param fo An initialized file object.
- * @param data A buffer for holding the data to be read.
- * @param size The amount of bytes to read (i.e., the size of data).
- * @param offset The file offset from which to start reading data.
- *
- * @return On failure -1 is returned and errno is set. On success the
- *		   amount of bytes read is returned.
- */
-ssize_t
-file_object_pread(const struct file_object * const fo,
-	void * const data, const size_t size, const filesize_t pos)
-#ifdef HAS_PREAD
-{
-	off_t offset;
-
-	file_object_check(fo);
-	offset = filesize_to_off_t(pos);
-	if ((off_t) -1 == offset) {
-		return -1;
-	} else {
-		return pread(fo->fd, data, size, offset);
-	}
-}
-#else	/* !HAS_PREAD */
-{
-	struct iovec iov;
-
-	file_object_check(fo);
-	iov = iov_get(data, size);
-	return file_object_preadv(fo, &iov, 1, pos);
-}
-#endif	/* HAS_PREAD */
 
 
 /**
