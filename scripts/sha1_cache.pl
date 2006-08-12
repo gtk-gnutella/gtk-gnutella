@@ -62,7 +62,7 @@ foreach my $file (@ARGV) {
 	1 while $path =~ s,/[./]?/,/,;
 
 	# Transform "/foo/../" info "/"
-	$path =~ s,/[^/]+/\.\./,/,g;
+	1 while $path =~ s,/[^/]+/\.\./,/,;
 
 	unless (-f $file) {
 		warn "$me: skipping non-plain file $file\n";
