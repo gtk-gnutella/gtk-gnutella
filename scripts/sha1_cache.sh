@@ -89,7 +89,7 @@ while [ $# -gt 0 ]; do
     fi
   done
 
-  # Transform "/foo/../" info "/"
+  # Transform "/foo/../" into "/"
   file_norm=${file}
   while :; do
     file=${file_norm}

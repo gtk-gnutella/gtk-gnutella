@@ -61,7 +61,7 @@ foreach my $file (@ARGV) {
 	# Normalize the filename by removing unnecessary "/." and "//" sub strings.
 	1 while $path =~ s,/[./]?/,/,;
 
-	# Transform "/foo/../" info "/"
+	# Transform "/foo/../" into "/"
 	1 while $path =~ s,/[^/]+/\.\./,/,;
 
 	unless (-f $file) {
