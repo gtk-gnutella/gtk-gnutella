@@ -4741,7 +4741,7 @@ msgid "secs   "
 msgstr ""
 
 msgid "_Download selected"
-msgstr "Ausgewählte heru_unterladen"
+msgstr "Ausgewählte her_unterladen"
 
 msgid "_Edit filters"
 msgstr "_Filter editieren"
