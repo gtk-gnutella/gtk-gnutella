@@ -61,6 +61,9 @@ foreach my $file (@ARGV) {
 	# Normalize the filename by removing unnecessary "/." and "//" sub strings.
 	1 while $path =~ s,/[./]?/,/,;
 
+	# Transform "/foo/../" info "/"
+	$path =~ s,/[^/]+/\.\./,/,g;
+
 	unless (-f $file) {
 		warn "$me: skipping non-plain file $file\n";
 		next;
