@@ -278,6 +278,7 @@ extern const gboolean up_req_enough_bw;
 extern const guint32  search_queue_size;
 extern const guint32  search_queue_spacing;
 extern const gboolean enable_shell;
+extern const guint32  remote_shell_timeout;
 extern const guint32  entry_removal_timeout;
 extern const gboolean node_watch_similar_queries;
 extern const guint32  node_queries_half_life;

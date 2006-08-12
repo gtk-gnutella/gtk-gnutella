@@ -2729,6 +2729,19 @@ prop = {
 };
 
 prop = {
+	name = "remote_shell_timeout";
+	desc = "Amount of seconds until an idle remote shell session gets"
+		"disconnected. If set to zero, no timeout occurs.";
+	type = guint32;
+	data = {
+		default = 60;
+		min = 0;
+		max = 31536000; /* 365 * 24 * 3600 */
+	};
+};
+
+
+prop = {
 	name = "entry_removal_timeout";
 	desc = "Amount of seconds to leave 'dead' entries around so that they "
 		"can still be displayed by the GUI along with the termination status.";
