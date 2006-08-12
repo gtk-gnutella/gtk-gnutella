@@ -89,6 +89,17 @@ while [ $# -gt 0 ]; do
     fi
   done
 
+  # Transform "/foo/../" info "/"
+  file_norm=${file}
+  while :; do
+    file=${file_norm}
+    file_norm=$( printf '%s' "${file_norm}" | sed 's,/[^/]*/[.][.]/,/,')
+    echo "${file_norm}" >&2
+    if [ "${file}" = "${file_norm}" ]; then
+      break
+    fi
+  done
+
   if [ ! -f "${file}" ]; then
      printf 'Not a regular file: "%s"\n' "${file}" >&2
      continue
