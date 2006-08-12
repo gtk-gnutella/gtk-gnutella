@@ -401,6 +401,7 @@ file_object_pwrite(const struct file_object * const fo,
 	file_object_check(fo);
 	offset = filesize_to_off_t(pos);
 	if ((off_t) -1 == offset) {
+		errno = EINVAL;
 		return -1;
 	} else {
 		return pwrite(fo->fd, data, size, offset);
@@ -441,6 +442,7 @@ file_object_pwritev(const struct file_object * const fo,
 
 	offset = filesize_to_off_t(pos);
 	if ((off_t) -1 == offset) {
+		errno = EINVAL;
 		return -1;
 	} else {
 		return pwritev(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
@@ -500,6 +502,7 @@ file_object_pread(const struct file_object * const fo,
 	file_object_check(fo);
 	offset = filesize_to_off_t(pos);
 	if ((off_t) -1 == offset) {
+		errno = EINVAL;
 		return -1;
 	} else {
 		return pread(fo->fd, data, size, offset);
@@ -540,6 +543,7 @@ file_object_preadv(const struct file_object * const fo,
 
 	offset = filesize_to_off_t(pos);
 	if ((off_t) -1 == offset) {
+		errno = EINVAL;
 		return -1;
 	} else {
 		return preadv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
