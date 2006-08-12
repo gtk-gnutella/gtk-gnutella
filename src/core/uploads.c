@@ -3606,9 +3606,15 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		/* Open the file for reading. */
 		u->file = file_object_open(fpath, O_RDONLY);
 		if (!u->file) {
-			gint fd = file_open(fpath, O_RDONLY);
+			gint fd, accmode;
+
+			/* If this is a partial file, we open it with O_RDWR so that
+			 * the file descriptor can be shared with download operations
+			 * for the same file. */
+			accmode = u->file_info ? O_RDWR : O_RDONLY;
+			fd = file_open(fpath, accmode);
 			if (fd >= 0) {
-				u->file = file_object_new(fd, fpath, O_RDONLY);
+				u->file = file_object_new(fd, fpath, accmode);
 			}
 		}
 		if (!u->file) {
