@@ -617,8 +617,10 @@ static gint
 bitzi_date_compare(gconstpointer p, gconstpointer q)
 {
 	const bitzi_data_t *a = p, *b = q;
+	time_delta_t d;
 
-	return delta_time(a->expiry, b->expiry);
+	d = delta_time(a->expiry, b->expiry);
+	return SIGN(d);
 }
 
 static gboolean
