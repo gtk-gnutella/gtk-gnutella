@@ -955,8 +955,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		if (!search_results_are_requested(n->header.muid, n->addr, n->port)) {
 			rs->status |= ST_UNREQUESTED;
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
-			g_message("Received unrequested query hit from %s",
-                host_addr_port_to_string(n->addr, n->port));
+			if (search_debug) {
+				g_message("Received unrequested query hit from %s",
+                	host_addr_port_to_string(n->addr, n->port));
+			}
 		}
 	}
 
