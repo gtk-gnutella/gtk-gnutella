@@ -842,8 +842,8 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 		(guint) n->gnet_port,
 		node_flags_to_string(&flags),
 		iso3166_country_cc(n->country),
-		uptime_buf,
 		contime_buf,
+		uptime_buf,
 		vendor_escaped);
 
 	shell_write(sh, buf);
@@ -865,9 +865,8 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 	sh->msg = "";
 
 	shell_write(sh,
-		"100~ "
-	   	"Node                  Port  Flags       CC Conn.  Uptime User-Agent\n"
-		"\n");
+	  "100~ \n"
+	  "Node                  Port  Flags       CC Since  Uptime User-Agent\n");
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		const struct gnutella_node *n = sl->data;
@@ -899,17 +898,19 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 	switch (get_command(tok)) {
 	case CMD_HELP:
 		shell_write(sh,
-			"100-Help:\n"
-			"100-SEARCH ADD <query>\n"
-			"100-NODE ADD <ip> [port]\n"
-			"100-NODES\n"
-			"100-PRINT <property>\n"
-			"100-SET <property> <value>\n"
-			"100-WHATIS <property>\n"
-			"100-HORIZON [ALL]\n"
-			"100-RESCAN\n"
-			"100-QUIT\n"
-			"100-HELP\n");
+			"100~ \n"
+			"The following commands are available:\n"
+			"search add <query>\n"
+			"node add <ip> [port]\n"
+			"nodes\n"
+			"print <property>\n"
+			"set <property> <value>\n"
+			"whatis <property>\n"
+			"horizon [ALL]\n"
+			"rescan\n"
+			"quit\n"
+			"help\n");
+		shell_write(sh, ".\n");
 		reply_code = REPLY_READY;
 		break;
 	case CMD_QUIT:
