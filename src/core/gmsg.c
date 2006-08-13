@@ -45,11 +45,14 @@ RCSID("$Id$")
 #include "routing.h"
 #include "vmsg.h"
 #include "search.h"
+#include "gnet_stats.h"
 
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/walloc.h"
+#include "lib/zlib_util.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static const gchar *msg_name[256];
@@ -163,6 +166,90 @@ gmsg_to_pmsg(gconstpointer msg, guint32 size)
 }
 
 /**
+ * Construct compressed control PDU descriptor from message, for UDP traffic.
+ * The message payload is deflated only when the resulting size is smaller
+ * than the raw uncompressed form.
+ *
+ * Message data is copied into the new data buffer, so caller may release
+ * its memory.
+ */
+pmsg_t *
+gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
+{
+	guint32 plen = size - GTA_HEADER_SIZE;		/* Raw payload length */
+	guint32 blen = plen + (plen >> 4) + 12;		/* 1.0625 times orginal */
+	gpointer buf;								/* Compression made there */
+	gconstpointer data;							/* Raw data start */
+	guint32 deflated_length;					/* Length of deflated data */
+	zlib_deflater_t *z;
+	struct gnutella_header *header;
+	pmsg_t *mb;
+
+	/*
+	 * Compress payload into newly allocated buffer.
+	 */
+
+	buf = walloc(blen);
+	data = (const gchar *) msg + GTA_HEADER_SIZE;
+	z = zlib_deflater_make_into(data, plen, buf, blen, Z_DEFAULT_COMPRESSION);
+
+	switch (zlib_deflate(z, plen)) {
+	case -1:
+		goto send_raw;
+		break;
+	case 0:
+		break;
+	case 1:
+		g_error("did not deflate the whole input");
+		break;
+	}
+
+	if (!zlib_deflate_close(z))
+		goto send_raw;
+
+	/*
+	 * Check whether compressed data is smaller than the original payload.
+	 */
+
+	deflated_length = zlib_deflater_outlen(z);
+
+	if (deflated_length >= plen) {
+		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
+		goto send_raw;
+	}
+
+	/*
+	 * OK, we gain something so we'll send this payload deflated.
+	 */
+
+	mb = gmsg_split_to_pmsg(&header, buf, deflated_length + GTA_HEADER_SIZE);
+
+	wfree(buf, blen);
+	zlib_deflater_free(z, FALSE);
+
+	header = (struct gnutella_header *) pmsg_start(mb);
+
+	if (udp_debug)
+		g_message("UDP deflated %s into %d bytes",
+			gmsg_infostr(header), deflated_length);
+
+	header->ttl |= GTA_UDP_DEFLATED;
+	poke_le32(header->size, deflated_length);
+
+	return mb;
+
+send_raw:
+	/*
+	 * Cleanup and send payload as-is (uncompressed).
+	 */
+
+	wfree(buf, blen);
+	zlib_deflater_free(z, FALSE);
+
+	return gmsg_to_pmsg(msg, size);
+}
+
+/**
  * Construct control PDU descriptor from message.
  */
 pmsg_t *
@@ -206,6 +293,10 @@ write_message(pmsg_t *mb, gconstpointer head, gconstpointer data, guint32 size)
 
 /**
  * Construct PDU from header and data.
+ *
+ * @param head		pointer to the Gnutella header
+ * @param data		pointer to the Gnutella payload
+ * @param size		the total size of the message, header + payload
  */
 pmsg_t *
 gmsg_split_to_pmsg(gconstpointer head, gconstpointer data, guint32 size)
@@ -911,29 +1002,9 @@ gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 gchar *
 gmsg_infostr_full(gconstpointer message)
 {
-	static gchar a[160];
-	const struct gnutella_header *h = message;
-	guint32 size;
-	const gchar *data;
+	const gchar *data = (gchar *) message + GTA_HEADER_SIZE;
 
-	READ_GUINT32_LE(h->size, size);
-	data = (gchar *) message + sizeof(*h);
-
-	switch (h->function) {
-	case GTA_MSG_VENDOR:
-	case GTA_MSG_STANDARD:
-		gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) [hops=%d, TTL=%d]",
-			gmsg_name(h->function), vmsg_infostr(data, size),
-			size, size == 1 ? "" : "s", h->hops, h->ttl);
-		break;
-	default:
-		gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
-			gmsg_name(h->function),
-			size, size == 1 ? "" : "s", h->hops, h->ttl);
-		break;
-	}
-
-	return a;
+	return gmsg_infostr_full_split(message, data);
 }
 
 /**
@@ -956,9 +1027,12 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 	switch (h->function) {
 	case GTA_MSG_VENDOR:
 	case GTA_MSG_STANDARD:
-		gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) [hops=%d, TTL=%d]",
+		gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
 			gmsg_name(h->function), vmsg_infostr(data, size),
-			size, size == 1 ? "" : "s", h->hops, h->ttl);
+			size, size == 1 ? "" : "s",
+			h->ttl & GTA_UDP_DEFLATED ? "deflated " :
+			h->ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
+			h->hops, h->ttl & ~(GTA_UDP_DEFLATED | GTA_UDP_CAN_INFLATE));
 		break;
 	default:
 		gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
@@ -984,8 +1058,10 @@ gmsg_infostr(gconstpointer head)
 
 	READ_GUINT32_LE(h->size, size);
 
-	gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
-		gmsg_name(h->function), size, size == 1 ? "" : "s", h->hops, h->ttl);
+	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+		gmsg_name(h->function), size, size == 1 ? "" : "s",
+		h->ttl & GTA_UDP_DEFLATED ? "deflated " : "",
+		h->hops, h->ttl & ~GTA_UDP_DEFLATED);
 
 	return a;
 }
@@ -1002,8 +1078,10 @@ gmsg_infostr2(gconstpointer head)
 
 	READ_GUINT32_LE(h->size, size);
 
-	gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
-		gmsg_name(h->function), size, size == 1 ? "" : "s", h->hops, h->ttl);
+	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+		gmsg_name(h->function), size, size == 1 ? "" : "s",
+		h->ttl & GTA_UDP_DEFLATED ? "deflated " : "",
+		h->hops, h->ttl & ~GTA_UDP_DEFLATED);
 
 	return a;
 }

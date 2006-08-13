@@ -283,7 +283,7 @@ vmsg_handle(struct gnutella_node *n)
 	vm = find_message(vc, id, version);
 
 	if (vmsg_debug > 4)
-		printf("VMSG %s \"%s\": %s/%uv%u\n",
+		g_message("VMSG %s \"%s\": %s/%uv%u",
 			gmsg_infostr(&n->header), vm == NULL ? "UNKNOWN" : vm->name,
 			vendor_code_str(ntohl(vc.be32)), id, version);
 
@@ -339,6 +339,17 @@ vmsg_fill_header(struct gnutella_header *header, guint32 size, guint32 maxsize)
 }
 
 /**
+ * Indicate that we understand deflated UDP payloads.
+ */
+static void
+vmsg_advertise_udp_compression(struct gnutella_header *header)
+{
+	g_assert(0 == (header->ttl & GTA_UDP_CAN_INFLATE));
+
+	header->ttl |= GTA_UDP_CAN_INFLATE;
+}
+
+/**
  * Fill leading part of the payload data, containing the common part for
  * all vendor-specific messages.
  *
@@ -389,7 +400,7 @@ handle_messages_supported(struct gnutella_node *n,
 	count = peek_le16(payload);
 
 	if (vmsg_debug)
-		printf("VMSG node %s <%s> supports %u vendor message%s\n",
+		g_message("VMSG node %s <%s> supports %u vendor message%s",
 			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
 
@@ -427,7 +438,7 @@ handle_messages_supported(struct gnutella_node *n,
 		}
 
 		if (vmsg_debug > 2)
-			printf("VMSG ...%s/%dv%d\n",
+			g_message("VMSG ...%s/%dv%d",
 				vendor_code_str(ntohl(vendor.be32)), id, version);
 
 		/*
@@ -528,7 +539,7 @@ handle_features_supported(struct gnutella_node *n,
 	count = peek_le16(payload);
 
 	if (vmsg_debug)
-		printf("VMSG node %s <%s> supports %u extra feature%s\n",
+		g_message("VMSG node %s <%s> supports %u extra feature%s",
 			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
 
@@ -554,7 +565,7 @@ handle_features_supported(struct gnutella_node *n,
 		description += 6;
 
 		if (vmsg_debug > 1)
-			printf("VMSG node %s <%s> supports feature %s/%u\n",
+			g_message("VMSG node %s <%s> supports feature %s/%u",
 				node_addr(n), node_vendor(n),
 				vendor_code_str(ntohl(vendor.be32)), version);
 
@@ -970,7 +981,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 	poke_le16(payload, hits);
 
 	if (vmsg_debug > 1)
-		printf("VMSG sending %s with hits=%u to %s <%s>\n",
+		g_message("VMSG sending %s with hits=%u to %s <%s>",
 			gmsg_infostr_full(m), hits, node_addr(n), node_vendor(n));
 
 	gmsg_ctrl_sendto_one(n, m, msgsize);	/* Send it ASAP */
@@ -1139,6 +1150,9 @@ handle_oob_reply_ack(struct gnutella_node *n,
  * Send an "OOB Reply Ack" message to specified node, informing it that
  * we want the specified amount of hits delivered for the query identified
  * by the MUID of the message we got (the "OOB Reply Indication").
+ *
+ * We signal that we support "deflated UDP", so that remote servent can
+ * compress the query hits if necessary and if supported.
  */
 void
 vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
@@ -1151,6 +1165,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
 	g_assert(NODE_IS_UDP(n));
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof v_tmp);
+	vmsg_advertise_udp_compression(&m->header);		/* Can deflate UDP */
 	memcpy(m->header.muid, muid, 16);
 	payload = vmsg_fill_type(&m->data, T_LIME, 11, 2);
 
@@ -1159,7 +1174,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
 	udp_send_msg(n, m, msgsize);
 
 	if (vmsg_debug > 2)
-		printf("sent OOB reply ACK %s to %s for %u hit%s\n",
+		g_message("sent OOB reply ACK %s to %s for %u hit%s",
 			guid_hex_str(muid), node_addr(n), want, want == 1 ? "" : "s");
 }
 
@@ -1494,7 +1509,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 		guint8 nup = payload[0];
 		guint8 nleaves = payload[1];
 
-		printf("VMSG sending %s with up=%u and leaves=%u to %s\n",
+		g_message("VMSG sending %s with up=%u and leaves=%u to %s",
 			gmsg_infostr_full(m), nup, nleaves, node_addr(n));
 	}
 

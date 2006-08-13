@@ -66,6 +66,13 @@ struct gnutella_header {
 
 #define GTA_HEADER_SIZE		sizeof(struct gnutella_header)
 
+/**
+ * UDP traffic compression (TTL marking flags)
+ */
+
+#define GTA_UDP_CAN_INFLATE		0x08	/**< TTL marking for deflate support */
+#define GTA_UDP_DEFLATED		0x80	/**< TTL marking: payload deflated */
+
 #endif /* _if_core_gnutella_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

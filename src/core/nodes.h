@@ -401,6 +401,7 @@ typedef struct gnutella_node {
 #define NODE_CAN_GGEP(n)		((n)->attrs & NODE_A_CAN_GGEP)
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
 #define NODE_GUIDES_QUERY(n)	((n)->attrs & NODE_A_LEAF_GUIDE)
+#define NODE_CAN_INFLATE(n)		((n)->attrs & NODE_A_CAN_INFLATE)
 
 /*
  * Peer inspection macros

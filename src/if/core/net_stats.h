@@ -80,6 +80,7 @@ typedef enum msg_drop_reason {
 	MSG_DROP_HOSTILE_IP,
 	MSG_DROP_SPAM,
 	MSG_DROP_EVIL,
+	MSG_DROP_INFLATE_ERROR,
 	
 	MSG_DROP_REASON_COUNT /**< number of known reasons to drop a message */
 } msg_drop_reason_t;
@@ -125,6 +126,9 @@ typedef enum {
 	GNR_UDP_BOGUS_SOURCE_IP,
 	GNR_UDP_ALIEN_MESSAGE,
 	GNR_UDP_UNPROCESSED_MESSAGE,
+	GNR_UDP_TX_COMPRESSED,
+	GNR_UDP_RX_COMPRESSED,
+	GNR_UDP_LARGER_HENCE_NOT_COMPRESSED,
 	
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;

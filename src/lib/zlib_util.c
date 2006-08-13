@@ -379,6 +379,81 @@ zlib_uncompress(gconstpointer data, gint len, gulong uncompressed_len)
 }
 
 /**
+ * Inflate data into supplied buffer.
+ *
+ * @param data		the data to inflate
+ * @param len		length of data
+ * @param out		buffer where inflate data should be put
+ * @param outlen	on input the length of out buffer, on output the length of
+ *					the deflated data.
+ *
+ * @return zlib's status: Z_OK on OK, error code otherwise.
+ */
+gint
+zlib_inflate_into(gconstpointer data, gint len, gpointer out, gint *outlen)
+{
+	z_streamp inz;
+	gint ret;
+	gint inflated = 0;
+
+	g_assert(data != NULL);
+	g_assert(len > 0);
+	g_assert(out != NULL);
+	g_assert(outlen != NULL);
+	g_assert(*outlen > 0);
+
+	/*
+	 * Allocate decompressor.
+	 */
+
+	inz = walloc(sizeof(*inz));
+
+	inz->zalloc = NULL;
+	inz->zfree = NULL;
+	inz->opaque = NULL;
+
+	ret = inflateInit(inz);
+
+	if (ret != Z_OK) {
+		g_warning("unable to setup decompressor: %s", zlib_strerror(ret));
+		goto done;
+	}
+
+	/*
+	 * Prepare call to inflate().
+	 */
+
+	inz->next_in = deconstify_gchar(data);
+	inz->avail_in = len;
+
+	inz->next_out = out;
+	inz->avail_out = *outlen;
+
+	/*
+	 * Decompress data.
+	 */
+
+	ret = inflate(inz, Z_SYNC_FLUSH);
+
+	inflated = *outlen - inz->avail_out;
+
+	if (ret == Z_STREAM_END) {
+		ret = Z_OK;
+		*outlen = inflated;
+		goto done;
+	}
+
+	if (ret == Z_OK)		/* Expected Z_STREAM_END! */
+		ret = Z_DATA_ERROR;
+
+	/* FALL THROUGH */
+
+done:
+	wfree(inz, sizeof(*inz));
+	return ret;
+}
+
+/**
  * Check whether first bytes of data make up a valid zlib marker.
  */
 gboolean

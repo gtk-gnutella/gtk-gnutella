@@ -66,6 +66,7 @@ RCSID("$Id$")
 #define OOB_MAX_RETRY		3				/**< Retry # if LIME/12v2 dropped */
 
 #define OOB_MAX_QHIT_SIZE	645				/**< Flush hits larger than this */
+#define OOB_MAX_DQHIT_SIZE	1075			/**< Flush limit for deflated hits */
 
 /**
  * A set of hits awaiting delivery.
@@ -104,6 +105,7 @@ struct gservent {
 	gpointer ev_service;	/**< Callout event for servicing FIFO */
 	gnet_host_t *host;		/**< The servent host (also used as key for table) */
 	fifo_t *fifo;			/**< The servent's FIFO, holding pmsg_t items */
+	gboolean can_deflate;	/**< Whether servent supports UDP compression */
 };
 
 /*
@@ -221,7 +223,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 
 	if (query_debug)
-		printf("OOB query %s from %s expired with unclaimed %d hit%s\n",
+		g_message("OOB query %s from %s expired with unclaimed %d hit%s",
 			guid_hex_str(r->muid),
 			host_addr_port_to_string(r->dest.addr, r->dest.port),
 			r->count, r->count == 1 ? "" : "s");
@@ -243,7 +245,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 
 	if (query_debug)
-		printf("OOB query %s, no ACK from %s to claim %d hit%s\n",
+		g_message("OOB query %s, no ACK from %s to claim %d hit%s",
 			guid_hex_str(r->muid),
 			host_addr_port_to_string(r->dest.addr, r->dest.port),
 			r->count, r->count == 1 ? "" : "s");
@@ -286,12 +288,25 @@ servent_service(cqueue_t *cq, gpointer obj)
 		goto udp_disabled;
 
 	if (udp_debug > 19)
-		printf("UDP queuing OOB %s to %s for %s\n",
+		g_message("UDP queuing OOB %s to %s for %s",
 			gmsg_infostr_full(pmsg_start(mb)),
 			host_addr_port_to_string(s->host->addr, s->host->port),
 			guid_hex_str(pmsg_start(mb)));
 
 	mq_udp_putq(q, mb, s->host);
+
+	/*
+	 * Count enqueued deflated payloads, only when server was marked as
+	 * supporting compression anyway...
+	 */
+
+	if (s->can_deflate) {
+		struct gnutella_header *header =
+			(struct gnutella_header *) pmsg_start(mb);
+
+		if (header->ttl & GTA_UDP_DEFLATED)
+			gnet_stats_count_general(GNR_UDP_TX_COMPRESSED, 1);
+	}
 
 	if (0 == fifo_count(s->fifo))
 		goto remove;
@@ -314,7 +329,7 @@ remove:
  * @param host the servent's IP:port.  Caller may free it upon return.
  */
 static struct gservent *
-servent_make(gnet_host_t *host)
+servent_make(gnet_host_t *host, gboolean can_deflate)
 {
 	struct gservent *s;
 
@@ -323,6 +338,7 @@ servent_make(gnet_host_t *host)
 	*s->host = *host;		/* Struct copy */
 	s->fifo = fifo_make();
 	s->ev_service = NULL;
+	s->can_deflate = can_deflate;
 
 	return s;
 }
@@ -363,7 +379,9 @@ oob_record_hit(gpointer data, size_t len, gpointer udata)
 	struct gservent *s = (struct gservent *) udata;
 
 	g_assert(len <= INT_MAX);
-	fifo_put(s->fifo, gmsg_to_pmsg(data, len));
+	fifo_put(s->fifo, s->can_deflate ?
+		gmsg_to_deflated_pmsg(data, len) :
+		gmsg_to_pmsg(data, len));
 }
 
 /**
@@ -435,11 +453,19 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 
 	/*
 	 * Fetch the proper servent, create one if none exists yet.
+	 *
+	 * N.B: We assume that for a given host address, UDP deflation support
+	 * will never change: if the host has marked support for deflation in
+	 * the claim message once, we assume that it will always support it.
+	 * Likewise, if it did not request it the first time, no matter what we
+	 * get next, we will never deflate hits for this OOB delivery.
+	 *		--RAM, 2006-08-13
 	 */
 
 	s = g_hash_table_lookup(servent_by_host, &r->dest);
 	if (s == NULL) {
-		s = servent_make(&r->dest);
+		gboolean can_deflate = NODE_CAN_INFLATE(n);	/* Can we deflate? */
+		s = servent_make(&r->dest, can_deflate);
 		g_hash_table_insert(servent_by_host, s->host, s);
 		servent_created = TRUE;
 	}
@@ -453,14 +479,14 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 	deliver_count = (wanted == 255) ? r->count : MIN(wanted, r->count);
 
 	if (query_debug || udp_debug)
-		printf("OOB query %s: host %s wants %d hit%s, delivering %d\n",
+		g_message("OOB query %s: host %s wants %d hit%s, delivering %d",
 			guid_hex_str(r->muid), node_addr(n), wanted, wanted == 1 ? "" : "s",
 			deliver_count);
 
 	if (deliver_count)
 		qhit_build_results(
 			r->files, deliver_count,
-			OOB_MAX_QHIT_SIZE,
+			s->can_deflate ? OOB_MAX_DQHIT_SIZE : OOB_MAX_QHIT_SIZE,
 			oob_record_hit, s,
 			r->muid,
 			r->use_ggep_h);
@@ -512,7 +538,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 		} else {
 
 			if (query_debug || udp_debug)
-				printf("OOB query %s, notified %s about %d hit%s\n",
+				g_message("OOB query %s, notified %s about %d hit%s",
 						guid_hex_str(r->muid),
 						host_addr_port_to_string(r->dest.addr, r->dest.port),
 						r->count,
@@ -534,7 +560,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 	 */
 
 	if (query_debug)
-		printf("OOB query %s, previous LIME12/v2 #%d was dropped\n",
+		g_message("OOB query %s, previous LIME12/v2 #%d was dropped",
 			guid_hex_str(r->muid), r->notify_requeued);
 
 	if (++r->notify_requeued < OOB_MAX_RETRY)
@@ -563,7 +589,7 @@ oob_send_reply_ind(struct oob_results *r)
 	pmsg_free(mb);
 
 	if (query_debug || udp_debug)
-		printf("OOB query %s, notifying %s about %d hit%s, try #%d\n",
+		g_message("OOB query %s, notifying %s about %d hit%s, try #%d",
 			guid_hex_str(r->muid), host_addr_port_to_string(r->dest.addr,
 				r->dest.port),
 			r->count, r->count == 1 ? "" : "s", r->notify_requeued);

@@ -56,6 +56,7 @@ void gmsg_init(void);
 const gchar *gmsg_name(guint function);
 
 pmsg_t *gmsg_to_pmsg(gconstpointer msg, guint32 size);
+pmsg_t *gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size);
 pmsg_t *gmsg_to_ctrl_pmsg(gconstpointer msg, guint32 size);
 pmsg_t * gmsg_to_ctrl_pmsg_extend(
 	gconstpointer msg, guint32 size, pmsg_free_t free_cb, gpointer arg);

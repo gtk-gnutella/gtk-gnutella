@@ -161,6 +161,8 @@ static GHashTable *nodes_by_id = NULL;
 static gnutella_node_t *udp_node = NULL;
 static gnutella_node_t *udp6_node = NULL;
 static gnutella_node_t *browse_node = NULL;
+static gchar *udp_inflate_buffer = NULL;
+static gint udp_inflate_buffer_len = 0;
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
@@ -1183,6 +1185,9 @@ node_init(void)
 	udp_node = node_udp_create(NET_TYPE_IPV4);
 	udp6_node = node_udp_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
+
+	udp_inflate_buffer_len = settings_max_msg_size();
+	udp_inflate_buffer = g_malloc(udp_inflate_buffer_len);
 
 	/*
 	 * Limit replies to TCP/UDP crawls from a single IP.
@@ -5583,6 +5588,8 @@ node_udp_get(struct gnutella_socket *s)
 	n->addr = s->addr;
 	n->port = s->port;
 
+	n->attrs = 0;
+
 	return n;
 }
 
@@ -6477,6 +6484,16 @@ node_udp_process(struct gnutella_socket *s)
 	case GTA_MSG_SEARCH_RESULTS:
 		node_inc_rx_qhit(n);
 		break;
+	case GTA_MSG_VENDOR:
+	case GTA_MSG_STANDARD:
+		/*
+		 * Check for UDP compression support, marking host if we can send
+		 * UDP compressed replies. --RAM, 2006-08-13
+		 */
+
+		if (n->header.ttl & GTA_UDP_CAN_INFLATE)
+			n->attrs |= NODE_A_CAN_INFLATE;
+		break;
 	default:
 		break;
 	}
@@ -6490,8 +6507,58 @@ node_udp_process(struct gnutella_socket *s)
 			g_warning("UDP got %s from hostile %s -- dropped",
 				gmsg_infostr_full(s->buffer), node_addr(n));
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-	} else
-		node_parse(n);
+		return;
+	}
+
+	/*
+	 * If payload is deflated, inflate it before processing.
+	 */
+
+	if (n->header.ttl & GTA_UDP_DEFLATED) {
+		gint outlen = udp_inflate_buffer_len;
+		gint ret;
+
+		gnet_stats_count_general(GNR_UDP_RX_COMPRESSED, 1);
+
+		if (!zlib_is_valid_header(n->data, n->size)) {
+			if (udp_debug)
+				g_warning("UDP got %s with non-deflated payload from %s",
+					gmsg_infostr_full(s->buffer), node_addr(n));
+			gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
+			return;
+		}
+
+		/*
+		 * Start of payload looks OK, attempt inflation.
+		 */
+
+		ret = zlib_inflate_into(n->data, n->size, udp_inflate_buffer, &outlen);
+		if (ret != Z_OK) {
+			if (udp_debug)
+				g_warning("UDP cannot inflate %s from %s: %s",
+					gmsg_infostr_full(s->buffer), node_addr(n),
+					zlib_strerror(ret));
+			gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
+			return;
+		}
+
+		/*
+		 * Inflation worked, update the header and the data pointers.
+		 */
+
+		if (udp_debug)
+			g_message("UDP inflated %s from %s into %d bytes",
+				gmsg_infostr_full(s->buffer), node_addr(n), outlen);
+
+		n->data = udp_inflate_buffer;
+		n->size = outlen;
+		n->header.ttl &= ~GTA_UDP_DEFLATED;
+		poke_le32(n->header.size, outlen);
+
+		/* FALL THROUGH */
+	}
+
+	node_parse(n);
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
 }
@@ -7641,6 +7708,8 @@ node_close(void)
 		udp6_node = NULL;
 		browse_node = NULL;
 	}
+
+	G_FREE_NULL(udp_inflate_buffer);
 
 	g_slist_free(sl_nodes_without_broken_gtkg);
 	g_slist_free(sl_proxies);

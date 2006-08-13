@@ -111,6 +111,7 @@ msg_drop_str(gint value)
 		N_("Hostile IP address"),
 		N_("Spam"),
 		N_("Evil filename"),
+		N_("Payload inflating error"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_DROP_REASON_COUNT);
@@ -170,6 +171,9 @@ general_type_str(gint value)
 		N_("UDP messages with bogus source IP"),
 		N_("Alien UDP messages (non-Gnutella)"),
 		N_("Unprocessed UDP Gnutella messages"),
+		N_("Compressed UDP messages enqueued"),
+		N_("Compressed UDP messages received"),
+		N_("Uncompressed UDP messages due to no gain"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
