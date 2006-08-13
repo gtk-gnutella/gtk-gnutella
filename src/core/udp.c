@@ -182,6 +182,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 			ntp_got_reply(s);
 			return;
 		}
+		/* FALL THROUGH -- reply did not come from localhost */
 	}
 
 	/*
