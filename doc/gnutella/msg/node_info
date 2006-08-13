@@ -11,16 +11,21 @@ INTRODUCTION
 An ultra node should be ideally positionned in the network: it must be
 connected to well-connected ultra peers.  In order for an ultra node to
 assess its connectivity, we are introducing an information exchange between
-ultra nodes, allowing them to make sure they connected to "good" peers.
+ultra nodes, allowing them to make sure they are connected to "good" peers.
 
 Indeed, in a network with high outdegree and low TTL, keeping a connection
 with a poorly connected ultra node is not good for the "density" of the
 network and not good for our leaves which have a lower search horizon.
 
 Great care must be taken however to not peruse the information that can be
-gathered through those messages to isolate poorly connected nodes.  That
-would push them at the border of the network and never give them a chance
-to become good peers.
+gathered through those messages to isolate poorly connected nodes or to
+create inordinate amounts of connection churns.  Every node deserves the
+right to participate to the Gnutella network and be given a chance to
+become a well-connected node.
+
+The information gathered through UDP can also prove to be valuable for
+researchers who study peer-to-peer networks and Gnutella in particular, to
+assess the level of support of particular features, etc...
 
 SPECIFICATIONS
 
@@ -47,6 +52,8 @@ of the fields are optional:
 	0x00000008		include GGEP "GTKGV1" (version info) extension
 	0x00000010		include bandwidth information
 	0x00000020		include TX/RX dropped packets information
+	0x00000040		include GGEP "GGEP" listing known extensions (see below)
+	0x00000080		include GGEP "UA" giving the complete user-agent string
 
 * Node Info Reply
 
@@ -60,16 +67,21 @@ of the fields are optional:
         byte: running mode (0 = auto, 1 = leaf, 2 = ultra)
 		uint32: answer flags
 		uint32: operating flags
-        byte: max amount of ultra nodes
+		uint32: optional features #1
+		uint32: optional features #2
+        byte: max amount of ultra nodes (in UP mode)
+        byte: max amount of ultra nodes (in leaf mode)
         byte: current amount of ultra nodes
         uint16: max amount of leaves
         uint16: current amount of leaves
+		byte: TTL limit for messages sent
+		byte: hard TTL limit for messages relayed
 	if (answer_flags & 0x10) {
-		byte: bandwidth flags
-		uint16: Gnutella input b/w limit in KiB/sec (0 = none)
-		uint16: Gnutella output b/w limit in KiB/sec (0 = none)
-		uint16: Leaf input b/w limit in KiB/sec (0 = none)
-		uint16: Leaf output b/w limit in KiB/sec (0 = none)
+		uint16: bandwidth flags
+		uint32: Gnutella input b/w limit in KiB/sec (0 = none)
+		uint32: Gnutella output b/w limit in KiB/sec (0 = none)
+		uint32: Leaf input b/w limit in KiB/sec (0 = none)
+		uint32: Leaf output b/w limit in KiB/sec (0 = none)
 	}
 	if (answer_flags & 0x20) {
 		uint32: dropped TX packets on this TCP connection
@@ -86,11 +98,67 @@ The operating flags are defined as:
 
 	0x00000001			is TCP-firewalled
 	0x00000002			is UDP-firewalled
-	0x00000004			supports TLS connections
+	0x00000004			is an active member of the DHT
 	0x00000008			is an ancient version
 	0x00000010			time synchronized via NTP
 	0x00000020			running headless as a server
-	0x00000040			is DHT-capable
+	0x00000040			is a passive member of the DHT
+	0x00000080			allows UDP traffic
+	0x00000100			advertises public hostname (DNS name instead of IP)
+	0x00000200			requests OOB in its queries
+	0x00000400			will act as OOB proxy for leaves
+	0x00000800			will deliver OOB replies
+
+The optional features #1 are defined as:
+
+	0x00000001			supports Browse Host
+	0x00000002			supports Partial File Sharing
+	0x00000004			supports Chat
+	0x00000008			supports Firewall-to-Firewall transfers
+	0x00000010			supports Push Proxy
+	0x00000020			supports "What's New?" queries
+	0x00000040			supports TTH and THEX
+	0x00000080			supports magnet URIs
+	0x00000100			supports UHC (can act as UHC server)
+	0x00000200			supports TCP stream compression
+	0x00000400			supports UDP payload compression
+	0x00000800			supports dynamic querying
+	0x00001000			supports active download queuing
+	0x00002000			supports passive download queuing
+	0x00004000			supports GWC-based bootstrapping
+	0x00008000			supports UHC-based bootstrapping
+	0x00010000			supports XML meta data in query hits
+	0x00020000			supports TCP-based crawling
+	0x00040000			supports UDP-based crawling
+	0x00080000			supports inter-UP QRP tables
+	0x00100000			supports large leaf QRP tables (up to 2 MiSlots)
+	0x00200000			supports HTTP/1.1 "chunked" encoding
+	0x00400000			supports HTTP/1.1 Retry-After
+	0x00800000			supports modern "query speed" flags
+	0x01000000			supports TLS connections
+	0x02000000			supports OOB hit delivery
+	0x04000000			supports OOB proxying for leaves
+	0x08000000			supports BYE with meaningful messages
+	0x10000000			supports swarming (downloads from multiple hosts)
+	0x20000000			supports GGEP extensions
+	0x40000000			supports Content-Encoding negotiation for downloads
+	0x80000000			supports Content-Encoding negotiation for uploads
+
+NB: A feature supported is not necessarily enabled.
+
+The optional features #2 are defined as:
+
+	0x00000001			supports GUESS queries
+	0x00000002			supports the Gnutella DHT architecture
+	0x00000004			supports IPv6
+	0x00000008			supports bandwidth limiting
+	0x00000010			supports Gnutella traffic flow control
+	0x00000020			supports Hops-Flow message for flow-control
+	0x00000040			supports HTTP "HEAD" requests
+	0x00000080			supports alive ping/pongs
+	0x00000100			supports pong caching (no broadcasting of pings)
+	0x00000200			forwards duplicate messages coming with higher TTL
+	0x00000400			supports dynamic query hit throttling
 
 The answer flags is simply an echoing of the flags that were present in the
 Node Info Request.  That way, the issuer of the request does not need to
@@ -102,8 +170,8 @@ in the Node Info Reply.
 
 The bandwidth flags are defined as:
 
-	0x01				uses strict b/w pools (no stealing of unused b/w)
-	0x02				makes uses of IP TOS
+	0x0001				uses strict b/w pools (no stealing of unused b/w)
+	0x0002				makes uses of IPv4 TOS
 
 The "Node Info Reply" should be sent like an "alive pong", i.e. with an urgent
 priority (put ahead of the transmission queue) when replying through TCP.
