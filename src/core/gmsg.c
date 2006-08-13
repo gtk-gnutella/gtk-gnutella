@@ -1035,9 +1035,11 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 			h->hops, h->ttl & ~(GTA_UDP_DEFLATED | GTA_UDP_CAN_INFLATE));
 		break;
 	default:
-		gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
+		gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
 			gmsg_name(h->function),
-			size, size == 1 ? "" : "s", h->hops, h->ttl);
+			size, size == 1 ? "" : "s",
+			h->ttl & GTA_UDP_DEFLATED ? "deflated " : "",
+			h->hops, h->ttl & ~GTA_UDP_DEFLATED);
 		break;
 	}
 
