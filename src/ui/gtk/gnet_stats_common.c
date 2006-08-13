@@ -144,6 +144,7 @@ general_type_str(gint value)
 		N_("Unclaimed locally-generated OOB hits"),
 		N_("Partially claimed locally-generated OOB hits"),
 		N_("Unrequested OOB hits received"),
+		N_("Spurious OOB hit claiming received"),
 		N_("Compacted queries"),
 		N_("Bytes saved by compacting"),
 		N_("UTF8 queries"),

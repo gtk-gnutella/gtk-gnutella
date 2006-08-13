@@ -387,9 +387,10 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 	r = g_hash_table_lookup(results_by_muid, muid);
 
 	if (r == NULL) {
+		gnet_stats_count_general(GNR_SPURIOUS_OOB_HIT_CLAIM, 1);
 		if (query_debug)
-			printf("OOB got spurious LIME/11 from %s for %s, "
-				"asking for %d hit%s\n",
+			g_warning("OOB got spurious LIME/11 from %s for %s, "
+				"asking for %d hit%s",
 				node_addr(n), guid_hex_str(muid),
 				wanted, wanted == 1 ? "" : "s");
 		return;
