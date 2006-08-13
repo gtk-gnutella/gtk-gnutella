@@ -105,6 +105,7 @@ doc/gnutella/browse_host
 doc/gnutella/bye
 doc/gnutella/compression
 doc/gnutella/crawler
+doc/gnutella/deflated_udp
 doc/gnutella/dynamic_query
 doc/gnutella/gwcache
 doc/gnutella/handshaking_0.6

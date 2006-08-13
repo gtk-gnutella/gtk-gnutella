@@ -1,0 +1,99 @@
+                   Gnutella UDP Traffic Compression
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                        August, 13th 2006
+
+
+1. OVERVIEW
+
+UDP exchanges in Gnutella happen in a connection-less way and therefore it
+is not possible to easily negotiate compression support.  Moreover, UDP
+exchanges are of a very brief nature usually.
+
+The Reliable UDP (RUDP) layer is a special case, because it builds a
+reliable stream to exchange data between firewalled hosts.  But a typical
+UDP usage will be to request out-of-band query hit delivery: a brief
+exchange is made between two hosts to exchange short-lived data, once.
+
+The purpose of the present specification is to negotiate compression of
+the UDP "replies" (i.e. UDP messages sent back after some kind of UDP
+"request") in short-lived exchanges in a completely backward compatible
+way, meaning existing deployed servents will gracefully ignore it..
+
+This means it applies only to solicited UDP messages.  Unsolicited UDP
+messages cannot be sent compressed.
+
+
+2. SCOPE
+
+This specification applies to short-lived UDP exchanges whereby a servent A
+sends an UDP message to another servent B ("the Request"), who will in turn
+send some messages back to servent A ("the Reply").
+
+This is typically the case during out-of-band query hit delivery: servent
+A, the queryier, got a UDP notification via a LIME/12v2 "OOB Reply Indication"
+from servent B that there are query hits to be claimed.  Servent A then sends
+a LIME/11v2 "OOB Reply Ack" to B who will in turn reply with several query
+hits as UDP messages.
+
+The LIME/11v2 constitutes the Request here, and the query hits form the Reply.
+
+
+3. MARKING THE REQUEST FOR COMPRESSION SUPPORT
+
+In order to indicate that the reply may come in the form of compressed UDP
+messages, the requestor needs to mark the message it sends by setting
+the bit 3 of the TTL field.  In other words, instead of sending its request
+with TTL=1 as it normally would, it sends it with TTL=9 (8+1).
+
+This value was selected after experimenting with existing deployed servents
+in the field.  Most servents do not put restrictions on the incoming TTL
+field for UDP requests, but only LimeWire seemed to choke on large TTL.  The
+value of 9 seemed fine for LimeWire, and since we need something that will
+work with the existing deployed servents, this value was chosen.
+
+Note that this marking only applies for Request/Reply exchanges.  The
+sending of a Push message over UDP does not constitute a Request/Reply since
+the "reply" of the push will come in the form of an incoming TCP connection,
+not via a UDP reply.  So the TTL of the Push message will never be deemed
+to be "magical" and marked for compression.
+
+Similarily, this marking only makes sense for requests made via UDP.  For
+messages coming through TCP, the TTL still continues to be interpreted the
+usual way.
+
+
+4. MARKING THE REPLY AS COMPRESSED
+
+Since a reply can come back as many UDP messages, each message will need to
+be marked as being compressed, possibly.  This is done by setting the bit 7
+of the TTL.  In other words, instead of sending the reply messages with TTL=1
+as they normally would, TTL=129 will be used to indicate a compressed message.
+
+Compression of the payload will be done only when the payload size is shorter
+after compression than the one of the raw uncompressed payload.
+
+The only supported compression scheme is "deflate", the same algorithm used
+to deflate individual GGEP extensions.
+
+
+5. STRUCTURE OF A COMPRESSED GNUTELLA UDP PACKET
+
+The structure of a compressed UDP packet is the following:
+
+	Gnutella header (16 bytes)
+	Deflated payload
+
+The TTL of the gnutella header (1 single byte) has its bit 7 set to indicate
+that the payload is deflated.  The recipient will necessarily understand this
+as it signalled that it supported compressed UDP when it made its request.
+
+The size field of the Gnutella header refers to the actual size of the
+deflated payload, NOT the size of the raw data.  This is the only way the
+UDP packet can be recognized as a valid Gnutella frame.
+
+The recipient only needs to inflate the payload to process the Gnutella
+message normally, as if it had received it in that form originally.
+
+Raphael
