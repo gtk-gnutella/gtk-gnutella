@@ -439,6 +439,12 @@ get_rcsid(void)		\
 #define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
 
 /**
+ * SIGN() returns the sign of an integer value.
+ */
+#define SIGN(x) ((x) == 0 ? 0 : (x) > 0 ? 1 : (-1))
+
+
+/**
  * STATIC_ASSERT() can be used to verify conditions at compile-time. For
  * example, it can be used to ensure that an array has a minimum or exact
  * size. This is better than a run-time assertion because the condition is
