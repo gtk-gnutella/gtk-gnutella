@@ -88,7 +88,7 @@ to deflate individual GGEP extensions.
 
 The structure of a compressed UDP packet is the following:
 
-	Gnutella header (16 bytes)
+	Gnutella header (23 bytes)
 	Deflated payload
 
 The TTL of the gnutella header (1 single byte) has its bit 7 set to indicate
