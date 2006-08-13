@@ -2951,9 +2951,9 @@ download_stop_v(struct download *d, download_status_t new_status,
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
 	}
-	socket_free_null(&d->socket);	/* Close socket */
-	file_object_release(&d->out_file);/* Close output file */
-	if (d->io_opaque) {				/* I/O data */
+	socket_free_null(&d->socket);		/* Close socket */
+	file_object_release(&d->out_file);	/* Close output file */
+	if (d->io_opaque) {					/* I/O data */
 		io_free(d->io_opaque);
 		g_assert(d->io_opaque == NULL);
 	}
@@ -9806,6 +9806,7 @@ download_close(void)
 		download_remove_from_server(d, TRUE);
 		atom_str_free_null(&d->escaped_name);
 		atom_str_free_null(&d->file_name);
+		file_object_release(&d->out_file);	/* Close output file */
 
 		download_free(&d);
 	}
