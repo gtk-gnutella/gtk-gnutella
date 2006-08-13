@@ -288,7 +288,9 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 	fo->accmode = accmode;
 	fo->pathname = atom_str_get(pathname);
 
-	g_hash_table_insert(file_object_mode_get_table(accmode), fo->pathname, fo);
+	file_object_check(fo);
+	g_hash_table_insert(file_object_mode_get_table(fo->accmode),
+		fo->pathname, fo);
 
 	return fo;
 }
@@ -301,9 +303,13 @@ file_object_free(struct file_object * const fo)
 	g_return_if_fail(fo->fd >= 0);
 	g_return_if_fail(file_object_find(fo->pathname, fo->accmode));
 
+	file_object_check(fo);
+	g_hash_table_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
+	g_assert(!g_hash_table_lookup(file_object_mode_get_table(fo->accmode),
+				fo->pathname));
+
 	close(fo->fd);
 	fo->fd = -1;
-	g_hash_table_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
 	atom_str_free_null(&fo->pathname);
 	fo->magic = 0;
 	wfree(fo, sizeof *fo);
@@ -628,6 +634,22 @@ file_object_init(void)
 	ht_file_objects_rdwr = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
+static void
+file_object_show_item(gpointer key, gpointer value, gpointer unused_udata)
+{
+	const struct file_object * const fo = value;
+
+	g_assert(key);
+	g_assert(value);
+	(void) unused_udata;
+
+	file_object_check(fo);
+	g_assert(fo->pathname == key);
+
+	g_message("leaked file object: ref.count=%d fd=%d pathname=\"%s\"",
+		fo->ref_count, fo->fd, fo->pathname);
+}
+
 static inline void
 file_object_destroy_table(GHashTable **ht_ptr, const char * const name)
 {
@@ -642,6 +664,7 @@ file_object_destroy_table(GHashTable **ht_ptr, const char * const name)
 	if (n > 0) {
 		g_warning("file_object_destroy_table(): %s still contains %u items",
 			name, n);
+		g_hash_table_foreach(ht, file_object_show_item, NULL);
 	}
 	g_return_if_fail(0 == n);
 	g_hash_table_destroy(ht);
