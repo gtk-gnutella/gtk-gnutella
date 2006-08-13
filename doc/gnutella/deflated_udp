@@ -19,7 +19,7 @@ exchange is made between two hosts to exchange short-lived data, once.
 The purpose of the present specification is to negotiate compression of
 the UDP "replies" (i.e. UDP messages sent back after some kind of UDP
 "request") in short-lived exchanges in a completely backward compatible
-way, meaning existing deployed servents will gracefully ignore it..
+way, meaning existing deployed servents will gracefully ignore it.
 
 This means it applies only to solicited UDP messages.  Unsolicited UDP
 messages cannot be sent compressed.
@@ -63,6 +63,8 @@ Similarily, this marking only makes sense for requests made via UDP.  For
 messages coming through TCP, the TTL still continues to be interpreted the
 usual way.
 
+In all likelihood, only Vendor Messages will need to use this markup.
+
 
 4. MARKING THE REPLY AS COMPRESSED
 
@@ -70,6 +72,10 @@ Since a reply can come back as many UDP messages, each message will need to
 be marked as being compressed, possibly.  This is done by setting the bit 7
 of the TTL.  In other words, instead of sending the reply messages with TTL=1
 as they normally would, TTL=129 will be used to indicate a compressed message.
+
+Since any Gnutella message can potentially use a deflated payload when sent
+over UDP, it was deemed important to use the highest bit of the TTL, since it
+is impossible for a legitimate regular message to have a TTL greater than 127.
 
 Compression of the payload will be done only when the payload size is shorter
 after compression than the one of the raw uncompressed payload.
