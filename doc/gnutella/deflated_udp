@@ -45,7 +45,7 @@ The LIME/11v2 constitutes the Request here, and the query hits form the Reply.
 In order to indicate that the reply may come in the form of compressed UDP
 messages, the requestor needs to mark the message it sends by setting
 the bit 3 of the TTL field.  In other words, instead of sending its request
-with TTL=1 as it normally would, it sends it with TTL=9 (8+1).
+with TTL=1 as it normally would, it sends it with TTL=9 (0x08 | 0x01).
 
 This value was selected after experimenting with existing deployed servents
 in the field.  Most servents do not put restrictions on the incoming TTL
