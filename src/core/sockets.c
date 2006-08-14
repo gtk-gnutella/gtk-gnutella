@@ -1204,7 +1204,7 @@ socket_free(struct gnutella_socket *s)
 
 #ifdef HAS_GNUTLS
 	if (s->tls.ctx) {
-		if (s->file_desc != -1) {
+		if (s->file_desc != -1 && SOCK_TLS_ESTABLISHED == s->tls.stage) {
 			tls_bye(s->tls.ctx, SOCK_CONN_INCOMING == s->direction);
 		}
 		tls_free(&s->tls.ctx);
@@ -1343,7 +1343,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			} else {
 				g_assert(1 == ret);
 
-				if (tls_debug)
+				if (tls_debug > 2)
 					g_message("socket_read(): c=0x%02x", c);
 
 				if (is_ascii_alnum(c) || '\n' == c || '\r' == c) {
