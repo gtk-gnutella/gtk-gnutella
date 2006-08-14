@@ -164,6 +164,38 @@ get_dh_params(void)
 	return dh_params;
 }
 
+static void
+tls_print_session_info(gnutls_session_t session)
+{
+	const char *proto, *cert, *kx, *ciph, *mac, *comp;
+
+	g_return_if_fail(session);
+
+	proto = gnutls_protocol_get_name(gnutls_protocol_get_version(session));
+	cert = gnutls_certificate_type_get_name(
+				gnutls_certificate_type_get(session));
+	kx = gnutls_kx_get_name(gnutls_kx_get(session));
+	comp = gnutls_compression_get_name(gnutls_compression_get(session));
+	ciph = gnutls_cipher_get_name(gnutls_cipher_get(session));
+	mac = gnutls_mac_get_name(gnutls_mac_get (session));
+
+	g_message(
+		"TLS session info:\n"
+		"Protocol:     %s\n"
+		"Certificate:  %s\n"
+		"Key Exchange: %s\n"
+		"Cipher:       %s\n"
+		"MAC:          %s\n"
+		"Compression:  %s\n",
+		NULL_STRING(proto),
+		NULL_STRING(cert),
+		NULL_STRING(kx),
+		NULL_STRING(ciph),
+		NULL_STRING(mac),
+		NULL_STRING(comp)
+	);
+}
+
 /**
  * @return	TLS_HANDSHAKE_ERROR if the TLS handshake failed.
  *			TLS_HANDSHAKE_RETRY if the handshake is incomplete; thus
@@ -181,7 +213,9 @@ tls_handshake(struct gnutella_socket *s)
 	g_assert(s);
 
 	session = tls_socket_get_session(s);
-	g_assert(session);
+	g_return_val_if_fail(session, TLS_HANDSHAKE_ERROR);
+	g_return_val_if_fail(SOCK_TLS_INITIALIZED == s->tls.stage,
+		TLS_HANDSHAKE_ERROR);
 
 #ifdef XXX_CUSTOM_PUSH_PULL
 	{
@@ -195,6 +229,7 @@ tls_handshake(struct gnutella_socket *s)
 		int fd = GPOINTER_TO_INT(gnutls_transport_get_ptr(session));
 		if (fd < 0) {
 			fd = s->file_desc;
+			g_assert(fd >= 0);
 			gnutls_transport_set_ptr(session, GINT_TO_POINTER(fd));
 		}
 	}
@@ -208,6 +243,9 @@ tls_handshake(struct gnutella_socket *s)
 			g_message("TLS handshake succeeded");
 		}
 		tls_socket_evt_change(s, INPUT_EVENT_W);
+		if (tls_debug) {
+			tls_print_session_info(session);
+		}
 		return TLS_HANDSHAKE_FINISHED;
 	case GNUTLS_E_AGAIN:
 	case GNUTLS_E_INTERRUPTED:
@@ -216,8 +254,7 @@ tls_handshake(struct gnutella_socket *s)
 		return TLS_HANDSHAKE_RETRY;
 	}
 	if (tls_debug) {
-		g_warning("gnutls_handshake() failed: %s",
-				gnutls_strerror(ret));
+		g_warning("gnutls_handshake() failed: %s", gnutls_strerror(ret));
 	}
 	return TLS_HANDSHAKE_ERROR;
 }
@@ -232,7 +269,8 @@ tls_context_t
 tls_init(gboolean is_incoming)
 {
 	static const int cipher_list[] = {
-		GNUTLS_CIPHER_AES_256_CBC, GNUTLS_CIPHER_AES_128_CBC,
+		GNUTLS_CIPHER_AES_256_CBC,
+		GNUTLS_CIPHER_AES_128_CBC,
 		0
 	};
 	static const int kx_list[] = {
@@ -243,15 +281,24 @@ tls_init(gboolean is_incoming)
 		0
 	};
 	static const int mac_list[] = {
-		GNUTLS_MAC_MD5, GNUTLS_MAC_SHA, GNUTLS_MAC_RMD160,
+		GNUTLS_MAC_MD5,
+		GNUTLS_MAC_SHA,
+		GNUTLS_MAC_RMD160,
 		0
 	};
 	static const int comp_list[] = {
-		GNUTLS_COMP_DEFLATE, GNUTLS_COMP_NULL,
+#if 0
+		/* XXX: This causes internal errors from gnutls_record_recv()
+		 * at least when browsing hosts which send deflated data.
+		 */
+		GNUTLS_COMP_DEFLATE,
+#endif
+		GNUTLS_COMP_NULL,
 		0
 	};
 	static const int cert_list[] = {
-		GNUTLS_CRT_X509, GNUTLS_CRT_OPENPGP,
+		GNUTLS_CRT_X509,
+		GNUTLS_CRT_OPENPGP,
 		0
 	};
 	struct tls_context *ctx;
@@ -333,8 +380,22 @@ tls_init(gboolean is_incoming)
 void
 tls_bye(tls_context_t ctx, gboolean is_incoming)
 {
+	int ret;
+	
 	g_return_if_fail(ctx);
-	gnutls_bye(ctx->session, is_incoming ? GNUTLS_SHUT_WR : GNUTLS_SHUT_RDWR);
+	g_return_if_fail(ctx->session);
+
+	ret = gnutls_bye(ctx->session,
+			is_incoming ? GNUTLS_SHUT_WR : GNUTLS_SHUT_RDWR);
+	if (ret < 0) {
+		switch (ret) {
+		case GNUTLS_E_INTERRUPTED:
+		case GNUTLS_E_AGAIN:
+			break;
+		default:
+			g_warning("gnutls_bye() failed: %s", gnutls_strerror(ret));
+		}
+	}
 }
 
 void
@@ -419,14 +480,12 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 	} else {
 		p = buf;
 		len = size;
-		g_assert(NULL != p && 0 != len);
+		g_assert(NULL != p && len > 0);
 	}
 
 	ret = gnutls_record_send(tls_socket_get_session(s), p, len);
-	if (ret <= 0) {
+	if (ret < 0) {
 		switch (ret) {
-		case 0:
-			break;
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
 			cond = gnutls_record_get_direction(tls_socket_get_session(s))
@@ -442,14 +501,18 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (tls_debug)
-				g_message("socket_tls_write(): errno=\"%s\"",
+			if (tls_debug) {
+				g_message("tls_write(): socket_tls_write() failed: %s",
 					g_strerror(errno));
+			}
 			errno = EIO;
 			ret = -1;
 			break;
 		default:
-			gnutls_perror(ret);
+			if (tls_debug) {
+				g_warning("tls_write(): gnutls_record_send() failed: %s",
+					gnutls_strerror(ret));
+			}
 			errno = EIO;
 			ret = -1;
 		}
@@ -492,13 +555,17 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (tls_debug)
-				g_message("socket_tls_read(): errno=\"%s\"",
+			if (tls_debug) {
+				g_message("tls_read(): socket_tls_read() failed: %s",
 					g_strerror(errno));
+			}
 			errno = EIO;
 			break;
 		default:
-			gnutls_perror(ret);
+			if (tls_debug) {
+				g_warning("tls_read(): gnutls_record_recv() failed: %s",
+					gnutls_strerror(ret));
+			}
 			errno = EIO;
 		}
 		ret = -1;
@@ -545,13 +612,17 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
-				if (tls_debug)
-					g_message("socket_tls_writev(): errno=\"%s\"",
+				if (tls_debug) {
+					g_message("tls_writev() failed: %s",
 						g_strerror(errno));
+				}
 				errno = EIO;
 				break;
 			default:
-				gnutls_perror(ret);
+				if (tls_debug) {
+					g_warning("tls_writev(): gnutls_record_send() failed: %s",
+						gnutls_strerror(ret));
+				}
 				errno = EIO;
 			}
 			ret = -1;
@@ -567,13 +638,10 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 
 		p = iov[i].iov_base;
 		len = iov[i].iov_len;
-		g_assert(NULL != p && 0 != len);
+		g_assert(NULL != p && len > 0);
 		ret = gnutls_record_send(tls_socket_get_session(s), p, len);
-		if (ret <= 0) {
+		if (ret < 0) {
 			switch (ret) {
-			case 0:
-				ret = written;
-				break;
 			case GNUTLS_E_INTERRUPTED:
 			case GNUTLS_E_AGAIN:
 				cond = gnutls_record_get_direction(tls_socket_get_session(s))
@@ -584,28 +652,33 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
 				if (tls_debug)
-					g_message("socket_tls_writev(): errno=\"%s\"",
+					g_message("tls_writev(): errno=\"%s\"",
 						g_strerror(errno));
 				ret = -1;
 				break;
 			default:
-				gnutls_perror(ret);
+				if (tls_debug) {
+					g_warning("gnutls_record_send() failed: %s",
+						gnutls_strerror(ret));
+				}
 				errno = EIO;
 				ret = -1;
 			}
-
 			break;
+		} else if (0 == ret) {
+			ret = written;
+			break;
+		} else {
+			written += ret;
+			ret = written;
 		}
-
-		written += ret;
-		ret = written;
 	}
 
 done:
 	if (s->gdk_tag)
 		tls_socket_evt_change(s, cond);
 
-	g_assert(ret == (ssize_t) -1 || ret >= 0);
+	g_assert((ssize_t) -1 == ret || ret >= 0);
 	return ret;
 }
 
@@ -614,9 +687,9 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
 	inputevt_cond_t cond = INPUT_EVENT_RX;
 	struct gnutella_socket *s = wio->ctx;
-	int i;
 	size_t rcvd = 0;
 	ssize_t ret;
+	int i;
 
 	g_assert(SOCKET_USES_TLS(s));
 	g_assert(iovcnt > 0);
@@ -628,25 +701,24 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 
 		p = iov[i].iov_base;
 		len = iov[i].iov_len;
-		g_assert(NULL != p && 0 != len);
+		g_assert(NULL != p && len > 0);
 		ret = gnutls_record_recv(tls_socket_get_session(s), p, len);
-		if (ret > 0) {
-			rcvd += ret;
+		if (ret <= 0) {
+			break;
 		}
+		rcvd += ret;
 		if ((size_t) ret != len) {
 			break;
 		}
 	}
 
-	if (ret >= 0) {
-		ret = rcvd;
-	} else {
+	if (ret < 0) {
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
 			cond = gnutls_record_get_direction(tls_socket_get_session(s))
 					? INPUT_EVENT_WX : INPUT_EVENT_RX;
-			if (0 != rcvd) {
+			if (rcvd > 0) {
 				ret = rcvd;
 			} else {
 				errno = VAL_EAGAIN;
@@ -655,23 +727,29 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (tls_debug)
-				g_message("socket_tls_readv(): errno=\"%s\"",
+			if (tls_debug) {
+				g_message("tls_readv(): socket_tls_readv() failed: %s",
 					g_strerror(errno));
+			}
 			errno = EIO;
 			ret = -1;
 			break;
 		default:
-			gnutls_perror(ret);
+			if (tls_debug) {
+				g_warning("tls_readv(): gnutls_record_recv() failed: %s",
+					gnutls_strerror(ret));
+			}
 			errno = EIO;
 			ret = -1;
 		}
+	} else {
+		ret = rcvd;
 	}
 
 	if (s->gdk_tag)
 		tls_socket_evt_change(s, cond);
 
-	g_assert(ret == (ssize_t) -1 || ret >= 0);
+	g_assert((ssize_t) -1 == ret || ret >= 0);
 	return ret;
 }
 
