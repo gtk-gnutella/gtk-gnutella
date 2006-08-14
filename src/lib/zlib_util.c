@@ -423,7 +423,7 @@ zlib_inflate_into(gconstpointer data, gint len, gpointer out, gint *outlen)
 	 * Prepare call to inflate().
 	 */
 
-	inz->next_in = deconstify_gchar(data);
+	inz->next_in = deconstify_gpointer(data);
 	inz->avail_in = len;
 
 	inz->next_out = out;
