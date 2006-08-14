@@ -1416,8 +1416,10 @@ search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
     if (gui_debug >= 12)
         printf("got incoming results...\n");
 
+#if 0
 	/* XXX: Use a hash list or remove the assertion? */
     g_assert(!slist_contains_identical(accumulated_rs, rs));
+#endif
 
     slist_append(accumulated_rs, rs);
 }
