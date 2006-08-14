@@ -131,6 +131,8 @@
 
 # Sound Control Media Protection, Ltd.
 # Professional bots: "LimeWire/4.9.11 1.4 GiB 462 files"; purpose unknown
+# The same ranges seem to contain bots which emit buzzword spam for
+# audio files which are not downloadable but also executables.
 64.71.160.0/27
 64.71.162.64/27
 64.71.164.128/27
@@ -139,7 +141,9 @@
 65.19.142.32/27
 65.19.154.160/27
 65.19.176.32/27
+66.160.128.192/27
 66.220.2.224/27
+66.220.3.192/27
 66.220.6.64/27
 66.220.11.64/27
 66.220.12.0/24
