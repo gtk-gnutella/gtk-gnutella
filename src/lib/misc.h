@@ -567,8 +567,17 @@ str_len_capped(const gchar *src, size_t src_size)
 	return p ? (size_t) (p - src) : (size_t) -1;
 }
 
-#define NULL_STRING(s) (NULL != (s) ? (s) : "(null)")
-#define EMPTY_STRING(s) (NULL != (s) ? (s) : "")
+static inline const gchar *
+NULL_STRING(const gchar *s)
+{
+	return NULL != s ? s : "(null)";
+}
+
+static inline const gchar *
+EMPTY_STRING(const gchar *s)
+{
+	return NULL != s ? s : "";
+}
 
 /**
  * Swap endianness of a guint32.
