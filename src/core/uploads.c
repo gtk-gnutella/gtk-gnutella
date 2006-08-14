@@ -3963,7 +3963,6 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 			}
 			u->bsize = (size_t) ret;
 			u->bpos = 0;
-			u->pos += (size_t) ret;
 		}
 
 		available = u->bsize - u->bpos;
