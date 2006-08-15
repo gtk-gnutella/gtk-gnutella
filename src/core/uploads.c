@@ -2915,9 +2915,16 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	buf = header_get(header, "Content-Length");
-	if (buf != NULL && atoi(buf)) {
-		upload_error_remove(u, NULL, 403, "No Content Allowed for %s", method);
-		return;
+	if (buf != NULL) {
+		guint64 v;
+		gint error;
+		
+		v = parse_uint64(buf, NULL, 10, &error);
+		if (error || v > 0) {
+			upload_error_remove(u, NULL, 403, "No Content Allowed for %s",
+				method);
+			return;
+		}
 	}
 
 	search = strchr(uri, '?');
