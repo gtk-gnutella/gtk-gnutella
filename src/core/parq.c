@@ -2836,7 +2836,7 @@ parq_upload_remove(gnutella_upload_t *u)
 
 	parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
 
-	if (parq_ul->has_slot && u->keep_alive && u->status == GTA_UL_WAITING) {
+	if (parq_ul->has_slot && u->keep_alive && UPLOAD_WAITING_FOLLOWUP(u)) {
 		if (parq_debug) g_message(
 			"**** PARQ UL Q %d/%d: Not removed, waiting for new request",
 			g_list_position(ul_parqs,

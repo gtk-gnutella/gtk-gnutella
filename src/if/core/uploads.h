@@ -40,14 +40,15 @@ typedef enum {
 	GTA_UL_COMPLETE         = 2,    /**< The file has been sent completely */
 	GTA_UL_SENDING          = 3,    /**< We are sending data */
 	GTA_UL_HEADERS          = 4,    /**< Receiving the HTTP request headers */
-	GTA_UL_WAITING          = 5,    /**< Waiting new HTTP request */
+	GTA_UL_WAITING          = 5,    /**< Waiting end of follow-up request */
 	GTA_UL_ABORTED          = 6,    /**< Upload removed during operation */
 	GTA_UL_CLOSED           = 7,    /**< Upload removed while waiting */
 	GTA_UL_QUEUED           = 8,    /**< Upload is queued */
 	GTA_UL_QUEUE            = 9,    /**< Send a queue (Similar to push) */
 	GTA_UL_QUEUE_WAITING    = 10,   /**< Connect back with GTA_UL_QUEUE was
 									     success now waiting for a response */
-	GTA_UL_PFSP_WAITING     = 11    /**< Requested range unavailable, retry... */
+	GTA_UL_PFSP_WAITING     = 11,   /**< Requested range unavailable, retry */
+	GTA_UL_EXPECTING        = 12,   /**< Expecting follow-up HTTP request */
 } upload_stage_t;
 
 typedef struct gnet_upload_status {
@@ -95,6 +96,7 @@ typedef struct gnet_upload_info {
 	||	(u)->status == GTA_UL_QUEUE					\
 	||	(u)->status == GTA_UL_QUEUE_WAITING			\
 	||	(u)->status == GTA_UL_PFSP_WAITING			\
+	||	(u)->status == GTA_UL_EXPECTING				\
 	||	(u)->status == GTA_UL_WAITING	)
 
 #define UPLOAD_IS_COMPLETE(u)	\
@@ -103,6 +105,11 @@ typedef struct gnet_upload_info {
 #define UPLOAD_IS_SENDING(u)	\
 	((u)->status == GTA_UL_SENDING)
 
+#define UPLOAD_WAITING_FOLLOWUP(u) \
+	((u)->status == GTA_UL_WAITING || (u)->status == GTA_UL_EXPECTING)
+
+#define UPLOAD_READING_HEADERS(u) \
+	((u)->status == GTA_UL_HEADERS || (u)->status == GTA_UL_WAITING)
 
 struct ul_stats {
 	gchar  *filename;	/**< Atom */

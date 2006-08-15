@@ -77,6 +77,7 @@ uploads_gui_progress(const gnet_upload_status_t *u,
 
 	switch (u->status) {
     case GTA_UL_HEADERS:
+    case GTA_UL_EXPECTING:
     case GTA_UL_WAITING:
     case GTA_UL_PFSP_WAITING:
     case GTA_UL_ABORTED:
@@ -159,8 +160,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
     case GTA_UL_HEADERS:
         return _("Waiting for headers...");
 
-    case GTA_UL_WAITING:
+    case GTA_UL_EXPECTING:
         return _("Waiting for further request...");
+
+    case GTA_UL_WAITING:
+        return _("Reading follow-up request...");
 
     case GTA_UL_PFSP_WAITING:
         return _("Unavailable range, waiting retry...");
@@ -253,6 +257,7 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 	case GTA_UL_SENDING:
 	case GTA_UL_HEADERS:
 	case GTA_UL_WAITING:
+	case GTA_UL_EXPECTING:
 	case GTA_UL_QUEUED:
 	case GTA_UL_QUEUE:
 	case GTA_UL_QUEUE_WAITING:

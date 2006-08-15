@@ -422,8 +422,10 @@ upload_timer(time_t now)
 		if (UPLOAD_IS_CONNECTING(u)) {
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
 				upload_remove(u, _("Connect back timeout"));
-			else
+			else if (UPLOAD_READING_HEADERS(u))
 				upload_error_remove(u, NULL, 408, "Request timeout");
+			else
+				upload_remove(u, _("Timeout waiting for follow-up"));
 		} else if (UPLOAD_IS_SENDING(u))
 			upload_remove(u, "Data timeout after %s byte%s",
 				uint64_to_string(u->sent), u->sent == 1 ? "" : "s");
@@ -1142,7 +1144,7 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 		upload_stats_file_aborted(u);
 
     if (!UPLOAD_IS_COMPLETE(u)) {
-        if (u->status == GTA_UL_WAITING)
+        if (UPLOAD_WAITING_FOLLOWUP(u))
             u->status = GTA_UL_CLOSED;
         else
             u->status = GTA_UL_ABORTED;
@@ -1523,6 +1525,18 @@ upload_add(struct gnutella_socket *s)
 }
 
 /**
+ * Callback invoked when we start reading the follow-up HTTP request.
+ */
+static void
+move_to_ul_waiting(gpointer o)
+{
+	gnutella_upload_t *u = o;
+
+	u->status = GTA_UL_WAITING;
+	upload_fire_upload_info_changed(u);
+}
+
+/**
  * Prepare reception of a full HTTP header, including the leading request.
  * Will call upload_request() when everything has been parsed.
  */
@@ -1530,6 +1544,7 @@ void
 expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 {
 	struct gnutella_socket *s = u->socket;
+	io_start_cb_t start_cb = NULL;
 
 	g_assert(s->resource.upload == u);
 	g_assert(NULL == u->file);		/* File not opened */
@@ -1556,6 +1571,17 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 	upload_fire_upload_info_changed(u);
 
 	/*
+	 * If we're expecting a new HTTP header after a successfully completed
+	 * one, in other words if we're going to deal with a follow-up request,
+	 * then we must take care to wait for the start of the next request
+	 * before we send them a 408 back, should we timeout reading the whole
+	 * request.
+	 */
+
+	if (new_status == GTA_UL_EXPECTING)
+		start_cb = move_to_ul_waiting;
+
+	/*
 	 * We're requesting the reading of a "status line", which will be the
 	 * HTTP request.  It will be stored in a created s->getline entry.
 	 * Once we're done, we'll end-up in upload_request(): the path joins
@@ -1563,7 +1589,7 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 	 */
 
 	io_get_header(u, &u->io_opaque, bws.in, s, IO_SAVE_FIRST,
-		call_upload_request, NULL, &upload_io_error);
+		call_upload_request, start_cb, &upload_io_error);
 }
 
 /**
@@ -1581,7 +1607,7 @@ upload_wait_new_request(gnutella_upload_t *u)
 
 	file_object_release(&u->file);
  	socket_tos_normal(u->socket);
-	expect_http_header(u, GTA_UL_WAITING);
+	expect_http_header(u, GTA_UL_EXPECTING);
 }
 
 /**
