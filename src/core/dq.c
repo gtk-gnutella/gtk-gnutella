@@ -947,7 +947,8 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	timeout = MAX(timeout, DQ_STATUS_TIMEOUT);
 
 	if (dq_debug > 19)
-		printf("DQ[%d] status reply timeout set to %d s\n", dq->qid, timeout);
+		printf("DQ[%d] status reply timeout set to %d s\n", dq->qid,
+			timeout / 1000);
 
 	dq->results_ev = cq_insert(callout_queue, timeout,
 		dq_results_expired, dq);
