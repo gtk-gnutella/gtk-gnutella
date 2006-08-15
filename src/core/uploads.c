@@ -2907,6 +2907,19 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
+	/*
+	 * Make sure there is no content sent along the request.
+	 * We could sink it, but no Gnutella servent should ever need to
+	 * send content along with GET/HEAD.
+	 *		--RAM, 2006-08-15
+	 */
+
+	buf = header_get(header, "Content-Length");
+	if (buf != NULL && atoi(buf)) {
+		upload_error_remove(u, NULL, 403, "No Content Allowed for %s", method);
+		return;
+	}
+
 	search = strchr(uri, '?');
 	if (search) {
 		*search++ = '\0';
