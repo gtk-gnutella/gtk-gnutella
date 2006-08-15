@@ -955,8 +955,7 @@ handle_qstat_answer(struct gnutella_node *n,
 	 */
 
 	kept = peek_le16(payload);
-	if (kept)
-		dq_got_query_status(n->header.muid, NODE_ID(n), kept);
+	dq_got_query_status(n->header.muid, NODE_ID(n), kept);
 }
 
 /**
