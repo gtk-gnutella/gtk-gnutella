@@ -1205,7 +1205,12 @@ socket_free(struct gnutella_socket *s)
 #ifdef HAS_GNUTLS
 	if (s->tls.ctx) {
 		if (s->file_desc != -1 && SOCK_TLS_ESTABLISHED == s->tls.stage) {
-			tls_bye(s->tls.ctx, SOCK_CONN_INCOMING == s->direction);
+			gboolean is_incoming = SOCK_CONN_INCOMING == s->direction;
+
+			if (!is_incoming) {
+				tls_cache_insert(s->addr, s->port);
+			}
+			tls_bye(s->tls.ctx, is_incoming);
 		}
 		tls_free(&s->tls.ctx);
 	}
