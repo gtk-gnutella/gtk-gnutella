@@ -411,11 +411,15 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 
 /**
  * Check whether MUID is for an OOB-proxied query.
+ * @return NULL if the MUID is unknown, otherwise the original leaf MUID.
  */
-gboolean
+const gchar *
 oob_proxy_muid_proxied(gchar *muid)
 {
-	return g_hash_table_lookup(proxied_queries, muid) ? TRUE : FALSE;
+	const struct oob_proxy_rec *opr;
+	
+	opr = g_hash_table_lookup(proxied_queries, muid);
+	return opr ? opr->leaf_muid : NULL;
 }
 
 /**

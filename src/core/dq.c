@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "vmsg.h"
 #include "search.h"
 #include "alive.h"
+#include "oob_proxy.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -935,7 +936,13 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	dq->flags |= DQ_F_WAITING;
 	head = (struct gnutella_header *) pmsg_start(dq->mb);
 
-	vmsg_send_qstat_req(n, head->muid);
+	/* Use the original MUID sent by the leaf, it doesn't know the other one.*/
+	{
+		const gchar *muid;
+		
+		muid = oob_proxy_muid_proxied(head->muid);
+		vmsg_send_qstat_req(n, muid ? muid : head->muid);
+	}
 
 	/*
 	 * Compute the timout using the available ping-pong round-trip

@@ -909,6 +909,7 @@ handle_qstat_req(struct gnutella_node *n,
 		 * side goofed, or they closed the search.
 		 */
 
+		g_warning("Could not find matching search");
 		kept = 0xffffU;		/* Magic value telling them to stop the search */
 	} else {
 		kept = MIN(kept, 0xfffeU);
@@ -922,7 +923,7 @@ handle_qstat_req(struct gnutella_node *n,
  * `muid' as the message ID (which is the query ID).
  */
 void
-vmsg_send_qstat_req(struct gnutella_node *n, gchar *muid)
+vmsg_send_qstat_req(struct gnutella_node *n, const gchar *muid)
 {
 	struct gnutella_msg_vendor *m = cast_to_gpointer(v_tmp);
 	guint32 msgsize;

@@ -55,7 +55,7 @@ void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops);
 void vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port);
 void vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port);
 void vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid);
-void vmsg_send_qstat_req(struct gnutella_node *n, gchar *muid);
+void vmsg_send_qstat_req(struct gnutella_node *n, const gchar *muid);
 void vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits);
 void vmsg_send_proxy_cancel(struct gnutella_node *n);
 void vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want);

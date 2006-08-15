@@ -1715,7 +1715,7 @@ route_query_hit(struct route_log *log,
 	 * the initial query, regardless of the hops/TTL value of the hit.
 	 */
 
-	is_oob_proxied = oob_proxy_muid_proxied(sender->header.muid);
+	is_oob_proxied = NULL != oob_proxy_muid_proxied(sender->header.muid);
 
 	if (!is_oob_proxied && !check_hops_ttl(log, sender))
 		goto handle;				/* We will handle the hit nonetheless */
