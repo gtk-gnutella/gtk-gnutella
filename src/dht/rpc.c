@@ -100,7 +100,7 @@ dht_rpc_init(void)
 static void
 rpc_cb_free(struct rpc_cb *rcb)
 {
-	atom_guid_free(rcb->guid);
+	atom_guid_free((gchar *) rcb->guid);
 	kuid_atom_free(rcb->kuid);
 
 	if (rcb->timeout != NULL) {
