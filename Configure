@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Aug  4 21:06:00 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Tue Aug 15 18:15:35 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -327,6 +327,10 @@ d_msghdr_msg_flags=''
 d_nls=''
 d_open3=''
 d_portable=''
+d_pread=''
+d_preadv=''
+d_pwrite=''
+d_pwritev=''
 d_random=''
 d_rusage=''
 d_sa_interrupt=''
@@ -5557,6 +5561,22 @@ set d_open3
 eval $setvar
 $rm -f open3*
 
+: see if pread exists
+set pread d_pread
+eval $inlibc
+
+: see if preadv exists
+set preadv d_preadv
+eval $inlibc
+
+: see if pwrite exists
+set pwrite d_pwrite
+eval $inlibc
+
+: see if pwritev exists
+set pwritev d_pwritev
+eval $inlibc
+
 : see if random exists
 set random d_random
 eval $inlibc
@@ -7769,12 +7789,16 @@ d_open3='$d_open3'
 d_os2='$d_os2'
 d_phostname='$d_phostname'
 d_portable='$d_portable'
+d_pread='$d_pread'
+d_preadv='$d_preadv'
 d_pwage='$d_pwage'
 d_pwchange='$d_pwchange'
 d_pwclass='$d_pwclass'
 d_pwcomment='$d_pwcomment'
 d_pwexpire='$d_pwexpire'
 d_pwquota='$d_pwquota'
+d_pwrite='$d_pwrite'
+d_pwritev='$d_pwritev'
 d_random='$d_random'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'

@@ -145,6 +145,32 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_memcpy HAS_MEMCPY	/**/
 
+/* HAS_PREAD:
+ *	This symbol, if defined, indicates that the pread routine is
+ *	available to perform reads on a file descriptor at a given offset.
+ */
+#$d_pread HAS_PREAD		/**/
+
+/* HAS_PREADV:
+ *	This symbol, if defined, indicates that the preadv routine is
+ *	available to perform vectored reads on a file descriptor at a
+ * given offset.
+ */
+#$d_preadv HAS_PREADV		/**/
+
+/* HAS_PWRITE:
+ *	This symbol, if defined, indicates that the pwrite routine is
+ *	available to perform writes on a file descriptor at a given offset.
+ */
+#$d_pwrite HAS_PWRITE		/**/
+
+/* HAS_PWRITEV:
+ *	This symbol, if defined, indicates that the pwritev routine is
+ *	available to perform vectored writes on a file descriptor at a
+ * given offset.
+ */
+#$d_pwritev HAS_PWRITEV		/**/
+
 /* HAS_GETRUSAGE:
  *	This symbol, if defined, indicates that the getrusage() routine is
  *	available to get process statistics with a sub-second accuracy.
