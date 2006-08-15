@@ -537,7 +537,7 @@ slist_contains_identical(const slist_t *slist, gconstpointer key)
 {
 	slist_check(slist);
 
-	return NULL != g_slist_find(slist->head, key);
+	return NULL != g_slist_find(slist->head, deconstify_gpointer(key));
 }
 
 /**
