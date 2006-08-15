@@ -42,6 +42,8 @@ struct cqueue;
 
 typedef void (*cq_service_t)(struct cqueue *cq, gpointer obj);
 
+typedef guint64 cq_time_t;		/**< Virtual time for callout queue */
+
 /**
  * Callout queue event.
  */
@@ -50,7 +52,7 @@ typedef struct cevent {
 	struct cevent *ce_bprev;	/**< Prev item in hash bucket */
 	cq_service_t ce_fn;			/**< Callback routine */
 	gpointer ce_arg;			/**< Argument to pass to said callback */
-	time_t ce_time;				/**< Absolute trigger time */
+	cq_time_t ce_time;			/**< Absolute trigger time (virtual cq time) */
 	guint ce_magic;				/**< Magic number */
 } cevent_t;
 
@@ -86,7 +88,7 @@ struct chash {
 
 typedef struct cqueue {
 	struct chash *cq_hash;		/**< Array of buckets for hash list */
-	time_t cq_time;				/**< "current time" */
+	cq_time_t cq_time;			/**< "current time" */
 	gint cq_ticks;				/**< Number of cq_clock() calls processed */
 	gint cq_items;				/**< Amount of recorded events */
 	gint cq_last_bucket;		/**< Last bucket slot we were at */
@@ -106,7 +108,7 @@ gdouble callout_queue_coverage(gint old_ticks);
 void cq_init(void);
 void cq_close(void);
 
-cqueue_t *cq_make(time_t now);
+cqueue_t *cq_make(cq_time_t now);
 void cq_free(cqueue_t *cq);
 gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg);
 void cq_expire(cqueue_t *cq, cevent_t *ev);

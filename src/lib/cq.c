@@ -65,7 +65,7 @@ cqueue_t *callout_queue;
  * initialize the "current time". Use zero if you don't care...
  */
 cqueue_t *
-cq_make(time_t now)
+cq_make(cq_time_t now)
 {
 	cqueue_t *cq;
 
@@ -116,7 +116,7 @@ static void
 ev_link(cqueue_t *cq, cevent_t *ev)
 {
 	struct chash *ch;		/* Hashing bucket */
-	time_t trigger;			/* Trigger time */
+	cq_time_t trigger;		/* Trigger time */
 	cevent_t *hev;			/* To loop through the hash bucket */
 
 	g_assert(valid_ptr(cq));
@@ -369,19 +369,19 @@ cq_expire(cqueue_t *cq, cevent_t *ev)
 void
 cq_clock(cqueue_t *cq, gint elapsed)
 {
-	time_t now;
 	gint bucket;
 	gint last_bucket;
 	struct chash *ch;
 	cevent_t *ev;
+	cq_time_t now;
 
 	g_assert(valid_ptr(cq));
 	g_assert(elapsed >= 0);
 	g_assert(cq->cq_current == NULL);
 
 	cq->cq_ticks++;
-	now = time_advance(cq->cq_time, elapsed);
-	cq->cq_time = now;
+	cq->cq_time += elapsed;
+	now = cq->cq_time;
 
 	bucket = cq->cq_last_bucket;		/* Bucket we traversed last time */
 	ch = &cq->cq_hash[bucket];
