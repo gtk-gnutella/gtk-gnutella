@@ -131,10 +131,10 @@ dht_route_init(void)
 		gnet_prop_set_storage(PROP_SERVENT_KUID, buf.v, sizeof buf.v);
 	}
 
+	our_kuid = kuid_get_atom(&buf);
+
 	if (dht_debug)
 		g_message("DHT local node ID is %s", kuid_to_string(our_kuid));
-
-	our_kuid = kuid_get_atom(&buf);
 
 	/*
 	 * Allocate root node for the routing table.
