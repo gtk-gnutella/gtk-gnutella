@@ -58,16 +58,16 @@ RCSID("$Id$")
  * by the header parsing I/O callbacks.
  */
 struct io_header {
-	gpointer resource;					/**< Resource for which we're parsing */
-	gpointer *io_opaque;				/**< Where we're referenced in resource */
-	struct gnutella_socket *socket;		/**< Socket on which we're reading */
-	bsched_t *bs;						/**< Bandwidth scheduler to use */
+	gpointer resource;				/**< Resource for which we're parsing */
+	gpointer *io_opaque;			/**< Where we're referenced in resource */
+	struct gnutella_socket *socket;	/**< Socket on which we're reading */
+	bsched_t *bs;					/**< Bandwidth scheduler to use */
 	header_t *header;
 	getline_t *getline;
-	const struct io_error *error;		/**< Error callbacks */
-	io_done_cb_t process_header;		/**< Called when all headers are read */
+	const struct io_error *error;	/**< Error callbacks */
+	io_done_cb_t process_header;	/**< Called when all headers are read */
 	io_start_cb_t header_read_start;	/**< Called when reading first byte */
-	GString *text;						/**< Full header text */
+	GString *text;					/**< Full header text */
 	gint flags;
 };
 
