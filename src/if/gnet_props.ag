@@ -2850,6 +2850,16 @@ prop = {
 };
 
 prop = {
+	name = "qrp_memory";
+	desc = "Memory used by the QRP tables";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
 	name = "qrp_timestamp";
 	desc = "Time at which we started query routing table generation.";
 	type = timestamp;

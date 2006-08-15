@@ -288,6 +288,7 @@ extern const time_t  library_rescan_finished;
 extern const guint32  library_rescan_duration;
 extern const time_t  qrp_indexing_started;
 extern const guint32  qrp_indexing_duration;
+extern const guint32  qrp_memory;
 extern const time_t  qrp_timestamp;
 extern const guint32  qrp_computation_time;
 extern const time_t  qrp_patch_timestamp;

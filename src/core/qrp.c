@@ -736,9 +736,10 @@ qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
 	rt->digest = NULL;
 	rt->reset = FALSE;
 
-	gnet_prop_set_guint32_val(PROP_QRP_GENERATION, (guint32) rt->generation);
-
 	qrt_compact(rt);
+
+	gnet_prop_set_guint32_val(PROP_QRP_GENERATION, (guint32) rt->generation);
+	gnet_prop_set_guint32_val(PROP_QRP_MEMORY, qrp_memory + slots / 8);
 
 	if (qrp_debug > 2)
 		rt->digest = atom_sha1_get(qrt_sha1(rt));
@@ -779,6 +780,9 @@ qrt_free(struct routing_table *rt)
 		atom_sha1_free(rt->digest);
 	G_FREE_NULL(rt->arena);
 	G_FREE_NULL(rt->name);
+
+	gnet_prop_set_guint32_val(PROP_QRP_MEMORY, qrp_memory -
+		(rt->compacted ? rt->slots / 8 : rt->slots));
 
 	wfree(rt, sizeof *rt);
 }
@@ -4201,9 +4205,8 @@ qrt_build_query_target(
 	 */
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		struct routing_table *rt =
-			(struct routing_table *) dn->recv_query_table;
+		struct gnutella_node *dn = sl->data;
+		struct routing_table *rt = dn->recv_query_table;
 		gboolean is_leaf;
 
 		if (!NODE_IS_WRITABLE(dn))
