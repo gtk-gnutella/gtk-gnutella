@@ -243,7 +243,7 @@ ev_unlink(cqueue_t *cq, cevent_t *ev)
  * where we triggered, and arg is an additional argument.
  *
  * @param cq A callout queue.
- * @param delay The delay in seconds.
+ * @param delay The delay in milliseconds.
  * @param fn The callback function.
  * @param arg The argument to be passed to the callback function.
  * @returns the handle, or NULL on error.
