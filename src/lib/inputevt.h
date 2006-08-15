@@ -86,12 +86,7 @@ guint inputevt_data_available(void);
 #define inputevt_data_available() 0U
 #endif /* !HAS_KQUEUE */
 
-#if defined(HAS_EPOLL) || defined(HAS_KQUEUE)
 void inputevt_remove(guint id);
-#else /* !(HAS_EPOLL || HAS_KQUEUE) */
-#define inputevt_remove(source) (g_source_remove(source))
-#define inputevt_timer()
-#endif /* HAS_EPOLL || HAS_KQUEUE */
 
 #endif  /* _inputevt_h_ */
 
