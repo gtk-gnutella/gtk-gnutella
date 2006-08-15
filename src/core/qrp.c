@@ -3443,6 +3443,8 @@ qrt_handle_reset(
 	slots = rt->slots / 8;			/* 8 bits per byte, table is compacted */
 	rt->arena = g_malloc0(slots);
 
+	gnet_prop_set_guint32_val(PROP_QRP_MEMORY, qrp_memory + slots);
+
 	/*
 	 * We're now ready to handle PATCH messages.
 	 */
