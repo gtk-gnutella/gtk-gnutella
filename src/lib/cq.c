@@ -238,10 +238,14 @@ ev_unlink(cqueue_t *cq, cevent_t *ev)
  * Insert a new event in the callout queue and return an opaque handle that
  * can be used to cancel the event.
  *
- * The event is specified to occur in some "delay" amount of time, at which
+ * The event is specified to occur in some "delay" amount of seconds, at which
  * time we shall call fn(cq, arg), where cq is the callout queue from
  * where we triggered, and arg is an additional argument.
  *
+ * @param cq A callout queue.
+ * @param delay The delay in seconds.
+ * @param fn The callback function.
+ * @param arg The argument to be passed to the callback function.
  * @returns the handle, or NULL on error.
  */
 gpointer
