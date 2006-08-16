@@ -535,8 +535,22 @@ add_file(const struct shared_file *sf)
 	 */
 
 	if (sha1_available) {
+		gint i, j;
+
 		needed += 9 + SHA1_BASE32_SIZE;
 		hcnt = dmesh_fill_alternate(sf->sha1_digest, hvec, QHIT_MAX_ALT);
+
+		/* Scrap all non-IPv4 alt-locs. Unfortunately there is no
+		 * GGEP item to hold IPv6 addresses as of yet.
+		 */
+		for (i = 0, j = 0; i < hcnt; i++) {
+			if (NET_TYPE_IPV4 == host_addr_net(hvec[i].addr) && j != i) {
+				hvec[j] = hvec[i];
+				j++;
+			}
+		}
+		hcnt = j;
+
 		needed += hcnt * 6 + 6;
 	}
 
@@ -648,7 +662,6 @@ add_file(const struct shared_file *sf)
 	 */
 
 	if (hcnt > 0) {
-		gchar alt[6];
 		gint i;
 
 		g_assert(hcnt <= QHIT_MAX_ALT);
@@ -658,9 +671,15 @@ add_file(const struct shared_file *sf)
 		for (i = 0; ok && i < hcnt; i++) {
 			g_assert(start == gs.outbuf);
 			if (NET_TYPE_IPV4 == host_addr_net(hvec[i].addr)) {
-				WRITE_GUINT32_BE(host_addr_ipv4(hvec[i].addr), &alt[0]);
-				WRITE_GUINT16_LE(hvec[i].port, &alt[4]);
-				ok = ggep_stream_write(&gs, alt, sizeof alt);
+				struct {
+					gchar ipv4[4];
+					gchar port[2];
+				} alt;
+			
+				STATIC_ASSERT(sizeof alt == 6);
+				poke_be32(alt.ipv4, host_addr_ipv4(hvec[i].addr));
+				poke_le16(alt.port, hvec[i].port);
+				ok = ggep_stream_write(&gs, &alt, sizeof alt);
 			}
 		}
 
