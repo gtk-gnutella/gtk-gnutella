@@ -259,6 +259,35 @@ oob_proxy_pending_results(
 	}
 
 	/*
+	 * Before letting the dynamic query know about those OOB results, see
+	 * whether we're going to claim then.  There's no need to account for
+	 * a flood of results we will not propagate.
+	 *
+	 * This may cause the dynamic query to continue sending the query to
+	 * other UPs, but if we account for the results and they are not sent
+	 * back to the leaf, it will have a poor search experience, so there is
+	 * a balance to keep between the amount of query flooding we do and the
+	 * amount of results people will get.
+	 *		--RAM, 2006-08-16
+	 */
+
+	if (NODE_IN_TX_FLOW_CONTROL(leaf)) {
+		msg = "leaf in TX flow-control";
+		goto ignore;
+	}
+
+	/*
+	 * If we would not route the hits should we get them, there's no
+	 * need to claim them at all.
+	 */
+
+	if (!dh_would_route(opr->leaf_muid, leaf)) {
+		msg = "would not route hits to leaf";
+		goto ignore;
+	}
+
+
+	/*
 	 * Let the dynamic query know about pending hits, to help it
 	 * measure its popularity.  This also enables us to see whether
 	 * the query was cancelled by the user.
@@ -286,22 +315,6 @@ oob_proxy_pending_results(
 
 	if (!wanted) {
 		msg = "nothing wanted";
-		goto ignore;
-	}
-
-	if (NODE_IN_TX_FLOW_CONTROL(leaf)) {
-		msg = "leaf in TX flow-control";
-		goto ignore;
-	}
-
-
-	/*
-	 * If we would not route the hits should we get them, there's no
-	 * need to claim them at all.
-	 */
-
-	if (!dh_would_route(opr->leaf_muid, leaf)) {
-		msg = "would not route hits to leaf";
 		goto ignore;
 	}
 
