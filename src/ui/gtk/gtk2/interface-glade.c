@@ -15163,6 +15163,7 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *hbox9295;
   GtkWidget *label922;
   GtkWidget *entry_dbg_property_pattern;
+  GtkWidget *button_dbg_property_refresh;
   GtkWidget *scrolledwindow78;
   GtkWidget *treeview_dbg_property;
   GtkWidget *hbox9301;
@@ -15233,6 +15234,12 @@ create_dlg_prefs_dbg_tab (void)
   gtk_widget_set_name (entry_dbg_property_pattern, "entry_dbg_property_pattern");
   gtk_widget_show (entry_dbg_property_pattern);
   gtk_box_pack_start (GTK_BOX (hbox9295), entry_dbg_property_pattern, TRUE, TRUE, 0);
+
+  button_dbg_property_refresh = gtk_button_new_from_stock ("gtk-refresh");
+  gtk_widget_set_name (button_dbg_property_refresh, "button_dbg_property_refresh");
+  gtk_widget_show (button_dbg_property_refresh);
+  gtk_box_pack_start (GTK_BOX (hbox9295), button_dbg_property_refresh, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (button_dbg_property_refresh), 2);
 
   scrolledwindow78 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow78, "scrolledwindow78");
@@ -15368,6 +15375,9 @@ create_dlg_prefs_dbg_tab (void)
   g_signal_connect ((gpointer) entry_dbg_property_pattern, "activate",
                     G_CALLBACK (on_entry_dbg_property_pattern_activate),
                     NULL);
+  g_signal_connect ((gpointer) button_dbg_property_refresh, "clicked",
+                    G_CALLBACK (on_button_dbg_property_refresh_clicked),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_dbg_tab, dlg_prefs_dbg_tab, "dlg_prefs_dbg_tab");
@@ -15379,6 +15389,7 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, hbox9295, "hbox9295");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label922, "label922");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_dbg_property_pattern, "entry_dbg_property_pattern");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, button_dbg_property_refresh, "button_dbg_property_refresh");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, scrolledwindow78, "scrolledwindow78");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, treeview_dbg_property, "treeview_dbg_property");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, hbox9301, "hbox9301");

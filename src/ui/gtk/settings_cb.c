@@ -410,6 +410,40 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 		(-1));
 }
 
+static gboolean
+refresh_property(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer unused_data)
+{
+	property_t prop;
+	guint u;
+
+	(void) unused_data;
+	(void) unused_path;
+
+	u = 0;
+	gtk_tree_model_get(model, iter, dbg_col_property, &u, (-1));
+	prop = (property_t) u;
+	gtk_list_store_set(GTK_LIST_STORE(model), iter,
+		dbg_col_value, gnet_prop_to_string(prop),
+		(-1));
+	return FALSE;
+}
+
+void
+on_button_dbg_property_refresh_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
+{
+	GtkTreeModel *model;
+	GtkTreeView *tv;
+
+	(void) unused_button;
+	(void) unused_udata;
+
+	tv = GTK_TREE_VIEW(lookup_widget(dlg_prefs, "treeview_dbg_property"));
+	model = gtk_tree_view_get_model(tv);
+	gtk_tree_model_foreach(GTK_TREE_MODEL(model), refresh_property, NULL);
+}
+
 static void
 dbg_property_update_selection(void)
 {

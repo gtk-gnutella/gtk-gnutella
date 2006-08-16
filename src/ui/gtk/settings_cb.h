@@ -81,6 +81,8 @@ void on_menu_bws_glout_visible_activate(GtkMenuItem * menuitem, gpointer user_da
 void on_menu_autohide_bws_gleaf_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_button_dbg_property_refresh_clicked(GtkButton *unused_button,
+	gpointer unused_udata);
 
 #ifdef USE_GTK2
 void
