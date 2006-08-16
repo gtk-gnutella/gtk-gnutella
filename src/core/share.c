@@ -1898,25 +1898,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					"(leaf node is TCP-firewalled)",
 					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
 		}
-
-		/*
-		 * If the leaf node is not guiding the query, yet requests out-of-band
-		 * replies, clear that flag so that we can monitor how much hits
-		 * are delivered.
-		 */
-
-		if (
-			oob && NODE_IS_LEAF(n) &&
-			!(NODE_GUIDES_QUERY(n) || (req_speed & QUERY_SPEED_LEAF_GUIDED))
-		) {
-			query_strip_oob_flag(n, n->data);
-			oob = FALSE;
-
-			if (query_debug)
-				g_message("QUERY %s node %s <%s>: removed OOB flag "
-					"(no leaf guidance)",
-					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
-		}
 	}
 
 	/*
