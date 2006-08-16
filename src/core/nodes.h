@@ -550,6 +550,7 @@ void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
 void node_set_online_mode(gboolean on);
 void node_current_peermode_changed(node_peer_t mode);
 const gchar *node_addr(const gnutella_node_t *n);
+const gchar *node_addr2(const gnutella_node_t *n);
 const gchar *node_gnet_addr(const gnutella_node_t *n);
 
 void node_connect_back(const gnutella_node_t *n, guint16 port);

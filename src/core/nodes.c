@@ -6575,6 +6575,12 @@ node_udp_process(struct gnutella_socket *s)
 		/* FALL THROUGH */
 	}
 
+	if (oob_proxy_debug > 1) {
+		if (GTA_MSG_SEARCH_RESULTS == n->header.function)
+			printf("QUERY OOB results for %s from %s\n",
+				guid_hex_str(n->header.muid), node_addr(n));
+	}
+
 	node_parse(n);
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
@@ -8163,7 +8169,21 @@ node_addr(const gnutella_node_t *n)
 }
 
 /**
- * @return the advertised Gnutella ip:port of a node
+ * @return the address:port of a node
+ */
+const gchar *
+node_addr2(const gnutella_node_t *n)
+{
+	static gchar buf[128];
+
+	g_assert(n);
+	host_addr_port_to_string_buf(n->addr, n->port, buf, sizeof buf);
+	return buf;
+}
+
+/**
+ * @return the advertised Gnutella ip:port of a node if known, otherwise
+ * just the IP address..
  */
 const gchar *
 node_gnet_addr(const gnutella_node_t *n)
@@ -8171,7 +8191,13 @@ node_gnet_addr(const gnutella_node_t *n)
 	static gchar buf[128];
 
 	g_assert(n);
-	host_addr_to_string_buf(n->addr, buf, sizeof buf);
+
+	if (is_host_addr(n->gnet_addr))
+		host_addr_port_to_string_buf(n->gnet_addr, n->gnet_port,
+			buf, sizeof buf);
+	else
+		host_addr_to_string_buf(n->addr, buf, sizeof buf);
+
 	return buf;
 }
 
