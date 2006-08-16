@@ -1853,9 +1853,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * check that.
 		 */
 
-		if (	n->header.hops == 1 &&
-				is_host_addr(n->gnet_addr) &&
-				!host_addr_equal(addr, n->gnet_addr)
+		if (
+			n->header.hops == 1 &&
+			is_host_addr(n->gnet_addr) &&
+			!host_addr_equal(addr, n->gnet_addr)
 		) {
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
