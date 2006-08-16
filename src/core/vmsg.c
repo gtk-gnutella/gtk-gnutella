@@ -118,6 +118,10 @@ static void handle_time_sync_reply(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_udp_crawler_ping(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_node_info_req(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_node_info_ans(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size);
 
 #if 0
 static void handle_udp_head_ping(struct gnutella_node *n,
@@ -143,6 +147,8 @@ static const struct vmsg vmsg_map[] = {
 	{ T_GTKG, 0x0009, 0x0001, handle_time_sync_req, "Time Sync Request" },
 	{ T_GTKG, 0x000a, 0x0001, handle_time_sync_reply, "Time Sync Reply" },
 	{ T_GTKG, 0x0015, 0x0001, handle_proxy_cancel, "Push-Proxy Cancel" },
+	{ T_GTKG, 0x0016, 0x0001, handle_node_info_req, "Node Info Request" },
+	{ T_GTKG, 0x0017, 0x0001, handle_node_info_ans, "Node Info Reply" },
 	{ T_LIME, 0x0005, 0x0001, handle_udp_crawler_ping, "UDP Crawler Ping" },
 	{ T_LIME, 0x000b, 0x0002, handle_oob_reply_ack, "OOB Reply Ack" },
 	{ T_LIME, 0x000c, 0x0001, handle_oob_reply_ind, "OOB Reply Indication" },
@@ -151,6 +157,7 @@ static const struct vmsg vmsg_map[] = {
 	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push-Proxy Request" },
 	{ T_LIME, 0x0016, 0x0001, handle_proxy_ack, "Push-Proxy Acknowledgment" },
 	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push-Proxy Acknowledgment" },
+
 #if 0
 	{ T_LIME, 0x0017, 0x0001, handle_udp_head_ping, "UDP Head Ping" },
 	{ T_LIME, 0x0018, 0x0001, handle_udp_head_pong, "UDP Head Pong" },
@@ -255,6 +262,18 @@ vmsg_infostr(gconstpointer data, gint size)
 			vendor_code_str(ntohl(vc.be32)), id, version, vm->name);
 
 	return msg;
+}
+
+/**
+ * Send reply to node, via the appropriate channel.
+ */
+static void
+vmsg_send_reply(struct gnutella_node *n, pmsg_t *mb)
+{
+	if (NODE_IS_UDP(n))
+		mq_udp_node_putq(n->outq, mb, n);
+	else
+		mq_putq(n->outq, mb);
 }
 
 /**
@@ -440,19 +459,6 @@ handle_messages_supported(struct gnutella_node *n,
 		if (vmsg_debug > 2)
 			g_message("VMSG ...%s/%dv%d",
 				vendor_code_str(ntohl(vendor.be32)), id, version);
-
-		/*
-		 * Look for leaf-guided dynamic query support.
-		 *
-		 * Remote can advertise only one of the two messages needed, we
-		 * can infer support for the other!.
-		 */
-
-		if (
-			vm->handler == handle_qstat_req ||
-			vm->handler == handle_qstat_answer
-		)
-			n->attrs |= NODE_A_LEAF_GUIDE;
 
 		/*
 		 * Time synchronization support.
@@ -980,7 +986,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 
 	poke_le16(payload, hits);
 
-	if (vmsg_debug > 1)
+	if (vmsg_debug > 2)
 		g_message("VMSG sending %s with hits=%u to %s <%s>",
 			gmsg_infostr_full(m), hits, node_addr(n), node_vendor(n));
 
@@ -1347,10 +1353,7 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 	muid = poke_be32(muid, sent->tv_sec);
 	muid = poke_be32(muid, sent->tv_usec);
 
-	if (NODE_IS_UDP(n))
-		mq_udp_node_putq(n->outq, mb, n);
-	else
-		mq_putq(n->outq, mb);
+	vmsg_send_reply(n, mb);
 }
 
 /**
@@ -1426,10 +1429,7 @@ vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *got)
 
 	pmsg_set_check(mb, vmsg_time_sync_reply_stamp);
 
-	if (NODE_IS_UDP(n))
-		mq_udp_node_putq(n->outq, mb, n);
-	else
-		mq_putq(n->outq, mb);
+	vmsg_send_reply(n, mb);
 }
 
 /**
@@ -1505,7 +1505,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 
 	memcpy(payload, pmsg_start(mb), paysize);
 
-	if (vmsg_debug > 1) {
+	if (vmsg_debug > 2) {
 		guint8 nup = payload[0];
 		guint8 nleaves = payload[1];
 
@@ -1514,6 +1514,47 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 	}
 
 	udp_send_msg(n, m, msgsize);
+}
+
+/**
+ * Handle reception of a Node Info Request -- GTKG/22v1
+ *
+ * This messsage is a request for internal Gnutella connectivity information.
+ * It must be replied with an urgent GTKG/23v1 "Node Info Reply" message.
+ */
+static void
+handle_node_info_req(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size)
+{
+	const guint expect_size = 4;
+
+	if ((guint) size != expect_size) {
+		vmsg_bad_payload(n, vmsg, size, expect_size);
+		return;
+	}
+
+	// XXX
+	(void) payload;
+}
+
+/**
+ * Handle reception of a Node Info Reply -- GTKG/23v1
+ *
+ * This messsage is sent in reply to a GTKG/22v1 "Node Info Request".
+ */
+static void
+handle_node_info_ans(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, gint size)
+{
+	const guint min_size = 20;
+
+	if ((guint) size < min_size) {
+		vmsg_bad_payload(n, vmsg, size, min_size);
+		return;
+	}
+
+	// XXX
+	(void) payload;
 }
 
 #if 0

@@ -4520,12 +4520,29 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			n->flags |= NODE_F_GTKG;
 
 			/*
-			 * Look whether this version is known to be broken wrt duplicates.
-			 * That's all versions prior 0.96u of 2005-10-02.
+			 * Look for known bugs in certain older GTKG servents:
 			 */
 
-			if (version_fill(n->vendor, &rver) && rver.timestamp < 1128204000)
-				n->attrs |= NODE_A_NO_DUPS;
+			if (version_fill(n->vendor, &rver)) {
+				/*
+				 * All versions prior 0.96u of 2005-10-02 are known to be
+				 * broken with respect to duplicate message handling.
+				 */
+
+				if (rver.timestamp < 1128204000)
+					n->attrs |= NODE_A_NO_DUPS;
+
+				/*
+				 * Versions prior 0.96.2u of 2006-08-15 are broken when they
+				 * act as UP and perform dynamic queries for leaves: they will
+				 * ignore an "OOB results status" message with kept=0 and
+				 * terminate the dynamic query on timeout waiting for that
+				 * message.
+				 */
+
+				if (rver.timestamp < 1155592800)
+					n->attrs |= NODE_A_NO_KEPT_ZERO;
+			}
 		}
 	}
 
@@ -8469,6 +8486,23 @@ node_active_by_id(guint32 id)
 		return NULL;
 
 	return n;
+}
+
+/**
+ * Set leaf-guidance support indication from give node ID.
+ */
+void
+node_set_leaf_guidance(guint32 id, gboolean supported)
+{
+	gnutella_node_t *n;
+
+	n = node_active_by_id(id);
+	if (n != NULL) {
+		if (supported)
+			n->attrs &= ~NODE_A_NO_GUIDANCE;	/* Clear "no support" */
+		else
+			n->attrs |= NODE_A_NO_GUIDANCE;		/* Record "no support" */
+	}
 }
 
 /***

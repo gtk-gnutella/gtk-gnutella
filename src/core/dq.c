@@ -51,6 +51,9 @@ RCSID("$Id$")
 #include "search.h"
 #include "alive.h"
 #include "oob_proxy.h"
+#include "sockets.h"		/* For udp_active() */
+#include "settings.h"		/* For listen_addr() */
+#include "hosts.h"			/* For host_is_valid() */
 
 #include "if/gnet_property_priv.h"
 
@@ -73,6 +76,7 @@ RCSID("$Id$")
 #define DQ_LINGER_TIMEOUT	120000	/**< 2 minutes, in ms */
 #define DQ_STATUS_TIMEOUT	40000	/**< 40 s, in ms, to reply to query status */
 #define DQ_MAX_PENDING		3		/**< Max pending queries we allow */
+#define DQ_MAX_STAT_TIMEOUT	2		/**< Max # of stat timeouts we allow */
 
 #define DQ_LEAF_RESULTS		50		/**< # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/**< # of results for local queries */
@@ -125,6 +129,7 @@ typedef struct dquery {
 	pmsg_t *mb;				/**< The search messsage "template" */
 	query_hashvec_t *qhv;	/**< Query hash vector for QRP filtering */
 	GHashTable *queried;	/**< Contains node IDs that we queried so far */
+	const gchar *lmuid;		/**< For proxied query: the original leaf MUID */
 	guint8 ttl;				/**< Initial query TTL */
 	guint32 horizon;		/**< Theoretical horizon reached thus far */
 	guint32 up_sent;		/**< # of UPs to which we really sent our query */
@@ -137,6 +142,7 @@ typedef struct dquery {
 	guint32 new_results;	/**< New we got since last query status request */
 	guint32 kept_results;	/**< Results they say they kept after filtering */
 	guint32 result_timeout;	/**< The current timeout for getting results */
+	guint32 stat_timeouts;	/**< The amount of status request timeouts we had */
 	gpointer expire_ev;		/**< Callout queue global expiration event */
 	gpointer results_ev;	/**< Callout queue results expiration event */
 	gpointer alive;			/**< Alive ping stats for computing timeouts */
@@ -178,6 +184,14 @@ static GHashTable *by_node_id = NULL;
  * The keys are MUIDs (GUID atoms), the values are the dquery_t object.
  */
 static GHashTable *by_muid = NULL;
+
+/**
+ * This table keeps track of the association between a leaf MUID and the
+ * dynamic query, so that when an unsolicited query status comes, we may
+ * account them for the relevant query (since for OOB-proxied query, the
+ * MUID we'll get is the one the leaf knows about).
+ */
+static GHashTable *by_leaf_muid = NULL;
 
 /**
  * Information about query messages sent.
@@ -746,7 +760,18 @@ dq_free(dquery_t *dq)
 	if (dq->expire_ev)
 		cq_cancel(callout_queue, dq->expire_ev);
 
-	if (dq->results >= dq->max_results)
+	/*
+	 * Update statistics.
+	 *
+	 * If a query is terminated by the user or because the node was removed,
+	 * it is counted as having been fully completed: there's nothing more
+	 * we can do about it.
+	 */
+
+	if (
+		dq->results >= dq->max_results ||
+		(dq->flags & (DQ_F_USR_CANCELLED | DQ_F_ID_CLEANING))
+	)
 		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_FULL, 1);
 	else if (dq->results > 0)
 		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_PARTIAL, 1);
@@ -824,6 +849,18 @@ dq_free(dquery_t *dq)
 		}
 	}
 
+	/*
+	 * Remove the leaf-known MUID mapping.
+	 */
+
+	if (dq->lmuid != NULL) {
+		found = g_hash_table_lookup_extended(
+			by_leaf_muid, dq->lmuid, &key, &value);
+		if (found && value == dq)
+			g_hash_table_remove(by_leaf_muid, key);
+		atom_guid_free(dq->lmuid);
+	}
+
 	pmsg_free(dq->mb);			/* Now that we used the MUID */
 
 	wfree(dq, sizeof(*dq));
@@ -878,6 +915,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	gint timeout;
 	guint32 avg;
 	guint32 last;
+	gboolean was_waiting = FALSE;
 
 	(void) unused_cq;
 	g_assert(!(dq->flags & DQ_F_LINGER));
@@ -895,17 +933,31 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	 */
 
 	if (dq->flags & DQ_F_WAITING) {
+		was_waiting = TRUE;
+		dq->stat_timeouts++;
+
 		if (dq_debug > 19)
-			printf("DQ[%d] (%d secs) timeout waiting for status results\n",
-				dq->qid, (gint) (tm_time() - dq->start));
+			printf("DQ[%d] (%d secs) timeout #%u waiting for status results\n",
+				dq->qid, (gint) (tm_time() - dq->start), dq->stat_timeouts);
 		dq->flags &= ~DQ_F_WAITING;
 
-		if (!(dq->flags & DQ_F_GOT_GUIDANCE)) {	/* No guidance already? */
+		if (
+			!(dq->flags & DQ_F_GOT_GUIDANCE) ||	/* No guidance already? */
+			(dq->stat_timeouts >= DQ_MAX_STAT_TIMEOUT)
+		) {
 			dq->flags &= ~DQ_F_LEAF_GUIDED;		/* Probably not supported */
 
 			if (dq_debug > 19)
 				printf("DQ[%d] (%d secs) turned off leaf-guidance\n",
 					dq->qid, (gint) (tm_time() - dq->start));
+		}
+
+		if (dq->stat_timeouts >= DQ_MAX_STAT_TIMEOUT) {
+			if (dq_debug > 19)
+				printf("DQ[%d] removing leaf-guidance support from node #%u\n",
+					dq->qid, dq->node_id);
+
+			node_set_leaf_guidance(dq->node_id, FALSE);
 		}
 
 		/* FALL THROUGH */
@@ -925,7 +977,11 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	 *		--RAM, 2006-08-16
 	 */
 
-	if (!(dq->flags & DQ_F_LEAF_GUIDED) || (dq->flags & DQ_F_UNSOLICITED)) {
+	if (
+		was_waiting ||
+		!(dq->flags & DQ_F_LEAF_GUIDED) ||
+		(dq->flags & DQ_F_UNSOLICITED)
+	) {
 		dq_send_next(dq);
 		return;
 	}
@@ -955,13 +1011,11 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	dq->flags |= DQ_F_WAITING;
 	head = (struct gnutella_header *) pmsg_start(dq->mb);
 
-	/* Use the original MUID sent by the leaf, it doesn't know the other one.*/
-	{
-		const gchar *muid;
-		
-		muid = oob_proxy_muid_proxied(head->muid);
-		vmsg_send_qstat_req(n, muid ? muid : head->muid);
-	}
+	/*
+	 * Use the original MUID sent by the leaf, it doesn't know the other one.
+	 */
+
+	vmsg_send_qstat_req(n, dq->lmuid ? dq->lmuid : head->muid);
 
 	/*
 	 * Compute the timout using the available ping-pong round-trip
@@ -1165,8 +1219,11 @@ dq_send_next(dquery_t *dq)
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
 		if (dq_debug > 19)
-			printf("DQ[%d] terminating (horizon=%u >= %d, results=%u >= %u)\n",
-				dq->qid, dq->horizon, DQ_MAX_HORIZON, results, dq->max_results);
+			printf("DQ[%d] terminating "
+				"(UPs=%u, horizon=%u >= %d, %s results=%u >= %u)\n",
+				dq->qid, dq->up_sent, dq->horizon, DQ_MAX_HORIZON,
+				(dq->flags & DQ_F_GOT_GUIDANCE) ? "guided" : "unguided",
+				results, dq->max_results);
 		goto terminate;
 	}
 
@@ -1180,8 +1237,11 @@ dq_send_next(dquery_t *dq)
 
 	if (dq->results + dq->oob_results > dq->fin_results) {
 		if (dq_debug > 19)
-			printf("DQ[%d] terminating (seen=%u + OOB=%u >= %u -- kept=%u)\n",
-				dq->qid, dq->results, dq->oob_results, dq->fin_results,
+			printf("DQ[%d] terminating "
+				"(UPs=%u, seen=%u + OOB=%u >= %u -- %s kept=%u)\n",
+				dq->qid, dq->up_sent,
+				dq->results, dq->oob_results, dq->fin_results,
+				(dq->flags & DQ_F_GOT_GUIDANCE) ? "guided" : "unguided",
 				results);
 		goto terminate;
 	}
@@ -1222,7 +1282,7 @@ dq_send_next(dquery_t *dq)
 	if (dq_debug > 19)
 		printf("DQ[%d] still %d UP%s to query (results %sso far: %u)\n",
 			dq->qid, found, found == 1 ? "" : "s",
-			(dq->flags & DQ_F_LEAF_GUIDED) ? "reported kept " : "", results);
+			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
 
 	if (found == 0) {
 		dq_terminate(dq);	/* Terminate query: no more UP to send it to */
@@ -1444,6 +1504,21 @@ dq_common_init(dquery_t *dq)
 		g_hash_table_insert(by_muid, muid, dq);
 	}
 
+	/*
+	 * Record the leaf-known MUID of this query, warning if a conflict occurs.
+	 * Note that dq->lmuid is already an atom, so it can be inserted as-is
+	 * in the hash table as key.
+	 */
+
+	if (dq->lmuid != NULL) {
+		if (g_hash_table_lookup(by_leaf_muid, dq->lmuid))
+			g_warning("ignoring conflicting leaf MUID \"%s\" for dynamic query",
+				guid_hex_str(dq->lmuid));
+		else
+			g_hash_table_insert(by_leaf_muid,
+				deconstify_gpointer(dq->lmuid), dq);
+	}
+
 	if (dq_debug > 19)
 		printf("DQ[%d] created for node #%d: TTL=%d max_results=%d "
 			"guidance=%s MUID=%s q=\"%s\"\n",
@@ -1460,11 +1535,56 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 {
 	dquery_t *dq;
 	guint16 req_speed;
-	gboolean tagged_speed = FALSE;
+	gboolean tagged_speed;
+	const gchar *leaf_muid;
 
 	g_assert(NODE_IS_LEAF(n));
+	g_assert(n->header.hops == 0);	/* Query from leaf launched as if from us */
 
 	dq = walloc0(sizeof(*dq));
+
+	READ_GUINT16_LE(n->data, req_speed);
+	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
+
+	/*
+	 * Determine whether this query will be leaf-guided.
+	 *
+	 * A leaf-guided query must be marked as such in the query flags.
+	 * However, if the node has not been responding to our query status
+	 * enquiries, then we marked it explicitly as being non-guiding and
+	 * we will ignore any tagging in the query.
+	 */
+
+	if (
+		tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED) &&
+		!NODE_NO_LEAF_GUIDE(n)
+	)
+		dq->flags |= DQ_F_LEAF_GUIDED;
+
+	/*
+	 * If the query is not leaf-guided and not already OOB-proxied, then we
+	 * need to do that now, so that we can control how much results they get.
+	 * We won't know how much they filter out however, but they just have
+	 * to implement proper leaf-guidance for better results as leaves...
+	 *		--RAM, 2006-08-16
+	 */
+
+	if (
+		!(dq->flags & DQ_F_LEAF_GUIDED) &&
+		udp_active() && proxy_oob_queries && !is_udp_firewalled &&
+		host_is_valid(listen_addr(), socket_listen_port()) &&
+		NULL == oob_proxy_muid_proxied(n->header.muid)
+	) {
+		if (dq_debug > 19)
+			printf("DQ node #%d %s <%s> OOB-proxying query \"%s\" (%s)\n",
+				n->id, node_addr(n), node_vendor(n), n->data + 2,
+				(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ?
+					"guided" : "unguided"
+			);
+
+		oob_proxy_create(n);
+		gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+	}
 
 	dq->node_id = n->id;
 	dq->mb = gmsg_split_to_pmsg(
@@ -1479,34 +1599,16 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
 	dq->alive = n->alive_pings;
 
-	/*
-	 * Determine whether this query will be leaf-guided.
-	 *
-	 * If the remote node performed the vendor message supported exchange,
-	 * we have already determined whether its queries would be leaf-guided
-	 * (i.e. advertised support for BEAR/11v1 is enough to assume the query
-	 * is leaf-guided).
-	 *
-	 * But there is also a flag in the query that can be set to indicate
-	 * leaf-guidance, and some vendors may choose to rely on that solely
-	 * and never advertise the vendor messages related to this feature.
-	 * So we also perform a test on the query flags in the speed field.
-	 */
-
-	if (NODE_GUIDES_QUERY(n))
-		dq->flags |= DQ_F_LEAF_GUIDED;
-
-	READ_GUINT16_LE(n->data, req_speed);
-	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
-
-	if (tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED))
-		dq->flags |= DQ_F_LEAF_GUIDED;
+	leaf_muid = oob_proxy_muid_proxied(n->header.muid);
+	if (leaf_muid != NULL)
+		dq->lmuid = atom_guid_get(leaf_muid);
 
 	if (dq_debug > 19)
-		printf("DQ node #%d %s <%s> (%s leaf-guidance) %squeries \"%s\"\n",
+		printf("DQ node #%d %s <%s> (%s leaf-guidance) %s%squeries \"%s\"\n",
 			n->id, node_addr(n), node_vendor(n),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
 			tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY) ? "OOB-" : "",
+			oob_proxy_muid_proxied(n->header.muid) ? "proxied " : "",
 			QUERY_TEXT(pmsg_start(dq->mb)));
 
 	gnet_stats_count_general(GNR_LEAF_DYN_QUERIES, 1);
@@ -1588,8 +1690,8 @@ dq_node_removed(guint32 node_id)
 		dquery_t *dq = (dquery_t *) sl->data;
 
 		if (dq_debug > 19)
-			printf("DQ[%d] terminated by node #%d removal\n",
-				dq->qid, dq->node_id);
+			printf("DQ[%d] terminated by node #%u removal (queried %u UP%s)\n",
+				dq->qid, dq->node_id, dq->up_sent, dq->up_sent == 1 ? "" : "s");
 
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
@@ -1735,6 +1837,14 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 
 	dq = g_hash_table_lookup(by_muid, muid);
 
+	/*
+	 * Could be an OOB-proxied query, but the leaf does not know the MUID
+	 * we're using, only the one it generated.
+	 */
+
+	if (dq == NULL)
+		dq = g_hash_table_lookup(by_leaf_muid, muid);
+
 	if (dq == NULL)
 		return;
 
@@ -1744,8 +1854,14 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 	dq->kept_results = kept;
 	dq->flags |= DQ_F_GOT_GUIDANCE;
 
-	if (!(dq->flags & DQ_F_WAITING))
+	if (!(dq->flags & DQ_F_WAITING)) {
 		dq->flags |= DQ_F_UNSOLICITED;	/* Got unsolicited guidance */
+
+		if (!(dq->flags & DQ_F_LEAF_GUIDED)) {
+			node_set_leaf_guidance(node_id, TRUE);
+			dq->flags |= DQ_F_LEAF_GUIDED;
+		}
+	}
 
 	if (dq_debug > 19) {
 		if (dq->flags & DQ_F_LINGER)
@@ -1768,7 +1884,8 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 
 	if (kept == 0xffff) {
 		if (dq_debug > 19)
-			printf("DQ[%d] terminating at user's request\n", dq->qid);
+			printf("DQ[%d] terminating at user's request (queried %u UP%s)\n",
+				dq->qid, dq->up_sent, dq->up_sent == 1 ? "" : "s");
 
 		dq->flags |= DQ_F_USR_CANCELLED;
 
@@ -1890,6 +2007,7 @@ dq_init(void)
 	dqueries = g_hash_table_new(NULL, NULL);
 	by_node_id = g_hash_table_new(NULL, NULL);
 	by_muid = g_hash_table_new(guid_hash, guid_eq);
+	by_leaf_muid = g_hash_table_new(guid_hash, guid_eq);
 	fill_hosts();
 }
 
@@ -1952,6 +2070,20 @@ free_muid(gpointer key, gpointer unused_value, gpointer unused_udata)
 }
 
 /**
+ * Hashtable iteration callback to free the MUIDs in the `by_leaf_muid' table.
+ * Normally, after having freed the dqueries table, there should not be
+ * anything remaining, hence warn!
+ */
+static void
+free_leaf_muid(gpointer key, gpointer unused_value, gpointer unused_udata)
+{
+	(void) unused_value;
+	(void) unused_udata;
+	g_warning("remained un-freed leaf MUID \"%s\" in dynamic queries",
+		guid_hex_str(key));
+}
+
+/**
  * Cleanup data structures used by dynamic querying.
  */
 void
@@ -1965,6 +2097,9 @@ dq_close(void)
 
 	g_hash_table_foreach(by_muid, free_muid, NULL);
 	g_hash_table_destroy(by_muid);
+
+	g_hash_table_foreach(by_leaf_muid, free_leaf_muid, NULL);
+	g_hash_table_destroy(by_leaf_muid);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

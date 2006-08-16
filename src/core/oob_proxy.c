@@ -56,7 +56,12 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define PROXY_EXPIRE_MS		(10*60*1000)	/**< 10 minutes at most */
+/*
+ * The following should be larger than the dynamic query maximum lifetime
+ * in case we OOB-proxy a query from a leaf because it does not send us
+ * meaningful result indications.
+ */
+#define PROXY_EXPIRE_MS		(11*60*1000)	/**< 11 minutes at most */
 
 /**
  * Record keeping track of the MUID remappings happening for the proxied
@@ -166,7 +171,7 @@ oob_proxy_create(gnutella_node_t *n)
 
 	g_assert(n->header.function == GTA_MSG_SEARCH);
 	g_assert(NODE_IS_LEAF(n));
-	g_assert(n->header.hops == 1);
+	g_assert(n->header.hops <= 1);	/* Can be 0 when called from DQ layer */
 
 	/*
 	 * Mangle the MUID of the query to insert our own IP:port.

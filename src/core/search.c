@@ -2356,6 +2356,15 @@ search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
 			kept, sch->query, node_addr(n));
 
 	/*
+	 * Workaround for older broken GTKG ultrapeers.  Remove about in 1 year,
+	 * along with the NODE_A_NO_KEPT_ZERO flag..
+	 *		--RAM, 2006-08-16
+	 */
+
+	if (kept == 0 && (n->attrs & NODE_A_NO_KEPT_ZERO))
+		kept = 1;
+
+	/*
 	 * We use the first MUID in the list, i.e. the last one we used
 	 * for sending out queries for that search.
 	 */
