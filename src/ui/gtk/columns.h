@@ -109,20 +109,14 @@ enum {
     c_dl_server,
     c_dl_progress,
     c_dl_status,
-#define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_status + 1)
-#ifdef USE_GTK2
-    c_dl_fg,	/**< invisible, holds the foreground color for the row */
-    c_dl_bg,	/**< invisible, holds the background color for the row */
-    c_dl_record, /**< invisible, pointer to the record_t of this entry */
-#endif /* USE_GTK2 */
     c_dl_num
+#define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_num)
 };
 
 /*
  * Queue table columns.
  */
 
-#ifdef USE_GTK1
 enum {
     c_queue_filename = 0,
     c_queue_host,
@@ -133,24 +127,6 @@ enum {
 	c_queue_num
 #define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_num)
 };
-#endif
-
-#ifdef USE_GTK2
-enum {
-    c_queue_filename = 0,
-    c_queue_size,
-    c_queue_host,
-    c_queue_loc,
-    c_queue_server,
-    c_queue_status,
-#define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_status + 1)
-	c_queue_fg,	/**< invisible, holds the foreground color for the row */
-	c_queue_bg,	/**< invisible, holds the background color for the row */
-	c_queue_record, /**< invisible, pointer to the record_t of this entry */
-	c_queue_num
-};
-#endif
-
 
 /**
  * Fileinfo table columns.
