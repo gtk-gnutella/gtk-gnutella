@@ -64,14 +64,14 @@ RCSID("$Id$")
 
 #include "lib/override.h"			/* Must be the last header included */
 
-#define DQ_MAX_LIFETIME		300000	/**< 5 minutes, in ms */
+#define DQ_MAX_LIFETIME		600000	/**< 10 minutes, in ms */
 #define DQ_PROBE_TIMEOUT  	1500	/**< 1.5 s extra per connection */
 #define DQ_PENDING_TIMEOUT 	1200	/**< 1.2 s extra per pending message */
 #define DQ_QUERY_TIMEOUT	3700	/**< 3.7 s */
 #define DQ_TIMEOUT_ADJUST	100		/**< 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500	/**< 1.5 s at least between queries */
 #define DQ_LINGER_TIMEOUT	120000	/**< 2 minutes, in ms */
-#define DQ_STATUS_TIMEOUT	30000	/**< 30 s, in ms, to reply to query status */
+#define DQ_STATUS_TIMEOUT	40000	/**< 40 s, in ms, to reply to query status */
 #define DQ_MAX_PENDING		3		/**< Max pending queries we allow */
 
 #define DQ_LEAF_RESULTS		50		/**< # of results targetted for leaves */
@@ -152,8 +152,9 @@ typedef struct dquery {
 #define DQ_F_LINGER			0x00000002	/**< Lingering to monitor extra hits */
 #define DQ_F_LEAF_GUIDED	0x00000004	/**< Leaf-guided query */
 #define DQ_F_WAITING		0x00000008	/**< Waiting guidance reply from leaf */
-#define DQ_F_GOT_GUIDANCE	0x00000010	/**< Got unsolicited leaf guidance */
+#define DQ_F_GOT_GUIDANCE	0x00000010	/**< Got some leaf guidance */
 #define DQ_F_USR_CANCELLED	0x00000020	/**< Explicitely cancelled by user */
+#define DQ_F_UNSOLICITED	0x00000040	/**< Got unsolicited leaf guidance */
 #define DQ_F_EXITING		0x80000000	/**< Final cleanup at exit time */
 
 /**
@@ -293,7 +294,7 @@ dq_kept_results(dquery_t *dq)
 	 * of hits everywhere.
 	 */
 
-	return (dq->flags & DQ_F_LEAF_GUIDED) ?
+	return (dq->flags & DQ_F_GOT_GUIDANCE) ?
 		(dq->kept_results / DQ_AVG_ULTRA_NODES) : dq->results;
 }
 
@@ -885,7 +886,12 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 
 	/*
 	 * If we were waiting for a status reply from the queryier, well, we
-	 * just timed-out.  Cancel this query.
+	 * just timed-out.
+	 *
+	 * We used to cancel this query, on timeouts, but that seems harsh.
+	 * Simply turn off the leaf-guidance indication and continue.
+	 * Note that the leaf may still send us unsolicited guidance if it wants.
+	 *		--RAM, 2006-08-16
 	 */
 
 	if (dq->flags & DQ_F_WAITING) {
@@ -893,8 +899,16 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 			printf("DQ[%d] (%d secs) timeout waiting for status results\n",
 				dq->qid, (gint) (tm_time() - dq->start));
 		dq->flags &= ~DQ_F_WAITING;
-		dq_terminate(dq);
-		return;
+
+		if (!(dq->flags & DQ_F_GOT_GUIDANCE)) {	/* No guidance already? */
+			dq->flags &= ~DQ_F_LEAF_GUIDED;		/* Probably not supported */
+
+			if (dq_debug > 19)
+				printf("DQ[%d] (%d secs) turned off leaf-guidance\n",
+					dq->qid, (gint) (tm_time() - dq->start));
+		}
+
+		/* FALL THROUGH */
 	}
 
 	/*
@@ -904,9 +918,14 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	 *
 	 * For local queries, DQ_F_LEAF_GUIDED is not set, so we'll continue
 	 * anyway.
+	 *
+	 * If we ever got unsolicited guidance, then there's no need to ask
+	 * for it explicitly: we can safely assume the leaf will inform us
+	 * whenever it gets more results.
+	 *		--RAM, 2006-08-16
 	 */
 
-	if (!(dq->flags & DQ_F_LEAF_GUIDED) || (dq->flags & DQ_F_GOT_GUIDANCE)) {
+	if (!(dq->flags & DQ_F_LEAF_GUIDED) || (dq->flags & DQ_F_UNSOLICITED)) {
 		dq_send_next(dq);
 		return;
 	}
@@ -1136,8 +1155,6 @@ dq_send_next(dquery_t *dq)
 			printf("DQ[%d] terminating (no longer an ultra node)\n", dq->qid);
 		goto terminate;
 	}
-
-	dq->flags &= ~DQ_F_GOT_GUIDANCE;	/* Clear flag */
 
 	/*
 	 * Terminate query if we reached the amount of results we wanted or
@@ -1726,6 +1743,9 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 
 	dq->kept_results = kept;
 	dq->flags |= DQ_F_GOT_GUIDANCE;
+
+	if (!(dq->flags & DQ_F_WAITING))
+		dq->flags |= DQ_F_UNSOLICITED;	/* Got unsolicited guidance */
 
 	if (dq_debug > 19) {
 		if (dq->flags & DQ_F_LINGER)
