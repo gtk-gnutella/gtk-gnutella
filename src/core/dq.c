@@ -73,7 +73,7 @@ RCSID("$Id$")
 #define DQ_QUERY_TIMEOUT	3700	/**< 3.7 s */
 #define DQ_TIMEOUT_ADJUST	100		/**< 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500	/**< 1.5 s at least between queries */
-#define DQ_LINGER_TIMEOUT	120000	/**< 2 minutes, in ms */
+#define DQ_LINGER_TIMEOUT	180000	/**< 3 minutes, in ms */
 #define DQ_STATUS_TIMEOUT	40000	/**< 40 s, in ms, to reply to query status */
 #define DQ_MAX_PENDING		3		/**< Max pending queries we allow */
 #define DQ_MAX_STAT_TIMEOUT	2		/**< Max # of stat timeouts we allow */
@@ -88,7 +88,7 @@ RCSID("$Id$")
 #define DQ_PERCENT_KEPT		5		/**< Assume 5% of results kept, worst case */
 
 #define DQ_MAX_TTL			5		/**< Max TTL we can use */
-#define DQ_AVG_ULTRA_NODES	2		/**< Avg # of ultranodes a leaf queries */
+#define DQ_AVG_ULTRA_NODES	3		/**< Avg # of ultranodes a leaf queries */
 
 #define DQ_MQ_EPSILON		2048	/**< Queues identical at +/- 2K */
 #define DQ_FUZZY_FACTOR		0.80	/**< Corrector for theoretical horizon */
@@ -1040,19 +1040,25 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 static void
 dq_terminate(dquery_t *dq)
 {
+	gint delay;
+
 	g_assert(!(dq->flags & DQ_F_LINGER));
 	g_assert(dq->results_ev == NULL);
 
 	/*
 	 * Put the query in lingering mode, so we can continue to monitor
 	 * results for some time after we stopped the dynamic querying.
+	 *
+	 * Even when the query has been user-cancelled, we put it in the
+	 * callout queue to not have the query freed on the same calling stack.
 	 */
 
+	delay = (dq->flags & DQ_F_USR_CANCELLED) ? 1 : DQ_LINGER_TIMEOUT;
+
 	if (dq->expire_ev != NULL)
-		cq_resched(callout_queue, dq->expire_ev, DQ_LINGER_TIMEOUT);
+		cq_resched(callout_queue, dq->expire_ev, delay);
 	else
-		dq->expire_ev = cq_insert(callout_queue, DQ_LINGER_TIMEOUT,
-			dq_expired, dq);
+		dq->expire_ev = cq_insert(callout_queue, delay, dq_expired, dq);
 
 	dq->flags &= ~DQ_F_WAITING;
 	dq->flags |= DQ_F_LINGER;
@@ -1521,10 +1527,13 @@ dq_common_init(dquery_t *dq)
 
 	if (dq_debug > 19)
 		printf("DQ[%d] created for node #%d: TTL=%d max_results=%d "
-			"guidance=%s MUID=%s q=\"%s\"\n",
+			"guidance=%s MUID=%s%s%s q=\"%s\"\n",
 			dq->qid, dq->node_id, dq->ttl, dq->max_results,
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
-			guid_hex_str(head->muid), QUERY_TEXT(pmsg_start(dq->mb)));
+			guid_hex_str(head->muid),
+			dq->lmuid ? " leaf-MUID=" : "",
+			dq->lmuid ? data_hex_str(dq->lmuid, GUID_RAW_SIZE): "",
+			QUERY_TEXT(pmsg_start(dq->mb)));
 }
 
 /**
@@ -1992,7 +2001,30 @@ dq_get_results_wanted(gchar *muid, guint32 *wanted)
 		*wanted = 0;
 	else {
 		guint32 kept = dq_kept_results(dq);
-		*wanted = (kept > dq->max_results) ? 0 : dq->max_results - kept;
+
+		/*
+		 * d->kept_results is the true amount of total results they got, which
+		 * is different from the value returned by dq_kept_results() which
+		 * performs an average over the expected amount of UPs a leaf will have.
+		 *
+		 * When we have delivered all the hits we had to, but OOB replies still
+		 * come through, we continue to claim until the reported amount of
+		 * kept entries for this search reaches the big finalizing value.
+		 * The rationale here is that results are not necessarily filtered,
+		 * and we're getting hits without much Gnutella cost because we have
+		 * already stopped querying if we already got max_results.
+		 *		--RAM, 2006-08-16
+		 */
+
+		if (kept < dq->max_results)
+			*wanted = dq->max_results - kept;
+		else if (
+			(dq->flags & DQ_F_GOT_GUIDANCE) &&
+			dq->kept_results < dq->fin_results
+		)
+			*wanted = 1;		/* Could be discarded later by the DH layer */
+		else
+			*wanted = 0;
 	}
 
 	return TRUE;
