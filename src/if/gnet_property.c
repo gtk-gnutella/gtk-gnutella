@@ -640,6 +640,8 @@ guint32  rudp_debug     = 0;
 guint32  rudp_debug_def = 0;
 guint32  dht_debug     = 0;
 guint32  dht_debug_def = 0;
+guint32  oob_proxy_debug     = 0;
+guint32  oob_proxy_debug_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6118,6 +6120,26 @@ gnet_prop_init(void) {
     gnet_property->props[286].data.guint32.choices = NULL;
     gnet_property->props[286].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[286].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_OOB_PROXY_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[287].name = "oob_proxy_debug";
+    gnet_property->props[287].desc = _("Debug level for the OOB-proxying of queries.");
+    gnet_property->props[287].ev_changed = event_new("oob_proxy_debug_changed");
+    gnet_property->props[287].save = TRUE;
+    gnet_property->props[287].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[287].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[287].data.guint32.def   = &oob_proxy_debug_def;
+    gnet_property->props[287].data.guint32.value = &oob_proxy_debug;
+    gnet_property->props[287].data.guint32.choices = NULL;
+    gnet_property->props[287].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[287].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

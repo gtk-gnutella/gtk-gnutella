@@ -323,6 +323,7 @@ typedef enum {
     PROP_DISPLAY_METRIC_UNITS,
     PROP_RUDP_DEBUG,
     PROP_DHT_DEBUG,
+    PROP_OOB_PROXY_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

@@ -3343,4 +3343,13 @@ prop = {
 	};
 };
 
+prop = {
+	name = "oob_proxy_debug";
+    desc = "Debug level for the OOB-proxying of queries.";
+	type = guint32;
+	data = {
+		default = 0;
+	};
+};
+
 /* vi: set ts=4: */
