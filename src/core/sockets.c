@@ -2017,15 +2017,17 @@ accepted:
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 }
 
+#if defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR)
 static inline const struct cmsghdr *
 cmsg_nxthdr(const struct msghdr *msg, const struct cmsghdr *cmsg)
 {
 	return CMSG_NXTHDR((struct msghdr *) msg, (struct cmsghdr *) cmsg);
 }
+#endif	/* CMSG_FIRSTHDR && CMSG_NXTHDR */
 
 static gboolean
 socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
-#if defined(CMSG_FIRSTHDR)
+#if defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR)
 {
 	const struct cmsghdr *p;
 
@@ -2077,13 +2079,13 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 
 	return FALSE;
 }
-#else	/* !CMSG_FIRSTHDR */
+#else	/* !(CMSG_FIRSTHDR && CMSG_NXTHDR) */
 {
 	(void) msg;
 	(void) dst_addr;
 	return FALSE;
 }
-#endif /* CMSG_FIRSTHDR */
+#endif	/* CMSG_FIRSTHDR && CMSG_NXTHDR */
 
 /**
  * Someone is sending us a datagram.
@@ -2693,19 +2695,19 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 #endif /* HAS_SOCKER_GET */
 
 	if (sd < 0) {
-		const gchar *s_type = SOCK_DGRAM == type ? "datagram" : "stream";
-		const gchar *s_net = net_type_to_string(host_addr_net(bind_addr));
+		const gchar *type_str = SOCK_DGRAM == type ? "datagram" : "stream";
+		const gchar *net_str = net_type_to_string(host_addr_net(bind_addr));
 
 		if (socket_failed) {
 			g_warning("Unable to create the %s (%s) socket (%s)",
-				s_type, s_net, g_strerror(errno));
+				type_str, net_str, g_strerror(errno));
 		} else {
-			gchar s_bind_addr[HOST_ADDR_PORT_BUFLEN];
+			gchar bind_addr_str[HOST_ADDR_PORT_BUFLEN];
 
 			host_addr_port_to_string_buf(bind_addr, port,
-				s_bind_addr, sizeof s_bind_addr);
+				bind_addr_str, sizeof bind_addr_str);
 			g_warning("Unable to bind() the %s (%s) socket to %s (%s)",
-				s_type, s_net, s_bind_addr, g_strerror(errno));
+				type_str, net_str, bind_addr_str, g_strerror(errno));
 		}
 	}
 
