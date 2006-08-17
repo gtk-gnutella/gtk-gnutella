@@ -461,6 +461,19 @@ handle_messages_supported(struct gnutella_node *n,
 				vendor_code_str(ntohl(vendor.be32)), id, version);
 
 		/*
+		 * Look for leaf-guided dynamic query support.
+		 *
+		 * Remote can advertise only one of the two messages needed, we
+		 * can infer support for the other!.
+		 */
+
+		if (
+			vm->handler == handle_qstat_req ||
+			vm->handler == handle_qstat_answer
+		)
+			node_set_leaf_guidance(n, TRUE);
+
+		/*
 		 * Time synchronization support.
 		 */
 

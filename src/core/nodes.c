@@ -8525,9 +8525,9 @@ node_set_leaf_guidance(guint32 id, gboolean supported)
 	n = node_active_by_id(id);
 	if (n != NULL) {
 		if (supported)
-			n->attrs &= ~NODE_A_NO_GUIDANCE;	/* Clear "no support" */
+			n->attrs |= NODE_A_GUIDANCE;		/* Record support */
 		else
-			n->attrs |= NODE_A_NO_GUIDANCE;		/* Record "no support" */
+			n->attrs &= ~NODE_A_GUIDANCE;		/* Clears support */
 	}
 }
 

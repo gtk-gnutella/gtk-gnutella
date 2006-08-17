@@ -77,6 +77,7 @@ RCSID("$Id$")
 #define DQ_STATUS_TIMEOUT	40000	/**< 40 s, in ms, to reply to query status */
 #define DQ_MAX_PENDING		3		/**< Max pending queries we allow */
 #define DQ_MAX_STAT_TIMEOUT	2		/**< Max # of stat timeouts we allow */
+#define DQ_STAT_THRESHOLD	3		/**< Request status every 3 UP probed */
 
 #define DQ_LEAF_RESULTS		50		/**< # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/**< # of results for local queries */
@@ -133,6 +134,7 @@ typedef struct dquery {
 	guint8 ttl;				/**< Initial query TTL */
 	guint32 horizon;		/**< Theoretical horizon reached thus far */
 	guint32 up_sent;		/**< # of UPs to which we really sent our query */
+	guint32 last_status;	/**< How many UP queried last time we got status */
 	guint32 pending;		/**< Pending query messages not ACK'ed yet by mq */
 	guint32 max_results;	/**< Max results we're targetting for */
 	guint32 fin_results;	/**< # of results terminating leaf-guided query */
@@ -309,7 +311,8 @@ dq_kept_results(dquery_t *dq)
 	 */
 
 	return (dq->flags & DQ_F_GOT_GUIDANCE) ?
-		(dq->kept_results / DQ_AVG_ULTRA_NODES) : dq->results;
+		(dq->kept_results / DQ_AVG_ULTRA_NODES) + dq->new_results :
+		dq->results;
 }
 
 /**
@@ -980,7 +983,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	if (
 		was_waiting ||
 		!(dq->flags & DQ_F_LEAF_GUIDED) ||
-		(dq->flags & DQ_F_UNSOLICITED)
+		(dq->up_sent - dq->last_status < DQ_STAT_THRESHOLD)
 	) {
 		dq_send_next(dq);
 		return;
@@ -1576,11 +1579,15 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	 * However, if the node has not been responding to our query status
 	 * enquiries, then we marked it explicitly as being non-guiding and
 	 * we will ignore any tagging in the query.
+	 *
+	 * LimeWire has a bug in that it does not mark the queries it sends
+	 * as supporting leaf-guidance.  However, we can derive support from
+	 * its advertising the proper vendor messages.
 	 */
 
 	if (
-		tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED) &&
-		!NODE_NO_LEAF_GUIDE(n)
+		(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ||
+		NODE_LEAF_GUIDE(n)
 	)
 		dq->flags |= DQ_F_LEAF_GUIDED;
 
@@ -1876,6 +1883,8 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 
 	dq->kept_results = kept;
 	dq->flags |= DQ_F_GOT_GUIDANCE;
+	dq->last_status = dq->up_sent;
+	dq->new_results = 0;
 
 	if (!(dq->flags & DQ_F_WAITING)) {
 		dq->flags |= DQ_F_UNSOLICITED;	/* Got unsolicited guidance */

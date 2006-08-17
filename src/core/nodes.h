@@ -300,7 +300,7 @@ typedef struct gnutella_node {
 #define NODE_A_ULTRA		0x00000040 /**< Node wants to be an Ultrapeer */
 #define NODE_A_NO_ULTRA		0x00000080 /**< Node is NOT ultra capable */
 #define NODE_A_UP_QRP		0x00000100 /**< Supports intra-UP QRP */
-#define NODE_A_NO_GUIDANCE	0x00000200 /**< Cannot leaf-guide dyn queries */
+#define NODE_A_GUIDANCE		0x00000200 /**< Can leaf-guide dyn queries */
 #define NODE_A_TIME_SYNC	0x00000400 /**< Supports time sync */
 #define NODE_A_CRAWLABLE	0x00000800 /**< Node can be UDP-crawled */
 #define NODE_A_DYN_QUERY	0x00001000 /**< Node can perform dynamic queries */
@@ -401,7 +401,7 @@ typedef struct gnutella_node {
 
 #define NODE_CAN_GGEP(n)		((n)->attrs & NODE_A_CAN_GGEP)
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
-#define NODE_NO_LEAF_GUIDE(n)	((n)->attrs & NODE_A_NO_GUIDANCE)
+#define NODE_LEAF_GUIDE(n)		((n)->attrs & NODE_A_GUIDANCE)
 #define NODE_CAN_INFLATE(n)		((n)->attrs & NODE_A_CAN_INFLATE)
 
 /*
