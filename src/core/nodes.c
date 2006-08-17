@@ -725,7 +725,8 @@ can_become_ultra(time_t now)
 	gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_CHECK, now);
 
 	return avg_servent_uptime && avg_ip_uptime && node_uptime &&
-		not_firewalled && enough_fd && enough_mem && enough_bw;
+		not_firewalled && enough_fd && enough_mem && enough_bw &&
+		!ancient_version;		/* Old versions don't become ultra nodes */
 }
 
 /**
