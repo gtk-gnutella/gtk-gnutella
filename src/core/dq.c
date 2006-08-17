@@ -162,7 +162,6 @@ typedef struct dquery {
 #define DQ_F_WAITING		0x00000008	/**< Waiting guidance reply from leaf */
 #define DQ_F_GOT_GUIDANCE	0x00000010	/**< Got some leaf guidance */
 #define DQ_F_USR_CANCELLED	0x00000020	/**< Explicitely cancelled by user */
-#define DQ_F_UNSOLICITED	0x00000040	/**< Got unsolicited leaf guidance */
 #define DQ_F_EXITING		0x80000000	/**< Final cleanup at exit time */
 
 /**
@@ -1887,7 +1886,7 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 	dq->new_results = 0;
 
 	if (!(dq->flags & DQ_F_WAITING)) {
-		dq->flags |= DQ_F_UNSOLICITED;	/* Got unsolicited guidance */
+		/* Got unsolicited guidance */
 
 		if (!(dq->flags & DQ_F_LEAF_GUIDED)) {
 			node_set_leaf_guidance(node_id, TRUE);
