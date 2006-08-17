@@ -345,7 +345,7 @@ gm_setproctitle(const gchar *title)
 		struct iovec iov;
 		
 		iov = gm_setproctitle_init(orig_argc, orig_argv, orig_env);
-		args = iov.iov_base;
+		args = cast_to_void_ptr(iov.iov_base); /* Solaris has caddr_t */
 		n = iov.iov_len;
 	}
 
