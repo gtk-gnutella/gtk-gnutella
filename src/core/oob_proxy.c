@@ -203,11 +203,11 @@ oob_proxy_create(gnutella_node_t *n)
 
 	message_add(n->header.muid, GTA_MSG_SEARCH, NULL);
 
-	if (query_debug > 5) {
-		gchar *orig = g_strdup(guid_hex_str(opr->leaf_muid));
+	if (query_debug > 5 || oob_proxy_debug) {
 		printf("QUERY OOB-proxying query %s from %s <%s> as %s\n",
-			orig, node_addr(n), node_vendor(n), guid_hex_str(opr->proxied_muid));
-		g_free(orig);
+			data_hex_str(opr->leaf_muid, GUID_RAW_SIZE),
+			node_addr(n), node_vendor(n),
+			guid_hex_str(opr->proxied_muid));
 	}
 }
 
