@@ -297,8 +297,8 @@ download_rx_got_eof(gpointer o)
 }
 
 /**
- * RX data indication callback used to give us some new Gnet traffic in a
- * low-level message structure (which can contain several Gnet messages).
+ * RX data indication callback used to give us some new download traffic in a
+ * low-level message structure.
  *
  * @return FALSE if an error occurred.
  */
