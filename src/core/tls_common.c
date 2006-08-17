@@ -793,6 +793,13 @@ tls_init(gboolean is_incoming)
 }
 
 void
+tls_wio_link(struct wrap_io *wio)
+{
+	(void) wio;
+	g_assert_not_reached();
+}
+
+void
 tls_global_init(void)
 {
 	/* Nothing to do */
