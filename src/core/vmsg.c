@@ -471,7 +471,7 @@ handle_messages_supported(struct gnutella_node *n,
 			vm->handler == handle_qstat_req ||
 			vm->handler == handle_qstat_answer
 		)
-			node_set_leaf_guidance(n, TRUE);
+			node_set_leaf_guidance(n->node_handle, TRUE);
 
 		/*
 		 * Time synchronization support.
