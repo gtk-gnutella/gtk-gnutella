@@ -1362,10 +1362,10 @@ query_strip_oob_flag(gnutella_node_t *n, gchar *data)
 
 	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
 
-	if (query_debug)
+	if (query_debug > 2 || oob_proxy_debug > 2)
 		g_message(
-			"QUERY from node %s <%s>: removed OOB delivery (speed = 0x%x)",
-			node_addr(n), node_vendor(n), speed);
+			"QUERY %s from node %s <%s>: removed OOB delivery (speed = 0x%x)",
+			guid_hex_str(n->header.muid), node_addr(n), node_vendor(n), speed);
 }
 
 /**
@@ -1877,7 +1877,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			query_strip_oob_flag(n, n->data);
 			oob = FALSE;
 
-			if (query_debug)
+			if (query_debug || oob_proxy_debug)
 				g_message("QUERY %s node %s <%s>: removed OOB flag "
 					"(invalid return address: %s)",
 					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n),
@@ -1894,7 +1894,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			query_strip_oob_flag(n, n->data);
 			oob = FALSE;
 
-			if (query_debug)
+			if (query_debug || oob_proxy_debug)
 				g_message("QUERY %s node %s <%s>: removed OOB flag "
 					"(leaf node is TCP-firewalled)",
 					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
