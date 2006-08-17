@@ -837,7 +837,7 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 		sizeof contime_buf);
 
 	gm_snprintf(buf, sizeof buf,
-		"%-21.45s %5.u %s %2.2s %6.6s %6.6s %.30s",
+		"%-21.45s %5.5u %s %2.2s %6.6s %6.6s %.30s",
 		node_addr(n),
 		(guint) n->gnet_port,
 		node_flags_to_string(&flags),
