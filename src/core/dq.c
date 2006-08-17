@@ -1797,14 +1797,24 @@ dq_count_results(gchar *muid, gint count, guint16 status, gboolean oob)
 	 * and does not support firewalled-to-firewalled transfers, it's not
 	 * necessary to forward the results: they would be useless.
 	 *
-	 * As such, don't account those results for the dynamic query.
+	 * When firewall-to-firewall is supported, both servents need to support
+	 * if for the transfer to be initiated.  We assume that subsequent
+	 * versions of the reliable UDP layer used for these transfers and the
+	 * means to set them up will remain compatible, regardless of the versions
+	 * used by both parties.
+	 *		--RAM, 2006-08-17
 	 */
 
 	if (
 		!oob &&
-		(status & ST_FIREWALL) &&
-		(dq->query_flags & (QUERY_SPEED_FIREWALLED|QUERY_SPEED_FW_TO_FW))
-			== QUERY_SPEED_FIREWALLED
+		((
+			(status & ST_FIREWALL) &&
+			(dq->query_flags & (QUERY_SPEED_FIREWALLED|QUERY_SPEED_FW_TO_FW))
+				== QUERY_SPEED_FIREWALLED
+		) || (
+			(status & (ST_FIREWALL|ST_FW2FW)) == ST_FIREWALL &&
+			(dq->query_flags & QUERY_SPEED_FIREWALLED)
+		))
 	) {
 		if (dq_debug > 19) {
 			if (dq->flags & DQ_F_LINGER)

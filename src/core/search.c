@@ -1555,6 +1555,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				case EXT_T_GGEP_BH:
 					rs->status |= ST_BH;
 					break;
+				case EXT_T_GGEP_FW:
+					rs->status |= ST_FW2FW;
+					break;
 				case EXT_T_GGEP_GTKG_TLS:
 					rs->status |= ST_TLS;
 					break;
