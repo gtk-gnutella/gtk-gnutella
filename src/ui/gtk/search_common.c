@@ -97,8 +97,50 @@ static struct {
 	{ ST_BOGUS,			N_("bogus") },		/**< Bogus IP address */
 };
 
-search_t *search_gui_get_current_search(void)	{ return current_search; }
-void search_gui_forget_current_search(void)		{ current_search = NULL; }
+static struct {
+	const gchar * const spec;
+	const enum gui_color id;
+	GdkColor color;
+} colors[] = {
+	{ "#7f0000",	GUI_COLOR_SPAM, 	{ 0, 0, 0, 0 } },
+	{ "#5F007F",	GUI_COLOR_HOSTILE,	{ 0, 0, 0, 0 } },
+};
+
+void
+gui_color_init(void)
+{
+    GdkColormap *cmap;
+	guint i;
+
+	STATIC_ASSERT(NUM_GUI_COLORS == G_N_ELEMENTS(colors));
+	cmap = gdk_colormap_get_system();
+    g_assert(cmap);
+
+	for (i = 0; i < NUM_GUI_COLORS; i++) {
+		g_assert(colors[i].id == i);
+    	gdk_color_parse(colors[i].spec, &colors[i].color);
+    	gdk_colormap_alloc_color(cmap, &colors[i].color, FALSE, TRUE);
+	}
+}
+
+GdkColor *
+gui_color_get(const enum gui_color id)
+{
+	g_assert((guint) id <= NUM_GUI_COLORS);
+	return &colors[(guint) id].color;
+}
+
+search_t *
+search_gui_get_current_search(void)
+{
+	return current_search;
+}
+
+void
+search_gui_forget_current_search(void)
+{
+	current_search = NULL;
+}
 
 static void
 on_option_menu_menu_item_activate(GtkMenuItem *unused_item, gpointer udata)
@@ -763,34 +805,8 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
    	rc->flags = r->flags;
 
 	rc->name = atom_str_get(r->name);
-	{
-		const gchar *name;
-		gchar *buf;
-		size_t size;
-		
-		name = lazy_unknown_to_utf8_normalized(r->name,
-					UNI_NORM_GUI, &rc->charset);
-		if (0 != (SR_SPAM & rc->flags)) {
-			/* This record was considered spam */
-			size = w_concat_strings(&buf, "<SPAM> ", name, (void *) 0);
-			name = buf;
-		} else if (0 != (ST_EVIL & rs->status)) {
-			/* This record itself was NOT considered evil but the result set
-			 * carried some evil filename. */
-			size = w_concat_strings(&buf, "<evil> ", name, (void *) 0);
-			name = buf;
-		} else if (0 != (ST_SPAM & rs->status)) {
-			/* This record itself was NOT considered spam but the result set
-			 * carried some spam. */
-			size = w_concat_strings(&buf, "<spam> ", name, (void *) 0);
-			name = buf;
-		} else {
-			buf = NULL;
-			size = 0;
-		}
-		rc->utf8_name = atom_str_get(name);
-		WFREE_NULL(buf, size);
-	}
+	rc->utf8_name = atom_str_get(lazy_unknown_to_utf8_normalized(r->name,
+									UNI_NORM_GUI, &rc->charset));
 
 	if (NULL != r->alt_locs) {
 		{
@@ -889,6 +905,8 @@ search_gui_common_init(void)
 		lookup_widget(main_window, "label_items_found"));
 	label_search_expiry = GTK_LABEL(
 		lookup_widget(main_window, "label_search_expiry"));
+	
+	gui_color_init();
 }
 
 /**
@@ -1007,7 +1025,6 @@ search_gui_retrieve_searches(void)
 const gchar *
 search_gui_get_route(const record_t *rc)
 {
-	static gchar buf[1024];
 	static gchar addr_buf[128];
 	const results_set_t *rs;
 	
@@ -1018,14 +1035,8 @@ search_gui_get_route(const record_t *rc)
 	rs = rc->results_set;
 	g_assert(rs);
 	
-	host_addr_to_string_buf(rs->last_hop,
-		addr_buf, sizeof addr_buf);
-	gm_snprintf(buf, sizeof buf, "%s %s %u/%u",
-		addr_buf,
-		ST_UDP & rs->status ? _("UDP") : _("TCP"),
-		rs->hops,
-		rs->ttl);
-	return buf;
+	host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
+	return addr_buf;
 }
 
 /**
@@ -1154,6 +1165,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		} else {
 			enum filter_prop_state filter_state, filter_download;
 			gpointer filter_udata;
+			gboolean is_spam, is_hostile;
 
 			add_record = FALSE;
 
@@ -1162,10 +1174,13 @@ search_matched(search_t *sch, results_set_t *rs)
 				continue;
 			}
 
+			is_spam = ST_SPAM & rs->status;
+			is_hostile = ST_HOSTILE & rs->status;
+
 			if (
 				rc->size == 0 ||
 				(!rc->sha1 && search_discard_hashless) ||
-				((ST_SPAM & rs->status) && search_discard_spam)
+				((is_spam || is_hostile) && search_discard_spam)
 			) {
 				sch->ignored++;
 				continue;
@@ -1197,8 +1212,9 @@ search_matched(search_t *sch, results_set_t *rs)
 			 * Check for FILTER_PROP_DOWNLOAD:
 			 */
 			if (
-				!downloaded &&
-				!(rs->status & ST_SPAM) &&
+				!downloaded && 
+				!is_spam &&
+				!is_hostile &&
 				FILTER_PROP_STATE_DO == filter_download
 		   ) {
 				guc_download_auto_new(rc->name, rc->size, rc->index,
@@ -1230,7 +1246,9 @@ search_matched(search_t *sch, results_set_t *rs)
 			}
 
 			/* Count as kept even if max results but not spam */
-			if (0 == (SR_SPAM & rc->flags)) {
+			if (SR_SPAM & rc->flags) {
+				is_spam = TRUE;
+			} else if (!is_hostile) {
 				results_kept++;
 			}
 
@@ -1242,7 +1260,11 @@ search_matched(search_t *sch, results_set_t *rs)
 			mark = FILTER_PROP_STATE_DONT == filter_state &&
 					GINT_TO_POINTER(1) == filter_udata;
 
-			if (rc->flags & SR_IGNORED) {
+			if (is_spam) {
+				fg_color = gui_color_get(GUI_COLOR_SPAM);
+			} else if (is_hostile) {
+				fg_color = gui_color_get(GUI_COLOR_HOSTILE);
+			} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
 				/*
 				 * Check whether this record will be ignored by the backend.
 				 */
@@ -2351,5 +2373,14 @@ failed:
 	return FALSE;
 }
 
+gint
+search_gui_cmp_sha1s(const gchar *a, const gchar *b)
+{
+	if (a && b) {
+		return a == b ? 0 : memcmp(a, b, SHA1_RAW_SIZE);
+	} else {
+		return a ? 1 : (b ? -1 : 0);
+	}
+}
 
 /* vi: set ts=4 sw=4 cindent: */

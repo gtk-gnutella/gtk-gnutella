@@ -155,7 +155,7 @@ prop = {
     type = boolean;
     vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
     data = {
-        default = "{ 1,1,1,1,1,1,1 }";
+        default = "{ 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0 }";
     };
 };
 
@@ -166,7 +166,10 @@ prop = {
     type = guint32;
     vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
     data = {
-        default = "{ 210, 30, 50, 80, 30, 120, 90 }";
+        default = "{"
+                  "  210, 30, 50, 80, 30, 120, 90, 40,"
+        		  "   40, 40, 40, 40, 40,  40, 40, 40"
+                  "}";
     };
 };
 

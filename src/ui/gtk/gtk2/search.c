@@ -159,8 +159,8 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
 {
 	const struct result_data *data;
-	const gchar *text;
-	guint id;
+	const gchar *text = NULL;
+	enum c_sr_columns id;
 
 	(void) unused_column;
 	
@@ -194,8 +194,44 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 	case c_sr_route:
 		text = search_gui_get_route(data->record);
 		break;
-	default:
-		text = NULL;
+	case c_sr_protocol:
+		text = ST_UDP & data->record->results_set->status ? _("UDP") : _("TCP");
+		break;
+	case c_sr_hops:
+		text = uint32_to_string(data->record->results_set->hops);
+		break;
+	case c_sr_ttl:
+		text = uint32_to_string(data->record->results_set->ttl);
+		break;
+	case c_sr_spam:
+		if (SR_SPAM & data->record->flags) {
+			text = "S";	/* Spam */
+		} else if (ST_SPAM & data->record->results_set->status) {
+			text = "s";	/* maybe spam */
+		}
+		break;
+	case c_sr_owned:
+		if (SR_OWNED & data->record->flags) {
+			text = _("owned");
+		} else if (SR_PARTIAL & data->record->flags) {
+			text = _("partial");
+		} else if (SR_SHARED & data->record->flags) {
+			text = _("shared");
+		}
+		break;
+	case c_sr_hostile:
+		if (ST_HOSTILE & data->record->results_set->status) {
+			text = "H";
+		}
+		break;
+	case c_sr_sha1:
+		if (data->record->sha1) {
+			text = sha1_base32(data->record->sha1);
+		}
+		break;
+	case c_sr_num:
+		g_assert_not_reached();
+		break;
 	}
 	g_object_set(cell,
 		"text", text,
@@ -661,10 +697,11 @@ search_gui_cmp_count(
 static inline gint
 search_gui_cmp_strings(const gchar *a, const gchar *b)
 {
-	if (a && b)
+	if (a && b) {
 		return a == b ? 0 : strcmp(a, b);
-	
-	return a ? 1 : (b ? -1 : 0);
+	} else {
+		return a ? 1 : (b ? -1 : 0);
+	}
 }
 
 static gint
@@ -679,6 +716,21 @@ search_gui_cmp_filename(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_strings(d1->record->utf8_name, d2->record->utf8_name);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_sha1(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	ret = search_gui_cmp_sha1s(d1->record->sha1, d2->record->sha1);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -779,15 +831,122 @@ search_gui_cmp_route(
 	rs1 = d1->record->results_set;
 	rs2 = d2->record->results_set;
 	ret = host_addr_cmp(rs1->last_hop, rs2->last_hop);
-	if (0 == ret) {
-		ret = CMP((ST_UDP & rs1->status) , (ST_UDP & rs2->status));
-		if (0 == ret) {
-			ret = CMP(rs1->hops, rs2->hops);
-			if (0 == ret)
-				ret = CMP(rs1->ttl, rs2->ttl);
-		}
-	}
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
 
+static gint
+search_gui_cmp_hops(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	const struct results_set *rs1, *rs2;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	rs1 = d1->record->results_set;
+	rs2 = d2->record->results_set;
+	ret = CMP(rs1->hops, rs2->hops);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_ttl(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	const struct results_set *rs1, *rs2;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	rs1 = d1->record->results_set;
+	rs2 = d2->record->results_set;
+	ret = CMP(rs1->ttl, rs2->ttl);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_protocol(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	const struct results_set *rs1, *rs2;
+	const guint32 mask = ST_UDP;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	rs1 = d1->record->results_set;
+	rs2 = d2->record->results_set;
+	ret = CMP(mask & rs1->status, mask & rs2->status);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_owned(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	const struct results_set *rs1, *rs2;
+	const guint32 mask = SR_OWNED | SR_SHARED;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	rs1 = d1->record->results_set;
+	rs2 = d2->record->results_set;
+	ret = CMP(mask & d1->record->flags, mask & d2->record->flags);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_hostile(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	const struct results_set *rs1, *rs2;
+	const guint32 mask = ST_HOSTILE;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	rs1 = d1->record->results_set;
+	rs2 = d2->record->results_set;
+	ret = CMP(mask & rs1->status, mask & rs2->status);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_spam(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	guint32 mask = SR_SPAM;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	ret = CMP(mask & d1->record->flags, mask & d2->record->flags);
+	if (0 == ret) {
+		const struct results_set *rs1, *rs2;
+		rs1 = d1->record->results_set;
+		rs2 = d2->record->results_set;
+		mask = ST_SPAM;
+		ret = CMP(mask & rs1->status, mask & rs2->status);
+	}
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -1785,7 +1944,14 @@ add_results_columns(GtkTreeView *treeview, gpointer udata)
 		{ N_("Loc"),	   c_sr_loc,	  0.0, search_gui_cmp_country },
 		{ N_("Metadata"),  c_sr_meta,	  0.0, search_gui_cmp_meta },
 		{ N_("Info"),	   c_sr_info,	  0.0, search_gui_cmp_info },
-		{ N_("Route"),	   c_sr_route,	  0.0, search_gui_cmp_route }
+		{ N_("Route"),	   c_sr_route,	  0.0, search_gui_cmp_route },
+		{ N_("Protocol"),  c_sr_protocol, 0.0, search_gui_cmp_protocol },
+		{ N_("Hops"),  	   c_sr_hops,	  0.0, search_gui_cmp_hops },
+		{ N_("TTL"),  	   c_sr_ttl,	  0.0, search_gui_cmp_ttl },
+		{ N_("Owned"),     c_sr_owned,	  0.0, search_gui_cmp_owned },
+		{ N_("Spam"),      c_sr_spam,	  0.0, search_gui_cmp_spam },
+		{ N_("Hostile"),   c_sr_hostile,  0.0, search_gui_cmp_hostile },
+		{ N_("SHA-1"),     c_sr_sha1,     0.0, search_gui_cmp_sha1 },
 	};
 	guint32 width[G_N_ELEMENTS(columns)];
 	guint i;

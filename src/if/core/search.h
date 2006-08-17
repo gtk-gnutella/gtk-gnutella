@@ -60,6 +60,7 @@ typedef struct gnet_host_vec {
  * Result sets `status' flags.
  */
 enum {
+	 ST_HOSTILE				= (1 << 14),
 	 ST_UNREQUESTED			= (1 << 13), /**< Unrequested (OOB) result */
 	 ST_EVIL				= (1 << 12), /**< Carries evil filename */
 	 ST_SPAM				= (1 << 11), /**< Carries spam */
@@ -124,7 +125,10 @@ enum {
 	SR_DOWNLOADED	= (1 << 0),
 	SR_IGNORED		= (1 << 1),
 	SR_DONT_SHOW	= (1 << 2),
-	SR_SPAM			= (1 << 3)
+	SR_SPAM			= (1 << 3),
+	SR_SHARED		= (1 << 4),
+	SR_OWNED		= (1 << 5),
+	SR_PARTIAL		= (1 << 6)
 };
 
 /**

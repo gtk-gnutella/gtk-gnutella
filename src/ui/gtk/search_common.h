@@ -119,6 +119,14 @@ struct query {
 	guint flags;
 };
 
+enum gui_color {
+	GUI_COLOR_SPAM,
+	GUI_COLOR_HOSTILE,
+	NUM_GUI_COLORS
+};
+
+void gui_color_init(void);
+GdkColor *gui_color_get(enum gui_color id);
 
 #include "search.h"
 
@@ -185,6 +193,8 @@ gboolean search_gui_handle_urn(const gchar *url, const gchar **error_str);
 gchar *search_xml_indent(const gchar *s);
 
 void on_option_menu_search_changed(GtkOptionMenu *option_menu, gpointer unused_udata);
+
+gint search_gui_cmp_sha1s(const gchar *a, const gchar *b);
 
 #endif /* _gtk_search_common_h_ */
 

@@ -146,7 +146,7 @@ enum c_fi {
  * Searches table columns.
  */
 
-enum {
+enum c_sr_columns {
     c_sr_filename = 0,
 	c_sr_ext,
     c_sr_charset,
@@ -156,12 +156,15 @@ enum {
     c_sr_meta,	/**< meta-data info column */
     c_sr_info,
     c_sr_route,
-#define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_route + 1)
-#ifdef USE_GTK2
-	c_sr_fg, /**< invisible, holds the foreground color for the row */
-	c_sr_bg, /**< invisible, holds the background color for the row */
-#endif
+    c_sr_protocol,
+    c_sr_hops,
+    c_sr_ttl,
+    c_sr_spam,
+    c_sr_hostile,
+    c_sr_owned,
+    c_sr_sha1,
 	c_sr_num
+#define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_num)
 };
 
 /**

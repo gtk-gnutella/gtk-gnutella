@@ -486,7 +486,7 @@ search_gui_compare_records(gint sort_col,
         g_assert(rs1 != NULL);
         g_assert(rs2 != NULL);
 
-        switch (sort_col) {
+        switch ((enum c_sr_columns) sort_col) {
         case c_sr_filename:
             result = (search_sort_casesense ? strcmp : ascii_strcasecmp)
                 (r1->name, r2->name);
@@ -505,10 +505,7 @@ search_gui_compare_records(gint sort_col,
 			 * Sort by size, then by identical SHA1.
 			 */
 			if (r1->size == r2->size)
-            	result = (r1->sha1 == r2->sha1) ? 0 :
-              		(r1->sha1 == NULL) ? -1 :
-              		(r2->sha1 == NULL) ? +1 :
-					memcmp(r1->sha1, r2->sha1, SHA1_RAW_SIZE);
+            	result = search_gui_cmp_sha1s(r1->sha1, r2->sha1);
 			else
 				result = (r1->size > r2->size) ? +1 : -1;
             break;
@@ -538,7 +535,55 @@ search_gui_compare_records(gint sort_col,
 			break;				/* XXX Can't sort, metadata not in record! */
 			
         case c_sr_route:
-			/* XXX: Sort properly */
+			result = host_addr_cmp(rs1->last_hop, rs2->last_hop);
+			break;
+
+        case c_sr_hops:
+			result = CMP(rs1->hops, rs2->hops);
+			break;
+
+        case c_sr_ttl:
+			result = CMP(rs1->ttl, rs2->ttl);
+			break;
+
+        case c_sr_protocol:
+			{
+				const guint32 mask = ST_UDP;
+				result = CMP(mask & rs1->status, mask & rs2->status);
+			}
+			break;
+
+        case c_sr_hostile:
+			{
+				const guint32 mask = ST_HOSTILE;
+				result = CMP(mask & rs1->status, mask & rs2->status);
+			}
+			break;
+
+        case c_sr_owned:
+			{
+				const guint32 mask = SR_SHARED | SR_OWNED;
+				result = CMP(mask & r1->flags, mask & r2->flags);
+			}
+			break;
+
+        case c_sr_spam:
+			{
+				guint32 mask = SR_SPAM;
+				result = CMP(mask & r1->flags, mask & r2->flags);
+				if (0 == result) {
+					mask = ST_SPAM;
+					result = CMP(mask & rs1->status, mask & rs2->status);
+				}
+			}
+			break;
+
+        case c_sr_sha1:
+           	result = search_gui_cmp_sha1s(r1->sha1, r2->sha1);
+			break;
+			
+        case c_sr_num:
+			g_assert_not_reached();
 			break;
         }
     }
@@ -1175,18 +1220,87 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 		
 		ext = search_gui_get_filename_extension(rc->utf8_name);
 		rc->ext = atom_str_get(ext ? lazy_utf8_to_ui_string(ext) : "");
-
-		titles[c_sr_filename] = lazy_utf8_to_ui_string(rc->utf8_name);
 	}
 
-	titles[c_sr_ext] = rc->ext;
-	titles[c_sr_charset] = rc->charset;
-	titles[c_sr_meta] = empty;
-	titles[c_sr_info] = rc->info ? rc->info : empty;
-	titles[c_sr_size] = empty;
-	titles[c_sr_count] = empty;
-	titles[c_sr_loc] = iso3166_country_cc(rs->country);
-	titles[c_sr_route] = search_gui_get_route(rc);
+	{
+		gint i;
+
+		for (i = 0; i < c_sr_num; i++) {
+			const gchar *text = empty;
+
+			switch ((enum c_sr_columns) i) {
+			case c_sr_filename:
+				text = lazy_utf8_to_ui_string(rc->utf8_name);
+				break;
+	 		case c_sr_ext:
+				text = rc->ext;
+				break;
+			case c_sr_charset:
+				text = rc->charset;
+				break;
+	 		case c_sr_info:
+				if (rc->info) {
+					text = rc->info;
+				}
+				break;
+	 		case c_sr_loc:
+				text = iso3166_country_cc(rs->country);
+				break;
+	 		case c_sr_route:
+				text = search_gui_get_route(rc);
+				break;
+			case c_sr_protocol:
+				text = ST_UDP & rs->status ? _("UDP") : _("TCP");
+				break;
+			case c_sr_hops:
+				{
+					static gchar buf[UINT32_DEC_BUFLEN];
+					uint32_to_string_buf(rs->hops, buf, sizeof buf);
+				}
+				break;
+			case c_sr_ttl:
+				{
+					static gchar buf[UINT32_DEC_BUFLEN];
+					uint32_to_string_buf(rs->ttl, buf, sizeof buf);
+				}
+				break;
+			case c_sr_spam:
+				if (SR_SPAM & rc->flags) {
+					text = "S";	/* Spam */
+				} else if (ST_SPAM & rs->status) {
+					text = "s";	/* maybe spam */
+				}
+				break;
+			case c_sr_owned:
+				if (SR_OWNED & rc->flags) {
+					text = _("owned");
+				} else if (SR_PARTIAL & rc->flags) {
+					text = _("partial");
+				} else if (SR_SHARED & rc->flags) {
+					text = _("shared");
+				}
+				break;
+			case c_sr_hostile:
+				if (ST_HOSTILE & rs->status) {
+					text = "H";
+				}
+				break;
+			case c_sr_sha1:
+				if (rc->sha1) {
+					text = sha1_base32(rc->sha1);
+				}
+				break;
+			case c_sr_meta:
+	 		case c_sr_size:
+	 		case c_sr_count:
+				break;
+			case c_sr_num:
+				g_assert_not_reached();
+				break;
+			}
+			titles[i] = text;
+		}
+	}
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 
@@ -2284,17 +2398,26 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 		const gint id;
 		const gboolean visible;
 	} columns[] = {
-		{ N_("File"), c_sr_filename, TRUE },
-		{ N_("Extension"), c_sr_ext, TRUE },
-		{ N_("Encoding"), c_sr_charset, FALSE },
-		{ N_("Size"), c_sr_size, TRUE },
-		{ N_("#"), c_sr_count, TRUE },
-		{ N_("Loc"), c_sr_loc, FALSE },
-		{ N_("Metadata"), c_sr_meta, TRUE },
-		{ N_("Info"), c_sr_info, TRUE },
-		{ N_("Route"), c_sr_route, FALSE },
+		{ N_("File"), 		c_sr_filename,	TRUE },
+		{ N_("Extension"),	c_sr_ext, 		TRUE },
+		{ N_("Encoding"),	c_sr_charset,	FALSE },
+		{ N_("Size"),		c_sr_size,		TRUE },
+		{ N_("#"),			c_sr_count,		TRUE },
+		{ N_("Loc"),		c_sr_loc,		FALSE },
+		{ N_("Metadata"),	c_sr_meta,		TRUE },
+		{ N_("Info"),		c_sr_info,		TRUE },
+		{ N_("Route"),		c_sr_route,		FALSE },
+		{ N_("Protocol"),	c_sr_protocol, 	FALSE },
+		{ N_("Hops"),  	   	c_sr_hops,		FALSE },
+		{ N_("TTL"),  	   	c_sr_ttl,		FALSE },
+		{ N_("Owned"),     	c_sr_owned,		FALSE },
+		{ N_("Spam"),      	c_sr_spam,		FALSE },
+		{ N_("Hostile"),   	c_sr_hostile,	FALSE },
+		{ N_("SHA-1"),     	c_sr_sha1,		FALSE },
 	};
 	guint i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(columns) == c_sr_num);
 
 	*sw = gtk_scrolled_window_new(NULL, NULL);
 
@@ -2335,7 +2458,7 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
     	gtk_clist_set_column_name(GTK_CLIST(*ctree), id,
 			deconstify_gchar(title));
 		if (!columns[i].visible)
-			gtk_clist_set_column_visibility(GTK_CLIST(*ctree), c_sr_loc, FALSE);
+			gtk_clist_set_column_visibility(GTK_CLIST(*ctree), id, FALSE);
 	}
 
 	gtk_widget_show_all(*sw);

@@ -588,18 +588,18 @@ search_record_new(void)
 }
 
 /**
- * This checks XML data appended to search results for Gnoozle spam. It's
- * a weak heuristic but it should be sufficient for now. Gnoozle exploits a
- * feature of LimeWire and sends results for faked, non-existent files with
- * bogus SHA-1s. This will be fixed in LimeWire soon, so there's no need
- * to invest too much into it and it can probably be removed in a couple of
- * months from now (2006-06-14).
+ * This checks XML data appended to search results for action URL spam. It's
+ * a weak heuristic but it should be sufficient for now. Gnoozle and others
+ * exploits a feature of LimeWire and sends results for faked, non-existent
+ * files with bogus SHA-1s. This will be fixed in LimeWire soon, so there's no
+ * need to invest too much into it and it can probably be removed in a couple
+ * of months from now (2006-06-14).
  *
  * @param xml_buf a NUL-terminated string of XML data.
  * @return TRUE if spam was detected, FALSE if it looks alright.
  */
 static gboolean
-is_gnoozle_spam(const gchar *xml_buf)
+is_action_url_spam(const gchar *xml_buf)
 {
 	const gchar *p;
 
@@ -971,8 +971,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
             g_message("dropping query hit from hostile IP %s",
                 host_addr_to_string(rs->addr));
         }
-		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-		goto bad_packet;
+		rs->status |= ST_HOSTILE;
 	}
 
 	/*
@@ -1290,7 +1289,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						buf[len] = '\0';
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
-							if (is_gnoozle_spam(buf)) {
+							if (is_action_url_spam(buf)) {
 								rs->status |= ST_SPAM;
 								set_flags(rc->flags, SR_SPAM);
 							}
@@ -1657,7 +1656,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							buf[len] = '\0';
 							if (utf8_is_valid_string(buf)) {
 								rc->xml = atom_str_get(buf);
-								if (is_gnoozle_spam(buf)) {
+								if (is_action_url_spam(buf)) {
 									rs->status |= ST_SPAM;
 									set_flags(rc->flags, SR_SPAM);
 								}
@@ -2416,7 +2415,7 @@ static void
 search_send_closed(gpointer key, gpointer unused_value, gpointer udata)
 {
 	guint node_id = GPOINTER_TO_UINT(key);
-	search_ctrl_t *sch = (search_ctrl_t *) udata;
+	search_ctrl_t *sch = udata;
 
 	(void) unused_value;
 	search_send_query_status(sch, node_id, CLOSED_SEARCH);
@@ -2670,11 +2669,16 @@ search_results(gnutella_node_t *n, gint *results)
 	 * `drop_it' as this is reserved for bad packets.
 	 */
 
-	if (rs->status & (ST_SPAM | ST_EVIL)) {
+	if (rs->status & (ST_SPAM | ST_EVIL | ST_HOSTILE)) {
 		forward_it = FALSE;
 		/* It's not really dropped, just not forwarded, count it anyway. */
-		gnet_stats_count_dropped(n,
-			(rs->status & ST_EVIL) ? MSG_DROP_EVIL : MSG_DROP_SPAM);
+		if (ST_SPAM & rs->status) {
+			gnet_stats_count_dropped(n, MSG_DROP_SPAM);
+		} else if (ST_EVIL & rs->status) {
+			gnet_stats_count_dropped(n, MSG_DROP_EVIL);
+		} else if (ST_HOSTILE & rs->status) {
+			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+		}
 	} else {
 		if (!dq_got_results(n->header.muid, rs->num_recs))
 			forward_it = FALSE;
@@ -2867,6 +2871,38 @@ search_check_results_set(gnet_results_set_t *rs)
 
 	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
 		gnet_record_t *rc = sl->data;
+
+		if (rc->sha1) {
+			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
+			if (sf && SHARE_REBUILDING != sf) {
+				if (sf->fi) {
+            		set_flags(rc->flags, SR_PARTIAL);
+				} else {
+					set_flags(rc->flags, SR_SHARED);
+				}
+			} else {
+				enum ignore_val reason;
+
+				reason = ignore_is_requested(rc->name, rc->size, rc->sha1);
+				switch (reason) {
+				case IGNORE_FALSE:
+					break;
+				case IGNORE_SHA1:
+				case IGNORE_NAMESIZE:
+				case IGNORE_LIBRARY:
+					set_flags(rc->flags, SR_OWNED);
+					break;
+				case IGNORE_SPAM:
+					set_flags(rc->flags, SR_SPAM);
+					break;
+				case IGNORE_OURSELVES:
+				case IGNORE_HOSTILE:
+					/* These are for manual use and never returned */
+					g_assert_not_reached();
+					break;
+				}
+			}
+		}
 
 		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
 
