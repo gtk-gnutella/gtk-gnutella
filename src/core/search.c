@@ -2681,7 +2681,7 @@ search_results(gnutella_node_t *n, gint *results)
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		}
 	} else {
-		if (!dq_got_results(n->header.muid, rs->num_recs))
+		if (!dq_got_results(n->header.muid, rs->num_recs, rs->status))
 			forward_it = FALSE;
 
 		/*

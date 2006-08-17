@@ -132,6 +132,7 @@ typedef struct dquery {
 	query_hashvec_t *qhv;	/**< Query hash vector for QRP filtering */
 	GHashTable *queried;	/**< Contains node IDs that we queried so far */
 	const gchar *lmuid;		/**< For proxied query: the original leaf MUID */
+	guint16 query_flags;	/**< Flags from the marked query speed field */
 	guint8 ttl;				/**< Initial query TTL */
 	guint32 horizon;		/**< Theoretical horizon reached thus far */
 	guint32 up_sent;		/**< # of UPs to which we really sent our query */
@@ -1657,6 +1658,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
 	dq->alive = n->alive_pings;
+	if (tagged_speed)
+		dq->query_flags = req_speed;
 
 	leaf_muid = oob_proxy_muid_proxied(n->header.muid);
 	if (leaf_muid != NULL)
@@ -1771,11 +1774,13 @@ dq_node_removed(guint32 node_id)
  * @param oob if TRUE indicates that we just got notified about OOB results
  * awaiting, but which have not been claimed yet.  If FALSE, the results
  * have been validated and will be sent to the queryier.
+ * @param status	result set `status' flags gathered during parsing
  *
- * @return FALSE if the query was explicitly cancelled by the user
+ * @return FALSE if the query was explicitly cancelled by the user or if we
+ * should not forward the results anyway.
  */
 static gboolean
-dq_count_results(gchar *muid, gint count, gboolean oob)
+dq_count_results(gchar *muid, gint count, guint16 status, gboolean oob)
 {
 	dquery_t *dq;
 
@@ -1785,6 +1790,38 @@ dq_count_results(gchar *muid, gint count, gboolean oob)
 
 	if (dq == NULL)
 		return TRUE;
+
+	/*
+	 * If we got actual results (not an OOB indication) and if we see that
+	 * the replying server is firewalled, the requester is also firewalled
+	 * and does not support firewalled-to-firewalled transfers, it's not
+	 * necessary to forward the results: they would be useless.
+	 *
+	 * As such, don't account those results for the dynamic query.
+	 */
+
+	if (
+		!oob &&
+		(status & ST_FIREWALL) &&
+		(dq->query_flags & (QUERY_SPEED_FIREWALLED|QUERY_SPEED_FW_TO_FW))
+			== QUERY_SPEED_FIREWALLED
+	) {
+		if (dq_debug > 19) {
+			if (dq->flags & DQ_F_LINGER)
+				printf("DQ[%d] %s(%d secs; +%d secs) +%d ignored (firewall)\n",
+					dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
+					(gint) (tm_time() - dq->start),
+					(gint) (tm_time() - dq->stop),
+					count);
+			else
+				printf("DQ[%d] %s(%d secs) +%d ignored (firewall)\n",
+					dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
+					(gint) (tm_time() - dq->start),
+					count);
+		}
+
+		return FALSE;		/* Don't forward those results */
+	}
 
 	if (dq->flags & DQ_F_LINGER)
 		dq->linger_results += count;
@@ -1824,14 +1861,18 @@ dq_count_results(gchar *muid, gint count, gboolean oob)
  * If we have a dynamic query registered for the MUID, increase the result
  * count.
  *
+ * @param muid		the query's MUID
+ * @param count		how many results we parsed
+ * @param status	result set `status' flags gathered during parsing
+ *
  * @return FALSE if the query was explicitly cancelled by the user and
  * results should be dropped, TRUE otherwise.  In other words, returns
  * whether we should forward the results.
  */
 gboolean
-dq_got_results(gchar *muid, guint count)
+dq_got_results(gchar *muid, guint count, guint16 status)
 {
-	return dq_count_results(muid, count, FALSE);
+	return dq_count_results(muid, count, status, FALSE);
 }
 
 /**
@@ -1844,7 +1885,7 @@ dq_got_results(gchar *muid, guint count)
 gboolean
 dq_oob_results_ind(gchar *muid, gint count)
 {
-	return dq_count_results(muid, count, TRUE);
+	return dq_count_results(muid, count, 0, TRUE);
 }
 
 /**
