@@ -1546,7 +1546,7 @@ handle_node_info_req(struct gnutella_node *n,
 		return;
 	}
 
-	// XXX
+	/* XXX */
 	(void) payload;
 }
 
@@ -1566,7 +1566,7 @@ handle_node_info_ans(struct gnutella_node *n,
 		return;
 	}
 
-	// XXX
+	/* XXX */
 	(void) payload;
 }
 
