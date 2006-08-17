@@ -1860,7 +1860,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		) {
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
-			if (query_debug)
+			if (query_debug || oob_proxy_debug)
 				g_message("QUERY dropped from node %s <%s>: invalid OOB flag "
 					"(return address mismatch: %s, node: %s)",
 					node_addr(n), node_vendor(n),
