@@ -238,7 +238,8 @@ host_timer(void)
  *** Hosts
  ***/
 
-void host_init(void)
+void
+host_init(void)
 {
 	pcache_init();
 }
