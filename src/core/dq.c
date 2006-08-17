@@ -78,6 +78,7 @@ RCSID("$Id$")
 #define DQ_MAX_PENDING		3		/**< Max pending queries we allow */
 #define DQ_MAX_STAT_TIMEOUT	2		/**< Max # of stat timeouts we allow */
 #define DQ_STAT_THRESHOLD	3		/**< Request status every 3 UP probed */
+#define DQ_MIN_FOR_GUIDANCE	20		/**< Request guidance if 20+ new results */
 
 #define DQ_LEAF_RESULTS		50		/**< # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/**< # of results for local queries */
@@ -162,6 +163,7 @@ typedef struct dquery {
 #define DQ_F_WAITING		0x00000008	/**< Waiting guidance reply from leaf */
 #define DQ_F_GOT_GUIDANCE	0x00000010	/**< Got some leaf guidance */
 #define DQ_F_USR_CANCELLED	0x00000020	/**< Explicitely cancelled by user */
+#define DQ_F_ROUTING_HITS	0x00000040	/**< We'll be routing all hits */
 #define DQ_F_EXITING		0x80000000	/**< Final cleanup at exit time */
 
 /**
@@ -772,7 +774,10 @@ dq_free(dquery_t *dq)
 
 	if (
 		dq->results >= dq->max_results ||
-		(dq->flags & (DQ_F_USR_CANCELLED | DQ_F_ID_CLEANING))
+		(dq->flags & (DQ_F_USR_CANCELLED | DQ_F_ID_CLEANING)) ||
+		dq->kept_results /
+			(dq->node_id == NODE_ID_LOCAL ? 1 : DQ_AVG_ULTRA_NODES)
+			>= dq->max_results
 	)
 		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_FULL, 1);
 	else if (dq->results > 0)
@@ -944,25 +949,34 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 		dq->flags &= ~DQ_F_WAITING;
 
 		if (
-			!(dq->flags & DQ_F_GOT_GUIDANCE) ||	/* No guidance already? */
-			(dq->stat_timeouts >= DQ_MAX_STAT_TIMEOUT)
+			!(dq->flags & DQ_F_GOT_GUIDANCE) &&	/* No guidance already? */
+			dq->stat_timeouts >= DQ_MAX_STAT_TIMEOUT
 		) {
 			dq->flags &= ~DQ_F_LEAF_GUIDED;		/* Probably not supported */
-
-			if (dq_debug > 19)
-				printf("DQ[%d] (%d secs) turned off leaf-guidance\n",
-					dq->qid, (gint) (tm_time() - dq->start));
-		}
-
-		if (dq->stat_timeouts >= DQ_MAX_STAT_TIMEOUT) {
-			if (dq_debug > 19)
-				printf("DQ[%d] removing leaf-guidance support from node #%u\n",
-					dq->qid, dq->node_id);
-
 			node_set_leaf_guidance(dq->node_id, FALSE);
+
+			if (dq_debug > 19)
+				printf(
+					"DQ[%d] (%d secs) turned off leaf-guidance for node #%u\n",
+					dq->qid, (gint) (tm_time() - dq->start), dq->node_id);
 		}
 
 		/* FALL THROUGH */
+	}
+
+	/*
+	 * If we're not routing the query hits and the query is no longer
+	 * leaf-guided (because for instance the remote host is not answering
+	 * our status requests), we have no way of performing the dynamic
+	 * query and we must abort.
+	 */
+
+	if (!(dq->flags & (DQ_F_LEAF_GUIDED|DQ_F_ROUTING_HITS))) {
+		if (dq_debug)
+			printf("DQ[%d] terminating unguided & unrouted (queried %u UP%s)\n",
+				dq->qid, dq->up_sent, dq->up_sent == 1 ? "" : "s");
+		dq_terminate(dq);
+		return;
 	}
 
 	/*
@@ -982,7 +996,11 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	if (
 		was_waiting ||
 		!(dq->flags & DQ_F_LEAF_GUIDED) ||
-		(dq->up_sent - dq->last_status < DQ_STAT_THRESHOLD)
+		dq->up_sent - dq->last_status < DQ_STAT_THRESHOLD ||
+		(
+			(dq->flags & DQ_F_ROUTING_HITS) &&
+			dq->new_results < DQ_MIN_FOR_GUIDANCE
+		)
 	) {
 		dq_send_next(dq);
 		return;
@@ -1534,9 +1552,11 @@ dq_common_init(dquery_t *dq)
 		READ_GUINT16_LE(start + GTA_HEADER_SIZE, req_speed);
 
 		printf("DQ[%d] created for node #%d: TTL=%d max_results=%d "
-			"guidance=%s MUID=%s%s%s q=\"%s\" speed=0x%x (%s%s%s%s%s%s%s)\n",
+			"guidance=%s routing=%s "
+			"MUID=%s%s%s q=\"%s\" speed=0x%x (%s%s%s%s%s%s%s)\n",
 			dq->qid, dq->node_id, dq->ttl, dq->max_results,
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
+			(dq->flags & DQ_F_ROUTING_HITS) ? "yes" : "no",
 			guid_hex_str(head->muid),
 			dq->lmuid ? " leaf-MUID=" : "",
 			dq->lmuid ? data_hex_str(dq->lmuid, GUID_RAW_SIZE): "",
@@ -1615,6 +1635,16 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
 	}
 
+	/*
+	 * See whether we'll be seeing all the hits...
+	 */
+
+	if (
+		NULL != oob_proxy_muid_proxied(n->header.muid) ||	/* OOB-proxied */
+		(tagged_speed && !(req_speed && QUERY_SPEED_OOB_REPLY))
+	)
+		dq->flags |= DQ_F_ROUTING_HITS;
+
 	dq->node_id = n->id;
 	dq->mb = gmsg_split_to_pmsg(
 		(guchar *) &n->header, n->data,
@@ -1689,6 +1719,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(my_ttl, DQ_MAX_TTL);
 	dq->alive = NULL;
+	dq->flags = DQ_F_ROUTING_HITS;		/* We get our own hits! */
 
 	gnet_stats_count_general(GNR_LOCAL_DYN_QUERIES, 1);
 
@@ -1891,6 +1922,11 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 		if (!(dq->flags & DQ_F_LEAF_GUIDED)) {
 			node_set_leaf_guidance(node_id, TRUE);
 			dq->flags |= DQ_F_LEAF_GUIDED;
+
+			if (dq_debug > 19)
+				printf(
+					"DQ[%d] (%d secs) turned on leaf-guidance for node #%u\n",
+					dq->qid, (gint) (tm_time() - dq->start), dq->node_id);
 		}
 	}
 
