@@ -56,7 +56,7 @@ RCSID("$Id$")
 #define DH_MIN_HITS		250		/**< Minimum amount of hits we try to relay */
 #define DH_POPULAR_HITS	500		/**< Query deemed popular after that many hits */
 #define DH_MAX_HITS		1000	/**< Maximum hits after which we heavily drop */
-#define DH_THRESH_HITS	10		/**< Consider we have no hits if less than that */
+#define DH_THRESH_HITS	10		/**< We have no hits if less than that */
 
 /**
  * Information about query hits received.
