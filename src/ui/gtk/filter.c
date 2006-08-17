@@ -407,7 +407,7 @@ filter_gui_filter_clear_list(void)
 	for (i = 0; i < G_N_ELEMENTS(nodes); i++) {
     	gchar *titles[3];
 		
-    	titles[0] = _(nodes[i].title);
+    	titles[0] = deconstify_gchar(_(nodes[i].title));
     	titles[1] = "";
     	titles[2] = "";
     	fl_nodes[i] = gtk_ctree_insert_node(GTK_CTREE(ctree_filter_filters),
