@@ -301,8 +301,9 @@
 # Spams DRM WMV files with license URL pointing to 68.178.225.162; filenames
 # are bogus but are neither random nor matching the query. Examples are
 # "basketball*wmv", "flytrain*wmv", "landing*wmv" etc. with variations in the
-# trailing part like "_full-l", "part-l", "part-s" etc.)
+# trailing part like "_full-l", "part-l", "part-s" etc.); usually Gnucleus
 64.182.136.130
+64.151.98.36
 
 # Same as above; DRM header links to 216.93.188.81; WhenU/SaveNow spam
 206.51.230.2
