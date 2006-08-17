@@ -1980,7 +1980,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	 * Starting today (06/07/2003), we're using marked speed fields and
 	 * ignore the speed they specify in the searches from the GUI. --RAM
 	 *
-	 * Starting 2005-08-20, we no longer specify QUERY_SPEED_NO_XML because
+	 * Starting 2005-08-20, we specify QUERY_SPEED_XML because
 	 * we show XML in hits within the GUI.  We don't yet parse it, but at
 	 * least they can read it.
 	 */
@@ -1990,6 +1990,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		speed |= QUERY_SPEED_FIREWALLED;
 	speed |= QUERY_SPEED_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
 	speed |= QUERY_SPEED_GGEP_H;		/* GTKG understands GGEP "H" in hits */
+	speed |= QUERY_SPEED_XML;			/* GTKG can read XML in hits */
 
 	/*
 	 * We need special processing for OOB queries since the GUID has to be

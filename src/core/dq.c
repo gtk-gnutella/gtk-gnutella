@@ -1211,7 +1211,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (current_peermode != NODE_P_ULTRA) {
-		if (dq_debug > 19)
+		if (dq_debug)
 			printf("DQ[%d] terminating (no longer an ultra node)\n", dq->qid);
 		goto terminate;
 	}
@@ -1224,7 +1224,7 @@ dq_send_next(dquery_t *dq)
 	results = dq_kept_results(dq);
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
-		if (dq_debug > 19)
+		if (dq_debug)
 			printf("DQ[%d] terminating "
 				"(UPs=%u, horizon=%u >= %d, %s results=%u >= %u)\n",
 				dq->qid, dq->up_sent, dq->horizon, DQ_MAX_HORIZON,
@@ -1242,7 +1242,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->results + dq->oob_results > dq->fin_results) {
-		if (dq_debug > 19)
+		if (dq_debug)
 			printf("DQ[%d] terminating "
 				"(UPs=%u, seen=%u + OOB=%u >= %u -- %s kept=%u)\n",
 				dq->qid, dq->up_sent,
@@ -1258,7 +1258,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->up_sent >= max_connections - normal_connections) {
-		if (dq_debug > 19)
+		if (dq_debug)
 			printf("DQ[%d] terminating (queried UPs=%u >= %u)\n",
 				dq->qid, dq->up_sent, max_connections - normal_connections);
 		goto terminate;
@@ -1525,15 +1525,29 @@ dq_common_init(dquery_t *dq)
 				deconstify_gpointer(dq->lmuid), dq);
 	}
 
-	if (dq_debug > 19)
+	if (dq_debug) {
+		gchar *start = pmsg_start(dq->mb);
+		guint16 req_speed;
+
+		READ_GUINT16_LE(start + GTA_HEADER_SIZE, req_speed);
+
 		printf("DQ[%d] created for node #%d: TTL=%d max_results=%d "
-			"guidance=%s MUID=%s%s%s q=\"%s\"\n",
+			"guidance=%s MUID=%s%s%s q=\"%s\" speed=0x%x (%s%s%s%s%s%s%s)\n",
 			dq->qid, dq->node_id, dq->ttl, dq->max_results,
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
 			guid_hex_str(head->muid),
 			dq->lmuid ? " leaf-MUID=" : "",
 			dq->lmuid ? data_hex_str(dq->lmuid, GUID_RAW_SIZE): "",
-			QUERY_TEXT(pmsg_start(dq->mb)));
+			QUERY_TEXT(start), req_speed,
+			(req_speed & QUERY_SPEED_MARK) ? "MARKED" : "",
+			(req_speed & QUERY_SPEED_FIREWALLED) ? " FW" : "",
+			(req_speed & QUERY_SPEED_XML) ? " XML" : "",
+			(req_speed & QUERY_SPEED_LEAF_GUIDED) ? " GUIDED" : "",
+			(req_speed & QUERY_SPEED_GGEP_H) ? " GGEP_H" : "",
+			(req_speed & QUERY_SPEED_OOB_REPLY) ? " OOB" : "",
+			(req_speed & QUERY_SPEED_FW_TO_FW) ? " FW2FW" : ""
+		);
+	}
 }
 
 /**
@@ -1698,7 +1712,7 @@ dq_node_removed(guint32 node_id)
 	for (sl = value; sl; sl = g_slist_next(sl)) {
 		dquery_t *dq = (dquery_t *) sl->data;
 
-		if (dq_debug > 19)
+		if (dq_debug)
 			printf("DQ[%d] terminated by node #%u removal (queried %u UP%s)\n",
 				dq->qid, dq->node_id, dq->up_sent, dq->up_sent == 1 ? "" : "s");
 
@@ -1892,7 +1906,7 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 	 */
 
 	if (kept == 0xffff) {
-		if (dq_debug > 19)
+		if (dq_debug)
 			printf("DQ[%d] terminating at user's request (queried %u UP%s)\n",
 				dq->qid, dq->up_sent, dq->up_sent == 1 ? "" : "s");
 
