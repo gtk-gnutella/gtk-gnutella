@@ -2260,6 +2260,9 @@ shared_file_complete_by_sha1(const gchar *sha1_digest)
  * @attention
  * NB: if the returned "shared_file" structure holds a non-NULL `fi',
  * then it means it is a partially shared file.
+ *
+ * @returns NULL if we don't share a complete file, or SHARE_REBUILDING if the
+ * set of shared file is being rebuilt.
  */
 shared_file_t *
 shared_file_by_sha1(const gchar *sha1_digest)
