@@ -363,7 +363,7 @@ set_poll_event(int sfd, int fd, int events)
 	if ((ssize_t) -1 == ret) {
 		g_error("update_poll_event(): write() failed: %s", strerror(errno));
 	}
-	g_return_val_if_fail((size_t) ret == sizeof pfd, -1);
+	g_return_if_fail((size_t) ret == sizeof pfd);
 }
 
 static gint
