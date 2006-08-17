@@ -198,6 +198,7 @@ debugging(guint t)
 		bootstrap_debug > t ||
 		dbg > t ||
 		dh_debug > t ||
+		dht_debug > t ||
 		dmesh_debug > t ||
 		download_debug > t ||
 		dq_debug > t ||
@@ -209,11 +210,13 @@ debugging(guint t)
 		http_debug > t ||
 		lib_debug > t ||
 		node_debug > t ||
+		oob_proxy_debug > t ||
 		parq_debug > t ||
 		pcache_debug > t ||
 		qrp_debug > t ||
 		query_debug > t ||
 		routing_debug > t ||
+		rudp_debug > t ||
 		search_debug > t ||
 		share_debug > t ||
 		socket_debug > t ||
