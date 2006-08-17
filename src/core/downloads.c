@@ -4945,7 +4945,7 @@ download_forget(struct download *d, gboolean unavailable)
 	}
 
 	if (unavailable)
-		download_unavailable(d, GTA_DL_ABORTED, NULL);
+		download_unavailable(d, GTA_DL_ABORTED, no_reason);
 	else
 		download_stop(d, GTA_DL_ABORTED, no_reason);
 }
@@ -8251,6 +8251,7 @@ picked:
 
 	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 			"Accept-Encoding: deflate\r\n");
+	
 	/*
 	 * Add X-Queue / X-Queued information into the header
 	 */
