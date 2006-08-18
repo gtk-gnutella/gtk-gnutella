@@ -275,6 +275,7 @@ extern const gboolean up_req_enough_conn;
 extern const gboolean up_req_enough_fd;
 extern const gboolean up_req_enough_mem;
 extern const gboolean up_req_enough_bw;
+extern const gboolean up_req_good_udp;
 extern const guint32  search_queue_size;
 extern const guint32  search_queue_spacing;
 extern const gboolean enable_shell;

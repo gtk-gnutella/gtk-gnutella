@@ -2692,6 +2692,16 @@ prop = {
 };
 
 prop = {
+	name = "up_req_good_udp";
+	desc = "Whether we meet the UDP requirements to become an Ultra node.";
+	type = boolean;
+	save = FALSE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
 	name = "search_queue_size";
 	desc = "Size of the search queue holding the locally generated queries "
 		"before they are sent on a given connection.  When full, the oldest "
