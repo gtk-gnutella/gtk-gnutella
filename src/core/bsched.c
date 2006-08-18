@@ -1336,9 +1336,9 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 
 #ifdef USE_MMAP
 static sigjmp_buf mmap_env;
-static sig_atomic_t mmap_access;
-static signal_handler_t old_sigbus_handler;
-static signal_handler_t old_sigsegv_handler;
+static volatile sig_atomic_t mmap_access;
+static volatile signal_handler_t old_sigbus_handler;
+static volatile signal_handler_t old_sigsegv_handler;
 
 /**
  * Handles SIGBUS or SIGSEGV when accessing mmap()ed areas. This may
@@ -1468,7 +1468,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			start < ctx->map_start ||
 			start + amount > ctx->map_end
 		) {
-			static const size_t min_map_size = 256 * 1024;
+			static const size_t min_map_size = 64 * 1024;
 			size_t map_len;
 
 			if (ctx->map != NULL) {
