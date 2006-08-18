@@ -4027,6 +4027,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 			using_sendfile &&
 			!is_temporary_error(e) &&
 			e != EPIPE &&
+			e != EBUSY &&
 			e != ECONNRESET &&
 			e != ENOTCONN &&
 			e != ENOBUFS
