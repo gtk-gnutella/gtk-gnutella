@@ -1352,13 +1352,12 @@ compact_query(gchar *search)
  * Remove the OOB delivery flag by patching the query message inplace.
  */
 void
-query_strip_oob_flag(gnutella_node_t *n, gchar *data)
+query_strip_oob_flag(const gnutella_node_t *n, gchar *data)
 {
 	guint16 speed;
 
-	READ_GUINT16_LE(data, speed);
-	speed &= ~QUERY_SPEED_OOB_REPLY;
-	WRITE_GUINT16_LE(speed, data);
+	speed = peek_le16(data) & ~QUERY_SPEED_OOB_REPLY;
+	poke_le16(data, speed);
 
 	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
 
@@ -1372,13 +1371,12 @@ query_strip_oob_flag(gnutella_node_t *n, gchar *data)
  * Set the OOB delivery flag by patching the query message inplace.
  */
 void
-query_set_oob_flag(gnutella_node_t *n, gchar *data)
+query_set_oob_flag(const gnutella_node_t *n, gchar *data)
 {
 	guint16 speed;
 
-	READ_GUINT16_LE(data, speed);
-	speed |= QUERY_SPEED_OOB_REPLY | QUERY_SPEED_MARK;
-	WRITE_GUINT16_LE(speed, data);
+	speed = peek_le16(data) | QUERY_SPEED_OOB_REPLY | QUERY_SPEED_MARK;
+	poke_le16(data, speed);
 
 	if (query_debug)
 		g_message(
