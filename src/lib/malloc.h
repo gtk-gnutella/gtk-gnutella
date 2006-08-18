@@ -141,6 +141,7 @@
 #define g_string_new(p)			string_new_track((p), _WHERE_, __LINE__)
 #define g_string_sized_new(s)	string_sized_new_track((s), _WHERE_, __LINE__)
 #define g_string_append(s,p)	string_append_track((s),(p),_WHERE_,__LINE__)
+#undef g_string_append_c
 #define g_string_append_c(s,c)	string_append_c_track((s),(c),_WHERE_,__LINE__)
 #define g_string_assign(s,p)	string_assign_track((s),(p),_WHERE_,__LINE__)
 #define g_string_free(s,b)		string_free_track((s),(b), _WHERE_, __LINE__)
