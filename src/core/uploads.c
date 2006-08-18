@@ -3985,7 +3985,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 		 */
 		if (sendfile_failed && NULL == u->buffer) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = (gchar *) g_malloc(u->buf_size);
+			u->buffer = g_malloc(u->buf_size);
 		}
 
 		/*
