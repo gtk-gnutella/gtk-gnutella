@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "sockets.h"		/* For udp_active() */
 #include "settings.h"		/* For listen_addr() */
 #include "hosts.h"			/* For host_is_valid() */
+#include "share.h"			/* For query_strip_oob_flag() */
 
 #include "if/gnet_property_priv.h"
 
