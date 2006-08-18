@@ -648,6 +648,7 @@ can_become_ultra(time_t now)
 	gboolean avg_ip_uptime;
 	gboolean node_uptime;
 	gboolean not_firewalled;
+	gboolean good_udp_support;
 	gboolean enough_conn;
 	gboolean enough_fd;
 	gboolean enough_mem;
@@ -663,7 +664,18 @@ can_become_ultra(time_t now)
 	node_uptime = delta_time(now, start_stamp) > NODE_MIN_UPTIME;
 
 	/* Connectivity requirements */
-	not_firewalled = !is_firewalled;
+	not_firewalled = !is_firewalled && !is_udp_firewalled;
+
+	/*
+	 * Require proper UDP support to be enabled. An efficient UP must be
+	 * able to perform OOB-proxying of queries from firewalled leaves, lest
+	 * the query hits will have to be routed back on the Gnutella network.
+	 *		--RAM, 2006-08-18
+	 */
+
+	good_udp_support = udp_active() &&
+		host_is_valid(listen_addr(), socket_listen_port()) &&
+		proxy_oob_queries;
 
 	/*
 	 * System requirements
@@ -705,6 +717,7 @@ can_become_ultra(time_t now)
 		g_message("> Enough file descriptors     : %s", OK(enough_fd));
 		g_message("> Enough physical memory      : %s", OK(enough_mem));
 		g_message("> Enough available bandwidth  : %s", OK(enough_bw));
+		g_message("> Good UDP support            : %s", OK(good_udp_support));
 	}
 
 #undef OK
@@ -722,10 +735,12 @@ can_become_ultra(time_t now)
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_FD,      enough_fd);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_MEM,     enough_mem);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_BW,      enough_bw);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_GOOD_UDP,       good_udp_support);
 	gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_CHECK, now);
 
 	return avg_servent_uptime && avg_ip_uptime && node_uptime &&
 		not_firewalled && enough_fd && enough_mem && enough_bw &&
+		good_udp_support &&
 		!ancient_version;		/* Old versions don't become ultra nodes */
 }
 
