@@ -134,8 +134,7 @@ frame_hash(gconstpointer key)
 static gint
 frame_eq(gconstpointer a, gconstpointer b)
 {
-	struct frame *fa = (struct frame *) a;
-	struct frame *fb = (struct frame *) b;
+	const struct frame *fa = a, *fb = b;
 
 	return fa->len == fb->len &&
 		0 == memcmp(fa->stack, fb->stack, fa->len * sizeof(void *));
@@ -183,7 +182,7 @@ static GHashTable *stats = NULL; /**< maps stats(file, line) -> stats */
 static guint
 stats_hash(gconstpointer key)
 {
-	struct stats *s = (struct stats *) key;
+	const struct stats *s = key;
 
 	return g_str_hash(s->file) ^ s->line;
 }
@@ -195,8 +194,7 @@ stats_hash(gconstpointer key)
 static gint
 stats_eq(gconstpointer a, gconstpointer b)
 {
-	struct stats *sa = (struct stats *) a;
-	struct stats *sb = (struct stats *) b;
+	const struct stats *sa = a, *sb = b;
 
 	return  sa->line == sb->line && 0 == strcmp(sa->file, sb->file);
 }
@@ -227,7 +225,7 @@ malloc_init(void)
 static void
 malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 {
-	struct block *b = (struct block *) v;
+	struct block *b = v;
 
 	g_warning("leaked block 0x%lx (%u bytes) from \"%s:%d\"",
 		(gulong) k, b->size, b->file, b->line);
@@ -235,7 +233,7 @@ malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 	leak_add(leaksort, b->size, b->file, b->line);
 
 	if (b->realloc) {
-		struct block *r = (struct block *) b->realloc->data;
+		struct block *r = b->realloc->data;
 		gint cnt = g_slist_length(b->realloc);
 
 		g_warning("   (realloc'ed %d time%s, lastly from \"%s:%d\")",
@@ -416,7 +414,7 @@ free_record(gpointer o, gchar *file, gint line)
 		return;
 	}
 
-	b = (struct block *) v;
+	b = v;
 	g_assert(o == k);
 
 #ifdef MALLOC_STATS
@@ -1384,7 +1382,7 @@ leak_free_kv(gpointer key, gpointer value, gpointer unused_user)
 void
 leak_close(gpointer o)
 {
-	struct leak_set *ls = (struct leak_set *) o;
+	struct leak_set *ls = o;
 
 	g_hash_table_foreach_remove(ls->places, leak_free_kv, NULL);
 	g_hash_table_destroy(ls->places);
@@ -1413,7 +1411,7 @@ leak_add(gpointer o, guint32 size, gchar *file, gint line)
 	found = g_hash_table_lookup_extended(ls->places, key, &k, &v);
 
 	if (found) {
-		lr = (struct leak_record *) v;
+		lr = v;
 		lr->size += size;
 		lr->count++;
 	} else {
@@ -1438,12 +1436,10 @@ struct leak {			/* A memory leak, for sorting purposes */
 static gint
 leak_size_cmp(const void *p1, const void *p2)
 {
-	guint32 i1 = ((struct leak *) p1)->lr->size;
-	guint32 i2 = ((struct leak *) p2)->lr->size;
+	const struct leak *leak1 = p1, *leak2 = p2;
+	guint32 i1 = leak1->lr->size, i2 = leak2->lr->size;
 
-	return
-		i1 == i2 ?  0 :
-		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+	return CMP(i2, i1); /* Reverse order: largest first */
 }
 
 struct filler {			/* Used by hash table iterator to fill leak array */
@@ -1477,7 +1473,7 @@ fill_array(gpointer key, gpointer value, gpointer user)
 void
 leak_dump(gpointer o)
 {
-	struct leak_set *ls = (struct leak_set *) o;
+	struct leak_set *ls =  o;
 	gint count;
 	struct filler filler;
 	gint i;
@@ -1540,12 +1536,10 @@ struct afiller {		/* Used by hash table iterator to fill alloc array */
 static gint
 stats_allocated_cmp(const void *p1, const void *p2)
 {
-	guint32 i1 = (*(struct stats **) p1)->allocated;
-	guint32 i2 = (*(struct stats **) p2)->allocated;
+	const struct stats * const *s1 = p1, * const *s2 = p2;
+	guint32 i1 = (*s1)->allocated, i2 = (*s2)->allocated;
 
-	return
-		i1 == i2 ?  0 :
-		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+	return CMP(i2, i1);	/* Reverse order: largest first */
 }
 
 /**
@@ -1555,12 +1549,10 @@ stats_allocated_cmp(const void *p1, const void *p2)
 static gint
 stats_total_allocated_cmp(const void *p1, const void *p2)
 {
-	guint32 i1 = (*(struct stats **) p1)->total_allocated;
-	guint32 i2 = (*(struct stats **) p2)->total_allocated;
+	const struct stats * const *s1 = p1, * const *s2 = p2;
+	guint32 i1 = (*s1)->total_allocated, i2 = (*s2)->total_allocated;
 
-	return
-		i1 == i2 ?  0 :
-		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+	return CMP(i2, i1);	/* Reverse order: largest first */
 }
 
 /**
@@ -1570,14 +1562,14 @@ stats_total_allocated_cmp(const void *p1, const void *p2)
 static gint
 stats_residual_cmp(const void *p1, const void *p2)
 {
-	struct stats *s1 = *(struct stats **) p1;
-	struct stats *s2 = *(struct stats **) p2;
+	const struct stats * const *s1_ptr = p1, * const *s2_ptr = p2;
+	const struct stats *s1 = *s1_ptr, *s2 = *s2_ptr;
 	gint32 i1 = s1->allocated + s1->reallocated - s1->freed;
 	gint32 i2 = s2->allocated + s2->reallocated - s2->freed;
 
-	return
-		i1 == i2 ?  stats_allocated_cmp(p1, p2) :
-		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+	return i1 == i2
+		? stats_allocated_cmp(p1, p2)
+		: CMP(i2, i1); /* Reverse order: largest first */
 }
 
 /**
@@ -1587,14 +1579,14 @@ stats_residual_cmp(const void *p1, const void *p2)
 static gint
 stats_total_residual_cmp(const void *p1, const void *p2)
 {
-	struct stats *s1 = *(struct stats **) p1;
-	struct stats *s2 = *(struct stats **) p2;
+	const struct stats * const *s1_ptr = p1, * const *s2_ptr = p2;
+	const struct stats *s1 = *s1_ptr, *s2 = *s2_ptr;
 	gint32 i1 = s1->total_allocated + s1->total_reallocated - s1->total_freed;
 	gint32 i2 = s2->total_allocated + s2->total_reallocated - s2->total_freed;
 
-	return
-		i1 == i2 ?  stats_total_allocated_cmp(p1, p2) :
-		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+	return i1 == i2
+		? stats_total_allocated_cmp(p1, p2)
+		: CMP(i2, i1); /* Reverse order: largest first */
 }
 
 /**
@@ -1604,8 +1596,8 @@ stats_total_residual_cmp(const void *p1, const void *p2)
 static void
 stats_fill_array(gpointer unused_key, gpointer value, gpointer user)
 {
-	struct afiller *filler = (struct afiller *) user;
-	struct stats *st = (struct stats *) value;
+	struct afiller *filler = user;
+	struct stats *st = value;
 	struct stats **e;
 
 	(void) unused_key;
@@ -1752,7 +1744,7 @@ alloc_dump(FILE *f, gboolean total)
 static void
 stats_reset(gpointer uu_key, gpointer value, gpointer uu_user)
 {
-	struct stats *st = (struct stats *) value;
+	struct stats *st = value;
 
 	(void) uu_key;
 	(void) uu_user;
