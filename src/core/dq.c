@@ -1612,8 +1612,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		dq->flags |= DQ_F_LEAF_GUIDED;
 
 	/*
-	 * If the query is not leaf-guided and not already OOB-proxied, then we
-	 * need to do that now, so that we can control how much results they get.
+	 * If the query is not leaf-guided and not OOB proxied already, then we
+	 * need to ensure results are routed back to us.
 	 * We won't know how much they filter out however, but they just have
 	 * to implement proper leaf-guidance for better results as leaves...
 	 *		--RAM, 2006-08-16
@@ -1621,19 +1621,43 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	if (
 		!(dq->flags & DQ_F_LEAF_GUIDED) &&
-		udp_active() && proxy_oob_queries && !is_udp_firewalled &&
-		host_is_valid(listen_addr(), socket_listen_port()) &&
 		NULL == oob_proxy_muid_proxied(n->header.muid)
 	) {
-		if (dq_debug > 19)
-			printf("DQ node #%d %s <%s> OOB-proxying query \"%s\" (%s)\n",
-				n->id, node_addr(n), node_vendor(n), n->data + 2,
-				(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ?
-					"guided" : "unguided"
-			);
+		if (
+			udp_active() && proxy_oob_queries && !is_udp_firewalled &&
+			host_is_valid(listen_addr(), socket_listen_port())
+		) {
+			/*
+			 * Running with UDP support.
+			 * OOB-proxy the query so that we can control how much results
+			 * they get by routing the results ourselves to the leaf.
+			 */
 
-		oob_proxy_create(n);
-		gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+			if (dq_debug > 19)
+				printf("DQ node #%d %s <%s> OOB-proxying query \"%s\" (%s)\n",
+					n->id, node_addr(n), node_vendor(n), n->data + 2,
+					(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ?
+						"guided" : "unguided"
+				);
+
+			oob_proxy_create(n);
+			gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+		} else if (tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY)) {
+			/*
+			 * Running without UDP support, or UDP-firewalled...
+			 * Must remove the OOB flag so that results be routed back.
+			 */
+
+			query_strip_oob_flag(n, n->data);
+			READ_GUINT16_LE(n->data, req_speed);	/* Refresh our cache */
+
+			if (dq_debug > 19)
+				printf("DQ node #%d %s <%s> stripped OOB on query \"%s\" (%s)\n",
+					n->id, node_addr(n), node_vendor(n), n->data + 2,
+					(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ?
+						"guided" : "unguided"
+				);
+		}
 	}
 
 	/*
