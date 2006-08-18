@@ -148,8 +148,8 @@ RCSID("$Id$")
 
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
-static gboolean from_atexit = FALSE;
-static gint signal_received = 0;
+static volatile sig_atomic_t from_atexit = FALSE;
+static volatile int signal_received = 0;
 static jmp_buf atexit_env;
 static volatile gchar *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
@@ -170,7 +170,7 @@ sig_alarm(int n)
 }
 
 #ifdef MALLOC_STATS
-static gint signal_malloc = 0;
+static volatile sig_atomic_t signal_malloc = 0;
 
 /**
  * Record USR1 or USR2 signal in `signal_malloc'.
@@ -650,13 +650,11 @@ main_timer(gpointer p)
 	now = check_cpu_usage();
 
 #ifdef MALLOC_STATS
-	if (signal_malloc) {
-		if (signal_malloc == 1)
-			alloc_dump(stdout, FALSE);
-		else if (signal_malloc == 2)
-			alloc_reset(stdout, FALSE);
-		signal_malloc = 0;
+	switch (signal_malloc) {
+	case 1: alloc_dump(stdout, FALSE); break;
+	case 2: alloc_reset(stdout, FALSE); break;
 	}
+	signal_malloc = 0;
 #endif
 
 	bsched_timer();					/* Scheduling update */
