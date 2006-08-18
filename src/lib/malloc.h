@@ -145,7 +145,7 @@
 #define g_string_assign(s,p)	string_assign_track((s),(p),_WHERE_,__LINE__)
 #define g_string_free(s,b)		string_free_track((s),(b), _WHERE_, __LINE__)
 #define g_string_prepend(s,p)	string_prepend_track((s),(p),_WHERE_,__LINE__)
-#define g_string_prepend_c(s,c) string_prepend_c_track(s),(c),_WHERE_,__LINE__)
+#define g_string_prepend_c(s,c) string_prepend_c_track((s),(c),_WHERE_,__LINE__)
 
 #define g_string_append_len(s,v,l) \
 	string_append_len_track((s),(v),(l),_WHERE_,__LINE__)
