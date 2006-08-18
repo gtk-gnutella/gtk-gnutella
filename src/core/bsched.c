@@ -1555,12 +1555,12 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 #else /* !USE_MMAP */
 #ifdef USE_BSD_SENDFILE
 	/*
-	 * The BSD semantics for sendfile() differ from the Linux one:
+	 * The FreeBSD semantics for sendfile() differ from the Linux one:
 	 *
-	 * . BSD sendfile() returns 0 on succes, -1 on failure.
-	 * . BSD sendfile() returns the amount of written bytes via a parameter
+	 * . FreeBSD sendfile() returns 0 on success, -1 on failure.
+	 * . FreeBSD sendfile() returns the amount of written bytes via a parameter
 	 *   when EAGAIN.
-	 * . BSD sendfile() does not update the offset inplace.
+	 * . FreeBSD sendfile() does not update the offset inplace.
 	 *
 	 * Emulate the Linux semantics: set `r' to the amount of bytes written,
 	 * and update the `offset' variable.
@@ -1568,10 +1568,15 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 	{
 		off_t written;
+		int flags = 0;
 
-		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, 0);
+#if defined(SF_NODISKIO)
+		flags |= SF_NODISKIO;
+#endif	/* SF_NODISKIO */
+		
+		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, flags);
 		if ((ssize_t) -1 == r) {
-			if (errno == VAL_EAGAIN || errno == EINTR)
+			if (is_temporary_error(errno) || EBUSY == errno)
 				r = written > 0 ? (ssize_t) written : (ssize_t) -1;
 		} else {
 			r = amount;			/* Everything written, but returns 0 if OK */
