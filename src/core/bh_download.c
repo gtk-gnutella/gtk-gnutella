@@ -89,18 +89,15 @@ browse_host_dl_for_search(struct browse_ctx *bc, gnet_search_t sh)
 static gboolean
 browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 {
-	gint r;
-
 	/*
 	 * Read header if it has not been fully fetched yet.
 	 */
 
 	if (!bc->has_header) {
-		gchar *w = (gchar *) &bc->header;
+		gchar *w = cast_to_gpointer(&bc->header);
 
-		r = pmsg_read(mb, w + bc->pos, sizeof(bc->header) - bc->pos);
-		bc->pos += r;
-
+		g_assert(sizeof bc->header >= bc->pos);
+		bc->pos += pmsg_read(mb, &w[bc->pos], sizeof bc->header - bc->pos);
 		if (bc->pos < sizeof(struct gnutella_header))
 			return FALSE;
 
@@ -135,17 +132,17 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 	 */
 
 	if (bc->size) {
-		r = pmsg_read(mb, bc->data + bc->pos, bc->size - bc->pos);
-		bc->pos += r;
+		g_assert(bc->size >= bc->pos);
+		bc->pos += pmsg_read(mb, &bc->data[bc->pos], bc->size - bc->pos);
 	}
 
-	if (bc->pos < bc->size)
+	if (bc->pos >= bc->size) {
+		bc->has_header = FALSE;		/* For next message */
+		bc->pos = 0;
+		return TRUE; /* Must process message and continue */
+	} else {
 		return FALSE;
-
-	bc->has_header = FALSE;		/* For next message */
-	bc->pos = 0;
-
-	return TRUE;				/* Must process message and continue */
+	}
 }
 
 /**
