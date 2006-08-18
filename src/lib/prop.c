@@ -1523,15 +1523,15 @@ config_comment(const gchar *s)
 		word_len = endptr - word;
 		if (line_len >= max_len || word_len >= max_len - line_len) {
 			if (line_len > 0)
-				g_string_append(out, "\n");
+				g_string_append_c(out, '\n');
 			line_len = 0;
 		}
 		if (0 == line_len) {
-			g_string_append(out, "#");
+			g_string_append_c(out, '#');
 			line_len++;
 		}
 		/* All kind of ASCII whitespace is normalized to a single space. */
-		g_string_append(out, " ");
+		g_string_append_c(out, ' ');
 		line_len++;
 		g_string_append_len(out, word, word_len);
 		line_len += word_len;
