@@ -114,7 +114,7 @@
 #include "lib/wordvec.h"
 
 #if defined(USE_TOPLESS)
-#include "ui/topless/gui.h"
+#include "ui/gtk/gui.h"
 #endif
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
