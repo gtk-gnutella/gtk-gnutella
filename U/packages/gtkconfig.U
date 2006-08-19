@@ -3,7 +3,7 @@
 ?RCS: @COPYRIGHT@
 ?RCS:
 ?MAKE:gtkconfig gtkcflags gtkldflags: gtkversion gtkpackage awk \
-	glibcflags glibldflags Warn
+	glibcflags glibldflags Warn d_headless
 ?MAKE:	-pick add $@ %<
 ?S:gtkconfig:
 ?S:	This variable holds the command to use to grab information about GTK.
@@ -17,6 +17,10 @@
 ?S:.
 ?T:modver version vint flag missing allok
 : how can we find information about GTK?
+case "$d_headless" in
+"$define") ;;
+*)
+?X: Indentation wrong on purpose
 echo " "
 echo "Checking how we can gather information about GTK+..." >&4
 if pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
@@ -101,4 +105,7 @@ fi
 if $allok; then
 	echo "Good, all the cc and ld flags from glib are included in GTK+ flags."
 fi
+?X: Remember, indentation wrong on purpose
+;;
+esac
 
