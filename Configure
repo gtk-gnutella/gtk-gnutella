@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 19 17:37:22 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 19 17:51:19 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6510,10 +6510,18 @@ $cat >try.c <<EOC
 #include <glib.h>
 #ifndef GLIB_MAJOR_VERSION
 #error "glib.h not found?"
+EOC
+case "$d_headless" in
+"$define") ;;
+*) $cat >>try.c <<EOC
 #else
 #if GLIB_MAJOR_VERSION != $gtkversion
 #error "Wrong glib.h?"
 #endif
+EOC
+	;;
+esac
+$cat >>try.c <<EOC
 #endif
 int main(void)
 {

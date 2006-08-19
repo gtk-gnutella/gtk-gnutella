@@ -3,7 +3,7 @@
 ?RCS: @COPYRIGHT@
 ?RCS:
 ?MAKE:glibconfig glibcflags glibldflags: glibpackage cc ccflags ldflags \
-	cat rm gtkversion Warn
+	cat rm gtkversion Warn d_headless
 ?MAKE:	-pick add $@ %<
 ?S:glibconfig:
 ?S:	This variable holds the command to use to grab information about glib.
@@ -43,10 +43,18 @@ $cat >try.c <<EOC
 #include <glib.h>
 #ifndef GLIB_MAJOR_VERSION
 #error "glib.h not found?"
+EOC
+case "$d_headless" in
+"$define") ;;
+*) $cat >>try.c <<EOC
 #else
 #if GLIB_MAJOR_VERSION != $gtkversion
 #error "Wrong glib.h?"
 #endif
+EOC
+	;;
+esac
+$cat >>try.c <<EOC
 #endif
 int main(void)
 {
