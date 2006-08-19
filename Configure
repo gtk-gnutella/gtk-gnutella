@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 19 14:22:52 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 19 16:50:35 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6531,6 +6531,9 @@ fi
 $rm -f try try.c
 
 : how can we find information about GTK?
+case "$d_headless" in
+"$define") ;;
+*)
 echo " "
 echo "Checking how we can gather information about GTK+..." >&4
 if pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
@@ -6610,6 +6613,8 @@ fi
 if $allok; then
 	echo "Good, all the cc and ld flags from glib are included in GTK+ flags."
 fi
+;;
+esac
 
 : determine our version number
 echo " "
