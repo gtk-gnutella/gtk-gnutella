@@ -31,7 +31,6 @@ U/new/d_inflate.U
 U/new/d_initstate.U
 U/new/d_iptos.U
 U/new/d_kevent_udata.U
-U/specific/d_headless.U
 U/new/d_kqueue.U
 U/new/d_madvise.U
 U/new/d_msg_flags.U
@@ -77,6 +76,7 @@ U/packages/gtkversion.U
 U/packages/remotectrl.U
 U/packages/sqliteconfig.U
 U/packages/xmlconfig.U
+U/specific/d_headless.U
 U/specific/gtkgversion.U
 config_h.SH                  Produces config.h
 configure.gnu                GNU configure-like wrapper
@@ -272,10 +272,10 @@ src/core/extensions.c
 src/core/extensions.h
 src/core/features.c
 src/core/features.h
-src/core/fileinfo.c
-src/core/fileinfo.h
 src/core/file_object.c
 src/core/file_object.h
+src/core/fileinfo.c
+src/core/fileinfo.h
 src/core/gdb.c
 src/core/gdb.h
 src/core/geo_ip.c
