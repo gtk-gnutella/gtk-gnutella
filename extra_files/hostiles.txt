@@ -230,6 +230,7 @@
 207.226.112.0/24
 # The ranges below also upload corrupt/fake MP3s
 216.151.155.0/24
+216.152.250.192/26
 72.35.231.64/26
 
 # weasel.net, diverse GWebCache spamming/trashing
