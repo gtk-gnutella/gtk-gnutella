@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 19 16:50:35 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 19 17:37:22 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6532,7 +6532,10 @@ $rm -f try try.c
 
 : how can we find information about GTK?
 case "$d_headless" in
-"$define") ;;
+"$define")
+	gtkcflags="$glibcflags"
+	gtkldflags="$glibldflags"
+	;;
 *)
 echo " "
 echo "Checking how we can gather information about GTK+..." >&4

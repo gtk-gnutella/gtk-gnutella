@@ -18,7 +18,11 @@
 ?T:modver version vint flag missing allok
 : how can we find information about GTK?
 case "$d_headless" in
-"$define") ;;
+"$define")
+?X: Since there is no GUI, simply include the glib flags
+	gtkcflags="$glibcflags"
+	gtkldflags="$glibldflags"
+	;;
 *)
 ?X: Indentation wrong on purpose
 echo " "
