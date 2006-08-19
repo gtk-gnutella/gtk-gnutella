@@ -424,6 +424,7 @@
 204.69.64.0/18
 65.240.96.251
 69.45.227.0/28
+69.45.229.0/26
 65.37.226.0/28
 
 # DRM WMV pr0n spammer; files link to videoaccesspoint dot com; giFT-based
@@ -466,6 +467,7 @@
 
 # Eros Digital Technologies; WMV DRM spam; giFT-based
 67.128.53.72/29
+67.128.62.168/29
 
 # Little czech DRM WMV spammer with fake Morpheus; results identify as LimeWire
 87.236.194.75
