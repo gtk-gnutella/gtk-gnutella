@@ -80,9 +80,15 @@ GNET_PROPS = gnet_property.h
 RemoteTargetDependency(libgtk-common.a, $(IF), $(GNET_PROPS))
 
 SetSubdirs(gtk1 gtk2)
-NormalLibraryTarget(gtk-common, $(LSRC), $(LOBJ))
 DependSubdirs()
 DependTarget()
+
+|shell
+case "$d_headless" in
+define) has_gui=false;;
+*) has_gui=true;;
+esac
+-shell
 
 |case d_usegtk1 in define
 SDIR = gtk1
@@ -93,6 +99,8 @@ SDIR = gtk2
 LIBRARY = libgtk2.a
 -case
 
+|case has_gui in true
+NormalLibraryTarget(gtk-common, $(LSRC), $(LOBJ))
 RemoteTargetDependency(libgtk-common.a, $(SDIR), support-glade.h)
 
 /*
@@ -106,4 +114,4 @@ libgtkx.a: $(SDIR)/$(LIBRARY)
 	$(RM) $@
 	$(LN) $(SDIR)/$(LIBRARY) $@
 	$(RANLIB) $@
-
+-case has_gui

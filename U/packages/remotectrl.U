@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:remotectrl d_remotectrl: Myread cat
+?MAKE:remotectrl d_remotectrl: Myread Setvar cat spackage d_headless
 ?MAKE:	-pick add $@ %<
 ?S:remotectrl:
 ?S:	This variable holds true or false depending on whether they want to
@@ -17,14 +17,15 @@
 ?H:#$d_remotectrl USE_REMOTE_CTRL    /**/
 ?H:.
 ?Y:TOP
+?LINT: set d_remotectrl
 : ask them whether they want remote control support
-$cat <<'EOM'
+$cat <<EOM
 
-I have a raw remote control service.
+$spackage has a raw remote control service.
 
 Currently you can create searches, connect to nodes, and print and 
 set the values of properties as well as read the 'tooltips'.  It is
-not completely functional, but you may choose to enable here at
+not completely functional, but you may choose to enable it here at
 compile time.  The feature will need activation from the GUI.
 
 For more information, see doc/other/remote-shell.txt
@@ -32,12 +33,33 @@ For more information, see doc/other/remote-shell.txt
 EOM
 case "$remotectrl" in
 false) dflt=n;;
-*) dflt=y;;
+true) dflt=y;;
+*)
+	case "$d_headless" in
+	"$define")
+		$cat <<'EOM'
+
+Since you are running headless, it is highly recommended that you
+compile this feature in.  Given that there is no GUI, you will need
+to activate remote control via the configuration file.
+
+EOM
+		dflt=y;;
+	*) dflt=n;;
+	esac
+	;;
 esac
 rp="Enable remote control service"
 . ./myread
+val="$ans"
 case "$ans" in
-y) remotectrl=true; d_remotectrl="$define";;
-*) remotectrl=false; d_remotectrl="$undef";;
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_remotectrl
+eval $setvar
+case "$d_remotectrl" in
+$define) remotectrl=true;;
+*) remotectrl=false;;
 esac
 

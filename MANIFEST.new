@@ -30,6 +30,8 @@ U/new/d_hstrerror.U
 U/new/d_inflate.U
 U/new/d_initstate.U
 U/new/d_iptos.U
+U/new/d_kevent_udata.U
+U/specific/d_headless.U
 U/new/d_kqueue.U
 U/new/d_madvise.U
 U/new/d_msg_flags.U
@@ -234,7 +236,6 @@ po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/geo-to-db.pl
 scripts/gtkg-dbus-listener.py
-scripts/make_topless.sh
 scripts/sha1_cache.pl
 scripts/sha1_cache.sh
 src/Jmakefile
@@ -694,4 +695,3 @@ src/ui/gtk/uploads_common.c
 src/ui/gtk/uploads_common.h
 src/ui/gtk/visual_progress.c
 src/ui/gtk/visual_progress.h
-src/ui/topless/gui.h

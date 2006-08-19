@@ -599,5 +599,10 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_libxml2 HAS_LIBXML2	/**/
 
+/* USE_TOPLESS:
+ *	This symbol, when defined, indicates that there is no GUI interface.
+ */
+#$d_headless USE_TOPLESS	/**/
+
 #endif
 !GROK!THIS!

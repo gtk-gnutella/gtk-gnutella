@@ -18,8 +18,8 @@
 ?LINT:set d_kevent_int_udata
 : check whether udata in struct kevent is an integer
 echo " "
-$cat << 'EOM'
-Checking whether the member "udata" of "struct kevent" is an integer ..." >&4
+$cat << 'EOM' >&4
+Checking whether the member "udata" of "struct kevent" is an integer ...
 EOM
 $cat >try.c <<EOC
 #include <sys/types.h>

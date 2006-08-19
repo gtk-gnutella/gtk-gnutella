@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:gtkversion gtkpackage d_usegtk1 d_usegtk2: Myread cat
+?MAKE:gtkversion gtkpackage d_usegtk1 d_usegtk2: Myread cat d_headless
 ?MAKE:	-pick add $@ %<
 ?S:gtkversion:
 ?S:	The version of GTK+ they want to use.
@@ -30,26 +30,35 @@
 ?D:gtkversion=2
 ?Y:TOP
 : ask them wich GTK+ version they want
-$cat <<'EOM'
-
+echo " "
+case "$d_headless" in
+"$define")
+	echo "Turning off GTK+ since you want to run without any GUI"
+	d_usegtk1="$undef";
+	d_usegtk2="$undef";
+	;;
+*)
+	$cat <<'EOM'
 I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
 The GTK1 frontend will use much less CPU than the GTK2 one, so if you
 have a slow CPU, you are encouraged to choose GTK1.
 
 EOM
-case "$gtkversion" in
-'') dflt=1;;
-2) dflt=2;;
-*) dflt=1;;
-esac
-rp="Use which GTK toolkit (1 or 2)"
-. ./myread
-case "$ans" in
-2)
-	gtkversion=2; gtkpackage=gtk+-2.0
-	d_usegtk2="$define"; d_usegtk1="$undef";;
-*)
-	gtkversion=1; gtkpackage=gtk+
-	d_usegtk1="$define"; d_usegtk2="$undef";;
+	case "$gtkversion" in
+	'') dflt=1;;
+	2) dflt=2;;
+	*) dflt=1;;
+	esac
+	rp="Use which GTK toolkit (1 or 2)"
+	. ./myread
+	case "$ans" in
+	2)
+		gtkversion=2; gtkpackage=gtk+-2.0
+		d_usegtk2="$define"; d_usegtk1="$undef";;
+	*)
+		gtkversion=1; gtkpackage=gtk+
+		d_usegtk1="$define"; d_usegtk2="$undef";;
+	esac
+	;;
 esac
 

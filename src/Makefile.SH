@@ -131,9 +131,16 @@ DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lcore -lcore \
 	-Ldht -ldht \
-	-Lui/gtk \
-	-lgtk-common -lgtkx -lgtk-common -ldht -lcore \
-	-Llib -lshared \
+!NO!SUBS!
+case "$d_headless" in
+undef)
+	$spitshell >>Makefile <<'!NO!SUBS!'
+	-Lui/gtk -lgtk-common -lgtkx -lgtk-common \
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
+	-ldht -lcore -Llib -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
 	$(SOCKER_LDFLAGS) $(SQLITE_LDFLAGS)
 
@@ -159,6 +166,10 @@ dht/libdht.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  dht/libdht.a
+!NO!SUBS!
+case "$d_headless" in
+undef)
+	$spitshell >>Makefile <<'!NO!SUBS!'
 
 ui/gtk/libgtk-common.a: .FORCE
 	@echo "Checking "libgtk-common.a" in "ui/gtk"..."
@@ -173,6 +184,10 @@ ui/gtk/libgtkx.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  ui/gtk/libgtkx.a
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
 
 if/bridge/ui2c.o: .FORCE
 	@echo "Checking "ui2c.o" in "if/bridge"..."

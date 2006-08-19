@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Aug 15 18:15:35 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 19 14:22:52 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -312,6 +312,7 @@ d_gettext=''
 d_getuid=''
 d_gnulibc=''
 gnulibc_version=''
+d_headless=''
 d_herror=''
 d_hstrerror=''
 d_inflate=''
@@ -1704,6 +1705,8 @@ case "$cc" in
 *)  $rm -f try try.*
     $cat >try.c <<EOM
 int main(int argc, char *argv[]) {
+  (void) argc;
+  (void) argv;
   return 0;
 }
 EOM
@@ -1763,6 +1766,8 @@ case "$cc" in
 *)  $rm -f try try.*              
     $cat >try.c <<EOM
 int main(int argc, char *argv[]) {
+  (void) argc;
+  (void) argv;
   return 0;
 }
 EOM
@@ -2478,14 +2483,35 @@ esac
 set d_official
 eval $setvar
 
-: ask them whether they want remote control support
-$cat <<'EOM'
+: look whether they wish to run headless
+$cat <<EOM
 
-I have a raw remote control service.
+$spackage can run without any GUI interface in so-called "headless" mode.
+Therefore, monitoring of operations for $package will have to be done
+without relying on any GUI, and the configuration is done via files only.
+
+EOM
+case "$d_headless" in
+"$define") dflt=y;;
+*) dflt=n;;
+esac
+rp="Run without any GUI interface"
+. ./myread
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_headless
+eval $setvar
+
+: ask them whether they want remote control support
+$cat <<EOM
+
+$spackage has a raw remote control service.
 
 Currently you can create searches, connect to nodes, and print and 
 set the values of properties as well as read the 'tooltips'.  It is
-not completely functional, but you may choose to enable here at
+not completely functional, but you may choose to enable it here at
 compile time.  The feature will need activation from the GUI.
 
 For more information, see doc/other/remote-shell.txt
@@ -2493,37 +2519,67 @@ For more information, see doc/other/remote-shell.txt
 EOM
 case "$remotectrl" in
 false) dflt=n;;
-*) dflt=y;;
+true) dflt=y;;
+*)
+	case "$d_headless" in
+	"$define")
+		$cat <<'EOM'
+
+Since you are running headless, it is highly recommended that you
+compile this feature in.  Given that there is no GUI, you will need
+to activate remote control via the configuration file.
+
+EOM
+		dflt=y;;
+	*) dflt=n;;
+	esac
+	;;
 esac
 rp="Enable remote control service"
 . ./myread
+val="$ans"
 case "$ans" in
-y) remotectrl=true; d_remotectrl="$define";;
-*) remotectrl=false; d_remotectrl="$undef";;
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_remotectrl
+eval $setvar
+case "$d_remotectrl" in
+$define) remotectrl=true;;
+*) remotectrl=false;;
 esac
 
 : ask them wich GTK+ version they want
-$cat <<'EOM'
-
+echo " "
+case "$d_headless" in
+"$define")
+	echo "Turning off GTK+ since you want to run without any GUI"
+	d_usegtk1="$undef";
+	d_usegtk2="$undef";
+	;;
+*)
+	$cat <<'EOM'
 I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
 The GTK1 frontend will use much less CPU than the GTK2 one, so if you
 have a slow CPU, you are encouraged to choose GTK1.
 
 EOM
-case "$gtkversion" in
-'') dflt=1;;
-2) dflt=2;;
-*) dflt=1;;
-esac
-rp="Use which GTK toolkit (1 or 2)"
-. ./myread
-case "$ans" in
-2)
-	gtkversion=2; gtkpackage=gtk+-2.0
-	d_usegtk2="$define"; d_usegtk1="$undef";;
-*)
-	gtkversion=1; gtkpackage=gtk+
-	d_usegtk1="$define"; d_usegtk2="$undef";;
+	case "$gtkversion" in
+	'') dflt=1;;
+	2) dflt=2;;
+	*) dflt=1;;
+	esac
+	rp="Use which GTK toolkit (1 or 2)"
+	. ./myread
+	case "$ans" in
+	2)
+		gtkversion=2; gtkpackage=gtk+-2.0
+		d_usegtk2="$define"; d_usegtk1="$undef";;
+	*)
+		gtkversion=1; gtkpackage=gtk+
+		d_usegtk1="$define"; d_usegtk2="$undef";;
+	esac
+	;;
 esac
 
 : decide which version of glib to use -- tied to the choice of GTK
@@ -5351,8 +5407,8 @@ $rm -f isascii*
 
 : check whether udata in struct kevent is an integer
 echo " "
-$cat << 'EOM'
-Checking whether the member "udata" of "struct kevent" is an integer ..." >&4
+$cat << 'EOM' >&4
+Checking whether the member "udata" of "struct kevent" is an integer ...
 EOM
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -7569,6 +7625,9 @@ frontend="GTK1"
 case "$gtkversion" in
 2) frontend="GTK2";;
 esac
+case "$d_headless" in
+"$define") frontend="none";;
+esac
 persistent=no
 case "$d_libxml2" in
 "$define") persistent=yes;;
@@ -7767,6 +7826,7 @@ d_gettext='$d_gettext'
 d_getuid='$d_getuid'
 d_gnulibc='$d_gnulibc'
 d_gnutls='$d_gnutls'
+d_headless='$d_headless'
 d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
 d_index='$d_index'

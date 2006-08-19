@@ -157,16 +157,6 @@ $(IF)/$(GNET_PROPS): .FORCE
 
 libgtk-common.a:  $(IF)/$(GNET_PROPS)
 
-all:: libgtk-common.a
-
-local_realclean::
-	$(RM) libgtk-common.a
-
-libgtk-common.a:  $(LOBJ)
-	$(RM) $@
-	$(AR) $@  $(LOBJ)
-	$(RANLIB) $@
-
 depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
@@ -192,6 +182,13 @@ depend::
 	$(RM) Makefile.new
 
 !NO!SUBS!
+case "$d_headless" in
+define) has_gui=false;;
+*) has_gui=true;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
+
+!NO!SUBS!
 case "$d_usegtk1" in
 define)
 	$spitshell >>Makefile <<'!NO!SUBS!'
@@ -211,6 +208,21 @@ LIBRARY = libgtk2.a
 	;;
 esac
 $spitshell >>Makefile <<'!NO!SUBS!'
+
+!NO!SUBS!
+case "$has_gui" in
+true)
+	$spitshell >>Makefile <<'!NO!SUBS!'
+
+all:: libgtk-common.a
+
+local_realclean::
+	$(RM) libgtk-common.a
+
+libgtk-common.a:  $(LOBJ)
+	$(RM) $@
+	$(AR) $@  $(LOBJ)
+	$(RANLIB) $@
 
 $(SDIR)/support-glade.h: .FORCE
 	@echo "Checking "support-glade.h" in "$(SDIR)"..."
@@ -235,6 +247,10 @@ libgtkx.a: $(SDIR)/$(LIBRARY)
 	$(RM) $@
 	$(LN) $(SDIR)/$(LIBRARY) $@
 	$(RANLIB) $@
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

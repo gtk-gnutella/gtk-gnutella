@@ -28,6 +28,42 @@
 
 #include "common.h"
 
+#ifdef USE_TOPLESS
+
+/* Diverse dummy definitions */
+#define settings_gui_save_if_dirty()
+
+#define main_gui_early_init(argc, argv)
+#define main_gui_init()
+#define main_gui_timer(x)
+#define main_gui_update_coords()
+#define main_gui_shutdown()
+#define main_gui_shutdown_tick(remain)
+#define settings_gui_shutdown()
+
+#define drop_init()
+#define drop_close()
+
+#define search_gui_store_searches()
+
+#define icon_timer()
+
+static inline void
+main_gui_run(void)
+{
+	GMainLoop *ml;
+
+#if defined(USE_GLIB1)
+	ml = g_main_new(FALSE);
+	g_main_run(ml);
+#elif defined(USE_GLIB2)
+	ml = g_main_loop_new(NULL, FALSE);
+	g_main_loop_run(ml);
+#endif /* GLIB */
+}
+
+#else	/* !USE_TOPLESS */
+
 #include <gtk/gtk.h>
 
 #ifdef USE_GTK1
@@ -59,6 +95,7 @@ enum sorting_order {
 	SORT_NO_COL = 2		/**< No column chosen yet */
 };
 
+#endif	/* USE_TOPLESS */
 #endif /* _gtk_ui_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

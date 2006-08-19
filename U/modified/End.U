@@ -13,7 +13,7 @@
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_sqlite
+	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_sqlite d_headless
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend persistent zlib remote iptos unicode nls fastassert sqlite
@@ -25,6 +25,9 @@ glib_used=glib-${glibversion}.x
 frontend="GTK1"
 case "$gtkversion" in
 2) frontend="GTK2";;
+esac
+case "$d_headless" in
+"$define") frontend="none";;
 esac
 persistent=no
 case "$d_libxml2" in
