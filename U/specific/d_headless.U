@@ -1,0 +1,37 @@
+?RCS: $Id: gtkgversion.U 8845 2005-07-29 14:45:50Z graaff $
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_headless: cat Myread Setvar spackage package
+?MAKE:	-pick add $@ %<
+?S:d_headless:
+?S:	This variable conditionally defines USE_TOPLESS when the package is
+?S:	compiled without any GUI interface.
+?S:.
+?C:USE_TOPLESS:
+?C:	This symbol, when defined, indicates that there is no GUI interface.
+?C:.
+?H:#$d_headless USE_TOPLESS	/**/
+?H:.
+?LINT:set d_headless
+: look whether they wish to run headless
+$cat <<EOM
+
+$spackage can run without any GUI interface in so-called "headless" mode.
+Therefore, monitoring of operations for $package will have to be done
+without relying on any GUI, and the configuration is done via files only.
+
+EOM
+case "$d_headless" in
+"$define") dflt=y;;
+*) dflt=n;;
+esac
+rp="Run without any GUI interface"
+. ./myread
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_headless
+eval $setvar
+
