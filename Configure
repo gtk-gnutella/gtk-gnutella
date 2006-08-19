@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 19 17:51:19 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 19 17:57:35 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5043,6 +5043,10 @@ $rm -f try try.c
 set d_geteuid
 eval $setvar
 
+: see if this is a net/if.h system
+set net/if.h i_netif
+eval $inhdr
+
 : can we use getifaddrs?
 echo " "
 echo "Checking whether getifaddrs() is available ..." >&4
@@ -5050,6 +5054,9 @@ val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <sys/socket.h>
+#ifdef I_NET_IF
+#include <net/if.h>
+#endif
 #include <ifaddrs.h>
 
 int
@@ -5064,6 +5071,8 @@ main(void) {
     (void) ifa->ifa_addr;
     (void) ifa->ifa_addr->sa_family;
     (void) ifa->ifa_netmask;
+    if ((IFF_LOOPBACK | IFF_UP | IFF_RUNNING) & ifa->ifa_flags)
+	break;
   }
   freeifaddrs(ifa0);
   return 0;
@@ -7420,10 +7429,6 @@ eval $inhdr
 
 : see if this is a netdb.h system
 set netdb.h i_netdb
-eval $inhdr
-
-: see if this is a net/if.h system
-set net/if.h i_netif
 eval $inhdr
 
 : see if this is a pwd.h system
