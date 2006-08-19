@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_getifaddrs: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_getifaddrs: Myread Setvar cat rm +cc +ccflags +ldflags i_netif
 ?MAKE:	-pick add $@ %<
 ?S:d_getifaddrs:
 ?S:	This variable conditionally defines the HAS_GETIFADDRS symbol, which
@@ -21,6 +21,9 @@ val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <sys/socket.h>
+#ifdef I_NET_IF
+#include <net/if.h>
+#endif
 #include <ifaddrs.h>
 
 int
@@ -35,6 +38,8 @@ main(void) {
     (void) ifa->ifa_addr;
     (void) ifa->ifa_addr->sa_family;
     (void) ifa->ifa_netmask;
+    if ((IFF_LOOPBACK | IFF_UP | IFF_RUNNING) & ifa->ifa_flags)
+	break;
   }
   freeifaddrs(ifa0);
   return 0;
