@@ -35,6 +35,7 @@ case "$remotectrl" in
 false) dflt=n;;
 true) dflt=y;;
 *)
+	dflt=y
 	case "$d_headless" in
 	"$define")
 		$cat <<'EOM'
@@ -44,8 +45,7 @@ compile this feature in.  Given that there is no GUI, you will need
 to activate remote control via the configuration file.
 
 EOM
-		dflt=y;;
-	*) dflt=n;;
+		;;
 	esac
 	;;
 esac

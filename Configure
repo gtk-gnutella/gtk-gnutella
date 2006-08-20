@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 19 17:57:35 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 20 11:00:08 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -2521,6 +2521,7 @@ case "$remotectrl" in
 false) dflt=n;;
 true) dflt=y;;
 *)
+	dflt=y
 	case "$d_headless" in
 	"$define")
 		$cat <<'EOM'
@@ -2530,8 +2531,7 @@ compile this feature in.  Given that there is no GUI, you will need
 to activate remote control via the configuration file.
 
 EOM
-		dflt=y;;
-	*) dflt=n;;
+		;;
 	esac
 	;;
 esac
