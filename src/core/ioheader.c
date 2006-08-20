@@ -172,11 +172,11 @@ io_header_parse(struct io_header *ih)
 	 */
 
 nextline:
-	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
+	switch (getline_read(getline, s->buf, s->pos, &parsed)) {
 	case READ_OVERFLOW:
 		g_warning("io_header_parse: line too long, disconnecting from %s",
 			host_addr_to_string(s->addr));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
 		fprintf(stderr, "------ Header Dump:\n");
 		header_dump(header, stderr);
 		fprintf(stderr, "------\n");
@@ -185,7 +185,7 @@ nextline:
 		/* NOTREACHED */
 	case READ_DONE:
 		if (s->pos != parsed)
-			memmove(s->buffer, &s->buffer[parsed], s->pos - parsed);
+			memmove(s->buf, &s->buf[parsed], s->pos - parsed);
 		s->pos -= parsed;
 		break;
 	case READ_MORE:		/* ok, but needs more data */
@@ -290,7 +290,7 @@ nextline:
         if (dbg) {
             g_message("remote %s sent extra bytes after headers",
                 host_addr_to_string(s->addr));
-            dump_hex(stderr, "Extra Data", s->buffer, MIN(s->pos, 512));
+            dump_hex(stderr, "Extra Data", s->buf, MIN(s->pos, 512));
         }
 		(*ih->error->header_extra_data)(ih->resource);
 		return;
@@ -370,12 +370,12 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * never happen.
 	 */
 
-	g_assert(sizeof(s->buffer) >= s->pos);
-	count = sizeof(s->buffer) - s->pos;
+	g_assert(s->buf_size >= s->pos);
+	count = s->buf_size - s->pos;
 	if (count < 1) {
 		g_warning("ih_header_read: incoming buffer full, "
 			"disconnecting from %s", host_addr_to_string(s->addr));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
 		(*ih->error->input_buffer_full)(ih->resource);
 		return;
 	}
@@ -386,7 +386,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * errors to our client.
 	 */
 
-	r = bws_read(ih->bs, &s->wio, &s->buffer[s->pos], count);
+	r = bws_read(ih->bs, &s->wio, &s->buf[s->pos], count);
 	if (r == 0) {
 		socket_eof(s);
 		(*ih->error->header_read_eof)(ih->resource);

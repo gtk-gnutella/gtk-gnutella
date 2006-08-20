@@ -4414,7 +4414,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		 * Prepare data buffer out of the socket's buffer.
 		 */
 
-		db = pdata_allocb_ext(s->buffer, s->pos, pdata_free_nop, NULL);
+		db = pdata_allocb_ext(s->buf, s->pos, pdata_free_nop, NULL);
 		mb = pmsg_alloc(PMSG_P_DATA, db, 0, s->pos);
 
 		/*
@@ -5613,12 +5613,12 @@ node_udp_get(struct gnutella_socket *s)
 	g_assert(n != NULL);
 	g_assert(n->socket == s);		/* Only one UDP socket */
 
-	head = cast_to_gpointer(s->buffer);
+	head = cast_to_gpointer(s->buf);
 	READ_GUINT32_LE(head->size, n->size);
 	n->size &= GTA_SIZE_MASK;
 
 	n->header = *head;		/* Struct copy */
-	n->data = s->buffer + GTA_HEADER_SIZE;
+	n->data = &s->buf[GTA_HEADER_SIZE];
 
 	n->addr = s->addr;
 	n->port = s->port;
@@ -6293,7 +6293,7 @@ node_parse(struct gnutella_node *node)
 		/* Not ready for prime time */
 #if 0
 		rudp_handle_packet(n->addr, n->port,
-			n->socket->buffer, n->size + GTA_HEADER_SIZE);
+			n->socket->buf, n->size + GTA_HEADER_SIZE);
 #endif
 		return;
 	default:
@@ -6546,7 +6546,7 @@ node_udp_process(struct gnutella_socket *s)
 	if (hostiles_check(n->addr)) {
 		if (udp_debug)
 			g_warning("UDP got %s from hostile %s -- dropped",
-				gmsg_infostr_full(s->buffer), node_addr(n));
+				gmsg_infostr_full(s->buf), node_addr(n));
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		return;
 	}
@@ -6564,7 +6564,7 @@ node_udp_process(struct gnutella_socket *s)
 		if (!zlib_is_valid_header(n->data, n->size)) {
 			if (udp_debug)
 				g_warning("UDP got %s with non-deflated payload from %s",
-					gmsg_infostr_full(s->buffer), node_addr(n));
+					gmsg_infostr_full(s->buf), node_addr(n));
 			gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
 			return;
 		}
@@ -6577,7 +6577,7 @@ node_udp_process(struct gnutella_socket *s)
 		if (ret != Z_OK) {
 			if (udp_debug)
 				g_warning("UDP cannot inflate %s from %s: %s",
-					gmsg_infostr_full(s->buffer), node_addr(n),
+					gmsg_infostr_full(s->buf), node_addr(n),
 					zlib_strerror(ret));
 			gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
 			return;
@@ -6589,7 +6589,7 @@ node_udp_process(struct gnutella_socket *s)
 
 		if (udp_debug)
 			g_message("UDP inflated %s from %s into %d bytes",
-				gmsg_infostr_full(s->buffer), node_addr(n), outlen);
+				gmsg_infostr_full(s->buf), node_addr(n), outlen);
 
 		n->data = udp_inflate_buffer;
 		n->size = outlen;

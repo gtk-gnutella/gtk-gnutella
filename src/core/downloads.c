@@ -6534,7 +6534,7 @@ download_sink(struct download *d)
 	struct gnutella_socket *s = d->socket;
 
 	download_check(d);
-	g_assert((gint) s->pos >= 0 && s->pos <= sizeof(s->buffer));
+	g_assert((gint) s->pos >= 0 && s->pos <= s->buf_size);
 	g_assert(d->status == GTA_DL_SINKING);
 	g_assert(d->flags & DL_F_CHUNK_CHOSEN);
 	g_assert(d->flags & DL_F_SUNK_DATA);
@@ -6578,12 +6578,11 @@ download_sink_read(gpointer data, gint unused_source,
 	(void) unused_cond;
 	g_assert(s);
 
-	r = bio_read(d->bio, s->buffer, sizeof s->buffer);
-	if (r == 0) {
+	r = bio_read(d->bio, s->buf, s->buf_size);
+	if (0 == r) {
 		socket_eof(s);
 		download_queue_delay(d, download_retry_busy_delay,
 			_("Stopped data (EOF) <download_sink_read>"));
-		return;
 	} else if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno)) {
 			socket_eof(s);
@@ -6594,13 +6593,12 @@ download_sink_read(gpointer data, gint unused_source,
 				download_stop(d, GTA_DL_ERROR,
 					_("Failed (Read error: %s)"), g_strerror(errno));
 		}
-		return;
+	} else {
+		s->pos = r;
+		d->last_update = tm_time();
+
+		download_sink(d);
 	}
-
-	s->pos = r;
-	d->last_update = tm_time();
-
-	download_sink(d);
 }
 
 static const gchar *
@@ -7778,7 +7776,7 @@ http_version_nofix:
 
 		if (s->pos > 0) {
 			fi->recv_amount += s->pos;
-			browse_host_dl_write(d->browse, s->buffer, s->pos);
+			browse_host_dl_write(d->browse, s->buf, s->pos);
 		}
 
 		return;
@@ -7888,7 +7886,7 @@ http_version_nofix:
 		size_t n = s->pos;
 		
 		s->pos = 0;
-		download_write(d, s->buffer, n);
+		download_write(d, s->buf, n);
 		fi->recv_amount += n;
 	}
 }
@@ -8159,7 +8157,7 @@ download_send_request(struct download *d)
 
 picked:
 
-	g_assert(d->overlap_size <= sizeof(s->buffer));
+	g_assert(d->overlap_size <= s->buf_size);
 
 	/*
 	 * We can have a SHA1 for this download (information gathered from

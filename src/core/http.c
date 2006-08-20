@@ -2131,7 +2131,7 @@ http_got_data(struct http_async *ha, gboolean eof)
 
 	if (s->pos > 0) {
 		ha->last_update = tm_time();
-		(*ha->data_ind)(ha, s->buffer, s->pos);
+		(*ha->data_ind)(ha, s->buf, s->pos);
 		if (ha->flags & HA_F_FREED)		/* Callback decided to cancel/close */
 			return;
 		s->pos = 0;
@@ -2165,14 +2165,14 @@ http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	g_assert((gint) s->pos >= 0 && s->pos <= sizeof s->buffer);
+	g_assert((gint) s->pos >= 0 && s->pos <= s->buf_size);
 
-	if (s->pos == sizeof(s->buffer)) {
+	if (s->pos == s->buf_size) {
 		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
 		return;
 	}
 
-	r = bio_read(ha->bio, s->buffer + s->pos, sizeof(s->buffer) - s->pos);
+	r = bio_read(ha->bio, &s->buf[s->pos], s->buf_size - s->pos);
 	if (r == 0) {
 		socket_eof(s);
 		http_got_data(ha, TRUE);			/* Signals EOF */

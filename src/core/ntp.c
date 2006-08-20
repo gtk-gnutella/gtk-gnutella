@@ -264,7 +264,7 @@ ntp_got_reply(struct gnutella_socket *s)
 		return;
 	}
 
-	m = (struct ntp_msg *) s->buffer;
+	m = (struct ntp_msg *) s->buf;
 	mode = m->flags & 0x7;
 	version = (m->flags >> 3) & 0x7;
 

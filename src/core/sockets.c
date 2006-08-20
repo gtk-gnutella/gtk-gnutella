@@ -519,7 +519,7 @@ send_socks4(struct gnutella_socket *s)
 
 		STATIC_ASSERT(8 == sizeof *req);
 
-		req = cast_to_gpointer(s->buffer);
+		req = cast_to_gpointer(s->buf);
 		req->version = 4;	/* SOCKS 4 */
 		req->command = 1;	/* Connect */
 		poke_be16(req->dstport, s->port);
@@ -540,8 +540,8 @@ send_socks4(struct gnutella_socket *s)
 
 		/* Make sure the request fits into the socket buffer */
 		if (
-			name_size >= sizeof s->buffer ||
-			length + name_size > sizeof s->buffer
+			name_size >= s->buf_size ||
+			length + name_size > s->buf_size
 		) {
 			/* Such a long username would be insane, no need to malloc(). */
 			g_warning("send_socks4(): Username is too long");
@@ -549,12 +549,12 @@ send_socks4(struct gnutella_socket *s)
 		}
 
 		/* Copy the username */
-		memcpy(&s->buffer[length], name, name_size);
+		memcpy(&s->buf[length], name, name_size);
 		length += name_size;
 	}
 
 	/* Send the socks header info */
-	ret = write(s->file_desc, s->buffer, length);
+	ret = write(s->file_desc, s->buf, length);
 
 	if ((size_t) ret != length) {
 		g_warning("Error attempting to send SOCKS request (%s)",
@@ -662,7 +662,7 @@ connect_http(struct gnutella_socket *s)
 		break;
 
 	case 1:
-		ret = read(s->file_desc, s->buffer, sizeof(s->buffer) - 1);
+		ret = read(s->file_desc, s->buf, s->buf_size - 1);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving answer from HTTP proxy failed: %s",
 				g_strerror(errno));
@@ -671,13 +671,13 @@ connect_http(struct gnutella_socket *s)
 		if (!s->getline)
 			s->getline = getline_make(HEAD_MAX_SIZE);
 
-		switch (getline_read(s->getline, s->buffer, ret, &parsed)) {
+		switch (getline_read(s->getline, s->buf, ret, &parsed)) {
 		case READ_OVERFLOW:
 			g_warning("HTTP proxy returned a too long line");
 			return -1;
 		case READ_DONE:
 			if ((size_t) ret != parsed)
-				memmove(s->buffer, s->buffer + parsed, ret - parsed);
+				memmove(s->buf, &s->buf[parsed], ret - parsed);
 			ret -= parsed;
 			break;
 		case READ_MORE:
@@ -697,13 +697,13 @@ connect_http(struct gnutella_socket *s)
 
 		while (ret != 0) {
 			getline_reset(s->getline);
-			switch (getline_read(s->getline, s->buffer, ret, &parsed)) {
+			switch (getline_read(s->getline, s->buf, ret, &parsed)) {
 			case READ_OVERFLOW:
 				g_warning("HTTP proxy returned a too long line");
 				return -1;
 			case READ_DONE:
 				if ((size_t) ret != parsed)
-					memmove(s->buffer, s->buffer + parsed, ret - parsed);
+					memmove(s->buf, &s->buf[parsed], ret - parsed);
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
@@ -719,7 +719,7 @@ connect_http(struct gnutella_socket *s)
 		}
 		break;
 	case 2:
-		ret = read(s->file_desc, s->buffer, sizeof(s->buffer) - 1);
+		ret = read(s->file_desc, s->buf, s->buf_size - 1);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving answer from HTTP proxy failed: %s",
 				g_strerror(errno));
@@ -727,13 +727,13 @@ connect_http(struct gnutella_socket *s)
 		}
 		while (ret != 0) {
 			getline_reset(s->getline);
-			switch (getline_read(s->getline, s->buffer, ret, &parsed)) {
+			switch (getline_read(s->getline, s->buf, ret, &parsed)) {
 			case READ_OVERFLOW:
 				g_warning("HTTP proxy returned a too long line");
 				return -1;
 			case READ_DONE:
 				if ((size_t) ret != parsed)
-					memmove(s->buffer, s->buffer + parsed, ret - parsed);
+					memmove(s->buf, &s->buf[parsed], ret - parsed);
 				ret -= parsed;
 				if (getline_length(s->getline) == 0) {
 					s->pos++;
@@ -813,7 +813,7 @@ connect_socksv5(struct gnutella_socket *s)
 	case 1:
 		/* Now receive the reply as to which method we're using */
 		size = 2;
-		ret = read(sockid, s->buffer, size);
+		ret = read(sockid, s->buf, size);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving SOCKS method negotiation reply failed: %s",
 				g_strerror(errno));
@@ -826,12 +826,12 @@ connect_socksv5(struct gnutella_socket *s)
 		}
 
 		/* See if we offered an acceptable method */
-		if (s->buffer[1] == '\xff') {
+		if (s->buf[1] == '\xff') {
 			g_warning("SOCKS server refused authentication methods");
 			return ECONNREFUSED;
 		}
 
-		if (s->buffer[1] == 2 && socks_user != NULL && socks_user[0] != '\0') {
+		if (s->buf[1] == 2 && socks_user != NULL && socks_user[0] != '\0') {
 		   	/* has provided user info */
 			s->pos++;
 		} else {
@@ -867,12 +867,12 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 
-		size = gm_snprintf(s->buffer, sizeof s->buffer, "\x01%c%s%c%s",
+		size = gm_snprintf(s->buf, s->buf_size, "\x01%c%s%c%s",
 					(guchar) strlen(name), name,
 					(guchar) strlen(socks_pass), socks_pass);
 
 		/* Send out the authentication */
-		ret = write(sockid, s->buffer, size);
+		ret = write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("Sending SOCKS authentication failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
@@ -885,7 +885,7 @@ connect_socksv5(struct gnutella_socket *s)
 	case 3:
 		/* Receive the authentication response */
 		size = 2;
-		ret = read(sockid, s->buffer, size);
+		ret = read(sockid, s->buf, size);
 		if (ret == (ssize_t) -1) {
 			g_warning("Receiving SOCKS authentication reply failed: %s",
 				g_strerror(errno));
@@ -897,7 +897,7 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 
-		if (s->buffer[1] != '\0') {
+		if (s->buf[1] != '\0') {
 			g_warning("SOCKS authentication failed, "
 					   "check username and password");
 			return ECONNREFUSED;
@@ -906,24 +906,24 @@ connect_socksv5(struct gnutella_socket *s)
 		break;
 	case 4:
 		/* Now send the connect */
-		s->buffer[0] = 0x05;		/* Version 5 SOCKS */
-		s->buffer[1] = 0x01;		/* Connect request */
-		s->buffer[2] = 0x00;		/* Reserved		*/
+		s->buf[0] = 0x05;		/* Version 5 SOCKS */
+		s->buf[1] = 0x01;		/* Connect request */
+		s->buf[2] = 0x00;		/* Reserved		*/
 
 		size = 0;
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
-			s->buffer[3] = 0x01;		/* IP version 4	*/
-			poke_be32(&s->buffer[4], host_addr_ipv4(addr));
-			poke_be16(&s->buffer[8], s->port);
+			s->buf[3] = 0x01;		/* IP version 4	*/
+			poke_be32(&s->buf[4], host_addr_ipv4(addr));
+			poke_be16(&s->buf[8], s->port);
 			size = 10;
 			break;
 
 		case NET_TYPE_IPV6:
 #ifdef USE_IPV6
-			s->buffer[3] = 0x04;		/* IP version 6	*/
-			memcpy(&s->buffer[4], host_addr_ipv6(&addr), 16);
-			poke_be16(&s->buffer[20], s->port);
+			s->buf[3] = 0x04;		/* IP version 6	*/
+			memcpy(&s->buf[4], host_addr_ipv6(&addr), 16);
+			poke_be16(&s->buf[20], s->port);
 			size = 22;
 			break;
 #endif /* USE_IPV6 */
@@ -935,7 +935,7 @@ connect_socksv5(struct gnutella_socket *s)
 
 		/* Now send the connection */
 
-		ret = write(sockid, s->buffer, size);
+		ret = write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("Send SOCKS connect command failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
@@ -948,7 +948,7 @@ connect_socksv5(struct gnutella_socket *s)
 		/* Now receive the reply to see if we connected */
 
 		size = 10;
-		ret = read(sockid, s->buffer, size);
+		ret = read(sockid, s->buf, size);
 		if ((ssize_t) -1 == ret) {
 			g_warning("Receiving SOCKS connection reply failed: %s",
 				g_strerror(errno));
@@ -962,9 +962,9 @@ connect_socksv5(struct gnutella_socket *s)
 		}
 
 		/* See the connection succeeded */
-		if (s->buffer[1] != '\0') {
+		if (s->buf[1] != '\0') {
 			g_warning("SOCKS connect failed: ");
-			switch (s->buffer[1]) {
+			switch (s->buf[1]) {
 			case 1:
 				g_warning("General SOCKS server failure");
 				return ECONNABORTED;
@@ -1029,7 +1029,7 @@ socket_timer(time_t now)
 					  host_addr_to_string(s->addr), (int) s->pos);
 				if (s->pos > 0)
 					dump_hex(stderr, "Connection Header",
-						s->buffer, MIN(s->pos, 80));
+						s->buf, MIN(s->pos, 80));
 			}
 			to_remove = g_slist_prepend(to_remove, s);
 		}
@@ -1231,6 +1231,11 @@ socket_free(struct gnutella_socket *s)
 		}
 		s->file_desc = -1;
 	}
+	if (s->buf) {
+		g_assert(s->buf_size > 0);
+		compat_page_free(s->buf, s->buf_size);
+		s->buf = NULL;
+	}
 	wfree(s, sizeof *s);
 }
 
@@ -1366,14 +1371,19 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	}
 #endif /* HAS_GNUTLS */
 
-	g_assert(sizeof(s->buffer) >= s->pos);
-	count = sizeof(s->buffer) - s->pos;
+	if (!s->buf) {
+		s->buf_size = SOCK_BUFSZ;
+		s->buf = compat_page_align(s->buf_size);
+	}
+
+	g_assert(s->buf_size >= s->pos);
+	count = s->buf_size - s->pos;
 
 	/* 1 to allow trailing NUL */
 	if (count < 1) {
 		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
 			 host_addr_to_string(s->addr));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
 		socket_destroy(s, "Incoming buffer full");
 		return;
 	}
@@ -1388,7 +1398,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	count = MIN(count, RQST_LINE_LENGTH);
 
-	r = bws_read(bws.in, &s->wio, &s->buffer[s->pos], count);
+	r = bws_read(bws.in, &s->wio, &s->buf[s->pos], count);
 	switch (r) {
 	case 0:
 		socket_destroy(s, "Got EOF");
@@ -1406,22 +1416,22 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * Get first line.
 	 */
 
-	switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
+	switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
 	case READ_OVERFLOW:
 		g_warning("socket_read(): first line too long, disconnecting from %s",
 			 host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data",
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
-			is_strprefix(s->buffer, "GET ") ||
-			is_strprefix(s->buffer, "HEAD ")
+			is_strprefix(s->buf, "GET ") ||
+			is_strprefix(s->buf, "HEAD ")
 		)
 			http_send_status(s, 414, FALSE, NULL, 0, "Requested URL Too Large");
 		socket_destroy(s, "Requested URL too large");
 		return;
 	case READ_DONE:
 		if (s->pos != parsed)
-			memmove(s->buffer, &s->buffer[parsed], s->pos - parsed);
+			memmove(s->buf, &s->buf[parsed], s->pos - parsed);
 		s->pos -= parsed;
 		break;
 	case READ_MORE:		/* ok, but needs more data */
@@ -1633,6 +1643,11 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
+	if (!s->buf) {
+		s->buf_size = SOCK_BUFSZ;
+		s->buf = compat_page_align(s->buf_size);
+	}
+
 	if (cond & INPUT_EVENT_R) {
 		if (
 			proxy_protocol != PROXY_NONE &&
@@ -1735,7 +1750,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		inet_connection_succeeded(s->addr);
 
 		s->pos = 0;
-		memset(s->buffer, 0, sizeof s->buffer);
+		memset(s->buf, 0, s->buf_size);
 
 		g_assert(0 == s->gdk_tag);
 
@@ -2128,8 +2143,8 @@ socket_udp_accept(struct gnutella_socket *s)
 		struct msghdr msg;
 		struct iovec iov;
 
-		iov.iov_base = s->buffer;
-		iov.iov_len = sizeof s->buffer;
+		iov.iov_base = s->buf;
+		iov.iov_len = s->buf_size;
 
 		msg = zero_msg;
 		msg.msg_name = cast_to_gpointer(from);
@@ -2173,7 +2188,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	if ((ssize_t) -1 == r)
 		return (ssize_t) -1;
 
-	g_assert((size_t) r <= sizeof s->buffer);
+	g_assert((size_t) r <= s->buf_size);
 
 	bws_udp_count_read(r);
 	s->pos = r;

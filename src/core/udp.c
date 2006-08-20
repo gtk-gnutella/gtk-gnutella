@@ -84,7 +84,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	 * 1 byte for the function type) to identify a valid Gnutella packet.
 	 */
 
-	head = (struct gnutella_header *) s->buffer;
+	head = cast_to_gpointer(s->buf);
 	READ_GUINT32_LE(head->size, size);
 	size &= GTA_SIZE_MASK;					/* Architectural limit */
 
@@ -150,7 +150,7 @@ log:
 		g_warning("got invalid Gnutella packet from UDP (%s): %s",
 			host_addr_port_to_string(s->addr, s->port), msg);
 		if (s->pos)
-			dump_hex(stderr, "UDP datagram", s->buffer, s->pos);
+			dump_hex(stderr, "UDP datagram", s->buf, s->pos);
 	}
 
 	return FALSE;
@@ -229,7 +229,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 */
 
 	if (udp_debug > 19)
-		g_message("UDP got %s from %s%s", gmsg_infostr_full(s->buffer),
+		g_message("UDP got %s from %s%s", gmsg_infostr_full(s->buf),
 			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
 	node_udp_process(s);

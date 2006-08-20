@@ -133,8 +133,9 @@ struct gnutella_socket {
 
 	struct getline *getline;	/**< Line reader object */
 
-	gchar buffer[SOCK_BUFSZ];	/**< buffer to put in the data read */
-	size_t pos;					/**< write position in the buffer */
+	size_t pos;			/**< write position in the buffer */
+	size_t buf_size;	/**< write position in the buffer */
+	gchar *buf;			/**< buffer to put in the data read */
 };
 
 /*

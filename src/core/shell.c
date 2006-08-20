@@ -837,7 +837,7 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 		sizeof contime_buf);
 
 	gm_snprintf(buf, sizeof buf,
-		"%-21.45s %5.5u %s %2.2s %6.6s %6.6s %.30s",
+		"%-21.45s %5.0u %s %2.2s %6.6s %6.6s %.30s",
 		node_addr(n),
 		(guint) n->gnet_port,
 		node_flags_to_string(&flags),
@@ -1013,8 +1013,6 @@ static void
 shell_read_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
-	size_t parsed;
-	ssize_t rc = -1;
 
 	g_assert(sh);
 
@@ -1024,36 +1022,35 @@ shell_read_data(gnutella_shell_t *sh)
 	sh->last_update = tm_time();
 	s = sh->socket;
 
-	if (s->pos >= sizeof(s->buffer))
+	if (s->buf_size - s->pos < 1) {
 		g_warning("Remote shell: Read more than buffer size.\n");
-	else {
-		gchar *p = s->buffer + s->pos;
-		size_t size = sizeof(s->buffer) - s->pos - 1;
+	} else {
+		size_t size = s->buf_size - s->pos - 1;
+		ssize_t ret;
 
-		rc = s->wio.read(&s->wio, p, size);
-		if (rc <= 0) {
-			if (rc == 0) {
-				if (s->pos == 0) {
-					g_warning("shell connection closed: EOF");
-					shell_destroy(sh);
-					return;
-				}
-			} else {
-				g_warning("Receiving data failed: %s\n",
-					g_strerror(errno));
+		ret = s->wio.read(&s->wio, &s->buf[s->pos], size);
+		if (0 == ret) {
+			if (0 == s->pos) {
+				g_warning("shell connection closed: EOF");
 				shell_destroy(sh);
 				return;
 			}
+		} else if ((ssize_t) -1 == ret) {
+			if (!is_temporary_error(errno)) {
+				g_warning("Receiving data failed: %s\n", g_strerror(errno));
+				shell_destroy(sh);
+				return;
+			}
+		} else {
+			s->pos += ret;
 		}
-		s->pos += rc;
 	}
 
-	while (s->pos) {
+	while (s->pos > 0) {
+		size_t parsed;
 		guint reply_code;
 
-		g_assert (s->pos > 0);
-
-		switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
+		switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
 		case READ_OVERFLOW:
 			g_warning("Line is too long (from shell at %s)\n",
 				host_addr_port_to_string(s->addr, s->port));
@@ -1061,12 +1058,12 @@ shell_read_data(gnutella_shell_t *sh)
 			return;
 		case READ_DONE:
 			if (s->pos != parsed)
-				memmove(s->buffer, &s->buffer[parsed], s->pos - parsed);
+				memmove(s->buf, &s->buf[parsed], s->pos - parsed);
 			s->pos -= parsed;
 			break;
 		case READ_MORE:
 			g_assert(parsed == s->pos);
-
+			s->pos = 0;
 			return;
 		}
 
