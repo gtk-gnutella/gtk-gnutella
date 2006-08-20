@@ -58,7 +58,7 @@ struct tls_context {
 	gnutls_anon_client_credentials client_cred;
 };
 
-static gnutls_certificate_credentials_t server_cert_cred;
+static gnutls_certificate_credentials server_cert_cred;
 
 static inline gnutls_session
 tls_socket_get_session(struct gnutella_socket *s)
@@ -147,7 +147,7 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 static gnutls_dh_params_t
 get_dh_params(void)
 {
-	static gnutls_dh_params_t dh_params;
+	static gnutls_dh_params dh_params;
 	static gboolean initialized = FALSE;
 
 	if (!initialized) {
