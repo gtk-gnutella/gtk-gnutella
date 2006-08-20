@@ -4380,6 +4380,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_UP_REQ_GOOD_UDP,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_good_udp",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_BROWSE_HOST_ENABLED,
         update_togglebutton,
         TRUE,

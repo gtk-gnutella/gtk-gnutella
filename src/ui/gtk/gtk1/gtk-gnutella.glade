@@ -16490,7 +16490,7 @@ http://maxmind.com/</label>
 		      <widget>
 			<class>GtkTable</class>
 			<name>table74</name>
-			<rows>4</rows>
+			<rows>5</rows>
 			<columns>5</columns>
 			<homogeneous>False</homogeneous>
 			<row_spacing>0</row_spacing>
@@ -16524,25 +16524,6 @@ http://maxmind.com/</label>
 			    <yshrink>False</yshrink>
 			    <xfill>True</xfill>
 			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkVSeparator</class>
-			  <name>vseparator2</name>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>3</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>4</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>True</yfill>
 			  </child>
 			</widget>
 
@@ -16982,6 +16963,84 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_enough_conn</name>
+			    <label>[place holder]</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>1</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>5</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+
+			<widget>
+			  <class>GtkVSeparator</class>
+			  <name>vseparator2</name>
+			  <child>
+			    <left_attach>2</left_attach>
+			    <right_attach>3</right_attach>
+			    <top_attach>0</top_attach>
+			    <bottom_attach>5</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>True</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label784</name>
+			  <label>Engouh UDP support</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>2</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <left_attach>0</left_attach>
+			    <right_attach>1</right_attach>
+			    <top_attach>4</top_attach>
+			    <bottom_attach>5</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkFrame</class>
+			  <name>frame145</name>
+			  <label_xalign>0</label_xalign>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+			  <child>
+			    <left_attach>1</left_attach>
+			    <right_attach>2</right_attach>
+			    <top_attach>4</top_attach>
+			    <bottom_attach>5</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>True</yfill>
+			  </child>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <name>label_up_req_good_udp</name>
 			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>

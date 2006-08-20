@@ -1518,7 +1518,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label498), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label494 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_table_attach (GTK_TABLE (table105), label494, 1, 2, 1, 2,
@@ -1545,7 +1545,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label704), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label704), 4, 0);
 
-  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label493 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_table_attach (GTK_TABLE (table105), label493, 4, 5, 0, 1,
@@ -10295,7 +10295,6 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label757;
   GtkWidget *label758;
   GtkWidget *label759;
-  GtkWidget *vseparator3;
   GtkWidget *label768;
   GtkWidget *label769;
   GtkWidget *label767;
@@ -10316,6 +10315,10 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *viewport107;
   GtkWidget *label_up_req_enough_conn;
   GtkWidget *label868;
+  GtkWidget *vseparator3;
+  GtkWidget *label994;
+  GtkWidget *viewport476;
+  GtkWidget *label_up_req_good_udp;
   GtkWidget *label920;
   GtkWidget *label739;
   GtkWidget *hbox286;
@@ -10655,7 +10658,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (hseparator12);
   gtk_box_pack_start (GTK_BOX (vbox116), hseparator12, FALSE, TRUE, 0);
 
-  table84 = gtk_table_new (4, 5, FALSE);
+  table84 = gtk_table_new (5, 5, FALSE);
   gtk_widget_set_name (table84, "table84");
   gtk_widget_show (table84);
   gtk_box_pack_start (GTK_BOX (vbox116), table84, TRUE, TRUE, 0);
@@ -10697,13 +10700,6 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label759), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label759), 4, 0);
-
-  vseparator3 = gtk_vseparator_new ();
-  gtk_widget_set_name (vseparator3, "vseparator3");
-  gtk_widget_show (vseparator3);
-  gtk_table_attach (GTK_TABLE (table84), vseparator3, 2, 3, 0, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   label768 = gtk_label_new (_("Not firewalled"));
   gtk_widget_set_name (label768, "label768");
@@ -10867,6 +10863,38 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label868), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label868), 4, 0);
+
+  vseparator3 = gtk_vseparator_new ();
+  gtk_widget_set_name (vseparator3, "vseparator3");
+  gtk_widget_show (vseparator3);
+  gtk_table_attach (GTK_TABLE (table84), vseparator3, 2, 3, 0, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label994 = gtk_label_new (_("Enough UDP support"));
+  gtk_widget_set_name (label994, "label994");
+  gtk_widget_show (label994);
+  gtk_table_attach (GTK_TABLE (table84), label994, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label994), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label994), 4, 0);
+
+  viewport476 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport476, "viewport476");
+  gtk_widget_show (viewport476);
+  gtk_table_attach (GTK_TABLE (table84), viewport476, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport476), GTK_SHADOW_NONE);
+
+  label_up_req_good_udp = gtk_label_new ("[no]");
+  gtk_widget_set_name (label_up_req_good_udp, "label_up_req_good_udp");
+  gtk_widget_show (label_up_req_good_udp);
+  gtk_container_add (GTK_CONTAINER (viewport476), label_up_req_good_udp);
+  gtk_label_set_justify (GTK_LABEL (label_up_req_good_udp), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label_up_req_good_udp), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_up_req_good_udp), 5, 0);
 
   label920 = gtk_label_new (_("Ultrapeer promotion statistics"));
   gtk_widget_set_name (label920, "label920");
@@ -11720,7 +11748,6 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label757, "label757");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label758, "label758");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label759, "label759");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vseparator3, "vseparator3");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label768, "label768");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label769, "label769");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label767, "label767");
@@ -11741,6 +11768,10 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, viewport107, "viewport107");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label_up_req_enough_conn, "label_up_req_enough_conn");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label868, "label868");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vseparator3, "vseparator3");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label994, "label994");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, viewport476, "viewport476");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label_up_req_good_udp, "label_up_req_good_udp");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label920, "label920");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label739, "label739");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox286, "hbox286");
@@ -13184,7 +13215,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
@@ -13193,7 +13224,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
@@ -13831,7 +13862,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
 
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
   spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   gtk_widget_show (spinbutton_pfsp_first_chunk);
@@ -13949,7 +13980,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label928), 0, 0.5);
 
-  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
   spinbutton_parq_min_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_size, "spinbutton_parq_min_size");
   gtk_widget_show (spinbutton_parq_min_size);
@@ -13972,7 +14003,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
   spinbutton_parq_min_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_time_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_time, "spinbutton_parq_min_time");
   gtk_widget_show (spinbutton_parq_min_time);

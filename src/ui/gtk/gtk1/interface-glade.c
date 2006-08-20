@@ -11078,7 +11078,6 @@ create_dlg_prefs (void)
   GtkWidget *hseparator14;
   GtkWidget *table74;
   GtkWidget *label584;
-  GtkWidget *vseparator2;
   GtkWidget *label591;
   GtkWidget *label592;
   GtkWidget *label593;
@@ -11102,6 +11101,10 @@ create_dlg_prefs (void)
   GtkWidget *label681;
   GtkWidget *frame132;
   GtkWidget *label_up_req_enough_conn;
+  GtkWidget *vseparator2;
+  GtkWidget *label784;
+  GtkWidget *frame145;
+  GtkWidget *label_up_req_good_udp;
   GtkWidget *frame_searches;
   GtkWidget *hbox188;
   GtkWidget *alignment31;
@@ -12765,7 +12768,7 @@ create_dlg_prefs (void)
   gtk_widget_show (hseparator14);
   gtk_box_pack_start (GTK_BOX (vbox116), hseparator14, FALSE, TRUE, 0);
 
-  table74 = gtk_table_new (4, 5, FALSE);
+  table74 = gtk_table_new (5, 5, FALSE);
   gtk_widget_set_name (table74, "table74");
   gtk_widget_ref (table74);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table74", table74,
@@ -12785,16 +12788,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label584), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label584), 2, 0);
-
-  vseparator2 = gtk_vseparator_new ();
-  gtk_widget_set_name (vseparator2, "vseparator2");
-  gtk_widget_ref (vseparator2);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vseparator2", vseparator2,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vseparator2);
-  gtk_table_attach (GTK_TABLE (table74), vseparator2, 2, 3, 0, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   label591 = gtk_label_new (_("Not firewalled"));
   gtk_widget_set_name (label591, "label591");
@@ -13043,6 +13036,49 @@ create_dlg_prefs (void)
   gtk_container_add (GTK_CONTAINER (frame132), label_up_req_enough_conn);
   gtk_misc_set_alignment (GTK_MISC (label_up_req_enough_conn), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_up_req_enough_conn), 5, 0);
+
+  vseparator2 = gtk_vseparator_new ();
+  gtk_widget_set_name (vseparator2, "vseparator2");
+  gtk_widget_ref (vseparator2);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vseparator2", vseparator2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vseparator2);
+  gtk_table_attach (GTK_TABLE (table74), vseparator2, 2, 3, 0, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label784 = gtk_label_new (_("Engouh UDP support"));
+  gtk_widget_set_name (label784, "label784");
+  gtk_widget_ref (label784);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label784", label784,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label784);
+  gtk_table_attach (GTK_TABLE (table74), label784, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label784), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label784), 2, 0);
+
+  frame145 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame145, "frame145");
+  gtk_widget_ref (frame145);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame145", frame145,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame145);
+  gtk_table_attach (GTK_TABLE (table74), frame145, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame145), GTK_SHADOW_IN);
+
+  label_up_req_good_udp = gtk_label_new (_("[place holder]"));
+  gtk_widget_set_name (label_up_req_good_udp, "label_up_req_good_udp");
+  gtk_widget_ref (label_up_req_good_udp);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_up_req_good_udp", label_up_req_good_udp,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_up_req_good_udp);
+  gtk_container_add (GTK_CONTAINER (frame145), label_up_req_good_udp);
+  gtk_misc_set_alignment (GTK_MISC (label_up_req_good_udp), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_up_req_good_udp), 5, 0);
 
   frame_searches = gtk_frame_new (_("Searches"));
   gtk_widget_set_name (frame_searches, "frame_searches");
