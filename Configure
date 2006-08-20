@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 20 11:00:08 MEST 2006 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 20 16:41:48 MEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -323,7 +323,9 @@ d_kevent_int_udata=''
 d_kqueue=''
 d_lstat=''
 d_madvise=''
+d_memalign=''
 d_memcpy=''
+d_mmap=''
 d_msghdr_msg_flags=''
 d_nls=''
 d_open3=''
@@ -5536,8 +5538,16 @@ eval $inlibc
 set madvise d_madvise
 eval $inlibc
 
+: see if memalign exists
+set memalign d_memalign
+eval $inlibc
+
 : see if memcpy exists
 set memcpy d_memcpy
+eval $inlibc
+
+: see if mmap exists
+set mmap d_mmap
 eval $inlibc
 
 : check for msg_flags in struct msghdr
@@ -7862,7 +7872,9 @@ d_libxml2='$d_libxml2'
 d_linux='$d_linux'
 d_lstat='$d_lstat'
 d_madvise='$d_madvise'
+d_memalign='$d_memalign'
 d_memcpy='$d_memcpy'
+d_mmap='$d_mmap'
 d_msghdr_msg_flags='$d_msghdr_msg_flags'
 d_nls='$d_nls'
 d_official='$d_official'

@@ -139,11 +139,23 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_lstat HAS_LSTAT		/**/
 
+/* HAS_MEMALIGN:
+ *	This symbol, if defined, indicates that the memalign routine is
+ *	available to allocate aligned memory.
+ */
+#$d_memalign HAS_MEMALIGN		/**/
+
 /* HAS_MEMCPY:
  *	This symbol, if defined, indicates that the memcpy routine is available
  *	to copy blocks of memory.
  */
 #$d_memcpy HAS_MEMCPY	/**/
+
+/* HAS_MMAP:
+ *	This symbol, if defined, indicates that the mmap system call is
+ *	available to map a file into memory.
+ */
+#$d_mmap HAS_MMAP		/**/
 
 /* HAS_PREAD:
  *	This symbol, if defined, indicates that the pread routine is
