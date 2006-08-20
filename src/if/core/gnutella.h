@@ -66,6 +66,18 @@ struct gnutella_header {
 
 #define GTA_HEADER_SIZE		sizeof(struct gnutella_header)
 
+/*
+ * Starting 2006-08-20, gtk-gnutella enforces a maximal payload size of 64K.
+ * This frees up 16 bits in the size field for future flags, for yet
+ * unforeseen extensions.
+ *
+ * To mark the size field as containing flags, the highest bit will have to
+ * be set.
+ */
+
+#define GTA_SIZE_MASK		0xffff
+#define GTA_SIZE_MARKED		0x80000000
+
 /**
  * UDP traffic compression (TTL marking flags)
  */

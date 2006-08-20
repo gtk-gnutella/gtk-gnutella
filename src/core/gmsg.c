@@ -1023,6 +1023,7 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 	guint32 size;
 
 	READ_GUINT32_LE(h->size, size);
+	size &= GTA_SIZE_MASK;
 
 	switch (h->function) {
 	case GTA_MSG_VENDOR:
@@ -1059,6 +1060,7 @@ gmsg_infostr(gconstpointer head)
 	guint32 size;
 
 	READ_GUINT32_LE(h->size, size);
+	size &= GTA_SIZE_MASK;
 
 	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s",
@@ -1079,6 +1081,7 @@ gmsg_infostr2(gconstpointer head)
 	guint32 size;
 
 	READ_GUINT32_LE(h->size, size);
+	size &= GTA_SIZE_MASK;
 
 	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s",

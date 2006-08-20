@@ -73,8 +73,20 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 		goto not;
 	}
 
+	/*
+	 * Message sizes are architecturally limited to 64K bytes.
+	 *
+	 * We don't ensure the leading bits are zero in the size field because
+	 * this constraint we put allows us to use those bits for flags in
+	 * future extensions.
+	 *
+	 * The downside is that we have only 3 bytes (2 bytes for the size and
+	 * 1 byte for the function type) to identify a valid Gnutella packet.
+	 */
+
 	head = (struct gnutella_header *) s->buffer;
 	READ_GUINT32_LE(head->size, size);
+	size &= GTA_SIZE_MASK;					/* Architectural limit */
 
 	n->header = *head;						/* Struct copy */
 	n->size = s->pos - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */

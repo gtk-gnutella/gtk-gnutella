@@ -578,6 +578,7 @@ message_dump(const struct gnutella_node *n)
 	printf("hops = %u ", n->header.hops);
 
 	READ_GUINT32_LE(n->header.size, size);
+	size &= GTA_SIZE_MASK;
 
 	printf(" data = %u", size);
 
@@ -5614,6 +5615,7 @@ node_udp_get(struct gnutella_socket *s)
 
 	head = cast_to_gpointer(s->buffer);
 	READ_GUINT32_LE(head->size, n->size);
+	n->size &= GTA_SIZE_MASK;
 
 	n->header = *head;		/* Struct copy */
 	n->data = s->buffer + GTA_HEADER_SIZE;
@@ -6944,7 +6946,12 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 
 		n->have_header = TRUE;
 
+		/*
+		 * Enforce architectural limit: messages can only be 64K.
+		 */
+
 		READ_GUINT32_LE(n->header.size, n->size);
+		n->size &= GTA_SIZE_MASK;
 
         gnet_stats_count_received_header(n);
 		switch (n->header.function) {

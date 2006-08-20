@@ -341,6 +341,7 @@ gnet_stats_count_flowc(gconstpointer head)
 	guint32 size;
 
 	READ_GUINT32_LE(h->size, size);
+	size &= GTA_SIZE_MASK;
 #if 0
 	g_message("FLOWC function=%d ttl=%d hops=%d", h->function, h->ttl, h->hops);
 #endif
