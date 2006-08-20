@@ -3587,7 +3587,7 @@ compat_page_align(size_t size)
 #if defined(MAP_ANON)
 		flags = MAP_ANON;
 #elif defined (MAP_ANONYMOUS)
-		flags = MAP_ANONYMOUS
+		flags = MAP_ANONYMOUS;
 #else
 		flags = MAP_PRIVATE;
 		if (-1 == fd)
