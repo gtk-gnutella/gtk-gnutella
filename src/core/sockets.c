@@ -1233,8 +1233,7 @@ socket_free(struct gnutella_socket *s)
 	}
 	if (s->buf) {
 		g_assert(s->buf_size > 0);
-		compat_page_free(s->buf, s->buf_size);
-		s->buf = NULL;
+		G_FREE_NULL(s->buf);
 	}
 	wfree(s, sizeof *s);
 }
@@ -1373,7 +1372,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (!s->buf) {
 		s->buf_size = SOCK_BUFSZ;
-		s->buf = compat_page_align(s->buf_size);
+		s->buf = g_malloc(s->buf_size);
 	}
 
 	g_assert(s->buf_size >= s->pos);
@@ -1645,7 +1644,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (!s->buf) {
 		s->buf_size = SOCK_BUFSZ;
-		s->buf = compat_page_align(s->buf_size);
+		s->buf = g_malloc(s->buf_size);
 	}
 
 	if (cond & INPUT_EVENT_R) {
