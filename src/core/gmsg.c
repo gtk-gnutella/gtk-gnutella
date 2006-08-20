@@ -225,6 +225,10 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	g_assert(zlib_is_valid_header(buf, deflated_length));
 
 	if (deflated_length >= plen) {
+		if (udp_debug)
+			g_message("UDP not deflating %s into %d bytes",
+				gmsg_infostr_full(msg), deflated_length);
+
 		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
 		goto send_raw;
 	}
@@ -233,7 +237,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	 * OK, we gain something so we'll send this payload deflated.
 	 */
 
-	mb = gmsg_split_to_pmsg(&header, buf, deflated_length + GTA_HEADER_SIZE);
+	mb = gmsg_split_to_pmsg(msg, buf, deflated_length + GTA_HEADER_SIZE);
 
 	wfree(buf, blen);
 	zlib_deflater_free(z, FALSE);
@@ -242,7 +246,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 
 	if (udp_debug)
 		g_message("UDP deflated %s into %d bytes",
-			gmsg_infostr(header), deflated_length);
+			gmsg_infostr_full(msg), deflated_length);
 
 	header->ttl |= GTA_UDP_DEFLATED;
 	poke_le32(header->size, deflated_length);
