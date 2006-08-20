@@ -53,14 +53,14 @@ RCSID("$Id$")
 #ifdef HAS_GNUTLS
 
 struct tls_context {
-	gnutls_session_t session;
+	gnutls_session session;
 	gnutls_anon_server_credentials server_cred;
 	gnutls_anon_client_credentials client_cred;
 };
 
 static gnutls_certificate_credentials_t server_cert_cred;
 
-static inline gnutls_session_t
+static inline gnutls_session
 tls_socket_get_session(struct gnutella_socket *s)
 {
 	g_return_val_if_fail(s, NULL);
@@ -165,7 +165,7 @@ get_dh_params(void)
 }
 
 static void
-tls_print_session_info(gnutls_session_t session)
+tls_print_session_info(gnutls_session session)
 {
 	const char *proto, *cert, *kx, *ciph, *mac, *comp;
 
@@ -207,7 +207,7 @@ tls_print_session_info(gnutls_session_t session)
 enum tls_handshake_result
 tls_handshake(struct gnutella_socket *s)
 {
-	gnutls_session_t session;
+	gnutls_session session;
 	int ret;
 
 	g_assert(s);
