@@ -921,7 +921,11 @@ main(int argc, char **argv)
 		PACKAGE_SOURCE_DIR);
 #endif
 
-	/* If one of the two below fails, the GLib installation is broken. */
+	/*
+	 * If one of the two below fails, the GLib installation is broken.
+	 * Gtk+ 1.2 and GLib 1.2 are not 64-bit clean, thus must not be
+	 * used on 64-bit architectures.
+	 */
 	STATIC_ASSERT(sizeof(size_t) == sizeof(gsize));
 	STATIC_ASSERT(sizeof(ssize_t) == sizeof(gssize));
 
