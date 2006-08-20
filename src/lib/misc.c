@@ -3584,14 +3584,13 @@ compat_page_align(size_t size)
 		g_error("memalign() failed: %s", g_strerror(errno));
 #elif defined(HAS_MMAP)
 	{
-		static gint fd = -1, flags;
+		static gint fd = -1, flags = MAP_PRIVATE;
 		
 #if defined(MAP_ANON)
-		flags = MAP_ANON;
+		flags |= MAP_ANON;
 #elif defined (MAP_ANONYMOUS)
-		flags = MAP_ANONYMOUS;
+		flags |= MAP_ANONYMOUS;
 #else
-		flags = MAP_PRIVATE;
 		if (-1 == fd)
 			fd = open("/dev/zero", O_RDWR, 0);
 		if (-1 == fd)
