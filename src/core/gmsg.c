@@ -221,6 +221,9 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 
 	deflated_length = zlib_deflater_outlen(z);
 
+	g_assert(deflated_length <= blen);
+	g_assert(zlib_is_valid_header(buf, deflated_length));
+
 	if (deflated_length >= plen) {
 		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
 		goto send_raw;
