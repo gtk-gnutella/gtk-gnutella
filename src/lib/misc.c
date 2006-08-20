@@ -3553,6 +3553,8 @@ compat_pagesize(void)
 		initialized = TRUE;
 		n = compat_pagesize_intern();
 		g_assert(n > 0);
+		g_assert(n < INT_MAX);
+		g_assert(is_pow2(n));
 		psize = n;
 		g_assert((gulong) psize == (gulong) n);
 	}
