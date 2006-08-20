@@ -104,6 +104,34 @@ struct gnutella_socket *s_tcp_listen6 = NULL;
 struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 
+static struct gnutella_socket *
+socket_alloc(void)
+{
+	static const struct gnutella_socket zero_socket;
+	struct gnutella_socket *s;
+
+	s = walloc(sizeof *s);
+	*s = zero_socket;
+	s->magic = SOCKET_MAGIC;
+	return s;
+}
+
+void
+socket_dealloc(struct gnutella_socket **s_ptr)
+{
+	struct gnutella_socket *s;
+
+	g_assert(s_ptr);
+	s = *s_ptr;
+	if (s) {
+		socket_check(s);
+		s->magic = 0;
+		wfree(s, sizeof *s);
+		*s_ptr = NULL;
+	}
+}
+
+
 host_addr_t
 socket_ipv6_trt_map(const host_addr_t addr)
 {
@@ -1235,7 +1263,7 @@ socket_free(struct gnutella_socket *s)
 		g_assert(s->buf_size > 0);
 		G_FREE_NULL(s->buf);
 	}
-	wfree(s, sizeof *s);
+	socket_dealloc(&s);
 }
 
 void
@@ -1974,7 +2002,7 @@ accepted:
 	/* Set the file descriptor non blocking */
 	socket_set_nonblocking(sd);
 
-	t = walloc0(sizeof *t);
+	t = socket_alloc();
 
 	t->file_desc = sd;
 	t->addr = socket_addr_get_addr(&addr);
@@ -2533,9 +2561,10 @@ socket_connect(const host_addr_t ha, guint16 port,
 {
 	struct gnutella_socket *s;
 
-	s = walloc0(sizeof *s);
+	s = socket_alloc();
+
 	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {
-		wfree(s, sizeof *s);
+		socket_dealloc(&s);
 		return NULL;
 	}
 
@@ -2622,9 +2651,10 @@ socket_connect_by_name(const gchar *host, guint16 port,
 	 * to an IPv6 address. */
 	ha = ipv4_unspecified;
 
-	s = walloc0(sizeof *s);
+	s = socket_alloc();
+
 	if (0 != socket_connect_prepare(s, ha, port, type, flags)) {
-		wfree(s, sizeof *s);
+		socket_dealloc(&s);
 		return NULL;
 	}
 
@@ -2744,7 +2774,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 	if (sd < 0)
 		return NULL;
 
-	s = walloc0(sizeof *s);
+	s = socket_alloc();
 
 	s->type = type;
 	s->direction = SOCK_CONN_LISTENING;
@@ -2847,7 +2877,7 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	if (sd < 0)
 		return NULL;
 
-	s = walloc0(sizeof *s);
+	s = socket_alloc();
 
 	s->type = SOCK_TYPE_UDP;
 	s->direction = SOCK_CONN_LISTENING;

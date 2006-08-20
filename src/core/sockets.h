@@ -95,7 +95,12 @@ enum socket_type {
 	SOCK_TYPE_UDP
 };
 
+typedef enum {
+	SOCKET_MAGIC = 0x1fb7ddeb
+} socket_magic_t;
+
 struct gnutella_socket {
+	socket_magic_t magic;	/**< magic for consistency checks */
 	gint file_desc;			/**< file descriptor */
 	guint32 flags;			/**< operating flags */
 	guint gdk_tag;			/**< gdk tag */
@@ -137,6 +142,13 @@ struct gnutella_socket {
 	size_t buf_size;	/**< write position in the buffer */
 	gchar *buf;			/**< buffer to put in the data read */
 };
+
+static inline void
+socket_check(const struct gnutella_socket * const s)
+{
+	g_assert(s);
+	g_assert(SOCKET_MAGIC == s->magic);
+}
 
 /*
  * Operating flags
