@@ -3622,7 +3622,7 @@ compat_page_free(gpointer p, size_t size)
 	free(p);
 #else
 	munmap(p, size);
-#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN || HAS_MUNMAP */
+#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 }
 
 gboolean
