@@ -186,6 +186,15 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	pmsg_t *mb;
 
 	/*
+	 * Since there is a 2-byte header added to each deflated stream, plus
+	 * a trailing 16-bit checksum, it's no use to attempt deflation if
+	 * the payload has less than 5 bytes.
+	 */
+
+	if (plen <= 5)
+		return gmsg_to_pmsg(msg, size);
+
+	/*
 	 * Compress payload into newly allocated buffer.
 	 */
 
@@ -204,8 +213,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 		break;
 	}
 
-	if (!zlib_deflate_close(z))
-		goto send_raw;
+	g_assert(zlib_deflater_closed(z));
 
 	/*
 	 * Check whether compressed data is smaller than the original payload.
