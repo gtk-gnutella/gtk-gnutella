@@ -3580,7 +3580,7 @@ compat_page_align(size_t size)
 	p = memalign(align, size);
 	if (!p)
 		g_error("memalign() failed: %s", g_strerror(errno));
-#else
+#elif defined(HAS_MMAP)
 	{
 		static gint fd = -1, flags;
 		
@@ -3600,7 +3600,9 @@ compat_page_align(size_t size)
 		if (MAP_FAILED == p)
 			g_error("mmap() failed: %s", g_strerror(errno));
 	}
-#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+#else
+#error "No posix_memalign() nor memalign() nor mmap()"
+#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN || HAS_MMAP */
 	
 	if (0 != (gulong) /* (uintptr_t) */ p % align)
 		g_error("Aligned memory required");
@@ -3620,7 +3622,7 @@ compat_page_free(gpointer p, size_t size)
 	free(p);
 #else
 	munmap(p, size);
-#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN || HAS_MUNMAP */
 }
 
 gboolean
