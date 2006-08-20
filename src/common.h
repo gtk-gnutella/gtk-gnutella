@@ -192,7 +192,7 @@ struct passwd
  * Proper mmap() support for memory-mapped files requires ISO C functions like
  * sigsetjmp().
  */
-#if defined(__STDC_VERSION__)
+#if defined(HAS_MMAP) && defined(__STDC_VERSION__)
 #define USE_MMAP 1
 #endif	/* ISO C */
 
