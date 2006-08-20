@@ -106,6 +106,7 @@ zlib_deflater_alloc(
 	zd = walloc(sizeof(*zd));
 
 	zd->opaque = outz;
+	zd->closed = FALSE;
 
 	zd->in = data;
 	zd->inlen = data ? len : 0;
@@ -201,6 +202,7 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 	gint ret;
 
 	g_assert(amount > 0);
+	g_assert(!zd->closed);
 	g_assert(outz != NULL);			/* Stream not closed yet */
 
 	/*
@@ -251,6 +253,7 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 
 		wfree(outz, sizeof(*outz));
 		zd->opaque = NULL;
+		zd->closed = TRUE;
 
 		return 0;				/* Done */
 		/* NOTREACHED */
@@ -315,7 +318,9 @@ gboolean
 zlib_deflate_close(zlib_deflater_t *zd)
 {
 	z_streamp outz = zd->opaque;
+	gint ret;
 
+	g_assert(!zd->closed);
 	g_assert(outz != NULL);			/* Stream not closed yet */
 
 	zd->in = NULL;
@@ -324,7 +329,11 @@ zlib_deflate_close(zlib_deflater_t *zd)
 	outz->next_in = deconstify_gpointer(zd->in);
 	outz->avail_in = 0;
 
-	return zlib_deflate_step(zd, 1, TRUE) == 0 ? TRUE : FALSE;
+	ret = zlib_deflate_step(zd, 1, TRUE) == 0 ? TRUE : FALSE;
+
+	zd->closed = TRUE;				/* Even if there was an error */
+
+	return ret;
 }
 
 /**
