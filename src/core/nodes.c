@@ -161,8 +161,8 @@ static GHashTable *nodes_by_id = NULL;
 static gnutella_node_t *udp_node = NULL;
 static gnutella_node_t *udp6_node = NULL;
 static gnutella_node_t *browse_node = NULL;
-static gchar *udp_inflate_buffer = NULL;
-static gint udp_inflate_buffer_len = 0;
+static gchar *payload_inflate_buffer = NULL;
+static gint payload_inflate_buffer_len = 0;
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
@@ -1203,8 +1203,8 @@ node_init(void)
 	udp6_node = node_udp_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
 
-	udp_inflate_buffer_len = settings_max_msg_size();
-	udp_inflate_buffer = g_malloc(udp_inflate_buffer_len);
+	payload_inflate_buffer_len = settings_max_msg_size();
+	payload_inflate_buffer = g_malloc(payload_inflate_buffer_len);
 
 	/*
 	 * Limit replies to TCP/UDP crawls from a single IP.
@@ -2552,6 +2552,63 @@ node_gtkg_cmp(const void *np1, const void *np2)
 		return (n1->flags & NODE_F_GTKG) ? 0 : +1;
 
 	return 0;
+}
+
+/**
+ * Inflate UDP payload, updating node internal data structures to reflect
+ * the new payload size..
+ *
+ * @return success status, FALSE meaning the message was accounted as dropped
+ * already.
+ */
+static gboolean
+node_inflate_payload(gnutella_node_t *n)
+{
+	gint outlen = payload_inflate_buffer_len;
+	gint ret;
+
+	g_assert(NODE_IS_UDP(n));
+
+	gnet_stats_count_general(GNR_UDP_RX_COMPRESSED, 1);
+
+	if (!zlib_is_valid_header(n->data, n->size)) {
+		if (udp_debug)
+			g_warning("UDP got %s with non-deflated payload from %s",
+				gmsg_infostr_full_split(&n->header, n->data), node_addr(n));
+		gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
+		return FALSE;
+	}
+
+	/*
+	 * Start of payload looks OK, attempt inflation.
+	 */
+
+	ret = zlib_inflate_into(n->data, n->size, payload_inflate_buffer, &outlen);
+	if (ret != Z_OK) {
+		if (udp_debug)
+			g_warning("UDP cannot inflate %s from %s: %s",
+				gmsg_infostr_full_split(&n->header, n->data), node_addr(n),
+				zlib_strerror(ret));
+		gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
+		return FALSE;
+	}
+
+	/*
+	 * Inflation worked, update the header and the data pointers.
+	 */
+
+	n->data = payload_inflate_buffer;
+	n->header.ttl &= ~GTA_UDP_DEFLATED;
+	poke_le32(n->header.size, outlen);
+
+	if (udp_debug)
+		g_message("UDP inflated %d-byte payload from %s into %s",
+			n->size, node_addr(n),
+			gmsg_infostr_full_split(&n->header, n->data));
+
+	n->size = outlen;
+
+	return TRUE;
 }
 
 /**
@@ -6555,49 +6612,10 @@ node_udp_process(struct gnutella_socket *s)
 	 * If payload is deflated, inflate it before processing.
 	 */
 
-	if (n->header.ttl & GTA_UDP_DEFLATED) {
-		gint outlen = udp_inflate_buffer_len;
-		gint ret;
+	if ((n->header.ttl & GTA_UDP_DEFLATED) && !node_inflate_payload(n))
+		return;
 
-		gnet_stats_count_general(GNR_UDP_RX_COMPRESSED, 1);
-
-		if (!zlib_is_valid_header(n->data, n->size)) {
-			if (udp_debug)
-				g_warning("UDP got %s with non-deflated payload from %s",
-					gmsg_infostr_full(s->buf), node_addr(n));
-			gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
-			return;
-		}
-
-		/*
-		 * Start of payload looks OK, attempt inflation.
-		 */
-
-		ret = zlib_inflate_into(n->data, n->size, udp_inflate_buffer, &outlen);
-		if (ret != Z_OK) {
-			if (udp_debug)
-				g_warning("UDP cannot inflate %s from %s: %s",
-					gmsg_infostr_full(s->buf), node_addr(n),
-					zlib_strerror(ret));
-			gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
-			return;
-		}
-
-		/*
-		 * Inflation worked, update the header and the data pointers.
-		 */
-
-		if (udp_debug)
-			g_message("UDP inflated %s from %s into %d bytes",
-				gmsg_infostr_full(s->buf), node_addr(n), outlen);
-
-		n->data = udp_inflate_buffer;
-		n->size = outlen;
-		n->header.ttl &= ~GTA_UDP_DEFLATED;
-		poke_le32(n->header.size, outlen);
-
-		/* FALL THROUGH */
-	}
+	g_assert(!(n->header.ttl & GTA_UDP_DEFLATED));
 
 	if (oob_proxy_debug > 1) {
 		if (GTA_MSG_SEARCH_RESULTS == n->header.function)
@@ -7058,6 +7076,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 		return FALSE;
 
 	gnet_stats_count_received_payload(n);
+
 	node_parse(n);
 
 	return TRUE;		/* There may be more data */
@@ -7761,7 +7780,7 @@ node_close(void)
 		browse_node = NULL;
 	}
 
-	G_FREE_NULL(udp_inflate_buffer);
+	G_FREE_NULL(payload_inflate_buffer);
 
 	g_slist_free(sl_nodes_without_broken_gtkg);
 	g_slist_free(sl_proxies);
