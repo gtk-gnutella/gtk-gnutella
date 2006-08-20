@@ -3599,8 +3599,8 @@ compat_page_align(size_t size)
 		
 		p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
 		if (MAP_FAILED == p)
-			g_error("mmap(0, %lu, PROT_READ | PROT_WRITE, %d, %d, 0) failed: %s"
-				(gulong) size, flags, fd, g_strerror(errno));
+			g_error("mmap(0, %lu, PROT_READ | PROT_WRITE, 0x%x, %d, 0) failed:"
+				 " %s", (gulong) size, flags, fd, g_strerror(errno));
 	}
 #else
 #error "No posix_memalign() nor memalign() nor mmap()"
