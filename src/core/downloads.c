@@ -458,15 +458,11 @@ dl_addr_eq(gconstpointer a, gconstpointer b)
  * The smaller that time, the smaller the structure is.
  */
 static gint
-dl_retry_cmp(gconstpointer a, gconstpointer b)
+dl_retry_cmp(gconstpointer p, gconstpointer q)
 {
-	const struct download *as = a;
-	const struct download *bs = b;
+	const struct download *a = p, *b = q;
 
-	if (as->retry_after == bs->retry_after)
-		return 0;
-
-	return as->retry_after < bs->retry_after ? -1 : +1;
+	return CMP(a->retry_after, b->retry_after);
 }
 
 /**
@@ -474,15 +470,11 @@ dl_retry_cmp(gconstpointer a, gconstpointer b)
  * The smaller that time, the smaller the structure is.
  */
 static gint
-dl_server_retry_cmp(gconstpointer a, gconstpointer b)
+dl_server_retry_cmp(gconstpointer p, gconstpointer q)
 {
-	const struct dl_server *as = a;
-	const struct dl_server *bs = b;
+	const struct dl_server *a = p, *b = q;
 
-	if (as->retry_after == bs->retry_after)
-		return 0;
-
-	return as->retry_after < bs->retry_after ? -1 : +1;
+	return CMP(a->retry_after, b->retry_after);
 }
 
 /**
@@ -2691,7 +2683,7 @@ download_server_retry_after(struct dl_server *server, time_t now, gint hold)
 	 */
 
 	if (delta_time(after, now) < DOWNLOAD_SERVER_HOLD)
-		after = now + DOWNLOAD_SERVER_HOLD;
+		after = time_advance(now, DOWNLOAD_SERVER_HOLD);
 
 	/*
 	 * If server was given a "hold" period (e.g. requests to it were
@@ -2699,7 +2691,7 @@ download_server_retry_after(struct dl_server *server, time_t now, gint hold)
 	 */
 
 	if (hold != 0)
-		after = MAX(after, now + hold);
+		after = MAX(after, time_advance(now, hold));
 
 	if (server->retry_after != after) {
 		dl_by_time_remove(server);
@@ -3797,7 +3789,7 @@ download_pickup_queued(void)
 			 * we can stop.
 			 */
 
-			if (server->retry_after > now)
+			if (delta_time(now, server->retry_after) < 0)
 				break;
 
 			if (
