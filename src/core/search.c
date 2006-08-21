@@ -3597,6 +3597,18 @@ search_browse(gnet_search_t sh,
 	g_assert(sch->download == NULL);
 
 	/*
+	 * Don't even setup the download if the address is hostile.  The socket
+	 * layer will refuse to connect to those addresses anyway, but we'll
+	 * just waste resources.
+	 *
+	 * Also returning FALSE here immediately will prevent the GUI from
+	 * creating the search window for the results.
+	 */
+
+	if (hostiles_check(addr) || !port_is_valid(port))
+		return FALSE;
+
+	/*
 	 * Host browsing is done thusly: a non-persistent search was created and
 	 * it is now associated with a special download that will know it will
 	 * receive Gnutella query hits and that those hits should be given back
