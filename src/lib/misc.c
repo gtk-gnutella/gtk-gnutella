@@ -2034,14 +2034,50 @@ gboolean is_printable(const gchar *buf, gint len)
 }
 
 /**
- * Display header line for hex dumps
+ * Prints a single "dump hex" line which consists of 16 byte from data.
+ *
+ * @param out The stream to print the string at.
+ * @param data A pointer to the first byte of the data to dump.
+ * @param length The length of data in bytes.
+ * @param offset The offset in data to start dumping at.
  */
-static inline void
-dump_hex_header(FILE *out)
+static void
+dump_hex_line(FILE *out, const gchar *data, size_t length, size_t offset)
 {
-	fprintf(out, "%s%s\n",
-		"Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  ",
-		"0123456789abcdef");
+	gchar char_buf[32], hex_buf[64];
+	gchar *p = hex_buf, *q = char_buf;
+	size_t j, i = offset;
+
+	for (j = 0; j < 16; j++) {
+		*p++ = ' ';
+		if (8 == j) {
+			*p++ = ' ';
+		}
+		if (i < length) {	
+			guchar c;
+
+			c = data[i];
+			i++;
+
+			*p++ = hex_digit((c >> 4) & 0xf);
+			*p++ = hex_digit(c & 0x0f);
+
+			if (is_ascii_alnum(c) || is_ascii_punct(c)) {
+				*q++ = c;
+			} else {
+				*q++ = '.';		/* no non-printables */
+			}
+		} else {
+			*p++ = ' ';
+			*p++ = ' ';
+
+			*q++ = ' ';
+		}
+	}
+	*p = '\0';
+	*q = '\0';
+
+	fprintf(out, "%5d %s  %s\n", offset & 0xffff, hex_buf, char_buf);
 }
 
 /**
@@ -2049,61 +2085,31 @@ dump_hex_header(FILE *out)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 void
-dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
+dump_hex(FILE *out, const gchar *title, gconstpointer data, gint length)
 {
-	int i, x, y, z, end;
-	const gchar *s = data;
-	gchar temp[18];
+	gint i;
 
-	if ((b < 0) || (s == NULL)) {
-		g_warning("dump_hex: value out of range [s=0x%lx, b=%d] for %s",
-			(gulong) s, b, title);
+	if (length < 0 || data == NULL) {
+		g_warning("dump_hex: value out of range [data=0x%lx, length=%d] for %s",
+			(gulong) data, length, title);
 		fflush(out);
 		return;
 	}
 
 	fprintf(out, "----------------- %s:\n", title);
 
-	if (b == 0)
-		goto done;
-
-	i = x = end = 0;
-	for (;;) {
-		if ((x & 0xff) == 0) {					/* x%256 == 0 */
-			if (x > 0)
-				fputc('\n', out);				/* break after 256 byte chunk */
-			dump_hex_header(out);
-		}
-		if (i == 0)
-			fprintf(out, "%5d  ", x & 0xffff);	/* offset, lowest 16 bits */
-		if ((x & 0x07) == 0 && (x & 0x08))		/* x == 8 modulo 16 */
-			fputc(' ', out);
-		if (end) {
-			fputs("   ", out);
-			temp[i] = ' ';
-		} else {
-			z = s[x] & 0xff;
-			fprintf(out, "%.2X ", z);
-			if (!(isalnum(z) || ispunct(z)))
-				z = '.';		/* no non printables */
-			temp[i] = z;		/* save it for later ASCII print */
-		}
-		if (++i >= 16) {
-			fputc(' ', out);
-			for (y = 0; y < 16; y++) {	/* do 16 bytes ASCII */
-				fputc(temp[y], out);
+	for (i = 0; i < length; i += MIN(length - i, 16)) {
+		if (i % 256 == 0) {
+			if (i > 0) {
+				fputc('\n', out);	/* break after 256 byte chunk */
 			}
-			fputc('\n', out);
-			if (end || ((x + 1) >= b))
-				break;
-			i = 0;
+			fputs("Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  "
+				"0123456789abcdef\n", out);
 		}
-		if (++x >= b)
-			end = 1;
+		dump_hex_line(out, data, length, i);
 	}
 
-done:
-	fprintf(out, "----------------- (%d bytes).\n", b);
+	fprintf(out, "----------------- (%d bytes).\n", length);
 	fflush(out);
 }
 
