@@ -3600,15 +3600,6 @@ search_browse(gnet_search_t sh,
 		return FALSE;
 
 	/*
-	 * They asked for it, let it happen then.
-	 * We must force the connection if the address is hostile lest
-	 * socket_connect_finalize() will reject it later on.
-	 */
-
-	if (hostiles_check(addr))
-		flags |= CONNECT_F_FORCE;
-
-	/*
 	 * Host browsing is done thusly: a non-persistent search was created and
 	 * it is now associated with a special download that will know it will
 	 * receive Gnutella query hits and that those hits should be given back

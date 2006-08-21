@@ -2461,7 +2461,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	 * Allow forced connections to an hostile host.
 	 */
 
-	if (hostiles_check(ha) && !(s->flags & CONNECT_F_FORCE)) {
+	if (!(s->flags & CONNECT_F_FORCE) && hostiles_check(ha)) {
 		g_warning("Not connecting to hostile host %s", host_addr_to_string(ha));
 		socket_destroy(s, "Not connecting to hostile host");
 		return -1;
