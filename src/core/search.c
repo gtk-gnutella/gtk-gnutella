@@ -3596,17 +3596,17 @@ search_browse(gnet_search_t sh,
 	g_assert(!sch->frozen);
 	g_assert(sch->download == NULL);
 
+	if (!port_is_valid(port))
+		return FALSE;
+
 	/*
-	 * Don't even setup the download if the address is hostile.  The socket
-	 * layer will refuse to connect to those addresses anyway, but we'll
-	 * just waste resources.
-	 *
-	 * Also returning FALSE here immediately will prevent the GUI from
-	 * creating the search window for the results.
+	 * They asked for it, let it happen then.
+	 * We must force the connection if the address is hostile lest
+	 * socket_connect_finalize() will reject it later on.
 	 */
 
-	if (hostiles_check(addr) || !port_is_valid(port))
-		return FALSE;
+	if (hostiles_check(addr))
+		flags |= CONNECT_F_FORCE;
 
 	/*
 	 * Host browsing is done thusly: a non-persistent search was created and
