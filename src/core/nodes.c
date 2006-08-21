@@ -6911,7 +6911,7 @@ node_disable_read(struct gnutella_node *n)
 	g_assert(n->rx);
 
 	if (n->flags & NODE_F_NOREAD)
-	return;						/* Already disabled */
+		return;						/* Already disabled */
 
 	n->flags |= NODE_F_NOREAD;
 	rx_disable(n->rx);
@@ -7224,6 +7224,13 @@ node_bye_all(void)
 			pending_byes++;
 			node_bye(n, 200, "Servent shutdown");
 		}
+
+		/*
+		 * We're no longer interested by receiving and parsing traffic.
+		 */
+
+		if (NODE_IS_READABLE(n))
+			node_disable_read(n);
 	}
 }
 
