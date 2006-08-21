@@ -2231,7 +2231,7 @@ search_gui_new_search_entered(void)
 	if (NULL != (ep = is_strprefix(text, "browse:"))) {
 		host_addr_t addr;
 		const gchar *s;
-		guint32 flags = 0;
+		guint32 flags = CONNECT_F_FORCE;
 
 		s = ep;
 		ep = is_strprefix(s, "tls:");
