@@ -7693,7 +7693,7 @@ node_close(void)
 		if (n->socket) {
 			if (n->socket->getline)
 				getline_free(n->socket->getline);
-			G_FREE_NULL(n->socket);
+			socket_free_null(&n->socket);
 		}
 		if (n->outq) {
 			mq_free(n->outq);
