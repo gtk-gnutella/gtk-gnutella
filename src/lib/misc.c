@@ -2077,7 +2077,7 @@ dump_hex_line(FILE *out, const gchar *data, size_t length, size_t offset)
 	*p = '\0';
 	*q = '\0';
 
-	fprintf(out, "%5d %s  %s\n", offset & 0xffff, hex_buf, char_buf);
+	fprintf(out, "%5u %s  %s\n", (guint) (offset & 0xffff), hex_buf, char_buf);
 }
 
 /**
