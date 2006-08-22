@@ -13,6 +13,7 @@
 ?C:.
 ?H:#$d_getifaddrs HAS_GETIFADDRS
 ?H:.
+?T:flags
 ?LINT: set d_getifaddrs
 : can we use getifaddrs?
 echo " "
