@@ -888,7 +888,7 @@ node_error_cleanup(void)
 		g_hash_table_remove(unstable_servent, bad_node->vendor);
 		unstable_servents = g_slist_remove(unstable_servents, bad_node);
 
-		atom_str_free(bad_node->vendor);
+		atom_str_free_null(&bad_node->vendor);
 		wfree(bad_node, sizeof(*bad_node));
 	}
 
@@ -1466,8 +1466,7 @@ node_real_remove(gnutella_node_t *n)
 	 * removed, so it's safe to do it now.
 	 */
 
-	if (n->vendor)
-		atom_str_free(n->vendor);
+	atom_str_free_null(&n->vendor);
 
 	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
@@ -1624,10 +1623,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		socket_free_null(&n->socket);
 	}
 
-	if (n->gnet_guid) {
-		atom_guid_free(n->gnet_guid);
-		n->gnet_guid = NULL;
-	}
+	atom_guid_free(&n->gnet_guid);
 	if (n->tsync_ev) {
 		cq_cancel(callout_queue, n->tsync_ev);
 		n->tsync_ev = NULL;
@@ -7671,10 +7667,10 @@ node_close(void)
 	 * Clean up memory used for determining unstable ips / servents
 	 */
 	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_client_t *bad_node = (node_bad_client_t *) sl->data;
+		node_bad_client_t *bad_node = sl->data;
 
 		g_hash_table_remove(unstable_servent, bad_node->vendor);
-		atom_str_free(bad_node->vendor);
+		atom_str_free_null(&bad_node->vendor);
 		wfree(bad_node, sizeof(*bad_node));
 	}
 	g_slist_free(unstable_servents);
@@ -7705,10 +7701,7 @@ node_close(void)
 		}
 		if (n->allocated)
 			G_FREE_NULL(n->data);
-		if (n->gnet_guid) {
-			atom_guid_free(n->gnet_guid);
-			n->gnet_guid = NULL;
-		}
+		atom_guid_free_null(&n->gnet_guid);
 		if (n->routing_data) {
 			routing_node_remove(n);
 			n->routing_data = NULL;
@@ -7739,8 +7732,7 @@ node_close(void)
 		}
 		if (n->guid) {
 			route_proxy_remove(n->guid);
-			atom_guid_free(n->guid);
-			n->guid = NULL;
+			atom_guid_free_null(&n->guid);
 		}
 		if (n->qseen != NULL) {
 			string_table_free(n->qseen);
@@ -7958,11 +7950,7 @@ node_get_info(const gnet_node_t n)
 void
 node_clear_info(gnet_node_info_t *info)
 {
-	if (info->vendor) {
-		atom_str_free(info->vendor);
-		info->vendor = NULL;
-	}
-
+	atom_str_free_null(&info->vendor);
 }
 
 /**
@@ -8314,8 +8302,7 @@ node_proxying_remove(gnutella_node_t *n, gboolean discard)
 
 	if (n->guid && discard) {
 		route_proxy_remove(n->guid);
-		atom_guid_free(n->guid);
-		n->guid = NULL;
+		atom_guid_free_null(&n->guid);
 	}
 
 	node_fire_node_flags_changed(n);
@@ -8382,8 +8369,7 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 				guid_hex_str(guid), node_addr(n), node_vendor(n), old);
 
 			route_proxy_remove(n->guid);
-			atom_guid_free(n->guid);
-			n->guid = NULL;
+			atom_guid_free_null(&n->guid);
 		}
 	}
 
@@ -8402,8 +8388,7 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 		"push-proxyfication failed for %s <%s>: conflicting GUID %s",
 		node_addr(n), node_vendor(n), guid_hex_str(guid));
 
-	atom_guid_free(n->guid);
-	n->guid = NULL;
+	atom_guid_free_null(&n->guid);
 	n->flags &= ~NODE_F_PROXIED;
 
 	return FALSE;
