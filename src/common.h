@@ -64,6 +64,15 @@
 #error "You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella"
 #endif
 
+#ifdef LINUX_SYSTEM
+/**
+ * Linux or glibc require certain definitions to provide prototypes for
+ * pwrite(), pread(), memalign() and possibly other functions. Defining
+ * _GNU_SOURCE seems to be the most reasonable way to achieve this.
+ */
+#define _GNU_SOURCE
+#endif	/* LINUX_SYSTEM */
+
 /*
  * Main includes
  */
