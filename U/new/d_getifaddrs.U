@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_getifaddrs: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_getifaddrs: Myread Setvar cat rm +cc +ccflags +ldflags i_netif
 ?MAKE:	-pick add $@ %<
 ?S:d_getifaddrs:
 ?S:	This variable conditionally defines the HAS_GETIFADDRS symbol, which
@@ -45,7 +45,10 @@ main(void) {
   return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+case "$i_netif" in
+"$define") flags='-DI_NET_IF';;
+esac
+if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
     $cat <<'EOM'
 It looks like getifaddrs() is usable on your system, good.
 EOM
