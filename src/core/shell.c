@@ -38,6 +38,7 @@ RCSID("$Id$")
 
 #include "if/bridge/c2ui.h"
 #include "if/bridge/ui2c.h"
+#include "if/core/main.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -94,6 +95,7 @@ enum shell_cmd {
 	CMD_WHATIS,
 	CMD_HORIZON,
 	CMD_RESCAN,
+	CMD_SHUTDOWN,
 	CMD_NODES
 };
 
@@ -101,17 +103,18 @@ static const struct {
 	const gint id;
 	const gchar * const cmd;
 } commands[] = {
-	{	CMD_QUIT,		"QUIT"		},
-	{	CMD_SEARCH,		"SEARCH"	},
-	{	CMD_NODE,		"NODE"		},
-	{	CMD_ADD,		"ADD"		},
-	{	CMD_HELP,		"HELP"		},
-	{	CMD_PRINT,		"PRINT"		},
-	{	CMD_SET,		"SET"		},
-	{	CMD_WHATIS,		"WHATIS"	},
-	{	CMD_HORIZON,	"HORIZON"	},
-	{	CMD_RESCAN,		"RESCAN"	},
-	{	CMD_NODES,		"NODES"		}
+	{	CMD_QUIT,		"quit"		},
+	{	CMD_SEARCH,		"search"	},
+	{	CMD_NODE,		"node"		},
+	{	CMD_ADD,		"add"		},
+	{	CMD_HELP,		"help"		},
+	{	CMD_PRINT,		"print"		},
+	{	CMD_SET,		"set"		},
+	{	CMD_WHATIS,		"whatis"	},
+	{	CMD_HORIZON,	"horizon"	},
+	{	CMD_RESCAN,		"rescan"	},
+	{	CMD_SHUTDOWN,	"shutdown"	},
+	{	CMD_NODES,		"nodes"		},
 };
 
 
@@ -908,6 +911,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"whatis <property>\n"
 			"horizon [ALL]\n"
 			"rescan\n"
+			"shutdown\n"
 			"quit\n"
 			"help\n");
 		shell_write(sh, ".\n");
@@ -917,6 +921,15 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		sh->msg = _("Good bye");
 		reply_code = REPLY_GOOD_BYE;
 		shell_shutdown(sh);
+		break;
+	case CMD_SHUTDOWN:
+		sh->msg = _("Shutdown sequence initiated.");
+		reply_code = REPLY_READY;
+		/*
+		 * Don't use gtk_gnutella_exit() because we want at least send
+		 * some feedback before terminating. 
+		 */
+		gtk_gnutella_request_shutdown();
 		break;
 	case CMD_SEARCH:
 		reply_code = shell_exec_search(sh, &cmd[pos]);

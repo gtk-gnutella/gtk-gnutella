@@ -150,6 +150,7 @@ static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
 static volatile sig_atomic_t from_atexit = FALSE;
 static volatile int signal_received = 0;
+static volatile sig_atomic_t shutdown_requested = 0;
 static jmp_buf atexit_env;
 static volatile gchar *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
@@ -301,6 +302,12 @@ log_cpu_usage(tm_t *since_time, gdouble *prev_user, gdouble *prev_sys)
 		100.0 * total / elapsed, elapsed);
 	g_message("CPU usage: total: %.2fs (user: %.2f, sys: %.2f)",
 		total, user, sys);
+}
+
+void
+gtk_gnutella_request_shutdown(void)
+{
+	shutdown_requested = 1;
 }
 
 /**
@@ -455,7 +462,7 @@ gtk_gnutella_exit(gint n)
 	malloc_close();
 #endif
 
-	if (debugging(0) || signal_received)
+	if (debugging(0) || signal_received || shutdown_requested)
 		g_message("gtk-gnutella shut down cleanly.");
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
@@ -642,8 +649,10 @@ main_timer(gpointer p)
 	time_t now;
 
 	(void) p;
-	if (signal_received) {
-		g_warning("caught signal #%d, exiting...", signal_received);
+	if (signal_received || shutdown_requested) {
+		if (signal_received) {
+			g_warning("caught signal #%d, exiting...", signal_received);
+		}
 		gtk_gnutella_exit(1);
 	}
 

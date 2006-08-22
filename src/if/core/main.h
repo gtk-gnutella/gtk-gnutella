@@ -29,6 +29,7 @@
 #ifdef CORE_SOURCES
 
 void gtk_gnutella_exit(gint n);
+void gtk_gnutella_request_shutdown(void);
 gboolean debugging(guint t);
 
 #endif /* CORE_SOURCES */
