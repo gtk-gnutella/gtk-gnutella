@@ -23,13 +23,13 @@
 This software is currently maintained by Jeroen Asselman jeroen@asselman.com
 
 If you have problems, your best bet is to subscribe to the gtk-gnutella-users
-list on www.sf.net, and more precisely here:
+list on www.sourceforge.net, and more precisely here:
 
     http://lists.sourceforge.net/lists/listinfo/gtk-gnutella-users
 
 Also visit the main website for news, updates, FAQ, and more at:
 
-    http://gtk-gnutella.sf.net/
+    http://gtk-gnutella.sourceforge.net/
 
 
 Introduction
@@ -127,6 +127,14 @@ NLS (National Language Support) i.e., nationalized text in the user
 interface:
 
 -U d_enablenls
+
+Gtk-Gnutella can also be compiled for headless operation the so-called
+"topless" mode. The resulting executable won't use or depend on Gtk+
+and Gtk-Gnutella can only be controlled through the remote shell in
+this case. Use the following flag for Configure if you want a topless
+Gtk-Gnutella:
+
+-D d_headless
 
 The option "official" should be set to "true" unless you want to test
 Gtk-Gnutella from SVN or are a developer. Currently, an "inofficial" build
