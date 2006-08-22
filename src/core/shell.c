@@ -212,14 +212,17 @@ shell_get_token(const gchar *s, gint *pos) {
 
 	g_assert(pos);
 	g_assert(s);
+	g_assert(-1 == *pos || *pos >= 0);
 
-	start = s+(*pos);
-
-	if (*start == '\0')
-		*pos = -1;
-
-	if (*pos == -1)
+	if (*pos >= 0) {
+		start = &s[*pos];
+		if (*start == '\0') {
+			*pos = -1;
+		}
+	}
+	if (-1 == *pos) {
 		return NULL; /* nothing more to get */
+	}
 
 	end = shell_token_end(start);
 
@@ -887,6 +890,7 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 static guint
 shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 {
+	const gchar *args;
 	gchar *tok;
 	gint pos = 0;
 	guint reply_code = REPLY_ERROR;
@@ -897,6 +901,12 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 	tok = shell_get_token(cmd, &pos);
 	if (!tok)
 		return CMD_NOOP;
+
+	if (pos >= 0) {
+		args = &cmd[pos];
+	} else {
+		args = "";
+	}
 
 	switch (get_command(tok)) {
 	case CMD_HELP:
@@ -932,28 +942,28 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		gtk_gnutella_request_shutdown();
 		break;
 	case CMD_SEARCH:
-		reply_code = shell_exec_search(sh, &cmd[pos]);
+		reply_code = shell_exec_search(sh, args);
 		break;
 	case CMD_NODE:
-		reply_code = shell_exec_node(sh, &cmd[pos]);
+		reply_code = shell_exec_node(sh, args);
 		break;
 	case CMD_PRINT:
-		reply_code = shell_exec_print(sh, &cmd[pos]);
+		reply_code = shell_exec_print(sh, args);
 		break;
 	case CMD_SET:
-		reply_code = shell_exec_set(sh, &cmd[pos]);
+		reply_code = shell_exec_set(sh, args);
 		break;
 	case CMD_WHATIS:
-		reply_code = shell_exec_whatis(sh, &cmd[pos]);
+		reply_code = shell_exec_whatis(sh, args);
 		break;
 	case CMD_HORIZON:
-		reply_code = shell_exec_horizon(sh, &cmd[pos]);
+		reply_code = shell_exec_horizon(sh, args);
 		break;
 	case CMD_RESCAN:
-		reply_code = shell_exec_rescan(sh, &cmd[pos]);
+		reply_code = shell_exec_rescan(sh, args);
 		break;
 	case CMD_NODES:
-		reply_code = shell_exec_nodes(sh, &cmd[pos]);
+		reply_code = shell_exec_nodes(sh, args);
 		break;
 	case CMD_ADD:
 	case CMD_NOOP:
