@@ -1623,7 +1623,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		socket_free_null(&n->socket);
 	}
 
-	atom_guid_free(&n->gnet_guid);
+	atom_guid_free_null(&n->gnet_guid);
 	if (n->tsync_ev) {
 		cq_cancel(callout_queue, n->tsync_ev);
 		n->tsync_ev = NULL;
