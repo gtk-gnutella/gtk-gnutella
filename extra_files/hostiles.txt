@@ -478,7 +478,7 @@
 66.11.124.64/29
 
 # fake movie spam; oversensitive to buzzwords; Gnucleus based; results are LIME
-213.52.227.138
+213.52.227.128/26
 
 # MP3 spam (white noise); switches User-Agent on the fly during downloads
 70.19.110.145
@@ -533,6 +533,10 @@
 # It's listening on the standard port. It's a fake LimeWire that responds with
 # a Gnutella handshake no matter what was sent. It passes completely bogus
 # addresses. Its job is either wasting resources or sniffing.
+# "The Hinshelwood Building, Edmund Halley Road, Oxford Science Park"
+81.179.85.55
+
+# The one below was first caught but might be outdated by now.
 81.179.74.227
 
 # Time Warner Telecom
