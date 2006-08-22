@@ -465,7 +465,8 @@
 # DRM license server; PetaAd dot com
 207.36.209.113
 
-# Eros Digital Technologies; WMV DRM spam; giFT-based
+# Eros Digital Technologies and 3Xmarketing; WMV DRM spam; giFT-based
+65.240.97.0/24
 67.128.53.72/29
 67.128.62.168/29
 
@@ -475,6 +476,12 @@
 
 # pr0n MOV spammer with fake LimeWire; giFT-based
 66.11.124.64/29
+
+# fake movie spam; oversensitive to buzzwords; Gnucleus based; results are LIME
+213.52.227.138
+
+# MP3 spam (white noise); switches User-Agent on the fly during downloads
+70.19.110.145
 
 # University of Mississippi
 130.74.0.0/16
