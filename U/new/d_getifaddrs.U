@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_getifaddrs: Myread Setvar cat rm +cc +ccflags +ldflags i_netif
+?MAKE:d_getifaddrs: Myread Setvar cat rm +cc +ccflags +ldflags
 ?MAKE:	-pick add $@ %<
 ?S:d_getifaddrs:
 ?S:	This variable conditionally defines the HAS_GETIFADDRS symbol, which
