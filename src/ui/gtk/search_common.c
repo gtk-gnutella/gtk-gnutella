@@ -102,8 +102,9 @@ static struct {
 	const enum gui_color id;
 	GdkColor color;
 } colors[] = {
-	{ "#7f0000",	GUI_COLOR_SPAM, 	{ 0, 0, 0, 0 } },
-	{ "#5F007F",	GUI_COLOR_HOSTILE,	{ 0, 0, 0, 0 } },
+	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },
+	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },
+	{ "#D2691E",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
 };
 
 void
@@ -1264,6 +1265,8 @@ search_matched(search_t *sch, results_set_t *rs)
 				fg_color = gui_color_get(GUI_COLOR_SPAM);
 			} else if (is_hostile) {
 				fg_color = gui_color_get(GUI_COLOR_HOSTILE);
+			} else if (rs->status & ST_UNREQUESTED) {
+				fg_color = gui_color_get(GUI_COLOR_UNREQUESTED);
 			} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
 				/*
 				 * Check whether this record will be ignored by the backend.

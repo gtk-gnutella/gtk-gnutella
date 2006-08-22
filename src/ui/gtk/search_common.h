@@ -122,6 +122,7 @@ struct query {
 enum gui_color {
 	GUI_COLOR_SPAM,
 	GUI_COLOR_HOSTILE,
+	GUI_COLOR_UNREQUESTED,
 	NUM_GUI_COLORS
 };
 
