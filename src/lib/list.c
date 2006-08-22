@@ -436,7 +436,7 @@ list_iter_has_next(const list_iter_t *iter)
 {
 	if (iter) {
 		list_iter_check(iter);
-		return NULL != g_list_next(iter->next);
+		return NULL != iter->next;
 	} else {
 		return FALSE;
 	}
