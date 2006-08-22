@@ -35,6 +35,7 @@ U/new/d_kqueue.U
 U/new/d_madvise.U
 U/new/d_msg_flags.U
 U/new/d_nls.U
+U/new/d_posix_memalign.U
 U/new/d_random.U
 U/new/d_sa_interrupt.U
 U/new/d_sendfile.U
