@@ -267,7 +267,6 @@
 # drmspace.com, 66103.vidlock.com
 216.55.178.165
 # vidlock.com
-38.99.20.240/28
 216.255.180.114
 217.116.225.250
 64.72.124.0/24
@@ -275,9 +274,7 @@
 
 # getlaidquickly dot com; spam results for files which do not even exist;
 # seemingly just an attempt to make the website well-known
-38.99.20.116
-38.99.21.38
-38.99.21.66
+38.99.20.0/23
 
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
 63.216.80.0/24
