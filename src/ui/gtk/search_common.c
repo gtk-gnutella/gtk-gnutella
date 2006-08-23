@@ -1053,7 +1053,7 @@ search_matched(search_t *sch, results_set_t *rs)
     GdkColor *download_color;
     GdkColor *ignore_color;
     GdkColor *mark_color;
-    GSList *l;
+    GSList *sl;
     gboolean send_pushes;
     gboolean is_firewalled;
 	guint i;
@@ -1121,8 +1121,8 @@ search_matched(search_t *sch, results_set_t *rs)
 			host_addr_port_to_string(rs->addr, rs->port),
 			(flags & CONNECT_F_PUSH), skip_records);
 
-  	for (l = rs->records; l && !skip_records; l = l->next) {
-		record_t *rc = l->data;
+  	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
+		record_t *rc = sl->data;
         gboolean downloaded = FALSE;
 		gboolean is_dup, add_record, mark;
         GdkColor *fg_color;
@@ -1504,8 +1504,10 @@ search_gui_flush(time_t now, gboolean force)
 		tm_elapsed(&elapsed, &t1, &t0);
 		delta = tm2ms(&elapsed);
 		if (delta > 200) {
-			g_message("interrupted dispatching of results after %lu ms",
-				(gulong) delta);
+			if (delta > 1000) {
+				g_message("interrupted dispatching of results after %lu ms",
+					(gulong) delta);
+			}
 			break;
 		}
 
