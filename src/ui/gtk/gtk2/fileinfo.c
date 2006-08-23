@@ -1187,6 +1187,9 @@ fi_gui_select_by_regex(const gchar *regex)
 			ctx.matches, ctx.total_nodes, regex);
 	}
 
+    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+		ctx.matches > 0);
+
 	regfree(&ctx.re);
 }
 
