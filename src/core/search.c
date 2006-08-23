@@ -562,9 +562,9 @@ search_free_r_set(gnet_results_set_t *rs)
 {
 	GSList *m;
 
-	for (m = rs->records; m; m = m->next)
-		search_free_record((gnet_record_t *) m->data);
-
+	for (m = rs->records; m; m = g_slist_next(m)) {
+		search_free_record(m->data);
+	}
 	atom_guid_free_null(&rs->guid);
 	atom_str_free_null(&rs->version);
 	atom_str_free_null(&rs->hostname);
@@ -966,7 +966,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 	/* Check for hostile IP addresses */
 
-	if (hostiles_check(rs->addr)) {
+	if (hostiles_check(n->addr) || hostiles_check(rs->addr)) {
         if (dbg || search_debug) {
             g_message("dropping query hit from hostile IP %s",
                 host_addr_to_string(rs->addr));
