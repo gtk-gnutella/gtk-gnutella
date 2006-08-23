@@ -379,10 +379,6 @@
 # to fix his download.pl though.
 87.74.1.198
 
-# Emits "WEIRD" results; not downloadable; bogus alt-locs; urn:none:; primary
-# address is always at port 80 at its own /24.
-128.108.111.0/24
-
 # Same as above but the primary source is a seemingly random address
 # at port 80; these emit also unrequested results.
 204.11.216.192/26
@@ -392,7 +388,12 @@
 204.11.223.0/26
 
 # Aggressivly connecting; getting disconnected due to security violations
-128.108.211.103
+# Yes, this is CISCO systems.
+128.108.0.0/16
+# Emits "WEIRD" results; not downloadable; bogus alt-locs; urn:none:; primary
+# address is always at port 80 at its own /24.
+#128.108.111.0/24
+
 
 # swapexits.com; DRM license server
 74.52.9.122
@@ -482,6 +483,10 @@
 
 # MP3 spam; fake LimeWire; switches User-Agent on the fly during downloads
 72.89.107.244
+
+# pr0n spammer with ancient LimeWire 2.3.3 Pro; results have no SHA-1
+# oversensitive buzzword sensor; standard port
+66.232.99.218
 
 # University of Mississippi
 130.74.0.0/16
