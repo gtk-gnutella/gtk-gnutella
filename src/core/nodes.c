@@ -6538,6 +6538,7 @@ void
 node_udp_process(struct gnutella_socket *s)
 {
 	gnutella_node_t *n = node_udp_get(s);
+	gboolean drop_hostile = TRUE;
 
 	/*
 	 * The node_parse() routine was written to process incoming Gnutella
@@ -6571,6 +6572,7 @@ node_udp_process(struct gnutella_socket *s)
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
 		node_inc_rx_qhit(n);
+		drop_hostile = FALSE;	/* Filter later so that we can peek at them */
 		break;
 	case GTA_MSG_VENDOR:
 	case GTA_MSG_STANDARD:
@@ -6590,7 +6592,7 @@ node_udp_process(struct gnutella_socket *s)
 	 * Discard incoming datagrams from registered hostile IP addresses.
 	 */
 
-	if (hostiles_check(n->addr)) {
+	if (drop_hostile &&drop_hostile && hostiles_check(n->addr)) {
 		if (udp_debug)
 			g_warning("UDP got %s from hostile %s -- dropped",
 				gmsg_infostr_full(s->buf), node_addr(n));
