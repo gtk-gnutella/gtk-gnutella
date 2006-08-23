@@ -153,7 +153,7 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 
 	if (query_debug || oob_proxy_debug)
-		printf("OOB proxied query leaf-MUID=%s proxied-MUID=%s expired\n",
+		g_message("OOB proxied query leaf-MUID=%s proxied-MUID=%s expired",
 			guid_hex_str(opr->leaf_muid),
 			data_hex_str(opr->proxied_muid, GUID_RAW_SIZE));
 
@@ -204,7 +204,7 @@ oob_proxy_create(gnutella_node_t *n)
 	message_add(n->header.muid, GTA_MSG_SEARCH, NULL);
 
 	if (query_debug > 5 || oob_proxy_debug) {
-		printf("QUERY OOB-proxying query %s from %s <%s> as %s\n",
+		g_message("QUERY OOB-proxying query %s from %s <%s> as %s",
 			data_hex_str(opr->leaf_muid, GUID_RAW_SIZE),
 			node_addr(n), node_vendor(n),
 			guid_hex_str(opr->proxied_muid));
@@ -302,7 +302,7 @@ oob_proxy_pending_results(
 
 	/*
 	 * Lookup the dynamic query, to see whether it has not already
-	 * received the maximum amout of results, or whether the search
+	 * received the maximum amount of results, or whether the search
 	 * was not cancelled by the leaf.
 	 */
 
@@ -325,8 +325,8 @@ oob_proxy_pending_results(
 	 */
 
 	if (query_debug > 5 || oob_proxy_debug > 1)
-		printf("QUERY OOB-proxied %s notified of %d hits at %s %s"
-			" for leaf #%u %s, wants %u\n",
+		g_message("QUERY OOB-proxied %s notified of %d hits at %s %s"
+			" for leaf #%u %s, wants %u",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n), opr->node_id,
 			leaf == NULL ? "???" : node_gnet_addr(leaf), wanted);
@@ -337,8 +337,8 @@ oob_proxy_pending_results(
 
 ignore:
 	if (query_debug > 5 || oob_proxy_debug > 1)
-		printf("QUERY OOB-proxied %s "
-			"notified of %d hits at %s %s for leaf #%u %s, ignored (%s)\n",
+		g_message("QUERY OOB-proxied %s "
+			"notified of %d hits at %s %s for leaf #%u %s, ignored (%s)",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n), opr->node_id,
 			leaf == NULL ? "???" : node_gnet_addr(leaf), msg);
@@ -387,8 +387,8 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 		gnet_stats_count_dropped(n, MSG_DROP_ROUTE_LOST);
 
 		if (query_debug > 5 || oob_proxy_debug > 1)
-			printf(
-				"QUERY OOB-proxied %s dropping %d hit%s from %s: no leaf #%u\n",
+			g_message(
+				"QUERY OOB-proxied %s dropping %d hit%s from %s: no leaf #%u",
 				guid_hex_str(opr->proxied_muid),
 				results, results == 1 ? "" : "s",
 				node_addr(n), opr->node_id);
@@ -434,7 +434,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	dh_route(n, leaf, results);
 
 	if (query_debug > 5 || oob_proxy_debug > 1)
-		printf("QUERY OOB-proxied %s routed %d hit%s to %s <%s> from %s %s\n",
+		g_message("QUERY OOB-proxied %s routed %d hit%s to %s <%s> from %s %s",
 			guid_hex_str(opr->proxied_muid), results, results == 1 ? "" : "s",
 			node_addr(leaf), node_vendor(leaf),
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));
