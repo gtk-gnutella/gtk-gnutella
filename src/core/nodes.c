@@ -6592,7 +6592,7 @@ node_udp_process(struct gnutella_socket *s)
 	 * Discard incoming datagrams from registered hostile IP addresses.
 	 */
 
-	if (drop_hostile &&drop_hostile && hostiles_check(n->addr)) {
+	if (drop_hostile && hostiles_check(n->addr)) {
 		if (udp_debug)
 			g_warning("UDP got %s from hostile %s -- dropped",
 				gmsg_infostr_full(s->buf), node_addr(n));
