@@ -6372,24 +6372,6 @@ node_parse(struct gnutella_node *node)
 			}
 
 			drop = search_request(n, qhv);
-
-			/*
-			 * If node is a leaf, undo decrement of TTL: act as if we were
-			 * sending the search.  When the results arrives, we'll forward
-			 * it to the leaf even if its TTL is zero when it reaches us
-			 * (handled by route_message() directly).
-			 *
-			 * We used to decrement the hop count as well here, but that is
-			 * bad because neighbouring GTKG ultra nodes will see a query
-			 * with hops=1 and will therefore check the address in OOB queries.
-			 * If the query comes from the leaf and is not OOB-proxied, then
-			 * a neighbouring UP may drop the OOB flag, assuming the return
-			 * address is not matching that of the node.
-			 *		--RAM, 2006-08-20
-			 */
-
-			if (NODE_IS_LEAF(n))
-				n->header.ttl++;
 			break;
 
 		case GTA_MSG_SEARCH_RESULTS:
@@ -6413,15 +6395,31 @@ node_parse(struct gnutella_node *node)
 	if (drop)
 		goto dropped;
 
-	if (qhv != NULL && n->header.hops == 0) {
+	if (qhv != NULL && NODE_IS_LEAF(n)) {
+		g_assert(current_peermode == NODE_P_ULTRA);
+
 		/*
-		 * A query with hops = 0 needs to be handled via the dynamic
-		 * query mechanism.  It is only possible to get one from the
-		 * network if we have leaves (due to the decrement done above),
-		 * which means we're in ultra mode.
+		 * For leaf nodes, undo decrement of TTL: act as if we were
+		 * sending the search.  When the results arrives, we'll forward
+		 * it to the leaf even if its TTL is zero when it reaches us
+		 * (handled by route_message() directly).
+		 *
+		 * We used to decrement the hop count as well here, but that is
+		 * bad because neighbouring GTKG ultra nodes will see a query
+		 * with hops=1 and will therefore check the address in OOB queries.
+		 * If the query comes from the leaf and is not OOB-proxied, then
+		 * a neighbouring UP may drop the OOB flag, assuming the return
+		 * address is not matching that of the node.
+		 *		--RAM, 2006-08-20
 		 */
 
-		g_assert(current_peermode == NODE_P_ULTRA);
+		n->header.ttl++;
+
+		/*
+		 * A leaf-originated query needs to be handled via the dynamic
+		 * query mechanism.
+		 */
+
 		dq_launch_net(n, qhv);
 
 	} else if (current_peermode != NODE_P_LEAF) {
