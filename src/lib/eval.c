@@ -66,7 +66,7 @@ constant_make(gchar *s)
 {
 	gchar *v;
 
-	v = (gchar *) g_hash_table_lookup(constants, s);
+	v = g_hash_table_lookup(constants, s);
 	if (v != NULL)
 		return v;			/* Already exists */
 
@@ -101,7 +101,7 @@ constants_free_kv(gpointer key,
 void
 eval_close(void)
 {
-	atom_str_free(home);
+	atom_str_free_null(&home);
 
 	g_hash_table_foreach(constants, constants_free_kv, NULL);
 	g_hash_table_destroy(constants);
@@ -276,7 +276,7 @@ get_variable(gchar *s, gchar **end)
 	}
 
 	while ((c = *p)) {
-		if (!isalnum(c) && c != '_')
+		if (!is_ascii_alnum(c) && c != '_')
 			break;
 		p++;
 	}
