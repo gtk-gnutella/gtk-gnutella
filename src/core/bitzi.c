@@ -86,6 +86,7 @@ static GSList *bitzi_rq = NULL;
 
 static bitzi_request_t	*current_bitzi_request = NULL;
 static gpointer	 current_bitzi_request_handle;
+static guint bitzi_heartbeat_id;
 
 
 /*
@@ -274,7 +275,7 @@ static const struct efj_t enum_fj_table[] = {
 
 /**
  * Read all the attributes we may want from the rdf ticket, some
- * atributes will not be there in which case xmlGetProp will return a null.
+ * attributes will not be there in which case xmlGetProp will return a null.
  */
 static void
 process_rdf_description(xmlNode *node, bitzi_data_t *data)
@@ -917,7 +918,29 @@ bitzi_init(void)
 	 * we set them up.
 	 */
 
-	g_timeout_add(1 * 10000, bitzi_heartbeat, NULL);
+	bitzi_heartbeat_id = g_timeout_add(10000, bitzi_heartbeat, NULL);
+}
+
+void
+bitzi_close(void)
+{
+	g_return_if_fail(bitzi_cache_ht);
+	g_hash_table_destroy(bitzi_cache_ht);
+	bitzi_cache_ht = NULL;
+
+	{
+		GList *iter;
+
+		for (iter = bitzi_cache; iter != NULL; iter = g_list_next(iter)) {
+			bitzi_destroy(iter->data);
+		}
+		g_list_free(bitzi_cache);
+		bitzi_cache = NULL;
+	}
+	
+	g_return_if_fail(bitzi_heartbeat_id);
+	g_source_remove(bitzi_heartbeat_id);
+	bitzi_heartbeat_id = 0;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
