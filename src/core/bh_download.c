@@ -395,8 +395,7 @@ browse_host_dl_free(struct browse_ctx *bc)
 {
 	g_assert(bc != NULL);
 
-	if (bc->vendor)
-		atom_str_free(bc->vendor);
+	atom_str_free_null(&bc->vendor);
 	if (bc->rx)
 		rx_free(bc->rx);
 	if (!bc->closed)
