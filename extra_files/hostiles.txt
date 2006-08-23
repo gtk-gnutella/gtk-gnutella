@@ -480,6 +480,9 @@
 # MP3 spam (white noise); switches User-Agent on the fly during downloads
 70.19.110.145
 
+# MP3 spam; fake LimeWire; switches User-Agent on the fly during downloads
+72.89.107.244
+
 # University of Mississippi
 130.74.0.0/16
 
