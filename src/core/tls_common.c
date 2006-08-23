@@ -254,7 +254,18 @@ tls_handshake(struct gnutella_socket *s)
 		return TLS_HANDSHAKE_RETRY;
 	}
 	if (tls_debug) {
-		g_warning("gnutls_handshake() failed: %s", gnutls_strerror(ret));
+		int saved_errno = errno;
+		
+		switch (saved_errno) {
+		case EPIPE:
+		case ECONNRESET:
+			if (tls_debug < 2)
+				break;
+		default:
+			g_warning("gnutls_handshake() failed: %s (errno=\"%s\")",
+					gnutls_strerror(ret), g_strerror(saved_errno));
+		}
+		errno = saved_errno;
 	}
 	return TLS_HANDSHAKE_ERROR;
 }
@@ -393,7 +404,20 @@ tls_bye(tls_context_t ctx, gboolean is_incoming)
 		case GNUTLS_E_AGAIN:
 			break;
 		default:
-			g_warning("gnutls_bye() failed: %s", gnutls_strerror(ret));
+			{
+				int saved_errno = errno;
+
+				switch (saved_errno) {
+				case EPIPE:
+				case ECONNRESET:
+					if (tls_debug < 2)
+						break;
+				default:
+					g_warning("gnutls_bye() failed: %s (errno=\"%s\")",
+						gnutls_strerror(ret), g_strerror(saved_errno));
+				}
+				errno = saved_errno;
+			}
 		}
 	}
 }
