@@ -388,11 +388,14 @@
 204.11.223.0/26
 
 # Aggressivly connecting; getting disconnected due to security violations
-# Yes, this is CISCO systems.
+# Yes, this is Cisco Systems.
 128.108.0.0/16
 # Emits "WEIRD" results; not downloadable; bogus alt-locs; urn:none:; primary
 # address is always at port 80 at its own /24.
 #128.108.111.0/24
+
+# Range belong to Level 3; seems to be related to the peers by Cisco Systems
+65.57.247.0/24
 
 
 # swapexits.com; DRM license server
