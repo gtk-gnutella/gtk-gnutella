@@ -1586,7 +1586,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	const gchar *leaf_muid;
 
 	g_assert(NODE_IS_LEAF(n));
-	g_assert(n->header.hops == 0);	/* Query from leaf launched as if from us */
+	g_assert(n->header.hops == 1);	/* Query from leaf node */
 
 	dq = walloc0(sizeof(*dq));
 
