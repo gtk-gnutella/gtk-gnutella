@@ -104,7 +104,8 @@ static struct {
 } colors[] = {
 	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },
 	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },
-	{ "#D2691E",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
+	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
+	{ "#326732",	GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } },
 };
 
 void
@@ -129,6 +130,29 @@ gui_color_get(const enum gui_color id)
 {
 	g_assert((guint) id <= NUM_GUI_COLORS);
 	return &colors[(guint) id].color;
+}
+
+/**
+ * Extract the mark/ignore/download color.
+ */
+void
+gui_search_get_colors(search_t *sch,
+	GdkColor **mark_color, GdkColor **ignore_color)
+{
+	GtkWidget *w;
+
+#ifdef USE_GTK1
+	w = GTK_WIDGET(sch->ctree);
+#else
+	w = GTK_WIDGET(sch->tree_view);
+#endif
+
+	if (mark_color) {
+    	*mark_color = &(gtk_widget_get_style(w)->bg[GTK_STATE_INSENSITIVE]);
+	}
+	if (mark_color) {
+    	*ignore_color = &(gtk_widget_get_style(w)->fg[GTK_STATE_INSENSITIVE]);
+	}
 }
 
 search_t *
@@ -1050,7 +1074,6 @@ search_matched(search_t *sch, results_set_t *rs)
 	gboolean skip_records;		/* Shall we skip those records? */
 	GString *vinfo = g_string_sized_new(40);
 	const gchar *vendor;
-    GdkColor *download_color;
     GdkColor *ignore_color;
     GdkColor *mark_color;
     GSList *sl;
@@ -1063,7 +1086,7 @@ search_matched(search_t *sch, results_set_t *rs)
     g_assert(sch != NULL);
     g_assert(rs != NULL);
 
-	gui_search_get_colors(sch, &mark_color, &ignore_color, &download_color);
+	gui_search_get_colors(sch, &mark_color, &ignore_color);
 
     vendor = lookup_vendor_name(rs->vcode);
 	max_results = sch->browse ? browse_host_max_results : search_max_results;
@@ -1123,7 +1146,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
   	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
 		record_t *rc = sl->data;
-        gboolean downloaded = FALSE;
+        gboolean downloading = FALSE;
 		gboolean is_dup, add_record, mark;
         GdkColor *fg_color;
 
@@ -1203,7 +1226,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			 * Check whether this record was already scheduled for
 			 * download by the backend.
 			 */
-			downloaded = rc->flags & SR_DOWNLOADED;
+			downloading = rc->flags & SR_DOWNLOADED;
 
 			/*
 			 * Now we check for the different filter result properties.
@@ -1213,7 +1236,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			 * Check for FILTER_PROP_DOWNLOAD:
 			 */
 			if (
-				!downloaded && 
+				!downloading && 
 				!is_spam &&
 				!is_hostile &&
 				FILTER_PROP_STATE_DO == filter_download
@@ -1224,7 +1247,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
 				search_gui_free_proxies(rs);
 
-				downloaded = TRUE;
+				downloading = TRUE;
 				sch->auto_downloaded++;
 			}
 
@@ -1232,7 +1255,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			 * Don't show something we downloaded if they don't want it.
 			 */
 
-			if (downloaded && search_hide_downloaded) {
+			if (downloading && search_hide_downloaded) {
 				results_kept++;
 				sch->hidden++;
 				continue;
@@ -1258,6 +1281,7 @@ search_matched(search_t *sch, results_set_t *rs)
 				continue;
 			}
 			
+			downloading |= SR_PARTIAL & rc->flags;
 			mark = FILTER_PROP_STATE_DONT == filter_state &&
 					GINT_TO_POINTER(1) == filter_udata;
 
@@ -1272,8 +1296,8 @@ search_matched(search_t *sch, results_set_t *rs)
 				 * Check whether this record will be ignored by the backend.
 				 */
 				fg_color = ignore_color;
-			} else if (downloaded) {
-				fg_color = download_color;
+			} else if (downloading) {
+				fg_color = gui_color_get(GUI_COLOR_DOWNLOADING);
 			}
 
 			add_record = TRUE;

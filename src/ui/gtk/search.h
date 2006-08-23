@@ -152,9 +152,6 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled);
 const GList *search_gui_get_searches(void);
 
 void search_gui_set_clear_button_sensitive(gboolean flag);
-void gui_search_get_colors(
-	search_t *sch,
-	GdkColor **mark_color, GdkColor **ignore_color, GdkColor **download_color);
 
 void search_gui_start_massive_update(search_t *sch);
 void search_gui_end_massive_update(search_t *sch);

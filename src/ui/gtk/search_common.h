@@ -123,11 +123,14 @@ enum gui_color {
 	GUI_COLOR_SPAM,
 	GUI_COLOR_HOSTILE,
 	GUI_COLOR_UNREQUESTED,
+	GUI_COLOR_DOWNLOADING,
 	NUM_GUI_COLORS
 };
 
 void gui_color_init(void);
 GdkColor *gui_color_get(enum gui_color id);
+void gui_search_get_colors(search_t *sch,
+		GdkColor **mark_color, GdkColor **ignore_color);
 
 #include "search.h"
 

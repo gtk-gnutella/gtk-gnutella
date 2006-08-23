@@ -2563,27 +2563,6 @@ gui_search_clear_results(void)
     search_gui_update_items(current_search);
 }
 
-
-/**
- * Extract the mark/ignore/download color.
- */
-void
-gui_search_get_colors(
-	search_t *sch,
-	GdkColor **mark_color, GdkColor **ignore_color, GdkColor **download_color)
-{
-    *mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->ctree))
-        ->bg[GTK_STATE_INSENSITIVE]);
-
-    *ignore_color = &(gtk_widget_get_style(GTK_WIDGET(sch->ctree))
-        ->fg[GTK_STATE_INSENSITIVE]);
-
-    *download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->ctree))
-        ->fg[GTK_STATE_ACTIVE]);
-}
-
-
-
 /**
  * Set proper search color in list depending on whether it is enabled.
  */
