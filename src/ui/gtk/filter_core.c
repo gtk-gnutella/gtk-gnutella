@@ -90,9 +90,9 @@ struct filter_context {
 	 * Those variables are initialized as needed.
 	 */
 
-	gchar *l_name;				/**< Lower-cased file name */
+	gchar *l_name;				/**< Lower-cased file name; atom */
 	size_t l_len;				/**< Length of lower-cased representation */
-	gchar *utf8_name;			/**< Normalized UTF-8 version of name */
+	gchar *utf8_name;			/**< Normalized UTF-8 version of name; atom */
 	size_t utf8_len;			/**< Length of UTF-8 name representation */
 };
 
@@ -2386,10 +2386,8 @@ filter_record(search_t *sch, const struct record *rec)
 	 * Cleanup cached variables.
 	 */
 
-	if (ctx.utf8_name != NULL)
-		atom_str_free(ctx.utf8_name);
-	if (ctx.l_name != NULL)
-		atom_str_free(ctx.l_name);
+	atom_str_free_null(&ctx.utf8_name);
+	atom_str_free_null(&ctx.l_name);
 
 	return result;
 }
