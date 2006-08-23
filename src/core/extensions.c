@@ -730,7 +730,6 @@ ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
 	gint exvcnt, gboolean skip)
 {
 	gchar *p = *retp;
-	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
@@ -742,23 +741,32 @@ ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
 	 * could appear to be the start of a GGEP block or XML.
 	 */
 
-	while (p < end) {
-		guchar c = *p++;
-		if (
-			(c == '\0' || c == (guchar) HUGE_FS || c == (guchar) GGEP_MAGIC) ||
-			(
-				(c == 'u' || c == 'U') &&
-				(end - p) >= 3 &&
-				is_strcaseprefix(p, "rn:")
-			) ||
-			(c == '<' && (p < end) && is_ascii_alpha((guchar) *p))
-		) {
+	for (/* NOTHING*/; len > 0; p++, len--) {
+		gboolean found;
+
+		switch ((guchar) *p) {
+		case '\0':
+		case (guchar) HUGE_FS:
+		case (guchar) GGEP_MAGIC:
+			found = TRUE;
+			break;
+		case 'u':
+		case 'U':
+			found = len >= 4 && is_strcaseprefix(p, "urn:");
+			break;
+		case '<':
+			found = len >= 2 && is_ascii_alpha((guchar) p[1]);
+			break;
+		default:
+			found = FALSE;
+		}
+		
+		if (found) {
 			if (skip) {
 				skip = FALSE;
-				continue;
+			} else {
+				break;
 			}
-			p--;
-			break;
 		}
 	}
 
