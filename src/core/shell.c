@@ -206,7 +206,8 @@ shell_unescape(gchar *s)
  * The returned string needs to be g_free-ed when no longer needed.
  */
 static gchar *
-shell_get_token(const gchar *s, gint *pos) {
+shell_get_token(const gchar *s, gint *pos)
+{
 	const gchar *start, *end;
 	gchar *retval;
 
@@ -219,8 +220,10 @@ shell_get_token(const gchar *s, gint *pos) {
 		if (*start == '\0') {
 			*pos = -1;
 		}
+	} else {
+		start = NULL;	/* Suppress compiler warning */
 	}
-	if (-1 == *pos) {
+	if (*pos < 0) {
 		return NULL; /* nothing more to get */
 	}
 
