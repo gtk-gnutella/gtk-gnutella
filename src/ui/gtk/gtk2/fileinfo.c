@@ -1340,6 +1340,7 @@ gui_update_download_server(download_t *d)
 	g_return_if_fail(data);
 	g_return_if_fail(data->is_download);
 
+	atom_str_free_null(&data->download.vendor);
 	data->download.vendor = atom_str_get(download_vendor_str(d));
 	set_fileinfo_data(data);
 }
