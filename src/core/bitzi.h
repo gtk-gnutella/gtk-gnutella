@@ -39,5 +39,6 @@
 #include "if/core/bitzi.h"
 
 void bitzi_init(void);
+void bitzi_close(void);
 
 #endif /* _core_bitzi_h_ */
