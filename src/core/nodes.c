@@ -554,13 +554,13 @@ node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
 
     orig_host = node_ht_connected_nodes_find(addr, port);
 
-    if (NULL == orig_host)
-        return;
+    if (orig_host) {
+		g_hash_table_remove(ht_connected_nodes, orig_host);
+		g_assert(connected_node_count > 0);
+		connected_node_count--;
 
-	g_hash_table_remove(ht_connected_nodes, orig_host);
-	connected_node_count --;
-
-	wfree(orig_host, sizeof *orig_host);
+		wfree(orig_host, sizeof *orig_host);
+	}
 }
 
 /**
@@ -1526,22 +1526,18 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
 	}
 
-	if (n->attrs & NODE_A_CAN_HSEP)
-		hsep_connection_close(n);
-
-	if (n->routing_data)
+	if (n->routing_data) {
 		routing_node_remove(n);
-
+		n->routing_data = NULL;
+	}
 	if (n->qrt_update) {
 		qrt_update_free(n->qrt_update);
 		n->qrt_update = NULL;
 	}
-
 	if (n->qrt_receive) {
 		qrt_receive_free(n->qrt_receive);
 		n->qrt_receive = NULL;
 	}
-
 	if (n->recv_query_table) {
 		qrt_unref(n->recv_query_table);
 		n->recv_query_table = NULL;
@@ -1568,36 +1564,31 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		qrt_unref(n->sent_query_table);
 		n->sent_query_table = NULL;
 	}
-
 	if (n->qrt_info) {
-		wfree(n->qrt_info, sizeof(*n->qrt_info));
-		n->qrt_info = NULL;
+		WFREE_NULL(n->qrt_info, sizeof(*n->qrt_info));
 	}
-
 	if (n->rxfc) {
-		wfree(n->rxfc, sizeof(*n->rxfc));
-        n->rxfc = NULL;
+		WFREE_NULL(n->rxfc, sizeof(*n->rxfc));
 	}
-
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
+		g_assert(connected_node_cnt > 0);
 		connected_node_cnt--;
-		g_assert(connected_node_cnt <= INT_MAX);
         if (n->attrs & NODE_A_RX_INFLATE) {
-			if (n->flags & NODE_F_LEAF)
+			if (n->flags & NODE_F_LEAF) {
+				g_assert(compressed_leaf_cnt > 0);
 				compressed_leaf_cnt--;
+			}
+            g_assert(compressed_node_cnt > 0);
             compressed_node_cnt--;
-            g_assert(compressed_node_cnt <= INT_MAX);
-			g_assert(compressed_leaf_cnt <= INT_MAX);
         }
 		node_type_count_dec(n);
 	}
 
-	if (n->status == GTA_NODE_SHUTDOWN)
+	if (n->status == GTA_NODE_SHUTDOWN) {
 		shutdown_nodes--;
-
+	}
 	if (n->hello.ptr) {
-		wfree(n->hello.ptr, n->hello.size);
-		n->hello.ptr = NULL;
+		WFREE_NULL(n->hello.ptr, n->hello.size);
 	}
 
 	/* n->io_opaque will be freed by node_real_remove() */
@@ -1607,12 +1598,10 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		G_FREE_NULL(n->data);
 		n->allocated = 0;
 	}
-
 	if (n->searchq) {
 		sq_free(n->searchq);
 		n->searchq = NULL;
 	}
-
 	if (n->rx)					/* RX stack freed by node_real_remove() */
 		node_disable_read(n);
 	if (n->outq)				/* TX stack freed by node_real_remove() */
@@ -1636,12 +1625,14 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
     node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
 	node_proxying_remove(n, TRUE);
 
-	if (n->flags & NODE_F_EOF_WAIT)
+	if (n->flags & NODE_F_EOF_WAIT) {
+		g_assert(pending_byes > 0);
 		pending_byes--;
+	}
 
-	if (is_host_addr(n->proxy_addr))
+	if (is_host_addr(n->proxy_addr)) {
 		sl_proxies = g_slist_remove(sl_proxies, n);
-
+	}
 	if (n->qseen != NULL) {
 		string_table_free(n->qseen);
 		n->qseen = NULL;
@@ -1655,11 +1646,16 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		n->qrelayed_old = NULL;
 	}
 
-	if (NODE_IS_LEAF(n))
-		dq_node_removed(n->id);		/* Purge dynamic queries for that node */
-
-    node_fire_node_info_changed(n);
-    node_fire_node_flags_changed(n);
+	if (!in_shutdown) {
+		if (n->attrs & NODE_A_CAN_HSEP) {
+			hsep_connection_close(n);
+		}
+		if (NODE_IS_LEAF(n)) {
+			dq_node_removed(n->id);	/* Purge dynamic queries for that node */
+		}
+		node_fire_node_info_changed(n);
+		node_fire_node_flags_changed(n);
+	}
 }
 
 /**
@@ -7663,6 +7659,8 @@ node_close(void)
 {
 	GSList *sl;
 
+	g_assert(in_shutdown);
+
 	/*
 	 * Clean up memory used for determining unstable ips / servents
 	 */
@@ -7684,72 +7682,10 @@ node_close(void)
 	while (sl_nodes) {
 		struct gnutella_node *n = sl_nodes->data;
 
+		g_assert(n);
 		g_assert(n->magic == NODE_MAGIC);
 
-		if (n->socket) {
-			if (n->socket->getline)
-				getline_free(n->socket->getline);
-			socket_free_null(&n->socket);
-		}
-		if (n->outq) {
-			mq_free(n->outq);
-			n->outq = NULL;
-		}
-		if (n->searchq) {
-			sq_free(n->searchq);
-			n->searchq = NULL;
-		}
-		if (n->allocated)
-			G_FREE_NULL(n->data);
-		atom_guid_free_null(&n->gnet_guid);
-		if (n->routing_data) {
-			routing_node_remove(n);
-			n->routing_data = NULL;
-		}
-		if (n->qrt_update) {
-			qrt_update_free(n->qrt_update);
-			n->qrt_update = NULL;
-		}
-		if (n->qrt_receive) {
-			qrt_receive_free(n->qrt_receive);
-			n->qrt_receive = NULL;
-		}
-		if (n->sent_query_table) {
-			qrt_unref(n->sent_query_table);
-			n->sent_query_table = NULL;
-		}
-		if (n->recv_query_table) {
-			qrt_unref(n->recv_query_table);
-			n->recv_query_table = NULL;
-		}
-		if (n->qrt_info) {
-			wfree(n->qrt_info, sizeof(*n->qrt_info));
-			n->qrt_info = NULL;
-		}
-		if (n->rxfc) {
-			wfree(n->rxfc, sizeof(*n->rxfc));
-			n->rxfc = NULL;
-		}
-		if (n->guid) {
-			route_proxy_remove(n->guid);
-			atom_guid_free_null(&n->guid);
-		}
-		if (n->qseen != NULL) {
-			string_table_free(n->qseen);
-			n->qseen = NULL;
-		}
-		if (n->qrelayed != NULL) {
-			string_table_free(n->qrelayed);
-			n->qrelayed = NULL;
-		}
-		if (n->qrelayed_old != NULL) {
-			string_table_free(n->qrelayed_old);
-			n->qrelayed_old = NULL;
-		}
-		if (n->tsync_ev != NULL) {
-			cq_cancel(callout_queue, n->tsync_ev);
-			n->tsync_ev = NULL;
-		}
+		node_remove(n, no_reason);
 		node_real_remove(n);
 		n = NULL;
 	}
