@@ -1171,7 +1171,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 
 	info = g_string_assign(info, "");
 	if (rc->tag) {
-		guint len = strlen(rc->tag);
+		size_t len = strlen(rc->tag);
 
 		/*
 		 * We want to limit the length of the tag shown, but we don't
@@ -1181,13 +1181,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 		 *				--RAM, 09/09/2001
 		 */
 
-		if (len > MAX_TAG_SHOWN) {
-            gchar saved = rc->tag[MAX_TAG_SHOWN];
-			rc->tag[MAX_TAG_SHOWN] = '\0';
-			g_string_append(info, rc->tag);
-			rc->tag[MAX_TAG_SHOWN] = saved;
-		} else
-			g_string_append(info, rc->tag);
+		g_string_append_len(info, rc->tag, MIN(len, MAX_TAG_SHOWN));
 	}
 
 	if (vinfo->len) {
@@ -2295,9 +2289,9 @@ search_gui_set_current_search(search_t *sch)
         }
     }
 
-	search_gui_current_search(sch);
 	sch->unseen_items = 0;
 
+	search_gui_forget_current_search();
     spinbutton_reissue_timeout = lookup_widget
         (main_window, "spinbutton_search_reissue_timeout");
    	clist = GTK_CLIST(lookup_widget(main_window, "clist_search"));
@@ -2347,6 +2341,8 @@ search_gui_set_current_search(search_t *sch)
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_resume"), FALSE);
     }
+
+	search_gui_current_search(sch);
 
     /*
      * Search results notebook
