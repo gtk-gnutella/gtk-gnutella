@@ -252,20 +252,15 @@ tls_handshake(struct gnutella_socket *s)
 		tls_socket_evt_change(s, gnutls_record_get_direction(session)
 				? INPUT_EVENT_WX : INPUT_EVENT_RX);
 		return TLS_HANDSHAKE_RETRY;
-	}
-	if (tls_debug) {
-		int saved_errno = errno;
-		
-		switch (saved_errno) {
-		case EPIPE:
-		case ECONNRESET:
-			if (tls_debug < 2)
-				break;
-		default:
-			g_warning("gnutls_handshake() failed: %s (errno=\"%s\")",
-					gnutls_strerror(ret), g_strerror(saved_errno));
+	case GNUTLS_E_PULL_ERROR:
+	case GNUTLS_E_PUSH_ERROR:
+		if (tls_debug) {
+			g_message("gnutls_handshake() failed: errno=\"%s\"",
+				g_strerror(errno));
 		}
-		errno = saved_errno;
+		break;
+	default:
+		g_warning("gnutls_handshake() failed: %s", gnutls_strerror(ret));
 	}
 	return TLS_HANDSHAKE_ERROR;
 }
@@ -403,21 +398,15 @@ tls_bye(tls_context_t ctx, gboolean is_incoming)
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
 			break;
-		default:
-			{
-				int saved_errno = errno;
-
-				switch (saved_errno) {
-				case EPIPE:
-				case ECONNRESET:
-					if (tls_debug < 2)
-						break;
-				default:
-					g_warning("gnutls_bye() failed: %s (errno=\"%s\")",
-						gnutls_strerror(ret), g_strerror(saved_errno));
-				}
-				errno = saved_errno;
+		case GNUTLS_E_PULL_ERROR:
+		case GNUTLS_E_PUSH_ERROR:
+			if (tls_debug) {
+				g_message("gnutls_bye() failed: errno=\"%s\"",
+					g_strerror(errno));
 			}
+			break;
+		default:
+			g_warning("gnutls_bye() failed: %s", gnutls_strerror(ret));
 		}
 	}
 }
@@ -637,8 +626,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
 				if (tls_debug) {
-					g_message("tls_writev() failed: %s",
-						g_strerror(errno));
+					g_message("tls_writev() failed: %s", g_strerror(errno));
 				}
 				errno = EIO;
 				break;
@@ -675,9 +663,9 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
-				if (tls_debug)
-					g_message("tls_writev(): errno=\"%s\"",
-						g_strerror(errno));
+				if (tls_debug) {
+					g_message("tls_writev(): errno=\"%s\"", g_strerror(errno));
+				}
 				ret = -1;
 				break;
 			default:
