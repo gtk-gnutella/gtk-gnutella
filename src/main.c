@@ -411,6 +411,7 @@ gtk_gnutella_exit(gint n)
 		sleep(1);
 	}
 
+	bitzi_close();
 	dht_rpc_close();
 	dht_route_close();
 	ntp_close();
