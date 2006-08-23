@@ -959,7 +959,7 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 	info[0] = '\0';
 
 	if (rc->tag) {
-		size_t len = strlen(rc->tag);
+		size_t size;
 
 		/*
 		 * We want to limit the length of the tag shown, but we don't
@@ -969,11 +969,12 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 		 *				--RAM, 09/09/2001
 		 */
 
-		len = MIN(len, MAX_TAG_SHOWN);
-		len = MIN(len, sizeof info);
+		size = 1 + strlen(rc->tag);
+		size = MIN(size, MAX_TAG_SHOWN + 1);
+		size = MIN(size, sizeof info);
 		rw = utf8_strlcpy(info,
 				lazy_unknown_to_utf8_normalized(rc->tag, UNI_NORM_GUI, NULL),
-				len);
+				size);
 	}
 	if (vinfo) {
 		g_assert(rw < sizeof info);
@@ -1837,7 +1838,10 @@ search_gui_set_current_search(search_t *sch)
 	}
 
 
-	search_gui_current_search(sch);
+	/* This prevents side-effects otherwise caused by  changing the value of
+	 * spinbutton_reissue_timeout.
+	 */
+	search_gui_forget_current_search();
 	sch->unseen_items = 0;
 
     spinbutton_reissue_timeout = lookup_widget(main_window,
@@ -1850,8 +1854,8 @@ search_gui_set_current_search(search_t *sch)
         gui_search_force_update_tab_label(sch, tm_time());
         search_gui_update_items(sch);
 
-        gtk_spin_button_set_value
-            (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_reissue_timeout),
+			reissue_timeout);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, active);
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_download"),
@@ -1897,6 +1901,7 @@ search_gui_set_current_search(search_t *sch)
             	lookup_widget(popup_search_list, popup_items[i]), FALSE);
 		}
     }
+	search_gui_current_search(sch);
 
 	tree_view_restore_widths(GTK_TREE_VIEW(sch->tree_view),
 		PROP_SEARCH_RESULTS_COL_WIDTHS);
