@@ -4204,6 +4204,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 
 	d = has_same_download(file_name, sha1, size, guid, addr, port);
 	if (d) {
+		download_check(d);
 		if (interactive)
 			g_message("rejecting duplicate download for %s", file_name);
 		atom_str_free(file_name);
@@ -4568,9 +4569,12 @@ download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
 
 	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
+		download_check(d);
 		download_queue_delay(d, download_retry_stopped_delay,
 			_("Stopped (Index changed)"));
 	}
+	g_slist_free(to_stop);
+	to_stop = NULL;
 
 	/*
 	 * This is a sanity check: we should not have any duplicate request
