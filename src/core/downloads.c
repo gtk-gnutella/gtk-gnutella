@@ -1285,6 +1285,7 @@ server_list_free_all(struct dl_server *server)
 	guint i;
 
 	g_assert(dl_server_valid(server));
+	g_assert(0 == count_running_on_server(server));
 
 	for (i = 0; i < DL_LIST_SZ; i++) {
 		list_free(&server->list[i]);
@@ -1460,7 +1461,6 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 {
 	struct dl_key *key = server->key;
 	struct dl_server *duplicate;
-	GSList *l;
 
 	g_assert(dl_server_valid(server));
 	g_assert(!host_addr_equal(key->addr, new_addr));
@@ -1524,6 +1524,8 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	duplicate = get_server(key->guid, new_addr, key->port, FALSE);
 
 	if (duplicate != NULL) {
+		GSList *sl;
+
 		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
 		g_assert(duplicate->key->port == key->port);
 		g_assert(duplicate != server);
@@ -1567,8 +1569,8 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 		 * reparented to `server' instead.
 		 */
 
-		for (l = sl_downloads; l; l = g_slist_next(l)) {
-			struct download *d = l->data;
+		for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
+			struct download *d = sl->data;
 
 			download_check(d);
 			if (d->status == GTA_DL_REMOVED)
@@ -2015,7 +2017,7 @@ void
 download_remove_file(struct download *d, gboolean reset)
 {
 	fileinfo_t *fi = d->file_info;
-	GSList *l;
+	GSList *sl;
 
 	file_info_unlink(fi);
 	if (reset)
@@ -2025,8 +2027,8 @@ download_remove_file(struct download *d, gboolean reset)
 	 * Requeue all the active downloads that were referencing that file.
 	 */
 
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *dl = l->data;
+	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
+		struct download *dl = sl->data;
 
 		download_check(d);
 		if (dl->status == GTA_DL_REMOVED)
@@ -4784,13 +4786,13 @@ download_orphan_new(
 void
 download_free_removed(void)
 {
-	GSList *l;
+	GSList *sl;
 
 	if (sl_removed == NULL)
 		return;
 
-	for (l = sl_removed; l; l = g_slist_next(l)) {
-		struct download *d = l->data;
+	for (sl = sl_removed; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
 
 		download_check(d);
 		g_assert(d->status == GTA_DL_REMOVED);
@@ -4806,8 +4808,8 @@ download_free_removed(void)
 	g_slist_free(sl_removed);
 	sl_removed = NULL;
 
-	for (l = sl_removed_servers; l; l = g_slist_next(l)) {
-		struct dl_server *s = l->data;
+	for (sl = sl_removed_servers; sl; sl = g_slist_next(sl)) {
+		struct dl_server *s = sl->data;
 		free_server(s);
 	}
 
@@ -6409,7 +6411,7 @@ check_push_proxies(struct download *d, header_t *header)
 	gchar *buf;
 	struct dl_server *server = d->server;
 	const gchar *tok;
-	GSList *l = NULL;
+	GSList *sl = NULL;
 
 	/*
 	 * The newest specifications say that the header to be used
@@ -6444,14 +6446,14 @@ check_push_proxies(struct download *d, header_t *header)
 			host->addr = addr;
 			host->port = port;
 
-			l = g_slist_prepend(l, host);
+			sl = g_slist_prepend(sl, host);
 		}
 	}
 
 	if (server->proxies)
 		free_proxies(server);
 
-	server->proxies = l;
+	server->proxies = sl;
 	server->proxies_stamp = tm_time();
 }
 
@@ -8909,7 +8911,7 @@ static void
 download_store(void)
 {
 	FILE *out;
-	const GSList *l;
+	const GSList *sl;
 	file_path_t fp;
 
 	if (retrieving)
@@ -8933,8 +8935,8 @@ download_store(void)
 			"#\n\n"
 			"RECLINES=4\n\n", out);
 
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = l->data;
+	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
 		const gchar *id, *guid, *hostname;
 
 		download_check(d);
@@ -9645,14 +9647,15 @@ download_verify_error(struct download *d)
 static void
 download_resume_bg_tasks(void)
 {
-	GSList *l;
+	GSList *sl;
 	GSList *to_remove = NULL;			/* List of fileinfos to remove */
 
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
-		fileinfo_t *fi = d->file_info;
+	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		fileinfo_t *fi;
 
 		download_check(d);
+		fi = d->file_info;
 
 		if (d->status == GTA_DL_REMOVED)	/* Pending free, ignore it! */
 			continue;
@@ -9729,21 +9732,25 @@ download_resume_bg_tasks(void)
 	 * Remove queued downloads referencing a complete file.
 	 */
 
-	for (l = to_remove; l; l = l->next) {
-		fileinfo_t *fi = (fileinfo_t *) l->data;
+	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		fileinfo_t *fi = sl->data;
 		g_assert(FILE_INFO_COMPLETE(fi));
 		queue_remove_downloads_with_file(fi, NULL);
 	}
 
 	g_slist_free(to_remove);
+	to_remove = NULL;
 
 	/*
 	 * Clear the marks.
 	 */
 
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
-		fileinfo_t *fi = d->file_info;
+	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		fileinfo_t *fi;
+
+		download_check(d);
+		fi = d->file_info;
 
 		if (d->status == GTA_DL_REMOVED)	/* Pending free, ignore it! */
 			continue;
@@ -9758,14 +9765,14 @@ download_resume_bg_tasks(void)
 void
 download_close(void)
 {
-	GSList *l;
+	GSList *sl;
 
 	download_store();			/* Save latest copy */
 	download_freeze_queue();
 	download_free_removed();
 
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = l->data;
+	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
 
 		download_check(d);
 		if (DOWNLOAD_IS_VISIBLE(d))
