@@ -709,10 +709,14 @@ buffers_to_iovec(struct download *d)
 static inline void
 buffers_discard(struct download *d)
 {
-	struct dl_buffers *b = d->buffers;
-	fileinfo_t *fi = d->file_info;
+	struct dl_buffers *b;
+	fileinfo_t *fi;
 
-	g_assert(b);
+	download_check(d);
+
+	g_assert(d->buffers);
+	b = d->buffers;
+	fi = d->file_info;
 
 	if (fi->buffered >= b->held)
 		fi->buffered -= b->held;
@@ -727,11 +731,14 @@ buffers_discard(struct download *d)
  * Check whether reception buffers are full.
  */
 static inline gboolean
-buffers_full(struct download *d)
+buffers_full(const struct download *d)
 {
-	struct dl_buffers *b = d->buffers;
+	const struct dl_buffers *b;
 
-	g_assert(b);
+	download_check(d);
+	g_assert(d->buffers);
+
+	b = d->buffers;
 
 	return b->held >= download_buffer_size;
 }
@@ -740,11 +747,14 @@ buffers_full(struct download *d)
  * Check whether we should request flushing of the buffered data.
  */
 static inline gboolean
-buffers_should_flush(struct download *d)
+buffers_should_flush(const struct download *d)
 {
-	struct dl_buffers *b = d->buffers;
+	const struct dl_buffers *b;
 
-	g_assert(b);
+	download_check(d);
+	g_assert(d->buffers);
+
+	b = d->buffers;
 
 	return b->held >= b->amount;
 }
@@ -757,7 +767,7 @@ static void
 buffers_add_read(struct download *d, pmsg_t *mb)
 {
 	struct dl_buffers *b;
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 	size_t size;
 
 	download_check(d);
@@ -766,6 +776,7 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 	g_assert(d->status == GTA_DL_RECEIVING);
 
 	b = d->buffers;
+	fi = d->file_info;
 
 	g_assert(b->mode == DL_BUF_READING);
 
@@ -830,14 +841,15 @@ static void
 buffers_strip_leading(struct download *d, size_t amount)
 {
 	struct dl_buffers *b;
-	size_t n;
+	fileinfo_t *fi;
 	GSList *sl;
-	fileinfo_t *fi = d->file_info;
+	size_t n;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
 
 	b = d->buffers;
+	fi = d->file_info;
 
 	g_assert(b->mode == DL_BUF_READING);
 	g_assert(amount <= b->held);
@@ -886,14 +898,15 @@ static void
 buffers_strip_trailing(struct download *d, size_t amount)
 {
 	struct dl_buffers *b;
+	fileinfo_t *fi;
 	GSList *sl;
 	size_t n;
-	fileinfo_t *fi = d->file_info;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
 
 	b = d->buffers;
+	fi = d->file_info;
 
 	g_assert(b->mode == DL_BUF_READING);
 	g_assert(amount <= b->held);
@@ -1702,6 +1715,8 @@ downloads_with_name_dec(gchar *name)
 static inline gchar *
 download_get_sha1(const struct download *d)
 {
+	download_check(d);
+
 	if (d->sha1) {
 		/* These are atoms */
 		if (d->file_info && d->file_info->sha1) {
@@ -1720,6 +1735,7 @@ server_sha1_count_inc(struct dl_server *server, struct download *d)
 {
 	gchar *sha1;
 
+	download_check(d);
 	g_assert(server == d->server);
 
 	sha1 = download_get_sha1(d);
@@ -1741,6 +1757,7 @@ server_sha1_count_dec(struct dl_server *server, struct download *d)
 {
 	gchar *sha1;
 
+	download_check(d);
 	g_assert(server == d->server);
 
 	sha1 = download_get_sha1(d);
@@ -1922,6 +1939,7 @@ has_same_download(
 	for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
 		d = server_list_lookup(server, i, sha1, file, size);
 		if (d) {
+			download_check(d);
 			g_assert(!DOWNLOAD_IS_STOPPED(d));
 			return d;
 		}
@@ -1936,6 +1954,8 @@ has_same_download(
 void
 download_actively_queued(struct download *d, gboolean queued)
 {
+	download_check(d);
+
 	if (queued) {
 		d->status = GTA_DL_ACTIVE_QUEUED;
 
@@ -1965,6 +1985,8 @@ download_actively_queued(struct download *d, gboolean queued)
 static void
 download_passively_queued(struct download *d, gboolean queued)
 {
+	download_check(d);
+
 	if (queued) {
 		if (d->flags & DL_F_PASSIVE_QUEUED)		/* Already accounted for */
 			return;
@@ -1996,6 +2018,8 @@ download_file_exists(const struct download *d)
 	gchar *path;
 	struct stat buf;
 
+	download_check(d);
+
 	path = make_pathname(d->file_info->path, d->file_info->file_name);
 	g_return_val_if_fail(NULL != path, FALSE);
 
@@ -2016,9 +2040,12 @@ download_file_exists(const struct download *d)
 void
 download_remove_file(struct download *d, gboolean reset)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 	GSList *sl;
 
+	download_check(d);
+
+	fi = d->file_info;
 	file_info_unlink(fi);
 	if (reset)
 		file_info_reset(fi);
@@ -2030,7 +2057,7 @@ download_remove_file(struct download *d, gboolean reset)
 	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
 		struct download *dl = sl->data;
 
-		download_check(d);
+		download_check(dl);
 		if (dl->status == GTA_DL_REMOVED)
 			continue;
 
@@ -2154,9 +2181,12 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 static void
 download_info_reget(struct download *d)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 	gboolean file_size_known;
 
+	download_check(d);
+	
+	fi = d->file_info;
 	g_assert(fi);
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
@@ -2472,6 +2502,7 @@ download_set_socket_rx_size(gint rx_size)
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
 
+		download_check(d);
 		if (d->socket != NULL)
 			sock_recv_buf(d->socket, rx_size, TRUE);
 	}
@@ -2577,8 +2608,11 @@ download_clear_stopped(gboolean complete,
 static void
 download_add_to_list(struct download *d, enum dl_list idx)
 {
-	struct dl_server *server = d->server;
+	struct dl_server *server;
 
+	download_check(d);
+
+	server = d->server;
 	g_assert(dl_server_valid(server));
 	g_assert(idx != DL_LIST_INVALID);
 	g_assert(d->list_idx == DL_LIST_INVALID);			/* Not in any list */
@@ -2605,6 +2639,10 @@ download_move_to_list(struct download *d, enum dl_list idx)
 	struct dl_server *server = d->server;
 	enum dl_list old_idx = d->list_idx;
 
+	download_check(d);
+
+	server = d->server;
+	old_idx = d->list_idx;
 	g_assert(dl_server_valid(server));
 	g_assert(d->list_idx != DL_LIST_INVALID);			/* In some list */
 	g_assert(d->list_idx != idx);			/* Not in the target list */
@@ -2672,6 +2710,7 @@ download_server_retry_after(struct dl_server *server, time_t now, gint hold)
 	 */
 
 	d = server_list_head(server, DL_LIST_WAITING);
+	download_check(d);
 	after = d->retry_after;
 
 	/*
@@ -3022,6 +3061,7 @@ download_stop(struct download *d,
 {
 	va_list args;
 
+	download_check(d);
 	d->unavailable = FALSE;
 
 	va_start(args, reason);
@@ -3038,6 +3078,7 @@ download_unavailable(struct download *d, download_status_t new_status,
 {
 	va_list args;
 
+	download_check(d);
 	d->unavailable = TRUE;
 
 	va_start(args, reason);
@@ -3121,6 +3162,8 @@ download_queue(struct download *d, const gchar *fmt, ...)
 {
 	va_list args;
 
+	download_check(d);
+
 	va_start(args, fmt);
 	download_queue_v(d, fmt, args);
 	va_end(args);
@@ -3153,10 +3196,11 @@ download_thaw_queue(void)
 /**
  * Test whether download queue is frozen.
  */
-gint
+gboolean
 download_queue_is_frozen(void)
 {
-	return queue_frozen;
+	g_return_val_if_fail(queue_frozen >= 0, FALSE);
+	return queue_frozen > 0;
 }
 
 /**
@@ -3168,6 +3212,8 @@ download_queue_hold_delay_v(struct download *d,
 	const gchar *fmt, va_list ap)
 {
 	time_t now = tm_time();
+
+	download_check(d);
 
 	/*
 	 * Must update `retry_after' before enqueuing, since the "waiting" list
@@ -3190,6 +3236,8 @@ download_queue_delay(struct download *d, guint32 delay, const gchar *fmt, ...)
 {
 	va_list args;
 
+	download_check(d);
+
 	va_start(args, fmt);
 	download_queue_hold_delay_v(d, (time_t) delay, 0, fmt, args);
 	va_end(args);
@@ -3205,6 +3253,8 @@ download_queue_hold(struct download *d, guint32 hold, const gchar *fmt, ...)
 {
 	va_list args;
 
+	download_check(d);
+
 	va_start(args, fmt);
 	download_queue_hold_delay_v(d, (time_t) hold, (time_t) hold, fmt, args);
 	va_end(args);
@@ -3216,6 +3266,7 @@ download_queue_hold(struct download *d, guint32 hold, const gchar *fmt, ...)
 static void
 download_push_insert(struct download *d)
 {
+	download_check(d);
 	g_assert(!d->push);
 
 	d->push = TRUE;
@@ -3242,7 +3293,10 @@ static gboolean
 download_ignore_requested(struct download *d)
 {
 	enum ignore_val reason = IGNORE_FALSE;
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
+
+	download_check(d);
+	fi = d->file_info;
 
 	/*
 	 * Reject if we're trying to download from ourselves (could happen
@@ -3486,6 +3540,7 @@ download_pick_chunk(struct download *d)
 	enum dl_chunk_status status;
 	filesize_t from, to;
 
+	download_check(d);
 	g_assert(d->file_info->use_swarming);
 
 	d->overlap_size = 0;
@@ -3533,6 +3588,7 @@ download_pick_available(struct download *d)
 {
 	filesize_t from, to;
 
+	download_check(d);
 	g_assert(d->ranges != NULL);
 
 	d->overlap_size = 0;
@@ -3586,6 +3642,7 @@ download_pick_available(struct download *d)
 static void
 download_bad_source(struct download *d)
 {
+	download_check(d);
 	download_passively_queued(d, FALSE);
 
 	if (!d->always_push && d->sha1 && !d->uri)
@@ -3601,10 +3658,15 @@ download_bad_source(struct download *d)
 static struct gnutella_socket *
 download_connect(struct download *d)
 {
-	struct dl_server *server = d->server;
-	guint16 port = download_port(d);
+	struct dl_server *server;
+	guint16 port;
 
+	download_check(d);
+
+	server = d->server;
 	g_assert(dl_server_valid(server));
+
+	port = download_port(d);
 
 	d->flags &= ~DL_F_DNS_LOOKUP;
 
@@ -3637,8 +3699,8 @@ download_connect(struct download *d)
 void
 download_start(struct download *d, gboolean check_allowed)
 {
-	host_addr_t addr = download_addr(d);
-	guint16 port = download_port(d);
+	host_addr_t addr;
+	guint16 port;
 
 	download_check(d);
 	g_return_if_fail(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
@@ -3647,6 +3709,9 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->file_info->lifecount > 0);
 	g_return_if_fail(d->file_info->lifecount <= d->file_info->refcount);
 	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+
+	addr = download_addr(d);
+	port = download_port(d);
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
@@ -4018,6 +4083,7 @@ download_fallback_to_push(struct download *d,
 	gboolean on_timeout, gboolean user_request)
 {
 	g_return_if_fail(d);
+	download_check(d);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_warning(
@@ -4917,6 +4983,7 @@ download_remove(struct download *d)
 
 	idtable_free_id(src_handle_map, d->src_handle);
 
+	download_check(d);
 	sl_removed = g_slist_prepend(sl_removed, d);
 
 	/* download structure will be freed in download_free_removed() */
@@ -5074,6 +5141,7 @@ use_push_proxy(struct download *d)
 void
 download_proxy_newstate(struct download *d)
 {
+	download_check(d);
 	/* Will read status in d->cproxy */
 	gcu_gui_update_download(d, TRUE);
 }
@@ -5085,6 +5153,7 @@ download_proxy_newstate(struct download *d)
 void
 download_proxy_sent(struct download *d)
 {
+	download_check(d);
 	/* Will read status in d->cproxy */
 	gcu_gui_update_download(d, TRUE);
 }
@@ -5095,8 +5164,11 @@ download_proxy_sent(struct download *d)
 void
 download_proxy_failed(struct download *d)
 {
-	struct cproxy *cp = d->cproxy;
+	struct cproxy *cp;
 
+	download_check(d);
+
+	cp = d->cproxy;
 	g_assert(cp != NULL);
 
 	/* Will read status in d->cproxy */
@@ -5174,7 +5246,9 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 static inline struct download *
 cast_to_download(gpointer p)
 {
-	return p;
+	struct download *d = p;
+	download_check(d);
+	return d;
 }
 
 #define DOWNLOAD(x)	cast_to_download(x)
@@ -5202,6 +5276,8 @@ static void
 err_header_read_error(gpointer o, gint error)
 {
 	struct download *d = DOWNLOAD(o);
+
+	download_check(d);
 
 	if (error == ECONNRESET) {
 		if (d->retries++ < download_max_retries)
@@ -5314,11 +5390,13 @@ call_download_push_ready(gpointer o, header_t *unused_header)
 static gboolean
 download_overlap_check(struct download *d)
 {
-	fileinfo_t *fi = d->file_info;
 	struct file_object *fo;
+	fileinfo_t *fi;
 	gboolean success = FALSE;
 	gchar *data = NULL;
 
+	download_check(d);
+	fi = d->file_info;
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
 
@@ -5486,9 +5564,11 @@ out:
 static gboolean
 download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 {
-	struct dl_buffers *b = d->buffers;
+	struct dl_buffers *b;
 	ssize_t written;
 
+	download_check(d);
+	b = d->buffers;
 	g_assert(b != NULL);
 
 	if (download_debug > 1)
@@ -5589,13 +5669,17 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 static gboolean
 download_write_data(struct download *d)
 {
-	struct dl_buffers *b = d->buffers;
-	fileinfo_t *fi = d->file_info;
+	struct dl_buffers *b;
+	fileinfo_t *fi;
 	gboolean trimmed = FALSE;
 	struct download *cd;					/* Cloned download, if completed */
 	enum dl_chunk_status status = DL_CHUNK_BUSY;
 	gboolean should_flush;
 
+	download_check(d);
+
+	b = d->buffers;
+	fi = d->file_info;
 	g_assert(b->held > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
@@ -5796,8 +5880,13 @@ download_moved_permanently(struct download *d, header_t *header)
 {
 	gchar *buf;
 	dmesh_urlinfo_t info;
-	host_addr_t addr = download_addr(d);
-	guint16 port = download_port(d);
+	host_addr_t addr;
+	guint16 port;
+
+	download_check(d);
+
+	addr = download_addr(d);
+	port = download_port(d);
 
 	buf = header_get(header, "Location");
 	if (buf == NULL)
@@ -5885,6 +5974,8 @@ download_get_server_name(struct download *d, header_t *header)
 	const gchar *user_agent;
 	gboolean got_new_server = FALSE;
 
+	download_check(d);
+
 	user_agent = header_get(header, "Server");			/* Mandatory */
 	if (!user_agent)
 		user_agent = header_get(header, "User-Agent"); /* Are they confused? */
@@ -5938,6 +6029,8 @@ download_get_server_name(struct download *d, header_t *header)
 static gboolean
 download_check_status(struct download *d, getline_t *line, gint code)
 {
+	download_check(d);
+
 	if (-1 == code) {
 		g_message("weird HTTP acknowledgment status line from %s (%s)",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
@@ -6018,6 +6111,7 @@ download_convert_to_urires(struct download *d)
 			download_guid(d), download_addr(d), download_port(d));
 
 	if (xd != NULL && xd != d) {
+		download_check(xd);
 		download_stop(d, GTA_DL_ERROR, "Was a duplicate");
 		return FALSE;
 	}
@@ -6034,6 +6128,8 @@ extract_retry_after(struct download *d, const header_t *header)
 	const gchar *buf;
 	guint32 delay;
 	gint error;
+
+	download_check(d);
 
 	/*
 	 * A Retry-After header is either a full HTTP date, such as
@@ -6066,14 +6162,14 @@ extract_retry_after(struct download *d, const header_t *header)
 }
 
 /**
- * check_date
- *
  * Look for a Date: header in the reply and use it to update our skew.
  */
 static void
 check_date(const header_t *header, const host_addr_t addr, struct download *d)
 {
 	const gchar *buf;
+
+	download_check(d);
 
 	buf = header_get(header, "Date");
 	if (buf) {
@@ -6116,11 +6212,13 @@ check_date(const header_t *header, const host_addr_t addr, struct download *d)
 static void
 check_xhostname(struct download *d, const header_t *header)
 {
+	struct dl_server *server;
 	gchar *buf;
-	struct dl_server *server = d->server;
 
+	download_check(d);
+
+	server = d->server;
 	buf = header_get(header, "X-Hostname");
-
 	if (buf == NULL)
 		return;
 
@@ -6220,6 +6318,8 @@ check_content_urn(struct download *d, header_t *header)
 	gchar *buf;
 	gchar digest[SHA1_RAW_SIZE];
 	gboolean found_sha1 = FALSE;
+
+	download_check(d);
 
 	buf = header_get(header, "X-Gnutella-Content-Urn");
 
@@ -6413,9 +6513,10 @@ static void
 check_push_proxies(struct download *d, header_t *header)
 {
 	gchar *buf;
-	struct dl_server *server = d->server;
 	const gchar *tok;
 	GSList *sl = NULL;
+
+	download_check(d);
 
 	/*
 	 * The newest specifications say that the header to be used
@@ -6454,11 +6555,14 @@ check_push_proxies(struct download *d, header_t *header)
 		}
 	}
 
-	if (server->proxies)
-		free_proxies(server);
+	{
+		struct dl_server *server = d->server;
+		if (server->proxies)
+			free_proxies(server);
 
-	server->proxies = sl;
-	server->proxies_stamp = tm_time();
+		server->proxies = sl;
+		server->proxies_stamp = tm_time();
+	}
 }
 
 /**
@@ -6476,6 +6580,8 @@ update_available_ranges(struct download *d, header_t *header)
 {
 	static const gchar available[] = "X-Available-Ranges";
 	gchar *buf;
+
+	download_check(d);
 
 	if (d->ranges != NULL) {
 		http_range_free(d->ranges);
@@ -6569,11 +6675,15 @@ download_sink_read(gpointer data, gint unused_source,
 	inputevt_cond_t unused_cond)
 {
 	struct download *d = data;
-	struct gnutella_socket *s = d->socket;
+	struct gnutella_socket *s;
 	ssize_t r;
 
 	(void) unused_source;
 	(void) unused_cond;
+
+	download_check(d);
+
+	s = d->socket;
 	g_assert(s);
 
 	r = bio_read(d->bio, s->buf, s->buf_size);
@@ -6627,9 +6737,11 @@ lazy_ack_message_to_ui_string(const gchar *src)
 static void
 download_mark_active(struct download *d)
 {
-	fileinfo_t *fi = d->file_info;
-	struct gnutella_socket *s = d->socket;
+	fileinfo_t *fi;
 
+	download_check(d);
+
+	fi = d->file_info;
 	d->start_date = tm_time();
 	d->status = GTA_DL_RECEIVING;
 
@@ -6659,8 +6771,12 @@ download_mark_active(struct download *d)
 	 * small for better control of the incoming rate).
 	 */
 
-	socket_tos_lowdelay(s);
-	sock_recv_buf(s, download_rx_size * 1024, TRUE);
+	{
+		struct gnutella_socket *s = d->socket;
+
+		socket_tos_lowdelay(s);
+		sock_recv_buf(s, download_rx_size * 1024, TRUE);
+	}
 
 	/*
 	 * If not a browse-host request, prepare reading buffers.
@@ -6710,7 +6826,7 @@ vendor_is_evil(const gchar *vendor)
 static void
 download_request(struct download *d, header_t *header, gboolean ok)
 {
-	struct gnutella_socket *s = d->socket;
+	struct gnutella_socket *s;
 	const gchar *status;
 	guint ack_code;
 	const gchar *ack_message = "";
@@ -6722,14 +6838,20 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	host_addr_t addr;	
 	guint16 port;
 	guint http_major = 0, http_minor = 0;
-	gboolean is_followup = d->keep_alive;
-	fileinfo_t *fi = d->file_info;
+	gboolean is_followup;
+	fileinfo_t *fi;
 	gchar short_read[80];
 	guint delay;
 	guint hold = 0;
 	gchar *path = NULL;
 	gboolean refusing;
 	guint32 bh_flags = 0;
+
+	download_check(d);
+	
+	is_followup = d->keep_alive;
+	s = d->socket;
+	fi = d->file_info;
 
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
@@ -7895,8 +8017,10 @@ http_version_nofix:
 static void
 download_incomplete_header(struct download *d)
 {
-	header_t *header = io_header(d->io_opaque);
+	header_t *header;
 
+	download_check(d);
+	header = io_header(d->io_opaque);
 	download_request(d, header, FALSE);
 }
 
@@ -7958,6 +8082,8 @@ download_request_sent(struct download *d)
 	 * Update status and GUI.
 	 */
 
+	download_check(d);
+
 	d->last_update = tm_time();
 	d->status = GTA_DL_REQ_SENT;
 	tm_now(&d->header_sent);
@@ -7983,14 +8109,17 @@ static void
 download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct download *d = data;
-	struct gnutella_socket *s = d->socket;
-	http_buffer_t *r = d->req;
-	gint sent;
+	struct gnutella_socket *s;
+	http_buffer_t *r;
+	ssize_t sent;
 	gint rw;
 	gchar *base;
 
 	(void) unused_source;
 	download_check(d);
+
+	s = d->socket;
+	r = d->req;
 	g_assert(s->gdk_tag);		/* I/O callback still registered */
 	g_assert(r != NULL);
 	g_assert(d->status == GTA_DL_REQ_SENDING);
@@ -8019,12 +8148,13 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	rw = http_buffer_unread(r);			/* Data we still have to send */
 	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	if (-1 == (sent = bws_write(bws.out, &s->wio, base, rw))) {
+	sent = bws_write(bws.out, &s->wio, base, rw);
+	if ((ssize_t) -1 == sent) {
 		/*
 		 * If download is queued with PARQ, etc...  [Same as above]
 		 */
 
-		const gchar msg[] = "Write failed: %s";
+		static const gchar msg[] = "Write failed: %s";
 
 		if (d->queue_status == NULL)
 			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
@@ -8438,6 +8568,8 @@ download_push_ready(struct download *d, getline_t *empty)
 {
 	size_t len = getline_length(empty);
 
+	download_check(d);
+
 	if (len != 0) {
 		g_message("file \"%s\": push reply was not followed by an empty line",
 			download_outname(d));
@@ -8501,6 +8633,7 @@ select_push_download(GSList *servers)
 		while (!found && list_iter_has_next(iter)) {
 
 			d = list_iter_next(iter);
+			download_check(d);
 			g_assert(DOWNLOAD_IS_RUNNING(d));
 
 			if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
@@ -8577,6 +8710,7 @@ select_push_download(GSList *servers)
 			 * range offset.
 			 */
 
+			download_check(d);
 			g_assert(d->socket == NULL);
 
 			if (download_start_prepare(d)) {
@@ -8787,7 +8921,9 @@ download_push_ack(struct gnutella_socket *s)
 	d = select_push_download(servers);
 	g_slist_free(servers);
 
-	if (!d) {
+	if (d) {
+		download_check(d);
+	} else {
 		g_warning("discarded GIV \"%s\" from %s",
 			giv, host_addr_to_string(s->addr));
 		goto discard;
@@ -8883,6 +9019,7 @@ download_find_waiting_unparq(const host_addr_t addr, guint16 port)
 	while (list_iter_has_next(iter)) {
 
 		d = list_iter_next(iter);
+		download_check(d);
 		g_assert(!DOWNLOAD_IS_RUNNING(d));
 
 		if (d->flags & DL_F_SUSPENDED)		/* Suspended, cannot pick */
@@ -9443,13 +9580,14 @@ download_move_progress(struct download *d, filesize_t copied)
 void
 download_move_done(struct download *d, guint elapsed)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 
 	download_check(d);
 	g_assert(d->status == GTA_DL_MOVING);
 
 	d->status = GTA_DL_DONE;
 	d->last_update = tm_time();
+	fi = d->file_info;
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
 	file_info_changed(fi);
@@ -9470,7 +9608,7 @@ download_move_done(struct download *d, guint elapsed)
 void
 download_move_error(struct download *d)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 	const gchar *ext;
 	gchar *src;
 	gchar *dest;
@@ -9486,6 +9624,7 @@ download_move_error(struct download *d)
 	 * Don't keep an URN-like name when the file is done, if possible.
 	 */
 
+	fi = d->file_info;
 	name = file_info_readable_filename(fi);
 
 	src = make_pathname(fi->path, fi->file_name);
@@ -9580,14 +9719,16 @@ download_verify_progress(struct download *d, guint32 hashed)
 void
 download_verify_done(struct download *d, gchar *digest, guint elapsed)
 {
-	fileinfo_t *fi = d->file_info;
-	const gchar *name = file_info_readable_filename(fi);
+	fileinfo_t *fi;
+	const gchar *name;
 	gchar *src = NULL;
 
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
+	fi = d->file_info;
+	name = file_info_readable_filename(fi);
 	fi->cha1 = atom_sha1_get(digest);
 	fi->cha1_elapsed = elapsed;
 	fi->cha1_hashed = fi->size;
@@ -9620,11 +9761,14 @@ download_verify_done(struct download *d, gchar *digest, guint elapsed)
 void
 download_verify_error(struct download *d)
 {
-	fileinfo_t *fi = d->file_info;
-	const gchar *name = file_info_readable_filename(fi);
+	fileinfo_t *fi;
+	const gchar *name;
 
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFYING);
+
+	fi = d->file_info;
+	name = file_info_readable_filename(fi);
 
 	if (0 == strcmp(fi->file_name, name))
 		g_message("error while verifying SHA1 for \"%s\"", fi->file_name);
@@ -9899,6 +10043,7 @@ download_get_hostname(const struct download *d)
 	guint port;
 	const gchar *enc;
 
+	download_check(d);
 	if (is_faked_download(d))
 		return "";
 
@@ -9925,15 +10070,15 @@ download_get_hostname(const struct download *d)
 gint
 download_get_http_req_percent(const struct download *d)
 {
-	http_buffer_t *r = d->req;
+	const http_buffer_t *r;
 
+	download_check(d);
+	r = d->req;
 	return (http_buffer_read_base(r) - http_buffer_base(r))
 				* 100 / http_buffer_length(r);
 }
 
 /**
- * download_something_to_clear
- *
  * Checks unqueued list to see if there are any downloads that are finished and
  * therefore ready to be cleared.
  */
@@ -9946,6 +10091,7 @@ download_something_to_clear(void)
 	for (sl = sl_unqueued; !clear && sl; sl = g_slist_next(sl)) {
 		const struct download *d = sl->data;
 
+		download_check(d);
 		switch (d->status) {
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
@@ -10082,8 +10228,10 @@ download_got_eof(struct download *d)
 void
 download_rx_done(struct download *d)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 
+	download_check(d);
+	fi = d->file_info;
 	g_assert(fi != NULL);
 
 	if (!d->browse && !fi->file_size_known) {
@@ -10106,8 +10254,10 @@ download_rx_done(struct download *d)
 void
 download_browse_received(struct download *d, ssize_t received)
 {
-	fileinfo_t *fi = d->file_info;
+	fileinfo_t *fi;
 
+	download_check(d);
+	fi = d->file_info;
 	g_assert(fi != NULL);
 
 	file_info_update(d, d->pos, d->pos + received, DL_CHUNK_DONE);
@@ -10126,6 +10276,8 @@ download_browse_maybe_finished(struct download *d)
 {
 	fileinfo_t *fi = d->file_info;
 
+	download_check(d);
+	fi = d->file_info;
 	g_assert(fi != NULL);
 
 	if (FILE_INFO_COMPLETE(fi))
