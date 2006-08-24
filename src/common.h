@@ -345,26 +345,6 @@ G_STMT_START {			\
 	}					\
 } G_STMT_END
 
-/**
- * Stores a RCS ID tag inside the object file. Every .c source file should
- * use this macro once as `RCSID("<dollar>Id$")' on top. The ID tag is
- * automagically updated each time the file is committed to the CVS repository.
- * The RCS IDs can be looked up from the compiled binary with e.g. `what',
- * `ident' or `strings'. See also rcs(1) and ident(1).
- */
-#define RCSID(x) \
-static inline const char *	\
-get_rcsid(void)		\
-{	\
-	static const char rcsid[] = "@(#) " x;	\
-	const char *s = rcsid;	\
-	while (*s != '\0') {	\
-		if (*s++ == '$')	\
-			break;	\
-	}	\
-	return s;	\
-}
-
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 #define HAVE_GCC(major, minor) \
 	((__GNUC__ > (major)) || \
@@ -403,6 +383,14 @@ get_rcsid(void)		\
 #define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #else /* GCC < 3.4 */
 #define WARN_UNUSED_RESULT
+#endif
+
+/* Instructs the compiler to emit code for this function even if it is
+ * or seems to be unused. */
+#if HAVE_GCC(3, 1)
+#define KEEP_FUNCTION __attribute__((used))
+#else /* GCC < 3.1 || !GCC */
+#define KEEP_FUNCTION
 #endif
 
 /* The antidote for WARN_UNUSED_RESULT. This attribute is sometimes
@@ -539,6 +527,26 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  * Short-hand for ngettext().
  */
 #define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
+
+/**
+ * Stores a RCS ID tag inside the object file. Every .c source file should
+ * use this macro once as `RCSID("<dollar>Id$")' on top. The ID tag is
+ * automagically updated each time the file is committed to the CVS repository.
+ * The RCS IDs can be looked up from the compiled binary with e.g. `what',
+ * `ident' or `strings'. See also rcs(1) and ident(1).
+ */
+#define RCSID(x) \
+static KEEP_FUNCTION inline const char *	\
+get_rcsid(void)	\
+{	\
+	static const char rcsid[] = "@(#) " x;	\
+	const char *s = rcsid;	\
+	while (*s != '\0') {	\
+		if (*s++ == '$')	\
+			break;	\
+	}	\
+	return s;	\
+}
 
 #include "casts.h"
 
