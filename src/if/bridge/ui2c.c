@@ -187,7 +187,7 @@ guc_download_thaw_queue(void)
 	download_thaw_queue();
 }
 
-gint
+gboolean
 guc_download_queue_is_frozen(void)
 {
 	return download_queue_is_frozen();

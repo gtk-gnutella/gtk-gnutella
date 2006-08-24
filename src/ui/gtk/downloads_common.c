@@ -91,10 +91,10 @@ gui_update_queue_frozen(void)
 
     if (gui_debug >= 3)
 		g_message("frozen %i, msg %i\n",
-			guc_download_queue_is_frozen(),
+			(gint) guc_download_queue_is_frozen(),
 	    	(gint) msg_displayed);
 
-    if (guc_download_queue_is_frozen() > 0) {
+    if (guc_download_queue_is_frozen()) {
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
     	/*
@@ -127,7 +127,7 @@ gui_update_queue_frozen(void)
 
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON(togglebutton_queue_freeze),
-        guc_download_queue_is_frozen() > 0);
+        guc_download_queue_is_frozen());
 
     gtk_signal_handler_unblock_by_func(
         GTK_OBJECT(togglebutton_queue_freeze),

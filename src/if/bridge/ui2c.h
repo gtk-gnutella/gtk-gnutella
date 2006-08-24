@@ -83,7 +83,7 @@ void guc_download_abort(struct download *d);
 void guc_download_resume(struct download *d);
 void guc_download_freeze_queue(void);
 void guc_download_thaw_queue(void);
-gint guc_download_queue_is_frozen(void);
+gboolean guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
 void guc_download_auto_new(const gchar *file, filesize_t size,

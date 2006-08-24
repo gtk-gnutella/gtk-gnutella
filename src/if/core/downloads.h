@@ -391,7 +391,7 @@ void download_abort(struct download *);
 void download_resume(struct download *);
 void download_freeze_queue(void);
 void download_thaw_queue(void);
-gint download_queue_is_frozen(void);
+gboolean download_queue_is_frozen(void);
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
 gboolean download_new_unknown_size(const gchar *file, guint32 record_index,
 	 const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
