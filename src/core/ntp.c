@@ -81,7 +81,7 @@ struct ntp_msg {
 	guchar originate_timestamp[8];
 	guchar receive_timestamp[8];
 	guchar transmit_timestamp[8];
-} __attribute__((__packed__));
+};
 
 /**
  * Fill 8-byte buffer with NTP's representation of a tm_t time.

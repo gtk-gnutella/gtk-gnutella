@@ -62,7 +62,7 @@ struct gnutella_header {
 	guchar ttl;
 	guchar hops;
 	guchar size[4];
-} __attribute__((__packed__));
+};
 
 #define GTA_HEADER_SIZE		sizeof(struct gnutella_header)
 

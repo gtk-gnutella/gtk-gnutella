@@ -48,25 +48,25 @@
 struct gnutella_msg_init {
 	struct gnutella_header header;
 	/**< GGEP data may follow */
-} __attribute__((__packed__));
+};
 
 struct gnutella_init_response {
 	guchar host_port[2];
 	guchar host_ip[4];
 	guchar files_count[4];
 	guchar kbytes_count[4];
-} __attribute__((__packed__));
+};
 
 struct gnutella_msg_init_response {
 	struct gnutella_header header;
 	struct gnutella_init_response response;
 	/**< GGEP data may follow */
-} __attribute__((__packed__));
+};
 
 struct gnutella_search {
 	guchar speed[2];
 	/**< query string follows */
-} __attribute__((__packed__));
+};
 
 struct gnutella_search_results {
 	guchar num_recs;
@@ -76,41 +76,41 @@ struct gnutella_search_results {
 	/* record data follows */
 
 	/* Last 16 bytes = client_id */
-} __attribute__((__packed__));
+};
 
 struct gnutella_msg_search {
 	struct gnutella_header header;
 	struct gnutella_search search;
-} __attribute__((__packed__));
+};
 
 struct gnutella_push_request {
 	guchar guid[16];
 	guchar file_id[4];
 	guchar host_ip[4];
 	guchar host_port[2];
-} __attribute__((__packed__));
+};
 
 struct gnutella_msg_push_request {
 	struct gnutella_header header;
 	struct gnutella_push_request request;
 	/**< GGEP data may follow */
-} __attribute__((__packed__));
+};
 
 struct gnutella_bye {
 	guchar code[2];
 	/**< message string follows */
-} __attribute__((__packed__));
+};
 
 struct gnutella_qrp_reset {
 	guchar variant;			/**< 0x00 */
 	guchar table_length[4];	/**< little endian */
 	guchar infinity;
-} __attribute__((__packed__));
+};
 
 struct gnutella_msg_qrp_reset {
 	struct gnutella_header header;
 	struct gnutella_qrp_reset data;
-} __attribute__((__packed__));
+};
 
 struct gnutella_qrp_patch {
 	guchar variant;			/**< 0x01 */
@@ -118,29 +118,29 @@ struct gnutella_qrp_patch {
 	guchar seq_size;
 	guchar compressor;
 	guchar entry_bits;
-} __attribute__((__packed__));
+};
 
 struct gnutella_msg_qrp_patch {
 	struct gnutella_header header;
 	struct gnutella_qrp_patch data;
-} __attribute__((__packed__));
+};
 
 struct gnutella_vendor {
 	guchar vendor[4];		/**< For example, "GTKG" */
 	guchar selector_id[2];	/**< Message selector ID, little endian */
 	guchar version[2];		/**< Message version number, little endian */
 	/* payload follows */
-} __attribute__((__packed__));
+};
 
 struct gnutella_msg_vendor {
 	struct gnutella_header header;
 	struct gnutella_vendor data;
-} __attribute__((__packed__));
+};
 
 struct gnutella_msg_hsep_data {
 	struct gnutella_header header;
 	guchar triple[3 * sizeof(guint64)];
-} __attribute__((__packed__));
+};
 
 #endif /* _core_gnutella_h_ */
 
