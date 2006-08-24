@@ -1827,6 +1827,7 @@ server_list_lookup(const struct dl_server *server, enum dl_list idx,
 
 		if (list_contains(server->list[idx], &key, download_eq, &orig_key)) {
 			d = orig_key;
+			download_check(d);
 		}
 		atom_sha1_free_null(&key.sha1);
 	}
@@ -4283,7 +4284,6 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 
 	d = download_alloc();
 
-	d->magic = DOWNLOAD_MAGIC;
 	d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
 	server->refcnt++;
