@@ -97,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11732 2006-08-26 09:30:17Z rmanfredi $
+# $X-Id: Jmakefile 11736 2006-08-26 10:27:35Z rmanfredi $
 
 all::
 
@@ -277,7 +277,7 @@ local_deinstall.man::
 	$(RM) $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
 
 revision.h: .FORCE
-	$(TOP)/scripts/svn-revision > $@
+	$(TOP)/scripts/svn-revision $(TOP) > $@
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
