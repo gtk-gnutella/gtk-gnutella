@@ -181,7 +181,8 @@ static const gchar *tok_errstr[] = {
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *tok_strerror(tok_error_t errnum)
+const gchar *
+tok_strerror(tok_error_t errnum)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(tok_errstr) == TOK_MAX_ERROR);
 
@@ -196,7 +197,8 @@ const gchar *tok_strerror(tok_error_t errnum)
  *
  * @return NULL if we cannot locate any suitable keys.
  */
-static const struct tokkey *find_tokkey(time_t now)
+static const struct tokkey *
+find_tokkey(time_t now)
 {
 	time_t adjusted = now - VERSION_ANCIENT_BAN;
 	const struct tokkey *tk;
@@ -212,13 +214,33 @@ static const struct tokkey *find_tokkey(time_t now)
 }
 
 /**
+ * Find latest token structure that is anterior or equal to the remote version.
+ */
+static const struct tokkey *
+find_latest(const version_t *rver)
+{
+	guint i;
+	const struct tokkey *tk;
+	const struct tokkey *result = NULL;
+
+	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+		tk = &token_keys[i];
+		if (version_cmp(&tk->ver, rver) > 0)
+			break;
+		result = tk;
+	}
+
+	return result;
+}
+
+/**
  * Pickup a key randomly.
  *
  * @returns the key string and the index within the key array into `idx'
  * and the token key structure used in `tkused'.
  */
-static const gchar *random_key(
-	time_t now, guint *idx, const struct tokkey **tkused)
+static const gchar *
+random_key(time_t now, guint *idx, const struct tokkey **tkused)
 {
 	static gboolean warned = FALSE;
 	guint random_idx;
@@ -245,7 +267,8 @@ static const gchar *random_key(
 /**
  * Generate new token for given version string.
  */
-static gchar *tok_generate(time_t now, const gchar *version)
+static gchar *
+tok_generate(time_t now, const gchar *version)
 {
 	gchar token[TOKEN_BASE64_SIZE + 1];
 	gchar digest[TOKEN_VERSION_SIZE];
@@ -328,7 +351,8 @@ static gchar *tok_generate(time_t now, const gchar *version)
  * It is not meant to be used for strict authentication management, since
  * the algorithm and the keys are exposed publicly.
  */
-gchar *tok_version(void)
+gchar *
+tok_version(void)
 {
 	static time_t last_generated = 0;
 	static gchar *toklevel = NULL;
@@ -360,7 +384,8 @@ gchar *tok_version(void)
  *
  * @returns a pointer to static data.
  */
-gchar *tok_short_version(void)
+gchar *
+tok_short_version(void)
 {
 	static time_t last_generated = 0;
 	static gchar *toklevel = NULL;
@@ -393,7 +418,8 @@ gchar *tok_short_version(void)
  *
  * @returns error code, or TOK_OK if token is valid.
  */
-tok_error_t tok_version_valid(
+tok_error_t
+tok_version_valid(
 	const gchar *version, const gchar *tokenb64, gint len, host_addr_t addr)
 {
 	time_t now = tm_time();
@@ -401,6 +427,7 @@ tok_error_t tok_version_valid(
 	guint32 stamp32;
 	const struct tokkey *tk;
 	const struct tokkey *rtk;
+	const struct tokkey *latest;
 	guint idx;
 	const gchar *key;
 	SHA1Context ctx;
@@ -470,6 +497,10 @@ tok_error_t tok_version_valid(
 	if (end == NULL)
 		return TOK_MISSING_LEVEL;
 
+	latest = find_latest(&rver);
+	if (latest == NULL)						/* Unknown in our key set */
+		return TOK_OLD_VERSION;
+
 	/*
 	 * Verify build.
 	 */
@@ -477,7 +508,7 @@ tok_error_t tok_version_valid(
 	if (rver.timestamp >= 1156543200) {		/* 2006-08-26 */
 		if (0 == rver.build)
 			return TOK_MISSING_BUILD;
-		if (rver.build < tk->ver.build)
+		if (rver.build < latest->ver.build)
 			return TOK_WRONG_BUILD;
 	}
 
@@ -548,7 +579,8 @@ tok_error_t tok_version_valid(
  * Check whether the version is too ancient to be able to generate a proper
  * token string identifiable by remote parties.
  */
-gboolean tok_is_ancient(time_t now)
+gboolean
+tok_is_ancient(time_t now)
 {
 	return find_tokkey(now) == NULL;
 }
