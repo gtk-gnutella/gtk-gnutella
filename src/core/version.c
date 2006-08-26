@@ -34,6 +34,7 @@
  */
 
 #include "common.h"
+#include "revision.h"
 
 RCSID("$Id$")
 

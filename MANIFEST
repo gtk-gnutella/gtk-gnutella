@@ -239,6 +239,7 @@ scripts/geo-to-db.pl
 scripts/gtkg-dbus-listener.py
 scripts/sha1_cache.pl
 scripts/sha1_cache.sh
+scripts/svn-revision
 src/Jmakefile
 src/Makefile.SH
 src/casts.h
@@ -576,6 +577,7 @@ src/lib/zalloc.h
 src/lib/zlib_util.c
 src/lib/zlib_util.h
 src/main.c
+src/revision.h
 src/ui/Jmakefile
 src/ui/Makefile.SH
 src/ui/gtk/Jmakefile

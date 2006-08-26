@@ -109,3 +109,23 @@ DependTarget()
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) $(EXTRA))
 InstallProgram(gtk-gnutella, $(BINDIR))
 InstallManPage(gtk-gnutella, $(MANSRC))
+
+/*
+ * Update the "revision.h" file that contains the current SVN version.
+ *
+ * This file is not removed because its presence is required for the
+ * proper dependency line generation of the files that include it.
+ * For instance, if version.c includes it and it is missing, there might
+ * be no version.o dependencies included in the Makefile.
+ *
+ * Directories containing a file including "revision.h" must have the
+ * following line in their Jmakefile:
+ *
+ *    RemoteTargetDependency(file.o, $(TOP)/src, revision.h)
+ *
+ * where in this example it is "file.c" that includes "revision.h".
+ */
+
+revision.h: .FORCE
+	$(TOP)/scripts/svn-revision > $@
+
