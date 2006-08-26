@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11736 2006-08-26 10:27:35Z rmanfredi $
+# $X-Id: Jmakefile 11741 2006-08-26 13:43:13Z rmanfredi $
 
 SRC = \
 	alive.c \
@@ -259,13 +259,6 @@ IF = ../if
 GNET_PROPS = gnet_property.h
 
 .FORCE:
-
-$(TOP)/src/revision.h: .FORCE
-	@echo "Checking "revision.h" in "$(TOP)/src"..."
-	cd $(TOP)/src; $(MAKE) revision.h
-	@echo "Continuing in $(CURRENT)..."
-
-version.o:  $(TOP)/src/revision.h
 
 $(IF)/$(GNET_PROPS): .FORCE
 	@echo "Checking "$(GNET_PROPS)" in "$(IF)"..."
