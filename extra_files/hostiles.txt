@@ -491,6 +491,7 @@
 # oversensitive buzzword sensor; standard port
 66.232.96.74
 66.232.96.162
+66.232.99.186
 66.232.99.218
 38.100.229.105
 
