@@ -126,6 +126,8 @@ InstallManPage(gtk-gnutella, $(MANSRC))
  * where in this example it is "file.c" that includes "revision.h".
  */
 
+main.o: revision.h
+
 revision.h: .FORCE
 	$(TOP)/scripts/svn-revision $(TOP) > $@
 

@@ -34,7 +34,6 @@
  */
 
 #include "common.h"
-#include "revision.h"
 
 RCSID("$Id$")
 
@@ -48,6 +47,8 @@ RCSID("$Id$")
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+
+#include "if/core/main.h"
 
 #include "lib/atoms.h"
 #include "lib/getdate.h"
@@ -83,25 +84,6 @@ guint8
 version_get_code(void)
 {
 	return version_code;
-}
-
-/**
- * Get build number.
- */
-guint32
-version_get_build(void)
-{
-	static guint32 build = 0;
-	const gchar *p;
-
-	if (build)
-		return build;
-
-	p = is_strprefix(GTA_BUILD, "$Revision: ");
-	if (p)
-		build = atoi(p);
-
-	return build;
 }
 
 /**
@@ -629,7 +611,7 @@ version_init(void)
 	if (now <= 1174518000)				/* before 2007-03-22 */
 		gm_snprintf(buf, sizeof buf,
 			"gtk-gnutella/%s (%s; r%u; %s; %s%s%s)",
-			GTA_VERSION_NUMBER, GTA_RELEASE, version_get_build(),
+			GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build(),
 			GTA_INTERFACE,
 			sysname,
 			machine && machine[0] ? " " : "",
@@ -637,7 +619,7 @@ version_init(void)
 	else								/* after 2007-03-22 */
 		gm_snprintf(buf, sizeof buf,
 			"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
-			GTA_VERSION_NUMBER, version_get_build(),
+			GTA_VERSION_NUMBER, main_get_build(),
 			GTA_RELEASE, GTA_INTERFACE,
 			sysname,
 			machine && machine[0] ? " " : "",
@@ -655,11 +637,11 @@ version_init(void)
 	if (now <= 1174518000)				/* before 2007-03-22 */
 		gm_snprintf(buf, sizeof(buf),
 			"gtk-gnutella/%s (%s; r%u)",
-			GTA_VERSION_NUMBER, GTA_RELEASE, version_get_build());
+			GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build());
 	else
 		gm_snprintf(buf, sizeof(buf),
 			"gtk-gnutella/%s-%u (%s)",
-			GTA_VERSION_NUMBER, version_get_build(), GTA_RELEASE);
+			GTA_VERSION_NUMBER, main_get_build(), GTA_RELEASE);
 
 	version_short_string = atom_str_get(buf);
 

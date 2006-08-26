@@ -26,6 +26,10 @@
 #ifndef _if_core_main_h_
 #define _if_core_main_h_
 
+#include <glib.h>
+
+guint32 main_get_build(void);
+
 #ifdef CORE_SOURCES
 
 void gtk_gnutella_exit(gint n);

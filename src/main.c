@@ -34,6 +34,7 @@
  */
 
 #include "common.h"
+#include "revision.h"
 
 #include <setjmp.h>
 
@@ -186,6 +187,25 @@ sig_malloc(int n)
 	}
 }
 #endif /* MALLOC_STATS */
+
+/**
+ * Get build number.
+ */
+guint32
+main_get_build(void)
+{
+	static guint32 build = 0;
+	const gchar *p;
+
+	if (build)
+		return build;
+
+	p = is_strprefix(GTA_BUILD, "$Revision: ");
+	if (p)
+		build = atoi(p);
+
+	return build;
+}
 
 /**
  * Are we debugging anything at a level greater than some threshold "t"?
