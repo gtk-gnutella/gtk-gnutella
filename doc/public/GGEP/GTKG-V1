@@ -5,13 +5,13 @@ Name: GTKGV1
 Where: Query Hit trailer
 Status: Experimental
 Date: Fri Jan 10 21:05:59 MET 2003
-Format: <major> <minor> <patchlevel> <lettercode> <release> <startup>
+Date: Sat Aug 26 16:02:12 MEST 2006 (revised)
+Format: <major> <minor> <patchlevel> <lettercode> <release time> <build>
 COBS-Encoding: Never
 Deflate: Never
 
 The 'GTKGV1' extension is a private GTKG extension that carries servent
-version and uptime information.  It appears in the extension trailer of
-the Query Hits.
+version information.  It appears in the extension trailer of the Query Hits.
 
 The payload format is (BE stands for Big-Endian):
 
@@ -19,8 +19,8 @@ The payload format is (BE stands for Big-Endian):
     <minor>			1 byte		minor release
     <patchlevel>	1 byte		patch-level
     <lettercode>	1 byte		'u', 'b', or '\0' if none
-    <release>		4 bytes BE	UNIX timestamp of release date (GMT)
-    <startup>		4 bytes	BE	UNIX timestamp of server startup (GMT)
+    <release time>	4 bytes BE	UNIX timestamp of release date (GMT)
+    <build>			4 bytes	BE	build number (starting 2006-08-27)
 
 Total payload size: 12 bytes
 

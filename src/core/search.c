@@ -1588,7 +1588,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						ver.patchlevel = info.patch;
 						ver.tag = info.revchar;
 						ver.taglevel = 0;
-						ver.build = 0;
+						/* Build information valid after 2006-08-27 */
+						ver.build = info.release >= 1156629600 ? info.build : 0;
 						ver.timestamp = info.revchar ? info.release : 0;
 
 						rs->version = atom_str_get(version_str(&ver));

@@ -123,7 +123,7 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 
 	READ_GUINT32_BE(p, info->release);
 	p += 4;
-	READ_GUINT32_BE(p, info->start);
+	READ_GUINT32_BE(p, info->build);
 	p += 4;
 
 	g_assert(p - payload == 12);

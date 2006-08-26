@@ -65,7 +65,7 @@ struct ggep_gtkgv1 {
 	guint8 patch;
 	guint8 revchar;
 	guint32 release;
-	guint32 start;
+	guint32 build;
 };
 
 ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
