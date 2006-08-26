@@ -2126,7 +2126,7 @@ prop = {
            "slots.";
     type = guint32;
     data = {
-        default = 40;
+        default = 10;
         min = 4;
         max = 80;
     };
