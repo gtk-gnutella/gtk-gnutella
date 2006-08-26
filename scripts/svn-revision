@@ -46,10 +46,10 @@ EOC
 case "$rev" in
 r*)
 	revnum=`echo $rev | cut -dr -f2`
-	Rev='$Revision'
+	XRev='$Revision'
 	cat <<EOC
 #undef GTA_BUILD
-#define GTA_BUILD "$Rev$revnum \$"
+#define GTA_BUILD "$XRev: $revnum \$"
 EOC
 	;;
 *)
