@@ -396,7 +396,7 @@
 
 # Range belong to Level 3; seems to be related to the peers by Cisco Systems
 65.57.247.0/24
-
+65.59.209.0/29
 
 # swapexits.com; DRM license server
 74.52.9.122
@@ -491,6 +491,10 @@
 # oversensitive buzzword sensor; standard port
 66.232.96.74
 66.232.99.218
+38.100.229.105
+
+# MOV spammer
+72.36.200.120/29
 
 # University of Mississippi
 130.74.0.0/16
