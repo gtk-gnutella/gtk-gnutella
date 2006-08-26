@@ -129,5 +129,5 @@ InstallManPage(gtk-gnutella, $(MANSRC))
 main.o: revision.h
 
 revision.h: .FORCE
-	$(TOP)/scripts/svn-revision $(TOP) > $@
+	$(TOP)/scripts/svn-revision $(TOP) $@
 
