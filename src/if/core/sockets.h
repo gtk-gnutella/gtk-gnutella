@@ -47,10 +47,18 @@ enum {
     NET_USE_IPV6  = 6,
 };
 
+/*
+ * Operating flags
+ */
+
 enum {
-	CONNECT_F_FORCE	= (1 << 0),		/* Bypass limitation checks */
-	CONNECT_F_TLS	= (1 << 1),		/* Initiate a TLS connection */
-	CONNECT_F_PUSH	= (1 << 2)		/* Use a Gnutella PUSH */
+	SOCK_F_ESTABLISHED	= (1UL << 0),  /**< Connection was established */
+	SOCK_F_EOF			= (1UL << 1),  /**< Got an EOF condition */
+	SOCK_F_FORCE		= (1UL << 2),  /**< Bypass usual restrictions */
+	SOCK_F_TLS			= (1UL << 3),  /**< Request a TLS connection */
+	SOCK_F_PUSH			= (1UL << 4),  /**< Use a Gnutella PUSH */
+	SOCK_F_UDP			= (1UL << 30), /**< Is a UDP socket */
+	SOCK_F_TCP			= (1UL << 31)  /**< Is a TCP socket */
 };
 
 #endif /* _if_core_sockets_h_ */

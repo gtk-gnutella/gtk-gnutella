@@ -100,8 +100,8 @@ RCSID("$Id$")
 #endif
 #endif
 
-#define MUID_MAX			4		/**< Max amount of MUID we keep per search */
-#define SEARCH_MIN_RETRY	1800	/**< Minimum search retry timeout */
+#define MUID_MAX			4	 /**< Max amount of MUID we keep per search */
+#define SEARCH_MIN_RETRY	1800 /**< Minimum search retry timeout */
 
 static guint32 search_id = 0;			/**< Unique search counter */
 static GHashTable *searches = NULL;		/**< All alive searches */
@@ -2829,7 +2829,7 @@ search_check_alt_locs(
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->addr,
 			h->port, blank_guid, rs->hostname,
 			rc->sha1, rs->stamp, TRUE, fi, rs->proxies,
-			(rs->status & ST_TLS) ? CONNECT_F_TLS : 0);
+			(rs->status & ST_TLS) ? SOCK_F_TLS : 0);
 
 		search_free_proxies(rs);
 	}
@@ -2895,9 +2895,9 @@ search_check_results_set(gnet_results_set_t *rs)
 		if (fi) {
 			guint32 flags = 0;
 			
-			flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
-			flags |= !host_is_valid(rs->addr, rs->port) ? CONNECT_F_PUSH : 0;
-			flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+			flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
+			flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 			
 			download_auto_new(rc->name, rc->size, rc->index, rs->addr, rs->port,
 				rs->guid, rs->hostname, rc->sha1, rs->stamp, TRUE, fi,

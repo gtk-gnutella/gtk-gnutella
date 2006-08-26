@@ -369,14 +369,14 @@ nodes_gui_common_connect_by_name(const gchar *line)
 
 		addr = zero_host_addr;
 		port = GTA_PORT;
-		flags = CONNECT_F_FORCE;
+		flags = SOCK_F_FORCE;
 		endptr = NULL;
 		hostname = NULL;
 		hostname_len = 0;
 
 		endptr = is_strcaseprefix(q, "tls:");
 		if (endptr) {
-			flags |= CONNECT_F_TLS;
+			flags |= SOCK_F_TLS;
 			q = endptr;
 		}
 

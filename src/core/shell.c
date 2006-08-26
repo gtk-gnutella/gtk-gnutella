@@ -260,7 +260,7 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 		gchar *tok_buf, *tok_buf2;
 		const gchar *host, *end;
 		guint32 port = GTA_PORT;
-		gint flags = CONNECT_F_FORCE;
+		gint flags = SOCK_F_FORCE;
 
 		tok_buf2 = shell_get_token(cmd, &pos);
 		if (!tok_buf2)
@@ -270,7 +270,7 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 		end = is_strprefix(host, "tls:");
 		if (end) {
 			host = end;
-			flags |= CONNECT_F_TLS;
+			flags |= SOCK_F_TLS;
 		}
 
 		tok_buf = shell_get_token(cmd, &pos);

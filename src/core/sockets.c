@@ -2383,8 +2383,8 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	g_assert(s);
 
-	if (0 == (CONNECT_F_TLS & flags) && tls_cache_lookup(addr, port)) {
-		flags |= CONNECT_F_TLS;
+	if (0 == (SOCK_F_TLS & flags) && tls_cache_lookup(addr, port)) {
+		flags |= SOCK_F_TLS;
 	}
 
 	addr = socket_ipv6_trt_map(addr);
@@ -2417,10 +2417,10 @@ created:
 	s->net = host_addr_net(addr);
 	s->file_desc = sd;
 	s->port = port;
-	s->flags |= SOCK_F_TCP;
+	s->flags |= SOCK_F_TCP | flags;
 
 #ifdef HAS_GNUTLS
-	s->tls.enabled = tls_enforce || (CONNECT_F_TLS & flags);
+	s->tls.enabled = tls_enforce || (SOCK_F_TLS & flags);
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.ctx = NULL;
 	s->tls.snarf = 0;
@@ -2461,7 +2461,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	 * Allow forced connections to an hostile host.
 	 */
 
-	if (!(s->flags & CONNECT_F_FORCE) && hostiles_check(ha)) {
+	if (!(s->flags & SOCK_F_FORCE) && hostiles_check(ha)) {
 		g_warning("Not connecting to hostile host %s", host_addr_to_string(ha));
 		socket_destroy(s, "Not connecting to hostile host");
 		return -1;
@@ -2615,7 +2615,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 
 	if (
 		s->net != host_addr_net(addr) ||
-		(can_tls && 0 == (CONNECT_F_TLS & s->flags))
+		(can_tls && 0 == (SOCK_F_TLS & s->flags))
 	) {
 		s->net = host_addr_net(addr);
 
@@ -2624,7 +2624,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 			s->file_desc = -1;
 		}
 		if (can_tls) {
-			s->flags |= CONNECT_F_TLS;
+			s->flags |= SOCK_F_TLS;
 		}
 		if (socket_connect_prepare(s, addr, s->port, s->type, s->flags)) {
 			s->adns |= SOCK_ADNS_FAILED;

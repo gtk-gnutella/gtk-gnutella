@@ -5729,7 +5729,7 @@ node_add(const host_addr_t addr, guint16 port, guint32 flags)
 		return;
 
 	if (
-		!(CONNECT_F_FORCE & flags) &&
+		!(SOCK_F_FORCE & flags) &&
 		(hostiles_check(addr) || hcache_node_is_bad(addr))
 	)
 		return;
@@ -5803,7 +5803,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	struct gnutella_node *n;
 	gboolean incoming = FALSE, already_connected = FALSE;
 	guint major = 0, minor = 0;
-	gboolean forced = 0 != (CONNECT_F_FORCE & flags);
+	gboolean forced = 0 != (SOCK_F_FORCE & flags);
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
@@ -8199,7 +8199,7 @@ node_connect_back(const gnutella_node_t *n, guint16 port)
 	 * from the socket layer.
 	 */
 
-	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, CONNECT_F_TLS);
+	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, SOCK_F_TLS);
 
 	if (s == NULL)
 		return;

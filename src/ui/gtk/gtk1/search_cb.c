@@ -862,8 +862,8 @@ search_gui_browse_selected(void)
 			continue;
 
 		rs = rc->results_set;
-		flags |= 0 != (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
-		flags |= 0 != (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+		flags |= 0 != (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+		flags |= 0 != (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 
 		(void) search_gui_new_browse_host(
 				rs->hostname, rs->addr, rs->port,

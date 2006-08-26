@@ -596,7 +596,7 @@ handle_push_request(struct gnutella_node *n)
 				}
 				break;
 			case EXT_T_GGEP_GTKG_TLS:
-				flags |= CONNECT_F_TLS;
+				flags |= SOCK_F_TLS;
 				break;
 			default:
 				if (ggep_debug > 1 && e->ext_type == EXT_GGEP) {

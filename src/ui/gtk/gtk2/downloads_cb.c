@@ -308,7 +308,7 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		const struct download *d = sl->data;
-   		guc_node_add(download_addr(d), download_port(d), CONNECT_F_FORCE);
+   		guc_node_add(download_addr(d), download_port(d), SOCK_F_FORCE);
    	}
 	g_slist_free(selected);
 }

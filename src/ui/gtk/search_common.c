@@ -1124,7 +1124,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	if (rs->status & ST_BH)
 		g_string_append(vinfo, vinfo->len ? _(", browsable") : _("browsable"));
 	
-	flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 
 	/*
 	 * If we're firewalled, or they don't want to send pushes, then don't
@@ -1134,15 +1134,15 @@ search_matched(search_t *sch, results_set_t *rs)
     gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
     gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &is_firewalled);
 
-	flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
-	skip_records = (!send_pushes || is_firewalled) && (flags & CONNECT_F_PUSH);
+	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+	skip_records = (!send_pushes || is_firewalled) && (flags & SOCK_F_PUSH);
 
 	if (gui_debug > 6)
 		printf("search_matched: [%s] got hit with %d record%s (from %s) "
 			"need_push=%d, skipping=%d\n",
 			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
-			(flags & CONNECT_F_PUSH), skip_records);
+			(flags & SOCK_F_PUSH), skip_records);
 
   	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
 		record_t *rc = sl->data;
@@ -2260,13 +2260,13 @@ search_gui_new_search_entered(void)
 	if (NULL != (ep = is_strprefix(text, "browse:"))) {
 		host_addr_t addr;
 		const gchar *s;
-		guint32 flags = CONNECT_F_FORCE;
+		guint32 flags = SOCK_F_FORCE;
 
 		s = ep;
 		ep = is_strprefix(s, "tls:");
 		if (ep) {
 			s = ep;
-			flags |= CONNECT_F_TLS;
+			flags |= SOCK_F_TLS;
 		}
 		
 		if (string_to_host_or_addr(s, &ep, &addr)) {
@@ -2343,7 +2343,7 @@ search_gui_new_search_entered(void)
  * @param port		the port to contact
  * @param guid		the GUID of the remote host
  * @param proxies	vector holding known push-proxies
- * @param flags		connection flags like CONNECT_F_PUSH, CONNECT_F_TLS etc.
+ * @param flags		connection flags like SOCK_F_PUSH, SOCK_F_TLS etc.
  *
  * @return whether the browse host request could be launched.
  */

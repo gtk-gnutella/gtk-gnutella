@@ -151,15 +151,6 @@ socket_check(const struct gnutella_socket * const s)
 }
 
 /*
- * Operating flags
- */
-
-#define SOCK_F_ESTABLISHED		0x00000001 /**< Connection was established */
-#define SOCK_F_EOF				0x00000002 /**< Got an EOF condition */
-#define SOCK_F_UDP				0x40000000 /**< Is a UDP socket */
-#define SOCK_F_TCP				0x80000000 /**< Is a TCP socket */
-
-/*
  * Global Data
  */
 

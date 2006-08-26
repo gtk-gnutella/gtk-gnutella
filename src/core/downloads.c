@@ -4296,7 +4296,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 */
 
 	if (d->server->attrs & DLS_A_PUSH_IGN) {
-		cflags &= ~CONNECT_F_PUSH;
+		cflags &= ~SOCK_F_PUSH;
 	}
 
 	d->file_name = file_name;
@@ -4311,7 +4311,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	d->size = size;					/* Will be changed if range requested */
 	d->record_stamp = stamp;
 	download_set_sha1(d, sha1);
-	d->always_push = 0 != (CONNECT_F_PUSH & cflags);
+	d->always_push = 0 != (SOCK_F_PUSH & cflags);
 	if (d->always_push) {
 		download_push_insert(d);
 	} else {
@@ -4427,8 +4427,8 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	 * which cannot access the bogus IP database.
 	 */
 
-	if (0 == (CONNECT_F_PUSH & flags) && !host_is_valid(addr, port)) {
-		flags |= CONNECT_F_PUSH;
+	if (0 == (SOCK_F_PUSH & flags) && !host_is_valid(addr, port)) {
+		flags |= SOCK_F_PUSH;
 		if (guid_eq(guid, blank_guid))
 			return;
 	}
@@ -9296,7 +9296,7 @@ download_retrieve(void)
 				d_port = 0;
 				d_addr = ipv4_unspecified;
 				/* Will drop download when scheduling it */
-				flags |= CONNECT_F_PUSH;
+				flags |= SOCK_F_PUSH;
 			}
 
 			if (',' == *endptr) {
@@ -10054,7 +10054,7 @@ download_get_hostname(const struct download *d)
 	} else {
 		addr = download_addr(d);
 		port = download_port(d);
-		encrypted = 0 != (d->cflags & CONNECT_F_TLS);
+		encrypted = 0 != (d->cflags & SOCK_F_TLS);
 	}
 
 	enc = encrypted ? " (E)" : "";

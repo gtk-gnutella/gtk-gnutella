@@ -612,7 +612,7 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 	}
 
     gtk_ctree_unselect(ctree_downloads, l->data);
-    guc_node_add(download_addr(d), download_port(d), CONNECT_F_FORCE);
+    guc_node_add(download_addr(d), download_port(d), SOCK_F_FORCE);
 }
 
 /***
@@ -890,8 +890,7 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
     if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
         return;
 
-   	d = (struct download *)
-	    gtk_ctree_node_get_row_data(ctree_downloads_queue, l->data);
+   	d = gtk_ctree_node_get_row_data(ctree_downloads_queue, l->data);
 
     if (!d) {
     	g_warning("on_popup_queue_connect_activate(): row %d has NULL data",
@@ -900,7 +899,7 @@ on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
     }
 
     gtk_ctree_unselect(ctree_downloads_queue, l->data);
-    guc_node_add(download_addr(d), download_port(d), CONNECT_F_FORCE);
+    guc_node_add(download_addr(d), download_port(d), SOCK_F_FORCE);
 }
 
 gboolean

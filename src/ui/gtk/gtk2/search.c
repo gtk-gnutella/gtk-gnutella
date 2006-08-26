@@ -1175,8 +1175,8 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	g_assert(rc->refcount > 0);
 
 	rs = rc->results_set;
-	flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
-	flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 
 	guc_download_new(rc->name, rc->size, rc->index, rs->addr,
 		rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
