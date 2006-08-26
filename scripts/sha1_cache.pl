@@ -3,7 +3,7 @@
 		if $running_under_some_shell;
 
 #
-# $Id: sha1_cache.sh 11402 2006-08-01 22:27:44Z cbiere $
+# $Id$
 #
 # Purpose:
 #
