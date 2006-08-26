@@ -97,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11741 2006-08-26 13:43:13Z rmanfredi $
+# $X-Id: Jmakefile 11746 2006-08-26 14:39:06Z rmanfredi $
 
 all::
 
@@ -279,7 +279,7 @@ local_deinstall.man::
 main.o: revision.h
 
 revision.h: .FORCE
-	$(TOP)/scripts/svn-revision $(TOP) > $@
+	$(TOP)/scripts/svn-revision $(TOP) $@
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
