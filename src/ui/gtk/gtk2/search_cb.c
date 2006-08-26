@@ -1118,7 +1118,7 @@ search_gui_browse_selected_helper(gpointer data, gpointer unused_udata)
 	(void) unused_udata;
 	
 	flags |= (rc->results_set->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-	flags |= (rc->results_set->status & ST_TLS) ? SOCKET_F_TLS : 0;
+	flags |= (rc->results_set->status & ST_TLS) ? SOCK_F_TLS : 0;
 	
 	search_gui_new_browse_host(
 		rc->results_set->hostname,
