@@ -2540,17 +2540,11 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 
 	if (!sch->frozen) {
 		search = g_slist_prepend(search, GUINT_TO_POINTER(sch->search_handle));
-		search_fire_got_results(search, rs);	/* Dispatch browse results */
-		g_slist_free(search);
-		search = NULL;
 	}
 
     /*
 	 * We're also going to dispatch the results to all the opened passive
 	 * searches, since they may have customized filters.
-	 *
-     * Look for records that should be ignored as if a regular query hit
-	 * had been received from the network.
      */
 
 	if (browse_copied_to_passive) {
@@ -2563,26 +2557,12 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 		}
 	}
 
-    if (
-		search != NULL &&
-		search_handle_ignored_files != SEARCH_IGN_DISPLAY_AS_IS
-	) {
-        for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
-            gnet_record_t *rc = sl->data;
-            enum ignore_val ival;
-
-            ival = ignore_is_requested(rc->name, rc->size, rc->sha1);
-            if (ival != IGNORE_FALSE) {
-				if (search_handle_ignored_files == SEARCH_IGN_NO_DISPLAY)
-					set_flags(rc->flags, SR_DONT_SHOW);
-				else
-					set_flags(rc->flags, SR_IGNORED);
-			}
-		}
+	if (search) {
+		search_check_results_set(rs);
+		search_fire_got_results(search, rs);
+		g_slist_free(search);
+		search = NULL;
 	}
-
-	search_fire_got_results(search, rs);
-	g_slist_free(search);
 
     search_free_r_set(rs);
 }
