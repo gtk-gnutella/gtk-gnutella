@@ -59,7 +59,11 @@ typedef enum {
 	TOK_BAD_LEVEL_LENGTH,		/**< Bad level length */
 	TOK_SHORT_LEVEL,			/**< Level too short */
 	TOK_INVALID_LEVEL,			/**< Level mismatch */
-	TOK_MISSING_LEVEL			/**< Missing level */
+	TOK_MISSING_LEVEL,			/**< Missing level */
+	TOK_MISSING_BUILD,			/**< Missing build number */
+	TOK_WRONG_BUILD,			/**< Wrong build number */
+
+	TOK_MAX_ERROR
 } tok_error_t;
 
 /*

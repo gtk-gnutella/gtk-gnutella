@@ -174,6 +174,8 @@ static const gchar *tok_errstr[] = {
 	"Level too short",				/**< TOK_SHORT_LEVEL */
 	"Level mismatch",				/**< TOK_INVALID_LEVEL */
 	"Missing level",				/**< TOK_MISSING_LEVEL */
+	"Missing build number",			/**< TOK_MISSING_BUILD */
+	"Wrong build number",			/**< TOK_WRONG_BUILD */
 };
 
 /**
@@ -181,6 +183,8 @@ static const gchar *tok_errstr[] = {
  */
 const gchar *tok_strerror(tok_error_t errnum)
 {
+	STATIC_ASSERT(G_N_ELEMENTS(tok_errstr) == TOK_MAX_ERROR);
+
 	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(tok_errstr))
 		return "Invalid error code";
 
@@ -463,15 +467,23 @@ tok_error_t tok_version_valid(
 	if (version_cmp(&rver, &tk->ver) < 0)
 		return TOK_OLD_VERSION;
 
+	if (end == NULL)
+		return TOK_MISSING_LEVEL;
+
+	/*
+	 * Verify build.
+	 */
+
+	if (rver.timestamp >= 1156543200) {		/* 2006-08-26 */
+		if (0 == rver.build)
+			return TOK_MISSING_BUILD;
+		if (rver.build < tk->ver.build)
+			return TOK_WRONG_BUILD;
+	}
+
 	/*
 	 * Verify level.
 	 */
-
-	if (end == NULL) {						/* No level */
-		if (rver.timestamp >= 1046127600)	/* 25/02/2003 */
-			return TOK_MISSING_LEVEL;
-		return TOK_OK;
-	}
 
 	lvllen = len - toklen - 2;				/* Forget about "; " */
 	end += 2;								/* Skip "; " */
