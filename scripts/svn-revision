@@ -29,6 +29,9 @@
 #
 
 TOP="$1"
+
+# We use "BASE" and not "HEAD" to get the revision they last checked-out
+# when they ran "svn update" from the top.
 rev=`svn log -rBASE $TOP 2>/dev/null | head -2 | grep ^r | cut -d' ' -f1`
 
 cat <<EOC
@@ -43,9 +46,10 @@ EOC
 case "$rev" in
 r*)
 	revnum=`echo $rev | cut -dr -f2`
+	Rev='$Revision'
 	cat <<EOC
 #undef GTA_BUILD
-#define GTA_BUILD "\$Revision$revnum \$"
+#define GTA_BUILD "$Rev$revnum \$"
 EOC
 	;;
 *)
