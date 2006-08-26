@@ -45,11 +45,12 @@
  * In our comments below, we are assuming a value of "0.90.3b2".
  */
 typedef struct version {
-	guint major;				/**< Major version number (0) */
-	guint minor;				/**< Minor version number (90) */
-	guint patchlevel;			/**< Patch level (3) */
+	guint32 major;				/**< Major version number (0) */
+	guint32 minor;				/**< Minor version number (90) */
+	guint32 patchlevel;			/**< Patch level (3) */
 	guchar tag;					/**< Code letter after version number (b) */
-	guint taglevel;				/**< Value after code letter (2) */
+	guint32 taglevel;			/**< Value after code letter (2) */
+	guint32 build;				/**< Build revision number (11723) */
 	time_t timestamp;
 } version_t;
 
@@ -83,7 +84,9 @@ const gchar *version_str(const version_t *ver);
 extern gchar *version_string;
 extern gchar *version_short_string;
 
+const gchar *version_get_string(void);
 guint8 version_get_code(void);
+guint32 version_get_build(void);
 
 #endif	/* _core_version_h_ */
 

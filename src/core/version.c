@@ -86,15 +86,34 @@ version_get_code(void)
 }
 
 /**
+ * Get build number.
+ */
+guint32
+version_get_build(void)
+{
+	static guint32 build = 0;
+	const gchar *p;
+
+	if (build)
+		return build;
+
+	p = is_strprefix(GTA_BUILD, "$Revision: ");
+	if (p)
+		build = atoi(p);
+
+	return build;
+}
+
+/**
  * Dump original version string and decompiled form to stdout.
  */
 static void
 version_dump(const gchar *str, const version_t *ver, const gchar *cmptag)
 {
 	printf("VERSION%s \"%s\":\n"
-		"\tmajor=%u minor=%u patch=%u tag=%c taglevel=%u\n",
+		"\tmajor=%u minor=%u patch=%u tag=%c taglevel=%u build=%u\n",
 		cmptag, str, ver->major, ver->minor, ver->patchlevel,
-		ver->tag ? ver->tag : ' ', ver->taglevel);
+		ver->tag ? ver->tag : ' ', ver->taglevel, ver->build);
 }
 
 /**
@@ -117,6 +136,9 @@ version_str(const version_t *ver)
 		if (ver->taglevel)
 			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
 	}
+
+	if (ver->build)
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
@@ -190,6 +212,7 @@ static gboolean
 version_parse(const gchar *str, version_t *ver)
 {
 	const gchar *v;
+	gint error;
 
 	/*
 	 * Modern version numbers are formatted like this:
@@ -208,61 +231,96 @@ version_parse(const gchar *str, version_t *ver)
 	 *    gtk-gnutella/0.90.1b2 (24/06/2002; X11; Linux 2.4.18-2emi i686)
 	 *
 	 * where the third number is the "patchlevel".
+	 *
+	 * Starting 2006-08-26, the user-agent string includes the SVN revision
+	 * at the time of the build.  To be compatible with the servents out
+	 * there, the version is included as an optional tag following the date.
+	 *
+	 *    gtk-gnutella/0.85 (04/04/2002; r3404; X11; FreeBSD 4.6-STABLE i386)
+	 *
+	 * However, we also start parsing the new format that we shall use when
+	 * all current GTKG out there have expired:
+	 *
+	 *    gtk-gnutella/0.85-3404 (04/04/2002; X11; FreeBSD 4.6-STABLE i386)
+	 *    gtk-gnutella/0.90b2-3404 (04/04/2002; X11; FreeBSD 4.6-STABLE i386)
+	 *
+	 * where the '-3404' introduces the build number.
 	 */
 
 	if (NULL == (v = is_strprefix(str, "gtk-gnutella/")))
 		return FALSE;
 
-	if (
-		5 == sscanf(v, "%u.%u.%u%c%u",
-			&ver->major, &ver->minor, &ver->patchlevel,
-			&ver->tag, &ver->taglevel)
-	)
-		goto ok;
+	/*
+	 * Parse "major.minor", followed by optional ".patchlevel".
+	 */
 
-	ver->taglevel = 0;
+	ver->major = parse_uint32(v, &v, 10, &error);
+	if (error)
+		return FALSE;
 
-	if (
-		4 == sscanf(v, "%u.%u.%u%c",
-			&ver->major, &ver->minor, &ver->patchlevel, &ver->tag)
-	) {
-		if (!isalpha(ver->tag))		/* Not a letter */
-			ver->tag = '\0';
-		goto ok;
+	if (*v++ != '.')
+		return FALSE;
+
+	ver->minor = parse_uint32(v, &v, 10, &error);
+	if (error)
+		return FALSE;
+
+	if ('.' == *v) {
+		v++;
+		ver->patchlevel = parse_uint32(v, &v, 10, &error);
+		if (error)
+			return FALSE;
+	} else
+		ver->patchlevel = 0;
+
+	/*
+	 * Parse optional tag letter "x" followed by optional "taglevel".
+	 */
+
+	if (is_ascii_alpha(*v)) {
+		ver->tag = *v++;
+		if (is_ascii_digit(*v)) {
+			ver->taglevel = parse_uint32(v, &v, 10, &error);
+			if (error)
+				return FALSE;
+		} else
+			ver->taglevel = 0;
+	} else {
+		ver->tag = '\0';
+		ver->taglevel = 0;
 	}
 
-	ver->tag = '\0';
+	/*
+	 * Parse optional "-build".
+	 */
 
-	if (
-		3 == sscanf(v, "%u.%u.%u",
-			&ver->major, &ver->minor, &ver->patchlevel)
-	)
-		goto ok;
+	if ('-' == *v) {
+		v++;
+		ver->build = parse_uint32(v, &v, 10, &error);
+		if (error)
+			return FALSE;
+	} else
+		ver->build = 0;
 
-	ver->patchlevel = 0;
+	/*
+	 * Legacy support: until 2007-03-22, we look at the build revision
+	 * number in the user-agent string if we did not get it so far.
+	 * We expect to find something like "(2006-02-22; r3456"
+	 *
+	 * Remove this code after 2007-03-22!
+	 */
 
-	if (
-		4 == sscanf(v, "%u.%u%c%u",
-			&ver->major, &ver->minor, &ver->tag, &ver->taglevel)
-	)
-		goto ok;
+	if (0 == ver->build) {	/* Useless after 2007-03-22 normally */
+		const gchar *p;
 
-	ver->taglevel = 0;
+		p = strchr(str, '(');		/* ')' for vi */
+		if (p)
+			p = strchr(p, ';');		/* Move past date */
 
-	if (3 == sscanf(v, "%u.%u%c", &ver->major, &ver->minor, &ver->tag)) {
-		if (!isalpha(ver->tag))		/* Not a letter */
-			ver->tag = '\0';
-		goto ok;
+		if (p && NULL != (p = is_strprefix(p, "; r")))
+			ver->build = (guint32) atoi(p);
 	}
 
-	ver->tag = '\0';
-
-	if (2 == sscanf(v, "%u.%u", &ver->major, &ver->minor))
-		goto ok;
-
-	return FALSE;
-
-ok:
 	if (dbg > 6)
 		version_dump(str, ver, "#");
 
@@ -305,8 +363,11 @@ version_cmp(const version_t *a, const version_t *b)
 		if (a->minor == b->minor) {
 			if (a->patchlevel == b->patchlevel) {
 				if (0 == version_tagcmp(a->tag, b->tag)) {
-					if (a->taglevel == b->taglevel)
-						return 0;
+					if (a->taglevel == b->taglevel) {
+						if (a->build == b->build)
+							return 0;
+						return a->build < b->build ? -1 : +1;
+					}
 					return a->taglevel < b->taglevel ? -1 : +1;
 				}
 				return version_tagcmp(a->tag, b->tag);
@@ -559,12 +620,28 @@ version_init(void)
 	}
 #endif /* HAS_UNAME */
 
-	gm_snprintf(buf, sizeof buf,
-		"gtk-gnutella/%s (%s; %s; %s%s%s)",
-		GTA_VERSION_NUMBER, GTA_RELEASE, GTA_INTERFACE,
-		sysname,
-		machine && machine[0] ? " " : "",
-		machine ? machine : "");
+	/*
+	 * Until 2007-03-22, we generate the version string using "r<build#>"
+	 * in the optional part.  After that date, the revision format is
+	 * expanded to include the build number right into the string.
+	 */
+
+	if (now <= 1174518000)				/* before 2007-03-22 */
+		gm_snprintf(buf, sizeof buf,
+			"gtk-gnutella/%s (%s; r%u; %s; %s%s%s)",
+			GTA_VERSION_NUMBER, GTA_RELEASE, version_get_build(),
+			GTA_INTERFACE,
+			sysname,
+			machine && machine[0] ? " " : "",
+			machine ? machine : "");
+	else								/* after 2007-03-22 */
+		gm_snprintf(buf, sizeof buf,
+			"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
+			GTA_VERSION_NUMBER, version_get_build(),
+			GTA_RELEASE, GTA_INTERFACE,
+			sysname,
+			machine && machine[0] ? " " : "",
+			machine ? machine : "");
 
 	version_string = atom_str_get(buf);
 	ok = version_parse(version_string, &our_version);
@@ -575,9 +652,14 @@ version_init(void)
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp != 0);
 
-	gm_snprintf(buf, sizeof(buf),
-		"gtk-gnutella/%s (%s)",
-		GTA_VERSION_NUMBER, GTA_RELEASE);
+	if (now <= 1174518000)				/* before 2007-03-22 */
+		gm_snprintf(buf, sizeof(buf),
+			"gtk-gnutella/%s (%s; r%u)",
+			GTA_VERSION_NUMBER, GTA_RELEASE, version_get_build());
+	else
+		gm_snprintf(buf, sizeof(buf),
+			"gtk-gnutella/%s-%u (%s)",
+			GTA_VERSION_NUMBER, version_get_build(), GTA_RELEASE);
 
 	version_short_string = atom_str_get(buf);
 
