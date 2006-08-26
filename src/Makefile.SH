@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
-: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -85,7 +85,7 @@ XML2_CFLAGS =  $xmlcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
+# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -97,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11295 2006-07-09 13:19:12Z rmanfredi $
+# $X-Id: Jmakefile 11732 2006-08-26 09:30:17Z rmanfredi $
 
 all::
 
@@ -276,10 +276,13 @@ local_install.man:: gtk-gnutella.man
 local_deinstall.man::
 	$(RM) $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
 
+revision.h: .FORCE
+	$(TOP)/scripts/svn-revision > $@
+
 ########################################################################
 # Common rules for all Makefiles -- do not edit
 
-emptyrule::
+all::
 
 clean: sub_clean local_clean
 realclean: sub_realclean local_realclean
@@ -294,10 +297,10 @@ local_realclean:: local_clean
 local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
-install: local_install sub_install
-install.man: maybe_install.man sub_install.man
-deinstall: sub_deinstall local_deinstall
-deinstall.man: sub_deinstall.man maybe_deinstall.man
+install:: local_install sub_install
+install.man:: maybe_install.man sub_install.man
+deinstall:: sub_deinstall local_deinstall
+deinstall.man:: sub_deinstall.man maybe_deinstall.man
 
 install.man-yes: local_install.man
 install.man-no:

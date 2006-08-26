@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
-: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -69,7 +69,7 @@ SQLITE_CFLAGS =  $sqlitecflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
+# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11157 2006-06-24 07:36:10Z cbiere $
+# $X-Id: Jmakefile 11732 2006-08-26 09:30:17Z rmanfredi $
 
 SRC = \
 	alive.c \
@@ -127,7 +127,6 @@ SRC = \
 	ntp.c \
 	oob.c \
 	oob_proxy.c \
-	gdb.c \
 	parq.c \
 	pcache.c \
 	pmsg.c \
@@ -147,6 +146,7 @@ SRC = \
 	sockets.c \
 	spam.c \
 	sq.c \
+	gdb.c \
 	tls_cache.c \
 	tls_common.c \
 	token.c \
@@ -210,7 +210,6 @@ OBJ = \
 	ntp.o \
 	oob.o \
 	oob_proxy.o \
-	gdb.o \
 	parq.o \
 	pcache.o \
 	pmsg.o \
@@ -230,6 +229,7 @@ OBJ = \
 	sockets.o \
 	spam.o \
 	sq.o \
+	gdb.o \
 	tls_cache.o \
 	tls_common.o \
 	token.o \
@@ -259,6 +259,13 @@ IF = ../if
 GNET_PROPS = gnet_property.h
 
 .FORCE:
+
+../revision.h: .FORCE
+	@echo "Checking "revision.h" in ".."..."
+	cd ..; $(MAKE) revision.h
+	@echo "Continuing in $(CURRENT)..."
+
+version.o:  ../revision.h
 
 $(IF)/$(GNET_PROPS): .FORCE
 	@echo "Checking "$(GNET_PROPS)" in "$(IF)"..."
@@ -296,7 +303,7 @@ depend::
 ########################################################################
 # Common rules for all Makefiles -- do not edit
 
-emptyrule::
+all::
 
 clean: local_clean
 realclean: local_realclean
@@ -311,10 +318,10 @@ local_realclean:: local_clean
 local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
-install: local_install
-install.man: maybe_install.man
-deinstall: local_deinstall
-deinstall.man: maybe_deinstall.man
+install:: local_install
+install.man:: maybe_install.man
+deinstall:: local_deinstall
+deinstall.man:: maybe_deinstall.man
 
 install.man-no:
 deinstall.man-no:

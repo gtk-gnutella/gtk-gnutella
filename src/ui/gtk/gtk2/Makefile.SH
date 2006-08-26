@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
-: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -71,7 +71,7 @@ XML2_LDFLAGS =  $xmlldflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
+# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -219,7 +219,7 @@ depend::
 ########################################################################
 # Common rules for all Makefiles -- do not edit
 
-emptyrule::
+all::
 
 clean: local_clean
 realclean: local_realclean
@@ -234,10 +234,10 @@ local_realclean:: local_clean
 local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
-install: local_install
-install.man: maybe_install.man
-deinstall: local_deinstall
-deinstall.man: maybe_deinstall.man
+install:: local_install
+install.man:: maybe_install.man
+deinstall:: local_deinstall
+deinstall.man:: maybe_deinstall.man
 
 install.man-no:
 deinstall.man-no:

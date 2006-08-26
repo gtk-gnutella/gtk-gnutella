@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
-: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -37,6 +37,7 @@ DIR = $DIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
+JCPPFLAGS = $cppflags
 MV = $mv
 RM = $rm -f
 
@@ -49,12 +50,12 @@ SUBDIRS = src pixmaps po extra_files
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
+# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.18 2005/10/26 08:31:04 rmanfredi Exp $
+# $X-Id: Jmakefile 9860 2005-10-26 08:31:04Z rmanfredi $
 
 all::
 
@@ -72,7 +73,7 @@ local_clobber::
 ########################################################################
 # Common rules for all Makefiles -- do not edit
 
-emptyrule::
+all::
 
 clean: sub_clean local_clean
 realclean: sub_realclean local_realclean
@@ -90,10 +91,10 @@ local_clobber:: local_realclean
 	$(RM) -r .config
 	$(RM) Makefile
 
-install: local_install sub_install
-install.man: maybe_install.man sub_install.man
-deinstall: sub_deinstall local_deinstall
-deinstall.man: sub_deinstall.man maybe_deinstall.man
+install:: local_install sub_install
+install.man:: maybe_install.man sub_install.man
+deinstall:: sub_deinstall local_deinstall
+deinstall.man:: sub_deinstall.man maybe_deinstall.man
 
 install.man-no:
 deinstall.man-no:
