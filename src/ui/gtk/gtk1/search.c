@@ -1250,12 +1250,14 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 				{
 					static gchar buf[UINT32_DEC_BUFLEN];
 					uint32_to_string_buf(rs->hops, buf, sizeof buf);
+					text = buf;
 				}
 				break;
 			case c_sr_ttl:
 				{
 					static gchar buf[UINT32_DEC_BUFLEN];
 					uint32_to_string_buf(rs->ttl, buf, sizeof buf);
+					text = buf;
 				}
 				break;
 			case c_sr_spam:
@@ -1656,8 +1658,8 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
         }
 
 		rs = rc->results_set;
-		flags |= (rs->status & ST_FIREWALL) ? CONNECT_F_PUSH : 0;
-		flags |= (rs->status & ST_TLS) ? CONNECT_F_TLS : 0;
+		flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+		flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 
 		if (guc_download_new(rc->name, rc->size, rc->index,
 				rs->addr, rs->port, rs->guid, rs->hostname,
