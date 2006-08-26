@@ -137,7 +137,7 @@ DPFLAGS = $(CFLAGS)
 IF = ../if
 GNET_PROPS = gnet_property.h
 
-RemoteTargetDependency(version.o, .., revision.h)
+RemoteTargetDependency(version.o, $(TOP)/src, revision.h)
 RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
 NormalLibraryTarget(core, $(SRC), $(OBJ))
 DependTarget()
