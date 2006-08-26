@@ -49,7 +49,6 @@
 #define GTA_REVCHAR "u"			/**< u - unstable, b - beta, none - stable */
 #define GTA_RELEASE "2006-08-26"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
-#define GTA_BUILD	"$Revision$"
 
 #if defined(USE_GTK1)
 #define GTA_INTERFACE "GTK1"
@@ -461,6 +460,7 @@ G_STMT_START {			\
 
 #define GTA_PORT			6346	/**< Default "standard" port */
 #define MAX_HOSTLEN			256		/**< Max length for FQDN host */
+#define GTA_BUILD					"$Revision$"
 
 /* The next two defines came from huge.h --- Emile */
 #define SHA1_BASE32_SIZE 	32		/**< 160 bits in base32 representation */
