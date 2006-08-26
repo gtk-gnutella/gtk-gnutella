@@ -36,11 +36,6 @@
  * Public interface, visible from the bridge.
  */
 
-#ifdef GUI_SOURCES
-
-void uploads_gui_set_gnet_addr(gnet_upload_t u, host_addr_t addr, guint16 port);
-
-#endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_uploads_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

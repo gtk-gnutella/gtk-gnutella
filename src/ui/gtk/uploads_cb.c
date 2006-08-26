@@ -50,8 +50,10 @@ RCSID("$Id$")
  * Suited for use as a GFunc in a g_list_for_each.
  */
 static void
-kill_upload(upload_row_data_t *d, gpointer unused_udata)
+kill_upload(gpointer data, gpointer unused_udata)
 {
+	upload_row_data_t *d = data;
+
 	(void) unused_udata;
 
     if (d->valid)
@@ -62,8 +64,10 @@ kill_upload(upload_row_data_t *d, gpointer unused_udata)
  * Suited for use as a GFunc in a g_list_for_each.
  */
 static void
-browse_uploading_host(upload_row_data_t *d, gpointer unused_udata)
+browse_uploading_host(gpointer data, gpointer unused_udata)
 {
+	upload_row_data_t *d = data;
+
 	(void) unused_udata;
 
     if (host_addr_initialized(d->gnet_addr))
@@ -139,7 +143,7 @@ on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
     gtk_clist_freeze(clist);
 
     sl = clist_collect_data(clist, FALSE, NULL);
-    g_slist_foreach(sl, (GFunc) kill_upload, NULL);
+    g_slist_foreach(sl, kill_upload, NULL);
     g_slist_free(sl);
 
     gtk_clist_thaw(clist);
@@ -190,7 +194,7 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
 
 	sl = clist_collect_data(clist, FALSE, NULL);
-	g_slist_foreach(sl, (GFunc) browse_uploading_host, NULL);
+	g_slist_foreach(sl, browse_uploading_host, NULL);
 	g_slist_free(sl);
 }
 #endif /* USE_GTK1 */

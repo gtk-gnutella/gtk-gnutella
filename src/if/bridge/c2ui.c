@@ -65,8 +65,6 @@
 #define statusbar_gui_warning(sec, fmt, message) g_message((fmt), (message))
 #define statusbar_gui_message(sec, fmt, message) g_message((fmt), (message))
 #define bitzi_gui_update(bitzi_data) ((void) bitzi_data)
-#define uploads_gui_set_gnet_addr(u, addr, port) \
-	((void) u, (void) addr, (void) port)
 #endif /* USE_TOPLESS */
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
@@ -82,13 +80,6 @@
 /*
  * Functions the CORE uses to access the UI
  */
-
-/*	upload interface functions (CORE -> UI) */
-void
-gcu_uploads_gui_set_gnet_addr(gnet_upload_t u, host_addr_t addr, guint16 port)
-{
-	uploads_gui_set_gnet_addr(u, addr, port);
-}
 
 /*	download interface functions (CORE -> UI) */
 void

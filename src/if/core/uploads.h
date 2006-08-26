@@ -84,6 +84,9 @@ typedef struct gnet_upload_info {
 	gboolean push;		/**< Whether we're pushing or not */
 	gboolean partial;	/**< Whether it's a partial file */
 	gboolean encrypted; /**< Whether the connection is (TLS) encrypted */
+	
+	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
+	guint16 gnet_port;		/**< Advertised Gnutella listening port */
 } gnet_upload_info_t;
 
 /*

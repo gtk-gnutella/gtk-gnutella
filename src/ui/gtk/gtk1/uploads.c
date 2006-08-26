@@ -220,9 +220,10 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		g_strlcpy(size_tmp, short_size(u->file_size, show_metric_units()),
 			sizeof size_tmp);
 
-		range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
-			u->partial ? "*" : "",
-			short_size(u->range_end - u->range_start + 1, show_metric_units()));
+        range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
+            short_size(u->range_end - u->range_start + 1,
+				show_metric_units()),
+			u->partial ? _(" (partial)") : "");
 
 		if (u->range_start)
 			range_len += gm_snprintf(
@@ -295,8 +296,9 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 			sizeof size_tmp);
 
         range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
-			u->partial ? "*" : "",
-            short_size(u->range_end - u->range_start + 1, show_metric_units()));
+            short_size(u->range_end - u->range_start + 1,
+				show_metric_units()),
+			u->partial ? _(" (partial)") : "");
 
         if (u->range_start)
             range_len += gm_snprintf(

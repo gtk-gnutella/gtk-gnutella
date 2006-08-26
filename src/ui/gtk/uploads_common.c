@@ -43,22 +43,7 @@ RCSID("$Id$")
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define IO_STALLED		60		/**< If nothing exchanged after that many secs */
-
-/**
- * Invoked from the core when we discover the Gnutella address and port
- * of the uploading party.
- */
-void
-uploads_gui_set_gnet_addr(gnet_upload_t u, host_addr_t addr, guint16 port)
-{
-	upload_row_data_t *rd = uploads_gui_get_row_data(u);
-
-	if (rd != NULL) {
-		rd->gnet_addr = addr;
-		rd->gnet_port = port;
-	}
-}
+#define IO_STALLED		60	/**< If nothing exchanged after that many secs */
 
 /**
  *
@@ -130,11 +115,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 	        filesize_t requested = data->range_end - data->range_start + 1;
 
 			gm_snprintf(tmpstr, sizeof(tmpstr),
-				_("%sCompleted (%s) %s"),
-				u->parq_quick ? "* " : "",
+				_("Completed (%s) %s%s"),
 				t > 0 ? short_rate(requested / t, show_metric_units())
 						: _("< 1s"),
-				t > 0 ? short_time(t) : "");
+				t > 0 ? short_time(t) : "",
+				u->parq_quick ? " (quick)" : "");
 		}
         break;
 
@@ -148,12 +133,12 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gchar pbuf[32];
 
 			gm_snprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
-			gm_snprintf(tmpstr, sizeof tmpstr, _("%s%s(%s) TR: %s"),
-				u->parq_quick ? "* " : "",
+			gm_snprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s"),
 				p > 1.0 ? pbuf : "",
 				stalled ? _("stalled")
 					: short_rate(u->bps, show_metric_units()),
-				short_time(tr));
+				short_time(tr),
+				u->parq_quick ? " (quick)" : "");
 		}
 		break;
 
@@ -289,10 +274,23 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 const gchar * 
 uploads_gui_host_string(const gnet_upload_info_t *u)
 {
-	static gchar buf[MAX_HOSTLEN + sizeof " (E)"];
+	static gchar buf[1024];
+	const gchar *peer;
+
+	if (u->gnet_port && is_host_addr(u->gnet_addr)) {
+		peer = host_addr_port_to_string(u->gnet_addr, u->gnet_port);
+	} else {
+		peer = NULL;
+	}
 
 	concat_strings(buf, sizeof buf,
-		host_addr_to_string(u->addr), u->encrypted ? " (E)" : "", (void *) 0);
+		host_addr_to_string(u->addr),
+		u->encrypted ? " (E) " : " ",
+		peer ? " <" : "",
+		peer ? peer : "",
+		peer ? ">"  : "",
+		(void *) 0);
+
 	return buf;
 }
 

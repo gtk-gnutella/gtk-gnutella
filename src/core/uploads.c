@@ -2908,6 +2908,27 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
+	 * Look for X-Node or X-Listen-IP, which indicates the host's Gnutella
+	 * address, should they want to browse the host.
+	 */
+
+	buf = header_get(header, "X-Node");
+	if (buf == NULL)
+		buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
+	if (buf == NULL)
+		buf = header_get(header, "Listen-Ip");		/* Gnucleus! */
+
+	if (buf != NULL) {
+		host_addr_t addr;
+		guint16 port;
+		if (string_to_host_addr_port(buf, NULL, &addr, &port)) {
+			u->gnet_addr = addr;
+			u->gnet_port = port;
+			upload_fire_upload_info_changed(u);
+		}
+	}
+
+	/*
 	 * Make sure there is no content sent along the request.
 	 * We could sink it, but no Gnutella servent should ever need to
 	 * send content along with GET/HEAD.
@@ -2999,24 +3020,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			upload_error_remove(u, NULL, 400, "Missing Host Header");
 			return;
 		}
-	}
-
-	/*
-	 * Look for X-Node or X-Listen-IP, which indicates the host's Gnutella
-	 * address, should they want to browse the host.
-	 */
-
-	buf = header_get(header, "X-Node");
-	if (buf == NULL)
-		buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
-	if (buf == NULL)
-		buf = header_get(header, "Listen-Ip");		/* Gnucleus! */
-
-	if (buf != NULL) {
-		host_addr_t addr;
-		guint16 port;
-		if (string_to_host_addr_port(buf, NULL, &addr, &port))
-			gcu_uploads_gui_set_gnet_addr(u->upload_handle, addr, port);
 	}
 
 	/*
@@ -4300,20 +4303,23 @@ upload_close(void)
 gnet_upload_info_t *
 upload_get_info(gnet_upload_t uh)
 {
-    gnutella_upload_t *u = upload_find_by_handle(uh);
+    static const gnet_upload_info_t zero_info;
     gnet_upload_info_t *info;
+    gnutella_upload_t *u;
+
+    u = upload_find_by_handle(uh);
+	g_return_val_if_fail(u, NULL);
 
     info = walloc(sizeof *info);
+	*info = zero_info;
 
-   	info->name 			= u->name
-		? atom_str_get(lazy_unknown_to_utf8_normalized(u->name,
-						UNI_NORM_GUI, NULL))
-		: NULL;
-	
-    info->user_agent    = u->user_agent
-		? atom_str_get(lazy_iso8859_1_to_utf8(u->user_agent))
-		: NULL;
-
+	if (u->name) {
+   		info->name = atom_str_get(lazy_unknown_to_utf8_normalized(u->name,
+						UNI_NORM_GUI, NULL));
+	}
+	if (u->user_agent) {
+    	info->user_agent = atom_str_get(lazy_iso8859_1_to_utf8(u->user_agent));
+	}
     info->addr          = u->addr;
     info->file_size     = u->file_size;
     info->range_start   = u->skip;
@@ -4324,6 +4330,8 @@ upload_get_info(gnet_upload_t uh)
 	info->push          = u->push;
 	info->encrypted     = u->socket && SOCKET_USES_TLS(u->socket);
 	info->partial       = u->file_info != NULL;
+	info->gnet_addr     = u->gnet_addr;
+	info->gnet_port     = u->gnet_port;
 
     return info;
 }
@@ -4333,10 +4341,8 @@ upload_free_info(gnet_upload_info_t *info)
 {
     g_assert(info != NULL);
 
-	if (info->user_agent)
-		atom_str_free(info->user_agent);
-	if (info->name)
-		atom_str_free(info->name);
+	atom_str_free_null(&info->user_agent);
+	atom_str_free_null(&info->name);
 
     wfree(info, sizeof *info);
 }

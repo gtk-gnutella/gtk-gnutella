@@ -265,8 +265,15 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 	rd->last_update  = tm_time();
 
-	if (!host_addr_equal(u->addr, rd->addr)) {
+	if (
+		!host_addr_equal(u->addr, rd->addr) ||
+		!host_addr_equal(u->gnet_addr, rd->gnet_addr) ||
+		u->gnet_port != rd->gnet_port
+	) {
 		rd->addr = u->addr;
+		rd->gnet_addr = u->gnet_addr;
+		rd->gnet_port = u->gnet_port;
+
 		gtk_list_store_set(store_uploads, &rd->iter,
 			c_ul_host, uploads_gui_host_string(u), (-1));
 	}
@@ -281,9 +288,9 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			g_strlcpy(str, "...", sizeof str);
 		else {
 			range_len = gm_snprintf(str, sizeof str, "%s%s",
-				u->partial ? "*" : "",
 				short_size(u->range_end - u->range_start + 1,
-					show_metric_units()));
+					show_metric_units()),
+				u->partial ? _(" (partial)") : "");
 
 			if ((guint) range_len < sizeof str) {
 				if (u->range_start)
@@ -379,8 +386,8 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 						? atom_str_get(u->user_agent) : NULL;
 	rd->push		= u->push;
 	rd->valid		= TRUE;
-    rd->gnet_addr   = zero_host_addr;
-    rd->gnet_port   = 0;
+    rd->gnet_addr   = u->gnet_addr;
+    rd->gnet_port   = u->gnet_port;
 
 	guc_upload_get_status(u->upload_handle, &status);
     rd->status = status.status;
@@ -391,9 +398,9 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		static gchar range_tmp[256];	/* MUST be static! */
 
         range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
-			u->partial ? "*" : "",
             short_size(u->range_end - u->range_start + 1,
-				show_metric_units()));
+				show_metric_units()),
+			u->partial ? _(" (partial)") : "");
 
         if (u->range_start)
             range_len += gm_snprintf(
