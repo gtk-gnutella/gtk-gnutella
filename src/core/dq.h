@@ -54,7 +54,7 @@ void dq_close(void);
 
 void dq_launch_net(struct gnutella_node *n, struct query_hashvec *qhv);
 void dq_node_removed(guint32 node_id);
-gboolean dq_got_results(const gchar *muid, guint count, guint16 status);
+gboolean dq_got_results(const gchar *muid, guint count, guint32 status);
 gboolean dq_oob_results_ind(const gchar *muid, gint count);
 void dq_oob_results_got(const gchar *muid, guint count);
 void dq_got_query_status(const gchar *muid, guint32 node_id, guint16 kept);

@@ -112,9 +112,9 @@ typedef struct gnet_results_set {
 	guint32 speed;
 	guint32 num_recs;
 	
+	guint32 status;				/**< Parsed status bits from trailer */
     flag_t  flags;
 	guint16 port;
-	guint16 status;				/**< Parsed status bits from trailer */
 	guint8 hops;
 	guint8 ttl;
 } gnet_results_set_t;

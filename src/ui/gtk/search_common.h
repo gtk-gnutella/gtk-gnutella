@@ -56,8 +56,8 @@ typedef struct results_set {
 	guint8 hops;
 	guint8 ttl;
 	guint16 port;
-	guint16 status;				/**< Parsed status bits from trailer */
 	guint16 speed;
+	guint32 status;				/**< Parsed status bits from trailer */
 	time_t  stamp;				/**< Reception time of the hit */
 	union vendor_code vcode;	/**< Vendor code */
 	gchar *version;				/**< Version information (atom) */

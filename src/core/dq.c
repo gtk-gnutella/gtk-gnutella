@@ -1907,7 +1907,7 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
  * whether we should forward the results.
  */
 gboolean
-dq_got_results(const gchar *muid, guint count, guint16 status)
+dq_got_results(const gchar *muid, guint count, guint32 status)
 {
 	return dq_count_results(muid, count, status, FALSE);
 }
