@@ -60,7 +60,8 @@ RCSID("$Id$")
 
 #define OOB_EXPIRE_MS		(2*60*1000)		/**< 2 minutes at most */
 #define OOB_TIMEOUT_MS		(45*1000)		/**< 45 secs for them to reply */
-#define OOB_DELIVER_MS		(5*1000)		/**< 1 message queued every 5 secs */
+#define OOB_DELIVER_BASE_MS	(2.5*1000)		/**< 1 msg queued every 2.5 secs */
+#define OOB_DELIVER_RAND_MS	(5*1000)		/**< ... + up to 5 random secs */
 
 #define OOB_MAX_QUEUED		50				/**< Max # of messages per host */
 #define OOB_MAX_RETRY		3				/**< Retry # if LIME/12v2 dropped */
@@ -267,6 +268,18 @@ servent_free_remove(struct gservent *s)
 }
 
 /**
+ * Computes the amount of milliseconds before the next OOB hit delivery,
+ *
+ * Per a suggestion of Daniel Stutzbach, we wait BASE + RAND*random secs,
+ * where "random" is a real random number between 0 and 1.
+ */
+static gint
+deliver_delay(void)
+{
+	return OOB_DELIVER_BASE_MS + random_value(OOB_DELIVER_RAND_MS);
+}
+
+/**
  * Service servent's FIFO: send next packet, and re-arm servicing callback
  * if there are more data to send.
  */
@@ -311,7 +324,7 @@ servent_service(cqueue_t *cq, gpointer obj)
 	if (0 == fifo_count(s->fifo))
 		goto remove;
 
-	s->ev_service = cq_insert(cq, OOB_DELIVER_MS, servent_service, s);
+	s->ev_service = cq_insert(cq, deliver_delay(), servent_service, s);
 
 	return;
 
