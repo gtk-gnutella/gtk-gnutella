@@ -41,27 +41,16 @@
 
 /**
  * Header parsing and holding data structures.
- *
- * The `headers' field is a hash table indexed by field name (normalized).
- * Each value (GString) holds a private copy of the string making that header,
- * with all continuations removed (leading spaces collapsed into one), and
- * indentical fields concatenated using ", " separators, per RFC2616.
- *
- * The `fields' field holds a list of all the fields, in the order they
- * appeared.  The value is a header_field_t structure.  It allows one to
- * dump the header exactly as it was read.
  */
 
-typedef struct header {
-	GHashTable *headers;		/**< Indexed by name, normalized */
-	GSList *fields;				/**< Ordered list of header_field_t */
-	gint flags;					/**< Various operating flags */
-	gint size;					/**< Total header size, in bytes */
-	gint lines;					/**< Total header lines seen */
-} header_t;
+struct header;
+typedef struct header header_t;
 
-#define HEADER_SIZE(h)		((h)->size)
-#define HEADER_LINES(h)		((h)->lines)
+gint header_lines(const header_t *h);
+gint header_size(const header_t *h);
+
+#define HEADER_LINES(h)		(header_lines(h))
+#define HEADER_SIZE(h)		(header_size(h))
 
 /**
  * A header field.

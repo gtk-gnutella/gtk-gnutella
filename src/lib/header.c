@@ -44,12 +44,33 @@ RCSID("$Id$")
 #include "getline.h"		/* For MAX_LINE_SIZE */
 #include "override.h"		/* Must be the last header included */
 
+/*
+ * The `headers' field is a hash table indexed by field name (normalized).
+ * Each value (GString) holds a private copy of the string making that header,
+ * with all continuations removed (leading spaces collapsed into one), and
+ * indentical fields concatenated using ", " separators, per RFC2616.
+ *
+ * The `fields' field holds a list of all the fields, in the order they
+ * appeared.  The value is a header_field_t structure.  It allows one to
+ * dump the header exactly as it was read.
+ */
+
+struct header {
+	GHashTable *headers;		/**< Indexed by name, normalized */
+	GSList *fields;				/**< Ordered list of header_field_t */
+	gint flags;					/**< Various operating flags */
+	gint size;					/**< Total header size, in bytes */
+	gint lines;					/**< Total header lines seen */
+};
+
 /***
  *** Operating flags
  ***/
 
-#define HEAD_F_EOH		0x00000001			/**< EOH reached */
-#define HEAD_F_SKIP		0x00000002			/**< Skip continuations */
+enum {
+	HEAD_F_EOH	= 0x00000001,	/**< EOH reached */
+	HEAD_F_SKIP	= 0x00000002	/**< Skip continuations */
+};
 
 /***
  *** Error code management
@@ -77,6 +98,18 @@ header_strerror(guint errnum)
 		return "Invalid error code";
 
 	return error_str[errnum];
+}
+
+gint
+header_lines(const header_t *h)
+{
+	return h->lines;
+}
+
+gint
+header_size(const header_t *h)
+{
+	return h->size;
 }
 
 /*
@@ -126,24 +159,22 @@ hfield_make(const gchar *name)
 {
 	header_field_t *h;
 
-	h = (header_field_t *) g_malloc0(sizeof(header_field_t));
+	h = g_malloc0(sizeof *h);
 	h->name = g_strdup(name);
 
 	return h;
 }
 
 /**
- * hfield_free
- *
  * Dispose of the header field.
  */
 static void
 hfield_free(header_field_t *h)
 {
-	GSList *l;
+	GSList *sl;
 
-	for (l = h->lines; l; l = l->next)
-		G_FREE_NULL(l->data);
+	for (sl = h->lines; sl; sl = g_slist_next(sl))
+		G_FREE_NULL(sl->data);
 	g_slist_free(h->lines);
 
 	G_FREE_NULL(h->name);
@@ -166,16 +197,16 @@ hfield_append(header_field_t *h, const gchar *text)
 static void
 hfield_dump(const header_field_t *h, FILE *out)
 {
-	GSList *l;
+	const GSList *sl;
 
 	fprintf(out, "%s: ", h->name);
 
 	g_assert(h->lines);
 
-	for (l = h->lines; l; l = l->next) {
-		if (l != h->lines)
+	for (sl = h->lines; sl; sl = g_slist_next(sl)) {
+		if (sl != h->lines)
 			fputs("    ", out);			/* Continuation line */
-		fputs(l->data, out);
+		fputs(sl->data, out);
 		fputc('\n', out);
 	}
 }
@@ -192,15 +223,13 @@ header_make(void)
 {
 	header_t *o;
 
-	o = (header_t *) g_malloc0(sizeof(header_t));
+	o = g_malloc0(sizeof *o);
 	o->headers = g_hash_table_new(g_str_hash, g_str_equal);
 
 	return o;
 }
 
 /**
- * htable callback
- *
  * Frees the key/values from the headers hash.
  */
 static gboolean
@@ -233,14 +262,14 @@ header_free(header_t *o)
 void
 header_reset(header_t *o)
 {
-	GSList *l;
+	GSList *sl;
 
 	g_assert(o);
 
 	g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
 
-	for (l = o->fields; l; l = l->next)
-		hfield_free((header_field_t *) l->data);
+	for (sl = o->fields; sl; sl = g_slist_next(sl))
+		hfield_free(sl->data);
 	g_slist_free(o->fields);
 	o->fields = NULL;
 
@@ -260,7 +289,7 @@ header_get(const header_t *o, const gchar *field)
 {
 	GString *v;
 
-	v = g_hash_table_lookup(o->headers, (gpointer) field);
+	v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
 
 	return v ? v->str : NULL;
 }
@@ -270,7 +299,8 @@ header_get(const header_t *o, const gchar *field)
  * copy of the internal value, so it may be kept around, but must be
  * freed by the caller.
  */
-gchar *header_getdup(const header_t *o, const gchar *field)
+gchar *
+header_getdup(const header_t *o, const gchar *field)
 {
 	GString *v;
 
@@ -337,7 +367,8 @@ add_continuation(header_t *o, const gchar *field, const gchar *text)
  *
  * @return an error code, or HEAD_OK if appending was successful.
  */
-gint header_append(header_t *o, const gchar *text, gint len)
+gint
+header_append(header_t *o, const gchar *text, gint len)
 {
 	gchar buf[MAX_LINE_SIZE];
 	const gchar *p = text;
@@ -418,7 +449,7 @@ gint header_append(header_t *o, const gchar *text, gint len)
 		 * field we handled.
 		 */
 
-		hf = (header_field_t *) g_slist_last(o->fields)->data;
+		hf = g_slist_last(o->fields)->data;
 		hfield_append(hf, p);
 		add_continuation(o, hf->name, p);
 		o->size += len - (p - text);	/* Count only effective text */
@@ -499,7 +530,7 @@ gint header_append(header_t *o, const gchar *text, gint len)
 
 		hfield_append(hf, p);
 		add_header(o, buf, p);
-		o->fields = g_slist_append(o->fields, (gpointer) hf);
+		o->fields = g_slist_append(o->fields, hf);
 		o->size += len - (p - text);	/* Count only effective text */
 	}
 
@@ -512,10 +543,10 @@ gint header_append(header_t *o, const gchar *text, gint len)
 void
 header_dump(const header_t *o, FILE *out)
 {
-	GSList *l;
+	const GSList *sl;
 
-	for (l = o->fields; l; l = l->next)
-		hfield_dump((header_field_t *) l->data, out);
+	for (sl = o->fields; sl; sl = g_slist_next(sl))
+		hfield_dump(sl->data, out);
 }
 
 /***
@@ -532,14 +563,14 @@ header_dump(const header_t *o, FILE *out)
  */
 struct header_fmt {
 	guint32 magic;
-	gint maxlen;				/**< Maximum line length before continuation */
-	GString *header;			/**< Header being built */
-	gchar sep[257];				/**< Optional separator */
-	gint seplen;				/**< Length of separator string */
-	gint stripped_seplen;		/**< Length of separator without trailing space */
-	gint current_len;			/**< Length of currently built line */
-	gboolean data_emitted;		/**< Whether data was ever emitted */
-	gboolean frozen;			/**< Header terminated */
+	gint maxlen;			/**< Maximum line length before continuation */
+	GString *header;		/**< Header being built */
+	gchar sep[257];			/**< Optional separator */
+	gint seplen;			/**< Length of separator string */
+	gint stripped_seplen;	/**< Length of separator without trailing space */
+	gint current_len;		/**< Length of currently built line */
+	gboolean data_emitted;	/**< Whether data was ever emitted */
+	gboolean frozen;		/**< Header terminated */
 };
 
 /**
@@ -616,7 +647,7 @@ header_fmt_make(const gchar *field, const gchar *separator, gint len_hint)
 void
 header_fmt_set_line_length(gpointer o, gint maxlen)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 	g_assert(maxlen > 0);
@@ -630,11 +661,12 @@ header_fmt_set_line_length(gpointer o, gint maxlen)
 void
 header_fmt_free(gpointer o)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 
 	g_string_free(hf->header, TRUE);
+	hf->magic = 0;
 	wfree(hf, sizeof *hf);
 }
 
@@ -650,7 +682,7 @@ header_fmt_free(gpointer o)
 gboolean
 header_fmt_value_fits(gpointer o, gint len, gint maxlen)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 	gint final_len;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
@@ -684,13 +716,14 @@ static void
 header_fmt_append_full(struct header_fmt *hf, const gchar *str,
 	const gchar *separator, gint slen, gint sslen)
 {
-	gint len;
+	size_t len;
 	gint curlen;
 
 	len = strlen(str);
+	g_assert(len <= INT_MAX);	/* Legacy bug */
 	curlen = hf->current_len;
 
-	if (curlen + len + slen > hf->maxlen) {
+	if (curlen + len + slen > (size_t) hf->maxlen) {
 		/*
 		 * Emit sperator, if any and data was already emitted.
 		 */
@@ -728,7 +761,7 @@ header_fmt_append_full(struct header_fmt *hf, const gchar *str,
 void
 header_fmt_append(gpointer o, const gchar *str, const gchar *separator)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 	gint seplen;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
@@ -751,7 +784,7 @@ header_fmt_append(gpointer o, const gchar *str, const gchar *separator)
 void
 header_fmt_append_value(gpointer o, const gchar *str)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 	g_assert(!hf->frozen);
@@ -765,7 +798,7 @@ header_fmt_append_value(gpointer o, const gchar *str)
 gint
 header_fmt_length(gpointer o)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 
@@ -779,7 +812,7 @@ header_fmt_length(gpointer o)
 void
 header_fmt_end(gpointer o)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 	g_assert(!hf->frozen);
@@ -794,7 +827,7 @@ header_fmt_end(gpointer o)
 gchar *
 header_fmt_string(gpointer o)
 {
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 
@@ -811,7 +844,7 @@ gchar *
 header_fmt_to_string(gpointer o)
 {
 	static gchar line[HEADER_FMT_MAX_SIZE + 1];
-	struct header_fmt *hf = (struct header_fmt *) o;
+	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 
