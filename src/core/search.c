@@ -261,6 +261,10 @@ count_sha1(const gchar *sha1)
 	gpointer key, value;
 	guint n;
 
+	if (spam_check(sha1)) {
+		return;
+	}
+
 	if (!ht_sha1) {
 		ht_sha1 = g_hash_table_new_full(NULL, NULL, free_sha1, NULL);
 		if (top_sha1) {
@@ -301,13 +305,17 @@ count_sha1(const gchar *sha1)
 }
 
 static void
-count_host(guint32 ip)
+count_host(host_addr_t addr)
 {
 	static guint calls;
 	gpointer key, value;
 	guint n;
 
-	if (is_private_ip(rs->ip) || bogons_check(rs->ip))
+	if (
+		NET_TYPE_IPV4 != host_addr_net(addr) ||
+		is_private_addr(addr) ||
+		bogons_check(addr)
+	)
 		return;
 
 	if (!ht_host) {
@@ -321,12 +329,13 @@ count_host(guint32 ip)
 
 				g_hash_table_insert(ht_host, ic->p, GUINT_TO_POINTER(ic->n));
 				g_message("%8d %s", ic->n,
-					ip_to_string(GPOINTER_TO_UINT(ic->p)));
+					host_addr_to_string(
+						host_addr_get_ipv4(GPOINTER_TO_UINT(ic->p))));
 			}
 		}
 	}
 
-	key = GUINT_TO_POINTER(ip);
+	key = GUINT_TO_POINTER(host_addr_ipv4(addr));
 	if (g_hash_table_lookup_extended(ht_host, key, NULL, &value))
 		n = GPOINTER_TO_UINT(value) + 1;
 	else
@@ -341,8 +350,8 @@ count_host(guint32 ip)
 	}
 }
 #else
-#define count_sha1(x) do { } while (0)
-#define count_host(x) do { } while (0)
+#define count_sha1(x) G_STMT_START { } G_STMT_END
+#define count_host(x) G_STMT_START { } G_STMT_END 
 #endif /* SEARCH_STATS_COUNTERS */
 
 /***
