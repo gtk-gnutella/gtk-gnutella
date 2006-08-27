@@ -4167,15 +4167,15 @@ fi_check_file(fileinfo_t *fi)
 static gint
 fi_busy_count(fileinfo_t *fi, struct download *d)
 {
-	GSList *l;
+	GSList *sl;
 	gint count = 0;
 
 	download_check(d);
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	for (l = fi->chunklist; l; l = g_slist_next(l)) {
-		struct dl_file_chunk *fc = l->data;
+	for (sl = fi->chunklist; sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
 
 		if (fc->download) {
 			download_check(d);
@@ -4218,7 +4218,7 @@ list_clone_shift(fileinfo_t *fi)
 	struct dl_file_chunk *fc;
 	filesize_t offset;
 	GSList *clone;
-	GSList *l;
+	GSList *sl;
 	GSList *tail;
 
 	file_info_check(fi);
@@ -4238,10 +4238,10 @@ list_clone_shift(fileinfo_t *fi)
 
 	clone = NULL;
 
-	for (l = fi->chunklist; l; l = g_slist_next(l)) {
-		fc = l->data;
+	for (sl = fi->chunklist; sl; sl = g_slist_next(sl)) {
+		fc = sl->data;
 		if (fc->from >= offset) {
-			clone = g_slist_copy(l);
+			clone = g_slist_copy(sl);
 			break;
 		}
 	}
@@ -4253,8 +4253,8 @@ list_clone_shift(fileinfo_t *fi)
 	 */
 
 	if (NULL == clone) {
-		for (l = fi->chunklist; l; l = g_slist_next(l)) {
-			fc = l->data;
+		for (sl = fi->chunklist; sl; sl = g_slist_next(sl)) {
+			fc = sl->data;
 			if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset) {
 				struct dl_file_chunk *nfc;
 
@@ -4276,8 +4276,8 @@ list_clone_shift(fileinfo_t *fi)
 					download_check(nfc->download);
 				}
 
-				fi->chunklist = gm_slist_insert_after(fi->chunklist, l, nfc);
-				clone = g_slist_copy(g_slist_next(l));
+				fi->chunklist = gm_slist_insert_after(fi->chunklist, sl, nfc);
+				clone = g_slist_copy(g_slist_next(sl));
 				break;
 			}
 		}
@@ -4301,8 +4301,8 @@ list_clone_shift(fileinfo_t *fi)
 	offset = fc->from;				/* Cloning point: start of first chunk */
 	tail = g_slist_last(clone);
 
-	for (l = fi->chunklist; l; l = g_slist_next(l)) {
-		fc = l->data;
+	for (sl = fi->chunklist; sl; sl = g_slist_next(sl)) {
+		fc = sl->data;
 		if (fc->to > offset)		/* Not ">=" or we'd miss one chunk */
 			break;					/* We've reached the cloning point */
 		g_assert(fc->from < offset);
@@ -4592,7 +4592,7 @@ file_info_find_available_hole(
 		cklist = fi->chunklist;
 
 	for (fclist = cklist; fclist; fclist = g_slist_next(fclist)) {
-		GSList *l;
+		GSList *sl;
 		struct dl_file_chunk *fc = fclist->data;
 
 		if (DL_CHUNK_EMPTY != fc->status)
@@ -4606,8 +4606,8 @@ file_info_find_available_hole(
 		 * the upper boundary of the range (r->end) is part of the range.
 		 */
 
-		for (l = ranges; l; l = g_slist_next(l)) {
-			http_range_t *r = l->data;
+		for (sl = ranges; sl; sl = g_slist_next(sl)) {
+			http_range_t *r = sl->data;
 
 			if (r->start > fc->to)
 				break;					/* No further range will intersect */
@@ -4823,7 +4823,6 @@ fi_get_info(gnet_fi_t fih)
     fileinfo_t *fi;
     gnet_fi_info_t *info;
 	const gchar *sha1;
-	GSList *l;
 
     fi = file_info_find_by_handle(fih);
 	file_info_check(fi);
@@ -4837,9 +4836,13 @@ fi_get_info(gnet_fi_t fih)
     info->fi_handle = fi->fi_handle;
 	info->aliases   = NULL;
 
-	for (l = fi->alias; l; l = g_slist_next(l)) {
-		const gchar *alias = l->data;
-		info->aliases = g_slist_prepend(info->aliases, atom_str_get(alias));
+	if (fi->alias) {
+		GSList *sl;
+
+		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
+			const gchar *alias = sl->data;
+			info->aliases = g_slist_prepend(info->aliases, atom_str_get(alias));
+		}
 	}
 
     return info;
@@ -4911,13 +4914,13 @@ GSList *
 fi_get_chunks(gnet_fi_t fih)
 {
     fileinfo_t *fi = file_info_find_by_handle(fih);
-    GSList *l, *chunks = NULL;
+    GSList *sl, *chunks = NULL;
 
     file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-    for (l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
-        struct dl_file_chunk *fc = l->data;
+    for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+        struct dl_file_chunk *fc = sl->data;
     	gnet_fi_chunks_t *chunk;
 
         chunk = walloc(sizeof *chunk);
@@ -4941,7 +4944,8 @@ fi_free_chunks(GSList *chunks)
     GSList *sl;
 
     for (sl = chunks; NULL != sl; sl = g_slist_next(sl)) {
-        wfree(sl->data, sizeof(gnet_fi_chunks_t));
+    	gnet_fi_chunks_t *chunk = sl->data;
+        wfree(chunk, sizeof *chunk);
     }
 
     g_slist_free(chunks);
@@ -4958,12 +4962,13 @@ fi_get_ranges(gnet_fi_t fih)
 {
     fileinfo_t *fi = file_info_find_by_handle(fih);
     http_range_t *range = NULL;
-    GSList *l, *ranges = NULL;
+	GSList *ranges = NULL;
+    const GSList *sl;
 
     file_info_check(fi);
 
-    for (l = fi->seen_on_network; NULL != l; l = g_slist_next(l)) {
-        http_range_t *r = l->data;
+    for (sl = fi->seen_on_network; NULL != sl; sl = g_slist_next(sl)) {
+        const http_range_t *r = sl->data;
         range = walloc(sizeof *range);
         range->start = r->start;
         range->end   = r->end;
@@ -4980,7 +4985,8 @@ fi_free_ranges(GSList *ranges)
 	GSList *sl;
 
 	for (sl = ranges; NULL != sl; sl = g_slist_next(sl)) {
-		wfree(sl->data, sizeof(http_range_t));
+        http_range_t *r = sl->data;
+		wfree(r, sizeof *r);
 	}
 
 	g_slist_free(ranges);
@@ -5211,7 +5217,7 @@ file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
 	gpointer fmt;
 	gboolean is_first = TRUE;
 	gchar range[80];
-	GSList *l;
+	GSList *sl;
 	gint maxfmt = size - 3;		/* Leave room for trailing "\r\n" + NUL */
 	gint count;
 	gint nleft;
@@ -5227,8 +5233,8 @@ file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
 	if (header_fmt_length(fmt) + sizeof "bytes 0-512\r\n" >= (size_t) size)
 		goto emit;				/* Sorry, not enough room for anything */
 
-	for (l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
-		struct dl_file_chunk *fc = l->data;
+	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
 		gint rw;
 
 		if (DL_CHUNK_DONE != fc->status)
@@ -5245,7 +5251,7 @@ file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
 		is_first = FALSE;
 	}
 
-	if (NULL == l)
+	if (NULL == sl)
 		goto emit;
 
 	/*
@@ -5261,8 +5267,8 @@ file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
 	 * See how many chunks we have.
 	 */
 
-	for (count = 0, l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
-		struct dl_file_chunk *fc = l->data;
+	for (count = 0, sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
 		if (DL_CHUNK_DONE == fc->status)
 			count++;
 	}
@@ -5275,8 +5281,8 @@ file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
 
 	fc_ary = g_malloc(count * sizeof fc_ary[0]);
 
-	for (i = 0, l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
-		struct dl_file_chunk *fc = l->data;
+	for (i = 0, sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
 		if (DL_CHUNK_DONE == fc->status)
 			fc_ary[i++] = fc;
 	}
@@ -5349,13 +5355,13 @@ emit:
 gboolean
 file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 {
-	GSList *l;
+	GSList *sl;
 
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	for (l = fi->chunklist; NULL != l; l = g_slist_next(l)) {
-		struct dl_file_chunk *fc = l->data;
+	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
 
 		if (DL_CHUNK_DONE != fc->status)
 			continue;
@@ -5463,10 +5469,9 @@ fi_update_seen_on_network(gnet_src_t srcid)
 {
 	struct download *d;
 	GSList *old_list;    /* The previous list of ranges, no longer needed */
-	GSList *l;           /* Temporary pointer to help remove old_list */
+	GSList *sl;           /* Temporary pointer to help remove old_list */
 	GSList *r = NULL;
 	GSList *new_r = NULL;
-	GSList *full_r = NULL;
 
 	d = src_get_download(srcid);
 	g_assert(d);
@@ -5486,8 +5491,9 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	 */
 	if (fileinfo_debug > 5)
 		printf("*** Fileinfo: %s\n", d->file_info->file_name);
-	for (l = d->file_info->sources; l; l = g_slist_next(l)) {
-		struct download *src = l->data;
+
+	for (sl = d->file_info->sources; sl; sl = g_slist_next(sl)) {
+		struct download *src = sl->data;
 		/*
 		 * We only count the ranges of a file if it has replied to a recent
 		 * request, and if the download request is not done or in an error
@@ -5522,9 +5528,14 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				*/
 				if (fileinfo_debug > 5)
 					printf("whole file available.\n");
-				full_r = fi_range_for_complete_file(d->file_info->size);
-				new_r = http_range_merge(r, full_r);
-				fi_free_ranges(full_r);
+
+				{
+					GSList *full_r;
+
+					full_r = fi_range_for_complete_file(d->file_info->size);
+					new_r = http_range_merge(r, full_r);
+					fi_free_ranges(full_r);
+				}
 			} else {
 				/* Merge in the new ranges */
 				if (fileinfo_debug > 5)
@@ -5536,9 +5547,10 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			r = new_r;
 		}
 	}
+	d->file_info->seen_on_network = r;
+
 	if (fileinfo_debug > 5)
 		printf("    Final ranges: %s\n\n", http_range_to_string(r));
-	d->file_info->seen_on_network = r;
 
 	/*
 	 * Remove the old list and free its range elements
