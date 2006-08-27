@@ -5221,22 +5221,21 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	packet = build_push(&size, hard_ttl_limit, 0, guid,
 				listen_addr(), listen_addr6(), port, file_id, supports_tls);
 
-	if (NULL == packet) {
+	if (packet) {
+		/*
+		 * Send the message to all the nodes that can route our request back
+		 * to the source of the query hit.
+		 */
+		gmsg_sendto_all(nodes, packet, size);
+	} else {
 		g_warning("Failed to send push to %s (index=%lu)",
 			host_addr_port_to_string(listen_addr(), port), (gulong) file_id);
-		return FALSE;
 	}
 
-	/*
-	 * Send the message to all the nodes that can route our request back
-	 * to the source of the query hit.
-	 */
-
-	gmsg_sendto_all(nodes, packet, size);
 	g_slist_free(nodes);
 	nodes = NULL;
 
-	return TRUE;
+	return NULL != packet;
 }
 
 /***

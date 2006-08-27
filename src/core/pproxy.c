@@ -812,8 +812,6 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
 
 			cnt = g_slist_length(nodes);
-			g_slist_free(nodes);
-			nodes = NULL;
 
 			http_send_status(pp->socket, 203, FALSE, NULL, 0,
 					"Push-proxy: message sent through Gnutella (via %d node%s)",
@@ -824,6 +822,8 @@ pproxy_request(struct pproxy *pp, header_t *header)
 					cnt, cnt == 1 ? "" : "s", guid_hex_str(pp->guid));
 		}
 
+		g_slist_free(nodes);
+		nodes = NULL;
 		return;
 	}
 
