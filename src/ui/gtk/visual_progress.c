@@ -333,16 +333,11 @@ vp_get_chunks_initial(gnet_fi_t fih) {
 
 	result = guc_fi_get_chunks(fih);
 
-	for (sl = result; sl; /* NOTHING */) {
+	for (sl = result; sl; sl = g_slist_next(sl)) {
 		gnet_fi_chunks_t *chunk = sl->data;
 		if (DL_CHUNK_DONE != chunk->status) {
-			if (sl == result) {
-				result = g_slist_next(sl);
-			}
-			sl = g_slist_delete_link(sl, sl);
+			result = g_slist_remove(result, chunk);
 			wfree(chunk, sizeof *chunk);
-		} else {
-			sl = g_slist_next(sl);
 		}
 	}
 
@@ -577,8 +572,8 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 
 	while (old || new) {
 		if (old && new) {
-			oc = (gnet_fi_chunks_t *) old->data;
-			nc = (gnet_fi_chunks_t *) new->data;
+			oc = old->data;
+			nc = new->data;
 
 			/*
 			 * Skip over chunks below the highest mark, they are no longer
@@ -691,14 +686,14 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			 * the chunks list.
 			 */
 			if (old) {
-				oc = (gnet_fi_chunks_t *) old->data;
+				oc = old->data;
 				v->chunks_list = g_slist_append(v->chunks_list,
 					vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
 				old = g_slist_next(old);
 			}
 
 			if (new) {
-				nc = (gnet_fi_chunks_t *) new->data;
+				nc = new->data;
 				v->chunks_list = g_slist_append(v->chunks_list,
 					vp_create_chunk(nc->from, nc->to, nc->status, FALSE));
 				new = g_slist_next(new);
