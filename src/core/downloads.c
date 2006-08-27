@@ -6591,7 +6591,6 @@ update_available_ranges(struct download *d, header_t *header)
 		goto send_event;
 
 	g_assert(header != NULL);
-	g_assert(header->headers != NULL);
 
 	buf = header_get(header, available);
 
