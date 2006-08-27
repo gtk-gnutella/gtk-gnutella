@@ -277,7 +277,7 @@ slist_remove_item(slist_t *slist, GSList *prev, GSList *item)
 
 /**
  * Remove `key' from the slist.
- * @return The data that associated with the given key.
+ * @return TRUE if the given key was found and remove, FALSE otherwise.
  */
 gboolean
 slist_remove(slist_t *slist, gpointer key)
