@@ -244,6 +244,9 @@ routing_log_set_new(struct route_log *log)
 	log->new = TRUE;
 }
 
+static void routing_log_extra(struct route_log *log,
+	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+
 /**
  * Record extra logging information, appending to existing information.
  */
@@ -389,7 +392,7 @@ init_routing_data(struct gnutella_node *node)
 	 * Allocate and link some routing data to it
 	 */
 
-	route = walloc(sizeof(struct route_data));
+	route = walloc(sizeof *route);
 
 	route->node = node;
 	route->saved_messages = 0;
@@ -612,8 +615,8 @@ revitalize_entry(struct message *entry, gboolean force)
 static gboolean
 node_sent_message(struct gnutella_node *n, struct message *m)
 {
-	GSList *l;
-	struct route_data * route;
+	struct route_data *route;
+	GSList *sl;
 
 	if (n == fake_node)
 		route = &fake_route;
@@ -628,8 +631,8 @@ node_sent_message(struct gnutella_node *n, struct message *m)
 	if (route == NULL)
 		return FALSE;
 
-	for (l = m->routes; l; l = l->next) {
-		if (route == l->data)
+	for (sl = m->routes; sl; sl = g_slist_next(sl)) {
+		if (route == sl->data)
 			return TRUE;
 	}
 
@@ -876,12 +879,12 @@ remove_one_message_reference(struct route_data *rd)
 static void
 free_route_list(struct message *m)
 {
-	GSList *l;
+	GSList *sl;
 
 	g_assert(m);
 
-	for (l = m->routes; l; l = l->next)
-		remove_one_message_reference(l->data);
+	for (sl = m->routes; sl; sl = g_slist_next(sl))
+		remove_one_message_reference(sl->data);
 
 	g_slist_free(m->routes);
 	m->routes = NULL;
@@ -1045,18 +1048,18 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 static void
 purge_dangling_references(struct message *m)
 {
-	GSList *l;
+	GSList *sl;
 	GSList *t;
 
-	for (l = m->routes, t = m->ttls; l; /* empty */) {
-		struct route_data *rd = (struct route_data *) l->data;
+	for (sl = m->routes, t = m->ttls; sl; /* empty */) {
+		struct route_data *rd = sl->data;
 
 		if (rd->node == NULL) {
-			GSList *next = g_slist_next(l);
-			m->routes = g_slist_remove_link(m->routes, l);
+			GSList *next = g_slist_next(sl);
+			m->routes = g_slist_remove_link(m->routes, sl);
 			remove_one_message_reference(rd);
-			g_slist_free_1(l);
-			l = next;
+			g_slist_free_1(sl);
+			sl = next;
 
 			if (t) {
 				next = g_slist_next(t);
@@ -1065,7 +1068,7 @@ purge_dangling_references(struct message *m)
 				t = next;
 			}
 		} else {
-			l = g_slist_next(l);
+			sl = g_slist_next(sl);
 			if (t)
 				t = g_slist_next(t);
 		}
@@ -1647,7 +1650,6 @@ static gboolean
 route_query_hit(struct route_log *log,
 	struct gnutella_node **node, struct route_dest *dest)
 {
-	GSList *l;
 	struct gnutella_node *sender = *node;
 	struct message *m;
 	gboolean node_is_target = FALSE;
@@ -1785,12 +1787,16 @@ route_query_hit(struct route_log *log,
 	 * XXX should remember hops from queries and choose the lowest hop
 	 * XXX route for relaying. --RAM, 2004-08-29
 	 */
+	{
+		GSList *sl;
 
-	for (found = NULL, l = m->routes; l; l = g_slist_next(l)) {
-		struct route_data *route = l->data;
-		if (route->node != sender) {
-			found = route->node;
-			break;
+		found = NULL;
+		for (sl = m->routes; sl; sl = g_slist_next(sl)) {
+			struct route_data *route = sl->data;
+			if (route->node != sender) {
+				found = route->node;
+				break;
+			}
 		}
 	}
 
@@ -1972,7 +1978,7 @@ done:
 
 	if (sender->header.hops < 255)		/* Paranoid: avoid hop overflow */
 		sender->header.hops++;			/* Mark passage through our node */
-	if (sender->header.ttl)
+	if (sender->header.ttl > 0)
 		sender->header.ttl--;
 
 	return !duplicate && handle_it;		/* Don't handle duplicates */
@@ -2007,7 +2013,7 @@ route_towards_guid(const gchar *guid)
 {
 	struct message *m;
 	GSList *nodes = NULL;
-	GSList *l;
+	GSList *sl;
 
 	if (g_hash_table_lookup(ht_banned_push, guid))	/* Banned for PUSH */
 		return NULL;
@@ -2017,8 +2023,8 @@ route_towards_guid(const gchar *guid)
 
 	revitalize_entry(m, TRUE);
 
-	for (l = m->routes; l; l = g_slist_next(l)) {
-		struct route_data *rd = (struct route_data *) l->data;
+	for (sl = m->routes; sl; sl = g_slist_next(sl)) {
+		struct route_data *rd = sl->data;
 		nodes = g_slist_prepend(nodes, rd->node);
 	}
 
@@ -2122,4 +2128,4 @@ routing_close(void)
 	ht_proxyfied = NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
