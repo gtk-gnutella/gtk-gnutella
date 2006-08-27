@@ -255,6 +255,15 @@ hfield_dump(const header_field_t *h, FILE *out)
  *** header object
  ***/
 
+static GHashTable *
+header_get_table(header_t *o)
+{
+	if (!o->headers) {
+		o->headers = g_hash_table_new(g_str_hash, g_str_equal);
+	}
+	return o->headers;
+}
+
 /**
  * Create a new header object.
  */
@@ -264,8 +273,6 @@ header_make(void)
 	header_t *o;
 
 	o = g_malloc0(sizeof *o);
-	o->headers = g_hash_table_new(g_str_hash, g_str_equal);
-
 	return o;
 }
 
@@ -291,8 +298,6 @@ header_free(header_t *o)
 	g_assert(o);
 
 	header_reset(o);
-
-	g_hash_table_destroy(o->headers);
 	G_FREE_NULL(o);
 }
 
@@ -313,8 +318,11 @@ header_reset(header_t *o)
 
 	g_assert(o);
 
-	g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
-
+	if (o->headers) {
+		g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
+		g_hash_table_destroy(o->headers);
+		o->headers = NULL;
+	}
 	if (o->fields) {
 		slist_foreach(o->fields, header_reset_item, NULL);
 		slist_free(&o->fields);
@@ -335,8 +343,11 @@ header_get(const header_t *o, const gchar *field)
 {
 	GString *v;
 
-	v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
-
+	if (o->headers) {
+		v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
+	} else {
+		v = NULL;
+	}
 	return v ? v->str : NULL;
 }
 
@@ -348,13 +359,7 @@ header_get(const header_t *o, const gchar *field)
 gchar *
 header_getdup(const header_t *o, const gchar *field)
 {
-	GString *v;
-
-	v = g_hash_table_lookup(o->headers, (gpointer) field);
-	if (!v)
-		return NULL;
-
-	return g_strdup(v->str);
+	return g_strdup(header_get(o, field));
 }
 
 /**
@@ -364,11 +369,11 @@ header_getdup(const header_t *o, const gchar *field)
 static void
 add_header(header_t *o, const gchar *field, const gchar *text)
 {
-	GHashTable *h = o->headers;
+	GHashTable *ht;
 	GString *v;
 
-	v = g_hash_table_lookup(h, field);
-
+	ht = header_get_table(o);
+	v = g_hash_table_lookup(ht, field);
 	if (v) {
 		/*
 		 * Header already exists, according to RFC2616 we need to append
@@ -387,7 +392,7 @@ add_header(header_t *o, const gchar *field, const gchar *text)
 
 		key = g_strdup(field);
 		v = g_string_new(text);
-		g_hash_table_insert(h, (gpointer) key, (gpointer) v);
+		g_hash_table_insert(ht, (gpointer) key, (gpointer) v);
 	}
 }
 
@@ -398,10 +403,10 @@ add_header(header_t *o, const gchar *field, const gchar *text)
 static void
 add_continuation(header_t *o, const gchar *field, const gchar *text)
 {
-	GHashTable *h = o->headers;
 	GString *v;
 
-	v = g_hash_table_lookup(h, field);
+	g_assert(o->headers);
+	v = g_hash_table_lookup(o->headers, field);
 	g_assert(v);
 	g_string_append_c(v, ' ');
 	g_string_append(v, text);
