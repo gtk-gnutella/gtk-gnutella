@@ -456,17 +456,14 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 
 		sl_addr = name_to_host_addr(query->hostname, query->net);
 		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
-			host_addr_t *addr;
-
-			addr = sl->data;
+			host_addr_t *addr = sl->data;
 			g_assert(addr);
-			if (i < G_N_ELEMENTS(reply->addrs)) {
-				reply->addrs[i++] = *addr;
+			if (i >= G_N_ELEMENTS(reply->addrs)) {
+				break;
 			}
-			wfree(addr, sizeof *addr);
+			reply->addrs[i++] = *addr;
 		}
-		g_slist_free(sl_addr);
-		sl_addr = NULL;
+		host_addr_free_list(&sl_addr);
 
 		if (i < G_N_ELEMENTS(reply->addrs)) {
 			reply->addrs[i] = zero_host_addr;

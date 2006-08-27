@@ -271,12 +271,7 @@ whitelist_retrieve(void)
 			}
 		}
 
-		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
-			host_addr_t *addr_ptr = sl->data;
-			wfree(addr_ptr, sizeof *addr_ptr);
-		}
-		g_slist_free(sl_addr);
-		sl_addr = NULL;
+		host_addr_free_list(&sl_addr);
     }
 
     sl_whitelist = g_slist_reverse(sl_whitelist);
