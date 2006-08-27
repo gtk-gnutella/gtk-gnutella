@@ -329,16 +329,26 @@ on_drawingarea_fi_progress_expose_event(
 static GSList *
 vp_get_chunks_initial(gnet_fi_t fih) {
 
-	GSList *result, *sl;
+	GSList *result, *sl, *prev = NULL;
 
 	result = guc_fi_get_chunks(fih);
 
-	for (sl = result; sl; sl = g_slist_next(sl)) {
+	for (sl = result; sl; /* NOTHING */) {
 		gnet_fi_chunks_t *chunk = sl->data;
+		GSList *next;
+
+		next = g_slist_next(sl);
 		if (DL_CHUNK_DONE != chunk->status) {
-			result = g_slist_remove(result, chunk);
+			if (prev) {
+				prev = g_slist_delete_link(prev, sl);
+			} else {
+				result = g_slist_delete_link(result, sl);
+			}
 			wfree(chunk, sizeof *chunk);
+		} else {
+			prev = sl;
 		}
+		sl = next;
 	}
 
 	return result;
