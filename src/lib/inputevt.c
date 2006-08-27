@@ -466,7 +466,14 @@ check_dev_poll(struct poll_ctx *poll_ctx, gint *timeout_ms_ptr)
 
 	g_assert(poll_ctx);
 	g_assert(timeout_ms_ptr);
+#if 0
 	g_assert(0 == poll_ctx->num_ready);
+#endif
+
+	if (poll_ctx->num_ev <= 0) {
+		poll_ctx->num_ready = 0;
+		return;
+	}
 
 	timeout_ms = *timeout_ms_ptr;
 	timeout_ms = MAX(0, timeout_ms);
@@ -477,6 +484,9 @@ check_dev_poll(struct poll_ctx *poll_ctx, gint *timeout_ms_ptr)
 
 	tm_now_exact(&before);
 	ret = ioctl(poll_ctx->fd, DP_POLL, &dvp);
+	if (-1 == ret && !is_temporary_error(errno)) {
+		g_warning("check_dev_poll(): ioctl() failed: %s", g_strerror(errno));
+	}
 	tm_now_exact(&after);
 	tm_elapsed(&elapsed, &after, &before);
 	d = tm2ms(&elapsed);
@@ -546,6 +556,9 @@ poll_func(GPollFD *gfds, guint n, gint timeout_ms)
 	}
 
 	ret = poll(pfds, n, timeout_ms);
+	if (-1 == ret && !is_temporary_error(errno)) {
+		g_warning("poll() failed: %s", g_strerror(errno));
+	}
 	if (do_check || ret > 0) {
 		guint i;
 
@@ -639,7 +652,8 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 
 	g_assert(poll_ctx);
 	g_assert(poll_ctx->initialized);
-	g_assert(-1 != poll_ctx->fd);
+	g_assert(poll_ctx->fd >= 0);
+	g_assert(poll_ctx->ht);
 
 	/* Maybe this must safely fail for general use, thus no assertion */
 	g_return_if_fail(!poll_ctx->dispatching);
@@ -779,7 +793,7 @@ inputevt_remove(guint id)
 	g_assert(poll_ctx->initialized);
 	g_assert(0 != id);
 
-	if (-1 == poll_ctx->fd) {
+	if (poll_ctx->fd < 0) {
 		g_source_remove(id);
 	} else {
 		inputevt_relay_t *relay;
@@ -787,6 +801,7 @@ inputevt_remove(guint id)
 		inputevt_cond_t old, cur;
 		gint fd;
 
+		g_assert(poll_ctx->ht);
 		g_assert(id < poll_ctx->num_ev);
 		g_assert(0 != bit_array_get(poll_ctx->used, id));
 
@@ -865,7 +880,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 	g_assert(poll_ctx->initialized);
 	g_assert(relay->fd >= 0);
 	
-	if (-1 == poll_ctx->fd) {
+	if (poll_ctx->fd < 0) {
 		/*
 		 * Linux systems with 2.4 kernels usually have all epoll stuff
 		 * in their headers but the system calls just return ENOSYS.
@@ -874,6 +889,8 @@ inputevt_add_source(inputevt_relay_t *relay)
 	} else {
 		inputevt_cond_t old;
 		guint f;
+
+		g_assert(poll_ctx->ht);
 
 		f = inputevt_get_free_id(poll_ctx);
 		g_assert((guint) -1 == f || f < poll_ctx->num_ev);
@@ -984,7 +1001,8 @@ inputevt_init(void)
 	
 	poll_ctx->initialized = TRUE;
 
-	if (-1 == (poll_ctx->fd = create_poll_fd())) {
+	poll_ctx->fd = create_poll_fd();
+	if (poll_ctx->fd < 0) {
 		g_warning("create_poll_fd() failed: %s", g_strerror(errno));
 		/* This is no hard error, we fall back to the GLib source watcher */
 	} else {
