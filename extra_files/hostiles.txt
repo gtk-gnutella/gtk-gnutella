@@ -678,7 +678,12 @@
 
 # Quibus International AB -- subnet used by rogue agents (e.g. advertise
 # as LimeWire in hits, and when connected, they send User-Agent: Gnucleus).
+# They seem to be using giFT now. Their spam includes URLs files but MP3s
+# also DRMed WMA and even OGGs that have been messed with (constantly fade
+# in/out). These peers seem to maintain a massive amount of connections. The
+# URL files link to serv01.quibus.se.
 212.209.1.0/24
+212.209.34.128/28
 
 # Open Proxies
 24.239.248.21
