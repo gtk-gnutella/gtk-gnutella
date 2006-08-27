@@ -305,6 +305,7 @@ typedef struct gnutella_node {
 #define NODE_A_TIME_SYNC	0x00000400 /**< Supports time sync */
 #define NODE_A_CRAWLABLE	0x00000800 /**< Node can be UDP-crawled */
 #define NODE_A_DYN_QUERY	0x00001000 /**< Node can perform dynamic queries */
+#define NODE_A_CAN_SFLAG	0x00002000 /**< Node supports flags in headers */
  
 #define NODE_A_NO_KEPT_ZERO	0x01000000 /**< For GTKG < 2006-08-15: no kept=0! */
 #define NODE_A_NO_DUPS		0x02000000 /**< For broken old GTKG: no dups! */
@@ -400,6 +401,7 @@ typedef struct gnutella_node {
 
 #define NODE_ID(n)				((n)->id)
 
+#define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
 #define NODE_CAN_GGEP(n)		((n)->attrs & NODE_A_CAN_GGEP)
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
 #define NODE_LEAF_GUIDE(n)		((n)->attrs & NODE_A_GUIDANCE)

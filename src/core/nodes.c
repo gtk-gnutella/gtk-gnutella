@@ -1215,6 +1215,12 @@ node_init(void)
 	udp_crawls = aging_make(UDP_CRAWLER_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
 		NULL, NULL, NULL);
+
+	/*
+	 * Signal we support flags in the size header via "sflag/0.1"
+	 */
+
+	header_features_add(&xfeatures.connections, "sflag", 0, 1);
 }
 
 /**
@@ -5042,6 +5048,17 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	}
 
 	/*
+	 * Check whether remote node supports flags in the header, via a
+	 * re-architected size field: 16-bit size and 16-bit flags.
+	 */
+	{
+		guint major, minor;
+
+ 		if (header_get_feature("sflag", head, &major, &minor))
+			n->attrs |= NODE_A_CAN_SFLAG;
+	}
+
+	/*
 	 * For incoming connections it's not clear whether the
 	 * given address is correct, it could be a proxy.
 	 */
@@ -6371,6 +6388,10 @@ route_only:
 				handle_push_request(n);
 			break;
 		case GTA_MSG_SEARCH:
+			/* Only handle if no unknown header flags */
+			if (0 != n->header_flags)
+				break;
+
             /*
              * search_request() takes care of telling the stats that
              * the message was dropped.
@@ -6384,9 +6405,7 @@ route_only:
 				qhvec_reset(qhv);
 			}
 
-			/* Only handle if no unknown header flags */
-			if (0 == n->header_flags)
-				drop = search_request(n, qhv);
+			drop = search_request(n, qhv);
 			break;
 
 		case GTA_MSG_SEARCH_RESULTS:
@@ -6990,14 +7009,31 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 		case GMSG_VALID:
 			n->header_flags = 0;
 			break;
+		case GMSG_VALID_MARKED:
+			/*
+			 * Node sent message with the flag mark, but without any flag
+			 * set -- it is safe to clear that mark, provided the node who
+			 * sent us this message supports the newly architected size field.
+			 */
+
+			if (NODE_CAN_SFLAG(n)) {
+				poke_le32(n->header.size, n->size);		/* Reset flag mark */
+				n->header_flags = 0;
+			} else
+				goto bad_size;
+			break;
 		case GMSG_VALID_NO_PROCESS:
+			/*
+			 * Nodes must indicate that they support size flags before
+			 * sending us messages with such flags.
+			 */
+
+			if (!NODE_CAN_SFLAG(n))
+				goto bad_size;
 			n->header_flags = gmsg_flags(&n->header);
 			break;
 		case GMSG_INVALID:
-			gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
-			node_remove(n, _("Kicked: %s message too big (>= 64KiB limit)"),
-				gmsg_name(n->header.function));
-			return FALSE;
+			goto bad_size;
 		}
 
         gnet_stats_count_received_header(n);
@@ -7110,6 +7146,12 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 	node_parse(n);
 
 	return TRUE;		/* There may be more data */
+
+bad_size:
+	gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
+	node_remove(n, _("Kicked: %s message too big (>= 64KiB limit)"),
+		gmsg_name(n->header.function));
+	return FALSE;
 }
 
 /**

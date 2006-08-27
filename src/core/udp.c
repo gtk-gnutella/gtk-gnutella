@@ -98,6 +98,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 
 	switch (gmsg_size_valid(head, &size)) {
 	case GMSG_VALID:
+	case GMSG_VALID_MARKED:
 		break;
 	case GMSG_VALID_NO_PROCESS:
 		msg = "Header flags undefined for now";

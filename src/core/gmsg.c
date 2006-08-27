@@ -100,7 +100,7 @@ gmsg_size_valid(gconstpointer msg, guint16 *size)
 		*size = payload_size;
 
 		if (flags == 0)
-			return GMSG_VALID;
+			return GMSG_VALID_MARKED;
 
 		/*
 		 * We don't know how to handle flags yet -- they are undefined.
@@ -699,6 +699,8 @@ gmsg_split_sendto_all_but_one(const GSList *sl, const struct gnutella_node *n,
 			continue;
 		if (skip_up_with_qrp && NODE_UP_QRP(dn))
 			continue;
+		if (n->header_flags && !NODE_CAN_SFLAG(dn))
+			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
 	}
 
@@ -784,6 +786,8 @@ gmsg_split_sendto_all_but_one_ggep(
 			continue;
 		if (skip_up_with_qrp && NODE_UP_QRP(dn))
 			continue;
+		if (n->header_flags && !NODE_CAN_SFLAG(dn))
+			continue;
 		if (NODE_CAN_GGEP(dn))
 			mq_putq(dn->outq, pmsg_clone(mb));
 		else {
@@ -819,6 +823,18 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	case ROUTE_NONE:
 		return;
 	case ROUTE_ONE:
+		/*
+		 * If message has size flags and the recipoent cannot understand it,
+		 * then too bad but we have to drop that message.  We account it
+		 * as dropped because this message was meant to be routed to one
+		 * recipient only.
+		 */
+
+		if (n->header_flags && !NODE_CAN_SFLAG(rt_node)) {
+			gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
+			return;
+		}
+
 		gmsg_split_sendto_one(rt_node, &n->header,
 				n->data, n->size + GTA_HEADER_SIZE);
 		return;
@@ -835,6 +851,8 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	case ROUTE_MULTI:
 		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
 			rt_node = (struct gnutella_node *) sl->data;
+			if (n->header_flags && !NODE_CAN_SFLAG(rt_node))
+				continue;
 			gmsg_split_sendto_one(rt_node,
 				(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
 		}
@@ -891,6 +909,18 @@ gmsg_sendto_route_ggep(struct gnutella_node *n, struct route_dest *rt,
 	case ROUTE_NONE:
 		return;
 	case ROUTE_ONE:
+		/*
+		 * If message has size flags and the recipoent cannot understand it,
+		 * then too bad but we have to drop that message.  We account it
+		 * as dropped because this message was meant to be routed to one
+		 * recipient only.
+		 */
+
+		if (n->header_flags && !NODE_CAN_SFLAG(rt_node)) {
+			gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
+			return;
+		}
+
 		sendto_ggep(n, rt_node, regular_size);
 		return;
 	case ROUTE_ALL_BUT_ONE:
@@ -906,6 +936,8 @@ gmsg_sendto_route_ggep(struct gnutella_node *n, struct route_dest *rt,
 	case ROUTE_MULTI:
 		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
 			rt_node = sl->data;
+			if (n->header_flags && !NODE_CAN_SFLAG(rt_node))
+				continue;
 			sendto_ggep(n, rt_node, regular_size);
 		}
 		return;
