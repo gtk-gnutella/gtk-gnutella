@@ -1967,8 +1967,12 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		handle_it = route_query_hit(&log, node, dest);
 		break;
 	default:
-		g_error("messages 0x%x \"%s\" should not be routed",
-			sender->header.function, debug_msg[sender->header.function]);
+		/*
+		 * Any other message that gets passed to route_message() must
+		 * neither be routed nor handled.
+		 */
+		handle_it = FALSE;
+		break;
 	}
 
 	routing_log_set_route(&log, dest, handle_it);

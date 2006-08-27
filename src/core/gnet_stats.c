@@ -43,7 +43,6 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/event.h"
-#include "lib/endian.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static guint8 stats_lut[256];
@@ -338,10 +337,8 @@ gnet_stats_count_flowc(gconstpointer head)
     const struct gnutella_header *h = head;
 	guint t;
 	guint i;
-	guint32 size;
+	guint16 size = gmsg_size(head);
 
-	READ_GUINT32_LE(h->size, size);
-	size &= GTA_SIZE_MASK;
 #if 0
 	g_message("FLOWC function=%d ttl=%d hops=%d", h->function, h->ttl, h->hops);
 #endif

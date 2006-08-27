@@ -74,6 +74,51 @@ gmsg_header_check(const struct gnutella_header *h, guint32 size)
 }
 
 /**
+ * Returns whether the size field is properly architected as flags and size.
+ *
+ * @param msg		the head of the message
+ * @param size		where the message size is returned if valid
+ *
+ * @return GMSG_VALID if we can process the message, GMSG_INVALID if the
+ * message should be dropped and the connection closed, GMSG_VALID_NO_PROCESS
+ * if the message is valid but cannot be interpreted locally.
+ */
+gmsg_valid_t
+gmsg_size_valid(gconstpointer msg, guint16 *size)
+{
+	const struct gnutella_header *h = msg;
+	guint32 raw_size = peek_le32(h->size);
+	guint16 payload_size = (guint16) (raw_size & GTA_SIZE_MASK);
+	
+	if (raw_size == payload_size)
+		goto ok;
+
+	if (raw_size & GTA_SIZE_MARKED) {
+		guint32 flags = raw_size & ~GTA_SIZE_MASK;
+		flags &= ~GTA_SIZE_MARKED;
+
+		*size = payload_size;
+
+		if (flags == 0)
+			return GMSG_VALID;
+
+		/*
+		 * We don't know how to handle flags yet -- they are undefined.
+		 * However, the message IS valid and could be relayed possibly.
+		 * But we cannot interpret it.
+		 */
+
+		return GMSG_VALID_NO_PROCESS;
+	}
+
+	return GMSG_INVALID;
+
+ok:
+	*size = payload_size;
+	return GMSG_VALID;
+}
+
+/**
  * Log an hexadecimal dump of the message `data'.
  *
  * Tagged with:
@@ -1035,10 +1080,7 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 {
 	static gchar a[160];
 	const struct gnutella_header *h = (const struct gnutella_header *) head;
-	guint32 size;
-
-	READ_GUINT32_LE(h->size, size);
-	size &= GTA_SIZE_MASK;
+	guint16 size = gmsg_size(head);
 
 	switch (h->function) {
 	case GTA_MSG_VENDOR:
@@ -1072,10 +1114,7 @@ gmsg_infostr(gconstpointer head)
 {
 	static gchar a[80];
 	const struct gnutella_header *h = head;
-	guint32 size;
-
-	READ_GUINT32_LE(h->size, size);
-	size &= GTA_SIZE_MASK;
+	guint16 size = gmsg_size(head);
 
 	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s",
@@ -1093,10 +1132,7 @@ gmsg_infostr2(gconstpointer head)
 {
 	static gchar a[80];
 	const struct gnutella_header *h = head;
-	guint32 size;
-
-	READ_GUINT32_LE(h->size, size);
-	size &= GTA_SIZE_MASK;
+	guint16 size = gmsg_size(head);
 
 	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s",
@@ -1160,7 +1196,7 @@ gmsg_is_oob_query(gconstpointer msg)
 
 	g_assert(h->function == GTA_MSG_SEARCH);
 
-	READ_GUINT16_LE(data, req_speed);
+	req_speed = peek_le16(data);
 
 	return (req_speed & (QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY)) ==
 		(QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY);
@@ -1178,7 +1214,7 @@ gmsg_split_is_oob_query(gconstpointer head, gconstpointer data)
 
 	g_assert(h->function == GTA_MSG_SEARCH);
 
-	READ_GUINT16_LE(data, req_speed);
+	req_speed = peek_le16(data);
 
 	return (req_speed & (QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY)) ==
 		(QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY);

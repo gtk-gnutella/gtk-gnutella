@@ -41,6 +41,8 @@
 
 #include "if/core/search.h"
 
+#include "lib/endian.h"
+
 struct gnutella_node;
 struct route_dest;
 struct mqueue;
@@ -48,12 +50,48 @@ struct mqueue;
 #define gmsg_function(p) (((const struct gnutella_header *) p)->function)
 #define gmsg_hops(p)     (((const struct gnutella_header *) p)->hops)
 
+/**
+ * Inline routines.
+ */
+
+/**
+ * Returns the size (16-bit quantity) of a gnutella message.
+ */
+static inline guint16
+gmsg_size(gconstpointer msg)
+{
+	const struct gnutella_header *h = msg;
+	guint32 size = peek_le32(h->size);
+
+	return (guint16) (size & GTA_SIZE_MASK);
+}
+
+/**
+ * Returns the flags (16-bit quantity) of a gnutella message.
+ */
+static inline guint16
+gmsg_flags(gconstpointer msg)
+{
+	const struct gnutella_header *h = msg;
+	guint32 size = peek_le32(h->size);
+
+	return (size & GTA_SIZE_MARKED) ?
+		(guint16) (size >> GTA_SIZE_FLAG_SHIFT) : 0;
+}
+
+typedef enum {
+	GMSG_VALID = 0,				/* Payload <= 64KiB, no flags */
+	GMSG_INVALID,				/* Payload > 64KiB, no mark for flags */
+	GMSG_VALID_NO_PROCESS,		/* Marked for flags we do not know */
+} gmsg_valid_t;
+
 /*
  * Public interface
  */
 
 void gmsg_init(void);
 const gchar *gmsg_name(guint function);
+gmsg_valid_t gmsg_size_valid(gconstpointer msg, guint16 *size);
 
 pmsg_t *gmsg_to_pmsg(gconstpointer msg, guint32 size);
 pmsg_t *gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size);

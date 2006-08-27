@@ -77,6 +77,13 @@ struct gnutella_header {
 
 #define GTA_SIZE_MASK		0xffff
 #define GTA_SIZE_MARKED		0x80000000
+#define GTA_SIZE_FLAG_SHIFT	16
+
+/*
+ * Gnutella header message flags viewed as a 16-bit quantity.
+ */
+
+#define GTA_FLAGS_MARK		0x8000		/**< Mark signalling flags presence */
 
 /**
  * UDP traffic compression (TTL marking flags)

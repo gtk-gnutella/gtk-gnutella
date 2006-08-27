@@ -112,6 +112,7 @@ msg_drop_str(gint value)
 		N_("Spam"),
 		N_("Evil filename"),
 		N_("Payload inflating error"),
+		N_("Unknown header flags present"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_DROP_REASON_COUNT);

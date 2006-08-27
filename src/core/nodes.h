@@ -115,7 +115,8 @@ typedef struct gnutella_node {
 	extvec_t extvec[MAX_EXTVEC];	/**< GGEP extensions in "fat" messages */
 	gint extcount;					/**< Amount of extensions held */
 
-	guint32 size; /**< How many bytes we need to read for the current message */
+	guint16 size; /**< How many bytes we need to read for the current message */
+	guint16 header_flags;		/**< Header flags (new message architecture) */
 
 	gchar *data;				/**< data of the current message */
 	guint32 pos;				/**< write position in data */

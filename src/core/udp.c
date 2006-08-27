@@ -66,12 +66,24 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	struct gnutella_node *n = node_udp_get_addr_port(s->addr, s->port);
 	struct gnutella_header *head;
 	gchar *msg;
-	guint32 size;				/**< Payload size, from the Gnutella message */
+	guint16 size;				/**< Payload size, from the Gnutella message */
 
 	if (s->pos < GTA_HEADER_SIZE) {
 		msg = "Too short";
 		goto not;
 	}
+
+	/*
+	 * We have enough to account for packet reception.
+	 * Note that packet could be garbage at this point.
+	 */
+
+	head = cast_to_gpointer(s->buf);
+	n->header = *head;						/* Struct copy */
+	n->size = s->pos - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */
+
+	gnet_stats_count_received_header(n);
+	gnet_stats_count_received_payload(n);
 
 	/*
 	 * Message sizes are architecturally limited to 64K bytes.
@@ -84,15 +96,16 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	 * 1 byte for the function type) to identify a valid Gnutella packet.
 	 */
 
-	head = cast_to_gpointer(s->buf);
-	READ_GUINT32_LE(head->size, size);
-	size &= GTA_SIZE_MASK;					/* Architectural limit */
-
-	n->header = *head;						/* Struct copy */
-	n->size = s->pos - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */
-
-	gnet_stats_count_received_header(n);
-	gnet_stats_count_received_payload(n);
+	switch (gmsg_size_valid(head, &size)) {
+	case GMSG_VALID:
+		break;
+	case GMSG_VALID_NO_PROCESS:
+		msg = "Header flags undefined for now";
+		goto drop;
+	case GMSG_INVALID:
+		msg = "Invalid size (greater than 64 KiB without flags)";
+		goto too_large;
+	}
 
 	/*
 	 * If the message was truncated, then there is also going to be a

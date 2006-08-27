@@ -115,7 +115,6 @@ RCSID("$Id$")
 #define NODE_SEND_BUFSIZE		4096  /**< TCP send buffer size - 4K */
 #define NODE_SEND_LEAF_BUFSIZE	1024  /**< TCP send buffer size for leaves */
 #define MAX_GGEP_PAYLOAD		1536  /**< In ping, pong, push */
-#define MAX_MSG_SIZE			65536 /**< Absolute maximum message length */
 #define MAX_HOP_COUNT			255	  /**< Architecturally defined maximum */
 #define NODE_LEGACY_DEGREE		8	  /**< Older node without X-Degree */
 #define NODE_LEGACY_TTL			7	  /**< Older node without X-Max-TTL */
@@ -569,16 +568,15 @@ node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
 static void
 message_dump(const struct gnutella_node *n)
 {
-	guint32 size, ip, idx, count, total;
-	guint16 port;
+	guint32 ip, idx, count, total;
+	guint16 port, size;
 
 	printf("Node %s: ", node_addr(n));
 	printf("Func 0x%.2x ", n->header.function);
 	printf("TTL = %u ", n->header.ttl);
 	printf("hops = %u ", n->header.hops);
 
-	READ_GUINT32_LE(n->header.size, size);
-	size &= GTA_SIZE_MASK;
+	size = gmsg_size(&n->header);
 
 	printf(" data = %u", size);
 
@@ -5663,8 +5661,7 @@ node_udp_get(struct gnutella_socket *s)
 	g_assert(n->socket == s);		/* Only one UDP socket */
 
 	head = cast_to_gpointer(s->buf);
-	READ_GUINT32_LE(head->size, n->size);
-	n->size &= GTA_SIZE_MASK;
+	n->size = gmsg_size(head);
 
 	n->header = *head;		/* Struct copy */
 	n->data = &s->buf[GTA_HEADER_SIZE];
@@ -6197,9 +6194,6 @@ node_parse(struct gnutella_node *node)
 			if (node_debug)
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
-		} else if (n->size > MAX_MSG_SIZE) {
-            drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
 		} else {
 			/* In case no Vendor-Message was seen in handshake */
 
@@ -6286,6 +6280,22 @@ node_parse(struct gnutella_node *node)
 	}
 
 	/*
+	 * If the message has header flags, and since those are not defined yet,
+	 * we cannot interpret the message correctly.  We may route some of them
+	 * however, if we don't need to interpret the payload to do that.
+	 *
+	 * Indeed, as the meaning of header flags is not defined yet, we cannot
+	 * know where the payload of the message will really start: some flags
+	 * may indicate extra header information for instance (options) that would
+	 * shift the payload start further.
+	 *
+	 *		--RAM, 2006-08-27
+	 */
+
+	if (n->header_flags)
+		goto route_only;
+
+	/*
 	 * With the ping/pong reducing scheme, we no longer pass ping/pongs
 	 * to the route_message() routine, and don't even have to store
 	 * routing information from pings to be able to route pongs back, which
@@ -6351,11 +6361,14 @@ node_parse(struct gnutella_node *node)
 
 	/* Compute route (destination) then handle the message if required */
 
+route_only:
 	if (route_message(&n, &dest)) {		/* We have to handle the message */
 		g_assert(n);
 		switch (n->header.function) {
 		case GTA_MSG_PUSH_REQUEST:
-			handle_push_request(n);
+			/* Only handle if no unknown header flags */
+			if (0 == n->header_flags)
+				handle_push_request(n);
 			break;
 		case GTA_MSG_SEARCH:
             /*
@@ -6371,7 +6384,9 @@ node_parse(struct gnutella_node *node)
 				qhvec_reset(qhv);
 			}
 
-			drop = search_request(n, qhv);
+			/* Only handle if no unknown header flags */
+			if (0 == n->header_flags)
+				drop = search_request(n, qhv);
 			break;
 
 		case GTA_MSG_SEARCH_RESULTS:
@@ -6379,11 +6394,22 @@ node_parse(struct gnutella_node *node)
              * search_results takes care of telling the stats that
              * the message was dropped.
              */
-			drop = search_results(n, &results);
+
+			/* Only handle if no unknown header flags */
+			if (0 == n->header_flags)
+				drop = search_results(n, &results);
 			break;
 
 		default:
-			if (node_debug)
+			/*
+			 * Normally we'll come here only when we have unknown header
+			 * flags in the message and we skipped processing above, going
+			 * directly to the route_only tag.
+			 *
+			 * Therefore, if we come here and we don't have flags, something
+			 * is wrong.
+			 */
+			if (node_debug && !n->header_flags)
 				message_dump(n);
 			break;
 		}
@@ -6960,10 +6986,22 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 		 * Enforce architectural limit: messages can only be 64K.
 		 */
 
-		READ_GUINT32_LE(n->header.size, n->size);
-		n->size &= GTA_SIZE_MASK;
+		switch (gmsg_size_valid(&n->header, &n->size)) {
+		case GMSG_VALID:
+			n->header_flags = 0;
+			break;
+		case GMSG_VALID_NO_PROCESS:
+			n->header_flags = gmsg_flags(&n->header);
+			break;
+		case GMSG_INVALID:
+			gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
+			node_remove(n, _("Kicked: %s message too big (>= 64KiB limit)"),
+				gmsg_name(n->header.function));
+			return FALSE;
+		}
 
         gnet_stats_count_received_header(n);
+
 		switch (n->header.function) {
 		case GTA_MSG_SEARCH:
 			node_inc_rx_query(n);
@@ -7036,7 +7074,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			guint32 maxsize = settings_max_msg_size();
 
 			if (maxsize < n->size) {
-				g_warning("got %u byte %s message, should have kicked node\n",
+				g_warning("BUG got %u byte %s message, should have kicked node",
 					n->size, gmsg_name(n->header.function));
 				gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 				node_disable_read(n);
