@@ -172,12 +172,10 @@ header_get_feature(const gchar *feature_name, const header_t *header,
 	gchar *buf = NULL;
 	gchar *start;
 
-	if (feature_version_major) {
+	if (feature_version_major)
 		*feature_version_major = 0;
-	}
-	if (feature_version_minor) {
+	if (feature_version_minor)
 		*feature_version_minor = 0;
-	}
 
 	buf = header_get(header, "X-Features");
 
