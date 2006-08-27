@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/atoms.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -74,13 +75,13 @@ typedef struct vp_context {
  */
 typedef struct vp_info {
     gnet_fi_t fi_handle;
-    gchar *file_name;
-    filesize_t file_size;
+    gchar *file_name;		/* atom */
     GSList *chunks_list;
 	GSList *chunks_initial;
 	GSList *ranges_list;
-	filesize_t done_initial;
     vp_context_t *context;
+    filesize_t file_size;
+	filesize_t done_initial;
 } vp_info_t;
 
 static GHashTable *vp_info_hash; /**< Hash table with our cached fileinfo info */
@@ -128,11 +129,11 @@ vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
 	 * unknown size the file_size == 0, but in this case
 	 * vp_draw_fi_progress catches this case.
 	 */
-	g_assert(v->file_size);
+	g_assert(v->file_size > 0);
 
-	s_from = (gfloat) from * v->context->widget->allocation.width
+	s_from = ((gdouble) from * v->context->widget->allocation.width)
 		/ v->file_size;
-	s_to   = (gfloat) to   * v->context->widget->allocation.width
+	s_to   = ((gdouble) to   * v->context->widget->allocation.width)
 		/ v->file_size;
 
     gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE,
@@ -179,7 +180,7 @@ vp_draw_arrow(vp_info_t *v, filesize_t at)
 
 	g_assert(v->file_size);
 
-	s_at = (gfloat) at * v->context->widget->allocation.width / v->file_size;
+	s_at = ((gdouble) at * v->context->widget->allocation.width) / v->file_size;
 
 	/* Fill the inside of the arrow */
 	points[0].x = s_at - VP_ARROW_HEIGHT;
@@ -328,17 +329,20 @@ on_drawingarea_fi_progress_expose_event(
 static GSList *
 vp_get_chunks_initial(gnet_fi_t fih) {
 
-	GSList *result;
-	GSList *l;
+	GSList *result, *sl;
 
 	result = guc_fi_get_chunks(fih);
 
-	for (l = result; l; ) {
-		gnet_fi_chunks_t *chunk = (gnet_fi_chunks_t *) l->data;
-		l = g_slist_next(l);
+	for (sl = result; sl; /* NOTHING */) {
+		gnet_fi_chunks_t *chunk = sl->data;
 		if (DL_CHUNK_DONE != chunk->status) {
-			result = g_slist_remove(result, chunk);
-			wfree(chunk, sizeof(gnet_fi_chunks_t));
+			if (sl == result) {
+				result = g_slist_next(sl);
+			}
+			sl = g_slist_delete_link(sl, sl);
+			wfree(chunk, sizeof *chunk);
+		} else {
+			sl = g_slist_next(sl);
 		}
 	}
 
@@ -354,16 +358,16 @@ vp_get_chunks_initial(gnet_fi_t fih) {
 static void
 vp_gui_fi_added(gnet_fi_t fih)
 {
-    gnet_fi_info_t *fi = NULL;
-    vp_info_t *new_vp_info = NULL;
+    gnet_fi_info_t *fi;
+    vp_info_t *new_vp_info;
     gnet_fi_status_t s;
 
     fi = guc_fi_get_info(fih);
     guc_fi_get_status(fih, &s);
 
-    new_vp_info = walloc0(sizeof(*new_vp_info));
+    new_vp_info = walloc0(sizeof *new_vp_info);
     new_vp_info->fi_handle = fih;
-    new_vp_info->file_name = g_strdup(fi->file_name);
+    new_vp_info->file_name = atom_str_get(fi->file_name);
     new_vp_info->file_size = s.size;
     new_vp_info->chunks_list = guc_fi_get_chunks(fih);
 	new_vp_info->ranges_list = guc_fi_get_ranges(fih);
@@ -382,6 +386,23 @@ vp_gui_fi_added(gnet_fi_t fih)
     guc_fi_free_info(fi);
 }
 
+static void
+vp_info_free(vp_info_t **v_ptr)
+{
+	g_assert(v_ptr);
+
+	if (*v_ptr) {
+		vp_info_t *v = *v_ptr;
+		
+		guc_fi_free_chunks(v->chunks_list);
+		guc_fi_free_chunks(v->chunks_initial);
+		guc_fi_free_ranges(v->ranges_list);
+		atom_str_free_null(&v->file_name);
+		wfree(v, sizeof *v);
+		*v_ptr = NULL;
+	}
+}
+
 /**
  * Handle the event that a fileinfo entry has been removed.
  *
@@ -398,16 +419,10 @@ vp_gui_fi_removed(gnet_fi_t fih)
 		GUINT_TO_POINTER(fih), NULL, &value);
     g_assert(found);
     g_assert(value);
+
 	v = value;
-
     g_hash_table_remove(vp_info_hash, GUINT_TO_POINTER(fih));
-
-    guc_fi_free_chunks(v->chunks_list);
-	guc_fi_free_chunks(v->chunks_initial);
-	guc_fi_free_ranges(v->ranges_list);
-	G_FREE_NULL(v->file_name);
-
-    wfree(v, sizeof(vp_info_t));
+	vp_info_free(&v);
 
     /* Forget the fileinfo handle for which we displayed progress info */
     fi_context.fih_valid = FALSE;
@@ -417,7 +432,7 @@ vp_gui_fi_removed(gnet_fi_t fih)
  * For debugging: print chunk.
  */
 static void
-vp_print_chunk(FILE *file, gnet_fi_chunks_t *c, gboolean show_old)
+vp_print_chunk(FILE *file, const gnet_fi_chunks_t *c, gboolean show_old)
 {
 	if (show_old)
 		fprintf(file, "%10s - %10s %d [%s]\n",
@@ -433,14 +448,14 @@ vp_print_chunk(FILE *file, gnet_fi_chunks_t *c, gboolean show_old)
  * For debugging: print chunk list.
  */
 static void
-vp_print_chunk_list(FILE *file, GSList *list, gchar *title)
+vp_print_chunk_list(FILE *file, const GSList *list, const gchar *title)
 {
-	GSList *l;
+	const GSList *sl;
 
 	fprintf(file, "Chunk list \"%s\":\n", title);
 
-	for (l = list; l; l = g_slist_next(l)) {
-		gnet_fi_chunks_t *c = l->data;
+	for (sl = list; sl; sl = g_slist_next(sl)) {
+		const gnet_fi_chunks_t *c = sl->data;
 		vp_print_chunk(file, c, FALSE);
 	}
 
@@ -461,7 +476,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
 {
 	gnet_fi_chunks_t *chunk;
 
-	chunk = walloc(sizeof(gnet_fi_chunks_t));
+	chunk = walloc(sizeof *chunk);
 	chunk->from = from;
 	chunk->to = to;
 	chunk->status = status;
@@ -479,19 +494,18 @@ vp_create_chunk(filesize_t from, filesize_t to,
  * Assert that a chunks list confirms to the assumptions.
  */
 static gboolean
-vp_assert_chunks_list(GSList *list, gnet_fi_info_t *fi)
+vp_assert_chunks_list(const GSList *list, const gnet_fi_info_t *fi)
 {
-	GSList *l;
-	gnet_fi_chunks_t *chunk;
+	const GSList *sl;
 	filesize_t last = 0;
 
-	for (l = list; l; l = g_slist_next(l)) {
-		chunk = (gnet_fi_chunks_t *) l->data;
+	for (sl = list; sl; sl = g_slist_next(sl)) {
+		const gnet_fi_chunks_t *chunk = sl->data;
+
 		if (last != chunk->from) {
 			g_warning("BAD CHUNK LIST for \"%s\"", fi->file_name);
 			vp_print_chunk_list(stderr, list, "Chunks list");
 			return FALSE;
-			break;
 		}
 		last = chunk->to;
 	}
@@ -736,15 +750,14 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
  * Free the vp_info_t structs in the vp_info_hash.
  */
 void
-vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
+vp_free_key_value(gpointer key, gpointer value, gpointer user_data)
 {
+	vp_info_t *v = value;
+
 	(void) key;
 	(void) user_data;
-    guc_fi_free_chunks(((vp_info_t *) value)->chunks_list);
-	guc_fi_free_chunks(((vp_info_t *) value)->chunks_initial);
-	guc_fi_free_ranges(((vp_info_t *) value)->ranges_list);
-	G_FREE_NULL(((vp_info_t *) value)->file_name);
-    wfree(value, sizeof(vp_info_t));
+
+	vp_info_free(&v);
 }
 
 /**
@@ -805,19 +818,19 @@ vp_gui_shutdown(void)
 {
     guc_fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);
     guc_fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
-    guc_fi_remove_listener(vp_gui_fi_status_changed,
-		EV_FI_STATUS_CHANGED);
+    guc_fi_remove_listener(vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
     guc_fi_remove_listener(vp_gui_fi_status_changed,
 		EV_FI_STATUS_CHANGED_TRANSIENT);
     guc_fi_remove_listener(vp_gui_fi_ranges_changed, EV_FI_RANGES_CHANGED);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
+	vp_info_hash = NULL;
 }
 
 /*
  * Local Variables:
  * tab-width:4
  * End:
- * vi: set ts=4:
+ * vi: set ts=4 sw=4 cindent:
  */
