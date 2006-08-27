@@ -499,8 +499,11 @@
 66.232.99.218
 38.100.229.105
 
-# MOV spammer
+# MOV spammer; seems to use LimeWire; links to p2pblast com
+69.41.171.135
+69.41.171.162
 72.36.200.120/29
+72.36.210.200/29
 
 # University of Mississippi
 130.74.0.0/16
