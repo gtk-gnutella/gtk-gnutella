@@ -851,7 +851,7 @@ resolve_hostname(const gchar *host, enum net_type net)
  * @param net Use NET_TYPE_IPV4 if you want only IPv4 addresses or like-wise
               NET_TYPE_IPV6. If you don't care, use NET_TYPE_NONE.
  * @return On success, a single-linked list of walloc()ated host_addr_t
- *         items is returned.
+ *         items is returned. Use host_addr_free_list() for convience.
  *         On failure, NULL is returned.
  */
 GSList *
@@ -873,6 +873,26 @@ name_to_host_addr(const gchar *host, enum net_type net)
 	}
 
 	return resolve_hostname(host, net);
+}
+
+/**
+ * Frees a singly-linked list of host_addr_t elements.
+ */
+void
+host_addr_free_list(GSList **sl_ptr)
+{
+	g_assert(sl_ptr);
+
+	if (*sl_ptr) {
+		GSList *sl;
+
+		for (sl = *sl_ptr; NULL != sl; sl = g_slist_next(sl)) {
+			host_addr_t *addr_ptr = sl->data;
+			wfree(addr_ptr, sizeof *addr_ptr);
+		}
+		g_slist_free(*sl_ptr);
+		*sl_ptr = NULL;
+	}
 }
 
 /**
@@ -905,11 +925,7 @@ name_to_single_host_addr(const gchar *host, enum net_type net)
 			}
 		}
 
-		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
-			host_addr_t *addr_ptr = sl->data;
-			wfree(addr_ptr, sizeof *addr_ptr);
-		}
-		g_slist_free(sl_addr);
+		host_addr_free_list(&sl_addr);
 	}
 
 	return addr;
