@@ -63,6 +63,30 @@ struct header {
 	gint lines;					/**< Total header lines seen */
 };
 
+/**
+ * A header field.
+ *
+ * It holds the field name, and all the lines that make up that field.
+ * The first line has the field name and the ":" stripped, as well as
+ * all the leading spaces.  Continuations also have their leading spaces
+ * stripped out.
+ *
+ * For instance, assume the following header field:
+ *
+ *    - X-Comment: first line
+ *         and continuation of first line
+ *
+ * Then the structure would contain, with () denoting a list:
+ *
+ *    - name = "X-Comment"
+ *    - lines = ("first line", "and continuation of first line")
+ */
+
+typedef struct {
+	gchar *name;				/**< Field name */
+	GSList *lines;				/**< List of lines making this header */
+} header_field_t;
+
 /***
  *** Operating flags
  ***/
