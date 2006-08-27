@@ -42,6 +42,8 @@ RCSID("$Id$")
 #include "misc.h"
 #include "walloc.h"
 #include "getline.h"		/* For MAX_LINE_SIZE */
+#include "slist.h"
+
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -57,10 +59,10 @@ RCSID("$Id$")
 
 struct header {
 	GHashTable *headers;		/**< Indexed by name, normalized */
-	GSList *fields;				/**< Ordered list of header_field_t */
+	slist_t *fields;			/**< Ordered list of header_field_t */
 	gint flags;					/**< Various operating flags */
 	gint size;					/**< Total header size, in bytes */
-	gint lines;					/**< Total header lines seen */
+	gint num_lines;				/**< Total header lines seen */
 };
 
 /**
@@ -84,7 +86,7 @@ struct header {
 
 typedef struct {
 	gchar *name;				/**< Field name */
-	GSList *lines;				/**< List of lines making this header */
+	slist_t *lines;				/**< List of lines making this header */
 } header_field_t;
 
 /***
@@ -127,7 +129,7 @@ header_strerror(guint errnum)
 gint
 header_lines(const header_t *h)
 {
-	return h->lines;
+	return h->num_lines;
 }
 
 gint
@@ -189,18 +191,23 @@ hfield_make(const gchar *name)
 	return h;
 }
 
+static void
+hfield_free_item(gpointer p, gpointer unused_data)
+{
+	(void) unused_data;
+	G_FREE_NULL(p);
+}
+
 /**
  * Dispose of the header field.
  */
 static void
 hfield_free(header_field_t *h)
 {
-	GSList *sl;
-
-	for (sl = h->lines; sl; sl = g_slist_next(sl))
-		G_FREE_NULL(sl->data);
-	g_slist_free(h->lines);
-
+	if (h->lines) {
+		slist_foreach(h->lines, hfield_free_item, NULL);
+		slist_free(&h->lines);
+	}
 	G_FREE_NULL(h->name);
 	G_FREE_NULL(h);
 }
@@ -212,7 +219,10 @@ hfield_free(header_field_t *h)
 static void
 hfield_append(header_field_t *h, const gchar *text)
 {
-	h->lines = g_slist_append(h->lines, g_strdup(text));
+	if (!h->lines) {
+		h->lines = slist_new();
+	}
+	slist_append(h->lines, g_strdup(text));
 }
 
 /**
@@ -221,18 +231,24 @@ hfield_append(header_field_t *h, const gchar *text)
 static void
 hfield_dump(const header_field_t *h, FILE *out)
 {
-	const GSList *sl;
-
-	fprintf(out, "%s: ", h->name);
+	slist_iter_t *iter;
+	gboolean first;
 
 	g_assert(h->lines);
 
-	for (sl = h->lines; sl; sl = g_slist_next(sl)) {
-		if (sl != h->lines)
+	fprintf(out, "%s: ", h->name);
+
+	first = TRUE;
+	iter = slist_iter_on_head(h->lines);
+	for (/* NOTHING */; slist_iter_has_item(iter); slist_iter_next(iter)) {
+		if (!first) {
+			first = FALSE;
 			fputs("    ", out);			/* Continuation line */
-		fputs(sl->data, out);
+		}
+		fputs(slist_iter_current(iter), out);
 		fputc('\n', out);
 	}
+	slist_iter_free(&iter);	
 }
 
 /***
@@ -280,24 +296,30 @@ header_free(header_t *o)
 	G_FREE_NULL(o);
 }
 
+static void
+header_reset_item(gpointer p, gpointer unused_data)
+{
+	(void) unused_data;
+	hfield_free(p);
+}
+
 /**
  * Reset header object, for new header parsing.
  */
 void
 header_reset(header_t *o)
 {
-	GSList *sl;
+	static const header_t zero_header;
 
 	g_assert(o);
 
 	g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
 
-	for (sl = o->fields; sl; sl = g_slist_next(sl))
-		hfield_free(sl->data);
-	g_slist_free(o->fields);
-	o->fields = NULL;
-
-	o->size = o->lines = o->flags = 0;
+	if (o->fields) {
+		slist_foreach(o->fields, header_reset_item, NULL);
+		slist_free(&o->fields);
+	}
+	*o = zero_header;
 }
 
 /**
@@ -418,7 +440,7 @@ header_append(header_t *o, const gchar *text, gint len)
 	if (o->size >= HEAD_MAX_SIZE)
 		return HEAD_TOO_LARGE;
 
-	if (++(o->lines) >= HEAD_MAX_LINES)
+	if (++(o->num_lines) >= HEAD_MAX_LINES)
 		return HEAD_MANY_LINES;
 
 	/*
@@ -435,7 +457,7 @@ header_append(header_t *o, const gchar *text, gint len)
 		 * an unexpected continuation line.
 		 */
 
-		if (o->fields == 0)
+		if (NULL == o->fields)
 			return HEAD_CONTINUATION;		/* Unexpected continuation */
 
 		/*
@@ -473,7 +495,7 @@ header_append(header_t *o, const gchar *text, gint len)
 		 * field we handled.
 		 */
 
-		hf = g_slist_last(o->fields)->data;
+		hf = slist_tail(o->fields);
 		hfield_append(hf, p);
 		add_continuation(o, hf->name, p);
 		o->size += len - (p - text);	/* Count only effective text */
@@ -554,11 +576,20 @@ header_append(header_t *o, const gchar *text, gint len)
 
 		hfield_append(hf, p);
 		add_header(o, buf, p);
-		o->fields = g_slist_append(o->fields, hf);
+		if (!o->fields) {
+			o->fields = slist_new();
+		}
+		slist_append(o->fields, hf);
 		o->size += len - (p - text);	/* Count only effective text */
 	}
 
 	return HEAD_OK;
+}
+
+static void
+header_dump_item(gpointer p, gpointer user_data)
+{
+	hfield_dump(p, user_data);
 }
 
 /**
@@ -567,10 +598,9 @@ header_append(header_t *o, const gchar *text, gint len)
 void
 header_dump(const header_t *o, FILE *out)
 {
-	const GSList *sl;
-
-	for (sl = o->fields; sl; sl = g_slist_next(sl))
-		hfield_dump(sl->data, out);
+	if (o->fields) {
+		slist_foreach(o->fields, header_dump_item, out);
+	}
 }
 
 /***
