@@ -108,20 +108,26 @@ struct bgtask {
  * Operating flags.
  */
 
-#define TASK_F_EXITED		0x00000001	/**< Exited */
-#define TASK_F_SIGNAL		0x00000002	/**< Signal received */
-#define TASK_F_RUNNING		0x00000004	/**< Task is running */
-#define TASK_F_ZOMBIE		0x00000008	/**< Task waiting status collect */
-#define TASK_F_NOTICK		0x00000010	/**< Do no recompute tick info */
-#define TASK_F_SLEEPING		0x00000020	/**< Task is sleeping */
-#define TASK_F_RUNNABLE		0x00000040	/**< Task is runnable */
-#define TASK_F_DAEMON		0x80000000	/**< Task is a daemon */
+enum {
+	TASK_F_EXITED	=	0x00000001,	/**< Exited */
+	TASK_F_SIGNAL	=	0x00000002,	/**< Signal received */
+	TASK_F_RUNNING	=	0x00000004,	/**< Task is running */
+	TASK_F_ZOMBIE	=	0x00000008,	/**< Task waiting status collect */
+	TASK_F_NOTICK	=	0x00000010,	/**< Do no recompute tick info */
+	TASK_F_SLEEPING	=	0x00000020,	/**< Task is sleeping */
+	TASK_F_RUNNABLE	=	0x00000040,	/**< Task is runnable */
+	TASK_F_DAEMON	=	0x80000000	/**< Task is a daemon */
+};
 
 /*
  * Access routines to internal fields.
  */
 
-#define TASK(x)		((struct bgtask *) (x))
+static inline struct bgtask *
+TASK(gpointer x)
+{
+	return x;
+}
 
 gint bg_task_seqno(gpointer h)			{ return TASK(h)->seqno; }
 gpointer bg_task_context(gpointer h)	{ return TASK(h)->ucontext; }
@@ -172,7 +178,7 @@ bg_sched_pick(void)
 	 * All task in run queue have equal priority, pick the first.
 	 */
 
-	return (runq != NULL) ? (struct bgtask *) runq->data : NULL;
+	return runq != NULL ? TASK(runq->data) : NULL;
 }
 
 /**
@@ -795,11 +801,11 @@ bg_task_ticks_used(gpointer h, gint used)
 static void
 bg_reclaim_dead(void)
 {
-	GSList *l;
+	GSList *sl;
 
-	for (l = dead_tasks; l; l = l->next)
-		bg_task_free((struct bgtask *) l->data);
-
+	for (sl = dead_tasks; sl; sl = g_slist_next(sl)) {
+		bg_task_free(TASK(sl->data));
+	}
 	g_slist_free(dead_tasks);
 	dead_tasks = NULL;
 }
