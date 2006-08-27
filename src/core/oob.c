@@ -60,8 +60,8 @@ RCSID("$Id$")
 
 #define OOB_EXPIRE_MS		(2*60*1000)		/**< 2 minutes at most */
 #define OOB_TIMEOUT_MS		(45*1000)		/**< 45 secs for them to reply */
-#define OOB_DELIVER_BASE_MS	(2.5*1000)		/**< 1 msg queued every 2.5 secs */
-#define OOB_DELIVER_RAND_MS	(5*1000)		/**< ... + up to 5 random secs */
+#define OOB_DELIVER_BASE_MS	2500			/**< 1 msg queued every 2.5 secs */
+#define OOB_DELIVER_RAND_MS	5000			/**< ... + up to 5 random secs */
 
 #define OOB_MAX_QUEUED		50				/**< Max # of messages per host */
 #define OOB_MAX_RETRY		3				/**< Retry # if LIME/12v2 dropped */
