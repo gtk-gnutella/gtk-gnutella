@@ -4511,7 +4511,7 @@ download_clone(struct download *d)
 	cd->status = GTA_DL_CONNECTING;
 	cd->server->refcnt++;
 
-	download_add_to_list(cd, DL_LIST_WAITING);
+	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
 
 	sl_downloads = g_slist_prepend(sl_downloads, cd);
 	sl_unqueued = g_slist_prepend(sl_unqueued, cd);
@@ -4540,16 +4540,6 @@ download_clone(struct download *d)
 	 * They are reset so that a download_free() on the original will not
 	 * free them.
 	 */
-
-#if 0
-	/* FIXME: This is probably incorrect because d->file_info still
-	 * exists and download_get_sha1() looks at d->file_info->sha1 too.
-	 * At least commenting this out fixed crash-on-purging-a-finished-file.
-	 */
-	if (DL_LIST_INVALID != d->list_idx) {
-		server_sha1_count_dec(d->server, d);
-	}
-#endif
 
 	d->sha1 = NULL;
 	d->socket = NULL;
