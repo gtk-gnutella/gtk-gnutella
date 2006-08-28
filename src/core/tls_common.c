@@ -144,7 +144,7 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 	}
 }
 
-static gnutls_dh_params_t
+static gnutls_dh_params
 get_dh_params(void)
 {
 	static gnutls_dh_params dh_params;
