@@ -61,7 +61,7 @@
 ?X: I put startsh at the end of the dependency list, in order to avoid the
 ?X: loading of the spitshell unit before the instructions.
 ?X:
-?MAKE:Loc Mcc awk ar bash bison byacc cat chgrp chmod chown \
+?MAKE:Loc awk ar bash bison byacc cat chgrp chmod chown \
 	comm compress cp cpio cpp csh date echo egrep emacs expr find flex \
 	gcc gzip grep inews ksh less line lint ln lp lpr ls mail mailx \
 	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
@@ -70,7 +70,7 @@
 	uname uniq uuname vi zcat zip:  eunicefix n c Instruct Myread \
 	startsh
 ?MAKE:	-pick weed $@ %<
-?LINT:describe Mcc awk ar bash bison byacc cat chgrp chmod chown \
+?LINT:describe awk ar bash bison byacc cat chgrp chmod chown \
 	comm compress cp cpio cpp csh date echo egrep emacs expr find flex \
 	gcc gzip grep inews ksh less line lint ln lp lpr ls mail mailx \
 	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
