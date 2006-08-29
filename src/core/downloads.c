@@ -6777,26 +6777,27 @@ download_mark_active(struct download *d)
 }
 
 /**
- * Checks whether the given vendor is evil.
+ * Checks whether the contents of a User-Agent or Server header match
+ * the signature of a dumb spammer.
  *
- * @param vendor Value of a User-Agent respectively Server header.
- * @returns TRUE if the given vendor string is known to be used by evil
- * 			guys only, FALSE otherwise.
+ * @param user_agent Value of a User-Agent respectively Server header.
+ * @returns TRUE if the given User-Agent string is known to be used by
+ * 			spammers only, FALSE otherwise.
  */
 static gboolean
-vendor_is_evil(const gchar *vendor)
+is_dumb_spammer(const gchar *user_agent)
 {
 	const gchar *endptr;
 
-	g_return_val_if_fail(vendor, FALSE);
+	g_return_val_if_fail(user_agent, FALSE);
 	
-	endptr = is_strcaseprefix(vendor, "LimeWire/");
+	endptr = is_strcaseprefix(user_agent, "LimeWire/");
 	if (endptr) {
 		if (is_strprefix(endptr, "3.6.") || is_strprefix(endptr, "4.8.10.")) {
 			return TRUE;
 		}
 	} else {
-		if (is_strcaseprefix(vendor, "Morpheous/")) {
+		if (is_strcaseprefix(user_agent, "Morpheous/")) {
 			return TRUE;
 		}
 	}
@@ -7060,7 +7061,7 @@ http_version_nofix:
 			"[short %u line%s header] ", count, count == 1 ? "" : "s");
 	}
 
-	if (vendor_is_evil(download_vendor_str(d))) {	
+	if (is_dumb_spammer(download_vendor_str(d))) {	
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "%s", _("Spammer detected"));
 		return;
