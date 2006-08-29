@@ -89,13 +89,8 @@ pattern_compile(const gchar *pattern)
 	size_t plen, i, *pd = p->delta;
 	const guchar *c;
 
-	plen = strlen(pattern);
-	{
-		gchar *copy = g_malloc(1 + plen);
-		memcpy(copy, pattern, 1 + plen);
-		p->pattern = copy;
-	}
-	p->len = plen;
+	p->pattern = g_strdup(pattern);
+	p->len = strlen(p->pattern);
 	p->duped = TRUE;
 
 	plen++;			/* Avoid increasing within the loop */
