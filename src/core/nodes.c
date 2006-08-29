@@ -6205,17 +6205,24 @@ node_parse(struct gnutella_node *node)
 
 	case GTA_MSG_VENDOR:
 	case GTA_MSG_STANDARD:
-		if (n->header.hops != 0 || n->header.ttl > 1) {
-			n->n_bad++;
-			drop = TRUE;
-			if (node_debug)
-				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
-            gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
-		} else {
-			/* In case no Vendor-Message was seen in handshake */
-
-			/* XXX: Is this correct for the Pseudo UDP node? */
-			n->attrs |= NODE_A_CAN_VENDOR;
+		/*
+		 * Vendor messages are never routed, so they should be sent with
+		 * hops=0 and TTL=1.  When they come from UDP however, they can
+		 * carry OOB reply indication, so we do not drop them if their
+		 * hops/ttl are not setup correctly.
+		 *		--RAM, 2006-08-29
+		 */
+		if (!NODE_IS_UDP(n)) {
+			if (n->header.hops != 0 || n->header.ttl > 1) {
+				n->n_bad++;
+				drop = TRUE;
+				if (node_debug)
+					gmsg_log_bad(n, "expected hops=0 and TTL<=1");
+				gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
+			} else {
+				/* In case no Vendor-Message was seen in handshake */
+				n->attrs |= NODE_A_CAN_VENDOR;
+			}
 		}
 		break;
 
