@@ -4709,8 +4709,7 @@ unicode_compose_add(guint idx)
 
 	key = GUINT_TO_POINTER(utf32_nfkd_lut[idx].d[0]);
 	sl = g_hash_table_lookup(utf32_compose_roots, key);
-	new_sl = g_slist_insert_sorted(sl,
-			GUINT_TO_POINTER(idx), compose_root_cmp);
+	new_sl = g_slist_insert_sorted(sl, GUINT_TO_POINTER(idx), compose_root_cmp);
 	if (sl != new_sl)
 		g_hash_table_insert(utf32_compose_roots, key, new_sl);
 }
