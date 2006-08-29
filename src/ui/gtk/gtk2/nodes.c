@@ -182,12 +182,16 @@ cell_renderer_func(GtkTreeViewColumn *column,
 	GtkCellRenderer *cell, GtkTreeModel *model, GtkTreeIter *iter,
 	gpointer udata)
 {
-	if (gtk_tree_view_column_get_visible(column)) {
 	static const GValue zero_value;
-	GValue value = zero_value;
 	const struct node_data *data;
-	const gchar *s, *attr = "text";
+	const gchar *s, *attr;
+	GValue value;
 
+	if (!gtk_tree_view_column_get_visible(column))
+		return;
+
+	attr = "text";
+	value = zero_value;
 	gtk_tree_model_get_value(model, iter, 0, &value);
 	data = g_value_get_pointer(&value);
 	switch (GPOINTER_TO_UINT(udata)) {
@@ -228,7 +232,6 @@ cell_renderer_func(GtkTreeViewColumn *column,
 			(void *) 0);
 	} else {
 		g_object_set(cell, attr, s, (void *) 0);
-	}
 	}
 }
 

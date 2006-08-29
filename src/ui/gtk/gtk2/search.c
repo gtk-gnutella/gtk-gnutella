@@ -159,12 +159,12 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
 {
 	const gchar *text = NULL;
+	const struct result_data *data;
+	enum c_sr_columns id;
 
-	if (gtk_tree_view_column_get_visible(column)) {
-		const struct result_data *data;
-		enum c_sr_columns id;
+	if (!gtk_tree_view_column_get_visible(column))
+		return;
 
-	
 	id = GPOINTER_TO_UINT(udata);
 	data = get_result_data(model, iter);
 	switch (id) {
@@ -239,7 +239,6 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		"foreground-gdk", data->fg,
 		"background-gdk", data->bg,
 		(void *) 0);
-	}
 }
 
 static GtkCellRenderer *
