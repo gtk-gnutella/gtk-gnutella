@@ -577,7 +577,7 @@ src/lib/zalloc.h
 src/lib/zlib_util.c
 src/lib/zlib_util.h
 src/main.c
-src/revision.h
+src/revision_h.SH
 src/ui/Jmakefile
 src/ui/Makefile.SH
 src/ui/gtk/Jmakefile
