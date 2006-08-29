@@ -306,8 +306,6 @@ servent_service(cqueue_t *cq, gpointer obj)
 			host_addr_port_to_string(s->host->addr, s->host->port),
 			guid_hex_str(pmsg_start(mb)));
 
-	mq_udp_putq(q, mb, s->host);
-
 	/*
 	 * Count enqueued deflated payloads, only when server was marked as
 	 * supporting compression anyway...
@@ -320,6 +318,8 @@ servent_service(cqueue_t *cq, gpointer obj)
 		if (header->ttl & GTA_UDP_DEFLATED)
 			gnet_stats_count_general(GNR_UDP_TX_COMPRESSED, 1);
 	}
+
+	mq_udp_putq(q, mb, s->host);
 
 	if (0 == fifo_count(s->fifo))
 		goto remove;
