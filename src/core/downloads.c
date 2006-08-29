@@ -1767,7 +1767,16 @@ server_sha1_count_dec(struct dl_server *server, struct download *d)
 
 		value = g_hash_table_lookup(server->sha1_counts, sha1);
 		n = GPOINTER_TO_UINT(value);
-		g_assert(n > 0);
+
+		/* g_assert(n > 0); */
+		/* XXX -- counter is sometimes off -- RAM, 2006-08-29 */
+		if (n == 0) {
+			g_warning("BUG: no SHA1 %s for server %s, ignoring decrement",
+				sha1_base32(sha1),
+				host_addr_port_to_string(server->key->addr, server->key->port));
+			return;
+		}
+
 		n--;
 		if (n > 0) {
 			value = GUINT_TO_POINTER(n);
