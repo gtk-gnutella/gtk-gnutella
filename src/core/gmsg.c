@@ -1200,7 +1200,7 @@ gmsg_log_dropped(gconstpointer head, const gchar *reason, ...)
 void
 gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
 {
-	printf("BAD <%s> ", node_vendor(n));
+	printf("BAD <%s> %s ", node_vendor(n), node_addr(n));
 
 	fputs(gmsg_infostr_full_split(&n->header, n->data), stdout);
 
