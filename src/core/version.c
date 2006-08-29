@@ -578,72 +578,101 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 }
 
 /**
+ * Generates the version string. This function does not require any
+ * initialization, thus may be called very early e.g., for showing
+ * version information if the executable was invoked with --version
+ * as argument.
+ *
+ * @return A pointer to a static buffer holding the version string.
+ */
+const gchar *
+version_build_string(void)
+{
+	static gboolean initialized;
+	static gchar buf[128];
+
+	if (!initialized) {
+		time_t now = tm_time_exact();
+		const gchar *sysname = "Unknown";
+		const gchar *machine = NULL;
+
+		initialized = TRUE;
+
+#ifdef HAS_UNAME
+		{
+			static struct utsname un;	/* Must survive this scope */
+
+			if (-1 != uname(&un)) {
+				sysname = un.sysname;
+				machine = un.machine;
+			} else {
+				g_warning("uname() failed: %s:", g_strerror(errno));
+			}
+		}
+#endif /* HAS_UNAME */
+
+		/*
+		 * Until 2007-03-22, we generate the version string using "r<build#>"
+		 * in the optional part.  After that date, the revision format is
+		 * expanded to include the build number right into the string.
+		 */
+
+		if (now <= 1174518000)				/* before 2007-03-22 */
+			gm_snprintf(buf, sizeof buf,
+					"gtk-gnutella/%s (%s; r%u; %s; %s%s%s)",
+					GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build(),
+					GTA_INTERFACE,
+					sysname,
+					machine && machine[0] ? " " : "",
+					machine ? machine : "");
+		else								/* after 2007-03-22 */
+			gm_snprintf(buf, sizeof buf,
+					"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
+					GTA_VERSION_NUMBER, main_get_build(),
+					GTA_RELEASE, GTA_INTERFACE,
+					sysname,
+					machine && machine[0] ? " " : "",
+					machine ? machine : "");
+	}
+	return buf;
+}
+
+/**
  * Initialize version string.
  */
 void
 version_init(void)
 {
-	gchar buf[128];
-	time_t now = tm_time();
-	const gchar *sysname = "Unknown";
-	const gchar *machine = NULL;
-	gboolean ok;
+	time_t now;
 
-#ifdef HAS_UNAME
+	version_string = atom_str_get(version_build_string());
+	now = tm_time();
+
 	{
-		static struct utsname un;	/* Must survive this scope */
-	
-		if (-1 != uname(&un)) {
-			sysname = un.sysname;
-			machine = un.machine;
-		} else {
-			g_warning("uname() failed: %s:", g_strerror(errno));
-		}
+		gboolean ok;
+		ok = version_parse(version_string, &our_version);
+		g_assert(ok);
 	}
-#endif /* HAS_UNAME */
-
-	/*
-	 * Until 2007-03-22, we generate the version string using "r<build#>"
-	 * in the optional part.  After that date, the revision format is
-	 * expanded to include the build number right into the string.
-	 */
-
-	if (now <= 1174518000)				/* before 2007-03-22 */
-		gm_snprintf(buf, sizeof buf,
-			"gtk-gnutella/%s (%s; r%u; %s; %s%s%s)",
-			GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build(),
-			GTA_INTERFACE,
-			sysname,
-			machine && machine[0] ? " " : "",
-			machine ? machine : "");
-	else								/* after 2007-03-22 */
-		gm_snprintf(buf, sizeof buf,
-			"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
-			GTA_VERSION_NUMBER, main_get_build(),
-			GTA_RELEASE, GTA_INTERFACE,
-			sysname,
-			machine && machine[0] ? " " : "",
-			machine ? machine : "");
-
-	version_string = atom_str_get(buf);
-	ok = version_parse(version_string, &our_version);
-	g_assert(ok);
 
 	g_message("%s", version_string);
 
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp != 0);
 
-	if (now <= 1174518000)				/* before 2007-03-22 */
-		gm_snprintf(buf, sizeof(buf),
-			"gtk-gnutella/%s (%s; r%u)",
-			GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build());
-	else
-		gm_snprintf(buf, sizeof(buf),
-			"gtk-gnutella/%s-%u (%s)",
-			GTA_VERSION_NUMBER, main_get_build(), GTA_RELEASE);
+	{
+		gchar buf[128];
 
-	version_short_string = atom_str_get(buf);
+		if (now <= 1174518000)				/* before 2007-03-22 */
+			gm_snprintf(buf, sizeof(buf),
+					"gtk-gnutella/%s (%s; r%u)",
+					GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build());
+		else
+			gm_snprintf(buf, sizeof(buf),
+					"gtk-gnutella/%s-%u (%s)",
+					GTA_VERSION_NUMBER, main_get_build(), GTA_RELEASE);
+
+		version_short_string = atom_str_get(buf);
+	}
 
 	last_rel_version = our_version;		/* struct copy */
 	last_dev_version = our_version;		/* struct copy */

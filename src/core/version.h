@@ -84,6 +84,7 @@ const gchar *version_str(const version_t *ver);
 extern gchar *version_string;
 extern gchar *version_short_string;
 
+const gchar *version_build_string(void);
 const gchar *version_get_string(void);
 guint8 version_get_code(void);
 
