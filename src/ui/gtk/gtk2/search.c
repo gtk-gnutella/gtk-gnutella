@@ -155,14 +155,15 @@ search_gui_update_rank(
 }
 
 static void
-cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell, 
+cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
 	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
 {
-	const struct result_data *data;
 	const gchar *text = NULL;
-	enum c_sr_columns id;
 
-	(void) unused_column;
+	if (gtk_tree_view_column_get_visible(column)) {
+		const struct result_data *data;
+		enum c_sr_columns id;
+
 	
 	id = GPOINTER_TO_UINT(udata);
 	data = get_result_data(model, iter);
@@ -238,6 +239,7 @@ cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell,
 		"foreground-gdk", data->fg,
 		"background-gdk", data->bg,
 		(void *) 0);
+	}
 }
 
 static GtkCellRenderer *

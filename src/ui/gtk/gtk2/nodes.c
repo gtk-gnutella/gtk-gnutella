@@ -178,16 +178,15 @@ create_nodes_model(void)
 }
 
 static void
-cell_renderer_func(GtkTreeViewColumn *unused_column,
+cell_renderer_func(GtkTreeViewColumn *column,
 	GtkCellRenderer *cell, GtkTreeModel *model, GtkTreeIter *iter,
 	gpointer udata)
 {
+	if (gtk_tree_view_column_get_visible(column)) {
 	static const GValue zero_value;
 	GValue value = zero_value;
 	const struct node_data *data;
 	const gchar *s, *attr = "text";
-
-	(void) unused_column;
 
 	gtk_tree_model_get_value(model, iter, 0, &value);
 	data = g_value_get_pointer(&value);
@@ -221,12 +220,16 @@ cell_renderer_func(GtkTreeViewColumn *unused_column,
 		s = NULL;
 	}
 
-	if (data->fg)
+	if (data->fg) {
 		g_object_set(cell,
+			attr, s,
 			"foreground-gdk", data->fg,
 			"foreground-set", TRUE,
 			(void *) 0);
-	g_object_set(cell, attr, s, (void *) 0);
+	} else {
+		g_object_set(cell, attr, s, (void *) 0);
+	}
+	}
 }
 
 /**
