@@ -215,7 +215,12 @@ tx_dgram_sendto(txdrv_t *tx, const gnet_host_t *to,
 	ssize_t r;
 	struct attr *attr = tx->opaque;
 
-	r = bio_sendto(attr->bio, to, data, len);
+	if (to->port > 0) {
+		r = bio_sendto(attr->bio, to, data, len);
+	} else {
+		errno = EINVAL;
+		r = -1;
+	}
 	if ((ssize_t) -1 == r)
 		return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
 
