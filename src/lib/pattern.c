@@ -90,7 +90,7 @@ pattern_compile(const gchar *pattern)
 	const guchar *c;
 
 	p->pattern = g_strdup(pattern);
-	p->len = strlen(p->pattern);
+	p->len = plen = strlen(p->pattern);
 	p->duped = TRUE;
 
 	plen++;			/* Avoid increasing within the loop */
