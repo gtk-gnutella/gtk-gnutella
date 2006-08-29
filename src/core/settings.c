@@ -141,15 +141,14 @@ is_my_address(const host_addr_t addr, guint16 port)
 static gint
 ensure_unicity(const gchar *file)
 {
-	gint fd, e;
-	gboolean locking_failed;
+	gboolean locked = FALSE;
+	gint fd;
 
 	g_assert(file);
 
 	fd = file_create(file, O_RDWR, PID_FILE_MODE);
 	if (-1 == fd) {
-		e = errno;
-		g_warning("could not access \"%s\": %s", file, g_strerror(e));
+		g_warning("could not access \"%s\": %s", file, g_strerror(errno));
 		return -1;
 	}
 
@@ -158,6 +157,7 @@ ensure_unicity(const gchar *file)
 	{
 		static const struct flock zero_flock;
 		struct flock fl;
+		gboolean locking_failed;
 
 		fl = zero_flock;
 		fl.l_type = F_WRLCK;
@@ -166,11 +166,10 @@ ensure_unicity(const gchar *file)
 
 		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
 		if (locking_failed) {
-			e = errno;
+			gint saved_errno = errno;
 
-			locking_failed = TRUE;
 			g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
-				fd, file, g_strerror(e));
+				fd, file, g_strerror(saved_errno));
 
 			/*
 			 * Use F_GETLK to determine the PID of the process, the
@@ -185,31 +184,27 @@ ensure_unicity(const gchar *file)
 				g_warning("another gtk-gnutella process seems to "
 					"be still running (pid=%lu)", (gulong) fl.l_pid);
 			}
+
+			if (is_temporary_error(saved_errno) || EACCES == saved_errno) {
+				goto failed;		/* The file appears to be locked */
+			}
+		} else {
+			locked = TRUE;
 		}
 	}
-#else
-	locking_failed = TRUE;
-	errno = 0;
 #endif /* F_SETLK && F_WRLCK */
-
-	if (!locking_failed)
-		goto done;
-
-	if (is_temporary_error(e) || EACCES == e)
-		goto failed;		/* The file appears to be locked */
 
 	/* Maybe F_SETLK is not supported by the OS or filesystem,
 	 * fall back to weaker PID locking */
-	{
+	if (!locked) {
 		ssize_t r;
 		gchar buf[33];
 
 		r = read(fd, buf, sizeof buf - 1);
-		e = errno;
-
 		if ((ssize_t) -1 == r) {
 			/* This would be odd */
-			g_warning("could not read pidfile \"%s\": %s", file, g_strerror(e));
+			g_warning("could not read pidfile \"%s\": %s",
+				file, g_strerror(errno));
 			goto failed;
 		}
 
@@ -236,7 +231,6 @@ ensure_unicity(const gchar *file)
 		}
 	}
 
-done:
 	/* Keep the fd open, otherwise the lock is lost */
 	return fd;
 
