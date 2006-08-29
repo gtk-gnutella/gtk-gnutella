@@ -3,7 +3,7 @@
 case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
-echo "Extracting revision.h"
+echo "Extracting src/revision.h"
 : In the following dollars and backticks do not need the extra backslash.
 cat >revision.h <<!GROK!THIS!
 /*
