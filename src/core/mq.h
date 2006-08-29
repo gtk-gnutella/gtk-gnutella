@@ -142,6 +142,7 @@ const struct mq_cops *mq_get_cops(void);
  * Message queue assertions.
  */
 
+#define MQ_DEBUG
 #ifdef MQ_DEBUG
 void mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line);
 
