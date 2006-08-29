@@ -147,7 +147,10 @@ wfree(gpointer ptr, size_t size)
 	g_assert(ptr);
 	g_assert(size > 0);
 
+#ifdef WFREE_INVALIDATES_DATA
 	memset(ptr, 1, size);
+#endif
+
 	if (rounded >= WALLOC_MAX) {
 		g_free(ptr);
 		return;
