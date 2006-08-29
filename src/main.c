@@ -914,6 +914,40 @@ assertion_init(void)
 #endif	/* FAST_ASSERTIONS */
 }
 
+static void
+usage(int exit_code)
+{
+	printf(
+		"Usage: gtk-gnutella [ options ... ]\n"
+		"  --help            Print this message.\n"
+		"  --ping            Check whether gtk-gnutella is running.\n"
+		"  --version         Show version information.\n"
+	);
+	
+	exit(exit_code);
+}
+
+static void
+handle_arguments(int argc, char **argv)
+{
+	gint i;
+
+	for (i = 0; i < argc; i++) {
+		const gchar *s = argv[i];
+
+		if (0 == strcmp(s, "--")) {
+			break;
+		} else if (0 == strcmp(s, "--help")) {
+			usage(EXIT_SUCCESS);
+		} else if (0 == strcmp(s, "--ping")) {
+			/* TODO: Implement this */
+		} else if (0 == strcmp(s, "--version")) {
+			printf("%s\n", version_build_string());
+			exit(EXIT_SUCCESS);
+		}
+	}
+}
+
 int
 main(int argc, char **argv)
 {
@@ -940,6 +974,7 @@ main(int argc, char **argv)
 #endif
 
 	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
+	handle_arguments(argc, argv);
 
 	/* Our inits */
 	(void) tm_time_exact();
