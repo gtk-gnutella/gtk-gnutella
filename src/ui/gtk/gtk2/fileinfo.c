@@ -187,14 +187,15 @@ set_fileinfo_data(struct fileinfo_data *data)
 }
 
 static void
-cell_renderer(GtkTreeViewColumn *unused_column, GtkCellRenderer *cell, 
+cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
 	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
 {
 	const struct fileinfo_data *data;
 	const gchar *text;
 	guint id;
 
-	(void) unused_column;
+	if (!gtk_tree_view_column_get_visible(column))
+		return;
 
 	data = get_fileinfo_data(model, iter);
 	g_return_if_fail(data);
