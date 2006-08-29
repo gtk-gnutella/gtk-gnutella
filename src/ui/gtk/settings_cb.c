@@ -97,10 +97,9 @@ on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
 
     timeout = gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable));
 
-    guc_search_set_reissue_timeout
-		(current_search->search_handle, timeout);
-    timeout_real = guc_search_get_reissue_timeout
-		(current_search->search_handle);
+    guc_search_set_reissue_timeout(current_search->search_handle, timeout);
+    timeout_real = guc_search_get_reissue_timeout(
+						current_search->search_handle);
 
     if (timeout != timeout_real)
         gtk_spin_button_set_value(GTK_SPIN_BUTTON(editable), timeout_real);
