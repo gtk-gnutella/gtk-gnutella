@@ -940,7 +940,14 @@ handle_arguments(int argc, char **argv)
 		} else if (0 == strcmp(s, "--help")) {
 			usage(EXIT_SUCCESS);
 		} else if (0 == strcmp(s, "--ping")) {
-			/* TODO: Implement this */
+			if (0 != settings_ensure_unicity(TRUE) && EEXIST == errno) {
+				/* gtk-gnutella was running. */
+				exit(EXIT_SUCCESS);
+			} else {
+				/* gtk-gnutella was not running or the PID file could
+				 * not be created. */
+				exit(EXIT_FAILURE);
+			}
 		} else if (0 == strcmp(s, "--version")) {
 			printf("%s\n", version_build_string());
 			exit(EXIT_SUCCESS);
@@ -974,6 +981,11 @@ main(int argc, char **argv)
 #endif
 
 	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
+
+	atoms_init();
+	eval_init();
+	settings_early_init();
+
 	handle_arguments(argc, argv);
 
 	/* Our inits */
@@ -1000,9 +1012,7 @@ main(int argc, char **argv)
 	random_init();
 	locale_init();
 	adns_init();
-	atoms_init();
 	file_object_init();
-	eval_init();
 	version_init();
 	socket_init();
 	gnet_stats_init();
