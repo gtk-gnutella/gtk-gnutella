@@ -180,10 +180,22 @@ struct passwd
 #endif
 
 #include <ctype.h>
+
+#ifdef I_FCNTL
 #include <fcntl.h>
+#endif
+#ifdef I_SYS_FILE
+#include <sys/file.h>
+#endif
+
+#if !defined(I_FCNTL) && !defined(I_SYS_FILE)
+#include <sys/fcntl.h>		/* Fallback */
+#endif
 
 #ifdef I_STRING
 #include <string.h>
+#else
+#include <strings.h>
 #endif
 
 #ifdef I_DIRENT
