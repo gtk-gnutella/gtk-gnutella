@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Aug 30 20:17:51 CEST 2006 [metaconfig 3.0 PL70]
+# Generated on Wed Aug 30 20:42:25 CEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -341,6 +341,7 @@ d_sa_interrupt=''
 d_sendfile=''
 d_setproctitle=''
 d_sigaction=''
+d_sigsetjmp=''
 d_socker_get=''
 sockercflags=''
 sockerldflags=''
@@ -387,6 +388,11 @@ gtkpackage=''
 gtkversion=''
 h_fcntl=''
 h_sysfile=''
+i_arpainet=''
+d_dirnamlen=''
+direntrytype=''
+i_dirent=''
+i_fcntl=''
 i_ifaddrs=''
 i_inttypes=''
 i_invent=''
@@ -405,18 +411,29 @@ d_pwcomment=''
 d_pwexpire=''
 d_pwquota=''
 i_pwd=''
+i_regex=''
+i_stdlib=''
 i_string=''
 strings=''
+i_sysmman=''
 i_sysparam=''
+i_sysresrc=''
 i_syssendfile=''
+i_syssock=''
+i_sysstat=''
 i_syssysctl=''
 i_systimes=''
+i_systypes=''
+i_sysun=''
 i_sysutsname=''
 i_systime=''
 i_systimek=''
 i_time=''
 timeincl=''
 i_unistd=''
+i_stdarg=''
+i_varargs=''
+i_varhdr=''
 i_zlib=''
 install=''
 installdir=''
@@ -553,6 +570,7 @@ locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
 : no include file wanted by default
 inclwanted=''
 
+i_sysfile=''
 i_sysselct=''
 i_whoami=''
 libnames=''
@@ -5788,6 +5806,50 @@ fi
 set d_sigaction; eval $setvar
 $rm -f set set$_o set.c
 
+: see if sigsetjmp exists
+echo " "
+case "$d_sigsetjmp" in
+'')
+	$cat >set.c <<'EOP'
+#include <setjmp.h>
+sigjmp_buf env;
+int set = 1;
+int main()
+{
+	if (sigsetjmp(env,1))
+		exit(set);
+	set = 0;
+	siglongjmp(env, 1);
+	exit(1);
+}
+EOP
+	if $cc $ccflags $ldflags -o set set.c $libs > /dev/null 2>&1 ; then
+		if ./set >/dev/null 2>&1; then
+			echo "POSIX sigsetjmp found." >&4
+			val="$define"
+		else
+			$cat >&4 <<EOM
+Uh-Oh! You have POSIX sigsetjmp and siglongjmp, but they do not work properly!!
+I'll ignore them.
+EOM
+			val="$undef"
+		fi
+	else
+		echo "sigsetjmp not found." >&4
+		val="$undef"
+	fi
+	;;
+*) val="$d_sigsetjmp"
+	case "$d_sigsetjmp" in
+	$define) echo "POSIX sigsetjmp found." >&4;;
+	$undef) echo "sigsetjmp not found." >&4;;
+	esac
+	;;
+esac
+set d_sigsetjmp
+eval $setvar
+$rm -f set.c set
+
 : determine whether socker_get is available
 echo " "
 echo "Checking whether socker_get() is available..." >&4
@@ -7469,6 +7531,58 @@ none) yaccflags='';;
 *) yaccflags="$ans";;
 esac
 
+: see if arpa/inet.h has to be included
+set arpa/inet.h i_arpainet
+eval $inhdr
+
+: see if this is a dirent system
+echo " "
+if xinc=`./findhdr dirent.h`; $test "$xinc"; then
+	val="$define"
+	echo "<dirent.h> found." >&4
+else
+	val="$undef"
+	if xinc=`./findhdr sys/dir.h`; $test "$xinc"; then
+		echo "<sys/dir.h> found." >&4
+		echo " "
+	else
+		xinc=`./findhdr sys/ndir.h`
+	fi
+	echo "<dirent.h> NOT found." >&4
+fi
+set i_dirent
+eval $setvar
+
+
+: see if fcntl.h is there
+val=''
+set fcntl.h val
+eval $inhdr
+
+: see if we can include fcntl.h
+case "$val" in
+"$define")
+	echo " "
+	if $h_fcntl; then
+		val="$define"
+		echo "We'll be including <fcntl.h>." >&4
+	else
+		val="$undef"
+		if $h_sysfile; then
+	echo "We don't need to include <fcntl.h> if we include <sys/file.h>." >&4
+		else
+			echo "We won't be including <fcntl.h>." >&4
+		fi
+	fi
+	;;
+*)
+	h_fcntl=false
+	val="$undef"
+	;;
+esac
+set i_fcntl
+eval $setvar
+
 : see if this is a ifaddrs.h system
 set ifaddrs.h i_ifaddrs
 eval $inhdr
@@ -7563,12 +7677,134 @@ $define)
 	;;
 esac
 
+: see if regex is available
+set regex.h i_regex
+eval $inhdr
+
+: see if stdarg is available
+echo " "
+if $test `./findhdr stdarg.h`; then
+	echo "<stdarg.h> found." >&4
+	valstd="$define"
+else
+	echo "<stdarg.h> NOT found." >&4
+	valstd="$undef"
+fi
+
+: see if varags is available
+echo " "
+if $test `./findhdr varargs.h`; then
+	echo "<varargs.h> found." >&4
+else
+	echo "<varargs.h> NOT found, but that's ok (I hope)." >&4
+fi
+
+: set up the varargs testing programs
+$cat > varargs.c <<EOP
+#ifdef I_STDARG
+#include <stdarg.h>
+#endif
+#ifdef I_VARARGS
+#include <varargs.h>
+#endif
+
+#ifdef I_STDARG
+int f(char *p, ...)
+#else
+int f(va_alist)
+va_dcl
+#endif
+{
+	va_list ap;
+#ifndef I_STDARG
+	char *p;
+#endif
+#ifdef I_STDARG
+	va_start(ap,p);
+#else
+	va_start(ap);
+	p = va_arg(ap, char *);
+#endif
+	va_end(ap);
+}
+EOP
+$cat > varargs <<EOP
+$startsh
+if $cc -c $ccflags -D\$1 varargs.c >/dev/null 2>&1; then
+	echo "true"
+else
+	echo "false"
+fi
+$rm -f varargs$_o
+EOP
+chmod +x varargs
+
+: now check which varargs header should be included
+echo " "
+i_varhdr=''
+case "$valstd" in
+"$define")
+	if `./varargs I_STDARG`; then
+		val='stdarg.h'
+	elif `./varargs I_VARARGS`; then
+		val='varargs.h'
+	fi
+	;;
+*)
+	if `./varargs I_VARARGS`; then
+		val='varargs.h'
+	fi
+	;;
+esac
+case "$val" in
+'')
+	./warn "I could not find the definition for va_dcl... You have problems..."
+	val="$undef"; set i_stdarg; eval $setvar
+	val="$undef"; set i_varargs; eval $setvar
+	;;
+*) 
+	set i_varhdr
+	eval $setvar
+	case "$i_varhdr" in
+	stdarg.h)
+		val="$define"; set i_stdarg; eval $setvar
+		val="$undef"; set i_varargs; eval $setvar
+		;;
+	varargs.h)
+		val="$undef"; set i_stdarg; eval $setvar
+		val="$define"; set i_varargs; eval $setvar
+		;;
+	esac
+	echo "We'll include <$i_varhdr> to get va_dcl definition." >&4;;
+esac
+$rm -f varargs*
+
+: see if stdlib is available
+set stdlib.h i_stdlib
+eval $inhdr
+
+: see if sys/mman.h has to be included
+set sys/mman.h i_sysmman
+eval $inhdr
+
 : see if this is a sys/param system
 set sys/param.h i_sysparam
 eval $inhdr
 
+: see if sys/resource.h has to be included
+set sys/resource.h i_sysresrc
+eval $inhdr
+
 : see if this is a sys/sendfile system
 set sys/sendfile.h i_syssendfile
+eval $inhdr
+
+: see if this is a sys/socket.h system
+set sys/socket.h i_syssock
+eval $inhdr
+
+: see if sys/stat.h is available
+set sys/stat.h i_sysstat
 eval $inhdr
 
 : see if this is a sys/sysctl system
@@ -7657,6 +7893,14 @@ case "$flags" in
 *) i_systime="$undef";;
 esac
 $rm -f try.c try
+
+: see if sys/types.h has to be included
+set sys/types.h i_systypes
+eval $inhdr
+
+: see if this is a sys/un.h system
+set sys/un.h i_sysun
+eval $inhdr
 
 : see if this is a sys/utsname system
 set sys/utsname.h i_sysutsname
@@ -7892,6 +8136,7 @@ d_bsd='$d_bsd'
 d_const='$d_const'
 d_dbus='$d_dbus'
 d_deflate='$d_deflate'
+d_dirnamlen='$d_dirnamlen'
 d_dos='$d_dos'
 d_enablenls='$d_enablenls'
 d_eofnblk='$d_eofnblk'
@@ -7952,6 +8197,7 @@ d_sa_interrupt='$d_sa_interrupt'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'
+d_sigsetjmp='$d_sigsetjmp'
 d_socker_get='$d_socker_get'
 d_sqlite='$d_sqlite'
 d_srandom='$d_srandom'
@@ -7975,6 +8221,7 @@ dbuscflags='$dbuscflags'
 dbusconfig='$dbusconfig'
 dbusldflags='$dbusldflags'
 defvoidused='$defvoidused'
+direntrytype='$direntrytype'
 eagain='$eagain'
 echo='$echo'
 egrep='$egrep'
@@ -8015,6 +8262,9 @@ h_sysfile='$h_sysfile'
 hint='$hint'
 hostcat='$hostcat'
 huge='$huge'
+i_arpainet='$i_arpainet'
+i_dirent='$i_dirent'
+i_fcntl='$i_fcntl'
 i_ifaddrs='$i_ifaddrs'
 i_inttypes='$i_inttypes'
 i_invent='$i_invent'
@@ -8026,17 +8276,28 @@ i_netif='$i_netif'
 i_niin='$i_niin'
 i_niip='$i_niip'
 i_pwd='$i_pwd'
+i_regex='$i_regex'
+i_stdarg='$i_stdarg'
+i_stdlib='$i_stdlib'
 i_string='$i_string'
 i_sysin='$i_sysin'
+i_sysmman='$i_sysmman'
 i_sysparam='$i_sysparam'
+i_sysresrc='$i_sysresrc'
 i_syssendfile='$i_syssendfile'
+i_syssock='$i_syssock'
+i_sysstat='$i_sysstat'
 i_syssysctl='$i_syssysctl'
 i_systime='$i_systime'
 i_systimek='$i_systimek'
 i_systimes='$i_systimes'
+i_systypes='$i_systypes'
+i_sysun='$i_sysun'
 i_sysutsname='$i_sysutsname'
 i_time='$i_time'
 i_unistd='$i_unistd'
+i_varargs='$i_varargs'
+i_varhdr='$i_varhdr'
 i_zlib='$i_zlib'
 incpath='$incpath'
 inews='$inews'

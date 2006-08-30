@@ -209,6 +209,24 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sigaction HAS_SIGACTION	/**/
 
+/* HAS_SIGSETJMP:
+ *	This variable indicates to the C program that the sigsetjmp()
+ *	routine is available to save the calling process's registers
+ *	and stack environment for later use by siglongjmp(), and
+ *	to optionally save the process's signal mask.  See
+ *	Sigjmp_buf, Sigsetjmp, and Siglongjmp.
+ */
+#$d_sigsetjmp HAS_SIGSETJMP	/**/
+#ifdef HAS_SIGSETJMP
+#define Sigjmp_buf sigjmp_buf
+#define Sigsetjmp(buf,save_mask) sigsetjmp((buf),(save_mask))
+#define Siglongjmp(buf,retval) siglongjmp((buf),(retval))
+#else
+#define Sigjmp_buf jmp_buf
+#define Sigsetjmp(buf,save_mask) setjmp((buf))
+#define Siglongjmp(buf,retval) longjmp((buf),(retval))
+#endif
+
 /* HAS_TIMES:
  *	This symbol, if defined, indicates that the times() routine exists.
  *	Note that this became obsolete on some systems (SUNOS), which now
@@ -231,11 +249,36 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define volatile
 #endif
 
+/* I_ARPA_INET:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <arpa/inet.h> to get inet_addr and friends declarations.
+ */
+#$i_arpainet	I_ARPA_INET		/**/
+
+/* I_DIRENT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <dirent.h>. Using this symbol also triggers the definition
+ *	of the Direntry_t define which ends up being 'struct dirent' or
+ *	'struct direct' depending on the availability of <dirent.h>.
+ */
+#$i_dirent I_DIRENT		/**/
+
+/* I_FCNTL:
+ *	This manifest constant tells the C program to include <fcntl.h>.
+ */
+#$i_fcntl I_FCNTL	/**/
+
 /* I_INTTYPES:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <inttypes.h> to get format conversions of integer types.
  */
 #$i_inttypes I_INTTYPES		/**/
+
+/* I_NETINET_IN:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <netinet/in.h>. Otherwise, you may try <sys/in.h>.
+ */
+#$i_niin I_NETINET_IN	/**/
 
 /* I_PWD:
  *	This symbol, if defined, indicates to the C program that it should
@@ -243,17 +286,71 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_pwd I_PWD		/**/
 
+/* I_REGEX:
+ *	This symbol, if defined, indicates that <regex.h> exists and should
+ *	be included.
+ */
+#$i_regex I_REGEX	/**/
+
+/* I_STDLIB:
+ *	This symbol, if defined, indicates that <stdlib.h> exists and should
+ *	be included.
+ */
+#$i_stdlib I_STDLIB		/**/
+
+/* I_STRING:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <string.h> (USG systems) instead of <strings.h> (BSD systems).
+ */
+#$i_string I_STRING		/**/
+
+/* I_SYS_MMAN:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/mman.h>.
+ */
+#$i_sysmman	I_SYS_MMAN		/**/
+
 /* I_SYS_PARAM:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/param.h>.
  */
 #$i_sysparam I_SYS_PARAM		/**/
 
+/* I_SYS_RESOURCE:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/resource.h>.
+ */
+#$i_sysresrc I_SYS_RESOURCE		/**/
+
+/* I_SYS_SOCKET:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/socket.h> before performing socket calls.
+ */
+#$i_syssock I_SYS_SOCKET		/**/
+
+/* I_SYS_STAT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/stat.h>.
+ */
+#$i_sysstat	I_SYS_STAT		/**/
+
 /* I_SYS_TIMES:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/times.h>.
  */
 #$i_systimes	I_SYS_TIMES		/**/
+
+/* I_SYS_TYPES:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/types.h>.
+ */
+#$i_systypes	I_SYS_TYPES		/**/
+
+/* I_SYS_UN:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/un.h> to get UNIX domain socket definitions.
+ */
+#$i_sysun I_SYS_UN		/**/
 
 /* I_TIME:
  *	This symbol, if defined, indicates to the C program that it should
@@ -270,6 +367,18 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$i_time I_TIME		/**/
 #$i_systime I_SYS_TIME		/**/
 #$i_systimek I_SYS_TIME_KERNEL		/**/
+
+/* I_UNISTD:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <unistd.h>.
+ */
+#$i_unistd I_UNISTD		/**/
+
+/* I_STDARG:
+ *	This symbol, if defined, indicates that <stdarg.h> exists and should
+ *	be included.
+ */
+#$i_stdarg I_STDARG		/**/
 
 /* VAL_O_NONBLOCK:
  *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on

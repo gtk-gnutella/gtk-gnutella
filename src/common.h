@@ -69,21 +69,31 @@
  */
 
 #include <errno.h>
+
+#ifdef I_STDLIB
 #include <stdlib.h>
+#endif
+
 #include <stdio.h>
 #include <signal.h>
+
+#ifdef I_UNISTD
 #include <unistd.h>
+#endif
+
+#ifdef I_SYS_TYPES
 #include <sys/types.h>
+#endif
 
 #ifdef I_SYS_TIME
 #include <sys/time.h>
 #endif
+
 #ifdef I_SYS_TIME_KERNEL
 #define KERNEL
 #include <sys/time.h>
 #undef KERNEL
 #endif
-
 
 #ifdef MINGW32
 #include <ws2tcpip.h>
@@ -115,14 +125,23 @@
 #define S_IRWXG _S_IREAD
 #define S_IRWXO _S_IREAD
 
-#else /* !MINGW32 */
+#endif /* !MINGW32 */
 
-#include <sys/resource.h>
+#ifdef I_SYS_SOCKET
 #include <sys/socket.h>
+#endif
+
+#ifdef I_SYS_RESOURCE
+#include <sys/resource.h>
+#endif
+
+#ifdef I_SYS_UN
 #include <sys/un.h>
 #endif
 
+#ifdef I_SYS_STAT
 #include <sys/stat.h>
+#endif
 
 #ifdef MINGW32
 struct iovec 
@@ -147,16 +166,33 @@ struct passwd
 #else /* !MINGW32 */
 
 #include <sys/uio.h>		/* For writev(), readv(), struct iovec */
+
+#ifdef I_NETINET_IN
 #include <netinet/in.h>
+#endif
+
 #include <netinet/tcp.h>
-#include <arpa/inet.h>		/* For ntohl(), htonl() */
 
 #endif /* MINGW32 */
 
+#ifdef I_ARPA_INET
+#include <arpa/inet.h>		/* For ntohl(), htonl() */
+#endif
+
 #include <ctype.h>
+
+#ifdef I_FCNTL
 #include <fcntl.h>
+#endif
+
+#ifdef I_STRING
 #include <string.h>
+#endif
+
+#ifdef I_DIRENT
 #include <dirent.h>
+#endif
+
 #include <setjmp.h>
 
 #ifdef I_TIME
@@ -177,7 +213,9 @@ struct passwd
 #include <inttypes.h>
 #endif /* I_INTTYPES */
 
+#ifdef I_SYS_MMAN
 #include <sys/mman.h>
+#endif
 
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *) -1)
@@ -193,7 +231,7 @@ struct passwd
  * Proper mmap() support for memory-mapped files requires ISO C functions like
  * sigsetjmp().
  */
-#if defined(HAS_MMAP) && defined(__STDC_VERSION__)
+#if defined(HAS_MMAP) && defined(HAS_SIGSETJMP)
 #define USE_MMAP 1
 #endif	/* ISO C */
 
@@ -247,8 +285,13 @@ struct passwd
 
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
+#ifdef I_STDARG
 #include <stdarg.h>
+#endif
+
+#ifdef I_REGEX
 #include <regex.h>
+#endif
 
 #include <zlib.h>
 
