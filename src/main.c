@@ -947,8 +947,6 @@ local_shell(void)
 			goto failure;
 		}
 		G_FREE_NULL(path);
-
-		addr.sun_len = SUN_LEN(&addr);
 	}
 
 	fd = socket(PF_LOCAL, SOCK_STREAM, 0);

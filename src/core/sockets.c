@@ -2797,7 +2797,6 @@ socket_local_listen(const gchar *pathname)
 			g_warning("socket_local_listen(): pathname is too long");
 			return NULL; 
 		}
-		addr.sun_len = SUN_LEN(&addr);
 	}
 
 	sd = socket(PF_LOCAL, SOCK_STREAM, 0);
