@@ -2806,13 +2806,25 @@ socket_local_listen(const gchar *pathname)
 			g_strerror(errno));
 		return NULL;
 	}
+
 	(void) unlink(pathname);
-    if (0 != bind(sd, cast_to_gconstpointer(&addr), sizeof addr)) {
-		g_warning("socket_local_listen(): bind() failed: %s",
-			g_strerror(errno));
-		close(sd);
-		return NULL;
-    }
+
+	{
+		int ret, saved_errno;
+		mode_t mask;
+	
+		mask = umask(S_IRWXO | S_IRWXG);	/* umask 077 */
+    	ret = bind(sd, cast_to_gconstpointer(&addr), sizeof addr);
+		saved_errno = errno;
+		(void) umask(mask);
+
+		if (0 != ret) {
+			g_warning("socket_local_listen(): bind() failed: %s",
+				g_strerror(saved_errno));
+			close(sd);
+			return NULL;
+		}
+	}
 
 	s = socket_alloc();
 
