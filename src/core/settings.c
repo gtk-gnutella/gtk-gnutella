@@ -244,9 +244,10 @@ ensure_unicity(const gchar *file, gboolean check_only)
 	}
 
 	if (check_only) {
-		/* It would be safer to keep the empty PID file around. Otherwise,
-		 * there's a race-condition without fcntl() locking. */
-		unlink(file);
+		/*
+		 * We keep the empty PID file around. Otherwise,
+		 * there's a race-condition without fcntl() locking.
+		 */
 		close(fd);
 		return 0;
 	}
