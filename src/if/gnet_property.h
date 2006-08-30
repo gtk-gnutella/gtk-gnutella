@@ -325,6 +325,7 @@ typedef enum {
     PROP_RUDP_DEBUG,
     PROP_DHT_DEBUG,
     PROP_OOB_PROXY_DEBUG,
+    PROP_ENABLE_LOCAL_SOCKET,
     GNET_PROPERTY_END
 } gnet_property_t;
 

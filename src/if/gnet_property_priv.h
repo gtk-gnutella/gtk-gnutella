@@ -333,6 +333,7 @@ extern const gboolean display_metric_units;
 extern const guint32  rudp_debug;
 extern const guint32  dht_debug;
 extern const guint32  oob_proxy_debug;
+extern const gboolean enable_local_socket;
 
 
 prop_set_t *gnet_prop_init(void);
