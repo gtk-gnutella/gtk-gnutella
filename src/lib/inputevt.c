@@ -83,7 +83,6 @@ struct inputevt_array {
 #endif /* HAS_EPOLL */
 
 #ifdef HAS_DEV_POLL
-#include <poll.h>
 #include <sys/devpoll.h>
 
 struct inputevt_array {
