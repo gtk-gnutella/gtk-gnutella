@@ -119,6 +119,7 @@
 
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #endif
 
 #include <sys/stat.h>
@@ -203,6 +204,12 @@ struct passwd
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #endif
+
+#if defined(I_POLL)
+#include <poll.h>
+#elif defined(I_SYS_POLL)
+#include <sys/poll.h>
+#endif	/* I_POLL */
 
 /* For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings. */
