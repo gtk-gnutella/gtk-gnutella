@@ -103,6 +103,7 @@ struct gnutella_socket *s_tcp_listen = NULL;
 struct gnutella_socket *s_tcp_listen6 = NULL;
 struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
+struct gnutella_socket *s_local_listen = NULL;
 
 static struct gnutella_socket *
 socket_alloc(void)
@@ -818,6 +819,7 @@ connect_socksv5(struct gnutella_socket *s)
 			ok = TRUE;
 			break;
 #endif /* USE_IPV6 */
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			break;
 		}
@@ -955,6 +957,7 @@ connect_socksv5(struct gnutella_socket *s)
 			size = 22;
 			break;
 #endif /* USE_IPV6 */
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			g_assert_not_reached();
 		}
@@ -1085,6 +1088,7 @@ socket_shutdown(void)
 	}
 
 	/* No longer accept connections or UDP packets */
+	socket_free_null(&s_local_listen);
 	socket_free_null(&s_tcp_listen);
 	socket_free_null(&s_tcp_listen6);
 	socket_free_null(&s_udp_listen);
@@ -1949,7 +1953,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	gint sd;
 
 	(void) unused_source;
-	g_assert(s->flags & SOCK_F_TCP);
+	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		g_warning("Input exception on TCP listening socket #%d!", s->file_desc);
@@ -2005,13 +2009,20 @@ accepted:
 	t = socket_alloc();
 
 	t->file_desc = sd;
-	t->addr = socket_addr_get_addr(&addr);
-	t->port = socket_addr_get_port(&addr);
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
-	t->local_port = s->local_port;
 	t->getline = getline_make(MAX_LINE_SIZE);
-	t->flags |= SOCK_F_TCP;
+
+	if (SOCK_F_TCP & s->flags) {
+		t->addr = socket_addr_get_addr(&addr);
+		t->port = socket_addr_get_port(&addr);
+		t->local_port = s->local_port;
+		t->flags |= SOCK_F_TCP;
+	} else {
+		g_assert(SOCK_F_LOCAL & s->flags);
+		t->flags |= SOCK_F_LOCAL;
+		t->addr.net = NET_TYPE_LOCAL;
+	}
 
 #ifdef HAS_GNUTLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
@@ -2490,6 +2501,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 				bind_addr = listen_addr6();
 			}
 			break;
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			break;
 		}
@@ -2763,11 +2775,81 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 }
 
 /**
+ * Creates a non-blocking listening unix domain socket with an attached
+ * resource of `type'.
+ */
+struct gnutella_socket *
+socket_local_listen(const gchar *pathname)
+{
+	struct sockaddr_un addr;
+	struct gnutella_socket *s;
+	int sd;
+
+	g_return_val_if_fail(pathname, NULL);
+	g_return_val_if_fail(is_absolute_path(pathname), NULL);
+
+	{
+		static const struct sockaddr_un zero_un;
+		size_t size = sizeof addr.sun_path;
+
+		addr = zero_un;
+		if (g_strlcpy(addr.sun_path, pathname, size) >= size) {
+			g_warning("socket_local_listen(): pathname is too long");
+			return NULL; 
+		}
+		addr.sun_len = SUN_LEN(&addr);
+	}
+
+	sd = socket(PF_LOCAL, SOCK_STREAM, 0);
+	if (sd < 0) {
+		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %s",
+			g_strerror(errno));
+		return NULL;
+	}
+	(void) unlink(pathname);
+    if (0 != bind(sd, cast_to_gconstpointer(&addr), sizeof addr)) {
+		g_warning("socket_local_listen(): bind() failed: %s",
+			g_strerror(errno));
+		close(sd);
+		return NULL;
+    }
+
+	s = socket_alloc();
+
+	s->type = SOCK_STREAM;
+	s->direction = SOCK_CONN_LISTENING;
+	s->file_desc = sd;
+	s->pos = 0;
+	s->flags |= SOCK_F_LOCAL;
+
+	/* Set the file descriptor non blocking */
+	socket_set_nonblocking(sd);
+
+	s->net = NET_TYPE_NONE;
+	s->local_port = 0;
+
+	/* listen() the socket */
+
+	if (listen(sd, 5) == -1) {
+		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
+		socket_destroy(s, "Unable to listen on socket");
+		return NULL;
+	}
+
+#ifdef HAS_GNUTLS
+	s->tls.enabled = TRUE;
+#endif /* HAS_GNUTLS */
+
+	socket_evt_set(s, INPUT_EVENT_RX, socket_accept, s);
+	return s;
+}
+
+/**
  * Creates a non-blocking TCP listening socket with an attached
  * resource of `type'.
  */
 struct gnutella_socket *
-socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
+socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 {
 	static const int enable = 1;
 	struct gnutella_socket *s;
@@ -2780,7 +2862,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port, enum socket_type type)
 
 	s = socket_alloc();
 
-	s->type = type;
+	s->type = SOCK_TYPE_CONTROL;
 	s->direction = SOCK_CONN_LISTENING;
 	s->file_desc = sd;
 	s->pos = 0;
@@ -2853,6 +2935,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 #endif /* USE_IPV6 && IPV6_RECVDSTADDR */
 		break;
 
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -3214,14 +3297,14 @@ socket_no_writev(struct wrap_io *unused_wio,
 static void
 socket_wio_link(struct gnutella_socket *s)
 {
-	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_UDP));
+	g_assert(s->flags & (SOCK_F_LOCAL | SOCK_F_TCP | SOCK_F_UDP));
 
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 
 	if (SOCKET_USES_TLS(s)) {
 		tls_wio_link(&s->wio);
-	} else if (s->flags & SOCK_F_TCP) {
+	} else if (s->flags & (SOCK_F_TCP | SOCK_F_LOCAL)) {
 		s->wio.write = socket_plain_write;
 		s->wio.read = socket_plain_read;
 		s->wio.writev = socket_plain_writev;

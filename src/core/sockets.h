@@ -158,6 +158,7 @@ extern struct gnutella_socket *s_tcp_listen;
 extern struct gnutella_socket *s_tcp_listen6;
 extern struct gnutella_socket *s_udp_listen;
 extern struct gnutella_socket *s_udp_listen6;
+extern struct gnutella_socket *s_local_listen;
 
 
 /**
@@ -220,9 +221,10 @@ struct gnutella_socket *socket_connect(const host_addr_t, guint16,
 		enum socket_type, guint32 flags);
 struct gnutella_socket *socket_connect_by_name(
 	const gchar *host, guint16, enum socket_type, guint32 flags);
-struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16,
-		enum socket_type);
+struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16);
 struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16);
+struct gnutella_socket *socket_local_listen(const gchar *pathname);
+
 void socket_evt_set(struct gnutella_socket *s,
 	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data);
 void socket_evt_clear(struct gnutella_socket *s);
