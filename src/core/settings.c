@@ -136,10 +136,15 @@ is_my_address(const host_addr_t addr, guint16 port)
  * Look for any existing PID file. If found, look at the pid recorded
  * there and make sure it has died. Abort operations if it hasn't...
  *
- * @returns -1 on failure, the file descriptor of the pidfile otherwise.
+ * @returns On success a non-negative value is returned.
+ *          If check_only was FALSE, the file descriptor of the pidfile
+ *			is returned, if check_only was TRUE, zero is returned on success.
+ *			On failure errno is set to EEXIST, if the PID file was already
+ *			locked. Other errno values imply that the PID file could not
+ *			be created.
  */
 static gint
-ensure_unicity(const gchar *file)
+ensure_unicity(const gchar *file, gboolean check_only)
 {
 	gboolean locked = FALSE;
 	gint fd;
@@ -147,8 +152,10 @@ ensure_unicity(const gchar *file)
 	g_assert(file);
 
 	fd = file_create(file, O_RDWR, PID_FILE_MODE);
-	if (-1 == fd) {
-		g_warning("could not access \"%s\": %s", file, g_strerror(errno));
+	if (fd < 0) {
+		if (!check_only) {
+			g_warning("could not create \"%s\": %s", file, g_strerror(errno));
+		}
 		return -1;
 	}
 
@@ -168,25 +175,26 @@ ensure_unicity(const gchar *file)
 		if (locking_failed) {
 			gint saved_errno = errno;
 
-			g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
-				fd, file, g_strerror(saved_errno));
+			if (!check_only) {
+				g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
+					fd, file, g_strerror(saved_errno));
+				/*
+				 * Use F_GETLK to determine the PID of the process, the
+				 * reinitialization of "fl" might be unnecessary but who
+				 * knows.
+				 */
+				fl = zero_flock;
+				fl.l_type = F_WRLCK;
+				fl.l_whence = SEEK_SET;
 
-			/*
-			 * Use F_GETLK to determine the PID of the process, the
-			 * reinitialization of "fl" might be unnecessary but who
-			 * knows.
-			 */
-			fl = zero_flock;
-			fl.l_type = F_WRLCK;
-			fl.l_whence = SEEK_SET;
-
-			if (-1 != fcntl(fd, F_GETLK, &fl)) {
-				g_warning("another gtk-gnutella process seems to "
-					"be still running (pid=%lu)", (gulong) fl.l_pid);
+				if (-1 != fcntl(fd, F_GETLK, &fl)) {
+					g_warning("another gtk-gnutella process seems to "
+							"be still running (pid=%lu)", (gulong) fl.l_pid);
+				}
 			}
 
 			if (is_temporary_error(saved_errno) || EACCES == saved_errno) {
-				goto failed;		/* The file appears to be locked */
+				goto failed;	/* The file seems to be locked */
 			}
 		} else {
 			locked = TRUE;
@@ -203,8 +211,10 @@ ensure_unicity(const gchar *file)
 		r = read(fd, buf, sizeof buf - 1);
 		if ((ssize_t) -1 == r) {
 			/* This would be odd */
-			g_warning("could not read pidfile \"%s\": %s",
-				file, g_strerror(errno));
+			if (!check_only) {
+				g_warning("could not read pidfile \"%s\": %s",
+					file, g_strerror(errno));
+			}
 			goto failed;
 		}
 
@@ -223,19 +233,31 @@ ensure_unicity(const gchar *file)
 				pid_t pid = u;
 
 				if (0 == kill(pid, 0)) {
-					g_warning("another gtk-gnutella process seems to "
-						"be still running (pid=%lu)", (gulong) pid);
+					if (!check_only) {
+						g_warning("another gtk-gnutella process seems to "
+							"be still running (pid=%lu)", (gulong) pid);
+					}
 					goto failed;
 				}
 			}
 		}
 	}
 
+	if (check_only) {
+		/* It would be safer to keep the empty PID file around. Otherwise,
+		 * there's a race-condition without fcntl() locking. */
+		unlink(file);
+		close(fd);
+		return 0;
+	}
+
 	/* Keep the fd open, otherwise the lock is lost */
 	return fd;
 
 failed:
+
 	close(fd);
+	errno = EEXIST;
 	return -1;
 }
 
@@ -354,12 +376,63 @@ settings_getphysmemsize(void)
 }
 #endif /* _SC_PHYS_PAGES */
 
+/**
+ * Initializes "config_dir" and "home_dir".
+ */
+void
+settings_early_init(void)
+{
+	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
+	home_dir = g_strdup(eval_subst("~"));
+	if (!home_dir)
+		g_warning(_("Can't find your home directory!"));
+	if (!config_dir && home_dir)
+		config_dir = make_pathname(home_dir, ".gtk-gnutella");
+}
+
+/**
+ * Tries to ensure that the current process is the only running instance
+ * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
+ *
+ * @param check_only If TRUE, no warnings are emitted and a possibly created
+ *                   PID file is automagically removed.
+ * @returns On success zero is returned, otherwise a non-zero is returned
+ *			and errno is set.
+ */
+gint
+settings_ensure_unicity(gboolean check_only)
+{
+	gint fd;
+
+	g_assert(config_dir);
+
+	{
+		gchar *path;
+		gint saved_errno;
+		
+		path = make_pathname(config_dir, pidfile);
+		fd = ensure_unicity(path, check_only);
+		saved_errno = errno;
+		G_FREE_NULL(path);
+		errno = saved_errno;
+	}
+
+	if (fd < 0) {
+		return -1;
+	}
+
+	if (!check_only) {
+		save_pid(fd);
+	}
+	/* The file descriptor must be kept open */
+	return 0;
+}
+
 void
 settings_init(void)
 {
 	guint64 memory = settings_getphysmemsize();
 	guint64 amount = memory; 
-	char *path = NULL;
 	guint max_fd;
 
 #ifdef RLIMIT_DATA 
@@ -380,13 +453,6 @@ settings_init(void)
 	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
 
 	memset(deconstify_gpointer(servent_guid), 0, sizeof servent_guid);
-	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
-	home_dir = g_strdup(eval_subst("~"));
-	if (!home_dir)
-		g_warning(_("Can't find your home directory!"));
-
-	if (!config_dir && home_dir)
-		config_dir = make_pathname(home_dir, ".gtk-gnutella");
 
 	if (NULL == config_dir || '\0' == config_dir[0])
 		goto no_config_dir;
@@ -400,24 +466,13 @@ settings_init(void)
 		}
 	}
 
-	g_assert(NULL != config_dir);
-	/* Ensure we're the only instance running */
-
-	path = make_pathname(config_dir, pidfile);
-	{
-		gint fd;
-
-		if (-1 == (fd = ensure_unicity(path))) {
-			g_warning(
-				_("You seem to have left another gtk-gnutella running\n"));
-			exit(EXIT_FAILURE);
-		}
-		save_pid(fd);
-		/* The file descriptor must be kept open */
+	/* Ensure this is the only instance running */
+	if (0 != settings_ensure_unicity(FALSE)) {
+		g_warning(_("You seem to have left another gtk-gnutella running\n"));
+		exit(EXIT_FAILURE);
 	}
-	G_FREE_NULL(path);
 
-		/* Parse the configuration */
+	/* Parse the configuration */
 	prop_load_from_file(properties, config_dir, config_file);
 
 	if (debugging(0)) {
@@ -429,9 +484,13 @@ settings_init(void)
 		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
 	}
 
-	path = make_pathname(config_dir, ul_stats_file);
-	upload_stats_load_history(path);	/* Loads the upload statistics */
-	G_FREE_NULL(path);
+	{
+		gchar *path;
+
+		path = make_pathname(config_dir, ul_stats_file);
+		upload_stats_load_history(path);	/* Loads the upload statistics */
+		G_FREE_NULL(path);
+	}
 
 
 	/* watch for filter_file defaults */
@@ -506,6 +565,8 @@ static void
 settings_remove_pidfile(void)
 {
 	gchar *path;
+
+	g_assert(config_dir);
 
 	path = make_pathname(config_dir, pidfile);
 	g_return_if_fail(NULL != path);

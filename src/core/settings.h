@@ -55,6 +55,8 @@ extern struct in_addr *local_netmasks;
 
 gboolean is_my_address(const host_addr_t addr, guint16 port);
 
+void settings_early_init(void);
+gint settings_ensure_unicity(gboolean silent);
 void settings_init(void);
 void settings_save_if_dirty(void);
 void settings_shutdown(void);
