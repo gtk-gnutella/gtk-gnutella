@@ -5510,7 +5510,7 @@ static gnutella_node_t *
 node_udp_create(enum net_type net)
 {
 	gnutella_node_t *n;
-	gboolean is_ipv4;
+	gboolean is_ipv4 = FALSE;
 
 	switch (net) {
 	case NET_TYPE_IPV4:
@@ -5519,8 +5519,8 @@ node_udp_create(enum net_type net)
 	case NET_TYPE_IPV6:
 		is_ipv4 = FALSE;
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-	default:
 		return NULL;
 	}
 	
@@ -5577,8 +5577,9 @@ node_udp_enable_by_net(enum net_type net)
 		n = udp6_node;
 		s = s_udp_listen6;
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		break;
+		g_assert_not_reached();
 	}
 
 	g_assert(n != NULL);
@@ -5622,8 +5623,9 @@ node_udp_disable_by_net(enum net_type net)
 	case NET_TYPE_IPV6:
 		n = udp6_node;
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		break;
+		g_assert_not_reached();
 	}
 
 	g_assert(n != NULL);
@@ -5671,8 +5673,9 @@ node_udp_get(struct gnutella_socket *s)
 	case NET_TYPE_IPV6:
 		n = udp6_node;
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		break;
+		g_assert_not_reached();
 	}
 	g_assert(n != NULL);
 	g_assert(n->socket == s);		/* Only one UDP socket */
@@ -5702,7 +5705,9 @@ node_udp_get_outq(enum net_type net)
 	switch (net) {
 	case NET_TYPE_IPV4: return udp_node ? udp_node->outq : NULL;
 	case NET_TYPE_IPV6: return udp6_node ? udp6_node->outq : NULL;
-	case NET_TYPE_NONE: break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
 	}
 	return NULL;
 }
@@ -5722,7 +5727,9 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 	case NET_TYPE_IPV6:
 		n = udp6_node;
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
+		g_assert_not_reached();
 		break;
 	}
 	g_return_val_if_fail(n, NULL);

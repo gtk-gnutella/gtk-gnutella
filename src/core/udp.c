@@ -200,6 +200,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 			/* Only the loopback address (::1) qualifies as private */
 			got_reply = is_private_addr(addr); /* [::1]:123 */
 			break;
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			g_assert_not_reached();
 		}

@@ -40,8 +40,15 @@
 #include "common.h"
 #include "misc.h"
 
+/**
+ * @note AF_UNIX/AF_LOCAL (unix domain) sockets are not fully supported. These
+ * are only used for "anonymous" incoming connections, not for outgoing
+ * connections and a potential pathname is ignored.
+ */
+
 enum net_type {
 	NET_TYPE_NONE	= 0,
+	NET_TYPE_LOCAL	= 1,
 	NET_TYPE_IPV4	= 4,
 	NET_TYPE_IPV6	= 6,
 };
@@ -50,8 +57,9 @@ static inline gint
 net_type_to_pf(enum net_type net)
 {
 	switch (net) {
-	case NET_TYPE_NONE: return PF_UNSPEC;
-	case NET_TYPE_IPV4: return PF_INET;
+	case NET_TYPE_NONE:  return PF_UNSPEC;
+	case NET_TYPE_LOCAL: return PF_LOCAL;
+	case NET_TYPE_IPV4:  return PF_INET;
 	case NET_TYPE_IPV6:
 #ifdef USE_IPV6
 		return PF_INET6;
@@ -67,8 +75,9 @@ static inline gint
 net_type_to_af(enum net_type net)
 {
 	switch (net) {
-	case NET_TYPE_NONE: return AF_UNSPEC;
-	case NET_TYPE_IPV4: return AF_INET;
+	case NET_TYPE_NONE:  return AF_UNSPEC;
+	case NET_TYPE_LOCAL: return PF_LOCAL;
+	case NET_TYPE_IPV4:  return AF_INET;
 	case NET_TYPE_IPV6:
 #ifdef USE_IPV6
 		return AF_INET6;
@@ -171,6 +180,7 @@ host_addr_initialized(const host_addr_t ha)
 	switch (ha.net) {
 	case NET_TYPE_IPV4:
 	case NET_TYPE_IPV6:
+	case NET_TYPE_LOCAL:
 		return TRUE;
 	case NET_TYPE_NONE:
 		return FALSE;
@@ -183,9 +193,10 @@ static inline const gchar *
 net_type_to_string(enum net_type net)
 {
 	switch (net) {
-	case NET_TYPE_IPV4: return "IPv4";
-	case NET_TYPE_IPV6: return "IPv6";
-	case NET_TYPE_NONE: return "<none>";
+	case NET_TYPE_IPV4:  return "IPv4";
+	case NET_TYPE_IPV6:  return "IPv6";
+	case NET_TYPE_LOCAL: return "<local>";
+	case NET_TYPE_NONE:  return "<none>";
 	}
 	g_assert_not_reached();
 	return NULL;
@@ -246,6 +257,7 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 			}
 			return TRUE;
 
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			return TRUE;
 		}
@@ -286,6 +298,7 @@ host_addr_cmp(host_addr_t a, host_addr_t b)
 			}
 		}
 		return r;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return 0;
 	}
@@ -325,6 +338,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 		}
 		return TRUE;
 
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return TRUE;
 	}
@@ -343,6 +357,7 @@ is_host_addr(const host_addr_t ha)
 	case NET_TYPE_IPV6:
 		return 0 != memcmp(ha.addr.ipv6, zero_host_addr.addr.ipv6,
 						sizeof ha.addr.ipv6);
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return FALSE;
 	}
@@ -358,6 +373,8 @@ host_addr_family(const host_addr_t ha)
 		return AF_INET;
 	case NET_TYPE_IPV6:
 		return AF_INET6;
+	case NET_TYPE_LOCAL:
+		return AF_LOCAL;
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -388,8 +405,9 @@ host_addr_hash(host_addr_t ha)
 		/* FALL THROUGH */
 	case NET_TYPE_IPV4:
 		return ha.net ^ ha.addr.ipv4;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		return 0;
+		return ha.net;
 	}
 	g_assert_not_reached();
 	return -1;

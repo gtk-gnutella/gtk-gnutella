@@ -730,6 +730,7 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 	case NET_TYPE_IPV6:
 		addr_ipv6_changed(new_addr, peer);
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -1115,6 +1116,7 @@ get_bind_addr(enum net_type net)
 			addr = ipv6_unspecified;
 		}
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
 	}
@@ -1151,6 +1153,31 @@ enable_udp_changed(property_t prop)
 	return FALSE;
 }
 
+static gboolean
+enable_local_socket_changed(property_t prop)
+{
+	gboolean enabled;
+	
+    gnet_prop_get_boolean_val(prop, &enabled);
+	if (enabled) {
+		if (!s_local_listen) {
+			gchar *path;
+
+			path = make_pathname(config_dir, "socket");
+			s_local_listen = socket_local_listen(path);
+			G_FREE_NULL(path);
+
+			if (!s_local_listen) {
+				gcu_statusbar_warning(_("Failed to create local socket"));
+			}
+		}
+	} else {
+		socket_free_null(&s_local_listen);
+	}
+
+	return FALSE;
+}
+
 static void
 request_new_sockets(guint16 port, gboolean check_firewalled)
 {
@@ -1173,7 +1200,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	if (NET_USE_BOTH == network_protocol || NET_USE_IPV4 == network_protocol) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV4);
 
-		s_tcp_listen = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
+		s_tcp_listen = socket_tcp_listen(bind_addr, port);
 		if (enable_udp) {
 			s_udp_listen = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen) {
@@ -1184,7 +1211,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	if (NET_USE_BOTH == network_protocol || NET_USE_IPV6 == network_protocol) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV6);
 
-		s_tcp_listen6 = socket_tcp_listen(bind_addr, port, SOCK_TYPE_CONTROL);
+		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
 		if (enable_udp) {
 			s_udp_listen6 = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen6) {
@@ -2099,6 +2126,11 @@ static prop_map_t property_map[] = {
 		PROP_ENABLE_UDP,
 		enable_udp_changed,
 		FALSE,				/* UDP socket inited via listen_port_changed() */
+	},
+	{
+		PROP_ENABLE_LOCAL_SOCKET,
+		enable_local_socket_changed,
+		TRUE,
 	},
 };
 

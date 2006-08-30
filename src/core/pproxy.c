@@ -696,6 +696,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		case NET_TYPE_IPV6:
 			pp->addr_v6 = addr;
 			break;
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			break;
 		}
@@ -714,6 +715,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 				case NET_TYPE_IPV6:
 					pp->addr_v6 = addr;
 					break;
+				case NET_TYPE_LOCAL:
 				case NET_TYPE_NONE:
 					break;
 				}

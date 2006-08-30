@@ -161,6 +161,7 @@ host_addr_is_loopback(const host_addr_t addr)
 	case NET_TYPE_IPV6:
 		return host_addr_equal(ha, ipv6_loopback);
 
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -198,6 +199,7 @@ host_addr_is_routable(const host_addr_t addr)
 						!ipv4_addr_is_routable(host_addr_6to4_ipv4(ha))
 				);
 
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -235,6 +237,7 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 		}
 		break;
 
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -272,6 +275,7 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 				return TRUE;
 			}
 			break;
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			break;
 		}
@@ -291,6 +295,7 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 		}
 		break;
 
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -318,6 +323,8 @@ host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
 		return ipv4_to_string_buf(host_addr_ipv4(ha), dst, size);
 	case NET_TYPE_IPV6:
 		return ipv6_to_string_buf(host_addr_ipv6(&ha), dst, size);
+	case NET_TYPE_LOCAL:
+		return g_strlcpy(dst, "<local>", size);
 	case NET_TYPE_NONE:
 		return g_strlcpy(dst, "<none>", size);
 	}
@@ -594,6 +601,7 @@ socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, guint16 port)
 		}
 		return sizeof sa_ptr->inet6;
 #endif	/* USE_IPV6 */
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		if (sa_ptr) {
 			static const socket_addr_t zero_sa;
@@ -615,6 +623,7 @@ socket_addr_init(socket_addr_t *sa_ptr, enum net_type net)
 #ifdef USE_IPV6
 		return socket_addr_set(sa_ptr, ipv6_unspecified, 0);
 #endif
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
@@ -674,6 +683,7 @@ host_addr_to_name(host_addr_t addr)
 			len = sizeof sa.inet6.sin6_addr;
 			break;
 #endif /* USE_IPV6 */
+		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			return NULL;
 		}
@@ -1046,6 +1056,7 @@ host_addr_pack(const host_addr_t addr)
 	case NET_TYPE_IPV6:
 		memcpy(paddr.addr, host_addr_ipv6(&addr), sizeof addr.addr.ipv6);
 		break;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	default:
@@ -1064,6 +1075,7 @@ packed_host_addr_unpack(const struct packed_host_addr paddr)
 		return host_addr_get_ipv4(peek_be32(paddr.addr));
 	case NET_TYPE_IPV6:
 		return host_addr_get_ipv6(paddr.addr);
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return zero_host_addr;
 	}
@@ -1075,9 +1087,10 @@ guint
 packed_host_addr_size(const struct packed_host_addr paddr)
 {
 	switch (paddr.net) {
-	case NET_TYPE_IPV4:	return 5;
-	case NET_TYPE_IPV6: return 17;
-	case NET_TYPE_NONE:	return 1;
+	case NET_TYPE_IPV4:	 return 5;
+	case NET_TYPE_IPV6:  return 17;
+	case NET_TYPE_LOCAL: return 1;
+	case NET_TYPE_NONE:	 return 1;
 	}
 	g_assert_not_reached();
 	return 0;
@@ -1111,6 +1124,7 @@ packed_host_unpack(const struct packed_host phost,
 			*addr_ptr = host_addr_get_ipv6(phost.ha.addr);
 		}
 		return TRUE;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		if (addr_ptr) {
 			*addr_ptr = zero_host_addr;
@@ -1126,9 +1140,10 @@ guint
 packed_host_size(const struct packed_host phost)
 {
 	switch (phost.ha.net) {
-	case NET_TYPE_IPV4:	return 1 + 4 + 2;
-	case NET_TYPE_IPV6: return 1 + 16 + 2;
-	case NET_TYPE_NONE:	return 1 + 2;
+	case NET_TYPE_IPV4:	 return 1 + 4 + 2;
+	case NET_TYPE_IPV6:  return 1 + 16 + 2;
+	case NET_TYPE_LOCAL: return 1 + 2;
+	case NET_TYPE_NONE:	 return 1 + 2;
 	}
 	g_assert_not_reached();
 	return 0;
