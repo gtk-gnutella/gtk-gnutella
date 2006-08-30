@@ -180,10 +180,7 @@ struct passwd
 #endif
 
 #include <ctype.h>
-
-#ifdef I_FCNTL
 #include <fcntl.h>
-#endif
 
 #ifdef I_STRING
 #include <string.h>

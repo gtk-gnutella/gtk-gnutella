@@ -263,11 +263,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_dirent I_DIRENT		/**/
 
-/* I_FCNTL:
- *	This manifest constant tells the C program to include <fcntl.h>.
- */
-#$i_fcntl I_FCNTL	/**/
-
 /* I_INTTYPES:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <inttypes.h> to get format conversions of integer types.

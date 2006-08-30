@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Aug 30 20:42:25 CEST 2006 [metaconfig 3.0 PL70]
+# Generated on Wed Aug 30 21:02:30 CEST 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -392,7 +392,6 @@ i_arpainet=''
 d_dirnamlen=''
 direntrytype=''
 i_dirent=''
-i_fcntl=''
 i_ifaddrs=''
 i_inttypes=''
 i_invent=''
@@ -570,7 +569,6 @@ locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
 : no include file wanted by default
 inclwanted=''
 
-i_sysfile=''
 i_sysselct=''
 i_whoami=''
 libnames=''
@@ -7554,35 +7552,6 @@ set i_dirent
 eval $setvar
 
 
-: see if fcntl.h is there
-val=''
-set fcntl.h val
-eval $inhdr
-
-: see if we can include fcntl.h
-case "$val" in
-"$define")
-	echo " "
-	if $h_fcntl; then
-		val="$define"
-		echo "We'll be including <fcntl.h>." >&4
-	else
-		val="$undef"
-		if $h_sysfile; then
-	echo "We don't need to include <fcntl.h> if we include <sys/file.h>." >&4
-		else
-			echo "We won't be including <fcntl.h>." >&4
-		fi
-	fi
-	;;
-*)
-	h_fcntl=false
-	val="$undef"
-	;;
-esac
-set i_fcntl
-eval $setvar
-
 : see if this is a ifaddrs.h system
 set ifaddrs.h i_ifaddrs
 eval $inhdr
@@ -8264,7 +8233,6 @@ hostcat='$hostcat'
 huge='$huge'
 i_arpainet='$i_arpainet'
 i_dirent='$i_dirent'
-i_fcntl='$i_fcntl'
 i_ifaddrs='$i_ifaddrs'
 i_inttypes='$i_inttypes'
 i_invent='$i_invent'
