@@ -918,6 +918,7 @@ assertion_init(void)
 static void
 local_shell(void)
 {
+#if 0
 	struct sockaddr_un addr;
 	int fd;
 
@@ -1107,6 +1108,7 @@ done:
 	return;
 
 failure:
+#endif
 	exit(EXIT_FAILURE);
 }
 
