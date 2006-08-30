@@ -105,6 +105,7 @@
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/pattern.h"
+#include "lib/socket.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
@@ -915,6 +916,201 @@ assertion_init(void)
 }
 
 static void
+local_shell(void)
+{
+	struct sockaddr_un addr;
+	int fd;
+
+	if (-1 == fcntl(STDIN_FILENO, F_GETFL)) {
+		goto failure;
+	}
+	if (-1 == fcntl(STDOUT_FILENO, F_GETFL)) {
+		if (STDOUT_FILENO != open("/dev/null", O_WRONLY))
+			goto failure;
+	}
+	if (-1 == fcntl(STDERR_FILENO, F_GETFL)) {
+		if (STDERR_FILENO != open("/dev/null", O_WRONLY))
+			goto failure;
+	}
+
+	{
+		static const struct sockaddr_un zero_un;
+		size_t size = sizeof addr.sun_path;
+		gchar *path;
+
+		path = make_pathname(settings_config_dir(), "socket");
+
+		addr = zero_un;
+		if (g_strlcpy(addr.sun_path, path, size) >= size) {
+			g_warning("local_shell(): pathname is too long");
+			goto failure;
+		}
+		G_FREE_NULL(path);
+
+		addr.sun_len = SUN_LEN(&addr);
+	}
+
+	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
+	if (fd < 0) {
+		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %s",
+			g_strerror(errno));
+		goto failure;
+	}
+    if (0 != connect(fd, cast_to_gconstpointer(&addr), sizeof addr)) {
+		g_warning("local_shell(): connect() failed: %s",
+			g_strerror(errno));
+		close(fd);
+		fd = -1;
+		goto failure;
+    }
+
+	socket_set_nonblocking(STDIN_FILENO);
+	socket_set_nonblocking(STDOUT_FILENO);
+	socket_set_nonblocking(fd);
+
+	{
+		static struct {
+			gchar buf[4096];
+			size_t fill, pos;
+			gboolean eof;
+		} input, output;
+
+		for (;;) {
+
+			if (0 == input.fill) {
+				size_t size = sizeof input.buf;
+				ssize_t ret;
+
+				ret = read(STDIN_FILENO, input.buf, sizeof input.buf);
+				switch (ret) {
+				case 0:
+					input.eof = TRUE;
+					break;
+				case -1:
+					if (!is_temporary_error(errno)) {
+						g_warning("read() failed: %s", g_strerror(errno));
+						goto failure;
+					}
+					break;
+				default:
+					g_assert((size_t) ret <= size);
+					input.fill = ret;
+				}
+			}
+
+			if (input.fill > 0) {
+				size_t size = input.fill;
+				ssize_t ret;
+
+				ret = write(fd, &input.buf[input.pos], size);
+				switch (ret) {
+				case -1:
+					if (is_temporary_error(errno))
+						break;
+					g_warning("write() failed: %s", g_strerror(errno));
+				case 0:
+					goto failure;
+				default:
+					g_assert((size_t) ret <= size);
+					input.fill -= (size_t) ret;
+					if (input.fill > 0) {
+						input.pos += (size_t) ret;
+					} else {
+						input.pos = 0;
+					}
+				}
+			}
+
+			if (0 == output.fill) {
+				size_t size = sizeof output.buf;
+				ssize_t ret;
+
+				ret = read(fd, output.buf, size);
+				switch (ret) {
+				case 0:
+					output.eof = TRUE;
+					break;
+				case -1:
+					if (!is_temporary_error(errno)) {
+						g_warning("read() failed: %s", g_strerror(errno));
+						goto failure;
+					}
+					break;
+				default:
+					g_assert((size_t) ret <= size);
+					output.fill = ret;
+				}
+			}
+
+			if (output.fill > 0) {
+				size_t size = output.fill;
+				ssize_t ret;
+
+				ret = write(STDOUT_FILENO, &output.buf[output.pos], size);
+				switch (ret) {
+				case -1:
+					if (is_temporary_error(errno))
+						break;
+					g_warning("write() failed: %s", g_strerror(errno));
+				case 0:
+					goto failure;
+				default:
+					g_assert((size_t) ret <= size);
+					output.fill -= (size_t) ret;
+					if (output.fill > 0) {
+						output.pos += (size_t) ret;
+					} else {
+						output.pos = 0;
+					}
+				}
+			}
+
+			if (
+				(input.eof && 0 == input.fill) ||
+				(output.eof && 0 == output.fill)
+			) {
+				goto done;
+			}
+
+			{
+				struct pollfd fds[3];
+
+				fds[0].fd = STDIN_FILENO;
+				fds[0].events = (input.eof || input.fill > 0) ? 0 : POLLIN;
+
+				fds[1].fd = STDOUT_FILENO;
+				fds[1].events = output.fill > 0 ? POLLOUT : 0;
+
+				fds[2].fd = fd;
+				fds[2].events = 0
+					| ((output.fill > 0 || output.eof) ? 0 : POLLIN)
+					| (input.fill  > 0 ? POLLOUT : 0);
+
+				for (;;) {
+					int ret;
+
+					ret = poll(fds, G_N_ELEMENTS(fds), -1);
+					if (ret > 0) {
+						break;
+					} else if (ret < 0) {
+						if (!is_temporary_error(errno)) {
+							g_warning("poll() failed: %s", g_strerror(errno));
+							goto failure;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+done:
+	return;
+
+failure:
+	exit(EXIT_FAILURE);
+}
+
+static void
 usage(int exit_code)
 {
 	printf(
@@ -922,6 +1118,7 @@ usage(int exit_code)
 		"  --help            Print this message.\n"
 		"  --ping            Check whether gtk-gnutella is running.\n"
 		"  --version         Show version information.\n"
+		"  --shell           Access the local shell interface.\n"
 	);
 	
 	exit(exit_code);
@@ -950,6 +1147,9 @@ handle_arguments(int argc, char **argv)
 			}
 		} else if (0 == strcmp(s, "--version")) {
 			printf("%s\n", version_build_string());
+			exit(EXIT_SUCCESS);
+		} else if (0 == strcmp(s, "--shell")) {
+			local_shell();
 			exit(EXIT_SUCCESS);
 		}
 	}
