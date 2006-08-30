@@ -266,6 +266,7 @@ is_local_addr(const host_addr_t addr)
 	case NET_TYPE_IPV6:
 		return	host_addr_matches(addr, ipv6_link_local, 10) ||
 				host_addr_matches(addr, ipv6_site_local, 10);
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return FALSE;
 	}
