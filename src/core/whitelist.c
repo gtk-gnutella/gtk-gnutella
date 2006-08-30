@@ -64,6 +64,7 @@ addr_default_mask(const host_addr_t addr)
 		return 32;
 	case NET_TYPE_IPV6:
 		return 128;
+	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
 	}
