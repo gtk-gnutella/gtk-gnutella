@@ -55,6 +55,7 @@ static gchar *home;
 
 static gchar *get_home(void);
 static gchar *get_variable(gchar *s, gchar **end);
+static gboolean initialized;
 
 /**
  * Create a constant string, or reuse an existing one if possible.
@@ -82,8 +83,13 @@ constant_make(gchar *s)
 void
 eval_init(void)
 {
+	g_return_if_fail(!initialized);
+
 	constants = g_hash_table_new(g_str_hash, g_str_equal);
 	home = get_home();
+	g_assert(home);
+
+	initialized = TRUE;
 }
 
 static void
@@ -117,23 +123,23 @@ eval_close(void)
  * @return the pointer right after the inserted value.
  */
 static gchar *
-insert_value(gchar *val, gchar *start, gint off,
-	gint len, gint maxlen)
+insert_value(gchar *val, gchar *start, size_t off,
+	size_t len, size_t maxlen)
 {
-	gint vlen = strlen(val);
+	size_t vlen = strlen(val);
 
 	g_assert(len <= maxlen);
-	g_assert(off >= 0 && off <= len);
+	g_assert(off <= len);
 
-	if (len + vlen > maxlen) {
+	if (vlen > maxlen - len) {
 		g_warning("ignoring variable substitution text \"%s\"", val);
 		return start;
 	}
 
-	memmove(start + vlen, start, len + 1 - off);
+	memmove(&start[vlen], start, len + 1 - off);
 	memmove(start, val, vlen);
 
-	return start + vlen;
+	return &start[vlen];
 }
 
 /**
@@ -153,16 +159,18 @@ gchar *
 eval_subst(const gchar *str)
 {
 	gchar buf[MAX_STRING];
+	gchar *end = &buf[sizeof(buf)];
 	gchar *p;
-	gchar *end = buf + sizeof(buf);
 	size_t len;
 	gchar c;
+
+	g_assert(initialized);
 
 	if (str == NULL)
 		return NULL;
 
-	len = g_strlcpy(buf, str, sizeof(buf));
-	if (len >= sizeof(buf)) {
+	len = g_strlcpy(buf, str, sizeof buf);
+	if (len >= sizeof buf) {
 		g_warning("eval_subst: string too large for substitution (%d bytes)",
 			(int) len);
 		return constant_make((gchar *) str);
@@ -172,40 +180,47 @@ eval_subst(const gchar *str)
 	if (common_dbg > 3)
 		printf("eval_subst: on entry: \"%s\"\n", buf);
 
-	for (p =  buf, c = *p++; c; c = *p++) {
+	for (p = buf, c = *p++; c; c = *p++) {
 		gchar *val = NULL;
 		gchar *start = p - 1;
 
-		if (c == '~' && start == buf) {		/* Leading ~ only */
-			val = home;
-			memmove(start, start + 1, len - (start - buf));
-			len--;
+		switch (c) {
+		case '~':
+			if (start == buf) {		/* Leading ~ only */
+				val = home;
+				g_assert(val);
+				memmove(start, &start[1], len - (start - buf));
+				len--;
 
-			g_assert((ssize_t) len >= 0);
+				g_assert((ssize_t) len >= 0);
+			}
+			break;
+		case '$':
+			{
+				gchar *after;
 
-		} else if (c == '$') {
-			gchar *after;
+				val = get_variable(p, &after);
+				g_assert(val);
+				memmove(start, after, len + 1 - (after - buf));
+				len -= after - start;		/* Also removing leading '$' */
 
-			val = get_variable(p, &after);
-			memmove(start, after, len + 1 - (after - buf));
-			len -= after - start;		/* Also removing leading '$' */
-
-			g_assert((ssize_t) len >= 0);
+				g_assert((ssize_t) len >= 0);
+			}
+			break;
 		}
 
-
 		if (val != NULL) {
-			gchar *next = insert_value(
-				val, start, start - buf, len, sizeof(buf) - 1);
-
+			gchar *next;
+			
+			next = insert_value(val, start, start - buf, len, sizeof buf - 1);
 			len += next - start;
 			p = next;
 
-			g_assert(len < sizeof(buf));
+			g_assert(len < sizeof buf);
 			g_assert(p < end);
 		}
 
-		g_assert(p <= (buf + len));
+		g_assert(p <= &buf[len]);
 	}
 
 	if (common_dbg > 3)
