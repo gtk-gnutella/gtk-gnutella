@@ -2793,6 +2793,7 @@ socket_local_listen(const gchar *pathname)
 		size_t size = sizeof addr.sun_path;
 
 		addr = zero_un;
+		addr.sun_family = AF_LOCAL;
 		if (g_strlcpy(addr.sun_path, pathname, size) >= size) {
 			g_warning("socket_local_listen(): pathname is too long");
 			return NULL; 

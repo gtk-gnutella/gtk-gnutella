@@ -942,6 +942,7 @@ local_shell(void)
 		path = make_pathname(settings_config_dir(), "socket");
 
 		addr = zero_un;
+		addr.sun_family = AF_LOCAL;
 		if (g_strlcpy(addr.sun_path, path, size) >= size) {
 			g_warning("local_shell(): pathname is too long");
 			goto failure;
