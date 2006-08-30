@@ -57,6 +57,7 @@ enum {
 	SOCK_F_FORCE		= (1UL << 2),  /**< Bypass usual restrictions */
 	SOCK_F_TLS			= (1UL << 3),  /**< Request a TLS connection */
 	SOCK_F_PUSH			= (1UL << 4),  /**< Use a Gnutella PUSH */
+	SOCK_F_LOCAL		= (1UL << 29), /**< Is a local socket */
 	SOCK_F_UDP			= (1UL << 30), /**< Is a UDP socket */
 	SOCK_F_TCP			= (1UL << 31)  /**< Is a TCP socket */
 };
