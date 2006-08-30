@@ -917,8 +917,8 @@ assertion_init(void)
 
 static void
 local_shell(void)
+#ifdef HAS_POLL
 {
-#if 0
 	struct sockaddr_un addr;
 	int fd;
 
@@ -1108,9 +1108,14 @@ done:
 	return;
 
 failure:
-#endif
 	exit(EXIT_FAILURE);
 }
+#else	/* !HAS_POLL */
+{
+	fprintf(stderr, "No shell for you!\n");
+	exit(EXIT_FAILURE);
+}
+#endif	/* HAS_POLL */
 
 static void
 usage(int exit_code)

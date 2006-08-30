@@ -163,6 +163,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_mmap HAS_MMAP		/**/
 
+/* HAS_POLL:
+ *	This symbol, if defined, indicates that the poll routine is
+ *	available to poll active file descriptors. You may safely
+ *	include <poll.h> when this symbol is defined.
+ */
+#$d_poll HAS_POLL		/**/
+
 /* HAS_PREAD:
  *	This symbol, if defined, indicates that the pread routine is
  *	available to perform reads on a file descriptor at a given offset.

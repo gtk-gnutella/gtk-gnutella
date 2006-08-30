@@ -205,11 +205,9 @@ struct passwd
 #include <netinet/ip.h>
 #endif
 
-#if defined(I_POLL)
+#if defined(HAS_POLL)
 #include <poll.h>
-#elif defined(I_SYS_POLL)
-#include <sys/poll.h>
-#endif	/* I_POLL */
+#endif	/* HAS_POLL */
 
 /* For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings. */
