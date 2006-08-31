@@ -543,6 +543,7 @@ size_t compat_pagesize(void);
 gpointer compat_page_align(size_t size);
 void compat_page_free(gpointer p, size_t size);
 gboolean compat_is_superuser(void);
+int compat_daemonize(const char *directory);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
