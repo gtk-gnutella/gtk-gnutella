@@ -43,6 +43,7 @@ LSRC = \
 	event.c \
 	fifo.c \
 	file.c \
+	fragcheck.c \
 	fuzzy.c \
 	getdate.c \
 	getline.c \

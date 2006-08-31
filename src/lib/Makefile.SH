@@ -99,6 +99,7 @@ LSRC = \
 	event.c \
 	fifo.c \
 	file.c \
+	fragcheck.c \
 	fuzzy.c \
 	getdate.c \
 	getline.c \
@@ -149,6 +150,7 @@ LOBJ = \
 	event.o \
 	fifo.o \
 	file.o \
+	fragcheck.o \
 	fuzzy.o \
 	getdate.o \
 	getline.o \
