@@ -88,6 +88,28 @@ ul_stats_hash(gconstpointer p)
 	return ((size_t) s->filename >> 3) ^ s->size;
 }
 
+static struct ul_stats *
+upload_stats_find(const gchar *name, guint64 size)
+{
+	struct ul_stats *s = NULL;
+
+	if (upload_stats_list) {
+		static const struct ul_stats zero_stat;
+		struct ul_stats key;
+		gpointer orig_key;
+
+		key = zero_stat;
+		key.filename = atom_str_get(name);
+		key.size = size;
+
+		if (hash_list_contains(upload_stats_list, &key, &orig_key)) {
+			s = orig_key;
+		}
+		atom_str_free_null(&key.filename);
+	}
+	return s;
+}
+
 static void
 upload_stats_add(const gchar *filename,
 	filesize_t size, guint32 attempts, guint32 complete, guint64 ul_bytes)
@@ -114,7 +136,7 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 {
 	FILE *upload_stats_file;
 	gchar line[FILENAME_MAX + 64];
-	gint lineno = 0;
+	guint lineno = 0;
 
 	stats_file = g_strdup(ul_history_file_name);
 
@@ -174,7 +196,12 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 		if (!url_unescape(line, TRUE))
 			goto corrupted;
 
-		upload_stats_add(line, size, attempt, complete, ulbytes);
+		if (upload_stats_find(line, size)) {
+			g_warning("upload_stats_load_history():"
+				" Ignoring line %u due to duplicate file.", lineno);
+		} else {
+			upload_stats_add(line, size, attempt, complete, ulbytes);
+		}
 
 		continue;
 
@@ -204,8 +231,9 @@ upload_stats_dump_item(gpointer p, gpointer user_data)
 			(gulong) (s->bytes_sent >> 32),
 			(gulong) (s->bytes_sent & 0xffffffff));
 
-	if (escaped != s->filename)		/* File had escaped chars */
+	if (escaped != s->filename) {		/* File had escaped chars */
 		G_FREE_NULL(escaped);
+	}
 }
 
 /**
@@ -264,28 +292,6 @@ upload_stats_flush_if_dirty(void)
 		upload_stats_dump_history(stats_file);
 	else
 		g_warning("can't save upload statistics: no file name recorded");
-}
-
-static struct ul_stats *
-upload_stats_find(const gchar *name, guint64 size)
-{
-	struct ul_stats *s = NULL;
-
-	if (upload_stats_list) {
-		static const struct ul_stats zero_stat;
-		struct ul_stats key;
-		gpointer orig_key;
-
-		key = zero_stat;
-		key.filename = atom_str_get(name);
-		key.size = size;
-
-		if (hash_list_contains(upload_stats_list, &key, &orig_key)) {
-			s = orig_key;
-		}
-		atom_str_free_null(&key.filename);
-	}
-	return s;
 }
 
 /**
