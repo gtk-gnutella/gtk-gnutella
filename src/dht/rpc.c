@@ -133,7 +133,7 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 /**
  * Install timeout for RPC operation.
  */
-static void
+static inline void
 rpc_add_timeout(struct rpc_cb *rcb, gint delay)
 {
 	g_assert(rcb->timeout == NULL);

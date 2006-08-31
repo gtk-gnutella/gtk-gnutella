@@ -147,7 +147,7 @@ dht_route_init(void)
 /**
  * Does the specified bucket manage the KUID?
  */
-static gboolean
+static inline gboolean
 dht_bucket_manages(struct kbucket *kb, kuid_t *id)
 {
 	gint bits = kb->depth;
@@ -214,7 +214,7 @@ dht_find_bucket(kuid_t *id)
  *
  * @return whether node was added (even if pending).
  */
-static gboolean
+static inline gboolean
 dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb)
 {
 	g_assert(kb->all != NULL);
@@ -333,7 +333,7 @@ dht_free_node_hashlist(hash_list_t *hl)
 /**
  * Free bucket node.
  */
-static void
+static inline void
 dht_free_kbucket(struct kbucket *kb)
 {
 	if (kb->good != NULL) {
