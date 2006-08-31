@@ -1125,6 +1125,7 @@ usage(int exit_code)
 		"  --ping            Check whether gtk-gnutella is running.\n"
 		"  --version         Show version information.\n"
 		"  --shell           Access the local shell interface.\n"
+		"  --daemonize       Daemonize the process.\n"
 	);
 	
 	exit(exit_code);
@@ -1133,6 +1134,11 @@ usage(int exit_code)
 static void
 handle_arguments(int argc, char **argv)
 {
+	gboolean want_daemon = FALSE;
+	gboolean want_help = FALSE;
+	gboolean want_ping = FALSE;
+	gboolean want_shell = FALSE;
+	gboolean want_version = FALSE;
 	gint i;
 
 	for (i = 0; i < argc; i++) {
@@ -1140,24 +1146,41 @@ handle_arguments(int argc, char **argv)
 
 		if (0 == strcmp(s, "--")) {
 			break;
+		} else if (0 == strcmp(s, "--daemonize")) {
+			want_daemon = TRUE;
 		} else if (0 == strcmp(s, "--help")) {
-			usage(EXIT_SUCCESS);
+			want_help = TRUE;
 		} else if (0 == strcmp(s, "--ping")) {
-			if (0 != settings_ensure_unicity(TRUE) && EEXIST == errno) {
-				/* gtk-gnutella was running. */
-				exit(EXIT_SUCCESS);
-			} else {
-				/* gtk-gnutella was not running or the PID file could
-				 * not be created. */
-				exit(EXIT_FAILURE);
-			}
-		} else if (0 == strcmp(s, "--version")) {
-			printf("%s\n", version_build_string());
-			exit(EXIT_SUCCESS);
+			want_ping = TRUE;
 		} else if (0 == strcmp(s, "--shell")) {
-			local_shell();
+			want_shell = TRUE;
+		} else if (0 == strcmp(s, "--version")) {
+			want_version = TRUE;
+		}
+	}
+
+	if (want_help) {
+		usage(EXIT_SUCCESS);
+	}
+	if (want_version) {
+		printf("%s\n", version_build_string());
+		exit(EXIT_SUCCESS);
+	}
+	if (want_ping) {
+		if (0 != settings_ensure_unicity(TRUE) && EEXIST == errno) {
+			/* gtk-gnutella was running. */
 			exit(EXIT_SUCCESS);
 		}
+		/* gtk-gnutella was not running or the PID file could
+		 * not be created. */
+		exit(EXIT_FAILURE);
+	}
+	if (want_shell) {
+		local_shell();
+		exit(EXIT_SUCCESS);
+	}
+	if (want_daemon && 0 != compat_daemonize(NULL)) {
+		exit(EXIT_FAILURE);
 	}
 }
 
