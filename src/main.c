@@ -36,8 +36,6 @@
 #include "common.h"
 #include "revision.h"
 
-#include <setjmp.h>
-
 #define CORE_SOURCES
 
 #include "core/gdb.h"
@@ -102,6 +100,7 @@
 #include "lib/crc.h"
 #include "lib/dbus_util.h"
 #include "lib/eval.h"
+#include "lib/fragcheck.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/pattern.h"
@@ -172,7 +171,7 @@ sig_alarm(int n)
 	}
 }
 
-#ifdef MALLOC_STATS
+#if defined(FRAGCHECK) || defined(MALLOC_STATS)
 static volatile sig_atomic_t signal_malloc = 0;
 
 /**
@@ -680,7 +679,7 @@ main_timer(gpointer p)
 
 	now = check_cpu_usage();
 
-#ifdef MALLOC_STATS
+#if defined(FRAGCHECK) || defined(MALLOC_STATS)
 	switch (signal_malloc) {
 	case 1: alloc_dump(stdout, FALSE); break;
 	case 2: alloc_reset(stdout, FALSE); break;
@@ -789,8 +788,9 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 		(1900 + ct->tm_year) % 100, ct->tm_mon + 1, ct->tm_mday,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, prefix, safer);
 
-	if (safer != message)
+	if (safer != message) {
 		G_FREE_NULL(safer);
+	}
 
 #if 0
 	/* Define to debug Glib or Gtk problems */
@@ -901,7 +901,7 @@ assertion_failure(int signo)
 
 	raise(signo);
 }
-#endif /* FAST_ASSERTIONS */
+#endif	/* FAST_ASSERTIONS */
 
 static void
 assertion_init(void)
@@ -1165,6 +1165,11 @@ int
 main(int argc, char **argv)
 {
 	assertion_init();
+
+#ifdef FRAGCHECK
+	fragcheck_init();
+#endif
+
 	misc_init();
 
 	tm_now_exact(&start_time);
@@ -1181,7 +1186,7 @@ main(int argc, char **argv)
 	set_signal(SIGPIPE, SIG_IGN);
 #endif
 
-#ifdef MALLOC_STATS
+#if defined(FRAGCHECK) || defined(MALLOC_STATS)
 	set_signal(SIGUSR1, sig_malloc);
 	set_signal(SIGUSR2, sig_malloc);
 #endif
