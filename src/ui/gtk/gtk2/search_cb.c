@@ -186,9 +186,9 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_search")), normalized);
 
-	if (normalized != s)
+	if (normalized != s) {
 		G_FREE_NULL(normalized);
-
+	}
 	if (!changed) {
 		g_strstrip(s);
 		gtk_widget_set_sensitive(lookup_widget(main_window, "button_search"),
@@ -688,8 +688,9 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 		if (rc->xml) {
 			gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI, NULL);
 			xml_txt = search_xml_indent(s);
-			if (rc->xml != s)
+			if (rc->xml != s) {
 				G_FREE_NULL(s);
+			}
 		} else {
 			xml_txt = NULL;
 		}

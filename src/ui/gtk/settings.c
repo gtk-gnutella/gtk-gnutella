@@ -568,8 +568,9 @@ update_shared_dirs(property_t prop)
 		 * free the originals here.
 		 */
 
-		if (dir != dir_utf8)
+		if (dir != dir_utf8) {
 			G_FREE_NULL(dir_utf8);
+		}
 		G_FREE_NULL(dir);
 	}
 	g_list_free(dirs);

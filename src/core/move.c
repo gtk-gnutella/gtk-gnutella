@@ -253,8 +253,7 @@ abort_read:
 		close(md->rd);
 	md->rd = -1;
 	g_warning("can't copy \"%s\" to \"%s\"", source, we->dest);
-	if (NULL != source)
-		G_FREE_NULL(source);
+	G_FREE_NULL(source);
 	return;
 }
 
@@ -300,8 +299,7 @@ d_end(gpointer h, gpointer ctx, gpointer item)
 		if (NULL == source || -1 == unlink(source))
 			g_warning("cannot unlink \"%s\": %s",
 				download_outname(md->d), g_strerror(errno));
-		if (NULL != source)
-			G_FREE_NULL(source);
+		G_FREE_NULL(source);
 	} else {
 		if (md->target != NULL && -1 == unlink(md->target))
 			g_warning("cannot unlink \"%s\": %s",

@@ -354,9 +354,9 @@ zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 		wfree(outz, sizeof(*outz));
 	}
 
-	if (output && zd->allocated)
+	if (output && zd->allocated) {
 		G_FREE_NULL(zd->out);
-
+	}
 	wfree(zd, sizeof(*zd));
 }
 

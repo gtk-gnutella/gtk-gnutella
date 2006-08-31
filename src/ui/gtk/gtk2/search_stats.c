@@ -224,8 +224,9 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 		2, (gulong) val->total_cnt,
 		(-1));
 
-	if (key != s)
+	if (key != s) {
 		G_FREE_NULL(s);
+	}
 
 	/* new period begins */
 	val->period_cnt = 0;

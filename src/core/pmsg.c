@@ -557,11 +557,13 @@ pdata_free(pdata_t *db)
 	if (db->d_free) {
 		gpointer p = is_embedded ? (gpointer) db : (gpointer) db->d_arena;
 		(*db->d_free)(p, db->d_arg);
-		if (!is_embedded)
+		if (!is_embedded) {
 			G_FREE_NULL(db);
+		}
 	} else {
-		if (!is_embedded)
+		if (!is_embedded) {
 			G_FREE_NULL(db->d_arena);
+		}
 		G_FREE_NULL(db);
 	}
 }

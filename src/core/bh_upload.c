@@ -282,8 +282,9 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 											display_metric_units),
 							"]</li>\r\n", (void *) 0);
 
-						if (escaped != sf->name_nfc)
+						if (escaped != sf->name_nfc) {
 							G_FREE_NULL(escaped);
+						}
 					}
 
 					wfree(html_name, html_size);
@@ -506,12 +507,13 @@ browse_host_close(gpointer ctx, gboolean fully_served)
 	 */
 
 	if (fully_served) {
-		if (bh->flags & BH_HTML)
+		if (bh->flags & BH_HTML) {
 			gnet_prop_set_guint32_val(PROP_HTML_BROWSE_SERVED,
 				html_browse_served + 1);
-		else if (bh->flags & BH_QHITS)
+		} else if (bh->flags & BH_QHITS) {
 			gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_SERVED,
 				qhits_browse_served + 1);
+		}
 	}
 
 	wfree(bh, sizeof *bh);
@@ -610,14 +612,14 @@ browse_host_open(
 	 * Update statistics.
 	 */
 
-	if (flags & BH_HTML)
+	if (flags & BH_HTML) {
 		gnet_prop_set_guint32_val(PROP_HTML_BROWSE_COUNT,
 			html_browse_count + 1);
-
-	if (flags & BH_QHITS)
+	}
+	if (flags & BH_QHITS) {
 		gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_COUNT,
 			qhits_browse_count + 1);
-
+	}
 	return &bh->special;
 }
 

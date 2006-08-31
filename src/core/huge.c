@@ -1044,8 +1044,7 @@ huge_close(void)
 	if (cache_dirty)
 		dump_cache();
 
-	if (persistent_cache_file_name)
-		G_FREE_NULL(persistent_cache_file_name);
+	G_FREE_NULL(persistent_cache_file_name);
 
 	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
 	g_hash_table_destroy(sha1_cache);

@@ -2266,8 +2266,9 @@ convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 	{
 		gchar *s = utf8_normalize(dst, norm);
 		g_assert(s != dst);
-		if (dst != sbuf)
+		if (dst != sbuf) {
 			G_FREE_NULL(dst);
+		}
 		dst = s;
 	}
 
@@ -2350,9 +2351,9 @@ filename_to_utf8_normalized(const gchar *src, uni_norm_t norm)
 	}
 
 	dst = utf8_normalize(s, norm);
-	if (dbuf != dst)
+	if (dbuf != dst) {
 		G_FREE_NULL(dbuf);
-
+	}
 	return dst;
 }
 
@@ -2395,8 +2396,9 @@ unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
 		return s_utf8;
 
 	s_norm = utf8_normalize(s_utf8, norm);
-	if (src != s_utf8)
+	if (src != s_utf8) {
 		G_FREE_NULL(s_utf8);
+	}
 	return s_norm;
 }
 
@@ -4517,9 +4519,9 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 			n = utf32_compose(dst);
 			n = utf32_compose_hangul(dst);
 			ret = utf32_strdup(dst);
-			if (buf != dst)
+			if (buf != dst) {
 				G_FREE_NULL(dst);
-
+			}
 			return ret;
 		}
 
@@ -4578,8 +4580,9 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 		dst32 = utf32_normalize(s, norm);
 
 		g_assert(dst32 != s);
-		if (s != buf)
+		if (s != buf) {
 			G_FREE_NULL(s);
+		}
 	}
 
 	(void) utf32_to_utf8_inplace(dst32);
@@ -4626,9 +4629,9 @@ utf32_canonize(const guint32 *src)
 		g_assert(size - 1 == n);
 	}
 
-	if (nfkd_buf != nfkd)
+	if (nfkd_buf != nfkd) {
 		G_FREE_NULL(nfkd);
-
+	}
 	/* Convert to NFC */
 	n = utf32_compose(nfd);
 	n = utf32_compose_hangul(nfd);
@@ -4640,8 +4643,9 @@ utf32_canonize(const guint32 *src)
 	n = utf32_split_blocks(nfd, nfc, size);
 	g_assert(size - 1 == n);
 
-	if (nfd_buf != nfd)
+	if (nfd_buf != nfd) {
 		G_FREE_NULL(nfd);
+	}
 
 	return nfc;
 }
@@ -4674,8 +4678,9 @@ utf8_canonize(const gchar *src)
 
 		dst32 = utf32_canonize(s);
 		g_assert(dst32 != s);
-		if (s != buf)
+		if (s != buf) {
 			G_FREE_NULL(s);
+		}
 	}
 
 	(void) utf32_to_utf8_inplace(dst32);

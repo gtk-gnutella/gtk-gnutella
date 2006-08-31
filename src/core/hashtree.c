@@ -441,8 +441,7 @@ void node_destroy(node_t *node)
 	if (node->right_node != NULL)
 		node_destroy(node->right_node);
 
-	if (node->hash != NULL)
-		G_FREE_NULL(node->hash);
+	G_FREE_NULL(node->hash);
 
 	wfree(node, sizeof(node_t));
 }

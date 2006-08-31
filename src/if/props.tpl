@@ -503,8 +503,7 @@ void
         if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
 			gchar **p = [=(. prop-array)=][n].data.string.value;
             struct event *e = [=(. prop-array)=][n].ev_changed;
-			if (*p)
-				G_FREE_NULL(*p);
+	    G_FREE_NULL(*p);
             if (e)
                 event_destroy(e);
         }

@@ -347,8 +347,9 @@ fi_gui_set_details(gnet_fi_t handle)
 			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
 
 		gtk_list_store_set(store_aliases, &iter, 0, s, (-1));
-		if (s != aliases[i])
+		if (s != aliases[i]) {
 			G_FREE_NULL(s);
+		}
 	}
     g_strfreev(aliases);
     guc_fi_free_info(info);
@@ -865,9 +866,9 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 
 				pathname = make_pathname(path, info->file_name);
 				escaped = url_escape(pathname);
-				if (escaped != pathname)
+				if (escaped != pathname) {
 					G_FREE_NULL(pathname);
-
+				}
 				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
 
 				G_FREE_NULL(escaped);

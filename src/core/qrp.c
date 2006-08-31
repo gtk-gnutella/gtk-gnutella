@@ -1434,8 +1434,7 @@ qrp_context_free(gpointer p)
 		G_FREE_NULL(sl->data);
 	g_slist_free(ctx->sl_substrings);
 
-	if (ctx->table)
-		G_FREE_NULL(ctx->table);
+	G_FREE_NULL(ctx->table);
 
 	if (ctx->st)
 		qrt_unref(ctx->st);
@@ -2310,8 +2309,9 @@ qrp_send_patch(struct gnutella_node *n,
 
 	gmsg_sendto_one(n, m, msglen);
 
-	if ((gchar *) m != tmp)
+	if ((gchar *) m != tmp) {
 		G_FREE_NULL(m);
+	}
 
 	if (qrp_debug > 4)
 		g_message("QRP sent PATCH #%d/%d (%d bytes) to %s",
@@ -3865,8 +3865,7 @@ qrp_close(void)
 	if (merged_table)
 		qrt_unref(merged_table);
 
-	if (buffer.arena)
-		G_FREE_NULL(buffer.arena);
+	G_FREE_NULL(buffer.arena);
 }
 
 /**

@@ -2691,8 +2691,9 @@ filter_add_drop_sha1_rule(const struct record *rec, filter_t *filter)
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
     filter_prepend_rule(filter, rule);
-	if (s != rec->name)
+	if (s != rec->name) {
 		G_FREE_NULL(s);
+	}
 }
 
 /**
@@ -2714,8 +2715,9 @@ filter_add_drop_name_rule(const struct record *rec, filter_t *filter)
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
     filter_prepend_rule(filter, rule);
-	if (s != rec->name)
+	if (s != rec->name) {
 		G_FREE_NULL(s);
+	}
 }
 
 /**
@@ -2757,8 +2759,9 @@ filter_add_download_sha1_rule(const struct record *rec, filter_t *filter)
             filter_get_download_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(filter, rule);
-		if (s != rec->name)
+		if (s != rec->name) {
 			G_FREE_NULL(s);
+		}
     }
 }
 
@@ -2781,8 +2784,9 @@ filter_add_download_name_rule(const struct record *rec, filter_t *filter)
         filter_get_download_target(), RULE_FLAG_ACTIVE);
 
     filter_append_rule(filter, rule);
-	if (s != rec->name)
+	if (s != rec->name) {
 		G_FREE_NULL(s);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

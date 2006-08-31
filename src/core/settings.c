@@ -932,8 +932,9 @@ update_address_lifetime(void)
 	if (!is_host_addr(old_addr)) {				/* First time */
 		old_addr = addr;
 		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
-		if (0 == current_ip_stamp)
+		if (0 == current_ip_stamp) {
 			gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, tm_time());
+		}
 	}
 
 	if (!host_addr_equal(old_addr, addr)) {
@@ -948,10 +949,10 @@ update_address_lifetime(void)
 
 		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 
-		if (current_ip_stamp)
+		if (current_ip_stamp) {
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
 					get_average_ip_lifetime(now, host_addr_net(addr)));
-
+		}
 		gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, now);
 	}
 
@@ -959,8 +960,9 @@ update_address_lifetime(void)
 	if (!is_host_addr(old_addr_v6)) {				/* First time */
 		old_addr_v6 = addr;
 		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
-		if (0 == current_ip_stamp)
+		if (0 == current_ip_stamp) {
 			gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, tm_time());
+		}
 	}
 
 	if (!host_addr_equal(old_addr_v6, addr)) {
@@ -974,10 +976,10 @@ update_address_lifetime(void)
 		old_addr_v6 = addr;
 
 		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
-		if (current_ip_stamp)
+		if (current_ip_stamp) {
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP6_UPTIME,
 					get_average_ip_lifetime(now, host_addr_net(addr)));
-
+		}
 		gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, now);
 	}
 }
@@ -1040,9 +1042,9 @@ up_connections_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &up_connections);
     gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
 
-    if (up_connections > max_connections)
+    if (up_connections > max_connections) {
         gnet_prop_set_guint32_val(PROP_MAX_CONNECTIONS, up_connections);
-
+	}
     return FALSE;
 }
 
@@ -1056,9 +1058,9 @@ max_connections_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &max_connections);
     gnet_prop_get_guint32_val(PROP_UP_CONNECTIONS, &up_connections);
 
-    if (up_connections > max_connections)
+    if (up_connections > max_connections) {
         gnet_prop_set_guint32_val(PROP_UP_CONNECTIONS, max_connections);
-
+	}
     return FALSE;
 }
 
@@ -1492,9 +1494,9 @@ hard_ttl_limit_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &hard_ttl_limit);
     gnet_prop_get_guint32_val(PROP_MAX_TTL, &max_ttl);
 
-    if (hard_ttl_limit < max_ttl)
+    if (hard_ttl_limit < max_ttl) {
         gnet_prop_set_guint32_val(PROP_MAX_TTL, hard_ttl_limit);
-
+	}
     return FALSE;
 }
 
@@ -1508,9 +1510,9 @@ max_ttl_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &max_ttl);
     gnet_prop_get_guint32_val(PROP_HARD_TTL_LIMIT, &hard_ttl_limit);
 
-    if (hard_ttl_limit < max_ttl)
+    if (hard_ttl_limit < max_ttl) {
         gnet_prop_set_guint32_val(PROP_HARD_TTL_LIMIT, max_ttl);
-
+	}
     return FALSE;
 }
 

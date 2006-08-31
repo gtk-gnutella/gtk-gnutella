@@ -326,8 +326,9 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
 
-	if (0 != strcmp((gchar *) key, (gchar *) value))
+	if (0 != strcmp(key, value)) {
 		G_FREE_NULL(value);
+	}
 
 	G_FREE_NULL(key);
 

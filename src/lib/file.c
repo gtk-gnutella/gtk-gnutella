@@ -101,17 +101,12 @@ open_read(
 	g_assert(fvcnt >= 1);
 
 	path = make_pathname(fv->dir, fv->name);
-	g_return_val_if_fail(NULL != path, NULL);
 	if (!is_absolute_path(path)) {
 		G_FREE_NULL(path);
 		return NULL;
 	}
 
 	path_orig = g_strdup_printf("%s.%s", path, orig_ext);
-	if (NULL == path_orig)
-        G_FREE_NULL(path);
-    g_return_val_if_fail(NULL != path_orig, NULL);
-
 	in = fopen(path, "r");
 	if (in) {
 		if (renaming && -1 == rename(path, path_orig))
@@ -276,6 +271,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 {
 	char *path = NULL;
 	char *path_new = NULL;
+	gboolean success = FALSE;
 
 	if (0 != fclose(out)) {
 		g_warning("could not flush \"%s\": %s", fv->name, g_strerror(errno));
@@ -294,17 +290,13 @@ file_config_close(FILE *out, const file_path_t *fv)
 		goto failed;
 	}
 
-	G_FREE_NULL(path_new);
-	G_FREE_NULL(path);
-	return TRUE;
+	success = TRUE;
 
 failed:
 
-	if (NULL != path_new)
-		G_FREE_NULL(path_new);
-	if (NULL != path)
-		G_FREE_NULL(path);
-	return FALSE;
+	G_FREE_NULL(path_new);
+	G_FREE_NULL(path);
+	return success;
 }
 
 /**

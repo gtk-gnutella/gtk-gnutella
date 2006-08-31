@@ -267,9 +267,9 @@ cobs_decode(gchar *buf, size_t len, size_t *retlen, gboolean inplace)
 	if (cobs_decode_into(buf, len, out, len, retlen))
 		return out;
 
-	if (!inplace)
+	if (!inplace) {
 		G_FREE_NULL(out);
-
+	}
 	return NULL;
 }
 

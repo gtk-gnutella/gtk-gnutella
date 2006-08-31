@@ -3157,9 +3157,9 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	sl_unqueued = g_slist_remove(sl_unqueued, d);
 
 	gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count + 1);
-	if (d->flags & DL_F_REPLIED)
+	if (d->flags & DL_F_REPLIED) {
 		gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count + 1);
-
+	}
 	gcu_download_gui_add(d);
 	gcu_gui_update_download(d, TRUE);
 }
@@ -3381,9 +3381,9 @@ download_unqueue(struct download *d)
 	sl_unqueued = g_slist_prepend(sl_unqueued, d);
 	gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
 
-	if (d->flags & DL_F_REPLIED)
+	if (d->flags & DL_F_REPLIED) {
 		gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
-
+	}
 	g_assert((gint) dl_qalive_count >= 0);
 
 	d->status = GTA_DL_CONNECTING;		/* Allow download to be stopped */
@@ -4242,8 +4242,9 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 		/* An empty filename would create a corrupt download entry */
     	file_name = atom_str_get('\0' != s[0] ? s : "noname");
 
-		if (file != s)
+		if (file != s) {
 			G_FREE_NULL(s);
+		}
 	} else {
     	file_name = deconstify_gchar(file);
 	}
@@ -4918,9 +4919,10 @@ download_remove(struct download *d)
 		g_assert(dl_queue_count > 0);
 
 		gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
-		if (d->flags & DL_F_REPLIED)
-			gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
-
+		if (d->flags & DL_F_REPLIED) {
+			gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT,
+				dl_qalive_count - 1);
+		}
 		g_assert((gint) dl_qalive_count >= 0);
 	}
 
@@ -6722,9 +6724,9 @@ lazy_ack_message_to_ui_string(const gchar *src)
 
 	s = iso8859_1_to_utf8(src);
 	prev = utf8_to_ui_string(s);
-	if (prev != s && src != s)
+	if (prev != s && src != s) {
 		G_FREE_NULL(s);
-	
+	}
 	return prev;
 }
 
@@ -8334,8 +8336,9 @@ picked:
 			"GET /get/%u/%s HTTP/1.1\r\n",
 			(guint) d->record_index, escaped);
 
-		if (escaped != d->file_name)
+		if (escaped != d->file_name) {
 			G_FREE_NULL(escaped);
+		}
 	}
 
 	/*
@@ -10025,8 +10028,9 @@ download_build_url(const struct download *d)
 	 	* -- Richard, 30 Apr 2002
 	 	*/
 
-		if (buf != d->file_name)
+		if (buf != d->file_name) {
 			G_FREE_NULL(buf);
+		}
 	}
 
 	return url;

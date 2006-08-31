@@ -6204,8 +6204,7 @@ gnet_prop_shutdown(void) {
         if (gnet_property->props[n].type == PROP_TYPE_STRING) {
 			gchar **p = gnet_property->props[n].data.string.value;
             struct event *e = gnet_property->props[n].ev_changed;
-			if (*p)
-				G_FREE_NULL(*p);
+	    G_FREE_NULL(*p);
             if (e)
                 event_destroy(e);
         }

@@ -928,9 +928,9 @@ on_menu_navtree_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 
 	gui_prop_get_boolean_val(PROP_NAVTREE_VISIBLE, &navtree);
 	gui_prop_get_boolean_val(PROP_SIDEBAR_VISIBLE, &sidebar);
-	if (navtree && !sidebar)
+	if (navtree && !sidebar) {
 		gui_prop_set_boolean_val(PROP_SIDEBAR_VISIBLE, TRUE);
-
+	}
 	/*
 	 * Gtk+ 2.x automagically moves the gutter when a child's
 	 * visibility status changes.

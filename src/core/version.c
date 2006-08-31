@@ -808,9 +808,10 @@ version_ancient_warn(void)
 	 * Let them know when version will expire soon...
 	 */
 
-	if (remain < VERSION_ANCIENT_REMIND)
+	if (remain < VERSION_ANCIENT_REMIND) {
         gnet_prop_set_guint32_val(PROP_ANCIENT_VERSION_LEFT_DAYS,
 			remain / SECS_PER_DAY);
+	}
 }
 
 /**

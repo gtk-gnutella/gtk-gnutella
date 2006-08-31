@@ -475,8 +475,9 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 			return FALSE;
 		}
 		info->name = atom_str_get(unescaped);
-		if (unescaped != file)
+		if (unescaped != file) {
 			G_FREE_NULL(unescaped);
+		}
 	} else {
 		gchar digest[SHA1_RAW_SIZE];
 		

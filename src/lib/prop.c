@@ -522,10 +522,8 @@ prop_free_def(prop_def_t *d)
 		G_FREE_NULL(d->data.ip.value);
 		break;
 	case PROP_TYPE_STRING:
-		if (*d->data.string.value)
-			G_FREE_NULL(*d->data.string.value);
-		if (*d->data.string.def)
-			G_FREE_NULL(*d->data.string.def);
+		G_FREE_NULL(*d->data.string.value);
+		G_FREE_NULL(*d->data.string.def);
 		G_FREE_NULL(d->data.string.value);
 		G_FREE_NULL(d->data.string.def);
 		break;
@@ -1258,9 +1256,7 @@ prop_get_string(prop_set_t *ps, property_t prop, gchar *t, size_t size)
 	gchar *s;
 
 	g_assert(ps != NULL);
-
-	if (t != NULL)
-		g_assert(size > 0);
+	g_assert(NULL == t || size > 0);
 
 	if (!prop_in_range(ps, prop))
 		g_error("prop_get_gchar: unknown property %d", prop);

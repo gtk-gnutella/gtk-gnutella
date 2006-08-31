@@ -2437,8 +2437,7 @@ gui_prop_shutdown(void) {
         if (gui_property->props[n].type == PROP_TYPE_STRING) {
 			gchar **p = gui_property->props[n].data.string.value;
             struct event *e = gui_property->props[n].ev_changed;
-			if (*p)
-				G_FREE_NULL(*p);
+	    G_FREE_NULL(*p);
             if (e)
                 event_destroy(e);
         }

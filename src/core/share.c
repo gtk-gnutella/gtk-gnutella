@@ -893,14 +893,14 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 				 */
 				q = filename_to_utf8_normalized(name, UNI_NORM_NETWORK);
 				found->name_nfc = atom_str_get(q);
-				if (q != name)
+				if (q != name) {
 					G_FREE_NULL(q);
-
+				}
 				q = UNICODE_CANONIZE(found->name_nfc);
 				found->name_canonic = atom_str_get(q);
-				if (q != found->name_nfc)
+				if (q != found->name_nfc) {
 					G_FREE_NULL(q);
-
+				}
 #if 0
 				printf("\npath=\"%s\"\nnfc=\"%s\"\ncanonic=\"%s\"\n",
 					found->file_path, found->name_nfc, found->name_canonic);
@@ -998,8 +998,7 @@ share_free(void)
 		file_basenames = NULL;
 	}
 
-	if (file_table)
-		G_FREE_NULL(file_table);
+	G_FREE_NULL(file_table);
 
 	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;

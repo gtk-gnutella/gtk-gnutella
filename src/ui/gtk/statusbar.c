@@ -237,8 +237,7 @@ statusbar_gui_set_default(const char *format, ...)
 
     va_start(args, format);
 
-    if (statbar_botstr_new != NULL)
-        G_FREE_NULL(statbar_botstr_new);
+    G_FREE_NULL(statbar_botstr_new);
 
     if (format != NULL) {
         gm_vsnprintf(buf, sizeof(buf), format, args);

@@ -345,11 +345,10 @@ guint32 number_local_networks;
 /**
  * frees the local networks array
  */
-static
-void free_networks(void)
+static void
+free_networks(void)
 {
-	if (local_networks)
-		G_FREE_NULL(local_networks);
+	G_FREE_NULL(local_networks);
 }
 
 /**

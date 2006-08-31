@@ -397,8 +397,9 @@ iso3166_close(void)
 	size_t i;
 
 	for (i = 0; i < G_N_ELEMENTS(iso3166_countries); i++) {
-		if (iso3166_countries[i])
+		if (iso3166_countries[i]) {
 			G_FREE_NULL(iso3166_countries[i]);
+		}
 	}
 }
 
