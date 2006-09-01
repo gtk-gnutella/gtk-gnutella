@@ -16,7 +16,7 @@ U/new/Largefile.U
 U/new/Sendfile64.U
 U/new/d_bindtxtcode.U
 U/new/d_deflate.U
-U/new/d_dev_poll.U
+U/new/d_devpoll.U
 U/new/d_epoll.U
 U/new/d_fast_assert.U
 U/new/d_getaddrinfo.U
