@@ -465,6 +465,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_DEV_POLL:
+ *	This symbol is defined when /dev/poll can be used.
+ */
+#$d_dev_poll HAS_DEV_POLL
+
 /* HAS_EPOLL:
  *	This symbol is defined when epoll() can be used.
  */

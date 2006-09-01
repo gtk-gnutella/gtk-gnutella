@@ -1,0 +1,57 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_dev_poll: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:	-pick add $@ %<
+?S:d_dev_poll:
+?S:	This variable conditionally defines the HAS_DEV_POLL symbol, which
+?S:	indicates to the C program that /dev/poll support is available.
+?S:.
+?C:HAS_DEV_POLL:
+?C:	This symbol is defined when /dev/poll can be used.
+?C:.
+?H:#$d_dev_poll HAS_DEV_POLL
+?H:.
+?LINT: set d_dev_poll
+: can we use /dev/poll?
+echo " "
+echo "Checking whether /dev/poll is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+#include <poll.h>
+#include <stropts.h>
+#include <sys/devpoll.h>
+
+int
+main(void) {
+  static struct pollfd pfds[1];
+  static struct dvpoll dvp;
+  static int ret;
+
+  pfds[0].fd |= 1;
+  pfds[0].events |= POLLIN | POLLPRI | POLLOUT | POLLHUP | POLLERR | POLLNVAL;
+  pfds[0].events |= POLLREMOVE;
+  pfds[0].revents |= 1;
+
+  dvp.dp_timeout |= 1;
+  dvp.dp_nfds |= 1;
+  dvp.dp_fds = pfds;
+
+  ret |= ioctl(1, DP_POLL, &dvp);
+
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like /dev/poll is usable on your system, good.
+EOM
+else
+	echo "Sorry, I will not be using /dev/poll."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_dev_poll
+eval $setvar
+
