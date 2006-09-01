@@ -3064,6 +3064,10 @@ sock_cork(struct gnutella_socket *s, gboolean on)
 #endif /* TCP_CORK */
 	gint arg = on ? 1 : 0;
 
+	if (!(SOCK_F_TCP & s->flags)) {
+		return;
+	}
+
 	if (-1 == setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg))
 		g_warning("unable to %s TCP_CORK on fd#%d: %s",
 			on ? "set" : "clear", s->file_desc, g_strerror(errno));
@@ -3163,6 +3167,9 @@ sock_nodelay(struct gnutella_socket *s, gboolean on)
 {
 	gint arg = on ? 1 : 0;
 
+	if (!(SOCK_F_TCP & s->flags)) {
+		return;
+	}
 	if (
 		-1 == setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)
 	) {
