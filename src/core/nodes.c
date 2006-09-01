@@ -1801,7 +1801,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 		return;
 
 	g_assert(n != NULL);
-	g_assert(is_host_addr(n->addr));
+	g_assert(NET_TYPE_LOCAL == host_addr_net(n->addr) || is_host_addr(n->addr));
 
 	/*
 	 * Only mark Ultrapeers as bad nodes. Leaves aren't expected to have
