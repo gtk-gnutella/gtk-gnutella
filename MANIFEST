@@ -315,6 +315,8 @@ src/core/inet.c
 src/core/inet.h
 src/core/ioheader.c
 src/core/ioheader.h
+src/core/local_shell.c
+src/core/local_shell.h
 src/core/matching.c
 src/core/matching.h
 src/core/move.c

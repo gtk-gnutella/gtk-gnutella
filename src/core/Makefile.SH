@@ -117,6 +117,7 @@ SRC = \
 	ignore.c \
 	inet.c \
 	ioheader.c \
+	local_shell.c \
 	matching.c \
 	move.c \
 	mq.c \
@@ -200,6 +201,7 @@ OBJ = \
 	ignore.o \
 	inet.o \
 	ioheader.o \
+	local_shell.o \
 	matching.o \
 	move.o \
 	mq.o \
