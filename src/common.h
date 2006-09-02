@@ -256,6 +256,14 @@ struct passwd
 #include <poll.h>
 #endif	/* HAS_POLL */
 
+#if !defined(AF_LOCAL) && defined(AF_UNIX)
+#define AF_LOCAL AF_UNIX
+#endif	/* !AF_LOCAL && AF_UNIX */
+
+#if !defined(PF_LOCAL) && defined(PF_UNIX)
+#define PF_LOCAL PF_UNIX
+#endif	/* !PF_LOCAL && PF_UNIX */
+
 /* For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings. */
 #ifdef USE_LINT
