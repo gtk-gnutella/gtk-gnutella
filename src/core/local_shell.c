@@ -94,7 +94,12 @@ struct shell_buf {
 	size_t size;	/**< Amount of bytes that buf can hold */
 	size_t fill;	/**< Amount readable bytes in buf from pos */
 	size_t pos;		/**< Read position in buf */
-	int eof;		/**< If set, no further I/O possible due hang up or EOF */
+	int eof:1;		/**< If set, no further read() possible due to EOF */
+	int hup:1;		/**< If set, no further write() possible due to HUP */
+	int readable:1;	/**< If set, read() should succeed */
+	int writable:1;	/**< If set, write() should succeed */
+	int shutdown:1;	/**< If set, a shutdown has been signalled */
+	int wrote:1;	/**< If set, last call to write() succeeded */
 };
 
 struct line_buf {
@@ -113,7 +118,7 @@ read_data(int fd, struct shell_buf *sb)
 	if (!sb) {
 		return -1;
 	}
-	if (0 == sb->fill) {
+	if (0 == sb->fill && sb->readable) {
 		ssize_t ret;
 
 		ret = read(fd, sb->buf, sb->size);
@@ -197,15 +202,19 @@ write_data(int fd, struct shell_buf *sb)
 	if (!sb) {
 		return -1;
 	}
-	if (sb->fill > 0) {
+	sb->wrote = 0;
+	if (sb->fill > 0 && sb->writable) {
 		ssize_t ret;
 
 		ret = write(fd, &sb->buf[sb->pos], sb->fill);
 		switch (ret) {
 		case 0:
+			sb->hup = 1;
 			break;
 		case -1:
-			if (!is_temporary_error(errno)) {
+			if (EPIPE == errno) {
+				sb->hup = 1;
+			} else if (!is_temporary_error(errno)) {
 				perror("write() failed");
 				return -1;
 			}
@@ -217,6 +226,7 @@ write_data(int fd, struct shell_buf *sb)
 			} else {
 				sb->pos = 0;
 			}
+			sb->wrote = 1;
 		}
 	}
 	return 0;
@@ -249,7 +259,7 @@ wait_for_io(struct pollfd *fds, size_t n, int timeout)
 static int
 local_shell_mainloop(int fd)
 {
-	static struct shell_buf input, output;
+	static struct shell_buf client, server;
 #ifdef USE_READLINE
 	int use_readline = isatty(STDIN_FILENO);
 #else
@@ -257,59 +267,95 @@ local_shell_mainloop(int fd)
 #endif	/* USE_READLINE */
 
 	{
-		static char input_buf[4096], output_buf[4096];
-		input.buf = input_buf;
-		input.size = sizeof input_buf;
-		output.buf = output_buf;
-		output.size = sizeof output_buf;
+		static char client_buf[4096], server_buf[4096];
+		client.buf = client_buf;
+		client.size = sizeof client_buf;
+		server.buf = server_buf;
+		server.size = sizeof server_buf;
 	}
 
 	for (;;) {
 
 		if (use_readline) {
 			static struct line_buf line;
-			if (read_data_with_readline(&line, &input)) {
+			if (read_data_with_readline(&line, &client)) {
 				return -1;
 			}
 		} else {
-			if (read_data(STDIN_FILENO, &input)) {
+			if (read_data(STDIN_FILENO, &client)) {
 				return -1;
 			}
 		}
-		if (write_data(fd, &input)) {
+		if (write_data(fd, &client)) {
 			return -1;
 		}
-		if (read_data(fd, &output)) {
+		if (read_data(fd, &server)) {
 			return -1;
 		}
-		if (write_data(STDOUT_FILENO, &output)) {
+		if (write_data(STDOUT_FILENO, &server)) {
 			return -1;
 		}
-		if (
-			(input.eof && 0 == input.fill) ||
-			(output.eof && 0 == output.fill)
-		   ) {
-			return 0;
+
+		if (server.eof && 0 == server.fill) {
+			/*
+			 * client.eof is not checked because if server.eof is set,
+			 * we expect that the server has completely closed the
+			 * connection and not merely done a shutdown(fd, SHUT_WR).
+			 * The latter is only done on the client-side. Otherwise,
+			 * the shell would not terminate before another write()
+			 * (which should gain 0 or EPIPE) is attempted.
+			 */
+			if (0 == client.fill || server.hup) {
+				return 0;
+			}
+		}
+		if (client.eof && 0 == client.fill) {
+			if ((server.eof && 0 == server.fill) || client.hup) {
+				return 0;
+			}
+			if (!client.shutdown) {
+				shutdown(fd, SHUT_WR);
+				client.shutdown = 1;
+			}
 		}
 
 		{
 			struct pollfd fds[3];
+			int ret;
 
-			fds[0].fd = STDIN_FILENO;
-			fds[0].events = (input.eof || input.fill > 0) ? 0 : POLLIN;
+			if (client.eof || client.fill > 0) {
+				fds[0].fd = -1;
+				fds[0].events = 0;
+			} else {
+				fds[0].fd = STDIN_FILENO;
+				fds[0].events = POLLIN;
+			}
+			if ((server.fill > 0 || server.wrote) && !server.hup) {
+				fds[1].fd = STDOUT_FILENO;
+				fds[1].events = POLLOUT;
+			} else {
+				fds[1].fd = -1;
+				fds[1].events = 0;
+			}
+			if (server.fill > 0 || server.eof) {
+				fds[2].events = 0;
+			} else {
+				fds[2].events = POLLIN;
+			}
+			if ((client.fill > 0 || client.wrote) && !client.hup) {
+				fds[2].events |= POLLOUT;
+			}
+			fds[2].fd = fds[2].events ? fd : -1;
 
-			fds[1].fd = STDOUT_FILENO;
-			fds[1].events = output.fill > 0 ? POLLOUT : 0;
-
-			fds[2].fd = fd;
-			fds[2].events = 0
-				| ((output.fill > 0 || output.eof) ? 0 : POLLIN)
-				| (input.fill  > 0 ? POLLOUT : 0);
-
-			if (wait_for_io(fds, 3, 1000) < 0) {
+			ret = wait_for_io(fds, 3, -1);
+			if (ret < 0) {
 				return -1;
 			}
+			client.readable = 0 != (fds[0].revents & (POLLIN | POLLHUP));
+			client.writable = 0 != (fds[2].revents & POLLOUT);
 
+			server.readable = 0 != (fds[2].revents & (POLLIN | POLLHUP));
+			server.writable = 0 != (fds[1].revents & POLLOUT);
 		}
 	}
 	return 0;
@@ -367,8 +413,6 @@ local_shell(const char *socket_path)
 		goto failure;
 	}
 
-	socket_set_nonblocking(STDIN_FILENO);
-	socket_set_nonblocking(STDOUT_FILENO);
 	socket_set_nonblocking(fd);
 
 	if (0 != local_shell_mainloop(fd))
