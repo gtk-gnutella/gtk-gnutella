@@ -2269,7 +2269,7 @@ static void
 socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
-	guint i, avail;
+	size_t i, avail;
 
 	(void) unused_source;
 
@@ -2288,7 +2288,9 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * as there are often several packets queued.
 	 */
 
-	avail = inputevt_data_available();
+	if (!inputevt_data_available(&avail)) {
+		avail = 8;
+	}
 	for (i = 0; i < 16; i++) {
 		ssize_t r;
 

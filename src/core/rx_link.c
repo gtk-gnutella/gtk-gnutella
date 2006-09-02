@@ -68,11 +68,12 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = data;
 	struct attr *attr = rx->opaque;
-	pdata_t *db[16];
+	pdata_t *db[32];
 	struct iovec iov[G_N_ELEMENTS(db)];
 	pmsg_t *mb;
 	ssize_t r;
-	guint i, iov_cnt, avail;
+	guint i, iov_cnt;
+	size_t avail;
 
 	(void) unused_source;
 	g_assert(attr->bio);			/* Input enabled */
@@ -82,7 +83,13 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	avail = inputevt_data_available();
+	if (!inputevt_data_available(&avail)) {
+		/* buf_size should be equivalent to BUF_SIZE as defined in rxbuf.c.
+		 * If we don't know how much can be read immediately, we make a
+		 * guess. This prevents multiple readv() syscalls when reading from
+		 * a fast source which would occur otherwise. */
+		avail = 64 * 1024;
+	}
 
 	/*
 	 * Grab RX buffers, and try to fill as much as we can.
