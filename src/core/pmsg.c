@@ -516,7 +516,7 @@ pdata_allocb_ext(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
 	g_assert(valid_ptr(buf));
 	g_assert(implies(freecb, valid_ptr(freecb)));
 
-	db = g_malloc(sizeof(*db));
+	db = walloc(sizeof(*db));
 
 	db->d_arena = buf;
 	db->d_end = (gchar *) buf + len;
@@ -557,14 +557,15 @@ pdata_free(pdata_t *db)
 	if (db->d_free) {
 		gpointer p = is_embedded ? (gpointer) db : (gpointer) db->d_arena;
 		(*db->d_free)(p, db->d_arg);
-		if (!is_embedded) {
-			G_FREE_NULL(db);
-		}
+		if (!is_embedded)
+			wfree(db, sizeof(*db));
 	} else {
 		if (!is_embedded) {
 			G_FREE_NULL(db->d_arena);
+			wfree(db, sizeof(*db));
+		} else {
+			G_FREE_NULL(db);
 		}
-		G_FREE_NULL(db);
 	}
 }
 
