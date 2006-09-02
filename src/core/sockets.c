@@ -61,11 +61,8 @@ RCSID("$Id$")
 #include "pproxy.h"
 #include "udp.h"
 #include "settings.h"
-#include "tls_cache.h"
-
-#ifdef USE_REMOTE_CTRL
 #include "shell.h"
-#endif
+#include "tls_cache.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1609,12 +1606,9 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			pproxy_add(s);
 		else
 			upload_add(s);
-	}
-#ifdef USE_REMOTE_CTRL
-	else if (is_strprefix(first, "HELO "))
+	} else if (is_strprefix(first, "HELO ")) {
         shell_add(s);
-#endif
-    else
+	} else
 		goto unknown;
 
 	/* Socket might be free'ed now */
@@ -1829,11 +1823,9 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			node_connected_back(s);
 			break;
 
-#ifdef USE_REMOTE_CTRL
         case SOCK_TYPE_SHELL:
             g_assert_not_reached(); /* FIXME: add code here? */
             break;
-#endif
 
 		default:
 			g_warning("socket_connected(): Unknown socket type %d !", s->type);
@@ -2774,6 +2766,43 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 	}
 
 	return sd;
+}
+
+/**
+ * @return TRUE if the socket is a local unix domain socket.
+ */
+gboolean
+socket_is_local(const struct gnutella_socket *s)
+{
+	gboolean is_local, is_tcp, is_udp;
+
+	g_assert(s);
+
+	is_local = 0 != (s->flags & SOCK_F_LOCAL);
+	is_tcp = 0 != (s->flags & SOCK_F_TCP);
+	is_udp = 0 != (s->flags & SOCK_F_UDP);
+
+	g_assert(is_local ^ (is_tcp | is_udp));
+	g_assert(is_local || is_tcp || is_udp);
+
+	if (is_local) {
+		static const struct sockaddr_un zero_addr;
+		struct sockaddr_un addr = zero_addr;
+		socklen_t len = sizeof addr;
+
+		if (getsockname(s->file_desc, cast_to_gpointer(&addr), &len)) {
+			is_local = FALSE;
+			g_warning("socket_is_local(): getsockname() failed: %s",
+				g_strerror(errno));
+		} else if (AF_LOCAL != addr.sun_family) {
+			is_local = FALSE;
+			g_warning("socket_is_local(): "
+				"address family mismatch! (expected %u, got %u)",
+				(guint) AF_LOCAL, (guint) addr.sun_family);
+		}
+	}
+
+	return is_local;
 }
 
 /**

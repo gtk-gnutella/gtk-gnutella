@@ -25,8 +25,6 @@
 
 #include "common.h"
 
-#ifdef USE_REMOTE_CTRL
-
 RCSID("$Id$")
 
 #include "shell.h"
@@ -72,7 +70,10 @@ typedef struct gnutella_shell {
 	gboolean shutdown;  /**< In shutdown mode? */
 } gnutella_shell_t;
 
+#ifdef USE_REMOTE_CTRL
 static gchar auth_cookie[SHA1_RAW_SIZE];
+static gboolean shell_auth(const gchar *str);
+#endif	/* USE_REMOTE_CTRL */
 
 static void shell_shutdown(gnutella_shell_t *sh);
 static void shell_destroy(gnutella_shell_t *sh);
@@ -1182,38 +1183,6 @@ shell_write(gnutella_shell_t *sh, const gchar *s)
 }
 
 /**
- * Takes a HELO command string and checks whether the connection
- * is allowed using the specified credentials.
- *
- * @return TRUE if the connection is allowed.
- */
-static gboolean
-shell_auth(const gchar *str)
-{
-	gboolean ok;
-	gchar *tok_helo;
-	gchar *tok_cookie;
-	gint pos = 0;
-
-	tok_helo = shell_get_token(str, &pos);
-	tok_cookie = shell_get_token(str, &pos);
-
-	g_warning("auth: [%s] [<cookie not displayed>]", tok_helo);
-
-	if (tok_helo && tok_cookie) {
-		ok = strcmp("HELO", tok_helo) == 0 &&
-			strcmp(sha1_base32(auth_cookie), tok_cookie) == 0;
-	} else {
-		ok = FALSE;
-	}
-
-	G_FREE_NULL(tok_helo);
-	G_FREE_NULL(tok_cookie);
-
-	return ok;
-}
-
-/**
  * Create a new gnutella_shell object.
  */
 static gnutella_shell_t *
@@ -1287,6 +1256,7 @@ void
 shell_add(struct gnutella_socket *s)
 {
 	gnutella_shell_t *sh;
+	gboolean granted = FALSE;
 
 	g_assert(s);
 	g_assert(0 == s->gdk_tag);
@@ -1305,15 +1275,36 @@ shell_add(struct gnutella_socket *s)
 
 	sl_shells = g_slist_prepend(sl_shells, sh);
 
-	if (!enable_shell) {
-		g_warning("shell control interface disabled");
-		shell_write(sh, "401 Disabled\n");
-		shell_shutdown(sh);
-	} else if (!shell_auth(getline_str(s->getline))) {
-		g_warning("invalid credentials");
-		shell_write(sh, "400 Invalid credentials\n");
-		shell_shutdown(sh);
+	if (socket_is_local(s)) {
+		if (enable_local_socket) {
+			granted = TRUE;
+		} else {
+			g_warning("local shell control interface disabled");
+			shell_write(sh, "401 Disabled\n");
+			shell_shutdown(sh);
+		}
 	} else {
+#ifdef USE_REMOTE_CTRL
+		if (enable_shell) {
+		   	if (shell_auth(getline_str(s->getline))) {
+				granted = TRUE;
+			} else {
+				g_warning("invalid credentials");
+				shell_write(sh, "400 Invalid credentials\n");
+				shell_shutdown(sh);
+			}
+		} else {
+			g_warning("remote shell control interface disabled");
+			shell_write(sh, "401 Disabled\n");
+			shell_shutdown(sh);
+		}
+#else	/* !USE_REMOTE_CTRL */
+		g_warning("remote shell control interface disabled");
+		shell_shutdown(sh);
+#endif	/* USE_REMOTE_CTRL */
+	}
+
+	if (!sh->shutdown && granted) {
 		shell_write(sh, "100 Welcome to ");
 		shell_write(sh, version_short_string);
 		shell_write(sh, "\n");
@@ -1321,30 +1312,9 @@ shell_add(struct gnutella_socket *s)
 
 	getline_reset(s->getline); /* clear AUTH command from buffer */
 
-	if ((sh->outpos == 0) && sh->shutdown) {
+	if (sh->outpos == 0 && sh->shutdown) {
 		shell_destroy(sh);
 	}
-
-}
-
-static void
-shell_dump_cookie(void)
-{
-	FILE *out;
-	file_path_t fp;
-	mode_t mask;
-
-	file_path_set(&fp, settings_config_dir(), "auth_cookie");
-	mask = umask(S_IRWXG | S_IRWXO); /* umask 077 */
-	out = file_config_open_write("auth_cookie", &fp);
-	umask(mask);
-
-	if (!out)
-		return;
-
-	fputs(sha1_base32(auth_cookie), out);
-
-	file_config_close(out, &fp);
 }
 
 void
@@ -1368,9 +1338,63 @@ shell_timer(time_t now)
 	g_slist_free(to_remove);
 }
 
+#ifdef USE_REMOTE_CTRL
+/**
+ * Takes a HELO command string and checks whether the connection
+ * is allowed using the specified credentials.
+ *
+ * @return TRUE if the connection is allowed.
+ */
+static gboolean
+shell_auth(const gchar *str)
+{
+	gboolean ok;
+	gchar *tok_helo;
+	gchar *tok_cookie;
+	gint pos = 0;
+
+	tok_helo = shell_get_token(str, &pos);
+	tok_cookie = shell_get_token(str, &pos);
+
+	g_warning("auth: [%s] [<cookie not displayed>]", tok_helo);
+
+	if (tok_helo && tok_cookie) {
+		ok = strcmp("HELO", tok_helo) == 0 &&
+			strcmp(sha1_base32(auth_cookie), tok_cookie) == 0;
+	} else {
+		ok = FALSE;
+	}
+
+	G_FREE_NULL(tok_helo);
+	G_FREE_NULL(tok_cookie);
+
+	return ok;
+}
+
+static void
+shell_dump_cookie(void)
+{
+	FILE *out;
+	file_path_t fp;
+	mode_t mask;
+
+	file_path_set(&fp, settings_config_dir(), "auth_cookie");
+	mask = umask(S_IRWXG | S_IRWXO); /* umask 077 */
+	out = file_config_open_write("auth_cookie", &fp);
+	umask(mask);
+
+	if (!out)
+		return;
+
+	fputs(sha1_base32(auth_cookie), out);
+
+	file_config_close(out, &fp);
+}
+
 void
 shell_init(void)
 {
+
 	gint n;
 
 	for (n = 0; n < SHA1_RAW_SIZE; n ++) {
@@ -1382,6 +1406,13 @@ shell_init(void)
 
 	shell_dump_cookie();
 }
+#else	/* !USE_REMOTE_CTRL */
+void
+shell_init(void)
+{
+	/* Nothing to do */
+}
+#endif	/* USE_REMOTE_CTRL */
 
 void
 shell_close(void)
@@ -1399,4 +1430,3 @@ shell_close(void)
 }
 
 /* vi: set ts=4 sw=4 cindent: */
-#endif	/* USE_REMOTE_CTRL */

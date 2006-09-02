@@ -78,6 +78,7 @@
 #include "core/search.h"
 #include "core/settings.h"
 #include "core/share.h"
+#include "core/shell.h"
 #include "core/sockets.h"
 #include "core/spam.h"
 #include "core/sq.h"
@@ -132,10 +133,6 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
-
-#ifdef USE_REMOTE_CTRL
-#include "core/shell.h"
-#endif
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -358,10 +355,7 @@ gtk_gnutella_exit(gint n)
 
 #define DO(fn) 	do { exit_step = STRINGIFY(fn); fn(); } while (0)
 
-#ifdef USE_REMOTE_CTRL
 	DO(shell_close);
-#endif
-
 	DO(file_info_close_pre);
 	DO(node_bye_all);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
@@ -694,9 +688,7 @@ main_timer(gpointer p)
 	node_timer(now);				/* Node timeouts */
 	http_timer(now);				/* HTTP request timeouts */
 	if (!exiting) {
-#ifdef USE_REMOTE_CTRL
 		shell_timer(now);
-#endif
 		download_timer(now);  	    /* Download timeouts */
 		parq_upload_timer(now);		/* PARQ upload timeouts/removal */
 		upload_timer(now);			/* Upload timeouts */
@@ -1090,9 +1082,7 @@ main(int argc, char **argv)
 	dmesh_init();			/* MUST be done BEFORE download_init() */
 	download_init();		/* MUST be done AFTER file_info_init() */
 	upload_init();
-#ifdef USE_REMOTE_CTRL
 	shell_init();
-#endif
 	ban_init();
 	whitelist_init();
 	ext_init();
