@@ -225,7 +225,7 @@ find_latest(const version_t *rver)
 
 	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
 		tk = &token_keys[i];
-		if (version_cmp(&tk->ver, rver) > 0)
+		if (version_build_cmp(&tk->ver, rver) > 0)
 			break;
 		result = tk;
 	}
@@ -491,7 +491,7 @@ tok_version_valid(
 	if (!version_fill(version, &rver))		/* Remote version */
 		return TOK_BAD_VERSION;
 
-	if (version_cmp(&rver, &tk->ver) < 0)
+	if (version_build_cmp(&rver, &tk->ver) < 0)
 		return TOK_OLD_VERSION;
 
 	if (end == NULL)

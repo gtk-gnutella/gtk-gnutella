@@ -335,7 +335,7 @@ version_tagcmp(guchar a, guchar b)
 }
 
 /**
- * Compare two gtk-gnutella versions, timestamp not withstanding.
+ * Compare two gtk-gnutella versions, timestamp and build not withstanding.
  * @returns -1, 0 or +1 depending on the sign of "a - b".
  */
 gint
@@ -345,11 +345,8 @@ version_cmp(const version_t *a, const version_t *b)
 		if (a->minor == b->minor) {
 			if (a->patchlevel == b->patchlevel) {
 				if (0 == version_tagcmp(a->tag, b->tag)) {
-					if (a->taglevel == b->taglevel) {
-						if (a->build == b->build)
-							return 0;
-						return a->build < b->build ? -1 : +1;
-					}
+					if (a->taglevel == b->taglevel)
+						return 0;
 					return a->taglevel < b->taglevel ? -1 : +1;
 				}
 				return version_tagcmp(a->tag, b->tag);
@@ -359,6 +356,27 @@ version_cmp(const version_t *a, const version_t *b)
 		return a->minor < b->minor ? -1 : +1;
 	}
 	return a->major < b->major ? -1 : +1;
+}
+
+/**
+ * Compare two gtk-gnutella versions, including build number (but not
+ * the version timestamps).  In theory, we could simply compare build numbers
+ * but we can't ensure they won't ever be reset one day.
+ *
+ * @returns -1, 0 or +1 depending on the sign of "a - b".
+ */
+gint
+version_build_cmp(const version_t *a, const version_t *b)
+{
+	gint cmp = version_cmp(a, b);
+
+	if (cmp == 0) {
+		if (a->build == b->build)
+			return 0;
+		return a->build < b->build ? -1 : +1;
+	}
+
+	return cmp;
 }
 
 /**
@@ -512,13 +530,14 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 
 	if (
 		cmp == 0 &&
-		delta_time(their_version.timestamp, target_version->timestamp) > 0 &&
+		(delta_time(their_version.timestamp, target_version->timestamp) > 0
+			|| their_version.build > target_version->build) &&
 		target_version == &last_rel_version
 	) {
 		if (dbg > 6)
 			printf("VERSION is a CVS update of a release\n");
 
-		if (version_cmp(&last_dev_version, &their_version) > 0) {
+		if (version_build_cmp(&last_dev_version, &their_version) > 0) {
 			if (dbg > 6)
 				printf("VERSION is less recent than latest dev we know\n");
 			return TRUE;
@@ -527,23 +546,23 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 	}
 
 	/*
-	 * Only compare a development version which has the same version
-	 * number with a more up to date version.
-	 * This will also avoid a 0.93.4u to be listed out of date if also a 0.94u
-	 * is available, while both are actually in development.
-	 * 		-- JA 15/04/2004
+	 * Their version is more recent, but is unstable -- only continue if
+	 * our version is also unstable.
 	 */
 
-	/*
-	 * Their version is more recent, but is unstable
-	 */
-	if (their_version.tag == 'u' && cmp < 0)
+	if (cmp < 0 && their_version.tag == 'u' && our_version.tag != 'u')
 		return TRUE;
 
-	if (delta_time(their_version.timestamp, target_version->timestamp) <= 0)
+	if (
+		delta_time(their_version.timestamp, target_version->timestamp) < 0 ||
+		their_version.build <= target_version->build
+	)
 		return TRUE;
 
-	if (delta_time(their_version.timestamp, our_version.timestamp) == 0)
+	if (
+		delta_time(their_version.timestamp, our_version.timestamp) == 0 &&
+		their_version.build <= our_version.build
+	)
 		return TRUE;
 
 	/*

@@ -77,6 +77,7 @@ void version_ancient_warn(void);
 gboolean version_check(const gchar *str, const gchar *token, const host_addr_t);
 gboolean version_is_too_old(const gchar *vendor);
 gint version_cmp(const version_t *a, const version_t *b);
+gint version_build_cmp(const version_t *a, const version_t *b);
 gboolean version_fill(const gchar *version, version_t *vs);
 
 const gchar *version_str(const version_t *ver);
