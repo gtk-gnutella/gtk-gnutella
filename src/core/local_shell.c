@@ -328,6 +328,9 @@ local_shell(const char *socket_path)
 	struct sockaddr_un addr;
 	int fd;
 
+	if (!socket_path) {
+		goto failure;
+	}
 	if (-1 == fcntl(STDIN_FILENO, F_GETFL)) {
 		goto failure;
 	}
@@ -412,8 +415,8 @@ path_compose(const char *dir, const char *name)
 	return path;
 }
 
-int
-main(void)
+static const char *
+get_socket_path(void)
 {
 	const char *cfg_dir;
 
@@ -433,19 +436,25 @@ main(void)
 		if (!home_dir) {
 			home_dir = "/";
 		}
-		cfg_dir = path_compose(home_dir, ".gtk-gnutella");
+		cfg_dir = path_compose(home_dir, "/.gtk-gnutella");
 	}
-	if (!cfg_dir) {
+	if (cfg_dir) {
+		return path_compose(cfg_dir, "/ipc/socket");
+	} else {
+		return NULL;
+	}
+}
+
+int
+main(void)
+{
+	const char *path;
+
+	path = get_socket_path();
+	if (!path) {
 		exit(EXIT_FAILURE);
 	}
-	{
-		char *path;
-		path = path_compose(cfg_dir, "socket");
-		if (!path) {
-			exit(EXIT_FAILURE);
-		}
-		local_shell(path);
-	}
+	local_shell(path);
 	return 0;
 }
 #endif	/* LOCAL_SHELL_STANDALONE */

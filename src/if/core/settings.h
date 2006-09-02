@@ -38,6 +38,7 @@ host_addr_t listen_addr(void);
 host_addr_t listen_addr6(void);
 const gchar *settings_config_dir(void);
 const gchar *settings_home_dir(void);
+const gchar *settings_local_socket_path(void);
 enum net_type settings_dns_net(void);
 
 #endif /* CORE_SOURCES */

@@ -73,9 +73,10 @@ RCSID("$Id$")
 static const gchar config_file[] = "config_gnet";
 static const gchar ul_stats_file[] = "upload_stats";
 
-#define PID_FILE_MODE	(S_IRUSR | S_IWUSR) /* 0600 */
-#define CONFIG_DIR_MODE /* 0750 */ \
-    (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP)
+static const mode_t IPC_DIR_MODE = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
+static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
+static const mode_t CONFIG_DIR_MODE =
+	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
 static gchar *home_dir = NULL;
 static gchar *config_dir = NULL;
@@ -536,6 +537,34 @@ settings_home_dir(void)
 {
 	g_assert(NULL != home_dir);
 	return (const gchar *) home_dir;
+}
+
+/**
+ * Gets the IPC directory.
+ */
+const gchar *
+settings_ipc_dir(void)
+{
+	static const gchar *path;
+
+	if (!path) {
+		path = make_pathname(settings_config_dir(), "ipc");
+	}
+	return path;
+
+}
+/**
+ * Gets the path of the local socket.
+ */
+const gchar *
+settings_local_socket_path(void)
+{
+	static const gchar *path;
+
+	if (!path) {
+		path = make_pathname(settings_ipc_dir(), "socket");
+	}
+	return path;
 }
 
 /**
@@ -1164,11 +1193,17 @@ enable_local_socket_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (!s_local_listen) {
-			gchar *path;
+			const gchar *ipc_dir;
 
-			path = make_pathname(config_dir, "socket");
-			s_local_listen = socket_local_listen(path);
-			G_FREE_NULL(path);
+			ipc_dir = settings_ipc_dir();
+			if (0 == compat_mkdir(ipc_dir, IPC_DIR_MODE) || EEXIST == errno) {
+				const gchar *socket_path;
+
+				socket_path = settings_local_socket_path();
+				s_local_listen = socket_local_listen(socket_path);
+			} else {
+				g_warning("mkdir() failed: %s", g_strerror(errno));
+			}
 
 			if (!s_local_listen) {
 				gcu_statusbar_warning(_("Failed to create local socket"));

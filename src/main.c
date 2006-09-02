@@ -976,7 +976,7 @@ handle_arguments(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	if (want_shell) {
-		local_shell(make_pathname(settings_config_dir(), "socket"));
+		local_shell(settings_local_socket_path());
 		exit(EXIT_SUCCESS);
 	}
 	if (want_daemon && 0 != compat_daemonize(NULL)) {
