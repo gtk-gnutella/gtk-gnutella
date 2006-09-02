@@ -65,6 +65,8 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/tm.h"
 #include "lib/url.h"
+#include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static gboolean dirty = FALSE;
@@ -94,11 +96,11 @@ upload_stats_find(const gchar *name, guint64 size)
 	struct ul_stats *s = NULL;
 
 	if (upload_stats_list) {
-		static const struct ul_stats zero_stat;
+		static const struct ul_stats zero_stats;
 		struct ul_stats key;
 		gpointer orig_key;
 
-		key = zero_stat;
+		key = zero_stats;
 		key.filename = atom_str_get(name);
 		key.size = size;
 
@@ -114,9 +116,11 @@ static void
 upload_stats_add(const gchar *filename,
 	filesize_t size, guint32 attempts, guint32 complete, guint64 ul_bytes)
 {
+	static const struct ul_stats zero_stats;
 	struct ul_stats *s;
 
-	s = g_malloc0(sizeof *s);
+	s = walloc(sizeof *s);
+	*s = zero_stats;
 	s->filename = atom_str_get(filename);
 	s->size = size;
 	s->attempts = attempts;
@@ -389,7 +393,7 @@ upload_stats_free_all(void)
 		while (NULL != (s = hash_list_first(upload_stats_list))) {
 			hash_list_remove(upload_stats_list, s);
 			atom_str_free_null(&s->filename);
-			G_FREE_NULL(s);
+			wfree(s, sizeof *s);
 		}
 		hash_list_free(upload_stats_list);
 		upload_stats_list = NULL;
