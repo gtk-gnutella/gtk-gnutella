@@ -3704,10 +3704,10 @@ compat_daemonize(const char *directory)
 	}
 
 	/*
-	 * Make sure we don't create any files with an s- or x-bit set or
+	 * Make sure we don't create any files with an s-bit set or
 	 * a world-writeable file.
 	 */
-	umask(umask(0) | S_IWOTH | S_IXUSR | S_IXGRP | S_IXOTH | S_ISUID | S_ISGID);
+	umask(umask(0) | S_IWOTH | S_ISUID | S_ISGID);
 
 	/*
 	 * Close all standard streams.
