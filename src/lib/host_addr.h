@@ -76,7 +76,7 @@ net_type_to_af(enum net_type net)
 {
 	switch (net) {
 	case NET_TYPE_NONE:  return AF_UNSPEC;
-	case NET_TYPE_LOCAL: return PF_LOCAL;
+	case NET_TYPE_LOCAL: return AF_LOCAL;
 	case NET_TYPE_IPV4:  return AF_INET;
 	case NET_TYPE_IPV6:
 #ifdef USE_IPV6
