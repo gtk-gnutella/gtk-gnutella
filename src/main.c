@@ -150,11 +150,13 @@ static gboolean exiting = FALSE;
 static volatile sig_atomic_t from_atexit = FALSE;
 static volatile int signal_received = 0;
 static volatile sig_atomic_t shutdown_requested = 0;
+static volatile sig_atomic_t sig_hup_received = 0;
 static jmp_buf atexit_env;
 static volatile gchar *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
 
 void gtk_gnutella_exit(gint n);
+static gint reopen_log_files(void);
 
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -167,6 +169,13 @@ sig_alarm(int n)
 		g_warning("exit cleanup timed out -- forcing exit");
 		longjmp(atexit_env, 1);
 	}
+}
+
+static void
+sig_hup(int n)
+{
+	(void) n;
+	sig_hup_received = 1;
 }
 
 #if defined(FRAGCHECK) || defined(MALLOC_STATS)
@@ -682,6 +691,11 @@ main_timer(gpointer p)
 	signal_malloc = 0;
 #endif
 
+	if (sig_hup_received) {
+		sig_hup_received = 0;
+		reopen_log_files();
+	}
+
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
     hcache_timer(now);
@@ -908,17 +922,95 @@ assertion_init(void)
 #endif	/* FAST_ASSERTIONS */
 }
 
+enum main_arg {
+	main_arg_daemonize,
+	main_arg_help,
+	main_arg_log_stderr,
+	main_arg_log_stdout,
+	main_arg_ping,
+	main_arg_shell,
+	main_arg_version,
+
+	num_main_args
+};
+
+static struct {
+	const enum main_arg id;
+	const gchar * const name;
+	const gchar * const summary;
+	const gboolean has_arg;
+	const gchar *arg;
+	gboolean used;
+} options[] = {
+#define OPTION(name, summary, has_arg) \
+	{ main_arg_ ## name , STRINGIFY(name), summary, has_arg, NULL, FALSE }
+
+#define OPTION_FLAG(name, summary)	OPTION(name, summary, FALSE)
+#define OPTION_WARG(name, summary)	OPTION(name, summary, TRUE)
+	OPTION_FLAG(daemonize,	"Daemonize the process."),
+	OPTION_FLAG(help, 		"Print this message."),
+	OPTION_WARG(log_stderr,	"Log standard output to a file."),
+	OPTION_WARG(log_stdout,	"Log standard error output to a file."),
+	OPTION_FLAG(ping,		"Check whether gtk-gnutella is running."),
+	OPTION_FLAG(shell,		"Access the local shell interface."),
+	OPTION_FLAG(version,	"Show version information."),
+#undef OPTION_WARG
+#undef OPTION_FLAG
+#undef OPTION
+};
+
+static gint
+reopen_log_files(void)
+{
+	gboolean failure = FALSE;
+
+	if (options[main_arg_log_stdout].used) {
+		if (NULL == freopen(options[main_arg_log_stdout].arg, "a", stdout)) {
+			fprintf(stderr, "freopen(..., \"a\", stdout) failed: %s",
+				g_strerror(errno));
+			failure |= TRUE;
+		}
+	}
+	if (options[main_arg_log_stderr].used) {
+		if (NULL == freopen(options[main_arg_log_stderr].arg, "a", stderr)) {
+			fprintf(stderr, "freopen(..., \"a\", stderr) failed: %s",
+				g_strerror(errno));
+			failure |= TRUE;
+		}
+	}
+	return failure ? -1 : 0;
+}
+
 static void
 usage(int exit_code)
 {
-	printf(
-		"Usage: gtk-gnutella [ options ... ]\n"
-		"  --help            Print this message.\n"
-		"  --ping            Check whether gtk-gnutella is running.\n"
-		"  --version         Show version information.\n"
-		"  --shell           Access the local shell interface.\n"
-		"  --daemonize       Daemonize the process.\n"
-	);
+	FILE *f;
+	guint i;
+
+	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
+	fprintf(f, "Usage: gtk-gnutella [ options ... ]\n");
+	
+	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
+	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+		const gchar *arg;
+		size_t pad;
+
+		g_assert(options[i].id == i);
+
+		arg = options[i].has_arg ? " <argument>" : "";
+		pad = strlen(options[i].name) + strlen(arg);
+		if (pad < 24) {
+			pad = 24 - pad;
+		} else {
+			pad = 0;
+		}
+
+		fprintf(f, "  --%s%s%-*s%s\n",
+			options[i].name,
+			arg,
+			(gint) pad, "",
+			options[i].summary);
+	}
 	
 	exit(exit_code);
 }
@@ -926,39 +1018,56 @@ usage(int exit_code)
 static void
 handle_arguments(int argc, char **argv)
 {
-	gboolean want_daemon = FALSE;
-	gboolean want_help = FALSE;
-	gboolean want_ping = FALSE;
-	gboolean want_shell = FALSE;
-	gboolean want_version = FALSE;
-	gint i;
+	guint i;
 
-	for (i = 0; i < argc; i++) {
-		const gchar *s = argv[i];
+	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
 
-		if (0 == strcmp(s, "--")) {
-			break;
-		} else if (0 == strcmp(s, "--daemonize")) {
-			want_daemon = TRUE;
-		} else if (0 == strcmp(s, "--help")) {
-			want_help = TRUE;
-		} else if (0 == strcmp(s, "--ping")) {
-			want_ping = TRUE;
-		} else if (0 == strcmp(s, "--shell")) {
-			want_shell = TRUE;
-		} else if (0 == strcmp(s, "--version")) {
-			want_version = TRUE;
+	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+		g_assert(options[i].id == i);
+		options[i].used = FALSE;
+		options[i].arg = NULL;
+	}
+
+	while (argc > 0) {
+		const gchar *s = argv[0];
+
+		argv++;
+		argc--;
+		
+		s = is_strprefix(s, "--");
+		if (!s || '\0' == s[0]) {
+			continue;
+		}
+
+		for (i = 0; i < G_N_ELEMENTS(options); i++) {
+			if (0 != strcmp(options[i].name, s)) {
+				continue;
+			}
+			options[i].used = TRUE;
+			if (options[i].has_arg) {
+				if (argc < 1 || NULL == argv[0] || '-' == argv[0][0]) {
+					fprintf(stderr, "Missing argument for %s\n", s);
+					usage(EXIT_FAILURE);
+				}
+				options[i].arg = g_strdup(argv[0]);
+				argv++;
+				argc--;
+			}
 		}
 	}
 
-	if (want_help) {
+	if (0 != reopen_log_files()) {
+		exit(EXIT_FAILURE);
+	}
+
+	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
 	}
-	if (want_version) {
+	if (options[main_arg_version].used) {
 		printf("%s\n", version_build_string());
 		exit(EXIT_SUCCESS);
 	}
-	if (want_ping) {
+	if (options[main_arg_ping].used) {
 		if (0 != settings_ensure_unicity(TRUE) && EEXIST == errno) {
 			/* gtk-gnutella was running. */
 			exit(EXIT_SUCCESS);
@@ -967,12 +1076,14 @@ handle_arguments(int argc, char **argv)
 		 * not be created. */
 		exit(EXIT_FAILURE);
 	}
-	if (want_shell) {
+	if (options[main_arg_shell].used) {
 		local_shell(settings_local_socket_path());
 		exit(EXIT_SUCCESS);
 	}
-	if (want_daemon && 0 != compat_daemonize(NULL)) {
-		exit(EXIT_FAILURE);
+	if (options[main_arg_daemonize].used) {
+		if (0 != compat_daemonize(NULL)) {
+			exit(EXIT_FAILURE);
+		}
 	}
 }
 
@@ -997,6 +1108,7 @@ main(int argc, char **argv)
 	close_fds(3); /* Just in case */
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
+	set_signal(SIGHUP, sig_hup);
 #ifdef SIGPIPE
 	set_signal(SIGPIPE, SIG_IGN);
 #endif
