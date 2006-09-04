@@ -418,9 +418,9 @@ local_shell(const char *socket_path)
 	if (0 != local_shell_mainloop(fd))
 		goto failure;
 
-	exit(EXIT_FAILURE);
-failure:
 	exit(EXIT_SUCCESS);
+failure:
+	exit(EXIT_FAILURE);
 }
 #else	/* !HAS_POLL */
 {
