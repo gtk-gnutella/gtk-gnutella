@@ -10,28 +10,50 @@ $Id$
 Introduction
 ------------
 
-  The remote shell service of gtk-gnutella serves as a playground for the
-  upcoming core<->gui separation.  Here I want to implement several commands
-  that are currently only available through gnet.h.  At the moment you can't
-  do very much with this service.
-
-
+  Gtk-Gnutella supports a so-called shell interface. This feature is available
+  locally and optionally remotely as well.  At the moment, the shell has still
+  limited use but is nonetheless sufficient for special tasks and uses. It is
+  especially useful and important when using Gtk-Gnutella Topless.
 
 Connecting
 ----------
 
-  To connect to the service simply telnet to the gnutella port on your machine.
+  Gtk-Gnutella has a simple built-in application which can be used to
+  access the shell over the local socket by invoking it as follows:
+
+  $ gtk-gnutella --shell
+
+  Type "HELO<enter>" to access the shell interface. Note, the environment
+  variable GTK_GNUTELLA_DIR is also respected in this case.  You need
+  write-permission to the local socket located in
+  "$GTK_GNUTELLA_DIR/ipc/socket". For security reasons, the "ipc" directory
+  and "socket" are created so that only the user running the gtk-gnutella
+  process can access them.
+
+  To connect to the remote shell simply telnet to the gnutella port on
+  your machine. Alternative applications are gnutls-cli (for a TLS encrypted
+  connection) and, for example, netcat. The latter is useful for automized
+  task using scripts because telnet cannot be used properly for such purposes.
   
-  
-Authentification
+  While it is possible to have multiple shells open at the same time, keep in
+  mind that this feature is not implemented as a multi-user system.
+
+Authentication
 ----------------
 
-  The first thing you need to do after the connect is to authenticate.  For 
-  that you need to supply the command:
+  The local shell does not require authentication because the local socket is
+  protected by the filesystem permissions. However, in order to request
+  access to the shell, the first sent line must be "HELO". Optional arguments
+  are ignored for now. This means, the local socket can also be used for
+  anything else supported over the ordinary listening TCP socket e.g.,
+  HTTP.
+
+  When using the remote shell, The first thing you need to do after the connect
+  is to authenticate. For that you need to supply the command:
 
     HELO [credential]
 
-  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie.  Gtk-Gnutella
+  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie. Gtk-Gnutella
   creates this file at startup and stores a random base32 value in it.  The
   file is readable only by the owner.
 
@@ -39,41 +61,74 @@ Authentification
 Commands
 --------
 
-  After the authentication, you can enter commands.  Commands are not case 
-  sensitive (but property names are.)  You can use double-quotes in commands to 
-  create arguments that contain spaces.  Within those quotes the "\" (backslash) 
-  is used to escape chars ('\x' -> 'x', '\"' -> '"').  This is useful if you 
-  need to have double-quotes in a quoted argument.
+  After the authentication, you can enter commands. All commands are
+  case-insensitive but their arguments might be case-sensitive.
+  You can use double-quotes in commands to create arguments that contain
+  spaces. Within those quotes the "\" (backslash) is used to escape chars
+  ('\x' -> 'x', '\"' -> '"').  This is useful if you need to have
+  double-quotes in a quoted argument.
 
   The commands that are currently working are:
    
-  - HELP 
-    Shows available commands
+  - help 
+    Shows available commands.
 
-  - QUIT
-    Close connection
+  - quit
+    Close connection.
 
-  - SEARCH ADD <query>
-    Creates a new search for <query>.
+  - search add <query>
+    Creates a new search for <query>. The query string is interpreted the
+    same way as in the GUI. This means you can also initiate browse host
+    requests and even magnets are handled, so even downloads can be started
+    this way.
 
-  - NODE ADD <ip> [port]
+    NOTE: This command does not yet for Gtk-Gnutella Topless because large
+    parts of the code responsible for handling searches and search results
+    are implemented in the GUI.
+
+  - node add <ip> [port]
     Try to connect to given <ip>. [port] is optional. If no [port] is given
     the default gnutella port 6346 is used.
 
-  - PRINT <property>
+  - print <property>
     Print the current value of a property.  Refer to gnet_props.ag and 
     gui_props.ag to find names, descriptions, and possible values of 
     properties.  Current values are stored in ~/.gtk-gnutella/config_gnet 
     and ~/.gtk-gnutella/config_gui so you could also look there for hints.
 
-  - SET <property> <value>
+  - set <property> <value>
     Set the value of <property> to <value>.
     Boolean values are false|FALSE|0 for false and true|TRUE|!0 for true.
     Multichoice properties must be set with their integer values, e.g. 
     to set configured_peermode, you should know that 0 is for leaf, 
-    1 for legacy, 2 for up, and 3 for auto.  
+    1 for legacy, 2 for ultrapeer, and 3 for auto.  
 
-	- WHATIS <property>
+  - whatis <property>
     Print information about the property.  This is the same information 
     found in the tooltip in the gui.
-    
+
+  - shutdown
+    Initiates a shutdown of gtk-gnutella.
+
+  - nodes
+    Displays a list of all currently connected Gnutella peers.
+
+  - horizon [all]
+    Shows the current horizon information as evaluated by the HSEP
+    extension. An optional argument "all" shows the horizon for all
+    connected peers supporting HSEP. Otherwise only the cumulative
+    horizon stats are displayed.
+
+Caveats:
+--------
+
+  Some output might be translated but in general the shell interface is
+  meant to be English-only. There might be character set problems because
+  the gtk-gnutella process might be using a different locale than the
+  shell connecting to it. Therefore, it's highly recommended, that the
+  gtk-gnutella process is started using UTF-8 as locale encoding or ASCII
+  if UTF-8 support is not available or desired.
+
+  The output format is meant to be NNTP-like so that it is easy to parse
+  by scripts - but this is not the case yet for all commands.
+
