@@ -1084,6 +1084,10 @@ handle_arguments(int argc, char **argv)
 		if (0 != compat_daemonize(NULL)) {
 			exit(EXIT_FAILURE);
 		}
+		/* compat_daemonize() assigned stdout and stderr to /dev/null */
+		if (0 != reopen_log_files()) {
+			exit(EXIT_FAILURE);
+		}
 	}
 }
 
