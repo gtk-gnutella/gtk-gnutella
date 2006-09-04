@@ -119,6 +119,11 @@ Commands
     connected peers supporting HSEP. Otherwise only the cumulative
     horizon stats are displayed.
 
+  - rescan
+    Rescans all shared directories and updates the list of shared
+    files. This is useful when you removed or added files to the
+    shared directories.
+
 Caveats:
 --------
 
