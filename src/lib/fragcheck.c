@@ -49,8 +49,18 @@ RCSID("$Id$")
 
 #if GLIB_CHECK_VERSION(2,0,0)
 
+#if HAVE_GCC(3, 0)
+#define FRAGCHECK_TRACK_CALLERS
+#endif	/* GCC >= 3.0 */
+
 union alloc {
-	size_t size;
+	struct {
+		size_t size;
+#ifdef FRAGCHECK_TRACK_CALLERS
+		size_t ret[3];
+#endif	/* FRAGCHECK_TRACK_CALLERS */
+	} meta;
+
 	void *p;
 	long l;
 	int i;
@@ -64,6 +74,7 @@ union alloc {
 #define BIT_COUNT (512 * 1024 * 1024 / sizeof (union alloc))
 
 static bit_array_t allocated[BIT_ARRAY_SIZE(BIT_COUNT)];
+static bit_array_t touched[BIT_ARRAY_SIZE(BIT_COUNT)];
 static size_t alloc_base;
 
 static gpointer
@@ -77,7 +88,24 @@ my_malloc(gsize n)
 	n = round_size(sizeof *ap, n);
 	ap = malloc(n + sizeof *ap);
 	assert(0 == (size_t) ap % sizeof *ap);
-	ap->size = n;
+	ap->meta.size = n;
+
+#ifdef FRAGCHECK_TRACK_CALLERS
+	{
+		unsigned i;
+		for (i = 0; i < G_N_ELEMENTS(ap->meta.ret); i++) {
+			const void *addr;
+			switch (i) {
+			case 0: addr = __builtin_return_address(0); break;
+			case 1: addr = __builtin_return_address(1); break;
+			case 2: addr = __builtin_return_address(2); break;
+			default: addr = NULL;
+			}
+			ap->meta.ret[i] = (size_t) addr;
+		}
+	}
+#endif	/* FRAGCHECK_TRACK_CALLERS */
+	
 	{
 		size_t from, to;
 
@@ -96,6 +124,7 @@ my_malloc(gsize n)
 		assert(!bit_array_get(allocated, from));
 		assert(!bit_array_get(allocated, to));
 		bit_array_set_range(allocated, from, to);
+		bit_array_set_range(touched, from, to);
 	}
 	return &ap[1];
 }
@@ -111,22 +140,22 @@ my_free(gpointer p)
 
 		ap = p;
 		ap--;
-		assert(ap->size >= sizeof *ap);
-		assert(0 == ap->size % sizeof *ap);
+		assert(ap->meta.size >= sizeof *ap);
+		assert(0 == ap->meta.size % sizeof *ap);
 		assert(0 == (size_t) ap % sizeof *ap);
 		assert((size_t) ap >= (size_t) alloc_base);
 		{
 			size_t from, to;
 
 			from = ((size_t) ap - alloc_base) / sizeof *ap;
-			to = from + (ap->size / sizeof *ap);
+			to = from + (ap->meta.size / sizeof *ap);
 			assert(from < BIT_COUNT);
 			assert(to < BIT_COUNT);
 			assert(bit_array_get(allocated, from));
 			assert(bit_array_get(allocated, to));
 			bit_array_clear_range(allocated, from, to);
 		}
-		ap->size = 0;
+		memset(ap, 0, ap->meta.size);
 		free(ap);
 	}
 }
@@ -146,10 +175,10 @@ my_realloc(gpointer p, gsize n)
 	if (p) {
 		ap = p;
 		ap--;
-		assert(ap->size >= sizeof *ap);
-		assert(0 == ap->size % sizeof *ap);
+		assert(ap->meta.size >= sizeof *ap);
+		assert(0 == ap->meta.size % sizeof *ap);
 		assert(0 == (size_t) ap % sizeof *ap);
-		memcpy(x, p, MIN(ap->size, n));
+		memcpy(x, p, MIN(ap->meta.size, n));
 		my_free(p);
 	}
 	return x;
@@ -208,19 +237,50 @@ alloc_dump(FILE *f, gboolean unused_flag)
 	(void) unused_flag;
 
 	for (i = 0; /* NOTHING */; i++) {
-		gboolean v;
-	
-		v = i < BIT_COUNT ? bit_array_get(allocated, i) : !cur;
-		if ((int) v != cur) {
+		int v;
+
+		if (i < BIT_COUNT) {
+			if (bit_array_get(touched, i)) {
+				v = bit_array_get(allocated, i) ? 'a' : 'f';
+			} else {
+				v = 'u';
+			}
+		} else {
+			v = -2;
+		}
+
+		if (v != cur) {
 			size_t n = i - base_i;
 			if (n > 0) {
-				size_t base = alloc_base + base_i * sizeof (union alloc);
-				size_t len = n * sizeof (union alloc);
-				fprintf(f, "%c base: 0x%08lx length: %lu\n",
-					cur ? 'a' : 'f', (unsigned long) base, (unsigned long) len);
+				const union alloc *ap;
+				size_t base = alloc_base + base_i * sizeof *ap;
+				size_t len = n * sizeof *ap;
+
+				if ('a' == cur) {
+					ap = (const void *) base;
+					fprintf(f, "a base: 0x%08lx length: %8.1lu",
+						(unsigned long) base,
+						(unsigned long) len);
+
+#ifdef FRAGCHECK_TRACK_CALLERS
+					fprintf(f, " callers: 0x%08lx 0x%08lx 0x%08lx",
+						(unsigned long) ap->meta.ret[0],
+						(unsigned long) ap->meta.ret[1],
+						(unsigned long) ap->meta.ret[2]);
+#endif	/* FRAGCHECK_TRACK_CALLERS */
+
+					fputs("\n", f);
+				} else {
+					fprintf(f, "%c base: 0x%08lx length: %8.1lu\n",
+						cur,
+						(unsigned long) base,
+						(unsigned long) len);
+				}
 			}
-			if (i == BIT_COUNT)
+			if (i == BIT_COUNT) {
+				fflush(f);
 				break;
+			}
 			base_i = i;
 			cur = v;
 		}
