@@ -1348,7 +1348,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	size_t count;
 	ssize_t r;
 	size_t parsed;
-	const gchar *first;
+	const gchar *first, *endptr;
 	time_t banlimit;
 
 	(void) source;
@@ -1588,25 +1588,27 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	if (is_strprefix(first, GNUTELLA_HELLO)) {
 		/* Incoming control connection */
 		node_add_socket(s, s->addr, s->port, 0);
-	} else if (is_strprefix(first, "GET ") || is_strprefix(first, "HEAD ")) {
+	} else if (
+		NULL != (endptr = is_strprefix(first, "GET ")) ||
+		NULL != (endptr = is_strprefix(first, "HEAD "))
+	) {
 		const gchar *uri;
 
 		/*
 		 * We have to decide whether this is an upload request or a
 		 * push-proxyfication request.
-		 *
-		 * In the following code, since sizeof("GET") accounts for the
-		 * trailing NUL, we will skip the space after the request type.
 		 */
 
-		uri = first + ((first[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
-		uri = skip_ascii_blanks(uri);
+		uri = skip_ascii_blanks(endptr);
 
 		if (is_strprefix(uri, "/gnutella/") || is_strprefix(uri, "/gnet/"))
 			pproxy_add(s);
 		else
 			upload_add(s);
-	} else if (is_strprefix(first, "HELO ")) {
+	} else if (
+		NULL != (endptr = is_strprefix(first, "HELO")) &&
+		(is_ascii_space(endptr[0]) || '\0' == endptr[0])
+	) {
         shell_add(s);
 	} else
 		goto unknown;
