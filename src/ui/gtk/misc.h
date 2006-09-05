@@ -36,6 +36,7 @@ void gui_update_stats_frames(void);
 void gui_fix_coords(guint32 *coord);
 void gui_save_window(GtkWidget *widget, property_t prop);
 void gui_restore_window(GtkWidget *widget, property_t prop);
+gint gui_parse_geometry_spec(const gchar *spec, guint32 coord[4]);
 
 /*
  * Hit record comparison functions.

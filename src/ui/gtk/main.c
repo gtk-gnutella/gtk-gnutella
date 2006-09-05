@@ -769,11 +769,21 @@ main_gui_init(void)
 }
 
 void
-main_gui_run(void)
+main_gui_run(const gchar *geometry_spec)
 {
 	time_t now = tm_time_exact();
 
     gtk_widget_show(main_window);		/* Display the main window */
+
+	if (geometry_spec) {
+		guint32 coord[4] = { 0, 0, 0, 0 };
+
+    	gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
+		if (0 == gui_parse_geometry_spec(geometry_spec, coord)) {
+    		gui_prop_set_guint32(PROP_WINDOW_COORDS,
+				coord, 0, G_N_ELEMENTS(coord));
+		}
+	}
 	gui_restore_window(main_window, PROP_WINDOW_COORDS);
  
     icon_init();

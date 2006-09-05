@@ -379,6 +379,96 @@ gui_fix_coords(guint32 *coord)
 		g_message("after: %dx%d+%d+%d", w, h, x, y);
 }
 
+/**
+ * Parses an geometry string of the form WIDTHxHEIGHT+X+Y. If the string
+ * is not parsable a failure occurs. In case of failure, the coord[] array
+ * is not touched. The coord[] array should be initialized with default
+ * values before calling this function because the x and y coordinates
+ * are optional and are not touched if not specified.
+ *
+ * @param spec  The string holding the geometry specification.
+ * @param coord An array of four 32-bit integers representing
+ *              x, y, width, height.
+ * @return 0 on success, -1 on failure.
+ */
+gint
+gui_parse_geometry_spec(const gchar *spec, guint32 coord[4])
+{
+	const gchar *endptr, *s;
+	guint32 x, y, w, h;
+	gint error;
+	gboolean sign;
+
+	g_return_val_if_fail(spec, -1);
+	g_return_val_if_fail(coord, -1);
+
+	x = coord[0];
+	y = coord[1];
+	w = coord[2];
+	h = coord[3];
+
+	s = spec;
+	w = parse_uint32(s, &endptr, 10, &error);
+	if (error || 'x' != endptr[0]) {
+		return -1;
+	}
+
+	s = &endptr[1];
+	h = parse_uint32(s, &endptr, 10, &error);
+	if (error) {
+		return -1;
+	}
+
+	switch (endptr[0]) {
+	case '-':
+		sign = -1;
+		break;
+	case '+':
+		sign = 1;
+		break;
+	case '\0':
+		goto done;
+	default:
+		return -1;
+	}
+
+	s = &endptr[1];
+	x = parse_uint32(s, &endptr, 10, &error);
+	if (error) {
+		return -1;
+	}
+	if (sign < 0) {
+		x = gdk_screen_width() - 1 - x - w;
+	}
+
+	switch (endptr[0]) {
+	case '-':
+		sign = -1;
+		break;
+	case '+':
+		sign = 1;
+		break;
+	default:
+		return -1;
+	}
+
+	s = &endptr[1];
+	y = parse_uint32(s, &endptr, 10, &error);
+	if (error) {
+		return -1;
+	}
+	if (sign < 0) {
+		y = gdk_screen_height() - 1 - y - h;
+	}
+
+done:
+	coord[0] = x;
+	coord[1] = y;
+	coord[2] = w;
+	coord[3] = h;
+	return 0;
+}
+
 void
 gui_restore_window(GtkWidget *widget, property_t prop)
 {
@@ -399,44 +489,48 @@ gui_restore_window(GtkWidget *widget, property_t prop)
 
 #ifdef USE_GTK2
     if (coord[2] != 0 && coord[3] != 0) {
-		gint x, y, dx, dy;
-		gint i;
 
 		/* First, move the window to the supposed location. Next make the
 		 * window visible by gtk_window_get_position()... */
 
        	gtk_window_move(GTK_WINDOW(widget), coord[0], coord[1]);
-
-		/* The first call to gtk_window_get_position() makes the window
-		 * visible but x and y are always set to zero. The second call
-		 * yields the *real* values.
-		 *
-		 * Must wait some time between subsequent calls, and if we get both
-		 * x and y set to 0, assume we did not correctly compute the position
-		 * and leave it unaltered..
-		 */
-
-		for (i = 0; i < 2; i++) {
-#ifdef HAS_USLEEP
-			usleep(20000);
-#endif
-			gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
-			if (x || y)
-				break;
-		}
-
 		gtk_window_resize(GTK_WINDOW(widget), coord[2], coord[3]);
 
-		/*
-		 * (At least) FVWM2 doesn't take the window decoration into account
-		 * when handling positions requests. Readjust the window position
-		 * if we detect that the window manager added an offset.
-		 */
+		{
+			gint x, y, dx, dy;
+			gint i;
 
-		dx = (gint) coord[0] - x;
-		dy = (gint) coord[1] - y;
-		if ((x || y) && (dx || dy))
-        	gtk_window_move(GTK_WINDOW(widget), coord[0] + dx, coord[1] + dy);
+			/* The first call to gtk_window_get_position() makes the window
+			 * visible but x and y are always set to zero. The second call
+			 * yields the *real* values.
+			 *
+			 * Must wait some time between subsequent calls, and if we get both
+			 * x and y set to 0, assume we did not correctly compute the
+			 * position and leave it unaltered..
+			 */
+
+			for (i = 0; i < 2; i++) {
+#ifdef HAS_USLEEP
+				usleep(20000);
+#endif
+				gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
+				if (x || y)
+					break;
+			}
+
+			/*
+			 * (At least) FVWM2 doesn't take the window decoration into account
+			 * when handling positions requests. Readjust the window position
+			 * if we detect that the window manager added an offset.
+			 */
+
+			dx = (gint) coord[0] - x;
+			dy = (gint) coord[1] - y;
+			if ((x || y) && (dx || dy)) {
+				gtk_window_move(GTK_WINDOW(widget),
+					coord[0] + dx, coord[1] + dy);
+			}
+		}
 	}
 #else	/* !USE_GTK2 */
     if (coord[2] != 0 && coord[3] != 0) {

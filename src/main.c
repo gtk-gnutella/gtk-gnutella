@@ -924,6 +924,7 @@ assertion_init(void)
 
 enum main_arg {
 	main_arg_daemonize,
+	main_arg_geometry,
 	main_arg_help,
 	main_arg_log_stderr,
 	main_arg_log_stdout,
@@ -948,6 +949,7 @@ static struct {
 #define OPTION_FLAG(name, summary)	OPTION(name, summary, FALSE)
 #define OPTION_WARG(name, summary)	OPTION(name, summary, TRUE)
 	OPTION_FLAG(daemonize,	"Daemonize the process."),
+	OPTION_WARG(geometry,	"Placement of the main GUI window."),
 	OPTION_FLAG(help, 		"Print this message."),
 	OPTION_WARG(log_stderr,	"Log standard output to a file."),
 	OPTION_WARG(log_stdout,	"Log standard error output to a file."),
@@ -1249,7 +1251,7 @@ main(int argc, char **argv)
 	bsched_enable_all();
 	version_ancient_warn();
 
-	main_gui_run();
+	main_gui_run(options[main_arg_geometry].arg);
 
 	return 0;
 }
