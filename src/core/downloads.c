@@ -704,6 +704,7 @@ buffers_to_iovec(struct download *d)
 		iov[i].iov_len = size;
 	}
 	g_assert(held == b->held);
+	g_assert(NULL == sl);
 
 	b->mode = DL_BUF_WRITING;
 
