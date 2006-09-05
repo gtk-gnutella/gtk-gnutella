@@ -37,13 +37,15 @@
 
 RCSID("$Id$")
 
+#include "atoms.h"
 #include "iso3166.h"
 #include "misc.h"
+
 #include "override.h"       /* Must be the last header included */
 
 typedef struct {
+	gchar *country;	/* atom */
 	gchar cc[3];
-	gchar country[1	/* Adjusted as necessary */];
 } iso3166_entry_t;
 
 /**
@@ -304,6 +306,8 @@ static const struct {
 	{ "zw", N_("Zimbabwe") },
 };
 
+static iso3166_entry_t iso3166_entries[G_N_ELEMENTS(iso3166_tab)];
+
 #define NUM_CODES (36 * 35 + 35)
 static iso3166_entry_t *iso3166_countries[NUM_CODES];
 
@@ -371,23 +375,23 @@ iso3166_init(void)
 	size_t i;
 
 	for (i = 0; i < G_N_ELEMENTS(iso3166_tab); i++) {
-		const gchar *country, *cc, *endptr;
-		iso3166_entry_t *e;
-		size_t size;
-		gint code, error;
+		iso3166_entry_t *entry;
 
-		country = _(iso3166_tab[i].country);
-		cc = iso3166_tab[i].cc;
-		size = strlen(country) + 1;
-		e = g_malloc(size + sizeof *e);
-		strncpy(e->cc, cc, sizeof e->cc);
-		memcpy(e->country, country, size);
+		entry = &iso3166_entries[i];
+		strncpy(entry->cc, iso3166_tab[i].cc, sizeof entry->cc);
+		entry->country = atom_str_get(_(iso3166_tab[i].country));
 
-		code = parse_uint32(cc, &endptr, 36, &error);
-		g_assert(*endptr == '\0');
-		g_assert(!error);
-		g_assert(code >= 0 && (size_t) code < G_N_ELEMENTS(iso3166_countries));
-		iso3166_countries[code] = e;
+		{
+			const gchar *endptr;
+			gint code, error;
+
+			code = parse_uint32(entry->cc, &endptr, 36, &error);
+			g_assert(*endptr == '\0');
+			g_assert(!error);
+			g_assert(code >= 0);
+			g_assert((size_t) code < G_N_ELEMENTS(iso3166_countries));
+			iso3166_countries[code] = entry;
+		}
 	}
 }
 
@@ -396,10 +400,9 @@ iso3166_close(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(iso3166_countries); i++) {
-		if (iso3166_countries[i]) {
-			G_FREE_NULL(iso3166_countries[i]);
-		}
+	for (i = 0; i < G_N_ELEMENTS(iso3166_entries); i++) {
+		iso3166_entry_t *entry = &iso3166_entries[i];
+		atom_str_free_null(&entry->country);
 	}
 }
 
