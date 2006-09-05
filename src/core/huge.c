@@ -148,8 +148,9 @@ static void
 add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	const char *digest, gboolean known_to_be_shared)
 {
-	struct sha1_cache_entry *new_entry = g_malloc(sizeof *new_entry);
-
+	struct sha1_cache_entry *new_entry;
+   
+	new_entry = walloc(sizeof *new_entry);
 	new_entry->file_name = atom_str_get(filename);
 	new_entry->size = size;
 	new_entry->mtime = mtime;
@@ -440,7 +441,7 @@ static struct file_sha1 *waiting_for_library_build_complete = NULL;
  * waiting_for_library_build_complete).
  */
 static void
-push(struct file_sha1 **stack,struct file_sha1 *record)
+push(struct file_sha1 **stack, struct file_sha1 *record)
 {
 	record->next = *stack;
 	*stack = record;
@@ -449,11 +450,30 @@ push(struct file_sha1 **stack,struct file_sha1 *record)
 /**
  * Free a working cell.
  */
-static void
-free_cell(struct file_sha1 *cell)
+static struct file_sha1 *
+alloc_cell(void)
 {
-	atom_str_free(cell->file_name);
-	G_FREE_NULL(cell);
+	struct file_sha1 *p;
+
+	p = walloc(sizeof *p);
+	return p;
+}
+
+/**
+ * Free a working cell.
+ */
+static void
+free_cell(struct file_sha1 **cell_ptr)
+{
+	g_assert(cell_ptr);
+
+	if (*cell_ptr) {
+		struct file_sha1 *cell = *cell_ptr;
+
+		atom_str_free(cell->file_name);
+		wfree(cell, sizeof *cell);
+		*cell_ptr = NULL;
+	}
 }
 
 /* The context of the SHA1 computation being performed */
@@ -472,19 +492,16 @@ struct sha1_computation_context {
 static void
 sha1_computation_context_free(gpointer u)
 {
-	struct sha1_computation_context *ctx =
-		(struct sha1_computation_context *) u;
+	struct sha1_computation_context *ctx = u;
 
 	g_assert(ctx->magic == SHA1_MAGIC);
 
 	if (ctx->fd != -1)
 		close(ctx->fd);
 
-	if (ctx->file)
-		free_cell(ctx->file);
-
-	G_FREE_NULL(ctx->buffer);
-
+	free_cell(&ctx->file);
+	compat_page_free(ctx->buffer, HASH_BUF_SIZE);
+	ctx->buffer = NULL;
 	wfree(ctx, sizeof *ctx);
 }
 
@@ -599,7 +616,7 @@ try_to_put_sha1_back_into_share_library(void)
 		waiting_for_library_build_complete = f->next;
 		put_sha1_back_into_share_library(sf2, f->file_name, f->sha1_digest);
 
-		free_cell(f);
+		free_cell(&f);
 	}
 }
 
@@ -610,10 +627,7 @@ try_to_put_sha1_back_into_share_library(void)
 static void
 close_current_file(struct sha1_computation_context *ctx)
 {
-	if (ctx->file) {
-		free_cell(ctx->file);
-		ctx->file = NULL;
-	}
+	free_cell(&ctx->file);
 
 	if (ctx->fd != -1) {
 		if (dbg > 1) {
@@ -674,7 +688,7 @@ get_next_file_from_list(void)
 			if (-1 == stat(l->file_name, &buf)) {
 				g_warning("ignoring SHA1 recomputation request for \"%s\": %s",
 					l->file_name, g_strerror(errno));
-				free_cell(l);
+				free_cell(&l);
 				continue;
 			}
 
@@ -685,7 +699,7 @@ get_next_file_from_list(void)
 				if (dbg > 1)
 					printf("ignoring duplicate SHA1 work for \"%s\"\n",
 						l->file_name);
-				free_cell(l);
+				free_cell(&l);
 				continue;
 			}
 		}
@@ -822,8 +836,7 @@ static bgret_t
 sha1_step_compute(gpointer h, gpointer u, gint ticks)
 {
 	gboolean call_again;
-	struct sha1_computation_context *ctx =
-		(struct sha1_computation_context *) u;
+	struct sha1_computation_context *ctx = u;
 	gint credit = ticks;
 
 	g_assert(ctx->magic == SHA1_MAGIC);
@@ -910,8 +923,9 @@ static void
 queue_shared_file_for_sha1_computation(guint32 file_index,
 	const char *file_name)
 {
-	struct file_sha1 *new_cell = g_malloc(sizeof(struct file_sha1));
-
+	struct file_sha1 *new_cell;
+   
+	new_cell = alloc_cell();
 	new_cell->file_name = atom_str_get(file_name);
 	new_cell->file_index = file_index;
 	push(&waiting_for_sha1_computation, new_cell);
@@ -923,10 +937,10 @@ queue_shared_file_for_sha1_computation(guint32 file_index,
 			sha1_step_dump,
 		};
 
-		ctx = walloc0(sizeof(*ctx));
+		ctx = walloc0(sizeof *ctx);
 		ctx->magic = SHA1_MAGIC;
 		ctx->fd = -1;
-		ctx->buffer = g_malloc(HASH_BUF_SIZE);
+		ctx->buffer = compat_page_align(HASH_BUF_SIZE);
 
 		sha1_task = bg_task_create("SHA1 computation",
 			steps, 2,  ctx, sha1_computation_context_free, NULL, NULL);
@@ -1021,13 +1035,13 @@ huge_init(void)
 static gboolean
 cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
 {
-	struct sha1_cache_entry *e = (struct sha1_cache_entry *) v;
+	struct sha1_cache_entry *e = v;
 
 	(void) unused_key;
 	(void) unused_udata;
 
 	atom_str_free(e->file_name);
-	G_FREE_NULL(e);
+	wfree(e, sizeof *e);
 
 	return TRUE;
 }
@@ -1053,7 +1067,7 @@ huge_close(void)
 		struct file_sha1 *l = waiting_for_sha1_computation;
 
 		waiting_for_sha1_computation = waiting_for_sha1_computation->next;
-		free_cell(l);
+		free_cell(&l);
 	}
 }
 
