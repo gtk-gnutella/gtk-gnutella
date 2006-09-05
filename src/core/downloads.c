@@ -669,7 +669,7 @@ buffers_to_iovec(struct download *d)
 	struct dl_buffers *b;
 	struct iovec *iov;
 	GSList *sl;
-	size_t i;
+	size_t i, held = 0;
 
 	download_check(d);
 
@@ -687,16 +687,23 @@ buffers_to_iovec(struct download *d)
 
 	iov = walloc(b->count * sizeof *iov);
 
-	for (i = 0, sl = b->buffers; NULL != sl; sl = g_slist_next(sl), i++) {
+	sl = b->buffers;
+	for (i = 0; i < b->count; i++) {
 		pmsg_t *mb;
-	  
+		size_t size;
+	 
+	   	g_assert(sl);	
 		mb = sl->data;
 	   	g_assert(mb);
-		g_assert(i < b->count);
+		sl = g_slist_next(sl);
 
 		iov[i].iov_base = pmsg_read_base(mb);
-		iov[i].iov_len = pmsg_size(mb);
+		size = pmsg_size(mb);
+		g_assert(size > 0);
+		held += size;
+		iov[i].iov_len = size;
 	}
+	g_assert(held == b->held);
 
 	b->mode = DL_BUF_WRITING;
 
