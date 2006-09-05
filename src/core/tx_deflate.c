@@ -726,7 +726,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	for (i = 0; i < BUFFER_COUNT; i++) {
 		struct buffer *b = &attr->buf[i];
 
-		b->arena = b->wptr = b->rptr = g_malloc(attr->buffer_size);
+		b->arena = b->wptr = b->rptr = walloc(attr->buffer_size);
 		b->end = &b->arena[attr->buffer_size];
 	}
 
@@ -779,7 +779,7 @@ tx_deflate_destroy(txdrv_t *tx)
 
 	for (i = 0; i < BUFFER_COUNT; i++) {
 		struct buffer *b = &attr->buf[i];
-		g_free(b->arena);
+		wfree(b->arena, attr->buffer_size);
 	}
 
 	/*
