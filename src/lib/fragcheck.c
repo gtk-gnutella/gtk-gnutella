@@ -82,9 +82,10 @@ my_malloc(gsize n)
 {
 	union alloc *ap;
 
-#if 0
+#ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%lu)\n", __func__, (unsigned long) n);
-#endif
+#endif	/* FRAGCHECK_VERBOSE */
+
 	n = round_size(sizeof *ap, n);
 	ap = malloc(n + sizeof *ap);
 	assert(0 == (size_t) ap % sizeof *ap);
@@ -94,14 +95,14 @@ my_malloc(gsize n)
 	{
 		unsigned i;
 		for (i = 0; i < G_N_ELEMENTS(ap->meta.ret); i++) {
-			const void *addr;
 			switch (i) {
-			case 0: addr = __builtin_return_address(0); break;
-			case 1: addr = __builtin_return_address(1); break;
-			case 2: addr = __builtin_return_address(2); break;
-			default: addr = NULL;
+#define CASE(x) \
+	case x: ap->meta.ret[x] = (size_t) __builtin_return_address(x); break;
+			CASE(0)
+			CASE(1)
+			CASE(2)
+#undef CASE
 			}
-			ap->meta.ret[i] = (size_t) addr;
 		}
 	}
 #endif	/* FRAGCHECK_TRACK_CALLERS */
@@ -132,9 +133,10 @@ my_malloc(gsize n)
 static void
 my_free(gpointer p)
 {
-#if 0
+#ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%p)\n", __func__, p);
-#endif
+#endif	/* FRAGCHECK_VERBOSE */
+
 	if (p) {
 		union alloc *ap;
 
@@ -166,9 +168,9 @@ my_realloc(gpointer p, gsize n)
 	union alloc *ap;
 	gpointer x;
 
-#if 0
+#ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%p, %lu)\n", __func__, p, (unsigned long) n);
-#endif
+#endif	/* FRAGCHECK_VERBOSE */
 
 	assert(n > 0);
 	x = my_malloc(n);
@@ -190,9 +192,10 @@ my_calloc(gsize n, gsize m)
 	size_t size;
 	char *p;
 
-#if 0
+#ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%lu, %lu)\n", __func__, (unsigned long) n, (unsigned long) m);
-#endif
+#endif	/* FRAGCHECK_VERBOSE */
+
 	assert(n > 0);
 	assert(m > 0);
 	assert(n < ((size_t) -1) / m);
@@ -206,18 +209,20 @@ my_calloc(gsize n, gsize m)
 static gpointer
 my_try_malloc(gsize n)
 {
-#if 0
+#ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%lu)\n", __func__, (unsigned long) n);
-#endif
+#endif	/* FRAGCHECK_VERBOSE */
+
 	return my_malloc(n);
 }
 
 static gpointer
 my_try_realloc(gpointer p, gsize n)
 {
-#if 0
+#ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%p, %lu)\n", __func__, p, (unsigned long) n);
-#endif
+#endif	/* FRAGCHECK_VERBOSE */
+
 	return my_realloc(p, n);
 }
 
@@ -256,26 +261,21 @@ alloc_dump(FILE *f, gboolean unused_flag)
 				size_t base = alloc_base + base_i * sizeof *ap;
 				size_t len = n * sizeof *ap;
 
-				if ('a' == cur) {
-					ap = (const void *) base;
-					fprintf(f, "a base: 0x%08lx length: %8.1lu",
-						(unsigned long) base,
-						(unsigned long) len);
+				ap = (const void *) base;
+				fprintf(f, "%c base: 0x%08lx length: %8.1lu",
+					cur, (unsigned long) base, (unsigned long) len);
 
 #ifdef FRAGCHECK_TRACK_CALLERS
+				switch (cur) {
+				case 'a':
 					fprintf(f, " callers: 0x%08lx 0x%08lx 0x%08lx",
 						(unsigned long) ap->meta.ret[0],
 						(unsigned long) ap->meta.ret[1],
 						(unsigned long) ap->meta.ret[2]);
+				}
 #endif	/* FRAGCHECK_TRACK_CALLERS */
 
-					fputs("\n", f);
-				} else {
-					fprintf(f, "%c base: 0x%08lx length: %8.1lu\n",
-						cur,
-						(unsigned long) base,
-						(unsigned long) len);
-				}
+				fputs("\n", f);
 			}
 			if (i == BIT_COUNT) {
 				fflush(f);
@@ -300,6 +300,18 @@ fragcheck_init(void)
 	vtable.try_realloc = my_try_realloc;
 
 	g_mem_set_vtable(&vtable);
+
+	{
+		extern const int end;
+
+		/*
+		 * The address of "end" points to end of the BSS and should
+		 * be equivalent to the lowest heap address
+		 */
+
+		alloc_base = round_size(sizeof (union alloc),
+						(size_t) &end - sizeof (union alloc));
+	}
 }
 
 #endif	/* GLib >= 2.0 */
