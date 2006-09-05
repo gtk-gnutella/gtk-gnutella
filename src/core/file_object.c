@@ -89,7 +89,6 @@
 RCSID("$Id$")
 
 #include "file_object.h"
-#include "sockets.h"	/* For safe_writev_fd() */
 
 #include "lib/atoms.h"
 #include "lib/file.h"
@@ -477,11 +476,7 @@ file_object_pwritev(const struct file_object * const fo,
 		errno = saved_errno;
 		ret = -1;
 	} else {
-		if (iov_cnt > MAX_IOV_COUNT) {
-			ret = safe_writev_fd(fo->fd, iov, iov_cnt);
-		} else {
-			ret = writev(fo->fd, iov, iov_cnt);
-		}
+		ret = writev(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
 	}
 	return ret;
 }
@@ -578,11 +573,7 @@ file_object_preadv(const struct file_object * const fo,
 		errno = saved_errno;
 		ret = -1;
 	} else {
-		if (iov_cnt > MAX_IOV_COUNT) {
-			ret = safe_readv_fd(fo->fd, iov, iov_cnt);
-		} else {
-			ret = readv(fo->fd, iov, iov_cnt);
-		}
+		ret = readv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
 	}
 	return ret;
 }
