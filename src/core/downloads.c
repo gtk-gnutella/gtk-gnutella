@@ -891,6 +891,34 @@ buffers_strip_leading(struct download *d, size_t amount)
 		fi->buffered = 0;		/* Not critical, be fault-tolerant */
 }
 
+static void
+buffers_check_held(const struct download *d)
+{
+	const struct dl_buffers *b;
+	size_t n = 0;
+	GSList *sl;
+
+	download_check(d);
+
+	b = d->buffers;
+	g_assert((0 == b->held) ^ (NULL != d->buffers));
+
+	for (sl = b->buffers; NULL != sl; sl = g_slist_next(sl)) {
+		const pmsg_t *mb;
+		size_t size;
+
+		mb = sl->data;
+		g_assert(mb);
+
+		size = pmsg_size(mb);
+		g_assert(size > 0);
+
+		g_assert(size <= ((size_t) -1) - n);
+		n += size;
+	}
+	g_assert(n == b->held);
+}
+
 /**
  * Strip trailing `amount' bytes from the read buffers.
  */
@@ -5535,7 +5563,9 @@ download_overlap_check(struct download *d)
 	 * Remove the overlapping data from the read buffers.
 	 */
 
+	buffers_check_held(d);
 	buffers_strip_leading(d, d->overlap_size);
+	buffers_check_held(d);
 
 	if (download_debug > 3)
 		g_message("%u overlapping bytes MATCHED "
@@ -5590,7 +5620,10 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 			download_vendor_str(d), uint64_to_string(extra),
 			extra == 1 ? "" : "s", download_outname(d));
 
+		buffers_check_held(d);
 		buffers_strip_trailing(d, extra);
+		buffers_check_held(d);
+
 		if (trimmed)
 			*trimmed = TRUE;
 
@@ -5605,6 +5638,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	{
 		struct iovec *iov;
 
+		buffers_check_held(d);
 		iov = buffers_to_iovec(d); 
 		written = file_object_pwritev(d->out_file, iov, b->count, d->pos);
 		wfree(iov, b->count * sizeof *iov);
