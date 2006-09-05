@@ -89,7 +89,8 @@ pool_free(pool_t *p)
 /**
  * Allocate buffer from the pool.
  */
-gpointer palloc(pool_t *p)
+gpointer
+palloc(pool_t *p)
 {
 	g_assert(p != NULL);
 
