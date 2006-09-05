@@ -902,7 +902,7 @@ static void
 buffers_check_held(const struct download *d)
 {
 	const struct dl_buffers *b;
-	size_t n = 0;
+	size_t n = 0, i = 0;
 	GSList *sl;
 
 	download_check(d);
@@ -922,8 +922,10 @@ buffers_check_held(const struct download *d)
 
 		g_assert(size <= ((size_t) -1) - n);
 		n += size;
+		i++;
 	}
 	g_assert(n == b->held);
+	g_assert(i == b->count);
 }
 
 /**
