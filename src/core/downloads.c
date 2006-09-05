@@ -606,9 +606,17 @@ buffers_alloc(struct download *d)
 
 	b = walloc(sizeof *b);
 	*b = zero_buffers;
+	b->list = slist_new();
 	b->amount = download_buffer_size;
 
 	d->buffers = b;
+}
+
+static void
+buffers_free_item(gpointer data, gpointer unused_udata)
+{
+	(void) unused_udata;
+	pmsg_free(data);
 }
 
 /**
@@ -624,12 +632,8 @@ buffers_free(struct download *d)
 	g_assert(d->buffers->held == 0);	/* No pending data */
 
 	b = d->buffers;
-
-	G_SLIST_FOREACH(b->buffers, pmsg_free);
-	g_slist_free(b->buffers);
-	b->buffers = NULL;
-	b->last = NULL;
-
+	slist_foreach(b->list, buffers_free_item, NULL);
+	slist_free(&b->list);
 	wfree(b, sizeof *b);
 
 	d->buffers = NULL;
@@ -642,6 +646,7 @@ static void
 buffers_reset_reading(struct download *d)
 {
 	struct dl_buffers *b;
+	slist_iter_t *iter;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
@@ -650,13 +655,17 @@ buffers_reset_reading(struct download *d)
 	g_assert(d->buffers->held == 0);
 
 	b = d->buffers;
+	iter = slist_iter_on_head(b->list);
+	while (slist_iter_has_item(iter)) {
+		pmsg_t *mb;
 
-	G_SLIST_FOREACH(b->buffers, pmsg_free);
-	g_slist_free(b->buffers);
-	b->buffers = NULL;
-	b->last = NULL;
+		mb = slist_iter_current(iter);
+		g_assert(mb);
+		pmsg_free(mb);
+		slist_iter_remove(iter);
+	}
+	slist_iter_free(&iter);
 
-	b->count = 0;
 	b->mode = DL_BUF_READING;
 }
 
@@ -668,8 +677,8 @@ buffers_to_iovec(struct download *d)
 {
 	struct dl_buffers *b;
 	struct iovec *iov;
-	GSList *sl;
-	size_t i, held = 0;
+	slist_iter_t *iter;
+	size_t held = 0, i, n;
 
 	download_check(d);
 
@@ -678,33 +687,33 @@ buffers_to_iovec(struct download *d)
 	g_assert(d->status == GTA_DL_RECEIVING);
 
 	b = d->buffers;
-
-	g_assert(b->held > 0);
-	g_assert(b->count > 0);
-	g_assert(b->buffers);
-	g_assert(b->last);
 	g_assert(b->mode == DL_BUF_READING);
+	g_assert(b->held > 0);
+	g_assert(b->list);
+	
+	n = slist_length(b->list);
+	g_assert(n > 0);
 
-	iov = walloc(b->count * sizeof *iov);
+	iov = walloc(n * sizeof *iov);
 
-	sl = b->buffers;
-	for (i = 0; i < b->count; i++) {
+	iter = slist_iter_before_head(b->list);
+	for (i = 0; slist_iter_has_next(iter); i++) {
 		pmsg_t *mb;
 		size_t size;
-	 
-	   	g_assert(sl);	
-		mb = sl->data;
+	
+	   	g_assert(i < n);	
+		mb = slist_iter_next(iter);
 	   	g_assert(mb);
-		sl = g_slist_next(sl);
 
-		iov[i].iov_base = pmsg_read_base(mb);
 		size = pmsg_size(mb);
 		g_assert(size > 0);
 		held += size;
+
+		iov[i].iov_base = pmsg_read_base(mb);
 		iov[i].iov_len = size;
 	}
 	g_assert(held == b->held);
-	g_assert(NULL == sl);
+	slist_iter_free(&iter);
 
 	b->mode = DL_BUF_WRITING;
 
@@ -788,13 +797,7 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 
 	g_assert(b->mode == DL_BUF_READING);
 
-	g_assert(NULL == g_slist_next(b->last));	
-	b->last = g_slist_last(g_slist_append(b->last, mb));
-	if (!b->buffers) {
-		b->buffers = b->last;
-	}
-	b->count++;
-
+	slist_append(b->list, mb);
 	size = pmsg_size(mb);
 	b->held += size;
 
@@ -814,7 +817,7 @@ static gboolean
 buffers_match(const struct download *d, const gchar *data, size_t len)
 {
 	const struct dl_buffers *b;
-	const GSList *sl;
+	slist_iter_t *iter;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
@@ -824,20 +827,22 @@ buffers_match(const struct download *d, const gchar *data, size_t len)
 	b = d->buffers;
 	g_assert(len <= b->held);
 
-	for (sl = b->buffers; len > 0 && NULL != sl; sl = g_slist_next(sl)) {
+	iter = slist_iter_before_head(b->list);
+	while (len > 0 && slist_iter_has_next(iter)) {
 		const pmsg_t *mb;
 		size_t n;
 	
-		mb = sl->data;
+		mb = slist_iter_next(iter);
 		g_assert(mb);
 
 		n = pmsg_size(mb);
 		n = MIN(n, len);
 		if (0 != memcmp(pmsg_read_base(mb), data, n)) {
-			return FALSE;
+			break;
 		}
 		len -= n;
 	}
+	slist_iter_free(&iter);
 
 	return 0 == len;
 }
@@ -850,7 +855,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 {
 	struct dl_buffers *b;
 	fileinfo_t *fi;
-	GSList *sl;
+	slist_iter_t *iter;
 	size_t n;
 
 	download_check(d);
@@ -868,12 +873,12 @@ buffers_strip_leading(struct download *d, size_t amount)
 	}
 
 	n = amount;
-	sl = b->buffers;
-	while (n > 0) {
+	iter = slist_iter_on_head(b->list);
+	while (n > 0 && slist_iter_has_item(iter)) {
 		pmsg_t *mb;
 		size_t size;
 
-		mb = sl->data;
+		mb = slist_iter_current(iter);
 		g_assert(mb);
 
 		size = pmsg_size(mb);
@@ -883,13 +888,10 @@ buffers_strip_leading(struct download *d, size_t amount)
 		} else {
 			pmsg_free(mb);
 			n -= size;
-			sl = g_slist_delete_link(sl, sl);
+			slist_iter_remove(iter);
 		}
 	}
-
-	b->buffers = sl;
-	if (!b->buffers) 
-		b->last = NULL;
+	slist_iter_free(&iter);
 
 	b->held -= amount;
 
@@ -903,30 +905,31 @@ static void
 buffers_check_held(const struct download *d)
 {
 	const struct dl_buffers *b;
-	size_t n = 0, i = 0;
-	GSList *sl;
+	size_t held = 0;
+	slist_iter_t *iter;
 
 	download_check(d);
 
 	b = d->buffers;
 	g_assert((0 == b->held) ^ (NULL != d->buffers));
 
-	for (sl = b->buffers; NULL != sl; sl = g_slist_next(sl)) {
+	iter = slist_iter_before_head(b->list);
+	while (slist_iter_has_next(iter)) {
 		const pmsg_t *mb;
 		size_t size;
 
-		mb = sl->data;
+		mb = slist_iter_next(iter);
 		g_assert(mb);
 
 		size = pmsg_size(mb);
 		g_assert(size > 0);
 
-		g_assert(size <= ((size_t) -1) - n);
-		n += size;
-		i++;
+		g_assert(size <= ((size_t) -1) - held);
+		held += size;
 	}
-	g_assert(n == b->held);
-	g_assert(i == b->count);
+	slist_iter_free(&iter);
+
+	g_assert(held == b->held);
 }
 
 /**
@@ -936,8 +939,8 @@ static void
 buffers_strip_trailing(struct download *d, size_t amount)
 {
 	struct dl_buffers *b;
+	slist_iter_t *iter;
 	fileinfo_t *fi;
-	GSList *sl;
 	size_t n;
 
 	download_check(d);
@@ -954,13 +957,13 @@ buffers_strip_trailing(struct download *d, size_t amount)
 		return;
 	}
 	n = b->held - amount;
-	b->last = b->buffers;
 
-	for (sl = b->buffers; NULL != sl; /* NOTHING */) {
+	iter = slist_iter_on_head(b->list);
+	while (slist_iter_has_item(iter)) {
 		pmsg_t *mb;
 		size_t size;
 
-		mb = sl->data;
+		mb = slist_iter_current(iter);
 		g_assert(mb);
 
 		if (n > 0) {
@@ -968,21 +971,18 @@ buffers_strip_trailing(struct download *d, size_t amount)
 			if (size < n) {
 				n -= size;
 			} else {
-				b->last = sl;
 				if (size > n) {
 					pmsg_discard_trailing(mb, size - n);
 				}
 				n = 0;
 			}
-			sl = g_slist_next(sl);
+			slist_iter_next(iter);
 		} else {
 			pmsg_free(mb);
-			sl = g_slist_delete_link(sl, sl);
+			slist_iter_remove(iter);
 		}
 	}
-
-	g_assert(NULL != b->last);
-	b->last->next = NULL; /* Was already deleted if any */
+	slist_iter_free(&iter);
 
 	b->held -= amount;
 
@@ -5647,11 +5647,15 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	
 	{
 		struct iovec *iov;
+		guint n;
 
 		buffers_check_held(d);
+		n = slist_length(b->list);
+		g_assert(n > 0);
+
 		iov = buffers_to_iovec(d); 
-		written = file_object_pwritev(d->out_file, iov, b->count, d->pos);
-		wfree(iov, b->count * sizeof *iov);
+		written = file_object_pwritev(d->out_file, iov, n, d->pos);
+		wfree(iov, n * sizeof *iov);
 	}
 
 	if ((ssize_t) -1 == written) {

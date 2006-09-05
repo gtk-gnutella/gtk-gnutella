@@ -29,6 +29,7 @@
 #include "lib/tm.h"				/* For tm_t */
 #include "lib/event.h"			/* For frequency_t */
 #include "lib/list.h"
+#include "lib/slist.h"
 
 #include "core/rx.h"
 #include "core/rx_link.h"
@@ -155,12 +156,10 @@ enum dl_bufmode {
  * buffer is always the buffer from the socket structure.
  */
 struct dl_buffers {
-	enum dl_bufmode mode;		/**< I/O vector mode */
-	GSList *buffers;			/**< List of pmsg_t items */
-	GSList *last;				/**< Pointer to last item */
-	size_t count;				/**< Amount of buffers */
-	size_t amount;				/**< Amount to buffer (extra is read-ahead) */
-	size_t held;				/**< Amount of data held in read buffers */
+	enum dl_bufmode mode;	/**< I/O vector mode */
+	slist_t *list;			/**< List of pmsg_t items */
+	size_t amount;			/**< Amount to buffer (extra is read-ahead) */
+	size_t held;			/**< Amount of data held in read buffers */
 };
 
 struct file_object;
