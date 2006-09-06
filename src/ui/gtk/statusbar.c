@@ -142,10 +142,10 @@ statusbar_gui_push(sb_types_t type, guint scid, guint timeout,
 	const gchar *format, ...)
 {
     va_list args;
-    statusbar_msgid_t id = zero_msgid;
+    statusbar_msgid_t id;
 
 	va_start(args, format);
-	statusbar_gui_push_v(type, scid, timeout, format, args);
+	id = statusbar_gui_push_v(type, scid, timeout, format, args);
     va_end(args);
 
     return id;
@@ -162,10 +162,10 @@ statusbar_msgid_t
 statusbar_gui_message(guint timeout, const gchar *format, ...)
 {
     va_list args;
-    statusbar_msgid_t id = zero_msgid;
+    statusbar_msgid_t id;
 
 	va_start(args, format);
-	statusbar_gui_push_v(SB_MESSAGE, scid_info, timeout, format, args);
+	id = statusbar_gui_push_v(SB_MESSAGE, scid_info, timeout, format, args);
     va_end(args);
 
     return id;
@@ -182,10 +182,10 @@ statusbar_msgid_t
 statusbar_gui_warning(guint timeout, const gchar *format, ...)
 {
     va_list args;
-    statusbar_msgid_t id = zero_msgid;
+    statusbar_msgid_t id;
 
 	va_start(args, format);
-	statusbar_gui_push_v(SB_WARNING, scid_warn, timeout, format, args);
+	id = statusbar_gui_push_v(SB_WARNING, scid_warn, timeout, format, args);
     va_end(args);
 
     return id;
