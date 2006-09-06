@@ -484,7 +484,7 @@ struct sha1_computation_context {
 	guint magic;
 	SHA1Context context;
 	struct file_sha1 *file;
-	gchar *buffer;				/**< Large buffer where data is read */
+	gpointer buffer;			/**< Large buffer where data is read */
 	gint fd;
 	time_t start;				/**< Debugging, show computation rate */
 };
@@ -496,12 +496,12 @@ sha1_computation_context_free(gpointer u)
 
 	g_assert(ctx->magic == SHA1_MAGIC);
 
-	if (ctx->fd != -1)
+	if (ctx->fd != -1) {
 		close(ctx->fd);
-
+		ctx->fd = -1;
+	}
 	free_cell(&ctx->file);
-	compat_page_free(ctx->buffer, HASH_BUF_SIZE);
-	ctx->buffer = NULL;
+	COMPAT_PAGE_FREE_NULL(ctx->buffer, HASH_BUF_SIZE);
 	wfree(ctx, sizeof *ctx);
 }
 

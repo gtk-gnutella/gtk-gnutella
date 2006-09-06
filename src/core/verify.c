@@ -68,7 +68,7 @@ struct verifyd {
 	filesize_t size;		/**< Size of file */
 	filesize_t hashed;		/**< Amount of data hashed so far */
 	SHA1Context context;	/**< SHA1 computation context */
-	gchar *buffer;			/**< Large buffer, where data is read */
+	gpointer buffer;		/**< Large buffer, where data is read */
 	gint error;				/**< Error code */
 };
 
@@ -86,8 +86,7 @@ d_free(gpointer ctx)
 		close(vd->fd);
 		vd->fd = -1;
 	}
-
-	G_FREE_NULL(vd->buffer);
+	COMPAT_PAGE_FREE_NULL(vd->buffer, HASH_BUF_SIZE);
 	vd->magic = 0;
 	wfree(vd, sizeof *vd);
 }
@@ -284,7 +283,7 @@ verify_init(void)
 	vd = walloc(sizeof *vd);
 	vd->magic = VERIFYD_MAGIC;
 	vd->fd = -1;
-	vd->buffer = g_malloc(HASH_BUF_SIZE);
+	vd->buffer = compat_page_align(HASH_BUF_SIZE);
 	vd->d = NULL;
 
 	verify_daemon = bg_daemon_create("SHA1 verification",
