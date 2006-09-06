@@ -1518,7 +1518,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label498), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label494 = gtk_label_new ("Raphaël Manfredi");
+  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_table_attach (GTK_TABLE (table105), label494, 1, 2, 1, 2,
@@ -1545,7 +1545,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label704), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label704), 4, 0);
 
-  label493 = gtk_label_new ("Raphaël Manfredi");
+  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_table_attach (GTK_TABLE (table105), label493, 4, 5, 0, 1,
@@ -13215,7 +13215,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
 
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   gtk_widget_show (spinbutton_dl_minchunksize);
@@ -13224,7 +13224,7 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 67108900, 1, 10, 10);
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
   gtk_widget_show (spinbutton_dl_maxchunksize);
@@ -13862,7 +13862,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
 
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
   gtk_widget_show (spinbutton_pfsp_first_chunk);
@@ -13980,7 +13980,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label928), 0, 0.5);
 
-  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_size_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_parq_min_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_size, "spinbutton_parq_min_size");
   gtk_widget_show (spinbutton_parq_min_size);
@@ -14003,7 +14003,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 67108900, 1, 10, 10);
+  spinbutton_parq_min_time_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
   spinbutton_parq_min_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_parq_min_time_adj), 1, 0);
   gtk_widget_set_name (spinbutton_parq_min_time, "spinbutton_parq_min_time");
   gtk_widget_show (spinbutton_parq_min_time);
@@ -15616,12 +15616,23 @@ create_main_window_downloads_tab (void)
   GtkWidget *hbox162;
   GtkWidget *image32;
   GtkWidget *label413;
+  GtkWidget *togglebutton_queue_freeze;
+  GtkWidget *alignment137;
+  GtkWidget *table110;
+  GtkWidget *vbox_queue_thaw;
+  GtkWidget *hbox9334;
+  GtkWidget *image1798;
+  GtkWidget *label996;
+  GtkWidget *vbox_queue_freeze;
+  GtkWidget *hbox9335;
+  GtkWidget *image1797;
+  GtkWidget *label995;
+  GtkWidget *label888;
   GtkWidget *checkbutton_dl_show_settings;
   GtkWidget *alignment77;
   GtkWidget *hbox216;
   GtkWidget *image138;
   GtkWidget *label_dl_show_settings;
-  GtkWidget *label888;
   GtkWidget *table53;
   GtkWidget *viewport28;
   GtkWidget *hbox212;
@@ -15887,7 +15898,7 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label674);
   gtk_frame_set_label_widget (GTK_FRAME (frame82), label674);
 
-  table57 = gtk_table_new (1, 7, FALSE);
+  table57 = gtk_table_new (1, 8, FALSE);
   gtk_widget_set_name (table57, "table57");
   gtk_widget_show (table57);
   gtk_box_pack_start (GTK_BOX (vbox142), table57, FALSE, TRUE, 0);
@@ -16008,10 +16019,78 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label413);
   gtk_box_pack_start (GTK_BOX (hbox162), label413, FALSE, FALSE, 0);
 
+  togglebutton_queue_freeze = gtk_toggle_button_new ();
+  gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
+  gtk_widget_show (togglebutton_queue_freeze);
+  gtk_table_attach (GTK_TABLE (table57), togglebutton_queue_freeze, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK), 4, 0);
+
+  alignment137 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment137, "alignment137");
+  gtk_widget_show (alignment137);
+  gtk_container_add (GTK_CONTAINER (togglebutton_queue_freeze), alignment137);
+
+  table110 = gtk_table_new (1, 2, FALSE);
+  gtk_widget_set_name (table110, "table110");
+  gtk_widget_show (table110);
+  gtk_container_add (GTK_CONTAINER (alignment137), table110);
+
+  vbox_queue_thaw = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox_queue_thaw, "vbox_queue_thaw");
+  gtk_table_attach (GTK_TABLE (table110), vbox_queue_thaw, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  hbox9334 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox9334, "hbox9334");
+  gtk_widget_show (hbox9334);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_thaw), hbox9334, FALSE, TRUE, 0);
+
+  image1798 = gtk_image_new_from_stock ("gtk-refresh", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1798, "image1798");
+  gtk_widget_show (image1798);
+  gtk_box_pack_start (GTK_BOX (hbox9334), image1798, FALSE, TRUE, 0);
+
+  label996 = gtk_label_new_with_mnemonic (_("Thaw queue"));
+  gtk_widget_set_name (label996, "label996");
+  gtk_widget_show (label996);
+  gtk_box_pack_start (GTK_BOX (hbox9334), label996, FALSE, TRUE, 0);
+
+  vbox_queue_freeze = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox_queue_freeze, "vbox_queue_freeze");
+  gtk_widget_show (vbox_queue_freeze);
+  gtk_table_attach (GTK_TABLE (table110), vbox_queue_freeze, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  hbox9335 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox9335, "hbox9335");
+  gtk_widget_show (hbox9335);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_freeze), hbox9335, FALSE, TRUE, 0);
+
+  image1797 = gtk_image_new_from_stock ("gtk-dialog-error", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1797, "image1797");
+  gtk_widget_show (image1797);
+  gtk_box_pack_start (GTK_BOX (hbox9335), image1797, FALSE, TRUE, 0);
+
+  label995 = gtk_label_new_with_mnemonic (_("Freeze queue"));
+  gtk_widget_set_name (label995, "label995");
+  gtk_widget_show (label995);
+  gtk_box_pack_start (GTK_BOX (hbox9335), label995, FALSE, TRUE, 0);
+
+  label888 = gtk_label_new (_(" "));
+  gtk_widget_set_name (label888, "label888");
+  gtk_widget_show (label888);
+  gtk_table_attach (GTK_TABLE (table57), label888, 5, 7, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label888), 0, 0.5);
+
   checkbutton_dl_show_settings = gtk_toggle_button_new ();
   gtk_widget_set_name (checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
   gtk_widget_show (checkbutton_dl_show_settings);
-  gtk_table_attach (GTK_TABLE (table57), checkbutton_dl_show_settings, 6, 7, 0, 1,
+  gtk_table_attach (GTK_TABLE (table57), checkbutton_dl_show_settings, 7, 8, 0, 1,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_SHRINK), 4, 0);
 
@@ -16034,14 +16113,6 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (label_dl_show_settings, "label_dl_show_settings");
   gtk_widget_show (label_dl_show_settings);
   gtk_box_pack_start (GTK_BOX (hbox216), label_dl_show_settings, FALSE, FALSE, 0);
-
-  label888 = gtk_label_new (_(" "));
-  gtk_widget_set_name (label888, "label888");
-  gtk_widget_show (label888);
-  gtk_table_attach (GTK_TABLE (table57), label888, 4, 6, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label888), 0, 0.5);
 
   table53 = gtk_table_new (1, 5, FALSE);
   gtk_widget_set_name (table53, "table53");
@@ -16446,6 +16517,9 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) button_downloads_resume, "clicked",
                     G_CALLBACK (on_button_downloads_resume_clicked),
                     NULL);
+  g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
+                    G_CALLBACK (on_togglebutton_queue_freeze_toggled),
+                    NULL);
   g_signal_connect ((gpointer) entry_queue_regex, "activate",
                     G_CALLBACK (on_entry_regex_activate),
                     NULL);
@@ -16502,12 +16576,23 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox162, "hbox162");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image32, "image32");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label413, "label413");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, togglebutton_queue_freeze, "togglebutton_queue_freeze");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment137, "alignment137");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table110, "table110");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox_queue_thaw, "vbox_queue_thaw");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9334, "hbox9334");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image1798, "image1798");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label996, "label996");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox_queue_freeze, "vbox_queue_freeze");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9335, "hbox9335");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image1797, "image1797");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label995, "label995");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label888, "label888");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment77, "alignment77");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox216, "hbox216");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image138, "image138");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_show_settings, "label_dl_show_settings");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label888, "label888");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table53, "table53");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport28, "viewport28");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox212, "hbox212");

@@ -81,7 +81,6 @@ gui_update_download_clear_now(void)
 void
 gui_update_queue_frozen(void)
 {
-#ifdef USE_GTK1
     static gboolean msg_displayed = FALSE;
     static statusbar_msgid_t id = {0, 0};
     GtkWidget *togglebutton_queue_freeze;
@@ -97,11 +96,6 @@ gui_update_queue_frozen(void)
     if (guc_download_queue_is_frozen()) {
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
-    	/*
-		gtk_label_set_text(
-            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
-			"Thaw queue");
-		*/
         if (!msg_displayed) {
             msg_displayed = TRUE;
           	id = statusbar_gui_message(0, _("Queue frozen"));
@@ -109,11 +103,6 @@ gui_update_queue_frozen(void)
     } else {
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_thaw"));
-    	/*
-		gtk_label_set_text(
-            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
-			"Freeze queue");
-		*/
         if (msg_displayed) {
             msg_displayed = FALSE;
             statusbar_gui_remove(id);
@@ -133,7 +122,6 @@ gui_update_queue_frozen(void)
         GTK_OBJECT(togglebutton_queue_freeze),
         GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
         NULL);
-#endif /* USE_GTK1 */
 }
 
 /**
