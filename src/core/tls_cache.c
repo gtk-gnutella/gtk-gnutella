@@ -357,10 +357,11 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 		if (hash_list_contains(tls_hosts, &item, &key)) {
 			struct tls_cache_item *item_ptr = key;
 			time_t now = tm_time();
+			time_delta_t upper_limit = tls_cache_max_time;
 			
 			if (
 				delta_time(now, item_ptr->seen) >= 0 && 
-				delta_time(now, item_ptr->seen) < tls_cache_max_time
+				delta_time(now, item_ptr->seen) < upper_limit
 			) {
 				return TRUE;
 			} else {
