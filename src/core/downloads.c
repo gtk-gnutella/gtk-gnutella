@@ -773,7 +773,12 @@ buffers_should_flush(const struct download *d)
 
 	b = d->buffers;
 
-	return b->held >= b->amount;
+	/*
+	 * Check against MAX_IOV_COUNT because if there are more buffers,
+	 * this requires looping with [p]writev() - at least with the
+	 * current download logic - which is inefficient.
+	 */
+	return b->held >= b->amount || slist_length(b->list) >= MAX_IOV_COUNT;
 }
 
 /**
@@ -5638,25 +5643,59 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 			*trimmed = TRUE;
 
 		g_assert(b->held > 0);	/* We had not reached range_end previously */
-	} else if (trimmed)
+	} else if (trimmed) {
 		*trimmed = FALSE;
+	}
 
-	/*
-	 * Prepare I/O vector for writing.
+
+	/**
+	 * writev() and others do not necessarily flush the complete buffer
+	 * to disk, especially if the configured buffer size is large. As
+	 * this is not handled gracefully i.e., the non-flushed buffer content
+	 * would be discarded, we loop here until the complete buffer has
+	 * been flushed or an error occurs. With large buffer sizes or a
+	 * slow disk, this may of course increase the latency and cause some
+	 * stalling. The right thing to do would be keeping the buffered
+	 * data and attempting another flush next time.
 	 */
-	
-	{
+
+	written = 0;
+	do {
 		struct iovec *iov;
+		ssize_t ret;
 		guint n;
 
 		buffers_check_held(d);
 		n = slist_length(b->list);
 		g_assert(n > 0);
 
+		/*
+		 * Prepare I/O vector for writing.
+		 */
 		iov = buffers_to_iovec(d); 
-		written = file_object_pwritev(d->out_file, iov, n, d->pos);
+		ret = file_object_pwritev(d->out_file, iov, n, d->pos);
 		wfree(iov, n * sizeof *iov);
-	}
+
+		if ((ssize_t) -1 == ret || 0 == ret) {
+			if (0 == written) {
+				written = ret;
+			}
+			break;
+		} else {
+			size_t size = (size_t) ret;
+			
+			g_assert(size <= b->held);
+
+			file_info_update(d, d->pos, d->pos + size, DL_CHUNK_DONE);
+			gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + size);
+
+			d->pos += size;
+			written += size;
+
+			b->mode = DL_BUF_READING;
+			buffers_strip_leading(d, size);
+		}
+	} while (b->held > 0);
 
 	if ((ssize_t) -1 == written) {
 		const char *error = g_strerror(errno);
@@ -5682,14 +5721,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		return FALSE;
 	}
 
-	g_assert((size_t) written <= b->held);
-
-	file_info_update(d, d->pos, d->pos + written, DL_CHUNK_DONE);
-	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
-	d->pos += written;
-
-	if ((size_t) written < b->held) {
-		g_warning("partial write of %lu out of %lu bytes to file \"%s\"",
+	if (b->held > 0) {
+		g_warning("Partial write (written=%lu, b->held=%lu) to file \"%s\"",
 			(gulong) written, (gulong) b->held, download_outname(d));
 
 		/* Prevent download_stop() from trying flushing again */
@@ -5702,7 +5735,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		return FALSE;
 	}
 
-	g_assert((size_t) written == b->held);
+	g_assert(0 == b->held);
 
 	buffers_discard(d);			/* Since we wrote everything... */
 
