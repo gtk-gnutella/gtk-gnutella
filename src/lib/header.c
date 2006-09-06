@@ -185,7 +185,7 @@ hfield_make(const gchar *name)
 {
 	header_field_t *h;
 
-	h = g_malloc0(sizeof *h);
+	h = walloc0(sizeof *h);
 	h->name = g_strdup(name);
 
 	return h;
@@ -209,7 +209,7 @@ hfield_free(header_field_t *h)
 		slist_free(&h->lines);
 	}
 	G_FREE_NULL(h->name);
-	G_FREE_NULL(h);
+	wfree(h, sizeof *h);
 }
 
 /**
@@ -272,7 +272,7 @@ header_make(void)
 {
 	header_t *o;
 
-	o = g_malloc0(sizeof *o);
+	o = walloc0(sizeof *o);
 	return o;
 }
 
@@ -298,7 +298,7 @@ header_free(header_t *o)
 	g_assert(o);
 
 	header_reset(o);
-	G_FREE_NULL(o);
+	wfree(o, sizeof *o);
 }
 
 static void
