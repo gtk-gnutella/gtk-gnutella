@@ -377,7 +377,7 @@ atom_dealloc(atom_t *a, size_t size)
 		 * relies on executable heap-memory because the page is now
 		 * mapped (PROT_READ | PROT_WRITE).
 		 */
-		compat_page_free(a, size);
+		COMPAT_PAGE_FREE_NULL(a, size);
 	}
 }
 #else
