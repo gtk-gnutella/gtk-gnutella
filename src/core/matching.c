@@ -523,7 +523,7 @@ st_search(
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
 
 
-	pattern = g_malloc0(wocnt * sizeof *pattern);
+	pattern = walloc0(wocnt * sizeof *pattern);
 
 	/*
 	 * Prepare matching optimization, an idea from Mike Green.
@@ -592,7 +592,7 @@ st_search(
 		if (pattern[i])					/* Lazily compiled by entry_match() */
 			pattern_free(pattern[i]);
 
-	G_FREE_NULL(pattern);
+	wfree(pattern, wocnt * sizeof *pattern);
 	word_vec_free(wovec, wocnt);
 }
 
