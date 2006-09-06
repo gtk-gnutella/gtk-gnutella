@@ -2966,8 +2966,12 @@ download_stop_v(struct download *d, download_status_t new_status,
 		 */
 
 		if (d->buffers != NULL) {
-			if (d->buffers->held > 0)
+			if (d->buffers->held > 0) {
 				download_flush(d, NULL, FALSE);
+				if (d->buffers->held > 0) {
+					buffers_discard(d);
+				}
+			}
 			buffers_free(d);
 		}
 
@@ -5675,6 +5679,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		iov = buffers_to_iovec(d); 
 		ret = file_object_pwritev(d->out_file, iov, n, d->pos);
 		wfree(iov, n * sizeof *iov);
+		b->mode = DL_BUF_READING;
 
 		if ((ssize_t) -1 == ret || 0 == ret) {
 			if (0 == written) {
@@ -5692,14 +5697,26 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 			d->pos += size;
 			written += size;
 
-			b->mode = DL_BUF_READING;
 			buffers_strip_leading(d, size);
 		}
 	} while (b->held > 0);
 
 	if ((ssize_t) -1 == written) {
-		const char *error = g_strerror(errno);
+		const char *error;
 
+		switch (errno) {
+		case ENOSPC:	/* No space left */
+		case EDQUOT:	/* quota exceeded */
+		case EROFS:		/* read-only filesystem */
+		case EIO:		/* I/O error */
+			if (!download_queue_is_frozen()) {
+				download_freeze_queue();
+				g_warning("Freezing download queue due to write error!");
+			}
+			break;
+		}
+	
+	   	error = g_strerror(errno);
 		g_warning("write of %lu bytes to file \"%s\" failed: %s",
 			(gulong) b->held, download_outname(d), error);
 
@@ -5711,9 +5728,6 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		 * be solved by the user but may hold for a long duration.
 		 */
 
-		/* Prevent download_stop() from trying flushing again */
-		buffers_discard(d);
-		
 		if (may_stop)
 			download_queue_delay(d, download_retry_busy_delay,
 				_("Can't save data: %s"), error);
@@ -5724,9 +5738,6 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	if (b->held > 0) {
 		g_warning("Partial write (written=%lu, b->held=%lu) to file \"%s\"",
 			(gulong) written, (gulong) b->held, download_outname(d));
-
-		/* Prevent download_stop() from trying flushing again */
-		buffers_discard(d);
 
 		if (may_stop)
 			download_queue_delay(d, download_retry_busy_delay,
@@ -10008,8 +10019,12 @@ download_close(void)
 		if (DOWNLOAD_IS_VISIBLE(d))
 			gcu_download_gui_remove(d);
 		if (d->buffers) {
-			if (d->buffers->held > 0)
+			if (d->buffers->held > 0) {
 				download_flush(d, NULL, FALSE);
+				if (d->buffers->held > 0) {
+					buffers_discard(d);
+				}
+			}
 			buffers_free(d);
 		}
 		if (d->push)
