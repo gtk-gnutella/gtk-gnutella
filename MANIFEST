@@ -500,6 +500,7 @@ src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c
 src/lib/event.h
+src/lib/fast_assert.h
 src/lib/fifo.c
 src/lib/fifo.h
 src/lib/file.c
