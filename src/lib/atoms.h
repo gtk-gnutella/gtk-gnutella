@@ -47,7 +47,9 @@ enum atom_type {
 	ATOM_GUID,		/**< GUIDs (binary, 16 bytes) */
 	ATOM_SHA1,		/**< SHA1 (binary, 20 bytes) */
 	ATOM_UINT64,	/**< integers (binary, 8 bytes) */
-	ATOM_FILESIZE	/**< filesize_t (binary) */
+	ATOM_FILESIZE,	/**< filesize_t (binary) */
+
+	NUM_ATOM_TYPES
 };
 
 #if !defined(TRACK_ATOMS) || defined(ATOMS_SOURCE)

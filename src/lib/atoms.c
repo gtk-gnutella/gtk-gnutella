@@ -37,8 +37,6 @@
  * @date 2002-2003
  */
 
-#include <string.h>
-
 #define ATOMS_SOURCE
 #include "common.h"
 
@@ -46,22 +44,39 @@
 
 RCSID("$Id$")
 
-#ifdef PROTECT_ATOMS
+#if 0
+#define PROTECT_ATOMS
+#endif
+
+#if 0
+#define ATOMS_HAVE_MAGIC
+#endif
 
 /*
  * With PROTECT_ATOMS all atoms are mapped read-only so that they cannot
  * be modified accidently. This is achieved through mprotect(). The CPU
  * overhead is significant and there is also some memory overhead but it's
  * sufficiently low for testing/debugging purposes.
+ *
+ * TODO: Separate the reference counter (refcount) from the atom itself.
+ *       This would heavily the reduce the amount of mprotect() calls and
+ *       also reduce the memory overhead.
+ *		 We could possibly use the value which we insert into the global
+ *       hashtable as reference counter.
  */
 
-#include <sys/mman.h>
-
+#ifdef ATOMS_HAVE_MAGIC
 typedef enum {
-	ATOM_PROT_MAGIC = 0x3eeb9a27U
+	ATOM_MAGIC = 0x3eeb9a27U
 } atom_prot_magic_t;
 
-#endif /* PROTECT_ATOMS */
+#define ATOM_MAGIC_CHECK(a) g_assert(ATOM_MAGIC == (a)->magic)
+#define ATOM_SET_MAGIC(a) G_STMT_START { (a)->magic = ATOM_MAGIC; } G_STMT_END
+#else
+#define ATOM_MAGIC_CHECK(a)
+#define ATOM_SET_MAGIC(a)
+#endif	/* ATOMS_HAVE_MAGIC */
+
 
 #include "misc.h"
 #include "glib-missing.h"
@@ -79,6 +94,8 @@ union mem_chunk {
   gdouble    d;
 };
 
+#define ATOM_TYPE_MASK	((size_t) 0x07)
+
 /**
  * Atoms are ref-counted.
  *
@@ -91,17 +108,28 @@ typedef struct atom {
 	GHashTable *get;		/**< Allocation spots */
 	GHashTable *free;		/**< Free spots */
 #endif
-#ifdef PROTECT_ATOMS
+#ifdef ATOMS_HAVE_MAGIC
 	atom_prot_magic_t magic;
-	size_t size;
 #endif /* PROTECT_ATOMS */
 	gint refcnt;			/**< Amount of references */
 	/* Ensure `arena' is properly aligned */
 	union mem_chunk arena[1];			/* Start of user arena */
 } atom_t;
 
-
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
+
+static inline atom_t *
+atom_from_arena(gconstpointer key)
+{
+	return (gpointer) ((gchar *) key - ARENA_OFFSET);
+}
+
+static inline void
+atom_check(const atom_t *a)
+{
+	g_assert(a);
+	ATOM_MAGIC_CHECK(a);
+}
 
 #ifdef PROTECT_ATOMS
 struct mem_pool {
@@ -116,7 +144,7 @@ struct mem_cache {
 	size_t hold;
 };
 
-static struct mem_cache *mc[6];
+static struct mem_cache *mc[9];
 
 static struct mem_pool *
 mem_pool_new(size_t size, size_t hold)
@@ -281,12 +309,10 @@ mem_unprotect(gpointer ptr, size_t size)
  * @note All atoms that reside in the same page will be affected.
  */
 static inline void
-atom_unprotect(atom_t *a)
+atom_unprotect(atom_t *a, size_t size)
 {
-	g_assert(a);
-	g_assert(ATOM_PROT_MAGIC == a->magic);
-
-	mem_unprotect(a, a->size);
+	atom_check(a);
+	mem_unprotect(a, size);
 }
 
 /**
@@ -294,12 +320,10 @@ atom_unprotect(atom_t *a)
  * @note All atoms that reside in the same page will be affected.
  */
 static inline void
-atom_protect(atom_t *a)
+atom_protect(atom_t *a, size_t size)
 {
-	g_assert(a);
-	g_assert(ATOM_PROT_MAGIC == a->magic);
-
-	mem_protect(a, a->size);
+	atom_check(a);
+	mem_protect(a, size);
 }
 
 /**
@@ -321,8 +345,7 @@ atom_alloc(size_t size)
 	} else {
 		a = compat_page_align(size);
 	}
-	a->magic = ATOM_PROT_MAGIC;
-	a->size = size;
+	ATOM_SET_MAGIC(a);
 
 	return a;
 }
@@ -334,17 +357,14 @@ atom_alloc(size_t size)
  * with free() and not further protected.
  */
 static void
-atom_dealloc(atom_t *a)
+atom_dealloc(atom_t *a, size_t size)
 {
 	struct mem_cache *mc_ptr;
 
-	g_assert(a);
-	g_assert(ATOM_PROT_MAGIC == a->magic);
+	atom_check(a);
 
-	mc_ptr = atom_get_mc(a->size);
+	mc_ptr = atom_get_mc(size);
 	if (mc_ptr) {
-		size_t size = a->size;
-
 		memset(a, 0, size);
 		mem_free(mc_ptr, a);
 		/*
@@ -357,15 +377,26 @@ atom_dealloc(atom_t *a)
 		 * relies on executable heap-memory because the page is now
 		 * mapped (PROT_READ | PROT_WRITE).
 		 */
-		compat_page_free(a, a->size);
+		compat_page_free(a, size);
 	}
 }
 #else
 
-#define atom_protect(a)
-#define atom_unprotect(a)
-#define atom_alloc(size) g_malloc(size)
-#define atom_dealloc(a) g_free(a)
+#define atom_protect(a, size)
+#define atom_unprotect(a, size)
+
+static inline atom_t *
+atom_alloc(size_t size)
+{
+	atom_t *a = walloc(size);
+	return a;	
+}
+
+static inline void
+atom_dealloc(atom_t *a, size_t size)
+{
+	wfree(a, size);
+}
 
 #endif /* PROTECT_ATOMS */
 
@@ -663,9 +694,12 @@ atoms_init(void)
 {
 	guint i;
 
+	STATIC_ASSERT(NUM_ATOM_TYPES <= (ATOM_TYPE_MASK + 1));
+	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
+
 #ifdef PROTECT_ATOMS
 	for (i = 0; i < G_N_ELEMENTS(mc); i++) {
-		mc[i] = mem_new(64 << i);
+		mc[i] = mem_new((2 * sizeof (union mem_chunk)) << i);
 	}
 #endif /* PROTECT_ATOMS */
 
@@ -677,7 +711,7 @@ atoms_init(void)
 	ht_all_atoms = g_hash_table_new(NULL, NULL);
 }
 
-static inline gboolean
+static inline size_t
 atom_is_registered(enum atom_type type, gconstpointer key)
 {
 	gpointer value;
@@ -689,9 +723,14 @@ atom_is_registered(enum atom_type type, gconstpointer key)
 		 * thus we must check whether the types are identical. Otherwise,
 		 * a new atom must be created.
 		 */
-		return (guint) type == GPOINTER_TO_UINT(value);
+
+		if (((size_t) value & ATOM_TYPE_MASK) == (guint) type) {
+			size_t size = (size_t) value & ~ATOM_TYPE_MASK;
+			g_assert(size >= ARENA_OFFSET);
+			return size;
+		}
 	}
-	return FALSE;
+	return 0;
 }
 
 /**
@@ -704,10 +743,8 @@ gpointer
 atom_get(enum atom_type type, gconstpointer key)
 {
 	table_desc_t *td;
-	gboolean found;
 	gpointer orig_key;
-	atom_t *a;
-	size_t len;
+	size_t size;
 
 #ifdef __GNUC__
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
@@ -728,47 +765,61 @@ atom_get(enum atom_type type, gconstpointer key)
 	 * a new atom must be created.
 	 */
 
-	found = atom_is_registered(type, key);
-	if (found) {
+	size = atom_is_registered(type, key);
+	if (size > 0) {
 		orig_key = deconstify_gpointer(key);
 	} else {
-		found = g_hash_table_lookup_extended(td->table, key, &orig_key, NULL);
+		gpointer value;
+		if (g_hash_table_lookup_extended(td->table, key, &orig_key, &value)) {
+			size = (size_t) value;
+			g_assert(size >= ARENA_OFFSET);
+		} else {
+			size = 0;
+		}
 	}
 
 	/*
 	 * If atom exists, increment ref count and return it.
 	 */
 
-	if (found) {
-		a = (atom_t *) ((gchar *) orig_key - ARENA_OFFSET);
+	if (size > 0) {
+		atom_t *a;
 
+		a = atom_from_arena(orig_key);
 		g_assert(a->refcnt > 0);
 
-		atom_unprotect(a);
+		atom_unprotect(a, size);
 		a->refcnt++;
-		atom_protect(a);
+		atom_protect(a, size);
 		return orig_key;
+	} else {
+		size_t len;
+		gpointer value;
+		atom_t *a;
+
+		/*
+		 * Create new atom.
+		 */
+
+		len = (*td->len_func)(key);
+		g_assert(len < ((size_t) -1) - ARENA_OFFSET);
+		size = round_size((ATOM_TYPE_MASK + 1), ARENA_OFFSET + len);
+
+		a = atom_alloc(size);
+		a->refcnt = 1;
+		memcpy(a->arena, key, len);
+		atom_protect(a, size);
+
+		/*
+		 * Insert atom in table.
+		 */
+
+		value = (gpointer) (size | (guint) type);
+		g_hash_table_insert(ht_all_atoms, a->arena, value);
+		g_hash_table_insert(td->table, a->arena, (gpointer) size);
+
+		return a->arena;
 	}
-
-	/*
-	 * Create new atom.
-	 */
-
-	len = (*td->len_func)(key);
-
-	a = atom_alloc(ARENA_OFFSET + len);
-	a->refcnt = 1;
-	memcpy(a->arena, key, len);
-	atom_protect(a);
-
-	/*
-	 * Insert atom in table.
-	 */
-
-	g_hash_table_insert(ht_all_atoms, a->arena, GUINT_TO_POINTER((guint) type));
-	g_hash_table_insert(td->table, a->arena, GINT_TO_POINTER(1));
-
-	return a->arena;
 }
 
 /**
@@ -778,37 +829,32 @@ atom_get(enum atom_type type, gconstpointer key)
 void
 atom_free(enum atom_type type, gconstpointer key)
 {
-	table_desc_t *td;
-	gboolean found;
-	gpointer value;
-	gpointer x;
+	size_t size;
 	atom_t *a;
 
     g_assert(key != NULL);
 	g_assert((gint) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
-	td = &atoms[type];		/* Where atoms of this type are held */
+	size = atom_is_registered(type, key);
+	g_assert(size > 0);
 
-	found = g_hash_table_lookup_extended(td->table, key, &value, &x);
-
-	g_assert(found);
-	g_assert(value == key);
-
-	a = (atom_t *) ((gchar *) key - ARENA_OFFSET);
-
+	a = atom_from_arena(key);
 	g_assert(a->refcnt > 0);
 
 	/*
 	 * Dispose of atom when its reference count reaches 0.
 	 */
 
-	atom_unprotect(a);
+	atom_unprotect(a, size);
 	if (--a->refcnt == 0) {
+		table_desc_t *td;
+
+		td = &atoms[type];		/* Where atoms of this type are held */
 		g_hash_table_remove(td->table, key);
 		g_hash_table_remove(ht_all_atoms, key);
-		atom_dealloc(a);
+		atom_dealloc(a, size);
 	} else {
-		atom_protect(a);
+		atom_protect(a, size);
 	}
 }
 
@@ -835,7 +881,7 @@ atom_get_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
 	struct spot *sp;
 
 	atom = atom_get(type, key);
-	a = (atom_t *) ((gchar *) atom - ARENA_OFFSET);
+	a = atom_from_arena(atom);
 
 	/*
 	 * Initialize tracking tables on first allocation.
@@ -897,7 +943,7 @@ atom_free_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
 	gpointer v;
 	struct spot *sp;
 
-	a = (atom_t *) ((gchar *) key - ARENA_OFFSET);
+	a = atom_from_arena(key);
 
 	/*
 	 * If we're going to free the atom, dispose the tracking tables.
@@ -957,8 +1003,8 @@ dump_tracking_table(gpointer atom, GHashTable *h, gchar *what)
 static gboolean
 atom_warn_free(gpointer key, gpointer unused_value, gpointer udata)
 {
-	atom_t *a = (atom_t *) ((gchar *) key - ARENA_OFFSET);
-	table_desc_t *td = (table_desc_t *) udata;
+	atom_t *a = atom_from_arena(key);
+	table_desc_t *td = udata;
 
 	(void) unused_value;
 
