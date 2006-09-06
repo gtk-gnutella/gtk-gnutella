@@ -114,6 +114,16 @@ socket_alloc(void)
 	return s;
 }
 
+static void
+socket_alloc_buffer(struct gnutella_socket *s)
+{
+	g_assert(s);
+	if (!s->buf) {
+		s->buf_size = SOCK_BUFSZ;
+		s->buf = compat_page_align(s->buf_size);
+	}
+}
+
 void
 socket_dealloc(struct gnutella_socket **s_ptr)
 {
@@ -1260,10 +1270,7 @@ socket_free(struct gnutella_socket *s)
 		}
 		s->file_desc = -1;
 	}
-	if (s->buf) {
-		g_assert(s->buf_size > 0);
-		G_FREE_NULL(s->buf);
-	}
+	COMPAT_PAGE_FREE_NULL(s->buf, s->buf_size);
 	socket_dealloc(&s);
 }
 
@@ -1399,10 +1406,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	}
 #endif /* HAS_GNUTLS */
 
-	if (!s->buf) {
-		s->buf_size = SOCK_BUFSZ;
-		s->buf = g_malloc(s->buf_size);
-	}
+	socket_alloc_buffer(s);
 
 	g_assert(s->buf_size >= s->pos);
 	count = s->buf_size - s->pos;
@@ -1670,10 +1674,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-	if (!s->buf) {
-		s->buf_size = SOCK_BUFSZ;
-		s->buf = g_malloc(s->buf_size);
-	}
+	socket_alloc_buffer(s);
 
 	if (cond & INPUT_EVENT_R) {
 		if (
@@ -2195,7 +2196,7 @@ socket_udp_accept(struct gnutella_socket *s)
 
 			if (!cmsg_buf) {
 				cmsg_len = CMSG_LEN(cmsg_size);
-				cmsg_buf = g_malloc0(CMSG_SPACE(cmsg_size));
+				cmsg_buf = walloc0(CMSG_SPACE(cmsg_size));
 			}
 
 			msg.msg_control = cmsg_buf;
@@ -3012,8 +3013,7 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 
 	s = socket_alloc();
 
-	s->buf_size = SOCK_BUFSZ;
-	s->buf = g_malloc(s->buf_size);
+	socket_alloc_buffer(s);
 	s->type = SOCK_TYPE_UDP;
 	s->direction = SOCK_CONN_LISTENING;
 	s->file_desc = sd;
