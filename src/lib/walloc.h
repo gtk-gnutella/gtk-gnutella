@@ -53,11 +53,35 @@
 #error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
 #endif
 
+#if GLIB_CHECK_VERSION(2, 10, 0)
+static inline gpointer walloc(size_t size) { return g_slice_alloc(size); }
+static inline gpointer walloc0(size_t size) { return g_slice_alloc0(size); }
+static inline void wfree(gpointer p, size_t size) { g_slice_free1(size, p); }
+
+static inline gpointer
+wcopy(gconstpointer p, size_t size)
+{
+	gpointer x = g_slice_alloc(size);
+	memcpy(x, p, size);
+	return x;
+}
+
+static inline gpointer
+wrealloc(gpointer p, size_t old_size, size_t new_size)
+{
+	gpointer x = g_slice_alloc(new_size);
+	memcpy(x, p, MIN(new_size, old_size));
+	g_slice_free1(old_size, p);
+	return x;
+}
+
+#else	/* GLib < 2.10 */
 #define walloc(s)			g_malloc(s)
 #define walloc0(s)			g_malloc0(s)
 #define wcopy(p,s)			g_memdup((p), (s))
 #define wfree(p,s)			g_free(p)
 #define wrealloc(p,o,n)		g_realloc((p), (n));
+#endif	/* GLib >= 2.10 */
 
 #else	/* !REMAP_ZALLOC */
 
