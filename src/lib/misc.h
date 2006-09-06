@@ -549,7 +549,7 @@ void compat_page_free(gpointer p, size_t size);
 G_STMT_START { \
 	if (p) { \
 		compat_page_free((p), size); \
-		*p = NULL; \
+		p = NULL; \
 	} \
 } G_STMT_END
 
