@@ -539,11 +539,19 @@ guint32 html_decode_entity(const gchar *src, const gchar **endptr);
 gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, mode_t mode);
+gboolean compat_is_superuser(void);
+int compat_daemonize(const char *directory);
+
 size_t compat_pagesize(void);
 gpointer compat_page_align(size_t size);
 void compat_page_free(gpointer p, size_t size);
-gboolean compat_is_superuser(void);
-int compat_daemonize(const char *directory);
+#define COMPAT_PAGE_FREE_NULL(p, size) \
+G_STMT_START { \
+	if (p) { \
+		compat_page_free((p), size); \
+		*p = NULL; \
+	} \
+} G_STMT_END
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
