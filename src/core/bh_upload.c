@@ -430,7 +430,7 @@ browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
  * Write data to the TX stack.
  */
 ssize_t
-browse_host_write(gpointer ctx, gpointer data, size_t size)
+browse_host_write(gpointer ctx, gconstpointer data, size_t size)
 {
 	struct browse_host_ctx *bh = ctx;
 

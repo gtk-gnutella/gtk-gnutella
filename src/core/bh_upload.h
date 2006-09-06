@@ -70,7 +70,7 @@ typedef void (*bh_writable_t)(gpointer arg);
 struct special_ctx {
 	txdrv_t *tx;
 	ssize_t (*read)(gpointer ctx, gpointer dest, size_t size);
-	ssize_t (*write)(gpointer ctx, gpointer data, size_t size);
+	ssize_t (*write)(gpointer ctx, gconstpointer data, size_t size);
 	void (*flush)(gpointer ctx, bh_closed_t cb, gpointer arg);
 	void (*close)(gpointer ctx, gboolean fully_served);
 };
