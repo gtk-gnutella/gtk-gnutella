@@ -505,8 +505,15 @@
 72.36.200.120/29
 72.36.210.200/29
 
-# Mutella-0.4.5 (possibly fake) on port 6351; Zipped DRM WMV spam and dialer
+# Mutella-0.4.5 on port 6351 and others;
+# Zipped DRM WMV spam and dialer
+83.149.98.14
 83.149.119.16/31
+85.118.37.47
+85.118.37.51
+88.191.11.7
+# giFT; belongs to the above Mutella peers
+213.251.174.143
 
 # University of Mississippi
 130.74.0.0/16
