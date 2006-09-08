@@ -49,9 +49,11 @@
 #define icon_timer()
 
 static inline void
-main_gui_run(void)
+main_gui_run(const gchar *unused_geometry_spec)
 {
 	GMainLoop *ml;
+
+	(void) unused_geometry_spec;
 
 #if defined(USE_GLIB1)
 	ml = g_main_new(FALSE);
