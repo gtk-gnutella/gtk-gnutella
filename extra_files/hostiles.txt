@@ -509,11 +509,14 @@
 # Zipped DRM WMV spam and dialer
 83.149.98.14
 83.149.119.16/31
+85.17.36.36
 85.118.37.47
 85.118.37.51
 88.191.11.7
 # giFT; belongs to the above Mutella peers
 213.251.174.143
+# BearShare; belongs to the above Mutella peers
+213.251.185.126/31
 
 # University of Mississippi
 130.74.0.0/16
