@@ -2897,6 +2897,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		} else if (NULL != (end = is_strprefix(request, "GET"))) {
 			head_only = FALSE;
 			method = "GET";
+		} else {
+			/* For stupid compilers */
+			head_only = FALSE;
+			method = NULL;
 		}
 
 		if (end && is_ascii_blank(end[0])) {

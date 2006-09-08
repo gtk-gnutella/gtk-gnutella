@@ -242,7 +242,8 @@ tm_cputime(gdouble *user, gdouble *sys)
 
 		errno = 0;
 		if (-1 == getrusage(RUSAGE_SELF, &usage)) {
-			u = s = 0;
+			u = 0;
+			s = 0;
 			g_warning("getrusage(RUSAGE_SELF, ...) failed: %s",
 				errno ? g_strerror(errno) : "unsupported");
 		} else {
@@ -252,6 +253,10 @@ tm_cputime(gdouble *user, gdouble *sys)
 #else
 		getrusage_failed = TRUE;
 #endif /* HAS_GETRUSAGE */
+	} else {
+		/* For stupid compilers */
+		u = 0;
+		s = 0;
 	}
 
 	if (getrusage_failed) {	

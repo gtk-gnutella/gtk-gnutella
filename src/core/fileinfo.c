@@ -3074,12 +3074,16 @@ file_info_retrieve(void)
 						|| v >= ((guint64) 1UL << 63)
 						|| v <= from
 						|| to > fi->size;
+				} else {
+					to = 0;	/* For stupid compilers */
 				}
 				if (!damaged) {
 					const gchar *s = &ep[1];
 
 					status = v = parse_uint64(s, &ep, 10, &error);
 					damaged = error || '\0' != *ep || v > 2U;
+				} else {
+					status = 0;	/* For stupid compilers */
 				}
 				if (!damaged) {
 					struct dl_file_chunk *fc, *prev;
