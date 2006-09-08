@@ -3180,6 +3180,7 @@ sock_set_intern(gint fd, gint option, gint size, gchar *type, gboolean shrink)
 void
 sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
+	g_return_if_fail(!s->was_shutdown);
 	sock_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
 }
 
@@ -3190,6 +3191,7 @@ sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 void
 sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
+	g_return_if_fail(!s->was_shutdown);
 	sock_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
 
