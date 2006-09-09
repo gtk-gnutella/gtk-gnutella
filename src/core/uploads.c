@@ -2422,9 +2422,6 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 
 	g_assert(a->sf != NULL);
 
-	if (!u->keep_alive)
-		rw = gm_snprintf(buf, length, "Connection: close\r\n");
-
 	uint64_to_string_buf(u->end - u->skip + 1, csize, sizeof csize);
 	rw += gm_snprintf(&buf[rw], length - rw,
 		"Last-Modified: %s\r\n"
