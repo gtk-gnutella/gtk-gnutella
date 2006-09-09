@@ -21,7 +21,7 @@ support for numerous protocol improvements and additions that have
 been added to the Gnutella network since.
 .SH OPTIONS
 .TP
-.B "\-\-deamonize"
+.B "\-\-daemonize"
 This options causes 
 .I gtk-gnutella
 to become a daemon. It detaches from the terminal (if started from
@@ -273,8 +273,8 @@ available at
 .B http://gtk-gnutella.sourceforge.net/
 .PP
 Additional information about gnutella is available at
-.B  http://www.the-gdf.com/
-.B  http://www.infoanarchy.org/wiki/wiki.pl?Gnutella
+.B  http://www.the-gdf.org/
+.B  http://www.infoanarchy.org/en/Gnutella
 .B  http://rfc-gnutella.sourceforge.net/
 .SH AUTHORS
 Yann Grossel wrote the original
