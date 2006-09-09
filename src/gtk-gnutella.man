@@ -1,13 +1,14 @@
 .\" Written by Brian St. Pierre (bstpierre@bstpierre.org)
 .\" Modified by RAM (Raphael_Manfredi@pobox.com)
+.\" Modified by Hans de Graaff (hans@degraaff.org) for 0.92.6
 .\" Integrated by RAM at version 0.18 within debian/ for Debian packaging
 .\" Integrated by RAM at version 0.93 within mainstream
 .\" Process this file with
-.\"    groff -man -Tascii gtk-gnutella.1
+.\"    groff -man -Tascii gtk-gnutella.man
 .\" or simply:
-.\"    nroff -man gtk-gnutella.1 | less -s
+.\"    nroff -man gtk-gnutella.man | less -s
 .\"
-.TH GTK-GNUTELLA 1 "Nov 2001" Version "0.18"
+.TH GTK-GNUTELLA 1 "Sep 2006" Version "0.96.2"
 .SH NAME
 gtk-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -15,14 +16,105 @@ gtk-gnutella \- A Gnutella client for Gtk+
 .SH DESCRIPTION
 .I gtk-gnutella
 is a GTK+ Gnutella client for Unix. It supports both searching and
-sharing with the 0.6 version of the gnutella protocol.
-.PP
-You should be aware that as of October 19th, 2002, this manual page
-is fairly incomplete, with parts that are obsolete.  If you would like
-to remedy to this situation and write a decent manual page, please
-send your patch/updates to gtk-gnutella-devel@lists.sourceforge.net.
+sharing with the 0.6 version of the gnutella protocol and includes
+support for numerous protocol improvements and additions that have
+been added to the Gnutella network since.
 .SH OPTIONS
-None.
+.TP
+.B "\-\-deamonize"
+This options causes 
+.I gtk-gnutella
+to become a daemon. It detaches from the terminal (if started from
+one) and forks itself into the background. It also changes it working
+directory to the root directory i.e., "/" so that it doesn't block a
+mount point for example. This is mainly meant for headless mode but
+you can also use it if the Gtk+ GUI is enabled. 
+
+For example, if you do not start gtk-gnutella from a terminal but from
+a window manager menu, there's little reason to not daemonize
+gtk-gnutella. Thus you might want to add the --daemonize option in
+this case. 
+
+Please note that when 
+.I gtk-gnutella
+is started as a daemon all output which is normally send to the
+standard output and standard error output (usually your terminal or a
+common log file such as ~/.xsession-errors), is sent to
+/dev/null. The options 
+.B "\-\-log_stderr"
+and
+.B "\-\-log_stdout"
+can be used to redirect log output in this case.
+.TP 
+.B "\-\-geometry"
+This option can be used to force the main window of the GUI to a
+certain location on your screen and/or give it certain dimensions.
+
+For example, the following would position the window in the lower left
+corner with a width of 800 pixels and a height of 600 pixels:
+
+    gtk-gnutella --geometry 800x600-0-0
+
+Note that none of this can be guaranteed, your window manager has the
+last word on this. This option is a traditional command-line switch
+supported by most X11 applications.
+.TP
+.B "\-\-help"
+Show a summary of all supported options.
+.TP
+.B "\-\-log_stderr", "\-\-log_stdout"
+These options allow you to log everything which is written to stderr
+respectively stdout to some files. A typical use would look like this:
+
+   gtk-gnutella --daemonize  \\
+        --log_stderr ~/logs/gtkg.stderr \\
+        --log_stdout ~/logs/gtkg.stdout
+
+Redirecting these log messages also works without 
+.B "\-\-daemonize."
+Of course, log files can become large and you might want to archive
+them.  Therefore, you can sent 
+.I gtk-gnutella
+a SIGHUP signal. 
+.I gtk-gnutella 
+will catch the signal and reopen these log files.
+.TP
+.B "\-\-ping"
+This option allows you to check whether 
+.I gtk-gnutella
+is currently running. This option returns with a success code when 
+.I gtk-gnutella
+is already running, and with a failure code when it is not.
+
+This allows you to use the following code to start 
+.I gtk-gnutella 
+from a cron job or window manager menu and avoid starting it twice:
+
+    gtk-gnutella --ping || gtk-gnutella
+.TP
+.B "\-\-shell"
+When this option is used to connect to an already running 
+.I gtk-gnutella
+process over a local unix domain socket. This socket is located at
+"$GTK_GNUTELLA_DIR/ipc/socket", thus normally
+"~/.gtk-gnutella/ipc/socket". The socket is only accessible by the
+user running gtk-gnutella which is enforced by filesystem
+permissions. The socket is in a dedicated directory because apparently
+not all systems honor the access permissions on sockets as seen
+through the filesystem.
+
+You can disable this feature by setting the property
+"enable_local_socket" to FALSE. It is recommendable to use this local
+socket whenever possible instead of the TCP socket to access the shell
+interface remotely. The reason is that the authentication token is
+passed non-encrypted over the network and everyone who can sniff the
+network is able to connect to the remote shell. This may not matter
+over the loopback interface or a LAN, but it's a bad idea to use this
+over the Internet.
+.TP
+.B "\-\-version"
+Show the user-agent string used on the Gnutella network which also
+holds the version information.
 .SH GETTING STARTED
 When
 .I gtk-gnutella
@@ -30,56 +122,42 @@ is first started, it will attempt to connect to a well-known hosts
 server for some hosts to connect to. If you know a host you want to
 connect to, you can enter it in the box on the GnutellaNet tab and
 push the Add button. When first connecting to the gnutella network, it
-can take a minute or two to establish a stable connection. Be
-patient.
+can take some time to establish a stable connection. Be patient.
 .SH SEARCHING
-Click "Search" to switch to the search tab. Type what you are searching
-for into the edit box at the top of the window and either press Enter
-or push the "New Search" button. A new tab, labeled with your search
-term, will appear in the window, with files that are found listed in
-the list below.
-.PP
+To search files just type your query in the search box at the top of
+the screen. All searches, both active and inactive, are shown in the
+sidebar.
+.PP 
 You can have multiple searches running at once. To start another
 search while the first one is running, simply enter another search
-term into the edit box at the top of the window. A new tab will
-appear. You can switch between the two tabs by clicking on them, or by
-selecting the search from the "Active searches" drop-down list.
+term into the edit box at the top of the window.
 .PP
 To stop a particular search and remove its tab from the search window,
-select the search by clicking on its tab and click the "Close this
-search" button. If you want to clear the list for a particular search,
-but want to continue to see new files that are received for this
-search, click the "Clear results" button.
+select the search by clicking on its tab and click the "Close search"
+button. If you want to clear the list for a particular search, but
+want to continue to see new files that are received for this search,
+click the "Clear results" button.
 .PP
-You can also switch from the default tab to a nice list where all
-your searches appear on the left side, but you need to have a big-enough
-screen to benefit from that.  To enable it, right-click in the search
-window and select "Show search list".
-.PP
-By entering a number in the "Minimum connection speed" box, you can
-limit search results to only those files that are shared by hosts with
-at least the connection speed that you specify. The units are in kbps,
-so if you only want to hear from hosts that are connected at 56k or
-higher, enter 56 in this box.
+It is possible to apply filtering to search results using the filter
+editor. Click on "Edit filters" to access the editor. Use of the
+filtering editor goes beyond the scope of this man page, but there is
+a tutorial on this topic on the 
+.I gtk-gnutella
+homepage.
 .PP
 When you find a file that you want to download, select the file in the
-list and press "Download selected files". This file will be placed in
-the download queue. If the "Jump to downloads" checkbox is checked,
-when you click "Download selected files",
-.I gtk-gnutella
-will switch to the downloads tab. From there you can watch the
-download progress of the file(s) you are downloading. If "Jump to
-downloads" is not checked, you will still be staring at the search
-tab. But no worries, the file will be downloading whether you're
-looking or not.
+list and click "Download selected". This file will be placed in the
+download queue. On the downloads view you can watch the download
+progress of the file(s) you are downloading. 
 .PP
 It is also possible to select a bunch of files for downloading at
 once. By holding down the control or shift keys while clicking files,
-you can select several files and then click "Download selected files"
-to put them all in the download queue at once.
+you can select several files and then click "Download selected" to put
+them all in the download queue at once.
 .SH CONFIGURATION
-Most of the configuration can be done via the "Config" pane.  You will
-find several tabs there, each tab regrouping common information.
+Most of the configuration can be done via the "Preferences" window
+that can be accesed using the "File -> Preferences" menu-option.  You
+will find several tabs there, each tab regrouping common information.
 But some specific information pertaining to downloads or searches are
 directly available on the "Downloads" and "Uploads" panes.
 .PP
@@ -215,7 +293,7 @@ of this manpage.
 .SH COPYRIGHT
 .I gtk-gnutella
 is Copyright (c) 2000, Yann Grossel, with additional copyrights held
-by other contributors 2000, 2001 and 2002.
+by other contributors 2000-2006.
 .PP
 License to use and copy
 .I gtk-gnutella

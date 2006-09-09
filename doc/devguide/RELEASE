@@ -33,6 +33,11 @@ Release steps
    - Change #1.
    - Change #2...
 
+2a. Update the version number at the top of src/gtk-gnutella.man
+
+   Check the man-page to see if there are no user-visible changes such
+   as command line options that must be described there.
+
 3. Edit src/common.h and setup for the release:
 
    #define GTA_REVISION "stable"
