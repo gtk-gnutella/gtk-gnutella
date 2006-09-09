@@ -102,8 +102,6 @@ RCSID("$Id$")
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
 
-#define BUFFER_POOL_MAX			300		/**< Max amount of buffers to keep */
-
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
 static GSList *sl_downloads = NULL;	/**< All downloads (queued + unqueued) */
