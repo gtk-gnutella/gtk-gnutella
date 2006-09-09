@@ -45,13 +45,15 @@ RCSID("$Id$")
  * Allocate a pool descriptor.
  */
 pool_t *
-pool_create(size_t size, gint max)
+pool_create(size_t size, gint max, pool_alloc_t alloc, pool_free_t free)
 {
 	pool_t *p;
 
 	p = walloc0(sizeof *p);
 	p->size = size;
 	p->max = max;
+	p->alloc = alloc;
+	p->free = free;
 
 	return p;
 }
@@ -115,7 +117,7 @@ palloc(pool_t *p)
 	 */
 
 	p->allocated++;
-	return g_malloc(p->size);
+	return p->alloc(p->size);
 }
 
 /**
@@ -132,7 +134,7 @@ pfree(pool_t *p, gpointer obj)
 	 */
 
 	if (p->held >= p->max) {
-		g_free(obj);
+		p->free(obj);
 		p->allocated--;
 		return;
 	}

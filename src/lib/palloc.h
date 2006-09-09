@@ -39,7 +39,10 @@
 #ifndef _palloc_h_
 #define _palloc_h_
 
-#include <glib.h>
+#include "common.h"
+
+typedef gpointer (*pool_alloc_t)(size_t len);
+typedef void (*pool_free_t)(gpointer addr);
 
 /**
  * A memory pool descriptor.
@@ -50,13 +53,16 @@ typedef struct pool {
 	GSList *buffers;		/**< Allocated buffers in the pool */
 	gint allocated;			/**< Amount of allocated buffers */
 	gint held;				/**< Amount of available buffers */
+	pool_alloc_t alloc;		/**< Memory allocation routine */
+	pool_free_t free;		/**< Memory release routine */
 } pool_t;
 
 /*
  * Public interface
  */
 
-pool_t *pool_create(size_t size, gint max);
+pool_t *pool_create(
+	size_t size, gint max, pool_alloc_t alloc, pool_free_t free);
 void pool_free(pool_t *pool);
 
 gpointer palloc(pool_t *pool);

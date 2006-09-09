@@ -525,6 +525,7 @@ pdata_allocb_ext(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
 	db->d_arg = freearg;
 
 	g_assert((size_t) len == pdata_len(db));
+	g_assert(db->d_arena != db->d_embedded);
 
 	return db;
 }

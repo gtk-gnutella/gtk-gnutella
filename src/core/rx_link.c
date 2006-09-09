@@ -145,7 +145,7 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 
 	for (/* CONTINUE*/; i < iov_cnt; i++) {
-		rxbuf_free(db[i], NULL);
+		rxbuf_free(db[i]);
 	}
 }
 

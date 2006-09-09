@@ -42,6 +42,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/misc.h"
 #include "lib/palloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -52,18 +53,28 @@ RCSID("$Id$")
  */
 
 #define BUF_COUNT	5		/**< Max amount of buffers we want in pool */
-#define BUF_SIZE	2048	/**< Size of each buffer */
 
 static pool_t *rxpool;
 
 /**
  * Put RX buffer back to its pool.
- *
- * Can be called directly, or via pdata_unref() because this routine is
- * installed as the "free routine" of the buffer.
  */
 void
-rxbuf_free(gpointer p, gpointer unused_data)
+rxbuf_free(gpointer p)
+{
+	pdata_t *db = p;
+
+	g_assert(db->d_refcnt == 0);
+
+	db->d_refcnt = 1;		/* Force freeing of buffer */
+	pdata_unref(p);
+}
+
+/**
+ * Free routine for the page-aligned buffer, called by pdata_unref().
+ */
+static void
+rxbuf_data_free(gpointer p, gpointer unused_data)
 {
 	(void) unused_data;
 
@@ -80,7 +91,22 @@ rxbuf_new(void)
 {
 	gchar *phys = palloc(rxpool);
 
-	return pdata_allocb(phys, BUF_SIZE, rxbuf_free, NULL);
+	/*
+	 * We want to use page-aligned memory to benefit from possible zero-copy
+	 * on read() operations.  Hence we must use pdata_allocb_ext() to avoid
+	 * embedding the pdata_t header at the beginning of the buffer.
+	 */
+
+	return pdata_allocb_ext(phys, compat_pagesize(), rxbuf_data_free, NULL);
+}
+
+/**
+ * Wrapper over compat_page_free().
+ */
+static void
+rxbuf_page_free(gpointer p)
+{
+	compat_page_free(p, compat_pagesize());
 }
 
 /**
@@ -89,7 +115,8 @@ rxbuf_new(void)
 void
 rxbuf_init(void)
 {
-	rxpool = pool_create(BUF_SIZE, BUF_COUNT);
+	rxpool = pool_create(
+		compat_pagesize(), BUF_COUNT, compat_page_align, rxbuf_page_free);
 }
 
 /**
