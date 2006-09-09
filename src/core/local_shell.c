@@ -268,10 +268,14 @@ local_shell_mainloop(int fd)
 
 	{
 		static char client_buf[4096], server_buf[4096];
-		client.buf = client_buf;
-		client.size = sizeof client_buf;
+		static const char helo[] = "HELO\n";
+
 		server.buf = server_buf;
 		server.size = sizeof server_buf;
+		client.buf = client_buf;
+		client.size = sizeof client_buf;
+		memcpy(client_buf, helo, sizeof helo - 1);
+		client.fill = sizeof helo - 1;
 	}
 
 	for (;;) {
