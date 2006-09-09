@@ -112,7 +112,6 @@ GSList *sl_removed = NULL;			/**< Removed downloads only */
 GSList *sl_removed_servers = NULL;	/**< Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
-static pool_t *buffer_pool;			/**< Memory pool for read buffers */
 
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
@@ -565,7 +564,6 @@ download_init(void)
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
-	buffer_pool = pool_create(SOCK_BUFSZ, BUFFER_POOL_MAX);
 
 	src_init();
 }
@@ -10071,9 +10069,6 @@ download_close(void)
 	sl_downloads = NULL;
 	g_slist_free(sl_unqueued);
 	sl_unqueued = NULL;
-
-	pool_free(buffer_pool);
-	buffer_pool = NULL;
 
 	/* XXX free & check other hash tables as well.
 	 * dl_by_addr, dl_by_host
