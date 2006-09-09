@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "settings.h"	/* For listen_ip() */
 
 #include "if/gnet_property_priv.h"
+#include "if/core/main.h"			/* For main_get_build() */
 
 #include "lib/getdate.h"
 #include "lib/endian.h"
@@ -368,7 +369,7 @@ flush_match(void)
 		guint8 patch;
 		guint32 release;
 		guint32 date = release_date;
-		guint32 start;
+		guint32 build;
 		gboolean ok;
 
 #ifdef GTA_PATCHLEVEL
@@ -377,8 +378,8 @@ flush_match(void)
 		patch = 0;
 #endif
 
-		WRITE_GUINT32_BE(date, &release);
-		WRITE_GUINT32_BE(start_stamp, &start);
+		poke_be32(&release, date);
+		poke_be32(&build, main_get_build());
 
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(GTKGV1), 0) &&
@@ -387,7 +388,7 @@ flush_match(void)
 			ggep_stream_write(&gs, &patch, 1) &&
 			ggep_stream_write(&gs, &revchar, 1) &&
 			ggep_stream_write(&gs, &release, 4) &&
-			ggep_stream_write(&gs, &start, 4) &&
+			ggep_stream_write(&gs, &build, 4) &&
 			ggep_stream_end(&gs);
 
 		if (!ok)
