@@ -54,6 +54,14 @@ typedef enum ext_type {
 
 /**
  * Extension tokens.
+ *
+ * WARNING: the actual values of the enums below matter, because of the way
+ * ext_ggep_name() is built.  If the order is not right, gtk-gnutella will
+ * not startup and will complain that the ggeptable[] is not sorted properly.
+ *
+ * The order of the enum values must match that of the stringified extensions
+ * listed in the ggeptable[] array (which must be sorted lexically because
+ * binary searches are used to locate extensions by name)..
  */
 
 typedef enum ext_token {
