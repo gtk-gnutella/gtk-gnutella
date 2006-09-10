@@ -49,18 +49,15 @@ RCSID("$Id$")
 
 #if GLIB_CHECK_VERSION(2,0,0)
 
-#if HAVE_GCC(3, 0)
+#if 0 && HAVE_GCC(3, 0)
 #define FRAGCHECK_TRACK_CALLERS
 #endif	/* GCC >= 3.0 */
 
-union alloc {
-	struct {
-		size_t size;
-#ifdef FRAGCHECK_TRACK_CALLERS
-		size_t ret[3];
-#endif	/* FRAGCHECK_TRACK_CALLERS */
-	} meta;
+#if 0
+#define FRAGCHECK_VERBOSE
+#endif
 
+union alloc {
 	void *p;
 	long l;
 	int i;
@@ -70,34 +67,140 @@ union alloc {
 	float f;
 };
 
+struct fragcheck_meta {
+	const void *base;
+	size_t size;
+#ifdef FRAGCHECK_TRACK_CALLERS
+	size_t ret[3];
+#endif	/* FRAGCHECK_TRACK_CALLERS */
+};
+
 /* Configured for a maximum address space of 512 MiB */
 #define BIT_COUNT (512 * 1024 * 1024 / sizeof (union alloc))
+#define MAX_ALLOC_NUM (1024 * 1024)
 
-static bit_array_t allocated[BIT_ARRAY_SIZE(BIT_COUNT)];
-static bit_array_t touched[BIT_ARRAY_SIZE(BIT_COUNT)];
-static size_t alloc_base;
+static struct {
+	/* The index uses two bits per slot. If the first is set,
+	 * the item is or was in use, if the second bit is set the item
+	 * has been deleted, otherwise it is in use.
+	 *
+	 * 00: free
+	 * 01: deleted
+	 * 10: in-use
+	 * 11: re-used
+	 */
+	struct fragcheck_meta meta_tab[MAX_ALLOC_NUM];
+	bit_array_t meta_index[BIT_ARRAY_SIZE(MAX_ALLOC_NUM * 2)];
+
+	size_t alloc_base;
+	bit_array_t allocated[BIT_ARRAY_SIZE(BIT_COUNT)];
+	bit_array_t touched[BIT_ARRAY_SIZE(BIT_COUNT)];
+
+} vars;
+
+static inline guint32
+fragcheck_meta_hash(const void *p)
+{
+	size_t x = (size_t) p;
+
+	x ^= x >> 31;
+	return x % MAX_ALLOC_NUM;
+}
+
+static struct fragcheck_meta *
+fragcheck_meta_new(const void *p)
+{
+	size_t i, slot = fragcheck_meta_hash(p);
+
+	for (i = 0; i < MAX_ALLOC_NUM; i++) {
+		size_t x = slot * 2;
+
+		if (!bit_array_get(vars.meta_index, x)) {
+			bit_array_set(vars.meta_index, x);
+			return &vars.meta_tab[slot];
+		}
+		slot += 37;
+		slot %= MAX_ALLOC_NUM;
+	}
+	return NULL;
+}
+
+static struct fragcheck_meta *
+fragcheck_meta_lookup(const void *p)
+{
+	guint32 i, slot = fragcheck_meta_hash(p);
+
+	for (i = 0; i < MAX_ALLOC_NUM; i++) {
+		size_t x = slot * 2;
+
+		if (bit_array_get(vars.meta_index, x)) {
+			if (p == vars.meta_tab[slot].base) {
+				return &vars.meta_tab[slot];
+			}
+		} else if (!bit_array_get(vars.meta_index, x + 1)) {
+			break;
+		}
+		slot += 37;
+		slot %= MAX_ALLOC_NUM;
+	}
+	return NULL;
+}
+
+static void
+fragcheck_meta_delete(struct fragcheck_meta *meta)
+{
+	assert(meta);
+	{
+		size_t x, slot;
+		
+		slot = meta - &vars.meta_tab[0];
+		x = slot * 2;
+		bit_array_clear(vars.meta_index, x);		/* free slot */
+		bit_array_set(vars.meta_index, x + 1);	/* deleted */
+		meta->base = NULL;
+		meta->size = 0;
+	}
+}
 
 static gpointer
 my_malloc(gsize n)
 {
-	union alloc *ap;
+	struct fragcheck_meta *meta;
+	void *p;
+
+	n = round_size(sizeof (union alloc), n);
+	p = malloc(n);
 
 #ifdef FRAGCHECK_VERBOSE 
-	printf("%s(%lu)\n", __func__, (unsigned long) n);
+	printf("%s(%lu)=0x%08lx\n", __func__, (unsigned long) n, (unsigned long) p);
 #endif	/* FRAGCHECK_VERBOSE */
 
-	n = round_size(sizeof *ap, n);
-	ap = malloc(n + sizeof *ap);
-	assert(0 == (size_t) ap % sizeof *ap);
-	ap->meta.size = n;
+	assert(p);
+	assert(0 == (size_t) p % sizeof (union alloc));
+	assert((size_t) p >= (size_t) vars.alloc_base);
+	assert(!fragcheck_meta_lookup(p));
+
+	if (!vars.alloc_base) {
+		/* The divisor is a good guess and depends on the malloc
+		 * implementation. The first call doesn't necessarily
+		 * return the lowest available address. */
+		vars.alloc_base = (size_t) p / 2;
+	} else {
+		assert(vars.alloc_base <= (size_t) p);
+	}
+
+	meta = fragcheck_meta_new(p);
+	assert(meta);
+	meta->base = p;
+	meta->size = n;
 
 #ifdef FRAGCHECK_TRACK_CALLERS
 	{
 		unsigned i;
-		for (i = 0; i < G_N_ELEMENTS(ap->meta.ret); i++) {
+		for (i = 1; i <= G_N_ELEMENTS(meta->ret); i++) {
 			switch (i) {
 #define CASE(x) \
-	case x: ap->meta.ret[x] = (size_t) __builtin_return_address(x); break;
+	case x: meta->ret[x - 1] = (size_t) __builtin_return_address(x); break;
 			CASE(0)
 			CASE(1)
 			CASE(2)
@@ -108,26 +211,25 @@ my_malloc(gsize n)
 #endif	/* FRAGCHECK_TRACK_CALLERS */
 	
 	{
-		size_t from, to;
+		size_t from, to, i;
 
-		if (!alloc_base) {
-			/* The divisor is a good guess and depends on the malloc
-			 * implementation. The first call doesn't necessarily
-			 * return the lowest available address. */
-			alloc_base = (size_t) ap / 2;
-		} else {
-			assert(alloc_base <= (size_t) ap);
-		}
-		from = ((size_t) ap - alloc_base) / sizeof *ap;
-		to = from + (n / sizeof *ap);
+		from = ((size_t) p - vars.alloc_base) / sizeof (union alloc);
+		to = from + (meta->size / sizeof (union alloc));
+
 		assert(from < BIT_COUNT);
 		assert(to < BIT_COUNT);
-		assert(!bit_array_get(allocated, from));
-		assert(!bit_array_get(allocated, to));
-		bit_array_set_range(allocated, from, to);
-		bit_array_set_range(touched, from, to);
+		assert(to > from);
+		
+		for (i = from; i < to; i++) {
+			assert(!bit_array_get(vars.allocated, i));
+			bit_array_set(vars.allocated, i);
+			bit_array_set(vars.touched, i);
+			assert(bit_array_get(vars.allocated, i));
+			assert(bit_array_get(vars.touched, i));
+		}
 	}
-	return &ap[1];
+	assert(fragcheck_meta_lookup(p));
+	return p;
 }
 
 static void
@@ -138,35 +240,46 @@ my_free(gpointer p)
 #endif	/* FRAGCHECK_VERBOSE */
 
 	if (p) {
-		union alloc *ap;
+		struct fragcheck_meta *meta;
 
-		ap = p;
-		ap--;
-		assert(ap->meta.size >= sizeof *ap);
-		assert(0 == ap->meta.size % sizeof *ap);
-		assert(0 == (size_t) ap % sizeof *ap);
-		assert((size_t) ap >= (size_t) alloc_base);
+		meta = fragcheck_meta_lookup(p);
+		assert(meta);
+		assert(meta->size >= sizeof (union alloc));
+		assert(0 == meta->size % sizeof (union alloc));
+		assert(0 == (size_t) p % sizeof (union alloc));
+		assert((size_t) p >= (size_t) vars.alloc_base);
 		{
-			size_t from, to;
+			size_t from, to, i;
 
-			from = ((size_t) ap - alloc_base) / sizeof *ap;
-			to = from + (ap->meta.size / sizeof *ap);
+			from = ((size_t) p - vars.alloc_base) / sizeof (union alloc);
+			to = from + (meta->size / sizeof (union alloc));
+
 			assert(from < BIT_COUNT);
 			assert(to < BIT_COUNT);
-			assert(bit_array_get(allocated, from));
-			assert(bit_array_get(allocated, to));
-			bit_array_clear_range(allocated, from, to);
+			assert(to > from);
+
+			for (i = from; i < to; i++) {
+				assert(bit_array_get(vars.touched, i));
+				assert(bit_array_get(vars.allocated, i));
+				bit_array_clear(vars.allocated, i);
+				assert(!bit_array_get(vars.allocated, i));
+			}
 		}
-		memset(ap, 0, ap->meta.size);
-		free(ap);
+		memset(p, 0, meta->size);
+		fragcheck_meta_delete(meta);
+		assert(!fragcheck_meta_lookup(p));
+		free(p);
 	}
 }
 
 static gpointer
 my_realloc(gpointer p, gsize n)
 {
-	union alloc *ap;
+	static volatile gboolean lock;
 	gpointer x;
+
+	g_assert(!lock);
+	lock = TRUE;
 
 #ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%p, %lu)\n", __func__, p, (unsigned long) n);
@@ -175,14 +288,19 @@ my_realloc(gpointer p, gsize n)
 	assert(n > 0);
 	x = my_malloc(n);
 	if (p) {
-		ap = p;
-		ap--;
-		assert(ap->meta.size >= sizeof *ap);
-		assert(0 == ap->meta.size % sizeof *ap);
-		assert(0 == (size_t) ap % sizeof *ap);
-		memcpy(x, p, MIN(ap->meta.size, n));
+		const struct fragcheck_meta *meta;
+
+		meta = fragcheck_meta_lookup(p);
+		assert(meta);
+		assert(meta->size >= sizeof (union alloc));
+		assert(0 == meta->size % sizeof (union alloc));
+		assert(0 == (size_t) p % sizeof (union alloc));
+		assert((size_t) p >= (size_t) vars.alloc_base);
+
+		memcpy(x, p, MIN(meta->size, n));
 		my_free(p);
 	}
+	lock = FALSE;
 	return x;
 }
 
@@ -245,8 +363,8 @@ alloc_dump(FILE *f, gboolean unused_flag)
 		int v;
 
 		if (i < BIT_COUNT) {
-			if (bit_array_get(touched, i)) {
-				v = bit_array_get(allocated, i) ? 'a' : 'f';
+			if (bit_array_get(vars.touched, i)) {
+				v = bit_array_get(vars.allocated, i) ? 'a' : 'f';
 			} else {
 				v = 'u';
 			}
@@ -257,11 +375,9 @@ alloc_dump(FILE *f, gboolean unused_flag)
 		if (v != cur) {
 			size_t n = i - base_i;
 			if (n > 0) {
-				const union alloc *ap;
-				size_t base = alloc_base + base_i * sizeof *ap;
-				size_t len = n * sizeof *ap;
+				size_t base = vars.alloc_base + base_i * sizeof (union alloc);
+				size_t len = n * sizeof (union alloc);
 
-				ap = (const void *) base;
 				fprintf(f, "%c base: 0x%08lx length: %8.1lu",
 					cur, (unsigned long) base, (unsigned long) len);
 
@@ -269,9 +385,9 @@ alloc_dump(FILE *f, gboolean unused_flag)
 				switch (cur) {
 				case 'a':
 					fprintf(f, " callers: 0x%08lx 0x%08lx 0x%08lx",
-						(unsigned long) ap->meta.ret[0],
-						(unsigned long) ap->meta.ret[1],
-						(unsigned long) ap->meta.ret[2]);
+						(unsigned long) meta->ret[0],
+						(unsigned long) meta->ret[1],
+						(unsigned long) meta->ret[2]);
 				}
 #endif	/* FRAGCHECK_TRACK_CALLERS */
 
@@ -309,7 +425,7 @@ fragcheck_init(void)
 		 * be equivalent to the lowest heap address
 		 */
 
-		alloc_base = round_size(sizeof (union alloc),
+		vars.alloc_base = round_size(sizeof (union alloc),
 						(size_t) &end - sizeof (union alloc));
 	}
 }
