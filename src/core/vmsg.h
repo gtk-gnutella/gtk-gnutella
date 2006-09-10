@@ -42,6 +42,7 @@
 
 struct gnutella_node;
 struct pmsg;
+struct rnode_info;
 
 /*
  * Public interface
@@ -62,6 +63,8 @@ void vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want);
 void vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);
+void vmsg_send_node_info_ans(struct gnutella_node *n,
+	const struct rnode_info *ri);
 
 struct pmsg *vmsg_build_oob_reply_ind(gchar *muid, guint8 hits);
 

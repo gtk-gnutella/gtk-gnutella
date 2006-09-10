@@ -57,6 +57,8 @@ RCSID("$Id$")
 #include "hosts.h"
 #include "pmsg.h"
 #include "hostiles.h"
+#include "ggep.h"
+#include "ggep_type.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -1548,6 +1550,166 @@ handle_node_info_req(struct gnutella_node *n,
 
 	/* XXX */
 	(void) payload;
+}
+
+/**
+ * Send a "Node Info Reply" -- GTKG/23v1
+ *
+ * The message is constructed from the rnode_info_t structure which contains
+ * everything we have to send back.  Since we're replying to a "Node Info Req"
+ * message, we have the GUID of that message in the node's header.
+ *
+ * @param n		the node to which the message should be sent
+ * @param ri	the node information we have to format and send back
+ */
+void
+vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
+{
+	struct gnutella_msg_vendor *m = cast_to_gpointer(v_tmp);
+	guint32 msgsize;
+	guint32 paysize;
+	ggep_stream_t gs;
+	gint ggep_len;
+	gchar *payload;
+	gchar *payload_end = v_tmp + sizeof v_tmp;	/* First byte beyond buffer */
+	guint8 *p;
+	guint i;
+
+	payload = vmsg_fill_type(&m->data, T_GTKG, 23, 1);
+	p = (guint8 *) payload;
+
+	/*
+	 * We'll assert at the end that we have not overflown the data segment
+	 * we've been given to construct the message.
+	 */
+
+	/* General information always returned */
+
+	for (i = 0; i < G_N_ELEMENTS(ri->vendor); i++)
+		*p++ = (guint8) ri->vendor[i];
+
+	*p++ = (guint8) ri->mode;
+	p = poke_be32(p, ri->answer_flags);
+	p = poke_be32(p, ri->op_flags);
+	*p++ = (guint8) G_N_ELEMENTS(ri->features);
+
+	g_assert(ri->features_count == G_N_ELEMENTS(ri->features));
+
+	for (i = 0; i < G_N_ELEMENTS(ri->features); i++)
+		p = poke_be32(p, ri->features[i]);
+
+	*p++ = ri->max_ultra_up;
+	*p++ = ri->max_ultra_lf;
+	*p++ = ri->ultra_count;
+
+	p = poke_be16(p, ri->max_leaves);
+	p = poke_be16(p, ri->leaf_count);
+
+	*p++ = ri->ttl;
+	*p++ = ri->hard_ttl;
+
+	p = poke_be32(p, ri->startup_time);
+	p = poke_be32(p, ri->ip_change_time);
+
+	g_assert((gchar *) p - payload == 31 + 4 * ri->features_count);
+
+	/* Conditional -- bandwidth information */
+
+	if (ri->answer_flags & RNODE_RQ_BW_INFO) {
+		p = poke_be16(p, ri->bw_flags);
+		p = poke_be32(p, ri->gnet_bw_in);
+		p = poke_be32(p, ri->gnet_bw_out);
+		p = poke_be32(p, ri->gnet_bwl_in);
+		p = poke_be32(p, ri->gnet_bwl_out);
+	}
+
+	/* Conditional -- dropped packets */
+
+	if (ri->answer_flags & RNODE_RQ_DROP_INFO) {
+		p = poke_be32(p, ri->tx_dropped);
+		p = poke_be32(p, ri->rx_dropped);
+	}
+
+	/* Conditional - query hit statistics */
+
+	if (ri->answer_flags & RNODE_RQ_QHIT_INFO) {
+		p = poke_be16(p, ri->results_max);
+		p = poke_be32(p, ri->file_hits);
+		p = poke_be32(p, ri->qhits_tcp);
+		p = poke_be32(p, ri->qhits_udp);
+		p = poke_be64(p, ri->qhits_tcp_bytes);
+		p = poke_be64(p, ri->qhits_udp_bytes);
+	}
+
+	/* Conditional -- CPU usage */
+
+	if (ri->answer_flags & RNODE_RQ_CPU_INFO) {
+		p = poke_be64(p, ri->cpu_usr);
+		p = poke_be64(p, ri->cpu_sys);
+	}
+
+	g_assert((gchar *) p > v_tmp && (gchar *) p < payload_end);
+
+	/*
+	 * GGEP blocks
+	 */
+
+	ggep_stream_init(&gs, p, payload_end - (gchar *) p);
+
+	if (ri->answer_flags & RNODE_RQ_GGEP_DU) {
+		gchar uptime[sizeof ri->ggep_du];
+		gint len;
+
+		len = ggept_du_encode(ri->ggep_du, uptime);
+		ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
+	}
+
+	if (ri->answer_flags & RNODE_RQ_GGEP_LOC) {
+		/* XXX -- NOT SUPPORTED */
+	}
+
+	if (ri->answer_flags & RNODE_RQ_GGEP_IPV6) {
+		g_assert(is_host_addr(ri->ggep_ipv6));
+
+		ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6),
+			host_addr_ipv6(&ri->ggep_ipv6), 16, 0);
+	}
+
+	if (ri->answer_flags & RNODE_RQ_GGEP_UA) {
+		ggep_stream_pack(&gs, GGEP_NAME(UA), ri->ggep_ua,
+			strlen(ri->ggep_ua), GGEP_W_DEFLATE);
+	}
+
+	if (ri->answer_flags & RNODE_RQ_GGEP_GGEP) {
+		/* XXX */
+	}
+
+	if (ri->answer_flags & RNODE_RQ_GGEP_VMSG) {
+		/* XXX */
+	}
+
+	ggep_len = ggep_stream_close(&gs);
+
+	g_assert((gchar *) p + ggep_len < payload_end);
+
+	/*
+	 * Now that the message has been fully generated, we know its size and
+	 * can fill in the header.
+	 */
+
+	paysize = (gchar *) p - payload;
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	memcpy(m->header.muid, n->header.muid, GUID_RAW_SIZE);
+
+	/*
+	 * Message is sent back over TCP as a prioritary one (put ahead of the
+	 * queue, much like "alive" pongs).
+	 */
+
+	if (NODE_IS_UDP(n))
+		udp_send_msg(n, m, msgsize);
+	else
+		gmsg_ctrl_sendto_one(n, m, msgsize);
 }
 
 /**

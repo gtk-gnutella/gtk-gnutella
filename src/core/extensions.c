@@ -159,6 +159,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DU),		/**< Average servent uptime */
 	GGEP_ID(FW),		/**< Firewalled-to-Firewalled protocol version */
+	GGEP_ID(GGEP),		/**< GGEP extension names known, NUL-separated */
 	GGEP_GTKG_ID(IPV6),	/**< GTKG IPv6 address */
 	GGEP_GTKG_ID(TLS),	/**< GTKG TLS support indication */
 	GGEP_ID(GTKGV1),	/**< GTKG complete version number (binary) */
@@ -174,9 +175,11 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
 	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
 	GGEP_ID(T),			/**< Textual information in qhits */
+	GGEP_ID(UA),		/**< User-Agent string */
 	GGEP_ID(UDPHC),		/**< Is an UDP hostcache (UHC) , in pongs */
 	GGEP_ID(UP),		/**< Ultrapeer information about free slots */
 	GGEP_ID(VC),		/**< Vendor code, in pongs */
+	GGEP_ID(VMSG),		/**< Array of supported vendor message codes */
 	GGEP_ID(u),			/**< HUGE URN in ASCII */
 
 #undef GGEP_ID
