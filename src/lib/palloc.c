@@ -45,7 +45,7 @@ RCSID("$Id$")
  * Allocate a pool descriptor.
  */
 pool_t *
-pool_create(size_t size, gint max, pool_alloc_t alloc, pool_free_t free)
+pool_create(size_t size, gint max, pool_alloc_t alloc, pool_free_t free_)
 {
 	pool_t *p;
 
@@ -53,7 +53,7 @@ pool_create(size_t size, gint max, pool_alloc_t alloc, pool_free_t free)
 	p->size = size;
 	p->max = max;
 	p->alloc = alloc;
-	p->free = free;
+	p->free = free_;
 
 	return p;
 }
@@ -81,9 +81,9 @@ pool_free(pool_t *p)
 	 * Free buffers still held in the pool.
 	 */
 
-	for (sl = p->buffers; sl; sl = g_slist_next(sl))
-		g_free(sl->data);
-
+	for (sl = p->buffers; sl; sl = g_slist_next(sl)) {
+		p->free(sl->data);
+	}
 	g_slist_free(p->buffers);
 	wfree(p, sizeof *p);
 }
