@@ -912,7 +912,8 @@ buffers_check_held(const struct download *d)
 	download_check(d);
 
 	b = d->buffers;
-	g_assert((0 == b->held) ^ (NULL != d->buffers));
+	g_assert(b);
+	g_assert((0 == b->held) ^ (slist_length(b->list) > 0));
 
 	iter = slist_iter_before_head(b->list);
 	while (slist_iter_has_next(iter)) {
