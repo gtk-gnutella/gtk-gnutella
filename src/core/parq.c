@@ -894,10 +894,10 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 gboolean
 parq_download_is_active_queued(struct download *d)
 {
-	struct parq_dl_queued *parq_dl = NULL;
+	struct parq_dl_queued *parq_dl;
 
 	g_assert(d != NULL);
-	parq_dl = (struct parq_dl_queued *) d->queue_status;
+	parq_dl = d->queue_status;
 	if (parq_dl == NULL)
 		return FALSE;
 
@@ -910,11 +910,11 @@ parq_download_is_active_queued(struct download *d)
 gboolean
 parq_download_is_passive_queued(struct download *d)
 {
-	struct parq_dl_queued *parq_dl = NULL;
+	struct parq_dl_queued *parq_dl;
 
 	g_assert(d != NULL);
 
-	parq_dl = (struct parq_dl_queued *) d->queue_status;
+	parq_dl = d->queue_status;
 
 	if (parq_dl == NULL)
 		return FALSE;
@@ -1252,8 +1252,7 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 
 	/* Free the memory used by the current queued item */
 	G_FREE_NULL(parq_ul->addr_and_name);
-	if (parq_ul->sha1)
-		atom_sha1_free(parq_ul->sha1);
+	atom_sha1_free_null(&parq_ul->sha1);
 	parq_ul->sha1 = NULL;
 	parq_ul->name = NULL;
 
@@ -1496,7 +1495,7 @@ parq_upload_which_queue(gnutella_upload_t *u)
 	while (g_list_length(ul_parqs) < max_uploads)
 		parq_upload_new_queue();
 
-	queue = (struct parq_ul_queue *) g_list_nth_data(ul_parqs, slot - 1);
+	queue = g_list_nth_data(ul_parqs, slot - 1);
 
 	/* We might need to reactivate the queue */
 	queue->active = TRUE;
@@ -1586,7 +1585,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		 */
 
 		for (l = which_ul_queue->by_position; l; l = g_list_next(l)) {
-			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
+			struct parq_ul_queued *parq_ul = l->data;
 
 			if (parq_ul->has_slot) {		/* Recompute ETA */
 				eta += parq_ul->file_size / avg_bps * max_uploads;
@@ -1604,11 +1603,10 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		 */
 
 		for (l = ul_parqs; l; l = g_list_next(l)) {
-			struct parq_ul_queue *q = (struct parq_ul_queue *) l->data;
+			struct parq_ul_queue *q = l->data;
 
 			if (q->active_uploads > 1) {
-				struct parq_ul_queued *parq_ul =
-					(struct parq_ul_queued *) q->by_rel_pos->data;
+				struct parq_ul_queued *parq_ul = q->by_rel_pos->data;
 
 				eta = parq_ul->eta;
 				break;
@@ -1621,7 +1619,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	}
 
 	for (l = which_ul_queue->by_rel_pos; l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
+		struct parq_ul_queued *parq_ul = l->data;
 
 		g_assert(parq_ul->is_alive);
 
@@ -2283,8 +2281,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *parq_ul,
 static gint
 parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 {
-	const struct parq_ul_queued *as = (const struct parq_ul_queued *) a;
-	const struct parq_ul_queued *bs = (const struct parq_ul_queued *) b;
+	const struct parq_ul_queued *as = a, *bs = b;
 
 	g_assert(as->relative_position != bs->relative_position);
 
@@ -2970,7 +2967,7 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	gint rw = 0;
 	gint length = *retval;
 	time_t now = tm_time();
-	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	struct upload_http_cb *a = arg;
 	gboolean small_reply = (flags & HTTP_CBF_SMALL_REPLY);
 
 	g_assert(buf != NULL);
@@ -2978,28 +2975,29 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	g_assert(a->u != NULL);
 
 	if (parq_upload_queued(a->u)) {
-		struct parq_ul_queued *parq_ul =
-			(struct parq_ul_queued *) parq_upload_find(a->u);
+		struct parq_ul_queued *parq_ul = parq_upload_find(a->u);
+		guint min_poll, max_poll;
 
-		if (parq_ul->major == 0 && parq_ul->minor == 1 &&
-				  a->u->status == GTA_UL_QUEUED) {
+		min_poll = MAX(0, delta_time(parq_ul->retry, now));
+		max_poll = MAX(0, delta_time(parq_ul->expire, now));
+
+		if (
+			parq_ul->major == 0 &&
+			parq_ul->minor == 1 &&
+			a->u->status == GTA_UL_QUEUED
+		) {
 			g_assert(length > 0);
 
 			if (small_reply)
 				rw = gm_snprintf(buf, length,
-					"X-Queue: position=%d, pollMin=%d, pollMax=%d\r\n",
-					parq_ul->relative_position,
-					MAX((gint32) (parq_ul->retry - now), 0),
-					MAX((gint32) (parq_ul->expire - now), 0));
+					"X-Queue: position=%d, pollMin=%u, pollMax=%u\r\n",
+					parq_ul->relative_position, min_poll, max_poll);
 			else
 				rw = gm_snprintf(buf, length,
 					"X-Queue: position=%d, length=%d, "
-					"limit=%d, pollMin=%d, pollMax=%d\r\n",
-					parq_ul->relative_position,
-					parq_ul->queue->size,
-					1,
-					MAX((gint32) (parq_ul->retry - now), 0),
-					MAX((gint32) (parq_ul->expire - now), 0));
+					"limit=%d, pollMin=%u, pollMax=%u\r\n",
+					parq_ul->relative_position, parq_ul->queue->size,
+					1, min_poll, max_poll);
 		} else {
 			g_assert(length > 0);
 
@@ -3011,7 +3009,7 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_ul->relative_position,
 					guid_hex_str(parq_ul->id),
-					MAX((gint32)  (parq_ul->retry - now ), 0));
+					min_poll);
 			else
 				rw = gm_snprintf(buf, length,
 					"X-Queue: %d.%d\r\n"
@@ -3023,8 +3021,8 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 					guid_hex_str(parq_ul->id),
 					parq_ul->queue->size,
 					parq_ul->eta,
-					MAX((gint32) (parq_ul->expire - now), 0),
-					MAX((gint32)  (parq_ul->retry - now ), 0));
+					max_poll,
+					min_poll);
 
 			/*
 			 * If we filled all the buffer, try with a shorter string, bearing
@@ -3039,7 +3037,7 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 					"Retry-After: %d\r\n",
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_upload_lookup_id(a->u),
-					MAX((gint32)  (parq_ul->retry - now ), 0));
+					min_poll);
 
 			parq_ul->flags |= PARQ_UL_ID_SENT;
 		}
@@ -3064,7 +3062,7 @@ parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
 {
 	size_t rw = 0;
 	size_t length = *retval;
-	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	struct upload_http_cb *a = arg;
 	struct parq_ul_queued *parq_ul;
 
 	(void) unused_flags;
@@ -3074,7 +3072,7 @@ parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
 	g_assert(length > 0);
 	g_assert(a->u != NULL);
 
-	parq_ul = (struct parq_ul_queued *) parq_upload_find(a->u);
+	parq_ul = parq_upload_find(a->u);
 
 	g_assert(a->u->status == GTA_UL_SENDING);
 	g_assert(parq_ul != NULL);
@@ -3289,7 +3287,7 @@ parq_upload_update_relative_position(struct parq_ul_queued *cur_parq_ul)
 		rel_pos++;
 
 	for (l = g_list_next(l); l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
+		struct parq_ul_queued *parq_ul = l->data;
 
 		g_assert(parq_ul != NULL);
 
@@ -3326,7 +3324,7 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 	 * never reach 0 which would mean the queued item is currently uploading
 	 */
 	for (;	l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
+		struct parq_ul_queued *parq_ul = l->data;
 
 		g_assert(parq_ul != NULL);
 		parq_ul->position--;
@@ -4193,7 +4191,7 @@ parq_close(void)
 	to_remove = NULL;
 
 	for (sl = to_removeq; sl != NULL; sl = g_slist_next(sl)) {
-		struct parq_ul_queue *queue = (struct parq_ul_queue *)sl->data;
+		struct parq_ul_queue *queue = sl->data;
 
 		/*
 		 * We didn't decrease the active_uploads counters when we were freeing
