@@ -313,7 +313,7 @@ ext_name_atom(const gchar *name)
 	 * no escaping, then the name is also the key (same object).
 	 */
 
-	key = g_strdup(name);
+	key = wcopy(name, 1 + strlen(name));
 	atom = hex_escape(key, TRUE); /* strict escaping */
 
 	g_hash_table_insert(ext_names, key, atom);
@@ -332,8 +332,7 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
 	if (0 != strcmp(key, value)) {
 		G_FREE_NULL(value);
 	}
-
-	G_FREE_NULL(key);
+    wfree(key, 1 + strlen(key));
 
 	return TRUE;
 }
