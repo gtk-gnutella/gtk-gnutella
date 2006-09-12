@@ -72,6 +72,7 @@ search_table_t *st_alloc(void);
 void st_initialize(search_table_t *);
 void st_create(search_table_t *table);
 void st_destroy(search_table_t *);
+void st_free(search_table_t **);
 gboolean st_insert_item(search_table_t *, const gchar *key, gpointer data);
 void st_compact(search_table_t *);
 
