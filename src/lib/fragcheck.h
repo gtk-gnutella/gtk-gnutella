@@ -36,13 +36,15 @@
 
 #include "common.h"
 
-#if 0
+#if 1
 #define FRAGCHECK
 #endif
 
 #if defined(FRAGCHECK) && GLIB_CHECK_VERSION(2,0,0)
-void alloc_reset(FILE *unused_f, gboolean unused_flag);
 void alloc_dump(FILE *f, gboolean unused_flag);
+void alloc_dump2(FILE *unused_f, gboolean unused_flag);
+
+#define alloc_reset(a, b) alloc_dump2((a), (b))
 
 void fragcheck_init(void);
 #endif	/* GLib >= 2.0 */

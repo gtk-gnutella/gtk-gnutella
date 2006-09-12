@@ -49,7 +49,7 @@ RCSID("$Id$")
 
 #if GLIB_CHECK_VERSION(2,0,0)
 
-#if 0 && HAVE_GCC(3, 0)
+#if HAVE_GCC(3, 0)
 #define FRAGCHECK_TRACK_CALLERS
 #endif	/* GCC >= 3.0 */
 
@@ -95,7 +95,6 @@ static struct {
 	size_t alloc_base;
 	bit_array_t allocated[BIT_ARRAY_SIZE(BIT_COUNT)];
 	bit_array_t touched[BIT_ARRAY_SIZE(BIT_COUNT)];
-
 } vars;
 
 static inline guint32
@@ -197,10 +196,10 @@ my_malloc(gsize n)
 #ifdef FRAGCHECK_TRACK_CALLERS
 	{
 		unsigned i;
-		for (i = 1; i <= G_N_ELEMENTS(meta->ret); i++) {
+		for (i = 0; i < G_N_ELEMENTS(meta->ret); i++) {
 			switch (i) {
 #define CASE(x) \
-	case x: meta->ret[x - 1] = (size_t) __builtin_return_address(x); break;
+	case x: meta->ret[x] = (size_t) __builtin_return_address(x + 1); break;
 			CASE(0)
 			CASE(1)
 			CASE(2)
@@ -345,13 +344,6 @@ my_try_realloc(gpointer p, gsize n)
 }
 
 void
-alloc_reset(FILE *unused_f, gboolean unused_flag)
-{
-	(void) unused_f;
-	(void) unused_flag;
-}
-
-void
 alloc_dump(FILE *f, gboolean unused_flag)
 {
 	size_t i, base_i = 0;
@@ -380,17 +372,6 @@ alloc_dump(FILE *f, gboolean unused_flag)
 
 				fprintf(f, "%c base: 0x%08lx length: %8.1lu",
 					cur, (unsigned long) base, (unsigned long) len);
-
-#ifdef FRAGCHECK_TRACK_CALLERS
-				switch (cur) {
-				case 'a':
-					fprintf(f, " callers: 0x%08lx 0x%08lx 0x%08lx",
-						(unsigned long) meta->ret[0],
-						(unsigned long) meta->ret[1],
-						(unsigned long) meta->ret[2]);
-				}
-#endif	/* FRAGCHECK_TRACK_CALLERS */
-
 				fputs("\n", f);
 			}
 			if (i == BIT_COUNT) {
@@ -399,6 +380,34 @@ alloc_dump(FILE *f, gboolean unused_flag)
 			}
 			base_i = i;
 			cur = v;
+		}
+	}
+}
+
+void
+alloc_dump2(FILE *f, gboolean unused_flag)
+{
+	size_t i;
+
+	(void) unused_flag;
+
+	for (i = 0; i < MAX_ALLOC_NUM; i++) {
+		const struct fragcheck_meta *meta;
+
+		meta = &vars.meta_tab[i];
+		if (meta->base) {
+			fprintf(f, "base: 0x%08lx length: %8.1lu",
+				(unsigned long) meta->base,
+				(unsigned long) meta->size);
+
+#ifdef FRAGCHECK_TRACK_CALLERS
+			fprintf(f, " callers: 0x%08lx 0x%08lx 0x%08lx",
+				(unsigned long) meta->ret[0],
+				(unsigned long) meta->ret[1],
+				(unsigned long) meta->ret[2]);
+#endif	/* FRAGCHECK_TRACK_CALLERS */
+
+			fputs("\n", f);
 		}
 	}
 }
