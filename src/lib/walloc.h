@@ -80,7 +80,7 @@ wrealloc(gpointer p, size_t old_size, size_t new_size)
 #define walloc0(s)			g_malloc0(s)
 #define wcopy(p,s)			g_memdup((p), (s))
 #define wfree(p,s)			g_free(p)
-#define wrealloc(p,o,n)		g_realloc((p), (n));
+#define wrealloc(p,o,n)		g_realloc((p), (n))
 #endif	/* GLib >= 2.10 */
 
 #else	/* !REMAP_ZALLOC */
