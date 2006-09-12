@@ -104,6 +104,7 @@ LSRC = \
 	getdate.c \
 	getline.c \
 	glib-missing.c \
+	halloc.c \
 	hashlist.c \
 	header.c \
 	host_addr.c \
@@ -155,6 +156,7 @@ LOBJ = \
 	getdate.o \
 	getline.o \
 	glib-missing.o \
+	halloc.o \
 	hashlist.o \
 	header.o \
 	host_addr.o \

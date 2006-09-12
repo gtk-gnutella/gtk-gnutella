@@ -514,6 +514,8 @@ src/lib/getline.c
 src/lib/getline.h
 src/lib/glib-missing.c
 src/lib/glib-missing.h
+src/lib/halloc.c
+src/lib/halloc.h
 src/lib/hashlist.c
 src/lib/hashlist.h
 src/lib/header.c

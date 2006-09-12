@@ -48,6 +48,7 @@ LSRC = \
 	getdate.c \
 	getline.c \
 	glib-missing.c \
+	halloc.c \
 	hashlist.c \
 	header.c \
 	host_addr.c \
