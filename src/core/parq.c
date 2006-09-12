@@ -204,7 +204,7 @@ struct parq_ul_queued {
 
 	gboolean is_alive;		/**< Whether client is still requesting this file */
 
-	gchar *id;				/**< PARQ identifier */
+	gchar id[GUID_RAW_SIZE];		/**< PARQ identifier; GUID atom */
 
 	gchar *addr_and_name;	/**< "IP name", used as key in hash table */
 	gchar *name;			/**< NB: points directly into `addr_and_name' */
@@ -1252,7 +1252,6 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 
 	/* Free the memory used by the current queued item */
 	G_FREE_NULL(parq_ul->addr_and_name);
-	G_FREE_NULL(parq_ul->id);
 	if (parq_ul->sha1)
 		atom_sha1_free(parq_ul->sha1);
 	parq_ul->sha1 = NULL;
@@ -1318,8 +1317,6 @@ parq_upload_create(gnutella_upload_t *u)
 	struct parq_ul_queued *parq_ul = NULL;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	struct parq_ul_queue *parq_ul_queue = NULL;
-	gchar parq_id[GUID_RAW_SIZE];
-
 	guint eta = 0;
 	guint rel_pos = 1;
 	GList *l;
@@ -1370,11 +1367,9 @@ parq_upload_create(gnutella_upload_t *u)
 	parq_ul->sha1 = u->sha1 ? atom_sha1_get(u->sha1) : NULL;
 
 	/* Create an ID */
-	guid_random_muid(parq_id);
-	parq_ul->id = g_strdup(guid_hex_str(parq_id));
+	guid_random_muid(parq_ul->id);
 
 	g_assert(parq_ul->addr_and_name != NULL);
-	g_assert(parq_ul->id != NULL);
 
 	/* Fill parq_ul structure */
 	parq_ul->magic = PARQ_UL_MAGIC;
@@ -1426,7 +1421,7 @@ parq_upload_create(gnutella_upload_t *u)
 			parq_ul->queue->size,
 			host_addr_to_string(parq_ul->remote_addr),
 			parq_ul->name,
-			parq_ul->id);
+			guid_hex_str(parq_ul->id));
 	}
 
 	/* Check if the requesting client has already other PARQ entries */
@@ -1452,7 +1447,6 @@ parq_upload_create(gnutella_upload_t *u)
 
 	g_assert(parq_ul != NULL);
 	g_assert(parq_ul->position > 0);
-	g_assert(parq_ul->id != NULL);
 	g_assert(parq_ul->addr_and_name != NULL);
 	g_assert(parq_ul->name != NULL);
 	g_assert(parq_ul->queue != NULL);
@@ -1650,25 +1644,25 @@ static struct parq_ul_queued *
 parq_upload_find_id(header_t *header)
 {
 	gchar *buf;
-	struct parq_ul_queued *parq_ul = NULL;
 
 	buf = header_get(header, "X-Queued");
 	if (buf != NULL) {
-		const gchar *id = get_header_value(buf, "ID", NULL);
+		const gchar *id_str = get_header_value(buf, "ID", NULL);
 
-		if (id == NULL) {
-			g_warning("[PARQ UL] missing ID in PARQ request");
-			if (parq_debug) {
-				g_warning("[PARQ UL] header dump:");
-				header_dump(header, stderr);
+		if (id_str) {
+			gchar id[GUID_RAW_SIZE];
+			
+			if (hex_to_guid(id_str, id)) {
+				return g_hash_table_lookup(ul_all_parq_by_id, id);
 			}
-			return NULL;
 		}
-
-		parq_ul = g_hash_table_lookup(ul_all_parq_by_id, id);
+		g_warning("[PARQ UL] missing ID in PARQ request");
+		if (parq_debug) {
+			g_warning("[PARQ UL] header dump:");
+			header_dump(header, stderr);
+		}
 	}
-
-	return parq_ul;
+	return NULL;
 }
 
 /**
@@ -3016,7 +3010,7 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 					"Retry-After: %d\r\n",
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_ul->relative_position,
-					parq_ul->id,
+					guid_hex_str(parq_ul->id),
 					MAX((gint32)  (parq_ul->retry - now ), 0));
 			else
 				rw = gm_snprintf(buf, length,
@@ -3026,7 +3020,7 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 					"Retry-After: %d\r\n",
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_ul->relative_position,
-					parq_ul->id,
+					guid_hex_str(parq_ul->id),
 					parq_ul->queue->size,
 					parq_ul->eta,
 					MAX((gint32) (parq_ul->expire - now), 0),
@@ -3149,11 +3143,7 @@ parq_upload_lookup_id(const gnutella_upload_t *u)
 	g_assert(u != NULL);
 
 	parq_ul = parq_upload_find(u);
-
-	if ( parq_ul != NULL)
-		return parq_ul->id;
-	else
-		return NULL;
+	return parq_ul ? parq_ul->id : NULL;
 }
 
 /**
@@ -3466,7 +3456,7 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 	 */
 
 	rw = gm_snprintf(queue, sizeof queue, "QUEUE %s %s\r\n",
-			parq_ul->id,
+			guid_hex_str(parq_ul->id),
 			host_addr_port_to_string(listen_addr(), socket_listen_port()));
 
 	s = u->socket;
@@ -3533,7 +3523,7 @@ parq_store(gpointer data, gpointer file_ptr)
 			  parq_ul->position,
 			  parq_ul->relative_position,
 			  parq_ul->queue->size,
-			  parq_ul->id,
+			  guid_hex_str(parq_ul->id),
 			  host_addr_to_string(parq_ul->remote_addr),
 			  parq_ul->name);
 
@@ -3560,7 +3550,7 @@ parq_store(gpointer data, gpointer file_ptr)
 		  parq_ul->position,
 		  enter_buf,
 		  expire,
-		  parq_ul->id,
+		  guid_hex_str(parq_ul->id),
 		  uint64_to_string(parq_ul->file_size),
 		  host_addr_to_string(parq_ul->remote_addr),
 		  parq_ul->queue_sent,
@@ -3698,7 +3688,7 @@ typedef struct {
 	time_t send_next_queue;
 	gint queue_sent;
 	gchar name[1024];
-	gchar id[1024 + 128];
+	gchar id[GUID_RAW_SIZE];
 } parq_entry_t;
 
 /**
@@ -3865,8 +3855,9 @@ parq_upload_load_queue(void)
 			break;
 
 		case PARQ_TAG_ID:
-			if (g_strlcpy(entry.id, value, sizeof entry.id) >= sizeof entry.id)
+			if (!hex_to_guid(value, entry.id)) {
 				damaged = TRUE;
+			}
 			break;
 
 		case PARQ_TAG_SHA1:
@@ -3944,7 +3935,7 @@ parq_upload_load_queue(void)
 			g_assert(parq_ul != NULL);
 
 			parq_ul->enter = entry.entered;
-			parq_ul->expire = now + entry.expire;
+			parq_ul->expire = time_advance(now, entry.expire);
 			parq_ul->addr = entry.x_addr;
 			parq_ul->port = entry.xport;
 			parq_ul->sha1 = entry.sha1;
@@ -3953,8 +3944,9 @@ parq_upload_load_queue(void)
 
 			/* During parq_upload_create already created an ID for us */
 			g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
-			G_FREE_NULL(parq_ul->id);
-			parq_ul->id = g_strdup(entry.id);
+
+			STATIC_ASSERT(sizeof entry.id == sizeof parq_ul->id);
+			memcpy(parq_ul->id, entry.id, sizeof parq_ul->id);
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
 			if (parq_debug > 2)
@@ -4128,7 +4120,7 @@ parq_init(void)
 	ul_all_parq_by_addr_and_name = g_hash_table_new(g_str_hash, g_str_equal);
 	ul_all_parq_by_addr = g_hash_table_new(host_addr_hash_func,
 								host_addr_eq_func);
-	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
+	ul_all_parq_by_id = g_hash_table_new(guid_hash, guid_eq);
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 
 	ht_banned_source = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
