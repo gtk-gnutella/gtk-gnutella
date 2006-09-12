@@ -1204,7 +1204,7 @@ share_close(void)
 	oob_proxy_close();
 	oob_close();
 	qhit_close();
-	G_FREE_NULL(search_table);
+	st_free(&search_table);
 }
 
 #define MIN_WORD_LENGTH 1		/**< For compaction */

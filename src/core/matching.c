@@ -122,8 +122,8 @@ bin_initialize(struct st_bin *bin, gint size)
 	bin->nvals = 0;
 	bin->nslots = size;
 
-	bin->vals = g_malloc(size * sizeof(bin->vals[0]));
-	for (i = 0; i < size; i++)
+	bin->vals = walloc(bin->nslots * sizeof bin->vals[0]);
+	for (i = 0; i < bin->nslots; i++)
 		bin->vals[i] = NULL;
 }
 
@@ -133,7 +133,7 @@ bin_initialize(struct st_bin *bin, gint size)
 static struct st_bin *
 bin_allocate(void)
 {
-	struct st_bin *bin = (struct st_bin *) g_malloc(sizeof(struct st_bin));
+	struct st_bin *bin = walloc(sizeof *bin);
 
 	bin_initialize(bin, ST_MIN_BIN_SIZE);
 	return bin;
@@ -147,8 +147,9 @@ bin_allocate(void)
 static void
 bin_destroy(struct st_bin *bin)
 {
-	G_FREE_NULL(bin->vals);
-	bin->vals = 0;
+	WFREE_NULL(bin->vals, bin->nslots * sizeof bin->vals[0]);
+	bin->nslots = 0;
+	bin->nvals = 0;
 }
 
 /**
@@ -158,8 +159,10 @@ static void
 bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 {
 	if (bin->nvals == bin->nslots) {
+		size_t old_size = bin->nslots * sizeof bin->vals[0];
 		bin->nslots *= 2;
-		bin->vals = g_realloc(bin->vals, bin->nslots * sizeof(bin->vals[0]));
+		bin->vals = wrealloc(bin->vals,
+						old_size, bin->nslots * sizeof bin->vals[0]);
 	}
 	bin->vals[bin->nvals++] = entry;
 }
@@ -170,8 +173,12 @@ bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 static void
 bin_compact(struct st_bin *bin)
 {
+	size_t old_size;
+
 	g_assert(bin->vals != NULL);	/* Or it would not have been allocated */
-	bin->vals = g_realloc(bin->vals, bin->nvals * sizeof(bin->vals[0]));
+
+	old_size = bin->nslots * sizeof bin->vals[0];
+	bin->vals = wrealloc(bin->vals, old_size, bin->nvals * sizeof bin->vals[0]);
 	bin->nslots = bin->nvals;
 }
 
@@ -233,7 +240,7 @@ st_initialize(search_table_t *table)
 
 	table->nchars = cur_char;
 	table->nbins = table->nchars * table->nchars;
-	table->bins = 0;
+	table->bins = NULL;
 	table->all_entries.vals = 0;
 
 	if (dbg > 3)
@@ -242,14 +249,26 @@ st_initialize(search_table_t *table)
 }
 
 /**
- * Allocates a new search_table_t. Use G_FREE_NULL() to free it.
+ * Allocates a new search_table_t. Use st_free() to free it.
  */
 search_table_t *
 st_alloc(void)
 {
-	search_table_t *table = g_malloc0(sizeof *table);
+	search_table_t *table = walloc(sizeof *table);
 	return table;
 }
+
+void
+st_free(search_table_t **ptr)
+{
+	g_assert(ptr);
+	if (*ptr) {
+		search_table_t *table = *ptr;
+		wfree(table, sizeof *table);
+		*ptr = NULL;
+	}
+}
+
 
 /**
  * Recreate variable parts of the search table.
@@ -259,9 +278,9 @@ st_create(search_table_t *table)
 {
 	gint i;
 
-	table->bins = g_malloc(table->nbins * sizeof(struct st_bin));
+	table->bins = walloc(table->nbins * sizeof table->bins[0]);
 	for (i = 0; i < table->nbins; i++)
-		table->bins[i] = 0;
+		table->bins[i] = NULL;
 
     bin_initialize(&table->all_entries, ST_MIN_BIN_SIZE);
 }
@@ -276,13 +295,14 @@ st_destroy(search_table_t *table)
 
 	if (table->bins) {
 		for (i = 0; i < table->nbins; i++) {
-			if (table->bins[i]) {
-				bin_destroy(table->bins[i]);
-				G_FREE_NULL(table->bins[i]);
+			struct st_bin *bin = table->bins[i];
+
+			if (bin) {
+				bin_destroy(bin);
+				wfree(bin, sizeof *bin);
 			}
 		}
-		G_FREE_NULL(table->bins);
-		table->bins = 0;
+		WFREE_NULL(table->bins, table->nbins * sizeof table->bins[0]);
 	}
 
 	if (table->all_entries.vals) {
