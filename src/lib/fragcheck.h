@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-#if 1
+#if 0
 #define FRAGCHECK
 #endif
 
