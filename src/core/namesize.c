@@ -49,7 +49,7 @@ RCSID("$Id$")
 guint
 namesize_hash(gconstpointer key)
 {
-	const namesize_t *k = (const namesize_t *) key;
+	const namesize_t *k = key;
 	guint32 hash;
 
 	hash = g_str_hash(k->name);
@@ -64,8 +64,7 @@ namesize_hash(gconstpointer key)
 gint
 namesize_eq(gconstpointer a, gconstpointer b)
 {
-	const namesize_t *ka = a;
-	const namesize_t *kb = b;
+	const namesize_t *ka = a, *kb = b;
 
 	return ka->size == kb->size && 0 == strcmp(ka->name, kb->name);
 }
