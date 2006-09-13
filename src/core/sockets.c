@@ -1270,7 +1270,7 @@ socket_free(struct gnutella_socket *s)
 		}
 		s->file_desc = -1;
 	}
-	COMPAT_PAGE_FREE_NULL(s->buf, s->buf_size);
+	FREE_PAGES_NULL(s->buf, s->buf_size);
 	socket_dealloc(&s);
 }
 

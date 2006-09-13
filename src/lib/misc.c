@@ -3602,7 +3602,7 @@ alloc_pages(size_t size)
 		if (-1 == fd)
 			fd = open("/dev/zero", O_RDWR, 0);
 		if (-1 == fd)
-			g_error("compat_page_align(): open() failed for /dev/zero");
+			g_error("alloc_pages(): open() failed for /dev/zero");
 #endif	/* MAP_ANON */
 		
 		p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);

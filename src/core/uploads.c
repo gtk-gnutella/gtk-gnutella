@@ -717,7 +717,7 @@ upload_free_resources(gnutella_upload_t *u)
 	}
 #endif /* USE_MMAP */
 
-	COMPAT_PAGE_FREE_NULL(u->buffer, u->buf_size);
+	FREE_PAGES_NULL(u->buffer, u->buf_size);
 	if (u->io_opaque) {				/* I/O data */
 		io_free(u->io_opaque);
 		g_assert(u->io_opaque == NULL);

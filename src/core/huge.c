@@ -501,7 +501,7 @@ sha1_computation_context_free(gpointer u)
 		ctx->fd = -1;
 	}
 	free_cell(&ctx->file);
-	COMPAT_PAGE_FREE_NULL(ctx->buffer, HASH_BUF_SIZE);
+	FREE_PAGES_NULL(ctx->buffer, HASH_BUF_SIZE);
 	wfree(ctx, sizeof *ctx);
 }
 

@@ -545,10 +545,11 @@ int compat_daemonize(const char *directory);
 size_t compat_pagesize(void);
 gpointer alloc_pages(size_t size);
 void free_pages(gpointer p, size_t size);
-#define COMPAT_PAGE_FREE_NULL(p, size) \
+
+#define FREE_PAGES_NULL(p, size) \
 G_STMT_START { \
 	if (p) { \
-		free_pages((p), size); \
+		free_pages((p), (size)); \
 		p = NULL; \
 	} \
 } G_STMT_END

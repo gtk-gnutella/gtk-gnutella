@@ -101,7 +101,7 @@ rxbuf_new(void)
 }
 
 /**
- * Wrapper over compat_page_free().
+ * Wrapper over free_pages().
  */
 static void
 rxbuf_page_free(gpointer p)

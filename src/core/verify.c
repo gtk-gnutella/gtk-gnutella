@@ -86,7 +86,7 @@ d_free(gpointer ctx)
 		close(vd->fd);
 		vd->fd = -1;
 	}
-	COMPAT_PAGE_FREE_NULL(vd->buffer, HASH_BUF_SIZE);
+	FREE_PAGES_NULL(vd->buffer, HASH_BUF_SIZE);
 	vd->magic = 0;
 	wfree(vd, sizeof *vd);
 }
