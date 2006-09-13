@@ -38,14 +38,17 @@
 RCSID("$Id$")
 
 #include "zalloc.h"
+#include "misc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 /**
  * Extra allocated zones.
  */
 struct subzone {
-	struct subzone *zn_next;	/**< Next allocated zone chunk, null if last */
-	gpointer zn_arena;			/**< Base address of zone arena */
+	struct subzone *sz_next;	/**< Next allocated zone chunk, NULL if last */
+	gpointer sz_base;			/**< Base address of zone arena */
+	size_t  sz_size;			/**< Size of zone arena */
 };
 
 
@@ -63,7 +66,7 @@ struct subzone {
 struct zone {			/* Zone descriptor */
 	gchar **zn_free;	/**< Pointer to first free block */
 	struct subzone *zn_next;/**< Next allocated zone chunk, null if none */
-	gpointer zn_arena;	/**< Base address of zone arena */
+    struct subzone zn_arena;
 	gint zn_refcnt;		/**< How many references to that zone? */
 	gint zn_size;		/**< Size of blocks in zone */
 	gint zn_hint;		/**< Hint size, for next zone extension */
@@ -105,9 +108,6 @@ struct zone {			/* Zone descriptor */
 
 #define DEFAULT_HINT		128		/**< Default amount of blocks in a zone */
 #define MAX_ZONE_SIZE		16384	/**< Maximum zone size */
-
-static void zn_cram(zone_t *, gchar *, gint);
-static struct zone *zn_create(zone_t *, gint, gint);
 
 /* Under REMAP_ZALLOC, do not define zalloc() and zfree(). */
 
@@ -182,7 +182,7 @@ zalloc(zone_t *zone)
 	 * Use first block from new extended zone.
 	 */
 
-	zone->zn_free = (char **) *blk;
+	zone->zn_free = (gchar **) *blk;
 	zone->zn_cnt++;
 
 #ifdef ZONE_SAFE
@@ -247,7 +247,7 @@ zdump_used(zone_t *zone)
 	gchar *p;
 	gpointer leakset = leak_init();
 
-	p = (gchar *) zone->zn_arena;
+	p = zone->zn_base;
 	next = zone->zn_next;
 
 	for (;;) {
@@ -264,7 +264,7 @@ zdump_used(zone_t *zone)
 		if (next == NULL)
 			break;
 
-		p = (gchar *) next->zn_arena;
+		p = next->zn_base;
 		next = next->zn_next;
 	}
 
@@ -309,29 +309,56 @@ zfree(zone_t *zone, gpointer ptr)
 	g_assert(zone->zn_cnt > 0);		/* There must be something to free! */
 
 	*(gchar **) ptr = (gchar *) zone->zn_free;	/* Will precede old head */
-	zone->zn_free = (gchar **) ptr;				/* New free list head */
+	zone->zn_free = ptr;						/* New free list head */
 	zone->zn_cnt--;								/* To make zone gc easier */
 }
 #endif	/* !REMAP_ZALLOC */
 
 /**
- * Create a new zone able to hold items of 'size' bytes. Returns
- * NULL if no new zone can be created.
+ * Cram a new zone in chunk.
  *
- * The hint argument is to be construed as the average amount of objects
- * that are to be created per zone chunks. That is not the total amount of
- * expected objects of a given type. Leaving it a 0 selects the default hint
- * value.
+ * A zone consists of linked blocks, where the address of the next free block
+ * is written in the first bytes of each free block.
  */
-zone_t *
-zcreate(gint size, gint hint)
+static void
+zn_cram(zone_t *zone, gpointer arena)
 {
-	zone_t *zone;			/* Zone descriptor */
+	gint i;
+	gchar **next = arena, *p = arena;
 
-	zone = g_malloc(sizeof(*zone));
-
-	return zn_create(zone, size, hint);
+	for (i = 1; i < zone->zn_hint; i++) {
+		next = (gpointer) p;
+		*next = &p[zone->zn_size];
+		p = *next;
+	}
+	*next = NULL;
 }
+
+static void
+subzone_alloc_arena(struct subzone *sz, size_t size)
+{
+	size_t threshold = (compat_pagesize() / 32) * 31;
+
+	if (size < threshold) {
+		sz->sz_size = size;
+		sz->sz_base = g_malloc(sz->sz_size);
+	} else {
+		sz->sz_size = MAX(size, compat_pagesize());
+		sz->sz_base = alloc_pages(sz->sz_size);
+	}
+}
+
+static void
+subzone_free_arena(struct subzone *sz)
+{
+	if (sz->sz_size < compat_pagesize()) {
+		G_FREE_NULL(sz->sz_base);
+	} else {
+		FREE_PAGES_NULL(sz->sz_base, sz->sz_size);
+	}
+	sz->sz_size = 0;
+}
+
 
 /**
  * Create a new zone able to hold items of 'size' bytes.
@@ -339,8 +366,10 @@ zcreate(gint size, gint hint)
 static zone_t *
 zn_create(zone_t *zone, gint size, gint hint)
 {
-	gint asked;		/* Amount of bytes requested */
-	gchar *arena;	/* Zone arena we got */
+	size_t arena_size;		/* Amount of bytes requested */
+
+	g_assert(size > 0);
+	g_assert(hint >= 0);
 
 	/*
 	 * Make sure size is big enough to store the free-list pointer used to
@@ -348,9 +377,7 @@ zn_create(zone_t *zone, gint size, gint hint)
 	 * the correct boundary.
 	 */
 
-	g_assert(size > 0);
-	if (size < (gint) sizeof(gchar *))
-		size = sizeof(gchar *);
+	size = MAX((gint) sizeof(gchar *), size);
 
 #ifdef ZONE_SAFE
 	/*
@@ -381,20 +408,17 @@ zn_create(zone_t *zone, gint size, gint hint)
 	 */
 
 	hint = (hint == 0) ? DEFAULT_HINT : hint;
-	asked = size * hint;
-
-	if (asked > MAX_ZONE_SIZE) {
+	if (hint > MAX_ZONE_SIZE / size) {
 		hint = MAX_ZONE_SIZE / size;
-		asked = size * hint;
 	}
-
-	g_assert(asked <= MAX_ZONE_SIZE);
+	arena_size = size * hint;
+	g_assert(arena_size <= MAX_ZONE_SIZE);
 
 	/*
 	 * Allocate the arena.
 	 */
 
-	arena = g_malloc(asked);
+	subzone_alloc_arena(&zone->zn_arena, arena_size);
 
 	/*
 	 * Initialize zone descriptor.
@@ -404,13 +428,32 @@ zn_create(zone_t *zone, gint size, gint hint)
 	zone->zn_size = size;
 	zone->zn_next = NULL;			/* Link zones to keep track of arenas */
 	zone->zn_cnt = 0;
-	zone->zn_free = (gchar **) arena;	/* First free block available */
-	zone->zn_arena = arena;				/* For GC, later on */
+	zone->zn_free = zone->zn_arena.sz_base;	/* First free block available */
 	zone->zn_refcnt = 1;
 
-	zn_cram(zone, arena, size);
+	zn_cram(zone, zone->zn_arena.sz_base);
 
 	return zone;
+}
+
+
+/**
+ * Create a new zone able to hold items of 'size' bytes. Returns
+ * NULL if no new zone can be created.
+ *
+ * The hint argument is to be construed as the average amount of objects
+ * that are to be created per zone chunks. That is not the total amount of
+ * expected objects of a given type. Leaving it a 0 selects the default hint
+ * value.
+ */
+zone_t *
+zcreate(gint size, gint hint)
+{
+	zone_t *zone;			/* Zone descriptor */
+
+	zone = g_malloc(sizeof(*zone));
+
+	return zn_create(zone, size, hint);
 }
 
 /**
@@ -420,9 +463,6 @@ zn_create(zone_t *zone, gint size, gint hint)
 void
 zdestroy(zone_t *zone)
 {
-	struct subzone *sz;
-	struct subzone *next;
-
 	/*
 	 * A zone can be used by many different parts of the code, through
 	 * calls to zget().  Therefore, only destroy the zone when all references
@@ -442,14 +482,19 @@ zdestroy(zone_t *zone)
 #endif
 	}
 
-	for (sz = zone->zn_next, next = NULL; sz; sz = next) {
-		next = sz->zn_next;
-		G_FREE_NULL(sz->zn_arena);
-		g_free(sz);
+	{
+		struct subzone *sz = zone->zn_next;
+
+		while (sz) {
+			struct subzone *next = sz->sz_next;
+			subzone_free_arena(sz);
+			G_FREE_NULL(sz);
+			sz = next;
+		}
 	}
 
-	G_FREE_NULL(zone->zn_arena);
-	g_free(zone);
+	subzone_free_arena(&zone->zn_arena);
+	G_FREE_NULL(zone);
 }
 
 /**
@@ -487,7 +532,7 @@ zget(gint size, gint hint)
 		size = sizeof(gchar *);
 	size = zalloc_round(size);
 
-	zone = (zone_t *) g_hash_table_lookup(zt, GINT_TO_POINTER(size));
+	zone = g_hash_table_lookup(zt, GINT_TO_POINTER(size));
 
 	if (zone) {
 		if (zone->zn_hint < hint)
@@ -514,24 +559,6 @@ zget(gint size, gint hint)
 	return zone;
 }
 
-/**
- * Cram a new zone in chunk.
- *
- * A zone consists of linked blocks, where the address of the next free block
- * is written in the first bytes of each free block.
- */
-static void
-zn_cram(zone_t *zone, gchar *arena, gint size)
-{
-	gchar *end;		/* End address (first address beyond zone scope) */
-	gchar *next;	/* Next free block in arena */
-
-	end = arena + zone->zn_hint * zone->zn_size;
-
-	for (next = arena + size; arena < end; next += size, arena += size)
-		*(gchar **) arena = (next < end) ? next : (gchar *) 0;
-}
-
 #ifndef REMAP_ZALLOC
 /**
  * Extend zone by allocating a new zone chunk.
@@ -542,17 +569,17 @@ zn_cram(zone_t *zone, gchar *arena, gint size)
 static gchar **
 zn_extend(zone_t *zone)
 {
-	struct subzone *new;		/* New sub-zone */
+	struct subzone *sz;		/* New sub-zone */
 
-	new = g_malloc(sizeof(*new));
+	sz = g_malloc(sizeof *sz);
 
-	new->zn_arena = g_malloc(zone->zn_size * zone->zn_hint);
-	zone->zn_free = (gchar **) new->zn_arena;
+	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
+	zone->zn_free = sz->sz_base;
 
-	new->zn_next = zone->zn_next;
-	zone->zn_next = new;				/* New subzone at head of list */
+	sz->sz_next = zone->zn_next;
+	zone->zn_next = sz;				/* New subzone at head of list */
 
-	zn_cram(zone, new->zn_arena, zone->zn_size);
+	zn_cram(zone, sz->sz_base);
 
 	return zone->zn_free;
 }
