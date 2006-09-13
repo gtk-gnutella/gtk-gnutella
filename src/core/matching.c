@@ -34,6 +34,7 @@ RCSID("$Id$")
 #include "share.h"
 
 #include "lib/atoms.h"
+#include "lib/halloc.h"
 #include "lib/pattern.h"
 #include "lib/misc.h"
 #include "lib/utf8.h"
@@ -122,7 +123,7 @@ bin_initialize(struct st_bin *bin, gint size)
 	bin->nvals = 0;
 	bin->nslots = size;
 
-	bin->vals = walloc(bin->nslots * sizeof bin->vals[0]);
+	bin->vals = halloc(bin->nslots * sizeof bin->vals[0]);
 	for (i = 0; i < bin->nslots; i++)
 		bin->vals[i] = NULL;
 }
@@ -147,7 +148,7 @@ bin_allocate(void)
 static void
 bin_destroy(struct st_bin *bin)
 {
-	WFREE_NULL(bin->vals, bin->nslots * sizeof bin->vals[0]);
+	HFREE_NULL(bin->vals);
 	bin->nslots = 0;
 	bin->nvals = 0;
 }
@@ -159,10 +160,8 @@ static void
 bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 {
 	if (bin->nvals == bin->nslots) {
-		size_t old_size = bin->nslots * sizeof bin->vals[0];
 		bin->nslots *= 2;
-		bin->vals = wrealloc(bin->vals,
-						old_size, bin->nslots * sizeof bin->vals[0]);
+		bin->vals = hrealloc(bin->vals, bin->nslots * sizeof bin->vals[0]);
 	}
 	bin->vals[bin->nvals++] = entry;
 }
@@ -173,12 +172,9 @@ bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 static void
 bin_compact(struct st_bin *bin)
 {
-	size_t old_size;
-
 	g_assert(bin->vals != NULL);	/* Or it would not have been allocated */
 
-	old_size = bin->nslots * sizeof bin->vals[0];
-	bin->vals = wrealloc(bin->vals, old_size, bin->nvals * sizeof bin->vals[0]);
+	bin->vals = hrealloc(bin->vals, bin->nvals * sizeof bin->vals[0]);
 	bin->nslots = bin->nvals;
 }
 
@@ -278,7 +274,7 @@ st_create(search_table_t *table)
 {
 	gint i;
 
-	table->bins = walloc(table->nbins * sizeof table->bins[0]);
+	table->bins = halloc(table->nbins * sizeof table->bins[0]);
 	for (i = 0; i < table->nbins; i++)
 		table->bins[i] = NULL;
 
@@ -302,7 +298,7 @@ st_destroy(search_table_t *table)
 				wfree(bin, sizeof *bin);
 			}
 		}
-		WFREE_NULL(table->bins, table->nbins * sizeof table->bins[0]);
+		HFREE_NULL(table->bins);
 	}
 
 	if (table->all_entries.vals) {

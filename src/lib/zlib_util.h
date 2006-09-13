@@ -75,6 +75,9 @@ gpointer zlib_uncompress(gconstpointer data, gint len, gulong uncompressed_len);
 gint zlib_inflate_into(gconstpointer data, gint len, gpointer out, gint *outlen);
 gboolean zlib_is_valid_header(gconstpointer data, gint len);
 
+void zlib_free_func(gpointer unused_opaque, gpointer p);
+gpointer zlib_alloc_func(gpointer unused_opaque, guint n, guint m);
+
 #endif	/* _zlib_util_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

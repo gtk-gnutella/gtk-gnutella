@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "zlib_util.h"
+#include "halloc.h"
 #include "misc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -68,6 +69,25 @@ zlib_strerror(gint errnum)
 	return "Invalid error code";
 }
 
+gpointer
+zlib_alloc_func(gpointer unused_opaque, guint n, guint m)
+{
+	(void) unused_opaque;
+
+	g_return_val_if_fail(n > 0, NULL);
+	g_return_val_if_fail(m > 0, NULL);
+	g_return_val_if_fail(m < ((size_t) -1) / n, NULL);
+
+	return halloc((size_t) n * m);
+}
+
+void
+zlib_free_func(gpointer unused_opaque, gpointer p)
+{
+	(void) unused_opaque;
+	hfree(p);
+}
+
 /**
  * Creates an incremental zlib deflater for `len' bytes starting at `data',
  * with specified compression `level'.
@@ -91,8 +111,8 @@ zlib_deflater_alloc(
 	g_assert(level == Z_DEFAULT_COMPRESSION || (level >= 0 && level <= 9));
 
 	outz = walloc(sizeof(*outz));
-	outz->zalloc = (alloc_func) NULL;
-	outz->zfree = (free_func) NULL;
+	outz->zalloc = zlib_alloc_func;
+	outz->zfree = zlib_free_func;
 	outz->opaque = NULL;
 
 	ret = deflateInit(outz, level);
@@ -417,8 +437,8 @@ zlib_inflate_into(gconstpointer data, gint len, gpointer out, gint *outlen)
 
 	inz = walloc(sizeof(*inz));
 
-	inz->zalloc = NULL;
-	inz->zfree = NULL;
+	inz->zalloc = zlib_alloc_func;
+	inz->zfree = zlib_free_func;
 	inz->opaque = NULL;
 
 	ret = inflateInit(inz);

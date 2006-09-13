@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -458,6 +459,8 @@ get_next_slot(void)
 	guint chunk_idx;
 	struct message **chunk;
 	struct message **slot = NULL;
+	time_t now = tm_time();
+	time_delta_t elapsed = delta_time(now, routing.last_rotation);
 
 	idx = routing.next_idx;
 	chunk_idx = CHUNK_INDEX(idx);
@@ -467,7 +470,6 @@ get_next_slot(void)
 	chunk = routing.chunks[chunk_idx];
 
 	if (chunk == NULL) {
-		time_t now = tm_time();
 
 		g_assert((gint) idx >= routing.capacity);
 
@@ -476,15 +478,10 @@ get_next_slot(void)
 		 * it or recycle the table by going back to the start.
 		 */
 
-		if (
-			idx > 0 &&
-			delta_time(now, routing.last_rotation) > TABLE_MIN_CYCLE
-		) {
-			gint elapsed = now - routing.last_rotation;
-
+		if (idx > 0 && elapsed > TABLE_MIN_CYCLE) {
 			if (routing_debug)
 				printf("RT cycling over table, elapsed=%d, holds %d / %d\n",
-					elapsed, routing.count, routing.capacity);
+					(gint) elapsed, routing.count, routing.capacity);
 
 			chunk_idx = 0;
 			idx = routing.next_idx = 0;
@@ -498,8 +495,8 @@ get_next_slot(void)
 			g_assert(idx == 0 || chunk_idx > 0);
 
 			routing.capacity += CHUNK_MESSAGES;
-			routing.chunks[chunk_idx] = (struct message **)
-				g_malloc0(CHUNK_MESSAGES * sizeof(struct message *));
+			routing.chunks[chunk_idx] =
+				halloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
 			if (routing_debug)
 				printf("RT created new chunk #%d, now holds %d / %d\n",
@@ -517,12 +514,9 @@ get_next_slot(void)
 		 */
 
 		if (idx == 0) {
-			time_t now = tm_time();
-			gint elapsed = now - routing.last_rotation;
-
 			if (routing_debug)
 				printf("RT cycling over FORCED, elapsed=%d, holds %d / %d\n",
-					elapsed, routing.count, routing.capacity);
+					(gint) elapsed, routing.count, routing.capacity);
 
 			routing.last_rotation = now;
 		}
@@ -2115,7 +2109,7 @@ routing_close(void)
 					wfree(m, sizeof(*m));
 				}
 			}
-			G_FREE_NULL(chunk);
+			HFREE_NULL(chunk);
 		}
 	}
 

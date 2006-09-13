@@ -150,8 +150,8 @@ rx_inflate_init(rxdrv_t *rx, gconstpointer args)
 
 	inz = walloc(sizeof(*inz));
 
-	inz->zalloc = NULL;
-	inz->zfree = NULL;
+	inz->zalloc = zlib_alloc_func;
+	inz->zfree = zlib_free_func;
 	inz->opaque = NULL;
 
 	ret = inflateInit(inz);

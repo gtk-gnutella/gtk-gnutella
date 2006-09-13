@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/file.h"
+#include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -85,8 +86,6 @@ struct work {
 };
 
 /**
- * we_alloc
- *
  * Allocate work queue entry.
  */
 static struct work *
@@ -103,14 +102,12 @@ we_alloc(struct download *d, const gchar *dest, const gchar *ext)
 }
 
 /**
- * we_free
- *
  * Freeing of work queue entry.
  */
 static void
 we_free(gpointer data)
 {
-	struct work *we = (struct work *) data;
+	struct work *we = data;
 
 	atom_str_free(we->dest);
 	atom_str_free(we->ext);
@@ -145,24 +142,25 @@ d_sighandler(gpointer unused_h, gpointer u, bgsig_t sig)
 }
 
 /**
- * d_free
- *
  * Freeing of computation context.
  */
 static void
 d_free(gpointer ctx)
 {
-	struct moved *md = (struct moved *) ctx;
+	struct moved *md = ctx;
 
 	g_assert(md->magic == MOVED_MAGIC);
 
-	if (md->rd != -1)
+	if (md->rd != -1) {
 		close(md->rd);
-
-	if (md->wd != -1)
+		md->rd = -1;
+	}
+	if (md->wd != -1) {
 		close(md->wd);
-
-	G_FREE_NULL(md->buffer);
+		md->wd = -1;
+	}
+	FREE_PAGES_NULL(md->buffer, COPY_BUF_SIZE);
+	md->magic = 0;
 	wfree(md, sizeof(*md));
 }
 
@@ -182,8 +180,8 @@ d_notify(gpointer unused_h, gboolean on)
 static void
 d_start(gpointer h, gpointer ctx, gpointer item)
 {
-	struct moved *md = (struct moved *) ctx;
-	struct work *we = (struct work *) item;
+	struct moved *md = ctx;
+	struct work *we = item;
 	struct download *d = we->d;
 	gchar *source = NULL;
 	struct stat buf;
@@ -249,9 +247,10 @@ d_start(gpointer h, gpointer ctx, gpointer item)
 
 abort_read:
 	md->error = errno;
-	if (md->rd != -1)
+	if (md->rd != -1) {
 		close(md->rd);
-	md->rd = -1;
+		md->rd = -1;
+	}
 	g_warning("can't copy \"%s\" to \"%s\"", source, we->dest);
 	G_FREE_NULL(source);
 	return;
@@ -263,7 +262,7 @@ abort_read:
 static void
 d_end(gpointer h, gpointer ctx, gpointer item)
 {
-	struct moved *md = (struct moved *) ctx;
+	struct moved *md = ctx;
 	struct download *d = md->d;
 	gint elapsed = 0;
 
@@ -328,7 +327,7 @@ finish:
 static bgret_t
 d_step_copy(gpointer h, gpointer u, gint ticks)
 {
-	struct moved *md = (struct moved *) u;
+	struct moved *md = u;
 	ssize_t r;
 	size_t amount;
 	guint64 remain;
@@ -342,9 +341,8 @@ d_step_copy(gpointer h, gpointer u, gint ticks)
 	if (md->size == 0)			/* Empty file */
 		return BGR_DONE;
 
+	g_assert(md->size > md->copied);
 	remain = md->size - md->copied;
-
-	g_assert(remain > 0);
 
 	/*
 	 * Each tick we have can buy us 2^COPY_BLOCK_SHIFT bytes.
@@ -383,7 +381,7 @@ d_step_copy(gpointer h, gpointer u, gint ticks)
 		bg_task_ticks_used(h, used);
 
 	r = write(md->wd, md->buffer, amount);
-	if (r < 0) {
+	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while writing for moving \"%s\": %s",
 			download_outname(md->d), g_strerror(errno));
@@ -427,7 +425,7 @@ move_init(void)
 	md->magic = MOVED_MAGIC;
 	md->rd = -1;
 	md->wd = -1;
-	md->buffer = g_malloc(COPY_BUF_SIZE);
+	md->buffer = alloc_pages(COPY_BUF_SIZE);
 	md->target = NULL;
 
 	move_daemon = bg_daemon_create("file moving",
@@ -440,7 +438,8 @@ move_init(void)
 /**
  * Called at shutdown time.
  */
-void move_close(void)
+void
+move_close(void)
 {
 	bg_task_cancel(move_daemon);
 }

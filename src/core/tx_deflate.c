@@ -693,8 +693,8 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 
 	outz = walloc(sizeof *outz);
 
-	outz->zalloc = NULL;
-	outz->zfree = NULL;
+	outz->zalloc = zlib_alloc_func;
+	outz->zfree = zlib_free_func;
 	outz->opaque = NULL;
 
 	ret = targs->gzip
