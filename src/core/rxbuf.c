@@ -106,7 +106,7 @@ rxbuf_new(void)
 static void
 rxbuf_page_free(gpointer p)
 {
-	compat_page_free(p, compat_pagesize());
+	free_pages(p, compat_pagesize());
 }
 
 /**
@@ -116,7 +116,7 @@ void
 rxbuf_init(void)
 {
 	rxpool = pool_create(
-		compat_pagesize(), BUF_COUNT, compat_page_align, rxbuf_page_free);
+		compat_pagesize(), BUF_COUNT, alloc_pages, rxbuf_page_free);
 }
 
 /**

@@ -3685,7 +3685,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (u->buffer == NULL) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = compat_page_align(u->buf_size);
+			u->buffer = alloc_pages(u->buf_size);
 		}
 	}
 
@@ -3989,7 +3989,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 		 */
 		if (sendfile_failed && NULL == u->buffer) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = compat_page_align(u->buf_size);
+			u->buffer = alloc_pages(u->buf_size);
 		}
 
 		/*

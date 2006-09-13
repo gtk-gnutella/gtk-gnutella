@@ -3574,7 +3574,7 @@ compat_pagesize(void)
  * @param size The size in bytes to allocate; will be rounded to the pagesize.
  */
 gpointer
-compat_page_align(size_t size)
+alloc_pages(size_t size)
 {
 	size_t align = compat_pagesize();
 	void *p;
@@ -3622,8 +3622,11 @@ compat_page_align(size_t size)
 	return p;
 }
 
+/**
+ * Free memory allocated via alloc_pages().
+ */
 void
-compat_page_free(gpointer p, size_t size)
+free_pages(gpointer p, size_t size)
 {
 	g_assert(0 == size || p);
 

@@ -159,7 +159,7 @@ mem_pool_new(size_t size, size_t hold)
   ps = compat_pagesize();
   len = hold * size;
   
-  mp = compat_page_align(len);
+  mp = alloc_pages(len);
   if (mp) {
     size_t i, step = size / sizeof mp->chunks[0];
     
@@ -343,7 +343,7 @@ atom_alloc(size_t size)
 		a = mem_alloc(mc_ptr);
 		mem_unprotect(a, size);
 	} else {
-		a = compat_page_align(size);
+		a = alloc_pages(size);
 	}
 	ATOM_SET_MAGIC(a);
 

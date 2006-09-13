@@ -283,7 +283,7 @@ verify_init(void)
 	vd = walloc(sizeof *vd);
 	vd->magic = VERIFYD_MAGIC;
 	vd->fd = -1;
-	vd->buffer = compat_page_align(HASH_BUF_SIZE);
+	vd->buffer = alloc_pages(HASH_BUF_SIZE);
 	vd->d = NULL;
 
 	verify_daemon = bg_daemon_create("SHA1 verification",

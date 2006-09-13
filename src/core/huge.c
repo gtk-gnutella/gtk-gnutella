@@ -940,7 +940,7 @@ queue_shared_file_for_sha1_computation(guint32 file_index,
 		ctx = walloc0(sizeof *ctx);
 		ctx->magic = SHA1_MAGIC;
 		ctx->fd = -1;
-		ctx->buffer = compat_page_align(HASH_BUF_SIZE);
+		ctx->buffer = alloc_pages(HASH_BUF_SIZE);
 
 		sha1_task = bg_task_create("SHA1 computation",
 			steps, 2,  ctx, sha1_computation_context_free, NULL, NULL);

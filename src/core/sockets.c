@@ -120,7 +120,7 @@ socket_alloc_buffer(struct gnutella_socket *s)
 	g_assert(s);
 	if (!s->buf) {
 		s->buf_size = SOCK_BUFSZ;
-		s->buf = compat_page_align(s->buf_size);
+		s->buf = alloc_pages(s->buf_size);
 	}
 }
 

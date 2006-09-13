@@ -543,12 +543,12 @@ gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
 
 size_t compat_pagesize(void);
-gpointer compat_page_align(size_t size);
-void compat_page_free(gpointer p, size_t size);
+gpointer alloc_pages(size_t size);
+void free_pages(gpointer p, size_t size);
 #define COMPAT_PAGE_FREE_NULL(p, size) \
 G_STMT_START { \
 	if (p) { \
-		compat_page_free((p), size); \
+		free_pages((p), size); \
 		p = NULL; \
 	} \
 } G_STMT_END

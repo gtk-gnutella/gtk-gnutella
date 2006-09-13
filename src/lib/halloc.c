@@ -79,15 +79,12 @@ halloc(size_t size)
 
 	g_assert(size > 0);
 
-	if (!hallocations) {
+	if (!hallocations)
 		hallocations = g_hash_table_new(NULL, NULL);
-	}
-	if (size < compat_pagesize()) {
-		p = walloc(size);
-	} else {
-		p = compat_page_align(size);
-	}
+
+	p = (size < compat_pagesize()) ? walloc(size) : alloc_pages(size);
 	g_hash_table_insert(hallocations, p, (gpointer) size);
+
 	return p;
 }
 
@@ -98,6 +95,7 @@ gpointer
 halloc0(size_t size)
 {
 	gpointer p = halloc(size);
+
 	memset(p, 0, size);
 	return p;
 }
@@ -108,15 +106,17 @@ halloc0(size_t size)
 void
 hfree(gpointer p)
 {
-	if (p) {
-		size_t size = halloc_get_size(p);
+	size_t size;
 
-		g_hash_table_remove(hallocations, p);
-		if (size < compat_pagesize()) {
-			wfree(p, size);
-		} else {
-			compat_page_free(p, size);
-		}
+	if (NULL == p)
+		return;
+
+	size = halloc_get_size(p);
+	g_hash_table_remove(hallocations, p);
+	if (size < compat_pagesize()) {
+		wfree(p, size);
+	} else {
+		free_pages(p, size);
 	}
 }
 
