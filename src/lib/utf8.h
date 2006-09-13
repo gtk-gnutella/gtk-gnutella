@@ -36,7 +36,7 @@
 #ifndef _utf8_h_
 #define _utf8_h_
 
-#include <glib.h>
+#include "common.h"
 
 
 #if 0  /* xxxUSE_ICU */
