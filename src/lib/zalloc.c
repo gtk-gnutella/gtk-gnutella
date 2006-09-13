@@ -40,6 +40,36 @@ RCSID("$Id$")
 #include "zalloc.h"
 #include "override.h"		/* Must be the last header included */
 
+/**
+ * Extra allocated zones.
+ */
+struct subzone {
+	struct subzone *zn_next;	/**< Next allocated zone chunk, null if last */
+	gpointer zn_arena;			/**< Base address of zone arena */
+};
+
+
+/**
+ * @struct zone
+ *
+ * Zone structure.
+ *
+ * Zone structures can be linked together to form one big happy chain.
+ * During allocation/free, only the first zone structure of the list is
+ * updated. The other zone structures are updated only during the garbage
+ * collecting phase, if any.
+ */
+
+struct zone {			/* Zone descriptor */
+	gchar **zn_free;	/**< Pointer to first free block */
+	struct subzone *zn_next;/**< Next allocated zone chunk, null if none */
+	gpointer zn_arena;	/**< Base address of zone arena */
+	gint zn_refcnt;		/**< How many references to that zone? */
+	gint zn_size;		/**< Size of blocks in zone */
+	gint zn_hint;		/**< Hint size, for next zone extension */
+	gint zn_cnt;		/**< Amount of used blocks in zone */
+};
+
 /*
  * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.
  *
@@ -75,14 +105,6 @@ RCSID("$Id$")
 
 #define DEFAULT_HINT		128		/**< Default amount of blocks in a zone */
 #define MAX_ZONE_SIZE		16384	/**< Maximum zone size */
-
-/**
- * Extra allocated zones.
- */
-struct subzone {
-	struct subzone *zn_next;	/**< Next allocated zone chunk, null if last */
-	gpointer zn_arena;			/**< Base address of zone arena */
-};
 
 static void zn_cram(zone_t *, gchar *, gint);
 static struct zone *zn_create(zone_t *, gint, gint);

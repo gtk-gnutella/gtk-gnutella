@@ -47,30 +47,8 @@
 #define zalloc_round(s) \
 	((gulong) (((gulong) (s) + ZALLOC_MASK) & ~ZALLOC_MASK))
 
-/**
- * @struct zone
- *
- * Zone structure.
- *
- * Zone structures can be linked together to form one big happy chain.
- * During allocation/free, only the first zone structure of the list is
- * updated. The other zone structures are updated only during the garbage
- * collecting phase, if any.
- */
-
-struct subzone;
-
-typedef struct zone {			/* Zone descriptor */
-	gchar **zn_free;			/**< Pointer to first free block */
-	struct subzone *zn_next;	/**< Next allocated zone chunk, null if none */
-	gpointer zn_arena;			/**< Base address of zone arena */
-	gint zn_refcnt;				/**< How many references to that zone? */
-	gint zn_size;				/**< Size of blocks in zone */
-	gint zn_hint;				/**< Hint size, for next zone extension */
-	gint zn_cnt;				/**< Amount of used blocks in zone */
-} zone_t;
-
-#define zcount(z)	((z)->zn_cnt)	/**< Amount of allocated blocks */
+struct zone;
+typedef struct zone zone_t;
 
 /*
  * Memory allocation routines.
