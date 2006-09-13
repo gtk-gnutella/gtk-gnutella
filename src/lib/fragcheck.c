@@ -67,11 +67,22 @@ union alloc {
 	float f;
 };
 
+#ifdef FRAGCHECK_TRACK_CALLERS
+enum fragcheck_ret {
+	FC_RET_0,
+	FC_RET_1,
+	FC_RET_2,
+	FC_RET_3,
+
+	NUM_FC_RET
+};
+#endif
+
 struct fragcheck_meta {
 	const void *base;
 	size_t size;
 #ifdef FRAGCHECK_TRACK_CALLERS
-	size_t ret[3];
+	size_t ret[NUM_FC_RET];
 #endif	/* FRAGCHECK_TRACK_CALLERS */
 };
 
@@ -195,14 +206,16 @@ my_malloc(gsize n)
 
 #ifdef FRAGCHECK_TRACK_CALLERS
 	{
-		unsigned i;
-		for (i = 0; i < G_N_ELEMENTS(meta->ret); i++) {
+		enum fragcheck_ret i;
+		for (i = FC_RET_0; i < NUM_FC_RET; i++) {
 			switch (i) {
 #define CASE(x) \
 	case x: meta->ret[x] = (size_t) __builtin_return_address(x + 1); break;
-			CASE(0)
-			CASE(1)
-			CASE(2)
+			CASE(FC_RET_0)
+			CASE(FC_RET_1)
+			CASE(FC_RET_2)
+			CASE(FC_RET_3)
+			case NUM_FC_RET: assert(0);
 #undef CASE
 			}
 		}
@@ -401,10 +414,14 @@ alloc_dump2(FILE *f, gboolean unused_flag)
 				(unsigned long) meta->size);
 
 #ifdef FRAGCHECK_TRACK_CALLERS
-			fprintf(f, " callers: 0x%08lx 0x%08lx 0x%08lx",
-				(unsigned long) meta->ret[0],
-				(unsigned long) meta->ret[1],
-				(unsigned long) meta->ret[2]);
+			{
+				unsigned j;
+				
+				fputs(" callers:", f);
+				for (j = FC_RET_0; j < NUM_FC_RET; j++) {
+					fprintf(f, " 0x%08lx", (unsigned long) meta->ret[j]);
+				}
+			}
 #endif	/* FRAGCHECK_TRACK_CALLERS */
 
 			fputs("\n", f);
