@@ -111,6 +111,7 @@ hfree(gpointer p)
 	if (p) {
 		size_t size = halloc_get_size(p);
 
+		g_hash_table_remove(hallocations, p);
 		if (size < compat_pagesize()) {
 			wfree(p, size);
 		} else {
@@ -183,7 +184,11 @@ hdestroy_item(gpointer key, gpointer value, gpointer unused_udata)
 void
 hdestroy(void)
 {
-	g_hash_table_foreach(hallocations, hdestroy_item, NULL);
+	if (hallocations) {
+		g_hash_table_foreach(hallocations, hdestroy_item, NULL);
+		g_hash_table_destroy(hallocations);
+		hallocations = NULL;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
