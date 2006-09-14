@@ -1469,36 +1469,59 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			start + amount > ctx->map_end
 		) {
 			static const size_t min_map_size = 64 * 1024;
-			size_t map_len;
-
-			if (ctx->map != NULL) {
-				munmap(ctx->map, ctx->map_end - ctx->map_start);
-				ctx->map = NULL;
-			}
+			size_t map_len, old_len;
+			off_t map_start;
+			int flags = MAP_PRIVATE;
 
 			/*
 			 * Make sure ``off'' is page-aligned for mmap(); some
 			 * implementations require this.
 			 */
-			ctx->map_start = start - (start % compat_pagesize());
-			map_len = amount + (start - ctx->map_start);
+
+			map_start = start - (start % compat_pagesize());
+			map_len = amount + (start - map_start);
 
 			/*
-			 * Map at least 256 KiB so that mmap() isn't called too frequently.
+			 * Map at least 64 KiB so that mmap() isn't called too frequently.
 			 */
 
 			if (
 				map_len < min_map_size &&
-				ctx->map_start + min_map_size > ctx->map_start
+				map_start + min_map_size > map_start
 			) {
 				map_len = min_map_size;
 			}
 
+			old_len = ctx->map_end - ctx->map_start;
+			if (ctx->map) {
+			   	if (old_len != map_len) {
+					munmap(ctx->map, old_len);
+					ctx->map = NULL;
+				} else {
+					flags |= MAP_FIXED;
+				}
+			}
+
+			ctx->map_start = map_start;
 			ctx->map_end = ctx->map_start + map_len;
 			g_assert(ctx->map_start < ctx->map_end);
 
-			ctx->map = mmap(NULL, map_len, PROT_READ, MAP_PRIVATE, in_fd,
-							ctx->map_start);
+			for (;;) {
+				void *addr;
+
+				addr = mmap(ctx->map, map_len, PROT_READ, flags, in_fd,
+						ctx->map_start);
+				if (addr == MAP_FAILED && ctx->map) {
+					munmap(ctx->map, old_len);
+					ctx->map = NULL;
+					old_len = 0;
+					flags &= ~MAP_FIXED;
+				} else {
+					ctx->map = addr;
+					break;
+				}
+			}
+
 			if (MAP_FAILED == ctx->map) {
 				ctx->map = NULL;
 				ctx->map_start = 0;
