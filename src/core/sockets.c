@@ -117,7 +117,7 @@ socket_alloc(void)
 static void
 socket_alloc_buffer(struct gnutella_socket *s)
 {
-	g_assert(s);
+	socket_check(s);
 	if (!s->buf) {
 		s->buf_size = SOCK_BUFSZ;
 		s->buf = alloc_pages(s->buf_size);
@@ -166,6 +166,7 @@ socket_evt_fd(struct gnutella_socket *s)
 {
 	gint fd = -1;
 
+	socket_check(s);
 	switch (s->direction) {
 	case SOCK_CONN_LISTENING:
 		g_assert(s->file_desc >= 0);
@@ -204,7 +205,7 @@ socket_evt_set(struct gnutella_socket *s,
 {
 	gint fd;
 
-	g_assert(s);
+	socket_check(s);
 	g_assert(handler);
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
 	g_assert((0 != (INPUT_EVENT_R & cond)) ^ (0 != (INPUT_EVENT_W & cond)));
@@ -232,7 +233,7 @@ socket_evt_set(struct gnutella_socket *s,
 void
 socket_evt_clear(struct gnutella_socket *s)
 {
-	g_assert(s);
+	socket_check(s);
 
 	if (s->gdk_tag) {
 #ifdef HAS_GNUTLS
@@ -362,6 +363,7 @@ sol_ipv6(void)
 static gint
 socket_tos(const struct gnutella_socket *s, gint tos)
 {
+	socket_check(s);
 	if (
 		use_ip_tos &&
 		NET_TYPE_IPV4 == s->net &&
@@ -394,6 +396,7 @@ socket_tos(const struct gnutella_socket *s, gint tos)
 void
 socket_tos_default(const struct gnutella_socket *s)
 {
+	socket_check(s);
 	switch (s->type) {
 	case SOCK_TYPE_DOWNLOAD: /* ACKs w/ low latency => higher transfer rates */
 		socket_tos_lowdelay(s);
@@ -470,7 +473,7 @@ socket_tos_throughput(const struct gnutella_socket *s)
 void
 socket_eof(struct gnutella_socket *s)
 {
-	g_assert(s != NULL);
+	socket_check(s);
 
 	s->flags |= SOCK_F_EOF;
 }
@@ -538,6 +541,8 @@ send_socks4(struct gnutella_socket *s)
 	size_t length;
 	ssize_t ret;
 	host_addr_t addr;
+
+	socket_check(s);
 
 	/* SOCKS4 is IPv4 only */
 	if (!host_addr_convert(s->addr, &addr, NET_TYPE_IPV4))
@@ -614,6 +619,7 @@ recv_socks4(struct gnutella_socket *s)
 	ssize_t ret;
 
 	STATIC_ASSERT(8 == sizeof reply);
+	socket_check(s);
 
 	ret = read(s->file_desc, cast_to_gpointer(&reply), size);
 	if ((ssize_t) -1 == ret) {
@@ -664,6 +670,8 @@ connect_http(struct gnutella_socket *s)
 	size_t parsed;
 	gint status;
 	const gchar *str;
+
+	socket_check(s);
 
 	switch (s->pos) {
 	case 0:
@@ -802,12 +810,14 @@ connect_http(struct gnutella_socket *s)
 static gint
 connect_socksv5(struct gnutella_socket *s)
 {
+	static const gchar verstring[] = "\x05\x02\x02";
 	ssize_t ret = 0;
 	size_t size;
-	static const gchar verstring[] = "\x05\x02\x02";
 	const gchar *name;
 	gint sockid;
 	host_addr_t addr;
+
+	socket_check(s);
 
 	sockid = s->file_desc;
 
@@ -1052,9 +1062,10 @@ socket_timer(time_t now)
 	GSList *to_remove = NULL;
 
 	for (l = sl_incoming; l; l = g_slist_next(l)) {
-		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
+		struct gnutella_socket *s = l->data;
 		gint32 delta;
 
+		socket_check(s);
 		g_assert(s->last_update);
 		/*
 		 * Last_update can be in the feature due to parq. This is needed
@@ -1074,7 +1085,7 @@ socket_timer(time_t now)
 	}
 
 	for (l = to_remove; l; l = g_slist_next(l)) {
-		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
+		struct gnutella_socket *s = l->data;
 		socket_destroy(s, "Connection timeout");
 	}
 
@@ -1088,9 +1099,9 @@ void
 socket_shutdown(void)
 {
 	while (sl_incoming) {
-		struct gnutella_socket *s;
+		struct gnutella_socket *s = sl_incoming->data;
 
-		s = sl_incoming->data;
+		socket_check(s);
 		socket_destroy(s, NULL);
 	}
 
@@ -1113,7 +1124,7 @@ socket_shutdown(void)
 static void
 socket_destroy(struct gnutella_socket *s, const gchar *reason)
 {
-	g_assert(s);
+	socket_check(s);
 
 	/*
 	 * If there is an attached resource, its removal routine is responsible
@@ -1213,7 +1224,7 @@ socket_linger_close(gint fd)
 static void
 socket_free(struct gnutella_socket *s)
 {
-	g_assert(s);
+	socket_check(s);
 
 	if (s->flags & SOCK_F_EOF)
 		bws_sock_closed(s->type, TRUE);
@@ -1653,6 +1664,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	struct gnutella_socket *s = data;
 
+	socket_check(s);
 	g_assert(source == s->file_desc);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
@@ -1948,6 +1960,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	gint sd;
 
 	(void) unused_source;
+	socket_check(s);
 	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -2058,7 +2071,7 @@ accepted:
 		break;
 
 	default:
-		g_assert(0);			/* Can't happen */
+		g_assert_not_reached();			/* Can't happen */
 		break;
 	}
 
@@ -2148,6 +2161,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	gboolean truncated, has_dst_addr = FALSE;
 	host_addr_t dst_addr;
 
+	socket_check(s);
 	g_assert(s->flags & SOCK_F_UDP);
 	g_assert(s->type == SOCK_TYPE_UDP);
 
@@ -2389,7 +2403,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 {
 	gint sd, option;
 
-	g_assert(s);
+	socket_check(s);
 
 	if (0 == (SOCK_F_TLS & flags) && tls_cache_lookup(addr, port)) {
 		flags |= SOCK_F_TLS;
@@ -2463,7 +2477,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	socklen_t addr_len;
 	gint res;
 
-	g_assert(NULL != s);
+	socket_check(s);
 
 	/*
 	 * Allow forced connections to an hostile host.
@@ -2590,7 +2604,7 @@ socket_connect(const host_addr_t ha, guint16 port,
 gboolean
 socket_bad_hostname(struct gnutella_socket *s)
 {
-	g_assert(NULL != s);
+	socket_check(s);
 
 	return (s->adns & SOCK_ADNS_BADNAME) ? TRUE : FALSE;
 }
@@ -2608,7 +2622,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 	host_addr_t addr;
 	gboolean can_tls;
 
-	g_assert(NULL != s);
+	socket_check(s);
 	g_assert(addrs);
 
 	s->adns &= ~SOCK_ADNS_PENDING;
@@ -2779,7 +2793,7 @@ socket_is_local(const struct gnutella_socket *s)
 {
 	gboolean is_local, is_tcp, is_udp;
 
-	g_assert(s);
+	socket_check(s);
 
 	is_local = 0 != (s->flags & SOCK_F_LOCAL);
 	is_tcp = 0 != (s->flags & SOCK_F_TCP);
@@ -2964,7 +2978,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	static const gint enable = 1;
 	gint level = -1, opt = -1;
 
-	g_assert(s);
+	socket_check(s);
 	g_assert(s->file_desc >= 0);
 
 	switch (s->net) {
@@ -3068,14 +3082,14 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 void
 socket_disable_token(struct gnutella_socket *s)
 {
-	g_assert(s);
+	socket_check(s);
 	s->omit_token = TRUE;
 }
 
 gboolean
 socket_omit_token(struct gnutella_socket *s)
 {
-	g_assert(s);
+	socket_check(s);
 	return s->omit_token;
 }
 
@@ -3098,6 +3112,7 @@ sock_cork(struct gnutella_socket *s, gboolean on)
 #endif /* TCP_CORK */
 	gint arg = on ? 1 : 0;
 
+	socket_check(s);
 	if (!(SOCK_F_TCP & s->flags)) {
 		return;
 	}
@@ -3180,6 +3195,7 @@ sock_set_intern(gint fd, gint option, gint size, gchar *type, gboolean shrink)
 void
 sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
+	socket_check(s);
 	g_return_if_fail(!s->was_shutdown);
 	sock_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
 }
@@ -3191,6 +3207,7 @@ sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 void
 sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
+	socket_check(s);
 	g_return_if_fail(!s->was_shutdown);
 	sock_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
@@ -3203,6 +3220,7 @@ sock_nodelay(struct gnutella_socket *s, gboolean on)
 {
 	gint arg = on ? 1 : 0;
 
+	socket_check(s);
 	if (!(SOCK_F_TCP & s->flags)) {
 		return;
 	}
@@ -3221,7 +3239,8 @@ sock_nodelay(struct gnutella_socket *s, gboolean on)
 void
 sock_tx_shutdown(struct gnutella_socket *s)
 {
-	g_assert(-1 != s->file_desc);
+	socket_check(s);
+	g_assert(s->file_desc >= 0);
 
 	if (s->was_shutdown)
 		return;
@@ -3352,6 +3371,7 @@ socket_no_writev(struct wrap_io *unused_wio,
 static void
 socket_wio_link(struct gnutella_socket *s)
 {
+	socket_check(s);
 	g_assert(s->flags & (SOCK_F_LOCAL | SOCK_F_TCP | SOCK_F_UDP));
 
 	s->wio.ctx = s;
