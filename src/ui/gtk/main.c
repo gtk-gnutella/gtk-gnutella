@@ -477,6 +477,7 @@ gui_create_dlg_about(void)
 		"Vitaliy Buyar <vetal18@users.sourceforge.net>",
 		"Wu Xiaoguang <wxgnj@yahoo.com.cn>",
 		"Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>",
+		"FlashCode <flashcode@flashtux.org>",
     };
  	GtkWidget *dlg = create_dlg_about();
 	GtkWidget *text = lookup_widget(dlg, "textview_about_contributors");
