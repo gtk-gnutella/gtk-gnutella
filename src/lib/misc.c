@@ -3568,6 +3568,11 @@ compat_pagesize(void)
 	return psize;
 }
 
+static struct {
+	gpointer stack[512];
+	guint current;
+} page_cache;
+
 /**
  * Allocates a page-aligned memory chunk.
  *
@@ -3579,6 +3584,11 @@ alloc_pages(size_t size)
 	size_t align = compat_pagesize();
 	void *p;
 	
+	if (align >= size && page_cache.current > 0) {
+		p = page_cache.stack[--page_cache.current];
+		g_assert(p);
+		return p;
+	}
 	size = round_size(align, size);
 
 #if defined(HAS_MMAP)
@@ -3635,16 +3645,23 @@ free_pages(gpointer p, size_t size)
 
 		g_assert(0 == (gulong) /* (uintptr_t) */ p % align);
 
+		if (
+			align >= size &&
+			page_cache.current < G_N_ELEMENTS(page_cache.stack)
+		) {
+			page_cache.stack[page_cache.current++] = p;
+		} else {
 #if defined(HAS_MMAP)
-		munmap(p, size);
+			munmap(p, size);
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
-		(void) size;
-		free(p);
+			(void) size;
+			free(p);
 #else
-		(void) p;
-		(void) size;
-		g_assert_not_reached();
+			(void) p;
+			(void) size;
+			g_assert_not_reached();
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+		}
 	}
 }
 
