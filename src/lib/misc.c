@@ -3571,7 +3571,7 @@ compat_pagesize(void)
 static struct {
 	gpointer stack[512];
 	guint current;
-} page_cache;
+} page_cache[16];
 
 /**
  * Allocates a page-aligned memory chunk.
@@ -3581,15 +3581,17 @@ static struct {
 gpointer
 alloc_pages(size_t size)
 {
-	size_t align = compat_pagesize();
+	size_t align = compat_pagesize(), n;
 	void *p;
 	
-	if (align >= size && page_cache.current > 0) {
-		p = page_cache.stack[--page_cache.current];
+	size = round_size(align, size);
+	n = size / align - 1;
+	
+	if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current > 0) {
+		p = page_cache[n].stack[--page_cache[n].current];
 		g_assert(p);
 		return p;
 	}
-	size = round_size(align, size);
 
 #if defined(HAS_MMAP)
 	{
@@ -3641,15 +3643,18 @@ free_pages(gpointer p, size_t size)
 	g_assert(0 == size || p);
 
 	if (p) {
-		size_t align = compat_pagesize();
+		size_t align = compat_pagesize(), n;
 
 		g_assert(0 == (gulong) /* (uintptr_t) */ p % align);
 
+		size = round_size(align, size);
+		n = size / align - 1;
+
 		if (
-			align >= size &&
-			page_cache.current < G_N_ELEMENTS(page_cache.stack)
+			n < G_N_ELEMENTS(page_cache) &&
+			page_cache[n].current < G_N_ELEMENTS(page_cache[0].stack)
 		) {
-			page_cache.stack[page_cache.current++] = p;
+			page_cache[n].stack[page_cache[n].current++] = p;
 		} else {
 #if defined(HAS_MMAP)
 			if (-1 == munmap(p, size))
