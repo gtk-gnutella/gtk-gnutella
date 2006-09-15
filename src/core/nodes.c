@@ -7137,7 +7137,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			if (n->allocated)
 				n->data = hrealloc(n->data, maxsize);
 			else
-				n->data = halloc0(maxsize);
+				n->data = halloc(maxsize);
 			n->allocated = maxsize;
 		}
 
