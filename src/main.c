@@ -104,6 +104,7 @@
 #include "lib/eval.h"
 #include "lib/fragcheck.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/iso3166.h"
 #include "lib/pattern.h"
 #include "lib/socket.h"
@@ -1101,6 +1102,7 @@ main(int argc, char **argv)
 #ifdef FRAGCHECK
 	fragcheck_init();
 #endif
+	halloc_init();
 
 	misc_init();
 

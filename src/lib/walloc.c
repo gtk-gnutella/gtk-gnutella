@@ -37,8 +37,10 @@
 
 RCSID("$Id$")
 
+#include "misc.h"
 #include "walloc.h"
 #include "zalloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #if ZALLOC_ALIGNBYTES == 2
@@ -90,7 +92,7 @@ walloc(size_t size)
 	g_assert(size > 0);
 
 	if (rounded >= WALLOC_MAX)
-		return g_malloc(size);		/* Too big for efficient zalloc() */
+		return alloc_pages(size);		/* Too big for efficient zalloc() */
 
 	idx = rounded >> ZALLOC_ALIGNBITS;
 
@@ -152,7 +154,7 @@ wfree(gpointer ptr, size_t size)
 #endif
 
 	if (rounded >= WALLOC_MAX) {
-		g_free(ptr);
+		free_pages(ptr, size);
 		return;
 	}
 
@@ -211,7 +213,7 @@ walloc_track(size_t size, gchar *file, gint line)
 #ifdef TRACK_MALLOC
 		return malloc_track(size, file, line);
 #else
-		return g_malloc(size);		/* Too big for efficient zalloc() */
+		return alloc_pages(size);		/* Too big for efficient zalloc() */
 #endif
 
 	idx = rounded >> ZALLOC_ALIGNBITS;

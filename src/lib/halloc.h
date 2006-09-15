@@ -57,15 +57,16 @@
 
 #else	/* !REMAP_ZALLOC */
 
-gpointer halloc(size_t size);
-gpointer halloc0(size_t size);
-void hfree(gpointer ptr);
-gpointer hrealloc(gpointer old, size_t size);
-gpointer hstrdup(const gchar *s);
-gpointer hmemdup(gconstpointer p, size_t size);
+void *halloc(size_t size);
+void *halloc0(size_t size);
+void hfree(void *ptr);
+void *hrealloc(void *old, size_t size);
+void *hstrdup(const char *s);
+void *hmemdup(const void *p, size_t size);
 
 #endif	/* REMAP_ZALLOC */
 
+void halloc_init(void);
 void hdestroy(void);
 
 #define HFREE_NULL(p)	\

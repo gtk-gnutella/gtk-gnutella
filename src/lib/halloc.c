@@ -43,7 +43,10 @@
 
 RCSID("$Id$")
 
+#include <assert.h>
+
 #include "halloc.h"
+#include "hashtable.h"
 #include "misc.h"
 #include "walloc.h"
 
@@ -55,15 +58,15 @@ RCSID("$Id$")
 
 #ifndef REMAP_ZALLOC
 
-static GHashTable *hallocations;
+static hash_table_t *hallocations;
 
 static inline size_t
-halloc_get_size(gpointer p)
+halloc_get_size(void *p)
 {
-	gpointer value;
+	void *value;
 
-	value = g_hash_table_lookup(hallocations, p);
-	g_assert(value);
+	value = hash_table_lookup(hallocations, p);
+	assert(value);
 	return (size_t) value;		
 }
 
@@ -72,18 +75,18 @@ halloc_get_size(gpointer p)
  *
  * @return a pointer to the start of the allocated block.
  */
-gpointer
+void *
 halloc(size_t size)
 {
-	gpointer p;
+	void *p;
 
-	g_assert(size > 0);
+	assert(size > 0);
 
 	if (!hallocations)
-		hallocations = g_hash_table_new(NULL, NULL);
+		hallocations = hash_table_new();
 
 	p = (size < compat_pagesize()) ? walloc(size) : alloc_pages(size);
-	g_hash_table_insert(hallocations, p, (gpointer) size);
+	hash_table_insert(hallocations, p, (void *) size);
 
 	return p;
 }
@@ -91,10 +94,10 @@ halloc(size_t size)
 /**
  * Same as halloc(), but fills the allocated memory with zeros before returning.
  */
-gpointer
+void *
 halloc0(size_t size)
 {
-	gpointer p = halloc(size);
+	void *p = halloc(size);
 
 	memset(p, 0, size);
 	return p;
@@ -104,7 +107,7 @@ halloc0(size_t size)
  * Free a block allocated via halloc().
  */
 void
-hfree(gpointer p)
+hfree(void *p)
 {
 	size_t size;
 
@@ -112,7 +115,7 @@ hfree(gpointer p)
 		return;
 
 	size = halloc_get_size(p);
-	g_hash_table_remove(hallocations, p);
+	hash_table_remove(hallocations, p);
 	if (size < compat_pagesize()) {
 		wfree(p, size);
 	} else {
@@ -125,10 +128,10 @@ hfree(gpointer p)
  *
  * @return new block address.
  */
-gpointer
-hrealloc(gpointer old, size_t new_size)
+void *
+hrealloc(void *old, size_t new_size)
 {
-	gpointer p;
+	void *p;
 
 	p = halloc(new_size);
 	if (old) {
@@ -145,12 +148,12 @@ hrealloc(gpointer old, size_t new_size)
  *
  * @return new block address.
  */
-gpointer
-hmemdup(gconstpointer data, size_t size)
+void *
+hmemdup(const void *data, size_t size)
 {
-	gpointer p;
+	void *p;
    
-	g_assert(data);
+	assert(data);
 
 	p = halloc(size);
 	memcpy(p, data, size);
@@ -162,19 +165,19 @@ hmemdup(gconstpointer data, size_t size)
  *
  * @return new block address.
  */
-gpointer
-hstrdup(const gchar *s)
+void *
+hstrdup(const char *s)
 {
-	g_assert(s);
+	assert(s);
 	return hmemdup(s, 1 + strlen(s));
 }
 #endif	/* !REMAP_ZALLOC */
 
 static void
-hdestroy_item(gpointer key, gpointer value, gpointer unused_udata)
+hdestroy_item(void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
-	g_assert(value);
+	assert(value);
 	hfree(key);
 }
 
@@ -185,10 +188,24 @@ void
 hdestroy(void)
 {
 	if (hallocations) {
-		g_hash_table_foreach(hallocations, hdestroy_item, NULL);
-		g_hash_table_destroy(hallocations);
+		hash_table_foreach(hallocations, hdestroy_item, NULL);
+		hash_table_destroy(hallocations);
 		hallocations = NULL;
 	}
+}
+
+void
+halloc_init(void)
+{
+#if GLIB_CHECK_VERSION(2, 0, 0)
+	static GMemVTable vtable;
+
+	vtable.malloc = halloc;
+	vtable.realloc = hrealloc;
+	vtable.free = hfree;
+
+	g_mem_set_vtable(&vtable);
+#endif	/* GLib >= 2.0 */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

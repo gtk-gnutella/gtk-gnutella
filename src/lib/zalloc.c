@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "zalloc.h"
+#include "hashtable.h"
 #include "misc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -341,7 +342,7 @@ subzone_alloc_arena(struct subzone *sz, size_t size)
 
 	if (size < threshold) {
 		sz->sz_size = size;
-		sz->sz_base = g_malloc(sz->sz_size);
+		sz->sz_base = malloc(sz->sz_size);
 	} else {
 		sz->sz_size = MAX(size, compat_pagesize());
 		sz->sz_base = alloc_pages(sz->sz_size);
@@ -352,10 +353,11 @@ static void
 subzone_free_arena(struct subzone *sz)
 {
 	if (sz->sz_size < compat_pagesize()) {
-		G_FREE_NULL(sz->sz_base);
+		free(sz->sz_base);
 	} else {
-		FREE_PAGES_NULL(sz->sz_base, sz->sz_size);
+		free_pages(sz->sz_base, sz->sz_size);
 	}
+	sz->sz_base = NULL;
 	sz->sz_size = 0;
 }
 
@@ -451,7 +453,7 @@ zcreate(gint size, gint hint)
 {
 	zone_t *zone;			/* Zone descriptor */
 
-	zone = g_malloc(sizeof(*zone));
+	zone = malloc(sizeof(*zone));
 
 	return zn_create(zone, size, hint);
 }
@@ -488,13 +490,13 @@ zdestroy(zone_t *zone)
 		while (sz) {
 			struct subzone *next = sz->sz_next;
 			subzone_free_arena(sz);
-			G_FREE_NULL(sz);
+			free(sz);
 			sz = next;
 		}
 	}
 
 	subzone_free_arena(&zone->zn_arena);
-	G_FREE_NULL(zone);
+	free(zone);
 }
 
 /**
@@ -509,7 +511,7 @@ zdestroy(zone_t *zone)
 zone_t *
 zget(gint size, gint hint)
 {
-	static GHashTable *zt;	/* Keeps size (modulo ZALLOC_ALIGNBYTES) -> zone */
+	static hash_table_t *zt;/* Keeps size (modulo ZALLOC_ALIGNBYTES) -> zone */
 	zone_t *zone;
 
 	/*
@@ -517,7 +519,7 @@ zget(gint size, gint hint)
 	 */
 
 	if (zt == NULL)
-		zt = g_hash_table_new(NULL, NULL);
+		zt = hash_table_new();
 
 	/*
 	 * Make sure size is big enough to store the free-list pointer used to
@@ -532,7 +534,7 @@ zget(gint size, gint hint)
 		size = sizeof(gchar *);
 	size = zalloc_round(size);
 
-	zone = g_hash_table_lookup(zt, GINT_TO_POINTER(size));
+	zone = hash_table_lookup(zt, GINT_TO_POINTER(size));
 
 	if (zone) {
 		if (zone->zn_hint < hint)
@@ -554,7 +556,7 @@ zget(gint size, gint hint)
 	 * time!
 	 */
 
-	g_hash_table_insert(zt, GINT_TO_POINTER(size), zone);
+	hash_table_insert(zt, GINT_TO_POINTER(size), zone);
 
 	return zone;
 }
@@ -571,7 +573,7 @@ zn_extend(zone_t *zone)
 {
 	struct subzone *sz;		/* New sub-zone */
 
-	sz = g_malloc(sizeof *sz);
+	sz = malloc(sizeof *sz);
 
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
 	zone->zn_free = sz->sz_base;
