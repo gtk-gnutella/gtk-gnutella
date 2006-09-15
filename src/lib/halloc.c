@@ -85,7 +85,7 @@ halloc(size_t size)
 	if (!hallocations)
 		hallocations = hash_table_new();
 
-	p = (size < compat_pagesize()) ? walloc(size) : alloc_pages(size);
+	p = size < compat_pagesize() ? walloc(size) : alloc_pages(size);
 	hash_table_insert(hallocations, p, (void *) size);
 
 	return p;
