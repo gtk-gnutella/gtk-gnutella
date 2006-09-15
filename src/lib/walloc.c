@@ -299,6 +299,11 @@ wrealloc_track(gpointer old, size_t old_size, size_t new_size,
 void
 wdestroy(void)
 {
+	/* We cannot do this currently for GLib 2.0 because g_malloc() is
+	 * mapped to halloc() and a g_warning() or other GLib functions may
+	 * use g_malloc().
+	 */
+#if !GLIB_CHECK_VERSION(2, 0, 0)
 	size_t i;
 
 	for (i = 0; i < WZONE_SIZE; i++) {
@@ -307,6 +312,7 @@ wdestroy(void)
 			wzone[i] = NULL;
 		}
 	}
+#endif	/* GLib < 2.0 */
 }
 
 /* vi: set ts=4 sw=4 cindent: */
