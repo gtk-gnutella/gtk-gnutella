@@ -3652,7 +3652,9 @@ free_pages(gpointer p, size_t size)
 			page_cache.stack[page_cache.current++] = p;
 		} else {
 #if defined(HAS_MMAP)
-			munmap(p, size);
+			if (-1 == munmap(p, size))
+				g_warning("munmap(0x%lx, %ld) failed: %s",
+					(gulong) p, (gulong) size, g_strerror(errno));
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
 			(void) size;
 			free(p);
