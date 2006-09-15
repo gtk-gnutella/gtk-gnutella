@@ -52,7 +52,7 @@ RCSID("$Id$")
  * is held into a list.  Each pdata_t is equipped with a suitable free routine.
  */
 
-#define BUF_COUNT	5		/**< Max amount of buffers we want in pool */
+#define BUF_COUNT	300		/**< Max amount of buffers we want in pool */
 
 static pool_t *rxpool;
 
