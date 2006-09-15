@@ -50,6 +50,7 @@ LSRC = \
 	glib-missing.c \
 	halloc.c \
 	hashlist.c \
+	hashtable.c \
 	header.c \
 	host_addr.c \
 	idtable.c \
