@@ -60,6 +60,15 @@ typedef gulong bit_array_t;
 	 ((n) % (CHAR_BIT * sizeof(bit_array_t)) ? 1 : 0))
 
 /**
+ * Use the macro BIT_ARRAY_BYTE_SIZE for dynamic allocation.
+ * Example:
+ *
+ *  bit_array_t *bits = malloc(BIT_ARRAY_BYTE_SIZE(num_bits));
+ *
+ **/
+ #define BIT_ARRAY_BYTE_SIZE(n) (BIT_ARRAY_SIZE(n) * sizeof (bit_array_t))
+
+/**
  * Re-allocates "base" so that it can hold at least "n" bits.
  *
  * @param base The base address of the bit array, may be NULL.
@@ -71,7 +80,7 @@ bit_array_realloc(bit_array_t *base, size_t n)
 {
 	size_t size;
 	
-	size = BIT_ARRAY_SIZE(n) * sizeof *base;
+	size = BIT_ARRAY_BYTE_SIZE(n);
 	return g_realloc(base, size);
 }
 
