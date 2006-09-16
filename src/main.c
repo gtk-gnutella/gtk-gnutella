@@ -560,6 +560,7 @@ slow_main_timer(time_t now)
 	settings_gui_save_if_dirty();	/* Ditto */
 	tx_collect();					/* Collect freed TX stacks */
 	rx_collect();					/* Idem for freed RX stacks */
+	prune_page_cache();
 
 	node_slow_timer(now);
 	ignore_timer(now);

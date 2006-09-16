@@ -3612,33 +3612,21 @@ compat_pagesize(void)
 }
 
 static struct {
-	gpointer stack[512];
+	struct {
+		gpointer addr;
+		time_t stamp;
+	} stack[512];
 	guint current;
 } page_cache[16];
 
-/**
- * Allocates a page-aligned memory chunk.
- *
- * @param size The size in bytes to allocate; will be rounded to the pagesize.
- */
-gpointer
-alloc_pages(size_t size)
+static const time_delta_t page_cache_prune_timeout = 20; /* unit: seconds */
+
+static gpointer
+alloc_pages_intern(size_t size)
 {
-	size_t n;
 	void *p;
 
-	g_assert(size > 0);
-	
-	size = round_pagesize_fast(size);
-	n = pagecount_fast(size) - 1;
-
-	if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current > 0) {
-		p = page_cache[n].stack[--page_cache[n].current];
-		g_assert(p);
-		return p;
-	}
-
-	g_assert(kernel_pagesize);		/* Computed by round_pagesize_fast() */
+	g_assert(kernel_pagesize > 0);		/* Computed by round_pagesize_fast() */
 
 #if defined(HAS_MMAP)
 	{
@@ -3682,6 +3670,47 @@ alloc_pages(size_t size)
 }
 
 /**
+ * Allocates a page-aligned memory chunk.
+ *
+ * @param size The size in bytes to allocate; will be rounded to the pagesize.
+ */
+gpointer
+alloc_pages(size_t size)
+{
+	size_t n;
+
+	g_assert(size > 0);
+	
+	size = round_pagesize_fast(size);
+	n = pagecount_fast(size) - 1;
+
+	if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current > 0) {
+		void *p = page_cache[n].stack[--page_cache[n].current].addr;
+		g_assert(p);
+		return p;
+	} else {
+		return alloc_pages_intern(size);
+	}
+}
+
+static void
+free_pages_intern(gpointer p, size_t size)
+{
+#if defined(HAS_MMAP)
+	if (-1 == munmap(p, size))
+		g_warning("munmap(0x%lx, %ld) failed: %s",
+				(gulong) p, (gulong) size, g_strerror(errno));
+#elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
+	(void) size;
+	free(p);
+#else
+	(void) p;
+	(void) size;
+	g_assert_not_reached();
+#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+}
+
+/**
  * Free memory allocated via alloc_pages().
  */
 void
@@ -3708,22 +3737,61 @@ free_pages(gpointer p, size_t size)
 		max_cached = G_N_ELEMENTS(page_cache[0].stack) / n ;
 		n--;
 
-		if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current < max_cached)
-			page_cache[n].stack[page_cache[n].current++] = p;
-		else {
-#if defined(HAS_MMAP)
-			if (-1 == munmap(p, size))
-				g_warning("munmap(0x%lx, %ld) failed: %s",
-					(gulong) p, (gulong) size, g_strerror(errno));
-#elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
-			(void) size;
-			free(p);
-#else
-			(void) p;
-			(void) size;
-			g_assert_not_reached();
-#endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+		if (
+			n < G_N_ELEMENTS(page_cache) &&
+			page_cache[n].current < max_cached
+		) {
+			page_cache[n].stack[page_cache[n].current].addr = p;
+			page_cache[n].stack[page_cache[n].current].stamp = tm_time();
+			page_cache[n].current++;
+		} else
+			free_pages_intern(p, size);
+	}
+}
+
+/**
+ * Scans the page cache for old pages and releases them if they have a certain
+ * minimum age. We don't want to cache pages forever because they might never
+ * be reused. Further, the OS would page them out anyway because they are
+ * considered dirty even though we don't care about the content anymore. If we
+ * recycled such old pages, the penalty from paging them in is unlikely lower
+ * than the mmap()/munmap() overhead.
+ */
+void
+prune_page_cache(void)
+{
+	time_t now = tm_time();
+	guint64 total = 0;
+	size_t size = 0;
+	guint n;
+
+	for (n = 0; n < G_N_ELEMENTS(page_cache); n++) {
+		guint i, cur, pruned;
+
+		pruned = 0;
+		cur = page_cache[n].current;
+		size += compat_pagesize();
+
+		for (i = 0; i < cur; i++) {
+			time_delta_t d = delta_time(now, page_cache[n].stack[i].stamp);
+			if (d < page_cache_prune_timeout)
+				break;
+			g_assert(page_cache[n].stack[i].addr);
+			free_pages_intern(page_cache[n].stack[i].addr, size);
+			page_cache[n].stack[i].addr = NULL;
+			pruned++;
 		}
+		if (pruned > 0) {
+			g_assert(page_cache[n].current >= pruned);
+			page_cache[n].current -= pruned;
+			total += pruned * size;
+
+			memmove(&page_cache[n].stack[0], &page_cache[n].stack[pruned],
+				(cur - pruned) * sizeof page_cache[n].stack[0]);
+		}
+	}
+	if (total > 0) {
+		g_message("prune_page_cache(): total: %s", short_size(total, FALSE));
 	}
 }
 
