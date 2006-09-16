@@ -209,19 +209,26 @@ halloc_init(void)
 }
 
 #ifdef USE_GLIB1_DOES_NOT_WORK
-gpointer g_malloc(gulong size)
+gpointer
+g_malloc(gulong size)
 {
-	return halloc(size);
+	return size > 0 ? halloc(size) : NULL;
 }
-gpointer g_malloc0(gulong size)
+
+gpointer
+g_malloc0(gulong size)
 {
-	return halloc0(size);
+	return size > 0 ? halloc0(size) : NULL;
 }
-gpointer g_realloc(gpointer p, gulong size)
+
+gpointer
+g_realloc(gpointer p, gulong size)
 {
 	return hrealloc(p, size);
 }
-void g_free(gpointer p)
+
+void
+g_free(gpointer p)
 {
 	hfree(p);
 }
