@@ -208,7 +208,14 @@ halloc_init(void)
 #endif	/* GLib >= 2.0 */
 }
 
-#ifdef USE_GLIB1_DOES_NOT_WORK
+/***
+ *** Remap g_malloc() and friends to halloc() under glib1.x, since the
+ *** g_mem_set_vtable() routine is not implemented.  Fortunately, glib1.x
+ *** placed the allocation routines in a dedicated mem.o file, so we may
+ *** safely redefine them here.
+ ***/
+
+#ifdef USE_GLIB1
 gpointer
 g_malloc(gulong size)
 {
