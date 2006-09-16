@@ -302,8 +302,12 @@ wdestroy(void)
 	/* We cannot do this currently for GLib 2.0 because g_malloc() is
 	 * mapped to halloc() and a g_warning() or other GLib functions may
 	 * use g_malloc().
+	 *
+	 * Same thing for GTK1+ where we remap g_malloc() to halloc() the hard
+	 * way -- we'll have to find a way to clean this up if we want to spot
+	 * leaks.
 	 */
-#if !GLIB_CHECK_VERSION(2, 0, 0)
+#if 0
 	size_t i;
 
 	for (i = 0; i < WZONE_SIZE; i++) {
@@ -312,7 +316,7 @@ wdestroy(void)
 			wzone[i] = NULL;
 		}
 	}
-#endif	/* GLib < 2.0 */
+#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */
