@@ -248,7 +248,7 @@
 # ZIP files containing setup.exe and small DRMed WMA files.
 # Uses Shareaza; identifies as "Jironimo"; hosted by surfplanet.de
 # results copy the query string adding diverse prefixes.
-85.88.2.192/28
+85.88.2.192/27
 85.88.9.0/26
 
 # Spammer hosted by pie.us
