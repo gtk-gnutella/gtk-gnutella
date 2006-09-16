@@ -3505,6 +3505,51 @@ canonize_path(gchar *dst, const gchar *path)
   return 0;
 }
 
+static size_t kernel_pagesize = 0;
+static size_t kernel_pagemask = 0;
+static gint kernel_pageshift = 0;
+
+static void init_kernel_pagesize(void)
+{
+	kernel_pagesize = compat_pagesize();
+	g_assert(is_pow2(kernel_pagesize));
+	kernel_pagemask = kernel_pagesize - 1;
+	kernel_pageshift = ffs(kernel_pagesize) - 1;
+}
+
+/**
+ * Fast version of pagesize rounding (without the slow % operator).
+ */
+static inline size_t
+round_pagesize_fast(size_t n)
+{
+	if (!kernel_pagesize)
+		init_kernel_pagesize();
+
+	return (n + kernel_pagemask) & ~kernel_pagemask;
+}
+
+/**
+ * Fast version of page counting: how many pages does it take to store `n'?
+ */
+static inline size_t
+pagecount_fast(size_t n)
+{
+	if (!kernel_pagesize)
+		init_kernel_pagesize();
+
+	return ((n + kernel_pagemask) & ~kernel_pagemask) >> kernel_pageshift;
+}
+
+/**
+ * Rounds `n' up to so that it is aligned to the pagesize.
+ */
+size_t
+round_pagesize(size_t n)
+{
+	return round_pagesize_fast(n);
+}
+
 guint
 compat_max_fd(void)
 {
@@ -3581,17 +3626,23 @@ static struct {
 gpointer
 alloc_pages(size_t size)
 {
-	size_t align = compat_pagesize(), n;
+	size_t n;
 	void *p;
+
+	g_assert(size > 0);
 	
-	size = round_size(align, size);
-	n = size / align - 1;
+	size = round_pagesize_fast(size);
+	n = pagecount_fast(size);
+	g_assert(n >= 1);
+	n--;
 	
 	if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current > 0) {
 		p = page_cache[n].stack[--page_cache[n].current];
 		g_assert(p);
 		return p;
 	}
+
+	g_assert(kernel_pagesize);		/* Computed by round_pagesize_fast() */
 
 #if defined(HAS_MMAP)
 	{
@@ -3614,11 +3665,11 @@ alloc_pages(size_t size)
 				 " %s", (gulong) size, flags, fd, g_strerror(errno));
 	}
 #elif defined(HAS_POSIX_MEMALIGN)
-	if (posix_memalign(&p, align, size)) {
+	if (posix_memalign(&p, kernel_pagesize, size)) {
 		g_error("posix_memalign() failed: %s", g_strerror(errno));
 	}
 #elif defined(HAS_MEMALIGN)
-	p = memalign(align, size);
+	p = memalign(kernel_pagesize, size);
 	if (!p) {
 		g_error("memalign() failed: %s", g_strerror(errno));
 	}
@@ -3628,9 +3679,9 @@ alloc_pages(size_t size)
 	g_error("Neither mmap(), posix_memalign() nor memalign() available");
 #endif	/* HAS_MMAP || HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 	
-	if (0 != (gulong) /* (uintptr_t) */ p % align) {
+	if (round_pagesize_fast((size_t) p) != (size_t) p)
 		g_error("Aligned memory required");
-	}
+
 	return p;
 }
 
@@ -3643,19 +3694,27 @@ free_pages(gpointer p, size_t size)
 	g_assert(0 == size || p);
 
 	if (p) {
-		size_t align = compat_pagesize(), n;
+		size_t n;
+		guint max_cached;
 
-		g_assert(0 == (gulong) /* (uintptr_t) */ p % align);
+		g_assert(round_pagesize_fast((size_t) p) == (size_t) p);
 
-		size = round_size(align, size);
-		n = size / align - 1;
+		/*
+		 * We cache 512 4KiB pages for instance, but only 256 8KiB pages,
+		 * up to 32 64KiB pages, so that the amount of memory cached
+		 * per "size bucket" is constant.
+		 *		--RAM, 2006-09-16
+		 */
 
-		if (
-			n < G_N_ELEMENTS(page_cache) &&
-			page_cache[n].current < G_N_ELEMENTS(page_cache[0].stack)
-		) {
+		size = round_pagesize_fast(size);
+		n = pagecount_fast(size);
+		g_assert(n >= 1);
+		max_cached = G_N_ELEMENTS(page_cache[0].stack) / n ;
+		n--;
+
+		if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current < max_cached)
 			page_cache[n].stack[page_cache[n].current++] = p;
-		} else {
+		else {
 #if defined(HAS_MMAP)
 			if (-1 == munmap(p, size))
 				g_warning("munmap(0x%lx, %ld) failed: %s",
