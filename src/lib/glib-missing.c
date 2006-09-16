@@ -50,6 +50,140 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
+#ifdef USE_GLIB1
+GMemVTable gm_vtable = {
+	malloc,			/* malloc */
+	realloc,		/* realloc */
+	free,			/* free */
+	calloc,			/* calloc */
+	malloc,			/* try_malloc */
+	realloc,		/* try_realloc */
+};
+
+/***
+ *** Remap g_malloc() and friends to be able to emulate g_mem_set_vtable()
+ *** with GTK1.  Fortunately, glib1.x placed the allocation routines in
+ *** a dedicated mem.o file, so we may safely redefine them here.
+ ***/
+
+gpointer
+g_malloc(gulong size)
+{
+	gpointer p;
+
+	if (size == 0)
+		return NULL;
+
+	p = gm_vtable.malloc(size);
+
+	if (p)
+		return p;
+
+	g_error("allocation of %lu bytes failed", size);
+	return NULL;
+}
+
+gpointer
+g_malloc0(gulong size)
+{
+	gpointer p;
+
+	if (size == 0)
+		return NULL;
+
+	p = gm_vtable.malloc(size);
+
+	if (p) {
+		memset(p, 0, size);
+		return p;
+	}
+
+	g_error("allocation of %lu bytes failed", size);
+	return NULL;
+}
+
+gpointer
+g_realloc(gpointer p, gulong size)
+{
+	gpointer n;
+
+	if (size == 0) {
+		gm_vtable.free(p);
+		return NULL;
+	}
+
+	n = gm_vtable.realloc(p, size);
+
+	if (n)
+		return n;
+
+	g_error("re-allocation of %lu bytes failed", size);
+	return NULL;
+}
+
+void
+g_free(gpointer p)
+{
+	gm_vtable.free(p);
+}
+
+gpointer g_try_malloc(gulong size)
+{
+	return size > 0 ? gm_vtable.try_malloc(size) : NULL;
+}
+
+gpointer g_try_realloc(gpointer p, gulong size)
+{
+	return size > 0 ? gm_vtable.try_realloc(p, size) : NULL;
+}
+
+/**
+ * Emulates a calloc().
+ */
+static gpointer
+emulate_calloc(gsize n, gsize m)
+{
+	size_t size = n * m;
+	gpointer p;
+
+	p = gm_vtable.malloc(size);
+	memset(p, 0, size);
+
+	return p;
+}
+
+/**
+ * Sets the GMemVTable to use for memory allocation.
+ * This function must be called before using any other GLib functions.
+ *
+ * The vtable only needs to provide malloc(), realloc(), and free() functions;
+ * GLib can provide default implementations of the others.
+ * The malloc() and realloc() implementations should return NULL on failure, 
+ */
+void
+g_mem_set_vtable(GMemVTable *vtable)
+{
+	gm_vtable.malloc = vtable->malloc;
+	gm_vtable.realloc = vtable->realloc;
+	gm_vtable.free = vtable->free;
+
+	gm_vtable.calloc = vtable->calloc ? vtable->calloc : emulate_calloc;
+	gm_vtable.try_malloc = vtable->try_malloc ?
+		vtable->try_malloc : vtable->malloc;
+	gm_vtable.try_realloc = vtable->try_realloc ?
+		vtable->try_realloc : vtable->realloc;
+}
+
+/**
+ * Are we using system's malloc?
+ */
+gboolean
+g_mem_is_system_malloc(void)
+{
+	return gm_vtable.malloc == malloc;
+}
+#endif	/* USE_GLIB1 */
+
 #ifndef TRACK_MALLOC
 
 /**

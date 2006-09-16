@@ -47,6 +47,16 @@
 
 #ifdef USE_GLIB1
 typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
+
+typedef struct GMemVTable {
+	gpointer (*malloc)(gsize n_bytes);
+	gpointer (*realloc)(gpointer mem, gsize n_bytes);
+	void (*free)(gpointer mem);
+	/* optional */
+	gpointer (*calloc)(gsize n_blocks, gsize n_block_bytes);
+	gpointer (*try_malloc)(gsize n_bytes);
+	gpointer (*try_realloc)(gpointer mem, gsize n_bytes);
+} GMemVTable;
 #endif
 
 /*
@@ -62,6 +72,11 @@ GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);
 GList *g_list_delete_link(GList *l, GList *lnk);
 GSList *g_slist_delete_link(GSList *sl, GSList *lnk);
 GString *g_string_append_len(GString *gs, const gchar *val, gssize len);
+
+void g_mem_set_vtable(GMemVTable *vtable);
+gboolean g_mem_is_system_malloc(void);
+
+extern GMemVTable gm_vtable;
 #endif
 
 gchar *gm_string_finalize(GString *gs);

@@ -47,8 +47,6 @@
 
 RCSID("$Id$")
 
-#if GLIB_CHECK_VERSION(2,0,0)
-
 #if HAVE_GCC(3, 0)
 #define FRAGCHECK_TRACK_CALLERS
 #endif	/* GCC >= 3.0 */
@@ -456,7 +454,6 @@ fragcheck_init(void)
 	}
 }
 
-#endif	/* GLib >= 2.0 */
 #endif	/* FRAGCHECK */
 
 /* vi: set ts=4 sw=4 cindent: */

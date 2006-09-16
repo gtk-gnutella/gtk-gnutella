@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "misc.h"
 #include "walloc.h"
 
+#include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -201,7 +202,6 @@ hdestroy(void)
 void
 halloc_init(void)
 {
-#if GLIB_CHECK_VERSION(2, 0, 0)
 	static GMemVTable vtable;
 
 	vtable.malloc = halloc;
@@ -209,40 +209,6 @@ halloc_init(void)
 	vtable.free = hfree;
 
 	g_mem_set_vtable(&vtable);
-#endif	/* GLib >= 2.0 */
 }
-
-/***
- *** Remap g_malloc() and friends to halloc() under glib1.x, since the
- *** g_mem_set_vtable() routine is not implemented.  Fortunately, glib1.x
- *** placed the allocation routines in a dedicated mem.o file, so we may
- *** safely redefine them here.
- ***/
-
-#ifdef USE_GLIB1
-gpointer
-g_malloc(gulong size)
-{
-	return size > 0 ? halloc(size) : NULL;
-}
-
-gpointer
-g_malloc0(gulong size)
-{
-	return size > 0 ? halloc0(size) : NULL;
-}
-
-gpointer
-g_realloc(gpointer p, gulong size)
-{
-	return hrealloc(p, size);
-}
-
-void
-g_free(gpointer p)
-{
-	hfree(p);
-}
-#endif	/* USE_GLIB1 */
 
 /* vi: set ts=4 sw=4 cindent: */
