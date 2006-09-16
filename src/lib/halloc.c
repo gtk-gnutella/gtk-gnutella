@@ -168,8 +168,7 @@ hmemdup(const void *data, size_t size)
 void *
 hstrdup(const char *s)
 {
-	assert(s);
-	return hmemdup(s, 1 + strlen(s));
+	return s ? hmemdup(s, 1 + strlen(s)) : NULL;
 }
 #endif	/* !REMAP_ZALLOC */
 
