@@ -325,10 +325,10 @@ version_tagcmp(guchar a, guchar b)
 	if (b == '\0')			/* Stable release has no tag */
 		return -1;
 
-	if (a == 'u')			/* Unstable from CVS */
+	if (a == 'u')			/* Unstable from SVN */
 		return -1;
 
-	if (b == 'u')			/* Unstable from CVS */
+	if (b == 'u')			/* Unstable from SVN */
 		return +1;
 
 	return a < b ? -1 : +1;	/* 'a' or 'b' for Alpha / Beta */
@@ -412,7 +412,7 @@ version_new_found(const gchar *text, gboolean stable)
 
 	if ('\0' != last_stable[0] && '\0' != last_dev[0]) {
 		gm_snprintf(s, sizeof s,
-			_(" - Newer versions available: release %s / from CVS %s"),
+			_(" - Newer versions available: release %s / from SVN %s"),
 			last_stable, last_dev);
 	} else if ('\0' != last_stable[0]) {
 		gm_snprintf(s, sizeof s,
@@ -420,7 +420,7 @@ version_new_found(const gchar *text, gboolean stable)
 			last_stable);
 	} else if ('\0' != last_dev[0]) {
 		gm_snprintf(s, sizeof s,
-			_(" - Newer version available: from CVS %s"),
+			_(" - Newer version available: from SVN %s"),
 			last_dev);
 	}
 
@@ -524,7 +524,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 
 	/*
 	 * If timestamp is greater and we were comparing against a stable
-	 * release, and cmp == 0, then this means an update in CVS about
+	 * release, and cmp == 0, then this means an update in SVN about
 	 * a "released" version, probably alpha/beta.
 	 */
 
@@ -535,7 +535,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 		target_version == &last_rel_version
 	) {
 		if (dbg > 6)
-			printf("VERSION is a CVS update of a release\n");
+			printf("VERSION is a SVN update of a release\n");
 
 		if (version_build_cmp(&last_dev_version, &their_version) > 0) {
 			if (dbg > 6)
