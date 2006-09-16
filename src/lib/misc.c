@@ -3509,7 +3509,8 @@ static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static gint kernel_pageshift = 0;
 
-static void init_kernel_pagesize(void)
+static void
+init_kernel_pagesize(void)
 {
 	kernel_pagesize = compat_pagesize();
 	g_assert(is_pow2(kernel_pagesize));
@@ -3535,10 +3536,7 @@ round_pagesize_fast(size_t n)
 static inline size_t
 pagecount_fast(size_t n)
 {
-	if (!kernel_pagesize)
-		init_kernel_pagesize();
-
-	return ((n + kernel_pagemask) & ~kernel_pagemask) >> kernel_pageshift;
+	return round_pagesize_fast(n) >> kernel_pageshift;
 }
 
 /**
