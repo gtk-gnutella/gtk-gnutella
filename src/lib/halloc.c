@@ -213,6 +213,10 @@ gpointer g_malloc(gulong size)
 {
 	return halloc(size);
 }
+gpointer g_malloc0(gulong size)
+{
+	return halloc0(size);
+}
 gpointer g_realloc(gpointer p, gulong size)
 {
 	return hrealloc(p, size);
