@@ -78,17 +78,18 @@ halloc_get_size(void *p)
 void *
 halloc(size_t size)
 {
-	void *p;
+	if (size > 0) {
+		void *p;
 
-	assert(size > 0);
+		if (!hallocations)
+			hallocations = hash_table_new();
 
-	if (!hallocations)
-		hallocations = hash_table_new();
-
-	p = size < compat_pagesize() ? walloc(size) : alloc_pages(size);
-	hash_table_insert(hallocations, p, (void *) size);
-
-	return p;
+		p = size < compat_pagesize() ? walloc(size) : alloc_pages(size);
+		hash_table_insert(hallocations, p, (void *) size);
+		return p;
+	} else {
+		return NULL;
+	}
 }
 
 /**
@@ -98,8 +99,9 @@ void *
 halloc0(size_t size)
 {
 	void *p = halloc(size);
-
-	memset(p, 0, size);
+	if (p) {
+		memset(p, 0, size);
+	}
 	return p;
 }
 
@@ -133,11 +135,12 @@ hrealloc(void *old, size_t new_size)
 {
 	void *p;
 
-	p = halloc(new_size);
+	p = new_size > 0 ? halloc(new_size) : NULL;
 	if (old) {
-		size_t old_size = halloc_get_size(old);
-
-		memcpy(p, old, MIN(new_size, old_size));
+		if (p) {
+			size_t old_size = halloc_get_size(old);
+			memcpy(p, old, MIN(new_size, old_size));
+		}
 		hfree(old);
 	}
 	return p;
@@ -151,13 +154,15 @@ hrealloc(void *old, size_t new_size)
 void *
 hmemdup(const void *data, size_t size)
 {
-	void *p;
-   
-	assert(data);
-
-	p = halloc(size);
-	memcpy(p, data, size);
-	return p;
+	if (data && size > 0) {
+		void *p = halloc(size);
+		if (p) {
+			memcpy(p, data, size);
+		}
+		return p;
+	} else {
+		return NULL;
+	}
 }
 
 /**
