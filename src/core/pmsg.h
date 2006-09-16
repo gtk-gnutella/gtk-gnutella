@@ -145,6 +145,7 @@ gpointer pmsg_get_metadata(pmsg_t *mb);
 pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
 void pmsg_free(pmsg_t *mb);
 gint pmsg_write(pmsg_t *mb, gconstpointer data, gint len);
+gint pmsg_writable_length(const pmsg_t *mb);
 gint pmsg_read(pmsg_t *mb, gpointer data, gint len);
 gint pmsg_discard(pmsg_t *mb, gint len);
 gint pmsg_discard_trailing(pmsg_t *mb, gint len);

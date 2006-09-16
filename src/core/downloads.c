@@ -786,7 +786,9 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 {
 	struct dl_buffers *b;
 	fileinfo_t *fi;
-	size_t size;
+	gint size;
+	gint available;
+	pmsg_t *prev_mb;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
@@ -798,9 +800,35 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 
 	g_assert(b->mode == DL_BUF_READING);
 
-	slist_append(b->list, mb);
+	/*
+	 * Check for under-utilization of message buffers, breaking the zero-copy
+	 * policy when the previous buffer has some room and could contain
+	 * the totality of the current buffer.
+	 *
+	 * We don't perform any copy if the amount of data we add is sufficient
+	 * to trigger a disk flush: why copy data we're about to write to disk?
+	 */
+
 	size = pmsg_size(mb);
-	b->held += size;
+	prev_mb = slist_tail(b->list);
+	available = prev_mb != NULL ? pmsg_writable_length(prev_mb) : 0;
+
+	if (b->held + size < b->amount && size <= available) {
+		gint written;
+
+		g_assert(prev_mb != NULL);
+		written = pmsg_write(prev_mb, pmsg_start(mb), size);
+		g_assert(written == size);
+		pmsg_free(mb);
+
+		if (download_debug)
+			g_message("buffers_add_read(): copied %d bytes "
+				"into %d-byte long previous (had %d bytes free)",
+				written, pmsg_size(prev_mb) - written, available);
+	} else
+		slist_append(b->list, mb);
+
+	b->held += size;		/* Whether copied or not */
 
 	/*
 	 * Update read statistics.
@@ -8144,10 +8172,10 @@ download_read(struct download *d, pmsg_t *mb)
 		}
 	}
 
-	buffers_add_read(d, mb);
-
 	d->last_update = tm_time();
 	fi->recv_amount += pmsg_size(mb);
+
+	buffers_add_read(d, mb);	/* Can free mb if data copied */
 
 	/*
 	 * Possibly write data if we reached the end of the chunk we requested,

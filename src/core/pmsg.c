@@ -377,6 +377,23 @@ pmsg_free(pmsg_t *mb)
 }
 
 /**
+ * @return amount of data that can be written at the end of the message.
+ */
+gint
+pmsg_writable_length(const pmsg_t *mb)
+{
+	pdata_t *arena = mb->m_data;
+	gint available = arena->d_end - mb->m_wptr;
+
+	/*
+	 * If buffer is not writable (shared among several readers), it is
+	 * forbidden to write any new data to it.
+	 */
+
+	return pmsg_is_writable(mb) ? available : 0;
+}
+
+/**
  * Write data at the end of the message.
  * The message must be the only reference to the underlying data.
  *
