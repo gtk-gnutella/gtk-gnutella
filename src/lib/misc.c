@@ -3630,10 +3630,8 @@ alloc_pages(size_t size)
 	g_assert(size > 0);
 	
 	size = round_pagesize_fast(size);
-	n = pagecount_fast(size);
-	g_assert(n >= 1);
-	n--;
-	
+	n = pagecount_fast(size) - 1;
+
 	if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current > 0) {
 		p = page_cache[n].stack[--page_cache[n].current];
 		g_assert(p);
