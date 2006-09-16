@@ -208,4 +208,19 @@ halloc_init(void)
 #endif	/* GLib >= 2.0 */
 }
 
+#ifdef USE_GLIB1_DOES_NOT_WORK
+gpointer g_malloc(gulong size)
+{
+	return halloc(size);
+}
+gpointer g_realloc(gpointer p, gulong size)
+{
+	return hrealloc(p, size);
+}
+void g_free(gpointer p)
+{
+	hfree(p);
+}
+#endif	/* USE_GLIB1 */
+
 /* vi: set ts=4 sw=4 cindent: */
