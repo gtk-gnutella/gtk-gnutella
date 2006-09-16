@@ -3756,13 +3756,14 @@ free_pages(gpointer p, size_t size)
  * considered dirty even though we don't care about the content anymore. If we
  * recycled such old pages, the penalty from paging them in is unlikely lower
  * than the mmap()/munmap() overhead.
+ *
+ * @return The amount of memory in bytes that was unmapped.
  */
-void
+size_t
 prune_page_cache(void)
 {
 	time_t now = tm_time();
-	guint64 total = 0;
-	size_t size = 0;
+	size_t size = 0, total = 0;
 	guint n;
 
 	for (n = 0; n < G_N_ELEMENTS(page_cache); n++) {
@@ -3790,9 +3791,7 @@ prune_page_cache(void)
 				(cur - pruned) * sizeof page_cache[n].stack[0]);
 		}
 	}
-	if (total > 0) {
-		g_message("prune_page_cache(): total: %s", short_size(total, FALSE));
-	}
+	return total;
 }
 
 gboolean
