@@ -30,13 +30,12 @@
  * Bit arrays. 
  *
  * @author Christian Biere
+ * @author Raphael Manfredi
  * @date 2006
  */
 
 #ifndef _bit_array_h_
 #define _bit_array_h_
-
-#include "config.h"			/* For LONGSIZE */
 
 /*
  * Functions for handling arrays of bits. On BSD systems, the macros from
@@ -45,9 +44,9 @@
  * of a "guchar" at once where possible.
  */
 
-typedef gulong bit_array_t;
+typedef unsigned long bit_array_t;
 
-#if LONGSIZE == 4
+#if LONG_MAX == 0x7fffffffL
 #if CHAR_BIT == 8
 #define BIT_ARRAY_BITSHIFT	(2 + 3)
 #elif CHAR_BIT == 16
@@ -55,7 +54,7 @@ typedef gulong bit_array_t;
 #else
 #error "Unsupported size of char"
 #endif	/* CHAR_BIT */
-#elif LONGSIZE == 8
+#elif (ULONG_MAX >> 31) > 0xffffffffUL
 #if CHAR_BIT == 8
 #define BIT_ARRAY_BITSHIFT	(3 + 3)
 #elif CHAR_BIT == 16
@@ -63,11 +62,9 @@ typedef gulong bit_array_t;
 #else
 #error "Unsupported size of char"
 #endif	/* CHAR_BIT */
-#else
-#define BIT_ARRAY_BITSHIFT ((log(LONGSIZE) + log(CHAR_BIT)) / log(2))
-#endif	/* LONGSIZE */
+#endif	/* LONG_MAX */
 
-#define BIT_ARRAY_BITSIZE (CHAR_BIT * LONGSIZE)
+#define BIT_ARRAY_BITSIZE (CHAR_BIT * sizeof(bit_array_t))
 #define BIT_ARRAY_BITMASK (BIT_ARRAY_BITSIZE - 1)
 #define BIT_ARRAY_WORD(base, i) base[(i) >> BIT_ARRAY_BITSHIFT]
 #define BIT_ARRAY_BIT(base, i) (1UL << ((i) & BIT_ARRAY_BITMASK)) 
@@ -105,7 +102,6 @@ bit_array_realloc(bit_array_t *base, size_t n)
 {
 	size_t size;
 
-	STATIC_ASSERT(sizeof(bit_array_t) == LONGSIZE);
 	STATIC_ASSERT(0 == (BIT_ARRAY_BITSIZE & BIT_ARRAY_BITMASK));
 	
 	size = BIT_ARRAY_BYTE_SIZE(n);
