@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Sep 17 16:29:08 MEST 2006 [metaconfig 3.5 PL0]
+# Generated on Sun Sep 17 16:53:00 MEST 2006 [metaconfig 3.5 PL0]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4811,7 +4811,7 @@ echo "Checking whether $cc has __builtin_popcount..." >&4
 $cat >try.c <<EOC
 int main()
 {
-	return __builtin_popcount((int) main);
+	return __builtin_popcount(127);
 }
 EOC
 if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
