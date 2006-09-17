@@ -73,7 +73,7 @@ eject_(const struct eject_point *eject_point_)
 
 	assert_point_ = eject_point_;
 
-	for (;;)	
+	for (;;)	/* This is waste but without it you get warnings */
 #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 	{
 		/* This should raise a SIGTRAP with minimum code */
@@ -115,6 +115,12 @@ G_STMT_START { \
 #define g_assert(x) fast_assert(x)
 #define g_assert_not_reached() fast_assert_not_reached()
 
+#define RUNTIME_ASSERT(x) fast_assert(x)
+#define RUNTIME_UNREACHABLE(x) fast_assert_not_reached(x)
+
+#else	/* !FAST_ASSERTIONS */
+#define RUNTIME_ASSERT(x) assert(x)
+#define RUNTIME_UNREACHABLE(x) assert(!"reached")
 #endif /* FAST_ASSERTIONS */
 
 #endif /* _fast_assert_h_ */
