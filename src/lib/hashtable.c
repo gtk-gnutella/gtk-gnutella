@@ -111,7 +111,10 @@ hash_table_find_slot(const hash_table_t * const ht, const void * const key,
 			if (key == ht->items[slot].key)
 				return slot;
 		} else {
+#if 0
+			/* This defeats the purpose of using a cache-friendly bit array */
 			assert(NULL == ht->items[slot].key);
+#endif
 			if (HASH_SLOT_FREE == want)
 				return slot;
 		}
@@ -188,8 +191,15 @@ hash_table_resize(hash_table_t *old_ht)
 	assert(ht.used);
 
 	bit_array_clear_range(ht.used, old_ht->num_slots, ht.num_slots - 1);
+
+	/* Clearing the slots is not really necessary, but it's done
+	 * anyway to limit that damage that could be caused by bugs or
+	 * inconsistencies in the bit array. Note, that hash_table_insert()
+	 * has a assertion check claiming that free slots of a NULL key
+	 * for the same purpose. */
 	for (i = old_ht->num_slots; i < ht.num_slots; i++) {
 		ht.items[i].key = NULL;
+		ht.items[i].value = NULL;
 	}
 
 	for (i = 0; i < old_ht->num_slots; i++) {
