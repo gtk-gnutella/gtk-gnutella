@@ -386,6 +386,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_stdarg I_STDARG		/**/
 
+/* LONGSIZE:
+ *	This symbol contains the value of sizeof(long) so that the C
+ *	preprocessor can make decisions based on it.
+ */
+#define LONGSIZE $longsize		/**/
+
 /* VAL_O_NONBLOCK:
  *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on
  *	non-blocking I/O for the file descriptor. Note that there is no way
