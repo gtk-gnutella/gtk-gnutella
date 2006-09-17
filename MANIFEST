@@ -15,6 +15,7 @@ U/modified/prototype.U
 U/new/Largefile.U
 U/new/Sendfile64.U
 U/new/d_bindtxtcode.U
+U/new/d_built_popcount.U
 U/new/d_deflate.U
 U/new/d_devpoll.U
 U/new/d_epoll.U

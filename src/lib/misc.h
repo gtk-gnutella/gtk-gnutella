@@ -471,15 +471,15 @@ guint32 next_pow2(guint32 n);
  */
 static inline G_GNUC_CONST gboolean
 is_pow2(guint32 value)
-#ifdef HAVE_BUILTIN_POPCOUNT
+#ifdef HAS_BUILTIN_POPCOUNT
 {
-	return 0 == __builtin_popcount(value);
+	return 1 == __builtin_popcount(value);
 }
-#else /* !HAVE_BUILTIN_POPCOUNT */
+#else /* !HAS_BUILTIN_POPCOUNT */
 {
-	return value && !(value & (value - 1));
+	return value && 0 == (value & (value - 1));
 }
-#endif /* HAVE_BUILTIN_POPCOUNT */
+#endif /* HAS_BUILTIN_POPCOUNT */
 
 /*
  * Random numbers

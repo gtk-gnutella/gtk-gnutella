@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Sep 17 12:43:06 MEST 2006 [metaconfig 3.5 PL0]
+# Generated on Sun Sep 17 16:29:08 MEST 2006 [metaconfig 3.5 PL0]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -295,6 +295,7 @@ tablesize=''
 d_attribut=''
 d_bcopy=''
 d_bindtxtcode=''
+d_built_popcount=''
 d_const=''
 d_deflate=''
 d_dev_poll=''
@@ -439,9 +440,6 @@ i_varhdr=''
 i_zlib=''
 install=''
 installdir=''
-intsize=''
-longsize=''
-shortsize=''
 d_ipv6=''
 issymlink=''
 libc=''
@@ -4807,6 +4805,26 @@ eval $inlibc
 set bind_textdomain_codeset d_bindtxtcode
 eval $inlibc
 
+: check for __builtin_popcount
+echo " "
+echo "Checking whether $cc has __builtin_popcount..." >&4
+$cat >try.c <<EOC
+int main()
+{
+	return __builtin_popcount((int) main);
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	val="$define"
+	echo "Good, it does."
+else
+	val="$undef"
+	echo "No, it doesn't but that's okay."
+fi
+set d_built_popcount
+eval $setvar
+$rm -f try try.c
+
 : check for const keyword
 echo " "
 echo 'Checking to see if your C compiler knows about "const"...' >&4
@@ -7105,52 +7123,6 @@ none)
 esac
 $rm -f pdp11.* pdp11
 
-: check for lengths of integral types
-echo " "
-case "$intsize" in
-'')
-	echo "Checking to see how big your integers are..." >&4
-	$cat >intsize.c <<'EOCP'
-#include <stdio.h>
-int main()
-{
-	printf("intsize=%d;\n", sizeof(int));
-	printf("longsize=%d;\n", sizeof(long));
-	fflush(stdout);
-	exit(0);
-}
-EOCP
-#	If $libs contains -lsfio, and sfio is mis-configured, then it
-#	sometimes (apparently) runs and exits with a 0 status, but with no
-#	output!.  Thus we check with test -s whether we actually got any
-#	output.  I think it has to do with sfio's use of _exit vs. exit,
-#	but I don't know for sure.  --Andy Dougherty  1/27/97.
-	if $cc $optimize $ccflags $ldflags -o intsize intsize.c $libs >/dev/null 2>&1 &&
-	./intsize > intsize.out 2>/dev/null && test -s intsize.out ; then
-		eval `$cat intsize.out`
-		echo "Your integers are $intsize bytes long."
-		echo "Your long integers are $longsize bytes long."
-	else
-		$cat >&4 <<EOM
-!
-Help! I can't compile and run the intsize test program: please enlighten me!
-(This is probably a misconfiguration in your system or libraries, and
-you really ought to fix it.  Still, I'll try anyway.)
-!
-EOM
-		dflt=4
-		rp="What is the size of an integer (in bytes)?"
-		. ./myread
-		intsize="$ans"
-		dflt=$intsize
-		rp="What is the size of a long integer (in bytes)?"
-		. ./myread
-		longsize="$ans"
-	fi
-	;;
-esac
-$rm -f intsize intsize.[co] intsize.out
-
 : check whether make sets MAKE
 echo " "
 echo "Checking if your $make program sets \$(MAKE)..." >&4
@@ -8248,6 +8220,7 @@ d_attribut='$d_attribut'
 d_bcopy='$d_bcopy'
 d_bindtxtcode='$d_bindtxtcode'
 d_bsd='$d_bsd'
+d_built_popcount='$d_built_popcount'
 d_const='$d_const'
 d_dbus='$d_dbus'
 d_deflate='$d_deflate'
@@ -8423,7 +8396,6 @@ installbin='$installbin'
 installdir='$installdir'
 installmansrc='$installmansrc'
 installprivlib='$installprivlib'
-intsize='$intsize'
 issymlink='$issymlink'
 ksh='$ksh'
 large='$large'
@@ -8447,7 +8419,6 @@ locale='$locale'
 localeexp='$localeexp'
 locincpth='$locincpth'
 loclibpth='$loclibpth'
-longsize='$longsize'
 lp='$lp'
 lpr='$lpr'
 ls='$ls'
@@ -8509,7 +8480,6 @@ sendmail='$sendmail'
 sh='$sh'
 shar='$shar'
 sharpbang='$sharpbang'
-shortsize='$shortsize'
 shsharp='$shsharp'
 signal_t='$signal_t'
 sleep='$sleep'

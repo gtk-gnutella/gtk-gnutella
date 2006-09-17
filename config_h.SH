@@ -386,12 +386,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_stdarg I_STDARG		/**/
 
-/* LONGSIZE:
- *	This symbol contains the value of sizeof(long) so that the C
- *	preprocessor can make decisions based on it.
- */
-#define LONGSIZE $longsize		/**/
-
 /* VAL_O_NONBLOCK:
  *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on
  *	non-blocking I/O for the file descriptor. Note that there is no way
@@ -470,6 +464,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	is available.
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
+
+/* HAS_BUILTIN_POPCOUNT:
+ *	This symbol, if defined, indicates that __builtin_popcount routine is
+ *	available to compute the amount of '1' bits in a word.
+ */
+#$d_built_popcount HAS_BUILTIN_POPCOUNT	/**/
 
 /* HAS_DEV_POLL:
  *	This symbol is defined when /dev/poll can be used.
