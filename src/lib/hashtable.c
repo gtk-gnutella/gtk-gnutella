@@ -30,6 +30,8 @@
  * Very simple hash table. This is meant as replacement for GHashTable
  * using g_direct_hash() and g_direct_value().
  *
+ * @note The semantics of insert/replace differ from the GLib variants!
+ *
  * @author Christian Biere
  * @date 2006
  */
@@ -97,7 +99,7 @@ enum hash_slot_type {
 	HASH_SLOT_USED = 1
 };
 
-size_t
+static size_t
 hash_table_find_slot(const hash_table_t * const ht, const void * const key,
 	const enum hash_slot_type want)
 {
@@ -124,8 +126,9 @@ hash_table_find_slot(const hash_table_t * const ht, const void * const key,
 	return (size_t) -1;
 }
 
-void
-hash_table_insert(hash_table_t *ht, void *key, void *value)
+static gboolean
+hash_table_insert_intern(hash_table_t *ht, void *key, void *value,
+	gboolean may_replace)
 {
 	size_t slot;
 
@@ -139,12 +142,40 @@ hash_table_insert(hash_table_t *ht, void *key, void *value)
 
 	RUNTIME_ASSERT(NULL == ht->items[slot].key || key == ht->items[slot].key);
 
-	bit_array_set(ht->used, slot);
-	ht->items[slot].key = key;
-	ht->items[slot].value = value;
+	if (bit_array_get(ht->used, slot)) {
+		if (!may_replace)
+			return FALSE;
+	} else {
+		bit_array_set(ht->used, slot);
+		ht->items[slot].key = key;
 
-	RUNTIME_ASSERT(ht->num_held < ht->num_slots);
-	ht->num_held++;
+		RUNTIME_ASSERT(ht->num_held < ht->num_slots);
+		ht->num_held++;
+	}
+	ht->items[slot].value = value;
+	return TRUE;
+}
+
+/**
+ * Inserts a key into the hashtable but only if the key is not already
+ * in the hashtable.
+ *
+ * @return	TRUE if the key was inserted, FALSE otherwise.
+ */
+gboolean
+hash_table_insert(hash_table_t *ht, void *key, void *value)
+{
+	return hash_table_insert_intern(ht, key, value, FALSE);
+}
+
+/**
+ * Inserts a key into the hashtable and replaces the current one if it is
+ * already in the hashtable.
+ */
+void
+hash_table_replace(hash_table_t *ht, void *key, void *value)
+{
+	(void) hash_table_insert_intern(ht, key, value, TRUE);
 }
 
 void *
@@ -156,7 +187,12 @@ hash_table_lookup(hash_table_t *ht, void *key)
 	return (size_t) -1 == slot ? NULL : ht->items[slot].value; 
 }
 
-void
+/**
+ * Removes a key from the hashtable.
+ *
+ * @return TRUE if the key was remove, FALSE if the key was not found.
+ */
+gboolean
 hash_table_remove(hash_table_t *ht, void *key)
 {
 	size_t slot;
@@ -169,7 +205,9 @@ hash_table_remove(hash_table_t *ht, void *key)
 
 		RUNTIME_ASSERT(ht->num_held > 0);
 		ht->num_held--;
+		return TRUE;
 	}
+	return FALSE;
 }
 
 static void 

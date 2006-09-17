@@ -44,9 +44,10 @@ hash_table_t *hash_table_new();
 void hash_table_destroy(hash_table_t *ht);
 
 size_t hash_table_size(const hash_table_t *ht);
-void hash_table_insert(hash_table_t *ht, void *key, void *value);
+gboolean hash_table_insert(hash_table_t *ht, void *key, void *value);
+void hash_table_replace(hash_table_t *ht, void *key, void *value);
 void *hash_table_lookup(hash_table_t *ht, void *key);
-void hash_table_remove(hash_table_t *ht, void *key);
+gboolean hash_table_remove(hash_table_t *ht, void *key);
 void hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func,
 		void *data);
 

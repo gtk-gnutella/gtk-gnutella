@@ -67,7 +67,7 @@ halloc_get_size(void *p)
 	void *value;
 
 	value = hash_table_lookup(hallocations, p);
-	assert(value);
+	RUNTIME_ASSERT(value);
 	return (size_t) value;		
 }
 
@@ -80,13 +80,12 @@ void *
 halloc(size_t size)
 {
 	if (size > 0) {
+		gboolean inserted;
 		void *p;
 
-		if (!hallocations)
-			hallocations = hash_table_new();
-
 		p = size < compat_pagesize() ? walloc(size) : alloc_pages(size);
-		hash_table_insert(hallocations, p, (void *) size);
+		inserted = hash_table_insert(hallocations, p, (void *) size);
+		RUNTIME_ASSERT(inserted);
 		return p;
 	} else {
 		return NULL;
@@ -182,7 +181,7 @@ static void
 hdestroy_item(void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
-	assert(value);
+	RUNTIME_ASSERT(value);
 	hfree(key);
 }
 
@@ -207,6 +206,9 @@ halloc_init(void)
 	vtable.malloc = halloc;
 	vtable.realloc = hrealloc;
 	vtable.free = hfree;
+
+	RUNTIME_ASSERT(!hallocations);
+	hallocations = hash_table_new();
 
 	g_mem_set_vtable(&vtable);
 }
