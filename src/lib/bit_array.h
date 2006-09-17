@@ -36,6 +36,8 @@
 #ifndef _bit_array_h_
 #define _bit_array_h_
 
+#include "config.h"			/* For LONGSIZE */
+
 /*
  * Functions for handling arrays of bits. On BSD systems, the macros from
  * <bitstring.h> could be used for better efficiency. So far, the following
@@ -45,9 +47,30 @@
 
 typedef gulong bit_array_t;
 
-#define BIT_ARRAY_BITSIZE (CHAR_BIT * sizeof(bit_array_t))
-#define BIT_ARRAY_WORD(base, i) base[i / BIT_ARRAY_BITSIZE]
-#define BIT_ARRAY_BIT(base, i) (1UL << (i % BIT_ARRAY_BITSIZE)) 
+#if LONGSIZE == 4
+#if CHAR_BIT == 8
+#define BIT_ARRAY_BITSHIFT	(2 + 3)
+#elif CHAR_BIT == 16
+#define BIT_ARRAY_BITSHIFT	(2 + 4)
+#else
+#error "Unsupported size of char"
+#endif	/* CHAR_BIT */
+#elif LONGSIZE == 8
+#if CHAR_BIT == 8
+#define BIT_ARRAY_BITSHIFT	(3 + 3)
+#elif CHAR_BIT == 16
+#define BIT_ARRAY_BITSHIFT	(3 + 4)
+#else
+#error "Unsupported size of char"
+#endif	/* CHAR_BIT */
+#else
+#error "Unsupported size for a long"
+#endif	/* LONGSIZE */
+
+#define BIT_ARRAY_BITSIZE (CHAR_BIT * LONGSIZE)
+#define BIT_ARRAY_BITMASK (BIT_ARRAY_BITSIZE - 1)
+#define BIT_ARRAY_WORD(base, i) base[(i) >> BIT_ARRAY_BITSHIFT]
+#define BIT_ARRAY_BIT(base, i) (1UL << ((i) & BIT_ARRAY_BITMASK)) 
 
 /**
  * Use the macro BIT_ARRAY_SIZE for allocating a properly sized bit array
@@ -74,11 +97,16 @@ typedef gulong bit_array_t;
  * @param base The base address of the bit array, may be NULL.
  * @param n The number of bits the bit array should hold.
  * @return the re-allocated bit array.
+ *
+ * @attention DO NOT USE IN MEMORY ALLOCATING ROUTINES!
  */
 static inline bit_array_t *
 bit_array_realloc(bit_array_t *base, size_t n)
 {
 	size_t size;
+
+	STATIC_ASSERT(sizeof(bit_array_t) == LONGSIZE);
+	STATIC_ASSERT(0 == (BIT_ARRAY_BITSIZE & BIT_ARRAY_BITMASK));
 	
 	size = BIT_ARRAY_BYTE_SIZE(n);
 	return g_realloc(base, size);
@@ -114,7 +142,7 @@ bit_array_clear(bit_array_t *base, size_t i)
 static inline gboolean
 bit_array_flip(bit_array_t *base, size_t i)
 {
-	return (BIT_ARRAY_WORD(base, i) ^= BIT_ARRAY_BIT(base, i));
+	return BIT_ARRAY_WORD(base, i) ^= BIT_ARRAY_BIT(base, i);
 }
 
 /**
@@ -145,11 +173,11 @@ bit_array_clear_range(bit_array_t *base, size_t from, size_t to)
 	g_assert(from <= to);
 
 	for (i = from; i <= to; /* NOTHING */) {
-		if (0 == (i % BIT_ARRAY_BITSIZE)) {
-			size_t n = (to - i) / BIT_ARRAY_BITSIZE;
+		if (0 == (i & BIT_ARRAY_BITMASK)) {
+			size_t n = (to - i) >> BIT_ARRAY_BITSHIFT;
 
 			if (n != 0) {
-				size_t j = i / BIT_ARRAY_BITSIZE;
+				size_t j = i >> BIT_ARRAY_BITSHIFT;
 
 				i += n * BIT_ARRAY_BITSIZE;
 				do {
@@ -179,11 +207,11 @@ bit_array_set_range(bit_array_t *base, size_t from, size_t to)
 	g_assert(from <= to);
 
 	for (i = from; i <= to; /* NOTHING */) {
-		if (0 == (i % BIT_ARRAY_BITSIZE)) {
-			size_t n = (to - i) / BIT_ARRAY_BITSIZE;
+		if (0 == (i & BIT_ARRAY_BITMASK)) {
+			size_t n = (to - i) >> BIT_ARRAY_BITSHIFT;
 
 			if (n != 0) {
-				size_t j = i / BIT_ARRAY_BITSIZE;
+				size_t j = i >> BIT_ARRAY_BITSHIFT;
 
 				i += n * BIT_ARRAY_BITSIZE;
 				do {
@@ -217,11 +245,38 @@ bit_array_first_clear(const bit_array_t *base, size_t from, size_t to)
 			return i;
 	}
 
+	for (i = from; i <= to; /* NOTHING */) {
+		if (0 == (i & BIT_ARRAY_BITMASK)) {
+			size_t n = (to - i) >> BIT_ARRAY_BITSHIFT;
+
+			if (n != 0) {
+				size_t j = i >> BIT_ARRAY_BITSHIFT;
+
+				while (n-- > 0) {
+					if (base[j++] != (bit_array_t) -1) {
+						bit_array_t value = base[j - 1];
+						while (value & 0x1) {
+							value >>= 1;
+							i++;
+						}
+						return i;
+					}
+					i += BIT_ARRAY_BITSIZE;
+				}
+			}
+		}
+		if (!bit_array_get(base, i))
+			return i;
+		i++;
+	}
+
 	return (size_t) -1;
 }
 
 #undef BIT_ARRAY_BIT
 #undef BIT_ARRAY_BITSIZE
+#undef BIT_ARRAY_BITMASK
+#undef BIT_ARRAY_BITSHIFT
 #undef BIT_ARRAY_WORD
 
 #endif /* _bit_array_h_ */
