@@ -3684,13 +3684,32 @@ alloc_pages(size_t size)
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size) - 1;
 
-	if (n < G_N_ELEMENTS(page_cache) && page_cache[n].current > 0) {
-		void *p = page_cache[n].stack[--page_cache[n].current].addr;
-		g_assert(p);
-		return p;
-	} else {
-		return alloc_pages_intern(size);
+	if (n < G_N_ELEMENTS(page_cache)) {
+		if (page_cache[n].current > 0) {
+			void *p = page_cache[n].stack[--page_cache[n].current].addr;
+			g_assert(p);
+#define INVALIDATE_FREE_PAGES
+#ifdef INVALIDATE_FREE_PAGES 
+			mprotect(p, size, PROT_READ | PROT_WRITE);
+			madvise(p, size, MADV_NORMAL);
+#endif	/* INVALIDATE_FREE_PAGES */
+			return p;
+		} else {
+#define GREEDY_PAGE_CACHE
+#ifdef GREEDY_PAGE_CACHE
+			guint max_cached = G_N_ELEMENTS(page_cache[0].stack) / (n + 1);
+			char *p, *base = alloc_pages_intern(max_cached * size);
+
+			p = &base[(max_cached - 1) * size];
+			while (p != base) {
+				free_pages(p, size);
+				p -= size;
+			}
+			return p;
+#endif	/* GREEDY_PAGE_CACHE */
+		}
 	}
+	return alloc_pages_intern(size);
 }
 
 static void
@@ -3741,6 +3760,10 @@ free_pages(gpointer p, size_t size)
 			n < G_N_ELEMENTS(page_cache) &&
 			page_cache[n].current < max_cached
 		) {
+#ifdef INVALIDATE_FREE_PAGES 
+			mprotect(p, size, PROT_NONE);
+			madvise(p, size, MADV_FREE);
+#endif	/* INVALIDATE_FREE_PAGES */
 			page_cache[n].stack[page_cache[n].current].addr = p;
 			page_cache[n].stack[page_cache[n].current].stamp = tm_time();
 			page_cache[n].current++;
