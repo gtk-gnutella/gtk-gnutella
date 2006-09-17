@@ -64,7 +64,7 @@ typedef gulong bit_array_t;
 #error "Unsupported size of char"
 #endif	/* CHAR_BIT */
 #else
-#error "Unsupported size for a long"
+#define BIT_ARRAY_BITSHIFT ((log(LONGSIZE) + log(CHAR_BIT)) / log(2))
 #endif	/* LONGSIZE */
 
 #define BIT_ARRAY_BITSIZE (CHAR_BIT * LONGSIZE)
