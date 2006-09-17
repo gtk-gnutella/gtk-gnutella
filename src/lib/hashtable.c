@@ -76,7 +76,7 @@ hash_table_alloc(void)
 	hash_table_t *ht;
 
    	ht = malloc(sizeof *ht);
-	assert(ht);
+	RUNTIME_ASSERT(ht);
 
 	if (ht) {
 		static const hash_table_t zero_ht;
@@ -113,7 +113,7 @@ hash_table_find_slot(const hash_table_t * const ht, const void * const key,
 		} else {
 #if 0
 			/* This defeats the purpose of using a cache-friendly bit array */
-			assert(NULL == ht->items[slot].key);
+			RUNTIME_ASSERT(NULL == ht->items[slot].key);
 #endif
 			if (HASH_SLOT_FREE == want)
 				return slot;
@@ -134,16 +134,16 @@ hash_table_insert(hash_table_t *ht, void *key, void *value)
 	}
 
 	slot = hash_table_find_slot(ht, key, HASH_SLOT_FREE);
-	g_assert((size_t) -1 != slot);
-	g_assert(slot < ht->num_slots);
+	RUNTIME_ASSERT((size_t) -1 != slot);
+	RUNTIME_ASSERT(slot < ht->num_slots);
 
-	assert(NULL == ht->items[slot].key || key == ht->items[slot].key);
+	RUNTIME_ASSERT(NULL == ht->items[slot].key || key == ht->items[slot].key);
 
 	bit_array_set(ht->used, slot);
 	ht->items[slot].key = key;
 	ht->items[slot].value = value;
 
-	assert(ht->num_held < ht->num_slots);
+	RUNTIME_ASSERT(ht->num_held < ht->num_slots);
 	ht->num_held++;
 }
 
@@ -167,7 +167,7 @@ hash_table_remove(hash_table_t *ht, void *key)
 	   	ht->items[slot].key = NULL;
 	   	ht->items[slot].value = NULL;
 
-		assert(ht->num_held > 0);
+		RUNTIME_ASSERT(ht->num_held > 0);
 		ht->num_held--;
 	}
 }
@@ -180,15 +180,15 @@ hash_table_resize(hash_table_t *old_ht)
 
 	ht = *old_ht;
 
-	assert(ht.num_slots < INT_MAX / 2);
-	assert(0 == ht.num_slots || is_pow2(ht.num_slots));
+	RUNTIME_ASSERT(ht.num_slots < INT_MAX / 2);
+	RUNTIME_ASSERT(0 == ht.num_slots || is_pow2(ht.num_slots));
 	ht.num_slots = 2 * (ht.num_slots > 0 ? ht.num_slots : HASH_TAB_MIN_SLOTS);
 
 	ht.items = realloc(ht.items, ht.num_slots * sizeof ht.items[0]);
-	assert(ht.items);
+	RUNTIME_ASSERT(ht.items);
 
 	ht.used = realloc(ht.used, BIT_ARRAY_BYTE_SIZE(ht.num_slots));
-	assert(ht.used);
+	RUNTIME_ASSERT(ht.used);
 
 	bit_array_clear_range(ht.used, old_ht->num_slots, ht.num_slots - 1);
 
@@ -228,8 +228,8 @@ hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
 {
 	size_t i;
 
-	assert(ht);
-	assert(func);
+	RUNTIME_ASSERT(ht);
+	RUNTIME_ASSERT(func);
 	
 	for (i = 0; i < ht->num_slots; i++) {
 		if (bit_array_get(ht->used, i)) {
@@ -241,7 +241,7 @@ hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
 size_t
 hash_table_size(const hash_table_t *ht)
 {
-	assert(ht);
+	RUNTIME_ASSERT(ht);
 	return ht->num_held;
 }
 
