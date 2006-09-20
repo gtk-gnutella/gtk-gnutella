@@ -130,6 +130,7 @@ LSRC = \
 	urn.c \
 	utf8.c \
 	vendors.c \
+	vmm.c \
 	walloc.c \
 	watcher.c \
 	wordvec.c \
@@ -183,6 +184,7 @@ LOBJ = \
 	urn.o \
 	utf8.o \
 	vendors.o \
+	vmm.o \
 	walloc.o \
 	watcher.o \
 	wordvec.o \

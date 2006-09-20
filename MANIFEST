@@ -573,6 +573,8 @@ src/lib/utf8.h
 src/lib/utf8_tables.h
 src/lib/vendors.c
 src/lib/vendors.h
+src/lib/vmm.c
+src/lib/vmm.h
 src/lib/walloc.c
 src/lib/walloc.h
 src/lib/watcher.c

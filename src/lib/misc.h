@@ -58,6 +58,8 @@
 
 #include <glib.h>
 
+#include "vmm.h"
+
 #define SIZE_FIELD_MAX 64		/**< Max size of sprintf-ed size quantity */
 #define GUID_RAW_SIZE	16		/**< Binary representation of 128 bits */
 #define GUID_HEX_SIZE	32		/**< Hexadecimal GUID representation */
@@ -541,20 +543,6 @@ guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, mode_t mode);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
-
-size_t round_pagesize(size_t n);
-size_t compat_pagesize(void);
-gpointer alloc_pages(size_t size);
-void free_pages(gpointer p, size_t size);
-size_t prune_page_cache(void);
-
-#define FREE_PAGES_NULL(p, size) \
-G_STMT_START { \
-	if (p) { \
-		free_pages((p), (size)); \
-		p = NULL; \
-	} \
-} G_STMT_END
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);

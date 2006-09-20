@@ -74,6 +74,7 @@ LSRC = \
 	urn.c \
 	utf8.c \
 	vendors.c \
+	vmm.c \
 	walloc.c \
 	watcher.c \
 	wordvec.c \
