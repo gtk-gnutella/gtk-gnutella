@@ -145,12 +145,15 @@ g_try_realloc(gpointer p, gulong size)
 static gpointer
 emulate_calloc(gsize n, gsize m)
 {
-	size_t size = n * m;
 	gpointer p;
 
-	p = gm_vtable.malloc(size);
-	memset(p, 0, size);
-
+	if (n > 0 && m > 0 && m < ((size_t) -1) / n) {
+		size_t size = n * m;
+		p = gm_vtable.malloc(size);
+		memset(p, 0, size);
+	} else {
+		p = NULL;
+	}
 	return p;
 }
 
