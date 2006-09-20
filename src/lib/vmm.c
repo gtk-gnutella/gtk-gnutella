@@ -213,9 +213,14 @@ alloc_pages(size_t size)
 			guint max_cached = G_N_ELEMENTS(page_cache[0].stack) / (n + 1);
 			char *p, *base = alloc_pages_intern(max_cached * size);
 
+			/*
+			 * Split the big chunk into segments by freeing the pages from
+			 * the end, filling the whole cache for this size.
+			 */
+
 			p = &base[(max_cached - 1) * size];
 			while (p != base) {
-				free_pages(p, size);
+				free_pages(p, size);		/* Fills the cache entry */
 				p -= size;
 			}
 			return p;
