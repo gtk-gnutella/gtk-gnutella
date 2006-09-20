@@ -50,7 +50,7 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#if defined(USE_GLIB1) && defined(USE_CUSTOM_ALLOCATOR)
+#ifdef USE_GLIB1
 GMemVTable gm_vtable = {
 	malloc,			/* malloc */
 	realloc,		/* realloc */
@@ -184,7 +184,7 @@ g_mem_is_system_malloc(void)
 {
 	return gm_vtable.malloc == malloc;
 }
-#endif	/* USE_GLIB1 && USE_CUSTOM_ALLOCATOR */
+#endif	/* USE_GLIB1 */
 
 #ifndef TRACK_MALLOC
 
