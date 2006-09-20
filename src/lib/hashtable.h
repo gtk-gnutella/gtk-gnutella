@@ -40,7 +40,7 @@ typedef struct hash_table hash_table_t;
 
 typedef void (*hash_table_foreach_func)(void *key, void *value, void *data);
 
-hash_table_t *hash_table_new();
+hash_table_t *hash_table_new(void);
 void hash_table_destroy(hash_table_t *ht);
 
 size_t hash_table_size(const hash_table_t *ht);
