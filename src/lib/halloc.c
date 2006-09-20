@@ -201,16 +201,20 @@ hdestroy(void)
 void
 halloc_init(void)
 {
-	static GMemVTable vtable;
-
-	vtable.malloc = halloc;
-	vtable.realloc = hrealloc;
-	vtable.free = hfree;
-
 	RUNTIME_ASSERT(!hallocations);
 	hallocations = hash_table_new();
 
-	g_mem_set_vtable(&vtable);
+#ifdef USE_CUSTOM_ALLOCATOR
+	{
+		static GMemVTable vtable;
+
+		vtable.malloc = halloc;
+		vtable.realloc = hrealloc;
+		vtable.free = hfree;
+
+		g_mem_set_vtable(&vtable);
+	}
+#endif	/* USE_CUSTOM_ALLOCATOR */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

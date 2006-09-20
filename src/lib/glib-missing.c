@@ -50,7 +50,7 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#ifdef USE_GLIB1
+#if defined(USE_GLIB1) && defined(USE_CUSTOM_ALLOCATOR)
 GMemVTable gm_vtable = {
 	malloc,			/* malloc */
 	realloc,		/* realloc */
@@ -127,12 +127,14 @@ g_free(gpointer p)
 	gm_vtable.free(p);
 }
 
-gpointer g_try_malloc(gulong size)
+gpointer
+g_try_malloc(gulong size)
 {
 	return size > 0 ? gm_vtable.try_malloc(size) : NULL;
 }
 
-gpointer g_try_realloc(gpointer p, gulong size)
+gpointer
+g_try_realloc(gpointer p, gulong size)
 {
 	return size > 0 ? gm_vtable.try_realloc(p, size) : NULL;
 }
@@ -182,7 +184,7 @@ g_mem_is_system_malloc(void)
 {
 	return gm_vtable.malloc == malloc;
 }
-#endif	/* USE_GLIB1 */
+#endif	/* USE_GLIB1 && USE_CUSTOM_ALLOCATOR */
 
 #ifndef TRACK_MALLOC
 
