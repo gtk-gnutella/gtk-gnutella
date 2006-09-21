@@ -101,12 +101,12 @@ rxbuf_new(void)
 }
 
 /**
- * Wrapper over g_free().
+ * Wrapper over free().
  */
 static void
 rxbuf_page_free(gpointer p)
 {
-	g_free(p);
+	free(p);
 }
 
 /**
@@ -116,7 +116,7 @@ void
 rxbuf_init(void)
 {
 	rxpool = pool_create(
-		compat_pagesize(), BUF_COUNT, g_malloc, rxbuf_page_free);
+		compat_pagesize(), BUF_COUNT, malloc, rxbuf_page_free);
 }
 
 /**
