@@ -1056,8 +1056,8 @@ ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
 
 	inz = walloc(sizeof(*inz));
 
-	inz->zalloc = NULL;
-	inz->zfree = NULL;
+	inz->zalloc = zlib_alloc_func;
+	inz->zfree = zlib_free_func;
 	inz->opaque = NULL;
 
 	ret = inflateInit(inz);
