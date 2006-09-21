@@ -75,8 +75,6 @@ GString *g_string_append_len(GString *gs, const gchar *val, gssize len);
 
 void g_mem_set_vtable(GMemVTable *vtable);
 gboolean g_mem_is_system_malloc(void);
-
-extern GMemVTable gm_vtable;
 #endif
 
 gchar *gm_string_finalize(GString *gs);

@@ -51,7 +51,7 @@ RCSID("$Id$")
 #include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GLIB1
-GMemVTable gm_vtable = {
+static GMemVTable gm_vtable = {
 	malloc,			/* malloc */
 	realloc,		/* realloc */
 	free,			/* free */
