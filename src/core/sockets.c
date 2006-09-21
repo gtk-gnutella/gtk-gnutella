@@ -120,7 +120,7 @@ socket_alloc_buffer(struct gnutella_socket *s)
 	socket_check(s);
 	if (!s->buf) {
 		s->buf_size = SOCK_BUFSZ;
-		s->buf = alloc_pages(s->buf_size);
+		s->buf = g_malloc(s->buf_size);
 	}
 }
 
@@ -1281,7 +1281,7 @@ socket_free(struct gnutella_socket *s)
 		}
 		s->file_desc = -1;
 	}
-	FREE_PAGES_NULL(s->buf, s->buf_size);
+	g_free(s->buf);
 	socket_dealloc(&s);
 }
 

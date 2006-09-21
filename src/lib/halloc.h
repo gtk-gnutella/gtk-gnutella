@@ -52,8 +52,6 @@
 #define halloc0(s)			g_malloc0(s)
 #define hfree(p,s)			g_free(p)
 #define hrealloc(p,o,n)		g_realloc((p), (n))
-#define hstrdup(p)			g_strdup(p)
-#define hmemdup(p, n)		g_memdup((p), (n))
 
 #else	/* !REMAP_ZALLOC */
 
@@ -61,8 +59,6 @@ void *halloc(size_t size);
 void *halloc0(size_t size);
 void hfree(void *ptr);
 void *hrealloc(void *old, size_t size);
-void *hstrdup(const char *s);
-void *hmemdup(const void *p, size_t size);
 
 #endif	/* REMAP_ZALLOC */
 

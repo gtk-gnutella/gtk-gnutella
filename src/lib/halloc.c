@@ -146,35 +146,6 @@ hrealloc(void *old, size_t new_size)
 	return p;
 }
 
-/**
- * Copy a memory block via halloc().
- *
- * @return new block address.
- */
-void *
-hmemdup(const void *data, size_t size)
-{
-	if (data && size > 0) {
-		void *p = halloc(size);
-		if (p) {
-			memcpy(p, data, size);
-		}
-		return p;
-	} else {
-		return NULL;
-	}
-}
-
-/**
- * Copy a string via halloc().
- *
- * @return new block address.
- */
-void *
-hstrdup(const char *s)
-{
-	return s ? hmemdup(s, 1 + strlen(s)) : NULL;
-}
 #endif	/* !REMAP_ZALLOC */
 
 static void

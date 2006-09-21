@@ -86,7 +86,7 @@ d_free(gpointer ctx)
 		close(vd->fd);
 		vd->fd = -1;
 	}
-	FREE_PAGES_NULL(vd->buffer, HASH_BUF_SIZE);
+	free(vd->buffer);
 	vd->magic = 0;
 	wfree(vd, sizeof *vd);
 }
@@ -283,7 +283,7 @@ verify_init(void)
 	vd = walloc(sizeof *vd);
 	vd->magic = VERIFYD_MAGIC;
 	vd->fd = -1;
-	vd->buffer = alloc_pages(HASH_BUF_SIZE);
+	vd->buffer = g_malloc(HASH_BUF_SIZE);
 	vd->d = NULL;
 
 	verify_daemon = bg_daemon_create("SHA1 verification",

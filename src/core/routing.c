@@ -53,7 +53,6 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
-#include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -496,7 +495,7 @@ get_next_slot(void)
 
 			routing.capacity += CHUNK_MESSAGES;
 			routing.chunks[chunk_idx] =
-				halloc0(CHUNK_MESSAGES * sizeof(struct message *));
+				g_malloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
 			if (routing_debug)
 				printf("RT created new chunk #%d, now holds %d / %d\n",
@@ -2109,7 +2108,7 @@ routing_close(void)
 					wfree(m, sizeof(*m));
 				}
 			}
-			HFREE_NULL(chunk);
+			G_FREE_NULL(chunk);
 		}
 	}
 

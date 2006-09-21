@@ -62,6 +62,7 @@
 #include "lib/url.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 RCSID("$Id$")
@@ -103,7 +104,7 @@ struct result_data {
 	record_t *record;
 	gchar *ext;			/**< Atom */
 	gchar *meta;		/**< Atom */
-	gchar *info;		/**< g_malloc()ed */
+	gchar *info;		/**< g_strdup()ed */
 	guint count;		/**< count of children */
 	guint32 rank;		/**< for stable sorting */
 };
@@ -475,7 +476,7 @@ search_gui_close_search(search_t *sch)
     guc_search_close(sch->search_handle);
 	atom_str_free(sch->query);
 
-	G_FREE_NULL(sch);
+	wfree(sch, sizeof *sch);
 }
 
 /**
@@ -524,7 +525,7 @@ search_gui_new_search_full(const gchar *query_str,
 		return FALSE;
 	}
 
-	sch = g_malloc(sizeof *sch);
+	sch = walloc(sizeof *sch);
 	*sch = zero_sch;
 
 	if (sort_col >= 0 && (guint) sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS)
@@ -1148,6 +1149,18 @@ search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 					data->record->results_set->addr,
 					data->record->results_set->port);
 			} while (gtk_tree_model_iter_next(model, &child));
+		}
+
+		if (parent->record->alt_locs) {
+			const gnet_host_vec_t *alt = parent->record->alt_locs;
+			gint i, n;
+
+			n = MIN(10, alt->hvcnt);
+			for (i = 0; i < n; i++) {
+				magnet_add_sha1_source(magnet, parent->record->sha1,
+						parent->record->results_set->addr,
+						parent->record->results_set->port);
+			}
 		}
 	}
 

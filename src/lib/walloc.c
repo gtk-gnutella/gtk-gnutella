@@ -92,7 +92,7 @@ walloc(size_t size)
 	g_assert(size > 0);
 
 	if (rounded >= WALLOC_MAX)
-		return alloc_pages(size);		/* Too big for efficient zalloc() */
+		return malloc(size);		/* Too big for efficient zalloc() */
 
 	idx = rounded >> ZALLOC_ALIGNBITS;
 
@@ -154,7 +154,7 @@ wfree(gpointer ptr, size_t size)
 #endif
 
 	if (rounded >= WALLOC_MAX) {
-		free_pages(ptr, size);
+		free(ptr);
 		return;
 	}
 
@@ -213,7 +213,7 @@ walloc_track(size_t size, gchar *file, gint line)
 #ifdef TRACK_MALLOC
 		return malloc_track(size, file, line);
 #else
-		return alloc_pages(size);		/* Too big for efficient zalloc() */
+		return malloc(size);		/* Too big for efficient zalloc() */
 #endif
 
 	idx = rounded >> ZALLOC_ALIGNBITS;

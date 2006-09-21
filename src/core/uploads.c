@@ -717,7 +717,7 @@ upload_free_resources(gnutella_upload_t *u)
 	}
 #endif /* USE_MMAP */
 
-	FREE_PAGES_NULL(u->buffer, u->buf_size);
+	g_free(u->buffer);
 	if (u->io_opaque) {				/* I/O data */
 		io_free(u->io_opaque);
 		g_assert(u->io_opaque == NULL);
@@ -3685,7 +3685,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (u->buffer == NULL) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = alloc_pages(u->buf_size);
+			u->buffer = g_malloc(u->buf_size);
 		}
 	}
 
@@ -3989,7 +3989,7 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 		 */
 		if (sendfile_failed && NULL == u->buffer) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = alloc_pages(u->buf_size);
+			u->buffer = g_malloc(u->buf_size);
 		}
 
 		/*

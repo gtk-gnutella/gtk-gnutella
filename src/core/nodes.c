@@ -95,7 +95,6 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
-#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/listener.h"
@@ -1203,7 +1202,7 @@ node_init(void)
 	browse_node = node_browse_create();
 
 	payload_inflate_buffer_len = settings_max_msg_size();
-	payload_inflate_buffer = halloc(payload_inflate_buffer_len);
+	payload_inflate_buffer = g_malloc(payload_inflate_buffer_len);
 
 	/*
 	 * Limit replies to TCP/UDP crawls from a single IP.
@@ -1600,7 +1599,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	/* n->vendor will be freed by node_real_remove() */
 
 	if (n->allocated) {
-		HFREE_NULL(n->data);
+		G_FREE_NULL(n->data);
 		n->allocated = 0;
 	}
 	if (n->searchq) {
@@ -7135,9 +7134,9 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			}
 
 			if (n->allocated)
-				n->data = hrealloc(n->data, maxsize);
+				n->data = g_realloc(n->data, maxsize);
 			else
-				n->data = halloc(maxsize);
+				n->data = g_malloc(maxsize);
 			n->allocated = maxsize;
 		}
 
@@ -7810,7 +7809,7 @@ node_close(void)
 		browse_node = NULL;
 	}
 
-	HFREE_NULL(payload_inflate_buffer);
+	G_FREE_NULL(payload_inflate_buffer);
 
 	g_slist_free(sl_nodes_without_broken_gtkg);
 	g_slist_free(sl_proxies);
