@@ -37,6 +37,7 @@
 
 RCSID("$Id$")
 
+#include "glib-missing.h"
 #include "misc.h"
 #include "walloc.h"
 #include "zalloc.h"
