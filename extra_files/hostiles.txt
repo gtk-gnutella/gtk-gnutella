@@ -456,8 +456,13 @@
 #
 67.159.21.0/27
 
-# .exe spam from fake LimeWire; does not match query at all; giFT-based
+# .exe spam from fake LimeWire; does not match query at all; giFT-based;
+# spam is ubiquitous and shows up in *every single* search;
+# "Free Game", "Hot Babes Screensavers", "Cute Puppies Screensavers" which
+# is AdWare and/or a trojan horse. It is directly related to the
+# "getlaidquickly" spam.
 67.55.65.20
+67.55.65.92/30
 216.255.178.18
 
 # Shares over 10000 pictures with all names matching "<celebrity>_pic_1.jpg";
@@ -476,8 +481,11 @@
 67.128.53.72/29
 67.128.62.168/29
 
-# Little czech DRM WMV spammer with fake Morpheus; results identify as LimeWire
+# Little czech DRM WMV spammer with fake(?) Morpheus; results identify
+# as LimeWire; uses port 80 and others; results have no SHA-1; filenames
+# end with .wm instead of .wma or .wmv.
 87.236.194.75
+87.236.194.76/31
 212.47.3.250
 
 # pr0n MOV spammer with fake LimeWire; giFT-based
