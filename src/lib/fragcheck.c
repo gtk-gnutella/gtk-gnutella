@@ -37,6 +37,7 @@
 
 #ifdef FRAGCHECK
 
+#include "lib/glib-missing.h"
 #include "lib/bit_array.h"
 #include "lib/misc.h"
 
@@ -314,46 +315,6 @@ my_realloc(gpointer p, gsize n)
 	return x;
 }
 
-static gpointer
-my_calloc(gsize n, gsize m)
-{
-	size_t size;
-	char *p;
-
-#ifdef FRAGCHECK_VERBOSE 
-	printf("%s(%lu, %lu)\n", __func__, (unsigned long) n, (unsigned long) m);
-#endif	/* FRAGCHECK_VERBOSE */
-
-	assert(n > 0);
-	assert(m > 0);
-	assert(n < ((size_t) -1) / m);
-
-	size = n * m;
-	p = my_malloc(size);
-	memset(p, 0, size);
-	return p;
-}
-
-static gpointer
-my_try_malloc(gsize n)
-{
-#ifdef FRAGCHECK_VERBOSE 
-	printf("%s(%lu)\n", __func__, (unsigned long) n);
-#endif	/* FRAGCHECK_VERBOSE */
-
-	return my_malloc(n);
-}
-
-static gpointer
-my_try_realloc(gpointer p, gsize n)
-{
-#ifdef FRAGCHECK_VERBOSE 
-	printf("%s(%p, %lu)\n", __func__, p, (unsigned long) n);
-#endif	/* FRAGCHECK_VERBOSE */
-
-	return my_realloc(p, n);
-}
-
 void
 alloc_dump(FILE *f, gboolean unused_flag)
 {
@@ -435,9 +396,6 @@ fragcheck_init(void)
 	vtable.malloc = my_malloc;
 	vtable.realloc = my_realloc;
 	vtable.free = my_free;
-	vtable.calloc = my_calloc;
-	vtable.try_malloc = my_try_malloc;
-	vtable.try_realloc = my_try_realloc;
 
 	g_mem_set_vtable(&vtable);
 

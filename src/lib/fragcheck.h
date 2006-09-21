@@ -40,14 +40,13 @@
 #define FRAGCHECK
 #endif
 
-#if defined(FRAGCHECK) && GLIB_CHECK_VERSION(2,0,0)
+#if defined(FRAGCHECK)
+void fragcheck_init(void);
 void alloc_dump(FILE *f, gboolean unused_flag);
 void alloc_dump2(FILE *unused_f, gboolean unused_flag);
 
 #define alloc_reset(a, b) alloc_dump2((a), (b))
-
-void fragcheck_init(void);
-#endif	/* GLib >= 2.0 */
+#endif	/* FRAGCHECK */
 
 #endif /* _fragcheck_h_ */
 /* vi: set ts=4 sw=4 cindent: */
