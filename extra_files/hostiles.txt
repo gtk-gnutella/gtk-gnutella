@@ -431,7 +431,7 @@
 65.240.96.251
 69.45.227.0/28
 69.45.229.0/26
-65.37.226.0/28
+65.37.226.0/27
 
 # DRM WMV pr0n spammer; files link to videoaccesspoint dot com; giFT-based
 64.45.229.50
