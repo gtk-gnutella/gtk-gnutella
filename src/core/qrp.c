@@ -611,10 +611,8 @@ qrt_step_compress(gpointer h, gpointer u, gint ticks)
 			rp->len = zlib_deflater_outlen(ctx->zd);
 			rp->arena = g_memdup(zlib_deflater_out(ctx->zd), rp->len);
 			rp->compressed = TRUE;
-
-			zlib_deflater_free(ctx->zd, FALSE);
-		} else
-			zlib_deflater_free(ctx->zd, TRUE);
+		}
+		zlib_deflater_free(ctx->zd, TRUE);
 		ctx->zd = NULL;
 		goto done;
 		/* NOTREACHED */
