@@ -460,12 +460,22 @@
 # spam is ubiquitous and shows up in *every single* search;
 # "Free Game", "Hot Babes Screensavers", "Cute Puppies Screensavers" which
 # is AdWare and/or a trojan horse. It is directly related to the
-# "getlaidquickly" spam.
+# "getlaidquickly" spam. Apparently Relevance Marketing LTD is the culprit.
 67.55.65.20
 67.55.65.92/30
 216.255.178.18
-# The above mentioned adware downloads executables from this web server
+# Above mentioned adware downloads executables from the following web servers
+# puzzledesktop dot com
+64.40.106.131
+# relevancemarketingltd dot com
+64.40.106.132
+# a dot downloadmediacentral dot com
+64.40.106.133
+# sense-super dot com
 64.40.106.135
+# These belong to Relevance Marketing as well 
+64.72.123.100/29
+
 
 # Shares over 10000 pictures with all names matching "<celebrity>_pic_1.jpg";
 # The JPEGs show nothing but an URL at celebs dot deltaporn dot com on a white
