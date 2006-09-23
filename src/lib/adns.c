@@ -224,8 +224,7 @@ adns_cache_free_entry(adns_cache_t *cache, guint i)
 		g_assert(entry->hostname);
 		g_assert(entry->n > 0);
 
-		atom_str_free(entry->hostname);
-		entry->hostname = NULL;
+		atom_str_free_null(&entry->hostname);
 		wfree(entry, adns_cache_entry_size(entry->n));
 		cache->entries[i] = NULL;
 	}
