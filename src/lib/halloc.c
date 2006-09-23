@@ -146,8 +146,6 @@ hrealloc(void *old, size_t new_size)
 	return p;
 }
 
-#endif	/* !REMAP_ZALLOC */
-
 static void
 hdestroy_item(void *key, void *value, void *unused_udata)
 {
@@ -187,5 +185,7 @@ halloc_init(void)
 	}
 #endif	/* USE_CUSTOM_ALLOCATOR */
 }
+
+#endif	/* !REMAP_ZALLOC */
 
 /* vi: set ts=4 sw=4 cindent: */

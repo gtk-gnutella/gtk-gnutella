@@ -67,21 +67,12 @@ void zdestroy(zone_t *zone);
 #define REMAP_ZALLOC
 #endif
 
-#ifdef REMAP_ZALLOC
-
-#ifdef TRACK_ZALLOC
+#if defined(REMAP_ZALLOC) && defined(TRACK_ZALLOC)
 #error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
-#endif
-
-#define zalloc(z)	g_malloc((z)->zn_size)
-#define zfree(z,o)	g_free(o)
-
-#else	/* !REMAP_ZALLOC */
+#endif	/* REMAP_ZALLOC && TRACK_ZALLOC */
 
 gpointer zalloc(zone_t *);
 void zfree(zone_t *, gpointer);
-
-#endif	/* REMAP_ZALLOC */
 
 #ifdef TRACK_ZALLOC
 

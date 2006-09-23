@@ -110,9 +110,23 @@ struct zone {			/* Zone descriptor */
 #define DEFAULT_HINT		128		/**< Default amount of blocks in a zone */
 #define MAX_ZONE_SIZE		16384	/**< Maximum zone size */
 
-/* Under REMAP_ZALLOC, do not define zalloc() and zfree(). */
+/* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
-#ifndef REMAP_ZALLOC
+#ifdef REMAP_ZALLOC
+gpointer
+zalloc(zone_t *zone)
+{
+	return g_malloc(zone->zn_size);
+}
+
+void
+zfree(zone_t *zone, gpointer ptr)
+{
+	(void) zone;
+	g_free(ptr);
+}
+
+#else	/* !REMAP_ZALLOC */
 
 static gchar **zn_extend(zone_t *);
 
