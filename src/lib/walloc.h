@@ -78,9 +78,26 @@ wrealloc(gpointer p, size_t old_size, size_t new_size)
 #else	/* GLib < 2.10 */
 #define walloc(s)			g_malloc(s)
 #define walloc0(s)			g_malloc0(s)
-#define wcopy(p,s)			g_memdup((p), (s))
-#define wfree(p,s)			g_free(p)
-#define wrealloc(p,o,n)		g_realloc((p), (n))
+
+static inline gpointer
+wcopy(gconstpointer p, size_t size)
+{
+	return g_memdup(p, size);
+}
+
+static inline void
+wfree(gpointer p, size_t size)
+{
+	(void) size;
+	g_free(p);
+}
+
+static inline gpointer
+wrealloc(gpointer p, size_t o, size_t n)
+{
+	(void) o;
+	return g_realloc(p, n);
+}
 #endif	/* GLib >= 2.10 */
 
 #else	/* !REMAP_ZALLOC */
