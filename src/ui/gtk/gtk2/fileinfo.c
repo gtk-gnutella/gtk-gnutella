@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "lib/url.h"
 #include "lib/walloc.h"
 #include "lib/glib-missing.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static gnet_fi_t last_shown = 0;
@@ -1387,11 +1388,23 @@ gui_update_download_range(download_t *d)
 
 	metric = show_metric_units();
 	G_FREE_NULL(data->download.range);
-	data->download.range = g_strconcat(
-							len ? compact_size(len, metric) : "?",
-							and_more, d->skip ? " @ " : "",
-							d->skip ? compact_size(d->skip, metric) : "",
-							(void *) 0);
+	{
+		gchar buf[256];
+		gchar skip[64];
+
+		if (d->skip) {
+			g_strlcpy(skip, compact_size(d->skip, metric), sizeof skip);
+		} else {
+			skip[0] = '\0';
+		}
+		concat_strings(buf, sizeof buf,
+			len ? compact_size(len, metric) : "?",
+			and_more,
+			d->skip ? " @ " : "",
+			skip,
+			(void *) 0);
+		data->download.range = g_strdup(buf);
+	}
 	set_fileinfo_data(data);
 }
 
