@@ -286,7 +286,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 static void
 fi_gui_set_details(gnet_fi_t fih)
 {
-    gnet_fi_info_t *fi = NULL;
+    gnet_fi_info_t *fi;
     gnet_fi_status_t fis;
     gchar **aliases;
     guint n;
@@ -678,7 +678,7 @@ fi_gui_init(void)
     gtk_clist_set_column_justification(clist_fileinfo,
         c_fi_size, GTK_JUSTIFY_RIGHT);
 
-    gtk_clist_column_titles_passive(clist_fileinfo);
+    gtk_clist_column_titles_active(clist_fileinfo);
 
     /* Initialize the row filter */
     fi_gui_set_filter_regex(NULL);
@@ -758,6 +758,155 @@ fi_gui_update_display(time_t now)
 #else
 	(void) now;
 #endif
+}
+
+static inline gdouble
+fi_gui_percent_done(const gnet_fi_status_t *s)
+{
+	return ((gdouble) s->done / MAX(1, s->size)) * 100.0;
+}
+
+static inline guint
+fi_gui_numeric_status(const gnet_fi_status_t *s)
+{
+	guint v;
+
+	v = fi_gui_percent_done(s);
+	v |= s->size > 0 && s->size == s->done		? (1 <<  7) : 0;
+	v |= s->lifecount > 0						? (1 <<  8) : 0;
+	v |= s->aqueued_count || s->pqueued_count	? (1 <<  9) : 0;
+	v |= s->recvcount > 0						? (1 << 10) : 0;
+
+	return v;
+}
+
+static gint 
+fi_gui_cmp_filename(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_info_t *a_fi, *b_fi;
+    gnet_fi_t a, b;
+	gint r;
+   
+	(void) unused_clist;
+	a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+	a_fi = guc_fi_get_info(a);
+	b_fi = guc_fi_get_info(b);
+	r = strcmp(a_fi->file_name, b_fi->file_name);
+	guc_fi_free_info(b_fi);
+	guc_fi_free_info(a_fi);
+
+	return r;
+}
+
+static gint 
+fi_gui_cmp_size(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_status_t a, b;
+    gnet_fi_t fi_a, fi_b;
+
+	(void) unused_clist;
+	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    fi_b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+    guc_fi_get_status(fi_a, &a);
+    guc_fi_get_status(fi_b, &b);
+
+	return CMP(a.size, b.size);
+}
+
+static gint 
+fi_gui_cmp_done(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_status_t a, b;
+    gnet_fi_t fi_a, fi_b;
+
+	(void) unused_clist;
+	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    fi_b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+    guc_fi_get_status(fi_a, &a);
+    guc_fi_get_status(fi_b, &b);
+
+	return CMP(a.done, b.done);
+}
+
+static gint 
+fi_gui_cmp_sources(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_status_t a, b;
+    gnet_fi_t fi_a, fi_b;
+	gint r;
+
+	(void) unused_clist;
+	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    fi_b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+    guc_fi_get_status(fi_a, &a);
+    guc_fi_get_status(fi_b, &b);
+
+	r = CMP(a.recvcount, b.recvcount);
+	if (0 == r) {
+		r = CMP(a.aqueued_count + a.pqueued_count,
+				b.aqueued_count + b.pqueued_count);
+		if (0 == r) {
+			r = CMP(a.lifecount, b.lifecount);
+		}
+	}
+	return r;
+}
+
+static gint 
+fi_gui_cmp_status(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_status_t a, b;
+    gnet_fi_t fi_a, fi_b;
+
+	(void) unused_clist;
+	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    fi_b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+    guc_fi_get_status(fi_a, &a);
+    guc_fi_get_status(fi_b, &b);
+
+	return CMP(fi_gui_numeric_status(&a), fi_gui_numeric_status(&b));
+}
+
+void
+on_clist_fileinfo_click_column(GtkCList *clist, gint column,
+	gpointer unused_udata)
+{
+	static gint sort_col = c_fi_num;
+	static gboolean sort_invert;
+
+	(void) unused_udata;
+	
+	g_assert(column >= 0 && column < c_fi_num);
+
+	switch ((enum c_fi) column) {
+#define CASE(x) case c_fi_ ## x : \
+		gtk_clist_set_compare_func(clist, fi_gui_cmp_ ## x ); break;
+	CASE(filename)
+	CASE(size)
+	CASE(done)
+	CASE(sources)
+	CASE(status)
+#undef CASE
+	case c_fi_num:
+		g_assert_not_reached();
+	}
+
+	sort_invert = sort_col == column && !sort_invert;
+	sort_col = column;
+	gtk_clist_set_sort_type(clist,
+		sort_invert ? GTK_SORT_DESCENDING : GTK_SORT_ASCENDING);
+	gtk_clist_sort(clist);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

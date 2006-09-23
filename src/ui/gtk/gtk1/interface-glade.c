@@ -6535,6 +6535,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "unselect_row",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_unselect_row),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "click_column",
+                      GTK_SIGNAL_FUNC (on_clist_fileinfo_click_column),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_fi_regex), "activate",
                       GTK_SIGNAL_FUNC (on_entry_fi_regex_activate),
                       NULL);

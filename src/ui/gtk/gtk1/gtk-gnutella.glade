@@ -4572,6 +4572,11 @@
 			  <handler>on_clist_fileinfo_unselect_row</handler>
 			  <last_modification_time>Wed, 12 Mar 2003 23:33:05 GMT</last_modification_time>
 			</signal>
+			<signal>
+			  <name>click_column</name>
+			  <handler>on_clist_fileinfo_click_column</handler>
+			  <last_modification_time>Sat, 23 Sep 2006 20:31:07 GMT</last_modification_time>
+			</signal>
 			<columns>5</columns>
 			<column_widths>80,80,80,80,80</column_widths>
 			<selection_mode>GTK_SELECTION_EXTENDED</selection_mode>

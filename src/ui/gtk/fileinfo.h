@@ -42,7 +42,7 @@ void fi_gui_init(void);
 void fi_gui_update_display(time_t now);
 void fi_gui_shutdown(void);
 
-#ifndef USE_GTK2
+#ifdef USE_GTK1
 void on_clist_fileinfo_resize_column(GtkCList *, gint, gint, gpointer);
 gboolean on_clist_fileinfo_button_press_event(
     GtkWidget *, GdkEventButton *event, gpointer user_data);
@@ -52,7 +52,10 @@ void on_clist_fileinfo_select_row(
 
 void on_clist_fileinfo_unselect_row(
     GtkCList *, gint, gint, GdkEvent *, gpointer user_data);
-#endif /* USE_GTK2 */
+
+void on_clist_fileinfo_click_column(GtkCList * clist,
+	gint column, gpointer user_data);
+#endif /* USE_GTK1 */
 
 void on_button_fi_purge_clicked(
 	GtkButton *button, gpointer user_data);
