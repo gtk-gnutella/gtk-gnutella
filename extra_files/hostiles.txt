@@ -721,6 +721,21 @@
 212.209.1.0/24
 212.209.34.128/28
 
+# Elemental Codeworks Inc; LimeWire; nodes share thousands of aliases of a
+# couple of almost identical MOV files (adult.mov) which is about 8 MB large;
+# these files link to bang hypen sluts dot com.
+64.59.71.168/31
+64.59.72.174/31
+64.59.122.34
+64.72.118.3
+64.72.118.4/31
+64.72.118.83
+64.72.118.86
+65.38.163.52
+65.38.163.60/31
+208.122.192.13
+208.122.192.208
+
 # Open Proxies
 24.239.248.21
 61.90.250.15
