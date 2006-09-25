@@ -147,7 +147,7 @@
 66.220.6.64/27
 66.220.11.64/27
 66.220.12.0/24
-66.220.26.128/27
+66.220.26.128/25
 
 209.51.160.0/19
 216.66.0.0/18
@@ -250,6 +250,9 @@
 # results copy the query string adding diverse prefixes.
 85.88.2.192/27
 85.88.9.0/26
+87.122.158.215
+# Does not identify as Jironimo but seems to be the same
+85.176.167.202
 
 # Spammer hosted by pie.us
 # (Sansui Ltd. has 206.223.156.0/24)
