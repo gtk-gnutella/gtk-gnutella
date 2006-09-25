@@ -479,6 +479,43 @@ search_gui_close_search(search_t *sch)
 	wfree(sch, sizeof *sch);
 }
 
+static void
+search_gui_clear_sorting(search_t *sch)
+{
+	gint id;
+		
+	g_return_if_fail(sch);
+	g_return_if_fail(sch->model);
+
+#if GTK_CHECK_VERSION(2,6,0)
+	id = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+#else
+	id = c_sr_count;
+#endif /* Gtk+ >= 2.6.0 */
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
+		id, GTK_SORT_ASCENDING);
+}
+
+static void
+search_gui_restore_sorting(search_t *sch)
+{
+	g_return_if_fail(sch);
+	g_return_if_fail(sch->model);
+
+	if (
+		SORT_NONE != sch->sort_order &&
+		sch->sort_col >= 0 &&
+		(guint) sch->sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS
+	) {
+		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
+			sch->sort_col, SORT_ASC == sch->sort_order
+							? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+	} else {
+		search_gui_clear_sorting(sch);
+	}
+}
+
+
 /**
  * @returns TRUE if search was sucessfully created and FALSE if an error
  * happened. If the "search" argument is not NULL a pointer to the new
@@ -580,26 +617,7 @@ search_gui_new_search_full(const gchar *query_str,
 	}
 	sch->model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view));
 
-	if (
-		SORT_NONE != sch->sort_order &&
-		sch->sort_col >= 0 &&
-		(guint) sch->sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS
-	) {
-		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
-			sch->sort_col, SORT_ASC == sch->sort_order
-							? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
-	} else {
-		gint id;
-		
-#if GTK_CHECK_VERSION(2,6,0)
-		id = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
-#else
-		id = c_sr_count;
-#endif /* Gtk+ >= 2.6.0 */
-		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
-			id, GTK_SORT_ASCENDING);
-	}
-
+	search_gui_restore_sorting(sch);
 
 	/* Add the search to the TreeView in pane on the left */
 	model = GTK_LIST_STORE(gtk_tree_view_get_model(tree_view_search));
@@ -1846,6 +1864,7 @@ search_gui_set_current_search(search_t *sch)
 		tree_view_save_widths(tv_old, PROP_SEARCH_RESULTS_COL_WIDTHS);
 		tree_view_save_visibility(tv_old, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		tree_view_restore_visibility(tv_new, PROP_SEARCH_RESULTS_COL_VISIBLE);
+		search_gui_clear_sorting(current_search);
     } else if (default_search_tree_view) {
 		tree_view_save_widths(GTK_TREE_VIEW(default_search_tree_view),
 			PROP_SEARCH_RESULTS_COL_WIDTHS);
@@ -1895,6 +1914,7 @@ search_gui_set_current_search(search_t *sch)
 			gtk_tree_view_set_cursor(tree_view_search, path, NULL, FALSE);
 			gtk_tree_path_free(path);
 		}
+		search_gui_restore_sorting(sch);
     } else {
 		static const gchar * const popup_items[] = {
 			"popup_search_restart",
