@@ -2067,7 +2067,7 @@ file_info_hash_insert(fileinfo_t *fi)
 
 	file_info_check(fi);
 	g_assert(!fi->hashed);
-	g_assert(fi->size_atom);
+	g_assert((NULL != fi->size_atom) ^ (!fi->file_size_known));
 	g_assert(fi->guid);
 
 	if (fileinfo_debug > 4)
@@ -2157,7 +2157,7 @@ file_info_hash_remove(fileinfo_t *fi)
 
 	file_info_check(fi);
 	g_assert(fi->hashed);
-	g_assert(fi->size_atom);
+	g_assert((NULL != fi->size_atom) ^ (!fi->file_size_known));
 	g_assert(fi->guid);
 
 	if (fileinfo_debug > 4) {
