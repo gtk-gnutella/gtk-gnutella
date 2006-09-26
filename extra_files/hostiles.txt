@@ -250,6 +250,8 @@
 # results copy the query string adding diverse prefixes.
 85.88.2.192/27
 85.88.9.0/26
+# Versatel; dynamic pool but keep them for a while anyway
+87.122.147.34
 87.122.158.215
 # Does not identify as Jironimo but seems to be the same
 85.176.167.202
