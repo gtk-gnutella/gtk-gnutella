@@ -42,6 +42,7 @@ RCSID("$Id$")
 
 #include "whitelist.h"
 #include "settings.h"
+#include "tls_cache.h"
 #include "nodes.h"
 
 #include "lib/file.h"
@@ -101,12 +102,13 @@ whitelist_retrieve(void)
 
     while (fgets(line, sizeof line, f)) {
 		GSList *sl_addr, *sl;
-		const gchar *endptr;
+		const gchar *endptr, *start;
 		host_addr_t addr;
     	guint16 port;
 		guint8 bits;
 		gchar *p;
 		gboolean item_ok;
+		gboolean use_tls;
 
         linenum++;
         if ('#' == line[0]) continue;
@@ -126,19 +128,25 @@ whitelist_retrieve(void)
 		addr = zero_host_addr;
 		endptr = NULL;
 
-		if (!string_to_host_or_addr(line, &endptr, &addr)) {
+		endptr = is_strprefix(line, "tls:");
+		if (endptr) {
+			use_tls = TRUE;
+			start = endptr;
+		} else {
+			use_tls = FALSE;
+			start = line;
+		}
+
+		if (!string_to_host_or_addr(start, &endptr, &addr)) {
             g_warning("whitelist_retrieve(): "
 				"Line %d: Expected hostname or IP address \"%s\"",
 				linenum, line);
 			continue;
 		}
 
-        if (is_host_addr(addr)) {
-			sl_addr = g_slist_prepend(sl_addr, wcopy(&addr, sizeof addr));
-		} else {
+		{
 			gchar *name;
 			guchar c = *endptr;
-			size_t len;
 
 			switch (c) {
 			case '\0':
@@ -158,8 +166,7 @@ whitelist_retrieve(void)
 			}
 
 			/* Terminate the string for name_to_host_addr() */
-			len = endptr - line;
-			name = g_strndup(line, len); 
+			name = g_strndup(start, endptr - start); 
 			
 			/* @todo TODO: This should use the ADNS resolver. */
        		sl_addr = name_to_host_addr(name, settings_dns_net());
@@ -267,6 +274,13 @@ whitelist_retrieve(void)
 				item->addr = *addr_ptr;
 				item->port = port;
 				item->bits = bits ? bits : addr_default_mask(item->addr);
+
+				if (
+					item->port > 0 &&
+					addr_default_mask(item->addr) == item->bits
+				) {
+					tls_cache_insert(item->addr, item->port);
+				}
 
 				sl_whitelist = g_slist_prepend(sl_whitelist, item);
 			}
