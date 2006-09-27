@@ -222,22 +222,33 @@ my_malloc(gsize n)
 #endif	/* FRAGCHECK_TRACK_CALLERS */
 	
 	{
-		size_t from, to, i;
+		size_t from, to;
 
 		from = ((size_t) p - vars.alloc_base) / sizeof (union alloc);
-		to = from + (meta->size / sizeof (union alloc));
+		to = from + (meta->size / sizeof (union alloc)) - 1;
 
 		assert(from < BIT_COUNT);
-		assert(to < BIT_COUNT);
-		assert(to > from);
-		
-		for (i = from; i < to; i++) {
-			assert(!bit_array_get(vars.allocated, i));
-			bit_array_set(vars.allocated, i);
-			bit_array_set(vars.touched, i);
-			assert(bit_array_get(vars.allocated, i));
-			assert(bit_array_get(vars.touched, i));
+		assert(to <= BIT_COUNT);
+		assert(to >= from);
+	
+#if 0	
+		{
+			size_t i;
+
+			for (i = from; i <= to; i++) {
+				assert(!bit_array_get(vars.allocated, i));
+				bit_array_set(vars.allocated, i);
+				bit_array_set(vars.touched, i);
+				assert(bit_array_get(vars.allocated, i));
+				assert(bit_array_get(vars.touched, i));
+			}
 		}
+#else
+		assert(!bit_array_get(vars.allocated, from));
+		assert(!bit_array_get(vars.allocated, to));
+		bit_array_set_range(vars.allocated, from, to);
+		bit_array_set_range(vars.touched, from, to);
+#endif
 	}
 	assert(fragcheck_meta_lookup(p));
 	return p;
@@ -260,21 +271,33 @@ my_free(gpointer p)
 		assert(0 == (size_t) p % sizeof (union alloc));
 		assert((size_t) p >= (size_t) vars.alloc_base);
 		{
-			size_t from, to, i;
+			size_t from, to;
 
 			from = ((size_t) p - vars.alloc_base) / sizeof (union alloc);
-			to = from + (meta->size / sizeof (union alloc));
+			to = from + (meta->size / sizeof (union alloc)) - 1;
 
 			assert(from < BIT_COUNT);
-			assert(to < BIT_COUNT);
-			assert(to > from);
+			assert(to <= BIT_COUNT);
+			assert(to >= from);
 
-			for (i = from; i < to; i++) {
-				assert(bit_array_get(vars.touched, i));
-				assert(bit_array_get(vars.allocated, i));
-				bit_array_clear(vars.allocated, i);
-				assert(!bit_array_get(vars.allocated, i));
+#if 0
+			{
+				size_t i;
+
+				for (i = from; i <= to; i++) {
+					assert(bit_array_get(vars.touched, i));
+					assert(bit_array_get(vars.allocated, i));
+					bit_array_clear(vars.allocated, i);
+					assert(!bit_array_get(vars.allocated, i));
+				}
 			}
+#else
+			assert(bit_array_get(vars.allocated, from));
+			assert(bit_array_get(vars.allocated, to));
+			assert(bit_array_get(vars.touched, from));
+			assert(bit_array_get(vars.touched, to));
+			bit_array_clear_range(vars.touched, from, to);
+#endif
 		}
 		memset(p, 0, meta->size);
 		fragcheck_meta_delete(meta);
