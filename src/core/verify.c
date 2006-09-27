@@ -86,7 +86,7 @@ d_free(gpointer ctx)
 		close(vd->fd);
 		vd->fd = -1;
 	}
-	free(vd->buffer);
+	G_FREE_NULL(vd->buffer);
 	vd->magic = 0;
 	wfree(vd, sizeof *vd);
 }
