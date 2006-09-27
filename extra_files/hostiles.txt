@@ -599,9 +599,11 @@
 # addresses. Its job is either wasting resources or sniffing.
 # "The Hinshelwood Building, Edmund Halley Road, Oxford Science Park"
 81.179.85.55
-
 # The one below was first caught but might be outdated by now.
 81.179.74.227
+# This one seems to belong to these; it emits results for fake audio and
+# video files; switches GUID
+64.248.219.196
 
 # Time Warner Telecom
 64.128.109.144/28
