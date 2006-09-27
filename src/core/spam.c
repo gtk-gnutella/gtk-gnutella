@@ -88,7 +88,6 @@ typedef enum {
 
 struct spam_item {
 	gchar sha1[SHA1_RAW_SIZE];
-	time_t added;
 };
 
 static const struct spam_tag {
@@ -221,10 +220,8 @@ spam_add(const struct spam_item *item)
 	}
 #else	/* HAS_SQLITE */
 	if (spam_lut.ht) {
-		struct spam_item *item_copy;
-
-		item_copy = wcopy(item, sizeof *item);
-		g_hash_table_insert(spam_lut.ht, &item_copy->sha1, item_copy);
+		gchar *sha1 = atom_sha1_get(&item->sha1);
+		g_hash_table_insert(spam_lut.ht, sha1, sha1);
 	}
 #endif	/* HAS_SQLITE */
 }
@@ -316,9 +313,7 @@ spam_load(FILE *f)
 				time_t t;
 				
 				t = date2time(value, tm_time());
-				if ((time_t) -1 != t) {
-					item.added = t;
-				} else {
+				if ((time_t) -1 == t) {
 					damaged |= TRUE;
 				}
 			}
@@ -465,14 +460,12 @@ spam_init(void)
 
 #ifndef HAS_SQLITE
 static void
-spam_item_free(gpointer unused_key, gpointer value, gpointer unused_x)
+spam_item_free(gpointer key, gpointer value, gpointer unused_x)
 {
-	struct spam_item *item = value;
-	
-	(void) unused_key;
 	(void) unused_x;
 
-	wfree(item, sizeof *item);
+	g_assert(key == value);
+	atom_sha1_free(key);
 }
 #endif /* HAS_SQLITE */
 
