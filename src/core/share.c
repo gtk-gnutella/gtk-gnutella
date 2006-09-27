@@ -277,6 +277,7 @@ shared_file_free(shared_file_t **sf_ptr)
 
 		g_assert(sf->refcnt == 0);
 
+		atom_sha1_free_null(&sf->sha1);
 		atom_str_free(sf->file_path);
 		atom_str_free(sf->name_nfc);
 		atom_str_free(sf->name_canonic);
