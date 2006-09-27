@@ -359,7 +359,7 @@ subzone_alloc_arena(struct subzone *sz, size_t size)
 		sz->sz_base = malloc(sz->sz_size);
 	} else {
 		sz->sz_size = MAX(size, compat_pagesize());
-		sz->sz_base = malloc(sz->sz_size);
+		sz->sz_base = alloc_pages(sz->sz_size);
 	}
 }
 
@@ -369,7 +369,7 @@ subzone_free_arena(struct subzone *sz)
 	if (sz->sz_size < compat_pagesize()) {
 		free(sz->sz_base);
 	} else {
-		free(sz->sz_base);
+		free_pages(sz->sz_base, sz->sz_size);
 	}
 	sz->sz_base = NULL;
 	sz->sz_size = 0;

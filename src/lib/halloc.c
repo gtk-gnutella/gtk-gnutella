@@ -28,12 +28,15 @@
  * @file
  *
  * Hashtable-tracked allocator. Small chunks are allocated via walloc(),
- * whereas large chunks are served via compat_page_align(). The interface
+ * whereas large chunks are served via alloc_pages(). The interface
  * is the same as that of malloc()/free(). The hashtable keeps track of
  * the sizes which should gain a more compact memory layout and is
- * considered more cache-friendly. compat_page_align() may cause an overhead
+ * considered more cache-friendly. alloc_pages() may cause an overhead
  * up to (pagesize - 1) per allocation. The advantage is that the pages
  * will be unmapped on hfree().
+ *
+ * Define USE_CUSTOM_ALLOCATOR to override the default memory allocation
+ * functions used by GLib.
  *
  * @author Christian Biere
  * @date 2006
@@ -58,6 +61,10 @@ RCSID("$Id$")
  */
 
 #ifndef REMAP_ZALLOC
+
+#if 1
+#define USE_CUSTOM_ALLOCATOR 1
+#endif
 
 static hash_table_t *hallocations;
 
