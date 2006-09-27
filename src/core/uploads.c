@@ -630,7 +630,7 @@ handle_push_request(struct gnutella_node *n)
 			"PUSH request (hops=%d, ttl=%d) for invalid file index %u",
 			n->header.hops, n->header.ttl, file_index);
 	} else
-		file_name = req_file->name_nfc;
+		file_name = shared_file_name_nfc(req_file);
 
 	/*
 	 * XXX might be run inside corporations (private IPs), must be smarter.
@@ -1816,7 +1816,7 @@ upload_file_present(
 {
 	struct stat buf;
 
-	if (-1 == stat(sf->file_path, &buf)) {
+	if (-1 == stat(shared_file_path(sf), &buf)) {
 		/*
 		 * Probably a file shared via PFS, or they changed their library
 		 * and did not rescan yet.  It's important to detect this now in
@@ -1918,7 +1918,7 @@ get_file_to_upload_from_index(
 		if (sf && sha1_hash_available(sf)) {
 			if (!sha1_hash_is_uptodate(sf))
 				goto sha1_recomputed;
-			if (sha1_eq(digest, sf->sha1_digest))
+			if (sha1_eq(digest, shared_file_sha1(sf)))
 				goto found;
 		}
 
@@ -1956,7 +1956,8 @@ get_file_to_upload_from_index(
 					g_message("INDEX FIXED (push, SHA1 = %s): "
 						"requested %u, serving %u: %s\n",
 						sha1_base32(digest), idx,
-						sfn->file_index, sfn->file_path);
+						(guint) shared_file_index(sfn),
+						shared_file_path(sfn));
 				sf = sfn;
 				goto found;
 			}
@@ -1968,27 +1969,27 @@ get_file_to_upload_from_index(
 			 *		--RAM, 12/10/2003
 			 */
 
-			if (sfn->fi != NULL) {
+			if (shared_file_is_partial(sfn)) {
 				if (upload_debug > 1)
 					g_message("REQUEST FIXED (partial, SHA1 = %s): "
 						"requested \"%s\", serving \"%s\"\n",
 						sha1_base32(digest), u->name,
-						sfn->file_path);
+						shared_file_path(sfn));
 				sf = sfn;
 				goto found;
 			}
 
-			escaped = url_escape(sfn->name_nfc);
+			escaped = url_escape(shared_file_name_nfc(sfn));
 
 			gm_snprintf(location, sizeof(location),
 				"Location: http://%s/get/%u/%s\r\n",
 				host_addr_port_to_string(listen_addr(), listen_port),
-				sfn->file_index, escaped);
+				(guint) shared_file_index(sfn), escaped);
 
 			upload_error_remove_ext(u, sfn, location,
 				301, "Moved Permanently");
 
-			if (escaped != sfn->name_nfc) {
+			if (escaped != shared_file_name_nfc(sfn)) {
 				g_free(deconstify_gchar(escaped));
 				escaped = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
 			}
@@ -2021,13 +2022,13 @@ get_file_to_upload_from_index(
 		if (upload_debug > 1) {
 			if (sf)
 				g_message("BAD INDEX FIXED: requested %u, serving %u: %s\n",
-					idx, sf->file_index, sf->file_path);
+					idx, (guint) shared_file_index(sf), shared_file_path(sf));
 			else
 				g_message("BAD INDEX NOT FIXED: requested %u: %s\n",
 					idx, u->name);
 		}
 
-	} else if (0 != strcmp(u->name, sf->name_nfc)) {
+	} else if (0 != strcmp(u->name, shared_file_name_nfc(sf))) {
 		struct shared_file *sfn = shared_file_by_name(u->name);
 
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
@@ -2035,10 +2036,11 @@ get_file_to_upload_from_index(
 		if (upload_debug > 1) {
 			if (sfn)
 				g_message("INDEX FIXED: requested %u, serving %u: %s\n",
-					idx, sfn->file_index, sfn->file_path);
+					idx, (guint) shared_file_index(sfn),
+					shared_file_path(sfn));
 			else
 				g_message("INDEX MISMATCH: requested %u: %s (has %s)\n",
-					idx, u->name, sf->name_nfc);
+					idx, u->name, shared_file_name_nfc(sf));
 		}
 
 		if (NULL == sfn) {
@@ -2119,7 +2121,7 @@ get_file_to_upload_from_urn(
 		filename = filename == NULL ? atom_str_get(uri) :
 			atom_str_get(filename);
 	} else
-		filename = atom_str_get(sf->name_nfc);
+		filename = atom_str_get(shared_file_name_nfc(sf));
 
     if (u->name != NULL)
         atom_str_free(u->name);
@@ -2291,7 +2293,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	)
 		rw += gm_snprintf(buf, length,
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-			sha1_base32(a->sf->sha1_digest));
+			sha1_base32(shared_file_sha1(a->sf)));
 
 
 	/*
@@ -2315,7 +2317,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 	last_sent = u->last_dmesh ?
 		u->last_dmesh :
-		mi_get_stamp(u->socket->addr, sf->sha1_digest, now);
+		mi_get_stamp(u->socket->addr, shared_file_sha1(sf), now);
 
 	/*
 	 * Ranges are only emitted for partial files, so no pre-estimation of
@@ -2327,12 +2329,12 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	 * then when explicitly requested to do so.
 	 */
 
-	if (sf->fi != NULL && (flags & HTTP_CBF_SHOW_RANGES))
+	if (shared_file_is_partial(sf) && (flags & HTTP_CBF_SHOW_RANGES))
 		need_available_ranges = TRUE;
 
 	if (need_available_ranges) {
 		mesh_len = dmesh_alternate_location(
-			sf->sha1_digest, tmp, sizeof(tmp), u->socket->addr,
+			shared_file_sha1(sf), tmp, sizeof(tmp), u->socket->addr,
 			last_sent, u->user_agent, NULL, FALSE);
 
 		if ((guint) mesh_len < sizeof(tmp) - 5)
@@ -2347,7 +2349,8 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 	if (need_available_ranges && rw < range_length) {
 		g_assert(pfsp_server);		/* Or we would not have a partial file */
-		rw += file_info_available_ranges(sf->fi, &buf[rw], range_length - rw);
+		rw += file_info_available_ranges(shared_file_fileinfo(sf),
+				&buf[rw], range_length - rw);
 	}
 
 	/*
@@ -2374,7 +2377,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 			maxlen = MIN((guint) maxlen, sizeof(tmp));
 
 		rw += dmesh_alternate_location(
-			sf->sha1_digest, &buf[rw], maxlen, u->socket->addr,
+			shared_file_sha1(sf), &buf[rw], maxlen, u->socket->addr,
 			last_sent, u->user_agent, NULL, FALSE);
 
 		u->last_dmesh = now;
@@ -2428,7 +2431,7 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 		"Content-Type: %s\r\n"
 		"Content-Length: %s\r\n",
 			timestamp_rfc1123_to_string(a->mtime),
-			a->sf->content_type,
+			shared_file_content_type(a->sf),
 			csize);
 
 	g_assert(rw < length);
@@ -2759,7 +2762,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	const gchar *http_msg;
 	http_extra_desc_t hev[10];
 	size_t hevcnt = 0;
-	gchar *sha1 = NULL;
+	const gchar *sha1 = NULL;
 	gboolean is_followup =
 		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
@@ -3091,9 +3094,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	node_check_remote_ip_header(u->addr, header);
 
 	if (reqfile) {
-		idx = reqfile->file_index;
-		sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
-
+		idx = shared_file_index(reqfile);
+		sha1 = sha1_hash_available(reqfile) ? shared_file_sha1(reqfile) : NULL;
 
 		/*
 		 * If we pushed this upload, and they are not requesting the same
@@ -3104,7 +3106,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (u->push && idx != u->index && upload_debug)
 			g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				host_addr_to_string(u->addr), u->index, u->name, idx,
-				reqfile->name_nfc);
+				shared_file_name_nfc(reqfile));
 
 		/*
 		 * We already have a non-NULL u->name in the structure, because we
@@ -3121,18 +3123,21 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (u->name != NULL)
 			atom_str_free(u->name);
 
-		u->name = atom_str_get(reqfile->name_nfc);
-		u->file_info = reqfile->fi;		/* NULL unless partially shared file*/
+		u->name = atom_str_get(shared_file_name_nfc(reqfile));
+		/* NULL unless partially shared file */
+		u->file_info = shared_file_fileinfo(reqfile);
 
 		/*
 		 * Range: bytes=10453-23456
 		 */
 
 		buf = header_get(header, "Range");
-		if (buf && reqfile->file_size != 0) {
+		if (buf && shared_file_size(reqfile) > 0) {
 			http_range_t *r;
-			GSList *ranges =
-				http_range_parse("Range", buf,  reqfile->file_size, user_agent);
+			GSList *ranges;
+
+			ranges = http_range_parse("Range", buf,
+						shared_file_size(reqfile), user_agent);
 
 			if (ranges == NULL) {
 				upload_error_remove(u, NULL, 400, "Malformed Range request");
@@ -3150,14 +3155,15 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				if (upload_debug)
 					g_warning("client %s <%s> requested several ranges "
 						"for \"%s\": %s", host_addr_to_string(u->addr),
-						u->user_agent ? u->user_agent : "", reqfile->name_nfc,
+						u->user_agent ? u->user_agent : "",
+						shared_file_name_nfc(reqfile),
 						http_range_to_string(ranges));
 			}
 
 			r = (http_range_t *) ranges->data;
 
 			g_assert(r->start <= r->end);
-			g_assert(r->end < reqfile->file_size);
+			g_assert(r->end < shared_file_size(reqfile));
 
 			skip = r->start;
 			end = r->end;
@@ -3170,8 +3176,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 * Validate the requested range.
 		 */
 
-		fpath = reqfile->file_path;
-		u->file_size = reqfile->file_size;
+		fpath = shared_file_path(reqfile);
+		u->file_size = shared_file_size(reqfile);
 
 		if (!has_end)
 			end = u->file_size - 1;
@@ -3184,8 +3190,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 
 		if (
-				reqfile->fi != NULL &&
-				!file_info_restrict_range(reqfile->fi, skip, &end)
+			shared_file_is_partial(reqfile) &&
+			!file_info_restrict_range(shared_file_fileinfo(reqfile), skip, &end)
 		   ) {
 			g_assert(pfsp_server);
 			range_unavailable = TRUE;
@@ -3306,7 +3312,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (upload_debug) g_warning(
 			"host %s sent initial request for %u (%s), now requesting %u (%s)",
 			host_addr_to_string(s->addr),
-			u->index, u->name, idx, reqfile->name_nfc);
+			u->index, u->name, idx, shared_file_name_nfc(reqfile));
 		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
 		return;
 	}
@@ -3795,7 +3801,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		p += len;
 		size -= len;
 
-		len = url_escape_into(reqfile->name_nfc, p, size);
+		len = url_escape_into(shared_file_name_nfc(reqfile), p, size);
 		if ((size_t) -1 != len) {
 			static const gchar term[] = "\"\r\n";
 

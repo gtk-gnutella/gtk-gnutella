@@ -74,6 +74,28 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+struct shared_file {
+	const gchar *file_path;		/**< The full path of the file (atom!) */
+	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
+	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
+	const gchar *content_type;	/**< MIME content type (static string) */
+
+	size_t name_nfc_len;		/**< strlen(name_nfc) */
+	size_t name_canonic_len;	/**< strlen(name_canonic) */
+
+	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
+
+	gchar *sha1;				/**< SHA1 digest, binary form, atom */
+
+	time_t mtime;				/**< Last modif. time, for SHA1 computation */
+
+	filesize_t file_size;		/**< File size in Bytes */
+	guint32 file_index;			/**< the files index within our local DB */
+
+	gint refcnt;				/**< Reference count */
+	guint32 flags;				/**< See below for definition */
+};
+
 /**
  * Describes special files which are served by GTKG.
  */
@@ -213,7 +235,8 @@ got_match(gpointer context, gpointer data)
 	shared_file_t *sf = data;
 
 	g_assert(sf);
-	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
+	/* Cannot match partially downloaded files */
+	g_assert(!shared_file_is_partial(sf));
 
 	/*
 	 * Don't insert duplicates (possible when matching both by SHA1 and name).
@@ -227,6 +250,73 @@ got_match(gpointer context, gpointer data)
 	qctx->files = g_slist_prepend(qctx->files, shared_file_ref(sf));
 	qctx->found++;
 }
+
+/**
+ * Allocate a shared_file_t structure.
+ */
+static shared_file_t *
+shared_file_alloc(void)
+{
+	static const shared_file_t zero_sf;
+	shared_file_t *sf;
+
+	sf = walloc(sizeof *sf);
+	*sf = zero_sf;
+	return sf;
+}
+
+/**
+ * Dispose of a shared_file_t structure and nullify the pointer.
+ */
+static void
+shared_file_free(shared_file_t **sf_ptr)
+{
+	g_assert(sf_ptr);
+	if (*sf_ptr) {
+		shared_file_t *sf = *sf_ptr;
+
+		g_assert(sf->refcnt == 0);
+
+		atom_str_free(sf->file_path);
+		atom_str_free(sf->name_nfc);
+		atom_str_free(sf->name_canonic);
+		wfree(sf, sizeof *sf);
+		*sf_ptr = NULL;
+	}
+}
+
+static gboolean
+shared_file_set_names(shared_file_t *sf, const gchar *filename)
+{
+	gchar *name;
+  
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+   	g_assert(!sf->name_nfc);
+   	g_assert(!sf->name_canonic);
+	
+	name = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
+	sf->name_nfc = atom_str_get(name);
+	if (name != filename) {
+		G_FREE_NULL(name);
+	}
+	name = UNICODE_CANONIZE(sf->name_nfc);
+	sf->name_canonic = atom_str_get(name);
+	if (name != sf->name_nfc) {
+		G_FREE_NULL(name);
+	}
+	sf->name_nfc_len = strlen(sf->name_nfc);
+	sf->name_canonic_len = strlen(sf->name_canonic);
+
+	if (0 == sf->name_nfc_len || 0 == sf->name_canonic_len) {
+		g_warning("Normalized filename is an empty string \"%s\" "
+			"(NFC=\"%s\", canonic=\"%s\")",
+			filename, sf->name_nfc, sf->name_canonic);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 
 /* ----------------------------------------- */
 
@@ -243,7 +333,6 @@ share_special_load(struct special_file *sp)
 {
 	FILE *f;
 	gint idx;
-	gchar *filename;
 	shared_file_t *sf;
 
 #ifndef OFFICIAL_BUILD
@@ -264,22 +353,23 @@ share_special_load(struct special_file *sp)
 	if (!f)
 		return NULL;
 
-	filename = make_pathname(fp[idx].dir, fp[idx].name);
-
 	/*
 	 * Create fake special file sharing structure, so that we can
 	 * upload it if requested.
 	 */
 
-	sf = walloc0(sizeof *sf);
-	sf->file_path = atom_str_get(filename);
-	sf->name_nfc = atom_str_get(sp->file);		/* ASCII is UTF-8 */
-	sf->name_canonic = atom_str_get(sp->file);
-	sf->name_nfc_len = strlen(sf->name_nfc);
-	sf->name_canonic_len = strlen(sf->name_canonic);
+	sf = shared_file_alloc();
+	{
+		gchar *filename = make_pathname(fp[idx].dir, fp[idx].name);
+		sf->file_path = atom_str_get(filename);
+		G_FREE_NULL(filename);
+	}
+	if (shared_file_set_names(sf, sp->file)) {
+		shared_file_free(&sf);
+		return NULL;
+	}
 	sf->content_type = share_mime_type(sp->type);
 
-	G_FREE_NULL(filename);
 	fclose(f);
 
 	return sf;
@@ -690,21 +780,6 @@ shared_dir_add(const gchar *path)
 }
 
 /**
- * Dispose of a shared_file_t structure.
- */
-static void
-shared_file_free(shared_file_t *sf)
-{
-	g_assert(sf != NULL);
-	g_assert(sf->refcnt == 0);
-
-	atom_str_free(sf->file_path);
-	atom_str_free(sf->name_nfc);
-	atom_str_free(sf->name_canonic);
-	wfree(sf, sizeof *sf);
-}
-
-/**
  * Add one more reference to a shared_file_t.
  * @return its argument, for convenience.
  */
@@ -725,7 +800,7 @@ shared_file_unref(shared_file_t *sf)
 	g_assert(sf->refcnt > 0);
 
 	if (--sf->refcnt == 0)
-		shared_file_free(sf);
+		shared_file_free(&sf);
 }
 
 static inline gint
@@ -851,7 +926,6 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 					0 == ascii_strcasecmp(start + 1, e->str))
 			) {
 				struct shared_file *found = NULL;
-				gchar *q;
 
 				if (share_debug > 5)
 					g_message("recurse_scan: full=\"%s\"", full);
@@ -883,46 +957,11 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 					break;
 				}
 
-				found = walloc0(sizeof *found);
-
+				found = shared_file_alloc();
 				found->file_path = atom_str_get(full);
 
-				/*
-				 * Explicitely NFC for better inter-vendor support
-				 * and because it's tighter.
-				 */
-				q = filename_to_utf8_normalized(name, UNI_NORM_NETWORK);
-				found->name_nfc = atom_str_get(q);
-				if (q != name) {
-					G_FREE_NULL(q);
-				}
-				q = UNICODE_CANONIZE(found->name_nfc);
-				found->name_canonic = atom_str_get(q);
-				if (q != found->name_nfc) {
-					G_FREE_NULL(q);
-				}
-#if 0
-				printf("\npath=\"%s\"\nnfc=\"%s\"\ncanonic=\"%s\"\n",
-					found->file_path, found->name_nfc, found->name_canonic);
-#endif
-
-				found->name_nfc_len = strlen(found->name_nfc);
-				found->name_canonic_len = strlen(found->name_canonic);
-
-				found->file_size = file_stat.st_size;
-				found->file_index = ++files_scanned;
-				found->mtime = file_stat.st_mtime;
-				found->flags = 0;
-				found->content_type =
-					share_mime_type(SHARE_M_APPLICATION_BINARY);
-
-				if (0 == found->name_nfc_len || 0 == found->name_canonic_len) {
-					g_warning(
-						"Normalized filename is an empty string \"%s\" "
-						"(NFC=\"%s\", canonic=\"%s\")",
-						full, found->name_nfc, found->name_canonic);
-					shared_file_free(found);
-					found = NULL;
+				if (shared_file_set_names(found, name)) {
+					shared_file_free(&found);
 					break;
 				}
 
@@ -934,10 +973,15 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 	 		  	 	 */
 
 					g_warning("will not share partial file \"%s\"", full);
-					shared_file_free(found);
-					found = NULL;
+					shared_file_free(&found);
 					break;
 				}
+
+				found->file_size = file_stat.st_size;
+				found->file_index = ++files_scanned;
+				found->mtime = file_stat.st_mtime;
+				found->content_type =
+					share_mime_type(SHARE_M_APPLICATION_BINARY);
 
 				if (request_sha1(found)) {
 					st_insert_item(search_table, found->name_canonic, found);
@@ -1172,10 +1216,12 @@ share_scan(void)
 static void
 special_free_kv(gpointer unused_key, gpointer val, gpointer unused_udata)
 {
+	shared_file_t *sf = val;
+
 	(void) unused_key;
 	(void) unused_udata;
 
-	shared_file_free(val);
+	shared_file_free(&sf);
 }
 
 /**
@@ -1972,7 +2018,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			struct shared_file *sf;
 
 			sf = shared_file_by_sha1(exv_sha1[i].sha1_digest);
-			if (sf && sf != SHARE_REBUILDING && sf->fi == NULL) {
+			if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf)) {
 				got_match(qctx, sf);
 				max_replies--;
 			}
@@ -2077,7 +2123,7 @@ static GTree *sha1_to_share = NULL;
  * Used to search the sha1_to_share tree.
  */
 static gint
-compare_share_sha1(const gchar *s1, const gchar *s2)
+compare_share_sha1(gconstpointer s1, gconstpointer s2)
 {
 	return memcmp(s1, s2, SHA1_RAW_SIZE);
 }
@@ -2091,7 +2137,7 @@ reinit_sha1_table(void)
 	if (sha1_to_share)
 		g_tree_destroy(sha1_to_share);
 
-	sha1_to_share = g_tree_new((GCompareFunc) compare_share_sha1);
+	sha1_to_share = g_tree_new(compare_share_sha1);
 }
 
 /**
@@ -2100,22 +2146,31 @@ reinit_sha1_table(void)
  * huge.c when it knows what the hash associated to a file is.
  */
 void
-set_sha1(struct shared_file *f, const char *sha1)
+shared_file_set_sha1(struct shared_file *sf, const char *sha1)
 {
-	g_assert(f->fi == NULL);		/* Cannot be a partial file */
+	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
 
 	/*
 	 * If we were recomputing the SHA1, remove the old version.
 	 */
 
-	if (f->flags & SHARE_F_RECOMPUTING) {
-		f->flags &= ~SHARE_F_RECOMPUTING;
-		g_tree_remove(sha1_to_share, f->sha1_digest);
+	if (sf->flags & SHARE_F_RECOMPUTING) {
+		sf->flags &= ~SHARE_F_RECOMPUTING;
+		g_tree_remove(sha1_to_share, sf->sha1);
 	}
 
-	memcpy(f->sha1_digest, sha1, SHA1_RAW_SIZE);
-	f->flags |= SHARE_F_HAS_DIGEST;
-	g_tree_insert(sha1_to_share, f->sha1_digest, f);
+	atom_sha1_free_null(&sf->sha1);
+	sf->sha1 = atom_sha1_get(sha1);
+	sf->flags |= SHARE_F_HAS_DIGEST;
+	g_tree_insert(sha1_to_share, sf->sha1, sf);
+}
+
+void
+shared_file_set_modification_time(struct shared_file *sf, time_t mtime)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	sf->mtime = mtime;
 }
 
 /**
@@ -2159,7 +2214,7 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 	 * files we serve MUST have known SHA1.
 	 */
 
-	if (sf->fi != NULL) {
+	if (shared_file_is_partial(sf)) {
 		g_assert(sf->fi->sha1 != NULL);
 		return TRUE;
 	}
@@ -2167,14 +2222,16 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 	if (-1 == stat(sf->file_path, &buf)) {
 		g_warning("can't stat shared file #%d \"%s\": %s",
 			sf->file_index, sf->file_path, g_strerror(errno));
-		g_tree_remove(sha1_to_share, sf->sha1_digest);
+		g_tree_remove(sha1_to_share, sf->sha1);
+		atom_sha1_free_null(&sf->sha1);
 		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		return FALSE;
 	}
 
 	if (too_big_for_gnutella(buf.st_size)) {
 		g_warning("File is too big to be shared: \"%s\"", sf->file_path);
-		g_tree_remove(sha1_to_share, sf->sha1_digest);
+		g_tree_remove(sha1_to_share, sf->sha1);
+		atom_sha1_free_null(&sf->sha1);
 		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		return FALSE;
 	}
@@ -2201,12 +2258,117 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 	return TRUE;
 }
 
+gboolean
+shared_file_is_partial(const struct shared_file *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return NULL != sf->fi;
+}
+
+filesize_t
+shared_file_size(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->file_size;
+}
+
+guint32
+shared_file_index(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->file_index;
+}
+
+const gchar *
+shared_file_sha1(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->sha1;
+}
+
+const gchar *
+shared_file_name_nfc(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->name_nfc;
+}
+
+const gchar *
+shared_file_name_canonic(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->name_canonic;
+}
+
+size_t
+shared_file_name_nfc_len(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->name_nfc_len;
+}
+
+size_t
+shared_file_name_canonic_len(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->name_canonic_len;
+}
+
+const gchar *
+shared_file_path(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->file_path;
+}
+
+time_t
+shared_file_modification_time(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->mtime;
+}
+
+guint32
+shared_file_flags(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->flags;
+}
+
+fileinfo_t *
+shared_file_fileinfo(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->fi;
+}
+
+const gchar *
+shared_file_content_type(const shared_file_t *sf)
+{
+	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
+	return sf->content_type;
+}
+
 void
 shared_file_remove(struct shared_file *sf)
 {
 	const struct shared_file *sfc;
 	
 	g_assert(sf);
+	g_assert(SHARE_REBUILDING != sf);
 
 	sfc = shared_file(sf->file_index);
 	if (SHARE_REBUILDING != sfc) {
@@ -2215,8 +2377,48 @@ shared_file_remove(struct shared_file *sf)
 	}
 	g_hash_table_remove(file_basenames, sf->name_nfc);
 	if (0 == sf->refcnt) {
-		shared_file_free(sf);
+		shared_file_free(&sf);
 	}
+}
+
+void
+shared_file_from_fileinfo(fileinfo_t *fi)
+{
+	shared_file_t *sf;
+
+	file_info_check(fi);
+
+	sf = shared_file_alloc();
+
+	/*
+	 * Determine a proper human-readable name for the file.
+	 * If it is an URN, look through the aliases.
+	 */
+
+	if (shared_file_set_names(sf, file_info_readable_filename(fi))) {
+		shared_file_free(&sf);
+		return;
+	}
+
+	{
+		gchar *path = make_pathname(fi->path, fi->file_name);
+		sf->file_path = atom_str_get(path);
+		G_FREE_NULL(path);
+	}
+
+	/* FIXME: DOWNLOAD_SIZE:
+	 * Do we need to add anything here now that fileinfos can have an
+	 *  unknown length? --- Emile
+	 */
+	sf->file_size = fi->size;
+	sf->file_index = URN_INDEX;
+	sf->mtime = fi->last_flush;
+	sf->flags = SHARE_F_HAS_DIGEST;
+	sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
+	sf->sha1 = atom_sha1_get(fi->sha1);
+	sf->fi = fi;		/* Signals it's a partially downloaded file */
+
+	fi->sf = shared_file_ref(sf);
 }
 
 /**

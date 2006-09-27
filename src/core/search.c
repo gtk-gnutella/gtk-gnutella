@@ -2870,7 +2870,7 @@ search_check_results_set(gnet_results_set_t *rs)
 		if (rc->sha1) {
 			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
 			if (sf && SHARE_REBUILDING != sf) {
-				if (sf->fi) {
+				if (shared_file_is_partial(sf)) {
             		set_flags(rc->flags, SR_PARTIAL);
 				} else {
 					set_flags(rc->flags, SR_SHARED);
@@ -3633,12 +3633,12 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
 	g_return_if_fail(SHARE_REBUILDING != sf);
 
 	rc = search_record_new();
-	rc->index = sf->file_index;
-	rc->size  = sf->file_size;
-	rc->name  = atom_str_get(sf->name_nfc);
-	rc->path  = atom_str_get(sf->file_path);
+	rc->index = shared_file_index(sf);
+	rc->size  = shared_file_size(sf);
+	rc->name  = atom_str_get(shared_file_name_nfc(sf));
+	rc->path  = atom_str_get(shared_file_path(sf));
 	if (sha1_hash_available(sf)) {
-		rc->sha1 = atom_sha1_get(sf->sha1_digest);
+		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
 	}
 	if (rc->alt_locs) {
 		rc->alt_locs = alt_locs_copy(alt_locs);
@@ -3733,7 +3733,10 @@ search_locally(gnet_search_t sh, const gchar *query)
 				continue;
 			} else if (SHARE_REBUILDING == sf) {
 				break;
-			} else if (!re || 0 == regexec(re, sf->name_nfc, 0, NULL, 0)) {
+			} else if (
+				!re ||
+				0 == regexec(re, shared_file_name_nfc(sf), 0, NULL, 0)
+			) {
 				search_add_local_file(rs, sf, alt_loc);	
 			}
 		}

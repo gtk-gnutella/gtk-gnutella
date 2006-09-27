@@ -41,32 +41,14 @@
 
 #include "common.h"
 #include "if/core/share.h"
+#include "if/core/fileinfo.h"
+
+typedef struct shared_file shared_file_t;
 
 struct extension {
 	gchar *str;					/**< Extension string (e.g. "html") */
 	size_t len;					/**< Extension length (e.g. 4) */
 };
-
-typedef struct shared_file {
-	const gchar *file_path;		/**< The full path of the file (atom!) */
-	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
-	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
-	const gchar *content_type;	/**< MIME content type (static string) */
-
-	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
-
-	filesize_t file_size;		/**< File size in Bytes */
-	guint32 file_index;			/**< the files index within our local DB */
-
-	gint refcnt;				/**< Reference count */
-	guint32 flags;				/**< See below for definition */
-
-	size_t name_nfc_len;		/**< strlen(name_nfc) */
-	size_t name_canonic_len;	/**< strlen(name_canonic) */
-
-	time_t mtime;				/**< Last modif. time, for SHA1 computation */
-	gchar sha1_digest[SHA1_RAW_SIZE];	/**< SHA1 digest, binary form */
-} shared_file_t;
 
 /**
  * shared_file flags
@@ -139,9 +121,25 @@ size_t compact_query(gchar *search);
 void query_strip_oob_flag(const struct gnutella_node *n, gchar *data);
 void query_set_oob_flag(const struct gnutella_node *n, gchar *data);
 
-void set_sha1(struct shared_file *, const gchar *sha1_digest);
-gboolean sha1_hash_available(const struct shared_file *);
+void shared_file_set_sha1(struct shared_file *, const gchar *sha1_digest);
+void shared_file_set_modification_time(struct shared_file *sf, time_t mtime);
+
+gboolean sha1_hash_available(const struct shared_file *sf);
 gboolean sha1_hash_is_uptodate(struct shared_file *sf);
+gboolean shared_file_is_partial(const struct shared_file *sf);
+filesize_t shared_file_size(const shared_file_t *sf);
+guint32 shared_file_index(const shared_file_t *sf);
+time_t shared_file_modification_time(const struct shared_file *sf);
+const gchar *shared_file_path(const shared_file_t *sf);
+const gchar *shared_file_sha1(const shared_file_t *sf);
+const gchar *shared_file_name_nfc(const shared_file_t *sf);
+const gchar *shared_file_name_canonic(const shared_file_t *sf);
+size_t shared_file_name_nfc_len(const shared_file_t *sf);
+size_t shared_file_name_canonic_len(const shared_file_t *sf);
+guint32 shared_file_flags(const shared_file_t *sf);
+fileinfo_t *shared_file_fileinfo(const shared_file_t *sf);
+const gchar *shared_file_content_type(const shared_file_t *sf);
+void shared_file_from_fileinfo(fileinfo_t *fi);
 
 const gchar *map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE]);
 

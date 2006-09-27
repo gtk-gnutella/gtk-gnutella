@@ -253,11 +253,11 @@ tt_compute_close(void) {
 }
 
 void
-request_tigertree(struct shared_file *sf)
+request_tigertree(const struct shared_file *sf)
 {
 	tt_file_to_hash_t *file_to_hash = walloc0(sizeof(tt_file_to_hash_t));
 
-	file_to_hash->file_name = atom_str_get(sf->file_path);
+	file_to_hash->file_name = atom_str_get(shared_file_path(sf));
 	files_to_hash = g_list_append(files_to_hash, file_to_hash);
 
 	if (tt_calculate_task == NULL) {

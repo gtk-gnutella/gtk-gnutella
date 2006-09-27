@@ -85,7 +85,7 @@ struct shared_file;
 
 struct st_entry {
 	gchar *string;				/* atom */
-	struct shared_file *data;
+	struct shared_file *sf;
 	guint32 mask;
 };
 
@@ -107,7 +107,7 @@ destroy_entry(struct st_entry *entry)
 	g_assert(entry != NULL);
 
 	atom_str_free_null(&entry->string);
-	shared_file_unref(entry->data);
+	shared_file_unref(entry->sf);
 	wfree(entry, sizeof *entry);
 }
 
@@ -364,7 +364,7 @@ st_insert_item(search_table_t *table, const gchar *s, gpointer data)
 
 	entry = walloc(sizeof *entry);
 	entry->string = atom_str_get(s);
-	entry->data = shared_file_ref(data);
+	entry->sf = shared_file_ref(data);
 	entry->mask = mask_hash(entry->string);
 
 	len = strlen(entry->string);
@@ -579,21 +579,23 @@ st_search(
 
 	while (nres < max_res && vcnt-- > 0) {
 		struct st_entry *e = *vals++;
-		struct shared_file *sf = e->data;
+		struct shared_file *sf = e->sf;
+		size_t canonic_len;
 
 		if ((e->mask & search_mask) != search_mask)
 			continue;		/* Can't match */
 
-		if (sf->name_canonic_len < minlen)
+		canonic_len = shared_file_name_canonic_len(sf);
+		if (canonic_len < minlen)
 			continue;		/* Can't match */
 
 		scanned++;
 
 		if (
-			entry_match(e->string, sf->name_canonic_len, pattern, wovec, wocnt)
+			entry_match(e->string, canonic_len, pattern, wovec, wocnt)
 		) {
 			if (dbg > 5)
-				printf("MATCH: %s\n", sf->name_nfc);
+				printf("MATCH: %s\n", shared_file_name_nfc(sf));
 			callback(ctx, sf);
 			nres++;
 		}

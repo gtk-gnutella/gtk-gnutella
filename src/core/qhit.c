@@ -509,7 +509,6 @@ failure:
 static gboolean
 add_file(const struct shared_file *sf)
 {
-	size_t needed = 8 + 2 + sf->name_nfc_len;		/* size of hit entry */
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
 	gint hcnt = 0;
@@ -517,13 +516,16 @@ add_file(const struct shared_file *sf)
 	gint ggep_len;
 	gboolean ok;
 	ggep_stream_t gs;
-	size_t left;
+	size_t left, needed;
 	gpointer start;
 
-	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
+	/* Cannot match partially downloaded files */
+	g_assert(!shared_file_is_partial(sf));
+
+	needed = 8 + 2 + shared_file_name_nfc_len(sf);	/* size of hit entry */
 
 	sha1_available = SHARE_F_HAS_DIGEST ==
-		(sf->flags & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
+		(shared_file_flags(sf) & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
 
 	/*
 	 * In case we emit the SHA1 as a GGEP "H", we'll grow the buffer
@@ -539,7 +541,7 @@ add_file(const struct shared_file *sf)
 		gint i, j;
 
 		needed += 9 + SHA1_BASE32_SIZE;
-		hcnt = dmesh_fill_alternate(sf->sha1_digest, hvec, QHIT_MAX_ALT);
+		hcnt = dmesh_fill_alternate(shared_file_sha1(sf), hvec, QHIT_MAX_ALT);
 
 		/* Scrap all non-IPv4 alt-locs. Unfortunately there is no
 		 * GGEP item to hold IPv6 addresses as of yet.
@@ -578,15 +580,15 @@ add_file(const struct shared_file *sf)
 	 * use the "LF" GGEP extension to hold the real size.
 	 */
 
-	fs32 = sf->file_size >= (1U << 31) ? ~0U : sf->file_size;
+	fs32 = shared_file_size(sf) >= (1U << 31) ? ~0U : shared_file_size(sf);
 
-	WRITE_GUINT32_LE(sf->file_index, &idx_le);
+	WRITE_GUINT32_LE(shared_file_index(sf), &idx_le);
 	if (!found_write(&idx_le, sizeof idx_le))
 		return FALSE;
 	WRITE_GUINT32_LE(fs32, &fs32_le);
 	if (!found_write(&fs32_le, sizeof fs32_le))
 		return FALSE;
-	if (!found_write(sf->name_nfc, sf->name_nfc_len))
+	if (!found_write(shared_file_name_nfc(sf), shared_file_name_nfc_len(sf)))
 		return FALSE;
 
 	/* Position equals the next byte to be written to */
@@ -604,7 +606,7 @@ add_file(const struct shared_file *sf)
 
 	if (sha1_available && !found_ggep_h()) {
 		static const gchar urnsha1[] = "urn:sha1:";
-		const gchar *b32 = sha1_base32(sf->sha1_digest);
+		const gchar *b32 = sha1_base32(shared_file_sha1(sf));
 		/* Good old way: ASCII URN */
 
 		if (!found_write(urnsha1, CONST_STRLEN(urnsha1)))
@@ -632,7 +634,7 @@ add_file(const struct shared_file *sf)
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(H), GGEP_W_COBS) &&
 			ggep_stream_write(&gs, &type, 1) &&
-			ggep_stream_write(&gs, sf->sha1_digest, SHA1_RAW_SIZE) &&
+			ggep_stream_write(&gs, shared_file_sha1(sf), SHA1_RAW_SIZE) &&
 			ggep_stream_end(&gs);
 
 		if (!ok)
@@ -648,7 +650,7 @@ add_file(const struct shared_file *sf)
 		gchar buf[sizeof(guint64)];
 		gint len;
 
-		len = ggept_lf_encode(sf->file_size, buf);
+		len = ggept_lf_encode(shared_file_size(sf), buf);
 
 		g_assert(len > 0 && len <= (gint) sizeof buf);
 
@@ -818,7 +820,7 @@ qhit_send_results(
  */
 void
 qhit_build_results(
-	GSList *files, gint count,
+	const GSList *files, gint count,
 	size_t max_msgsize,
 	qhit_process_t cb, gpointer udata,
 	const gchar *muid, gboolean use_ggep_h)

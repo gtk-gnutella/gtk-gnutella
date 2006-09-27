@@ -1209,15 +1209,17 @@ qrp_add_file(struct shared_file *sf)
 	 * Copy filename to buffer, since we're going to map it inplace.
 	 */
 
-	g_assert(utf8_is_valid_data(sf->name_nfc, sf->name_nfc_len));
-	g_assert(utf8_is_valid_data(sf->name_canonic, sf->name_canonic_len));
+	g_assert(utf8_is_valid_data(shared_file_name_nfc(sf),
+				shared_file_name_nfc_len(sf)));
+	g_assert(utf8_is_valid_data(shared_file_name_canonic(sf),
+				shared_file_name_canonic_len(sf)));
 
 	/*
 	 * The words in the QRP must be lowercased, but the pre-computed canonic
 	 * representation of the filename is already in lowercase form.
 	 */
 
-	wocnt = word_vec_make(sf->name_canonic, &wovec);
+	wocnt = word_vec_make(shared_file_name_canonic(sf), &wovec);
 
 	if (0 == wocnt)
 		return;
@@ -1260,7 +1262,8 @@ qrp_add_file(struct shared_file *sf)
 		}
 
 		if (qrp_debug > 8)
-			g_message("new QRP word \"%s\" [from %s]", word, sf->name_nfc);
+			g_message("new QRP word \"%s\" [from %s]",
+				word, shared_file_name_nfc(sf));
 	}
 
 	word_vec_free(wovec, wocnt);
@@ -1273,7 +1276,7 @@ qrp_add_file(struct shared_file *sf)
 		gchar key[256];
 
 		concat_strings(key, sizeof key,
-			"urn:sha1:", sha1_base32(sf->sha1_digest), (void *) 0);
+			"urn:sha1:", sha1_base32(shared_file_sha1(sf)), (void *) 0);
 		if (NULL == g_hash_table_lookup(ht_seen_words, key)) {
 			gpointer p;
 			size_t n;

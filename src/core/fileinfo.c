@@ -1268,63 +1268,8 @@ file_info_shared_sha1(const gchar *sha1)
 	 */
 
 	if (NULL == fi->sf) {
-		static const shared_file_t zero_sf;
-		shared_file_t *sf;
-		const gchar *filename;
-		gchar *path, *q;
-
-		sf = walloc(sizeof *sf);
-		*sf = zero_sf;
-
-		/*
-		 * Determine a proper human-readable name for the file.
-		 * If it is an URN, look through the aliases.
-		 */
-
-		filename = file_info_readable_filename(fi);
-
-		q = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
-		sf->name_nfc = atom_str_get(q);
-		if (q != filename)
-			G_FREE_NULL(q);
-
-		q = UNICODE_CANONIZE(sf->name_nfc);
-		sf->name_canonic = atom_str_get(q);
-		if (q != sf->name_nfc)
-			G_FREE_NULL(q);
-
-		sf->name_nfc_len = strlen(sf->name_nfc);
-		sf->name_canonic_len = strlen(sf->name_canonic);
-
-		if (0 == sf->name_nfc_len || 0 == sf->name_canonic_len) {
-			atom_str_free(sf->name_nfc);
-			atom_str_free(sf->name_canonic);
-			wfree(sf, sizeof *sf);
-			return NULL;
-		}
-
-		path = make_pathname(fi->path, fi->file_name);
-		g_assert(NULL != path);
-
-		fi->sf = shared_file_ref(sf);
-		sf->fi = fi;		/* Signals it's a partially downloaded file */
-
-		/* FIXME: DOWNLOAD_SIZE:
-		 * Do we need to add anything here now that fileinfos can have an
-		 *  unknown length? --- Emile
-		 */
-		sf->file_size = fi->size;
-		sf->file_index = URN_INDEX;
-		sf->mtime = fi->last_flush;
-		sf->flags = SHARE_F_HAS_DIGEST;
-		sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
-
-		memcpy(sf->sha1_digest, fi->sha1, SHA1_RAW_SIZE);
-
-		sf->file_path = atom_str_get(path);
-		G_FREE_NULL(path);
+		shared_file_from_fileinfo(fi);
 	}
-
 	return fi->sf;
 }
 

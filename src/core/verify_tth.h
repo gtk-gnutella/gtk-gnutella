@@ -41,7 +41,7 @@ struct shared_file;
 void tt_verify_init(void);
 void tt_verify_close(void);
 
-void request_tigertree(struct shared_file *sf);
+void request_tigertree(const struct shared_file *sf);
 void tt_compute_close(void);
 
 #endif /* _core_verify_tth_h_ */

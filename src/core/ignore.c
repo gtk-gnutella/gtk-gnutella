@@ -353,7 +353,7 @@ ignore_is_requested(const gchar *filename, filesize_t size, const gchar *sha1)
 		if (spam_check(sha1))
 			return IGNORE_SPAM;
 		sf = shared_file_by_sha1(sha1);
-		if (sf && sf != SHARE_REBUILDING && sf->fi == NULL)
+		if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf))
 			return IGNORE_LIBRARY;
 	} else {
 		namesize_t ns;

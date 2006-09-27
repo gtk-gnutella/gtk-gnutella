@@ -4080,7 +4080,7 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 		sf = shared_file_by_name(parq_ul->name);
 		if (sf != SHARE_REBUILDING) {
 			if (NULL != sf && sha1_hash_available(sf)) {
-				parq_ul->sha1 = atom_sha1_get(sf->sha1_digest);
+				parq_ul->sha1 = atom_sha1_get(shared_file_sha1(sf));
 				g_message("[PARQ UL] Found SHA1=%s for \"%s\"",
 					sha1_base32(parq_ul->sha1), parq_ul->name);
 				return TRUE;

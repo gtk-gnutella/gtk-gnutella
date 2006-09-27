@@ -53,7 +53,7 @@ void qhit_send_results(
 	struct gnutella_node *n, GSList *files, gint count,
 	const gchar *muid, gboolean use_ggep_h);
 void qhit_build_results(
-	GSList *files, gint count,
+	const GSList *files, gint count,
 	size_t max_msgsize,
 	qhit_process_t cb, gpointer udata,
 	const gchar *muid, gboolean use_ggep_h);

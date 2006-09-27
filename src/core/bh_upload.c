@@ -243,7 +243,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 			}
 
 			if (!bh->b_data) {
-				shared_file_t *sf;
+				const shared_file_t *sf;
 
 				bh->file_index++;
 				sf = shared_file(bh->file_index);
@@ -254,35 +254,38 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 				} else if (SHARE_REBUILDING == sf) {
 					browse_host_next_state(bh, BH_STATE_REBUILDING);
 				} else {
+					const gchar * const name_nfc = shared_file_name_nfc(sf);
+					const filesize_t file_size = shared_file_size(sf);
 					size_t html_size;
 					gchar *html_name;
 
-					html_size = 1 + html_escape(sf->name_nfc, NULL, 0);
+					html_size = 1 + html_escape(name_nfc, NULL, 0);
 					html_name = walloc(html_size);
-					html_escape(sf->name_nfc, html_name, html_size);
+					html_escape(name_nfc, html_name, html_size);
 
 					if (sha1_hash_available(sf)) {
+						const gchar * const sha1 = shared_file_sha1(sf);
+
 						bh->w_buf_size = w_concat_strings(&bh->w_buf,
 							"<li><a href=\"/uri-res/N2R?urn:sha1:",
-							sha1_base32(sf->sha1_digest),
+							sha1_base32(sha1),
 							"\">", html_name, "</a>&nbsp;[",
-							short_html_size(sf->file_size,
-								display_metric_units),
+							short_html_size(file_size, display_metric_units),
 							"]</li>\r\n",
 							(void *) 0);
 					} else {
 						gchar *escaped;
 
-						escaped = url_escape(sf->name_nfc);
+						escaped = url_escape(name_nfc);
 						bh->w_buf_size = w_concat_strings(&bh->w_buf,
 							"<li><a href=\"/get/",
-							uint64_to_string(sf->file_index),
+							uint64_to_string(shared_file_index(sf)),
 							"/", escaped, "\">", html_name, "</a>"
-							"&nbsp;[", short_html_size(sf->file_size,
-											display_metric_units),
+							"&nbsp;[",
+							short_html_size(file_size, display_metric_units),
 							"]</li>\r\n", (void *) 0);
 
-						if (escaped != sf->name_nfc) {
+						if (escaped != name_nfc) {
 							G_FREE_NULL(escaped);
 						}
 					}
@@ -371,7 +374,7 @@ browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
 		gint i;
 
 		for (i = 0; i < BH_SCAN_AHEAD; i++) {
-			shared_file_t *sf;
+			const shared_file_t *sf;
 
 		skip:
 			bh->file_index++;
@@ -384,7 +387,7 @@ browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
 			} else if (SHARE_REBUILDING == sf)
 				break;
 			else
-				files = g_slist_prepend(files, sf);
+				files = g_slist_prepend(files, deconstify_gpointer(sf));
 		}
 
 		if (NULL == files)		/* Did not find any more file to include */

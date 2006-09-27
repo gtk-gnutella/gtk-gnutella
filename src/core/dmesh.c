@@ -2113,9 +2113,10 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		has = NULL != g_hash_table_lookup(mesh, rc->sha1);
 
 		if (!has) {
-			struct shared_file *sf = shared_file_by_sha1(rc->sha1);
-			if (sf != NULL && sf != SHARE_REBUILDING && sf->fi == NULL)
-				has = TRUE;
+			const struct shared_file *sf = shared_file_by_sha1(rc->sha1);
+			has =	sf != NULL &&
+					sf != SHARE_REBUILDING &&
+					!shared_file_is_partial(sf);
 		}
 
 		if (has) {
