@@ -220,7 +220,7 @@ spam_add(const struct spam_item *item)
 	}
 #else	/* HAS_SQLITE */
 	if (spam_lut.ht) {
-		gchar *sha1 = atom_sha1_get(&item->sha1);
+		gchar *sha1 = atom_sha1_get(item->sha1);
 		g_hash_table_insert(spam_lut.ht, sha1, sha1);
 	}
 #endif	/* HAS_SQLITE */
