@@ -374,11 +374,16 @@ host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
 	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
 	uint32_to_string_buf(port, port_buf, sizeof port_buf);
 
-	if (NET_TYPE_IPV6 == host_addr_net(ha)) {
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IPV6:
 		n = concat_strings(dst, size, "[", host_buf, "]:",
 				port_buf, (void *) 0);
-	} else {
+		break;
+	case NET_TYPE_IPV4:
 		n = concat_strings(dst, size, host_buf, ":", port_buf, (void *) 0);
+		break;
+	default:
+		n = g_strlcpy(dst, host_buf, size);
 	}
 
 	return n;
