@@ -239,6 +239,14 @@ ban_allow(const host_addr_t addr)
 	struct addr_info *ipf;
 	time_t now = tm_time();
 
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+	case NET_TYPE_IPV6:
+		break;
+	default:
+		return BAN_OK;
+	}
+
 	ipf = g_hash_table_lookup(info, &addr);
 
 	/*
