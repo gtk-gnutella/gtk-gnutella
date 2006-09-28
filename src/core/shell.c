@@ -847,7 +847,7 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 		sizeof contime_buf);
 
 	gm_snprintf(buf, sizeof buf,
-		"%-21.45s %5.0u %s %2.2s %6.6s %6.6s %.30s",
+		"%-21.45s %5.1u %s %2.2s %6.6s %6.6s %.30s",
 		node_addr(n),
 		(guint) n->gnet_port,
 		node_flags_to_string(&flags),
@@ -1058,7 +1058,7 @@ shell_read_data(gnutella_shell_t *sh)
 		ret = s->wio.read(&s->wio, &s->buf[s->pos], size);
 		if (0 == ret) {
 			if (0 == s->pos) {
-				g_warning("shell connection closed: EOF");
+				g_message("shell connection closed: EOF");
 				shell_destroy(sh);
 				return;
 			}
@@ -1129,7 +1129,7 @@ shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(sh);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		g_warning ("shell connection closed: exception\n");
+		g_warning ("shell connection closed: exception");
 		shell_destroy(sh);
 		return;
 	}
