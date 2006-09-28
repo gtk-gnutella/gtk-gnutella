@@ -251,6 +251,7 @@
 85.88.2.192/27
 85.88.9.0/26
 # Versatel; dynamic pool but keep them for a while anyway
+87.122.23.75
 87.122.147.34
 87.122.158.215
 # Does not identify as Jironimo but seems to be the same
@@ -529,10 +530,12 @@
 38.100.229.105
 
 # MOV spammer; seems to use LimeWire; links to p2pblast com
-69.41.171.135
-69.41.171.162
+69.41.171.128/26
+69.41.173.31
+69.41.173.32/30
 72.36.200.120/29
 72.36.210.200/29
+72.36.216.48/29
 
 # Mutella-0.4.5 on port 6351 and others;
 # Zipped DRM WMV spam and dialer
