@@ -11564,19 +11564,20 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_config_confirm_quit;
   guint checkbutton_config_show_tooltips_key;
   GtkWidget *checkbutton_config_show_tooltips;
-  GtkWidget *label599;
-  GtkObject *spinbutton_entry_removal_timeout_adj;
-  GtkWidget *spinbutton_entry_removal_timeout;
-  GtkWidget *label600;
+  guint checkbutton_config_metric_key;
+  GtkWidget *checkbutton_config_metric;
+  GtkWidget *checkbutton_search_jump_to_created;
+  GtkWidget *label657;
+  GtkWidget *option_menu_config_toolbar_style;
+  GtkWidget *option_menu_config_toolbar_style_menu;
   GtkWidget *label652;
   GtkObject *spinbutton_search_accumulation_period_adj;
   GtkWidget *spinbutton_search_accumulation_period;
   GtkWidget *label653;
-  GtkWidget *label657;
-  GtkWidget *option_menu_config_toolbar_style;
-  GtkWidget *option_menu_config_toolbar_style_menu;
-  guint checkbutton_config_metric_key;
-  GtkWidget *checkbutton_config_metric;
+  GtkObject *spinbutton_entry_removal_timeout_adj;
+  GtkWidget *spinbutton_entry_removal_timeout;
+  GtkWidget *label600;
+  GtkWidget *label599;
   GtkWidget *frame64;
   GtkWidget *table45;
   guint checkbutton_expert_mode_key;
@@ -16775,7 +16776,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame52);
   gtk_box_pack_start (GTK_BOX (vbox77), frame52, FALSE, TRUE, 0);
 
-  table35 = gtk_table_new (6, 3, FALSE);
+  table35 = gtk_table_new (7, 3, FALSE);
   gtk_widget_set_name (table35, "table35");
   gtk_widget_ref (table35);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table35", table35,
@@ -16814,93 +16815,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label599 = gtk_label_new (_("Try to keep 'dead' entries around for"));
-  gtk_widget_set_name (label599, "label599");
-  gtk_widget_ref (label599);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label599", label599,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label599);
-  gtk_table_attach (GTK_TABLE (table35), label599, 0, 1, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label599), 0, 0.5);
-
-  spinbutton_entry_removal_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_entry_removal_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_entry_removal_timeout_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_entry_removal_timeout, "spinbutton_entry_removal_timeout");
-  gtk_widget_ref (spinbutton_entry_removal_timeout);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_entry_removal_timeout", spinbutton_entry_removal_timeout,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_entry_removal_timeout);
-  gtk_table_attach (GTK_TABLE (table35), spinbutton_entry_removal_timeout, 1, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label600 = gtk_label_new (_("seconds"));
-  gtk_widget_set_name (label600, "label600");
-  gtk_widget_ref (label600);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label600", label600,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label600);
-  gtk_table_attach (GTK_TABLE (table35), label600, 2, 3, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label600), 0, 0.5);
-
-  label652 = gtk_label_new (_("Update search results pane every"));
-  gtk_widget_set_name (label652, "label652");
-  gtk_widget_ref (label652);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label652", label652,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label652);
-  gtk_table_attach (GTK_TABLE (table35), label652, 0, 1, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label652), 0, 0.5);
-
-  spinbutton_search_accumulation_period_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_search_accumulation_period = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_accumulation_period_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_search_accumulation_period, "spinbutton_search_accumulation_period");
-  gtk_widget_ref (spinbutton_search_accumulation_period);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_search_accumulation_period", spinbutton_search_accumulation_period,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_search_accumulation_period);
-  gtk_table_attach (GTK_TABLE (table35), spinbutton_search_accumulation_period, 1, 2, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label653 = gtk_label_new (_("seconds"));
-  gtk_widget_set_name (label653, "label653");
-  gtk_widget_ref (label653);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label653", label653,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label653);
-  gtk_table_attach (GTK_TABLE (table35), label653, 2, 3, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label653), 0, 0.5);
-
-  label657 = gtk_label_new (_("Toolbar style"));
-  gtk_widget_set_name (label657, "label657");
-  gtk_widget_ref (label657);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label657", label657,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_table_attach (GTK_TABLE (table35), label657, 0, 1, 5, 6,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label657), 0, 0.5);
-
-  option_menu_config_toolbar_style = gtk_option_menu_new ();
-  gtk_widget_set_name (option_menu_config_toolbar_style, "option_menu_config_toolbar_style");
-  gtk_widget_ref (option_menu_config_toolbar_style);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_toolbar_style", option_menu_config_toolbar_style,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_table_attach (GTK_TABLE (table35), option_menu_config_toolbar_style, 1, 2, 5, 6,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  option_menu_config_toolbar_style_menu = gtk_menu_new ();
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_toolbar_style), option_menu_config_toolbar_style_menu);
-
   checkbutton_config_metric = gtk_check_button_new_with_label ("");
   checkbutton_config_metric_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_metric)->child),
                                    _("Show _metric units"));
@@ -16914,6 +16828,103 @@ create_dlg_prefs (void)
   gtk_table_attach (GTK_TABLE (table35), checkbutton_config_metric, 0, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_search_jump_to_created = gtk_check_button_new_with_label (_("Jump to newly created searches"));
+  gtk_widget_set_name (checkbutton_search_jump_to_created, "checkbutton_search_jump_to_created");
+  gtk_widget_ref (checkbutton_search_jump_to_created);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_search_jump_to_created", checkbutton_search_jump_to_created,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_jump_to_created);
+  gtk_table_attach (GTK_TABLE (table35), checkbutton_search_jump_to_created, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label657 = gtk_label_new (_("Toolbar style"));
+  gtk_widget_set_name (label657, "label657");
+  gtk_widget_ref (label657);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label657", label657,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_table_attach (GTK_TABLE (table35), label657, 0, 1, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label657), 0, 0.5);
+
+  option_menu_config_toolbar_style = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_config_toolbar_style, "option_menu_config_toolbar_style");
+  gtk_widget_ref (option_menu_config_toolbar_style);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_toolbar_style", option_menu_config_toolbar_style,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_table_attach (GTK_TABLE (table35), option_menu_config_toolbar_style, 1, 2, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  option_menu_config_toolbar_style_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_toolbar_style), option_menu_config_toolbar_style_menu);
+
+  label652 = gtk_label_new (_("Update search results pane every"));
+  gtk_widget_set_name (label652, "label652");
+  gtk_widget_ref (label652);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label652", label652,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label652);
+  gtk_table_attach (GTK_TABLE (table35), label652, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label652), 0, 0.5);
+
+  spinbutton_search_accumulation_period_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_search_accumulation_period = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_accumulation_period_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_search_accumulation_period, "spinbutton_search_accumulation_period");
+  gtk_widget_ref (spinbutton_search_accumulation_period);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_search_accumulation_period", spinbutton_search_accumulation_period,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_search_accumulation_period);
+  gtk_table_attach (GTK_TABLE (table35), spinbutton_search_accumulation_period, 1, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label653 = gtk_label_new (_("seconds"));
+  gtk_widget_set_name (label653, "label653");
+  gtk_widget_ref (label653);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label653", label653,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label653);
+  gtk_table_attach (GTK_TABLE (table35), label653, 2, 3, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label653), 0, 0.5);
+
+  spinbutton_entry_removal_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_entry_removal_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_entry_removal_timeout_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_entry_removal_timeout, "spinbutton_entry_removal_timeout");
+  gtk_widget_ref (spinbutton_entry_removal_timeout);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_entry_removal_timeout", spinbutton_entry_removal_timeout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_entry_removal_timeout);
+  gtk_table_attach (GTK_TABLE (table35), spinbutton_entry_removal_timeout, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label600 = gtk_label_new (_("seconds"));
+  gtk_widget_set_name (label600, "label600");
+  gtk_widget_ref (label600);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label600", label600,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label600);
+  gtk_table_attach (GTK_TABLE (table35), label600, 2, 3, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label600), 0, 0.5);
+
+  label599 = gtk_label_new (_("Try to keep 'dead' entries around for"));
+  gtk_widget_set_name (label599, "label599");
+  gtk_widget_ref (label599);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label599", label599,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label599);
+  gtk_table_attach (GTK_TABLE (table35), label599, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label599), 0, 0.5);
 
   frame64 = gtk_frame_new (_("Expert mode"));
   gtk_widget_set_name (frame64, "frame64");

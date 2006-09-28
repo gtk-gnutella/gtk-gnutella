@@ -5479,6 +5479,14 @@ static prop_map_t property_map[] = {
         "checkbutton_search_discard_hashless",
         FREQ_UPDATES, 0
     ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_SEARCH_JUMP_TO_CREATED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_jump_to_created",
+        FREQ_UPDATES, 0
+    ),
 };
 
 /* Not needed any longer */

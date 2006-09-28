@@ -714,7 +714,7 @@ prop = {
 
 prop = {
     name = "search_jump_to_created";
-    desc = "Jump to newly created searches.";
+    desc = "Jump to newly created searches";
     type = boolean;
     data = {
         default = TRUE;
