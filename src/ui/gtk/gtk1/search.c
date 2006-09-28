@@ -435,22 +435,19 @@ search_gui_new_search_full(const gchar *query_str,
 	 * the current search though, since the code relies on one always being
 	 * set when the list of searches is not empty.
 	 */
-	
-	if (sch->browse && !is_only_search)
-		gui_search_force_update_tab_label(sch);
-	else
+	if (is_only_search || (!sch->browse && search_jump_to_created)) {
 		search_gui_set_current_search(sch);
-
-	set_search_color(sch);
-
-	if (search)
+	} else {
+		gui_search_force_update_tab_label(sch);
+	}
+	if (search) {
 		*search = sch;
-
+	}
 	search_gui_query_free(&query);
-
 	if (sch->local) {
 		search_gui_init_dnd(GTK_CTREE(sch->ctree));
 	}
+	set_search_color(sch);
 	
 	return TRUE;
 }

@@ -665,19 +665,19 @@ search_gui_new_search_full(const gchar *query_str,
 	 * set when the list of searches is not empty.
 	 */
 	
-	if (sch->browse && !is_only_search)
-		gui_search_force_update_tab_label(sch, tm_time());
-	else
+	if (is_only_search || (!sch->browse && search_jump_to_created)) {
 		search_gui_set_current_search(sch);
-
-	if (NULL != search)
+	} else {
+		gui_search_force_update_tab_label(sch, tm_time());
+	}
+	if (search) {
 		*search = sch;
-
+	}
 	search_gui_query_free(&query);
-
 	if (sch->local) {
 		search_gui_init_dnd(GTK_TREE_VIEW(sch->tree_view));
 	}
+
 	return TRUE;
 }
 
