@@ -251,6 +251,7 @@
 85.88.2.192/27
 85.88.9.0/26
 # Versatel; dynamic pool but keep them for a while anyway
+89.246.53.174
 87.122.23.75
 87.122.147.34
 87.122.158.215
@@ -360,6 +361,7 @@
 69.28.230.192/27
 69.90.74.0/25
 69.90.216.64/26
+69.90.242.64/26
 # PEER1-NYCAT1AVLAN1-03; seemingly not part of PEER1-CALYEUNG-*
 # but the servers are.
 66.199.177.64/27
@@ -599,11 +601,13 @@
 # This is supposedly on a dynamic range but it's a very interesting caught.
 # It's listening on the standard port. It's a fake LimeWire that responds with
 # a Gnutella handshake no matter what was sent. It passes completely bogus
-# addresses. Its job is either wasting resources or sniffing.
+# addresses. Its job is either wasting resources or sniffing. It is also
+# actively connecting to other nodes.
 # "The Hinshelwood Building, Edmund Halley Road, Oxford Science Park"
-81.179.85.55
+85.210.156.0/24
+81.179.85.0/24
 # The one below was first caught but might be outdated by now.
-81.179.74.227
+81.179.74.0/24
 # This one seems to belong to these; it emits results for fake audio and
 # video files; switches GUID
 64.248.219.196
