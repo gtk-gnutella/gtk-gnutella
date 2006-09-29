@@ -754,6 +754,11 @@
 208.122.192.208
 216.17.100.198
 
+# MOV spammer; adds dozens hundreds of fake alt-locs; LimeWire-based
+194.126.193.8/30
+63.246.133.22
+207.150.184.52/31
+
 # Open Proxies
 24.239.248.21
 61.90.250.15
