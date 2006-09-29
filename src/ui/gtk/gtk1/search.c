@@ -490,7 +490,7 @@ search_gui_compare_records(gint sort_col,
             break;
 
         case c_sr_ext:
-            result = strcmp(r1->ext, r2->ext);
+            result = strcmp(EMPTY_STRING(r1->ext), EMPTY_STRING(r2->ext));
             break;
 
         case c_sr_charset:
@@ -1207,13 +1207,6 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 
 	/* Setup text for node. Note only parent nodes will have # and size shown */
 	{
-		const gchar *ext;
-		
-		ext = search_gui_get_filename_extension(rc->utf8_name);
-		rc->ext = atom_str_get(ext ? lazy_utf8_to_ui_string(ext) : "");
-	}
-
-	{
 		gint i;
 
 		for (i = 0; i < c_sr_num; i++) {
@@ -1224,7 +1217,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 				text = lazy_utf8_to_ui_string(rc->utf8_name);
 				break;
 	 		case c_sr_ext:
-				text = rc->ext;
+				text = EMPTY_STRING(rc->ext);
 				break;
 			case c_sr_charset:
 				text = rc->charset;

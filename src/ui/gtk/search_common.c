@@ -833,6 +833,11 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	rc->utf8_name = atom_str_get(lazy_unknown_to_utf8_normalized(r->name,
 									UNI_NORM_GUI, &rc->charset));
 
+	{
+		const gchar *ext = search_gui_get_filename_extension(rc->utf8_name);
+		rc->ext = ext ? atom_str_get(lazy_utf8_to_ui_string(ext)) : NULL;
+	}
+
 	if (NULL != r->alt_locs) {
 		{
 			gint i;

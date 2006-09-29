@@ -102,7 +102,6 @@ struct result_data {
 	const GdkColor *bg;
 
 	record_t *record;
-	gchar *ext;			/**< Atom */
 	gchar *meta;		/**< Atom */
 	gchar *info;		/**< g_strdup()ed */
 	guint count;		/**< count of children */
@@ -173,7 +172,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = data->record->utf8_name;
 		break;
 	case c_sr_ext:
-		text = data->ext;
+		text = data->record->ext;
 		break;
 	case c_sr_meta:
 		text = data->meta;
@@ -358,7 +357,6 @@ unref_record(GtkTreeModel *model, GtkTreePath *unused_path, GtkTreeIter *iter,
 	 * rd->record may point to freed memory now if this was the last reference
 	 */
 
-	atom_str_free_null(&rd->ext);
 	atom_str_free_null(&rd->meta);
 	G_FREE_NULL(rd->info);
 	WFREE_NULL(rd, sizeof *rd);
@@ -781,7 +779,7 @@ search_gui_cmp_ext(
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->ext, d2->ext);
+	ret = search_gui_cmp_strings(d1->record->ext, d2->record->ext);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -1042,10 +1040,6 @@ search_gui_add_record(
 
 	data->record = rc;
 
-	data->ext = search_gui_get_filename_extension(rc->utf8_name);
-	if (data->ext)
-		data->ext = atom_str_get(data->ext);
-
 	if (rc->info) {
 		data->info = NULL;
 	} else {
@@ -1252,12 +1246,10 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 		child_data = get_result_data(model, &child);
 		g_assert(child_data->record->refcount > 0);
 
-		atom_str_free_null(&rd->ext);
 		atom_str_free_null(&rd->meta);
 		G_FREE_NULL(rd->info);
 		
 		rd->record = child_data->record;
-		rd->ext = atom_str_get(child_data->ext);
 		rd->meta = child_data->meta;
 		rd->info = child_data->info;
 		
