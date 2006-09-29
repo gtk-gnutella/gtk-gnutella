@@ -531,13 +531,19 @@
 66.232.99.218
 38.100.229.105
 
-# MOV spammer; seems to use LimeWire; links to p2pblast com
+# MOV spammer; adds dozens hundreds of fake alt-locs; links to p2pblast com
+# LimeWire-based
+63.246.133.22
 69.41.171.128/26
 69.41.173.31
 69.41.173.32/30
 72.36.200.120/29
 72.36.210.200/29
 72.36.216.48/29
+72.36.217.176/29
+194.126.193.8/30
+207.150.184.52/31
+207.150.184.36/31
 
 # Mutella-0.4.5 on port 6351 and others;
 # Zipped DRM WMV spam and dialer
@@ -753,11 +759,6 @@
 208.122.192.13
 208.122.192.208
 216.17.100.198
-
-# MOV spammer; adds dozens hundreds of fake alt-locs; LimeWire-based
-194.126.193.8/30
-63.246.133.22
-207.150.184.52/31
 
 # Open Proxies
 24.239.248.21
