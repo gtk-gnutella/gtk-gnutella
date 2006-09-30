@@ -940,6 +940,9 @@ norm_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 static inline gchar
 kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 {
+	if (metric && v < ((guint64) -1) / 1024) {
+		v = (v * 1024) / 1000;
+	}
 	return size_scale(v, q, r, scale_prefixes(metric) + 1, metric);
 }
 
@@ -1052,7 +1055,7 @@ short_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 
 	c = norm_size_scale(v, &q, &r, metric);
 	if (0 != r) {
-		r /= metric ? 100.0 : 102.4;
+		r /= metric ? 10.0 : 10.24;
 		gm_snprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	} else {
 		gm_snprintf(buf, size, "%u %c%s", q, c, metric ? "" : "i");
