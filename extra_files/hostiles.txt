@@ -505,6 +505,7 @@
 # Little czech DRM WMV spammer with fake(?) Morpheus; results identify
 # as LimeWire; uses port 80 and others; results have no SHA-1; filenames
 # end with .wm instead of .wma or .wmv.
+82.208.41.192/29
 87.236.194.75
 87.236.194.76/31
 212.47.3.250
