@@ -629,12 +629,13 @@ fileinfo_numeric_status(const struct fileinfo_data *data)
 {
 	guint v;
 
-	v = fi_gui_relative_done(data);
+	v = fi_gui_relative_done(data, 100);
 	if (!data->is_download) {
-		v += data->size > 0 && data->size == data->done ? 800 : 0;
-		v += data->file.recv_count > 0 ? 400 : 0;
-		v += data->file.actively_queued || data->file.passively_queued? 200 : 0;
-		v += data->file.life_count > 0 ? 100 : 0;
+		v |= data->size > 0 && data->size == data->done ? (1 << 10) : 0;
+		v |= data->file.recv_count > 0 ? (1 << 9) : 0;
+		v |= (data->file.actively_queued || data->file.passively_queued)
+				? (1 << 8) : 0;
+		v |= data->file.life_count > 0 ? (1 << 7) : 0;
 	}
 	return v;
 }
