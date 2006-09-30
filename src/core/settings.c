@@ -294,7 +294,7 @@ save_pid(gint fd)
 /* ----------------------------------------- */
 
 /**
- * @return the amount of physical RAM in KB, or zero in case of failure
+ * @return the amount of physical RAM in bytes, or zero in case of failure
  */
 static guint64
 settings_getphysmemsize(void)
@@ -309,7 +309,7 @@ settings_getphysmemsize(void)
 		g_warning("sysconf(_SC_PHYS_PAGES) failed: %s", g_strerror(errno));
 		return 0;
 	}
-	return (pagesize >> 10) * (gulong) pages;
+	return pagesize * (guint64) (gulong) pages;
 }
 #elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM64)
 {
@@ -325,7 +325,7 @@ settings_getphysmemsize(void)
 		return 0;
 	}
 
-	return amount / 1024;
+	return amount;
 }
 #elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM)
 {
@@ -341,7 +341,7 @@ settings_getphysmemsize(void)
 		return 0;
 	}
 
-	return amount / 1024;
+	return amount;
 }
 #elif defined (HAS_GETINVENT)
 {
@@ -369,7 +369,7 @@ settings_getphysmemsize(void)
 		return 0;
 	}
 
-	return physmem * 1024;
+	return (guint64) physmem * 1024 * 1024;
 }
 #else /* ! _SC_PHYS_PAGES && ! HAS_SYSCTL && ! HAS_GETINVENT */
 {
@@ -434,7 +434,7 @@ void
 settings_init(void)
 {
 	guint64 memory = settings_getphysmemsize();
-	guint64 amount = memory; 
+	guint64 amount = memory / 1024;
 	guint max_fd;
 
 #ifdef RLIMIT_DATA 
@@ -442,7 +442,7 @@ settings_init(void)
 		struct rlimit lim;
 	
 		if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
-			guint32 maxdata = lim.rlim_cur >> 10;
+			guint32 maxdata = lim.rlim_cur / 1024;
 			amount = MIN(amount, maxdata);		/* For our purposes */
 		}
 	}
@@ -479,7 +479,7 @@ settings_init(void)
 
 	if (debugging(0)) {
 		g_message("detected amount of physical RAM: %s",
-			short_kb_size(memory, display_metric_units));
+			short_size(memory, display_metric_units));
 		g_message("process can use at maximum: %s",
 			short_kb_size(amount, display_metric_units));
 		g_message("process can use %u file descriptors", max_fd);
