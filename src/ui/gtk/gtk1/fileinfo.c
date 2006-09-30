@@ -211,13 +211,15 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
     guc_fi_get_status(fih, &s);
 
     gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d",
-        s.recvcount, s.aqueued_count+s.pqueued_count, s.lifecount);
+        s.recvcount, s.aqueued_count + s.pqueued_count, s.lifecount);
     titles[c_fi_sources] = fi_sources;
 
     if (s.done) {
+		gdouble d;
+
+		d = s.size > 0 ? ((gdouble) s.done / s.size) * 100.0 : 100.0;
         gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)",
-            short_size(s.done, show_metric_units()),
-			((float) s.done / s.size) * 100.0);
+            short_size(s.done, show_metric_units()), d);
         titles[c_fi_done] = fi_done;
     } else {
         titles[c_fi_done] = "-";
@@ -256,14 +258,14 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 						"; %s %s (%.1f%%)", _("Computing SHA1"),
 						short_size(s.sha1_hashed, show_metric_units()),
-						((float) s.sha1_hashed / s.size) * 100.0);
+						((gdouble) s.sha1_hashed / s.size) * 100.0);
 		}
 
 		if (s.copied > 0 && s.copied < s.size) 
 			rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 					"; %s %s (%.1f%%)", _("Moving"),
 					short_size(s.copied, show_metric_units()),
-					((float) s.copied / s.size) * 100.0);
+					((gdouble) s.copied / s.size) * 100.0);
 
         titles[c_fi_status] = fi_status;
     } else if (s.lifecount == 0) {
@@ -301,12 +303,17 @@ fi_gui_set_details(gnet_fi_t fih)
 
     cl_aliases = GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases"));
 
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
+    gtk_entry_printf(
+		GTK_ENTRY(lookup_widget(main_window, "entry_fi_sha1")),
+		"%s%s",
+		fi->sha1 ? "urn:sha1:" : _("<none>"),
+		fi->sha1 ? sha1_base32(fi->sha1) : "");
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget(main_window, "entry_fi_filename")),
         fi->file_name);
 	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
+    gtk_entry_printf(
+        GTK_ENTRY(lookup_widget(main_window, "entry_fi_size")),
         _("%s (%s bytes)"), short_size(fis.size, show_metric_units()), bytes);
 
     gtk_clist_freeze(cl_aliases);
@@ -333,14 +340,20 @@ fi_gui_set_details(gnet_fi_t fih)
 static void
 fi_gui_clear_details(void)
 {
+	static const gchar *widgets[] = {
+		"entry_fi_filename",
+		"entry_fi_sha1",
+		"entry_fi_size",
+	};
+	guint i;
+		
     last_shown_valid = FALSE;
 
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
-        "");
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
-        "");
+	for (i = 0; i < G_N_ELEMENTS(widgets); i++) {
+		GtkEntry *entry = GTK_ENTRY(lookup_widget(main_window, widgets[i]));
+		gtk_entry_set_text(entry, "");
+	}
+
     gtk_clist_clear(
         GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases")));
     gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
@@ -760,10 +773,26 @@ fi_gui_update_display(time_t now)
 #endif
 }
 
-static inline gdouble
-fi_gui_percent_done(const gnet_fi_status_t *s)
+static inline guint
+fi_gui_relative_done(const gnet_fi_status_t *s, guint base)
 {
-	return ((gdouble) s->done / MAX(1, s->size)) * 100.0;
+	filesize_t x;
+
+	/**
+	 * Use integer arithmetic because float or double might be too small
+	 * for 64-bit values.
+	 */
+	if (s->size == s->done) {
+		return base;
+	}
+	if (s->size > base) {
+		x = s->size / base;
+		x = s->done / MAX(1, x);
+	} else {
+		x = (s->done * base) / MAX(1, s->size);
+	}
+	base--;
+	return MIN(x, base);
 }
 
 static inline guint
@@ -771,11 +800,11 @@ fi_gui_numeric_status(const gnet_fi_status_t *s)
 {
 	guint v;
 
-	v = fi_gui_percent_done(s);
-	v |= s->size > 0 && s->size == s->done		? (1 <<  7) : 0;
-	v |= s->lifecount > 0						? (1 <<  8) : 0;
-	v |= s->aqueued_count || s->pqueued_count	? (1 <<  9) : 0;
-	v |= s->recvcount > 0						? (1 << 10) : 0;
+	v = fi_gui_relative_done(s, 100);
+	v |= (s->lifecount > 0)						? (1 <<  7) : 0;
+	v |= (s->aqueued_count || s->pqueued_count)	? (1 <<  8) : 0;
+	v |= (s->recvcount > 0)						? (1 <<  9) : 0;
+	v |= (s->size > 0 && s->size == s->done)	? (1 << 10) : 0;
 
 	return v;
 }
@@ -824,6 +853,7 @@ fi_gui_cmp_done(GtkCList *unused_clist,
 {
     gnet_fi_status_t a, b;
     gnet_fi_t fi_a, fi_b;
+	gint ret;
 
 	(void) unused_clist;
 	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
@@ -832,7 +862,8 @@ fi_gui_cmp_done(GtkCList *unused_clist,
     guc_fi_get_status(fi_a, &a);
     guc_fi_get_status(fi_b, &b);
 
-	return CMP(a.done, b.done);
+	ret = CMP(fi_gui_relative_done(&a, 1000), fi_gui_relative_done(&b, 1000));
+	return 0 == ret ? CMP(a.done, b.done) : ret;
 }
 
 static gint 
