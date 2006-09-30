@@ -602,7 +602,7 @@ fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
 }
 
 static inline guint
-fi_gui_relative_done(const gnet_fi_status_t *s, guint base)
+fi_gui_relative_done(const struct fileinfo_data *s, guint base)
 {
 	filesize_t x;
 
