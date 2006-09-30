@@ -935,10 +935,10 @@ norm_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 
 /**
  * Same as norm_size_scale_base2() but assumes v is already divided
- * by 1024 (binary) respectively 1000 (metric).
+ * by 1024 (binary).
  */
 static inline gchar
-kb_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
+kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 {
 	return size_scale(v, q, r, scale_prefixes(metric) + 1, metric);
 }
@@ -994,14 +994,12 @@ short_kb_size(guint64 size, gboolean metric)
 	guint q, r;
 	gchar c;
 	
-	if (size < kilo(metric)) {
-		const gchar c = scale_prefixes(metric)[1];
-		gm_snprintf(b, sizeof b, "%u %c%s",
-			(guint) size, c, byte_suffix(metric));
-	} else {
-		c = kb_size_scale(size, &q, &r, metric);
+	c = kib_size_scale(size, &q, &r, metric);
+	if (0 != r) {
 		r /= metric ? 10.0 : 10.24;
 		gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
+	} else {
+		gm_snprintf(b, sizeof b, "%u %c%s", q, c, byte_suffix(metric));
 	}
 
 	return b;
@@ -1017,9 +1015,9 @@ compact_kb_size(guint32 size, gboolean metric)
 	guint q, r;
 	gchar c;
 
-	c = kb_size_scale(size, &q, &r, metric);
+	c = kib_size_scale(size, &q, &r, metric);
 	if (0 != r) {
-		r /= 102.4;
+		r /= metric ? 100.0 : 102.4;
 		gm_snprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
 	} else {
 		gm_snprintf(b, sizeof b, "%u%c%s", q, c, byte_suffix(metric));
@@ -1037,7 +1035,7 @@ compact_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 
 	c = norm_size_scale(v, &q, &r, metric);
 	if (0 != r) {
-		r /= 102.4;
+		r /= metric ? 100.0 : 102.4;
 		gm_snprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
 	} else {
 		gm_snprintf(buf, size, "%u%c%s", q, c, metric ? "" : "i");
@@ -1054,7 +1052,7 @@ short_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 
 	c = norm_size_scale(v, &q, &r, metric);
 	if (0 != r) {
-		r /= 10.24;
+		r /= metric ? 100.0 : 102.4;
 		gm_snprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	} else {
 		gm_snprintf(buf, size, "%u %c%s", q, c, metric ? "" : "i");
