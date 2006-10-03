@@ -313,7 +313,6 @@
 # trailing part like "_full-l", "part-l", "part-s" etc.); usually Gnucleus
 64.182.136.130
 64.151.98.36
-
 # Same as above; DRM header links to 216.93.188.81; WhenU/SaveNow spam
 206.51.230.2
 206.51.230.176
@@ -322,6 +321,7 @@
 66.232.111.196
 66.232.112.62
 66.232.112.128/26
+66.232.118.0/27
 66.240.254.18
 72.21.50.90/31
 
