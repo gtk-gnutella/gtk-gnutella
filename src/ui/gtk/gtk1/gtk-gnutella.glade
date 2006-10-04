@@ -9434,66 +9434,6 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_autodownload</name>
-    <label>Auto-download selected by...</label>
-    <right_justify>False</right_justify>
-
-    <widget>
-      <class>GtkMenu</class>
-      <name>popup_search_autodownload_menu</name>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>popup_search_autodownload_name</name>
-	<signal>
-	  <name>activate</name>
-	  <handler>on_popup_search_autodownload_name_activate</handler>
-	  <last_modification_time>Wed, 19 Jun 2002 18:44:08 GMT</last_modification_time>
-	</signal>
-	<label>name</label>
-	<right_justify>False</right_justify>
-      </widget>
-
-      <widget>
-	<class>GtkMenuItem</class>
-	<name>popup_search_autodownload_sha1</name>
-	<signal>
-	  <name>activate</name>
-	  <handler>on_popup_search_autodownload_sha1_activate</handler>
-	  <last_modification_time>Wed, 19 Jun 2002 18:44:31 GMT</last_modification_time>
-	</signal>
-	<label>urn:sha1</label>
-	<right_justify>False</right_justify>
-      </widget>
-    </widget>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>separator3</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_new_from_selected</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_new_from_selected_activate</handler>
-      <last_modification_time>Sun, 15 Sep 2002 11:02:14 GMT</last_modification_time>
-    </signal>
-    <label>New search from selected</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>separator15</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
     <name>popup_search_expand_all</name>
     <signal>
       <name>activate</name>
@@ -10609,7 +10549,7 @@ for all filters</label>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
-		      <fill>True</fill>
+		      <fill>False</fill>
 		    </child>
 
 		    <widget>
@@ -10621,7 +10561,7 @@ for all filters</label>
 		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
+			<expand>True</expand>
 			<fill>True</fill>
 		      </child>
 
@@ -10642,36 +10582,19 @@ for all filters</label>
 		      <spacing>0</spacing>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+			<expand>True</expand>
+			<fill>True</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkButton</class>
-			<name>button_filter_text_reset</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>clicked</name>
-			  <handler>on_button_filter_reset_rule_clicked</handler>
-			  <last_modification_time>Sat, 08 Jun 2002 00:49:23 GMT</last_modification_time>
-			</signal>
-			<label>_Reset stats</label>
-			<relief>GTK_RELIEF_NORMAL</relief>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 
 		      <widget>
 			<class>GtkHBox</class>
 			<name>hbox138</name>
+			<border_width>4</border_width>
 			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
+			<spacing>2</spacing>
 			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
+			  <padding>4</padding>
+			  <expand>False</expand>
 			  <fill>True</fill>
 			</child>
 
@@ -10684,12 +10607,12 @@ for all filters</label>
 			    <handler>on_button_filter_add_rule_clicked</handler>
 			    <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 			  </signal>
-			  <label>Add/Replace</label>
+			  <label>Save</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -10706,8 +10629,8 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -10724,8 +10647,36 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkVSeparator</class>
+			  <name>vseparator10</name>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkButton</class>
+			  <name>button_filter_text_reset</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_filter_reset_rule_clicked</handler>
+			    <last_modification_time>Sat, 08 Jun 2002 00:49:23 GMT</last_modification_time>
+			  </signal>
+			  <label>_Reset stats</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 		      </widget>
@@ -10943,7 +10894,7 @@ for all filters</label>
 		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
+			<expand>True</expand>
 			<fill>True</fill>
 		      </child>
 
@@ -10965,35 +10916,18 @@ for all filters</label>
 		      <spacing>0</spacing>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+			<expand>True</expand>
+			<fill>True</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkButton</class>
-			<name>button_filter_ip_reset</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>clicked</name>
-			  <handler>on_button_filter_reset_rule_clicked</handler>
-			  <last_modification_time>Sat, 08 Jun 2002 00:49:37 GMT</last_modification_time>
-			</signal>
-			<label>_Reset stats</label>
-			<relief>GTK_RELIEF_NORMAL</relief>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 
 		      <widget>
 			<class>GtkHBox</class>
 			<name>hbox139</name>
+			<border_width>4</border_width>
 			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
+			<spacing>2</spacing>
 			<child>
-			  <padding>0</padding>
+			  <padding>4</padding>
 			  <expand>False</expand>
 			  <fill>False</fill>
 			</child>
@@ -11007,12 +10941,12 @@ for all filters</label>
 			    <handler>on_button_filter_add_rule_clicked</handler>
 			    <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 			  </signal>
-			  <label>Add/Replace</label>
+			  <label>Save</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <padding>2</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -11029,8 +10963,8 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -11047,8 +10981,36 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkVSeparator</class>
+			  <name>vseparator11</name>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkButton</class>
+			  <name>button_filter_ip_reset</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_filter_reset_rule_clicked</handler>
+			    <last_modification_time>Sat, 08 Jun 2002 00:49:37 GMT</last_modification_time>
+			  </signal>
+			  <label>_Reset stats</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 		      </widget>
@@ -11388,7 +11350,7 @@ for all filters</label>
 		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
+			<expand>True</expand>
 			<fill>True</fill>
 		      </child>
 
@@ -11410,35 +11372,18 @@ for all filters</label>
 		      <spacing>0</spacing>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+			<expand>True</expand>
+			<fill>True</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkButton</class>
-			<name>button_filter_size_reset</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>clicked</name>
-			  <handler>on_button_filter_reset_rule_clicked</handler>
-			  <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
-			</signal>
-			<label>_Reset stats</label>
-			<relief>GTK_RELIEF_NORMAL</relief>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 
 		      <widget>
 			<class>GtkHBox</class>
 			<name>hbox140</name>
+			<border_width>4</border_width>
 			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
+			<spacing>2</spacing>
 			<child>
-			  <padding>0</padding>
+			  <padding>4</padding>
 			  <expand>False</expand>
 			  <fill>False</fill>
 			</child>
@@ -11452,12 +11397,12 @@ for all filters</label>
 			    <handler>on_button_filter_add_rule_clicked</handler>
 			    <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 			  </signal>
-			  <label>Add/Replace</label>
+			  <label>Save</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -11474,8 +11419,8 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -11492,8 +11437,36 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkVSeparator</class>
+			  <name>vseparator12</name>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkButton</class>
+			  <name>button_filter_size_reset</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_filter_reset_rule_clicked</handler>
+			    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
+			  </signal>
+			  <label>_Reset stats</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 		      </widget>
@@ -11643,7 +11616,7 @@ for all filters</label>
 			<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 			<child>
 			  <padding>0</padding>
-			  <expand>False</expand>
+			  <expand>True</expand>
 			  <fill>True</fill>
 			</child>
 
@@ -11665,37 +11638,20 @@ for all filters</label>
 			<spacing>0</spacing>
 			<child>
 			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
+			  <expand>True</expand>
+			  <fill>True</fill>
 			</child>
-
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_filter_jump_reset</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_filter_reset_rule_clicked</handler>
-			    <last_modification_time>Sat, 08 Jun 2002 00:48:53 GMT</last_modification_time>
-			  </signal>
-			  <label>_Reset stats</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
 
 			<widget>
 			  <class>GtkHBox</class>
 			  <name>hbox141</name>
+			  <border_width>4</border_width>
 			  <homogeneous>False</homogeneous>
-			  <spacing>0</spacing>
+			  <spacing>2</spacing>
 			  <child>
-			    <padding>0</padding>
+			    <padding>4</padding>
 			    <expand>False</expand>
-			    <fill>False</fill>
+			    <fill>True</fill>
 			  </child>
 
 			  <widget>
@@ -11707,12 +11663,12 @@ for all filters</label>
 			      <handler>on_button_filter_add_rule_clicked</handler>
 			      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 			    </signal>
-			    <label>Add/Replace</label>
+			    <label>Save</label>
 			    <relief>GTK_RELIEF_NORMAL</relief>
 			    <child>
 			      <padding>0</padding>
-			      <expand>False</expand>
-			      <fill>False</fill>
+			      <expand>True</expand>
+			      <fill>True</fill>
 			    </child>
 			  </widget>
 
@@ -11729,8 +11685,8 @@ for all filters</label>
 			    <relief>GTK_RELIEF_NORMAL</relief>
 			    <child>
 			      <padding>0</padding>
-			      <expand>False</expand>
-			      <fill>False</fill>
+			      <expand>True</expand>
+			      <fill>True</fill>
 			    </child>
 			  </widget>
 
@@ -11747,8 +11703,36 @@ for all filters</label>
 			    <relief>GTK_RELIEF_NORMAL</relief>
 			    <child>
 			      <padding>0</padding>
-			      <expand>False</expand>
-			      <fill>False</fill>
+			      <expand>True</expand>
+			      <fill>True</fill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkVSeparator</class>
+			    <name>vseparator13</name>
+			    <child>
+			      <padding>0</padding>
+			      <expand>True</expand>
+			      <fill>True</fill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkButton</class>
+			    <name>button_filter_jump_reset</name>
+			    <can_focus>True</can_focus>
+			    <signal>
+			      <name>clicked</name>
+			      <handler>on_button_filter_reset_rule_clicked</handler>
+			      <last_modification_time>Sat, 08 Jun 2002 00:48:53 GMT</last_modification_time>
+			    </signal>
+			    <label>_Reset stats</label>
+			    <relief>GTK_RELIEF_NORMAL</relief>
+			    <child>
+			      <padding>0</padding>
+			      <expand>True</expand>
+			      <fill>True</fill>
 			    </child>
 			  </widget>
 			</widget>
@@ -12023,7 +12007,7 @@ for all filters</label>
 		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
+			<expand>True</expand>
 			<fill>True</fill>
 		      </child>
 
@@ -12046,37 +12030,20 @@ for all filters</label>
 		      <spacing>0</spacing>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+			<expand>True</expand>
+			<fill>True</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkButton</class>
-			<name>button_filter_sha1_reset</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>clicked</name>
-			  <handler>on_button_filter_reset_rule_clicked</handler>
-			  <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
-			</signal>
-			<label>_Reset stats</label>
-			<relief>GTK_RELIEF_NORMAL</relief>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 
 		      <widget>
 			<class>GtkHBox</class>
 			<name>hbox142</name>
+			<border_width>4</border_width>
 			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
+			<spacing>2</spacing>
 			<child>
-			  <padding>0</padding>
+			  <padding>4</padding>
 			  <expand>False</expand>
-			  <fill>False</fill>
+			  <fill>True</fill>
 			</child>
 
 			<widget>
@@ -12088,12 +12055,12 @@ for all filters</label>
 			    <handler>on_button_filter_add_rule_clicked</handler>
 			    <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 			  </signal>
-			  <label>Add/Replace</label>
+			  <label>Save</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -12110,8 +12077,8 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -12128,8 +12095,36 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkVSeparator</class>
+			  <name>vseparator14</name>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkButton</class>
+			  <name>button_filter_sha1_reset</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_filter_reset_rule_clicked</handler>
+			    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
+			  </signal>
+			  <label>_Reset stats</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 		      </widget>
@@ -12676,7 +12671,7 @@ for all filters</label>
 		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
+			<expand>True</expand>
 			<fill>True</fill>
 		      </child>
 
@@ -12698,37 +12693,20 @@ for all filters</label>
 		      <spacing>0</spacing>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+			<expand>True</expand>
+			<fill>True</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkButton</class>
-			<name>button_filter_flag_reset</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>clicked</name>
-			  <handler>on_button_filter_reset_rule_clicked</handler>
-			  <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
-			</signal>
-			<label>_Reset stats</label>
-			<relief>GTK_RELIEF_NORMAL</relief>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 
 		      <widget>
 			<class>GtkHBox</class>
 			<name>hbox143</name>
+			<border_width>4</border_width>
 			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
+			<spacing>2</spacing>
 			<child>
-			  <padding>0</padding>
+			  <padding>4</padding>
 			  <expand>False</expand>
-			  <fill>False</fill>
+			  <fill>True</fill>
 			</child>
 
 			<widget>
@@ -12740,12 +12718,12 @@ for all filters</label>
 			    <handler>on_button_filter_add_rule_clicked</handler>
 			    <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 			  </signal>
-			  <label>Add/Replace</label>
+			  <label>Save</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -12762,8 +12740,8 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -12780,8 +12758,36 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkVSeparator</class>
+			  <name>vseparator8</name>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkButton</class>
+			  <name>button_filter_flag_reset</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_filter_reset_rule_clicked</handler>
+			    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
+			  </signal>
+			  <label>_Reset stats</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 		      </widget>
@@ -13197,7 +13203,7 @@ for all filters</label>
 				<bottom_attach>1</bottom_attach>
 				<xpad>0</xpad>
 				<ypad>0</ypad>
-				<xexpand>False</xexpand>
+				<xexpand>True</xexpand>
 				<yexpand>False</yexpand>
 				<xshrink>False</xshrink>
 				<yshrink>False</yshrink>
@@ -13232,7 +13238,7 @@ for all filters</label>
 				<bottom_attach>2</bottom_attach>
 				<xpad>0</xpad>
 				<ypad>0</ypad>
-				<xexpand>False</xexpand>
+				<xexpand>True</xexpand>
 				<yexpand>False</yexpand>
 				<xshrink>False</xshrink>
 				<yshrink>False</yshrink>
@@ -13266,7 +13272,7 @@ for all filters</label>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
-		      <fill>False</fill>
+		      <fill>True</fill>
 		    </child>
 
 		    <widget>
@@ -13278,7 +13284,7 @@ for all filters</label>
 		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
+			<expand>True</expand>
 			<fill>True</fill>
 		      </child>
 
@@ -13300,37 +13306,20 @@ for all filters</label>
 		      <spacing>0</spacing>
 		      <child>
 			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+			<expand>True</expand>
+			<fill>True</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkButton</class>
-			<name>button_filter_state_reset</name>
-			<can_focus>True</can_focus>
-			<signal>
-			  <name>clicked</name>
-			  <handler>on_button_filter_reset_rule_clicked</handler>
-			  <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
-			</signal>
-			<label>_Reset stats</label>
-			<relief>GTK_RELIEF_NORMAL</relief>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 
 		      <widget>
 			<class>GtkHBox</class>
 			<name>hbox144</name>
+			<border_width>4</border_width>
 			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
+			<spacing>2</spacing>
 			<child>
-			  <padding>0</padding>
+			  <padding>4</padding>
 			  <expand>False</expand>
-			  <fill>False</fill>
+			  <fill>True</fill>
 			</child>
 
 			<widget>
@@ -13342,12 +13331,12 @@ for all filters</label>
 			    <handler>on_button_filter_add_rule_clicked</handler>
 			    <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 			  </signal>
-			  <label>Add/Replace</label>
+			  <label>Save</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -13364,8 +13353,8 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 
@@ -13382,8 +13371,36 @@ for all filters</label>
 			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkVSeparator</class>
+			  <name>vseparator9</name>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkButton</class>
+			  <name>button_filter_state_reset</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_filter_reset_rule_clicked</handler>
+			    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
+			  </signal>
+			  <label>_Reset stats</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
 			  </child>
 			</widget>
 		      </widget>

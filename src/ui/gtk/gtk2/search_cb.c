@@ -84,8 +84,6 @@ refresh_popups(void)
 		{	"popup_search_download" },
 		{	"popup_search_drop" },
 		{	"popup_search_drop_global" },
-		{	"popup_search_autodownload" },
-		{	"popup_search_new_from_selected" },
 		{	"popup_search_metadata" },
 		{	"popup_search_browse_host" },
 		{	"popup_search_copy_magnet" },
@@ -134,7 +132,6 @@ refresh_popups(void)
 		gtk_widget_set_sensitive(
 			lookup_widget(popup_search_list, "popup_search_resume"), FALSE);
     }
-
 }
 
 /***
@@ -494,6 +491,7 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 #if GTK_CHECK_VERSION(2,6,0)
 		gtk_tree_sortable_set_sort_column_id(model,
 			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
+		gtk_tree_view_column_set_sort_indicator(column, FALSE);
 #endif /* Gtk+ >= 2.6.0 */
 	} else {
 		/*
@@ -503,6 +501,7 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 		gtk_tree_sortable_set_sort_column_id(model, sort_col,
 			SORT_ASC == sch->sort_order
 				? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+		gtk_tree_view_column_set_sort_indicator(column, TRUE);
 	}
 	/* Make the column stays clickable. */
 	gtk_tree_view_column_set_clickable(column, TRUE);
@@ -907,66 +906,6 @@ on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
 			search_gui_get_record, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
         filter_get_global_pre());
-    g_slist_free(sl);
-}
-
-void
-on_popup_search_autodownload_name_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-    search_t *search;
-	GtkTreeSelection *selection;
-    GSList *sl;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search = search_gui_get_current_search();
-    g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection,
-			search_gui_get_record, gui_record_name_eq);
-    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule, search->filter);
-    g_slist_free(sl);
-}
-
-void
-on_popup_search_autodownload_sha1_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-    search_t *search;
-	GtkTreeSelection *selection;
-    GSList *sl;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	search = search_gui_get_current_search();
-    g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection,
-			search_gui_get_record, gui_record_sha1_eq);
-    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule, search->filter);
-    g_slist_free(sl);
-}
-
-void
-on_popup_search_new_from_selected_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-    search_t *search;
-	GtkTreeSelection *selection;
-    GSList *sl;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search = search_gui_get_current_search();
-    g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-    sl = tree_selection_collect_data(selection, search_gui_get_record,
-			gui_record_sha1_or_name_eq);
-    g_slist_foreach(sl, search_gui_add_targetted_search, search->filter);
     g_slist_free(sl);
 }
 

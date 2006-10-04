@@ -1634,40 +1634,6 @@ search_gui_flush(time_t now, gboolean force)
 }
 
 /**
- * Creates a new search based on the filename found and adds a filter
- * to it based on the sha1 hash if it has one or the exact filename if
- * it hasn't.
- *
- * @author Andrew Meredith <andrew@anvil.org>
- */
-void
-search_gui_add_targetted_search(gpointer data, gpointer unused_udata)
-{
-	const record_t *rec = data;
-    search_t *new_search = NULL;
-    rule_t *rule;
-
-	(void) unused_udata;
-    g_assert(rec != NULL);
-    g_assert(rec->utf8_name != NULL);
-
-    /* create new search item with search string set to filename */
-    search_gui_new_search(rec->utf8_name, 0, &new_search);
-    g_assert(new_search != NULL);
-
-    if (rec->sha1) {
-        rule = filter_new_sha1_rule(rec->sha1, rec->utf8_name,
-            		filter_get_download_target(), RULE_FLAG_ACTIVE);
-    } else {
-        rule = filter_new_text_rule(rec->utf8_name, RULE_TEXT_EXACT, TRUE,
-            		filter_get_download_target(), RULE_FLAG_ACTIVE);
-    }
-    g_assert(rule != NULL);
-
-    filter_append_rule(new_search->filter, rule);
-}
-
-/**
  * Restart a search from scratch, clearing all existing content.
  */
 void

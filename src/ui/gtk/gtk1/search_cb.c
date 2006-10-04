@@ -85,13 +85,14 @@ refresh_popup(void)
 	 * selected.
 	 */
 	static const struct {
+		const gboolean popup;
 		const gchar *name;
 	} menu[] = {
-		{	"popup_search_drop" },
-		{	"popup_search_drop_global" },
-		{	"popup_search_autodownload" },
-		{	"popup_search_new_from_selected" },
-		{	"popup_search_metadata" },
+		{	FALSE,	"button_search_download" },
+		{	TRUE,	"popup_search_drop" },
+		{	TRUE,	"popup_search_drop_global" },
+		{	TRUE,	"popup_search_metadata" },
+		{	TRUE,	"popup_search_browse_host" },
 	};
 	search_t *search = search_gui_get_current_search();
 	gboolean sensitive;
@@ -102,12 +103,13 @@ refresh_popup(void)
 	gtk_widget_set_sensitive(
 			lookup_widget(main_window, "button_search_download"),
 			sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_browse_host"), sensitive);
 
-	for (i = 0; i < G_N_ELEMENTS(menu); i++)
-		gtk_widget_set_sensitive(lookup_widget(popup_search, menu[i].name),
+	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
+		gtk_widget_set_sensitive(
+			lookup_widget(menu[i].popup ? popup_search : main_window,
+				menu[i].name),
 			sensitive);
+	}
 
 	sensitive = NULL != search;	
     gtk_widget_set_sensitive(
@@ -1014,67 +1016,6 @@ void on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     global_add_filter((GFunc) filter_add_drop_host_rule, gui_record_host_eq);
-}
-
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_autodownload_name_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search_add_filter((GFunc) filter_add_download_name_rule,
-		gui_record_name_eq);
-}
-
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_autodownload_sha1_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search_add_filter((GFunc) filter_add_download_sha1_rule,
-		gui_record_sha1_eq);
-}
-
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_new_from_selected_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-    GList *node_list;
-	GSList *data_list;
-    search_t *search;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search = search_gui_get_current_search();
-    g_assert(search != NULL);
-
-    gtk_clist_freeze(GTK_CLIST(search->ctree));
-
-	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
-	data_list = search_cb_collect_ctree_data(search->ctree,
-					node_list, gui_record_name_eq);
-
-    g_slist_foreach(data_list, (GFunc) search_gui_add_targetted_search, NULL);
-
-	gtk_clist_thaw(GTK_CLIST(search->ctree));
-	g_slist_free(data_list);
-	g_list_free(node_list);
 }
 
 
