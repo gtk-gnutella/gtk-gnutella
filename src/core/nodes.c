@@ -3976,8 +3976,6 @@ analyse_status(struct gnutella_node *n, gint *code)
 static gboolean
 node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 {
-	enum node_bad bad;
-
 	g_assert(handshaking || n->status == GTA_NODE_CONNECTED);
 	g_assert(n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA));
 
@@ -3993,40 +3991,11 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	}
 
 	/*
-	 * Always accept crawler and "forced" connections.
+	 * Always accept crawler connections.
 	 */
 
-	if (n->flags & (NODE_F_CRAWLER | NODE_F_FORCE))
+	if (n->flags & NODE_F_CRAWLER)
 		return TRUE;
-
-	/*
-	 * If a specific client version has proven to be very unstable during this
-	 * version, don't connect to it.
-	 *		-- JA 17/7/200
-	 */
-
-	if ((n->attrs & NODE_A_ULTRA) && (bad = node_is_bad(n)) != NODE_BAD_OK) {
-		const gchar *msg = "Unknown error";
-
-		switch (bad) {
-		case NODE_BAD_OK:
-			g_error("logic error");
-			break;
-		case NODE_BAD_IP:
-			msg = _("Unstable IP address");
-			break;
-		case NODE_BAD_VENDOR:
-			msg = _("Servent version appears unstable");
-			break;
-		case NODE_BAD_NO_VENDOR:
-			msg = _("No vendor string supplied");
-			break;
-		}
-
-		node_send_error(n, 403, "%s", msg);
-		node_remove(n, _("Not connecting: %s"), msg);
-		return FALSE;
-	}
 
 	/*
 	 * If we are handshaking, we have not incremented the node counts yet.
@@ -4035,6 +4004,10 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 
 	switch ((node_peer_t) current_peermode) {
 	case NODE_P_ULTRA:
+
+		if (n->flags & NODE_F_FORCE)
+			return TRUE;
+
 		/*
 		 * If we're an ultra node, we need to enforce leaf counts.
 		 *
@@ -4166,6 +4139,9 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 
 		break;
 	case NODE_P_NORMAL:
+		if (n->flags & NODE_F_FORCE)
+			return TRUE;
+
 		if (handshaking) {
 			guint connected = node_normal_count + node_ultra_count;
 			if (
@@ -4200,6 +4176,14 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 		}
 		break;
 	case NODE_P_LEAF:
+
+		/* Even forced connections are not acceptable unless
+		 * the remote node is an ultrapeer. Note: There is also
+		 * an assertion in node_process_handshake_header().
+		 */
+		if ((n->flags & NODE_F_FORCE) && (n->attrs & NODE_A_ULTRA))
+			return TRUE;
+
 		if (handshaking) {
 			/*
 			 * If we're a leaf node, we can only accept incoming connections
@@ -4259,6 +4243,37 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
 		break;
+	}
+
+	/*
+	 * If a specific client version has proven to be very unstable during this
+	 * version, don't connect to it.
+	 *		-- JA 17/7/200
+	 */
+
+	if (n->attrs & NODE_A_ULTRA) {
+		const gchar *msg = "Unknown error";
+		enum node_bad bad = node_is_bad(n);
+
+		switch (bad) {
+		case NODE_BAD_OK:
+			break;
+		case NODE_BAD_IP:
+			msg = _("Unstable IP address");
+			break;
+		case NODE_BAD_VENDOR:
+			msg = _("Servent version appears unstable");
+			break;
+		case NODE_BAD_NO_VENDOR:
+			msg = _("No vendor string supplied");
+			break;
+		}
+
+		if (NODE_BAD_OK != bad) {
+			node_send_error(n, 403, "%s", msg);
+			node_remove(n, _("Not connecting: %s"), msg);
+			return FALSE;
+		}
 	}
 
 	return TRUE;
