@@ -4545,7 +4545,8 @@ static void
 node_process_handshake_header(struct gnutella_node *n, header_t *head)
 {
 	static const gchar gtkg_vendor[] = "gtk-gnutella/";
-	gchar gnet_response[10240];		/* Large in case Crawler info sent back */
+	static const size_t gnet_response_max = 16 * 1024;
+	gchar *gnet_response;
 	size_t rw;
 	gint sent;
 	const gchar *field;
@@ -4570,7 +4571,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (in_shutdown) {
 		node_send_error(n, 503, "Servent Shutdown");
 		node_remove(n, _("Servent Shutdown"));
-		return;					/* node_remove() has freed s->getline */
+		return;			/* node_remove() has freed s->getline */
 	}
 
 	/*
@@ -5110,6 +5111,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * acknowledgment to our initial handshake.
 	 */
 
+	/* Large in case Crawler info sent back */
+	gnet_response = g_malloc(gnet_response_max);
+
 	if (!incoming) {
 		gboolean mode_changed = FALSE;
 
@@ -5120,7 +5124,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 			node_send_error(n, 403, msg);
 			node_remove(n, _(msg));
-			return;
+			goto free_gnet_response;
 		}
 
 		/* X-Ultrapeer-Needed -- only defined for 2nd reply (outgoing) */
@@ -5159,7 +5163,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 					node_send_error(n, 403, msg);
 					node_remove(n, _(msg));
-					return;
+					goto free_gnet_response;
 				}
 			}
 		}
@@ -5184,7 +5188,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		g_assert(!mode_changed || current_peermode == NODE_P_LEAF);
 
-		rw = gm_snprintf(gnet_response, sizeof(gnet_response),
+		rw = gm_snprintf(gnet_response, gnet_response_max,
 			"GNUTELLA/0.6 200 OK\r\n"
 			"%s"			/* Content-Encoding */
 			"%s"			/* X-Ultrapeer */
@@ -5195,8 +5199,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
 			(n->qrp_major > 0 || n->qrp_minor > 2) ?
 				"X-Query-Routing: 0.2\r\n" : "");
-
-		g_assert(rw < sizeof(gnet_response));
 	} else {
 		guint ultra_max;
 
@@ -5208,7 +5210,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			? max_connections - normal_connections : 0;
 
 		if (n->flags & NODE_F_CRAWLER)
-			rw = gm_snprintf(gnet_response, sizeof(gnet_response),
+			rw = gm_snprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"%s"		/* Peers & Leaves */
@@ -5248,7 +5250,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			else
 				degree[0] = '\0';
 
-			rw = gm_snprintf(gnet_response, sizeof(gnet_response),
+			rw = gm_snprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"Pong-Caching: 0.1\r\n"
@@ -5292,13 +5294,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				start_rfc822_date);
 
 			header_features_generate(&xfeatures.connections,
-				gnet_response, sizeof(gnet_response), &rw);
+				gnet_response, gnet_response_max, &rw);
 
 			rw += gm_snprintf(&gnet_response[rw],
-					sizeof(gnet_response) - rw, "\r\n");
+					gnet_response_max - rw, "\r\n");
 		}
-
-		g_assert(rw < sizeof(gnet_response));
 	}
 
 	/*
@@ -5314,13 +5314,13 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			what, host_addr_to_string(n->addr), g_strerror(errcode));
 		node_remove(n, _("Failed (Cannot send %s: %s)"),
 			what, g_strerror(errcode));
-		return;
+		goto free_gnet_response;
 	} else if ((size_t) sent < rw) {
 		if (node_debug) g_warning(
 			"Could only send %d out of %d bytes of %s to node %s",
 			(int) sent, (int) rw, what, host_addr_to_string(n->addr));
 		node_remove(n, _("Failed (Cannot send %s atomically)"), what);
-		return;
+		goto free_gnet_response;
 	} else if (node_debug > 2) {
 		g_message("----Sent OK %s to %s (%d bytes):\n%.*s----",
 			what, host_addr_to_string(n->addr),
@@ -5354,6 +5354,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		node_fire_node_flags_changed(n);
 	} else
 		node_is_now_connected(n);
+
+free_gnet_response:
+	G_FREE_NULL(gnet_response);
 }
 
 /***
