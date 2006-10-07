@@ -28,7 +28,7 @@ main(void) {
   static struct kevent changes[1], events[1];
   static struct timespec ts;
   static unsigned long filters[] = { EVFILT_READ, EVFILT_WRITE,
-    EVFILT_TIMER, EVFILT_SIGNAL, EVFILT_PROC, EVFILT_VNODE };
+    EVFILT_SIGNAL, EVFILT_PROC, EVFILT_VNODE };
   int kq = kqueue();
   int fd = 0;
   unsigned long flags;
