@@ -2863,7 +2863,7 @@ socket_local_listen(const gchar *pathname)
 	
 		/* umask 177 -> mode 200; write-only for user */
 		mask = umask(S_IRUSR | S_IXUSR | S_IRWXG | S_IRWXO);
-    	ret = bind(sd, cast_to_gconstpointer(&addr), sizeof addr);
+    	ret = bind(sd, cast_to_gconstpointer(&addr), SUN_LEN(&addr));
 		saved_errno = errno;
 		(void) umask(mask);
 
