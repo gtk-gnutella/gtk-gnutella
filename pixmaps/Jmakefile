@@ -67,6 +67,5 @@ all::
 
 INSTALLFLAGS = -m 444
 
-MakeInstallDirectories($(PRIVLIB)/pixmaps)
 InstallMultiple($(PIXMAPS), $(PRIVLIB)/pixmaps)
 
