@@ -2877,7 +2877,7 @@ socket_local_listen(const gchar *pathname)
 
 	s = socket_alloc();
 
-	s->type = SOCK_STREAM;
+	s->type = SOCK_TYPE_CONTROL;
 	s->direction = SOCK_CONN_LISTENING;
 	s->file_desc = sd;
 	s->pos = 0;
