@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
 : $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
@@ -90,24 +90,11 @@ PIXMAPS = \
 	thaw.xpm \
 	ultra.xpm \
 	upload.xpm \
-	warning.xpm \
+	warning.xpm
 
 all::
 
 INSTALLFLAGS = -m 444
-
-local_install::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for dir in $(PRIVLIB)/pixmaps; do	\
-		(set -x; test -d $(INSTALL_PREFIX)$$dir || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
-	done
-
-local_deinstall::
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	for dir in $(PRIVLIB)/pixmaps; do \
-		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
-	done
 
 local_install:: $(PIXMAPS)
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
