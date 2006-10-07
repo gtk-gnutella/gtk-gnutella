@@ -268,7 +268,7 @@ struct passwd
 static inline socklen_t
 SUN_LEN(const struct sockaddr_un *su)
 {
-	return sizeof *su - sizeof su->sun_path + strlen(su->sun_path);
+	return sizeof *su;
 }
 #endif	/* !SUN_LEN */
 
