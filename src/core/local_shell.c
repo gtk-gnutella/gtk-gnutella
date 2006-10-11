@@ -410,7 +410,7 @@ local_shell(const char *socket_path)
 		perror("socket(PF_LOCAL, SOCK_STREAM, 0) failed");
 		goto failure;
 	}
-	if (0 != connect(fd, (const void *) &addr, SUN_LEN(&addr))) {
+	if (0 != connect(fd, (const void *) &addr, sizeof addr)) {
 		perror("local_shell(): connect() failed");
 		close(fd);
 		fd = -1;

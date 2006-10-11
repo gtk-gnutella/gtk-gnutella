@@ -264,14 +264,6 @@ struct passwd
 #define PF_LOCAL PF_UNIX
 #endif	/* !PF_LOCAL && PF_UNIX */
 
-#if !defined(SUN_LEN)
-static inline socklen_t
-SUN_LEN(const struct sockaddr_un *su)
-{
-	return sizeof *su;
-}
-#endif	/* !SUN_LEN */
-
 /* For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings. */
 #ifdef USE_LINT
