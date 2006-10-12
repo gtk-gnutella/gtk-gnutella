@@ -275,7 +275,7 @@ static gboolean ip_computed = FALSE;
 
 static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
 
-static void guess_local_addr(int sd);
+static void guess_local_addr(struct gnutella_socket *s);
 static void socket_destroy(struct gnutella_socket *s, const gchar *reason);
 static void socket_connected(gpointer data, gint source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
@@ -1800,7 +1800,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		 *		--RAM, 07/05/2002
 		 */
 
-		guess_local_addr(s->file_desc);
+		guess_local_addr(s);
 
 		switch (s->type) {
 		case SOCK_TYPE_CONTROL:
@@ -1886,13 +1886,20 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
  * Tries to guess the local IP address.
  */
 static void
-guess_local_addr(int fd)
+guess_local_addr(struct gnutella_socket *s)
 {
 	gboolean can_supersede;
 	host_addr_t addr, current;
 	property_t prop;
+	int fd;
 
+	g_return_if_fail(s);
+
+	fd = s->file_desc;
 	g_return_if_fail(fd >= 0);
+
+	if (socket_is_local(s))
+		return;
 
 	{
 		socket_addr_t saddr;
