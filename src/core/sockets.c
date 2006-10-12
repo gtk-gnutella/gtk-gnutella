@@ -2011,9 +2011,6 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 accepted:
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
-	if (!force_local_ip)
-		guess_local_addr(sd);
-
 	/*
 	 * Create a new struct socket for this incoming connection
 	 */
@@ -2083,6 +2080,9 @@ accepted:
 	}
 
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
+	if (!force_local_ip)
+		guess_local_addr(t);
+
 }
 
 #if defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR)
