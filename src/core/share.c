@@ -960,6 +960,10 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 
 				found = shared_file_alloc();
 				found->file_path = atom_str_get(full);
+				found->file_size = file_stat.st_size;
+				found->mtime = file_stat.st_mtime;
+				found->content_type =
+					share_mime_type(SHARE_M_APPLICATION_BINARY);
 
 				if (shared_file_set_names(found, name)) {
 					shared_file_free(&found);
@@ -978,11 +982,7 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 					break;
 				}
 
-				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
-				found->mtime = file_stat.st_mtime;
-				found->content_type =
-					share_mime_type(SHARE_M_APPLICATION_BINARY);
 
 				if (request_sha1(found)) {
 					st_insert_item(search_table, found->name_canonic, found);
