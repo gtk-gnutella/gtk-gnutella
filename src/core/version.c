@@ -369,14 +369,7 @@ gint
 version_build_cmp(const version_t *a, const version_t *b)
 {
 	gint cmp = version_cmp(a, b);
-
-	if (cmp == 0) {
-		if (a->build == b->build)
-			return 0;
-		return a->build < b->build ? -1 : +1;
-	}
-
-	return cmp;
+	return 0 == cmp ? CMP(a->build, b->build) : cmp;
 }
 
 /**
@@ -766,7 +759,7 @@ void
 version_ancient_warn(void)
 {
 	time_t now = tm_time();
-	gint lifetime, remain, elapsed;
+	time_delta_t lifetime, remain, elapsed;
 	time_t s;
 
 	g_assert(our_version.timestamp != 0);	/* version_init() called */
@@ -802,7 +795,7 @@ version_ancient_warn(void)
 	 */
 
 	lifetime = our_version.tag ? VERSION_UNSTABLE_WARN : VERSION_ANCIENT_WARN;
-	remain = lifetime - elapsed;
+	remain = delta_time(lifetime, elapsed);
 
 	g_assert(remain >= 0);		/* None of the checks above have fired */
 
@@ -816,12 +809,13 @@ version_ancient_warn(void)
 	 * that do not introduce significant Gnutella features.
 	 */
 
-	for (s = now + VERSION_ANCIENT_REMIND; s > now; s -= SECS_PER_DAY) {
+	s = time_advance(now, VERSION_ANCIENT_REMIND);
+	for (/* NOTHING */; delta_time(s, now) > 0; s -= SECS_PER_DAY) {
 		if (!tok_is_ancient(s))
 			break;
 	}
 
-	remain = MIN(remain, s - now);
+	remain = MIN(remain, delta_time(s, now));
 
 	/*
 	 * Let them know when version will expire soon...
