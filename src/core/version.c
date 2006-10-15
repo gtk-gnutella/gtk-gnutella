@@ -69,6 +69,27 @@ static version_t last_dev_version;
 static guint8 version_code;
 
 /**
+ * Compare the given timestamp against the date 2007-03-22. We don't
+ * care about the exact date here so there might be some offset of a few
+ * hours with respect to the timezone or daylight saving.
+ *
+ * @param now A timestamp.
+ * @return TRUE if 2007-03-22 is still in the future, FALSE otherwise.
+ */
+static gboolean
+before_2007_03_22(time_t now)
+{
+	static gboolean initialized;
+	static time_t x;
+
+	if (!initialized) {
+		initialized = TRUE;
+		x = date2time("2007-03-22", tm_time());
+	}
+	return delta_time(now, x) < 0;
+}
+
+/**
  * Get version string.
  */
 const gchar *
@@ -629,7 +650,7 @@ version_build_string(void)
 		 * expanded to include the build number right into the string.
 		 */
 
-		if (now <= 1174518000)				/* before 2007-03-22 */
+		if (before_2007_03_22(now))				/* before 2007-03-22 */
 			gm_snprintf(buf, sizeof buf,
 					"gtk-gnutella/%s (%s; r%u; %s; %s%s%s)",
 					GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build(),
@@ -674,7 +695,7 @@ version_init(void)
 	{
 		gchar buf[128];
 
-		if (now <= 1174518000)				/* before 2007-03-22 */
+		if (before_2007_03_22(now))				/* before 2007-03-22 */
 			gm_snprintf(buf, sizeof(buf),
 					"gtk-gnutella/%s (%s; r%u)",
 					GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build());
