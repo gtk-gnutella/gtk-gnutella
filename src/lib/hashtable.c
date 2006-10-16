@@ -99,7 +99,7 @@ enum hash_slot_type {
 	HASH_SLOT_USED = 1
 };
 
-static size_t
+static inline size_t
 hash_table_find_slot(const hash_table_t * const ht, const void * const key,
 	const enum hash_slot_type want)
 {

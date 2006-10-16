@@ -29,6 +29,8 @@
  *
  * Handling of magnet links.
  *
+ * @todo TODO: Utilize hashlists to prevent duplicate sources.
+ *
  * @author Christian Biere
  * @date 2006
  */
