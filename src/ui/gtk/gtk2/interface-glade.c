@@ -9438,23 +9438,34 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *hseparator2;
   GtkWidget *table102;
   GtkWidget *label35;
-  GtkObject *spinbutton_config_port_adj;
-  GtkWidget *spinbutton_config_port;
-  GtkWidget *label915;
-  GtkWidget *entry_config_force_ip;
-  GtkWidget *entry_server_hostname;
-  GtkWidget *checkbutton_config_force_ip;
-  GtkWidget *checkbutton_give_server_hostname;
   GtkWidget *label129;
   GtkWidget *checkbutton_enable_udp;
   GtkWidget *option_menu_config_network_protocol;
-  GtkWidget *vseparator7;
   GtkWidget *label986;
+  GtkObject *spinbutton_config_port_adj;
+  GtkWidget *spinbutton_config_port;
+  GtkWidget *checkbutton_give_server_hostname;
+  GtkWidget *entry_server_hostname;
   GtkWidget *label287;
+  GtkWidget *frame144;
+  GtkWidget *vbox147;
+  GtkWidget *table111;
+  GtkWidget *checkbutton_config_force_ip;
+  GtkWidget *checkbutton_config_bind_ipv4;
+  GtkWidget *entry_config_force_ip;
+  GtkWidget *label1007;
+  GtkWidget *frame145;
+  GtkWidget *vbox148;
+  GtkWidget *table112;
+  GtkWidget *checkbutton_config_force_ipv6;
+  GtkWidget *entry_config_force_ipv6;
+  GtkWidget *checkbutton_config_bind_ipv6;
+  GtkWidget *checkbutton_config_ipv6_trt_enable;
+  GtkWidget *entry_config_ipv6_trt_prefix;
+  GtkWidget *label1008;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
   GtkWidget *table47;
-  GtkWidget *label90;
   GtkWidget *label91;
   GtkWidget *label92;
   GtkWidget *entry_config_proxy_hostname;
@@ -9462,6 +9473,7 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *spinbutton_config_proxy_port;
   GtkWidget *frame136;
   GtkWidget *option_menu_config_proxy_protocol;
+  GtkWidget *label90;
   GtkWidget *hbox88;
   GtkWidget *checkbutton_config_proxy_auth;
   GtkWidget *hbox61;
@@ -9481,9 +9493,6 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *label289;
   GtkWidget *frame_expert_nw_misc;
   GtkWidget *table43;
-  GtkWidget *label515;
-  GtkWidget *label516;
-  GtkWidget *label583;
   GtkObject *spinbutton_config_ban_ratio_fds_adj;
   GtkWidget *spinbutton_config_ban_ratio_fds;
   GtkObject *spinbutton_config_ban_max_fds_adj;
@@ -9494,19 +9503,21 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *viewport471;
   GtkWidget *entry_config_max_banned_fd;
   GtkWidget *checkbutton_use_global_hostiles;
+  GtkWidget *label583;
+  GtkWidget *label516;
+  GtkWidget *label515;
   GtkWidget *label514;
   GtkWidget *table108;
   GtkWidget *frame83;
   GtkWidget *table72;
   GtkWidget *label701;
-  GtkWidget *checkbutton_host_runs_ntp;
   GtkWidget *frame109;
   GtkWidget *label_clock_skew;
+  GtkWidget *checkbutton_host_runs_ntp;
   GtkWidget *label698;
   GtkWidget *frame99;
   GtkWidget *vbox118;
-  GtkWidget *checkbutton_enable_shell;
-  GtkWidget *checkbutton_enable_browse_host;
+  GtkWidget *checkbutton_enable_remote_shell;
   GtkWidget *label783;
   GtkWidget *frame_expert_rx_buffers;
   GtkWidget *table77;
@@ -9582,14 +9593,14 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table102 = gtk_table_new (3, 6, FALSE);
+  table102 = gtk_table_new (2, 9, FALSE);
   gtk_widget_set_name (table102, "table102");
   gtk_widget_show (table102);
   gtk_box_pack_start (GTK_BOX (vbox30), table102, FALSE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table102), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table102), 4);
 
-  label35 = gtk_label_new (_("Disable: 0, Random: 1"));
+  label35 = gtk_label_new (_("(Disable: 0, Random: 1)"));
   gtk_widget_set_name (label35, "label35");
   gtk_widget_show (label35);
   gtk_table_attach (GTK_TABLE (table102), label35, 2, 3, 0, 1,
@@ -9597,52 +9608,6 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label35), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label35), 0, 0.5);
-
-  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
-  spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
-  gtk_widget_show (spinbutton_config_port);
-  gtk_table_attach (GTK_TABLE (table102), spinbutton_config_port, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
-
-  label915 = gtk_label_new ("");
-  gtk_widget_set_name (label915, "label915");
-  gtk_widget_show (label915);
-  gtk_table_attach (GTK_TABLE (table102), label915, 1, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label915), 0, 0.5);
-
-  entry_config_force_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
-  gtk_widget_show (entry_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table102), entry_config_force_ip, 5, 6, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_width_chars (GTK_ENTRY (entry_config_force_ip), 17);
-
-  entry_server_hostname = gtk_entry_new ();
-  gtk_widget_set_name (entry_server_hostname, "entry_server_hostname");
-  gtk_widget_show (entry_server_hostname);
-  gtk_table_attach (GTK_TABLE (table102), entry_server_hostname, 5, 6, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_force_ip = gtk_check_button_new_with_mnemonic (_("Force local _IP to"));
-  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
-  gtk_widget_show (checkbutton_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table102), checkbutton_config_force_ip, 4, 5, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_give_server_hostname = gtk_check_button_new_with_mnemonic (_("Public _hostname"));
-  gtk_widget_set_name (checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
-  gtk_widget_show (checkbutton_give_server_hostname);
-  gtk_table_attach (GTK_TABLE (table102), checkbutton_give_server_hostname, 4, 5, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
 
   label129 = gtk_label_new_with_mnemonic (_("_Listen port"));
   gtk_widget_set_name (label129, "label129");
@@ -9657,37 +9622,159 @@ create_dlg_prefs_net_tab (void)
   checkbutton_enable_udp = gtk_check_button_new_with_mnemonic (_("Enable _UDP"));
   gtk_widget_set_name (checkbutton_enable_udp, "checkbutton_enable_udp");
   gtk_widget_show (checkbutton_enable_udp);
-  gtk_table_attach (GTK_TABLE (table102), checkbutton_enable_udp, 0, 3, 1, 2,
+  gtk_table_attach (GTK_TABLE (table102), checkbutton_enable_udp, 6, 9, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   option_menu_config_network_protocol = gtk_option_menu_new ();
   gtk_widget_set_name (option_menu_config_network_protocol, "option_menu_config_network_protocol");
   gtk_widget_show (option_menu_config_network_protocol);
-  gtk_table_attach (GTK_TABLE (table102), option_menu_config_network_protocol, 2, 3, 2, 3,
+  gtk_table_attach (GTK_TABLE (table102), option_menu_config_network_protocol, 5, 6, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  vseparator7 = gtk_vseparator_new ();
-  gtk_widget_set_name (vseparator7, "vseparator7");
-  gtk_widget_show (vseparator7);
-  gtk_table_attach (GTK_TABLE (table102), vseparator7, 3, 4, 0, 3,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 4, 0);
 
   label986 = gtk_label_new (_("Network protocol:"));
   gtk_widget_set_name (label986, "label986");
   gtk_widget_show (label986);
-  gtk_table_attach (GTK_TABLE (table102), label986, 0, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table102), label986, 3, 5, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label986), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label986), 4, 0);
+
+  spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
+  spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
+  gtk_widget_show (spinbutton_config_port);
+  gtk_table_attach (GTK_TABLE (table102), spinbutton_config_port, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
+
+  checkbutton_give_server_hostname = gtk_check_button_new_with_mnemonic (_("Public _hostname"));
+  gtk_widget_set_name (checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
+  gtk_widget_show (checkbutton_give_server_hostname);
+  gtk_table_attach (GTK_TABLE (table102), checkbutton_give_server_hostname, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_server_hostname = gtk_entry_new ();
+  gtk_widget_set_name (entry_server_hostname, "entry_server_hostname");
+  gtk_widget_show (entry_server_hostname);
+  gtk_table_attach (GTK_TABLE (table102), entry_server_hostname, 2, 5, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label287 = gtk_label_new (_("IP settings"));
   gtk_widget_set_name (label287, "label287");
   gtk_widget_show (label287);
   gtk_frame_set_label_widget (GTK_FRAME (frame13), label287);
+
+  frame144 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame144, "frame144");
+  gtk_widget_show (frame144);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame144, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame144), 4);
+
+  vbox147 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox147, "vbox147");
+  gtk_widget_show (vbox147);
+  gtk_container_add (GTK_CONTAINER (frame144), vbox147);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox147), 2);
+
+  table111 = gtk_table_new (1, 3, FALSE);
+  gtk_widget_set_name (table111, "table111");
+  gtk_widget_show (table111);
+  gtk_box_pack_start (GTK_BOX (vbox147), table111, FALSE, TRUE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table111), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table111), 4);
+
+  checkbutton_config_force_ip = gtk_check_button_new_with_mnemonic (_("Force external IPv4 address to"));
+  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  gtk_widget_show (checkbutton_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table111), checkbutton_config_force_ip, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_bind_ipv4 = gtk_check_button_new_with_mnemonic (_("_Bind to this address"));
+  gtk_widget_set_name (checkbutton_config_bind_ipv4, "checkbutton_config_bind_ipv4");
+  gtk_widget_show (checkbutton_config_bind_ipv4);
+  gtk_table_attach (GTK_TABLE (table111), checkbutton_config_bind_ipv4, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_config_force_ip = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
+  gtk_widget_show (entry_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table111), entry_config_force_ip, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_entry_set_width_chars (GTK_ENTRY (entry_config_force_ip), 17);
+
+  label1007 = gtk_label_new_with_mnemonic (_("IPv_4 settings"));
+  gtk_widget_set_name (label1007, "label1007");
+  gtk_widget_show (label1007);
+  gtk_frame_set_label_widget (GTK_FRAME (frame144), label1007);
+
+  frame145 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame145, "frame145");
+  gtk_widget_show (frame145);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame145, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame145), 4);
+
+  vbox148 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox148, "vbox148");
+  gtk_widget_show (vbox148);
+  gtk_container_add (GTK_CONTAINER (frame145), vbox148);
+
+  table112 = gtk_table_new (2, 3, FALSE);
+  gtk_widget_set_name (table112, "table112");
+  gtk_widget_show (table112);
+  gtk_box_pack_start (GTK_BOX (vbox148), table112, FALSE, TRUE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table112), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table112), 4);
+
+  checkbutton_config_force_ipv6 = gtk_check_button_new_with_mnemonic (_("Force external IPv6 address to"));
+  gtk_widget_set_name (checkbutton_config_force_ipv6, "checkbutton_config_force_ipv6");
+  gtk_widget_show (checkbutton_config_force_ipv6);
+  gtk_table_attach (GTK_TABLE (table112), checkbutton_config_force_ipv6, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_config_force_ipv6 = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ipv6, "entry_config_force_ipv6");
+  gtk_widget_show (entry_config_force_ipv6);
+  gtk_table_attach (GTK_TABLE (table112), entry_config_force_ipv6, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_entry_set_width_chars (GTK_ENTRY (entry_config_force_ipv6), 50);
+
+  checkbutton_config_bind_ipv6 = gtk_check_button_new_with_mnemonic (_("Bind to this address"));
+  gtk_widget_set_name (checkbutton_config_bind_ipv6, "checkbutton_config_bind_ipv6");
+  gtk_widget_show (checkbutton_config_bind_ipv6);
+  gtk_table_attach (GTK_TABLE (table112), checkbutton_config_bind_ipv6, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_ipv6_trt_enable = gtk_check_button_new_with_mnemonic (_("Use IPv6-to-IPv4 TRT prefix:"));
+  gtk_widget_set_name (checkbutton_config_ipv6_trt_enable, "checkbutton_config_ipv6_trt_enable");
+  gtk_widget_show (checkbutton_config_ipv6_trt_enable);
+  gtk_table_attach (GTK_TABLE (table112), checkbutton_config_ipv6_trt_enable, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_config_ipv6_trt_prefix = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_ipv6_trt_prefix, "entry_config_ipv6_trt_prefix");
+  gtk_widget_show (entry_config_ipv6_trt_prefix);
+  gtk_table_attach (GTK_TABLE (table112), entry_config_ipv6_trt_prefix, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_entry_set_width_chars (GTK_ENTRY (entry_config_ipv6_trt_prefix), 50);
+
+  label1008 = gtk_label_new_with_mnemonic (_("IPv_6 settings"));
+  gtk_widget_set_name (label1008, "label1008");
+  gtk_widget_show (label1008);
+  gtk_frame_set_label_widget (GTK_FRAME (frame145), label1008);
 
   frame_proxy_settings = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_proxy_settings, "frame_proxy_settings");
@@ -9707,14 +9794,6 @@ create_dlg_prefs_net_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox28), table47, FALSE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table47), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table47), 4);
-
-  label90 = gtk_label_new_with_mnemonic (_("Proxy _type:"));
-  gtk_widget_set_name (label90, "label90");
-  gtk_widget_show (label90);
-  gtk_table_attach (GTK_TABLE (table47), label90, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label90), 0, 0.5);
 
   label91 = gtk_label_new_with_mnemonic (_("H_ost:"));
   gtk_widget_set_name (label91, "label91");
@@ -9760,6 +9839,14 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (option_menu_config_proxy_protocol, "option_menu_config_proxy_protocol");
   gtk_widget_show (option_menu_config_proxy_protocol);
   gtk_container_add (GTK_CONTAINER (frame136), option_menu_config_proxy_protocol);
+
+  label90 = gtk_label_new_with_mnemonic (_("Proxy _type:"));
+  gtk_widget_set_name (label90, "label90");
+  gtk_widget_show (label90);
+  gtk_table_attach (GTK_TABLE (table47), label90, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label90), 0, 0.5);
 
   hbox88 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox88, "hbox88");
@@ -9843,6 +9930,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (label126_2);
   gtk_box_pack_start (GTK_BOX (hbox78), label126_2, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label126_2), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_padding (GTK_MISC (label126_2), 4, 0);
 
   entry_config_netmasks = gtk_entry_new ();
   gtk_widget_set_name (entry_config_netmasks, "entry_config_netmasks");
@@ -9868,30 +9956,6 @@ create_dlg_prefs_net_tab (void)
   gtk_container_set_border_width (GTK_CONTAINER (table43), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table43), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table43), 4);
-
-  label515 = gtk_label_new_with_mnemonic (_("Max. file _descriptors reserved"));
-  gtk_widget_set_name (label515, "label515");
-  gtk_widget_show (label515);
-  gtk_table_attach (GTK_TABLE (table43), label515, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label515), 0, 0.5);
-
-  label516 = gtk_label_new_with_mnemonic (_("Max. _percentage of file descriptors"));
-  gtk_widget_set_name (label516, "label516");
-  gtk_widget_show (label516);
-  gtk_table_attach (GTK_TABLE (table43), label516, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label516), 0, 0.5);
-
-  label583 = gtk_label_new_with_mnemonic (_("Hard limit of _file descriptors used"));
-  gtk_widget_set_name (label583, "label583");
-  gtk_widget_show (label583);
-  gtk_table_attach (GTK_TABLE (table43), label583, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label583), 0, 0.5);
 
   spinbutton_config_ban_ratio_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
   spinbutton_config_ban_ratio_fds = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ban_ratio_fds_adj), 1, 0);
@@ -9955,6 +10019,30 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  label583 = gtk_label_new_with_mnemonic (_("Hard limit of _file descriptors used"));
+  gtk_widget_set_name (label583, "label583");
+  gtk_widget_show (label583);
+  gtk_table_attach (GTK_TABLE (table43), label583, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label583), 0, 0.5);
+
+  label516 = gtk_label_new_with_mnemonic (_("Max. _percentage of file descriptors"));
+  gtk_widget_set_name (label516, "label516");
+  gtk_widget_show (label516);
+  gtk_table_attach (GTK_TABLE (table43), label516, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label516), 0, 0.5);
+
+  label515 = gtk_label_new_with_mnemonic (_("Max. file _descriptors reserved"));
+  gtk_widget_set_name (label515, "label515");
+  gtk_widget_show (label515);
+  gtk_table_attach (GTK_TABLE (table43), label515, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label515), 0, 0.5);
+
   label514 = gtk_label_new (_("Banning"));
   gtk_widget_set_name (label514, "label514");
   gtk_widget_show (label514);
@@ -9991,13 +10079,6 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label701), 1, 0.5);
 
-  checkbutton_host_runs_ntp = gtk_check_button_new_with_mnemonic (_("Host runs _NTP"));
-  gtk_widget_set_name (checkbutton_host_runs_ntp, "checkbutton_host_runs_ntp");
-  gtk_widget_show (checkbutton_host_runs_ntp);
-  gtk_table_attach (GTK_TABLE (table72), checkbutton_host_runs_ntp, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-
   frame109 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame109, "frame109");
   gtk_widget_show (frame109);
@@ -10012,6 +10093,13 @@ create_dlg_prefs_net_tab (void)
   gtk_container_add (GTK_CONTAINER (frame109), label_clock_skew);
   gtk_misc_set_alignment (GTK_MISC (label_clock_skew), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_clock_skew), 4, 0);
+
+  checkbutton_host_runs_ntp = gtk_check_button_new_with_mnemonic (_("Host runs _NTP"));
+  gtk_widget_set_name (checkbutton_host_runs_ntp, "checkbutton_host_runs_ntp");
+  gtk_widget_show (checkbutton_host_runs_ntp);
+  gtk_table_attach (GTK_TABLE (table72), checkbutton_host_runs_ntp, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   label698 = gtk_label_new (_("Clock synchronization"));
   gtk_widget_set_name (label698, "label698");
@@ -10031,15 +10119,10 @@ create_dlg_prefs_net_tab (void)
   gtk_container_add (GTK_CONTAINER (frame99), vbox118);
   gtk_container_set_border_width (GTK_CONTAINER (vbox118), 2);
 
-  checkbutton_enable_shell = gtk_check_button_new_with_mnemonic (_("Enable \"_shell\" control interface"));
-  gtk_widget_set_name (checkbutton_enable_shell, "checkbutton_enable_shell");
-  gtk_widget_show (checkbutton_enable_shell);
-  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_enable_shell, FALSE, FALSE, 0);
-
-  checkbutton_enable_browse_host = gtk_check_button_new_with_mnemonic (_("Enable \"_Browse Host\" feature"));
-  gtk_widget_set_name (checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
-  gtk_widget_show (checkbutton_enable_browse_host);
-  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_enable_browse_host, FALSE, FALSE, 0);
+  checkbutton_enable_remote_shell = gtk_check_button_new_with_mnemonic (_("Enable remote _shell control interface"));
+  gtk_widget_set_name (checkbutton_enable_remote_shell, "checkbutton_enable_remote_shell");
+  gtk_widget_show (checkbutton_enable_remote_shell);
+  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_enable_remote_shell, FALSE, FALSE, 0);
 
   label783 = gtk_label_new (_("Miscellaneous"));
   gtk_widget_set_name (label783, "label783");
@@ -10115,6 +10198,12 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (label736);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_rx_buffers), label736);
 
+  g_signal_connect ((gpointer) entry_server_hostname, "activate",
+                    G_CALLBACK (on_entry_server_hostname_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_server_hostname, "focus_out_event",
+                    G_CALLBACK (on_entry_server_hostname_focus_out_event),
+                    NULL);
   g_signal_connect ((gpointer) entry_config_force_ip, "changed",
                     G_CALLBACK (on_entry_config_force_ip_changed),
                     NULL);
@@ -10124,11 +10213,23 @@ create_dlg_prefs_net_tab (void)
   g_signal_connect ((gpointer) entry_config_force_ip, "focus_out_event",
                     G_CALLBACK (on_entry_config_force_ip_focus_out_event),
                     NULL);
-  g_signal_connect ((gpointer) entry_server_hostname, "activate",
-                    G_CALLBACK (on_entry_server_hostname_activate),
+  g_signal_connect ((gpointer) entry_config_force_ipv6, "changed",
+                    G_CALLBACK (on_entry_config_force_ipv6_changed),
                     NULL);
-  g_signal_connect ((gpointer) entry_server_hostname, "focus_out_event",
-                    G_CALLBACK (on_entry_server_hostname_focus_out_event),
+  g_signal_connect ((gpointer) entry_config_force_ipv6, "activate",
+                    G_CALLBACK (on_entry_config_force_ipv6_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_force_ipv6, "focus_out_event",
+                    G_CALLBACK (on_entry_config_force_ipv6_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_ipv6_trt_prefix, "changed",
+                    G_CALLBACK (on_entry_config_ipv6_trt_prefix_changed),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_ipv6_trt_prefix, "activate",
+                    G_CALLBACK (on_entry_config_ipv6_trt_prefix_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_ipv6_trt_prefix, "focus_out_event",
+                    G_CALLBACK (on_entry_config_ipv6_trt_prefix_focus_out_event),
                     NULL);
   g_signal_connect ((gpointer) entry_config_proxy_hostname, "activate",
                     G_CALLBACK (on_entry_config_proxy_hostname_activate),
@@ -10161,9 +10262,9 @@ create_dlg_prefs_net_tab (void)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label93), entry_config_socks_username);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label94), entry_config_socks_password);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label126_2), entry_config_netmasks);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label515), spinbutton_config_ban_max_fds);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label516), spinbutton_config_ban_ratio_fds);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label583), entry_config_max_banned_fd);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label516), spinbutton_config_ban_ratio_fds);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label515), spinbutton_config_ban_max_fds);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label_download_rx_buffer), spinbutton_download_rx_size);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label_node_rx_buffer), spinbutton_node_rx_size);
 
@@ -10180,28 +10281,40 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, hseparator2, "hseparator2");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table102, "table102");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label35, "label35");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_port, "spinbutton_config_port");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label915, "label915");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_force_ip, "entry_config_force_ip");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_server_hostname, "entry_server_hostname");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_force_ip, "checkbutton_config_force_ip");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label129, "label129");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_udp, "checkbutton_enable_udp");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, option_menu_config_network_protocol, "option_menu_config_network_protocol");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vseparator7, "vseparator7");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label986, "label986");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_port, "spinbutton_config_port");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_server_hostname, "entry_server_hostname");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label287, "label287");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame144, "frame144");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox147, "vbox147");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table111, "table111");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_bind_ipv4, "checkbutton_config_bind_ipv4");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_force_ip, "entry_config_force_ip");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1007, "label1007");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame145, "frame145");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox148, "vbox148");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table112, "table112");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_force_ipv6, "checkbutton_config_force_ipv6");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_force_ipv6, "entry_config_force_ipv6");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_bind_ipv6, "checkbutton_config_bind_ipv6");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_ipv6_trt_enable, "checkbutton_config_ipv6_trt_enable");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_ipv6_trt_prefix, "entry_config_ipv6_trt_prefix");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1008, "label1008");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox28, "vbox28");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table47, "table47");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label90, "label90");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label91, "label91");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label92, "label92");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_proxy_hostname, "entry_config_proxy_hostname");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_proxy_port, "spinbutton_config_proxy_port");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame136, "frame136");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, option_menu_config_proxy_protocol, "option_menu_config_proxy_protocol");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label90, "label90");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, hbox88, "hbox88");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_proxy_auth, "checkbutton_config_proxy_auth");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, hbox61, "hbox61");
@@ -10221,9 +10334,6 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label289, "label289");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_expert_nw_misc, "frame_expert_nw_misc");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table43, "table43");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label515, "label515");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label516, "label516");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label583, "label583");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_ban_ratio_fds, "spinbutton_config_ban_ratio_fds");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_ban_max_fds, "spinbutton_config_ban_max_fds");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label835, "label835");
@@ -10232,19 +10342,21 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, viewport471, "viewport471");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_max_banned_fd, "entry_config_max_banned_fd");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_use_global_hostiles, "checkbutton_use_global_hostiles");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label583, "label583");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label516, "label516");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label515, "label515");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label514, "label514");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table108, "table108");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame83, "frame83");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table72, "table72");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label701, "label701");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_host_runs_ntp, "checkbutton_host_runs_ntp");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame109, "frame109");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label_clock_skew, "label_clock_skew");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_host_runs_ntp, "checkbutton_host_runs_ntp");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label698, "label698");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame99, "frame99");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox118, "vbox118");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_shell, "checkbutton_enable_shell");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_remote_shell, "checkbutton_enable_remote_shell");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label783, "label783");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_expert_rx_buffers, "frame_expert_rx_buffers");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table77, "table77");
@@ -13556,6 +13668,9 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *checkbutton_scan_ignore_symlink_dirs;
   GtkWidget *checkbutton_scan_ignore_symlink_regfiles;
   GtkWidget *label300;
+  GtkWidget *frame146;
+  GtkWidget *table114;
+  GtkWidget *checkbutton_enable_browse_host;
   GtkWidget *hbox284;
   GtkWidget *frame86;
   GtkWidget *table73;
@@ -13840,6 +13955,26 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (label300, "label300");
   gtk_widget_show (label300);
   gtk_frame_set_label_widget (GTK_FRAME (frame_path_to_files), label300);
+
+  frame146 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame146, "frame146");
+  gtk_widget_show (frame146);
+  gtk_box_pack_start (GTK_BOX (vbox40), frame146, TRUE, TRUE, 0);
+
+  table114 = gtk_table_new (1, 1, FALSE);
+  gtk_widget_set_name (table114, "table114");
+  gtk_widget_show (table114);
+  gtk_container_add (GTK_CONTAINER (frame146), table114);
+  gtk_container_set_border_width (GTK_CONTAINER (table114), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table114), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table114), 4);
+
+  checkbutton_enable_browse_host = gtk_check_button_new_with_mnemonic (_("Enable \"_Browse Host\" feature"));
+  gtk_widget_set_name (checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
+  gtk_widget_show (checkbutton_enable_browse_host);
+  gtk_table_attach (GTK_TABLE (table114), checkbutton_enable_browse_host, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
 
   hbox284 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox284, "hbox284");
@@ -14649,6 +14784,9 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_scan_ignore_symlink_dirs, "checkbutton_scan_ignore_symlink_dirs");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label300, "label300");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame146, "frame146");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table114, "table114");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox284, "hbox284");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame86, "frame86");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table73, "table73");

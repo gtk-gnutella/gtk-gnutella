@@ -1676,32 +1676,11 @@ lib_debug_changed(property_t unused_prop)
 }
 
 static gboolean
-force_local_addr_changed(property_t prop)
-{
-	(void) prop;
-
-	if (
-		NET_TYPE_NONE != host_addr_net(local_ip) &&
-		NET_TYPE_IPV4 != host_addr_net(local_ip)
-	) {
-		gnet_prop_set_ip_val(PROP_LOCAL_IP, zero_host_addr);
-	}
-	if (
-		NET_TYPE_NONE != host_addr_net(local_ip6) &&
-		NET_TYPE_IPV6 != host_addr_net(local_ip6)
-	) {
-		gnet_prop_set_ip_val(PROP_LOCAL_IP6, zero_host_addr);
-	}
-	update_address_lifetime();
-	request_new_sockets(listen_port, TRUE);
-    return FALSE;
-}
-
-static gboolean
 forced_local_ip_changed(property_t prop)
 {
 	(void) prop;
 	if (force_local_ip || force_local_ip6) {
+		update_address_lifetime();
 		request_new_sockets(listen_port, TRUE);
 	}
     return FALSE;
@@ -2102,12 +2081,12 @@ static prop_map_t property_map[] = {
     },
 	{
 		PROP_FORCE_LOCAL_IP,
-		force_local_addr_changed,
+		forced_local_ip_changed,
 		TRUE,
 	},
 	{
 		PROP_FORCE_LOCAL_IP6,
-		force_local_addr_changed,
+		forced_local_ip_changed,
 		TRUE,
 	},
 	{
@@ -2117,6 +2096,16 @@ static prop_map_t property_map[] = {
 	},
 	{
 		PROP_FORCED_LOCAL_IP6,
+		forced_local_ip_changed,
+		TRUE,
+	},
+	{
+		PROP_BIND_TO_FORCED_LOCAL_IP,
+		forced_local_ip_changed,
+		TRUE,
+	},
+	{
+		PROP_BIND_TO_FORCED_LOCAL_IP6,
 		forced_local_ip_changed,
 		TRUE,
 	},

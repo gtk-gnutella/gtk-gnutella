@@ -254,12 +254,109 @@ on_entry_config_force_ip_changed(GtkEditable *editable, gpointer unused_udata)
 {
     gchar *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 	const gchar *endptr;
+	gboolean sensitive;
 
 	(void) unused_udata;
 	g_strstrip(text);
+	sensitive = string_to_host_addr(text, &endptr, NULL) && '\0' == endptr[0];
 	gtk_widget_set_sensitive(
         lookup_widget(dlg_prefs, "checkbutton_config_force_ip"),
-        string_to_host_addr(text, &endptr, NULL) && '\0' == endptr[0]);
+		sensitive);
+	gtk_widget_set_sensitive(
+        lookup_widget(dlg_prefs, "checkbutton_config_bind_ipv4"),
+		sensitive);
+	G_FREE_NULL(text);
+}
+
+void
+on_entry_config_force_ipv6_activate(GtkEditable *unused_editable,
+		gpointer unused_udata)
+{
+   	gchar *text;
+	host_addr_t addr;
+	const gchar *endptr;
+
+	(void) unused_editable;
+	(void) unused_udata;
+	text = STRTRACK(gtk_editable_get_chars(
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ipv6")),
+        0, -1));
+	g_strstrip(text);
+	if (
+		string_to_host_addr(text, &endptr, &addr)
+			&& '\0' == endptr[0]
+			&& NET_TYPE_IPV6 == host_addr_net(addr)
+	) {
+		gnet_prop_set_ip_val(PROP_FORCED_LOCAL_IP6, addr);
+	}
+	G_FREE_NULL(text);
+}
+FOCUS_TO_ACTIVATE(entry_config_force_ipv6)
+
+void
+on_entry_config_force_ipv6_changed(GtkEditable *editable, gpointer unused_udata)
+{
+    gchar *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+	const gchar *endptr;
+	host_addr_t addr;
+	gboolean sensitive;
+
+	(void) unused_udata;
+	g_strstrip(text);
+	sensitive = string_to_host_addr(text, &endptr, &addr)
+			&& '\0' == endptr[0]
+			&& NET_TYPE_IPV6 == host_addr_net(addr);
+	gtk_widget_set_sensitive(
+        lookup_widget(dlg_prefs, "checkbutton_config_force_ipv6"),
+		sensitive);
+	gtk_widget_set_sensitive(
+        lookup_widget(dlg_prefs, "checkbutton_config_bind_ipv6"),
+		sensitive);
+	G_FREE_NULL(text);
+}
+
+void
+on_entry_config_ipv6_trt_prefix_activate(GtkEditable *unused_editable,
+		gpointer unused_udata)
+{
+	const gchar *endptr;
+	host_addr_t addr;
+   	gchar *text;
+
+	(void) unused_editable;
+	(void) unused_udata;
+	text = STRTRACK(gtk_editable_get_chars(
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_ipv6_trt_prefix")),
+        0, -1));
+	g_strstrip(text);
+	if (
+		string_to_host_addr(text, &endptr, &addr)
+			&& '\0' == endptr[0]
+			&& NET_TYPE_IPV6 == host_addr_net(addr)
+	) {
+		gnet_prop_set_ip_val(PROP_IPV6_TRT_PREFIX, addr);
+	}
+	G_FREE_NULL(text);
+}
+FOCUS_TO_ACTIVATE(entry_config_ipv6_trt_prefix)
+
+void
+on_entry_config_ipv6_trt_prefix_changed(GtkEditable *editable,
+	gpointer unused_udata)
+{
+    gchar *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
+	const gchar *endptr;
+	host_addr_t addr;
+	gboolean sensitive;
+
+	(void) unused_udata;
+	g_strstrip(text);
+	sensitive = string_to_host_addr(text, &endptr, &addr)
+			&& '\0' == endptr[0]
+			&& NET_TYPE_IPV6 == host_addr_net(addr);
+	gtk_widget_set_sensitive(
+        lookup_widget(dlg_prefs, "checkbutton_config_ipv6_trt_enable"),
+		sensitive);
 	G_FREE_NULL(text);
 }
 

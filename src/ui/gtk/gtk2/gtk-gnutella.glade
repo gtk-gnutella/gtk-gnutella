@@ -17093,8 +17093,8 @@ http://maxmind.com/</property>
 		      <child>
 			<widget class="GtkTable" id="table102">
 			  <property name="visible">True</property>
-			  <property name="n_rows">3</property>
-			  <property name="n_columns">6</property>
+			  <property name="n_rows">2</property>
+			  <property name="n_columns">9</property>
 			  <property name="homogeneous">False</property>
 			  <property name="row_spacing">2</property>
 			  <property name="column_spacing">4</property>
@@ -17102,7 +17102,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkLabel" id="label35">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Disable: 0, Random: 1</property>
+			      <property name="label" translatable="yes">(Disable: 0, Random: 1)</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -17122,150 +17122,6 @@ http://maxmind.com/</property>
 			      <property name="right_attach">3</property>
 			      <property name="top_attach">0</property>
 			      <property name="bottom_attach">1</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkSpinButton" id="spinbutton_config_port">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="climb_rate">1</property>
-			      <property name="digits">0</property>
-			      <property name="numeric">True</property>
-			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
-			      <property name="snap_to_ticks">False</property>
-			      <property name="wrap">False</property>
-			      <property name="adjustment">6346 0 65535 1 10 10</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkLabel" id="label915">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes"></property>
-			      <property name="use_underline">False</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_LEFT</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">0</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
-			      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-			      <property name="width_chars">-1</property>
-			      <property name="single_line_mode">False</property>
-			      <property name="angle">0</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">3</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkEntry" id="entry_config_force_ip">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="editable">True</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">0</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char">*</property>
-			      <property name="activates_default">False</property>
-			      <property name="width_chars">17</property>
-			      <signal name="changed" handler="on_entry_config_force_ip_changed"/>
-			      <signal name="activate" handler="on_entry_config_force_ip_activate"/>
-			      <signal name="focus_out_event" handler="on_entry_config_force_ip_focus_out_event"/>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">5</property>
-			      <property name="right_attach">6</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkEntry" id="entry_server_hostname">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="editable">True</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">0</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char">*</property>
-			      <property name="activates_default">False</property>
-			      <signal name="activate" handler="on_entry_server_hostname_activate" last_modification_time="Tue, 29 Jun 2004 15:32:06 GMT"/>
-			      <signal name="focus_out_event" handler="on_entry_server_hostname_focus_out_event" last_modification_time="Sat, 07 Aug 2004 16:05:01 GMT"/>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">5</property>
-			      <property name="right_attach">6</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_config_force_ip">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Force local _IP to</property>
-			      <property name="use_underline">True</property>
-			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <property name="focus_on_click">True</property>
-			      <property name="active">False</property>
-			      <property name="inconsistent">False</property>
-			      <property name="draw_indicator">True</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">4</property>
-			      <property name="right_attach">5</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_give_server_hostname">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Public _hostname</property>
-			      <property name="use_underline">True</property>
-			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <property name="focus_on_click">True</property>
-			      <property name="active">False</property>
-			      <property name="inconsistent">False</property>
-			      <property name="draw_indicator">True</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">4</property>
-			      <property name="right_attach">5</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -17313,10 +17169,10 @@ http://maxmind.com/</property>
 			      <property name="draw_indicator">True</property>
 			    </widget>
 			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">3</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
+			      <property name="left_attach">6</property>
+			      <property name="right_attach">9</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -17329,27 +17185,12 @@ http://maxmind.com/</property>
 			      <property name="history">-1</property>
 			    </widget>
 			    <packing>
-			      <property name="left_attach">2</property>
-			      <property name="right_attach">3</property>
-			      <property name="top_attach">2</property>
-			      <property name="bottom_attach">3</property>
+			      <property name="left_attach">5</property>
+			      <property name="right_attach">6</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkVSeparator" id="vseparator7">
-			      <property name="visible">True</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">3</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">3</property>
-			      <property name="x_padding">4</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options">fill</property>
 			    </packing>
 			  </child>
 
@@ -17372,11 +17213,80 @@ http://maxmind.com/</property>
 			      <property name="angle">0</property>
 			    </widget>
 			    <packing>
+			      <property name="left_attach">3</property>
+			      <property name="right_attach">5</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_padding">4</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkSpinButton" id="spinbutton_config_port">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="climb_rate">1</property>
+			      <property name="digits">0</property>
+			      <property name="numeric">True</property>
+			      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+			      <property name="snap_to_ticks">False</property>
+			      <property name="wrap">False</property>
+			      <property name="adjustment">6346 0 65535 1 10 10</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">shrink|fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_give_server_hostname">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Public _hostname</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
 			      <property name="left_attach">0</property>
 			      <property name="right_attach">2</property>
-			      <property name="top_attach">2</property>
-			      <property name="bottom_attach">3</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
 			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry_server_hostname">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="editable">True</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">0</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <signal name="activate" handler="on_entry_server_hostname_activate" last_modification_time="Tue, 29 Jun 2004 15:32:06 GMT"/>
+			      <signal name="focus_out_event" handler="on_entry_server_hostname_focus_out_event" last_modification_time="Sat, 07 Aug 2004 16:05:01 GMT"/>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">5</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">shrink|fill</property>
 			      <property name="y_options"></property>
 			    </packing>
 			  </child>
@@ -17395,6 +17305,317 @@ http://maxmind.com/</property>
 		      <property name="visible">True</property>
 		      <property name="label" translatable="yes">IP settings</property>
 		      <property name="use_underline">False</property>
+		      <property name="use_markup">False</property>
+		      <property name="justify">GTK_JUSTIFY_LEFT</property>
+		      <property name="wrap">False</property>
+		      <property name="selectable">False</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">0</property>
+		      <property name="ypad">0</property>
+		      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+		      <property name="width_chars">-1</property>
+		      <property name="single_line_mode">False</property>
+		      <property name="angle">0</property>
+		    </widget>
+		    <packing>
+		      <property name="type">label_item</property>
+		    </packing>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">False</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkFrame" id="frame144">
+		  <property name="border_width">4</property>
+		  <property name="visible">True</property>
+		  <property name="label_xalign">0</property>
+		  <property name="label_yalign">0.5</property>
+		  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+		  <child>
+		    <widget class="GtkVBox" id="vbox147">
+		      <property name="border_width">2</property>
+		      <property name="visible">True</property>
+		      <property name="homogeneous">False</property>
+		      <property name="spacing">2</property>
+
+		      <child>
+			<widget class="GtkTable" id="table111">
+			  <property name="visible">True</property>
+			  <property name="n_rows">1</property>
+			  <property name="n_columns">3</property>
+			  <property name="homogeneous">False</property>
+			  <property name="row_spacing">2</property>
+			  <property name="column_spacing">4</property>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_config_force_ip">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Force external IPv4 address to</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_config_bind_ipv4">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">_Bind to this address</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry_config_force_ip">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="editable">True</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">0</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">17</property>
+			      <signal name="changed" handler="on_entry_config_force_ip_changed"/>
+			      <signal name="activate" handler="on_entry_config_force_ip_activate"/>
+			      <signal name="focus_out_event" handler="on_entry_config_force_ip_focus_out_event"/>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">False</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+		    </widget>
+		  </child>
+
+		  <child>
+		    <widget class="GtkLabel" id="label1007">
+		      <property name="visible">True</property>
+		      <property name="label" translatable="yes">IPv_4 settings</property>
+		      <property name="use_underline">True</property>
+		      <property name="use_markup">False</property>
+		      <property name="justify">GTK_JUSTIFY_LEFT</property>
+		      <property name="wrap">False</property>
+		      <property name="selectable">False</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">0</property>
+		      <property name="ypad">0</property>
+		      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+		      <property name="width_chars">-1</property>
+		      <property name="single_line_mode">False</property>
+		      <property name="angle">0</property>
+		    </widget>
+		    <packing>
+		      <property name="type">label_item</property>
+		    </packing>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">False</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkFrame" id="frame145">
+		  <property name="border_width">4</property>
+		  <property name="visible">True</property>
+		  <property name="label_xalign">0</property>
+		  <property name="label_yalign">0.5</property>
+		  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+		  <child>
+		    <widget class="GtkVBox" id="vbox148">
+		      <property name="visible">True</property>
+		      <property name="homogeneous">False</property>
+		      <property name="spacing">2</property>
+
+		      <child>
+			<widget class="GtkTable" id="table112">
+			  <property name="visible">True</property>
+			  <property name="n_rows">2</property>
+			  <property name="n_columns">3</property>
+			  <property name="homogeneous">False</property>
+			  <property name="row_spacing">2</property>
+			  <property name="column_spacing">4</property>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_config_force_ipv6">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Force external IPv6 address to</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry_config_force_ipv6">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="editable">True</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">0</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">50</property>
+			      <signal name="changed" handler="on_entry_config_force_ipv6_changed" last_modification_time="Mon, 16 Oct 2006 02:17:37 GMT"/>
+			      <signal name="activate" handler="on_entry_config_force_ipv6_activate" last_modification_time="Mon, 16 Oct 2006 02:17:43 GMT"/>
+			      <signal name="focus_out_event" handler="on_entry_config_force_ipv6_focus_out_event" last_modification_time="Mon, 16 Oct 2006 02:17:48 GMT"/>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_config_bind_ipv6">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Bind to this address</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_config_ipv6_trt_enable">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Use IPv6-to-IPv4 TRT prefix:</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry_config_ipv6_trt_prefix">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="editable">True</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">0</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char">*</property>
+			      <property name="activates_default">False</property>
+			      <property name="width_chars">50</property>
+			      <signal name="changed" handler="on_entry_config_ipv6_trt_prefix_changed" last_modification_time="Mon, 16 Oct 2006 02:17:04 GMT"/>
+			      <signal name="activate" handler="on_entry_config_ipv6_trt_prefix_activate" last_modification_time="Mon, 16 Oct 2006 02:17:15 GMT"/>
+			      <signal name="focus_out_event" handler="on_entry_config_ipv6_trt_prefix_focus_out_event" last_modification_time="Mon, 16 Oct 2006 02:17:26 GMT"/>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">False</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+		    </widget>
+		  </child>
+
+		  <child>
+		    <widget class="GtkLabel" id="label1008">
+		      <property name="visible">True</property>
+		      <property name="label" translatable="yes">IPv_6 settings</property>
+		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
 		      <property name="wrap">False</property>
@@ -17443,34 +17664,6 @@ http://maxmind.com/</property>
 			  <property name="homogeneous">False</property>
 			  <property name="row_spacing">2</property>
 			  <property name="column_spacing">4</property>
-
-			  <child>
-			    <widget class="GtkLabel" id="label90">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Proxy _type:</property>
-			      <property name="use_underline">True</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_LEFT</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">0</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
-			      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-			      <property name="width_chars">-1</property>
-			      <property name="single_line_mode">False</property>
-			      <property name="angle">0</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">1</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
 
 			  <child>
 			    <widget class="GtkLabel" id="label91">
@@ -17598,6 +17791,34 @@ http://maxmind.com/</property>
 			      <property name="bottom_attach">1</property>
 			      <property name="x_options">shrink|fill</property>
 			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label90">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Proxy _type:</property>
+			      <property name="use_underline">True</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+			      <property name="width_chars">-1</property>
+			      <property name="single_line_mode">False</property>
+			      <property name="angle">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">shrink|fill</property>
+			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 			</widget>
@@ -17864,7 +18085,7 @@ http://maxmind.com/</property>
 			      <property name="selectable">False</property>
 			      <property name="xalign">0.5</property>
 			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
+			      <property name="xpad">4</property>
 			      <property name="ypad">0</property>
 			      <property name="mnemonic_widget">entry_config_netmasks</property>
 			      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
@@ -17957,93 +18178,6 @@ http://maxmind.com/</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
 		      <property name="column_spacing">4</property>
-
-		      <child>
-			<widget class="GtkLabel" id="label515">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Max. file _descriptors reserved</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">spinbutton_config_ban_max_fds</property>
-			  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-			  <property name="width_chars">-1</property>
-			  <property name="single_line_mode">False</property>
-			  <property name="angle">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">shrink|fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label516">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Max. _percentage of file descriptors</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">spinbutton_config_ban_ratio_fds</property>
-			  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-			  <property name="width_chars">-1</property>
-			  <property name="single_line_mode">False</property>
-			  <property name="angle">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">1</property>
-			  <property name="bottom_attach">2</property>
-			  <property name="x_options">shrink|fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkLabel" id="label583">
-			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Hard limit of _file descriptors used</property>
-			  <property name="use_underline">True</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">False</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			  <property name="mnemonic_widget">entry_config_max_banned_fd</property>
-			  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
-			  <property name="width_chars">-1</property>
-			  <property name="single_line_mode">False</property>
-			  <property name="angle">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">2</property>
-			  <property name="bottom_attach">3</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
 
 		      <child>
 			<widget class="GtkSpinButton" id="spinbutton_config_ban_ratio_fds">
@@ -18206,6 +18340,93 @@ http://maxmind.com/</property>
 			  <property name="y_options"></property>
 			</packing>
 		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label583">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Hard limit of _file descriptors used</property>
+			  <property name="use_underline">True</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			  <property name="mnemonic_widget">entry_config_max_banned_fd</property>
+			  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+			  <property name="width_chars">-1</property>
+			  <property name="single_line_mode">False</property>
+			  <property name="angle">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">2</property>
+			  <property name="bottom_attach">3</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label516">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Max. _percentage of file descriptors</property>
+			  <property name="use_underline">True</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			  <property name="mnemonic_widget">spinbutton_config_ban_ratio_fds</property>
+			  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+			  <property name="width_chars">-1</property>
+			  <property name="single_line_mode">False</property>
+			  <property name="angle">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">1</property>
+			  <property name="bottom_attach">2</property>
+			  <property name="x_options">shrink|fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label515">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">Max. file _descriptors reserved</property>
+			  <property name="use_underline">True</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			  <property name="mnemonic_widget">spinbutton_config_ban_max_fds</property>
+			  <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+			  <property name="width_chars">-1</property>
+			  <property name="single_line_mode">False</property>
+			  <property name="angle">0</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_options">shrink|fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
 		    </widget>
 		  </child>
 
@@ -18295,28 +18516,6 @@ http://maxmind.com/</property>
 			  </child>
 
 			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_host_runs_ntp">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Host runs _NTP</property>
-			      <property name="use_underline">True</property>
-			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <property name="focus_on_click">True</property>
-			      <property name="active">False</property>
-			      <property name="inconsistent">False</property>
-			      <property name="draw_indicator">True</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">1</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
 			    <widget class="GtkFrame" id="frame109">
 			      <property name="visible">True</property>
 			      <property name="label_xalign">0</property>
@@ -18346,6 +18545,28 @@ http://maxmind.com/</property>
 			    <packing>
 			      <property name="left_attach">2</property>
 			      <property name="right_attach">3</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_host_runs_ntp">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Host runs _NTP</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="focus_on_click">True</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
 			      <property name="top_attach">0</property>
 			      <property name="bottom_attach">1</property>
 			      <property name="x_options">fill</property>
@@ -18403,29 +18624,10 @@ http://maxmind.com/</property>
 			  <property name="spacing">2</property>
 
 			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_enable_shell">
+			    <widget class="GtkCheckButton" id="checkbutton_enable_remote_shell">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Enable &quot;_shell&quot; control interface</property>
-			      <property name="use_underline">True</property>
-			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <property name="focus_on_click">True</property>
-			      <property name="active">False</property>
-			      <property name="inconsistent">False</property>
-			      <property name="draw_indicator">True</property>
-			    </widget>
-			    <packing>
-			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">False</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_enable_browse_host">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">Enable &quot;_Browse Host&quot; feature</property>
+			      <property name="label" translatable="yes">Enable remote _shell control interface</property>
 			      <property name="use_underline">True</property>
 			      <property name="relief">GTK_RELIEF_NORMAL</property>
 			      <property name="focus_on_click">True</property>
@@ -26115,6 +26317,55 @@ message</property>
 		    <packing>
 		      <property name="type">label_item</property>
 		    </packing>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">True</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkFrame" id="frame146">
+		  <property name="visible">True</property>
+		  <property name="label_xalign">0</property>
+		  <property name="label_yalign">0.5</property>
+		  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+		  <child>
+		    <widget class="GtkTable" id="table114">
+		      <property name="border_width">2</property>
+		      <property name="visible">True</property>
+		      <property name="n_rows">1</property>
+		      <property name="n_columns">1</property>
+		      <property name="homogeneous">False</property>
+		      <property name="row_spacing">2</property>
+		      <property name="column_spacing">4</property>
+
+		      <child>
+			<widget class="GtkCheckButton" id="checkbutton_enable_browse_host">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">Enable &quot;_Browse Host&quot; feature</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			  <property name="focus_on_click">True</property>
+			  <property name="active">False</property>
+			  <property name="inconsistent">False</property>
+			  <property name="draw_indicator">True</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_padding">4</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+		    </widget>
 		  </child>
 		</widget>
 		<packing>

@@ -3801,6 +3801,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_FORCE_LOCAL_IP6,
+        force_local_addr_changed,
+        TRUE,
+        "checkbutton_config_force_ipv6",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_PROXY_AUTH,
         update_togglebutton,
         TRUE,
@@ -3885,6 +3893,14 @@ static prop_map_t property_map[] = {
         update_entry,
         TRUE,
         "entry_config_force_ip",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_FORCED_LOCAL_IP6,
+        update_entry,
+        TRUE,
+        "entry_config_force_ipv6",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4400,7 +4416,7 @@ static prop_map_t property_map[] = {
         PROP_ENABLE_SHELL,
         update_togglebutton,
         TRUE,
-        "checkbutton_enable_shell",
+        "checkbutton_enable_remote_shell",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4539,7 +4555,15 @@ static prop_map_t property_map[] = {
         NULL,
         PROP_LOCAL_IP,
         local_address_changed,
-        FALSE,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        NULL,
+        PROP_LOCAL_IP6,
+        local_address_changed,
+        TRUE,
         NULL,
         FREQ_UPDATES, 0
     ),
@@ -5485,6 +5509,38 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_search_jump_to_created",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_BIND_TO_FORCED_LOCAL_IP,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_bind_ipv4",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_BIND_TO_FORCED_LOCAL_IP6,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_bind_ipv6",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_USE_IPV6_TRT,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_ipv6_trt_enable",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_IPV6_TRT_PREFIX,
+        update_entry,
+        TRUE,
+        "entry_config_ipv6_trt_prefix",
         FREQ_UPDATES, 0
     ),
 };

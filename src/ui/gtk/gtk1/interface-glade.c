@@ -10985,15 +10985,10 @@ create_dlg_prefs (void)
   GtkWidget *label_current_port;
   GtkWidget *hseparator2;
   GtkWidget *table5;
-  GtkWidget *vseparator7;
-  guint checkbutton_config_force_ip_key;
-  GtkWidget *checkbutton_config_force_ip;
-  GtkWidget *entry_config_force_ip;
   guint label129_key;
   GtkWidget *label129;
   GtkObject *spinbutton_config_port_adj;
   GtkWidget *spinbutton_config_port;
-  GtkWidget *label35;
   guint checkbutton_give_server_hostname_key;
   GtkWidget *checkbutton_give_server_hostname;
   GtkWidget *entry_server_hostname;
@@ -11002,6 +10997,21 @@ create_dlg_prefs (void)
   GtkWidget *label778;
   GtkWidget *option_menu_config_network_protocol;
   GtkWidget *option_menu_config_network_protocol_menu;
+  GtkWidget *label35;
+  GtkWidget *frame147;
+  GtkWidget *hbox2108;
+  guint checkbutton_config_force_ip_key;
+  GtkWidget *checkbutton_config_force_ip;
+  GtkWidget *entry_config_force_ip;
+  GtkWidget *checkbutton_config_bind_ipv4;
+  GtkWidget *frame148;
+  GtkWidget *table97;
+  guint checkbutton_config_force_ipv6_key;
+  GtkWidget *checkbutton_config_force_ipv6;
+  GtkWidget *entry_config_force_ipv6;
+  GtkWidget *checkbutton_config_bind_ipv6;
+  GtkWidget *entry_config_ipv6_trt_prefix;
+  GtkWidget *checkbutton_config_ipv6_trt_enable;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox100;
   GtkWidget *table53;
@@ -11061,10 +11071,8 @@ create_dlg_prefs (void)
   GtkWidget *label_clock_skew;
   GtkWidget *frame86;
   GtkWidget *vbox120;
-  guint checkbutton_enable_shell_key;
-  GtkWidget *checkbutton_enable_shell;
-  guint checkbutton_enable_browse_host_key;
-  GtkWidget *checkbutton_enable_browse_host;
+  guint checkbutton_enable_remote_shell_key;
+  GtkWidget *checkbutton_enable_remote_shell;
   GtkWidget *frame_expert_rx_buffers;
   GtkWidget *table67;
   guint label553_key;
@@ -11486,6 +11494,10 @@ create_dlg_prefs (void)
   guint label41_key;
   GtkWidget *label41;
   GtkWidget *entry_config_extensions;
+  GtkWidget *frame149;
+  GtkWidget *table98;
+  guint checkbutton_enable_browse_host_key;
+  GtkWidget *checkbutton_enable_browse_host;
   GtkWidget *frame_expert_ul_timeout;
   GtkWidget *table12;
   guint label179_key;
@@ -11791,7 +11803,7 @@ create_dlg_prefs (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table5 = gtk_table_new (3, 7, FALSE);
+  table5 = gtk_table_new (2, 7, FALSE);
   gtk_widget_set_name (table5, "table5");
   gtk_widget_ref (table5);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table5", table5,
@@ -11800,40 +11812,6 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (vbox30), table5, TRUE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table5), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table5), 4);
-
-  vseparator7 = gtk_vseparator_new ();
-  gtk_widget_set_name (vseparator7, "vseparator7");
-  gtk_widget_ref (vseparator7);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vseparator7", vseparator7,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vseparator7);
-  gtk_table_attach (GTK_TABLE (table5), vseparator7, 3, 4, 0, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
-
-  checkbutton_config_force_ip = gtk_check_button_new_with_label ("");
-  checkbutton_config_force_ip_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_force_ip)->child),
-                                   _("Force local _IP to"));
-  gtk_widget_add_accelerator (checkbutton_config_force_ip, "clicked", accel_group,
-                              checkbutton_config_force_ip_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
-  gtk_widget_ref (checkbutton_config_force_ip);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_force_ip", checkbutton_config_force_ip,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_config_force_ip, 4, 5, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  entry_config_force_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
-  gtk_widget_ref (entry_config_force_ip);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_config_force_ip", entry_config_force_ip,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 5, 7, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
 
   label129 = gtk_label_new ("");
   label129_key = gtk_label_parse_uline (GTK_LABEL (label129),
@@ -11861,16 +11839,6 @@ create_dlg_prefs (void)
   gtk_widget_set_usize (spinbutton_config_port, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
 
-  label35 = gtk_label_new (_("Disable: 0, Random: 1"));
-  gtk_widget_set_name (label35, "label35");
-  gtk_widget_ref (label35);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label35", label35,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label35);
-  gtk_table_attach (GTK_TABLE (table5), label35, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   checkbutton_give_server_hostname = gtk_check_button_new_with_label ("");
   checkbutton_give_server_hostname_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_give_server_hostname)->child),
                                    _("Public _hostname"));
@@ -11881,7 +11849,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_give_server_hostname", checkbutton_give_server_hostname,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_give_server_hostname);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_give_server_hostname, 4, 5, 1, 2,
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_give_server_hostname, 0, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11891,8 +11859,8 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_server_hostname", entry_server_hostname,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_server_hostname);
-  gtk_table_attach (GTK_TABLE (table5), entry_server_hostname, 5, 7, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
+  gtk_table_attach (GTK_TABLE (table5), entry_server_hostname, 2, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   checkbutton_enable_udp = gtk_check_button_new_with_label ("");
@@ -11905,7 +11873,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_udp", checkbutton_enable_udp,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_enable_udp);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_enable_udp, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_enable_udp, 6, 7, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11915,10 +11883,11 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label778", label778,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label778);
-  gtk_table_attach (GTK_TABLE (table5), label778, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table5), label778, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label778), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label778), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label778), 4, 0);
 
   option_menu_config_network_protocol = gtk_option_menu_new ();
   gtk_widget_set_name (option_menu_config_network_protocol, "option_menu_config_network_protocol");
@@ -11926,11 +11895,136 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "option_menu_config_network_protocol", option_menu_config_network_protocol,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (option_menu_config_network_protocol);
-  gtk_table_attach (GTK_TABLE (table5), option_menu_config_network_protocol, 1, 3, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_table_attach (GTK_TABLE (table5), option_menu_config_network_protocol, 4, 6, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
   option_menu_config_network_protocol_menu = gtk_menu_new ();
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_config_network_protocol), option_menu_config_network_protocol_menu);
+
+  label35 = gtk_label_new (_("(Disable: 0, Random: 1)"));
+  gtk_widget_set_name (label35, "label35");
+  gtk_widget_ref (label35);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label35", label35,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label35);
+  gtk_table_attach (GTK_TABLE (table5), label35, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label35), 7.45058e-09, 0.5);
+
+  frame147 = gtk_frame_new (_("IPv4 settings"));
+  gtk_widget_set_name (frame147, "frame147");
+  gtk_widget_ref (frame147);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame147", frame147,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame147);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame147, FALSE, TRUE, 0);
+
+  hbox2108 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox2108, "hbox2108");
+  gtk_widget_ref (hbox2108);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "hbox2108", hbox2108,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2108);
+  gtk_container_add (GTK_CONTAINER (frame147), hbox2108);
+
+  checkbutton_config_force_ip = gtk_check_button_new_with_label ("");
+  checkbutton_config_force_ip_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_force_ip)->child),
+                                   _("Force external IPv_4 address to"));
+  gtk_widget_add_accelerator (checkbutton_config_force_ip, "clicked", accel_group,
+                              checkbutton_config_force_ip_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  gtk_widget_ref (checkbutton_config_force_ip);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_force_ip", checkbutton_config_force_ip,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_force_ip);
+  gtk_box_pack_start (GTK_BOX (hbox2108), checkbutton_config_force_ip, FALSE, TRUE, 0);
+
+  entry_config_force_ip = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
+  gtk_widget_ref (entry_config_force_ip);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_config_force_ip", entry_config_force_ip,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_config_force_ip);
+  gtk_box_pack_start (GTK_BOX (hbox2108), entry_config_force_ip, TRUE, TRUE, 0);
+
+  checkbutton_config_bind_ipv4 = gtk_check_button_new_with_label (_("Bind to this address"));
+  gtk_widget_set_name (checkbutton_config_bind_ipv4, "checkbutton_config_bind_ipv4");
+  gtk_widget_ref (checkbutton_config_bind_ipv4);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bind_ipv4", checkbutton_config_bind_ipv4,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_bind_ipv4);
+  gtk_box_pack_start (GTK_BOX (hbox2108), checkbutton_config_bind_ipv4, FALSE, TRUE, 0);
+
+  frame148 = gtk_frame_new (_("IPv6 settings"));
+  gtk_widget_set_name (frame148, "frame148");
+  gtk_widget_ref (frame148);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame148", frame148,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame148);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame148, FALSE, FALSE, 0);
+
+  table97 = gtk_table_new (2, 3, FALSE);
+  gtk_widget_set_name (table97, "table97");
+  gtk_widget_ref (table97);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table97", table97,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table97);
+  gtk_container_add (GTK_CONTAINER (frame148), table97);
+
+  checkbutton_config_force_ipv6 = gtk_check_button_new_with_label ("");
+  checkbutton_config_force_ipv6_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_force_ipv6)->child),
+                                   _("Force external IPv_6 address to"));
+  gtk_widget_add_accelerator (checkbutton_config_force_ipv6, "clicked", accel_group,
+                              checkbutton_config_force_ipv6_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_force_ipv6, "checkbutton_config_force_ipv6");
+  gtk_widget_ref (checkbutton_config_force_ipv6);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_force_ipv6", checkbutton_config_force_ipv6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_force_ipv6);
+  gtk_table_attach (GTK_TABLE (table97), checkbutton_config_force_ipv6, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_config_force_ipv6 = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ipv6, "entry_config_force_ipv6");
+  gtk_widget_ref (entry_config_force_ipv6);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_config_force_ipv6", entry_config_force_ipv6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_config_force_ipv6);
+  gtk_table_attach (GTK_TABLE (table97), entry_config_force_ipv6, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_bind_ipv6 = gtk_check_button_new_with_label (_("Bind to this address"));
+  gtk_widget_set_name (checkbutton_config_bind_ipv6, "checkbutton_config_bind_ipv6");
+  gtk_widget_ref (checkbutton_config_bind_ipv6);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bind_ipv6", checkbutton_config_bind_ipv6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_bind_ipv6);
+  gtk_table_attach (GTK_TABLE (table97), checkbutton_config_bind_ipv6, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_config_ipv6_trt_prefix = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_ipv6_trt_prefix, "entry_config_ipv6_trt_prefix");
+  gtk_widget_ref (entry_config_ipv6_trt_prefix);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "entry_config_ipv6_trt_prefix", entry_config_ipv6_trt_prefix,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_config_ipv6_trt_prefix);
+  gtk_table_attach (GTK_TABLE (table97), entry_config_ipv6_trt_prefix, 1, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_ipv6_trt_enable = gtk_check_button_new_with_label (_("Use IPv6-to-IPv4 TRT prefix:"));
+  gtk_widget_set_name (checkbutton_config_ipv6_trt_enable, "checkbutton_config_ipv6_trt_enable");
+  gtk_widget_ref (checkbutton_config_ipv6_trt_enable);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_ipv6_trt_enable", checkbutton_config_ipv6_trt_enable,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_ipv6_trt_enable);
+  gtk_table_attach (GTK_TABLE (table97), checkbutton_config_ipv6_trt_enable, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame_proxy_settings = gtk_frame_new (_("Proxy settings"));
   gtk_widget_set_name (frame_proxy_settings, "frame_proxy_settings");
@@ -12393,31 +12487,18 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox120);
   gtk_container_add (GTK_CONTAINER (frame86), vbox120);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox120), 2);
 
-  checkbutton_enable_shell = gtk_check_button_new_with_label ("");
-  checkbutton_enable_shell_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_enable_shell)->child),
-                                   _("Enable \"_shell\" control interface"));
-  gtk_widget_add_accelerator (checkbutton_enable_shell, "clicked", accel_group,
-                              checkbutton_enable_shell_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_enable_shell, "checkbutton_enable_shell");
-  gtk_widget_ref (checkbutton_enable_shell);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_shell", checkbutton_enable_shell,
+  checkbutton_enable_remote_shell = gtk_check_button_new_with_label ("");
+  checkbutton_enable_remote_shell_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_enable_remote_shell)->child),
+                                   _("Enable remote _shell control interface"));
+  gtk_widget_add_accelerator (checkbutton_enable_remote_shell, "clicked", accel_group,
+                              checkbutton_enable_remote_shell_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_enable_remote_shell, "checkbutton_enable_remote_shell");
+  gtk_widget_ref (checkbutton_enable_remote_shell);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_remote_shell", checkbutton_enable_remote_shell,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_enable_shell);
-  gtk_box_pack_start (GTK_BOX (vbox120), checkbutton_enable_shell, FALSE, FALSE, 0);
-
-  checkbutton_enable_browse_host = gtk_check_button_new_with_label ("");
-  checkbutton_enable_browse_host_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_enable_browse_host)->child),
-                                   _("Enable \"_Browse Host\" feature"));
-  gtk_widget_add_accelerator (checkbutton_enable_browse_host, "clicked", accel_group,
-                              checkbutton_enable_browse_host_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
-  gtk_widget_ref (checkbutton_enable_browse_host);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_browse_host", checkbutton_enable_browse_host,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_enable_browse_host);
-  gtk_box_pack_start (GTK_BOX (vbox120), checkbutton_enable_browse_host, FALSE, FALSE, 0);
+  gtk_widget_show (checkbutton_enable_remote_shell);
+  gtk_box_pack_start (GTK_BOX (vbox120), checkbutton_enable_remote_shell, FALSE, FALSE, 0);
 
   frame_expert_rx_buffers = gtk_frame_new (_("Socket receive buffer size"));
   gtk_widget_set_name (frame_expert_rx_buffers, "frame_expert_rx_buffers");
@@ -15827,6 +15908,38 @@ create_dlg_prefs (void)
   gtk_widget_show (entry_config_extensions);
   gtk_box_pack_start (GTK_BOX (hbox27), entry_config_extensions, TRUE, TRUE, 0);
 
+  frame149 = gtk_frame_new (_("Miscellaneous"));
+  gtk_widget_set_name (frame149, "frame149");
+  gtk_widget_ref (frame149);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame149", frame149,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame149);
+  gtk_box_pack_start (GTK_BOX (vbox40), frame149, FALSE, TRUE, 0);
+
+  table98 = gtk_table_new (1, 1, FALSE);
+  gtk_widget_set_name (table98, "table98");
+  gtk_widget_ref (table98);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table98", table98,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table98);
+  gtk_container_add (GTK_CONTAINER (frame149), table98);
+  gtk_table_set_row_spacings (GTK_TABLE (table98), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table98), 4);
+
+  checkbutton_enable_browse_host = gtk_check_button_new_with_label ("");
+  checkbutton_enable_browse_host_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_enable_browse_host)->child),
+                                   _("Enable \"_Browse Host\" feature"));
+  gtk_widget_add_accelerator (checkbutton_enable_browse_host, "clicked", accel_group,
+                              checkbutton_enable_browse_host_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
+  gtk_widget_ref (checkbutton_enable_browse_host);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_browse_host", checkbutton_enable_browse_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_enable_browse_host);
+  gtk_table_attach (GTK_TABLE (table98), checkbutton_enable_browse_host, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   frame_expert_ul_timeout = gtk_frame_new (_("Timeouts (all values in seconds)"));
   gtk_widget_set_name (frame_expert_ul_timeout, "frame_expert_ul_timeout");
   gtk_widget_ref (frame_expert_ul_timeout);
@@ -17600,6 +17713,15 @@ create_dlg_prefs (void)
   gtk_signal_connect (GTK_OBJECT (dlg_prefs), "delete_event",
                       GTK_SIGNAL_FUNC (on_dlg_prefs_delete_event),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "changed",
+                      GTK_SIGNAL_FUNC (on_entry_server_hostname_changed),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_server_hostname_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_server_hostname_focus_out_event),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "changed",
                       GTK_SIGNAL_FUNC (on_entry_config_force_ip_changed),
                       NULL);
@@ -17609,14 +17731,23 @@ create_dlg_prefs (void)
   gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_force_ip_focus_out_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "changed",
-                      GTK_SIGNAL_FUNC (on_entry_server_hostname_changed),
+  gtk_signal_connect (GTK_OBJECT (entry_config_force_ipv6), "changed",
+                      GTK_SIGNAL_FUNC (on_entry_config_force_ipv6_changed),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_server_hostname_activate),
+  gtk_signal_connect (GTK_OBJECT (entry_config_force_ipv6), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_config_force_ipv6_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_server_hostname_focus_out_event),
+  gtk_signal_connect (GTK_OBJECT (entry_config_force_ipv6), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_config_force_ipv6_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_config_ipv6_trt_prefix), "changed",
+                      GTK_SIGNAL_FUNC (on_entry_config_ipv6_trt_prefix_changed),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_config_ipv6_trt_prefix), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_config_ipv6_trt_prefix_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_config_ipv6_trt_prefix), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_config_ipv6_trt_prefix_focus_out_event),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_proxy_hostname), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_proxy_hostname_activate),

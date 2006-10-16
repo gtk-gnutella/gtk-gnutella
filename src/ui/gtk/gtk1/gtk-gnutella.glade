@@ -14635,7 +14635,7 @@ http://maxmind.com/</label>
 		<widget>
 		  <class>GtkTable</class>
 		  <name>table5</name>
-		  <rows>3</rows>
+		  <rows>2</rows>
 		  <columns>7</columns>
 		  <homogeneous>False</homogeneous>
 		  <row_spacing>2</row_spacing>
@@ -14645,87 +14645,6 @@ http://maxmind.com/</label>
 		    <expand>True</expand>
 		    <fill>True</fill>
 		  </child>
-
-		  <widget>
-		    <class>GtkVSeparator</class>
-		    <name>vseparator7</name>
-		    <child>
-		      <left_attach>3</left_attach>
-		      <right_attach>4</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>3</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>True</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>True</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_config_force_ip</name>
-		    <can_focus>True</can_focus>
-		    <label>Force local _IP to</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <left_attach>4</left_attach>
-		      <right_attach>5</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkEntry</class>
-		    <name>entry_config_force_ip</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_entry_config_force_ip_changed</handler>
-		      <last_modification_time>Sun, 26 Mar 2000 17:43:03 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>activate</name>
-		      <handler>on_entry_config_force_ip_activate</handler>
-		      <last_modification_time>Sun, 02 Apr 2000 08:43:44 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>focus_out_event</name>
-		      <handler>on_entry_config_force_ip_focus_out_event</handler>
-		      <last_modification_time>Thu, 06 Apr 2000 06:26:50 GMT</last_modification_time>
-		    </signal>
-		    <editable>True</editable>
-		    <text_visible>True</text_visible>
-		    <text_max_length>0</text_max_length>
-		    <text></text>
-		    <child>
-		      <left_attach>5</left_attach>
-		      <right_attach>7</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
 
 		  <widget>
 		    <class>GtkLabel</class>
@@ -14788,32 +14707,6 @@ http://maxmind.com/</label>
 		  </widget>
 
 		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label35</name>
-		    <label>Disable: 0, Random: 1</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <left_attach>2</left_attach>
-		      <right_attach>3</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>1</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_give_server_hostname</name>
 		    <can_focus>True</can_focus>
@@ -14821,8 +14714,8 @@ http://maxmind.com/</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
-		      <left_attach>4</left_attach>
-		      <right_attach>5</right_attach>
+		      <left_attach>0</left_attach>
+		      <right_attach>2</right_attach>
 		      <top_attach>1</top_attach>
 		      <bottom_attach>2</bottom_attach>
 		      <xpad>0</xpad>
@@ -14860,13 +14753,13 @@ http://maxmind.com/</label>
 		    <text_max_length>255</text_max_length>
 		    <text></text>
 		    <child>
-		      <left_attach>5</left_attach>
-		      <right_attach>7</right_attach>
+		      <left_attach>2</left_attach>
+		      <right_attach>4</right_attach>
 		      <top_attach>1</top_attach>
 		      <bottom_attach>2</bottom_attach>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
-		      <xexpand>False</xexpand>
+		      <xexpand>True</xexpand>
 		      <yexpand>False</yexpand>
 		      <xshrink>False</xshrink>
 		      <yshrink>False</yshrink>
@@ -14883,10 +14776,10 @@ http://maxmind.com/</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
-		      <top_attach>1</top_attach>
-		      <bottom_attach>2</bottom_attach>
+		      <left_attach>6</left_attach>
+		      <right_attach>7</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
 		      <xexpand>False</xexpand>
@@ -14904,15 +14797,15 @@ http://maxmind.com/</label>
 		    <label>Network protocol:</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>0</xalign>
+		    <xalign>1</xalign>
 		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
+		    <xpad>4</xpad>
 		    <ypad>0</ypad>
 		    <child>
-		      <left_attach>0</left_attach>
-		      <right_attach>1</right_attach>
-		      <top_attach>2</top_attach>
-		      <bottom_attach>3</bottom_attach>
+		      <left_attach>3</left_attach>
+		      <right_attach>4</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
 		      <xexpand>False</xexpand>
@@ -14931,10 +14824,36 @@ http://maxmind.com/</label>
 		    <items></items>
 		    <initial_choice>0</initial_choice>
 		    <child>
-		      <left_attach>1</left_attach>
+		      <left_attach>4</left_attach>
+		      <right_attach>6</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>True</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label35</name>
+		    <label>(Disable: 0, Random: 1)</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>7.45058e-09</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>2</left_attach>
 		      <right_attach>3</right_attach>
-		      <top_attach>2</top_attach>
-		      <bottom_attach>3</bottom_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
 		      <xexpand>False</xexpand>
@@ -14942,9 +14861,257 @@ http://maxmind.com/</label>
 		      <xshrink>False</xshrink>
 		      <yshrink>False</yshrink>
 		      <xfill>True</xfill>
-		      <yfill>True</yfill>
+		      <yfill>False</yfill>
 		    </child>
 		  </widget>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkFrame</class>
+	      <name>frame147</name>
+	      <label>IPv4 settings</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox2108</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_force_ip</name>
+		  <can_focus>True</can_focus>
+		  <label>Force external IPv_4 address to</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_config_force_ip</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>changed</name>
+		    <handler>on_entry_config_force_ip_changed</handler>
+		    <last_modification_time>Sun, 26 Mar 2000 17:43:03 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_entry_config_force_ip_activate</handler>
+		    <last_modification_time>Sun, 02 Apr 2000 08:43:44 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>focus_out_event</name>
+		    <handler>on_entry_config_force_ip_focus_out_event</handler>
+		    <last_modification_time>Thu, 06 Apr 2000 06:26:50 GMT</last_modification_time>
+		  </signal>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_bind_ipv4</name>
+		  <can_focus>True</can_focus>
+		  <label>Bind to this address</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>True</fill>
+		  </child>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkFrame</class>
+	      <name>frame148</name>
+	      <label>IPv6 settings</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkTable</class>
+		<name>table97</name>
+		<rows>2</rows>
+		<columns>3</columns>
+		<homogeneous>False</homogeneous>
+		<row_spacing>0</row_spacing>
+		<column_spacing>0</column_spacing>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_force_ipv6</name>
+		  <can_focus>True</can_focus>
+		  <label>Force external IPv_6 address to</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_config_force_ipv6</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>changed</name>
+		    <handler>on_entry_config_force_ipv6_changed</handler>
+		    <last_modification_time>Mon, 16 Oct 2006 02:14:24 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_entry_config_force_ipv6_activate</handler>
+		    <last_modification_time>Mon, 16 Oct 2006 02:14:31 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>focus_out_event</name>
+		    <handler>on_entry_config_force_ipv6_focus_out_event</handler>
+		    <last_modification_time>Mon, 16 Oct 2006 02:14:37 GMT</last_modification_time>
+		  </signal>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <left_attach>1</left_attach>
+		    <right_attach>2</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>True</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_bind_ipv6</name>
+		  <can_focus>True</can_focus>
+		  <label>Bind to this address</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>2</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_config_ipv6_trt_prefix</name>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>changed</name>
+		    <handler>on_entry_config_ipv6_trt_prefix_changed</handler>
+		    <last_modification_time>Mon, 16 Oct 2006 02:15:09 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_entry_config_ipv6_trt_prefix_activate</handler>
+		    <last_modification_time>Mon, 16 Oct 2006 02:15:22 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>focus_out_event</name>
+		    <handler>on_entry_config_ipv6_trt_prefix_focus_out_event</handler>
+		    <last_modification_time>Mon, 16 Oct 2006 02:15:57 GMT</last_modification_time>
+		  </signal>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <left_attach>1</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>True</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_ipv6_trt_enable</name>
+		  <can_focus>True</can_focus>
+		  <label>Use IPv6-to-IPv4 TRT prefix:</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>True</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
 		</widget>
 	      </widget>
 	    </widget>
@@ -15832,29 +15999,14 @@ http://maxmind.com/</label>
 	      <widget>
 		<class>GtkVBox</class>
 		<name>vbox120</name>
-		<border_width>2</border_width>
 		<homogeneous>False</homogeneous>
 		<spacing>2</spacing>
 
 		<widget>
 		  <class>GtkCheckButton</class>
-		  <name>checkbutton_enable_shell</name>
+		  <name>checkbutton_enable_remote_shell</name>
 		  <can_focus>True</can_focus>
-		  <label>Enable &quot;_shell&quot; control interface</label>
-		  <active>False</active>
-		  <draw_indicator>True</draw_indicator>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkCheckButton</class>
-		  <name>checkbutton_enable_browse_host</name>
-		  <can_focus>True</can_focus>
-		  <label>Enable &quot;_Browse Host&quot; feature</label>
+		  <label>Enable remote _shell control interface</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -22502,6 +22654,52 @@ allowed</label>
 		      <fill>True</fill>
 		    </child>
 		  </widget>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkFrame</class>
+	      <name>frame149</name>
+	      <label>Miscellaneous</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkTable</class>
+		<name>table98</name>
+		<rows>1</rows>
+		<columns>1</columns>
+		<homogeneous>False</homogeneous>
+		<row_spacing>2</row_spacing>
+		<column_spacing>4</column_spacing>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_enable_browse_host</name>
+		  <can_focus>True</can_focus>
+		  <label>Enable &quot;_Browse Host&quot; feature</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
 		</widget>
 	      </widget>
 	    </widget>
