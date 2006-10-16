@@ -1,3 +1,9 @@
+gtk-gnutella (0.96.2-0) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Christian Biere <christianbiere@gmx.de>  Mon, Oct 16 2006 21:06:00 +0100
+
 gtk-gnutella (0.96.1-0) unstable; urgency=medium
 
   * New upstream release

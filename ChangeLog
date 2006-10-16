@@ -1,4 +1,67 @@
-# since last version
+# v 0.96.2   2006-10-16  [stable]
+
+Bug fixes:
+ - Fixed bug #1467793 "uname() return value".
+ - Fixed bug #1467681 "weird HTTP acknowledgment".
+ - Fixed bug #1422526 "`Drop results' should prepend, not append, to filters".
+ - Fixed bugs in the dynamic querying logic that caused leaves to
+   receive very few results through Gtk-Gnutella ultrapeers.
+ - Fixed crash on 64-bit platforms when using the navigation tree.
+ - Fixed format mismatches in some translated message catalogs.
+
+Updates:
+ - Updated French, Japanese and Ukrainian translations.
+ - Updated list of hostile IP ranges.
+ - Updated list of bootstrap caches.
+ - Updated list of country names and codes.
+
+Improvements:
+ - Italian translation.
+ - Fairly complete support for magnet-links; magnets can be passed per
+   drag & drop or entered via the search box. Magnets can be generated
+   from the search results display and the downloads display through
+   the context menu.
+ - SHA-1 based spam filtering.
+ - Built-in spam detection for certain kinds of spam.
+ - [GTK2] Overhaul of the downloads display.
+ - [GTK1] Downloads can be sorted albeit the sorting does not persist.
+ - Compiling the topless is variant is now as easy as
+   "./Configure -Oders -Dd_headless".
+ - Support for several command-line options like "--help".
+ - A local shell interface accessible with "gtk-gnutella --shell".
+ - New shell commands "nodes" and "shutdown".
+ - All downloads are stopped now if the disk apparently filled up.
+ - Caching of TLS-support allows automatic use of TLS.
+ - ~/.gtk-gnutella/whitelist supports the "tls:" as well.
+ - More search results columns for experts (hidden by default).
+ - Diverse IPv6 settings can be configured in the GUI now.
+ - The setting "IPv4 and IPv6" works now; the default is "IPv4 only".
+ - Results bearing no SHA-1 are suppressed by default.
+ - Results from hostile IP ranges can be made visible; they are discarded
+   by default.
+ - One's own shared files can be search by using the prefix "local:"
+   for searches. Local searches uses regex syntax unlike Gnutella searches.
+   "local:" alone will list all shared files. Local searches results
+   allow drag & drop and generation of magnet links.
+ - Support of Socker for access to privileged TCP and UDP ports below 1024.
+ - Optionally bind sockets to a configured address instead of the wildcard
+   address.
+ - Support of IPv6-to-IPv4 Transport Relay Translators (RFC 3142).
+
+Under the hood:
+ - mmap()-based memory allocation to decrease fragmentation and
+   increase performance.
+ - Support of socket option TCP_DEFER_ACCEPT (Linux).
+ - Support of accept() filter "dataready" (FreeBSD).
+ - Support of /dev/poll on Solaris and IRIX.
+ - Sharing of file descriptors so that we don't require a file descriptor
+   per swarm source but only one per file.
+ - Use of pwrite(), pwritev() for flushing download buffers.
+ - Reopen log files on SIGHUP if the command-line options --log_stderr or
+   --log_stdout are specified which is useful for topless mode.
+ - Disabled following of HTTP redirects.
+ - Support of "deflate" transfer-encoding for all downloads.
+ - Support for compression of UDP packets.
 
 - (2006-04-22 - RAM)
  * Moved downloads were not lingering in the GUI once completed.
@@ -8,7 +71,7 @@
  * Flush ASAP when file is overcommitted: we have more data buffered than
    there are in the file.
 
-# v 0.96.1   2006-02.22  [stable]
+# v 0.96.1   2006-02-22  [stable]
 
 Bug fixes:
 - Fixed issue when browse host is the only search in the list (bug #1421196).
