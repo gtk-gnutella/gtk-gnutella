@@ -344,6 +344,7 @@
 # Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
 72.51.37.145
 72.51.42.70
+72.51.33.176
 
 # Gnucleus-based DRM WMV spammer hosted by eNET
 206.222.26.34
@@ -408,6 +409,11 @@
 # Range belong to Level 3; seems to be related to the peers by Cisco Systems
 65.57.247.0/24
 65.59.209.0/29
+
+# Another range of Level 3; there are many buggy modded clients in these
+# ranges probably engaged in sabotage
+8.9.197.0/24
+8.9.198.0/23
 
 # swapexits.com; DRM license server
 74.52.9.122
