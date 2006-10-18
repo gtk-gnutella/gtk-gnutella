@@ -5,9 +5,12 @@ GEO_LICENSE
 Jmakefile
 LICENSE
 MANIFEST                     This shipping list
+MPL-1.1.txt
 Makefile.SH
 README
+README.xmingw
 TODO
+config.sh.xmingw
 U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
@@ -59,6 +62,8 @@ U/new/i_libintl.U
 U/new/i_netdb.U
 U/new/i_netif.U
 U/new/i_niip.U
+U/new/i_poll.U
+U/new/i_syspoll.U
 U/new/i_syssendfile.U
 U/new/i_syssysctl.U
 U/new/i_sysutsname.U
@@ -111,6 +116,7 @@ doc/gnutella/bye
 doc/gnutella/compression
 doc/gnutella/crawler
 doc/gnutella/deflated_udp
+doc/gnutella/draft-nielsen-dime-02.txt
 doc/gnutella/dynamic_query
 doc/gnutella/gwcache
 doc/gnutella/handshaking_0.6
@@ -124,6 +130,7 @@ doc/gnutella/msg/connect_back
 doc/gnutella/msg/node_info
 doc/gnutella/msg/proxy_cancel
 doc/gnutella/msg/route_lost
+doc/gnutella/msg/time_sync
 doc/gnutella/out-of-band
 doc/gnutella/ping-pong
 doc/gnutella/push_proxy
@@ -139,6 +146,7 @@ doc/http/uri-res.txt
 doc/http/uri.txt
 doc/other/DIME.txt
 doc/other/NOTE-datetime.txt
+doc/other/dbus-support.txt
 doc/other/gtkg-shell.sh
 doc/other/gtkg.supp
 doc/other/gwccheck
@@ -151,6 +159,7 @@ doc/public/GGEP/GTKG-V1
 doc/public/GGEP/GTKG-s1
 doc/public/GGEP/H
 doc/public/GGEP/HNAME
+doc/public/GGEP/LF
 doc/public/GGEP/T
 doc/public/GGEP/bin_format
 doc/public/GGEP/u
@@ -506,6 +515,8 @@ src/lib/fifo.c
 src/lib/fifo.h
 src/lib/file.c
 src/lib/file.h
+src/lib/fragcheck.c
+src/lib/fragcheck.h
 src/lib/fuzzy.c
 src/lib/fuzzy.h
 src/lib/getdate.c
@@ -519,6 +530,8 @@ src/lib/halloc.c
 src/lib/halloc.h
 src/lib/hashlist.c
 src/lib/hashlist.h
+src/lib/hashtable.c
+src/lib/hashtable.h
 src/lib/header.c
 src/lib/header.h
 src/lib/host_addr.c
@@ -586,7 +599,7 @@ src/lib/zalloc.h
 src/lib/zlib_util.c
 src/lib/zlib_util.h
 src/main.c
-src/revision_h.SH
+src/revision.h
 src/ui/Jmakefile
 src/ui/Makefile.SH
 src/ui/gtk/Jmakefile
