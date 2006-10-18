@@ -412,8 +412,7 @@
 
 # Another range of Level 3; there are many buggy modded clients in these
 # ranges probably engaged in sabotage
-8.9.197.0/24
-8.9.198.0/23
+8.9.196.0/22
 
 # swapexits.com; DRM license server
 74.52.9.122
