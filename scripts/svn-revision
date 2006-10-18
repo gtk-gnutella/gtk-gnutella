@@ -44,7 +44,7 @@ fi
 if test -d "$TOP/.svn"; then
   revnum=`svn info "$TOP" 2>/dev/null | grep '^Revision' | head -n1 | cut -d' ' -f2`
 else
-  revnum="not $oldrev"
+  revnum="$oldrev" # keep as is
 fi
 
 if [ "x$revnum" = "x$oldrev" ]; then
