@@ -1,0 +1,20 @@
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:i_poll: Inhdr
+?MAKE:	-pick add $@ %<
+?S:i_poll:
+?S:    This variable conditionally defines the I_POLL symbol, and indicates
+?S:    whether a C program should include <poll.h>.
+?S:.
+?C:I_POLL:
+?C:    This symbol, if defined, indicates to the C program that it should
+?C:    include <poll.h>.
+?C:.
+?H:#$i_poll I_POLL         /**/
+?H:.
+?LINT:set i_poll
+: see if this is a poll.h system
+set poll.h i_netdb
+eval $inhdr
+
