@@ -51,6 +51,21 @@ RCSID("$Id$")
 #define BH_DL_DEFAULT_SIZE	4096	/* Default data buffer size */
 #define BH_DL_MAX_SIZE		65536	/* Maximum payload size we allow */
 
+struct browse_ctx {
+	gpointer owner;					/**< Download owning us */
+	rxdrv_t *rx;					/**< RX stack top */
+	gnet_host_t host;				/**< Host we're browsing, for logging */
+	gnet_search_t sh;				/**< Search ID to which hits are given */
+	gchar *vendor;					/**< Vendor version string */
+	struct gnutella_header header;	/**< Received header */
+	gchar *data;					/**< Where payload data is stored */
+	guint data_size;				/**< Size of data buffer */
+	guint pos;						/**< Reading position */
+	guint32 size;					/**< Payload size */
+	gboolean has_header;			/**< True when header has been read */
+	gboolean closed;				/**< Set when search is closed */
+};
+
 /**
  * Initialize the browse host context.
  */

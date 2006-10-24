@@ -54,25 +54,11 @@
 #define BH_DL_GUNZIP	(1 << 1)	/**< gunzip input */
 #define BH_DL_CHUNKED	(1 << 2)	/**< Getting chunked data */
 
-struct browse_ctx {
-	gpointer owner;					/**< Download owning us */
-	rxdrv_t *rx;					/**< RX stack top */
-	gnet_host_t host;				/**< Host we're browsing, for logging */
-	gnet_search_t sh;				/**< Search ID to which hits are given */
-	gchar *vendor;					/**< Vendor version string */
-	struct gnutella_header header;	/**< Received header */
-	gchar *data;					/**< Where payload data is stored */
-	guint data_size;				/**< Size of data buffer */
-	guint pos;						/**< Reading position */
-	guint32 size;					/**< Payload size */
-	gboolean has_header;			/**< True when header has been read */
-	gboolean closed;				/**< Set when search is closed */
-};
-
 /*
  * Public interface.
  */
 
+struct browse_ctx;
 struct bio_source;
 
 struct browse_ctx *browse_host_dl_create(
