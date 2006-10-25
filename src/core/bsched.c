@@ -2462,6 +2462,15 @@ bsched_timer(void)
 		inet_read_activity();
 }
 
+static gboolean
+false_expr(const gchar *expr)
+{
+	g_message("%s", expr);
+	return FALSE;
+}
+
+#define noisy_check(expr) ((expr) ? 1 : false_expr(G_STRLOC ": " #expr))
+
 /**
  * Needs very short description so that doxygen can parse the following
  * list properly.
@@ -2481,19 +2490,33 @@ gboolean
 bsched_enough_up_bandwidth(void)
 {
 	guint32 total = 0;
-
-	if (ul_running && bws_out_ema < BW_OUT_UP_MIN)
+	
+	/**
+	 * FIXME: If all upload slots are used by clients which download
+	 *		  very slowly, the below check would cause a demotion
+	 *		  to leaf mode. It is in general not possible to know
+	 *		  whether we are out of bandwidth or if the remote clients
+	 *		  have insufficient available bandwidth.
+	 */
+#if 0
+	if (noisy_check(ul_running && bws_out_ema < BW_OUT_UP_MIN))
 		return FALSE;		/* 1. */
+#endif
 
 	if (
-		bws_glout_enabled && bws_out_enabled &&
-		bw_gnet_lout >= bw_http_out && upload_is_enabled()
+		noisy_check(
+			bws_glout_enabled &&
+			bws_out_enabled &&
+			bw_gnet_lout >= bw_http_out &&
+			upload_is_enabled())
 	)
 		return FALSE;		/* 2. */
 
 	if (
-		bws_gout_enabled &&
-		bw_gnet_out < BW_OUT_GNET_MIN * (up_connections + max_connections) / 2
+		noisy_check(
+			bws_gout_enabled &&
+			bw_gnet_out < BW_OUT_GNET_MIN *
+				(up_connections + max_connections) / 2)
 	)
 		return FALSE;		/* 3. */
 
@@ -2506,10 +2529,11 @@ bsched_enough_up_bandwidth(void)
 		total += bw_gnet_lout;
 
 	if (
-		total <
-			(BW_OUT_GNET_MIN * max_connections + BW_OUT_LEAF_MIN * max_leaves)
-	)
+		noisy_check(total <
+			(BW_OUT_GNET_MIN * max_connections + BW_OUT_LEAF_MIN * max_leaves))
+	) {
 		return FALSE;		/* 4. */
+	}
 
 	return TRUE;
 }
