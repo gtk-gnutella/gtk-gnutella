@@ -3090,14 +3090,14 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 
 			if (qrcv->current_slot == expansion_slot) {
 				gint k;
-				gboolean v;
+				gboolean val;
 
 				g_assert(qrcv->current_index < rt->slots);
 
-				v = RT_SLOT_READ(rt->arena, qrcv->current_index) ? TRUE : FALSE;
+				val = 0 != RT_SLOT_READ(rt->arena, qrcv->current_index);
 
 				for (k = 0; k < qrcv->shrink_factor; k++)
-					qrcv->expansion[k] = v;
+					qrcv->expansion[k] = val;
 
 				expansion_slot += qrcv->shrink_factor;	/* For next expansion */
 			}
@@ -3146,18 +3146,18 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 
 			if (++qrcv->current_slot == expansion_slot) {
 				gint k;
-				gboolean v = FALSE;
+				guint8 val = 0x01;
 
 				for (k = 0; k < qrcv->shrink_factor; k++) {
 					if (qrcv->expansion[k]) {
-						v = TRUE;
+						val = 0x80;
 						break;
 					}
 				}
 
 				g_assert(qrcv->current_index < rt->slots);
 
-				qrt_patch_slot(rt, qrcv->current_index, v ? 0x80 : 1);
+				qrt_patch_slot(rt, qrcv->current_index, val);
 
 				qrcv->current_index++;
 			}
