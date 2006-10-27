@@ -371,8 +371,10 @@ host_addr_family(const host_addr_t ha)
 	switch (ha.net) {
 	case NET_TYPE_IPV4:
 		return AF_INET;
+#ifdef USE_IPV6
 	case NET_TYPE_IPV6:
 		return AF_INET6;
+#endif
 	case NET_TYPE_LOCAL:
 		return AF_LOCAL;
 	case NET_TYPE_NONE:
