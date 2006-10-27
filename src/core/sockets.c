@@ -688,10 +688,8 @@ connect_http(struct gnutella_socket *s)
 			guint i;
 
 			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
-				const gchar *s;
-
-				s = parts[i].s ? parts[i].s : host_port;
-				iov[i].iov_base = deconstify_gchar(s);
+				iov[i].iov_base = deconstify_gchar(
+									parts[i].s ? parts[i].s : host_port);
 				size += iov[i].iov_len = strlen(iov[i].iov_base);
 			}
 

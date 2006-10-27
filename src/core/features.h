@@ -62,7 +62,6 @@ void header_features_add(struct xfeature_t *xfeatures,
 	const gchar *feature_name,
 	int feature_version_major,
 	int feature_version_minor);
-void header_features_cleanup(struct xfeature_t *xfeatures);
 void features_close(void);
 void header_features_generate(struct xfeature_t *xfeatures,
 	gchar *buf, size_t len, size_t *rw);

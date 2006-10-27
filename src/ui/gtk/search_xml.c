@@ -1304,7 +1304,6 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
 	}
 	mask = string_to_ip(buf);
 	if (mask == 0) {
-		gint error;
 		mask = parse_uint16(buf, NULL, 10, &error);
 		if (error)
 			goto failure;

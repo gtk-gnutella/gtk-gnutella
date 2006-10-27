@@ -60,6 +60,22 @@ xfeatures_t xfeatures;
  *** X-Features header parsing utilities
  ***/
 
+/**
+ * Removes all memory used by the header_features_add.
+ */
+static void
+header_features_cleanup(struct xfeature_t *xf)
+{
+	GList *cur = g_list_first(xf->features);
+
+	for (/* */; cur != g_list_last(xf->features); cur = g_list_next(cur)) {
+		struct header_x_feature *feature = cur->data;
+
+		G_FREE_NULL(feature->name);
+		wfree(feature, sizeof(*feature));
+	}
+}
+
 void
 features_close(void)
 {
@@ -73,7 +89,7 @@ features_close(void)
  * header.
  */
 void
-header_features_add(struct xfeature_t *xfeatures,
+header_features_add(struct xfeature_t *xf,
 	const gchar *feature_name,
 	int feature_version_major,
 	int feature_version_minor)
@@ -84,26 +100,7 @@ header_features_add(struct xfeature_t *xfeatures,
 	feature->major = feature_version_major;
 	feature->minor = feature_version_minor;
 
-	xfeatures->features = g_list_append(xfeatures->features, feature);
-}
-
-/**
- * Removes all memory used by the header_features_add.
- */
-void
-header_features_cleanup(struct xfeature_t *xfeatures)
-{
-	GList *cur;
-	for(cur = g_list_first(xfeatures->features);
-		cur != g_list_last(xfeatures->features);
-		cur = g_list_next(cur)) {
-
-		struct header_x_feature *feature =
-			(struct header_x_feature *) cur->data;
-
-		G_FREE_NULL(feature->name);
-		wfree(feature, sizeof(*feature));
-	}
+	xf->features = g_list_append(xf->features, feature);
 }
 
 /**
@@ -117,7 +114,7 @@ header_features_cleanup(struct xfeature_t *xfeatures)
  * *rw is changed too *rw + bytes written
  */
 void
-header_features_generate(struct xfeature_t *xfeatures,
+header_features_generate(struct xfeature_t *xf,
 	gchar *buf, size_t len, size_t *rw)
 {
 	static const char hdr[] = "X-Features";
@@ -131,19 +128,14 @@ header_features_generate(struct xfeature_t *xfeatures,
 	if (len - *rw < (sizeof(hdr) + sizeof(": \r\n") - 1))
 		return;
 
-	if (g_list_first(xfeatures->features) == NULL)
+	if (g_list_first(xf->features) == NULL)
 		return;
 
 	fmt = header_fmt_make(hdr, ", ", len - *rw);
 
-	for (
-		cur = g_list_first(xfeatures->features);
-		cur != NULL;
-		cur = g_list_next(cur)
-	) {
+	for (cur = g_list_first(xf->features); cur; cur = g_list_next(cur)) {
 		gchar feature_version[50];
-		struct header_x_feature *feature =
-			(struct header_x_feature *) cur->data;
+		struct header_x_feature *feature = cur->data;
 
 		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d",
 			feature->name, feature->major, feature->minor);

@@ -473,15 +473,15 @@ tx_close_next(txdrv_t *tx, gpointer arg)
 	if (NULL == tx->lower || tx_has_error(tx)) {
 		txdrv_t *top;
 		tx_closed_t cb;
-		gpointer arg;
+		gpointer arg2;
 
 		top = carg->top;
 		cb = carg->cb;
-		arg = carg->arg;
+		arg2 = carg->arg;
 
 		wfree(carg, sizeof(*carg));
 
-		(*cb)(top, arg);
+		(*cb)(top, arg2);
 		return;
 	}
 

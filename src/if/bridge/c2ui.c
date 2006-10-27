@@ -189,9 +189,9 @@ gcu_search_gui_new_search(const gchar *query, flag_t flags)
 
 /*	upload interface functions (CORE -> UI)*/
 void
-gcu_upload_stats_gui_add(struct ul_stats *stat)
+gcu_upload_stats_gui_add(struct ul_stats *s)
 {
-	upload_stats_gui_add(stat);
+	upload_stats_gui_add(s);
 }
 
 void
