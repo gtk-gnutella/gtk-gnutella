@@ -331,7 +331,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 			}
 
 			if (bits > 0) {
-				guint8 shift = 8 - bits;
+				shift = 8 - bits;
 				return (a.addr.ipv6[i] >> shift) == (to.addr.ipv6[i] >> shift);
 			}
 
