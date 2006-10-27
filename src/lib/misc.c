@@ -1191,16 +1191,15 @@ short_uptime(gint uptime)
 /**
  * @return hexadecimal string representing given GUID.
  */
-gchar *
+const gchar *
 guid_hex_str(const gchar *guid)
 {
 	static gchar buf[33];
-	const guint8 *g = cast_to_gconstpointer(guid);
 	guint i;
 
-	for (i = 0; i < 32; g++) {
-		buf[i++] = hex_alphabet_lower[*g >> 4];
-		buf[i++] = hex_alphabet_lower[*g & 0x0f];
+	for (i = 0; i < 32; guid++) {
+		buf[i++] = hex_alphabet_lower[(guint8) *guid >> 4];
+		buf[i++] = hex_alphabet_lower[*guid & 0x0f];
 	}
 
 	buf[32] = '\0';
@@ -2941,7 +2940,6 @@ reverse_strlcpy(gchar * const dst, size_t size,
 	
 	if (size-- > 0) {
 		const gchar *q = &src[src_len], *end = &dst[MIN(src_len, size)];
-		gchar *p = dst;
 
 		while (p != end) {
 			*p++ = *--q;
@@ -3045,6 +3043,7 @@ uint32_to_string(guint32 v)
 	size_t n;
 
 	n = uint32_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
 	g_assert(n < sizeof buf);
 	return buf;
 }
@@ -3056,6 +3055,7 @@ uint64_to_string(guint64 v)
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
 	g_assert(n < sizeof buf);
 	return buf;
 }
@@ -3067,6 +3067,7 @@ uint64_to_string2(guint64 v)
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
 	g_assert(n < sizeof buf);
 	return buf;
 }
@@ -3078,6 +3079,7 @@ off_t_to_string(off_t v)
 	size_t n;
 
 	n = off_t_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
 	g_assert(n < sizeof buf);
 	return buf;
 }
@@ -3089,6 +3091,7 @@ time_t_to_string(time_t v)
 	size_t n;
 
 	n = time_t_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
 	g_assert(n < sizeof buf);
 	return buf;
 }
