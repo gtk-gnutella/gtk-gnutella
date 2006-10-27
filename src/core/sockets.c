@@ -1863,6 +1863,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 		port = sin.sin_port;
 	}
 
+#ifdef USE_IPV6
 	if (!is_host_addr(addr)) {
 		struct sockaddr_in6 sin6;
 
@@ -1872,6 +1873,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 			port = sin6.sin6_port;
 		}
 	}
+#endif	/* USE_IPV6 */
 
 	if (!is_host_addr(addr))
 		return -1;
