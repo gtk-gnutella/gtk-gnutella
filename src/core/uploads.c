@@ -2633,14 +2633,14 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 	 */
 
 	{
-		static gchar buf[64];
+		static gchar lm_buf[64];
 
-		gm_snprintf(buf, sizeof buf, "Last-Modified: %s\r\n",
+		gm_snprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
 			timestamp_rfc1123_to_string(library_rescan_finished));
 
 		g_assert(hevcnt < hevlen);
 		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = buf;
+		hev[hevcnt].he_msg = lm_buf;
 		hev[hevcnt++].he_arg = NULL;
 	}
 
@@ -2747,7 +2747,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
     guint32 idx = 0;
-	filesize_t skip = 0, end = 0;
+	filesize_t range_skip = 0, range_end = 0;
 	const gchar *fpath = NULL;
 	gchar *user_agent = NULL;
 	gchar *buf, *search, *uri;
@@ -2870,31 +2870,31 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (!upload_http_version(u, request, getline_length(s->getline))) {
 		return;
 	} else {
-		gchar *end;
+		gchar *endptr;
 
 		/* Get rid of the trailing HTTP/<whatever> */
-		end = strstr(request, " HTTP/");
-		g_assert(NULL != end);
+		endptr = strstr(request, " HTTP/");
+		g_assert(NULL != endptr);
 
-		while (end != request && is_ascii_blank(*(end - 1)))
-			end--;
+		while (endptr != request && is_ascii_blank(*(endptr - 1)))
+			endptr--;
 
-		*end = '\0';
+		*endptr = '\0';
 	}
 
 	/* Separate the HTTP method (like GET or HEAD) */
 	{
-		const gchar *end;
+		const gchar *endptr;
 
 		/*
 		 * If `head_only' is true, the request was a HEAD and we're only going
 		 * to send back the headers.
 		 */
 		
-		if (NULL != (end = is_strprefix(request, "HEAD"))) {
+		if (NULL != (endptr = is_strprefix(request, "HEAD"))) {
 			head_only = TRUE;
 			method = "HEAD";
-		} else if (NULL != (end = is_strprefix(request, "GET"))) {
+		} else if (NULL != (endptr = is_strprefix(request, "GET"))) {
 			head_only = FALSE;
 			method = "GET";
 		} else {
@@ -2903,8 +2903,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			method = NULL;
 		}
 
-		if (end && is_ascii_blank(end[0])) {
-			uri = skip_ascii_blanks(end);
+		if (endptr && is_ascii_blank(endptr[0])) {
+			uri = skip_ascii_blanks(endptr);
 		} else {
 			upload_error_remove(u, NULL, 501, "Not Implemented");
 			return;
@@ -3165,8 +3165,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			g_assert(r->start <= r->end);
 			g_assert(r->end < shared_file_size(reqfile));
 
-			skip = r->start;
-			end = r->end;
+			range_skip = r->start;
+			range_end = r->end;
 			has_end = TRUE;
 
 			http_range_free(ranges);
@@ -3180,7 +3180,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		u->file_size = shared_file_size(reqfile);
 
 		if (!has_end)
-			end = u->file_size - 1;
+			range_end = u->file_size - 1;
 
 		/*
 		 * PFSP-server: restrict the end of the requested range if the file
@@ -3191,7 +3191,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (
 			shared_file_is_partial(reqfile) &&
-			!file_info_restrict_range(shared_file_fileinfo(reqfile), skip, &end)
+			!file_info_restrict_range(shared_file_fileinfo(reqfile),
+				range_skip, &range_end)
 		   ) {
 			g_assert(pfsp_server);
 			range_unavailable = TRUE;
@@ -3201,9 +3202,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			u->unavailable_range = FALSE;
 		}
 
-		u->skip = skip;
-		u->end = end;
-		u->pos = skip;
+		u->skip = range_skip;
+		u->end = range_end;
+		u->pos = range_skip;
 
 	} /* reqfile */
 
@@ -3262,7 +3263,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * XXX here.  Hence I'm not removing this code.  --RAM, 11/10/2003
 	 */
 
-	if (reqfile && (skip >= u->file_size || end >= u->file_size)) {
+	if (reqfile && (range_skip >= u->file_size || range_end >= u->file_size)) {
 		static const gchar msg[] = "Requested range not satisfiable";
 
 		cb_416_arg.u = u;
@@ -3646,7 +3647,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 * ranges.
 		 */
 
-		u->total_requested += end - skip + 1;
+		u->total_requested += range_end - range_skip + 1;
 
 		if (!head_only && (u->total_requested / 11) * 10 > u->file_size) {
 			if (upload_debug) g_warning(
@@ -3777,9 +3778,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	if (reqfile) {
-		static gchar buf[1024];
-		size_t len, size = sizeof buf;
-		gchar *p = buf;
+		static gchar cd_buf[1024];
+		size_t len, size = sizeof cd_buf;
+		gchar *p = cd_buf;
 
 		/*
 		 * This header tells the receiver our idea of the file's name.
@@ -3796,7 +3797,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		len = g_strlcpy(p,
 				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
-		g_assert(len < sizeof buf);
+		g_assert(len < sizeof cd_buf);
 
 		p += len;
 		size -= len;
@@ -3811,7 +3812,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				len = g_strlcpy(p, term, size);
 
 				hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-				hev[hevcnt].he_msg = buf;
+				hev[hevcnt].he_msg = cd_buf;
 				hev[hevcnt++].he_arg = NULL;
 			}
 		}
@@ -3872,13 +3873,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	g_assert(u->bio == NULL);
 
 	if (u->browse_host) {
-		gnet_host_t host;
+		gnet_host_t h;
 
-		host.addr = u->socket->addr;
-		host.port = u->socket->port;
+		h.addr = u->socket->addr;
+		h.port = u->socket->port;
 
 		u->special = browse_host_open(
-			u, &host, upload_special_writable,
+			u, &h, upload_special_writable,
 			&upload_tx_deflate_cb, &upload_tx_link_cb,
 			&u->socket->wio, bh_flags);
 	} else
