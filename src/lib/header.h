@@ -46,11 +46,7 @@
 struct header;
 typedef struct header header_t;
 
-gint header_lines(const header_t *h);
-gint header_size(const header_t *h);
-
-#define HEADER_LINES(h)		(header_lines(h))
-#define HEADER_SIZE(h)		(header_size(h))
+gint header_num_lines(const header_t *h);
 
 /*
  * Error codes.

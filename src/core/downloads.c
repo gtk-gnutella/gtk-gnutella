@@ -5370,7 +5370,7 @@ err_header_read_eof(gpointer o)
 	struct download *d = DOWNLOAD(o);
 	header_t *header = io_header(d->io_opaque);
 
-	if (HEADER_LINES(header) == 0) {
+	if (header_num_lines(header) == 0) {
 		/*
 		 * Maybe we sent HTTP header continuations and the server does not
 		 * understand them, breaking the connection on "invalid" request.
@@ -7186,7 +7186,7 @@ http_version_nofix:
 	if (ok)
 		short_read[0] = '\0';
 	else {
-		guint count = HEADER_LINES(header);
+		guint count = header_num_lines(header);
 		gm_snprintf(short_read, sizeof short_read,
 			"[short %u line%s header] ", count, count == 1 ? "" : "s");
 	}

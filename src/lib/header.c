@@ -127,15 +127,9 @@ header_strerror(guint errnum)
 }
 
 gint
-header_lines(const header_t *h)
+header_num_lines(const header_t *h)
 {
 	return h->num_lines;
-}
-
-gint
-header_size(const header_t *h)
-{
-	return h->size;
 }
 
 /*
