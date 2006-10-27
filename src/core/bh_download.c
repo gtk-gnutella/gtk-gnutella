@@ -57,7 +57,7 @@ struct browse_ctx {
 	gnet_host_t host;				/**< Host we're browsing, for logging */
 	gnet_search_t sh;				/**< Search ID to which hits are given */
 	gchar *vendor;					/**< Vendor version string */
-	struct gnutella_header header;	/**< Received header */
+	gnutella_header_t header;		/**< Received header */
 	gchar *data;					/**< Where payload data is stored */
 	guint data_size;				/**< Size of data buffer */
 	guint pos;						/**< Reading position */
@@ -113,11 +113,12 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 
 		g_assert(sizeof bc->header >= bc->pos);
 		bc->pos += pmsg_read(mb, &w[bc->pos], sizeof bc->header - bc->pos);
-		if (bc->pos < sizeof(struct gnutella_header))
+		if (bc->pos < sizeof bc->header)
 			return FALSE;
 
 		bc->has_header = TRUE;		/* We have read the full header */
-		bc->size = peek_le32(bc->header.size);
+
+		bc->size = gnutella_header_get_size(&bc->header);
 
 		/*
 		 * Protect against too large data.
@@ -174,7 +175,7 @@ browse_data_process(struct browse_ctx *bc)
 	 * We accept only query hits.
 	 */
 
-	if (bc->header.function != GTA_MSG_SEARCH_RESULTS) {
+	if (gnutella_header_get_function(&bc->header) != GTA_MSG_SEARCH_RESULTS) {
 		download_stop(bc->owner, GTA_DL_ERROR, "Non query-hit received");
 		return FALSE;
 	}

@@ -535,7 +535,6 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 void
 handle_push_request(struct gnutella_node *n)
 {
-	static const size_t push_size = sizeof (struct gnutella_push_request);
 	struct shared_file *req_file;
 	host_addr_t ha;
 	guint32 file_index, flags = 0;
@@ -558,13 +557,14 @@ handle_push_request(struct gnutella_node *n)
 	ha = host_addr_get_ipv4(peek_be32(&info[4]));
 	port = peek_le16(&info[8]);
 
-	if (n->size > push_size) {
+	if (n->size > sizeof(gnutella_push_request_t)) {
 		extvec_t exv[MAX_EXTVEC];
 		gint exvcnt;
 		gint i;
 
 		ext_prepare(exv, MAX_EXTVEC);
-		exvcnt = ext_parse(&n->data[push_size], n->size - push_size,
+		exvcnt = ext_parse(&n->data[sizeof(gnutella_push_request_t)],
+					n->size - sizeof(gnutella_push_request_t),
 					exv, MAX_EXTVEC);
 
 		for (i = 0; i < exvcnt; i++) {
@@ -624,11 +624,14 @@ handle_push_request(struct gnutella_node *n)
 	if (req_file == SHARE_REBUILDING) {
 		if (upload_debug) g_warning(
 			"PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
-			n->header.hops, n->header.ttl);
+			gnutella_header_get_hops(&n->header),
+		   	gnutella_header_get_ttl(&n->header));
 	} else if (req_file == NULL) {
 		if (upload_debug) g_warning(
 			"PUSH request (hops=%d, ttl=%d) for invalid file index %u",
-			n->header.hops, n->header.ttl, file_index);
+			gnutella_header_get_hops(&n->header),
+			gnutella_header_get_ttl(&n->header),
+			file_index);
 	} else
 		file_name = shared_file_name_nfc(req_file);
 
@@ -645,7 +648,8 @@ handle_push_request(struct gnutella_node *n)
 	if (!host_is_valid(ha, port) && !node_is_connected(ha, port, TRUE)) {
 		if (upload_debug) g_warning(
 			"PUSH request (hops=%d, ttl=%d) from invalid address %s",
-			n->header.hops, n->header.ttl,
+			gnutella_header_get_hops(&n->header),
+			gnutella_header_get_ttl(&n->header),
 			host_addr_port_to_string(ha, port));
 		return;
 	}
@@ -666,7 +670,8 @@ handle_push_request(struct gnutella_node *n)
 	case BAN_FORCE:				/* Refused, no ack */
 		if (upload_debug)
 			g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s\n",
-				n->header.hops, n->header.ttl,
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
 				host_addr_port_to_string(ha, port),
 				short_time(ban_delay(ha)), file_name);
 		if (!show_banning)
@@ -682,10 +687,14 @@ handle_push_request(struct gnutella_node *n)
 
 	if (upload_debug > 3)
 		g_message("PUSH (hops=%d, ttl=%d) to %s: %s\n",
-			n->header.hops, n->header.ttl, host_addr_port_to_string(ha, port),
+			gnutella_header_get_hops(&n->header),
+			gnutella_header_get_ttl(&n->header),
+			host_addr_port_to_string(ha, port),
 			file_name);
 
-	upload_send_giv(ha, port, n->header.hops, n->header.ttl,
+	upload_send_giv(ha, port,
+		gnutella_header_get_hops(&n->header),
+		gnutella_header_get_ttl(&n->header),
 		file_index, file_name, show_banning, flags);
 }
 

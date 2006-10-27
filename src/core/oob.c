@@ -135,8 +135,8 @@ static gint num_oob_records;	/**< Leak and duplicate free detector */
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
  */
 static struct oob_results *
-results_make(
-	gchar *muid, GSList *files, gint count, gnet_host_t *to, gboolean ggep_h)
+results_make(const gchar *muid, GSList *files,
+	gint count, gnet_host_t *to, gboolean ggep_h)
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
@@ -312,10 +312,7 @@ servent_service(cqueue_t *cq, gpointer obj)
 	 */
 
 	if (s->can_deflate) {
-		struct gnutella_header *header =
-			(struct gnutella_header *) pmsg_start(mb);
-
-		if (header->ttl & GTA_UDP_DEFLATED)
+		if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
 			gnet_stats_count_general(GNR_UDP_TX_COMPRESSED, 1);
 	}
 
@@ -406,7 +403,7 @@ oob_record_hit(gpointer data, size_t len, gpointer udata)
  * @param wanted	the amount of results they want delivered
  */
 void
-oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
+oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted)
 {
 	struct oob_results *r;
 	struct gservent *s;
@@ -631,12 +628,13 @@ oob_got_results(
 	g_assert(count > 0);
 	g_assert(files != NULL);
 
-	guid_oob_get_addr_port(n->header.muid, &addr, &port);
+	guid_oob_get_addr_port(gnutella_header_get_muid(&n->header), &addr, &port);
 
 	to.addr = addr;
 	to.port = port;
 
-	r = results_make(n->header.muid, files, count, &to, use_ggep_h);
+	r = results_make(gnutella_header_get_muid(&n->header),
+			files, count, &to, use_ggep_h);
 
 	oob_send_reply_ind(r);
 }

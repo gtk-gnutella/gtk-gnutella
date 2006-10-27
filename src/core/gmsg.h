@@ -47,8 +47,17 @@ struct gnutella_node;
 struct route_dest;
 struct mqueue;
 
-#define gmsg_function(p) (((const struct gnutella_header *) p)->function)
-#define gmsg_hops(p)     (((const struct gnutella_header *) p)->hops)
+static inline guint8
+gmsg_function(gconstpointer data)
+{
+	return gnutella_header_get_function(data);
+}
+
+static inline guint8
+gmsg_hops(gconstpointer data)
+{
+	return gnutella_header_get_hops(data);
+}
 
 /**
  * Inline routines.
@@ -60,10 +69,7 @@ struct mqueue;
 static inline guint16
 gmsg_size(gconstpointer msg)
 {
-	const struct gnutella_header *h = msg;
-	guint32 size = peek_le32(h->size);
-
-	return (guint16) (size & GTA_SIZE_MASK);
+	return gnutella_header_get_size(msg) & GTA_SIZE_MASK;
 }
 
 /**
@@ -72,8 +78,7 @@ gmsg_size(gconstpointer msg)
 static inline guint16
 gmsg_flags(gconstpointer msg)
 {
-	const struct gnutella_header *h = msg;
-	guint32 size = peek_le32(h->size);
+	guint32 size = gnutella_header_get_size(msg);
 
 	return (size & GTA_SIZE_MARKED) ?
 		(guint16) (size >> GTA_SIZE_FLAG_SHIFT) : 0;
@@ -97,40 +102,40 @@ gmsg_valid_t gmsg_size_valid(gconstpointer msg, guint16 *size);
 pmsg_t *gmsg_to_pmsg(gconstpointer msg, guint32 size);
 pmsg_t *gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size);
 pmsg_t *gmsg_to_ctrl_pmsg(gconstpointer msg, guint32 size);
-pmsg_t * gmsg_to_ctrl_pmsg_extend(
-	gconstpointer msg, guint32 size, pmsg_free_t free_cb, gpointer arg);
-pmsg_t *gmsg_split_to_pmsg(gconstpointer head,
-	gconstpointer data, guint32 size);
+pmsg_t * gmsg_to_ctrl_pmsg_extend(gconstpointer msg, guint32 size,
+			pmsg_free_t free_cb, gpointer arg);
+pmsg_t *gmsg_split_to_pmsg(gconstpointer head, gconstpointer data,
+			guint32 size);
 pmsg_t * gmsg_split_to_pmsg_extend(gconstpointer head, gconstpointer data,
-	guint32 size, pmsg_free_t free_cb, gpointer arg);
+			guint32 size, pmsg_free_t free_cb, gpointer arg);
 
 void gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb);
 void gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb);
 
 void gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size);
 void gmsg_ctrl_sendto_one(struct gnutella_node *n,
-	gconstpointer msg, guint32 size);
+		gconstpointer msg, guint32 size);
 void gmsg_split_sendto_one(struct gnutella_node *n,
-	gconstpointer head, gconstpointer data, guint32 size);
+		gconstpointer head, gconstpointer data, guint32 size);
 void gmsg_sendto_all(const GSList *l, gconstpointer msg, guint32 size);
 void gmsg_split_sendto_all(const GSList *l,
-	gconstpointer head, gconstpointer data, guint32 size);
+		gconstpointer head, gconstpointer data, guint32 size);
 void gmsg_split_sendto_all_but_one(const GSList *sl,
-	const struct gnutella_node *n,
-	gconstpointer head, gconstpointer data, guint32 size);
+		const struct gnutella_node *n, gconstpointer head, gconstpointer data,
+		guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 
 gboolean gmsg_can_drop(gconstpointer pdu, gint size);
 gboolean gmsg_is_oob_query(gconstpointer msg);
 gboolean gmsg_split_is_oob_query(gconstpointer head, gconstpointer data);
 gint gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2);
-gchar *gmsg_infostr(gconstpointer head);
-gchar *gmsg_infostr_full(gconstpointer message);
+const gchar *gmsg_infostr(gconstpointer msg);
+gchar *gmsg_infostr_full(gconstpointer msg);
 gchar *gmsg_infostr_full_split(gconstpointer head, gconstpointer data);
 
 void gmsg_install_presend(pmsg_t *mb);
 
-void gmsg_log_dropped(gconstpointer head,
+void gmsg_log_dropped(gconstpointer msg,
 	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_bad(const struct gnutella_node *n,
 	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);

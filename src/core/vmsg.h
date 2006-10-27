@@ -57,16 +57,18 @@ void vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port);
 void vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port);
 void vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid);
 void vmsg_send_qstat_req(struct gnutella_node *n, const gchar *muid);
-void vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits);
+void vmsg_send_qstat_answer(struct gnutella_node *n,
+		const gchar *muid, guint16 hits);
 void vmsg_send_proxy_cancel(struct gnutella_node *n);
-void vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want);
+void vmsg_send_oob_reply_ack(struct gnutella_node *n,
+		const gchar *muid, guint8 want);
 void vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);
 void vmsg_send_node_info_ans(struct gnutella_node *n,
 	const struct rnode_info *ri);
 
-struct pmsg *vmsg_build_oob_reply_ind(gchar *muid, guint8 hits);
+struct pmsg *vmsg_build_oob_reply_ind(const gchar *muid, guint8 hits);
 
 void vmsg_init(void);
 

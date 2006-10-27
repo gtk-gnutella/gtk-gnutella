@@ -331,7 +331,7 @@ rudp_alloc(const host_addr_t addr, guint16 port, guint8 conn_id)
 }
 
 static void
-rudp_set_gnet_header(struct gnutella_header *header, guint32 size)
+rudp_set_gnet_header(gnutella_header_t *header, guint32 size)
 {
   g_assert(size < 0xffff);
 
@@ -362,7 +362,7 @@ rudp_send_packet(struct rudp_con *con, gconstpointer data, size_t size)
   RUDP_DEBUG(("SENDING TO %s", host_addr_port_to_string(con->addr, con->port)));
 
   {
-	  const struct gnutella_header *header = data;
+	  gnutella_header_t *header = data;
 
 	  g_return_if_fail(GTA_MSG_RUDP == header->function);
 	  g_return_if_fail(1 == header->ttl);
@@ -416,7 +416,7 @@ rudp_send_syn(struct rudp_con *con)
   switch (con->status) {
   case RUDP_ST_ALLOCED:
 	 {
-		 struct gnutella_header *gnet;
+		 gnutella_header_t *gnet;
 		 struct rudp_syn *syn;
 		 gchar packet[MAX(sizeof *gnet, sizeof *syn)];
 		 pmsg_t *mb;
@@ -464,7 +464,7 @@ rudp_send_syn(struct rudp_con *con)
 static void
 rudp_send_ack(struct rudp_con *con, guint16 seq_no)
 { 
-  struct gnutella_header *gnet;
+  gnutella_header_t *gnet;
   struct rudp_ack *ack;
   gchar packet[MAX(sizeof *ack, sizeof *gnet)];
 
@@ -495,7 +495,7 @@ rudp_send_ack(struct rudp_con *con, guint16 seq_no)
 static void
 rudp_send_fin(struct rudp_con *con, guint16 seq_no, enum rudp_fin_reason reason)
 { 
-  struct gnutella_header *gnet;
+  gnutella_header_t *gnet;
   struct rudp_fin *fin;
   gchar packet[MAX(sizeof *fin, sizeof *gnet)];
 
@@ -775,7 +775,7 @@ rudp_handle_data(struct rudp_con *con, gconstpointer data)
 	if (con->in.buffers[i]) {
 		RUDP_DEBUG(("RUDP DATA: Received duplicate"));
 	} else {
-    	const struct gnutella_header *gnet_header = data;
+    	gnutella_header_t *gnet_header = data;
 		size_t data1_len, data_len, size;
 		
 		data1_len = dat->common.op_and_len & 0x0f;
@@ -812,7 +812,7 @@ rudp_send_data(struct rudp_con *con, gconstpointer data, size_t size)
 	mb = pmsg_new(PMSG_P_DATA, NULL, 23 + data_len);
 	{
 		union {
-			struct gnutella_header gnet;
+			gnutella_header_t gnet;
 			struct rudp_data data;
 		} header;
 		guint data1_len, j;
@@ -841,7 +841,7 @@ rudp_handle_packet(const host_addr_t addr, guint16 port,
 	gconstpointer data, size_t size)
 {
 	const struct rudp_header *rudp_header;
-    const struct gnutella_header *gnet_header;
+    gnutella_header_t *gnet_header;
 	const gchar *op_str;
 	guint16 seq_no;
 	guint8 data1_len;

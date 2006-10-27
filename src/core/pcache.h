@@ -38,6 +38,7 @@
 
 #include "hcache.h"
 #include "if/core/nodes.h"
+#include "gnutella.h"
 
 struct gnutella_node;
 
@@ -76,7 +77,7 @@ enum {
  * Global Functions.
  */
 
-struct gnutella_msg_init *build_ping_msg(
+gnutella_msg_init_t *build_ping_msg(
 	const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size);
 
 /*

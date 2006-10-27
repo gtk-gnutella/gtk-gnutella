@@ -568,33 +568,41 @@ node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
 static void
 message_dump(const struct gnutella_node *n)
 {
-	guint32 ip, idx, count, total;
-	guint16 port, size;
-
 	printf("Node %s: ", node_addr(n));
-	printf("Func 0x%.2x ", n->header.function);
-	printf("TTL = %u ", n->header.ttl);
-	printf("hops = %u ", n->header.hops);
+	printf("Func 0x%.2x ", gnutella_header_get_function(&n->header));
+	printf("TTL = %u ", gnutella_header_get_ttl(&n->header));
+	printf("hops = %u ", gnutella_header_get_hops(&n->header));
 
-	size = gmsg_size(&n->header);
+	printf(" data = %u", (guint) gmsg_size(&n->header));
 
-	printf(" data = %u", size);
+	switch (gnutella_header_get_function(&n->header)) {
+	case GTA_MSG_INIT_RESPONSE:
+		{
+			guint32 ip, count, total;
+			guint16 port;
 
-	if (n->header.function == GTA_MSG_INIT_RESPONSE) {
-		READ_GUINT16_LE(n->data, port);
-		READ_GUINT32_BE(n->data + 2, ip);
-		READ_GUINT32_LE(n->data + 6, count);
-		READ_GUINT32_LE(n->data + 10, total);
+			port = peek_le16(n->data);
+			ip = peek_be32(n->data + 2);
+			count = peek_le32(n->data + 6);
+			total = peek_le32(n->data + 10);
 
-		printf(" Host = %s Port = %u Count = %u Total = %u",
-			   ip_to_string(ip), port, count, total);
-	} else if (n->header.function == GTA_MSG_PUSH_REQUEST) {
-		READ_GUINT32_LE(n->data + 16, idx);
-		READ_GUINT32_BE(n->data + 20, ip);
-		READ_GUINT16_LE(n->data + 24, port);
+			printf(" Host = %s Port = %u Count = %u Total = %u",
+					ip_to_string(ip), port, count, total);
+		}
+		break;
+	case GTA_MSG_PUSH_REQUEST:
+		{
+			guint32 ip, idx;
+			guint16 port;
 
-		printf(" Index = %u Host = %s Port = %u ", idx, ip_to_string(ip),
-			   port);
+			idx = peek_le32(n->data + 16);
+			ip = peek_be32(n->data + 20);
+			port = peek_le16(n->data + 24);
+
+			printf(" Index = %u Host = %s Port = %u ", idx, ip_to_string(ip),
+					port);
+		}
+		break;
 	}
 
 	printf("\n");
@@ -624,17 +632,10 @@ static void
 node_extract_host(const struct gnutella_node *n,
 	host_addr_t *ha, guint16 *port)
 {
-	const struct gnutella_search_results *r = cast_to_gpointer(n->data);
-	guint32 hip;
-	guint16 hport;
-
 	/* Read Query Hit info */
 
-	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
-	READ_GUINT16_LE(r->host_port, hport);	/* Port */
-
-	*ha = host_addr_get_ipv4(hip);
-	*port = hport;
+	*ha = host_addr_get_ipv4(gnutella_search_results_get_host_ip(n->data));
+	*port = gnutella_search_results_get_host_port(n->data);
 }
 
 /**
@@ -1178,7 +1179,7 @@ node_init(void)
 
 	rxbuf_init();
 
-	g_assert(23 == sizeof(struct gnutella_header));
+	g_assert(23 == sizeof(gnutella_header_t));
 
     node_handle_map = idtable_new(32, 32);
 	header_features_add(&xfeatures.connections, "browse",
@@ -2276,9 +2277,8 @@ node_shutdown(struct gnutella_node *n, const gchar *reason, ...)
 static void
 node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 {
-	struct gnutella_header head;
+	gnutella_header_t head;
 	gchar reason_fmt[1024];
-	struct gnutella_bye *payload = (struct gnutella_bye *) reason_fmt;
 	size_t len;
 	gint sendbuf_len;
 	gchar *reason_base = &reason_fmt[2];	/* Leading 2 bytes for code */
@@ -2333,13 +2333,13 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	reason_base[len] = '\0';
 	len += 2 + 1;		/* 2 for the leading code, 1 for the trailing NUL */
 
-	WRITE_GUINT16_LE(code, payload->code);
+	gnutella_bye_set_code(reason_fmt, code);
 
 	message_set_muid(&head, GTA_MSG_BYE);
-	head.function = GTA_MSG_BYE;
-	head.ttl = 1;
-	head.hops = 0;
-	WRITE_GUINT32_LE(len, head.size);
+	gnutella_header_set_function(&head, GTA_MSG_BYE);
+	gnutella_header_set_ttl(&head, 1);
+	gnutella_header_set_hops(&head, 0);
+	gnutella_header_set_size(&head, len);
 
 	/*
 	 * Send the bye message, enlarging the TCP input buffer to make sure
@@ -2350,7 +2350,7 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 		len + sizeof(head) + 1024;		/* Slightly larger, for flow-control */
 
 	sock_send_buf(n->socket, sendbuf_len, FALSE);
-	gmsg_split_sendto_one(n, &head, payload, len + sizeof(head));
+	gmsg_split_sendto_one(n, &head, reason_fmt, len + sizeof(head));
 
 	/*
 	 * Whether we sent the message or not, enter shutdown mode.
@@ -2594,8 +2594,9 @@ node_inflate_payload(gnutella_node_t *n)
 	 */
 
 	n->data = payload_inflate_buffer;
-	n->header.ttl &= ~GTA_UDP_DEFLATED;
-	poke_le32(n->header.size, outlen);
+	gnutella_header_set_ttl(&n->header,
+		gnutella_header_get_ttl(&n->header) & ~GTA_UDP_DEFLATED);
+	gnutella_header_set_size(&n->header, outlen);
 
 	if (udp_debug)
 		g_message("UDP inflated %d-byte payload from %s into %s",
@@ -5489,7 +5490,7 @@ node_browse_create(void)
  */
 gnutella_node_t *
 node_browse_prepare(
-	gnet_host_t *host, const gchar *vendor, struct gnutella_header *header,
+	gnet_host_t *host, const gchar *vendor, gnutella_header_t *header,
 	gchar *data, guint32 size)
 {
 	gnutella_node_t *n = browse_node;
@@ -5502,7 +5503,7 @@ node_browse_prepare(
 	n->country = gip_country(n->addr);
 
 	n->size = size;
-	n->header = *header;		/* Struct copy */
+	memcpy(n->header, header, sizeof n->header);
 	n->data = data;
 
 	return n;
@@ -5682,7 +5683,7 @@ static gnutella_node_t *
 node_udp_get(struct gnutella_socket *s)
 {
 	gnutella_node_t *n = NULL;
-	struct gnutella_header *head;
+	gnutella_header_t *head;
 
 	switch (s->net) {
 	case NET_TYPE_IPV4:
@@ -5701,7 +5702,7 @@ node_udp_get(struct gnutella_socket *s)
 	head = cast_to_gpointer(s->buf);
 	n->size = gmsg_size(head);
 
-	n->header = *head;		/* Struct copy */
+	memcpy(n->header, head, sizeof n->header);
 	n->data = &s->buf[GTA_HEADER_SIZE];
 
 	n->addr = s->addr;
@@ -6156,8 +6157,13 @@ node_parse(struct gnutella_node *node)
 	 */
 
 	if (n->flags & NODE_F_HDSK_PING) {
-		if (n->header.function == GTA_MSG_INIT && n->header.hops == 0) {
-			if (n->header.muid[8] == '\xff' && (guchar) n->header.muid[15] >= 1)
+		if (
+			gnutella_header_get_function(&n->header) == GTA_MSG_INIT &&
+			gnutella_header_get_hops(&n->header) == 0
+		) {
+			const gchar *muid = gnutella_header_get_muid(&n->header);
+			
+			if ((guint8) muid[8] == 0xff && (guint8) muid[15] >= 1)
 				n->attrs |= NODE_A_PONG_CACHING;
 			n->flags &= ~NODE_F_HDSK_PING;		/* Clear indication */
 		}
@@ -6167,25 +6173,28 @@ node_parse(struct gnutella_node *node)
 	 * If node is a leaf, it MUST send its messages with hops = 0.
 	 */
 
-	if (NODE_IS_LEAF(n) && n->header.hops > 0) {
+	if (NODE_IS_LEAF(n) && gnutella_header_get_hops(&n->header) > 0) {
 		node_bye_if_writable(n, 414, "Leaf node relayed %s",
-			gmsg_name(n->header.function));
+			gmsg_name(gnutella_header_get_function(&n->header)));
 		return;
 	}
 
 	/* First some simple checks */
 
-	switch (n->header.function) {
+	switch (gnutella_header_get_function(&n->header)) {
 	case GTA_MSG_INIT:
         if (n->size)
 			regular_size = 0;		/* Will check further below */
 		break;
 	case GTA_MSG_INIT_RESPONSE:
-        if (n->size != sizeof(struct gnutella_init_response))
-			regular_size = sizeof(struct gnutella_init_response);
+        if (n->size != sizeof(gnutella_init_response_t))
+			regular_size = sizeof(gnutella_init_response_t);
 		break;
 	case GTA_MSG_BYE:
-		if (n->header.hops != 0 || n->header.ttl > 1) {
+		if (
+			gnutella_header_get_hops(&n->header) != 0 ||
+			gnutella_header_get_ttl(&n->header) > 1
+		) {
 			n->n_bad++;
 			drop = TRUE;
 			if (node_debug)
@@ -6194,8 +6203,8 @@ node_parse(struct gnutella_node *node)
 		}
 		break;
 	case GTA_MSG_PUSH_REQUEST:
-        if (n->size != sizeof(struct gnutella_push_request))
-			regular_size = sizeof(struct gnutella_push_request);
+        if (n->size != sizeof(gnutella_push_request_t))
+			regular_size = sizeof(gnutella_push_request_t);
 		break;
 	case GTA_MSG_SEARCH:
 		if (n->size <= 3) {	/* At least speed(2) + NUL(1) */
@@ -6238,7 +6247,10 @@ node_parse(struct gnutella_node *node)
 		 *		--RAM, 2006-08-29
 		 */
 		if (!NODE_IS_UDP(n)) {
-			if (n->header.hops != 0 || n->header.ttl > 1) {
+			if (
+				gnutella_header_get_hops(&n->header) != 0 ||
+				gnutella_header_get_ttl(&n->header) > 1
+			) {
 				n->n_bad++;
 				drop = TRUE;
 				if (node_debug)
@@ -6252,7 +6264,10 @@ node_parse(struct gnutella_node *node)
 		break;
 
 	case GTA_MSG_QRP:			/* Leaf -> Ultrapeer, never routed */
-		if (n->header.hops != 0 || n->header.ttl > 1) {
+		if (
+			gnutella_header_get_hops(&n->header) != 0 ||
+			gnutella_header_get_ttl(&n->header) > 1
+		) {
 			n->n_bad++;
 			drop = TRUE;
 			if (node_debug)
@@ -6273,7 +6288,10 @@ node_parse(struct gnutella_node *node)
 		}
 		break;
 	case GTA_MSG_HSEP_DATA:     /* never routed */
-		if (n->header.hops != 0 || n->header.ttl > 1) {
+		if (
+			gnutella_header_get_hops(&n->header) != 0 ||
+			gnutella_header_get_ttl(&n->header) > 1
+		) {
 			n->n_bad++;
 			drop = TRUE;
 			if (node_debug)
@@ -6323,7 +6341,7 @@ node_parse(struct gnutella_node *node)
 	 */
 
 	if (drop) {
-		if (n->header.ttl == 0)
+		if (gnutella_header_get_ttl(&n->header) == 0)
 			node_sent_ttl0(n);
 		goto reset_header;
 	}
@@ -6352,7 +6370,7 @@ node_parse(struct gnutella_node *node)
 	 *		--RAM, 02/01/2002
 	 */
 
-	switch (n->header.function) {
+	switch (gnutella_header_get_function(&n->header)) {
 	case GTA_MSG_BYE:				/* Good bye! */
 		node_got_bye(n);
 		return;
@@ -6413,7 +6431,7 @@ node_parse(struct gnutella_node *node)
 route_only:
 	if (route_message(&n, &dest)) {		/* We have to handle the message */
 		g_assert(n);
-		switch (n->header.function) {
+		switch (gnutella_header_get_function(&n->header)) {
 		case GTA_MSG_PUSH_REQUEST:
 			/* Only handle if no unknown header flags */
 			if (0 == n->header_flags)
@@ -6490,7 +6508,8 @@ route_only:
 		 *		--RAM, 2006-08-20
 		 */
 
-		n->header.ttl++;
+		gnutella_header_set_ttl(&n->header,
+			gnutella_header_get_ttl(&n->header) + 1);
 
 		/*
 		 * A leaf-originated query needs to be handled via the dynamic
@@ -6506,7 +6525,7 @@ route_only:
 
 		g_assert(regular_size == (size_t) -1 || has_ggep);
 
-		switch (n->header.function) {
+		switch (gnutella_header_get_function(&n->header)) {
 		case GTA_MSG_SEARCH:
 			/*
 			 * Route it to the appropriate leaves, and if TTL=1,
@@ -6530,7 +6549,7 @@ route_only:
 
 			if (
 				current_peermode == NODE_P_NORMAL ||
-				n->header.ttl > 1
+				gnutella_header_get_ttl(&n->header) > 1
 			)
 				gmsg_sendto_route(n, &dest);
 			break;
@@ -6643,7 +6662,7 @@ node_udp_process(struct gnutella_socket *s)
 	 * been read atomically.
 	 */
 
-	switch (n->header.function) {
+	switch (gnutella_header_get_function(&n->header)) {
 	case GTA_MSG_SEARCH:
 		node_inc_rx_query(n);
 		break;
@@ -6658,7 +6677,7 @@ node_udp_process(struct gnutella_socket *s)
 		 * UDP compressed replies. --RAM, 2006-08-13
 		 */
 
-		if (n->header.ttl & GTA_UDP_CAN_INFLATE)
+		if (gnutella_header_get_ttl(&n->header) & GTA_UDP_CAN_INFLATE)
 			n->attrs |= NODE_A_CAN_INFLATE;
 		break;
 	default:
@@ -6681,15 +6700,19 @@ node_udp_process(struct gnutella_socket *s)
 	 * If payload is deflated, inflate it before processing.
 	 */
 
-	if ((n->header.ttl & GTA_UDP_DEFLATED) && !node_inflate_payload(n))
+	if (
+		(gnutella_header_get_ttl(&n->header) & GTA_UDP_DEFLATED) &&
+		!node_inflate_payload(n)
+	)
 		return;
 
-	g_assert(!(n->header.ttl & GTA_UDP_DEFLATED));
+	g_assert(!(gnutella_header_get_ttl(&n->header) & GTA_UDP_DEFLATED));
 
 	if (oob_proxy_debug > 1) {
-		if (GTA_MSG_SEARCH_RESULTS == n->header.function)
+		if (GTA_MSG_SEARCH_RESULTS == gnutella_header_get_function(&n->header))
 			printf("QUERY OOB results for %s from %s\n",
-				guid_hex_str(n->header.muid), node_addr(n));
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				node_addr(n));
 	}
 
 	node_parse(n);
@@ -7022,11 +7045,11 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 		gchar *w = (gchar *) &n->header;
 		gboolean kick = FALSE;
 
-		r = pmsg_read(mb, w + n->pos, sizeof(struct gnutella_header) - n->pos);
+		r = pmsg_read(mb, &w[n->pos], GTA_HEADER_SIZE - n->pos);
 		n->pos += r;
 		node_add_rx_read(n, r);
 
-		if (n->pos < sizeof(struct gnutella_header))
+		if (n->pos < GTA_HEADER_SIZE)
 			return FALSE;
 
 		/* Okay, we have read the full header */
@@ -7049,7 +7072,8 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			 */
 
 			if (NODE_CAN_SFLAG(n)) {
-				poke_le32(n->header.size, n->size);		/* Reset flag mark */
+				/* Reset flag mark */
+				gnutella_header_set_size(&n->header, n->size);
 				n->header_flags = 0;
 			} else
 				goto bad_size;
@@ -7070,7 +7094,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 
         gnet_stats_count_received_header(n);
 
-		switch (n->header.function) {
+		switch (gnutella_header_get_function(&n->header)) {
 		case GTA_MSG_SEARCH:
 			node_inc_rx_query(n);
 			break;
@@ -7090,12 +7114,13 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 
 		/* Check whether the message is not too big */
 
-		switch (n->header.function) {
+		switch (gnutella_header_get_function(&n->header)) {
 		case GTA_MSG_BYE:
 			if (n->size > BYE_MAX_SIZE) {
 				gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 				node_remove(n, _("Kicked: %s message too big (%d bytes)"),
-							gmsg_name(n->header.function), n->size);
+					gmsg_name(gnutella_header_get_function(&n->header)),
+					n->size);
 				return FALSE;
 			}
 			break;
@@ -7125,7 +7150,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 			node_disable_read(n);
 			node_bye(n, 400, "Too large %s message (%u bytes)",
-				gmsg_name(n->header.function), n->size);
+				gmsg_name(gnutella_header_get_function(&n->header)), n->size);
 			return FALSE;
 		}
 
@@ -7143,11 +7168,13 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 
 			if (maxsize < n->size) {
 				g_warning("BUG got %u byte %s message, should have kicked node",
-					n->size, gmsg_name(n->header.function));
+					n->size,
+					gmsg_name(gnutella_header_get_function(&n->header)));
 				gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 				node_disable_read(n);
 				node_bye(n, 400, "Too large %s message (%d bytes)",
-					gmsg_name(n->header.function), n->size);
+					gmsg_name(gnutella_header_get_function(&n->header)),
+					n->size);
 				return FALSE;
 			}
 
@@ -7182,7 +7209,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 bad_size:
 	gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 	node_remove(n, _("Kicked: %s message too big (>= 64KiB limit)"),
-		gmsg_name(n->header.function));
+		gmsg_name(gnutella_header_get_function(&n->header)));
 	return FALSE;
 }
 
@@ -7231,7 +7258,7 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 void
 node_sent_ttl0(struct gnutella_node *n)
 {
-	g_assert(n->header.ttl == 0);
+	g_assert(gnutella_header_get_ttl(&n->header) == 0);
 
 	/*
 	 * Ignore if we're a leaf node -- we'll even handle the message.
@@ -8362,7 +8389,7 @@ node_proxying_remove(gnutella_node_t *n, gboolean discard)
  * @return TRUE if we can act as this node's proxy.
  */
 gboolean
-node_proxying_add(gnutella_node_t *n, gchar *guid)
+node_proxying_add(gnutella_node_t *n, const gchar *guid)
 {
 	/*
 	 * If we're firewalled, we can't accept.

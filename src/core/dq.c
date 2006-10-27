@@ -97,12 +97,6 @@ RCSID("$Id$")
 #define DQ_FUZZY_FACTOR		0.80	/**< Corrector for theoretical horizon */
 
 /**
- * Compute start of search string (which is NUL terminated) in query.
- * The "+2" skips the "speed" field in the query.
- */
-#define QUERY_TEXT(m)	((m) + sizeof(struct gnutella_header) + 2)
-
-/**
  * Structure produced by dq_fill_next_up, representing the nodes to which
  * we could send the query, along with routing information to be able to favor
  * UPs that report a QRP match early in the querying process.
@@ -529,8 +523,10 @@ dq_pmsg_by_ttl(dquery_t *dq, gint ttl)
 	/*
 	 * Patch the TTL in the new data buffer.
 	 */
-
-	((struct gnutella_header *) pdata_start(db))->ttl = ttl;
+	{
+		gnutella_header_t *header = cast_to_gpointer(pdata_start(db));
+		gnutella_header_set_ttl(header, ttl);
+	}
 
 	/*
 	 * Now create a message for this data buffer and save it for later perusal.
@@ -714,19 +710,18 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 static void
 dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 {
+	gconstpointer head;
 	GSList *nodes;
-	gchar *payload;
-	struct gnutella_header *head;
 
-	payload = pmsg_start(dq->mb);
-	head = (struct gnutella_header *) payload;
-
+	head = cast_to_gconstpointer(pmsg_start(dq->mb));
 	nodes = qrt_build_query_target(dq->qhv,
-		head->hops, MAX(head->ttl, 2), source);
+				gnutella_header_get_hops(head),
+				MAX(gnutella_header_get_ttl(head), 2),
+				source);
 
 	if (dq_debug > 4)
 		g_message("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
-			gmsg_infostr_full(payload), dq->qhv->count,
+			gmsg_infostr_full(head), dq->qhv->count,
 			dq->qhv->count == 1 ? "" : "s",
 			dq->qhv->has_urn ? " + URN" : "",
 			g_slist_length(nodes), node_leaf_count);
@@ -746,7 +741,6 @@ dq_free(dquery_t *dq)
 	gboolean found;
 	gpointer key;
 	gpointer value;
-	struct gnutella_header *head;
 
 	g_assert(dq != NULL);
 	g_assert(g_hash_table_lookup(dqueries, dq));
@@ -848,8 +842,8 @@ dq_free(dquery_t *dq)
 	 * Remove query's MUID.
 	 */
 
-	head = (struct gnutella_header *) pmsg_start(dq->mb);
-	found = g_hash_table_lookup_extended(by_muid, head->muid, &key, &value);
+	found = g_hash_table_lookup_extended(by_muid,
+				gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
 
 	if (found) {			/* Could be missing if a MUID conflict occurred */
 		if (value == dq) {	/* Make sure it's for us in case of conflicts */
@@ -920,7 +914,6 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 {
 	dquery_t *dq = (dquery_t *) obj;
 	gnutella_node_t *n;
-	struct gnutella_header *head;
 	gint timeout;
 	guint32 avg;
 	guint32 last;
@@ -1032,13 +1025,14 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 			dq->kept_results);
 
 	dq->flags |= DQ_F_WAITING;
-	head = (struct gnutella_header *) pmsg_start(dq->mb);
 
 	/*
-	 * Use the original MUID sent by the leaf, it doesn't know the other one.
+	 * Use the original MUID sent by the leaf, it doesn't know
+	 * the other one.
 	 */
 
-	vmsg_send_qstat_req(n, dq->lmuid ? dq->lmuid : head->muid);
+	vmsg_send_qstat_req(n,
+		dq->lmuid ? dq->lmuid : gnutella_header_get_muid(pmsg_start(dq->mb)));
 
 	/*
 	 * Compute the timout using the available ping-pong round-trip
@@ -1474,7 +1468,7 @@ cleanup:
 static void
 dq_common_init(dquery_t *dq)
 {
-	struct gnutella_header *head;
+	gconstpointer head;
 
 	dq->qid = dyn_query_id++;
 	dq->queried = g_hash_table_new(NULL, NULL);
@@ -1523,13 +1517,13 @@ dq_common_init(dquery_t *dq)
 	 * Record the MUID of this query, warning if a conflict occurs.
 	 */
 
-	head = (struct gnutella_header *) pmsg_start(dq->mb);
+	head = cast_to_gconstpointer(pmsg_start(dq->mb));
 
-	if (g_hash_table_lookup(by_muid, head->muid))
+	if (g_hash_table_lookup(by_muid, gnutella_header_get_muid(head)))
 		g_warning("conflicting MUID \"%s\" for dynamic query, ignoring.",
-			guid_hex_str(head->muid));
+			guid_hex_str(gnutella_header_get_muid(head)));
 	else {
-		gchar *muid = atom_guid_get(head->muid);
+		gchar *muid = atom_guid_get(gnutella_header_get_muid(head));
 		g_hash_table_insert(by_muid, muid, dq);
 	}
 
@@ -1560,10 +1554,10 @@ dq_common_init(dquery_t *dq)
 			dq->qid, dq->node_id, dq->ttl, dq->max_results,
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
 			(dq->flags & DQ_F_ROUTING_HITS) ? "yes" : "no",
-			guid_hex_str(head->muid),
+			guid_hex_str(gnutella_header_get_muid(head)),
 			dq->lmuid ? " leaf-MUID=" : "",
 			dq->lmuid ? data_hex_str(dq->lmuid, GUID_RAW_SIZE): "",
-			QUERY_TEXT(start), req_speed,
+			gnutella_msg_search_get_text(start), req_speed,
 			(req_speed & QUERY_SPEED_MARK) ? "MARKED" : "",
 			(req_speed & QUERY_SPEED_FIREWALLED) ? " FW" : "",
 			(req_speed & QUERY_SPEED_XML) ? " XML" : "",
@@ -1586,8 +1580,9 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	gboolean tagged_speed;
 	const gchar *leaf_muid;
 
+	/* Query from leaf node */
 	g_assert(NODE_IS_LEAF(n));
-	g_assert(n->header.hops == 1);	/* Query from leaf node */
+	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
 	dq = walloc0(sizeof(*dq));
 
@@ -1623,7 +1618,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	if (
 		!(dq->flags & DQ_F_LEAF_GUIDED) &&
-		NULL == oob_proxy_muid_proxied(n->header.muid)
+		NULL == oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 	) {
 		if (
 			udp_active() && proxy_oob_queries && !is_udp_firewalled &&
@@ -1668,27 +1663,25 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	 */
 
 	if (
-		NULL != oob_proxy_muid_proxied(n->header.muid) ||	/* OOB-proxied */
+		NULL != oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header)) ||	
 		(tagged_speed && !(req_speed && QUERY_SPEED_OOB_REPLY))
 	)
 		dq->flags |= DQ_F_ROUTING_HITS;
 
 	dq->node_id = n->id;
-	dq->mb = gmsg_split_to_pmsg(
-		(guchar *) &n->header, n->data,
-		n->size + sizeof(struct gnutella_header));
+	dq->mb = gmsg_split_to_pmsg(&n->header, n->data, n->size + GTA_HEADER_SIZE);
 	dq->qhv = qhvec_clone(qhv);
 	if (qhvec_has_urn(qhv))
 		dq->max_results = DQ_LEAF_RESULTS / DQ_SHA1_DECIMATOR;
 	else
 		dq->max_results = DQ_LEAF_RESULTS;
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
-	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
+	dq->ttl = MIN(gnutella_header_get_ttl(&n->header), DQ_MAX_TTL);
 	dq->alive = n->alive_pings;
 	if (tagged_speed)
 		dq->query_flags = req_speed;
 
-	leaf_muid = oob_proxy_muid_proxied(n->header.muid);
+	leaf_muid = oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header));
 	if (leaf_muid != NULL)
 		dq->lmuid = atom_guid_get(leaf_muid);
 
@@ -1697,8 +1690,9 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 			n->id, node_addr(n), node_vendor(n),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
 			tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY) ? "OOB-" : "",
-			oob_proxy_muid_proxied(n->header.muid) ? "proxied " : "",
-			QUERY_TEXT(pmsg_start(dq->mb)));
+			oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
+				? "proxied " : "",
+			gnutella_msg_search_get_text(pmsg_start(dq->mb)));
 
 	gnet_stats_count_general(GNR_LEAF_DYN_QUERIES, 1);
 
@@ -1725,7 +1719,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	if (current_peermode != NODE_P_ULTRA) {
 		if (dq_debug)
 			g_warning("ignoring dynamic query \"%s\": no longer an ultra node",
-				QUERY_TEXT(pmsg_start(mb)));
+				gnutella_msg_search_get_text(pmsg_start(mb)));
 
 		pmsg_free(mb);
 		qhvec_free(qhv);

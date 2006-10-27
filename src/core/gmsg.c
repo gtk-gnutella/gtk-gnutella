@@ -66,11 +66,11 @@ static guint8 msg_weight[256];	/**< For gmsg_cmp() */
  * @param size	the payload plus header size of the gnutella message.
  */
 static inline void
-gmsg_header_check(const struct gnutella_header *h, guint32 size)
+gmsg_header_check(gconstpointer msg, guint32 size)
 {
-	g_assert(h->ttl > 0);
+	g_assert(gnutella_header_get_ttl(msg) > 0);
 	g_assert(size >= GTA_HEADER_SIZE);
-	g_assert(peek_le32(h->size) == size - GTA_HEADER_SIZE);
+	g_assert(gnutella_header_get_size(msg) == size - GTA_HEADER_SIZE);
 }
 
 /**
@@ -86,8 +86,7 @@ gmsg_header_check(const struct gnutella_header *h, guint32 size)
 gmsg_valid_t
 gmsg_size_valid(gconstpointer msg, guint16 *size)
 {
-	const struct gnutella_header *h = msg;
-	guint32 raw_size = peek_le32(h->size);
+	guint32 raw_size = gnutella_header_get_size(msg);
 	guint16 payload_size = (guint16) (raw_size & GTA_SIZE_MASK);
 	
 	if (raw_size == payload_size)
@@ -227,7 +226,6 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	gconstpointer data;							/* Raw data start */
 	guint32 deflated_length;					/* Length of deflated data */
 	zlib_deflater_t *z;
-	struct gnutella_header *header;
 	pmsg_t *mb;
 
 	/*
@@ -287,14 +285,18 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	wfree(buf, blen);
 	zlib_deflater_free(z, FALSE);
 
-	header = (struct gnutella_header *) pmsg_start(mb);
-
 	if (udp_debug)
 		g_message("UDP deflated %s into %d bytes",
 			gmsg_infostr_full(msg), deflated_length);
 
-	header->ttl |= GTA_UDP_DEFLATED;
-	poke_le32(header->size, deflated_length);
+	{
+		gpointer header;
+		
+		header = pmsg_start(mb);
+		gnutella_header_set_ttl(header,
+			gnutella_header_get_ttl(header) | GTA_UDP_DEFLATED);
+		gnutella_header_set_size(header, deflated_length);
+	}
 
 	return mb;
 
@@ -326,8 +328,8 @@ gmsg_to_ctrl_pmsg(gconstpointer msg, guint32 size)
  * Construct extended control PDU (with free routine) from message.
  */
 pmsg_t *
-gmsg_to_ctrl_pmsg_extend(
-	gconstpointer msg, guint32 size, pmsg_free_t free_cb, gpointer arg)
+gmsg_to_ctrl_pmsg_extend(gconstpointer msg, guint32 size,
+	pmsg_free_t free_cb, gpointer arg)
 {
 	pmsg_t *mb;
 
@@ -477,8 +479,7 @@ gmsg_sendto_one_ggep(struct gnutella_node *n,
 	if (NODE_CAN_GGEP(n)) {
 		mq_putq(n->outq, gmsg_to_pmsg(msg, size));
 	} else {
-		const struct gnutella_header *msg_head = msg;
-		struct gnutella_header head;
+		gnutella_header_t head;
 		pmsg_t *mb;
 
 		/*
@@ -486,9 +487,10 @@ gmsg_sendto_one_ggep(struct gnutella_node *n,
 		 * stripped and a corrected size field in the header
 		 */
 
-		head = *msg_head;
-		WRITE_GUINT32_LE(regular_size - GTA_HEADER_SIZE, head.size);
-		mb = gmsg_split_to_pmsg(&head, &msg_head[1], regular_size);
+		memcpy(head, msg, sizeof head);
+		gnutella_header_set_size(&head, regular_size - GTA_HEADER_SIZE);
+		mb = gmsg_split_to_pmsg(&head, (const gchar *) msg + GTA_HEADER_SIZE,
+				regular_size);
 		mq_putq(n->outq, pmsg_clone(mb));
 		pmsg_free(mb);
 	}
@@ -544,7 +546,7 @@ gmsg_search_sendto_one(
 	struct gnutella_node *n, gnet_search_t sh, gconstpointer msg, guint32 size)
 {
 	gmsg_header_check(msg, size);
-	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
+	g_assert(gnutella_header_get_hops(msg) <= hops_random_factor);
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -641,7 +643,7 @@ gmsg_search_sendto_all(
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
 	gmsg_header_check(msg, size);
-	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
+	g_assert(gnutella_header_get_hops(msg) <= hops_random_factor);
 
 	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
@@ -682,8 +684,8 @@ gmsg_split_sendto_all_but_one(const GSList *sl, const struct gnutella_node *n,
 
 	if (
 		current_peermode == NODE_P_ULTRA &&
-		((struct gnutella_header *) head)->function == GTA_MSG_SEARCH &&
-		((struct gnutella_header *) head)->ttl == 1
+		gnutella_header_get_function(head) == GTA_MSG_SEARCH &&
+		gnutella_header_get_ttl(head) == 1
 	)
 		skip_up_with_qrp = TRUE;
 
@@ -771,8 +773,8 @@ gmsg_split_sendto_all_but_one_ggep(
 
 	if (
 		current_peermode == NODE_P_ULTRA &&
-		((struct gnutella_header *) head)->function == GTA_MSG_SEARCH &&
-		((struct gnutella_header *) head)->ttl == 1
+		gnutella_header_get_function(head) == GTA_MSG_SEARCH &&
+		gnutella_header_get_ttl(head) == 1
 	)
 		skip_up_with_qrp = TRUE;
 
@@ -792,11 +794,11 @@ gmsg_split_sendto_all_but_one_ggep(
 			mq_putq(dn->outq, pmsg_clone(mb));
 		else {
 			if (mb_stripped == NULL) {
-				const struct gnutella_header *h = head;
-				struct gnutella_header nhead;
+				gnutella_header_t nhead;
 
-				nhead = *h;
-				WRITE_GUINT32_LE(regular_size - GTA_HEADER_SIZE, nhead.size);
+				memcpy(nhead, head, sizeof nhead);
+				gnutella_header_set_size(&nhead,
+					regular_size - GTA_HEADER_SIZE);
 				mb_stripped = gmsg_split_to_pmsg(&nhead, data, regular_size);
 			}
 			mq_putq(dn->outq, pmsg_clone(mb_stripped));
@@ -879,10 +881,10 @@ sendto_ggep(struct gnutella_node *n, struct gnutella_node *dn,
 		gmsg_split_sendto_one(dn, &n->header,
 				n->data, n->size + GTA_HEADER_SIZE);
 	} else {
-		WRITE_GUINT32_LE(regular_size, n->header.size);
+		gnutella_header_set_size(&n->header, regular_size);
 		gmsg_split_sendto_one(dn, &n->header,
 				n->data, regular_size + GTA_HEADER_SIZE);
-		WRITE_GUINT32_LE(n->size, n->header.size);
+		gnutella_header_set_size(&n->header, n->size);
 	}
 }
 
@@ -966,24 +968,23 @@ static gboolean
 gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
 {
 	gnutella_node_t *n = mq_node(q);
-	gconstpointer start = pmsg_start(mb);
-	const struct gnutella_header *head = start;
+	gconstpointer msg = pmsg_start(mb);
 
-	g_assert(head->function == GTA_MSG_SEARCH);
+	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(msg));
 
-	if (!node_query_hops_ok(n, head->hops)) {
+	if (!node_query_hops_ok(n, gnutella_header_get_hops(msg))) {
 		if (gmsg_debug > 4)
-			gmsg_log_dropped(start, "to node %s due to hops-flow",
+			gmsg_log_dropped(msg, "to node %s due to hops-flow",
 				node_addr(n));
 		return FALSE;
 	}
 
-	if (gmsg_is_oob_query(start))
+	if (gmsg_is_oob_query(msg))
 		return TRUE;
 
-	if (!route_exists_for_reply(start, head->function)) {
+	if (!route_exists_for_reply(msg, gnutella_header_get_function(msg))) {
 		if (gmsg_debug > 4)
-			gmsg_log_dropped(start, "to node %s due to no route for hits",
+			gmsg_log_dropped(msg, "to node %s due to no route for hits",
 				node_addr(n));
 		return FALSE;
 	}
@@ -997,10 +998,9 @@ gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
 void
 gmsg_install_presend(pmsg_t *mb)
 {
-	gconstpointer start = pmsg_start(mb);
-	const struct gnutella_header *head = start;
+	gconstpointer msg = pmsg_start(mb);
 
-	if (GTA_MSG_SEARCH == head->function) {
+	if (GTA_MSG_SEARCH == gnutella_header_get_function(msg)) {
 		pmsg_check_t old = pmsg_set_check(mb, gmsg_query_can_send);
 		g_assert(NULL == old);
 	}
@@ -1016,12 +1016,10 @@ gmsg_install_presend(pmsg_t *mb)
 gboolean
 gmsg_can_drop(gconstpointer pdu, gint size)
 {
-	const struct gnutella_header *head = pdu;
-
-	if ((size_t) size < sizeof(struct gnutella_header))
+	if ((size_t) size < GTA_HEADER_SIZE)
 		return TRUE;
 
-	switch (head->function) {
+	switch (gnutella_header_get_function(pdu)) {
 	case GTA_MSG_INIT:
 	case GTA_MSG_SEARCH:
 	case GTA_MSG_INIT_RESPONSE:
@@ -1039,8 +1037,11 @@ gmsg_can_drop(gconstpointer pdu, gint size)
 gint
 gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 {
-	const struct gnutella_header *h1 = pdu1, *h2 = pdu2;
-	gint w1 = msg_weight[h1->function], w2 = msg_weight[h2->function];
+	gconstpointer h1 = pdu1, h2 = pdu2;
+	gint w1, w2;
+	
+	w1 = msg_weight[gnutella_header_get_function(h1)];
+	w2 = msg_weight[gnutella_header_get_function(h2)];
 
 	/*
 	 * The more weight a message type has, the more prioritary it is.
@@ -1062,23 +1063,26 @@ gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 	 * to its destination (lowest TTL).
 	 */
 
-	if (h1->hops == h2->hops) {
-		switch (h1->function) {
+	if (gnutella_header_get_hops(h1) == gnutella_header_get_hops(h2)) {
+		switch (gnutella_header_get_function(h1)) {
 		case GTA_MSG_PUSH_REQUEST:
 		case GTA_MSG_SEARCH_RESULTS:
-			return CMP(h2->ttl, h1->ttl);
+			return CMP(gnutella_header_get_ttl(h2),
+						gnutella_header_get_ttl(h1));
 		default:
 			return 0;
 		}
-	}
-
-	switch (h1->function) {
-	case GTA_MSG_INIT:
-	case GTA_MSG_SEARCH:
-	case GTA_MSG_QRP:
-		return h1->hops > h2->hops ? -1 : +1;
-	default:
-		return h1->hops < h2->hops ? -1 : +1;
+	} else {
+		switch (gnutella_header_get_function(h1)) {
+		case GTA_MSG_INIT:
+		case GTA_MSG_SEARCH:
+		case GTA_MSG_QRP:
+			return gnutella_header_get_hops(h1) > gnutella_header_get_hops(h2)
+					? -1 : +1;
+		default:
+			return gnutella_header_get_hops(h1) < gnutella_header_get_hops(h2)
+					? -1 : +1;
+		}
 	}
 }
 
@@ -1092,11 +1096,24 @@ gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
  * payload of that message.
  */
 gchar *
-gmsg_infostr_full(gconstpointer message)
+gmsg_infostr_full(gconstpointer msg)
 {
-	const gchar *data = (gchar *) message + GTA_HEADER_SIZE;
+	const gchar *data = (const gchar *) msg + GTA_HEADER_SIZE;
 
-	return gmsg_infostr_full_split(message, data);
+	return gmsg_infostr_full_split(msg, data);
+}
+
+static size_t
+gmsg_infostr_to_buf(gconstpointer msg, gchar *buf, size_t buf_size)
+{
+	guint16 size = gmsg_size(msg);
+
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+		gmsg_name(gnutella_header_get_function(msg)),
+		size, size == 1 ? "" : "s",
+		gnutella_header_get_ttl(msg) & GTA_UDP_DEFLATED ? "deflated " : "",
+		gnutella_header_get_hops(msg),
+		gnutella_header_get_ttl(msg) & ~GTA_UDP_DEFLATED);
 }
 
 /**
@@ -1111,26 +1128,26 @@ gchar *
 gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 {
 	static gchar a[160];
-	const struct gnutella_header *h = (const struct gnutella_header *) head;
-	guint16 size = gmsg_size(head);
 
-	switch (h->function) {
+	switch (gnutella_header_get_function(head)) {
 	case GTA_MSG_VENDOR:
 	case GTA_MSG_STANDARD:
-		gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
-			gmsg_name(h->function), vmsg_infostr(data, size),
-			size, size == 1 ? "" : "s",
-			h->ttl & GTA_UDP_DEFLATED ? "deflated " :
-			h->ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
-			h->hops, h->ttl & ~(GTA_UDP_DEFLATED | GTA_UDP_CAN_INFLATE));
+		{
+			guint16 size = gmsg_size(head);
+			guint8 ttl = gnutella_header_get_ttl(head);
+			
+			gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
+				gmsg_name(gnutella_header_get_function(head)),
+				vmsg_infostr(data, size),
+				size, size == 1 ? "" : "s",
+				ttl & GTA_UDP_DEFLATED ? "deflated " : 
+					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
+				gnutella_header_get_hops(head),
+				ttl & ~(GTA_UDP_DEFLATED | GTA_UDP_CAN_INFLATE));
+		}
 		break;
 	default:
-		gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
-			gmsg_name(h->function),
-			size, size == 1 ? "" : "s",
-			h->ttl & GTA_UDP_DEFLATED ? "deflated " : "",
-			h->hops, h->ttl & ~GTA_UDP_DEFLATED);
-		break;
+		gmsg_infostr_to_buf(head, a, sizeof a);
 	}
 
 	return a;
@@ -1141,47 +1158,33 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
  *
  *     msg_type (payload length) [hops=x, TTL=x]
  */
-gchar *
-gmsg_infostr(gconstpointer head)
+const gchar *
+gmsg_infostr(gconstpointer msg)
 {
-	static gchar a[80];
-	const struct gnutella_header *h = head;
-	guint16 size = gmsg_size(head);
-
-	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
-		gmsg_name(h->function), size, size == 1 ? "" : "s",
-		h->ttl & GTA_UDP_DEFLATED ? "deflated " : "",
-		h->hops, h->ttl & ~GTA_UDP_DEFLATED);
-
-	return a;
+	static gchar buf[80];
+	gmsg_infostr_to_buf(msg, buf, sizeof buf);
+	return buf;
 }
 
 /**
  * Same as gmsg_infostr(), but different static buffer.
  */
 static gchar *
-gmsg_infostr2(gconstpointer head)
+gmsg_infostr2(gconstpointer msg)
 {
-	static gchar a[80];
-	const struct gnutella_header *h = head;
-	guint16 size = gmsg_size(head);
-
-	gm_snprintf(a, sizeof(a), "%s (%u byte%s) %s[hops=%d, TTL=%d]",
-		gmsg_name(h->function), size, size == 1 ? "" : "s",
-		h->ttl & GTA_UDP_DEFLATED ? "deflated " : "",
-		h->hops, h->ttl & ~GTA_UDP_DEFLATED);
-
-	return a;
+	static gchar buf[80];
+	gmsg_infostr_to_buf(msg, buf, sizeof buf);
+	return buf;
 }
 
 /**
  * Log dropped message, and reason.
  */
 void
-gmsg_log_dropped(gconstpointer head, const gchar *reason, ...)
+gmsg_log_dropped(gconstpointer msg, const gchar *reason, ...)
 {
 	fputs("DROP ", stdout);
-	fputs(gmsg_infostr2(head), stdout);	/* Allows gmsg_infostr() in arglist */
+	fputs(gmsg_infostr2(msg), stdout);	/* Allows gmsg_infostr() in arglist */
 
 	if (reason) {
 		va_list args;
@@ -1222,11 +1225,10 @@ gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
 gboolean
 gmsg_is_oob_query(gconstpointer msg)
 {
-	const struct gnutella_header *h = msg;
 	gconstpointer data = (const gchar *) msg + GTA_HEADER_SIZE;
 	guint16 req_speed;
 
-	g_assert(h->function == GTA_MSG_SEARCH);
+	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(msg));
 
 	req_speed = peek_le16(data);
 
@@ -1241,10 +1243,9 @@ gmsg_is_oob_query(gconstpointer msg)
 gboolean
 gmsg_split_is_oob_query(gconstpointer head, gconstpointer data)
 {
-	const struct gnutella_header *h = head;
 	guint16 req_speed;
 
-	g_assert(h->function == GTA_MSG_SEARCH);
+	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(head));
 
 	req_speed = peek_le16(data);
 

@@ -121,7 +121,7 @@ gnet_stats_init(void)
 void
 gnet_stats_count_received_header(gnutella_node_t *n)
 {
-	guint t = stats_lut[n->header.function];
+	guint t = stats_lut[gnutella_header_get_function(&n->header)];
 	guint i;
 	gnet_stats_t *stats;
 
@@ -139,11 +139,11 @@ gnet_stats_count_received_header(gnutella_node_t *n)
     stats->byte.received[MSG_TOTAL] += GTA_HEADER_SIZE;
     stats->byte.received[t] += GTA_HEADER_SIZE;
 
-	i = MIN(n->header.ttl, STATS_RECV_COLUMNS-1);
+	i = MIN(gnutella_header_get_ttl(&n->header), STATS_RECV_COLUMNS - 1);
     stats->pkg.received_ttl[i][MSG_TOTAL]++;
     stats->pkg.received_ttl[i][t]++;
 
-	i = MIN(n->header.hops, STATS_RECV_COLUMNS-1);
+	i = MIN(gnutella_header_get_hops(&n->header), STATS_RECV_COLUMNS - 1);
     stats->pkg.received_hops[i][MSG_TOTAL]++;
     stats->pkg.received_hops[i][t]++;
 }
@@ -154,8 +154,8 @@ gnet_stats_count_received_header(gnutella_node_t *n)
 void
 gnet_stats_count_received_payload(const gnutella_node_t *n)
 {
-    guint32 size = n->size;
-	guint t = stats_lut[n->header.function];
+    guint32 size = gnutella_header_get_size(&n->header);
+	guint t = stats_lut[gnutella_header_get_function(&n->header)];
 	guint i;
 	gnet_stats_t *stats;
 
@@ -167,11 +167,11 @@ gnet_stats_count_received_payload(const gnutella_node_t *n)
     stats->byte.received[MSG_TOTAL] += size;
     stats->byte.received[t] += size;
 
-	i = MIN(n->header.ttl, STATS_RECV_COLUMNS-1);
+	i = MIN(gnutella_header_get_ttl(&n->header), STATS_RECV_COLUMNS - 1);
     stats->byte.received_ttl[i][MSG_TOTAL] += size;
     stats->byte.received_ttl[i][t] += size;
 
-	i = MIN(n->header.hops, STATS_RECV_COLUMNS-1);
+	i = MIN(gnutella_header_get_hops(&n->header), STATS_RECV_COLUMNS - 1);
     stats->byte.received_hops[i][MSG_TOTAL] += size;
     stats->byte.received_hops[i][t] += size;
 }
@@ -240,7 +240,7 @@ void
 gnet_stats_count_expired(const gnutella_node_t *n)
 {
     guint32 size = n->size + sizeof(n->header);
-	guint t = stats_lut[n->header.function];
+	guint t = stats_lut[gnutella_header_get_function(&n->header)];
 	gnet_stats_t *stats;
 
 	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
@@ -286,7 +286,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
     size = n->size + sizeof(n->header);
-	type = stats_lut[n->header.function];
+	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	DROP_STATS(stats, type, size);
@@ -320,7 +320,7 @@ gnet_stats_count_dropped_nosize(
 	gnet_stats_t *stats;
 	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
-	type = stats_lut[n->header.function];
+	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	/* Data part of message not read */
@@ -334,7 +334,6 @@ gnet_stats_count_dropped_nosize(
 void
 gnet_stats_count_flowc(gconstpointer head)
 {
-    const struct gnutella_header *h = head;
 	guint t;
 	guint i;
 	guint16 size = gmsg_size(head);
@@ -343,15 +342,15 @@ gnet_stats_count_flowc(gconstpointer head)
 	g_message("FLOWC function=%d ttl=%d hops=%d", h->function, h->ttl, h->hops);
 #endif
 
-	t = stats_lut[h->function];
+	t = stats_lut[gnutella_header_get_function(head)];
 
-	i = MIN(h->hops, STATS_FLOWC_COLUMNS-1);
+	i = MIN(gnutella_header_get_hops(head), STATS_FLOWC_COLUMNS - 1);
 	gnet_stats.pkg.flowc_hops[i][t]++;
 	gnet_stats.pkg.flowc_hops[i][MSG_TOTAL]++;
 	gnet_stats.byte.flowc_hops[i][t] += size;
 	gnet_stats.byte.flowc_hops[i][MSG_TOTAL] += size;
 
-	i = MIN(h->ttl, STATS_FLOWC_COLUMNS-1);
+	i = MIN(gnutella_header_get_ttl(head), STATS_FLOWC_COLUMNS - 1);
 
 	g_assert(i != 0);			/* Cannot send a message with TTL=0 */
 

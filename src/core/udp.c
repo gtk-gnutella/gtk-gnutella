@@ -64,7 +64,7 @@ static gboolean
 udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(s->addr, s->port);
-	struct gnutella_header *head;
+	gnutella_header_t *head;
 	gchar *msg;
 	guint16 size;				/**< Payload size, from the Gnutella message */
 
@@ -79,7 +79,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	 */
 
 	head = cast_to_gpointer(s->buf);
-	n->header = *head;						/* Struct copy */
+	memcpy(n->header, head, sizeof n->header);
 	n->size = s->pos - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */
 
 	gnet_stats_count_received_header(n);
@@ -120,7 +120,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 		goto too_large;
 	}
 
-	if (size + GTA_HEADER_SIZE != s->pos) {
+	if ((size_t) size + GTA_HEADER_SIZE != s->pos) {
 		msg = "Size mismatch";
 		goto not;
 	}
@@ -130,7 +130,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	 * messages like HSEP data, BYE or QRP are not expected!
 	 */
 
-	switch (head->function) {
+	switch (gnutella_header_get_function(head)) {
 	case GTA_MSG_INIT:
 	case GTA_MSG_INIT_RESPONSE:
 	case GTA_MSG_VENDOR:
@@ -269,8 +269,8 @@ udp_send_msg(const gnutella_node_t *n, gconstpointer buf, gint len)
 void
 udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 {
-	struct gnutella_msg_init *m;
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
+	gnutella_msg_init_t *m;
 	guint32 size;
 
 	if (!udp_active() || !n->outq)
@@ -291,8 +291,8 @@ udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 void
 udp_send_ping(const host_addr_t addr, guint16 port)
 {
-	struct gnutella_msg_init *m;
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
+	gnutella_msg_init_t *m;
 	guint32 size;
 
 	if (!udp_active() || !n->outq)

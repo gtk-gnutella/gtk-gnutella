@@ -227,7 +227,7 @@ mq_free(mqueue_t *q)
 
 	for (n = 0, l = q->qhead; l; l = g_list_next(l)) {
 		n++;
-		pmsg_free((pmsg_t *) l->data);
+		pmsg_free(l->data);
 		mq_remove_linkable(q, l);
 	}
 
@@ -263,7 +263,7 @@ mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 	q->size -= size;
 	q->count--;
 
-	pmsg_free((pmsg_t *) l->data);
+	pmsg_free(l->data);
 	g_list_free_1(l);
 
 	return prev;
@@ -346,9 +346,9 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 * Leave our queries in for now (they have hops=0).
 		 */
 
-		q->header.function = GTA_MSG_SEARCH;
-		q->header.hops = 1;
-		q->header.ttl = max_ttl;
+		gnutella_header_set_function(&q->header, GTA_MSG_SEARCH);
+		gnutella_header_set_hops(&q->header, 1);
+		gnutella_header_set_ttl(&q->header, max_ttl);
 
 		if (needed > 0)
 			make_room_header(q, (gchar*) &q->header, PMSG_P_DATA, needed, NULL);
@@ -376,7 +376,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 * than our comparison point.
 		 */
 
-		q->header.function = GTA_MSG_SEARCH_RESULTS;
+		gnutella_header_set_function(&q->header, GTA_MSG_SEARCH_RESULTS);
 
 		/*
 		 * Loop until we reach hops=hard_ttl_limit or we have finished
@@ -386,8 +386,8 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		for (ttl = hard_ttl_limit; needed > 0 && ttl >= 0; ttl--) {
 			gint old_size = q->size;
 
-			q->header.hops = hard_ttl_limit - ttl;
-			q->header.ttl = ttl;
+			gnutella_header_set_hops(&q->header, hard_ttl_limit - ttl);
+			gnutella_header_set_ttl(&q->header, ttl);
 
 			if (
 				make_room_header(q, (gchar*) &q->header, PMSG_P_DATA,
@@ -422,7 +422,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 static void
 mq_swift_timer(cqueue_t *unused_cq, gpointer obj)
 {
-	mqueue_t *q = (mqueue_t *) obj;
+	mqueue_t *q = obj;
 
 	(void) unused_cq;
 	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == (MQ_FLOWC|MQ_SWIFT));
@@ -436,7 +436,7 @@ mq_swift_timer(cqueue_t *unused_cq, gpointer obj)
 static void
 mq_enter_swift(cqueue_t *unused_cq, gpointer obj)
 {
-	mqueue_t *q = (mqueue_t *) obj;
+	mqueue_t *q = obj;
 
 	(void) unused_cq;
 	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == MQ_FLOWC);
@@ -539,15 +539,14 @@ mq_update_flowc(mqueue_t *q)
 void
 mq_clear(mqueue_t *q)
 {
-	GList *l;
-
 	g_assert(q);
 
 	if (q->count == 0)
 		return;					/* Queue is empty */
 
-	while ((l = q->qhead)) {
-		pmsg_t *mb = (pmsg_t *) l->data;
+	while (q->qhead) {
+		GList *l = q->qhead;
+		pmsg_t *mb = l->data;
 
 		/*
 		 * Break if we started to write this message, i.e. if we read
@@ -606,15 +605,15 @@ mq_shutdown(mqueue_t *q)
  * -- qsort() callback
  */
 static gint
-qlink_cmp(const void *lp1, const void *lp2)
+qlink_cmp(const void *a, const void *b)
 {
-	const pmsg_t *m1 = (const pmsg_t *) (*(const GList * const *) lp1)->data;
-	const pmsg_t *m2 = (const pmsg_t *) (*(const GList * const *) lp2)->data;
+	const GList * const *l1 = a, * const *l2 = b;
+	const pmsg_t *m1 = (*l1)->data, *m2 = (*l2)->data;
 
 	if (pmsg_prio(m1) == pmsg_prio(m2))
 		return gmsg_cmp(pmsg_start(m1), pmsg_start(m2));
-
-	return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
+	else
+		return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
 }
 
 /**
@@ -623,13 +622,12 @@ qlink_cmp(const void *lp1, const void *lp2)
 static void
 qlink_create(mqueue_t *q)
 {
-	GList **qlink;
 	GList *l;
 	gint n;
 
 	g_assert(q->qlink == NULL);
 
-	qlink = q->qlink = (GList **) g_malloc(q->count * sizeof(GList *));
+	q->qlink = g_malloc(q->count * sizeof q->qlink[0]);
 
 	/*
 	 * Prepare sorting of queued messages.
@@ -640,7 +638,7 @@ qlink_create(mqueue_t *q)
 
 	for (l = q->qhead, n = 0; l && n < q->count; l = g_list_next(l), n++) {
 		g_assert(l->data != NULL);
-		qlink[n] = l;
+		q->qlink[n] = l;
 	}
 
 	if (l || n != q->count)
@@ -653,7 +651,7 @@ qlink_create(mqueue_t *q)
 	 */
 
 	q->qlink_count = n;
-	qsort(qlink, n, sizeof(GList *), qlink_cmp);
+	qsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
 
 	mq_check(q, 0);
 }
@@ -687,8 +685,8 @@ qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 	 * Lookup before the message for a NULL entry that we could fill.
 	 */
 
-	if (hint > 0 && q->qlink[hint-1] == NULL) {
-		q->qlink[hint-1] = l;
+	if (hint > 0 && q->qlink[hint - 1] == NULL) {
+		q->qlink[hint - 1] = l;
 		return;
 	}
 
@@ -696,11 +694,17 @@ qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 	 * Extend the array then, and insert right at `hint' in the new array.
 	 */
 
-	q->qlink = g_realloc(q->qlink, ++q->qlink_count * sizeof(GList *));
+	q->qlink_count++;
+	q->qlink = g_realloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
 
-	memmove(&q->qlink[hint+1], &q->qlink[hint],
-		(q->qlink_count - hint - 1) * sizeof(GList *));	/* Shift right */
+	{
+		gint i;
 
+		/* Shift right */
+		for (i = q->qlink_count - 1; i > hint; i++) {
+			q->qlink[i] = q->qlink[i - 1];
+		} 
+	}
 	q->qlink[hint] = l;
 }
 
@@ -724,7 +728,8 @@ qlink_insert(mqueue_t *q, GList *l)
 
 	if (high < 0) {
 		g_assert(q->count == 1);		/* `l' is already part of the queue */
-		q->qlink = g_realloc(q->qlink, ++q->qlink_count * sizeof(GList *));
+		q->qlink_count++;
+		q->qlink = g_realloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
 		q->qlink[0] = l;
 		return;
 	}
@@ -743,7 +748,8 @@ qlink_insert(mqueue_t *q, GList *l)
 	 */
 
 	if (qlink[high] != NULL && qlink_cmp(&l, &qlink[high]) >= 0) {
-		q->qlink = g_realloc(q->qlink, ++q->qlink_count * sizeof(GList *));
+		q->qlink_count++;
+		q->qlink = g_realloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
 		q->qlink[q->qlink_count - 1] = l;
 		return;
 	}
@@ -890,7 +896,7 @@ qlink_remove(mqueue_t *q, GList *l)
 		gboolean found = FALSE;
 
 		while (n-- > 0) {
-			GList *entry = *qlink++;;
+			GList *entry = *qlink++;
 			if (entry == NULL)
 				continue;
 			else if (l == entry) {
@@ -907,10 +913,11 @@ qlink_remove(mqueue_t *q, GList *l)
 			return;
 	} else {
 		while (n-- > 0) {
-			if (l == *qlink++) {
-				*(--qlink) = NULL;
+			if (l == *qlink) {
+				*qlink = NULL;
 				return;
 			}
+			qlink++;
 		}
 
 		/* Should have been found -- FALL THROUGH */
@@ -1036,7 +1043,7 @@ restart:
 			goto restart;
 		}
 
-		cmb = (pmsg_t *) item->data;
+		cmb = item->data;
 		cmb_start = pmsg_start(cmb);
 
 		/*
@@ -1255,7 +1262,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		 */
 
 		for (l = q->qtail; l; l = l->prev) {
-			pmsg_t *m = (pmsg_t *) l->data;
+			pmsg_t *m = l->data;
 
 			if (
 				pmsg_is_unread(m) &&			/* Not partially written */

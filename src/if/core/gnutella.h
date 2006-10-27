@@ -26,6 +26,8 @@
 #ifndef _if_core_gnutella_h_
 #define _if_core_gnutella_h_
 
+#include "lib/endian.h"
+
 /*
  * Constants
  */
@@ -48,23 +50,104 @@ enum gta_msg {
  * Structures
  */
 
-#if !defined(__GNUC__) && !defined(__attribute__)
-#define __attribute__(p)
-#endif
-
 /**
  * Header structure
  */
 
-struct gnutella_header {
-	gchar muid[16];
-	guchar function;
-	guchar ttl;
-	guchar hops;
-	guchar size[4];
-};
+#define GTA_HEADER_SIZE	23
 
-#define GTA_HEADER_SIZE		sizeof(struct gnutella_header)
+#if 0
+struct gnutella_header_ {
+	guint8 muid[16];
+	guint8 function;
+	guint8 ttl;
+	guint8 hops;
+	guint8 size[4];
+};
+#endif
+
+typedef guint8 gnutella_header_t[GTA_HEADER_SIZE];
+
+static inline gchar *
+gnutella_header_muid(gnutella_header_t *header)
+{
+	return (gchar *) header;
+}
+
+static inline const gchar *
+gnutella_header_get_muid(const void *data)
+{
+	return data;
+}
+
+static inline void
+gnutella_header_set_muid(gnutella_header_t *header, const gchar *muid)
+{
+	memcpy(header, muid, 16);
+}
+
+static inline guint8
+gnutella_header_get_function(const void *data)
+{
+	const guint8 *u8 = data;
+	return u8[16];
+}
+
+static inline void
+gnutella_header_set_function(gnutella_header_t *header, guint8 function)
+{
+	guint8 *u8 = (void *) header;
+	u8[16] = function;
+}
+
+static inline guint8
+gnutella_header_get_ttl(const void *data)
+{
+	const guint8 *u8 = data;
+	return u8[17];
+}
+
+static inline void
+gnutella_header_set_ttl(gnutella_header_t *header, guint8 ttl)
+{
+	guint8 *u8 = (void *) header;
+	u8[17] = ttl;
+}
+
+static inline guint8
+gnutella_header_get_hops(const void *data)
+{
+	const guint8 *u8 = data;
+	return u8[18];
+}
+
+static inline void
+gnutella_header_set_hops(gnutella_header_t *header, guint8 hops)
+{
+	guint8 *u8 = (void *) header;
+	u8[18] = hops;
+}
+
+static inline guint32
+gnutella_header_get_size(const void *data)
+{
+	const guint8 *u8 = data;
+	return peek_le32(&u8[19]);
+}
+
+static inline void
+gnutella_header_set_size(gnutella_header_t *header, guint32 size)
+{
+	guint8 *u8 = (void *) header;
+	poke_le32(&u8[19], size);
+}
+
+static inline void
+gnutella_header_check(void)
+{
+	STATIC_ASSERT(23 == sizeof(gnutella_header_t));
+	STATIC_ASSERT(23 == GTA_HEADER_SIZE);
+}
 
 /*
  * Starting 2006-08-20, gtk-gnutella enforces a maximal payload size of 64K.

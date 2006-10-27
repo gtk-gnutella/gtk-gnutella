@@ -176,7 +176,7 @@ alive_ping_can_send(pmsg_t *mb, const mqueue_t *q)
 	struct alive *a = n->alive_pings;
 	gchar *muid = pmsg_start(mb);
 
-	g_assert(((const struct gnutella_header *) muid)->function == GTA_MSG_INIT);
+	g_assert(gnutella_header_get_function(muid) == GTA_MSG_INIT);
 	g_assert(a->count == 0 || a->pings != NULL);
 
 	/*
@@ -242,11 +242,10 @@ alive_send_ping(gpointer obj)
 	struct alive *a = (struct alive *) obj;
 	gchar muid[GUID_RAW_SIZE];
 	struct alive_ping *ap;
-	struct gnutella_msg_init *m;
+	gnutella_msg_init_t *m;
 	guint32 size;
 	pmsg_t *mb;
 
-	STATIC_ASSERT(23 == sizeof *m);
 	g_assert(a->count == 0 || a->pings != NULL);
 
 	if (a->count >= a->maxcount)
@@ -343,7 +342,7 @@ alive_trim_upto(struct alive *a, GSList *item)
  * @return TRUE if it was indeed an ACK for a ping we sent.
  */
 gboolean
-alive_ack_ping(gpointer obj, gchar *muid)
+alive_ack_ping(gpointer obj, const gchar *muid)
 {
 	struct alive *a = obj;
 	GSList *sl;
@@ -372,7 +371,7 @@ alive_ack_ping(gpointer obj, gchar *muid)
  * replying to an alive ping.
  */
 void
-alive_ack_first(gpointer obj, gchar *muid)
+alive_ack_first(gpointer obj, const gchar *muid)
 {
 	struct alive *a = obj;
 	struct alive_ping *ap;

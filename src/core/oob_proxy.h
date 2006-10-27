@@ -49,9 +49,10 @@ void oob_proxy_close(void);
 
 void oob_proxy_create(struct gnutella_node *n);
 gboolean oob_proxy_pending_results(
-	struct gnutella_node *n, gchar *muid, gint hits, gboolean udp_firewalled);
+	struct gnutella_node *n, const gchar *muid,
+	gint hits, gboolean udp_firewalled);
 gboolean oob_proxy_got_results(struct gnutella_node *n, guint results);
-const gchar *oob_proxy_muid_proxied(gchar *muid);
+const gchar *oob_proxy_muid_proxied(const gchar *muid);
 
 #endif /* _core_oob_proxy_h_ */
 

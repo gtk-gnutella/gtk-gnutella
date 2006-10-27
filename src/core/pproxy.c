@@ -511,7 +511,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	guint32 file_idx, gboolean supports_tls)
 {
 	static union {
-		struct gnutella_msg_push_request m;
+		gnutella_msg_push_request_t m;
 		gchar data[1024];
 	} packet;
 	gchar *p = packet.data;
@@ -522,17 +522,21 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	g_assert(guid);
 	g_assert(0 != port);
 
-	message_set_muid(&packet.m.header, GTA_MSG_PUSH_REQUEST);
+	{
+		gnutella_header_t *header = gnutella_msg_push_request_header(&packet.m);
 
-	packet.m.header.function = GTA_MSG_PUSH_REQUEST;
-	packet.m.header.ttl = ttl;
-	packet.m.header.hops = hops;
-	memcpy(packet.m.request.guid, guid, 16);
+		message_set_muid(header, GTA_MSG_PUSH_REQUEST);
+		gnutella_header_set_function(header, GTA_MSG_PUSH_REQUEST);
+		gnutella_header_set_ttl(header, ttl);
+		gnutella_header_set_hops(header, hops);
+	}
+	
+	gnutella_msg_push_request_set_guid(&packet.m, guid);
 
 	STATIC_ASSERT(49 == sizeof packet.m);
 	p += sizeof packet.m;
 	size -= sizeof packet.m;
-	len += sizeof packet.m.request;	/* Exclude the header size */
+	len += sizeof packet.m - GTA_HEADER_SIZE;	/* Exclude the header size */
 
 	ggep_stream_init(&gs, p, size);
 
@@ -576,12 +580,15 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	g_assert(len < size);
 	g_assert(len < sizeof packet);
 
-	poke_le32(packet.m.request.file_id, file_idx == URN_INDEX ? 0 : file_idx);
-	poke_be32(packet.m.request.host_ip, host_addr_ipv4(addr_v4));
-	poke_le16(packet.m.request.host_port, port);
-	poke_le32(packet.m.header.size, len);
+	gnutella_msg_push_request_set_file_id(&packet.m,
+		file_idx == URN_INDEX ? 0 : file_idx);
+	gnutella_msg_push_request_set_host_ip(&packet.m, host_addr_ipv4(addr_v4));
+	gnutella_msg_push_request_set_host_port(&packet.m, port);
+	gnutella_header_set_size(gnutella_msg_push_request_header(&packet.m), len);
 
-	message_add(packet.m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
+	message_add(
+		gnutella_header_get_muid(gnutella_msg_push_request_header(&packet.m)),
+		GTA_MSG_PUSH_REQUEST, NULL);
 
 	*size_ptr = p - packet.data;
 	return packet.data;

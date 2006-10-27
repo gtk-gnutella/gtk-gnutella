@@ -28,6 +28,8 @@
 
 #include <glib.h>
 
+#include "gnutella.h"
+
 /**
  * Route destination types.
  */
@@ -56,14 +58,12 @@ struct route_dest {
  * Global Functions
  */
 
-struct gnutella_header;
-
 void routing_init(void);
 void routing_close(void);
-void message_set_muid(struct gnutella_header *header, guint8 function);
+void message_set_muid(gnutella_header_t *header, guint8 function);
 gboolean route_message(struct gnutella_node **, struct route_dest *);
 void routing_node_remove(struct gnutella_node *);
-void message_add(const gchar *, guint8, struct gnutella_node *);
+void message_add(const gchar *muid, guint8, struct gnutella_node *);
 GSList *route_towards_guid(const gchar *guid);
 gboolean route_exists_for_reply(const gchar *muid, guint8 function);
 

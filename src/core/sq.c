@@ -61,12 +61,6 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
- * Compute start of search string (which is NUL terminated) in query.
- * The "+2" skips the "speed" field in the query.
- */
-#define QUERY_TEXT(m)	((m) + sizeof(struct gnutella_header) + 2)
-
 /**
  * A search queue entry.
  *
@@ -438,7 +432,8 @@ retry:
 
 		if (dbg > 2)
 			printf("sq GLOBAL, queuing \"%s\" (%u left, %d sent)\n",
-				QUERY_TEXT(pmsg_start(sb->mb)), sq->count, sq->n_sent);
+				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
+				sq->count, sq->n_sent);
 
 		dq_launch_local(sb->shandle, sb->mb, sb->qhv);
 
@@ -452,7 +447,7 @@ retry:
 
 		if (dbg > 2)
 			printf("sq for node %s, queuing \"%s\" (%u left, %d sent)\n",
-				node_addr(n), QUERY_TEXT(pmsg_start(sb->mb)),
+				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 
 		/*
@@ -470,7 +465,7 @@ retry:
 	} else {
 		if (dbg > 4)
 			printf("sq for node %s, ignored \"%s\" (%u left, %d sent)\n",
-				node_addr(n), QUERY_TEXT(pmsg_start(sb->mb)),
+				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 		pmsg_free(sb->mb);
 		if (sb->qhv)
@@ -516,7 +511,8 @@ cap_queue(squeue_t *sq)
 
 		if (dbg > 4)
 			printf("sq for node %s, dropped \"%s\" (%u left, %d dropped)\n",
-				node_addr(sq->node), QUERY_TEXT(pmsg_start(sb->mb)),
+				node_addr(sq->node),
+				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_dropped);
 
 		sqh_remove(sq, sb->shandle);
@@ -550,7 +546,7 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 		if (dbg > 4)
 			printf("sq for node %s, dropped \"%s\" on search close (%u left)\n",
 				sq->node ? node_addr(sq->node) : "GLOBAL",
-				QUERY_TEXT(pmsg_start(sb->mb)), sq->count);
+				gnutella_msg_search_get_text(pmsg_start(sb->mb)), sq->count);
 
 		sqh_remove(sq, sb->shandle);
 		smsg_discard(sb);

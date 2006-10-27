@@ -67,17 +67,6 @@ enum share_mime_type {
 	SHARE_M_TEXT_PLAIN,
 };
 
-struct gnutella_search_results_out {
-	guchar num_recs;
-	guchar host_port[2];
-	guchar host_ip[4];
-	guchar host_speed[4];
-
-	/* record data follows */
-
-	/* Last 16 bytes = client_id */
-};
-
 #define SHARE_REBUILDING	((struct shared_file *) 0x1)
 
 struct gnutella_node;

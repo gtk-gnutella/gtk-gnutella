@@ -2255,23 +2255,24 @@ qrt_compress_cancel_all(void)
 static void
 qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 {
-	struct gnutella_msg_qrp_reset m;
+	gnutella_msg_qrp_reset_t msg;
+	gnutella_header_t *header = gnutella_msg_qrp_reset_header(&msg);
 
 	g_assert(is_pow2(slots));
 	g_assert(infinity > 0 && infinity < 256);
 
-	message_set_muid(&m.header, GTA_MSG_QRP);
+	message_set_muid(header, GTA_MSG_QRP);
 
-	m.header.function = GTA_MSG_QRP;
-	m.header.ttl = 1;
-	m.header.hops = 0;
-	WRITE_GUINT32_LE(sizeof m.data, m.header.size);
+	gnutella_header_set_function(header, GTA_MSG_QRP);
+	gnutella_header_set_ttl(header, 1);
+	gnutella_header_set_hops(header, 0);
+	gnutella_header_set_size(header, sizeof msg - GTA_HEADER_SIZE);
 
-	m.data.variant = GTA_MSGV_QRP_RESET;
-	WRITE_GUINT32_LE(slots, m.data.table_length);
-	m.data.infinity = (guchar) infinity;
+	gnutella_msg_qrp_reset_set_variant(&msg, GTA_MSGV_QRP_RESET);
+	gnutella_msg_qrp_reset_set_table_length(&msg, slots);
+	gnutella_msg_qrp_reset_set_infinity(&msg, infinity);
 
-	gmsg_sendto_one(n, &m, sizeof m);
+	gmsg_sendto_one(n, &msg, sizeof msg);
 
 	if (qrp_debug > 4)
 		g_message("QRP sent RESET slots=%d, infinity=%d to %s",
@@ -2288,41 +2289,42 @@ qrp_send_patch(struct gnutella_node *n,
 	gint seqno, gint seqsize, gboolean compressed, gint bits,
 	gchar *buf, gint len)
 {
-	struct gnutella_msg_qrp_patch *m;
-	gint msglen;
-	gint paylen;
+	gnutella_msg_qrp_patch_t *msg;
+	guint msglen;
 
 	g_assert(seqsize >= 1 && seqsize <= 255);
 	g_assert(seqno >= 1 && seqno <= seqsize);
+	g_assert(len >= 0 && len <= INT_MAX);
 
 	/*
 	 * Compute the overall message length.
 	 */
 
-	msglen = len + sizeof *m;
-	paylen = len + sizeof m->data;
+	g_assert((size_t) len <= INT_MAX - sizeof *msg);
+	msglen = len + sizeof *msg;
+	msg = g_malloc(msglen);
 
-	g_assert(msglen > (gint) sizeof *m);
-	m = g_malloc(msglen);
+	{
+		gnutella_header_t *header = gnutella_msg_qrp_patch_header(msg);
+		
+		message_set_muid(header, GTA_MSG_QRP);
+		gnutella_header_set_function(header, GTA_MSG_QRP);
+		gnutella_header_set_ttl(header, 1);
+		gnutella_header_set_hops(header, 0);
+		gnutella_header_set_size(header, msglen - GTA_HEADER_SIZE);
+	}
 
-	message_set_muid(&m->header, GTA_MSG_QRP);
+	gnutella_msg_qrp_patch_set_variant(msg, GTA_MSGV_QRP_PATCH);
+	gnutella_msg_qrp_patch_set_seq_no(msg, seqno);
+	gnutella_msg_qrp_patch_set_seq_size(msg, seqsize);
+	gnutella_msg_qrp_patch_set_compressor(msg, compressed ? 0x1 : 0x0);
+	gnutella_msg_qrp_patch_set_entry_bits(msg, bits);
 
-	m->header.function = GTA_MSG_QRP;
-	m->header.ttl = 1;
-	m->header.hops = 0;
-	WRITE_GUINT32_LE(paylen, m->header.size);
+	memcpy(cast_to_gchar_ptr(msg) + sizeof *msg, buf, len);
 
-	m->data.variant = GTA_MSGV_QRP_PATCH;
-	m->data.seq_no = seqno;
-	m->data.seq_size = seqsize;
-	m->data.compressor = compressed ? 0x1 : 0x0;
-	m->data.entry_bits = bits;
+	gmsg_sendto_one(n, msg, msglen);
 
-	memcpy(&m[1], buf, len);
-
-	gmsg_sendto_one(n, m, msglen);
-
-	G_FREE_NULL(m);
+	G_FREE_NULL(msg);
 
 	if (qrp_debug > 4)
 		g_message("QRP sent PATCH #%d/%d (%d bytes) to %s",
@@ -2355,17 +2357,17 @@ struct qrp_patch {
 static gboolean
 qrp_recv_reset(struct gnutella_node *n, struct qrp_reset *reset)
 {
-	const struct gnutella_qrp_reset *msg = cast_to_gconstpointer(n->data);
+	gconstpointer msg = n->data;
 
-	g_assert(msg->variant == GTA_MSGV_QRP_RESET);
+	g_assert(gnutella_qrp_reset_get_variant(msg) == GTA_MSGV_QRP_RESET);
 
-	if (n->size != sizeof *msg) {
+	if (n->size != sizeof(gnutella_qrp_reset_t)) {
 		gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 		return FALSE;
 	}
 
-	reset->table_length = peek_le32(msg->table_length);
-	reset->infinity = msg->infinity;
+	reset->table_length = gnutella_qrp_reset_get_table_length(msg);
+	reset->infinity = gnutella_qrp_reset_get_infinity(msg);
 
 	return TRUE;
 }
@@ -2377,22 +2379,23 @@ qrp_recv_reset(struct gnutella_node *n, struct qrp_reset *reset)
 static gboolean
 qrp_recv_patch(struct gnutella_node *n, struct qrp_patch *patch)
 {
-	const struct gnutella_qrp_patch *msg = cast_to_gconstpointer(n->data);
+	gconstpointer msg = n->data;
 
-	g_assert(msg->variant == GTA_MSGV_QRP_PATCH);
+	g_assert(gnutella_qrp_patch_get_variant(msg) == GTA_MSGV_QRP_PATCH);
 
-	if (n->size <= sizeof *msg) {
+	if (n->size <= sizeof(gnutella_qrp_patch_t)) {
 		gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 		return FALSE;
 	}
 
-	patch->seq_no = msg->seq_no;
-	patch->seq_size = msg->seq_size;
-	patch->compressor = msg->compressor;
-	patch->entry_bits = msg->entry_bits;
+	patch->seq_no = gnutella_qrp_patch_get_seq_no(msg);
+	patch->seq_size = gnutella_qrp_patch_get_seq_size(msg);
+	patch->compressor = gnutella_qrp_patch_get_compressor(msg);
+	patch->entry_bits = gnutella_qrp_patch_get_entry_bits(msg);
 
-	patch->data = (guchar *) (msg + 1);		/* Data start after header info */
-	patch->len = n->size - sizeof *msg;
+	/* Data start after header info */
+	patch->data = (guchar *) msg + sizeof(gnutella_qrp_patch_t);
+	patch->len = n->size - sizeof(gnutella_qrp_patch_t);
 
 	g_assert(patch->len > 0);
 
@@ -3739,7 +3742,7 @@ qrt_receive_next(gpointer handle, gboolean *done)
 	guint8 type;
 
 	g_assert(qrcv->magic == QRT_RECEIVE_MAGIC);
-	g_assert(n->header.function == GTA_MSG_QRP);
+	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_QRP);
 
 	type = *n->data;
 
@@ -4321,9 +4324,12 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	GSList *nodes;				/* Targets for the query */
 
 	g_assert(qhvec != NULL);
-	g_assert(n->header.function == GTA_MSG_SEARCH);
+	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH);
 
-	nodes = qrt_build_query_target(qhvec, n->header.hops, n->header.ttl, n);
+	nodes = qrt_build_query_target(qhvec,
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
+				n);
 
 	if (nodes == NULL)
 		return;
@@ -4357,11 +4363,11 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	 * increase the TTL before sending.
 	 */
 
-	if (n->header.ttl == 0)
-		n->header.ttl++;
+	if (gnutella_header_get_ttl(&n->header) == 0)
+		gnutella_header_set_ttl(&n->header, 1);
 
 	gmsg_split_sendto_all(nodes, &n->header, n->data,
-		n->size + sizeof(struct gnutella_header));
+		n->size + GTA_HEADER_SIZE);
 
 	g_slist_free(nodes);
 }

@@ -886,12 +886,12 @@ search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
 static gnet_results_set_t *
 get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 {
+	gnutella_search_results_t *r;
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
 	gchar *endptr, *s, *fname, *tag;
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
-	struct gnutella_search_results *r;
 	GString *info = NULL;
 	gint sha1_errors = 0;
 	gint alt_errors = 0;
@@ -927,12 +927,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	rs->proxies   = NULL;
 	rs->hostname  = NULL;
 	rs->country   = -1;
-	rs->hops	  = n->header.hops;
-	rs->ttl		  = n->header.ttl;
+	rs->hops	  = gnutella_header_get_hops(&n->header);
+	rs->ttl		  = gnutella_header_get_ttl(&n->header);
 	{
 		const gchar *query;
 
-		query = map_muid_to_query_string(n->header.muid);
+		query = map_muid_to_query_string(gnutella_header_get_muid(&n->header));
 		rs->query = query ? atom_str_get(query) : NULL;
 	}
 
@@ -940,10 +940,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 	/* Transfer the Query Hit info to our internal results_set struct */
 
-	rs->num_recs = (guint8) r->num_recs;				 /* Number of hits */
-	rs->addr = host_addr_get_ipv4(peek_be32(r->host_ip)); /* IP address */
-	rs->port = peek_le16(r->host_port);					 /* Port */
-	rs->speed = peek_le32(r->host_speed);				 /* Connection speed */
+	rs->num_recs = gnutella_search_results_get_num_recs(r);
+	rs->addr = host_addr_get_ipv4(gnutella_search_results_get_host_ip(r));
+	rs->port = gnutella_search_results_get_host_port(r);
+	rs->speed = gnutella_search_results_get_host_speed(r);
 	rs->last_hop = n->addr;
 
 	/*
@@ -961,7 +961,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		)
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
 
-		if (!search_results_are_requested(n->header.muid, n->addr, n->port)) {
+		if (
+			!search_results_are_requested(
+				gnutella_header_get_muid(&n->header), n->addr, n->port)
+		) {
 			rs->status |= ST_UNREQUESTED;
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
 			if (search_debug) {
@@ -1407,7 +1410,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			trailer = s;
 
 		if (trailer) {
-			memcpy(rs->vcode.b, trailer, 4);
+			memcpy(&rs->vcode.be32, trailer, 4);
 		} else {
 			if (search_debug) {
 				g_warning(
@@ -1791,7 +1794,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	const gchar *vendor;
 	guint32 old_weird = n->n_weird;
 
-	g_assert(n->header.hops == 1);
+	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
     vendor = lookup_vendor_name(rs->vcode);
 
@@ -1816,12 +1819,14 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
 
 		if (n->vcode.be32 != 0 && vendor == NULL) {
+			const guint8 *u8 = cast_to_gconstpointer(&n->vcode.be32);
+
 			n->n_weird++;
 			if (search_debug > 1) g_warning("[weird #%d] "
 				"node %s (%s) had tag %c%c%c%c in its query hits, "
 				"now has none in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				n->vcode.b[0], n->vcode.b[1], n->vcode.b[2], n->vcode.b[3],
+				u8[0], u8[1], u8[2], u8[3],
 				gmsg_infostr(&n->header));
 		}
 	}
@@ -1834,12 +1839,17 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		STATIC_ASSERT(sizeof n->vcode == sizeof rs->vcode);
 
 		if (n->vcode.be32 != 0 && n->vcode.be32 != rs->vcode.be32) {
+			const guint8 *n_vendor, *rs_vendor;
+		   
+			n_vendor = cast_to_gconstpointer(&n->vcode.be32);
+			rs_vendor = cast_to_gconstpointer(&rs->vcode.be32);
+
 			n->n_weird++;
 			if (search_debug > 1) g_warning("[weird #%d] "
 				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				n->vcode.b[0], n->vcode.b[1], n->vcode.b[2], n->vcode.b[3],
-				rs->vcode.b[0], rs->vcode.b[1], rs->vcode.b[2], rs->vcode.b[3],
+				n_vendor[0], n_vendor[1], n_vendor[2], n_vendor[3],
+				rs_vendor[0], rs_vendor[1], rs_vendor[2], rs_vendor[3],
 				gmsg_infostr(&n->header));
 		}
 
@@ -1924,11 +1934,11 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * @returns NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
-static struct gnutella_msg_search *
+gnutella_msg_search_t *
 build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 {
 	static const gchar urn_prefix[] = "urn:sha1:";
-	struct gnutella_msg_search *m;
+	gnutella_msg_search_t *m;
 	guint32 size;
 	guint32 plen;			/* Length of payload */
 	size_t qlen;			/* Length of query text */
@@ -1972,14 +1982,24 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	*len = size;	/* What we allocated */
 
 	/* Use the first MUID on the list (the last one allocated) */
-	memcpy(m->header.muid, sch->muids->data, GUID_RAW_SIZE);
+	{
+		gnutella_header_t *header = gnutella_msg_search_header(m);
+		
+		gnutella_header_set_muid(header, sch->muids->data);
+		gnutella_header_set_function(header, GTA_MSG_SEARCH);
+		gnutella_header_set_ttl(header, my_ttl);
+		gnutella_header_set_hops(header,
+				(hops_random_factor && current_peermode != NODE_P_LEAF) ?
+				random_value(hops_random_factor) : 0);
 
-	m->header.function = GTA_MSG_SEARCH;
-	m->header.ttl = my_ttl;
-	m->header.hops = (hops_random_factor && current_peermode != NODE_P_LEAF) ?
-		random_value(hops_random_factor) : 0;
-	if ((guint32) m->header.ttl + (guint32) m->header.hops > hard_ttl_limit)
-		m->header.ttl = hard_ttl_limit - m->header.hops;
+		if (
+			(guint32) gnutella_header_get_ttl(header) +
+				gnutella_header_get_hops(header) > hard_ttl_limit
+		) {
+			gnutella_header_set_ttl(header,
+				hard_ttl_limit - gnutella_header_get_hops(header));
+		}
+	}
 
 	/*
 	 * The search speed is no longer used by most servents as a raw indication
@@ -2017,13 +2037,15 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		host_addr_t addr;
 		guint16 port;
 
-		guid_oob_get_addr_port(m->header.muid, &addr, &port);
+		guid_oob_get_addr_port(
+			gnutella_header_get_muid(gnutella_msg_search_header(m)),
+			&addr, &port);
 
 		if (is_my_address(addr, port))
 			speed |= QUERY_SPEED_OOB_REPLY;
 	}
 
-	WRITE_GUINT16_LE(speed, m->search.speed);
+	gnutella_msg_search_set_speed(m, speed);
 
 	if (is_urn_search) {
 		gchar *query;
@@ -2057,8 +2079,8 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		}
 	}
 
-	plen = size - sizeof(struct gnutella_header);	/* Payload length */
-	WRITE_GUINT32_LE(plen, m->header.size);
+	plen = size - GTA_HEADER_SIZE;	/* Payload length */
+	gnutella_header_set_size(gnutella_msg_search_header(m), plen);
 	*sizep = size;
 
 	if (plen > search_queries_forward_size) {
@@ -2070,9 +2092,11 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 	if (search_debug > 3)
 		g_message("%squery \"%s\" message built with MUID %s",
 			is_urn_search ? "URN " : "", sch->query,
-			guid_hex_str(m->header.muid));
+			guid_hex_str(
+				gnutella_header_get_muid(gnutella_msg_search_header(m))));
 
-	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
+	message_add(gnutella_header_get_muid(gnutella_msg_search_header(m)),
+		GTA_MSG_SEARCH, NULL);
 
 	return m;
 
@@ -2124,7 +2148,7 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 static void
 search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 {
-	struct gnutella_msg_search *m;
+	gnutella_msg_search_t *m;
 	guint32 size;
 	guint32 alloclen;
 
@@ -2610,7 +2634,8 @@ search_results(gnutella_node_t *n, gint *results)
 				GUINT_TO_POINTER(sch->search_handle));
 	}
 
-	active_sch = g_hash_table_lookup(search_by_muid, n->header.muid);
+	active_sch = g_hash_table_lookup(search_by_muid,
+					gnutella_header_get_muid(&n->header));
 
 	if (active_sch != NULL && !active_sch->frozen)
 		selected_searches = g_slist_prepend(selected_searches,
@@ -2649,7 +2674,7 @@ search_results(gnutella_node_t *n, gint *results)
 	 * NB: route_message() increases hops by 1 for messages we handle.
 	 */
 
-	if (n->header.hops == 1 && !NODE_IS_UDP(n))
+	if (gnutella_header_get_hops(&n->header) == 1 && !NODE_IS_UDP(n))
 		update_neighbour_info(n, rs);
 
 	/*
@@ -2675,7 +2700,10 @@ search_results(gnutella_node_t *n, gint *results)
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		}
 	} else {
-		if (!dq_got_results(n->header.muid, rs->num_recs, rs->status))
+		if (
+			!dq_got_results(gnutella_header_get_muid(&n->header),
+				rs->num_recs, rs->status)
+		)
 			forward_it = FALSE;
 
 		/*
@@ -2693,7 +2721,8 @@ search_results(gnutella_node_t *n, gint *results)
 			if (proxy_oob_queries && oob_proxy_got_results(n, rs->num_recs))
 				forward_it = FALSE;
 			else
-				dh_got_results(n->header.muid, rs->num_recs);
+				dh_got_results(gnutella_header_get_muid(&n->header),
+					rs->num_recs);
 		}
 
 		/*
@@ -2746,7 +2775,11 @@ search_results(gnutella_node_t *n, gint *results)
 final_cleanup:
 	g_slist_free(selected_searches);
 
-	if (drop_it && n->header.hops == 1 && !NODE_IS_UDP(n)) {
+	if (
+		drop_it &&
+		gnutella_header_get_hops(&n->header) == 1 &&
+		!NODE_IS_UDP(n)
+	) {
 		n->n_weird++;
 		if (search_debug > 1) g_warning("[weird #%d] dropped %s from %s (%s)",
 			n->n_weird, gmsg_infostr(&n->header), node_addr(n), node_vendor(n));
@@ -3375,7 +3408,7 @@ search_stop(gnet_search_t sh)
  * or FALSE if we did not find any search.
  */
 gboolean
-search_get_kept_results(gchar *muid, guint32 *kept)
+search_get_kept_results(const gchar *muid, guint32 *kept)
 {
 	search_ctrl_t *sch;
 
@@ -3425,7 +3458,7 @@ search_get_kept_results_by_handle(gnet_search_t sh)
  */
 void
 search_oob_pending_results(
-	gnutella_node_t *n, gchar *muid, gint hits, gboolean udp_firewalled)
+	gnutella_node_t *n, const gchar *muid, gint hits, gboolean udp_firewalled)
 {
 	guint32 kept;
 	guint32 max_items;

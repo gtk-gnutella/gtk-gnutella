@@ -188,28 +188,30 @@ found_write(gconstpointer data, size_t length)
 static void
 found_set_header(void)
 {
-	static const size_t head_size = sizeof(struct gnutella_header);
 	struct found_struct *f = found_get();
-	struct gnutella_header *packet_head;
-	struct gnutella_search_results_out *search_head;
+	gnutella_msg_search_results_t *msg;
 	guint32 connect_speed;		/* Connection speed, in kbits/s */
 	size_t len;
 
 	g_assert(!f->open);
-	g_assert(f->pos >= head_size);
-	len = f->pos - head_size;
+	g_assert(f->pos >= GTA_HEADER_SIZE);
+	len = f->pos - GTA_HEADER_SIZE;
 	g_assert(len < sizeof f->data);
 
-	packet_head = (struct gnutella_header *) f->data;
-	packet_head->ttl = 1;		/* Overriden later if sending inbound */
-	packet_head->hops = 0;
-	memcpy(f->data, f->muid, 16);
+	msg = (gnutella_msg_search_results_t *) f->data;
 
-	packet_head->function = GTA_MSG_SEARCH_RESULTS;
-	WRITE_GUINT32_LE(len, packet_head->size);
+	{
+		gnutella_header_t *header = gnutella_msg_search_results_header(msg);
 
-	search_head = (gpointer) &f->data[head_size];
-	search_head->num_recs = f->files; /* One byte */
+		gnutella_header_set_muid(header, f->muid);
+		gnutella_header_set_function(header, GTA_MSG_SEARCH_RESULTS);
+		/* The TTL is overriden later if sending inbound */
+		gnutella_header_set_ttl(header, 1);
+		gnutella_header_set_hops(header, 0);
+		gnutella_header_set_size(header, len);
+	}
+
+	gnutella_msg_search_results_set_num_recs(msg, f->files); /* One byte */
 
 	/*
 	 * Compute connection speed dynamically if requested.
@@ -224,9 +226,9 @@ found_set_header(void)
 	}
 	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
 
-	poke_le16(search_head->host_port, socket_listen_port());
-	poke_be32(search_head->host_ip, host_addr_ipv4(listen_addr()));
-	poke_le32(search_head->host_speed, connect_speed);
+	gnutella_msg_search_results_set_host_port(msg, socket_listen_port());
+	gnutella_msg_search_results_set_host_ip(msg, host_addr_ipv4(listen_addr()));
+	gnutella_msg_search_results_set_host_speed(msg, connect_speed);
 }
 
 static void
@@ -234,8 +236,7 @@ found_clear(void)
 {
 	struct found_struct *f = found_get();
 
-	f->pos = sizeof(struct gnutella_header) +
-		sizeof(struct gnutella_search_results_out);
+	f->pos = GTA_HEADER_SIZE + sizeof(gnutella_search_results_t);
 	g_assert(f->pos > 0 && f->pos < sizeof f->data);
 	f->files = 0;
 	f->open = FALSE;
@@ -277,7 +278,7 @@ static void
 qhit_send_node(gpointer data, size_t len, gpointer udata)
 {
 	gnutella_node_t *n = udata;
-	struct gnutella_header *packet_head = data;
+	gnutella_header_t *packet_head = data;
 
 	if (dbg > 3) {
 		g_message("flushing query hit (%u entr%s, %u bytes sofar) to %s\n",
@@ -298,12 +299,14 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 	 *			 --RAM, 02/02/2001
 	 */
 
-	if (n->header.hops == 0) {
+	if (gnutella_header_get_hops(&n->header) == 0) {
 		g_warning("qhit_send_node(): hops=0, bug in route_message()?");
-		n->header.hops++;	/* Can't send message with TTL=0 */
+		/* Can't send message with TTL=0 */
+		gnutella_header_set_hops(&n->header, 1);
 	}
 
-	packet_head->ttl = MIN((guint) n->header.hops + 5, hard_ttl_limit);
+	gnutella_header_set_ttl(packet_head,
+		MIN((guint) gnutella_header_get_hops(&n->header) + 5, hard_ttl_limit));
 
 	gmsg_sendto_one(n, data, len);
 }

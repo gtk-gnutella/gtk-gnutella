@@ -134,7 +134,6 @@
 
 union vendor_code {
 	guint32 be32;	/**< Always big-endian order; for convenient '=' and '!=' */
-	guchar	b[4];	/**< Holds a four-Letter Gnutella vendor ID */
 };
 
 const gchar *vendor_code_str(guint32 code);

@@ -234,12 +234,12 @@ static void
 dh_pmsg_free(pmsg_t *mb, gpointer arg)
 {
 	struct pmsg_info *pmi = (struct pmsg_info *) arg;
-	gchar *muid;
+	const gchar *muid;
 	dqhit_t *dh;
 
 	g_assert(pmsg_is_extended(mb));
 
-	muid = ((struct gnutella_header *) pmsg_start(mb))->muid;
+	muid = gnutella_header_get_muid(pmsg_start(mb));
 	dh = dh_locate(muid);
 
 	if (dh == NULL)
@@ -401,17 +401,18 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 {
 	pmsg_t *mb;
 	struct pmsg_info *pmi;
-	gchar *muid;
+	const gchar *muid;
 	dqhit_t *dh;
 	mqueue_t *mq;
 
-	g_assert(src->header.function == GTA_MSG_SEARCH_RESULTS);
+	g_assert(
+		gnutella_header_get_function(&src->header) == GTA_MSG_SEARCH_RESULTS);
 	g_assert(count >= 0);
 
 	if (!NODE_IS_WRITABLE(dest))
 		goto drop_shutdown;
 
-	muid = src->header.muid;
+	muid = gnutella_header_get_muid(&src->header);
 	dh = dh_locate(muid);
 
 	g_assert(dh != NULL);		/* Must have called dh_got_results() first! */
@@ -460,10 +461,8 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	 * This enables us to track how much results we already queued/sent.
 	 */
 
-	mb = gmsg_split_to_pmsg_extend(
-		(guchar *) &src->header, src->data,
-		src->size + sizeof(struct gnutella_header),
-		dh_pmsg_free, pmi);
+	mb = gmsg_split_to_pmsg_extend(&src->header, src->data,
+			src->size + GTA_HEADER_SIZE, dh_pmsg_free, pmi);
 
 	mq_putq(mq, mb);
 

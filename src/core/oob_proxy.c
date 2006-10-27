@@ -171,16 +171,17 @@ oob_proxy_create(gnutella_node_t *n)
 	struct oob_proxy_rec *opr;
 	guint32 ip;
 
-	g_assert(n->header.function == GTA_MSG_SEARCH);
+	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH);
 	g_assert(NODE_IS_LEAF(n));
-	g_assert(n->header.hops <= 1);	/* Can be 0 when called from DQ layer */
+	/* Hops can be 0 when called from DQ layer */
+	g_assert(gnutella_header_get_hops(&n->header) <= 1);
 
 	/*
 	 * Mangle the MUID of the query to insert our own IP:port.
 	 */
 
 	ip = host_addr_ipv4(listen_addr()); /* @todo TODO: IPv6 */
-	memcpy(proxied_muid, n->header.muid, 16);
+	memcpy(proxied_muid, gnutella_header_get_muid(&n->header), 16);
 	poke_be32(&proxied_muid[0], ip);
 	poke_le16(&proxied_muid[13], socket_listen_port());
 
@@ -188,7 +189,8 @@ oob_proxy_create(gnutella_node_t *n)
 	 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
 	 */
 
-	opr = oob_proxy_rec_make(n->header.muid, proxied_muid, n->id);
+	opr = oob_proxy_rec_make(gnutella_header_get_muid(&n->header),
+			proxied_muid, n->id);
 	g_hash_table_insert(proxied_queries, (gchar *) opr->proxied_muid, opr);
 
 	opr->expire_ev = cq_insert(callout_queue, PROXY_EXPIRE_MS,
@@ -199,9 +201,9 @@ oob_proxy_create(gnutella_node_t *n)
 	 */
 
 	query_set_oob_flag(n, n->data);
-	memcpy(n->header.muid, proxied_muid, 16);
+	gnutella_header_set_muid(&n->header, proxied_muid);
 
-	message_add(n->header.muid, GTA_MSG_SEARCH, NULL);
+	message_add(gnutella_header_get_muid(&n->header), GTA_MSG_SEARCH, NULL);
 
 	if (query_debug > 5 || oob_proxy_debug) {
 		g_message("QUERY OOB-proxying query %s from %s <%s> as %s",
@@ -227,7 +229,8 @@ oob_proxy_create(gnutella_node_t *n)
  */
 gboolean
 oob_proxy_pending_results(
-	gnutella_node_t *n, gchar *muid, gint hits, gboolean uu_udp_firewalled)
+	gnutella_node_t *n, const gchar *muid,
+	gint hits, gboolean uu_udp_firewalled)
 {
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
@@ -364,10 +367,11 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
 
-	g_assert(n->header.function == GTA_MSG_SEARCH_RESULTS);
+	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH_RESULTS);
 	g_assert(results > 0 && results <= INT_MAX);
 
-	opr = g_hash_table_lookup(proxied_queries, n->header.muid);
+	opr = g_hash_table_lookup(proxied_queries,
+				gnutella_header_get_muid(&n->header));
 	if (opr == NULL)
 		return FALSE;
 
@@ -421,15 +425,16 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	 * the leaf sent us.
 	 */
 
-	memcpy(n->header.muid, opr->leaf_muid, 16);
-	if (n->header.ttl == 0)
-		n->header.ttl++;
+	gnutella_header_set_muid(&n->header, opr->leaf_muid);
+	if (gnutella_header_get_ttl(&n->header) == 0)
+		gnutella_header_set_ttl(&n->header, 1);
 
 	/*
 	 * Route message to leaf node.
 	 */
 
-	g_assert(n->header.hops > 0);	/* Went through route_message() already */
+	/* Went through route_message() already */
+	g_assert(gnutella_header_get_hops(&n->header) > 0);
 
 	dh_route(n, leaf, results);
 
@@ -447,7 +452,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
  * @return NULL if the MUID is unknown, otherwise the original leaf MUID.
  */
 const gchar *
-oob_proxy_muid_proxied(gchar *muid)
+oob_proxy_muid_proxied(const gchar *muid)
 {
 	const struct oob_proxy_rec *opr;
 	

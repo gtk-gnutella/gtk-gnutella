@@ -197,8 +197,8 @@ vendor_code_str(guint32 code)
 const gchar *
 lookup_vendor_name(union vendor_code code)
 {
-	static gchar temp[1 + G_N_ELEMENTS(code.b)];
-	gchar *name;
+	static gchar temp[5];
+	const gchar *name;
     guint i;
 
 	STATIC_ASSERT(5 == G_N_ELEMENTS(temp));
@@ -212,9 +212,11 @@ lookup_vendor_name(union vendor_code code)
 
 	
 	/* Unknown type, look whether we have all printable ASCII */
-	for (i = 0; i < G_N_ELEMENTS(code.b); i++) {
-		if (is_ascii_print(code.b[i]))
-            temp[i] = code.b[i];
+	for (i = 0; i < G_N_ELEMENTS(temp) - 1; i++) {
+		const guint8 *u8 = cast_to_gconstpointer(&code.be32);
+
+		if (is_ascii_print(u8[i]))
+            temp[i] = u8[i];
 		else {
             temp[0] = '\0';
 			break;

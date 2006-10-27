@@ -1410,7 +1410,8 @@ query_strip_oob_flag(const gnutella_node_t *n, gchar *data)
 	if (query_debug > 2 || oob_proxy_debug > 2)
 		g_message(
 			"QUERY %s from node %s <%s>: removed OOB delivery (speed = 0x%x)",
-			guid_hex_str(n->header.muid), node_addr(n), node_vendor(n), speed);
+			guid_hex_str(gnutella_header_get_muid(&n->header)),
+				node_addr(n), node_vendor(n), speed);
 }
 
 /**
@@ -1427,7 +1428,8 @@ query_set_oob_flag(const gnutella_node_t *n, gchar *data)
 	if (query_debug)
 		g_message(
 			"QUERY %s from node %s <%s>: set OOB delivery (speed = 0x%x)",
-			guid_hex_str(n->header.muid), node_addr(n), node_vendor(n), speed);
+			guid_hex_str(gnutella_header_get_muid(&n->header)),
+			node_addr(n), node_vendor(n), speed);
 }
 
 /**
@@ -1486,8 +1488,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		g_assert(n->data[n->size - 1] != '\0');
 		if (share_debug)
 			g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
-					n->header.hops, n->header.ttl, n->size - 2,
-					n->size == 3 ? "" : "s");
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
+				n->size - 2,
+				n->size == 3 ? "" : "s");
 		if (share_debug > 4)
 			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
@@ -1513,7 +1517,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	if (
 		gnet_compact_query &&
-		n->header.ttl &&
+		gnutella_header_get_ttl(&n->header) &&
 		current_peermode != NODE_P_LEAF
 	) {
 		size_t mangled_search_len;
@@ -1559,7 +1563,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			n->size - (search - n->data) - search_len); /* trailer len */
 
 		n->size -= search_len - offset - mangled_search_len;
-		WRITE_GUINT32_LE(n->size, n->header.size);
+		gnutella_header_set_size(&n->header, n->size);
 		search_len = mangled_search_len + offset;
 
 		g_assert('\0' == search[search_len]);
@@ -1673,7 +1677,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	if (
 		search_len <= 1 ||
-		(search_len < 5 && n->header.hops > (max_ttl / 2))
+		(search_len < 5 && gnutella_header_get_hops(&n->header) > (max_ttl / 2))
 	)
 		skip_file_search = TRUE;
 
@@ -1703,7 +1707,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *		--RAM, 09/12/2003
 	 */
 
-	if (n->header.hops == 1 && n->qseen != NULL) {
+	if (gnutella_header_get_hops(&n->header) == 1 && n->qseen != NULL) {
 		time_t now = tm_time();
 		time_t seen = 0;
 		gboolean found;
@@ -1738,7 +1742,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		g_hash_table_insert(n->qseen, atom,
 			GINT_TO_POINTER((gint) delta_time(now, (time_t) 0)));
 	}
-	record_query_string(n->header.muid, search);
+	record_query_string(gnutella_header_get_muid(&n->header), search);
 
 	/*
 	 * For point #2, there are two tables to consider: `qrelayed_old' and
@@ -1757,11 +1761,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 */
 
 		if (last_sha1_digest == NULL)
-			gm_snprintf(stmp_1, sizeof(stmp_1),
-				"%d/%d%s", n->header.hops, n->header.ttl, search);
+			gm_snprintf(stmp_1, sizeof(stmp_1), "%d/%d%s",
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header), search);
 		else
-			gm_snprintf(stmp_1, sizeof(stmp_1),
-				"%d/%durn:sha1:%s", n->header.hops, n->header.ttl,
+			gm_snprintf(stmp_1, sizeof(stmp_1), "%d/%durn:sha1:%s",
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
 				sha1_base32(last_sha1_digest));
 
 		if (n->qrelayed_old != NULL)
@@ -1777,7 +1783,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				last_sha1_digest == NULL ? "" : "urn:sha1:",
 				last_sha1_digest == NULL ?
 					search : sha1_base32(last_sha1_digest),
-				n->header.hops, n->header.ttl,
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
 				node_addr(n), node_vendor(n));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			return TRUE;		/* Drop the message! */
@@ -1843,10 +1850,12 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gboolean release;
 
 		if (
-			guid_query_muid_is_gtkg(n->header.muid, oob,
-				&major, &minor, &release)
+			guid_query_muid_is_gtkg(gnutella_header_get_muid(&n->header),
+				oob, &major, &minor, &release)
 		) {
-			gboolean requery = guid_is_requery(n->header.muid);
+			gboolean requery;
+		   
+			requery = guid_is_requery(gnutella_header_get_muid(&n->header));
 
 			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
 			if (!use_ggep_h)
@@ -1879,7 +1888,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		host_addr_t addr;
 		guint16 port;
 
-		guid_oob_get_addr_port(n->header.muid, &addr, &port);
+		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
+			&addr, &port);
 
 		/*
 		 * Verify against the hostile IP addresses...
@@ -1898,7 +1908,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 */
 
 		if (
-			n->header.hops == 1 &&
+			gnutella_header_get_hops(&n->header) == 1 &&
 			is_host_addr(n->gnet_addr) &&
 			!host_addr_equal(addr, n->gnet_addr)
 		) {
@@ -1924,7 +1934,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			if (query_debug || oob_proxy_debug)
 				g_message("QUERY %s node %s <%s>: removed OOB flag "
 					"(invalid return address: %s)",
-					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n),
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					node_addr(n), node_vendor(n),
 					host_addr_port_to_string(addr, port));
 		}
 
@@ -1941,7 +1952,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			if (query_debug || oob_proxy_debug)
 				g_message("QUERY %s node %s <%s>: removed OOB flag "
 					"(leaf node is TCP-firewalled)",
-					guid_hex_str(n->header.muid), node_addr(n), node_vendor(n));
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					node_addr(n), node_vendor(n));
 		}
 	}
 
@@ -1963,9 +1975,12 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	should_oob = process_oob_queries && udp_active() &&
-		recv_solicited_udp && n->header.hops > 1;
+		recv_solicited_udp && gnutella_header_get_hops(&n->header) > 1;
 
-    if (n->header.hops > max_ttl && !(oob && should_oob)) {
+    if (
+		gnutella_header_get_hops(&n->header) > max_ttl &&
+		!(oob && should_oob)
+	) {
         gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
 		return TRUE;					/* Drop this long-lived search */
     }
@@ -1981,7 +1996,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *		--RAM, 2005-08-28
 	 */
 
-	memcpy(muid, n->header.muid, GUID_RAW_SIZE);
+	memcpy(muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
 
 	if (
 		!oob && udp_active() && proxy_oob_queries && !is_udp_firewalled &&
@@ -2079,13 +2094,15 @@ finish:
 						sha1_base32(exv_sha1[i].sha1_digest));
 			}
 			g_message("\treq_speed=%u ttl=%d hops=%d", (guint) req_speed,
-				(gint) n->header.ttl, (gint) n->header.hops);
+				(gint) gnutella_header_get_ttl(&n->header),
+				(gint) gnutella_header_get_hops(&n->header));
 		}
 	}
 
 	if (share_debug > 3)
 		g_message("QUERY %s \"%s\" has %u hit%s",
-			guid_hex_str(n->header.muid), search, qctx->found,
+			guid_hex_str(gnutella_header_get_muid(&n->header)),
+			search, qctx->found,
 			qctx->found == 1 ? "" : "s");
 
 	/*

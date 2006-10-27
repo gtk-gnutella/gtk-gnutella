@@ -321,7 +321,7 @@ uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
 static void
 uhc_send_ping(const host_addr_t addr, guint16 port)
 {
-	struct gnutella_msg_init *m;
+	gnutella_msg_init_t *m;
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 	guint32 size;
 	gchar *muid;
@@ -330,7 +330,7 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
 	g_assert(uhc_connecting);
 
 	m = build_ping_msg(NULL, 1, TRUE, &size);
-	muid = atom_guid_get(m->header.muid);
+	muid = atom_guid_get(gnutella_header_get_muid(m));
 	udp_send_msg(n, m, size);
 
 	/*
@@ -464,7 +464,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	if (gwc_debug || bootstrap_debug)
 		g_message("extracting %d host%s in UDP IPP pong %s from %s (%s)",
 			cnt, cnt == 1 ? "" : "s",
-			guid_hex_str(n->header.muid), node_addr(n),
+			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n),
 			uhc_connecting ? "expected" : "unsollicited");
 
 	for (i = 0, p = payload; i < cnt; i++) {
@@ -491,7 +491,11 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	 * check whether we're still in a probing cycle.
 	 */
 
-	if (uhc_connecting && g_hash_table_lookup(uhc_ctx.guids, n->header.muid)) {
+	if (
+		uhc_connecting &&
+		g_hash_table_lookup(uhc_ctx.guids,
+			gnutella_header_get_muid(&n->header))
+	) {
 		g_assert(uhc_ctx.timeout_ev != NULL);
 
 		if (gwc_debug || bootstrap_debug)

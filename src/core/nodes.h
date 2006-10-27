@@ -111,7 +111,7 @@ typedef struct gnutella_node {
 	union vendor_code vcode;	/**< Vendor code (vcode.u32 == 0 if unknown) */
 	gpointer io_opaque;			/**< Opaque I/O callback information */
 
-	struct gnutella_header header;	/**< Header of the current message */
+	gnutella_header_t header;		/**< Header of the current message */
 	extvec_t extvec[MAX_EXTVEC];	/**< GGEP extensions in "fat" messages */
 	gint extcount;					/**< Amount of extensions held */
 
@@ -562,7 +562,7 @@ void node_connected_back(struct gnutella_socket *s);
 void node_mark_bad_vendor(struct gnutella_node *n);
 
 void node_proxying_remove(gnutella_node_t *n, gboolean discard);
-gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
+gboolean node_proxying_add(gnutella_node_t *n, const gchar *guid);
 void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
 void node_http_proxies_add(
@@ -593,7 +593,7 @@ guint feed_host_cache_from_headers(header_t *headers,
 	host_type_t sender, gboolean gnet, const host_addr_t peer);
 
 gnutella_node_t *node_browse_prepare(
-	gnet_host_t *host, const gchar *vendor, struct gnutella_header *header,
+	gnet_host_t *host, const gchar *vendor, gnutella_header_t *header,
 	gchar *data, guint32 size);
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);

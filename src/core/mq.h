@@ -83,7 +83,7 @@ enum mq_magic {
  */
 struct mqueue {
 	enum mq_magic magic;	/**< Magic number */
-	struct gnutella_header header;	/**< Comparison point during flow control */
+	gnutella_header_t header;	/**< Comparison point during flow control */
 	struct gnutella_node *node;		/**< Node to which this queue belongs */
 	const struct mq_ops *ops;		/**< Polymorphic operations */
 	const struct mq_cops *cops;		/**< Common operations */
