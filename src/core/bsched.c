@@ -2463,13 +2463,13 @@ bsched_timer(void)
 }
 
 static gboolean
-false_expr(const gchar *expr)
+true_expr(const gchar *expr)
 {
 	g_message("%s", expr);
-	return FALSE;
+	return TRUE;
 }
 
-#define noisy_check(expr) ((expr) ? 1 : false_expr(G_STRLOC ": " #expr))
+#define noisy_check(expr) ((expr) ? true_expr(G_STRLOC ": " #expr) : 0)
 
 /**
  * Needs very short description so that doxygen can parse the following
