@@ -229,7 +229,6 @@
 72.35.224.0/24
 207.226.112.0/24
 # The ranges below also upload corrupt/fake MP3s
-216.151.155.0/24
 216.152.250.192/26
 72.35.231.64/26
 
@@ -609,6 +608,8 @@
 209.10.143.0/24
 212.71.252.0/24
 216.151.154.0/24
+216.151.155.0/24
+216.151.157.0/24
 
 # This is supposedly on a dynamic range but it's a very interesting caught.
 # It's listening on the standard port. It's a fake LimeWire that responds with
