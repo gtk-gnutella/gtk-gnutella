@@ -381,7 +381,7 @@ icon_init(void)
 		 * so-called "system tray" if supported by the window manager.
 		 */
 
-		status_icon = gtk_status_icon_new_from_file("download.xpm");
+		status_icon = gtk_status_icon_new_from_pixbuf(down_pixbuf);
 		gtk_status_icon_set_visible(status_icon, TRUE);
 	}
 #endif	/* Gtk+ >= 2.10.0 */
