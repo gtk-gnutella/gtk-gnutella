@@ -371,6 +371,20 @@ icon_init(void)
     con_pixbuf = create_pixbuf("smallserver.xpm");
     up_pixbuf = create_pixbuf("upload.xpm");
     down_pixbuf = create_pixbuf("download.xpm");
+
+#if GTK_CHECK_VERSION(2, 10, 0)
+	{
+		GtkStatusIcon *status_icon;
+		
+		/*
+		 * Create an status so that Gtk-Gnutella can be minimized to a
+		 * so-called "system tray" if supported by the window manager.
+		 */
+
+		status_icon = gtk_status_icon_new_from_file("download.xpm");
+		gtk_status_icon_set_visible(status_icon, TRUE);
+	}
+#endif	/* Gtk+ >= 2.10.0 */
 }
 
 void
