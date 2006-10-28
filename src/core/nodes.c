@@ -5267,6 +5267,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s"		/* X-Ultrapeer-Query-Routing */
 				"%s"		/* X-Degree + X-Max-TTL */
 				"%s"		/* X-Dynamic-Querying */
+				"%s"		/* X-Requeries */
 				"%s%s%s"	/* X-Token (optional) */
 				"X-Live-Since: %s\r\n",
 				version_string,
@@ -5289,6 +5290,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				degree,
 				current_peermode == NODE_P_ULTRA ?
 					"X-Dynamic-Querying: 0.1\r\n" : "",
+				current_peermode == NODE_P_LEAF ?
+	 				"X-Requeries: False\r\n" : "",
 	 			token ? "X-Token: " : "",
 				token ? token : "",
 				token ? "\r\n" : "",
@@ -6788,7 +6791,8 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s"		/* X-Query-Routing */
 			"%s"		/* X-Ultrapeer-Query-Routing */
 			"%s"		/* X-Degree + X-Max-TTL */
-			"%s",		/* X-Dynamic-Querying */
+			"%s"		/* X-Dynamic-Querying */
+			"%s",		/* X-Requeries */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
 			is_host_addr(my_addr)
@@ -6810,7 +6814,9 @@ node_init_outgoing(struct gnutella_node *n)
 				"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 			degree,
 			current_peermode == NODE_P_ULTRA ?
-				"X-Dynamic-Querying: 0.1\r\n" : ""
+				"X-Dynamic-Querying: 0.1\r\n" : "",
+			current_peermode == NODE_P_LEAF ?
+				"X-Requeries: False\r\n" : ""
 		);
 
 		header_features_generate(&xfeatures.connections,
