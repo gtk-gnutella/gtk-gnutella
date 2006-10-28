@@ -2108,7 +2108,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #if defined(IP_RECVDSTADDR)
 		} else if (
 			IP_RECVDSTADDR == p->cmsg_type &&
-			p->cmsg_level == sol_ip()
+			sol_ip() == p->cmsg_level
 		) {
 			struct in_addr addr;
 			const void *data;
@@ -2120,21 +2120,21 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 				return TRUE;
 			}
 #endif /* IP_RECVDSTADDR */
-#if defined(USE_IPV6) && defined(IPV6_RECVDSTADDR)
+#if defined(USE_IPV6) && defined(IPV6_RECVPKTINFO)
 		} else if (
-			IPV6_RECVDSTADDR == p->cmsg_type &&
-			p->cmsg_level == sol_ipv6()
+			IPV6_PKTINFO == p->cmsg_type &&
+			sol_ipv6() == p->cmsg_level
 		) {
-			struct in6_addr addr;
+			struct in6_pktinfo info;
 			const void *data;
 
 			data = CMSG_DATA(p);
-			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
-				memcpy(&addr, data, sizeof addr);
-				*dst_addr = host_addr_get_ipv6(addr.s6_addr);
+			if (sizeof info == p->cmsg_len - ptr_diff(data, p)) {
+				memcpy(&info, data, sizeof info);
+				*dst_addr = host_addr_get_ipv6(info.ipi6_addr.s6_addr);
 				return TRUE;
 			}
-#endif /* USE_IPV6 && IPV6_RECVDSTADDR */
+#endif /* USE_IPV6 && IPV6_RECVPKTINFO */
 		} else {
 			if (socket_debug)
 				g_message("socket_udp_extract_dst_addr(): "
@@ -2997,10 +2997,10 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 		break;
 
 	case NET_TYPE_IPV6:
-#if defined(USE_IPV6) && defined(IPV6_RECVDSTADDR)
+#if defined(USE_IPV6) && defined(IPV6_RECVPKTINFO)
 		level = sol_ipv6();
-		opt = IPV6_RECVDSTADDR;
-#endif /* USE_IPV6 && IPV6_RECVDSTADDR */
+		opt = IPV6_RECVPKTINFO;
+#endif /* USE_IPV6 && IPV6_RECVPKTINFO */
 		break;
 
 	case NET_TYPE_LOCAL:
