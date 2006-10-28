@@ -337,6 +337,21 @@ icon_timer(void)
     gdk_window_invalidate_rect(canvas->window, &rect, FALSE);
 }
 
+#if GTK_CHECK_VERSION(2, 10, 0)
+static void
+on_status_icon_activate(GtkStatusIcon *status_icon, gpointer unused_udata)
+{
+	(void) status_icon;
+	(void) unused_udata;
+
+	if (GTK_WIDGET_VISIBLE(main_window)) {
+		gtk_widget_hide(main_window);
+	} else {
+		gtk_widget_show(main_window);
+	}
+}
+#endif	/* Gtk+ >= 2.10.0 */
+
 /**
  * For details of what is expected from an icon window and what it
  * should expect.
@@ -375,14 +390,18 @@ icon_init(void)
 #if GTK_CHECK_VERSION(2, 10, 0)
 	{
 		GtkStatusIcon *status_icon;
+		GdkPixbuf *icon_pixbuf;
 		
 		/*
 		 * Create an status so that Gtk-Gnutella can be minimized to a
 		 * so-called "system tray" if supported by the window manager.
 		 */
 
-		status_icon = gtk_status_icon_new_from_pixbuf(down_pixbuf);
+    	icon_pixbuf = create_pixbuf("icon.xpm");
+		status_icon = gtk_status_icon_new_from_pixbuf(icon_pixbuf);
 		gtk_status_icon_set_visible(status_icon, TRUE);
+    	g_signal_connect(G_OBJECT(status_icon), "activate",
+			G_CALLBACK(on_status_icon_activate), NULL);
 	}
 #endif	/* Gtk+ >= 2.10.0 */
 }
