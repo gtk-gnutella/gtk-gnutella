@@ -13959,7 +13959,7 @@ create_dlg_prefs_ul_tab (void)
   frame146 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame146, "frame146");
   gtk_widget_show (frame146);
-  gtk_box_pack_start (GTK_BOX (vbox40), frame146, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox40), frame146, FALSE, TRUE, 0);
 
   table114 = gtk_table_new (1, 1, FALSE);
   gtk_widget_set_name (table114, "table114");
