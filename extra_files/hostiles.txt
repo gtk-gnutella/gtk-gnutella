@@ -607,9 +607,8 @@
 208.49.28.0/24
 209.10.143.0/24
 212.71.252.0/24
-216.151.154.0/24
-216.151.155.0/24
-216.151.157.0/24
+216.151.154.0/23
+216.151.156.0/23
 
 # This is supposedly on a dynamic range but it's a very interesting caught.
 # It's listening on the standard port. It's a fake LimeWire that responds with
