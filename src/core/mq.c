@@ -701,7 +701,7 @@ qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 		gint i;
 
 		/* Shift right */
-		for (i = q->qlink_count - 1; i > hint; i++) {
+		for (i = q->qlink_count - 1; i > hint; i--) {
 			q->qlink[i] = q->qlink[i - 1];
 		} 
 	}
