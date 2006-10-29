@@ -172,11 +172,17 @@ static struct {
 #define round_grow(x)		\
 	((guint32) (((guint32) (x) + TBUF_GROW_MASK) & ~TBUF_GROW_MASK))
 
-#define trunc_int32(x)		\
-	((gulong) ((gulong) (x) & ~(sizeof(guint32) - 1)))
+static inline void *
+trunc_int32(void *ptr)
+{
+	return cast_uintptr_to_ptr(cast_ptr_to_uintptr(ptr) & ~3UL);
+}
 
-#define int32_aligned(x)	\
-	((gulong) (x) == trunc_int32(x))
+static inline gboolean
+int32_aligned(void *ptr)
+{
+	return ptr == trunc_int32(ptr);
+}
 
 /*
  * Low level trailer buffer read/write macros.
