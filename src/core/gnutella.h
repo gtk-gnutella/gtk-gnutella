@@ -594,11 +594,10 @@ gnutella_vendor_get_code(const void *data)
 }
 
 static inline void
-gnutella_vendor_set_code(void *data, guint32 code_be32)
+gnutella_vendor_set_code(gnutella_vendor_t *data, guint32 code)
 {
-	guint8 *u8 = data;
-	/* Keep the big-endian byte order */
-	memcpy(&u8[0], &code_be32, 4);
+	guint8 *u8 = (guint8 *) data;
+	poke_be32(&u8[0], code);
 }
 
 static inline guint16
@@ -609,9 +608,9 @@ gnutella_vendor_get_selector_id(const void *data)
 }
 
 static inline void
-gnutella_vendor_set_selector_id(void *data, guint16 selector_id)
+gnutella_vendor_set_selector_id(gnutella_vendor_t *data, guint16 selector_id)
 {
-	guint8 *u8 = data;
+	guint8 *u8 = (guint8 *) data;
 	poke_le16(&u8[4], selector_id);
 }
 
@@ -623,9 +622,9 @@ gnutella_vendor_get_version(const void *data)
 }
 
 static inline void
-gnutella_vendor_set_version(void *data, guint16 version)
+gnutella_vendor_set_version(gnutella_vendor_t *data, guint16 version)
 {
-	guint8 *u8 = data;
+	guint8 *u8 = (guint8 *) data;
 	poke_le16(&u8[6], version);
 }
 
