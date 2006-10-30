@@ -244,6 +244,8 @@ on_entry_config_force_ip_activate(GtkEditable *unused_editable,
 	g_strstrip(text);
 	if (string_to_host_addr(text, &endptr, &addr) && '\0' == endptr[0]) {
 		gnet_prop_set_ip_val(PROP_FORCED_LOCAL_IP, addr);
+	} else if (0 == strcmp(text, "") || 0 == strcmp(text, "<none>")) {
+		gnet_prop_set_ip_val(PROP_FORCED_LOCAL_IP, zero_host_addr);
 	}
 	G_FREE_NULL(text);
 }
@@ -288,6 +290,8 @@ on_entry_config_force_ipv6_activate(GtkEditable *unused_editable,
 			&& NET_TYPE_IPV6 == host_addr_net(addr)
 	) {
 		gnet_prop_set_ip_val(PROP_FORCED_LOCAL_IP6, addr);
+	} else if (0 == strcmp(text, "") || 0 == strcmp(text, "<none>")) {
+		gnet_prop_set_ip_val(PROP_FORCED_LOCAL_IP6, zero_host_addr);
 	}
 	G_FREE_NULL(text);
 }
@@ -335,6 +339,8 @@ on_entry_config_ipv6_trt_prefix_activate(GtkEditable *unused_editable,
 			&& NET_TYPE_IPV6 == host_addr_net(addr)
 	) {
 		gnet_prop_set_ip_val(PROP_IPV6_TRT_PREFIX, addr);
+	} else if (0 == strcmp(text, "") || 0 == strcmp(text, "<none>")) {
+		gnet_prop_set_ip_val(PROP_IPV6_TRT_PREFIX, zero_host_addr);
 	}
 	G_FREE_NULL(text);
 }
