@@ -147,9 +147,7 @@ static void gwc_seed_cache(gchar *cache_url);
  */
 
 static const gchar * const boot_url[] = {
-	"http://cache.kicks-ass.net:8000/",
-	"http://galvatron.dyndns.org:59009/gwcache",
-	"http://krill.shacknet.nu:20095/gwc",
+	NULL,
 };
 
 /**
@@ -440,13 +438,14 @@ gwc_init(void)
 
 	gwc_retrieve();
 	if (0 == g_hash_table_size(gwc_known_url)) {
-		for (i = 0; i < G_N_ELEMENTS(boot_url); i++)
+		for (i = 0; i < G_N_ELEMENTS(boot_url) && boot_url[i]; i++)
 			gwc_add(boot_url[i]);
 	}
 
 	if (ancient_version)
 		return;				/* Older versions must have a harder time */
 
+#if 0
 	/*
 	 * Schedule hourly updates, starting our first in 10 minutes:
 	 * It is hoped that by then, we'll have a stable IP and will know
@@ -458,6 +457,7 @@ gwc_init(void)
 
 	periodic_refresh_ev = cq_insert(callout_queue,
 		REFRESH_MS, gwc_periodic_refresh, NULL);
+#endif
 }
 
 /**
