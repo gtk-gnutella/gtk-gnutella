@@ -10204,26 +10204,17 @@ create_dlg_prefs_net_tab (void)
   g_signal_connect ((gpointer) entry_server_hostname, "focus_out_event",
                     G_CALLBACK (on_entry_server_hostname_focus_out_event),
                     NULL);
-  g_signal_connect ((gpointer) entry_config_force_ip, "changed",
-                    G_CALLBACK (on_entry_config_force_ip_changed),
-                    NULL);
   g_signal_connect ((gpointer) entry_config_force_ip, "activate",
                     G_CALLBACK (on_entry_config_force_ip_activate),
                     NULL);
   g_signal_connect ((gpointer) entry_config_force_ip, "focus_out_event",
                     G_CALLBACK (on_entry_config_force_ip_focus_out_event),
                     NULL);
-  g_signal_connect ((gpointer) entry_config_force_ipv6, "changed",
-                    G_CALLBACK (on_entry_config_force_ipv6_changed),
-                    NULL);
   g_signal_connect ((gpointer) entry_config_force_ipv6, "activate",
                     G_CALLBACK (on_entry_config_force_ipv6_activate),
                     NULL);
   g_signal_connect ((gpointer) entry_config_force_ipv6, "focus_out_event",
                     G_CALLBACK (on_entry_config_force_ipv6_focus_out_event),
-                    NULL);
-  g_signal_connect ((gpointer) entry_config_ipv6_trt_prefix, "changed",
-                    G_CALLBACK (on_entry_config_ipv6_trt_prefix_changed),
                     NULL);
   g_signal_connect ((gpointer) entry_config_ipv6_trt_prefix, "activate",
                     G_CALLBACK (on_entry_config_ipv6_trt_prefix_activate),

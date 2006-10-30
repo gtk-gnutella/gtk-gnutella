@@ -17410,7 +17410,6 @@ http://maxmind.com/</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>
 			      <property name="width_chars">17</property>
-			      <signal name="changed" handler="on_entry_config_force_ip_changed"/>
 			      <signal name="activate" handler="on_entry_config_force_ip_activate"/>
 			      <signal name="focus_out_event" handler="on_entry_config_force_ip_focus_out_event"/>
 			    </widget>
@@ -17520,7 +17519,6 @@ http://maxmind.com/</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>
 			      <property name="width_chars">50</property>
-			      <signal name="changed" handler="on_entry_config_force_ipv6_changed" last_modification_time="Mon, 16 Oct 2006 02:17:37 GMT"/>
 			      <signal name="activate" handler="on_entry_config_force_ipv6_activate" last_modification_time="Mon, 16 Oct 2006 02:17:43 GMT"/>
 			      <signal name="focus_out_event" handler="on_entry_config_force_ipv6_focus_out_event" last_modification_time="Mon, 16 Oct 2006 02:17:48 GMT"/>
 			    </widget>
@@ -17589,7 +17587,6 @@ http://maxmind.com/</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>
 			      <property name="width_chars">50</property>
-			      <signal name="changed" handler="on_entry_config_ipv6_trt_prefix_changed" last_modification_time="Mon, 16 Oct 2006 02:17:04 GMT"/>
 			      <signal name="activate" handler="on_entry_config_ipv6_trt_prefix_activate" last_modification_time="Mon, 16 Oct 2006 02:17:15 GMT"/>
 			      <signal name="focus_out_event" handler="on_entry_config_ipv6_trt_prefix_focus_out_event" last_modification_time="Mon, 16 Oct 2006 02:17:26 GMT"/>
 			    </widget>
