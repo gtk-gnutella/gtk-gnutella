@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-09-02 22:51+0200\n"
+"POT-Creation-Date: 2006-10-31 16:01+0100\n"
 "PO-Revision-Date: 2006-09-02 22:36+0200\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -298,19 +298,6 @@ msgstr "Noeud protégé"
 msgid "Gnet connections disabled"
 msgstr "Connexions Gnet désactivées"
 
-msgid "Unstable IP address"
-msgstr "Adresse IP instable"
-
-msgid "Servent version appears unstable"
-msgstr "La version du servent semble instable"
-
-msgid "No vendor string supplied"
-msgstr "Pas de chaîne vendeur fournie"
-
-#, c-format
-msgid "Not connecting: %s"
-msgstr "Pas de connexion: %s"
-
 msgid "Connection not compressed"
 msgstr "Connexion non compressée"
 
@@ -338,6 +325,19 @@ msgstr "Indication de protection envoyée"
 
 msgid "Not an ultra node"
 msgstr "Pas un noeud ultra"
+
+msgid "Unstable IP address"
+msgstr "Adresse IP instable"
+
+msgid "Servent version appears unstable"
+msgstr "La version du servent semble instable"
+
+msgid "No vendor string supplied"
+msgstr "Pas de chaîne vendeur fournie"
+
+#, c-format
+msgid "Not connecting: %s"
+msgstr "Pas de connexion: %s"
 
 msgid "Protocol not acceptable"
 msgstr "Protocole non acceptable"
@@ -646,16 +646,16 @@ msgstr "Explicitement tué"
 msgid "IP denying uploads"
 msgstr "L'IP interdit les envois"
 
-#, c-format
-msgid " - Newer versions available: release %s / from CVS %s"
+#, fuzzy, c-format
+msgid " - Newer versions available: release %s / from SVN %s"
 msgstr " - Nouvelles versions disponibles: version %s / du CVS %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - Nouvelle version disponible: version %s"
 
-#, c-format
-msgid " - Newer version available: from CVS %s"
+#, fuzzy, c-format
+msgid " - Newer version available: from SVN %s"
 msgstr " - Nouvelle version disponible: du CVS %s"
 
 msgid "No proxy"
@@ -2759,6 +2759,9 @@ msgstr "Ecarter les résultats de recherche considérés comme du spam."
 msgid "Discard search results which carry no hashsum."
 msgstr "Ecarter les résultats de recherche qui ne portent pas de hashsum."
 
+msgid "Jump to newly created searches"
+msgstr ""
+
 msgid "Display download settings."
 msgstr "Afficher les paramètres de téléchargement."
 
@@ -3394,6 +3397,10 @@ msgstr "Monaco"
 msgid "Moldova"
 msgstr "Moldavie"
 
+#, fuzzy
+msgid "Montenegro"
+msgstr "Serbie et Montenegro"
+
 msgid "Madagascar"
 msgstr "Madagascar"
 
@@ -3537,6 +3544,10 @@ msgstr "Réunion"
 
 msgid "Romania"
 msgstr "Roumanie"
+
+#, fuzzy
+msgid "Serbia"
+msgstr "Azerbaïdjan"
 
 msgid "Russian Federation"
 msgstr "Fédération Russe"
@@ -4327,6 +4338,9 @@ msgstr "Mis dans la file (%d actif, %d passif)"
 msgid "Waiting"
 msgstr "En attente"
 
+msgid "<none>"
+msgstr "<aucun>"
+
 #, c-format
 msgid "%s (%s bytes)"
 msgstr "%s (%s octets)"
@@ -4825,14 +4839,14 @@ msgstr "sensible à la casse"
 msgid "Detail information"
 msgstr "Information en détail"
 
-msgid "Filename:"
-msgstr "Nom de fichier:"
+msgid "Progress:"
+msgstr "Progression:"
 
 msgid "Size:"
 msgstr "Taille:"
 
-msgid "Progress:"
-msgstr "Progression:"
+msgid "Filename:"
+msgstr "Nom de fichier:"
 
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
@@ -4848,6 +4862,9 @@ msgstr ""
 "avec un triangle. Les rouges n'ont pas encore été téléchargés. La ligne "
 "bleue indique quelles sont les parties vues sur le réseau lors de cette "
 "session."
+
+msgid "SHA1:"
+msgstr "SHA1:"
 
 msgid "Alternate filenames"
 msgstr "Noms de fichiers alternatifs"
@@ -5023,9 +5040,6 @@ msgstr "Ecarter les résultats sans hashs SHA-1"
 
 msgid "Information about selected file"
 msgstr "Informations à propos du fichier sélectionné"
-
-msgid "SHA1:"
-msgstr "SHA1:"
 
 msgid "Index:"
 msgstr "Index:"
@@ -5268,18 +5282,6 @@ msgstr ""
 "Ajoute au pré-filtre global les règles \"ne pas afficher\" correspondant aux "
 "fichiers sélectionnés par urn:sha1."
 
-msgid "Auto-download selected by..."
-msgstr "Téléchargement automatique sélectionné par..."
-
-msgid "name"
-msgstr "nom"
-
-msgid "urn:sha1"
-msgstr "urn:sha1"
-
-msgid "New search from selected"
-msgstr "Nouvelle recherche depuis la sélection"
-
 msgid "Stop this search"
 msgstr "Arrêter cette recherche"
 
@@ -5390,8 +5392,9 @@ msgstr "Condition: Si le nom de fichier correspond"
 msgid "case sensitive"
 msgstr "sensible à la casse"
 
-msgid "Add/Replace"
-msgstr "Ajouter/Remplacer"
+#, fuzzy
+msgid "Save"
+msgstr "Sauvé"
 
 msgid "Remove"
 msgstr "Retirer"
@@ -5525,6 +5528,7 @@ msgstr "A propos de gtk-gnutella"
 msgid "[name and version]"
 msgstr "[nom et version]"
 
+#, fuzzy
 msgid "$Id$"
 msgstr "$Id$"
 
@@ -5622,14 +5626,8 @@ msgstr "Paramètres IP actuels (Adresse:Port):"
 msgid "not yet determined"
 msgstr "pas encore déterminé"
 
-msgid "Force local _IP to"
-msgstr "Forcer l'_IP locale à"
-
 msgid "_Listen port"
 msgstr "Port d'éc_oute"
-
-msgid "Disable: 0, Random: 1"
-msgstr "Désactiver: 0, Hasard: 1"
 
 msgid "Public _hostname"
 msgstr "Nom d'_hôte public"
@@ -5639,6 +5637,31 @@ msgstr "Activer l'_UDP"
 
 msgid "Network protocol:"
 msgstr "Protocole réseau:"
+
+#, fuzzy
+msgid "(Disable: 0, Random: 1)"
+msgstr "Désactiver: 0, Hasard: 1"
+
+#, fuzzy
+msgid "IPv4 settings"
+msgstr "Paramètres IP"
+
+msgid "Force external IPv_4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "Bind to this address"
+msgstr "Mauvaise adresse de retour"
+
+#, fuzzy
+msgid "IPv6 settings"
+msgstr "Paramètres IP"
+
+msgid "Force external IPv_6 address to"
+msgstr ""
+
+msgid "Use IPv6-to-IPv4 TRT prefix:"
+msgstr ""
 
 msgid "Proxy settings"
 msgstr "Paramètres du proxy"
@@ -5718,11 +5741,9 @@ msgstr "Décalage de l'heure:"
 msgid "Miscellaneous"
 msgstr "Divers"
 
-msgid "Enable \"_shell\" control interface"
+#, fuzzy
+msgid "Enable remote _shell control interface"
 msgstr "Activer le contrôle de l'interface via un \"_shell\" "
-
-msgid "Enable \"_Browse Host\" feature"
-msgstr "Activer le \"_Parcours de l'hôte\""
 
 msgid "Socket receive buffer size"
 msgstr "Taille du tampon pour la réception socket"
@@ -6216,6 +6237,9 @@ msgstr "Ignorer les _fichiers réguliers liés symboliquement"
 msgid "Search _extensions"
 msgstr "_Extensions à rechercher"
 
+msgid "Enable \"_Browse Host\" feature"
+msgstr "Activer le \"_Parcours de l'hôte\""
+
 msgid "Timeouts (all values in seconds)"
 msgstr "Timeouts (toutes les valeurs en secondes)"
 
@@ -6311,17 +6335,17 @@ msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr ""
 "Afficher les _tooltips (n'affecte pas tous les tooltips pour l'instant)"
 
-msgid "Try to keep 'dead' entries around for"
-msgstr "Essayer de garder les entrées 'mortes' pendant"
-
-msgid "Update search results pane every"
-msgstr "Mettre à jour les résultats de recherche du panel toutes les"
+msgid "Show _metric units"
+msgstr "Afficher des unités _métriques"
 
 msgid "Toolbar style"
 msgstr "Style de la barre d'outil"
 
-msgid "Show _metric units"
-msgstr "Afficher des unités _métriques"
+msgid "Update search results pane every"
+msgstr "Mettre à jour les résultats de recherche du panel toutes les"
+
+msgid "Try to keep 'dead' entries around for"
+msgstr "Essayer de garder les entrées 'mortes' pendant"
 
 msgid "Expert mode"
 msgstr "Mode expert"
@@ -6565,9 +6589,6 @@ msgstr "Envoi de la requête (%u%%)"
 msgid "Retry in %us"
 msgstr "Nouvel essai dans %us"
 
-msgid "<none>"
-msgstr "<aucun>"
-
 #, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr "Mis dans la file (%u actifs, %u passifs)"
@@ -6668,9 +6689,6 @@ msgstr "Afficher les raisons _pour"
 msgid "Gnutella stats"
 msgstr "Stats Gnutella"
 
-msgid "New/replace"
-msgstr "Nouveau/remplacer"
-
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -6679,6 +6697,24 @@ msgstr "Vous pouvez utiliser des suffixes comme KB, KiB, MB, MiB, GB, GiB etc."
 
 msgid "Reverse DNS lookup"
 msgstr "Recherche inverse de DNS"
+
+msgid "Force external IPv4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "_Bind to this address"
+msgstr "Mauvaise adresse de retour"
+
+#, fuzzy
+msgid "IPv_4 settings"
+msgstr "Paramètres IP"
+
+msgid "Force external IPv6 address to"
+msgstr ""
+
+#, fuzzy
+msgid "IPv_6 settings"
+msgstr "Paramètres IP"
 
 msgid ""
 "This option can give performance boosts to those on a large network with "
@@ -7120,3 +7156,24 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Auto-download selected by..."
+#~ msgstr "Téléchargement automatique sélectionné par..."
+
+#~ msgid "name"
+#~ msgstr "nom"
+
+#~ msgid "urn:sha1"
+#~ msgstr "urn:sha1"
+
+#~ msgid "New search from selected"
+#~ msgstr "Nouvelle recherche depuis la sélection"
+
+#~ msgid "Add/Replace"
+#~ msgstr "Ajouter/Remplacer"
+
+#~ msgid "Force local _IP to"
+#~ msgstr "Forcer l'_IP locale à"
+
+#~ msgid "New/replace"
+#~ msgstr "Nouveau/remplacer"

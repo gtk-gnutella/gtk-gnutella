@@ -9,12 +9,12 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-07-01 01:13+0900\n"
+"POT-Creation-Date: 2006-10-31 16:01+0100\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n==1?0:1;\n"
 "Language-Code: it\n"
@@ -301,19 +301,6 @@ msgstr "Nodo protetto"
 msgid "Gnet connections disabled"
 msgstr "Connessioni Gnet disabilitate"
 
-msgid "Unstable IP address"
-msgstr "Indirizzo IP instabile"
-
-msgid "Servent version appears unstable"
-msgstr "La versione del server sembra instabile"
-
-msgid "No vendor string supplied"
-msgstr "Non viene fornita alcuna stringa dell'offerente"
-
-#, c-format
-msgid "Not connecting: %s"
-msgstr "No connessione: %s"
-
 msgid "Connection not compressed"
 msgstr "Connessione non compressa"
 
@@ -341,6 +328,19 @@ msgstr "Inviate indicazioni protette"
 
 msgid "Not an ultra node"
 msgstr "Non ci sono ultra nodi"
+
+msgid "Unstable IP address"
+msgstr "Indirizzo IP instabile"
+
+msgid "Servent version appears unstable"
+msgstr "La versione del server sembra instabile"
+
+msgid "No vendor string supplied"
+msgstr "Non viene fornita alcuna stringa dell'offerente"
+
+#, c-format
+msgid "Not connecting: %s"
+msgstr "No connessione: %s"
 
 msgid "Protocol not acceptable"
 msgstr "Protocollo non accettabile"
@@ -418,6 +418,10 @@ msgstr "Connessione azzerata durante il SALUTO"
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "Sbarrati: %s messaggi troppo grandi (%d byte)"
 
+#, fuzzy, c-format
+msgid "Kicked: %s message too big (>= 64KiB limit)"
+msgstr "Sbarrati: %s messaggi troppo grandi (%d byte)"
+
 msgid "Read failed (Input Exception)"
 msgstr "Lettura fallita (eccezione in input)"
 
@@ -444,6 +448,10 @@ msgstr "Creazione ricerca fallita"
 
 #, fuzzy
 msgid "Failed to create IPv6 UDP socket"
+msgstr "Creazione ricerca fallita"
+
+#, fuzzy
+msgid "Failed to create local socket"
 msgstr "Creazione ricerca fallita"
 
 #, fuzzy
@@ -532,6 +540,9 @@ msgstr "Dimensione"
 msgid "Good bye"
 msgstr "Arrivederci"
 
+msgid "Shutdown sequence initiated."
+msgstr ""
+
 msgid "Unknown command"
 msgstr "Comando sconosciuto"
 
@@ -567,6 +578,9 @@ msgstr[1] ""
 
 msgid "Connect back timeout"
 msgstr "Tempo massimo riconnessione"
+
+msgid "Timeout waiting for follow-up"
+msgstr ""
 
 msgid "Lifetime expired"
 msgstr "Tempo di vita spirato"
@@ -641,16 +655,16 @@ msgstr "Ucciso esplicitamente"
 msgid "IP denying uploads"
 msgstr "IP che rifiuta caricamenti"
 
-#, c-format
-msgid " - Newer versions available: release %s / from CVS %s"
+#, fuzzy, c-format
+msgid " - Newer versions available: release %s / from SVN %s"
 msgstr " - Versioni più recenti disponibili: rilascio %s / dal CVS %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - Versione più recente disponibile: rilascio %s"
 
-#, c-format
-msgid " - Newer version available: from CVS %s"
+#, fuzzy, c-format
+msgid " - Newer version available: from SVN %s"
 msgstr " - Versione più recente disponibile: dal CVS %s"
 
 msgid "No proxy"
@@ -1550,6 +1564,10 @@ msgstr "Numero complessivo di caricamenti completati in questa sessione."
 msgid "Global Unique IDentifier of this node."
 msgstr "Global Unique IDentifier di questo nodo."
 
+#, fuzzy
+msgid "Kademlia Unique IDentifier of this node in the DHT."
+msgstr "Global Unique IDentifier di questo nodo."
+
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr ""
 "Se usare o no la frammentazione degli scaricamenti (raccomandato = SI)."
@@ -2017,6 +2035,12 @@ msgstr ""
 "Se è stato raggiunto il requisito della banda passante per diventare un "
 "ultra-nodo."
 
+#, fuzzy
+msgid "Whether we meet the UDP requirements to become an Ultra node."
+msgstr ""
+"Se è stato raggiunto il requisito della quantità di memoria per diventare un "
+"ultra-nodo."
+
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
 "are sent on a given connection.  When full, the oldest query is dropped "
@@ -2043,6 +2067,11 @@ msgid ""
 msgstr ""
 "Se debba essere consentita la connessione tramite l'interfaccia di controllo "
 "'terminale'."
+
+msgid ""
+"Amount of seconds until an idle remote shell session getsdisconnected. If "
+"set to zero, no timeout occurs."
+msgstr ""
 
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
@@ -2109,6 +2138,10 @@ msgstr "Ora di avvio dell'indicizzazione dei file condivisi."
 
 msgid "Time spent indexing shared files."
 msgstr "Tempo richiesto dall'indicizzazione dei file condivisi."
+
+#, fuzzy
+msgid "Memory used by the QRP tables"
+msgstr "Numero di posizioni utilizzate nella nostra tabella QRP."
 
 msgid "Time at which we started query routing table generation."
 msgstr ""
@@ -2330,7 +2363,7 @@ msgid ""
 "overloading can result from gtk-gnutella not getting enough CPU time because "
 "another process is competing for the CPU. Whilst the overloading condition "
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
-"file moving) are suspended."
+"file moving) are slowed down."
 msgstr ""
 
 msgid ""
@@ -2393,6 +2426,19 @@ msgstr ""
 msgid "Debug level for Reliable UDP (RUDP) code."
 msgstr "Livello di collaudo per il codice condiviso dei file."
 
+#, fuzzy
+msgid "Debug level for the Distributed Hash Table (DHT) code."
+msgstr "Livello di collaudo per il codice condiviso dei file."
+
+#, fuzzy
+msgid "Debug level for the OOB-proxying of queries."
+msgstr "Livello di collaudo per l'interfaccia utente."
+
+msgid ""
+"If set Gtk-Gnutella also listens on a local (unix domain) socketwhich is "
+"located in ~/.gtk-gnutella/socket."
+msgstr ""
+
 msgid "disable"
 msgstr "disabilita"
 
@@ -2430,6 +2476,9 @@ msgid "QRP"
 msgstr ""
 
 msgid "HSEP"
+msgstr ""
+
+msgid "RUDP"
 msgstr ""
 
 msgid "Vendor spec."
@@ -2708,6 +2757,9 @@ msgstr ""
 msgid "Discard search results which carry no hashsum."
 msgstr ""
 
+msgid "Jump to newly created searches"
+msgstr ""
+
 msgid "Display download settings."
 msgstr "Mostra le impostazioni di scaricamento."
 
@@ -2912,209 +2964,219 @@ msgstr "Anonimizzazione dei proxy"
 msgid "Satellite providers"
 msgstr "Fornitori satellite"
 
+msgid "Andorra"
+msgstr ""
+
+msgid "United Arab Emirates"
+msgstr "Emirati Arabi"
+
 msgid "Afghanistan"
 msgstr ""
-
-msgid "Albania, People's Socialist Republic of"
-msgstr "Albania"
-
-msgid "Algeria, People's Democratic Republic of"
-msgstr "Algeria"
-
-msgid "American Samoa"
-msgstr "Samoa americane"
-
-msgid "Andorra, Principality of"
-msgstr "Andorra"
-
-msgid "Angola, Republic of"
-msgstr "Angola"
-
-msgid "Anguilla"
-msgstr ""
-
-msgid "Antarctica (the territory South of 60 deg S)"
-msgstr "Antartide (oltre 60° S)"
 
 msgid "Antigua and Barbuda"
 msgstr ""
 
-msgid "Argentina, Argentine Republic"
-msgstr "Argentina, Repubblica Argentina"
+msgid "Anguilla"
+msgstr ""
+
+msgid "Albania"
+msgstr ""
 
 msgid "Armenia"
 msgstr ""
 
-msgid "Aruba"
+msgid "Netherlands Antilles"
+msgstr "Antille Olandesi"
+
+msgid "Angola"
 msgstr ""
 
 msgid "Asia/Pacific Region"
 msgstr "Asia/Pacifico"
 
-msgid "Australia, Commonwealth of"
-msgstr "Australia"
+msgid "Antarctica"
+msgstr ""
 
-msgid "Austria, Republic of"
-msgstr "Austria"
+msgid "Argentina"
+msgstr ""
 
-msgid "Azerbaijan, Republic of"
+msgid "American Samoa"
+msgstr "Samoa americane"
+
+msgid "Austria"
+msgstr ""
+
+msgid "Australia"
+msgstr ""
+
+msgid "Aruba"
+msgstr ""
+
+#, fuzzy
+msgid "Åland Islands"
+msgstr "Isole Cayman"
+
+#, fuzzy
+msgid "Azerbaijan"
 msgstr "Azerbaijan"
 
-msgid "Bahamas, Commonwealth of the"
-msgstr "Bahamas"
-
-msgid "Bahrain, Kingdom of"
-msgstr "Bahrain"
-
-msgid "Bangladesh, People's Republic of"
-msgstr "Bangladesh"
+msgid "Bosnia and Herzegovina"
+msgstr "Bosnia Herzegovina"
 
 msgid "Barbados"
+msgstr ""
+
+msgid "Bangladesh"
+msgstr ""
+
+msgid "Belgium"
+msgstr ""
+
+msgid "Burkina Faso"
+msgstr ""
+
+msgid "Bulgaria"
+msgstr ""
+
+msgid "Bahrain"
+msgstr ""
+
+msgid "Burundi"
+msgstr ""
+
+#, fuzzy
+msgid "Benin"
+msgstr "Scartamento"
+
+msgid "Bermuda"
+msgstr ""
+
+msgid "Brunei Darussalam"
+msgstr "Brunei"
+
+msgid "Bolivia"
+msgstr ""
+
+msgid "Brazil"
+msgstr ""
+
+msgid "Bahamas"
+msgstr ""
+
+msgid "Bhutan"
+msgstr ""
+
+#, fuzzy
+msgid "Bouvet Island"
+msgstr "Isola Bouvet"
+
+msgid "Botswana"
 msgstr ""
 
 msgid "Belarus"
 msgstr "Bielorussia"
 
-msgid "Belgium, Kingdom of"
-msgstr "Belgio"
-
 msgid "Belize"
 msgstr ""
-
-msgid "Benin, People's Republic of"
-msgstr "Benin"
-
-msgid "Bermuda"
-msgstr ""
-
-msgid "Bhutan, Kingdom of"
-msgstr "Buhtan"
-
-msgid "Bolivia, Republic of"
-msgstr "Bolivia"
-
-msgid "Bosnia and Herzegovina"
-msgstr "Bosnia Herzegovina"
-
-msgid "Botswana, Republic of"
-msgstr "Botswana"
-
-msgid "Bouvet Island (Bouvetoya)"
-msgstr "Isola Bouvet"
-
-msgid "Brazil, Federative Republic of"
-msgstr "Brasile"
-
-msgid "British Indian Ocean Territory (Chagos Archipelago)"
-msgstr "Arcipelago Chagos"
-
-msgid "British Virgin Islands"
-msgstr "Isole Vergini"
-
-msgid "Brunei Darussalam"
-msgstr "Brunei"
-
-msgid "Bulgaria, People's Republic of"
-msgstr "Bulgaria"
-
-msgid "Burkina Faso"
-msgstr ""
-
-msgid "Burundi, Republic of"
-msgstr "Burundi"
-
-msgid "Cambodia, Kingdom of"
-msgstr "Cambogia"
-
-msgid "Cameroon, United Republic of"
-msgstr "Cameroon"
 
 msgid "Canada"
 msgstr ""
 
-msgid "Cape Verde, Republic of"
-msgstr "Capo Verde"
+msgid "Cocos (Keeling) Islands"
+msgstr "Isole Cocos (Keeling)"
 
-msgid "Cayman Islands"
-msgstr "Isole Cayman"
+#, fuzzy
+msgid "Congo (Democratic Republic)"
+msgstr "Congo, Repubblica democratica"
 
 msgid "Central African Republic"
 msgstr "Repubblica Centro Africa"
 
-msgid "Chad, Republic of"
-msgstr "Chad"
+msgid "Congo"
+msgstr ""
 
-msgid "Chile, Republic of"
-msgstr "Chile"
+msgid "Switzerland"
+msgstr ""
 
-msgid "China, People's Republic of"
-msgstr "Cina"
-
-msgid "Christmas Island"
-msgstr "Isola Christmas"
-
-msgid "Cocos (Keeling) Islands"
-msgstr "Isole Cocos (Keeling)"
-
-msgid "Colombia, Republic of"
-msgstr "Colombia"
-
-msgid "Comoros, Union of the"
-msgstr "Comoros"
-
-msgid "Congo, Democratic Republic of"
-msgstr "Congo, Repubblica democratica"
-
-msgid "Congo, People's Republic of"
-msgstr "Congo, Repubblica popolare"
+msgid "Cote d'Ivoire"
+msgstr ""
 
 msgid "Cook Islands"
 msgstr "Isole Cook"
 
-msgid "Costa Rica, Republic of"
+#, fuzzy
+msgid "Chile"
+msgstr "file"
+
+msgid "Cameroon"
+msgstr ""
+
+msgid "China"
+msgstr ""
+
+msgid "Colombia"
+msgstr ""
+
+#, fuzzy
+msgid "Costa Rica"
 msgstr "Costa Rica"
 
-msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
-msgstr "Costa D'Avorio"
+msgid "Serbia and Montenegro"
+msgstr "Serbia e Montenegro"
 
-msgid "Cuba, Republic of"
-msgstr "Cuba"
+msgid "Cuba"
+msgstr ""
 
-msgid "Cyprus, Republic of"
-msgstr "Cipro"
+#, fuzzy
+msgid "Cape Verde"
+msgstr "Capo Verde"
+
+msgid "Christmas Island"
+msgstr "Isola Christmas"
+
+msgid "Cyprus"
+msgstr ""
 
 msgid "Czech Republic"
 msgstr "Repubblica Ceca"
 
-msgid "Denmark, Kingdom of"
-msgstr "Danimarca"
+msgid "Germany"
+msgstr "Germania"
 
-msgid "Djibouti, Republic of"
-msgstr "Gibuti"
+msgid "Djibouti"
+msgstr ""
 
-msgid "Dominica, Commonwealth of"
-msgstr "Commonwealth della Dominica"
+msgid "Denmark"
+msgstr ""
+
+#, fuzzy
+msgid "Dominica"
+msgstr "Repubblica Dominicana"
 
 msgid "Dominican Republic"
 msgstr "Repubblica Dominicana"
 
-msgid "Ecuador, Republic of"
-msgstr "Ecuador"
+msgid "Algeria"
+msgstr ""
 
-msgid "Egypt, Arab Republic of"
-msgstr "Egitto"
-
-msgid "El Salvador, Republic of"
-msgstr "El Salvador"
-
-msgid "Equatorial Guinea, Republic of"
-msgstr "Guinea Equatoriale"
-
-msgid "Eritrea"
+msgid "Ecuador"
 msgstr ""
 
 msgid "Estonia"
 msgstr ""
+
+msgid "Egypt"
+msgstr ""
+
+msgid "Western Sahara"
+msgstr "Sahara occidentale"
+
+msgid "Eritrea"
+msgstr ""
+
+#, fuzzy
+msgid "Spain"
+msgstr "Spaziatura"
 
 msgid "Ethiopia"
 msgstr "Etiopia"
@@ -3122,518 +3184,577 @@ msgstr "Etiopia"
 msgid "Europe"
 msgstr "Europa"
 
-msgid "Faeroe Islands"
-msgstr "Isole Faeroe"
+#, fuzzy
+msgid "Finland"
+msgstr "Fallito"
+
+msgid "Fiji"
+msgstr ""
 
 msgid "Falkland Islands (Malvinas)"
 msgstr "Isole Falkland (Malvine)"
 
-msgid "Fiji, Republic of the Fiji Islands"
-msgstr "Isole Figi"
-
-msgid "Finland, Republic of"
-msgstr "Finlandia"
-
-msgid "France, French Republic"
-msgstr "Francia"
-
-msgid "French Guiana"
-msgstr "Guiana Francese"
-
-msgid "French Polynesia"
-msgstr "Polinesia Francese"
-
-msgid "French Southern Territories"
+msgid "Micronesia"
 msgstr ""
 
-msgid "Gabon, Gabonese Republic"
-msgstr "Gabon"
+#, fuzzy
+msgid "Faroe Islands"
+msgstr "Isole Faeroe"
 
-msgid "Gambia, Republic of the"
-msgstr "Gambia"
+#, fuzzy
+msgid "France"
+msgstr "Cancella"
 
-msgid "Georgia"
+msgid "Gabon"
 msgstr ""
 
-msgid "Germany"
-msgstr "Germania"
-
-msgid "Ghana, Republic of"
-msgstr "Ghana"
-
-msgid "Gibraltar"
-msgstr "Gibilterra"
-
-msgid "Greece, Hellenic Republic"
-msgstr "Grecia"
-
-msgid "Greenland"
-msgstr ""
+#, fuzzy
+msgid "United Kingdom"
+msgstr "Svezia"
 
 msgid "Grenada"
 msgstr ""
 
-msgid "Guadaloupe"
+msgid "Georgia"
+msgstr ""
+
+msgid "French Guiana"
+msgstr "Guiana Francese"
+
+#, fuzzy
+msgid "Guernsey"
+msgstr "Germania"
+
+msgid "Ghana"
+msgstr ""
+
+msgid "Gibraltar"
+msgstr "Gibilterra"
+
+msgid "Greenland"
+msgstr ""
+
+msgid "Gambia"
+msgstr ""
+
+#, fuzzy
+msgid "Guinea"
+msgstr "Generale"
+
+#, fuzzy
+msgid "Guadeloupe"
 msgstr "Guadalupe"
+
+#, fuzzy
+msgid "Equatorial Guinea"
+msgstr "Guinea Equatoriale"
+
+msgid "Greece"
+msgstr ""
+
+msgid "South Georgia and The South Sandwich Islands"
+msgstr ""
+
+msgid "Guatemala"
+msgstr ""
 
 msgid "Guam"
 msgstr ""
 
-msgid "Guatemala, Republic of"
-msgstr "Guatemala"
-
-msgid "Guinea, Revolutionary People's Rep'c of"
-msgstr "Guinea"
-
-msgid "Guinea-Bissau, Republic of"
+#, fuzzy
+msgid "Guinea-Bissau"
 msgstr "Guinea-Bissau"
 
-msgid "Guyana, Republic of"
-msgstr "Guyana"
+msgid "Guyana"
+msgstr ""
 
-msgid "Haiti, Republic of"
-msgstr "Haiti"
+msgid "Hong Kong"
+msgstr ""
 
-msgid "Heard and McDonald Islands"
+#, fuzzy
+msgid "Heard Island and McDonald Islands"
 msgstr "Isole Heard e McDonald"
 
-msgid "Holy See (Vatican City State)"
-msgstr "Vaticano"
+msgid "Honduras"
+msgstr ""
 
-msgid "Honduras, Republic of"
-msgstr "Honduras"
+msgid "Croatia"
+msgstr ""
 
-msgid "Hong Kong, Special Administrative Region of China"
-msgstr "Hong Kong"
+#, fuzzy
+msgid "Haiti"
+msgstr "In attesa"
 
-msgid "Hrvatska (Croatia)"
-msgstr "Croazia"
+msgid "Hungary"
+msgstr ""
 
-msgid "Hungary, Hungarian People's Republic"
-msgstr "Ungheria"
-
-msgid "Iceland, Republic of"
-msgstr "Islanda"
-
-msgid "India, Republic of"
-msgstr "India"
-
-msgid "Indonesia, Republic of"
-msgstr "Indonesia"
-
-msgid "Iran, Islamic Republic of"
-msgstr "Iran"
-
-msgid "Iraq, Republic of"
-msgstr "Iraq"
+msgid "Indonesia"
+msgstr ""
 
 msgid "Ireland"
 msgstr "Irlanda"
 
-msgid "Israel, State of"
-msgstr "Israele"
+#, fuzzy
+msgid "Israel"
+msgstr "Irlanda"
 
-msgid "Italy, Italian Republic"
-msgstr "Italia"
+msgid "Isle of Man"
+msgstr ""
+
+msgid "India"
+msgstr ""
+
+#, fuzzy
+msgid "British Indian Ocean Territory"
+msgstr "Arcipelago Chagos"
+
+msgid "Iraq"
+msgstr ""
+
+#, fuzzy
+msgid "Iran"
+msgstr "Irlanda"
+
+#, fuzzy
+msgid "Iceland"
+msgstr "Irlanda"
+
+msgid "Italy"
+msgstr ""
+
+msgid "Jersey"
+msgstr ""
 
 msgid "Jamaica"
+msgstr ""
+
+msgid "Jordan"
 msgstr ""
 
 msgid "Japan"
 msgstr "Giappone"
 
-msgid "Jordan, Hashemite Kingdom of"
-msgstr "Giordania"
-
-msgid "Kazakhstan, Republic of"
-msgstr "Kazakistan"
-
-msgid "Kenya, Republic of"
-msgstr "Kenia"
-
-msgid "Kiribati, Republic of"
-msgstr "Kiribatti"
-
-msgid "Korea, Democratic People's Republic of"
-msgstr "Corea, Repubblica democratica"
-
-msgid "Korea, Republic of"
-msgstr "Corea, Repubblica"
-
-msgid "Kuwait, State of"
-msgstr "Kuwait"
-
-msgid "Kyrgyz Republic"
-msgstr "Kirghizistan"
-
-msgid "Lao People's Democratic Republic"
-msgstr "Laos"
-
-msgid "Latvia"
+msgid "Kenya"
 msgstr ""
 
-msgid "Lebanon, Lebanese Republic"
-msgstr "Libano"
+msgid "Kyrgyzstan"
+msgstr ""
 
-msgid "Lesotho, Kingdom of"
-msgstr "Lesotho"
+msgid "Cambodia"
+msgstr ""
 
-msgid "Liberia, Republic of"
-msgstr "Liberia"
+msgid "Kiribati"
+msgstr ""
 
-msgid "Libyan Arab Jamahiriya"
-msgstr "Libia"
+msgid "Comoros"
+msgstr ""
 
-msgid "Liechtenstein, Principality of"
+msgid "Saint Kitts and Nevis"
+msgstr ""
+
+msgid "North Korea"
+msgstr ""
+
+msgid "South Korea"
+msgstr ""
+
+msgid "Kuwait"
+msgstr ""
+
+msgid "Cayman Islands"
+msgstr "Isole Cayman"
+
+#, fuzzy
+msgid "Kazakhstan"
+msgstr "Kazakistan"
+
+msgid "Laos"
+msgstr ""
+
+#, fuzzy
+msgid "Lebanon"
+msgstr "Motivo"
+
+msgid "Saint lucia"
+msgstr ""
+
+#, fuzzy
+msgid "Liechtenstein"
 msgstr "Liechtenstein"
+
+msgid "Sri Lanka"
+msgstr ""
+
+msgid "Liberia"
+msgstr ""
+
+msgid "Lesotho"
+msgstr ""
 
 msgid "Lithuania"
 msgstr "Lituania"
 
-msgid "Luxembourg, Grand Duchy of"
-msgstr "Lussemburgo"
+msgid "Luxembourg"
+msgstr ""
 
-msgid "Macao, Special Administrative Region of China"
-msgstr "Macao"
+msgid "Latvia"
+msgstr ""
 
-msgid "Macedonia, the former Yugoslav Republic of"
-msgstr "Macedonia"
+msgid "Libyan Arab Jamahiriya"
+msgstr "Libia"
 
-msgid "Madagascar, Republic of"
+msgid "Morocco"
+msgstr ""
+
+msgid "Monaco"
+msgstr ""
+
+msgid "Moldova"
+msgstr ""
+
+#, fuzzy
+msgid "Montenegro"
+msgstr "Serbia e Montenegro"
+
+#, fuzzy
+msgid "Madagascar"
 msgstr "Madagascar"
-
-msgid "Malawi, Republic of"
-msgstr "Malawi"
-
-msgid "Malaysia"
-msgstr "Malesia"
-
-msgid "Maldives, Republic of"
-msgstr "Maldive"
-
-msgid "Mali, Republic of"
-msgstr "Mali"
-
-msgid "Malta, Republic of"
-msgstr "Malta"
 
 msgid "Marshall Islands"
 msgstr "Isole Marshall"
 
+#, fuzzy
+msgid "Macedonia"
+msgstr "Nuova Caledonia"
+
+#, fuzzy
+msgid "Mali"
+msgstr "Malesia"
+
+msgid "Myanmar"
+msgstr ""
+
+msgid "Mongolia"
+msgstr ""
+
+msgid "Macao"
+msgstr ""
+
+msgid "Northern Mariana Islands"
+msgstr "Isole Marianne del nord"
+
 msgid "Martinique"
 msgstr "Martinica"
 
-msgid "Mauritania, Islamic Republic of"
-msgstr "Mauritania"
-
-msgid "Mauritius"
-msgstr ""
-
-msgid "Mayotte"
-msgstr ""
-
-msgid "Mexico, United Mexican States"
-msgstr "Messico"
-
-msgid "Micronesia, Federated States of"
-msgstr "Micronesia"
-
-msgid "Moldova, Republic of"
-msgstr "Moldova"
-
-msgid "Monaco, Principality of"
-msgstr "Monaco"
-
-msgid "Mongolia, Mongolian People's Republic"
-msgstr "Mongolia"
+#, fuzzy
+msgid "Mauritania"
+msgstr "Lituania"
 
 msgid "Montserrat"
 msgstr ""
 
-msgid "Morocco, Kingdom of"
-msgstr "Marocco"
+#, fuzzy
+msgid "Malta"
+msgstr "Malesia"
 
-msgid "Mozambique, People's Republic of"
-msgstr "Mozambico"
+msgid "Mauritius"
+msgstr ""
 
-msgid "Myanmar"
+msgid "Maldives"
+msgstr ""
+
+#, fuzzy
+msgid "Malawi"
+msgstr "Malesia"
+
+msgid "Mexico"
+msgstr ""
+
+msgid "Malaysia"
+msgstr "Malesia"
+
+msgid "Mozambique"
 msgstr ""
 
 msgid "Namibia"
 msgstr ""
 
-msgid "Nauru, Republic of"
-msgstr "Nauru"
-
-msgid "Nepal, Kingdom of"
-msgstr "Nepal, Regno"
-
-msgid "Netherlands Antilles"
-msgstr "Antille Olandesi"
-
-msgid "Netherlands, Kingdom of the"
-msgstr "Olanda"
-
 msgid "New Caledonia"
 msgstr "Nuova Caledonia"
 
-msgid "New Zealand"
-msgstr "Nuova Zelanda"
-
-msgid "Nicaragua, Republic of"
-msgstr "Nicaragua"
-
-msgid "Niger, Republic of the"
-msgstr "Niger"
-
-msgid "Nigeria, Federal Republic of"
-msgstr "Nigeria"
-
-msgid "Niue, Republic of"
-msgstr "Niue"
+msgid "Niger"
+msgstr ""
 
 msgid "Norfolk Island"
 msgstr "Isole Norfolk"
 
-msgid "Northern Mariana Islands"
-msgstr "Isole Marianne del nord"
-
-msgid "Norway, Kingdom of"
-msgstr "Norvegia"
-
-msgid "Oman, Sultanate of"
-msgstr "Oman"
-
-msgid "Pakistan, Islamic Republic of"
-msgstr "Pakistan"
-
-msgid "Palau"
+msgid "Nigeria"
 msgstr ""
 
-msgid "Palestinian Territory, Occupied"
-msgstr "Palestina"
+msgid "Nicaragua"
+msgstr ""
 
-msgid "Panama, Republic of"
-msgstr "Panama"
+#, fuzzy
+msgid "Netherlands"
+msgstr "Antille Olandesi"
+
+msgid "Norway"
+msgstr ""
+
+msgid "Nepal"
+msgstr ""
+
+msgid "Nauru"
+msgstr ""
+
+msgid "Niue"
+msgstr ""
+
+msgid "New Zealand"
+msgstr "Nuova Zelanda"
+
+msgid "Oman"
+msgstr ""
+
+msgid "Panama"
+msgstr ""
+
+msgid "Peru"
+msgstr ""
+
+msgid "French Polynesia"
+msgstr "Polinesia Francese"
 
 msgid "Papua New Guinea"
 msgstr "Papua Nuova Guinea"
 
-msgid "Paraguay, Republic of"
-msgstr "Paraguay"
-
-msgid "Peru, Republic of"
-msgstr "Peru"
-
-msgid "Philippines, Republic of the"
-msgstr "Filippine"
-
-msgid "Pitcairn Island"
+msgid "Philippines"
 msgstr ""
 
-msgid "Poland, Polish People's Republic"
-msgstr "Polonia"
+#, fuzzy
+msgid "Pakistan"
+msgstr "Tagikistan"
 
-msgid "Portugal, Portuguese Republic"
-msgstr "Portogallo"
+#, fuzzy
+msgid "Poland"
+msgstr "Irlanda"
+
+msgid "Saint Pierre and Miquelon"
+msgstr ""
+
+msgid "Pitcairn"
+msgstr ""
 
 msgid "Puerto Rico"
 msgstr ""
 
-msgid "Qatar, State of"
-msgstr "Qatar"
+#, fuzzy
+msgid "Palestinian Territory"
+msgstr "Palestina"
+
+#, fuzzy
+msgid "Portugal"
+msgstr "Totale"
+
+msgid "Palau"
+msgstr ""
+
+msgid "Paraguay"
+msgstr ""
+
+msgid "Qatar"
+msgstr ""
 
 msgid "Reunion"
 msgstr ""
 
-msgid "Romania, Socialist Republic of"
-msgstr "Romania"
+msgid "Romania"
+msgstr ""
+
+msgid "Serbia"
+msgstr ""
 
 msgid "Russian Federation"
 msgstr "Russia"
 
-msgid "Rwanda, Rwandese Republic"
-msgstr "Ruanda"
-
-msgid "St. Helena"
+msgid "Rwanda"
 msgstr ""
 
-msgid "St. Kitts and Nevis"
-msgstr ""
-
-msgid "St. Lucia"
-msgstr ""
-
-msgid "St. Pierre and Miquelon"
-msgstr ""
-
-msgid "St. Vincent and the Grenadines"
-msgstr ""
-
-msgid "Samoa, Independent State of"
-msgstr "Samoa"
-
-msgid "San Marino, Republic of"
-msgstr "San Marino"
-
-msgid "Sao Tome and Principe, Democratic Republic of"
-msgstr ""
-
-msgid "Saudi Arabia, Kingdom of"
+#, fuzzy
+msgid "Saudi Arabia"
 msgstr "Arabia del sud"
-
-msgid "Senegal, Republic of"
-msgstr "Senegal"
-
-msgid "Serbia and Montenegro"
-msgstr "Serbia e Montenegro"
-
-msgid "Seychelles, Republic of"
-msgstr "Seychelles"
-
-msgid "Sierra Leone, Republic of"
-msgstr "Sierra Leone"
-
-msgid "Singapore, Republic of"
-msgstr "Singapore"
-
-msgid "Slovakia (Slovak Republic)"
-msgstr "Slovacchia"
-
-msgid "Slovenia"
-msgstr ""
 
 msgid "Solomon Islands"
 msgstr "Isole Solomon"
 
-msgid "Somalia, Somali Republic"
-msgstr "Somalia"
+#, fuzzy
+msgid "Seychelles"
+msgstr "Ricerche"
 
-msgid "South Africa, Republic of"
-msgstr "Sud Africa"
-
-msgid "South Georgia and the South Sandwich Islands"
+msgid "Sudan"
 msgstr ""
 
-msgid "Spain, Kingdom of"
-msgstr "Spagna"
+msgid "Sweden"
+msgstr ""
 
-msgid "Sri Lanka, Democratic Socialist Republic of"
-msgstr "Sri Lanka"
+#, fuzzy
+msgid "Singapore"
+msgstr "ignora"
 
-msgid "Sudan, Democratic Republic of the"
-msgstr "Sudan"
+msgid "Saint Helena"
+msgstr ""
 
-msgid "Suriname, Republic of"
-msgstr "Suriname"
+msgid "Slovenia"
+msgstr ""
 
-msgid "Svalbard & Jan Mayen Islands"
+#, fuzzy
+msgid "Svalbard and Jan Mayen"
 msgstr "Isole Svalbard"
 
-msgid "Swaziland, Kingdom of"
+msgid "Slovakia"
 msgstr ""
 
-msgid "Sweden, Kingdom of"
-msgstr "Svezia"
+#, fuzzy
+msgid "Sierra Leone"
+msgstr "Sierra Leone"
 
-msgid "Switzerland, Swiss Confederation"
-msgstr "Svizzera"
+#, fuzzy
+msgid "San Marino"
+msgstr "San Marino"
+
+#, fuzzy
+msgid "Senegal"
+msgstr "Generale"
+
+msgid "Somalia"
+msgstr ""
+
+#, fuzzy
+msgid "Suriname"
+msgstr "nome"
+
+msgid "Sao Tome and Principe"
+msgstr ""
+
+#, fuzzy
+msgid "El Salvador"
+msgstr "El Salvador"
 
 msgid "Syrian Arab Republic"
 msgstr "Siria"
 
-msgid "Taiwan, Province of China"
-msgstr "Taiwan"
-
-msgid "Tajikistan"
-msgstr "Tagikistan"
-
-msgid "Tanzania, United Republic of"
-msgstr "Tanzania"
-
-msgid "Thailand, Kingdom of"
-msgstr "Tailandia"
-
-msgid "Timor-Leste, Democratic Republic of"
-msgstr "Timor-Leste"
-
-msgid "Togo, Togolese Republic"
-msgstr "Togo"
-
-msgid "Tokelau (Tokelau Islands)"
-msgstr "Tokelau"
-
-msgid "Tonga, Kingdom of"
-msgstr "Tonga"
-
-msgid "Trinidad and Tobago, Republic of"
-msgstr "Trinidad e Tobago"
-
-msgid "Tunisia, Republic of"
-msgstr "Tunisia"
-
-msgid "Turkey, Republic of"
-msgstr "Turchia"
-
-msgid "Turkmenistan"
+msgid "Swaziland"
 msgstr ""
 
 msgid "Turks and Caicos Islands"
 msgstr "Isole Turks e Caicos"
 
+msgid "Chad"
+msgstr ""
+
+msgid "French Southern Territories"
+msgstr ""
+
+msgid "Togo"
+msgstr ""
+
+msgid "Thailand"
+msgstr ""
+
+msgid "Tajikistan"
+msgstr "Tagikistan"
+
+msgid "Tokelau"
+msgstr ""
+
+msgid "Timor-leste"
+msgstr ""
+
+msgid "Turkmenistan"
+msgstr ""
+
+msgid "Tunisia"
+msgstr ""
+
+msgid "Tonga"
+msgstr ""
+
+msgid "Turkey"
+msgstr ""
+
+#, fuzzy
+msgid "Trinidad and Tobago"
+msgstr "Trinidad e Tobago"
+
 msgid "Tuvalu"
 msgstr ""
 
-msgid "US Virgin Islands"
-msgstr "Isole Vergini US"
+#, fuzzy
+msgid "Taiwan"
+msgstr "Tagikistan"
 
-msgid "Uganda, Republic of"
-msgstr "Uganda"
+msgid "Tanzania"
+msgstr ""
 
 msgid "Ukraine"
 msgstr "Ucraina"
 
-msgid "United Arab Emirates"
-msgstr "Emirati Arabi"
-
-msgid "United Kingdom of Great Britain & N. Ireland"
-msgstr "Gran Bretagna UK"
+msgid "Uganda"
+msgstr ""
 
 msgid "United States Minor Outlying Islands"
 msgstr ""
 
-msgid "United States of America"
+#, fuzzy
+msgid "United States"
 msgstr "Stati Uniti d'America"
 
-msgid "Uruguay, Eastern Republic of"
-msgstr "Uruguay"
+msgid "Uruguay"
+msgstr ""
 
 msgid "Uzbekistan"
+msgstr ""
+
+msgid "Holy See (Vatican City State)"
+msgstr "Vaticano"
+
+msgid "Saint Vincent and The Grenadines"
+msgstr ""
+
+msgid "Venezuela"
+msgstr ""
+
+msgid "British Virgin Islands"
+msgstr "Isole Vergini"
+
+#, fuzzy
+msgid "U.S. Virgin Islands"
+msgstr "Isole Vergini US"
+
+msgid "Viet Nam"
 msgstr ""
 
 msgid "Vanuatu"
 msgstr ""
 
-msgid "Venezuela, Bolivarian Republic of"
-msgstr "Venezuela"
-
-msgid "Viet Nam, Socialist Republic of"
-msgstr "Vietnam"
-
-msgid "Wallis and Futuna Islands"
+msgid "Wallis and Futuna"
 msgstr ""
 
-msgid "Western Sahara"
-msgstr "Sahara occidentale"
+msgid "Samoa"
+msgstr ""
 
 msgid "Yemen"
 msgstr ""
 
-msgid "Yugoslavia"
+msgid "Mayotte"
 msgstr ""
 
-msgid "Zambia, Republic of"
-msgstr "Zambia"
+#, fuzzy
+msgid "South Africa"
+msgstr "Sud Africa"
+
+msgid "Zambia"
+msgstr ""
 
 msgid "Zimbabwe"
 msgstr ""
@@ -3910,9 +4031,6 @@ msgstr "Globale (post)"
 msgid "RETURN"
 msgstr ""
 
-msgid "RUDP"
-msgstr ""
-
 msgid "Query hit"
 msgstr "Tentativi query"
 
@@ -3921,6 +4039,12 @@ msgstr "Combinazione salti/TTL impropria"
 
 msgid "Flow control"
 msgstr "Controllo di flusso"
+
+msgid "Payload inflating error"
+msgstr ""
+
+msgid "Unknown header flags present"
+msgstr ""
 
 msgid "Routing errors"
 msgstr "Errore instradamento"
@@ -3959,6 +4083,12 @@ msgid "Unclaimed locally-generated OOB hits"
 msgstr ""
 
 msgid "Partially claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "Spurious OOB hit claiming received"
 msgstr ""
 
 msgid "Compacted queries"
@@ -4034,6 +4164,15 @@ msgid "Alien UDP messages (non-Gnutella)"
 msgstr ""
 
 msgid "Unprocessed UDP Gnutella messages"
+msgstr ""
+
+msgid "Compressed UDP messages enqueued"
+msgstr ""
+
+msgid "Compressed UDP messages received"
+msgstr ""
+
+msgid "Uncompressed UDP messages due to no gain"
 msgstr ""
 
 msgid "node"
@@ -4235,6 +4374,9 @@ msgstr "Accodati (%d attivi, %d passivi)"
 
 msgid "Waiting"
 msgstr "In attesa"
+
+msgid "<none>"
+msgstr "<niente>"
 
 #, c-format
 msgid "%s (%s bytes)"
@@ -4504,6 +4646,9 @@ msgstr ""
 "L'attuale indirizzo IP e la porta di ascolto per questo nodo. Per cambiarli "
 "va in File->Preferenze->Rete."
 
+msgid "[Gnet]"
+msgstr ""
+
 msgid "Message/flow control stats"
 msgstr "Statistiche messaggio/controllo flusso"
 
@@ -4518,6 +4663,33 @@ msgstr "Motivo"
 
 msgid "_General"
 msgstr "_Generale"
+
+msgid "0"
+msgstr ""
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "5"
+msgstr ""
+
+msgid "6"
+msgstr ""
+
+msgid "7"
+msgstr ""
+
+msgid "8+"
+msgstr ""
 
 msgid "FC/_TTL"
 msgstr ""
@@ -4564,6 +4736,10 @@ msgstr "Mostra pr_otocollo"
 msgid "Show r_easons for"
 msgstr "Mostra motivi p_er"
 
+#, fuzzy
+msgid "[Gnet Stats]"
+msgstr "Statistiche Gnutella"
+
 msgid "Hostcache statistics"
 msgstr "Statistiche cache host"
 
@@ -4593,6 +4769,10 @@ msgstr ""
 
 msgid "Bad hosts"
 msgstr "Host sbagliati"
+
+#, fuzzy
+msgid "[Hostcache]"
+msgstr "Cache host"
 
 msgid "Uploads"
 msgstr "Caricamenti"
@@ -4633,6 +4813,10 @@ msgstr "Massimo numero di caricamenti simultanei"
 msgid "Max. uploads to a single host"
 msgstr "Massimo numero di caricamenti su un singolo host"
 
+#, fuzzy
+msgid "[Uploads]"
+msgstr "Caricamenti"
+
 msgid "Upload history"
 msgstr "Storia caricamenti"
 
@@ -4651,14 +4835,31 @@ msgstr "Pulisci tutto"
 msgid "Fully served "
 msgstr "Completamente servite "
 
+msgid "[BH HTML served]"
+msgstr "[BH HTML serviti]"
+
 msgid " / "
+msgstr ""
+
+msgid "[BH HTML]"
 msgstr ""
 
 msgid " HTML and "
 msgstr " richieste di consultazione HTML e "
 
+#, fuzzy
+msgid "[BH qhits served]"
+msgstr "[BH qtent.]"
+
+msgid "[BH qhits]"
+msgstr "[BH qtent.]"
+
 msgid " Gnutella browse requests"
 msgstr " Gnutella"
+
+#, fuzzy
+msgid "[Upload Stats]"
+msgstr "Caricamenti"
 
 msgid "Files to get"
 msgstr "File da ottenere"
@@ -4681,14 +4882,14 @@ msgstr "maiuscolo-minuscolo"
 msgid "Detail information"
 msgstr "Informazione dettagliata"
 
-msgid "Filename:"
-msgstr "Nome del file:"
+msgid "Progress:"
+msgstr "Progresso:"
 
 msgid "Size:"
 msgstr "Dimensione:"
 
-msgid "Progress:"
-msgstr "Progresso:"
+msgid "Filename:"
+msgstr "Nome del file:"
 
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
@@ -4704,17 +4905,31 @@ msgstr ""
 "scaricati. La riga blu indica quale parte del file viene vista sulla rete "
 "durante questa sessione."
 
+msgid "SHA1:"
+msgstr ""
+
 msgid "Alternate filenames"
 msgstr "Nomi file alternativi"
 
 msgid "_Purge selected"
 msgstr "_Elimina selezionati"
 
+msgid "[all count]"
+msgstr ""
+
 msgid " registered, "
 msgstr " registrato, "
 
+#, fuzzy
+msgid "[with source count]"
+msgstr " con i sorgenti"
+
 msgid " with sources"
 msgstr " con i sorgenti"
+
+#, fuzzy
+msgid "[Downloads]"
+msgstr "Scaricamenti"
 
 msgid "Active sources"
 msgstr "Sorgenti attive"
@@ -4771,6 +4986,13 @@ msgstr ""
 msgid "Clear stopped"
 msgstr "Ripulisci fermati"
 
+#, fuzzy
+msgid "[running]"
+msgstr "Scartamento"
+
+msgid "("
+msgstr ""
+
 msgid "active"
 msgstr "attiva"
 
@@ -4780,8 +5002,15 @@ msgstr ""
 msgid "queued"
 msgstr "accodato"
 
+msgid ")"
+msgstr ""
+
 msgid "Show settings"
 msgstr "Mostra impostazioni"
+
+#, fuzzy
+msgid "[Active]"
+msgstr "Attivi"
 
 msgid "Inactive sources"
 msgstr "Sorgenti inattive"
@@ -4795,14 +5024,25 @@ msgstr "Congela coda"
 msgid "Thaw queue"
 msgstr "Sciogli coda"
 
+#, fuzzy
+msgid "[queued downloads]"
+msgstr "%u scaricamento di %u"
+
 msgid " queued ("
 msgstr " accodati ("
+
+msgid "[hosts alive]"
+msgstr ""
 
 msgid " alive with "
 msgstr " vivi con "
 
 msgid " passive)"
 msgstr " passivi)"
+
+#, fuzzy
+msgid "[Queue]"
+msgstr "In coda"
 
 msgid "Search results"
 msgstr "Risultati ricerca"
@@ -4848,9 +5088,6 @@ msgstr ""
 
 msgid "Information about selected file"
 msgstr "Informazioni sul file selezionato"
-
-msgid "SHA1:"
-msgstr ""
 
 msgid "Index:"
 msgstr "Indice:"
@@ -4901,6 +5138,10 @@ msgstr "Collassa tutto"
 msgid "_Clear results"
 msgstr "Pulis_ci risultati"
 
+#, fuzzy
+msgid "[Search]"
+msgstr "Ricerca"
+
 msgid "Search _monitor enabled"
 msgstr "Monitor di ricerca abilitato"
 
@@ -4909,6 +5150,9 @@ msgstr "Mostra le _ultime"
 
 msgid "searches"
 msgstr "ricerche"
+
+msgid "[Monitor]"
+msgstr ""
 
 msgid "_Update interval (sec)"
 msgstr "Intervallo aggiornamento (sec)"
@@ -4927,6 +5171,10 @@ msgstr "Azze_ra statistiche"
 
 msgid "0 terms counted"
 msgstr "Conteggiati 0 termini"
+
+#, fuzzy
+msgid "[Search Stats]"
+msgstr "Filtri ricerca"
 
 msgid "You seem to be offline."
 msgstr "Sembra che tu sia scollegato (offline)."
@@ -5085,18 +5333,6 @@ msgstr ""
 "Aggiungi al pre-filtro globale le regole \"non mostrare\" corrispondenti ai "
 "file urn:sha1 selezionati."
 
-msgid "Auto-download selected by..."
-msgstr "Auto scarica selezionati da..."
-
-msgid "name"
-msgstr "nome"
-
-msgid "urn:sha1"
-msgstr ""
-
-msgid "New search from selected"
-msgstr "Nuova ricerca dalla selezione"
-
 msgid "Stop this search"
 msgstr "Arresta questa ricerca"
 
@@ -5190,6 +5426,10 @@ msgstr "Aggiungi regola IP"
 msgid "Add state rule"
 msgstr "Aggiungi regola stato"
 
+#, fuzzy
+msgid "[Add/Remove]"
+msgstr "Rimuovi"
+
 msgid "invert condition"
 msgstr "inverti condizioni"
 
@@ -5202,16 +5442,25 @@ msgstr "Condizione: Se il nome del file corrisponde"
 msgid "case sensitive"
 msgstr "maiuscolo-minuscolo"
 
-msgid "Add/Replace"
-msgstr "Aggiungi/rimpiazza"
+#, fuzzy
+msgid "Save"
+msgstr "Salvato"
 
 msgid "Remove"
 msgstr "Rimuovi"
+
+#, fuzzy
+msgid "[Filename]"
+msgstr "Nome del file"
 
 msgid "Condition: If IP address matches"
 msgstr "Condizione: Se l'indirizzo IP corrisponde"
 
 msgid "IP address/mask"
+msgstr "indirizzo/mask IP"
+
+#, fuzzy
+msgid "[IP address]"
 msgstr "indirizzo/mask IP"
 
 msgid "Condition: If file size matches"
@@ -5226,6 +5475,10 @@ msgstr "Dimensione massima:"
 msgid "bytes"
 msgstr "byte"
 
+#, fuzzy
+msgid "[Filesize]"
+msgstr "File"
+
 msgid "Condition: always"
 msgstr "Condizione: sempre"
 
@@ -5239,6 +5492,9 @@ msgstr ""
 "per cui non è possibile invertire questa condizione. Se possibile questa "
 "regola va semplicemente ignorata."
 
+msgid "[Jump]"
+msgstr ""
+
 msgid "Condition: If urn:sha1 matches"
 msgstr "Condizione: Se urn:sha1 corrisponde"
 
@@ -5247,6 +5503,9 @@ msgstr ""
 
 msgid "Originally obtained from"
 msgstr "Ottenuto originalmente da"
+
+msgid "[SHA1]"
+msgstr ""
 
 msgid "Condition: If result has flags"
 msgstr "Condizione: Se il risultato ha flag"
@@ -5266,6 +5525,10 @@ msgstr "impostato"
 msgid "Stable"
 msgstr "Stabile"
 
+#, fuzzy
+msgid "[Flags]"
+msgstr "Flag"
+
 msgid "Condition: If current filter result properties match"
 msgstr ""
 "Condizione: Se le proprietà dei risultati del filtro corrente corrispondono"
@@ -5281,6 +5544,10 @@ msgstr "si"
 
 msgid "ignore"
 msgstr "ignora"
+
+#, fuzzy
+msgid "[State]"
+msgstr "Statistiche"
 
 msgid "Apply"
 msgstr "Applica"
@@ -5308,8 +5575,18 @@ msgstr ""
 "\n"
 "Tempo rimasto:"
 
+#, fuzzy
+msgid "[time]"
+msgstr "Attività"
+
 msgid "About gtk-gnutella"
 msgstr "A proposito di gtk-gnutella"
+
+msgid "[name and version]"
+msgstr ""
+
+msgid "$Id$"
+msgstr ""
 
 msgid "Original author:"
 msgstr "Autore originale:"
@@ -5405,14 +5682,8 @@ msgstr "Impostazioni attuali IP (Indirizzo:Porta):"
 msgid "not yet determined"
 msgstr "ancora indeterminato"
 
-msgid "Force local _IP to"
-msgstr "Forza _IP locale a"
-
 msgid "_Listen port"
 msgstr "Porta di asco_lto"
-
-msgid "Disable: 0, Random: 1"
-msgstr "Disabilita: 0, Casuale: 1"
 
 msgid "Public _hostname"
 msgstr "Nome _host pubblico"
@@ -5422,6 +5693,31 @@ msgstr "Abilita _UDP"
 
 msgid "Network protocol:"
 msgstr "Protocollo di rete:"
+
+#, fuzzy
+msgid "(Disable: 0, Random: 1)"
+msgstr "Disabilita: 0, Casuale: 1"
+
+#, fuzzy
+msgid "IPv4 settings"
+msgstr "Impostazioni IP"
+
+msgid "Force external IPv_4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "Bind to this address"
+msgstr "Indirizzo di ritorno errato"
+
+#, fuzzy
+msgid "IPv6 settings"
+msgstr "Impostazioni IP"
+
+msgid "Force external IPv_6 address to"
+msgstr ""
+
+msgid "Use IPv6-to-IPv4 TRT prefix:"
+msgstr ""
 
 msgid "Proxy settings"
 msgstr "Impostazioni del proxy"
@@ -5482,6 +5778,9 @@ msgstr ""
 msgid "Currently used"
 msgstr "Attualmente usato"
 
+msgid "[place holder]"
+msgstr ""
+
 msgid "Use global hostiles.txt"
 msgstr "Usa hostile.txt globale"
 
@@ -5497,11 +5796,9 @@ msgstr "Differenza orologio:"
 msgid "Miscellaneous"
 msgstr "Varie"
 
-msgid "Enable \"_shell\" control interface"
+#, fuzzy
+msgid "Enable remote _shell control interface"
 msgstr "Abilita interfaccia di controllo \"_terminale\""
-
-msgid "Enable \"_Browse Host\" feature"
-msgstr "Abilita funzionalità \"Co_nsulta host\""
 
 msgid "Socket receive buffer size"
 msgstr "Dimensione dei contenitori di ricezione"
@@ -5571,6 +5868,9 @@ msgstr "Attività media sufficente"
 
 msgid "Enough min # of connections"
 msgstr "Numero minimo di connessioni sufficenti"
+
+msgid "Engouh UDP support"
+msgstr ""
 
 msgid "Searches"
 msgstr "Ricerche"
@@ -5671,6 +5971,9 @@ msgstr "Numero tollerabile di messaggi _duplicati per nodo"
 
 msgid "RX flow control ratio"
 msgstr "Livello controllo di flusso RX"
+
+msgid "%"
+msgstr ""
 
 msgid "Watch for similar queries"
 msgstr "Guarda per richieste simili"
@@ -5985,6 +6288,9 @@ msgstr "Ignora i _file regolari con collegamenti simbolici"
 msgid "Search _extensions"
 msgstr "_Estensioni ricerche"
 
+msgid "Enable \"_Browse Host\" feature"
+msgstr "Abilita funzionalità \"Co_nsulta host\""
+
 msgid "Timeouts (all values in seconds)"
 msgstr "Timeout (valori in secondi)"
 
@@ -6078,18 +6384,18 @@ msgstr "Mostra un dialogo di _conferma quando chiudi gtk-gnutella"
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "Mostra i consi_gli (non comprende ancora tutti i consigli)"
 
-msgid "Try to keep 'dead' entries around for"
-msgstr "Cerca di mantenere gli elementi 'morti' per"
-
-msgid "Update search results pane every"
-msgstr "Aggiorna il pannello dei risultati delle ricerche ogni"
+#, fuzzy
+msgid "Show _metric units"
+msgstr "Mostra _percentuali"
 
 msgid "Toolbar style"
 msgstr "Stile barra degli strumenti"
 
-#, fuzzy
-msgid "Show _metric units"
-msgstr "Mostra _percentuali"
+msgid "Update search results pane every"
+msgstr "Aggiorna il pannello dei risultati delle ricerche ogni"
+
+msgid "Try to keep 'dead' entries around for"
+msgstr "Cerca di mantenere gli elementi 'morti' per"
 
 msgid "Expert mode"
 msgstr "Modalità esperti"
@@ -6225,6 +6531,23 @@ msgstr "Paese"
 msgid "Failed to create the search"
 msgstr "Creazione ricerca fallita"
 
+msgid "UDP"
+msgstr ""
+
+msgid "TCP"
+msgstr ""
+
+#, fuzzy
+msgid "owned"
+msgstr "Terminato"
+
+msgid "partial"
+msgstr ""
+
+#, fuzzy
+msgid "shared"
+msgstr "in stallo"
+
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
@@ -6258,6 +6581,23 @@ msgstr "Metadati"
 #, fuzzy
 msgid "Route"
 msgstr "Perso instradamento"
+
+#, fuzzy
+msgid "Protocol"
+msgstr "Mostra pr_otocollo"
+
+msgid "TTL"
+msgstr ""
+
+msgid "Owned"
+msgstr ""
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Host"
+
+msgid "SHA-1"
+msgstr ""
 
 msgid "Not in database"
 msgstr "Non c'è nel database"
@@ -6303,9 +6643,6 @@ msgstr "Invio richiesta (%u%%)"
 #, c-format
 msgid "Retry in %us"
 msgstr "Ritenta in %us"
-
-msgid "<none>"
-msgstr "<niente>"
 
 #, fuzzy, c-format
 msgid "Queued (%u active, %u passive)"
@@ -6382,15 +6719,6 @@ msgstr "Dati caricati:"
 msgid "Served "
 msgstr "Servite "
 
-msgid "[BH HTML served]"
-msgstr "[BH HTML serviti]"
-
-msgid "[BH HTML]"
-msgstr ""
-
-msgid "[BH qhits]"
-msgstr "[BH qtent.]"
-
 msgid "Current _search:"
 msgstr "Ricerca _corrente"
 
@@ -6418,9 +6746,6 @@ msgstr "Mostra motivo _per"
 msgid "Gnutella stats"
 msgstr "Statistiche Gnutella"
 
-msgid "New/replace"
-msgstr "Nuovo/rimpiazza"
-
 msgid "Delete"
 msgstr "Cancella"
 
@@ -6430,6 +6755,24 @@ msgstr "Puoi usare suffissi come KB, KiB, MB, MiB, GB, GiB ecc.."
 msgid "Reverse DNS lookup"
 msgstr "Inversione DNS"
 
+msgid "Force external IPv4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "_Bind to this address"
+msgstr "Indirizzo di ritorno errato"
+
+#, fuzzy
+msgid "IPv_4 settings"
+msgstr "Impostazioni IP"
+
+msgid "Force external IPv6 address to"
+msgstr ""
+
+#, fuzzy
+msgid "IPv_6 settings"
+msgstr "Impostazioni IP"
+
 msgid ""
 "This option can give performance boosts to those on a large network with "
 "many peers by trying to locate files on the local networks first."
@@ -6437,6 +6780,9 @@ msgstr ""
 
 msgid "_Addresses of local network(s)"
 msgstr "_Indirizzo(i)i della(e) rete(i) locale(i)"
+
+msgid "Enough UDP support"
+msgstr ""
 
 msgid "seconds (0 - disable)"
 msgstr "secondi (0 - disabilitato)"
@@ -6503,9 +6849,6 @@ msgstr "Eredità"
 msgid "Crawler"
 msgstr "Robot"
 
-msgid "UDP"
-msgstr ""
-
 msgid "Move the cursor over a row to see details."
 msgstr "Posizionare il cursore sopra una riga per vedere i dettagli."
 
@@ -6530,6 +6873,9 @@ msgstr "Inversione DNS in progressione..."
 
 msgid "The normalized search text is too short."
 msgstr "Il testo normalizzato della ricerca è troppo breve."
+
+msgid " (partial)"
+msgstr ""
 
 msgid "Fresh regular"
 msgstr "Fresco regolare"
@@ -6649,9 +6995,6 @@ msgid ""
 msgstr ""
 "non è possibile rinominare %s come %s: %s\n"
 "Il file XML non verrà usato se non si risolve questo problema."
-
-msgid "TCP"
-msgstr ""
 
 msgid "<unparsed>"
 msgstr ""
@@ -6827,15 +7170,15 @@ msgstr "Non c'è ancora un output..."
 msgid "Got push, connecting back..."
 msgstr "Spinta ottenuta, riconnessione..."
 
-#, c-format
-msgid "%sCompleted (%s) %s"
+#, fuzzy, c-format
+msgid "Completed (%s) %s%s"
 msgstr "%sCompletato (%s) %s"
 
 msgid "< 1s"
 msgstr ""
 
 #, c-format
-msgid "%s%s(%s) TR: %s"
+msgid "%s(%s) TR: %s %s"
 msgstr ""
 
 msgid "stalled"
@@ -6845,6 +7188,10 @@ msgid "Waiting for headers..."
 msgstr "In attesa dei titoli..."
 
 msgid "Waiting for further request..."
+msgstr "In attesa di ulteriori richieste..."
+
+#, fuzzy
+msgid "Reading follow-up request..."
 msgstr "In attesa di ulteriori richieste..."
 
 msgid "Unavailable range, waiting retry..."
@@ -6868,3 +7215,402 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#~ msgid "Albania, People's Socialist Republic of"
+#~ msgstr "Albania"
+
+#~ msgid "Algeria, People's Democratic Republic of"
+#~ msgstr "Algeria"
+
+#~ msgid "Andorra, Principality of"
+#~ msgstr "Andorra"
+
+#~ msgid "Angola, Republic of"
+#~ msgstr "Angola"
+
+#~ msgid "Antarctica (the territory South of 60 deg S)"
+#~ msgstr "Antartide (oltre 60° S)"
+
+#~ msgid "Argentina, Argentine Republic"
+#~ msgstr "Argentina, Repubblica Argentina"
+
+#~ msgid "Australia, Commonwealth of"
+#~ msgstr "Australia"
+
+#~ msgid "Austria, Republic of"
+#~ msgstr "Austria"
+
+#~ msgid "Bahamas, Commonwealth of the"
+#~ msgstr "Bahamas"
+
+#~ msgid "Bahrain, Kingdom of"
+#~ msgstr "Bahrain"
+
+#~ msgid "Bangladesh, People's Republic of"
+#~ msgstr "Bangladesh"
+
+#~ msgid "Belgium, Kingdom of"
+#~ msgstr "Belgio"
+
+#~ msgid "Benin, People's Republic of"
+#~ msgstr "Benin"
+
+#~ msgid "Bhutan, Kingdom of"
+#~ msgstr "Buhtan"
+
+#~ msgid "Bolivia, Republic of"
+#~ msgstr "Bolivia"
+
+#~ msgid "Botswana, Republic of"
+#~ msgstr "Botswana"
+
+#~ msgid "Brazil, Federative Republic of"
+#~ msgstr "Brasile"
+
+#~ msgid "Bulgaria, People's Republic of"
+#~ msgstr "Bulgaria"
+
+#~ msgid "Burundi, Republic of"
+#~ msgstr "Burundi"
+
+#~ msgid "Cambodia, Kingdom of"
+#~ msgstr "Cambogia"
+
+#~ msgid "Cameroon, United Republic of"
+#~ msgstr "Cameroon"
+
+#~ msgid "Chad, Republic of"
+#~ msgstr "Chad"
+
+#~ msgid "Chile, Republic of"
+#~ msgstr "Chile"
+
+#~ msgid "China, People's Republic of"
+#~ msgstr "Cina"
+
+#~ msgid "Colombia, Republic of"
+#~ msgstr "Colombia"
+
+#~ msgid "Comoros, Union of the"
+#~ msgstr "Comoros"
+
+#~ msgid "Congo, People's Republic of"
+#~ msgstr "Congo, Repubblica popolare"
+
+#~ msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
+#~ msgstr "Costa D'Avorio"
+
+#~ msgid "Cuba, Republic of"
+#~ msgstr "Cuba"
+
+#~ msgid "Cyprus, Republic of"
+#~ msgstr "Cipro"
+
+#~ msgid "Denmark, Kingdom of"
+#~ msgstr "Danimarca"
+
+#~ msgid "Djibouti, Republic of"
+#~ msgstr "Gibuti"
+
+#~ msgid "Dominica, Commonwealth of"
+#~ msgstr "Commonwealth della Dominica"
+
+#~ msgid "Ecuador, Republic of"
+#~ msgstr "Ecuador"
+
+#~ msgid "Egypt, Arab Republic of"
+#~ msgstr "Egitto"
+
+#~ msgid "Fiji, Republic of the Fiji Islands"
+#~ msgstr "Isole Figi"
+
+#~ msgid "Finland, Republic of"
+#~ msgstr "Finlandia"
+
+#~ msgid "France, French Republic"
+#~ msgstr "Francia"
+
+#~ msgid "Gabon, Gabonese Republic"
+#~ msgstr "Gabon"
+
+#~ msgid "Gambia, Republic of the"
+#~ msgstr "Gambia"
+
+#~ msgid "Ghana, Republic of"
+#~ msgstr "Ghana"
+
+#~ msgid "Greece, Hellenic Republic"
+#~ msgstr "Grecia"
+
+#~ msgid "Guatemala, Republic of"
+#~ msgstr "Guatemala"
+
+#~ msgid "Guinea, Revolutionary People's Rep'c of"
+#~ msgstr "Guinea"
+
+#~ msgid "Guyana, Republic of"
+#~ msgstr "Guyana"
+
+#~ msgid "Haiti, Republic of"
+#~ msgstr "Haiti"
+
+#~ msgid "Honduras, Republic of"
+#~ msgstr "Honduras"
+
+#~ msgid "Hong Kong, Special Administrative Region of China"
+#~ msgstr "Hong Kong"
+
+#~ msgid "Hrvatska (Croatia)"
+#~ msgstr "Croazia"
+
+#~ msgid "Hungary, Hungarian People's Republic"
+#~ msgstr "Ungheria"
+
+#~ msgid "Iceland, Republic of"
+#~ msgstr "Islanda"
+
+#~ msgid "India, Republic of"
+#~ msgstr "India"
+
+#~ msgid "Indonesia, Republic of"
+#~ msgstr "Indonesia"
+
+#~ msgid "Iran, Islamic Republic of"
+#~ msgstr "Iran"
+
+#~ msgid "Iraq, Republic of"
+#~ msgstr "Iraq"
+
+#~ msgid "Israel, State of"
+#~ msgstr "Israele"
+
+#~ msgid "Italy, Italian Republic"
+#~ msgstr "Italia"
+
+#~ msgid "Jordan, Hashemite Kingdom of"
+#~ msgstr "Giordania"
+
+#~ msgid "Kenya, Republic of"
+#~ msgstr "Kenia"
+
+#~ msgid "Kiribati, Republic of"
+#~ msgstr "Kiribatti"
+
+#~ msgid "Korea, Democratic People's Republic of"
+#~ msgstr "Corea, Repubblica democratica"
+
+#~ msgid "Korea, Republic of"
+#~ msgstr "Corea, Repubblica"
+
+#~ msgid "Kuwait, State of"
+#~ msgstr "Kuwait"
+
+#~ msgid "Kyrgyz Republic"
+#~ msgstr "Kirghizistan"
+
+#~ msgid "Lao People's Democratic Republic"
+#~ msgstr "Laos"
+
+#~ msgid "Lebanon, Lebanese Republic"
+#~ msgstr "Libano"
+
+#~ msgid "Lesotho, Kingdom of"
+#~ msgstr "Lesotho"
+
+#~ msgid "Liberia, Republic of"
+#~ msgstr "Liberia"
+
+#~ msgid "Luxembourg, Grand Duchy of"
+#~ msgstr "Lussemburgo"
+
+#~ msgid "Macao, Special Administrative Region of China"
+#~ msgstr "Macao"
+
+#~ msgid "Macedonia, the former Yugoslav Republic of"
+#~ msgstr "Macedonia"
+
+#~ msgid "Malawi, Republic of"
+#~ msgstr "Malawi"
+
+#~ msgid "Maldives, Republic of"
+#~ msgstr "Maldive"
+
+#~ msgid "Mali, Republic of"
+#~ msgstr "Mali"
+
+#~ msgid "Malta, Republic of"
+#~ msgstr "Malta"
+
+#~ msgid "Mauritania, Islamic Republic of"
+#~ msgstr "Mauritania"
+
+#~ msgid "Mexico, United Mexican States"
+#~ msgstr "Messico"
+
+#~ msgid "Micronesia, Federated States of"
+#~ msgstr "Micronesia"
+
+#~ msgid "Moldova, Republic of"
+#~ msgstr "Moldova"
+
+#~ msgid "Monaco, Principality of"
+#~ msgstr "Monaco"
+
+#~ msgid "Mongolia, Mongolian People's Republic"
+#~ msgstr "Mongolia"
+
+#~ msgid "Morocco, Kingdom of"
+#~ msgstr "Marocco"
+
+#~ msgid "Mozambique, People's Republic of"
+#~ msgstr "Mozambico"
+
+#~ msgid "Nauru, Republic of"
+#~ msgstr "Nauru"
+
+#~ msgid "Nepal, Kingdom of"
+#~ msgstr "Nepal, Regno"
+
+#~ msgid "Netherlands, Kingdom of the"
+#~ msgstr "Olanda"
+
+#~ msgid "Nicaragua, Republic of"
+#~ msgstr "Nicaragua"
+
+#~ msgid "Niger, Republic of the"
+#~ msgstr "Niger"
+
+#~ msgid "Nigeria, Federal Republic of"
+#~ msgstr "Nigeria"
+
+#~ msgid "Niue, Republic of"
+#~ msgstr "Niue"
+
+#~ msgid "Norway, Kingdom of"
+#~ msgstr "Norvegia"
+
+#~ msgid "Oman, Sultanate of"
+#~ msgstr "Oman"
+
+#~ msgid "Pakistan, Islamic Republic of"
+#~ msgstr "Pakistan"
+
+#~ msgid "Panama, Republic of"
+#~ msgstr "Panama"
+
+#~ msgid "Paraguay, Republic of"
+#~ msgstr "Paraguay"
+
+#~ msgid "Peru, Republic of"
+#~ msgstr "Peru"
+
+#~ msgid "Philippines, Republic of the"
+#~ msgstr "Filippine"
+
+#~ msgid "Poland, Polish People's Republic"
+#~ msgstr "Polonia"
+
+#~ msgid "Portugal, Portuguese Republic"
+#~ msgstr "Portogallo"
+
+#~ msgid "Qatar, State of"
+#~ msgstr "Qatar"
+
+#~ msgid "Romania, Socialist Republic of"
+#~ msgstr "Romania"
+
+#~ msgid "Rwanda, Rwandese Republic"
+#~ msgstr "Ruanda"
+
+#~ msgid "Samoa, Independent State of"
+#~ msgstr "Samoa"
+
+#~ msgid "Senegal, Republic of"
+#~ msgstr "Senegal"
+
+#~ msgid "Seychelles, Republic of"
+#~ msgstr "Seychelles"
+
+#~ msgid "Singapore, Republic of"
+#~ msgstr "Singapore"
+
+#~ msgid "Slovakia (Slovak Republic)"
+#~ msgstr "Slovacchia"
+
+#~ msgid "Somalia, Somali Republic"
+#~ msgstr "Somalia"
+
+#~ msgid "Spain, Kingdom of"
+#~ msgstr "Spagna"
+
+#~ msgid "Sri Lanka, Democratic Socialist Republic of"
+#~ msgstr "Sri Lanka"
+
+#~ msgid "Sudan, Democratic Republic of the"
+#~ msgstr "Sudan"
+
+#~ msgid "Suriname, Republic of"
+#~ msgstr "Suriname"
+
+#~ msgid "Switzerland, Swiss Confederation"
+#~ msgstr "Svizzera"
+
+#~ msgid "Taiwan, Province of China"
+#~ msgstr "Taiwan"
+
+#~ msgid "Tanzania, United Republic of"
+#~ msgstr "Tanzania"
+
+#~ msgid "Thailand, Kingdom of"
+#~ msgstr "Tailandia"
+
+#~ msgid "Timor-Leste, Democratic Republic of"
+#~ msgstr "Timor-Leste"
+
+#~ msgid "Togo, Togolese Republic"
+#~ msgstr "Togo"
+
+#~ msgid "Tokelau (Tokelau Islands)"
+#~ msgstr "Tokelau"
+
+#~ msgid "Tonga, Kingdom of"
+#~ msgstr "Tonga"
+
+#~ msgid "Tunisia, Republic of"
+#~ msgstr "Tunisia"
+
+#~ msgid "Turkey, Republic of"
+#~ msgstr "Turchia"
+
+#~ msgid "Uganda, Republic of"
+#~ msgstr "Uganda"
+
+#~ msgid "United Kingdom of Great Britain & N. Ireland"
+#~ msgstr "Gran Bretagna UK"
+
+#~ msgid "Uruguay, Eastern Republic of"
+#~ msgstr "Uruguay"
+
+#~ msgid "Venezuela, Bolivarian Republic of"
+#~ msgstr "Venezuela"
+
+#~ msgid "Viet Nam, Socialist Republic of"
+#~ msgstr "Vietnam"
+
+#~ msgid "Zambia, Republic of"
+#~ msgstr "Zambia"
+
+#~ msgid "Auto-download selected by..."
+#~ msgstr "Auto scarica selezionati da..."
+
+#~ msgid "New search from selected"
+#~ msgstr "Nuova ricerca dalla selezione"
+
+#~ msgid "Add/Replace"
+#~ msgstr "Aggiungi/rimpiazza"
+
+#~ msgid "Force local _IP to"
+#~ msgstr "Forza _IP locale a"
+
+#~ msgid "New/replace"
+#~ msgstr "Nuovo/rimpiazza"

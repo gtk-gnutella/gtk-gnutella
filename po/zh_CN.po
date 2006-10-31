@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-07-01 01:13+0900\n"
+"POT-Creation-Date: 2006-10-31 16:01+0100\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -313,20 +313,6 @@ msgstr "被防御的节点"
 msgid "Gnet connections disabled"
 msgstr "Gnet连接被禁用"
 
-#, fuzzy
-msgid "Unstable IP address"
-msgstr "不稳定的IP地址"
-
-msgid "Servent version appears unstable"
-msgstr "Servent版本看起来不稳定"
-
-msgid "No vendor string supplied"
-msgstr "没有提供制造商的字符串"
-
-#, c-format
-msgid "Not connecting: %s"
-msgstr "没有连接：%s"
-
 msgid "Connection not compressed"
 msgstr "连接没有被压缩"
 
@@ -355,6 +341,20 @@ msgstr "发送防御指示"
 
 msgid "Not an ultra node"
 msgstr "不是一个超级节点"
+
+#, fuzzy
+msgid "Unstable IP address"
+msgstr "不稳定的IP地址"
+
+msgid "Servent version appears unstable"
+msgstr "Servent版本看起来不稳定"
+
+msgid "No vendor string supplied"
+msgstr "没有提供制造商的字符串"
+
+#, c-format
+msgid "Not connecting: %s"
+msgstr "没有连接：%s"
 
 msgid "Protocol not acceptable"
 msgstr "协议不可接受"
@@ -432,6 +432,10 @@ msgstr "HELLO时连接被重置"
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "踢出：消息%1$s过大 (%2$d字节)"
 
+#, fuzzy, c-format
+msgid "Kicked: %s message too big (>= 64KiB limit)"
+msgstr "踢出：消息%1$s过大 (%2$d字节)"
+
 msgid "Read failed (Input Exception)"
 msgstr "读取失败 (输入异常)"
 
@@ -456,6 +460,9 @@ msgid "Failed to create IPv4 UDP socket"
 msgstr ""
 
 msgid "Failed to create IPv6 UDP socket"
+msgstr ""
+
+msgid "Failed to create local socket"
 msgstr ""
 
 msgid "Failed to create listening sockets"
@@ -544,6 +551,9 @@ msgstr "大小"
 msgid "Good bye"
 msgstr "再见"
 
+msgid "Shutdown sequence initiated."
+msgstr ""
+
 msgid "Unknown command"
 msgstr "未知命令"
 
@@ -578,6 +588,9 @@ msgstr[0] "从UDP主机缓存%s中获取到%d个主机：%u"
 
 msgid "Connect back timeout"
 msgstr "返回连接超时"
+
+msgid "Timeout waiting for follow-up"
+msgstr ""
 
 msgid "Lifetime expired"
 msgstr "超出生命周期"
@@ -656,7 +669,7 @@ msgid "IP denying uploads"
 msgstr "IP正拒绝上传"
 
 #, c-format
-msgid " - Newer versions available: release %s / from CVS %s"
+msgid " - Newer versions available: release %s / from SVN %s"
 msgstr ""
 
 #, c-format
@@ -664,7 +677,7 @@ msgid " - Newer version available: release %s"
 msgstr ""
 
 #, c-format
-msgid " - Newer version available: from CVS %s"
+msgid " - Newer version available: from SVN %s"
 msgstr ""
 
 msgid "No proxy"
@@ -1437,6 +1450,10 @@ msgstr "本次会话中已完成的总数"
 msgid "Global Unique IDentifier of this node."
 msgstr "节点的全局唯一标识"
 
+#, fuzzy
+msgid "Kademlia Unique IDentifier of this node in the DHT."
+msgstr "节点的全局唯一标识"
+
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr "是否使用蜂群(建议=YES)"
 
@@ -1768,6 +1785,9 @@ msgstr ""
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr ""
 
+msgid "Whether we meet the UDP requirements to become an Ultra node."
+msgstr ""
+
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
 "are sent on a given connection.  When full, the oldest query is dropped "
@@ -1784,6 +1804,11 @@ msgstr ""
 msgid ""
 "Whether connection to gtk-gnutella via the 'shell' control interface should "
 "be allowed."
+msgstr ""
+
+msgid ""
+"Amount of seconds until an idle remote shell session getsdisconnected. If "
+"set to zero, no timeout occurs."
 msgstr ""
 
 msgid ""
@@ -1831,6 +1856,9 @@ msgid "Time at which we started shared file indexing."
 msgstr ""
 
 msgid "Time spent indexing shared files."
+msgstr ""
+
+msgid "Memory used by the QRP tables"
 msgstr ""
 
 msgid "Time at which we started query routing table generation."
@@ -1991,7 +2019,7 @@ msgid ""
 "overloading can result from gtk-gnutella not getting enough CPU time because "
 "another process is competing for the CPU. Whilst the overloading condition "
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
-"file moving) are suspended."
+"file moving) are slowed down."
 msgstr ""
 
 msgid ""
@@ -2032,6 +2060,19 @@ msgstr ""
 msgid "Debug level for Reliable UDP (RUDP) code."
 msgstr "用于上传的debug级别。"
 
+#, fuzzy
+msgid "Debug level for the Distributed Hash Table (DHT) code."
+msgstr "用于上传的debug级别。"
+
+#, fuzzy
+msgid "Debug level for the OOB-proxying of queries."
+msgstr "动态查询的debug级别。"
+
+msgid ""
+"If set Gtk-Gnutella also listens on a local (unix domain) socketwhich is "
+"located in ~/.gtk-gnutella/socket."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2069,6 +2110,9 @@ msgid "QRP"
 msgstr ""
 
 msgid "HSEP"
+msgstr ""
+
+msgid "RUDP"
 msgstr ""
 
 msgid "Vendor spec."
@@ -2328,6 +2372,9 @@ msgstr ""
 msgid "Discard search results which carry no hashsum."
 msgstr ""
 
+msgid "Jump to newly created searches"
+msgstr ""
+
 msgid "Display download settings."
 msgstr ""
 
@@ -2500,209 +2547,211 @@ msgstr ""
 msgid "Satellite providers"
 msgstr ""
 
+msgid "Andorra"
+msgstr ""
+
+msgid "United Arab Emirates"
+msgstr ""
+
 msgid "Afghanistan"
-msgstr ""
-
-msgid "Albania, People's Socialist Republic of"
-msgstr ""
-
-msgid "Algeria, People's Democratic Republic of"
-msgstr ""
-
-msgid "American Samoa"
-msgstr ""
-
-msgid "Andorra, Principality of"
-msgstr ""
-
-msgid "Angola, Republic of"
-msgstr ""
-
-msgid "Anguilla"
-msgstr ""
-
-msgid "Antarctica (the territory South of 60 deg S)"
 msgstr ""
 
 msgid "Antigua and Barbuda"
 msgstr ""
 
-msgid "Argentina, Argentine Republic"
+msgid "Anguilla"
+msgstr ""
+
+msgid "Albania"
 msgstr ""
 
 msgid "Armenia"
 msgstr ""
 
-msgid "Aruba"
+msgid "Netherlands Antilles"
+msgstr ""
+
+msgid "Angola"
 msgstr ""
 
 msgid "Asia/Pacific Region"
 msgstr ""
 
-msgid "Australia, Commonwealth of"
+msgid "Antarctica"
 msgstr ""
 
-msgid "Austria, Republic of"
+msgid "Argentina"
 msgstr ""
 
-msgid "Azerbaijan, Republic of"
+msgid "American Samoa"
 msgstr ""
 
-msgid "Bahamas, Commonwealth of the"
+msgid "Austria"
 msgstr ""
 
-msgid "Bahrain, Kingdom of"
+msgid "Australia"
 msgstr ""
 
-msgid "Bangladesh, People's Republic of"
+msgid "Aruba"
 msgstr ""
 
-msgid "Barbados"
+msgid "Åland Islands"
 msgstr ""
 
-msgid "Belarus"
-msgstr ""
-
-msgid "Belgium, Kingdom of"
-msgstr ""
-
-msgid "Belize"
-msgstr ""
-
-msgid "Benin, People's Republic of"
-msgstr ""
-
-msgid "Bermuda"
-msgstr ""
-
-msgid "Bhutan, Kingdom of"
-msgstr ""
-
-msgid "Bolivia, Republic of"
+msgid "Azerbaijan"
 msgstr ""
 
 msgid "Bosnia and Herzegovina"
 msgstr ""
 
-msgid "Botswana, Republic of"
+msgid "Barbados"
 msgstr ""
 
-msgid "Bouvet Island (Bouvetoya)"
+msgid "Bangladesh"
 msgstr ""
 
-msgid "Brazil, Federative Republic of"
-msgstr ""
-
-msgid "British Indian Ocean Territory (Chagos Archipelago)"
-msgstr ""
-
-msgid "British Virgin Islands"
-msgstr ""
-
-msgid "Brunei Darussalam"
-msgstr ""
-
-msgid "Bulgaria, People's Republic of"
+msgid "Belgium"
 msgstr ""
 
 msgid "Burkina Faso"
 msgstr ""
 
-msgid "Burundi, Republic of"
+msgid "Bulgaria"
 msgstr ""
 
-msgid "Cambodia, Kingdom of"
+msgid "Bahrain"
 msgstr ""
 
-msgid "Cameroon, United Republic of"
+msgid "Burundi"
+msgstr ""
+
+#, fuzzy
+msgid "Benin"
+msgstr "禁止中"
+
+msgid "Bermuda"
+msgstr ""
+
+msgid "Brunei Darussalam"
+msgstr ""
+
+msgid "Bolivia"
+msgstr ""
+
+msgid "Brazil"
+msgstr ""
+
+msgid "Bahamas"
+msgstr ""
+
+msgid "Bhutan"
+msgstr ""
+
+msgid "Bouvet Island"
+msgstr ""
+
+msgid "Botswana"
+msgstr ""
+
+msgid "Belarus"
+msgstr ""
+
+msgid "Belize"
 msgstr ""
 
 msgid "Canada"
 msgstr ""
 
-msgid "Cape Verde, Republic of"
+msgid "Cocos (Keeling) Islands"
 msgstr ""
 
-msgid "Cayman Islands"
+msgid "Congo (Democratic Republic)"
 msgstr ""
 
 msgid "Central African Republic"
 msgstr ""
 
-msgid "Chad, Republic of"
+msgid "Congo"
 msgstr ""
 
-msgid "Chile, Republic of"
+msgid "Switzerland"
 msgstr ""
 
-msgid "China, People's Republic of"
-msgstr ""
-
-msgid "Christmas Island"
-msgstr ""
-
-msgid "Cocos (Keeling) Islands"
-msgstr ""
-
-msgid "Colombia, Republic of"
-msgstr ""
-
-msgid "Comoros, Union of the"
-msgstr ""
-
-msgid "Congo, Democratic Republic of"
-msgstr ""
-
-msgid "Congo, People's Republic of"
+msgid "Cote d'Ivoire"
 msgstr ""
 
 msgid "Cook Islands"
 msgstr ""
 
-msgid "Costa Rica, Republic of"
+msgid "Chile"
 msgstr ""
 
-msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
+msgid "Cameroon"
 msgstr ""
 
-msgid "Cuba, Republic of"
+msgid "China"
 msgstr ""
 
-msgid "Cyprus, Republic of"
+msgid "Colombia"
+msgstr ""
+
+msgid "Costa Rica"
+msgstr ""
+
+msgid "Serbia and Montenegro"
+msgstr ""
+
+msgid "Cuba"
+msgstr ""
+
+msgid "Cape Verde"
+msgstr ""
+
+msgid "Christmas Island"
+msgstr ""
+
+msgid "Cyprus"
 msgstr ""
 
 msgid "Czech Republic"
 msgstr ""
 
-msgid "Denmark, Kingdom of"
+msgid "Germany"
 msgstr ""
 
-msgid "Djibouti, Republic of"
+msgid "Djibouti"
 msgstr ""
 
-msgid "Dominica, Commonwealth of"
+msgid "Denmark"
+msgstr ""
+
+msgid "Dominica"
 msgstr ""
 
 msgid "Dominican Republic"
 msgstr ""
 
-msgid "Ecuador, Republic of"
+msgid "Algeria"
 msgstr ""
 
-msgid "Egypt, Arab Republic of"
+msgid "Ecuador"
 msgstr ""
 
-msgid "El Salvador, Republic of"
+msgid "Estonia"
 msgstr ""
 
-msgid "Equatorial Guinea, Republic of"
+msgid "Egypt"
+msgstr ""
+
+msgid "Western Sahara"
 msgstr ""
 
 msgid "Eritrea"
 msgstr ""
 
-msgid "Estonia"
-msgstr ""
+#, fuzzy
+msgid "Spain"
+msgstr "空"
 
 msgid "Ethiopia"
 msgstr ""
@@ -2710,517 +2759,537 @@ msgstr ""
 msgid "Europe"
 msgstr ""
 
-msgid "Faeroe Islands"
+msgid "Finland"
+msgstr ""
+
+msgid "Fiji"
 msgstr ""
 
 msgid "Falkland Islands (Malvinas)"
 msgstr ""
 
-msgid "Fiji, Republic of the Fiji Islands"
+msgid "Micronesia"
 msgstr ""
 
-msgid "Finland, Republic of"
+msgid "Faroe Islands"
 msgstr ""
 
-msgid "France, French Republic"
+#, fuzzy
+msgid "France"
+msgstr "取消"
+
+msgid "Gabon"
 msgstr ""
 
-msgid "French Guiana"
-msgstr ""
-
-msgid "French Polynesia"
-msgstr ""
-
-msgid "French Southern Territories"
-msgstr ""
-
-msgid "Gabon, Gabonese Republic"
-msgstr ""
-
-msgid "Gambia, Republic of the"
-msgstr ""
-
-msgid "Georgia"
-msgstr ""
-
-msgid "Germany"
-msgstr ""
-
-msgid "Ghana, Republic of"
-msgstr ""
-
-msgid "Gibraltar"
-msgstr ""
-
-msgid "Greece, Hellenic Republic"
-msgstr ""
-
-msgid "Greenland"
+msgid "United Kingdom"
 msgstr ""
 
 msgid "Grenada"
 msgstr ""
 
-msgid "Guadaloupe"
+msgid "Georgia"
+msgstr ""
+
+msgid "French Guiana"
+msgstr ""
+
+#, fuzzy
+msgid "Guernsey"
+msgstr "未设置"
+
+msgid "Ghana"
+msgstr ""
+
+msgid "Gibraltar"
+msgstr ""
+
+msgid "Greenland"
+msgstr ""
+
+msgid "Gambia"
+msgstr ""
+
+msgid "Guinea"
+msgstr ""
+
+msgid "Guadeloupe"
+msgstr ""
+
+msgid "Equatorial Guinea"
+msgstr ""
+
+msgid "Greece"
+msgstr ""
+
+msgid "South Georgia and The South Sandwich Islands"
+msgstr ""
+
+msgid "Guatemala"
 msgstr ""
 
 msgid "Guam"
 msgstr ""
 
-msgid "Guatemala, Republic of"
+msgid "Guinea-Bissau"
 msgstr ""
 
-msgid "Guinea, Revolutionary People's Rep'c of"
+msgid "Guyana"
 msgstr ""
 
-msgid "Guinea-Bissau, Republic of"
+msgid "Hong Kong"
 msgstr ""
 
-msgid "Guyana, Republic of"
+msgid "Heard Island and McDonald Islands"
 msgstr ""
 
-msgid "Haiti, Republic of"
+msgid "Honduras"
 msgstr ""
 
-msgid "Heard and McDonald Islands"
+msgid "Croatia"
 msgstr ""
 
-msgid "Holy See (Vatican City State)"
+msgid "Haiti"
 msgstr ""
 
-msgid "Honduras, Republic of"
+msgid "Hungary"
 msgstr ""
 
-msgid "Hong Kong, Special Administrative Region of China"
-msgstr ""
-
-msgid "Hrvatska (Croatia)"
-msgstr ""
-
-msgid "Hungary, Hungarian People's Republic"
-msgstr ""
-
-msgid "Iceland, Republic of"
-msgstr ""
-
-msgid "India, Republic of"
-msgstr ""
-
-msgid "Indonesia, Republic of"
-msgstr ""
-
-msgid "Iran, Islamic Republic of"
-msgstr ""
-
-msgid "Iraq, Republic of"
+msgid "Indonesia"
 msgstr ""
 
 msgid "Ireland"
 msgstr ""
 
-msgid "Israel, State of"
+msgid "Israel"
 msgstr ""
 
-msgid "Italy, Italian Republic"
+msgid "Isle of Man"
+msgstr ""
+
+msgid "India"
+msgstr ""
+
+msgid "British Indian Ocean Territory"
+msgstr ""
+
+msgid "Iraq"
+msgstr ""
+
+msgid "Iran"
+msgstr ""
+
+msgid "Iceland"
+msgstr ""
+
+msgid "Italy"
+msgstr ""
+
+msgid "Jersey"
 msgstr ""
 
 msgid "Jamaica"
 msgstr ""
 
+msgid "Jordan"
+msgstr ""
+
 msgid "Japan"
 msgstr ""
 
-msgid "Jordan, Hashemite Kingdom of"
+msgid "Kenya"
 msgstr ""
 
-msgid "Kazakhstan, Republic of"
+msgid "Kyrgyzstan"
 msgstr ""
 
-msgid "Kenya, Republic of"
+msgid "Cambodia"
 msgstr ""
 
-msgid "Kiribati, Republic of"
+msgid "Kiribati"
 msgstr ""
 
-msgid "Korea, Democratic People's Republic of"
+msgid "Comoros"
 msgstr ""
 
-msgid "Korea, Republic of"
+msgid "Saint Kitts and Nevis"
 msgstr ""
 
-msgid "Kuwait, State of"
+msgid "North Korea"
 msgstr ""
 
-msgid "Kyrgyz Republic"
+msgid "South Korea"
 msgstr ""
 
-msgid "Lao People's Democratic Republic"
+msgid "Kuwait"
 msgstr ""
 
-msgid "Latvia"
+msgid "Cayman Islands"
 msgstr ""
 
-msgid "Lebanon, Lebanese Republic"
+msgid "Kazakhstan"
 msgstr ""
 
-msgid "Lesotho, Kingdom of"
+msgid "Laos"
 msgstr ""
 
-msgid "Liberia, Republic of"
+msgid "Lebanon"
 msgstr ""
 
-msgid "Libyan Arab Jamahiriya"
+msgid "Saint lucia"
 msgstr ""
 
-msgid "Liechtenstein, Principality of"
+msgid "Liechtenstein"
+msgstr ""
+
+msgid "Sri Lanka"
+msgstr ""
+
+msgid "Liberia"
+msgstr ""
+
+msgid "Lesotho"
 msgstr ""
 
 msgid "Lithuania"
 msgstr ""
 
-msgid "Luxembourg, Grand Duchy of"
+msgid "Luxembourg"
 msgstr ""
 
-msgid "Macao, Special Administrative Region of China"
+msgid "Latvia"
 msgstr ""
 
-msgid "Macedonia, the former Yugoslav Republic of"
+msgid "Libyan Arab Jamahiriya"
 msgstr ""
 
-msgid "Madagascar, Republic of"
+msgid "Morocco"
 msgstr ""
 
-msgid "Malawi, Republic of"
+msgid "Monaco"
 msgstr ""
 
-msgid "Malaysia"
+msgid "Moldova"
 msgstr ""
 
-msgid "Maldives, Republic of"
+msgid "Montenegro"
 msgstr ""
 
-msgid "Mali, Republic of"
-msgstr ""
-
-msgid "Malta, Republic of"
+msgid "Madagascar"
 msgstr ""
 
 msgid "Marshall Islands"
 msgstr ""
 
-msgid "Martinique"
+msgid "Macedonia"
 msgstr ""
 
-msgid "Mauritania, Islamic Republic of"
-msgstr ""
-
-msgid "Mauritius"
-msgstr ""
-
-msgid "Mayotte"
-msgstr ""
-
-msgid "Mexico, United Mexican States"
-msgstr ""
-
-msgid "Micronesia, Federated States of"
-msgstr ""
-
-msgid "Moldova, Republic of"
-msgstr ""
-
-msgid "Monaco, Principality of"
-msgstr ""
-
-msgid "Mongolia, Mongolian People's Republic"
-msgstr ""
-
-msgid "Montserrat"
-msgstr ""
-
-msgid "Morocco, Kingdom of"
-msgstr ""
-
-msgid "Mozambique, People's Republic of"
+msgid "Mali"
 msgstr ""
 
 msgid "Myanmar"
 msgstr ""
 
-msgid "Namibia"
+msgid "Mongolia"
 msgstr ""
 
-msgid "Nauru, Republic of"
-msgstr ""
-
-msgid "Nepal, Kingdom of"
-msgstr ""
-
-msgid "Netherlands Antilles"
-msgstr ""
-
-msgid "Netherlands, Kingdom of the"
-msgstr ""
-
-msgid "New Caledonia"
-msgstr ""
-
-msgid "New Zealand"
-msgstr ""
-
-msgid "Nicaragua, Republic of"
-msgstr ""
-
-msgid "Niger, Republic of the"
-msgstr ""
-
-msgid "Nigeria, Federal Republic of"
-msgstr ""
-
-msgid "Niue, Republic of"
-msgstr ""
-
-msgid "Norfolk Island"
+msgid "Macao"
 msgstr ""
 
 msgid "Northern Mariana Islands"
 msgstr ""
 
-msgid "Norway, Kingdom of"
+msgid "Martinique"
 msgstr ""
 
-msgid "Oman, Sultanate of"
+msgid "Mauritania"
 msgstr ""
 
-msgid "Pakistan, Islamic Republic of"
+msgid "Montserrat"
 msgstr ""
 
-msgid "Palau"
+msgid "Malta"
 msgstr ""
 
-msgid "Palestinian Territory, Occupied"
+msgid "Mauritius"
 msgstr ""
 
-msgid "Panama, Republic of"
+msgid "Maldives"
+msgstr ""
+
+msgid "Malawi"
+msgstr ""
+
+msgid "Mexico"
+msgstr ""
+
+msgid "Malaysia"
+msgstr ""
+
+msgid "Mozambique"
+msgstr ""
+
+msgid "Namibia"
+msgstr ""
+
+msgid "New Caledonia"
+msgstr ""
+
+msgid "Niger"
+msgstr ""
+
+msgid "Norfolk Island"
+msgstr ""
+
+msgid "Nigeria"
+msgstr ""
+
+msgid "Nicaragua"
+msgstr ""
+
+msgid "Netherlands"
+msgstr ""
+
+msgid "Norway"
+msgstr ""
+
+msgid "Nepal"
+msgstr ""
+
+msgid "Nauru"
+msgstr ""
+
+msgid "Niue"
+msgstr ""
+
+msgid "New Zealand"
+msgstr ""
+
+msgid "Oman"
+msgstr ""
+
+msgid "Panama"
+msgstr ""
+
+#, fuzzy
+msgid "Peru"
+msgstr "点："
+
+msgid "French Polynesia"
 msgstr ""
 
 msgid "Papua New Guinea"
 msgstr ""
 
-msgid "Paraguay, Republic of"
+msgid "Philippines"
 msgstr ""
 
-msgid "Peru, Republic of"
+msgid "Pakistan"
 msgstr ""
 
-msgid "Philippines, Republic of the"
+msgid "Poland"
 msgstr ""
 
-msgid "Pitcairn Island"
+msgid "Saint Pierre and Miquelon"
 msgstr ""
 
-msgid "Poland, Polish People's Republic"
-msgstr ""
-
-msgid "Portugal, Portuguese Republic"
+msgid "Pitcairn"
 msgstr ""
 
 msgid "Puerto Rico"
 msgstr ""
 
-msgid "Qatar, State of"
+msgid "Palestinian Territory"
+msgstr ""
+
+msgid "Portugal"
+msgstr ""
+
+msgid "Palau"
+msgstr ""
+
+msgid "Paraguay"
+msgstr ""
+
+msgid "Qatar"
 msgstr ""
 
 msgid "Reunion"
 msgstr ""
 
-msgid "Romania, Socialist Republic of"
+msgid "Romania"
+msgstr ""
+
+msgid "Serbia"
 msgstr ""
 
 msgid "Russian Federation"
 msgstr ""
 
-msgid "Rwanda, Rwandese Republic"
+msgid "Rwanda"
 msgstr ""
 
-msgid "St. Helena"
-msgstr ""
-
-msgid "St. Kitts and Nevis"
-msgstr ""
-
-msgid "St. Lucia"
-msgstr ""
-
-msgid "St. Pierre and Miquelon"
-msgstr ""
-
-msgid "St. Vincent and the Grenadines"
-msgstr ""
-
-msgid "Samoa, Independent State of"
-msgstr ""
-
-msgid "San Marino, Republic of"
-msgstr ""
-
-msgid "Sao Tome and Principe, Democratic Republic of"
-msgstr ""
-
-msgid "Saudi Arabia, Kingdom of"
-msgstr ""
-
-msgid "Senegal, Republic of"
-msgstr ""
-
-msgid "Serbia and Montenegro"
-msgstr ""
-
-msgid "Seychelles, Republic of"
-msgstr ""
-
-msgid "Sierra Leone, Republic of"
-msgstr ""
-
-msgid "Singapore, Republic of"
-msgstr ""
-
-msgid "Slovakia (Slovak Republic)"
-msgstr ""
-
-msgid "Slovenia"
+msgid "Saudi Arabia"
 msgstr ""
 
 msgid "Solomon Islands"
 msgstr ""
 
-msgid "Somalia, Somali Republic"
+#, fuzzy
+msgid "Seychelles"
+msgstr "搜索"
+
+msgid "Sudan"
 msgstr ""
 
-msgid "South Africa, Republic of"
+msgid "Sweden"
 msgstr ""
 
-msgid "South Georgia and the South Sandwich Islands"
+#, fuzzy
+msgid "Singapore"
+msgstr "忽略"
+
+msgid "Saint Helena"
 msgstr ""
 
-msgid "Spain, Kingdom of"
+msgid "Slovenia"
 msgstr ""
 
-msgid "Sri Lanka, Democratic Socialist Republic of"
+msgid "Svalbard and Jan Mayen"
 msgstr ""
 
-msgid "Sudan, Democratic Republic of the"
+msgid "Slovakia"
 msgstr ""
 
-msgid "Suriname, Republic of"
+msgid "Sierra Leone"
 msgstr ""
 
-msgid "Svalbard & Jan Mayen Islands"
+msgid "San Marino"
 msgstr ""
 
-msgid "Swaziland, Kingdom of"
+msgid "Senegal"
 msgstr ""
 
-msgid "Sweden, Kingdom of"
+msgid "Somalia"
 msgstr ""
 
-msgid "Switzerland, Swiss Confederation"
+msgid "Suriname"
+msgstr ""
+
+msgid "Sao Tome and Principe"
+msgstr ""
+
+msgid "El Salvador"
 msgstr ""
 
 msgid "Syrian Arab Republic"
 msgstr ""
 
-msgid "Taiwan, Province of China"
-msgstr ""
-
-msgid "Tajikistan"
-msgstr ""
-
-msgid "Tanzania, United Republic of"
-msgstr ""
-
-msgid "Thailand, Kingdom of"
-msgstr ""
-
-msgid "Timor-Leste, Democratic Republic of"
-msgstr ""
-
-msgid "Togo, Togolese Republic"
-msgstr ""
-
-msgid "Tokelau (Tokelau Islands)"
-msgstr ""
-
-msgid "Tonga, Kingdom of"
-msgstr ""
-
-msgid "Trinidad and Tobago, Republic of"
-msgstr ""
-
-msgid "Tunisia, Republic of"
-msgstr ""
-
-msgid "Turkey, Republic of"
-msgstr ""
-
-msgid "Turkmenistan"
+msgid "Swaziland"
 msgstr ""
 
 msgid "Turks and Caicos Islands"
 msgstr ""
 
+msgid "Chad"
+msgstr ""
+
+msgid "French Southern Territories"
+msgstr ""
+
+msgid "Togo"
+msgstr ""
+
+msgid "Thailand"
+msgstr ""
+
+msgid "Tajikistan"
+msgstr ""
+
+msgid "Tokelau"
+msgstr ""
+
+msgid "Timor-leste"
+msgstr ""
+
+msgid "Turkmenistan"
+msgstr ""
+
+msgid "Tunisia"
+msgstr ""
+
+msgid "Tonga"
+msgstr ""
+
+msgid "Turkey"
+msgstr ""
+
+msgid "Trinidad and Tobago"
+msgstr ""
+
 msgid "Tuvalu"
 msgstr ""
 
-msgid "US Virgin Islands"
+msgid "Taiwan"
 msgstr ""
 
-msgid "Uganda, Republic of"
+msgid "Tanzania"
 msgstr ""
 
 msgid "Ukraine"
 msgstr ""
 
-msgid "United Arab Emirates"
-msgstr ""
-
-msgid "United Kingdom of Great Britain & N. Ireland"
+msgid "Uganda"
 msgstr ""
 
 msgid "United States Minor Outlying Islands"
 msgstr ""
 
-msgid "United States of America"
+msgid "United States"
 msgstr ""
 
-msgid "Uruguay, Eastern Republic of"
+msgid "Uruguay"
 msgstr ""
 
 msgid "Uzbekistan"
 msgstr ""
 
+msgid "Holy See (Vatican City State)"
+msgstr ""
+
+msgid "Saint Vincent and The Grenadines"
+msgstr ""
+
+msgid "Venezuela"
+msgstr ""
+
+msgid "British Virgin Islands"
+msgstr ""
+
+msgid "U.S. Virgin Islands"
+msgstr ""
+
+msgid "Viet Nam"
+msgstr ""
+
 msgid "Vanuatu"
 msgstr ""
 
-msgid "Venezuela, Bolivarian Republic of"
+msgid "Wallis and Futuna"
 msgstr ""
 
-msgid "Viet Nam, Socialist Republic of"
-msgstr ""
-
-msgid "Wallis and Futuna Islands"
-msgstr ""
-
-msgid "Western Sahara"
+msgid "Samoa"
 msgstr ""
 
 msgid "Yemen"
 msgstr ""
 
-msgid "Yugoslavia"
+msgid "Mayotte"
 msgstr ""
 
-msgid "Zambia, Republic of"
+msgid "South Africa"
+msgstr ""
+
+msgid "Zambia"
 msgstr ""
 
 msgid "Zimbabwe"
@@ -3495,9 +3564,6 @@ msgstr ""
 msgid "RETURN"
 msgstr ""
 
-msgid "RUDP"
-msgstr ""
-
 msgid "Query hit"
 msgstr ""
 
@@ -3505,6 +3571,12 @@ msgid "Improper hops/TTL combination"
 msgstr ""
 
 msgid "Flow control"
+msgstr ""
+
+msgid "Payload inflating error"
+msgstr ""
+
+msgid "Unknown header flags present"
 msgstr ""
 
 msgid "Routing errors"
@@ -3544,6 +3616,12 @@ msgid "Unclaimed locally-generated OOB hits"
 msgstr ""
 
 msgid "Partially claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "Spurious OOB hit claiming received"
 msgstr ""
 
 msgid "Compacted queries"
@@ -3619,6 +3697,15 @@ msgid "Alien UDP messages (non-Gnutella)"
 msgstr ""
 
 msgid "Unprocessed UDP Gnutella messages"
+msgstr ""
+
+msgid "Compressed UDP messages enqueued"
+msgstr ""
+
+msgid "Compressed UDP messages received"
+msgstr ""
+
+msgid "Uncompressed UDP messages due to no gain"
 msgstr ""
 
 msgid "node"
@@ -3814,6 +3901,9 @@ msgid "Queued (%d active, %d passive)"
 msgstr ""
 
 msgid "Waiting"
+msgstr ""
+
+msgid "<none>"
 msgstr ""
 
 #, c-format
@@ -4088,6 +4178,9 @@ msgid ""
 "to File->Preferences->Network."
 msgstr ""
 
+msgid "[Gnet]"
+msgstr ""
+
 msgid "Message/flow control stats"
 msgstr ""
 
@@ -4101,6 +4194,33 @@ msgid "Reason"
 msgstr ""
 
 msgid "_General"
+msgstr ""
+
+msgid "0"
+msgstr ""
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "5"
+msgstr ""
+
+msgid "6"
+msgstr ""
+
+msgid "7"
+msgstr ""
+
+msgid "8+"
 msgstr ""
 
 msgid "FC/_TTL"
@@ -4149,6 +4269,10 @@ msgstr ""
 msgid "Show r_easons for"
 msgstr ""
 
+#, fuzzy
+msgid "[Gnet Stats]"
+msgstr "Gnutella RX 缓冲(_G)："
+
 msgid "Hostcache statistics"
 msgstr ""
 
@@ -4177,6 +4301,9 @@ msgid "Ultrapeers"
 msgstr ""
 
 msgid "Bad hosts"
+msgstr ""
+
+msgid "[Hostcache]"
 msgstr ""
 
 msgid "Uploads"
@@ -4218,6 +4345,9 @@ msgstr ""
 msgid "Max. uploads to a single host"
 msgstr ""
 
+msgid "[Uploads]"
+msgstr ""
+
 msgid "Upload history"
 msgstr ""
 
@@ -4236,14 +4366,30 @@ msgstr ""
 msgid "Fully served "
 msgstr ""
 
+msgid "[BH HTML served]"
+msgstr ""
+
 msgid " / "
+msgstr ""
+
+msgid "[BH HTML]"
 msgstr ""
 
 msgid " HTML and "
 msgstr ""
 
+msgid "[BH qhits served]"
+msgstr ""
+
+msgid "[BH qhits]"
+msgstr ""
+
 msgid " Gnutella browse requests"
 msgstr ""
+
+#, fuzzy
+msgid "[Upload Stats]"
+msgstr "已上传数据："
 
 msgid "Files to get"
 msgstr ""
@@ -4267,13 +4413,13 @@ msgstr ""
 msgid "Detail information"
 msgstr ""
 
-msgid "Filename:"
+msgid "Progress:"
 msgstr ""
 
 msgid "Size:"
 msgstr ""
 
-msgid "Progress:"
+msgid "Filename:"
 msgstr ""
 
 msgid ""
@@ -4284,17 +4430,30 @@ msgid ""
 "which parts of the file have been seen on the network in this session."
 msgstr ""
 
+msgid "SHA1:"
+msgstr ""
+
 msgid "Alternate filenames"
 msgstr ""
 
 msgid "_Purge selected"
 msgstr ""
 
+msgid "[all count]"
+msgstr ""
+
 msgid " registered, "
+msgstr ""
+
+msgid "[with source count]"
 msgstr ""
 
 msgid " with sources"
 msgstr ""
+
+#, fuzzy
+msgid "[Downloads]"
+msgstr "已下载数据："
 
 msgid "Active sources"
 msgstr ""
@@ -4350,6 +4509,13 @@ msgstr ""
 msgid "Clear stopped"
 msgstr ""
 
+#, fuzzy
+msgid "[running]"
+msgstr "禁止中"
+
+msgid "("
+msgstr ""
+
 msgid "active"
 msgstr ""
 
@@ -4359,8 +4525,15 @@ msgstr ""
 msgid "queued"
 msgstr ""
 
+msgid ")"
+msgstr ""
+
 msgid "Show settings"
 msgstr ""
+
+#, fuzzy
+msgid "[Active]"
+msgstr "%u 个活动"
 
 msgid "Inactive sources"
 msgstr ""
@@ -4374,7 +4547,14 @@ msgstr ""
 msgid "Thaw queue"
 msgstr ""
 
+#, fuzzy
+msgid "[queued downloads]"
+msgstr "下载 %1$u/%2$u"
+
 msgid " queued ("
+msgstr ""
+
+msgid "[hosts alive]"
 msgstr ""
 
 msgid " alive with "
@@ -4382,6 +4562,10 @@ msgstr ""
 
 msgid " passive)"
 msgstr ""
+
+#, fuzzy
+msgid "[Queue]"
+msgstr "队列"
 
 msgid "Search results"
 msgstr ""
@@ -4426,9 +4610,6 @@ msgid "Discard results without SHA-1 hashes"
 msgstr ""
 
 msgid "Information about selected file"
-msgstr ""
-
-msgid "SHA1:"
 msgstr ""
 
 msgid "Index:"
@@ -4480,6 +4661,10 @@ msgstr ""
 msgid "_Clear results"
 msgstr ""
 
+#, fuzzy
+msgid "[Search]"
+msgstr "搜索 (_S)"
+
 msgid "Search _monitor enabled"
 msgstr ""
 
@@ -4487,6 +4672,9 @@ msgid "Show _last"
 msgstr ""
 
 msgid "searches"
+msgstr ""
+
+msgid "[Monitor]"
 msgstr ""
 
 msgid "_Update interval (sec)"
@@ -4506,6 +4694,10 @@ msgstr ""
 
 msgid "0 terms counted"
 msgstr ""
+
+#, fuzzy
+msgid "[Search Stats]"
+msgstr "搜索"
 
 msgid "You seem to be offline."
 msgstr ""
@@ -4631,18 +4823,6 @@ msgid ""
 "global pre-filter."
 msgstr ""
 
-msgid "Auto-download selected by..."
-msgstr ""
-
-msgid "name"
-msgstr ""
-
-msgid "urn:sha1"
-msgstr ""
-
-msgid "New search from selected"
-msgstr ""
-
 msgid "Stop this search"
 msgstr ""
 
@@ -4730,6 +4910,10 @@ msgstr "增加IP规则"
 msgid "Add state rule"
 msgstr "增加状态规则"
 
+#, fuzzy
+msgid "[Add/Remove]"
+msgstr "添加/替换"
+
 msgid "invert condition"
 msgstr "反转条件"
 
@@ -4742,17 +4926,25 @@ msgstr "条件：如果文件名匹配"
 msgid "case sensitive"
 msgstr ""
 
-msgid "Add/Replace"
-msgstr "添加/替换"
+msgid "Save"
+msgstr ""
 
 msgid "Remove"
 msgstr ""
+
+#, fuzzy
+msgid "[Filename]"
+msgstr "#|文件名"
 
 msgid "Condition: If IP address matches"
 msgstr "条件：IP地址是否匹配"
 
 #, fuzzy
 msgid "IP address/mask"
+msgstr "IP 地址"
+
+#, fuzzy
+msgid "[IP address]"
 msgstr "IP 地址"
 
 msgid "Condition: If file size matches"
@@ -4767,6 +4959,10 @@ msgstr "最大体积："
 msgid "bytes"
 msgstr "字节"
 
+#, fuzzy
+msgid "[Filesize]"
+msgstr "文件"
+
 msgid "Condition: always"
 msgstr "条件：总是"
 
@@ -4779,6 +4975,9 @@ msgstr ""
 "没有条件。如果此符合此规则，将在指定目标的过滤器中继续尝试匹配。这就是为什么"
 "你不能反转该条件。如果你可以的话，该规则将被忽略。"
 
+msgid "[Jump]"
+msgstr ""
+
 msgid "Condition: If urn:sha1 matches"
 msgstr "条件：如果urn:sha1匹配"
 
@@ -4788,6 +4987,9 @@ msgstr "SHA1 hash(无法编辑，从搜索弹出框中添加)"
 
 msgid "Originally obtained from"
 msgstr "最初获取自"
+
+msgid "[SHA1]"
+msgstr ""
 
 msgid "Condition: If result has flags"
 msgstr "条件：如果结果有标志"
@@ -4807,6 +5009,9 @@ msgstr "设置"
 msgid "Stable"
 msgstr "稳定的"
 
+msgid "[Flags]"
+msgstr ""
+
 #, fuzzy
 msgid "Condition: If current filter result properties match"
 msgstr "条件：如果当前过滤器的结果属性能匹配"
@@ -4823,6 +5028,10 @@ msgstr "做"
 
 msgid "ignore"
 msgstr "忽略"
+
+#, fuzzy
+msgid "[State]"
+msgstr "#|状态"
 
 msgid "Apply"
 msgstr "应用"
@@ -4851,8 +5060,17 @@ msgstr ""
 "\n"
 "请稍候："
 
+msgid "[time]"
+msgstr ""
+
 msgid "About gtk-gnutella"
 msgstr "关于 gtk-gnutella"
+
+msgid "[name and version]"
+msgstr ""
+
+msgid "$Id$"
+msgstr ""
 
 msgid "Original author:"
 msgstr "原作者："
@@ -4947,15 +5165,8 @@ msgstr "当前IP设置 (地址:端口)"
 msgid "not yet determined"
 msgstr "尚未拿定主意"
 
-#, fuzzy
-msgid "Force local _IP to"
-msgstr "指定本地IP为(_I)"
-
 msgid "_Listen port"
 msgstr "侦听端口(_L)"
-
-msgid "Disable: 0, Random: 1"
-msgstr "禁用：0，随机：1"
 
 msgid "Public _hostname"
 msgstr "公开的主机名(_h)"
@@ -4966,6 +5177,31 @@ msgstr "允许 UDP(_U)"
 #, fuzzy
 msgid "Network protocol:"
 msgstr "代理用的协议"
+
+#, fuzzy
+msgid "(Disable: 0, Random: 1)"
+msgstr "禁用：0，随机：1"
+
+#, fuzzy
+msgid "IPv4 settings"
+msgstr "IP 设置"
+
+msgid "Force external IPv_4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "Bind to this address"
+msgstr "返回地址错误"
+
+#, fuzzy
+msgid "IPv6 settings"
+msgstr "IP 设置"
+
+msgid "Force external IPv_6 address to"
+msgstr ""
+
+msgid "Use IPv6-to-IPv4 TRT prefix:"
+msgstr ""
 
 msgid "Proxy settings"
 msgstr "代理设置"
@@ -5025,6 +5261,9 @@ msgstr "实际使用的文件描述符数量。运行时无法被修改。"
 msgid "Currently used"
 msgstr "当前使用"
 
+msgid "[place holder]"
+msgstr ""
+
 msgid "Use global hostiles.txt"
 msgstr "使用全局的hostiles.txt文件"
 
@@ -5042,11 +5281,9 @@ msgstr "时钟扭曲："
 msgid "Miscellaneous"
 msgstr "杂项"
 
-msgid "Enable \"_shell\" control interface"
+#, fuzzy
+msgid "Enable remote _shell control interface"
 msgstr "允许\"shell\"控制界面(_s)"
-
-msgid "Enable \"_Browse Host\" feature"
-msgstr "开启\"浏览主机\"功能"
 
 msgid "Socket receive buffer size"
 msgstr "套接字接收到了缓冲大小"
@@ -5121,6 +5358,9 @@ msgstr "足够的平均在线时间"
 #, fuzzy
 msgid "Enough min # of connections"
 msgstr "连接的足够最小#"
+
+msgid "Engouh UDP support"
+msgstr ""
 
 msgid "Searches"
 msgstr "搜索"
@@ -5222,6 +5462,9 @@ msgid "Number of tolerable _duplicate messages per node"
 msgstr ""
 
 msgid "RX flow control ratio"
+msgstr ""
+
+msgid "%"
 msgstr ""
 
 msgid "Watch for similar queries"
@@ -5522,6 +5765,9 @@ msgstr ""
 msgid "Search _extensions"
 msgstr ""
 
+msgid "Enable \"_Browse Host\" feature"
+msgstr "开启\"浏览主机\"功能"
+
 msgid "Timeouts (all values in seconds)"
 msgstr ""
 
@@ -5618,18 +5864,18 @@ msgstr ""
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr ""
 
-msgid "Try to keep 'dead' entries around for"
-msgstr ""
-
-msgid "Update search results pane every"
-msgstr ""
+#, fuzzy
+msgid "Show _metric units"
+msgstr "显示搜索列表"
 
 msgid "Toolbar style"
 msgstr "工具栏风格"
 
-#, fuzzy
-msgid "Show _metric units"
-msgstr "显示搜索列表"
+msgid "Update search results pane every"
+msgstr ""
+
+msgid "Try to keep 'dead' entries around for"
+msgstr ""
 
 msgid "Expert mode"
 msgstr "高级模式"
@@ -5765,6 +6011,21 @@ msgstr ""
 msgid "Failed to create the search"
 msgstr ""
 
+msgid "UDP"
+msgstr ""
+
+msgid "TCP"
+msgstr ""
+
+msgid "owned"
+msgstr ""
+
+msgid "partial"
+msgstr ""
+
+msgid "shared"
+msgstr ""
+
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
@@ -5796,6 +6057,22 @@ msgstr ""
 #, fuzzy
 msgid "Route"
 msgstr "路由丢失"
+
+msgid "Protocol"
+msgstr ""
+
+msgid "TTL"
+msgstr ""
+
+msgid "Owned"
+msgstr ""
+
+#, fuzzy
+msgid "Hostile"
+msgstr "主机(_o)："
+
+msgid "SHA-1"
+msgstr ""
 
 msgid "Not in database"
 msgstr ""
@@ -5839,9 +6116,6 @@ msgstr ""
 
 #, c-format
 msgid "Retry in %us"
-msgstr ""
-
-msgid "<none>"
 msgstr ""
 
 #, c-format
@@ -5913,15 +6187,6 @@ msgstr "已上传数据："
 msgid "Served "
 msgstr ""
 
-msgid "[BH HTML served]"
-msgstr ""
-
-msgid "[BH HTML]"
-msgstr ""
-
-msgid "[BH qhits]"
-msgstr ""
-
 #, fuzzy
 msgid "Current _search:"
 msgstr "当前使用"
@@ -5951,9 +6216,6 @@ msgstr ""
 msgid "Gnutella stats"
 msgstr "Gnutella RX 缓冲(_G)："
 
-msgid "New/replace"
-msgstr "新建/替换"
-
 msgid "Delete"
 msgstr "删除"
 
@@ -5963,6 +6225,24 @@ msgstr ""
 msgid "Reverse DNS lookup"
 msgstr ""
 
+msgid "Force external IPv4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "_Bind to this address"
+msgstr "返回地址错误"
+
+#, fuzzy
+msgid "IPv_4 settings"
+msgstr "IP 设置"
+
+msgid "Force external IPv6 address to"
+msgstr ""
+
+#, fuzzy
+msgid "IPv_6 settings"
+msgstr "IP 设置"
+
 msgid ""
 "This option can give performance boosts to those on a large network with "
 "many peers by trying to locate files on the local networks first."
@@ -5970,6 +6250,9 @@ msgstr ""
 
 msgid "_Addresses of local network(s)"
 msgstr "本地网络地址 (_A)"
+
+msgid "Enough UDP support"
+msgstr ""
 
 msgid "seconds (0 - disable)"
 msgstr "秒 (0 - 禁用)"
@@ -6032,9 +6315,6 @@ msgstr ""
 msgid "Crawler"
 msgstr ""
 
-msgid "UDP"
-msgstr ""
-
 msgid "Move the cursor over a row to see details."
 msgstr ""
 
@@ -6058,6 +6338,9 @@ msgid "Reverse lookup in progress..."
 msgstr ""
 
 msgid "The normalized search text is too short."
+msgstr ""
+
+msgid " (partial)"
 msgstr ""
 
 msgid "Fresh regular"
@@ -6167,9 +6450,6 @@ msgstr ""
 msgid ""
 "could not rename %s as %s: %s\n"
 "The XML file will not be used unless this problem is resolved."
-msgstr ""
-
-msgid "TCP"
 msgstr ""
 
 msgid "<unparsed>"
@@ -6338,14 +6618,14 @@ msgid "Got push, connecting back..."
 msgstr ""
 
 #, fuzzy, c-format
-msgid "%sCompleted (%s) %s"
+msgid "Completed (%s) %s%s"
 msgstr "完成 (%1$s) %2$s"
 
 msgid "< 1s"
 msgstr ""
 
 #, c-format
-msgid "%s%s(%s) TR: %s"
+msgid "%s(%s) TR: %s %s"
 msgstr ""
 
 msgid "stalled"
@@ -6355,6 +6635,10 @@ msgid "Waiting for headers..."
 msgstr "正等待头部..."
 
 msgid "Waiting for further request..."
+msgstr "正等待进一步的请求..."
+
+#, fuzzy
+msgid "Reading follow-up request..."
 msgstr "正等待进一步的请求..."
 
 msgid "Unavailable range, waiting retry..."
@@ -6378,3 +6662,10 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#, fuzzy
+#~ msgid "Force local _IP to"
+#~ msgstr "指定本地IP为(_I)"
+
+#~ msgid "New/replace"
+#~ msgstr "新建/替换"

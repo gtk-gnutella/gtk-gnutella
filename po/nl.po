@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-07-01 01:13+0900\n"
+"POT-Creation-Date: 2006-10-31 16:01+0100\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -302,19 +302,6 @@ msgstr "Afgeschermde node"
 msgid "Gnet connections disabled"
 msgstr "Gnet connecties uitgeschakeld"
 
-msgid "Unstable IP address"
-msgstr "Instabiel IP-adres"
-
-msgid "Servent version appears unstable"
-msgstr "Servent versie lijkt instabiel"
-
-msgid "No vendor string supplied"
-msgstr "Geen vendor omschrijving gegeven"
-
-#, c-format
-msgid "Not connecting: %s"
-msgstr "Niet verbinden met: %s"
-
 msgid "Connection not compressed"
 msgstr "Verbinding niet gecomprimeerd"
 
@@ -342,6 +329,19 @@ msgstr "Afgeschermd indicatie verzonden"
 
 msgid "Not an ultra node"
 msgstr "Geen ultranode"
+
+msgid "Unstable IP address"
+msgstr "Instabiel IP-adres"
+
+msgid "Servent version appears unstable"
+msgstr "Servent versie lijkt instabiel"
+
+msgid "No vendor string supplied"
+msgstr "Geen vendor omschrijving gegeven"
+
+#, c-format
+msgid "Not connecting: %s"
+msgstr "Niet verbinden met: %s"
 
 msgid "Protocol not acceptable"
 msgstr "Protocol wordt niet ondersteund"
@@ -419,6 +419,10 @@ msgstr "Connectie werd verbroken tijdens HELLO"
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "Verwijderd: %s bericht te groot (%d bytes)"
 
+#, fuzzy, c-format
+msgid "Kicked: %s message too big (>= 64KiB limit)"
+msgstr "Verwijderd: %s bericht te groot (%d bytes)"
+
 msgid "Read failed (Input Exception)"
 msgstr "Lezen mislukt (Invoer fout)"
 
@@ -445,6 +449,10 @@ msgstr "Aanmaken zoekopdracht mislukt"
 
 #, fuzzy
 msgid "Failed to create IPv6 UDP socket"
+msgstr "Aanmaken zoekopdracht mislukt"
+
+#, fuzzy
+msgid "Failed to create local socket"
 msgstr "Aanmaken zoekopdracht mislukt"
 
 #, fuzzy
@@ -531,6 +539,9 @@ msgstr "Grootte"
 msgid "Good bye"
 msgstr "Tot ziens"
 
+msgid "Shutdown sequence initiated."
+msgstr ""
+
 msgid "Unknown command"
 msgstr "Commando onbekend"
 
@@ -566,6 +577,9 @@ msgstr[1] "Ontving %d hosts van de UDP host cache %s:%u"
 
 msgid "Connect back timeout"
 msgstr "Terug verbinden tijd verstreken"
+
+msgid "Timeout waiting for follow-up"
+msgstr ""
 
 msgid "Lifetime expired"
 msgstr "Levenstijd verstreken"
@@ -641,16 +655,16 @@ msgid "IP denying uploads"
 msgstr "IP weigert uploads"
 
 #, c-format
-msgid " - Newer versions available: release %s / from CVS %s"
-msgstr " - Nieuwere versie beschikbaar: Versie %s / van CVS %s"
+msgid " - Newer versions available: release %s / from SVN %s"
+msgstr " - Nieuwere versie beschikbaar: Versie %s / van SVN %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - Nieuwere versie beschikbaar: versie %s"
 
 #, c-format
-msgid " - Newer version available: from CVS %s"
-msgstr " - Nieuwere versie beschikbaar van CVS %s"
+msgid " - Newer version available: from SVN %s"
+msgstr " - Nieuwere versie beschikbaar van SVN %s"
 
 msgid "No proxy"
 msgstr "Geen proxy"
@@ -1544,6 +1558,10 @@ msgstr "Aantal afgeronde uploads tijdens deze sessie."
 msgid "Global Unique IDentifier of this node."
 msgstr "Globale Unieke IDentiteit van deze node."
 
+#, fuzzy
+msgid "Kademlia Unique IDentifier of this node in the DHT."
+msgstr "Globale Unieke IDentiteit van deze node."
+
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr ""
 "Of er wel of geen gebruik moet worden gebruikt van 'swarming' (aangeraden)."
@@ -2020,6 +2038,10 @@ msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr ""
 "Of we voldoen aan de voorwaarden aan bandbreedte om een Ultra node te worden."
 
+#, fuzzy
+msgid "Whether we meet the UDP requirements to become an Ultra node."
+msgstr "Of we voldoende geheugen hebben om een Ultra node te worden."
+
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
 "are sent on a given connection.  When full, the oldest query is dropped "
@@ -2048,6 +2070,11 @@ msgid ""
 msgstr ""
 "Of een verbinding met gtk-gnutella via de \"shell\" controle interface "
 "toegestaan is."
+
+msgid ""
+"Amount of seconds until an idle remote shell session getsdisconnected. If "
+"set to zero, no timeout occurs."
+msgstr ""
 
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
@@ -2117,6 +2144,10 @@ msgstr ""
 
 msgid "Time spent indexing shared files."
 msgstr "Tijd besteed aan het indexeren van gedeelde bestanden."
+
+#, fuzzy
+msgid "Memory used by the QRP tables"
+msgstr "Hoeveelheid slots in gebruik in onze QRP tabel."
 
 msgid "Time at which we started query routing table generation."
 msgstr ""
@@ -2336,13 +2367,14 @@ msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
 msgid "Number of Gnutella browsing requests fully served in this session."
 msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
 
+#, fuzzy
 msgid ""
 "The average CPU usage indicates overloading, so gtk-gnutella is reducing the "
 "amount of non-critical processing it is performing. Note that the "
 "overloading can result from gtk-gnutella not getting enough CPU time because "
 "another process is competing for the CPU. Whilst the overloading condition "
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
-"file moving) are suspended."
+"file moving) are slowed down."
 msgstr ""
 "Het gemiddelde CPU verbruik duidt op te zware belasting. Gtk-gnutella "
 "vermindert het verbruikt van niet kritische taken. Een te zware belasting "
@@ -2403,6 +2435,19 @@ msgstr ""
 msgid "Debug level for Reliable UDP (RUDP) code."
 msgstr "Debug level voor de bestanden delen code."
 
+#, fuzzy
+msgid "Debug level for the Distributed Hash Table (DHT) code."
+msgstr "Debug level voor de bestanden delen code."
+
+#, fuzzy
+msgid "Debug level for the OOB-proxying of queries."
+msgstr "Debug level voor de dynamische zoekopdrachten."
+
+msgid ""
+"If set Gtk-Gnutella also listens on a local (unix domain) socketwhich is "
+"located in ~/.gtk-gnutella/socket."
+msgstr ""
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -2441,6 +2486,9 @@ msgstr "QRP"
 
 msgid "HSEP"
 msgstr "HSEP"
+
+msgid "RUDP"
+msgstr "RUDP"
 
 msgid "Vendor spec."
 msgstr "Verkoper spec."
@@ -2719,6 +2767,9 @@ msgstr ""
 msgid "Discard search results which carry no hashsum."
 msgstr ""
 
+msgid "Jump to newly created searches"
+msgstr ""
+
 msgid "Display download settings."
 msgstr "Download instellingen weergeven."
 
@@ -2932,209 +2983,209 @@ msgstr "Anonieme proxies"
 msgid "Satellite providers"
 msgstr "Sateliet providers"
 
-msgid "Afghanistan"
-msgstr "Afganistan"
-
-msgid "Albania, People's Socialist Republic of"
-msgstr "Albanië"
-
-msgid "Algeria, People's Democratic Republic of"
-msgstr "Algerije"
-
-msgid "American Samoa"
-msgstr "Amerikaans Samoa"
-
-msgid "Andorra, Principality of"
+msgid "Andorra"
 msgstr "Andorra"
 
-msgid "Angola, Republic of"
-msgstr "Angola"
+msgid "United Arab Emirates"
+msgstr "Verenigde Arabische Emiraten (Abu Dhabi, Dubai)"
 
-msgid "Anguilla"
-msgstr "Anguilla"
-
-msgid "Antarctica (the territory South of 60 deg S)"
-msgstr "Antarctica"
+msgid "Afghanistan"
+msgstr "Afganistan"
 
 msgid "Antigua and Barbuda"
 msgstr "Antigua en Barbuda"
 
-msgid "Argentina, Argentine Republic"
-msgstr "Argentinië"
+msgid "Anguilla"
+msgstr "Anguilla"
+
+msgid "Albania"
+msgstr "Albanië"
 
 msgid "Armenia"
 msgstr "Armenië"
 
-msgid "Aruba"
-msgstr "Aruba"
+msgid "Netherlands Antilles"
+msgstr "Nederlandse Antillen"
+
+msgid "Angola"
+msgstr "Angola"
 
 msgid "Asia/Pacific Region"
 msgstr "Asië/Pacific regio"
 
-msgid "Australia, Commonwealth of"
+msgid "Antarctica"
+msgstr "Antarctica"
+
+msgid "Argentina"
+msgstr "Argentinië"
+
+msgid "American Samoa"
+msgstr "Amerikaans Samoa"
+
+msgid "Austria"
 msgstr "Oostenrijk"
 
-msgid "Austria, Republic of"
-msgstr "Oostenrijk, republiek"
+msgid "Australia"
+msgstr "Australië"
 
-msgid "Azerbaijan, Republic of"
-msgstr "Azerbeidzjan, Republiek van"
+msgid "Aruba"
+msgstr "Aruba"
 
-msgid "Bahamas, Commonwealth of the"
-msgstr "Bahama's"
+#, fuzzy
+msgid "Åland Islands"
+msgstr "Caymaneilanden"
 
-msgid "Bahrain, Kingdom of"
-msgstr "Bahrein, Koninkrijk van"
+msgid "Azerbaijan"
+msgstr "Azerbeidzjan"
 
-msgid "Bangladesh, People's Republic of"
-msgstr "Bangladesh"
+msgid "Bosnia and Herzegovina"
+msgstr "Bosnië-Herzegovina"
 
 msgid "Barbados"
 msgstr "Barbados"
 
-msgid "Belarus"
-msgstr "Wit-Rusland"
+msgid "Bangladesh"
+msgstr "Bangladesh"
 
-msgid "Belgium, Kingdom of"
+msgid "Belgium"
 msgstr "België"
 
-msgid "Belize"
-msgstr "Belize"
+msgid "Burkina Faso"
+msgstr "Burnika Faso"
 
-msgid "Benin, People's Republic of"
+msgid "Bulgaria"
+msgstr "Bulgarije"
+
+msgid "Bahrain"
+msgstr "Bahrein"
+
+msgid "Burundi"
+msgstr "Burundi"
+
+msgid "Benin"
 msgstr "Benin"
 
 msgid "Bermuda"
 msgstr "Bermuda"
 
-msgid "Bhutan, Kingdom of"
-msgstr "Bhutan"
-
-msgid "Bolivia, Republic of"
-msgstr "Bolivia"
-
-msgid "Bosnia and Herzegovina"
-msgstr "Bosnië-Herzegovina"
-
-msgid "Botswana, Republic of"
-msgstr "Botswana"
-
-msgid "Bouvet Island (Bouvetoya)"
-msgstr "Bouvet (eiland)"
-
-msgid "Brazil, Federative Republic of"
-msgstr "Brazilië"
-
-msgid "British Indian Ocean Territory (Chagos Archipelago)"
-msgstr "Britse gebiedsdelen in de Indische Oceaan: Chagos Archipel"
-
-msgid "British Virgin Islands"
-msgstr "Britse maagden eilanden"
-
 msgid "Brunei Darussalam"
 msgstr "Brunei"
 
-msgid "Bulgaria, People's Republic of"
-msgstr "Bulgarije"
+msgid "Bolivia"
+msgstr "Bolivia"
 
-msgid "Burkina Faso"
-msgstr "Burnika Faso"
+msgid "Brazil"
+msgstr "Brazilië"
 
-msgid "Burundi, Republic of"
-msgstr "Burundi"
+msgid "Bahamas"
+msgstr "Bahama's"
 
-msgid "Cambodia, Kingdom of"
-msgstr "Cambodja"
+msgid "Bhutan"
+msgstr "Bhutan"
 
-msgid "Cameroon, United Republic of"
-msgstr "Kameroen"
+msgid "Bouvet Island"
+msgstr "Bouvet (eiland)"
+
+msgid "Botswana"
+msgstr "Botswana"
+
+msgid "Belarus"
+msgstr "Wit-Rusland"
+
+msgid "Belize"
+msgstr "Belize"
 
 msgid "Canada"
 msgstr "Canada"
 
-msgid "Cape Verde, Republic of"
-msgstr "Kaapverdische eilanden"
-
-msgid "Cayman Islands"
-msgstr "Caymaneilanden"
+msgid "Cocos (Keeling) Islands"
+msgstr "Cocos (Keeling)"
 
 msgid "Central African Republic"
 msgstr "Centraal-Afrikaanse republiek"
 
-msgid "Chad, Republic of"
-msgstr "Tsjaad"
-
-msgid "Chile, Republic of"
-msgstr "Chili"
-
-msgid "China, People's Republic of"
-msgstr "China (Zhongguo)"
-
-msgid "Christmas Island"
-msgstr "Christmaseiland"
-
-msgid "Cocos (Keeling) Islands"
-msgstr "Cocos (Keeling)"
-
-msgid "Colombia, Republic of"
-msgstr "Colombia"
-
-msgid "Comoros, Union of the"
-msgstr "Comoren"
-
-msgid "Congo, Democratic Republic of"
+msgid "Congo"
 msgstr "Congo"
 
-msgid "Congo, People's Republic of"
-msgstr "Congo, Republiek"
+msgid "Switzerland"
+msgstr ""
+
+msgid "Cote d'Ivoire"
+msgstr ""
 
 msgid "Cook Islands"
 msgstr "Cookeilanden"
 
-msgid "Costa Rica, Republic of"
+msgid "Chile"
+msgstr "Chili"
+
+msgid "Cameroon"
+msgstr "Kameroen"
+
+msgid "China"
+msgstr "China"
+
+msgid "Colombia"
+msgstr "Colombia"
+
+msgid "Costa Rica"
 msgstr "Costa Rica"
 
-msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
-msgstr "Ivoorkust"
+msgid "Serbia and Montenegro"
+msgstr "Servië & Montenegro"
 
-msgid "Cuba, Republic of"
+msgid "Cuba"
 msgstr "Cuba"
 
-msgid "Cyprus, Republic of"
+msgid "Cape Verde"
+msgstr "Kaapverdische eilanden"
+
+msgid "Christmas Island"
+msgstr "Christmaseiland"
+
+msgid "Cyprus"
 msgstr "Cyprus"
 
 msgid "Czech Republic"
 msgstr "Tsjechië"
 
-msgid "Denmark, Kingdom of"
-msgstr "Denemarken"
+msgid "Germany"
+msgstr "Duitsland"
 
-msgid "Djibouti, Republic of"
-msgstr "Djibouti"
+msgid "Djibouti"
+msgstr ""
 
-msgid "Dominica, Commonwealth of"
-msgstr "Dominica"
+msgid "Denmark"
+msgstr ""
+
+#, fuzzy
+msgid "Dominica"
+msgstr "Dominicaanse republiek"
 
 msgid "Dominican Republic"
 msgstr "Dominicaanse republiek"
 
-msgid "Ecuador, Republic of"
+msgid "Algeria"
+msgstr "Algerije"
+
+msgid "Ecuador"
 msgstr "Ecuador"
 
-msgid "Egypt, Arab Republic of"
+msgid "Estonia"
+msgstr "Estland"
+
+msgid "Egypt"
 msgstr "Egypte"
 
-msgid "El Salvador, Republic of"
-msgstr "El Salvador"
-
-msgid "Equatorial Guinea, Republic of"
-msgstr "Equatoriaal-Guinea"
+msgid "Western Sahara"
+msgstr "West-Sahara"
 
 msgid "Eritrea"
 msgstr "Eritrea"
 
-msgid "Estonia"
-msgstr "Estland"
+#, fuzzy
+msgid "Spain"
+msgstr "Ruimte"
 
 msgid "Ethiopia"
 msgstr "Ethiopië"
@@ -3142,518 +3193,588 @@ msgstr "Ethiopië"
 msgid "Europe"
 msgstr "Europa"
 
-msgid "Faeroe Islands"
-msgstr "Faeröer"
+#, fuzzy
+msgid "Finland"
+msgstr "Groenland"
+
+msgid "Fiji"
+msgstr ""
 
 msgid "Falkland Islands (Malvinas)"
 msgstr "Falklandeilanden"
 
-msgid "Fiji, Republic of the Fiji Islands"
-msgstr "Fiji"
+msgid "Micronesia"
+msgstr ""
 
-msgid "Finland, Republic of"
-msgstr "Finland (Suomi Finland)"
+msgid "Faroe Islands"
+msgstr "Faeröer"
 
-msgid "France, French Republic"
+msgid "France"
 msgstr "Frankrijk"
+
+msgid "Gabon"
+msgstr "Gabon"
+
+msgid "United Kingdom"
+msgstr "Verenigd koninkrijk"
+
+msgid "Grenada"
+msgstr "Grenada"
+
+msgid "Georgia"
+msgstr "Geogrië"
 
 msgid "French Guiana"
 msgstr "Frans-Guyana"
 
+#, fuzzy
+msgid "Guernsey"
+msgstr "Duitsland"
+
+msgid "Ghana"
+msgstr ""
+
+msgid "Gibraltar"
+msgstr "Gibraltar"
+
+msgid "Greenland"
+msgstr "Groenland"
+
+msgid "Gambia"
+msgstr "Gambia"
+
+#, fuzzy
+msgid "Guinea"
+msgstr "Algemeen"
+
+#, fuzzy
+msgid "Guadeloupe"
+msgstr "Guadeloupe"
+
+#, fuzzy
+msgid "Equatorial Guinea"
+msgstr "Equatoriaal-Guinea"
+
+msgid "Greece"
+msgstr ""
+
+#, fuzzy
+msgid "South Georgia and The South Sandwich Islands"
+msgstr "Zuid-Georgia en de Zuidelijke Sandwicheilanden"
+
+#, fuzzy
+msgid "Guatemala"
+msgstr "Guam"
+
+msgid "Guam"
+msgstr "Guam"
+
+#, fuzzy
+msgid "Guinea-Bissau"
+msgstr "Guinee-Bissau"
+
+#, fuzzy
+msgid "Guyana"
+msgstr "Myanmar"
+
+msgid "Hong Kong"
+msgstr ""
+
+#, fuzzy
+msgid "Heard Island and McDonald Islands"
+msgstr "Heard en McDonald"
+
+msgid "Honduras"
+msgstr ""
+
+#, fuzzy
+msgid "Croatia"
+msgstr "Letland"
+
+#, fuzzy
+msgid "Haiti"
+msgstr "Aan het wachten"
+
+msgid "Hungary"
+msgstr ""
+
+msgid "Indonesia"
+msgstr ""
+
+msgid "Ireland"
+msgstr "Ierland"
+
+#, fuzzy
+msgid "Israel"
+msgstr "Ierland"
+
+msgid "Isle of Man"
+msgstr ""
+
+msgid "India"
+msgstr ""
+
+#, fuzzy
+msgid "British Indian Ocean Territory"
+msgstr "Britse gebiedsdelen in de Indische Oceaan: Chagos Archipel"
+
+msgid "Iraq"
+msgstr ""
+
+#, fuzzy
+msgid "Iran"
+msgstr "Ierland"
+
+#, fuzzy
+msgid "Iceland"
+msgstr "Ierland"
+
+msgid "Italy"
+msgstr ""
+
+msgid "Jersey"
+msgstr ""
+
+msgid "Jamaica"
+msgstr "Jamaica"
+
+msgid "Jordan"
+msgstr ""
+
+msgid "Japan"
+msgstr "Japan"
+
+msgid "Kenya"
+msgstr ""
+
+msgid "Kyrgyzstan"
+msgstr ""
+
+msgid "Cambodia"
+msgstr "Cambodja"
+
+msgid "Kiribati"
+msgstr ""
+
+msgid "Comoros"
+msgstr "Comoren"
+
+msgid "Saint Kitts and Nevis"
+msgstr "Sint Kitss en Nevis"
+
+msgid "North Korea"
+msgstr ""
+
+msgid "South Korea"
+msgstr ""
+
+msgid "Kuwait"
+msgstr ""
+
+msgid "Cayman Islands"
+msgstr "Caymaneilanden"
+
+#, fuzzy
+msgid "Kazakhstan"
+msgstr "Kazachstan"
+
+msgid "Laos"
+msgstr ""
+
+#, fuzzy
+msgid "Lebanon"
+msgstr "Reden"
+
+#, fuzzy
+msgid "Saint lucia"
+msgstr "Sint Lucia"
+
+#, fuzzy
+msgid "Liechtenstein"
+msgstr "Liechtenstein"
+
+msgid "Sri Lanka"
+msgstr ""
+
+msgid "Liberia"
+msgstr ""
+
+msgid "Lesotho"
+msgstr ""
+
+msgid "Lithuania"
+msgstr "Litouwen (Lietuva)"
+
+msgid "Luxembourg"
+msgstr ""
+
+msgid "Latvia"
+msgstr "Letland"
+
+msgid "Libyan Arab Jamahiriya"
+msgstr "Libië"
+
+msgid "Morocco"
+msgstr ""
+
+#, fuzzy
+msgid "Monaco"
+msgstr "Monitor"
+
+msgid "Moldova"
+msgstr ""
+
+#, fuzzy
+msgid "Montenegro"
+msgstr "Servië & Montenegro"
+
+#, fuzzy
+msgid "Madagascar"
+msgstr "Madagaskar"
+
+msgid "Marshall Islands"
+msgstr "Marshalleilanden"
+
+#, fuzzy
+msgid "Macedonia"
+msgstr "Nieuw-Caledonië"
+
+#, fuzzy
+msgid "Mali"
+msgstr "Maleisië"
+
+msgid "Myanmar"
+msgstr "Myanmar"
+
+msgid "Mongolia"
+msgstr ""
+
+msgid "Macao"
+msgstr ""
+
+msgid "Northern Mariana Islands"
+msgstr "Noordelijke Marianen-eilanden"
+
+msgid "Martinique"
+msgstr "Martinique"
+
+#, fuzzy
+msgid "Mauritania"
+msgstr "Mauritius"
+
+msgid "Montserrat"
+msgstr "Montserrat"
+
+#, fuzzy
+msgid "Malta"
+msgstr "Maleisië"
+
+msgid "Mauritius"
+msgstr "Mauritius"
+
+msgid "Maldives"
+msgstr ""
+
+#, fuzzy
+msgid "Malawi"
+msgstr "Maleisië"
+
+msgid "Mexico"
+msgstr ""
+
+msgid "Malaysia"
+msgstr "Maleisië"
+
+msgid "Mozambique"
+msgstr ""
+
+msgid "Namibia"
+msgstr "Namibië"
+
+msgid "New Caledonia"
+msgstr "Nieuw-Caledonië"
+
+msgid "Niger"
+msgstr ""
+
+msgid "Norfolk Island"
+msgstr "Norfolk (eiland)"
+
+msgid "Nigeria"
+msgstr ""
+
+msgid "Nicaragua"
+msgstr ""
+
+#, fuzzy
+msgid "Netherlands"
+msgstr "Nederlandse Antillen"
+
+msgid "Norway"
+msgstr ""
+
+msgid "Nepal"
+msgstr ""
+
+msgid "Nauru"
+msgstr ""
+
+msgid "Niue"
+msgstr ""
+
+msgid "New Zealand"
+msgstr "Nieuw-Zeeland"
+
+msgid "Oman"
+msgstr ""
+
+#, fuzzy
+msgid "Panama"
+msgstr "Canada"
+
+#, fuzzy
+msgid "Peru"
+msgstr "Peer:"
+
 msgid "French Polynesia"
 msgstr "Frans Polynesië (Tahiti)"
+
+msgid "Papua New Guinea"
+msgstr "Papua Nieuw-Guinea"
+
+msgid "Philippines"
+msgstr ""
+
+#, fuzzy
+msgid "Pakistan"
+msgstr "Tadzjikistan"
+
+#, fuzzy
+msgid "Poland"
+msgstr "Ierland"
+
+#, fuzzy
+msgid "Saint Pierre and Miquelon"
+msgstr "Sint Pierre en Miquelon"
+
+#, fuzzy
+msgid "Pitcairn"
+msgstr "Pitcairn (eiland)"
+
+msgid "Puerto Rico"
+msgstr "Puerto Rico"
+
+#, fuzzy
+msgid "Palestinian Territory"
+msgstr "Palestijnse bezette gebieden"
+
+#, fuzzy
+msgid "Portugal"
+msgstr "Totaal"
+
+msgid "Palau"
+msgstr "Palau"
+
+#, fuzzy
+msgid "Paraguay"
+msgstr "Palau"
+
+msgid "Qatar"
+msgstr ""
+
+msgid "Reunion"
+msgstr "Reunion"
+
+msgid "Romania"
+msgstr ""
+
+#, fuzzy
+msgid "Serbia"
+msgstr "Geogrië"
+
+msgid "Russian Federation"
+msgstr "Rusland"
+
+#, fuzzy
+msgid "Rwanda"
+msgstr "Canada"
+
+#, fuzzy
+msgid "Saudi Arabia"
+msgstr "Saoedi-Arabië"
+
+msgid "Solomon Islands"
+msgstr "Salomnseilanden"
+
+#, fuzzy
+msgid "Seychelles"
+msgstr "Zoek opdrachten"
+
+msgid "Sudan"
+msgstr ""
+
+msgid "Sweden"
+msgstr ""
+
+#, fuzzy
+msgid "Singapore"
+msgstr "negeer"
+
+#, fuzzy
+msgid "Saint Helena"
+msgstr "Sint Helena"
+
+msgid "Slovenia"
+msgstr "Slovenië"
+
+#, fuzzy
+msgid "Svalbard and Jan Mayen"
+msgstr "Svalbard en Jan Mayen (eilanden)"
+
+#, fuzzy
+msgid "Slovakia"
+msgstr "Slovenië"
+
+#, fuzzy
+msgid "Sierra Leone"
+msgstr "Sierra Leone"
+
+#, fuzzy
+msgid "San Marino"
+msgstr "San Marino"
+
+#, fuzzy
+msgid "Senegal"
+msgstr "Algemeen"
+
+msgid "Somalia"
+msgstr ""
+
+#, fuzzy
+msgid "Suriname"
+msgstr "naam"
+
+#, fuzzy
+msgid "Sao Tome and Principe"
+msgstr "Sao Tomé en Principe (eilanden)"
+
+#, fuzzy
+msgid "El Salvador"
+msgstr "El Salvador"
+
+msgid "Syrian Arab Republic"
+msgstr "Syrië"
+
+msgid "Swaziland"
+msgstr ""
+
+msgid "Turks and Caicos Islands"
+msgstr "Turks- en Caicoseilanden"
+
+msgid "Chad"
+msgstr "Tsjaad"
 
 msgid "French Southern Territories"
 msgstr ""
 "Franse Zuidelijke gebieden (Terres Australes et Antarctiques Francaises)"
 
-msgid "Gabon, Gabonese Republic"
-msgstr "Gabon"
-
-msgid "Gambia, Republic of the"
-msgstr "Gambia"
-
-msgid "Georgia"
-msgstr "Geogrië"
-
-msgid "Germany"
-msgstr "Duitsland"
-
-msgid "Ghana, Republic of"
-msgstr "Ghana"
-
-msgid "Gibraltar"
-msgstr "Gibraltar"
-
-msgid "Greece, Hellenic Republic"
-msgstr "Griekenland"
-
-msgid "Greenland"
-msgstr "Groenland"
-
-msgid "Grenada"
-msgstr "Grenada"
-
-msgid "Guadaloupe"
-msgstr "Guadeloupe"
-
-msgid "Guam"
-msgstr "Guam"
-
-msgid "Guatemala, Republic of"
-msgstr "Guatemala"
-
-msgid "Guinea, Revolutionary People's Rep'c of"
-msgstr "Republiek Guinee"
-
-msgid "Guinea-Bissau, Republic of"
-msgstr "Guinee-Bissau"
-
-msgid "Guyana, Republic of"
-msgstr "Guyana"
-
-msgid "Haiti, Republic of"
-msgstr "Haïti"
-
-msgid "Heard and McDonald Islands"
-msgstr "Heard en McDonald"
-
-msgid "Holy See (Vatican City State)"
-msgstr "Holy See"
-
-msgid "Honduras, Republic of"
-msgstr "Honduras"
-
-msgid "Hong Kong, Special Administrative Region of China"
-msgstr "Honkong"
-
-msgid "Hrvatska (Croatia)"
-msgstr "Hrvatska (Croatië)"
-
-msgid "Hungary, Hungarian People's Republic"
-msgstr "Hongarije"
-
-msgid "Iceland, Republic of"
-msgstr "IJsland"
-
-msgid "India, Republic of"
-msgstr "India"
-
-msgid "Indonesia, Republic of"
-msgstr "Indonesië"
-
-msgid "Iran, Islamic Republic of"
-msgstr "Iran"
-
-msgid "Iraq, Republic of"
-msgstr "Irak"
-
-msgid "Ireland"
-msgstr "Ierland"
-
-msgid "Israel, State of"
-msgstr "Israël"
-
-msgid "Italy, Italian Republic"
-msgstr "Italië"
-
-msgid "Jamaica"
-msgstr "Jamaica"
-
-msgid "Japan"
-msgstr "Japan"
-
-msgid "Jordan, Hashemite Kingdom of"
-msgstr "Jordanië"
-
-msgid "Kazakhstan, Republic of"
-msgstr "Kazachstan"
-
-msgid "Kenya, Republic of"
-msgstr "Kenya"
-
-msgid "Kiribati, Republic of"
-msgstr "Kiribati"
-
-msgid "Korea, Democratic People's Republic of"
-msgstr "Korea"
-
-msgid "Korea, Republic of"
-msgstr "Korea, Republiek"
-
-msgid "Kuwait, State of"
-msgstr "Koeweit"
-
-msgid "Kyrgyz Republic"
-msgstr "Kirgizië"
-
-msgid "Lao People's Democratic Republic"
-msgstr "Laos"
-
-msgid "Latvia"
-msgstr "Letland"
-
-msgid "Lebanon, Lebanese Republic"
-msgstr "Libanon"
-
-msgid "Lesotho, Kingdom of"
-msgstr "Lesotho"
-
-msgid "Liberia, Republic of"
-msgstr "Liberia"
-
-msgid "Libyan Arab Jamahiriya"
-msgstr "Libië"
-
-msgid "Liechtenstein, Principality of"
-msgstr "Liechtenstein"
-
-msgid "Lithuania"
-msgstr "Litouwen (Lietuva)"
-
-msgid "Luxembourg, Grand Duchy of"
-msgstr "Luxemburg"
-
-msgid "Macao, Special Administrative Region of China"
-msgstr "Macau (Aomen)"
-
-msgid "Macedonia, the former Yugoslav Republic of"
-msgstr "Macedonie"
-
-msgid "Madagascar, Republic of"
-msgstr "Madagaskar"
-
-msgid "Malawi, Republic of"
-msgstr "Malawi"
-
-msgid "Malaysia"
-msgstr "Maleisië"
-
-msgid "Maldives, Republic of"
-msgstr "Maldiven"
-
-msgid "Mali, Republic of"
-msgstr "Mali"
-
-msgid "Malta, Republic of"
-msgstr "Malta"
-
-msgid "Marshall Islands"
-msgstr "Marshalleilanden"
-
-msgid "Martinique"
-msgstr "Martinique"
-
-msgid "Mauritania, Islamic Republic of"
-msgstr "Mauritanië"
-
-msgid "Mauritius"
-msgstr "Mauritius"
-
-msgid "Mayotte"
-msgstr "Mayotte"
-
-msgid "Mexico, United Mexican States"
-msgstr "Mexico"
-
-msgid "Micronesia, Federated States of"
-msgstr "Micronesia"
-
-msgid "Moldova, Republic of"
-msgstr "Moldova"
-
-msgid "Monaco, Principality of"
-msgstr "Monaco"
-
-msgid "Mongolia, Mongolian People's Republic"
-msgstr "Mongolië"
-
-msgid "Montserrat"
-msgstr "Montserrat"
-
-msgid "Morocco, Kingdom of"
-msgstr "Marokko"
-
-msgid "Mozambique, People's Republic of"
-msgstr "Mozambique"
-
-msgid "Myanmar"
-msgstr "Myanmar"
-
-msgid "Namibia"
-msgstr "Namibië"
-
-msgid "Nauru, Republic of"
-msgstr "Nauru"
-
-msgid "Nepal, Kingdom of"
-msgstr "Nepal"
-
-msgid "Netherlands Antilles"
-msgstr "Nederlandse Antillen"
-
-msgid "Netherlands, Kingdom of the"
-msgstr "Nederlanden, Koninkrijk der"
-
-msgid "New Caledonia"
-msgstr "Nieuw-Caledonië"
-
-msgid "New Zealand"
-msgstr "Nieuw-Zeeland"
-
-msgid "Nicaragua, Republic of"
-msgstr "Nicaragua"
-
-msgid "Niger, Republic of the"
-msgstr "Niger"
-
-msgid "Nigeria, Federal Republic of"
-msgstr "Nigeria"
-
-msgid "Niue, Republic of"
-msgstr "Niue"
-
-msgid "Norfolk Island"
-msgstr "Norfolk (eiland)"
-
-msgid "Northern Mariana Islands"
-msgstr "Noordelijke Marianen-eilanden"
-
-msgid "Norway, Kingdom of"
-msgstr "Noorwegen"
-
-msgid "Oman, Sultanate of"
-msgstr "Oman"
-
-msgid "Pakistan, Islamic Republic of"
-msgstr "Pakistan"
-
-msgid "Palau"
-msgstr "Palau"
-
-msgid "Palestinian Territory, Occupied"
-msgstr "Palestijnse bezette gebieden"
-
-msgid "Panama, Republic of"
-msgstr "Panama"
-
-msgid "Papua New Guinea"
-msgstr "Papua Nieuw-Guinea"
-
-msgid "Paraguay, Republic of"
-msgstr "Paraguay"
-
-msgid "Peru, Republic of"
-msgstr "Peru"
-
-msgid "Philippines, Republic of the"
-msgstr "Filipijnen"
-
-msgid "Pitcairn Island"
-msgstr "Pitcairn (eiland)"
-
-msgid "Poland, Polish People's Republic"
-msgstr "Polen"
-
-msgid "Portugal, Portuguese Republic"
-msgstr "Portugal"
-
-msgid "Puerto Rico"
-msgstr "Puerto Rico"
-
-msgid "Qatar, State of"
-msgstr "Qatar"
-
-msgid "Reunion"
-msgstr "Reunion"
-
-msgid "Romania, Socialist Republic of"
-msgstr "Roemenië"
-
-msgid "Russian Federation"
-msgstr "Rusland"
-
-msgid "Rwanda, Rwandese Republic"
-msgstr "Rwanda"
-
-msgid "St. Helena"
-msgstr "Sint Helena"
-
-msgid "St. Kitts and Nevis"
-msgstr "Sint Kitss en Nevis"
-
-msgid "St. Lucia"
-msgstr "Sint Lucia"
-
-msgid "St. Pierre and Miquelon"
-msgstr "Sint Pierre en Miquelon"
-
-msgid "St. Vincent and the Grenadines"
-msgstr "Sint Vincent en de Grenadinen"
-
-msgid "Samoa, Independent State of"
-msgstr "Samoa"
-
-msgid "San Marino, Republic of"
-msgstr "San Marino"
-
-msgid "Sao Tome and Principe, Democratic Republic of"
-msgstr "Sao Tomé en Principe (eilanden)"
-
-msgid "Saudi Arabia, Kingdom of"
-msgstr "Saoedi-Arabië"
-
-msgid "Senegal, Republic of"
-msgstr "Senegal"
-
-msgid "Serbia and Montenegro"
-msgstr "Servië & Montenegro"
-
-msgid "Seychelles, Republic of"
-msgstr "Seychellen"
-
-msgid "Sierra Leone, Republic of"
-msgstr "Sierra Leone"
-
-msgid "Singapore, Republic of"
-msgstr "Singapore"
-
-msgid "Slovakia (Slovak Republic)"
-msgstr "Slowakije"
-
-msgid "Slovenia"
-msgstr "Slovenië"
-
-msgid "Solomon Islands"
-msgstr "Salomnseilanden"
-
-msgid "Somalia, Somali Republic"
-msgstr "Somalië"
-
-msgid "South Africa, Republic of"
-msgstr "Zuid-Afrika"
-
-msgid "South Georgia and the South Sandwich Islands"
-msgstr "Zuid-Georgia en de Zuidelijke Sandwicheilanden"
-
-msgid "Spain, Kingdom of"
-msgstr "Spanje"
-
-msgid "Sri Lanka, Democratic Socialist Republic of"
-msgstr "Sri Lanka"
-
-msgid "Sudan, Democratic Republic of the"
-msgstr "Soedan"
-
-msgid "Suriname, Republic of"
-msgstr "Suriname"
-
-msgid "Svalbard & Jan Mayen Islands"
-msgstr "Svalbard en Jan Mayen (eilanden)"
-
-msgid "Swaziland, Kingdom of"
-msgstr "Swaziland"
-
-msgid "Sweden, Kingdom of"
-msgstr "Zweden"
-
-msgid "Switzerland, Swiss Confederation"
-msgstr "Zwitserland"
-
-msgid "Syrian Arab Republic"
-msgstr "Syrië"
-
-msgid "Taiwan, Province of China"
-msgstr "Taiwan"
+msgid "Togo"
+msgstr "Togo"
+
+msgid "Thailand"
+msgstr ""
 
 msgid "Tajikistan"
 msgstr "Tadzjikistan"
 
-msgid "Tanzania, United Republic of"
-msgstr "Tanzania"
+msgid "Tokelau"
+msgstr ""
 
-msgid "Thailand, Kingdom of"
-msgstr "Thailand"
-
-msgid "Timor-Leste, Democratic Republic of"
-msgstr "Oost-Timor"
-
-msgid "Togo, Togolese Republic"
-msgstr "Togo"
-
-msgid "Tokelau (Tokelau Islands)"
-msgstr "Tokelau"
-
-msgid "Tonga, Kingdom of"
-msgstr "Tonga"
-
-msgid "Trinidad and Tobago, Republic of"
-msgstr "Trinidad en Tobago"
-
-msgid "Tunisia, Republic of"
-msgstr "Tunesië"
-
-msgid "Turkey, Republic of"
-msgstr "Turkije"
+msgid "Timor-leste"
+msgstr ""
 
 msgid "Turkmenistan"
 msgstr "Turkmenistan"
 
-msgid "Turks and Caicos Islands"
-msgstr "Turks- en Caicoseilanden"
+msgid "Tunisia"
+msgstr "Tunesië"
+
+msgid "Tonga"
+msgstr "Tonga"
+
+msgid "Turkey"
+msgstr "Turkije"
+
+msgid "Trinidad and Tobago"
+msgstr "Trinidad en Tobago"
 
 msgid "Tuvalu"
 msgstr "Tuvalu"
 
-msgid "US Virgin Islands"
-msgstr "VS Maagden eilanden"
+msgid "Taiwan"
+msgstr "Taiwan"
 
-msgid "Uganda, Republic of"
-msgstr "Oeganda"
+msgid "Tanzania"
+msgstr ""
 
 msgid "Ukraine"
 msgstr "Oekraïne"
 
-msgid "United Arab Emirates"
-msgstr "Verenigde Arabische Emiraten (Abu Dhabi, Dubai)"
-
-msgid "United Kingdom of Great Britain & N. Ireland"
-msgstr "Verenigd koninkrijk (Groot-Brittanië)"
+msgid "Uganda"
+msgstr "Oeganda"
 
 msgid "United States Minor Outlying Islands"
 msgstr "Verenigde staten Minor Outlying eilanden"
 
-msgid "United States of America"
+msgid "United States"
 msgstr "Verenigde staten van Amerika"
 
-msgid "Uruguay, Eastern Republic of"
+msgid "Uruguay"
 msgstr "Uruguay"
 
 msgid "Uzbekistan"
 msgstr "Oezbekistan"
 
+msgid "Holy See (Vatican City State)"
+msgstr "Holy See"
+
+#, fuzzy
+msgid "Saint Vincent and The Grenadines"
+msgstr "Sint Vincent en de Grenadinen"
+
+msgid "Venezuela"
+msgstr "Venezuela"
+
+msgid "British Virgin Islands"
+msgstr "Britse maagden eilanden"
+
+#, fuzzy
+msgid "U.S. Virgin Islands"
+msgstr "VS Maagden eilanden"
+
+msgid "Viet Nam"
+msgstr "Vietnam"
+
 msgid "Vanuatu"
 msgstr "Vanuatu"
 
-msgid "Venezuela, Bolivarian Republic of"
-msgstr "Venezuela"
-
-msgid "Viet Nam, Socialist Republic of"
-msgstr "Vietnam"
-
-msgid "Wallis and Futuna Islands"
+#, fuzzy
+msgid "Wallis and Futuna"
 msgstr "Wallis en Futuna (eilanden)"
 
-msgid "Western Sahara"
-msgstr "West-Sahara"
+msgid "Samoa"
+msgstr ""
 
 msgid "Yemen"
 msgstr "Jemen"
 
-msgid "Yugoslavia"
-msgstr "Joegoslavië"
+msgid "Mayotte"
+msgstr "Mayotte"
 
-msgid "Zambia, Republic of"
+msgid "South Africa"
+msgstr "Zuid-Afrika"
+
+msgid "Zambia"
 msgstr "Zambia"
 
 msgid "Zimbabwe"
@@ -3932,10 +4053,6 @@ msgstr "Algemeen (achteraf)"
 msgid "RETURN"
 msgstr "TERUG"
 
-#, fuzzy
-msgid "RUDP"
-msgstr "UDP"
-
 msgid "Query hit"
 msgstr "Zoekresultaat"
 
@@ -3944,6 +4061,12 @@ msgstr "Ongeldige hops/TTL combinatie"
 
 msgid "Flow control"
 msgstr "Flow control"
+
+msgid "Payload inflating error"
+msgstr ""
+
+msgid "Unknown header flags present"
+msgstr ""
 
 msgid "Routing errors"
 msgstr "Errors dmv routeren"
@@ -3983,6 +4106,13 @@ msgstr "Ongevraagde lokaal gegenereerde OOB resultaat"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Gedeeltelijke toegeeiste lokaal gegenereerde OOB resultaten"
+
+#, fuzzy
+msgid "Unrequested OOB hits received"
+msgstr "Opdrachten die OOB bezorging verzoeken"
+
+msgid "Spurious OOB hit claiming received"
+msgstr ""
 
 msgid "Compacted queries"
 msgstr "Verkleinde zoekopdrachten"
@@ -4058,6 +4188,18 @@ msgid "Alien UDP messages (non-Gnutella)"
 msgstr "Vreemde UDP berichten (niet-Gnutella)"
 
 msgid "Unprocessed UDP Gnutella messages"
+msgstr "Niet verwerkte UDP Gnutella berichten"
+
+#, fuzzy
+msgid "Compressed UDP messages enqueued"
+msgstr "Niet verwerkte UDP Gnutella berichten"
+
+#, fuzzy
+msgid "Compressed UDP messages received"
+msgstr "Niet verwerkte UDP Gnutella berichten"
+
+#, fuzzy
+msgid "Uncompressed UDP messages due to no gain"
 msgstr "Niet verwerkte UDP Gnutella berichten"
 
 msgid "node"
@@ -4265,6 +4407,9 @@ msgstr "In de wacht(%d actief, %d passief)"
 
 msgid "Waiting"
 msgstr "Aan het wachten"
+
+msgid "<none>"
+msgstr "<geen>"
 
 #, c-format
 msgid "%s (%s bytes)"
@@ -4534,6 +4679,9 @@ msgstr ""
 "Het huidige IP-adres en de luisterende poort voor deze node. Om deze waarde "
 "te wijzigen ga dan naar: Bestand->Configuratie->Netwerk."
 
+msgid "[Gnet]"
+msgstr ""
+
 msgid "Message/flow control stats"
 msgstr "berichten/flow control statistieken"
 
@@ -4548,6 +4696,33 @@ msgstr "Reden"
 
 msgid "_General"
 msgstr "Algemeen"
+
+msgid "0"
+msgstr ""
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "5"
+msgstr ""
+
+msgid "6"
+msgstr ""
+
+msgid "7"
+msgstr ""
+
+msgid "8+"
+msgstr ""
 
 msgid "FC/_TTL"
 msgstr "FC/_TTL"
@@ -4594,6 +4769,10 @@ msgstr "Toon pr_otocol:"
 msgid "Show r_easons for"
 msgstr "Toon de r_eden voor"
 
+#, fuzzy
+msgid "[Gnet Stats]"
+msgstr "Gnutella statistieken"
+
 msgid "Hostcache statistics"
 msgstr "Hostcache statistieken"
 
@@ -4623,6 +4802,10 @@ msgstr "Ultrapeers"
 
 msgid "Bad hosts"
 msgstr "Slechte hosts"
+
+#, fuzzy
+msgid "[Hostcache]"
+msgstr "Hostcache"
 
 msgid "Uploads"
 msgstr "Uploads"
@@ -4663,6 +4846,10 @@ msgstr "Max. gelijktijdige uploads"
 msgid "Max. uploads to a single host"
 msgstr "Maximum uploads naar één host"
 
+#, fuzzy
+msgid "[Uploads]"
+msgstr "Uploads"
+
 msgid "Upload history"
 msgstr "Upload geschiedenis"
 
@@ -4681,14 +4868,32 @@ msgstr "Opschonen"
 msgid "Fully served "
 msgstr ""
 
+#, fuzzy
+msgid "[BH HTML served]"
+msgstr "[BH HTML]"
+
 msgid " / "
 msgstr ""
+
+msgid "[BH HTML]"
+msgstr "[BH HTML]"
 
 msgid " HTML and "
 msgstr " HTML en"
 
+#, fuzzy
+msgid "[BH qhits served]"
+msgstr "[BH qhits]"
+
+msgid "[BH qhits]"
+msgstr "[BH qhits]"
+
 msgid " Gnutella browse requests"
 msgstr " Gnutella verzoek tot browsen"
+
+#, fuzzy
+msgid "[Upload Stats]"
+msgstr "Uploads"
 
 msgid "Files to get"
 msgstr "Op te halen bestanden"
@@ -4711,14 +4916,14 @@ msgstr "hoofdletter gevoelig"
 msgid "Detail information"
 msgstr "Gedetaileerde informatie"
 
-msgid "Filename:"
-msgstr "Bestandsnaam:"
+msgid "Progress:"
+msgstr "Voortgang:"
 
 msgid "Size:"
 msgstr "Grootte:"
 
-msgid "Progress:"
-msgstr "Voortgang:"
+msgid "Filename:"
+msgstr "Bestandsnaam:"
 
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
@@ -4733,17 +4938,31 @@ msgstr ""
 "gedownload. De fragmenten die tijdens deze sessie op het netwerk zijn gezien "
 "worden weergegeven door de blauwe lijn."
 
+msgid "SHA1:"
+msgstr "SHA1:"
+
 msgid "Alternate filenames"
 msgstr "Alternatieve bestandsnamen"
 
 msgid "_Purge selected"
 msgstr "Verwijder de selectie voorgoed"
 
+msgid "[all count]"
+msgstr ""
+
 msgid " registered, "
 msgstr ".geregistreerd, "
 
+#, fuzzy
+msgid "[with source count]"
+msgstr " met bronnen"
+
 msgid " with sources"
 msgstr " met bronnen"
+
+#, fuzzy
+msgid "[Downloads]"
+msgstr "Downloads"
 
 msgid "Active sources"
 msgstr "Actieve bronnen"
@@ -4800,6 +5019,13 @@ msgstr ""
 msgid "Clear stopped"
 msgstr "Afgeronde verwijderen"
 
+#, fuzzy
+msgid "[running]"
+msgstr "Bannen"
+
+msgid "("
+msgstr ""
+
 msgid "active"
 msgstr "actief"
 
@@ -4809,8 +5035,15 @@ msgstr ",."
 msgid "queued"
 msgstr "in de wacht"
 
+msgid ")"
+msgstr ""
+
 msgid "Show settings"
 msgstr "Geef instellingen weer"
+
+#, fuzzy
+msgid "[Active]"
+msgstr "Actief"
 
 msgid "Inactive sources"
 msgstr "Inactieve bronnen"
@@ -4824,14 +5057,25 @@ msgstr "Pauzeer de wachtrij"
 msgid "Thaw queue"
 msgstr "Ontdoei de wachtrij"
 
+#, fuzzy
+msgid "[queued downloads]"
+msgstr "%u/%u downloads"
+
 msgid " queued ("
 msgstr " wachtende ("
+
+msgid "[hosts alive]"
+msgstr ""
 
 msgid " alive with "
 msgstr " levend met "
 
 msgid " passive)"
 msgstr " passief)"
+
+#, fuzzy
+msgid "[Queue]"
+msgstr "In de wacht"
 
 msgid "Search results"
 msgstr "Zoekresultaten"
@@ -4878,9 +5122,6 @@ msgstr ""
 
 msgid "Information about selected file"
 msgstr "Informatie over het geselecteerde bestand"
-
-msgid "SHA1:"
-msgstr "SHA1:"
 
 msgid "Index:"
 msgstr "Index:"
@@ -4931,6 +5172,10 @@ msgstr "Alles inklappen"
 msgid "_Clear results"
 msgstr "Verwijder resultaten"
 
+#, fuzzy
+msgid "[Search]"
+msgstr "Zoek"
+
 msgid "Search _monitor enabled"
 msgstr "Zoekopdrachten monitor geactiveerd"
 
@@ -4939,6 +5184,10 @@ msgstr "Toon laatste"
 
 msgid "searches"
 msgstr "zoek opdrachten"
+
+#, fuzzy
+msgid "[Monitor]"
+msgstr "Monitor"
 
 msgid "_Update interval (sec)"
 msgstr "Update interval (sec)"
@@ -4957,6 +5206,10 @@ msgstr "Zet statistieken op nul"
 
 msgid "0 terms counted"
 msgstr "0 termen geteld"
+
+#, fuzzy
+msgid "[Search Stats]"
+msgstr "Zoek filters"
 
 msgid "You seem to be offline."
 msgstr "Het ziet er naar uit dat u offline bent."
@@ -5119,18 +5372,6 @@ msgstr ""
 "Voegt een \"niet weergeven\" regel toe aan het algemene eerste filter als de "
 "urn:sha1 overeenkomt."
 
-msgid "Auto-download selected by..."
-msgstr "Automatisch het geselecteerde item downloaden op..."
-
-msgid "name"
-msgstr "naam"
-
-msgid "urn:sha1"
-msgstr "urn:sha1"
-
-msgid "New search from selected"
-msgstr "Nieuwe zoekopdracht van het geselecteerde item"
-
 msgid "Stop this search"
 msgstr "Stop deze zoekopdracht"
 
@@ -5226,6 +5467,10 @@ msgstr "Voeg IP regel toe"
 msgid "Add state rule"
 msgstr "Voeg regel toe"
 
+#, fuzzy
+msgid "[Add/Remove]"
+msgstr "Verwijder"
+
 msgid "invert condition"
 msgstr "inverteer voorwaarde"
 
@@ -5238,16 +5483,25 @@ msgstr "Voorwaarde: Als bestandsnaam overeenkomt"
 msgid "case sensitive"
 msgstr "hoofdletter gevoelig"
 
-msgid "Add/Replace"
-msgstr "Voeg toe / vervang"
+#, fuzzy
+msgid "Save"
+msgstr "Opgeslagen"
 
 msgid "Remove"
 msgstr "Verwijder"
+
+#, fuzzy
+msgid "[Filename]"
+msgstr "Bestandsnaam"
 
 msgid "Condition: If IP address matches"
 msgstr "Voorwaarde: Als IP-adres overeenkomt"
 
 msgid "IP address/mask"
+msgstr "IP-adres/masker"
+
+#, fuzzy
+msgid "[IP address]"
 msgstr "IP-adres/masker"
 
 msgid "Condition: If file size matches"
@@ -5262,6 +5516,10 @@ msgstr "maximale grootte:"
 msgid "bytes"
 msgstr "bytes"
 
+#, fuzzy
+msgid "[Filesize]"
+msgstr "Bestanden"
+
 msgid "Condition: always"
 msgstr "Voorwaarde: altijd"
 
@@ -5275,6 +5533,9 @@ msgstr ""
 "voorwaarde niet geinverteerd kan worden, daardoor zou deze regel gewoon "
 "genegeerd worden."
 
+msgid "[Jump]"
+msgstr ""
+
 msgid "Condition: If urn:sha1 matches"
 msgstr "Voorwaarde: Als urn:sha1 overeenkomt"
 
@@ -5283,6 +5544,10 @@ msgstr "SHA1 hash (niet bewerkbaar, voeg toe vanuit zoek popup)"
 
 msgid "Originally obtained from"
 msgstr "Oorspronkelijk verkregen van"
+
+#, fuzzy
+msgid "[SHA1]"
+msgstr "SHA1:"
 
 msgid "Condition: If result has flags"
 msgstr "Voorwaarde: Als resultaat de flag heeft"
@@ -5302,6 +5567,10 @@ msgstr "zet"
 msgid "Stable"
 msgstr "Stabiel"
 
+#, fuzzy
+msgid "[Flags]"
+msgstr "Vlag"
+
 msgid "Condition: If current filter result properties match"
 msgstr ""
 "Conditie: Als huidige filter resultaat eigenschappen van toepassing zijn"
@@ -5317,6 +5586,10 @@ msgstr "doe"
 
 msgid "ignore"
 msgstr "negeer"
+
+#, fuzzy
+msgid "[State]"
+msgstr "Statistieken"
 
 msgid "Apply"
 msgstr "Toepassen"
@@ -5344,8 +5617,18 @@ msgstr ""
 "\n"
 "Tijd tot werkelijk afsluiten:"
 
+#, fuzzy
+msgid "[time]"
+msgstr "Tijd draaiend"
+
 msgid "About gtk-gnutella"
 msgstr "Over gtk-gnutella"
+
+msgid "[name and version]"
+msgstr ""
+
+msgid "$Id$"
+msgstr ""
 
 msgid "Original author:"
 msgstr "Oorspronkelijke auteur:"
@@ -5441,14 +5724,8 @@ msgstr "Huidige IP instellingen (Adres:Poort):"
 msgid "not yet determined"
 msgstr "nog niet vastgesteld"
 
-msgid "Force local _IP to"
-msgstr "Forceer het lokale _IP naar"
-
 msgid "_Listen port"
 msgstr "_Luisterende poort"
-
-msgid "Disable: 0, Random: 1"
-msgstr "Uitschakelen: 0, Willekeurig: 1"
 
 msgid "Public _hostname"
 msgstr "Publieke hostnaam"
@@ -5458,6 +5735,31 @@ msgstr "Activeer _UDP"
 
 msgid "Network protocol:"
 msgstr "Netwerk protocol:"
+
+#, fuzzy
+msgid "(Disable: 0, Random: 1)"
+msgstr "Uitschakelen: 0, Willekeurig: 1"
+
+#, fuzzy
+msgid "IPv4 settings"
+msgstr "IP instellingen"
+
+msgid "Force external IPv_4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "Bind to this address"
+msgstr "Fout antwoord adres."
+
+#, fuzzy
+msgid "IPv6 settings"
+msgstr "IP instellingen"
+
+msgid "Force external IPv_6 address to"
+msgstr ""
+
+msgid "Use IPv6-to-IPv4 TRT prefix:"
+msgstr ""
 
 msgid "Proxy settings"
 msgstr "Proxy instellingen"
@@ -5519,6 +5821,9 @@ msgstr ""
 msgid "Currently used"
 msgstr "Momenteel gebruikt"
 
+msgid "[place holder]"
+msgstr ""
+
 msgid "Use global hostiles.txt"
 msgstr "Gebruike algemene hostiles.txt"
 
@@ -5534,11 +5839,9 @@ msgstr "Klokafwijking:"
 msgid "Miscellaneous"
 msgstr "Overige"
 
-msgid "Enable \"_shell\" control interface"
+#, fuzzy
+msgid "Enable remote _shell control interface"
 msgstr "Maak de \"shell\" controle interface beschikbaar"
-
-msgid "Enable \"_Browse Host\" feature"
-msgstr "Activeer \"Host bladeren\" ondersteuning"
 
 msgid "Socket receive buffer size"
 msgstr "Buffergrootte voor de ontvangst \"socket\""
@@ -5608,6 +5911,9 @@ msgstr "Voldoende gemiddelde uptime"
 
 msgid "Enough min # of connections"
 msgstr "Genoeg min aantal verbindingen"
+
+msgid "Engouh UDP support"
+msgstr ""
 
 msgid "Searches"
 msgstr "Zoek opdrachten"
@@ -5707,6 +6013,9 @@ msgstr "Aantal acceptable duplicaten van berichten per node"
 
 msgid "RX flow control ratio"
 msgstr "RX flow control percentage"
+
+msgid "%"
+msgstr ""
 
 msgid "Watch for similar queries"
 msgstr "Kijk uit naar identieke zoekopdrachten"
@@ -6025,6 +6334,9 @@ msgstr "Negeer symbolische verwijzende bestanden"
 msgid "Search _extensions"
 msgstr "Zoekuitbreidingen"
 
+msgid "Enable \"_Browse Host\" feature"
+msgstr "Activeer \"Host bladeren\" ondersteuning"
+
 msgid "Timeouts (all values in seconds)"
 msgstr "Timeouts (alle waarden in seconden)"
 
@@ -6118,18 +6430,18 @@ msgstr "Toon bevestigingsdialoog wanneer gtk-gnutella verlaten wordt"
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "Toon _tooltips (heeft nog geen effect op alle tooltips)"
 
-msgid "Try to keep 'dead' entries around for"
-msgstr "Probeer 'dode' items zichtbaar te houden voor"
-
-msgid "Update search results pane every"
-msgstr "Actualiseer zoekresultaten elke"
+#, fuzzy
+msgid "Show _metric units"
+msgstr "Toon _percentages"
 
 msgid "Toolbar style"
 msgstr "Toolbar stijl"
 
-#, fuzzy
-msgid "Show _metric units"
-msgstr "Toon _percentages"
+msgid "Update search results pane every"
+msgstr "Actualiseer zoekresultaten elke"
+
+msgid "Try to keep 'dead' entries around for"
+msgstr "Probeer 'dode' items zichtbaar te houden voor"
 
 msgid "Expert mode"
 msgstr "Geavanceerde modus."
@@ -6265,6 +6577,24 @@ msgstr "Land"
 msgid "Failed to create the search"
 msgstr "Aanmaken zoekopdracht mislukt"
 
+msgid "UDP"
+msgstr "UDP"
+
+msgid "TCP"
+msgstr ""
+
+#, fuzzy
+msgid "owned"
+msgstr "Gereed"
+
+#, fuzzy
+msgid "partial"
+msgstr "Letland"
+
+#, fuzzy
+msgid "shared"
+msgstr "hangt"
+
 #, c-format
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
@@ -6298,6 +6628,24 @@ msgstr "Metagegevens"
 #, fuzzy
 msgid "Route"
 msgstr "uitgaand"
+
+#, fuzzy
+msgid "Protocol"
+msgstr "Puerto Rico"
+
+msgid "TTL"
+msgstr ""
+
+msgid "Owned"
+msgstr ""
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Host"
+
+#, fuzzy
+msgid "SHA-1"
+msgstr "SHA1:"
 
 msgid "Not in database"
 msgstr "Niet in de database"
@@ -6343,9 +6691,6 @@ msgstr "Verzoek wordt verstuurd (%u%%)"
 #, c-format
 msgid "Retry in %us"
 msgstr "Opnieuw proberen in %us"
-
-msgid "<none>"
-msgstr "<geen>"
 
 #, fuzzy, c-format
 msgid "Queued (%u active, %u passive)"
@@ -6421,16 +6766,6 @@ msgstr "Geuploade data:"
 msgid "Served "
 msgstr "Geserveerd"
 
-#, fuzzy
-msgid "[BH HTML served]"
-msgstr "[BH HTML]"
-
-msgid "[BH HTML]"
-msgstr "[BH HTML]"
-
-msgid "[BH qhits]"
-msgstr "[BH qhits]"
-
 msgid "Current _search:"
 msgstr "Huidige zoekopdracht:"
 
@@ -6458,9 +6793,6 @@ msgstr "Toon de reden voor"
 msgid "Gnutella stats"
 msgstr "Gnutella statistieken"
 
-msgid "New/replace"
-msgstr "Nieuw/vervang"
-
 msgid "Delete"
 msgstr "Verwijder"
 
@@ -6469,6 +6801,24 @@ msgstr "Je kan de volgende suffixes gebruiken KB, KiB, MB, MiB, GB, GiB etc."
 
 msgid "Reverse DNS lookup"
 msgstr "DNS Omgekeerd opzoeken"
+
+msgid "Force external IPv4 address to"
+msgstr ""
+
+#, fuzzy
+msgid "_Bind to this address"
+msgstr "Fout antwoord adres."
+
+#, fuzzy
+msgid "IPv_4 settings"
+msgstr "IP instellingen"
+
+msgid "Force external IPv6 address to"
+msgstr ""
+
+#, fuzzy
+msgid "IPv_6 settings"
+msgstr "IP instellingen"
 
 msgid ""
 "This option can give performance boosts to those on a large network with "
@@ -6480,6 +6830,9 @@ msgstr ""
 
 msgid "_Addresses of local network(s)"
 msgstr "_Adressen van (het) Lokale Netwerk(en)"
+
+msgid "Enough UDP support"
+msgstr ""
 
 msgid "seconds (0 - disable)"
 msgstr "seconden (0 - uitschakelen)"
@@ -6543,9 +6896,6 @@ msgstr "Legacy"
 msgid "Crawler"
 msgstr "Crawler"
 
-msgid "UDP"
-msgstr "UDP"
-
 msgid "Move the cursor over a row to see details."
 msgstr "Beweeg de cursor over een rij om de details te zien"
 
@@ -6570,6 +6920,10 @@ msgstr "Bezig met omgekeerd opzoeken..."
 
 msgid "The normalized search text is too short."
 msgstr "The opgeschoonde zoek tekst is te kort."
+
+#, fuzzy
+msgid " (partial)"
+msgstr "Beide (verticaal)"
 
 msgid "Fresh regular"
 msgstr "Regulier geldig"
@@ -6689,9 +7043,6 @@ msgid ""
 msgstr ""
 "kon \"%s\"niet hernomen naar \"%s\": %s\n"
 "Het XML bestand zal niet worden gebruikt totdat dit probleem is opgelost."
-
-msgid "TCP"
-msgstr ""
 
 msgid "<unparsed>"
 msgstr "<niet verwerkt>"
@@ -6867,15 +7218,15 @@ msgstr "Nog geen uitvoer.."
 msgid "Got push, connecting back..."
 msgstr "Ontving een 'push', probeert een verbinding terug te maken..."
 
-#, c-format
-msgid "%sCompleted (%s) %s"
+#, fuzzy, c-format
+msgid "Completed (%s) %s%s"
 msgstr "%sAfgerond (%s) %s"
 
 msgid "< 1s"
 msgstr "< 1s"
 
-#, c-format
-msgid "%s%s(%s) TR: %s"
+#, fuzzy, c-format
+msgid "%s(%s) TR: %s %s"
 msgstr "%s%s(%s) Resterende tijd: %s"
 
 msgid "stalled"
@@ -6885,6 +7236,10 @@ msgid "Waiting for headers..."
 msgstr "Wacht op koppen.."
 
 msgid "Waiting for further request..."
+msgstr "Wacht op een aanvullend verzoek..."
+
+#, fuzzy
+msgid "Reading follow-up request..."
 msgstr "Wacht op een aanvullend verzoek..."
 
 msgid "Unavailable range, waiting retry..."
@@ -6908,3 +7263,273 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
+#~ msgstr "Ivoorkust"
+
+#~ msgid "Denmark, Kingdom of"
+#~ msgstr "Denemarken"
+
+#~ msgid "Djibouti, Republic of"
+#~ msgstr "Djibouti"
+
+#~ msgid "Dominica, Commonwealth of"
+#~ msgstr "Dominica"
+
+#~ msgid "Fiji, Republic of the Fiji Islands"
+#~ msgstr "Fiji"
+
+#~ msgid "Finland, Republic of"
+#~ msgstr "Finland (Suomi Finland)"
+
+#~ msgid "Ghana, Republic of"
+#~ msgstr "Ghana"
+
+#~ msgid "Greece, Hellenic Republic"
+#~ msgstr "Griekenland"
+
+#~ msgid "Guatemala, Republic of"
+#~ msgstr "Guatemala"
+
+#~ msgid "Guinea, Revolutionary People's Rep'c of"
+#~ msgstr "Republiek Guinee"
+
+#~ msgid "Guyana, Republic of"
+#~ msgstr "Guyana"
+
+#~ msgid "Haiti, Republic of"
+#~ msgstr "Haïti"
+
+#~ msgid "Honduras, Republic of"
+#~ msgstr "Honduras"
+
+#~ msgid "Hong Kong, Special Administrative Region of China"
+#~ msgstr "Honkong"
+
+#~ msgid "Hrvatska (Croatia)"
+#~ msgstr "Hrvatska (Croatië)"
+
+#~ msgid "Hungary, Hungarian People's Republic"
+#~ msgstr "Hongarije"
+
+#~ msgid "Iceland, Republic of"
+#~ msgstr "IJsland"
+
+#~ msgid "India, Republic of"
+#~ msgstr "India"
+
+#~ msgid "Indonesia, Republic of"
+#~ msgstr "Indonesië"
+
+#~ msgid "Iran, Islamic Republic of"
+#~ msgstr "Iran"
+
+#~ msgid "Iraq, Republic of"
+#~ msgstr "Irak"
+
+#~ msgid "Israel, State of"
+#~ msgstr "Israël"
+
+#~ msgid "Italy, Italian Republic"
+#~ msgstr "Italië"
+
+#~ msgid "Jordan, Hashemite Kingdom of"
+#~ msgstr "Jordanië"
+
+#~ msgid "Kenya, Republic of"
+#~ msgstr "Kenya"
+
+#~ msgid "Kiribati, Republic of"
+#~ msgstr "Kiribati"
+
+#~ msgid "Korea, Democratic People's Republic of"
+#~ msgstr "Korea"
+
+#~ msgid "Korea, Republic of"
+#~ msgstr "Korea, Republiek"
+
+#~ msgid "Kuwait, State of"
+#~ msgstr "Koeweit"
+
+#~ msgid "Kyrgyz Republic"
+#~ msgstr "Kirgizië"
+
+#~ msgid "Lao People's Democratic Republic"
+#~ msgstr "Laos"
+
+#~ msgid "Lebanon, Lebanese Republic"
+#~ msgstr "Libanon"
+
+#~ msgid "Lesotho, Kingdom of"
+#~ msgstr "Lesotho"
+
+#~ msgid "Liberia, Republic of"
+#~ msgstr "Liberia"
+
+#~ msgid "Luxembourg, Grand Duchy of"
+#~ msgstr "Luxemburg"
+
+#~ msgid "Macao, Special Administrative Region of China"
+#~ msgstr "Macau (Aomen)"
+
+#~ msgid "Macedonia, the former Yugoslav Republic of"
+#~ msgstr "Macedonie"
+
+#~ msgid "Malawi, Republic of"
+#~ msgstr "Malawi"
+
+#~ msgid "Maldives, Republic of"
+#~ msgstr "Maldiven"
+
+#~ msgid "Mali, Republic of"
+#~ msgstr "Mali"
+
+#~ msgid "Malta, Republic of"
+#~ msgstr "Malta"
+
+#~ msgid "Mauritania, Islamic Republic of"
+#~ msgstr "Mauritanië"
+
+#~ msgid "Mexico, United Mexican States"
+#~ msgstr "Mexico"
+
+#~ msgid "Micronesia, Federated States of"
+#~ msgstr "Micronesia"
+
+#~ msgid "Moldova, Republic of"
+#~ msgstr "Moldova"
+
+#~ msgid "Monaco, Principality of"
+#~ msgstr "Monaco"
+
+#~ msgid "Mongolia, Mongolian People's Republic"
+#~ msgstr "Mongolië"
+
+#~ msgid "Morocco, Kingdom of"
+#~ msgstr "Marokko"
+
+#~ msgid "Mozambique, People's Republic of"
+#~ msgstr "Mozambique"
+
+#~ msgid "Nauru, Republic of"
+#~ msgstr "Nauru"
+
+#~ msgid "Nepal, Kingdom of"
+#~ msgstr "Nepal"
+
+#~ msgid "Netherlands, Kingdom of the"
+#~ msgstr "Nederlanden, Koninkrijk der"
+
+#~ msgid "Nicaragua, Republic of"
+#~ msgstr "Nicaragua"
+
+#~ msgid "Niger, Republic of the"
+#~ msgstr "Niger"
+
+#~ msgid "Nigeria, Federal Republic of"
+#~ msgstr "Nigeria"
+
+#~ msgid "Niue, Republic of"
+#~ msgstr "Niue"
+
+#~ msgid "Norway, Kingdom of"
+#~ msgstr "Noorwegen"
+
+#~ msgid "Oman, Sultanate of"
+#~ msgstr "Oman"
+
+#~ msgid "Pakistan, Islamic Republic of"
+#~ msgstr "Pakistan"
+
+#~ msgid "Panama, Republic of"
+#~ msgstr "Panama"
+
+#~ msgid "Paraguay, Republic of"
+#~ msgstr "Paraguay"
+
+#~ msgid "Peru, Republic of"
+#~ msgstr "Peru"
+
+#~ msgid "Philippines, Republic of the"
+#~ msgstr "Filipijnen"
+
+#~ msgid "Poland, Polish People's Republic"
+#~ msgstr "Polen"
+
+#~ msgid "Portugal, Portuguese Republic"
+#~ msgstr "Portugal"
+
+#~ msgid "Qatar, State of"
+#~ msgstr "Qatar"
+
+#~ msgid "Romania, Socialist Republic of"
+#~ msgstr "Roemenië"
+
+#~ msgid "Rwanda, Rwandese Republic"
+#~ msgstr "Rwanda"
+
+#~ msgid "Samoa, Independent State of"
+#~ msgstr "Samoa"
+
+#~ msgid "Senegal, Republic of"
+#~ msgstr "Senegal"
+
+#~ msgid "Seychelles, Republic of"
+#~ msgstr "Seychellen"
+
+#~ msgid "Singapore, Republic of"
+#~ msgstr "Singapore"
+
+#~ msgid "Slovakia (Slovak Republic)"
+#~ msgstr "Slowakije"
+
+#~ msgid "Somalia, Somali Republic"
+#~ msgstr "Somalië"
+
+#~ msgid "Spain, Kingdom of"
+#~ msgstr "Spanje"
+
+#~ msgid "Sri Lanka, Democratic Socialist Republic of"
+#~ msgstr "Sri Lanka"
+
+#~ msgid "Sudan, Democratic Republic of the"
+#~ msgstr "Soedan"
+
+#~ msgid "Suriname, Republic of"
+#~ msgstr "Suriname"
+
+#~ msgid "Swaziland, Kingdom of"
+#~ msgstr "Swaziland"
+
+#~ msgid "Switzerland, Swiss Confederation"
+#~ msgstr "Zwitserland"
+
+#~ msgid "Taiwan, Province of China"
+#~ msgstr "Taiwan"
+
+#~ msgid "Tanzania, United Republic of"
+#~ msgstr "Tanzania"
+
+#~ msgid "Thailand, Kingdom of"
+#~ msgstr "Thailand"
+
+#~ msgid "Timor-Leste, Democratic Republic of"
+#~ msgstr "Oost-Timor"
+
+#~ msgid "Tokelau (Tokelau Islands)"
+#~ msgstr "Tokelau"
+
+#~ msgid "Auto-download selected by..."
+#~ msgstr "Automatisch het geselecteerde item downloaden op..."
+
+#~ msgid "New search from selected"
+#~ msgstr "Nieuwe zoekopdracht van het geselecteerde item"
+
+#~ msgid "Add/Replace"
+#~ msgstr "Voeg toe / vervang"
+
+#~ msgid "Force local _IP to"
+#~ msgstr "Forceer het lokale _IP naar"
+
+#~ msgid "New/replace"
+#~ msgstr "Nieuw/vervang"

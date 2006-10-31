@@ -1,21 +1,22 @@
-# SOME DESCRIPTIVE TITLE.
+# translation of tr.po to
+# translation of gtk-gnutella.po to
 # Copyright (C) YEAR Raphael Manfredi
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
+# Uğur Çetin <ugur.jnmbk@gmail.com>, 2006.
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: tr\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2006-10-31 16:01+0100\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2006-10-04 06:09+0300\n"
+"Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
+"Language-Team:  <tr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Plural-Forms: nplurals=2; plural=n != 1\n"
+"X-Generator: KBabel 1.11.4\n"
 
 #, c-format
 msgid "%s%s%s%s%s fps, %s kbps"
@@ -25,19 +26,19 @@ msgid "times|x"
 msgstr ""
 
 msgid "No longer connected"
-msgstr ""
+msgstr "Bağlantı koptu"
 
 msgid "Timeout"
-msgstr ""
+msgstr "Zaman aşımı"
 
 msgid "Requeued due to timeout"
-msgstr ""
+msgstr "Zaman aşımı yüzünden kuyruğa alındı"
 
 msgid "Requeued by file info change"
 msgstr ""
 
 msgid "Suspended (SHA1 checking)"
-msgstr ""
+msgstr "Askıya alındı (SHA1 kontrolü)"
 
 #, c-format
 msgid " at %s - rescheduled for %s"
@@ -64,14 +65,14 @@ msgstr[1] ""
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Zaman aşımı (%u deneme)"
+msgstr[1] "Zaman aşımı (%u deneme)"
 
 #, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Bağlantı reddedildi (%u deneme)"
+msgstr[1] "Bağlantı reddedildi (%u deneme)"
 
 msgid "Dup SHA1 during creation"
 msgstr ""
@@ -87,7 +88,7 @@ msgstr ""
 
 #, c-format
 msgid "Stopped (%s)"
-msgstr ""
+msgstr "Durduruldu (%s)"
 
 #, c-format
 msgid "Too many attempts (%u times)"
@@ -95,7 +96,7 @@ msgstr ""
 
 #, c-format
 msgid "Failed (Read error: %s)"
-msgstr ""
+msgstr "Başarısız (Okuma hatası: %s)"
 
 msgid "Connection not kept-alive (EOF)"
 msgstr ""
@@ -104,11 +105,11 @@ msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
 msgid "Stopped (Output file size changed)"
-msgstr ""
+msgstr "Durdu (Çıktı dosyası boyutu değişti)"
 
 #, c-format
 msgid "Can't save data: %s"
-msgstr ""
+msgstr "Veri kaydedilemedi: %s"
 
 msgid "Requeued by competing download"
 msgstr ""
@@ -155,28 +156,28 @@ msgstr ""
 
 #, c-format
 msgid "<Browse Host %s>"
-msgstr ""
+msgstr "<Kişiye Gözat %s>"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
 msgid "Bad size"
-msgstr ""
+msgstr "Yanlış boyut"
 
 msgid "Too small"
-msgstr ""
+msgstr "Küçük"
 
 msgid "Too large"
-msgstr ""
+msgstr "Büyük"
 
 msgid "Way too large"
-msgstr ""
+msgstr "Çok büyük"
 
 msgid "Unknown message type"
-msgstr ""
+msgstr "Bilinmeyen mesaj türü"
 
 msgid "Unexpected message"
-msgstr ""
+msgstr "Beklenmeyen mesaj"
 
 msgid "Message sent with TTL = 0"
 msgstr ""
@@ -244,8 +245,9 @@ msgstr ""
 msgid "Spam"
 msgstr ""
 
+#, fuzzy
 msgid "Evil filename"
-msgstr ""
+msgstr "Dosya adı"
 
 #, c-format
 msgid "Got %d host from %s"
@@ -262,7 +264,7 @@ msgstr ""
 
 #, c-format
 msgid "Shutdown (%s)"
-msgstr ""
+msgstr "Kapanıyor (%s)"
 
 #, c-format
 msgid "Got %d connection pong"
@@ -373,7 +375,7 @@ msgstr ""
 
 #, c-format
 msgid "Failed (%s)"
-msgstr ""
+msgstr "Başarısız (%s)"
 
 msgid "Failed (Input Exception)"
 msgstr ""
@@ -395,14 +397,14 @@ msgid "Pseudo UDP node"
 msgstr ""
 
 msgid "Already connected"
-msgstr ""
+msgstr "Zaten bağlı"
 
 #, c-format
 msgid "Write error during HELLO: %s"
 msgstr ""
 
 msgid "Out of memory"
-msgstr ""
+msgstr "Bellek yetersiz"
 
 msgid "Connection reset during HELLO"
 msgstr ""
@@ -423,7 +425,7 @@ msgid "Read error: %s"
 msgstr ""
 
 msgid "Can't find your home directory!"
-msgstr ""
+msgstr "Ev dizininiz bulunamadı!"
 
 #, c-format
 msgid "creating configuration directory \"%s\""
@@ -475,7 +477,7 @@ msgid "Unknown property"
 msgstr ""
 
 msgid "Value: "
-msgstr ""
+msgstr "Değer:"
 
 msgid "Value found and displayed"
 msgstr ""
@@ -490,7 +492,7 @@ msgid "Value found and set"
 msgstr ""
 
 msgid "Help: "
-msgstr ""
+msgstr "Yardım:"
 
 msgid "Unknown parameter"
 msgstr ""
@@ -504,7 +506,7 @@ msgid "Horizon size via HSEP node %s (%s):"
 msgstr ""
 
 msgid "leaf"
-msgstr ""
+msgstr "yaprak"
 
 msgid "ultrapeer"
 msgstr ""
@@ -519,28 +521,28 @@ msgid "Nodes"
 msgstr ""
 
 msgid "Files"
-msgstr ""
+msgstr "Dosyalar"
 
 msgid "Size"
-msgstr ""
+msgstr "Boyut"
 
 msgid "Good bye"
-msgstr ""
+msgstr "Hoşça kal"
 
 msgid "Shutdown sequence initiated."
 msgstr ""
 
 msgid "Unknown command"
-msgstr ""
+msgstr "Bilinmeyen komut"
 
 msgid "Read error"
-msgstr ""
+msgstr "Okuma hatası"
 
 msgid "Got EOF"
 msgstr ""
 
 msgid "Connection failed"
-msgstr ""
+msgstr "Bağlantı başarısız"
 
 msgid "Write failed (Input Exception)"
 msgstr ""
@@ -574,7 +576,7 @@ msgstr ""
 
 #, c-format
 msgid "Banned: %s"
-msgstr ""
+msgstr "Yasaklandı: %s"
 
 #, c-format
 msgid "Banned for %s"
@@ -1159,7 +1161,7 @@ msgid "Use username and password to authenticate to proxy."
 msgstr ""
 
 msgid "Username for proxy."
-msgstr ""
+msgstr "Vekil için kullanıcı adı."
 
 msgid "Password for proxy."
 msgstr ""
@@ -1997,8 +1999,9 @@ msgstr ""
 msgid "HSEP"
 msgstr ""
 
+#, fuzzy
 msgid "RUDP"
-msgstr ""
+msgstr "UDP"
 
 msgid "Vendor spec."
 msgstr ""
@@ -2016,13 +2019,13 @@ msgid "Query Hit"
 msgstr ""
 
 msgid "Total"
-msgstr ""
+msgstr "Toplam"
 
 msgid "Icons"
-msgstr ""
+msgstr "Simge"
 
 msgid "Text"
-msgstr ""
+msgstr "Yazı"
 
 msgid "Both (vertical)"
 msgstr ""
@@ -2031,25 +2034,25 @@ msgid "Both (horizontal)"
 msgstr ""
 
 msgid "This session"
-msgstr ""
+msgstr "Bu oturumda"
 
 msgid "1 hour"
-msgstr ""
+msgstr "1 saat"
 
 msgid "4 hours"
-msgstr ""
+msgstr "4 saat"
 
 msgid "1 day"
-msgstr ""
+msgstr "1 gün"
 
 msgid "4 days"
-msgstr ""
+msgstr "4 gün"
 
 msgid "1 week"
-msgstr ""
+msgstr "1 hafta"
 
 msgid "2 weeks"
-msgstr ""
+msgstr "2 hafta"
 
 msgid "Search monitor enabled."
 msgstr ""
@@ -2564,8 +2567,9 @@ msgstr ""
 msgid "Cook Islands"
 msgstr ""
 
+#, fuzzy
 msgid "Chile"
-msgstr ""
+msgstr "dosya"
 
 msgid "Cameroon"
 msgstr ""
@@ -2639,8 +2643,9 @@ msgstr ""
 msgid "Europe"
 msgstr ""
 
+#, fuzzy
 msgid "Finland"
-msgstr ""
+msgstr "Başarısız"
 
 msgid "Fiji"
 msgstr ""
@@ -2654,8 +2659,9 @@ msgstr ""
 msgid "Faroe Islands"
 msgstr ""
 
+#, fuzzy
 msgid "France"
-msgstr ""
+msgstr "Ukrayna"
 
 msgid "Gabon"
 msgstr ""
@@ -2726,8 +2732,9 @@ msgstr ""
 msgid "Croatia"
 msgstr ""
 
+#, fuzzy
 msgid "Haiti"
-msgstr ""
+msgstr "Bekliyor"
 
 msgid "Hungary"
 msgstr ""
@@ -2810,8 +2817,9 @@ msgstr ""
 msgid "Laos"
 msgstr ""
 
+#, fuzzy
 msgid "Lebanon"
-msgstr ""
+msgstr "Sebep"
 
 msgid "Saint lucia"
 msgstr ""
@@ -2843,8 +2851,9 @@ msgstr ""
 msgid "Morocco"
 msgstr ""
 
+#, fuzzy
 msgid "Monaco"
-msgstr ""
+msgstr "İzle"
 
 msgid "Moldova"
 msgstr ""
@@ -2978,8 +2987,9 @@ msgstr ""
 msgid "Palestinian Territory"
 msgstr ""
 
+#, fuzzy
 msgid "Portugal"
-msgstr ""
+msgstr "Toplam"
 
 msgid "Palau"
 msgstr ""
@@ -3011,8 +3021,9 @@ msgstr ""
 msgid "Solomon Islands"
 msgstr ""
 
+#, fuzzy
 msgid "Seychelles"
-msgstr ""
+msgstr "Aramalar"
 
 msgid "Sudan"
 msgstr ""
@@ -3041,14 +3052,16 @@ msgstr ""
 msgid "San Marino"
 msgstr ""
 
+#, fuzzy
 msgid "Senegal"
-msgstr ""
+msgstr "_Genel"
 
 msgid "Somalia"
 msgstr ""
 
+#, fuzzy
 msgid "Suriname"
-msgstr ""
+msgstr "isim"
 
 msgid "Sao Tome and Principe"
 msgstr ""
@@ -3063,7 +3076,7 @@ msgid "Swaziland"
 msgstr ""
 
 msgid "Turks and Caicos Islands"
-msgstr ""
+msgstr "Turks ve Caicos Adaları"
 
 msgid "Chad"
 msgstr ""
@@ -3087,16 +3100,16 @@ msgid "Timor-leste"
 msgstr ""
 
 msgid "Turkmenistan"
-msgstr ""
+msgstr "Türkmenistan"
 
 msgid "Tunisia"
-msgstr ""
+msgstr "Türkmenistan"
 
 msgid "Tonga"
 msgstr ""
 
 msgid "Turkey"
-msgstr ""
+msgstr "Türkiye"
 
 msgid "Trinidad and Tobago"
 msgstr ""
@@ -3111,7 +3124,7 @@ msgid "Tanzania"
 msgstr ""
 
 msgid "Ukraine"
-msgstr ""
+msgstr "Ukrayna"
 
 msgid "Uganda"
 msgstr ""
@@ -3156,7 +3169,7 @@ msgid "Samoa"
 msgstr ""
 
 msgid "Yemen"
-msgstr ""
+msgstr "Yemen"
 
 msgid "Mayotte"
 msgstr ""
@@ -3165,10 +3178,10 @@ msgid "South Africa"
 msgstr ""
 
 msgid "Zambia"
-msgstr ""
+msgstr "Zambiya"
 
 msgid "Zimbabwe"
-msgstr ""
+msgstr "Zimbabwe"
 
 msgid "MAGNET URI contained source URL for an unsupported protocol"
 msgstr ""
@@ -3176,34 +3189,34 @@ msgstr ""
 #, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
-msgstr[0] ""
+msgstr[0] "%u Bayt"
 msgstr[1] ""
 
 #, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
-msgstr[0] ""
+msgstr[0] "%u&nbsp;Bayt"
 msgstr[1] ""
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
-msgstr ""
+msgstr "B/s"
 
 #, c-format
 msgid "%ud %uh"
-msgstr ""
+msgstr "%ud %uh"
 
 #, c-format
 msgid "%uh %um"
-msgstr ""
+msgstr "%uh %um"
 
 #, c-format
 msgid "%um %us"
-msgstr ""
+msgstr "%um %us"
 
 #, c-format
 msgid "%us"
-msgstr ""
+msgstr "%us"
 
 msgid "locale_get_language|en"
 msgstr ""
@@ -3275,53 +3288,53 @@ msgid "is exactly"
 msgstr ""
 
 msgid "Filter"
-msgstr ""
+msgstr "Filtre"
 
 msgid "Rule"
-msgstr ""
+msgstr "Kural"
 
 msgid "Match"
-msgstr ""
+msgstr "Eşleşme"
 
 msgid "!"
-msgstr ""
+msgstr "!"
 
 msgid "Condition"
-msgstr ""
+msgstr "Şart"
 
 msgid "Target"
-msgstr ""
+msgstr "Hedef"
 
 msgid "Builtin targets (not editable)"
 msgstr ""
 
 msgid "Global filters"
-msgstr ""
+msgstr "Genel filtreler"
 
 msgid "Search filters"
-msgstr ""
+msgstr "Arama filtreleri"
 
 msgid "Free filters"
-msgstr ""
+msgstr "Özgür filtreler"
 
 msgid "new"
-msgstr ""
+msgstr "yeni"
 
 msgid "none yet"
-msgstr ""
+msgstr "henüz hiçbiri"
 
 msgid "no default filter"
-msgstr ""
+msgstr "varsayılan filtre yok"
 
 msgid "[no hash]"
-msgstr ""
+msgstr "[hash yok]"
 
 msgid "(case-sensitive)"
-msgstr ""
+msgstr "(büyük-küçük duyarlı)"
 
 #, c-format
 msgid "If filename begins with \"%s\" %s"
-msgstr ""
+msgstr "Dosya adı \"%s\" ile başlıyorsa %s"
 
 #, c-format
 msgid "If filename contains the words \"%s\" %s"
@@ -3367,7 +3380,7 @@ msgid "If urn:sha1 is not available"
 msgstr ""
 
 msgid "Always"
-msgstr ""
+msgstr "Her zaman"
 
 msgid "busy is set"
 msgstr ""
@@ -3398,19 +3411,19 @@ msgid "DISPLAY is undefined"
 msgstr ""
 
 msgid "DISPLAY"
-msgstr ""
+msgstr "GÖSTER"
 
 msgid "DON'T DISPLAY"
-msgstr ""
+msgstr "GÖSTERME"
 
 msgid "DOWNLOAD is undefined"
 msgstr ""
 
 msgid "DOWNLOAD"
-msgstr ""
+msgstr "İNDİR"
 
 msgid "DON'T DOWNLOAD"
-msgstr ""
+msgstr "İNDİRME"
 
 #, c-format
 msgid "If flag %s%s%s"
@@ -3448,7 +3461,7 @@ msgid "Improper hops/TTL combination"
 msgstr ""
 
 msgid "Flow control"
-msgstr ""
+msgstr "Akış kontrolü"
 
 msgid "Payload inflating error"
 msgstr ""
@@ -3508,10 +3521,10 @@ msgid "Bytes saved by compacting"
 msgstr ""
 
 msgid "UTF8 queries"
-msgstr ""
+msgstr "UTF8 sorgular"
 
 msgid "SHA1 queries"
-msgstr ""
+msgstr "SHA1 sorgular"
 
 msgid "Broadcasted push messages"
 msgstr ""
@@ -3592,8 +3605,8 @@ msgstr[1] ""
 
 msgid "file"
 msgid_plural "files"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "dosya"
+msgstr[1] "dosya"
 
 msgid "Please choose where to store files while downloading"
 msgstr ""
@@ -3605,10 +3618,10 @@ msgid "Please choose where to move corrupted files"
 msgstr ""
 
 msgid "Please choose a directory to share"
-msgstr ""
+msgstr "Lütfen paylaşılacak dizini seçin"
 
 msgid "no size"
-msgstr ""
+msgstr "boyut yok"
 
 #, c-format
 msgid "%u host"
@@ -3632,7 +3645,7 @@ msgid " retry in %ds"
 msgstr ""
 
 msgid "Connecting..."
-msgstr ""
+msgstr "Bağlanıyor..."
 
 msgid "Push sent directly"
 msgstr ""
@@ -3648,19 +3661,19 @@ msgstr ""
 
 #, c-format
 msgid " via %s"
-msgstr ""
+msgstr "%s yoluyla"
 
 msgid "Connecting"
-msgstr ""
+msgstr "Bağlanıyor"
 
 msgid "Sending request"
-msgstr ""
+msgstr "İstek gönderiliyor"
 
 msgid "Request sent"
-msgstr ""
+msgstr "İstek gönderildi"
 
 msgid "Reading headers"
-msgstr ""
+msgstr "Başlıklar okunuyor"
 
 msgid "Falling back to push"
 msgstr ""
@@ -3670,26 +3683,26 @@ msgid "Sending request (%d%%)"
 msgstr ""
 
 msgid "Receiving headers"
-msgstr ""
+msgstr "Başlıklar alınıyor"
 
 msgid "Aborted (Server down)"
-msgstr ""
+msgstr "İptal edildi (sunucu kapalı)"
 
 msgid "Aborted"
-msgstr ""
+msgstr "İptal edildi"
 
 msgid "Completed"
-msgstr ""
+msgstr "Tamamlandı"
 
 msgid "Chunk done"
 msgstr ""
 
 msgid "Waiting for SHA1 checking..."
-msgstr ""
+msgstr "SHA1 kontrolü için bekleniyor..."
 
 #, c-format
 msgid "Computing SHA1 (%.02f%%)"
-msgstr ""
+msgstr "SHA1 hesaplanıyor (%.02f%%)"
 
 msgid "; Waiting for moving..."
 msgstr ""
@@ -3710,21 +3723,21 @@ msgid " [%d/%d] TR: %s"
 msgstr ""
 
 msgid "Connected"
-msgstr ""
+msgstr "Bağlandı"
 
 msgid "Unknown error"
-msgstr ""
+msgstr "Bilinmeyen hata"
 
 #, c-format
 msgid "Retry in %ds"
-msgstr ""
+msgstr "%ds sonra yeniden dene"
 
 #, c-format
 msgid "Sinking (%s bytes left)"
 msgstr ""
 
 msgid "Complete"
-msgstr ""
+msgstr "Tamamlandı"
 
 #, c-format
 msgid "(%s)  [%d/%d]  TR:  %s"
@@ -3737,8 +3750,8 @@ msgstr ""
 #, c-format
 msgid "Removed %u download"
 msgid_plural "Removed %u downloads"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%u indirme silindi"
+msgstr[1] "%u indirme silindi"
 
 #, c-format
 msgid "Forgot %u download"
@@ -3757,13 +3770,13 @@ msgid "Downloading (%s)  TR: %s"
 msgstr ""
 
 msgid "Finished"
-msgstr ""
+msgstr "Bitti"
 
 msgid "OK"
-msgstr ""
+msgstr "Tamam"
 
 msgid "failed"
-msgstr ""
+msgstr "başarısız"
 
 msgid "Waiting for SHA1 check"
 msgstr ""
@@ -3772,81 +3785,81 @@ msgid "Computing SHA1"
 msgstr ""
 
 msgid "Moving"
-msgstr ""
+msgstr "Taşınıyor"
 
 msgid "No sources"
-msgstr ""
+msgstr "Kaynak yok"
 
 #, c-format
 msgid "Queued (%d active, %d passive)"
 msgstr ""
 
 msgid "Waiting"
-msgstr ""
+msgstr "Bekliyor"
 
 msgid "<none>"
-msgstr ""
+msgstr "<hiçbiri>"
 
 #, c-format
 msgid "%s (%s bytes)"
-msgstr ""
+msgstr "%s (%s bayt)"
 
 msgid "gtk-gnutella"
-msgstr ""
+msgstr "gtk-gnutella"
 
 msgid "_File"
-msgstr ""
+msgstr "_Dosya"
 
 msgid "_GnutellaNet"
-msgstr ""
+msgstr "_GnutellaNet"
 
 msgid "_Stats"
-msgstr ""
+msgstr "İs_tatistikler"
 
 msgid "_Hostcache"
-msgstr ""
+msgstr "_IP Önbelleği"
 
 msgid "_Preferences"
-msgstr ""
+msgstr "_Seçenekler"
 
 msgid "_Quit"
-msgstr ""
+msgstr "Çı_kış"
 
 msgid "_Uploads"
-msgstr ""
+msgstr "_Göndermeler"
 
 msgid "_Transfers"
-msgstr ""
+msgstr "_Aktarımlar"
 
 msgid "_History"
-msgstr ""
+msgstr "_Geçmiş"
 
 msgid "_Downloads"
-msgstr ""
+msgstr "İ_ndirmeler"
 
 msgid "_Files"
-msgstr ""
+msgstr "_Dosyalar"
 
 msgid "_Active"
-msgstr ""
+msgstr "_Aktif"
 
 msgid "_Queue"
-msgstr ""
+msgstr "_Kuyruk"
 
 msgid "_Search"
-msgstr ""
+msgstr "A_rama"
 
 msgid "_Results"
-msgstr ""
+msgstr "_Sonuçlar"
 
 msgid "_Monitor"
-msgstr ""
+msgstr "İ_zleme"
 
 msgid "S_tats"
-msgstr ""
+msgstr "İs_tatistikler"
 
 msgid "_View"
-msgstr ""
+msgstr "_Görünüm"
 
 msgid "show Search_bar"
 msgstr ""
@@ -3903,28 +3916,28 @@ msgid "show _Statusbar"
 msgstr ""
 
 msgid "_Help"
-msgstr ""
+msgstr "_Yardım"
 
 msgid "_About"
-msgstr ""
+msgstr "_Hakkında"
 
 msgid "Frequently Asked Questions"
-msgstr ""
+msgstr "Sık Sorulan Sorular"
 
 msgid "_FAQ"
-msgstr ""
+msgstr "_SSS"
 
 msgid "Navigator"
-msgstr ""
+msgstr "Gezgin"
 
 msgid "Search"
-msgstr ""
+msgstr "Arama"
 
 msgid "Hits"
 msgstr ""
 
 msgid "New"
-msgstr ""
+msgstr "Yeni"
 
 msgid "Gnet connections"
 msgstr ""
@@ -3933,13 +3946,13 @@ msgid "%v/%u Gnet nodes"
 msgstr ""
 
 msgid "uploads"
-msgstr ""
+msgstr "göndermeler"
 
 msgid "%v/%u uploads"
 msgstr ""
 
 msgid "downloads"
-msgstr ""
+msgstr "indirmeler"
 
 msgid "%v/%u downloads"
 msgstr ""
@@ -3951,10 +3964,10 @@ msgid "Click to toggle display."
 msgstr ""
 
 msgid "in"
-msgstr ""
+msgstr "içeri"
 
 msgid "out"
-msgstr ""
+msgstr "dışarı"
 
 msgid "GnutellaNet traffic"
 msgstr ""
@@ -3996,22 +4009,22 @@ msgid "Info"
 msgstr ""
 
 msgid "Disconnect from selected nodes"
-msgstr ""
+msgstr "Seçili düğümlerle olan bağlantıyı kes"
 
 msgid "Disconnect"
-msgstr ""
+msgstr "Bağlantıyı kes"
 
 msgid "Try to connect to specified address"
-msgstr ""
+msgstr "Belirtilen adrese bağlanmaya çalış"
 
 msgid "Add"
-msgstr ""
+msgstr "Ekle"
 
 msgid "Minimum"
-msgstr ""
+msgstr "En az"
 
 msgid "Maximum"
-msgstr ""
+msgstr "En çok"
 
 msgid "Ultrapeers in leaf mode"
 msgstr ""
@@ -4023,10 +4036,10 @@ msgid "Transferred data"
 msgstr ""
 
 msgid "Uploaded:"
-msgstr ""
+msgstr "Gönderilen:"
 
 msgid "Downloaded:"
-msgstr ""
+msgstr "İndirilen:"
 
 msgid "Somebody tell me a sensible tooltip for this."
 msgstr ""
@@ -4058,16 +4071,16 @@ msgid "Message/flow control stats"
 msgstr ""
 
 msgid "Type"
-msgstr ""
+msgstr "Tür"
 
 msgid "Count"
 msgstr ""
 
 msgid "Reason"
-msgstr ""
+msgstr "Sebep"
 
 msgid "_General"
-msgstr ""
+msgstr "_Genel"
 
 msgid "0"
 msgstr ""
@@ -4103,7 +4116,7 @@ msgid "FC/_hops"
 msgstr ""
 
 msgid "Received"
-msgstr ""
+msgstr "Alınan"
 
 msgid "Expired"
 msgstr ""
@@ -4141,14 +4154,15 @@ msgstr ""
 msgid "Show r_easons for"
 msgstr ""
 
+#, fuzzy
 msgid "[Gnet Stats]"
-msgstr ""
+msgstr "Gnutella istatistikleri"
 
 msgid "Hostcache statistics"
-msgstr ""
+msgstr "IP Önbelleği istatistikleri"
 
 msgid "Cache"
-msgstr ""
+msgstr "Önbellek"
 
 msgid "Hosts"
 msgstr ""
@@ -4157,7 +4171,7 @@ msgid "Misses"
 msgstr ""
 
 msgid "Hostcache capacity"
-msgstr ""
+msgstr "IP Önbelleği kapasitesi"
 
 msgid "%v/%u (%P%%)"
 msgstr ""
@@ -4174,14 +4188,15 @@ msgstr ""
 msgid "Bad hosts"
 msgstr ""
 
+#, fuzzy
 msgid "[Hostcache]"
-msgstr ""
+msgstr "IP Önbelleği"
 
 msgid "Uploads"
-msgstr ""
+msgstr "Göndermeler"
 
 msgid "Filename"
-msgstr ""
+msgstr "Dosya adı"
 
 msgid "Range"
 msgstr ""
@@ -4216,14 +4231,15 @@ msgstr ""
 msgid "Max. uploads to a single host"
 msgstr ""
 
+#, fuzzy
 msgid "[Uploads]"
-msgstr ""
+msgstr "Göndermeler"
 
 msgid "Upload history"
 msgstr ""
 
 msgid "Attempts"
-msgstr ""
+msgstr "Denemeler"
 
 msgid "Normalized"
 msgstr ""
@@ -4232,7 +4248,7 @@ msgid "Clear non-existent files"
 msgstr ""
 
 msgid "Clear all"
-msgstr ""
+msgstr "Hepsini temizle"
 
 msgid "Fully served "
 msgstr ""
@@ -4241,7 +4257,7 @@ msgid "[BH HTML served]"
 msgstr ""
 
 msgid " / "
-msgstr ""
+msgstr "/"
 
 msgid "[BH HTML]"
 msgstr ""
@@ -4258,38 +4274,39 @@ msgstr ""
 msgid " Gnutella browse requests"
 msgstr ""
 
+#, fuzzy
 msgid "[Upload Stats]"
-msgstr ""
+msgstr "Göndermeler"
 
 msgid "Files to get"
-msgstr ""
+msgstr "Alınacak dosyalar"
 
 msgid "File"
-msgstr ""
+msgstr "Dosya"
 
 msgid "Done"
-msgstr ""
+msgstr "Bitti"
 
 msgid "Sources"
-msgstr ""
+msgstr "Kaynaklar"
 
 msgid "Filename filter:"
-msgstr ""
+msgstr "Dosya adı filtresi"
 
 msgid "case-sensitive"
-msgstr ""
+msgstr "büyük-küçük duyarlı"
 
 msgid "Detail information"
-msgstr ""
+msgstr "Ayrıntılı bilgi"
 
 msgid "Progress:"
-msgstr ""
+msgstr "İlerleme:"
 
 msgid "Size:"
-msgstr ""
+msgstr "Boyut:"
 
 msgid "Filename:"
-msgstr ""
+msgstr "Dosya adı:"
 
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
@@ -4300,7 +4317,7 @@ msgid ""
 msgstr ""
 
 msgid "SHA1:"
-msgstr ""
+msgstr "SHA1:"
 
 msgid "Alternate filenames"
 msgstr ""
@@ -4320,17 +4337,18 @@ msgstr ""
 msgid " with sources"
 msgstr ""
 
+#, fuzzy
 msgid "[Downloads]"
-msgstr ""
+msgstr "İndirmeler"
 
 msgid "Active sources"
 msgstr ""
 
 msgid "Server"
-msgstr ""
+msgstr "Sunucu"
 
 msgid "Download settings"
-msgstr ""
+msgstr "İndirme ayarları"
 
 msgid "Max. simultaneous downloads"
 msgstr ""
@@ -4345,7 +4363,7 @@ msgid "Never send a push request"
 msgstr ""
 
 msgid "Delete file on abort"
-msgstr ""
+msgstr "İptal edilince dosyayı sil"
 
 msgid "Remove file on mismatch"
 msgstr ""
@@ -4354,7 +4372,7 @@ msgid "Auto clear stopped downloads"
 msgstr ""
 
 msgid "Failed"
-msgstr ""
+msgstr "Başarısız"
 
 msgid "Unavailable"
 msgstr ""
@@ -4387,25 +4405,26 @@ msgid "active"
 msgstr ""
 
 msgid ", "
-msgstr ""
+msgstr ","
 
 msgid "queued"
-msgstr ""
+msgstr "kuyruğa alındı"
 
 msgid ")"
 msgstr ""
 
 msgid "Show settings"
-msgstr ""
+msgstr "Ayarları Göster"
 
+#, fuzzy
 msgid "[Active]"
-msgstr ""
+msgstr "Aktif"
 
 msgid "Inactive sources"
 msgstr ""
 
 msgid "Select"
-msgstr ""
+msgstr "Seç"
 
 msgid "Freeze queue"
 msgstr ""
@@ -4413,8 +4432,9 @@ msgstr ""
 msgid "Thaw queue"
 msgstr ""
 
+#, fuzzy
 msgid "[queued downloads]"
-msgstr ""
+msgstr "indirmeler"
 
 msgid " queued ("
 msgstr ""
@@ -4428,38 +4448,39 @@ msgstr ""
 msgid " passive)"
 msgstr ""
 
+#, fuzzy
 msgid "[Queue]"
-msgstr ""
+msgstr "Kuyruk"
 
 msgid "Search results"
-msgstr ""
+msgstr "Arama sonuçları"
 
 msgid "Current search:"
-msgstr ""
+msgstr "Şu anki arama:"
 
 msgid "Cl_ose search"
-msgstr ""
+msgstr "Aramayı _Kapat"
 
 msgid "(no search)"
-msgstr ""
+msgstr "(arama yapılmıyor)"
 
 msgid "General search settings (affect all searches)"
 msgstr ""
 
 msgid "Max. _number of results"
-msgstr ""
+msgstr "Gösterilecek En _fazla sonuç sayısı"
 
 msgid "Ignored files are"
-msgstr ""
+msgstr "Yoksayılan dosyalar"
 
 msgid "Case-sensitive sorting"
-msgstr ""
+msgstr "Büyük-küçük duyarlı sıralama"
 
 msgid "_Hide downloaded files"
-msgstr ""
+msgstr "İndirilen dosyaları _gizle"
 
 msgid "_Remove manually downloaded files"
-msgstr ""
+msgstr "_Elle indirilen dosyaları gizle"
 
 msgid "Max. number of browse host results"
 msgstr ""
@@ -4474,70 +4495,72 @@ msgid "Discard results without SHA-1 hashes"
 msgstr ""
 
 msgid "Information about selected file"
-msgstr ""
+msgstr "Seçili dosya hakkında bilgi"
 
 msgid "Index:"
-msgstr ""
+msgstr "İçerik:"
 
 msgid "Source:"
-msgstr ""
+msgstr "Kaynak:"
 
 msgid "Received:"
-msgstr ""
+msgstr "Alınan:"
 
 msgid "Vendor:"
-msgstr ""
+msgstr "Sağlayıcı:"
 
 msgid "Country:"
-msgstr ""
+msgstr "Ülke:"
 
 msgid "Query:"
 msgstr ""
 
 msgid "Speed:"
-msgstr ""
+msgstr "Hız:"
 
 msgid "Servent ID:"
 msgstr ""
 
 msgid "XML data:"
-msgstr ""
+msgstr "XML bilgisi:"
 
 msgid "Re_try search every"
-msgstr ""
+msgstr "Aramayı her"
 
 msgid "secs   "
-msgstr ""
+msgstr "snde bir yeniden dene"
 
 msgid "_Download selected"
-msgstr ""
+msgstr "Seçili olanı _indir"
 
 msgid "_Edit filters"
-msgstr ""
+msgstr "_Filtreleri düzenle"
 
 msgid "Expand all"
-msgstr ""
+msgstr "Tümünü genişlet"
 
 msgid "Collapse all"
-msgstr ""
+msgstr "Tümünü daralt"
 
 msgid "_Clear results"
-msgstr ""
+msgstr "Sonuçları _Temizle"
 
+#, fuzzy
 msgid "[Search]"
-msgstr ""
+msgstr "Arama"
 
 msgid "Search _monitor enabled"
 msgstr ""
 
 msgid "Show _last"
-msgstr ""
+msgstr "_Sonuncuyu göster"
 
 msgid "searches"
-msgstr ""
+msgstr "aramalar"
 
+#, fuzzy
 msgid "[Monitor]"
-msgstr ""
+msgstr "İzle"
 
 msgid "_Update interval (sec)"
 msgstr ""
@@ -4546,22 +4569,23 @@ msgid "_Deletion coeff. (0-100)"
 msgstr ""
 
 msgid "Search Term"
-msgstr ""
+msgstr "Arama terimi"
 
 msgid "This Interval"
-msgstr ""
+msgstr "Bu gecikme"
 
 msgid "_Reset stats"
-msgstr ""
+msgstr "İstatistikleri sıfırla"
 
 msgid "0 terms counted"
-msgstr ""
+msgstr "0 terim sayıldı"
 
+#, fuzzy
 msgid "[Search Stats]"
-msgstr ""
+msgstr "Arama filtreleri"
 
 msgid "You seem to be offline."
-msgstr ""
+msgstr "Bağlı değil görünüyorsunuz."
 
 msgid ""
 "Your uploads are stalling at an abnormal rate, indicating that your "
@@ -4619,10 +4643,10 @@ msgid "Running in ultrapeer mode."
 msgstr ""
 
 msgid "Abort"
-msgstr ""
+msgstr "İptal et"
 
 msgid "Abort all..."
-msgstr ""
+msgstr "Hepsini iptal et..."
 
 msgid "with the same name"
 msgstr ""
@@ -4634,10 +4658,10 @@ msgid "from the same host"
 msgstr ""
 
 msgid "Remove file"
-msgstr ""
+msgstr "Dosyayı kaldır"
 
 msgid "Resume"
-msgstr ""
+msgstr "Devam et"
 
 msgid "Move back to queue"
 msgstr ""
@@ -4655,7 +4679,7 @@ msgid "Browse Host"
 msgstr ""
 
 msgid "Start now"
-msgstr ""
+msgstr "Şimdi başla"
 
 msgid "Drop results..."
 msgstr ""
@@ -4684,22 +4708,22 @@ msgid ""
 msgstr ""
 
 msgid "Stop this search"
-msgstr ""
+msgstr "Aramayı durdur"
 
 msgid "Resume this search"
-msgstr ""
+msgstr "Aramayı devam ettir"
 
 msgid "Restart this search"
-msgstr ""
+msgstr "Aramayı baştan başlat"
 
 msgid "Duplicate this search"
 msgstr ""
 
 msgid "Show tabs"
-msgstr ""
+msgstr "Tabları göster"
 
 msgid "Configure columns"
-msgstr ""
+msgstr "Sütunları ayarla"
 
 msgid "Make current sorting default"
 msgstr ""
@@ -4789,8 +4813,9 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
+#, fuzzy
 msgid "[Filename]"
-msgstr ""
+msgstr "Dosya adı"
 
 msgid "Condition: If IP address matches"
 msgstr ""
@@ -4813,8 +4838,9 @@ msgstr ""
 msgid "bytes"
 msgstr ""
 
+#, fuzzy
 msgid "[Filesize]"
-msgstr ""
+msgstr "Dosyalar"
 
 msgid "Condition: always"
 msgstr ""
@@ -4837,8 +4863,9 @@ msgstr ""
 msgid "Originally obtained from"
 msgstr ""
 
+#, fuzzy
 msgid "[SHA1]"
-msgstr ""
+msgstr "SHA1:"
 
 msgid "Condition: If result has flags"
 msgstr ""
@@ -4876,8 +4903,9 @@ msgstr ""
 msgid "ignore"
 msgstr ""
 
+#, fuzzy
 msgid "[State]"
-msgstr ""
+msgstr "İstatistikler"
 
 msgid "Apply"
 msgstr ""
@@ -4910,7 +4938,7 @@ msgstr ""
 msgid "[name and version]"
 msgstr ""
 
-msgid "$Id$"
+msgid "$Id: interface-glade.t 12114 2006-10-16 04:01:41Z cbiere $"
 msgstr ""
 
 msgid "Original author:"
@@ -4977,25 +5005,25 @@ msgid "Paste rule"
 msgstr ""
 
 msgid "gtk-gnutella: Quit?"
-msgstr ""
+msgstr "gtk-gnutella: Çık?"
 
 msgid "Yes"
-msgstr ""
+msgstr "Evet"
 
 msgid "No, take me back!"
-msgstr ""
+msgstr "Hayır, geri döneyim!"
 
 msgid "Please confirm:"
-msgstr ""
+msgstr "Lütfen onaylayın:"
 
 msgid "Do you really want to quit?"
-msgstr ""
+msgstr "Çıkmak istediğinizden emin misiniz?"
 
 msgid "Preferences"
-msgstr ""
+msgstr "Seçenekler"
 
 msgid "IP settings"
-msgstr ""
+msgstr "IP ayarları"
 
 msgid "Current IP settings (Address:Port):"
 msgstr ""
@@ -5018,8 +5046,9 @@ msgstr ""
 msgid "(Disable: 0, Random: 1)"
 msgstr ""
 
+#, fuzzy
 msgid "IPv4 settings"
-msgstr ""
+msgstr "IP ayarları"
 
 msgid "Force external IPv_4 address to"
 msgstr ""
@@ -5027,8 +5056,9 @@ msgstr ""
 msgid "Bind to this address"
 msgstr ""
 
+#, fuzzy
 msgid "IPv6 settings"
-msgstr ""
+msgstr "IP ayarları"
 
 msgid "Force external IPv_6 address to"
 msgstr ""
@@ -5037,7 +5067,7 @@ msgid "Use IPv6-to-IPv4 TRT prefix:"
 msgstr ""
 
 msgid "Proxy settings"
-msgstr ""
+msgstr "Vekil ayarları"
 
 msgid "H_ost:"
 msgstr ""
@@ -5184,7 +5214,7 @@ msgid "Engouh UDP support"
 msgstr ""
 
 msgid "Searches"
-msgstr ""
+msgstr "Aramalar"
 
 msgid "Limit search _results to "
 msgstr ""
@@ -5201,7 +5231,7 @@ msgid "Default search _reissue timeout"
 msgstr ""
 
 msgid "seconds"
-msgstr ""
+msgstr "saniye"
 
 msgid "Out of Band Querying"
 msgstr ""
@@ -5360,7 +5390,7 @@ msgid "Measured HTTP latency:"
 msgstr ""
 
 msgid "secs"
-msgstr ""
+msgstr "sn"
 
 msgid "Bandwidth limits for GnutellaNet traffic"
 msgstr ""
@@ -5410,13 +5440,13 @@ msgid "_Compute upload connection speed"
 msgstr ""
 
 msgid "Bandwidth"
-msgstr ""
+msgstr "Bağlantı hızı"
 
 msgid "Keep downloading/incomplete files in"
 msgstr ""
 
 msgid "_Browse"
-msgstr ""
+msgstr "_Gözat"
 
 msgid "Move completely downloaded files to"
 msgstr ""
@@ -5555,7 +5585,7 @@ msgid "_Feed mesh from hits"
 msgstr ""
 
 msgid "Downloads"
-msgstr ""
+msgstr "İndirmeler"
 
 msgid "_Path(s) to files"
 msgstr ""
@@ -5674,8 +5704,9 @@ msgstr ""
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr ""
 
+#, fuzzy
 msgid "Show _metric units"
-msgstr ""
+msgstr "Ayarları Göster"
 
 msgid "Toolbar style"
 msgstr ""
@@ -5819,13 +5850,14 @@ msgid "Failed to create the search"
 msgstr ""
 
 msgid "UDP"
-msgstr ""
+msgstr "UDP"
 
 msgid "TCP"
 msgstr ""
 
+#, fuzzy
 msgid "owned"
-msgstr ""
+msgstr "Bitti"
 
 msgid "partial"
 msgstr ""
@@ -5863,8 +5895,9 @@ msgstr ""
 msgid "Metadata"
 msgstr ""
 
+#, fuzzy
 msgid "Route"
-msgstr ""
+msgstr "dışarı"
 
 msgid "Protocol"
 msgstr ""
@@ -5875,11 +5908,13 @@ msgstr ""
 msgid "Owned"
 msgstr ""
 
+#, fuzzy
 msgid "Hostile"
-msgstr ""
+msgstr "IP Önbelleği"
 
+#, fuzzy
 msgid "SHA-1"
-msgstr ""
+msgstr "SHA1:"
 
 msgid "Not in database"
 msgstr ""
@@ -5940,46 +5975,47 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Cache contains"
-msgstr ""
+msgstr "Önbellekteki IPler"
 
+#, fuzzy
 msgid "Copy Magnet to clipboard"
-msgstr ""
+msgstr "Panoya kopyala"
 
 msgid "Download selected files"
-msgstr ""
+msgstr "Seçili dosyaları indir"
 
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "Panoya kopyala"
 
 msgid "_Remove filter"
-msgstr ""
+msgstr "Filtreyi _Kaldır"
 
 msgid "Gnet _traffic stats"
-msgstr ""
+msgstr "Gnet _trafik istatistikleri"
 
 msgid "_Keyboard shortcuts"
-msgstr ""
+msgstr "Klavye kısa_yolları"
 
 msgid "Connect to"
-msgstr ""
+msgstr "Bağlan"
 
 msgid "ultrapeers"
 msgstr ""
 
 msgid "Try to keep at least"
-msgstr ""
+msgstr "En az"
 
 msgid "and allow at most"
-msgstr ""
+msgstr "ve en çok"
 
 msgid "total connections up."
-msgstr ""
+msgstr "bağlantı sağlamaya çalış."
 
 msgid "Use up to "
-msgstr ""
+msgstr "Diğer slotlar kullanımda değilken hızlıca bağlanmak için en fazla "
 
 msgid "connections to connect more quickly while not all slots are used."
-msgstr ""
+msgstr "bağlantı kullan."
 
 msgid ""
 "The Global Unique IDentifier associated with this node. It's used for "
@@ -5987,43 +6023,43 @@ msgid ""
 msgstr ""
 
 msgid "Address/Port:"
-msgstr ""
+msgstr "Adres/Port:"
 
 msgid "Uploaded data:"
-msgstr ""
+msgstr "Gönderilen veri:"
 
 msgid "Served "
 msgstr ""
 
 msgid "Current _search:"
-msgstr ""
+msgstr "Şu anki _arama:"
 
 msgid "Displaying"
 msgstr ""
 
 msgid "Sho_w settings"
-msgstr ""
+msgstr "Seçenekleri _göster"
 
 msgid "Flow _control"
 msgstr ""
 
 msgid "_Received"
-msgstr ""
+msgstr "_Alınan"
 
 msgid "_Columns show hops"
 msgstr ""
 
 msgid " "
-msgstr ""
+msgstr " "
 
 msgid "Show reasons _for"
 msgstr ""
 
 msgid "Gnutella stats"
-msgstr ""
+msgstr "Gnutella istatistikleri"
 
 msgid "Delete"
-msgstr ""
+msgstr "Sil"
 
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr ""
@@ -6037,14 +6073,16 @@ msgstr ""
 msgid "_Bind to this address"
 msgstr ""
 
+#, fuzzy
 msgid "IPv_4 settings"
-msgstr ""
+msgstr "IP ayarları"
 
 msgid "Force external IPv6 address to"
 msgstr ""
 
+#, fuzzy
 msgid "IPv_6 settings"
-msgstr ""
+msgstr "IP ayarları"
 
 msgid ""
 "This option can give performance boosts to those on a large network with "
@@ -6058,10 +6096,10 @@ msgid "Enough UDP support"
 msgstr ""
 
 msgid "seconds (0 - disable)"
-msgstr ""
+msgstr "saniye (0 - etkin değil)"
 
 msgid "slots"
-msgstr ""
+msgstr "slot"
 
 msgid "unit_of_time|s"
 msgstr ""
@@ -6070,7 +6108,7 @@ msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
 
 msgid "attempts"
-msgstr ""
+msgstr "deneme"
 
 msgid "_Remove directory"
 msgstr ""
@@ -6079,10 +6117,10 @@ msgid "Minimum chunk _size"
 msgstr ""
 
 msgid "Edit filters"
-msgstr ""
+msgstr "Filtreleri düzenle"
 
 msgid "Close this search"
-msgstr ""
+msgstr "Bu aramayı kapat"
 
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
@@ -6093,19 +6131,19 @@ msgid "Remove completed downloads from list"
 msgstr ""
 
 msgid "_Clear completed"
-msgstr ""
+msgstr "Bitenleri _temizle"
 
 msgid "Select all matching regex"
 msgstr ""
 
 msgid "Downloaded data:"
-msgstr ""
+msgstr "İndirilen veri:"
 
 msgid "Version"
-msgstr ""
+msgstr "Sürüm"
 
 msgid "Leaf"
-msgstr ""
+msgstr "Yaprak"
 
 msgid "Ultrapeer"
 msgstr ""
@@ -6126,10 +6164,10 @@ msgid "Peermode:"
 msgstr ""
 
 msgid "incoming"
-msgstr ""
+msgstr "gelen"
 
 msgid "outgoing"
-msgstr ""
+msgstr "giden"
 
 #, c-format
 msgid "Reverse lookup for %s failed"
@@ -6160,22 +6198,22 @@ msgid "Unstable"
 msgstr ""
 
 msgid "Stats"
-msgstr ""
+msgstr "İstatistikler"
 
 msgid "Hostcache"
-msgstr ""
+msgstr "IP Önbelleği"
 
 msgid "History"
-msgstr ""
+msgstr "Geçmiş"
 
 msgid "Active"
-msgstr ""
+msgstr "Aktif"
 
 msgid "Queue"
-msgstr ""
+msgstr "Kuyruk"
 
 msgid "Monitor"
-msgstr ""
+msgstr "İzle"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
@@ -6195,8 +6233,8 @@ msgstr ""
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d saniye"
+msgstr[1] "%d saniye"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6218,7 +6256,7 @@ msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
 msgstr ""
 
 msgid "Removing"
-msgstr ""
+msgstr "Kaldırıyor"
 
 msgid "Receiving hello"
 msgstr ""
@@ -6227,16 +6265,16 @@ msgid "UNKNOWN STATUS"
 msgstr ""
 
 msgid "busy"
-msgstr ""
+msgstr "meşgul"
 
 msgid "stable"
-msgstr ""
+msgstr "kararlı"
 
 msgid "push"
 msgstr ""
 
 msgid "proxy"
-msgstr ""
+msgstr "vekil"
 
 msgid "bogus"
 msgstr ""
@@ -6295,17 +6333,17 @@ msgstr ""
 msgid "[stopped]"
 msgstr ""
 
-#, c-format
+#, fuzzy, c-format
 msgid "%u download"
 msgid_plural "%u downloads"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "indirmeler"
+msgstr[1] "indirmeler"
 
-#, c-format
+#, fuzzy, c-format
 msgid "%u search"
 msgid_plural "%u searches"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "aramalar"
+msgstr[1] "aramalar"
 
 #, c-format
 msgid "Handled magnet link (%s, %s)."
@@ -6326,10 +6364,10 @@ msgid "Could not launch browse host for %s"
 msgstr ""
 
 msgid "Never"
-msgstr ""
+msgstr "Hiçbir zaman"
 
 msgid "No"
-msgstr ""
+msgstr "Hayır"
 
 #, c-format
 msgid "%u/%u host (%u%%)"
@@ -6338,7 +6376,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "loading..."
-msgstr ""
+msgstr "yükleniyor..."
 
 msgid "Reading host cache..."
 msgstr ""
@@ -6371,19 +6409,19 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Hide settings"
-msgstr ""
+msgstr "Ayarları sakla"
 
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr ""
 
 msgid "no sources"
-msgstr ""
+msgstr "kaynak yok"
 
 #, c-format
 msgid "%u source"
 msgid_plural "%u sources"
-msgstr[0] ""
+msgstr[0] "%u kaynak"
 msgstr[1] ""
 
 #, c-format
@@ -6425,9 +6463,9 @@ msgstr ""
 msgid "Got push, connecting back..."
 msgstr ""
 
-#, c-format
+#, fuzzy, c-format
 msgid "Completed (%s) %s%s"
-msgstr ""
+msgstr "Tamamlandı"
 
 msgid "< 1s"
 msgstr ""
@@ -6445,17 +6483,18 @@ msgstr ""
 msgid "Waiting for further request..."
 msgstr ""
 
+#, fuzzy
 msgid "Reading follow-up request..."
-msgstr ""
+msgstr "İstek gönderiliyor"
 
 msgid "Unavailable range, waiting retry..."
 msgstr ""
 
 msgid "Transmission aborted"
-msgstr ""
+msgstr "Aytarım iptal edildi"
 
 msgid "Transmission complete"
-msgstr ""
+msgstr "Aktarım tamamlandı"
 
 #, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
@@ -6469,3 +6508,4 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+

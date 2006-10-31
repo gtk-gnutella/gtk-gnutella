@@ -243,6 +243,7 @@ po/nb.po
 po/nl.po
 po/quot.sed
 po/remove-potcdate.sin
+po/tr.po
 po/uk.po
 po/zh_CN.po
 scripts/fix_copyright.pl
