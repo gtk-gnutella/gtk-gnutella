@@ -1716,13 +1716,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 		if (search_debug > 1) {
 			if (seen_ggep_h && search_debug > 3)
-				g_warning("%s from %s used GGEP \"H\" extension",
+				g_message("%s from %s used GGEP \"H\" extension",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 			if (seen_ggep_alt && search_debug > 3)
-				g_warning("%s from %s used GGEP \"ALT\" extension",
+				g_message("%s from %s used GGEP \"ALT\" extension",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 			if (seen_bitprint && search_debug > 3)
-				g_warning("%s from %s used urn:bitprint",
+				g_message("%s from %s used urn:bitprint",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 			if (multiple_sha1)
 				g_warning("%s from %s had records with multiple SHA1",
@@ -2074,7 +2074,7 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		} else if (new_len < qlen) {
 			size -= (qlen - new_len);
 			if (search_debug > 1)
-				g_warning("compacted query \"%s\" into \"%s\"",
+				g_message("compacted query \"%s\" into \"%s\"",
 					sch->query, query);
 		}
 	}
@@ -2524,20 +2524,27 @@ void
 search_shutdown(void)
 {
     while (sl_search_ctrl != NULL) {
-        g_warning("force-closing search left over by GUI: %s",
-            ((search_ctrl_t *)sl_search_ctrl->data)->query);
-        search_close(((search_ctrl_t *)sl_search_ctrl->data)->search_handle);
+		search_ctrl_t *sch = sl_search_ctrl->data;
+		
+        g_warning("force-closing search left over by GUI: %s", sch->query);
+        search_close(sch->search_handle);
     }
 
     g_assert(idtable_ids(search_handle_map) == 0);
 
-	if (ht_sha1)
+	if (ht_sha1) {
 		g_hash_table_destroy(ht_sha1);
-	if (ht_host)
+		ht_sha1 = NULL;
+	}
+	if (ht_host) {
 		g_hash_table_destroy(ht_host);
+		ht_host = NULL;
+	}
 
 	g_hash_table_destroy(searches);
+	searches = NULL;
 	g_hash_table_destroy(search_by_muid);
+	search_by_muid = NULL;
     idtable_destroy(search_handle_map);
     search_handle_map = NULL;
 	qhvec_free(query_hashvec);
