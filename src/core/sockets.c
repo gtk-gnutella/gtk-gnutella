@@ -1584,6 +1584,8 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	if (hostiles_check(s->addr)) {
 		static const gchar msg[] = "Hostile IP address banned";
 
+		socket_disable_token(s);
+
 		if (socket_debug)
 			g_warning("denying connection from hostile %s: \"%s\"",
 				host_addr_to_string(s->addr), first);
