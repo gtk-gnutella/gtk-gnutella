@@ -809,16 +809,29 @@ adns_init(void)
 	}
 	if (0 == pid) {
 		/* child process */
-		gint null;
+
+		/**
+		 * Close all standard FILEs so that they don't keep a reference
+		 * to the log files when they are reopened by the main process
+		 * on SIGHUP. This means there will be no visible messages from
+		 * ADNS at all.
+		 */
+
+		if (!freopen("/dev/null", "r", stdin))
+			g_error("adns_init: freopen(\"/dev/null\", \"r\", stdin) failed: "
+					"%s", g_strerror(errno));
+
+		if (!freopen("/dev/null", "a", stdout))
+			g_error("adns_init: freopen(\"/dev/null\", \"a\", stdout) failed: "
+					"%s", g_strerror(errno));
+
+		if (!freopen("/dev/null", "a", stderr))
+			g_error("adns_init: freopen(\"/dev/null\", \"a\", stderr) failed: "
+					"%s", g_strerror(errno));
 
 		close(fd_query[1]);
 		close(fd_reply[0]);
-   		close(STDIN_FILENO);  /* Just in case */
-		null = open("/dev/null", O_RDONLY);
-		if (-1 == null)
-			g_error("adns_init: Could not open() /dev/null: %s",
-				g_strerror(errno));
-		g_assert(STDIN_FILENO == null);
+
 		adns_helper(fd_query[0], fd_reply[1]);
 		g_assert_not_reached();
 		_exit(EXIT_SUCCESS);
