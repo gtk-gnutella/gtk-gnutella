@@ -315,17 +315,19 @@ uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
 static void
 uhc_send_ping(const host_addr_t addr, guint16 port)
 {
-	gnutella_msg_init_t *m;
-	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
-	guint32 size;
 	gchar *muid;
-	gchar msg[256];
 
 	g_assert(uhc_connecting);
 
-	m = build_ping_msg(NULL, 1, TRUE, &size);
-	muid = atom_guid_get(gnutella_header_get_muid(m));
-	udp_send_msg(n, m, size);
+	{
+		struct gnutella_node *n = node_udp_get_addr_port(addr, port);
+		gnutella_msg_init_t *m;
+		guint32 size;
+		
+		m = build_ping_msg(NULL, 1, TRUE, &size);
+		muid = atom_guid_get(gnutella_header_get_muid(m));
+		udp_send_msg(n, m, size);
+	}
 
 	/*
 	 * Save the GUID of the ping we sent, to be able to determine when
@@ -344,10 +346,13 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
 	/*
 	 * Give GUI feedback.
 	 */
+	{
+		gchar msg[256];
 
-	gm_snprintf(msg, sizeof msg, _("Sent ping to UDP host cache %s:%u"),
-		uhc_ctx.host, uhc_ctx.port);
-	gcu_statusbar_message(msg);
+		gm_snprintf(msg, sizeof msg, _("Sent ping to UDP host cache %s:%u"),
+			uhc_ctx.host, uhc_ctx.port);
+		gcu_statusbar_message(msg);
+	}
 
 	/*
 	 * Arm a timer to see whether we should not try to ping another
