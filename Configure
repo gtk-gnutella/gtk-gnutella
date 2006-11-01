@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Oct  7 19:11:17 CEST 2006 [metaconfig 3.0 PL70]
+# Generated on Wed Nov  1 09:02:18 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8042,9 +8042,11 @@ esac
 case "$d_headless" in
 "$define") frontend="none";;
 esac
-persistent=no
 case "$d_libxml2" in
-"$define") persistent=yes;;
+"$undef")
+	echo 'ERROR: You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella.' >&4
+	exit 1
+	;;
 esac
 dbus=no
 case "$d_dbus" in
@@ -8054,7 +8056,6 @@ ipv6=no
 case "$d_ipv6" in
 "$define") ipv6=yes;;
 esac
-zlib=no
 case " $libs " in
 *" -lz "*)
 	case "$i_zlib$d_deflate$d_inflate" in
@@ -8062,17 +8063,16 @@ case " $libs " in
 	esac
 	;;
 esac
+if [ "$zlib" != yes ]; then
+	echo 'ERROR: You need zlib (http://www.zlib.net/) to compile Gtk-Gnutella.' >&4
+	exit 1
+fi
 gnutls=no
 case "$d_gnutls" in
 "$define") gnutls=yes;;
 esac
 remote=no
 if $remotectrl; then remote=yes; fi
-unicode=no
-iptos=no
-case "$d_iptos" in
-"$define") iptos=yes;;
-esac
 nls=no
 case "$d_enablenls" in
 "$define") nls=yes;;
@@ -8089,18 +8089,15 @@ $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
 -------------------------------------------------
-Glib version                       : $glib_used
+GLib version                       : $glib_used
 GUI front-end                      : $frontend
-Persistent filters                 : $persistent
-Gnutella traffic compression       : $zlib
 GNU TLS support                    : $gnutls
-IP TOS (Type of Service)           : $iptos
 IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
-Experimental remote control        : $remote
-Fast assertion support             : $fastassert
-DBus support                       : $dbus
-SQLite                             : $sqlite
+Remote Shell Interface (deprecated): $remote
+Fast assertions                    : $fastassert
+DBus support (experimental)        : $dbus
+SQLite (experimental)              : $sqlite
 -------------------------------------------------
 EOM
 
