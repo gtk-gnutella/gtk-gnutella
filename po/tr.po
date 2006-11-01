@@ -15,7 +15,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1\n"
+"Plural-Forms: nplurals=1; plural=0\n"
 "X-Generator: KBabel 1.11.4\n"
 
 #, c-format
@@ -60,19 +60,16 @@ msgstr ""
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
 msgstr[0] "Zaman aşımı (%u deneme)"
-msgstr[1] "Zaman aşımı (%u deneme)"
 
 #, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "Bağlantı reddedildi (%u deneme)"
-msgstr[1] "Bağlantı reddedildi (%u deneme)"
 
 msgid "Dup SHA1 during creation"
 msgstr ""
@@ -253,7 +250,6 @@ msgstr "Dosya adı"
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "Connecting to web cache %s"
@@ -270,7 +266,6 @@ msgstr "Kapanıyor (%s)"
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "Sent crawling info"
 msgstr ""
@@ -563,7 +558,6 @@ msgstr ""
 msgid "Got %d host from UDP host cache %s:%u"
 msgid_plural "Got %d hosts from UDP host cache %s:%u"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "Connect back timeout"
 msgstr ""
@@ -3190,13 +3184,11 @@ msgstr ""
 msgid "%u Byte"
 msgid_plural "%u Bytes"
 msgstr[0] "%u Bayt"
-msgstr[1] ""
 
 #, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
 msgstr[0] "%u&nbsp;Bayt"
-msgstr[1] ""
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
@@ -3601,12 +3593,10 @@ msgstr ""
 msgid "node"
 msgid_plural "nodes"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "file"
 msgid_plural "files"
 msgstr[0] "dosya"
-msgstr[1] "dosya"
 
 msgid "Please choose where to store files while downloading"
 msgstr ""
@@ -3627,7 +3617,6 @@ msgstr "boyut yok"
 msgid "%u host"
 msgid_plural "%u hosts"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "Queued"
 msgstr ""
@@ -3751,19 +3740,16 @@ msgstr ""
 msgid "Removed %u download"
 msgid_plural "Removed %u downloads"
 msgstr[0] "%u indirme silindi"
-msgstr[1] "%u indirme silindi"
 
 #, c-format
 msgid "Forgot %u download"
 msgid_plural "Forgot %u downloads"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "Selected %u of %u queued download matching \"%s\"."
 msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "Downloading (%s)  TR: %s"
@@ -5869,19 +5855,16 @@ msgstr ""
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "%s from the %u selected item"
 msgid_plural "%s from the %u selected items"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "Extension"
 msgstr ""
@@ -5935,7 +5918,6 @@ msgstr ""
 msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "Couldn't find pixmap file: %s"
@@ -5972,7 +5954,6 @@ msgstr ""
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "Cache contains"
 msgstr "Önbellekteki IPler"
@@ -6234,13 +6215,11 @@ msgstr ""
 msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d saniye"
-msgstr[1] "%d saniye"
 
 #, c-format
 msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "(avg)"
 msgstr ""
@@ -6310,12 +6289,10 @@ msgstr ""
 msgid "item"
 msgid_plural "items"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "No search"
 msgstr ""
@@ -6337,13 +6314,11 @@ msgstr ""
 msgid "%u download"
 msgid_plural "%u downloads"
 msgstr[0] "indirmeler"
-msgstr[1] "indirmeler"
 
 #, fuzzy, c-format
 msgid "%u search"
 msgid_plural "%u searches"
 msgstr[0] "aramalar"
-msgstr[1] "aramalar"
 
 #, c-format
 msgid "Handled magnet link (%s, %s)."
@@ -6373,7 +6348,6 @@ msgstr "Hayır"
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "loading..."
 msgstr "yükleniyor..."
@@ -6406,7 +6380,6 @@ msgstr ""
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "Hide settings"
 msgstr "Ayarları sakla"
@@ -6422,7 +6395,6 @@ msgstr "kaynak yok"
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u kaynak"
-msgstr[1] ""
 
 #, c-format
 msgid "%u active"
@@ -6436,19 +6408,16 @@ msgstr ""
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] ""
-msgstr[1] ""
 
 #, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
 msgstr[0] ""
-msgstr[1] ""
 
 msgid "Select a property to see its description."
 msgstr ""
