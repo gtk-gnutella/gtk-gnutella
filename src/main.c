@@ -969,25 +969,21 @@ reopen_log_files(void)
 	gboolean failure = FALSE;
 
 	if (options[main_arg_log_stdout].used) {
-		if (NULL == freopen(options[main_arg_log_stdout].arg, "a", stdout)) {
+		if (freopen(options[main_arg_log_stdout].arg, "a", stdout)) {
+			setvbuf(stdout, NULL, _IOLBF, 0);
+		} else {
 			fprintf(stderr, "freopen(..., \"a\", stdout) failed: %s",
 				g_strerror(errno));
 			failure |= TRUE;
-		} else {
-#ifdef HAS_SETLINEBUF
-			setlinebuf(stdout);
-#endif
 		}
 	}
 	if (options[main_arg_log_stderr].used) {
-		if (NULL == freopen(options[main_arg_log_stderr].arg, "a", stderr)) {
+		if (freopen(options[main_arg_log_stderr].arg, "a", stderr)) {
+			setvbuf(stderr, NULL, _IOLBF, 0);
+		} else {
 			fprintf(stderr, "freopen(..., \"a\", stderr) failed: %s",
 				g_strerror(errno));
 			failure |= TRUE;
-		} else {
-#ifdef HAS_SETLINEBUF
-			setlinebuf(stderr);
-#endif
 		}
 	}
 	return failure ? -1 : 0;
