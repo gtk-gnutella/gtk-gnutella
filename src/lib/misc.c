@@ -1085,23 +1085,36 @@ compact_rate(guint64 rate, gboolean metric)
 	return buf;
 }
 
+size_t
+short_rate_to_string_buf(guint64 rate, gboolean metric, gchar *dst, size_t size)
+{
+	short_value(dst, size, rate, metric);
+	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
+	return g_strlcat(dst, _("B/s"), size);
+}
+
+short_string_t
+short_rate_get_string(guint64 rate, gboolean metric)
+{
+	short_string_t buf;
+	short_rate_to_string_buf(rate, metric, buf.str, sizeof buf.str);
+	return buf;
+}
+
 const gchar *
 short_rate(guint64 rate, gboolean metric)
 {
-	static gchar buf[SIZE_FIELD_MAX];
-
-	short_value(buf, sizeof buf, rate, metric);
-	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
-	g_strlcat(buf, _("B/s"), sizeof buf);
-	return buf;
+	static short_string_t buf;
+	buf = short_rate_get_string(rate, metric);
+	return buf.str;
 }
 
 /**
  * @return time spent in seconds in a consise short readable form.
  * @note The returned string may be translated and non-ASCII.
  */
-gchar *
-short_time(gint t)
+const gchar *
+short_time(time_delta_t t)
 {
 	static gchar buf[4 * SIZE_FIELD_MAX];
 	guint s = MAX(t, 0);
@@ -1123,8 +1136,8 @@ short_time(gint t)
  * @return time spent in seconds in a consise short readable form.
  * @note The returned string is in English and ASCII encoded.
  */
-gchar *
-short_time_ascii(gint t)
+const gchar *
+short_time_ascii(time_delta_t t)
 {
 	static gchar buf[4 * SIZE_FIELD_MAX];
 	guint s = MAX(t, 0);
@@ -1149,7 +1162,7 @@ short_time_ascii(gint t)
  * @note The returned string is in English and ASCII encoded.
  */
 const gchar *
-compact_time(gint t)
+compact_time(time_delta_t t)
 {
 	static gchar buf[4 * SIZE_FIELD_MAX];
 	guint s = MAX(t, 0);
@@ -1170,15 +1183,15 @@ compact_time(gint t)
 /**
  * Alternate time formatter for uptime.
  */
-gchar *
-short_uptime(gint uptime)
+const gchar *
+short_uptime(time_delta_t uptime)
 {
 	static gchar b[SIZE_FIELD_MAX];
-	gint s = MAX(uptime, 0);
+	guint s = MAX(uptime, 0);
 
 	if (s > 86400) {
 		guint32 d = s % 86400;
-		gm_snprintf(b, sizeof(b), "%dd %02d%c%02d",
+		gm_snprintf(b, sizeof(b), "%ud %02d%c%02d",
 			s / 86400, d / 3600, (s & 0x1) ? '.' : ':', (d % 3600) / 60);
 	} else {
 		guint32 h = s % 3600;
@@ -1613,6 +1626,14 @@ timestamp_to_string_buf(time_t date, gchar *dst, size_t size)
 	dst[len] = '\0';		/* Be really sure */
 
 	return len;
+}
+
+short_string_t
+timestamp_get_string(time_t date)
+{
+	short_string_t buf;
+	timestamp_to_string_buf(date, buf.str, sizeof buf.str);
+	return buf;
 }
 
 /**
