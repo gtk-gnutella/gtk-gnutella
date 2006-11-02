@@ -1292,6 +1292,10 @@ prop_get_string(prop_set_t *ps, property_t prop, gchar *t, size_t size)
 
 /**
  * Fetch the property name in the config files.
+ *
+ * @return The human-readable name of the property. There is not need
+ *         to copy the returned string as it points to a "static const"
+ *		   buffer.
  */
 const gchar *
 prop_name(prop_set_t *ps, property_t prop)
@@ -1301,6 +1305,10 @@ prop_name(prop_set_t *ps, property_t prop)
 
 /**
  * Fetch the property description in the config files.
+ *
+ * @return The human-readable name of the property. There is not need
+ *         to copy the returned string as it points to a "static const"
+ *		   buffer.
  */
 const gchar *
 prop_description(prop_set_t *ps, property_t prop)
@@ -1308,6 +1316,13 @@ prop_description(prop_set_t *ps, property_t prop)
 	return PROP(ps,prop).desc;
 }
 
+/**
+ * Fetch the property type.
+ *
+ * @return The human-readable name of the property. There is not need
+ *         to copy the returned string as it points to a "static const"
+ *		   buffer.
+ */
 const gchar *
 prop_type_to_string(prop_set_t *ps, property_t prop)
 {
