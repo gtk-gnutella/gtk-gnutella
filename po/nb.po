@@ -25,7 +25,7 @@ msgid "%s%s%s%s%s fps, %s kbps"
 msgstr "%s%s%s%s%s fps, %s kbps"
 
 msgid "times|x"
-msgstr "Ganger"
+msgstr "x"
 
 msgid "No longer connected"
 msgstr "Ikke lenger tilkoblet"
