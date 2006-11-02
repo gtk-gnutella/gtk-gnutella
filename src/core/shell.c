@@ -932,7 +932,7 @@ shell_exec_stat(gnutella_shell_t *sh)
 			"+---------------------------------------------------------+\n"
 			"|                      Status                             |\n"
 			"|=========================================================|\n"
-			"|   Mode: %-8s   Last Switch: %-19s     |\n"
+			"|   Mode: %-9s  Last Switch: %-19s     |\n"
 			"| Uptime: %-9s   Last Check: %-19s     |\n"
 			"|   Port: %-5u         Blackout: %-7s                 |\n"
 			"|=========================================================|\n",
@@ -981,7 +981,7 @@ shell_exec_stat(gnutella_shell_t *sh)
 		"|=========================================================|\n",
 		node_ultra_count + node_leaf_count + node_normal_count,
 		node_ultra_count,
-		NODE_P_ULTRA == current_peermode ? max_ultrapeers : max_connections,
+		NODE_P_ULTRA == current_peermode ? max_connections : max_ultrapeers,
 		node_leaf_count,
 		max_leaves,
 		node_normal_count,
