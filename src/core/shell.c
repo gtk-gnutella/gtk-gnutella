@@ -55,9 +55,12 @@ RCSID("$Id$")
 
 #define IS_PROCESSING(sh) (sh->outpos > 0)
 
-#define REPLY_READY       100
-#define REPLY_ERROR       400
-#define REPLY_GOOD_BYE    900
+enum shell_reply {
+	REPLY_NONE		= 0,
+	REPLY_READY		= 100,
+	REPLY_ERROR		= 400,
+	REPLY_GOOD_BYE	= 900
+};
 
 static GSList *sl_shells = NULL;
 
@@ -84,38 +87,47 @@ static void shell_handle_data(gpointer data, gint unused_source,
 	inputevt_cond_t cond);
 
 enum shell_cmd {
-	CMD_UNKNOWN,
-	CMD_NOOP,
-	CMD_QUIT,
-	CMD_SEARCH,
-	CMD_NODE,
 	CMD_ADD,
 	CMD_HELP,
-	CMD_PRINT,
-	CMD_SET,
-	CMD_WHATIS,
 	CMD_HORIZON,
+	CMD_NODE,
+	CMD_NODES,
+	CMD_NOOP,
+	CMD_OFFLINE,
+	CMD_ONLINE,
+	CMD_PRINT,
+	CMD_PROPS,
+	CMD_QUIT,
 	CMD_RESCAN,
+	CMD_SEARCH,
+	CMD_SET,
 	CMD_SHUTDOWN,
-	CMD_NODES
+	CMD_STATUS,
+	CMD_WHATIS,
+
+	CMD_UNKNOWN
 };
 
 static const struct {
 	const gint id;
 	const gchar * const cmd;
 } commands[] = {
-	{	CMD_QUIT,		"quit"		},
-	{	CMD_SEARCH,		"search"	},
-	{	CMD_NODE,		"node"		},
 	{	CMD_ADD,		"add"		},
 	{	CMD_HELP,		"help"		},
-	{	CMD_PRINT,		"print"		},
-	{	CMD_SET,		"set"		},
-	{	CMD_WHATIS,		"whatis"	},
 	{	CMD_HORIZON,	"horizon"	},
-	{	CMD_RESCAN,		"rescan"	},
-	{	CMD_SHUTDOWN,	"shutdown"	},
+	{	CMD_NODE,		"node"		},
 	{	CMD_NODES,		"nodes"		},
+	{	CMD_OFFLINE,	"offline"  	},
+	{	CMD_ONLINE,		"online"   	},
+	{	CMD_PRINT,		"print"		},
+	{	CMD_PROPS,		"props"		},
+	{	CMD_QUIT,		"quit"		},
+	{	CMD_RESCAN,		"rescan"	},
+	{	CMD_SEARCH,		"search"	},
+	{	CMD_SET,		"set"		},
+	{	CMD_SHUTDOWN,	"shutdown"	},
+	{	CMD_STATUS,		"status"	},
+	{	CMD_WHATIS,		"whatis"	},
 };
 
 
@@ -243,7 +255,7 @@ shell_get_token(const gchar *s, gint *pos)
 	return retval;
 }
 
-static guint
+static enum shell_reply
 shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok;
@@ -311,12 +323,12 @@ error:
 	return REPLY_ERROR;
 }
 
-static guint
+static enum shell_reply
 shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 {
+	enum shell_reply reply_code = REPLY_ERROR;
 	gchar *tok;
 	gint pos = 0;
-	guint reply_code = REPLY_ERROR;
 
 	g_assert(sh);
 	g_assert(cmd);
@@ -389,13 +401,12 @@ get_prop_stub_by_name(const gchar *tok_prop, prop_set_stub_t **stub_ptr)
 	return NO_PROP;
 }
 
-
-static guint
+static enum shell_reply
 shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 {
+	enum shell_reply reply_code = REPLY_ERROR;
 	gchar *tok_prop;
 	gint pos = 0;
-	guint reply_code = REPLY_ERROR;
 	prop_set_stub_t *stub = NULL;
 	property_t prop;
 
@@ -435,13 +446,13 @@ error:
 	return REPLY_ERROR;
 }
 
-static guint
+static enum shell_reply
 shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 {
+	enum shell_reply reply_code = REPLY_ERROR;
 	gchar *tok_prop;
 	gchar *tok_value;
 	gint pos = 0;
-	guint reply_code = REPLY_ERROR;
 	prop_set_stub_t *stub = NULL;
 	property_t prop;
 	prop_def_t *prop_buf = NULL;
@@ -557,12 +568,12 @@ failure:
 /**
  * Takes a whatis command and tries to execute it.
  */
-static guint
+static enum shell_reply
 shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 {
+	enum shell_reply reply_code = REPLY_ERROR;
 	gchar *tok_prop;
 	gint pos = 0;
-	guint reply_code = REPLY_ERROR;
 	prop_set_stub_t *stub = NULL;
 	prop_def_t *prop_buf = NULL;
 	property_t prop;
@@ -611,7 +622,7 @@ error:
 /**
  * Rescan the shared directories for added/removed files.
  */
-static guint
+static enum shell_reply
 shell_exec_rescan(gnutella_shell_t *sh, const gchar *cmd)
 {
 	g_assert(sh);
@@ -629,7 +640,7 @@ shell_exec_rescan(gnutella_shell_t *sh, const gchar *cmd)
 /**
  * Displays horizon size information.
  */
-static guint
+static enum shell_reply
 shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar buf[200];
@@ -647,7 +658,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
     if (tok != NULL) {
 		shell_write(sh, tok);
 		shell_write(sh, "\n");
-		if (0 == ascii_strcasecmp(tok, "ALL")) {
+		if (0 == ascii_strcasecmp(tok, "all")) {
 			all = TRUE;
 		} else {
         	sh->msg = _("Unknown parameter");
@@ -687,8 +698,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 			gm_snprintf(buf, sizeof buf,
 				_("Horizon size via HSEP node %s (%s):"),
 				node_addr(n),
-				NODE_IS_LEAF(n) ? _("leaf") :
-					(NODE_IS_ULTRA(n) ? _("ultrapeer") : _("normal node")));
+				node_peermode_to_string(n->peermode));
 
 			shell_write(sh, buf);
 			shell_write(sh, "\n\n");
@@ -863,7 +873,7 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 /**
  * Displays all connected nodes
  */
-static guint
+static enum shell_reply
 shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 {
 	const GSList *sl;
@@ -887,24 +897,218 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 	return REPLY_READY;
 }
 
+/**
+ * Displays assorted status information
+ */
+static enum shell_reply
+shell_exec_stat(gnutella_shell_t *sh)
+{
+	gchar buf[2048];
+	time_t now;
+
+	g_assert(sh);
+
+	now = tm_time();
+
+	/* General status */ 
+	{
+		const gchar *blackout;
+		short_string_t leaf_switch;
+		short_string_t ultra_check;
+	
+		leaf_switch = timestamp_get_string(node_last_ultra_leaf_switch);
+		ultra_check = timestamp_get_string(node_last_ultra_check);
+
+		if (is_firewalled && is_udp_firewalled)
+			blackout = "TCP,UDP";
+		else if (is_firewalled)
+			blackout = "TCP";
+		else if (is_udp_firewalled)
+			blackout = "UDP";
+		else
+			blackout = "No";
+
+		gm_snprintf(buf, sizeof buf,
+			"+---------------------------------------------------------+\n"
+			"|                      Status                             |\n"
+			"|=========================================================|\n"
+			"|   Mode: %-8s   Last Switch: %-19s     |\n"
+			"| Uptime: %-9s   Last Check: %-19s     |\n"
+			"|   Port: %-5u         Blackout: %-7s                 |\n"
+			"|=========================================================|\n",
+			online_mode
+				? guc_node_peermode_to_string(current_peermode)
+				: "offline",
+			node_last_ultra_leaf_switch ? leaf_switch.str : "never",
+			short_time(delta_time(now, start_stamp)),
+			node_last_ultra_check ? ultra_check.str : "never",
+			socket_listen_port(),
+			blackout);
+		shell_write(sh, buf);
+	}
+
+	/* IPv4 info */ 
+	switch (network_protocol) {
+	case NET_USE_BOTH:
+	case NET_USE_IPV4:
+		gm_snprintf(buf, sizeof buf,
+			"| IPv4 Address: %-17s Last Change: %-9s  |\n",
+			host_addr_to_string(local_ip),
+			short_time(delta_time(now, current_ip_stamp)));
+		shell_write(sh, buf);
+	}
+
+	/* IPv6 info */ 
+	switch (network_protocol) {
+	case NET_USE_BOTH:
+		shell_write(sh,
+			"|---------------------------------------------------------|\n");
+		/* FALL THROUGH */
+	case NET_USE_IPV6:
+		gm_snprintf(buf, sizeof buf,
+			"| IPv6 Address: %-39s   |\n"
+			"|                                 Last Change: %-9s  |\n",
+			host_addr_to_string(local_ip6),
+			short_time(delta_time(now, current_ip6_stamp)));
+		shell_write(sh, buf);
+	}
+
+	/* Node counts */
+	gm_snprintf(buf, sizeof buf,
+		"|=========================================================|\n"
+		"| Connected Peers: %-4u                                   |\n"
+		"|    Ultra %4u/%-4u   Leaf %4u/%-4u   Legacy %4u/%-4u  |\n"
+		"|=========================================================|\n",
+		node_ultra_count + node_leaf_count + node_normal_count,
+		node_ultra_count,
+		NODE_P_ULTRA == current_peermode ? max_ultrapeers : max_connections,
+		node_leaf_count,
+		max_leaves,
+		node_normal_count,
+		normal_connections);
+	shell_write(sh, buf);
+
+	/* Bandwidths */
+	{	
+		const gboolean metric = display_metric_units;
+		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
+		gnet_bw_stats_t bw_stats;
+
+		gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
+		gnet_in = short_rate_get_string(bw_stats.average, metric);
+
+		gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
+		gnet_out = short_rate_get_string(bw_stats.average, metric);
+		
+		gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
+		http_in = short_rate_get_string(bw_stats.average, metric);
+		
+		gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
+		http_out = short_rate_get_string(bw_stats.average, metric);
+		
+		gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
+		leaf_in = short_rate_get_string(bw_stats.average, metric);
+
+		gnet_get_bw_stats(BW_LEAF_OUT, &bw_stats);
+		leaf_out = short_rate_get_string(bw_stats.average, metric);
+
+		gm_snprintf(buf, sizeof buf,
+			"| Bandwidth:           GNet          HTTP          Leaf   |\n"
+			"|---------------------------------------------------------|\n"
+			"|        In:    %11s   %11s   %11s   |\n"
+			"|       Out:    %11s   %11s   %11s   |\n"
+		    "+_________________________________________________________+\n",	
+			gnet_in.str, http_in.str, leaf_in.str,
+			gnet_out.str, http_out.str, leaf_out.str);
+		shell_write(sh, buf);
+	}
+
+	return REPLY_READY;
+}
+
+/**
+ * Close GNet connections
+ */
+static enum shell_reply
+shell_exec_offline(gnutella_shell_t *sh)
+{
+	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, FALSE);
+	shell_write(sh, "Closing GNet connections\n");
+
+	return REPLY_READY;
+}
+
+/**
+ * Open GNet connections
+ */
+static enum shell_reply
+shell_exec_online(gnutella_shell_t *sh)
+{
+	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, TRUE);
+	shell_write(sh, "Opening GNet connections\n");
+
+	return REPLY_READY;
+}
+
+/**
+ * Display all properties
+ */
+static enum shell_reply
+shell_exec_props(gnutella_shell_t *sh, const gchar *args)
+{
+	GSList *props, *sl;
+
+	g_assert(sh);
+	g_assert(args);
+	
+	props = gnet_prop_get_by_regex('\0' == args[0] ? "." : args, NULL);
+	if (!props) {
+		sh->msg = _("No matching property.");
+		return REPLY_ERROR;
+	}
+
+	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
+		const gchar *name_1, *name_2;
+		property_t prop;
+		gchar buf[80];
+	   
+		prop = GPOINTER_TO_UINT(sl->data);
+		name_1 = gnet_prop_name(prop);
+
+		if (g_slist_next(sl)) {
+			sl = g_slist_next(sl);
+			prop = GPOINTER_TO_UINT(sl->data);
+			name_2 = gnet_prop_name(prop);
+		} else {
+			name_2 = "";
+		}
+
+		gm_snprintf(buf, sizeof buf, "%-34.34s  %-34.34s\n", name_1, name_2);
+		shell_write(sh, buf);
+	}
+	g_slist_free(props);
+	props = NULL;
+
+	return REPLY_READY;
+}
 
 /**
  * Takes a command string and tries to parse and execute it.
  */
-static guint
+static enum shell_reply
 shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 {
+	enum shell_reply reply_code = REPLY_ERROR;
 	const gchar *args;
 	gchar *tok;
 	gint pos = 0;
-	guint reply_code = REPLY_ERROR;
 
 	g_assert(sh);
 	g_assert(cmd);
 
 	tok = shell_get_token(cmd, &pos);
 	if (!tok)
-		return CMD_NOOP;
+		return REPLY_NONE;
 
 	if (pos >= 0) {
 		args = &cmd[pos];
@@ -917,17 +1121,22 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		shell_write(sh,
 			"100~ \n"
 			"The following commands are available:\n"
-			"search add <query>\n"
+			"help\n"
+			"horizon [all]\n"
 			"node add <ip> [port]\n"
 			"nodes\n"
+			"offline\n"
+			"online\n"
 			"print <property>\n"
-			"set <property> <value>\n"
-			"whatis <property>\n"
-			"horizon [ALL]\n"
-			"rescan\n"
-			"shutdown\n"
+			"props [<regex>]\n"
 			"quit\n"
-			"help\n");
+			"rescan\n"
+			"search add <query>\n"
+			"set <property> <value>\n"
+			"shutdown\n"
+			"status\n"
+			"whatis <property>\n"
+		);
 		shell_write(sh, ".\n");
 		reply_code = REPLY_READY;
 		break;
@@ -968,6 +1177,18 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		break;
 	case CMD_NODES:
 		reply_code = shell_exec_nodes(sh, args);
+		break;
+	case CMD_STATUS:
+		reply_code = shell_exec_stat(sh);
+		break;
+	case CMD_OFFLINE:
+		reply_code = shell_exec_offline(sh);
+		break;
+	case CMD_ONLINE:
+		reply_code = shell_exec_online(sh);
+		break;
+	case CMD_PROPS:
+		reply_code = shell_exec_props(sh, args);
 		break;
 	case CMD_ADD:
 	case CMD_NOOP:
@@ -1074,8 +1295,8 @@ shell_read_data(gnutella_shell_t *sh)
 	}
 
 	while (s->pos > 0) {
+		enum shell_reply reply_code;
 		size_t parsed;
-		guint reply_code;
 
 		switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
 		case READ_OVERFLOW:
@@ -1099,7 +1320,7 @@ shell_read_data(gnutella_shell_t *sh)
 		 */
 
 		reply_code = shell_exec(sh, getline_str(s->getline));
-		if (CMD_NOOP != reply_code) {
+		if (REPLY_NONE != reply_code) {
 			gchar *buf = NULL;
 			size_t size;
 
