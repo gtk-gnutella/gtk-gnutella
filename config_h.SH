@@ -203,6 +203,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_rusage HAS_GETRUSAGE		/**/
 
+/* HAS_SETLINEBUF:
+ *	This symbol, if defined, indicates that the setlinebuf routine is
+ *	available to change stderr or stdout from block-buffered or unbuffered
+ *	to a line-buffered mode.
+ */
+#$d_setlinebuf HAS_SETLINEBUF		/**/
+
 /* HAS_SIGACTION:
  *	This symbol, if defined, indicates that Vr4's sigaction() routine
  *	is available.

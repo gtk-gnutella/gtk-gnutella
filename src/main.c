@@ -973,6 +973,10 @@ reopen_log_files(void)
 			fprintf(stderr, "freopen(..., \"a\", stdout) failed: %s",
 				g_strerror(errno));
 			failure |= TRUE;
+		} else {
+#ifdef HAS_SETLINEBUF
+			setlinebuf(stdout);
+#endif
 		}
 	}
 	if (options[main_arg_log_stderr].used) {
@@ -980,6 +984,10 @@ reopen_log_files(void)
 			fprintf(stderr, "freopen(..., \"a\", stderr) failed: %s",
 				g_strerror(errno));
 			failure |= TRUE;
+		} else {
+#ifdef HAS_SETLINEBUF
+			setlinebuf(stderr);
+#endif
 		}
 	}
 	return failure ? -1 : 0;
