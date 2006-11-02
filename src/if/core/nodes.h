@@ -394,6 +394,8 @@ void node_free_info(gnet_node_info_t *info);
 void node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
 void node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
 const gchar *node_flags_to_string(const gnet_node_flags_t *flags);
+const gchar *node_peermode_to_string(node_peer_t m);
+
 
 #endif /* CORE_SOURCES */
 

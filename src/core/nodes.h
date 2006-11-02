@@ -598,8 +598,6 @@ gnutella_node_t *node_browse_prepare(
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 
-const gchar *node_peermode_to_string(node_peer_t m);
-
 #endif /* _core_nodes_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
