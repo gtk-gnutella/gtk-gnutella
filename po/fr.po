@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-10-31 16:01+0100\n"
-"PO-Revision-Date: 2006-09-02 22:36+0200\n"
+"POT-Creation-Date: 2006-11-02 20:11+0100\n"
+"PO-Revision-Date: 2006-11-02 20:15+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -26,7 +26,7 @@ msgid "%s%s%s%s%s fps, %s kbps"
 msgstr "%s%s%s%s%s fps, %s kbps"
 
 msgid "times|x"
-msgstr ""
+msgstr "x"
 
 msgid "No longer connected"
 msgstr "N'est plus connecté"
@@ -419,6 +419,24 @@ msgstr "Ejecté: %s message trop gros (%d octets)"
 msgid "Kicked: %s message too big (>= 64KiB limit)"
 msgstr "Ejecté: %s message trop gros (>= limite de 64 Ko)"
 
+msgid "Leaf"
+msgstr "Feuille"
+
+msgid "Ultrapeer"
+msgstr "Ultrapeer"
+
+msgid "Legacy"
+msgstr "Legacy"
+
+msgid "Crawler"
+msgstr "Robot"
+
+msgid "UDP"
+msgstr "UDP"
+
+msgid "Unknown"
+msgstr "Inconnu"
+
 msgid "Read failed (Input Exception)"
 msgstr "Erreur de lecture (Exception d'entrée)"
 
@@ -507,15 +525,6 @@ msgstr "Taille de l'horizon (%u/%u noeuds supportant HSEP):"
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "Taille d'horizon via le noeud HSEP %s (%s):"
 
-msgid "leaf"
-msgstr "feuille"
-
-msgid "ultrapeer"
-msgstr "ultrapeer"
-
-msgid "normal node"
-msgstr "Noeud normal"
-
 msgid "Hops"
 msgstr "Sauts"
 
@@ -527,6 +536,9 @@ msgstr "Fichiers"
 
 msgid "Size"
 msgstr " Taille "
+
+msgid "No matching property."
+msgstr "Aucune propriété correspondant."
 
 msgid "Good bye"
 msgstr "Aurevoir"
@@ -646,17 +658,17 @@ msgstr "Explicitement tué"
 msgid "IP denying uploads"
 msgstr "L'IP interdit les envois"
 
-#, fuzzy, c-format
+#, c-format
 msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - Nouvelles versions disponibles: version %s / du CVS %s"
+msgstr " - Nouvelles versions disponibles: version %s / du SVN %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - Nouvelle version disponible: version %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid " - Newer version available: from SVN %s"
-msgstr " - Nouvelle version disponible: du CVS %s"
+msgstr " - Nouvelle version disponible: du SVN %s"
 
 msgid "No proxy"
 msgstr "Pas de proxy"
@@ -696,6 +708,9 @@ msgstr "noeud ultra"
 
 msgid "leaf node"
 msgstr "noeud feuille"
+
+msgid "normal node"
+msgstr "Noeud normal"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Indique si le fichier cache des hôtes est en cours de lecture."
@@ -2460,9 +2475,6 @@ msgstr "TCP seulement"
 msgid "UDP only"
 msgstr "UDP seulement"
 
-msgid "Unknown"
-msgstr "Inconnu"
-
 msgid "Ping"
 msgstr "Ping"
 
@@ -2760,7 +2772,7 @@ msgid "Discard search results which carry no hashsum."
 msgstr "Ecarter les résultats de recherche qui ne portent pas de hashsum."
 
 msgid "Jump to newly created searches"
-msgstr ""
+msgstr "Sauter aux recherches créées en dernier"
 
 msgid "Display download settings."
 msgstr "Afficher les paramètres de téléchargement."
@@ -3397,9 +3409,8 @@ msgstr "Monaco"
 msgid "Moldova"
 msgstr "Moldavie"
 
-#, fuzzy
 msgid "Montenegro"
-msgstr "Serbie et Montenegro"
+msgstr "Montenegro"
 
 msgid "Madagascar"
 msgstr "Madagascar"
@@ -3545,9 +3556,8 @@ msgstr "Réunion"
 msgid "Romania"
 msgstr "Roumanie"
 
-#, fuzzy
 msgid "Serbia"
-msgstr "Azerbaïdjan"
+msgstr "Serbie"
 
 msgid "Russian Federation"
 msgstr "Fédération Russe"
@@ -3762,34 +3772,34 @@ msgid "This is an unofficial build which accesses files in this directory:"
 msgstr "Build non officiel avec accès fichiers accédés dans ce répertoire :"
 
 msgid "Bitzi|Unknown"
-msgstr "Bitzi|Inconnu"
+msgstr "Inconnu"
 
 msgid "Bitzi|Dangerous/Misleading"
-msgstr "Bitzi|Dangereux/Trompeur"
+msgstr "Dangereux/Trompeur"
 
 msgid "Bitzi|Incomplete/Damaged"
-msgstr "Bitzi|Incomplet/Endommagé"
+msgstr "Incomplet/Endommagé"
 
 msgid "Bitzi|Substandard"
-msgstr "Bitzi|Inférieur"
+msgstr "Inférieur"
 
 msgid "Bitzi|Overrated"
-msgstr "Bitzi|Sur-estimé"
+msgstr "Sur-estimé"
 
 msgid "Bitzi|Normal"
-msgstr "Bitzi|Normal"
+msgstr "Normal"
 
 msgid "Bitzi|Underrated"
-msgstr "Bitzi|Sous-estimé"
+msgstr "Sous-estimé"
 
 msgid "Bitzi|Complete"
-msgstr "Bitzi|Terminé"
+msgstr "Terminé"
 
 msgid "Bitzi|Recommended"
-msgstr "Bitzi|Recommandé"
+msgstr "Recommandé"
 
 msgid "Bitzi|Best Version"
-msgstr "Bitzi|Meilleure Version"
+msgstr "Meilleure Version"
 
 msgid "No other data"
 msgstr "Pas d'autres données"
@@ -5392,9 +5402,8 @@ msgstr "Condition: Si le nom de fichier correspond"
 msgid "case sensitive"
 msgstr "sensible à la casse"
 
-#, fuzzy
 msgid "Save"
-msgstr "Sauvé"
+msgstr "Sauver"
 
 msgid "Remove"
 msgstr "Retirer"
@@ -5528,10 +5537,6 @@ msgstr "A propos de gtk-gnutella"
 msgid "[name and version]"
 msgstr "[nom et version]"
 
-#, fuzzy
-msgid "$Id$"
-msgstr "$Id$"
-
 msgid "Original author:"
 msgstr "Auteur original:"
 
@@ -5638,30 +5643,26 @@ msgstr "Activer l'_UDP"
 msgid "Network protocol:"
 msgstr "Protocole réseau:"
 
-#, fuzzy
 msgid "(Disable: 0, Random: 1)"
-msgstr "Désactiver: 0, Hasard: 1"
+msgstr "(Désactiver: 0, Hasard: 1)"
 
-#, fuzzy
 msgid "IPv4 settings"
-msgstr "Paramètres IP"
+msgstr "Options IPv4"
 
 msgid "Force external IPv_4 address to"
-msgstr ""
+msgstr "Forcer l'adresse externe IPv_4 à"
 
-#, fuzzy
 msgid "Bind to this address"
-msgstr "Mauvaise adresse de retour"
+msgstr "Associer cette adresse"
 
-#, fuzzy
 msgid "IPv6 settings"
-msgstr "Paramètres IP"
+msgstr "Options IPv6"
 
 msgid "Force external IPv_6 address to"
-msgstr ""
+msgstr "Forcer l'adresse externe IPv_6 à"
 
 msgid "Use IPv6-to-IPv4 TRT prefix:"
-msgstr ""
+msgstr "Utiliser un préfixe TRT IPv6-vers-IPv4:"
 
 msgid "Proxy settings"
 msgstr "Paramètres du proxy"
@@ -5741,9 +5742,8 @@ msgstr "Décalage de l'heure:"
 msgid "Miscellaneous"
 msgstr "Divers"
 
-#, fuzzy
 msgid "Enable remote _shell control interface"
-msgstr "Activer le contrôle de l'interface via un \"_shell\" "
+msgstr "Activer le contrôle de l'interface via un \"_shell\" distant"
 
 msgid "Socket receive buffer size"
 msgstr "Taille du tampon pour la réception socket"
@@ -6481,9 +6481,6 @@ msgstr "Pays"
 msgid "Failed to create the search"
 msgstr "Echec de création de la recherche"
 
-msgid "UDP"
-msgstr "UDP"
-
 msgid "TCP"
 msgstr "TCP"
 
@@ -6643,7 +6640,7 @@ msgstr "Utiliser au plus"
 
 msgid "connections to connect more quickly while not all slots are used."
 msgstr ""
-"connexions pour se conencter plus rapidement tant que tous les créneaux ne "
+"connexions pour se connecter plus rapidement tant que tous les créneaux ne "
 "sont pas remplis."
 
 msgid ""
@@ -6699,22 +6696,19 @@ msgid "Reverse DNS lookup"
 msgstr "Recherche inverse de DNS"
 
 msgid "Force external IPv4 address to"
-msgstr ""
+msgstr "Forcer l'adresse externe IPv4 à"
 
-#, fuzzy
 msgid "_Bind to this address"
-msgstr "Mauvaise adresse de retour"
+msgstr "_Associer cette adresse"
 
-#, fuzzy
 msgid "IPv_4 settings"
-msgstr "Paramètres IP"
+msgstr "Options IPv_4"
 
 msgid "Force external IPv6 address to"
-msgstr ""
+msgstr "Forcer l'adresse externe IPv6 à"
 
-#, fuzzy
 msgid "IPv_6 settings"
-msgstr "Paramètres IP"
+msgstr "Options IPv_6"
 
 msgid ""
 "This option can give performance boosts to those on a large network with "
@@ -6737,7 +6731,7 @@ msgid "slots"
 msgstr "créneaux"
 
 msgid "unit_of_time|s"
-msgstr ""
+msgstr "s"
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
@@ -6779,18 +6773,6 @@ msgstr "Données téléchargées:"
 
 msgid "Version"
 msgstr "Version"
-
-msgid "Leaf"
-msgstr "Feuille"
-
-msgid "Ultrapeer"
-msgstr "Ultrapeer"
-
-msgid "Legacy"
-msgstr "Legacy"
-
-msgid "Crawler"
-msgstr "Robot"
 
 msgid "Move the cursor over a row to see details."
 msgstr "Déplacer le curseur sur une ligne pour voir les détails."
@@ -7156,24 +7138,3 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
-
-#~ msgid "Auto-download selected by..."
-#~ msgstr "Téléchargement automatique sélectionné par..."
-
-#~ msgid "name"
-#~ msgstr "nom"
-
-#~ msgid "urn:sha1"
-#~ msgstr "urn:sha1"
-
-#~ msgid "New search from selected"
-#~ msgstr "Nouvelle recherche depuis la sélection"
-
-#~ msgid "Add/Replace"
-#~ msgstr "Ajouter/Remplacer"
-
-#~ msgid "Force local _IP to"
-#~ msgstr "Forcer l'_IP locale à"
-
-#~ msgid "New/replace"
-#~ msgstr "Nouveau/remplacer"
