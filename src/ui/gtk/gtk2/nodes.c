@@ -346,28 +346,6 @@ nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 					->fg[ultra ? GTK_STATE_NORMAL : GTK_STATE_INSENSITIVE]);
 }
 
-static const gchar *
-peermode_to_string(node_peer_t m)
-{
-	switch (m) {
-	case NODE_P_LEAF:
-		return _("Leaf");
-	case NODE_P_ULTRA:
-		return _("Ultrapeer");
-	case NODE_P_NORMAL:
-		return _("Legacy");
-	case NODE_P_CRAWLER:
-		return _("Crawler");
-	case NODE_P_UDP:
-		return _("UDP");
-	case NODE_P_AUTO:
-	case NODE_P_UNKNOWN:
-		break;
-	}
-
-	return _("Unknown");
-}
-
 static void
 update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
@@ -418,7 +396,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			_("Peer:"),
 			host_addr_port_to_string(info.gnet_addr, info.gnet_port),
 			_("Peermode:"),
-			peermode_to_string(flags.peermode),
+			guc_node_peermode_to_string(flags.peermode),
 			flags.incoming ? _("incoming") : _("outgoing"),
 			_("Country:"),
 			iso3166_country_name(info.country),

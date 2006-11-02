@@ -9187,4 +9187,26 @@ node_kill_hostiles(void)
 	g_slist_free(to_remove);
 }
 
+const gchar *
+node_peermode_to_string(node_peer_t m)
+{
+	switch (m) {
+	case NODE_P_LEAF:
+		return _("Leaf");
+	case NODE_P_ULTRA:
+		return _("Ultrapeer");
+	case NODE_P_NORMAL:
+		return _("Legacy");
+	case NODE_P_CRAWLER:
+		return _("Crawler");
+	case NODE_P_UDP:
+		return _("UDP");
+	case NODE_P_AUTO:
+	case NODE_P_UNKNOWN:
+		break;
+	}
+
+	return _("Unknown");
+}
+
 /* vi: set ts=4 sw=4 cindent: */

@@ -576,6 +576,11 @@ guc_node_flags_to_string(const gnet_node_flags_t *flags)
 	return node_flags_to_string(flags);
 }
 
+const gchar *
+guc_node_peermode_to_string(node_peer_t m)
+{
+	return node_peermode_to_string(m);
+}
 
 /*	parq interface functions (UI -> Core)*/
 gint
