@@ -475,6 +475,7 @@
 # "getlaidquickly" spam. Apparently Relevance Marketing LTD is the culprit.
 67.55.65.20
 67.55.65.92/30
+67.55.74.180
 216.255.178.18
 # Above mentioned adware downloads executables from the following web servers
 # puzzledesktop dot com
