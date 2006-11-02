@@ -64,6 +64,10 @@
 #define GUID_RAW_SIZE	16		/**< Binary representation of 128 bits */
 #define GUID_HEX_SIZE	32		/**< Hexadecimal GUID representation */
 
+typedef struct short_string {
+	gchar str[SIZE_FIELD_MAX];
+} short_string_t;
+
 /**
  * Needs to be defined if we are not using Glib 2
  */
@@ -343,13 +347,8 @@ const gchar *timestamp_rfc1123_to_string(time_t date);
 
 size_t timestamp_to_string_buf(time_t date, gchar *dst, size_t size);
 size_t time_locale_to_string_buf(time_t date, gchar *dst, size_t size);
-/*
- * Time string conversions
- */
-gchar *short_time(gint s);
-gchar *short_time_ascii(gint t);
-gchar *short_uptime(gint s);
-const gchar *compact_time(gint t);
+
+short_string_t timestamp_get_string(time_t date);
 
 /*
  * We use the direct difference of time_t values instead of difftime()
@@ -413,6 +412,14 @@ time_advance(time_t t, gulong delta)
 }
 
 /*
+ * Time string conversions
+ */
+const gchar *short_time(time_delta_t s);
+const gchar *short_time_ascii(time_delta_t t);
+const gchar *short_uptime(time_delta_t s);
+const gchar *compact_time(time_delta_t t);
+
+/*
  * Size string conversions
  */
 const gchar *short_size(guint64 size, gboolean metric);
@@ -424,6 +431,8 @@ const gchar *compact_rate(guint64 rate, gboolean metric);
 const gchar *compact_kb_size(guint32 size, gboolean metric);
 gchar *short_value(gchar *buf, size_t size, guint64 v, gboolean metric);
 gchar *compact_value(gchar *buf, size_t size, guint64 v, gboolean metric);
+
+short_string_t short_rate_get_string(guint64 rate, gboolean metric);
 
 /*
  * SHA1<->base32 string conversion
