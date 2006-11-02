@@ -1546,7 +1546,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			extvec_t exv[MAX_EXTVEC];
 			gboolean seen_ggep = FALSE;
 			gint i;
-			struct ggep_gtkgv1 info;
 
 			if (privlen > 0) {
 				ext_prepare(exv, MAX_EXTVEC);
@@ -1591,25 +1590,31 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					}
 					break;
 				case EXT_T_GGEP_GTKGV1:
-					ret = ggept_gtkgv1_extract(e, &info);
-					if (ret == GGEP_OK) {
-						version_t ver;
+					{
+						struct ggep_gtkgv1 vi;
 
-						ver.major = info.major;
-						ver.minor = info.minor;
-						ver.patchlevel = info.patch;
-						ver.tag = info.revchar;
-						ver.taglevel = 0;
-						/* Build information valid after 2006-08-27 */
-						ver.build = info.release >= 1156629600 ? info.build : 0;
-						ver.timestamp = info.revchar ? info.release : 0;
+						ret = ggept_gtkgv1_extract(e, &vi);
+						if (ret == GGEP_OK) {
+							static const version_t zero_ver;
+							version_t ver = zero_ver;
 
-						rs->version = atom_str_get(version_str(&ver));
-					} else if (ret == GGEP_INVALID) {
-						if (search_debug > 3 || ggep_debug > 3) {
-							g_warning("%s bad GGEP \"GTKGV1\" (dumping)",
-								gmsg_infostr(&n->header));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							ver.major = vi.major;
+							ver.minor = vi.minor;
+							ver.patchlevel = vi.patch;
+							ver.tag = vi.revchar;
+							/* Build information valid after 2006-08-27 */
+							if (vi.release >= 1156629600)
+								ver.build = vi.build;
+							if (ver.tag)
+								ver.timestamp = vi.release;
+
+							rs->version = atom_str_get(version_str(&ver));
+						} else if (ret == GGEP_INVALID) {
+							if (search_debug > 3 || ggep_debug > 3) {
+								g_warning("%s bad GGEP \"GTKGV1\" (dumping)",
+										gmsg_infostr(&n->header));
+								ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							}
 						}
 					}
 					break;
@@ -2567,9 +2572,6 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	gnet_results_set_t *rs;
 	GSList *search = NULL;
 	GSList *sl;
-    search_ctrl_t *sch = search_find_by_handle(sh);
-
-	g_assert(sch != NULL);
 
 	rs = get_results_set(n, FALSE, TRUE);
 	if (rs == NULL)
@@ -2579,9 +2581,13 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	 * Dispatch the results as-is without any ignoring to the GUI, which
 	 * will copy the information for its own perusal (and filtering).
 	 */
-
-	if (!sch->frozen) {
-		search = g_slist_prepend(search, GUINT_TO_POINTER(sch->search_handle));
+	{
+    	search_ctrl_t *sch = search_find_by_handle(sh);
+		
+		g_assert(sch != NULL);
+		if (!sch->frozen)
+			search = g_slist_prepend(search,
+						GUINT_TO_POINTER(sch->search_handle));
 	}
 
     /*
