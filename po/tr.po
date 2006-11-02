@@ -3211,7 +3211,7 @@ msgid "%us"
 msgstr "%us"
 
 msgid "locale_get_language|en"
-msgstr ""
+msgstr "tr"
 
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""

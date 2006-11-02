@@ -3795,7 +3795,7 @@ msgid "%us"
 msgstr ""
 
 msgid "locale_get_language|en"
-msgstr ""
+msgstr "it"
 
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
@@ -6791,7 +6791,7 @@ msgid "slots"
 msgstr "posizioni"
 
 msgid "unit_of_time|s"
-msgstr "unità_di_tempo|s"
+msgstr "s"
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""

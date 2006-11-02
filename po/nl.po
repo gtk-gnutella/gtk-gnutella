@@ -24,9 +24,8 @@ msgstr ""
 msgid "%s%s%s%s%s fps, %s kbps"
 msgstr ""
 
-#, fuzzy
 msgid "times|x"
-msgstr "Tijd draaiend"
+msgstr "x"
 
 msgid "No longer connected"
 msgstr "Niet langer verbonden"
@@ -3101,6 +3100,10 @@ msgstr "Canada"
 msgid "Cocos (Keeling) Islands"
 msgstr "Cocos (Keeling)"
 
+#, fuzzy
+msgid "Congo (Democratic Republic)"
+msgstr "Laos"
+
 msgid "Central African Republic"
 msgstr "Centraal-Afrikaanse republiek"
 
@@ -3824,34 +3827,34 @@ msgstr ""
 "directorie:"
 
 msgid "Bitzi|Unknown"
-msgstr "Bitzi|Onbekend"
+msgstr "Onbekend"
 
 msgid "Bitzi|Dangerous/Misleading"
-msgstr "Bitizi|Gevaarlijk/Misleidend"
+msgstr "Gevaarlijk/Misleidend"
 
 msgid "Bitzi|Incomplete/Damaged"
-msgstr "Bitzi|Incompleet/Beschadigd"
+msgstr "Incompleet/Beschadigd"
 
 msgid "Bitzi|Substandard"
-msgstr "Bitzi|Sub-standaard"
+msgstr "Sub-standaard"
 
 msgid "Bitzi|Overrated"
-msgstr "Bitzi|Overgewaardeerd"
+msgstr "Overgewaardeerd"
 
 msgid "Bitzi|Normal"
-msgstr "Bitzi|Normaal"
+msgstr "Normaal"
 
 msgid "Bitzi|Underrated"
-msgstr "Bitzi|Ondergewaardeerd"
+msgstr "Ondergewaardeerd"
 
 msgid "Bitzi|Complete"
-msgstr "Bitzi|Compleet"
+msgstr "Compleet"
 
 msgid "Bitzi|Recommended"
-msgstr "Bitzi|Aanbevolen"
+msgstr "Aanbevolen"
 
 msgid "Bitzi|Best Version"
-msgstr "Bitzi|Beste versie"
+msgstr "Beste versie"
 
 msgid "No other data"
 msgstr "Geen andere gegevens"
@@ -6841,7 +6844,7 @@ msgid "slots"
 msgstr "sloten"
 
 msgid "unit_of_time|s"
-msgstr "tijd_eenheid|s"
+msgstr "s"
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Maximum percentage verbindingen dat een leverancier kan bezetten."
@@ -6961,7 +6964,7 @@ msgstr "Monitor"
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
 msgid "translation_credit|"
-msgstr "vertaling credit|"
+msgstr ""
 
 msgid ""
 "\n"
@@ -7353,9 +7356,6 @@ msgstr "QUEUE verstuurd, wacht op koppen..."
 
 #~ msgid "Kyrgyz Republic"
 #~ msgstr "Kirgizië"
-
-#~ msgid "Lao People's Democratic Republic"
-#~ msgstr "Laos"
 
 #~ msgid "Lebanon, Lebanese Republic"
 #~ msgstr "Libanon"

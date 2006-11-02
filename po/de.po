@@ -24,9 +24,8 @@ msgstr ""
 msgid "%s%s%s%s%s fps, %s kbps"
 msgstr ""
 
-#, fuzzy
 msgid "times|x"
-msgstr "Uptime"
+msgstr "x"
 
 msgid "No longer connected"
 msgstr "Nicht mehr verbunden"

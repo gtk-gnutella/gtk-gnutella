@@ -3701,34 +3701,34 @@ msgstr ""
 "Αυτή είναι ανεπίσημη έκδοση που έχει πρόσβαση στα αρχεία αυτού του καταλόγου:"
 
 msgid "Bitzi|Unknown"
-msgstr "Bitzi|Άγνωστο"
+msgstr "Άγνωστο"
 
 msgid "Bitzi|Dangerous/Misleading"
-msgstr "Bitzi|Επικίνδυνο/Παραπλανητικό"
+msgstr "Επικίνδυνο/Παραπλανητικό"
 
 msgid "Bitzi|Incomplete/Damaged"
-msgstr "Bitzi|Ανολοκλήρωτο/Κατεστραμμένο"
+msgstr "Ανολοκλήρωτο/Κατεστραμμένο"
 
 msgid "Bitzi|Substandard"
-msgstr "Bitzi|Υποδεέστερο"
+msgstr "Υποδεέστερο"
 
 msgid "Bitzi|Overrated"
-msgstr "Bitzi|Υπερεκτιμημένο"
+msgstr "Υπερεκτιμημένο"
 
 msgid "Bitzi|Normal"
-msgstr "Bitzi|Κανονικό"
+msgstr "Κανονικό"
 
 msgid "Bitzi|Underrated"
-msgstr "Bitzi|Υποτιμημένο"
+msgstr "Υποτιμημένο"
 
 msgid "Bitzi|Complete"
-msgstr "Bitzi|Ολοκληρωμένο"
+msgstr "Ολοκληρωμένο"
 
 msgid "Bitzi|Recommended"
-msgstr "Bitzi|Προτεινόμενο"
+msgstr "Προτεινόμενο"
 
 msgid "Bitzi|Best Version"
-msgstr "Bitzi|Καλύτερη Έκδοση"
+msgstr "Καλύτερη Έκδοση"
 
 msgid "No other data"
 msgstr "Όχι άλλα δεδομένα"
