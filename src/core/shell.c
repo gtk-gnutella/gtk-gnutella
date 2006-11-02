@@ -953,7 +953,7 @@ shell_exec_stat(gnutella_shell_t *sh)
 	case NET_USE_IPV4:
 		gm_snprintf(buf, sizeof buf,
 			"| IPv4 Address: %-17s Last Change: %-9s  |\n",
-			host_addr_to_string(local_ip),
+			host_addr_to_string(listen_addr()),
 			short_time(delta_time(now, current_ip_stamp)));
 		shell_write(sh, buf);
 	}
