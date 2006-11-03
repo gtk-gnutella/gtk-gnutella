@@ -8,6 +8,7 @@ MANIFEST                     This shipping list
 MPL-1.1.txt
 Makefile.SH
 README
+README.Debian
 README.xmingw
 TODO
 config.sh.xmingw
