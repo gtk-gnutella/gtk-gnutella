@@ -57,7 +57,7 @@
 #elif defined(USE_TOPLESS)
 #define GTA_INTERFACE "Topless"
 #else
-#define GTA_INTERFACE "X11"
+#error "Expected Gtk+ 1.2, Gtk+ 2.x or headless as user-interface."
 #endif
 
 #ifndef HAS_LIBXML2
