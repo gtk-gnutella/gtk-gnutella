@@ -913,26 +913,25 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
 guint32
 get_average_ip_lifetime(time_t now, enum net_type net)
 {
-	time_t current_ip_stamp;
-	guint32 average_ip_uptime;
-	glong lifetime;
+	guint32 lifetime, average;
+	time_t stamp;
 
 	switch (net) {
 	case NET_TYPE_IPV4: 
-		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
-		gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
+		stamp = current_ip_stamp;
+		average = average_ip_uptime;
 		break;
 	case NET_TYPE_IPV6: 
-		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
-		gnet_prop_get_guint32_val(PROP_AVERAGE_IP6_UPTIME, &average_ip_uptime);
+		stamp = current_ip6_stamp;
+		average = average_ip6_uptime;
 		break;
 	default:
 		return 0;
 	}
 
-	if (current_ip_stamp) {
-		lifetime = delta_time(now, current_ip_stamp);
-		lifetime = MAX(0, lifetime);
+	if (stamp) {
+		time_delta_t d = delta_time(now, stamp);
+		lifetime = MAX(0, d);
 	} else
 		lifetime = 0;
 
@@ -941,9 +940,9 @@ get_average_ip_lifetime(time_t now, enum net_type net)
 	 * The smoothing factor sm=2/(3+1) is therefore 0.5.
 	 */
 
-	average_ip_uptime += (lifetime >> 1) - (average_ip_uptime >> 1);
+	average += (lifetime >> 1) - (average >> 1);
 
-	return average_ip_uptime;
+	return average;
 }
 
 /**
@@ -954,33 +953,27 @@ static void
 update_address_lifetime(void)
 {
 	static host_addr_t old_addr, old_addr_v6;
-	time_t current_ip_stamp;
+	time_t now;
 	host_addr_t addr;
 
+	now = tm_time();
 	addr = listen_addr();
 	if (!is_host_addr(old_addr)) {				/* First time */
 		old_addr = addr;
-		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 		if (0 == current_ip_stamp) {
-			gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, tm_time());
+			gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, now);
 		}
 	}
 
 	if (!host_addr_equal(old_addr, addr)) {
-		time_t now;
-
 		/*
-		 * IP address changed, update lifetime information.
+		 * IPv4 address changed, update lifetime information.
 		 */
 
-		now = tm_time();
 		old_addr = addr;
-
-		gnet_prop_get_timestamp_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
-
 		if (current_ip_stamp) {
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
-					get_average_ip_lifetime(now, host_addr_net(addr)));
+				get_average_ip_lifetime(now, host_addr_net(addr)));
 		}
 		gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, now);
 	}
@@ -988,26 +981,20 @@ update_address_lifetime(void)
 	addr = listen_addr6();
 	if (!is_host_addr(old_addr_v6)) {				/* First time */
 		old_addr_v6 = addr;
-		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
-		if (0 == current_ip_stamp) {
-			gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, tm_time());
+		if (0 == current_ip6_stamp) {
+			gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, now);
 		}
 	}
 
 	if (!host_addr_equal(old_addr_v6, addr)) {
-		time_t now;
-
 		/*
-		 * IP address changed, update lifetime information.
+		 * IPv6 address changed, update lifetime information.
 		 */
 
-		now = tm_time();
 		old_addr_v6 = addr;
-
-		gnet_prop_get_timestamp_val(PROP_CURRENT_IP6_STAMP, &current_ip_stamp);
-		if (current_ip_stamp) {
+		if (current_ip6_stamp) {
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP6_UPTIME,
-					get_average_ip_lifetime(now, host_addr_net(addr)));
+				get_average_ip_lifetime(now, host_addr_net(addr)));
 		}
 		gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, now);
 	}
@@ -1020,24 +1007,22 @@ update_address_lifetime(void)
 guint32
 get_average_servent_uptime(time_t now)
 {
-	guint32 avg_servent_uptime;
-	time_t start;
+	guint32 avg;
+	time_delta_t d;
 	glong uptime;
 
-	gnet_prop_get_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, &avg_servent_uptime);
-	gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
-
-	uptime = delta_time(now, start);
-	uptime = MAX(0, uptime);
+	d = delta_time(now, start_stamp);
+	uptime = MAX(0, d);
 
 	/*
 	 * The average uptime is computed as an EMA on 7 terms.
 	 * The smoothing factor sm=2/(7+1) is therefore 0.25.
 	 */
 
-	avg_servent_uptime += (uptime >> 2) - (avg_servent_uptime >> 2);
+	avg = average_servent_uptime;
+	avg += (uptime >> 2) - (avg >> 2);
 
-	return avg_servent_uptime;
+	return avg;
 }
 
 /**
@@ -1064,12 +1049,7 @@ update_uptimes(void)
 static gboolean
 up_connections_changed(property_t prop)
 {
-    guint32 up_connections;
-    guint32 max_connections;
-
 	g_assert(PROP_UP_CONNECTIONS == prop);
-    gnet_prop_get_guint32_val(prop, &up_connections);
-    gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
 
     if (up_connections > max_connections) {
         gnet_prop_set_guint32_val(PROP_MAX_CONNECTIONS, up_connections);
@@ -1080,12 +1060,7 @@ up_connections_changed(property_t prop)
 static gboolean
 max_connections_changed(property_t prop)
 {
-    guint32 up_connections;
-    guint32 max_connections;
-
 	g_assert(PROP_MAX_CONNECTIONS == prop);
-    gnet_prop_get_guint32_val(prop, &max_connections);
-    gnet_prop_get_guint32_val(PROP_UP_CONNECTIONS, &up_connections);
 
     if (up_connections > max_connections) {
         gnet_prop_set_guint32_val(PROP_UP_CONNECTIONS, max_connections);
@@ -1448,12 +1423,10 @@ bw_gnet_lout_enabled_changed(property_t prop)
 static gboolean
 node_sendqueue_size_changed(property_t unused_prop)
 {
-    guint32 val;
     guint32 min = 1.5 * settings_max_msg_size();
 
 	(void) unused_prop;
-    gnet_prop_get_guint32_val(PROP_NODE_SENDQUEUE_SIZE, &val);
-    if (val < min) {
+    if (node_sendqueue_size < min) {
         gnet_prop_set_guint32_val(PROP_NODE_SENDQUEUE_SIZE, min);
         return TRUE;
     }
@@ -1522,12 +1495,7 @@ local_netmasks_string_changed(property_t prop)
 static gboolean
 hard_ttl_limit_changed(property_t prop)
 {
-    guint32 hard_ttl_limit;
-    guint32 max_ttl;
-
 	g_assert(PROP_HARD_TTL_LIMIT == prop);
-    gnet_prop_get_guint32_val(prop, &hard_ttl_limit);
-    gnet_prop_get_guint32_val(PROP_MAX_TTL, &max_ttl);
 
     if (hard_ttl_limit < max_ttl) {
         gnet_prop_set_guint32_val(PROP_MAX_TTL, hard_ttl_limit);
@@ -1538,12 +1506,7 @@ hard_ttl_limit_changed(property_t prop)
 static gboolean
 max_ttl_changed(property_t prop)
 {
-    guint32 hard_ttl_limit;
-    guint32 max_ttl;
-
 	g_assert(PROP_MAX_TTL == prop);
-    gnet_prop_get_guint32_val(prop, &max_ttl);
-    gnet_prop_get_guint32_val(PROP_HARD_TTL_LIMIT, &hard_ttl_limit);
 
     if (hard_ttl_limit < max_ttl) {
         gnet_prop_set_guint32_val(PROP_HARD_TTL_LIMIT, max_ttl);
@@ -1559,9 +1522,7 @@ bw_http_in_changed(property_t prop)
 	g_assert(PROP_BW_HTTP_IN == prop);
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.in, val);
-
-	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
-	bsched_set_peermode(val);
+	bsched_set_peermode(current_peermode);
 
     return FALSE;
 }
@@ -1573,9 +1534,7 @@ bw_http_out_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.out, val);
-
-	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
-	bsched_set_peermode(val);
+	bsched_set_peermode(current_peermode);
 
     return FALSE;
 }
@@ -1588,9 +1547,7 @@ bw_gnet_in_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.gin, val / 2);
     bsched_set_bandwidth(bws.gin_udp, val / 2);
-
-	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
-	bsched_set_peermode(val);
+	bsched_set_peermode(current_peermode);
 
     return FALSE;
 }
@@ -1603,9 +1560,7 @@ bw_gnet_out_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.gout, val / 2);
     bsched_set_bandwidth(bws.gout_udp, val / 2);
-
-	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
-	bsched_set_peermode(val);
+	bsched_set_peermode(current_peermode);
 
     return FALSE;
 }
@@ -1617,9 +1572,7 @@ bw_gnet_lin_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.glin, val);
-
-	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
-	bsched_set_peermode(val);
+	bsched_set_peermode(current_peermode);
 
     return FALSE;
 }
@@ -1631,9 +1584,7 @@ bw_gnet_lout_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.glout, val);
-
-	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
-	bsched_set_peermode(val);
+	bsched_set_peermode(current_peermode);
 
     return FALSE;
 }
