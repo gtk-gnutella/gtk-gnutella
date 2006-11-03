@@ -30,19 +30,26 @@
 
 #include <gtk/gtk.h>
 
-extern GtkWidget *main_window;
-extern GtkWidget *shutdown_window;
-extern GtkWidget *dlg_about;
-extern GtkWidget *dlg_faq;
-extern GtkWidget *dlg_prefs;
-extern GtkWidget *dlg_quit;
-extern GtkWidget *popup_downloads;
-extern GtkWidget *popup_uploads;
-extern GtkWidget *popup_search;
-extern GtkWidget *popup_search_list;
-extern GtkWidget *popup_nodes;
-extern GtkWidget *popup_monitor;
-extern GtkWidget *popup_queue;
+#define WIDGET(name) \
+	GtkWidget *gui_ ## name (void); \
+	GtkWidget *gui_ ## name ## _lookup(const gchar *id);
+
+WIDGET(dlg_about)
+WIDGET(dlg_faq)
+WIDGET(dlg_prefs)
+WIDGET(dlg_quit)
+WIDGET(filter_dialog)
+WIDGET(main_window)
+WIDGET(popup_downloads)
+WIDGET(popup_filter_rule)
+WIDGET(popup_monitor)
+WIDGET(popup_nodes)
+WIDGET(popup_queue)
+WIDGET(popup_search)
+WIDGET(popup_search_list)
+WIDGET(popup_uploads)
+WIDGET(shutdown_window)
+#undef WIDGET
 
 void main_gui_early_init(gint, gchar **);
 void main_gui_init(void);
@@ -53,3 +60,4 @@ void main_gui_update_coords(void);
 void main_gui_shutdown_tick(guint);
 
 #endif /* _gtk_main_h_ */
+/* vi: set ts=4 sw=4 cindent: */

@@ -306,17 +306,17 @@ gnet_stats_gui_init(void)
         titles[n] = "-";
 
     clist_stats_msg = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_msg"));
+        gui_main_window_lookup("clist_gnet_stats_msg"));
     clist_stats_fc_ttl = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_fc_ttl"));
+        gui_main_window_lookup("clist_gnet_stats_fc_ttl"));
     clist_stats_fc_hops = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_fc_hops"));
+        gui_main_window_lookup("clist_gnet_stats_fc_hops"));
     clist_reason = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
+        gui_main_window_lookup("clist_gnet_stats_drop_reasons"));
     clist_general = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_general"));
+        gui_main_window_lookup("clist_gnet_stats_general"));
     clist_horizon = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_horizon"));
+        gui_main_window_lookup("clist_gnet_stats_horizon"));
 
     /*
      * Set column justification for numeric columns to GTK_JUSTIFY_RIGHT.
@@ -425,7 +425,7 @@ gnet_stats_gui_update(time_t now)
 		return;
 	last_update = now;
     current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+        GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")));
 
     if (current_page != nb_main_page_gnet_stats)
         return;
@@ -433,17 +433,17 @@ gnet_stats_gui_update(time_t now)
     guc_gnet_stats_get(&stats);
 
     clist_stats_msg = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_msg"));
+        gui_main_window_lookup("clist_gnet_stats_msg"));
     clist_reason = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
+        gui_main_window_lookup("clist_gnet_stats_drop_reasons"));
     clist_general = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_general"));
+        gui_main_window_lookup("clist_gnet_stats_general"));
     clist_horizon = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_horizon"));
+        gui_main_window_lookup("clist_gnet_stats_horizon"));
     clist_stats_fc_ttl = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_fc_ttl"));
+        gui_main_window_lookup("clist_gnet_stats_fc_ttl"));
     clist_stats_fc_hops = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_fc_hops"));
+        gui_main_window_lookup("clist_gnet_stats_fc_hops"));
 
     gtk_clist_freeze(clist_reason);
     gtk_clist_freeze(clist_general);

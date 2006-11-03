@@ -95,9 +95,9 @@ hcache_gui_init(void)
 		HCACHE_STATS_VISIBLE_COLUMNS);
 
 	notebook_main = GTK_NOTEBOOK(
-		lookup_widget(main_window, "notebook_main"));
+		gui_main_window_lookup("notebook_main"));
     treeview_hcache = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_hcache"));
+        gui_main_window_lookup("treeview_hcache"));
 	model = GTK_TREE_MODEL(gtk_list_store_new(4,
 							G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT,
 							G_TYPE_UINT));

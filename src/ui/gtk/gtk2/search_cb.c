@@ -102,13 +102,13 @@ refresh_popups(void)
 	}
 	
 	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "button_search_download"),
+		gui_main_window_lookup("button_search_download"),
 		sensitive);
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
 		GtkWidget *w;
 
-		w = lookup_widget(popup_search, menu[i].name);
+		w = gui_popup_search_lookup(menu[i].name);
 		if (w) {
 			gtk_widget_set_sensitive(w, sensitive);
 		}
@@ -116,21 +116,21 @@ refresh_popups(void)
 
     if (search) {
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search_list, "popup_search_stop"),
+            gui_popup_search_list_lookup("popup_search_stop"),
 			!guc_search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
-			lookup_widget(popup_search_list, "popup_search_resume"),
+			gui_popup_search_list_lookup("popup_search_resume"),
 			guc_search_is_frozen(search->search_handle)
 				&& !search_gui_is_expired(search));
 		if (search->passive)
 			gtk_widget_set_sensitive(
-				lookup_widget(popup_search_list, "popup_search_restart"),
+				gui_popup_search_list_lookup("popup_search_restart"),
 				FALSE);
     } else {
 		gtk_widget_set_sensitive(
-			lookup_widget(popup_search_list, "popup_search_stop"), FALSE);
+			gui_popup_search_list_lookup("popup_search_stop"), FALSE);
 		gtk_widget_set_sensitive(
-			lookup_widget(popup_search_list, "popup_search_resume"), FALSE);
+			gui_popup_search_list_lookup("popup_search_resume"), FALSE);
     }
 }
 
@@ -181,14 +181,14 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 	
 	if (changed)
 		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_search")), normalized);
+			GTK_ENTRY(gui_main_window_lookup("entry_search")), normalized);
 
 	if (normalized != s) {
 		G_FREE_NULL(normalized);
 	}
 	if (!changed) {
 		g_strstrip(s);
-		gtk_widget_set_sensitive(lookup_widget(main_window, "button_search"),
+		gtk_widget_set_sensitive(gui_main_window_lookup("button_search"),
 			s[0] != '\0');
 	}
 	G_FREE_NULL(s);
@@ -254,7 +254,7 @@ on_tree_view_search_select_row(GtkTreeView *treeview, gpointer unused_udata)
 		g_return_if_fail(NULL != sch);
 
 		gtk_notebook_set_page(
-			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+			GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 			nb_main_page_search);
 		search_gui_set_current_search(sch);
 	}
@@ -283,7 +283,7 @@ on_button_search_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 
 	gui_search_clear_results();
 	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "button_search_clear"), FALSE);
+		gui_main_window_lookup("button_search_clear"), FALSE);
 }
 
 void
@@ -330,7 +330,6 @@ on_tree_view_search_results_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer unused_udata)
 {
 	static guint click_time = 0;
-	gboolean search_results_show_tabs;
 
 	(void) unused_udata;
 
@@ -364,14 +363,12 @@ on_tree_view_search_results_button_press_event(GtkWidget *widget,
         /* right click section (popup menu) */
 		if (search_gui_get_current_search()) {
         	refresh_popups();
-			gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS,
-                &search_results_show_tabs);
         	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(
-				lookup_widget(popup_search, "popup_search_toggle_tabs"))
+				gui_popup_search_lookup("popup_search_toggle_tabs"))
                 	->item.bin.child)),
 				search_results_show_tabs ?
 					_("Show search list") : _("Show tabs"));
-			gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
+			gtk_menu_popup(GTK_MENU(gui_popup_search()), NULL, NULL, NULL, NULL,
 				event->button, event->time);
 		}
 		return TRUE;
@@ -392,7 +389,8 @@ on_tree_view_search_button_press_event(GtkWidget *unused_widget,
         /* right click section (popup menu) */
 		if (search_gui_get_current_search()) {
 			refresh_popups();
-			gtk_menu_popup(GTK_MENU(popup_search_list), NULL, NULL, NULL, NULL,
+			gtk_menu_popup(GTK_MENU(gui_popup_search_list()),
+				NULL, NULL, NULL, NULL,
 				event->button, event->time);
 		}
 		return TRUE;
@@ -609,56 +607,56 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	g_return_if_fail(rc != NULL);
 	
 	gtk_entry_set_text(
-		GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
+		GTK_ENTRY(gui_main_window_lookup("entry_result_info_filename")),
 		rc->name
 			? lazy_unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI, NULL)
 			: "");
 	
 	gtk_entry_printf(
-		GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
+		GTK_ENTRY(gui_main_window_lookup("entry_result_info_sha1")),
 		"%s%s",
 		rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
 		rc->sha1 ? sha1_base32(rc->sha1) : "");
 
 	if (rc->results_set->hostname)
 		gtk_entry_set_text(GTK_ENTRY(
-					lookup_widget(main_window, "entry_result_info_source")),
+					gui_main_window_lookup("entry_result_info_source")),
 				hostname_port_to_string(
 					rc->results_set->hostname, rc->results_set->port));
 	else
 		gtk_entry_set_text(GTK_ENTRY(
-					lookup_widget(main_window, "entry_result_info_source")),
+					gui_main_window_lookup("entry_result_info_source")),
 				host_addr_port_to_string(rc->results_set->addr,
 					rc->results_set->port));
 
 	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
 	gtk_entry_printf(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
+			GTK_ENTRY(gui_main_window_lookup("entry_result_info_size")),
 			_("%s (%s bytes)"), short_size(rc->size, show_metric_units()),
 			bytes);
 
 	gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid")),
+			GTK_ENTRY(gui_main_window_lookup("entry_result_info_guid")),
 			guid_hex_str(rc->results_set->guid));
 
 	gtk_entry_printf(GTK_ENTRY(
-				lookup_widget(main_window, "entry_result_info_timestamp")),
+				gui_main_window_lookup("entry_result_info_timestamp")),
 			"%24.24s", ctime(&rc->results_set->stamp));
 			/* discard trailing '\n' (see ctime(3) */
 
 	gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor")),
+			GTK_ENTRY(gui_main_window_lookup("entry_result_info_vendor")),
 			search_get_vendor_from_record(rc));
 
 	gtk_entry_printf(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
+			GTK_ENTRY(gui_main_window_lookup("entry_result_info_index")),
 			"%lu", (gulong) rc->index);
 
 	{
 		const gchar *query = rc->results_set->query;
 		GtkEntry *entry;
 	   
-		entry = GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag"));
+		entry = GTK_ENTRY(gui_main_window_lookup("entry_result_info_tag"));
 		query = rc->results_set->query;
 		if (query) {
 			gchar *s;
@@ -677,8 +675,8 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	{
 		GtkTextBuffer *txt;
 		
-		txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
-					"textview_result_info_xml")));
+		txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
+					gui_main_window_lookup("textview_result_info_xml")));
 	
 		/*
 		 * Character set detection usually fails here because XML
@@ -750,7 +748,7 @@ on_button_search_passive_clicked(GtkButton *unused_button,
      * side effect.
      */
     default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
-					lookup_widget(main_window, "optionmenu_search_filter")));
+					gui_main_window_lookup("optionmenu_search_filter")));
 
 	search_gui_new_search(_("Passive"), SEARCH_F_PASSIVE, &search);
 

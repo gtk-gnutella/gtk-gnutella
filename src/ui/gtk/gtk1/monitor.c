@@ -68,7 +68,7 @@ monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
 	(void) unused_port;
 
     if (clist_monitor == NULL) {
-        clist_monitor = lookup_widget(main_window, "clist_monitor");
+        clist_monitor = gui_main_window_lookup("clist_monitor");
         g_assert(clist_monitor != NULL);
     }
 
@@ -114,7 +114,7 @@ void
 monitor_gui_init(void)
 {
     gtk_clist_column_titles_passive
-        (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));
+        (GTK_CLIST(gui_main_window_lookup("clist_monitor")));
 }
 
 void
@@ -131,7 +131,7 @@ monitor_gui_clear_monitor(void)
 {
     GtkWidget *clist_monitor;
 
-    clist_monitor = lookup_widget(main_window, "clist_monitor");
+    clist_monitor = gui_main_window_lookup("clist_monitor");
 
     gtk_clist_clear(GTK_CLIST(clist_monitor));
 	monitor_items = 0;
@@ -145,7 +145,7 @@ monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
 
-    gtk_widget_set_sensitive(lookup_widget(main_window, "clist_monitor"), !val);
+    gtk_widget_set_sensitive(gui_main_window_lookup("clist_monitor"), !val);
     if (val != registered) {
         if (val) {
             guc_share_add_search_request_listener

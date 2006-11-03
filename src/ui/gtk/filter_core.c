@@ -133,6 +133,31 @@ GList *filters_current = NULL;
 /***
  *** Implementation
  ***/
+
+#define WIDGET(name) \
+static GtkWidget * name ## _protected_ ; \
+ \
+GtkWidget *gui_ ## name (void) \
+{ \
+	return name ## _protected_ ; \
+} \
+ \
+void \
+gui_ ## name ## _set (GtkWidget *w) \
+{ \
+	name ## _protected_ = w; \
+} \
+ \
+GtkWidget * \
+gui_ ## name ## _lookup(const gchar *id) \
+{ \
+	return lookup_widget(gui_ ## name (), id); \
+}
+
+WIDGET(filter_dialog)
+WIDGET(popup_filter_rule)
+#undef WIDGET
+
 void
 dump_ruleset(const GList *ruleset)
 {
@@ -405,9 +430,9 @@ filter_open_dialog(void)
 
     current_search = search_gui_get_current_search();
 
-    if (filter_dialog == NULL) {
-        filter_dialog = filter_gui_create_dlg_filters();
-        g_assert(filter_dialog != NULL);
+    if (gui_filter_dialog() == NULL) {
+        gui_filter_dialog_set(filter_gui_create_dlg_filters());
+        g_assert(gui_filter_dialog() != NULL);
 
         filter_gui_init();
         filter_refresh_display(filters_current);
@@ -431,23 +456,23 @@ filter_close_dialog(gboolean commit)
     } else
         filter_revert_changes();
 
-    if (filter_dialog != NULL) {
+    if (gui_filter_dialog() != NULL) {
         gint32 coord[4] = {0, 0, 0, 0};
 
-        gdk_window_get_root_origin(filter_dialog->window, &coord[0], &coord[1]);
-        gdk_drawable_get_size(filter_dialog->window, &coord[2], &coord[3]);
+        gdk_window_get_root_origin(gui_filter_dialog()->window, &coord[0], &coord[1]);
+        gdk_drawable_get_size(gui_filter_dialog()->window, &coord[2], &coord[3]);
 
         gui_prop_set_guint32(PROP_FILTER_DLG_COORDS, (guint32 *) coord, 0, 4);
 
         *(guint32 *) &filter_main_divider_pos =
             gtk_paned_get_position
-                (GTK_PANED(lookup_widget(filter_dialog, "hpaned_filter_main")));
+                (GTK_PANED(gui_filter_dialog_lookup("hpaned_filter_main")));
 
 #ifdef FILTER_HIDE_ON_CLOSE
-        gtk_widget_hide(filter_dialog);
+        gtk_widget_hide(gui_filter_dialog());
 #else
-        gtk_object_destroy(GTK_OBJECT(filter_dialog));
-        filter_dialog = NULL;
+        gtk_object_destroy(GTK_OBJECT(gui_filter_dialog()));
+        gui_filter_dialog() = NULL;
 #endif /* FILTER_HIDE_ON_CLOSE */
     }
 }
@@ -1942,10 +1967,10 @@ filter_adapt_order(void)
     shadow_t *shadow;
     GtkCList *clist;
 
-    if (!work_filter || filter_dialog == NULL)
+    if (!work_filter || gui_filter_dialog() == NULL)
         return;
 
-    clist = GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules"));
+    clist = GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules"));
 
     /*
      * Create a new shadow if necessary.
@@ -1981,10 +2006,10 @@ filter_adapt_order(void)
     GtkTreeView *tv;
 	GtkTreeModel *model;
 
-    if (!work_filter || filter_dialog == NULL)
+    if (!work_filter || gui_filter_dialog() == NULL)
         return;
 
-    tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+    tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"));
 	model = gtk_tree_view_get_model(tv);
 
     /*
@@ -2469,7 +2494,7 @@ filter_init(void)
 
     filters_current = g_list_copy(filters);
 
-    popup_filter_rule = create_popup_filter_rule();
+    gui_popup_filter_rule_set(create_popup_filter_rule());
 }
 
 

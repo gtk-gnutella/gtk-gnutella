@@ -536,7 +536,7 @@ search_gui_new_search_full(const gchar *query_str,
 	query = search_gui_handle_query(query_str, flags, &error_str);
 	if (query || !error_str) {
 		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_search")), "");
+			GTK_ENTRY(gui_main_window_lookup("entry_search")), "");
 	}
 	if (!query) {
 		if (error_str) {
@@ -640,7 +640,7 @@ search_gui_new_search_full(const gchar *query_str,
 				GTK_NOTEBOOK(notebook_search_results), 0), _("(no search)"));
     }
 	
-	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search_close"),
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_close"),
 		TRUE);
 	
 	is_only_search = NULL == searches;
@@ -1379,8 +1379,7 @@ search_gui_menu_select(gint page)
 
 	mh.page = page;
 
-	treeview = GTK_TREE_VIEW(
-		lookup_widget(main_window, "treeview_menu"));
+	treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_menu"));
 	model = GTK_TREE_MODEL(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_foreach(model, search_gui_menu_select_helper, &mh);
 	selection = gtk_tree_view_get_selection(treeview);
@@ -1647,12 +1646,12 @@ search_gui_init(void)
     GtkTreeView *tv;
 	search_t *current_search;
 
-    tree_view_search = GTK_TREE_VIEW(lookup_widget(main_window,
-							"tree_view_search"));
-    button_search_clear = GTK_BUTTON(lookup_widget(main_window,
-							"button_search_clear"));
-    notebook_search_results = GTK_NOTEBOOK(lookup_widget(main_window,
-								"notebook_search_results"));
+    tree_view_search =
+		GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
+    button_search_clear =
+		GTK_BUTTON(gui_main_window_lookup("button_search_clear"));
+    notebook_search_results =
+		GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 	gtk_notebook_popup_enable(notebook_search_results);
 
 	search_gui_common_init();
@@ -1701,7 +1700,7 @@ search_gui_shutdown(void)
 	search_gui_store_searches();
 
 	pos = gtk_paned_get_position(
-			GTK_PANED(lookup_widget(main_window, "vpaned_results")));
+			GTK_PANED(gui_main_window_lookup("vpaned_results")));
 
 	gui_prop_set_guint32(PROP_RESULTS_DIVIDER_POS, &pos, 0, 1);
 
@@ -1797,11 +1796,10 @@ search_gui_remove_search(search_t *sch)
 
     sensitive = searches != NULL;
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_close"), sensitive);
+        gui_main_window_lookup("button_search_close"), sensitive);
 
 	{
-		search_t *current_search;
-		current_search = search_gui_get_current_search();
+		search_t *current_search = search_gui_get_current_search();
 
 		if (current_search != NULL)
 			sensitive = sensitive &&
@@ -1809,7 +1807,7 @@ search_gui_remove_search(search_t *sch)
 	}
 
     gtk_widget_set_sensitive(
-		lookup_widget(popup_search, "popup_search_download"), sensitive);
+		gui_popup_search_lookup("popup_search_download"), sensitive);
 }
 
 void
@@ -1869,7 +1867,7 @@ search_gui_set_current_search(search_t *sch)
 	search_gui_forget_current_search();
 	sch->unseen_items = 0;
 
-    spinbutton_reissue_timeout = lookup_widget(main_window,
+    spinbutton_reissue_timeout = gui_main_window_lookup(
 									"spinbutton_search_reissue_timeout");
 
     if (sch != NULL) {
@@ -1883,20 +1881,20 @@ search_gui_set_current_search(search_t *sch)
 			reissue_timeout);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, active);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_download"),
+            gui_popup_search_lookup("popup_search_download"),
 			selection_counter(GTK_TREE_VIEW(sch->tree_view)) > 0);
         gtk_widget_set_sensitive(GTK_WIDGET(button_search_clear),
             sch->items != 0);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search_list, "popup_search_restart"),
+            gui_popup_search_list_lookup("popup_search_restart"),
 		   	active);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search_list, "popup_search_duplicate"),
+            gui_popup_search_list_lookup("popup_search_duplicate"),
 			active);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search_list, "popup_search_stop"), !frozen);
+            gui_popup_search_list_lookup("popup_search_stop"), !frozen);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search_list, "popup_search_resume"), frozen);
+            gui_popup_search_list_lookup("popup_search_resume"), frozen);
 
 		model = gtk_tree_view_get_model(tree_view_search);
 		if (tree_find_iter_by_data(model, c_sl_sch, sch, &iter)) {
@@ -1920,11 +1918,11 @@ search_gui_set_current_search(search_t *sch)
 			gtk_tree_view_get_selection(tree_view_search));
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, FALSE);
        	gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_download"), FALSE);
+            gui_popup_search_lookup("popup_search_download"), FALSE);
 
 		for (i = 0; i < G_N_ELEMENTS(popup_items); i++) {
        		gtk_widget_set_sensitive(
-            	lookup_widget(popup_search_list, popup_items[i]), FALSE);
+            	gui_popup_search_list_lookup(popup_items[i]), FALSE);
 		}
     }
 	search_gui_current_search(sch);

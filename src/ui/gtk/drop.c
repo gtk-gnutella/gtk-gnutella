@@ -178,7 +178,7 @@ drop_init(void)
 		{ "STRING",		0, 23 },
 		{ "text/plain", 0, 23 },
 	};
-	GtkWidget *w = GTK_WIDGET(main_window);
+	GtkWidget *w = gui_main_window();
 
 	gtk_drag_dest_set(w, GTK_DEST_DEFAULT_ALL, targets,
 		G_N_ELEMENTS(targets), GDK_ACTION_COPY | GDK_ACTION_MOVE);

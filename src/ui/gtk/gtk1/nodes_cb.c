@@ -54,11 +54,11 @@ update_sensitivity(gboolean sensitive)
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(items); i++) {
-		gtk_widget_set_sensitive(lookup_widget(popup_nodes, items[i].name),
+		gtk_widget_set_sensitive(gui_popup_nodes_lookup(items[i].name),
 			sensitive);
 	}
 	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "button_nodes_disconnect"), sensitive);
+		gui_main_window_lookup("button_nodes_disconnect"), sensitive);
 }
 
 void
@@ -97,7 +97,7 @@ on_clist_nodes_button_press_event(GtkWidget *unused_widget,
     gint row;
     gint col;
     GtkCList *clist_nodes = GTK_CLIST
-        (lookup_widget(main_window, "clist_nodes"));
+        (gui_main_window_lookup("clist_nodes"));
 
 	(void) unused_widget;
 	(void) unused_udata;
@@ -113,7 +113,7 @@ on_clist_nodes_button_press_event(GtkWidget *unused_widget,
 	)
 		return FALSE;
 
-    gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL,
+    gtk_menu_popup(GTK_MENU(gui_popup_nodes()), NULL, NULL, NULL, NULL,
         event->button, event->time);
 
 	return TRUE;
@@ -123,7 +123,7 @@ static void
 remove_selected_nodes(void)
 {
     GSList *node_list = NULL;
-    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+    GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
 
     g_assert(clist != NULL);
 
@@ -135,9 +135,8 @@ remove_selected_nodes(void)
 static void
 add_node(void)
 {
+    GtkEditable *editable = GTK_EDITABLE(gui_main_window_lookup("entry_host"));
     gchar *addr;
-    GtkEditable *editable = GTK_EDITABLE
-        (lookup_widget(main_window, "entry_host"));
 
     addr = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
     nodes_gui_common_connect_by_name(addr);
@@ -187,7 +186,7 @@ on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 	(void) unused_udata;
 	e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 	g_strstrip(e);
-	gtk_widget_set_sensitive(lookup_widget(main_window, "button_nodes_add"),
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_nodes_add"),
         	e[0] != '\0');
 	G_FREE_NULL(e);
 }
@@ -204,7 +203,7 @@ on_popup_nodes_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    cc = gtk_column_chooser_new(lookup_widget(main_window, "clist_nodes"));
+    cc = gtk_column_chooser_new(gui_main_window_lookup("clist_nodes"));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
     /* GtkColumnChooser takes care of cleaning up itself */
@@ -217,9 +216,8 @@ void
 on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-	GSList *sl;
-    GSList *node_list = NULL;
-    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+    GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
+    GSList *sl, *node_list;
 
     g_assert(clist != NULL);
 

@@ -206,8 +206,8 @@ on_popup_upload_stats_config_cols_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
-    cc = gtk_column_chooser_new(
-			lookup_widget(main_window, "treeview_ul_stats"));
+
+    cc = gtk_column_chooser_new(gui_main_window_lookup("treeview_ul_stats"));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 0, GDK_CURRENT_TIME);
 }
 #endif /* USE_GTK2 */

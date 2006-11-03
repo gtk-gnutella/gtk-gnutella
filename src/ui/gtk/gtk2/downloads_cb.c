@@ -495,7 +495,7 @@ on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     cc = gtk_column_chooser_new(
-			GTK_WIDGET(lookup_widget(main_window, "treeview_downloads")));
+			GTK_WIDGET(gui_main_window_lookup("treeview_downloads")));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 }
 
@@ -541,8 +541,7 @@ on_treeview_downloads_button_press_event(GtkWidget *widget,
 	if (NULL == gtk_tree_view_get_selection(GTK_TREE_VIEW(widget)))
 		return FALSE;
 
-    gtk_menu_popup(
-        GTK_MENU(popup_downloads), NULL, NULL, NULL, NULL,
+    gtk_menu_popup(GTK_MENU(gui_popup_downloads()), NULL, NULL, NULL, NULL,
         event->button, event->time);
 
 	return TRUE;
@@ -561,7 +560,7 @@ on_treeview_downloads_select_row(GtkTreeView *tree_view,
 	/* The user selects a row(s) in the downloads treeview
 	 * we unselect all rows in the downloads tree view
 	 */
-	tree_view = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads"));
+	tree_view = GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
 	selection = gtk_tree_view_get_selection(tree_view);
 	gtk_tree_selection_unselect_all(selection);
 
@@ -570,10 +569,10 @@ on_treeview_downloads_select_row(GtkTreeView *tree_view,
 	g_slist_free(selected);
 	selected = NULL;
 
-    gtk_widget_set_sensitive(lookup_widget(popup_downloads,
-			"popup_downloads_copy_url"), activate);
-   	gtk_widget_set_sensitive(lookup_widget(popup_downloads,
-			"popup_downloads_connect"), activate);
+    gtk_widget_set_sensitive(
+		gui_popup_downloads_lookup("popup_downloads_copy_url"), activate);
+   	gtk_widget_set_sensitive(
+		gui_popup_downloads_lookup("popup_downloads_connect"), activate);
 
 	/* Takes care of other widgets */
 	gui_update_download_abort_resume();

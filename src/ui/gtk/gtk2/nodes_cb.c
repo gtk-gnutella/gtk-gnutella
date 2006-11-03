@@ -50,10 +50,10 @@ RCSID("$Id$")
 static void
 add_node(void)
 {
+    GtkEditable *editable;
     gchar *addr;
-    GtkEditable *editable = GTK_EDITABLE
-        (lookup_widget(main_window, "entry_host"));
 
+    editable = GTK_EDITABLE(gui_main_window_lookup("entry_host"));
     addr = gtk_editable_get_chars(editable, 0, -1);
     nodes_gui_common_connect_by_name(addr);
     G_FREE_NULL(addr);
@@ -110,7 +110,7 @@ on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 	(void) unused_udata;
 	e = gtk_editable_get_chars(editable, 0, -1);
 	g_strstrip(e);
-	gtk_widget_set_sensitive(lookup_widget(main_window, "button_nodes_add"),
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_nodes_add"),
         e[0] != '\0');
 	G_FREE_NULL(e);
 }
@@ -125,7 +125,7 @@ on_treeview_nodes_button_press_event(GtkWidget *unused_widget,
     if (3 == event->button) {
         /* right click section (popup menu) */
 
-        gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL,
+        gtk_menu_popup(GTK_MENU(gui_popup_nodes()), NULL, NULL, NULL, NULL,
 			event->button, event->time);
         return TRUE;
 	}
@@ -143,7 +143,7 @@ on_popup_nodes_config_cols_activate(GtkItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
-    cc = gtk_column_chooser_new(lookup_widget(main_window, "treeview_nodes"));
+    cc = gtk_column_chooser_new(gui_main_window_lookup("treeview_nodes"));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
     /* GtkColumnChooser takes care of cleaning up itself */

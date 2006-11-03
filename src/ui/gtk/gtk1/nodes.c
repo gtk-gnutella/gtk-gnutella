@@ -69,7 +69,7 @@ nodes_gui_is_visible(void)
 	gint current_page;
 
 	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
 
 	current_page = gtk_notebook_get_current_page(notebook);
 
@@ -151,7 +151,7 @@ static void
 nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 {
     GtkCList *clist = GTK_CLIST
-        (lookup_widget(main_window, "clist_nodes"));
+        (gui_main_window_lookup("clist_nodes"));
 
     g_assert(n != NULL);
 
@@ -201,7 +201,7 @@ nodes_gui_update_node_flags(
     gnet_node_t n, gnet_node_flags_t *flags, gint row)
 {
     GtkCList *clist = GTK_CLIST
-        (lookup_widget(main_window, "clist_nodes"));
+        (gui_main_window_lookup("clist_nodes"));
 
     if (row == -1)
         row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n));
@@ -238,10 +238,8 @@ nodes_gui_early_init(void)
 	};
 	guint i;
 	
-	popup_nodes = create_popup_nodes();
-
 	for (i = 0; i < G_N_ELEMENTS(items); i++) {
-    	gtk_widget_set_sensitive(lookup_widget(popup_nodes, items[i].name),
+    	gtk_widget_set_sensitive(gui_popup_nodes_lookup(items[i].name),
 			FALSE);
 	}
 }
@@ -255,7 +253,7 @@ nodes_gui_init(void)
 {
 	GtkCList *clist;
 
-	clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+	clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
 
     gtk_clist_column_titles_passive(clist);
     gtk_clist_set_column_name(clist, c_gnet_host, _("Host"));
@@ -285,7 +283,7 @@ nodes_gui_shutdown(void)
 {
 	GtkCList *clist;
 
-	clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+	clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
 	gtk_clist_save_visibility(clist, PROP_NODES_COL_VISIBLE);
 
     guc_node_remove_node_added_listener(nodes_gui_node_added);
@@ -309,7 +307,7 @@ nodes_gui_remove_node(gnet_node_t n)
     GtkWidget *clist_nodes;
     gint row;
 
-    clist_nodes = lookup_widget(main_window, "clist_nodes");
+    clist_nodes = gui_main_window_lookup("clist_nodes");
 
     /*
      * Make sure node is remove from the "changed" hash table so
@@ -356,7 +354,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
     titles[c_gnet_uptime]     = "...";
     titles[c_gnet_info]       = "...";
 
-    clist_nodes = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+    clist_nodes = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
 
     row = gtk_clist_append(clist_nodes, (gchar **) titles); /* override const */
     gtk_clist_set_row_data(clist_nodes, row, GUINT_TO_POINTER(n->node_handle));
@@ -396,7 +394,7 @@ nodes_gui_update_nodes_display(time_t now)
 
     last_update = now;
 
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+    clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
     gtk_clist_freeze(clist);
 
 	for (l = clist->row_list, row = 0; l; l = l->next, row++) {

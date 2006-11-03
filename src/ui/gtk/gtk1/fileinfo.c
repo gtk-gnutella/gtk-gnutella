@@ -301,19 +301,19 @@ fi_gui_set_details(gnet_fi_t fih)
     guc_fi_get_status(fih, &fis);
     aliases = guc_fi_get_aliases(fih);
 
-    cl_aliases = GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases"));
+    cl_aliases = GTK_CLIST(gui_main_window_lookup("clist_fi_aliases"));
 
     gtk_entry_printf(
-		GTK_ENTRY(lookup_widget(main_window, "entry_fi_sha1")),
+		GTK_ENTRY(gui_main_window_lookup("entry_fi_sha1")),
 		"%s%s",
 		fi->sha1 ? "urn:sha1:" : _("<none>"),
 		fi->sha1 ? sha1_base32(fi->sha1) : "");
     gtk_entry_set_text(
-        GTK_ENTRY(lookup_widget(main_window, "entry_fi_filename")),
+        GTK_ENTRY(gui_main_window_lookup("entry_fi_filename")),
         fi->file_name);
 	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
     gtk_entry_printf(
-        GTK_ENTRY(lookup_widget(main_window, "entry_fi_size")),
+        GTK_ENTRY(gui_main_window_lookup("entry_fi_size")),
         _("%s (%s bytes)"), short_size(fis.size, show_metric_units()), bytes);
 
     gtk_clist_freeze(cl_aliases);
@@ -330,7 +330,7 @@ fi_gui_set_details(gnet_fi_t fih)
 
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 
-	gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"),
 							 TRUE);
 }
 
@@ -350,13 +350,13 @@ fi_gui_clear_details(void)
     last_shown_valid = FALSE;
 
 	for (i = 0; i < G_N_ELEMENTS(widgets); i++) {
-		GtkEntry *entry = GTK_ENTRY(lookup_widget(main_window, widgets[i]));
+		GtkEntry *entry = GTK_ENTRY(gui_main_window_lookup(widgets[i]));
 		gtk_entry_set_text(entry, "");
 	}
 
     gtk_clist_clear(
-        GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases")));
-    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+        GTK_CLIST(gui_main_window_lookup("clist_fi_aliases")));
+    gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"),
         FALSE);
 
     vp_draw_fi_progress(last_shown_valid, last_shown);
@@ -686,7 +686,7 @@ fi_gui_init(void)
     guc_fi_add_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
-    clist_fileinfo = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
+    clist_fileinfo = GTK_CLIST(gui_main_window_lookup("clist_fileinfo"));
 
     gtk_clist_set_column_justification(clist_fileinfo,
         c_fi_size, GTK_JUSTIFY_RIGHT);

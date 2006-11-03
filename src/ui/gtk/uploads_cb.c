@@ -99,7 +99,7 @@ on_clist_uploads_select_row(GtkCList *clist, gint unused_row,
 	(void) unused_event;
 	(void) unused_udata;
 
-    button = lookup_widget(main_window, "button_uploads_kill");
+    button = gui_main_window_lookup("button_uploads_kill");
     gtk_widget_set_sensitive(button, clist->selection != NULL);
 }
 
@@ -114,7 +114,7 @@ on_clist_uploads_unselect_row(GtkCList *clist,
 	(void) unused_column;
 	(void) unused_event;
 	(void) unused_udata;
-    button = lookup_widget(main_window, "button_uploads_kill");
+    button = gui_main_window_lookup("button_uploads_kill");
     gtk_widget_set_sensitive(button, clist->selection != NULL);
 }
 
@@ -138,7 +138,7 @@ on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_button;
 	(void) unused_udata;
 
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+    clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
 
     gtk_clist_freeze(clist);
 
@@ -157,7 +157,7 @@ on_clist_uploads_button_press_event(GtkWidget *unused_widget,
 {
 	gint row, col;
     GtkCList *clist_uploads = GTK_CLIST
-        (lookup_widget(main_window, "clist_uploads"));
+        (gui_main_window_lookup("clist_uploads"));
 
 	(void) unused_widget;
 	(void) unused_udata;
@@ -172,7 +172,7 @@ on_clist_uploads_button_press_event(GtkWidget *unused_widget,
 		(GTK_CLIST(clist_uploads), event->x, event->y, &row, &col))
 		return FALSE;
 
-    gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL,
+    gtk_menu_popup(GTK_MENU(gui_popup_uploads()), NULL, NULL, NULL, NULL,
                   event->button, event->time);
 
 	return TRUE;
@@ -191,7 +191,7 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 	
-	clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+	clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
 
 	sl = clist_collect_data(clist, FALSE, NULL);
 	g_slist_foreach(sl, browse_uploading_host, NULL);
@@ -209,7 +209,7 @@ on_popup_uploads_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    cc = gtk_column_chooser_new(lookup_widget(main_window, "treeview_uploads"));
+    cc = gtk_column_chooser_new(gui_main_window_lookup("treeview_uploads"));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 0, GDK_CURRENT_TIME);
 }
 
@@ -236,7 +236,7 @@ on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_button;
 	(void) unused_udata;
 
-    treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
+    treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
     gtk_tree_selection_selected_foreach(selection,
 		uploads_func_helper, kill_upload);
@@ -255,7 +255,7 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 	
-    treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
+    treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
     gtk_tree_selection_selected_foreach(selection,
 		uploads_func_helper, browse_uploading_host);

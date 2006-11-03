@@ -131,10 +131,9 @@ monitor_gui_init(void)
     monitor_model = gtk_list_store_new(MONITOR_COLUMNS, G_TYPE_STRING);
 
     /* Get the monitor widget */
-    tree = lookup_widget(main_window, "treeview_monitor");
+    tree = gui_main_window_lookup("treeview_monitor");
 
-    gtk_tree_view_set_model
-        (GTK_TREE_VIEW(tree), GTK_TREE_MODEL(monitor_model));
+    gtk_tree_view_set_model(GTK_TREE_VIEW(tree), GTK_TREE_MODEL(monitor_model));
 
     /* The view now holds a reference.  We can get rid of our own
      * reference */

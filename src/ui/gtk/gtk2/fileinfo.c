@@ -360,8 +360,7 @@ fi_gui_set_details(gnet_fi_t handle)
 
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 
-    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
-			     TRUE);
+    gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"), TRUE);
 }
 
 static void
@@ -371,8 +370,7 @@ fi_gui_clear_details(void)
     gtk_label_set_text(label_fi_size, "");
     gtk_list_store_clear(store_aliases);
 
-    gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_fi_purge"), FALSE);
+    gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"), FALSE);
 
     last_shown_valid = FALSE;
     vp_draw_fi_progress(last_shown_valid, last_shown);
@@ -970,16 +968,13 @@ fi_gui_init(void)
 	fi_updates = g_hash_table_new(NULL, NULL);
 	fi_downloads = g_hash_table_new(NULL, NULL);
 
-    treeview_fi_aliases = GTK_TREE_VIEW(lookup_widget(main_window,
-		"treeview_fi_aliases"));
-	treeview_downloads = GTK_TREE_VIEW(lookup_widget(main_window,
-		"treeview_downloads"));
-	entry_fi_filename = GTK_ENTRY(lookup_widget(main_window,
-		"entry_fi_filename"));
-	label_fi_sha1 = GTK_LABEL(lookup_widget(main_window,
-		"label_fi_sha1"));
-	label_fi_size = GTK_LABEL(lookup_widget(main_window,
-		"label_fi_size"));
+    treeview_fi_aliases =
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_fi_aliases"));
+	treeview_downloads =
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
+	entry_fi_filename = GTK_ENTRY(gui_main_window_lookup("entry_fi_filename"));
+	label_fi_sha1 = GTK_LABEL(gui_main_window_lookup("label_fi_sha1"));
+	label_fi_size = GTK_LABEL(gui_main_window_lookup("label_fi_size"));
 
 	store_fileinfo = gtk_tree_store_new(1, G_TYPE_POINTER);
 	gtk_tree_view_set_model(treeview_downloads, GTK_TREE_MODEL(store_fileinfo));
@@ -1208,7 +1203,7 @@ fi_gui_select_by_regex(const gchar *regex)
 			ctx.matches, ctx.total_nodes, regex);
 	}
 
-    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+    gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"),
 		ctx.matches > 0);
 
 	regfree(&ctx.re);
@@ -1332,7 +1327,7 @@ fi_gui_download_select(gboolean unselect)
 	GtkTreeSelection *selection;
 	GtkTreeView *tv;
 
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads"));
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
 	selection = gtk_tree_view_get_selection(tv);
 
 	ctx.sl = NULL;
@@ -1482,7 +1477,7 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads"));
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
 	gtk_tree_view_get_cursor(tv, &path, NULL);
 	if (!path) {
 		return;

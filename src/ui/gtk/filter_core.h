@@ -148,10 +148,19 @@ typedef struct rule {
  */
 extern filter_t *work_filter;
 
-
 /*
  * Public interface.
  */
+
+#define WIDGET(name) \
+	GtkWidget *gui_ ## name (void); \
+	void gui_ ## name ## _set (GtkWidget *w); \
+	GtkWidget *gui_ ## name ## _lookup(const gchar *id);
+
+WIDGET(filter_dialog)
+WIDGET(popup_filter_rule)
+#undef WIDGET
+
 filter_t *filter_new(const gchar *);
 filter_result_t *filter_record(struct search *, const struct record *);
 gchar *filter_rule_condition_to_string(const rule_t *r);

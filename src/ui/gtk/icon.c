@@ -344,10 +344,10 @@ on_status_icon_activate(GtkStatusIcon *status_icon, gpointer unused_udata)
 	(void) status_icon;
 	(void) unused_udata;
 
-	if (GTK_WIDGET_VISIBLE(main_window)) {
-		gtk_widget_hide(main_window);
+	if (GTK_WIDGET_VISIBLE(gui_main_window())) {
+		gtk_widget_hide(gui_main_window());
 	} else {
-		gtk_widget_show(main_window);
+		gtk_widget_show(gui_main_window());
 	}
 }
 #endif	/* Gtk+ >= 2.10.0 */
@@ -378,7 +378,7 @@ icon_init(void)
     gtk_widget_map(canvas);
 	/* FIXME: This causes a crash with twm when iconizing the main window. */
 #if 0
-    gdk_window_set_icon(main_window->window, icon->window, NULL, NULL);
+    gdk_window_set_icon(gui_main_window()->window, icon->window, NULL, NULL);
 #endif
     icon_just_mapped_fg = icon_visible_fg = icon_close_fg = FALSE;
 
@@ -437,9 +437,9 @@ void
 icon_init(void)
 {
     GtkPixmap *pixmap;
-    pixmap = (GtkPixmap *) create_pixmap(main_window, "icon.xpm");
+    pixmap = (GtkPixmap *) create_pixmap(gui_main_window(), "icon.xpm");
     gtk_pixmap_get(pixmap, &icon_map, &icon_mask);
-    gdk_window_set_icon(main_window->window, NULL, icon_map, icon_mask);
+    gdk_window_set_icon(gui_main_window()->window, NULL, icon_map, icon_mask);
 }
 
 void

@@ -70,7 +70,7 @@ gui_update_download_clear_now(void)
 		return;
 
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_downloads_clear_stopped"),
+        gui_main_window_lookup("button_downloads_clear_stopped"),
         guc_download_something_to_clear());
 }
 
@@ -86,7 +86,7 @@ gui_update_queue_frozen(void)
     GtkWidget *togglebutton_queue_freeze;
 
     togglebutton_queue_freeze =
-        lookup_widget(main_window, "togglebutton_queue_freeze");
+        gui_main_window_lookup("togglebutton_queue_freeze");
 
     if (gui_debug >= 3)
 		g_message("frozen %i, msg %i\n",
@@ -94,15 +94,15 @@ gui_update_queue_frozen(void)
 	    	(gint) msg_displayed);
 
     if (guc_download_queue_is_frozen()) {
-    	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
-    	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
+    	gtk_widget_hide(gui_main_window_lookup("vbox_queue_freeze"));
+    	gtk_widget_show(gui_main_window_lookup("vbox_queue_thaw"));
         if (!msg_displayed) {
             msg_displayed = TRUE;
           	id = statusbar_gui_message(0, _("Queue frozen"));
         }
     } else {
-    	gtk_widget_show(lookup_widget(main_window, "vbox_queue_freeze"));
-    	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_thaw"));
+    	gtk_widget_show(gui_main_window_lookup("vbox_queue_freeze"));
+    	gtk_widget_hide(gui_main_window_lookup("vbox_queue_thaw"));
         if (msg_displayed) {
             msg_displayed = FALSE;
             statusbar_gui_remove(id);
@@ -131,11 +131,11 @@ void
 gui_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
 #ifdef USE_GTK1
 {
-	GtkWidget *w = lookup_widget(popup_queue, "popup_queue_start_now");
+	GtkWidget *w = gui_popup_queue_lookup("popup_queue_start_now");
 	gboolean selected = TRUE;
 
 	selected = GTK_CLIST(
-		lookup_widget(main_window, "ctree_downloads_queue"))->selection != NULL;
+		gui_main_window_lookup("ctree_downloads_queue"))->selection != NULL;
 	gtk_widget_set_sensitive(w, selected && running_downloads < max_downloads);
 }
 #else

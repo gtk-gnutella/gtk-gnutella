@@ -79,11 +79,11 @@ upload_removed(gnet_upload_t uh, const gchar *reason,
     row = find_row(uh, &data);
     if (row != -1) {
         GtkCList *clist =
-            GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+            GTK_CLIST(gui_main_window_lookup("clist_uploads"));
         data->valid = FALSE;
 
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_uploads_clear_completed"),
+            gui_main_window_lookup("button_uploads_clear_completed"),
             TRUE);
 
         if (reason != NULL)
@@ -148,7 +148,7 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
     fake.handle = u;
     fake.valid  = TRUE;
 
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+    clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
 
     for (iter = clist->row_list; iter != NULL; iter = g_list_next(iter)) {
         GtkCListRow *r = iter->data;
@@ -200,7 +200,7 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 	gchar range_tmp[256];
 	guint range_len;
 
-    clist_uploads = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+    clist_uploads = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
     row =  find_row(u->upload_handle, &rd);
 	if (row == -1) {
         g_warning("%s: no matching row found [handle=%u]",
@@ -285,7 +285,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     GtkWidget *clist_uploads;
     upload_row_data_t *data;
 
-    clist_uploads = lookup_widget(main_window, "clist_uploads");
+    clist_uploads = gui_main_window_lookup("clist_uploads");
 
 	memset(titles, 0, sizeof(titles));
 
@@ -343,22 +343,21 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 void
 uploads_gui_early_init(void)
 {
-    popup_uploads = create_popup_uploads();
 }
 
 void
 uploads_gui_init(void)
 {
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
+        GTK_CLIST(gui_main_window_lookup("clist_uploads")),
         c_ul_size, GTK_JUSTIFY_RIGHT);
 
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
+        GTK_CLIST(gui_main_window_lookup("clist_uploads")),
         c_ul_progress, GTK_JUSTIFY_RIGHT);
 
 	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
+        GTK_CLIST(gui_main_window_lookup("clist_uploads")));
 
     guc_upload_add_upload_added_listener(upload_added);
     guc_upload_add_upload_removed_listener(upload_removed);
@@ -404,7 +403,7 @@ uploads_gui_update_display(time_t now)
 	 */
 
 	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
 
 	current_page = gtk_notebook_get_current_page(notebook);
 	if (current_page != nb_main_page_uploads && now - last_update < UPDATE_MIN)
@@ -415,7 +414,7 @@ uploads_gui_update_display(time_t now)
 
     last_update = now;
 
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+    clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
     gtk_clist_freeze(clist);
 
 	row = 0;
@@ -456,7 +455,7 @@ uploads_gui_update_display(time_t now)
 
 	if (all_removed)
 		gtk_widget_set_sensitive(
-			lookup_widget(main_window, "button_uploads_clear_completed"),
+			gui_main_window_lookup("button_uploads_clear_completed"),
 			FALSE);
 }
 
@@ -467,7 +466,7 @@ uploads_clear_helper(gpointer unused_udata)
     GSList *to_remove= NULL;
     GSList *sl;
     guint row = 0;
-    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+    GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
 
 	(void) unused_udata;
     gtk_clist_freeze(clist);
@@ -498,8 +497,8 @@ uploads_clear_helper(gpointer unused_udata)
     gtk_clist_thaw(clist);
 
     if (iter == NULL) {
-		gtk_widget_set_sensitive(lookup_widget(
-			main_window, "button_uploads_clear_completed"), FALSE);
+		gtk_widget_set_sensitive(
+			gui_main_window_lookup("button_uploads_clear_completed"), FALSE);
     	uploads_remove_lock = FALSE;
     	return FALSE;
     }

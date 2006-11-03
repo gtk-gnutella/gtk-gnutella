@@ -86,19 +86,41 @@ RCSID("$Id$")
 /***
  *** Windows
  ***/
-GtkWidget *main_window = NULL;
-GtkWidget *shutdown_window = NULL;
-GtkWidget *dlg_about = NULL;
-GtkWidget *dlg_faq = NULL;
-GtkWidget *dlg_prefs = NULL;
-GtkWidget *dlg_quit = NULL;
-GtkWidget *popup_downloads = NULL;
-GtkWidget *popup_uploads = NULL;
-GtkWidget *popup_search = NULL;
-GtkWidget *popup_search_list = NULL;
-GtkWidget *popup_nodes = NULL;
-GtkWidget *popup_monitor = NULL;
-GtkWidget *popup_queue = NULL;
+
+#define WIDGET(name) \
+static GtkWidget * name ## _protected_ ; \
+ \
+GtkWidget *gui_ ## name (void) \
+{ \
+	return name ## _protected_ ; \
+} \
+ \
+static inline void \
+gui_ ## name ## _set (GtkWidget *w) \
+{ \
+	name ## _protected_ = w; \
+} \
+ \
+GtkWidget * \
+gui_ ## name ## _lookup(const gchar *id) \
+{ \
+	return lookup_widget(name ## _protected_ , id); \
+}
+
+WIDGET(dlg_about)
+WIDGET(dlg_faq)
+WIDGET(dlg_prefs)
+WIDGET(dlg_quit)
+WIDGET(main_window)
+WIDGET(popup_downloads)
+WIDGET(popup_monitor)
+WIDGET(popup_nodes)
+WIDGET(popup_queue)
+WIDGET(popup_search)
+WIDGET(popup_search_list)
+WIDGET(popup_uploads)
+WIDGET(shutdown_window)
+#undef WIDGET
 
 /***
  *** Private functions
@@ -116,7 +138,7 @@ gui_init_window_title(void)
 	gm_snprintf(title, sizeof(title), "gtk-gnutella %s", GTA_VERSION_NUMBER);
 #endif
 
-	gtk_window_set_title(GTK_WINDOW(main_window), title);
+	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
 }
 
 /**
@@ -186,7 +208,7 @@ gui_init_menu(void)
 
     renderer = gtk_cell_renderer_text_new();
     g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, (void *) 0);
-	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
+	treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_menu"));
 	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
@@ -240,92 +262,25 @@ static void
 gui_menu_shutdown(void)
 {
 	g_signal_handlers_disconnect_by_func(
-		G_OBJECT(lookup_widget(main_window, "treeview_menu")),
+		G_OBJECT(gui_main_window_lookup("treeview_menu")),
 		on_main_gui_treeview_menu_cursor_changed,
 		NULL);
 	g_signal_handlers_disconnect_by_func(
-		G_OBJECT(lookup_widget(main_window, "treeview_menu")),
+		G_OBJECT(gui_main_window_lookup("treeview_menu")),
 		on_main_gui_treeview_menu_row_collapsed,
 		NULL);
 	g_signal_handlers_disconnect_by_func(
-		G_OBJECT(lookup_widget(main_window, "treeview_menu")),
+		G_OBJECT(gui_main_window_lookup("treeview_menu")),
 		on_main_gui_treeview_menu_row_expanded,
 		NULL);
 }
 
-/**
- * Handles main window UI joining.
- *
- * Creates all dependent "tab" windows and merges them into
- * the main notebook.
- */
-static GtkWidget *
-gui_create_main_window(void)
-{
-	GtkWidget *window;
-	GtkWidget *notebook;
-	GtkWidget *tab_window[nb_main_page_num];
-	gint i;
-
-	/*
-	 * First create the main window without the tab contents.
-	 */
-	window = create_main_window();
-	notebook = lookup_widget(window, "notebook_main");
-
-	/*
-	 * Then create all the tabs in their own window.
-	 */
-	tab_window[nb_main_page_gnet] = create_main_window_gnet_tab();
-	tab_window[nb_main_page_uploads] = create_main_window_uploads_tab();
-	tab_window[nb_main_page_uploads_stats] =
-		create_main_window_upload_stats_tab();
-
-#ifdef USE_GTK1
-	tab_window[nb_main_page_dl_active] = create_main_window_dl_active_tab();
-	tab_window[nb_main_page_dl_files] = create_main_window_dl_files_tab();
-	tab_window[nb_main_page_dl_queue] = create_main_window_dl_queue_tab();
-#endif /* USE_GTK1 */
-
-#ifdef USE_GTK2
-	tab_window[nb_main_page_downloads] = create_main_window_downloads_tab();
-#endif /* USE_GTK1 */
-
-	tab_window[nb_main_page_search] = create_main_window_search_tab();
-	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
-	tab_window[nb_main_page_search_stats] =
-		create_main_window_search_stats_tab();
-	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
-	tab_window[nb_main_page_hostcache] = create_main_window_hostcache_tab();
-
-	/*
-	 * Merge the UI and destroy the source windows.
-	 */
-	for (i = 0; i < nb_main_page_num; i++) {
-		GtkWidget *w = tab_window[i];
-		gui_merge_window_as_tab(window, notebook, w);
-		gtk_object_destroy(GTK_OBJECT(w));
-	}
-
-	/*
-	 * Get rid of the first (dummy) notebook tab.
-	 * (My glade seems to require a tab to be defined in the notebook
-	 * as a placeholder, or it creates _two_ unlabeled tabs at runtime).
-	 */
-	gtk_container_remove(GTK_CONTAINER(notebook),
-		gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
-
-	return window;
-}
-
 #else
-
-#define gui_create_main_window() create_main_window()
 
 static void
 gui_init_menu(void)
 {
-    GtkCTree *ctree_menu = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+    GtkCTree *ctree_menu = GTK_CTREE(gui_main_window_lookup("ctree_menu"));
 	GtkCTreeNode *parent_node = NULL;
 	guint i;
 
@@ -356,21 +311,71 @@ gui_menu_shutdown(void)
 	
 #endif /* USE_GTK2 */
 
-
-static GtkWidget *
-gui_create_dlg_prefs(void)
+/**
+ * Handles main window UI joining.
+ *
+ * Creates all dependent "tab" windows and merges them into
+ * the main notebook.
+ */
+static void
+gui_init_main_window(void)
 {
-	GtkWidget *dialog;
+#ifdef USE_GTK2
+	GtkWidget *notebook;
+	GtkWidget *tab_window[nb_main_page_num];
+	gint i;
+
+	/*
+	 * First create the main window without the tab contents.
+	 */
+	notebook = gui_main_window_lookup("notebook_main");
+
+	/*
+	 * Then create all the tabs in their own window.
+	 */
+	tab_window[nb_main_page_gnet] = create_main_window_gnet_tab();
+	tab_window[nb_main_page_uploads] = create_main_window_uploads_tab();
+	tab_window[nb_main_page_uploads_stats] =
+		create_main_window_upload_stats_tab();
+
+	tab_window[nb_main_page_downloads] = create_main_window_downloads_tab();
+
+	tab_window[nb_main_page_search] = create_main_window_search_tab();
+	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
+	tab_window[nb_main_page_search_stats] =
+		create_main_window_search_stats_tab();
+	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
+	tab_window[nb_main_page_hostcache] = create_main_window_hostcache_tab();
+
+	/*
+	 * Merge the UI and destroy the source windows.
+	 */
+	for (i = 0; i < nb_main_page_num; i++) {
+		GtkWidget *w = tab_window[i];
+		gui_merge_window_as_tab(gui_main_window(), notebook, w);
+		gtk_object_destroy(GTK_OBJECT(w));
+	}
+
+	/*
+	 * Get rid of the first (dummy) notebook tab.
+	 * (My glade seems to require a tab to be defined in the notebook
+	 * as a placeholder, or it creates _two_ unlabeled tabs at runtime).
+	 */
+	gtk_container_remove(GTK_CONTAINER(notebook),
+		gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
+
+#endif	/* USE_GTK2 */
+}
+
+static void 
+gui_init_dlg_prefs(void)
+{
 #ifdef USE_GTK2
     GtkWidget *notebook;
     GtkWidget *tab_window[nb_prefs_num];
 	gint i;
-#endif
 
-    dialog = create_dlg_prefs();
-#ifdef USE_GTK2
-
-    notebook = lookup_widget(dialog, "notebook_prefs");
+    notebook = gui_dlg_prefs_lookup("notebook_prefs");
 
     /*
      * Then create all the tabs in their own window.
@@ -388,7 +393,7 @@ gui_create_dlg_prefs(void)
      */
     for (i = 0; i < nb_prefs_num; i++) {
         GtkWidget *w = tab_window[i];
-        gui_merge_window_as_tab(dialog, notebook, w);
+        gui_merge_window_as_tab(gui_dlg_prefs(), notebook, w);
         gtk_object_destroy(GTK_OBJECT(w));
     }
 
@@ -397,9 +402,8 @@ gui_create_dlg_prefs(void)
      */
     gtk_container_remove(GTK_CONTAINER(notebook),
         gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
-#endif /* USE_GTK2 */
 
-	return dialog;
+#endif	/* USE_GTK2 */
 }
 
 static void
@@ -416,8 +420,8 @@ text_widget_append(GtkWidget *widget, const gchar *line)
 }
 #endif /* USE_GTK2 */
 
-static GtkWidget *
-gui_create_dlg_about(void)
+static void
+gui_init_dlg_about(void)
 {
     /* NB: These strings are UTF-8 encoded. */
     static const char * const contributors[] = {
@@ -481,12 +485,12 @@ gui_create_dlg_about(void)
 		"U\304\237ur \303\207etin <ugur.jnmbk@gmail.com>",
 		"Lloyd Bryant <lloydbaz@msn.com>",
     };
- 	GtkWidget *dlg = create_dlg_about();
-	GtkWidget *text = lookup_widget(dlg, "textview_about_contributors");
+	GtkWidget *text;
     guint i;
 	
+	text = gui_dlg_about_lookup("textview_about_contributors");
     gtk_label_set_text(
-        GTK_LABEL(lookup_widget(dlg, "label_about_title")),
+        GTK_LABEL(gui_dlg_about_lookup("label_about_title")),
         guc_version_get_version_string());
 
   	for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
@@ -497,25 +501,23 @@ gui_create_dlg_about(void)
 	}
 
 	gtk_label_set_text(
-		GTK_LABEL(lookup_widget(dlg, "label_about_translation")),
+		GTK_LABEL(gui_dlg_about_lookup("label_about_translation")),
 		/* TRANSLATORS: Translate this as "Translation provided by" or similar
    	   	   and append your name to the list. */
     	Q_("translation_credit|"));
-
-    return dlg;
 }
 
-static GtkWidget *
-gui_create_dlg_faq(void)
+static void
+gui_init_dlg_faq(void)
 {
 	static const gchar faq_file[] = "FAQ";
 	static file_path_t fp[4];
-    GtkWidget *dlg = create_dlg_faq();
-	GtkWidget *text = lookup_widget(dlg, "textview_faq");
+	GtkWidget *text;
 	const gchar *lang;
 	guint i = 0;
 	FILE *f;
 
+	text = gui_dlg_faq_lookup("textview_faq");
 	lang = locale_get_language();
 
 	file_path_set(&fp[i++], make_pathname(PRIVLIB_EXP, lang), faq_file);
@@ -590,7 +592,6 @@ gui_create_dlg_faq(void)
 			"at http://gtk-gnutella.sourceforge.net/?page=faq instead.");
 		text_widget_append(GTK_WIDGET(text), _(msg));
 	}
-    return dlg;
 }
 
 /**
@@ -666,29 +667,40 @@ main_gui_early_init(gint argc, gchar **argv)
 	add_pixmap_directory(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps");
 #endif
 
-    main_window = gui_create_main_window();
-    shutdown_window = create_shutdown_window();
-    dlg_about = gui_create_dlg_about();
-    dlg_faq = gui_create_dlg_faq();
-    dlg_prefs = gui_create_dlg_prefs();
-    dlg_quit = create_dlg_quit();
+    gui_main_window_set(create_main_window());
+	gui_init_main_window();
+
+    gui_shutdown_window_set(create_shutdown_window());
+    gui_dlg_quit_set(create_dlg_quit());
+	
+    gui_dlg_about_set(create_dlg_about());
+	gui_init_dlg_about();
+
+    gui_dlg_faq_set(create_dlg_faq());
+    gui_init_dlg_faq();
+
+    gui_dlg_prefs_set(create_dlg_prefs());
+	gui_init_dlg_prefs();
 
 	/* popup menus */
-	popup_search = create_popup_search();
+	gui_popup_search_set(create_popup_search());
 #ifdef USE_GTK2
-	popup_downloads = create_popup_downloads();
+	gui_popup_downloads_set(create_popup_downloads());
 	/* XXX: Create the equivalent popup for GTK+ 1.2 */
-	popup_search_list = create_popup_search_list();
+	gui_popup_search_list_set(create_popup_search_list());
 #endif /* USE_GTK2 */
 	
 #ifdef USE_GTK1
-	popup_downloads = create_popup_dl_active();
-	popup_queue = create_popup_dl_queued();
+	gui_popup_downloads_set(create_popup_dl_active());
+	gui_popup_queue_set(create_popup_dl_queued());
 #endif /* USE_GTK1 */
 
-	popup_monitor = create_popup_monitor();
+	gui_popup_monitor_set(create_popup_monitor());
 
+	gui_popup_nodes_set(create_popup_nodes());
     nodes_gui_early_init();
+
+    gui_popup_uploads_set(create_popup_uploads());
     uploads_gui_early_init();
     statusbar_gui_init();
 
@@ -696,10 +708,10 @@ main_gui_early_init(gint argc, gchar **argv)
 
     /* search history combo stuff */
     gtk_combo_disable_activate(GTK_COMBO(
-		lookup_widget(main_window, "combo_search")));
+		gui_main_window_lookup("combo_search")));
 
     /* copy url selection stuff */
-    gtk_selection_add_target(popup_downloads,
+    gtk_selection_add_target(gui_popup_downloads(),
 		GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
 }
 
@@ -710,23 +722,23 @@ main_gui_init(void)
 
 #ifdef USE_GTK1
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
+        GTK_CLIST(gui_main_window_lookup("clist_search_stats")),
         c_st_period, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
+        GTK_CLIST(gui_main_window_lookup("clist_search_stats")),
         c_st_total, GTK_JUSTIFY_RIGHT);
     gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
+        GTK_CLIST(gui_main_window_lookup("clist_search_stats")));
 
     gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_search")));
+        GTK_CLIST(gui_main_window_lookup("clist_search")));
     gtk_clist_set_compare_func(
-        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")),
+        GTK_CLIST(gui_main_window_lookup("clist_ul_stats")),
         compare_ul_norm);
 #endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
-	GTK_WINDOW(main_window)->allow_shrink = TRUE;
+	GTK_WINDOW(gui_main_window())->allow_shrink = TRUE;
 #endif /* USE_GTK2 */
 
 #ifdef USE_GTK1
@@ -734,20 +746,20 @@ main_gui_init(void)
      * all property-change callbacks are set up properly
      */
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_remove_file"), FALSE);
+        (gui_popup_downloads_lookup("popup_downloads_remove_file"), FALSE);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_copy_url"), FALSE);
+        (gui_popup_downloads_lookup("popup_downloads_copy_url"), FALSE);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort"), FALSE);
+        (gui_popup_queue_lookup("popup_queue_abort"), FALSE);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort_named"), FALSE);
+        (gui_popup_queue_lookup("popup_queue_abort_named"), FALSE);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort_host"), FALSE);
+        (gui_popup_queue_lookup("popup_queue_abort_host"), FALSE);
     gtk_widget_set_sensitive(
-        lookup_widget(popup_downloads, "popup_downloads_push"),
+        gui_popup_downloads_lookup("popup_downloads_push"),
     	!gtk_toggle_button_get_active(
             GTK_TOGGLE_BUTTON
-                (lookup_widget(main_window,
+                (lookup_widget(gui_main_window(),
                                "checkbutton_downloads_never_push"))));
 #endif /* USE_GTK1 */
 
@@ -776,7 +788,7 @@ main_gui_run(const gchar *geometry_spec)
 {
 	time_t now = tm_time_exact();
 
-    gtk_widget_show(main_window);		/* Display the main window */
+    gtk_widget_show(gui_main_window());		/* Display the main window */
 
 	if (geometry_spec) {
 		guint32 coord[4] = { 0, 0, 0, 0 };
@@ -787,21 +799,21 @@ main_gui_run(const gchar *geometry_spec)
 				coord, 0, G_N_ELEMENTS(coord));
 		}
 	}
-	gui_restore_window(main_window, PROP_WINDOW_COORDS);
+	gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
  
     icon_init();
     main_gui_timer(now);
 
  	gtk_widget_fix_width(
-        lookup_widget(main_window, "frame_statusbar_uptime"),
-        lookup_widget(main_window, "label_statusbar_uptime"),
+        gui_main_window_lookup("frame_statusbar_uptime"),
+        gui_main_window_lookup("label_statusbar_uptime"),
         8, 8);
 
 #ifdef USE_GTK2
-	g_signal_connect(GTK_OBJECT(lookup_widget(main_window, "notebook_main")),
+	g_signal_connect(GTK_OBJECT(gui_main_window_lookup("notebook_main")),
 		"switch-page", G_CALLBACK(on_notebook_main_switch_page), NULL);
 #else
-	gtk_signal_connect(GTK_OBJECT(lookup_widget(main_window, "notebook_main")),
+	gtk_signal_connect(GTK_OBJECT(gui_main_window_lookup("notebook_main")),
 		"switch-page", on_notebook_main_switch_page, NULL);
 #endif /* USE_GTK2 */
 
@@ -810,13 +822,13 @@ main_gui_run(const gchar *geometry_spec)
 	 */
 
 	gtk_notebook_set_page(
-		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 		nb_main_page_gnet);
 
 #ifdef USE_GTK1
 	{
 		GtkCTree *ctree_menu =
-			GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+			GTK_CTREE(gui_main_window_lookup("ctree_menu"));
 		GtkCTreeNode *node;
 
 		node = gtk_ctree_find_by_row_data(ctree_menu,
@@ -842,9 +854,9 @@ main_gui_shutdown(void)
      */
 
     filter_close_dialog(FALSE);
-	gtk_widget_hide(main_window);
-	if (dlg_prefs)
-		gtk_widget_hide(dlg_prefs);
+	gtk_widget_hide(gui_main_window());
+	if (gui_dlg_prefs())
+		gtk_widget_hide(gui_dlg_prefs());
 
 	gui_menu_shutdown();
     search_stats_gui_shutdown();
@@ -866,7 +878,7 @@ main_gui_shutdown(void)
 void
 main_gui_update_coords(void)
 {
-	gui_save_window(main_window, PROP_WINDOW_COORDS);
+	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 }
 
 /**
@@ -921,11 +933,11 @@ main_gui_shutdown_tick(guint left)
     GtkLabel *label;
 
     if (!notice_visible) {
-        gtk_widget_show(shutdown_window);
+        gtk_widget_show(gui_shutdown_window());
         notice_visible = TRUE;
     }
 
-    label = GTK_LABEL(lookup_widget(shutdown_window, "label_shutdown_count"));
+    label = GTK_LABEL(gui_shutdown_window_lookup("label_shutdown_count"));
 	gtk_label_printf(label, NG_("%d second", "%d seconds", left), left);
     gtk_main_flush();
 }

@@ -89,7 +89,7 @@ hcache_gui_init(void)
     for (n = 0; n < G_N_ELEMENTS(titles); n ++)
         titles[n] = "-";
 
-    clist_hcache = GTK_CLIST(lookup_widget(main_window, "clist_hcache"));
+    clist_hcache = GTK_CLIST(gui_main_window_lookup("clist_hcache"));
 
     /*
      * Stats can't be sorted: make column headers insensitive.
@@ -138,15 +138,14 @@ hcache_gui_update(time_t now)
 		return;
 	last_update = now;
     current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+        GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")));
 
     if (current_page != nb_main_page_hostcache)
         return;
 
     guc_hcache_get_stats(stats);
 
-    clist_hcache = GTK_CLIST(
-        lookup_widget(main_window, "clist_hcache"));
+    clist_hcache = GTK_CLIST(gui_main_window_lookup("clist_hcache"));
 
     gtk_clist_freeze(clist_hcache);
 

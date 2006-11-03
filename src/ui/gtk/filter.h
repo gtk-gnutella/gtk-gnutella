@@ -45,9 +45,6 @@ enum {
     nb_filt_page_num
 };
 
-extern GtkWidget *filter_dialog;
-extern GtkWidget *popup_filter_rule;
-
 void filter_gui_edit_ip_rule(rule_t *);
 void filter_gui_edit_jump_rule(rule_t *);
 void filter_gui_edit_rule(rule_t *);

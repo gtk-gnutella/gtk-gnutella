@@ -39,15 +39,14 @@ on_treeview_monitor_button_press_event(GtkWidget *unused_widget,
 	(void) unused_udata;
 
 	gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "checkbutton_monitor_enable")),
+        GTK_TOGGLE_BUTTON(gui_main_window_lookup("checkbutton_monitor_enable")),
         FALSE);
 
 	if (event->button != 3)
 		return FALSE;
 
-	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL,
-                  event->button, event->time);
+	gtk_menu_popup(GTK_MENU(gui_popup_monitor()), NULL, NULL, NULL, NULL,
+		event->button, event->time);
 
 	return TRUE;
 }
@@ -96,7 +95,7 @@ on_popup_monitor_add_search_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_monitor"));
+   	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_monitor"));
 	s = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_selected_foreach(s, add_search, NULL);
 }
@@ -111,7 +110,7 @@ on_popup_monitor_copy_to_clipboard_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_monitor"));
+   	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_monitor"));
 	s = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_selected_foreach(s, copy_to_clipboard, NULL);
 }
@@ -125,7 +124,7 @@ on_button_monitor_clear_clicked(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_monitor"));
+   	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_monitor"));
 	gtk_list_store_clear(GTK_LIST_STORE(gtk_tree_view_get_model(tv)));
 }
 

@@ -233,7 +233,7 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 
     {
         GtkWidget *clist_search_stats =
-            lookup_widget(main_window, "clist_search_stats");
+            gui_main_window_lookup("clist_search_stats");
 
         gtk_clist_insert(GTK_CLIST(clist_search_stats), 0, text);
     }
@@ -309,7 +309,7 @@ search_stats_gui_reset(void)
 {
 	empty_hash_table();
 	gtk_clist_clear(GTK_CLIST(
-        lookup_widget(main_window, "clist_search_stats")));
+        gui_main_window_lookup("clist_search_stats")));
 }
 
 void
@@ -344,7 +344,7 @@ void
 search_stats_gui_init(void)
 {
     GtkWidget *clist_search_stats =
-        lookup_widget(main_window, "clist_search_stats");
+        gui_main_window_lookup("clist_search_stats");
 
     /* set up the clist to be sorted properly */
 	gtk_clist_set_sort_column(GTK_CLIST(clist_search_stats), c_st_total);
@@ -381,9 +381,9 @@ search_stats_gui_update(time_t now)
 
     last_update = now;
 
-    clist_search_stats = lookup_widget(main_window, "clist_search_stats");
+    clist_search_stats = gui_main_window_lookup("clist_search_stats");
     label_search_stats_count =
-        lookup_widget(main_window, "label_search_stats_count");
+        gui_main_window_lookup("label_search_stats_count");
 
 	stat_count = 0;
 	gtk_clist_freeze(GTK_CLIST(clist_search_stats));

@@ -472,7 +472,7 @@ void
 downloads_gui_expand_all(void)
 {
 	gtk_tree_view_expand_all(
-		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads")));
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads")));
 }
 
 
@@ -483,7 +483,7 @@ void
 downloads_gui_collapse_all(void)
 {
 	gtk_tree_view_collapse_all(
-		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads")));
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads")));
 }
 
 /**

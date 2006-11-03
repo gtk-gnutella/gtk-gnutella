@@ -50,8 +50,8 @@ quit(gboolean force)
     if (force || !confirm) {
        	guc_gtk_gnutella_exit(0);
 	} else {
-        gtk_widget_show(dlg_quit);
-    	gdk_window_raise(dlg_quit->window);
+        gtk_widget_show(gui_dlg_quit());
+    	gdk_window_raise(gui_dlg_quit()->window);
 	}
 }
 
@@ -92,10 +92,10 @@ on_menu_about_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_return_if_fail(dlg_about);
-    gtk_widget_show(dlg_about);
-	g_return_if_fail(dlg_about->window);
-	gdk_window_raise(dlg_about->window);
+	g_return_if_fail(gui_dlg_about());
+    gtk_widget_show(gui_dlg_about());
+	g_return_if_fail(gui_dlg_about()->window);
+	gdk_window_raise(gui_dlg_about()->window);
 }
 
 void
@@ -104,10 +104,10 @@ on_menu_faq_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_return_if_fail(dlg_faq);
-    gtk_widget_show(dlg_faq);
-	g_return_if_fail(dlg_faq->window);
-	gdk_window_raise(dlg_faq->window);
+	g_return_if_fail(gui_dlg_faq());
+    gtk_widget_show(gui_dlg_faq());
+	g_return_if_fail(gui_dlg_faq()->window);
+	gdk_window_raise(gui_dlg_faq()->window);
 }
 
 void
@@ -116,11 +116,11 @@ on_menu_prefs_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_return_if_fail(dlg_prefs);
+	g_return_if_fail(gui_dlg_prefs());
 	
-    gtk_widget_show(dlg_prefs);
-	gui_restore_window(dlg_prefs, PROP_PREFS_DLG_COORDS);
-	gdk_window_raise(dlg_prefs->window);
+    gtk_widget_show(gui_dlg_prefs());
+	gui_restore_window(gui_dlg_prefs(), PROP_PREFS_DLG_COORDS);
+	gdk_window_raise(gui_dlg_prefs()->window);
 }
 
 void
@@ -145,9 +145,9 @@ on_button_about_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_button;
 	(void) unused_udata;
 
-	g_return_if_fail(dlg_about);
+	g_return_if_fail(gui_dlg_about());
 	
-    gtk_widget_hide(dlg_about);
+    gtk_widget_hide(gui_dlg_about());
 }
 
 gboolean
@@ -158,9 +158,9 @@ on_dlg_about_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	(void) unused_event;
 	(void) unused_udata;
 
-	g_return_val_if_fail(dlg_about, TRUE);
+	g_return_val_if_fail(gui_dlg_about(), TRUE);
 
-	gtk_widget_hide(dlg_about);
+	gtk_widget_hide(gui_dlg_about());
 	return TRUE;
 }
 
@@ -175,9 +175,9 @@ on_dlg_faq_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	(void) unused_event;
 	(void) unused_udata;
 
-	g_return_val_if_fail(dlg_faq, TRUE);
+	g_return_val_if_fail(gui_dlg_faq(), TRUE);
 
-	gtk_widget_hide(dlg_faq);
+	gtk_widget_hide(gui_dlg_faq());
 	return TRUE;
 }
 
@@ -191,12 +191,12 @@ on_button_prefs_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_button;
 	(void) unused_udata;
 
-	g_return_if_fail(dlg_prefs);
-	g_return_if_fail(GTK_WIDGET_REALIZED(dlg_prefs));
-	g_return_if_fail(GTK_WIDGET_VISIBLE(dlg_prefs));
+	g_return_if_fail(gui_dlg_prefs());
+	g_return_if_fail(GTK_WIDGET_REALIZED(gui_dlg_prefs()));
+	g_return_if_fail(GTK_WIDGET_VISIBLE(gui_dlg_prefs()));
 
-	gui_save_window(dlg_prefs, PROP_PREFS_DLG_COORDS);
-    gtk_widget_hide(dlg_prefs);
+	gui_save_window(gui_dlg_prefs(), PROP_PREFS_DLG_COORDS);
+    gtk_widget_hide(gui_dlg_prefs());
 }
 
 gboolean
@@ -207,11 +207,11 @@ on_dlg_prefs_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	(void) unused_event;
 	(void) unused_udata;
 
-	g_return_val_if_fail(dlg_prefs, TRUE);
-	g_return_val_if_fail(GTK_WIDGET_REALIZED(dlg_prefs), TRUE);
-	g_return_val_if_fail(GTK_WIDGET_VISIBLE(dlg_prefs), TRUE);
+	g_return_val_if_fail(gui_dlg_prefs(), TRUE);
+	g_return_val_if_fail(GTK_WIDGET_REALIZED(gui_dlg_prefs()), TRUE);
+	g_return_val_if_fail(GTK_WIDGET_VISIBLE(gui_dlg_prefs()), TRUE);
 
-	gtk_widget_hide(dlg_prefs);
+	gtk_widget_hide(gui_dlg_prefs());
 	return TRUE;
 }
 
@@ -225,9 +225,9 @@ on_button_really_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
 	(void) unused_button;
 	(void) unused_udata;
-	g_return_if_fail(dlg_quit);
+	g_return_if_fail(gui_dlg_quit());
 
-    gtk_widget_hide(dlg_quit);
+    gtk_widget_hide(gui_dlg_quit());
 	quit(TRUE);
 }
 
@@ -237,9 +237,9 @@ on_button_abort_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_button;
 	(void) unused_udata;
 
-	g_return_if_fail(dlg_quit);
+	g_return_if_fail(gui_dlg_quit());
 
-    gtk_widget_hide(dlg_quit);
+    gtk_widget_hide(gui_dlg_quit());
 }
 
 gboolean
@@ -250,8 +250,8 @@ on_dlg_quit_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	(void) unused_event;
 	(void) unused_udata;
 
-	g_return_val_if_fail(dlg_quit, TRUE);
-    gtk_widget_hide(dlg_quit);
+	g_return_val_if_fail(gui_dlg_quit(), TRUE);
+    gtk_widget_hide(gui_dlg_quit());
     return TRUE;
 }
 
@@ -263,7 +263,7 @@ on_menu_ ## item ## _activate(GtkMenuItem *unused_menuitem, \
 	(void) unused_menuitem; \
 	(void) unused_udata; \
     gtk_notebook_set_page( \
-		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), \
+		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")), \
 		nb_main_page_ ## tab ); \
 }
 
@@ -305,7 +305,7 @@ on_main_gui_treeview_menu_cursor_changed(GtkTreeView *treeview,
         gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &id, (-1));
 		g_assert(id >= 0 && id < nb_main_page_num);
         gtk_notebook_set_current_page(
-			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+			GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 			id);
     }
 }
@@ -366,7 +366,7 @@ on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 		return;
 	lock = TRUE;
 
-	ctree = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+	ctree = GTK_CTREE(gui_main_window_lookup("ctree_menu"));
     node = gtk_ctree_find_by_row_data(ctree, NULL, GINT_TO_POINTER(page_num));
 	if (node) {
     	GtkCTreeNode *iter;
@@ -397,7 +397,7 @@ on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 		return;
 	lock = TRUE;
 	
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_menu"));
 	model = gtk_tree_view_get_model(tv);
 	if (tree_find_iter_by_data(model, 1, GINT_TO_POINTER(page_num), &iter)) {
 		GtkTreePath *path;

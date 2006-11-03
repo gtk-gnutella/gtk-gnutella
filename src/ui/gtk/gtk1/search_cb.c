@@ -100,40 +100,37 @@ refresh_popup(void)
 
 	sensitive = NULL != search && NULL != GTK_CLIST(search->ctree)->selection;
 
-	gtk_widget_set_sensitive(
-			lookup_widget(main_window, "button_search_download"),
-			sensitive);
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_download"),
+		sensitive);
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
-		gtk_widget_set_sensitive(
-			lookup_widget(menu[i].popup ? popup_search : main_window,
-				menu[i].name),
-			sensitive);
+		GtkWidget *w = menu[i].popup ? gui_popup_search() : gui_main_window();
+		gtk_widget_set_sensitive(lookup_widget(w, menu[i].name), sensitive);
 	}
 
 	sensitive = NULL != search;	
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_restart"), sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_duplicate"), sensitive);
+    gtk_widget_set_sensitive(gui_popup_search_lookup("popup_search_restart"),
+		sensitive);
+    gtk_widget_set_sensitive(gui_popup_search_lookup("popup_search_duplicate"),
+		sensitive);
 
     if (search) {
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_stop"),
+            gui_popup_search_lookup("popup_search_stop"),
 			!guc_search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_resume"),
+            gui_popup_search_lookup("popup_search_resume"),
 			guc_search_is_frozen(search->search_handle)
 				&& !search_gui_is_expired(search));
 		if (search->passive)
             gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_restart"),
+                gui_popup_search_lookup("popup_search_restart"),
                 FALSE);
     } else {
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_stop"), FALSE);
+            gui_popup_search_lookup("popup_search_stop"), FALSE);
 	    gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_resume"), FALSE);
+            gui_popup_search_lookup("popup_search_resume"), FALSE);
     }
 }
 
@@ -189,9 +186,9 @@ search_gui_set_details(const record_t *rc)
 		initialized = TRUE;
 
 		for (i = 0; i < G_N_ELEMENTS(entry); i++)
-			entry[i] = GTK_ENTRY(lookup_widget(main_window, widgets[i].name));
+			entry[i] = GTK_ENTRY(gui_main_window_lookup(widgets[i].name));
 
-		xml = GTK_TEXT(lookup_widget(main_window,
+		xml = GTK_TEXT(gui_main_window_lookup(
 							STRINGIFY(CAT2(text_result_,info_xml))));
 	}
 
@@ -479,7 +476,7 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 	(void) unused_udata;
 	
 	g_strstrip(s);
-	gtk_widget_set_sensitive(lookup_widget(main_window, "button_search"),
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_search"),
 		s[0] != '\0');
 	G_FREE_NULL(s);
 }
@@ -496,7 +493,7 @@ on_button_search_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 
 	gui_search_clear_results();
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_clear"), FALSE);
+        (gui_main_window_lookup("button_search_clear"), FALSE);
 }
 
 
@@ -630,19 +627,16 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
         /* right click section (popup menu) */
     	if (search_gui_get_current_search()) {
 			GtkMenuItem *item;
-            gboolean search_results_show_tabs;
 
         	refresh_popup();
-            gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS,
-                &search_results_show_tabs);
 
-			item = GTK_MENU_ITEM(lookup_widget(popup_search,
-									"popup_search_toggle_tabs"));
+			item = GTK_MENU_ITEM(
+					gui_popup_search_lookup("popup_search_toggle_tabs"));
         	gtk_label_set(GTK_LABEL(item->item.bin.child),
 				search_results_show_tabs
 					? _("Show search list")
 					: _("Show tabs"));
-			gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
+			gtk_menu_popup(GTK_MENU(gui_popup_search()), NULL, NULL, NULL, NULL,
                      event->button, event->time);
         }
 		return TRUE;
@@ -797,7 +791,7 @@ on_button_search_passive_clicked(GtkButton *unused_button,
      * side effect.
      */
     default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
-				lookup_widget(main_window, "optionmenu_search_filter")));
+				gui_main_window_lookup("optionmenu_search_filter")));
 
 	search_gui_new_search(_("Passive"), SEARCH_F_PASSIVE, &search);
 

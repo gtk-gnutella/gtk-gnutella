@@ -473,13 +473,13 @@ void downloads_gui_init(void)
     GtkCList *clist;
 
 	ctree_downloads = GTK_CTREE
-		(lookup_widget(main_window, "ctree_downloads"));
+		(gui_main_window_lookup("ctree_downloads"));
 	ctree_downloads_queue = GTK_CTREE
-		(lookup_widget(main_window, "ctree_downloads_queue"));
+		(gui_main_window_lookup("ctree_downloads_queue"));
 
 	clist = GTK_CLIST(ctree_downloads);
 	clist_queue = GTK_CLIST(ctree_downloads_queue);
-	notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+	notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
 
     gtk_clist_column_titles_passive(clist);
     gtk_clist_column_titles_passive(clist_queue);
@@ -958,7 +958,6 @@ gui_update_download(struct download *d, gboolean force)
 	fileinfo_t *fi;
 	gpointer key;
 	gint active_src, tot_src;
-	guint32 s = 0;
 	gboolean copy_status_to_parent = FALSE;
 
 	gint rw;
@@ -1434,12 +1433,15 @@ gui_update_download(struct download *d, gboolean force)
 						record_parent_gui_update(key, now);
 
 					} else if (GTA_DL_RECEIVING == d->status) {
-						s = 0;
+						guint32 s;
+
 						active_src = fi->recvcount;
 						tot_src = fi->lifecount;
 
 						if (fi->recv_last_rate)
 							s = (fi->size - fi->done) / fi->recv_last_rate;
+						else
+							s = 0;
 
 						if (s) {
 							gm_snprintf(tmpstr, sizeof(tmpstr),
@@ -1546,27 +1548,27 @@ gui_update_download_abort_resume(void)
 	g_list_free(node_list);
 
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_downloads_abort"), do_abort);
+        (gui_main_window_lookup("button_downloads_abort"), do_abort);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_abort"), do_abort);
+        (gui_popup_downloads_lookup("popup_downloads_abort"), do_abort);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_abort_named"),
+        (gui_popup_downloads_lookup("popup_downloads_abort_named"),
 		do_abort);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_abort_host"),
+        (gui_popup_downloads_lookup("popup_downloads_abort_host"),
 		do_abort);
     gtk_widget_set_sensitive(
-        lookup_widget(popup_downloads, "popup_downloads_abort_sha1"),
+        gui_popup_downloads_lookup("popup_downloads_abort_sha1"),
         abort_sha1);
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_downloads_resume"), do_resume);
+        (gui_main_window_lookup("button_downloads_resume"), do_resume);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_resume"), do_resume);
+        (gui_popup_downloads_lookup("popup_downloads_resume"), do_resume);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_remove_file"),
+        (gui_popup_downloads_lookup("popup_downloads_remove_file"),
 		do_remove);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_queue"), do_queue);
+        (gui_popup_downloads_lookup("popup_downloads_queue"), do_queue);
 }
 
 /**

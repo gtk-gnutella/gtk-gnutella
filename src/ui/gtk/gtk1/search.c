@@ -304,11 +304,11 @@ search_gui_new_search_full(const gchar *query_str,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
-    GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
+    GtkWidget *clist_search = gui_main_window_lookup("clist_search");
     GtkWidget *notebook_search_results =
-        lookup_widget(main_window, "notebook_search_results");
+        gui_main_window_lookup("notebook_search_results");
     GtkWidget *button_search_close =
-        lookup_widget(main_window, "button_search_close");
+        gui_main_window_lookup("button_search_close");
     const gchar *titles[c_sl_num];
     const gchar *error_str;
 	struct query *query;
@@ -320,7 +320,7 @@ search_gui_new_search_full(const gchar *query_str,
 	query = search_gui_handle_query(query_str, flags, &error_str);
 	if (query || !error_str) {
 		gtk_entry_set_text(
-				GTK_ENTRY(lookup_widget(main_window, "entry_search")), "");
+				GTK_ENTRY(gui_main_window_lookup("entry_search")), "");
 	}
 	if (!query) {
 		if (error_str) {
@@ -412,9 +412,9 @@ search_gui_new_search_full(const gchar *query_str,
 	
 	gtk_widget_set_sensitive(button_search_close, TRUE);
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_expand_all"), TRUE);
+        gui_main_window_lookup("button_search_expand_all"), TRUE);
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_collapse_all"), TRUE);
+        gui_main_window_lookup("button_search_collapse_all"), TRUE);
 
 	is_only_search = (searches == NULL);
 	searches = g_list_append(searches, sch);
@@ -821,7 +821,7 @@ search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 	GtkCTreeNode *prev_node;
 	gboolean ascending = TRUE;
 	gboolean descending = TRUE;
-	gboolean random = FALSE;
+	gboolean is_random = FALSE;
 	gint i;
 	gint result;
 	gui_record_t *rcur;
@@ -867,12 +867,12 @@ search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 			ascending = FALSE;
 
 		if (!ascending && !descending) {
-			random = TRUE;
+			is_random = TRUE;
 			break;
 		}
 	}
 
-	if (random)
+	if (is_random)
 		return SEARCH_COL_SORT_DATA_RANDOM;
 
 	if (ascending)
@@ -1105,11 +1105,11 @@ search_gui_sort_column(search_t *search, gint column)
     /* create new arrow */
     switch (search->sort_order) {
     case SORT_ASC:
-        search->arrow = create_pixmap(main_window, "arrow_down.xpm");
+        search->arrow = create_pixmap(gui_main_window(), "arrow_down.xpm");
 		ascending = TRUE;
         break;
     case SORT_DESC:
-        search->arrow = create_pixmap(main_window, "arrow_up.xpm");
+        search->arrow = create_pixmap(gui_main_window(), "arrow_up.xpm");
 		ascending = FALSE;
         break;
     case SORT_NONE:
@@ -1147,7 +1147,6 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 {
   	GString *info = g_string_sized_new(80);
   	const gchar *titles[c_sr_num];
-	gint count;
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
 	gui_record_t *gui_rc;
@@ -1188,7 +1187,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 	}
 
 	if (rc->alt_locs != NULL) {
-		guint32 count = (guint32) rc->alt_locs->hvcnt;
+		guint32 count = rc->alt_locs->hvcnt;
 		if (info->len)
 			g_string_append(info, ", ");
 		g_string_append(info, "alt");
@@ -1306,6 +1305,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 		parent = find_parent_with_sha1(sch->parents, rc->sha1);
 
 		if (NULL != parent) {
+			guint count;
+
 			/* A parent exists with that sha1, add as child to that parent */
 			node = gtk_ctree_insert_node(ctree, parent, NULL,
 						(gchar **) titles, /* override const */
@@ -1455,10 +1456,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 void
 search_gui_set_clear_button_sensitive(gboolean flag)
 {
-	GtkWidget *button_search_clear =
-		lookup_widget(main_window, "button_search_clear");
-
-	gtk_widget_set_sensitive(button_search_clear, flag);
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_clear"),
+		flag);
 }
 
 
@@ -2100,7 +2099,7 @@ void
 search_gui_init(void)
 {
     GtkNotebook *notebook_search_results = GTK_NOTEBOOK
-        (lookup_widget(main_window, "notebook_search_results"));
+        (gui_main_window_lookup("notebook_search_results"));
 
 	GtkCTree *ctree;
 	search_t *current_search;
@@ -2171,9 +2170,9 @@ search_gui_remove_search(search_t * sch)
     gboolean sensitive;
     search_t *current_search;
     GtkCList *clist_search = GTK_CLIST
-        (lookup_widget(main_window, "clist_search"));
+        (gui_main_window_lookup("clist_search"));
     GtkNotebook *notebook_search_results = GTK_NOTEBOOK
-        (lookup_widget(main_window, "notebook_search_results"));
+        (gui_main_window_lookup("notebook_search_results"));
 
     g_assert(sch != NULL);
 
@@ -2211,18 +2210,18 @@ search_gui_remove_search(search_t * sch)
         gtk_notebook_set_tab_label_text(notebook_search_results,
 			default_scrolled_window, _("(no search)"));
 
-		gtk_widget_set_sensitive(lookup_widget(main_window,
-			"button_search_clear"), FALSE);
+		gtk_widget_set_sensitive(gui_main_window_lookup("button_search_clear"),
+			FALSE);
 	}
 
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_close"),
+        gui_main_window_lookup("button_search_close"),
         searches != NULL);
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_expand_all"),
+        gui_main_window_lookup("button_search_expand_all"),
         searches != NULL);
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_collapse_all"),
+        gui_main_window_lookup("button_search_collapse_all"),
         searches != NULL);
 
     sensitive = searches != NULL;
@@ -2233,7 +2232,7 @@ search_gui_remove_search(search_t * sch)
 			GTK_CLIST(current_search->ctree)->selection;
 
     gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_download"), sensitive);
+        (gui_main_window_lookup("button_search_download"), sensitive);
 }
 
 
@@ -2284,9 +2283,9 @@ search_gui_set_current_search(search_t *sch)
 	sch->unseen_items = 0;
 
 	search_gui_forget_current_search();
-    spinbutton_reissue_timeout = lookup_widget
-        (main_window, "spinbutton_search_reissue_timeout");
-   	clist = GTK_CLIST(lookup_widget(main_window, "clist_search"));
+    spinbutton_reissue_timeout =
+		gui_main_window_lookup("spinbutton_search_reissue_timeout");
+   	clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
 
     if (sch != NULL) {
     	gint row;	
@@ -2303,35 +2302,35 @@ search_gui_set_current_search(search_t *sch)
             (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, active);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_download"),
+            gui_main_window_lookup("button_search_download"),
             GTK_CLIST(sch->ctree)->selection != NULL);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_clear"),
+            gui_main_window_lookup("button_search_clear"),
             sch->items != 0);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_restart"), active);
+            gui_popup_search_lookup("popup_search_restart"), active);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_duplicate"), active);
+            gui_popup_search_lookup("popup_search_duplicate"), active);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_stop"), !frozen);
+            gui_popup_search_lookup("popup_search_stop"), !frozen);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_resume"),frozen);
+            gui_popup_search_lookup("popup_search_resume"),frozen);
 
     } else {
         gtk_clist_unselect_all(clist);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, FALSE);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_download"), FALSE);
+            gui_main_window_lookup("button_search_download"), FALSE);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_clear"), FALSE);
+            gui_main_window_lookup("button_search_clear"), FALSE);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_restart"), FALSE);
+            gui_popup_search_lookup("popup_search_restart"), FALSE);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_duplicate"), FALSE);
+            gui_popup_search_lookup("popup_search_duplicate"), FALSE);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_stop"), FALSE);
+            gui_popup_search_lookup("popup_search_stop"), FALSE);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_resume"), FALSE);
+            gui_popup_search_lookup("popup_search_resume"), FALSE);
     }
 
 	search_gui_current_search(sch);
@@ -2341,7 +2340,7 @@ search_gui_set_current_search(search_t *sch)
      */
     {
         GtkNotebook *notebook_search_results = GTK_NOTEBOOK
-            (lookup_widget(main_window, "notebook_search_results"));
+            (gui_main_window_lookup("notebook_search_results"));
 
         gtk_notebook_set_page(notebook_search_results,
   			  gtk_notebook_page_num(notebook_search_results,
@@ -2355,7 +2354,7 @@ search_gui_set_current_search(search_t *sch)
         GtkCTree *ctree;
     	GtkCTreeNode *node;
 	   
-		ctree = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+		ctree = GTK_CTREE(gui_main_window_lookup("ctree_menu"));
 
         node = gtk_ctree_find_by_row_data(ctree, gtk_ctree_node_nth(ctree, 0),
 					GINT_TO_POINTER(nb_main_page_search));
@@ -2482,9 +2481,9 @@ void
 gui_search_force_update_tab_label(struct search *sch)
 {
     GtkNotebook *notebook_search_results = GTK_NOTEBOOK
-        (lookup_widget(main_window, "notebook_search_results"));
+        (gui_main_window_lookup("notebook_search_results"));
     GtkCList *clist_search = GTK_CLIST
-        (lookup_widget(main_window, "clist_search"));
+        (gui_main_window_lookup("clist_search"));
 	search_t *current_search = search_gui_get_current_search();
     gint row;
 
@@ -2564,12 +2563,11 @@ set_search_color(struct search *sch)
 	GtkCList * clist_search;
 	static GtkNotebook *notebook_search_results = NULL;
 
-	clist_search = GTK_CLIST(
-		lookup_widget(main_window, "clist_search"));
+	clist_search = GTK_CLIST(gui_main_window_lookup("clist_search"));
 
 	if (notebook_search_results == NULL)
 		notebook_search_results =
-			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_search_results"));
+			GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 
 	if (sch->enabled) {
         gtk_clist_set_foreground(

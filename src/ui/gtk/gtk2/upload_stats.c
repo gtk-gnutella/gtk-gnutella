@@ -290,7 +290,7 @@ upload_stats_gui_init_intern(gboolean intern)
 			G_TYPE_FLOAT,		/* Normalized */
 			G_TYPE_POINTER)); 	/* struct ul_stats */
 		upload_stats_treeview = GTK_TREE_VIEW(
-			lookup_widget(main_window, "treeview_ul_stats"));
+			gui_main_window_lookup("treeview_ul_stats"));
 		gtk_tree_view_set_model(upload_stats_treeview, model);
 		g_object_unref(model);
 

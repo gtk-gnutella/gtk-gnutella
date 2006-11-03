@@ -270,7 +270,7 @@ nodes_gui_create_treeview_nodes(void)
     /*
      * Get the monitor widget
      */
-	tree = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	tree = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
 	treeview_nodes = tree;
 	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
@@ -440,7 +440,7 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 
 	g_hash_table_remove(ht_pending_lookups, key);
 
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	data = find_node(n);
 	if (!data)
@@ -509,7 +509,6 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 void
 nodes_gui_early_init(void)
 {
-	popup_nodes = create_popup_nodes();
 	nodes_gui_create_treeview_nodes();
 }
 
@@ -519,8 +518,7 @@ nodes_gui_early_init(void)
 void
 nodes_gui_init(void)
 {
-	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
-		main_window, "treeview_nodes"));
+	treeview_nodes = GTK_TREE_VIEW(gui_main_window_lookup( "treeview_nodes"));
 
 	tree_view_restore_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
@@ -745,7 +743,7 @@ nodes_gui_update_nodes_display(time_t now)
 	 */
 
 	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
 
     current_page = gtk_notebook_get_current_page(notebook);
 	if (
@@ -845,7 +843,7 @@ nodes_gui_remove_selected(void)
 	GtkTreeSelection *selection;
 	GSList *node_list = NULL;
 
-	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
 	selection = gtk_tree_view_get_selection(treeview);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_remove_selected_helper, &node_list);
@@ -896,7 +894,7 @@ nodes_gui_reverse_lookup_selected(void)
 	GtkTreeView *tv;
 	GtkTreeSelection *selection;
 
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
 	selection = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_reverse_lookup_selected_helper, NULL);
@@ -927,7 +925,7 @@ nodes_gui_browse_selected(void)
 	GtkTreeView *tv;
 	GtkTreeSelection *selection;
 
-	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
 	selection = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_browse_selected_helper, NULL);

@@ -53,11 +53,10 @@ on_clist_monitor_button_press_event(GtkWidget *widget,
 		return FALSE;
 
 	gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "checkbutton_monitor_enable")),
+        GTK_TOGGLE_BUTTON(gui_main_window_lookup("checkbutton_monitor_enable")),
         FALSE);
-	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL,
-                  event->button, event->time);
+	gtk_menu_popup(GTK_MENU(gui_popup_monitor()), NULL, NULL, NULL, NULL,
+		event->button, event->time);
 
 	return TRUE;
 }
@@ -70,7 +69,7 @@ on_popup_monitor_add_search_activate(GtkMenuItem *unused_menuitem,
 	gchar *titles[1];
 	gchar *e;
     GtkCList *clist_monitor = GTK_CLIST
-        (lookup_widget(main_window, "clist_monitor"));
+        (gui_main_window_lookup("clist_monitor"));
 
 	(void) unused_menuitem;
 	(void) unused_udata;

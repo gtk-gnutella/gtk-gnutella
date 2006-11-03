@@ -186,8 +186,8 @@ search_gui_option_menu_searches_update(void)
 	const GList *iter;
 	guint idx = 0, n = 0;
 
-	option_menu = GTK_OPTION_MENU(lookup_widget(main_window,
-						"option_menu_searches"));	
+	option_menu = GTK_OPTION_MENU(
+					gui_main_window_lookup("option_menu_searches"));	
 	menu = GTK_MENU(gtk_menu_new());
 
 	iter = g_list_last(deconstify_gpointer(search_gui_get_searches()));
@@ -260,7 +260,7 @@ void
 search_gui_option_menu_searches_select(const search_t *sch)
 {
 	option_menu_select_item_by_data(
-		GTK_OPTION_MENU(lookup_widget(main_window, "option_menu_searches")),
+		GTK_OPTION_MENU(gui_main_window_lookup("option_menu_searches")),
 		sch);
 }
 
@@ -932,9 +932,9 @@ search_gui_common_init(void)
 	accumulated_rs = slist_new();
 
 	label_items_found = GTK_LABEL(
-		lookup_widget(main_window, "label_items_found"));
+		gui_main_window_lookup("label_items_found"));
 	label_search_expiry = GTK_LABEL(
-		lookup_widget(main_window, "label_search_expiry"));
+		gui_main_window_lookup("label_search_expiry"));
 	
 	gui_color_init();
 }
@@ -2205,7 +2205,7 @@ search_gui_history_add(const gchar *s)
 
     /* set new history */
     gtk_combo_set_popdown_strings(
-        GTK_COMBO(lookup_widget(main_window, "combo_search")),
+        GTK_COMBO(gui_main_window_lookup("combo_search")),
         new_hist);
 
     /* free old list structure */
@@ -2224,7 +2224,7 @@ search_gui_new_search_entered(void)
 	const gchar *ep;
 	gchar *text;
 	
-    widget = lookup_widget(main_window, "entry_search");
+    widget = gui_main_window_lookup("entry_search");
    	text = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
     g_strstrip(text);
 	
@@ -2275,7 +2275,7 @@ search_gui_new_search_entered(void)
          * side effect.
          */
         default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
-					lookup_widget(main_window, "optionmenu_search_filter")));
+					gui_main_window_lookup("optionmenu_search_filter")));
 
 		res = search_gui_new_search(text, 0, &search);
 

@@ -136,7 +136,7 @@ on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
 
 	if (3 == event->button) {
         /* Right click section (popup menu) */
-		gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL,
+		gtk_menu_popup(GTK_MENU(gui_popup_uploads()), NULL, NULL, NULL, NULL,
 			event->button, event->time);
 		return TRUE;
     }
@@ -533,7 +533,6 @@ create_uploads_model(void)
 void
 uploads_gui_early_init(void)
 {
-    popup_uploads = create_popup_uploads();
 }
 
 void
@@ -552,17 +551,16 @@ uploads_gui_init(void)
 		{ c_ul_progress, 	NULL },
 		{ c_ul_status, 		NULL },
 	};
-	GtkTreeView *treeview;
 	size_t i;
 
 	STATIC_ASSERT(G_N_ELEMENTS(cols) == UPLOADS_GUI_VISIBLE_COLUMNS);
 	store_uploads = create_uploads_model();
 
-	button_uploads_clear_completed = lookup_widget(main_window,
-		"button_uploads_clear_completed");
-	treeview_uploads = treeview =
-		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store_uploads));
+	button_uploads_clear_completed =
+		gui_main_window_lookup("button_uploads_clear_completed");
+	treeview_uploads =
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
+	gtk_tree_view_set_model(treeview_uploads, GTK_TREE_MODEL(store_uploads));
 
 	for (i = 0; i < G_N_ELEMENTS(cols); i++)
 		add_column(cols[i].id, cols[i].sortfunc,
@@ -580,7 +578,7 @@ uploads_gui_init(void)
     guc_upload_add_upload_info_changed_listener
 		(upload_info_changed);
 
-	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
+	g_signal_connect(GTK_OBJECT(treeview_uploads), "button_press_event",
 		G_CALLBACK(on_button_press_event), NULL);
 }
 
@@ -660,7 +658,7 @@ uploads_gui_update_display(time_t now)
 	 */
 
 	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
 
 	current_page = gtk_notebook_get_current_page(notebook);
 	if (

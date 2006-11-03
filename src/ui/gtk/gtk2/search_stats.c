@@ -390,9 +390,9 @@ search_stats_gui_init(void)
 	STATIC_ASSERT(G_N_ELEMENTS(cols) == G_N_ELEMENTS(types));
 
 	treeview_search_stats =
-        GTK_TREE_VIEW(lookup_widget(main_window, "treeview_search_stats"));
+        GTK_TREE_VIEW(gui_main_window_lookup("treeview_search_stats"));
 	label_search_stats_count =
-		GTK_LABEL(lookup_widget(main_window, "label_search_stats_count"));
+		GTK_LABEL(gui_main_window_lookup("label_search_stats_count"));
 
 	treeview = treeview_search_stats;
 

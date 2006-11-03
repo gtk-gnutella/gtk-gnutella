@@ -68,7 +68,7 @@ gui_update_files_scanned(void)
 
 	if (label_files_scanned == NULL)
 		label_files_scanned =
-			GTK_LABEL(lookup_widget(dlg_prefs, "label_files_scanned"));
+			GTK_LABEL(gui_dlg_prefs_lookup("label_files_scanned"));
 
 	gtk_label_printf(label_files_scanned,
 		NG_("%lu file shared (%s)", "%lu files shared (%s)", n),
@@ -79,7 +79,7 @@ void
 gui_allow_rescan_dir(gboolean flag)
 {
 	gtk_widget_set_sensitive
-        (lookup_widget(dlg_prefs, "button_config_rescan_dir"), flag);
+        (gui_dlg_prefs_lookup("button_config_rescan_dir"), flag);
 }
 
 /**
@@ -93,7 +93,7 @@ gui_general_timer(time_t now)
 	time_t start;
 
 	if (label == NULL)
-		label = GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime"));
+		label = GTK_LABEL(gui_main_window_lookup("label_statusbar_uptime"));
 
 	gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
 	uptime = short_uptime(delta_time(now, start));
@@ -176,17 +176,17 @@ gui_update_traffic_stats(void)
 
 	if (pg_http_in == NULL) {
 		pg_http_in = GTK_PROGRESS_BAR(
-			lookup_widget(main_window, "progressbar_bws_in"));
+			gui_main_window_lookup("progressbar_bws_in"));
 		pg_http_out = GTK_PROGRESS_BAR
-			(lookup_widget(main_window, "progressbar_bws_out"));
+			(gui_main_window_lookup("progressbar_bws_out"));
 		pg_gnet_in = GTK_PROGRESS_BAR
-			(lookup_widget(main_window, "progressbar_bws_gin"));
+			(gui_main_window_lookup("progressbar_bws_gin"));
 		pg_gnet_out = GTK_PROGRESS_BAR
-			(lookup_widget(main_window, "progressbar_bws_gout"));
+			(gui_main_window_lookup("progressbar_bws_gout"));
 		pg_leaf_in = GTK_PROGRESS_BAR
-			(lookup_widget(main_window, "progressbar_bws_lin"));
+			(gui_main_window_lookup("progressbar_bws_lin"));
 		pg_leaf_out = GTK_PROGRESS_BAR
-			(lookup_widget(main_window, "progressbar_bws_lout"));
+			(gui_main_window_lookup("progressbar_bws_lout"));
 	}
 
   	/*
@@ -230,9 +230,9 @@ gui_update_stats_frames(void)
     guint32 peermode;
 
 	if (frame_bws_inout == NULL) {
-		frame_bws_inout = lookup_widget(main_window, "frame_bws_inout");
-		frame_bws_ginout = lookup_widget(main_window, "frame_bws_ginout");
-		frame_bws_glinout = lookup_widget(main_window, "frame_bws_glinout");
+		frame_bws_inout = gui_main_window_lookup("frame_bws_inout");
+		frame_bws_ginout = gui_main_window_lookup("frame_bws_ginout");
+		frame_bws_glinout = gui_main_window_lookup("frame_bws_glinout");
 	}
 
    	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);

@@ -89,7 +89,7 @@ statusbar_get(void)
     static GtkStatusbar *sb;
 
 	if (!sb)
-		sb = GTK_STATUSBAR(lookup_widget(main_window, "statusbar"));
+		sb = GTK_STATUSBAR(gui_main_window_lookup("statusbar"));
 
 	return sb;
 }

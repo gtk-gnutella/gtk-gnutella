@@ -72,15 +72,20 @@ static gint ul_rows = 0;
 
 /* Private functions */
 
+static GtkCList *
+clist_ul_stats(void)
+{
+	return GTK_CLIST(gui_main_window_lookup("clist_ul_stats"));
+}
+
 /**
  * This is me, dreaming of gtk 2.0...
  */
 static gint
 ul_find_row_by_upload(const gchar *name, guint64 size, struct ul_stats **s)
 {
+    GtkCList *clist = clist_ul_stats();
 	gint i;
-    GtkCList *clist =
-        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 	/* go through the clist_ul_stats, looking for the file...
 	 * blame gtk/glib, not me...
@@ -94,8 +99,7 @@ ul_find_row_by_upload(const gchar *name, guint64 size, struct ul_stats **s)
 		if (us->size != size)
 			continue;
 
-		gtk_clist_get_text(clist, i,
-			c_us_filename, &filename);
+		gtk_clist_get_text(clist, i, c_us_filename, &filename);
 
 		if (0 == strcmp(filename, name)) {
 			*s = us;
@@ -119,13 +123,13 @@ upload_stats_gui_shutdown(void)
 void
 upload_stats_gui_add(struct ul_stats *s)
 {
+	GtkCList *clist = clist_ul_stats();
 	gchar *rowdata[5];
 	gint row;
 	gchar size_tmp[16];
 	gchar attempts_tmp[16];
 	gchar complete_tmp[16];
 	gchar norm_tmp[16];
-    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 	g_strlcpy(size_tmp, short_size(s->size, show_metric_units()),
 		sizeof size_tmp);
@@ -155,7 +159,7 @@ upload_stats_gui_add(struct ul_stats *s)
 void
 upload_stats_gui_update(const gchar *name, guint64 size)
 {
-	GtkCList *clist;
+	GtkCList *clist = clist_ul_stats();
 	gint row;
 	struct ul_stats *s;
 	static gchar tmpstr[16];
@@ -166,8 +170,6 @@ upload_stats_gui_update(const gchar *name, guint64 size)
 		g_assert_not_reached();
 		return;
 	}
-
-	clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 	/* set attempt cell contents */
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", s->attempts);
@@ -185,10 +187,7 @@ upload_stats_gui_update(const gchar *name, guint64 size)
 void
 upload_stats_gui_clear_all(void)
 {
-    GtkCList *clist =
-        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
-
-	gtk_clist_clear(clist);
+	gtk_clist_clear(clist_ul_stats());
 	ul_rows = 0;
 }
 

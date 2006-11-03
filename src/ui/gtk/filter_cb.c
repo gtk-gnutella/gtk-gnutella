@@ -186,7 +186,7 @@ on_button_filter_cancel_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
     gint page = gtk_notebook_get_current_page
         (GTK_NOTEBOOK
-            (lookup_widget(filter_dialog, "notebook_filter_detail")));
+            (gui_filter_dialog_lookup("notebook_filter_detail")));
 
 	(void) unused_button;
 	(void) unused_udata;
@@ -226,7 +226,7 @@ on_button_filter_abort_rule_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
 
@@ -270,8 +270,9 @@ on_button_filter_create_clicked(GtkButton *unused_button, gpointer unused_udata)
     /*
      * Delegate to on_entry_filter_new_activate.
      */
-    on_entry_filter_new_activate(GTK_EDITABLE(lookup_widget(filter_dialog,
-												"entry_filter_new")), NULL);
+    on_entry_filter_new_activate(
+		GTK_EDITABLE(gui_filter_dialog_lookup("entry_filter_new")),
+		NULL);
 }
 
 
@@ -312,10 +313,10 @@ on_button_filter_reset_all_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-    if (filter_dialog == NULL)
+    if (gui_filter_dialog() == NULL)
         return;
 
-    ctree = GTK_CTREE(lookup_widget(filter_dialog, "ctree_filter_filters"));
+    ctree = GTK_CTREE(gui_filter_dialog_lookup("ctree_filter_filters"));
     clist = GTK_CLIST(ctree);
 
     for (row = 0; row < clist->rows; row++) {
@@ -399,7 +400,7 @@ on_button_filter_add_rule_text_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
     gtk_clist_unselect_all
-        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
+        (GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules")));
     filter_gui_edit_text_rule(NULL);
 }
 
@@ -411,7 +412,7 @@ on_button_filter_add_rule_ip_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
     gtk_clist_unselect_all
-        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
+        (GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules")));
     filter_gui_edit_ip_rule(NULL);
 }
 
@@ -423,7 +424,7 @@ on_button_filter_add_rule_size_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
     gtk_clist_unselect_all
-        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
+        (GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules")));
     filter_gui_edit_size_rule(NULL);
 }
 
@@ -435,7 +436,7 @@ on_button_filter_add_rule_jump_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
     gtk_clist_unselect_all
-        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
+        (GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules")));
     filter_gui_edit_jump_rule(NULL);
 }
 
@@ -447,7 +448,7 @@ on_button_filter_add_rule_flag_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
     gtk_clist_unselect_all
-        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
+        (GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules")));
     filter_gui_edit_flag_rule(NULL);
 }
 
@@ -459,7 +460,7 @@ on_button_filter_add_rule_state_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
     gtk_clist_unselect_all
-        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
+        (GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules")));
     filter_gui_edit_state_rule(NULL);
 }
 
@@ -468,9 +469,9 @@ on_button_filter_add_rule_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
 {
     gint page = gtk_notebook_get_current_page
-        (GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")));
+        (GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")));
     GtkCList *clist_filter_rules = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+        (gui_filter_dialog_lookup("clist_filter_rules"));
     rule_t *r = NULL;
 
 	(void) unused_button;
@@ -522,7 +523,7 @@ void
 on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
     GtkCList *clist = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+        (gui_filter_dialog_lookup("clist_filter_rules"));
 
 	(void) unused_button;
 	(void) unused_udata;
@@ -537,7 +538,7 @@ on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
     gtk_clist_thaw(clist);
     gtk_notebook_set_page(
         GTK_NOTEBOOK
-            (lookup_widget(filter_dialog, "notebook_filter_detail")),
+            (gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
 
@@ -546,7 +547,7 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
 {
     GtkCList *clist = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+        (gui_filter_dialog_lookup("clist_filter_rules"));
     rule_t *r;
 
 	(void) unused_button;
@@ -560,7 +561,7 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
     filter_remove_rule_from_session(work_filter, r);
 
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
 void
@@ -569,7 +570,7 @@ on_button_filter_reset_rule_clicked(GtkButton *unused_button,
 {
     rule_t *rule;
     GtkCList *clist_filter_rules = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+        (gui_filter_dialog_lookup("clist_filter_rules"));
 
 	(void) unused_button;
 	(void) unused_udata;
@@ -589,7 +590,7 @@ on_button_filter_reset_all_rules_clicked(GtkButton *unused_button,
 {
     gint row;
     GtkCList *clist_filter_rules = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+        (gui_filter_dialog_lookup("clist_filter_rules"));
 
 	(void) unused_button;
 	(void) unused_udata;
@@ -612,7 +613,7 @@ on_clist_filter_rules_button_press_event(GtkWidget *unused_widget,
 {
     gboolean sensitive;
     GtkCList *clist_filter_rules = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+        (gui_filter_dialog_lookup("clist_filter_rules"));
 
 	(void) unused_widget;
 	(void) unused_udata;
@@ -635,13 +636,13 @@ on_clist_filter_rules_button_press_event(GtkWidget *unused_widget,
     sensitive = clist_filter_rules->selection != NULL && work_filter != NULL;
 
     gtk_widget_set_sensitive(
-        lookup_widget(popup_filter_rule, "popup_filter_rule_copy"),
+        gui_popup_filter_rule_lookup("popup_filter_rule_copy"),
         sensitive);
     gtk_widget_set_sensitive(
-        lookup_widget(popup_filter_rule, "popup_filter_rule_paste"),
+        gui_popup_filter_rule_lookup("popup_filter_rule_paste"),
         rule_clipboard != NULL);
 
-    gtk_menu_popup(GTK_MENU(popup_filter_rule), NULL, NULL, NULL, NULL,
+    gtk_menu_popup(GTK_MENU(gui_popup_filter_rule()), NULL, NULL, NULL, NULL,
         event->button, event->time);
 
 	return TRUE;
@@ -652,7 +653,7 @@ on_popup_filter_rule_copy_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
     GtkCList *clist_filter_rules = GTK_CLIST
-        (lookup_widget(filter_dialog, "clist_filter_rules"));
+        (gui_filter_dialog_lookup("clist_filter_rules"));
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -712,13 +713,13 @@ on_treeview_filter_rules_button_press_event(GtkWidget *widget,
 	}
 
     gtk_widget_set_sensitive(
-        lookup_widget(popup_filter_rule, "popup_filter_rule_copy"),
+        gui_popup_filter_rule_lookup("popup_filter_rule_copy"),
         sensitive);
     gtk_widget_set_sensitive(
-        lookup_widget(popup_filter_rule, "popup_filter_rule_paste"),
+        gui_popup_filter_rule_lookup("popup_filter_rule_paste"),
         rule_clipboard != NULL);
 
-    gtk_menu_popup(GTK_MENU(popup_filter_rule), NULL, NULL, NULL, NULL,
+    gtk_menu_popup(GTK_MENU(gui_popup_filter_rule()), NULL, NULL, NULL, NULL,
         event->button, event->time);
 
 	return TRUE;
@@ -776,11 +777,11 @@ on_button_filter_reset_all_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-    if (filter_dialog == NULL)
+    if (gui_filter_dialog() == NULL)
         return;
 
 	gtk_tree_model_foreach(gtk_tree_view_get_model(GTK_TREE_VIEW(
-		lookup_widget(filter_dialog, "treeview_filter_filters"))),
+		gui_filter_dialog_lookup("treeview_filter_filters"))),
 		filter_reset_all_helper,
 		NULL);
 }
@@ -819,7 +820,7 @@ on_button_filter_add_rule_text_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
-		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+		GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"))));
 
 	filter_gui_edit_text_rule(NULL);
 }
@@ -832,7 +833,7 @@ on_button_filter_add_rule_ip_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
-		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+		GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"))));
 
     filter_gui_edit_ip_rule(NULL);
 }
@@ -845,7 +846,7 @@ on_button_filter_add_rule_size_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
-		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+		GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"))));
 
 	filter_gui_edit_size_rule(NULL);
 }
@@ -858,7 +859,7 @@ on_button_filter_add_rule_jump_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
-		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+		GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"))));
 
     filter_gui_edit_jump_rule(NULL);
 }
@@ -871,7 +872,7 @@ on_button_filter_add_rule_flag_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
-		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+		GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"))));
 
     filter_gui_edit_flag_rule(NULL);
 }
@@ -884,7 +885,7 @@ on_button_filter_add_rule_state_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
-		GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"))));
+		GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"))));
 	
 	filter_gui_edit_state_rule(NULL);
 }
@@ -901,9 +902,9 @@ on_button_filter_add_rule_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-	tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+	tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"));
     page = gtk_notebook_get_current_page(GTK_NOTEBOOK(
-				lookup_widget(filter_dialog, "notebook_filter_detail")));
+				gui_filter_dialog_lookup("notebook_filter_detail")));
 
     switch (page) {
     case nb_filt_page_text:
@@ -981,7 +982,7 @@ on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 
 	gtk_tree_model_foreach(
 		gtk_tree_view_get_model(GTK_TREE_VIEW(
-			lookup_widget(filter_dialog, "treeview_filter_rules"))),
+			gui_filter_dialog_lookup("treeview_filter_rules"))),
 		filter_clear_helper,
 		&sl_rules);
 
@@ -991,7 +992,7 @@ on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 	sl_rules = NULL;
 	
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
 
@@ -1005,7 +1006,7 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-    tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+    tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"));
 	gtk_tree_view_get_cursor(tv, &path, NULL);
     if (path) {
 		GtkTreeModel *model;
@@ -1024,7 +1025,7 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
     	filter_remove_rule_from_session(work_filter, p);
 
     	gtk_notebook_set_page(
-          GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")),
+          GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
           nb_filt_page_buttons);
 	}
 }
@@ -1039,7 +1040,7 @@ on_button_filter_reset_rule_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 	
-    tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+    tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"));
 	gtk_tree_view_get_cursor(tv, &path, NULL);
     if (path) {
 		GtkTreeModel *model;
@@ -1086,7 +1087,7 @@ on_button_filter_reset_all_rules_clicked(GtkButton *unused_button,
 
 	gtk_tree_model_foreach(
 		gtk_tree_view_get_model(GTK_TREE_VIEW(
-			lookup_widget(filter_dialog, "treeview_filter_rules"))),
+			gui_filter_dialog_lookup("treeview_filter_rules"))),
 		filter_reset_all_rules_helper,
 		NULL);
 }
@@ -1103,7 +1104,7 @@ on_popup_filter_rule_copy_activate(GtkMenuItem *unused_menuitem,
 
     clear_clipboard();
 
-   	tv = GTK_TREE_VIEW(lookup_widget(filter_dialog, "treeview_filter_rules"));
+   	tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"));
 	gtk_tree_view_get_cursor(tv, &path, NULL);
 	if (path) {
 		GtkTreeModel *model;
