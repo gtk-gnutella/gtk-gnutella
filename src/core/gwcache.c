@@ -684,7 +684,6 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 		parse_dispatch_t cb, parse_eof_t eof)
 {
 	struct parse_context *ctx;
-	getline_t *getline;
 	const gchar *p = buf;
 	size_t remain = len;
 
@@ -707,15 +706,13 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 	 * Read a line at a time.
 	 */
 
-	getline = ctx->getline;
-
 	for (;;) {
 		gchar *line;
 		gboolean error;
 		size_t line_len;
 		size_t parsed;
 
-		switch (getline_read(getline, p, remain, &parsed)) {
+		switch (getline_read(ctx->getline, p, remain, &parsed)) {
 		case READ_OVERFLOW:
 			http_async_cancel(handle);
 			return;
@@ -732,8 +729,8 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 		 * We come here everytime we get a full line.
 		 */
 
-		line = g_strdup(getline_str(getline));
-		line_len = getline_length(getline);
+		line = g_strdup(getline_str(ctx->getline));
+		line_len = getline_length(ctx->getline);
 		line_len = str_chomp(line, line_len);
 
 		error = !(*cb)(ctx, line, line_len); /* An ERROR was reported */
@@ -758,7 +755,7 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 			return;
 		}
 
-		getline_reset(getline);
+		getline_reset(ctx->getline);
 	}
 }
 

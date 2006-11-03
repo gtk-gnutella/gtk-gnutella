@@ -161,7 +161,6 @@ static void
 io_header_parse(struct io_header *ih)
 {
 	struct gnutella_socket *s = ih->socket;
-	getline_t *getline = ih->getline;
 	header_t *header = ih->header;
 	size_t parsed;
 	gint error;
@@ -172,7 +171,7 @@ io_header_parse(struct io_header *ih)
 	 */
 
 nextline:
-	switch (getline_read(getline, s->buf, s->pos, &parsed)) {
+	switch (getline_read(ih->getline, s->buf, s->pos, &parsed)) {
 	case READ_OVERFLOW:
 		g_warning("io_header_parse: line too long, disconnecting from %s",
 			host_addr_to_string(s->addr));
@@ -209,7 +208,7 @@ nextline:
 
 		g_assert(ih->text != NULL);
 		/* No g_string_append_len() in glib 1.2, use g_string_append() --RAM */
-		g_string_append(ih->text, getline_str(getline));
+		g_string_append(ih->text, getline_str(ih->getline));
 		g_string_append_c(ih->text, '\n');
 	}
 
@@ -221,9 +220,9 @@ nextline:
 		 */
 
 		g_assert(NULL == s->getline);
-		s->getline = getline_make(getline_length(getline) + 1);
-		getline_copy(getline, s->getline);
-		getline_reset(getline);
+		s->getline = getline_make(getline_length(ih->getline) + 1);
+		getline_copy(ih->getline, s->getline);
+		getline_reset(ih->getline);
 		ih->flags &= ~IO_SAVE_FIRST;
 		goto nextline;
 	}
@@ -243,11 +242,11 @@ nextline:
 	}
 
 	error = header_append(header,
-		getline_str(getline), getline_length(getline));
+		getline_str(ih->getline), getline_length(ih->getline));
 	
 	switch (error) {
 	case HEAD_OK:
-		getline_reset(getline);
+		getline_reset(ih->getline);
 		goto nextline;			/* Go process other lines we may have read */
 		/* NOTREACHED */
 	case HEAD_EOH:				/* We reached the end of the header */
@@ -263,8 +262,8 @@ nextline:
 		fprintf(stderr, "------ Header Dump:\n");
 		header_dump(header, stderr);
 		fprintf(stderr, "------\n");
-		dump_hex(stderr, "Header Line", getline_str(getline),
-			MIN(getline_length(getline), 128));
+		dump_hex(stderr, "Header Line", getline_str(ih->getline),
+			MIN(getline_length(ih->getline), 128));
 		(*ih->error->header_error)(ih->resource, error);
 		return;
 		/* NOTREACHED */
@@ -273,12 +272,12 @@ nextline:
 			g_warning("io_header_parse: %s, from %s",
 				header_strerror(error), host_addr_to_string(s->addr));
 			dump_hex(stderr, "Header Line",
-				getline_str(getline), getline_length(getline));
+				getline_str(ih->getline), getline_length(ih->getline));
 			fprintf(stderr, "------ Header Dump (so far):\n");
 			header_dump(header, stderr);
 			fprintf(stderr, "------\n");
 		}
-		getline_reset(getline);
+		getline_reset(ih->getline);
 		goto nextline;			/* Go process other lines we may have read */
 	}
 
