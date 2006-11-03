@@ -5,20 +5,49 @@ Unfortunately, many people have trouble compiling Gtk-Gnutella on Linux
 distributions albeit it should be very simple. The following applies to
 Debian-based system that is also Ubuntu.
 
+
+1. Dependencies:
+================
+
 You'll have to install the following packages:
 
-apt-get libglib2.0-dev	# GLib 2.x
-apt-get libgtk2.0-dev	# Gtk+ 2.x
-apt-get zlib1g-dev	# zlib
-apt-get libxml2-dev	# libxml 2.x
-apt-get libgnutls-dev	# GNU TLS
+apt-get install gcc		# GCC; any version is fine
+apt-get install make		# the make tool; any version is fine
+apt-get install zlib1g-dev	# zlib
+apt-get install libxml2-dev	# libxml 2.x
+apt-get install libgnutls-dev	# GNU TLS
 
-The following are optional:
+For the Gtk+ 2.x front-end you'll need these:
 
-apt-get libsqlite3-dev 	# SQLite 3.x
-apt-get libdbus-1-dev	# D-Bus
+apt-get install libglib2.0-dev	# GLib 2.x
+apt-get install libgtk2.0-dev	# Gtk+ 2.x
+
+If you want to use the Gtk+ 1.2 front-end instead:
+
+apt-get install libglib1.2-dev	# GLib 1.2
+apt-get install libgtk1.2-dev	# Gtk+ 1.2
+
+The following packages are optional:
+
+apt-get install libsqlite3-dev 	# SQLite 3.x
+apt-get install libdbus-1-dev	# D-Bus
+
+
+2. Configure:
+=============
 
  $ ./Configure -Oders [...] && make
+
+If make fails and you notice that you forgot any of the
+required packages, install the missing packages and run
+
+ $ make clobber
+
+and repeat the Configure step.
+
+
+3. Finish:
+==========
 
 You can then run Gtk-Gnutella without installing:
 
