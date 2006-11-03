@@ -165,8 +165,8 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 
 /* HAS_POLL:
  *	This symbol, if defined, indicates that the poll routine is
- *	available to poll active file descriptors. You may safely
- *	include <poll.h> when this symbol is defined.
+ *	available to poll active file descriptors.  Please check I_POLL and
+ *	I_SYS_POLL to know which header should be included as well.
  */
 #$d_poll HAS_POLL		/**/
 
@@ -202,13 +202,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	Inclusion of <sys/resource.h> and <sys/time.h> may be necessary.
  */
 #$d_rusage HAS_GETRUSAGE		/**/
-
-/* HAS_SETLINEBUF:
- *	This symbol, if defined, indicates that the setlinebuf routine is
- *	available to change stderr or stdout from block-buffered or unbuffered
- *	to a line-buffered mode.
- */
-#$d_setlinebuf HAS_SETLINEBUF		/**/
 
 /* HAS_SIGACTION:
  *	This symbol, if defined, indicates that Vr4's sigaction() routine
