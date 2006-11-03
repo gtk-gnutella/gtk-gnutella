@@ -47,7 +47,7 @@
 #define GTA_PATCHLEVEL 3			/**< patch level or teeny version */
 #define GTA_REVISION "unstable"			/**< unstable, beta, stable */
 #define GTA_REVCHAR "u"			/**< u - unstable, b - beta, none - stable */
-#define GTA_RELEASE "2006-10-29"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2006-11-03"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -291,6 +291,14 @@ struct passwd
 #endif
 
 #include <glib.h>
+
+#if defined(USE_GLIB1) && !defined(GLIB_MAJOR_VERSION)
+#error "Install GLib 1.2 to compile Gtk-Gnutella against GLib 1.2."
+#endif
+
+#if defined(USE_GLIB2) && !defined(GLIB_MAJOR_VERSION)
+#error "Install GLib 2.x to compile Gtk-Gnutella against GLib 2.x."
+#endif
 
 #ifdef USE_LINT
 #undef G_GNUC_INTERNAL
