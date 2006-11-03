@@ -1,0 +1,33 @@
+	Supplementary Compile Instructions for Debian-based Systems
+	===========================================================
+
+Unfortunately, many people have trouble compiling Gtk-Gnutella on Linux
+distributions albeit it should be very simple. The following applies to
+Debian-based system that is also Ubuntu.
+
+You'll have to install the following packages:
+
+apt-get libglib2.0-dev	# GLib 2.x
+apt-get libgtk2.0-dev	# Gtk+ 2.x
+apt-get zlib1g-dev	# zlib
+apt-get libxml2-dev	# libxml 2.x
+apt-get libgnutls-dev	# GNU TLS
+
+The following are optional:
+
+apt-get libsqlite3-dev 	# SQLite 3.x
+apt-get libdbus-1-dev	# D-Bus
+
+ $ ./Configure -Oders [...] && make
+
+You can then run Gtk-Gnutella without installing:
+
+ $ src/gtk-gnutella
+
+To install Gtk-Gnutella just run
+
+ $ make install
+
+For further compile options and instructions, see the README file.
+
+$Id$
