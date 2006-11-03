@@ -54,7 +54,7 @@ typedef struct pool {
 	gint allocated;			/**< Amount of allocated buffers */
 	gint held;				/**< Amount of available buffers */
 	pool_alloc_t alloc;		/**< Memory allocation routine */
-	pool_free_t free;		/**< Memory release routine */
+	pool_free_t	dealloc;	/**< Memory release routine */
 } pool_t;
 
 /*
@@ -62,7 +62,7 @@ typedef struct pool {
  */
 
 pool_t *pool_create(
-	size_t size, gint max, pool_alloc_t alloc, pool_free_t free);
+	size_t size, gint max, pool_alloc_t alloc, pool_free_t dealloc);
 void pool_free(pool_t *pool);
 
 gpointer palloc(pool_t *pool);
