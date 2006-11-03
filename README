@@ -150,7 +150,7 @@ For example, a fairly typical configuration for Linux x86, Gtk+ 2.x UI:
         -D prefix=/usr \
         -D privlib=/usr/share/gtk-gnutella \
         -D cc=gcc \
-        -D ccflags='-W -Wall -Wformat=2' \
+        -D ccflags='-W -Wall -Wformat=2 -Wshadow' \
         -D optimize='-O2 -g' \
         -D gtkversion=2 \
         -D official=true
