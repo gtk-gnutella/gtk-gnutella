@@ -33,17 +33,14 @@ apt-get install libsqlite3-dev 	# SQLite 3.x
 apt-get install libdbus-1-dev	# D-Bus
 
 
-2. Configure:
-=============
+2. Build:
+=========
 
- $ ./Configure -Oders [...] && make
+Run from the top of the source tree:
 
-If make fails and you notice that you forgot any of the
-required packages, install the missing packages and run
+  $ fakeroot debian/rules binary
 
- $ make clobber
-
-and repeat the Configure step.
+and it will build the .deb package for you in the parent directory.
 
 
 3. Finish:
@@ -53,10 +50,14 @@ You can then run Gtk-Gnutella without installing:
 
  $ src/gtk-gnutella
 
-To install Gtk-Gnutella just run
+To install Gtk-Gnutella just run (version and architecture will vary):
 
- $ make install
+ $ cd ..
+ $ su
+ # dpkg --install gtk-gnutella_0.96.2-0_i386.deb
 
-For further compile options and instructions, see the README file.
+For further compile options and instructions, see the README file and
+edit the debian/rules file to change the line calling "Configure" to suit
+your taste.
 
 $Id$
