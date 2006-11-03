@@ -1182,7 +1182,7 @@ node_init(void)
 	g_assert(23 == sizeof(gnutella_header_t));
 
     node_handle_map = idtable_new(32, 32);
-	header_features_add(&xfeatures.connections, "browse",
+	header_features_add(FEATURES_CONNECTIONS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
@@ -1221,7 +1221,7 @@ node_init(void)
 	 * Signal we support flags in the size header via "sflag/0.1"
 	 */
 
-	header_features_add(&xfeatures.connections, "sflag", 0, 1);
+	header_features_add(FEATURES_CONNECTIONS, "sflag", 0, 1);
 }
 
 /**
@@ -5297,7 +5297,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				token ? "\r\n" : "",
 				start_rfc822_date);
 
-			header_features_generate(&xfeatures.connections,
+			header_features_generate(FEATURES_CONNECTIONS,
 				gnet_response, gnet_response_max, &rw);
 
 			rw += gm_snprintf(&gnet_response[rw],
@@ -6819,7 +6819,7 @@ node_init_outgoing(struct gnutella_node *n)
 				"X-Requeries: False\r\n" : ""
 		);
 
-		header_features_generate(&xfeatures.connections,
+		header_features_generate(FEATURES_CONNECTIONS,
 			n->hello.ptr, n->hello.size, &n->hello.len);
 
 		n->hello.len += gm_snprintf(&n->hello.ptr[n->hello.len],

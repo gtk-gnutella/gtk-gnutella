@@ -481,9 +481,9 @@ tls_global_init(void)
 	G_FREE_NULL(key_file);
 	G_FREE_NULL(cert_file);
 
-	header_features_add(&xfeatures.connections, f.name, f.major, f.minor);
-	header_features_add(&xfeatures.downloads, f.name, f.major, f.minor);
-	header_features_add(&xfeatures.uploads, f.name, f.major, f.minor);
+	header_features_add(FEATURES_CONNECTIONS, f.name, f.major, f.minor);
+	header_features_add(FEATURES_DOWNLOADS, f.name, f.major, f.minor);
+	header_features_add(FEATURES_UPLOADS, f.name, f.major, f.minor);
 }
 
 static ssize_t

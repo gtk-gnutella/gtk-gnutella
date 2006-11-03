@@ -4110,9 +4110,9 @@ parq_init(void)
 
 #undef bs_nop
 
-	header_features_add(&xfeatures.uploads,
+	header_features_add(FEATURES_UPLOADS,
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
-	header_features_add(&xfeatures.downloads,
+	header_features_add(FEATURES_DOWNLOADS,
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 
 	ul_all_parq_by_addr_and_name = g_hash_table_new(g_str_hash, g_str_equal);

@@ -2255,7 +2255,7 @@ upload_xfeatures_add(gchar *buf, gint *retval,
 	(void) unused_flags;
 	g_assert(length <= INT_MAX);
 
-	header_features_generate(&xfeatures.uploads, buf, length, &rw);
+	header_features_generate(FEATURES_UPLOADS, buf, length, &rw);
 
 	*retval = rw;
 }
@@ -4280,7 +4280,7 @@ upload_init(void)
 						host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
 						NULL, NULL, NULL);
     upload_handle_map = idtable_new(32, 32);
-	header_features_add(&xfeatures.uploads, "browse",
+	header_features_add(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 }
 

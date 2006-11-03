@@ -328,9 +328,8 @@ hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
 void
 hsep_init(void)
 {
-	header_features_add(&xfeatures.connections,
+	header_features_add(FEATURES_CONNECTIONS,
 		"HSEP", HSEP_VERSION_MAJOR, HSEP_VERSION_MINOR);
-	memset(hsep_global_table, 0, sizeof(hsep_global_table));
 	hsep_global_table_changed_event = event_new("hsep_global_table_changed");
  	hsep_fire_global_table_changed(tm_time());
 }

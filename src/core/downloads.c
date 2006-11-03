@@ -8479,7 +8479,7 @@ picked:
 			download_vendor_str(d) : version_string);
 
 	if (!(d->server->attrs & DLS_A_BANNING)) {
-		header_features_generate(&xfeatures.downloads,
+		header_features_generate(FEATURES_DOWNLOADS,
 			dl_tmp, sizeof(dl_tmp), &rw);
 
 		/* If we request the file by an custom URI it's most likely

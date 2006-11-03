@@ -54,7 +54,20 @@ struct header_x_feature {
 	int minor;
 };
 
-xfeatures_t xfeatures;
+struct features {
+	GList *list;
+};
+
+static struct features * 
+features_get(xfeature_t xf)
+{
+	static struct features features[NUM_FEATURES];
+	guint i;
+
+	i = (guint) xf;
+	g_return_val_if_fail(i < G_N_ELEMENTS(features), NULL);
+	return &features[i];
+}
 
 /***
  *** X-Features header parsing utilities
@@ -64,24 +77,33 @@ xfeatures_t xfeatures;
  * Removes all memory used by the header_features_add.
  */
 static void
-header_features_cleanup(struct xfeature_t *xf)
+header_features_cleanup(xfeature_t xf)
 {
-	GList *cur = g_list_first(xf->features);
+	struct features *features;
+	GList *cur;
 
-	for (/* */; cur != g_list_last(xf->features); cur = g_list_next(cur)) {
-		struct header_x_feature *feature = cur->data;
+ 	features = features_get(xf);
+	g_return_if_fail(features);
 
-		G_FREE_NULL(feature->name);
-		wfree(feature, sizeof(*feature));
+   	cur = g_list_first(features->list);
+	for (/* NOTHING */; NULL != cur; cur = g_list_next(cur)) {
+		struct header_x_feature *header = cur->data;
+
+		G_FREE_NULL(header->name);
+		wfree(header, sizeof *header);
 	}
+	g_list_free(features->list);
+	features->list = NULL;
 }
 
 void
 features_close(void)
 {
-	header_features_cleanup(&xfeatures.uploads);
-	header_features_cleanup(&xfeatures.downloads);
-	header_features_cleanup(&xfeatures.connections);
+	guint i;
+
+	for (i = 0; i < NUM_FEATURES; i++) {
+		header_features_cleanup(i);
+	}
 }
 
 /**
@@ -89,18 +111,23 @@ features_close(void)
  * header.
  */
 void
-header_features_add(struct xfeature_t *xf,
+header_features_add(xfeature_t xf,
 	const gchar *feature_name,
 	int feature_version_major,
 	int feature_version_minor)
 {
-	struct header_x_feature *feature = walloc(sizeof *feature);
+	struct header_x_feature *item;
+	struct features *features;
 
-	feature->name = g_strdup(feature_name);
-	feature->major = feature_version_major;
-	feature->minor = feature_version_minor;
+	features = features_get(xf);
+	g_return_if_fail(features);
 
-	xf->features = g_list_append(xf->features, feature);
+	item = walloc(sizeof *item);
+	item->name = g_strdup(feature_name);
+	item->major = feature_version_major;
+	item->minor = feature_version_minor;
+
+	features->list = g_list_append(features->list, item);
 }
 
 /**
@@ -114,10 +141,10 @@ header_features_add(struct xfeature_t *xf,
  * *rw is changed too *rw + bytes written
  */
 void
-header_features_generate(struct xfeature_t *xf,
-	gchar *buf, size_t len, size_t *rw)
+header_features_generate(xfeature_t xf, gchar *dst, size_t len, size_t *rw)
 {
 	static const char hdr[] = "X-Features";
+	struct features *features;
 	GList *cur;
 	gpointer fmt;
 
@@ -128,25 +155,28 @@ header_features_generate(struct xfeature_t *xf,
 	if (len - *rw < (sizeof(hdr) + sizeof(": \r\n") - 1))
 		return;
 
-	if (g_list_first(xf->features) == NULL)
+	features = features_get(xf);
+	g_return_if_fail(features);
+
+	if (g_list_first(features->list) == NULL)
 		return;
 
 	fmt = header_fmt_make(hdr, ", ", len - *rw);
 
-	for (cur = g_list_first(xf->features); cur; cur = g_list_next(cur)) {
-		gchar feature_version[50];
-		struct header_x_feature *feature = cur->data;
+	for (cur = g_list_first(features->list); cur; cur = g_list_next(cur)) {
+		struct header_x_feature *item = cur->data;
+		gchar buf[50];
 
-		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d",
-			feature->name, feature->major, feature->minor);
+		gm_snprintf(buf, sizeof buf, "%s/%d.%d",
+			item->name, item->major, item->minor);
 
-		header_fmt_append_value(fmt, feature_version);
+		header_fmt_append_value(fmt, buf);
 	}
 
 	header_fmt_end(fmt);
 
 	if ((size_t) header_fmt_length(fmt) < len - *rw) {
-		*rw += gm_snprintf(&buf[*rw], len - *rw, "%s", header_fmt_string(fmt));
+		*rw += gm_snprintf(&dst[*rw], len - *rw, "%s", header_fmt_string(fmt));
 	}
 
 	header_fmt_free(fmt);
@@ -193,7 +223,8 @@ header_get_feature(const gchar *feature_name, const header_t *header,
 	 * feature.  If we look for "bar", then we must not match on "foobar".
 	 */
 
-	for (start = buf;;) {
+	start = buf;
+	for (;;) {
 		gint pc;			/* Previous char */
 
 		buf = ascii_strcasestr(buf, feature_name);

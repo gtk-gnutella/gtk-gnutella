@@ -40,31 +40,25 @@
 
 #include "lib/header.h"		/* For header_t */
 
-struct xfeature_t {
-	GList *features;
-};
+typedef enum {
+	FEATURES_DOWNLOADS,
+	FEATURES_UPLOADS,
+	FEATURES_CONNECTIONS,
 
-typedef struct xfeatures_t {
-	struct xfeature_t uploads;
-	struct xfeature_t downloads;
-	struct xfeature_t connections;
-} xfeatures_t;
+	NUM_FEATURES
+} xfeature_t;
 
 /*
  * Public interface.
  */
 
-extern xfeatures_t xfeatures;
-
 gboolean header_get_feature(const gchar *feature_name, const header_t *header,
-	guint *feature_version_major, guint *feature_version_minor);
-void header_features_add(struct xfeature_t *xfeatures,
-	const gchar *feature_name,
-	int feature_version_major,
-	int feature_version_minor);
+		guint *feature_version_major, guint *feature_version_minor);
+void header_features_add(xfeature_t xf, const gchar *feature_name,
+		int feature_version_major, int feature_version_minor);
 void features_close(void);
-void header_features_generate(struct xfeature_t *xfeatures,
-	gchar *buf, size_t len, size_t *rw);
+void header_features_generate(xfeature_t xf,
+		gchar *buf, size_t len, size_t *rw);
 
 #endif	/* _core_features_h_ */
 
