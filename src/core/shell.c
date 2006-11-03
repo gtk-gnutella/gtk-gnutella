@@ -968,7 +968,7 @@ shell_exec_stat(gnutella_shell_t *sh)
 		gm_snprintf(buf, sizeof buf,
 			"| IPv6 Address: %-39s   |\n"
 			"|                                 Last Change: %-9s  |\n",
-			host_addr_to_string(local_ip6),
+			host_addr_to_string(listen_addr6()),
 			short_time(delta_time(now, current_ip6_stamp)));
 		shell_write(sh, buf);
 	}
