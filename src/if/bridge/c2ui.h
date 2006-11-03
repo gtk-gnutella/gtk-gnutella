@@ -55,7 +55,7 @@
 
 /* download interface functions */
 void gcu_download_enable_start_now(guint32 running_downloads,
-	guint32 max_downloads);
+	guint32 max_num_downloads);
 void gcu_gui_update_download(struct download *d, gboolean force);
 void gcu_gui_update_download_server(struct download *d);
 void gcu_gui_update_download_range(struct download *d);
