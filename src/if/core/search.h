@@ -60,6 +60,7 @@ typedef struct gnet_host_vec {
  * Result sets `status' flags.
  */
 enum {
+	 ST_LOCAL				= (1 << 16), /**< Local search result */
 	 ST_FW2FW				= (1 << 15), /**< Firewall-to-Firewall support */
 	 ST_HOSTILE				= (1 << 14), /**< From an hostile host */
 	 ST_UNREQUESTED			= (1 << 13), /**< Unrequested (OOB) result */
