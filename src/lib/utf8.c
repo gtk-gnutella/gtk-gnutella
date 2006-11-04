@@ -94,7 +94,7 @@ static void unicode_compose_init(void);
 static gboolean unicode_compose_init_passed;
 static gboolean locale_init_passed;
 
-void regression_checks(void);
+static void utf8_regression_checks(void);
 size_t utf8_decompose_nfd(const gchar *in, gchar *out, size_t size);
 size_t utf8_decompose_nfkd(const gchar *in, gchar *out, size_t size);
 size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
@@ -1571,14 +1571,12 @@ locale_init(void)
 
 	unicode_compose_init();
 
-#if 0
 	/*
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c,v 1.92 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12218 "))
 		utf8_regression_checks();
-#endif
 
 	locale_init_passed = TRUE;
 	locale_init_show_results();
@@ -5785,7 +5783,7 @@ G_STMT_START { \
 	printf(" PASSED\n"); \
 } G_STMT_END
 
-void
+static void
 utf8_regression_checks(void)
 {
 	/* unicode_compose_init() must be called before this */
