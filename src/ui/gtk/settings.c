@@ -827,7 +827,8 @@ bw_http_out_enabled_changed(property_t prop)
     gtk_widget_set_sensitive(
 		gui_dlg_prefs_lookup("checkbutton_config_bw_ul_usage_enabled"), val);
     gtk_widget_set_sensitive(
-		gui_dlg_prefs_lookup("spinbutton_config_bws_out"), val && val2);
+		gui_dlg_prefs_lookup("spinbutton_config_ul_usage_min_percentage"),
+		val && val2);
 	update_output_bw_display();
 
     return FALSE;
