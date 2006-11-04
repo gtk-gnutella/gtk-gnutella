@@ -3278,7 +3278,7 @@ socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-	g_assert(!SOCKET_USES_TLS(s));
+	g_assert(!socket_uses_tls(s));
 
 	return write(s->file_desc, buf, size);
 }
@@ -3288,7 +3288,7 @@ socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-	g_assert(!SOCKET_USES_TLS(s));
+	g_assert(!socket_uses_tls(s));
 
 	return read(s->file_desc, buf, size);
 }
@@ -3298,7 +3298,7 @@ socket_plain_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-	g_assert(!SOCKET_USES_TLS(s));
+	g_assert(!socket_uses_tls(s));
 
 	return writev(s->file_desc, iov, iovcnt);
 }
@@ -3308,7 +3308,7 @@ socket_plain_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
-	g_assert(!SOCKET_USES_TLS(s));
+	g_assert(!socket_uses_tls(s));
 
 	return readv(s->file_desc, iov, iovcnt);
 }
@@ -3323,7 +3323,7 @@ socket_plain_sendto(
 	host_addr_t ha;
 	ssize_t ret;
 
-	g_assert(!SOCKET_USES_TLS(s));
+	g_assert(!socket_uses_tls(s));
 
 	if (!host_addr_convert(to->addr, &ha, s->net)) {
 		errno = EINVAL;
@@ -3386,7 +3386,7 @@ socket_wio_link(struct gnutella_socket *s)
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 
-	if (SOCKET_USES_TLS(s)) {
+	if (socket_uses_tls(s)) {
 		tls_wio_link(&s->wio);
 	} else if (s->flags & (SOCK_F_TCP | SOCK_F_LOCAL)) {
 		s->wio.write = socket_plain_write;

@@ -10172,7 +10172,7 @@ download_get_hostname(const struct download *d)
 	if (d->socket) {
 		addr = d->socket->addr;
 		port = d->socket->port;
-		encrypted = 0 != SOCKET_USES_TLS(d->socket);
+		encrypted = 0 != socket_uses_tls(d->socket);
 	} else {
 		addr = download_addr(d);
 		port = download_port(d);

@@ -122,7 +122,7 @@ static void
 tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 {
 	g_assert(s);
-	g_assert(SOCKET_WITH_TLS(s));	/* No USES yet, may not have handshaked */
+	g_assert(socket_with_tls(s));	/* No USES yet, may not have handshaked */
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
 	g_assert(0 != s->gdk_tag);
 
@@ -499,7 +499,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 	g_assert(s != NULL);
 	g_assert(buf != NULL);
 
-	g_assert(SOCKET_USES_TLS(s));
+	g_assert(socket_uses_tls(s));
 
 	if (0 != s->tls.snarf) {
 		p = NULL;
@@ -569,7 +569,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 	g_assert(s != NULL);
 	g_assert(buf != NULL);
 
-	g_assert(SOCKET_USES_TLS(s));
+	g_assert(socket_uses_tls(s));
 
 	ret = gnutls_record_recv(tls_socket_get_session(s), buf, size);
 	if (ret < 0) {
@@ -613,7 +613,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 	ssize_t ret, written;
 	int i;
 
-	g_assert(SOCKET_USES_TLS(s));
+	g_assert(socket_uses_tls(s));
 	g_assert(iovcnt > 0);
 
 	if (0 != s->tls.snarf) {
@@ -717,7 +717,7 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 	ssize_t ret;
 	int i;
 
-	g_assert(SOCKET_USES_TLS(s));
+	g_assert(socket_uses_tls(s));
 	g_assert(iovcnt > 0);
 
 	ret = 0;	/* Shut the compiler: iovcnt could still be 0 */

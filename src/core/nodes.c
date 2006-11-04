@@ -5981,7 +5981,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		 *		--RAM, 17/01/2003
 		 */
 
-		if (SOCKET_USES_TLS(s))
+		if (socket_uses_tls(s))
 			n->flags |= NODE_F_TLS;
 
 		n->flags |= NODE_F_INCOMING;
@@ -6832,7 +6832,7 @@ node_init_outgoing(struct gnutella_node *n)
 		 * initial HELLO.
 		 */
 
-		if (SOCKET_USES_TLS(n->socket))
+		if (socket_uses_tls(n->socket))
 			n->flags |= NODE_F_TLS;
 
 	} else {

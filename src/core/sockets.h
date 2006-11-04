@@ -165,23 +165,31 @@ extern struct gnutella_socket *s_local_listen;
  * Accessors.
  */
 
-#ifdef HAS_GNUTLS
 static inline gboolean
-SOCKET_WITH_TLS(struct gnutella_socket *s)
+socket_with_tls(struct gnutella_socket *s)
+#ifdef HAS_GNUTLS
 {
 	return s->tls.enabled && s->tls.stage >= SOCK_TLS_INITIALIZED;
 }
+#else
+{
+	(void) s;
+	return FALSE;
+}
+#endif	/* HAS_GNUTLS */
 
 static inline gboolean
-SOCKET_USES_TLS(struct gnutella_socket *s)
+socket_uses_tls(struct gnutella_socket *s)
+#ifdef HAS_GNUTLS
 {
 	return s->tls.enabled && s->tls.stage >= SOCK_TLS_ESTABLISHED;
 }
 #else
-#define SOCKET_WITH_TLS(s) FALSE
-#define SOCKET_USES_TLS(s) FALSE
+{
+	(void) s;
+	return FALSE;
+}
 #endif	/* HAS_GNUTLS */
-
 
 static inline gboolean
 sock_is_corked(const struct gnutella_socket *s)

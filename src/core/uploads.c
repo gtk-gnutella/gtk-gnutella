@@ -256,7 +256,7 @@ static inline gboolean
 use_sendfile(gnutella_upload_t *u)
 {
 #if defined(USE_MMAP) || defined(HAS_SENDFILE)
-	return !sendfile_failed && !SOCKET_USES_TLS(u->socket);
+	return !sendfile_failed && !socket_uses_tls(u->socket);
 #else
 	(void) u;
 	return FALSE;
@@ -4345,7 +4345,7 @@ upload_get_info(gnet_upload_t uh)
     info->country       = u->country;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
-	info->encrypted     = u->socket && SOCKET_USES_TLS(u->socket);
+	info->encrypted     = u->socket && socket_uses_tls(u->socket);
 	info->partial       = u->file_info != NULL;
 	info->gnet_addr     = u->gnet_addr;
 	info->gnet_port     = u->gnet_port;
