@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Nov  3 05:06:40 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Nov  4 03:10:46 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -369,6 +369,7 @@ enablenls=''
 gccosandvers=''
 gccversion=''
 glade=''
+d_glib=''
 glibcflags=''
 glibconfig=''
 glibldflags=''
@@ -380,6 +381,7 @@ d_gnutls=''
 gnutlscflags=''
 gnutlsconfig=''
 gnutlsldflags=''
+d_gtk=''
 gtkcflags=''
 gtkconfig=''
 gtkldflags=''
@@ -2611,7 +2613,7 @@ case "$gtkversion" in
 esac
 case "$ver" in
 2)
-	glibversion=2; glibpackage=glib-2.0
+	glibversion=2; glibpackage="glib-2.0 gobject-2.0"
 	d_useglib2="$define"; d_useglib1="$undef";;
 *)
 	glibversion=1; glibpackage=glib
@@ -6685,6 +6687,7 @@ echo "Compiling for GTK $gtkversion: we'll use '$glade'." >&4
 : how can we find information about glib?
 echo " "
 echo "Checking how we can gather information about glib..." >&4
+d_glib="$undef"
 if pkg-config $glibpackage --cflags >/dev/null 2>&1; then
 	glibconfig="pkg-config $glibpackage"
 	modver=--modversion
@@ -6719,15 +6722,30 @@ EOC
 esac
 $cat >>try.c <<EOC
 #endif
+
+#if $glibversion >= 2
+#include <glib-object.h>
+#endif
+
 int main(void)
 {
-  (void) g_malloc(23);
+  gpointer p;
+
+#if $glibversion >= 2
+  p = g_object_new(G_TYPE_OBJECT, "blah", (void *) 0);
+#else
+  p = g_malloc(23);
+#endif
+
+  if (!p)
+    return 1;
   return 0;
 }
 EOC
 
-if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags  >/dev/null 2>&1;
+if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags >/dev/null 2>&1;
 then
+  d_glib="$define"
   echo "We'll be using glib version $version."
 else 
   ./warn "Cannot compile against glib version '$version'"
@@ -6735,6 +6753,7 @@ fi
 $rm -f try try.c
 
 : how can we find information about GTK?
+d_gtk="$undef"
 case "$d_headless" in
 "$define")
 	gtkcflags="$glibcflags"
@@ -6820,6 +6839,38 @@ fi
 if $allok; then
 	echo "Good, all the cc and ld flags from glib are included in GTK+ flags."
 fi
+;;
+esac
+
+case "$d_headless" in
+"$undef") echo "Checking whether Gtk+ can be compiled against..."
+$cat >try.c <<EOC
+#include <stdlib.h>
+#include <glib.h>
+#include <gtk/gtk.h>
+int main(void)
+{
+  GtkWidget *window;
+  gpointer p;
+
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  if (!window)
+    return 1;
+  p = g_malloc(23);
+  if (!p)
+    return 1;
+  return 0;
+}
+EOC
+
+if $cc -o try try.c $ccflags $ldflags $gtkcflags $gtkldflags  >/dev/null 2>&1;
+then
+  d_gtk="$define"
+  echo "We'll be using Gtk+ version $version."
+else 
+  ./warn "Cannot compile against Gtk+ version '$version'"
+fi
+$rm -f try try.c
 ;;
 esac
 
@@ -8034,6 +8085,7 @@ esac
 : end of configuration questions
 echo " "
 echo "End of configuration questions."
+
 glib_used=glib-${glibversion}.x
 frontend="GTK1"
 case "$gtkversion" in
@@ -8041,12 +8093,6 @@ case "$gtkversion" in
 esac
 case "$d_headless" in
 "$define") frontend="none";;
-esac
-case "$d_libxml2" in
-"$undef")
-	echo 'ERROR: You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella.' >&4
-	exit 1
-	;;
 esac
 dbus=no
 case "$d_dbus" in
@@ -8063,10 +8109,7 @@ case " $libs " in
 	esac
 	;;
 esac
-if [ "$zlib" != yes ]; then
-	echo 'ERROR: You need zlib (http://www.zlib.net/) to compile Gtk-Gnutella.' >&4
-	exit 1
-fi
+
 gnutls=no
 case "$d_gnutls" in
 "$define") gnutls=yes;;
@@ -8094,12 +8137,46 @@ GUI front-end                      : $frontend
 GNU TLS support                    : $gnutls
 IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
-Remote Shell Interface (deprecated): $remote
 Fast assertions                    : $fastassert
 DBus support (experimental)        : $dbus
 SQLite (experimental)              : $sqlite
+Remote Shell Interface (deprecated): $remote
 -------------------------------------------------
 EOM
+
+bailout=no
+
+case "$d_glib" in
+"$undef")
+	echo 'ERROR: Cannot compile against GLib.' >&4
+	bailout=yes
+	;;
+esac
+
+case "$d_libxml2" in
+"$undef")
+	echo 'ERROR: You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella.' >&4
+	bailout=yes
+	;;
+esac
+
+if [ "$zlib" != yes ]; then
+	echo 'ERROR: You need zlib (http://www.zlib.net/) to compile Gtk-Gnutella.' >&4
+	bailout=yes
+fi
+
+if [ "$frontend" != none ]; then
+case "$d_gtk" in
+"$undef")
+	echo 'ERROR: Cannot compile against Gtk+.' >&4
+	bailout=yes
+	;;
+esac
+fi
+
+if [ "$bailout" != no ]; then
+	exit 1
+fi
 
 : back to where it started
 if test -d ../UU; then
@@ -8237,8 +8314,10 @@ d_getinvent='$d_getinvent'
 d_gettblsz='$d_gettblsz'
 d_gettext='$d_gettext'
 d_getuid='$d_getuid'
+d_glib='$d_glib'
 d_gnulibc='$d_gnulibc'
 d_gnutls='$d_gnutls'
+d_gtk='$d_gtk'
 d_headless='$d_headless'
 d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
