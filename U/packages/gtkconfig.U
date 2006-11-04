@@ -2,8 +2,8 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:gtkconfig gtkcflags gtkldflags: gtkversion gtkpackage awk \
-	glibcflags glibldflags Warn d_headless
+?MAKE:gtkconfig gtkcflags gtkldflags d_gtk: gtkversion gtkpackage awk \
+	glibcflags glibldflags Warn d_headless cat rm cc ccflags ldflags
 ?MAKE:	-pick add $@ %<
 ?S:gtkconfig:
 ?S:	This variable holds the command to use to grab information about GTK.
@@ -15,8 +15,12 @@
 ?S:gtkldflags:
 ?S:	This variable holds the linker flags required to link against GTK.
 ?S:.
+?S:d_gtk:
+?S:	This variable is if compiling against Gtk+ works.
+?S:.
 ?T:modver version vint flag missing allok
 : how can we find information about GTK?
+d_gtk="$undef"
 case "$d_headless" in
 "$define")
 ?X: Since there is no GUI, simply include the glib flags
@@ -110,6 +114,38 @@ if $allok; then
 	echo "Good, all the cc and ld flags from glib are included in GTK+ flags."
 fi
 ?X: Remember, indentation wrong on purpose
+;;
+esac
+
+case "$d_headless" in
+"$undef") echo "Checking whether Gtk+ can be compiled against..."
+$cat >try.c <<EOC
+#include <stdlib.h>
+#include <glib.h>
+#include <gtk/gtk.h>
+int main(void)
+{
+  GtkWidget *window;
+  gpointer p;
+
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  if (!window)
+    return 1;
+  p = g_malloc(23);
+  if (!p)
+    return 1;
+  return 0;
+}
+EOC
+
+if $cc -o try try.c $ccflags $ldflags $gtkcflags $gtkldflags  >/dev/null 2>&1;
+then
+  d_gtk="$define"
+  echo "We'll be using Gtk+ version $version."
+else 
+  ./warn "Cannot compile against Gtk+ version '$version'"
+fi
+$rm -f try try.c
 ;;
 esac
 
