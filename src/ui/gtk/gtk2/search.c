@@ -158,15 +158,19 @@ static void
 cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
 	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
 {
-	const gchar *text = NULL;
 	const struct result_data *data;
+    const struct results_set *rs;
+	const gchar *text;
 	enum c_sr_columns id;
 
 	if (!gtk_tree_view_column_get_visible(column))
 		return;
 
+	text = NULL;	/* default to nothing */
 	id = GPOINTER_TO_UINT(udata);
 	data = get_result_data(model, iter);
+    rs = data->record->results_set;
+
 	switch (id) {
 	case c_sr_filename:
 		text = data->record->utf8_name;
@@ -187,11 +191,8 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = data->count ? uint32_to_string(1 + data->count) : NULL;
 		break;
 	case c_sr_loc:
-		{
-			gint cc = data->record->results_set->country;
-			if (-1 != cc)
-				text = iso3166_country_cc(cc);
-		}
+		if (-1 != rs->country)
+			text = iso3166_country_cc(rs->country);
 		break;
 	case c_sr_charset:
 		text = data->record->charset;
@@ -200,18 +201,21 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = search_gui_get_route(data->record);
 		break;
 	case c_sr_protocol:
-		text = ST_UDP & data->record->results_set->status ? _("UDP") : _("TCP");
+		if (!(ST_LOCAL & rs->status))
+			text = ST_UDP & rs->status ? _("UDP") : _("TCP");
 		break;
 	case c_sr_hops:
-		text = uint32_to_string(data->record->results_set->hops);
+		if (!(ST_LOCAL & rs->status))
+			text = uint32_to_string(rs->hops);
 		break;
 	case c_sr_ttl:
-		text = uint32_to_string(data->record->results_set->ttl);
+		if (!(ST_LOCAL & rs->status))
+			text = uint32_to_string(rs->ttl);
 		break;
 	case c_sr_spam:
 		if (SR_SPAM & data->record->flags) {
 			text = "S";	/* Spam */
-		} else if (ST_SPAM & data->record->results_set->status) {
+		} else if (ST_SPAM & rs->status) {
 			text = "s";	/* maybe spam */
 		}
 		break;
@@ -225,7 +229,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		}
 		break;
 	case c_sr_hostile:
-		if (ST_HOSTILE & data->record->results_set->status) {
+		if (ST_HOSTILE & rs->status) {
 			text = "H";
 		}
 		break;

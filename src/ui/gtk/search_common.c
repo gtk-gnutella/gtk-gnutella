@@ -1051,11 +1051,11 @@ search_gui_retrieve_searches(void)
 /**
  * @return a string showing the route information for the given
  *         result record. The return string uses a static buffer.
+ * @note   If the result is from a local search, NULL is returned.
  */
 const gchar *
 search_gui_get_route(const record_t *rc)
 {
-	static gchar addr_buf[128];
 	const results_set_t *rs;
 	
 	g_assert(rc);
@@ -1064,9 +1064,14 @@ search_gui_get_route(const record_t *rc)
 	
 	rs = rc->results_set;
 	g_assert(rs);
-	
-	host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
-	return addr_buf;
+
+	if (ST_LOCAL & rs->status) {
+		return NULL;
+	} else {
+		static gchar addr_buf[128];
+		host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
+		return addr_buf;
+	}
 }
 
 /**

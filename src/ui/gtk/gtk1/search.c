@@ -1230,20 +1230,21 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 				text = iso3166_country_cc(rs->country);
 				break;
 	 		case c_sr_route:
-				text = search_gui_get_route(rc);
+				text = EMPTY_STRING(search_gui_get_route(rc));
 				break;
 			case c_sr_protocol:
-				text = ST_UDP & rs->status ? _("UDP") : _("TCP");
+				if (!(ST_LOCAL & rs->status))
+					text = ST_UDP & rs->status ? _("UDP") : _("TCP");
 				break;
 			case c_sr_hops:
-				{
+				if (!(ST_LOCAL & rs->status)) {
 					static gchar buf[UINT32_DEC_BUFLEN];
 					uint32_to_string_buf(rs->hops, buf, sizeof buf);
 					text = buf;
 				}
 				break;
 			case c_sr_ttl:
-				{
+				if (!(ST_LOCAL & rs->status)) {
 					static gchar buf[UINT32_DEC_BUFLEN];
 					uint32_to_string_buf(rs->ttl, buf, sizeof buf);
 					text = buf;
