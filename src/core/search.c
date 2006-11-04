@@ -3765,7 +3765,7 @@ search_locally(gnet_search_t sh, const gchar *query)
 	rs->country = -1;
 	rs->guid = atom_guid_get(servent_guid);
 	poke_be32(&rs->vcode.be32, T_GTKG);
-    rs->status |= ST_KNOWN_VENDOR;
+    rs->status |= ST_LOCAL | ST_KNOWN_VENDOR;
 
 	if (sf) {
 		search_add_local_file(rs, sf, alt_loc);
