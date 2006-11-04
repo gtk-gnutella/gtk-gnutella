@@ -2,12 +2,12 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:glibconfig glibcflags glibldflags: glibpackage cc ccflags ldflags \
-	cat rm gtkversion Warn d_headless
+?MAKE:glibconfig glibcflags glibldflags d_glib: glibpackage cc ccflags \
+	ldflags cat rm gtkversion Warn d_headless glibversion
 ?MAKE:	-pick add $@ %<
 ?S:glibconfig:
 ?S:	This variable holds the command to use to grab information about glib.
-?S: Typically something like "pkg-config glib+" or "glib-config".
+?S: Typically something like "pkg-config glib" or "glib-config".
 ?S:.
 ?S:glibcflags:
 ?S:	This variable holds the compiler flags required to compile with glib.
@@ -15,10 +15,14 @@
 ?S:glibldflags:
 ?S:	This variable holds the linker flags required to link against glib.
 ?S:.
+?S:d_glib:
+?S:	This variable is set if compiling against GLib works.
+?S:.
 ?T:modver version
 : how can we find information about glib?
 echo " "
 echo "Checking how we can gather information about glib..." >&4
+d_glib="$undef"
 if pkg-config $glibpackage --cflags >/dev/null 2>&1; then
 	glibconfig="pkg-config $glibpackage"
 	modver=--modversion
@@ -56,15 +60,30 @@ EOC
 esac
 $cat >>try.c <<EOC
 #endif
+
+#if $glibversion >= 2
+#include <glib-object.h>
+#endif
+
 int main(void)
 {
-  (void) g_malloc(23);
+  gpointer p;
+
+#if $glibversion >= 2
+  p = g_object_new(G_TYPE_OBJECT, "blah", (void *) 0);
+#else
+  p = g_malloc(23);
+#endif
+
+  if (!p)
+    return 1;
   return 0;
 }
 EOC
 
-if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags  >/dev/null 2>&1;
+if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags >/dev/null 2>&1;
 then
+  d_glib="$define"
   echo "We'll be using glib version $version."
 else 
   ./warn "Cannot compile against glib version '$version'"
