@@ -563,6 +563,17 @@ search_free_record(gnet_record_t *rc)
 	zfree(rc_zone, rc);
 }
 
+static gnet_results_set_t *
+search_new_r_set(void)
+{
+	static const gnet_results_set_t zero_rs;
+	gnet_results_set_t *rs;
+   
+	rs = zalloc(rs_zone);
+	*rs = zero_rs;
+	return rs;
+}
+
 /**
  * Free one results_set.
  */
@@ -917,15 +928,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	if (!validate_only)
 		info = g_string_sized_new(80);
 
-	rs = zalloc(rs_zone);
+	rs = search_new_r_set();
 
-	rs->vcode.be32 = 0;
-	rs->records   = NULL;
-	rs->guid      = NULL;
-	rs->version   = NULL;
-    rs->status    = 0;
-	rs->proxies   = NULL;
-	rs->hostname  = NULL;
 	rs->country   = -1;
 	rs->hops	  = gnutella_header_get_hops(&n->header);
 	rs->ttl		  = gnutella_header_get_ttl(&n->header);
@@ -3697,7 +3701,6 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
 gboolean
 search_locally(gnet_search_t sh, const gchar *query)
 {
-	static const gnet_results_set_t zero_rs;
 	gnet_results_set_t *rs;
     search_ctrl_t *sch;
 	shared_file_t *sf;
@@ -3740,8 +3743,7 @@ search_locally(gnet_search_t sh, const gchar *query)
 		}
 	}
 
-	rs = zalloc(rs_zone);
-	*rs = zero_rs;
+	rs = search_new_r_set();
 
 	rs->addr = listen_addr();
 	if (is_host_addr(rs->addr)) {
