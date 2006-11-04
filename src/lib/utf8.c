@@ -905,24 +905,25 @@ utf8_is_valid_string(const gchar *src)
 }
 
 /**
- * @return amount of UTF-8 chars when first `len' bytes of the given string
- * `s' form valid a UTF-8 string, 0 meaning the string is not valid UTF-8.
- *
- * @note
- * If `len' is 0, the string must be NUL-terminated.
+ * @return	TRUE if the first `len' bytes of the given string
+ *			`s' form valid a UTF-8 string, FALSE otherwise.
  */
 
 gboolean
 utf8_is_valid_data(const gchar *src, size_t len)
 {
-	const gchar *s;
-	size_t clen = 0;
+	g_assert(src);
 
-	for (s = src; (clen = utf8_skip((guchar) *s)) >= len; s += clen)
-		if (0 == utf8_char_len(s))
-			return FALSE;
+	while (len > 0) {
+		size_t clen;
 
-	return TRUE;
+		clen = utf8_skip(*src);
+		if (clen > len || 0 == utf8_char_len(src))
+			break;
+		len -= clen;
+		src += clen;
+	}
+	return 0 == len;
 }
 
 size_t
