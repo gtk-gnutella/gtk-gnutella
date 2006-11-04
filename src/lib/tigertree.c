@@ -94,7 +94,7 @@ tt_init(TT_CONTEXT *ctx)
   ctx->leaf[0] = 0; /* flag for leaf  calculation -- never changed */
   ctx->node[0] = 1; /* flag for inner node calculation -- never changed */
   ctx->block = ctx->leaf + 1 ; /* working area for blocks */
-  ctx->index = 0;   /* partial block pointer/block length */
+  ctx->idx = 0;   /* partial block pointer/block length */
   ctx->top = ctx->nodes;
 }
 
@@ -115,7 +115,7 @@ tt_block(TT_CONTEXT *ctx)
 {
   guint64 b;
 
-  tiger(ctx->leaf, ctx->index + 1, ctx->top);
+  tiger(ctx->leaf, ctx->idx + 1, ctx->top);
   ctx->top += TIGERSIZE;
   ++ctx->count;
   b = ctx->count;
@@ -130,15 +130,15 @@ tt_update(TT_CONTEXT *ctx, gconstpointer data, size_t len)
 {
   const guint8 *buffer = data;
 
-  if (ctx->index) { /* Try to fill partial block */
- 	unsigned left = BLOCKSIZE - ctx->index;
+  if (ctx->idx) { /* Try to fill partial block */
+ 	unsigned left = BLOCKSIZE - ctx->idx;
   	if (len < left) {
-		memmove(ctx->block + ctx->index, buffer, len);
-		ctx->index += len;
+		memmove(ctx->block + ctx->idx, buffer, len);
+		ctx->idx += len;
 		return; /* Finished */
 	} else {
-		memmove(ctx->block + ctx->index, buffer, left);
-		ctx->index = BLOCKSIZE;
+		memmove(ctx->block + ctx->idx, buffer, left);
+		ctx->idx = BLOCKSIZE;
 		tt_block(ctx);
 		buffer += left;
 		len -= left;
@@ -147,12 +147,12 @@ tt_update(TT_CONTEXT *ctx, gconstpointer data, size_t len)
 
   while (len >= BLOCKSIZE) {
 	memmove(ctx->block, buffer, BLOCKSIZE);
-	ctx->index = BLOCKSIZE;
+	ctx->idx = BLOCKSIZE;
 	tt_block(ctx);
 	buffer += BLOCKSIZE;
 	len -= BLOCKSIZE;
   }
-  ctx->index = len;
+  ctx->idx = len;
   if (0 != len) {
 	/* Buffer leftovers */
 	memmove(ctx->block, buffer, len);
@@ -163,9 +163,9 @@ tt_update(TT_CONTEXT *ctx, gconstpointer data, size_t len)
 static void
 tt_final(TT_CONTEXT *ctx)
 {
-  /* do last partial block, unless index is 1 (empty leaf) */
+  /* do last partial block, unless idx is 1 (empty leaf) */
   /* AND we're past the first block */
-  if (ctx->index > 0 || ctx->top == ctx->nodes) {
+  if (ctx->idx > 0 || ctx->top == ctx->nodes) {
     tt_block(ctx);
   }
 }

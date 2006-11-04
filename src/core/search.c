@@ -1080,7 +1080,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		if (!validate_only) {
 			rc = search_record_new();
 
-			rc->index = idx;
+			rc->file_index = idx;
 			rc->size  = size;
 			rc->name  = atom_str_get(fname);
 		}
@@ -2954,9 +2954,9 @@ search_check_results_set(gnet_results_set_t *rs)
 			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
 			flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 			
-			download_auto_new(rc->name, rc->size, rc->index, rs->addr, rs->port,
-				rs->guid, rs->hostname, rc->sha1, rs->stamp, TRUE, fi,
-				rs->proxies, flags);
+			download_auto_new(rc->name, rc->size, rc->file_index,
+				rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
+				rs->stamp, TRUE, fi, rs->proxies, flags);
 
 
 			search_free_proxies(rs);
@@ -3679,7 +3679,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
 	g_return_if_fail(SHARE_REBUILDING != sf);
 
 	rc = search_record_new();
-	rc->index = shared_file_index(sf);
+	rc->file_index = shared_file_index(sf);
 	rc->size  = shared_file_size(sf);
 	rc->name  = atom_str_get(shared_file_name_nfc(sf));
 	rc->path  = atom_str_get(shared_file_path(sf));

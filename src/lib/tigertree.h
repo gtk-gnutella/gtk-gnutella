@@ -77,7 +77,7 @@ typedef struct tt_context {
   guchar leaf[1+BLOCKSIZE]; /* leaf in progress */
   guchar *block;            /* leaf data */
   guchar node[1+NODESIZE]; /* node scratch space */
-  gint index;                      /* index into block */
+  gint idx;                      /* index into block */
   guchar *top;             /* top (next empty) stack slot */
   guchar nodes[TTH_STACKSIZE]; /* stack of interim node values */
 } TT_CONTEXT;

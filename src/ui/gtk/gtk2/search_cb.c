@@ -650,7 +650,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	gtk_entry_printf(
 			GTK_ENTRY(gui_main_window_lookup("entry_result_info_index")),
-			"%lu", (gulong) rc->index);
+			"%lu", (gulong) rc->file_index);
 
 	{
 		const gchar *query = rc->results_set->query;

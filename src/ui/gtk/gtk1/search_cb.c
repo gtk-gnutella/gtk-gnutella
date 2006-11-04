@@ -269,7 +269,7 @@ search_gui_set_details(const record_t *rc)
 			break;
 
 		case info_index:
-			gtk_entry_printf(e, "%lu", (gulong) rc->index);
+			gtk_entry_printf(e, "%lu", (gulong) rc->file_index);
 			break;
 
 		case info_tag:

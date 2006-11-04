@@ -209,7 +209,7 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 			ctx->file->file_name, tth_base32(&cur_hash));
 
 		g_message("  TT blocks processed: %s, index: %d",
-			uint64_to_string(ctx->tt_ctx->count), ctx->tt_ctx->index);
+			uint64_to_string(ctx->tt_ctx->count), ctx->tt_ctx->idx);
 
 		hashtree_finish(ctx->tt_node);
 

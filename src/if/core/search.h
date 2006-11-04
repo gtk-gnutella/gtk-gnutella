@@ -138,13 +138,13 @@ enum {
  */
 typedef struct gnet_record {
 	gchar  *name;				/**< File name */
-	filesize_t size;			/**< Size of file, in bytes */
-	guint32 index;				/**< Index for GET command */
 	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
 	gchar  *tag;				/**< Optional tag data string (atom) */
 	gchar  *xml;				/**< Optional XML data string (atom) */
 	gchar  *path;				/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
+	filesize_t size;			/**< Size of file, in bytes */
+	guint32 file_index;			/**< Index for GET command */
     flag_t  flags;
 } gnet_record_t;
 

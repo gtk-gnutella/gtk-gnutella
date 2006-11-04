@@ -1650,7 +1650,7 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 		flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 		flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 
-		if (guc_download_new(rc->name, rc->size, rc->index,
+		if (guc_download_new(rc->name, rc->size, rc->file_index,
 				rs->addr, rs->port, rs->guid, rs->hostname,
 				rc->sha1, rs->stamp, NULL, rs->proxies, flags)
 		) {

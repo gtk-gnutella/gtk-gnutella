@@ -67,9 +67,9 @@ typedef struct upload {
 	gint bsize;
 	gint buf_size;
 
-	guint index;
 	gchar *name;
 	filesize_t file_size;
+	guint file_index;
 
 	time_t start_date;
 	time_t last_update;

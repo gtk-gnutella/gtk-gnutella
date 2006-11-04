@@ -726,18 +726,18 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 	 * XXX change it.  We have a new route anyway, since we just got a match!
 	 */
 
-	if (rc->index != old.rc->index) {
+	if (rc->file_index != old.rc->file_index) {
 		if (gui_debug)
 			g_warning("Index changed from %u to %u at %s for %s",
-				old.rc->index, rc->index, guid_hex_str(rc->results_set->guid),
-				rc->name);
+				old.rc->file_index, rc->file_index,
+				guid_hex_str(rc->results_set->guid), rc->name);
 		guc_download_index_changed(
 			rc->results_set->addr,		/* This is for optimizing lookups */
 			rc->results_set->port,
 			rc->results_set->guid,		/* This is for formal identification */
-			old.rc->index,
-			rc->index);
-		old.rc->index = rc->index;
+			old.rc->file_index,
+			rc->file_index);
+		old.rc->file_index = rc->file_index;
 	}
 
 	return TRUE;		/* yes, it's a duplicate */
@@ -809,7 +809,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->results_set = rs;
 
     rc->size = r->size;
-    rc->index = r->index;
+    rc->file_index = r->file_index;
 	if (r->sha1) {
     	rc->sha1 = atom_sha1_get(r->sha1);
 	}
@@ -1246,7 +1246,7 @@ search_matched(search_t *sch, results_set_t *rs)
 				!is_hostile &&
 				FILTER_PROP_STATE_DO == filter_download
 		   ) {
-				guc_download_auto_new(rc->name, rc->size, rc->index,
+				guc_download_auto_new(rc->name, rc->size, rc->file_index,
 						rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
 						rs->stamp, TRUE, NULL, rs->proxies, flags);
 

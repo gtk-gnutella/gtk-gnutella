@@ -102,14 +102,14 @@ typedef struct record {
 	gchar  *ext;				/**< File extension (atom) */
 	gchar  *utf8_name;			/**< Filename converted to UTF-8 (atom) */
 	const gchar *charset;		/**< Detected charset of name (static const) */
-	filesize_t size;			/**< Size of file, in bytes */
-	guint32 index;				/**< Index for GET command */
 	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
 	gchar  *xml;				/**< Optional XML data string (atom) */
 	gchar  *tag;				/**< Optional tag data string (atom) */
 	gchar  *info;				/**< Short version of tag (atom) */
 	gchar  *path;				/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
+	filesize_t size;			/**< Size of file, in bytes */
+	guint32 file_index;			/**< Index for GET command */
     flag_t  flags;              /**< same flags as in gnet_record_t */
 } record_t;
 

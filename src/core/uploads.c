@@ -508,7 +508,7 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 	}
 
 	u = upload_create(s, TRUE);
-	u->index = file_index;
+	u->file_index = file_index;
 	u->name = atom_str_get(file_name);
 
 	if (banning) {
@@ -947,7 +947,7 @@ send_upload_error_v(
 			}
 
 			gm_snprintf(index_href, sizeof index_href,
-				"/get/%lu/", (gulong) u->index);
+				"/get/%lu/", (gulong) u->file_index);
 			gm_snprintf(buf, sizeof buf,
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
@@ -1650,7 +1650,7 @@ upload_connect_conf(gnutella_upload_t *u)
 	 */
 
 	rw = gm_snprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
-			(gulong) u->index, guid_hex_str(servent_guid));
+			(gulong) u->file_index, guid_hex_str(servent_guid));
 
 	s = u->socket;
 	sent = bws_write(bws.out, &s->wio, giv, rw);
@@ -3112,9 +3112,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *		--RAM, 31/12/2001
 		 */
 
-		if (u->push && idx != u->index && upload_debug)
+		if (u->push && idx != u->file_index && upload_debug)
 			g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
-				host_addr_to_string(u->addr), u->index, u->name, idx,
+				host_addr_to_string(u->addr), u->file_index, u->name, idx,
 				shared_file_name_nfc(reqfile));
 
 		/*
@@ -3124,7 +3124,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *		--Richard, 20/11/2002
 		 */
 
-		u->index = idx;
+		u->file_index = idx;
 		/* Identify file for follow-up reqs */
 		if (!u->sha1 && sha1)
 			u->sha1 = atom_sha1_get(sha1);
@@ -3317,12 +3317,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (
 		is_followup &&
-		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && idx != u->index
+		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && idx != u->file_index
 	) {
 		if (upload_debug) g_warning(
 			"host %s sent initial request for %u (%s), now requesting %u (%s)",
 			host_addr_to_string(s->addr),
-			u->index, u->name, idx, shared_file_name_nfc(reqfile));
+			u->file_index, u->name, idx, shared_file_name_nfc(reqfile));
 		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
 		return;
 	}
@@ -3413,7 +3413,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				continue;
 			if (
 				host_addr_equal(up->socket->addr, s->addr) && (
-					(up->index != URN_INDEX && up->index == idx) ||
+					(up->file_index != URN_INDEX && up->file_index == idx) ||
 					(u->sha1 && up->sha1 == u->sha1)
 				)
 			) {
@@ -3662,7 +3662,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			if (upload_debug) g_warning(
 				"host %s (%s) requesting more than there is to %u (%s)",
 				host_addr_to_string(s->addr), upload_vendor_str(u),
-				u->index, u->name);
+				u->file_index, u->name);
 			upload_error_remove(u, NULL, 400, "Requesting Too Much");
 			return;
 		}
