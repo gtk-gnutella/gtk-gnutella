@@ -187,7 +187,11 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = data->count ? uint32_to_string(1 + data->count) : NULL;
 		break;
 	case c_sr_loc:
-		text = iso3166_country_cc(data->record->results_set->country);
+		{
+			gint cc = data->record->results_set->country;
+			if (-1 != cc)
+				text = iso3166_country_cc(cc);
+		}
 		break;
 	case c_sr_charset:
 		text = data->record->charset;
