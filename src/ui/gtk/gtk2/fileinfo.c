@@ -939,6 +939,10 @@ fi_gui_update_display(time_t unused_now)
 	(void) unused_now;
 
 	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
+	g_object_thaw_notify(G_OBJECT(store_fileinfo));
+	g_object_thaw_notify(G_OBJECT(treeview_downloads));
+	g_object_freeze_notify(G_OBJECT(treeview_downloads));
+	g_object_freeze_notify(G_OBJECT(store_fileinfo));
 }
 
 void
@@ -981,6 +985,9 @@ fi_gui_init(void)
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(treeview_downloads),
 		GTK_SELECTION_MULTIPLE);
 
+	g_object_freeze_notify(G_OBJECT(treeview_downloads));
+	g_object_freeze_notify(G_OBJECT(store_fileinfo));
+
 	g_signal_connect(GTK_OBJECT(treeview_downloads), "cursor-changed",
         G_CALLBACK(on_treeview_downloads_cursor_changed), NULL);
 	g_signal_connect(GTK_OBJECT(treeview_downloads), "button-press-event",
@@ -998,8 +1005,12 @@ fi_gui_init(void)
 			G_CALLBACK(on_treeview_downloads_column_clicked), NULL);
 	}
 
+#if 0
+	/* Don't try this with a few thousands downloads */
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store_fileinfo),
 		c_fi_status, GTK_SORT_DESCENDING);
+#endif
+
 	tree_view_restore_widths(treeview_downloads, PROP_FILE_INFO_COL_WIDTHS);
 
 	store_aliases = gtk_list_store_new(1, G_TYPE_STRING);
