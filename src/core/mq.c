@@ -115,6 +115,7 @@ static void mq_add_linkable(mqueue_t *q, GList *l)
 		if (owner != q)
 			g_warning("BUG: will make linkable 0x%lx belong to %s",
 				(gulong) l, mq_info(q));
+		g_assert_not_reached();
 	}
 
 	g_hash_table_insert(qown, l, q);
@@ -135,10 +136,10 @@ static void mq_remove_linkable(mqueue_t *q, GList *l)
 	owner = g_hash_table_lookup(qown, l);
 
 	if (owner == NULL)
-		g_warning("BUG: removed linkable 0x%lx from %s belongs to no queue!",
+		g_error("BUG: removed linkable 0x%lx from %s belongs to no queue!",
 			(gulong) l, mq_info(q));
 	else if (owner != q)
-		g_warning("BUG: removed linkable 0x%lx from %s is from another queue!",
+		g_error("BUG: removed linkable 0x%lx from %s is from another queue!",
 			(gulong) l, mq_info(q));
 	else
 		g_hash_table_remove(qown, l);
@@ -161,9 +162,10 @@ mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line)
 		g_error("BUG: %s at %s:%d", mq_info(q), where, line);
 
 	qcount = g_list_length(q->qhead);
-	if (qcount != q->count) g_warning(
-		"BUG: %s has wrong q->count of %d (counted %d in list) at %s:%d",
-		mq_info(q), q->count, qcount, where, line);
+	if (qcount != q->count)
+		g_error("BUG: "
+			"%s has wrong q->count of %d (counted %d in list) at %s:%d",
+			mq_info(q), q->count, qcount, where, line);
 
 	if (q->qlink == NULL)
 		return;
@@ -176,15 +178,15 @@ mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line)
 			continue;
 
 		qlink_alive++;
-		if (item->data == NULL) g_warning(
-			"BUG: linkable #%d/%d from %s is NULL at %s:%d",
-			n, q->qlink_count, mq_info(q), where, line);
+		if (item->data == NULL)
+			g_error("BUG: linkable #%d/%d from %s is NULL at %s:%d",
+				n, q->qlink_count, mq_info(q), where, line);
 
 		g_assert(qown);		/* If we have a qlink, we have added items */
 
 		owner = g_hash_table_lookup(qown, item);
 		if (owner != q)
-			g_warning("BUG: linkable #%d/%d from %s "
+			g_error("BUG: linkable #%d/%d from %s "
 				"%s at %s:%d",
 				n, q->qlink_count, mq_info(q),
 				owner == NULL ?
@@ -193,8 +195,8 @@ mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line)
 				where, line);
 	}
 
-	if (qlink_alive != qcount + offset) g_warning(
-		"BUG: qlink discrepancy for %s "
+	if (qlink_alive != qcount + offset)
+		g_error("BUG: qlink discrepancy for %s "
 		"(counted %d alive linkable, expected %d, queue has %d items) at %s:%d",
 		mq_info(q), qlink_alive, qcount + offset, qcount, where, line);
 }
@@ -642,7 +644,7 @@ qlink_create(mqueue_t *q)
 	}
 
 	if (l || n != q->count)
-		g_warning("BUG: queue count of %d for 0x%lx is wrong (has %d)",
+		g_error("BUG: queue count of %d for 0x%lx is wrong (has %d)",
 			q->count, (gulong) q, g_list_length(q->qhead));
 
 	/*
@@ -927,8 +929,7 @@ qlink_remove(mqueue_t *q, GList *l)
 	 * Used to be an assertion, but it is non-fatal.  Warn copiously though.
 	 */
 
-	g_warning(
-		"BUG: linkable 0x%lx for %s not found "
+	g_error("BUG: linkable 0x%lx for %s not found "
 		"(qlink has %d slots, queue has %d counted items, really %d) at %s:%d",
 		(gulong) l, mq_info(q),
 		q->qlink_count, q->count, g_list_length(q->qhead),
@@ -1024,11 +1025,11 @@ restart:
 		 */
 
 		if (item->data == NULL) {
-			g_warning("BUG: NULL data for qlink item #%d/%d in %s at %s:%d",
+			g_error("BUG: NULL data for qlink item #%d/%d in %s at %s:%d",
 				n, q->qlink_count, mq_info(q), _WHERE_, __LINE__);
 
 			if (qlink_corrupted) {
-				g_warning(
+				g_error(
 					"BUG: trying to ignore still invalid qlink entry at %s:%d",
 						_WHERE_, __LINE__);
 				continue;
@@ -1038,7 +1039,7 @@ restart:
 			qlink_free(q);
 			qlink_create(q);
 
-			g_warning("BUG: recreated qlink and restarting at %s:%d",
+			g_error("BUG: recreated qlink and restarting at %s:%d",
 				_WHERE_, __LINE__);
 			goto restart;
 		}
