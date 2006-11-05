@@ -677,14 +677,10 @@ add_file(const struct shared_file *sf)
 		for (i = 0; ok && i < hcnt; i++) {
 			g_assert(start == gs.outbuf);
 			if (NET_TYPE_IPV4 == host_addr_net(hvec[i].addr)) {
-				struct {
-					gchar ipv4[4];
-					gchar port[2];
-				} alt;
+				gchar alt[6];
 			
-				STATIC_ASSERT(sizeof alt == 6);
-				poke_be32(alt.ipv4, host_addr_ipv4(hvec[i].addr));
-				poke_le16(alt.port, hvec[i].port);
+				poke_be32(&alt[0], host_addr_ipv4(hvec[i].addr));
+				poke_le16(&alt[4], hvec[i].port);
 				ok = ggep_stream_write(&gs, &alt, sizeof alt);
 			}
 		}
