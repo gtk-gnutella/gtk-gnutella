@@ -2410,7 +2410,7 @@ static gint
 socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, guint16 port, enum socket_type type, guint32 flags)
 {
-	gint sd, option;
+	gint sd, option, family;
 
 	socket_check(s);
 
@@ -2419,9 +2419,15 @@ socket_connect_prepare(struct gnutella_socket *s,
 	}
 
 	addr = socket_ipv6_trt_map(addr);
-	sd = socket(host_addr_family(addr), SOCK_STREAM, 0);
-
+	family = host_addr_family(addr);
+	if (-1 == family) {
+		errno = EINVAL;
+		return;
+	}
+	sd = socket(family, SOCK_STREAM, 0);
 	if (-1 == sd) {
+		gint saved_errno = errno;
+
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
 		 * banning pool and retry.
@@ -2431,14 +2437,16 @@ socket_connect_prepare(struct gnutella_socket *s,
 			(errno == EMFILE || errno == ENFILE) &&
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
-			sd = socket(host_addr_family(addr), SOCK_STREAM, 0);
+			sd = socket(family, SOCK_STREAM, 0);
 			if (sd >= 0) {
 				g_warning("had to close a banned fd to prepare new connection");
 				goto created;
 			}
+			saved_errno = errno;
 		}
 
 		g_warning("unable to create a socket (%s)", g_strerror(errno));
+		errno = saved_errno;
 		return -1;
 	}
 
@@ -2712,10 +2720,11 @@ socket_connect_by_name(const gchar *host, guint16 port,
 }
 
 gint
-socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
+socket_create_and_bind(const host_addr_t bind_addr,
+	const guint16 port, const int type)
 {
 	gboolean socket_failed;
-	gint sd, saved_errno;
+	gint sd, saved_errno, family;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
@@ -2727,8 +2736,12 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 		errno = EINVAL;
 		return -1;
 	}
-
-	sd = socket(host_addr_family(bind_addr), type, 0);
+	family = host_addr_family(bind_addr);
+	if (-1 == family) {
+		errno = EINVAL;
+		return -1;
+	}
+	sd = socket(family, type, 0);
 	if (sd < 0) {
 		socket_failed = TRUE;
 		saved_errno = errno;
@@ -2767,7 +2780,7 @@ socket_create_and_bind(host_addr_t bind_addr, guint16 port, int type)
 		gchar addr_str[128];
 
 		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
-		sd = socker_get(host_addr_family(bind_addr), type, 0, addr_str, port);
+		sd = socker_get(family, type, 0, addr_str, port);
 		if (sd < 0) {
 			g_warning("socker_get() failed (%s)", g_strerror(errno));
 		}

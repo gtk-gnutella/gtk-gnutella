@@ -365,26 +365,6 @@ is_host_addr(const host_addr_t ha)
 	return FALSE;
 }
 
-static inline int
-host_addr_family(const host_addr_t ha)
-{
-	switch (ha.net) {
-	case NET_TYPE_IPV4:
-		return AF_INET;
-#ifdef USE_IPV6
-	case NET_TYPE_IPV6:
-		return AF_INET6;
-#endif
-	case NET_TYPE_LOCAL:
-		return AF_LOCAL;
-	case NET_TYPE_NONE:
-		break;
-	}
-	g_message("%u:%u", (guint8) ha.net, ha.addr.ipv4);
-	g_assert_not_reached();
-	return -1;
-}
-
 static inline guint32
 host_addr_hash(host_addr_t ha)
 {
@@ -525,6 +505,7 @@ guint host_addr_hash_func(gconstpointer key);
 gboolean host_addr_eq_func(gconstpointer p, gconstpointer q);
 void wfree_host_addr(gpointer key, gpointer unused_data);
 
+int host_addr_family(const host_addr_t ha);
 gboolean is_private_addr(const host_addr_t addr);
 gboolean host_addr_is_routable(const host_addr_t addr);
 gboolean host_addr_is_loopback(const host_addr_t addr);

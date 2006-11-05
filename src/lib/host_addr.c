@@ -58,6 +58,33 @@ RCSID("$Id$")
 #include "override.h"		/* Must be the last header included */
 
 /**
+ * @param ha An initialized host address.
+ * @return The proper AF_* value or -1 if not available.
+ */
+int
+host_addr_family(const host_addr_t ha)
+{
+	if (!host_addr_initialized(ha)) {
+		g_error("host_addr_family(): ha.net=%u", (guint8) ha.net);
+    }	
+	switch (ha.net) {
+	case NET_TYPE_IPV4:
+		return AF_INET;
+	case NET_TYPE_IPV6:
+#ifdef USE_IPV6
+		return AF_INET6;
+#else
+		return -1;
+#endif
+	case NET_TYPE_LOCAL:
+		return AF_LOCAL;
+	case NET_TYPE_NONE:
+		break;
+	}
+	return -1;
+}
+
+/**
  * Checks for RFC1918 private addresses.
  *
  * @return TRUE if is a private address.
