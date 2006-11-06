@@ -249,9 +249,7 @@ upload_stats_dump_history(const gchar *ul_history_file_name)
 	FILE *out;
 	time_t now = tm_time();
 
-	if (!upload_stats_list) {
-		return;
-	}
+	g_return_if_fail(ul_history_file_name);
 
 	/* open file for writing */
 	out = file_fopen(ul_history_file_name, "w");
@@ -273,8 +271,14 @@ upload_stats_dump_history(const gchar *ul_history_file_name)
 		"\n",
 		ctime(&now));
 
-	/* for each element in uploads_stats_list, write out to hist file */
-	hash_list_foreach(upload_stats_list, upload_stats_dump_item, out);
+	/*
+	 * Don't check this sooner so that the file is cleared, if the user
+	 * cleared the history.
+	 */
+	if (upload_stats_list) {
+		/* for each element in uploads_stats_list, write out to hist file */
+		hash_list_foreach(upload_stats_list, upload_stats_dump_item, out);
+	}
 
 	/* close file */
 	fclose(out);
@@ -409,6 +413,9 @@ upload_stats_clear_all(void)
 {
 	gcu_upload_stats_gui_clear_all();
 	upload_stats_free_all();
+	if (stats_file) {
+		upload_stats_dump_history(stats_file);
+	}
 }
 
 /**
