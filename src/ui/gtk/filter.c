@@ -399,13 +399,14 @@ filter_gui_filter_clear_list(void)
 
 
 	for (i = 0; i < G_N_ELEMENTS(nodes); i++) {
-    	gchar *titles[3];
+    	const gchar *titles[3];
 		
     	titles[0] = deconstify_gchar(_(nodes[i].title));
     	titles[1] = "";
     	titles[2] = "";
     	fl_nodes[i] = gtk_ctree_insert_node(GTK_CTREE(ctree_filter_filters),
-			NULL, NULL, titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
+			NULL, NULL, deconstify_gpointer(titles),
+			0, NULL, NULL, NULL, NULL, FALSE, TRUE);
     	gtk_ctree_node_set_selectable(GTK_CTREE(ctree_filter_filters),
 			fl_nodes[i], FALSE);
     	gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
@@ -1303,8 +1304,8 @@ filter_gui_edit_ip_rule(rule_t *r)
 void
 filter_gui_edit_sha1_rule(rule_t *r)
 {
-    gchar *hash     = "";
-    gchar *origfile = "";
+    const gchar *hash     = "";
+    const gchar *origfile = "";
     gpointer target = DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
@@ -1362,7 +1363,7 @@ filter_gui_edit_sha1_rule(rule_t *r)
 void
 filter_gui_edit_text_rule(rule_t *r)
 {
-    gchar *pattern  = "";
+    const gchar *pattern  = "";
     guint type      = RULE_TEXT_WORDS;
     gboolean tcase  = FALSE;
     gpointer target = DEFAULT_TARGET;
@@ -1523,7 +1524,7 @@ filter_gui_edit_flag_rule(rule_t *r)
     gpointer target = DEFAULT_TARGET;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
-    gchar *widget   = NULL;
+    const gchar *widget;
 
     g_assert(r == NULL || r->type == RULE_FLAG);
 
@@ -1538,6 +1539,7 @@ filter_gui_edit_flag_rule(rule_t *r)
         soft   = RULE_IS_SOFT(r);
     }
 
+	widget = NULL;
     switch (stable) {
     case RULE_FLAG_SET:
         widget = "radiobutton_filter_flag_stable_set";
@@ -1548,12 +1550,13 @@ filter_gui_edit_flag_rule(rule_t *r)
     case RULE_FLAG_IGNORE:
         widget = "radiobutton_filter_flag_stable_ignore";
         break;
-    default:
-        g_assert_not_reached();
     }
+	g_assert(widget);
+
     gtk_toggle_button_set_active
         (GTK_TOGGLE_BUTTON(gui_filter_dialog_lookup(widget)), TRUE);
 
+	widget = NULL;
     switch (busy) {
     case RULE_FLAG_SET:
         widget = "radiobutton_filter_flag_busy_set";
@@ -1564,12 +1567,13 @@ filter_gui_edit_flag_rule(rule_t *r)
     case RULE_FLAG_IGNORE:
         widget = "radiobutton_filter_flag_busy_ignore";
         break;
-    default:
-        g_assert_not_reached();
     }
+	g_assert(widget);
+
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(
 			gui_filter_dialog_lookup(widget)), TRUE);
 
+	widget = NULL;
     switch (push) {
     case RULE_FLAG_SET:
         widget = "radiobutton_filter_flag_push_set";
@@ -1580,9 +1584,9 @@ filter_gui_edit_flag_rule(rule_t *r)
     case RULE_FLAG_IGNORE:
         widget = "radiobutton_filter_flag_push_ignore";
         break;
-    default:
-        g_assert_not_reached();
     }
+	g_assert(widget);
+
     gtk_toggle_button_set_active
         (GTK_TOGGLE_BUTTON(gui_filter_dialog_lookup(widget)), TRUE);
 
@@ -1620,7 +1624,7 @@ filter_gui_edit_state_rule(rule_t *r)
     gboolean active = TRUE;
     gboolean soft   = FALSE;
     gboolean invert = FALSE;
-    gchar *widget   = NULL;
+    const gchar *widget;
 
     g_assert(r == NULL || r->type == RULE_STATE);
 
@@ -1636,6 +1640,7 @@ filter_gui_edit_state_rule(rule_t *r)
         soft     = RULE_IS_SOFT(r);
     }
 
+	widget = NULL;
     switch (display) {
     case FILTER_PROP_STATE_UNKNOWN:
          widget = "radiobutton_filter_state_display_undef";
@@ -1649,12 +1654,13 @@ filter_gui_edit_state_rule(rule_t *r)
     case FILTER_PROP_STATE_IGNORE:
          widget = "radiobutton_filter_state_display_ignore";
          break;
-    default:
-         g_error("filter_gui_edit_state_rule: unknown property: %d", display);
     }
+	g_assert(widget);
+
     gtk_toggle_button_set_active
         (GTK_TOGGLE_BUTTON(gui_filter_dialog_lookup(widget)), TRUE);
 
+	widget = NULL;
     switch (download) {
     case FILTER_PROP_STATE_UNKNOWN:
          widget = "radiobutton_filter_state_download_undef";
@@ -1668,9 +1674,9 @@ filter_gui_edit_state_rule(rule_t *r)
     case FILTER_PROP_STATE_IGNORE:
          widget = "radiobutton_filter_state_download_ignore";
          break;
-    default:
-         g_error("filter_gui_edit_state_rule: unknown property: %d", download);
     }
+	g_assert(widget);
+
     gtk_toggle_button_set_active
         (GTK_TOGGLE_BUTTON(gui_filter_dialog_lookup(widget)), TRUE);
 

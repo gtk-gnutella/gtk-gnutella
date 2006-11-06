@@ -83,11 +83,11 @@ RCSID("$Id$")
  * the host.
  */
 typedef struct hostcache_entry {
-    hcache_type_t type;					/**< Hostcache which contains this host */
-    time_t        time_added;			/**< Time when entry was added */
+    hcache_type_t type;				/**< Hostcache which contains this host */
+    time_t        time_added;		/**< Time when entry was added */
 #if 0
-	guint32       avg_uptime;			/**< Reported average uptime (seconds) */
-	gchar *       vendor;				/**< Latest known vendor name (atom) */
+	guint32       avg_uptime;		/**< Reported average uptime (seconds) */
+	gchar *       vendor;			/**< Latest known vendor name (atom) */
 #endif
 } hostcache_entry_t;
 
@@ -98,7 +98,7 @@ typedef struct hostcache_entry {
  * A hostcache table.
  */
 typedef struct hostcache {
-	gchar *         name;		        /**< Name of the cache */
+	const gchar		*name;		        /**< Name of the cache */
 	hcache_type_t   type;				/**< Cache type */
 
     gboolean        addr_only;          /**< Use IP only, port always 0 */
@@ -1254,7 +1254,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
  */
 static hostcache_t *
 hcache_alloc(hcache_type_t type, gnet_property_t reading,
-	gnet_property_t catcher, gchar *name)
+	gnet_property_t catcher, const gchar *name)
 {
 	struct hostcache *hc;
 
@@ -1598,7 +1598,7 @@ hcache_store_if_dirty(host_type_t type)
 	gnet_property_t prop;
 	gboolean reading;
 	hcache_type_t first, second;
-	gchar *file;
+	const gchar *file;
 
 	switch (type) {
     case HOST_ANY:

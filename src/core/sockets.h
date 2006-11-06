@@ -112,7 +112,7 @@ struct gnutella_socket {
 	gboolean corked;
 	gboolean was_shutdown;	/**< Set if shutdown() was used */
 	gint adns;				/**< status of ADNS resolution */
-	gchar *adns_msg;		/**< ADNS error message */
+	const gchar *adns_msg;	/**< ADNS error message */
 
 	host_addr_t addr;		/**< IP   of our partner */
 	guint16 port;			/**< Port of our partner */

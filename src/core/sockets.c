@@ -3165,7 +3165,8 @@ sock_cork(struct gnutella_socket *s, gboolean on)
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 static void
-sock_set_intern(gint fd, gint option, gint size, gchar *type, gboolean shrink)
+sock_set_intern(gint fd, gint option, gint size,
+	const gchar *type, gboolean shrink)
 {
 	gint old_len = 0;
 	gint new_len = 0;

@@ -871,10 +871,10 @@ gui_update_download_server(struct download *d)
 void
 gui_update_download_range(struct download *d)
 {
-	filesize_t len;
-	gchar *and_more = "";
-	gint rw;
+	const gchar *and_more = "";
 	GtkCTreeNode *node;
+	filesize_t len;
+	gint rw;
 
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);

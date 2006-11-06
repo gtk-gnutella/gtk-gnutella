@@ -1367,7 +1367,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	fileinfo_t *fi = NULL;
 	enum dl_file_info_field field;
 	gchar tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
-	gchar *reason;
+	const gchar *reason;
 	gchar *pathname;
 	gint fd;
 	guint32 version;

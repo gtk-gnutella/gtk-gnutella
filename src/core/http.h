@@ -74,7 +74,7 @@ typedef void (*http_status_cb_t)(
 typedef struct {
 	http_extra_type_t he_type;		/**< Union discriminent */
 	union {
-		gchar *u_msg;				/**< Single header line */
+		const gchar *u_msg;			/**< Single header line */
 		struct {
 			http_status_cb_t u_cb;	/**< Callback to compute header field */
 			gpointer u_arg;			/**< Callback context argument */

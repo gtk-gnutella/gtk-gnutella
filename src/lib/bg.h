@@ -98,7 +98,7 @@ void bg_close(void);
 void bg_sched_timer(gboolean overloaded);
 
 gpointer bg_task_create(
-	gchar *name,						/**< Task name (for tracing) */
+	const gchar *name,					/**< Task name (for tracing) */
 	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
 	gpointer ucontext,					/**< User context */
 	bgclean_cb_t ucontext_free,			/**< Free routine for context */
@@ -106,7 +106,7 @@ gpointer bg_task_create(
 	gpointer done_arg);					/**< Callback argument */
 
 gpointer bg_daemon_create(
-	gchar *name,						/**< Task name (for tracing) */
+	const gchar *name,					/**< Task name (for tracing) */
 	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
 	gpointer ucontext,					/**< User context */
 	bgclean_cb_t ucontext_free,			/**< Free routine for context */

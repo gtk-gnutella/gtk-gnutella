@@ -527,7 +527,7 @@ http_extract_version(
  *** HTTP URL parsing.
  ***/
 
-static gchar *parse_errstr[] = {
+static const gchar * const parse_errstr[] = {
 	"OK",								/**< HTTP_URL_OK */
 	"Not an http URI",					/**< HTTP_URL_NOT_HTTP */
 	"More than one <user>:<password>",	/**< HTTP_URL_MULTIPLE_CREDENTIALS */

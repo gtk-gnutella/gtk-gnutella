@@ -42,9 +42,9 @@ RCSID("$Id$")
 #include "misc.h"
 #include "override.h"	/* Must be the last header included */
 
-struct vendor {
+static const struct vendor {
     guint32 code;
-    gchar *name;
+    const gchar *name;
 } vendor_map[] = {
 	/* This array MUST be sorted, because it is searched dichotomically */
 
@@ -130,7 +130,7 @@ struct vendor {
  *
  * @returns vendor string if found, NULL otherwise.
  */
-static gchar *
+static const gchar *
 find_vendor(guint32 code)
 {
 #define GET_KEY(i) (vendor_map[(i)].code)

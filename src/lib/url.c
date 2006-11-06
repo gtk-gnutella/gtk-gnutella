@@ -473,8 +473,8 @@ gchar *
 url_normalize(gchar *url, url_policy_t pol)
 {
 	static const char http_prefix[] = "http://";
-	const gchar *p, *uri, *endptr, *tld = NULL;
-	gchar c, *q, *warn = NULL;
+	const gchar *p, *uri, *endptr, *tld = NULL, *warn = NULL;
+	gchar c, *q;
 	host_addr_t addr;
 
 	g_assert(url);

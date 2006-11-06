@@ -70,7 +70,7 @@ static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
 struct bgtask {
 	guint magic;			/**< Magic number */
 	guint32 flags;			/**< Operating flags */
-	gchar *name;			/**< Task name */
+	const gchar *name;		/**< Task name */
 	gint step;				/**< Current processing step */
 	gint seqno;				/**< Number of calls at same step */
 	bgstep_cb_t *stepvec;	/**< Set of steps to run in sequence */
@@ -332,7 +332,7 @@ bg_task_switch(struct bgtask *bt)
  * @returns an opaque handle.
  */
 gpointer
-bg_task_create(gchar *name,					/**< Task name (for tracing) */
+bg_task_create(const gchar *name,		/**< Task name (for tracing) */
 	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
 	gpointer ucontext,					/**< User context */
 	bgclean_cb_t ucontext_free,			/**< Free routine for context */
@@ -386,7 +386,7 @@ bg_task_create(gchar *name,					/**< Task name (for tracing) */
  */
 gpointer
 bg_daemon_create(
-	gchar *name,					  /**< Task name (for tracing) */
+	const gchar *name,				  /**< Task name (for tracing) */
 	bgstep_cb_t *steps, gint stepcnt, /**< Work to perform (copied) */
 	gpointer ucontext,				  /**< User context */
 	bgclean_cb_t ucontext_free,		  /**< Free routine for context */

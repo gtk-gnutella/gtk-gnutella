@@ -65,7 +65,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(s->addr, s->port);
 	gnutella_header_t *head;
-	gchar *msg;
+	const gchar *msg;
 	guint16 size;				/**< Payload size, from the Gnutella message */
 
 	if (s->pos < GTA_HEADER_SIZE) {

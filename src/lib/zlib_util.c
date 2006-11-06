@@ -49,7 +49,7 @@ RCSID("$Id$")
  *
  * @return human-readable error string corresponding to error code `errnum'.
  */
-gchar *
+const gchar *
 zlib_strerror(gint errnum)
 {
 	switch (errnum) {

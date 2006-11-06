@@ -254,9 +254,9 @@ static void node_bye_sent(struct gnutella_node *n);
 static void call_node_process_handshake_ack(gpointer obj, header_t *header);
 static void node_send_qrt(struct gnutella_node *n, gpointer query_table);
 static void node_send_patch_step(struct gnutella_node *n);
-static void node_bye_flags(guint32 mask, gint code, gchar *message);
-static void node_bye_all_but_one(
-	struct gnutella_node *nskip, gint code, gchar *message);
+static void node_bye_flags(guint32 mask, gint code, const gchar *message);
+static void node_bye_all_but_one(struct gnutella_node *nskip,
+				gint code, const gchar *message);
 static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(enum net_type net);
@@ -653,8 +653,8 @@ can_become_ultra(time_t now)
 	gboolean enough_fd;
 	gboolean enough_mem;
 	gboolean enough_bw;
-	gchar *ok = "** OK **";
-	gchar *no = "-- NO --";
+	const gchar *ok = "** OK **";
+	const gchar *no = "-- NO --";
 
 	/* Uptime requirements */
 	avg_servent_uptime = get_average_servent_uptime(now) >= NODE_MIN_AVG_UPTIME;
@@ -2499,12 +2499,12 @@ node_host_is_connected(const host_addr_t addr, guint16 port)
  * basic formatting and splitting so that very long lines are dumped using
  * continuations. --RAM, 10/01/2002
  */
-static gchar *
-formatted_connection_pongs(gchar *field, host_type_t htype, gint num)
+static const gchar *
+formatted_connection_pongs(const gchar *field, host_type_t htype, gint num)
 {
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
+	const gchar *line = "";
 	gint hcount;
-	gchar *line = "";
 
 	g_assert(num > 0 && num <= CONNECT_PONGS_COUNT);
 
@@ -3606,8 +3606,8 @@ node_current_peermode_changed(node_peer_t mode)
 static void
 node_set_current_peermode(node_peer_t mode)
 {
-	const gchar *msg = NULL;
 	static node_peer_t old_mode = NODE_P_UNKNOWN;
+	const gchar *msg = NULL;
 
 	if (NODE_P_UNKNOWN == old_mode)
 		old_mode = configured_peermode;
@@ -4518,7 +4518,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
  * @return the header string that should be used to advertise our QRP version
  * in the reply to their handshake, as a pointer to static data.
  */
-static gchar *
+static const gchar *
 node_query_routing_header(struct gnutella_node *n)
 {
 	/*
@@ -7285,7 +7285,7 @@ node_sent_ttl0(struct gnutella_node *n)
  * Send a BYE message to all the nodes matching the specified flags.
  */
 static void
-node_bye_flags(guint32 mask, gint code, gchar *message)
+node_bye_flags(guint32 mask, gint code, const gchar *message)
 {
 	GSList *sl;
 
@@ -7304,7 +7304,8 @@ node_bye_flags(guint32 mask, gint code, gchar *message)
  * Send a BYE message to all the nodes but the one supplied as argument.
  */
 static void
-node_bye_all_but_one(struct gnutella_node *nskip, gint code, gchar *message)
+node_bye_all_but_one(struct gnutella_node *nskip,
+	gint code, const gchar *message)
 {
 	GSList *sl;
 
@@ -8697,9 +8698,9 @@ node_ua_cmp(const void *np1, const void *np2)
  * We further escape the escape character with itself, if found.
  */
 static void
-node_crawl_append_vendor(GString *ua, gchar *vendor)
+node_crawl_append_vendor(GString *ua, const gchar *vendor)
 {
-	gchar *p = vendor;
+	const gchar *p = vendor;
 	gchar c;
 
 	while ((c = *p++)) {

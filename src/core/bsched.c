@@ -90,7 +90,8 @@ bio_check(const bio_source_t *bio)
  * @param `period' is the scheduling period in ms.
  */
 bsched_t *
-bsched_make(gchar *name, gint type, guint32 mode, gint bandwidth, gint period)
+bsched_make(const gchar *name, gint type, guint32 mode,
+	gint bandwidth, gint period)
 {
 	bsched_t *bs;
 
@@ -104,7 +105,7 @@ bsched_make(gchar *name, gint type, guint32 mode, gint bandwidth, gint period)
 	g_assert(type == BS_T_STREAM);		/* XXX only mode supported for now */
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
-	bs = (bsched_t *) g_malloc0(sizeof(*bs));
+	bs = g_malloc0(sizeof(*bs));
 
 	bs->name = g_strdup(name);
 	bs->flags = mode;

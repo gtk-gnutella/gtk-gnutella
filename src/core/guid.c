@@ -150,7 +150,7 @@ guid_hec(const gchar *xuid)
 void
 guid_init(void)
 {
-	gchar *rev = GTA_REVCHAR;		/* Empty string means stable release */
+	const gchar *rev = GTA_REVCHAR;	/* Empty string means stable release */
 
 	guid_gen_syndrome_table();
 

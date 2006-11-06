@@ -161,7 +161,7 @@ extern struct bws_set bws;
  * Public interface.
  */
 
-bsched_t *bsched_make(gchar *name,
+bsched_t *bsched_make(const gchar *name,
 	gint type, guint32 mode, gint bandwidth, gint period);
 void bsched_init(void);
 void bsched_shutdown(void);

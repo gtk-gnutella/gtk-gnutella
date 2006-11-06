@@ -367,7 +367,7 @@ flush_match(void)
 	{
 		guint8 major = GTA_VERSION;
 		guint8 minor = GTA_SUBVERSION;
-		gchar *revp = GTA_REVCHAR;
+		const gchar *revp = GTA_REVCHAR;
 		guint8 revchar = (guint8) revp[0];
 		guint8 patch;
 		guint32 release;

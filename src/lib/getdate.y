@@ -136,7 +136,7 @@
 #define yycheck  gd_yycheck
 
 static int yylex (void);
-static int yyerror (char *s);
+static int yyerror (const char *s);
 extern int yyparse (void);
 
 #define EPOCH		1970
@@ -685,7 +685,7 @@ static TABLE const MilitaryTable[] = {
 
 
 /* ARGSUSED */
-static int yyerror(char *unused_s)
+static int yyerror(const char *unused_s)
 {
 	(void) unused_s;
     return 0;
