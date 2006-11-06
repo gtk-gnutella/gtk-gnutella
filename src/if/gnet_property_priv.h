@@ -334,6 +334,7 @@ extern const guint32  rudp_debug;
 extern const guint32  dht_debug;
 extern const guint32  oob_proxy_debug;
 extern const gboolean enable_local_socket;
+extern const guint32  max_simultaneous_downloads_per_file;
 
 
 prop_set_t *gnet_prop_init(void);

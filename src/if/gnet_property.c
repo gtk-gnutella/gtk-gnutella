@@ -646,6 +646,8 @@ guint32  oob_proxy_debug     = 0;
 guint32  oob_proxy_debug_def = 0;
 gboolean enable_local_socket     = TRUE;
 gboolean enable_local_socket_def = TRUE;
+guint32  max_simultaneous_downloads_per_file     = 20;
+guint32  max_simultaneous_downloads_per_file_def = 20;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6178,6 +6180,26 @@ gnet_prop_init(void) {
     gnet_property->props[289].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[289].data.boolean.def   = &enable_local_socket_def;
     gnet_property->props[289].data.boolean.value = &enable_local_socket;
+
+
+    /*
+     * PROP_MAX_SIMULTANEOUS_DOWNLOADS_PER_FILE:
+     *
+     * General data:
+     */
+    gnet_property->props[290].name = "max_simultaneous_downloads_per_file";
+    gnet_property->props[290].desc = _("Don't start more than this number of parallel downloads per file.");
+    gnet_property->props[290].ev_changed = event_new("max_simultaneous_downloads_per_file_changed");
+    gnet_property->props[290].save = TRUE;
+    gnet_property->props[290].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[290].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[290].data.guint32.def   = &max_simultaneous_downloads_per_file_def;
+    gnet_property->props[290].data.guint32.value = &max_simultaneous_downloads_per_file;
+    gnet_property->props[290].data.guint32.choices = NULL;
+    gnet_property->props[290].data.guint32.max   = 256;
+    gnet_property->props[290].data.guint32.min   = 1;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
