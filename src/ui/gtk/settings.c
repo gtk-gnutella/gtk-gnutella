@@ -3247,6 +3247,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
+        PROP_MAX_SIMULTANEOUS_DOWNLOADS_PER_FILE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_max_file_downloads",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
         PROP_MAX_UPLOADS,
         update_spinbutton,
         TRUE,
