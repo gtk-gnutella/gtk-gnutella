@@ -153,7 +153,7 @@ static volatile int signal_received = 0;
 static volatile sig_atomic_t shutdown_requested = 0;
 static volatile sig_atomic_t sig_hup_received = 0;
 static jmp_buf atexit_env;
-static volatile gchar *exit_step = "gtk_gnutella_exit";
+static volatile const gchar *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
 
 void gtk_gnutella_exit(gint n);
