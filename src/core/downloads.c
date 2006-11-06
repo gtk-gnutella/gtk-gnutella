@@ -2027,6 +2027,15 @@ has_same_download(
 	return NULL;
 }
 
+static gboolean
+download_has_enough_active_sources(struct download *d)
+{
+	guint n;
+
+	n = d->file_info->use_swarming ? max_simultaneous_downloads_per_file : 1;
+	return count_running_downloads_with_name(download_outname(d)) >= n;
+}
+
 /**
  * Mark a download as being actively queued.
  */
@@ -2099,7 +2108,7 @@ download_file_exists(const struct download *d)
 
 	download_check(d);
 
-	path = make_pathname(d->file_info->path, d->file_info->file_name);
+	path = make_pathname(d->file_info->path, download_outname(d));
 	g_return_val_if_fail(NULL != path, FALSE);
 
 	ret = -1 != stat(path, &buf);
@@ -2281,7 +2290,7 @@ download_info_reget(struct download *d)
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_remove(d);
 
-	downloads_with_name_dec(fi->file_name);		/* File name can change! */
+	downloads_with_name_dec(download_outname(d));	/* File name can change! */
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
 	file_size_known = fi->file_size_known;		/* This should not change */
 
@@ -2298,7 +2307,7 @@ download_info_reget(struct download *d)
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
 
-	downloads_with_name_inc(fi->file_name);
+	downloads_with_name_inc(download_outname(d));
 }
 
 /**
@@ -3392,7 +3401,7 @@ download_ignore_requested(struct download *d)
 		reason = IGNORE_HOSTILE;
 
 	if (reason == IGNORE_FALSE)
-		reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1);
+		reason = ignore_is_requested(download_outname(d), fi->size, fi->sha1);
 
 	if (reason != IGNORE_FALSE) {
 		const gchar *s_reason;
@@ -3804,8 +3813,7 @@ download_start(struct download *d, gboolean check_allowed)
 	if (check_allowed && (
 		count_running_downloads() >= max_downloads ||
 		count_running_on_server(d->server) >= max_host_downloads ||
-		(!d->file_info->use_swarming &&
-			count_running_downloads_with_name(download_outname(d)) != 0))
+		download_has_enough_active_sources(d))
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
 			download_queue(d, _("No download slot (start)"));
@@ -3963,10 +3971,7 @@ download_pickup_queued(void)
 				d = list_iter_next(iter);
 				download_check(d);
 
-				if (
-					!d->file_info->use_swarming &&
-					count_running_downloads_with_name(download_outname(d)) != 0
-				)
+				if (download_has_enough_active_sources(d))
 					continue;
 
 				if (
@@ -4477,8 +4482,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	else if (
 		count_running_downloads() < max_downloads &&
 		count_running_on_server(d->server) < max_host_downloads &&
-		(d->file_info->use_swarming ||
-			count_running_downloads_with_name(download_outname(d)) == 0)
+		!download_has_enough_active_sources(d)
 	) {
 		download_start(d, FALSE);		/* Start the download immediately */
 	} else {
@@ -8791,10 +8795,7 @@ select_push_download(GSList *servers)
 			g_assert(!DOWNLOAD_IS_RUNNING(d));
 			g_assert(d->file_info);
 
-			if (
-				!d->file_info->use_swarming &&
-				count_running_downloads_with_name(download_outname(d)) != 0
-			)
+			if (download_has_enough_active_sources(d))
 				continue;
 
 			if (delta_time(now, d->retry_after) < 0)
@@ -9866,7 +9867,7 @@ download_verify_done(struct download *d, gchar *digest, guint elapsed)
 		download_move(d, move_file_path, DL_OK_EXT);
 
 		/* Send a notification */
-		src = make_pathname(move_file_path, d->file_info->file_name);
+		src = make_pathname(move_file_path, download_outname(d));
 		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, src);
 		G_FREE_NULL(src);
 	} else {
