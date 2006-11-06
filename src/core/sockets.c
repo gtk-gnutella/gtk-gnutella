@@ -2422,7 +2422,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	family = host_addr_family(addr);
 	if (-1 == family) {
 		errno = EINVAL;
-		return;
+		return -1;
 	}
 	sd = socket(family, SOCK_STREAM, 0);
 	if (-1 == sd) {
