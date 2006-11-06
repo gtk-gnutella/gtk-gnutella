@@ -51,10 +51,10 @@ RCSID("$Id$")
 static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static GHashTable *constants;
-static gchar *home;
+static const gchar *home;	/* string atom */
 
-static gchar *get_home(void);
-static gchar *get_variable(gchar *s, gchar **end);
+static const gchar *get_home(void);
+static const gchar *get_variable(const gchar *s, const gchar **end);
 static gboolean initialized;
 
 /**
@@ -107,8 +107,10 @@ constants_free_kv(gpointer key,
 void
 eval_close(void)
 {
-	atom_str_free_null(&home);
-
+	if (home) {
+		atom_str_free(home);
+		home = NULL;
+	}
 	g_hash_table_foreach(constants, constants_free_kv, NULL);
 	g_hash_table_destroy(constants);
 }
@@ -123,7 +125,7 @@ eval_close(void)
  * @return the pointer right after the inserted value.
  */
 static gchar *
-insert_value(gchar *val, gchar *start, size_t off,
+insert_value(const gchar *val, gchar *start, size_t off,
 	size_t len, size_t maxlen)
 {
 	size_t vlen = strlen(val);
@@ -181,7 +183,7 @@ eval_subst(const gchar *str)
 		printf("eval_subst: on entry: \"%s\"\n", buf);
 
 	for (p = buf, c = *p++; c; c = *p++) {
-		gchar *val = NULL;
+		const gchar *val = NULL;
 		gchar *start = p - 1;
 
 		switch (c) {
@@ -197,7 +199,7 @@ eval_subst(const gchar *str)
 			break;
 		case '$':
 			{
-				gchar *after;
+				const gchar *after;
 
 				val = get_variable(p, &after);
 				g_assert(val);
@@ -237,7 +239,7 @@ eval_subst(const gchar *str)
  *
  * @return string atom.
  */
-static gchar *
+static const gchar *
 get_home(void)
 {
 	const char *dir;
@@ -271,13 +273,10 @@ get_home(void)
  * @return variable's value, or "" if not found and set `end' to the address
  * of the character right after the variable name.
  */
-static gchar *
-get_variable(gchar *s, gchar **end)
+static const gchar *
+get_variable(const gchar *s, const gchar **end)
 {
-	guchar *p = (guchar *) s;
-	guchar c;
-	gchar *name = s;
-	gchar *value;
+	const gchar *value, *p = s;
 	gboolean end_brace = FALSE;
 
 	/*
@@ -286,36 +285,37 @@ get_variable(gchar *s, gchar **end)
 
 	if (*p == '{') {
 		p++;
-		name++;
+		s++;
 		end_brace = TRUE;
 	}
 
-	while ((c = *p)) {
-		if (!is_ascii_alnum(c) && c != '_')
-			break;
+	while (is_ascii_alnum(*p) || *p == '_') {
 		p++;
 	}
 
 	if (end_brace && *p == '}')
-		*end = (gchar *) (p + 1);
+		*end = &p[1];
 	else
-		*end = (gchar *) p;
+		*end = p;
 
 	/*
 	 * Get value from environment.
 	 */
 
-	c = *p;
-	*p = '\0';
-	value = getenv(name);
+	{
+		gchar *name;
 
-	if (value == NULL)
-		value = "";
+		name = g_strndup(s, p - s);
+		value = getenv(name);
 
-	if (common_dbg > 4)
-		printf("variable \"%s\" is \"%s\"\n", name, value);
+		if (value == NULL)
+			value = "";
 
-	*p = c;
+		if (common_dbg > 4)
+			printf("variable \"%s\" is \"%s\"\n", name, value);
+
+		G_FREE_NULL(name);
+	}
 
 	return value;
 }
