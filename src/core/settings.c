@@ -111,7 +111,11 @@ static void update_uptimes(void);
 host_addr_t
 listen_addr(void)
 {
-	return force_local_ip ? forced_local_ip : local_ip;
+	if (s_tcp_listen) {
+		return force_local_ip ? forced_local_ip : local_ip;
+	} else {
+		return zero_host_addr;
+	}
 }
 
 /**
@@ -120,7 +124,11 @@ listen_addr(void)
 host_addr_t
 listen_addr6(void)
 {
-	return force_local_ip6 ? forced_local_ip6 : local_ip6;
+	if (s_tcp_listen6) {
+		return force_local_ip6 ? forced_local_ip6 : local_ip6;
+	} else {
+		return zero_host_addr;
+	}
 }
 
 gboolean
