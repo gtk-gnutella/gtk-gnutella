@@ -572,7 +572,6 @@
 # PDF spammer; uses Gtk-Gnutella; PDFs link to cyber-spy dot com
 72.38.54.146
 72.38.54.162
-72.38.54.163
 
 # University of Mississippi
 130.74.0.0/16
