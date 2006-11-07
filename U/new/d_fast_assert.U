@@ -2,8 +2,8 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_fast_assert: Myread Setvar cat gccversion official spackage \
-	sed +optimize +ccflags +cc +ldflags
+?MAKE:d_fast_assert: Myread Setvar cat gccversion spackage \
+	sed +ccflags +cc +ldflags
 ?MAKE:	-pick add $@ %<
 ?S:d_fast_assert:
 ?S:	This variable conditionally defines FAST_ASSERTIONS.
@@ -23,25 +23,8 @@ echo " "
 case "$d_fast_assert" in
 "$undef")
 	dflt=n;;
-"$define")
-?X: Turn off fast-assertion when compiling for debugging since they mess up
-?X: the stack frames.
-	case " $optimize " in
-	*" -g "*) dflt=n;;
-	*) dflt=y;;
-	esac
-	;;
 *)
-	case "$official" in
-	true)
-		case " $optimize " in
-		*" -g "*) dflt=n;;
-		*) dflt=y;;
-		esac
-		;;
-	*) dflt=n;;
-	esac
-	;;
+	dflt=y;;
 esac
 $cat <<EOM
 $spackage contains code called "fast assertions" which are lightweight

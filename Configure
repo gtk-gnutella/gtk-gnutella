@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Nov  4 03:10:46 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Tue Nov  7 05:40:21 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4987,23 +4987,8 @@ echo " "
 case "$d_fast_assert" in
 "$undef")
 	dflt=n;;
-"$define")
-	case " $optimize " in
-	*" -g "*) dflt=n;;
-	*) dflt=y;;
-	esac
-	;;
 *)
-	case "$official" in
-	true)
-		case " $optimize " in
-		*" -g "*) dflt=n;;
-		*) dflt=y;;
-		esac
-		;;
-	*) dflt=n;;
-	esac
-	;;
+	dflt=y;;
 esac
 $cat <<EOM
 $spackage contains code called "fast assertions" which are lightweight
