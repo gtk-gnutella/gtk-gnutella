@@ -29,18 +29,12 @@
  *
  * Fast assertions.
  *
- * The following variant should be faster than the usual g_assert() because
- * leaf functions stay leaf functions as it does not add function calls and the
+ * The following variant should be faster than the usual g_assert() because the
  * generated code is smaller which allows better optimization and is more
- * cache-friendly. However, it abuses deferencing a null pointer to cause a
- * SIGSEGV or for x86 the "int 0x03" assembler opcode to cause a SIGTRAP which
- * is then caught by a signal handler. This provokes undefined behaviour and is
- * not portable but happens to work usually.
+ * cache-friendly.
  *
  * Look at the generated code for functions which use assertion checks to see
- * the difference. It does not seem to make a significant difference in
- * performance overall though as it seems but that might be heavily
- * architecture-dependent.
+ * the difference.
  *
  * Taking advantage of it may require using -momit-leaf-frame-pointer or
  * -fomit-frame-pointer for GCC and an appropriate -march option is also
@@ -59,8 +53,11 @@
 #ifdef FAST_ASSERTIONS
 
 struct eject_point {
-	const gchar *line, *file, *expr;
+	volatile const gchar *line, *file, *expr;
 };
+
+extern void G_GNUC_NORETURN REGPARM(1) assertion_failure(gulong addr);
+extern volatile const struct eject_point *assert_point_;
 
 /**
  * eject_() is the userland equivalent of panic(). Don't use it directly,
@@ -69,22 +66,7 @@ struct eject_point {
 static inline G_GNUC_NORETURN NON_NULL_PARAM((1)) void
 eject_(const struct eject_point *eject_point_)
 {
-	extern const struct eject_point *assert_point_;
-
-	assert_point_ = eject_point_;
-
-	for (;;)	/* This is waste but without it you get warnings */
-#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-	{
-		/* This should raise a SIGTRAP with minimum code */
-		__asm__ __volatile__ ("int $03");
-	}
-#else
-	{
-		static volatile gint *assert_trigger_;
-		*assert_trigger_ = 0;	/* ignite a SIGSEGV */
-	}
-#endif /* GCC/x86 */
+	assertion_failure((gulong) eject_point_);
 }
 
 #define fast_assert(x) \

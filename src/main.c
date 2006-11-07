@@ -864,13 +864,14 @@ close_fds(gint fd)
 extern char **environ;
 
 #ifdef FAST_ASSERTIONS
-const struct eject_point *assert_point_;
+volatile const struct eject_point *assert_point_;
 
 static inline void
-print_str(const gchar *s)
+print_str(volatile const gchar *s)
 {
 	if (s) {
-		write(STDERR_FILENO, s, strlen(s));
+		const char *msg = (const char *) s;	/* de-volatile */
+		write(STDERR_FILENO, msg, strlen(msg));
 	}
 }
 
@@ -880,8 +881,8 @@ print_str(const gchar *s)
  * NOTE: The code inside must be signal-safe. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-static void
-assertion_failure(int signo)
+static G_GNUC_NORETURN void
+assertion_failure_handler(int signo)
 {
 	(void) signo;
 
@@ -909,6 +910,14 @@ assertion_failure(int signo)
 	}
 
 	raise(signo);
+	_exit(EXIT_FAILURE);
+}
+
+G_GNUC_NORETURN REGPARM(1) void
+assertion_failure(gulong addr)
+{
+	assert_point_ = (const struct eject_point *) addr;
+	assertion_failure_handler(SIGTRAP);
 }
 #endif	/* FAST_ASSERTIONS */
 
@@ -917,9 +926,9 @@ assertion_init(void)
 {
 #ifdef FAST_ASSERTIONS
 #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-	set_signal(SIGTRAP, assertion_failure);
+	set_signal(SIGTRAP, assertion_failure_handler);
 #else
-	set_signal(SIGSEGV, assertion_failure);
+	set_signal(SIGSEGV, assertion_failure_handler);
 #endif	/* GCC/x86 */
 #endif	/* FAST_ASSERTIONS */
 }
