@@ -864,74 +864,48 @@ close_fds(gint fd)
 extern char **environ;
 
 #ifdef FAST_ASSERTIONS
-volatile const struct eject_point *assert_point_;
-
-static inline void
-print_str(volatile const gchar *s)
-{
-	if (s) {
-		const char *msg = (const char *) s;	/* de-volatile */
-		write(STDERR_FILENO, msg, strlen(msg));
-	}
-}
 
 /**
- * This a SIGSEGV signal handler used for "fast" assertions.
- *
- * NOTE: The code inside must be signal-safe. See also:
+ * @note For maximum safety this is kept signal-safe, so that we can
+ *       even use assertions in signal handlers. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-static G_GNUC_NORETURN void
-assertion_failure_handler(int signo)
-{
-	(void) signo;
-
-	/* Prevent looping, if the following crashes. */
-	set_signal(signo, SIG_DFL);
-
-	if (!assert_point_) {
-		print_str(SIGSEGV == signo ? "\nSegmentation fault\n" : "\nTrap\n");
-	} else {
-		if (assert_point_->expr) {
-			print_str("\nAssertion failure (");
-		} else {
-			print_str("\nCode should not have been reached (");
-		}
-		print_str(assert_point_->file);
-		print_str(":");
-		print_str(assert_point_->line);
-		print_str(")");
-		if (assert_point_->expr) {
-			print_str(" \"");
-			print_str(assert_point_->expr);
-			print_str("\"");
-		}
-		print_str("\n");
-	}
-
-	raise(signo);
-	_exit(EXIT_FAILURE);
-}
-
 G_GNUC_NORETURN REGPARM(1) void
 assertion_failure(gulong addr)
 {
-	assert_point_ = (const struct eject_point *) addr;
-	assertion_failure_handler(SIGTRAP);
-}
-#endif	/* FAST_ASSERTIONS */
+	const struct eject_point *ep = (const struct eject_point *) addr;
+	struct iovec iov[16];
+	guint n = 0;
 
-static void
-assertion_init(void)
-{
-#ifdef FAST_ASSERTIONS
-#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-	set_signal(SIGTRAP, assertion_failure_handler);
-#else
-	set_signal(SIGSEGV, assertion_failure_handler);
-#endif	/* GCC/x86 */
-#endif	/* FAST_ASSERTIONS */
+#define print_str(x) \
+G_STMT_START { \
+	if (n < G_N_ELEMENTS(iov)) { \
+		const char *ptr = (x); \
+		iov[n].iov_base = (char *) ptr; \
+		iov[n].iov_len = strlen(ptr); \
+		n++; \
+	} \
+} G_STMT_END
+
+	if (ep->expr) {
+		print_str("\nAssertion failure (");
+	} else {
+		print_str("\nCode should not have been reached (");
+	}
+	print_str(ep->file);
+	print_str(":");
+	print_str(ep->line);
+	print_str(")");
+	if (ep->expr) {
+		print_str(" \"");
+		print_str(ep->expr);
+		print_str("\"");
+	}
+	print_str("\n");
+	writev(STDERR_FILENO, iov, n);
+	abort();
 }
+#endif	/* FAST_ASSERTIONS */
 
 enum main_arg {
 	main_arg_daemonize,
@@ -1111,7 +1085,6 @@ handle_arguments(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-	assertion_init();
 
 #ifdef FRAGCHECK
 	fragcheck_init();

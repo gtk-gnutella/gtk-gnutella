@@ -53,20 +53,19 @@
 #ifdef FAST_ASSERTIONS
 
 struct eject_point {
-	volatile const gchar *line, *file, *expr;
+	const gchar *line, *file, *expr;
 };
 
 extern void G_GNUC_NORETURN REGPARM(1) assertion_failure(gulong addr);
-extern volatile const struct eject_point *assert_point_;
 
 /**
  * eject_() is the userland equivalent of panic(). Don't use it directly,
  * it should only used by assertion checks.
  */
 static inline G_GNUC_NORETURN NON_NULL_PARAM((1)) void
-eject_(const struct eject_point *eject_point_)
+eject_(const struct eject_point *ep)
 {
-	assertion_failure((gulong) eject_point_);
+	assertion_failure((gulong) ep);
 }
 
 #define fast_assert(x) \
