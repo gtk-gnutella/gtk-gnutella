@@ -870,10 +870,9 @@ extern char **environ;
  *       even use assertions in signal handlers. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-G_GNUC_NORETURN REGPARM(1) void
-assertion_failure(gulong addr)
+void G_GNUC_NORETURN NON_NULL_PARAM((1)) REGPARM(1)
+assertion_failure(const struct eject_point * const ep)
 {
-	const struct eject_point *ep = (const struct eject_point *) addr;
 	struct iovec iov[16];
 	guint n = 0;
 

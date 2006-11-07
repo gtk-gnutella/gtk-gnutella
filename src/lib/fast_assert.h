@@ -56,17 +56,8 @@ struct eject_point {
 	const gchar *line, *file, *expr;
 };
 
-extern void G_GNUC_NORETURN REGPARM(1) assertion_failure(gulong addr);
-
-/**
- * eject_() is the userland equivalent of panic(). Don't use it directly,
- * it should only used by assertion checks.
- */
-static inline G_GNUC_NORETURN NON_NULL_PARAM((1)) void
-eject_(const struct eject_point *ep)
-{
-	assertion_failure((gulong) ep);
-}
+void G_GNUC_NORETURN NON_NULL_PARAM((1)) REGPARM(1)
+assertion_failure(const struct eject_point * const ep);
 
 #define fast_assert(x) \
 G_STMT_START { \
@@ -76,7 +67,7 @@ G_STMT_START { \
 			__FILE__, \
 			STRINGIFY(x) \
 		}; \
-		eject_(&eject_point_); \
+		assertion_failure(&eject_point_); \
 	} \
 } G_STMT_END
 
@@ -87,7 +78,7 @@ G_STMT_START { \
 		__FILE__, \
 		NULL, \
 	}; \
-	eject_(&eject_point_); \
+	assertion_failure(&eject_point_); \
 } G_STMT_END
 
 #undef g_assert
