@@ -2032,7 +2032,19 @@ download_has_enough_active_sources(struct download *d)
 {
 	guint n;
 
-	n = d->file_info->use_swarming ? max_simultaneous_downloads_per_file : 1;
+	if (d->file_info->use_swarming) {
+		filesize_t m = download_filesize(d) - download_filedone(d);
+
+		/*
+		 * Don't use more than one source per 16 kB because the HTTP
+		 * overhead becomes significant for small chunks.
+		 */
+		m /= 16000;
+		m = MAX(m, 1);
+		n = MIN(m, max_simultaneous_downloads_per_file);
+	} else {
+		n = 1;
+	}
 	return count_running_downloads_with_name(download_outname(d)) >= n;
 }
 
