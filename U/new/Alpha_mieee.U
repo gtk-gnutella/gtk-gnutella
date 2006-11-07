@@ -1,0 +1,26 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:Alpha_mieee: cat cc ccflags ldflags
+?MAKE:	-pick add $@ %<
+?F:!try.c !try
+?T:mieee
+?LINT:change ccflags
+: check whether -mieee should be used
+mieee='-mieee'
+echo " "
+echo "Checking whether $mieee should be used..." >&4
+$cat >try.c <<'EOC'
+int main(void)
+{
+	return 0;
+}
+EOC
+if $cc $ccflags $mieee $ldflags -o try try.c >/dev/null 2>&1
+then
+	echo "(Adding $mieee)"; ccflags="$ccflags $mieee"
+else
+	echo "(Could not compile the test program, not using $mieee)" >&4
+fi
+
