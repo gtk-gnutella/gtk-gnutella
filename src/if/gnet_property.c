@@ -646,8 +646,8 @@ guint32  oob_proxy_debug     = 0;
 guint32  oob_proxy_debug_def = 0;
 gboolean enable_local_socket     = TRUE;
 gboolean enable_local_socket_def = TRUE;
-guint32  max_simultaneous_downloads_per_file     = 20;
-guint32  max_simultaneous_downloads_per_file_def = 20;
+guint32  max_simultaneous_downloads_per_file     = 40;
+guint32  max_simultaneous_downloads_per_file_def = 40;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6198,7 +6198,7 @@ gnet_prop_init(void) {
     gnet_property->props[290].data.guint32.def   = &max_simultaneous_downloads_per_file_def;
     gnet_property->props[290].data.guint32.value = &max_simultaneous_downloads_per_file;
     gnet_property->props[290].data.guint32.choices = NULL;
-    gnet_property->props[290].data.guint32.max   = 256;
+    gnet_property->props[290].data.guint32.max   = INT_MAX;
     gnet_property->props[290].data.guint32.min   = 1;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);

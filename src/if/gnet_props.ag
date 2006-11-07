@@ -3377,9 +3377,9 @@ prop = {
     desc = "Don't start more than this number of parallel downloads per file.";
     type = guint32;
     data = {
-        default = 20;
+        default = 40;
         min     = 1;
-        max     = 256;
+        max     = INT_MAX;
     };
 };
 
