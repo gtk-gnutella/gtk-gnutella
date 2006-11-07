@@ -42,7 +42,7 @@
 
 size_t round_pagesize(size_t n);
 size_t compat_pagesize(void);
-gpointer alloc_pages(size_t size);
+gpointer alloc_pages(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void free_pages(gpointer p, size_t size);
 size_t prune_page_cache(void);
 

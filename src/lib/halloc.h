@@ -63,10 +63,10 @@ hrealloc(void *p, size_t o, size_t n)
 
 #else	/* !REMAP_ZALLOC */
 
-void *halloc(size_t size);
-void *halloc0(size_t size);
+void *halloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void hfree(void *ptr);
-void *hrealloc(void *old, size_t size);
+void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void halloc_init(void);
 void hdestroy(void);
 #endif	/* REMAP_ZALLOC */

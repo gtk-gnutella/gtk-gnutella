@@ -103,12 +103,14 @@ wrealloc(gpointer p, size_t o, size_t n)
 #else	/* !REMAP_ZALLOC */
 
 gpointer walloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-WARN_UNUSED_RESULT G_GNUC_MALLOC gpointer walloc0(size_t size);
+gpointer walloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void wfree(gpointer ptr, size_t size);
-WARN_UNUSED_RESULT G_GNUC_MALLOC gpointer wrealloc(gpointer old,
-									size_t old_size, size_t new_size);
+gpointer wrealloc(gpointer old, size_t old_size, size_t new_size)
+			WARN_UNUSED_RESULT G_GNUC_MALLOC;
+static inline gpointer wcopy(gconstpointer ptr, size_t size)
+			WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
-static inline WARN_UNUSED_RESULT G_GNUC_MALLOC gpointer
+static inline gpointer
 wcopy(gconstpointer ptr, size_t size)
 {
 	gpointer cp = walloc(size);
