@@ -87,9 +87,9 @@ size_t strlcat(gchar *dst, const gchar *src, size_t dst_size);
 #endif
 
 size_t concat_strings(gchar *dst, size_t size,
-	const gchar *s, ...) WARN_NEED_SENTINEL;
+	const gchar *s, ...) G_GNUC_NULL_TERMINATED;
 size_t w_concat_strings(gchar **dst,
-	const gchar *first, ...) WARN_NEED_SENTINEL;
+	const gchar *first, ...) G_GNUC_NULL_TERMINATED;
 
 gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
 gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);

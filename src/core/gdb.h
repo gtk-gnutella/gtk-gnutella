@@ -71,7 +71,7 @@ int gdb_stmt_bind_int64(struct gdb_stmt *db_stmt, int n, gint64 value);
 gint64 gdb_stmt_column_int64(struct gdb_stmt *db_stmt, int n);
 int gdb_stmt_finalize(struct gdb_stmt **db_stmt);
 int gdb_declare_types(const char *table,
-		const char *first_column, ...) WARN_NEED_SENTINEL;
+		const char *first_column, ...) G_GNUC_NULL_TERMINATED;
 
 #else	/* !HAS_SQLITE */
 #define gdb_init()

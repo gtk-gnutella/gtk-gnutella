@@ -475,11 +475,13 @@ G_STMT_START {			\
 
 /* Functions using this attribute cause a warning if the variable
  * argument list does not contain a NULL pointer. */
+#ifndef G_GNUC_NULL_TERMINATED
 #if HAVE_GCC(4, 0)
-#define WARN_NEED_SENTINEL __attribute__((sentinel))
-#else /* GCC < 4 */
-#define WARN_NEED_SENTINEL
-#endif /* GCC >= 4 */
+#define G_GNUC_NULL_TERMINATED __attribute__((__sentinel__))
+#else	/* GCC < 4 */
+#define G_GNUC_NULL_TERMINATED
+#endif	/* GCC >= 4 */
+#endif	/* G_GNUC_NULL_TERMINATED */
 
 /* Define G_LIKELY() and G_UNLIKELY() so that they are available when
  * using GLib 1.2 as well. These allow optimization by static branch
@@ -501,6 +503,12 @@ G_STMT_START {			\
 #define G_GNUC_MALLOC
 #endif	/* GCC >= 3.0 */
 #endif	/* G_GNUC_MALLOC */
+
+#if HAVE_GCC(3, 0)
+#define REGPARM(n)	__attribute__((__regparm__((n))))
+#else
+#define REGPARM(n)
+#endif	/* GCC >= 3.0 */
 
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
