@@ -16,6 +16,7 @@ U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
 U/modified/prototype.U
+U/new/Alpha_mieee.U
 U/new/Largefile.U
 U/new/Sendfile64.U
 U/new/d_bindtxtcode.U
@@ -509,6 +510,7 @@ src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c
 src/lib/event.h
+src/lib/fast_assert.c
 src/lib/fast_assert.h
 src/lib/fifo.c
 src/lib/fifo.h

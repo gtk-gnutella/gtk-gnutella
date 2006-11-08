@@ -2,25 +2,32 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:Alpha_mieee: cat cc ccflags ldflags
+?MAKE:Alpha_mieee: cat cc ccflags ldflags rm
 ?MAKE:	-pick add $@ %<
 ?F:!try.c !try
-?T:mieee
+?T:flag
 ?LINT:change ccflags
 : check whether -mieee should be used
-mieee='-mieee'
+flag='-mieee'
 echo " "
-echo "Checking whether $mieee should be used..." >&4
+echo "Checking whether $flag should be used..." >&4
 $cat >try.c <<'EOC'
 int main(void)
 {
+#if defined(__GNUC__) && (defined(_alpha) || defined(__alpha__))
 	return 0;
+#else
+	switch (sizeof(int[-23])) { case 1: case 1: }
+#endif
 }
 EOC
-if $cc $ccflags $mieee $ldflags -o try try.c >/dev/null 2>&1
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1
 then
-	echo "(Adding $mieee)"; ccflags="$ccflags $mieee"
-else
-	echo "(Could not compile the test program, not using $mieee)" >&4
+	$rm -f try
+	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
+	then
+		echo "(Adding $flag)"; ccflags="$ccflags $flag"
+	fi
 fi
+$rm -f try try.c
 
