@@ -284,13 +284,6 @@ skip_ascii_blanks(const gchar *s)
 #define CONST_STRLEN(x) (sizeof(x) - 1)
 
 /*
- * Array size determination
- */
-#ifndef G_N_ELEMENTS
-#define G_N_ELEMENTS(arr) (sizeof (arr) / sizeof ((arr)[0]))
-#endif
-
-/*
  * Set/clear binary flags
  */
 typedef guint16 flag_t;

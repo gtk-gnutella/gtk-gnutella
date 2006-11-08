@@ -329,6 +329,13 @@ typedef void (*GCallback) (void);
 #endif
 
 /*
+ * Array size determination
+ */
+#ifndef G_N_ELEMENTS
+#define G_N_ELEMENTS(arr) (sizeof (arr) / sizeof ((arr)[0]))
+#endif
+
+/*
  * Portability macros.
  */
 
