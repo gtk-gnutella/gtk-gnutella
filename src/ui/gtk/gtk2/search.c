@@ -1664,13 +1664,15 @@ search_gui_init(void)
 
 	search_gui_common_init();
 	
+	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view_search),
+		GTK_SELECTION_MULTIPLE);
 	g_signal_connect(GTK_OBJECT(tree_view_search), "button_press_event",
 		G_CALLBACK(on_tree_view_search_button_press_event), NULL);
 
 	gtk_tree_view_set_model(tree_view_search, create_searches_model());
 	add_list_columns(tree_view_search);
 	g_signal_connect(G_OBJECT(tree_view_search), "cursor-changed",
-		G_CALLBACK(on_tree_view_search_select_row), NULL);
+		G_CALLBACK(on_tree_view_search_cursor_changed), NULL);
 
 	gui_search_create_tree_view(&default_scrolled_window,
 		&default_search_tree_view, NULL);
@@ -1894,15 +1896,12 @@ search_gui_set_current_search(search_t *sch)
         gtk_widget_set_sensitive(GTK_WIDGET(button_search_clear),
             sch->items != 0);
         gtk_widget_set_sensitive(
-            gui_popup_search_list_lookup("popup_search_restart"),
+            gui_popup_search_lookup("popup_search_restart"),
 		   	active);
         gtk_widget_set_sensitive(
-            gui_popup_search_list_lookup("popup_search_duplicate"),
-			active);
+            gui_popup_search_lookup("popup_search_stop"), !frozen);
         gtk_widget_set_sensitive(
-            gui_popup_search_list_lookup("popup_search_stop"), !frozen);
-        gtk_widget_set_sensitive(
-            gui_popup_search_list_lookup("popup_search_resume"), frozen);
+            gui_popup_search_lookup("popup_search_resume"), frozen);
 
 		model = gtk_tree_view_get_model(tree_view_search);
 		if (tree_find_iter_by_data(model, c_sl_sch, sch, &iter)) {
@@ -1916,7 +1915,6 @@ search_gui_set_current_search(search_t *sch)
     } else {
 		static const gchar * const popup_items[] = {
 			"popup_search_restart",
-			"popup_search_duplicate",
 			"popup_search_stop",
 			"popup_search_resume",
 		};
@@ -1930,7 +1928,7 @@ search_gui_set_current_search(search_t *sch)
 
 		for (i = 0; i < G_N_ELEMENTS(popup_items); i++) {
        		gtk_widget_set_sensitive(
-            	gui_popup_search_list_lookup(popup_items[i]), FALSE);
+            	gui_popup_search_lookup(popup_items[i]), FALSE);
 		}
     }
 	search_gui_current_search(sch);

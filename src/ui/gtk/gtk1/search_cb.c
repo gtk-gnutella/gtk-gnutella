@@ -1036,25 +1036,11 @@ void
 on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-    guint32 timeout;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    gnet_prop_get_guint32_val
-		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-
-    search = search_gui_get_current_search();
-    /* FIXME: should also duplicate filters! */
-    /* FIXME: should call search_duplicate which has to be written. */
-    /* FIXME: should properly duplicate passive searches. */
-	if (search)
-		search_gui_new_search_full(search->query, tm_time(), search_lifetime,
-			timeout, search->sort_col, search->sort_order,
-			search->enabled ? SEARCH_F_ENABLED : 0, NULL);
+	search_gui_duplicate_search(search_gui_get_current_search());
 }
-
 
 /**
  *	Please add comment
@@ -1063,14 +1049,10 @@ void
 on_popup_search_restart_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    search = search_gui_get_current_search();
-	if (search)
-		search_gui_restart_search(search);
+	search_gui_restart_search(search_gui_get_current_search());
 }
 
 /**
@@ -1080,16 +1062,10 @@ void
 on_popup_search_resume_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    search = search_gui_get_current_search();
-	if (search && !search_gui_is_expired(search)) {
-		gui_search_set_enabled(search, TRUE);
-		search_gui_update_expiry(search);
-	}
+	search_gui_resume_search(search_gui_get_current_search());
 }
 
 /**
@@ -1099,16 +1075,10 @@ void
 on_popup_search_stop_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    search = search_gui_get_current_search();
-	if (search) {
-		gui_search_set_enabled(search, FALSE);
-		search_gui_update_expiry(search);
-	}
+	search_gui_stop_search(search_gui_get_current_search());
 }
 
 
@@ -1146,7 +1116,6 @@ on_popup_search_expand_all_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search_gui_expand_all();
-
 }
 
 /**

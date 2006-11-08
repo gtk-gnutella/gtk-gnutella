@@ -168,7 +168,7 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);
 void search_gui_set_sort_defaults(void);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
-void search_gui_restart_search(search_t *sch);
+
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
 void search_gui_flush(time_t now, gboolean force);
 struct query *search_gui_handle_query(const gchar *query_str, flag_t flags,
@@ -199,6 +199,11 @@ gchar *search_xml_indent(const gchar *s);
 void on_option_menu_search_changed(GtkOptionMenu *option_menu, gpointer unused_udata);
 
 gint search_gui_cmp_sha1s(const gchar *a, const gchar *b);
+
+void search_gui_duplicate_search(search_t *search);
+void search_gui_restart_search(search_t *search);
+void search_gui_resume_search(search_t *search);
+void search_gui_stop_search(search_t *search);
 
 #endif /* _gtk_search_common_h_ */
 

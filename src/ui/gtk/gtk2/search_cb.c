@@ -116,21 +116,21 @@ refresh_popups(void)
 
     if (search) {
         gtk_widget_set_sensitive(
-            gui_popup_search_list_lookup("popup_search_stop"),
+            gui_popup_search_lookup("popup_search_stop"),
 			!guc_search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
-			gui_popup_search_list_lookup("popup_search_resume"),
+			gui_popup_search_lookup("popup_search_resume"),
 			guc_search_is_frozen(search->search_handle)
 				&& !search_gui_is_expired(search));
 		if (search->passive)
 			gtk_widget_set_sensitive(
-				gui_popup_search_list_lookup("popup_search_restart"),
+				gui_popup_search_lookup("popup_search_restart"),
 				FALSE);
     } else {
 		gtk_widget_set_sensitive(
-			gui_popup_search_list_lookup("popup_search_stop"), FALSE);
+			gui_popup_search_lookup("popup_search_stop"), FALSE);
 		gtk_widget_set_sensitive(
-			gui_popup_search_list_lookup("popup_search_resume"), FALSE);
+			gui_popup_search_lookup("popup_search_resume"), FALSE);
     }
 }
 
@@ -238,26 +238,33 @@ on_search_notebook_focus_tab(GtkNotebook *notebook, GtkNotebookTab unused_tab,
 }
 
 void
-on_tree_view_search_select_row(GtkTreeView *treeview, gpointer unused_udata)
+on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 {
-	GtkTreeSelection *selection;
-	GtkTreeModel *model;
+	GtkTreePath *path = NULL;
 	GtkTreeIter iter;
-	search_t *sch;
 
 	(void) unused_udata;
-	g_assert(treeview != NULL);
-	selection = gtk_tree_view_get_selection(treeview);
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gtk_tree_model_get(model, &iter, c_sl_sch, &sch, (-1));
 
-		g_return_if_fail(NULL != sch);
-
-		gtk_notebook_set_page(
-			GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
-			nb_main_page_search);
-		search_gui_set_current_search(sch);
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path) {
+		return;
 	}
+	if (gtk_tree_model_get_iter(gtk_tree_view_get_model(tv), &iter, path)) {
+		gpointer ptr = NULL;
+
+		gtk_tree_model_get(gtk_tree_view_get_model(tv),
+			&iter, c_sl_sch, &ptr, (-1));
+
+		if (ptr) {
+			search_t *sch = ptr;
+
+			gtk_notebook_set_page(
+				GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
+				nb_main_page_search);
+			search_gui_set_current_search(sch);
+		}
+	}
+	gtk_tree_path_free(path);
 }
 
 void
@@ -290,16 +297,6 @@ void
 on_button_search_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
 	(void) unused_button;
-	(void) unused_udata;
-
-	search_gui_close_search(search_gui_get_current_search());
-}
-
-void
-on_popup_search_close_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
 	(void) unused_udata;
 
 	search_gui_close_search(search_gui_get_current_search());
@@ -776,6 +773,16 @@ on_button_search_passive_clicked(GtkButton *unused_button,
  ***/
 
 void
+on_popup_search_close_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	search_gui_close_search(search_gui_get_current_search());
+}
+
+void
 on_popup_search_download_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
@@ -845,7 +852,8 @@ on_popup_search_drop_host_activate(GtkMenuItem *unused_menuitem,
     g_slist_free(sl);
 }
 
-void on_popup_search_drop_name_global_activate(GtkMenuItem *unused_menuitem,
+void
+on_popup_search_drop_name_global_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
     search_t *search;
@@ -921,70 +929,40 @@ void
 on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-    guint32 timeout;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-
-    search = search_gui_get_current_search();
-    g_return_if_fail(NULL != search);
-
-    /* FIXME: should also duplicate filters! */
-    /* FIXME: should call search_duplicate which has to be written. */
-    /* FIXME: should properly duplicate passive searches. */
-
-	search_gui_new_search_full(search->query, tm_time(), search_lifetime,
-		timeout, search->sort_col, search->sort_order,
-		search->enabled ? SEARCH_F_ENABLED : 0, NULL);
+    search_gui_duplicate_search(search_gui_get_current_search());
 }
 
 void
 on_popup_search_restart_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    search = search_gui_get_current_search();
-	g_return_if_fail(NULL != search);
-	search_gui_restart_search(search);
+	search_gui_restart_search(search_gui_get_current_search());
 }
 
 void
 on_popup_search_resume_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    search = search_gui_get_current_search();
-    g_return_if_fail(NULL != search);
-	if (!search_gui_is_expired(search)) {
-		gui_search_set_enabled(search, TRUE);
-		search_gui_update_expiry(search);
-	}
+    search_gui_resume_search(search_gui_get_current_search());
 }
 
 void
 on_popup_search_stop_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    search_t *search;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    search = search_gui_get_current_search();
-    g_return_if_fail(NULL != search);
-	gui_search_set_enabled(search, FALSE);
-	search_gui_update_expiry(search);
+    search_gui_stop_search(search_gui_get_current_search());
 }
 
 void
@@ -1027,6 +1005,147 @@ on_popup_search_collapse_all_activate (GtkMenuItem *unused_menuitem,
 	search_gui_collapse_all();
 }
 
+/***
+ *** Search list popup
+ ***/
+
+static void
+search_gui_get_selected_searches_helper(GtkTreeModel *model,
+	GtkTreePath *unused_path, GtkTreeIter *iter, gpointer data)
+{
+	gpointer p = NULL;
+
+	(void) unused_path;
+	g_assert(data);
+
+	gtk_tree_model_get(model, iter, c_sl_sch, &p, (-1));
+	if (p) {
+		GSList **sl_ptr = data;
+		*sl_ptr = g_slist_prepend(*sl_ptr, p);
+	}
+}
+
+static GSList *
+search_gui_get_selected_searches(void)
+{
+	GSList *searches = NULL;
+	GtkTreeView *tv;
+
+    tv = GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
+	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(tv),
+		search_gui_get_selected_searches_helper, &searches);
+	return searches;
+}
+
+void
+on_popup_search_list_close_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+	GtkTreeView *tv;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    tv = GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
+	g_object_freeze_notify(G_OBJECT(tv));
+	g_object_freeze_notify(G_OBJECT(gtk_tree_view_get_model(tv)));
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_close_search(sl->data);
+	}
+	g_slist_free(searches);
+	g_object_thaw_notify(G_OBJECT(tv));
+	g_object_thaw_notify(G_OBJECT(gtk_tree_view_get_model(tv)));
+}
+
+void
+on_popup_search_list_restart_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_restart_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_resume_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_resume_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_clear_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_clear_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_stop_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_stop_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_duplicate_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GtkTreeView *tv;
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    tv = GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
+	g_object_freeze_notify(G_OBJECT(tv));
+	g_object_freeze_notify(G_OBJECT(gtk_tree_view_get_model(tv)));
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_duplicate_search(sl->data);
+	}
+	g_slist_free(searches);
+	g_object_thaw_notify(G_OBJECT(tv));
+	g_object_thaw_notify(G_OBJECT(gtk_tree_view_get_model(tv)));
+}
 
 /**
  * Queue a bitzi query.

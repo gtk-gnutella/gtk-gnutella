@@ -1639,26 +1639,6 @@ search_gui_flush(time_t now, gboolean force)
 }
 
 /**
- * Restart a search from scratch, clearing all existing content.
- */
-void
-search_gui_restart_search(search_t *sch)
-{
-	if (!sch->enabled)
-		gui_search_set_enabled(sch, TRUE);
-	search_gui_reset_search(sch);
-	sch->items = sch->unseen_items = sch->hidden = 0;
-	sch->tcp_qhits = sch->udp_qhits = 0;
-	sch->skipped = sch->ignored = sch->auto_downloaded = sch->duplicates = 0;
-
-	search_gui_update_items(sch);
-	guc_search_set_create_time(sch->search_handle, tm_time());
-	guc_search_update_items(sch->search_handle, sch->items);
-	guc_search_reissue(sch->search_handle);
-	search_gui_update_expiry(sch);
-}
-
-/**
  * Parse the given query text and looks for negative patterns. That means
  * "blah -zadda" will be converted to "blah" and a word filter is added
  * to discard results matching "zadda". A minus followed by a space or
@@ -2388,4 +2368,62 @@ search_gui_cmp_sha1s(const gchar *a, const gchar *b)
 	}
 }
 
+void
+search_gui_duplicate_search(search_t *search)
+{
+    guint32 timeout;
+
+	g_return_if_fail(search);
+
+    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
+
+    /* FIXME: should also duplicate filters! */
+    /* FIXME: should call search_duplicate which has to be written. */
+    /* FIXME: should properly duplicate passive searches. */
+
+	search_gui_new_search_full(search->query, tm_time(), search_lifetime,
+		timeout, search->sort_col, search->sort_order,
+		search->enabled ? SEARCH_F_ENABLED : 0, NULL);
+}
+
+/**
+ * Restart a search from scratch, clearing all existing content.
+ */
+void
+search_gui_restart_search(search_t *sch)
+{
+	if (!sch->enabled)
+		gui_search_set_enabled(sch, TRUE);
+	search_gui_reset_search(sch);
+	sch->items = sch->unseen_items = sch->hidden = 0;
+	sch->tcp_qhits = sch->udp_qhits = 0;
+	sch->skipped = sch->ignored = sch->auto_downloaded = sch->duplicates = 0;
+
+	search_gui_update_items(sch);
+	guc_search_set_create_time(sch->search_handle, tm_time());
+	guc_search_update_items(sch->search_handle, sch->items);
+	guc_search_reissue(sch->search_handle);
+	search_gui_update_expiry(sch);
+}
+
+void
+search_gui_resume_search(search_t *search)
+{
+	g_return_if_fail(search);
+
+	if (!search_gui_is_expired(search)) {
+		gui_search_set_enabled(search, TRUE);
+		search_gui_update_expiry(search);
+	}
+}
+
+void
+search_gui_stop_search(search_t *search)
+{
+	g_return_if_fail(search);
+
+	gui_search_set_enabled(search, FALSE);
+	search_gui_update_expiry(search);
+}
+	
 /* vi: set ts=4 sw=4 cindent: */

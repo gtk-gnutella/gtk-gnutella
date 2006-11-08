@@ -34,7 +34,7 @@ void on_entry_search_changed(GtkEditable *editable, gpointer unused_udata);
 void on_search_popdown_switch(GtkWidget * w, gpointer data);
 void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, gint page_num, gpointer user_data);
 void on_search_notebook_focus_tab(GtkNotebook * notebook, GtkNotebookTab arg1, gpointer user_data);
-void on_tree_view_search_select_row(GtkTreeView * tree_view, gpointer user_data);
+void on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer user_data);
 void on_search_selected(GtkItem * i, gpointer data);
 void on_button_search_clicked(GtkButton *button, gpointer user_data);
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data);
@@ -68,8 +68,6 @@ void on_popup_search_drop_host_activate(GtkMenuItem *menuitem, gpointer user_dat
 void on_popup_search_drop_name_global_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_drop_sha1_global_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_drop_host_global_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_search_autodownload_name_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_search_autodownload_sha1_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_edit_filter_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_clear_results_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_close_activate(GtkMenuItem *menuitem, gpointer user_data);
@@ -78,11 +76,21 @@ void on_popup_search_restart_activate(GtkMenuItem *menuitem, gpointer user_data)
 void on_popup_search_resume_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_stop_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_config_cols_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_expand_all_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_collapse_all_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_copy_magnet_activate(GtkMenuItem *menuitem, gpointer user_data);
+
+/***
+ *** Search list popup
+ ***/
+void on_popup_search_list_clear_results_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_list_close_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_list_duplicate_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_list_restart_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_list_resume_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_list_stop_activate(GtkMenuItem *menuitem, gpointer user_data);
+
 
 gpointer search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter);
 gboolean search_gui_update_rank(GtkTreeModel *model,
