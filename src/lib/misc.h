@@ -437,9 +437,9 @@ gchar *base32_sha1(const gchar *base32);
 /*
  * TTH <-> base32 string conversion
  */
-struct tth {
+typedef struct tth {
 	guchar data[TTH_RAW_SIZE];
-};
+} tth_t;
 
 const gchar *tth_base32(const struct tth *tth);
 const struct tth *base32_tth(const gchar *base32);
