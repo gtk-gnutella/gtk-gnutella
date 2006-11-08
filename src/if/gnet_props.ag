@@ -2525,9 +2525,9 @@ prop = {
 		"gtk-gnutella nodes.";
 	type = guint32;
 	data = {
-		default = 20;
+		default = 0;
 		min = 0;
-		max = 90;
+		max = 100;
 	};
 };
 
@@ -2536,8 +2536,8 @@ prop = {
 	desc = "Maximum percentage of slots a vendor can occupy.";
 	type = guint32;
 	data = {
-		default = 90;
-		min = 10;
+		default = 0;
+		min = 0;
 		max = 100;
 	};
 };

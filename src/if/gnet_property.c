@@ -498,10 +498,10 @@ gchar   *server_hostname     = "";
 gchar   *server_hostname_def = "";
 gboolean give_server_hostname     = FALSE;
 gboolean give_server_hostname_def = FALSE;
-guint32  reserve_gtkg_nodes     = 20;
-guint32  reserve_gtkg_nodes_def = 20;
-guint32  unique_nodes     = 90;
-guint32  unique_nodes_def = 90;
+guint32  reserve_gtkg_nodes     = 0;
+guint32  reserve_gtkg_nodes_def = 0;
+guint32  unique_nodes     = 0;
+guint32  unique_nodes_def = 0;
 guint32  download_rx_size     = 64;
 guint32  download_rx_size_def = 64;
 guint32  node_rx_size     = 16;
@@ -4807,7 +4807,7 @@ gnet_prop_init(void) {
     gnet_property->props[216].data.guint32.def   = &reserve_gtkg_nodes_def;
     gnet_property->props[216].data.guint32.value = &reserve_gtkg_nodes;
     gnet_property->props[216].data.guint32.choices = NULL;
-    gnet_property->props[216].data.guint32.max   = 90;
+    gnet_property->props[216].data.guint32.max   = 100;
     gnet_property->props[216].data.guint32.min   = 0;
 
 
@@ -4828,7 +4828,7 @@ gnet_prop_init(void) {
     gnet_property->props[217].data.guint32.value = &unique_nodes;
     gnet_property->props[217].data.guint32.choices = NULL;
     gnet_property->props[217].data.guint32.max   = 100;
-    gnet_property->props[217].data.guint32.min   = 10;
+    gnet_property->props[217].data.guint32.min   = 0;
 
 
     /*
