@@ -35,8 +35,8 @@
  * up to (pagesize - 1) per allocation. The advantage is that the pages
  * will be unmapped on hfree().
  *
- * Define USE_CUSTOM_ALLOCATOR to override the default memory allocation
- * functions used by GLib.
+ * Define USE_MALLOC to use the default memory allocation functions used
+ * by GLib instead of mapping them to halloc().
  *
  * @author Christian Biere
  * @date 2006
@@ -60,11 +60,9 @@ RCSID("$Id$")
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
  */
 
-#ifndef REMAP_ZALLOC
-
-#if 1
-#define USE_CUSTOM_ALLOCATOR 1
-#endif
+#ifdef REMAP_ZALLOC
+#define USE_MALLOC
+#endif	/* !REMAP_ZALLOC */
 
 static hash_table_t *hallocations;
 
@@ -180,7 +178,7 @@ halloc_init(void)
 	RUNTIME_ASSERT(!hallocations);
 	hallocations = hash_table_new();
 
-#ifdef USE_CUSTOM_ALLOCATOR
+#ifndef USE_MALLOC
 	{
 		static GMemVTable vtable;
 
@@ -190,9 +188,7 @@ halloc_init(void)
 
 		g_mem_set_vtable(&vtable);
 	}
-#endif	/* USE_CUSTOM_ALLOCATOR */
+#endif	/* !USE_MALLOC */
 }
-
-#endif	/* !REMAP_ZALLOC */
 
 /* vi: set ts=4 sw=4 cindent: */
