@@ -4807,7 +4807,7 @@ gnet_prop_init(void) {
     gnet_property->props[216].data.guint32.def   = &reserve_gtkg_nodes_def;
     gnet_property->props[216].data.guint32.value = &reserve_gtkg_nodes;
     gnet_property->props[216].data.guint32.choices = NULL;
-    gnet_property->props[216].data.guint32.max   = 100;
+    gnet_property->props[216].data.guint32.max   = 90;
     gnet_property->props[216].data.guint32.min   = 0;
 
 
@@ -4828,7 +4828,7 @@ gnet_prop_init(void) {
     gnet_property->props[217].data.guint32.value = &unique_nodes;
     gnet_property->props[217].data.guint32.choices = NULL;
     gnet_property->props[217].data.guint32.max   = 100;
-    gnet_property->props[217].data.guint32.min   = 0;
+    gnet_property->props[217].data.guint32.min   = 10;
 
 
     /*
