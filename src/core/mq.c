@@ -155,6 +155,8 @@ mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line)
 	gint qlink_alive = 0;
 	gint n;
 
+	g_assert(q);
+
 	if (qown == NULL)
 		qown = g_hash_table_new(NULL, NULL);
 
