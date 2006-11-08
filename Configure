@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Nov  7 05:40:21 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Wed Nov  8 02:19:11 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8066,6 +8066,30 @@ EOC
 	echo "No <sys/sendfile.h>, sendfile() should be safe with large files." >&4
 	;;
 esac
+
+: check whether -mieee should be used
+flag='-mieee'
+echo " "
+echo "Checking whether $flag should be used..." >&4
+$cat >try.c <<'EOC'
+int main(void)
+{
+#if defined(__GNUC__) && (defined(_alpha) || defined(__alpha__))
+	return 0;
+#else
+	switch (sizeof(int[-23])) { case 1: case 1: }
+#endif
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1
+then
+	$rm -f try
+	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
+	then
+		echo "(Adding $flag)"; ccflags="$ccflags $flag"
+	fi
+fi
+$rm -f try try.c
 
 : end of configuration questions
 echo " "
