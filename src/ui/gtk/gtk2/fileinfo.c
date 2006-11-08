@@ -101,10 +101,10 @@ fi_gui_clear_data(struct fileinfo_data *data)
 {
 	atom_str_free_null(&data->filename);
 	G_FREE_NULL(data->status);
-	G_FREE_NULL(data->download.range);
 	if (data->is_download) {
 		atom_str_free_null(&data->download.vendor);
 		atom_str_free_null(&data->download.hostname);
+		G_FREE_NULL(data->download.range);
 	}
 }
 
