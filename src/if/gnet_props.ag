@@ -2536,7 +2536,7 @@ prop = {
 	desc = "Maximum percentage of slots a vendor can occupy.";
 	type = guint32;
 	data = {
-		default = 0;
+		default = 100;
 		min = 0;
 		max = 100;
 	};
