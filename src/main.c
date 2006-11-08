@@ -863,49 +863,6 @@ close_fds(gint fd)
 
 extern char **environ;
 
-#ifdef FAST_ASSERTIONS
-
-/**
- * @note For maximum safety this is kept signal-safe, so that we can
- *       even use assertions in signal handlers. See also:
- * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
- */
-void G_GNUC_NORETURN NON_NULL_PARAM((1)) REGPARM(1)
-assertion_failure(const struct eject_point * const ep)
-{
-	struct iovec iov[16];
-	guint n = 0;
-
-#define print_str(x) \
-G_STMT_START { \
-	if (n < G_N_ELEMENTS(iov)) { \
-		const char *ptr = (x); \
-		iov[n].iov_base = (char *) ptr; \
-		iov[n].iov_len = strlen(ptr); \
-		n++; \
-	} \
-} G_STMT_END
-
-	if (ep->expr) {
-		print_str("\nAssertion failure (");
-	} else {
-		print_str("\nCode should not have been reached (");
-	}
-	print_str(ep->file);
-	print_str(":");
-	print_str(ep->line);
-	print_str(")");
-	if (ep->expr) {
-		print_str(" \"");
-		print_str(ep->expr);
-		print_str("\"");
-	}
-	print_str("\n");
-	writev(STDERR_FILENO, iov, n);
-	abort();
-}
-#endif	/* FAST_ASSERTIONS */
-
 enum main_arg {
 	main_arg_daemonize,
 	main_arg_geometry,

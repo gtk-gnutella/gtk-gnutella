@@ -97,6 +97,7 @@ LSRC = \
 	dbus_util.c \
 	eval.c \
 	event.c \
+	fast_assert.c \
 	fifo.c \
 	file.c \
 	fragcheck.c \
@@ -151,6 +152,7 @@ LOBJ = \
 	dbus_util.o \
 	eval.o \
 	event.o \
+	fast_assert.o \
 	fifo.o \
 	file.o \
 	fragcheck.o \

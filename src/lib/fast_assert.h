@@ -52,47 +52,74 @@
 
 #ifdef FAST_ASSERTIONS
 
-struct eject_point {
+typedef struct assertion_data {
 	const gchar *line, *file, *expr;
-};
+} assertion_data;
 
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) REGPARM(1)
-assertion_failure(const struct eject_point * const ep);
+assertion_failure(const assertion_data * const data);
 
-#define fast_assert(x) \
+void NON_NULL_PARAM((1)) REGPARM(1)
+assertion_warning(const assertion_data * const data);
+
+#define fast_assert(expr) \
 G_STMT_START { \
-	if (G_UNLIKELY(!(x))) { \
-		static const struct eject_point eject_point_ = { \
-			STRINGIFY(__LINE__), \
-			__FILE__, \
-			STRINGIFY(x) \
+	if (G_UNLIKELY(!(expr))) { \
+		static const struct assertion_data assertion_data_ = { \
+			STRINGIFY(__LINE__), __FILE__, STRINGIFY(expr) \
 		}; \
-		assertion_failure(&eject_point_); \
+		assertion_failure(&assertion_data_); \
 	} \
 } G_STMT_END
 
 #define fast_assert_not_reached() \
 G_STMT_START { \
-	static const struct eject_point eject_point_ = { \
-		STRINGIFY(__LINE__), \
-		__FILE__, \
-		NULL, \
+	static const struct assertion_data assertion_data_ = { \
+		STRINGIFY(__LINE__), __FILE__, NULL, \
 	}; \
-	assertion_failure(&eject_point_); \
+	assertion_failure(&assertion_data_); \
 } G_STMT_END
 
-#undef g_assert
-#undef g_assert_not_reached
+#define return_unless(expr) \
+G_STMT_START { \
+	if (G_UNLIKELY(!(expr))) { \
+		static const struct assertion_data assertion_data_ = { \
+			STRINGIFY(__LINE__), __FILE__, STRINGIFY(expr) \
+		}; \
+		assertion_warning(&assertion_data_); \
+		return; \
+	} \
+} G_STMT_END
 
-#define g_assert(x) fast_assert(x)
+#define return_val_unless(expr, val) \
+G_STMT_START { \
+	if (G_UNLIKELY(!(expr))) { \
+		static const struct assertion_data assertion_data_ = { \
+			STRINGIFY(__LINE__), __FILE__, STRINGIFY(expr) \
+		}; \
+		assertion_warning(&assertion_data_); \
+		return (val); \
+	} \
+} G_STMT_END
+
+#define RUNTIME_ASSERT(expr) fast_assert(expr)
+#define RUNTIME_UNREACHABLE(expr) fast_assert_not_reached(expr)
+
+#undef g_assert
+#define g_assert(expr) fast_assert(expr)
+
+#undef g_assert_not_reached
 #define g_assert_not_reached() fast_assert_not_reached()
 
-#define RUNTIME_ASSERT(x) fast_assert(x)
-#define RUNTIME_UNREACHABLE(x) fast_assert_not_reached(x)
+#undef g_return_if_fail
+#define g_return_if_fail(expr) return_unless(expr)
+
+#undef g_return_val_if_fail
+#define g_return_val_if_fail(expr, val) return_val_unless((expr), (val))
 
 #else	/* !FAST_ASSERTIONS */
-#define RUNTIME_ASSERT(x) assert(x)
-#define RUNTIME_UNREACHABLE(x) assert(!"reached")
+#define RUNTIME_ASSERT(expr) assert(expr)
+#define RUNTIME_UNREACHABLE(expr) assert(!"reached")
 #endif /* FAST_ASSERTIONS */
 
 #endif /* _fast_assert_h_ */

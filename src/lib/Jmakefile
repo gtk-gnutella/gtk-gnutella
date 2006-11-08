@@ -41,6 +41,7 @@ LSRC = \
 	dbus_util.c \
 	eval.c \
 	event.c \
+	fast_assert.c \
 	fifo.c \
 	file.c \
 	fragcheck.c \
