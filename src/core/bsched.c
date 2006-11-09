@@ -2466,7 +2466,9 @@ bsched_timer(void)
 static gboolean
 true_expr(const gchar *expr)
 {
-	g_message("%s", expr);
+	if (dbg > 0) {
+		g_message("%s", expr);
+	}
 	return TRUE;
 }
 
