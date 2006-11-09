@@ -454,7 +454,6 @@ gtk_gnutella_exit(gint n)
 	dmesh_close();
 	host_close();
 	hcache_close();		/* After host_close() */
-	settings_close();	/* Must come after hcache_close() */
 	bogons_close();		/* Idem, since host_close() can touch the cache */
 	hostiles_close();
 	spam_close();
@@ -481,6 +480,7 @@ gtk_gnutella_exit(gint n)
 	tls_cache_close();
 	gdb_close();
 	file_object_close();
+	settings_close();	/* Must come after hcache_close() */
 	atoms_close();
 	wdestroy();
 	locale_close();
