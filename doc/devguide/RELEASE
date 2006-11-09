@@ -10,6 +10,12 @@ Before releasing, double check that:
 
 * The keys have been updated for the major release, in src/core/token.c,
   with the date (timestamp) listed in the token_keys[] array being accurate.
+  Generate new keys with this:
+
+	od -x /dev/random | awk '{
+		printf("\t\042%s %s %s %s %s %s %s %s\042,\n",
+			      $2,$3,$4,$5,$6,$7,$8,$9) }' | head -n 22
+
 
 Release steps
 -------------
@@ -48,7 +54,9 @@ Release steps
 
 	"Release 0.91 stable."
 
-5. Update and commit debian/changelog.
+5. Update and commit debian/changelog. Generate the timestamp as follows:
+
+	LC_ALL=C date +'%a, %e %b %Y %H:%M:%S %z'
 
 6. Update and commit extra_files/gwcache.boot.
 
@@ -63,7 +71,6 @@ Release steps
 8. Tag whole SVN:
 
 	cd "top directory"
-	svn mkdir V-0-91
 	svn copy https://svn.sourceforge.net/svnroot/gtk-gnutella/trunk \
 	         https://svn.sourceforge.net/svnroot/gtk-gnutella/tags/V-0-91
 
@@ -76,7 +83,7 @@ Release steps
 
 10. Create the tar.bz2
 
-	tar cvf gtk-gnutella-0.92.1.tar gtk-gnutella-0.92.1
+	tar -cvf gtk-gnutella-0.92.1.tar gtk-gnutella-0.92.1
 	bzip2 -v9 gtk-gnutella-0.92.1.tar
 
 11. Move into the directory.
