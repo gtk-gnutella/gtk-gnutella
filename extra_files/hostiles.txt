@@ -326,6 +326,8 @@
 66.232.118.0/27
 66.240.254.18
 72.21.50.90/31
+61.129.51.119
+61.129.251.204
 
 # Gnucleus-based DRM WMV spammer hosted by HopOne
 209.160.32.221
@@ -501,9 +503,6 @@
 # The JPEGs show nothing but an URL at celebs dot deltaporn dot com on a white
 # background; Shareaza; standard port
 216.144.224.89
-
-# DRM WMV spammer
-61.129.51.119
 
 # DRM license server; PetaAd dot com
 207.36.209.113
