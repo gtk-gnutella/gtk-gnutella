@@ -1,3 +1,51 @@
+# v 0.96.3   2006-11-09  [stable]
+
+Bug fixes:
+ - Portability fixes which affect the ARM architecture.
+ - Ultrapeers could be unnecessarily demoted to leaves in auto mode.
+ - [GTK2] Fixed a bug that could cause spurious assertion failures or memory
+   corruption.
+ - Fixed bug that might have caused truncation of printed numbers in certain
+   places.
+ - Rewrite the upload_history file if the history was cleared.
+ - Fixed crash caused by an assertion failure that could occur if IPv6
+   support was disabled at compile-time.
+ - Fixed buggy utf8_is_valid_data().
+ - Fixed a couple of small technical mistakes in translations.
+ - Fixed compilation for Cygwin without IPv6 support.
+
+Updated:
+ - Updated French translation.
+ - Updated list of hostile IP ranges.
+ - Updated list of bootstrap caches.
+ - Updated list of country names and codes for Serbia and Montenegro.
+
+Improvements:
+ - Turkish translation.
+ - New shell commands: online, offline, props, status.
+ - The search list allows selection of multiple items and applying actions to
+   them now.
+ - Added a tray icon to hide the Gtk-Gnutella application windows. This
+   feature requires Gtk+ 2.10 or newer.
+ - Added a limit of downloads per file which defaults to 40 to prevent using
+   an unreasonably large amount of sources.
+ - Keep certain irrelevant columns empty for "local:" searches instead of
+   showing bogus data.
+ - Added README.Debian with instructions how to compile Gtk-Gnutella yourself
+   on Debian-derived systems.
+
+Under the hood:
+ - Rewrote "fast" assertions so that they are sufficiently portable and do
+   not mess with debugging. Thus they are always enabled now which reduces
+   code size signifcantly.
+ - The TLS cache is now persistent without SQLite too.
+ - Disabled reservation of Gnutella slots and vendor limits because it's not
+   useful with the current population of Gnutella.
+ - Disabled GWebCache updates.
+ - Configure bails out now if a mandatory dependency e.g., libxml2, GLib,
+   zlib isn't available.
+ - Added -Wshadow to the default compile flags for GCC for even cleaner code.
+
 # v 0.96.2   2006-10-16  [stable]
 
 Bug fixes:
