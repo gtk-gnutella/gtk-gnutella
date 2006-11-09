@@ -319,7 +319,11 @@ file_config_preamble(FILE *out, const gchar *what)
 void
 file_path_set(file_path_t *fp, const char *dir, const char *name)
 {
-	g_assert(NULL != fp);
+	g_assert(fp);
+	g_assert(dir);
+	g_assert(name);
+	g_assert(is_absolute_path(dir));
+
 	fp->dir = dir;
 	fp->name = name;
 }
