@@ -1,8 +1,8 @@
 
 -------------------------------------------------------------------------------
-                          Gtk-Gnutella remote shell
+                          Gtk-Gnutella shell interface
 -------------------------------------------------------------------------------
-Date: 17.12.2002
+Date: 2002-12-17
 Author: Richard Eckart
 $Id$
 
@@ -11,7 +11,7 @@ Introduction
 ------------
 
   Gtk-Gnutella supports a so-called shell interface. This feature is available
-  locally and optionally remotely as well.  At the moment, the shell has still
+  locally and optionally remotely as well. At the moment, the shell has still
   limited use but is nonetheless sufficient for special tasks and uses. It is
   especially useful and important when using Gtk-Gnutella Topless.
 
@@ -74,7 +74,7 @@ Commands
     Shows available commands.
 
   - quit
-    Close connection.
+    Close the shell connection.
 
   - search add <query>
     Creates a new search for <query>. The query string is interpreted the
@@ -123,6 +123,19 @@ Commands
     Rescans all shared directories and updates the list of shared
     files. This is useful when you removed or added files to the
     shared directories.
+
+  - status
+    Shows a short overview of the current node status.
+
+  - offline
+    Disconnects from Gnutella but keep uploads and downloads running.
+
+  - online
+    Connects to Gnutella.
+
+  - props [<regex>]
+    Lists the names of all core properties. An optional regex pattern can
+    be used to show only certain properties.
 
 Caveats:
 --------
