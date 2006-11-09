@@ -1,6 +1,6 @@
 .\" Written by Brian St. Pierre (bstpierre@bstpierre.org)
 .\" Modified by RAM (Raphael_Manfredi@pobox.com)
-.\" Modified by Hans de Graaff (hans@degraaff.org) for 0.92.6
+.\" Modified by Hans de Graaff (hans@degraaff.org) for 0.96.2
 .\" Integrated by RAM at version 0.18 within debian/ for Debian packaging
 .\" Integrated by RAM at version 0.93 within mainstream
 .\" Process this file with
@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk-gnutella.man | less -s
 .\"
-.TH GTK-GNUTELLA 1 "Sep 2006" Version "0.96.2"
+.TH GTK-GNUTELLA 1 "Nov 2006" Version "0.96.3"
 .SH NAME
 gtk-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
