@@ -194,8 +194,11 @@ struct dl_addr {
 static guint dl_establishing = 0;		/**< Establishing downloads */
 static guint dl_active = 0;				/**< Active downloads */
 
-#define count_running_downloads()	(dl_establishing + dl_active)
-#define count_running_on_server(s)	(server_list_length(s, DL_LIST_RUNNING))
+static inline guint
+count_running_downloads(void)
+{
+	return dl_establishing + dl_active;
+}
 
 static inline guint
 server_list_length(const struct dl_server *server, enum dl_list idx)
@@ -203,6 +206,12 @@ server_list_length(const struct dl_server *server, enum dl_list idx)
 	g_assert(dl_server_valid(server));
 	g_assert((guint) idx < DL_LIST_SZ);		
 	return server->list[idx] ? list_length(server->list[idx]) : 0;
+}
+
+static inline guint
+count_running_on_server(const struct dl_server *server)
+{
+	return server_list_length(server, DL_LIST_RUNNING);
 }
 
 #define MAGIC_TIME	1		/**< For recreation upon starup */
@@ -4489,19 +4498,25 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 
 	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
-	if (d->flags & DL_F_SUSPENDED)
-		download_queue(d, _("Suspended (SHA1 checking)"));
-	else if (
-		count_running_downloads() < max_downloads &&
-		count_running_on_server(d->server) < max_host_downloads &&
-		!download_has_enough_active_sources(d)
-	) {
-		download_start(d, FALSE);		/* Start the download immediately */
-	} else {
-		/* Max number of downloads reached, we have to queue it */
+	{
+		const gchar *reason;
+
+		if (d->flags & DL_F_SUSPENDED) {
+			reason = _("Suspended (SHA1 checking)");
+		} else if (count_running_downloads() >= max_downloads) {
+			reason = _("Max. number of downloads reached");
+		} else if (count_running_on_server(d->server) >= max_host_downloads) {
+			reason = _("Max. number of downloads for this host reached");
+		} else if (download_has_enough_active_sources(d)) {
+			reason = _("Has already enough active sources");
+		} else {
+			download_start(d, FALSE);		/* Start the download immediately */
+			return d;
+		}
+	
 		/* Ensure it has a time for status display */
-		d->retry_after = tm_time();
-		download_queue(d, _("No download slot (create)"));
+		d->retry_after = time_advance(tm_time(), (random_raw() % 4) + 1);
+		download_queue(d, "%s", reason);
 	}
 
 	return d;
