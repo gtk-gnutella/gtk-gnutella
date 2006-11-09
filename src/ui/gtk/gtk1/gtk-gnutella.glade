@@ -1285,7 +1285,7 @@
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>
-	    <fill>True</fill>
+	    <fill>False</fill>
 	  </child>
 
 	  <widget>
@@ -1306,11 +1306,11 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
 	      </signal>
 	      <label>Search</label>
-	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <relief>GTK_RELIEF_NONE</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
-		<fill>True</fill>
+		<fill>False</fill>
 	      </child>
 	    </widget>
 

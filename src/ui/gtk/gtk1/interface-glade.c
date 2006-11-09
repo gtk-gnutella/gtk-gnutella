@@ -1778,7 +1778,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_searchbar", viewport_searchbar,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport_searchbar);
-  gtk_box_pack_start (GTK_BOX (vbox_right), viewport_searchbar, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox_right), viewport_searchbar, FALSE, FALSE, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_searchbar), GTK_SHADOW_OUT);
 
   hbox179 = gtk_hbox_new (FALSE, 4);
@@ -1796,8 +1796,9 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search", button_search,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_search);
-  gtk_box_pack_start (GTK_BOX (hbox179), button_search, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox179), button_search, FALSE, FALSE, 0);
   gtk_widget_set_sensitive (button_search, FALSE);
+  gtk_button_set_relief (GTK_BUTTON (button_search), GTK_RELIEF_NONE);
 
   combo_search = gtk_combo_new ();
   gtk_widget_set_name (combo_search, "combo_search");
