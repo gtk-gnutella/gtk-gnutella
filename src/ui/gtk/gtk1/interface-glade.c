@@ -6468,9 +6468,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_search), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_search_select_row),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_search), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_search_resize_column),
                       NULL);
@@ -18080,5 +18077,127 @@ create_dlg_faq (void)
                       NULL);
 
   return dlg_faq;
+}
+
+GtkWidget*
+create_popup_search_list (void)
+{
+  GtkWidget *popup_search_list;
+  GtkAccelGroup *popup_search_list_accels;
+  guint tmp_key;
+  GtkWidget *popup_search_edit_filter;
+  GtkWidget *separator25;
+  GtkWidget *popup_search_list_stop;
+  GtkWidget *popup_search_list_resume;
+  GtkWidget *popup_search_list_restart;
+  GtkWidget *popup_search_list_duplicate;
+  GtkWidget *popup_search_list_close;
+
+  popup_search_list = gtk_menu_new ();
+  gtk_widget_set_name (popup_search_list, "popup_search_list");
+  gtk_object_set_data (GTK_OBJECT (popup_search_list), "popup_search_list", popup_search_list);
+  popup_search_list_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_search_list));
+
+  popup_search_edit_filter = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_edit_filter)->child),
+                                   _("_Edit filters"));
+  gtk_widget_add_accelerator (popup_search_edit_filter, "activate_item", popup_search_list_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (popup_search_edit_filter, "popup_search_edit_filter");
+  gtk_widget_ref (popup_search_edit_filter);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "popup_search_edit_filter", popup_search_edit_filter,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_edit_filter);
+  gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_edit_filter);
+
+  separator25 = gtk_menu_item_new ();
+  gtk_widget_set_name (separator25, "separator25");
+  gtk_widget_ref (separator25);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "separator25", separator25,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator25);
+  gtk_container_add (GTK_CONTAINER (popup_search_list), separator25);
+  gtk_widget_set_sensitive (separator25, FALSE);
+
+  popup_search_list_stop = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_list_stop)->child),
+                                   _("_Stop this search"));
+  gtk_widget_add_accelerator (popup_search_list_stop, "activate_item", popup_search_list_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (popup_search_list_stop, "popup_search_list_stop");
+  gtk_widget_ref (popup_search_list_stop);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "popup_search_list_stop", popup_search_list_stop,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_list_stop);
+  gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_list_stop);
+
+  popup_search_list_resume = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_list_resume)->child),
+                                   _("Resu_me this search"));
+  gtk_widget_add_accelerator (popup_search_list_resume, "activate_item", popup_search_list_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (popup_search_list_resume, "popup_search_list_resume");
+  gtk_widget_ref (popup_search_list_resume);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "popup_search_list_resume", popup_search_list_resume,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_list_resume);
+  gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_list_resume);
+
+  popup_search_list_restart = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_list_restart)->child),
+                                   _("_Restart this search"));
+  gtk_widget_add_accelerator (popup_search_list_restart, "activate_item", popup_search_list_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (popup_search_list_restart, "popup_search_list_restart");
+  gtk_widget_ref (popup_search_list_restart);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "popup_search_list_restart", popup_search_list_restart,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_list_restart);
+  gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_list_restart);
+
+  popup_search_list_duplicate = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_list_duplicate)->child),
+                                   _("_Duplicate this search"));
+  gtk_widget_add_accelerator (popup_search_list_duplicate, "activate_item", popup_search_list_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (popup_search_list_duplicate, "popup_search_list_duplicate");
+  gtk_widget_ref (popup_search_list_duplicate);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "popup_search_list_duplicate", popup_search_list_duplicate,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_list_duplicate);
+  gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_list_duplicate);
+
+  popup_search_list_close = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_list_close)->child),
+                                   _("_Close this search"));
+  gtk_widget_add_accelerator (popup_search_list_close, "activate_item", popup_search_list_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (popup_search_list_close, "popup_search_list_close");
+  gtk_widget_ref (popup_search_list_close);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "popup_search_list_close", popup_search_list_close,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_list_close);
+  gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_list_close);
+
+  gtk_signal_connect (GTK_OBJECT (popup_search_edit_filter), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_edit_filter_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_list_stop), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_list_stop_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_list_resume), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_list_resume_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_list_restart), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_list_restart_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_list_duplicate), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_list_duplicate_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_list_close), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_list_close_activate),
+                      NULL);
+
+  return popup_search_list;
 }
 

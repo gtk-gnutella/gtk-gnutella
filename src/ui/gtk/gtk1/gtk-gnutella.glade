@@ -763,11 +763,6 @@
 		    <name>clist_search</name>
 		    <can_focus>True</can_focus>
 		    <signal>
-		      <name>select_row</name>
-		      <handler>on_clist_search_select_row</handler>
-		      <last_modification_time>Mon, 20 May 2002 01:07:45 GMT</last_modification_time>
-		    </signal>
-		    <signal>
 		      <name>resize_column</name>
 		      <handler>on_clist_search_resize_column</handler>
 		      <last_modification_time>Thu, 23 May 2002 17:39:33 GMT</last_modification_time>
@@ -26161,6 +26156,89 @@ allowed</label>
 	</widget>
       </widget>
     </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkMenu</class>
+  <name>popup_search_list</name>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_edit_filter</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_edit_filter_activate</handler>
+      <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
+    </signal>
+    <label>_Edit filters</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator25</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_list_stop</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_list_stop_activate</handler>
+      <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
+    </signal>
+    <label>_Stop this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_list_resume</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_list_resume_activate</handler>
+      <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
+    </signal>
+    <label>Resu_me this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_list_restart</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_list_restart_activate</handler>
+      <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
+    </signal>
+    <label>_Restart this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_list_duplicate</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_list_duplicate_activate</handler>
+      <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
+    </signal>
+    <label>_Duplicate this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_list_close</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_list_close_activate</handler>
+      <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
+    </signal>
+    <label>_Close this search</label>
+    <right_justify>False</right_justify>
   </widget>
 </widget>
 

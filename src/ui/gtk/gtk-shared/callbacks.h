@@ -28,27 +28,28 @@
 
 #include "gtk/gui.h"
 
+#include "gtk/downloads.h"
+#include "gtk/fileinfo.h"
 #include "gtk/filter_cb.h"
-#include "gtk/settings_cb.h"
-#include "gtk/main_cb.h"
-#include "gtk/monitor_cb.h"
-#include "gtk/uploads_cb.h"
 #include "gtk/gnet_stats.h"
 #include "gtk/hcache.h"
-#include "gtk/fileinfo.h"
-#include "gtk/downloads.h"
+#include "gtk/main_cb.h"
+#include "gtk/monitor_cb.h"
+#include "gtk/search_common.h"
+#include "gtk/settings_cb.h"
 #include "gtk/upload_stats_cb.h"
+#include "gtk/uploads_cb.h"
 #include "gtk/visual_progress.h"
 
 #ifdef USE_GTK1
+#include "gtk/gtk1/downloads_cb.h"
 #include "gtk/gtk1/nodes_cb.h"
 #include "gtk/gtk1/search_cb.h"
-#include "gtk/gtk1/downloads_cb.h"
 #endif
 #ifdef USE_GTK2
+#include "gtk/gtk2/downloads_cb.h"
 #include "gtk/gtk2/nodes_cb.h"
 #include "gtk/gtk2/search_cb.h"
-#include "gtk/gtk2/downloads_cb.h"
 #endif
 
 gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);

@@ -1667,7 +1667,7 @@ search_gui_init(void)
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view_search),
 		GTK_SELECTION_MULTIPLE);
 	g_signal_connect(GTK_OBJECT(tree_view_search), "button_press_event",
-		G_CALLBACK(on_tree_view_search_button_press_event), NULL);
+		G_CALLBACK(on_search_list_button_press_event), NULL);
 
 	gtk_tree_view_set_model(tree_view_search, create_searches_model());
 	add_list_columns(tree_view_search);
@@ -2339,5 +2339,81 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv, gpointer udata)
 		G_CALLBACK(on_leave_notify), NULL);
 	g_object_freeze_notify(G_OBJECT(treeview));
 }
+
+static void
+search_gui_get_selected_searches_helper(GtkTreeModel *model,
+	GtkTreePath *unused_path, GtkTreeIter *iter, gpointer data)
+{
+	gpointer p = NULL;
+
+	(void) unused_path;
+	g_assert(data);
+
+	gtk_tree_model_get(model, iter, c_sl_sch, &p, (-1));
+	if (p) {
+		GSList **sl_ptr = data;
+		*sl_ptr = g_slist_prepend(*sl_ptr, p);
+	}
+}
+
+GSList *
+search_gui_get_selected_searches(void)
+{
+	GSList *sl = NULL;
+	GtkTreeView *tv;
+
+    tv = GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
+	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(tv),
+		search_gui_get_selected_searches_helper, &sl);
+	return sl;
+}
+
+gboolean
+search_gui_has_selected_item(search_t *search)
+{
+	GtkTreePath *path = NULL;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(search, FALSE);
+
+	gtk_tree_view_get_cursor(GTK_TREE_VIEW(search->tree_view), &path, NULL);
+	if (path) {
+		ret = TRUE;
+		gtk_tree_path_free(path);
+	}
+	return ret;
+}
+
+void
+search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
+{
+	GtkTreeView *tv = GTK_TREE_VIEW(widget);
+	GtkTreePath *path = NULL;
+	GtkTreeViewColumn *column = NULL;
+
+	if (
+		gtk_tree_view_get_path_at_pos(tv, event->x, event->y,
+			&path, &column, NULL, NULL)
+	) {
+		GtkTreeModel *model;
+		GtkTreeIter iter;
+
+		model = gtk_tree_view_get_model(tv);
+		if (gtk_tree_model_get_iter(model, &iter, path)) {
+			gpointer p = NULL; 
+			gtk_tree_model_get(model, &iter, c_sl_sch, &p, (-1));
+			if (p) {
+				search_t *search = p;
+				search_gui_set_current_search(search);
+#if 0
+				gtk_tree_view_set_cursor(tv, path, column, FALSE);
+				gtk_widget_grab_focus(GTK_WIDGET(tv));
+#endif
+			}
+		}
+		gtk_tree_path_free(path);
+	}
+}
+
 /* -*- mode: cc-mode; tab-width:4; -*- */
 /* vi: set ts=4 sw=4 cindent: */

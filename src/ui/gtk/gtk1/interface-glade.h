@@ -17,3 +17,4 @@ GtkWidget* create_dlg_quit (void);
 GtkWidget* create_dlg_prefs (void);
 GtkWidget* create_removed_widgets (void);
 GtkWidget* create_dlg_faq (void);
+GtkWidget* create_popup_search_list (void);

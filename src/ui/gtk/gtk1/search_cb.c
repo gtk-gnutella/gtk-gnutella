@@ -68,8 +68,6 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-extern search_t *search_selected;
-
 /***
  *** Private functions
  ***/
@@ -77,63 +75,6 @@ extern search_t *search_selected;
 /**
  *	Activates/deactivates buttons and popups based on what is selected
  */
-static void
-refresh_popup(void)
-{
-	/*
-	 * The following popup items are set insensitive if nothing is currently
-	 * selected.
-	 */
-	static const struct {
-		const gboolean popup;
-		const gchar *name;
-	} menu[] = {
-		{	FALSE,	"button_search_download" },
-		{	TRUE,	"popup_search_drop" },
-		{	TRUE,	"popup_search_drop_global" },
-		{	TRUE,	"popup_search_metadata" },
-		{	TRUE,	"popup_search_browse_host" },
-	};
-	search_t *search = search_gui_get_current_search();
-	gboolean sensitive;
-	guint i;
-
-	sensitive = NULL != search && NULL != GTK_CLIST(search->ctree)->selection;
-
-	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_download"),
-		sensitive);
-
-	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
-		GtkWidget *w = menu[i].popup ? gui_popup_search() : gui_main_window();
-		gtk_widget_set_sensitive(lookup_widget(w, menu[i].name), sensitive);
-	}
-
-	sensitive = NULL != search;	
-    gtk_widget_set_sensitive(gui_popup_search_lookup("popup_search_restart"),
-		sensitive);
-    gtk_widget_set_sensitive(gui_popup_search_lookup("popup_search_duplicate"),
-		sensitive);
-
-    if (search) {
-        gtk_widget_set_sensitive(
-            gui_popup_search_lookup("popup_search_stop"),
-			!guc_search_is_frozen(search->search_handle));
-		gtk_widget_set_sensitive(
-            gui_popup_search_lookup("popup_search_resume"),
-			guc_search_is_frozen(search->search_handle)
-				&& !search_gui_is_expired(search));
-		if (search->passive)
-            gtk_widget_set_sensitive(
-                gui_popup_search_lookup("popup_search_restart"),
-                FALSE);
-    } else {
-        gtk_widget_set_sensitive(
-            gui_popup_search_lookup("popup_search_stop"), FALSE);
-	    gtk_widget_set_sensitive(
-            gui_popup_search_lookup("popup_search_resume"), FALSE);
-    }
-}
-
 /**
  * Set or clear (when rc == NULL) the information about the record.
  */
@@ -371,16 +312,6 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
  *** Glade callbacks
  ***/
 
-void
-on_search_popdown_switch(GtkWidget *unused_w, gpointer unused_data)
-{
-	(void) unused_w;
-	(void) unused_data;
-
-	if (search_selected != NULL)
-        search_gui_set_current_search(search_selected);
-}
-
 
 /**
  *	When the user switches notebook tabs, update the rest of GUI
@@ -403,39 +334,6 @@ on_search_notebook_switch(GtkNotebook *notebook, GtkNotebookPage *unused_page,
 
     search_gui_set_current_search(sch);
 }
-
-
-/**
- *	Changes current search and updates GUI
- */
-void
-on_clist_search_select_row(GtkCList *clist, gint row, gint unused_column,
-	GdkEvent *unused_event, gpointer unused_udata)
-{
-    search_t *sch;
-
-	(void) unused_column;
-	(void) unused_event;
-	(void) unused_udata;
-    g_assert(clist != NULL);
-
-    sch = gtk_clist_get_row_data(clist, row);
-    if (sch == NULL)
-        return;
-
-    search_gui_set_current_search(sch);
-}
-
-
-/**
- */
-void
-on_search_selected(GtkItem *unused_item, gpointer data)
-{
-	(void) unused_item;
-	search_selected = (search_t *) data;
-}
-
 
 /**
  *	Create a search based on query entered
@@ -551,6 +449,16 @@ on_button_search_expand_all_clicked(GtkButton *unused_button,
     search_gui_expand_all();
 }
 
+/**
+ */
+void
+on_button_search_filter_clicked(GtkButton *unused_button, gpointer unused_udata)
+{
+	(void) unused_button;
+	(void) unused_udata;
+
+	filter_open_dialog();
+}
 
 /**
  */
@@ -628,7 +536,7 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
     	if (search_gui_get_current_search()) {
 			GtkMenuItem *item;
 
-        	refresh_popup();
+        	search_gui_refresh_popup();
 
 			item = GTK_MENU_ITEM(
 					gui_popup_search_lookup("popup_search_toggle_tabs"));
@@ -643,18 +551,6 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
 	}
 
 	return FALSE;
-}
-
-
-/**
- */
-void
-on_button_search_filter_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-	filter_open_dialog();
 }
 
 
@@ -729,7 +625,7 @@ on_ctree_search_results_select_row(GtkCTree *ctree,
 		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
 		NULL);
 
-    refresh_popup();
+    search_gui_refresh_popup();
 	search_cb_autoselect(ctree, GTK_CTREE_NODE(node));
 
     gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
@@ -752,7 +648,7 @@ on_ctree_search_results_unselect_row(GtkCTree *unused_ctree, GList *unused_node,
 	(void) unused_udata;
 
 	search_gui_set_details(NULL);	/* Clear details about results */
-    refresh_popup();
+    search_gui_refresh_popup();
 }
 
 
@@ -1012,76 +908,6 @@ void on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
     global_add_filter((GFunc) filter_add_drop_host_rule, gui_record_host_eq);
 }
 
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_edit_filter_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    filter_open_dialog();
-}
-
-
-/**
- *	Create a new search identical to the current search.
- *
- * 	@note Doesn't duplicate filters or passive searches yet.
- */
-void
-on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	search_gui_duplicate_search(search_gui_get_current_search());
-}
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_restart_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	search_gui_restart_search(search_gui_get_current_search());
-}
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_resume_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	search_gui_resume_search(search_gui_get_current_search());
-}
-
-/**
- *	Stop current search
- */
-void
-on_popup_search_stop_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	search_gui_stop_search(search_gui_get_current_search());
-}
-
-
 /**
  *	Please add comment
  */
@@ -1103,33 +929,6 @@ on_popup_search_config_cols_activate(GtkMenuItem *unused_menuitem,
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
     /* GtkColumnChooser takes care of cleaning up itself */
-}
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_expand_all_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search_gui_expand_all();
-}
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_collapse_all_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search_gui_collapse_all();
-
 }
 
 /**

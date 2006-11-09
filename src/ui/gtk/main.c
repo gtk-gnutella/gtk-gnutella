@@ -684,13 +684,11 @@ main_gui_early_init(gint argc, gchar **argv)
 
 	/* popup menus */
 	gui_popup_search_set(create_popup_search());
-#ifdef USE_GTK2
-	gui_popup_downloads_set(create_popup_downloads());
-	/* XXX: Create the equivalent popup for GTK+ 1.2 */
 	gui_popup_search_list_set(create_popup_search_list());
-#endif /* USE_GTK2 */
-	
-#ifdef USE_GTK1
+
+#if defined(USE_GTK2)
+	gui_popup_downloads_set(create_popup_downloads());
+#elif defined(USE_GTK1)
 	gui_popup_downloads_set(create_popup_dl_active());
 	gui_popup_queue_set(create_popup_dl_queued());
 #endif /* USE_GTK1 */

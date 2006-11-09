@@ -2374,6 +2374,7 @@ search_gui_duplicate_search(search_t *search)
     guint32 timeout;
 
 	g_return_if_fail(search);
+	g_return_if_fail(!search->browse);
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
@@ -2392,8 +2393,9 @@ search_gui_duplicate_search(search_t *search)
 void
 search_gui_restart_search(search_t *sch)
 {
-	if (!sch->enabled)
+	if (!sch->enabled) {
 		gui_search_set_enabled(sch, TRUE);
+	}
 	search_gui_reset_search(sch);
 	sch->items = sch->unseen_items = sch->hidden = 0;
 	sch->tcp_qhits = sch->udp_qhits = 0;
@@ -2425,5 +2427,270 @@ search_gui_stop_search(search_t *search)
 	gui_search_set_enabled(search, FALSE);
 	search_gui_update_expiry(search);
 }
-	
+
+void
+on_popup_search_list_close_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_close_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_restart_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_restart_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_resume_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_resume_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_clear_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_clear_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_stop_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_stop_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+void
+on_popup_search_list_duplicate_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *searches, *sl;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	searches = search_gui_get_selected_searches();
+	for (sl = searches; sl; sl = g_slist_next(sl)) {
+		search_gui_duplicate_search(sl->data);
+	}
+	g_slist_free(searches);
+}
+
+gboolean
+on_search_list_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer unused_udata)
+{
+	(void) unused_udata;
+
+	switch (event->button) {
+	case 1:
+		search_gui_search_list_clicked(widget, event);
+		break;
+	case 3:
+        /* right click section (popup menu) */
+		if (search_gui_get_current_search()) {
+			search_gui_refresh_popup();
+			gtk_menu_popup(GTK_MENU(gui_popup_search_list()),
+				NULL, NULL, NULL, NULL, event->button, event->time);
+		}
+		return TRUE;
+    }
+
+	return FALSE;
+}
+
+void
+search_gui_refresh_popup(void)
+{
+	/*
+	 * The following popup items are set insensitive if nothing is currently
+	 * selected (actually if the cursor is unset).
+	 */
+	static const struct {
+		const gchar *name;
+	} menu[] = {
+		{	"popup_search_drop" },
+		{	"popup_search_drop_global" },
+		{	"popup_search_metadata" },
+		{	"popup_search_browse_host" },
+#ifdef USE_GTK2
+		{	"popup_search_download" },		/* FIXME: Add this to Gtk+ 1.2 */
+		{	"popup_search_copy_magnet" },	/* FIXME: Add this to Gtk+ 1.2 */
+#endif
+	};
+	search_t *search = search_gui_get_current_search();
+	gboolean sensitive;
+	guint i;
+
+	sensitive = search && search_gui_has_selected_item(search);
+
+	gtk_widget_set_sensitive(
+		gui_main_window_lookup("button_search_download"),
+		sensitive);
+
+	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
+		GtkWidget *w = gui_popup_search_lookup(menu[i].name);
+		if (w) {
+			gtk_widget_set_sensitive(w, sensitive);
+		}
+	}
+
+    if (search) {
+        gtk_widget_set_sensitive(
+            gui_popup_search_lookup("popup_search_stop"),
+			!guc_search_is_frozen(search->search_handle));
+		gtk_widget_set_sensitive(
+			gui_popup_search_lookup("popup_search_resume"),
+			guc_search_is_frozen(search->search_handle)
+				&& !search_gui_is_expired(search));
+		if (search->passive)
+			gtk_widget_set_sensitive(
+				gui_popup_search_lookup("popup_search_restart"),
+				FALSE);
+    } else {
+		gtk_widget_set_sensitive(
+			gui_popup_search_lookup("popup_search_stop"), FALSE);
+		gtk_widget_set_sensitive(
+			gui_popup_search_lookup("popup_search_resume"), FALSE);
+    }
+}
+
+void
+on_popup_search_close_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	search_gui_close_search(search_gui_get_current_search());
+}
+
+void
+on_popup_search_download_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    search_gui_download_files();
+}
+
+void
+on_popup_search_edit_filter_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    filter_open_dialog();
+}
+
+void
+on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    search_gui_duplicate_search(search_gui_get_current_search());
+}
+
+void
+on_popup_search_restart_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	search_gui_restart_search(search_gui_get_current_search());
+}
+
+void
+on_popup_search_resume_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    search_gui_resume_search(search_gui_get_current_search());
+}
+
+void
+on_popup_search_stop_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    search_gui_stop_search(search_gui_get_current_search());
+}
+
+void
+on_popup_search_expand_all_activate (GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	search_gui_expand_all();
+}
+
+void
+on_popup_search_collapse_all_activate (GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	search_gui_collapse_all();
+}
+
 /* vi: set ts=4 sw=4 cindent: */
