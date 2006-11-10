@@ -255,6 +255,7 @@
 # Versatel; dynamic pool but keep them for a while anyway
 89.246.53.174
 87.122.23.75
+87.122.146.48
 87.122.147.34
 87.122.149.182
 87.122.158.215
