@@ -256,6 +256,7 @@
 89.246.53.174
 87.122.23.75
 87.122.147.34
+87.122.149.182
 87.122.158.215
 # Does not identify as Jironimo but seems to be the same
 85.176.167.202
@@ -759,7 +760,7 @@
 # in/out). These peers seem to maintain a massive amount of connections. The
 # URL files link to serv01.quibus.se.
 212.209.1.0/24
-212.209.34.128/28
+212.209.34.128/26
 
 # Elemental Codeworks Inc; LimeWire; nodes share thousands of aliases of a
 # couple of almost identical MOV files (adult.mov) which is about 8 MB large;
