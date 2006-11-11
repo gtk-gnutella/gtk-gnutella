@@ -146,10 +146,11 @@ host_timer(void)
 	 * than quick_connect_pool_size   This is the "greedy mode".
 	 */
 
-	if (count >= quick_connect_pool_size)
+	if (count >= quick_connect_pool_size) {
 		if (dbg > 10) {
 			g_message("host_timer - count %d >= pool size %d",
 				count, quick_connect_pool_size);
+		}
 		return;
 	}
 
