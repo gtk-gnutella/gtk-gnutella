@@ -97,6 +97,7 @@ static const struct {
 	{ "guruz.udp-host-cache.com:6666" },
 	{ "plankton.merseine.nu:20098" },
 	{ "secondary.udp-host-cache.com:9999" },
+	{ "uhc.ak-electron.org:6346" },
 	{ "uhc.udp-host-cache.com:9999" },
 	{ "uhc2.limewire.com:20181" },
 	{ "zomfg.gtkg.org:40000" },
