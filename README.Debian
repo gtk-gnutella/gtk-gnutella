@@ -56,7 +56,7 @@ To install Gtk-Gnutella just run (version and architecture will vary):
 
  $ cd ..
  $ su
- # dpkg --install gtk-gnutella_0.96.2-0_i386.deb
+ # dpkg --install gtk-gnutella*.deb
 
 For further compile options and instructions, see the README file and
 edit the debian/rules file to change the line calling "Configure" to suit
