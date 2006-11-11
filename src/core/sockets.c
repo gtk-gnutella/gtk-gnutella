@@ -1304,15 +1304,12 @@ static gboolean
 socket_tls_setup(struct gnutella_socket *s)
 #ifdef HAS_GNUTLS
 {
-	gboolean is_incoming;
-
 	if (!s->tls.enabled) {
 		return 0;
 	}
 
-	is_incoming = SOCK_CONN_INCOMING == s->direction;
 	if (s->tls.stage < SOCK_TLS_INITIALIZED) {
-		s->tls.ctx = tls_init(is_incoming);
+		s->tls.ctx = tls_init(s);
 		if (!s->tls.ctx) {
 			goto destroy;
 		}
@@ -1328,7 +1325,7 @@ socket_tls_setup(struct gnutella_socket *s)
 			return -1;
 		case TLS_HANDSHAKE_FINISHED:
 			s->tls.stage = SOCK_TLS_ESTABLISHED;
-			if (!is_incoming) {
+			if (SOCK_CONN_INCOMING != s->direction) {
 				tls_cache_insert(s->addr, s->port);
 			}
 			socket_wio_link(s);				/* Link to the I/O functions */

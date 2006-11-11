@@ -48,7 +48,7 @@ struct tls_context;
 
 typedef struct tls_context *tls_context_t;
 
-tls_context_t tls_init(gboolean is_incoming);
+tls_context_t tls_init(const struct gnutella_socket *s);
 enum tls_handshake_result tls_handshake(struct gnutella_socket *s);
 void tls_bye(tls_context_t ctx, gboolean is_incoming);
 void tls_free(tls_context_t *ctx_ptr);
