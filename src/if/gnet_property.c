@@ -648,6 +648,8 @@ gboolean enable_local_socket     = TRUE;
 gboolean enable_local_socket_def = TRUE;
 guint32  max_simultaneous_downloads_per_file     = 40;
 guint32  max_simultaneous_downloads_per_file_def = 40;
+gboolean dump_received_gnutella_packets     = FALSE;
+gboolean dump_received_gnutella_packets_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6200,6 +6202,23 @@ gnet_prop_init(void) {
     gnet_property->props[290].data.guint32.choices = NULL;
     gnet_property->props[290].data.guint32.max   = INT_MAX;
     gnet_property->props[290].data.guint32.min   = 1;
+
+
+    /*
+     * PROP_DUMP_RECEIVED_GNUTELLA_PACKETS:
+     *
+     * General data:
+     */
+    gnet_property->props[291].name = "dump_received_gnutella_packets";
+    gnet_property->props[291].desc = _("If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx.dump.");
+    gnet_property->props[291].ev_changed = event_new("dump_received_gnutella_packets_changed");
+    gnet_property->props[291].save = TRUE;
+    gnet_property->props[291].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[291].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[291].data.boolean.def   = &dump_received_gnutella_packets_def;
+    gnet_property->props[291].data.boolean.value = &dump_received_gnutella_packets;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

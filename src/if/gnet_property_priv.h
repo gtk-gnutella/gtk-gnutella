@@ -335,6 +335,7 @@ extern const guint32  dht_debug;
 extern const guint32  oob_proxy_debug;
 extern const gboolean enable_local_socket;
 extern const guint32  max_simultaneous_downloads_per_file;
+extern const gboolean dump_received_gnutella_packets;
 
 
 prop_set_t *gnet_prop_init(void);

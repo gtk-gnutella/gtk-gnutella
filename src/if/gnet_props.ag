@@ -3383,5 +3383,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "dump_received_gnutella_packets";
+    desc = "If enabled, all received packets are dumped to "
+			"$GTK_GNUTELLA_DIR/packets_rx.dump.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
 
 /* vi: set ts=4: */

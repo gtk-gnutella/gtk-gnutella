@@ -6103,6 +6103,80 @@ node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 	return TRUE;
 }
 
+enum dump_header_flags {                                                        
+	DH_F_UDP  = (1 << 0),
+	DH_F_TCP  = (1 << 1),
+	DH_F_IPV4 = (1 << 2),
+	DH_F_IPV6 = (1 << 3),
+
+	NUM_DH_F
+};
+
+struct dump_header {
+/*
+ * This is the logic layout:
+ *
+ *	uint8_t flags;
+ *	uint8_t addr[16];
+ *	uint8_t port[2];
+ */
+	uint8_t data[19];
+};
+
+static void
+dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
+{
+	memset(dh, 0, sizeof dh);
+
+	dh->data[0] = NODE_IS_UDP(node) ? DH_F_UDP : DH_F_TCP;
+	switch (host_addr_net(node->addr)) {
+	case NET_TYPE_IPV4:
+		{
+			guint32 ip;
+			
+			dh->data[0] |= DH_F_IPV4;
+			ip = host_addr_ipv4(node->addr);
+			poke_be32(&dh->data[1], ip);
+		}
+		break;
+	case NET_TYPE_IPV6:
+		dh->data[0] |= DH_F_IPV6;
+		memcpy(&dh->data[1], host_addr_ipv6(&node->addr), 16);
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+	poke_be16(&dh->data[17], node->port);
+}
+
+static void
+node_dump_packet(const struct gnutella_node *node)
+{
+	static FILE *f;
+	
+	if (dump_received_gnutella_packets) {
+		if (!f) {
+			gchar *pathname;
+
+			pathname = make_pathname(settings_config_dir(), "packets_rx.dump");
+			f = fopen(pathname, "a");
+			G_FREE_NULL(pathname);
+		}
+		if (f) {
+			struct dump_header dh;
+
+			dump_header_set(&dh, node);
+			fwrite(dh.data, sizeof dh.data, 1, f);
+			fwrite(node->header, sizeof node->header, 1, f);
+			fwrite(node->data, node->size, 1, f);
+		}
+	} else if (f) {
+		fclose(f);
+		f = NULL;
+	}
+}
+
 /**
  * Processing of messages.
  *
@@ -6126,6 +6200,8 @@ node_parse(struct gnutella_node *node)
 
 	dest.type = ROUTE_NONE;
 	n = node;
+
+	node_dump_packet(node);
 
 	/*
 	 * If we're expecting a handshaking ping, check whether we got one.
