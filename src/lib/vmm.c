@@ -42,6 +42,21 @@ RCSID("$Id$")
 #include "misc.h"
 #include "tm.h"
 
+/*
+ * With VMM_GREEDY_PAGE_CACHE we always map memory for a complete
+ * slot. This causes some over-allocation but reduces page-table
+ * fragmentation.
+ */
+#define VMM_GREEDY_PAGE_CACHE 1
+
+/*
+ * With VMM_INVALIDATE_FREE_PAGES freed pages are invalidated and
+ * completely protected so that the system can recycle them without
+ * ever paging them out as we don't care about the data in them
+ * anymore. It may also help to detect access-after-free bugs.
+ */
+#define VMM_INVALIDATE_FREE_PAGES 1
+
 static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static gint kernel_pageshift = 0;
@@ -203,13 +218,13 @@ alloc_pages(size_t size)
 		if (page_cache[n].current > 0) {
 			void *p = page_cache[n].stack[--page_cache[n].current].addr;
 			g_assert(p);
-#ifdef INVALIDATE_FREE_PAGES 
+#ifdef VMM_INVALIDATE_FREE_PAGES 
 			mprotect(p, size, PROT_READ | PROT_WRITE);
 			madvise(p, size, MADV_NORMAL);
-#endif	/* INVALIDATE_FREE_PAGES */
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
 			return p;
 		} else {
-#ifdef GREEDY_PAGE_CACHE
+#ifdef VMM_GREEDY_PAGE_CACHE
 			guint max_cached = G_N_ELEMENTS(page_cache[0].stack) / (n + 1);
 			char *p, *base = alloc_pages_intern(max_cached * size);
 
@@ -224,7 +239,7 @@ alloc_pages(size_t size)
 				p -= size;
 			}
 			return p;
-#endif	/* GREEDY_PAGE_CACHE */
+#endif	/* VMM_GREEDY_PAGE_CACHE */
 		}
 	}
 	return alloc_pages_intern(size);
@@ -278,14 +293,14 @@ free_pages(gpointer p, size_t size)
 			n < G_N_ELEMENTS(page_cache) &&
 			page_cache[n].current < max_cached
 		) {
-#ifdef INVALIDATE_FREE_PAGES 
+#ifdef VMM_INVALIDATE_FREE_PAGES 
 			mprotect(p, size, PROT_NONE);
 #ifdef MADV_FREE
 			madvise(p, size, MADV_FREE);
 #else
 			madvise(p, size, MADV_DONTNEED);
 #endif	/* MADV_FREE */
-#endif	/* INVALIDATE_FREE_PAGES */
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
 			page_cache[n].stack[page_cache[n].current].addr = p;
 			page_cache[n].stack[page_cache[n].current].stamp = tm_time();
 			page_cache[n].current++;
