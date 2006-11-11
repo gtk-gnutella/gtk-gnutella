@@ -312,7 +312,6 @@ typedef struct gnutella_node {
 #define NODE_A_CAN_HSEP		0x04000000 /**< Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000 /**< Node supports query routing */
 #define NODE_A_CAN_VENDOR	0x10000000 /**< Node supports vendor messages */
-#define NODE_A_CAN_GGEP		0x20000000 /**< Node supports big pongs, etc.. */
 #define NODE_A_CAN_ULTRA	0x40000000 /**< Node is ultra capable */
 #define NODE_A_CAN_INFLATE	0x80000000 /**< Node capable of inflating */
  
@@ -402,7 +401,6 @@ typedef struct gnutella_node {
 #define NODE_ID(n)				((n)->id)
 
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
-#define NODE_CAN_GGEP(n)		((n)->attrs & NODE_A_CAN_GGEP)
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
 #define NODE_LEAF_GUIDE(n)		((n)->attrs & NODE_A_GUIDANCE)
 #define NODE_CAN_INFLATE(n)		((n)->attrs & NODE_A_CAN_INFLATE)

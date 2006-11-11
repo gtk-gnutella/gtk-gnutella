@@ -4728,17 +4728,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		n->attrs |= NODE_A_BYE_PACKET;
 	}
 
-	/* GGEP -- support for big pings, pongs and pushes */
-
-	field = header_get(head, "Ggep");
-	if (field) {
-		guint major, minor;
-
-		parse_major_minor(field, NULL, &major, &minor);
-		if (major > 0 || (major == 0 && minor >= 5))
-			n->attrs |= NODE_A_CAN_GGEP;
-	}
-
 	/* Vendor-Message -- support for vendor-specific messages */
 
 	field = header_get(head, "Vendor-Message");
@@ -6584,10 +6573,7 @@ route_only:
 			break;
 
 		default:
-			if (has_ggep)
-				gmsg_sendto_route_ggep(n, &dest, regular_size);
-			else
-				gmsg_sendto_route(n, &dest);
+			gmsg_sendto_route(n, &dest);
 			break;
 		}
 	}

@@ -112,7 +112,7 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 
 		if (NODE_IS_WRITABLE(n)) {
 			n->n_ping_sent++;
-			gmsg_sendto_one_ggep(n, m, size, sizeof *m);
+			gmsg_sendto_one(n, m, size);
 		}
 	} else {
 		const GSList *sl_nodes = node_all_nodes();
@@ -130,7 +130,7 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 			n->n_ping_sent++;
 		}
 
-		gmsg_sendto_all_ggep(sl_nodes, m, size, sizeof *m);
+		gmsg_sendto_all(sl_nodes, m, size);
 	}
 }
 
@@ -432,7 +432,7 @@ send_pong(
 	else if (control)
 		gmsg_ctrl_sendto_one(n, r, sizeof *r);
 	else
-		gmsg_sendto_one_ggep(n, r, size, sizeof *r);
+		gmsg_sendto_one(n, r, size);
 }
 
 /**

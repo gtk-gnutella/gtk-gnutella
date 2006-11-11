@@ -460,43 +460,6 @@ gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 }
 
 /**
- * Send message to one node, stripping the GGEP part if the node cannot grok
- * GGEP extensions.
- */
-void
-gmsg_sendto_one_ggep(struct gnutella_node *n,
-	gconstpointer msg, guint32 size, guint32 regular_size)
-{
-	g_assert(size >= regular_size);
-	gmsg_header_check(msg, size);
-
-	if (!NODE_IS_WRITABLE(n))
-		return;
-
-	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
-		gmsg_dump(stdout, msg, size);
-
-	if (NODE_CAN_GGEP(n)) {
-		mq_putq(n->outq, gmsg_to_pmsg(msg, size));
-	} else {
-		gnutella_header_t head;
-		pmsg_t *mb;
-
-		/*
-		 * Create a copy of message with the trailing GGEP data
-		 * stripped and a corrected size field in the header
-		 */
-
-		memcpy(head, msg, sizeof head);
-		gnutella_header_set_size(&head, regular_size - GTA_HEADER_SIZE);
-		mb = gmsg_split_to_pmsg(&head, (const gchar *) msg + GTA_HEADER_SIZE,
-				regular_size);
-		mq_putq(n->outq, pmsg_clone(mb));
-		pmsg_free(mb);
-	}
-}
-
-/**
  * Send control message to one node.
  *
  * A control message is inserted ahead any other queued regular data.
@@ -513,29 +476,6 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
 		gmsg_dump(stdout, msg, size);
 
 	mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, size));
-}
-
-/**
- * Send control message to one node.
- *
- * A control message is inserted ahead any other queued regular data.
- */
-void
-gmsg_ctrl_sendto_one_ggep(struct gnutella_node *n,
-	gconstpointer msg, guint32 size, guint32 regular_size)
-{
-	gmsg_header_check(msg, size);
-
-	if (!NODE_IS_WRITABLE(n))
-		return;
-
-	if (gmsg_debug > 6 && gmsg_hops(msg) == 0)
-		gmsg_dump(stdout, msg, size);
-
-	if (NODE_CAN_GGEP(n))
-		mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, size));
-	else
-		mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, regular_size));
 }
 
 /**
@@ -596,41 +536,6 @@ gmsg_sendto_all(const GSList *sl, gconstpointer msg, guint32 size)
 	}
 
 	pmsg_free(mb);
-}
-
-/**
- * Broadcast message to all nodes in the list, sending only a stripped down
- * version without the trailing GGEP extension to nodes not advertising
- * GGEP support.
- */
-void
-gmsg_sendto_all_ggep(const GSList *sl,
-	gconstpointer msg, guint32 size, guint32 regular_size)
-{
-	pmsg_t *mb = gmsg_to_pmsg(msg, size);
-	pmsg_t *mb_stripped = NULL;
-
-	gmsg_header_check(msg, size);
-
-	if (gmsg_debug > 5 && gmsg_hops(msg) == 0)
-		gmsg_dump(stdout, msg, size);
-
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = sl->data;
-		if (!NODE_IS_ESTABLISHED(dn))
-			continue;
-		if (NODE_CAN_GGEP(dn))
-			mq_putq(dn->outq, pmsg_clone(mb));
-		else {
-			if (mb_stripped == NULL)
-				mb_stripped = gmsg_to_pmsg(msg, regular_size);
-			mq_putq(dn->outq, pmsg_clone(mb_stripped));
-		}
-	}
-
-	pmsg_free(mb);
-	if (mb_stripped)
-		pmsg_free(mb_stripped);
 }
 
 /**
@@ -739,80 +644,6 @@ gmsg_split_sendto_all(
 }
 
 /**
- * Same as gmsg_split_sendto_all_but_one(), but the message must not be
- * forwarded as-is to nodes not supporting GGEP: it must be truncated to
- * its `regular_size' size first.
- *
- * We never broadcast anything to a leaf node.  Those are handled specially.
- * In UP mode, we never broadcast queries with TTL=1 to ultra nodes that
- * support the last-hop QRP.
- *
- * @param sl 			a list of destination nodes.
- * @param n 			the source node which will be skipped.
- * @param head 			the gnutella message header.
- * @param data 			the gnutella message payload.
- * @param size			the length of "data" plus the size of the header.
- * @param regular_size	the length of "data" excluding trailing GGEP data.
- */
-static void
-gmsg_split_sendto_all_but_one_ggep(
-	const GSList *sl,
-	const struct gnutella_node *n,
-	gconstpointer head, gconstpointer data, guint32 size, guint32 regular_size)
-{
-	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
-	pmsg_t *mb_stripped = NULL;
-	gboolean skip_up_with_qrp = FALSE;
-
-	gmsg_header_check(head, size);
-	g_assert(size >= regular_size);
-
-	/*
-	 * Special treatment for TTL=1 queries in UP mode.
-	 */
-
-	if (
-		current_peermode == NODE_P_ULTRA &&
-		gnutella_header_get_function(head) == GTA_MSG_SEARCH &&
-		gnutella_header_get_ttl(head) == 1
-	)
-		skip_up_with_qrp = TRUE;
-
-	/* relayed broadcasted message, cannot be sent with hops=0 */
-
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = sl->data;
-		if (dn == n)
-			continue;
-		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
-			continue;
-		if (skip_up_with_qrp && NODE_UP_QRP(dn))
-			continue;
-		if (n->header_flags && !NODE_CAN_SFLAG(dn))
-			continue;
-		if (NODE_CAN_GGEP(dn))
-			mq_putq(dn->outq, pmsg_clone(mb));
-		else {
-			if (mb_stripped == NULL) {
-				gnutella_header_t nhead;
-
-				memcpy(nhead, head, sizeof nhead);
-				gnutella_header_set_size(&nhead,
-					regular_size - GTA_HEADER_SIZE);
-				mb_stripped = gmsg_split_to_pmsg(&nhead, data, regular_size);
-			}
-			mq_putq(dn->outq, pmsg_clone(mb_stripped));
-		}
-	}
-
-	pmsg_free(mb);
-
-	if (mb_stripped != NULL)
-		pmsg_free(mb_stripped);
-}
-
-
-/**
  * Send message held in current node according to route specification.
  */
 void
@@ -857,90 +688,6 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 				continue;
 			gmsg_split_sendto_one(rt_node,
 				(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
-		}
-		return;
-	}
-
-	g_error("unknown route destination: %d", rt->type);
-}
-
-/**
- * Send message from `n' to destination node `dn'.  If target node cannot
- * understand extra GGEP payloads, trim message before sending.
- *
- * @param n the source node.
- * @param dn the destination node.
- * @param regular_size	the size of the message including the header 
- *						and trailing GGEP data.
- */
-static void
-sendto_ggep(struct gnutella_node *n, struct gnutella_node *dn,
-	guint32 regular_size)
-{
-	if (NODE_CAN_GGEP(dn)) {
-		gmsg_split_sendto_one(dn, &n->header,
-				n->data, n->size + GTA_HEADER_SIZE);
-	} else {
-		gnutella_header_set_size(&n->header, regular_size);
-		gmsg_split_sendto_one(dn, &n->header,
-				n->data, regular_size + GTA_HEADER_SIZE);
-		gnutella_header_set_size(&n->header, n->size);
-	}
-}
-
-/**
- * Same as gmsg_sendto_route() but if the node did not claim support of GGEP
- * extensions in pings, pongs and pushes, strip the GGEP payload before
- * forwarding the message.
- *
- * @param n the source node.
- * @param rt the destination route.
- * @param regular_size	the size of the message including the header 
- *						and trailing GGEP data.
- */
-void
-gmsg_sendto_route_ggep(struct gnutella_node *n, struct route_dest *rt,
-	guint32 regular_size)
-{
-	struct gnutella_node *rt_node = rt->ur.u_node;
-	const GSList *sl;
-
-	g_assert(regular_size <= INT_MAX);
-
-	switch (rt->type) {
-	case ROUTE_NONE:
-		return;
-	case ROUTE_ONE:
-		/*
-		 * If message has size flags and the recipoent cannot understand it,
-		 * then too bad but we have to drop that message.  We account it
-		 * as dropped because this message was meant to be routed to one
-		 * recipient only.
-		 */
-
-		if (n->header_flags && !NODE_CAN_SFLAG(rt_node)) {
-			gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
-			return;
-		}
-
-		sendto_ggep(n, rt_node, regular_size);
-		return;
-	case ROUTE_ALL_BUT_ONE:
-		g_assert(n == rt_node);
-		gmsg_split_sendto_all_but_one_ggep(node_all_nodes(), rt_node,
-			&n->header, n->data, n->size + GTA_HEADER_SIZE, regular_size);
-		return;
-	case ROUTE_NO_DUPS_BUT_ONE:
-		g_assert(n == rt_node);
-		gmsg_split_sendto_all_but_one_ggep(node_all_but_broken_gtkg(), rt_node,
-			&n->header, n->data, n->size + GTA_HEADER_SIZE, regular_size);
-		return;
-	case ROUTE_MULTI:
-		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
-			rt_node = sl->data;
-			if (n->header_flags && !NODE_CAN_SFLAG(rt_node))
-				continue;
-			sendto_ggep(n, rt_node, regular_size);
 		}
 		return;
 	}
