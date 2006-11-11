@@ -166,7 +166,7 @@ extern struct gnutella_socket *s_local_listen;
  */
 
 static inline gboolean
-socket_with_tls(struct gnutella_socket *s)
+socket_with_tls(const struct gnutella_socket *s)
 #ifdef HAS_GNUTLS
 {
 	return s->tls.enabled && s->tls.stage >= SOCK_TLS_INITIALIZED;
@@ -179,7 +179,7 @@ socket_with_tls(struct gnutella_socket *s)
 #endif	/* HAS_GNUTLS */
 
 static inline gboolean
-socket_uses_tls(struct gnutella_socket *s)
+socket_uses_tls(const struct gnutella_socket *s)
 #ifdef HAS_GNUTLS
 {
 	return s->tls.enabled && s->tls.stage >= SOCK_TLS_ESTABLISHED;
