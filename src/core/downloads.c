@@ -5355,31 +5355,31 @@ cast_to_download(gpointer p)
 	return d;
 }
 
-#define DOWNLOAD(x)	cast_to_download(x)
-
 static void
 err_line_too_long(gpointer o)
 {
-	download_stop(DOWNLOAD(o), GTA_DL_ERROR, "Failed (Header line too large)");
+	download_stop(cast_to_download(o), GTA_DL_ERROR,
+		"Failed (Header line too large)");
 }
 
 static void
 err_header_error(gpointer o, gint error)
 {
-	download_stop(DOWNLOAD(o), GTA_DL_ERROR,
+	download_stop(cast_to_download(o), GTA_DL_ERROR,
 		"Failed (%s)", header_strerror(error));
 }
 
 static void
 err_input_buffer_full(gpointer o)
 {
-	download_stop(DOWNLOAD(o), GTA_DL_ERROR, "Failed (Input buffer full)");
+	download_stop(cast_to_download(o), GTA_DL_ERROR,
+		"Failed (Input buffer full)");
 }
 
 static void
 err_header_read_error(gpointer o, gint error)
 {
-	struct download *d = DOWNLOAD(o);
+	struct download *d = cast_to_download(o);
 
 	download_check(d);
 
@@ -5398,7 +5398,7 @@ err_header_read_error(gpointer o, gint error)
 static void
 err_header_read_eof(gpointer o)
 {
-	struct download *d = DOWNLOAD(o);
+	struct download *d = cast_to_download(o);
 	header_t *header = io_header(d->io_opaque);
 
 	if (header_num_lines(header) == 0) {
@@ -5441,7 +5441,7 @@ static struct io_error download_io_error = {
 static void
 download_start_reading(gpointer o)
 {
-	struct download *d = DOWNLOAD(o);
+	struct download *d = cast_to_download(o);
 	tm_t now;
 	tm_t elapsed;
 	guint32 latency;
@@ -5470,19 +5470,17 @@ download_start_reading(gpointer o)
 static void
 call_download_request(gpointer o, header_t *header)
 {
-	download_request(DOWNLOAD(o), header, TRUE);
+	download_request(cast_to_download(o), header, TRUE);
 }
 
 static void
 call_download_push_ready(gpointer o, header_t *unused_header)
 {
-	struct download *d = DOWNLOAD(o);
+	struct download *d = cast_to_download(o);
 
 	(void) unused_header;
 	download_push_ready(d, io_getline(d->io_opaque));
 }
-
-#undef DOWNLOAD
 
 /**
  * Check that the leading overlapping data in the read buffers match with
