@@ -1258,14 +1258,10 @@ http_range_clone(http_range_t *range)
 GSList *
 http_range_merge(GSList *old_list, GSList *new_list)
 {
-	http_range_t *old_range;
-	http_range_t *new_range;
-	http_range_t *r;
-	GSList *new = new_list;
-	GSList *old = old_list;
+	http_range_t *old_range, *new_range, *r;
+	GSList *new = new_list, *old = old_list;
 	GSList *result_list = NULL;
 	filesize_t highest = 0;
-
 
 	/*
 	 * Build a result list based on the data in the old and new
@@ -1274,8 +1270,8 @@ http_range_merge(GSList *old_list, GSList *new_list)
 
 	while (old || new) {
 		if (old && new) {
-			old_range = (http_range_t *) old->data;
-			new_range = (http_range_t *) new->data;
+			old_range = old->data;
+			new_range = new->data;
 
 			/*
 			 * If ranges are identical just copy one.
@@ -1284,8 +1280,8 @@ http_range_merge(GSList *old_list, GSList *new_list)
 			if (new_range->start == old_range->start
 				&& new_range->end == old_range->end) {
 				highest = old_range->end;
-				result_list =
-					g_slist_append(result_list, http_range_clone(old_range));
+				result_list = g_slist_prepend(result_list,
+								http_range_clone(old_range));
 				old = g_slist_next(old);
 				new = g_slist_next(new);
 				continue;
@@ -1313,15 +1309,15 @@ http_range_merge(GSList *old_list, GSList *new_list)
 
 			if (new_range->end < old_range->start) {
 				highest = new_range->end;
-				result_list =
-					g_slist_append(result_list, http_range_clone(new_range));
+				result_list = g_slist_prepend(result_list,
+									http_range_clone(new_range));
 				new = g_slist_next(new);
 				continue;
 			}
 			if (old_range->end < new_range->start) {
 				highest = new_range->end;
-				result_list =
-					g_slist_append(result_list, http_range_clone(old_range));
+				result_list = g_slist_prepend(result_list,
+									http_range_clone(old_range));
 
 				old = g_slist_next(old);
 				continue;
@@ -1343,7 +1339,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
 				else
 					r->end = old_range->end;
 				highest = r->end;
-				result_list = g_slist_append(result_list, r);
+				result_list = g_slist_prepend(result_list, r);
 				old = g_slist_next(old);
 				new = g_slist_next(new);
 				continue;
@@ -1356,7 +1352,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
 				else
 					r->end = old_range->end;
 				highest = r->end;
-				result_list = g_slist_append(result_list, r);
+				result_list = g_slist_prepend(result_list, r);
 				old = g_slist_next(old);
 				new = g_slist_next(new);
 				continue;
@@ -1370,23 +1366,23 @@ http_range_merge(GSList *old_list, GSList *new_list)
 			 */
 
 			if (old) {
-				old_range = (http_range_t *) old->data;
+				old_range = old->data;
 				if (old_range->end > highest)
-					result_list = g_slist_append(result_list,
-								  http_range_clone(old_range));
+					result_list = g_slist_prepend(result_list,
+									http_range_clone(old_range));
 				old = g_slist_next(old);
 			}
 			if (new) {
-				new_range = (http_range_t *) new->data;
+				new_range = new->data;
 				if (new_range->end > highest)
-					result_list = g_slist_append(result_list,
-								  http_range_clone(new_range));
+					result_list = g_slist_prepend(result_list,
+								  	http_range_clone(new_range));
 				new = g_slist_next(new);
 			}
 		}
 	}
 
-	return result_list;
+	return g_slist_reverse(result_list);
 }
 
 
