@@ -109,7 +109,11 @@ struct dl_server {
 	GHashTable *sha1_counts;
 };
 
-#define dl_server_valid(x)	((x) != NULL && (x)->magic == DL_SERVER_MAGIC)
+static inline gboolean
+dl_server_valid(const struct dl_server *s)
+{
+	return s != NULL && s->magic == DL_SERVER_MAGIC;
+}
 
 /**
  * Download states.
