@@ -4270,7 +4270,7 @@ qrt_build_query_target(
 		 */
 
 		if (rt->pass_throw < 100 && NODE_MQUEUE_COUNT(dn) != 0) {
-			if ((gint) random_value(99) >= rt->pass_throw)
+			if ((gint) (random_raw() % 100) >= rt->pass_throw)
 				continue;
 		}
 
@@ -4295,7 +4295,7 @@ qrt_build_query_target(
 		if (NODE_IN_TX_FLOW_CONTROL(dn)) {
 			if (sha1_query)
 				continue;
-			if (random_value(99) >= 50)
+			if (random_raw() % 256 >= 128)
 				continue;
 		}
 
