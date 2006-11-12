@@ -452,7 +452,7 @@ st_search(
 	gint max_res,
 	query_hashvec_t *qhv)
 {
-	gint key, nres = 0;
+	gint key, nres;
 	guint i, len;
 	struct st_bin *best_bin = NULL;
 	gint best_bin_size = INT_MAX;
@@ -460,10 +460,11 @@ st_search(
 	guint wocnt;
 	cpattern_t **pattern;
 	struct st_entry **vals;
-	gint vcnt;
+	guint vcnt;
 	gint scanned = 0;		/* measure search mask efficiency */
 	guint32 search_mask;
 	size_t minlen;
+	guint random_offset;  /* Randomizer for search returns */
 
 	len = strlen(search);
 
@@ -576,14 +577,25 @@ st_search(
 
 	vcnt = best_bin->nvals;
 	vals = best_bin->vals;
+	random_offset = random_raw() % vcnt;
 
-	while (nres < max_res && vcnt-- > 0) {
-		struct st_entry *e = *vals++;
-		struct shared_file *sf = e->sf;
+	nres = 0;
+	for (i = 0; i < vcnt; i++) {
+		const struct st_entry *e;
+		struct shared_file *sf;
 		size_t canonic_len;
 
+		/*
+		 * As we only return a limited count of results, pick a random
+		 * offset, so that repeated searches will match different items
+		 * instead of always the first - with some probability.
+		 */
+		e = vals[(i + random_offset) % vcnt];
+		
 		if ((e->mask & search_mask) != search_mask)
 			continue;		/* Can't match */
+
+		sf = e->sf;
 
 		canonic_len = shared_file_name_canonic_len(sf);
 		if (canonic_len < minlen)
@@ -591,13 +603,14 @@ st_search(
 
 		scanned++;
 
-		if (
-			entry_match(e->string, canonic_len, pattern, wovec, wocnt)
-		) {
+		if (entry_match(e->string, canonic_len, pattern, wovec, wocnt)) {
 			if (dbg > 5)
 				printf("MATCH: %s\n", shared_file_name_nfc(sf));
+
 			callback(ctx, sf);
 			nres++;
+			if (nres >= max_res)
+				break;
 		}
 	}
 
