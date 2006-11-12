@@ -614,15 +614,7 @@ message_dump(const struct gnutella_node *n)
 static gboolean
 node_is_gtkg(const struct gnutella_node *n)
 {
-	static const gchar gtkg_vendor[] = "gtk-gnutella";
-
-	if (n->vendor == NULL)
-		return FALSE;
-
-	if (0 == strcmp_delimit(gtkg_vendor, n->vendor, "/ "))
-		return TRUE;
-
-	return FALSE;
+	return n->vendor && is_strprefix(n->vendor, "gtk-gnutella/");
 }
 
 /**
