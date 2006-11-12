@@ -115,7 +115,8 @@ void qhvec_add(struct query_hashvec *qhvec, const gchar *word,
 GSList *qrt_build_query_target(
 	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source);
 void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec);
-gboolean qrp_node_can_route(struct gnutella_node *n, query_hashvec_t *qhv);
+gboolean qrp_node_can_route(const struct gnutella_node *n,
+			const query_hashvec_t *qhv);
 
 #endif	/* _core_qrp_h_ */
 

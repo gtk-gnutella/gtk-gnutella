@@ -250,12 +250,6 @@ qrp_hashcode(const gchar *s)
 }
 
 /**
- * Restrict given hashcode to be a suitable index on `bits' bits.
- */
-#define QRP_HASH_RESTRICT(hashcode, bits) \
-	((guint32) (hashcode) >> (32 - (gint) (bits)))
-
-/**
  * For tests only
  *
  * The hashing function, defined by the QRP specifications.
@@ -4102,12 +4096,11 @@ qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
  * coming first and words later.
  */
 static gboolean
-qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
+qrp_can_route(const query_hashvec_t *qhv, const struct routing_table *rt)
 {
-	struct query_hash *qh;
-	gint i;
-	gint bits;
-	guint8 *arena;
+	const struct query_hash *qh;
+	const guint8 *arena;
+	guint i, shift;
 	gboolean has_urn;
 
 	/*
@@ -4115,12 +4108,13 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	 * Prefetch constant items in local variables.
 	 */
 
-	bits = rt->bits;
 	arena = rt->arena;
 	has_urn = qhv->has_urn;
+	shift = 32 - rt->bits;
+	qh = qhv->vec;
 
-	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
-		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, bits);
+	for (i = 0; i < (guint) qhv->count; i++) {
+		guint32 idx = qh[i].hashcode >> shift;
 
 		/* Tight loop -- g_assert(idx < (guint32) rt->slots); */
 
@@ -4134,12 +4128,12 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 		 */
 
 		if (RT_SLOT_READ(arena, idx)) {
-			if (qh->source == QUERY_H_URN)		/* URN present */
+			if (qh[i].source == QUERY_H_URN)		/* URN present */
 				return TRUE;					/* Will forward */
 			else if (has_urn)					/* We passed all the URNs */
 				return FALSE;					/* And none matched */
 		} else {
-			if (qh->source == QUERY_H_WORD) {	/* Word NOT present */
+			if (qh[i].source == QUERY_H_WORD) {	/* Word NOT present */
 				/* We know no URN matched already because qhv is sorted */
 				return FALSE;					/* All words did not match */
 			}
@@ -4159,9 +4153,9 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
  * to a node.
  */
 gboolean
-qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
+qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
 {
-	struct routing_table *rt = n->recv_query_table;
+	const struct routing_table *rt = n->recv_query_table;
 
 	if (!NODE_IS_WRITABLE(n))
 		return FALSE;
