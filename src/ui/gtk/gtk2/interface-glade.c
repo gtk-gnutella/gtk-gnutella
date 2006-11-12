@@ -2249,7 +2249,6 @@ create_main_window (void)
   gtk_label_set_use_markup (GTK_LABEL (label_main_window_title), TRUE);
   gtk_misc_set_alignment (GTK_MISC (label_main_window_title), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_main_window_title), 4, 0);
-  gtk_label_set_width_chars (GTK_LABEL (label_main_window_title), 20);
 
   hbox211 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox211, "hbox211");
