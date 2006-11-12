@@ -283,7 +283,12 @@ qrp_hash(const gchar *s, gint bits)
  *
  * @returns the TRUE if there is something present, FALSE otherwise.
  */
-#define RT_SLOT_READ(a,s) ((a)[(s) >> 3] & (0x80U >> ((s) & 0x7)))
+
+static inline gboolean
+RT_SLOT_READ(const guint8 *arena, guint i)
+{
+	return 0 != (arena[i >> 3] & (0x80U >> (i & 0x7)));
+}
 
 static inline void
 qrt_patch_slot(struct routing_table *rt, guint i, guint8 v)
@@ -989,7 +994,6 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
 	gint ratio;
 	gint expand;
 	gint i;
-	gint idx = 0;
 
 	/*
 	 * By construction, the size of the arena is the max of all the sizes
@@ -1008,19 +1012,19 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
 
 	expand = 1 << ratio;
 
+	g_assert(rt->slots * expand <= slots);	/* Won't overflow */
+
 	/*
 	 * Loop over the supplied QRT, and expand each slot `expand' times into
 	 * the arena, doing an "OR" merging.
 	 */
 
 	for (i = 0; i < rt->slots; i++) {
-		guchar value = RT_SLOT_READ(rt->arena, i);
+		gboolean value = RT_SLOT_READ(rt->arena, i);
 
 		if (value != 0) {				/* "0 OR x = x" -- no change */
-			g_assert(idx + expand <= slots);	/* Won't overflow */
-			memset(&arena[idx], 0, expand);		/* Less than "infinity" */
+			memset(&arena[i * expand], 0, expand);	/* Less than "infinity" */
 		}
-		idx += expand;
 	}
 }
 
@@ -1859,7 +1863,7 @@ qrp_step_merge_with_leaves(gpointer unused_h, gpointer u, gint ticks)
 	max = st->slots;
 
 	for (used = 0; used < ticks && i < max; i++, used++, ctx->sidx++) {
-		guchar vs = RT_SLOT_READ(st->arena, i);
+		gboolean vs = RT_SLOT_READ(st->arena, i);
 
 		/*
 		 * Since `lt', the larger table, has the same size as the merged
@@ -1870,7 +1874,7 @@ qrp_step_merge_with_leaves(gpointer unused_h, gpointer u, gint ticks)
 		g_assert(ctx->lidx + expand <= lt->slots);	/* Won't overflow */
 
 		for (j = 0; j < expand; j++) {
-			guchar vl = RT_SLOT_READ(lt->arena, ctx->lidx);
+			gboolean vl = RT_SLOT_READ(lt->arena, ctx->lidx);
 			if (vl || vs)
 				ctx->table[ctx->lidx++] = 0;	/* Present, less than oo */
 			else
@@ -3097,7 +3101,7 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 
 				g_assert(qrcv->current_index < rt->slots);
 
-				val = 0 != RT_SLOT_READ(rt->arena, qrcv->current_index);
+				val = RT_SLOT_READ(rt->arena, qrcv->current_index);
 
 				for (k = 0; k < qrcv->shrink_factor; k++)
 					qrcv->expansion[k] = val;
