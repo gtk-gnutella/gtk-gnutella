@@ -2428,10 +2428,7 @@ node_bye_if_writable(
 gboolean
 node_is_connected(const host_addr_t addr, guint16 port, gboolean incoming)
 {
-	const GSList *sl;
-
 	if (is_my_address(addr, port)) {
-		/* yourself */
 		return TRUE;
 	}
 
@@ -2442,19 +2439,18 @@ node_is_connected(const host_addr_t addr, guint16 port, gboolean incoming)
      *     -- Richard, 29/04/2004
      */
     if (incoming) {
-        for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-            struct gnutella_node *n = sl->data;
-            if (
-				n->status == GTA_NODE_REMOVING ||
-				n->status == GTA_NODE_SHUTDOWN
-			)
-                continue;
+		const GSList *sl;
 
-            if (host_addr_equal(n->addr, addr)) {
-                if (incoming)
-                    return TRUE;	/* Only one per host */
-                if (n->port == port)
-                    return TRUE;
+        for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+            const struct gnutella_node *n = sl->data;
+
+            if (
+				n->status != GTA_NODE_REMOVING &&
+				n->status != GTA_NODE_SHUTDOWN &&
+				n->port == port &&
+				host_addr_equal(n->addr, addr)
+			) {
+				return TRUE;
             }
         }
         return FALSE;
