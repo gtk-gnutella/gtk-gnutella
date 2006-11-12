@@ -2995,6 +2995,11 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 	gchar buf[UINT64_DEC_BUFLEN];
 	gchar *p;
 
+	if ((guint32) -1 >= v) {
+		/* 32-bit arithmetic is cheaper for most machines */
+		return uint32_to_string_buf(v, dst, size);
+	}
+
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
 
