@@ -847,7 +847,7 @@ tls_handshake(struct gnutella_socket *s)
 }
 
 tls_context_t 
-tls_init(struct gnutella_socket *s)
+tls_init(const struct gnutella_socket *s)
 {
 	(void) s;
 	return NULL;
