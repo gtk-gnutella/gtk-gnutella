@@ -897,13 +897,12 @@ search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
 static gnet_results_set_t *
 get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 {
-	gnutella_search_results_t *r;
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
 	gchar *endptr, *s, *fname, *tag;
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
-	GString *info = NULL;
+	GString *info;
 	gint sha1_errors = 0;
 	gint alt_errors = 0;
 	gint alt_without_hash = 0;
@@ -925,8 +924,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		return NULL;
 	}
 
-	if (!validate_only)
-		info = g_string_sized_new(80);
+	info = validate_only ? NULL : g_string_sized_new(80);
 
 	rs = search_new_r_set();
 
@@ -940,15 +938,23 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		rs->query = query ? atom_str_get(query) : NULL;
 	}
 
-	r = cast_to_gpointer(n->data);
-
 	/* Transfer the Query Hit info to our internal results_set struct */
 
-	rs->num_recs = gnutella_search_results_get_num_recs(r);
-	rs->addr = host_addr_get_ipv4(gnutella_search_results_get_host_ip(r));
-	rs->port = gnutella_search_results_get_host_port(r);
-	rs->speed = gnutella_search_results_get_host_speed(r);
-	rs->last_hop = n->addr;
+	{
+		const gnutella_search_results_t *r = cast_to_gpointer(n->data);
+
+		rs->num_recs = gnutella_search_results_get_num_recs(r);
+		rs->addr = host_addr_get_ipv4(gnutella_search_results_get_host_ip(r));
+		rs->port = gnutella_search_results_get_host_port(r);
+		rs->speed = gnutella_search_results_get_host_speed(r);
+		rs->last_hop = n->addr;
+
+		/* Now come the result set, and the servent ID will close the packet */
+
+		STATIC_ASSERT(11 == sizeof *r);
+		s = cast_to_gpointer(&r[1]);	/* Start of the records */
+		endptr = &s[n->size - 11 - 16];	/* End of records, less header, GUID */
+	}
 
 	/*
 	 * Hits coming from UDP should bear the node's address, unless the
@@ -988,6 +994,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
                 host_addr_to_string(rs->addr));
         }
 		rs->status |= ST_HOSTILE;
+
+		if (validate_only)
+			goto bad_packet;
 	}
 
 	/*
@@ -1016,12 +1025,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
         gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		goto bad_packet;
 	}
-
-	/* Now come the result set, and the servent ID will close the packet */
-
-	STATIC_ASSERT(11 == sizeof *r);
-	s = cast_to_gpointer(&r[1]);	/* Start of the records */
-	endptr = &s[n->size - 11 - 16];	/* End of the records, less header, GUID */
 
 	if (search_debug > 7)
 		dump_hex(stdout, "Query Hit Data", n->data, n->size);
@@ -1310,6 +1313,19 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								set_flags(rc->flags, SR_SPAM);
 							}
 						}
+					}
+					break;
+				case EXT_T_GGEP_PATH:		/* Path */
+					paylen = ext_paylen(e);
+					payload = ext_payload(e);
+					if (rc && !rc->path && paylen > 0) {
+						size_t len;
+						gchar buf[1024];
+
+						len = MIN((size_t) paylen, sizeof buf - 1);
+						memcpy(buf, payload, len);
+						buf[len] = '\0';
+						rc->path = atom_str_get(buf);
 					}
 					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
@@ -2666,7 +2682,7 @@ search_results(gnutella_node_t *n, gint *results)
 	 */
 
 	rs = get_results_set(n,
-		   selected_searches != NULL &&
+		   !selected_searches &&
 		   !auto_download_identical &&
 		   !auto_feed_download_mesh, FALSE);
 
