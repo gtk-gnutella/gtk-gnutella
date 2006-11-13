@@ -1592,19 +1592,9 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 	{
 		off_t written;
-		int flags = 0;
 
-#if defined(SF_NODISKIO)
-		flags |= SF_NODISKIO;
-#endif	/* SF_NODISKIO */
-		
-		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, flags);
+		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, 0);
 		if ((ssize_t) -1 == r) {
-			if (EBUSY == errno) {
-				/* Translate this so the we don't have to treat it specially
-				 * anywhere else. */
-				errno = EAGAIN;
-			}
 			if (is_temporary_error(errno))
 				r = written > 0 ? (ssize_t) written : (ssize_t) -1;
 		} else {
