@@ -928,9 +928,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 	rs = search_new_r_set();
 
-	rs->country   = -1;
-	rs->hops	  = gnutella_header_get_hops(&n->header);
-	rs->ttl		  = gnutella_header_get_ttl(&n->header);
+	rs->country = -1;
+	rs->hops = gnutella_header_get_hops(&n->header);
+	rs->ttl	= gnutella_header_get_ttl(&n->header);
 	{
 		const gchar *query;
 
@@ -1088,8 +1088,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			rc = search_record_new();
 
 			rc->file_index = idx;
-			rc->size  = size;
-			rc->name  = atom_str_get(fname);
+			rc->size = size;
+			rc->name = atom_str_get(fname);
 		}
 
 		if (is_evil_filename(fname)) {
@@ -3700,9 +3700,9 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
 
 	rc = search_record_new();
 	rc->file_index = shared_file_index(sf);
-	rc->size  = shared_file_size(sf);
-	rc->name  = atom_str_get(shared_file_name_nfc(sf));
-	rc->path  = atom_str_get(shared_file_path(sf));
+	rc->size = shared_file_size(sf);
+	rc->name = atom_str_get(shared_file_name_nfc(sf));
+	rc->path = atom_str_get(shared_file_path(sf));
 	if (sha1_hash_available(sf)) {
 		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
 	}
