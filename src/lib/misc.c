@@ -3653,6 +3653,35 @@ compat_daemonize(const char *directory)
 	return 0;
 }
 
+/**
+ * Creates a string copy with all directory separators replaced with the
+ * canonic path component separator '/' (a slash).
+ *
+ * @param s a pathname. 
+ * @return  a newly allocated string.
+ */
+gchar *
+normalize_dir_separators(const gchar *s)
+{
+	gchar *ret;
+  
+   	g_assert(s);	
+
+	ret = g_strdup(s);
+
+	if (G_DIR_SEPARATOR != '/') {
+		gchar *p = ret;
+
+		while (p) {
+			p = strchr(p, G_DIR_SEPARATOR);
+			if (p) {
+				*p++ = '/';
+			}
+		}
+	}
+	return ret;
+}
+
 void
 misc_init(void)
 {
