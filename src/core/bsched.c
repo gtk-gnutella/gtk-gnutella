@@ -1591,7 +1591,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	 */
 
 	{
-		off_t written;
+		off_t written = 0;
 
 		r = sendfile(in_fd, out_fd, start, amount, NULL, &written, 0);
 		if ((ssize_t) -1 == r) {
