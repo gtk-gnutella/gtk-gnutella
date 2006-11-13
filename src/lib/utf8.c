@@ -2247,6 +2247,30 @@ unknown_to_utf8(const gchar *src, const gchar **charset_ptr)
 	return dst;
 }
 
+/**
+ * Converts the string to UTF-8 assuming an appropriate character set.
+ *
+ * The conversion result might still be rubbish but is guaranteed to be
+ * UTF-8 encoded.
+ *
+ * The returned string is in no defined Unicode normalization form.
+ *
+ * @param src a NUL-terminated string.
+ * @return the original pointer or a newly allocated UTF-8 encoded string.
+ */
+gchar *
+unknown_to_ui_string(const gchar *src)
+{
+	gchar *utf8_str, *ui_str;
+	
+	utf8_str = unknown_to_utf8(src, NULL);
+	ui_str = utf8_to_ui_string(utf8_str);
+	if (utf8_str != ui_str && utf8_str != src) {
+		G_FREE_NULL(utf8_str);
+	}
+	return ui_str;
+}
+
 static gchar *
 convert_to_utf8_normalized(iconv_t cd, const gchar *src, uni_norm_t norm)
 {
@@ -2512,6 +2536,7 @@ LAZY_CONVERT(utf8_to_locale, (const gchar *src), (src))
 
 LAZY_CONVERT(iso8859_1_to_utf8, (const gchar *src), (src))
 LAZY_CONVERT(filename_to_ui_string, (const gchar *src), (src))
+LAZY_CONVERT(unknown_to_ui_string, (const gchar *src), (src))
 
 /*
  * Converts the supplied string ``src'' from a guessed encoding
