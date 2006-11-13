@@ -129,8 +129,8 @@ void search_gui_discard_files(void);
 
 void search_gui_sort_column(search_t *search, gint column);
 
-void search_gui_add_record(
-	search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg);
+void search_gui_add_record(search_t *sch, record_t *rc,
+		GdkColor *fg, GdkColor *bg);
 
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);

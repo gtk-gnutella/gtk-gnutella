@@ -65,8 +65,6 @@
 
 RCSID("$Id$")
 
-#define MAX_TAG_SHOWN	60		/**< Show only first chars of tag */
-
 static gchar tmpstr[4096];
 
 static GList *searches = NULL;		/* List of search structs */
@@ -507,10 +505,11 @@ search_gui_compare_records(gint sort_col,
             break;
 
         case c_sr_info:
-			result = CMP(ntohl(rs1->vcode.be32), ntohl(rs2->vcode.be32));
-			if (result)
-				break;
-            result = CMP(rs1->status, rs2->status);
+			result = strcmp(EMPTY_STRING(r1->info), EMPTY_STRING(r2->info));
+            break;
+
+        case c_sr_path:
+			result = strcmp(EMPTY_STRING(r1->path), EMPTY_STRING(r2->path));
             break;
 
         case c_sr_count:
@@ -1140,10 +1139,8 @@ search_gui_sort_column(search_t *search, gint column)
  *	This is where the search grouping (parenting) is done
  */
 void
-search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
-	GdkColor *fg, GdkColor *bg)
+search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 {
-  	GString *info = g_string_sized_new(80);
   	const gchar *titles[c_sr_num];
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
@@ -1163,45 +1160,6 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 	GtkCTreeRow	*parent_row;
 	GtkCTree *ctree = GTK_CTREE(sch->ctree);
 
-	info = g_string_assign(info, "");
-	if (rc->tag) {
-		size_t len = strlen(rc->tag);
-
-		/*
-		 * We want to limit the length of the tag shown, but we don't
-		 * want to loose that information.	I imagine to have a popup
-		 * "show file info" one day that will give out all the
-		 * information.
-		 *				--RAM, 09/09/2001
-		 */
-
-		g_string_append_len(info, rc->tag, MIN(len, MAX_TAG_SHOWN));
-	}
-
-	if (vinfo->len) {
-		if (info->len)
-			g_string_append(info, "; ");
-		g_string_append(info, vinfo->str);
-	}
-
-	if (rc->alt_locs != NULL) {
-		guint32 count = rc->alt_locs->hvcnt;
-		if (info->len)
-			g_string_append(info, ", ");
-		g_string_append(info, "alt");
-		if (count > 1) {
-			g_string_append_c(info, '(');
-			g_string_append(info, uint32_to_string(count));
-			g_string_append_c(info, ')');
-		}
-	}
-
-	if (!rc->info) {
-		rc->info = atom_str_get(info->str);
-	}
-
-	g_string_free(info, TRUE);
-
 	/* Setup text for node. Note only parent nodes will have # and size shown */
 	{
 		gint i;
@@ -1220,9 +1178,10 @@ search_gui_add_record(search_t *sch, record_t *rc, GString *vinfo,
 				text = rc->charset;
 				break;
 	 		case c_sr_info:
-				if (rc->info) {
-					text = rc->info;
-				}
+				text = EMPTY_STRING(rc->info);
+				break;
+	 		case c_sr_path:
+				text = EMPTY_STRING(rc->path);
 				break;
 	 		case c_sr_loc:
 				text = iso3166_country_cc(rs->country);
@@ -2396,6 +2355,7 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 		{ N_("Encoding"),	c_sr_charset,	FALSE },
 		{ N_("Size"),		c_sr_size,		TRUE },
 		{ N_("#"),			c_sr_count,		TRUE },
+		{ N_("Path"),		c_sr_path,		TRUE },
 		{ N_("Loc"),		c_sr_loc,		FALSE },
 		{ N_("Metadata"),	c_sr_meta,		TRUE },
 		{ N_("Info"),		c_sr_info,		TRUE },

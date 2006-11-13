@@ -103,7 +103,6 @@ struct result_data {
 
 	record_t *record;
 	gchar *meta;		/**< Atom */
-	gchar *info;		/**< g_strdup()ed */
 	guint count;		/**< count of children */
 	guint32 rank;		/**< for stable sorting */
 };
@@ -182,10 +181,14 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = data->meta;
 		break;
 	case c_sr_info:
-		text = data->info ? data->info : data->record->info;
+		if (!(ST_LOCAL & rs->status))
+			text = data->record->info;
 		break;
 	case c_sr_size:
 		text = compact_size(data->record->size, show_metric_units());
+		break;
+	case c_sr_path:
+		text = data->record->path;
 		break;
 	case c_sr_count:
 		text = data->count ? uint32_to_string(1 + data->count) : NULL;
@@ -366,7 +369,6 @@ unref_record(GtkTreeModel *model, GtkTreePath *unused_path, GtkTreeIter *iter,
 	 */
 
 	atom_str_free_null(&rd->meta);
-	G_FREE_NULL(rd->info);
 	WFREE_NULL(rd, sizeof *rd);
 
 	return FALSE;
@@ -731,6 +733,21 @@ search_gui_cmp_strings(const gchar *a, const gchar *b)
 }
 
 static gint
+search_gui_cmp_path(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	ret = search_gui_cmp_strings(d1->record->path, d2->record->path);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
 search_gui_cmp_filename(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
@@ -744,6 +761,7 @@ search_gui_cmp_filename(
 	ret = search_gui_cmp_strings(d1->record->utf8_name, d2->record->utf8_name);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
+
 
 static gint
 search_gui_cmp_sha1(
@@ -829,16 +847,13 @@ search_gui_cmp_info(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
 	const struct result_data *d1, *d2;
-	const gchar *s1, *s2;
 	gint ret;
 
 	(void) unused_udata;
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	s1 = d1->info ? d1->info : d1->record->info;
-	s2 = d2->info ? d2->info : d2->record->info;
-	ret = search_gui_cmp_strings(s1, s2);
+	ret = search_gui_cmp_strings(d1->record->info, d1->record->info);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -976,57 +991,8 @@ search_gui_cmp_spam(
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
-static gchar *
-search_gui_get_info(const record_t *rc, const gchar *vinfo)
-{
-	size_t rw = 0;
-  	gchar info[1024];
-
-	info[0] = '\0';
-
-	if (rc->tag) {
-		size_t size;
-
-		/*
-		 * We want to limit the length of the tag shown, but we don't
-		 * want to loose that information.	I imagine to have a popup
-		 * "show file info" one day that will give out all the
-		 * information.
-		 *				--RAM, 09/09/2001
-		 */
-
-		size = 1 + strlen(rc->tag);
-		size = MIN(size, MAX_TAG_SHOWN + 1);
-		size = MIN(size, sizeof info);
-		rw = utf8_strlcpy(info,
-				lazy_unknown_to_utf8_normalized(rc->tag, UNI_NORM_GUI, NULL),
-				size);
-	}
-	if (vinfo) {
-		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
-			info[0] != '\0' ? "; " : "", vinfo);
-	}
-
-	if (rc->alt_locs != NULL) {
-		gint count = rc->alt_locs->hvcnt;
-		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
-			info[0] != '\0' ? ", " : "");
-		if (count > 1)
-			rw += gm_snprintf(&info[rw], sizeof info - rw, "(%d)", count);
-	}
-
-	return info[0] != '\0' ? g_strdup(info) : NULL;
-}
-
 void
-search_gui_add_record(
-	search_t *sch,
-	record_t *rc,
-	GString *vinfo,
-	GdkColor *fg,
-	GdkColor *bg)
+search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 {
 	GtkTreeIter *parent_iter;
 	static const struct result_data zero_data;
@@ -1048,11 +1014,6 @@ search_gui_add_record(
 
 	data->record = rc;
 
-	if (rc->info) {
-		data->info = NULL;
-	} else {
-		data->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL);
-	}
 	data->fg = fg;
 	data->bg = bg;
 
@@ -1255,12 +1216,10 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 		g_assert(child_data->record->refcount > 0);
 
 		atom_str_free_null(&rd->meta);
-		G_FREE_NULL(rd->info);
-		
+
 		rd->record = child_data->record;
 		rd->meta = child_data->meta;
-		rd->info = child_data->info;
-		
+
 		WFREE_NULL(child_data, sizeof *child_data);
 
 		/* And remove the child's row */
@@ -1568,18 +1527,21 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 	model = gtk_tree_view_get_model(tv);
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		const struct result_data *data;
-		const gchar *pathname;
-		gchar *escaped;
 		
 		data = get_result_data(model, &iter);
-		pathname = data->record->path;
-		if (!pathname) {
-			pathname = "(null)";
-		}
-		escaped = url_escape(pathname);
-		*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-		if (escaped != pathname) {
-			G_FREE_NULL(escaped);
+		if (ST_LOCAL & data->record->results_set->status) {
+			const gchar *pathname;
+			gchar *escaped;
+
+			pathname = data->record->path;
+			if (!pathname) {
+				pathname = "(null)";
+			}
+			escaped = url_escape(pathname);
+			*url_ptr = g_strconcat("file://", escaped, (void *) 0);
+			if (escaped != pathname) {
+				G_FREE_NULL(escaped);
+			}
 		}
 	}
 
@@ -1976,6 +1938,7 @@ add_results_columns(GtkTreeView *treeview, gpointer udata)
 		{ N_("Encoding"),  c_sr_charset,  0.0, search_gui_cmp_charset },
 		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_cmp_size },
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_cmp_count },
+		{ N_("Path"),	   c_sr_path,	  0.0, search_gui_cmp_path },
 		{ N_("Loc"),	   c_sr_loc,	  0.0, search_gui_cmp_country },
 		{ N_("Metadata"),  c_sr_meta,	  0.0, search_gui_cmp_meta },
 		{ N_("Info"),	   c_sr_info,	  0.0, search_gui_cmp_info },

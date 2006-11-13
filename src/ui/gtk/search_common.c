@@ -789,6 +789,48 @@ search_gui_get_filename_extension(const gchar *filename_utf8)
 	return ext;
 }
 
+static gchar *
+search_gui_get_info(const record_t *rc, const gchar *vinfo)
+{
+  	gchar info[1024];
+	size_t rw = 0;
+
+	info[0] = '\0';
+
+	if (rc->tag) {
+		const size_t MAX_TAG_SHOWN = 60; /**< Show only first chars of tag */
+		size_t size;
+
+		/*
+		 * We want to limit the length of the tag shown, but we don't
+		 * want to loose that information.	I imagine to have a popup
+		 * "show file info" one day that will give out all the
+		 * information.
+		 *				--RAM, 09/09/2001
+		 */
+
+		size = 1 + strlen(rc->tag);
+		size = MIN(size, MAX_TAG_SHOWN + 1);
+		size = MIN(size, sizeof info);
+		rw = utf8_strlcpy(info, lazy_unknown_to_ui_string(rc->tag), size);
+	}
+	if (vinfo) {
+		g_assert(rw < sizeof info);
+		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+				info[0] != '\0' ? "; " : "", vinfo);
+	}
+
+	if (rc->alt_locs != NULL) {
+		gint count = rc->alt_locs->hvcnt;
+		g_assert(rw < sizeof info);
+		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
+			info[0] != '\0' ? ", " : "");
+		if (count > 1)
+			rw += gm_snprintf(&info[rw], sizeof info - rw, "(%d)", count);
+	}
+
+	return info[0] != '\0' ? atom_str_get(info) : NULL;
+}
 
 /**
  * Create a new GUI record within `rs' from a Gnutella record.
@@ -820,12 +862,16 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     	rc->tag = atom_str_get(r->tag);
 	}
 	if (r->path) {
-		gchar *dir;
-		
     	rc->path = atom_str_get(r->path);
-		dir = filepath_directory(r->path);
-		rc->info = atom_str_get(lazy_filename_to_ui_string(dir));
-		G_FREE_NULL(dir);
+		if (ST_LOCAL & rs->status) {
+			gchar *dir;
+		
+			dir = filepath_directory(rc->path);
+			rc->path = atom_str_get(lazy_filename_to_ui_string(dir));
+			G_FREE_NULL(dir);
+		} else {
+			rc->path = atom_str_get(lazy_unknown_to_ui_string(rc->path));
+		}
 	}
    	rc->flags = r->flags;
 
@@ -1321,8 +1367,8 @@ search_matched(search_t *sch, results_set_t *rs)
 			search_gui_ref_record(rc);
 			g_assert(rc->refcount >= 1);
 
-			search_gui_add_record(sch, rc, vinfo, fg_color,
-					mark ? mark_color : NULL);
+			rc->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL);
+			search_gui_add_record(sch, rc, fg_color, mark ? mark_color : NULL);
 		} else {
 			sch->ignored++;
 		}
