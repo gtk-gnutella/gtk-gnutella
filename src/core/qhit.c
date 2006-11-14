@@ -691,6 +691,16 @@ add_file(const struct shared_file *sf)
 			g_warning("could not write GGEP \"ALT\" extension in query hit");
 	}
 
+	{
+		const gchar *rp = shared_file_relative_path(sf);
+		
+		if (rp) {
+			ok = ggep_stream_pack(&gs, GGEP_NAME(PATH), rp, strlen(rp), 0);
+			if (!ok)
+				g_warning("could not add GGEP \"PATH\" extension to query hit");
+		}
+	}
+
 	/*
 	 * Because we don't know exactly the size of the GGEP extension
 	 * (could be COBS-encoded or not), we need to adjust the real

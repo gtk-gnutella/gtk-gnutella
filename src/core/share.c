@@ -85,6 +85,7 @@ struct shared_file {
 	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
 	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
 	const gchar *content_type;	/**< MIME content type (static string) */
+	const gchar *relative_path;	/**< UTF-8 NFC string (atom) */
 
 	size_t name_nfc_len;		/**< strlen(name_nfc) */
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
@@ -296,6 +297,10 @@ shared_file_free(shared_file_t **sf_ptr)
 		g_assert(sf->refcnt == 0);
 
 		atom_sha1_free_null(&sf->sha1);
+		if (sf->relative_path) {
+			atom_str_free(sf->relative_path);
+			sf->relative_path = NULL;
+		}
 		atom_str_free(sf->file_path);
 		atom_str_free(sf->name_nfc);
 		atom_str_free(sf->name_canonic);
@@ -308,22 +313,44 @@ shared_file_free(shared_file_t **sf_ptr)
 static gboolean
 shared_file_set_names(shared_file_t *sf, const gchar *filename)
 {
-	gchar *name;
-
   	shared_file_check(sf);	
    	g_assert(!sf->name_nfc);
    	g_assert(!sf->name_canonic);
-	
-	name = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
-	sf->name_nfc = atom_str_get(name);
-	if (name != filename) {
-		G_FREE_NULL(name);
+
+	/* Set the NFC normalized name. */
+	{	
+		gchar *name;
+
+		name = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
+		sf->name_nfc = atom_str_get(name);
+		if (name != filename) {
+			G_FREE_NULL(name);
+		}
 	}
-	name = UNICODE_CANONIZE(sf->name_nfc);
-	sf->name_canonic = atom_str_get(name);
-	if (name != sf->name_nfc) {
-		G_FREE_NULL(name);
+
+	/*
+	 * Set the NFKC normalized name. Also prepend the relative path
+	 * if enabled. Queries will be matched against this string.
+	 */
+	{
+		gchar *name, *name_canonic;
+
+		if (search_results_expose_relative_paths && sf->relative_path) {
+			name = g_strconcat(sf->relative_path, " ", sf->name_nfc,
+						(void *) 0);
+		} else {
+			name = deconstify_gchar(sf->name_nfc);
+		}
+		name_canonic = UNICODE_CANONIZE(name);
+		sf->name_canonic = atom_str_get(name_canonic);
+		if (name_canonic != name) {
+			G_FREE_NULL(name_canonic);
+		}
+		if (name != sf->name_nfc) {
+			G_FREE_NULL(name);
+		}
 	}
+
 	sf->name_nfc_len = strlen(sf->name_nfc);
 	sf->name_canonic_len = strlen(sf->name_canonic);
 
@@ -339,7 +366,7 @@ shared_file_set_names(shared_file_t *sf, const gchar *filename)
 
 /* ----------------------------------------- */
 
-#define FILENAME_CLASH 0xffffffff			/**< Indicates basename clashes */
+static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
 
 /* ----------------------------------------- */
 
@@ -669,9 +696,9 @@ free_extensions(void)
 		return;
 
 	for ( /*empty */ ; sl; sl = g_slist_next(sl)) {
-		struct extension *e = (struct extension *) sl->data;
+		struct extension *e = sl->data;
 		atom_str_free(e->str);
-		g_free(e);
+		G_FREE_NULL(sl->data);
 	}
 	g_slist_free(extensions);
 	extensions = NULL;
@@ -862,12 +889,49 @@ contains_control_chars(const gchar *pathname)
 }
 
 /**
+ * Extracts the relative path from a pathname relative to base_dir. If
+ * base_dir and pathname do not overlap, NULL is returned. The resulting
+ * is converted to UTF-8 NFC and returned as an atom.
+ *
+ * @param base_dir The base directory.
+ * @param pathname A pathname that is relative to "base_dir".
+ * @return A string atom holding the relative path or NULL.
+ */
+static gchar *
+get_relative_path(const gchar *base_dir, const gchar *pathname)
+{
+	const gchar *s;
+	gchar *relative_path = NULL;
+
+	s = is_strprefix(pathname, base_dir);
+	if (s) {
+		s = skip_dir_separators(s);
+		if ('\0' != s[0]) {
+			gchar *normalized, *nfc_str;
+
+			normalized = normalize_dir_separators(s);
+			nfc_str = filename_to_utf8_normalized(normalized, UNI_NORM_NETWORK);
+			relative_path = atom_str_get(nfc_str);
+			if (nfc_str != normalized) {
+				G_FREE_NULL(nfc_str);
+			}
+			G_FREE_NULL(normalized);
+		}
+	}
+	return relative_path;
+}
+
+/**
  * The directories that are given as shared will be completly transversed
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
+ *
+ * @param basedir The top-level directory to scan.
+ * @param dir The current directory to scan recursively; either the same as
+ *			  base_dir or a sub-directory thereof.
  */
 static void
-recurse_scan(const gchar *dir, const gchar *basedir)
+recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 {
 	GSList *exts = NULL;
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
@@ -876,11 +940,12 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 	GSList *directories = NULL;
 	GSList *sl;
 	guint i;
-	struct stat file_stat;
 	const gchar *entry_end;
+	gchar *dir_name;
 
-	if (*dir == '\0')
-		return;
+	g_return_if_fail('\0' != dir[0]);
+	g_return_if_fail(is_absolute_path(base_dir));
+	g_return_if_fail(is_absolute_path(dir));
 
 	if (!(directory = opendir(dir))) {
 		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
@@ -888,26 +953,35 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 	}
 
 	while ((dir_entry = readdir(directory))) {
+		struct stat sb;
 		gchar *full;
 
 		if (dir_entry->d_name[0] == '.')	/* Hidden file, or "." or ".." */
 			continue;
 
 		full = make_pathname(dir, dir_entry->d_name);
-
-		if (is_directory(full)) {
-			if (scan_ignore_symlink_dirs && is_symlink(full)) {
-				G_FREE_NULL(full);
-				continue;
-			}
-			directories = g_slist_prepend(directories, full);
-		} else {
-			if (scan_ignore_symlink_regfiles && is_symlink(full)) {
-				G_FREE_NULL(full);
-				continue;
-			}
-			files = g_slist_prepend(files, full);
+		if (stat(full, &sb)) {
+			g_warning("can't stat %s: %s", full, g_strerror(errno));
+			break;
 		}
+		if (S_ISDIR(sb.st_mode)) {
+			if (!scan_ignore_symlink_dirs || !is_symlink(full)) {
+				directories = g_slist_prepend(directories, full);
+				full = NULL;
+			}
+		} else if (S_ISREG(sb.st_mode)) {
+			if (!scan_ignore_symlink_regfiles || !is_symlink(full)) {
+				files = g_slist_prepend(files, full);
+				full = NULL;
+			}
+		}
+		G_FREE_NULL(full);
+	}
+
+	if (search_results_expose_relative_paths) {
+		dir_name = get_relative_path(base_dir, dir);
+	} else {
+		dir_name = NULL;
 	}
 
 	for (i = 0, sl = files; sl; i++, sl = g_slist_next(sl)) {
@@ -946,6 +1020,7 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 					0 == ascii_strcasecmp(start + 1, e->str))
 			) {
 				struct shared_file *found = NULL;
+				struct stat file_stat;
 
 				if (share_debug > 5)
 					g_message("recurse_scan: full=\"%s\"", full);
@@ -979,6 +1054,7 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 
 				found = shared_file_alloc();
 				found->file_path = atom_str_get(full);
+				found->relative_path = dir_name ? atom_str_get(dir_name) : NULL;
 				found->file_size = file_stat.st_size;
 				found->mtime = file_stat.st_mtime;
 				found->content_type =
@@ -1026,6 +1102,8 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 		}
 	}
 
+	atom_str_free_null(&dir_name);
+
 	closedir(directory);
 	directory = NULL;
 	g_slist_free(files);
@@ -1037,14 +1115,20 @@ recurse_scan(const gchar *dir, const gchar *basedir)
 	 */
 
 	for (sl = directories; sl; sl = g_slist_next(sl)) {
-		gchar *path = sl->data;
-		recurse_scan(path, basedir);
-		G_FREE_NULL(path);
+		const gchar *path = sl->data;
+		recurse_scan_intern(base_dir, path);
+		G_FREE_NULL(sl->data);
 	}
 	g_slist_free(directories);
 
 	gcu_gui_update_files_scanned();		/* Interim view */
 	gcu_gtk_main_flush();
+}
+
+static void
+recurse_scan(const gchar *dir)
+{
+	recurse_scan_intern(dir, dir);
 }
 
 /**
@@ -1134,12 +1218,12 @@ share_scan(void)
 	dirs = g_slist_reverse(dirs);
 
 	/* Recurse on the cloned list... */
-	for (sl = dirs; sl; sl = g_slist_next(sl))
-		recurse_scan(sl->data, sl->data);	/* ...since this updates the GUI! */
-
-	for (sl = dirs; sl; sl = g_slist_next(sl))
+	for (sl = dirs; sl; sl = g_slist_next(sl)) {
+		const gchar *path = sl->data;
+		/* ...since this updates the GUI! */
+		recurse_scan(path);
 		atom_str_free(sl->data);
-
+	}
 	g_slist_free(dirs);
 	dirs = NULL;
 
@@ -2359,6 +2443,19 @@ shared_file_name_canonic_len(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return sf->name_canonic_len;
+}
+
+/**
+ * Returns the relative path of the shared files unless there was none
+ * or exposing relative paths is disabled.
+ *
+ * @return A string or NULL.
+ */
+const gchar *
+shared_file_relative_path(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+	return search_results_expose_relative_paths ? sf->relative_path : NULL;
 }
 
 const gchar *

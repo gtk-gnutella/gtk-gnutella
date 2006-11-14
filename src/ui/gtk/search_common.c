@@ -862,15 +862,14 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     	rc->tag = atom_str_get(r->tag);
 	}
 	if (r->path) {
-    	rc->path = atom_str_get(r->path);
 		if (ST_LOCAL & rs->status) {
 			gchar *dir;
 		
-			dir = filepath_directory(rc->path);
+			dir = filepath_directory(r->path);
 			rc->path = atom_str_get(lazy_filename_to_ui_string(dir));
 			G_FREE_NULL(dir);
 		} else {
-			rc->path = atom_str_get(lazy_unknown_to_ui_string(rc->path));
+			rc->path = atom_str_get(lazy_unknown_to_ui_string(r->path));
 		}
 	}
    	rc->flags = r->flags;

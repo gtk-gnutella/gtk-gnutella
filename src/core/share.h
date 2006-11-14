@@ -123,6 +123,7 @@ const gchar *shared_file_path(const shared_file_t *sf);
 const gchar *shared_file_sha1(const shared_file_t *sf);
 const gchar *shared_file_name_nfc(const shared_file_t *sf);
 const gchar *shared_file_name_canonic(const shared_file_t *sf);
+const gchar *shared_file_relative_path(const shared_file_t *sf);
 size_t shared_file_name_nfc_len(const shared_file_t *sf);
 size_t shared_file_name_canonic_len(const shared_file_t *sf);
 guint32 shared_file_flags(const shared_file_t *sf);
