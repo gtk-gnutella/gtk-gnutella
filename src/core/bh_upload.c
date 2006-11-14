@@ -211,7 +211,8 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					" file",
 					shared_files_scanned() == 1 ? "" : "s",
 					" ",
-					short_kb_size(shared_kbytes_scanned(), FALSE),
+					short_kb_size(shared_kbytes_scanned(),
+						display_metric_units),
 					" total</h3>\r\n"
 					"<ul>\r\n", (void *) 0);
 				bh->b_data = bh->w_buf;
@@ -259,9 +260,24 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					size_t html_size;
 					gchar *html_name;
 
-					html_size = 1 + html_escape(name_nfc, NULL, 0);
-					html_name = walloc(html_size);
-					html_escape(name_nfc, html_name, html_size);
+					{
+						const gchar *dir;
+						gchar *name;
+						
+						dir = shared_file_relative_path(sf);
+						if (dir) {
+							name = g_strconcat(dir, "/", name_nfc, (void *) 0);
+						} else {
+							name = deconstify_gchar(name_nfc);
+						}
+
+						html_size = 1 + html_escape(name, NULL, 0);
+						html_name = walloc(html_size);
+						html_escape(name, html_name, html_size);
+						if (name != name_nfc) {
+							G_FREE_NULL(name);
+						}
+					}
 
 					if (sha1_hash_available(sf)) {
 						const gchar * const sha1 = shared_file_sha1(sf);
