@@ -2455,7 +2455,11 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext,
 	if (name_is_uniq(filename))
 		return filename;
 
-	g_error("no luck with random number generator");	/* Should NOT happen */
+	/*
+	 * This may also be the result of permission problems or inode
+	 * exhaustion.
+	 */
+	g_warning("no luck with random number generator");
 	return NULL;
 }
 
