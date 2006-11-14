@@ -650,6 +650,8 @@ guint32  max_simultaneous_downloads_per_file     = 40;
 guint32  max_simultaneous_downloads_per_file_def = 40;
 gboolean dump_received_gnutella_packets     = FALSE;
 gboolean dump_received_gnutella_packets_def = FALSE;
+gboolean search_results_expose_relative_paths     = FALSE;
+gboolean search_results_expose_relative_paths_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6219,6 +6221,23 @@ gnet_prop_init(void) {
     gnet_property->props[291].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[291].data.boolean.def   = &dump_received_gnutella_packets_def;
     gnet_property->props[291].data.boolean.value = &dump_received_gnutella_packets;
+
+
+    /*
+     * PROP_SEARCH_RESULTS_EXPOSE_RELATIVE_PATHS:
+     *
+     * General data:
+     */
+    gnet_property->props[292].name = "search_results_expose_relative_paths";
+    gnet_property->props[292].desc = _("If enabled, queries are also matched against the directory names which are relative to the shared ones. Further, search results will show these. This is especially useful if the shared filenames are ambiguous or meaningless without knowing the directory names as well. However, be sure the directory names do not expose confidential information. You have to initiate a rescan of the shared files before a change becomes fully effective.");
+    gnet_property->props[292].ev_changed = event_new("search_results_expose_relative_paths_changed");
+    gnet_property->props[292].save = TRUE;
+    gnet_property->props[292].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[292].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[292].data.boolean.def   = &search_results_expose_relative_paths_def;
+    gnet_property->props[292].data.boolean.value = &search_results_expose_relative_paths;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

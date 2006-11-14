@@ -3393,4 +3393,20 @@ prop = {
 	};
 };
 
+prop = {
+	name = "search_results_expose_relative_paths";
+	desc = "If enabled, queries are also matched against the directory "
+			"names which are relative to the shared ones. Further, search "
+			"results will show these. This is especially useful if the shared "
+			"filenames are ambiguous or meaningless without knowing "
+			"the directory names as well. However, be sure the directory "
+			"names do not expose confidential information. You have "
+			"to initiate a rescan of the shared files before a change "
+			"becomes fully effective.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
 /* vi: set ts=4: */
