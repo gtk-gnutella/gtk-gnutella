@@ -22726,7 +22726,7 @@ allowed</label>
 	      <widget>
 		<class>GtkTable</class>
 		<name>table98</name>
-		<rows>1</rows>
+		<rows>2</rows>
 		<columns>1</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>2</row_spacing>
@@ -22744,6 +22744,29 @@ allowed</label>
 		    <right_attach>1</right_attach>
 		    <top_attach>0</top_attach>
 		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_expose_relative_paths</name>
+		  <can_focus>True</can_focus>
+		  <label>E_xpose relative paths</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>

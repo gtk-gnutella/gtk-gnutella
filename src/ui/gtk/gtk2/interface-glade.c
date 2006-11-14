@@ -13663,6 +13663,7 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *frame146;
   GtkWidget *table114;
   GtkWidget *checkbutton_enable_browse_host;
+  GtkWidget *checkbutton_expose_relative_paths;
   GtkWidget *hbox284;
   GtkWidget *frame86;
   GtkWidget *table73;
@@ -13953,7 +13954,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (frame146);
   gtk_box_pack_start (GTK_BOX (vbox40), frame146, FALSE, TRUE, 0);
 
-  table114 = gtk_table_new (1, 1, FALSE);
+  table114 = gtk_table_new (2, 1, FALSE);
   gtk_widget_set_name (table114, "table114");
   gtk_widget_show (table114);
   gtk_container_add (GTK_CONTAINER (frame146), table114);
@@ -13965,6 +13966,13 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
   gtk_widget_show (checkbutton_enable_browse_host);
   gtk_table_attach (GTK_TABLE (table114), checkbutton_enable_browse_host, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  checkbutton_expose_relative_paths = gtk_check_button_new_with_mnemonic (_("E_xpose relative paths"));
+  gtk_widget_set_name (checkbutton_expose_relative_paths, "checkbutton_expose_relative_paths");
+  gtk_widget_show (checkbutton_expose_relative_paths);
+  gtk_table_attach (GTK_TABLE (table114), checkbutton_expose_relative_paths, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
 
@@ -14779,6 +14787,7 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame146, "frame146");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table114, "table114");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_enable_browse_host, "checkbutton_enable_browse_host");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_expose_relative_paths, "checkbutton_expose_relative_paths");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox284, "hbox284");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame86, "frame86");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table73, "table73");

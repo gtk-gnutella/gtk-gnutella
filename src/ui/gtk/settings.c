@@ -4364,6 +4364,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_SEARCH_RESULTS_EXPOSE_RELATIVE_PATHS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_expose_relative_paths",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_ENABLE_SHELL,
         update_togglebutton,
         TRUE,

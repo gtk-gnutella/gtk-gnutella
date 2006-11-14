@@ -11522,6 +11522,8 @@ create_dlg_prefs (void)
   GtkWidget *table98;
   guint checkbutton_enable_browse_host_key;
   GtkWidget *checkbutton_enable_browse_host;
+  guint checkbutton_expose_relative_paths_key;
+  GtkWidget *checkbutton_expose_relative_paths;
   GtkWidget *frame_expert_ul_timeout;
   GtkWidget *table12;
   guint label179_key;
@@ -15940,7 +15942,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame149);
   gtk_box_pack_start (GTK_BOX (vbox40), frame149, FALSE, TRUE, 0);
 
-  table98 = gtk_table_new (1, 1, FALSE);
+  table98 = gtk_table_new (2, 1, FALSE);
   gtk_widget_set_name (table98, "table98");
   gtk_widget_ref (table98);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table98", table98,
@@ -15961,6 +15963,20 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_enable_browse_host);
   gtk_table_attach (GTK_TABLE (table98), checkbutton_enable_browse_host, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_expose_relative_paths = gtk_check_button_new_with_label ("");
+  checkbutton_expose_relative_paths_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_expose_relative_paths)->child),
+                                   _("E_xpose relative paths"));
+  gtk_widget_add_accelerator (checkbutton_expose_relative_paths, "clicked", accel_group,
+                              checkbutton_expose_relative_paths_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_expose_relative_paths, "checkbutton_expose_relative_paths");
+  gtk_widget_ref (checkbutton_expose_relative_paths);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_expose_relative_paths", checkbutton_expose_relative_paths,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_expose_relative_paths);
+  gtk_table_attach (GTK_TABLE (table98), checkbutton_expose_relative_paths, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
