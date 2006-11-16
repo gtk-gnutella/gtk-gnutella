@@ -1,299 +1,378 @@
 /*
- * $Id$
+ * Copyright (c) 2006
+ *    Christian Biere <christianbiere@gmx.de> All rights reserved.
  *
- * Copyright (c) 2006 Christian Biere
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- *----------------------------------------------------------------------
- * This file is part of gtk-gnutella.
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the authors nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
- *  gtk-gnutella is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  gtk-gnutella is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with gtk-gnutella; if not, write to the Free Software
- *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *----------------------------------------------------------------------
- */
-
-/**
- * @ingroup lib
- * @file
- *
- * Very simple hash table. This is meant as replacement for GHashTable
- * using g_direct_hash() and g_direct_value().
- *
- * @note The semantics of insert/replace differ from the GLib variants!
- *
- * @author Christian Biere
- * @date 2006
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  */
 
 #include "common.h"
 
-RCSID("$Id$")
+#include "lib/hashtable.h"
+#include "lib/sha1.h"
+#include "lib/vmm.h"
 
-#include <assert.h>
+#include "lib/override.h"
 
-#include "bit_array.h"
-#include "misc.h"
-#include "hashtable.h"
-
-#include "override.h"		/* Must be the last header included */
-
-#define HASH_TAB_INCR 37		/** Probe increment; must be a prime */
-#define HASH_TAB_MIN_SLOTS 8	/** Minimum amount of slots to allocate */
+#define HASH_ITEMS_PER_BIN 4
 
 typedef struct hash_item {
-	void *key;
-	void *value;
+  void *key;
+  void *value;
+  struct hash_item *next;
 } hash_item_t;
 
 struct hash_table {
-	size_t num_slots;
-	size_t num_held;
-	bit_array_t *used;
-	struct hash_item *items;
+  size_t      num_items; /* Array length of "items" */
+  size_t      num_bins; /* Number of bins */
+  size_t      num_held; /* Number of items actually in the table */
+  size_t      bin_fill; /* Number of bins in use */
+  hash_item_t **bins;   /* Array of bins of size ``num_bins'' */
+  hash_item_t *free_list;   /* List of free hash items */
+  hash_item_t *items;       /* Array of items */
 };
 
-static void hash_table_resize(hash_table_t *ht);
+#define hash_table_check(ht) \
+G_STMT_START { \
+  const hash_table_t *ht_ = (ht); \
+ \
+  RUNTIME_ASSERT(ht_ != NULL); \
+  RUNTIME_ASSERT(ht_->num_bins > 0); \
+} G_STMT_END
 
-static inline size_t
-hash_table_hash_key(const void *p)
+static hash_item_t * 
+hash_item_alloc(hash_table_t *ht, void *key, void *value)
 {
-	size_t x = (size_t) p;
-	return x ^ (x >> 31);
+  hash_item_t *item;
+
+  item = ht->free_list;
+  RUNTIME_ASSERT(item);
+  ht->free_list = item->next;
+
+  item->key = key;
+  item->value = value;
+  item->next = NULL;
+
+  return item;
 }
 
-static hash_table_t *
-hash_table_alloc(void)
+static void 
+hash_item_free(hash_table_t *ht, hash_item_t *item)
 {
-	hash_table_t *ht;
+  RUNTIME_ASSERT(ht != NULL);
+  RUNTIME_ASSERT(item != NULL);
 
-   	ht = malloc(sizeof *ht);
-	RUNTIME_ASSERT(ht);
+  item->key = NULL;
+  item->value = NULL;
+  item->next = ht->free_list;
+  ht->free_list = item;
+}
 
-	if (ht) {
-		static const hash_table_t zero_ht;
+void
+hash_table_new_intern(hash_table_t *ht, size_t num_bins)
+{
+  size_t i;
+   
+  RUNTIME_ASSERT(ht);
+  RUNTIME_ASSERT(num_bins > 1);
+  
+  ht->num_held = 0;
+  ht->bin_fill = 0;
 
-		*ht = zero_ht;
-	}
-	return ht;
+  ht->num_bins = num_bins;
+  ht->bins = alloc_pages(ht->num_bins * sizeof ht->bins[0]);
+  RUNTIME_ASSERT(ht->bins);
+  
+  ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
+  ht->items = alloc_pages(ht->num_items * sizeof ht->items[0]);
+  RUNTIME_ASSERT(ht->items);
+
+  ht->free_list = &ht->items[0];
+  for (i = 0; i < ht->num_items - 1; i++) {
+    ht->items[i].next = &ht->items[i + 1];
+  }
+  ht->items[i].next = NULL;
+
+  for (i = 0; i < ht->num_bins; i++) {
+    ht->bins[i] = NULL;
+  }
+
+  hash_table_check(ht);
 }
 
 hash_table_t *
 hash_table_new(void)
 {
-	return hash_table_alloc();
-}
-
-enum hash_slot_type {
-	HASH_SLOT_FREE = 0,
-	HASH_SLOT_USED = 1
-};
-
-static inline size_t
-hash_table_find_slot(const hash_table_t * const ht, const void * const key,
-	const enum hash_slot_type want)
-{
-	size_t slot, mask, i;
-
-	mask = ht->num_slots - 1;
-	slot = hash_table_hash_key(key) & mask;
-
-	for (i = 0; i < ht->num_slots; i++) {
-		if (bit_array_get(ht->used, slot)) {
-			if (key == ht->items[slot].key)
-				return slot;
-		} else {
-#if 0
-			/* This defeats the purpose of using a cache-friendly bit array */
-			RUNTIME_ASSERT(NULL == ht->items[slot].key);
-#endif
-			if (HASH_SLOT_FREE == want)
-				return slot;
-		}
-		slot += HASH_TAB_INCR;
-		slot &= mask;
-	}
-	return (size_t) -1;
-}
-
-static gboolean
-hash_table_insert_intern(hash_table_t *ht, void *key, void *value,
-	gboolean may_replace)
-{
-	size_t slot;
-
-	if (ht->num_held >= (ht->num_slots / 10) * 8) {
-		hash_table_resize(ht);
-	}
-
-	slot = hash_table_find_slot(ht, key, HASH_SLOT_FREE);
-	RUNTIME_ASSERT((size_t) -1 != slot);
-	RUNTIME_ASSERT(slot < ht->num_slots);
-
-	RUNTIME_ASSERT(NULL == ht->items[slot].key || key == ht->items[slot].key);
-
-	if (bit_array_get(ht->used, slot)) {
-		if (!may_replace)
-			return FALSE;
-	} else {
-		bit_array_set(ht->used, slot);
-		ht->items[slot].key = key;
-
-		RUNTIME_ASSERT(ht->num_held < ht->num_slots);
-		ht->num_held++;
-	}
-	ht->items[slot].value = value;
-	return TRUE;
+  hash_table_t *ht = malloc(sizeof *ht);
+  hash_table_new_intern(ht, 2);
+  return ht;
 }
 
 /**
- * Inserts a key into the hashtable but only if the key is not already
- * in the hashtable.
+ * Checks how many items are currently in stored in the hash_table.
  *
- * @return	TRUE if the key was inserted, FALSE otherwise.
+ * @param ht the hash_table to check.
+ * @return the number of items in the hash_table.
+ */
+size_t
+hash_table_size(const hash_table_t *ht)
+{
+  hash_table_check(ht);
+  return ht->num_held;
+}
+
+/**
+ * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
+ *       only a quarter of the bins are used.
+ */
+static inline size_t
+hash_key(const void *key)
+{
+  size_t n = (size_t) key;
+  return ((0x4F1BBCDCUL * (guint64) n) >> 32) ^ n;
+}
+
+/**
+ * @param ht a hash_table.
+ * @param key the key to look for.
+ * @param bin if not NULL, it will be set to the bin number that is or would
+ *        be used for the key. It is set regardless whether the key is in
+ *        the hash_table.
+ * @return NULL if the key is not in the hash_table. Otherwise, the item
+ *         associated with the key is returned.
+ */
+static hash_item_t *
+hash_table_find(hash_table_t *ht, const void *key, size_t *bin)
+{
+  hash_item_t *item;
+  size_t hash;
+
+  hash_table_check(ht);
+
+  hash = hash_key(key) & (ht->num_bins - 1);
+  item = ht->bins[hash];
+  if (bin) {
+    *bin = hash;
+  }
+
+  for (/* NOTHING */; item != NULL; item = item->next) {
+    if (key == item->key)
+        return item;
+  }
+
+  return NULL;
+}
+
+void
+hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
+{
+  size_t i;
+
+  hash_table_check(ht);
+  RUNTIME_ASSERT(func != NULL);
+
+  for (i = 0; i < ht->num_bins; i++) {
+    hash_item_t *item;
+
+    for (item = ht->bins[i]; NULL != item; item = item->next) {
+      (*func)(item->key, item->value, data);
+    }
+  }
+}
+
+static void
+hash_table_clear(hash_table_t *ht)
+{
+  size_t i;
+
+  hash_table_check(ht);
+  for (i = 0; i < ht->num_bins; i++) {
+    hash_item_t *item = ht->bins[i];
+
+    while (item) {
+      hash_item_t *next;
+
+      next = item->next;
+      hash_item_free(ht, item);
+      item = next;
+    }
+    ht->bins[i] = NULL;
+  }
+
+  free_pages(ht->bins, ht->num_bins * sizeof ht->bins[0]);
+  ht->bins = NULL;
+  ht->num_bins = 0;
+  free_pages(ht->items, ht->num_items * sizeof ht->items[0]);
+  ht->items = NULL;
+  ht->num_items = 0;
+  ht->free_list = NULL;
+}
+
+void
+hash_table_resize_helper(void *key, void *value, void *data)
+{
+  gboolean ok;
+  ok = hash_table_insert(data, key, value);
+  RUNTIME_ASSERT(ok);
+}
+
+static inline void
+hash_table_resize(hash_table_t *ht)
+{
+  size_t n;
+
+  /* TODO: Also shrink the table */
+  if ((ht->num_held / HASH_ITEMS_PER_BIN) >= ht->num_bins) {
+    n = ht->num_bins * 2;
+  } else {
+    n = ht->num_bins;
+  }
+
+  if (n != ht->num_bins) {
+    hash_table_t tmp;
+
+    hash_table_new_intern(&tmp, n);
+    hash_table_foreach(ht, hash_table_resize_helper, &tmp);
+    hash_table_clear(ht);
+
+    RUNTIME_ASSERT(ht->num_held == tmp.num_held);
+
+    *ht = tmp;
+  }
+}
+
+void
+hash_table_status(const hash_table_t *ht)
+{
+  fprintf(stderr,
+      "hash_table_status:\n"
+      "ht=%p\n"
+      "num_held=%lu\n"
+      "num_bins=%lu\n"
+      "bin_fill=%lu\n",
+      ht,
+      (unsigned long) ht->num_held,
+      (unsigned long) ht->num_bins,
+      (unsigned long) ht->bin_fill);
+}
+
+/**
+ * Adds a new item to the hash_table. If the hash_table already contains an
+ * item with the same key, the old value is kept and FALSE is returned.
+ *
+ * @return FALSE if the item could not be added, TRUE on success.
  */
 gboolean
 hash_table_insert(hash_table_t *ht, void *key, void *value)
 {
-	return hash_table_insert_intern(ht, key, value, FALSE);
+  hash_item_t *item;
+  size_t bin;
+
+  hash_table_check(ht);
+
+  RUNTIME_ASSERT(key);
+  RUNTIME_ASSERT(value);
+
+  hash_table_resize(ht);
+
+  if (hash_table_find(ht, key, &bin)) {
+    return FALSE;
+  }
+  RUNTIME_ASSERT(NULL == hash_table_lookup(ht, key));
+
+  item = hash_item_alloc(ht, key, value);
+  RUNTIME_ASSERT(item != NULL);
+
+  if (NULL == ht->bins[bin]) {
+    RUNTIME_ASSERT(ht->bin_fill < ht->num_bins);
+    ht->bin_fill++;
+  }
+  item->next = ht->bins[bin];
+  ht->bins[bin] = item;
+  ht->num_held++;
+
+  RUNTIME_ASSERT(value == hash_table_lookup(ht, key));
+  return TRUE;
 }
 
-/**
- * Inserts a key into the hashtable and replaces the current one if it is
- * already in the hashtable.
- */
-void
-hash_table_replace(hash_table_t *ht, void *key, void *value)
+gboolean
+hash_table_remove(hash_table_t *ht, void *key)
 {
-	(void) hash_table_insert_intern(ht, key, value, TRUE);
+  hash_item_t *item;
+  size_t bin;
+
+  item = hash_table_find(ht, key, &bin);
+  if (item) {
+    hash_item_t *i;
+
+    i = ht->bins[bin];
+    RUNTIME_ASSERT(i != NULL);
+    if (i == item) {
+      if (!i->next) {
+        RUNTIME_ASSERT(ht->bin_fill > 0);
+        ht->bin_fill--;
+      }
+      ht->bins[bin] = i->next;
+    } else {
+      
+      RUNTIME_ASSERT(i->next != NULL);
+      while (item != i->next) { 
+        RUNTIME_ASSERT(i->next != NULL);
+        i = i->next;
+      }
+      RUNTIME_ASSERT(i->next == item);
+
+      i->next = item->next;
+    }
+
+    hash_item_free(ht, item);
+    ht->num_held--;
+
+    RUNTIME_ASSERT(!hash_table_lookup(ht, key));
+    return TRUE;
+  }
+  RUNTIME_ASSERT(!hash_table_lookup(ht, key));
+  return FALSE;
 }
 
 void *
 hash_table_lookup(hash_table_t *ht, void *key)
 {
-	size_t slot;
-	
-	slot = hash_table_find_slot(ht, key, HASH_SLOT_USED);
-	return (size_t) -1 == slot ? NULL : ht->items[slot].value; 
+  hash_item_t *item;
+
+  hash_table_check(ht);
+  item = hash_table_find(ht, key, NULL);
+
+  return item ? item->value : NULL;
 }
 
-/**
- * Removes a key from the hashtable.
- *
- * @return TRUE if the key was remove, FALSE if the key was not found.
- */
-gboolean
-hash_table_remove(hash_table_t *ht, void *key)
-{
-	size_t slot;
-
-	slot = hash_table_find_slot(ht, key, HASH_SLOT_USED);
-	if ((size_t) -1 != slot) {
-		bit_array_clear(ht->used, slot);
-	   	ht->items[slot].key = NULL;
-	   	ht->items[slot].value = NULL;
-
-		RUNTIME_ASSERT(ht->num_held > 0);
-		ht->num_held--;
-		return TRUE;
-	}
-	return FALSE;
-}
-
-static void 
-hash_table_resize(hash_table_t *old_ht)
-{
-	hash_table_t ht;
-	size_t i;
-
-	ht = *old_ht;
-
-	RUNTIME_ASSERT(ht.num_slots < INT_MAX / 2);
-	RUNTIME_ASSERT(0 == ht.num_slots || is_pow2(ht.num_slots));
-	ht.num_slots = 2 * (ht.num_slots > 0 ? ht.num_slots : HASH_TAB_MIN_SLOTS);
-
-	ht.items = realloc(ht.items, ht.num_slots * sizeof ht.items[0]);
-	RUNTIME_ASSERT(ht.items);
-
-	ht.used = realloc(ht.used, BIT_ARRAY_BYTE_SIZE(ht.num_slots));
-	RUNTIME_ASSERT(ht.used);
-
-	bit_array_clear_range(ht.used, old_ht->num_slots, ht.num_slots - 1);
-
-	/* Clearing the slots is not really necessary, but it's done
-	 * anyway to limit that damage that could be caused by bugs or
-	 * inconsistencies in the bit array. Note, that hash_table_insert()
-	 * has a assertion check claiming that free slots of a NULL key
-	 * for the same purpose. */
-	for (i = old_ht->num_slots; i < ht.num_slots; i++) {
-		ht.items[i].key = NULL;
-		ht.items[i].value = NULL;
-	}
-
-	for (i = 0; i < old_ht->num_slots; i++) {
-		if (bit_array_get(ht.used, i)) {
-			size_t slot;
-			void *key, *value;
-
-			bit_array_clear(ht.used, i);
-			key = ht.items[i].key;
-			value = ht.items[i].value;
-			ht.items[i].key = NULL;
-			
-			slot = hash_table_find_slot(&ht, key, HASH_SLOT_FREE);
-			
-			bit_array_set(ht.used, slot);
-			ht.items[slot].key = key;
-			ht.items[slot].value = value;
-		}
-	}
-
-	*old_ht = ht;
-}
-
-void 
-hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
-{
-	size_t i;
-
-	RUNTIME_ASSERT(ht);
-	RUNTIME_ASSERT(func);
-	
-	for (i = 0; i < ht->num_slots; i++) {
-		if (bit_array_get(ht->used, i)) {
-			(*func)(ht->items[i].key, ht->items[i].value, data);
-		}
-	}
-}
-
-size_t
-hash_table_size(const hash_table_t *ht)
-{
-	RUNTIME_ASSERT(ht);
-	return ht->num_held;
-}
-
-void 
+void
 hash_table_destroy(hash_table_t *ht)
 {
-	if (ht) {
-		static const hash_table_t zero_ht;
-		
-		free(ht->used);
-		free(ht->items);
-		*ht = zero_ht;
-		free(ht);
-	}
+  hash_table_clear(ht);
+  free(ht);
 }
 
-/* vi: set ts=4 sw=4 cindent: */
+/* vi: set ai et sts=2 sw=2 cindent: */
