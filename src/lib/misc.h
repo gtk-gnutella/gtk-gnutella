@@ -560,6 +560,8 @@ signal_handler_t set_signal(gint signo, signal_handler_t handler);
 
 gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 gchar *normalize_dir_separators(const gchar *s);
+size_t memcmp_diff(const void *a, const void *b, size_t n);
+guint32 cpu_noise(void);
 
 /**
  * Determines the length of a NUL-terminated string looking only at the first

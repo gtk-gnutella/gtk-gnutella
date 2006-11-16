@@ -3658,6 +3658,42 @@ compat_daemonize(const char *directory)
 }
 
 /**
+ * Counts the number of bytes that differ between two chunks of memory.
+ */
+size_t
+memcmp_diff(const void *a, const void *b, size_t size)
+{
+	const gchar *p = a, *q = b;
+	size_t n = 0;
+
+	while (size-- > 0) {
+		if (*p++ != *q++)
+			n++;
+	}
+
+	return n;
+}
+
+guint32
+cpu_noise(void)
+{
+	static guchar data[512];
+	guint8 digest[SHA1HashSize];
+	SHA1Context ctx;
+	guint32 r, i;
+	
+	r = random_raw();
+	i = r % G_N_ELEMENTS(data);
+	data[i] = r;
+
+	SHA1Reset(&ctx);
+	SHA1Input(&ctx, data, i);
+	SHA1Result(&ctx, digest);
+
+	return peek_le32(digest);
+}
+
+/**
  * Creates a string copy with all directory separators replaced with the
  * canonic path component separator '/' (a slash).
  *

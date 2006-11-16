@@ -1569,21 +1569,23 @@ shell_timer(time_t now)
 static gboolean
 shell_auth(const gchar *str)
 {
-	gboolean ok;
-	gchar *tok_helo;
-	gchar *tok_cookie;
+	gchar *tok_helo, *tok_cookie;
+	gboolean ok = FALSE;
 	gint pos = 0;
 
 	tok_helo = shell_get_token(str, &pos);
 	tok_cookie = shell_get_token(str, &pos);
 
-	g_warning("auth: [%s] [<cookie not displayed>]", tok_helo);
+	g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
 
-	if (tok_helo && tok_cookie) {
-		ok = strcmp("HELO", tok_helo) == 0 &&
-			strcmp(sha1_base32(auth_cookie), tok_cookie) == 0;
+	if (
+		tok_helo && 0 == strcmp("HELO", tok_helo) &&
+		tok_cookie && SHA1_BASE32_SIZE == strlen(tok_cookie) &&
+		0 == memcmp_diff(sha1_base32(auth_cookie), tok_cookie, SHA1_BASE32_SIZE)
+	) {
+		ok = TRUE;
 	} else {
-		ok = FALSE;
+		cpu_noise();
 	}
 
 	G_FREE_NULL(tok_helo);
