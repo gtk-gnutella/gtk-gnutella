@@ -126,7 +126,6 @@ static struct special_file specials[] = {
 static GHashTable *special_names = NULL;
 
 static guint64 files_scanned = 0;
-static guint64 kbytes_scanned = 0;
 static guint64 bytes_scanned = 0;
 
 GSList *extensions = NULL;
@@ -1077,30 +1076,21 @@ recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 					break;
 				}
 
-				found->file_index = ++files_scanned;
-
-				if (request_sha1(found)) {
-					st_insert_item(search_table, found->name_canonic, found);
-
-					shared_files = g_slist_prepend(shared_files,
-							shared_file_ref(found));
-
-					bytes_scanned += file_stat.st_size;
-					kbytes_scanned += bytes_scanned >> 10;
-					bytes_scanned &= (1 << 10) - 1;
-				} else {
-					found = NULL;
-				}
+				files_scanned++;
+				bytes_scanned += found->file_size; 
+				st_insert_item(search_table, found->name_canonic, found);
+				shared_files = g_slist_prepend(shared_files,
+										shared_file_ref(found));
 				break;			/* for loop */
 			}
 		}
 		G_FREE_NULL(sl->data);
 
 		if (!(i & 0x3f)) {
-			gcu_gui_update_files_scanned();	/* Interim view */
 			gcu_gtk_main_flush();
 		}
 	}
+	gcu_gui_update_files_scanned();	/* Interim view */
 
 	atom_str_free_null(&dir_name);
 
@@ -1158,6 +1148,22 @@ share_free(void)
 	shared_files = NULL;
 }
 
+/**
+ * Sort function - shared files by descending mtime. 
+ */
+static gint
+shared_file_sort_by_mtime(gconstpointer f1, gconstpointer f2)
+{
+	const shared_file_t * const *sf1 = f1, * const *sf2 = f2;
+	time_t t1, t2;
+
+	shared_file_check(*sf1);
+	t1 = (*sf1)->mtime;
+	shared_file_check(*sf2);
+	t2 = (*sf2)->mtime;
+	return CMP(t1, t2);
+}
+
 static void reinit_sha1_table(void);
 
 /**
@@ -1169,9 +1175,9 @@ share_scan(void)
 {
 	GSList *dirs;
 	GSList *sl;
-	gint i;
+	guint32 i;
 	static gboolean in_share_scan = FALSE;
-	time_t now, started;
+	time_t started;
 	glong elapsed;
 
 	/*
@@ -1187,14 +1193,13 @@ share_scan(void)
 	else
 		in_share_scan = TRUE;
 
-	started = now = tm_time();
+	started = tm_time();
 
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
-	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, now);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, started);
 
 	files_scanned = 0;
 	bytes_scanned = 0;
-	kbytes_scanned = 0;
 
 	reinit_sha1_table();
 	share_free();
@@ -1228,34 +1233,69 @@ share_scan(void)
 	dirs = NULL;
 
 	/*
-	 * Done scanning all the files.
+	 * Done scanning for the files. Now process them.
 	 */
-
+	
+	/* Compact the search table */
 	st_compact(search_table);
 
+	g_assert(files_scanned == g_slist_length(shared_files));
+	file_table = g_malloc0((files_scanned + 1) * sizeof *file_table);
+
 	/*
-	 * In order to quickly locate files based on indicies, build a table
-	 * of all shared files.  This table is only accessible via shared_file().
-	 * NB: file indicies start at 1, but indexing in table start at 0.
-	 *		--RAM, 08/10/2001
-	 *
 	 * We over-allocate the file_table by one entry so that even when they
 	 * don't share anything, the `file_table' pointer is not NULL.
 	 * This will prevent us giving back "rebuilding library" when we should
 	 * actually return "not found" for user download requests.
 	 *		--RAM, 23/10/2002
 	 */
-
-	file_table = g_malloc0((files_scanned + 1) * sizeof *file_table);
-
-	for (i = 0, sl = shared_files; sl; i++, sl = g_slist_next(sl)) {
+	
+	i = 0;
+	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;
-		guint val;
 
 		shared_file_check(sf);
+		file_table[i++] = sf;
+	}
 
-		g_assert(sf->file_index > 0 && sf->file_index <= files_scanned);
-		file_table[sf->file_index - 1] = sf;
+	/* Sort file list by modification time */
+	{
+		tm_t delta, start, end;
+		
+		tm_now_exact(&start);
+
+		qsort(file_table, files_scanned, sizeof file_table[0],
+			shared_file_sort_by_mtime);
+
+		tm_now_exact(&end);
+		tm_elapsed(&delta, &end, &start);
+		g_message("sorting took %ld ms", tm2ms(&delta));
+	}
+
+	/*
+	 * In order to quickly locate files based on indicies, build a table
+	 * of all shared files.  This table is only accessible via shared_file().
+	 * NB: file indicies start at 1, but indexing in table start at 0.
+	 *		--RAM, 08/10/2001
+	 */
+
+	for (i = 0; i < files_scanned; i++) {
+		struct shared_file *sf;
+		guint val;
+
+	   	sf = file_table[i];
+		if (!sf)
+			continue;
+
+		shared_file_check(sf);
+		/* Set file_index based on new sort order */
+		sf->file_index = i + 1;
+		
+		/* We must not change the file index after request_sha1() */
+		if (!request_sha1(sf)) {
+			file_table[i] = NULL;
+			continue;
+		}
 
 		/*
 		 * In order to transparently handle files requested with the wrong
@@ -1281,37 +1321,35 @@ share_scan(void)
 		if (0 == (i & 0x7ff))
 			gcu_gtk_main_flush();
 	}
-
 	gcu_gui_update_files_scanned();		/* Final view */
 
-	now = tm_time();
-	elapsed = delta_time(now, started);
+	elapsed = delta_time(tm_time(), started);
 	elapsed = MAX(0, elapsed);
-	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, now);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, tm_time());
 	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
 
 	/*
 	 * Query routing table update.
 	 */
 
-	started = now;
-	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, now);
+	started = tm_time();
+	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, started);
 
 	qrp_prepare_computation();
 
-	for (i = 0, sl = shared_files; sl; i++, sl = g_slist_next(sl)) {
+	i = 0;
+	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;
 
 		shared_file_check(sf);
 		qrp_add_file(sf);
-		if (0 == (i & 0x7ff))
+		if (0 == (i++ & 0x7ff))
 			gcu_gtk_main_flush();
 	}
 
 	qrp_finalize_computation();
 
-	now = tm_time();
-	elapsed = delta_time(now, started);
+	elapsed = delta_time(tm_time(), started);
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
 
@@ -2628,7 +2666,7 @@ shared_file_by_sha1(const gchar *sha1_digest)
 guint64
 shared_kbytes_scanned(void)
 {
-	return kbytes_scanned;
+	return bytes_scanned / 1024;
 }
 
 /**
