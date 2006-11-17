@@ -3722,39 +3722,6 @@ normalize_dir_separators(const gchar *s)
 	return ret;
 }
 
-/**
- * Sorts a GSList with qsort() using the given comparision function.
- */
-void
-sort_gslist_with_qsort(GSList *slist, GCompareFunc func)
-{
-	size_t n;
-
-	g_return_if_fail(func);
-
-	n = g_slist_length(slist);
-	if (n > 1) {
-		gpointer *array;
-		GSList *sl;
-		size_t i;
-
-		array = g_malloc(n * sizeof array[0]);
-
-		i = 0;
-		for (sl = slist; sl; sl = g_slist_next(sl)) {
-			array[i++] = sl->data;
-		}
-
-		qsort(array, n, sizeof array[0], func);
-
-		i = 0;
-		for (sl = slist; sl; sl = g_slist_next(sl)) {
-			sl->data = array[i++];	
-		}
-		G_FREE_NULL(array);
-	}
-}
-
 void
 misc_init(void)
 {

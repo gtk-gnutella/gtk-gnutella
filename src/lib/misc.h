@@ -562,7 +562,6 @@ gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 gchar *normalize_dir_separators(const gchar *s);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 guint32 cpu_noise(void);
-void sort_gslist_with_qsort(GSList *slist, GCompareFunc func);
 
 static inline guint32
 pointer_hash_func(const void *p)
