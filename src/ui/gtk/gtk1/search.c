@@ -1178,13 +1178,15 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 				text = rc->charset;
 				break;
 	 		case c_sr_info:
-				text = EMPTY_STRING(rc->info);
+				if (!(ST_LOCAL & rs->status))
+					text = EMPTY_STRING(rc->info);
 				break;
 	 		case c_sr_path:
 				text = EMPTY_STRING(rc->path);
 				break;
 	 		case c_sr_loc:
-				text = iso3166_country_cc(rs->country);
+				if (!(ST_LOCAL & rs->status))
+					text = iso3166_country_cc(rs->country);
 				break;
 	 		case c_sr_route:
 				text = EMPTY_STRING(search_gui_get_route(rc));
@@ -1936,8 +1938,11 @@ search_gui_set_cursor_position(gint x, gint y)
 static void
 drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 {
+	GtkCTreeNode *node;
+	gui_record_t *grc;
+	record_t *record;
 	gchar **url_ptr = udata;
-	const gchar *pathname;
+	const gchar *pathname = NULL;
 	gint row = -1;
 
 	(void) unused_drag_ctx;
@@ -1951,25 +1956,22 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 		return;
 	}
 
-	if (-1 == row) {
+	if (row < 0)
 		return;
-	} else {
-		GtkCTreeNode *node;
-		gui_record_t *grc;
-		record_t *rc;
+	
+	node = gtk_ctree_node_nth(GTK_CTREE(widget), row);
+	grc = gtk_ctree_node_get_row_data(GTK_CTREE(widget), node);
+	record = grc->shared_record;
+	if (ST_LOCAL & record->results_set->status) {
+		pathname = record ? record->path : NULL;
+		if (pathname) {
+			gchar *escaped;
 
-		node = gtk_ctree_node_nth(GTK_CTREE(widget), row);
-		grc = gtk_ctree_node_get_row_data(GTK_CTREE(widget), node);
-		rc = grc->shared_record;
-		pathname = rc ? rc->path : NULL;
-	}
-	if (pathname) {
-		gchar *escaped;
-		
-		escaped = url_escape(pathname);
-		*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-		if (escaped != pathname) {
-			G_FREE_NULL(escaped);
+			escaped = url_escape(pathname);
+			*url_ptr = g_strconcat("file://", escaped, (void *) 0);
+			if (escaped != pathname) {
+				G_FREE_NULL(escaped);
+			}
 		}
 	}
 }
