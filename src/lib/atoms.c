@@ -482,7 +482,7 @@ binary_hash(const guchar *key, guint len)
 		hash = (hash << 24) ^ (hash >> 8);
 	}
 
-	return hash;
+	return pointer_hash_func((void *) (size_t) hash);
 }
 
 /**
@@ -708,7 +708,7 @@ atoms_init(void)
 
 		td->table = g_hash_table_new(td->hash_func, td->eq_func);
 	}
-	ht_all_atoms = g_hash_table_new(NULL, NULL);
+	ht_all_atoms = g_hash_table_new(pointer_hash_func, NULL);
 }
 
 static inline size_t
