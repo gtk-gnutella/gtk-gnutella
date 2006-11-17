@@ -875,8 +875,13 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
    	rc->flags = r->flags;
 
 	rc->name = atom_str_get(r->name);
-	rc->utf8_name = atom_str_get(lazy_unknown_to_utf8_normalized(r->name,
+	
+	if (ST_LOCAL & rs->status) {
+		rc->utf8_name = atom_str_get(r->name);
+	} else {
+		rc->utf8_name = atom_str_get(lazy_unknown_to_utf8_normalized(r->name,
 									UNI_NORM_GUI, &rc->charset));
+	}
 
 	{
 		const gchar *ext = search_gui_get_filename_extension(rc->utf8_name);
