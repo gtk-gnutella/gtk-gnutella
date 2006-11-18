@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Nov  8 02:19:11 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Sat Nov 18 06:22:04 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5293,10 +5293,16 @@ eval $setvar
 
 : how can we find information about GNU TLS?
 echo " "
+
+gnutlscflags=''
+gnutlsldflags=''
+gnutlsconfig='false'
+val="$undef"
+modver=''
+
 case "$d_gnutls" in
 "$undef") gnutls="$undef";;
-*) gnutls="$define";;
-esac
+*) gnutls="$define"
 echo "Checking how we can gather information about GNU TLS..." >&4
 if pkg-config gnutls --cflags >/dev/null 2>&1; then
 	gnutlsconfig="pkg-config gnutls"
@@ -5306,15 +5312,10 @@ elif libgnutls-config --cflags >/dev/null 2>&1; then
 	modver=--version
 else
 	echo "You've don't seem to have GNU TLS installed?" >&4
-	gnutlsconfig='false'
-	modver=''
 fi
 echo "(I'll use '$gnutlsconfig' to gather that information.)"
 
-gnutlscflags=""
-gnutlsldflags=""
 version=`$gnutlsconfig $modver`
-val="$undef"
 case "$version" in
 '') ;;
 *)
@@ -5346,6 +5347,9 @@ EOM
 	fi
 	;;
 esac
+;;
+esac
+
 set d_gnutls
 eval $setvar
 
