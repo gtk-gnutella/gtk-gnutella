@@ -78,8 +78,8 @@ struct special_ctx {
 struct special_ctx *browse_host_open(
 	gpointer owner, gnet_host_t *host,
 	bh_writable_t writable,
-	struct tx_deflate_cb *deflate_cb,
-	struct tx_link_cb *link_cb,
+	const struct tx_deflate_cb *deflate_cb,
+	const struct tx_link_cb *link_cb,
 	wrap_io_t *wio,
 	gint flags);
 

@@ -54,9 +54,9 @@ RCSID("$Id$")
  * Private attributes for the link.
  */
 struct attr {
-	wrap_io_t 	 *wio;			/**< Cached wrapped IO object */
-	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
-	struct tx_link_cb *cb;		/**< Layer-specific callbacks */
+	wrap_io_t 	 *wio;				/**< Cached wrapped IO object */
+	bio_source_t *bio;				/**< Bandwidth-limited I/O source */
+	const struct tx_link_cb *cb;	/**< Layer-specific callbacks */
 };
 
 /**

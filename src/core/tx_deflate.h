@@ -53,7 +53,7 @@ struct tx_deflate_cb {
  * Arguments to be passed when the layer is intantiated.
  */
 struct tx_deflate_args {
-	struct tx_deflate_cb *cb;	/**< Callbacks */
+	const struct tx_deflate_cb *cb;	/**< Callbacks */
 	cqueue_t *cq;				/**< Callout queue to use */
 	size_t buffer_size;			/**< Internal buffer size to use */
 	size_t buffer_flush;		/**< Flush after that many bytes */

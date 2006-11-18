@@ -54,7 +54,7 @@ struct tx_link_cb {
  * Arguments to be passed when the layer is intantiated.
  */
 struct tx_link_args {
-	struct tx_link_cb *cb;			/**< Callbacks */
+	const struct tx_link_cb *cb;	/**< Callbacks */
 	struct bsched *bs;				/**< Bandwidth scheduler to use */
 	struct wrap_io *wio;			/**< I/O wrapping routines */
 };

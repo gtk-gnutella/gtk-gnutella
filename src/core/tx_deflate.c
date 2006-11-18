@@ -88,7 +88,7 @@ struct attr {
 	gint flags;					/**< Operating flags */
 	cqueue_t *cq;				/**< The callout queue to use for Nagle */
 	gpointer tm_ev;				/**< The timer event */
-	struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
+	const struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
 	gpointer closed_arg;		/**< Argument for closing routine */
 	gboolean nagle;				/**< Whether to use Nagle or not */
