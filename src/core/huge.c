@@ -89,10 +89,10 @@ RCSID("$Id$")
  */
 
 struct sha1_cache_entry {
-    gchar *file_name;				/**< Full path name                 */
+    const gchar *file_name;			/**< Full path name (atom)          */
+	const gchar *digest;			/**< SHA-1 (binary; atom)			*/
     filesize_t  size;				/**< File size                      */
     time_t mtime;					/**< Last modification time         */
-    gchar digest[SHA1_RAW_SIZE];	/**< SHA1 digest as a binary string */
     gboolean shared;				/**< There's a known entry for this
                                          file in the share library      */
 };
@@ -110,17 +110,6 @@ static gboolean cache_dirty = FALSE;
  **/
 
 /**
- * copy_sha1
- *
- * Copy the ASCII representation of a SHA1 digest from source to dest.
- */
-static void
-copy_sha1(char *dest, const char *source)
-{
-	memcpy(dest, source, SHA1_RAW_SIZE);
-}
-
-/**
  ** Handling of persistent buffer
  **/
 
@@ -135,10 +124,13 @@ static void update_volatile_cache(
 	time_t mtime,
 	const char *digest)
 {
+	sha1_cached_entry->shared = TRUE;
 	sha1_cached_entry->size = size;
 	sha1_cached_entry->mtime = mtime;
-	copy_sha1(sha1_cached_entry->digest, digest);
-	sha1_cached_entry->shared = TRUE;
+	if (sha1_cached_entry->digest) {
+		atom_sha1_free(sha1_cached_entry->digest);
+	}	
+	sha1_cached_entry->digest = atom_sha1_get(digest);
 }
 
 /**
@@ -148,15 +140,15 @@ static void
 add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	const char *digest, gboolean known_to_be_shared)
 {
-	struct sha1_cache_entry *new_entry;
+	struct sha1_cache_entry *item;
    
-	new_entry = walloc(sizeof *new_entry);
-	new_entry->file_name = atom_str_get(filename);
-	new_entry->size = size;
-	new_entry->mtime = mtime;
-	copy_sha1(new_entry->digest, digest);
-	new_entry->shared = known_to_be_shared;
-	g_hash_table_insert(sha1_cache, new_entry->file_name, new_entry);
+	item = walloc(sizeof *item);
+	item->file_name = atom_str_get(filename);
+	item->size = size;
+	item->mtime = mtime;
+	item->digest = atom_sha1_get(digest);
+	item->shared = known_to_be_shared;
+	g_hash_table_insert(sha1_cache, deconstify_gchar(item->file_name), item);
 }
 
 /** Disk cache */
@@ -235,10 +227,8 @@ dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
 
 	(void) unused_key;
 
-	if (!e->shared)
-		return;
-
-	cache_entry_print(f, e->file_name, e->digest, e->size, e->mtime);
+	if (e->shared)
+		cache_entry_print(f, e->file_name, e->digest, e->size, e->mtime);
 }
 
 /**
@@ -399,24 +389,6 @@ sha1_read_cache(void)
 
 static gpointer sha1_task = NULL;
 
-/**
- * This is a file waiting either for the digest to be computer, or
- * when computed to be retrofit into the share record.
- */
-
-struct file_sha1 {
-	const char *file_name;
-	guint32 file_index;
-
-	/*
-	 * This is used only if this record is
-	 * in the waiting_for_library_build_complete list.
-	 */
-
-	gchar sha1_digest[SHA1_RAW_SIZE];
-	struct file_sha1 *next;
-};
-
 /* Two useful lists */
 
 /**
@@ -424,66 +396,18 @@ struct file_sha1 {
  * this stack, waiting to be processed.
  */
 
-static struct file_sha1 *waiting_for_sha1_computation = NULL;
-
-/**
- * When the hash for a file has been computed but cannot be set into the struct
- * shared_file because the function shared_file returned SHARE_REBUILDING (for
- * example), the corresponding struct file_hash is stored into this stack, until
- * such time it's possible to get struct shared_file from index with
- * shared_file.
- */
-
-static struct file_sha1 *waiting_for_library_build_complete = NULL;
-
-/**
- * Push a record onto a stack (either waiting_for_sha1_computation or
- * waiting_for_library_build_complete).
- */
-static void
-push(struct file_sha1 **stack, struct file_sha1 *record)
-{
-	record->next = *stack;
-	*stack = record;
-}
-
-/**
- * Free a working cell.
- */
-static struct file_sha1 *
-alloc_cell(void)
-{
-	struct file_sha1 *p;
-
-	p = walloc(sizeof *p);
-	return p;
-}
-
-/**
- * Free a working cell.
- */
-static void
-free_cell(struct file_sha1 **cell_ptr)
-{
-	g_assert(cell_ptr);
-
-	if (*cell_ptr) {
-		struct file_sha1 *cell = *cell_ptr;
-
-		atom_str_free(cell->file_name);
-		wfree(cell, sizeof *cell);
-		*cell_ptr = NULL;
-	}
-}
+static GSList *waiting_for_sha1_computation = NULL;
 
 /* The context of the SHA1 computation being performed */
 
-#define SHA1_MAGIC	0xa1a1a1a1U
+enum sha1_computation_magic_t {
+	SHA1_MAGIC = 0x0886a7ddU
+};
 
 struct sha1_computation_context {
-	guint magic;
+	enum sha1_computation_magic_t magic;
 	SHA1Context context;
-	struct file_sha1 *file;
+	shared_file_t *sf;
 	gpointer buffer;			/**< Large buffer where data is read */
 	gint fd;
 	time_t start;				/**< Debugging, show computation rate */
@@ -500,8 +424,11 @@ sha1_computation_context_free(gpointer u)
 		close(ctx->fd);
 		ctx->fd = -1;
 	}
-	free_cell(&ctx->file);
-	g_free(ctx->buffer);
+	if (ctx->sf) {
+		shared_file_unref(ctx->sf);
+		ctx->sf = NULL;
+	}
+	G_FREE_NULL(ctx->buffer);
 	wfree(ctx, sizeof *ctx);
 }
 
@@ -512,53 +439,33 @@ sha1_computation_context_free(gpointer u)
  * @return FALSE if the pointer "sf" is not valid any longer; TRUE otherwise.
  */
 static gboolean
-put_sha1_back_into_share_library(struct shared_file *sf,
-	const char *file_name, const char *digest)
+put_sha1_back_into_share_library(struct shared_file *sf, const gchar *digest)
 {
 	struct sha1_cache_entry *cached_sha1;
-	struct stat buf;
+	struct stat sb;
 
-	g_assert(sf != SHARE_REBUILDING);
-
-	if (!sf) {
-		g_warning("got SHA1 for unknown file: %s", file_name);
-		return FALSE;
-	}
-
-	if (0 != strcmp(shared_file_path(sf), file_name)) {
-
-		/*
-		 * File name changed since last time
-		 * (that is, "rescan dir" was called)
-		 */
-
-		g_warning("name of file #%lu changed from \"%s\" to \"%s\" (rescan?): "
-				"discarding SHA1",
-				(gulong) shared_file_index(sf),
-				file_name, shared_file_path(sf));
-		return TRUE;
-	}
+	shared_file_check(sf);
 
 	/*
 	 * Make sure the file's timestamp is still accurate.
 	 */
 
-	if (-1 == stat(shared_file_path(sf), &buf)) {
-		g_warning("discarding SHA1 for file #%d \"%s\": can't stat(): %s",
-			shared_file_index(sf), shared_file_path(sf), g_strerror(errno));
+	if (-1 == stat(shared_file_path(sf), &sb)) {
+		g_warning("discarding SHA1 for file \"%s\": can't stat(): %s",
+			shared_file_path(sf), g_strerror(errno));
+		shared_file_remove(sf);
 		return TRUE;
 	}
 
-	if (buf.st_mtime != shared_file_modification_time(sf)) {
-		g_warning("file #%lu \"%s\" was modified whilst SHA1 was computed",
-			(gulong) shared_file_index(sf), shared_file_path(sf));
-		shared_file_set_modification_time(sf, buf.st_mtime);
+	if (sb.st_mtime != shared_file_modification_time(sf)) {
+		g_warning("file \"%s\" was modified whilst SHA1 was computed",
+			shared_file_path(sf));
+		shared_file_set_modification_time(sf, sb.st_mtime);
 		return request_sha1(sf);					/* Retry! */
 	}
 
 	if (spam_check(digest)) {
-		g_warning("file #%lu \"%s\" is listed as spam",
-			(gulong) shared_file_index(sf), shared_file_path(sf));
+		g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 		shared_file_remove(sf);
 		return FALSE;
 	}
@@ -586,64 +493,27 @@ put_sha1_back_into_share_library(struct shared_file *sf,
 }
 
 /**
- * We have some SHA1 we couldn't put the values into the share library
- * because it wasn't available. We try again. This function is called from the
- * sha1_timer.
- */
-static void
-try_to_put_sha1_back_into_share_library(void)
-{
-	struct shared_file *sf;
-
-	if (!waiting_for_library_build_complete)
-		return;
-
-	/*
-	 * Check to see if we'll be able to get the share from the indexes.
-	 */
-
-	sf = shared_file(1);
-	if (sf == SHARE_REBUILDING)
-		return;						/* Nope. Try later. */
-
-	if (dbg > 1)
-		printf("try_to_put_sha1_back_into_share_library: flushing...\n");
-
-	while (waiting_for_library_build_complete) {
-		struct file_sha1 *f = waiting_for_library_build_complete;
-		struct shared_file *sf2 = shared_file(f->file_index);
-
-		if (dbg > 4)
-			printf("flushing file \"%s\" (idx=%u), %sfound in lib\n",
-				f->file_name, f->file_index, sf2 ? "" : "NOT ");
-
-		waiting_for_library_build_complete = f->next;
-		put_sha1_back_into_share_library(sf2, f->file_name, f->sha1_digest);
-
-		free_cell(&f);
-	}
-}
-
-/**
  * Close the file whose hash we're computing (after calculation completed) and
  * free the associated structure.
  */
 static void
 close_current_file(struct sha1_computation_context *ctx)
 {
-	free_cell(&ctx->file);
-
 	if (ctx->fd != -1) {
 		if (dbg > 1) {
-			struct stat buf;
-			gint delta = delta_time(tm_time(), ctx->start);
+			time_delta_t delta = delta_time(tm_time(), ctx->start);
 
-			if (delta && -1 != fstat(ctx->fd, &buf))
-				printf("SHA1 computation rate: %s bytes/sec\n",
-					uint64_to_string(buf.st_size / delta));
+			if (delta) {
+				g_message("SHA1 computation rate: %s bytes/sec\n",
+					uint64_to_string(shared_file_size(ctx->sf) / delta));
+			}
 		}
 		close(ctx->fd);
 		ctx->fd = -1;
+	}
+	if (ctx->sf) {
+		shared_file_unref(ctx->sf);
+		ctx->sf = NULL;
 	}
 }
 
@@ -653,10 +523,10 @@ close_current_file(struct sha1_computation_context *ctx)
  *
  * @return this file.
  */
-static struct file_sha1 *
+static shared_file_t *
 get_next_file_from_list(void)
 {
-	struct file_sha1 *l;
+	GSList *sl;
 
 	/*
 	 * XXX HACK ALERT
@@ -674,42 +544,38 @@ get_next_file_from_list(void)
 	 * XXX		--RAM, 21/05/2002
 	 */
 
-	for (;;) {
+	while (NULL != (sl = waiting_for_sha1_computation)) {
+		shared_file_t *sf = sl->data;
 		struct sha1_cache_entry *cached;
 
-		l = waiting_for_sha1_computation;
-
-		if (!l)
-			return NULL;
-
-		waiting_for_sha1_computation = waiting_for_sha1_computation->next;
-
-		cached = g_hash_table_lookup(sha1_cache, l->file_name);
+		shared_file_check(sf);
+		waiting_for_sha1_computation = g_slist_delete_link(sl, sl);
+		cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
 
 		if (cached) {
-			struct stat buf;
+			struct stat sb;
 
-			if (-1 == stat(l->file_name, &buf)) {
+			if (-1 == stat(shared_file_path(sf), &sb)) {
 				g_warning("ignoring SHA1 recomputation request for \"%s\": %s",
-					l->file_name, g_strerror(errno));
-				free_cell(&l);
+					shared_file_path(sf), g_strerror(errno));
+				shared_file_unref(sf);
 				continue;
 			}
 
 			if (
-				cached->size == (guint64) buf.st_size &&
-				cached->mtime == buf.st_mtime
+				cached->size == (filesize_t) sb.st_size &&
+				cached->mtime == sb.st_mtime
 			) {
 				if (dbg > 1)
-					printf("ignoring duplicate SHA1 work for \"%s\"\n",
-						l->file_name);
-				free_cell(&l);
+					g_warning("ignoring duplicate SHA1 work for \"%s\"",
+						shared_file_path(sf));
+				shared_file_unref(sf);
 				continue;
 			}
 		}
-
-		return l;
+		return sf;
 	}
+	return NULL;
 }
 
 /**
@@ -720,21 +586,22 @@ get_next_file_from_list(void)
 static gboolean
 open_next_file(struct sha1_computation_context *ctx)
 {
-	ctx->file = get_next_file_from_list();
+	ctx->sf = get_next_file_from_list();
 
-	if (!ctx->file)
+	if (!ctx->sf)
 		return FALSE;			/* No more file to process */
 
 	if (dbg > 1) {
-		printf("Computing SHA1 digest for %s\n", ctx->file->file_name);
+		g_message("Computing SHA1 digest for %s\n", shared_file_path(ctx->sf));
 		ctx->start = tm_time();
 	}
 
-	ctx->fd = file_open(ctx->file->file_name, O_RDONLY);
+	ctx->fd = file_open(shared_file_path(ctx->sf), O_RDONLY);
 
 	if (ctx->fd < 0) {
-		g_warning("Unable to open \"%s\" for computing SHA1 hash\n",
-			ctx->file->file_name);
+		g_warning("Unable to open \"%s\" for computing SHA1 hash",
+			shared_file_path(ctx->sf));
+		shared_file_remove(ctx->sf);
 		close_current_file(ctx);
 		return FALSE;
 	}
@@ -748,29 +615,12 @@ open_next_file(struct sha1_computation_context *ctx)
  * Callback to be called when a computation has completed.
  */
 static void
-got_sha1_result(struct sha1_computation_context *ctx, char *digest)
+got_sha1_result(struct sha1_computation_context *ctx, const gchar *digest)
 {
-	struct shared_file *sf;
-
 	g_assert(ctx->magic == SHA1_MAGIC);
-	g_assert(ctx->file != NULL);
+	shared_file_check(ctx->sf);
 
-	sf = shared_file(ctx->file->file_index);
-
-	if (sf == SHARE_REBUILDING) {
-		/*
-		 * We can't retrofit SHA1 hash into shared_file now, because we can't
-		 * get the shared_file yet.
-		 */
-
-		copy_sha1(ctx->file->sha1_digest, digest);
-
-		/* Re-use the record to save some time and heap fragmentation */
-
-		push(&waiting_for_library_build_complete, ctx->file);
-		ctx->file = NULL;
-	} else
-		put_sha1_back_into_share_library(sf, ctx->file->file_name, digest);
+	put_sha1_back_into_share_library(ctx->sf, digest);
 }
 
 /**
@@ -782,13 +632,14 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 	gint ticks, gint *used)
 {
 	ssize_t r;
-	int res;
 	size_t amount;
 
-	if (!ctx->file && !open_next_file(ctx)) {
+	if (!ctx->sf && !open_next_file(ctx)) {
 		*used = 1;
 		return;
 	}
+
+	shared_file_check(ctx->sf);
 
 	/*
 	 * Each tick we have can buy us 2^HASH_BLOCK_SHIFT bytes.
@@ -802,7 +653,8 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 
 	if ((ssize_t) -1 == r) {
 		g_warning("Error while reading %s for computing SHA1 hash: %s\n",
-			ctx->file->file_name, g_strerror(errno));
+			shared_file_path(ctx->sf), g_strerror(errno));
+		shared_file_remove(ctx->sf);
 		close_current_file(ctx);
 		*used = 1;
 		return;
@@ -816,10 +668,12 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 		((r & ((1 << HASH_BLOCK_SHIFT) - 1)) ? 1 : 0);
 
 	if (r > 0) {
-		res = SHA1Input(&ctx->context, (guint8 *) ctx->buffer, r);
+		int res;
+
+		res = SHA1Input(&ctx->context, (const guint8 *) ctx->buffer, r);
 		if (res != shaSuccess) {
 			g_warning("SHA1 error while computing hash for %s\n",
-				ctx->file->file_name);
+				shared_file_path(ctx->sf));
 			close_current_file(ctx);
 			return;
 		}
@@ -828,7 +682,7 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 	if ((size_t) r < amount) {					/* EOF reached */
 		guint8 digest[SHA1HashSize];
 		SHA1Result(&ctx->context, digest);
-		got_sha1_result(ctx, (gchar *) digest);
+		got_sha1_result(ctx, (const gchar *) digest);
 		close_current_file(ctx);
 	}
 }
@@ -839,19 +693,16 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 static bgret_t
 sha1_step_compute(gpointer h, gpointer u, gint ticks)
 {
-	gboolean call_again;
 	struct sha1_computation_context *ctx = u;
 	gint credit = ticks;
 
 	g_assert(ctx->magic == SHA1_MAGIC);
 
 	if (dbg > 4)
-		printf("sha1_step_compute: ticks = %d\n", ticks);
+		g_message("sha1_step_compute: ticks = %d", ticks);
 
-	while (credit > 0) {
+	while (credit > 0 && (ctx->sf || waiting_for_sha1_computation)) {
 		gint used;
-		if (!ctx->file && !waiting_for_sha1_computation)
-			break;
 		sha1_timer_one_step(ctx, credit, &used);
 		credit -= used;
 	}
@@ -864,26 +715,12 @@ sha1_step_compute(gpointer h, gpointer u, gint ticks)
 		bg_task_ticks_used(h, ticks - credit);
 
 	if (dbg > 4)
-		printf("sha1_step_compute: file=0x%lx [#%d], wait_comp=0x%lx [#%d], "
-			"wait_lib=0x%lx [#%d]\n",
-			(gulong) ctx->file, ctx->file ? ctx->file->file_index : 0,
-			(gulong) waiting_for_sha1_computation,
-			waiting_for_sha1_computation ?
-				waiting_for_sha1_computation->file_index : 0,
-			(gulong) waiting_for_library_build_complete,
-			waiting_for_library_build_complete ?
-				waiting_for_library_build_complete->file_index : 0);
+		g_message("sha1_step_compute: file=0x%lx wait_comp=0x%lx",
+			(gulong) ctx->sf, (gulong) waiting_for_sha1_computation);
 
-	if (waiting_for_library_build_complete)
-		try_to_put_sha1_back_into_share_library();
-
-	call_again = ctx->file
-		|| waiting_for_sha1_computation
-		|| waiting_for_library_build_complete;
-
-	if (!call_again) {
+	if (!ctx->sf && !waiting_for_sha1_computation) {
 		if (dbg > 1)
-			printf("sha1_step_compute: was last call for now\n");
+			g_message("sha1_step_compute: was last call for now");
 		sha1_task = NULL;
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, FALSE);
 		return BGR_NEXT;
@@ -920,28 +757,27 @@ sha1_step_dump(gpointer unused_h, gpointer unused_u, gint unused_ticks)
  */
 
 /**
- * Put the file with a given file_index and file_name on the stack of the things
- * to do. Activate the timer if this wasn't done already.
+ * Put the shared file on the stack of the things to do. Activate the timer if
+ * this wasn't done already.
  */
 static void
-queue_shared_file_for_sha1_computation(guint32 file_index,
-	const char *file_name)
+queue_shared_file_for_sha1_computation(shared_file_t *sf)
 {
-	struct file_sha1 *new_cell;
-   
-	new_cell = alloc_cell();
-	new_cell->file_name = atom_str_get(file_name);
-	new_cell->file_index = file_index;
-	push(&waiting_for_sha1_computation, new_cell);
+ 	shared_file_check(sf);
+
+	waiting_for_sha1_computation =
+		g_slist_prepend(waiting_for_sha1_computation, shared_file_ref(sf));
 
 	if (sha1_task == NULL) {
+		static const struct sha1_computation_context zero_ctx;
 		struct sha1_computation_context *ctx;
 		bgstep_cb_t steps[] = {
 			sha1_step_compute,
 			sha1_step_dump,
 		};
 
-		ctx = walloc0(sizeof *ctx);
+		ctx = walloc(sizeof *ctx);
+		*ctx = zero_ctx;
 		ctx->magic = SHA1_MAGIC;
 		ctx->fd = -1;
 		ctx->buffer = g_malloc(HASH_BUF_SIZE);
@@ -975,7 +811,6 @@ sha1_is_cached(const struct shared_file *sf)
 	const struct sha1_cache_entry *cached_sha1;
 
 	cached_sha1 = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
-
 	return cached_sha1 && cached_entry_up_to_date(cached_sha1, sf);
 }
 
@@ -991,12 +826,12 @@ request_sha1(struct shared_file *sf)
 {
 	struct sha1_cache_entry *cached_sha1;
 
-	cached_sha1 = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
+	shared_file_check(sf);
 
+	cached_sha1 = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
 	if (cached_sha1 && cached_entry_up_to_date(cached_sha1, sf)) {
 		if (spam_check(cached_sha1->digest)) {
-			g_warning("file #%lu \"%s\" is listed as spam",
-				(gulong) shared_file_index(sf), shared_file_path(sf));
+			g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 			shared_file_remove(sf);
 			return FALSE;
 		}
@@ -1018,8 +853,7 @@ request_sha1(struct shared_file *sf)
 				shared_file_path(sf));
 	}
 
-	queue_shared_file_for_sha1_computation(shared_file_index(sf),
-		shared_file_path(sf));
+	queue_shared_file_for_sha1_computation(sf);
 	return TRUE;
 }
 
@@ -1033,7 +867,7 @@ request_sha1(struct shared_file *sf)
 void
 huge_init(void)
 {
-	sha1_cache = g_hash_table_new(g_str_hash, g_str_equal);
+	sha1_cache = g_hash_table_new(pointer_hash_func, NULL);
 	sha1_read_cache();
 }
 
@@ -1049,6 +883,9 @@ cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
 	(void) unused_udata;
 
 	atom_str_free(e->file_name);
+	e->file_name = NULL;
+	atom_sha1_free(e->digest);
+	e->digest = NULL;
 	wfree(e, sizeof *e);
 
 	return TRUE;
@@ -1060,6 +897,8 @@ cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
 void
 huge_close(void)
 {
+	GSList *sl;
+
 	if (sha1_task)
 		bg_task_cancel(sha1_task);
 
@@ -1071,11 +910,12 @@ huge_close(void)
 	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
 	g_hash_table_destroy(sha1_cache);
 
-	while (waiting_for_sha1_computation) {
-		struct file_sha1 *l = waiting_for_sha1_computation;
+	while (NULL != (sl = waiting_for_sha1_computation)) {
+		shared_file_t *sf = sl->data;
 
-		waiting_for_sha1_computation = waiting_for_sha1_computation->next;
-		free_cell(&l);
+		shared_file_check(sf);
+		waiting_for_sha1_computation = g_slist_delete_link(sl, sl);
+		shared_file_unref(sf);
 	}
 }
 
@@ -1091,7 +931,7 @@ huge_improbable_sha1(const gchar *buf, size_t len)
 {
 	size_t i;
 	guchar previous;
-	guchar *p;
+	const guchar *p;
 	size_t ilen = 0;			/* Length of the improbable sequence */
 	size_t longest = 0;
 

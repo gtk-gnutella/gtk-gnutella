@@ -61,7 +61,7 @@
 void file_info_init(void);
 void file_info_init_post(void);
 void file_info_scandir(const gchar *dir);
-gboolean file_info_has_trailer(const gchar *path);
+gint file_info_has_trailer(const gchar *path);
 void file_info_retrieve(void);
 void file_info_store(void);
 void file_info_store_binary(fileinfo_t *fi);

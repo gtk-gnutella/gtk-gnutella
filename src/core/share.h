@@ -113,6 +113,7 @@ void query_set_oob_flag(const struct gnutella_node *n, gchar *data);
 void shared_file_set_sha1(struct shared_file *, const gchar *sha1_digest);
 void shared_file_set_modification_time(struct shared_file *sf, time_t mtime);
 
+void shared_file_check(const struct shared_file *sf);
 gboolean sha1_hash_available(const struct shared_file *sf);
 gboolean sha1_hash_is_uptodate(struct shared_file *sf);
 gboolean shared_file_is_partial(const struct shared_file *sf);

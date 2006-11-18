@@ -257,7 +257,7 @@ got_match(gpointer context, gpointer data)
 	qctx->found++;
 }
 
-static inline void
+void
 shared_file_check(const struct shared_file *sf)
 {
 	g_assert(sf);
@@ -283,6 +283,31 @@ shared_file_alloc(void)
 	return sf;
 }
 
+static void
+shared_file_deindex(shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	if (file_basenames) {
+		g_hash_table_remove(file_basenames, sf->name_nfc);
+	}
+
+	/**
+	 * The shared file might not be referenced by the current file_table
+	 * either because it hasn't been build yet or because of a rescan.
+	 */
+
+	if (
+		file_table &&
+		sf->file_index > 0 &&
+		sf->file_index <= files_scanned &&
+		sf == file_table[sf->file_index - 1]
+   ) {
+		file_table[sf->file_index - 1] = NULL;
+		sf->file_index = 0;
+	}
+}
+
 /**
  * Dispose of a shared_file_t structure and nullify the pointer.
  */
@@ -295,6 +320,8 @@ shared_file_free(shared_file_t **sf_ptr)
 
 		g_assert(sf->refcnt == 0);
 
+		shared_file_deindex(sf);
+
 		atom_sha1_free_null(&sf->sha1);
 		if (sf->relative_path) {
 			atom_str_free(sf->relative_path);
@@ -304,6 +331,7 @@ shared_file_free(shared_file_t **sf_ptr)
 		atom_str_free(sf->name_nfc);
 		atom_str_free(sf->name_canonic);
 		sf->magic = 0;
+
 		wfree(sf, sizeof *sf);
 		*sf_ptr = NULL;
 	}
@@ -1064,16 +1092,24 @@ recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 					break;
 				}
 
-				if (!sha1_is_cached(found) && file_info_has_trailer(full)) {
-					/*
-	 		 	 	 * It's probably a file being downloaded, and which is
-					 * not complete yet. This check is necessary in case
-					 * they choose to share their downloading directory...
-	 		  	 	 */
-
-					g_warning("will not share partial file \"%s\"", full);
-					shared_file_free(&found);
-					break;
+				if (!sha1_is_cached(found)) {
+					gint ret;
+					
+					ret = file_info_has_trailer(full);
+					if (0 != ret) {
+						if (-1 != ret) {
+							/*
+							 * It's probably a file being downloaded, and which
+							 * is not complete yet. This check is necessary in
+							 * case they choose to share their downloading
+							 * directory...
+							 */
+							g_warning("will not share partial file \"%s\"",
+								full);
+						}
+						shared_file_free(&found);
+						break;
+					}
 				}
 
 				files_scanned++;
@@ -1157,9 +1193,12 @@ shared_file_sort_by_mtime(gconstpointer f1, gconstpointer f2)
 	const shared_file_t * const *sf1 = f1, * const *sf2 = f2;
 	time_t t1, t2;
 
-	shared_file_check(*sf1);
+	/* We don't use shared_file_check() here because it would be
+	 * the dominating factor for the sorting time. */
+	g_assert(SHARED_FILE_MAGIC == (*sf1)->magic);
+	g_assert(SHARED_FILE_MAGIC == (*sf2)->magic);
+
 	t1 = (*sf1)->mtime;
-	shared_file_check(*sf2);
 	t2 = (*sf2)->mtime;
 	return CMP(t1, t2);
 }
@@ -2496,6 +2535,13 @@ shared_file_relative_path(const shared_file_t *sf)
 	return search_results_expose_relative_paths ? sf->relative_path : NULL;
 }
 
+/**
+ * Get the pathname of a shared file.
+ *
+ * @param sf an initialized shared file.
+ * @return	the full pathname of the shared file. The returned pointer is
+ *			a string atom.
+ */
 const gchar *
 shared_file_path(const shared_file_t *sf)
 {
@@ -2534,16 +2580,9 @@ shared_file_content_type(const shared_file_t *sf)
 void
 shared_file_remove(struct shared_file *sf)
 {
-	const struct shared_file *sfc;
-	
 	shared_file_check(sf);
 
-	sfc = shared_file(sf->file_index);
-	if (SHARE_REBUILDING != sfc) {
-		g_assert(sfc == sf);
-		file_table[sf->file_index - 1] = NULL;
-	}
-	g_hash_table_remove(file_basenames, sf->name_nfc);
+	shared_file_deindex(sf);
 	if (0 == sf->refcnt) {
 		shared_file_free(&sf);
 	}

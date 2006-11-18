@@ -1003,8 +1003,12 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 
 /**
  * Check whether file has a trailer.
+ *
+ * @return	0 if the file has no trailer
+ *			1 if the file has a trailer
+ *			-1 on error.
  */
-gboolean
+gint
 file_info_has_trailer(const gchar *path)
 {
 	struct trailer trailer;
@@ -1013,12 +1017,12 @@ file_info_has_trailer(const gchar *path)
 
 	fd = file_open_missing(path, O_RDONLY);
 	if (fd < 0)
-		return FALSE;
+		return -1;
 
 	valid = file_info_get_trailer(fd, &trailer, path);
 	close(fd);
 
-	return valid;
+	return valid ? 1 : 0;
 }
 
 /**
