@@ -107,19 +107,28 @@ static gboolean sendfile_failed = FALSE;
 
 static idtable_t *upload_handle_map = NULL;
 
-static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
-
-#define upload_find_by_handle(n) \
-    (gnutella_upload_t *) idtable_get_value(upload_handle_map, n)
-
-#define upload_new_handle(n) \
-    idtable_new_id(upload_handle_map, n)
-
-#define upload_free_handle(n) \
-    idtable_free_id(upload_handle_map, n);
-
 static gint running_uploads = 0;
 static gint registered_uploads = 0;
+
+static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
+
+static inline gnutella_upload_t *
+upload_find_by_handle(gnet_upload_t n)
+{
+	return idtable_get_value(upload_handle_map, n);
+}
+
+static inline gnet_upload_t
+upload_new_handle(gnutella_upload_t *u)
+{
+    return idtable_new_id(upload_handle_map, u);
+}
+
+static inline void
+upload_free_handle(gnet_upload_t n)
+{
+    idtable_free_id(upload_handle_map, n);
+}
 
 /**
  * This structure is the key used in the mesh_info hash table to record
@@ -273,7 +282,7 @@ upload_timer(time_t now)
 	gint t;
 
 	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) sl->data;
+		gnutella_upload_t *u = sl->data;
 		gboolean is_connecting;
 
 		g_assert(u != NULL);
@@ -418,7 +427,7 @@ upload_timer(time_t now)
 	}
 
 	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) sl->data;
+		gnutella_upload_t *u = sl->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
 				upload_remove(u, _("Connect back timeout"));
@@ -726,7 +735,7 @@ upload_free_resources(gnutella_upload_t *u)
 	}
 #endif /* USE_MMAP */
 
-	g_free(u->buffer);
+	G_FREE_NULL(u->buffer);
 	if (u->io_opaque) {				/* I/O data */
 		io_free(u->io_opaque);
 		g_assert(u->io_opaque == NULL);
@@ -1081,14 +1090,16 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 				"ending upload of \"%s\" [%s bytes out] from %s (%s): %s",
 				u->name,
 				uint64_to_string(u->sent),
-				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
+				u->socket
+					? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		} else {
 			g_message(
 				"ending upload [%s bytes out] from %s (%s): %s",
 				uint64_to_string(u->sent),
-				u->socket ? host_addr_to_string(u->socket->addr) : "<no socket>",
+				u->socket
+					? host_addr_to_string(u->socket->addr) : "<no socket>",
 				upload_vendor_str(u),
 				logreason);
 		}
@@ -1251,7 +1262,7 @@ upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 	gint count = 0;
 
 	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
-		gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
+		gnutella_upload_t *up = sl->data;
 		g_assert(up);
 		if (up->file_info == fi) {
 			to_stop = g_slist_prepend(to_stop, up);
@@ -1283,48 +1294,50 @@ cast_to_upload(gpointer p)
 {
 	return p;
 }
-#define UPLOAD(x)	cast_to_upload(x)
 
 static void
 err_line_too_long(gpointer obj)
 {
-	upload_error_remove(UPLOAD(obj), NULL, 413, "Header too large");
+	upload_error_remove(cast_to_upload(obj), NULL, 413, "Header too large");
 }
 
 static void
 err_header_error_tell(gpointer obj, gint error)
 {
-	send_upload_error(UPLOAD(obj), NULL, 413, "%s", header_strerror(error));
+	send_upload_error(cast_to_upload(obj),
+		NULL, 413, "%s", header_strerror(error));
 }
 
 static void
 err_header_error(gpointer obj, gint error)
 {
-	upload_remove(UPLOAD(obj), _("Failed (%s)"), header_strerror(error));
+	upload_remove(cast_to_upload(obj),
+		_("Failed (%s)"), header_strerror(error));
 }
 
 static void
 err_input_exception(gpointer obj)
 {
-	upload_remove(UPLOAD(obj), _("Failed (Input Exception)"));
+	upload_remove(cast_to_upload(obj), _("Failed (Input Exception)"));
 }
 
 static void
 err_input_buffer_full(gpointer obj)
 {
-	upload_error_remove(UPLOAD(obj), NULL, 500, "Input buffer full");
+	upload_error_remove(cast_to_upload(obj), NULL, 500, "Input buffer full");
 }
 
 static void
 err_header_read_error(gpointer obj, gint error)
 {
-	upload_remove(UPLOAD(obj), _("Failed (Input error: %s)"), g_strerror(error));
+	upload_remove(cast_to_upload(obj),
+		_("Failed (Input error: %s)"), g_strerror(error));
 }
 
 static void
 err_header_read_eof(gpointer obj)
 {
-	gnutella_upload_t * u = UPLOAD(obj);
+	gnutella_upload_t *u = cast_to_upload(obj);
 	u->error_sent = 999;		/* No need to send anything on EOF condition */
 	upload_remove(u, _("Failed (EOF)"));
 }
@@ -1332,7 +1345,8 @@ err_header_read_eof(gpointer obj)
 static void
 err_header_extra_data(gpointer obj)
 {
-	upload_error_remove(UPLOAD(obj), NULL, 400, "Extra data after HTTP header");
+	upload_error_remove(cast_to_upload(obj),
+		NULL, 400, "Extra data after HTTP header");
 }
 
 static const struct io_error upload_io_error = {
@@ -1349,10 +1363,8 @@ static const struct io_error upload_io_error = {
 static void
 call_upload_request(gpointer obj, header_t *header)
 {
-	upload_request(UPLOAD(obj), header);
+	upload_request(cast_to_upload(obj), header);
 }
-
-#undef UPLOAD
 
 /***
  *** Upload mesh info tracking.
@@ -1426,8 +1438,8 @@ static void
 mi_free_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
-	mi_key_free((struct mesh_info_key *) key);
-	mi_val_free((struct mesh_info_val *) value);
+	mi_key_free(key);
+	mi_val_free(value);
 }
 
 /**
@@ -1436,24 +1448,26 @@ mi_free_kv(gpointer key, gpointer value, gpointer unused_udata)
 static void
 mi_clean(cqueue_t *unused_cq, gpointer obj)
 {
-	struct mesh_info_key *mik = (struct mesh_info_key *) obj;
+	struct mesh_info_key *mik = obj;
+	struct mesh_info_val *miv;
 	gpointer key;
 	gpointer value;
 	gboolean found;
 
 	(void) unused_cq;
 	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
+	miv = value;
 
 	g_assert(found);
 	g_assert(obj == key);
-	g_assert(((struct mesh_info_val *) value)->cq_ev);
+	g_assert(miv->cq_ev);
 
 	if (upload_debug > 4)
 		g_message("upload MESH info (%s/%s) discarded\n",
 			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
 	g_hash_table_remove(mesh_info, mik);
-	((struct mesh_info_val *) value)->cq_ev = NULL;
+	miv->cq_ev = NULL;
 	mi_free_kv(key, value, NULL);
 }
 
@@ -1877,8 +1891,7 @@ get_file_to_upload_from_index(
 		return NULL;
 	}
 
-    if (u->name != NULL)
-        atom_str_free(u->name);
+	atom_str_free_null(&u->name);
     u->name = atom_str_get(uri);
 
 	/*
@@ -1886,9 +1899,9 @@ get_file_to_upload_from_index(
 	 * SHA1 URN in there and extract it.
 	 */
 	{
-		const gchar *urn;
+		const gchar *urn = header_get(header, "X-Gnutella-Content-Urn");
 
-		if (NULL != (urn = header_get(header, "X-Gnutella-Content-Urn")))
+		if (urn)
 			sent_sha1 = dmesh_collect_sha1(urn, digest);
 	}
 
@@ -2132,8 +2145,7 @@ get_file_to_upload_from_urn(
 	} else
 		filename = atom_str_get(shared_file_name_nfc(sf));
 
-    if (u->name != NULL)
-        atom_str_free(u->name);
+ 	atom_str_free_null(&u->name);
     u->name = filename;
 
 	if (sf == SHARE_REBUILDING) {
@@ -2195,10 +2207,9 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header,
 			arg = deconstify_gchar(&endptr[1]);
 			return get_file_to_upload_from_index(u, header, arg, idx);
 		}
-	}
-	else if (0 == strcmp(uri, "/uri-res/N2R"))
+	} else if (0 == strcmp(uri, "/uri-res/N2R")) {
 		return get_file_to_upload_from_urn(u, header, search);
-	else {
+	} else {
 		shared_file_t *sf = shared_special(uri);
 		if (sf != NULL)
 			return sf;
@@ -2242,8 +2253,6 @@ upload_http_xhost_add(gchar *buf, gint *retval,
 	*retval = rw;
 }
 
-/**
- */
 static void
 upload_xfeatures_add(gchar *buf, gint *retval,
 		gpointer unused_arg, guint32 unused_flags)
@@ -2268,7 +2277,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
-	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	struct upload_http_cb *a = arg;
 	gnutella_upload_t *u = a->u;
 	shared_file_t *sf = a->sf;
 	gint needed_room;
@@ -2404,7 +2413,7 @@ upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 {
 	size_t rw = 0;
 	size_t len = *retval;
-	const struct upload_http_cb *a = (const struct upload_http_cb *) arg;
+	const struct upload_http_cb *a = arg;
 	const gnutella_upload_t *u = a->u;
 	gchar fsize[UINT64_DEC_BUFLEN];
 
@@ -2426,7 +2435,7 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 {
 	gint rw = 0;
 	gint length = *retval;
-	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	struct upload_http_cb *a = arg;
 	gnutella_upload_t *u = a->u;
 	gchar csize[UINT64_DEC_BUFLEN];
 
@@ -2478,7 +2487,7 @@ upload_tx_error(gpointer o, const gchar *reason, ...)
 	va_end(args);
 }
 
-static struct tx_deflate_cb upload_tx_deflate_cb = {
+static const struct tx_deflate_cb upload_tx_deflate_cb = {
 	NULL,				/* add_tx_deflated */
 	upload_tx_error,	/* shutdown */
 };
@@ -2492,7 +2501,7 @@ upload_tx_add_written(gpointer o, gint amount)
 	u->end = u->file_size;
 }
 
-static struct tx_link_cb upload_tx_link_cb = {
+static const struct tx_link_cb upload_tx_link_cb = {
 	upload_tx_add_written,	/* add_tx_written */
 	upload_tx_error,		/* eof_remove */
 	upload_tx_error,		/* eof_shutdown */
@@ -3071,8 +3080,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 
 		if (u->browse_host && u->name) {
-			atom_str_free(u->name);
-			u->name = NULL;
+			atom_str_free_null(&u->name);
 		}
 
 		u->browse_host = FALSE;
@@ -3129,9 +3137,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (!u->sha1 && sha1)
 			u->sha1 = atom_sha1_get(sha1);
 
-		if (u->name != NULL)
-			atom_str_free(u->name);
-
+		atom_str_free_null(&u->name);
 		u->name = atom_str_get(shared_file_name_nfc(reqfile));
 		/* NULL unless partially shared file */
 		u->file_info = shared_file_fileinfo(reqfile);
@@ -3169,7 +3175,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 						http_range_to_string(ranges));
 			}
 
-			r = (http_range_t *) ranges->data;
+			r = ranges->data;
 
 			g_assert(r->start <= r->end);
 			g_assert(r->end < shared_file_size(reqfile));
@@ -3405,7 +3411,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 
 		for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
-			gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
+			gnutella_upload_t *up = sl->data;
 			g_assert(up);
 			if (up == u)
 				continue;				/* Current upload is already in list */
@@ -3442,7 +3448,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 
 		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-			gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
+			gnutella_upload_t *up = sl->data;
 			g_assert(up);
 
 			if (upload_debug) g_warning(
@@ -4047,7 +4053,6 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 			using_sendfile &&
 			!is_temporary_error(e) &&
 			e != EPIPE &&
-			e != EBUSY &&
 			e != ECONNRESET &&
 			e != ENOTCONN &&
 			e != ENOBUFS
@@ -4304,6 +4309,7 @@ upload_close(void)
 		wfree(u, sizeof *u);
 	}
 	g_slist_free(to_remove);
+	to_remove = NULL;
 
     idtable_destroy(upload_handle_map);
     upload_handle_map = NULL;
@@ -4313,8 +4319,10 @@ upload_close(void)
 
 	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
 	g_hash_table_destroy(mesh_info);
+	mesh_info = NULL;
 
 	aging_destroy(stalling_uploads);
+	stalling_uploads = NULL;
 }
 
 gnet_upload_info_t *
