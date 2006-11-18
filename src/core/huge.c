@@ -929,22 +929,21 @@ huge_close(void)
 gboolean
 huge_improbable_sha1(const gchar *buf, size_t len)
 {
-	size_t i;
-	guchar previous;
-	const guchar *p;
 	size_t ilen = 0;			/* Length of the improbable sequence */
-	size_t longest = 0;
+	size_t i, longest = 0;
 
-	previous = (guchar) buf[0];
-	for (i = 1, p = (guchar *) &buf[1]; i < len; i++, p++) {
-		guchar c = *p;
-		if (c == previous || (c + 1 == previous) || (c - 1 == previous))
+	for (i = 1; i < len; i++) {
+		guchar previous, c;
+		
+		previous = buf[i - 1];
+		c = buf[i];
+
+		if (c == previous || (c + 1 == previous) || (c - 1 == previous)) {
 			ilen++;
-		else {
+		} else {
 			longest = MAX(longest, ilen);
 			ilen = 0;		/* Reset sequence, we broke out of the pattern */
 		}
-		previous = c;
 	}
 
 	return (longest >= len / 2) ? TRUE : FALSE;
