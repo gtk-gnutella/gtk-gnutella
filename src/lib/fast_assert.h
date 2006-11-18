@@ -50,8 +50,6 @@
 #ifndef _fast_assert_h_
 #define _fast_assert_h_
 
-#ifdef FAST_ASSERTIONS
-
 typedef struct assertion_data {
 	const gchar *line, *file, *expr;
 } assertion_data;
@@ -105,6 +103,8 @@ G_STMT_START { \
 #define RUNTIME_ASSERT(expr) fast_assert(expr)
 #define RUNTIME_UNREACHABLE(expr) fast_assert_not_reached(expr)
 
+#ifdef FAST_ASSERTIONS
+
 #undef g_assert
 #define g_assert(expr) fast_assert(expr)
 
@@ -117,9 +117,6 @@ G_STMT_START { \
 #undef g_return_val_if_fail
 #define g_return_val_if_fail(expr, val) return_val_unless((expr), (val))
 
-#else	/* !FAST_ASSERTIONS */
-#define RUNTIME_ASSERT(expr) assert(expr)
-#define RUNTIME_UNREACHABLE(expr) assert(!"reached")
 #endif /* FAST_ASSERTIONS */
 
 #endif /* _fast_assert_h_ */
