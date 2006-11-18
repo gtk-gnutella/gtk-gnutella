@@ -244,6 +244,10 @@
 70.86.48.0/24
 70.86.75.0/24
 
+# DRM WMV spammer; giFT-based
+70.85.234.0/28
+74.52.89.240/28
+
 # Generic pr0n spammer, adds search term to filenames (mostly WMVs)
 63.243.162.0/27
 63.243.181.0/27
