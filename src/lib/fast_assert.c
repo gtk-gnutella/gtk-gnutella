@@ -40,8 +40,6 @@ RCSID("$Id$")
 #include "lib/fast_assert.h"
 #include "lib/override.h"			/* Must be the last header included */
 
-#ifdef FAST_ASSERTIONS
-
 /**
  * @note For maximum safety this is kept signal-safe, so that we can
  *       even use assertions in signal handlers. See also:
@@ -87,6 +85,5 @@ assertion_failure(const assertion_data * const data)
 	assertion_warning(data);
 	abort();
 }
-#endif	/* FAST_ASSERTIONS */
 
 /* vi: set ts=4 sw=4 cindent: */
