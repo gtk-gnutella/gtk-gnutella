@@ -372,7 +372,7 @@ prot_strdup(const char *s)
 		return NULL;
 
 	n = strlen(s) + 1;
-	p = alloc_pages_intern(n);
+	p = alloc_pages_intern(round_pagesize_fast(n));
 	if (p) {
 		memcpy(p, s, n);
 		mprotect(p, n, PROT_READ);
