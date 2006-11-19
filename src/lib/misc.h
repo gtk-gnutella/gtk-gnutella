@@ -554,6 +554,7 @@ guint compat_max_fd(void);
 gint compat_mkdir(const gchar *path, mode_t mode);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
+void set_close_on_exec(gint fd);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);

@@ -3723,6 +3723,18 @@ normalize_dir_separators(const gchar *s)
 }
 
 void
+set_close_on_exec(gint fd)
+{
+	gint flags;
+
+	flags = fcntl(fd, F_GETFD);
+	if (0 == (flags & FD_CLOEXEC)) {
+		flags |= FD_CLOEXEC;
+		fcntl(fd, F_SETFD, flags);
+	}
+}
+
+void
 misc_init(void)
 {
 	hex2int_init();
