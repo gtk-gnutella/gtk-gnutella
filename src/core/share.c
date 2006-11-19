@@ -1106,6 +1106,26 @@ share_scan_add_file(const gchar *relative_path,
 }
 
 /**
+ * Tries to extrace the file mode from a struct dirent. Not all systems
+ * support this, in which case zero is returned. Types other than regular
+ * files, directories and symlinks are ignored and gain a value of zero
+ * as well.
+ */
+static mode_t
+dir_entry_mode(const struct dirent *dir_entry)
+{
+	g_assert(dir_entry);
+#ifdef HAS_DIRENT_D_TYPE
+	switch (dir_entry->d_type) {
+	case DT_DIR: return S_IFDIR;
+	case DT_LNK: return S_IFLNK;
+	case DT_REG: return S_IFREG;
+	}
+#endif	/* HAS_DIRENT_WITH_D_TYPE */
+	return 0;
+}
+
+/**
  * The directories that are given as shared will be completly transversed
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
@@ -1143,57 +1163,86 @@ recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 
 	while ((dir_entry = readdir(directory))) {
 		gchar *fullpath;
-		gboolean is_slink;
 		struct stat sb;
 
-		if (dir_entry->d_name[0] == '.')	/* Hidden file, or "." or ".." */
+		if (dir_entry->d_name[0] == '.') {
+			/* Hidden file, or "." or ".." */
 			continue;
-
-		fullpath = make_pathname(dir, dir_entry->d_name);
-		
-		if (lstat(fullpath, &sb)) {
-			g_warning("can't stat %s: %s", fullpath, g_strerror(errno));
-			goto next;
 		}
 
-		is_slink = 0 != S_ISLNK(sb.st_mode);
+		sb.st_mode = dir_entry_mode(dir_entry);
 		if (
-			is_slink &&
+			S_ISLNK(sb.st_mode) &&
 			scan_ignore_symlink_dirs &&
 			scan_ignore_symlink_regfiles
 		) {
-			goto next;
+			continue;
+		}
+
+		if (
+			S_ISREG(sb.st_mode) &&
+			!shared_file_valid_extension(dir_entry->d_name)
+		) {
+			continue;
+		}
+
+		fullpath = make_pathname(dir, dir_entry->d_name);
+		if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
+			if (stat(fullpath, &sb)) {
+				g_warning("stat() failed %s: %s", fullpath, g_strerror(errno));
+				goto next;
+			}
+		} else if (!S_ISLNK(sb.st_mode)) {
+			if (lstat(fullpath, &sb)) {
+				g_warning("lstat() failed %s: %s", fullpath, g_strerror(errno));
+				goto next;
+			}
+
+			if (
+				S_ISLNK(sb.st_mode) &&
+				scan_ignore_symlink_dirs &&
+				scan_ignore_symlink_regfiles
+			) {
+				/* We check this again because dir_entry_mode() does not
+				 * work everywhere. */
+				goto next;
+			}
+		}
+
+		/* Get info on the symlinked file */
+		if (S_ISLNK(sb.st_mode)) {
+			if (stat(fullpath, &sb)) {
+				g_warning("Broken symlink %s: %s",
+					fullpath, g_strerror(errno));
+				goto next;
+			}
+			
+			/*
+			 * For symlinks, we check whether we are supposed to process
+			 * symlinks for that type of entry, then either proceed or skip the
+			 * entry.
+			 */
+
+			if (S_ISDIR(sb.st_mode) && scan_ignore_symlink_dirs)
+				goto next;
+			if (S_ISREG(sb.st_mode) && scan_ignore_symlink_regfiles)
+				goto next;
 		}
 		
-		/* If it's a symlink, call stat to get info on the linked file */
-		if (is_slink && stat(fullpath, &sb)) {
-			g_warning("Broken symlink %s: %s", fullpath, g_strerror(errno));
-			goto next;
-		}
-
-		/*
-		 * For symlinks, we check whether we are supposed to process symlinks
-		 * for that type of entry, then either proceed or skip the entry.
-		 */
-
 		if (S_ISDIR(sb.st_mode)) {
-			if (!is_slink || !scan_ignore_symlink_dirs) {
-				/* If a directory, add to list for later processing */
-				directories = g_slist_prepend(directories, fullpath);
-				fullpath = NULL;
-			}
+			/* If a directory, add to list for later processing */
+			directories = g_slist_prepend(directories, fullpath);
+			fullpath = NULL;
 		} else if (S_ISREG(sb.st_mode)) {
-			if (!is_slink || !scan_ignore_symlink_regfiles) {
-				shared_file_t *sf;
-				
-				sf = share_scan_add_file(dir_name, fullpath, &sb);
-				if (sf) {
-					files_scanned++;
-					bytes_scanned += sf->file_size; 
-					st_insert_item(search_table, sf->name_canonic, sf);
-					shared_files = g_slist_prepend(shared_files,
+			shared_file_t *sf;
+
+			sf = share_scan_add_file(dir_name, fullpath, &sb);
+			if (sf) {
+				files_scanned++;
+				bytes_scanned += sf->file_size; 
+				st_insert_item(search_table, sf->name_canonic, sf);
+				shared_files = g_slist_prepend(shared_files,
 									shared_file_ref(sf));
-				}
 			}
 		}
 
@@ -1219,39 +1268,30 @@ recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 		}
 	}
  
+	gcu_gui_update_files_scanned();	/* Interim view */
 	/* Execute this at least once per directory processed */
 	gcu_gtk_main_flush();
-	gcu_gui_update_files_scanned();	/* Interim view */
 
 	atom_str_free_null(&dir_name);
 	closedir(directory);
 	directory = NULL;
 
-	/*
-	 * Now that we handled files at this level and freed all their memory,
-	 * recurse on directories.
-	 */
-
-	{
+	if (directories) {
 		GSList *sl;
 
 		for (sl = directories; sl; sl = g_slist_next(sl)) {
-			const gchar *path = sl->data;
-			recurse_scan_intern(base_dir, path);
+			recurse_scan_intern(base_dir, sl->data);
 			G_FREE_NULL(sl->data);
 		}
 		g_slist_free(directories);
 		directories = NULL;
 	}
-
-	gcu_gui_update_files_scanned();		/* Interim view */
-	gcu_gtk_main_flush();
 }
 
 static void
-recurse_scan(const gchar *dir)
+recurse_scan(const gchar *base_dir)
 {
-	recurse_scan_intern(dir, dir);
+	recurse_scan_intern(base_dir, base_dir);
 }
 
 /**
