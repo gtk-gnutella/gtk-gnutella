@@ -832,6 +832,9 @@ adns_init(void)
 		close(fd_query[1]);
 		close(fd_reply[0]);
 
+		set_close_on_exec(fd_query[0]);
+		set_close_on_exec(fd_reply[1]);
+
 		adns_helper(fd_query[0], fd_reply[1]);
 		g_assert_not_reached();
 		_exit(EXIT_SUCCESS);
@@ -842,6 +845,8 @@ adns_init(void)
 	close(fd_reply[1]);
 	adns_query_fd = fd_query[1];
 
+	set_close_on_exec(adns_query_fd);
+	set_close_on_exec(fd_reply[0]);
 	socket_set_nonblocking(adns_query_fd);
 	socket_set_nonblocking(fd_reply[0]);
 	

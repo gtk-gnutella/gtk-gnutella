@@ -2421,10 +2421,9 @@ socket_connect_prepare(struct gnutella_socket *s,
 		errno = EINVAL;
 		return -1;
 	}
-	sd = socket(family, SOCK_STREAM, 0);
-	if (-1 == sd) {
-		gint saved_errno = errno;
 
+	sd = socket(family, SOCK_STREAM, 0);
+	if (sd < 0) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
 		 * banning pool and retry.
@@ -2437,17 +2436,18 @@ socket_connect_prepare(struct gnutella_socket *s,
 			sd = socket(family, SOCK_STREAM, 0);
 			if (sd >= 0) {
 				g_warning("had to close a banned fd to prepare new connection");
-				goto created;
 			}
-			saved_errno = errno;
 		}
+	}
 
-		g_warning("unable to create a socket (%s)", g_strerror(errno));
+	if (sd < 0) {
+		gint saved_errno = errno;
+		g_warning("unable to create a socket (%s)", g_strerror(saved_errno));
 		errno = saved_errno;
 		return -1;
 	}
 
-created:
+	set_close_on_exec(sd);
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
 	s->net = host_addr_net(addr);
@@ -2799,6 +2799,8 @@ socket_create_and_bind(const host_addr_t bind_addr,
 			g_warning("Unable to bind() the %s (%s) socket to %s (%s)",
 				type_str, net_str, bind_addr_str, g_strerror(errno));
 		}
+	} else {
+		set_close_on_exec(sd);
 	}
 
 	return sd;
@@ -2873,6 +2875,7 @@ socket_local_listen(const gchar *pathname)
 			g_strerror(errno));
 		return NULL;
 	}
+	set_close_on_exec(sd);
 
 	(void) unlink(pathname);
 
