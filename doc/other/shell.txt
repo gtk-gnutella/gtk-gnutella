@@ -137,6 +137,13 @@ Commands
     Lists the names of all core properties. An optional regex pattern can
     be used to show only certain properties.
 
+Notes:
+------
+
+  The property "remote_shell_timeout" controls after how many seconds a
+  idle shell session is terminated. The default is 60 seconds. You can
+  disable this timeout by setting the property to zero.
+
 Caveats:
 --------
 
