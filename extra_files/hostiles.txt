@@ -582,6 +582,7 @@
 # PDF spammer; uses Gtk-Gnutella; PDFs link to cyber-spy dot com
 72.38.54.146
 72.38.54.162
+72.38.54.183
 
 # returns results for pr0n MPEGs not matching the query; Gtk-Gnutella
 64.20.48.66
