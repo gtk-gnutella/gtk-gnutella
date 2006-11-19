@@ -166,6 +166,7 @@ struct passwd
 #else /* !MINGW32 */
 
 #include <sys/uio.h>		/* For writev(), readv(), struct iovec */
+#include <sys/wait.h>
 
 #ifdef I_NETINET_IN
 #include <netinet/in.h>
