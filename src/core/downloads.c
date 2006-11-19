@@ -867,10 +867,11 @@ buffers_match(const struct download *d, const gchar *data, size_t len)
 	g_assert(len <= b->held);
 
 	iter = slist_iter_before_head(b->list);
-	while (len > 0 && slist_iter_has_next(iter)) {
+	while (len > 0) {
 		const pmsg_t *mb;
 		size_t n;
-	
+
+		g_assert(slist_iter_has_next(iter));	
 		mb = slist_iter_next(iter);
 		g_assert(mb);
 
