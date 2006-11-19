@@ -37,6 +37,7 @@ LSRC = \
 	bg.c \
 	cobs.c \
 	cq.c \
+	crash.c \
 	crc.c \
 	dbus_util.c \
 	eval.c \

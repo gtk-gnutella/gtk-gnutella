@@ -93,6 +93,7 @@ LSRC = \
 	bg.c \
 	cobs.c \
 	cq.c \
+	crash.c \
 	crc.c \
 	dbus_util.c \
 	eval.c \
@@ -148,6 +149,7 @@ LOBJ = \
 	bg.o \
 	cobs.o \
 	cq.o \
+	crash.o \
 	crc.o \
 	dbus_util.o \
 	eval.o \

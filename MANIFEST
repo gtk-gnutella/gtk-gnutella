@@ -501,6 +501,8 @@ src/lib/cobs.c
 src/lib/cobs.h
 src/lib/cq.c
 src/lib/cq.h
+src/lib/crash.c
+src/lib/crash.h
 src/lib/crc.c
 src/lib/crc.h
 src/lib/dbus_util.c
