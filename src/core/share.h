@@ -45,11 +45,6 @@
 
 typedef struct shared_file shared_file_t;
 
-struct extension {
-	gchar *str;					/**< Extension string (e.g. "html") */
-	size_t len;					/**< Extension length (e.g. 4) */
-};
-
 /**
  * shared_file flags
  */
@@ -71,12 +66,6 @@ enum share_mime_type {
 
 struct gnutella_node;
 struct query_hashvec;
-
-/**
- * Global Data.
- */
-
-extern GSList *extensions, *shared_dirs;
 
 /*
  * Special return value from shared_file() during library rebuild time.

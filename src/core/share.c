@@ -128,8 +128,8 @@ static GHashTable *special_names = NULL;
 static guint64 files_scanned = 0;
 static guint64 bytes_scanned = 0;
 
-GSList *extensions = NULL;
-GSList *shared_dirs = NULL;
+static GHashTable *extensions = NULL;	/* Shared filename extensions */
+static GSList *shared_dirs = NULL;
 static GSList *shared_files = NULL;
 static struct shared_file **file_table = NULL;
 static search_table_t *search_table;
@@ -711,24 +711,43 @@ share_mime_type(enum share_mime_type type)
 
 /* ----------------------------------------- */
 
+static void
+free_extensions_helper(gpointer key,
+	gpointer unused_value, gpointer unused_data)
+{
+	(void) unused_value;
+	(void) unused_data;
+	atom_str_free(key);
+}
 /**
  * Free existing extensions
  */
 static void
 free_extensions(void)
 {
-	GSList *sl = extensions;
-
-	if (!sl)
-		return;
-
-	for ( /*empty */ ; sl; sl = g_slist_next(sl)) {
-		struct extension *e = sl->data;
-		atom_str_free(e->str);
-		G_FREE_NULL(sl->data);
+	if (extensions) {
+		g_hash_table_foreach(extensions, free_extensions_helper, NULL);
+		g_hash_table_destroy(extensions);
+		extensions = NULL;
 	}
-	g_slist_free(extensions);
-	extensions = NULL;
+}
+
+static guint32
+ext_hash_func(gconstpointer key)
+{
+	const guchar *s = key;
+	gulong c, hash = 0;
+	
+	while ((c = ascii_tolower(*s++))) {
+		hash ^= (hash << 8) | c;
+	}
+	return hash ^ (((guint64) 1048573 * hash) >> 32);
+}
+
+gboolean
+ext_eq_func(gconstpointer a, gconstpointer b)
+{
+	return 0 == ascii_strcasecmp(a, b);
 }
 
 /**
@@ -742,6 +761,7 @@ parse_extensions(const gchar *str)
 	guint i;
 
 	free_extensions();
+	extensions = g_hash_table_new(ext_hash_func, ext_eq_func);
 
 	for (i = 0; exts[i]; i++) {
 		gchar c;
@@ -759,16 +779,13 @@ parse_extensions(const gchar *str)
 					break;
 			}
 
-			if (*s) {
-				struct extension *e = g_malloc(sizeof *e);
-				e->str = atom_str_get(s);
-				e->len = strlen(e->str);
-				extensions = g_slist_prepend(extensions, e);
+			if (*s && NULL == g_hash_table_lookup(extensions, s)) {
+				gpointer key = atom_str_get(s);
+				g_hash_table_insert(extensions, key, key);
 			}
 		}
 	}
 
-	extensions = g_slist_reverse(extensions);
 	g_strfreev(exts);
 }
 
@@ -957,18 +974,20 @@ get_relative_path(const gchar *base_dir, const gchar *pathname)
 static gboolean
 shared_file_valid_extension(const gchar *filename)
 {
-	const GSList *sl;
 	const gchar *filename_ext;
 
-	/*
-	 * An extension "--all--" matches all files, even those that don't
-	 * have any extension. [Original patch by Zygo Blaxell].
-	 */
-	if (extensions && NULL == g_slist_next(extensions)) {
-		const struct extension *ext = extensions->data;
-		
-		if (0 == strcmp("--all--", ext->str))
-			return TRUE;
+	if (!extensions)
+		return FALSE;
+
+	if (
+		1 == g_hash_table_size(extensions) &&
+		g_hash_table_lookup(extensions, "--all--")
+    ) {
+		/*
+		 * An extension "--all--" matches all files, even those that don't
+		 * have any extension. [Original patch by Zygo Blaxell].
+		 */
+		return TRUE;
 	}
 
 	filename_ext = strrchr(filename, '.');
@@ -984,11 +1003,9 @@ shared_file_valid_extension(const gchar *filename)
 		 * Match the file extension (if any) against the extensions list.
 		 * All valid extensions start with '.'.  Matching is case-insensitive
 		 */
-		for (sl = extensions; sl; sl = g_slist_next(sl)) {
-			const struct extension *ext = sl->data;
 
-			if (0 == ascii_strcasecmp(filename_ext, ext->str))
-				return TRUE;
+		if (g_hash_table_lookup(extensions, filename_ext)) {
+			return TRUE;
 		}
 	}
 
