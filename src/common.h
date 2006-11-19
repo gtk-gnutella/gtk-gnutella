@@ -368,6 +368,13 @@ typedef void (*GCallback) (void);
 #define STDERR_FILENO 2
 #endif /* STDERR_FILENO */
 
+/*
+ * S_ISLNK() is in POSIX.1-1997 but not in older revisions of the standard.
+ */
+#ifndef S_ISLNK
+#define S_ISLNK(mode) (((mode) & S_IFMT) == S_IFLNK)
+#endif	/* S_ISLNK */
+
 /* Determines the maximum value of the given integer type "t". This
  * works for signed as well as unsigned types. However, it's assumed
  * the type consists of exactly sizeof (type) * CHAR_BIT bits. */
