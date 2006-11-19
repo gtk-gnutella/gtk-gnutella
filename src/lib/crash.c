@@ -66,10 +66,8 @@ static const int signals[] = {
 static void
 crash_handler(int signo)
 {
-	static const char commands[] = "bt full\nkill\nquit\n";
 	char const *argv[16];
 	char pid_buf[32], *pid_ptr;
-	sigset_t oset;
 	int fds[2];
 	pid_t pid;
 	unsigned i;
@@ -89,9 +87,8 @@ crash_handler(int signo)
 	} while (pid && pid_ptr != pid_buf);
 
 	if (0 == pipe(fds)) {
-		close(STDIN_FILENO);
-		dup(fds[0]);
-		write(fds[1], commands, sizeof commands - 1);
+		static const char command[] = "bt full\nkill\nquit\n";
+
 		argv[0] = exec_pathname;
 		argv[1] = "-q";
 		argv[2] = "-n";
@@ -99,14 +96,26 @@ crash_handler(int signo)
 		argv[4] = pid_ptr;
 		argv[5] = NULL;
 
-		pid = vfork();
+		close(STDIN_FILENO);
+		open("/dev/null", O_RDONLY, 0);
+		setsid();
+		close(STDIN_FILENO);
+		dup(fds[0]);
+		close(fds[0]);
+		set_close_on_exec(fds[1]);
+
+		write(fds[1], command, sizeof command - 1);
+
+		pid = fork();
 		if (0 == pid) {
 			execve(argv[0], (const void *) argv, NULL);
-			_exit(EXIT_FAILURE);
+		} else if ((pid_t) -1 != pid) {
+			int status;
+			close(fds[1]);
+			waitpid(pid, &status, 0);
 		}
+		_exit(EXIT_FAILURE);
 	}
-	sigprocmask(SIG_BLOCK, NULL, &oset);
-	sigsuspend(&oset);
 	abort();
 }
 
