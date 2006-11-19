@@ -949,6 +949,146 @@ get_relative_path(const gchar *base_dir, const gchar *pathname)
 }
 
 /**
+ * Verify that a file extension is valid for sharing
+ *
+ * @param filename  The name of the file to check.
+ * @return TRUE if the file should be shared, FALSE if not.
+ */
+static gboolean
+shared_file_valid_extension(const gchar *filename)
+{
+	const GSList *sl;
+	const gchar *filename_ext;
+
+	/*
+	 * An extension "--all--" matches all files, even those that don't
+	 * have any extension. [Original patch by Zygo Blaxell].
+	 */
+	if (extensions && NULL == g_slist_next(extensions)) {
+		const struct extension *ext = extensions->data;
+		
+		if (0 == strcmp("--all--", ext->str))
+			return TRUE;
+	}
+
+	filename_ext = strrchr(filename, '.');
+	if (filename_ext) {
+		/*
+		 * Filenames without any extension are not shared, unless
+		 * "--all--" is used.
+		 */	
+
+		filename_ext++;	/* skip the dot */
+
+		/* 
+		 * Match the file extension (if any) against the extensions list.
+		 * All valid extensions start with '.'.  Matching is case-insensitive
+		 */
+		for (sl = extensions; sl; sl = g_slist_next(sl)) {
+			const struct extension *ext = sl->data;
+
+			if (0 == ascii_strcasecmp(filename_ext, ext->str))
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
+ * @param relative_path The relative path of the file or NULL.
+ * @param pathname The absolute pathname of the file.
+ * @param sb A "stat buffer" that was initialized with stat().
+ *
+ * return On success a shared_file_t for the file is returned. Otherwise,
+ *		  NULL is returned.
+ */
+static shared_file_t * 
+share_scan_add_file(const gchar *relative_path,
+	const gchar *pathname, const struct stat *sb)
+{
+	shared_file_t *sf;
+	const gchar *name;
+
+	g_assert(is_absolute_path(pathname));
+	g_assert(sb);
+	g_return_val_if_fail(S_ISREG(sb->st_mode), NULL);
+
+	if (0 == sb->st_size) {
+		if (share_debug > 5)
+			g_warning("Not sharing empty file: \"%s\"", pathname);
+		return NULL;
+	}
+
+	if (too_big_for_gnutella(sb->st_size)) {
+		g_warning("File is too big to be shared: \"%s\"", pathname);
+		return NULL;
+	}
+
+	if (contains_control_chars(pathname)) {
+		g_warning("Not sharing filename with control characters: "
+				"\"%s\"", pathname);
+		return NULL;
+	}
+
+	if (!shared_file_valid_extension(pathname))
+		return NULL;
+
+	/*
+	 * In the "tmp" directory, don't share files that have a trailer.
+	 * It's probably a file being downloaded, and which is not complete yet.
+	 * This check is necessary in case they choose to share their
+	 * downloading directory...
+	 */
+
+	name = strrchr(pathname, G_DIR_SEPARATOR);
+	g_assert(name && G_DIR_SEPARATOR == name[0]);
+	name++;						/* Start of file name */
+
+	if (share_debug > 5)
+		g_message("recurse_scan: pathname=\"%s\"", pathname);
+
+	sf = shared_file_alloc();
+	sf->file_path = atom_str_get(pathname);
+	sf->relative_path = relative_path ? atom_str_get(relative_path) : NULL;
+	sf->file_size = sb->st_size;
+	sf->mtime = sb->st_mtime;
+	sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
+
+	if (shared_file_set_names(sf, name)) {
+		shared_file_free(&sf);
+		return NULL;
+	}
+
+	if (!sha1_is_cached(sf)) {
+		gint ret;
+
+		ret = file_info_has_trailer(pathname);
+		switch (ret) {
+		case 1:
+			/*
+			 * It's probably a file being downloaded, and which
+			 * is not complete yet. This check is necessary in
+			 * case they choose to share their downloading
+			 * directory...
+			 */
+			g_warning("will not share partial file \"%s\"", pathname);
+			/* FALL THROUGH */
+		case -1:
+			shared_file_free(&sf);
+			return NULL;
+		}
+	}
+	
+	/*
+	 * NOTE: An `else'-clause here would be if the file WAS found in the
+	 * sha1_cache.  Good place to set the SHA1 in "sf".
+	 */
+
+	return sf;
+}
+
+/**
  * The directories that are given as shared will be completly transversed
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
@@ -960,15 +1100,13 @@ get_relative_path(const gchar *base_dir, const gchar *pathname)
 static void
 recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 {
-	GSList *exts = NULL;
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
 	struct dirent *dir_entry;
-	GSList *files = NULL;
 	GSList *directories = NULL;
-	GSList *sl;
-	guint i;
-	const gchar *entry_end;
 	gchar *dir_name;
+	tm_t start;
+
+	tm_now_exact(&start);
 
 	g_return_if_fail('\0' != dir[0]);
 	g_return_if_fail(is_absolute_path(base_dir));
@@ -979,173 +1117,115 @@ recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 		return;
 	}
 
-	while ((dir_entry = readdir(directory))) {
-		struct stat sb;
-		gchar *full;
-
-		if (dir_entry->d_name[0] == '.')	/* Hidden file, or "." or ".." */
-			continue;
-
-		full = make_pathname(dir, dir_entry->d_name);
-		if (stat(full, &sb)) {
-			g_warning("can't stat %s: %s", full, g_strerror(errno));
-			break;
-		}
-		if (S_ISDIR(sb.st_mode)) {
-			if (!scan_ignore_symlink_dirs || !is_symlink(full)) {
-				directories = g_slist_prepend(directories, full);
-				full = NULL;
-			}
-		} else if (S_ISREG(sb.st_mode)) {
-			if (!scan_ignore_symlink_regfiles || !is_symlink(full)) {
-				files = g_slist_prepend(files, full);
-				full = NULL;
-			}
-		}
-		G_FREE_NULL(full);
-	}
-
+	/* Get relative path if required */
 	if (search_results_expose_relative_paths) {
 		dir_name = get_relative_path(base_dir, dir);
 	} else {
 		dir_name = NULL;
 	}
 
-	for (i = 0, sl = files; sl; i++, sl = g_slist_next(sl)) {
-		const gchar *full, *name;
+	while ((dir_entry = readdir(directory))) {
+		gchar *fullpath;
+		gboolean is_slink;
+		struct stat sb;
 
-		full = sl->data;
+		if (dir_entry->d_name[0] == '.')	/* Hidden file, or "." or ".." */
+			continue;
+
+		fullpath = make_pathname(dir, dir_entry->d_name);
+		
+		if (lstat(fullpath, &sb)) {
+			g_warning("can't stat %s: %s", fullpath, g_strerror(errno));
+			goto next;
+		}
+
+		is_slink = 0 != S_ISLNK(sb.st_mode);
+		if (
+			is_slink &&
+			scan_ignore_symlink_dirs &&
+			scan_ignore_symlink_regfiles
+		) {
+			goto next;
+		}
+		
+		/* If it's a symlink, call stat to get info on the linked file */
+		if (is_slink && stat(fullpath, &sb)) {
+			g_warning("Broken symlink %s: %s", fullpath, g_strerror(errno));
+			goto next;
+		}
 
 		/*
-		 * In the "tmp" directory, don't share files that have a trailer.
-		 * It's probably a file being downloaded, and which is not complete yet.
-		 * This check is necessary in case they choose to share their
-		 * downloading directory...
+		 * For symlinks, we check whether we are supposed to process symlinks
+		 * for that type of entry, then either proceed or skip the entry.
 		 */
 
-		name = strrchr(full, G_DIR_SEPARATOR);
-		g_assert(name && G_DIR_SEPARATOR == name[0]);
-		name++;						/* Start of file name */
-
-		entry_end = strchr(name, '\0');
-
-		for (exts = extensions; exts; exts = exts->next) {
-			struct extension *e = exts->data;
-			const gchar *start = entry_end - (e->len + 1);	/* +1 for "." */
-
-			/*
-			 * Look for the trailing chars (we're matching an extension).
-			 * Matching is case-insensitive, and the extension opener is ".".
-			 *
-			 * An extension "--all--" matches all files, even if they
-			 * don't have any extension. [Patch from Zygo Blaxell].
-			 */
-
-			if (
-				0 == ascii_strcasecmp("--all--", e->str) ||	/* All files */
-				(start >= name && *start == '.' &&
-					0 == ascii_strcasecmp(start + 1, e->str))
-			) {
-				struct shared_file *found = NULL;
-				struct stat file_stat;
-
-				if (share_debug > 5)
-					g_message("recurse_scan: full=\"%s\"", full);
-
-				if (contains_control_chars(full)) {
-					g_warning("Not sharing filename with control characters: "
-						"\"%s\"", full);
-					break;
+		if (S_ISDIR(sb.st_mode)) {
+			if (!is_slink || !scan_ignore_symlink_dirs) {
+				/* If a directory, add to list for later processing */
+				directories = g_slist_prepend(directories, fullpath);
+				fullpath = NULL;
+			}
+		} else if (S_ISREG(sb.st_mode)) {
+			if (!is_slink || !scan_ignore_symlink_regfiles) {
+				shared_file_t *sf;
+				
+				sf = share_scan_add_file(dir_name, fullpath, &sb);
+				if (sf) {
+					files_scanned++;
+					bytes_scanned += sf->file_size; 
+					st_insert_item(search_table, sf->name_canonic, sf);
+					shared_files = g_slist_prepend(shared_files,
+									shared_file_ref(sf));
 				}
-
-				if (stat(full, &file_stat) == -1) {
-					g_warning("can't stat %s: %s", full, g_strerror(errno));
-					break;
-				}
-
-				if (0 == file_stat.st_size) {
-					if (share_debug > 5)
-						g_warning("Not sharing empty file: \"%s\"", full);
-					break;
-				}
-
-				if (!S_ISREG(file_stat.st_mode)) {
-					g_warning("Not sharing non-regular file: \"%s\"", full);
-					break;
-				}
-
-				if (too_big_for_gnutella(file_stat.st_size)) {
-					g_warning("File is too big to be shared: \"%s\"", full);
-					break;
-				}
-
-				found = shared_file_alloc();
-				found->file_path = atom_str_get(full);
-				found->relative_path = dir_name ? atom_str_get(dir_name) : NULL;
-				found->file_size = file_stat.st_size;
-				found->mtime = file_stat.st_mtime;
-				found->content_type =
-					share_mime_type(SHARE_M_APPLICATION_BINARY);
-
-				if (shared_file_set_names(found, name)) {
-					shared_file_free(&found);
-					break;
-				}
-
-				if (!sha1_is_cached(found)) {
-					gint ret;
-					
-					ret = file_info_has_trailer(full);
-					if (0 != ret) {
-						if (-1 != ret) {
-							/*
-							 * It's probably a file being downloaded, and which
-							 * is not complete yet. This check is necessary in
-							 * case they choose to share their downloading
-							 * directory...
-							 */
-							g_warning("will not share partial file \"%s\"",
-								full);
-						}
-						shared_file_free(&found);
-						break;
-					}
-				}
-
-				files_scanned++;
-				bytes_scanned += found->file_size; 
-				st_insert_item(search_table, found->name_canonic, found);
-				shared_files = g_slist_prepend(shared_files,
-										shared_file_ref(found));
-				break;			/* for loop */
 			}
 		}
-		G_FREE_NULL(sl->data);
 
-		if (!(i & 0x3f)) {
-			gcu_gtk_main_flush();
+	next:
+		G_FREE_NULL(fullpath);
+
+		/*
+		 * gcu_gtk_main_flush() processes all pending GUI events.
+		 * I'm setting it to trigger anytime the elapsed exceeds 50ms.
+	     * This should keep the GUI responsive, even if we hit a 
+		 * directory with a large number of files to process.
+         */
+
+		{
+			tm_t current, elapsed;
+
+			tm_now_exact(&current);
+			tm_elapsed(&elapsed, &current, &start);
+			if (tm2ms(&elapsed) > 49) {
+				start = current;
+				gcu_gtk_main_flush();
+			}
 		}
 	}
+ 
+	/* Execute this at least once per directory processed */
+	gcu_gtk_main_flush();
 	gcu_gui_update_files_scanned();	/* Interim view */
 
 	atom_str_free_null(&dir_name);
-
 	closedir(directory);
 	directory = NULL;
-	g_slist_free(files);
-	files = NULL;
 
 	/*
 	 * Now that we handled files at this level and freed all their memory,
 	 * recurse on directories.
 	 */
 
-	for (sl = directories; sl; sl = g_slist_next(sl)) {
-		const gchar *path = sl->data;
-		recurse_scan_intern(base_dir, path);
-		G_FREE_NULL(sl->data);
+	{
+		GSList *sl;
+
+		for (sl = directories; sl; sl = g_slist_next(sl)) {
+			const gchar *path = sl->data;
+			recurse_scan_intern(base_dir, path);
+			G_FREE_NULL(sl->data);
+		}
+		g_slist_free(directories);
+		directories = NULL;
 	}
-	g_slist_free(directories);
 
 	gcu_gui_update_files_scanned();		/* Interim view */
 	gcu_gtk_main_flush();
