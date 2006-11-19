@@ -99,6 +99,7 @@
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/crc.h"
 #include "lib/dbus_util.h"
 #include "lib/eval.h"
@@ -872,6 +873,7 @@ enum main_arg {
 	main_arg_ping,
 	main_arg_shell,
 	main_arg_version,
+	main_arg_exec_on_crash,
 
 	num_main_args
 };
@@ -889,14 +891,15 @@ static struct {
 
 #define OPTION_FLAG(name, summary)	OPTION(name, summary, FALSE)
 #define OPTION_WARG(name, summary)	OPTION(name, summary, TRUE)
-	OPTION_FLAG(daemonize,	"Daemonize the process."),
-	OPTION_WARG(geometry,	"Placement of the main GUI window."),
-	OPTION_FLAG(help, 		"Print this message."),
-	OPTION_WARG(log_stderr,	"Log standard output to a file."),
-	OPTION_WARG(log_stdout,	"Log standard error output to a file."),
-	OPTION_FLAG(ping,		"Check whether gtk-gnutella is running."),
-	OPTION_FLAG(shell,		"Access the local shell interface."),
-	OPTION_FLAG(version,	"Show version information."),
+	OPTION_FLAG(daemonize,		"Daemonize the process."),
+	OPTION_WARG(geometry,		"Placement of the main GUI window."),
+	OPTION_FLAG(help, 			"Print this message."),
+	OPTION_WARG(log_stderr,		"Log standard output to a file."),
+	OPTION_WARG(log_stdout,		"Log standard error output to a file."),
+	OPTION_FLAG(ping,			"Check whether gtk-gnutella is running."),
+	OPTION_FLAG(shell,			"Access the local shell interface."),
+	OPTION_FLAG(version,		"Show version information."),
+	OPTION_WARG(exec_on_crash,	"Execute a command on crash."),
 #undef OPTION_WARG
 #undef OPTION_FLAG
 #undef OPTION
@@ -946,8 +949,8 @@ usage(int exit_code)
 
 		arg = options[i].has_arg ? " <argument>" : "";
 		pad = strlen(options[i].name) + strlen(arg);
-		if (pad < 24) {
-			pad = 24 - pad;
+		if (pad < 32) {
+			pad = 32 - pad;
 		} else {
 			pad = 0;
 		}
@@ -965,6 +968,7 @@ usage(int exit_code)
 static void
 handle_arguments(int argc, char **argv)
 {
+	const char *argv0;
 	guint i;
 
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
@@ -974,6 +978,8 @@ handle_arguments(int argc, char **argv)
 		options[i].used = FALSE;
 		options[i].arg = NULL;
 	}
+
+	argv0 = argv[0];
 
 	while (argc > 0) {
 		const gchar *s = argv[0];
@@ -1007,6 +1013,9 @@ handle_arguments(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	if (options[main_arg_exec_on_crash].used) {
+		crash_init(options[main_arg_exec_on_crash].arg, argv0);
+	}
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
 	}
@@ -1036,12 +1045,12 @@ handle_arguments(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
+
 }
 
 int
 main(int argc, char **argv)
 {
-
 #ifdef FRAGCHECK
 	fragcheck_init();
 #endif
