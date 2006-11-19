@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2006
- *    Christian Biere <christianbiere@gmx.de> All rights reserved.
+ * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,13 +28,24 @@
  * SUCH DAMAGE.
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * A simple hashtable implementation.
+ *
+ * @author Christian Biere
+ * @date 2006
+ */
+
 #include "common.h"
 
+RCSID("$Id$")
+
 #include "lib/hashtable.h"
-#include "lib/sha1.h"
 #include "lib/vmm.h"
 
-#include "lib/override.h"
+#include "lib/override.h"		/* Must be the last header included */
 
 #define HASH_ITEMS_PER_BIN 4
 
