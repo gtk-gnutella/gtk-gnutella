@@ -476,6 +476,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dev_poll HAS_DEV_POLL
 
+/* HAS_DIRENT_D_TYPE:
+ *	This symbol, if defined, indicates that struct dirent has an
+ *	integer member d_type.
+ */
+#$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
+
 /* HAS_EPOLL:
  *	This symbol is defined when epoll() can be used.
  */

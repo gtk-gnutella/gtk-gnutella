@@ -1,0 +1,57 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_dirent_d_type: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:	-pick add $@ %<
+?S:d_dirent_d_type:
+?S:	This variable conditionally defines the HAS_DIRENT_D_TYPE symbol,
+?S:	which indicates to the C program that struct dirent has an
+?S: 	integer member d_type.
+?S:.
+?C:HAS_DIRENT_D_TYPE:
+?C:	This symbol, if defined, indicates that struct dirent has an
+?C:	integer member d_type.
+?C:.
+?H:#$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
+?H:.
+?LINT:set d_dirent_d_type
+: check whether struct dirent has a member d_type.
+echo " "
+$cat << 'EOM' >&4
+Checking whether "struct dirent" has a member "d_type" ...
+EOM
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <dirent.h>
+int
+main(void) {
+  static struct dirent dir_entry;
+  dir_entry.d_type |= 1
+	| DT_UNKNOWN
+	| DT_FIFO
+	| DT_CHR
+	| DT_DIR
+	| DT_BLK
+	| DT_REG
+	| DT_LNK
+	| DT_SOCK
+	| DT_WHT;
+  return 0;
+}
+EOC
+if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	$cat <<'EOM'
+Yes, "struct dirent" has a member "d_type".
+EOM
+	val="$define"
+else
+	$cat <<'EOM'
+No, "struct dirent" has no integer member "d_type".
+EOM
+	val="$undef"
+fi
+$rm -f try.c try
+set d_dirent_d_type
+eval $setvar
+
