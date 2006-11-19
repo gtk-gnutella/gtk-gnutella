@@ -354,4 +354,30 @@ prune_page_cache(void)
 	return total;
 }
 
+/**
+ * Copies the given string to a read-only buffer. free_pages() can be used
+ * to free the memory.
+ *
+ * @param s A NUL-terminated string. If NULL, NULL is returned.
+ * @return	On success, a copy of the string is returned. On failure, NULL
+ *			is returned.
+ */
+const char *
+prot_strdup(const char *s)
+{
+	size_t n;
+	void *p;
+
+	if (!s)
+		return NULL;
+
+	n = strlen(s) + 1;
+	p = alloc_pages_intern(n);
+	if (p) {
+		memcpy(p, s, n);
+		mprotect(p, n, PROT_READ);
+	}
+	return p;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
