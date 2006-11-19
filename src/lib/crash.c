@@ -87,7 +87,7 @@ crash_handler(int signo)
 	} while (pid && pid_ptr != pid_buf);
 
 	if (0 == pipe(fds)) {
-		static const char command[] = "bt full\nkill\nquit\n";
+		static const char command[] = "backtrace full\nkill\nquit\n";
 
 		argv[0] = exec_pathname;
 		argv[1] = "-q";
