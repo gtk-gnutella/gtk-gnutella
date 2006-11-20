@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Nov 19 09:02:21 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Mon Nov 20 19:26:36 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5055,48 +5055,26 @@ int main()
 	return 0;
 }
 EOC
-		if $cc $ccflags -momit-leaf-frame-pointer $ldflags \
-			-o try try.c >/dev/null 2>&1
-		then
-			dflt=y
-		else
-			dflt=n
-		fi
-		$cat <<EOM
-
-You're using gcc$gccversion.
-
-That compiler supports the -momit-leaf-frame-pointer flag, to remove the
-use of the frame pointer for leaf functions and therefore save a register.
-This combines nicely with "fast assertions", which you enabled, to save
-the most code space in leaf routines and allow them to use most of the
-CPU registers.
-
-EOM
-		rp="Shall I enable the -momit-leaf-frame-pointer flag"
-		. ./myread
-		case "$ans" in
-		y)
-			case "$ccflags" in
-			*-momit-leaf-frame-pointer*) ;;
-			*)
-				ccflags="$ccflags -momit-leaf-frame-pointer"
-				echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
-				;;
-			esac
-			;;
+	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
+	then
+		case "$ccflags" in
+		*-momit-leaf-frame-pointer*) ;;
 		*)
-			case "$ccflags" in
-			*-momit-leaf-frame-pointer*)
-				echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
-				ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
-				;;
-			esac
+			ccflags="$ccflags -momit-leaf-frame-pointer"
+			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
 			;;
 		esac
+	else
+		case "$ccflags" in
+		*-momit-leaf-frame-pointer*)
+			echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
+			ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
 		;;
-	esac
+		esac
+	fi
 	;;
+	esac
+;;
 esac
 
 : can we use getaddrinfo?
