@@ -2026,6 +2026,40 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 	return success;
 }
 
+gboolean
+search_gui_handle_browse(const gchar *s, const gchar **error_str)
+{
+	gboolean success;
+	host_addr_t addr;
+	const gchar *ep;
+	guint32 flags = SOCK_F_FORCE;
+	guint16 port;
+
+	g_return_val_if_fail(s, FALSE);
+
+	s = is_strcaseprefix(s, "browse:");
+	g_return_val_if_fail(s, FALSE);
+	
+	ep = is_strprefix(s, "tls:");
+	if (ep) {
+		s = ep;
+		flags |= SOCK_F_TLS;
+	}
+
+	if (string_to_host_addr_port(s, &ep, &addr, &port)) {
+		search_gui_new_browse_host(NULL, addr, port, NULL, NULL, flags);
+		success = TRUE;
+	} else {
+		success = FALSE;
+	}
+	if (error_str) {
+		*error_str = NULL;
+	}
+
+	return success;
+}
+
+
 /**
  * Frees a "struct query" and nullifies the given pointer.
  */
@@ -2092,6 +2126,9 @@ search_gui_handle_query(const gchar *query_str, flag_t flags,
 			return NULL;
 		} else if (is_strcaseprefix(query_str, "urn:")) {
 			search_gui_handle_urn(query_str, error_str);
+			return NULL;
+		} else if (is_strcaseprefix(query_str, "browse:")) {
+			search_gui_handle_browse(query_str, error_str);
 			return NULL;
 		}
 	}
@@ -2256,42 +2293,13 @@ void
 search_gui_new_search_entered(void)
 {
 	GtkWidget *widget;
-	const gchar *ep;
 	gchar *text;
 	
     widget = gui_main_window_lookup("entry_search");
    	text = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
     g_strstrip(text);
 	
-	if (NULL != (ep = is_strprefix(text, "browse:"))) {
-		host_addr_t addr;
-		const gchar *s;
-		guint32 flags = SOCK_F_FORCE;
-
-		s = ep;
-		ep = is_strprefix(s, "tls:");
-		if (ep) {
-			s = ep;
-			flags |= SOCK_F_TLS;
-		}
-		
-		if (string_to_host_or_addr(s, &ep, &addr)) {
-			if (':' == *ep) {
-				guint16 port;
-				gint error;
-
-				/* Erase the colon and skip over it */
-				text[ep - text] = '\0';
-				ep++;
-
-				port = parse_uint16(ep, NULL, 10, &error);
-				if (!error) {
-					search_gui_new_browse_host(is_host_addr(addr) ? NULL : s,
-						addr, port, NULL, NULL, flags);
-				}
-			}
-		}
-	} else if ('\0' != text[0]) {
+	if ('\0' != text[0]) {
         filter_t *default_filter;
         search_t *search;
         gboolean res;
