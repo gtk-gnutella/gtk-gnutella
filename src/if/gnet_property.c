@@ -107,8 +107,8 @@ guint32  download_retry_timeout_min     = 20;
 guint32  download_retry_timeout_min_def = 20;
 guint32  download_retry_timeout_max     = 300;
 guint32  download_retry_timeout_max_def = 300;
-guint32  download_max_retries     = 50;
-guint32  download_max_retries_def = 50;
+guint32  download_max_retries     = 16;
+guint32  download_max_retries_def = 16;
 guint32  download_retry_timeout_delay     = 1200;
 guint32  download_retry_timeout_delay_def = 1200;
 guint32  download_retry_busy_delay     = 60;
@@ -1340,7 +1340,7 @@ gnet_prop_init(void) {
     gnet_property->props[34].data.guint32.def   = &download_max_retries_def;
     gnet_property->props[34].data.guint32.value = &download_max_retries;
     gnet_property->props[34].data.guint32.choices = NULL;
-    gnet_property->props[34].data.guint32.max   = 100000;
+    gnet_property->props[34].data.guint32.max   = 100;
     gnet_property->props[34].data.guint32.min   = 1;
 
 

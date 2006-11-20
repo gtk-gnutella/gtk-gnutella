@@ -407,9 +407,9 @@ prop = {
            "counting HTTP busy indications.";
     type = guint32;
     data = {
-        default = 50;
+        default = 16;
         min     = 1;
-        max     = 100000;
+        max     = 100;
     };
 };
 
