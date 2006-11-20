@@ -3743,7 +3743,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		socket_tos_throughput(s);
 	} else {
 		socket_tos_normal(s);	/* Make sure ACKs come back faster */
+		/* FIXME:
+		 * I think this is just bad. --cbiere, 2006-11-20
+		 */
+#if 0
 		sock_send_buf(s, UP_SEND_BUFSIZE, TRUE);	/* Shrink TX buffer */
+#endif
 	}
 
 	/*
@@ -3886,6 +3891,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(u->bio == NULL);
+
+	/* TODO: Add a property for this */
+	sock_send_buf(s, 64 * 1024, FALSE);
 
 	if (u->browse_host) {
 		gnet_host_t h;
