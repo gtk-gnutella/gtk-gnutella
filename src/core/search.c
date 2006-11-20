@@ -999,14 +999,18 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			goto bad_packet;
 	}
 
-	/*
-	 * Sometimes peers report a private IP address in the results
-	 * even though they're TCP connectible.
-	 *
-	 * XXX: Is this correct or might n->addr be the push-proxy?
-	 */
-	if (browse && is_private_addr(rs->addr))
-		rs->addr = n->addr;
+	if (browse) {
+		rs->status |= ST_BROWSE;
+		if (is_private_addr(rs->addr)) {
+			/*
+			 * Sometimes peers report a private IP address in the results
+			 * even though they're TCP connectible.
+			 *
+			 * XXX: Is this correct or might n->addr be the push-proxy?
+			 */
+			rs->addr = n->addr;
+		}
+	}
 
 	/* Check for valid IP addresses (unroutable => turn push on) */
 	if (is_private_addr(rs->addr))
