@@ -531,7 +531,9 @@
 212.47.3.250
 
 # pr0n MOV spammer with fake LimeWire; giFT-based
-66.11.124.64/29
+66.11.123.0/25
+66.11.124.0/25
+66.11.125.0/25
 
 # fake movie spam; oversensitive to buzzwords; Gnucleus based; results are LIME
 213.52.227.128/26
