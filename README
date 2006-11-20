@@ -153,6 +153,7 @@ For example, a fairly typical configuration for Linux x86, Gtk+ 2.x UI:
         -D ccflags='-W -Wall -Wformat=2 -Wshadow' \
         -D optimize='-O2 -g' \
         -D gtkversion=2 \
+        -D yacc='bison' \
         -D official=true
 
 If you're used to Autoconf with CFLAGS and LDFLAGS, you can use
