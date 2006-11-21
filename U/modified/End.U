@@ -14,7 +14,7 @@
 ?MAKE:End: $W cat gtkversion d_libxml2 libs remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
 	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_sqlite d_headless \
-	d_glib d_gtk Alpha_mieee
+	d_glib d_gtk Alpha_mieee GCC_pipe
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend remote nls fastassert sqlite zlib
