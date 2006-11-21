@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:official d_official: Myread Setvar package cat pkgsrc
+?MAKE:official d_official: Myread Setvar cat pkgsrc package
 ?MAKE:	-pick add $@ %<
 ?S:official:
 ?S:	This variable holds 'true' or 'false' depending on whether we're making
@@ -23,38 +23,38 @@
 ?Y:TOP
 ?LINT:set d_official
 : determine whether this is an official build
-case "$official" in
-true) dflt=y;;
-*) dflt=n;;
-esac
-$cat <<EOM
 
-I can compile $package for a so-called "official build".  That means
-a build whose generated programs should not refer back to the place
-where the sources for $package are located.  In other words, no
-mention of the current source directory:
+case "$official" in
+false)
+	official=false
+	val="$undef"
+	$cat >&4 <<EOM
+*******************************************************************
+************************ WARNING! *********************************
+*******************************************************************
+
+The resulting binary will access files in the current source
+directory:
 
 	$pkgsrc
 
-should make its way into the generated scripts and programs.  Because
-that would be useless, and to protect your privacy.
+This executable will not be suitable for distribution but only for
+local use, if you want to skip the installation! Use
 
-When compiling for local use, it usually makes sense to allow $package
-to access your sources, in case you don't want to make a full install
-and wish to rely on some configuration file or other data file present
-in the sources.
+	-Dofficial=true
+
+to compile a binary suitable for distributing $package.
+
+*******************************************************************
 
 EOM
-rp='Is this producing an official build'
-. ./myread
-case "$ans" in
-y) official=true;;
-*) official=false;;
+;;
+*)
+	val="$define"
+	official=true
+	;;
 esac
-case "$official" in
-true) val="$define";;
-*) val="$undef";;
-esac
+
 set d_official
 eval $setvar
 
