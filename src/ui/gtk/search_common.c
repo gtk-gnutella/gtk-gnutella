@@ -103,6 +103,7 @@ static struct {
 	GdkColor color;
 } colors[] = {
 	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },
+	{ "#FC000D",	GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } },
 	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },
 	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
 	{ "#326732",	GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } },
@@ -1254,7 +1255,8 @@ search_matched(search_t *sch, results_set_t *rs)
 		} else {
 			enum filter_prop_state filter_state, filter_download;
 			gpointer filter_udata;
-			gboolean is_spam, is_hostile;
+			gboolean is_hostile;
+			gint spam_score;
 
 			add_record = FALSE;
 
@@ -1263,13 +1265,14 @@ search_matched(search_t *sch, results_set_t *rs)
 				continue;
 			}
 
-			is_spam = ST_SPAM & rs->status;
 			is_hostile = ST_HOSTILE & rs->status;
+			spam_score = ST_SPAM & rs->status ? 1 : 0;
+			spam_score |= SR_SPAM & rc->flags ? 2 : 0;
 
 			if (
 				rc->size == 0 ||
 				(!rc->sha1 && search_discard_hashless) ||
-				((is_spam || is_hostile) && search_discard_spam)
+				((spam_score > 1 || is_hostile) && search_discard_spam)
 			) {
 				sch->ignored++;
 				continue;
@@ -1302,8 +1305,8 @@ search_matched(search_t *sch, results_set_t *rs)
 			 */
 			if (
 				!downloading && 
-				!is_spam &&
 				!is_hostile &&
+				0 == spam_score &&
 				FILTER_PROP_STATE_DO == filter_download
 		   ) {
 				guc_download_auto_new(rc->name, rc->size, rc->file_index,
@@ -1335,9 +1338,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			}
 
 			/* Count as kept even if max results but not spam */
-			if (SR_SPAM & rc->flags) {
-				is_spam = TRUE;
-			} else if (!is_hostile) {
+			if (0 == spam_score && !is_hostile) {
 				results_kept++;
 			}
 
@@ -1350,10 +1351,12 @@ search_matched(search_t *sch, results_set_t *rs)
 			mark = FILTER_PROP_STATE_DONT == filter_state &&
 					GINT_TO_POINTER(1) == filter_udata;
 
-			if (is_spam) {
+			if (spam_score > 1) {
 				fg_color = gui_color_get(GUI_COLOR_SPAM);
 			} else if (is_hostile) {
 				fg_color = gui_color_get(GUI_COLOR_HOSTILE);
+			} else if (spam_score > 0) {
+				fg_color = gui_color_get(GUI_COLOR_MAYBE_SPAM);
 			} else if (rs->status & ST_UNREQUESTED) {
 				fg_color = gui_color_get(GUI_COLOR_UNREQUESTED);
 			} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
