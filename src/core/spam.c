@@ -66,13 +66,23 @@ RCSID("$Id$")
 static const gchar spam_text_file[] = "spam.txt";
 static const gchar spam_what[] = "Spam database";
 
-struct spam_lut {
+/* NOTE: This is disabled because SQLite does not seem worth the overhead
+ *       here for now as spam.txt isn't horribly large. With a slow disk
+ *		 or NFS, for example, the performance hit may be noticable.
+ */
+#if 0
 #ifdef HAS_SQLITE
+#define USE_SQLITE 1
+#endif /* HAS_SQLITE */
+#endif
+
+struct spam_lut {
+#ifdef USE_SQLITE
 	struct gdb_stmt *lookup_stmt;
 	struct gdb_stmt *insert_stmt;
-#else  /* HAS_SQLITE */
+#else  /* USE_SQLITE */
 	GHashTable *ht;
-#endif /* HAS_SQLITE */
+#endif /* USE_SQLITE */
 };
 
 struct spam_lut spam_lut;
@@ -128,7 +138,7 @@ spam_string_to_tag(const gchar *s)
 
 static gint
 spam_db_open(struct spam_lut *lut)
-#ifdef HAS_SQLITE
+#ifdef USE_SQLITE
 {
 	g_assert(lut);
 
@@ -180,21 +190,21 @@ failure:
 	spam_close();
 	return -1;
 }
-#else	/* !HAS_SQLITE */
+#else	/* !USE_SQLITE */
 {
 	g_assert(lut);
 
 	lut->ht = g_hash_table_new(sha1_hash, sha1_eq);
 	return 0;
 }
-#endif	/* HAS_SQLITE */
+#endif	/* USE_SQLITE */
 
 void
 spam_add(const struct spam_item *item)
 {
 	g_assert(item);
 
-#ifdef HAS_SQLITE
+#ifdef USE_SQLITE
 	if (spam_lut.insert_stmt) {
 		struct gdb_stmt *stmt = spam_lut.insert_stmt;
 		gint ret;
@@ -218,12 +228,12 @@ spam_add(const struct spam_item *item)
 				"spam_add", gdb_error_message());
 		}
 	}
-#else	/* HAS_SQLITE */
+#else	/* USE_SQLITE */
 	if (spam_lut.ht) {
 		gchar *sha1 = atom_sha1_get(item->sha1);
 		g_hash_table_insert(spam_lut.ht, sha1, sha1);
 	}
-#endif	/* HAS_SQLITE */
+#endif	/* USE_SQLITE */
 }
 
 
@@ -458,7 +468,7 @@ spam_init(void)
 	spam_retrieve();
 }
 
-#ifndef HAS_SQLITE
+#ifndef USE_SQLITE
 static void
 spam_item_free(gpointer key, gpointer value, gpointer unused_x)
 {
@@ -467,7 +477,7 @@ spam_item_free(gpointer key, gpointer value, gpointer unused_x)
 	g_assert(key == value);
 	atom_sha1_free(key);
 }
-#endif /* HAS_SQLITE */
+#endif /* USE_SQLITE */
 
 /**
  * Frees all entries in the spam database.
@@ -475,16 +485,16 @@ spam_item_free(gpointer key, gpointer value, gpointer unused_x)
 void
 spam_close(void)
 {
-#ifdef HAS_SQLITE
+#ifdef USE_SQLITE
 	gdb_stmt_finalize(&spam_lut.insert_stmt);
 	gdb_stmt_finalize(&spam_lut.lookup_stmt);
-#else /* HAS_SQLITE */
+#else /* USE_SQLITE */
 	if (spam_lut.ht) {
 		g_hash_table_foreach(spam_lut.ht, spam_item_free, NULL);
 		g_hash_table_destroy(spam_lut.ht);
 		spam_lut.ht = NULL;
 	}
-#endif /* HAS_SQLITE */
+#endif /* USE_SQLITE */
 }
 
 /**
@@ -498,7 +508,7 @@ spam_check(const char *sha1)
 {
 	g_assert(sha1);
 
-#ifdef HAS_SQLITE
+#ifdef USE_SQLITE
 	if (spam_lut.lookup_stmt) {
 		struct gdb_stmt *stmt;
 		gint ret;
@@ -528,11 +538,11 @@ spam_check(const char *sha1)
 		}
 		return FALSE;
 	}
-#else	/* HAS_SQLITE */
+#else	/* USE_SQLITE */
 	if (spam_lut.ht) {
 		return NULL != g_hash_table_lookup(spam_lut.ht, sha1);
 	}
-#endif	/* HAS_SQLITE */
+#endif	/* USE_SQLITE */
 	return FALSE;
 }
 
