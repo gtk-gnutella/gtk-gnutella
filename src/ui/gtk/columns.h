@@ -152,7 +152,6 @@ enum c_sr_columns {
     c_sr_charset,
     c_sr_size,
 	c_sr_count,
-    c_sr_path,
     c_sr_loc,
     c_sr_meta,	/**< meta-data info column */
     c_sr_info,

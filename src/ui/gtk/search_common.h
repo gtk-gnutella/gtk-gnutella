@@ -100,7 +100,7 @@ typedef struct record {
 
 	gchar  *name;				/**< Filename (atom) */
 	gchar  *ext;				/**< File extension (atom) */
-	gchar  *utf8_name;			/**< Filename converted to UTF-8 (atom) */
+	gchar  *utf8_name;			/**< Path/Filename converted to UTF-8 (atom) */
 	const gchar *charset;		/**< Detected charset of name (static const) */
 	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
 	gchar  *xml;				/**< Optional XML data string (atom) */

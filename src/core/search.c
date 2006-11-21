@@ -3706,7 +3706,8 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
 	rc->file_index = shared_file_index(sf);
 	rc->size = shared_file_size(sf);
 	rc->name = atom_str_get(shared_file_name_nfc(sf));
-	rc->path = atom_str_get(shared_file_path(sf));
+	rc->path = atom_str_get(shared_file_relative_path(sf));
+	rc->tag = atom_str_get(shared_file_path(sf));
 	if (sha1_hash_available(sf)) {
 		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
 	}

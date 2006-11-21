@@ -482,8 +482,11 @@ search_gui_compare_records(gint sort_col,
 
         switch ((enum c_sr_columns) sort_col) {
         case c_sr_filename:
-            result = (search_sort_casesense ? strcmp : ascii_strcasecmp)
-                (r1->name, r2->name);
+			if (search_sort_casesense) {
+            	result = strcmp(r1->utf8_name, r2->utf8_name);
+			} else {
+            	result = ascii_strcasecmp(r1->utf8_name, r2->utf8_name);
+			}
             break;
 
         case c_sr_ext:
@@ -506,10 +509,6 @@ search_gui_compare_records(gint sort_col,
 
         case c_sr_info:
 			result = strcmp(EMPTY_STRING(r1->info), EMPTY_STRING(r2->info));
-            break;
-
-        case c_sr_path:
-			result = strcmp(EMPTY_STRING(r1->path), EMPTY_STRING(r2->path));
             break;
 
         case c_sr_count:
@@ -1179,11 +1178,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 					text = rc->charset;
 				break;
 	 		case c_sr_info:
-				if (!(ST_LOCAL & rs->status))
-					text = EMPTY_STRING(rc->info);
-				break;
-	 		case c_sr_path:
-				text = EMPTY_STRING(rc->path);
+				text = EMPTY_STRING(rc->info);
 				break;
 	 		case c_sr_loc:
 				if (!((ST_LOCAL | ST_BROWSE) & rs->status))
@@ -1944,7 +1939,6 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 	gui_record_t *grc;
 	record_t *record;
 	gchar **url_ptr = udata;
-	const gchar *pathname = NULL;
 	gint row = -1;
 
 	(void) unused_drag_ctx;
@@ -1965,7 +1959,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 	grc = gtk_ctree_node_get_row_data(GTK_CTREE(widget), node);
 	record = grc->shared_record;
 	if (ST_LOCAL & record->results_set->status) {
-		pathname = record ? record->path : NULL;
+		const gchar *pathname = record->tag;
 		if (pathname) {
 			gchar *escaped;
 
@@ -2359,7 +2353,6 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 		{ N_("Encoding"),	c_sr_charset,	FALSE },
 		{ N_("Size"),		c_sr_size,		TRUE },
 		{ N_("#"),			c_sr_count,		TRUE },
-		{ N_("Path"),		c_sr_path,		TRUE },
 		{ N_("Loc"),		c_sr_loc,		FALSE },
 		{ N_("Metadata"),	c_sr_meta,		TRUE },
 		{ N_("Info"),		c_sr_info,		TRUE },

@@ -385,7 +385,6 @@ search_gui_free_record(record_t *rc)
 	atom_str_free_null(&rc->utf8_name);
     atom_str_free_null(&rc->ext);
 	atom_str_free_null(&rc->tag);
-	atom_str_free_null(&rc->path);
 	atom_str_free_null(&rc->xml);
 	atom_str_free_null(&rc->info);
 	atom_sha1_free_null(&rc->sha1);
@@ -861,31 +860,37 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	if (r->tag) {
     	rc->tag = atom_str_get(r->tag);
 	}
-	if (r->path) {
-		if (ST_LOCAL & rs->status) {
-			gchar *dir;
-		
-			dir = filepath_directory(r->path);
-			rc->path = atom_str_get(lazy_filename_to_ui_string(dir));
-			G_FREE_NULL(dir);
-		} else {
-			rc->path = atom_str_get(lazy_unknown_to_ui_string(r->path));
-		}
-	}
    	rc->flags = r->flags;
 
 	rc->name = atom_str_get(r->name);
 	
-	if (ST_LOCAL & rs->status) {
-		rc->utf8_name = atom_str_get(r->name);
-	} else {
-		rc->utf8_name = atom_str_get(lazy_unknown_to_utf8_normalized(r->name,
-									UNI_NORM_GUI, &rc->charset));
+	{
+		const gchar *utf8_name;
+		gchar *name, *to_free;
+
+		if (r->path) {
+			name = make_pathname(r->path, r->name);
+			to_free = name;
+		} else {
+			name = r->name;
+			to_free = NULL;
+		}
+		if (ST_LOCAL & rs->status) {
+			utf8_name = name;
+		} else {
+			utf8_name = lazy_unknown_to_utf8_normalized(name,
+							UNI_NORM_GUI, &rc->charset);
+		}
+		if (utf8_name == name || 0 == strcmp("UTF-8", rc->charset)) {
+			rc->charset = NULL;
+		}
+		rc->utf8_name = atom_str_get(utf8_name);
+		G_FREE_NULL(to_free);
 	}
 
 	{
 		const gchar *ext = search_gui_get_filename_extension(rc->utf8_name);
-		rc->ext = ext ? atom_str_get(lazy_utf8_to_ui_string(ext)) : NULL;
+		rc->ext = ext ? atom_str_get(ext) : NULL;
 	}
 
 	if (NULL != r->alt_locs) {
@@ -1371,7 +1376,10 @@ search_matched(search_t *sch, results_set_t *rs)
 			search_gui_ref_record(rc);
 			g_assert(rc->refcount >= 1);
 
-			rc->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL);
+			if (!sch->local) {
+				rc->info = search_gui_get_info(rc,
+								vinfo->len ? vinfo->str : NULL);
+			}
 			search_gui_add_record(sch, rc, fg_color, mark ? mark_color : NULL);
 		} else {
 			sch->ignored++;
