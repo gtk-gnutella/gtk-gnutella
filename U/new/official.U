@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:official d_official: Myread Setvar cat pkgsrc package
+?MAKE:official d_official: Myread Setvar Warn
 ?MAKE:	-pick add $@ %<
 ?S:official:
 ?S:	This variable holds 'true' or 'false' depending on whether we're making
@@ -28,26 +28,9 @@ case "$official" in
 false)
 	official=false
 	val="$undef"
-	$cat >&4 <<EOM
-*******************************************************************
-************************ WARNING! *********************************
-*******************************************************************
 
-The resulting binary will access files in the current source
-directory:
+	./warn 'This build will not be suitable for distribution.'
 
-	$pkgsrc
-
-This executable will not be suitable for distribution but only for
-local use, if you want to skip the installation! Use
-
-	-Dofficial=true
-
-to compile a binary suitable for distributing $package.
-
-*******************************************************************
-
-EOM
 ;;
 *)
 	val="$define"

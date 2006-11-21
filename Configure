@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Nov 21 06:32:51 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Tue Nov 21 08:00:35 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -2479,26 +2479,9 @@ case "$official" in
 false)
 	official=false
 	val="$undef"
-	$cat >&4 <<EOM
-*******************************************************************
-************************ WARNING! *********************************
-*******************************************************************
 
-The resulting binary will access files in the current source
-directory:
+	./warn 'This build will not be suitable for distribution.'
 
-	$pkgsrc
-
-This executable will not be suitable for distribution but only for
-local use, if you want to skip the installation! Use
-
-	-Dofficial=true
-
-to compile a binary suitable for distributing $package.
-
-*******************************************************************
-
-EOM
 ;;
 *)
 	val="$define"
