@@ -3657,6 +3657,18 @@ compat_daemonize(const char *directory)
 	return 0;
 }
 
+void
+compat_fadvise_sequential(int fd, off_t offset, off_t size)
+{
+	g_return_if_fail(fd >= 0);
+	g_return_if_fail(offset >= 0);
+	g_return_if_fail(size >= 0);
+
+#ifdef HAS_POSIX_FADVISE
+	posix_fadvise(fd, offset, size, POSIX_FADV_SEQUENTIAL);
+#endif	/* HAS_POSIX_FADVISE */
+}
+
 /**
  * Counts the number of bytes that differ between two chunks of memory.
  */

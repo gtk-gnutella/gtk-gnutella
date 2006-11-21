@@ -131,6 +131,8 @@ d_start(gpointer unused_h, gpointer ctx, gpointer item)
 		return;
 	}
 
+	compat_fadvise_sequential(vd->fd, 0, 0);
+
 	vd->d = d;
 	vd->start = tm_time();
 	vd->size = download_filesize(d);
