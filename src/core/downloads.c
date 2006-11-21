@@ -914,10 +914,11 @@ buffers_strip_leading(struct download *d, size_t amount)
 
 	n = amount;
 	iter = slist_iter_on_head(b->list);
-	while (n > 0 && slist_iter_has_item(iter)) {
+	while (n > 0) {
 		pmsg_t *mb;
 		size_t size;
 
+		g_assert(slist_iter_has_item(iter));
 		mb = slist_iter_current(iter);
 		g_assert(mb);
 
