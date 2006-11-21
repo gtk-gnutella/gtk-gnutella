@@ -106,7 +106,7 @@ crash_handler(int signo)
 
 		write(fds[1], command, sizeof command - 1);
 
-		pid = fork();
+		pid = vfork();
 		if (0 == pid) {
 			execve(argv[0], (const void *) argv, NULL);
 		} else if ((pid_t) -1 != pid) {
