@@ -596,6 +596,7 @@
 # anti-p2p campaign or collecting stats.
 58.165.231.210
 68.202.111.69
+71.193.218.50
 
 # University of Mississippi
 130.74.0.0/16
