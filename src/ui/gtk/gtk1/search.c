@@ -1175,7 +1175,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 				text = EMPTY_STRING(rc->ext);
 				break;
 			case c_sr_charset:
-				text = rc->charset;
+				if (!(ST_LOCAL & rs->status))
+					text = rc->charset;
 				break;
 	 		case c_sr_info:
 				if (!(ST_LOCAL & rs->status))

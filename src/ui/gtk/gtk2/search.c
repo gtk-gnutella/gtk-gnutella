@@ -198,7 +198,8 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 			text = iso3166_country_cc(rs->country);
 		break;
 	case c_sr_charset:
-		text = data->record->charset;
+		if (!(ST_LOCAL & rs->status))
+			text = data->record->charset;
 		break;
 	case c_sr_route:
 		text = search_gui_get_route(data->record);
