@@ -42,6 +42,8 @@ RCSID("$Id$")
 #include "misc.h"
 #include "tm.h"
 
+#include "lib/override.h"		/* Must be the last header included */
+
 /*
  * With VMM_GREEDY_PAGE_CACHE we always map memory for a complete
  * slot. This causes some over-allocation but reduces page-table
@@ -199,6 +201,70 @@ alloc_pages_intern(size_t size)
 	return p;
 }
 
+void
+vmm_madvise_normal(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size > 0);
+#if defined(HAS_MADVISE) && defined(MADV_NORMAL)
+	madvise(p, size, MADV_NORMAL);
+#endif	/* MADV_NORMAL */
+}
+
+void
+vmm_madvise_sequential(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size > 0);
+#if defined(HAS_MADVISE) && defined(MADV_SEQUENTIAL)
+	madvise(p, size, MADV_SEQUENTIAL);
+#endif	/* MADV_SEQUENTIAL */
+}
+
+void
+vmm_madvise_free(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size > 0);
+#if defined(HAS_MADVISE) && defined(MADV_FREE)
+	madvise(p, size, MADV_FREE);
+#elif defined(HAS_MADVISE) && defined(MADV_DONTNEED)
+	madvise(p, size, MADV_DONTNEED);
+#endif	/* MADV_FREE */
+}
+
+void
+vmm_madvise_willneed(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size > 0);
+#if defined(HAS_MADVISE) && defined(MADV_WILLNEED)
+	madvise(p, size, MADV_WILLNEED);
+#endif	/* MADV_WILLNEED */
+}
+
+static void
+vmm_validate_pages(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size > 0);
+#ifdef VMM_INVALIDATE_FREE_PAGES 
+	mprotect(p, size, PROT_READ | PROT_WRITE);
+	vmm_madvise_normal(p, size);
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
+static void
+vmm_invalidate_pages(void *p, size_t size)
+{
+	g_assert(p);
+	g_assert(size > 0);
+#ifdef VMM_INVALIDATE_FREE_PAGES 
+	mprotect(p, size, PROT_NONE);
+	vmm_madvise_free(p, size);
+#endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
 /**
  * Allocates a page-aligned memory chunk.
  *
@@ -217,11 +283,7 @@ alloc_pages(size_t size)
 	if (n < G_N_ELEMENTS(page_cache)) {
 		if (page_cache[n].current > 0) {
 			void *p = page_cache[n].stack[--page_cache[n].current].addr;
-			g_assert(p);
-#ifdef VMM_INVALIDATE_FREE_PAGES 
-			mprotect(p, size, PROT_READ | PROT_WRITE);
-			madvise(p, size, MADV_NORMAL);
-#endif	/* VMM_INVALIDATE_FREE_PAGES */
+			vmm_validate_pages(p, size);
 			return p;
 		} else {
 #ifdef VMM_GREEDY_PAGE_CACHE
@@ -293,14 +355,7 @@ free_pages(gpointer p, size_t size)
 			n < G_N_ELEMENTS(page_cache) &&
 			page_cache[n].current < max_cached
 		) {
-#ifdef VMM_INVALIDATE_FREE_PAGES 
-			mprotect(p, size, PROT_NONE);
-#ifdef MADV_FREE
-			madvise(p, size, MADV_FREE);
-#else
-			madvise(p, size, MADV_DONTNEED);
-#endif	/* MADV_FREE */
-#endif	/* VMM_INVALIDATE_FREE_PAGES */
+			vmm_invalidate_pages(p, size);
 			page_cache[n].stack[page_cache[n].current].addr = p;
 			page_cache[n].stack[page_cache[n].current].stamp = tm_time();
 			page_cache[n].current++;

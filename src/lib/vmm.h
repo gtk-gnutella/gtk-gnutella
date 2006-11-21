@@ -47,6 +47,11 @@ void free_pages(gpointer p, size_t size);
 size_t prune_page_cache(void);
 const char *prot_strdup(const char *s);
 
+void vmm_madvise_free(void *p, size_t size);
+void vmm_madvise_normal(void *p, size_t size);
+void vmm_madvise_sequential(void *p, size_t size);
+void vmm_madvise_willneed(void *p, size_t size);
+
 #define FREE_PAGES_NULL(p, size) \
 G_STMT_START { \
 	if (p) { \

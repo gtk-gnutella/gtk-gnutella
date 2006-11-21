@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/walloc.h"
 #include "lib/misc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 
@@ -1530,9 +1531,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 				return (ssize_t) -1;
 			}
 			
-#ifdef HAS_MADVISE
-			madvise(ctx->map, map_len, MADV_SEQUENTIAL);
-#endif
+			vmm_madvise_sequential(ctx->map, map_len);
 		}
 
 		g_assert(ctx->map != NULL);
