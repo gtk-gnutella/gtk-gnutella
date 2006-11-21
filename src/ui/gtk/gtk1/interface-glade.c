@@ -87,6 +87,17 @@ create_main_window (void)
   GtkAccelGroup *menu_help_menu_accels;
   GtkWidget *menu_about;
   GtkWidget *menu_faq;
+  GtkWidget *viewport_searchbar;
+  GtkWidget *hbox179;
+  GtkWidget *button_search;
+  GtkWidget *combo_search;
+  GtkWidget *entry_search;
+  GtkWidget *option_menu_search_lifetime;
+  GtkWidget *option_menu_search_lifetime_menu;
+  GtkWidget *optionmenu_search_filter;
+  GtkWidget *optionmenu_search_filter_menu;
+  guint button_search_passive_key;
+  GtkWidget *button_search_passive;
   GtkWidget *hpaned_main;
   GtkWidget *vbox_sidebar;
   GtkWidget *vpaned_sidebar;
@@ -133,17 +144,6 @@ create_main_window (void)
   GtkWidget *progressbar_bws_lin;
   GtkWidget *progressbar_bws_lout;
   GtkWidget *vbox_right;
-  GtkWidget *viewport_searchbar;
-  GtkWidget *hbox179;
-  GtkWidget *button_search;
-  GtkWidget *combo_search;
-  GtkWidget *entry_search;
-  GtkWidget *option_menu_search_lifetime;
-  GtkWidget *option_menu_search_lifetime_menu;
-  GtkWidget *optionmenu_search_filter;
-  GtkWidget *optionmenu_search_filter_menu;
-  guint button_search_passive_key;
-  GtkWidget *button_search_passive;
   GtkWidget *notebook_main;
   GtkWidget *vbox_gnutellanet;
   GtkWidget *frame5;
@@ -1346,6 +1346,82 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_faq);
   gtk_tooltips_set_tip (tooltips, menu_faq, _("Frequently Asked Questions"), NULL);
 
+  viewport_searchbar = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport_searchbar, "viewport_searchbar");
+  gtk_widget_ref (viewport_searchbar);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_searchbar", viewport_searchbar,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport_searchbar);
+  gtk_box_pack_start (GTK_BOX (vbox12), viewport_searchbar, FALSE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_searchbar), GTK_SHADOW_OUT);
+
+  hbox179 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox179, "hbox179");
+  gtk_widget_ref (hbox179);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox179", hbox179,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox179);
+  gtk_container_add (GTK_CONTAINER (viewport_searchbar), hbox179);
+
+  button_search = gtk_button_new_with_label (_("Search"));
+  gtk_widget_set_name (button_search, "button_search");
+  gtk_widget_ref (button_search);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search", button_search,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search);
+  gtk_box_pack_start (GTK_BOX (hbox179), button_search, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (button_search, FALSE);
+  gtk_button_set_relief (GTK_BUTTON (button_search), GTK_RELIEF_NONE);
+
+  combo_search = gtk_combo_new ();
+  gtk_widget_set_name (combo_search, "combo_search");
+  gtk_widget_ref (combo_search);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_search", combo_search,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_search);
+  gtk_box_pack_start (GTK_BOX (hbox179), combo_search, TRUE, TRUE, 0);
+  gtk_combo_set_use_arrows_always (GTK_COMBO (combo_search), TRUE);
+
+  entry_search = GTK_COMBO (combo_search)->entry;
+  gtk_widget_set_name (entry_search, "entry_search");
+  gtk_widget_ref (entry_search);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search", entry_search,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_search);
+
+  option_menu_search_lifetime = gtk_option_menu_new ();
+  gtk_widget_set_name (option_menu_search_lifetime, "option_menu_search_lifetime");
+  gtk_widget_ref (option_menu_search_lifetime);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_search_lifetime", option_menu_search_lifetime,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (option_menu_search_lifetime);
+  gtk_box_pack_start (GTK_BOX (hbox179), option_menu_search_lifetime, FALSE, FALSE, 0);
+  option_menu_search_lifetime_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_search_lifetime), option_menu_search_lifetime_menu);
+
+  optionmenu_search_filter = gtk_option_menu_new ();
+  gtk_widget_set_name (optionmenu_search_filter, "optionmenu_search_filter");
+  gtk_widget_ref (optionmenu_search_filter);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "optionmenu_search_filter", optionmenu_search_filter,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (optionmenu_search_filter);
+  gtk_box_pack_start (GTK_BOX (hbox179), optionmenu_search_filter, FALSE, FALSE, 0);
+  optionmenu_search_filter_menu = gtk_menu_new ();
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu_search_filter), optionmenu_search_filter_menu);
+
+  button_search_passive = gtk_button_new_with_label ("");
+  button_search_passive_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_search_passive)->child),
+                                   _("_Passive"));
+  gtk_widget_add_accelerator (button_search_passive, "clicked", accel_group,
+                              button_search_passive_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (button_search_passive, "button_search_passive");
+  gtk_widget_ref (button_search_passive);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_passive", button_search_passive,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search_passive);
+  gtk_box_pack_start (GTK_BOX (hbox179), button_search_passive, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
+
   hpaned_main = gtk_hpaned_new ();
   gtk_widget_set_name (hpaned_main, "hpaned_main");
   gtk_widget_ref (hpaned_main);
@@ -1771,83 +1847,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_right);
   gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, TRUE);
-
-  viewport_searchbar = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport_searchbar, "viewport_searchbar");
-  gtk_widget_ref (viewport_searchbar);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_searchbar", viewport_searchbar,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (viewport_searchbar);
-  gtk_box_pack_start (GTK_BOX (vbox_right), viewport_searchbar, FALSE, FALSE, 0);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_searchbar), GTK_SHADOW_OUT);
-
-  hbox179 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox179, "hbox179");
-  gtk_widget_ref (hbox179);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox179", hbox179,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox179);
-  gtk_container_add (GTK_CONTAINER (viewport_searchbar), hbox179);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox179), 2);
-
-  button_search = gtk_button_new_with_label (_("Search"));
-  gtk_widget_set_name (button_search, "button_search");
-  gtk_widget_ref (button_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search", button_search,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search);
-  gtk_box_pack_start (GTK_BOX (hbox179), button_search, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_search, FALSE);
-  gtk_button_set_relief (GTK_BUTTON (button_search), GTK_RELIEF_NONE);
-
-  combo_search = gtk_combo_new ();
-  gtk_widget_set_name (combo_search, "combo_search");
-  gtk_widget_ref (combo_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_search", combo_search,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_search);
-  gtk_box_pack_start (GTK_BOX (hbox179), combo_search, TRUE, TRUE, 0);
-  gtk_combo_set_use_arrows_always (GTK_COMBO (combo_search), TRUE);
-
-  entry_search = GTK_COMBO (combo_search)->entry;
-  gtk_widget_set_name (entry_search, "entry_search");
-  gtk_widget_ref (entry_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search", entry_search,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_search);
-
-  option_menu_search_lifetime = gtk_option_menu_new ();
-  gtk_widget_set_name (option_menu_search_lifetime, "option_menu_search_lifetime");
-  gtk_widget_ref (option_menu_search_lifetime);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_search_lifetime", option_menu_search_lifetime,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (option_menu_search_lifetime);
-  gtk_box_pack_start (GTK_BOX (hbox179), option_menu_search_lifetime, FALSE, FALSE, 0);
-  option_menu_search_lifetime_menu = gtk_menu_new ();
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_search_lifetime), option_menu_search_lifetime_menu);
-
-  optionmenu_search_filter = gtk_option_menu_new ();
-  gtk_widget_set_name (optionmenu_search_filter, "optionmenu_search_filter");
-  gtk_widget_ref (optionmenu_search_filter);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "optionmenu_search_filter", optionmenu_search_filter,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (optionmenu_search_filter);
-  gtk_box_pack_start (GTK_BOX (hbox179), optionmenu_search_filter, FALSE, FALSE, 0);
-  optionmenu_search_filter_menu = gtk_menu_new ();
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu_search_filter), optionmenu_search_filter_menu);
-
-  button_search_passive = gtk_button_new_with_label ("");
-  button_search_passive_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_search_passive)->child),
-                                   _("_Passive"));
-  gtk_widget_add_accelerator (button_search_passive, "clicked", accel_group,
-                              button_search_passive_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (button_search_passive, "button_search_passive");
-  gtk_widget_ref (button_search_passive);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_passive", button_search_passive,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search_passive);
-  gtk_box_pack_start (GTK_BOX (hbox179), button_search_passive, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_set_name (notebook_main, "notebook_main");
@@ -6466,6 +6465,18 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (menu_faq), "activate",
                       GTK_SIGNAL_FUNC (on_menu_faq_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
+                      GTK_SIGNAL_FUNC (on_entry_search_changed),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_search_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
                       NULL);
@@ -6489,18 +6500,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_lout), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_lout_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
-                      GTK_SIGNAL_FUNC (on_entry_search_changed),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_search_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_nodes_select_row),

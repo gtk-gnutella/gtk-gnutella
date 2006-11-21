@@ -638,6 +638,125 @@
     </widget>
 
     <widget>
+      <class>GtkViewport</class>
+      <name>viewport_searchbar</name>
+      <shadow_type>GTK_SHADOW_OUT</shadow_type>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkHBox</class>
+	<name>hbox179</name>
+	<homogeneous>False</homogeneous>
+	<spacing>4</spacing>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>button_search</name>
+	  <sensitive>False</sensitive>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_button_search_clicked</handler>
+	    <last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
+	  </signal>
+	  <label>Search</label>
+	  <relief>GTK_RELIEF_NONE</relief>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkCombo</class>
+	  <name>combo_search</name>
+	  <value_in_list>False</value_in_list>
+	  <ok_if_empty>True</ok_if_empty>
+	  <case_sensitive>False</case_sensitive>
+	  <use_arrows>True</use_arrows>
+	  <use_arrows_always>True</use_arrows_always>
+	  <items></items>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkEntry</class>
+	    <child_name>GtkCombo:entry</child_name>
+	    <name>entry_search</name>
+	    <can_focus>True</can_focus>
+	    <signal>
+	      <name>changed</name>
+	      <handler>on_entry_search_changed</handler>
+	      <last_modification_time>Mon, 29 Apr 2002 13:32:41 GMT</last_modification_time>
+	    </signal>
+	    <signal>
+	      <name>activate</name>
+	      <handler>on_entry_search_activate</handler>
+	      <last_modification_time>Mon, 29 Apr 2002 13:32:51 GMT</last_modification_time>
+	    </signal>
+	    <editable>True</editable>
+	    <text_visible>True</text_visible>
+	    <text_max_length>0</text_max_length>
+	    <text></text>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkOptionMenu</class>
+	  <name>option_menu_search_lifetime</name>
+	  <can_focus>True</can_focus>
+	  <items></items>
+	  <initial_choice>0</initial_choice>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkOptionMenu</class>
+	  <name>optionmenu_search_filter</name>
+	  <can_focus>True</can_focus>
+	  <items></items>
+	  <initial_choice>0</initial_choice>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>button_search_passive</name>
+	  <tooltip>A passive search matches any search results routed through this node</tooltip>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_button_search_passive_clicked</handler>
+	    <last_modification_time>Tue, 30 May 2000 06:59:17 GMT</last_modification_time>
+	  </signal>
+	  <label>_Passive</label>
+	  <relief>GTK_RELIEF_NORMAL</relief>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+      </widget>
+    </widget>
+
+    <widget>
       <class>GtkHPaned</class>
       <name>hpaned_main</name>
       <handle_size>10</handle_size>
@@ -1277,126 +1396,6 @@
 	  <shrink>True</shrink>
 	  <resize>True</resize>
 	</child>
-
-	<widget>
-	  <class>GtkViewport</class>
-	  <name>viewport_searchbar</name>
-	  <shadow_type>GTK_SHADOW_OUT</shadow_type>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkHBox</class>
-	    <name>hbox179</name>
-	    <border_width>2</border_width>
-	    <homogeneous>False</homogeneous>
-	    <spacing>4</spacing>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <name>button_search</name>
-	      <sensitive>False</sensitive>
-	      <can_focus>True</can_focus>
-	      <signal>
-		<name>clicked</name>
-		<handler>on_button_search_clicked</handler>
-		<last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
-	      </signal>
-	      <label>Search</label>
-	      <relief>GTK_RELIEF_NONE</relief>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkCombo</class>
-	      <name>combo_search</name>
-	      <value_in_list>False</value_in_list>
-	      <ok_if_empty>True</ok_if_empty>
-	      <case_sensitive>False</case_sensitive>
-	      <use_arrows>True</use_arrows>
-	      <use_arrows_always>True</use_arrows_always>
-	      <items></items>
-	      <child>
-		<padding>0</padding>
-		<expand>True</expand>
-		<fill>True</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkEntry</class>
-		<child_name>GtkCombo:entry</child_name>
-		<name>entry_search</name>
-		<can_focus>True</can_focus>
-		<signal>
-		  <name>changed</name>
-		  <handler>on_entry_search_changed</handler>
-		  <last_modification_time>Mon, 29 Apr 2002 13:32:41 GMT</last_modification_time>
-		</signal>
-		<signal>
-		  <name>activate</name>
-		  <handler>on_entry_search_activate</handler>
-		  <last_modification_time>Mon, 29 Apr 2002 13:32:51 GMT</last_modification_time>
-		</signal>
-		<editable>True</editable>
-		<text_visible>True</text_visible>
-		<text_max_length>0</text_max_length>
-		<text></text>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkOptionMenu</class>
-	      <name>option_menu_search_lifetime</name>
-	      <can_focus>True</can_focus>
-	      <items></items>
-	      <initial_choice>0</initial_choice>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkOptionMenu</class>
-	      <name>optionmenu_search_filter</name>
-	      <can_focus>True</can_focus>
-	      <items></items>
-	      <initial_choice>0</initial_choice>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
-
-	    <widget>
-	      <class>GtkButton</class>
-	      <name>button_search_passive</name>
-	      <tooltip>A passive search matches any search results routed through this node</tooltip>
-	      <can_focus>True</can_focus>
-	      <signal>
-		<name>clicked</name>
-		<handler>on_button_search_passive_clicked</handler>
-		<last_modification_time>Tue, 30 May 2000 06:59:17 GMT</last_modification_time>
-	      </signal>
-	      <label>_Passive</label>
-	      <relief>GTK_RELIEF_NORMAL</relief>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
-	  </widget>
-	</widget>
 
 	<widget>
 	  <class>GtkNotebook</class>
