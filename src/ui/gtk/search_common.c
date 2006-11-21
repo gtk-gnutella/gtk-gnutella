@@ -1115,7 +1115,7 @@ search_gui_get_route(const record_t *rc)
 	rs = rc->results_set;
 	g_assert(rs);
 
-	if (ST_LOCAL & rs->status) {
+	if ((ST_LOCAL | ST_BROWSE) & rs->status) {
 		return NULL;
 	} else {
 		static gchar addr_buf[128];

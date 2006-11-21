@@ -1141,6 +1141,7 @@ search_gui_sort_column(search_t *search, gint column)
 void
 search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 {
+	static const gchar empty[] = "";
   	const gchar *titles[c_sr_num];
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
@@ -1149,7 +1150,6 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 	gui_record_t *grc1;
 	gui_record_t *grc2;
     struct results_set *rs = rc->results_set;
-	gchar *empty = "";
 
 	GtkCTreeNode *parent;
 	GtkCTreeNode *node;
@@ -1185,25 +1185,25 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 				text = EMPTY_STRING(rc->path);
 				break;
 	 		case c_sr_loc:
-				if (!(ST_LOCAL & rs->status))
+				if (!((ST_LOCAL | ST_BROWSE) & rs->status))
 					text = iso3166_country_cc(rs->country);
 				break;
 	 		case c_sr_route:
 				text = EMPTY_STRING(search_gui_get_route(rc));
 				break;
 			case c_sr_protocol:
-				if (!(ST_LOCAL & rs->status))
-					text = ST_UDP & rs->status ? _("UDP") : _("TCP");
+				if (!((ST_LOCAL | ST_BROWSE) & rs->status))
+					text = ST_UDP & rs->status ? "UDP" : "TCP";
 				break;
 			case c_sr_hops:
-				if (!(ST_LOCAL & rs->status)) {
+				if (!((ST_LOCAL | ST_BROWSE) & rs->status)) {
 					static gchar buf[UINT32_DEC_BUFLEN];
 					uint32_to_string_buf(rs->hops, buf, sizeof buf);
 					text = buf;
 				}
 				break;
 			case c_sr_ttl:
-				if (!(ST_LOCAL & rs->status)) {
+				if (!((ST_LOCAL | ST_BROWSE) & rs->status)) {
 					static gchar buf[UINT32_DEC_BUFLEN];
 					uint32_to_string_buf(rs->ttl, buf, sizeof buf);
 					text = buf;
@@ -1213,7 +1213,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 				if (SR_SPAM & rc->flags) {
 					text = "S";	/* Spam */
 				} else if (ST_SPAM & rs->status) {
-					text = "s";	/* maybe spam */
+					text = "maybe";	/* maybe spam */
 				}
 				break;
 			case c_sr_owned:
@@ -1247,14 +1247,14 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 		}
 	}
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
+	uint32_to_string_buf(rs->speed, tmpstr, sizeof tmpstr);
 
 	/* Add the search result to the ctree */
 
 	/* Record memory is freed automatically by function set later on using
 	 * gtk_ctree_node_set_row_data_full
 	 */
-	gui_rc = walloc(sizeof(gui_record_t));
+	gui_rc = walloc(sizeof *gui_rc);
 	gui_rc->shared_record = rc;
 
 	if (NULL != rc->sha1) {
@@ -1274,7 +1274,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 
 			/* Update the "#" column of the parent, +1 for parent */
 			count = gtk_ctree_count_node_children(ctree, parent);
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", count + 1);
+			uint32_to_string_buf(count + 1, tmpstr, sizeof tmpstr);
 			gtk_ctree_node_set_text(ctree, parent, c_sr_count, tmpstr);
 
 			/* Update count in the records (use for column sorting) */
@@ -1492,7 +1492,7 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			/* Calculate # column */
 			n = gtk_ctree_count_node_children(ctree, child_node);
 			if (0 < n) {
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n+1);
+				uint32_to_string_buf(n + 1, tmpstr, sizeof tmpstr);
 			} else {
 				*tmpstr = '\0';
             }
@@ -1533,10 +1533,11 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 
 		/* Now update the "#" column of the parent */
 		n = gtk_ctree_count_node_children(ctree, old_parent);
-		if (0 < n)
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n+1);
-		else
+		if (0 < n) {
+			uint32_to_string_buf(n + 1, tmpstr, sizeof tmpstr);
+		} else {
 			*tmpstr = '\0';
+		}
 		gtk_ctree_node_set_text(ctree, old_parent, c_sr_count, tmpstr);
 
 		parent_grc = gtk_ctree_node_get_row_data(ctree, old_parent);

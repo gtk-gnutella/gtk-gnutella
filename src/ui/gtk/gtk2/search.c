@@ -204,22 +204,22 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = search_gui_get_route(data->record);
 		break;
 	case c_sr_protocol:
-		if (!(ST_LOCAL & rs->status))
-			text = ST_UDP & rs->status ? _("UDP") : _("TCP");
+		if (!((ST_LOCAL | ST_BROWSE) & rs->status))
+			text = ST_UDP & rs->status ? "UDP" : "TCP";
 		break;
 	case c_sr_hops:
-		if (!(ST_LOCAL & rs->status))
+		if (!((ST_LOCAL | ST_BROWSE) & rs->status))
 			text = uint32_to_string(rs->hops);
 		break;
 	case c_sr_ttl:
-		if (!(ST_LOCAL & rs->status))
+		if (!((ST_LOCAL | ST_BROWSE) & rs->status))
 			text = uint32_to_string(rs->ttl);
 		break;
 	case c_sr_spam:
 		if (SR_SPAM & data->record->flags) {
 			text = "S";	/* Spam */
 		} else if (ST_SPAM & rs->status) {
-			text = "s";	/* maybe spam */
+			text = "maybe";	/* maybe spam */
 		}
 		break;
 	case c_sr_owned:
