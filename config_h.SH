@@ -569,6 +569,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_msghdr_msg_flags HAS_MSGHDR_MSG_FLAGS		/**/
 
+/* HAS_POSIX_FADVISE:
+ *	This symbol is defined when posix_fadvise() can be used.
+ */
+#$d_posix_fadvise HAS_POSIX_FADVISE
+
 /* HAS_POSIX_MEMALIGN:
  *	This symbol is defined when posix_memalign() can be used.
  */
