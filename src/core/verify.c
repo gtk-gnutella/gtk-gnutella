@@ -227,10 +227,14 @@ d_step_compute(gpointer h, gpointer u, gint ticks)
 
 	r = read(vd->fd, vd->buffer, amount);
 	if ((ssize_t) -1 == r) {
-		vd->error = errno;
-		g_warning("error while reading %s for computing SHA1: %s",
-			download_outname(vd->d), g_strerror(errno));
-		return BGR_DONE;
+		if (is_temporary_error(errno)) {
+			return BGR_MORE;
+		} else {
+			vd->error = errno;
+			g_warning("error while reading %s for computing SHA1: %s",
+					download_outname(vd->d), g_strerror(errno));
+			return BGR_DONE;
+		}
 	} else if (r == 0) {
 		g_warning("EOF while reading %s for computing SHA1!",
 			download_outname(vd->d));
