@@ -181,14 +181,10 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = data->meta;
 		break;
 	case c_sr_info:
-		if (!(ST_LOCAL & rs->status))
-			text = data->record->info;
+		text = data->record->info;
 		break;
 	case c_sr_size:
 		text = compact_size(data->record->size, show_metric_units());
-		break;
-	case c_sr_path:
-		text = data->record->path;
 		break;
 	case c_sr_count:
 		text = data->count ? uint32_to_string(1 + data->count) : NULL;
@@ -731,21 +727,6 @@ search_gui_cmp_strings(const gchar *a, const gchar *b)
 	} else {
 		return a ? 1 : (b ? -1 : 0);
 	}
-}
-
-static gint
-search_gui_cmp_path(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->record->path, d2->record->path);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
 static gint
@@ -1534,14 +1515,13 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 			const gchar *pathname;
 			gchar *escaped;
 
-			pathname = data->record->path;
-			if (!pathname) {
-				pathname = "(null)";
-			}
-			escaped = url_escape(pathname);
-			*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-			if (escaped != pathname) {
-				G_FREE_NULL(escaped);
+			pathname = data->record->tag;
+			if (pathname) {
+				escaped = url_escape(pathname);
+				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
+				if (escaped != pathname) {
+					G_FREE_NULL(escaped);
+				}
 			}
 		}
 	}
@@ -1939,7 +1919,6 @@ add_results_columns(GtkTreeView *treeview, gpointer udata)
 		{ N_("Encoding"),  c_sr_charset,  0.0, search_gui_cmp_charset },
 		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_cmp_size },
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_cmp_count },
-		{ N_("Path"),	   c_sr_path,	  0.0, search_gui_cmp_path },
 		{ N_("Loc"),	   c_sr_loc,	  0.0, search_gui_cmp_country },
 		{ N_("Metadata"),  c_sr_meta,	  0.0, search_gui_cmp_meta },
 		{ N_("Info"),	   c_sr_info,	  0.0, search_gui_cmp_info },
