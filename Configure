@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Nov 20 19:26:36 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Tue Nov 21 02:11:51 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3449,20 +3449,21 @@ fi
 echo " "
 echo "Checking for GNU cc in disguise and/or its version number..." >&4
 $cat >try.c <<EOM
-#include <stdio.h>
-int main() {
+int main(void) {
 #ifdef __GNUC__
-#ifdef __VERSION__
-	printf("%s\n", __VERSION__);
-#else
-	printf("%s\n", "1");
+gcc_version_major __GNUC__
+#ifdef __GNUC_MINOR__
+gcc_version_minor __GNUC__
+#endif
+#ifdef __GNUC_PATCHLEVEL__
+gcc_version_patchlevel __GNUC_PATCHLEVEL__
 #endif
 #endif
-	exit(0);
 }
 EOM
-if $cc -o try $ccflags $ldflags try.c >/dev/null 2>&1; then
-	gccversion=`$run ./try`
+if $cc $ccflags -E try.c > try 2>&1
+then
+	gccversion=`$grep gcc_version_major try | sed 's/^.*gcc_version_major[\t ]*//'`
 	case "$gccversion" in
 	'') echo "You are not using GNU cc." ;;
 	*)  echo "You are using GNU cc $gccversion."
@@ -3470,15 +3471,7 @@ if $cc -o try $ccflags $ldflags try.c >/dev/null 2>&1; then
 	    ;;
 	esac
 else
-	echo " "
-	echo "*** WHOA THERE!!! ***" >&4
-	echo "    Your C compiler \"$cc\" doesn't seem to be working!" >&4
-	case "$knowitall" in
-	'')
-	echo "    You'd better start hunting for one and let me know about it." >&4
-		exit 1
-		;;
-	esac
+	gccversion=''
 fi
 $rm -f try try.*
 case "$gccversion" in
@@ -7353,7 +7346,8 @@ do
 done
 set X \$files
 shift
-trap "$rm -f /tmp/mkdep\$\$; exit 1" 1 2 3 15
+tmpdir="${TMPDIR:-/tmp}"
+trap "$rm -f "$tmpdir/mkdep\$\$"; exit 1" 1 2 3 15
 for srcfile
 do
 	case "\$srcfile" in
@@ -7367,7 +7361,7 @@ do
 	$sed -n -e 's/#[   ]*include[  ]*//' \\
 		-e '/<\(.*\)>/ d' \\
 		-e 's/:[^"]*"\([^"]*\)".*/: \1/' \\
-		-e "s/\\.c:/$_o:/p" > /tmp/mkdep\$\$
+		-e "s/\\.c:/$_o:/p" > "$tmpdir/mkdep\$\$"
 	IFS=': '
 	while read file dep; do
 		for dir in \$inc; do
@@ -7377,9 +7371,9 @@ do
 			fi
 		done
 		echo "\$file: \$dep" | $sed -e 's,: \./,: ,'
-	done </tmp/mkdep\$\$
+	done <"$tmpdir/mkdep\$\$"
 	IFS=' '
-	$rm -f /tmp/mkdep\$\$
+	$rm -f "$tmpdir/mkdep\$\$" 
 done
 exit 0
 EOS
