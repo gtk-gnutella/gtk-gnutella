@@ -592,6 +592,9 @@
 # returns results for pr0n MPEGs not matching the query; Gtk-Gnutella
 64.20.48.66
 
+# jailbait spammer; FBI or other degenerated scum
+68.202.111.69
+
 # University of Mississippi
 130.74.0.0/16
 
