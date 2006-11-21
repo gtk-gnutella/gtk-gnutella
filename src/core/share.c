@@ -1435,18 +1435,8 @@ share_scan(void)
 	}
 
 	/* Sort file list by modification time */
-	{
-		tm_t delta, start, end;
-		
-		tm_now_exact(&start);
-
-		qsort(file_table, files_scanned, sizeof file_table[0],
-			shared_file_sort_by_mtime);
-
-		tm_now_exact(&end);
-		tm_elapsed(&delta, &end, &start);
-		g_message("sorting took %ld ms", tm2ms(&delta));
-	}
+	qsort(file_table, files_scanned, sizeof file_table[0],
+		shared_file_sort_by_mtime);
 
 	/*
 	 * In order to quickly locate files based on indicies, build a table
