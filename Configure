@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Nov 21 02:11:51 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Tue Nov 21 03:03:30 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8087,7 +8087,9 @@ esac
 flag='-mieee'
 echo " "
 echo "Checking whether $flag should be used..." >&4
-$cat >try.c <<'EOC'
+if [ "x$gccversion" != x ]
+then
+	$cat >try.c <<'EOC'
 int main(void)
 {
 #if defined(__GNUC__) && (defined(_alpha) || defined(__alpha__))
@@ -8097,15 +8099,43 @@ int main(void)
 #endif
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1
-then
-	$rm -f try
 	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
 	then
 		echo "(Adding $flag)"; ccflags="$ccflags $flag"
 	fi
+	$rm -f try try.c
 fi
-$rm -f try try.c
+
+: check whether -pipe should be used
+flag='-pipe'
+echo " "
+echo "Checking whether $flag should be used..." >&4
+if [ "x$gccversion" != x ]
+then
+	$cat >try.c <<'EOC'
+int main(void)
+{
+	return 0;
+}
+EOC
+	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
+	then
+	$cat >try.c <<'EOC'
+main("This is not C")
+{
+	(. || 
+	switch (1) { case 1: case 1: }
+}
+EOC
+		if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
+		then
+			echo "With $flag the compiler seems to see no code."
+		else
+			echo "(Adding $flag)"; ccflags="$ccflags $flag"
+		fi
+	fi
+	$rm -f try try.c
+fi
 
 : end of configuration questions
 echo " "
