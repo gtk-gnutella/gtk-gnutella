@@ -592,7 +592,9 @@
 # returns results for pr0n MPEGs not matching the query; Gtk-Gnutella
 64.20.48.66
 
-# jailbait spammer; FBI or other degenerated scum
+# jailbait spammer; FBI or other degenerated scum; either part of an
+# anti-p2p campaign or collecting stats.
+58.165.231.210
 68.202.111.69
 
 # University of Mississippi
