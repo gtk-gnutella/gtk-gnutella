@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Nov 21 08:00:35 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Wed Nov 22 11:56:33 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8227,33 +8227,45 @@ bailout=no
 
 case "$d_glib" in
 "$undef")
-	echo 'ERROR: Cannot compile against GLib.' >&4
+	echo 'ERROR: Cannot compile against GLib. Library or header files might be missing.' >&4
 	bailout=yes
 	;;
 esac
 
 case "$d_libxml2" in
 "$undef")
-	echo 'ERROR: You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella.' >&4
+	echo 'ERROR: Cannot compile against libxml2. Library or header files might be missing.' >&4
 	bailout=yes
 	;;
 esac
 
 if [ "$zlib" != yes ]; then
-	echo 'ERROR: You need zlib (http://www.zlib.net/) to compile Gtk-Gnutella.' >&4
+	echo 'ERROR: Cannot compile against zlib. Library or header files might be missing.' >&4
 	bailout=yes
 fi
 
 if [ "$frontend" != none ]; then
 case "$d_gtk" in
 "$undef")
-	echo 'ERROR: Cannot compile against Gtk+.' >&4
+	echo 'ERROR: Cannot compile against Gtk+. Library or header files might be missing.' >&4
 	bailout=yes
 	;;
 esac
 fi
 
 if [ "$bailout" != no ]; then
+	cat >&4 <<EOM
+If you need help to resolve the compile problem, please send a mail to
+
+	gtk-gnutella-devel (at) lists.sourceforge.net
+
+or submit a bug report here:
+
+	http://sourceforge.net/tracker/?atid=104467&group_id=4467&func=browse
+
+You might also want to have a look at the README files in advance.
+EOM
+
 	exit 1
 fi
 
