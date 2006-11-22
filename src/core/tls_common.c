@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "if/core/settings.h"
 
 #include "lib/header.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -470,7 +471,6 @@ tls_global_init(void)
 		"tls", 1, 0
 	};
 	char *cert_file, *key_file;
-	int ret;
 
 	if (gnutls_global_init()) {
 		g_error("gnutls_global_init() failed");
@@ -479,17 +479,21 @@ tls_global_init(void)
 
 	key_file = make_pathname(settings_config_dir(), "key.pem");
 	cert_file = make_pathname(settings_config_dir(), "cert.pem");
-	
-	gnutls_certificate_allocate_credentials(&server_cert_cred);
-	ret = gnutls_certificate_set_x509_key_file(server_cert_cred,
-			cert_file, key_file, GNUTLS_X509_FMT_PEM);
-	if (ret < 0) {
-		g_warning("gnutls_certificate_set_x509_key_file() failed: %s",
-			gnutls_strerror(ret));
-		gnutls_certificate_free_credentials(server_cert_cred);
-		server_cert_cred = NULL;
-	} else {
-		gnutls_certificate_set_dh_params(server_cert_cred, get_dh_params());
+
+	if (file_exists(key_file) && file_exists(cert_file)) {
+		int ret;
+
+		gnutls_certificate_allocate_credentials(&server_cert_cred);
+		ret = gnutls_certificate_set_x509_key_file(server_cert_cred,
+				cert_file, key_file, GNUTLS_X509_FMT_PEM);
+		if (ret < 0) {
+			g_warning("gnutls_certificate_set_x509_key_file() failed: %s",
+					gnutls_strerror(ret));
+			gnutls_certificate_free_credentials(server_cert_cred);
+			server_cert_cred = NULL;
+		} else {
+			gnutls_certificate_set_dh_params(server_cert_cred, get_dh_params());
+		}
 	}
 	G_FREE_NULL(key_file);
 	G_FREE_NULL(cert_file);
