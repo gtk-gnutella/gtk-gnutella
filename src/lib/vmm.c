@@ -310,13 +310,14 @@ alloc_pages(size_t size)
 			 * If alloc_pages_intern() fails we are approaching our memory
 			 * limit, so we retry with less pre-allocated pages.
 			 */
-			for (m = max_cached; m > 0; m--) {
+			m = max_cached;
+			do {
 				base = alloc_pages_intern(m * size);
 				if (base) {
 					max_cached = m;
 					break;
 				}
-			}
+			} while (m-- > 1);
 
 			/*
 			 * If alloc_pages_intern() failed completely, we retry with a
