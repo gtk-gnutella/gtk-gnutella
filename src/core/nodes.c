@@ -844,7 +844,8 @@ node_slow_timer(time_t now)
 	) {
 		leaf_to_up_switch *= 2;
 		leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
-		g_warning("rogue node being demoted from Ultrapeer status for %d secs",
+		g_warning(
+			"demoted from Ultrapeer status for %d secs due to missing leaves",
 			leaf_to_up_switch);
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
 		gnet_prop_set_timestamp_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
