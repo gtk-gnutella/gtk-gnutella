@@ -2096,6 +2096,14 @@ spinbutton_output_bw_changed(property_t prop)
 }
 
 static gboolean
+network_protocol_changed(property_t prop)
+{
+    update_multichoice(prop);
+    update_address_information();
+    return FALSE;
+}
+
+static gboolean
 force_local_addr_changed(property_t prop)
 {
     update_togglebutton(prop);
@@ -4683,7 +4691,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         gui_dlg_prefs,
         PROP_NETWORK_PROTOCOL,
-        update_multichoice,
+        network_protocol_changed,
         TRUE,
         "option_menu_config_network_protocol",
         FREQ_UPDATES, 0
