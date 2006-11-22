@@ -450,7 +450,7 @@ G_STMT_START {			\
  * void my_memcpy(void *dst, const void *src, size_t n) NON_NULL_PARAM((1, 2));
  */
 #if HAVE_GCC(3, 3)
-#define NON_NULL_PARAM(x) __attribute__((nonnull x))
+#define NON_NULL_PARAM(x) __attribute__((__nonnull__ x))
 #else /* GCC < 3.3 */
 #define NON_NULL_PARAM(x)
 #endif
@@ -460,7 +460,7 @@ G_STMT_START {			\
  * of GCC do not allow function attributes for function pointers.
  */
 #if HAVE_GCC(3, 0)
-#define PRINTF_FUNC_PTR(x, y) __attribute__((format(printf, (x), (y))))
+#define PRINTF_FUNC_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
 #else /* GCC < 3.0 */
 #define PRINTF_FUNC_PTR(x, y)
 #endif
@@ -468,7 +468,7 @@ G_STMT_START {			\
 /* Functions using this attribute cause a warning if the returned
  * value is not used. */
 #if HAVE_GCC(3, 4)
-#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
 #else /* GCC < 3.4 */
 #define WARN_UNUSED_RESULT
 #endif
@@ -476,7 +476,7 @@ G_STMT_START {			\
 /* Instructs the compiler to emit code for this function even if it is
  * or seems to be unused. */
 #if HAVE_GCC(3, 1)
-#define KEEP_FUNCTION __attribute__((used))
+#define KEEP_FUNCTION __attribute__((__used__))
 #else /* GCC < 3.1 || !GCC */
 #define KEEP_FUNCTION
 #endif
