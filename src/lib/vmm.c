@@ -59,19 +59,27 @@ RCSID("$Id$")
  */
 #define VMM_INVALIDATE_FREE_PAGES 1
 
+/*
+ * Cached pages older than `page_cache_prune_timeout' seconds are released
+ * to prevent that they are unnecessarily paged out to swap.
+ */
+static const time_delta_t page_cache_prune_timeout = 20; /* unit: seconds */
+
 static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
 
-static struct {
-	struct {
-		void *addr;
-		time_t stamp;
-	} stack[512];
-	size_t current;
-} page_cache[16];
+struct page_stack {
+	void *addr;		/**< base address */
+	time_t stamp;	/**< time at which the page was inserted */
+};
 
-static const time_delta_t page_cache_prune_timeout = 20; /* unit: seconds */
+struct page_cache {
+	size_t current;	/**< amount of currently used slots */
+	struct page_stack stack[512];
+};
+
+static struct page_cache page_cache[16];
 
 static void
 init_kernel_pagesize(void)
