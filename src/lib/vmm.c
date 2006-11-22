@@ -61,14 +61,14 @@ RCSID("$Id$")
 
 static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
-static gint kernel_pageshift = 0;
+static unsigned kernel_pageshift = 0;
 
 static struct {
 	struct {
-		gpointer addr;
+		void *addr;
 		time_t stamp;
 	} stack[512];
-	guint current;
+	size_t current;
 } page_cache[16];
 
 static const time_delta_t page_cache_prune_timeout = 20; /* unit: seconds */
@@ -112,15 +112,15 @@ round_pagesize(size_t n)
 	return round_pagesize_fast(n);
 }
 
-static glong
+static long
 compat_pagesize_intern(void)
 #if defined (_SC_PAGE_SIZE)
 {
-	glong ret;
+	long ret;
 
 	errno = 0;
 	ret = sysconf(_SC_PAGE_SIZE);
-	if ((glong) -1 == ret && 0 != errno) {
+	if (-1L == ret && 0 != errno) {
 		g_warning("sysconf(_SC_PAGE_SIZE) failed: %s", g_strerror(errno));
 		return 0;
 	}
@@ -139,7 +139,7 @@ compat_pagesize(void)
 	static size_t psize;
 
 	if (!initialized) {
-		glong n;
+		long n;
 		
 		initialized = TRUE;
 		n = compat_pagesize_intern();
@@ -147,13 +147,20 @@ compat_pagesize(void)
 		g_assert(n < INT_MAX);
 		g_assert(is_pow2(n));
 		psize = n;
-		g_assert((gulong) psize == (gulong) n);
+		g_assert((size_t) psize == (size_t) n);
 	}
 
 	return psize;
 }
 
-static gpointer
+/**
+ * Allocates a page-aligned chunk of memory.
+ *
+ * @param size The amount of bytes to allocate.
+ * @return On success a pointer to the allocated chunk is returned. On
+ *		   failure NULL is returned.
+ */
+static void *
 alloc_pages_intern(size_t size)
 {
 	void *p;
@@ -162,7 +169,7 @@ alloc_pages_intern(size_t size)
 
 #if defined(HAS_MMAP)
 	{
-		static gint fd = -1, flags = MAP_PRIVATE;
+		static int fd = -1, flags = MAP_PRIVATE;
 		
 #if defined(MAP_ANON)
 		flags |= MAP_ANON;
@@ -171,29 +178,25 @@ alloc_pages_intern(size_t size)
 #else
 		if (-1 == fd)
 			fd = open("/dev/zero", O_RDWR, 0);
-		if (-1 == fd)
-			g_error("alloc_pages(): open() failed for /dev/zero");
+		g_return_val_if_fail(fd >= 0, NULL);
 #endif	/* MAP_ANON */
 		
 		p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
-		if (MAP_FAILED == p)
-			g_error("mmap(0, %lu, PROT_READ | PROT_WRITE, 0x%x, %d, 0) failed:"
-				 " %s", (gulong) size, flags, fd, g_strerror(errno));
+		g_return_val_if_fail(MAP_FAILED != p, NULL);
 	}
 #elif defined(HAS_POSIX_MEMALIGN)
 	if (posix_memalign(&p, kernel_pagesize, size)) {
-		g_error("posix_memalign() failed: %s", g_strerror(errno));
+		p = NULL;
 	}
 #elif defined(HAS_MEMALIGN)
 	p = memalign(kernel_pagesize, size);
-	if (!p) {
-		g_error("memalign() failed: %s", g_strerror(errno));
-	}
 #else
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 	p = NULL;
-	g_error("Neither mmap(), posix_memalign() nor memalign() available");
+	g_assert_not_reached();
 #endif	/* HAS_MMAP || HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+
+	g_return_val_if_fail(NULL != p, NULL);
 	
 	if (round_pagesize_fast((size_t) p) != (size_t) p)
 		g_error("Aligned memory required");
@@ -270,7 +273,7 @@ vmm_invalidate_pages(void *p, size_t size)
  *
  * @param size The size in bytes to allocate; will be rounded to the pagesize.
  */
-gpointer
+void *
 alloc_pages(size_t size)
 {
 	size_t n;
@@ -286,10 +289,38 @@ alloc_pages(size_t size)
 			vmm_validate_pages(p, size);
 			return p;
 		} else {
-#ifdef VMM_GREEDY_PAGE_CACHE
-			guint max_cached = G_N_ELEMENTS(page_cache[0].stack) / (n + 1);
-			char *p, *base = alloc_pages_intern(max_cached * size);
+			unsigned m, max_cached;
+			char *p, *base;
 
+#ifdef VMM_GREEDY_PAGE_CACHE
+		   	max_cached = G_N_ELEMENTS(page_cache[0].stack) / (n + 1);
+#else
+			max_cached = 1;
+#endif	/* VMM_GREEDY_PAGE_CACHE */
+
+			/*
+			 * If alloc_pages_intern() fails we are approaching our memory
+			 * limit, so we retry with less pre-allocated pages.
+			 */
+			for (m = max_cached; m > 0; m--) {
+				base = alloc_pages_intern(m * size);
+				if (base) {
+					max_cached = m;
+					break;
+				}
+			}
+
+			/*
+			 * If alloc_pages_intern() failed completely, we retry with a
+			 * a larger size to grab cached pages from the next level.
+			 */
+
+			if (!base && n < G_N_ELEMENTS(page_cache) - 1) {
+				max_cached *= 2;	/* We will halve the pages */
+				base = alloc_pages(size * 2);
+			}
+			g_assert(NULL != base);	/* Out of memory */
+	
 			/*
 			 * Split the big chunk into segments by freeing the pages from
 			 * the end, filling the whole cache for this size.
@@ -301,19 +332,21 @@ alloc_pages(size_t size)
 				p -= size;
 			}
 			return p;
-#endif	/* VMM_GREEDY_PAGE_CACHE */
 		}
+	} else {
+		void *p = alloc_pages_intern(size);
+		g_assert(NULL != p);	/* Out of memory */
+		return p;
 	}
-	return alloc_pages_intern(size);
 }
 
 static void
-free_pages_intern(gpointer p, size_t size)
+free_pages_intern(void *p, size_t size)
 {
 #if defined(HAS_MMAP)
 	if (-1 == munmap(p, size))
 		g_warning("munmap(0x%lx, %ld) failed: %s",
-				(gulong) p, (gulong) size, g_strerror(errno));
+			(unsigned long) p, (unsigned long) size, g_strerror(errno));
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
 	(void) size;
 	free(p);
@@ -328,13 +361,12 @@ free_pages_intern(gpointer p, size_t size)
  * Free memory allocated via alloc_pages().
  */
 void
-free_pages(gpointer p, size_t size)
+free_pages(void *p, size_t size)
 {
 	g_assert(0 == size || p);
 
 	if (p) {
-		size_t n;
-		guint max_cached;
+		size_t n, max_cached;
 
 		g_assert(round_pagesize_fast((size_t) p) == (size_t) p);
 
@@ -378,11 +410,10 @@ size_t
 prune_page_cache(void)
 {
 	time_t now = tm_time();
-	size_t size = 0, total = 0;
-	guint n;
+	size_t size = 0, total = 0, n;
 
 	for (n = 0; n < G_N_ELEMENTS(page_cache); n++) {
-		guint i, cur, pruned;
+		size_t i, cur, pruned;
 
 		pruned = 0;
 		cur = page_cache[n].current;
