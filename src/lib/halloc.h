@@ -48,11 +48,11 @@
 
 #ifdef REMAP_ZALLOC
 
-#define halloc_init()
-#define hdestroy()
-#define halloc(s)			g_malloc(s)
-#define halloc0(s)			g_malloc0(s)
-#define hfree(p)			g_free(p)
+static inline void halloc_init(void)	{ /* NOTHING */ }
+static inline void hdestroy(void)		{ /* NOTHING */ }
+static inline void *halloc(size_t n)	{ return g_malloc(n); }
+static inline void *halloc0(size_t n)	{ return g_malloc0(n); }
+static inline void hfree(void *p)		{ return g_free(p); }
 
 static inline void *
 hrealloc(void *p, size_t o, size_t n)
@@ -69,6 +69,9 @@ void hfree(void *ptr);
 void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void halloc_init(void);
 void hdestroy(void);
+
+size_t halloc_bytes_allocated(void);
+size_t halloc_chunks_allocated(void);
 #endif	/* REMAP_ZALLOC */
 
 

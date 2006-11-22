@@ -66,6 +66,9 @@ RCSID("$Id$")
 
 static hash_table_t *hallocations;
 
+static size_t bytes_allocated;	/* Amount of bytes allocated */
+static size_t chunks_allocated;	/* Amount of chunks allocated */
+
 static inline size_t
 halloc_get_size(void *p)
 {
@@ -88,7 +91,13 @@ halloc(size_t size)
 		gboolean inserted;
 		void *p;
 
-		p = size < compat_pagesize() ? walloc(size) : alloc_pages(size);
+		if (size < compat_pagesize()) {
+			p = walloc(size);
+		} else {
+			p = alloc_pages(size);
+		}
+		bytes_allocated += size;
+		chunks_allocated++;
 		inserted = hash_table_insert(hallocations, p, (void *) size);
 		RUNTIME_ASSERT(inserted);
 		return p;
@@ -128,6 +137,8 @@ hfree(void *p)
 	} else {
 		free_pages(p, size);
 	}
+	bytes_allocated -= size;
+	chunks_allocated--;
 }
 
 /**
@@ -189,6 +200,18 @@ halloc_init(void)
 		g_mem_set_vtable(&vtable);
 	}
 #endif	/* !USE_MALLOC */
+}
+
+size_t
+halloc_bytes_allocated(void)
+{
+	return bytes_allocated;
+}
+
+size_t
+halloc_chunks_allocated(void)
+{
+	return chunks_allocated;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
