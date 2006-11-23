@@ -876,6 +876,56 @@ static struct {
 #undef OPTION
 };
 
+static inline gchar
+underscore_to_hyphen(gchar c)
+{
+	return '_' == c ? '-' : c;
+}
+
+/**
+ * Checks whether two strings qualify as equivalent, the ASCII underscore
+ * character and the ASCII hyphen character are considered equivalent.
+ *
+ * @return whether the two strings qualify as equivalent or not.
+ */
+static gboolean
+option_match(const gchar *a, const gchar *b)
+{
+	g_assert(a);
+	g_assert(b);
+
+	do {
+		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b)) {
+			return FALSE;
+		}
+		b++;
+	} while ('\0' != *a++);
+
+	return TRUE;
+}
+
+/**
+ * Copies the given option name to a static buffer replacing underscores
+ * with hyphens.
+ *
+ * @return a pointer to a static buffer holding the pretty version of the
+ *         option name. 
+ */
+static const gchar *
+option_pretty_name(const gchar *name)
+{
+	static gchar buf[128];
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(buf) - 1; i++) {
+		if ('\0' == name[i])
+			break;
+		buf[i] = underscore_to_hyphen(name[i]);
+	}
+	buf[i] = '\0';
+	return buf;
+}
+
 static gint
 reopen_log_files(void)
 {
@@ -913,13 +963,14 @@ usage(int exit_code)
 	
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
 	for (i = 0; i < G_N_ELEMENTS(options); i++) {
-		const gchar *arg;
+		const gchar *arg, *name;
 		size_t pad;
 
 		g_assert(options[i].id == i);
 
+		name = option_pretty_name(options[i].name);
 		arg = options[i].has_arg ? " <argument>" : "";
-		pad = strlen(options[i].name) + strlen(arg);
+		pad = strlen(name) + strlen(arg);
 		if (pad < 32) {
 			pad = 32 - pad;
 		} else {
@@ -927,10 +978,7 @@ usage(int exit_code)
 		}
 
 		fprintf(f, "  --%s%s%-*s%s\n",
-			options[i].name,
-			arg,
-			(gint) pad, "",
-			options[i].summary);
+			name, arg, (gint) pad, "", options[i].summary);
 	}
 	
 	exit(exit_code);
@@ -964,18 +1012,17 @@ handle_arguments(int argc, char **argv)
 		}
 
 		for (i = 0; i < G_N_ELEMENTS(options); i++) {
-			if (0 != strcmp(options[i].name, s)) {
-				continue;
-			}
-			options[i].used = TRUE;
-			if (options[i].has_arg) {
-				if (argc < 1 || NULL == argv[0] || '-' == argv[0][0]) {
-					fprintf(stderr, "Missing argument for %s\n", s);
-					usage(EXIT_FAILURE);
+			if (option_match(options[i].name, s)) {
+				options[i].used = TRUE;
+				if (options[i].has_arg) {
+					if (argc < 1 || NULL == argv[0] || '-' == argv[0][0]) {
+						fprintf(stderr, "Missing argument for %s\n", s);
+						usage(EXIT_FAILURE);
+					}
+					options[i].arg = g_strdup(argv[0]);
+					argv++;
+					argc--;
 				}
-				options[i].arg = g_strdup(argv[0]);
-				argv++;
-				argc--;
 			}
 		}
 	}
