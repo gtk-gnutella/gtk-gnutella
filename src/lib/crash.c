@@ -66,9 +66,7 @@ static const int signals[] = {
 static void
 crash_handler(int signo)
 {
-	char const *argv[16];
 	char pid_buf[32], *pid_ptr;
-	int fds[2];
 	pid_t pid;
 	unsigned i;
 
@@ -86,37 +84,36 @@ crash_handler(int signo)
 		pid /= 10;
 	} while (pid && pid_ptr != pid_buf);
 
-	if (0 == pipe(fds)) {
-		static const char command[] = "backtrace full\nkill\nquit\n";
+	/* Make sure we don't exceed the system-wide file descriptor limit */
+	close_file_descriptors(3);
+
+	pid = fork();
+	if (0 == pid) {
+		char const *argv[8];
 
 		argv[0] = exec_pathname;
-		argv[1] = "-q";
-		argv[2] = "-n";
-		argv[3] = orig_argv0;
-		argv[4] = pid_ptr;
-		argv[5] = NULL;
+		argv[1] = orig_argv0;
+		argv[2] = pid_ptr;
+		argv[3] = NULL;
 
-		close(STDIN_FILENO);
-		open("/dev/null", O_RDONLY, 0);
-		setsid();
-		close(STDIN_FILENO);
-		dup(fds[0]);
-		close(fds[0]);
-		set_close_on_exec(fds[1]);
-
-		write(fds[1], command, sizeof command - 1);
-
-		pid = fork();
-		if (0 == pid) {
-			execve(argv[0], (const void *) argv, NULL);
-		} else if ((pid_t) -1 != pid) {
-			int status;
-			close(fds[1]);
-			waitpid(pid, &status, 0);
+		/* Assign stdin, stdout and stdout to /dev/null */
+		if (
+			close(STDIN_FILENO) ||
+			close(STDOUT_FILENO) ||
+			close(STDERR_FILENO) ||
+			STDIN_FILENO  != open("/dev/null", O_RDONLY, 0) ||
+			STDOUT_FILENO != open("/dev/null", O_WRONLY, 0) ||
+			STDERR_FILENO != dup(STDOUT_FILENO) ||
+			-1 == setsid() || 
+			execve(argv[0], (const void *) argv, NULL)
+		) {
+			_exit(EXIT_FAILURE);
 		}
-		_exit(EXIT_FAILURE);
+	} else if ((pid_t) -1 != pid) {
+		int status;
+		waitpid(pid, &status, 0);
 	}
-	abort();
+	_exit(EXIT_FAILURE);
 }
 
 /**
