@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:GCC_pipe: cat cc ccflags ldflags rm gccversion
+?MAKE:GCC_pipe: cat cc ccflags ldflags rm gccversion optimize
 ?MAKE:	-pick add $@ %<
 ?F:!try.c !try
 ?T:flag
@@ -13,6 +13,9 @@ echo " "
 echo "Checking whether $flag should be used..." >&4
 if [ "x$gccversion" != x ]
 then
+	case "$ccflags $optimize" in
+	*-save-temps*);;
+	*)
 	$cat >try.c <<'EOC'
 int main(void)
 {
@@ -36,5 +39,7 @@ EOC
 		fi
 	fi
 	$rm -f try try.c
+	;;
+	esac
 fi
 

@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Nov 22 11:56:33 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Thu Nov 23 14:48:39 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8136,6 +8136,9 @@ echo " "
 echo "Checking whether $flag should be used..." >&4
 if [ "x$gccversion" != x ]
 then
+	case "$ccflags $optimize" in
+	*-save-temps*);;
+	*)
 	$cat >try.c <<'EOC'
 int main(void)
 {
@@ -8159,6 +8162,8 @@ EOC
 		fi
 	fi
 	$rm -f try try.c
+	;;
+	esac
 fi
 
 : end of configuration questions
