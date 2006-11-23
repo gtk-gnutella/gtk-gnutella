@@ -551,6 +551,7 @@ size_t html_escape(const gchar *src, gchar *dst, size_t dst_size);
 guint32 html_decode_entity(const gchar *src, const gchar **endptr);
 gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
+void close_file_descriptors(const int first_fd);
 gint compat_mkdir(const gchar *path, mode_t mode);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);

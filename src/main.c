@@ -833,35 +833,6 @@ log_init(void)
 	}
 }
 
-/**
- * Closes all file descriptors greater or equal to ``fd''.
- */
-static void
-close_fds(gint fd)
-{
-	g_assert(fd >= 0);
-
-#ifdef F_CLOSEM
-	if (-1 == fcntl(fd, F_CLOSEM))
-#endif
-	{
-		gdouble start;
-		gint num_fds = compat_max_fd();
-
-		start = tm_cputime(NULL, NULL);
-		for (/* NOTHING */; fd < num_fds; fd++) {
-			close(fd);
-
-			/* Just in case we're trying to close a bazillion fds on a vax */
-			if (0 == (fd & 0xff) && tm_cputime(NULL, NULL) - start > 5) {
-				g_warning("Aborted closing file descriptors after "
-					"exceeding 5s CPU time (fd=%d)", fd);
-				break;
-			}
-		}
-	}
-}
-
 extern char **environ;
 
 enum main_arg {
@@ -1065,7 +1036,7 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	close_fds(3); /* Just in case */
+	close_file_descriptors(3); /* Just in case */
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 	set_signal(SIGHUP, sig_hup);
