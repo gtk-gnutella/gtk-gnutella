@@ -41,9 +41,9 @@ is started as a daemon all output which is normally send to the
 standard output and standard error output (usually your terminal or a
 common log file such as ~/.xsession-errors), is sent to
 /dev/null. The options 
-.B "\-\-log_stderr"
+.B "\-\-log\-stderr"
 and
-.B "\-\-log_stdout"
+.B "\-\-log\-stdout"
 can be used to redirect log output in this case.
 .TP 
 .B "\-\-geometry"
@@ -62,13 +62,13 @@ supported by most X11 applications.
 .B "\-\-help"
 Show a summary of all supported options.
 .TP
-.B "\-\-log_stderr", "\-\-log_stdout"
+.B "\-\-log\-stderr", "\-\-log\-stdout"
 These options allow you to log everything which is written to stderr
 respectively stdout to some files. A typical use would look like this:
 
    gtk-gnutella --daemonize  \\
-        --log_stderr ~/logs/gtkg.stderr \\
-        --log_stdout ~/logs/gtkg.stdout
+        --log-stderr ~/logs/gtkg.stderr \\
+        --log-stdout ~/logs/gtkg.stdout
 
 Redirecting these log messages also works without 
 .B "\-\-daemonize."
