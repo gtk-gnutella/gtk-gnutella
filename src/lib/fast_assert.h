@@ -60,11 +60,14 @@ assertion_failure(const assertion_data * const data);
 void NON_NULL_PARAM((1)) REGPARM(1)
 assertion_warning(const assertion_data * const data);
 
-#define fast_assert(expr) \
+#define RUNTIME_ASSERT(expr) fast_assert(expr, #expr)
+#define RUNTIME_UNREACHABLE() fast_assert_not_reached()
+
+#define fast_assert(expr, expr_string) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			STRINGIFY(__LINE__), __FILE__, STRINGIFY(expr) \
+			STRINGIFY(__LINE__), __FILE__, expr_string \
 		}; \
 		assertion_failure(&assertion_data_); \
 	} \
@@ -78,44 +81,41 @@ G_STMT_START { \
 	assertion_failure(&assertion_data_); \
 } G_STMT_END
 
-#define return_unless(expr) \
+#define return_unless(expr, expr_string) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			STRINGIFY(__LINE__), __FILE__, STRINGIFY(expr) \
+			STRINGIFY(__LINE__), __FILE__, expr_string \
 		}; \
 		assertion_warning(&assertion_data_); \
 		return; \
 	} \
 } G_STMT_END
 
-#define return_val_unless(expr, val) \
+#define return_val_unless(expr, expr_string, val) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			STRINGIFY(__LINE__), __FILE__, STRINGIFY(expr) \
+			STRINGIFY(__LINE__), __FILE__, expr_string \
 		}; \
 		assertion_warning(&assertion_data_); \
 		return (val); \
 	} \
 } G_STMT_END
 
-#define RUNTIME_ASSERT(expr) fast_assert(expr)
-#define RUNTIME_UNREACHABLE(expr) fast_assert_not_reached(expr)
-
 #ifdef FAST_ASSERTIONS
 
 #undef g_assert
-#define g_assert(expr) fast_assert(expr)
+#define g_assert(expr) fast_assert((expr), #expr)
 
 #undef g_assert_not_reached
 #define g_assert_not_reached() fast_assert_not_reached()
 
 #undef g_return_if_fail
-#define g_return_if_fail(expr) return_unless(expr)
+#define g_return_if_fail(expr) return_unless((expr), #expr)
 
 #undef g_return_val_if_fail
-#define g_return_val_if_fail(expr, val) return_val_unless((expr), (val))
+#define g_return_val_if_fail(expr, val) return_val_unless((expr), #expr, (val))
 
 #endif /* FAST_ASSERTIONS */
 
