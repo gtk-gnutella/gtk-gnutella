@@ -59,7 +59,7 @@ const struct {
 G_STMT_START {														\
 	if (!(x)) {														\
 		g_error("assertion failed for property \"%s\": %s",			\
-			PROP(ps, prop).name, STRINGIFY(x));						\
+			PROP(ps, prop).name, #x);								\
 	}																\
 } G_STMT_END
 

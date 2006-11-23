@@ -3630,7 +3630,7 @@ static const struct parq_tag {
 } parq_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define PARQ_TAG(x) { CAT2(PARQ_TAG_,x), STRINGIFY(x) }
+#define PARQ_TAG(x) { CAT2(PARQ_TAG_,x), #x }
 	PARQ_TAG(ENTERED),
 	PARQ_TAG(EXPIRE),
 	PARQ_TAG(ID),

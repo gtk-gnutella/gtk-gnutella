@@ -309,7 +309,7 @@ static const struct tls_cache_tag {
 } tls_cache_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define TLS_CACHE_TAG(x) { CAT2(TLS_CACHE_TAG_,x), STRINGIFY(x) }
+#define TLS_CACHE_TAG(x) { CAT2(TLS_CACHE_TAG_,x), #x }
 	TLS_CACHE_TAG(END),
 	TLS_CACHE_TAG(HOST),
 	TLS_CACHE_TAG(SEEN),

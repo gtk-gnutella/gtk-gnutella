@@ -150,8 +150,8 @@ static const struct rwtable urntable[] =
 /** GGEP extension table (sorted) */
 static const struct rwtable ggeptable[] =
 {
-#define GGEP_ID(x) { STRINGIFY(x), CAT2(EXT_T_GGEP_,x) }
-#define GGEP_GTKG_ID(x) { "GTKG." STRINGIFY(x), CAT2(EXT_T_GGEP_GTKG_,x) }
+#define GGEP_ID(x) { #x, CAT2(EXT_T_GGEP_,x) }
+#define GGEP_GTKG_ID(x) { "GTKG." #x, CAT2(EXT_T_GGEP_GTKG_,x) }
 
 	{ "<", EXT_T_GGEP_LIME_XML }, /**< '<' is less that 'A' */
 	GGEP_ID(ALT),		/**< Alt-locs in qhits */

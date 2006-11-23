@@ -4376,10 +4376,10 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 
 #ifdef TEST
 
-#define CHECK(x)									\
-G_STMT_START {										\
-	if (!(x)) printf("FAILED: %s\n", STRINGIFY(x));	\
-	else printf("OK: %s\n", STRINGIFY(x));			\
+#define CHECK(x)							\
+G_STMT_START {								\
+	if (!(x)) printf("FAILED: %s\n", #x);	\
+	else printf("OK: %s\n", #x);			\
 } G_STMT_END
 #else /* !TEST */
 

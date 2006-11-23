@@ -5802,7 +5802,7 @@ regression_utf8_vs_glib2(void)
 
 #define REGRESSION(func) \
 G_STMT_START { \
-	printf("REGRESSION: regression_%s", STRINGIFY(func)); \
+	printf("REGRESSION: regression_%s", #func); \
 	fflush(stdout); \
 	CAT2(regression_,func)(); \
 	printf(" PASSED\n"); \

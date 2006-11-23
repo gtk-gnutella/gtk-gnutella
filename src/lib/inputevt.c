@@ -117,7 +117,7 @@ const gchar *
 inputevt_cond_to_string(inputevt_cond_t cond)
 {
 	switch (cond) {
-#define CASE(x) case x: return STRINGIFY(x)
+#define CASE(x) case x: return #x
 	CASE(INPUT_EVENT_EXCEPTION);
 	CASE(INPUT_EVENT_R);
 	CASE(INPUT_EVENT_W);

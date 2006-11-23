@@ -106,7 +106,7 @@ static const struct spam_tag {
 } spam_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-#define SPAM_TAG(x) { CAT2(SPAM_TAG_,x), STRINGIFY(x) }
+#define SPAM_TAG(x) { CAT2(SPAM_TAG_,x), #x }
 	SPAM_TAG(ADDED),
 	SPAM_TAG(END),
 	SPAM_TAG(SHA1),

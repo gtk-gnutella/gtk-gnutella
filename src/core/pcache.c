@@ -776,7 +776,7 @@ pcache_init(void)
 #define GET_LANG(x)										\
 G_STMT_START {											\
 	if (lang == NULL) {									\
-		lang = getenv(STRINGIFY(x));					\
+		lang = getenv(#x);								\
 		if (lang != NULL) {								\
 			if (strlen(lang) >= 3 && lang[2] != '_')	\
 				lang = NULL;							\

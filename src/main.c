@@ -364,7 +364,7 @@ gtk_gnutella_exit(gint n)
 
 	exiting = TRUE;
 
-#define DO(fn) 	do { exit_step = STRINGIFY(fn); fn(); } while (0)
+#define DO(fn) 	do { exit_step = #fn; fn(); } while (0)
 
 	DO(shell_close);
 	DO(file_info_close_pre);
@@ -779,7 +779,7 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 	ct = localtime(&now);
 
 	switch (level) {
-#define CASE(x) case CAT2(G_LOG_LEVEL_,x): prefix = STRINGIFY(x); break;
+#define CASE(x) case CAT2(G_LOG_LEVEL_,x): prefix = #x; break;
 
 	CASE(CRITICAL)
 	CASE(ERROR)
@@ -858,7 +858,7 @@ static struct {
 	gboolean used;
 } options[] = {
 #define OPTION(name, summary, has_arg) \
-	{ main_arg_ ## name , STRINGIFY(name), summary, has_arg, NULL, FALSE }
+	{ main_arg_ ## name , #name, summary, has_arg, NULL, FALSE }
 
 #define OPTION_FLAG(name, summary)	OPTION(name, summary, FALSE)
 #define OPTION_WARG(name, summary)	OPTION(name, summary, TRUE)
