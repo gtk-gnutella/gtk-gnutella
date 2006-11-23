@@ -62,9 +62,9 @@ G_STMT_START { \
 } G_STMT_END
 
 	if (data->expr) {
-		print_str("\nAssertion failure (");
+		print_str("Assertion failure (");
 	} else {
-		print_str("\nCode should not have been reached (");
+		print_str("Code should not have been reached (");
 	}
 	print_str(data->file);
 	print_str(":");
