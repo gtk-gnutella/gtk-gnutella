@@ -3757,19 +3757,19 @@ close_file_descriptors(const int first_fd)
 	g_return_if_fail(first_fd >= 0);
 	fd = first_fd;
 
-#ifdef F_CLOSEM
+#if defined(F_CLOSEM)
 	if (-1 == fcntl(fd, F_CLOSEM))
 #endif
 	{
 		fd = compat_max_fd() - 1;
 		while (fd >= first_fd) {
 			if (close(fd)) {
-#ifdef F_MAXFD
+#if defined(F_MAXFD)
 				fd = fcntl(0, F_MAXFD);
-#endif
-			} else {
-				fd--;
+				continue;
+#endif	/* F_MAXFD */
 			}
+			fd--;
 		}
 	}
 }
