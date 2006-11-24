@@ -279,18 +279,21 @@ mq_udp_service(gpointer data)
 void
 mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 {
-	size_t size = pmsg_size(mb);
-	gchar *mbs = pmsg_start(mb);
-	guint8 function = gmsg_function(mbs);
-	guint8 hops = gmsg_hops(mbs);
+	static guint entered;
+	size_t size;
+	gchar *mbs;
+	guint8 function;
+	guint8 hops;
 	pmsg_t *mbe;
 
 	g_assert(q);
+	g_assert(mb);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
 	g_assert(q->ops == &mq_udp_ops);	/* Is an UDP queue */
 	mq_check(q, 0);
 
+	size = pmsg_size(mb);
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
 		goto cleanup;
@@ -300,6 +303,15 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 		g_warning("mq_putq: called whilst queue shutdown");
 		goto cleanup;
 	}
+
+	if (entered++ > 0) {
+		g_warning("mq_putq: recursion detected");
+		goto cleanup;
+	}
+
+	mbs = pmsg_start(mb);
+	function = gmsg_function(mbs);
+	hops = gmsg_hops(mbs);
 
 	gnet_stats_count_queued(q->node, function, hops, size);
 
@@ -368,12 +380,16 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	mbe = mq_udp_attach_metadata(mb, to);
 
 	q->cops->puthere(q, mbe, size);
-	mq_check(q, 0);
-	return;
+	mb = NULL;
 
 cleanup:
-	pmsg_free(mb);
+
+	if (mb) {
+		pmsg_free(mb);
+		mb = NULL;
+	}
 	mq_check(q, 0);
+	entered--;
 	return;
 }
 
