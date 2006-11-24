@@ -43,9 +43,9 @@ RCSID("$Id$")
 #include "gmsg.h"
 #include "gnet_stats.h"
 
-#include "lib/walloc.h"
-#include "lib/glib-missing.h"	/* For gm_snprintf() */
 #include "lib/cq.h"
+#include "lib/glib-missing.h"	/* For gm_snprintf() */
+#include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -56,6 +56,65 @@ static void mq_update_flowc(mqueue_t *q);
 static gboolean make_room_header(
 	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset);
 static void mq_swift_timer(cqueue_t *cq, gpointer obj);
+
+gboolean
+mq_is_flow_controlled(const struct mqueue *q)
+{
+	return 0 != (q->flags & MQ_FLOWC);
+}
+
+gboolean
+mq_is_swift_controlled(const struct mqueue *q)
+{
+	return 0 != (q->flags & MQ_SWIFT);
+}
+
+gint
+mq_maxsize(const struct mqueue *q)
+{
+	return q->maxsize;
+}
+
+gint mq_size(const struct mqueue *q)
+{
+	return q->size;
+}
+
+gint
+mq_lowat(const struct mqueue *q)
+{
+	return q->lowat;
+}
+
+gint
+mq_hiwat(const struct mqueue *q)
+{
+	return q->hiwat;
+}
+
+gint
+mq_count(const struct mqueue *q)
+{
+	return q->count;
+}
+
+gint
+mq_pending(const struct mqueue *q)
+{
+	return q->size + tx_pending(q->tx_drv);
+}
+
+struct bio_source *
+mq_bio(const struct mqueue *q)
+{
+	return tx_bio_source(q->tx_drv);
+}
+
+struct gnutella_node *
+mq_node(const struct mqueue *q)
+{
+	return q->node;
+}
 
 /**
  * Compute readable queue information.
@@ -97,7 +156,8 @@ static GHashTable *qown = NULL;
 /**
  * Add linkable into queue
  */
-static void mq_add_linkable(mqueue_t *q, GList *l)
+static void
+mq_add_linkable(mqueue_t *q, GList *l)
 {
 	mqueue_t *owner;
 
@@ -124,7 +184,8 @@ static void mq_add_linkable(mqueue_t *q, GList *l)
 /**
  * Remove linkable from queue
  */
-static void mq_remove_linkable(mqueue_t *q, GList *l)
+static void
+mq_remove_linkable(mqueue_t *q, GList *l)
 {
 	mqueue_t *owner;
 
@@ -240,10 +301,13 @@ mq_free(mqueue_t *q)
 	if (q->qlink)
 		qlink_free(q);
 
-	if (q->swift_ev)
+	if (q->swift_ev) {
 		cq_cancel(callout_queue, q->swift_ev);
+		q->swift_ev = NULL;
+	}
 
 	g_list_free(q->qhead);
+	q->qhead = NULL;
 	q->magic = 0;
 	wfree(q, sizeof(*q));
 }

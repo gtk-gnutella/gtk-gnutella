@@ -88,9 +88,7 @@ struct mqueue {
 	const struct mq_ops *ops;		/**< Polymorphic operations */
 	const struct mq_cops *cops;		/**< Common operations */
 	txdrv_t *tx_drv;				/**< Network TX stack driver */
-	GList *qhead;			/**< The queue head, new messages are prepended */
-	GList *qtail;			/**< The queue tail, oldest message to send first */
-	GList **qlink;			/**< Sorted array of (GList *) entries, or NULL */
+	GList *qhead, *qtail, **qlink;
 	gpointer swift_ev;		/**< Callout queue event in "swift" mode */
 	gint swift_elapsed;		/**< Scheduled elapsed time, in ms */
 	gint qlink_count;		/**< Amount of entries in `qlink' */
@@ -109,21 +107,23 @@ struct mqueue {
  * Queue flags.
  */
 
-#define MQ_FLOWC		0x00000001	/**< In flow control */
-#define MQ_DISCARD		0x00000002	/**< No writing, discard message */
-#define MQ_SWIFT		0x00000004	/**< Swift mode, dropping more traffic */
-#define MQ_WARNZONE		0x00000008	/**< Between hiwat and lowat */
+enum {
+	MQ_FLOWC	= (1 << 0),	/**< In flow control */
+	MQ_DISCARD	= (1 << 1),	/**< No writing, discard message */
+	MQ_SWIFT	= (1 << 2),	/**< Swift mode, dropping more traffic */
+	MQ_WARNZONE	= (1 << 3)	/**< Between hiwat and lowat */
+};
 
-#define mq_is_flow_controlled(q)	((q)->flags & MQ_FLOWC)
-#define mq_is_swift_controlled(q)	((q)->flags & MQ_SWIFT)
-#define mq_maxsize(q)				((q)->maxsize)
-#define mq_size(q)					((q)->size)
-#define mq_lowat(q)					((q)->lowat)
-#define mq_hiwat(q)					((q)->hiwat)
-#define mq_count(q)					((q)->count)
-#define mq_pending(q)				((q)->size + tx_pending((q)->tx_drv))
-#define mq_bio(q)					(tx_bio_source((q)->tx_drv))
-#define mq_node(q)					((q)->node)
+gboolean mq_is_flow_controlled(const struct mqueue *q);
+gboolean mq_is_swift_controlled(const struct mqueue *q);
+gint mq_maxsize(const struct mqueue *q);
+gint mq_size(const struct mqueue *q);
+gint mq_lowat(const struct mqueue *q);
+gint mq_hiwat(const struct mqueue *q);
+gint mq_count(const struct mqueue *q);
+gint mq_pending(const struct mqueue *q);
+struct bio_source *mq_bio(const struct mqueue *q);
+struct gnutella_node *mq_node(const struct mqueue *q);
 
 /*
  * Public interface
