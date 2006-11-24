@@ -652,6 +652,8 @@ gboolean dump_received_gnutella_packets     = FALSE;
 gboolean dump_received_gnutella_packets_def = FALSE;
 gboolean search_results_expose_relative_paths     = FALSE;
 gboolean search_results_expose_relative_paths_def = FALSE;
+guint32  shell_debug     = 0;
+guint32  shell_debug_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6238,6 +6240,26 @@ gnet_prop_init(void) {
     gnet_property->props[292].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[292].data.boolean.def   = &search_results_expose_relative_paths_def;
     gnet_property->props[292].data.boolean.value = &search_results_expose_relative_paths;
+
+
+    /*
+     * PROP_SHELL_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[293].name = "shell_debug";
+    gnet_property->props[293].desc = _("Debug level for the shell.");
+    gnet_property->props[293].ev_changed = event_new("shell_debug_changed");
+    gnet_property->props[293].save = TRUE;
+    gnet_property->props[293].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[293].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[293].data.guint32.def   = &shell_debug_def;
+    gnet_property->props[293].data.guint32.value = &shell_debug;
+    gnet_property->props[293].data.guint32.choices = NULL;
+    gnet_property->props[293].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[293].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
