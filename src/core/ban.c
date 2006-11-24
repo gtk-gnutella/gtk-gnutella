@@ -537,7 +537,7 @@ ban_delay(const host_addr_t addr)
 /**
  * @return banning message for banned IP.
  */
-gchar *
+const gchar *
 ban_message(const host_addr_t addr)
 {
 	struct addr_info *ipf;

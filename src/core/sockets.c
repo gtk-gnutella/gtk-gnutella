@@ -1521,7 +1521,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		goto cleanup;
 	case BAN_MSG:				/* Send specific 403 error message */
 		{
-			gchar *msg = ban_message(s->addr);
+			const gchar *msg = ban_message(s->addr);
 
             if (socket_debug) {
                 g_message("rejecting connection from banned %s (%s still): %s",
