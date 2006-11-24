@@ -2074,7 +2074,7 @@ route_towards_guid(const gchar *guid)
  * Remove push-proxy entry indexed by GUID.
  */
 void
-route_proxy_remove(gchar *guid)
+route_proxy_remove(const gchar *guid)
 {
  	/*
 	 * The GUID atom is still referred to by the node,
@@ -2093,12 +2093,12 @@ route_proxy_remove(gchar *guid)
  * NB: assumes `guid' is already an atom linked somehow to `n'.
  */
 gboolean
-route_proxy_add(gchar *guid, struct gnutella_node *n)
+route_proxy_add(const gchar *guid, struct gnutella_node *n)
 {
 	if (NULL != g_hash_table_lookup(ht_proxyfied, guid))
 		return FALSE;
 
-	g_hash_table_insert(ht_proxyfied, guid, n);
+	gm_hash_table_insert_const(ht_proxyfied, guid, n);
 	return TRUE;
 }
 

@@ -1736,7 +1736,7 @@ set_server_hostname(struct dl_server *server, const gchar *hostname)
  * identified by its GUID, IP and port.
  */
 gboolean
-download_server_nopush(gchar *guid, const host_addr_t addr, guint16 port)
+download_server_nopush(const gchar *guid, const host_addr_t addr, guint16 port)
 {
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
 
@@ -1778,7 +1778,7 @@ downloads_with_name_inc(const gchar *name)
  * Remove one from the amount of downloads running and bearing the filename.
  */
 static void
-downloads_with_name_dec(gchar *name)
+downloads_with_name_dec(const gchar *name)
 {
 	guint val;
 
@@ -1787,12 +1787,13 @@ downloads_with_name_dec(gchar *name)
 	g_assert(val);		/* Cannot decrement something not present */
 
 	if (val > 1)
-		g_hash_table_insert(dl_count_by_name, name, GUINT_TO_POINTER(val - 1));
+		gm_hash_table_insert_const(dl_count_by_name,
+			name, GUINT_TO_POINTER(val - 1));
 	else
 		g_hash_table_remove(dl_count_by_name, name);
 }
 
-static inline gchar *
+static inline const gchar *
 download_get_sha1(const struct download *d)
 {
 	download_check(d);
@@ -1813,7 +1814,7 @@ download_get_sha1(const struct download *d)
 static inline void
 server_sha1_count_inc(struct dl_server *server, struct download *d)
 {
-	gchar *sha1;
+	const gchar *sha1;
 
 	download_check(d);
 	g_assert(server == d->server);
@@ -1828,14 +1829,14 @@ server_sha1_count_inc(struct dl_server *server, struct download *d)
 		g_assert(n < (guint) -1);
 		n++;
 		value = GUINT_TO_POINTER(n);
-		g_hash_table_insert(server->sha1_counts, sha1, value);
+		gm_hash_table_insert_const(server->sha1_counts, sha1, value);
 	}
 }
 
 static inline void
 server_sha1_count_dec(struct dl_server *server, struct download *d)
 {
-	gchar *sha1;
+	const gchar *sha1;
 
 	download_check(d);
 	g_assert(server == d->server);
@@ -1860,7 +1861,7 @@ server_sha1_count_dec(struct dl_server *server, struct download *d)
 		n--;
 		if (n > 0) {
 			value = GUINT_TO_POINTER(n);
-			g_hash_table_insert(server->sha1_counts, sha1, value);
+			gm_hash_table_insert_const(server->sha1_counts, sha1, value);
 		} else {
 			g_hash_table_remove(server->sha1_counts, sha1);
 		}
@@ -2430,8 +2431,8 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
  * @return the number of removed downloads.
  */
 gint
-download_remove_all_from_peer(gchar *guid, const host_addr_t addr, guint16 port,
-	gboolean unavailable)
+download_remove_all_from_peer(const gchar *guid,
+	const host_addr_t addr, guint16 port, gboolean unavailable)
 {
 	struct dl_server *server[2];
 	gint n = 0;
@@ -2622,7 +2623,7 @@ download_set_socket_rx_size(gint rx_size)
 static void
 download_set_sha1(struct download *d, const gchar *sha1)
 {
-	gchar *old_atom;
+	const gchar *old_atom;
 
 	download_check(d);
 
@@ -4668,7 +4669,7 @@ download_clone(struct download *d)
  * Search has detected index change in queued download.
  */
 void
-download_index_changed(const host_addr_t addr, guint16 port, gchar *guid,
+download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
 	guint32 from, guint32 to)
 {
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
@@ -4842,7 +4843,7 @@ download_new_by_hostname(struct download_request *req)
 gboolean
 download_new(const gchar *file, filesize_t size, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
-	gchar *hostname, gchar *sha1, time_t stamp,
+	const gchar *hostname, const gchar *sha1, time_t stamp,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	if (hostname) {
@@ -4882,8 +4883,8 @@ download_new(const gchar *file, filesize_t size, guint32 record_index,
  */
 gboolean
 download_new_unknown_size(const gchar *file, guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-	gchar *sha1, time_t stamp,
+	const host_addr_t addr, guint16 port, const gchar *guid,
+	const gchar *hostname, const gchar *sha1, time_t stamp,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	return NULL != create_download(file, NULL, 0, record_index, addr, port,
@@ -4893,8 +4894,8 @@ download_new_unknown_size(const gchar *file, guint32 record_index,
 
 gboolean
 download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
-	  const host_addr_t addr, guint16 port, const gchar *guid, gchar *hostname,
-	  gchar *sha1, time_t stamp,
+	  const host_addr_t addr, guint16 port, const gchar *guid,
+	  const gchar *hostname, const gchar *sha1, time_t stamp,
 	  fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
 {
 	if (hostname) {
@@ -4934,8 +4935,8 @@ download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
  * its fileinfo trailer.
  */
 void
-download_orphan_new(
-	gchar *file, filesize_t size, gchar *sha1, fileinfo_t *fi)
+download_orphan_new(const gchar *file, filesize_t size, const gchar *sha1,
+	fileinfo_t *fi)
 {
 	time_t ntime = fi->ntime;
 	(void) create_download(file,
@@ -5225,7 +5226,7 @@ use_push_proxy(struct download *d)
 	while (server->proxies != NULL) {
 		gnet_host_t *host;
 
-		host = (gnet_host_t *) server->proxies->data;	/* Pick the first */
+		host = server->proxies->data;	/* Pick the first */
 		d->cproxy = cproxy_create(d, host->addr, host->port,
 			download_guid(d), d->record_index);
 
@@ -9865,7 +9866,7 @@ download_verify_progress(struct download *d, guint32 hashed)
  * Called when download verification is finished and digest is known.
  */
 void
-download_verify_done(struct download *d, gchar *digest, guint elapsed)
+download_verify_done(struct download *d, const gchar *digest, guint elapsed)
 {
 	fileinfo_t *fi;
 	const gchar *name;

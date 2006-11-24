@@ -84,7 +84,7 @@ RCSID("$Id$")
 struct shared_file;
 
 struct st_entry {
-	gchar *string;				/* atom */
+	const gchar *string;				/* atom */
 	struct shared_file *sf;
 	guint32 mask;
 };

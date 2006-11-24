@@ -53,7 +53,7 @@ typedef enum {
  * bitzi_data_t
  */
 typedef struct {
-	gchar		*sha1;			/**< pointer to SHA-1 atom */
+	const gchar	*sha1;			/**< pointer to SHA-1 atom */
 	gchar		*mime_type;		/**< mime type */
 	gchar		*mime_desc;		/**< mime details (fps, bitrate etc) */
 	filesize_t	size;			/**< size of file */

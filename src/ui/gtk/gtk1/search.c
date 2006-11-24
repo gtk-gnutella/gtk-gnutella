@@ -153,7 +153,7 @@ remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
  *	sha1.
  */
 GtkCTreeNode *
-find_parent_with_sha1(GHashTable *ht, gpointer key)
+find_parent_with_sha1(GHashTable *ht, gconstpointer key)
 {
 	return g_hash_table_lookup(ht, key);
 }

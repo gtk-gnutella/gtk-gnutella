@@ -90,9 +90,9 @@ struct filter_context {
 	 * Those variables are initialized as needed.
 	 */
 
-	gchar *l_name;				/**< Lower-cased file name; atom */
+	const gchar *l_name;		/**< Lower-cased file name; atom */
 	size_t l_len;				/**< Length of lower-cased representation */
-	gchar *utf8_name;			/**< Normalized UTF-8 version of name; atom */
+	const gchar *utf8_name;		/**< Normalized UTF-8 version of name; atom */
 	size_t utf8_len;			/**< Length of UTF-8 name representation */
 };
 
@@ -1229,7 +1229,7 @@ filter_new(const gchar *name)
     g_assert(utf8_is_valid_string(name));
 
     f = g_malloc0(sizeof *f);
-    f->name = g_strdup(name);
+    f->name = atom_str_get(name);
     f->ruleset = NULL;
     f->search = NULL;
     f->visited = FALSE;
@@ -1286,7 +1286,7 @@ filter_new_for_search(search_t *s)
     g_assert(utf8_is_valid_string(s->query));
 
     f = g_new0(filter_t, 1);
-    f->name = g_strdup(s->query);
+    f->name = atom_str_get(s->query);
     f->ruleset = NULL;
     f->search = NULL;
     f->visited = FALSE;
@@ -1379,7 +1379,7 @@ filter_free(filter_t *f)
 	G_LIST_FOREACH_SWAPPED(copy, filter_remove_rule, f);
     g_list_free(copy);
 
-    G_FREE_NULL(f->name);
+    atom_str_free_null(&f->name);
     G_FREE_NULL(f);
 }
 
@@ -2091,8 +2091,8 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                 match = TRUE;
                 break;
             case RULE_TEXT: {
-				gchar *l_name = ctx->l_name;
-				gchar *utf8_name = ctx->utf8_name;
+				const gchar *l_name = ctx->l_name;
+				const gchar *utf8_name = ctx->utf8_name;
 
 				if (utf8_name == NULL) {
 					ctx->utf8_name = utf8_name = atom_str_get(rec->utf8_name);
@@ -2100,7 +2100,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 				}
 
 				if (l_name == NULL) {
-					l_name = utf8_strlower_copy(utf8_name);
+					gchar *s = utf8_strlower_copy(utf8_name);
 
 					/*
 					 * Cache for further rules, to avoid costly utf8
@@ -2108,11 +2108,11 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 					 * rule they have configured.
 					 */
 
-					ctx->l_name = atom_str_get(l_name);
+					ctx->l_name = atom_str_get(s);
 					ctx->l_len = strlen(ctx->l_name);
-
-					G_FREE_NULL(l_name);
 					l_name = ctx->l_name;
+
+					G_FREE_NULL(s);
 				}
 
                 switch (r->u.text.type) {

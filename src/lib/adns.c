@@ -101,7 +101,7 @@ typedef struct adns_async_write {
 } adns_async_write_t;
 
 typedef struct adns_cache_entry {
-	gchar *hostname;		/**< atom */
+	const gchar *hostname;		/**< atom */
 	time_t timestamp;
 	size_t n;				/**< Number of addr items */
 	guint id;
@@ -288,7 +288,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	for (i = 0; i < entry->n; i++) {
 		entry->addrs[i] = addrs[i];
 	}
-	g_hash_table_insert(cache->ht, entry->hostname, entry);
+	g_hash_table_insert(cache->ht, deconstify_gchar(entry->hostname), entry);
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= G_N_ELEMENTS(cache->entries);
 }

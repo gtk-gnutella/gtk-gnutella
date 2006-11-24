@@ -68,16 +68,14 @@ gchar *guc_file_info_build_magnet(gnet_fi_t handle);
 gint guc_download_get_http_req_percent(const struct download *d);
 void guc_download_fallback_to_push(struct download *d, gboolean on_timeout,
 		gboolean user_request);
-gint guc_download_remove_all_from_peer(gchar *guid, const host_addr_t addr,
-	guint16 port, gboolean unavailable);
+gint guc_download_remove_all_from_peer(const gchar *guid,
+		const host_addr_t addr, guint16 port, gboolean unavailable);
 gint guc_download_remove_all_named(const gchar *name);
 gint guc_download_remove_all_with_sha1(const gchar *sha1);
-void guc_download_remove_file
-	(struct download *d, gboolean reset);
+void guc_download_remove_file(struct download *d, gboolean reset);
 gboolean guc_download_file_exists(const struct download *d);
 void guc_download_requeue(struct download *d);
-void guc_download_start
-	(struct download *d, gboolean check_allowed);
+void guc_download_start(struct download *d, gboolean check_allowed);
 gboolean guc_download_remove(struct download *d);
 void guc_download_abort(struct download *d);
 void guc_download_resume(struct download *d);
@@ -88,20 +86,20 @@ void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
 void guc_download_auto_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
-	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
 	gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
-	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new_uri(const gchar *file, const gchar *uri,
 	filesize_t size, const host_addr_t addr, guint16 port,
-	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
 	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_download_new_unknown_size(const gchar *file,
 	guint32 record_index, const host_addr_t addr, guint16 port,
-	const gchar *guid, gchar *hostname, gchar *sha1, time_t stamp,
+	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
 	fileinfo_t *fi, gnet_host_vec_t *proxies,
 	guint32 flags);
 const gchar *guc_download_get_hostname(const struct download *d);
@@ -110,7 +108,7 @@ gdouble guc_download_source_progress(const struct download *d);
 gdouble guc_download_total_progress(const struct download *d);
 gboolean guc_download_something_to_clear(void);
 void guc_download_index_changed(const host_addr_t addr, guint16 port,
-	gchar *guid, filesize_t from, filesize_t to);
+	const gchar *guid, filesize_t from, filesize_t to);
 struct download *guc_src_get_download(gnet_src_t src_handle);
 void guc_src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
     frequency_t t, guint32 interval);

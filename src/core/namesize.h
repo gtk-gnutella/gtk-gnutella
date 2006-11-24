@@ -43,7 +43,7 @@
  */
 
 typedef struct namesize {
-	gchar *name;		/**< Filename (atom) */
+	const gchar *name;		/**< Filename (atom) */
 	filesize_t size;	/**< File size */
 } namesize_t;
 

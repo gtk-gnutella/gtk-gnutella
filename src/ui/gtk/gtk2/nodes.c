@@ -129,7 +129,7 @@ add_column(GtkTreeView *tree, const gchar *title,
 }
 
 struct node_data {
-	gchar *user_agent;	/* Atom */
+	const gchar *user_agent;	/* Atom */
 	gchar *host;		/* walloc()ed */
 	gchar *info;		/* walloc()ed */
 	const GdkColor *fg;

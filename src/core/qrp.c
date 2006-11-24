@@ -110,7 +110,7 @@ struct routing_table {
 	gint set_count;			/**< Amount of slots set in table */
 	gint fill_ratio;		/**< 100 * fill ratio for table (received) */
 	gint pass_throw;		/**< Query must pass a d100 throw to be forwarded */
-	gchar *digest;			/**< SHA1 digest of the whole table (atom) */
+	const gchar *digest;	/**< SHA1 digest of the whole table (atom) */
 	gchar *name;			/**< Name for dumping purposes */
 	gboolean reset;			/**< This is a new table, after a RESET */
 	gboolean compacted;

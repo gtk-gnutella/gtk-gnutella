@@ -368,7 +368,7 @@ magnet_resource_free(struct magnet_resource *res)
 		res->sources = NULL;
 
 		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
-			gchar *s = sl->data;
+			const gchar *s = sl->data;
 			atom_str_free_null(&s);
 		}
 		g_slist_free(res->searches);

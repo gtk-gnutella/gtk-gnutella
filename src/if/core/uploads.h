@@ -69,7 +69,7 @@ typedef struct gnet_upload_status {
 typedef struct gnet_upload_info {
 	gnet_upload_t upload_handle;
 
-	gchar  *name;        /**< Name of requested file (converted to UTF-8) */
+	const gchar  *name;		/**< Name of requested file (converted to UTF-8) */
 
 	host_addr_t addr;		/**< remote IP address */
 
@@ -79,7 +79,7 @@ typedef struct gnet_upload_info {
 
 	time_t  start_date;
 
-	gchar  *user_agent;	/**< Remote user agent (converted to UTF-8) */
+	const gchar  *user_agent;	/**< Remote user agent (converted to UTF-8) */
 	gint   country;  	/**< Contry of origin */
 	gboolean push;		/**< Whether we're pushing or not */
 	gboolean partial;	/**< Whether it's a partial file */
@@ -115,7 +115,7 @@ typedef struct gnet_upload_info {
 	((u)->status == GTA_UL_HEADERS || (u)->status == GTA_UL_WAITING)
 
 struct ul_stats {
-	gchar  *filename;	/**< Atom */
+	const gchar  *filename;	/**< Atom */
 	filesize_t size;
 	guint32 attempts;
 	guint32 complete;

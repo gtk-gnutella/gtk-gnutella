@@ -81,6 +81,9 @@ enum shared_file_magic {
 struct shared_file {
 	enum shared_file_magic magic;
 
+	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
+	const gchar *sha1;			/**< SHA1 digest, binary form, atom */
+
 	const gchar *file_path;		/**< The full path of the file (atom!) */
 	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
 	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
@@ -89,10 +92,6 @@ struct shared_file {
 
 	size_t name_nfc_len;		/**< strlen(name_nfc) */
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
-
-	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
-
-	gchar *sha1;				/**< SHA1 digest, binary form, atom */
 
 	time_t mtime;				/**< Last modif. time, for SHA1 computation */
 
@@ -517,11 +516,11 @@ query_muid_map_init(void)
 static gboolean
 query_muid_map_remove_oldest(void)
 {
-	gchar *old_muid;
+	const gchar *old_muid;
 
 	old_muid = hash_list_first(query_muids);
 	if (old_muid) {
-		gchar *old_query;
+		const gchar *old_query;
 		
 		hash_list_remove(query_muids, old_muid);
 
@@ -569,16 +568,19 @@ query_muid_map_garbage_collect(void)
 static void
 record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
 {
-	gpointer key;
+	const gchar *key;
 	
 	g_assert(muid);
 	g_assert(query);
 
 	if (search_muid_track_amount > 0) {
-		if (hash_list_contains(query_muids, muid, &key)) {
-			gchar *old_query;
+		gconstpointer orig_key;
+
+		if (hash_list_contains(query_muids, muid, &orig_key)) {
+			const gchar *old_query;
 
 			/* We'll append the new value to the list */
+			key = orig_key;
 			hash_list_remove(query_muids, deconstify_gpointer(muid));
 			old_query = g_hash_table_lookup(muid_to_query_map, key);
 			atom_str_free_null(&old_query);
@@ -587,7 +589,7 @@ record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
 			key = atom_guid_get(muid);
 		}
 
-		g_hash_table_insert(muid_to_query_map, key, atom_str_get(query));
+		gm_hash_table_insert_const(muid_to_query_map, key, atom_str_get(query));
 		hash_list_append(query_muids, key);
 	}
 	query_muid_map_garbage_collect();
@@ -596,10 +598,10 @@ record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
 const gchar *
 map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE])
 {
-	gpointer key;
+	gconstpointer orig_key;
 	
-	if (hash_list_contains(query_muids, muid, &key)) {
-		return g_hash_table_lookup(muid_to_query_map, key);
+	if (hash_list_contains(query_muids, muid, &orig_key)) {
+		return g_hash_table_lookup(muid_to_query_map, orig_key);
 	}
 	return NULL;
 }
@@ -1140,7 +1142,7 @@ recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
 	struct dirent *dir_entry;
 	GSList *directories = NULL;
-	gchar *dir_name;
+	const gchar *dir_name;
 	tm_t start;
 
 	tm_now_exact(&start);
@@ -1403,7 +1405,7 @@ share_scan(void)
 		const gchar *path = sl->data;
 		/* ...since this updates the GUI! */
 		recurse_scan(path);
-		atom_str_free(sl->data);
+		atom_str_free_null(&path);
 	}
 	g_slist_free(dirs);
 	dirs = NULL;
@@ -2023,8 +2025,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		time_t now = tm_time();
 		time_t seen = 0;
 		gboolean found;
-		gpointer atom;
-		gpointer seenp;
+		gpointer orig_key, orig_val;
+		gconstpointer atom;
 		gchar *query = search;
 		time_delta_t threshold = node_requery_threshold;
 
@@ -2036,14 +2038,20 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			query = stmp_1;
 		}
 
-		found = g_hash_table_lookup_extended(n->qseen, query, &atom, &seenp);
-		if (found)
-			seen = (time_t) GPOINTER_TO_INT(seenp);
+		found = g_hash_table_lookup_extended(n->qseen, query,
+					&orig_key, &orig_val);
+		if (found) {
+			seen = (time_t) GPOINTER_TO_INT(orig_val);
+			atom = orig_key;
+		} else {
+			atom = NULL;
+		}
 
 		if (delta_time(now, (time_t) 0) - seen < threshold) {
 			if (share_debug) g_warning(
 				"node %s (%s) re-queried \"%s\" after %d secs",
-				node_addr(n), node_vendor(n), query, (gint) (now - seen));
+				node_addr(n), node_vendor(n), query,
+				(gint) delta_time(now, seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			return TRUE;		/* Drop the message! */
 		}
@@ -2051,7 +2059,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (!found)
 			atom = atom_str_get(query);
 
-		g_hash_table_insert(n->qseen, atom,
+		gm_hash_table_insert_const(n->qseen, atom,
 			GINT_TO_POINTER((gint) delta_time(now, (time_t) 0)));
 	}
 	record_query_string(gnutella_header_get_muid(&n->header), search);
@@ -2489,13 +2497,13 @@ shared_file_set_sha1(struct shared_file *sf, const char *sha1)
 
 	if (sf->flags & SHARE_F_RECOMPUTING) {
 		sf->flags &= ~SHARE_F_RECOMPUTING;
-		g_tree_remove(sha1_to_share, sf->sha1);
+		g_tree_remove(sha1_to_share, deconstify_gchar(sf->sha1));
 	}
 
 	atom_sha1_free_null(&sf->sha1);
 	sf->sha1 = atom_sha1_get(sha1);
 	sf->flags |= SHARE_F_HAS_DIGEST;
-	g_tree_insert(sha1_to_share, sf->sha1, sf);
+	g_tree_insert(sha1_to_share, deconstify_gchar(sf->sha1), sf);
 }
 
 void
@@ -2557,7 +2565,7 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 	if (-1 == stat(sf->file_path, &buf)) {
 		g_warning("can't stat shared file #%d \"%s\": %s",
 			sf->file_index, sf->file_path, g_strerror(errno));
-		g_tree_remove(sha1_to_share, sf->sha1);
+		g_tree_remove(sha1_to_share, deconstify_gchar(sf->sha1));
 		atom_sha1_free_null(&sf->sha1);
 		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		return FALSE;
@@ -2565,7 +2573,7 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 
 	if (too_big_for_gnutella(buf.st_size)) {
 		g_warning("File is too big to be shared: \"%s\"", sf->file_path);
-		g_tree_remove(sha1_to_share, sf->sha1);
+		g_tree_remove(sha1_to_share, deconstify_gchar(sf->sha1));
 		atom_sha1_free_null(&sf->sha1);
 		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		return FALSE;

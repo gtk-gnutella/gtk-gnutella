@@ -75,7 +75,7 @@ void pproxy_close(void);
  ***/
 
 struct cproxy *cproxy_create(struct download *d,
-	const host_addr_t addr, guint16 port, gchar *guid, guint32 file_idx);
+	const host_addr_t addr, guint16 port, const gchar *guid, guint32 file_idx);
 void cproxy_free(struct cproxy *cp);
 void cproxy_reparent(struct download *d, struct download *cd);
 

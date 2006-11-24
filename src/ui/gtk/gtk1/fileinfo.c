@@ -180,7 +180,7 @@ static gnet_fi_info_t *last_fi = NULL;
  * filled from the given `fih'.
  */
 static gnet_fi_info_t *
-fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
+fi_gui_fill_info(gnet_fi_t fih, const gchar *titles[c_fi_num])
 {
     /* Clear info from last call. We keep this around so we don't
      * have to strdup entries from it when passing them to the
@@ -200,7 +200,7 @@ fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 
 /* XXX -- factorize this code with GTK2's one */
 static void
-fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
+fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
 {
     static gchar fi_sources[32];
     static gchar fi_status[256];
@@ -390,9 +390,9 @@ static void
 fi_gui_add_row(gnet_fi_t fih)
 {
     GtkCList *clist = clist_fileinfo;
+    const gchar *titles[c_fi_num];
     gint row;
     guint n;
-    gchar *titles[c_fi_num];
 	gnet_fi_info_t *info;
 	gboolean filter_match;
 	GSList *l;
@@ -430,7 +430,7 @@ fi_gui_add_row(gnet_fi_t fih)
             titles[n] = "";
     }
 
-    row = gtk_clist_append(clist, titles);
+    row = gtk_clist_append(clist, deconstify_gpointer(titles));
     gtk_clist_set_row_data(clist, row, GUINT_TO_POINTER(fih));
 }
 
@@ -529,7 +529,7 @@ static void
 fi_gui_update(gnet_fi_t fih, gboolean full)
 {
     GtkCList *clist = clist_fileinfo;
-	gchar    *titles[c_fi_num];
+	const gchar    *titles[c_fi_num];
     gint      row;
     guint     n;
 

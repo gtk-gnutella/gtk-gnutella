@@ -70,7 +70,7 @@
 static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
 
 typedef struct {
-	gchar *sha1;			/**< binary SHA-1, atom */
+	const gchar *sha1;			/**< binary SHA-1, atom */
 	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
 
 	/*
@@ -635,7 +635,7 @@ bitzi_cache_add(bitzi_data_t *data)
 		return FALSE;
 	}
 
-	g_hash_table_insert(bitzi_cache_ht, data->sha1, data);
+	gm_hash_table_insert_const(bitzi_cache_ht, data->sha1, data);
 	bitzi_cache = g_list_insert_sorted(bitzi_cache, data, bitzi_date_compare);
 
 	if (bitzi_debug)

@@ -152,7 +152,7 @@ RCSID("$Id$")
 #define TCP_CRAWLER_FREQ		300		/**< once every 5 minutes */
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
-gchar *start_rfc822_date = NULL;		/**< RFC822 format of start_time */
+const gchar *start_rfc822_date = NULL;		/**< RFC822 format of start_time */
 
 static GSList *sl_nodes = NULL;
 static GSList *sl_nodes_without_broken_gtkg = NULL;
@@ -176,8 +176,8 @@ static gpointer tcp_crawls = NULL;
 static gpointer udp_crawls = NULL;
 
 typedef struct node_bad_client {
+	const char *vendor;
 	int	errors;
-	char *vendor;
 } node_bad_client_t;
 
 static int node_error_threshold = 6;	/**< This requires an average uptime of
@@ -1844,7 +1844,8 @@ node_mark_bad_vendor(struct gnutella_node *n)
 		bad_client = walloc0(sizeof(*bad_client));
 		bad_client->errors = 0;
 		bad_client->vendor = atom_str_get(n->vendor);
-		g_hash_table_insert(unstable_servent, bad_client->vendor, bad_client);
+		gm_hash_table_insert_const(unstable_servent,
+			bad_client->vendor, bad_client);
 		unstable_servents = g_slist_prepend(unstable_servents, bad_client);
 	}
 

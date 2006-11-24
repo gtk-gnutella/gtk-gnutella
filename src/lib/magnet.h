@@ -40,17 +40,17 @@
 #include "host_addr.h"
 
 struct magnet_source {
-	gchar *url;			/* string atom */
-	gchar *hostname;	/* string atom */
-	gchar *path;		/* string atom */
-	gchar *sha1;		/* sha1 atom */
+	const gchar *url;			/* string atom */
+	const gchar *hostname;	/* string atom */
+	const gchar *path;		/* string atom */
+	const gchar *sha1;		/* sha1 atom */
 	host_addr_t addr;
 	guint16 port;
 };
 
 struct magnet_resource {
-	gchar *display_name;	/* string atom */
-	gchar *sha1;		/* sha1 atom */
+	const gchar *display_name;	/* string atom */
+	const gchar *sha1;		/* sha1 atom */
 	GSList *sources;	/* List of walloc()ed (struct magnet_source *) */
 	GSList *searches;	/* List of string atoms */
 	filesize_t size;

@@ -86,7 +86,7 @@ const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
-	gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
+	const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
 	const gchar *name, time_t stamp);
 
 gboolean dmesh_remove(

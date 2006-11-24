@@ -176,7 +176,7 @@ void atom_free_track(enum atom_type, gconstpointer key, gchar *file, gint line);
 #endif
 
 static inline void
-atom_str_free_null(gchar **k_ptr)
+atom_str_free_null(const gchar **k_ptr)
 {
 	if (*k_ptr) {
 		atom_free(ATOM_STRING, *k_ptr);
@@ -185,7 +185,7 @@ atom_str_free_null(gchar **k_ptr)
 }
 
 static inline void
-atom_sha1_free_null(gchar **k_ptr)
+atom_sha1_free_null(const gchar **k_ptr)
 {
 	if (*k_ptr) {
 		atom_free(ATOM_SHA1, *k_ptr);
@@ -194,7 +194,7 @@ atom_sha1_free_null(gchar **k_ptr)
 }
 
 static inline void
-atom_filesize_free_null(filesize_t **k_ptr)
+atom_filesize_free_null(const filesize_t **k_ptr)
 {
 	if (*k_ptr) {
 		atom_free(ATOM_FILESIZE, *k_ptr);
@@ -203,7 +203,7 @@ atom_filesize_free_null(filesize_t **k_ptr)
 }
 
 static inline void
-atom_guid_free_null(gchar **k_ptr)
+atom_guid_free_null(const gchar **k_ptr)
 {
 	if (*k_ptr) {
 		atom_free(ATOM_GUID, *k_ptr);

@@ -115,7 +115,7 @@ typedef struct search_ctrl {
 
 	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
 
-	gchar  *query;				/**< The search query */
+	const gchar  *query;		/**< The search query (atom) */
 	time_t  time;				/**< Time when this search was started */
 	GSList *muids;				/**< Message UIDs of this search */
 
@@ -727,7 +727,7 @@ static hash_list_t *oob_reply_acks;
 static const time_delta_t oob_reply_ack_timeout = 120;
 
 struct ora {
-	gchar *muid;	/* GUID atom */
+	const gchar *muid;	/* GUID atom */
 	time_t sent;
 	host_addr_t addr;
 	guint16 port;
@@ -783,7 +783,7 @@ ora_lookup(const gchar muid[GUID_RAW_SIZE],
 	const host_addr_t addr, guint16 port)
 {
 	struct ora ora;
-	gpointer key;
+	gconstpointer key;
 
 	ora.muid = deconstify_gchar(muid);
 	ora.sent = 0;
@@ -791,7 +791,7 @@ ora_lookup(const gchar muid[GUID_RAW_SIZE],
 	ora.port = port;
 
 	if (hash_list_contains(oob_reply_acks, &ora, &key)) {
-		return key;
+		return deconstify_gpointer(key);
 	}
 	return NULL;
 }

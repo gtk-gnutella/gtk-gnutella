@@ -75,7 +75,7 @@ typedef struct vp_context {
  */
 typedef struct vp_info {
     gnet_fi_t fi_handle;
-    gchar *file_name;		/* atom */
+    const gchar *file_name;		/* atom */
     GSList *chunks_list;
 	GSList *chunks_initial;
 	GSList *ranges_list;

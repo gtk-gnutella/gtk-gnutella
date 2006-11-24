@@ -105,7 +105,7 @@ static GHashTable *ht_file_objects_rdwr;	/* read+write-able file objects */
 enum file_object_magic { FILE_OBJECT_MAGIC = 0xeb084325 };	/**< Magic number */
 
 struct file_object {
-	char *pathname;	/* atom */
+	const char *pathname;	/* atom */
 	int ref_count;
 	int fd;
 	int accmode;	/* O_RDONLY, O_WRONLY, O_RDWR */
@@ -289,7 +289,7 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 
 	file_object_check(fo);
 	g_hash_table_insert(file_object_mode_get_table(fo->accmode),
-		fo->pathname, fo);
+		deconstify_gchar(fo->pathname), fo);
 
 	return fo;
 }

@@ -142,7 +142,6 @@ const record_t *search_gui_get_record_at_path(GtkTreeView *tv,
 					GtkTreePath *path);
 #else
 void gui_search_force_update_tab_label(struct search *);
-GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
 #endif /* USE_GTK2 */
 
 void search_gui_expand_all(void);

@@ -106,7 +106,7 @@ typedef struct gnutella_node {
 	guint8 qrp_minor;			/**< Query routing protocol minor number */
 	guint8 uqrp_major;			/**< UP Query routing protocol major number */
 	guint8 uqrp_minor;			/**< UP Query routing protocol minor number */
-	gchar *vendor;				/**< Vendor information (always UTF-8) */
+	const gchar *vendor;		/**< Vendor information (always UTF-8) */
 	gint country;				/**< Country of origin -- encoded ISO3166 */
 	union vendor_code vcode;	/**< Vendor code (vcode.u32 == 0 if unknown) */
 	gpointer io_opaque;			/**< Opaque I/O callback information */
@@ -165,7 +165,7 @@ typedef struct gnutella_node {
 	host_addr_t addr;			/**< ip of the node */
 	guint16 port;				/**< port of the node */
 
-	gchar *guid;				/**< GUID of node (atom) for push-proxying */
+	const gchar *guid;			/**< GUID of node (atom) for push-proxying */
 	host_addr_t proxy_addr;		/**< ip of the node for push proxyfication */
 	guint16 proxy_port;			/**< port of the node for push proxyfication */
 
@@ -215,7 +215,7 @@ typedef struct gnutella_node {
 	guint32 gnet_kbytes_count;	/**< Used to answer "Crawling" pings */
 	host_addr_t gnet_pong_addr;	/**< When != 0, last IP we got in pong */
 	host_addr_t gnet_qhit_addr;	/**< When != 0, last IP we got in query hit */
-	gchar *gnet_guid;			/**< GUID of node (atom) seen on the network */
+	const gchar *gnet_guid;		/**< GUID of node (atom) seen on the network */
 
 	guint32 n_ping_throttle;  /**< Number of pings we throttled */
 	guint32 n_ping_accepted;  /**< Number of pings we accepted */
@@ -481,7 +481,7 @@ typedef struct gnutella_node {
 
 #define NODE_ID_LOCAL	0x0U		/**< ID for "local node" (ourselves) */
 
-extern gchar *start_rfc822_date;
+extern const gchar *start_rfc822_date;
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;

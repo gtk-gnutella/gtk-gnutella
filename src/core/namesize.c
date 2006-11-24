@@ -90,7 +90,8 @@ namesize_make(const gchar *name, filesize_t size)
 void
 namesize_free(namesize_t *ns)
 {
-	atom_str_free(ns->name);
+	atom_str_free_null(&ns->name);
 	wfree(ns, sizeof(*ns));
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -840,7 +840,7 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
  * Same as dmesh_raw_add(), but this is for public consumption.
  */
 gboolean
-dmesh_add(gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
+dmesh_add(const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
 	const gchar *name, time_t stamp)
 {
 	dmesh_urlinfo_t info;

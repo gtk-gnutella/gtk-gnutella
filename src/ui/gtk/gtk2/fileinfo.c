@@ -77,7 +77,7 @@ static GHashTable *fi_downloads = NULL;
 
 struct fileinfo_data {
 	GtkTreeIter iter;
-	gchar *filename;		/* atom */
+	const gchar *filename;	/* atom */
 	gchar *status;			/* g_strdup */
 	filesize_t size, done;
 	guint32 rank;
@@ -85,8 +85,8 @@ struct fileinfo_data {
 
 	struct {
 		struct download *handle;
-		gchar *vendor;			/* atom */
-		gchar *hostname;		/* atom */
+		const gchar *vendor;	/* atom */
+		const gchar *hostname;	/* atom */
 		const gchar *country;	/* static */
 		gchar *range;			/* g_strdup */
 	} download;

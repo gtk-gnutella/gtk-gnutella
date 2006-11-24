@@ -866,15 +866,15 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	rc->name = atom_str_get(r->name);
 	
 	{
-		const gchar *utf8_name;
-		gchar *name, *to_free;
+		const gchar *utf8_name, *name;
+		gchar *to_free;
 
 		if (r->path) {
-			name = make_pathname(r->path, r->name);
-			to_free = name;
+			to_free = make_pathname(r->path, r->name);
+			name = to_free;
 		} else {
-			name = r->name;
 			to_free = NULL;
+			name = r->name;
 		}
 		if (ST_LOCAL & rs->status) {
 			utf8_name = name;

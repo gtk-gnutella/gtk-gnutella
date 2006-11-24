@@ -46,10 +46,10 @@ typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
-	gchar *path;				/**< Path of the directory of the file on disk */
-	gchar *file_name;			/**< Name of the file on disk */
-	gchar *sha1;				/**< SHA1 (binary) of the file or NULL */
-	GSList *aliases;			/**< List of aliases (NULL if none) */
+	const gchar *path;		/**< Path of the directory of the file on disk */
+	const gchar *file_name;	/**< Name of the file on disk */
+	const gchar *sha1;		/**< SHA1 (binary) of the file or NULL */
+	GSList *aliases;		/**< List of aliases (NULL if none) */
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
@@ -86,15 +86,15 @@ enum fi_magic {
 typedef struct dl_file_info {
 	enum fi_magic magic;	
     gnet_fi_t fi_handle;    /**< Handle */
-	gchar *guid;			/**< Unique fileinfo ID */
+	const gchar *guid;		/**< Unique fileinfo ID */
 	guint32 flags;			/**< Operating flags */
-	gchar *file_name;		/**< Output file name (atom) */
-	gchar *path;			/**< Output file path (atom) */
+	const gchar *file_name;	/**< Output file name (atom) */
+	const gchar *path;		/**< Output file path (atom) */
 	GSList *alias;			/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
-	filesize_t *size_atom;	/**< File size (atom -- points to value in memory) */
-	gchar *sha1;			/**< server SHA1 (atom) if known, NULL if not. */
-	gchar *cha1;			/**< computed SHA1 (atom) if known, NULL if not. */
+	const filesize_t *size_atom;/**< File size (atom) */
+	const gchar *sha1;		/**< server SHA1 (atom) if known, NULL if not. */
+	const gchar *cha1;		/**< computed SHA1 (atom) if known, NULL if not. */
 	gint32 refcount;		/**< Reference count of file (number of sources)*/
 	GSList *sources;        /**< list of sources (struct download *) */
 	gint32 lifecount;		/**< Amount of "alive" downloads referencing us */

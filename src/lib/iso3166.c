@@ -44,7 +44,7 @@ RCSID("$Id$")
 #include "override.h"       /* Must be the last header included */
 
 typedef struct {
-	gchar *country;	/* atom */
+	const gchar *country;	/* atom */
 	gchar cc[3];
 } iso3166_entry_t;
 

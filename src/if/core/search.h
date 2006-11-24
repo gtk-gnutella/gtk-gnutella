@@ -101,10 +101,10 @@ typedef struct gnet_results_set {
 	host_addr_t addr;
 	host_addr_t last_hop;		/**< IP of delivering node */
 
-	gchar *guid;				/**< Servent's GUID (atom) */
-	gchar *hostname;			/**< Optional: server's hostname */
-	gchar *version;				/**< Version information (atom) */
-	gchar *query;				/**< Optional: Original query string (atom) */
+	const gchar *guid;			/**< Servent's GUID (atom) */
+	const gchar *hostname;		/**< Optional: server's hostname */
+	const gchar *version;		/**< Version information (atom) */
+	const gchar *query;			/**< Optional: Original query string (atom) */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	GSList *records;
 	time_t  stamp;				/**< Reception time of the hit */
@@ -139,11 +139,11 @@ enum {
  * as identified by the parent results_set structure that contains this hit.
  */
 typedef struct gnet_record {
-	gchar  *name;				/**< File name */
-	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
-	gchar  *tag;				/**< Optional tag data string (atom) */
-	gchar  *xml;				/**< Optional XML data string (atom) */
-	gchar  *path;				/**< Optional path (atom) */
+	const gchar  *name;			/**< File name */
+	const gchar  *sha1;			/**< SHA1 URN (binary form, atom) */
+	const gchar  *tag;			/**< Optional tag data string (atom) */
+	const gchar  *xml;			/**< Optional XML data string (atom) */
+	const gchar  *path;			/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
 	filesize_t size;			/**< Size of file, in bytes */
 	guint32 file_index;			/**< Index for GET command */

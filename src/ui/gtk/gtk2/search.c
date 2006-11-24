@@ -102,7 +102,7 @@ struct result_data {
 	const GdkColor *bg;
 
 	record_t *record;
-	gchar *meta;		/**< Atom */
+	const gchar *meta;	/**< Atom */
 	guint count;		/**< count of children */
 	guint32 rank;		/**< for stable sorting */
 };
@@ -327,9 +327,10 @@ ht_unref_record(gpointer p)
 
 
 static inline void
-add_parent_with_sha1(GHashTable *ht, gpointer key, struct result_data *data)
+add_parent_with_sha1(GHashTable *ht,
+	const gchar *sha1, struct result_data *data)
 {
-	g_hash_table_insert(ht, key, data);
+	g_hash_table_insert(ht, deconstify_gchar(sha1), data);
 }
 
 static inline void
@@ -339,7 +340,7 @@ remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 }
 
 struct result_data *
-find_parent_with_sha1(GHashTable *ht, gpointer key)
+find_parent_with_sha1(GHashTable *ht, gconstpointer key)
 {
 	return g_hash_table_lookup(ht, key);
 }

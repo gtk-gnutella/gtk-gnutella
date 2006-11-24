@@ -56,7 +56,7 @@ struct browse_ctx {
 	rxdrv_t *rx;					/**< RX stack top */
 	gnet_host_t host;				/**< Host we're browsing, for logging */
 	gnet_search_t sh;				/**< Search ID to which hits are given */
-	gchar *vendor;					/**< Vendor version string */
+	const gchar *vendor;			/**< Vendor version string (atom) */
 	gnutella_header_t header;		/**< Received header */
 	gchar *data;					/**< Where payload data is stored */
 	guint data_size;				/**< Size of data buffer */

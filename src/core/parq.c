@@ -207,8 +207,8 @@ struct parq_ul_queued {
 	gchar id[GUID_RAW_SIZE];		/**< PARQ identifier; GUID atom */
 
 	gchar *addr_and_name;	/**< "IP name", used as key in hash table */
-	gchar *name;			/**< NB: points directly into `addr_and_name' */
-	gchar *sha1;			/**< SHA1 digest for easy reference */
+	const gchar *name;		/**< NB: points directly into `addr_and_name' */
+	const gchar *sha1;		/**< SHA1 digest for easy reference */
 	host_addr_t remote_addr;		/**< IP address of the socket endpoint */
 
 	filesize_t file_size;	/**< Needed to recalculate ETA */

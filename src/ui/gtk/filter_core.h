@@ -39,7 +39,7 @@
 struct record;
 
 typedef struct filter {
-    gchar *name;
+    const gchar *name;
     GList *ruleset;
     struct search *search;
     gboolean visited;

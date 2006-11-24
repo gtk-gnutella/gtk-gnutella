@@ -108,8 +108,8 @@ gint file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size);
 gboolean file_info_restrict_range(
 	fileinfo_t *fi, filesize_t start, filesize_t *end);
 
-fileinfo_t *file_info_has_identical(
-	gchar *file, filesize_t size, gchar *sha1);
+fileinfo_t *file_info_has_identical(const gchar *file, filesize_t size,
+				const gchar *sha1);
 
 fileinfo_t *file_info_get_browse(const gchar *name);
 void file_info_remove(fileinfo_t *fi);

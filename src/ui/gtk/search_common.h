@@ -50,26 +50,28 @@ void search_remove_got_results_listener(search_got_results_listener_t l);
  */
 typedef struct results_set {
 	gint refcount;			/**< Number of "struct search" this belongs to */
-
-	gchar *guid;			/**< Servent's GUID (atom) */
-	host_addr_t addr;
-	guint8 hops;
-	guint8 ttl;
-	guint16 port;
-	guint16 speed;
-	guint32 status;				/**< Parsed status bits from trailer */
-	time_t  stamp;				/**< Reception time of the hit */
-	union vendor_code vcode;	/**< Vendor code */
-	gchar *version;				/**< Version information (atom) */
-	gint country;				/**< Country code -- encoded ISO3166 */
-	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
-	gchar *hostname;			/**< Optional: server's hostname (atom) */
-	gchar *query;				/**< Optional: original query (atom) */
-	host_addr_t last_hop;		/**< IP of delivering node */
-
 	guint32 num_recs;
+
+	const gchar *guid;			/**< Servent's GUID (atom) */
+	const gchar *version;		/**< Version information (atom) */
+	const gchar *hostname;		/**< Optional: server's hostname (atom) */
+	const gchar *query;			/**< Optional: original query (atom) */
+
 	GSList *records;
     GSList *schl;
+	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
+
+	host_addr_t addr;
+	host_addr_t last_hop;		/**< IP of delivering node */
+	time_t  stamp;				/**< Reception time of the hit */
+
+	union vendor_code vcode;	/**< Vendor code */
+	gint country;				/**< Country code -- encoded ISO3166 */
+	guint32 status;				/**< Parsed status bits from trailer */
+	guint16 port;
+	guint16 speed;
+	guint8 hops;
+	guint8 ttl;
 } results_set_t;
 
 /**
@@ -94,19 +96,19 @@ typedef enum {
  * many different hash tables (one per search).
  */
 typedef struct record {
-	results_set_t *results_set;	/**< Parent, containing record */
-	gint refcount;				/**< Number of hash tables it has been put to */
 	record_magic_t magic;		/**< Magic ID */
+	gint refcount;				/**< Number of hash tables it has been put to */
 
-	gchar  *name;				/**< Filename (atom) */
-	gchar  *ext;				/**< File extension (atom) */
-	gchar  *utf8_name;			/**< Path/Filename converted to UTF-8 (atom) */
+	results_set_t *results_set;	/**< Parent, containing record */
+	const gchar *name;			/**< Filename (atom) */
+	const gchar *ext;			/**< File extension (atom) */
+	const gchar *utf8_name;		/**< Path/Filename converted to UTF-8 (atom) */
 	const gchar *charset;		/**< Detected charset of name (static const) */
-	gchar  *sha1;				/**< SHA1 URN (binary form, atom) */
-	gchar  *xml;				/**< Optional XML data string (atom) */
-	gchar  *tag;				/**< Optional tag data string (atom) */
-	gchar  *info;				/**< Short version of tag (atom) */
-	gchar  *path;				/**< Optional path (atom) */
+	const gchar *sha1;			/**< SHA1 URN (binary form, atom) */
+	const gchar *xml;			/**< Optional XML data string (atom) */
+	const gchar *tag;			/**< Optional tag data string (atom) */
+	const gchar *info;			/**< Short version of tag (atom) */
+	const gchar *path;			/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
 	filesize_t size;			/**< Size of file, in bytes */
 	guint32 file_index;			/**< Index for GET command */

@@ -124,7 +124,7 @@ void
 upload_stats_gui_add(struct ul_stats *s)
 {
 	GtkCList *clist = clist_ul_stats();
-	gchar *rowdata[5];
+	const gchar *rowdata[5];
 	gint row;
 	gchar size_tmp[16];
 	gchar attempts_tmp[16];
@@ -143,7 +143,7 @@ upload_stats_gui_add(struct ul_stats *s)
 	rowdata[c_us_complete] = complete_tmp;
 	rowdata[c_us_norm] = norm_tmp;
 
-    row = gtk_clist_insert(clist, 0, rowdata);
+    row = gtk_clist_insert(clist, 0, deconstify_gpointer(rowdata));
 	ul_rows++;
 
 	gtk_clist_set_row_data_full(clist, row, s, NULL);

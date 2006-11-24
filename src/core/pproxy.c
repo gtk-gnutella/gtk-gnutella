@@ -1200,7 +1200,7 @@ cproxy_http_newstate(gpointer handle, http_state_t newstate)
  */
 struct cproxy *
 cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
-	gchar *guid, guint32 file_idx)
+	const gchar *guid, guint32 file_idx)
 {
 	struct cproxy *cp;
 	gpointer handle;

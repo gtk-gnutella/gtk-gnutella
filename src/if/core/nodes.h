@@ -83,7 +83,7 @@ typedef struct rnode_info {
 	guint64 cpu_sys;			/**< Total kernel CPU time used, in ms */
 	/* Information sent via optional GGEP blocks */
 	guint32 ggep_du;			/**< Daily average uptime, from "DU" */
-	gchar *ggep_ua;				/**< User-Agent string (atom), from "UA" */
+	const gchar *ggep_ua;		/**< User-Agent string (atom), from "UA" */
 	host_addr_t ggep_ipv6;		/**< IPv6 address */
 } rnode_info_t;
 
@@ -275,7 +275,7 @@ typedef struct gnet_node_info {
     gchar *error_str;       /**< To sprintf() error strings with vars */
 	gint proto_major;		/**< Protocol major number */
 	gint proto_minor;		/**< Protocol minor number */
-	gchar *vendor;			/**< Vendor information (always UTF-8) */
+	const gchar *vendor;	/**< Vendor information (always UTF-8) */
 	gint country;			/**< Country information */
 	union vendor_code vcode;/**< Vendor code (vcode.u32 == 0 when unknown) */
 
