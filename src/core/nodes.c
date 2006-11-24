@@ -2754,7 +2754,7 @@ send_error(
 	size_t rw;
 	ssize_t sent;
 	gboolean saturated = bsched_saturated(bws.gout);
-	gchar *version;
+	const gchar *version;
 	gchar *token;
 	gchar xlive[128];
 	gchar xtoken[128];

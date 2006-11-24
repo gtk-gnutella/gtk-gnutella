@@ -67,7 +67,7 @@ struct alive {
 };
 
 struct alive_ping {
-	gchar *muid;				/**< The GUID of the message */
+	const gchar *muid;			/**< The GUID of the message */
 	tm_t sent;					/**< Time at which we sent the message */
 };
 

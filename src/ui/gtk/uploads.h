@@ -44,8 +44,8 @@ typedef struct upload_row_data {
 	host_addr_t   addr;
 	filesize_t    size;
 	gboolean      push;
-	gchar         *user_agent;	/**< atom */
-	gchar         *name;		/**< atom */
+	const gchar   *user_agent;	/**< atom */
+	const gchar   *name;		/**< atom */
 	gint          country;
 #endif /* USE_GTK2 */
 } upload_row_data_t;

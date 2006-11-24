@@ -207,7 +207,7 @@ search_gui_option_menu_searches_update(void)
 		} else if (s->local) {
 			name = g_strconcat("local:", s->query, (void *) 0);
 		} else {
-			name = s->query;
+			name = g_strdup(s->query);
 		}
 
 		/*
@@ -231,9 +231,7 @@ search_gui_option_menu_searches_update(void)
 
 			item = gtk_menu_item_new_with_label(title);
 		}
-		if (name != s->query) {
-			G_FREE_NULL(name);
-		}
+		G_FREE_NULL(name);
 	
 		gtk_widget_show(item);
 		gtk_object_set_user_data(GTK_OBJECT(item), s);
@@ -789,7 +787,7 @@ search_gui_get_filename_extension(const gchar *filename_utf8)
 	return ext;
 }
 
-static gchar *
+static const gchar *
 search_gui_get_info(const record_t *rc, const gchar *vinfo)
 {
   	gchar info[1024];

@@ -82,8 +82,8 @@ gboolean version_fill(const gchar *version, version_t *vs);
 
 const gchar *version_str(const version_t *ver);
 
-extern gchar *version_string;
-extern gchar *version_short_string;
+extern const gchar *version_string;
+extern const gchar *version_short_string;
 
 const gchar *version_build_string(void);
 const gchar *version_get_string(void);

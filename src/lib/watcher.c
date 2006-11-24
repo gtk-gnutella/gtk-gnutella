@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "watcher.h"
 #include "atoms.h"
 #include "cq.h"
+#include "glib-missing.h"
 #include "misc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -53,7 +54,7 @@ RCSID("$Id$")
  * A monitored file.
  */
 struct monitored {
-	gchar *filename;		/**< Filename to monitor */
+	const gchar *filename;	/**< Filename to monitor */
 	time_t mtime;			/**< Last known modified time */
 	watcher_cb_t cb;		/**< Callback to invoke on change */
 	gpointer udata;			/**< User supplied data to hand-out to callback */
@@ -144,7 +145,7 @@ watcher_register(const gchar *filename, watcher_cb_t cb, gpointer udata)
 	if (g_hash_table_lookup(monitored, filename) != NULL)
 		watcher_unregister(filename);
 
-	g_hash_table_insert(monitored, m->filename, m);
+	gm_hash_table_insert_const(monitored, m->filename, m);
 }
 
 /**

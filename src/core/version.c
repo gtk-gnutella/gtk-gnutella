@@ -60,8 +60,8 @@ RCSID("$Id$")
 
 #define SECS_PER_DAY	86400
 
-gchar *version_string = NULL;
-gchar *version_short_string = NULL;
+const gchar *version_string = NULL;
+const gchar *version_short_string = NULL;
 
 static version_t our_version;
 static version_t last_rel_version;

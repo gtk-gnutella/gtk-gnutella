@@ -90,7 +90,7 @@ struct addr_info {
 	gpointer cq_ev;				/**< Scheduled callout event */
 	gint ban_delay;				/**< Banning delay, in seconds */
 	gint ban_count;				/**< Amount of time we banned this source */
-	gchar *ban_msg;				/**< Banning message (atom) */
+	const gchar *ban_msg;		/**< Banning message (atom) */
 	gboolean banned;			/**< Is this IP currently banned? */
 };
 

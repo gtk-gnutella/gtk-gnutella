@@ -739,7 +739,7 @@ atom_is_registered(enum atom_type type, gconstpointer key)
  *
  * @return the atom's value.
  */
-gpointer
+gconstpointer
 atom_get(enum atom_type type, gconstpointer key)
 {
 	table_desc_t *td;
@@ -870,7 +870,7 @@ struct spot {
  *
  * @returns the atom's value.
  */
-gpointer
+gconstpointer
 atom_get_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
 {
 	gpointer atom;

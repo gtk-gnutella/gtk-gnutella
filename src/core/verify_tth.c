@@ -103,7 +103,7 @@ static GList *files_to_hash = NULL;
 
 typedef struct tt_file_to_hash_s tt_file_to_hash_t;
 struct tt_file_to_hash_s {
-	gchar *file_name;
+	const gchar *file_name;
 };
 
 typedef struct tt_computation_context_s tt_computation_context_t;

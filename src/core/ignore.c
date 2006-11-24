@@ -165,9 +165,9 @@ sha1_parse(FILE *f, const gchar *file)
 {
 	gint line = 0;
 	gchar sha1_digest[SHA1_RAW_SIZE];
-	gchar *sha1;
+	const gchar *sha1;
+	const gchar *filename;
 	gchar *p;
-	gchar *filename;
 	gint len;
 
 	g_assert(f);
@@ -212,7 +212,7 @@ sha1_parse(FILE *f, const gchar *file)
 		sha1 = atom_sha1_get(sha1_digest);
 		filename = atom_str_get(p);
 
-		g_hash_table_insert(by_sha1, sha1, filename);
+		gm_hash_table_insert_const(by_sha1, sha1, filename);
 	}
 }
 
@@ -376,8 +376,10 @@ ignore_add_sha1(const gchar *file, const gchar *sha1)
 {
 	g_assert(sha1);
 
-	if (!g_hash_table_lookup(by_sha1, sha1))
-		g_hash_table_insert(by_sha1, atom_sha1_get(sha1), atom_str_get(file));
+	if (!g_hash_table_lookup(by_sha1, sha1)) {
+		gm_hash_table_insert_const(by_sha1,
+			atom_sha1_get(sha1), atom_str_get(file));
+	}
 
 	/*
 	 * Write to file even if duplicate SHA1, in order to help us

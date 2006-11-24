@@ -114,10 +114,10 @@ static GtkWidget *default_scrolled_window = NULL;
  *	Emile 02/15/2004
  */
 static inline void
-add_parent_with_sha1(GHashTable *ht, gpointer key,
+add_parent_with_sha1(GHashTable *ht, const gchar *sha1,
 	GtkCTreeNode *data)
 {
-	g_hash_table_insert(ht, key, data);
+	gm_hash_table_insert_const(ht, sha1, data);
 }
 
 
@@ -128,14 +128,12 @@ add_parent_with_sha1(GHashTable *ht, gpointer key,
 static inline void
 remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 {
-	gpointer key;
-	GtkCTreeNode *data = NULL;
+	gconstpointer key;
 	gpointer orig_key;
 
 	key = atom_sha1_get(sha1);
 
-	if (g_hash_table_lookup_extended(ht, key,
-			(gpointer) &orig_key, (gpointer) &data)) {
+	if (g_hash_table_lookup_extended(ht, key, &orig_key, NULL)) {
 		/* Must first free memory used by the original key */
 		atom_sha1_free(orig_key);
 
@@ -1142,14 +1140,12 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 {
 	static const gchar empty[] = "";
   	const gchar *titles[c_sr_num];
-	gpointer key = NULL;
 	gboolean is_parent = FALSE;
 	gui_record_t *gui_rc;
 	gui_record_t *parent_rc;
 	gui_record_t *grc1;
 	gui_record_t *grc2;
     struct results_set *rs = rc->results_set;
-
 	GtkCTreeNode *parent;
 	GtkCTreeNode *node;
 	GtkCTreeNode *cur_node;
@@ -1280,6 +1276,8 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 			is_parent = FALSE;
 
 		} else { /* Add as a parent */
+			gconstpointer key;
+
 			key = atom_sha1_get(rc->sha1);	/* New parent, need new atom ref */
 
 			titles[c_sr_size] = short_size(rc->size, show_metric_units());
@@ -1436,7 +1434,6 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	GtkCTreeNode *old_parent;
 	GtkCTreeNode *old_parent_sibling;
 	GtkCTreeNode *child_sibling;
-	gpointer key;
 	gint n;
 
 	search_t *current_search = search_gui_get_current_search();
@@ -1457,6 +1454,7 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 		 * children
 		 */
 		if (NULL != row->children) {
+			gconstpointer key;
 
 			/*
              * We move the first child into the position originally occupied

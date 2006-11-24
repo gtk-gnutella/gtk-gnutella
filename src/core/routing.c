@@ -733,7 +733,8 @@ routing_init(void)
 		g_assert(strlen(hex) == 2 * sizeof(g));
 
 		(void) hex_to_guid(hex, g);
-		g_hash_table_insert(ht_banned_push, atom_guid_get(g), (gpointer) 1);
+		gm_hash_table_insert_const(ht_banned_push,
+			atom_guid_get(g), GUINT_TO_POINTER(1));
 	}
 
 	/*
@@ -2110,7 +2111,7 @@ route_proxy_add(const gchar *guid, struct gnutella_node *n)
  * that node directly.
  */
 struct gnutella_node *
-route_proxy_find(gchar *guid)
+route_proxy_find(const gchar *guid)
 {
 	return g_hash_table_lookup(ht_proxyfied, guid);
 }

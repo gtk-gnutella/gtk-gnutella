@@ -4261,12 +4261,13 @@ download_fallback_to_push(struct download *d,
 	gcu_gui_update_download(d, TRUE);
 }
 
-static gchar *
+static const gchar *
 download_escape_name(const gchar *name)
 {
-	gchar *escaped, *atom;
+	const gchar *atom;
+	gchar *escaped;
 		
-	escaped = url_escape_cntrl(deconstify_gchar(name));
+	escaped = url_escape_cntrl(name);
 	atom = atom_str_get(escaped);
 	if (name != escaped) {
 		G_FREE_NULL(escaped);
@@ -4302,8 +4303,8 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 {
 	struct dl_server *server;
 	struct download *d;
-	gchar *file_name;
-	gchar *file_uri = NULL;
+	const gchar *file_name;
+	const gchar *file_uri = NULL;
 	fileinfo_t *fi;
 
 	g_assert(size == 0 || file_size_known);
@@ -4535,7 +4536,7 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
 {
-	gchar *file_name;
+	const gchar *file_name;
 	const char *reason;
 	enum ignore_val ign_reason;
 
@@ -4764,10 +4765,10 @@ download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
 struct download_request {
 	host_addr_t addr;
 	const gchar *guid;
-	gchar *hostname;
-	gchar *file;
-	gchar *sha1;
-	gchar *uri;
+	const gchar *hostname;
+	const gchar *file;
+	const gchar *sha1;
+	const gchar *uri;
 	fileinfo_t *fi;
 	filesize_t size;
 	time_t stamp;
@@ -9297,7 +9298,7 @@ download_retrieve(void)
 	filesize_t d_size = 0;	/* The d_ vars are what we deserialize */
 	guint64 size64;
 	gint error;
-	gchar *d_name;
+	const gchar *d_name;
 	host_addr_t d_addr;
 	guint16 d_port;
 	guint32 d_index = 0;
@@ -9554,10 +9555,7 @@ download_retrieve(void)
 
 out:
 	retrieving = FALSE;			/* Re-enable download_store() runs */
-
-	if (d_name)
-		atom_str_free(d_name);
-
+	atom_str_free_null(&d_name);
 	fclose(in);
 	download_store();			/* Persist what we have retrieved */
 }
@@ -10286,7 +10284,7 @@ download_browse_start(const gchar *name, const gchar *hostname,
 {
 	struct download *d;
 	fileinfo_t *fi;
-	gchar *dname;
+	const gchar *dname;
 
 	if (!host_addr_initialized(addr))
 		return FALSE;

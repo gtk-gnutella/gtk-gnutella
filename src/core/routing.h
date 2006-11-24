@@ -69,7 +69,7 @@ gboolean route_exists_for_reply(const gchar *muid, guint8 function);
 
 gboolean route_proxy_add(const gchar *guid, struct gnutella_node *n);
 void route_proxy_remove(const gchar *guid);
-struct gnutella_node *route_proxy_find(gchar *guid);
+struct gnutella_node *route_proxy_find(const gchar *guid);
 
 #endif /* _core_routing_h_ */
 /* vi: set ts=4 sw=4 cindent: */

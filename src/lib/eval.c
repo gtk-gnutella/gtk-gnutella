@@ -43,7 +43,9 @@ RCSID("$Id$")
 
 #include "eval.h"
 #include "atoms.h"
+#include "glib-missing.h"
 #include "misc.h"			/* For g_strlcpy() */
+
 #include "override.h"		/* Must be the last header included */
 
 #define MAX_STRING	1024	/**< Max length for substitution */
@@ -62,17 +64,17 @@ static gboolean initialized;
  *
  * @returns a string atom.
  */
-static gchar *
+static const gchar *
 constant_make(gchar *s)
 {
-	gchar *v;
+	const gchar *v;
 
 	v = g_hash_table_lookup(constants, s);
 	if (v != NULL)
 		return v;			/* Already exists */
 
 	v = atom_str_get(s);
-	g_hash_table_insert(constants, v, v);
+	gm_hash_table_insert_const(constants, v, v);
 
 	return v;
 }
@@ -157,7 +159,7 @@ insert_value(const gchar *val, gchar *start, size_t off,
  *
  * @return string atom, which is not meant to be freed until exit time.
  */
-gchar *
+const gchar *
 eval_subst(const gchar *str)
 {
 	gchar buf[MAX_STRING];

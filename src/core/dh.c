@@ -171,12 +171,12 @@ static dqhit_t *
 dh_create(const gchar *muid)
 {
 	dqhit_t *dh;
-	gchar *key;
+	const gchar *key;
 
 	dh = walloc0(sizeof(*dh));
 	key = atom_guid_get(muid);
 
-	g_hash_table_insert(by_muid, key, dh);
+	gm_hash_table_insert_const(by_muid, key, dh);
 
 	return dh;
 }

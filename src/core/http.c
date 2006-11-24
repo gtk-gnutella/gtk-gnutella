@@ -1452,9 +1452,9 @@ struct http_async {
 	enum http_reqtype type;			/**< Type of request */
 	http_state_t state;				/**< Current request state */
 	guint32 flags;					/**< Operational flags */
-	gchar *url;						/**< Initial URL request (atom) */
-	gchar *path;					/**< Path to request (atom) */
-	gchar *host;					/**< Hostname, if not a numeric IP (atom) */
+	const gchar *url;				/**< Initial URL request (atom) */
+	const gchar *path;				/**< Path to request (atom) */
+	const gchar *host;				/**< Hostname, if not a numeric IP (atom) */
 	struct gnutella_socket *socket;	/**< Attached socket */
 	http_header_cb_t header_ind;	/**< Callback for headers */
 	http_data_cb_t data_ind;		/**< Callback for data */
@@ -1505,7 +1505,7 @@ static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
  */
 const gchar *
 http_async_info(
-	gpointer handle, const gchar **req, gchar **path,
+	gpointer handle, const gchar **req, const gchar **path,
 	host_addr_t *addr, guint16 *port)
 {
 	struct http_async *ha = handle;

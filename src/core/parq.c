@@ -3674,7 +3674,7 @@ parq_string_to_tag(const gchar *s)
 
 
 typedef struct {
-	gchar *sha1;
+	const gchar *sha1;
 	filesize_t filesize;
 	host_addr_t addr;
 	host_addr_t x_addr;

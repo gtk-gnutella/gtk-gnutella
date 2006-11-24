@@ -315,8 +315,8 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	/* Exploit that u->name is an atom! */
 	if (u->name != rd->name) {
 		g_assert(NULL != u->name);
-		if (NULL != rd->name)
-			atom_str_free(rd->name);
+
+		atom_str_free_null(&rd->name);
 		rd->name = atom_str_get(u->name);
 
 		gtk_list_store_set(store_uploads, &rd->iter,

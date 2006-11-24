@@ -230,8 +230,8 @@ spam_add(const struct spam_item *item)
 	}
 #else	/* USE_SQLITE */
 	if (spam_lut.ht) {
-		gchar *sha1 = atom_sha1_get(item->sha1);
-		g_hash_table_insert(spam_lut.ht, sha1, sha1);
+		const gchar *sha1 = atom_sha1_get(item->sha1);
+		gm_hash_table_insert_const(spam_lut.ht, sha1, sha1);
 	}
 #endif	/* USE_SQLITE */
 }

@@ -442,14 +442,15 @@ magnet_add_search(struct magnet_resource *res, const gchar *search)
 	g_return_if_fail(res);
 	g_return_if_fail(search);
 
-	res->searches = g_slist_prepend(res->searches, atom_str_get(search));
+	res->searches = g_slist_prepend(res->searches,
+						deconstify_gchar(atom_str_get(search)));
 }
 
 
 void
 magnet_set_sha1(struct magnet_resource *res, const gchar *sha1)
 {
-	gchar *atom;
+	const gchar *atom;
 
 	g_return_if_fail(res);
 	g_return_if_fail(sha1);
@@ -476,7 +477,7 @@ magnet_set_exact_topic(struct magnet_resource *res, const gchar *topic)
 void
 magnet_set_display_name(struct magnet_resource *res, const gchar *name)
 {
-	gchar *atom;
+	const gchar *atom;
 
 	g_return_if_fail(res);
 	g_return_if_fail(name);

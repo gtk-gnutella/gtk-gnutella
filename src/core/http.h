@@ -118,8 +118,8 @@ typedef enum {				/**< Type of error reported by http_error_cb_t */
 
 typedef struct {
 	struct header *header;	/**< Parsed HTTP header */
-	gint code;				/**< HTTP status code */
 	const gchar *message;	/**< HTTP status message */
+	gint code;				/**< HTTP status code */
 } http_error_t;
 
 /**
@@ -261,7 +261,7 @@ gpointer http_async_get_addr(
 
 const gchar *http_async_strerror(guint errnum);
 const gchar *http_async_info(
-	gpointer handle, const gchar **req, gchar **path,
+	gpointer handle, const gchar **req, const gchar **path,
 	host_addr_t *addr, guint16 *port);
 void http_async_connected(gpointer handle);
 void http_async_close(gpointer handle);

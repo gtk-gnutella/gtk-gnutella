@@ -1523,8 +1523,8 @@ dq_common_init(dquery_t *dq)
 		g_warning("conflicting MUID \"%s\" for dynamic query, ignoring.",
 			guid_hex_str(gnutella_header_get_muid(head)));
 	else {
-		gchar *muid = atom_guid_get(gnutella_header_get_muid(head));
-		g_hash_table_insert(by_muid, muid, dq);
+		const gchar *muid = atom_guid_get(gnutella_header_get_muid(head));
+		gm_hash_table_insert_const(by_muid, muid, dq);
 	}
 
 	/*

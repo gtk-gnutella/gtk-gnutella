@@ -75,7 +75,7 @@ RCSID("$Id$")
 struct oob_results {
 	gpointer ev_expire;		/**< Global expiration event */
 	gpointer ev_timeout;	/**< Reply waiting timeout */
-	gchar *muid;			/**< (atom) MUID of the query that generated hits */
+	const gchar *muid;		/**< (atom) MUID of the query that generated hits */
 	GSList *files;			/**< List of shared_file_t */
 	gnet_host_t dest;		/**< The host to which we must deliver */
 	gint count;				/**< Amount of hits to deliver */
@@ -154,7 +154,7 @@ results_make(const gchar *muid, GSList *files,
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
 
 	g_assert(!g_hash_table_lookup(results_by_muid, r->muid));
-	g_hash_table_insert(results_by_muid, r->muid, r);
+	gm_hash_table_insert_const(results_by_muid, r->muid, r);
 
 	g_assert(num_oob_records >= 0);
 	num_oob_records++;

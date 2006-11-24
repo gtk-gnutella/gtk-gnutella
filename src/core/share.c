@@ -782,8 +782,8 @@ parse_extensions(const gchar *str)
 			}
 
 			if (*s && NULL == g_hash_table_lookup(extensions, s)) {
-				gpointer key = atom_str_get(s);
-				g_hash_table_insert(extensions, key, key);
+				gconstpointer key = atom_str_get(s);
+				gm_hash_table_insert_const(extensions, key, key);
 			}
 		}
 	}
@@ -840,17 +840,19 @@ gboolean
 shared_dirs_parse(const gchar *str)
 {
 	gchar **dirs = g_strsplit(str, ":", 0);
-	guint i = 0;
     gboolean ret = TRUE;
+	guint i;
+
+	/* FIXME: ESCAPING! */
 
 	shared_dirs_free();
 
-	while (dirs[i]) {
+	for (i = 0; dirs[i]; i++) {
 		if (is_directory(dirs[i]))
-			shared_dirs = g_slist_prepend(shared_dirs, atom_str_get(dirs[i]));
+			shared_dirs = g_slist_prepend(shared_dirs,
+								deconstify_gchar(atom_str_get(dirs[i])));
         else
             ret = FALSE;
-		i++;
 	}
 
 	shared_dirs = g_slist_reverse(shared_dirs);
@@ -866,7 +868,8 @@ void
 shared_dir_add(const gchar *path)
 {
 	if (is_directory(path))
-        shared_dirs = g_slist_append(shared_dirs, atom_str_get(path));
+        shared_dirs = g_slist_append(shared_dirs,
+						deconstify_gchar(atom_str_get(path)));
 
     shared_dirs_update_prop();
 }
@@ -943,11 +946,10 @@ contains_control_chars(const gchar *pathname)
  * @param pathname A pathname that is relative to "base_dir".
  * @return A string atom holding the relative path or NULL.
  */
-static gchar *
+static const gchar *
 get_relative_path(const gchar *base_dir, const gchar *pathname)
 {
-	const gchar *s;
-	gchar *relative_path = NULL;
+	const gchar *s, *relative_path = NULL;
 
 	s = is_strprefix(pathname, base_dir);
 	if (s) {
@@ -1396,7 +1398,7 @@ share_scan(void)
 	 */
 
 	for (dirs = NULL, sl = shared_dirs; sl; sl = g_slist_next(sl))
-		dirs = g_slist_prepend(dirs, atom_str_get(sl->data));
+		dirs = g_slist_prepend(dirs, deconstify_gchar(atom_str_get(sl->data)));
 
 	dirs = g_slist_reverse(dirs);
 
@@ -2110,7 +2112,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			return TRUE;		/* Drop the message! */
 		}
 
-		g_hash_table_insert(n->qrelayed,
+		gm_hash_table_insert_const(n->qrelayed,
 			atom_str_get(stmp_1), GINT_TO_POINTER(1));
 	}
 

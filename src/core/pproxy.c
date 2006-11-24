@@ -93,18 +93,12 @@ static void pproxy_error_remove(struct pproxy *pp, int code,
 static void
 pproxy_free_resources(struct pproxy *pp)
 {
-	if (pp->guid != NULL) {
-		atom_guid_free(pp->guid);
-		pp->guid = NULL;
-	}
+	atom_guid_free_null(&pp->guid);
 	if (pp->io_opaque != NULL) {
 		io_free(pp->io_opaque);
 		g_assert(pp->io_opaque == NULL);
 	}
-	if (pp->user_agent != NULL) {
-		atom_str_free(pp->user_agent);
-		pp->user_agent = NULL;
-	}
+	atom_str_free_null(&pp->user_agent);
 	if (pp->socket != NULL) {
 		g_assert(pp->socket->resource.pproxy == pp);
 		socket_free_null(&pp->socket);
@@ -319,7 +313,7 @@ pproxy_create(struct gnutella_socket *s)
  */
 static gboolean
 get_params(struct pproxy *pp, const gchar *request,
-	gchar **guid_atom, guint32 *file_idx)
+	const gchar **guid_atom, guint32 *file_idx)
 {
 	static const struct {
 		const gchar *req;
@@ -599,10 +593,10 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
  *
  * @return atom, or NULL.
  */
-static gchar *
+static const gchar *
 validate_vendor(gchar *vendor, gchar *token, const host_addr_t addr)
 {
-	gchar *result = NULL;
+	const gchar *result;
 
 	if (vendor) {
 		gboolean faked = !version_check(vendor, token, addr);
@@ -615,6 +609,8 @@ validate_vendor(gchar *vendor, gchar *token, const host_addr_t addr)
 			result = atom_str_get(name);
 		} else
 			result = atom_str_get(vendor);
+	} else {
+		result = NULL;
 	}
 
 	return result;
@@ -1000,18 +996,12 @@ cproxy_free(struct cproxy *cp)
 {
 	g_assert(cp->magic == CPROXY_MAGIC);
 
-	if (cp->guid != NULL) {
-		atom_guid_free(cp->guid);
-		cp->guid = NULL;
-	}
+	atom_guid_free_null(&cp->guid);
 	if (cp->http_handle != NULL) {
 		http_async_cancel(cp->http_handle);
 		cp->http_handle = NULL;
 	}
-	if (cp->server != NULL) {
-		atom_str_free(cp->server);
-		cp->server = NULL;
-	}
+	atom_str_free_null(&cp->server);
 
 	cp->magic = 0;
 	wfree(cp, sizeof *cp);

@@ -66,13 +66,13 @@ static gpointer move_daemon = NULL;
 struct moved {
 	gint magic;				/**< Magic number */
 	struct download *d;		/**< Download for which we're moving file */
-	gint rd;				/**< Opened file descriptor for read, -1 if none */
-	gint wd;				/**< Opened file descriptor for write, -1 if none */
+	gchar *buffer;			/**< Large buffer, where data is read */
+	gchar *target;			/**< Target file name, in case an error occurs */
 	time_t start;			/**< Start time, to determine copying rate */
 	filesize_t size;		/**< Size of file */
 	filesize_t copied;		/**< Amount of data copied so far */
-	gchar *buffer;			/**< Large buffer, where data is read */
-	gchar *target;			/**< Target file name, in case an error occurs */
+	gint rd;				/**< Opened file descriptor for read, -1 if none */
+	gint wd;				/**< Opened file descriptor for write, -1 if none */
 	gint error;				/**< Error code */
 };
 
@@ -81,8 +81,8 @@ struct moved {
  */
 struct work {
 	struct download *d;		/**< Download to move */
-	gchar *dest;			/**< Target directory (atom) */
-	gchar *ext;				/**< Trailing extension (atom) */
+	const gchar *dest;		/**< Target directory (atom) */
+	const gchar *ext;		/**< Trailing extension (atom) */
 };
 
 /**

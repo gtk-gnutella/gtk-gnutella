@@ -316,7 +316,7 @@ uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
 static void
 uhc_send_ping(const host_addr_t addr, guint16 port)
 {
-	gchar *muid;
+	const gchar *muid;
 
 	g_assert(uhc_connecting);
 
@@ -338,7 +338,7 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
 	if (g_hash_table_lookup(uhc_ctx.guids, muid))
 		g_warning("GUID random number generator is weak");
 	else
-		g_hash_table_insert(uhc_ctx.guids, muid, GUINT_TO_POINTER(1));
+		gm_hash_table_insert_const(uhc_ctx.guids, muid, GUINT_TO_POINTER(1));
 
 	if (gwc_debug || bootstrap_debug)
 		g_message("BOOT sent UDP SCP ping %s to %s",

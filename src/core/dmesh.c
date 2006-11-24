@@ -336,7 +336,7 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 			by_addr = g_slist_append(by_addr, dmb);
 
 			if (!existed)
-				g_hash_table_insert(ban_mesh_by_sha1,
+				gm_hash_table_insert_const(ban_mesh_by_sha1,
 					atom_sha1_get(sha1), by_addr);
 		}
 	}
@@ -765,7 +765,7 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 		dm->count = 0;
 		dm->entries = NULL;
 
-		g_hash_table_insert(mesh, atom_sha1_get(sha1), dm);
+		gm_hash_table_insert_const(mesh, atom_sha1_get(sha1), dm);
 	} else {
 		g_assert(dm->count > 0);
 

@@ -275,7 +275,7 @@ static void
 search_stats_tally(const word_vec_t *vec)
 {
 	struct term_counts *val;
-	gpointer key;
+	gconstpointer key;
 
 	if (vec->word[1] == '\0' || vec->word[2] == '\0')
 		return;
@@ -287,7 +287,7 @@ search_stats_tally(const word_vec_t *vec)
 		key = atom_str_get(vec->word);
 		val = walloc0(sizeof *val);
 		val->period_cnt = vec->amount;
-		g_hash_table_insert(stat_hash, key, val);
+		gm_hash_table_insert_const(stat_hash, key, val);
 	}
 }
 
