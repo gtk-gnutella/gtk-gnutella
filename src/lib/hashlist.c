@@ -79,7 +79,7 @@ struct hash_list_iter {
 };
 
 struct hash_list_item {
-	gpointer orig_key;
+	gconstpointer orig_key;
 	GList *list;
 };
 
@@ -187,7 +187,7 @@ hash_list_free(hash_list_t *hl)
  * Append `key' to the list.
  */
 void
-hash_list_append(hash_list_t *hl, gpointer key)
+hash_list_append(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
 	
@@ -218,7 +218,7 @@ hash_list_append(hash_list_t *hl, gpointer key)
  * Prepend `key' to the list.
  */
 void
-hash_list_prepend(hash_list_t *hl, gpointer key)
+hash_list_prepend(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
 
@@ -249,7 +249,7 @@ hash_list_prepend(hash_list_t *hl, gpointer key)
  * Insert `key' into the list.
  */
 void
-hash_list_insert_sorted(hash_list_t *hl, gpointer key, GCompareFunc func)
+hash_list_insert_sorted(hash_list_t *hl, gconstpointer key, GCompareFunc func)
 {
 	struct hash_list_item *item;
 	GList *iter;
@@ -299,7 +299,7 @@ hash_list_insert_sorted(hash_list_t *hl, gpointer key, GCompareFunc func)
  * @return The data that associated with the given key.
  */
 void
-hash_list_remove(hash_list_t *hl, gpointer key)
+hash_list_remove(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
 
@@ -340,7 +340,7 @@ hash_list_last(const hash_list_t *hl)
 
 		item = hl->last->data;
 		g_assert(item);
-		return item->orig_key;
+		return deconstify_gpointer(item->orig_key);
 	}
 	return NULL;
 }
@@ -362,7 +362,7 @@ hash_list_first(const hash_list_t *hl)
 
 		item = hl->l->data;
 		g_assert(item);
-		return item->orig_key;
+		return deconstify_gpointer(item->orig_key);
 	}
 	return NULL;
 }
@@ -371,7 +371,7 @@ hash_list_first(const hash_list_t *hl)
  * Move entry to the head of the list.
  */
 void
-hash_list_moveto_head(hash_list_t *hl, gpointer key)
+hash_list_moveto_head(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
 
@@ -416,7 +416,7 @@ done:
  * Move entry to the tail of the list.
  */
 void
-hash_list_moveto_tail(hash_list_t *hl, gpointer key)
+hash_list_moveto_tail(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
 
@@ -549,7 +549,7 @@ hash_list_next(hash_list_iter_t *i)
 	if (i->l) {
 		struct hash_list_item *item;
 		item = i->l->data;
-		return item->orig_key;
+		return deconstify_gpointer(item->orig_key);
 	}
 	return NULL;
 }
@@ -590,7 +590,7 @@ hash_list_previous(hash_list_iter_t *i)
 	if (i->l) {
 		struct hash_list_item *item;
 		item = i->l->data;
-		return item->orig_key;
+		return deconstify_gpointer(item->orig_key);
 	}
 	return NULL;
 }
@@ -658,7 +658,8 @@ hash_list_release(hash_list_iter_t *i)
  * Check whether hashlist contains the `data'.
  */
 gboolean
-hash_list_contains(hash_list_t *hl, gconstpointer key, gpointer *orig_key_ptr)
+hash_list_contains(hash_list_t *hl, gconstpointer key,
+	gconstpointer *orig_key_ptr)
 {
 	struct hash_list_item *item;
 
@@ -694,7 +695,7 @@ hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 		struct hash_list_item *item;
 
 		item = list->data;
-		func(item->orig_key, user_data);
+		(*func)(deconstify_gpointer(item->orig_key), user_data);
 	}
 
 	hash_list_regression(hl);
