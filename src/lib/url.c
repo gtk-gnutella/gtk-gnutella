@@ -230,35 +230,39 @@ url_fix_escape(const gchar *url)
  * @return argument if no escaping is necessary, or a new string otherwise.
  */
 gchar *
-url_escape_cntrl(gchar *url)
+url_escape_cntrl(const gchar *url)
 {
-	gchar *p;
-	gchar *q;
-	int need_escape = 0;
-	guchar c;
-	gchar *new;
+	size_t need_escape = 0;
+	const gchar *p;
 
-	for (p = url, c = *p++; c; c = *p++)
-		if (iscntrl(c) || c == ESCAPE_CHAR)
+	for (p = url; '\0' != *p; p++) {
+		if (is_ascii_cntrl(*p) || ESCAPE_CHAR == *p)
 			need_escape++;
-
-	if (need_escape == 0)
-		return url;
-
-	new = g_malloc(p - url + (need_escape << 1));
-
-	for (p = url, q = new, c = *p++; c; c = *p++) {
-		if (!iscntrl(c) && c != ESCAPE_CHAR)
-			*q++ = c;
-		else {
-			*q++ = ESCAPE_CHAR;
-			*q++ = hex_alphabet[c >> 4];
-			*q++ = hex_alphabet[c & 0xf];
-		}
 	}
-	*q = '\0';
 
-	return new;
+	if (need_escape > 0) {
+		gchar *escaped, *q;
+		size_t size;
+		guchar c;
+
+		size = p - url + 1 + need_escape * 2;
+		escaped = g_malloc(size);
+		q = escaped;
+
+		for (p = url; '\0' != (c = *p); p++) {
+			if (!is_ascii_cntrl(c) && ESCAPE_CHAR != c)
+				*q++ = c;
+			else {
+				*q++ = ESCAPE_CHAR;
+				*q++ = hex_alphabet[c >> 4];
+				*q++ = hex_alphabet[c & 0xf];
+			}
+		}
+		*q = '\0';
+		return escaped;
+	} else {
+		return deconstify_gchar(url);
+	}
 }
 
 /**

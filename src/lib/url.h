@@ -66,7 +66,7 @@ gchar *url_escape(const gchar *url);
 gchar *url_escape_query(const gchar *url);
 gchar *url_fix_escape(const gchar *url);
 gint url_escape_into(const gchar *url, gchar *target, gint len);
-gchar *url_escape_cntrl(gchar *url);
+gchar *url_escape_cntrl(const gchar *url);
 gchar *url_unescape(gchar *url, gboolean inplace);
 
 url_params_t *url_params_parse(gchar *query);
