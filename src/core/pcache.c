@@ -576,7 +576,10 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		local_meta.sender_port = n->port;
 	}
 
-	if (NET_TYPE_IPV6 == host_addr_net(listen_addr6())) {
+	if (
+		NET_TYPE_IPV6 == host_addr_net(listen_addr6()) &&
+		is_host_addr(listen_addr6())
+	) {
 		local_meta.ipv6_addr = listen_addr6();
 		local_meta.flags |= PONG_META_HAS_IPV6;
 	}
