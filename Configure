@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Nov 23 14:48:39 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Fri Nov 24 20:19:36 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -340,6 +340,7 @@ d_preadv=''
 d_pwrite=''
 d_pwritev=''
 d_random=''
+d_regparm=''
 d_rusage=''
 d_sa_interrupt=''
 d_sendfile=''
@@ -5815,6 +5816,32 @@ eval $inlibc
 set random d_random
 eval $inlibc
 
+: check whether '__attribute__((__regparm__(n)))' can be used
+val="$undef"
+if [ "x$gccversion" != x ]
+then
+	$cat >try.c <<'EOC'
+static __attribute__((__regparm__(1))) int
+blah(int x)
+{
+	return x / 2;
+}
+int main(int argc, char *argv[])
+{
+	(void) argv;
+	return blah(argc);
+}
+EOC
+	if $cc $ccflags -Werror $ldflags -o try try.c >/dev/null 2>&1
+	then
+		val="$define"
+	fi
+	$rm -f try try.c
+fi
+
+set d_regparm
+eval $setvar
+
 : see if getrusage exists
 set getrusage d_rusage
 eval $inlibc
@@ -8454,6 +8481,7 @@ d_pwquota='$d_pwquota'
 d_pwrite='$d_pwrite'
 d_pwritev='$d_pwritev'
 d_random='$d_random'
+d_regparm='$d_regparm'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
 d_sa_interrupt='$d_sa_interrupt'

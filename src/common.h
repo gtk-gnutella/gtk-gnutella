@@ -520,16 +520,16 @@ G_STMT_START {			\
 #endif	/* G_GNUC_MALLOC */
 
 #if HAVE_GCC(3, 0)
-#define REGPARM(n)	__attribute__((__regparm__((n))))
-#else
-#define REGPARM(n)
-#endif	/* GCC >= 3.0 */
-
-#if HAVE_GCC(3, 0)
 #define ALWAYS_INLINE __attribute__((__always_inline__))
 #else
 #define ALWAYS_INLINE
 #endif	/* GCC >= 3.0 */
+
+#ifdef HAS_REGPARM
+#define REGPARM(n)	__attribute__((__regparm__((n))))
+#else
+#define REGPARM(n)
+#endif	/* HAS_REGPARM */
 
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.

@@ -1,0 +1,42 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_regparm: Myread Setvar cat rm cc ccflags ldflags gccversion
+?MAKE:	-pick add $@ %<
+?S:d_regparm:
+?S:	This variable conditionally defines the HAS_REGPARM symbol, which
+?S:	indicates to the C program that attribute regparm is available.
+?S:.
+?C:HAS_REGPARM:
+?C:	This symbol is defined when __attribute__((__regparm__(n))) can be used.
+?C:.
+?H:#$d_regparm HAS_REGPARM
+?H:.
+?LINT:set d_regparm
+: check whether '__attribute__((__regparm__(n)))' can be used
+val="$undef"
+if [ "x$gccversion" != x ]
+then
+	$cat >try.c <<'EOC'
+static __attribute__((__regparm__(1))) int
+blah(int x)
+{
+	return x / 2;
+}
+int main(int argc, char *argv[])
+{
+	(void) argv;
+	return blah(argc);
+}
+EOC
+	if $cc $ccflags -Werror $ldflags -o try try.c >/dev/null 2>&1
+	then
+		val="$define"
+	fi
+	$rm -f try try.c
+fi
+
+set d_regparm
+eval $setvar
+

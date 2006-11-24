@@ -585,6 +585,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_random HAS_RANDOM		/**/
 
+/* HAS_REGPARM:
+ *	This symbol is defined when __attribute__((__regparm__(n))) can be used.
+ */
+#$d_regparm HAS_REGPARM
+
 /* HAS_SA_INTERRUPT:
  *	This symbol is defined when SA_INTERRUPT can be used in sigaction().
  */
