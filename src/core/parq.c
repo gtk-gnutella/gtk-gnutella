@@ -960,7 +960,7 @@ parq_download_add_header(
 			*rw += gm_snprintf(&buf[*rw], len - *rw,
 				  	"X-Queued: position=%d; ID=%s\r\n",
 				  	get_parq_dl_position(d),
-				  	guid_hex_str(get_parq_dl_id(d)));
+				  	get_parq_dl_id(d));
 	}
 
 	/*
