@@ -147,7 +147,7 @@ pmsg_new(gint prio, gconstpointer buf, gint len)
 	g_assert(implies(buf, valid_ptr(buf)));
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	mb = (pmsg_t *) zalloc(mb_zone);
+	mb = zalloc(mb_zone);
 	db = pdata_new(len);
 
 	return pmsg_fill(mb, db, prio, buf, len);
@@ -167,7 +167,7 @@ pmsg_new_extend(gint prio, gconstpointer buf, gint len,
 	g_assert(implies(buf, valid_ptr(buf)));
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	emb = (pmsg_ext_t *) walloc(sizeof(*emb));
+	emb = walloc(sizeof(*emb));
 	db = pdata_new(len);
 
 	emb->m_free = free_cb;
@@ -198,7 +198,7 @@ pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 	g_assert(woff >= roff);
 	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	mb = (pmsg_t *) zalloc(mb_zone);
+	mb = zalloc(mb_zone);
 
 	mb->m_data = db;
 	mb->m_prio = prio;
@@ -219,7 +219,7 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg)
 {
 	pmsg_ext_t *nmb;
 
-	nmb = (pmsg_ext_t *) walloc(sizeof(*nmb));
+	nmb = walloc(sizeof(*nmb));
 
 	nmb->m_rptr = mb->m_rptr;
 	nmb->m_wptr = mb->m_wptr;
@@ -314,7 +314,7 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 
 	g_assert(pmsg_is_extended(mb));
 
-	nmb = (pmsg_ext_t *) walloc(sizeof(*nmb));
+	nmb = walloc(sizeof(*nmb));
 	*nmb = *mb;					/* Struct copy */
 	pdata_addref(nmb->m_data);
 
@@ -332,7 +332,7 @@ pmsg_clone(pmsg_t *mb)
 	if (pmsg_is_extended(mb))
 		return pmsg_clone_ext((pmsg_ext_t *) mb);
 
-	nmb = (pmsg_t *) zalloc(mb_zone);
+	nmb = zalloc(mb_zone);
 	*nmb = *mb;					/* Struct copy */
 	pdata_addref(nmb->m_data);
 
@@ -506,7 +506,7 @@ pdata_allocb(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
 	g_assert(len >= (gint) EMBEDDED_OFFSET);
 	g_assert(implies(freecb, valid_ptr(freecb)));
 
-	db = (pdata_t *) buf;
+	db = buf;
 
 	db->d_arena = db->d_embedded;
 	db->d_end = db->d_arena + (len - EMBEDDED_OFFSET);
