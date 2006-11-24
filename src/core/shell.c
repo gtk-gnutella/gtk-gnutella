@@ -907,13 +907,13 @@ print_upload_info(gnutella_shell_t *sh, const struct gnet_upload_info *info)
 
 	g_return_if_fail(sh);
 	g_return_if_fail(info);
-	
-	gm_snprintf(buf, sizeof buf, "%-21.45s%s %s %s@%s %s%s%s",
+
+	gm_snprintf(buf, sizeof buf, "%s%-16.40s %s %s@%s %s%s%s",
+		info->encrypted ? "(E)" : "  ",
 		host_addr_to_string(info->addr),
-		info->encrypted ? "(E)" : "",
 		iso3166_country_cc(info->country),
 		compact_size(info->range_end - info->range_start, display_metric_units),
-		uint64_to_string(info->range_start),
+		short_size(info->range_start, display_metric_units),
 		info->name ? "\"" : "<",
 		info->name ? info->name : "none",
 		info->name ? "\"" : ">");
@@ -1336,7 +1336,9 @@ shell_read_data(gnutella_shell_t *sh)
 		ret = s->wio.read(&s->wio, &s->buf[s->pos], size);
 		if (0 == ret) {
 			if (0 == s->pos) {
-				g_message("shell connection closed: EOF");
+				if (shell_debug) {
+					g_message("shell connection closed: EOF");
+				}
 				shell_destroy(sh);
 				return;
 			}
@@ -1540,8 +1542,10 @@ shell_add(struct gnutella_socket *s)
 	g_assert(0 == s->gdk_tag);
 	g_assert(s->getline);
 
-	g_message("Incoming shell connection from %s",
-		host_addr_port_to_string(s->addr, s->port));
+	if (shell_debug) {
+		g_message("Incoming shell connection from %s",
+			host_addr_port_to_string(s->addr, s->port));
+	}
 
 	s->type = SOCK_TYPE_SHELL;
 	socket_tos_lowdelay(s);			/* Set proper Type of Service */
@@ -1633,7 +1637,9 @@ shell_auth(const gchar *str)
 	tok_helo = shell_get_token(str, &pos);
 	tok_cookie = shell_get_token(str, &pos);
 
-	g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
+	if (shell_debug) {
+		g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
+	}
 
 	if (
 		tok_helo && 0 == strcmp("HELO", tok_helo) &&
