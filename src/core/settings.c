@@ -42,15 +42,16 @@
 
 #include "lib/eval.h"
 
-#include "settings.h"
-#include "search.h"
-#include "hosts.h"
-#include "upload_stats.h"
-#include "sockets.h"
-#include "inet.h"
-#include "hcache.h"
+#include "bsched.h"
 #include "downloads.h"
+#include "hcache.h"
+#include "hosts.h"
+#include "inet.h"
+#include "search.h"
+#include "settings.h"
 #include "share.h"
+#include "sockets.h"
+#include "upload_stats.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
