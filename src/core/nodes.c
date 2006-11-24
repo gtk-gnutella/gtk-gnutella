@@ -6078,9 +6078,11 @@ node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 
 	for (i = 0; i < n->extcount; i++) {
 		if (n->extvec[i].ext_type != EXT_GGEP) {
-			g_warning("%s has non-GGEP extensions!", gmsg_infostr(&n->header));
-			if (node_debug)
+			if (node_debug) {
+				g_warning("%s has non-GGEP extensions!",
+					gmsg_infostr(&n->header));
 				ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
+			}
 			return FALSE;
 		}
 	}
