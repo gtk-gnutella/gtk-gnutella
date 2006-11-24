@@ -459,12 +459,12 @@ get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
 const gchar *
 get_parq_dl_id(const struct download *d)
 {
+	const struct parq_dl_queued *q;
+
 	g_assert(d != NULL);
 
-	if (d->queue_status == NULL)
-		return NULL;
-
-	return ((struct parq_dl_queued *) d->queue_status)->id;
+	q = d->queue_status;
+	return q ? q->id : NULL;
 }
 
 /**
@@ -657,7 +657,7 @@ parq_dl_add_id(struct download *d, const gchar *new_id)
 	g_assert(new_id != NULL);
 	g_assert(d->queue_status != NULL);
 
-	parq_dl = (struct parq_dl_queued *) d->queue_status;
+	parq_dl = d->queue_status;
 
 	g_assert(parq_dl != NULL);
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
@@ -730,7 +730,7 @@ parq_dl_update_id(struct download *d, const gchar *temp)
 	g_assert(d != NULL);
 	g_assert(temp != NULL);
 
-	parq_dl = (struct parq_dl_queued *) d->queue_status;
+	parq_dl = d->queue_status;
 	if (parq_dl->id != NULL) {
 		if (0 == strcmp(temp, parq_dl->id))
 			return;
@@ -958,8 +958,9 @@ parq_download_add_header(
 	if (d->server->parq_version.major == 1) {
 		if (get_parq_dl_id(d) != NULL)
 			*rw += gm_snprintf(&buf[*rw], len - *rw,
-				  "X-Queued: position=%d; ID=%s\r\n",
-				  get_parq_dl_position(d), get_parq_dl_id(d));
+				  	"X-Queued: position=%d; ID=%s\r\n",
+				  	get_parq_dl_position(d),
+				  	guid_hex_str(get_parq_dl_id(d)));
 	}
 
 	/*
@@ -1653,6 +1654,18 @@ parq_upload_find_id(header_t *header)
 			if (hex_to_guid(id_str, id)) {
 				return g_hash_table_lookup(ul_all_parq_by_id, id);
 			}
+			/**
+			 * Due to bugs, gtk-gnutella <= 0.96.3 sent a raw binary ID
+			 * instead of a hex-encoded ID. We should be able to recover
+			 * it in most cases unless it contains character that clash
+			 * with parsing (NULL, control chars, etc.).
+			 */
+			if (parq_debug) {
+				g_message("parq_upload_find_id(): hex_to_guid() failed, "
+					"retrying with bug workaround");
+			}
+			strncpy(id, id_str, sizeof id);
+			return g_hash_table_lookup(ul_all_parq_by_id, id);
 		}
 		g_warning("[PARQ UL] missing ID in PARQ request");
 		if (parq_debug) {
@@ -3036,7 +3049,7 @@ parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 					"X-Queued: ID=%s\r\n"
 					"Retry-After: %d\r\n",
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-					parq_upload_lookup_id(a->u),
+					guid_hex_str(parq_upload_lookup_id(a->u)),
 					min_poll);
 
 			parq_ul->flags |= PARQ_UL_ID_SENT;
@@ -3089,7 +3102,7 @@ parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
 			"X-Queue: %d.%d\r\n"
 			"X-Queued: ID=%s\r\n",
 			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-			parq_upload_lookup_id(a->u));
+			guid_hex_str(parq_upload_lookup_id(a->u)));
 
 		parq_ul->flags |= PARQ_UL_ID_SENT;
 	}
