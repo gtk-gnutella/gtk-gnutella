@@ -89,6 +89,13 @@ void gm_setproctitle(const gchar *title);
 gchar *gm_sanitize_filename(const gchar *filename,
 	gboolean no_spaces, gboolean no_evil);
 
+static inline void
+gm_hash_table_insert_const(GHashTable *ht,
+	gconstpointer key, gconstpointer value)
+{
+	g_hash_table_insert(ht, (gpointer) key, (gpointer) value);
+}
+
 /*
  * The G_*LIST_FOREACH_* macros are supposed to be used with ``func'' being
  * a function declared ``static inline'' whereas the protoype MUST match
