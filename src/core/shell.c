@@ -27,11 +27,12 @@
 
 RCSID("$Id$")
 
+#include "hsep.h"
+#include "nodes.h"
+#include "settings.h"
 #include "shell.h"
 #include "sockets.h"
-#include "settings.h"
-#include "nodes.h"
-#include "hsep.h"
+#include "uploads.h"
 #include "version.h"
 
 #include "if/bridge/c2ui.h"
@@ -103,6 +104,7 @@ enum shell_cmd {
 	CMD_SET,
 	CMD_SHUTDOWN,
 	CMD_STATUS,
+	CMD_UPLOADS,
 	CMD_WHATIS,
 
 	CMD_UNKNOWN
@@ -127,6 +129,7 @@ static const struct {
 	{	CMD_SET,		"set"		},
 	{	CMD_SHUTDOWN,	"shutdown"	},
 	{	CMD_STATUS,		"status"	},
+	{	CMD_UPLOADS,	"uploads"	},
 	{	CMD_WHATIS,		"whatis"	},
 };
 
@@ -149,8 +152,8 @@ get_command(const gchar *cmd)
  * s only consists of a single token, it returns a pointer to the
  * terminating \0 in the string.
  */
-static const
-gchar *shell_token_end(const gchar *s)
+static const gchar *
+shell_token_end(const gchar *s)
 {
 	gboolean escape = FALSE;
 	gboolean quote  = FALSE;
@@ -897,6 +900,56 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 	return REPLY_READY;
 }
 
+static void
+print_upload_info(gnutella_shell_t *sh, const struct gnet_upload_info *info)
+{
+	gchar buf[1024];
+
+	g_return_if_fail(sh);
+	g_return_if_fail(info);
+	
+	gm_snprintf(buf, sizeof buf, "%-21.45s%s %s %s@%s %s%s%s",
+		host_addr_to_string(info->addr),
+		info->encrypted ? "(E)" : "",
+		iso3166_country_cc(info->country),
+		compact_size(info->range_end - info->range_start, display_metric_units),
+		uint64_to_string(info->range_start),
+		info->name ? "\"" : "<",
+		info->name ? info->name : "none",
+		info->name ? "\"" : ">");
+
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+}
+
+/**
+ * Displays all active uploads
+ */
+static enum shell_reply
+shell_exec_uploads(gnutella_shell_t *sh, const gchar *cmd)
+{
+	const GSList *sl;
+	GSList *sl_info;
+
+	g_assert(sh);
+	g_assert(cmd);
+	g_assert(!IS_PROCESSING(sh));
+
+	sh->msg = "";
+
+	shell_write(sh, "100~ \n");
+
+	sl_info = upload_get_info_list();
+	for (sl = sl_info; sl; sl = g_slist_next(sl)) {
+		print_upload_info(sh, sl->data);
+	}
+	upload_free_info_list(&sl_info);
+
+	shell_write(sh, ".\n");	/* Terminate message body */
+
+	return REPLY_READY;
+}
+
 /**
  * Displays assorted status information
  */
@@ -1135,6 +1188,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"set <property> <value>\n"
 			"shutdown\n"
 			"status\n"
+			"uploads\n"
 			"whatis <property>\n"
 		);
 		shell_write(sh, ".\n");
@@ -1189,6 +1243,9 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		break;
 	case CMD_PROPS:
 		reply_code = shell_exec_props(sh, args);
+		break;
+	case CMD_UPLOADS:
+		reply_code = shell_exec_uploads(sh, args);
 		break;
 	case CMD_ADD:
 	case CMD_NOOP:
