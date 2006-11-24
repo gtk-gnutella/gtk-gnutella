@@ -61,6 +61,8 @@
 
 typedef void (*hsep_global_listener_t) (hsep_triple *table, guint32 triples);
 
+struct gnutella_node;
+
 void hsep_init(void);
 void hsep_reset(void);
 void hsep_close(void);
