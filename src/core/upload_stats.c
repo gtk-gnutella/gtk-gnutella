@@ -57,6 +57,7 @@
 RCSID("$Id$")
 
 #include "upload_stats.h"
+#include "share.h"
 
 #include "if/bridge/c2ui.h"
 
@@ -98,14 +99,14 @@ upload_stats_find(const gchar *name, guint64 size)
 	if (upload_stats_list) {
 		static const struct ul_stats zero_stats;
 		struct ul_stats key;
-		gpointer orig_key;
+		gconstpointer orig_key;
 
 		key = zero_stats;
 		key.filename = atom_str_get(name);
 		key.size = size;
 
 		if (hash_list_contains(upload_stats_list, &key, &orig_key)) {
-			s = orig_key;
+			s = deconstify_gpointer(orig_key);
 		}
 		atom_str_free_null(&key.filename);
 	}
@@ -306,19 +307,25 @@ upload_stats_flush_if_dirty(void)
  * Called when an upload starts.
  */
 void
-upload_stats_file_begin(const struct upload *u)
+upload_stats_file_begin(const struct shared_file *sf)
 {
 	struct ul_stats *s;
+	const gchar *name;
+	filesize_t size;
+
+	g_return_if_fail(sf);
+	name = shared_file_name_nfc(sf);
+	size = shared_file_size(sf);
 
 	/* find this file in the ul_stats_clist */
-	s = upload_stats_find(u->name, u->file_size);
+	s = upload_stats_find(name, size);
 
 	/* increment the attempted counter */
-	if (NULL == s)
-		upload_stats_add(u->name, u->file_size, 1, 0, 0);
-	else {
+	if (NULL == s) {
+		upload_stats_add(name, size, 1, 0, 0);
+	} else {
 		s->attempts++;
-		gcu_upload_stats_gui_update(u->name, u->file_size);
+		gcu_upload_stats_gui_update(name, size);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
@@ -360,11 +367,16 @@ upload_stats_file_add(const gchar *name, filesize_t size,
  * Called when an upload is aborted, to update the amount of bytes transferred.
  */
 void
-upload_stats_file_aborted(const struct upload *u)
+upload_stats_file_aborted(const struct shared_file *sf, filesize_t done)
 {
-	if (u->pos > u->skip) {
-		upload_stats_file_add(u->name, u->file_size, 0, u->pos - u->skip);
-		gcu_upload_stats_gui_update(u->name, u->file_size);
+	g_return_if_fail(sf);
+
+	if (done > 0) {
+		const gchar *name = shared_file_name_nfc(sf);
+		filesize_t size = shared_file_size(sf);
+
+		upload_stats_file_add(name, size, 0, done);
+		gcu_upload_stats_gui_update(name, size);
 	}
 }
 
@@ -372,9 +384,16 @@ upload_stats_file_aborted(const struct upload *u)
  * Called when an upload completes.
  */
 void
-upload_stats_file_complete(const struct upload *u)
+upload_stats_file_complete(const struct shared_file *sf, filesize_t done)
 {
-	upload_stats_file_add(u->name, u->file_size, 1, u->end - u->skip + 1);
+	const gchar *name = shared_file_name_nfc(sf);
+	filesize_t size = shared_file_size(sf);
+
+	g_return_if_fail(sf);
+
+	name = shared_file_name_nfc(sf);
+	size = shared_file_size(sf);
+	upload_stats_file_add(name, size, 1, done);
 }
 
 void

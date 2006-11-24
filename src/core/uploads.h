@@ -57,6 +57,7 @@ typedef struct upload {
 	gpointer io_opaque;				/**< Opaque I/O callback information */
 	gpointer parq_opaque;			/**< Opaque parq information */
 
+	struct shared_file *sf;			/**< File we're uploading */
 	struct file_object *file;		/**< uploaded file */
 	bio_source_t *bio;				/**< Bandwidth-limited source */
 	sendfile_ctx_t sendfile_ctx;
@@ -67,7 +68,7 @@ typedef struct upload {
 	gint bsize;
 	gint buf_size;
 
-	gchar *name;
+	const gchar *name;
 	filesize_t file_size;
 	guint file_index;
 
@@ -77,7 +78,7 @@ typedef struct upload {
 	struct dl_file_info *file_info;	/**< For PFSP: only set when partial file */
 
 	host_addr_t addr;			/**< Remote IP address */
-	gchar *user_agent;			/**< Remote user agent */
+	const gchar *user_agent;	/**< Remote user agent */
 	gint country;				/**< Country of origin, ISO3166 code */
 	filesize_t skip;			/**< First byte to send, inclusive */
 	filesize_t end;				/**< Last byte to send, inclusive */
@@ -88,7 +89,7 @@ typedef struct upload {
 	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
 
 	guint32 last_dmesh;			/**< Time when last download mesh was sent */
-	gchar *sha1;				/**< SHA1 of requested file */
+	const gchar *sha1;			/**< SHA1 of requested file */
 	filesize_t total_requested;	/**< Total amount of bytes requested */
 	gint http_major;			/**< HTTP major version */
 	gint http_minor;			/**< HTTP minor version */
@@ -121,7 +122,6 @@ struct upload_http_cb {
 	gnutella_upload_t *u;			/**< Upload being ACK'ed */
 	time_t now;						/**< Current time */
 	time_t mtime;					/**< File modification time */
-	struct shared_file *sf;			/**< Info on the file we're uploading */
 };
 
 /*
@@ -147,6 +147,9 @@ void upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops,
 gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);
 void upload_fire_upload_info_changed(gnutella_upload_t *n);
 void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);
+
+GSList *upload_get_info_list(void);
+void upload_free_info_list(GSList **sl_ptr);
 
 #endif /* _core_uploads_h_ */
 

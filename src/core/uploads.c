@@ -157,11 +157,11 @@ static gpointer stalling_uploads = NULL;
 #define STALL_AGAIN		GUINT_TO_POINTER(0x2)
 
 static void upload_request(gnutella_upload_t *u, header_t *header);
-static void upload_error_remove(gnutella_upload_t *u, struct shared_file *sf,
-	int code, const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
+static void upload_error_remove(gnutella_upload_t *u,
+		int code, const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
 static void upload_error_remove_ext(gnutella_upload_t *u,
-	struct shared_file *sf, const gchar *extended, int code,
-	const gchar *msg, ...) G_GNUC_PRINTF(5, 6);
+		const gchar *extended, int code,
+		const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
 static void upload_http_sha1_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_http_xhost_add(
@@ -170,8 +170,8 @@ static void upload_xfeatures_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_writable(gpointer up, gint source, inputevt_cond_t cond);
 static void upload_special_writable(gpointer up);
-static void send_upload_error(gnutella_upload_t *u, struct shared_file *sf,
-	int code, const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
+static void send_upload_error(gnutella_upload_t *u, int code,
+			const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
 
 /***
  *** Callbacks
@@ -432,7 +432,7 @@ upload_timer(time_t now)
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
 				upload_remove(u, _("Connect back timeout"));
 			else if (UPLOAD_READING_HEADERS(u))
-				upload_error_remove(u, NULL, 408, "Request timeout");
+				upload_error_remove(u, 408, "Request timeout");
 			else
 				upload_remove(u, _("Timeout waiting for follow-up"));
 		} else if (UPLOAD_IS_SENDING(u))
@@ -521,7 +521,7 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 	u->name = atom_str_get(file_name);
 
 	if (banning) {
-		gchar *msg = ban_message(addr);
+		const gchar *msg = ban_message(addr);
 		if (msg != NULL)
 			upload_remove(u, _("Banned: %s"), msg);
 		else
@@ -544,7 +544,6 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 void
 handle_push_request(struct gnutella_node *n)
 {
-	struct shared_file *req_file;
 	host_addr_t ha;
 	guint32 file_index, flags = 0;
 	guint16 port;
@@ -627,22 +626,29 @@ handle_push_request(struct gnutella_node *n)
 	 * We'll let the remote end figure out what to do.
 	 *		--RAM. 18/07/2003
 	 */
+	{
+		const struct shared_file *req_file;
 
-	req_file = shared_file(file_index);
-
-	if (req_file == SHARE_REBUILDING) {
-		if (upload_debug) g_warning(
-			"PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
-			gnutella_header_get_hops(&n->header),
-		   	gnutella_header_get_ttl(&n->header));
-	} else if (req_file == NULL) {
-		if (upload_debug) g_warning(
-			"PUSH request (hops=%d, ttl=%d) for invalid file index %u",
-			gnutella_header_get_hops(&n->header),
-			gnutella_header_get_ttl(&n->header),
-			file_index);
-	} else
-		file_name = shared_file_name_nfc(req_file);
+		req_file = shared_file(file_index);
+		if (req_file == SHARE_REBUILDING) {
+			file_name = "<rebuilding library>";
+			if (upload_debug)
+				g_warning(
+					"PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
+					gnutella_header_get_hops(&n->header),
+					gnutella_header_get_ttl(&n->header));
+		} else if (req_file == NULL) {
+			file_name = "<invalid file index>";
+			if (upload_debug)
+				g_warning(
+					"PUSH request (hops=%d, ttl=%d) for invalid file index %u",
+					gnutella_header_get_hops(&n->header),
+					gnutella_header_get_ttl(&n->header),
+					file_index);
+		} else {
+			file_name = shared_file_name_nfc(req_file);
+		}
+	}
 
 	/*
 	 * XXX might be run inside corporations (private IPs), must be smarter.
@@ -759,6 +765,11 @@ upload_free_resources(gnutella_upload_t *u)
 		socket_free_null(&u->socket);
 	}
 
+	if (u->sf) {
+		shared_file_unref(u->sf);
+		u->sf = NULL;
+	}
+
     upload_free_handle(u->upload_handle);
 }
 
@@ -781,10 +792,12 @@ upload_clone(gnutella_upload_t *u)
 
     cu->upload_handle = upload_new_handle(cu); /* fetch new handle */
 	cu->bio = NULL;						/* Recreated on each transfer */
+	cu->sf = NULL;						/* File re-opened each time */
 	cu->file = NULL;					/* File re-opened each time */
 	cu->sendfile_ctx.map = NULL;		/* File re-opened each time */
 	cu->socket->resource.upload = cu;	/* Takes ownership of socket */
 	cu->accounted = FALSE;
+	cu->browse_host = FALSE;
     cu->skip = 0;
     cu->end = 0;
 	cu->sent = 0;
@@ -856,11 +869,7 @@ upload_likely_from_browser(header_t *header)
  * The vectorized (message-wise) version of send_upload_error().
  */
 static void
-send_upload_error_v(
-	gnutella_upload_t *u,
-	struct shared_file *sf,
-	const gchar *ext,
-	int code,
+send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 	const gchar *msg, va_list ap)
 {
 	gchar reason[1024];
@@ -914,7 +923,6 @@ send_upload_error_v(
 
 	if (parq_upload_queued(u)) {
 		cb_parq_arg.u = u;
-		cb_parq_arg.sf = sf;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = parq_upload_add_header;
@@ -1016,9 +1024,8 @@ send_upload_error_v(
 	 * If `sf' is not null, propagate the SHA1 for the file if we have it,
 	 * as well as the download mesh.
 	 */
-	if (sf && sha1_hash_available(sf)) {
+	if (u->sf && sha1_hash_available(u->sf)) {
 		cb_sha1_arg.u = u;
-		cb_sha1_arg.sf = sf;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_sha1_add;
@@ -1047,17 +1054,29 @@ send_upload_error_v(
  * This can only be done once per connection.
  */
 static void
-send_upload_error(
-	gnutella_upload_t *u,
-	struct shared_file *sf,
-	int code,
-	const gchar *msg, ...)
+send_upload_error(gnutella_upload_t *u, int code, const gchar *msg, ...)
 {
 	va_list args;
 
 	va_start(args, msg);
-	send_upload_error_v(u, sf, NULL, code, msg, args);
+	send_upload_error_v(u, NULL, code, msg, args);
 	va_end(args);
+}
+
+static void
+upload_aborted_file_stats(const struct upload *u)
+{
+	g_return_if_fail(u);
+
+	if (
+		UPLOAD_IS_SENDING(u) &&
+		!u->browse_host &&
+		!u->accounted &&
+		u->sf &&
+		u->pos > u->skip
+	) {
+		upload_stats_file_aborted(u->sf, u->pos - u->skip);
+	}
 }
 
 /**
@@ -1125,7 +1144,7 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 	) {
 		if (reason == NULL)
 			logreason = "Bad Request";
-		send_upload_error(u, NULL, 400, "%s", logreason);
+		send_upload_error(u, 400, "%s", logreason);
 	}
 
 	/*
@@ -1160,8 +1179,7 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 	 * then update the stats, not marking the upload as completed.
 	 */
 
-	if (UPLOAD_IS_SENDING(u) && !u->browse_host && !u->accounted)
-		upload_stats_file_aborted(u);
+	upload_aborted_file_stats(u);
 
     if (!UPLOAD_IS_COMPLETE(u)) {
         if (UPLOAD_WAITING_FOLLOWUP(u))
@@ -1176,8 +1194,9 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 		(reason && reason != no_reason) ? errbuf : NULL);
 
 	upload_free_resources(u);
-	wfree(u, sizeof *u);
 	list_uploads = g_slist_remove(list_uploads, u);
+
+	wfree(u, sizeof *u);
 }
 
 /**
@@ -1205,11 +1224,7 @@ upload_remove(gnutella_upload_t *u, const gchar *reason, ...)
  *       translated strings because it's send as HTTP response message.
  */
 static void
-upload_error_remove(
-	gnutella_upload_t *u,
-	struct shared_file *sf,
-	int code,
-	const gchar *msg, ...)
+upload_error_remove(gnutella_upload_t *u, int code, const gchar *msg, ...)
 {
 	va_list args, errargs;
 
@@ -1218,7 +1233,7 @@ upload_error_remove(
 	va_start(args, msg);
 
 	VA_COPY(errargs, args);
-	send_upload_error_v(u, sf, NULL, code, msg, errargs);
+	send_upload_error_v(u, NULL, code, msg, errargs);
 	va_end(errargs);
 
 	upload_remove_v(u, _(msg), args);
@@ -1230,11 +1245,7 @@ upload_error_remove(
  * `ext' contains additionnal header information to propagate back.
  */
 static void
-upload_error_remove_ext(
-	gnutella_upload_t *u,
-	struct shared_file *sf,
-	const gchar *ext,
-	int code,
+upload_error_remove_ext(gnutella_upload_t *u, const gchar *ext, int code,
 	const gchar *msg, ...)
 {
 	va_list args, errargs;
@@ -1244,7 +1255,7 @@ upload_error_remove_ext(
 	va_start(args, msg);
 
 	VA_COPY(errargs, args);
-	send_upload_error_v(u, sf, ext, code, msg, errargs);
+	send_upload_error_v(u, ext, code, msg, errargs);
 	va_end(errargs);
 
 	upload_remove_v(u, msg, args);
@@ -1298,14 +1309,13 @@ cast_to_upload(gpointer p)
 static void
 err_line_too_long(gpointer obj)
 {
-	upload_error_remove(cast_to_upload(obj), NULL, 413, "Header too large");
+	upload_error_remove(cast_to_upload(obj), 413, "Header too large");
 }
 
 static void
 err_header_error_tell(gpointer obj, gint error)
 {
-	send_upload_error(cast_to_upload(obj),
-		NULL, 413, "%s", header_strerror(error));
+	send_upload_error(cast_to_upload(obj), 413, "%s", header_strerror(error));
 }
 
 static void
@@ -1324,7 +1334,7 @@ err_input_exception(gpointer obj)
 static void
 err_input_buffer_full(gpointer obj)
 {
-	upload_error_remove(cast_to_upload(obj), NULL, 500, "Input buffer full");
+	upload_error_remove(cast_to_upload(obj), 500, "Input buffer full");
 }
 
 static void
@@ -1346,7 +1356,7 @@ static void
 err_header_extra_data(gpointer obj)
 {
 	upload_error_remove(cast_to_upload(obj),
-		NULL, 400, "Extra data after HTTP header");
+		400, "Extra data after HTTP header");
 }
 
 static const struct io_error upload_io_error = {
@@ -1580,11 +1590,16 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 		io_free(u->io_opaque);
 		u->io_opaque = NULL;
 	}
-
 	if (s->getline) {
 		getline_free(s->getline);
 		s->getline = NULL;
 	}
+	if (u->sf) {
+		shared_file_unref(u->sf);
+		u->sf = NULL;
+	}
+	atom_str_free_null(&u->name);
+	u->browse_host = FALSE;
 
 	/*
 	 * Change status, with immediate GUI feedback.
@@ -1628,7 +1643,7 @@ upload_wait_new_request(gnutella_upload_t *u)
 	 * File will be re-opened each time a new request is made.
 	 */
 
-	file_object_release(&u->file);
+	file_object_release(&u->file);	/* expect_http_header() expects this */
  	socket_tos_normal(u->socket);
 	expect_http_header(u, GTA_UL_EXPECTING);
 }
@@ -1800,7 +1815,7 @@ upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 			filename ? request : "verbatim");
 	}
 
-	upload_error_remove(u, NULL, 404, "Not Found");
+	upload_error_remove(u, 404, "Not Found");
 }
 
 /**
@@ -1818,7 +1833,7 @@ upload_http_version(gnutella_upload_t *u, const gchar *request, size_t len)
 	 */
 
 	if (!http_extract_version(request, len, &http_major, &http_minor)) {
-		upload_error_remove(u, NULL, 500, "Unknown/Missing Protocol Tag");
+		upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
 		return FALSE;
 	}
 
@@ -1834,12 +1849,13 @@ upload_http_version(gnutella_upload_t *u, const gchar *request, size_t len)
  * @return TRUE if OK, FALSE otherwise with the upload removed.
  */
 static gboolean
-upload_file_present(
-	gnutella_upload_t *u, struct shared_file *sf, const gchar *uri)
+upload_file_present(const struct shared_file *sf)
 {
-	struct stat buf;
+	struct stat sb;
 
-	if (-1 == stat(shared_file_path(sf), &buf)) {
+	if (0 == stat(shared_file_path(sf), &sb) && S_ISREG(sb.st_mode)) {
+		return TRUE;
+	} else {
 		/*
 		 * Probably a file shared via PFS, or they changed their library
 		 * and did not rescan yet.  It's important to detect this now in
@@ -1847,11 +1863,8 @@ upload_file_present(
 		 * upload slot to discover the file is not there!
 		 *		--RAM, 2005-08-04
 		 */
-		upload_error_not_found(u, uri);
 		return FALSE;
 	}
-
-	return TRUE;
 }
 
 /**
@@ -1859,18 +1872,18 @@ upload_file_present(
  * ``uri'' points to the filename after this. The same holds for the
  * file index, which is passed as ``idx''.
  *
- * @return the shared_file if found, NULL otherwise.
+ * @return -1 on error, 0 on success.
  */
-static shared_file_t *
-get_file_to_upload_from_index(
-	gnutella_upload_t *u,
-	header_t *header,
-	const gchar *uri,
-	guint idx)
+static gint
+get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
+	const gchar *uri, guint idx)
 {
 	struct shared_file *sf;
 	gboolean sent_sha1 = FALSE;
 	gchar digest[SHA1_RAW_SIZE];
+
+	g_assert(u);
+	g_assert(NULL == u->sf);
 
 	/*
 	 * We must be cautious about file index changing between two scans,
@@ -1887,8 +1900,8 @@ get_file_to_upload_from_index(
 
 	if (SHARE_REBUILDING == sf) {
 		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, NULL, 503, "Library being rebuilt");
-		return NULL;
+		upload_error_remove(u, 503, "Library being rebuilt");
+		return -1;
 	}
 
 	atom_str_free_null(&u->name);
@@ -2008,14 +2021,14 @@ get_file_to_upload_from_index(
 				host_addr_port_to_string(listen_addr(), listen_port),
 				(guint) shared_file_index(sfn), escaped);
 
-			upload_error_remove_ext(u, sfn, location,
-				301, "Moved Permanently");
-
 			if (escaped != shared_file_name_nfc(sfn)) {
 				g_free(deconstify_gchar(escaped));
 				escaped = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
 			}
-			return NULL;
+
+			u->sf = shared_file_ref(sfn);			
+			upload_error_remove_ext(u, location, 301, "Moved Permanently");
+			return -1;
 		}
 		else if (sf == NULL)
 			goto urn_not_found;
@@ -2066,50 +2079,49 @@ get_file_to_upload_from_index(
 		}
 
 		if (NULL == sfn) {
-			upload_error_remove(u, NULL, 409, "File index/name mismatch");
-			return NULL;
+			upload_error_remove(u, 409, "File index/name mismatch");
+			return -1;
 		} else
 			sf = sfn;
 	}
 
-	if (NULL == sf) {
+	if (NULL == sf || !upload_file_present(sf)) {
 		goto not_found;
 	}
 
-	if (!upload_file_present(u, sf, uri))
-		return NULL;
-
 found:
 	g_assert(sf != NULL);
-	return sf;
+	u->sf = shared_file_ref(sf);
+	return 0;
 
 urn_not_found:
-	upload_error_remove(u, NULL, 404, "URN Not Found (urn:sha1)");
-	return NULL;
+	upload_error_remove(u, 404, "URN Not Found (urn:sha1)");
+	return -1;
 
 sha1_recomputed:
-	upload_error_remove(u, NULL, 503, "SHA1 is being recomputed");
-	return NULL;
+	upload_error_remove(u, 503, "SHA1 is being recomputed");
+	return -1;
 
 not_found:
 	upload_error_not_found(u, uri);
-	return NULL;
+	return -1;
 }
 
 /**
  * Get the shared_file to upload from a given URN.
- * @return the shared_file if we have it, NULL otherwise
+ * @return -1 on error, 0 on success.
  */
-static shared_file_t *
-get_file_to_upload_from_urn(
-	gnutella_upload_t *u,
-	header_t *header,
+static gint
+get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 	const gchar *uri)
 {
 	gchar digest[SHA1_RAW_SIZE];
 	struct shared_file *sf;
-	gchar *filename;
+	const gchar *filename;
 	gboolean malformed;
+
+	g_assert(u);
+	g_assert(NULL == u->sf);
 
 	if (!uri)
 		goto malformed;
@@ -2150,28 +2162,30 @@ get_file_to_upload_from_urn(
 
 	if (sf == SHARE_REBUILDING) {
 		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, NULL, 503, "Library being rebuilt");
-		return NULL;
+		upload_error_remove(u, 503, "Library being rebuilt");
+		return -1;
 	}
 
 	if (sf == NULL) {
 		upload_error_not_found(u, uri);
-		return NULL;
+		return -1;
 	} else if (!sha1_hash_is_uptodate(sf)) {
-		upload_error_remove(u, NULL, 503, "SHA1 is being recomputed");
-		return NULL;
-	} else if (!upload_file_present(u, sf, uri))
-		return NULL;
+		upload_error_remove(u, 503, "SHA1 is being recomputed");
+		return -1;
+	} else if (!upload_file_present(sf)) {
+		goto not_found;
+	}
 
-	return sf;
+	u->sf = shared_file_ref(sf);
+	return 0;
 
 malformed:
-	upload_error_remove(u, NULL, 400, "Malformed URN in /uri-res request");
-	return NULL;
+	upload_error_remove(u, 400, "Malformed URN in /uri-res request");
+	return -1;
 
 not_found:
 	upload_error_not_found(u, uri);			/* Unknown URN => not found */
-	return NULL;
+	return -1;
 }
 
 /**
@@ -2185,14 +2199,17 @@ not_found:
  * @param search the search part of the HTTP request or NULL if none. This
  *        string is still URL-encoded to preserve the '&' boundaries.
  *
- * @return the shared_file if we got it, or NULL otherwise.
- * When NULL is returned, we have sent the error back to the client.
+ * @return -1 on error, 0 on success. When -1 is returned, we have sent the
+ * 			error back to the client.
  */
-static shared_file_t *
+static gint
 get_file_to_upload(gnutella_upload_t *u, header_t *header,
 	gchar *uri, gchar *search)
 {
 	gchar *arg;
+
+	g_assert(u);
+	g_assert(NULL == u->sf);
 
     if (u->name == NULL)
         u->name = atom_str_get(uri);
@@ -2211,12 +2228,15 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header,
 		return get_file_to_upload_from_urn(u, header, search);
 	} else {
 		shared_file_t *sf = shared_special(uri);
-		if (sf != NULL)
-			return sf;
+
+		if (sf) {
+			u->sf = shared_file_ref(sf);
+			return 0;
+		}
 	}
 
 	upload_error_not_found(u, uri);
-	return NULL;
+	return -1;
 }
 
 /**
@@ -2279,7 +2299,6 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	gint length = *retval;
 	struct upload_http_cb *a = arg;
 	gnutella_upload_t *u = a->u;
-	shared_file_t *sf = a->sf;
 	gint needed_room;
 	gint range_length;
 	time_t now = tm_time();
@@ -2311,7 +2330,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	)
 		rw += gm_snprintf(buf, length,
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-			sha1_base32(shared_file_sha1(a->sf)));
+			sha1_base32(shared_file_sha1(u->sf)));
 
 
 	/*
@@ -2335,7 +2354,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 	last_sent = u->last_dmesh ?
 		u->last_dmesh :
-		mi_get_stamp(u->socket->addr, shared_file_sha1(sf), now);
+		mi_get_stamp(u->socket->addr, shared_file_sha1(u->sf), now);
 
 	/*
 	 * Ranges are only emitted for partial files, so no pre-estimation of
@@ -2347,12 +2366,12 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	 * then when explicitly requested to do so.
 	 */
 
-	if (shared_file_is_partial(sf) && (flags & HTTP_CBF_SHOW_RANGES))
+	if (shared_file_is_partial(u->sf) && (flags & HTTP_CBF_SHOW_RANGES))
 		need_available_ranges = TRUE;
 
 	if (need_available_ranges) {
 		mesh_len = dmesh_alternate_location(
-			shared_file_sha1(sf), tmp, sizeof(tmp), u->socket->addr,
+			shared_file_sha1(u->sf), tmp, sizeof(tmp), u->socket->addr,
 			last_sent, u->user_agent, NULL, FALSE);
 
 		if ((guint) mesh_len < sizeof(tmp) - 5)
@@ -2367,7 +2386,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 	if (need_available_ranges && rw < range_length) {
 		g_assert(pfsp_server);		/* Or we would not have a partial file */
-		rw += file_info_available_ranges(shared_file_fileinfo(sf),
+		rw += file_info_available_ranges(shared_file_fileinfo(u->sf),
 				&buf[rw], range_length - rw);
 	}
 
@@ -2395,7 +2414,7 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 			maxlen = MIN((guint) maxlen, sizeof(tmp));
 
 		rw += dmesh_alternate_location(
-			shared_file_sha1(sf), &buf[rw], maxlen, u->socket->addr,
+			shared_file_sha1(u->sf), &buf[rw], maxlen, u->socket->addr,
 			last_sent, u->user_agent, NULL, FALSE);
 
 		u->last_dmesh = now;
@@ -2441,7 +2460,7 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 
 	(void) unused_flags;
 
-	g_assert(a->sf != NULL);
+	g_assert(u->sf != NULL);
 
 	uint64_to_string_buf(u->end - u->skip + 1, csize, sizeof csize);
 	rw += gm_snprintf(&buf[rw], length - rw,
@@ -2449,7 +2468,7 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 		"Content-Type: %s\r\n"
 		"Content-Length: %s\r\n",
 			timestamp_rfc1123_to_string(a->mtime),
-			shared_file_content_type(a->sf),
+			shared_file_content_type(u->sf),
 			csize);
 
 	g_assert(rw < length);
@@ -2600,7 +2619,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 			upload_vendor_str(u));
 
 	if (!browse_host_enabled) {
-		upload_error_remove(u, NULL, 403, "Browse Host Disabled");
+		upload_error_remove(u, 403, "Browse Host Disabled");
 		return FALSE;
 	}
 
@@ -2639,7 +2658,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 			(time_t) -1 != t &&
 			delta_time((time_t) library_rescan_finished, t) <= 0 
 		) {
-			upload_error_remove(u, NULL, 304, "Not Modified");
+			upload_error_remove(u, 304, "Not Modified");
 			return FALSE;
 		}
 	}
@@ -2678,7 +2697,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 		else if (strstr(buf, "*/*") || strstr(buf, "text/*"))
 			bh_flags |= BH_HTML;	/* A browser probably */
 		else {
-			upload_error_remove(u, NULL, 406, "Not Acceptable");
+			upload_error_remove(u, 406, "Not Acceptable");
 			return FALSE;
 		}
 	} else
@@ -2763,7 +2782,6 @@ static void
 upload_request(gnutella_upload_t *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
-	struct shared_file *reqfile = NULL;
     guint32 idx = 0;
 	filesize_t range_skip = 0, range_end = 0;
 	const gchar *fpath = NULL;
@@ -2793,6 +2811,16 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean parq_allows = FALSE;
 	const gchar *method;
 	gchar host[1 + MAX_HOSTLEN];
+
+	g_assert(u);
+
+	/*
+	 * The upload context is recycled for keep-alive connections but
+	 * the following items are always released/cleared in advance.
+	 */
+	g_assert(NULL == u->sf);
+	g_assert(NULL == u->name);
+	g_assert(!u->browse_host);
 
 	u->from_browser = upload_likely_from_browser(header);
 
@@ -2924,7 +2952,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (endptr && is_ascii_blank(endptr[0])) {
 			uri = skip_ascii_blanks(endptr);
 		} else {
-			upload_error_remove(u, NULL, 501, "Not Implemented");
+			upload_error_remove(u, 501, "Not Implemented");
 			return;
 		}
 	}
@@ -2964,8 +2992,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		
 		v = parse_uint64(buf, NULL, 10, &error);
 		if (error || v > 0) {
-			upload_error_remove(u, NULL, 403, "No Content Allowed for %s",
-				method);
+			upload_error_remove(u, 403, "No Content Allowed for %s", method);
 			return;
 		}
 	}
@@ -2989,13 +3016,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			size_t len = ep - h;
 
 			if (!string_to_host_or_addr(h, &ep, NULL)) {
-				upload_error_remove(u, NULL, 400, "Unparsable Host");
+				upload_error_remove(u, 400, "Unparsable Host");
 				return;
 			}
 
 			len = ep - h;
 			if (len >= sizeof host) {
-				upload_error_remove(u, NULL, 400, "Hostname Too Long");
+				upload_error_remove(u, 400, "Hostname Too Long");
 				return;
 			}
 
@@ -3007,7 +3034,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				ep++; /* Skip ':' */
 				v = parse_uint32(ep, &ep, 10, &error);
 				if (error || v < 1 || v > 65535) {
-					upload_error_remove(u, NULL, 400, "Bad Port");
+					upload_error_remove(u, 400, "Bad Port");
 					return;
 				}
 			}
@@ -3023,7 +3050,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		!url_unescape(uri, TRUE) ||
 		0 != canonize_path(uri, uri)
 	) {
-		upload_error_remove(u, NULL, 400, "Bad Path");
+		upload_error_remove(u, 400, "Bad Path");
 		return;
 	}
 
@@ -3039,7 +3066,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
 		if (NULL == header_get(header, "Host")) {
-			upload_error_remove(u, NULL, 400, "Missing Host Header");
+			upload_error_remove(u, 400, "Missing Host Header");
 			return;
 		}
 	}
@@ -3075,18 +3102,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		)
 			return;
 	} else {
-		/*
-		 * If previous request was a browse host, clear the name.
-		 */
-
-		if (u->browse_host && u->name) {
-			atom_str_free_null(&u->name);
-		}
-
-		u->browse_host = FALSE;
-
-		reqfile = get_file_to_upload(u, header, uri, search);
-		if (!reqfile) {
+		if (get_file_to_upload(u, header, uri, search)) {
 			/* get_file_to_upload() has signaled the error already */
 			return;
 		}
@@ -3102,7 +3118,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (msg != NULL) {
 			ban_record(u->addr, msg);
-			upload_error_remove(u, NULL, 403, "%s", msg);
+			upload_error_remove(u, 403, "%s", msg);
 			return;
 		}
 	}
@@ -3110,9 +3126,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);
 
-	if (reqfile) {
-		idx = shared_file_index(reqfile);
-		sha1 = sha1_hash_available(reqfile) ? shared_file_sha1(reqfile) : NULL;
+	if (u->sf) {
+		idx = shared_file_index(u->sf);
+		sha1 = sha1_hash_available(u->sf) ? shared_file_sha1(u->sf) : NULL;
 
 		/*
 		 * If we pushed this upload, and they are not requesting the same
@@ -3123,7 +3139,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (u->push && idx != u->file_index && upload_debug)
 			g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				host_addr_to_string(u->addr), u->file_index, u->name, idx,
-				shared_file_name_nfc(reqfile));
+				shared_file_name_nfc(u->sf));
 
 		/*
 		 * We already have a non-NULL u->name in the structure, because we
@@ -3138,24 +3154,24 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			u->sha1 = atom_sha1_get(sha1);
 
 		atom_str_free_null(&u->name);
-		u->name = atom_str_get(shared_file_name_nfc(reqfile));
+		u->name = atom_str_get(shared_file_name_nfc(u->sf));
 		/* NULL unless partially shared file */
-		u->file_info = shared_file_fileinfo(reqfile);
+		u->file_info = shared_file_fileinfo(u->sf);
 
 		/*
 		 * Range: bytes=10453-23456
 		 */
 
 		buf = header_get(header, "Range");
-		if (buf && shared_file_size(reqfile) > 0) {
+		if (buf && shared_file_size(u->sf) > 0) {
 			http_range_t *r;
 			GSList *ranges;
 
 			ranges = http_range_parse("Range", buf,
-						shared_file_size(reqfile), user_agent);
+						shared_file_size(u->sf), user_agent);
 
 			if (ranges == NULL) {
-				upload_error_remove(u, NULL, 400, "Malformed Range request");
+				upload_error_remove(u, 400, "Malformed Range request");
 				return;
 			}
 
@@ -3171,14 +3187,14 @@ upload_request(gnutella_upload_t *u, header_t *header)
 					g_warning("client %s <%s> requested several ranges "
 						"for \"%s\": %s", host_addr_to_string(u->addr),
 						u->user_agent ? u->user_agent : "",
-						shared_file_name_nfc(reqfile),
+						shared_file_name_nfc(u->sf),
 						http_range_to_string(ranges));
 			}
 
 			r = ranges->data;
 
 			g_assert(r->start <= r->end);
-			g_assert(r->end < shared_file_size(reqfile));
+			g_assert(r->end < shared_file_size(u->sf));
 
 			range_skip = r->start;
 			range_end = r->end;
@@ -3191,8 +3207,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 * Validate the requested range.
 		 */
 
-		fpath = shared_file_path(reqfile);
-		u->file_size = shared_file_size(reqfile);
+		fpath = shared_file_path(u->sf);
+		u->file_size = shared_file_size(u->sf);
 
 		if (!has_end)
 			range_end = u->file_size - 1;
@@ -3205,8 +3221,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 
 		if (
-			shared_file_is_partial(reqfile) &&
-			!file_info_restrict_range(shared_file_fileinfo(reqfile),
+			shared_file_is_partial(u->sf) &&
+			!file_info_restrict_range(shared_file_fileinfo(u->sf),
 				range_skip, &range_end)
 		   ) {
 			g_assert(pfsp_server);
@@ -3221,7 +3237,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		u->end = range_end;
 		u->pos = range_skip;
 
-	} /* reqfile */
+	}
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
@@ -3278,11 +3294,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * XXX here.  Hence I'm not removing this code.  --RAM, 11/10/2003
 	 */
 
-	if (reqfile && (range_skip >= u->file_size || range_end >= u->file_size)) {
+	if (u->sf && (range_skip >= u->file_size || range_end >= u->file_size)) {
 		static const gchar msg[] = "Requested range not satisfiable";
 
 		cb_416_arg.u = u;
-		cb_416_arg.sf = reqfile;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_416_extra;
@@ -3305,7 +3320,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (!upload_is_enabled()) {
-		upload_error_remove(u, NULL, 503, "Sharing currently disabled");
+		upload_error_remove(u, 503, "Sharing currently disabled");
 		return;
 	}
 
@@ -3328,8 +3343,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (upload_debug) g_warning(
 			"host %s sent initial request for %u (%s), now requesting %u (%s)",
 			host_addr_to_string(s->addr),
-			u->file_index, u->name, idx, shared_file_name_nfc(reqfile));
-		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
+			u->file_index, u->name, idx, shared_file_name_nfc(u->sf));
+		upload_error_remove(u, 400, "Change of Resource Forbidden");
 		return;
 	}
 
@@ -3368,14 +3383,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 *		--RAM, 11/10/2003
 	 */
 
-	if (reqfile && range_unavailable) {
+	if (u->sf && range_unavailable) {
 		static const gchar msg[] = "Requested range not available yet";
 
-		g_assert(sha1_hash_available(reqfile));
+		g_assert(sha1_hash_available(u->sf));
 		g_assert(pfsp_server);
 
 		cb_sha1_arg.u = u;
-		cb_sha1_arg.sf = reqfile;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_sha1_add;
@@ -3433,7 +3447,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				if (up->flags & (UPLOAD_F_STALLED|UPLOAD_F_EARLY_STALL))
 					to_remove = g_slist_prepend(to_remove, up);
 				else {
-					upload_error_remove(u, NULL, 503,
+					upload_error_remove(u, 503,
 						"Already downloading that file");
 					g_slist_free(to_remove);
 					return;
@@ -3470,7 +3484,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Follow-up requests already have their slots.
 	 */
 
-	if (reqfile && !head_only) {
+	if (u->sf && !head_only) {
 		if (is_followup && parq_upload_lookup_position(u) == (guint) -1) {
 			/*
 			 * Allthough the request is an follow up request, the last time the
@@ -3484,14 +3498,14 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 
 		if (parq_upload_queue_full(u)) {
-			upload_error_remove(u, reqfile, 503, "Queue full");
+			upload_error_remove(u, 503, "Queue full");
 			return;
 		}
 
 		u->parq_opaque = parq_upload_get(u, header, replacing_stall);
 
 		if (u->parq_opaque == NULL) {
-			upload_error_remove(u, reqfile, 503,
+			upload_error_remove(u, 503,
 				"Another connection is still active");
 			return;
 		}
@@ -3507,7 +3521,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		parq_allows = parq_upload_request(u, running_uploads - 1);
 	}
 
-	if (reqfile && !head_only && !parq_allows) {
+	if (u->sf && !head_only && !parq_allows) {
 		/*
 		 * Even though this test is less costly than the previous ones, doing
 		 * it afterwards allows them to be notified of a mismatch whilst they
@@ -3539,7 +3553,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			 * only happens when a client got banned. Bye bye!
 			 *		-- JA, 19/05/'03
 			 */
-			upload_error_remove_ext(u, reqfile, retry_after, 403,
+			upload_error_remove_ext(u, retry_after, 403,
 				"%s not honoured; removed from PARQ queue",
 				was_actively_queued ?
 					"Minimum retry delay" : "Retry-After");
@@ -3598,7 +3612,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				getline_free(s->getline);
 				s->getline = NULL;
 
-				send_upload_error(u, reqfile, 503,
+				send_upload_error(u, 503,
 					  "Queued (slot %d, ETA: %s)",
 					  parq_upload_lookup_position(u),
 					  short_time_ascii(parq_upload_lookup_eta(u)));
@@ -3617,9 +3631,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				return;
 			} else
 			if (parq_upload_queue_full(u)) {
-				upload_error_remove(u, reqfile, 503, "Queue full");
+				upload_error_remove(u, 503, "Queue full");
 			} else {
-				upload_error_remove(u, reqfile,	503,
+				upload_error_remove(u, 503,
 					N_("Queued (slot %d, ETA: %s)"),
 					parq_upload_lookup_position(u),
 					short_time_ascii(parq_upload_lookup_eta(u)));
@@ -3628,7 +3642,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
-	if (reqfile && !head_only) {
+	if (u->sf && !head_only) {
 		/*
 		 * Avoid race conditions in case of QUEUE callback answer: they might
 		 * already have got an upload slot since we sent the QUEUE and they
@@ -3638,7 +3652,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 */
 
 		if (!is_followup && !parq_upload_addr_can_proceed(u)) {
-			upload_error_remove(u, reqfile, 503,
+			upload_error_remove(u, 503,
 				"Too many uploads to this IP address (limit=%d)",
 				max_uploads_ip);
 			return;
@@ -3649,7 +3663,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	using_sendfile = use_sendfile(u);
 
-	if (reqfile) {
+	if (u->sf) {
 
 		if (-1 == stat(fpath, &statbuf)) {
 			upload_error_not_found(u, request);
@@ -3669,7 +3683,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				"host %s (%s) requesting more than there is to %u (%s)",
 				host_addr_to_string(s->addr), upload_vendor_str(u),
 				u->file_index, u->name);
-			upload_error_remove(u, NULL, 400, "Requesting Too Much");
+			upload_error_remove(u, 400, "Requesting Too Much");
 			return;
 		}
 
@@ -3701,7 +3715,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * to need a buffer.
 	 */
 
-	if (!using_sendfile || !reqfile) {
+	if (!using_sendfile || !u->sf) {
 		u->bpos = 0;
 		u->bsize = 0;
 
@@ -3755,7 +3769,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Send back HTTP status.
 	 */
 
-	if (reqfile && (u->skip || u->end != (u->file_size - 1))) {
+	if (u->sf && (u->skip || u->end != (u->file_size - 1))) {
 		http_code = 206;
 		http_msg = "Partial Content";
 	} else {
@@ -3774,7 +3788,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * arlready sent for those).
 	 */
 
-	if (reqfile && !head_only && !is_followup && !parq_ul_id_sent(u)) {
+	if (u->sf && !head_only && !is_followup && !parq_ul_id_sent(u)) {
 		cb_parq_arg.u = u;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
@@ -3782,7 +3796,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		hev[hevcnt++].he_arg = &cb_parq_arg;
 	}
 
-	if (reqfile) {
+	if (u->sf) {
 		/*
 		 * Date, Content-Length, etc...
 		 */
@@ -3790,14 +3804,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		cb_status_arg.u = u;
 		cb_status_arg.now = now;
 		cb_status_arg.mtime = mtime;
-		cb_status_arg.sf = reqfile;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_status;
 		hev[hevcnt++].he_arg = &cb_status_arg;
 	}
 
-	if (reqfile) {
+	if (u->sf) {
 		static gchar cd_buf[1024];
 		size_t len, size = sizeof cd_buf;
 		gchar *p = cd_buf;
@@ -3822,7 +3835,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		p += len;
 		size -= len;
 
-		len = url_escape_into(shared_file_name_nfc(reqfile), p, size);
+		len = url_escape_into(shared_file_name_nfc(u->sf), p, size);
 		if ((size_t) -1 != len) {
 			static const gchar term[] = "\"\r\n";
 
@@ -3846,7 +3859,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (sha1) {
 		cb_sha1_arg.u = u;
-		cb_sha1_arg.sf = reqfile;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_sha1_add;
@@ -3909,8 +3921,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		u->bio = bsched_source_add(bws.out, &s->wio,
 			BIO_F_WRITE, upload_writable, u);
 
-	if (reqfile)
-		upload_stats_file_begin(u);
+	if (u->sf)
+		upload_stats_file_begin(u->sf);
 }
 
 static void
@@ -4098,8 +4110,10 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 	/* This upload is complete */
 	if (u->pos > u->end) {
 
-		upload_stats_file_complete(u);
-		u->accounted = TRUE;		/* Called upload_stats_file_complete() */
+		if (u->sf) {
+			upload_stats_file_complete(u->sf, u->end - u->skip + 1);
+			u->accounted = TRUE;	/* Called upload_stats_file_complete() */
+		}
 		upload_completed(u);
 
 		return;
@@ -4311,8 +4325,7 @@ upload_close(void)
 	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
 		gnutella_upload_t *u = sl->data;
 
-		if (UPLOAD_IS_SENDING(u) && !u->browse_host && !u->accounted)
-			upload_stats_file_aborted(u);
+		upload_aborted_file_stats(u);
 		upload_free_resources(u);
 		wfree(u, sizeof *u);
 	}
@@ -4346,7 +4359,9 @@ upload_get_info(gnet_upload_t uh)
     info = walloc(sizeof *info);
 	*info = zero_info;
 
-	if (u->name) {
+	if (u->sf) {
+   		info->name = atom_str_get(shared_file_name_nfc(u->sf));
+	} else if (u->name) {
    		info->name = atom_str_get(lazy_unknown_to_utf8_normalized(u->name,
 						UNI_NORM_GUI, NULL));
 	}
@@ -4411,6 +4426,35 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 			/ delta_time(u->last_update, u->start_date);
 	if (si->avg_bps == 0)
         si->avg_bps++;
+}
+
+GSList *
+upload_get_info_list(void)
+{
+	GSList *sl, *sl_info = NULL;
+
+	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *u = sl->data;
+
+		g_assert(u);
+		sl_info = g_slist_prepend(sl_info, upload_get_info(u->upload_handle));
+	}
+	return g_slist_reverse(sl_info);
+}
+
+void
+upload_free_info_list(GSList **sl_ptr)
+{
+	g_assert(sl_ptr);
+	if (*sl_ptr) {
+		GSList *sl;
+
+		for (sl = *sl_ptr; sl; sl = g_slist_next(sl)) {
+			upload_free_info(sl->data);
+		}
+		g_slist_free(*sl_ptr);
+		*sl_ptr = NULL;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
