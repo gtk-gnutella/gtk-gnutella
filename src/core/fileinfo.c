@@ -158,165 +158,223 @@ enum dl_file_info_field {
 static struct {
 	gchar *arena;			/**< Base arena */
 	gchar *wptr;			/**< Write pointer */
-	gchar *rptr;			/**< Read pointer */
-	gchar *end;				/**< First byte off arena */
-	guint32 size;			/**< Current size of arena */
+	const gchar *rptr;		/**< Read pointer */
+	const gchar *end;		/**< First byte off arena */
+	size_t size;			/**< Current size of arena */
 } tbuf;
 
 #define TBUF_SIZE			512		/**< Initial trailing buffer size */
 #define TBUF_GROW_BITS		9		/**< Growing chunks */
 
-#define TBUF_GROW			(1 << TBUF_GROW_BITS)
+#define TBUF_GROW			((size_t) 1 << TBUF_GROW_BITS)
 #define TBUF_GROW_MASK		(TBUF_GROW - 1)
 
-#define round_grow(x)		\
-	((guint32) (((guint32) (x) + TBUF_GROW_MASK) & ~TBUF_GROW_MASK))
-
-static inline void *
-trunc_int32(void *ptr)
+static inline size_t
+round_grow(size_t x)
 {
-	return cast_uintptr_to_ptr(cast_ptr_to_uintptr(ptr) & ~3UL);
-}
-
-static inline gboolean
-int32_aligned(void *ptr)
-{
-	return ptr == trunc_int32(ptr);
+	return (x + TBUF_GROW_MASK) & ~TBUF_GROW_MASK;
 }
 
 /*
  * Low level trailer buffer read/write macros.
  */
 
-#define TBUF_INIT_READ(s) do {			\
-	if ((tbuf.arena + (s)) > tbuf.end)	\
-		tbuf_extend(s, FALSE);			\
-	tbuf.wptr = NULL;					\
-	tbuf.rptr = tbuf.arena;				\
-	tbuf.end = tbuf.arena + (s);		\
-} while (0)
+/**
+ * Make sure there is enough room in the buffer for `x' more bytes.
+ * If `writing' is TRUE, we update the write pointer.
+ */
+static void
+tbuf_extend(size_t x, gboolean writing)
+{
+	size_t new_size = round_grow(x + tbuf.size);
+	size_t offset = tbuf.wptr - tbuf.arena;
 
-#define TBUF_INIT_WRITE() do {			\
-	tbuf.rptr = NULL;					\
-	tbuf.wptr = tbuf.arena;				\
-	tbuf.end = tbuf.arena + tbuf.size;	\
-} while (0)
+	tbuf.arena = g_realloc(tbuf.arena, new_size);
+	tbuf.end = &tbuf.arena[new_size];
+	tbuf.size = new_size;
 
-#define TBUF_WRITTEN_LEN()	(tbuf.wptr - tbuf.arena)
+	if (writing)
+		tbuf.wptr = &tbuf.arena[offset];
+}
 
-#define TBUF_CHECK(x) do {				\
-	if ((tbuf.wptr + (x)) > tbuf.end)	\
-		tbuf_extend(x, TRUE);			\
-} while (0)
+static inline void
+TBUF_INIT_READ(size_t size)
+{
+	if ((size_t) (tbuf.end - tbuf.arena) < size) {
+		tbuf_extend(size, FALSE);
+	}
+	tbuf.wptr = NULL;
+	tbuf.rptr = tbuf.arena;
+	tbuf.end = &tbuf.arena[size];
+}
 
-#define TBUF_GETCHAR(x) do {			\
-	if (tbuf.rptr + sizeof(guint8) <= tbuf.end) { \
-		*x = *(guint8 *) tbuf.rptr;		\
-		tbuf.rptr++;					\
-	} else								\
-		goto eof;						\
-} while (0)
+static inline void
+TBUF_INIT_WRITE(void)
+{
+	tbuf.rptr = NULL;
+	tbuf.wptr = tbuf.arena;
+	tbuf.end = &tbuf.arena[tbuf.size];
+}
 
-#define TBUF_GETINT32(x) do {			\
-	if (tbuf.rptr + sizeof(gint32) <= tbuf.end) { \
-		if (int32_aligned(tbuf.rptr))	\
-			*x = *(gint32 *) tbuf.rptr; \
-		else							\
-			memcpy(x, tbuf.rptr, sizeof(gint32)); \
-		tbuf.rptr += sizeof(gint32);	\
-	} else								\
-		goto eof;						\
-} while (0)
+static inline size_t
+TBUF_WRITTEN_LEN(void)
+{
+	return tbuf.wptr - tbuf.arena;
+}
 
-#define TBUF_READ(x,s) do {				\
-	if ((tbuf.rptr + (s)) <= tbuf.end) { \
-		memcpy(x, tbuf.rptr, s);		\
-		tbuf.rptr += s;					\
-	} else								\
-		goto eof;						\
-} while (0)
+static inline void
+TBUF_CHECK(size_t size)
+{
+	if ((size_t) (tbuf.end - tbuf.wptr) < size)
+		tbuf_extend(size, TRUE);
+}
 
-#define TBUF_PUTCHAR(x) do {			\
-	TBUF_CHECK(sizeof(guint8));			\
-	*(guint8 *) tbuf.wptr = x;			\
-	tbuf.wptr++;						\
-} while (0)
+static WARN_UNUSED_RESULT gboolean
+TBUF_GETCHAR(guint8 *x)
+{
+	if ((size_t) (tbuf.end - tbuf.rptr) >= sizeof *x) {
+		*x = *tbuf.rptr;
+		tbuf.rptr += sizeof *x;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
 
-#define TBUF_PUTINT32(x) do {			\
-	TBUF_CHECK(sizeof(guint32));		\
-	if (int32_aligned(tbuf.wptr))		\
-		*(guint32 *) tbuf.wptr = x;		\
-	else								\
-		memcpy(tbuf.wptr, &x, sizeof(gint32));	\
-	tbuf.wptr += sizeof(gint32);		\
-} while (0)
+static WARN_UNUSED_RESULT gboolean
+TBUF_GET_UINT32(guint32 *x)
+{
+	if ((size_t) (tbuf.end - tbuf.rptr) >= sizeof *x) {
+		memcpy(x, tbuf.rptr, sizeof *x);
+		tbuf.rptr += sizeof *x;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
 
-#define TBUF_WRITE(x,s) do {			\
-	TBUF_CHECK(s);						\
-	memcpy(tbuf.wptr, x, s);			\
-	tbuf.wptr += s;						\
-} while (0)
+static WARN_UNUSED_RESULT gboolean
+TBUF_READ(gchar *x, size_t size)
+{
+	if ((size_t) (tbuf.end - tbuf.rptr) >= size) {
+		memcpy(x, tbuf.rptr, size);
+		tbuf.rptr += size;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+static void
+TBUF_PUT_CHAR(guint8 x)
+{
+	TBUF_CHECK(sizeof x);
+	*tbuf.wptr = x;
+	tbuf.wptr++;
+}
+
+static void
+TBUF_PUT_UINT32(guint32 x)
+{
+	TBUF_CHECK(sizeof x);
+	memcpy(tbuf.wptr, &x, sizeof x);
+	tbuf.wptr += sizeof x;
+}
+
+static void
+TBUF_WRITE(const gchar *data, size_t size)
+{
+	TBUF_CHECK(size);
+	memcpy(tbuf.wptr, data, size);
+	tbuf.wptr += size;
+}
+
+static inline void
+file_info_checksum(guint32 *checksum, gconstpointer data, size_t len)
+{
+	const guchar *p = data;
+	while (len--)
+		*checksum = (*checksum << 1) ^ (*checksum >> 31) ^ *p++;
+}
 
 /*
  * High-level write macros.
  */
 
-#define WRITE_CHAR(a) do {			\
-	guint8 val = a;					\
-	TBUF_PUTCHAR(val);				\
-	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
-} while (0)
+static void
+WRITE_CHAR(guint8 val, guint32 *checksum)
+{
+	TBUF_PUT_CHAR(val);
+	file_info_checksum(checksum, &val, sizeof val);
+}
 
-#define WRITE_INT32(a) do {			\
-	gint32 val = htonl(a);			\
-	TBUF_PUTINT32(val);				\
-	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
-} while(0)
+static void
+WRITE_UINT32(guint32 val, guint32 *checksum)
+{
+	val = htonl(val);
+	TBUF_PUT_UINT32(val);
+	file_info_checksum(checksum, &val, sizeof val);
+}
 
-#define WRITE_UINT32(a) do {			\
-	guint32 val = htonl(a);			\
-	TBUF_PUTINT32(val);				\
-	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
-} while(0)
-
-#define WRITE_STR(a, b) do {		\
-	TBUF_WRITE(a, b);				\
-	file_info_checksum(&checksum, (gchar *) a, b); \
-} while(0)
+static void
+WRITE_STR(const gchar *data, size_t size, guint32 *checksum)
+{
+	TBUF_WRITE(data, size);
+	file_info_checksum(checksum, data, size);
+}
 
 /*
  * High-level read macros.
  */
 
-#define READ_CHAR(a) do {			\
-	guint8 val;						\
-	TBUF_GETCHAR(&val);				\
-	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
-} while(0)
+static WARN_UNUSED_RESULT gboolean
+READ_CHAR(guint8 *val, guint32 *checksum)
+{
+	if (TBUF_GETCHAR(val)) {
+		file_info_checksum(checksum, val, sizeof *val);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
 
-#define READ_INT32(a) do {			\
-	gint32 val;						\
-	TBUF_GETINT32(&val);			\
-	STATIC_ASSERT(sizeof val <= sizeof(*a)); \
-	*a = ntohl(val);				\
-	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
-} while(0)
+static WARN_UNUSED_RESULT gboolean
+READ_UINT32(guint32 *val_ptr, guint32 *checksum)
+{
+	guint32 val;
+	
+	if (TBUF_GET_UINT32(&val)) {
+		*val_ptr = ntohl(val);
+		file_info_checksum(checksum, &val, sizeof val);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
 
-#define READ_STR(a, b) do {			\
-	TBUF_READ(a, b);				\
-	file_info_checksum(&checksum, (gchar *) a, b); \
-} while(0)
+static WARN_UNUSED_RESULT gboolean
+READ_STR(gchar *data, size_t size, guint32 *checksum)
+{
+	if (TBUF_READ(data, size)) {
+		file_info_checksum(checksum, data, size);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
 
 /*
  * Addition of a variable-size trailer field.
  */
 
-#define FIELD_ADD(a,b,c) do {		\
-	guint32 l = (b);				\
-	WRITE_INT32(a);					\
-	WRITE_INT32(l);					\
-	WRITE_STR(c, l);				\
-} while(0)
+static void
+FIELD_ADD(enum dl_file_info_field id, size_t n, gconstpointer data,
+	guint32 *checksum)
+{
+	WRITE_UINT32(id, checksum);
+	WRITE_UINT32(n, checksum);
+	WRITE_STR(data, n, checksum);
+}
 
 /**
  * The trailer fields of the fileinfo trailer.
@@ -335,7 +393,7 @@ static fileinfo_t *file_info_retrieve_binary(
 static void fi_free(fileinfo_t *fi);
 static void file_info_hash_remove(fileinfo_t *fi);
 static void fi_update_seen_on_network(gnet_src_t srcid);
-static gchar *file_info_new_outname(const gchar *name, const gchar *dir);
+static const gchar *file_info_new_outname(const gchar *name, const gchar *dir);
 static gboolean looks_like_urn(const gchar *filename);
 
 static idtable_t *fi_handle_map = NULL;
@@ -370,24 +428,6 @@ trailer_is_64bit(const struct trailer *tb)
 }
 
 /**
- * Make sure there is enough room in the buffer for `x' more bytes.
- * If `writing' is TRUE, we update the write pointer.
- */
-static void
-tbuf_extend(guint32 x, gboolean writing)
-{
-	gint new_size = round_grow(x + tbuf.size);
-	gint offset = tbuf.wptr - tbuf.arena;
-
-	tbuf.arena = g_realloc(tbuf.arena, new_size);
-	tbuf.end = tbuf.arena + new_size;
-	tbuf.size = new_size;
-
-	if (writing)
-		tbuf.wptr = tbuf.arena + offset;
-}
-
-/**
  * Write trailer buffer at current position on `fd', whose name is `name'.
  */
 static void
@@ -414,21 +454,14 @@ tbuf_write(const struct file_object *fo, filesize_t offset)
  *
  * @returns -1 on error.
  */
-static gint
-tbuf_read(gint fd, gint len)
+static ssize_t
+tbuf_read(gint fd, size_t len)
 {
 	g_assert(fd >= 0);
 
 	TBUF_INIT_READ(len);
 
 	return read(fd, tbuf.arena, len);
-}
-
-static inline void
-file_info_checksum(guint32 *checksum, gchar *d, int len)
-{
-	while (len--)
-		*checksum = (*checksum << 1) ^ (*checksum >> 31) ^ (guchar) *d++;
 }
 
 /**
@@ -500,33 +533,33 @@ file_info_fd_store_binary(fileinfo_t *fi,
 		return;
 
 	TBUF_INIT_WRITE();
-	WRITE_INT32(FILE_INFO_VERSION);
+	WRITE_UINT32(FILE_INFO_VERSION, &checksum);
 
 	/*
 	 * Emit leading binary fields.
 	 */
 
-	WRITE_INT32(fi->ctime);				/* Introduced at: version 4 */
-	WRITE_INT32(fi->ntime);				/* version 4 */
-	WRITE_CHAR(fi->file_size_known);	/* Introduced at: version 5 */
+	WRITE_UINT32(fi->ctime, &checksum);	/* Introduced at: version 4 */
+	WRITE_UINT32(fi->ntime, &checksum);			/* version 4 */
+	WRITE_CHAR(fi->file_size_known, &checksum);	/* Introduced at: version 5 */
 
 	/*
 	 * Emit variable-length fields.
 	 */
 
-	FIELD_ADD(FILE_INFO_FIELD_GUID, GUID_RAW_SIZE, fi->guid);
+	FIELD_ADD(FILE_INFO_FIELD_GUID, GUID_RAW_SIZE, fi->guid, &checksum);
 
 	if (fi->sha1)
-		FIELD_ADD(FILE_INFO_FIELD_SHA1, SHA1_RAW_SIZE, fi->sha1);
+		FIELD_ADD(FILE_INFO_FIELD_SHA1, SHA1_RAW_SIZE, fi->sha1, &checksum);
 
 	if (fi->cha1)
-		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1);
+		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1, &checksum);
 
 	for (a = fi->alias; a; a = a->next) {
 		gint len = strlen(a->data);		/* Do not store the trailing NUL */
 		g_assert(len >= 0);
 		if (len < FI_MAX_FIELD_LEN)
-			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, a->data);
+			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, a->data, &checksum);
 	}
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
@@ -541,23 +574,23 @@ file_info_fd_store_binary(fileinfo_t *fi,
 		chunk[2] = htonl(to_hi),
 		chunk[3] = htonl((guint32) fc->to),
 		chunk[4] = htonl(fc->status);
-		FIELD_ADD(FILE_INFO_FIELD_CHUNK, sizeof chunk, chunk);
+		FIELD_ADD(FILE_INFO_FIELD_CHUNK, sizeof chunk, chunk, &checksum);
 	}
 
 	fi->generation++;
 
-	WRITE_INT32(FILE_INFO_FIELD_END);
+	WRITE_UINT32(FILE_INFO_FIELD_END, &checksum);
 
 	STATIC_ASSERT((guint64) -1 >= (filesize_t) -1);
-	WRITE_INT32((guint32) ((guint64) fi->size >> 32));
-	WRITE_INT32((guint32) fi->size);
-	WRITE_INT32(fi->generation);
+	WRITE_UINT32((guint64) fi->size >> 32, &checksum);
+	WRITE_UINT32(fi->size, &checksum);
+	WRITE_UINT32(fi->generation, &checksum);
 
 	length = TBUF_WRITTEN_LEN() + 3 * sizeof(guint32);
 
-	WRITE_INT32(length);				/* Total trailer size */
-	WRITE_INT32(checksum);
-	WRITE_UINT32(FILE_INFO_MAGIC64);
+	WRITE_UINT32(length, &checksum);				/* Total trailer size */
+	WRITE_UINT32(checksum, &checksum);
+	WRITE_UINT32(FILE_INFO_MAGIC64, &checksum);
 
 	/* Flush buffer at current position */
 	tbuf_write(fo, fi->size);
@@ -740,7 +773,7 @@ fi_free(fileinfo_t *fi)
 		GSList *sl;
 
 		for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
-			gchar *s = sl->data;
+			const gchar *s = sl->data;
 			atom_str_free_null(&s);
 		}
 		g_slist_free(fi->alias);
@@ -786,7 +819,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 		} else {
 			namesize_t *ns = namesize_make(nsk.name, nsk.size);
 			slist = g_slist_append(slist, fi);
-			g_hash_table_insert(fi_by_namesize, ns, slist);
+			gm_hash_table_insert_const(fi_by_namesize, ns, slist);
 		}
 	}
 
@@ -797,7 +830,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 	 * all the `fi' structs with the same size!
 	 */
 
-	g_assert(*(const filesize_t *) fi->size_atom == fi->size);
+	g_assert(*fi->size_atom == fi->size);
 
 	sl = g_hash_table_lookup(fi_by_size, fi->size_atom);
 	g_assert(!gm_slist_is_looping(sl));
@@ -809,7 +842,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 	} else {
 		sl = g_slist_append(sl, fi);
 		g_assert(NULL != sl);
-		g_hash_table_insert(fi_by_size, fi->size_atom, sl);
+		gm_hash_table_insert_const(fi_by_size, fi->size_atom, sl);
 	}
 	g_assert(!gm_slist_is_looping(sl));
 	g_assert(!g_slist_find(sl, NULL));
@@ -879,14 +912,15 @@ fi_alias(fileinfo_t *fi, const gchar *name, gboolean record)
 		 * Insert new alias for `fi'.
 		 */
 
-		fi->alias = g_slist_append(fi->alias, atom_str_get(name));
+		fi->alias = g_slist_append(fi->alias,
+						deconstify_gchar(atom_str_get(name)));
 
 		if (record) {
 			if (NULL != list)
 				list = g_slist_append(list, fi);
 			else {
 				list = g_slist_append(list, fi);
-				g_hash_table_insert(fi_by_namesize, ns, list);
+				gm_hash_table_insert_const(fi_by_namesize, ns, list);
 				ns = NULL; /* Prevent freeing */
 			}
 		}
@@ -1288,7 +1322,7 @@ file_info_shared_sha1(const gchar *sha1)
  *
  * @return a GUID atom, refcount incremented already.
  */
-static gchar *
+static const gchar *
 fi_random_guid_atom(void)
 {
 	gchar xuid[GUID_RAW_SIZE];
@@ -1433,7 +1467,8 @@ G_STMT_START {				\
 	}
 
 	/* Check version */
-	READ_INT32(&version);
+	if (!READ_UINT32(&version, &checksum))
+		goto eof;
 	if ((t64 && version > FILE_INFO_VERSION) || (!t64 && version > 5)) {
 		g_warning("file_info_retrieve_binary(): strange version; %u", version);
 		goto eof;
@@ -1456,12 +1491,22 @@ G_STMT_START {				\
 	 */
 
 	if (version >= 4) {
-		READ_INT32(&fi->ctime);
-		READ_INT32(&fi->ntime);
+		guint32 val;
+
+		if (!READ_UINT32(&val, &checksum))
+			goto eof;
+		fi->ctime = val;
+		if (!READ_UINT32(&val, &checksum))
+			goto eof;
+		fi->ntime = val;
 	}
 
-	if (version >= 5)
-		READ_CHAR(&fi->file_size_known);
+	if (version >= 5) {
+		guint8 c;
+		if (!READ_CHAR(&c, &checksum))
+			goto eof;
+		fi->file_size_known = 0 != c;
+	}
 
 	/*
 	 * Read variable-length fields.
@@ -1469,12 +1514,14 @@ G_STMT_START {				\
 
 	for (;;) {
 		tmpguint = FILE_INFO_FIELD_END; /* in case read() fails. */
-		READ_INT32(&tmpguint);				/* Read a field ID */
+		if (!READ_UINT32(&tmpguint, &checksum))		/* Read a field ID */
+			goto eof;
 		if (FILE_INFO_FIELD_END == tmpguint)
 			break;
 		field = tmpguint;
 
-		READ_INT32(&tmpguint);				/* Read field data length */
+		if (!READ_UINT32(&tmpguint, &checksum))	/* Read field data length */
+			goto eof;
 
 		if (0 == tmpguint) {
 			gm_snprintf(tmp, sizeof tmp, "field #%d has zero size", field);
@@ -1491,7 +1538,8 @@ G_STMT_START {				\
 
 		g_assert(tmpguint < sizeof tmp);
 
-		READ_STR(tmp, tmpguint);
+		if (!READ_STR(tmp, tmpguint, &checksum))
+			goto eof;
 		tmp[tmpguint] = '\0';				/* Did not store trailing NUL */
 
 		switch (field) {
@@ -1614,12 +1662,18 @@ G_STMT_START {				\
 	 */
 
 	/* file size */
-	if (t64)
-		READ_INT32(&tmpguint);	/* Upper 32 bits since version 6 */
-	READ_INT32(&tmpguint);		/* Lower bits */
+	if (t64) {
+		/* Upper 32 bits since version 6 */
+		if (!READ_UINT32(&tmpguint, &checksum))
+			goto eof;
+	}
+	if (!READ_UINT32(&tmpguint, &checksum))		/* Lower bits */
+		goto eof;
 
-	READ_INT32(&tmpguint);			/* generation number */
-	READ_INT32(&tmpguint);			/* trailer length */
+	if (!READ_UINT32(&tmpguint, &checksum))		/* generation number */
+		goto eof;
+	if (!READ_UINT32(&tmpguint, &checksum))		/* trailer length */
+		goto eof;
 
 	if (checksum != trailer.checksum) {
 		BAILOUT("checksum mismatch");
@@ -2052,7 +2106,7 @@ file_info_hash_insert(fileinfo_t *fi)
 		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
 
 	if (NULL == xfi)
-		g_hash_table_insert(fi_by_outname, fi->file_name, fi);
+		gm_hash_table_insert_const(fi_by_outname, fi->file_name, fi);
 
 	/*
 	 * Likewise, there can be only ONE entry per given SHA1, but the SHA1
@@ -2068,7 +2122,7 @@ file_info_hash_insert(fileinfo_t *fi)
 			g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
 
 		if (NULL == xfi)
-			g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
+			gm_hash_table_insert_const(fi_by_sha1, fi->sha1, fi);
 	}
 
 	if (fi->file_size_known) {
@@ -2086,7 +2140,7 @@ transient:
 		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
 
 	if (NULL == xfi)
-		g_hash_table_insert(fi_by_guid, fi->guid, fi);
+		gm_hash_table_insert_const(fi_by_guid, fi->guid, fi);
 
 	/*
 	 * Notify interested parties, update counters.
@@ -2184,7 +2238,7 @@ file_info_hash_remove(fileinfo_t *fi)
 				g_hash_table_remove(fi_by_namesize, ns);
 				namesize_free(ns);
 			} else if (head != slist) {
-				g_hash_table_insert(fi_by_namesize, ns, slist);
+				gm_hash_table_insert_const(fi_by_namesize, ns, slist);
 				/* Head changed */
 			}
 		}
@@ -2209,7 +2263,7 @@ file_info_hash_remove(fileinfo_t *fi)
 		if (NULL == head) {
 			g_hash_table_remove(fi_by_size, fi->size_atom);
 		} else if (head != sl) {
-			g_hash_table_insert(fi_by_size, fi->size_atom, head);
+			gm_hash_table_insert_const(fi_by_size, fi->size_atom, head);
 		}
 		g_assert(!gm_slist_is_looping(head));
 		g_assert(!g_slist_find(head, NULL));
@@ -2333,7 +2387,7 @@ file_info_got_sha1(fileinfo_t *fi, const gchar *sha1)
 
 	if (NULL == xfi) {
 		fi->sha1 = atom_sha1_get(sha1);
-		g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
+		gm_hash_table_insert_const(fi_by_sha1, fi->sha1, fi);
 		return TRUE;
 	}
 
@@ -2380,7 +2434,7 @@ file_info_got_sha1(fileinfo_t *fi, const gchar *sha1)
 		g_assert(0 == xfi->done);
 		fi->sha1 = atom_sha1_get(sha1);
 		file_info_reparent_all(xfi, fi);	/* All `xfi' replaced by `fi' */
-		g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
+		gm_hash_table_insert_const(fi_by_sha1, fi->sha1, fi);
 	} else {
 		g_assert(0 == fi->done);
 		file_info_reparent_all(fi, xfi);	/* All `fi' replaced by `xfi' */
@@ -2393,7 +2447,7 @@ file_info_got_sha1(fileinfo_t *fi, const gchar *sha1)
  * Extract GUID from GUID line in the ASCII "fileinfo" summary file
  * and return NULL if none or invalid, the GUID atom otherwise.
  */
-static gchar *
+static const gchar *
 extract_guid(const gchar *s)
 {
 	gchar guid[GUID_RAW_SIZE];
@@ -2411,7 +2465,7 @@ extract_guid(const gchar *s)
  * Extract sha1 from SHA1/CHA1 line in the ASCII "fileinfo" summary file
  * and return NULL if none or invalid, the SHA1 atom otherwise.
  */
-static gchar *
+static const gchar *
 extract_sha1(const gchar *s)
 {
 	gchar sha1[SHA1_RAW_SIZE];
@@ -2562,7 +2616,7 @@ file_info_retrieve(void)
 	gboolean empty = TRUE;
 	gboolean last_was_truncated = FALSE;
 	file_path_t fp;
-	gchar *old_filename = NULL;		/* In case we must rename the file */
+	const gchar *old_filename = NULL;	/* In case we must rename the file */
 
 	/*
 	 * We have a complex interaction here: each time a new entry within the
@@ -2702,7 +2756,7 @@ file_info_retrieve(void)
 			 */
 
 			if (NULL != old_filename) {
-				gchar *new_filename;
+				const gchar *new_filename;
 				gchar *old_pathname;
 				gchar *new_pathname;
 				gboolean renamed = TRUE;
@@ -2861,7 +2915,7 @@ file_info_retrieve(void)
 				aliases = g_slist_reverse(fi->alias);
 				fi->alias = NULL;
 				for (sl = aliases; NULL != sl; sl = g_slist_next(sl)) {
-					gchar *s = sl->data;
+					const gchar *s = sl->data;
 					fi_alias(fi, s, TRUE);
 					atom_str_free_null(&s);
 				}
@@ -2946,7 +3000,8 @@ file_info_retrieve(void)
 				 * utilizing fi_free().
 				 * The list should be reversed once it's complete.
 				 */
-				fi->alias = g_slist_prepend(fi->alias, atom_str_get(s));
+				fi->alias = g_slist_prepend(fi->alias,
+								deconstify_gchar(atom_str_get(s)));
 				if (s != value) {
 					if (strcmp(s, value)) {
 						g_warning("fileinfo database contained an "
@@ -3105,10 +3160,11 @@ file_info_name_is_uniq(const gchar *pathname)
  *
  * @returns filename atom.
  */
-static gchar *
+static const gchar *
 file_info_new_outname(const gchar *name, const gchar *dir)
 {
-	gchar *result, *to_free = NULL;
+	const gchar *result;
+	gchar *to_free = NULL;
 
 	{
 		gchar *s;
@@ -3186,7 +3242,7 @@ file_info_new_outname(const gchar *name, const gchar *dir)
  * The `sha1' is the known SHA1 for the file (NULL if unknown).
  */
 static fileinfo_t *
-file_info_create(gchar *file, const gchar *path, filesize_t size,
+file_info_create(const gchar *file, const gchar *path, filesize_t size,
 	const gchar *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
@@ -3324,7 +3380,8 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	const gchar *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
-	gchar *outname, *to_free = NULL;
+	const gchar *outname;
+   	gchar *to_free = NULL;
 
 	/*
 	 * See if we know anything about the file already.
@@ -3476,7 +3533,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
  * and NULL otherwise.
  */
 fileinfo_t *
-file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
+file_info_has_identical(const gchar *file, filesize_t size, const gchar *sha1)
 {
 	GSList *p;
 	GSList *sizelist;
@@ -4806,7 +4863,8 @@ fi_get_info(gnet_fi_t fih)
 
 		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
 			const gchar *alias = sl->data;
-			info->aliases = g_slist_prepend(info->aliases, atom_str_get(alias));
+			info->aliases = g_slist_prepend(info->aliases,
+								deconstify_gchar(atom_str_get(alias)));
 		}
 	}
 
@@ -4828,7 +4886,7 @@ fi_free_info(gnet_fi_info_t *info)
 	atom_sha1_free_null(&info->sha1);
 
 	for (sl = info->aliases; NULL != sl; sl = g_slist_next(sl)) {
-		gchar *s = sl->data;
+		const gchar *s = sl->data;
 		atom_str_free_null(&s);
 	}
 	g_slist_free(info->aliases);
