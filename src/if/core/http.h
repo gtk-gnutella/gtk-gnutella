@@ -53,7 +53,7 @@ typedef struct http_range {
 	filesize_t end;				/**< HTTP_OFFSET_MAX if unbounded */
 } http_range_t;
 
-#define HTTP_OFFSET_MAX	(~((filesize_t) 0U))
+#define HTTP_OFFSET_MAX	((filesize_t) -1)
 
 /*
  * Public interface, visible from the bridge.
