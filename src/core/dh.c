@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "gnet_stats.h"
 
 #include "lib/atoms.h"
+#include "lib/glib-missing.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
