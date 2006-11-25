@@ -51,14 +51,54 @@ RCSID("$Id$")
 #include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GLIB1
-static GMemVTable gm_vtable = {
-	malloc,			/* malloc */
-	realloc,		/* realloc */
-	free,			/* free */
-	calloc,			/* calloc */
-	malloc,			/* try_malloc */
-	realloc,		/* try_realloc */
-};
+static GMemVTable gm_vtable;
+
+#define GM_VTABLE_METHOD(method, params) \
+	(gm_vtable.method ? (gm_vtable.method params) : (method params))
+
+static inline ALWAYS_INLINE gpointer
+gm_malloc(gulong size)
+{
+	return GM_VTABLE_METHOD(malloc, (size));
+}
+
+static inline ALWAYS_INLINE gpointer
+gm_malloc0(gulong size)
+{
+	return GM_VTABLE_METHOD(calloc, (1, size));
+}
+
+static inline ALWAYS_INLINE gpointer
+gm_realloc(gpointer p, gulong size)
+{
+	return GM_VTABLE_METHOD(realloc, (p, size));
+}
+
+static inline ALWAYS_INLINE void
+gm_free(gpointer p)
+{
+	return GM_VTABLE_METHOD(free, (p));
+}
+
+static inline ALWAYS_INLINE gpointer
+gm_try_malloc(gulong size)
+{
+	if (gm_vtable.try_malloc) {
+		return gm_vtable.try_malloc(size);
+	} else {
+		return GM_VTABLE_METHOD(malloc, (size));
+	}
+}
+
+static inline ALWAYS_INLINE gpointer
+gm_try_realloc(gpointer p, gulong size)
+{
+	if (gm_vtable.try_realloc) {
+		return gm_vtable.try_realloc(p, size);
+	} else {
+		return GM_VTABLE_METHOD(realloc, (p, size));
+	}
+}
 
 /***
  *** Remap g_malloc() and friends to be able to emulate g_mem_set_vtable()
@@ -74,7 +114,7 @@ g_malloc(gulong size)
 	if (size == 0)
 		return NULL;
 
-	p = gm_vtable.malloc(size);
+	p = gm_malloc(size);
 
 	if (p)
 		return p;
@@ -91,7 +131,7 @@ g_malloc0(gulong size)
 	if (size == 0)
 		return NULL;
 
-	p = gm_vtable.malloc(size);
+	p = gm_malloc(size);
 
 	if (p) {
 		memset(p, 0, size);
@@ -108,11 +148,11 @@ g_realloc(gpointer p, gulong size)
 	gpointer n;
 
 	if (size == 0) {
-		gm_vtable.free(p);
+		gm_free(p);
 		return NULL;
 	}
 
-	n = gm_vtable.realloc(p, size);
+	n = gm_realloc(p, size);
 
 	if (n)
 		return n;
@@ -124,19 +164,19 @@ g_realloc(gpointer p, gulong size)
 void
 g_free(gpointer p)
 {
-	gm_vtable.free(p);
+	gm_free(p);
 }
 
 gpointer
 g_try_malloc(gulong size)
 {
-	return size > 0 ? gm_vtable.try_malloc(size) : NULL;
+	return size > 0 ? gm_try_malloc(size) : NULL;
 }
 
 gpointer
 g_try_realloc(gpointer p, gulong size)
 {
-	return size > 0 ? gm_vtable.try_realloc(p, size) : NULL;
+	return size > 0 ? gm_try_realloc(p, size) : NULL;
 }
 
 /**
@@ -149,7 +189,7 @@ emulate_calloc(gsize n, gsize m)
 
 	if (n > 0 && m > 0 && m < ((size_t) -1) / n) {
 		size_t size = n * m;
-		p = gm_vtable.malloc(size);
+		p = gm_malloc(size);
 		memset(p, 0, size);
 	} else {
 		p = NULL;
@@ -185,7 +225,7 @@ g_mem_set_vtable(GMemVTable *vtable)
 gboolean
 g_mem_is_system_malloc(void)
 {
-	return gm_vtable.malloc == malloc;
+	return !gm_vtable.malloc;
 }
 #endif	/* USE_GLIB1 */
 

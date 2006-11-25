@@ -46,8 +46,6 @@
 
 RCSID("$Id$")
 
-#include <assert.h>
-
 #include "halloc.h"
 #include "hashtable.h"
 #include "misc.h"
@@ -183,6 +181,26 @@ hdestroy(void)
 	}
 }
 
+#ifndef USE_MALLOC
+gpointer
+gm_malloc(gsize size)
+{
+	return halloc(size);
+}
+
+gpointer
+gm_realloc(gpointer p, gsize size)
+{
+	return hrealloc(p, size);
+}
+
+void
+gm_free(gpointer p)
+{
+	hfree(p);
+}
+#endif	/* USE_MALLOC */
+
 void
 halloc_init(void)
 {
@@ -193,9 +211,9 @@ halloc_init(void)
 	{
 		static GMemVTable vtable;
 
-		vtable.malloc = halloc;
-		vtable.realloc = hrealloc;
-		vtable.free = hfree;
+		vtable.malloc = gm_malloc;
+		vtable.realloc = gm_realloc;
+		vtable.free = gm_free;
 
 		g_mem_set_vtable(&vtable);
 	}
