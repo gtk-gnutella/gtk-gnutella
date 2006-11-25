@@ -358,12 +358,12 @@ tls_cache_remove_oldest(void)
 void
 tls_cache_insert_intern(const struct tls_cache_item *item)
 {
-	gpointer key;
+	gconstpointer key;
 
 	g_return_if_fail(item);
 
 	if (hash_list_contains(tls_hosts, item, &key)) {
-		struct tls_cache_item *item_ptr = key;
+		struct tls_cache_item *item_ptr = deconstify_gpointer(key);
 
 		/* We'll move the host to the end of the list */
 		hash_list_remove(tls_hosts, item_ptr);
@@ -406,12 +406,12 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 {
 	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {
 		struct tls_cache_item item;
-		gpointer key;
+		gconstpointer key;
 
 		item.host.addr = addr;
 		item.host.port = port;
 		if (hash_list_contains(tls_hosts, &item, &key)) {
-			struct tls_cache_item *item_ptr = key;
+			struct tls_cache_item *item_ptr = deconstify_gpointer(key);
 			time_t now = tm_time();
 			time_delta_t upper_limit = tls_cache_max_time;
 			
