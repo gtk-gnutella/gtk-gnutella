@@ -85,7 +85,7 @@ static void
 init_kernel_pagesize(void)
 {
 	kernel_pagesize = compat_pagesize();
-	g_assert(is_pow2(kernel_pagesize));
+	RUNTIME_ASSERT(is_pow2(kernel_pagesize));
 	kernel_pagemask = kernel_pagesize - 1;
 	kernel_pageshift = ffs(kernel_pagesize) - 1;
 }
@@ -151,11 +151,11 @@ compat_pagesize(void)
 		
 		initialized = TRUE;
 		n = compat_pagesize_intern();
-		g_assert(n > 0);
-		g_assert(n < INT_MAX);
-		g_assert(is_pow2(n));
+		RUNTIME_ASSERT(n > 0);
+		RUNTIME_ASSERT(n < INT_MAX);
+		RUNTIME_ASSERT(is_pow2(n));
 		psize = n;
-		g_assert((size_t) psize == (size_t) n);
+		RUNTIME_ASSERT((size_t) psize == (size_t) n);
 	}
 
 	return psize;
@@ -175,11 +175,11 @@ vmm_mmap_anonymous(size_t size)
 #else
 	if (-1 == fd)
 		fd = open("/dev/zero", O_RDWR, 0);
-	g_return_val_if_fail(fd >= 0, NULL);
+	return_value_unless(fd >= 0, NULL);
 #endif	/* MAP_ANON */
 
 	p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
-	g_return_val_if_fail(MAP_FAILED != p, NULL);
+	return_value_unless(MAP_FAILED != p, NULL);
 	return p;
 }
 #else	/* !HAS_MMAP */
@@ -201,6 +201,8 @@ vmm_memalign(size_t align, size_t size)
 #elif defined(HAS_MEMALIGN)
 	p = memalign(align, size);
 #else
+	(void) align;
+	(void) size;
 	p = NULL;
 #endif	/* HAS_POSIX_MEMALIGN */
 	return p;
@@ -218,12 +220,12 @@ alloc_pages_intern(size_t size)
 {
 	void *p;
 
-	g_assert(kernel_pagesize > 0);		/* Computed by round_pagesize_fast() */
+	RUNTIME_ASSERT(kernel_pagesize > 0);		/* Computed by round_pagesize_fast() */
 
 #if !defined(HAS_MMAP) && !defined(HAS_POSIX_MEMALIGN) && !defined(HAS_MEMALIGN)
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 	p = NULL;
-	g_assert_not_reached();
+	RUNTIME_UNREACHABLE();
 #endif	/* !(HAS_MMAP || HAS_POSIX_MEMALIGN || HAS_MEMALIGN) */
 
 	p = vmm_mmap_anonymous(size);
@@ -231,10 +233,10 @@ alloc_pages_intern(size_t size)
 		p = vmm_memalign(kernel_pagesize, size);
 	}
 
-	g_return_val_if_fail(NULL != p, NULL);
+	return_value_unless(NULL != p, NULL);
 	
 	if (round_pagesize_fast((size_t) p) != (size_t) p) {
-		g_error("Aligned memory required");
+		RUNTIME_ASSERT(!"Aligned memory required");
 	}
 	return p;
 }
@@ -242,8 +244,8 @@ alloc_pages_intern(size_t size)
 void
 vmm_madvise_normal(void *p, size_t size)
 {
-	g_assert(p);
-	g_assert(size > 0);
+	RUNTIME_ASSERT(p);
+	RUNTIME_ASSERT(size > 0);
 #if defined(HAS_MADVISE) && defined(MADV_NORMAL)
 	madvise(p, size, MADV_NORMAL);
 #endif	/* MADV_NORMAL */
@@ -252,8 +254,8 @@ vmm_madvise_normal(void *p, size_t size)
 void
 vmm_madvise_sequential(void *p, size_t size)
 {
-	g_assert(p);
-	g_assert(size > 0);
+	RUNTIME_ASSERT(p);
+	RUNTIME_ASSERT(size > 0);
 #if defined(HAS_MADVISE) && defined(MADV_SEQUENTIAL)
 	madvise(p, size, MADV_SEQUENTIAL);
 #endif	/* MADV_SEQUENTIAL */
@@ -262,8 +264,8 @@ vmm_madvise_sequential(void *p, size_t size)
 void
 vmm_madvise_free(void *p, size_t size)
 {
-	g_assert(p);
-	g_assert(size > 0);
+	RUNTIME_ASSERT(p);
+	RUNTIME_ASSERT(size > 0);
 #if defined(HAS_MADVISE) && defined(MADV_FREE)
 	madvise(p, size, MADV_FREE);
 #elif defined(HAS_MADVISE) && defined(MADV_DONTNEED)
@@ -274,8 +276,8 @@ vmm_madvise_free(void *p, size_t size)
 void
 vmm_madvise_willneed(void *p, size_t size)
 {
-	g_assert(p);
-	g_assert(size > 0);
+	RUNTIME_ASSERT(p);
+	RUNTIME_ASSERT(size > 0);
 #if defined(HAS_MADVISE) && defined(MADV_WILLNEED)
 	madvise(p, size, MADV_WILLNEED);
 #endif	/* MADV_WILLNEED */
@@ -284,8 +286,8 @@ vmm_madvise_willneed(void *p, size_t size)
 static void
 vmm_validate_pages(void *p, size_t size)
 {
-	g_assert(p);
-	g_assert(size > 0);
+	RUNTIME_ASSERT(p);
+	RUNTIME_ASSERT(size > 0);
 #ifdef VMM_INVALIDATE_FREE_PAGES 
 	mprotect(p, size, PROT_READ | PROT_WRITE);
 	vmm_madvise_normal(p, size);
@@ -295,8 +297,8 @@ vmm_validate_pages(void *p, size_t size)
 static void
 vmm_invalidate_pages(void *p, size_t size)
 {
-	g_assert(p);
-	g_assert(size > 0);
+	RUNTIME_ASSERT(p);
+	RUNTIME_ASSERT(size > 0);
 #ifdef VMM_INVALIDATE_FREE_PAGES 
 	mprotect(p, size, PROT_NONE);
 	vmm_madvise_free(p, size);
@@ -313,7 +315,7 @@ alloc_pages(size_t size)
 {
 	size_t n;
 
-	g_assert(size > 0);
+	RUNTIME_ASSERT(size > 0);
 	
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size) - 1;
@@ -355,7 +357,7 @@ alloc_pages(size_t size)
 				max_cached *= 2;	/* We will halve the pages */
 				base = alloc_pages(size * 2);
 			}
-			g_assert(NULL != base);	/* Out of memory */
+			RUNTIME_ASSERT(NULL != base);	/* Out of memory */
 	
 			/*
 			 * Split the big chunk into segments by freeing the pages from
@@ -371,7 +373,7 @@ alloc_pages(size_t size)
 		}
 	} else {
 		void *p = alloc_pages_intern(size);
-		g_assert(NULL != p);	/* Out of memory */
+		RUNTIME_ASSERT(NULL != p);	/* Out of memory */
 		return p;
 	}
 }
@@ -380,16 +382,19 @@ static void
 free_pages_intern(void *p, size_t size)
 {
 #if defined(HAS_MMAP)
-	if (-1 == munmap(p, size))
-		g_warning("munmap(0x%lx, %ld) failed: %s",
-			(unsigned long) p, (unsigned long) size, g_strerror(errno));
+	{
+		int ret;
+
+		ret = munmap(p, size);
+		return_unless(0 == ret);
+	}
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
 	(void) size;
 	free(p);
 #else
 	(void) p;
 	(void) size;
-	g_assert_not_reached();
+	RUNTIME_UNREACHABLE();
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 }
 
@@ -399,12 +404,12 @@ free_pages_intern(void *p, size_t size)
 void
 free_pages(void *p, size_t size)
 {
-	g_assert(0 == size || p);
+	RUNTIME_ASSERT(0 == size || p);
 
 	if (p) {
 		size_t n, max_cached;
 
-		g_assert(round_pagesize_fast((size_t) p) == (size_t) p);
+		RUNTIME_ASSERT(round_pagesize_fast((size_t) p) == (size_t) p);
 
 		/*
 		 * We cache 512 4KiB pages for instance, but only 256 8KiB pages,
@@ -415,7 +420,7 @@ free_pages(void *p, size_t size)
 
 		size = round_pagesize_fast(size);
 		n = pagecount_fast(size);
-		g_assert(n >= 1);
+		RUNTIME_ASSERT(n >= 1);
 		max_cached = G_N_ELEMENTS(page_cache[0].stack) / n;
 		n--;
 
@@ -459,13 +464,13 @@ prune_page_cache(void)
 			time_delta_t d = delta_time(now, page_cache[n].stack[i].stamp);
 			if (d < page_cache_prune_timeout)
 				break;
-			g_assert(page_cache[n].stack[i].addr);
+			RUNTIME_ASSERT(page_cache[n].stack[i].addr);
 			free_pages_intern(page_cache[n].stack[i].addr, size);
 			page_cache[n].stack[i].addr = NULL;
 			pruned++;
 		}
 		if (pruned > 0) {
-			g_assert(page_cache[n].current >= pruned);
+			RUNTIME_ASSERT(page_cache[n].current >= pruned);
 			page_cache[n].current -= pruned;
 			total += pruned * size;
 
