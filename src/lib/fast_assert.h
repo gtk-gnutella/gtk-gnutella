@@ -95,7 +95,7 @@ G_STMT_START { \
 } G_STMT_END
 
 #define return_value_unless(expr, val) \
-	return_valueunless_intern((expr), #expr, val)
+	return_value_unless_intern((expr), #expr, val)
 
 #define return_value_unless_intern(expr, expr_string, val) \
 G_STMT_START { \
