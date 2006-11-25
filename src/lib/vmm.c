@@ -143,13 +143,13 @@ compat_pagesize_intern(void)
 size_t
 compat_pagesize(void)
 {
-	static gboolean initialized;
+	static int initialized;
 	static size_t psize;
 
 	if (!initialized) {
 		long n;
 		
-		initialized = TRUE;
+		initialized = 1;
 		n = compat_pagesize_intern();
 		RUNTIME_ASSERT(n > 0);
 		RUNTIME_ASSERT(n < INT_MAX);
