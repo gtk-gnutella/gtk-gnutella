@@ -5736,7 +5736,7 @@ settings_gui_init(void)
 	 */
 #ifndef USE_REMOTE_CTRL
 	gtk_widget_set_sensitive(
-		gui_dlg_prefs_lookup("checkbutton_enable_shell"), FALSE);
+		gui_dlg_prefs_lookup("checkbutton_enable_remote_shell"), FALSE);
 #endif /* USE_REMOTE_CTRL */
 }
 
