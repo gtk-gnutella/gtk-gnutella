@@ -26,6 +26,8 @@
 #ifndef _if_ui_gtk_upload_stats_h_
 #define _if_ui_gtk_upload_stats_h_
 
+#include "common.h"
+
 /*
  * Public interface, visible from the bridge.
  */
@@ -37,7 +39,7 @@ struct ul_stats;
 void upload_stats_gui_init(void);
 void upload_stats_gui_update(const gchar *name, guint64 size);
 void upload_stats_gui_clear_all(void);
-void upload_stats_gui_add(struct ul_stats *stat);
+void upload_stats_gui_add(struct ul_stats *s);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_upload_stats_h_ */
