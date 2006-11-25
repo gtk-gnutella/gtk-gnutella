@@ -33,6 +33,7 @@
  * @date 2006
  */
 
+#include "common.h"
 #include "lib/fragcheck.h"
 
 #ifdef FRAGCHECK
@@ -40,9 +41,6 @@
 #include "lib/glib-missing.h"
 #include "lib/bit_array.h"
 #include "lib/misc.h"
-
-/* Not g_assert() because it seems to call g_malloc() sometimes. */
-#include <assert.h>
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -158,7 +156,7 @@ fragcheck_meta_lookup(const void *p)
 static void
 fragcheck_meta_delete(struct fragcheck_meta *meta)
 {
-	assert(meta);
+	RUNTIME_ASSERT(meta);
 	{
 		size_t x, slot;
 		
@@ -184,10 +182,10 @@ my_malloc(gsize n)
 	printf("%s(%lu)=0x%08lx\n", __func__, (unsigned long) n, (unsigned long) p);
 #endif	/* FRAGCHECK_VERBOSE */
 
-	assert(p);
-	assert(0 == (size_t) p % sizeof (union alloc));
-	assert((size_t) p >= (size_t) vars.alloc_base);
-	assert(!fragcheck_meta_lookup(p));
+	RUNTIME_ASSERT(p);
+	RUNTIME_ASSERT(0 == (size_t) p % sizeof (union alloc));
+	RUNTIME_ASSERT((size_t) p >= (size_t) vars.alloc_base);
+	RUNTIME_ASSERT(!fragcheck_meta_lookup(p));
 
 	if (!vars.alloc_base) {
 		/* The divisor is a good guess and depends on the malloc
@@ -195,11 +193,11 @@ my_malloc(gsize n)
 		 * return the lowest available address. */
 		vars.alloc_base = (size_t) p / 2;
 	} else {
-		assert(vars.alloc_base <= (size_t) p);
+		RUNTIME_ASSERT(vars.alloc_base <= (size_t) p);
 	}
 
 	meta = fragcheck_meta_new(p);
-	assert(meta);
+	RUNTIME_ASSERT(meta);
 	meta->base = p;
 	meta->size = n;
 
@@ -214,7 +212,7 @@ my_malloc(gsize n)
 			CASE(FC_RET_1)
 			CASE(FC_RET_2)
 			CASE(FC_RET_3)
-			case NUM_FC_RET: assert(0);
+			case NUM_FC_RET: RUNTIME_UNREACHABLE();
 #undef CASE
 			}
 		}
@@ -227,30 +225,30 @@ my_malloc(gsize n)
 		from = ((size_t) p - vars.alloc_base) / sizeof (union alloc);
 		to = from + (meta->size / sizeof (union alloc)) - 1;
 
-		assert(from < BIT_COUNT);
-		assert(to <= BIT_COUNT);
-		assert(to >= from);
+		RUNTIME_ASSERT(from < BIT_COUNT);
+		RUNTIME_ASSERT(to <= BIT_COUNT);
+		RUNTIME_ASSERT(to >= from);
 	
 #if 0	
 		{
 			size_t i;
 
 			for (i = from; i <= to; i++) {
-				assert(!bit_array_get(vars.allocated, i));
+				RUNTIME_ASSERT(!bit_array_get(vars.allocated, i));
 				bit_array_set(vars.allocated, i);
 				bit_array_set(vars.touched, i);
-				assert(bit_array_get(vars.allocated, i));
-				assert(bit_array_get(vars.touched, i));
+				RUNTIME_ASSERT(bit_array_get(vars.allocated, i));
+				RUNTIME_ASSERT(bit_array_get(vars.touched, i));
 			}
 		}
 #else
-		assert(!bit_array_get(vars.allocated, from));
-		assert(!bit_array_get(vars.allocated, to));
+		RUNTIME_ASSERT(!bit_array_get(vars.allocated, from));
+		RUNTIME_ASSERT(!bit_array_get(vars.allocated, to));
 		bit_array_set_range(vars.allocated, from, to);
 		bit_array_set_range(vars.touched, from, to);
 #endif
 	}
-	assert(fragcheck_meta_lookup(p));
+	RUNTIME_ASSERT(fragcheck_meta_lookup(p));
 	return p;
 }
 
@@ -265,43 +263,43 @@ my_free(gpointer p)
 		struct fragcheck_meta *meta;
 
 		meta = fragcheck_meta_lookup(p);
-		assert(meta);
-		assert(meta->size >= sizeof (union alloc));
-		assert(0 == meta->size % sizeof (union alloc));
-		assert(0 == (size_t) p % sizeof (union alloc));
-		assert((size_t) p >= (size_t) vars.alloc_base);
+		RUNTIME_ASSERT(meta);
+		RUNTIME_ASSERT(meta->size >= sizeof (union alloc));
+		RUNTIME_ASSERT(0 == meta->size % sizeof (union alloc));
+		RUNTIME_ASSERT(0 == (size_t) p % sizeof (union alloc));
+		RUNTIME_ASSERT((size_t) p >= (size_t) vars.alloc_base);
 		{
 			size_t from, to;
 
 			from = ((size_t) p - vars.alloc_base) / sizeof (union alloc);
 			to = from + (meta->size / sizeof (union alloc)) - 1;
 
-			assert(from < BIT_COUNT);
-			assert(to <= BIT_COUNT);
-			assert(to >= from);
+			RUNTIME_ASSERT(from < BIT_COUNT);
+			RUNTIME_ASSERT(to <= BIT_COUNT);
+			RUNTIME_ASSERT(to >= from);
 
 #if 0
 			{
 				size_t i;
 
 				for (i = from; i <= to; i++) {
-					assert(bit_array_get(vars.touched, i));
-					assert(bit_array_get(vars.allocated, i));
+					RUNTIME_ASSERT(bit_array_get(vars.touched, i));
+					RUNTIME_ASSERT(bit_array_get(vars.allocated, i));
 					bit_array_clear(vars.allocated, i);
-					assert(!bit_array_get(vars.allocated, i));
+					RUNTIME_ASSERT(!bit_array_get(vars.allocated, i));
 				}
 			}
 #else
-			assert(bit_array_get(vars.allocated, from));
-			assert(bit_array_get(vars.allocated, to));
-			assert(bit_array_get(vars.touched, from));
-			assert(bit_array_get(vars.touched, to));
+			RUNTIME_ASSERT(bit_array_get(vars.allocated, from));
+			RUNTIME_ASSERT(bit_array_get(vars.allocated, to));
+			RUNTIME_ASSERT(bit_array_get(vars.touched, from));
+			RUNTIME_ASSERT(bit_array_get(vars.touched, to));
 			bit_array_clear_range(vars.touched, from, to);
 #endif
 		}
 		memset(p, 0, meta->size);
 		fragcheck_meta_delete(meta);
-		assert(!fragcheck_meta_lookup(p));
+		RUNTIME_ASSERT(!fragcheck_meta_lookup(p));
 		free(p);
 	}
 }
@@ -312,24 +310,24 @@ my_realloc(gpointer p, gsize n)
 	static volatile gboolean lock;
 	gpointer x;
 
-	g_assert(!lock);
+	g_RUNTIME_ASSERT(!lock);
 	lock = TRUE;
 
 #ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%p, %lu)\n", __func__, p, (unsigned long) n);
 #endif	/* FRAGCHECK_VERBOSE */
 
-	assert(n > 0);
+	RUNTIME_ASSERT(n > 0);
 	x = my_malloc(n);
 	if (p) {
 		const struct fragcheck_meta *meta;
 
 		meta = fragcheck_meta_lookup(p);
-		assert(meta);
-		assert(meta->size >= sizeof (union alloc));
-		assert(0 == meta->size % sizeof (union alloc));
-		assert(0 == (size_t) p % sizeof (union alloc));
-		assert((size_t) p >= (size_t) vars.alloc_base);
+		RUNTIME_ASSERT(meta);
+		RUNTIME_ASSERT(meta->size >= sizeof (union alloc));
+		RUNTIME_ASSERT(0 == meta->size % sizeof (union alloc));
+		RUNTIME_ASSERT(0 == (size_t) p % sizeof (union alloc));
+		RUNTIME_ASSERT((size_t) p >= (size_t) vars.alloc_base);
 
 		memcpy(x, p, MIN(meta->size, n));
 		my_free(p);
