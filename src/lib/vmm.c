@@ -166,7 +166,11 @@ vmm_mmap_anonymous(size_t size)
 #if defined(HAS_MMAP)
 {
 	static int fd = -1, flags = MAP_PRIVATE;
+	static int failed;
 	void *p;
+
+	if (failed)
+		return NULL;
 
 #if defined(MAP_ANON)
 	flags |= MAP_ANON;
@@ -179,7 +183,10 @@ vmm_mmap_anonymous(size_t size)
 #endif	/* MAP_ANON */
 
 	p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
-	return_value_unless(MAP_FAILED != p, NULL);
+	if (MAP_FAILED == p) {
+		failed = 1;
+		return_value_unless(MAP_FAILED != p, NULL);
+	}
 	return p;
 }
 #else	/* !HAS_MMAP */
@@ -220,7 +227,7 @@ alloc_pages_intern(size_t size)
 {
 	void *p;
 
-	RUNTIME_ASSERT(kernel_pagesize > 0);		/* Computed by round_pagesize_fast() */
+	RUNTIME_ASSERT(kernel_pagesize > 0); /* Computed by round_pagesize_fast() */
 
 #if !defined(HAS_MMAP) && !defined(HAS_POSIX_MEMALIGN) && !defined(HAS_MEMALIGN)
 #error "Neither mmap(), posix_memalign() nor memalign() available"
