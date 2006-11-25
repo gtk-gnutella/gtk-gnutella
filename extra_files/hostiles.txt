@@ -602,6 +602,12 @@
 68.202.111.69
 71.193.218.50
 
+# nocusnetworks AKA discoverynetworks; giFT-based; multiple almost identical
+# MOV files linking to nocusnetworks
+209.50.48.0/22
+69.16.142.200
+216.75.107.32/27
+
 # University of Mississippi
 130.74.0.0/16
 
