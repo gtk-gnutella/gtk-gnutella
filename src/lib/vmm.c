@@ -128,9 +128,8 @@ compat_pagesize_intern(void)
 
 	errno = 0;
 	ret = sysconf(_SC_PAGE_SIZE);
-	if (-1L == ret && 0 != errno) {
-		g_warning("sysconf(_SC_PAGE_SIZE) failed: %s", g_strerror(errno));
-		return 0;
+	if (-1L == ret) {
+		return_value_unless(0 == errno, 0);
 	}
 	return ret;
 }
