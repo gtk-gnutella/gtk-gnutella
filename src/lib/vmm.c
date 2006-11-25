@@ -165,21 +165,23 @@ static void *
 vmm_mmap_anonymous(size_t size)
 #if defined(HAS_MMAP)
 {
-	static int fd = -1, flags = MAP_PRIVATE;
-	static int failed;
+	static int flags, failed, fd = -1;
 	void *p;
 
 	if (failed)
 		return NULL;
 
 #if defined(MAP_ANON)
-	flags |= MAP_ANON;
+	flags = MAP_PRIVATE | MAP_ANON;
 #elif defined (MAP_ANONYMOUS)
-	flags |= MAP_ANONYMOUS;
+	flags = MAP_PRIVATE | MAP_ANONYMOUS;
 #else
-	if (-1 == fd)
+	flags = MAP_SHARED;
+	if (-1 == fd) {
 		fd = open("/dev/zero", O_RDWR, 0);
-	return_value_unless(fd >= 0, NULL);
+		return_value_unless(fd >= 0, NULL);
+		set_close_on_exec(fd);
+	}
 #endif	/* MAP_ANON */
 
 	p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
