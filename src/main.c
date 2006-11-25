@@ -1069,20 +1069,18 @@ handle_arguments(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-#ifdef FRAGCHECK
-	fragcheck_init();
-#endif
-	halloc_init();
-
-	misc_init();
-
-	tm_now_exact(&start_time);
-
 	if (compat_is_superuser()) {
 		fprintf(stderr, "Never ever run this as root!\n");
 		exit(EXIT_FAILURE);
 	}
 
+#ifdef FRAGCHECK
+	fragcheck_init();
+#endif
+
+	halloc_init();
+	misc_init();
+	tm_now_exact(&start_time);
 	close_file_descriptors(3); /* Just in case */
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
