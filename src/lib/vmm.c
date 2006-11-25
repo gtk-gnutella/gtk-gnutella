@@ -161,6 +161,51 @@ compat_pagesize(void)
 	return psize;
 }
 
+static void *
+vmm_mmap_anonymous(size_t size)
+#if defined(HAS_MMAP)
+{
+	static int fd = -1, flags = MAP_PRIVATE;
+	void *p;
+
+#if defined(MAP_ANON)
+	flags |= MAP_ANON;
+#elif defined (MAP_ANONYMOUS)
+	flags |= MAP_ANONYMOUS;
+#else
+	if (-1 == fd)
+		fd = open("/dev/zero", O_RDWR, 0);
+	g_return_val_if_fail(fd >= 0, NULL);
+#endif	/* MAP_ANON */
+
+	p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
+	g_return_val_if_fail(MAP_FAILED != p, NULL);
+	return p;
+}
+#else	/* !HAS_MMAP */
+{
+	(void) size;
+	return NULL;
+}
+#endif	/* HAS_MMAP */
+
+static void *
+vmm_memalign(size_t align, size_t size)
+{
+	void *p;
+
+#if defined(HAS_POSIX_MEMALIGN)
+	if (posix_memalign(&p, align, size)) {
+		p = NULL;
+	}
+#elif defined(HAS_MEMALIGN)
+	p = memalign(align, size);
+#else
+	p = NULL;
+#endif	/* HAS_POSIX_MEMALIGN */
+	return p;
+}
+
 /**
  * Allocates a page-aligned chunk of memory.
  *
@@ -175,40 +220,22 @@ alloc_pages_intern(size_t size)
 
 	g_assert(kernel_pagesize > 0);		/* Computed by round_pagesize_fast() */
 
-#if defined(HAS_MMAP)
-	{
-		static int fd = -1, flags = MAP_PRIVATE;
-		
-#if defined(MAP_ANON)
-		flags |= MAP_ANON;
-#elif defined (MAP_ANONYMOUS)
-		flags |= MAP_ANONYMOUS;
-#else
-		if (-1 == fd)
-			fd = open("/dev/zero", O_RDWR, 0);
-		g_return_val_if_fail(fd >= 0, NULL);
-#endif	/* MAP_ANON */
-		
-		p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
-		g_return_val_if_fail(MAP_FAILED != p, NULL);
-	}
-#elif defined(HAS_POSIX_MEMALIGN)
-	if (posix_memalign(&p, kernel_pagesize, size)) {
-		p = NULL;
-	}
-#elif defined(HAS_MEMALIGN)
-	p = memalign(kernel_pagesize, size);
-#else
+#if !defined(HAS_MMAP) && !defined(HAS_POSIX_MEMALIGN) && !defined(HAS_MEMALIGN)
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 	p = NULL;
 	g_assert_not_reached();
-#endif	/* HAS_MMAP || HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
+#endif	/* !(HAS_MMAP || HAS_POSIX_MEMALIGN || HAS_MEMALIGN) */
+
+	p = vmm_mmap_anonymous(size);
+	if (!p) {
+		p = vmm_memalign(kernel_pagesize, size);
+	}
 
 	g_return_val_if_fail(NULL != p, NULL);
 	
-	if (round_pagesize_fast((size_t) p) != (size_t) p)
+	if (round_pagesize_fast((size_t) p) != (size_t) p) {
 		g_error("Aligned memory required");
-
+	}
 	return p;
 }
 
