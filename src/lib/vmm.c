@@ -49,7 +49,7 @@ RCSID("$Id$")
  * slot. This causes some over-allocation but reduces page-table
  * fragmentation.
  */
-#define VMM_GREEDY_PAGE_CACHE 1
+/* #define VMM_GREEDY_PAGE_CACHE 1 */
 
 /*
  * With VMM_INVALIDATE_FREE_PAGES freed pages are invalidated and
@@ -389,7 +389,7 @@ free_pages(void *p, size_t size)
 		size = round_pagesize_fast(size);
 		n = pagecount_fast(size);
 		g_assert(n >= 1);
-		max_cached = G_N_ELEMENTS(page_cache[0].stack) / n ;
+		max_cached = G_N_ELEMENTS(page_cache[0].stack) / n;
 		n--;
 
 		if (
