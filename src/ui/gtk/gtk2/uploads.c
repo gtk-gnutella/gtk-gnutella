@@ -314,11 +314,8 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 	/* Exploit that u->name is an atom! */
 	if (u->name != rd->name) {
-		g_assert(NULL != u->name);
-
 		atom_str_free_null(&rd->name);
-		rd->name = atom_str_get(u->name);
-
+		rd->name = u->name ? atom_str_get(u->name) : NULL;
 		gtk_list_store_set(store_uploads, &rd->iter,
 			c_ul_filename, rd->name,
 			(-1));
@@ -326,10 +323,8 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 	/* Exploit that u->user_agent is an atom! */
 	if (u->user_agent != rd->user_agent) {
-		g_assert(NULL != u->user_agent);
-		if (NULL != rd->user_agent)
-			atom_str_free(rd->user_agent);
-		rd->user_agent = atom_str_get(u->user_agent);
+		atom_str_free_null(&rd->user_agent);
+		rd->user_agent = u->user_agent ? atom_str_get(u->user_agent) : NULL;
 		gtk_list_store_set(store_uploads, &rd->iter,
 			c_ul_agent, rd->user_agent,
 			(-1));
@@ -585,14 +580,8 @@ uploads_gui_init(void)
 static inline void
 free_row_data(upload_row_data_t *rd)
 {
-	if (NULL != rd->user_agent) {
-		atom_str_free(rd->user_agent);
-		rd->user_agent = NULL;
-	}
-	if (NULL != rd->name) {
-		atom_str_free(rd->name);
-		rd->user_agent = NULL;
-	}
+	atom_str_free_null(&rd->user_agent);
+	atom_str_free_null(&rd->name);
 	wfree(rd, sizeof *rd);
 }
 
