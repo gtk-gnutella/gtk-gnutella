@@ -81,7 +81,9 @@ G_STMT_START { \
 	assertion_failure(&assertion_data_); \
 } G_STMT_END
 
-#define return_unless(expr, expr_string) \
+#define return_unless(expr) return_unless_intern((expr), #expr)
+
+#define return_unless_intern(expr, expr_string) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
@@ -92,7 +94,10 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
-#define return_val_unless(expr, expr_string, val) \
+#define return_value_unless(expr, val) \
+	return_valueunless_intern((expr), #expr, val)
+
+#define return_value_unless_intern(expr, expr_string, val) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
@@ -112,10 +117,11 @@ G_STMT_START { \
 #define g_assert_not_reached() fast_assert_not_reached()
 
 #undef g_return_if_fail
-#define g_return_if_fail(expr) return_unless((expr), #expr)
+#define g_return_if_fail(expr) return_unless_intern((expr), #expr)
 
 #undef g_return_val_if_fail
-#define g_return_val_if_fail(expr, val) return_val_unless((expr), #expr, (val))
+#define g_return_val_if_fail(expr, val) \
+	return_value_unless_intern((expr), #expr, (val))
 
 #endif /* FAST_ASSERTIONS */
 
