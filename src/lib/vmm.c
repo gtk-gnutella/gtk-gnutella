@@ -185,8 +185,11 @@ vmm_mmap_anonymous(size_t size)
 
 	p = mmap(0, size, PROT_READ | PROT_WRITE, flags, fd, 0);
 	if (MAP_FAILED == p) {
-		failed = 1;
-		return_value_unless(MAP_FAILED != p, NULL);
+		if (ENOMEM != errno) {
+			failed = 1;
+			return_value_unless(MAP_FAILED != p, NULL);
+		}
+		p = NULL;
 	}
 	return p;
 }
