@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include <zlib.h>	/* Z_DEFAULT_COMPRESSION */
+
 #include "gmsg.h"
 #include "pmsg.h"
 #include "nodes.h"

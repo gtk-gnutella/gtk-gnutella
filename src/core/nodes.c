@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include <zlib.h>	/* Z_DEFAULT_COMPRESSION, Z_OK */
+
 #include "sockets.h"
 #include "search.h"
 #include "share.h"
