@@ -2620,10 +2620,13 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
      */
 
 	if (browse_copied_to_passive) {
+		guint32 max_items;
+
+		gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
 		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 			search_ctrl_t *sch = sl->data;
 
-			if (!sch->frozen)
+			if (!sch->frozen && sch->items < max_items)
 				search = g_slist_prepend(search,
 					GUINT_TO_POINTER(sch->search_handle));
 		}
@@ -2654,9 +2657,11 @@ search_results(gnutella_node_t *n, gint *results)
 	gboolean drop_it = FALSE;
 	gboolean forward_it = TRUE;
 	GSList *selected_searches = NULL;
-	search_ctrl_t *active_sch;
+	guint32 max_items;
 
 	g_assert(results != NULL);
+
+	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
 
 	/*
 	 * We'll dispatch to non-frozen passive searches, and to the active search
@@ -2666,17 +2671,21 @@ search_results(gnutella_node_t *n, gint *results)
 	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 		search_ctrl_t *sch = sl->data;
 
-		if (!sch->frozen)
+		if (!sch->frozen && sch->items < max_items)
+			selected_searches = g_slist_prepend(selected_searches,
+						GUINT_TO_POINTER(sch->search_handle));
+	}
+
+	{
+		search_ctrl_t *sch;
+
+		sch = g_hash_table_lookup(search_by_muid,
+					gnutella_header_get_muid(&n->header));
+
+		if (sch && !sch->frozen && sch->items < max_items)
 			selected_searches = g_slist_prepend(selected_searches,
 				GUINT_TO_POINTER(sch->search_handle));
 	}
-
-	active_sch = g_hash_table_lookup(search_by_muid,
-					gnutella_header_get_muid(&n->header));
-
-	if (active_sch != NULL && !active_sch->frozen)
-		selected_searches = g_slist_prepend(selected_searches,
-			GUINT_TO_POINTER(active_sch->search_handle));
 
 	/*
 	 * Parse the packet.
@@ -3156,6 +3165,11 @@ search_reissue(gnet_search_t sh)
         g_warning("trying to reissue a frozen search, aborted");
         return;
     }
+
+	if (sch->local) {
+		search_locally(sh, sch->query);
+		return;
+	}
 
 	if (!sch->active) {
         g_warning("trying to reissue a non-active search, aborted");
