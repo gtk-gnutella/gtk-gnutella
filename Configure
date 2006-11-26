@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Nov 24 20:19:36 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Sun Nov 26 02:50:02 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -2493,6 +2493,37 @@ esac
 set d_official
 eval $setvar
 
+: ask them whether they want remote control support
+$cat <<EOM
+
+$spackage has a raw remote control service.
+
+Currently you can create searches, connect to nodes, and print and 
+set the values of properties as well as read the 'tooltips'.  It is
+not completely functional, but you may choose to enable it here at
+compile time.  The feature will need activation from the GUI.
+
+For more information, see doc/other/shell.txt
+
+EOM
+case "$remotectrl" in
+true) dflt=y;;
+*) dflt=n;;
+esac
+rp="Enable remote control service"
+. ./myread
+val="$ans"
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_remotectrl
+eval $setvar
+case "$d_remotectrl" in
+$define) remotectrl=true;;
+*) remotectrl=false;;
+esac
+
 : look whether they wish to run headless
 $cat <<EOM
 
@@ -2513,51 +2544,6 @@ y) val="$define";;
 esac
 set d_headless
 eval $setvar
-
-: ask them whether they want remote control support
-$cat <<EOM
-
-$spackage has a raw remote control service.
-
-Currently you can create searches, connect to nodes, and print and 
-set the values of properties as well as read the 'tooltips'.  It is
-not completely functional, but you may choose to enable it here at
-compile time.  The feature will need activation from the GUI.
-
-For more information, see doc/other/remote-shell.txt
-
-EOM
-case "$remotectrl" in
-false) dflt=n;;
-true) dflt=y;;
-*)
-	dflt=y
-	case "$d_headless" in
-	"$define")
-		$cat <<'EOM'
-
-Since you are running headless, it is highly recommended that you
-compile this feature in.  Given that there is no GUI, you will need
-to activate remote control via the configuration file.
-
-EOM
-		;;
-	esac
-	;;
-esac
-rp="Enable remote control service"
-. ./myread
-val="$ans"
-case "$ans" in
-y) val="$define";;
-*) val="$undef";;
-esac
-set d_remotectrl
-eval $setvar
-case "$d_remotectrl" in
-$define) remotectrl=true;;
-*) remotectrl=false;;
-esac
 
 : ask them wich GTK+ version they want
 echo " "

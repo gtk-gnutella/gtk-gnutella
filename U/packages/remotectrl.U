@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:remotectrl d_remotectrl: Myread Setvar cat spackage d_headless
+?MAKE:remotectrl d_remotectrl: Myread Setvar cat spackage
 ?MAKE:	-pick add $@ %<
 ?S:remotectrl:
 ?S:	This variable holds true or false depending on whether they want to
@@ -28,26 +28,12 @@ set the values of properties as well as read the 'tooltips'.  It is
 not completely functional, but you may choose to enable it here at
 compile time.  The feature will need activation from the GUI.
 
-For more information, see doc/other/remote-shell.txt
+For more information, see doc/other/shell.txt
 
 EOM
 case "$remotectrl" in
-false) dflt=n;;
 true) dflt=y;;
-*)
-	dflt=y
-	case "$d_headless" in
-	"$define")
-		$cat <<'EOM'
-
-Since you are running headless, it is highly recommended that you
-compile this feature in.  Given that there is no GUI, you will need
-to activate remote control via the configuration file.
-
-EOM
-		;;
-	esac
-	;;
+*) dflt=n;;
 esac
 rp="Enable remote control service"
 . ./myread
