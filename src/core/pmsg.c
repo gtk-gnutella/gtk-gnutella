@@ -57,7 +57,7 @@ RCSID("$Id$")
  */
 typedef struct pmsg_ext {
 	/* First four fields like "stuct pmsg" */
-	gchar *m_rptr;					/**< First unread byte in buffer */
+	const gchar *m_rptr;			/**< First unread byte in buffer */
 	gchar *m_wptr;					/**< First unwritten byte in buffer */
 	pdata_t *m_data;				/**< Data buffer */
 	guint m_prio;					/**< Message priority (0 = normal) */
@@ -93,16 +93,9 @@ pmsg_close(void)
 int
 pmsg_size(const pmsg_t *mb)
 {
-	int msize = 0;
-
 	g_assert(mb);
 
-	/* In prevision of message block chaining */
-	do {
-		msize += mb->m_wptr - mb->m_rptr;
-	} while (0);
-
-	return msize;
+	return mb->m_wptr - mb->m_rptr;
 }
 
 /**
