@@ -2223,7 +2223,7 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header,
 		gint error;
 
 		idx = parse_uint32(arg, &endptr, 10, &error);
-		if (!error && *endptr == '/') {
+		if (!error && '/' == endptr[0] && '\0' != endptr[1]) {
 			arg = deconstify_gchar(&endptr[1]);
 			return get_file_to_upload_from_index(u, header, arg, idx);
 		}
