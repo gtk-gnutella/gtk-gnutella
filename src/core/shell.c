@@ -54,8 +54,6 @@ RCSID("$Id$")
 #define CMD_MAX_SIZE 1024
 #define SHELL_BUFFER_SIZE 64000
 
-#define IS_PROCESSING(sh) (sh->outpos > 0)
-
 enum shell_reply {
 	REPLY_NONE		= 0,
 	REPLY_READY		= 100,
@@ -65,14 +63,42 @@ enum shell_reply {
 
 static GSList *sl_shells = NULL;
 
+/*
+ * guc_share_scan() causes dispatching of I/O events, so we must not call
+ * it whilst in an even callback (all commands are) because if the shell
+ * connection dies, the shell context will no longer be valid. Therefore,
+ * we just record the request and call guc_share_scan() from shell_timer().
+ */
+static gboolean library_rescan_requested;
+
+enum shell_magic {
+	SHELL_MAGIC = 0xb3f3e711U
+};
+
 typedef struct gnutella_shell {
+	enum shell_magic	magic;
 	struct gnutella_socket *socket;
 	gchar  *outbuf;	/* FIXME: Always use a newly walloc()ed buffer instead */
-	gint32 outpos;
-	time_t last_update; /**< Last update (needed for timeout) */
+	size_t outpos;
 	const gchar *msg;   /**< Additional information to reply code */
+	time_t last_update; /**< Last update (needed for timeout) */
 	gboolean shutdown;  /**< In shutdown mode? */
 } gnutella_shell_t;
+
+static inline void
+shell_check(gnutella_shell_t *sh)
+{
+	g_assert(sh);
+	g_assert(SHELL_MAGIC == sh->magic);
+	socket_check(sh->socket);
+}
+
+static inline gboolean
+IS_PROCESSING(gnutella_shell_t *sh)
+{
+	shell_check(sh);
+	return sh->outpos > 0;
+}
 
 #ifdef USE_REMOTE_CTRL
 static gchar auth_cookie[SHA1_RAW_SIZE];
@@ -264,7 +290,7 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 	gchar *tok;
 	gint pos = 0;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 
 	tok = shell_get_token(cmd, &pos);
@@ -333,7 +359,7 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 	gchar *tok;
 	gint pos = 0;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 
 	tok = shell_get_token(cmd, &pos);
@@ -418,7 +444,7 @@ shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 	prop_set_stub_t *stub = NULL;
 	property_t prop;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 
 	tok_prop = shell_get_token(cmd, &pos);
@@ -465,7 +491,7 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	property_t prop;
 	prop_def_t *prop_buf = NULL;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 
 	tok_prop = shell_get_token(cmd, &pos);
@@ -482,7 +508,7 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 
 	prop_buf = stub->get_def (prop);
 
-	g_assert (prop_buf);
+	g_assert(prop_buf);
 
 	tok_value = shell_get_token(cmd, &pos);
 	if (!tok_value) {
@@ -586,7 +612,7 @@ shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 	prop_def_t *prop_buf = NULL;
 	property_t prop;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 
 	tok_prop = shell_get_token(cmd, &pos);
@@ -633,15 +659,21 @@ error:
 static enum shell_reply
 shell_exec_rescan(gnutella_shell_t *sh, const gchar *cmd)
 {
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 
-	shell_write(sh, "100-Scanning shared directories...\n");
-	guc_share_scan();
-	shell_write(sh, "100-Finished\n");
-	sh->msg = "";
-
-	return REPLY_READY;
+	if (library_rebuilding) {
+		sh->msg = _("The library is currently being rebuilt.");
+		return REPLY_ERROR;
+	} else if (rescan_requested) {
+		sh->msg = _("A rescan has already been scheduled");
+		return REPLY_ERROR;
+	} else {
+		rescan_requested = TRUE;
+		shell_write(sh, "100-Scheduling library rescan\n");
+		sh->msg = "";
+		return REPLY_READY;
+	}
 }
 
 
@@ -658,7 +690,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	hsep_triple non_hsep[1];
 	gboolean all;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 	g_assert(!IS_PROCESSING(sh));
 
@@ -886,7 +918,7 @@ shell_exec_nodes(gnutella_shell_t *sh, const gchar *cmd)
 {
 	const GSList *sl;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 	g_assert(!IS_PROCESSING(sh));
 
@@ -936,7 +968,7 @@ shell_exec_uploads(gnutella_shell_t *sh, const gchar *cmd)
 	const GSList *sl;
 	GSList *sl_info;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 	g_assert(!IS_PROCESSING(sh));
 
@@ -959,15 +991,20 @@ shell_exec_uploads(gnutella_shell_t *sh, const gchar *cmd)
  * Displays assorted status information
  */
 static enum shell_reply
-shell_exec_stat(gnutella_shell_t *sh)
+shell_exec_status(gnutella_shell_t *sh)
 {
 	gchar buf[2048];
 	time_t now;
 
-	g_assert(sh);
+	shell_check(sh);
 
 	now = tm_time();
 
+	shell_write(sh,
+		"+---------------------------------------------------------+\n"
+		"|                      Status                             |\n"
+		"|=========================================================|\n");
+			
 	/* General status */ 
 	{
 		const gchar *blackout;
@@ -987,9 +1024,6 @@ shell_exec_stat(gnutella_shell_t *sh)
 			blackout = "No";
 
 		gm_snprintf(buf, sizeof buf,
-			"+---------------------------------------------------------+\n"
-			"|                      Status                             |\n"
-			"|=========================================================|\n"
 			"|   Mode: %-9s  Last Switch: %-19s     |\n"
 			"| Uptime: %-9s   Last Check: %-19s     |\n"
 			"|   Port: %-5u         Blackout: %-7s                 |\n"
@@ -1074,12 +1108,26 @@ shell_exec_stat(gnutella_shell_t *sh)
 			"| Bandwidth:           GNet          HTTP          Leaf   |\n"
 			"|---------------------------------------------------------|\n"
 			"|        In:    %11s   %11s   %11s   |\n"
-			"|       Out:    %11s   %11s   %11s   |\n"
-		    "+_________________________________________________________+\n",	
+			"|       Out:    %11s   %11s   %11s   |\n",
 			gnet_in.str, http_in.str, leaf_in.str,
 			gnet_out.str, http_out.str, leaf_out.str);
 		shell_write(sh, buf);
 	}
+	
+	concat_strings(buf, sizeof buf,
+		"|---------------------------------------------------------|\n"
+		"| Sharing ",
+		uint64_to_string(shared_files_scanned()),
+		" file",
+		shared_files_scanned() == 1 ? "" : "s",
+		" ",
+		short_kb_size(shared_kbytes_scanned(), display_metric_units),
+		" total                         |\n",
+		(void *) 0);
+	shell_write(sh, buf);
+
+	shell_write(sh,
+		"+_________________________________________________________+\n");
 
 	return REPLY_READY;
 }
@@ -1116,7 +1164,7 @@ shell_exec_props(gnutella_shell_t *sh, const gchar *args)
 {
 	GSList *props, *sl;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(args);
 	
 	props = gnet_prop_get_by_regex('\0' == args[0] ? "." : args, NULL);
@@ -1161,7 +1209,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 	gchar *tok;
 	gint pos = 0;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(cmd);
 
 	tok = shell_get_token(cmd, &pos);
@@ -1238,7 +1286,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		reply_code = shell_exec_nodes(sh, args);
 		break;
 	case CMD_STATUS:
-		reply_code = shell_exec_stat(sh);
+		reply_code = shell_exec_status(sh);
 		break;
 	case CMD_OFFLINE:
 		reply_code = shell_exec_offline(sh);
@@ -1281,8 +1329,7 @@ shell_write_data(gnutella_shell_t *sh)
 	struct gnutella_socket *s;
 	ssize_t written;
 
-	g_assert(sh);
-	g_assert(sh->socket);
+	shell_check(sh);
 	g_assert(sh->outbuf);
 	g_assert(IS_PROCESSING(sh));
 
@@ -1307,7 +1354,7 @@ shell_write_data(gnutella_shell_t *sh)
 		sh->outpos -= written;
 	}
 
-	g_assert(sh->outpos >= 0);
+	g_assert(sh->outpos <= SHELL_BUFFER_SIZE);
 
 	if (0 == sh->outpos) {
 		socket_evt_clear(sh->socket);
@@ -1324,9 +1371,7 @@ shell_read_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
 
-	g_assert(sh);
-
-	g_assert(sh->socket);
+	shell_check(sh);
 	g_assert(sh->socket->getline);
 
 	sh->last_update = tm_time();
@@ -1439,11 +1484,10 @@ shell_write(gnutella_shell_t *sh, const gchar *s)
 	size_t len;
 	gboolean writing;
 
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(s);
 
-	g_return_val_if_fail(sh->outpos >= 0, FALSE);
-	g_return_val_if_fail((size_t) sh->outpos < SHELL_BUFFER_SIZE, FALSE);
+	g_return_val_if_fail(sh->outpos < SHELL_BUFFER_SIZE, FALSE);
 	len = strlen(s);
 	g_return_val_if_fail((ssize_t) len >= 0, FALSE);
 	g_return_val_if_fail(len <= SHELL_BUFFER_SIZE, FALSE);
@@ -1473,16 +1517,16 @@ shell_write(gnutella_shell_t *sh, const gchar *s)
 static gnutella_shell_t *
 shell_new(struct gnutella_socket *s)
 {
+	static const gnutella_shell_t zero_shell;
 	gnutella_shell_t *sh;
 
-	g_assert(s);
+	socket_check(s);
 
-	sh = walloc0(sizeof *sh);
+	sh = walloc(sizeof *sh);
+	*sh = zero_shell;
+	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
 	sh->outbuf = walloc(SHELL_BUFFER_SIZE);
-	sh->outpos = 0;
-	sh->msg = NULL;
-	sh->shutdown = FALSE;
 
 	return sh;
 }
@@ -1493,6 +1537,8 @@ shell_new(struct gnutella_socket *s)
 static void
 shell_free(gnutella_shell_t *sh)
 {
+	g_assert(sh);
+	g_assert(SHELL_MAGIC == sh->magic);
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->outbuf); /* must have called shell_destroy before */
 
@@ -1506,8 +1552,7 @@ shell_free(gnutella_shell_t *sh)
 static void
 shell_destroy(gnutella_shell_t *sh)
 {
-	g_assert(sh);
-	g_assert(sh->socket);
+	shell_check(sh);
 
 	if (dbg > 0)
 		g_warning("shell_destroy");
@@ -1528,7 +1573,7 @@ shell_destroy(gnutella_shell_t *sh)
 static void
 shell_shutdown(gnutella_shell_t *sh)
 {
-	g_assert(sh);
+	shell_check(sh);
 	g_assert(!sh->shutdown);
 
 	sh->shutdown = TRUE;
@@ -1543,7 +1588,7 @@ shell_add(struct gnutella_socket *s)
 	gnutella_shell_t *sh;
 	gboolean granted = FALSE;
 
-	g_assert(s);
+	socket_check(s);
 	g_assert(0 == s->gdk_tag);
 	g_assert(s->getline);
 
@@ -1623,6 +1668,11 @@ shell_timer(time_t now)
 	}
 
 	g_slist_free(to_remove);
+
+	if (library_rescan_requested) {
+		library_rescan_requested = FALSE;
+		guc_share_scan();	/* This can take several seconds */
+	}
 }
 
 #ifdef USE_REMOTE_CTRL
