@@ -699,9 +699,13 @@ shared_file_by_name(const gchar *filename)
 
 	g_assert(file_basenames);
 	idx = shared_file_get_index(filename);
-	sf = idx > 0 ? NULL : file_table[idx - 1];
-	shared_file_check(sf);
-	return sf;
+	if (idx > 0) {
+		sf = file_table[idx - 1];
+		shared_file_check(sf);
+		return sf;
+	} else {
+		return NULL;
+	}
 }
 
 /**
