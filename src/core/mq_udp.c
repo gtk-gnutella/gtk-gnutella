@@ -79,7 +79,7 @@ struct mq_udp_info_extended {
 static void
 mq_udp_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct mq_udp_info *mi = (struct mq_udp_info *) arg;
+	struct mq_udp_info *mi = arg;
 
 	g_assert(pmsg_is_extended(mb));
 
@@ -93,7 +93,7 @@ mq_udp_pmsg_free(pmsg_t *mb, gpointer arg)
 static void
 mq_udp_pmsg_free_extended(pmsg_t *mb, gpointer arg)
 {
-	struct mq_udp_info_extended *mi = (struct mq_udp_info_extended *) arg;
+	struct mq_udp_info_extended *mi = arg;
 
 	g_assert(pmsg_is_extended(mb));
 
@@ -173,7 +173,7 @@ mq_udp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 static void
 mq_udp_service(gpointer data)
 {
-	mqueue_t *q = (mqueue_t *) data;
+	mqueue_t *q = data;
 	gint r;
 	GList *l;
 	gint sent;
@@ -190,10 +190,10 @@ mq_udp_service(gpointer data)
 	 */
 
 	for (l = q->qtail; l; /* empty */) {
-		pmsg_t *mb = (pmsg_t *) l->data;
+		pmsg_t *mb = l->data;
 		gchar *mb_start = pmsg_start(mb);
 		gint mb_size = pmsg_size(mb);
-		struct mq_udp_info *mi = (struct mq_udp_info *) pmsg_get_metadata(mb);
+		struct mq_udp_info *mi = pmsg_get_metadata(mb);
 		guint8 function;
 
 		if (!pmsg_check(mb, q)) {
@@ -201,7 +201,7 @@ mq_udp_service(gpointer data)
 			goto skip;
 		}
 
-		r = tx_sendto((txdrv_t *) q->tx_drv, &mi->to, mb_start, mb_size);
+		r = tx_sendto(q->tx_drv, &mi->to, mb_start, mb_size);
 
 		if (r < 0)		/* Error, drop packet and continue */
 			goto skip;
@@ -263,7 +263,7 @@ mq_udp_service(gpointer data)
 
 	if (q->size == 0) {
 		g_assert(q->count == 0);
-		tx_srv_disable((txdrv_t *) q->tx_drv);
+		tx_srv_disable(q->tx_drv);
 		node_tx_service(q->node, FALSE);
 	}
 
