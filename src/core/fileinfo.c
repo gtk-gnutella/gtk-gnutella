@@ -2283,8 +2283,7 @@ void
 file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
 {
 	upload_stop_all(fi, reason);
-	shared_file_unref(fi->sf);
-	fi->sf = NULL;
+	shared_file_unref(&fi->sf);
 }
 
 /**

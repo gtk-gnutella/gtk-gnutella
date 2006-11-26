@@ -896,16 +896,25 @@ shared_file_ref(shared_file_t *sf)
 
 /**
  * Remove one reference to a shared_file_t, freeing entry if there are
- * no reference left.
+ * no reference left. The pointer itself is nullified.
  */
 void
-shared_file_unref(shared_file_t *sf)
+shared_file_unref(shared_file_t **sf_ptr)
 {
-	shared_file_check(sf);
-	g_assert(sf->refcnt > 0);
+	g_assert(sf_ptr);
 
-	if (--sf->refcnt == 0)
-		shared_file_free(&sf);
+	if (*sf_ptr) {
+		shared_file_t *sf = *sf_ptr;
+
+		shared_file_check(sf);
+		g_assert(sf->refcnt > 0);
+
+		sf->refcnt--;
+		if (0 == sf->refcnt) {
+			shared_file_free(&sf);
+		}
+		*sf_ptr = NULL;
+	}
 }
 
 static inline gint
@@ -1327,7 +1336,7 @@ share_free(void)
 	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;
 		shared_file_check(sf);
-		shared_file_unref(sf);
+		shared_file_unref(&sf);
 	}
 
 	g_slist_free(shared_files);
@@ -1551,7 +1560,7 @@ special_free_kv(gpointer unused_key, gpointer val, gpointer unused_udata)
 	(void) unused_udata;
 
 	g_assert(SHARE_F_SPECIAL & sf->flags);
-	shared_file_unref(sf);
+	shared_file_unref(&sf);
 }
 
 /**

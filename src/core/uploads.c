@@ -764,11 +764,7 @@ upload_free_resources(gnutella_upload_t *u)
 		g_assert(u->socket->resource.upload == u);
 		socket_free_null(&u->socket);
 	}
-
-	if (u->sf) {
-		shared_file_unref(u->sf);
-		u->sf = NULL;
-	}
+	shared_file_unref(&u->sf);
 
     upload_free_handle(u->upload_handle);
 }
@@ -1373,6 +1369,15 @@ static const struct io_error upload_io_error = {
 static void
 call_upload_request(gpointer obj, header_t *header)
 {
+	gnutella_upload_t *u = cast_to_upload(obj);
+
+	/*
+	 * These are kept for follow-up requests, so that the UI can show
+	 * what the last request was.
+	 */
+	shared_file_unref(&u->sf);
+	atom_str_free_null(&u->name);
+
 	upload_request(cast_to_upload(obj), header);
 }
 
@@ -1595,10 +1600,8 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 		s->getline = NULL;
 	}
 	if (u->sf) {
-		shared_file_unref(u->sf);
-		u->sf = NULL;
+		shared_file_check(u->sf);
 	}
-	atom_str_free_null(&u->name);
 	u->browse_host = FALSE;
 
 	/*

@@ -107,7 +107,7 @@ destroy_entry(struct st_entry *entry)
 	g_assert(entry != NULL);
 
 	atom_str_free_null(&entry->string);
-	shared_file_unref(entry->sf);
+	shared_file_unref(&entry->sf);
 	wfree(entry, sizeof *entry);
 }
 

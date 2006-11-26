@@ -792,7 +792,7 @@ qhit_send_results(
 		shared_file_t *sf = sl->data;
 		if (add_file(sf))
 			sent++;
-		shared_file_unref(sf);
+		shared_file_unref(&sf);
 	}
 
 	if (0 != found_file_count())	/* Still some unflushed results */

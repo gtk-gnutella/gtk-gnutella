@@ -187,7 +187,7 @@ results_free_remove(struct oob_results *r)
 
 		for (sl = r->files; sl; sl = g_slist_next(sl)) {
 			shared_file_t *sf = sl->data;
-			shared_file_unref(sf);
+			shared_file_unref(&sf);
 		}
 		g_slist_free(r->files);
 		r->files = NULL;

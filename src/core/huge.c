@@ -424,10 +424,7 @@ sha1_computation_context_free(gpointer u)
 		close(ctx->fd);
 		ctx->fd = -1;
 	}
-	if (ctx->sf) {
-		shared_file_unref(ctx->sf);
-		ctx->sf = NULL;
-	}
+	shared_file_unref(&ctx->sf);
 	G_FREE_NULL(ctx->buffer);
 	wfree(ctx, sizeof *ctx);
 }
@@ -511,10 +508,7 @@ close_current_file(struct sha1_computation_context *ctx)
 		close(ctx->fd);
 		ctx->fd = -1;
 	}
-	if (ctx->sf) {
-		shared_file_unref(ctx->sf);
-		ctx->sf = NULL;
-	}
+	shared_file_unref(&ctx->sf);
 }
 
 /**
@@ -558,7 +552,7 @@ get_next_file_from_list(void)
 			if (-1 == stat(shared_file_path(sf), &sb)) {
 				g_warning("ignoring SHA1 recomputation request for \"%s\": %s",
 					shared_file_path(sf), g_strerror(errno));
-				shared_file_unref(sf);
+				shared_file_unref(&sf);
 				continue;
 			}
 
@@ -569,7 +563,7 @@ get_next_file_from_list(void)
 				if (dbg > 1)
 					g_warning("ignoring duplicate SHA1 work for \"%s\"",
 						shared_file_path(sf));
-				shared_file_unref(sf);
+				shared_file_unref(&sf);
 				continue;
 			}
 		}
@@ -915,7 +909,7 @@ huge_close(void)
 
 		shared_file_check(sf);
 		waiting_for_sha1_computation = g_slist_delete_link(sl, sl);
-		shared_file_unref(sf);
+		shared_file_unref(&sf);
 	}
 }
 
