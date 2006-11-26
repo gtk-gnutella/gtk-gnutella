@@ -69,6 +69,23 @@ typedef struct pmsg_ext {
 
 static zone_t *mb_zone = NULL;
 
+static inline ALWAYS_INLINE pmsg_ext_t *
+cast_to_pmsg_ext(pmsg_t *mb)
+{
+	g_assert(mb);
+	g_assert(pmsg_is_extended(mb));
+	return (pmsg_ext_t *) mb;
+}
+
+static inline ALWAYS_INLINE pmsg_t *
+cast_to_pmsg(pmsg_ext_t *emb)
+{
+	g_assert(emb);
+	g_assert(pmsg_is_extended(emb));
+	return (pmsg_t *) emb;
+}
+
+
 /**
  * Allocate internal variables.
  */
@@ -166,11 +183,11 @@ pmsg_new_extend(gint prio, gconstpointer buf, gint len,
 	emb->m_free = free_cb;
 	emb->m_arg = arg;
 
-	(void) pmsg_fill((pmsg_t *) emb, db, prio, buf, len);
+	(void) pmsg_fill(cast_to_pmsg(emb), db, prio, buf, len);
 
 	emb->m_prio |= PMSG_PF_EXT;
 
-	return (pmsg_t *) emb;
+	return cast_to_pmsg(emb);
 }
 
 /**
@@ -225,7 +242,7 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg)
 	nmb->m_free = free_cb;
 	nmb->m_arg = arg;
 
-	return (pmsg_t *) nmb;
+	return cast_to_pmsg(nmb);
 }
 
 /**
@@ -249,9 +266,7 @@ pmsg_replace_ext(pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg)
 	pmsg_ext_t *nmb;
 	pmsg_free_t fn;
 
-	g_assert(pmsg_is_extended(mb));
-
-	nmb = (pmsg_ext_t *) mb;
+	nmb = cast_to_pmsg_ext(mb);
 	if (oarg)
 		*oarg = nmb->m_arg;
 	fn = nmb->m_free;
@@ -269,9 +284,7 @@ pmsg_replace_ext(pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg)
 gpointer
 pmsg_get_metadata(pmsg_t *mb)
 {
-	g_assert(pmsg_is_extended(mb));
-
-	return ((pmsg_ext_t *) mb)->m_arg;
+	return cast_to_pmsg_ext(mb)->m_arg;
 }
 
 /**
@@ -311,7 +324,7 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 	*nmb = *mb;					/* Struct copy */
 	pdata_addref(nmb->m_data);
 
-	return (pmsg_t *) nmb;
+	return cast_to_pmsg(nmb);
 }
 
 /**
@@ -323,13 +336,14 @@ pmsg_clone(pmsg_t *mb)
 	pmsg_t *nmb;
 
 	if (pmsg_is_extended(mb))
-		return pmsg_clone_ext((pmsg_ext_t *) mb);
+		return pmsg_clone_ext(cast_to_pmsg_ext(mb));
 
 	nmb = zalloc(mb_zone);
 	*nmb = *mb;					/* Struct copy */
 	pdata_addref(nmb->m_data);
 
 	return nmb;
+}
 
 /**
  * Free all message blocks, and decrease ref count on all data buffers.
@@ -346,7 +360,7 @@ pmsg_free(pmsg_t *mb)
 	 */
 
 	if (pmsg_is_extended(mb)) {
-		pmsg_ext_t *emb = (pmsg_ext_t *) mb;
+		pmsg_ext_t *emb = cast_to_pmsg_ext(mb);
 		if (emb->m_free)
 			(*emb->m_free)(mb, emb->m_arg);
 		memset(emb, 0, sizeof *emb);

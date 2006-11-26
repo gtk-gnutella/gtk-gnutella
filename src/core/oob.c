@@ -360,7 +360,7 @@ servent_make(gnet_host_t *host, gboolean can_deflate)
 static void
 free_pmsg(gpointer item, gpointer unused_udata)
 {
-	pmsg_t *mb = (pmsg_t *) item;
+	pmsg_t *mb = item;
 
 	(void) unused_udata;
 	pmsg_free(mb);
@@ -372,8 +372,10 @@ free_pmsg(gpointer item, gpointer unused_udata)
 static void
 servent_free(struct gservent *s)
 {
-	if (s->ev_service)
+	if (s->ev_service) {
 		cq_cancel(callout_queue, s->ev_service);
+		s->ev_service = NULL;
+	}
 	wfree(s->host, sizeof *s->host);
 	fifo_free_all(s->fifo, free_pmsg, NULL);
 	wfree(s, sizeof *s);
@@ -386,7 +388,7 @@ servent_free(struct gservent *s)
 static void
 oob_record_hit(gpointer data, size_t len, gpointer udata)
 {
-	struct gservent *s = (struct gservent *) udata;
+	struct gservent *s = udata;
 
 	g_assert(len <= INT_MAX);
 	fifo_put(s->fifo, s->can_deflate ?
@@ -678,8 +680,8 @@ free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 static void
 free_servent_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
-	gnet_host_t *host = (gnet_host_t *) key;
-	struct gservent *s = (struct gservent *) value;
+	gnet_host_t *host = key;
+	struct gservent *s = value;
 
 	(void) unused_udata;
 	g_assert(host == s->host);		/* Key is same as servent's host */

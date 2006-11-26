@@ -714,7 +714,7 @@ buffers_to_iovec(struct download *d)
 		g_assert(size > 0);
 		held += size;
 
-		iov[i].iov_base = pmsg_read_base(mb);
+		iov[i].iov_base = deconstify_gpointer(pmsg_read_base(mb));
 		iov[i].iov_len = size;
 	}
 	g_assert(held == b->held);
@@ -723,6 +723,13 @@ buffers_to_iovec(struct download *d)
 	b->mode = DL_BUF_WRITING;
 
 	return iov;
+}
+
+static void
+buffers_iovec_free(struct iovec *iov, size_t n)
+{
+	g_assert(iov);
+	wfree(iov, n * sizeof iov[0]);
 }
 
 /**
@@ -5738,7 +5745,9 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		 */
 		iov = buffers_to_iovec(d); 
 		ret = file_object_pwritev(d->out_file, iov, n, d->pos);
-		wfree(iov, n * sizeof *iov);
+		buffers_iovec_free(iov, n);
+		iov = NULL;
+
 		b->mode = DL_BUF_READING;
 
 		if ((ssize_t) -1 == ret || 0 == ret) {

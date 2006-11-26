@@ -146,7 +146,7 @@ again:
 			l = g_list_previous(l);
 			iovsize--;
 			ie = &iov[iovcnt++];
-			ie->iov_base = mb->m_rptr;
+			ie->iov_base = deconstify_gpointer(mb->m_rptr);
 			ie->iov_len = pmsg_size(mb);
 			maxsize -= ie->iov_len;
 			if (pmsg_prio(mb))

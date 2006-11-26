@@ -83,7 +83,7 @@ typedef struct pmsg pmsg_t;
 typedef gboolean (*pmsg_check_t)(pmsg_t *mb, const struct mqueue *q);
 
 struct pmsg {
-	gchar *m_rptr;					/**< First unread byte in buffer */
+	const gchar *m_rptr;			/**< First unread byte in buffer */
 	gchar *m_wptr;					/**< First unwritten byte in buffer */
 	pdata_t *m_data;				/**< Data buffer */
 	guint m_prio;					/**< Message priority (0 = normal) */
@@ -120,9 +120,12 @@ typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
 #define PMSG_PF_EXT		0x80000000	/**< Message block uses extended form */
 #define PMSG_PF_SENT	0x40000000	/**< Message was successfully sent */
 
-#define pmsg_is_extended(x)	((x)->m_prio & PMSG_PF_EXT)
-#define pmsg_was_sent(x)	((x)->m_prio & PMSG_PF_SENT)
-#define pmsg_mark_sent(x)	do { (x)->m_prio |= PMSG_PF_SENT; } while (0)
+#define pmsg_is_extended(mb) ((mb)->m_prio & PMSG_PF_EXT)
+#define pmsg_was_sent(mb) ((mb)->m_prio & PMSG_PF_SENT)
+#define pmsg_mark_sent(mb) \
+G_STMT_START { \
+	(mb)->m_prio |= PMSG_PF_SENT; \
+} G_STMT_END
 
 /*
  * Public interface

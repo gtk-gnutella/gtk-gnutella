@@ -345,7 +345,8 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 			} else {
 				/* Only the first ``data_remain'' bytes are forwarded */
 				mb->m_rptr += attr->data_remain;
-				nmb->m_wptr = nmb->m_rptr + attr->data_remain;
+				nmb->m_wptr =
+					deconstify_gpointer(&nmb->m_rptr[attr->data_remain]);
 				attr->data_remain = 0;
 				attr->state = CHUNK_STATE_DATA_CRLF;
 			}
