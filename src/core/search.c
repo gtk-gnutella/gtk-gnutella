@@ -2335,6 +2335,16 @@ search_reissue_timeout_callback(gpointer data)
 	return TRUE;
 }
 
+static guint32
+search_max_results_for_ui(void)
+{
+#if defined(USE_TOPLESS)
+	max_items = 1;
+#else
+	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
+#endif
+}
+
 /**
  * Make sure a timer is created/removed after a search was started/stopped.
  */
@@ -2364,11 +2374,8 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * Look at the amount of items we got for this search already.
 	 * The more we have, the less often we retry to save network resources.
 	 */
-#if defined(USE_TOPLESS)
-	max_items = 1;
-#else
-	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
-#endif
+	max_items = search_max_results_for_ui();
+	max_items = MAX(1, max_items)
 
 	percent = sch->items * 100 / max_items;
 	factor = (percent < 10) ? 1.0 :
@@ -2620,9 +2627,8 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
      */
 
 	if (browse_copied_to_passive) {
-		guint32 max_items;
+		guint32 max_items = search_max_results_for_ui();
 
-		gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
 		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 			search_ctrl_t *sch = sl->data;
 
@@ -2661,7 +2667,7 @@ search_results(gnutella_node_t *n, gint *results)
 
 	g_assert(results != NULL);
 
-	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
+	max_items = search_max_results_for_ui();
 
 	/*
 	 * We'll dispatch to non-frozen passive searches, and to the active search
@@ -3512,7 +3518,6 @@ search_oob_pending_results(
 	gnutella_node_t *n, const gchar *muid, gint hits, gboolean udp_firewalled)
 {
 	guint32 kept;
-	guint32 max_items;
 	gint ask;
 
 	g_assert(NODE_IS_UDP(n));
@@ -3558,13 +3563,7 @@ search_oob_pending_results(
 	 * to get more results, ignore.
 	 */
 
-#if defined(USE_TOPLESS)
-	max_items = 1;
-#else
-	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
-#endif
-
-	if (kept > max_items * 0.15) {
+	if (kept > search_max_results_for_ui() * 0.15) {
 		if (search_debug)
 			g_message("ignoring %d OOB hit%s for search %s (already got %u)",
 				hits, hits == 1 ? "" : "s", guid_hex_str(muid), kept);
