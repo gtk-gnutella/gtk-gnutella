@@ -42,20 +42,19 @@
 #ifndef _glib_missing_h_
 #define _glib_missing_h_
 
-#include <sys/types.h>
-#include <glib.h>
+#include "common.h"
 
 #ifdef USE_GLIB1
 typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
 
 typedef struct GMemVTable {
-	gpointer (*malloc)(gsize n_bytes);
-	gpointer (*realloc)(gpointer mem, gsize n_bytes);
-	void (*free)(gpointer mem);
+	gpointer	(*malloc)		(gsize n_bytes);
+	gpointer	(*realloc)		(gpointer mem, gsize n_bytes);
+	void		(*free)			(gpointer mem);
 	/* optional */
-	gpointer (*calloc)(gsize n_blocks, gsize n_block_bytes);
-	gpointer (*try_malloc)(gsize n_bytes);
-	gpointer (*try_realloc)(gpointer mem, gsize n_bytes);
+	gpointer	(*calloc)		(gsize n_blocks, gsize n_block_bytes);
+	gpointer	(*try_malloc)	(gsize n_bytes);
+	gpointer	(*try_realloc)	(gpointer mem, gsize n_bytes);
 } GMemVTable;
 #endif
 
