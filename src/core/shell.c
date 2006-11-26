@@ -343,7 +343,7 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 	switch (get_command(tok)) {
 	case CMD_ADD: {
 		gchar *tok_query;
-		gboolean error;
+		gboolean success;
 
 		tok_query = shell_get_token(cmd, &pos);
 		if (!tok_query) {
@@ -351,10 +351,10 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 			goto error;
 		}
 
-		error = gcu_search_gui_new_search(tok_query, 0);
+		success = gcu_search_gui_new_search(tok_query, 0);
 		G_FREE_NULL(tok_query);
 
-		if (error) {
+		if (!success) {
 			sh->msg = _("The search could not be created");
 			goto error;
 		}
