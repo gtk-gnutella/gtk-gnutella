@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include <zlib.h>	/* Z_DEFAULT_COMPRESSION */
+
 #include "ggep.h"
 #include "extensions.h"
 #include "lib/cobs.h"
