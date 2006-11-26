@@ -39,6 +39,8 @@
 
 RCSID("$Id$")
 
+#include <zlib.h>
+
 #include "sockets.h"
 #include "hosts.h"
 #include "tx.h"

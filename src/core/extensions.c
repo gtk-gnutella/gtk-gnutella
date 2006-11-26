@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include <zlib.h>
+
 #include "extensions.h"
 #include "ggep.h"
 

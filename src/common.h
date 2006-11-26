@@ -318,8 +318,6 @@ typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 #include <regex.h>
 #endif
 
-#include <zlib.h>
-
 #ifdef USE_GLIB1
 typedef void (*GCallback) (void);
 #define G_STRLOC __FILE__ ":" STRINGIFY(__LINE__)

@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include <zlib.h>
+
 #include "zlib_util.h"
 #include "misc.h"
 #include "walloc.h"
