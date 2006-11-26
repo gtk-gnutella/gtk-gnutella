@@ -36,6 +36,7 @@
 #ifndef _dht_routing_h_
 #define _dht_routing_h_
 
+#include "common.h"
 #include "kuid.h"
 #include "lib/host_addr.h"
 

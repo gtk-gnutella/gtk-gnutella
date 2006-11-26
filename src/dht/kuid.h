@@ -36,7 +36,7 @@
 #ifndef _dht_kuid_h_
 #define _dht_kuid_h_
 
-#include <glib.h>
+#include "common.h"
 
 #define KUID_RAW_SIZE	20
 

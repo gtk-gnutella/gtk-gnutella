@@ -36,6 +36,8 @@
 #ifndef _dht_knode_h_
 #define _dht_knode_h_
 
+#include "common.h"
+
 #include "kuid.h"
 #include "lib/host_addr.h"
 

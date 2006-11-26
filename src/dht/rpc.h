@@ -36,6 +36,7 @@
 #ifndef _dht_rpc_h_
 #define _dht_rpc_h_
 
+#include "common.h"
 #include "knode.h"
 #include "kuid.h"
 

@@ -40,8 +40,6 @@
 
 RCSID("$Id$")
 
-#include <glib.h>
-
 #include "routing.h"
 #include "kuid.h"
 #include "knode.h"

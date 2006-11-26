@@ -37,8 +37,6 @@
 
 RCSID("$Id$")
 
-#include <glib.h>
-
 #include "rpc.h"
 
 #include "lib/atoms.h"
