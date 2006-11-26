@@ -26,6 +26,7 @@
 #ifndef _gtk1_downloads_cb_h_
 #define _gtk1_downloads_cb_h_
 
+#include "common.h"
 #include "gtk/gui.h"
 
 /***

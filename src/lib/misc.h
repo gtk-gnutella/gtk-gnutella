@@ -50,13 +50,7 @@
 #ifndef _misc_h_
 #define _misc_h_
 
-#include "config.h"
-
-#include <time.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include <glib.h>
+#include "common.h"
 
 #include "vmm.h"
 

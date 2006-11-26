@@ -36,6 +36,8 @@
 #ifndef _utf8_tables_h_
 #define _utf8_tables_h_
 
+#include "common.h"
+
 /*
  *	Current Unicode version: 4.1.0
  */

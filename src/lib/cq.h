@@ -36,7 +36,7 @@
 #ifndef _cq_h_
 #define _cq_h_
 
-#include <glib.h>
+#include "common.h" 
 
 struct cqueue;
 

@@ -36,8 +36,7 @@
 #ifndef _header_h_
 #define _header_h_
 
-#include <stdio.h>
-#include <glib.h>
+#include "common.h"
 
 /**
  * Header parsing and holding data structures.

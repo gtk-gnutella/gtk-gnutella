@@ -41,6 +41,8 @@
 #ifndef _crash_h_
 #define _crash_h_
 
+#include "common.h"
+
 void crash_init(const char *pathname, const char *argv0);
 
 #endif	/* _crash_h_ */

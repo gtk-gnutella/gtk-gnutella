@@ -33,6 +33,8 @@
  *
  */
 
+#include "common.h"
+
 #define D(x, y) ((guint64) (x) << 32 | (y))
 
 static const guint64 tiger_sboxes[4 * 256] = {

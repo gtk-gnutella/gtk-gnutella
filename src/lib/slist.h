@@ -26,6 +26,7 @@
 #ifndef _slist_h_
 #define _slist_h_
 
+#include "common.h"
 #include "glib-missing.h"
 
 typedef struct slist_iter slist_iter_t;

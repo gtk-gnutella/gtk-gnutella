@@ -36,7 +36,7 @@
 #ifndef _fifo_h_
 #define _fifo_h_
 
-#include <glib.h>
+#include "common.h" 
 
 typedef struct fifo {
 	gpointer data;

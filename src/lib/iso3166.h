@@ -26,7 +26,7 @@
 #ifndef _lib_iso3166_h_
 #define _lib_iso3166_h_
 
-#include <glib.h>
+#include "common.h"
 
 gint iso3166_encode_cc(const gchar *cc);
 void iso3166_init(void);

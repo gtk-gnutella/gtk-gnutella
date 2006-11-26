@@ -36,6 +36,8 @@
 #ifndef _wordvec_h_
 #define _wordvec_h_
 
+#include "common.h"
+
 /**
  * Search query splitting.
  */

@@ -36,7 +36,7 @@
 #ifndef _crc_h_
 #define _crc_h_
 
-#include <glib.h>
+#include "common.h"
 
 void crc_init(void);
 guint32 crc32_update_crc(guint32 crc_accum, gconstpointer data, size_t len);

@@ -55,10 +55,11 @@
  * Released with gtk-gnutella & its license
  */
 
-#include "gtk/gui.h"
+#include "common.h"
 
 RCSID("$Id$")
 
+#include "gtk/gui.h"
 #include "gtk/upload_stats.h"
 #include "gtk/columns.h"
 #include "gtk/settings.h"

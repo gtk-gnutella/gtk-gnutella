@@ -25,10 +25,11 @@
  *----------------------------------------------------------------------
  */
 
-#include "gtk/gui.h"
+#include "common.h"
 
 RCSID("$Id$")
 
+#include "gtk/gui.h"
 #include "interface-glade.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"

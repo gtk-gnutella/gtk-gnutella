@@ -36,7 +36,7 @@
 #ifndef _vendors_h_
 #define _vendors_h_
 
-#include <glib.h>
+#include "common.h"
 
 /***
  *** Known gnutella vendor codes

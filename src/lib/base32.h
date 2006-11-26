@@ -36,7 +36,7 @@
 #ifndef _base32_h_
 #define _base32_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Public interface.

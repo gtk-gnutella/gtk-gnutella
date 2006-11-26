@@ -26,6 +26,8 @@
 #ifndef _endian_h_
 #define _endian_h_
 
+#include "common.h"
+
 #if G_BYTE_ORDER == G_BIG_ENDIAN
 #define guint64_to_BE(x)	x
 #define guint64_to_LE(x)	GUINT64_SWAP_LE_BE(x)

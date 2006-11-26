@@ -36,7 +36,7 @@
 #ifndef _listener_h_
 #define _listener_h_
 
-#include <glib.h>
+#include "common.h"
 
 /**
  * To use the macros below with a "node_added" signal for example,

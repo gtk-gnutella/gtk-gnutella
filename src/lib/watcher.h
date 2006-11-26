@@ -36,7 +36,7 @@
 #ifndef _watcher_h_
 #define _watcher_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "file.h"
 

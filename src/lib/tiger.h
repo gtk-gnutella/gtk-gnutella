@@ -36,7 +36,7 @@
 #ifndef _tiger_h_
 #define _tiger_h_
 
-#include <glib.h>
+#include "common.h"
 
 void tiger_check(void);
 void tiger(gconstpointer data, guint64 length, guchar hash[24]);

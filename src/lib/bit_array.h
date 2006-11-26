@@ -37,6 +37,8 @@
 #ifndef _bit_array_h_
 #define _bit_array_h_
 
+#include "common.h"
+
 /*
  * Functions for handling arrays of bits. On BSD systems, the macros from
  * <bitstring.h> could be used for better efficiency. So far, the following

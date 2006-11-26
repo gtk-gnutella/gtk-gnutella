@@ -36,7 +36,7 @@
 #ifndef _zalloc_h_
 #define _zalloc_h_
 
-#include <glib.h>
+#include "common.h" 
 
 #define ZALLOC_ALIGNBYTES	MEM_ALIGNBYTES
 

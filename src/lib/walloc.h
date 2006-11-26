@@ -36,7 +36,7 @@
 #ifndef _walloc_h_
 #define _walloc_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.

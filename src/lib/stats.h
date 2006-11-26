@@ -36,6 +36,8 @@
 #ifndef _stats_h_
 #define _stats_h_
 
+#include "common.h"
+
 /*
  * One dimension statistics.
  */

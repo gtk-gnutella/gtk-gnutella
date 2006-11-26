@@ -35,10 +35,11 @@
  * @date 2006
  */
 
-#include "magnet.h"
+#include "common.h"
 
 RCSID("$Id$")
 
+#include "magnet.h"
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"

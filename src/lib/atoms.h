@@ -36,7 +36,7 @@
 #ifndef _atoms_h_
 #define _atoms_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Atom types.

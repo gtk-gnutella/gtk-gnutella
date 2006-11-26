@@ -36,6 +36,8 @@
 #ifndef _dbus_h_
 #define _dbus_h_
 
+#include "common.h"
+
 /**
  * Notification events. These should not be translated, they are part
  * of the machine protocol on dbus.

@@ -36,7 +36,7 @@
 #ifndef _adns_h_
 #define _adns_h_
 
-#include <glib.h>
+#include "common.h"
 #include "host_addr.h"	/* For ``struct host_addr'' */
 
 typedef void (*adns_callback_t)(const host_addr_t *, size_t, gpointer);

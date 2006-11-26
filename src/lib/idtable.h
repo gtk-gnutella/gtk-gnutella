@@ -55,7 +55,7 @@
 #ifndef _idtable_h_
 #define _idtable_h_
 
-#include <glib.h>
+#include "common.h" 
 
 #define idtable_ids(tbl) (tbl->ids)
 #define idtable_size(tbl) (tbl->size)

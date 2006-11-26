@@ -36,7 +36,7 @@
 #ifndef _url_h_
 #define _url_h_
 
-#include <glib.h>
+#include "common.h"
 
 /**
  * Parsed URL parameters (from query string).

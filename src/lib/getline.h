@@ -36,7 +36,7 @@
 #ifndef _getline_h_
 #define _getline_h_
 
-#include <glib.h>
+#include "common.h"
 
 #define MAX_LINE_SIZE	1024	/**< Maximum length for regular line */
 

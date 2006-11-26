@@ -36,6 +36,8 @@
 #ifndef _pattern_h_
 #define _pattern_h_
 
+#include "common.h"
+
 #define ALPHA_SIZE	256			/**< Alphabet size */
 
 typedef struct {				/**< Compiled pattern */

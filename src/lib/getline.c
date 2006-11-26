@@ -37,8 +37,6 @@
 
 RCSID("$Id$")
 
-#include <string.h>		/* For memmove() */
-
 #include "getline.h"
 #include "walloc.h"
 #include "misc.h"		/* For RCSID */

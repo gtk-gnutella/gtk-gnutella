@@ -36,8 +36,7 @@
 #ifndef _getdate_h_
 #define _getdate_h_
 
-#include <time.h>
-#include <sys/time.h>
+#include "common.h"
 
 time_t date2time(const char *p, time_t now);
 

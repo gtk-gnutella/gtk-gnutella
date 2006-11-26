@@ -36,7 +36,7 @@
 #ifndef _bg_h_
 #define _bg_h_
 
-#include <glib.h>
+#include "common.h"
 
 /**
  * Return values for processing steps.

@@ -36,7 +36,7 @@
 #ifndef _zlib_util_h_
 #define _zlib_util_h_
 
-#include <glib.h>
+#include "common.h"
 
 /**
  * Incremental deflater stream.

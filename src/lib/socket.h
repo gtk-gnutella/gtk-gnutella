@@ -23,6 +23,12 @@
  * ----------------------------------------------------------------------
  */
 
+#ifndef _lib_socket_h_
+#define _lib_socket_h_
+
+#include "common.h"
+
 void socket_set_nonblocking(int fd);
 
+#endif	/* _lib_socket_h_ */
 /* vi: set ts=4 sw=4 cindent: */

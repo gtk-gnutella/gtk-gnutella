@@ -36,7 +36,7 @@
 #ifndef _cobs_h_
 #define _cobs_h_
 
-#include <glib.h>
+#include "common.h"
 
 enum cobs_magic { COBS_MAGIC = 0xc0befU };
 

@@ -28,7 +28,7 @@
 #ifndef _sha1_h_
 #define _sha1_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * If you do not have the ISO standard stdint.h header file, then you

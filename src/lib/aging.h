@@ -26,6 +26,7 @@
 #ifndef _aging_h_
 #define _aging_h_
 
+#include "common.h"
 #include "glib-missing.h"	/* For GEqualFunc in glib-1.x */
 
 typedef void (*aging_free_t)(gpointer value, gpointer udata);

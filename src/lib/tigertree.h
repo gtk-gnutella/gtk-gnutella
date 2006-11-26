@@ -56,6 +56,8 @@
 #ifndef _tigertree_h_
 #define _tigertree_h_
 
+#include "common.h"
+
 #include "tiger.h"
 
 /* tiger hash result size, in bytes */

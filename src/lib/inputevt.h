@@ -39,7 +39,7 @@
 #ifndef _inputevt_h_
 #define _inputevt_h_
 
-#include <glib.h>
+#include "common.h" 
 
 /**
  * This mimics the GDK input condition type.

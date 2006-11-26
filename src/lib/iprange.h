@@ -36,6 +36,8 @@
 #ifndef _iprange_h_
 #define _iprange_h_
 
+#include "common.h"
+
 typedef void (*iprange_free_t)(gpointer value, gpointer udata);
 typedef gpointer (*iprange_clone_t)(gpointer value);
 

@@ -36,6 +36,8 @@
 #ifndef _fuzzy_h_
 #define _fuzzy_h_
 
+#include "common.h"
+
 /**
  * FUZZY_SHIFT is used to shift the real score to gain extra precision
  * in favour of using float

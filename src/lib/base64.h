@@ -36,7 +36,7 @@
 #ifndef _base64_h_
 #define _base64_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Public interface.
