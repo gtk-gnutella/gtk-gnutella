@@ -2338,11 +2338,14 @@ search_reissue_timeout_callback(gpointer data)
 static guint32
 search_max_results_for_ui(void)
 {
+	guint32 max_items;
+
 #if defined(USE_TOPLESS)
 	max_items = 1;
 #else
 	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
 #endif
+	return max_items;
 }
 
 /**
@@ -2375,7 +2378,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * The more we have, the less often we retry to save network resources.
 	 */
 	max_items = search_max_results_for_ui();
-	max_items = MAX(1, max_items)
+	max_items = MAX(1, max_items);
 
 	percent = sch->items * 100 / max_items;
 	factor = (percent < 10) ? 1.0 :
