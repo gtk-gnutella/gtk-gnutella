@@ -2012,26 +2012,36 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 gboolean
 search_gui_handle_local(const gchar *query, const gchar **error_str)
 {
-	gboolean success;
-	search_t *search;
-	const gchar *text;
+	gboolean success, rebuilding;
+	const gchar *text, *error_dummy;
 
 	g_return_val_if_fail(query, FALSE);
 
 	text = is_strcaseprefix(query, "local:");
 	g_return_val_if_fail(text, FALSE);
-	
-	success = search_gui_new_search_full(text, tm_time(), 0, 0,
-			 	search_sort_default_column, search_sort_default_order,
-			 	SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED, &search);
 
-	if (success) {
-		g_assert(search);
-		success = guc_search_locally(search->search_handle, text);
+	if (!error_str) {
+		error_str = &error_dummy;
 	}
-	if (error_str) {
+
+    gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
+	if (rebuilding) {
+		*error_str = _("The library is currently being rebuilt.");
+		success = FALSE;	
+	} else { 
+		search_t *search;
+
+		success = search_gui_new_search_full(text, tm_time(), 0, 0,
+			 		search_sort_default_column, search_sort_default_order,
+			 		SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
+					&search);
+		if (success) {
+			g_assert(search);
+			success = guc_search_locally(search->search_handle, text);
+		}
 		*error_str = NULL;
 	}
+
 	return success;
 }
 

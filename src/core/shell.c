@@ -343,6 +343,7 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 	switch (get_command(tok)) {
 	case CMD_ADD: {
 		gchar *tok_query;
+		gboolean error;
 
 		tok_query = shell_get_token(cmd, &pos);
 		if (!tok_query) {
@@ -350,9 +351,13 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 			goto error;
 		}
 
-		gcu_search_gui_new_search(tok_query, 0);
+		error = gcu_search_gui_new_search(tok_query, 0);
 		G_FREE_NULL(tok_query);
 
+		if (error) {
+			sh->msg = _("The search could not be created");
+			goto error;
+		}
 		sh->msg = _("Search added");
 		reply_code = REPLY_READY;
 		break;
@@ -908,8 +913,8 @@ print_upload_info(gnutella_shell_t *sh, const struct gnet_upload_info *info)
 	g_return_if_fail(sh);
 	g_return_if_fail(info);
 
-	gm_snprintf(buf, sizeof buf, "%s%-16.40s %s %s@%s %s%s%s",
-		info->encrypted ? "(E)" : "  ",
+	gm_snprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
+		info->encrypted ? "(E)" : "",
 		host_addr_to_string(info->addr),
 		iso3166_country_cc(info->country),
 		compact_size(info->range_end - info->range_start, display_metric_units),
