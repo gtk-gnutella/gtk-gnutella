@@ -665,11 +665,11 @@ shell_exec_rescan(gnutella_shell_t *sh, const gchar *cmd)
 	if (library_rebuilding) {
 		sh->msg = _("The library is currently being rebuilt.");
 		return REPLY_ERROR;
-	} else if (rescan_requested) {
+	} else if (library_rescan_requested) {
 		sh->msg = _("A rescan has already been scheduled");
 		return REPLY_ERROR;
 	} else {
-		rescan_requested = TRUE;
+		library_rescan_requested = TRUE;
 		shell_write(sh, "100-Scheduling library rescan\n");
 		sh->msg = "";
 		return REPLY_READY;
