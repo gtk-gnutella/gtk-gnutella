@@ -330,7 +330,6 @@ pmsg_clone(pmsg_t *mb)
 	pdata_addref(nmb->m_data);
 
 	return nmb;
-}
 
 /**
  * Free all message blocks, and decrease ref count on all data buffers.
@@ -338,35 +337,32 @@ pmsg_clone(pmsg_t *mb)
 void
 pmsg_free(pmsg_t *mb)
 {
-	/* In provision for messsage chaining */
-	do {
-		pdata_t *db = mb->m_data;
+	pdata_t *db = mb->m_data;
 
-		g_assert(valid_ptr(mb));
+	g_assert(valid_ptr(mb));
 
-		/*
-		 * Invoke free routine on extended message block.
-		 */
+	/*
+	 * Invoke free routine on extended message block.
+	 */
 
-		if (pmsg_is_extended(mb)) {
-			pmsg_ext_t *emb = (pmsg_ext_t *) mb;
-			if (emb->m_free)
-				(*emb->m_free)(mb, emb->m_arg);
-			memset(emb, 0, sizeof *emb);
-			wfree(emb, sizeof(*emb));
-		} else {
-			memset(mb, 0, sizeof *mb);
-			zfree(mb_zone, mb);
-		}
+	if (pmsg_is_extended(mb)) {
+		pmsg_ext_t *emb = (pmsg_ext_t *) mb;
+		if (emb->m_free)
+			(*emb->m_free)(mb, emb->m_arg);
+		memset(emb, 0, sizeof *emb);
+		wfree(emb, sizeof(*emb));
+	} else {
+		memset(mb, 0, sizeof *mb);
+		zfree(mb_zone, mb);
+	}
 
-		/*
-		 * Unref buffer data only after possible free routine was
-		 * invoked, since it may cause a free, preventing access to
-		 * memory from within the free routine.
-		 */
+	/*
+	 * Unref buffer data only after possible free routine was
+	 * invoked, since it may cause a free, preventing access to
+	 * memory from within the free routine.
+	 */
 
-		pdata_unref(db);
-	} while (0);
+	pdata_unref(db);
 }
 
 /**
