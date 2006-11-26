@@ -49,8 +49,13 @@ typedef struct shared_file shared_file_t;
  * shared_file flags
  */
 
-#define SHARE_F_HAS_DIGEST	0x00000001		/**< Digest is set */
-#define SHARE_F_RECOMPUTING	0x00000002		/**< Digest being recomputed */
+enum {
+	SHARE_F_HAS_DIGEST	=	(1 << 0),		/**< Digest is set */
+	SHARE_F_RECOMPUTING	=	(1 << 1),		/**< Digest being recomputed */
+	SHARE_F_SPECIAL		=	(1 << 2),		/**< Special (robots.txt, favicon)*/
+	SHARE_F_BASENAME	=	(1 << 3),		/**< File is in basename index */
+	SHARE_F_INDEXED		=	(1 << 4),		/**< File is in file_table index */
+};
 
 /**
  * Known MIME content types

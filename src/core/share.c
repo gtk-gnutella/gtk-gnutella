@@ -112,7 +112,7 @@ struct special_file {
 	const gchar *what;			/* Description of the file for traces */
 };
 
-static struct special_file specials[] = {
+static const struct special_file specials[] = {
 	{ "/favicon.ico",
 			"favicon.png",	SHARE_M_IMAGE_PNG,	"Favorite web icon" },
 	{ "/robots.txt",
@@ -265,6 +265,7 @@ shared_file_check(const struct shared_file *sf)
 	g_assert(sf->refcnt >= 0);
 	g_assert((NULL != sf->name_nfc) ^ (0 == sf->name_nfc_len));
 	g_assert((NULL != sf->name_canonic) ^ (0 == sf->name_canonic_len));
+	g_assert(!(SHARE_F_INDEXED & sf->flags) ^ (0 != sf->file_index));
 }
 
 /**
@@ -287,8 +288,9 @@ shared_file_deindex(shared_file_t *sf)
 {
 	shared_file_check(sf);
 
-	if (file_basenames) {
+	if (file_basenames && (SHARE_F_BASENAME & sf->flags)) {
 		g_hash_table_remove(file_basenames, sf->name_nfc);
+		sf->flags &= ~SHARE_F_BASENAME;
 	}
 
 	/**
@@ -302,6 +304,8 @@ shared_file_deindex(shared_file_t *sf)
 		sf->file_index <= files_scanned &&
 		sf == file_table[sf->file_index - 1]
    ) {
+		g_assert(SHARE_F_INDEXED & sf->flags);
+		sf->flags &= ~SHARE_F_INDEXED;
 		file_table[sf->file_index - 1] = NULL;
 		sf->file_index = 0;
 	}
@@ -401,7 +405,7 @@ static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
  * the file exists, NULL otherwise.
  */
 static shared_file_t *
-share_special_load(struct special_file *sp)
+share_special_load(const struct special_file *sp)
 {
 	FILE *f;
 	gint idx;
@@ -431,6 +435,8 @@ share_special_load(struct special_file *sp)
 	 */
 
 	sf = shared_file_alloc();
+	sf->flags |= SHARE_F_SPECIAL;
+
 	{
 		gchar *filename = make_pathname(fp[idx].dir, fp[idx].name);
 		sf->file_path = atom_str_get(filename);
@@ -461,7 +467,7 @@ share_special_init(void)
 		shared_file_t *sf = share_special_load(&specials[i]);
 		if (sf != NULL)
 			g_hash_table_insert(special_names,
-				deconstify_gchar(specials[i].path), sf);
+				deconstify_gchar(specials[i].path), shared_file_ref(sf));
 	}
 }
 
@@ -685,6 +691,7 @@ shared_file_get_index(const gchar *filename)
 shared_file_t *
 shared_file_by_name(const gchar *filename)
 {
+	shared_file_t *sf;
 	guint idx;
 
 	if (file_table == NULL)
@@ -692,7 +699,9 @@ shared_file_by_name(const gchar *filename)
 
 	g_assert(file_basenames);
 	idx = shared_file_get_index(filename);
-	return idx == 0 ? NULL : file_table[idx - 1];
+	sf = idx > 0 ? NULL : file_table[idx - 1];
+	shared_file_check(sf);
+	return sf;
 }
 
 /**
@@ -1435,7 +1444,9 @@ share_scan(void)
 		struct shared_file *sf = sl->data;
 
 		shared_file_check(sf);
+		g_assert(!(SHARE_F_INDEXED & sf->flags));
 		file_table[i++] = sf;
+		sf->flags |= SHARE_F_INDEXED;
 	}
 
 	/* Sort file list by modification time */
@@ -1457,10 +1468,10 @@ share_scan(void)
 		if (!sf)
 			continue;
 
-		shared_file_check(sf);
 		/* Set file_index based on new sort order */
 		sf->file_index = i + 1;
-		
+		shared_file_check(sf);
+
 		/* We must not change the file index after request_sha1() */
 		if (!request_sha1(sf)) {
 			file_table[i] = NULL;
@@ -1487,6 +1498,7 @@ share_scan(void)
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
 		g_hash_table_insert(file_basenames, deconstify_gchar(sf->name_nfc),
 			GUINT_TO_POINTER(val));
+		sf->flags |= SHARE_F_BASENAME;
 
 		if (0 == (i & 0x7ff))
 			gcu_gtk_main_flush();
@@ -1538,7 +1550,8 @@ special_free_kv(gpointer unused_key, gpointer val, gpointer unused_udata)
 	(void) unused_key;
 	(void) unused_udata;
 
-	shared_file_free(&sf);
+	g_assert(SHARE_F_SPECIAL & sf->flags);
+	shared_file_unref(sf);
 }
 
 /**
@@ -1549,6 +1562,7 @@ share_special_close(void)
 {
 	g_hash_table_foreach(special_names, special_free_kv, NULL);
 	g_hash_table_destroy(special_names);
+	special_names = NULL;
 }
 
 /**
