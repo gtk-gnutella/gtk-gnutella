@@ -36,6 +36,7 @@
 #ifndef _core_tx_chunk_h
 #define _core_tx_chunk_h_
 
+#include "common.h"
 #include "tx.h"
 #include "lib/cq.h"
 

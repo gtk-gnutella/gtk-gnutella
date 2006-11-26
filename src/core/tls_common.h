@@ -33,6 +33,8 @@
 #ifndef _core_tls_common_h_
 #define _core_tls_common_h_
 
+#include "common.h"
+
 #define TLS_DH_BITS 768
 
 #include "if/core/wrap.h"			/* For wrap_io_t */

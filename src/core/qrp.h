@@ -36,7 +36,7 @@
 #ifndef _core_qrp_h_
 #define _core_qrp_h_
 
-#include <glib.h>
+#include "common.h"
 
 #define QRP_MIN_WORD_LENGTH		3	/**< Minimal word length */
 

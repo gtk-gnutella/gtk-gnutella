@@ -36,6 +36,7 @@
 #ifndef _core_rxbuf_h_
 #define _core_rxbuf_h_
 
+#include "common.h"
 #include "pmsg.h"
 
 /*

@@ -36,7 +36,7 @@
 #ifndef _core_rx_h_
 #define _core_rx_h_
 
-#include <glib.h>
+#include "common.h" 
 
 #include "pmsg.h"
 #include "if/core/hosts.h"

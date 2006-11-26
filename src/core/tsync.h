@@ -36,7 +36,7 @@
 #ifndef _core_tsync_h_
 #define _core_tsync_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "lib/tm.h"
 

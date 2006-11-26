@@ -36,6 +36,8 @@
 #ifndef _core_gwcache_h_
 #define _core_gwcache_h_
 
+#include "common.h"
+
 /*
  * Public interface.
  */

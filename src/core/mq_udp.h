@@ -36,6 +36,7 @@
 #ifndef _core_mq_udp_h_
 #define _core_mq_udp_h_
 
+#include "common.h"
 #include "mq.h"
 #include "pmsg.h"
 #include "if/core/hosts.h"		/* For gnet_host_t */

@@ -36,7 +36,7 @@
 #ifndef _core_features_h_
 #define _core_features_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "lib/header.h"		/* For header_t */
 

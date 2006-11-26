@@ -36,6 +36,7 @@
 #ifndef _core_fileinfo_h_
 #define _core_fileinfo_h_
 
+#include "common.h"
 #include "share.h"						/* For shared_file_t */
 #include "if/core/fileinfo.h"
 

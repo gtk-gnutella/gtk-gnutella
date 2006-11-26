@@ -36,6 +36,8 @@
 #ifndef _core_http_h_
 #define _core_http_h_
 
+#include "common.h"
+
 #include "if/core/http.h"
 #include "lib/host_addr.h"
 

@@ -36,6 +36,8 @@
 #ifndef _core_search_h_
 #define _core_search_h_
 
+#include "common.h"
+
 #include "nodes.h"
 
 /*

@@ -36,6 +36,8 @@
 #ifndef _core_tx_link_h_
 #define _core_tx_link_h_
 
+#include "common.h"
+
 #include "tx.h"
 
 const struct txdrv_ops *tx_link_get_ops(void);

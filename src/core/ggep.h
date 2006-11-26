@@ -36,11 +36,11 @@
 #ifndef _core_ggep_h_
 #define _core_ggep_h_
 
+#include "common.h"
+
 #include "extensions.h"
 #include "lib/cobs.h"
 #include "lib/zlib_util.h"
-
-#include <glib.h>
 
 #define GGEP_MAGIC		'\xc3'		/**< GGEP extension prefix */
 

@@ -26,6 +26,8 @@
 #ifndef _core_gnutella_h_
 #define _core_gnutella_h_
 
+#include "common.h"
+
 #include "if/core/gnutella.h"
 
 /*

@@ -36,6 +36,8 @@
 #ifndef _core_rx_link_h_
 #define _core_rx_link_h_
 
+#include "common.h"
+
 #include "rx.h"
 
 const struct rxdrv_ops *rx_link_get_ops(void);

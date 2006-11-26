@@ -26,7 +26,7 @@
 #ifndef _core_routing_h_
 #define _core_routing_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "gnutella.h"
 

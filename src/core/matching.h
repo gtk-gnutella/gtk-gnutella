@@ -64,6 +64,8 @@
 #ifndef _core_matching_h_
 #define _core_matching_h_
 
+#include "common.h"
+
 typedef struct _search_table search_table_t;
 
 struct query_hashvec;

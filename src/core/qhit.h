@@ -36,7 +36,7 @@
 #ifndef _core_qhit_h_
 #define _core_qhit_h_
 
-#include <glib.h>
+#include "common.h"
 
 typedef void (*qhit_process_t)(gpointer data, size_t len, gpointer udata);
 

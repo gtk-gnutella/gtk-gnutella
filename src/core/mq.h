@@ -36,7 +36,7 @@
 #ifndef _core_mq_h_
 #define _core_mq_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "gnutella.h"
 #include "pmsg.h"

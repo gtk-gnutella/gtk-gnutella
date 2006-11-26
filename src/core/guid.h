@@ -36,7 +36,7 @@
 #ifndef _core_guid_h_
 #define _core_guid_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "if/core/guid.h"
 #include "lib/host_addr.h"

@@ -36,7 +36,7 @@
 #ifndef _core_oob_proxy_h_
 #define _core_oob_proxy_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Public interface.

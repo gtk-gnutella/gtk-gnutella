@@ -36,7 +36,7 @@
 #ifndef _core_extensions_h_
 #define _core_extensions_h_
 
-#include <glib.h>
+#include "common.h"
 
 /**
  * Known extension types.

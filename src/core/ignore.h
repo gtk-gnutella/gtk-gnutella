@@ -36,7 +36,7 @@
 #ifndef _core_ignore_h_
 #define _core_ignore_h_
 
-#include <glib.h>
+#include "common.h"
 
 void ignore_init(void);
 void ignore_close(void);

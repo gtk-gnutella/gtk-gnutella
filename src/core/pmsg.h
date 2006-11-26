@@ -36,7 +36,7 @@
 #ifndef _core_pmsg_h_
 #define _core_pmsg_h_
 
-#include <glib.h>
+#include "common.h"
 
 /**
  * A data buffer, can be shared by several message blocks.

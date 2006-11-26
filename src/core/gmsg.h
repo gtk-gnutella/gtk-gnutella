@@ -36,6 +36,8 @@
 #ifndef _core_gmsg_h_
 #define _core_gmsg_h_
 
+#include "common.h"
+
 #include "gnutella.h"
 #include "pmsg.h"
 

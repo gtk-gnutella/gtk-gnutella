@@ -36,6 +36,8 @@
 #ifndef _core_mq_tcp_h_
 #define _core_mq_tcp_h_
 
+#include "common.h"
+
 #include "mq.h"
 #include "pmsg.h"
 

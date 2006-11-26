@@ -36,7 +36,7 @@
 #ifndef _core_ioheader_h_
 #define _core_ioheader_h_
 
-#include <glib.h>
+#include "common.h" 
 
 struct io_header;
 struct header;

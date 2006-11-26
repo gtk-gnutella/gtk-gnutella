@@ -36,6 +36,8 @@
 #ifndef _core_verify_tth_h_
 #define _core_verify_tth_h_
 
+#include "common.h"
+
 struct shared_file;
 
 void tt_verify_init(void);

@@ -36,7 +36,7 @@
 #ifndef _core_alive_h_
 #define _core_alive_h_
 
-#include <glib.h>
+#include "common.h"
 
 struct gnutella_node;
 

@@ -36,7 +36,7 @@
 #ifndef _core_udp_h_
 #define _core_udp_h_
 
-#include <glib.h>
+#include "common.h"
 #include "lib/host_addr.h"
 
 /*

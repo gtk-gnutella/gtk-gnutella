@@ -36,10 +36,8 @@
 #ifndef _core_dmesh_h_
 #define _core_dmesh_h_
 
+#include "common.h"
 #include "downloads.h"
-
-#include <glib.h>
-#include <errno.h>
 
 /**
  * A download mesh info (describes an URL).

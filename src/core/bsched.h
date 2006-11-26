@@ -36,6 +36,8 @@
 #ifndef _core_bsched_h_
 #define _core_bsched_h_
 
+#include "common.h"
+
 #include "sockets.h"		/* For enum socket_type */
 
 #include "lib/inputevt.h"

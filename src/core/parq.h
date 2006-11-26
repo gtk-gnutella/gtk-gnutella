@@ -36,6 +36,8 @@
 #ifndef _core_parq_h_
 #define _core_parq_h_
 
+#include "common.h"
+
 #include "lib/header.h"
 #include "downloads.h"
 #include "uploads.h"

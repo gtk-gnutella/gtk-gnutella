@@ -36,7 +36,7 @@
 #ifndef _core_namesize_h_
 #define _core_namesize_h_
 
-#include <glib.h>
+#include "common.h"
 
 /**
  * The (name, size) tuple.

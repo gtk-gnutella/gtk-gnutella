@@ -36,7 +36,7 @@
 #ifndef _core_ban_h_
 #define _core_ban_h_
 
-#include <glib.h>
+#include "common.h"
 #include "lib/host_addr.h"
 
 struct gnutella_socket;

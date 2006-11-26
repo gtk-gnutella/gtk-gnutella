@@ -36,7 +36,7 @@
 #ifndef _core_verify_h_
 #define _core_verify_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Public interface.

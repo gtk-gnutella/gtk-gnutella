@@ -36,6 +36,8 @@
 #ifndef _core_ntp_h_
 #define _core_ntp_h_
 
+#include "common.h"
+
 #define NTP_PORT	123
 
 /*

@@ -39,6 +39,8 @@
 #ifndef _core_local_shell_h_
 #define _core_local_shell_h_
 
+#include "common.h"
+
 void local_shell(const char *socket_path);
 
 #endif /* _core_local_shell_h_ */

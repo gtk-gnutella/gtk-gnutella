@@ -36,6 +36,8 @@
 #ifndef _core_downloads_h_
 #define _core_downloads_h_
 
+#include "common.h"
+
 #include "lib/header.h"
 #include "fileinfo.h"
 

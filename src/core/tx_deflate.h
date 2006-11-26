@@ -36,6 +36,8 @@
 #ifndef _core_tx_deflate_h_
 #define _core_tx_deflate_h_
 
+#include "common.h"
+
 #include "tx.h"
 #include "lib/cq.h"
 

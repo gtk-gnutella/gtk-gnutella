@@ -48,6 +48,8 @@
 #ifndef _core_hashtree_h_
 #define _core_hashtree_h_
 
+#include "common.h"
+
 typedef struct node_s node_t;
 struct node_s {
 	node_t	*left_node;

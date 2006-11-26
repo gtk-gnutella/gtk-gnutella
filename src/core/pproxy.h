@@ -36,7 +36,7 @@
 #ifndef _core_pproxy_h_
 #define _core_pproxy_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "if/core/pproxy.h"
 

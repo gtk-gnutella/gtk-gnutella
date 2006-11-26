@@ -36,6 +36,8 @@
 #ifndef _core_bitzi_h_
 #define _core_bitzi_h_
 
+#include "common.h"
+
 #include "if/core/bitzi.h"
 
 void bitzi_init(void);

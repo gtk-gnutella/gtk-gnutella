@@ -36,6 +36,8 @@
 #ifndef _core_uhc_h_
 #define _core_uhc_h_
 
+#include "common.h"
+
 /*
  * Public interface.
  */

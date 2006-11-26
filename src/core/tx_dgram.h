@@ -36,6 +36,7 @@
 #ifndef _core_tx_dgram_h_
 #define _core_tx_dgram_h_
 
+#include "common.h"
 #include "tx.h"
 
 const struct txdrv_ops *tx_dgram_get_ops(void);

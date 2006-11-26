@@ -36,6 +36,7 @@
 #ifndef _core_pcache_h_
 #define _core_pcache_h_
 
+#include "common.h"
 #include "hcache.h"
 #include "if/core/nodes.h"
 #include "gnutella.h"

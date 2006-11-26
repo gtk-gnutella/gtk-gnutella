@@ -36,7 +36,7 @@
 #ifndef _core_tx_h_
 #define _core_tx_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "if/core/hosts.h"
 

@@ -26,6 +26,8 @@
 #ifndef _core_gnet_stats_h_
 #define _core_gnet_stats_h_
 
+#include "common.h"
+
 #include "nodes.h"
 #include "if/core/net_stats.h"
 

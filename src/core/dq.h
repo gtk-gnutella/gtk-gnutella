@@ -36,7 +36,7 @@
 #ifndef _core_dq_h_
 #define _core_dq_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "pmsg.h"
 #include "qrp.h"

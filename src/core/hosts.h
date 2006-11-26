@@ -26,7 +26,7 @@
 #ifndef _core_hosts_h_
 #define _core_hosts_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "if/core/hosts.h"
 
