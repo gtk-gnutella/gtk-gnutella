@@ -182,9 +182,9 @@ pmsg_new_extend(gint prio, gconstpointer buf, gint len,
 
 	emb->m_free = free_cb;
 	emb->m_arg = arg;
-	emb->m_prio |= PMSG_PF_EXT;
+	emb->m_prio = prio | PMSG_PF_EXT;
 
-	(void) pmsg_fill(cast_to_pmsg(emb), db, prio, buf, len);
+	(void) pmsg_fill(cast_to_pmsg(emb), db, emb->m_prio, buf, len);
 
 	return cast_to_pmsg(emb);
 }
