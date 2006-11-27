@@ -73,7 +73,6 @@ halloc_get_size(void *p)
 	void *value;
 
 	value = hash_table_lookup(hallocations, p);
-	RUNTIME_ASSERT(value);
 	return (size_t) value;		
 }
 
@@ -129,6 +128,7 @@ hfree(void *p)
 		return;
 
 	size = halloc_get_size(p);
+	RUNTIME_ASSERT(size > 0);
 	hash_table_remove(hallocations, p);
 	if (size < compat_pagesize()) {
 		wfree(p, size);
@@ -152,7 +152,10 @@ hrealloc(void *old, size_t new_size)
 	p = new_size > 0 ? halloc(new_size) : NULL;
 	if (old) {
 		if (p) {
-			size_t old_size = halloc_get_size(old);
+			size_t old_size;
+		   
+			old_size = halloc_get_size(old);
+			RUNTIME_ASSERT(old_size > 0);
 			memcpy(p, old, MIN(new_size, old_size));
 		}
 		hfree(old);
@@ -210,12 +213,26 @@ halloc_init(void)
 #ifndef USE_MALLOC
 	{
 		static GMemVTable vtable;
+		gpointer p;
 
 		vtable.malloc = gm_malloc;
 		vtable.realloc = gm_realloc;
 		vtable.free = gm_free;
 
 		g_mem_set_vtable(&vtable);
+
+		/*
+		 * Check whether the remapping is effective. This may not be
+		 * the case for our GLib 1.2 hack
+		 */
+		p = g_malloc(1);
+		if (1 != halloc_get_size(p)) {
+			static GMemVTable zero_vtable;
+			fprintf(stderr, "WARNING: Resetting g_mem_set_vtable");
+			g_mem_set_vtable(&zero_vtable);
+		} else {
+			G_FREE_NULL(p);
+		}
 	}
 #endif	/* !USE_MALLOC */
 }
