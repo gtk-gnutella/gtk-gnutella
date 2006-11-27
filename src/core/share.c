@@ -288,10 +288,12 @@ shared_file_deindex(shared_file_t *sf)
 {
 	shared_file_check(sf);
 
-	if (file_basenames && (SHARE_F_BASENAME & sf->flags)) {
-		g_hash_table_remove(file_basenames, sf->name_nfc);
-		sf->flags &= ~SHARE_F_BASENAME;
+	if (SHARE_F_BASENAME & sf->flags) {
+		if (file_basenames) {
+			g_hash_table_remove(file_basenames, sf->name_nfc);
+		}
 	}
+	sf->flags &= ~SHARE_F_BASENAME;
 
 	/**
 	 * The shared file might not be referenced by the current file_table
@@ -305,10 +307,10 @@ shared_file_deindex(shared_file_t *sf)
 		sf == file_table[sf->file_index - 1]
    ) {
 		g_assert(SHARE_F_INDEXED & sf->flags);
-		sf->flags &= ~SHARE_F_INDEXED;
 		file_table[sf->file_index - 1] = NULL;
-		sf->file_index = 0;
 	}
+	sf->file_index = 0;
+	sf->flags &= ~SHARE_F_INDEXED;
 }
 
 /**
@@ -1335,16 +1337,17 @@ share_free(void)
 		file_basenames = NULL;
 	}
 
-	G_FREE_NULL(file_table);
-
 	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;
+
 		shared_file_check(sf);
+		shared_file_deindex(sf);
 		shared_file_unref(&sf);
 	}
-
 	g_slist_free(shared_files);
 	shared_files = NULL;
+
+	G_FREE_NULL(file_table);
 }
 
 /**
