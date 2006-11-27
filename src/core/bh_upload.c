@@ -295,7 +295,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 						escaped = url_escape(name_nfc);
 						bh->w_buf_size = w_concat_strings(&bh->w_buf,
 							"<li><a href=\"/get/",
-							uint64_to_string(shared_file_index(sf)),
+							uint32_to_string(shared_file_index(sf)),
 							"/", escaped, "\">", html_name, "</a>"
 							"&nbsp;[",
 							short_html_size(file_size, display_metric_units),
