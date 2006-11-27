@@ -1462,7 +1462,6 @@ share_scan(void)
 		shared_file_check(sf);
 		g_assert(!(SHARE_F_INDEXED & sf->flags));
 		file_table[i++] = sf;
-		sf->flags |= SHARE_F_INDEXED;
 	}
 
 	/* Sort file list by modification time */
@@ -1486,6 +1485,7 @@ share_scan(void)
 
 		/* Set file_index based on new sort order */
 		sf->file_index = i + 1;
+		sf->flags |= SHARE_F_INDEXED;
 		shared_file_check(sf);
 
 		/* We must not change the file index after request_sha1() */
