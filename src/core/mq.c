@@ -191,7 +191,6 @@ mq_remove_linkable(mqueue_t *q, GList *l)
 
 	g_assert(q->magic == MQ_MAGIC);
 	g_assert(l != NULL);
-	g_assert(l->data != NULL);
 	g_assert(qown != NULL);		/* Must have added something before */
 
 	owner = g_hash_table_lookup(qown, l);
@@ -293,6 +292,7 @@ mq_free(mqueue_t *q)
 	for (n = 0, l = q->qhead; l; l = g_list_next(l)) {
 		n++;
 		pmsg_free(l->data);
+		l->data = NULL;
 		mq_remove_linkable(q, l);
 	}
 
@@ -332,6 +332,7 @@ mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 	q->count--;
 
 	pmsg_free(l->data);
+	l->data = NULL;
 	g_list_free_1(l);
 
 	return prev;
@@ -1164,8 +1165,8 @@ restart:
 		g_assert(q->qlink[n] == item);
 
 		needed -= cmb_size;
-		(void) mq_rmlink_prev(q, item, cmb_size);
 		q->qlink[n] = NULL;
+		(void) mq_rmlink_prev(q, item, cmb_size);
 
 		dropped++;
 
