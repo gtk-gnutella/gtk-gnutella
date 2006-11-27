@@ -225,8 +225,8 @@ halloc_init(void)
 		 * Check whether the remapping is effective. This may not be
 		 * the case for our GLib 1.2 hack
 		 */
-		p = g_malloc(1);
-		if (1 != halloc_get_size(p)) {
+		p = g_strdup("");
+		if (0 == halloc_get_size(p)) {
 			static GMemVTable zero_vtable;
 			fprintf(stderr, "WARNING: Resetting g_mem_set_vtable");
 			g_mem_set_vtable(&zero_vtable);
