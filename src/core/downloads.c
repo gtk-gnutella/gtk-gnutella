@@ -5140,7 +5140,8 @@ download_abort(struct download *d)
 {
 	download_check(d);
 
-	download_forget(d, FALSE);
+	if (d->file_info->lifecount > 0)
+		download_forget(d, FALSE);
 
 	/*
 	 * The refcount isn't decreased until "Clear completed", so
