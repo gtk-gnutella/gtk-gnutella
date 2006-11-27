@@ -15,6 +15,7 @@ if [ "x$gccversion" != x ]
 then
 	case "$ccflags $optimize" in
 	*-save-temps*);;
+	*-pipe*);;
 	*)
 	$cat >try.c <<'EOC'
 int main(void)

@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Nov 26 02:50:02 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Mon Nov 27 20:07:47 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8151,6 +8151,7 @@ if [ "x$gccversion" != x ]
 then
 	case "$ccflags $optimize" in
 	*-save-temps*);;
+	*-pipe*);;
 	*)
 	$cat >try.c <<'EOC'
 int main(void)
