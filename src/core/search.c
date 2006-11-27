@@ -81,6 +81,7 @@ RCSID("$Id$")
 #include "lib/idtable.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
+#include "lib/sbool.h"
 #include "lib/tm.h"
 #include "lib/vendors.h"
 #include "lib/wordvec.h"
@@ -119,12 +120,12 @@ typedef struct search_ctrl {
 	time_t  time;				/**< Time when this search was started */
 	GSList *muids;				/**< Message UIDs of this search */
 
-	gboolean passive;			/**< Is this a passive search? */
-	gboolean frozen;	/**< XXX: If TRUE, the query is not issued to nodes
-					  		anymore and "don't update window" */
-	gboolean browse;			/**< Special "browse host" search */
-	gboolean local;				/**< Special "local" search */
-	gboolean active;			/**< Whether to actively issue queries. */
+	sbool passive;	/**< Is this a passive search? */
+	sbool frozen;	/**< XXX: If TRUE, the query is not issued to nodes
+				  		anymore and "don't update window" */
+	sbool browse;	/**< Special "browse host" search */
+	sbool local;	/**< Special "local" search */
+	sbool active;	/**< Whether to actively issue queries. */
 
 	/*
 	 * Keep a record of nodes we've sent this search w/ this muid to.
@@ -1977,8 +1978,8 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
     g_assert(sch != NULL);
     g_assert(len != NULL);
     g_assert(sizep != NULL);
-    g_assert(sch->active);
-	g_assert(!sch->frozen);
+    g_assert(sbool_get(sch->active));
+	g_assert(!sbool_get(sch->frozen));
 	g_assert(sch->muids);
 
 	/*
@@ -2182,8 +2183,8 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	guint32 alloclen;
 
     g_assert(sch != NULL);
-    g_assert(sch->active);
-	g_assert(!sch->frozen);
+    g_assert(sbool_get(sch->active));
+	g_assert(!sbool_get(sch->frozen));
 
 	m = build_search_msg(sch, &alloclen, &size);
 
@@ -2253,7 +2254,7 @@ node_added_callback(gpointer data)
 	g_assert(node_added != NULL);
 	g_assert(data != NULL);
     g_assert(sch != NULL);
-    g_assert(sch->active);
+    g_assert(sbool_get(sch->active));
 
 	/*
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
@@ -2269,7 +2270,7 @@ node_added_callback(gpointer data)
 
 	if (
         !search_already_sent_to_node(sch, node_added) &&
-        !sch->frozen
+		!sbool_get(sch->frozen)
     ) {
 		search_send_packet(sch, node_added);
 	}
@@ -2360,7 +2361,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	guint32 tm;
 
 	g_assert(sch != NULL);
-	g_assert(sch->active);
+	g_assert(sbool_get(sch->active));
 
 	if (sch->reissue_timeout_id > 0)
 		g_source_remove(sch->reissue_timeout_id);
@@ -2370,7 +2371,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * to do is to remove the timer.
 	 */
 
-	if (sch->frozen || sch->reissue_timeout == 0)
+	if (sbool_get(sch->frozen) || sch->reissue_timeout == 0)
 		return;
 
 	/*
@@ -2619,7 +2620,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
     	search_ctrl_t *sch = search_find_by_handle(sh);
 		
 		g_assert(sch != NULL);
-		if (!sch->frozen)
+		if (!sbool_get(sch->frozen))
 			search = g_slist_prepend(search,
 						GUINT_TO_POINTER(sch->search_handle));
 	}
@@ -2635,7 +2636,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 			search_ctrl_t *sch = sl->data;
 
-			if (!sch->frozen && sch->items < max_items)
+			if (!sbool_get(sch->frozen) && sch->items < max_items)
 				search = g_slist_prepend(search,
 					GUINT_TO_POINTER(sch->search_handle));
 		}
@@ -2680,7 +2681,7 @@ search_results(gnutella_node_t *n, gint *results)
 	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 		search_ctrl_t *sch = sl->data;
 
-		if (!sch->frozen && sch->items < max_items)
+		if (!sbool_get(sch->frozen) && sch->items < max_items)
 			selected_searches = g_slist_prepend(selected_searches,
 						GUINT_TO_POINTER(sch->search_handle));
 	}
@@ -2691,7 +2692,7 @@ search_results(gnutella_node_t *n, gint *results)
 		sch = g_hash_table_lookup(search_by_muid,
 					gnutella_header_get_muid(&n->header));
 
-		if (sch && !sch->frozen && sch->items < max_items)
+		if (sch && !sbool_get(sch->frozen) && sch->items < max_items)
 			selected_searches = g_slist_prepend(selected_searches,
 				GUINT_TO_POINTER(sch->search_handle));
 	}
@@ -3040,7 +3041,7 @@ search_close(gnet_search_t sh)
 	 * This needs to be done before the handle of the search is reclaimed.
 	 */
 
-	if (sch->active)
+	if (sbool_get(sch->active))
 		search_dequeue_all_nodes(sh);
 
     /*
@@ -3054,16 +3055,16 @@ search_close(gnet_search_t sh)
 
 	sl_search_ctrl = g_slist_remove(sl_search_ctrl, sch);
 
-	if (sch->passive)
+	if (sbool_get(sch->passive))
 		sl_passive_ctrl = g_slist_remove(sl_passive_ctrl, sch);
 
-	if (sch->browse && sch->download != NULL)
+	if (sbool_get(sch->browse) && sch->download != NULL)
 		download_abort_browse_host(sch->download, sh);
 
     search_drop_handle(sch->search_handle);
 	g_hash_table_remove(searches, sch);
 
-	if (sch->active) {
+	if (sbool_get(sch->active)) {
 		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
 		sch->new_node_hook = NULL;
 
@@ -3170,17 +3171,17 @@ search_reissue(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 	gchar *muid;
 
-    if (sch->frozen) {
+    if (sbool_get(sch->frozen)) {
         g_warning("trying to reissue a frozen search, aborted");
         return;
     }
 
-	if (sch->local) {
+	if (sbool_get(sch->local)) {
 		search_locally(sh, sch->query);
 		return;
 	}
 
-	if (!sch->active) {
+	if (!sbool_get(sch->active)) {
         g_warning("trying to reissue a non-active search, aborted");
 		return;
 	}
@@ -3221,7 +3222,7 @@ search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
 
     g_assert(sch != NULL);
 
-    if (!sch->active) {
+    if (!sbool_get(sch->active)) {
         g_error("can't set reissue timeout on a non-active search");
         return;
     }
@@ -3335,21 +3336,19 @@ search_new(const gchar *query,
 	g_hash_table_insert(searches, sch, GINT_TO_POINTER(1));
 
 	sch->query = atom_str_get(qdup);
-	sch->frozen = TRUE;
+	sch->frozen = sbool_set(TRUE);
 	sch->create_time = create_time;
 	sch->lifetime = lifetime;
 
 	G_FREE_NULL(qdup);
 
-	if (flags & SEARCH_F_PASSIVE) {
-		sch->passive = TRUE;
-	} else if (flags & SEARCH_F_BROWSE) {
-		sch->browse = TRUE;
-	} else if (flags & SEARCH_F_LOCAL) {
-		sch->local = TRUE;
-	} else {
-		sch->active = TRUE;
+	sch->browse = sbool_set(flags & SEARCH_F_BROWSE);
+	sch->local = sbool_set(flags & SEARCH_F_LOCAL);
+	sch->passive = sbool_set(flags & SEARCH_F_PASSIVE);
+	sch->active = sbool_set(
+			0 == (flags & (SEARCH_F_BROWSE|SEARCH_F_LOCAL|SEARCH_F_PASSIVE)));
 
+	if (sbool_get(sch->active)) {
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = sch;
 		sch->new_node_hook->func =
@@ -3367,7 +3366,7 @@ search_new(const gchar *query,
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
 
-	if (sch->passive)
+	if (sbool_get(sch->passive))
 		sl_passive_ctrl = g_slist_prepend(sl_passive_ctrl, sch);
 
 	return sch->search_handle;
@@ -3405,7 +3404,7 @@ search_add_kept(gnet_search_t sh, guint32 kept)
 	 * to which we're connected) about the amount of results we got so far.
 	 */
 
-	if (!sch->active || current_peermode != NODE_P_LEAF)
+	if (!sbool_get(sch->active) || current_peermode != NODE_P_LEAF)
 		return;
 
 	search_update_results(sch);
@@ -3419,11 +3418,11 @@ search_start(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch->frozen);			/* Coming from search_new(), or resuming */
+    g_assert(sbool_get(sch->frozen));/* Coming from search_new(), or resuming */
 
-    sch->frozen = FALSE;
+    sch->frozen = sbool_set(FALSE);
 
-    if (sch->active) {
+    if (sbool_get(sch->active)) {
 		/*
 		 * If we just created the search with search_new(), there will be
 		 * no message ever sent, and sch->muids will be NULL.
@@ -3450,11 +3449,11 @@ search_stop(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
-    g_assert(!sch->frozen);
+    g_assert(!sbool_get(sch->frozen));
 
-    sch->frozen = TRUE;
+    sch->frozen = sbool_set(TRUE);
 
-    if (sch->active)
+    if (sbool_get(sch->active))
 		update_one_reissue_timeout(sch);
 }
 
@@ -3474,12 +3473,12 @@ search_get_kept_results(const gchar *muid, guint32 *kept)
 
 	sch = g_hash_table_lookup(search_by_muid, muid);
 
-	g_assert(sch == NULL || sch->active);		/* No MUID if not active */
+	g_assert(sch == NULL || sbool_get(sch->active)); /* No MUID if not active */
 
 	if (sch == NULL)
 		return FALSE;
 
-	if (sch->frozen) {
+	if (sbool_get(sch->frozen)) {
 		if (search_debug)
 			g_message("Ignoring results because search is stopped");
 		return FALSE;
@@ -3611,7 +3610,7 @@ search_is_frozen(gnet_search_t sh)
 
     g_assert(sch != NULL);
 
-    return sch->frozen;
+    return sbool_get(sch->frozen);
 }
 
 gboolean
@@ -3621,7 +3620,7 @@ search_is_passive(gnet_search_t sh)
 
     g_assert(sch != NULL);
 
-    return sch->passive;
+    return sbool_get(sch->passive);
 }
 
 gboolean
@@ -3631,7 +3630,7 @@ search_is_active(gnet_search_t sh)
 
     g_assert(sch != NULL);
 
-    return sch->active;
+    return sbool_get(sch->active);
 }
 
 gboolean
@@ -3669,8 +3668,8 @@ search_browse(gnet_search_t sh,
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
-	g_assert(sch->browse);
-	g_assert(!sch->frozen);
+	g_assert(sbool_get(sch->browse));
+	g_assert(!sbool_get(sch->frozen));
 	g_assert(sch->download == NULL);
 
 	if (!port_is_valid(port))
@@ -3700,7 +3699,7 @@ search_dissociate_browse(gnet_search_t sh, gpointer download)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
-	g_assert(sch->browse);
+	g_assert(sbool_get(sch->browse));
 	g_assert(sch->download == download);
 
 	sch->download = NULL;
@@ -3751,9 +3750,9 @@ search_locally(gnet_search_t sh, const gchar *query)
 
    	sch = search_find_by_handle(sh);
     g_assert(sch != NULL);
-	g_assert(!sch->browse);
-	g_assert(!sch->frozen);
-	g_assert(sch->local);
+	g_assert(!sbool_get(sch->browse));
+	g_assert(!sbool_get(sch->frozen));
+	g_assert(sbool_get(sch->local));
 	g_assert(sch->download == NULL);
 
 	if ('\0' == query[0]) {
