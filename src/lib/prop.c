@@ -1593,8 +1593,6 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		return;
 
 	pathname = make_pathname(dir, filename);
-	g_return_if_fail(NULL != pathname);
-
 	if (-1 == stat(pathname, &sb)) {
 		g_warning("could not stat \"%s\": %s", pathname, g_strerror(errno));
 	} else {
@@ -1939,8 +1937,6 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		return;
 
 	path = make_pathname(dir, filename);
-	g_return_if_fail(NULL != path);
-
 	config = file_fopen(path, "r");
 	if (!config) {
 		G_FREE_NULL(path);
