@@ -101,6 +101,7 @@ struct mqueue {
 	gint last_written;		/**< Amount last written by service routine */
 	gint flowc_written;		/**< Amount written during flow control */
 	gint last_size;			/**< Queue size at last "swift" event callback */
+    gint putq_entered;
 };
 
 /*

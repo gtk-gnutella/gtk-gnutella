@@ -319,6 +319,11 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 		goto cleanup;
 	}
 
+	if (q->putq_entered++ > 0) {
+		g_warning("mq_tcp_putq: recursion detected");
+		goto cleanup;
+	}
+
 	gnet_stats_count_queued(q->node, function, hops, size);
 
 	/*
@@ -387,11 +392,15 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	 */
 
 	q->cops->puthere(q, mb, size);
-	mq_check(q, 0);
-	return;
+	mb = NULL;
 
 cleanup:
-	pmsg_free(mb);
+	if (mb) {
+		pmsg_free(mb);
+		mb = NULL;
+	}
+	g_assert(q->putq_entered > 0);
+	q->putq_entered--;
 	mq_check(q, 0);
 	return;
 }

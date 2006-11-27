@@ -279,7 +279,6 @@ mq_udp_service(gpointer data)
 void
 mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 {
-	static guint entered;
 	size_t size;
 	gchar *mbs;
 	guint8 function;
@@ -304,8 +303,8 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 		goto cleanup;
 	}
 
-	if (entered++ > 0) {
-		g_warning("mq_putq: recursion detected");
+	if (q->putq_entered++ > 0) {
+		g_warning("mq_udp_putq: recursion detected");
 		goto cleanup;
 	}
 
@@ -388,8 +387,9 @@ cleanup:
 		pmsg_free(mb);
 		mb = NULL;
 	}
+	g_assert(q->putq_entered > 0);
+	q->putq_entered--;
 	mq_check(q, 0);
-	entered--;
 	return;
 }
 

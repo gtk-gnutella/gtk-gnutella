@@ -328,7 +328,10 @@ mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 	q->qhead = g_list_remove_link(q->qhead, l);
 	if (q->qtail == l)
 		q->qtail = prev;
+
+	g_assert(q->size >= size);
 	q->size -= size;
+	g_assert(q->count > 0);
 	q->count--;
 
 	pmsg_free(l->data);
