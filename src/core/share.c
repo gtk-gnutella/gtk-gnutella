@@ -2760,7 +2760,18 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	file_info_check(fi);
 
 	sf = shared_file_alloc();
+	sf->flags = SHARE_F_HAS_DIGEST;
+	sf->mtime = fi->last_flush;
+	sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
+	sf->sha1 = atom_sha1_get(fi->sha1);
 
+	/* FIXME: DOWNLOAD_SIZE:
+	 * Do we need to add anything here now that fileinfos can have an
+	 *  unknown length? --- Emile
+	 */
+
+	sf->file_size = fi->size;
+	
 	/*
 	 * Determine a proper human-readable name for the file.
 	 * If it is an URN, look through the aliases.
@@ -2777,16 +2788,6 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 		G_FREE_NULL(path);
 	}
 
-	/* FIXME: DOWNLOAD_SIZE:
-	 * Do we need to add anything here now that fileinfos can have an
-	 *  unknown length? --- Emile
-	 */
-	sf->file_size = fi->size;
-	sf->file_index = URN_INDEX;
-	sf->mtime = fi->last_flush;
-	sf->flags = SHARE_F_HAS_DIGEST;
-	sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
-	sf->sha1 = atom_sha1_get(fi->sha1);
 	sf->fi = fi;		/* Signals it's a partially downloaded file */
 
 	fi->sf = shared_file_ref(sf);
