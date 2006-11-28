@@ -668,6 +668,7 @@
 # actively connecting to other nodes.
 # "The Hinshelwood Building, Edmund Halley Road, Oxford Science Park"
 85.210.156.0/24
+81.157.11.254
 81.179.85.0/24
 # The one below was first caught but might be outdated by now.
 81.179.74.0/24
