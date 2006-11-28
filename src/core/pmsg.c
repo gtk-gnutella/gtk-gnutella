@@ -61,21 +61,30 @@ typedef struct pmsg_ext {
 	gpointer m_arg;					/**< Argument to pass to free routine */
 } pmsg_ext_t;
 
+static inline void
+pmsg_ext_check_consistency(const pmsg_ext_t * const emb)
+{
+	g_assert(emb);
+	g_assert(PMSG_EXT_MAGIC == emb->pmsg.magic);
+	g_assert(PMSG_PF_EXT & emb->pmsg.m_prio);
+}
+
 static zone_t *mb_zone = NULL;
 
 static inline ALWAYS_INLINE pmsg_ext_t *
 cast_to_pmsg_ext(pmsg_t *mb)
 {
-	g_assert(mb);
-	g_assert(pmsg_is_extended(mb));
-	return (pmsg_ext_t *) mb;
+	pmsg_ext_t *emb;
+
+	emb = (pmsg_ext_t *) mb;
+	pmsg_ext_check_consistency(emb);
+	return emb;
 }
 
 static inline ALWAYS_INLINE pmsg_t *
 cast_to_pmsg(pmsg_ext_t *emb)
 {
-	g_assert(emb);
-	g_assert(pmsg_is_extended(&emb->pmsg));
+	pmsg_ext_check_consistency(emb);
 	return &emb->pmsg;
 }
 
@@ -103,7 +112,7 @@ pmsg_close(void)
 int
 pmsg_size(const pmsg_t *mb)
 {
-	g_assert(mb);
+	pmsg_check_consistency(mb);
 
 	return mb->m_wptr - mb->m_rptr;
 }
@@ -116,6 +125,7 @@ pmsg_size(const pmsg_t *mb)
 static pmsg_t *
 pmsg_fill(pmsg_t *mb, pdata_t *db, gint prio, gconstpointer buf, gint len)
 {
+	mb->magic = (PMSG_PF_EXT & prio) ? PMSG_EXT_MAGIC : PMSG_MAGIC;
 	mb->m_data = db;
 	mb->m_prio = prio;
 	mb->m_check = NULL;
@@ -130,6 +140,7 @@ pmsg_fill(pmsg_t *mb, pdata_t *db, gint prio, gconstpointer buf, gint len)
 
 	g_assert(implies(buf, len == pmsg_size(mb)));
 
+	pmsg_check_consistency(mb);
 	return mb;
 }
 
@@ -175,9 +186,8 @@ pmsg_new_extend(gint prio, gconstpointer buf, gint len,
 
 	emb->m_free = free_cb;
 	emb->m_arg = arg;
-	emb->pmsg.m_prio = prio | PMSG_PF_EXT;
 
-	(void) pmsg_fill(cast_to_pmsg(emb), db, emb->pmsg.m_prio, buf, len);
+	(void) pmsg_fill(&emb->pmsg, db, prio | PMSG_PF_EXT, buf, len);
 
 	return cast_to_pmsg(emb);
 }
@@ -202,13 +212,10 @@ pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 
 	mb = zalloc(mb_zone);
 
-	mb->m_data = db;
-	mb->m_prio = prio;
-	mb->m_check = NULL;
-	db->d_refcnt++;
+	pmsg_fill(mb, db, prio, NULL, 0);
 
-	mb->m_rptr = db->d_arena + roff;
-	mb->m_wptr = db->d_arena + woff;
+	mb->m_rptr += roff;
+	mb->m_wptr += woff;
 
 	return mb;
 }
@@ -221,7 +228,10 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg)
 {
 	pmsg_ext_t *nmb;
 
+	pmsg_check_consistency(mb);
+
 	nmb = walloc(sizeof(*nmb));
+	nmb->pmsg.magic = PMSG_EXT_MAGIC;
 
 	nmb->pmsg.m_rptr = mb->m_rptr;
 	nmb->pmsg.m_wptr = mb->m_wptr;
@@ -296,6 +306,8 @@ pmsg_set_check(pmsg_t *mb, pmsg_check_t check)
 {
 	pmsg_check_t old;
 
+	pmsg_check_consistency(mb);
+
 	old = mb->m_check;
 	mb->m_check = check;
 
@@ -310,7 +322,7 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 {
 	pmsg_ext_t *nmb;
 
-	g_assert(pmsg_is_extended(&mb->pmsg));
+	pmsg_ext_check_consistency(mb);
 
 	nmb = walloc(sizeof(*nmb));
 	*nmb = *mb;					/* Struct copy */
@@ -325,16 +337,18 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 pmsg_t *
 pmsg_clone(pmsg_t *mb)
 {
-	pmsg_t *nmb;
-
-	if (pmsg_is_extended(mb))
+	if (pmsg_is_extended(mb)) {
 		return pmsg_clone_ext(cast_to_pmsg_ext(mb));
+	} else {
+		pmsg_t *nmb;
 
-	nmb = zalloc(mb_zone);
-	*nmb = *mb;					/* Struct copy */
-	pdata_addref(nmb->m_data);
+		pmsg_check_consistency(mb);
+		nmb = zalloc(mb_zone);
+		*nmb = *mb;					/* Struct copy */
+		pdata_addref(nmb->m_data);
 
-	return nmb;
+		return nmb;
+	}
 }
 
 /**
@@ -345,7 +359,7 @@ pmsg_free(pmsg_t *mb)
 {
 	pdata_t *db = mb->m_data;
 
-	g_assert(valid_ptr(mb));
+	pmsg_check_consistency(mb);
 
 	/*
 	 * Invoke free routine on extended message block.
@@ -377,14 +391,18 @@ pmsg_free(pmsg_t *mb)
 gint
 pmsg_writable_length(const pmsg_t *mb)
 {
-	pdata_t *arena = mb->m_data;
-	gint available = arena->d_end - mb->m_wptr;
+	pdata_t *arena;
+	gint available;
+
+	pmsg_check_consistency(mb);
 
 	/*
 	 * If buffer is not writable (shared among several readers), it is
 	 * forbidden to write any new data to it.
 	 */
 
+	arena = mb->m_data;
+	available = arena->d_end - mb->m_wptr;
 	return pmsg_is_writable(mb) ? available : 0;
 }
 
@@ -397,19 +415,21 @@ pmsg_writable_length(const pmsg_t *mb)
 gint
 pmsg_write(pmsg_t *mb, gconstpointer data, gint len)
 {
-	pdata_t *arena = mb->m_data;
-	gint available = arena->d_end - mb->m_wptr;
-	gint written = len >= available ? available : len;
+	pdata_t *arena;
+	gint available, written;
 
+	pmsg_check_consistency(mb);
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+
+	arena = mb->m_data;
+	available = arena->d_end - mb->m_wptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
-	if (written == 0)
-		return 0;
-
-	memcpy(mb->m_wptr, data, written);
-	mb->m_wptr += written;
-
+	written = len >= available ? available : len;
+	if (written != 0) {
+		memcpy(mb->m_wptr, data, written);
+		mb->m_wptr += written;
+	}
 	return written;
 }
 
@@ -419,17 +439,18 @@ pmsg_write(pmsg_t *mb, gconstpointer data, gint len)
 gint
 pmsg_read(pmsg_t *mb, gpointer data, gint len)
 {
-	gint available = mb->m_wptr - mb->m_rptr;
-	gint readable = len >= available ? available : len;
+	gint available, readable;
 
+	pmsg_check_consistency(mb);
+
+	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
-	if (readable == 0)
-		return 0;
-
-	memcpy(data, mb->m_rptr, readable);
-	mb->m_rptr += readable;
-
+	readable = len >= available ? available : len;
+	if (readable != 0) {
+		memcpy(data, mb->m_rptr, readable);
+		mb->m_rptr += readable;
+	}
 	return readable;
 }
 
@@ -439,11 +460,14 @@ pmsg_read(pmsg_t *mb, gpointer data, gint len)
 gint
 pmsg_discard(pmsg_t *mb, gint len)
 {
-	gint available = mb->m_wptr - mb->m_rptr;
-	gint n = len >= available ? available : len;
+	gint available, n;
 
+	pmsg_check_consistency(mb);
+
+	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
+	n = len >= available ? available : len;
 	mb->m_rptr += n;
 	return n;
 }
@@ -456,11 +480,14 @@ pmsg_discard(pmsg_t *mb, gint len)
 gint
 pmsg_discard_trailing(pmsg_t *mb, gint len)
 {
-	gint available = mb->m_wptr - mb->m_rptr;
-	gint n = len >= available ? available : len;
+	gint available, n;
 
+	pmsg_check_consistency(mb);
+
+	available = mb->m_wptr - mb->m_rptr;
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
+	n = len >= available ? available : len;
 	mb->m_wptr -= n;
 	return n;
 }

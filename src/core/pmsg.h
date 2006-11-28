@@ -82,7 +82,13 @@ struct mqueue;
 typedef struct pmsg pmsg_t;
 typedef gboolean (*pmsg_check_t)(pmsg_t *mb, const struct mqueue *q);
 
+enum pmsg_magic {
+	PMSG_MAGIC		= 0xafa50be3U,
+	PMSG_EXT_MAGIC	= 0xc64cc376U
+};
+
 struct pmsg {
+	enum pmsg_magic	magic;
 	const gchar *m_rptr;			/**< First unread byte in buffer */
 	gchar *m_wptr;					/**< First unwritten byte in buffer */
 	pdata_t *m_data;				/**< Data buffer */
@@ -130,6 +136,14 @@ G_STMT_START { \
 /*
  * Public interface
  */
+
+static inline void
+pmsg_check_consistency(const pmsg_t * const mb)
+{
+	g_assert(mb);
+	g_assert((PMSG_MAGIC == mb->magic) ^ (PMSG_EXT_MAGIC == mb->magic));
+	g_assert((PMSG_MAGIC == mb->magic) ^ (0 != (PMSG_PF_EXT & mb->m_prio)));
+}
 
 void pmsg_init(void);
 void pmsg_close(void);
