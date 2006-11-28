@@ -58,14 +58,15 @@ RCSID("$Id$")
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
  */
 
-#ifdef REMAP_ZALLOC
+#if defined(REMAP_ZALLOC) && !defined(USE_MALLOC)
 #define USE_MALLOC
 #endif	/* !REMAP_ZALLOC */
 
-static hash_table_t *hallocations;
-
 static size_t bytes_allocated;	/* Amount of bytes allocated */
 static size_t chunks_allocated;	/* Amount of chunks allocated */
+
+#if !defined(USE_MALLOC)
+static hash_table_t *hallocations;
 
 static inline size_t
 halloc_get_size(void *p)
@@ -184,7 +185,6 @@ hdestroy(void)
 	}
 }
 
-#ifndef USE_MALLOC
 gpointer
 gm_malloc(gsize size)
 {
@@ -202,41 +202,42 @@ gm_free(gpointer p)
 {
 	hfree(p);
 }
-#endif	/* USE_MALLOC */
+
+static void
+halloc_init_vtable(void)
+{
+	static GMemVTable vtable;
+	gpointer p;
+
+	vtable.malloc = gm_malloc;
+	vtable.realloc = gm_realloc;
+	vtable.free = gm_free;
+
+	g_mem_set_vtable(&vtable);
+
+	/*
+	 * Check whether the remapping is effective. This may not be
+	 * the case for our GLib 1.2 hack. This is required for Darwin,
+	 * for example.
+	 */
+	p = g_strdup("");
+	if (0 == halloc_get_size(p)) {
+		static GMemVTable zero_vtable;
+		fprintf(stderr, "WARNING: Resetting g_mem_set_vtable\n");
+		g_mem_set_vtable(&zero_vtable);
+	} else {
+		G_FREE_NULL(p);
+	}
+}
 
 void
 halloc_init(void)
 {
 	RUNTIME_ASSERT(!hallocations);
 	hallocations = hash_table_new();
-
-#ifndef USE_MALLOC
-	{
-		static GMemVTable vtable;
-		gpointer p;
-
-		vtable.malloc = gm_malloc;
-		vtable.realloc = gm_realloc;
-		vtable.free = gm_free;
-
-		g_mem_set_vtable(&vtable);
-
-		/*
-		 * Check whether the remapping is effective. This may not be
-		 * the case for our GLib 1.2 hack. This is required for Darwin,
-		 * for example.
-		 */
-		p = g_strdup("");
-		if (0 == halloc_get_size(p)) {
-			static GMemVTable zero_vtable;
-			fprintf(stderr, "WARNING: Resetting g_mem_set_vtable\n");
-			g_mem_set_vtable(&zero_vtable);
-		} else {
-			G_FREE_NULL(p);
-		}
-	}
-#endif	/* !USE_MALLOC */
+	halloc_init_vtable();
 }
+#endif	/* !USE_MALLOC */
 
 size_t
 halloc_bytes_allocated(void)

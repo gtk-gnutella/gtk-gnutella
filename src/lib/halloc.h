@@ -55,9 +55,8 @@ static inline void *halloc0(size_t n)	{ return g_malloc0(n); }
 static inline void hfree(void *p)		{ return g_free(p); }
 
 static inline void *
-hrealloc(void *p, size_t o, size_t n)
+hrealloc(void *p, size_t n)
 {
-	(void) o;
 	return g_realloc(p, n);
 }
 
