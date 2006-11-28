@@ -51,17 +51,11 @@ RCSID("$Id$")
 /**
  * An extended message block.
  *
- * Relies on C's structural equivalence for the first 4 fields.
  * An extended message block can be identified by its `m_prio' field
  * having the PMSG_PF_EXT flag set.
  */
 typedef struct pmsg_ext {
-	/* First four fields like "stuct pmsg" */
-	const gchar *m_rptr;			/**< First unread byte in buffer */
-	gchar *m_wptr;					/**< First unwritten byte in buffer */
-	pdata_t *m_data;				/**< Data buffer */
-	guint m_prio;					/**< Message priority (0 = normal) */
-	pmsg_check_t m_check;			/**< Optional check before sending */
+	struct pmsg pmsg;				/**< Must be the first member */
 	/* Additional fields */
 	pmsg_free_t m_free;				/**< Free routine */
 	gpointer m_arg;					/**< Argument to pass to free routine */
@@ -81,10 +75,9 @@ static inline ALWAYS_INLINE pmsg_t *
 cast_to_pmsg(pmsg_ext_t *emb)
 {
 	g_assert(emb);
-	g_assert(pmsg_is_extended(emb));
-	return (pmsg_t *) emb;
+	g_assert(pmsg_is_extended(&emb->pmsg));
+	return &emb->pmsg;
 }
-
 
 /**
  * Allocate internal variables.
@@ -182,9 +175,9 @@ pmsg_new_extend(gint prio, gconstpointer buf, gint len,
 
 	emb->m_free = free_cb;
 	emb->m_arg = arg;
-	emb->m_prio = prio | PMSG_PF_EXT;
+	emb->pmsg.m_prio = prio | PMSG_PF_EXT;
 
-	(void) pmsg_fill(cast_to_pmsg(emb), db, emb->m_prio, buf, len);
+	(void) pmsg_fill(cast_to_pmsg(emb), db, emb->pmsg.m_prio, buf, len);
 
 	return cast_to_pmsg(emb);
 }
@@ -230,14 +223,14 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg)
 
 	nmb = walloc(sizeof(*nmb));
 
-	nmb->m_rptr = mb->m_rptr;
-	nmb->m_wptr = mb->m_wptr;
-	nmb->m_data = mb->m_data;
-	nmb->m_prio = mb->m_prio;
-	nmb->m_check = mb->m_check;
-	pdata_addref(nmb->m_data);
+	nmb->pmsg.m_rptr = mb->m_rptr;
+	nmb->pmsg.m_wptr = mb->m_wptr;
+	nmb->pmsg.m_data = mb->m_data;
+	nmb->pmsg.m_prio = mb->m_prio;
+	nmb->pmsg.m_check = mb->m_check;
+	pdata_addref(nmb->pmsg.m_data);
 
-	nmb->m_prio |= PMSG_PF_EXT;
+	nmb->pmsg.m_prio |= PMSG_PF_EXT;
 	nmb->m_free = free_cb;
 	nmb->m_arg = arg;
 
@@ -317,11 +310,11 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 {
 	pmsg_ext_t *nmb;
 
-	g_assert(pmsg_is_extended(mb));
+	g_assert(pmsg_is_extended(&mb->pmsg));
 
 	nmb = walloc(sizeof(*nmb));
 	*nmb = *mb;					/* Struct copy */
-	pdata_addref(nmb->m_data);
+	pdata_addref(nmb->pmsg.m_data);
 
 	return cast_to_pmsg(nmb);
 }
