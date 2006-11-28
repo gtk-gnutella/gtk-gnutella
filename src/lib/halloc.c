@@ -223,12 +223,13 @@ halloc_init(void)
 
 		/*
 		 * Check whether the remapping is effective. This may not be
-		 * the case for our GLib 1.2 hack
+		 * the case for our GLib 1.2 hack. This is required for Darwin,
+		 * for example.
 		 */
 		p = g_strdup("");
 		if (0 == halloc_get_size(p)) {
 			static GMemVTable zero_vtable;
-			fprintf(stderr, "WARNING: Resetting g_mem_set_vtable");
+			fprintf(stderr, "WARNING: Resetting g_mem_set_vtable\n");
 			g_mem_set_vtable(&zero_vtable);
 		} else {
 			G_FREE_NULL(p);
