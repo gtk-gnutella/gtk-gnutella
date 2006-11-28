@@ -437,8 +437,8 @@ browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
 		remain -= r;
 
 		if (r == 0 || 0 == pmsg_size(mb)) {
-			pmsg_free(mb);
 			bh->hits = g_slist_remove(bh->hits, mb);
+			pmsg_free(mb);
 		}
 	}
 
