@@ -483,7 +483,8 @@ G_STMT_START {			\
  * ignored in contrast to MUST NOT. Unfortunately, a simple "(void)"
  * does not suppress this warning.
  */
-#define IGNORE_RESULT(x) G_STMT_START { (void) (0 != (x)); }  G_STMT_END
+#define IGNORE_RESULT(x) \
+	G_STMT_START { switch (0 != (x)) { default: ; } }  G_STMT_END
 
 /* Functions using this attribute cause a warning if the variable
  * argument list does not contain a NULL pointer. */
