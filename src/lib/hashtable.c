@@ -199,18 +199,21 @@ hash_table_find(hash_table_t *ht, const void *key, size_t *bin)
 void
 hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
 {
-  size_t i;
+  size_t i, n;
 
   hash_table_check(ht);
   RUNTIME_ASSERT(func != NULL);
 
+  n = ht->num_held;
   for (i = 0; i < ht->num_bins; i++) {
     hash_item_t *item;
 
     for (item = ht->bins[i]; NULL != item; item = item->next) {
       (*func)(item->key, item->value, data);
+      n--;
     }
   }
+  RUNTIME_ASSERT(0 == n);
 }
 
 static void
