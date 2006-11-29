@@ -1074,6 +1074,13 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	/*
+	 * This must be run before we allocate memory because we might
+	 * use mmap() with /dev/zero and then accidently close this
+	 * file descriptor.
+	 */
+	close_file_descriptors(3); /* Just in case */
+
 #ifdef FRAGCHECK
 	fragcheck_init();
 #endif
@@ -1081,7 +1088,6 @@ main(int argc, char **argv)
 	halloc_init();
 	misc_init();
 	tm_now_exact(&start_time);
-	close_file_descriptors(3); /* Just in case */
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 	set_signal(SIGHUP, sig_hup);
