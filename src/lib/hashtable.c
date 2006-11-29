@@ -237,6 +237,7 @@ hash_table_clear(hash_table_t *ht)
   ht->num_bins = 0;
   free_pages(ht->items, ht->num_items * sizeof ht->items[0]);
   ht->items = NULL;
+  ht->num_held = 0;
   ht->num_items = 0;
   ht->free_list = NULL;
 }
@@ -266,9 +267,8 @@ hash_table_resize(hash_table_t *ht)
 
     hash_table_new_intern(&tmp, n);
     hash_table_foreach(ht, hash_table_resize_helper, &tmp);
-    hash_table_clear(ht);
-
     RUNTIME_ASSERT(ht->num_held == tmp.num_held);
+    hash_table_clear(ht);
 
     *ht = tmp;
   }
