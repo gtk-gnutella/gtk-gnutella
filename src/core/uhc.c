@@ -95,7 +95,6 @@ static const struct {
 } boot_hosts[] = {
 	{ "g6.6dns.org:1337" },
 	{ "guruz.udp-host-cache.com:6666" },
-	{ "plankton.merseine.nu:20098" },
 	{ "secondary.udp-host-cache.com:9999" },
 	{ "uhc.ak-electron.org:6346" },
 	{ "uhc.udp-host-cache.com:9999" },
