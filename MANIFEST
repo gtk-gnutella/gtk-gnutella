@@ -527,6 +527,8 @@ src/lib/getdate.h
 src/lib/getdate.y
 src/lib/getline.c
 src/lib/getline.h
+src/lib/getphysmemsize.c
+src/lib/getphysmemsize.h
 src/lib/glib-missing.c
 src/lib/glib-missing.h
 src/lib/halloc.c

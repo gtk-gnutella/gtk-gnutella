@@ -61,6 +61,7 @@
 #include "if/bridge/c2ui.h"
 
 #include "lib/bit_array.h"
+#include "lib/getphysmemsize.h"
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
@@ -303,91 +304,6 @@ save_pid(gint fd)
 /* ----------------------------------------- */
 
 /**
- * @return the amount of physical RAM in bytes, or zero in case of failure
- */
-static guint64
-settings_getphysmemsize(void)
-#if defined (_SC_PHYS_PAGES)
-{
-	size_t pagesize = compat_pagesize();
-	glong pages;
-
-	errno = 0;
-	pages = sysconf(_SC_PHYS_PAGES);
-	if ((glong) -1 == pages && 0 != errno) {
-		g_warning("sysconf(_SC_PHYS_PAGES) failed: %s", g_strerror(errno));
-		return 0;
-	}
-	return pagesize * (guint64) (gulong) pages;
-}
-#elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM64)
-{
-/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
-	int mib[2] = { CTL_HW, HW_USERMEM64 };
-	guint64 amount = 0;
-	size_t len = sizeof amount;
-
-	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
-		g_warning(
-			"settings_getphysmemsize: sysctl() for HW_USERMEM64 failed: %s",
-			g_strerror(errno));
-		return 0;
-	}
-
-	return amount;
-}
-#elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM)
-{
-/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
-	int mib[2] = { CTL_HW, HW_USERMEM };
-	guint32 amount = 0;
-	size_t len = sizeof amount;
-
-	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
-		g_warning(
-			"settings_getphysmemsize: sysctl() for HW_USERMEM failed: %s",
-			g_strerror(errno));
-		return 0;
-	}
-
-	return amount;
-}
-#elif defined (HAS_GETINVENT)
-{
-	inventory_t *inv;
-	long physmem = 0;
-
-	if (-1 == setinvent()) {
-		g_warning("settings_getphysmemsize: setinvent() failed: %s",
-			g_strerror(errno));
-		return 0;
-	}
-
-	errno = 0;
-	while ((inv = getinvent()) != NULL) {
-		if (inv->inv_class == INV_MEMORY && inv->inv_type == INV_MAIN_MB) {
-			physmem = inv->inv_state;
-			break;
-		}
-	}
-	endinvent();
-
-	if (-1L == physmem && 0 != errno) {
-		g_warning("settings_getphysmemsize: "
-			"getinvent() for INV_MEMORY faild: %s", g_strerror(errno));
-		return 0;
-	}
-
-	return (guint64) physmem * 1024 * 1024;
-}
-#else /* ! _SC_PHYS_PAGES && ! HAS_SYSCTL && ! HAS_GETINVENT */
-{
-	g_warning("Unable to determine amount of physical RAM");
-	return 0;
-}
-#endif /* _SC_PHYS_PAGES */
-
-/**
  * Initializes "config_dir" and "home_dir".
  */
 void
@@ -442,7 +358,7 @@ settings_ensure_unicity(gboolean check_only)
 void
 settings_init(void)
 {
-	guint64 memory = settings_getphysmemsize();
+	guint64 memory = getphysmemsize();
 	guint64 amount = memory / 1024;
 	guint max_fd;
 

@@ -49,6 +49,7 @@ LSRC = \
 	fuzzy.c \
 	getdate.c \
 	getline.c \
+	getphysmemsize.c \
 	glib-missing.c \
 	halloc.c \
 	hashlist.c \

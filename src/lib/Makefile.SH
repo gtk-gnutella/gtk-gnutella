@@ -105,6 +105,7 @@ LSRC = \
 	fuzzy.c \
 	getdate.c \
 	getline.c \
+	getphysmemsize.c \
 	glib-missing.c \
 	halloc.c \
 	hashlist.c \
@@ -161,6 +162,7 @@ LOBJ = \
 	fuzzy.o \
 	getdate.o \
 	getline.o \
+	getphysmemsize.o \
 	glib-missing.o \
 	halloc.o \
 	hashlist.o \

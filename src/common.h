@@ -211,12 +211,6 @@ struct passwd
 #ifdef I_SYS_PARAM
 #include <sys/param.h>
 #endif
-#ifdef I_SYS_SYSCTL
-#include <sys/sysctl.h>
-#endif
-#ifdef I_INVENT
-#include <invent.h>
-#endif
 
 #ifdef I_INTTYPES
 #include <inttypes.h>
