@@ -175,7 +175,7 @@ vmm_mmap_anonymous(size_t size)
 #elif defined (MAP_ANONYMOUS)
 	flags = MAP_PRIVATE | MAP_ANONYMOUS;
 #else
-	flags = MAP_SHARED;
+	flags = MAP_PRIVATE;
 	if (-1 == fd) {
 		fd = open("/dev/zero", O_RDWR, 0);
 		return_value_unless(fd >= 0, NULL);
