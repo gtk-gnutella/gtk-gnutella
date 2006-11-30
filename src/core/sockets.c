@@ -3149,7 +3149,7 @@ sock_cork(struct gnutella_socket *s, gboolean on)
 {
 	static gboolean warned = FALSE;
 
-	(void) s;
+	socket_check(s);
 	(void) on;
 
 	if (!warned && socket_debug) {
@@ -3284,6 +3284,7 @@ static int
 socket_get_fd(struct wrap_io *wio)
 {
 	struct gnutella_socket *s = wio->ctx;
+	socket_check(s);
 	return s->file_desc;
 }
 
@@ -3292,6 +3293,7 @@ socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
+	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
 	return write(s->file_desc, buf, size);
@@ -3302,6 +3304,7 @@ socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
+	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
 	return read(s->file_desc, buf, size);
@@ -3312,6 +3315,7 @@ socket_plain_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
+	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
 	return writev(s->file_desc, iov, iovcnt);
@@ -3322,6 +3326,7 @@ socket_plain_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
 
+	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
 	return readv(s->file_desc, iov, iovcnt);
@@ -3337,6 +3342,7 @@ socket_plain_sendto(
 	host_addr_t ha;
 	ssize_t ret;
 
+	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
 	if (!host_addr_convert(to->addr, &ha, s->net)) {
