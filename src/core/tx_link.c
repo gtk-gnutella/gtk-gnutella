@@ -167,33 +167,35 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 			_("Write failed: %s"), g_strerror(errno));
 		return -1;
 
+	default:
+		{
+			int saved_errno = errno;
+			time_t t = tm_time();
+			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
+			gint fd = wio->fd(wio);
+			g_warning("%s  gtk-gnutella: %s: "
+				"write failed on fd #%d with unexpected errno: %d (%s)\n",
+				ctime(&t), func, fd, saved_errno, g_strerror(saved_errno));
+			errno = saved_errno;
+		}
+		/* FALL THROUGH */
+
 	case ENOSPC:
 #ifdef EDQUOT
 	case EDQUOT:
 #endif /* EDQUOT */
+	case EACCES:
 	case EFBIG:
+	case EHOSTDOWN:
+	case EHOSTUNREACH:
 	case EIO:
 	case ENETDOWN:
 	case ENETUNREACH:
-	case EHOSTUNREACH:
 	case ETIMEDOUT:
-	case EACCES:
 		tx->flags |= TX_ERROR;
 		attr->cb->eof_shutdown(tx->owner,
 			_("Write failed: %s"), g_strerror(errno));
 		return -1;
-
-	default:
-		{
-			int terr = errno;
-			time_t t = tm_time();
-			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
-			gint fd = wio->fd(wio);
-			tx->flags |= TX_ERROR;
-			g_error("%s  gtk-gnutella: %s: "
-				"write failed on fd #%d with unexpected errno: %d (%s)\n",
-				ctime(&t), func, fd, terr, g_strerror(terr));
-		}
 	}
 
 	return 0;		/* Just in case */
