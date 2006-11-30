@@ -1063,6 +1063,7 @@ enable_udp_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (s_tcp_listen) {
+			g_assert(!s_udp_listen);
 			s_udp_listen = socket_udp_listen(get_bind_addr(NET_TYPE_IPV4),
 								listen_port);
 			if (!s_udp_listen) {
@@ -1070,15 +1071,16 @@ enable_udp_changed(property_t prop)
 			}
 		}
 		if (s_tcp_listen6) {
+			g_assert(!s_udp_listen6);
 			s_udp_listen6 = socket_udp_listen(get_bind_addr(NET_TYPE_IPV6),
 								listen_port);
-			if (!s_udp_listen) {
+			if (!s_udp_listen6) {
 				gcu_statusbar_warning(_("Failed to create IPv6 UDP socket"));
 			}
 		}
 	} else {
-		socket_free_null(&s_udp_listen);
-		socket_free_null(&s_udp_listen6);
+		/* Also takes care of freeing s_udp_listen and s_udp_listen6 */
+		node_udp_disable();
 	}
 	node_update_udp_socket();
 
@@ -1119,14 +1121,15 @@ enable_local_socket_changed(property_t prop)
 static void
 request_new_sockets(guint16 port, gboolean check_firewalled)
 {
+	/* Also takes care of freeing s_udp_listen and s_udp_listen6 */
+	node_udp_disable();
+
 	/*
-	 * Close old ports.
+	 * Close sockets at the old port.
 	 */
 
 	socket_free_null(&s_tcp_listen);
 	socket_free_null(&s_tcp_listen6);
-	socket_free_null(&s_udp_listen);
-	socket_free_null(&s_udp_listen6);
 
 	/*
 	 * If the new port != 0, open the new port
@@ -1140,6 +1143,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
 		if (enable_udp) {
+			g_assert(!s_udp_listen);
 			s_udp_listen = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen) {
 				socket_free_null(&s_tcp_listen);
@@ -1151,6 +1155,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
 		if (enable_udp) {
+			g_assert(!s_udp_listen6);
 			s_udp_listen6 = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen6) {
 				socket_free_null(&s_tcp_listen6);

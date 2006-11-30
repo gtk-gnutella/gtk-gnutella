@@ -1240,10 +1240,12 @@ node_set_socket_rx_size(gint rx_size)
 	g_assert(rx_size > 0);
 
 	for (sl = sl_nodes; sl != NULL; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+		struct gnutella_node *n = sl->data;
 
-		if (n->socket != NULL)
+		if (n->socket) {
+			socket_check(n->socket);
 			sock_recv_buf(n->socket, rx_size, TRUE);
+		}
 	}
 }
 
@@ -1608,6 +1610,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		mq_shutdown(n->outq);	/* Prevents any further output */
 
 	if (n->socket) {
+		socket_check(n->socket);
 		g_assert(n->socket->resource.node == n);
 		socket_free_null(&n->socket);
 	}
@@ -2762,6 +2765,7 @@ send_error(
 	gchar xtoken[128];
 	gint pongs = saturated ? CONNECT_PONGS_LOW : CONNECT_PONGS_COUNT;
 
+	socket_check(s);
 	g_assert(n == NULL || n->socket == s);
 
 	gm_vsnprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, ap);
@@ -3131,6 +3135,8 @@ node_is_now_connected(struct gnutella_node *n)
 	txdrv_t *tx;
 	gboolean peermode_changed = FALSE;
 	gnet_host_t host;
+
+	socket_check(s);
 
 	/*
 	 * Temporary: if node is not a broken GTKG node, record it.
@@ -3884,6 +3890,7 @@ analyse_status(struct gnutella_node *n, gint *code)
 	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
 	const gchar *what = incoming ? "acknowledgment" : "reply";
 
+	socket_check(s);
 	status = getline_str(s->getline);
 
 	ack_code = http_status_parse(status, "GNUTELLA",
@@ -4324,6 +4331,8 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	gboolean ack_ok;
 	const gchar *field;
 	gboolean qrp_final_set = FALSE;
+
+	socket_check(s);
 
 	if (node_debug) {
 		g_message("got final acknowledgment headers from node %s:",
@@ -5592,7 +5601,8 @@ node_udp_enable_by_net(enum net_type net)
 	g_assert(NULL == n->socket);
 #endif
 
-	n->socket = s;	
+	socket_check(s);
+	n->socket = s;
 
 	args.cb = &node_tx_dgram_cb;
 	args.bs = bws.gout_udp;
@@ -5603,6 +5613,7 @@ node_udp_enable_by_net(enum net_type net)
 
 	if (n->outq) {
 		mq_free(n->outq);
+		n->outq = NULL;
 	}
 	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
 	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
@@ -5632,9 +5643,10 @@ node_udp_disable_by_net(enum net_type net)
 	}
 
 	g_assert(n != NULL);
-	if (n->socket)
+	if (n->socket) {
+		socket_check(n->socket);
 		node_fire_node_removed(n);
-
+	}
 	if (n->outq) {
 		mq_free(n->outq);
 		n->outq = NULL;
@@ -5654,10 +5666,18 @@ node_udp_enable(void)
 void
 node_udp_disable(void)
 {
+	/*
+	 * Because the pseudo UDP nodes reference the UDP sockets,
+	 * we have to disable these first.
+	 */
+
 	if (udp_node && udp_node->socket)
 		node_udp_disable_by_net(NET_TYPE_IPV4);
 	if (udp6_node && udp6_node->socket)
 		node_udp_disable_by_net(NET_TYPE_IPV6);
+
+	socket_free_null(&s_udp_listen);
+	socket_free_null(&s_udp_listen6);
 }
 
 /**
@@ -5668,6 +5688,8 @@ node_udp_get(struct gnutella_socket *s)
 {
 	gnutella_node_t *n = NULL;
 	gnutella_header_t *head;
+
+	socket_check(s);
 
 	switch (s->net) {
 	case NET_TYPE_IPV4:
@@ -6667,6 +6689,7 @@ node_drain_hello(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct gnutella_node *n = data;
 
+	socket_check(n->socket);
 	g_assert(n->socket->file_desc == source);
 	g_assert(n->hello.ptr != NULL);
 	g_assert(n->hello.size > 0);
@@ -6788,6 +6811,8 @@ node_init_outgoing(struct gnutella_node *n)
 	struct gnutella_socket *s = n->socket;
 	ssize_t sent;
 	gchar degree[100];
+
+	socket_check(s);
 
 	/*
 	 * Special hack for LimeWire, which insists on the presence of dynamic
