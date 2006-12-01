@@ -279,6 +279,7 @@ GSList *search_gui_get_selected_searches(void);
 gboolean search_gui_has_selected_item(search_t *search);
 void search_gui_refresh_popup(void);
 void search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event);
+void search_gui_flush_queues(void);
 
 #endif /* _gtk_search_common_h_ */
 

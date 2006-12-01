@@ -679,47 +679,49 @@ search_gui_remove_r_set(search_t *sch, results_set_t *rs)
 gboolean
 search_gui_result_is_dup(search_t *sch, record_t *rc)
 {
-	union {
-		record_t *rc;
-		gpointer ptr;
-	} old;
-	gpointer dummy;
+	gpointer orig_key, dummy;
 
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 
-	if (!g_hash_table_lookup_extended(sch->dups, rc, &old.ptr, &dummy))
+	if (g_hash_table_lookup_extended(sch->dups, rc, &orig_key, &dummy)) {
+		record_t *old_rc = orig_key;
+
+		/*
+		 * Actually, if the index is the only thing that changed,
+		 * we want to overwrite the old one (and if we've
+		 * got the download queue'd, replace it there too.
+		 *		--RAM, 17/12/2001 from a patch by Vladimir Klebanov
+		 *
+		 * XXX needs more care: handle is_old, and use GUID for patching.
+		 * XXX the client may change its GUID as well, and this must only
+		 * XXX be used in the hash table where we record which downloads are
+		 * XXX queued from whom.
+		 * XXX when the GUID changes for a download in push mode, we have to
+		 * XXX change it.  We have a new route anyway, since we just got a
+		 * XXX match!
+		 */
+
+		if (rc->file_index != old_rc->file_index) {
+			if (gui_debug) {
+				g_warning("Index changed from %u to %u at %s for %s",
+					old_rc->file_index, rc->file_index,
+					guid_hex_str(rc->results_set->guid), rc->name);
+			}
+
+			guc_download_index_changed(
+				rc->results_set->addr,	/* This is for optimizing lookups */
+				rc->results_set->port,
+				rc->results_set->guid,	/* This is for formal identification */
+				old_rc->file_index,
+				rc->file_index);
+			old_rc->file_index = rc->file_index;
+		}
+
+		return TRUE;		/* yes, it's a duplicate */
+	} else {
 		return FALSE;
-
-	/*
-	 * Actually, if the index is the only thing that changed,
-	 * we want to overwrite the old one (and if we've
-	 * got the download queue'd, replace it there too.
-	 *		--RAM, 17/12/2001 from a patch by Vladimir Klebanov
-	 *
-	 * XXX needs more care: handle is_old, and use GUID for patching.
-	 * XXX the client may change its GUID as well, and this must only
-	 * XXX be used in the hash table where we record which downloads are
-	 * XXX queued from whom.
-	 * XXX when the GUID changes for a download in push mode, we have to
-	 * XXX change it.  We have a new route anyway, since we just got a match!
-	 */
-
-	if (rc->file_index != old.rc->file_index) {
-		if (gui_debug)
-			g_warning("Index changed from %u to %u at %s for %s",
-				old.rc->file_index, rc->file_index,
-				guid_hex_str(rc->results_set->guid), rc->name);
-		guc_download_index_changed(
-			rc->results_set->addr,		/* This is for optimizing lookups */
-			rc->results_set->port,
-			rc->results_set->guid,		/* This is for formal identification */
-			old.rc->file_index,
-			rc->file_index);
-		old.rc->file_index = rc->file_index;
 	}
-
-	return TRUE;		/* yes, it's a duplicate */
 }
 
 /**
@@ -1537,13 +1539,10 @@ search_gui_flush_info(void)
 void
 search_gui_flush(time_t now, gboolean force)
 {
-    static time_t last = 0;
+    static time_t last;
 	slist_iter_t *iter;
     GSList *frozen = NULL, *sl;
 	tm_t t0, t1, dt;
-
-    if (0 == slist_length(accumulated_rs)) 
-		return;
 
 	if (force) {
 		guint32 period;
@@ -1660,6 +1659,8 @@ search_gui_flush(time_t now, gboolean force)
 		tm_elapsed(&dt, &t1, &t0);
 		g_message("dispatching results took %lu ms", (gulong) tm2ms(&dt));
 	}
+
+	search_gui_flush_queues();
 }
 
 /**

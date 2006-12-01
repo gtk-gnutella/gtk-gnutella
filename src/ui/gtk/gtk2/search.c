@@ -372,14 +372,33 @@ unref_record(GtkTreeModel *model, GtkTreePath *unused_path, GtkTreeIter *iter,
 }
 
 static void
-search_gui_clear_store(search_t *sch)
+search_gui_clear_queue(search_t *search)
+{
+	if (slist_length(search->queue) > 0) {
+		slist_iter_t *iter;
+
+		iter = slist_iter_on_head(search->queue);
+		while (slist_iter_has_item(iter)) {
+			struct result_data *data;
+
+			data = slist_iter_current(iter);
+			slist_iter_remove(iter);
+			g_hash_table_remove(search->dups, data->record);
+		}
+		slist_iter_free(&iter);
+	}
+}
+
+static void
+search_gui_clear_store(search_t *search)
 {
 	GtkTreeModel *model;
 
-	model = gtk_tree_view_get_model(sch->tree);
-	gtk_tree_model_foreach(model, unref_record, sch->dups);
+	model = gtk_tree_view_get_model(search->tree);
+	gtk_tree_model_foreach(model, unref_record, search->dups);
 	gtk_tree_store_clear(GTK_TREE_STORE(model));
-	g_assert(0 == g_hash_table_size(sch->dups));
+	search_gui_clear_queue(search);
+	g_assert(0 == g_hash_table_size(search->dups));
 }
 
 /**
@@ -452,36 +471,38 @@ search_gui_clear_search(search_t *sch)
  * associated ressources (including filter and gui stuff).
  */
 void
-search_gui_close_search(search_t *sch)
+search_gui_close_search(search_t *search)
 {
-    g_assert(sch != NULL);
+	g_return_if_fail(search);
 
     /*
      * We remove the search immeditaly from the list of searches,
      * because some of the following calls (may) depend on
      * "searches" holding only the remaining searches.
-     * We may not free any ressources of "sch" yet, because
+     * We may not free any ressources of "search" yet, because
      * the same calls may still need them!.
      *      --BLUE 26/05/2002
      */
 
-	if (tvm_search && sch == search_gui_get_current_search()) {
-		tree_view_motion_clear_callback(GTK_TREE_VIEW(sch->tree),
-			tvm_search);
+	if (tvm_search && search == search_gui_get_current_search()) {
+		tree_view_motion_clear_callback(search->tree, tvm_search);
 		tvm_search = NULL;
 	}
-	search_gui_clear_store(sch);
- 	searches = g_list_remove(searches, sch);
+	search_gui_clear_store(search);
+ 	searches = g_list_remove(searches, search);
 	search_gui_option_menu_searches_update();
 
-    search_gui_remove_search(sch);
-	filter_close_search(sch);
-	search_gui_clear_search(sch);
+    search_gui_remove_search(search);
+	filter_close_search(search);
+	search_gui_clear_search(search);
 
-    guc_search_close(sch->search_handle);
-	atom_str_free(sch->query);
+    guc_search_close(search->search_handle);
+	atom_str_free(search->query);
 
-	wfree(sch, sizeof *sch);
+	g_assert(0 == slist_length(search->queue));
+	slist_free(&search->queue);
+
+	wfree(search, sizeof *search);
 }
 
 static void
@@ -599,6 +620,7 @@ search_gui_new_search_full(const gchar *query_str,
 	sch->passive = (flags & SEARCH_F_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new_full(search_gui_hash_func,
 					search_gui_hash_key_compare, ht_unref_record, NULL);
+	sch->queue = slist_new();
 
 	sch->parents = g_hash_table_new(sha1_hash, sha1_eq);
 
@@ -985,8 +1007,6 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 {
 	static const struct result_data zero_data;
 	struct result_data *data;
-	GtkTreeIter *parent_iter;
-	GtkTreeModel *model;
 
 	data = walloc(sizeof *data);
 	*data = zero_data;
@@ -1005,46 +1025,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 	data->record = rc;
 	data->color = color;
 
-	model = gtk_tree_view_get_model(sch->tree);
-
-	if (rc->sha1) {
-		struct result_data *parent;
-
-		parent = find_parent_with_sha1(sch->parents, rc->sha1);
-		g_assert(data->record->refcount > 0);
-		parent_iter = parent ? &parent->iter : NULL;
-		if (parent) {
-			parent->count++;
-			/* Re-store the parent to refresh the display/sorting */
-			search_gui_set_data(model, parent);
-		} else {
-			add_parent_with_sha1(sch->parents, rc->sha1, data);
-		}
-	} else {
-		parent_iter = NULL;
-	}
-
-	g_assert(rc->refcount >= 1);
-	search_gui_ref_record(rc);
-	g_assert(rc->refcount >= 2);
-
-	gtk_tree_store_append(GTK_TREE_STORE(model), &data->iter, parent_iter);
-
-	/*
-	 * There might be some metadata about this record already in the
-	 * cache. If so lets update the GUI to reflect this.
-	 */
-	if (NULL != rc->sha1) {
-		bitzi_data_t *bd = guc_query_cache_bitzi_by_sha1(rc->sha1);
-
-		if (bd) {
-			const gchar *text = bitzi_gui_get_metadata(bd);
-			if (text) {
-				data->meta = atom_str_get(text);
-			}
-		}
-	}
-	search_gui_set_data(model, data);
+	slist_append(sch->queue, data);
 }
 
 const record_t *
@@ -2378,6 +2359,95 @@ search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
 			}
 		}
 		gtk_tree_path_free(path);
+	}
+}
+
+static void
+search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
+	struct result_data *data)
+{
+	GtkTreeIter *parent_iter;
+	record_t *rc;
+
+	rc = data->record;
+
+	if (rc->sha1) {
+		struct result_data *parent;
+
+		parent = find_parent_with_sha1(search->parents, rc->sha1);
+		g_assert(data->record->refcount > 0);
+		parent_iter = parent ? &parent->iter : NULL;
+		if (parent) {
+			parent->count++;
+			/* Re-store the parent to refresh the display/sorting */
+			search_gui_set_data(model, parent);
+		} else {
+			add_parent_with_sha1(search->parents, rc->sha1, data);
+		}
+	} else {
+		parent_iter = NULL;
+	}
+
+	g_assert(rc->refcount >= 1);
+	search_gui_ref_record(rc);
+	g_assert(rc->refcount >= 2);
+
+	gtk_tree_store_append(GTK_TREE_STORE(model), &data->iter, parent_iter);
+
+	/*
+	 * There might be some metadata about this record already in the
+	 * cache. If so lets update the GUI to reflect this.
+	 */
+	if (NULL != rc->sha1) {
+		bitzi_data_t *bd = guc_query_cache_bitzi_by_sha1(rc->sha1);
+
+		if (bd) {
+			const gchar *text = bitzi_gui_get_metadata(bd);
+			if (text) {
+				data->meta = atom_str_get(text);
+			}
+		}
+	}
+	search_gui_set_data(model, data);
+}
+
+static void
+search_gui_flush_queue(search_t *search)
+{
+	g_return_if_fail(search);
+	g_return_if_fail(search->tree);
+	
+	if (slist_length(search->queue) > 0) {
+		GtkTreeModel *model;
+		slist_iter_t *iter;
+		guint n = 0;
+
+		search_gui_start_massive_update(search);
+
+		model = gtk_tree_view_get_model(search->tree);
+
+		iter = slist_iter_on_head(search->queue);
+		while (slist_iter_has_item(iter) && n++ < 100) {
+			struct result_data *data;
+
+			data = slist_iter_current(iter);
+			slist_iter_remove(iter);
+			search_gui_flush_queue_data(search, model, data);
+		}
+		slist_iter_free(&iter);
+
+		search_gui_end_massive_update(search);
+	}
+}
+
+void
+search_gui_flush_queues(void)
+{
+	const GList *iter;
+
+	iter = search_gui_get_searches();
+	for (/* NOTHING*/; NULL != iter; iter = g_list_next(iter)) {
+		search_gui_flush_queue(iter->data);
 	}
 }
 

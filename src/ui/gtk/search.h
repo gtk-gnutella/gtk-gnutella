@@ -32,6 +32,7 @@
 #include "if/core/search.h"
 #include "if/core/bitzi.h"
 #include "lib/hashlist.h"
+#include "lib/slist.h"
 #include "lib/prop.h"
 
 /**
@@ -74,6 +75,8 @@ struct search {
 	GHashTable *dups;				/**< keep a record of dups. */
 
     filter_t   *filter;				/**< filter ruleset bound to this search */
+
+	slist_t	*queue;					/**< records to be inserted */
 
 	/*
 	 * Search stats.

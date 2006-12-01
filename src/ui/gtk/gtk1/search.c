@@ -2739,4 +2739,10 @@ search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
 	}
 }
 
+void
+search_gui_flush_queues(void)
+{
+		/* TODO: Implement this */
+}
+
 /* vi: set ts=4 sw=4 cindent: */
