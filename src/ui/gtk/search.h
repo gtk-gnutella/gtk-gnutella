@@ -40,15 +40,13 @@
 struct search {
     gnet_search_t search_handle;	/**< Search handle */
 
-	const gchar      *query;		/**< The query string; always UTF-8 */
+	const gchar *query;				/**< The query string; always UTF-8 */
 	gboolean    enabled;
 
 #ifdef USE_GTK2
-	GtkWidget  *tree_view;			/**< GtkTreeView for this search */
-	GtkTreeModel	*model;			/**< GtkTreeModel for the GtkTreeView
-										 so it can be detached from it */
+	GtkTreeView  *tree;				/**< GtkTreeView for this search */
 #else
-	GtkCTree   *ctree;			   	/**< GtkCTree for this search */
+	GtkCTree   *tree;			   	/**< GtkCTree for this search */
 #endif /* USE_GTK2 */
 
 	GHashTable *parents;			/**< table of mount iterators for
@@ -129,8 +127,7 @@ void search_gui_discard_files(void);
 
 void search_gui_sort_column(search_t *search, gint column);
 
-void search_gui_add_record(search_t *sch, record_t *rc,
-		GdkColor *fg, GdkColor *bg);
+void search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color);
 
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);

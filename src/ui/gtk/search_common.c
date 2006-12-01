@@ -102,11 +102,14 @@ static struct {
 	const enum gui_color id;
 	GdkColor color;
 } colors[] = {
-	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },
-	{ "#FC000D",	GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } },
-	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },
-	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
+	{ NULL,			GUI_COLOR_DEFAULT,		{ 0, 0, 0, 0 } },
 	{ "#326732",	GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } },
+	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },
+	{ "#7F7F7F",	GUI_COLOR_IGNORED,		{ 0, 0, 0, 0 } },
+	{ "#001F7F",	GUI_COLOR_MARKED, 		{ 0, 0, 0, 0 } },
+	{ "#FC000D",	GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } },
+	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },
+	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
 };
 
 void
@@ -121,8 +124,10 @@ gui_color_init(void)
 
 	for (i = 0; i < NUM_GUI_COLORS; i++) {
 		g_assert(colors[i].id == i);
-    	gdk_color_parse(colors[i].spec, &colors[i].color);
-    	gdk_colormap_alloc_color(cmap, &colors[i].color, FALSE, TRUE);
+		if (colors[i].spec) {
+			gdk_color_parse(colors[i].spec, &colors[i].color);
+			gdk_colormap_alloc_color(cmap, &colors[i].color, FALSE, TRUE);
+		}
 	}
 }
 
@@ -131,29 +136,6 @@ gui_color_get(const enum gui_color id)
 {
 	g_assert((guint) id <= NUM_GUI_COLORS);
 	return &colors[(guint) id].color;
-}
-
-/**
- * Extract the mark/ignore/download color.
- */
-void
-gui_search_get_colors(search_t *sch,
-	GdkColor **mark_color, GdkColor **ignore_color)
-{
-	GtkWidget *w;
-
-#ifdef USE_GTK1
-	w = GTK_WIDGET(sch->ctree);
-#else
-	w = GTK_WIDGET(sch->tree_view);
-#endif
-
-	if (mark_color) {
-    	*mark_color = &(gtk_widget_get_style(w)->bg[GTK_STATE_INSENSITIVE]);
-	}
-	if (mark_color) {
-    	*ignore_color = &(gtk_widget_get_style(w)->fg[GTK_STATE_INSENSITIVE]);
-	}
 }
 
 search_t *
@@ -463,8 +445,8 @@ search_gui_clean_r_set(results_set_t *rs)
 		record_t *rc = sl->data;
 
 		rc->results_set = NULL;
-		search_gui_free_record(rc);
 		rs->records = g_slist_remove(rs->records, rc);
+		search_gui_free_record(rc);
 		g_assert(rs->num_recs > 0);
 		rs->num_recs--;
 	}
@@ -601,9 +583,8 @@ search_gui_unref_record(record_t *rc)
 	 */
 	rs = rc->results_set;
 	rc->results_set = NULL;
-	search_gui_free_record(rc);
-
 	rs->records = g_slist_remove(rs->records, rc);
+	search_gui_free_record(rc);
 	g_assert(rs->num_recs > 0);
 	rs->num_recs--;
 
@@ -945,14 +926,15 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
 		gnet_record_t *grc = sl->data;
 
-		if (!(grc->flags & SR_DONT_SHOW)) {
+		if (grc->flags & SR_DONT_SHOW) {
+			ignored++;
+		} else {
         	record_t *rc;
 		   
 			rc = search_gui_create_record(rs, grc);
 			rs->records = g_slist_prepend(rs->records, rc);
 			rs->num_recs++;
-		} else
-			ignored++;
+		}
     }
 
     g_assert(rs->num_recs + ignored == r_set->num_recs);
@@ -1128,6 +1110,28 @@ search_gui_get_route(const record_t *rc)
 	}
 }
 
+enum gui_color
+search_gui_color_for_record(const record_t * const rc)
+{
+	const results_set_t *rs = rc->results_set;
+	
+	if (SR_SPAM & rc->flags) {
+		return GUI_COLOR_SPAM;
+	} else if (ST_HOSTILE & rs->status) {
+		return GUI_COLOR_HOSTILE;
+	} else if ((ST_SPAM & rs->status) || (SR_SPAM & rc->flags)) {
+		return GUI_COLOR_MAYBE_SPAM;
+	} else if (rs->status & ST_UNREQUESTED) {
+		return GUI_COLOR_UNREQUESTED;
+	} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
+		return GUI_COLOR_IGNORED;
+	} else if (rc->flags & (SR_DOWNLOADED | SR_PARTIAL)) {
+		return GUI_COLOR_DOWNLOADING;
+	} else {
+		return GUI_COLOR_DEFAULT;
+	}
+}
+
 /**
  * Called to dispatch results to the search window.
  */
@@ -1138,8 +1142,6 @@ search_matched(search_t *sch, results_set_t *rs)
 	gboolean skip_records;		/* Shall we skip those records? */
 	GString *vinfo = g_string_sized_new(40);
 	const gchar *vendor;
-    GdkColor *ignore_color;
-    GdkColor *mark_color;
     GSList *sl;
     gboolean send_pushes;
     gboolean is_firewalled;
@@ -1149,8 +1151,6 @@ search_matched(search_t *sch, results_set_t *rs)
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
-
-	gui_search_get_colors(sch, &mark_color, &ignore_color);
 
     vendor = lookup_vendor_name(rs->vcode);
 	max_results = sch->browse ? browse_host_max_results : search_max_results;
@@ -1183,10 +1183,15 @@ search_matched(search_t *sch, results_set_t *rs)
 		sch->tcp_qhits++;
 	}
 
-	if (rs->status & ST_TLS)
+	if (rs->status & ST_TLS) {
 		g_string_append(vinfo, vinfo->len ? ", TLS" : "TLS");
-	if (rs->status & ST_BH)
-		g_string_append(vinfo, vinfo->len ? _(", browsable") : _("browsable"));
+	}
+	if (rs->status & ST_BH) {
+		if (vinfo->len > 0) {
+			g_string_append(vinfo, ", ");
+		}
+		g_string_append(vinfo, _("browsable"));
+	}
 	
 	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 
@@ -1210,9 +1215,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
   	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
 		record_t *rc = sl->data;
-        gboolean downloading = FALSE;
-		gboolean is_dup, add_record, mark;
-        GdkColor *fg_color;
+		enum gui_color color;
 
 		g_assert(rc->magic == RECORD_MAGIC);
 		g_assert(rc->refcount >= 0);
@@ -1237,26 +1240,17 @@ search_matched(search_t *sch, results_set_t *rs)
 
 		g_assert(rc->refcount >= 0);
 	
-		is_dup = search_gui_result_is_dup(sch, rc);
-		g_assert(rc->refcount >= 0);
-
-		if (is_dup) {
+		if (search_gui_result_is_dup(sch, rc)) {
 			sch->duplicates++;
 			continue;
 		}
 
-		mark = FALSE;	
-		fg_color = NULL;
-
-		if (sch->local) {
-			add_record = TRUE;
-		} else {
+		color = GUI_COLOR_DEFAULT;
+		if (0 == (ST_LOCAL & rs->status)) {
 			enum filter_prop_state filter_state, filter_download;
 			gpointer filter_udata;
 			gboolean is_hostile;
 			gint spam_score;
-
-			add_record = FALSE;
 
 			if (skip_records) {
 				sch->skipped++;
@@ -1289,20 +1283,10 @@ search_matched(search_t *sch, results_set_t *rs)
 			g_assert(rc->refcount >= 0);
 
 			/*
-			 * Check whether this record was already scheduled for
-			 * download by the backend.
-			 */
-			downloading = rc->flags & SR_DOWNLOADED;
-
-			/*
-			 * Now we check for the different filter result properties.
-			 */
-
-			/*
 			 * Check for FILTER_PROP_DOWNLOAD:
 			 */
 			if (
-				!downloading && 
+				!(SR_DOWNLOADED & rc->flags) && 
 				!is_hostile &&
 				0 == spam_score &&
 				FILTER_PROP_STATE_DO == filter_download
@@ -1313,7 +1297,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
 				search_gui_free_proxies(rs);
 
-				downloading = TRUE;
+				rc->flags |= SR_DOWNLOADED;
 				sch->auto_downloaded++;
 			}
 
@@ -1321,7 +1305,7 @@ search_matched(search_t *sch, results_set_t *rs)
 			 * Don't show something we downloaded if they don't want it.
 			 */
 
-			if (downloading && search_hide_downloaded) {
+			if ((SR_DOWNLOADED & rc->flags) && search_hide_downloaded) {
 				results_kept++;
 				sch->hidden++;
 				continue;
@@ -1345,46 +1329,29 @@ search_matched(search_t *sch, results_set_t *rs)
 				continue;
 			}
 			
-			downloading |= SR_PARTIAL & rc->flags;
-			mark = FILTER_PROP_STATE_DONT == filter_state &&
-					GINT_TO_POINTER(1) == filter_udata;
-
-			if (spam_score > 1) {
-				fg_color = gui_color_get(GUI_COLOR_SPAM);
-			} else if (is_hostile) {
-				fg_color = gui_color_get(GUI_COLOR_HOSTILE);
-			} else if (spam_score > 0) {
-				fg_color = gui_color_get(GUI_COLOR_MAYBE_SPAM);
-			} else if (rs->status & ST_UNREQUESTED) {
-				fg_color = gui_color_get(GUI_COLOR_UNREQUESTED);
-			} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
-				/*
-				 * Check whether this record will be ignored by the backend.
-				 */
-				fg_color = ignore_color;
-			} else if (downloading) {
-				fg_color = gui_color_get(GUI_COLOR_DOWNLOADING);
+			if (
+				FILTER_PROP_STATE_DONT == filter_state &&
+				GINT_TO_POINTER(1) == filter_udata
+			) {
+				color = GUI_COLOR_MARKED;
 			}
-
-			add_record = TRUE;
 		}
-		if (add_record) {
-			sch->items++;
+		sch->items++;
 
-			g_assert(rc->refcount >= 0);
-			g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
-			g_assert(rc->refcount >= 0);
-			search_gui_ref_record(rc);
-			g_assert(rc->refcount >= 1);
+		g_assert(rc->refcount >= 0);
+		g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
+		g_assert(rc->refcount >= 0);
+		search_gui_ref_record(rc);
+		g_assert(rc->refcount >= 1);
 
-			if (!sch->local) {
-				rc->info = search_gui_get_info(rc,
+		if (0 == (ST_LOCAL & rs->status)) {
+			rc->info = search_gui_get_info(rc,
 								vinfo->len ? vinfo->str : NULL);
-			}
-			search_gui_add_record(sch, rc, fg_color, mark ? mark_color : NULL);
-		} else {
-			sch->ignored++;
 		}
+		if (GUI_COLOR_MARKED != color) {
+			color = search_gui_color_for_record(rc);
+		}
+		search_gui_add_record(sch, rc, color);
 	}
 
     /*
@@ -1572,13 +1539,17 @@ search_gui_flush(time_t now, gboolean force)
 {
     static time_t last = 0;
 	slist_iter_t *iter;
-	guint32 period;
     GSList *frozen = NULL, *sl;
-	tm_t t0;
+	tm_t t0, t1, dt;
+
+    if (0 == slist_length(accumulated_rs)) 
+		return;
 
 	if (force) {
+		guint32 period;
+
 		gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
-		if (last && difftime(now, last) < period)
+		if (last && delta_time(now, last) < (time_delta_t) period)
 			return;
 	}
     last = now;
@@ -1590,19 +1561,6 @@ search_gui_flush(time_t now, gboolean force)
 	while (slist_iter_has_item(iter)) {
         results_set_t *rs;
         GSList *schl;
-		tm_t t1, elapsed;
-		time_delta_t delta;
-
-		tm_now_exact(&t1);
-		tm_elapsed(&elapsed, &t1, &t0);
-		delta = tm2ms(&elapsed);
-		if (delta > 200) {
-			if (delta > 1000) {
-				g_message("interrupted dispatching of results after %lu ms",
-					(gulong) delta);
-			}
-			break;
-		}
 
         rs = slist_iter_current(iter);
 		slist_iter_remove(iter);
@@ -1695,6 +1653,13 @@ search_gui_flush(time_t now, gboolean force)
 		search_gui_end_massive_update(sl->data);
     }
     g_slist_free(frozen);
+	frozen = NULL;
+
+	if (gui_debug) {
+		tm_now_exact(&t1);
+		tm_elapsed(&dt, &t1, &t0);
+		g_message("dispatching results took %lu ms", (gulong) tm2ms(&dt));
+	}
 }
 
 /**
@@ -2037,7 +2002,9 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 					&search);
 		if (success) {
 			g_assert(search);
+          	search_gui_start_massive_update(search);
 			success = guc_search_locally(search->search_handle, text);
+          	search_gui_end_massive_update(search);
 		}
 		*error_str = NULL;
 	}

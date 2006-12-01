@@ -81,13 +81,13 @@ static gboolean search_gui_shutting_down = FALSE;
  * Private function prototypes.
  */
 static void gui_search_create_tree_view(GtkWidget ** sw,
-				GtkWidget ** tv, gpointer udata);
+				GtkTreeView ** tv, gpointer udata);
 static void search_gui_init_dnd(GtkTreeView *tv);
 
 /*
  * If no search are currently allocated
  */
-static GtkWidget *default_search_tree_view = NULL;
+static GtkTreeView *default_search_tree_view = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
 
@@ -98,13 +98,12 @@ static tree_view_motion_t *tvm_search;
 
 struct result_data {
 	GtkTreeIter iter;
-	const GdkColor *fg;
-	const GdkColor *bg;
 
 	record_t *record;
 	const gchar *meta;	/**< Atom */
 	guint count;		/**< count of children */
 	guint32 rank;		/**< for stable sorting */
+	enum gui_color color;
 };
 
 static inline struct result_data *
@@ -244,8 +243,8 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	}
 	g_object_set(cell,
 		"text", text,
-		"foreground-gdk", data->fg,
-		"background-gdk", data->bg,
+		"foreground-gdk", gui_color_get(data->color),
+		"background-gdk", NULL,
 		(void *) 0);
 }
 
@@ -377,7 +376,7 @@ search_gui_clear_store(search_t *sch)
 {
 	GtkTreeModel *model;
 
-	model = GTK_TREE_MODEL(sch->model);
+	model = gtk_tree_view_get_model(sch->tree);
 	gtk_tree_model_foreach(model, unref_record, sch->dups);
 	gtk_tree_store_clear(GTK_TREE_STORE(model));
 	g_assert(0 == g_hash_table_size(sch->dups));
@@ -467,7 +466,7 @@ search_gui_close_search(search_t *sch)
      */
 
 	if (tvm_search && sch == search_gui_get_current_search()) {
-		tree_view_motion_clear_callback(GTK_TREE_VIEW(sch->tree_view),
+		tree_view_motion_clear_callback(GTK_TREE_VIEW(sch->tree),
 			tvm_search);
 		tvm_search = NULL;
 	}
@@ -488,32 +487,39 @@ search_gui_close_search(search_t *sch)
 static void
 search_gui_clear_sorting(search_t *sch)
 {
+	GtkTreeModel *model;
 	gint id;
 		
 	g_return_if_fail(sch);
-	g_return_if_fail(sch->model);
+
+	model = gtk_tree_view_get_model(sch->tree);
+	g_return_if_fail(model);
 
 #if GTK_CHECK_VERSION(2,6,0)
 	id = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
 #else
 	id = c_sr_count;
 #endif /* Gtk+ >= 2.6.0 */
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model),
 		id, GTK_SORT_ASCENDING);
 }
 
 static void
 search_gui_restore_sorting(search_t *sch)
 {
+	GtkTreeModel *model;
+
 	g_return_if_fail(sch);
-	g_return_if_fail(sch->model);
+
+	model = gtk_tree_view_get_model(sch->tree);
+	g_return_if_fail(model);
 
 	if (
 		SORT_NONE != sch->sort_order &&
 		sch->sort_col >= 0 &&
 		(guint) sch->sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS
 	) {
-		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sch->model),
+		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model),
 			sch->sort_col, SORT_ASC == sch->sort_order
 							? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
 	} else {
@@ -603,7 +609,7 @@ search_gui_new_search_full(const gchar *query_str,
 	if (searches) {
 		/* We have to create a new TreeView for this search */
 		gui_search_create_tree_view(&sch->scrolled_window,
-			&sch->tree_view, sch);
+			&sch->tree, sch);
 		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
 		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
 			 sch->scrolled_window, NULL);
@@ -612,16 +618,16 @@ search_gui_new_search_full(const gchar *query_str,
 
 		if (default_scrolled_window && default_search_tree_view) {
 			sch->scrolled_window = default_scrolled_window;
-			sch->tree_view = default_search_tree_view;
+			sch->tree = default_search_tree_view;
 
-			default_search_tree_view = default_scrolled_window = NULL;
+			default_search_tree_view = NULL;
+			default_scrolled_window = NULL;
 		} else
 			g_warning("new_search():"
 				" No current search but no default tree_view !?");
 
 		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
 	}
-	sch->model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view));
 
 	search_gui_restore_sorting(sch);
 
@@ -681,7 +687,7 @@ search_gui_new_search_full(const gchar *query_str,
 	}
 	search_gui_query_free(&query);
 	if (sch->local) {
-		search_gui_init_dnd(GTK_TREE_VIEW(sch->tree_view));
+		search_gui_init_dnd(GTK_TREE_VIEW(sch->tree));
 	}
 
 	return TRUE;
@@ -975,11 +981,12 @@ search_gui_cmp_spam(
 }
 
 void
-search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
+search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 {
-	GtkTreeIter *parent_iter;
 	static const struct result_data zero_data;
 	struct result_data *data;
+	GtkTreeIter *parent_iter;
+	GtkTreeModel *model;
 
 	data = walloc(sizeof *data);
 	*data = zero_data;
@@ -996,9 +1003,9 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 	g_assert(rc->refcount >= 1);
 
 	data->record = rc;
+	data->color = color;
 
-	data->fg = fg;
-	data->bg = bg;
+	model = gtk_tree_view_get_model(sch->tree);
 
 	if (rc->sha1) {
 		struct result_data *parent;
@@ -1009,7 +1016,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 		if (parent) {
 			parent->count++;
 			/* Re-store the parent to refresh the display/sorting */
-			search_gui_set_data(sch->model, parent);
+			search_gui_set_data(model, parent);
 		} else {
 			add_parent_with_sha1(sch->parents, rc->sha1, data);
 		}
@@ -1021,8 +1028,7 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 	search_gui_ref_record(rc);
 	g_assert(rc->refcount >= 2);
 
-	gtk_tree_store_append(GTK_TREE_STORE(sch->model), &data->iter, parent_iter);
-	search_gui_set_data(sch->model, data);
+	gtk_tree_store_append(GTK_TREE_STORE(model), &data->iter, parent_iter);
 
 	/*
 	 * There might be some metadata about this record already in the
@@ -1031,9 +1037,14 @@ search_gui_add_record(search_t *sch, record_t *rc, GdkColor *fg, GdkColor *bg)
 	if (NULL != rc->sha1) {
 		bitzi_data_t *bd = guc_query_cache_bitzi_by_sha1(rc->sha1);
 
-		if (bd)
-			search_gui_metadata_update(bd);
+		if (bd) {
+			const gchar *text = bitzi_gui_get_metadata(bd);
+			if (text) {
+				data->meta = atom_str_get(text);
+			}
+		}
 	}
+	search_gui_set_data(model, data);
 }
 
 const record_t *
@@ -1046,19 +1057,21 @@ search_gui_get_record_at_path(GtkTreeView *tv, GtkTreePath *path)
 	search_t *sch = NULL;
 
 	for (/* NOTHING */; NULL != l; l = g_list_next(l)) {
-		if (tv == GTK_TREE_VIEW(((search_t *) l->data)->tree_view)) {
+		const search_t *s = l->data;
+		if (tv == GTK_TREE_VIEW(s->tree)) {
 			sch = l->data;
 			break;
 		}
 	}
 	g_return_val_if_fail(NULL != sch, NULL);
 
-	model = GTK_TREE_MODEL(sch->model);
-	if (!gtk_tree_model_get_iter(model, &iter, path))
+	model = GTK_TREE_MODEL(gtk_tree_view_get_model(tv));
+	if (gtk_tree_model_get_iter(model, &iter, path)) {
+		data = get_result_data(model, &iter);
+		return data->record;
+	} else {
 		return NULL;
-	data = get_result_data(model, &iter);
-
-	return data->record;
+	}
 }
 
 void
@@ -1159,6 +1172,11 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	guc_download_new(rc->name, rc->size, rc->file_index, rs->addr,
 		rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
 		NULL, rs->proxies, flags);
+
+	rc->flags |= SR_DOWNLOADED;
+	rd->color = GUI_COLOR_DOWNLOADING;
+	/* Re-store the parent to refresh the display/sorting */
+	search_gui_set_data(model, rd);
 
 	if (rs->proxies != NULL)
 		search_gui_free_proxies(rs);
@@ -1349,10 +1367,12 @@ search_gui_download_files(void)
 		return;
 	}
 
+	search_gui_start_massive_update(search);
+
 	/* XXX: This has to be GUI (not a core) property! */
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED, &clear);
 
-	ctx.tv = GTK_TREE_VIEW(search->tree_view);
+	ctx.tv = GTK_TREE_VIEW(search->tree);
 	ctx.iters = clear ? &sl : NULL;
 	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(ctx.tv),
 		download_selected_all_files, &ctx);
@@ -1364,6 +1384,8 @@ search_gui_download_files(void)
 		g_slist_foreach(sl, remove_selected_file, model);
     	g_slist_free(sl);
 	}
+
+	search_gui_end_massive_update(search);
 
     gui_search_force_update_tab_label(search, tm_time());
     search_gui_update_items(search);
@@ -1383,7 +1405,7 @@ search_gui_discard_files(void)
 		return;
 	}
 
-	ctx.tv = GTK_TREE_VIEW(search->tree_view);
+	ctx.tv = GTK_TREE_VIEW(search->tree);
 	ctx.iters = &sl;
 	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(ctx.tv),
 		collect_all_iters, &ctx);
@@ -1634,7 +1656,7 @@ search_gui_init(void)
 
    	current_search = search_gui_get_current_search();
     tv = current_search != NULL ?
-			GTK_TREE_VIEW(current_search->tree_view) :
+			GTK_TREE_VIEW(current_search->tree) :
 			GTK_TREE_VIEW(default_search_tree_view);
 	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	search_gui_retrieve_searches();
@@ -1659,7 +1681,7 @@ search_gui_shutdown(void)
 	gui_prop_set_guint32(PROP_RESULTS_DIVIDER_POS, &pos, 0, 1);
 
 	tv = current_search != NULL
-		? GTK_TREE_VIEW(current_search->tree_view)
+		? GTK_TREE_VIEW(current_search->tree)
 		: GTK_TREE_VIEW(default_search_tree_view);
 
 	tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
@@ -1735,7 +1757,7 @@ search_gui_remove_search(search_t *sch)
 		 * default GtkTreeView
 		 */
 
-		default_search_tree_view = sch->tree_view;
+		default_search_tree_view = sch->tree;
 		default_scrolled_window = sch->scrolled_window;
 
 		search_gui_forget_current_search();
@@ -1757,7 +1779,7 @@ search_gui_remove_search(search_t *sch)
 
 		if (current_search != NULL)
 			sensitive = sensitive &&
-				selection_counter(GTK_TREE_VIEW(current_search->tree_view)) > 0;
+				selection_counter(GTK_TREE_VIEW(current_search->tree)) > 0;
 	}
 
     gtk_widget_set_sensitive(
@@ -1794,8 +1816,8 @@ search_gui_set_current_search(search_t *sch)
      */
 
     if (current_search != NULL) {
-        GtkTreeView *tv_new = GTK_TREE_VIEW(sch->tree_view);
-        GtkTreeView *tv_old = GTK_TREE_VIEW(current_search->tree_view);
+        GtkTreeView *tv_new = GTK_TREE_VIEW(sch->tree);
+        GtkTreeView *tv_old = GTK_TREE_VIEW(current_search->tree);
 
 		gtk_widget_hide(GTK_WIDGET(tv_old));
 		g_object_freeze_notify(G_OBJECT(tv_old));
@@ -1836,7 +1858,7 @@ search_gui_set_current_search(search_t *sch)
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, active);
         gtk_widget_set_sensitive(
             gui_popup_search_lookup("popup_search_download"),
-			selection_counter(GTK_TREE_VIEW(sch->tree_view)) > 0);
+			selection_counter(GTK_TREE_VIEW(sch->tree)) > 0);
         gtk_widget_set_sensitive(GTK_WIDGET(button_search_clear),
             sch->items != 0);
         gtk_widget_set_sensitive(
@@ -1877,10 +1899,10 @@ search_gui_set_current_search(search_t *sch)
     }
 	search_gui_current_search(sch);
 
-	tree_view_restore_widths(GTK_TREE_VIEW(sch->tree_view),
+	tree_view_restore_widths(GTK_TREE_VIEW(sch->tree),
 		PROP_SEARCH_RESULTS_COL_WIDTHS);
 
-	tvm_search = tree_view_motion_set_callback(GTK_TREE_VIEW(sch->tree_view),
+	tvm_search = tree_view_motion_set_callback(GTK_TREE_VIEW(sch->tree),
 					search_update_tooltip, 400);
 
     /*
@@ -2115,7 +2137,7 @@ void
 search_gui_expand_all(void)
 {
 	search_t *current_search = search_gui_get_current_search();
-	gtk_tree_view_expand_all(GTK_TREE_VIEW(current_search->tree_view));
+	gtk_tree_view_expand_all(GTK_TREE_VIEW(current_search->tree));
 }
 
 
@@ -2126,7 +2148,7 @@ void
 search_gui_collapse_all(void)
 {
 	search_t *current_search = search_gui_get_current_search();
-	gtk_tree_view_collapse_all(GTK_TREE_VIEW(current_search->tree_view));
+	gtk_tree_view_collapse_all(GTK_TREE_VIEW(current_search->tree));
 }
 
 void
@@ -2134,7 +2156,7 @@ search_gui_start_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
-	g_object_freeze_notify(G_OBJECT(sch->tree_view));
+	g_object_freeze_notify(G_OBJECT(sch->tree));
 }
 
 void
@@ -2143,7 +2165,7 @@ search_gui_end_massive_update(search_t *sch)
 	g_assert(sch);
 
     gui_search_force_update_tab_label(sch, tm_time());
-	g_object_thaw_notify(G_OBJECT(sch->tree_view));
+	g_object_thaw_notify(G_OBJECT(sch->tree));
 }
 
 
@@ -2160,7 +2182,7 @@ search_gui_request_bitzi_data(void)
 	search = search_gui_get_current_search();
 	g_assert(search != NULL);
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
 	sl_records = tree_selection_collect_data(selection, search_gui_get_record,
 					gui_record_sha1_eq);
 
@@ -2174,7 +2196,7 @@ search_gui_request_bitzi_data(void)
 		GtkTreeViewColumn *col;
 		gint w;
 		
-		col = gtk_tree_view_get_column(GTK_TREE_VIEW(search->tree_view),
+		col = gtk_tree_view_get_column(GTK_TREE_VIEW(search->tree),
 				c_sr_meta);
 		g_assert(NULL != col);
 		gtk_tree_view_column_set_visible(col, TRUE);
@@ -2230,7 +2252,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 			text = NULL;
 			
 			/* Re-store the parent to refresh the display/sorting */
-			search_gui_set_data(search->model, rd);
+			search_gui_set_data(gtk_tree_view_get_model(search->tree), rd);
 		}
 	}
 
@@ -2241,7 +2263,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
  * Create a new GtkTreeView for search results.
  */
 static void
-gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv, gpointer udata)
+gui_search_create_tree_view(GtkWidget ** sw, GtkTreeView ** tv, gpointer udata)
 {
 	GtkTreeModel *model = create_results_model();
 	GtkTreeSelection *selection;
@@ -2253,7 +2275,7 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv, gpointer udata)
         GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
 	treeview = GTK_TREE_VIEW(gtk_tree_view_new_with_model(model));
-	*tv = GTK_WIDGET(treeview);
+	*tv = treeview;
 	g_object_unref(model);
 
 	selection = gtk_tree_view_get_selection(treeview);
@@ -2268,7 +2290,7 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv, gpointer udata)
       /* add columns to the tree view */
 	add_results_columns(treeview, udata);
 
-	gtk_container_add(GTK_CONTAINER(*sw), *tv);
+	gtk_container_add(GTK_CONTAINER(*sw), GTK_WIDGET(*tv));
 
 	if (!GTK_WIDGET_VISIBLE (*sw))
 		gtk_widget_show_all(*sw);
@@ -2320,7 +2342,7 @@ search_gui_has_selected_item(search_t *search)
 
 	g_return_val_if_fail(search, FALSE);
 
-	gtk_tree_view_get_cursor(GTK_TREE_VIEW(search->tree_view), &path, NULL);
+	gtk_tree_view_get_cursor(GTK_TREE_VIEW(search->tree), &path, NULL);
 	if (path) {
 		ret = TRUE;
 		gtk_tree_path_free(path);

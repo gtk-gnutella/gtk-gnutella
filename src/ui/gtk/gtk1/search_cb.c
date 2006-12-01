@@ -37,12 +37,13 @@
  * @date 2005
  */
 
-#include "gtk/gui.h"
+#include "common.h"
 
 RCSID("$Id$")
 
 #include <gdk/gdkkeysyms.h>
 
+#include "gtk/gui.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/search.h"
 #include "gtk/statusbar.h"
@@ -729,7 +730,7 @@ search_gui_browse_selected(void)
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 
-    ctree = search->ctree;
+    ctree = search->tree;
 	selected = GTK_CLIST(ctree)->selection;
 
 	if (selected == NULL) {
@@ -799,14 +800,14 @@ add_filter(filter_t *filter, GFunc filter_add_func, GCompareFunc cfn)
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->ctree));
+    gtk_clist_freeze(GTK_CLIST(search->tree));
 
-	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
-	data_list = search_cb_collect_ctree_data(search->ctree, node_list, cfn);
+	node_list = g_list_copy(GTK_CLIST(search->tree)->selection);
+	data_list = search_cb_collect_ctree_data(search->tree, node_list, cfn);
 
     g_slist_foreach(data_list, filter_add_func, filter);
 
-    gtk_clist_thaw(GTK_CLIST(search->ctree));
+    gtk_clist_thaw(GTK_CLIST(search->tree));
 	g_slist_free(data_list);
 	g_list_free(node_list);
 }
@@ -923,9 +924,9 @@ on_popup_search_config_cols_activate(GtkMenuItem *unused_menuitem,
 
     search = search_gui_get_current_search();
     g_return_if_fail(search != NULL);
-    g_assert(search->ctree != NULL);
+    g_assert(search->tree != NULL);
 
-    cc = gtk_column_chooser_new(GTK_WIDGET(search->ctree));
+    cc = gtk_column_chooser_new(GTK_WIDGET(search->tree));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
     /* GtkColumnChooser takes care of cleaning up itself */
@@ -949,16 +950,16 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->ctree));
+    gtk_clist_freeze(GTK_CLIST(search->tree));
 
-	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
-	data_list = search_cb_collect_ctree_data(search->ctree,
+	node_list = g_list_copy(GTK_CLIST(search->tree)->selection);
+	data_list = search_cb_collect_ctree_data(search->tree,
 					node_list, gui_record_sha1_eq);
 
 	/* Make sure the column is actually visible. */
 	{
 		static const gint min_width = 80;
-		GtkCList *clist = GTK_CLIST(search->ctree);
+		GtkCList *clist = GTK_CLIST(search->tree);
 
     	gtk_clist_set_column_visibility(clist, c_sr_meta, TRUE);
 		if (clist->column[c_sr_meta].width < min_width)
@@ -974,7 +975,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 
 	G_SLIST_FOREACH(data_list, search_gui_queue_bitzi_by_sha1);
 
-	gtk_clist_thaw(GTK_CLIST(search->ctree));
+	gtk_clist_thaw(GTK_CLIST(search->tree));
 	g_slist_free(data_list);
 	g_list_free(node_list);
 }
