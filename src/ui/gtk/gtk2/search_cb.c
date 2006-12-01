@@ -341,7 +341,8 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	if (!sch)
 		return FALSE;
 
-	model = GTK_TREE_SORTABLE(sch->model);
+	model = GTK_TREE_SORTABLE(
+				gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view)));
 
 	/*
 	 * Here we enforce a tri-state sorting. Normally, Gtk+ would only
