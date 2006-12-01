@@ -5671,13 +5671,14 @@ node_udp_disable(void)
 	 * we have to disable these first.
 	 */
 
-	if (udp_node && udp_node->socket)
+	if (udp_node && udp_node->socket) {
 		node_udp_disable_by_net(NET_TYPE_IPV4);
-	if (udp6_node && udp6_node->socket)
+		socket_free_null(&s_udp_listen);
+	}
+	if (udp6_node && udp6_node->socket) {
 		node_udp_disable_by_net(NET_TYPE_IPV6);
-
-	socket_free_null(&s_udp_listen);
-	socket_free_null(&s_udp_listen6);
+		socket_free_null(&s_udp_listen6);
+	}
 }
 
 /**
