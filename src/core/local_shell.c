@@ -43,17 +43,8 @@
  * cc -o gtkg-shell -DLOCAL_SHELL_STANDALONE local_shell.c
  */
 
-#ifndef LOCAL_SHELL_STANDALONE
-#include "common.h"
+#ifdef LOCAL_SHELL_STANDALONE
 
-RCSID("$Id$");
-
-#include "lib/misc.h"
-#include "lib/socket.h"
-
-#else
-
-#define HAS_POLL
 #include <sys/types.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -82,7 +73,24 @@ socket_set_nonblocking(int fd)
 	if (flags != ret)
 		fcntl(fd, F_SETFL, flags);
 }
+
+#else	/* !LOCAL_SHELL_STANDALONE */
+
+#include "common.h"
+
+RCSID("$Id$");
+
+#include "lib/misc.h"
+#include "lib/socket.h"
+
+#include "lib/override.h"
+
 #endif	/* LOCAL_SHELL_STANDALONE */
+
+#if defined(__APPLE__) && defined(__MACH__)
+/* poll() seems to be broken on Darwin */
+#define USE_SELECT_FOR_SHELL
+#endif	/* Darwin */
 
 #ifdef USE_READLINE
 #include <readline/readline.h>
@@ -232,6 +240,68 @@ write_data(int fd, struct shell_buf *sb)
 	return 0;
 }
 
+static int
+compat_poll(struct pollfd *fds, size_t n, int timeout)
+#ifdef USE_SELECT_FOR_SHELL
+{
+	struct timeval tv;
+	size_t i;
+	fd_set rfds, wfds, efds;
+	int ret, max_fd = -1;
+
+	tv.tv_sec = timeout / 1000;
+	tv.tv_usec = (timeout % 1000) * 1000UL;
+
+	FD_ZERO(&rfds);
+	FD_ZERO(&wfds);
+	FD_ZERO(&efds);
+
+	for (i = 0; i < n; i++) {
+		int fd = fds[i].fd;
+
+		if (fd < 0 || fd >= FD_SETSIZE) {
+			fds[i].revents = POLLERR;
+			continue;
+		}
+		
+		max_fd = MAX(fd, max_fd);
+		fds[i].revents = 0;
+
+		if (POLLIN & fds[i].events) {
+			FD_SET(fd, &rfds);
+		}
+		if (POLLOUT & fds[i].events) {
+			FD_SET(fd, &wfds);
+		}
+		FD_SET(fd, &efds);
+	}
+	ret = select(max_fd + 1, &rfds, &wfds, &efds, timeout < 0 ? NULL : &tv);
+	if (ret > 0) {
+		for (i = 0; i < n; i++) {
+			int fd = fds[i].fd;
+
+			if (fd < 0 || fd >= FD_SETSIZE) {
+				continue;
+			}
+			if (FD_ISSET(fd, &rfds)) {
+				fds[i].revents |= POLLIN;
+			}
+			if (FD_ISSET(fd, &wfds)) {
+				fds[i].revents |= POLLOUT;
+			}
+			if (FD_ISSET(fd, &efds)) {
+				fds[i].revents |= POLLERR;
+			}
+		}
+	}
+	return ret;
+}
+#else	/* !USE_SELECT_FOR_SHELL */
+{
+	return poll(fds, n, timeout);
+}
+#endif	/* USE_SELECT_FOR_SHELL */
+
 /**
  * Sleeps until any I/O event happens or the timeout expires.
  * @return -1 On error;
@@ -244,12 +314,12 @@ wait_for_io(struct pollfd *fds, size_t n, int timeout)
 	int ret;
 
 	for (;;) {
-		ret = poll(fds, n, timeout);
+		ret = compat_poll(fds, n, timeout);
 		if (ret >= 0) {
 			break;
 		}
 		if (ret < 0 && !is_temporary_error(errno)) {
-			perror("poll() failed");
+			perror("compat_poll() failed");
 			return -1;
 		}
 	}
