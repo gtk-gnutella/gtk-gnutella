@@ -416,7 +416,7 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	/* Make the column stays clickable. */
 	gtk_tree_view_column_set_clickable(column, TRUE);
 
-	return FALSE;
+	return TRUE;
 }
 
 static const gchar *
@@ -700,7 +700,7 @@ on_popup_search_drop_name_activate(GtkMenuItem *unused_menuitem,
 
     search = search_gui_get_current_search();
     g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule, search->filter);
@@ -720,7 +720,7 @@ on_popup_search_drop_sha1_activate(GtkMenuItem *unused_menuitem,
 
     search = search_gui_get_current_search();
     g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule, search->filter);
@@ -740,7 +740,7 @@ on_popup_search_drop_host_activate(GtkMenuItem *unused_menuitem,
 
     search = search_gui_get_current_search();
     g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule, search->filter);
@@ -760,7 +760,7 @@ on_popup_search_drop_name_global_activate(GtkMenuItem *unused_menuitem,
 
     search = search_gui_get_current_search();
     g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
@@ -781,7 +781,7 @@ on_popup_search_drop_sha1_global_activate(GtkMenuItem *unused_menuitem,
 
     search = search_gui_get_current_search();
     g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
@@ -802,7 +802,7 @@ on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
 
     search = search_gui_get_current_search();
     g_assert(search != NULL);
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
@@ -823,7 +823,7 @@ on_popup_search_config_cols_activate(GtkMenuItem *unused_menuitem,
     search = search_gui_get_current_search();
 	g_return_if_fail(NULL != search);
 
-	cc = gtk_column_chooser_new(GTK_WIDGET(search->tree_view));
+	cc = gtk_column_chooser_new(GTK_WIDGET(search->tree));
    	gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
 	/* GtkColumnChooser takes care of cleaning up itself */
@@ -882,7 +882,7 @@ search_gui_browse_selected(void)
 		return;
 
     sl = tree_selection_collect_data(
-			gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view)),
+			gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree)),
 			search_gui_get_record,
 			gui_record_host_eq);
     g_slist_foreach(sl, search_gui_browse_selected_helper, NULL);
@@ -907,7 +907,7 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 	if (!search)
 		return;
 
-	tv = GTK_TREE_VIEW(search->tree_view);
+	tv = GTK_TREE_VIEW(search->tree);
 	gtk_tree_view_get_cursor(tv, &path, NULL);
 	if (!path) {
 		return;
