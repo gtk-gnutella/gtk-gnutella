@@ -3819,12 +3819,26 @@ search_locally(gnet_search_t sh, const gchar *query)
 				continue;
 			} else if (SHARE_REBUILDING == sf) {
 				break;
-			} else if (
-				!re ||
-				0 == regexec(re, shared_file_name_nfc(sf), 0, NULL, 0)
-			) {
-				search_add_local_file(rs, sf, alt_loc);	
+			} else if (re) {
+				const gchar *name, *path;
+				gchar *buf = NULL;
+				size_t buf_size = 0;
+				int ret;
+				
+				name = shared_file_name_nfc(sf);
+				path = shared_file_relative_path(sf);
+				if (path) {
+					buf_size = w_concat_strings(&buf,
+									path, "/", name, (void *) 0);
+					name = buf;
+				}
+				ret = regexec(re, name, 0, NULL, 0);
+				WFREE_NULL(buf, buf_size);
+				if (ret) {
+					continue;
+				}
 			}
+			search_add_local_file(rs, sf, alt_loc);	
 		}
 	}
 	alt_locs_free(&alt_loc);
