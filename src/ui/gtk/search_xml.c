@@ -656,9 +656,9 @@ search_retrieve_xml(void)
 
             if (search->filter->search == search) {
                 if (gui_debug >= 6)
-                    g_message("binding ok for: %s", search->query);
+                    g_message("binding ok for: %s", search_gui_query(search));
             } else {
-                g_warning("binding broken for: %s", search->query);
+                g_warning("binding broken for: %s", search_gui_query(search));
                 borked = TRUE;
             }
         }
@@ -715,10 +715,10 @@ search_to_xml(xmlNodePtr parent, search_t *s)
     GList *iter;
 
     g_assert(s != NULL);
-    g_assert(s->query != NULL);
+    g_assert(search_gui_query(s) != NULL);
     g_assert(parent != NULL);
 
-	if (s->browse || s->local)
+	if (search_gui_is_browse(s) || search_gui_is_local(s))
 		return;			/* Don't persist "browse host" searches. */
 
     if (gui_debug >= 6) {
@@ -726,16 +726,17 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 			"saving search: %s (%p enabled=%d)\n"
 			"  -- filter is bound to: %p\n"
 			"  -- search is         : %p",
-			s->query, cast_to_gconstpointer(s), s->enabled,
+			search_gui_query(s), cast_to_gconstpointer(s),
+			search_gui_is_enabled(s),
 			cast_to_gconstpointer(s->filter->search),
 			cast_to_gconstpointer(s));
     }
 
     newxml = xml_new_empty_child(parent, NODE_SEARCH);
-    xml_prop_set(newxml, TAG_SEARCH_QUERY, s->query);
+    xml_prop_set(newxml, TAG_SEARCH_QUERY, search_gui_query(s));
 
-	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u", s->enabled);
-    xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u", TO_BOOL(s->passive));
+	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u", search_gui_is_enabled(s));
+    xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u", search_gui_is_passive(s));
     xml_prop_printf(newxml, TAG_SEARCH_REISSUE_TIMEOUT, "%u",
 		guc_search_get_reissue_timeout(s->search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_CREATE_TIME, "%s",

@@ -283,9 +283,8 @@ search_gui_close_search(search_t *sch)
 	sch->parents = NULL;
 
     guc_search_close(sch->search_handle);
-	atom_str_free(sch->query);
 
-	g_free(sch);
+	G_FREE_NULL(sch);
 }
 
 /**
@@ -350,12 +349,7 @@ search_gui_new_search_full(const gchar *query_str,
 		sch->sort_order = SORT_NONE;
 	}
 
-	sch->query = atom_str_get(query->text);
-	sch->enabled = (flags & SEARCH_F_ENABLED) ? TRUE : FALSE;
-	sch->browse = (flags & SEARCH_F_BROWSE) ? TRUE : FALSE;
-	sch->local = (flags & SEARCH_F_LOCAL) ? TRUE : FALSE;
     sch->search_handle = sch_id;
-    sch->passive = (flags & SEARCH_F_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new(search_gui_hash_func,
 					search_gui_hash_key_compare);
 
@@ -363,7 +357,7 @@ search_gui_new_search_full(const gchar *query_str,
 
 	search_gui_filter_new(sch, query->rules);
 
-    titles[c_sl_name] = lazy_utf8_to_ui_string(sch->query);
+    titles[c_sl_name] = lazy_utf8_to_ui_string(search_gui_query(sch));
     titles[c_sl_hit] = "0";
     titles[c_sl_new] = "0";
     row = gtk_clist_append(GTK_CLIST(clist_search), (gchar **) titles);
@@ -392,7 +386,6 @@ search_gui_new_search_full(const gchar *query_str,
 		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
 	}
 
-	gui_search_update_tab_label(sch);
 	sch->tab_updating = gtk_timeout_add(TAB_UPDATE_TIME * 1000,
         (GtkFunction)gui_search_update_tab_label, sch);
 
@@ -412,15 +405,24 @@ search_gui_new_search_full(const gchar *query_str,
     gtk_widget_set_sensitive(
         gui_main_window_lookup("button_search_collapse_all"), TRUE);
 
-	is_only_search = (searches == NULL);
+	is_only_search = NULL == searches;
 	searches = g_list_append(searches, sch);
 	search_gui_option_menu_searches_update();
-	
-	if (search_gui_update_expiry(sch))
-		sch->enabled = FALSE;
 
-	if (sch->enabled)
+	if (search_gui_update_expiry(sch)) {
+		guc_search_stop(sch->search_handle);
+	} else if (0 == (SEARCH_F_ENABLED & flags)) {
 		guc_search_start(sch->search_handle);
+	}
+
+	if (search_gui_update_expiry(sch) || 0 == (SEARCH_F_ENABLED & flags)) {
+		if (search_gui_is_enabled(sch))
+			guc_search_stop(sch->search_handle);
+	} else {
+		if (!search_gui_is_enabled(sch))
+			guc_search_start(sch->search_handle);
+	}
+	gui_search_update_tab_label(sch);
 
 	/*
 	 * Make new search the current search, unless it's a browse-host search:
@@ -431,7 +433,10 @@ search_gui_new_search_full(const gchar *query_str,
 	 * the current search though, since the code relies on one always being
 	 * set when the list of searches is not empty.
 	 */
-	if (is_only_search || (!sch->browse && search_jump_to_created)) {
+	if (
+		is_only_search ||
+		(!search_gui_is_browse(sch) && search_jump_to_created)
+	) {
 		search_gui_set_current_search(sch);
 	} else {
 		gui_search_force_update_tab_label(sch);
@@ -440,7 +445,7 @@ search_gui_new_search_full(const gchar *query_str,
 		*search = sch;
 	}
 	search_gui_query_free(&query);
-	if (sch->local) {
+	if (search_gui_is_local(sch)) {
 		search_gui_init_dnd(GTK_CTREE(sch->tree));
 	}
 	set_search_color(sch);
@@ -1880,7 +1885,7 @@ search_gui_search_results_col_widths_changed(property_t prop)
         for (i = 0; i < GTK_CLIST(ctree)->columns; i ++)
             gtk_clist_set_column_width(GTK_CLIST(ctree), i, val[i]);
 
-    g_free(val);
+    G_FREE_NULL(val);
     return FALSE;
 }
 
@@ -1911,7 +1916,7 @@ search_gui_search_results_col_visible_changed(property_t prop)
         for (i = 0; i < GTK_CLIST(ctree)->columns; i++)
             gtk_clist_set_column_visibility(GTK_CLIST(ctree), i, val[i]);
 
-    g_free(val);
+    G_FREE_NULL(val);
     return FALSE;
 }
 
@@ -2451,7 +2456,7 @@ gui_search_force_update_tab_label(struct search *sch)
 	{
 		const gchar *s;
 		
-		s = lazy_utf8_to_ui_string(sch->query);
+		s = lazy_utf8_to_ui_string(search_gui_query(sch));
 		if (sch == current_search || sch->unseen_items == 0)
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)",
 				s, sch->items);
@@ -2530,7 +2535,7 @@ set_search_color(struct search *sch)
 		notebook_search_results =
 			GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 
-	if (sch->enabled) {
+	if (search_gui_is_enabled(sch)) {
         gtk_clist_set_foreground(
             clist_search,
 			gtk_notebook_page_num(notebook_search_results,
@@ -2553,19 +2558,14 @@ set_search_color(struct search *sch)
 void
 gui_search_set_enabled(struct search *sch, gboolean enabled)
 {
-	gboolean was_enabled = sch->enabled;
+	if (search_gui_is_enabled(sch) != enabled) {
+		if (enabled)
+			guc_search_start(sch->search_handle);
+		else
+			guc_search_stop(sch->search_handle);
 
-	if (was_enabled == enabled)
-		return;
-
-	sch->enabled = enabled;
-
-	if (enabled)
-		guc_search_start(sch->search_handle);
-	else
-		guc_search_stop(sch->search_handle);
-
-	set_search_color(sch);
+		set_search_color(sch);
+	}
 }
 
 
@@ -2651,8 +2651,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 					c_sr_meta, text ? text : _("Not in database"));
 	}
 
-	/* free the string */
-	g_free(text);
+	G_FREE_NULL(text);
 }
 
 /**

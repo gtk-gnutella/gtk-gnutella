@@ -791,7 +791,7 @@ filter_close_search(search_t *s)
     g_assert(s->filter != NULL);
 
     if (gui_debug >= 6)
-        g_message("closing search (freeing filter): %s", s->query);
+        g_message("closing search (freeing filter): %s", search_gui_query(s));
 
     shadow = shadow_find(s->filter);
     if (shadow != NULL) {
@@ -1279,14 +1279,17 @@ filter_add_to_session(filter_t *f)
 void
 filter_new_for_search(search_t *s)
 {
+	const gchar *query;
     filter_t *f;
 
     g_assert(s != NULL);
-    g_assert(s->query != NULL);
-    g_assert(utf8_is_valid_string(s->query));
+
+	query = search_gui_query(s);
+    g_assert(query);
+    g_assert(utf8_is_valid_string(query));
 
     f = g_new0(filter_t, 1);
-    f->name = atom_str_get(s->query);
+    f->name = atom_str_get(query);
     f->ruleset = NULL;
     f->search = NULL;
     f->visited = FALSE;

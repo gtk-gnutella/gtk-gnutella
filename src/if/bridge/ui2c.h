@@ -36,6 +36,8 @@
 #ifndef _if_bridge_ui2c_h_
 #define _if_bridge_ui2c_h_
 
+#include "common.h"
+
 /*
  *	SECTION 1 - Interface includes
  */
@@ -54,9 +56,6 @@
 
 /* Property table includes */
 #include "if/gnet_property.h"
-
-/* Other includes */
-#include <glib.h>
 
 /* adns interface functions */
 gboolean guc_adns_resolve(const gchar *hostname,
@@ -199,10 +198,16 @@ time_t guc_search_get_create_time(gnet_search_t sh);
 void guc_search_set_create_time(gnet_search_t sh, time_t t);
 guint32 guc_search_get_reissue_timeout(gnet_search_t sh);
 void guc_search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
-gboolean guc_search_is_passive(gnet_search_t sh);
+
+const gchar *guc_search_query(gnet_search_t sh);
+
 gboolean guc_search_is_active(gnet_search_t sh);
-gboolean guc_search_is_frozen(gnet_search_t sh);
+gboolean guc_search_is_browse(gnet_search_t sh);
 gboolean guc_search_is_expired(gnet_search_t sh);
+gboolean guc_search_is_frozen(gnet_search_t sh);
+gboolean guc_search_is_local(gnet_search_t sh);
+gboolean guc_search_is_passive(gnet_search_t sh);
+
 gnet_search_t guc_search_new(const gchar *query,
 	time_t create_time, guint lifetime,
 	guint32 reissue_timeout, flag_t flags);

@@ -3603,6 +3603,17 @@ search_oob_pending_results(
 	oob_reply_ack_record(muid, n->addr, n->port);
 }
 
+const gchar *
+search_query(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+    g_assert(sch->query != NULL);
+
+    return sch->query;
+}
+
 gboolean
 search_is_frozen(gnet_search_t sh)
 {
@@ -3634,6 +3645,16 @@ search_is_active(gnet_search_t sh)
 }
 
 gboolean
+search_is_browse(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+
+    return sbool_get(sch->browse);
+}
+
+gboolean
 search_is_expired(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -3641,6 +3662,16 @@ search_is_expired(gnet_search_t sh)
     g_assert(sch != NULL);
 
     return search_expired(sch);
+}
+
+gboolean
+search_is_local(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+    g_assert(sch != NULL);
+
+    return sbool_get(sch->local);
 }
 
 /***

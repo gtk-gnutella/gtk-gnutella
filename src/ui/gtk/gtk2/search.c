@@ -497,7 +497,6 @@ search_gui_close_search(search_t *search)
 	search_gui_clear_search(search);
 
     guc_search_close(search->search_handle);
-	atom_str_free(search->query);
 
 	g_assert(0 == slist_length(search->queue));
 	slist_free(&search->queue);
@@ -612,12 +611,7 @@ search_gui_new_search_full(const gchar *query_str,
 		sch->sort_order = SORT_NONE;
 	}
  
-	sch->query = atom_str_get(query->text);
-	sch->enabled = (flags & SEARCH_F_ENABLED) ? TRUE : FALSE;
-	sch->browse = (flags & SEARCH_F_BROWSE) ? TRUE : FALSE;
-	sch->local = (flags & SEARCH_F_LOCAL) ? TRUE : FALSE;
 	sch->search_handle = sch_id;
-	sch->passive = (flags & SEARCH_F_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new_full(search_gui_hash_func,
 					search_gui_hash_key_compare, ht_unref_record, NULL);
 	sch->queue = slist_new();
@@ -657,7 +651,7 @@ search_gui_new_search_full(const gchar *query_str,
 	model = GTK_LIST_STORE(gtk_tree_view_get_model(tree_view_search));
 	gtk_list_store_append(model, &iter);
 	gtk_list_store_set(model, &iter,
-		c_sl_name, sch->query,
+		c_sl_name, search_gui_query(sch),
 		c_sl_hit, 0,
 		c_sl_new, 0,
 		c_sl_sch, sch,
@@ -665,7 +659,6 @@ search_gui_new_search_full(const gchar *query_str,
 		c_sl_bg, NULL,
 		(-1));
 
-	gui_search_update_tab_label(sch);
 	sch->tab_updating = gtk_timeout_add(TAB_UPDATE_TIME * 1000,
 							gui_search_update_tab_label_cb, sch);
 
@@ -683,11 +676,14 @@ search_gui_new_search_full(const gchar *query_str,
 	searches = g_list_append(searches, sch);
 	search_gui_option_menu_searches_update();
 
-	if (search_gui_update_expiry(sch))
-		sch->enabled = FALSE;
-
-	if (sch->enabled)
-		guc_search_start(sch->search_handle);
+	if (search_gui_update_expiry(sch) || 0 == (SEARCH_F_ENABLED & flags)) {
+		if (search_gui_is_enabled(sch))
+			guc_search_stop(sch->search_handle);
+	} else {
+		if (!search_gui_is_enabled(sch))
+			guc_search_start(sch->search_handle);
+	}
+	gui_search_update_tab_label(sch);
 
 	/*
 	 * Make new search the current search, unless it's a browse-host search:
@@ -699,7 +695,10 @@ search_gui_new_search_full(const gchar *query_str,
 	 * set when the list of searches is not empty.
 	 */
 	
-	if (is_only_search || (!sch->browse && search_jump_to_created)) {
+	if (
+		is_only_search ||
+		(!search_gui_is_browse(sch) && search_jump_to_created)
+	) {
 		search_gui_set_current_search(sch);
 	} else {
 		gui_search_force_update_tab_label(sch, tm_time());
@@ -708,7 +707,7 @@ search_gui_new_search_full(const gchar *query_str,
 		*search = sch;
 	}
 	search_gui_query_free(&query);
-	if (sch->local) {
+	if (search_gui_is_local(sch)) {
 		search_gui_init_dnd(GTK_TREE_VIEW(sch->tree));
 	}
 
@@ -2011,7 +2010,7 @@ tree_view_search_update(
 #endif
 			fg = NULL;
 			bg = NULL;
-		} else if (!sch->enabled) {
+		} else if (!search_gui_is_enabled(sch)) {
     		fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_INSENSITIVE]);
     		bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_INSENSITIVE]);
 		} else {
@@ -2044,10 +2043,11 @@ gui_search_force_update_tab_label(search_t *sch, time_t now)
     search = search_gui_get_current_search();
 
 	if (sch == search || sch->unseen_items == 0) {
-		gm_snprintf(buf, sizeof buf, "%s\n(%d)", sch->query, sch->items);
+		gm_snprintf(buf, sizeof buf, "%s\n(%d)",
+			search_gui_query(sch), sch->items);
 	} else {
-		gm_snprintf(buf, sizeof buf, "%s\n(%d, %d)", sch->query,
-		   sch->items, sch->unseen_items);
+		gm_snprintf(buf, sizeof buf, "%s\n(%d, %d)",
+			search_gui_query(sch), sch->items, sch->unseen_items);
 	}
 	sch->last_update_items = sch->items;
 	gtk_notebook_set_tab_label_text(notebook_search_results,
@@ -2094,22 +2094,16 @@ gui_search_clear_results(void)
 void
 gui_search_set_enabled(struct search *sch, gboolean enabled)
 {
-	gboolean was_enabled = sch->enabled;
+	if (search_gui_is_enabled(sch) != enabled) {
+		if (enabled)
+			guc_search_start(sch->search_handle);
+		else
+			guc_search_stop(sch->search_handle);
 
-	if (was_enabled == enabled)
-		return;
-
-	sch->enabled = enabled;
-
-	if (enabled)
-		guc_search_start(sch->search_handle);
-	else
-		guc_search_stop(sch->search_handle);
-
-	/* Marks this entry as active/inactive in the searches list. */
-	gui_search_force_update_tab_label(sch, tm_time());
+		/* Marks this entry as active/inactive in the searches list. */
+		gui_search_force_update_tab_label(sch, tm_time());
+	}
 }
-
 
 /**
  * Expand all nodes in tree for current search.

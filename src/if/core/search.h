@@ -177,10 +177,14 @@ gboolean search_is_stopped(gnet_search_t sh);
 void search_reissue(gnet_search_t sh);
 void search_add_kept(gnet_search_t sh, guint32 kept);
 
-gboolean search_is_passive(gnet_search_t sh);
+const gchar *search_query(gnet_search_t sh);
+
 gboolean search_is_active(gnet_search_t sh);
-gboolean search_is_frozen(gnet_search_t sh);
+gboolean search_is_browse(gnet_search_t sh);
 gboolean search_is_expired(gnet_search_t sh);
+gboolean search_is_frozen(gnet_search_t sh);
+gboolean search_is_local(gnet_search_t sh);
+gboolean search_is_passive(gnet_search_t sh);
 
 void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
 guint32 search_get_reissue_timeout(gnet_search_t sh);

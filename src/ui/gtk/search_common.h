@@ -281,6 +281,12 @@ void search_gui_refresh_popup(void);
 void search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event);
 void search_gui_flush_queues(void);
 
+const gchar *search_gui_query(const search_t *search);
+gboolean search_gui_is_browse(const search_t *search);
+gboolean search_gui_is_enabled(const search_t *search);
+gboolean search_gui_is_local(const search_t *search);
+gboolean search_gui_is_passive(const search_t *search);
+
 #endif /* _gtk_search_common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

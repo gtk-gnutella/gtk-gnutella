@@ -41,9 +41,6 @@
 struct search {
     gnet_search_t search_handle;	/**< Search handle */
 
-	const gchar *query;				/**< The query string; always UTF-8 */
-	gboolean    enabled;
-
 #ifdef USE_GTK2
 	GtkTreeView  *tree;				/**< GtkTreeView for this search */
 #else
@@ -64,11 +61,6 @@ struct search {
 	guint32     last_update_items;	/**< # of items included in last update */
 	gint        tab_updating;		/**< ID for timeout func. to be cancelled */
 	guint32     unseen_items;		/**< How many items haven't been seen yet */
-
-	gboolean    passive;			/**< Is this a passive search? */
-	gboolean    massive_update;		/**< massive update in process */
-	gboolean    browse;				/**< Is this a browse-host search? */
-	gboolean    local;				/**< Is this a local search? */
 
 	hash_list_t *r_sets;			/**< The results sets of this search */
 

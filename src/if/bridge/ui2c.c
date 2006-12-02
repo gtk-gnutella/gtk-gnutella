@@ -645,16 +645,34 @@ guc_search_set_create_time(gnet_search_t sh, time_t t)
 	search_set_create_time(sh, t);
 }
 
-gboolean
-guc_search_is_passive(gnet_search_t sh)
+const gchar *
+guc_search_query(gnet_search_t sh)
 {
-	return search_is_passive(sh);
+	return search_query(sh);
 }
 
 gboolean
 guc_search_is_active(gnet_search_t sh)
 {
 	return search_is_active(sh);
+}
+
+gboolean
+guc_search_is_browse(gnet_search_t sh)
+{
+	return search_is_browse(sh);
+}
+
+gboolean
+guc_search_is_local(gnet_search_t sh)
+{
+	return search_is_local(sh);
+}
+
+gboolean
+guc_search_is_passive(gnet_search_t sh)
+{
+	return search_is_passive(sh);
 }
 
 gboolean

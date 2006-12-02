@@ -175,21 +175,23 @@ search_gui_option_menu_searches_update(void)
 
 	iter = g_list_last(deconstify_gpointer(search_gui_get_searches()));
 	for (/* NOTHING */; iter != NULL; n++, iter = g_list_previous(iter)) {
+		search_t *search = iter->data;
+		const gchar *query;
 		GtkWidget *item;
-		search_t *s = iter->data;
 		gchar *name;
 
-		if (search_gui_get_current_search() == s) {
+		if (search_gui_get_current_search() == search) {
 			idx = n;
 		}
-		if (s->browse) {
-			name = g_strconcat("browse:", s->query, (void *) 0);
-		} else if (s->passive) {
-			name = g_strconcat("passive:", s->query, (void *) 0);
-		} else if (s->local) {
-			name = g_strconcat("local:", s->query, (void *) 0);
+		query = search_gui_query(search);
+		if (search_gui_is_browse(search)) {
+			name = g_strconcat("browse:", query, (void *) 0);
+		} else if (search_gui_is_passive(search)) {
+			name = g_strconcat("passive:", query, (void *) 0);
+		} else if (search_gui_is_local(search)) {
+			name = g_strconcat("local:", query, (void *) 0);
 		} else {
-			name = g_strdup(s->query);
+			name = g_strdup(query);
 		}
 
 		/*
@@ -216,7 +218,7 @@ search_gui_option_menu_searches_update(void)
 		G_FREE_NULL(name);
 	
 		gtk_widget_show(item);
-		gtk_object_set_user_data(GTK_OBJECT(item), s);
+		gtk_object_set_user_data(GTK_OBJECT(item), search);
 		gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), item);
 #ifdef USE_GTK1
 		gtk_signal_connect(GTK_OBJECT(item), "activate",
@@ -509,7 +511,6 @@ search_gui_free_r_set(results_set_t *rs)
 	atom_guid_free_null(&rs->guid);
 	atom_str_free_null(&rs->version);
 	atom_str_free_null(&rs->hostname);
-	atom_str_free_null(&rs->query);
 	search_gui_free_proxies(rs);
 
 	g_slist_free(rs->records);
@@ -737,9 +738,10 @@ search_gui_find(gnet_search_t sh)
 		search_t *s = l->data;
 
         if (s->search_handle == sh) {
-            if (gui_debug >= 15)
-                printf("search [%s] matched handle %x\n", s->query, sh);
-
+            if (gui_debug >= 15) {
+                g_message("search [%s] matched handle %x",
+					search_gui_query(s), sh);
+			}
             return s;
         }
     }
@@ -1089,7 +1091,8 @@ search_gui_retrieve_searches(void)
 /**
  * @return a string showing the route information for the given
  *         result record. The return string uses a static buffer.
- * @note   If the result is from a local search, NULL is returned.
+ * @note   If the result is from a local search or browse host, NULL
+ *		   is returned.
  */
 const gchar *
 search_gui_get_route(const record_t *rc)
@@ -1155,7 +1158,8 @@ search_matched(search_t *sch, results_set_t *rs)
     g_assert(rs != NULL);
 
     vendor = lookup_vendor_name(rs->vcode);
-	max_results = sch->browse ? browse_host_max_results : search_max_results;
+	max_results = search_gui_is_browse(sch)
+		? browse_host_max_results : search_max_results;
 
    	if (vendor) {
 		g_string_append(vinfo, vendor);
@@ -1211,7 +1215,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	if (gui_debug > 6)
 		printf("search_matched: [%s] got hit with %d record%s (from %s) "
 			"need_push=%d, skipping=%d\n",
-			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
+			search_gui_query(sch), rs->num_recs, rs->num_recs == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
 			(flags & SOCK_F_PUSH), skip_records);
 
@@ -1224,7 +1228,7 @@ search_matched(search_t *sch, results_set_t *rs)
 
         if (gui_debug > 7)
             printf("search_matched: [%s] considering %s (%s)\n",
-				sch->query, rc->name, vinfo->str);
+				search_gui_query(sch), rc->name, vinfo->str);
 
         if (rc->flags & SR_DOWNLOADED)
 			sch->auto_downloaded++;
@@ -1389,7 +1393,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	 * to make some room to allow the search to continue.
 	 */
 
-	if (sch->items >= max_results && !sch->passive)
+	if (sch->items >= max_results && !search_gui_is_passive(sch))
 		gui_search_set_enabled(sch, FALSE);
 
 	/*
@@ -1432,7 +1436,7 @@ search_gui_is_expired(const struct search *sch)
 {
 	gboolean expired = FALSE;
 	
-	if (sch && !sch->passive)
+	if (sch && !search_gui_is_passive(sch))
 		expired = guc_search_is_expired(sch->search_handle);
 
 	return expired;
@@ -1444,9 +1448,9 @@ search_gui_update_expiry(const struct search *sch)
 	gboolean expired = FALSE;
 
     if (sch) {
-		if (sch->passive) {
+		if (search_gui_is_passive(sch)) {
    			gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
-		} else if (sch->enabled) {
+		} else if (search_gui_is_enabled(sch)) {
 			expired = search_gui_is_expired(sch);
 			
 			if (expired) {
@@ -2419,7 +2423,7 @@ search_gui_duplicate_search(search_t *search)
     guint32 timeout;
 
 	g_return_if_fail(search);
-	g_return_if_fail(!search->browse);
+	g_return_if_fail(!search_gui_is_browse(search));
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
@@ -2427,30 +2431,38 @@ search_gui_duplicate_search(search_t *search)
     /* FIXME: should call search_duplicate which has to be written. */
     /* FIXME: should properly duplicate passive searches. */
 
-	search_gui_new_search_full(search->query, tm_time(), search_lifetime,
+	search_gui_new_search_full(search_gui_query(search),
+		tm_time(), search_lifetime,
 		timeout, search->sort_col, search->sort_order,
-		search->enabled ? SEARCH_F_ENABLED : 0, NULL);
+		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);
 }
 
 /**
  * Restart a search from scratch, clearing all existing content.
  */
 void
-search_gui_restart_search(search_t *sch)
+search_gui_restart_search(search_t *search)
 {
-	if (!sch->enabled) {
-		gui_search_set_enabled(sch, TRUE);
+	if (!search_gui_is_enabled(search)) {
+		gui_search_set_enabled(search, TRUE);
 	}
-	search_gui_reset_search(sch);
-	sch->items = sch->unseen_items = sch->hidden = 0;
-	sch->tcp_qhits = sch->udp_qhits = 0;
-	sch->skipped = sch->ignored = sch->auto_downloaded = sch->duplicates = 0;
 
-	search_gui_update_items(sch);
-	guc_search_set_create_time(sch->search_handle, tm_time());
-	guc_search_update_items(sch->search_handle, sch->items);
-	guc_search_reissue(sch->search_handle);
-	search_gui_update_expiry(sch);
+	search_gui_reset_search(search);
+	search->items = 0;
+	search->unseen_items = 0;
+	search->hidden = 0;
+	search->tcp_qhits = 0;
+	search->udp_qhits = 0;
+	search->skipped = 0;
+	search->ignored = 0;
+	search->auto_downloaded = 0;
+	search->duplicates = 0;
+
+	search_gui_update_items(search);
+	guc_search_set_create_time(search->search_handle, tm_time());
+	guc_search_update_items(search->search_handle, search->items);
+	guc_search_reissue(search->search_handle);
+	search_gui_update_expiry(search);
 }
 
 void
@@ -2636,7 +2648,7 @@ search_gui_refresh_popup(void)
 			gui_popup_search_lookup("popup_search_resume"),
 			guc_search_is_frozen(search->search_handle)
 				&& !search_gui_is_expired(search));
-		if (search->passive)
+		if (search_gui_is_passive(search))
 			gtk_widget_set_sensitive(
 				gui_popup_search_lookup("popup_search_restart"),
 				FALSE);
@@ -2736,6 +2748,41 @@ on_popup_search_collapse_all_activate (GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
 	search_gui_collapse_all();
+}
+
+const gchar *
+search_gui_query(const search_t *search)
+{
+	g_assert(search);
+	return guc_search_query(search->search_handle);
+}
+
+gboolean
+search_gui_is_browse(const search_t *search)
+{
+	g_assert(search);
+	return guc_search_is_browse(search->search_handle);
+}
+
+gboolean
+search_gui_is_enabled(const search_t *search)
+{
+	g_assert(search);
+	return !guc_search_is_frozen(search->search_handle);
+}
+
+gboolean
+search_gui_is_local(const search_t *search)
+{
+	g_assert(search);
+	return guc_search_is_local(search->search_handle);
+}
+
+gboolean
+search_gui_is_passive(const search_t *search)
+{
+	g_assert(search);
+	return guc_search_is_passive(search->search_handle);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
