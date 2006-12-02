@@ -919,8 +919,6 @@ search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 void
 search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 {
-	gtk_clist_sort(GTK_CLIST(ctree));
-#if 0	
 	GtkCTreeNode *cur_node;
 	GtkCTreeNode *prev_node = NULL;
 	gint n;
@@ -1085,7 +1083,6 @@ search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 	default:
         g_assert_not_reached();
 	}
-#endif
 }
 
 
