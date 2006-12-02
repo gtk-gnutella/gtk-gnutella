@@ -215,7 +215,7 @@ cell_renderer_func(GtkTreeViewColumn *column,
 		s = short_time(data->connected);
 		break;
 	case c_gnet_uptime:
-		s = short_time(data->uptime);
+		s = data->uptime > 0 ? short_time(data->uptime) : NULL;
 		break;
 	case c_gnet_info:
 		s = data->info;
