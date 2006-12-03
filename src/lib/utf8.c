@@ -1120,7 +1120,7 @@ utf8_to_iso8859(gchar *s, gint len, gboolean space)
  * returned. The words are seperated by whitespaces.
  */
 static const char *codesets[] = {
- "ASCII ISO_646.IRV:1983 646 C US-ASCII la_LN.ASCII lt_LN.ASCII",
+ "ASCII ISO_646.IRV:1983 646 C US-ASCII la_LN.ASCII lt_LN.ASCII ANSI_X3.4-1968",
  "BIG5 big5 big5 zh_TW.BIG5 zh_TW.Big5",
  "CP1046 IBM-1046",
  "CP1124 IBM-1124",
@@ -1575,7 +1575,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12477 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12559 "))
 		utf8_regression_checks();
 
 	locale_init_passed = TRUE;
