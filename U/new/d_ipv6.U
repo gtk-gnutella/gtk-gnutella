@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_ipv6: cc ccflags ldflags rm cat Myread
+?MAKE:d_ipv6: cc ccflags ldflags rm cat Myread Setvar
 ?MAKE:	-pick add $@ %<
 ?S:d_ipv6:
 ?S: This variable conditionally defines HAS_IPV6.
@@ -60,6 +60,7 @@ EOC
  It looks like IPv6 is usable on your system, good.
 
 EOM
+		d_ipv6="$define"
 	  else
 		echo "Sorry, I will not be using IPv6."
 		d_ipv6="$undef"
@@ -67,4 +68,7 @@ EOM
 	  $rm -f try try.c
 	  ;;
 esac
+
+set d_ipv6
+eval $setvar
 

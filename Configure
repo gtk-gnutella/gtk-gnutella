@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Dec  3 14:10:12 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Sun Dec  3 17:57:02 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5447,6 +5447,7 @@ EOC
  It looks like IPv6 is usable on your system, good.
 
 EOM
+		d_ipv6="$define"
 	  else
 		echo "Sorry, I will not be using IPv6."
 		d_ipv6="$undef"
@@ -5454,6 +5455,9 @@ EOM
 	  $rm -f try try.c
 	  ;;
 esac
+
+set d_ipv6
+eval $setvar
 
 : Look for isascii
 echo " "
