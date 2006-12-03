@@ -546,6 +546,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_iptos USE_IP_TOS		/**/
 
+/* HAS_IPV6:
+ *  This symbol is defined when IPv6 can be used
+ */
+#$d_ipv6 HAS_IPV6	/**/
+
 /* HAS_KEVENT_INT_UDATA:
  *	This symbol, if defined, indicates that struct kevent has an
  *	integer member udata.
@@ -708,11 +713,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *    include <sys/utsname.h>.
  */
 #$i_sysutsname I_SYS_UTSNAME         /**/
-
-/* USE_IPV6:
- *  This symbol is defined when IPv6 can be used
- */
-#$d_ipv6 USE_IPV6
 
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization

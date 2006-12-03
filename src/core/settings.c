@@ -503,11 +503,11 @@ settings_dns_net(void)
 	case NET_USE_BOTH: return NET_TYPE_NONE;
 	case NET_USE_IPV4: return NET_TYPE_IPV4;
 	case NET_USE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 	return NET_TYPE_IPV6;
 #else
 	return NET_TYPE_NONE;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	}
 	g_assert_not_reached();
 	return NET_TYPE_NONE;

@@ -5,19 +5,20 @@
 ?MAKE:d_ipv6: cc ccflags ldflags rm cat Myread
 ?MAKE:	-pick add $@ %<
 ?S:d_ipv6:
-?S: This variable conditionally defines USE_IPV6.
+?S: This variable conditionally defines HAS_IPV6.
 ?S:.
-?C:USE_IPV6:
+?C:HAS_IPV6:
 ?C:  This symbol is defined when IPv6 can be used
 ?C:.
-?H:#$d_ipv6 USE_IPV6
+?H:#$d_ipv6 HAS_IPV6	/**/
 ?H:.
-?T:ipv6
 : determine whether IPv6 can be used
-echo " "
-echo "Checking whether IPv6 can be used ..." >&4
-d_ipv6="$define"
-$cat >try.c <<'EOC'
+case "$d_ipv6" in
+"$undef") ;;
+*)
+	echo " "
+	echo "Checking whether IPv6 can be used ..." >&4
+	$cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -54,29 +55,16 @@ int main(void)
 	return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like IPv6 is usable on your system, good.
-
-I can enable support for IPv6, but this only makes sense if you have
-IPv6 connectivity. IPv6 support has 16 bytes overhead for each IP
-address and also some CPU overhead.
+	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	$cat <<'EOM'
+ It looks like IPv6 is usable on your system, good.
 
 EOM
-	case "$ipv6" in
-	false) dflt=n;;
-	*) dflt=y;;
-	esac
-	rp="Enable IPv6 support"
-	. ./myread
-	case "$ans" in
-	y) ipv6=true; d_ipv6="$define";;
-	*) ipv6=false; d_ipv6="$undef";;
-	esac
-
-else
-	echo "Sorry, I will not be using IPv6."
-	d_ipv6="$undef"
-fi
-$rm -f try try.c
+	  else
+		echo "Sorry, I will not be using IPv6."
+		d_ipv6="$undef"
+	  fi
+	  $rm -f try try.c
+	  ;;
+esac
 

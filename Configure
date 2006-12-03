@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Nov 27 20:07:47 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Sun Dec  3 14:10:12 CET 2006 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -320,6 +320,7 @@ d_hstrerror=''
 d_inflate=''
 d_initstate=''
 d_iptos=''
+d_ipv6=''
 d_isascii=''
 d_kevent_int_udata=''
 d_kqueue=''
@@ -445,7 +446,6 @@ i_varhdr=''
 i_zlib=''
 install=''
 installdir=''
-d_ipv6=''
 issymlink=''
 libc=''
 libnames=''
@@ -5400,10 +5400,12 @@ eval $setvar
 $rm -f iptos iptos.h
 
 : determine whether IPv6 can be used
-echo " "
-echo "Checking whether IPv6 can be used ..." >&4
-d_ipv6="$define"
-$cat >try.c <<'EOC'
+case "$d_ipv6" in
+"$undef") ;;
+*)
+	echo " "
+	echo "Checking whether IPv6 can be used ..." >&4
+	$cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -5440,31 +5442,18 @@ int main(void)
 	return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like IPv6 is usable on your system, good.
-
-I can enable support for IPv6, but this only makes sense if you have
-IPv6 connectivity. IPv6 support has 16 bytes overhead for each IP
-address and also some CPU overhead.
+	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+	$cat <<'EOM'
+ It looks like IPv6 is usable on your system, good.
 
 EOM
-	case "$ipv6" in
-	false) dflt=n;;
-	*) dflt=y;;
-	esac
-	rp="Enable IPv6 support"
-	. ./myread
-	case "$ans" in
-	y) ipv6=true; d_ipv6="$define";;
-	*) ipv6=false; d_ipv6="$undef";;
-	esac
-
-else
-	echo "Sorry, I will not be using IPv6."
-	d_ipv6="$undef"
-fi
-$rm -f try try.c
+	  else
+		echo "Sorry, I will not be using IPv6."
+		d_ipv6="$undef"
+	  fi
+	  $rm -f try try.c
+	  ;;
+esac
 
 : Look for isascii
 echo " "

@@ -61,11 +61,11 @@ net_type_to_pf(enum net_type net)
 	case NET_TYPE_LOCAL: return PF_LOCAL;
 	case NET_TYPE_IPV4:  return PF_INET;
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		return PF_INET6;
 #else
 		return PF_UNSPEC;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	}
 	g_assert_not_reached();
 	return PF_UNSPEC;
@@ -79,11 +79,11 @@ net_type_to_af(enum net_type net)
 	case NET_TYPE_LOCAL: return AF_LOCAL;
 	case NET_TYPE_IPV4:  return AF_INET;
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		return AF_INET6;
 #else
 		return AF_UNSPEC;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	}
 	g_assert_not_reached();
 	return AF_UNSPEC;
@@ -115,9 +115,9 @@ struct packed_host {
 typedef union socket_addr {
 	guint8 len;
 	struct sockaddr_in inet4;
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 	struct sockaddr_in6 inet6;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 } socket_addr_t;
 
 static const host_addr_t ipv4_unspecified = {	/* 0.0.0.0/32 */
@@ -410,10 +410,10 @@ socket_addr_get_addr(const socket_addr_t *addr)
 
 	if (AF_INET == addr->inet4.sin_family) {
 		ha = host_addr_get_ipv4(ntohl(addr->inet4.sin_addr.s_addr));
-#if defined(USE_IPV6)
+#if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
 		ha = host_addr_get_ipv6(addr->inet6.sin6_addr.s6_addr);
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	} else {
 		ha = zero_host_addr;
 	}
@@ -434,10 +434,10 @@ socket_addr_get_port(const socket_addr_t *addr)
 
 	if (AF_INET == addr->inet4.sin_family) {
 		return ntohs(addr->inet4.sin_port);
-#if defined(USE_IPV6)
+#if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
 		return ntohs(addr->inet6.sin6_port);
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	}
 
 	return 0;
@@ -450,10 +450,10 @@ socket_addr_get_len(const socket_addr_t *addr)
 
 	if (AF_INET == addr->inet4.sin_family) {
 		return sizeof addr->inet4;
-#if defined(USE_IPV6)
+#if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
 		return sizeof addr->inet6;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	}
 
 	return 0;
@@ -466,10 +466,10 @@ socket_addr_get_sockaddr(socket_addr_t *addr)
 
 	if (AF_INET == addr->inet4.sin_family) {
 		return cast_to_gpointer(&addr->inet4);
-#if defined(USE_IPV6)
+#if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
 		return cast_to_gpointer(&addr->inet6);
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	}
 
 	return NULL;
@@ -488,10 +488,10 @@ socket_addr_get_family(const socket_addr_t *addr)
 
 	if (AF_INET == addr->inet4.sin_family) {
 		return AF_INET;
-#if defined(USE_IPV6)
+#if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
 		return AF_INET6;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 	}
 
 	return 0;

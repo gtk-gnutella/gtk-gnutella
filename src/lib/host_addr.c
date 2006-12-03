@@ -71,7 +71,7 @@ host_addr_family(const host_addr_t ha)
 	case NET_TYPE_IPV4:
 		return AF_INET;
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		return AF_INET6;
 #else
 		return -1;
@@ -619,7 +619,7 @@ socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, guint16 port)
 		}
 		return sizeof sa_ptr->inet4;
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		if (sa_ptr) {
 			static const struct sockaddr_in6 zero_sin6;
 
@@ -632,7 +632,7 @@ socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, guint16 port)
 			memcpy(sa_ptr->inet6.sin6_addr.s6_addr, addr.addr.ipv6, 16);
 		}
 		return sizeof sa_ptr->inet6;
-#endif	/* USE_IPV6 */
+#endif	/* HAS_IPV6 */
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		if (sa_ptr) {
@@ -652,7 +652,7 @@ socket_addr_init(socket_addr_t *sa_ptr, enum net_type net)
 	case NET_TYPE_IPV4:
 		return socket_addr_set(sa_ptr, ipv4_unspecified, 0);
 	case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		return socket_addr_set(sa_ptr, ipv6_unspecified, 0);
 #endif
 	case NET_TYPE_LOCAL:
@@ -710,11 +710,11 @@ host_addr_to_name(host_addr_t addr)
 			len = sizeof sa.inet4.sin_addr;
 			break;
 		case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 			ptr = cast_to_gchar_ptr(&sa.inet6.sin6_addr);
 			len = sizeof sa.inet6.sin6_addr;
 			break;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			return NULL;
@@ -776,7 +776,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 			}
 			break;
 
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		case PF_INET6:
 			if (ai->ai_addrlen >= 16) {
 				const struct sockaddr_in6 *sin6;
@@ -786,7 +786,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 							sin6->sin6_addr.s6_addr));
 			}
 			break;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 		}
 
 		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
@@ -834,7 +834,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 		}
 		break;
 		
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 	case AF_INET6:
 		if (16 != he->h_length) {
 			g_warning("host_to_addr: Wrong length of IPv6 address (\"%s\")",
@@ -842,7 +842,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 			return NULL;
 		}
 		break;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 		
 	default:
 		return NULL;
@@ -858,12 +858,12 @@ resolve_hostname(const gchar *host, enum net_type net)
 			addr = host_addr_get_ipv4(peek_be32(he->h_addr_list[i]));
 			break;
 
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		case AF_INET6:
 			addr = host_addr_get_ipv6(
 						cast_to_gconstpointer(he->h_addr_list[i]));
 			break;
-#endif /* !USE_IPV6 */
+#endif /* !HAS_IPV6 */
 		default:
 			g_assert_not_reached();
 		}
@@ -1028,13 +1028,13 @@ host_addr_get_interface_addrs(void)
 			
 			sin = cast_to_gconstpointer(ifa->ifa_addr);
 			addr = host_addr_get_ipv4(ntohl(sin->sin_addr.s_addr));
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 		} else if (AF_INET6 == ifa->ifa_addr->sa_family) {
             const struct sockaddr_in6 *sin6;
 
 			sin6 = cast_to_gconstpointer(ifa->ifa_addr);
 			addr = host_addr_get_ipv6(sin6->sin6_addr.s6_addr);
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 		} else {
 			addr = zero_host_addr;
 		}

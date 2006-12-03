@@ -830,10 +830,10 @@ connect_socksv5(struct gnutella_socket *s)
 			ok = TRUE;
 			break;
 		case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 			ok = TRUE;
 			break;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			break;
@@ -965,13 +965,13 @@ connect_socksv5(struct gnutella_socket *s)
 			break;
 
 		case NET_TYPE_IPV6:
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 			s->buf[3] = 0x04;		/* IP version 6	*/
 			memcpy(&s->buf[4], host_addr_ipv6(&addr), 16);
 			poke_be16(&s->buf[20], s->port);
 			size = 22;
 			break;
-#endif /* USE_IPV6 */
+#endif /* HAS_IPV6 */
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			g_assert_not_reached();
@@ -1862,7 +1862,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 		port = sin.sin_port;
 	}
 
-#ifdef USE_IPV6
+#ifdef HAS_IPV6
 	if (!is_host_addr(addr)) {
 		struct sockaddr_in6 sin6;
 
@@ -1872,7 +1872,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 			port = sin6.sin6_port;
 		}
 	}
-#endif	/* USE_IPV6 */
+#endif	/* HAS_IPV6 */
 
 	if (!is_host_addr(addr))
 		return -1;
@@ -2119,7 +2119,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 				return TRUE;
 			}
 #endif /* IP_RECVDSTADDR */
-#if defined(USE_IPV6) && defined(IPV6_RECVPKTINFO)
+#if defined(HAS_IPV6) && defined(IPV6_RECVPKTINFO)
 		} else if (
 			IPV6_PKTINFO == p->cmsg_type &&
 			sol_ipv6() == p->cmsg_level
@@ -2133,7 +2133,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 				*dst_addr = host_addr_get_ipv6(info.ipi6_addr.s6_addr);
 				return TRUE;
 			}
-#endif /* USE_IPV6 && IPV6_RECVPKTINFO */
+#endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		} else {
 			if (socket_debug)
 				g_message("socket_udp_extract_dst_addr(): "
@@ -2750,7 +2750,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		/* Linux absolutely wants this before bind() unlike BSD */
 		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
-#if defined(USE_IPV6) && defined(IPV6_V6ONLY)
+#if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
 		if (
 			NET_TYPE_IPV6 == host_addr_net(bind_addr) &&
 			setsockopt(sd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
@@ -2758,7 +2758,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 			g_warning("setsockopt() failed for IPV6_V6ONLY (%s)",
 				g_strerror(errno));
 		}
-#endif /* USE_IPV6 && IPV6_V6ONLY */
+#endif /* HAS_IPV6 && IPV6_V6ONLY */
 
 		/* bind() the socket */
 		socket_failed = FALSE;
@@ -3012,10 +3012,10 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 		break;
 
 	case NET_TYPE_IPV6:
-#if defined(USE_IPV6) && defined(IPV6_RECVPKTINFO)
+#if defined(HAS_IPV6) && defined(IPV6_RECVPKTINFO)
 		level = sol_ipv6();
 		opt = IPV6_RECVPKTINFO;
-#endif /* USE_IPV6 && IPV6_RECVPKTINFO */
+#endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		break;
 
 	case NET_TYPE_LOCAL:

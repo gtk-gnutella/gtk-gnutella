@@ -37,6 +37,7 @@ U/new/d_hstrerror.U
 U/new/d_inflate.U
 U/new/d_initstate.U
 U/new/d_iptos.U
+U/new/d_ipv6.U
 U/new/d_kevent_udata.U
 U/new/d_kqueue.U
 U/new/d_madvise.U
@@ -69,7 +70,6 @@ U/new/i_syssendfile.U
 U/new/i_syssysctl.U
 U/new/i_sysutsname.U
 U/new/i_zlib.U
-U/new/ipv6.U
 U/new/locale.U
 U/new/msgmerge_update.U
 U/new/official.U
