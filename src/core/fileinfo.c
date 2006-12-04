@@ -650,8 +650,6 @@ file_info_strip_binary(fileinfo_t *fi)
 	g_assert(!(fi->flags & FI_F_TRANSIENT));
 
 	path = make_pathname(fi->path, fi->file_name);
-	g_return_if_fail(NULL != path);
-
 	if (-1 == truncate(path, fi->size))
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
 			path, g_strerror(errno));
@@ -1426,8 +1424,6 @@ G_STMT_START {				\
 	g_assert(NULL != path);
 
 	pathname = make_pathname(path, file);
-	g_return_val_if_fail(NULL != pathname, NULL);
-
 	fd = file_open_missing(pathname, O_RDONLY);
 	if (fd < 0) {
 		G_FREE_NULL(pathname);
@@ -1743,7 +1739,6 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		struct stat st;
 
 		path = make_pathname(fi->path, fi->file_name);
-		g_return_if_fail(NULL != path);
 		if (-1 == stat(path, &st)) {
 			G_FREE_NULL(path);
 			return; 	/* Skip: not referenced, and file no longer exists */
@@ -4178,8 +4173,6 @@ fi_check_file(fileinfo_t *fi)
 	 */
 
 	path = make_pathname(fi->path, fi->file_name);
-	g_return_if_fail(path);
-
 	if (-1 == do_stat(path, &buf) && ENOENT == errno) {
 		g_warning("file %s removed, resetting swarming", path);
 		file_info_reset(fi);
