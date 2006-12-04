@@ -1189,6 +1189,7 @@ file_info_lookup_dup(fileinfo_t *fi)
 	fileinfo_t *dfi;
 
 	file_info_check(fi);
+	g_assert(fi->file_name);
 
 	dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
 	if (dfi) {
@@ -1212,6 +1213,7 @@ file_info_lookup_dup(fileinfo_t *fi)
 	 * The file ID must also be unique.
 	 */
 
+	g_assert(fi->guid);
 	dfi = g_hash_table_lookup(fi_by_guid, fi->guid);
 	if (dfi) {
 		file_info_check(dfi);
