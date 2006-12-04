@@ -1702,11 +1702,14 @@ bailout:
 
 eof:
 	G_FREE_NULL(pathname);
-	if (fi)
+	if (fi) {
 		fi_free(fi);
-
-	close(fd);
-
+		fi = NULL;
+	}
+	if (fd >= 0) {
+		close(fd);
+		fd = -1;
+	}
 	return NULL;
 #undef BAILOUT
 }
