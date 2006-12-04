@@ -237,6 +237,21 @@ halloc_init(void)
 	hallocations = hash_table_new();
 	halloc_init_vtable();
 }
+
+#else	/* USE_MALLOC */
+
+void
+halloc_init(void)
+{
+	/* NOTHING */
+}
+
+void
+hdestroy(void)
+{
+	/* NOTHING */
+}
+
 #endif	/* !USE_MALLOC */
 
 size_t
