@@ -4726,8 +4726,7 @@ file_info_scandir(const gchar *dir)
 	while (NULL != (dentry = readdir(d))) {
 		struct stat buf;
 
-		if (NULL != filename)
-			G_FREE_NULL(filename);
+		G_FREE_NULL(filename);
 
 		if (
 			0 == strcmp(dentry->d_name, ".") ||
