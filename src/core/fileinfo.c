@@ -4737,9 +4737,6 @@ file_info_scandir(const gchar *dir)
 		}
 
 		filename = make_pathname(dir, dentry->d_name);
-		if (NULL == filename)
-			continue;
-
 		if (-1 == stat(filename, &buf)) {
 			g_warning("cannot stat %s: %s", filename, g_strerror(errno));
 			continue;
