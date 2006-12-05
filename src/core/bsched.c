@@ -372,12 +372,25 @@ bsched_close(void)
 	}
 
 	g_slist_free(bws_list);
-	g_slist_free(bws_out_list);
-	g_slist_free(bws_in_list);
-	g_slist_free(bws_gsteal_list);
+	bws_list = NULL;
 
-	bws.out = bws.in = bws.gout = bws.gin = bws.glin = bws.glout = NULL;
-	bws.gout_udp = bws.gin_udp = NULL;
+	g_slist_free(bws_out_list);
+	bws_out_list = NULL;
+
+	g_slist_free(bws_in_list);
+	bws_in_list = NULL;
+
+	g_slist_free(bws_gsteal_list);
+	bws_gsteal_list = NULL;
+
+	bws.in = NULL;
+	bws.out = NULL;
+	bws.gin = NULL;
+	bws.gout = NULL;
+	bws.glin = NULL;
+	bws.glout = NULL;
+	bws.gin_udp = NULL;
+	bws.gout_udp = NULL;
 }
 
 /**
