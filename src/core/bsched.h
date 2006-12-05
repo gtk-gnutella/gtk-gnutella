@@ -46,6 +46,10 @@
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
 
+enum bsched_magic {
+	BSCHED_MAGIC = 0xee24261eU
+};
+
 /**
  * Bandwidth scheduler.
  *
@@ -75,6 +79,7 @@
  */
 
 struct bsched {
+	enum bsched_magic magic;
 	tm_t last_period;				/**< Last time we ran our period */
 	GList *sources;					/**< List of bio_source_t */
 	GSList *stealers;				/**< List of bsched_t stealing bw */
