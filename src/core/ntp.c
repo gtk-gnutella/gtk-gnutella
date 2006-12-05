@@ -153,8 +153,7 @@ ntp_send_probe(const host_addr_t addr)
 	tm_now_exact(&now);
 	ntp_tm_serialize(m.transmit_timestamp, &now);
 
-	to.addr = addr;
-	to.port = NTP_PORT;
+	gnet_host_set(&to, addr, NTP_PORT);
 
 	s = NULL;
 	switch (host_addr_net(addr)) {

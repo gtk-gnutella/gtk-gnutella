@@ -1250,12 +1250,10 @@ hostvec_to_slist(const gnet_host_vec_t *vec)
 	gint i;
 
 	for (i = vec->hvcnt - 1; i >= 0; i--) {
-		gnet_host_t *h = &vec->hvec[i];
+		const gnet_host_t *h = &vec->hvec[i];
 		gnet_host_t *host = walloc(sizeof *host);
 
-		host->addr = h->addr;
-		host->port = h->port;
-
+		*host = *h;
 		sl = g_slist_prepend(sl, host);
 	}
 
@@ -1296,7 +1294,10 @@ remove_proxy(struct dl_server *server, const host_addr_t addr, guint16 port)
 		struct gnutella_host *h = sl->data;
 		g_assert(h != NULL);
 
-		if (host_addr_equal(h->addr, addr) && h->port == port) {
+		if (
+			gnet_host_get_port(h) == port &&
+			host_addr_equal(gnet_host_get_addr(h), addr)
+		) {
 			server->proxies = g_slist_remove_link(server->proxies, sl);
 			g_slist_free_1(sl);
 			wfree(h, sizeof *h);
@@ -5236,8 +5237,10 @@ use_push_proxy(struct download *d)
 		gnet_host_t *host;
 
 		host = server->proxies->data;	/* Pick the first */
-		d->cproxy = cproxy_create(d, host->addr, host->port,
-			download_guid(d), d->record_index);
+		d->cproxy = cproxy_create(d,
+						gnet_host_get_addr(host),
+						gnet_host_get_port(host),
+						download_guid(d), d->record_index);
 
 		if (d->cproxy) {
 			/* Will read status in d->cproxy */
@@ -5245,7 +5248,8 @@ use_push_proxy(struct download *d)
 			return TRUE;
 		}
 
-		remove_proxy(server, host->addr, host->port);
+		remove_proxy(server,
+			gnet_host_get_addr(host), gnet_host_get_port(host));
 	}
 
 	return FALSE;
@@ -6710,9 +6714,7 @@ check_push_proxies(struct download *d, header_t *header)
 				download_vendor_str(d));
 		} else {
 			gnet_host_t *host = walloc(sizeof *host);
-			host->addr = addr;
-			host->port = port;
-
+			gnet_host_set(host, addr, port);
 			sl = g_slist_prepend(sl, host);
 		}
 	}
@@ -7443,7 +7445,7 @@ http_version_nofix:
 
 					d->status = GTA_DL_SINKING;
 
-					d->bio = bsched_source_add(bws.in, &s->wio,
+					d->bio = bsched_source_add(bsched_bws_in(), &s->wio,
 						BIO_F_READ, download_sink_read, d);
 
 					if (s->pos > 0)
@@ -8010,8 +8012,7 @@ http_version_nofix:
 
 		g_assert(d->browse != NULL);
 
-		host.addr = download_addr(d);
-		host.port = download_port(d);
+		gnet_host_set(&host, download_addr(d), download_port(d));
 
 		if (HTTP_CONTENT_ENCODING_DEFLATE == content_encoding) {
 			bh_flags |= BH_DL_INFLATE;
@@ -8080,11 +8081,10 @@ http_version_nofix:
 		gnet_host_t host;
 
 		args.cb = &download_rx_link_cb;
-		args.bs = bws.in;
+		args.bs = bsched_bws_in();
 		args.wio = &d->socket->wio;
 
-		host.addr = download_addr(d); 
-		host.port = download_port(d); 
+		gnet_host_set(&host, download_addr(d), download_port(d));
 		d->rx = rx_make(d, &host, rx_link_get_ops(), &args);
 	}
 	if (is_chunked) {
@@ -8259,7 +8259,7 @@ download_request_sent(struct download *d)
 
 	g_assert(d->io_opaque == NULL);
 
-	io_get_header(d, &d->io_opaque, bws.in, d->socket, IO_SAVE_FIRST,
+	io_get_header(d, &d->io_opaque, bsched_bws_in(), d->socket, IO_SAVE_FIRST,
 		call_download_request, download_start_reading, &download_io_error);
 }
 
@@ -8310,7 +8310,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	rw = http_buffer_unread(r);			/* Data we still have to send */
 	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	sent = bws_write(bws.out, &s->wio, base, rw);
+	sent = bws_write(bsched_bws_out(), &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
 		/*
 		 * If download is queued with PARQ, etc...  [Same as above]
@@ -8631,7 +8631,7 @@ picked:
 			 *		--RAM, 2005-10-20
 			 */
 
-			if (bsched_saturated(bws.out)) {
+			if (bsched_saturated(bsched_bws_out())) {
 				altloc_size = MIN(altloc_size, 160);
 				if (fi_alive_count(file_info) > FI_LOW_SRC_COUNT)
 					file_info = NULL;
@@ -8669,7 +8669,8 @@ picked:
 
 	socket_tos_normal(s);
 
-	if ((ssize_t) -1 == (sent = bws_write(bws.out, &s->wio, dl_tmp, rw))) {
+	sent = bws_write(bsched_bws_out(), &s->wio, dl_tmp, rw);
+	if ((ssize_t) -1 == sent) {
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
 		 * error or we'd loose the PARQ ID, and the download entry.  If the
@@ -9121,7 +9122,7 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	g_assert(NULL == d->io_opaque);
-	io_get_header(d, &d->io_opaque, bws.in, s, IO_SINGLE_LINE,
+	io_get_header(d, &d->io_opaque, bsched_bws_in(), s, IO_SINGLE_LINE,
 		call_download_push_ready, NULL, &download_io_error);
 
 	return;
@@ -10318,9 +10319,7 @@ download_browse_start(const gchar *name, const gchar *hostname,
 		download_check(d);
 
 		d->flags |= DL_F_TRANSIENT | DL_F_BROWSE;
-		host.addr = addr;
-		host.port = port;
-
+		gnet_host_set(&host, addr, port);
 		d->browse = browse_host_dl_create(d, &host, search);
 		file_info_changed(fi);		/* Update status! */
 	} else

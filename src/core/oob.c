@@ -225,8 +225,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 
 	if (query_debug)
 		g_message("OOB query %s from %s expired with unclaimed %d hit%s",
-			guid_hex_str(r->muid),
-			host_addr_port_to_string(r->dest.addr, r->dest.port),
+			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
 
 	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
@@ -247,8 +246,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 
 	if (query_debug)
 		g_message("OOB query %s, no ACK from %s to claim %d hit%s",
-			guid_hex_str(r->muid),
-			host_addr_port_to_string(r->dest.addr, r->dest.port),
+			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
 
 	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
@@ -296,14 +294,13 @@ servent_service(cqueue_t *cq, gpointer obj)
 	if (mb == NULL)
 		goto remove;
 
-	q = node_udp_get_outq(host_addr_net(s->host->addr));
+	q = node_udp_get_outq(host_addr_net(gnet_host_get_addr(s->host)));
 	if (q == NULL)
 		goto udp_disabled;
 
 	if (udp_debug > 19)
 		g_message("UDP queuing OOB %s to %s for %s",
-			gmsg_infostr_full(pmsg_start(mb)),
-			host_addr_port_to_string(s->host->addr, s->host->port),
+			gmsg_infostr_full(pmsg_start(mb)), gnet_host_to_string(s->host),
 			guid_hex_str(pmsg_start(mb)));
 
 	/*
@@ -450,17 +447,22 @@ oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted)
 	 *		--RAM, 2004-09-10
 	 */
 
-	if (!host_addr_equal(n->addr, r->dest.addr)) {
-		g_warning("OOB query %s must have been proxied: it had IP %s:%u, "
+	if (!host_addr_equal(n->addr, gnet_host_get_addr(&r->dest))) {
+		/**
+		 * The sender's IP address can of course change any time as
+		 * dynamic IP addresses are very common. The sender might also
+		 * have multiple network interfaces.
+		 */
+		
+		g_warning("OOB query %s might have been proxied: it had IP %s, "
 			"but the LIME/11v2 ACK comes from %s", guid_hex_str(muid),
-			host_addr_to_string(r->dest.addr), r->dest.port, node_addr(n));
+			gnet_host_to_string(&r->dest), node_addr(n));
 
 		/*
 		 * We'll send the hits to the host from where the ACK comes.
 		 */
 
-		r->dest.addr = n->addr;
-		r->dest.port = n->port;
+		gnet_host_set(&r->dest, n->addr, n->port);
 	}
 
 	/*
@@ -551,10 +553,8 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 
 			if (query_debug || udp_debug)
 				g_message("OOB query %s, notified %s about %d hit%s",
-						guid_hex_str(r->muid),
-						host_addr_port_to_string(r->dest.addr, r->dest.port),
-						r->count,
-						r->count == 1 ? "" : "s");
+					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
+					r->count, r->count == 1 ? "" : "s");
 
 			/*
 			 * If we don't get any ACK back, we'll discard the results.
@@ -591,7 +591,7 @@ oob_send_reply_ind(struct oob_results *r)
 	pmsg_t *mb;
 	pmsg_t *emb;
 
-	q = node_udp_get_outq(host_addr_net(r->dest.addr));
+	q = node_udp_get_outq(host_addr_net(gnet_host_get_addr(&r->dest)));
 	if (q == NULL)
 		return;
 
@@ -602,8 +602,7 @@ oob_send_reply_ind(struct oob_results *r)
 
 	if (query_debug || udp_debug)
 		g_message("OOB query %s, notifying %s about %d hit%s, try #%d",
-			guid_hex_str(r->muid), host_addr_port_to_string(r->dest.addr,
-				r->dest.port),
+			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s", r->notify_requeued);
 
 	mq_udp_putq(q, emb, &r->dest);
@@ -631,10 +630,7 @@ oob_got_results(
 	g_assert(files != NULL);
 
 	guid_oob_get_addr_port(gnutella_header_get_muid(&n->header), &addr, &port);
-
-	to.addr = addr;
-	to.port = port;
-
+	gnet_host_set(&to, addr, port);
 	r = results_make(gnutella_header_get_muid(&n->header),
 			files, count, &to, use_ggep_h);
 

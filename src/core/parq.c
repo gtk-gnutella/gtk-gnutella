@@ -1281,7 +1281,7 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	guint avg_bps;
 
 	if (parq_optimistic) {
-		avg_bps = bsched_avg_bps(bws.out);
+		avg_bps = bsched_avg_bps(bsched_bws_out());
 		avg_bps = MAX(1, avg_bps);
 
 		l = g_list_find(parq_ul->queue->by_rel_pos, parq_ul);
@@ -1345,7 +1345,7 @@ parq_upload_create(gnutella_upload_t *u)
 		} else if (parq_ul_prev->is_alive) {
 			guint avg_bps;
 
-			avg_bps = bsched_avg_bps(bws.out);
+			avg_bps = bsched_avg_bps(bsched_bws_out());
 			avg_bps = MAX(1, avg_bps);
 
 			if (parq_optimistic)
@@ -1576,7 +1576,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	guint eta = 0;
 	guint avg_bps;
 
-	avg_bps = bsched_avg_bps(bws.out);
+	avg_bps = bsched_avg_bps(bsched_bws_out());
 	avg_bps = MAX(1, avg_bps);
 
 	if (which_ul_queue->active_uploads) {
@@ -2063,7 +2063,7 @@ parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
 		return TRUE;
 
 	if (parq_time_always_continue > 0) {
-		avg_bps = bsched_avg_bps(bws.out);
+		avg_bps = bsched_avg_bps(bsched_bws_out());
 		avg_bps = MAX(1, avg_bps);
 
 		/*
@@ -2556,7 +2556,7 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 	g_assert(parq_ul->retry >= now);
 
 	if (parq_optimistic) {
-		avg_bps = bsched_avg_bps(bws.out);
+		avg_bps = bsched_avg_bps(bsched_bws_out());
 		avg_bps = MAX(1, avg_bps);
 
 		/* If the chunk sizes are really small, expire them sooner */
@@ -3443,8 +3443,8 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 	gchar queue[MAX_LINE_SIZE];
 	struct parq_ul_queued *parq_ul = NULL;
 	struct gnutella_socket *s;
-	gint rw;
-	gint sent;
+	size_t rw;
+	ssize_t sent;
 	time_t now = tm_time();
 
 	g_assert(u);
@@ -3472,23 +3472,24 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 
 	s = u->socket;
 
-	if (-1 == (sent = bws_write(bws.out, &s->wio, queue, rw))) {
+	sent = bws_write(bsched_bws_out(), &s->wio, queue, rw);
+	if ((ssize_t) -1 == sent) {
 		g_warning("[PARQ UL] "
 			"Unable to send back QUEUE for \"%s\" to %s: %s",
 			  u->name, host_addr_port_to_string(s->addr, s->port),
 			  g_strerror(errno));
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		g_warning("[PARQ UL] "
-			"Only sent %d out of %d bytes of QUEUE for \"%s\" to %s: %s",
-			  sent, rw, u->name, host_addr_port_to_string(s->addr, s->port),
-			  g_strerror(errno));
+			"Only sent %lu out of %lu bytes of QUEUE for \"%s\" to %s: %s",
+			  (gulong) sent, (gulong) rw, u->name,
+			  host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
 	} else if (parq_debug > 2) {
 		g_message("PARQ UL: Sent #%d to %s: %s",
 			  parq_ul->queue_sent, host_addr_port_to_string(s->addr, s->port),
 			  queue);
 	}
 
-	if (sent != rw) {
+	if ((size_t) sent != rw) {
 		upload_remove(u, "Unable to send QUEUE #%d", parq_ul->queue_sent);
 		return;
 	}

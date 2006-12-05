@@ -50,12 +50,47 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
+/*
+ * Scheduling flags.
+ */
+enum {
+	BS_F_ENABLED		= (1 << 0),	/**< Scheduler enabled */
+	BS_F_READ			= (1 << 1),	/**< Reading sources */
+	BS_F_WRITE			= (1 << 2),	/**< Writing sources */
+	BS_F_NOBW			= (1 << 3),	/**< No more bandwidth */
+	BS_F_FROZEN_SLOT	= (1 << 4),	/**< Value of `bw_slot' is frozen */
+	BS_F_CHANGED_BW		= (1 << 5),	/**< Bandwidth limit changed */
+	BS_F_CLEARED		= (1 << 6),	/**< Ran clear_active once on sched. */
+	BS_F_DATA_READ		= (1 << 7),	/**< Data read from one source */
+
+	BS_F_RW				= (BS_F_READ|BS_F_WRITE)
+};
+
+/*
+ * Scheduling types.
+ */
+
+enum {
+	BS_T_STREAM	= 1,	/**< Streaming */
+	BS_T_RANDOM	= 2		/**< Random (unsupported) */
+};
 
 /*
  * Global bandwidth schedulers.
  */
 
-struct bws_set bws = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+struct bws_set {
+	bsched_t *out;			/**< Output (uploads) */
+	bsched_t *in;			/**< Input (downloads) */
+	bsched_t *gout;			/**< Gnet TCP output */
+	bsched_t *gin;			/**< Gnet TCP input */
+	bsched_t *gout_udp;		/**< Gnet UDP output */
+	bsched_t *gin_udp;		/**< Gnet UDP input */
+	bsched_t *glout;		/**< Gnet leaf output */
+	bsched_t *glin;			/**< Gnet leaf input */
+};
+
+static struct bws_set bws;
 static GSList *bws_list = NULL;
 static GSList *bws_gsteal_list = NULL;
 static GSList *bws_out_list = NULL;
@@ -2602,6 +2637,94 @@ bsched_enough_up_bandwidth(void)
 	}
 
 	return TRUE;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_in(void)
+{
+	bsched_t *bs = bws.in;
+	bsched_check(bs);
+	return bs;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_out(void)
+{
+	bsched_t *bs = bws.out;
+	bsched_check(bs);
+	return bs;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_gin(void)
+{
+	bsched_t *bs = bws.gin;
+	bsched_check(bs);
+	return bs;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_gout(void)
+{
+	bsched_t *bs = bws.gout;
+	bsched_check(bs);
+	return bs;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_glin(void)
+{
+	bsched_t *bs = bws.glin;
+	bsched_check(bs);
+	return bs;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_glout(void)
+{
+	bsched_t *bs = bws.glout;
+	bsched_check(bs);
+	return bs;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_gin_udp(void)
+{
+	bsched_t *bs = bws.gin_udp;
+	bsched_check(bs);
+	return bs;
+}
+
+/**
+ * TODO: Use an enum instead of returned a pointer.
+ */
+bsched_t *
+bsched_bws_gout_udp(void)
+{
+	bsched_t *bs = bws.gout_udp;
+	bsched_check(bs);
+	return bs;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

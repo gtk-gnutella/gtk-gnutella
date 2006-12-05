@@ -94,7 +94,7 @@ http_send_status(
 	gchar xlive[512];
 	gint rw;
 	gint mrw;
-	gint sent;
+	ssize_t sent;
 	gint i;
 	va_list args;
 	const gchar *conn_close = keep_alive ? "" : "Connection: close\r\n";
@@ -104,7 +104,7 @@ http_send_status(
 	const gchar *token;
 	const gchar *body = NULL;
 	gint header_size = sizeof(header);
-	gboolean saturated = bsched_saturated(bws.out);
+	gboolean saturated = bsched_saturated(bsched_bws_out());
 	gint cb_flags = 0;
 
 	va_start(args, reason);
@@ -248,7 +248,8 @@ http_send_status(
 		g_assert(rw < header_size);
 	}
 
-	if (-1 == (sent = bws_write(bws.out, &s->wio, header, rw))) {
+	sent = bws_write(bsched_bws_out(), &s->wio, header, rw);
+	if ((ssize_t) -1 == sent) {
 		socket_eof(s);
 		if (http_debug > 1)
 			g_warning("unable to send back HTTP status %d (%s) to %s: %s",
@@ -256,8 +257,8 @@ http_send_status(
 		return FALSE;
 	} else if (sent < rw) {
 		if (http_debug) g_warning(
-			"only sent %d out of %d bytes of status %d (%s) to %s",
-			sent, rw, code, status_msg, host_addr_to_string(s->addr));
+			"only sent %lu out of %d bytes of status %d (%s) to %s",
+			(gulong) sent, rw, code, status_msg, host_addr_to_string(s->addr));
 		return FALSE;
 	} else if (http_debug > 2) {
 		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
@@ -2300,8 +2301,8 @@ http_got_header(struct http_async *ha, header_t *header)
 	g_assert(s->gdk_tag == 0);
 	g_assert(ha->bio == NULL);
 
-	ha->bio = bsched_source_add(bws.in, &s->wio,
-		BIO_F_READ, http_data_read, (gpointer) ha);
+	ha->bio = bsched_source_add(bsched_bws_in(), &s->wio,
+		BIO_F_READ, http_data_read, ha);
 
 	/*
 	 * We may have something left in the input buffer.
@@ -2398,8 +2399,8 @@ http_async_request_sent(struct http_async *ha)
 
 	g_assert(ha->io_opaque == NULL);
 
-	io_get_header(ha, &ha->io_opaque, bws.in, ha->socket, IO_SAVE_FIRST,
-		call_http_got_header, http_header_start, &http_io_error);
+	io_get_header(ha, &ha->io_opaque, bsched_bws_in(), ha->socket,
+		IO_SAVE_FIRST, call_http_got_header, http_header_start, &http_io_error);
 }
 
 /**
@@ -2431,7 +2432,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	rw = http_buffer_unread(r);			/* Data we still have to send */
 	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	sent = bws_write(bws.out, &s->wio, base, rw);
+	sent = bws_write(bsched_bws_out(), &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
 		g_warning("HTTP request sending to %s failed: %s",
 			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
@@ -2500,7 +2501,7 @@ http_async_connected(gpointer handle)
 
 	http_async_newstate(ha, HTTP_AS_REQ_SENDING);
 
-	sent = bws_write(bws.out, &s->wio, req, rw);
+	sent = bws_write(bsched_bws_out(), &s->wio, req, rw);
 	if ((ssize_t) -1 == sent) {
 		g_warning("HTTP request sending to %s failed: %s",
 			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));

@@ -347,7 +347,6 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		if (hcount > 0) {
 			gint i;
 			gboolean ok;
-			gchar addr[6];
 
 			/*
 			 * The binary data that makes up IPP does not deflate well.
@@ -359,13 +358,15 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			ok = ggep_stream_begin(&gs, GGEP_NAME(IPP), 0);
 
 			for (i = 0; ok && i < hcount; i++) {
-				if (NET_TYPE_IPV4 == host_addr_net(host[i].addr)) {
+				/* @todo TODO: IPv6 */
+				if (NET_TYPE_IPV4 == gnet_host_get_net(&host[i])) {
+					gchar addr_buf[6];
 					guint32 ip;
 
-					ip = host_addr_ipv4(host[i].addr); /* @todo TODO: IPv6 */
-					poke_be32(&addr[0], ip);
-					poke_le16(&addr[4], host[i].port);
-					ok = ggep_stream_write(&gs, addr, sizeof addr);
+					ip = host_addr_ipv4(gnet_host_get_addr(&host[i]));
+					poke_be32(&addr_buf[0], ip);
+					poke_le16(&addr_buf[4], gnet_host_get_port(&host[i]));
+					ok = ggep_stream_write(&gs, addr_buf, sizeof addr_buf);
 				}
 			}
 

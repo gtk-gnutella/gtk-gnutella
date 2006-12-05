@@ -268,8 +268,7 @@ hcache_ht_get(const host_addr_t addr, guint16 port,
 	gpointer k, v;
 	gboolean found;
 
-	host.addr = addr;
-	host.port = port;
+	gnet_host_set(&host, addr, port);
 
 	found = g_hash_table_lookup_extended(ht_known_hosts, &host, &k, &v);
 	if (found) {
@@ -325,7 +324,7 @@ hcache_ht_remove(gnet_host_t *host)
 
 	if (!found) {
 		g_warning("hcache_ht_remove: attempt to remove unknown host: %s",
-				  host_addr_port_to_string(host->addr, host->port));
+			  gnet_host_to_string(host));
 		return;
 	}
 
@@ -364,8 +363,7 @@ hcache_node_is_bad(const host_addr_t addr)
 	if (host_low_on_pongs)
 		return FALSE;
 
-    h.addr = addr;
-    h.port = 0;
+	gnet_host_set(&h, addr, 0);
     hce = hcache_get_metadata(&h);
 
     if ((hce == NULL) || (hce == NO_METADATA))
@@ -670,8 +668,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 	/* Okay, we got a new host */
 	host = walloc(sizeof *host);
 
-	host->addr = addr;
-	host->port = port;
+	gnet_host_set(host, addr, port);
 
 	hcache_ht_add(type, host);
 
@@ -714,9 +711,8 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
     hcache_update_low_on_pongs();
 
     if (dbg > 8) {
-        printf("Added %s %s (%s)\n",
-			what, host_addr_port_to_string(addr, port),
-            ((type == HCACHE_FRESH_ANY) || (type == HCACHE_VALID_ANY)) ?
+        printf("Added %s %s (%s)\n", what, gnet_host_to_string(host),
+            (type == HCACHE_FRESH_ANY || type == HCACHE_VALID_ANY) ?
                 (host_low_on_pongs ? "LOW" : "OK") : "");
     }
 
@@ -777,7 +773,7 @@ hcache_remove(gnet_host_t *h)
     hce = hcache_get_metadata(h);
     if (hce == NULL) {
 		g_warning("hcache_remove: attempt to remove unknown host: %s",
-				  host_addr_port_to_string(h->addr, h->port));
+			gnet_host_to_string(h));
         return; /* Host is not in hashtable */
     }
 
@@ -1053,16 +1049,19 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
 
 	for (i = 0; i < hcount; i++) {
 		gnet_host_t host;
+		host_addr_t addr;
+		guint16 port;
 
-		if (!pcache_get_recent(type, &host.addr, &host.port))
+		if (!pcache_get_recent(type, &addr, &port))
 			break;
 
+		gnet_host_set(&host, addr, port);
 		if (g_hash_table_lookup(seen_host, &host))
 			break;
 
 		hosts[i] = host;		/* struct copy */
 
-		g_hash_table_insert(seen_host, &hosts[i], (gpointer) 0x1);
+		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
 	}
 
 	if (i == hcount)
@@ -1084,7 +1083,7 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
 
 		hosts[i] = *h;			/* struct copy */
 
-		g_hash_table_insert(seen_host, &hosts[i], (gpointer) 0x1);
+		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
 	}
 
 	hash_list_release(iter);
@@ -1154,9 +1153,9 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 
 	for (h = hash_list_follower(iter); h; h = hash_list_follower(iter)) {
 
-		if (host_is_nearby(h->addr)) {
-            *addr = h->addr;
-            *port = h->port;
+		if (host_is_nearby(gnet_host_get_addr(h))) {
+            *addr = gnet_host_get_addr(h);
+            *port = gnet_host_get_port(h);
 
             result = TRUE;
 			break;
@@ -1230,8 +1229,8 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 
 	h = reading ? hash_list_first(hc->hostlist) : hash_list_last(hc->hostlist);
 
-	*addr = h->addr;
-	*port = h->port;
+	*addr = gnet_host_get_addr(h);
+	*port = gnet_host_get_port(h);
 
     hcache_unlink_host(hc, h);
 }
@@ -1309,7 +1308,7 @@ struct read_ctx {
 static void
 read_ctx_free(gpointer u)
 {
-	struct read_ctx *rctx = (struct read_ctx *) u;
+	struct read_ctx *rctx = u;
 
 	g_assert(rctx->magic == READ_MAGIC);
 
@@ -1393,7 +1392,7 @@ static void
 bg_reader_done(gpointer unused_h, gpointer ctx,
 		bgstatus_t unused_status, gpointer unused_arg)
 {
-	struct read_ctx *rctx = (struct read_ctx *) ctx;
+	struct read_ctx *rctx = ctx;
 	hostcache_t *hc;
 
 	(void) unused_h;
@@ -1449,9 +1448,9 @@ hcache_write(FILE *f, hostcache_t *hc)
 
 	iter = hash_list_iterator(hc->hostlist);
 
-	for (h = hash_list_next(iter); h != NULL; h = hash_list_next(iter))
-		fprintf(f, "%s\n", host_addr_port_to_string(h->addr, h->port));
-
+	for (h = hash_list_next(iter); h != NULL; h = hash_list_next(iter)) {
+		fprintf(f, "%s\n", gnet_host_to_string(h));
+	}
 	hash_list_release(iter);
 }
 

@@ -1436,7 +1436,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	count = MIN(count, RQST_LINE_LENGTH);
 
-	r = bws_read(bws.in, &s->wio, &s->buf[s->pos], count);
+	r = bws_read(bsched_bws_in(), &s->wio, &s->buf[s->pos], count);
 	switch (r) {
 	case 0:
 		socket_destroy(s, "Got EOF");
@@ -3345,12 +3345,12 @@ socket_plain_sendto(
 	socket_check(s);
 	g_assert(!socket_uses_tls(s));
 
-	if (!host_addr_convert(to->addr, &ha, s->net)) {
+	if (!host_addr_convert(gnet_host_get_addr(to), &ha, s->net)) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	len = socket_addr_set(&addr, ha, to->port);
+	len = socket_addr_set(&addr, ha, gnet_host_get_port(to));
 	ret = sendto(s->file_desc, buf, size, 0,
 			socket_addr_get_const_sockaddr(&addr), len);
 

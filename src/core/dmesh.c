@@ -1102,8 +1102,8 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
 
 		g_assert(j < hcnt);
 
-		hvec[j].addr = dme->url.addr;
-		hvec[j++].port = dme->url.port;
+		gnet_host_set(&hvec[j], dme->url.addr, dme->url.port);
+		j++;
 	}
 
 	return j;		/* Amount we filled in vector */
@@ -2136,7 +2136,8 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 				for (i = alt->hvcnt - 1; i >= 0; i--) {
 					struct gnutella_host *h = &alt->hvec[i];
 
-					dmesh_fill_info(&info, rc->sha1, h->addr, h->port,
+					dmesh_fill_info(&info, rc->sha1,
+						gnet_host_get_addr(h), gnet_host_get_port(h),
 						URN_INDEX, NULL);
 					(void) dmesh_raw_add(rc->sha1, &info, now);
 				}

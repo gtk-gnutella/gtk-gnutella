@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "gmsg.h"
 #include "tx.h"
 #include "gnet_stats.h"
+#include "hosts.h"
 
 #include "lib/walloc.h"
 
@@ -211,7 +212,7 @@ mq_udp_service(gpointer data)
 
 		if (r != mb_size) {
 			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
-				r, host_addr_port_to_string(mi->to.addr, mi->to.port), mb_size);
+				r, gnet_host_to_string(&mi->to), mb_size);
 			dropped++;
 			goto skip;
 		}
@@ -359,8 +360,7 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 
 		if (written > 0) {
 			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
-				(gint) written, host_addr_port_to_string(to->addr, to->port),
-				(gint) size);
+				(gint) written, gnet_host_to_string(to), (gint) size);
 			goto cleanup;
 		}
 
@@ -401,9 +401,7 @@ mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, const gnutella_node_t *n)
 {
 	gnet_host_t to;
 
-	to.addr = n->addr;
-	to.port = n->port;
-
+	gnet_host_set(&to, n->addr, n->port);
 	mq_udp_putq(q, mb, &to);
 }
 

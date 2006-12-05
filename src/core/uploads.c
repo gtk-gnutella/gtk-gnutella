@@ -466,7 +466,6 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
 	u->last_update = tm_time();
-	u->sendfile_ctx.map = NULL;
 	u->parq_status = FALSE;
 
 	/*
@@ -732,7 +731,7 @@ upload_free_resources(gnutella_upload_t *u)
 	file_object_release(&u->file);
 
 #ifdef USE_MMAP
-	if (u->sendfile_ctx.map != NULL) {
+	if (u->sendfile_ctx.map) {
 		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_start;
 
 		g_assert(len > 0 && len <= INT_MAX);
@@ -1558,7 +1557,7 @@ upload_add(struct gnutella_socket *s)
 	 * Read HTTP headers fully, then call upload_request() when done.
 	 */
 
-	io_get_header(u, &u->io_opaque, bws.in, s, IO_HEAD_ONLY,
+	io_get_header(u, &u->io_opaque, bsched_bws_in(), s, IO_HEAD_ONLY,
 		call_upload_request, NULL, &upload_io_error);
 }
 
@@ -1629,7 +1628,7 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 	 * with the one used for direct uploading.
 	 */
 
-	io_get_header(u, &u->io_opaque, bws.in, s, IO_SAVE_FIRST,
+	io_get_header(u, &u->io_opaque, bsched_bws_in(), s, IO_SAVE_FIRST,
 		call_upload_request, start_cb, &upload_io_error);
 }
 
@@ -1685,19 +1684,19 @@ upload_connect_conf(gnutella_upload_t *u)
 			(gulong) u->file_index, guid_hex_str(servent_guid));
 
 	s = u->socket;
-	sent = bws_write(bws.out, &s->wio, giv, rw);
+	sent = bws_write(bsched_bws_out(), &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
 		if (upload_debug > 1) g_warning(
 			"unable to send back GIV for \"%s\" to %s: %s",
 			u->name, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
 		if (upload_debug) g_warning(
-			"only sent %d out of %d bytes of GIV for \"%s\" to %s",
-			(gint) sent, (gint) rw, u->name, host_addr_to_string(s->addr));
+			"only sent %lu out of %lu bytes of GIV for \"%s\" to %s",
+			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
 	} else if (upload_debug > 2) {
 		g_message(
 			"----Sent GIV to %s:\n%.*s----\n", host_addr_to_string(s->addr),
-			(gint) rw, giv);
+			(gint) MIN(rw, (size_t) INT_MAX), giv);
 	}
 
 	if ((size_t) sent != rw) {
@@ -3589,8 +3588,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			upload_is_enabled() &&
 			bws_out_enabled &&
 			stalled <= stall_thresh() &&
-			(gulong) bsched_pct(bws.out) < ul_usage_min_percentage &&
-			(gulong) bsched_avg_pct(bws.out) < ul_usage_min_percentage
+			(gulong) bsched_pct(bsched_bws_out()) < ul_usage_min_percentage &&
+			(gulong) bsched_avg_pct(bsched_bws_out()) < ul_usage_min_percentage
 		) {
 			if (parq_upload_request_force(
 					u, u->parq_opaque, running_uploads - 1)) {
@@ -3599,7 +3598,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 					g_message(
 						"Overriden slot limit because u/l b/w used at "
 						"%d%% (minimum set to %d%%)\n",
-						bsched_avg_pct(bws.out), ul_usage_min_percentage);
+						bsched_avg_pct(bsched_bws_out()),
+						ul_usage_min_percentage);
 			}
 		}
 
@@ -3913,15 +3913,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (u->browse_host) {
 		gnet_host_t h;
 
-		h.addr = u->socket->addr;
-		h.port = u->socket->port;
-
+		gnet_host_set(&h, u->socket->addr, u->socket->port);
 		u->special = browse_host_open(
 			u, &h, upload_special_writable,
 			&upload_tx_deflate_cb, &upload_tx_link_cb,
 			&u->socket->wio, bh_flags);
 	} else
-		u->bio = bsched_source_add(bws.out, &s->wio,
+		u->bio = bsched_source_add(bsched_bws_out(), &s->wio,
 			BIO_F_WRITE, upload_writable, u);
 
 	if (u->sf)
@@ -4293,7 +4291,7 @@ upload_is_enabled(void)
 {
 	if (max_uploads == 0)
 		return FALSE;
-	if (bsched_bwps(bws.out) < BW_OUT_MIN)
+	if (bsched_bwps(bsched_bws_out()) < BW_OUT_MIN)
 		return FALSE;
 
 	return TRUE;

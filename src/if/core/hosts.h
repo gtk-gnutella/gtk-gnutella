@@ -26,15 +26,46 @@
 #ifndef _if_core_hosts_h_
 #define _if_core_hosts_h_
 
-#include "lib/host_addr.h" /* For host_addr_t addr */
+#include "common.h"
+
+#include "lib/endian.h"
+#include "lib/host_addr.h"
 
 /**
  * A gnutella host.
  */
+
 typedef struct gnutella_host {
-	host_addr_t addr;
-	guint16 port;
+	struct packed_host data;
 } gnet_host_t;
+
+static inline void
+gnet_host_set(struct gnutella_host *h, const host_addr_t addr, guint16 port)
+{
+	h->data = host_pack(addr, port);
+}
+
+static inline host_addr_t
+gnet_host_get_addr(const struct gnutella_host *h)
+{
+	host_addr_t addr;
+	packed_host_unpack(h->data, &addr, NULL);
+	return addr;
+}
+
+static inline guint16
+gnet_host_get_port(const struct gnutella_host *h)
+{
+	guint16 port;
+	packed_host_unpack(h->data, NULL, &port);
+	return port;
+}
+
+static inline enum net_type
+gnet_host_get_net(const struct gnutella_host *h)
+{
+	return h->data.ha.net;
+}
 
 #endif /* _if_core_hosts_h */
 

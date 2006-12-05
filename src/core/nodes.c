@@ -488,17 +488,9 @@ static gboolean
 node_ht_connected_nodes_has(const host_addr_t addr, guint16 port)
 {
 	gnet_host_t  host;
-    gboolean     found;
-    gnet_host_t *orig_host;
-    gpointer     metadata;
 
-	host.addr   = addr;
-	host.port = port;
-
-	found = g_hash_table_lookup_extended(
-        ht_connected_nodes, &host, (gpointer) &orig_host, &metadata);
-
-    return found;
+	gnet_host_set(&host, addr, port);
+	return NULL != g_hash_table_lookup(ht_connected_nodes, &host);
 }
 
 /**
@@ -509,14 +501,11 @@ node_ht_connected_nodes_find(const host_addr_t addr, guint16 port)
 {
 	gnet_host_t  host;
     gboolean     found;
-    gnet_host_t *orig_host;
-    gpointer     metadata;
+    gpointer	 orig_host, metadata;
 
-	host.addr   = addr;
-	host.port = port;
-
-	found = g_hash_table_lookup_extended(
-        ht_connected_nodes, &host, (gpointer) &orig_host, &metadata);
+	gnet_host_set(&host, addr, port);
+	found = g_hash_table_lookup_extended(ht_connected_nodes, &host,
+				&orig_host, &metadata);
 
     return found ? orig_host : NULL;
 }
@@ -533,10 +522,7 @@ node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
         return;
 
  	host = walloc(sizeof *host);
-
-    host->addr = addr;
-    host->port = port;
-
+	gnet_host_set(host, addr, port);
 	g_hash_table_insert(ht_connected_nodes, host, NO_METADATA);
 	connected_node_count++;
 }
@@ -547,11 +533,7 @@ node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
 static void
 node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
 {
-	gnet_host_t  host;
     gnet_host_t *orig_host;
-
-    host.addr   = addr;
-    host.port = port;
 
     orig_host = node_ht_connected_nodes_find(addr, port);
 
@@ -1726,7 +1708,6 @@ static enum
 node_bad node_is_bad(struct gnutella_node *n)
 {
 	node_bad_client_t *bad_client = NULL;
-    gnet_host_t host;
 
 	g_assert(n != NULL);
 
@@ -1747,9 +1728,6 @@ node_bad node_is_bad(struct gnutella_node *n)
 
 	g_assert(n->vendor != NULL);
 	g_assert(is_host_addr(n->addr));
-
-    host.addr = n->addr;
-    host.port = 0;
 
     if (hcache_node_is_bad(n->addr)) {
 		if (node_debug)
@@ -2513,10 +2491,7 @@ formatted_connection_pongs(const gchar *field, host_type_t htype, gint num)
 			23 /* 23 == PONG_LEN */ * CONNECT_PONGS_COUNT + 30);
 
 		for (i = 0; i < hcount; i++) {
-			const gchar *s;
-
-			s = host_addr_port_to_string(hosts[i].addr, hosts[i].port);
-			header_fmt_append_value(fmt, s);
+			header_fmt_append_value(fmt, gnet_host_to_string(&hosts[i]));
 		}
 
 		header_fmt_end(fmt);
@@ -2758,7 +2733,7 @@ send_error(
 	gchar msg_tmp[256];
 	size_t rw;
 	ssize_t sent;
-	gboolean saturated = bsched_saturated(bws.gout);
+	gboolean saturated = bsched_saturated(bsched_bws_gout());
 	const gchar *version;
 	gchar *token;
 	gchar xlive[128];
@@ -2843,7 +2818,7 @@ send_error(
 
 	g_assert(rw < sizeof(gnet_response));
 
-	sent = bws_write(bws.gout, &s->wio, gnet_response, rw);
+	sent = bws_write(bsched_bws_gout(), &s->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		if (node_debug)
 			g_warning("Unable to send back error %d (%s) to node %s: %s",
@@ -3265,14 +3240,14 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Create the RX stack, and enable reception of data.
 	 */
 
-	host.addr = n->addr;
-	host.port = n->port;
+	gnet_host_set(&host, n->addr, n->port);
 
 	{
 		struct rx_link_args args;
 
 		args.cb = &node_rx_link_cb;
-		args.bs = n->peermode == NODE_P_LEAF ? bws.glin : bws.gin;
+		args.bs = n->peermode == NODE_P_LEAF
+			? bsched_bws_glin() : bsched_bws_gin();
 		args.wio = &n->socket->wio;
 
 		n->rx = rx_make(n, &host, rx_link_get_ops(), &args);
@@ -3305,7 +3280,8 @@ node_is_now_connected(struct gnutella_node *n)
 		struct tx_link_args args;
 
 		args.cb = &node_tx_link_cb;
-		args.bs = n->peermode == NODE_P_LEAF ? bws.glout : bws.gout;
+		args.bs = n->peermode == NODE_P_LEAF
+			? bsched_bws_glout() : bsched_bws_gout();
 		args.wio = &n->socket->wio;
 
 		tx = tx_make(n, &host, tx_link_get_ops(), &args);	/* Cannot fail */
@@ -3856,9 +3832,9 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 			ua = "Unknown";
 
 		{
-			gchar buf[128];
+			gchar buf[HOST_ADDR_BUFLEN];
 
-			gm_snprintf(buf, sizeof buf, "%s", host_addr_to_string(addr));
+			host_addr_to_string_buf(addr, buf, sizeof buf);
 			g_message("Peer %s reported different IP address: %s (%s)\n",
 				host_addr_to_string(peer), buf, ua);
 		}
@@ -5301,7 +5277,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * Simply log it and close the connection.
 	 */
 
-	sent = bws_write(bws.gout, &n->socket->wio, gnet_response, rw);
+	sent = bws_write(bsched_bws_gout(), &n->socket->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		int errcode = errno;
 		if (node_debug) g_warning("Unable to send back %s to node %s: %s",
@@ -5490,8 +5466,8 @@ node_browse_prepare(
 
 	g_assert(n != NULL);
 
-	n->addr = host->addr;
-	n->port = host->port;
+	n->addr = gnet_host_get_addr(host);
+	n->port = gnet_host_get_port(host);
 	n->vendor = deconstify_gchar(vendor);
 	n->country = gip_country(n->addr);
 
@@ -5605,11 +5581,10 @@ node_udp_enable_by_net(enum net_type net)
 	n->socket = s;
 
 	args.cb = &node_tx_dgram_cb;
-	args.bs = bws.gout_udp;
+	args.bs = bsched_bws_gout_udp();
 	args.wio = &n->socket->wio;
 
-	host.addr = n->addr;
-	host.port = n->port;
+	gnet_host_set(&host, n->addr, n->port);
 
 	if (n->outq) {
 		mq_free(n->outq);
@@ -6045,8 +6020,9 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		 * operate any data transfer (3-way handshaking).
 		 */
 
-		io_get_header(n, &n->io_opaque, bws.gin, s, IO_3_WAY|IO_HEAD_ONLY,
-			call_node_process_handshake_header, NULL, &node_io_error);
+		io_get_header(n, &n->io_opaque, bsched_bws_gin(), s,
+			IO_3_WAY|IO_HEAD_ONLY, call_node_process_handshake_header, NULL,
+			&node_io_error);
 	}
 
     node_fire_node_info_changed(n);
@@ -6925,7 +6901,7 @@ node_init_outgoing(struct gnutella_node *n)
 	g_assert(n->hello.pos < n->hello.size);
 	g_assert(n->hello.len > 0);
 
-	sent = bws_write(bws.gout, &n->socket->wio,
+	sent = bws_write(bsched_bws_gout(), &n->socket->wio,
 				&n->hello.ptr[n->hello.pos], n->hello.len);
 
 	switch (sent) {
@@ -6974,8 +6950,9 @@ node_init_outgoing(struct gnutella_node *n)
 	 * Prepare parsing of the expected 0.6 reply.
 	 */
 
-	io_get_header(n, &n->io_opaque, bws.gin, s, IO_SAVE_FIRST|IO_HEAD_ONLY,
-		call_node_process_handshake_header, NULL, &node_io_error);
+	io_get_header(n, &n->io_opaque, bsched_bws_gin(), s,
+		IO_SAVE_FIRST|IO_HEAD_ONLY, call_node_process_handshake_header, NULL,
+		&node_io_error);
 
 	g_assert(s->gdk_tag != 0);		/* Leave with an I/O callback set */
 }
@@ -8299,7 +8276,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	 */
 
 	if (NODE_IS_UDP(node))
-		status->rx_bps = bsched_bps(bws.gin_udp);
+		status->rx_bps = bsched_bps(bsched_bws_gin_udp());
 	else {
 		bio_source_t *bio = node->rx ? rx_bio_source(node->rx) : NULL;
 		status->rx_bps = bio ? bio_bps(bio) : 0;
@@ -8368,7 +8345,7 @@ node_remove_nodes_by_handle(GSList *node_list)
 const gchar *
 node_addr(const gnutella_node_t *n)
 {
-	static gchar buf[128];
+	static gchar buf[HOST_ADDR_PORT_BUFLEN];
 
 	g_assert(n);
 	host_addr_port_to_string_buf(n->addr, n->port, buf, sizeof buf);
@@ -8381,7 +8358,7 @@ node_addr(const gnutella_node_t *n)
 const gchar *
 node_addr2(const gnutella_node_t *n)
 {
-	static gchar buf[128];
+	static gchar buf[HOST_ADDR_PORT_BUFLEN];
 
 	g_assert(n);
 	host_addr_port_to_string_buf(n->addr, n->port, buf, sizeof buf);
@@ -8395,7 +8372,7 @@ node_addr2(const gnutella_node_t *n)
 const gchar *
 node_gnet_addr(const gnutella_node_t *n)
 {
-	static gchar buf[128];
+	static gchar buf[HOST_ADDR_PORT_BUFLEN];
 
 	g_assert(n);
 
@@ -8449,7 +8426,7 @@ node_connected_back(struct gnutella_socket *s)
 		g_message("connected back to %s",
 			host_addr_port_to_string(s->addr, s->port));
 
-	(void) bws_write(bws.out, &s->wio, msg, sizeof msg - 1);
+	(void) bws_write(bsched_bws_out(), &s->wio, msg, sizeof msg - 1);
 
 	socket_free_null(&s);
 }

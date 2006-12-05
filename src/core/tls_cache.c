@@ -369,13 +369,12 @@ tls_cache_insert_intern(const struct tls_cache_item *item)
 		hash_list_remove(tls_hosts, item_ptr);
 		if (tls_debug) {
 			g_message("Refreshing TLS host %s",
-				host_addr_port_to_string(item->host.addr, item->host.port));
+				gnet_host_to_string(&item->host));
 		}
 		item_ptr->seen = item->seen;
 	} else {
 		if (tls_debug) {
-			g_message("Adding TLS host %s",
-				host_addr_port_to_string(item->host.addr, item->host.port));
+			g_message("Adding TLS host %s", gnet_host_to_string(&item->host));
 		}
 		key = wcopy(item, sizeof *item);
 	}
@@ -395,8 +394,7 @@ tls_cache_insert(const host_addr_t addr, guint16 port)
 	g_return_if_fail(is_host_addr(addr));
 	g_return_if_fail(0 != port);
 
-	item.host.addr = addr;
-	item.host.port = port;
+	gnet_host_set(&item.host, addr, port);
 	item.seen = tm_time();
 	tls_cache_insert_intern(&item);
 }
@@ -408,8 +406,7 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 		struct tls_cache_item item;
 		gconstpointer key;
 
-		item.host.addr = addr;
-		item.host.port = port;
+		gnet_host_set(&item.host, addr, port);
 		if (hash_list_contains(tls_hosts, &item, &key)) {
 			struct tls_cache_item *item_ptr = deconstify_gpointer(key);
 			time_t now = tm_time();
@@ -508,10 +505,15 @@ tls_cache_parse(FILE *f)
 		
 		switch (tag) {
 		case TLS_CACHE_TAG_HOST:
-			if (!string_to_host_addr_port(value, NULL,
-						&item.host.addr, &item.host.port)
-			) {
-				damaged = TRUE;
+			{
+				host_addr_t addr;
+				guint16 port;
+
+				if (string_to_host_addr_port(value, NULL, &addr, &port)) {
+					gnet_host_set(&item.host, addr, port);
+				} else {
+					damaged = TRUE;
+				}
 			}
 			break;
 
@@ -551,11 +553,13 @@ tls_cache_parse(FILE *f)
 		}
 
 		if (done) {
-			if (tls_cache_lookup(item.host.addr, item.host.port)) {
+			if (
+				tls_cache_lookup(gnet_host_get_addr(&item.host),
+					gnet_host_get_port(&item.host))
+			) {
 				g_warning(
 					"Ignoring duplicate TLS cache item around line %u (%s)",
-				   	line_no,
-					host_addr_port_to_string(item.host.addr, item.host.port));
+				   	line_no, gnet_host_to_string(&item.host));
 			} else {
 				tls_cache_insert_intern(&item);
 			}
@@ -611,8 +615,7 @@ tls_cache_dump(FILE *f)
 		
 		item = hash_list_next(iter);
 		fprintf(f, "HOST %s\nSEEN %s\nEND\n\n",
-			host_addr_port_to_string(item->host.addr, item->host.port),
-			timestamp_to_string(item->seen));
+			gnet_host_to_string(&item->host), timestamp_to_string(item->seen));
 	}
 	hash_list_release(iter);
 }

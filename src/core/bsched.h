@@ -108,52 +108,15 @@ struct bsched {
 	gboolean looped;				/**< True when looped once over sources */
 };
 
-/*
- * Scheduling types.
- */
-
-#define BS_T_STREAM		1				/**< Streaming */
-#define BS_T_RANDOM		2				/**< Random (unsupported) */
-
-/*
- * Scheduling flags.
- */
-
-#define BS_F_ENABLED		0x00000001	/**< Scheduler enabled */
-#define BS_F_READ			0x00000002	/**< Reading sources */
-#define BS_F_WRITE			0x00000004	/**< Writing sources */
-#define BS_F_NOBW			0x00000008	/**< No more bandwidth */
-#define BS_F_FROZEN_SLOT	0x00000010	/**< Value of `bw_slot' is frozen */
-#define BS_F_CHANGED_BW		0x00000020	/**< Bandwidth limit changed */
-#define BS_F_CLEARED		0x00000040	/**< Ran clear_active once on sched. */
-#define BS_F_DATA_READ		0x00000080	/**< Data read from one source */
-
-#define BS_F_RW				(BS_F_READ|BS_F_WRITE)
-
 #define bsched_bps(b)		((b)->bw_last_period * 1000 / (b)->period)
 #define bsched_pct(b)		(bsched_bps(b) * 100 / (1+(b)->bw_per_second))
 #define bsched_avg_bps(b)	((b)->bw_ema * 1000 / (b)->period)
 #define bsched_avg_pct(b)	(bsched_avg_bps(b) * 100 / (1+(b)->bw_per_second))
 
-#define bsched_bwps(b)		((b)->bw_per_second)
+#define bsched_bwps(b)		((guint) (b)->bw_per_second)
 #define bsched_saturated(b)	((b)->bw_actual > (b)->bw_max)
 
 #define bsched_enabled(b)	((b)->flags & BS_F_ENABLED)
-
-/**
- * Global bandwidth schedulers.
- */
-
-struct bws_set {
-	bsched_t *out;			/**< Output (uploads) */
-	bsched_t *in;			/**< Input (downloads) */
-	bsched_t *gout;			/**< Gnet TCP output */
-	bsched_t *gin;			/**< Gnet TCP input */
-	bsched_t *gout_udp;		/**< Gnet UDP output */
-	bsched_t *gin_udp;		/**< Gnet UDP input */
-	bsched_t *glout;		/**< Gnet leaf output */
-	bsched_t *glin;			/**< Gnet leaf input */
-};
 
 typedef struct sendfile_ctx {
 	void *map;
@@ -162,7 +125,6 @@ typedef struct sendfile_ctx {
 
 
 struct iovec;
-extern struct bws_set bws;
 
 /*
  * Public interface.
@@ -213,6 +175,19 @@ gboolean bsched_enough_up_bandwidth(void);
 
 void bsched_config_steal_http_gnet(void);
 void bsched_config_steal_gnet(void);
+
+/**
+ * FIXME:	The schedulers should be identified with enums instead of granting
+ *			direct access to the structures.
+ */
+bsched_t *bsched_bws_in(void);
+bsched_t *bsched_bws_out(void);
+bsched_t *bsched_bws_gin(void);
+bsched_t *bsched_bws_gout(void);
+bsched_t *bsched_bws_glin(void);
+bsched_t *bsched_bws_glout(void);
+bsched_t *bsched_bws_gin_udp(void);
+bsched_t *bsched_bws_gout_udp(void);
 
 #endif	/* _core_bsched_h_ */
 

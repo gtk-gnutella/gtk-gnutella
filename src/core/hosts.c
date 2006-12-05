@@ -72,8 +72,12 @@ guint
 host_hash(gconstpointer key)
 {
 	const gnet_host_t *host = key;
+	host_addr_t addr;
+	guint16 port;
 
-	return host_addr_hash(host->addr) ^ ((host->port << 16) | host->port);
+	addr = gnet_host_get_addr(host);
+	port = gnet_host_get_port(host);
+	return host_addr_hash(addr) ^ ((port << 16) | port);
 }
 
 /**
@@ -86,7 +90,8 @@ host_eq(gconstpointer v1, gconstpointer v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
 
-	return host_addr_equal(h1->addr, h2->addr) && h1->port == h2->port;
+	return gnet_host_get_port(h1) == gnet_host_get_port(h2) &&
+		host_addr_equal(gnet_host_get_addr(h1), gnet_host_get_addr(h2));
 }
 
 /**
@@ -249,15 +254,14 @@ host_init(void)
  * @return the address:port of a host
  */
 const gchar *
-host_to_string(const gnet_host_t *h)
+gnet_host_to_string(const struct gnutella_host *h)
 {
-	static gchar buf[64];
-	gchar host[48];
+	static gchar buf[HOST_ADDR_PORT_BUFLEN];
+	host_addr_t addr;
+	guint16 port;
 
-	g_assert(h != NULL);
-
-	host_addr_to_string_buf(h->addr, host, sizeof host);
-	gm_snprintf(buf, sizeof buf, "%s:%u", host, h->port);
+	packed_host_unpack(h->data, &addr, &port);
+	host_addr_port_to_string_buf(addr, port, buf, sizeof buf);
 	return buf;
 }
 

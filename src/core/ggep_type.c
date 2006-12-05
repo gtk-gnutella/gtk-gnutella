@@ -157,10 +157,9 @@ ggept_ip_vec_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 	vec = walloc(cnt * sizeof *vec);
 
 	for (i = 0; i < cnt; i++) {
-		vec[i].addr = host_addr_get_ipv4(peek_be32(p));
-		p += 4;
-		vec[i].port = peek_le16(p);
-		p += 2;
+		gnet_host_set(&vec[i],
+			host_addr_get_ipv4(peek_be32(&p[0])), peek_le16(&p[4]));
+		p += 6;
 	}
 
 	*hvec = vec;

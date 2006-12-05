@@ -292,7 +292,7 @@ search_gui_free_alt_locs(record_t *rc)
 		gint i;
 
 		for (i = 0; i < alt->hvcnt; i++)
-			g_assert(host_addr_initialized(alt->hvec[i].addr));
+			g_assert(host_addr_initialized(gnet_host_get_addr(&alt->hvec[i])));
 	}
 
 	wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
@@ -878,11 +878,11 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	}
 
 	if (NULL != r->alt_locs) {
-		{
-			gint i;
+		gint i;
 
-			for (i = 0; i < r->alt_locs->hvcnt; i++)
-				g_assert(host_addr_initialized(r->alt_locs->hvec[i].addr));
+		for (i = 0; i < r->alt_locs->hvcnt; i++) {
+			g_assert(host_addr_initialized(
+						gnet_host_get_addr(&r->alt_locs->hvec[i])));
 		}
 
 		rc->alt_locs = wcopy(r->alt_locs, sizeof *r->alt_locs);
@@ -1014,14 +1014,17 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 
 	for (i = 0; i < alt->hvcnt; i++) {
 		gnet_host_t *h = &alt->hvec[i];
+		host_addr_t addr;
+		guint16 port;
 
-		g_assert(host_addr_initialized(h->addr));
-		if (h->port == 0 || !host_addr_is_routable(h->addr))
-			continue;
-
-		guc_download_auto_new(rc->name, rc->size, URN_INDEX,
-			h->addr, h->port, blank_guid, rs->hostname,
-			rc->sha1, rs->stamp, TRUE, NULL, NULL, 0);
+		addr = gnet_host_get_addr(h);
+		port = gnet_host_get_port(h);
+		g_assert(host_addr_initialized(addr));
+		if (port > 0 && host_addr_is_routable(addr)) {
+			guc_download_auto_new(rc->name, rc->size, URN_INDEX,
+				addr, port, blank_guid, rs->hostname,
+				rc->sha1, rs->stamp, TRUE, NULL, NULL, 0);
+		}
 	}
 
 	search_gui_free_alt_locs(rc);

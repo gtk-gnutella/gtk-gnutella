@@ -116,13 +116,14 @@ static void
 rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 {
 	struct rpc_cb *rcb = obj;
-	gnet_host_t host = { rcb->addr, 0 };
+	gnet_host_t host;
 
 	(void) unused_cq;
 
 	g_assert(rcb->timeout != NULL);
 
 	rcb->timeout = NULL;
+   	gnet_host_set(&host, rcb->addr, 0);
 	(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kuid, &host, NULL, 0, rcb->arg);
 
 	rpc_cb_free(rcb);

@@ -388,10 +388,11 @@ search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
 static guint
 sent_node_hash_func(gconstpointer key)
 {
-	const gnet_host_t *sd = (const gnet_host_t *) key;
+	const gnet_host_t *sd = key;
 
 	/* ensure that we've got sizeof(gint) bytes of deterministic data */
-	return host_addr_hash(sd->addr) ^ (guint32) sd->port;
+	return host_addr_hash(gnet_host_get_addr(sd)) ^
+			(guint32) gnet_host_get_port(sd);
 }
 
 static gint
@@ -399,7 +400,8 @@ sent_node_compare(gconstpointer a, gconstpointer b)
 {
 	const gnet_host_t *sa = a, *sb = b;
 
-	return host_addr_equal(sa->addr, sb->addr) && sa->port == sb->port;
+	return gnet_host_get_port(sa) == gnet_host_get_port(sb) &&
+		host_addr_equal(gnet_host_get_addr(sa), gnet_host_get_addr(sb));
 }
 
 static gboolean
@@ -433,8 +435,7 @@ static void
 mark_search_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	gnet_host_t *sd = walloc(sizeof *sd);
-	sd->addr = n->addr;
-	sd->port = n->port;
+	gnet_host_set(sd, n->addr, n->port);
 	g_hash_table_insert(sch->sent_nodes, sd, GUINT_TO_POINTER(1));
 }
 
@@ -488,8 +489,8 @@ static gboolean
 search_already_sent_to_node(const search_ctrl_t *sch, const gnutella_node_t *n)
 {
 	gnet_host_t sd;
-	sd.addr = n->addr;
-	sd.port = n->port;
+
+	gnet_host_set(&sd, n->addr, n->port);
 	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
 }
 
@@ -2917,19 +2918,21 @@ search_check_alt_locs(
 	g_assert(alt != NULL);
 
 	for (i = alt->hvcnt - 1; i >= 0; i--) {
-		struct gnutella_host *h = &alt->hvec[i];
+		const struct gnutella_host *h = &alt->hvec[i];
+		host_addr_t addr;
+		guint16 port;
 
-		if (!host_is_valid(h->addr, h->port)) {
+		addr = gnet_host_get_addr(h);
+		port = gnet_host_get_port(h);
+		if (host_is_valid(addr, port)) {
+			download_auto_new(rc->name, rc->size, URN_INDEX, addr, port,
+				blank_guid, rs->hostname, rc->sha1, rs->stamp, TRUE, fi,
+				rs->proxies, (rs->status & ST_TLS) ? SOCK_F_TLS : 0);
+
+			search_free_proxies(rs);
+		} else {
 			ignored++;
-			continue;
 		}
-
-		download_auto_new(rc->name, rc->size, URN_INDEX, h->addr,
-			h->port, blank_guid, rs->hostname,
-			rc->sha1, rs->stamp, TRUE, fi, rs->proxies,
-			(rs->status & ST_TLS) ? SOCK_F_TLS : 0);
-
-		search_free_proxies(rs);
 	}
 
 	search_free_alt_locs(rc);
@@ -3822,8 +3825,7 @@ search_locally(gnet_search_t sh, const gchar *query)
 			alt_loc = walloc(sizeof *alt_loc);	
 			alt_loc->hvcnt = 1;
 			alt_loc->hvec = walloc(alt_loc->hvcnt * sizeof *alt_loc->hvec);
-			alt_loc->hvec[0].addr = addr_v6;
-			alt_loc->hvec[0].port = listen_port;
+			gnet_host_set(&alt_loc->hvec[0], addr_v6, listen_port);
 		} else {
 			alt_loc = NULL;
 		}

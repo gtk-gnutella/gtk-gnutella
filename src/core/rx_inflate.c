@@ -159,7 +159,7 @@ rx_inflate_init(rxdrv_t *rx, gconstpointer args)
 	if (ret != Z_OK) {
 		wfree(inz, sizeof(*inz));
 		g_warning("unable to initialize decompressor for peer %s: %s",
-			host_to_string(&rx->host), zlib_strerror(ret));
+			gnet_host_to_string(&rx->host), zlib_strerror(ret));
 		return NULL;
 	}
 
@@ -188,7 +188,7 @@ rx_inflate_destroy(rxdrv_t *rx)
 	ret = inflateEnd(attr->inz);
 	if (ret != Z_OK)
 		g_warning("while freeing decompressor for peer %s: %s",
-			host_to_string(&rx->host), zlib_strerror(ret));
+			gnet_host_to_string(&rx->host), zlib_strerror(ret));
 
 	wfree(attr->inz, sizeof *attr->inz);
 	wfree(attr, sizeof *attr);

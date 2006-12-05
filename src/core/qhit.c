@@ -219,10 +219,17 @@ found_set_header(void)
 
 	connect_speed = connection_speed;
 	if (compute_connection_speed) {
-		connect_speed = max_uploads == 0 ?
-			0 : (MAX(bsched_avg_bps(bws.out), bsched_bwps(bws.out)) * 8 / 1024);
-		if (max_uploads > 0 && connect_speed == 0)
-			connect_speed = 32;		/* No b/w limit set and no traffic yet */
+		if (max_uploads > 0) {
+			connect_speed = bsched_avg_bps(bsched_bws_out());
+			connect_speed = MAX(connect_speed, bsched_bwps(bsched_bws_out()));
+			connect_speed /= 1024 / 8;
+			if (connect_speed == 0) {
+				/* No b/w limit set and no traffic yet */
+				connect_speed = 32;
+			}
+		} else {
+			connect_speed = 0;
+		}
 	}
 	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
 
@@ -550,7 +557,7 @@ add_file(const struct shared_file *sf)
 		 * GGEP item to hold IPv6 addresses as of yet.
 		 */
 		for (i = 0, j = 0; i < hcnt; i++) {
-			if (NET_TYPE_IPV4 == host_addr_net(hvec[i].addr) && j != i) {
+			if (NET_TYPE_IPV4 == gnet_host_get_net(&hvec[i]) && j != i) {
 				hvec[j] = hvec[i];
 				j++;
 			}
@@ -676,11 +683,12 @@ add_file(const struct shared_file *sf)
 
 		for (i = 0; ok && i < hcnt; i++) {
 			g_assert(start == gs.outbuf);
-			if (NET_TYPE_IPV4 == host_addr_net(hvec[i].addr)) {
+			if (NET_TYPE_IPV4 == gnet_host_get_net(&hvec[i])) {
 				gchar alt[6];
 			
-				poke_be32(&alt[0], host_addr_ipv4(hvec[i].addr));
-				poke_le16(&alt[4], hvec[i].port);
+				poke_be32(&alt[0],
+					host_addr_ipv4(gnet_host_get_addr(&hvec[i])));
+				poke_le16(&alt[4], gnet_host_get_port(&hvec[i]));
 				ok = ggep_stream_write(&gs, &alt, sizeof alt);
 			}
 		}

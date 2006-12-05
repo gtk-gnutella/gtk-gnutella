@@ -778,51 +778,51 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
     switch (type) {
     case BW_GNET_IN:
         s->enabled  = bws_gin_enabled;
-        s->current  = bsched_bps(bws.gin);
-        s->average  = bsched_avg_bps(bws.gin);
-        s->limit    = bws.gin->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_gin());
+        s->average  = bsched_avg_bps(bsched_bws_gin());
+        s->limit    = bsched_bws_gin()->bw_per_second;
         break;
     case BW_GNET_OUT:
         s->enabled  = bws_gout_enabled;
-        s->current  = bsched_bps(bws.gout);
-        s->average  = bsched_avg_bps(bws.gout);
-        s->limit    = bws.gout->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_gout());
+        s->average  = bsched_avg_bps(bsched_bws_gout());
+        s->limit    = bsched_bws_gout()->bw_per_second;
         break;
     case BW_GNET_UDP_IN:
         s->enabled  = bws_gin_enabled;
-        s->current  = bsched_bps(bws.gin_udp);
-        s->average  = bsched_avg_bps(bws.gin_udp);
-        s->limit    = bws.gin_udp->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_gin_udp());
+        s->average  = bsched_avg_bps(bsched_bws_gin_udp());
+        s->limit    = bsched_bws_gin_udp()->bw_per_second;
         break;
     case BW_GNET_UDP_OUT:
         s->enabled  = bws_gout_enabled;
-        s->current  = bsched_bps(bws.gout_udp);
-        s->average  = bsched_avg_bps(bws.gout_udp);
-        s->limit    = bws.gout_udp->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_gout_udp());
+        s->average  = bsched_avg_bps(bsched_bws_gout_udp());
+        s->limit    = bsched_bws_gout_udp()->bw_per_second;
         break;
     case BW_HTTP_IN:
         s->enabled  = bws_in_enabled;
-        s->current  = bsched_bps(bws.in);
-        s->average  = bsched_avg_bps(bws.in);
-        s->limit    = bws.in->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_in());
+        s->average  = bsched_avg_bps(bsched_bws_in());
+        s->limit    = bsched_bws_in()->bw_per_second;
         break;
     case BW_HTTP_OUT:
         s->enabled  = bws_out_enabled;
-        s->current  = bsched_bps(bws.out);
-        s->average  = bsched_avg_bps(bws.out);
-        s->limit    = bws.out->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_out());
+        s->average  = bsched_avg_bps(bsched_bws_out());
+        s->limit    = bsched_bws_out()->bw_per_second;
         break;
     case BW_LEAF_IN:
         s->enabled  = bws_glin_enabled;
-        s->current  = bsched_bps(bws.glin);
-        s->average  = bsched_avg_bps(bws.glin);
-        s->limit    = bws.glin->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_glin());
+        s->average  = bsched_avg_bps(bsched_bws_glin());
+        s->limit    = bsched_bws_glin()->bw_per_second;
         break;
     case BW_LEAF_OUT:
         s->enabled  = bws_glout_enabled;
-        s->current  = bsched_bps(bws.glout);
-        s->average  = bsched_avg_bps(bws.glout);
-        s->limit    = bws.glout->bw_per_second;
+        s->current  = bsched_bps(bsched_bws_glout());
+        s->average  = bsched_avg_bps(bsched_bws_glout());
+        s->limit    = bsched_bws_glout()->bw_per_second;
         break;
     }
 }
@@ -1267,87 +1267,52 @@ network_protocol_changed(property_t prop)
 
 
 static gboolean
-bw_http_in_enabled_changed(property_t prop)
+bw_switch(property_t prop, bsched_t *bs)
 {
     gboolean val;
 
     gnet_prop_get_boolean_val(prop, &val);
     if (val)
-        bsched_enable(bws.in);
+        bsched_enable(bs);
     else
-        bsched_disable(bws.in);
+        bsched_disable(bs);
+	return FALSE;
+}
 
-    return FALSE;
+static gboolean
+bw_http_in_enabled_changed(property_t prop)
+{
+	return bw_switch(prop, bsched_bws_in());
 }
 
 static gboolean
 bw_http_out_enabled_changed(property_t prop)
 {
-    gboolean val;
-
-    gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bws.out);
-    else
-        bsched_disable(bws.out);
-
-    return FALSE;
+	return bw_switch(prop, bsched_bws_out());
 }
 
 static gboolean
 bw_gnet_in_enabled_changed(property_t prop)
 {
-    gboolean val;
-
-    gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bws.gin);
-    else
-        bsched_disable(bws.gin);
-
-    return FALSE;
+	return bw_switch(prop, bsched_bws_gin());
 }
 
 static gboolean
 bw_gnet_out_enabled_changed(property_t prop)
 {
-    gboolean val;
-
-    gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bws.gout);
-    else
-        bsched_disable(bws.gout);
-
-    return FALSE;
+	return bw_switch(prop, bsched_bws_gout());
 }
 
 static gboolean
 bw_gnet_lin_enabled_changed(property_t prop)
 {
-    gboolean val;
-
-    gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bws.glin);
-    else
-        bsched_disable(bws.glin);
-
-    return FALSE;
+	return bw_switch(prop, bsched_bws_glin());
 }
 
 static gboolean
 bw_gnet_lout_enabled_changed(property_t prop)
 {
-    gboolean val;
-
-    gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bws.glout);
-    else
-        bsched_disable(bws.glout);
-
-    return FALSE;
+	return bw_switch(prop, bsched_bws_glout());
 }
 
 static gboolean
@@ -1451,7 +1416,7 @@ bw_http_in_changed(property_t prop)
 
 	g_assert(PROP_BW_HTTP_IN == prop);
     gnet_prop_get_guint32_val(prop, &val);
-    bsched_set_bandwidth(bws.in, val);
+    bsched_set_bandwidth(bsched_bws_in(), val);
 	bsched_set_peermode(current_peermode);
 
     return FALSE;
@@ -1463,7 +1428,7 @@ bw_http_out_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    bsched_set_bandwidth(bws.out, val);
+    bsched_set_bandwidth(bsched_bws_out(), val);
 	bsched_set_peermode(current_peermode);
 
     return FALSE;
@@ -1475,8 +1440,8 @@ bw_gnet_in_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    bsched_set_bandwidth(bws.gin, val / 2);
-    bsched_set_bandwidth(bws.gin_udp, val / 2);
+    bsched_set_bandwidth(bsched_bws_gin(), val / 2);
+    bsched_set_bandwidth(bsched_bws_gin_udp(), val / 2);
 	bsched_set_peermode(current_peermode);
 
     return FALSE;
@@ -1488,8 +1453,8 @@ bw_gnet_out_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    bsched_set_bandwidth(bws.gout, val / 2);
-    bsched_set_bandwidth(bws.gout_udp, val / 2);
+    bsched_set_bandwidth(bsched_bws_gout(), val / 2);
+    bsched_set_bandwidth(bsched_bws_gout_udp(), val / 2);
 	bsched_set_peermode(current_peermode);
 
     return FALSE;
@@ -1501,7 +1466,7 @@ bw_gnet_lin_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    bsched_set_bandwidth(bws.glin, val);
+    bsched_set_bandwidth(bsched_bws_glin(), val);
 	bsched_set_peermode(current_peermode);
 
     return FALSE;
@@ -1513,7 +1478,7 @@ bw_gnet_lout_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    bsched_set_bandwidth(bws.glout, val);
+    bsched_set_bandwidth(bsched_bws_glout(), val);
 	bsched_set_peermode(current_peermode);
 
     return FALSE;

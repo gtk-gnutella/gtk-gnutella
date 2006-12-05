@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "tx.h"
 #include "tx_dgram.h"
 #include "bsched.h"
+#include "hosts.h"
 #include "inet.h"
 
 #include "if/core/hosts.h"
@@ -186,7 +187,7 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 		 * Don't set TX_ERROR here, we don't care about lost packets.
 		 */
 		g_warning("UDP write to %s failed: %s",
-			host_addr_port_to_string(to->addr, to->port), g_strerror(errno));
+			gnet_host_to_string(to), g_strerror(errno));
 		return -1;
 	default:
 		{
@@ -195,7 +196,7 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 			tx->flags |= TX_ERROR;				/* This should be fatal! */
 			g_error("%s  gtk-gnutella: %s: "
 				"UDP write to %s failed with unexpected errno: %d (%s)\n",
-				ctime(&t), func, host_addr_port_to_string(to->addr, to->port),
+				ctime(&t), func, gnet_host_to_string(to),
 				terr, g_strerror(terr));
 		}
 	}
@@ -215,7 +216,7 @@ tx_dgram_sendto(txdrv_t *tx, const gnet_host_t *to,
 	ssize_t r;
 	struct attr *attr = tx->opaque;
 
-	if (to->port > 0) {
+	if (gnet_host_get_port(to) > 0) {
 		r = bio_sendto(attr->bio, to, data, len);
 	} else {
 		errno = EINVAL;
@@ -227,7 +228,7 @@ tx_dgram_sendto(txdrv_t *tx, const gnet_host_t *to,
 	if (attr->cb->add_tx_written != NULL)
 		attr->cb->add_tx_written(tx->owner, r);
 
-	inet_udp_record_sent(to->addr);
+	inet_udp_record_sent(gnet_host_get_addr(to));
 
 	return r;
 }
