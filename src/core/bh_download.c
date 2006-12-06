@@ -325,7 +325,7 @@ browse_host_dl_receive(
 		struct rx_link_args args;
 
 		args.cb = &browse_rx_link_cb;
-		args.bs = bsched_bws_in();
+		args.bws = BSCHED_BWS_IN;
 		args.wio = wio;
 
 		bc->rx = rx_make(bc, &bc->host, rx_link_get_ops(), &args);

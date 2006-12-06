@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "rx.h"
+#include "if/core/bsched.h"
 
 const struct rxdrv_ops *rx_link_get_ops(void);
 
@@ -57,8 +58,8 @@ struct rx_link_cb {
  */
 struct rx_link_args {
 	const struct rx_link_cb *cb;	/**< Callbacks */
-	struct bsched *bs;				/**< Bandwidth scheduler to use */
 	struct wrap_io *wio;			/**< I/O wrapping routines */
+	bsched_bws_t bws;				/**< Bandwidth scheduler to use */
 };
 
 #endif	/* _core_rx_link_h_ */

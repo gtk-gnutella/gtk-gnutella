@@ -99,7 +99,6 @@ tx_link_init(txdrv_t *tx, gpointer args)
 {
 	struct tx_link_args *targs = args;
 	struct attr *attr;
-	bsched_t *bs;
 
 	g_assert(tx);
 	g_assert(targs->cb != NULL);
@@ -114,10 +113,10 @@ tx_link_init(txdrv_t *tx, gpointer args)
 	 * through calls to bio_write() and bio_writev().
 	 */
 
-	bs = targs->bs;
 	attr->cb = targs->cb;
 	attr->wio = targs->wio;
-	attr->bio = bsched_source_add(bs, attr->wio, BIO_F_WRITE, NULL, NULL);
+	attr->bio = bsched_source_add(targs->bws,
+					attr->wio, BIO_F_WRITE, NULL, NULL);
 
 	tx->opaque = attr;
 

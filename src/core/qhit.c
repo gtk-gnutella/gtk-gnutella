@@ -220,8 +220,9 @@ found_set_header(void)
 	connect_speed = connection_speed;
 	if (compute_connection_speed) {
 		if (max_uploads > 0) {
-			connect_speed = bsched_avg_bps(bsched_bws_out());
-			connect_speed = MAX(connect_speed, bsched_bwps(bsched_bws_out()));
+			connect_speed = bsched_avg_bps(BSCHED_BWS_OUT);
+			connect_speed = MAX(connect_speed,
+								bsched_bw_per_second(BSCHED_BWS_OUT));
 			connect_speed /= 1024 / 8;
 			if (connect_speed == 0) {
 				/* No b/w limit set and no traffic yet */

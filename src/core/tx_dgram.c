@@ -39,10 +39,10 @@
 
 RCSID("$Id$")
 
+#include "bsched.h"
 #include "sockets.h"
 #include "tx.h"
 #include "tx_dgram.h"
-#include "bsched.h"
 #include "hosts.h"
 #include "inet.h"
 
@@ -117,7 +117,7 @@ tx_dgram_init(txdrv_t *tx, gpointer args)
 
 	attr->cb = targs->cb;
 	attr->wio = targs->wio;
-	attr->bio = bsched_source_add(targs->bs, attr->wio, BIO_F_WRITE,
+	attr->bio = bsched_source_add(targs->bws, attr->wio, BIO_F_WRITE,
 		NULL, NULL);
 
 	tx->opaque = attr;

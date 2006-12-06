@@ -37,11 +37,11 @@
 #define _core_ioheader_h_
 
 #include "common.h" 
+#include "bsched.h" 
 
 struct io_header;
 struct header;
 struct getline;
-struct bsched;
 struct gnutella_socket;
 
 /**
@@ -84,7 +84,7 @@ gchar *io_gettext(gpointer opaque);
 void io_get_header(
 	gpointer resource,				/**< Resource for which we're reading headers */
 	gpointer *io_opaque,			/**< Field address in resource's structure */
-	struct bsched *bs,				/**< B/w scheduler from which we read */
+	bsched_bws_t bws,				/**< B/w scheduler from which we read */
 	struct gnutella_socket *s,		/**< Socket from which we're reading */
 	gint flags,						/**< I/O parsing flags */
 	io_done_cb_t done,				/**< Mandatory: final callback when all done */

@@ -1281,7 +1281,7 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	guint avg_bps;
 
 	if (parq_optimistic) {
-		avg_bps = bsched_avg_bps(bsched_bws_out());
+		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
 		l = g_list_find(parq_ul->queue->by_rel_pos, parq_ul);
@@ -1345,7 +1345,7 @@ parq_upload_create(gnutella_upload_t *u)
 		} else if (parq_ul_prev->is_alive) {
 			guint avg_bps;
 
-			avg_bps = bsched_avg_bps(bsched_bws_out());
+			avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 			avg_bps = MAX(1, avg_bps);
 
 			if (parq_optimistic)
@@ -1576,7 +1576,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	guint eta = 0;
 	guint avg_bps;
 
-	avg_bps = bsched_avg_bps(bsched_bws_out());
+	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 	avg_bps = MAX(1, avg_bps);
 
 	if (which_ul_queue->active_uploads) {
@@ -2063,7 +2063,7 @@ parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
 		return TRUE;
 
 	if (parq_time_always_continue > 0) {
-		avg_bps = bsched_avg_bps(bsched_bws_out());
+		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
 		/*
@@ -2556,7 +2556,7 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 	g_assert(parq_ul->retry >= now);
 
 	if (parq_optimistic) {
-		avg_bps = bsched_avg_bps(bsched_bws_out());
+		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
 		/* If the chunk sizes are really small, expire them sooner */
@@ -3472,7 +3472,7 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 
 	s = u->socket;
 
-	sent = bws_write(bsched_bws_out(), &s->wio, queue, rw);
+	sent = bws_write(BSCHED_BWS_OUT, &s->wio, queue, rw);
 	if ((ssize_t) -1 == sent) {
 		g_warning("[PARQ UL] "
 			"Unable to send back QUEUE for \"%s\" to %s: %s",

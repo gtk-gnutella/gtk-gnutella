@@ -56,7 +56,7 @@ RCSID("$Id$")
 struct attr {
 	wrap_io_t *wio;				/**< Cached wrapped IO object */
 	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
-	bsched_t *bs;				/**< Scheduler to attach I/O source to */
+	bsched_bws_t bws;			/**< Scheduler to attach I/O source to */
 	const struct rx_link_cb *cb;/**< Layer-specific callbacks */
 };
 
@@ -172,7 +172,7 @@ rx_link_init(rxdrv_t *rx, gconstpointer args)
 
 	attr->cb = rargs->cb;
 	attr->wio = rargs->wio;
-	attr->bs = rargs->bs;
+	attr->bws = rargs->bws;
 	attr->bio = NULL;
 
 	rx->opaque = attr;
@@ -237,7 +237,7 @@ rx_link_enable(rxdrv_t *rx)
 	 * Install reading callback.
 	 */
 
-	attr->bio = bsched_source_add(attr->bs, attr->wio, BIO_F_READ,
+	attr->bio = bsched_source_add(attr->bws, attr->wio, BIO_F_READ,
 					is_readable, rx);
 
 	g_assert(attr->bio);

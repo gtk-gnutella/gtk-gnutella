@@ -589,7 +589,7 @@ browse_host_open(
 
 		args.cb = link_cb;
 		args.wio = wio;
-		args.bs = bsched_bws_out();
+		args.bws = BSCHED_BWS_OUT;
 
 		bh->tx = tx_make(owner, host, tx_link_get_ops(), &args);
 	}

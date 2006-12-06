@@ -1436,7 +1436,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	count = MIN(count, RQST_LINE_LENGTH);
 
-	r = bws_read(bsched_bws_in(), &s->wio, &s->buf[s->pos], count);
+	r = bws_read(BSCHED_BWS_IN, &s->wio, &s->buf[s->pos], count);
 	switch (r) {
 	case 0:
 		socket_destroy(s, "Got EOF");

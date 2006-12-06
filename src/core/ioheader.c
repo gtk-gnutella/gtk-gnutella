@@ -61,12 +61,12 @@ struct io_header {
 	gpointer resource;				/**< Resource for which we're parsing */
 	gpointer *io_opaque;			/**< Where we're referenced in resource */
 	struct gnutella_socket *socket;	/**< Socket on which we're reading */
-	bsched_t *bs;					/**< Bandwidth scheduler to use */
+	bsched_bws_t bws;				/**< Bandwidth scheduler to use */
 	header_t *header;
 	getline_t *getline;
 	const struct io_error *error;	/**< Error callbacks */
 	io_done_cb_t process_header;	/**< Called when all headers are read */
-	io_start_cb_t header_read_start;	/**< Called when reading first byte */
+	io_start_cb_t header_read_start;/**< Called when reading first byte */
 	GString *text;					/**< Full header text */
 	gint flags;
 };
@@ -385,7 +385,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * errors to our client.
 	 */
 
-	r = bws_read(ih->bs, &s->wio, &s->buf[s->pos], count);
+	r = bws_read(ih->bws, &s->wio, &s->buf[s->pos], count);
 	if (r == 0) {
 		socket_eof(s);
 		(*ih->error->header_read_eof)(ih->resource);
@@ -422,7 +422,7 @@ void
 io_get_header(
 	gpointer resource,			/**< Resource for which we're reading headers */
 	gpointer *io_opaque,		/**< Field address in resource's structure */
-	bsched_t *bs,				/**< B/w scheduler from which we read */
+	bsched_bws_t bws,			/**< B/w scheduler from which we read */
 	struct gnutella_socket *s,	/**< Socket from which we're reading */
 	gint flags,					/**< I/O parsing flags */
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
@@ -435,7 +435,7 @@ io_get_header(
 	g_assert(io_opaque);
 	g_assert((gchar *) io_opaque > (gchar *) resource);
 	g_assert(((gchar *) io_opaque - (gchar *) resource) < 1024);
-	g_assert(bs);
+	g_assert(BSCHED_BWS_INVALID != bws);
 	g_assert(s);
 	g_assert(done);
 	g_assert(error);
@@ -452,7 +452,7 @@ io_get_header(
 	ih->getline = getline_make(HEAD_MAX_SIZE);
 	ih->socket = s;
 	ih->flags = flags;
-	ih->bs = bs;
+	ih->bws = bws;
 	ih->error = error;
 	ih->process_header = done;
 	ih->header_read_start = start;

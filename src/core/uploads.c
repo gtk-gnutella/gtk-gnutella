@@ -1557,7 +1557,7 @@ upload_add(struct gnutella_socket *s)
 	 * Read HTTP headers fully, then call upload_request() when done.
 	 */
 
-	io_get_header(u, &u->io_opaque, bsched_bws_in(), s, IO_HEAD_ONLY,
+	io_get_header(u, &u->io_opaque, BSCHED_BWS_IN, s, IO_HEAD_ONLY,
 		call_upload_request, NULL, &upload_io_error);
 }
 
@@ -1628,7 +1628,7 @@ expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 	 * with the one used for direct uploading.
 	 */
 
-	io_get_header(u, &u->io_opaque, bsched_bws_in(), s, IO_SAVE_FIRST,
+	io_get_header(u, &u->io_opaque, BSCHED_BWS_IN, s, IO_SAVE_FIRST,
 		call_upload_request, start_cb, &upload_io_error);
 }
 
@@ -1684,7 +1684,7 @@ upload_connect_conf(gnutella_upload_t *u)
 			(gulong) u->file_index, guid_hex_str(servent_guid));
 
 	s = u->socket;
-	sent = bws_write(bsched_bws_out(), &s->wio, giv, rw);
+	sent = bws_write(BSCHED_BWS_OUT, &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
 		if (upload_debug > 1) g_warning(
 			"unable to send back GIV for \"%s\" to %s: %s",
@@ -3588,8 +3588,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			upload_is_enabled() &&
 			bws_out_enabled &&
 			stalled <= stall_thresh() &&
-			(gulong) bsched_pct(bsched_bws_out()) < ul_usage_min_percentage &&
-			(gulong) bsched_avg_pct(bsched_bws_out()) < ul_usage_min_percentage
+			(gulong) bsched_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage &&
+			(gulong) bsched_avg_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage
 		) {
 			if (parq_upload_request_force(
 					u, u->parq_opaque, running_uploads - 1)) {
@@ -3597,8 +3597,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				if (upload_debug)
 					g_message(
 						"Overriden slot limit because u/l b/w used at "
-						"%d%% (minimum set to %d%%)\n",
-						bsched_avg_pct(bsched_bws_out()),
+						"%lu%% (minimum set to %d%%)\n",
+						bsched_avg_pct(BSCHED_BWS_OUT),
 						ul_usage_min_percentage);
 			}
 		}
@@ -3919,7 +3919,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			&upload_tx_deflate_cb, &upload_tx_link_cb,
 			&u->socket->wio, bh_flags);
 	} else
-		u->bio = bsched_source_add(bsched_bws_out(), &s->wio,
+		u->bio = bsched_source_add(BSCHED_BWS_OUT, &s->wio,
 			BIO_F_WRITE, upload_writable, u);
 
 	if (u->sf)
@@ -4289,12 +4289,8 @@ upload_kill_addr(const host_addr_t addr)
 gboolean
 upload_is_enabled(void)
 {
-	if (max_uploads == 0)
-		return FALSE;
-	if (bsched_bwps(bsched_bws_out()) < BW_OUT_MIN)
-		return FALSE;
-
-	return TRUE;
+	return max_uploads > 0 &&
+		bsched_bw_per_second(BSCHED_BWS_OUT) >= BW_OUT_MIN;
 }
 
 /**

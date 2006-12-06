@@ -75,24 +75,75 @@ enum {
 	BS_T_RANDOM	= 2		/**< Random (unsupported) */
 };
 
+enum bsched_magic {
+	BSCHED_MAGIC = 0xee24261eU
+};
+
+/**
+ * Bandwidth scheduler.
+ *
+ * A bandwidth scheduler (`B-sched' for short) is made of:
+ *
+ * - A set of I/O sources.
+ * - A set of I/O callbacks to trigger when I/O sources are ready.
+ * - A bandwidth limit per scheduling perdiod.
+ * - A scheduling period.
+ *
+ * It operates in cooperation with the I/O sources:
+ *
+ * -# Each I/O source registers its I/O callback through the B-sched, so
+ *    that it is possible to temporarily disable them should we run out of
+ *    bandwidth for the period.
+ * -# Each I/O source requests an amount of bandwidth to use.
+ * -# After use, each I/O source tells the B-sched how much of the allocated
+ *    bandwidth it really used.
+ *
+ * Periodically, the scheduler runs to compute the amount available for the
+ * next period.
+ *
+ * A list of stealing schedulers can be added to each scheduler.  At the end
+ * of the period, any amount of bandwidth that has been unused will be
+ * given as "stolen" bandwidth to some of the schedulers stealing from us.
+ * Priority is given to schedulers that used up all their bandwidth.
+ */
+
+struct bsched {
+	enum bsched_magic magic;
+	tm_t last_period;				/**< Last time we ran our period */
+	GList *sources;					/**< List of bio_source_t */
+	GSList *stealers;				/**< List of bsched_t stealing bw */
+	gchar *name;					/**< Name, for tracing purposes */
+	gint count;						/**< Amount of sources */
+	gint type;						/**< Scheduling type */
+	gint flags;						/**< Processing flags */
+	gint period;					/**< Fixed scheduling period, in ms */
+	gint min_period;				/**< Minimal period without correction */
+	gint max_period;				/**< Maximal period without correction */
+	gint period_ema;				/**< EMA of period, in ms */
+	gint bw_per_second;				/**< Configure bandwidth in bytes/sec */
+	gint bw_max;					/**< Max bandwidth per period */
+	gint bw_actual;					/**< Bandwidth used so far in period */
+	gint bw_last_period;			/**< Bandwidth used last period */
+	gint bw_last_capped;			/**< Bandwidth capped last period */
+	gint bw_slot;					/**< Basic per-source bandwidth lot */
+	gint bw_ema;					/**< EMA of bandwidth really used */
+	gint bw_stolen;					/**< Amount we stole this period */
+	gint bw_stolen_ema;				/**< EMA of stolen bandwidth */
+	gint bw_delta;					/**< Running diff of actual vs. theoric */
+	gint bw_unwritten;				/**< Data that we could not write */
+	gint bw_capped;					/**< Bandwidth we refused to sources */
+	gint last_used;					/**< Nb of active sources last period */
+	gint current_used;				/**< Nb of active sources this period */
+	gboolean looped;				/**< True when looped once over sources */
+};
+
 /*
  * Global bandwidth schedulers.
  */
 
-struct bws_set {
-	bsched_t *out;			/**< Output (uploads) */
-	bsched_t *in;			/**< Input (downloads) */
-	bsched_t *gout;			/**< Gnet TCP output */
-	bsched_t *gin;			/**< Gnet TCP input */
-	bsched_t *gout_udp;		/**< Gnet UDP output */
-	bsched_t *gin_udp;		/**< Gnet UDP input */
-	bsched_t *glout;		/**< Gnet leaf output */
-	bsched_t *glin;			/**< Gnet leaf input */
-};
+static bsched_t *bws_set[NUM_BSCHED_BWS];
 
-static struct bws_set bws;
 static GSList *bws_list = NULL;
-static GSList *bws_gsteal_list = NULL;
 static GSList *bws_out_list = NULL;
 static GSList *bws_in_list = NULL;
 static gint bws_out_ema = 0;
@@ -164,6 +215,17 @@ bsched_make(const gchar *name, gint type, guint32 mode,
 	return bs;
 }
 
+static bsched_t *
+bsched_get(bsched_bws_t bws)
+{
+	guint i = (guint) bws;
+
+	g_assert(i < NUM_BSCHED_BWS);
+	bsched_check(bws_set[i]);	
+	return bws_set[i];
+}
+
+
 /**
  * Free bandwidth scheduler.
  *
@@ -181,8 +243,8 @@ bsched_free(bsched_t *bs)
 		bio_source_t *bio = iter->data;
 
 		bio_check(bio);
-		g_assert(bio->bs == bs);
-		bio->bs = NULL;				/* Mark orphan source */
+		g_assert(bsched_get(bio->bws) == bs);
+		bio->bws = BSCHED_BWS_INVALID;	/* Mark orphan source */
 	}
 
 	g_list_free(bs->sources);
@@ -194,15 +256,59 @@ bsched_free(bsched_t *bs)
 	G_FREE_NULL(bs);
 }
 
+gboolean
+bsched_saturated(bsched_bws_t bws)
+{
+	const bsched_t *bs = bsched_get(bws);
+	return bs->bw_actual > bs->bw_max;
+}
+
+gulong
+bsched_bps(bsched_bws_t bws)
+{
+	const bsched_t *bs = bsched_get(bws);
+	return bs->bw_last_period * 1000 / bs->period;
+}
+
+gulong
+bsched_avg_bps(bsched_bws_t bws)
+{
+	const bsched_t *bs = bsched_get(bws);
+	return bs->bw_ema * 1000 / bs->period;
+}
+
+gulong
+bsched_bw_per_second(bsched_bws_t bws)
+{
+	const bsched_t *bs = bsched_get(bws);
+	return bs->bw_per_second;
+}
+
+gulong
+bsched_pct(bsched_bws_t bws)
+{
+	return bsched_bps(bws) * 100 / (1 + bsched_bw_per_second(bws));
+}
+
+gulong
+bsched_avg_pct(bsched_bws_t bws)
+{
+	return bsched_avg_bps(bws) * 100 / (1 + bsched_bw_per_second(bws));
+}
+
 /**
  * Add `stealer' as a bandwidth stealer for underused bandwidth in `bs'.
  * Both must be either reading or writing schedulers.
  */
 static void
-bsched_add_stealer(bsched_t *bs, bsched_t *stealer)
+bsched_add_stealer(bsched_bws_t bws, bsched_bws_t bws_stealer)
 {
-	bsched_check(bs);
-	g_assert(bs != stealer);
+	bsched_t *bs, *stealer;
+   	
+	g_assert(bws != bws_stealer);
+
+	bs = bsched_get(bws);
+	stealer = bsched_get(bws_stealer);
 	g_assert((bs->flags & BS_F_RW) == (stealer->flags & BS_F_RW));
 
 	bs->stealers = g_slist_prepend(bs->stealers, stealer);
@@ -231,42 +337,41 @@ bsched_config_steal_http_gnet(void)
 	GSList *iter;
 
 	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
-		bsched_t *bs = iter->data;
-		bsched_check(bs);
-		bsched_reset_stealers(bs);
+		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
+		bsched_reset_stealers(bsched_get(bws));
 	}
 
-	bsched_add_stealer(bws.out, bws.gout);
-	bsched_add_stealer(bws.out, bws.gout_udp);
-	bsched_add_stealer(bws.out, bws.glout);
+	bsched_add_stealer(BSCHED_BWS_OUT, BSCHED_BWS_GOUT);
+	bsched_add_stealer(BSCHED_BWS_OUT, BSCHED_BWS_GOUT_UDP);
+	bsched_add_stealer(BSCHED_BWS_OUT, BSCHED_BWS_GLOUT);
 
-	bsched_add_stealer(bws.gout, bws.out);
-	bsched_add_stealer(bws.gout, bws.gout_udp);
-	bsched_add_stealer(bws.gout, bws.glout);
+	bsched_add_stealer(BSCHED_BWS_GOUT, BSCHED_BWS_OUT);
+	bsched_add_stealer(BSCHED_BWS_GOUT, BSCHED_BWS_GOUT_UDP);
+	bsched_add_stealer(BSCHED_BWS_GOUT, BSCHED_BWS_GLOUT);
 
-	bsched_add_stealer(bws.in, bws.gin);
-	bsched_add_stealer(bws.in, bws.gin_udp);
-	bsched_add_stealer(bws.in, bws.glin);
+	bsched_add_stealer(BSCHED_BWS_IN, BSCHED_BWS_GIN);
+	bsched_add_stealer(BSCHED_BWS_IN, BSCHED_BWS_GIN_UDP);
+	bsched_add_stealer(BSCHED_BWS_IN, BSCHED_BWS_GLIN);
 
-	bsched_add_stealer(bws.gin, bws.in);
-	bsched_add_stealer(bws.gin, bws.gin_udp);
-	bsched_add_stealer(bws.gin, bws.glin);
+	bsched_add_stealer(BSCHED_BWS_GIN, BSCHED_BWS_IN);
+	bsched_add_stealer(BSCHED_BWS_GIN, BSCHED_BWS_GIN_UDP);
+	bsched_add_stealer(BSCHED_BWS_GIN, BSCHED_BWS_GLIN);
 
-	bsched_add_stealer(bws.glout, bws.gout);
-	bsched_add_stealer(bws.glout, bws.gout_udp);
-	bsched_add_stealer(bws.glout, bws.out);
+	bsched_add_stealer(BSCHED_BWS_GLOUT, BSCHED_BWS_GOUT);
+	bsched_add_stealer(BSCHED_BWS_GLOUT, BSCHED_BWS_GOUT_UDP);
+	bsched_add_stealer(BSCHED_BWS_GLOUT, BSCHED_BWS_OUT);
 
-	bsched_add_stealer(bws.glin, bws.gin);
-	bsched_add_stealer(bws.glin, bws.gin_udp);
-	bsched_add_stealer(bws.glin, bws.in);
+	bsched_add_stealer(BSCHED_BWS_GLIN, BSCHED_BWS_GIN);
+	bsched_add_stealer(BSCHED_BWS_GLIN, BSCHED_BWS_GIN_UDP);
+	bsched_add_stealer(BSCHED_BWS_GLIN, BSCHED_BWS_IN);
 
-	bsched_add_stealer(bws.gout_udp, bws.gout);
-	bsched_add_stealer(bws.gout_udp, bws.glout);
-	bsched_add_stealer(bws.gout_udp, bws.out);
+	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GOUT);
+	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GLOUT);
+	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_OUT);
 
-	bsched_add_stealer(bws.gin_udp, bws.gin);
-	bsched_add_stealer(bws.gin_udp, bws.glin);
-	bsched_add_stealer(bws.gin_udp, bws.in);
+	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_GIN);
+	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_GLIN);
+	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_IN);
 }
 
 /**
@@ -278,15 +383,14 @@ bsched_config_steal_gnet(void)
 	GSList *iter;
 
 	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
-		bsched_t *bs = iter->data;
-		bsched_check(bs);
-		bsched_reset_stealers(bs);
+		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
+		bsched_reset_stealers(bsched_get(bws));
 	}
 
-	bsched_add_stealer(bws.gin, bws.gin_udp);
-	bsched_add_stealer(bws.gin_udp, bws.gin);
-	bsched_add_stealer(bws.gout, bws.gout_udp);
-	bsched_add_stealer(bws.gout_udp, bws.gout);
+	bsched_add_stealer(BSCHED_BWS_GIN, BSCHED_BWS_GIN_UDP);
+	bsched_add_stealer(BSCHED_BWS_GIN_UDP, BSCHED_BWS_GIN);
+	bsched_add_stealer(BSCHED_BWS_GOUT, BSCHED_BWS_GOUT_UDP);
+	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GOUT);
 }
 
 /**
@@ -295,53 +399,64 @@ bsched_config_steal_gnet(void)
 void
 bsched_init(void)
 {
-	bws.out = bsched_make("out",
+	bws_set[BSCHED_BWS_OUT] = bsched_make("out",
 		BS_T_STREAM, BS_F_WRITE, bw_http_out, 1000);
 
-	bws.gout = bsched_make("G TCP out",
+	bws_set[BSCHED_BWS_GOUT] = bsched_make("G TCP out",
 		BS_T_STREAM, BS_F_WRITE, bw_gnet_out / 2, 1000);
 
-	bws.gout_udp = bsched_make("G UDP out",
+	bws_set[BSCHED_BWS_GOUT_UDP] = bsched_make("G UDP out",
 		BS_T_STREAM, BS_F_WRITE, bw_gnet_out / 2, 1000);
 
-	bws.glout = bsched_make("GL out",
+	bws_set[BSCHED_BWS_GLOUT] = bsched_make("GL out",
 		BS_T_STREAM, BS_F_WRITE, bw_gnet_lout, 1000);
 
-	bws.in = bsched_make("in",
+	bws_set[BSCHED_BWS_IN] = bsched_make("in",
 		BS_T_STREAM, BS_F_READ, bw_http_in, 1000);
 
-	bws.gin = bsched_make("G TCP in",
+	bws_set[BSCHED_BWS_GIN] = bsched_make("G TCP in",
 		BS_T_STREAM, BS_F_READ, bw_gnet_in / 2, 1000);
 
-	bws.gin_udp = bsched_make("G UDP in",
+	bws_set[BSCHED_BWS_GIN_UDP] = bsched_make("G UDP in",
 		BS_T_STREAM, BS_F_READ, bw_gnet_in / 2, 1000);
 
-	bws.glin = bsched_make("GL in",
+	bws_set[BSCHED_BWS_GLIN] = bsched_make("GL in",
 		BS_T_STREAM, BS_F_READ, bw_gnet_lin, 1000);
 
-	bws_list = g_slist_prepend(bws_list, bws.glin);
-	bws_list = g_slist_prepend(bws_list, bws.gin);
-	bws_list = g_slist_prepend(bws_list, bws.gin_udp);
-	bws_list = g_slist_prepend(bws_list, bws.in);
-	bws_list = g_slist_prepend(bws_list, bws.glout);
-	bws_list = g_slist_prepend(bws_list, bws.gout);
-	bws_list = g_slist_prepend(bws_list, bws.gout_udp);
-	bws_list = g_slist_prepend(bws_list, bws.out);
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GIN));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GIN_UDP));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_IN));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GOUT));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GOUT_UDP));
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_OUT));
 
-	bws_in_list = g_slist_prepend(bws_in_list, bws.glin);
-	bws_in_list = g_slist_prepend(bws_in_list, bws.gin);
-	bws_in_list = g_slist_prepend(bws_in_list, bws.gin_udp);
-	bws_in_list = g_slist_prepend(bws_in_list, bws.in);
+	bws_in_list = g_slist_prepend(bws_in_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
+	bws_in_list = g_slist_prepend(bws_in_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GIN));
+	bws_in_list = g_slist_prepend(bws_in_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GIN_UDP));
+	bws_in_list = g_slist_prepend(bws_in_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_IN));
 
-	bws_out_list = g_slist_prepend(bws_out_list, bws.glout);
-	bws_out_list = g_slist_prepend(bws_out_list, bws.gout);
-	bws_out_list = g_slist_prepend(bws_out_list, bws.gout_udp);
-	bws_out_list = g_slist_prepend(bws_out_list, bws.out);
-
-	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gout);
-	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gout_udp);
-	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gin);
-	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gin_udp);
+	bws_out_list = g_slist_prepend(bws_out_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
+	bws_out_list = g_slist_prepend(bws_out_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GOUT));
+	bws_out_list = g_slist_prepend(bws_out_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_GOUT_UDP));
+	bws_out_list = g_slist_prepend(bws_out_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_OUT));
 
 	/*
 	 * We always steal bandwidth between TCP and UDP gnet, since we
@@ -366,9 +481,8 @@ bsched_close(void)
 	GSList *iter;
 
 	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
-		bsched_t *bs = iter->data;
-		bsched_check(bs);
-		bsched_free(bs);
+		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
+		bsched_free(bsched_get(bws));
 	}
 
 	g_slist_free(bws_list);
@@ -380,17 +494,14 @@ bsched_close(void)
 	g_slist_free(bws_in_list);
 	bws_in_list = NULL;
 
-	g_slist_free(bws_gsteal_list);
-	bws_gsteal_list = NULL;
-
-	bws.in = NULL;
-	bws.out = NULL;
-	bws.gin = NULL;
-	bws.gout = NULL;
-	bws.glin = NULL;
-	bws.glout = NULL;
-	bws.gin_udp = NULL;
-	bws.gout_udp = NULL;
+	bws_set[BSCHED_BWS_IN] = NULL;
+	bws_set[BSCHED_BWS_OUT] = NULL;
+	bws_set[BSCHED_BWS_GIN] = NULL;
+	bws_set[BSCHED_BWS_GOUT] = NULL;
+	bws_set[BSCHED_BWS_GLIN] = NULL;
+	bws_set[BSCHED_BWS_GLOUT] = NULL;
+	bws_set[BSCHED_BWS_GIN_UDP] = NULL;
+	bws_set[BSCHED_BWS_GOUT_UDP] = NULL;
 }
 
 /**
@@ -408,10 +519,10 @@ bsched_set_peermode(node_peer_t mode)
 	switch (mode) {
 	case NODE_P_NORMAL:
 	case NODE_P_LEAF:
-		bsched_set_bandwidth(bws.glin, 1);		/* 0 would disable it */
-		bsched_set_bandwidth(bws.glout, 1);
-		bsched_set_bandwidth(bws.in, bw_http_in);
-		bsched_set_bandwidth(bws.out, bw_http_out);
+		bsched_set_bandwidth(BSCHED_BWS_GLIN, 1);		/* 0 would disable it */
+		bsched_set_bandwidth(BSCHED_BWS_GLOUT, 1);
+		bsched_set_bandwidth(BSCHED_BWS_IN, bw_http_in);
+		bsched_set_bandwidth(BSCHED_BWS_OUT, bw_http_out);
 		break;
 	case NODE_P_ULTRA:
 		/*
@@ -421,26 +532,26 @@ bsched_set_peermode(node_peer_t mode)
 
 		steal = MIN(bw_http_in, bw_gnet_lin);
 		if (bws_glin_enabled && steal) {
-			bsched_set_bandwidth(bws.glin, steal);
-			bsched_set_bandwidth(bws.in, MAX(1, bw_http_in - steal));
+			bsched_set_bandwidth(BSCHED_BWS_GLIN, steal);
+			bsched_set_bandwidth(BSCHED_BWS_IN, MAX(1, bw_http_in - steal));
 		} else {
-			bsched_set_bandwidth(bws.glin, 0);			/* Disables */
-			bsched_set_bandwidth(bws.in, bw_http_in);
+			bsched_set_bandwidth(BSCHED_BWS_GLIN, 0);			/* Disables */
+			bsched_set_bandwidth(BSCHED_BWS_IN, bw_http_in);
 		}
 
 		steal = MIN(bw_http_out, bw_gnet_lout);
 		if (bws_glout_enabled && steal) {
-			bsched_set_bandwidth(bws.glout, steal);
-			bsched_set_bandwidth(bws.out, MAX(1, bw_http_out - steal));
+			bsched_set_bandwidth(BSCHED_BWS_GLOUT, steal);
+			bsched_set_bandwidth(BSCHED_BWS_OUT, MAX(1, bw_http_out - steal));
 		} else {
-			bsched_set_bandwidth(bws.glout, 0);			/* Disables */
-			bsched_set_bandwidth(bws.out, bw_http_out);
+			bsched_set_bandwidth(BSCHED_BWS_GLOUT, 0);			/* Disables */
+			bsched_set_bandwidth(BSCHED_BWS_OUT, bw_http_out);
 		}
 
-		if (bws.glin->bw_per_second && bws_glin_enabled)
-			bsched_enable(bws.glin);
-		if (bws.glout->bw_per_second && bws_glout_enabled)
-			bsched_enable(bws.glout);
+		if (bsched_bw_per_second(BSCHED_BWS_GLIN) && bws_glin_enabled)
+			bsched_enable(BSCHED_BWS_GLIN);
+		if (bsched_bw_per_second(BSCHED_BWS_GLOUT) && bws_glout_enabled)
+			bsched_enable(BSCHED_BWS_GLOUT);
 		break;
 	default:
 		g_error("unhandled peer mode %d", mode);
@@ -451,10 +562,9 @@ bsched_set_peermode(node_peer_t mode)
  * Enable scheduling, marks the start of the period.
  */
 void
-bsched_enable(bsched_t *bs)
+bsched_enable(bsched_bws_t bws)
 {
-
-	bsched_check(bs);
+	bsched_t *bs = bsched_get(bws);
 	bs->flags |= BS_F_ENABLED;
 	tm_now(&bs->last_period);
 }
@@ -463,9 +573,9 @@ bsched_enable(bsched_t *bs)
  * Disable scheduling.
  */
 void
-bsched_disable(bsched_t *bs)
+bsched_disable(bsched_bws_t bws)
 {
-	bsched_check(bs);
+	bsched_t *bs = bsched_get(bws);
 	bs->flags &= ~BS_F_ENABLED;
 }
 
@@ -475,27 +585,27 @@ bsched_disable(bsched_t *bs)
 void
 bsched_enable_all(void)
 {
-	if (bws.out->bw_per_second && bws_out_enabled)
-		bsched_enable(bws.out);
+	if (bsched_bw_per_second(BSCHED_BWS_OUT) && bws_out_enabled)
+		bsched_enable(BSCHED_BWS_OUT);
 
-	if (bws.gout->bw_per_second && bws_gout_enabled) {
-		bsched_enable(bws.gout);
-		bsched_enable(bws.gout_udp);
+	if (bsched_bw_per_second(BSCHED_BWS_GOUT) && bws_gout_enabled) {
+		bsched_enable(BSCHED_BWS_GOUT);
+		bsched_enable(BSCHED_BWS_GOUT_UDP);
 	}
 
-	if (bws.glout->bw_per_second && bws_glout_enabled)
-		bsched_enable(bws.glout);
+	if (bsched_bw_per_second(BSCHED_BWS_GLOUT) && bws_glout_enabled)
+		bsched_enable(BSCHED_BWS_GLOUT);
 
-	if (bws.in->bw_per_second && bws_in_enabled)
-		bsched_enable(bws.in);
+	if (bsched_bw_per_second(BSCHED_BWS_IN) && bws_in_enabled)
+		bsched_enable(BSCHED_BWS_IN);
 
-	if (bws.gin->bw_per_second && bws_gin_enabled) {
-		bsched_enable(bws.gin);
-		bsched_enable(bws.gin_udp);
+	if (bsched_bw_per_second(BSCHED_BWS_GIN) && bws_gin_enabled) {
+		bsched_enable(BSCHED_BWS_GIN);
+		bsched_enable(BSCHED_BWS_GIN_UDP);
 	}
 
-	if (bws.glin->bw_per_second && bws_glin_enabled)
-		bsched_enable(bws.glin);
+	if (bsched_bw_per_second(BSCHED_BWS_GLIN) && bws_glin_enabled)
+		bsched_enable(BSCHED_BWS_GLIN);
 }
 
 /**
@@ -509,9 +619,8 @@ bsched_shutdown(void)
 	GSList *sl;
 
 	for (sl = bws_list; sl; sl = g_slist_next(sl)) {
-		bsched_t *bs = sl->data;
-		bsched_check(bs);
-		bsched_disable(bs);
+		bsched_bws_t bws = GPOINTER_TO_UINT(sl->data);
+		bsched_disable(bws);
 	}
 }
 
@@ -563,7 +672,7 @@ bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, gpointer arg)
 	bio->io_callback = callback;
 	bio->io_arg = arg;
 
-	if (!(bio->bs->flags & BS_F_NOBW))
+	if (!(bsched_get(bio->bws)->flags & BS_F_NOBW))
 		bio_enable(bio);
 }
 
@@ -776,9 +885,11 @@ bsched_bio_add(bsched_t *bs, bio_source_t *bio)
  * Remove source from the source list of scheduler.
  */
 static void
-bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
+bsched_bio_remove(bsched_bws_t bws, bio_source_t *bio)
 {
-	bsched_check(bs);
+	bsched_t *bs;
+	
+	bs = bsched_get(bws);
 	bio_check(bio);
 
 	bs->sources = g_list_remove(bs->sources, bio);
@@ -802,17 +913,19 @@ bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
  */
 bio_source_t *
 bsched_source_add(
-	bsched_t *bs, wrap_io_t *wio, guint32 flags,
+	bsched_bws_t bws, wrap_io_t *wio, guint32 flags,
 	inputevt_handler_t callback, gpointer arg)
 {
 	bio_source_t *bio;
+	bsched_t *bs;
 
 	/*
 	 * Must insert reading sources in reading scheduler and writing ones
 	 * in a writing scheduler.
 	 */
 
-	bsched_check(bs);
+	bs = bsched_get(bws);
+
 	g_assert(!(bs->flags & BS_F_READ) == !(flags & BIO_F_READ));
 	g_assert(flags & BIO_F_RW);
 	g_assert((flags & BIO_F_RW) != BIO_F_RW);	/* Either reading or writing */
@@ -821,7 +934,7 @@ bsched_source_add(
 	bio = walloc0(sizeof *bio);
 
 	bio->magic = BIO_SOURCE_MAGIC;
-	bio->bs = bs;
+	bio->bws = bws;
 	bio->wio = wio;
 	bio->flags = flags;
 	bio->io_callback = callback;
@@ -849,10 +962,9 @@ bsched_source_add(
 void
 bsched_source_remove(bio_source_t *bio)
 {
-	if (bio->bs) {
-		bsched_check(bio->bs);
-		bsched_bio_remove(bio->bs, bio);
-		bio->bs = NULL;
+	if (BSCHED_BWS_INVALID != bio->bws) {
+		bsched_bio_remove(bio->bws, bio);
+		bio->bws = BSCHED_BWS_INVALID;
 	}
 	if (bio->io_tag) {
 		inputevt_remove(bio->io_tag);
@@ -867,9 +979,12 @@ bsched_source_remove(bio_source_t *bio)
  * On-the-fly changing of the allowed bandwidth.
  */
 void
-bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
+bsched_set_bandwidth(bsched_bws_t bws, gint bandwidth)
 {
-	bsched_check(bs);
+	bsched_t *bs;
+
+	bs = bsched_get(bws);
+
 	g_assert(bandwidth >= 0);
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
@@ -885,7 +1000,7 @@ bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 	 */
 
 	if (bandwidth == 0) {
-		bsched_disable(bs);
+		bsched_disable(bws);
 		return;
 	}
 
@@ -918,8 +1033,7 @@ bw_available(bio_source_t *bio, gint len)
 
 	bio_check(bio);
 
-	bs = bio->bs;
-	bsched_check(bs);
+	bs = bsched_get(bio->bws);
 
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return len;							/* Use amount requested */
@@ -1218,8 +1332,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	}
 
 	if (r > 0) {
-		bsched_check(bio->bs);
-		bsched_bw_update(bio->bs, r, amount);
+		bsched_bw_update(bsched_get(bio->bws), r, amount);
 		bio->bw_actual += r;
 	}
 
@@ -1335,8 +1448,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (r > 0) {
 		g_assert((size_t) r <= available);
-		bsched_check(bio->bs);
-		bsched_bw_update(bio->bs, r, MIN(len, available));
+		bsched_bw_update(bsched_get(bio->bws), r, MIN(len, available));
 		bio->bw_actual += r;
 	}
 
@@ -1410,8 +1522,8 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	}
 
 	if (r > 0) {
-		bsched_check(bio->bs);
-		bsched_bw_update(bio->bs, r + BW_UDP_MSG, len + BW_UDP_MSG);
+		bsched_bw_update(bsched_get(bio->bws),
+			r + BW_UDP_MSG, len + BW_UDP_MSG);
 		bio->bw_actual += r + BW_UDP_MSG;
 	}
 
@@ -1703,8 +1815,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 #endif	/* USE_MMAP */
 
 	if (r > 0) {
-		bsched_check(bio->bs);
-		bsched_bw_update(bio->bs, r, amount);
+		bsched_bw_update(bsched_get(bio->bws), r, amount);
 		bio->bw_actual += r;
 	}
 
@@ -1747,10 +1858,9 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
-		bsched_check(bio->bs);
-		bsched_bw_update(bio->bs, r, amount);
+		bsched_bw_update(bsched_get(bio->bws), r, amount);
 		bio->bw_actual += r;
-		bio->bs->flags |= BS_F_DATA_READ;
+		bsched_get(bio->bws)->flags |= BS_F_DATA_READ;
 	}
 
 	return r;
@@ -1867,10 +1977,9 @@ bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (r > 0) {
 		g_assert((size_t) r <= available);
-		bsched_check(bio->bs);
-		bsched_bw_update(bio->bs, r, MIN(len, available));
+		bsched_bw_update(bsched_get(bio->bws), r, MIN(len, available));
 		bio->bw_actual += r;
-		bio->bs->flags |= BS_F_DATA_READ;
+		bsched_get(bio->bws)->flags |= BS_F_DATA_READ;
 	}
 
 	/*
@@ -1893,11 +2002,13 @@ bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
  * @return The amount of bytes written or (-1) if an error occurred.
  */
 ssize_t
-bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len)
+bws_write(bsched_bws_t bws, wrap_io_t *wio, gconstpointer data, size_t len)
 {
+	bsched_t *bs;
 	ssize_t r;
 
-	bsched_check(bs);
+	bs = bsched_get(bws);
+
 	g_assert(bs->flags & BS_F_WRITE);
 	g_assert(wio);
 	g_assert(wio->write);
@@ -1916,11 +2027,13 @@ bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len)
  * average, we stick to the requested bandwidth rate.
  */
 ssize_t
-bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, size_t len)
+bws_read(bsched_bws_t bws, wrap_io_t *wio, gpointer data, size_t len)
 {
+	bsched_t *bs;
 	ssize_t r;
 
-	bsched_check(bs);
+	bs = bsched_get(bws);
+
 	g_assert(bs->flags & BS_F_READ);
 	g_assert(wio);
 	g_assert(wio->read);
@@ -1942,10 +2055,11 @@ void
 bws_udp_count_read(gint len)
 {
 	gint count = BW_UDP_MSG + len;
+	bsched_t *bs;
 
-	bsched_check(bws.gin_udp);
-	bsched_bw_update(bws.gin_udp, count, count);
-	bws.gin_udp->flags |= BS_F_DATA_READ;
+	bs = bsched_get(BSCHED_BWS_GIN_UDP);
+	bsched_bw_update(bs, count, count);
+	bs->flags |= BS_F_DATA_READ;
 }
 
 /**
@@ -1955,9 +2069,10 @@ void
 bws_udp_count_written(gint len)
 {
 	gint count = BW_UDP_MSG + len;
+	bsched_t *bs;
 
-	bsched_check(bws.gout_udp);
-	bsched_bw_update(bws.gout_udp, count, count);
+	bs = bsched_get(BSCHED_BWS_GOUT_UDP);
+	bsched_bw_update(bs, count, count);
 }
 
 /**
@@ -1968,33 +2083,34 @@ bws_udp_count_written(gint len)
 static bsched_t *
 bs_socket(enum socket_direction dir, enum socket_type type)
 {
-	bsched_t *bs = NULL;
+	bsched_bws_t bws = BSCHED_BWS_INVALID;
 
 	switch (type) {
 	case SOCK_TYPE_DOWNLOAD:
 	case SOCK_TYPE_HTTP:
 	case SOCK_TYPE_UPLOAD:
 	case SOCK_TYPE_PPROXY:
-	case SOCK_TYPE_UNKNOWN:
-	case SOCK_TYPE_DESTROYING:
-		bs = SOCK_CONN_OUTGOING == dir ? bws.out : bws.in;
+		bws = SOCK_CONN_OUTGOING == dir ? BSCHED_BWS_OUT : BSCHED_BWS_IN;
 		break;
 	case SOCK_TYPE_CONTROL:
 	case SOCK_TYPE_CONNBACK:
-		bs = SOCK_CONN_OUTGOING == dir ? bws.gout : bws.gin;
+		bws = SOCK_CONN_OUTGOING == dir ? BSCHED_BWS_GOUT : BSCHED_BWS_GIN;
 		break;
 	case SOCK_TYPE_SHELL:
 		return NULL;
 	case SOCK_TYPE_UDP:
-		bs = SOCK_CONN_OUTGOING == dir ? bws.gout_udp : bws.gin_udp;
+		bws = SOCK_CONN_OUTGOING == dir
+			? BSCHED_BWS_GOUT_UDP : BSCHED_BWS_GIN_UDP;
+		break;
+	case SOCK_TYPE_UNKNOWN:
+	case SOCK_TYPE_DESTROYING:
 		break;
 	}
-	if (!bs) {
+	if (BSCHED_BWS_INVALID == bws) {
 		g_warning("bs_socket: unhandled socket type %d", type);
-		bs = SOCK_CONN_OUTGOING == dir ? bws.out : bws.in;
+		bws = SOCK_CONN_OUTGOING == dir ? BSCHED_BWS_OUT : BSCHED_BWS_IN;
 	}
-	bsched_check(bs);
-	return bs;
+	return bsched_get(bws);
 }
 
 /**
@@ -2505,9 +2621,8 @@ bsched_timer(void)
 	 */
 
 	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = l->data;
-		bsched_check(bs);
-		bsched_heartbeat(bs, &tv);
+		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+		bsched_heartbeat(bsched_get(bws), &tv);
 	}
 
 	/*
@@ -2516,9 +2631,8 @@ bsched_timer(void)
 	 */
 
 	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = l->data;
-		bsched_check(bs);
-		bsched_stealbeat(bs);
+		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+		bsched_stealbeat(bsched_get(bws));
 	}
 
 	/*
@@ -2526,9 +2640,8 @@ bsched_timer(void)
 	 */
 
 	for (l = bws_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = l->data;
-		bsched_check(bs);
-		bsched_begin_timeslice(bs);
+		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+		bsched_begin_timeslice(bsched_get(bws));
 	}
 
 	/*
@@ -2536,8 +2649,8 @@ bsched_timer(void)
 	 */
 
 	for (l = bws_out_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = l->data;
-		bsched_check(bs);
+		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+		bsched_t *bs = bsched_get(bws);
 		out_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
 	}
 
@@ -2547,9 +2660,9 @@ bsched_timer(void)
 		printf("Outgoing b/w EMA = %d bytes/s\n", bws_out_ema);
 
 	for (l = bws_in_list; l; l = g_slist_next(l)) {
-		bsched_t *bs = l->data;
+		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
+		bsched_t *bs = bsched_get(bws);
 
-		bsched_check(bs);
 		in_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
 
 		if (bs->flags & BS_F_DATA_READ) {
@@ -2650,94 +2763,6 @@ bsched_enough_up_bandwidth(void)
 	}
 
 	return TRUE;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_in(void)
-{
-	bsched_t *bs = bws.in;
-	bsched_check(bs);
-	return bs;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_out(void)
-{
-	bsched_t *bs = bws.out;
-	bsched_check(bs);
-	return bs;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_gin(void)
-{
-	bsched_t *bs = bws.gin;
-	bsched_check(bs);
-	return bs;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_gout(void)
-{
-	bsched_t *bs = bws.gout;
-	bsched_check(bs);
-	return bs;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_glin(void)
-{
-	bsched_t *bs = bws.glin;
-	bsched_check(bs);
-	return bs;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_glout(void)
-{
-	bsched_t *bs = bws.glout;
-	bsched_check(bs);
-	return bs;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_gin_udp(void)
-{
-	bsched_t *bs = bws.gin_udp;
-	bsched_check(bs);
-	return bs;
-}
-
-/**
- * TODO: Use an enum instead of returned a pointer.
- */
-bsched_t *
-bsched_bws_gout_udp(void)
-{
-	bsched_t *bs = bws.gout_udp;
-	bsched_check(bs);
-	return bs;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

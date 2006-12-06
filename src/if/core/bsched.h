@@ -33,6 +33,20 @@
 
 typedef struct bsched bsched_t;
 
+typedef enum {
+	BSCHED_BWS_IN,
+	BSCHED_BWS_OUT,
+	BSCHED_BWS_GIN,
+	BSCHED_BWS_GOUT,
+	BSCHED_BWS_GLIN,
+	BSCHED_BWS_GLOUT,
+	BSCHED_BWS_GIN_UDP,
+	BSCHED_BWS_GOUT_UDP,
+
+	NUM_BSCHED_BWS,
+	BSCHED_BWS_INVALID = NUM_BSCHED_BWS
+} bsched_bws_t;
+
 /**
  * Source under bandwidth control.
  */
@@ -41,7 +55,7 @@ enum bio_source_magic { BIO_SOURCE_MAGIC = 0x80b3bf07U };
 
 typedef struct bio_source {
 	enum bio_source_magic magic;	/**< magic for consistency checks */
-	bsched_t *bs;					/**< B/w scheduler for this source */
+	bsched_bws_t bws;					/**< B/w scheduler for this source */
 	wrap_io_t *wio;					/**< Wrapped I/O object */
 	gint io_tag;					/**< Recorded I/O callback tag */
 	guint io_flags;					/**< Flags for I/O callback */

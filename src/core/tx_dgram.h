@@ -39,6 +39,8 @@
 #include "common.h"
 #include "tx.h"
 
+#include "if/core/bsched.h"
+
 const struct txdrv_ops *tx_dgram_get_ops(void);
 
 /**
@@ -53,8 +55,8 @@ struct tx_dgram_cb {
  */
 struct tx_dgram_args {
 	struct tx_dgram_cb *cb;			/**< Callbacks */
-	struct bsched *bs;				/**< Bandwidth scheduler to use */
 	struct wrap_io *wio;			/**< I/O wrapping routines */
+	bsched_bws_t bws;				/**< Bandwidth scheduler to use */
 };
 
 #endif	/* _core_tx_dgram_h_ */

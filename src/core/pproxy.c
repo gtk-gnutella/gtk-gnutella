@@ -953,7 +953,7 @@ pproxy_add(struct gnutella_socket *s)
 	 * Read HTTP headers, then call pproxy_request() when done.
 	 */
 
-	io_get_header(pp, &pp->io_opaque, bsched_bws_in(), s, IO_HEAD_ONLY,
+	io_get_header(pp, &pp->io_opaque, BSCHED_BWS_IN, s, IO_HEAD_ONLY,
 		call_pproxy_request, NULL, &pproxy_io_error);
 }
 

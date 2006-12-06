@@ -7445,7 +7445,7 @@ http_version_nofix:
 
 					d->status = GTA_DL_SINKING;
 
-					d->bio = bsched_source_add(bsched_bws_in(), &s->wio,
+					d->bio = bsched_source_add(BSCHED_BWS_IN, &s->wio,
 						BIO_F_READ, download_sink_read, d);
 
 					if (s->pos > 0)
@@ -8081,7 +8081,7 @@ http_version_nofix:
 		gnet_host_t host;
 
 		args.cb = &download_rx_link_cb;
-		args.bs = bsched_bws_in();
+		args.bws = BSCHED_BWS_IN;
 		args.wio = &d->socket->wio;
 
 		gnet_host_set(&host, download_addr(d), download_port(d));
@@ -8259,7 +8259,7 @@ download_request_sent(struct download *d)
 
 	g_assert(d->io_opaque == NULL);
 
-	io_get_header(d, &d->io_opaque, bsched_bws_in(), d->socket, IO_SAVE_FIRST,
+	io_get_header(d, &d->io_opaque, BSCHED_BWS_IN, d->socket, IO_SAVE_FIRST,
 		call_download_request, download_start_reading, &download_io_error);
 }
 
@@ -8310,7 +8310,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	rw = http_buffer_unread(r);			/* Data we still have to send */
 	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	sent = bws_write(bsched_bws_out(), &s->wio, base, rw);
+	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
 		/*
 		 * If download is queued with PARQ, etc...  [Same as above]
@@ -8631,7 +8631,7 @@ picked:
 			 *		--RAM, 2005-10-20
 			 */
 
-			if (bsched_saturated(bsched_bws_out())) {
+			if (bsched_saturated(BSCHED_BWS_OUT)) {
 				altloc_size = MIN(altloc_size, 160);
 				if (fi_alive_count(file_info) > FI_LOW_SRC_COUNT)
 					file_info = NULL;
@@ -8669,7 +8669,7 @@ picked:
 
 	socket_tos_normal(s);
 
-	sent = bws_write(bsched_bws_out(), &s->wio, dl_tmp, rw);
+	sent = bws_write(BSCHED_BWS_OUT, &s->wio, dl_tmp, rw);
 	if ((ssize_t) -1 == sent) {
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
@@ -9122,7 +9122,7 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	g_assert(NULL == d->io_opaque);
-	io_get_header(d, &d->io_opaque, bsched_bws_in(), s, IO_SINGLE_LINE,
+	io_get_header(d, &d->io_opaque, BSCHED_BWS_IN, s, IO_SINGLE_LINE,
 		call_download_push_ready, NULL, &download_io_error);
 
 	return;

@@ -2733,7 +2733,7 @@ send_error(
 	gchar msg_tmp[256];
 	size_t rw;
 	ssize_t sent;
-	gboolean saturated = bsched_saturated(bsched_bws_gout());
+	gboolean saturated = bsched_saturated(BSCHED_BWS_GOUT);
 	const gchar *version;
 	gchar *token;
 	gchar xlive[128];
@@ -2818,7 +2818,7 @@ send_error(
 
 	g_assert(rw < sizeof(gnet_response));
 
-	sent = bws_write(bsched_bws_gout(), &s->wio, gnet_response, rw);
+	sent = bws_write(BSCHED_BWS_GOUT, &s->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		if (node_debug)
 			g_warning("Unable to send back error %d (%s) to node %s: %s",
@@ -3246,8 +3246,8 @@ node_is_now_connected(struct gnutella_node *n)
 		struct rx_link_args args;
 
 		args.cb = &node_rx_link_cb;
-		args.bs = n->peermode == NODE_P_LEAF
-			? bsched_bws_glin() : bsched_bws_gin();
+		args.bws = n->peermode == NODE_P_LEAF
+				? BSCHED_BWS_GLIN : BSCHED_BWS_GIN;
 		args.wio = &n->socket->wio;
 
 		n->rx = rx_make(n, &host, rx_link_get_ops(), &args);
@@ -3280,8 +3280,8 @@ node_is_now_connected(struct gnutella_node *n)
 		struct tx_link_args args;
 
 		args.cb = &node_tx_link_cb;
-		args.bs = n->peermode == NODE_P_LEAF
-			? bsched_bws_glout() : bsched_bws_gout();
+		args.bws = n->peermode == NODE_P_LEAF
+					? BSCHED_BWS_GLOUT : BSCHED_BWS_GOUT;
 		args.wio = &n->socket->wio;
 
 		tx = tx_make(n, &host, tx_link_get_ops(), &args);	/* Cannot fail */
@@ -5277,7 +5277,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * Simply log it and close the connection.
 	 */
 
-	sent = bws_write(bsched_bws_gout(), &n->socket->wio, gnet_response, rw);
+	sent = bws_write(BSCHED_BWS_GOUT, &n->socket->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		int errcode = errno;
 		if (node_debug) g_warning("Unable to send back %s to node %s: %s",
@@ -5581,7 +5581,7 @@ node_udp_enable_by_net(enum net_type net)
 	n->socket = s;
 
 	args.cb = &node_tx_dgram_cb;
-	args.bs = bsched_bws_gout_udp();
+	args.bws = BSCHED_BWS_GOUT_UDP;
 	args.wio = &n->socket->wio;
 
 	gnet_host_set(&host, n->addr, n->port);
@@ -6020,7 +6020,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		 * operate any data transfer (3-way handshaking).
 		 */
 
-		io_get_header(n, &n->io_opaque, bsched_bws_gin(), s,
+		io_get_header(n, &n->io_opaque, BSCHED_BWS_GIN, s,
 			IO_3_WAY|IO_HEAD_ONLY, call_node_process_handshake_header, NULL,
 			&node_io_error);
 	}
@@ -6901,7 +6901,7 @@ node_init_outgoing(struct gnutella_node *n)
 	g_assert(n->hello.pos < n->hello.size);
 	g_assert(n->hello.len > 0);
 
-	sent = bws_write(bsched_bws_gout(), &n->socket->wio,
+	sent = bws_write(BSCHED_BWS_GOUT, &n->socket->wio,
 				&n->hello.ptr[n->hello.pos], n->hello.len);
 
 	switch (sent) {
@@ -6950,7 +6950,7 @@ node_init_outgoing(struct gnutella_node *n)
 	 * Prepare parsing of the expected 0.6 reply.
 	 */
 
-	io_get_header(n, &n->io_opaque, bsched_bws_gin(), s,
+	io_get_header(n, &n->io_opaque, BSCHED_BWS_GIN, s,
 		IO_SAVE_FIRST|IO_HEAD_ONLY, call_node_process_handshake_header, NULL,
 		&node_io_error);
 
@@ -8276,7 +8276,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	 */
 
 	if (NODE_IS_UDP(node))
-		status->rx_bps = bsched_bps(bsched_bws_gin_udp());
+		status->rx_bps = bsched_bps(BSCHED_BWS_GIN_UDP);
 	else {
 		bio_source_t *bio = node->rx ? rx_bio_source(node->rx) : NULL;
 		status->rx_bps = bio ? bio_bps(bio) : 0;
@@ -8426,7 +8426,7 @@ node_connected_back(struct gnutella_socket *s)
 		g_message("connected back to %s",
 			host_addr_port_to_string(s->addr, s->port));
 
-	(void) bws_write(bsched_bws_out(), &s->wio, msg, sizeof msg - 1);
+	(void) bws_write(BSCHED_BWS_OUT, &s->wio, msg, sizeof msg - 1);
 
 	socket_free_null(&s);
 }
