@@ -35,6 +35,7 @@
  */
 
 #include "common.h"
+#include "vmm.h"
 
 #if defined(I_SYS_SYSCTL) && defined(HAS_SYSCTL)
 #include <sys/sysctl.h>
