@@ -1,7 +1,6 @@
 src/core/bitzi.c
 src/core/downloads.c
 src/core/gnet_stats.c
-src/core/gwcache.c
 src/core/nodes.c
 src/core/rx_link.c
 src/core/settings.c

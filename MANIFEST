@@ -117,7 +117,6 @@ doc/gnutella/crawler
 doc/gnutella/deflated_udp
 doc/gnutella/draft-nielsen-dime-02.txt
 doc/gnutella/dynamic_query
-doc/gnutella/gwcache
 doc/gnutella/handshaking_0.6
 doc/gnutella/hostname
 doc/gnutella/huge
@@ -148,8 +147,6 @@ doc/other/NOTE-datetime.txt
 doc/other/dbus-support.txt
 doc/other/gtkg-shell.sh
 doc/other/gtkg.supp
-doc/other/gwccheck
-doc/other/gwcscan
 doc/other/remote-shell.expect
 doc/other/shell.txt
 doc/other/rfc3548.txt
@@ -180,7 +177,6 @@ extra_files/gtk-gnutella.32.png
 extra_files/gtk-gnutella.desktop
 extra_files/gtk-gnutella.png
 extra_files/gtk-gnutella.svg
-extra_files/gwcache.boot
 extra_files/hostiles.txt
 extra_files/ja/FAQ
 extra_files/ja/Jmakefile
@@ -304,8 +300,6 @@ src/core/gnet_stats.h
 src/core/gnutella.h
 src/core/guid.c
 src/core/guid.h
-src/core/gwcache.c
-src/core/gwcache.h
 src/core/hashtree.c
 src/core/hashtree.h
 src/core/hcache.c

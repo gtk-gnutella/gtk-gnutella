@@ -213,13 +213,6 @@ This is where the download queue is persisted.  Only the direct downloads
 (i.e. non-pushed) can be saved, since they don't need routing information.
 .RE
 .TP
-.I $GTK_GNUTELLA_DIR/gwcache
-.RS
-This is the list of known other Gnutella web caches, which.
-.B gtk-gnutella
-refreshes regularly.
-.RE
-.TP
 .I $GTK_GNUTELLA_DIR/hosts
 .RS
 This is the host cache. This is saved by

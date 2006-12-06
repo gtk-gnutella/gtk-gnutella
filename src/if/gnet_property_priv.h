@@ -115,7 +115,6 @@ extern const guint32  fileinfo_debug;
 extern const guint32  upload_debug;
 extern const guint32  lib_debug;
 extern const guint32  bitzi_debug;
-extern const guint32  gwc_debug;
 extern const guint32  url_debug;
 extern const guint32  dh_debug;
 extern const guint32  dq_debug;

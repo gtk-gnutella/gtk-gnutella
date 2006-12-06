@@ -50,7 +50,6 @@ SRC = \
 	gmsg.c \
 	gnet_stats.c \
 	guid.c \
-	gwcache.c \
 	hashtree.c \
 	hcache.c \
 	hostiles.c \

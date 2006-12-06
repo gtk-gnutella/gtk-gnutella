@@ -58,7 +58,7 @@ Release steps
 
 	LC_ALL=C date +'%a, %e %b %Y %H:%M:%S %z'
 
-6. Update and commit extra_files/gwcache.boot.
+6. Drink a coffee.
 
 7. From the "top directory", run:
 

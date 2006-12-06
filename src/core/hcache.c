@@ -40,9 +40,6 @@
  *		-# hits/misses while adding,
  *		-# hits/misses while bad checking
  *		-# how many hosts were tried to connect to?
- *	- display stats about gwcache usage:
- *		-# how often
- *		-# how many hosts got
  *	- move unstable servant code from nodes.c to hcache.c
  *	- make sure hosts we are currently connected too are also saved
  *		to disk on exit!

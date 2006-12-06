@@ -57,7 +57,6 @@
 #include "core/gnet_stats.h"
 #include "core/gnutella.h"
 #include "core/guid.h"
-#include "core/gwcache.h"
 #include "core/hcache.h"
 #include "core/hostiles.h"
 #include "core/hosts.h"
@@ -235,7 +234,6 @@ debugging(guint t)
 		fileinfo_debug > t ||
 		ggep_debug > t ||
 		gmsg_debug > t ||
-		gwc_debug > t ||
 		hsep_debug > t ||
 		http_debug > t ||
 		lib_debug > t ||
@@ -375,7 +373,6 @@ gtk_gnutella_exit(gint n)
 	DO(download_close);
 	DO(pproxy_close);
 	DO(http_close);
-	DO(gwc_close);
 	DO(uhc_close);
 	DO(verify_close);
 	DO(move_close);
@@ -548,7 +545,6 @@ slow_main_timer(time_t now)
 		file_info_store_if_dirty();
 		break;
 	case 4:
-		gwc_store_if_dirty();
 		hcache_store_if_dirty(HOST_ULTRA);
 		break;
 	default:
@@ -1157,7 +1153,6 @@ main(int argc, char **argv)
 	bogons_init();
 	gip_init();
 	guid_init();
-	gwc_init();
 	uhc_init();
 	verify_init();
 	move_init();

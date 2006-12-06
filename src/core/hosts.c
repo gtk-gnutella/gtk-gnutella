@@ -45,7 +45,6 @@ RCSID("$Id$")
 #include "gmsg.h"
 #include "pcache.h"
 #include "whitelist.h"
-#include "gwcache.h"
 #include "settings.h"
 #include "bogons.h"
 #include "uhc.h"
@@ -216,13 +215,8 @@ host_timer(void)
 			}
 
 			if (missing > 0 && hcache_read_finished()) {
-				static gint rotate = 0;
-
-				if (!uhc_is_waiting() && !gwc_is_waiting()) {
-					if (!udp_active() || (0x3 == (rotate++ & 0x3)))
-						gwc_get_hosts(); 	/* Get from web host cache */
-					else
-						uhc_get_hosts();	/* Get from UDP pong caches */
+				if (!uhc_is_waiting()) {
+					uhc_get_hosts();	/* Get from UDP pong caches */
 				} else if (bootstrap_debug > 2)
 					g_message("BOOT host_timer - waiting for reply from %s",
 						uhc_is_waiting() ? "UDP host cache" : "web cache");

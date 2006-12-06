@@ -1,5 +1,0 @@
-#! /bin/sh -x
-# $Id$
-awk '/^http:\/\// {printf "%s\0", $0}' /tmp/gwcache.boot \
-	| xargs -0n 1 gwccheck 
-

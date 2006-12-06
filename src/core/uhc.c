@@ -208,7 +208,7 @@ uhc_pick(void)
 
 	len = g_list_length(uhc_avail);
 	if (len < 1) {
-		if (gwc_debug || bootstrap_debug)
+		if (bootstrap_debug)
 			g_warning("BOOT ran out of UHCs");
 		return FALSE;
 	}
@@ -301,7 +301,7 @@ uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (gwc_debug)
+	if (bootstrap_debug)
 		g_warning("no reply from UDP host cache %s:%u",
 			uhc_ctx.host, uhc_ctx.port);
 
@@ -339,7 +339,7 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
 	else
 		gm_hash_table_insert_const(uhc_ctx.guids, muid, GUINT_TO_POINTER(1));
 
-	if (gwc_debug || bootstrap_debug)
+	if (bootstrap_debug)
 		g_message("BOOT sent UDP SCP ping %s to %s",
 			guid_hex_str(muid), host_addr_port_to_string(addr, port));
 
@@ -379,7 +379,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 	 */
 
 	if (0 == n) {
-		if (gwc_debug)
+		if (bootstrap_debug)
 			g_warning("could not resolve UDP host cache \"%s\"",
 				uhc_ctx.host);
 
@@ -389,7 +389,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 
 	uhc_ctx.addr = addrs[random_raw() % n];
 	
-	if (gwc_debug || bootstrap_debug)
+	if (bootstrap_debug)
 		g_message("BOOT UDP host cache \"%s\" resolved to %s",
 			uhc_ctx.host, host_addr_to_string(uhc_ctx.addr));
 
@@ -460,7 +460,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 
 	cnt = paylen / 6;
 
-	if (gwc_debug || bootstrap_debug)
+	if (bootstrap_debug)
 		g_message("extracting %d host%s in UDP IPP pong %s from %s (%s)",
 			cnt, cnt == 1 ? "" : "s",
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n),
@@ -497,7 +497,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	) {
 		g_assert(uhc_ctx.timeout_ev != NULL);
 
-		if (gwc_debug || bootstrap_debug)
+		if (bootstrap_debug)
 			g_message("BOOT UDP cache \"%s\" (%s) replied: "
 				"got %d host%s from %s",
 				uhc_ctx.host,

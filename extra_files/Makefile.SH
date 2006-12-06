@@ -68,7 +68,6 @@ all::
 EXTRA_FILES = \
 	bogons.txt \
 	favicon.png \
-	gwcache.boot \
 	geo-ip.txt \
 	hostiles.txt \
 	robots.txt
