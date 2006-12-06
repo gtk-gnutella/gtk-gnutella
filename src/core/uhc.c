@@ -96,9 +96,9 @@ static const struct {
 	{ "g6.6dns.org:1337" },
 	{ "guruz.udp-host-cache.com:6666" },
 	{ "secondary.udp-host-cache.com:9999" },
-	{ "uhc.ak-electron.org:6346" },
 	{ "uhc.udp-host-cache.com:9999" },
 	{ "uhc2.limewire.com:20181" },
+	{ "void.ghostwhitecrab.de:10706" },
 	{ "zomfg.gtkg.org:40000" },
 };
 
