@@ -435,7 +435,7 @@ io_get_header(
 	g_assert(io_opaque);
 	g_assert((gchar *) io_opaque > (gchar *) resource);
 	g_assert(((gchar *) io_opaque - (gchar *) resource) < 1024);
-	g_assert(BSCHED_BWS_INVALID != bws);
+	g_assert(bws < NUM_BSCHED_BWS);
 	g_assert(s);
 	g_assert(done);
 	g_assert(error);
