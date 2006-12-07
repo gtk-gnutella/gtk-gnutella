@@ -617,6 +617,9 @@
 69.16.142.200
 216.75.107.32/27
 
+# www.aup.lockeddns.com; used by DynDNS.org to hijack hosts of past users.
+82.94.222.186
+
 # University of Mississippi
 130.74.0.0/16
 
