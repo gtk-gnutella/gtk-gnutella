@@ -49,7 +49,7 @@ fi
 
 # Detect the variant of "stat"; unfortunately there is no standard
 # for this. It is needed to get the filesize and timestamp of a file.
-stat=$(stat --version 2>/dev/null | grep -m1 coreutils | sed 's,^.*\(coreutils\).*$,\1,')
+stat=$(stat --version 2>/dev/null | sed -n 's,^.*\(coreutils\).*$,\1,p')
 
 stat /dev/null >/dev/null 2>&1 || {
   echo 'ERROR: The stat tool seems unusable.' >&2
