@@ -346,6 +346,7 @@
 61.129.70.59
 61.129.251.204
 61.152.171.139
+60.28.222.171
 
 # Gnucleus-based DRM WMV spammer hosted by HopOne
 209.160.32.221
