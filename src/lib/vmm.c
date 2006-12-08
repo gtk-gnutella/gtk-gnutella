@@ -45,19 +45,23 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
- * With VMM_GREEDY_PAGE_CACHE we always map memory for a complete
- * slot. This causes some over-allocation but reduces page-table
- * fragmentation.
+ * With VMM_GREEDY_PAGE_CACHE we always map memory for a complete slot. This
+ * causes some over-allocation but reduces page-table fragmentation.
  */
 /* #define VMM_GREEDY_PAGE_CACHE 1 */
 
 /*
- * With VMM_INVALIDATE_FREE_PAGES freed pages are invalidated and
- * completely protected so that the system can recycle them without
- * ever paging them out as we don't care about the data in them
- * anymore. It may also help to detect access-after-free bugs.
+ * With VMM_INVALIDATE_FREE_PAGES freed pages are invalidated so that the
+ * system can recycle them without ever paging them out as we don't care about
+ * the data in them anymore.
  */
-#define VMM_INVALIDATE_FREE_PAGES 1
+/* #define VMM_INVALIDATE_FREE_PAGES 1 */
+
+/*
+ * With VMM_PROTECT_FREE_PAGES freed pages are completely protected. This may
+ * help to detect access-after-free bugs.
+ */
+#define VMM_PROTECT_FREE_PAGES 1
 
 /*
  * Cached pages older than `page_cache_prune_timeout' seconds are released
@@ -299,8 +303,10 @@ vmm_validate_pages(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
 	RUNTIME_ASSERT(size > 0);
-#ifdef VMM_INVALIDATE_FREE_PAGES 
+#ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_READ | PROT_WRITE);
+#endif	/* VMM_PROTECT_FREE_PAGES */
+#ifdef VMM_INVALIDATE_FREE_PAGES 
 	vmm_madvise_normal(p, size);
 #endif	/* VMM_INVALIDATE_FREE_PAGES */
 }
@@ -310,8 +316,10 @@ vmm_invalidate_pages(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
 	RUNTIME_ASSERT(size > 0);
-#ifdef VMM_INVALIDATE_FREE_PAGES 
+#ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_NONE);
+#endif	/* VMM_PROTECT_FREE_PAGES */
+#ifdef VMM_INVALIDATE_FREE_PAGES 
 	vmm_madvise_free(p, size);
 #endif	/* VMM_INVALIDATE_FREE_PAGES */
 }
