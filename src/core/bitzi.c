@@ -520,7 +520,8 @@ process_meta_data(bitzi_request_t *request)
 				(time_t) -1 == data->expiry ||
 				delta_time(data->expiry, tm_time()) <= 0
 			) {
-				g_warning("process_meta_data: stale bitzi data");
+				if (bitzi_debug) 
+					g_message("process_meta_data: stale bitzi data");
 			} else if (bitzi_cache_add(data)) {
 				if (bitzi_cache_file) {
 					xmlDocDump(bitzi_cache_file, doc);
