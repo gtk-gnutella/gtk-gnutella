@@ -81,6 +81,7 @@
 #include "lib/glib-missing.h"
 #include "lib/idtable.h"
 #include "lib/palloc.h"
+#include "lib/magnet.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/utf8.h"
@@ -10441,6 +10442,182 @@ download_browse_maybe_finished(struct download *d)
 	if (FILE_INFO_COMPLETE(fi))
 		download_rx_done(d);
 }
+
+gboolean
+download_handle_magnet(const gchar *url)
+{
+	struct magnet_resource *res;
+
+	res = magnet_parse(url, NULL);
+	if (res) {
+		gchar *filename;	/* strdup */
+		GSList *sl;
+		guint n_downloads = 0, n_searches = 0;
+
+		filename = g_strdup(res->display_name);
+		if (!filename) {
+			for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
+				struct magnet_source *ms = sl->data;
+
+				if (ms->path) {
+					const gchar *endptr;
+					
+					/*
+					 * If the path contains a '?', this is most-likely a
+					 * `search' with parameters e.g., "/index.php?yadda=1",
+					 * so we cut the search part off for the filename.
+					 */
+					endptr = strchr(ms->path, '?');
+					if (!endptr) {
+						endptr = strchr(ms->path, '\0');
+					}
+
+					{
+						gchar *path, *unescaped;
+
+						path = g_strndup(ms->path, endptr - ms->path);
+						unescaped = url_unescape(path, FALSE);
+						if (unescaped) {
+							filename = g_strdup(filepath_basename(unescaped));
+							if (unescaped != path) {
+								G_FREE_NULL(unescaped);
+							}
+						}
+						G_FREE_NULL(path);
+					}
+
+					if (filename && '\0' != filename[0]) {
+						break;
+					}
+					G_FREE_NULL(filename);
+				}
+			}
+		}
+		if (!filename) {
+			if (res->sha1) {
+				filename = g_strconcat("urn:sha1:",
+								sha1_base32(res->sha1), (void *) 0);
+			} else {
+				filename = g_strdup("magnet-download");
+			}
+		}
+
+		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
+			struct magnet_source *ms = sl->data;
+			host_addr_t addr;
+
+			if (!ms->path && !res->sha1) {
+				g_message("Unusable magnet source");
+				continue;
+			}
+			
+			/* Note: We use 0.0.0.0 instead of zero_host_addr because
+			 *       the core would bark when using the latter.
+			 */
+			addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
+			if (ms->path) {
+				download_new_uri(filename, ms->path, res->size,
+					addr, ms->port, blank_guid, ms->hostname,
+					res->sha1, tm_time(), NULL, NULL, 0);
+			} else if (res->sha1) {
+				download_new(filename, res->size, URN_INDEX,
+					addr, ms->port, blank_guid, ms->hostname,
+					res->sha1, tm_time(), NULL, NULL, 0);
+			}
+			n_downloads += ((is_host_addr(addr) || ms->hostname) &&
+								0 != ms->port);
+		}
+
+		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
+			const gchar *query;
+
+			/* Note that SEARCH_F_LITERAL is used to prevent that these
+			 * searches are parsed for magnets or other special items. */
+			query = sl->data;
+			g_assert(query);
+			if (
+				gcu_search_gui_new_search(query,
+					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
+			) {
+				n_searches++;
+			}
+		}
+
+		if (!res->sources && res->sha1) {
+			gchar query[128];
+			
+			concat_strings(query, sizeof query,
+				"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
+
+			/* Note that SEARCH_F_LITERAL is used to prevent an infinite
+			 * recursion between search_gui_new_search_full() and this
+			 * function. */
+			if (
+				gcu_search_gui_new_search(query,
+					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
+			) {
+				n_searches++;
+			}
+
+			/*
+			 * When we know the urn:sha1: and a proper name, we reserve
+			 * a download immediately so that it starts as soon as a
+			 * source is found. Don't do this for a plain "urn:sha1:"
+			 * though as the user might not have an idea what the search
+			 * is supposed to find.
+			 */
+			if (res->display_name) {
+				download_new(filename, res->size, URN_INDEX,
+					ipv4_unspecified, 0, blank_guid, NULL,
+					res->sha1, tm_time(), NULL, NULL, 0);
+				n_downloads++;
+			}
+		}
+
+		G_FREE_NULL(filename);
+
+		magnet_resource_free(res);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+gboolean
+download_handle_http(const gchar *url)
+{
+	gchar *magnet_url;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(is_strcaseprefix(url, "http://"), FALSE);
+
+	{
+		struct magnet_resource *magnet;
+		gchar *escaped_url;
+
+		/* Assume the URL was entered by a human; humans don't escape
+		 * URLs except on accident and probably incorrectly. Try to
+		 * correct the escaping but don't touch '?', '&', '=', ':'.
+		 */
+		escaped_url = url_fix_escape(url);
+
+		/* Magnet values are ALWAYS escaped. */
+		magnet = magnet_resource_new();
+		magnet_add_source_by_url(magnet, escaped_url);
+		if (escaped_url != url) {
+			G_FREE_NULL(escaped_url);
+		}
+		magnet_url = magnet_to_string(magnet);
+		magnet_resource_free(magnet);
+	}
+	
+	success = download_handle_magnet(magnet_url);
+	G_FREE_NULL(magnet_url);
+
+	return success;
+}
+
 
 /*
  * Local Variables:

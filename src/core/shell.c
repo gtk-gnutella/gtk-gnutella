@@ -27,6 +27,7 @@
 
 RCSID("$Id$")
 
+#include "downloads.h"
 #include "hsep.h"
 #include "nodes.h"
 #include "settings.h"
@@ -47,6 +48,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
+#include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -115,6 +117,7 @@ static void shell_handle_data(gpointer data, gint unused_source,
 
 enum shell_cmd {
 	CMD_ADD,
+	CMD_DOWNLOAD,
 	CMD_HELP,
 	CMD_HORIZON,
 	CMD_NODE,
@@ -141,6 +144,7 @@ static const struct {
 	const gchar * const cmd;
 } commands[] = {
 	{	CMD_ADD,		"add"		},
+	{	CMD_DOWNLOAD,	"download"	},
 	{	CMD_HELP,		"help"		},
 	{	CMD_HORIZON,	"horizon"	},
 	{	CMD_NODE,		"node"		},
@@ -988,6 +992,67 @@ shell_exec_uploads(gnutella_shell_t *sh, const gchar *cmd)
 }
 
 /**
+ * Displays all active uploads
+ */
+static enum shell_reply
+shell_exec_download(gnutella_shell_t *sh, const gchar *cmd)
+{
+	enum shell_reply reply_code = REPLY_ERROR;
+	gchar *tok;
+	gint pos = 0;
+
+	shell_check(sh);
+	g_assert(cmd);
+
+	tok = shell_get_token(cmd, &pos);
+	if (!tok)
+		goto error;
+
+	switch (get_command(tok)) {
+	case CMD_ADD: {
+		gchar *tok_query;
+		gboolean success;
+
+		tok_query = shell_get_token(cmd, &pos);
+		if (!tok_query) {
+			sh->msg = _("URL missing");
+			goto error;
+		}
+
+		if (is_strcaseprefix(tok_query, "http://")) {
+			success = download_handle_http(tok_query);
+		} else if (is_strcaseprefix(tok_query, "magnet:?")) {
+			success = download_handle_magnet(tok_query);
+		} else {
+			success = FALSE;
+		}
+		G_FREE_NULL(tok_query);
+
+		if (!success) {
+			sh->msg = _("The download could not be created");
+			goto error;
+		}
+		sh->msg = _("Download added");
+		reply_code = REPLY_READY;
+		break;
+	}
+	default:
+		sh->msg = _("Unknown operation");
+		goto error;
+	}
+
+	G_FREE_NULL(tok);
+
+	return reply_code;
+
+error:
+	G_FREE_NULL(tok);
+	if (sh->msg == NULL)
+		sh->msg = _("Malformed command");
+
+	return REPLY_ERROR;
+}
+/**
  * Displays assorted status information
  */
 static enum shell_reply
@@ -1227,6 +1292,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		shell_write(sh,
 			"100~ \n"
 			"The following commands are available:\n"
+			"download add <URL>|<magnet>\n"
 			"help\n"
 			"horizon [all]\n"
 			"node add <ip> [port]\n"
@@ -1299,6 +1365,9 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		break;
 	case CMD_UPLOADS:
 		reply_code = shell_exec_uploads(sh, args);
+		break;
+	case CMD_DOWNLOAD:
+		reply_code = shell_exec_download(sh, args);
 		break;
 	case CMD_ADD:
 	case CMD_NOOP:
