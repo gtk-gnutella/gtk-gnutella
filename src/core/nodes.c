@@ -7653,10 +7653,7 @@ node_remove_worst(gboolean non_local)
 		if (non_local)
 			node_bye_if_writable(n, 202, "Local Node Preferred");
 		else {
-			if (worst)
-				node_bye_if_writable(n, 409, "Too Many Errors");
-			else
-				node_bye_if_writable(n, 202, "Making Room for Another Node");
+			node_bye_if_writable(n, 202, "Making Room for Another Node");
 		}
         return TRUE;
     }
