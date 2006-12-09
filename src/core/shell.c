@@ -1065,20 +1065,25 @@ shell_exec_status(gnutella_shell_t *sh)
 		shell_write(sh, buf);
 	}
 	
-	concat_strings(buf, sizeof buf,
-		"|---------------------------------------------------------|\n"
-		"| Sharing ",
-		uint64_to_string(shared_files_scanned()),
-		" file",
-		shared_files_scanned() == 1 ? "" : "s",
-		" ",
-		short_kb_size(shared_kbytes_scanned(), display_metric_units),
-		" total                         |\n",
-		(void *) 0);
-	shell_write(sh, buf);
+	{
+		gchar line[128];
 
-	shell_write(sh,
-		"+_________________________________________________________+\n");
+		shell_write(sh,
+			"|---------------------------------------------------------|\n");
+		concat_strings(line, sizeof line,
+			"Sharing ",
+			uint64_to_string(shared_files_scanned()),
+			" file",
+			shared_files_scanned() == 1 ? "" : "s",
+			" ",
+			short_kb_size(shared_kbytes_scanned(), display_metric_units),
+			" total",
+			(void *) 0);
+		gm_snprintf(buf, sizeof buf, "| %-55s |\n", line);
+		shell_write(sh, buf);
+		shell_write(sh,
+			"+_________________________________________________________+\n");
+	}
 
 	return REPLY_READY;
 }
