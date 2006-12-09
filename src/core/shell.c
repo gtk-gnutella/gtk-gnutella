@@ -409,43 +409,12 @@ error:
 	return REPLY_ERROR;
 }
 
-static property_t
-get_prop_stub_by_name(const gchar *tok_prop, prop_set_stub_t **stub_ptr)
-{
-	prop_set_get_stub_t stub_getter[] = {
-#if !defined(USE_TOPLESS)
-		gui_prop_get_stub,
-#endif
-		gnet_prop_get_stub,
-	};
-	guint i;
-
-	g_return_val_if_fail(NULL != tok_prop, NO_PROP);
-	g_return_val_if_fail(NULL != stub_ptr, NO_PROP);
-
-	for (i = 0; i < G_N_ELEMENTS(stub_getter); i++) {
-		property_t prop;
-		prop_set_stub_t *stub;
-
-		stub = (stub_getter[i])();
-		if (NO_PROP != (prop = stub->get_by_name(tok_prop))) {
-			*stub_ptr = stub;
-			return prop;
-		}
-		G_FREE_NULL(stub);
-	}
-
-	*stub_ptr = NULL;
-	return NO_PROP;
-}
-
 static enum shell_reply
 shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 {
-	enum shell_reply reply_code = REPLY_ERROR;
+	enum shell_reply reply_code;
 	gchar *tok_prop;
 	gint pos = 0;
-	prop_set_stub_t *stub = NULL;
 	property_t prop;
 
 	shell_check(sh);
@@ -457,43 +426,40 @@ shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 		goto error;
 	}
 
-	prop = get_prop_stub_by_name(tok_prop, &stub);
+	prop = gnet_prop_get_by_name(tok_prop);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
 	}
 
 	shell_write(sh, _("Value: "));
-	shell_write(sh, stub->to_string(prop));
+	shell_write(sh, gnet_prop_to_string(prop));
 	shell_write(sh, "\n");
 
 	sh->msg = _("Value found and displayed");
 	reply_code = REPLY_READY;
 
-	G_FREE_NULL(stub);
 	G_FREE_NULL(tok_prop);
-
-	return reply_code;
+	goto finish;
 
 error:
-	G_FREE_NULL(stub);
-	G_FREE_NULL(tok_prop);
+	reply_code = REPLY_ERROR;
 	if (sh->msg == NULL)
 		sh->msg = _("Malformed command");
 
-	return REPLY_ERROR;
+finish:
+	G_FREE_NULL(tok_prop);
+	return reply_code;
 }
 
 static enum shell_reply
 shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 {
-	enum shell_reply reply_code = REPLY_ERROR;
+	enum shell_reply reply_code;
 	gchar *tok_prop;
 	gchar *tok_value;
 	gint pos = 0;
-	prop_set_stub_t *stub = NULL;
 	property_t prop;
-	prop_def_t *prop_buf = NULL;
 
 	shell_check(sh);
 	g_assert(cmd);
@@ -501,106 +467,36 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
 		sh->msg = _("Property missing");
-		goto failure;
+		goto error;
 	}
 
-	prop = get_prop_stub_by_name(tok_prop, &stub);
+	prop = gnet_prop_get_by_name(tok_prop);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
-		goto failure;
+		goto error;
 	}
-
-	prop_buf = stub->get_def (prop);
-
-	g_assert(prop_buf);
 
 	tok_value = shell_get_token(cmd, &pos);
 	if (!tok_value) {
-		prop_free_def (prop_buf);
 		sh->msg = _("Value missing");
-		goto failure;
+		goto error;
 	}
-
-	switch (prop_buf->type) {
-	case PROP_TYPE_BOOLEAN:
-		{
-			gboolean val;
-			
-			if (0 == ascii_strcasecmp(tok_value, "true")) {
-				val = TRUE;
-			} else if (0 == ascii_strcasecmp(tok_value, "false")) {
-				val = FALSE;
-			} else {
-				guint64 u;
-				gint error;
-			
-				u = parse_uint64(tok_value, NULL, 10, &error);
-				if (error)
-					goto failure;
-
-				val = u ? TRUE : FALSE;
-			}
-			stub->boolean.set(prop, &val, 0, 1);
-		}
-		break;
-	case PROP_TYPE_MULTICHOICE:
-	case PROP_TYPE_GUINT32:
-		{
-			guint32 val;
-			gint error;
-
-			val = parse_uint32(tok_value, NULL, 10, &error);
-			if (error)
-				goto failure;
-		
-			stub->guint32.set(prop, &val, 0, 1);
-		}
-		break;
-	case PROP_TYPE_GUINT64:
-		{
-			guint64 val;
-			gint error;
-
-			val = parse_uint64(tok_value, NULL, 10, &error);
-			if (error)
-				goto failure;
-
-			stub->guint64.set(prop, &val, 0, 1);
-		}
-		break;
-	case PROP_TYPE_STRING:
-		stub->string.set(prop, tok_value);
-		break;
-	case PROP_TYPE_STORAGE:
-		{
-			gchar guid[GUID_RAW_SIZE];
-			hex_to_guid(tok_value, guid);
-			stub->storage.set (prop, guid, prop_buf->vector_size);
-		}
-		break;
-	default:
-		prop_free_def (prop_buf);
-		sh->msg = _("Type not supported");
-		goto failure;
-	}
+	
+	gnet_prop_set_from_string(prop,	tok_value);
 
 	sh->msg = _("Value found and set");
 	reply_code = REPLY_READY;
+	goto finish;
 
-	G_FREE_NULL(stub);
-	G_FREE_NULL(tok_prop);
-	G_FREE_NULL(tok_value);
-	prop_free_def (prop_buf);
-
-	return reply_code;
-
-failure:
-	G_FREE_NULL(stub);
-	G_FREE_NULL(tok_prop);
+error:
+	reply_code = REPLY_ERROR;
 	if (!sh->msg)
 		sh->msg = _("Malformed command");
 
-	return REPLY_ERROR;
+finish:
+	G_FREE_NULL(tok_prop);
+	G_FREE_NULL(tok_value);
+	return reply_code;
 }
 
 /**
@@ -612,8 +508,6 @@ shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 	enum shell_reply reply_code = REPLY_ERROR;
 	gchar *tok_prop;
 	gint pos = 0;
-	prop_set_stub_t *stub = NULL;
-	prop_def_t *prop_buf = NULL;
 	property_t prop;
 
 	shell_check(sh);
@@ -625,36 +519,28 @@ shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 		goto error;
 	}
 
-	prop = get_prop_stub_by_name(tok_prop, &stub);
+	prop = gnet_prop_get_by_name(tok_prop);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
 	}
 
-	prop_buf = stub->get_def (prop);
-
-	g_assert (prop_buf);
-
 	shell_write(sh, _("Help: "));
-	shell_write(sh, prop_buf->desc);
+	shell_write(sh, gnet_prop_description(prop));
 	shell_write(sh, "\n");
 
 	sh->msg = "";
 	reply_code = REPLY_READY;
-
-	G_FREE_NULL(stub);
-	G_FREE_NULL(tok_prop);
-	prop_free_def (prop_buf);
-
-	return reply_code;
+	goto finish;
 
 error:
-	G_FREE_NULL(stub);
-	G_FREE_NULL(tok_prop);
-	if (sh->msg == NULL)
+	reply_code = REPLY_ERROR;
+	if (!sh->msg)
 		sh->msg = _("Malformed command");
 
-	return REPLY_ERROR;
+finish:
+	G_FREE_NULL(tok_prop);
+	return reply_code;
 }
 
 /**
