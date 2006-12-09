@@ -35,8 +35,14 @@ endif
 
 config-stamp: Configure
 	dh_testdir
-	./Configure -Dccflags="$(CFLAGS)" -Dgtkversion=2 -Dprefix=/usr \
-		-Dipv6=true -Dprivlib=/usr/share/gtk-gnutella -Dofficial=true \
+	./Configure \
+		-Dccflags="$(CFLAGS)" \
+		-Dprefix=/usr \
+		-Dprivlib=/usr/share/gtk-gnutella \
+		-Dyacc=bison \
+		-Dipv6=true \
+		-Dgtkversion=2 \
+		-Dofficial=true \
 		-ders
 	touch $@
 
