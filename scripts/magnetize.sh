@@ -53,7 +53,7 @@ function urlencode(x) {
   gsub("\\x19", "%19", x)
   gsub("\\x1a", "%1a", x)
   gsub("\\x1b", "%1b", x)
-  gsub("\\x1c", "%1c", x)
+  gsub("\\\\",  "%1c", x)
   gsub("\\x1d", "%1d", x)
   gsub("\\x1e", "%1e", x)
   gsub("\\x1f", "%1f", x)
