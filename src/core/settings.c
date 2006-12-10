@@ -1067,6 +1067,10 @@ enable_udp_changed(property_t prop)
 	} else {
 		/* Also takes care of freeing s_udp_listen and s_udp_listen6 */
 		node_udp_disable();
+
+		/* We have to free them anyway during startup*/
+		socket_free_null(&s_udp_listen);
+		socket_free_null(&s_udp_listen6);
 	}
 	node_update_udp_socket();
 
@@ -1109,6 +1113,10 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 {
 	/* Also takes care of freeing s_udp_listen and s_udp_listen6 */
 	node_udp_disable();
+
+	/* We have to free them anyway during startup*/
+	socket_free_null(&s_udp_listen);
+	socket_free_null(&s_udp_listen6);
 
 	/*
 	 * Close sockets at the old port.
