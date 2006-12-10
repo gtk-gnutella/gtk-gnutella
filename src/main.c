@@ -1145,6 +1145,7 @@ main(int argc, char **argv)
 	tsync_init();
 	watcher_init();
 	hcache_init();			/* before settings_init() */
+	bsched_early_init();	/* before settings_init() */
 	settings_init();
 	gdb_init();
 	tls_global_init();

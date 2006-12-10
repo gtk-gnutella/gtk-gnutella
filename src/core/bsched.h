@@ -57,6 +57,7 @@ struct iovec;
  * Public interface.
  */
 
+void bsched_early_init(void);
 void bsched_init(void);
 void bsched_shutdown(void);
 void bsched_close(void);

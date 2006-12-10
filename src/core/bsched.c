@@ -393,11 +393,8 @@ bsched_config_steal_gnet(void)
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GOUT);
 }
 
-/**
- * Initialize global bandwidth schedulers.
- */
 void
-bsched_init(void)
+bsched_early_init(void)
 {
 	bws_set[BSCHED_BWS_OUT] = bsched_make("out",
 		BS_T_STREAM, BS_F_WRITE, bw_http_out, 1000);
@@ -457,7 +454,14 @@ bsched_init(void)
 						GUINT_TO_POINTER(BSCHED_BWS_GOUT_UDP));
 	bws_out_list = g_slist_prepend(bws_out_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_OUT));
+}
 
+/**
+ * Initialize global bandwidth schedulers.
+ */
+void
+bsched_init(void)
+{
 	/*
 	 * We always steal bandwidth between TCP and UDP gnet, since we
 	 * forcefully split the allocated bandwidth evenly between the
