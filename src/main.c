@@ -841,6 +841,7 @@ enum main_arg {
 	main_arg_shell,
 	main_arg_version,
 	main_arg_exec_on_crash,
+	main_arg_no_xshm,
 
 	num_main_args
 };
@@ -867,6 +868,7 @@ static struct {
 	OPTION_FLAG(shell,			"Access the local shell interface."),
 	OPTION_FLAG(version,		"Show version information."),
 	OPTION_WARG(exec_on_crash,	"Execute a command on crash."),
+	OPTION_FLAG(no_xshm,		"Disabled MIT shared memory extension."),
 #undef OPTION_WARG
 #undef OPTION_FLAG
 #undef OPTION
@@ -1137,7 +1139,7 @@ main(int argc, char **argv)
 	vendor_init();
 	vmsg_init();
 
-	main_gui_early_init(argc, argv);
+	main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);
 
 	cq_init();
 	tsync_init();

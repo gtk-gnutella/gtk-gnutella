@@ -33,7 +33,7 @@
 /* Diverse dummy definitions */
 #define settings_gui_save_if_dirty()
 
-#define main_gui_early_init(argc, argv)
+#define main_gui_early_init(argc, argv, disable_xshm)
 #define main_gui_init()
 #define main_gui_timer(x)
 #define main_gui_update_coords()

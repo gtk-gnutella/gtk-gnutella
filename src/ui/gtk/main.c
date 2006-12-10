@@ -655,12 +655,15 @@ main_gui_gtkrc_init(void)
  *      -- Richard, 6/9/2002
  */
 void
-main_gui_early_init(gint argc, gchar **argv)
+main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 {
 	/* Glade inits */
 
 	gtk_set_locale();
 	gtk_init(&argc, &argv);
+
+	if (disable_xshm)
+		gdk_set_use_xshm(FALSE);
 
 	add_pixmap_directory(PRIVLIB_EXP G_DIR_SEPARATOR_S "pixmaps");
 #ifndef OFFICIAL_BUILD

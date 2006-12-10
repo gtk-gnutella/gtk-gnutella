@@ -51,7 +51,7 @@ WIDGET(popup_uploads)
 WIDGET(shutdown_window)
 #undef WIDGET
 
-void main_gui_early_init(gint, gchar **);
+void main_gui_early_init(gint argv, gchar **argv, gboolean disable_xshm);
 void main_gui_init(void);
 void main_gui_run(const gchar *geometry_spec);
 void main_gui_shutdown(void);
