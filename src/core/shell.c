@@ -456,8 +456,7 @@ static enum shell_reply
 shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 {
 	enum shell_reply reply_code;
-	gchar *tok_prop;
-	gchar *tok_value;
+	gchar *tok_prop, *tok_value = NULL;
 	gint pos = 0;
 	property_t prop;
 
