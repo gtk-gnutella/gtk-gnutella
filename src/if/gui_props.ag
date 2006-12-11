@@ -477,6 +477,15 @@ prop = {
 };
 
 prop = {
+    name = "searchbar_visible";
+    desc = "Display Searchbar.";
+    type = boolean;
+    data = {
+        default     = TRUE;
+    };
+};
+
+prop = {
     name = "sidebar_visible";
     desc = "Display Sidebar.";
     type = boolean;

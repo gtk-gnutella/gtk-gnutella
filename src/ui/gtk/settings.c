@@ -1530,6 +1530,33 @@ send_pushes_changed(property_t prop)
 }
 
 static gboolean
+searchbar_visible_changed(property_t prop)
+{
+	GtkWidget *widget;
+	GtkWidget *viewport, *entry;
+	gboolean b;
+
+	gui_prop_get_boolean_val(prop, &b);
+
+	viewport = gui_main_window_lookup("viewport_searchbar");
+	entry = gui_main_window_lookup("entry_search");
+
+	if (b) {
+		gtk_widget_show(viewport);
+	} else {
+		gtk_widget_hide(viewport);
+	}
+
+	widget = gui_main_window_lookup("menu_searchbar_visible");
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), b);
+
+	if (b && !GTK_WIDGET_HAS_FOCUS(entry))
+		gtk_widget_grab_focus(entry);
+
+	return FALSE;
+}
+
+static gboolean
 sidebar_visible_changed(property_t prop)
 {
 	GtkWidget *widget;
@@ -2877,6 +2904,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #endif /* USE_GTK1 */
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCHBAR_VISIBLE,
+        searchbar_visible_changed,
+        TRUE,
+        "menu_searchbar_visible",
+        FREQ_UPDATES, 0
+    ),
     PROP_ENTRY(
         gui_main_window,
         PROP_SIDEBAR_VISIBLE,
