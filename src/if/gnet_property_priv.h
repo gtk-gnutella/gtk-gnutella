@@ -337,6 +337,7 @@ extern const guint32  max_simultaneous_downloads_per_file;
 extern const gboolean dump_received_gnutella_packets;
 extern const gboolean search_results_expose_relative_paths;
 extern const guint32  shell_debug;
+extern const guint32  download_queue_frozen;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -3407,4 +3407,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "download_queue_frozen";
+    desc = "If larger than zero, no downloads are started.";
+    type = guint32;
+    save = FALSE;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

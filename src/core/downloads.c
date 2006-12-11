@@ -110,7 +110,6 @@ GSList *sl_unqueued = NULL;			/**< Unqueued downloads only */
 GSList *sl_removed = NULL;			/**< Removed downloads only */
 GSList *sl_removed_servers = NULL;	/**< Removed servers only */
 static gchar dl_tmp[4096];
-static gint queue_frozen = 0;
 
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
@@ -1052,7 +1051,7 @@ download_timer(time_t now)
 {
 	GSList *sl = sl_unqueued;		/* Only downloads not in the queue */
 
-	if (queue_frozen > 0) {
+	if (download_queue_is_frozen()) {
 		gcu_gui_update_download_clear_now();
 		return;
 	}
@@ -3301,7 +3300,8 @@ download_queue(struct download *d, const gchar *fmt, ...)
 void
 download_freeze_queue(void)
 {
-	queue_frozen++;
+	gnet_prop_set_guint32_val(PROP_DOWNLOAD_QUEUE_FROZEN,
+		download_queue_frozen + 1);
 	gcu_gui_update_queue_frozen();
 }
 
@@ -3312,9 +3312,10 @@ download_freeze_queue(void)
 void
 download_thaw_queue(void)
 {
-	g_return_if_fail(queue_frozen > 0);
+	g_return_if_fail(download_queue_frozen > 0);
 
-	queue_frozen--;
+	gnet_prop_set_guint32_val(PROP_DOWNLOAD_QUEUE_FROZEN,
+		download_queue_frozen - 1);
 	gcu_gui_update_queue_frozen();
 }
 
@@ -3324,8 +3325,7 @@ download_thaw_queue(void)
 gboolean
 download_queue_is_frozen(void)
 {
-	g_return_val_if_fail(queue_frozen >= 0, FALSE);
-	return queue_frozen > 0;
+	return download_queue_frozen > 0;
 }
 
 /**
