@@ -46,7 +46,7 @@ Authentication
   access to the shell, the first sent line must be "HELO". Optional arguments
   are ignored for now. This means, the local socket can also be used for
   anything else supported over the ordinary listening TCP socket e.g.,
-  HTTP.
+  HTTP. When using "gtk-gnutella --shell" this "HELO" is sent automagically.
 
   When using the remote shell, The first thing you need to do after the connect
   is to authenticate. For that you need to supply the command:
@@ -136,6 +136,10 @@ Commands
   - props [<regex>]
     Lists the names of all core properties. An optional regex pattern can
     be used to show only certain properties.
+
+  - download add <magnet>|<HTTP URL>
+    Initiates a download. The command accepts magnet links and URLs starting
+    with "http://".
 
 Notes:
 ------
