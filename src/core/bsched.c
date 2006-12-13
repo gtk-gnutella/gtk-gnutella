@@ -483,6 +483,7 @@ void
 bsched_close(void)
 {
 	GSList *iter;
+	guint i;
 
 	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
 		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
@@ -498,14 +499,9 @@ bsched_close(void)
 	g_slist_free(bws_in_list);
 	bws_in_list = NULL;
 
-	bws_set[BSCHED_BWS_IN] = NULL;
-	bws_set[BSCHED_BWS_OUT] = NULL;
-	bws_set[BSCHED_BWS_GIN] = NULL;
-	bws_set[BSCHED_BWS_GOUT] = NULL;
-	bws_set[BSCHED_BWS_GLIN] = NULL;
-	bws_set[BSCHED_BWS_GLOUT] = NULL;
-	bws_set[BSCHED_BWS_GIN_UDP] = NULL;
-	bws_set[BSCHED_BWS_GOUT_UDP] = NULL;
+	for (i = 0; i < NUM_BSCHED_BWS; i++) {
+		bws_set[i] = NULL;
+	}
 }
 
 /**
