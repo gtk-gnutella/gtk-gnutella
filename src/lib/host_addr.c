@@ -769,10 +769,10 @@ resolve_hostname(const gchar *host, enum net_type net)
 		switch (ai->ai_family) {
 		case PF_INET:
 			if (ai->ai_addrlen >= 4) {
-				const struct sockaddr_in *sin;
+				const struct sockaddr_in *sin4;
 
-				sin = cast_to_gconstpointer(ai->ai_addr);
-				addr = host_addr_get_ipv4(ntohl(sin->sin_addr.s_addr));
+				sin4 = cast_to_gconstpointer(ai->ai_addr);
+				addr = host_addr_get_ipv4(ntohl(sin4->sin_addr.s_addr));
 			}
 			break;
 
@@ -1024,10 +1024,10 @@ host_addr_get_interface_addrs(void)
 			continue;
 
 		if (AF_INET == ifa->ifa_addr->sa_family) {
-            const struct sockaddr_in *sin;
+            const struct sockaddr_in *sin4;
 			
-			sin = cast_to_gconstpointer(ifa->ifa_addr);
-			addr = host_addr_get_ipv4(ntohl(sin->sin_addr.s_addr));
+			sin4 = cast_to_gconstpointer(ifa->ifa_addr);
+			addr = host_addr_get_ipv4(ntohl(sin4->sin_addr.s_addr));
 #ifdef HAS_IPV6
 		} else if (AF_INET6 == ifa->ifa_addr->sa_family) {
             const struct sockaddr_in6 *sin6;

@@ -1851,15 +1851,15 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 static int
 socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 {
-	struct sockaddr_in sin;
+	struct sockaddr_in sin4;
 	socklen_t len;
 	host_addr_t addr = zero_host_addr;
 	guint16 port = 0;
 
-	len = sizeof sin;
-	if (-1 != getsockname(fd, cast_to_gpointer(&sin), &len)) {
-		addr = host_addr_get_ipv4(ntohl(sin.sin_addr.s_addr));
-		port = sin.sin_port;
+	len = sizeof sin4;
+	if (-1 != getsockname(fd, cast_to_gpointer(&sin4), &len)) {
+		addr = host_addr_get_ipv4(ntohl(sin4.sin_addr.s_addr));
+		port = sin4.sin_port;
 	}
 
 #ifdef HAS_IPV6
