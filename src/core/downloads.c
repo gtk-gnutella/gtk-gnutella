@@ -10610,6 +10610,15 @@ download_handle_http(const gchar *url)
 	return success;
 }
 
+/**
+ * @return A singly-linked list of all registered downloads. This list and
+ *		   its items are strictly read-only.
+ */
+const GSList *
+downloads_get_list(void)
+{
+	return sl_downloads;
+}
 
 /*
  * Local Variables:

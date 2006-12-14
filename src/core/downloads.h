@@ -113,6 +113,8 @@ void download_browse_maybe_finished(struct download *d);
 gboolean download_handle_http(const gchar *url);
 gboolean download_handle_magnet(const gchar *url);
 
+const GSList *downloads_get_list(void);
+
 #endif /* _core_downloads_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
