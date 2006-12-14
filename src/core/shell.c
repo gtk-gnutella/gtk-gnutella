@@ -49,12 +49,12 @@ RCSID("$Id$")
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
+#include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define CMD_MAX_SIZE 1024
-#define SHELL_BUFFER_SIZE 64000
 
 enum shell_reply {
 	REPLY_NONE		= 0,
@@ -80,8 +80,7 @@ enum shell_magic {
 typedef struct gnutella_shell {
 	enum shell_magic	magic;
 	struct gnutella_socket *socket;
-	gchar  *outbuf;	/* FIXME: Always use a newly walloc()ed buffer instead */
-	size_t outpos;
+	slist_t *output;
 	const gchar *msg;   /**< Additional information to reply code */
 	time_t last_update; /**< Last update (needed for timeout) */
 	gboolean shutdown;  /**< In shutdown mode? */
@@ -99,7 +98,7 @@ static inline gboolean
 IS_PROCESSING(gnutella_shell_t *sh)
 {
 	shell_check(sh);
-	return sh->outpos > 0;
+	return sh->output && slist_length(sh->output) > 0;
 }
 
 #ifdef USE_REMOTE_CTRL
@@ -109,7 +108,7 @@ static gboolean shell_auth(const gchar *str);
 
 static void shell_shutdown(gnutella_shell_t *sh);
 static void shell_destroy(gnutella_shell_t *sh);
-static gboolean shell_write(gnutella_shell_t *sh, const gchar *s);
+static void shell_write(gnutella_shell_t *sh, const gchar *s);
 static void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	int triples, hsep_triple *non_hsep);
 static void shell_handle_data(gpointer data, gint unused_source,
@@ -1369,6 +1368,23 @@ error:
 	return REPLY_ERROR;
 }
 
+static void
+shell_discard_output_helper(gpointer key, gpointer unused_data)
+{
+	(void) unused_data;
+	pmsg_free(key);
+}
+
+static void
+shell_discard_output(gnutella_shell_t *sh)
+{
+	shell_check(sh);
+	if (sh->output) {
+		slist_foreach(sh->output, shell_discard_output_helper, NULL);
+		slist_free(&sh->output);
+	}
+}
+
 /**
  * Called when data can be written to the shell connection. If the
  * connection is in shutdown mode, it is destroyed when the output
@@ -1379,15 +1395,19 @@ shell_write_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
 	ssize_t written;
+	pmsg_t *mb;
 
 	shell_check(sh);
-	g_assert(sh->outbuf);
+	g_assert(sh->output);
 	g_assert(IS_PROCESSING(sh));
 
 	sh->last_update = tm_time();
 
 	s = sh->socket;
-	written = s->wio.write(&s->wio, sh->outbuf, sh->outpos);
+	mb = slist_head(sh->output);
+	g_assert(mb);
+
+	written = s->wio.write(&s->wio, pmsg_read_base(mb), pmsg_size(mb));
 	switch (written) {
 	case (ssize_t) -1:
 		if (is_temporary_error(errno))
@@ -1395,19 +1415,21 @@ shell_write_data(gnutella_shell_t *sh)
 
 		/* FALL THRU */
 	case 0:
-		if (!sh->shutdown)
+		shell_discard_output(sh);
+		if (!sh->shutdown) {
 			shell_shutdown(sh);
-		sh->outpos = 0;
+		}
 		break;
 
 	default:
-		memmove(sh->outbuf, &sh->outbuf[written], sh->outpos - written);
-		sh->outpos -= written;
+		pmsg_discard(mb, written);
+		if (0 == pmsg_size(mb)) {
+			slist_remove(sh->output, mb);
+			pmsg_free(mb);
+		}
 	}
 
-	g_assert(sh->outpos <= SHELL_BUFFER_SIZE);
-
-	if (0 == sh->outpos) {
+	if (!IS_PROCESSING(sh)) {
 		socket_evt_clear(sh->socket);
 		socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
 	}
@@ -1519,8 +1541,9 @@ shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 		shell_write_data(sh);
 
 	if (sh->shutdown) {
-		if (sh->outpos == 0)
+		if (!IS_PROCESSING(sh)) {
 			shell_destroy(sh);
+		}
 		return;
 	}
 
@@ -1529,37 +1552,39 @@ shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 }
 
-static gboolean
-shell_write(gnutella_shell_t *sh, const gchar *s)
+static void
+shell_write(gnutella_shell_t *sh, const gchar *text)
 {
 	size_t len;
 	gboolean writing;
+	pmsg_t *mb;
 
 	shell_check(sh);
-	g_assert(s);
+	g_return_if_fail(sh->output);
+	g_return_if_fail(text);
 
-	g_return_val_if_fail(sh->outpos < SHELL_BUFFER_SIZE, FALSE);
-	len = strlen(s);
-	g_return_val_if_fail((ssize_t) len >= 0, FALSE);
-	g_return_val_if_fail(len <= SHELL_BUFFER_SIZE, FALSE);
+	len = strlen(text);
+	g_return_if_fail(len < (size_t) -1);
+	g_return_if_fail(len > 0);
 
-	if (len + sh->outpos >= SHELL_BUFFER_SIZE) {
-		/* XXX: This is ridiculous */
-		g_warning("Line is too long (for shell at %s)",
-			host_addr_port_to_string(sh->socket->addr, sh->socket->port));
-		return FALSE;
+	writing = IS_PROCESSING(sh);
+	mb = slist_tail(sh->output);
+	if (mb && pmsg_writable_length(mb) > 0) {
+		size_t n;
+
+		n = pmsg_writable_length(mb);
+		pmsg_write(mb, text, n);
+		text += n;
+		len -= n;
 	}
-
-	writing = 0 != sh->outpos;
-	memcpy(&sh->outbuf[sh->outpos], s, len);
-	sh->outpos += len;
+	if (len > 0) {
+		slist_append(sh->output, pmsg_new(PMSG_P_DATA, text, len));
+	}
 
 	if (!writing) {
 		socket_evt_clear(sh->socket);
 		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
 	}
-
-	return TRUE;
 }
 
 /**
@@ -1577,7 +1602,7 @@ shell_new(struct gnutella_socket *s)
 	*sh = zero_shell;
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
-	sh->outbuf = walloc(SHELL_BUFFER_SIZE);
+	sh->output = slist_new();
 
 	return sh;
 }
@@ -1591,7 +1616,7 @@ shell_free(gnutella_shell_t *sh)
 	g_assert(sh);
 	g_assert(SHELL_MAGIC == sh->magic);
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
-	g_assert(NULL == sh->outbuf); /* must have called shell_destroy before */
+	g_assert(NULL == sh->output); /* must have called shell_destroy before */
 
 	wfree(sh, sizeof *sh);
 }
@@ -1612,11 +1637,8 @@ shell_destroy(gnutella_shell_t *sh)
 
 	socket_evt_clear(sh->socket);
 
-	if (sh->outbuf) {
-		wfree(sh->outbuf, SHELL_BUFFER_SIZE);
-		sh->outbuf = NULL;
-	}
-
+	shell_discard_output(sh);
+	
 	socket_free_null(&sh->socket);
 	shell_free(sh);
 }
@@ -1695,7 +1717,7 @@ shell_add(struct gnutella_socket *s)
 
 	getline_reset(s->getline); /* clear AUTH command from buffer */
 
-	if (sh->outpos == 0 && sh->shutdown) {
+	if (!IS_PROCESSING(sh) && sh->shutdown) {
 		shell_destroy(sh);
 	}
 }
