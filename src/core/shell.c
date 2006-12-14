@@ -987,7 +987,7 @@ print_download_info(gnutella_shell_t *sh, const struct download *d)
 	} else {
 		g_strlcpy(status, get_download_status_string(d), sizeof status);
 	}
-	gm_snprintf(buf, sizeof buf, "%-16.40s %s %11s %2.0f%% [%s] \"%s\"",
+	gm_snprintf(buf, sizeof buf, "%-25.40s %s %11s %2.0f%% [%s] \"%s\"",
 		download_get_hostname(d),
 		iso3166_country_cc(download_country(d)),
 		compact_size(download_filesize(d), display_metric_units),
