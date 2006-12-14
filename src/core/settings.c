@@ -1638,10 +1638,10 @@ configured_peermode_changed(property_t prop)
 static gboolean
 current_peermode_changed(property_t prop)
 {
-    guint32 val;
+	(void) prop;
 
-    gnet_prop_get_guint32_val(prop, &val);
-	node_current_peermode_changed((node_peer_t) val);
+	node_current_peermode_changed(current_peermode);
+	bsched_set_peermode(current_peermode);
 
     return FALSE;
 }
