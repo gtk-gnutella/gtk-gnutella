@@ -118,6 +118,7 @@ static void shell_handle_data(gpointer data, gint unused_source,
 enum shell_cmd {
 	CMD_ADD,
 	CMD_DOWNLOAD,
+	CMD_DOWNLOADS,
 	CMD_HELP,
 	CMD_HORIZON,
 	CMD_NODE,
@@ -145,6 +146,7 @@ static const struct {
 } commands[] = {
 	{	CMD_ADD,		"add"		},
 	{	CMD_DOWNLOAD,	"download"	},
+	{	CMD_DOWNLOADS,	"downloads"	},
 	{	CMD_HELP,		"help"		},
 	{	CMD_HORIZON,	"horizon"	},
 	{	CMD_NODE,		"node"		},
@@ -877,7 +879,7 @@ shell_exec_uploads(gnutella_shell_t *sh, const gchar *cmd)
 }
 
 /**
- * Displays all active uploads
+ * Handles the download command.
  */
 static enum shell_reply
 shell_exec_download(gnutella_shell_t *sh, const gchar *cmd)
@@ -937,6 +939,92 @@ error:
 
 	return REPLY_ERROR;
 }
+
+const gchar *
+get_download_status_string(const struct download *d)
+{
+	download_check(d);
+
+	switch (d->status) {
+	case GTA_DL_QUEUED:			return "queued";
+	case GTA_DL_CONNECTING:		return "connecting";
+	case GTA_DL_PUSH_SENT:		return "push sent";
+	case GTA_DL_FALLBACK:		return "falling back to push";
+	case GTA_DL_REQ_SENT:		return "request sent";
+	case GTA_DL_HEADERS:		return "receiving headers";
+	case GTA_DL_RECEIVING:		return "receiving";
+	case GTA_DL_COMPLETED:		return "completed";
+	case GTA_DL_ERROR:			return "error";
+	case GTA_DL_ABORTED:		return "aborted";
+	case GTA_DL_TIMEOUT_WAIT:	return "timeout";
+	case GTA_DL_REMOVED:		return "removed";
+	case GTA_DL_VERIFY_WAIT:	return "waiting for verify";
+	case GTA_DL_VERIFYING:		return "verifying";
+	case GTA_DL_VERIFIED:		return "verified";
+	case GTA_DL_MOVE_WAIT:		return "waiting for move";
+	case GTA_DL_MOVING:			return "moving";
+	case GTA_DL_DONE:			return "done";
+	case GTA_DL_SINKING:		return "sinking";
+	case GTA_DL_ACTIVE_QUEUED:	return "actively queued";
+	case GTA_DL_PASSIVE_QUEUED:	return "passively queued";
+	case GTA_DL_REQ_SENDING:	return "sending request";
+	}
+	return "unknown";
+}
+
+static void
+print_download_info(gnutella_shell_t *sh, const struct download *d)
+{
+	gchar buf[1024];
+	gchar status[256];
+	
+
+	g_return_if_fail(sh);
+	download_check(d);
+
+	if (GTA_DL_RECEIVING == d->status) {
+		gm_snprintf(status, sizeof status, "receiving (%2.0f%%)",
+				download_source_progress(d) * 100.0);
+	} else {
+		g_strlcpy(status, get_download_status_string(d), sizeof status);
+	}
+	gm_snprintf(buf, sizeof buf, "%-16.40s %s %11s %2.0f%% [%s] \"%s\"",
+		download_get_hostname(d),
+		iso3166_country_cc(download_country(d)),
+		compact_size(download_filesize(d), display_metric_units),
+		download_total_progress(d) * 100.0,
+		status,
+		download_outname(d));
+
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+}
+
+/**
+ * Displays all active downloads.
+ */
+static enum shell_reply
+shell_exec_downloads(gnutella_shell_t *sh, const gchar *cmd)
+{
+	const GSList *sl;
+	
+	shell_check(sh);
+	g_assert(cmd);
+	g_assert(!IS_PROCESSING(sh));
+
+	sh->msg = "";
+
+	shell_write(sh, "100~ \n");
+
+	for (sl = downloads_get_list(); sl; sl = g_slist_next(sl)) {
+		print_download_info(sh, sl->data);
+	}
+
+	shell_write(sh, ".\n");	/* Terminate message body */
+
+	return REPLY_READY;
+}
+
 /**
  * Displays assorted status information
  */
@@ -1183,6 +1271,7 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"100~ \n"
 			"The following commands are available:\n"
 			"download add <URL>|<magnet>\n"
+			"downloads\n"
 			"help\n"
 			"horizon [all]\n"
 			"node add <ip> [port]\n"
@@ -1258,6 +1347,9 @@ shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		break;
 	case CMD_DOWNLOAD:
 		reply_code = shell_exec_download(sh, args);
+		break;
+	case CMD_DOWNLOADS:
+		reply_code = shell_exec_downloads(sh, args);
 		break;
 	case CMD_ADD:
 	case CMD_NOOP:
