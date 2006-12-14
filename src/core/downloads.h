@@ -44,12 +44,6 @@
 #include "if/core/downloads.h"
 #include "if/core/search.h"			/* For gnet_host_vec_t */
 
-/**
- * Global Data.
- */
-
-extern GSList *sl_unqueued;
-
 /*
  * Global Functions.
  */

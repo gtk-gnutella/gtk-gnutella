@@ -106,9 +106,9 @@ RCSID("$Id$")
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
 static GSList *sl_downloads = NULL;	/**< All downloads (queued + unqueued) */
-GSList *sl_unqueued = NULL;			/**< Unqueued downloads only */
-GSList *sl_removed = NULL;			/**< Removed downloads only */
-GSList *sl_removed_servers = NULL;	/**< Removed servers only */
+static GSList *sl_unqueued = NULL;	/**< Unqueued downloads only */
+static GSList *sl_removed = NULL;	/**< Removed downloads only */
+static GSList *sl_removed_servers = NULL;	/**< Removed servers only */
 static gchar dl_tmp[4096];
 
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
@@ -161,7 +161,7 @@ static void download_retrieve(void);
 static GHashTable *dl_by_host = NULL;
 static GHashTable *dl_count_by_name = NULL;
 
-#define DHASH_SIZE	1024			/**< Hash list size, must be a power of 2 */
+#define DHASH_SIZE	(1UL << 10)	/**< Hash list size, must be a power of 2 */
 #define DHASH_MASK 	(DHASH_SIZE - 1)
 #define DL_HASH(x)	((x) & DHASH_MASK)
 
@@ -1215,7 +1215,7 @@ download_timer(time_t now)
 static void
 dl_by_time_insert(struct dl_server *server)
 {
-	gint idx = DL_HASH(server->retry_after);
+	guint idx = DL_HASH(server->retry_after);
 
 	g_assert(dl_server_valid(server));
 
@@ -1230,7 +1230,7 @@ dl_by_time_insert(struct dl_server *server)
 static void
 dl_by_time_remove(struct dl_server *server)
 {
-	gint idx = DL_HASH(server->retry_after);
+	guint idx = DL_HASH(server->retry_after);
 
 	g_assert(dl_server_valid(server));
 
@@ -1730,13 +1730,13 @@ set_server_hostname(struct dl_server *server, const gchar *hostname)
 {
 	g_assert(dl_server_valid(server));
 
-	if (server->hostname != NULL) {
-		atom_str_free(server->hostname);
-		server->hostname = NULL;
-	}
+	/* Creating an atom from an atom we just freed is a bad idea. */
+	g_return_if_fail(NULL == hostname || server->hostname != hostname);
 
-	if (hostname != NULL)
+	atom_str_free_null(&server->hostname);
+	if (hostname) {
 		server->hostname = atom_str_get(hostname);
+	}
 }
 
 /**
@@ -3907,8 +3907,7 @@ download_start(struct download *d, gboolean check_allowed)
 			 */
 
 			if (d->flags & DL_F_DNS_LOOKUP) {
-				atom_str_free(d->server->hostname);
-				d->server->hostname = NULL;
+				atom_str_free_null(&d->server->hostname);
 				gcu_gui_update_download_host(d);
 			}
 
@@ -4240,8 +4239,7 @@ download_fallback_to_push(struct download *d,
 			g_warning("hostname \"%s\" for %s could not resolve, discarding",
 				d->server->hostname,
 				host_addr_port_to_string(download_addr(d), download_port(d)));
-			atom_str_free(d->server->hostname);
-			d->server->hostname = NULL;
+			atom_str_free_null(&d->server->hostname);
 			gcu_gui_update_download_host(d);
 		}
 
@@ -4396,7 +4394,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 		download_check(d);
 		if (interactive)
 			g_message("rejecting duplicate download for %s", file_name);
-		atom_str_free(file_name);
+		atom_str_free_null(&file_name);
 		return NULL;
 	}
 
@@ -4797,15 +4795,11 @@ download_request_free(struct download_request **req_ptr)
 	g_assert(req);
 
 	*req_ptr = NULL;
-	if (req->uri) {
-		atom_str_free(req->uri);
-	}
-	if (req->sha1) {
-		atom_sha1_free(req->sha1);
-	}
-	atom_str_free(req->hostname);
-	atom_str_free(req->file);
-	atom_guid_free(req->guid);
+	atom_str_free_null(&req->uri);
+	atom_sha1_free_null(&req->sha1);
+	atom_str_free_null(&req->hostname);
+	atom_str_free_null(&req->file);
+	atom_guid_free_null(&req->guid);
 	wfree(req, sizeof *req);
 }
 
@@ -5091,10 +5085,8 @@ download_remove(struct download *d)
 	download_remove_from_server(d, FALSE);
 	d->status = GTA_DL_REMOVED;
 
-	atom_str_free(d->file_name);
-	d->file_name = NULL;
-	atom_str_free(d->escaped_name);
-	d->escaped_name = NULL;
+	atom_str_free_null(&d->file_name);
+	atom_str_free_null(&d->escaped_name);
 
 	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
 	d->file_info = NULL;
@@ -6077,7 +6069,7 @@ download_moved_permanently(struct download *d, header_t *header)
 	if (!is_host_addr(info.addr)) {
 		g_warning("server %s (file \"%s\") would redirect us to invalid %s",
 			host_addr_port_to_string(addr, port), download_outname(d), buf);
-		atom_str_free(info.name);
+		atom_str_free_null(&info.name);
 		return FALSE;
 	}
 
@@ -6094,7 +6086,7 @@ download_moved_permanently(struct download *d, header_t *header)
 	if (URN_INDEX == info.idx) {
 		g_message("server %s (file \"%s\") would redirect us to %s",
 			host_addr_port_to_string(addr, port), download_outname(d), buf);
-		atom_str_free(info.name);
+		atom_str_free_null(&info.name);
 		return FALSE;
 	}
 
@@ -6111,13 +6103,13 @@ download_moved_permanently(struct download *d, header_t *header)
 
 		g_assert(d->list_idx == DL_LIST_RUNNING);
 
-		atom_str_free(d->file_name);
-		atom_str_free(d->escaped_name);
+		atom_str_free_null(&d->file_name);
+		atom_str_free_null(&d->escaped_name);
 
 		d->file_name = deconstify_gchar(info.name);		/* Already an atom */
 		d->escaped_name = download_escape_name(info.name);
 	} else
-		atom_str_free(info.name);
+		atom_str_free_null(&info.name);
 
 	/*
 	 * Update download structure.
@@ -6171,7 +6163,7 @@ download_get_server_name(struct download *d, header_t *header)
 		} else if (!faked && 0 != strcmp(server->vendor, user_agent)) {
 			/* Name changed? */
 			got_new_server = TRUE;
-			atom_str_free(server->vendor);
+			atom_str_free_null(&server->vendor);
 			vendor = user_agent;
 		} else {
 			vendor = NULL;
@@ -10312,7 +10304,7 @@ download_browse_start(const gchar *name, const gchar *hostname,
 	d = create_download(dname, "/", 0, 0, addr, port, guid, hostname,
 			NULL, tm_time(), TRUE, FALSE, fi, proxies, flags);
 
-	atom_str_free(dname);
+	atom_str_free_null(&dname);
 
 	if (d != NULL) {
 		gnet_host_t host;
