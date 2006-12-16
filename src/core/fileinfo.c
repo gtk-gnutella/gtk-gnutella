@@ -81,11 +81,16 @@ RCSID("$Id$")
 #define FI_MIN_CHUNK_SPLIT	512		/**< Smallest chunk we can split */
 #define FI_MAX_FIELD_LEN	1024	/**< Max field length we accept to save */
 
+enum dl_file_chunk_magic {
+	DL_FILE_CHUNK_MAGIC = 0xd63b483dU
+};
+
 struct dl_file_chunk {
+	enum dl_file_chunk_magic magic;
 	filesize_t from;				/**< Range offset start (byte included) */
 	filesize_t to;					/**< Range offset end (byte EXCLUDED) */
-	enum dl_chunk_status status;	/**< Status of range */
 	struct download *download;		/**< Download that "reserved" the range */
+	enum dl_chunk_status status;	/**< Status of range */
 };
 
 /*
@@ -464,6 +469,25 @@ tbuf_read(gint fd, size_t len)
 	return read(fd, tbuf.arena, len);
 }
 
+static struct dl_file_chunk *
+dl_file_chunk_alloc(void)
+{
+	static const struct dl_file_chunk zero_fc;
+	struct dl_file_chunk *fc;
+   
+	fc = walloc(sizeof *fc);
+	*fc = zero_fc;
+	fc->magic = DL_FILE_CHUNK_MAGIC;
+	return fc;
+}
+
+static void
+dl_file_chunk_check(const struct dl_file_chunk *fc)
+{
+	g_assert(fc);
+	g_assert(DL_FILE_CHUNK_MAGIC == fc->magic);
+}
+
 /**
  * Checks the chunklist of fi.
  *
@@ -473,7 +497,7 @@ tbuf_read(gint fd, size_t len)
  * @return TRUE if chunklist is consistent, FALSE otherwise.
  */
 static gboolean
-file_info_check_chunklist(fileinfo_t *fi, gboolean assertion)
+file_info_check_chunklist(const fileinfo_t *fi, gboolean assertion)
 {
 	GSList *sl;
 	filesize_t last = 0;
@@ -489,8 +513,9 @@ file_info_check_chunklist(fileinfo_t *fi, gboolean assertion)
 	file_info_check(fi);
 
 	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
-		struct dl_file_chunk *fc = sl->data;
+		const struct dl_file_chunk *fc = sl->data;
 
+		dl_file_chunk_check(fc);
 		if (last != fc->from || fc->from >= fc->to)
 			return FALSE;
 
@@ -516,8 +541,7 @@ static void
 file_info_fd_store_binary(fileinfo_t *fi,
 	const struct file_object *fo, gboolean force)
 {
-	GSList *fclist;
-	GSList *a;
+	const GSList *fclist, *sl;
 	guint32 checksum = 0;
 	guint32 length;
 
@@ -555,19 +579,22 @@ file_info_fd_store_binary(fileinfo_t *fi,
 	if (fi->cha1)
 		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1, &checksum);
 
-	for (a = fi->alias; a; a = a->next) {
-		gint len = strlen(a->data);		/* Do not store the trailing NUL */
-		g_assert(len >= 0);
+	for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
+		size_t len = strlen(sl->data);		/* Do not store the trailing NUL */
+		g_assert(len <= INT_MAX);
 		if (len < FI_MAX_FIELD_LEN)
-			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, a->data, &checksum);
+			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, sl->data, &checksum);
 	}
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
-		struct dl_file_chunk *fc = fclist->data;
-		guint32 from_hi = (guint64) fc->from >> 32;
-		guint32 to_hi = (guint64) fc->to >> 32;
+		const struct dl_file_chunk *fc = fclist->data;
+		guint32 from_hi, to_hi;
 		guint32 chunk[5];
+
+		dl_file_chunk_check(fc);
+		from_hi = (guint64) fc->from >> 32;
+		to_hi = (guint64) fc->to >> 32;
 
 		chunk[0] = htonl(from_hi),
 		chunk[1] = htonl((guint32) fc->from),
@@ -711,8 +738,11 @@ file_info_chunklist_free(fileinfo_t *fi)
 
 	file_info_check(fi);
 
-	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl))
-		wfree(sl->data, sizeof(struct dl_file_chunk));
+	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
+		dl_file_chunk_check(fc);
+		wfree(fc, sizeof *fc);
+	}
 	g_slist_free(fi->chunklist);
 	fi->chunklist = NULL;
 }
@@ -859,7 +889,7 @@ fi_resize(fileinfo_t *fi, filesize_t size)
 	g_assert(fi->size < size);
 	g_assert(!fi->hashed);
 
-	fc = walloc0(sizeof *fc);
+	fc = dl_file_chunk_alloc();
 	fc->from = fi->size;
 	fc->to = size;
 	fc->status = DL_CHUNK_EMPTY;
@@ -1581,7 +1611,7 @@ G_STMT_START {				\
 				struct dl_file_chunk *fc;
 
 				memcpy(tmpchunk, tmp, sizeof tmpchunk);
-				fc = walloc0(sizeof *fc);
+				fc = dl_file_chunk_alloc();
 
 				if (!t64) {
 					g_assert(version < 6);
@@ -1717,9 +1747,7 @@ eof:
 static void
 file_info_store_one(FILE *f, fileinfo_t *fi)
 {
-	const GSList *fclist;
-	const GSList *a;
-	struct dl_file_chunk *fc;
+	const GSList *sl;
 
 	file_info_check(fi);
 
@@ -1735,8 +1763,8 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	 */
 
 	if (0 == fi->refcount && fi->done == fi->size) {
-		gchar *path;
 		struct stat st;
+		gchar *path;
 
 		path = make_pathname(fi->path, fi->file_name);
 		if (-1 == stat(path, &st)) {
@@ -1758,8 +1786,8 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		guid_hex_str(fi->guid),
 		fi->generation);
 
-	for (a = fi->alias; a; a = g_slist_next(a)) {
-		const gchar *alias = a->data;
+	for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
+		const gchar *alias = sl->data;
 
 		g_assert(NULL != alias);
 		if (looks_like_urn(alias)) {
@@ -1784,8 +1812,10 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	fprintf(f, "SWRM %d\n", fi->use_swarming ? 1 : 0);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
-	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
-		fc = fclist->data;
+	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		const struct dl_file_chunk *fc = sl->data;
+
+		dl_file_chunk_check(fc);
 		fprintf(f, "CHNK %s %s %u\n",
 			uint64_to_string(fc->from), uint64_to_string2(fc->to),
 			(guint) fc->status);
@@ -2559,7 +2589,7 @@ fi_reset_chunks(fileinfo_t *fi)
 	if (fi->file_size_known) {
 		struct dl_file_chunk *fc;
 
-		fc = walloc0(sizeof *fc);
+		fc = dl_file_chunk_alloc();
 		fc->from = 0;
 		fc->to = fi->size;
 		fc->status = DL_CHUNK_EMPTY;
@@ -3103,7 +3133,7 @@ file_info_retrieve(void)
 				if (!damaged) {
 					struct dl_file_chunk *fc, *prev;
 
-					fc = walloc0(sizeof *fc);
+					fc = dl_file_chunk_alloc();
 					fc->from = from;
 					fc->to = to;
 					if (DL_CHUNK_BUSY == status)
@@ -3275,7 +3305,7 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 			"assuming file \"%s\" is complete up to %s bytes",
 			pathname, uint64_to_string(st.st_size));
 
-		fc = walloc0(sizeof *fc);
+		fc = dl_file_chunk_alloc();
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
 		fc->status = DL_CHUNK_DONE;
@@ -3718,7 +3748,7 @@ file_info_size_known(struct download *d, filesize_t size)
 	 */
 
 	if (fi->done) {
-		fc = walloc(sizeof *fc);
+		fc = dl_file_chunk_alloc();
 		fc->from = 0;
 		fc->to = fi->done;			/* Byte at that offset is excluded */
 		fc->status = DL_CHUNK_DONE;
@@ -3732,7 +3762,7 @@ file_info_size_known(struct download *d, filesize_t size)
 	 */
 
 	if (size > fi->done) {
-		fc = walloc(sizeof *fc);
+		fc = dl_file_chunk_alloc();
 		fc->from = fi->done;
 		fc->to = size;				/* Byte at that offset is excluded */
 		fc->status = DL_CHUNK_BUSY;
@@ -3885,7 +3915,7 @@ again:
 				fc->from = to;
 				g_assert(file_info_check_chunklist(fi, TRUE));
 			} else {
-				nfc = walloc(sizeof *nfc);
+				nfc = dl_file_chunk_alloc();
 				nfc->from = to;
 				nfc->to = fc->to;
 				nfc->status = fc->status;
@@ -3914,7 +3944,7 @@ again:
 				fi->done += to - from;
 
 			if (fc->to > to) {
-				nfc = walloc(sizeof *nfc);
+				nfc = dl_file_chunk_alloc();
 				nfc->from = to;
 				nfc->to = fc->to;
 				nfc->status = fc->status;
@@ -3922,7 +3952,7 @@ again:
 				gm_slist_insert_after(fi->chunklist, fclist, nfc);
 			}
 
-			nfc = walloc(sizeof *nfc);
+			nfc = dl_file_chunk_alloc();
 			nfc->from = from;
 			nfc->to = to;
 			nfc->status = status;
@@ -3945,7 +3975,7 @@ again:
 			if (DL_CHUNK_DONE == status)
 				fi->done += fc->to - from;
 
-			nfc = walloc(sizeof *nfc);
+			nfc = dl_file_chunk_alloc();
 			nfc->from = from;
 			nfc->to = fc->to;
 			nfc->status = status;
@@ -4024,7 +4054,7 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 				fc->status = DL_CHUNK_EMPTY;
 		}
 	}
-	file_info_merge_adjacent(d->file_info);
+	file_info_merge_adjacent(fi);
 
 	g_assert(fi->lifecount >= (lifecount ? busy : (busy - 1)));
 
@@ -4284,7 +4314,7 @@ list_clone_shift(fileinfo_t *fi)
 				 * nfc is [offset, to[ and is inserted after fc.
 				 */
 
-				nfc = walloc(sizeof *nfc);
+				nfc = dl_file_chunk_alloc();
 				nfc->from = offset;
 				nfc->to = fc->to;
 				nfc->status = fc->status;
@@ -4929,14 +4959,15 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 GSList *
 fi_get_chunks(gnet_fi_t fih)
 {
-    fileinfo_t *fi = file_info_find_by_handle(fih);
-    GSList *sl, *chunks = NULL;
+    const fileinfo_t *fi = file_info_find_by_handle(fih);
+    const GSList *sl;
+	GSList *chunks = NULL;
 
     file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
     for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
-        struct dl_file_chunk *fc = sl->data;
+        const struct dl_file_chunk *fc = sl->data;
     	gnet_fi_chunks_t *chunk;
 
         chunk = walloc(sizeof *chunk);
