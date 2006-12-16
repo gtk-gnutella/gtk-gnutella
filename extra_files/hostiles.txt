@@ -622,6 +622,10 @@
 # www.aup.lockeddns.com; used by DynDNS.org to hijack hosts of past users.
 82.94.222.186
 
+# Jironimo-like Shareaza spam;
+# root server or vserver so the address should be stable
+81.209.165.73
+
 # University of Mississippi
 130.74.0.0/16
 
