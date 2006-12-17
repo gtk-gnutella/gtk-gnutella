@@ -48,8 +48,19 @@ RCSID("$Id$")
 void NON_NULL_PARAM((1)) REGPARM(1)
 assertion_warning(const assertion_data * const data)
 {
+	char line_buf[22], *line_ptr = &line_buf[sizeof line_buf - 1];
 	struct iovec iov[16];
 	guint n = 0;
+
+	{
+		unsigned line_no = data->line;
+
+		*line_ptr = '\0';
+		do {
+			*--line_ptr = (line_no % 10) + '0';
+			line_no /= 10;
+		} while (line_no && line_ptr != line_buf);
+	}
 
 #define print_str(x) \
 G_STMT_START { \
@@ -68,7 +79,7 @@ G_STMT_START { \
 	}
 	print_str(data->file);
 	print_str(":");
-	print_str(data->line);
+	print_str(line_ptr);
 	print_str(")");
 	if (data->expr) {
 		print_str(" \"");

@@ -51,7 +51,8 @@
 #define _fast_assert_h_
 
 typedef struct assertion_data {
-	const gchar *line, *file, *expr;
+	const char *file, *expr;
+	unsigned line;
 } assertion_data;
 
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) REGPARM(1)
@@ -67,7 +68,7 @@ assertion_warning(const assertion_data * const data);
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			STRINGIFY(__LINE__), __FILE__, expr_string \
+			__FILE__, expr_string, __LINE__ \
 		}; \
 		assertion_failure(&assertion_data_); \
 	} \
@@ -76,7 +77,7 @@ G_STMT_START { \
 #define fast_assert_not_reached() \
 G_STMT_START { \
 	static const struct assertion_data assertion_data_ = { \
-		STRINGIFY(__LINE__), __FILE__, NULL, \
+		__FILE__, NULL, __LINE__ \
 	}; \
 	assertion_failure(&assertion_data_); \
 } G_STMT_END
@@ -87,7 +88,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			STRINGIFY(__LINE__), __FILE__, expr_string \
+			__FILE__, expr_string, __LINE__ \
 		}; \
 		assertion_warning(&assertion_data_); \
 		return; \
@@ -101,7 +102,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			STRINGIFY(__LINE__), __FILE__, expr_string \
+			__FILE__, expr_string, __LINE__ \
 		}; \
 		assertion_warning(&assertion_data_); \
 		return (val); \
