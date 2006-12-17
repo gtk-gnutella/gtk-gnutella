@@ -887,6 +887,7 @@ buffers_match(const struct download *d, const gchar *data, size_t len)
 		if (0 != memcmp(pmsg_read_base(mb), data, n)) {
 			break;
 		}
+		data += n;
 		len -= n;
 	}
 	slist_iter_free(&iter);
