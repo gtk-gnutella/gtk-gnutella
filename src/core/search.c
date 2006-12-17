@@ -2364,8 +2364,10 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	g_assert(sch != NULL);
 	g_assert(sbool_get(sch->active));
 
-	if (sch->reissue_timeout_id > 0)
+	if (sch->reissue_timeout_id > 0) {
 		g_source_remove(sch->reissue_timeout_id);
+		sch->reissue_timeout_id = 0;
+	}
 
 	/*
 	 * When a search is frozen or the reissue_timout is zero, all we need
@@ -2396,7 +2398,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 */
 
 	if (search_debug > 2)
-		printf("updating search \"%s\" with timeout %u.\n", sch->query, tm);
+		g_message("updating search \"%s\" with timeout %u.", sch->query, tm);
 
 	sch->reissue_timeout_id = g_timeout_add(
 		tm * 1000, search_reissue_timeout_callback, sch);
@@ -2431,7 +2433,7 @@ search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
 		return;					/* Node disconnected already */
 
 	if (search_debug > 1)
-		printf("SCH reporting %u kept results so far for \"%s\" to %s\n",
+		g_message("SCH reporting %u kept results so far for \"%s\" to %s",
 			kept, sch->query, node_addr(n));
 
 	/*
@@ -3035,7 +3037,6 @@ search_check_results_set(gnet_results_set_t *rs)
 void
 search_close(gnet_search_t sh)
 {
-	GSList *m;
     search_ctrl_t *sch = search_find_by_handle(sh);
 
 	g_return_if_fail(sch);
@@ -3072,15 +3073,21 @@ search_close(gnet_search_t sh)
 		sch->new_node_hook = NULL;
 
 		/* we could have stopped the search already, must test the ID */
-		if (sch->reissue_timeout_id)
+		if (sch->reissue_timeout_id) {
 			g_source_remove(sch->reissue_timeout_id);
-
-		for (m = sch->muids; m; m = m->next) {
-			g_hash_table_remove(search_by_muid, m->data);
-			wfree(m->data, GUID_RAW_SIZE);
+			sch->reissue_timeout_id = 0;
 		}
 
-		g_slist_free(sch->muids);
+		if (sch->muids) {
+			GSList *sl;
+
+			for (sl = sch->muids; sl; sl = g_slist_next(sl)) {
+				g_hash_table_remove(search_by_muid, sl->data);
+				wfree(sl->data, GUID_RAW_SIZE);
+			}
+			g_slist_free(sch->muids);
+			sch->muids = NULL;
+		}
 
 		search_free_sent_nodes(sch);
 		search_free_sent_node_ids(sch);
@@ -3174,20 +3181,14 @@ search_reissue(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 	gchar *muid;
 
-    if (sbool_get(sch->frozen)) {
-        g_warning("trying to reissue a frozen search, aborted");
-        return;
-    }
+	g_return_if_fail(!sbool_get(sch->frozen));
 
 	if (sbool_get(sch->local)) {
 		search_locally(sh, sch->query);
 		return;
 	}
 
-	if (!sbool_get(sch->active)) {
-        g_warning("trying to reissue a non-active search, aborted");
-		return;
-	}
+	g_return_if_fail(sbool_get(sch->active));
 
 	/*
 	 * If the search has expired, disable any further invocation.
@@ -3195,14 +3196,14 @@ search_reissue(gnet_search_t sh)
 
 	if (search_expired(sch)) {
 		if (search_debug)
-			g_message("expired search \"%s\" (queries broadcasted: %d)\n",
+			g_message("expired search \"%s\" (queries broadcasted: %d)",
 				sch->query, sch->query_emitted);
 		sch->frozen = sbool_set(TRUE);
 		goto done;
 	}
 
 	if (search_debug)
-		g_message("reissuing search \"%s\" (queries broadcasted: %d)\n",
+		g_message("reissuing search \"%s\" (queries broadcasted: %d)",
 			sch->query, sch->query_emitted);
 
 	muid = search_new_muid(FALSE);
@@ -3224,11 +3225,7 @@ search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
-
-    if (!sbool_get(sch->active)) {
-        g_error("can't set reissue timeout on a non-active search");
-        return;
-    }
+    g_return_if_fail(sbool_get(sch->active));
 
     sch->reissue_timeout = timeout > 0 ? MAX(SEARCH_MIN_RETRY, timeout) : 0;
     update_one_reissue_timeout(sch);
@@ -3399,7 +3396,7 @@ search_add_kept(gnet_search_t sh, guint32 kept)
 	sch->kept_results += kept;
 
 	if (search_debug > 1)
-		printf("SCH GUI reported %u new kept results for \"%s\", has %u now\n",
+		g_message("SCH GUI reported %u new kept results for \"%s\", has %u now",
 			kept, sch->query, sch->kept_results);
 
 	/*
@@ -3488,7 +3485,7 @@ search_get_kept_results(const gchar *muid, guint32 *kept)
 	}
 
 	if (search_debug > 1)
-		printf("SCH reporting %u kept results for \"%s\"\n",
+		g_message("SCH reporting %u kept results for \"%s\"",
 			sch->kept_results, sch->query);
 
 	*kept = sch->kept_results;
@@ -3559,7 +3556,7 @@ search_oob_pending_results(
 	}
 
 	if (search_debug || udp_debug)
-		printf("has %d pending OOB hit%s for search %s at %s\n",
+		g_message("has %d pending OOB hit%s for search %s at %s",
 			hits, hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
 
 	/*
