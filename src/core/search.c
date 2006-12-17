@@ -3197,7 +3197,7 @@ search_reissue(gnet_search_t sh)
 		if (search_debug)
 			g_message("expired search \"%s\" (queries broadcasted: %d)\n",
 				sch->query, sch->query_emitted);
-		sch->reissue_timeout = 0;
+		sch->frozen = sbool_set(TRUE);
 		goto done;
 	}
 
