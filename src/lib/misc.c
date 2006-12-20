@@ -3774,6 +3774,37 @@ close_file_descriptors(const int first_fd)
 	}
 }
 
+/**
+ * Equivalent to strstr() for raw memory without NUL-termination.
+ *
+ * @param data The memory to scan.
+ * @param data_size The length of data.
+ * @param pattern The byte pattern to look for.
+ * @param pattern_size The length of the pattern.
+ * @return NULL if not found. Otherwise, the start address of the first match
+ *         is returned.
+ */
+void *
+compat_memmem(const void *data, size_t data_size,
+	const void *pattern, size_t pattern_size)
+{
+	const gchar *next, *p, *pat;
+	
+	pat = pattern;
+	for (p = data; NULL != p; p = next) {
+		if (data_size < pattern_size) {
+			p = NULL;
+			break;
+		}
+		if (0 == memcmp(p, pattern, pattern_size)) {
+			break;
+		}
+		next = memchr(&p[1], pat[0], data_size - 1);
+		data_size -= next - p;
+	}
+	return deconstify_gchar(p);
+}
+
 void
 misc_init(void)
 {

@@ -551,6 +551,8 @@ gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
 void set_close_on_exec(gint fd);
 void compat_fadvise_sequential(int fd, off_t offset, off_t size);
+void *compat_memmem(const void *data, size_t data_size,
+		const void *pattern, size_t pattern_size);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
