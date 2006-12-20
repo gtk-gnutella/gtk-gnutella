@@ -612,27 +612,30 @@ search_record_new(void)
 /**
  * This checks XML data appended to search results for action URL spam. It's
  * a weak heuristic but it should be sufficient for now. Gnoozle and others
- * exploits a feature of LimeWire and sends results for faked, non-existent
- * files with bogus SHA-1s. This will be fixed in LimeWire soon, so there's no
+ * exploit a feature of LimeWire and sends results for faked, non-existent
+ * files with bogus SHA-1s. This has been fixed in LimeWire, so there's no
  * need to invest too much into it and it can probably be removed in a couple
- * of months from now (2006-06-14).
+ * of months from now (2006-12-20).
  *
- * @param xml_buf a NUL-terminated string of XML data.
+ * @param data The buffer to scan.
+ * @param size The size of the buffer.
  * @return TRUE if spam was detected, FALSE if it looks alright.
  */
 static gboolean
-is_action_url_spam(const gchar *xml_buf)
+is_action_url_spam(const gchar *data, size_t size)
 {
-	const gchar *p;
+	if (size > 0) {
+		static const gchar schema[] = "http://www.limewire.com/schemas/";
+		const gchar *p;
 
-	g_assert(xml_buf);
-
-	p = strstr(xml_buf, "http://www.limewire.com/schemas/");
-	if (p) {
-		if (strstr(p, "<audio action=\"http://"))
-			return TRUE;
-		if (strstr(p, "<video action=\"http://"))
-			return TRUE;
+		g_assert(data);
+		p = compat_memmem(data, size, schema, CONST_STRLEN(schema));
+		if (p) {
+			static const gchar action[] = " action=\"http://";
+			size -= p - data - CONST_STRLEN(schema);
+			if (compat_memmem(p, size, action, CONST_STRLEN(action)))
+				return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -1160,7 +1163,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						count_sha1(sha1_digest);
 						is_spam = spam_check(sha1_digest);
 						if (is_spam) {
-							rs->status |= ST_SPAM;
+							rs->status |= ST_URN_SPAM;
 						}
 
 						if (!validate_only) {
@@ -1202,7 +1205,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							count_sha1(sha1_digest);
 							is_spam = spam_check(sha1_digest);
 							if (is_spam) {
-								rs->status |= ST_SPAM;
+								rs->status |= ST_URN_SPAM;
 							}
 
 							if (
@@ -1232,7 +1235,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						count_sha1(sha1_digest);
 						is_spam = spam_check(sha1_digest);
 						if (is_spam) {
-							rs->status |= ST_SPAM;
+							rs->status |= ST_URN_SPAM;
 						}
 
 						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
@@ -1272,10 +1275,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						seen_ggep_alt = TRUE;
 						if (hvcnt > 16) {
 							/* Known limits: LIME: 10, GTKG: 15, BEAR: >10? */
-							rs->status |= ST_SPAM;
-							if (rc) {
-								set_flags(rc->flags, SR_SPAM);
-							}
+							rs->status |= ST_ALT_SPAM;
 						}
 					} else {
 						alt_errors++;
@@ -1314,9 +1314,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						buf[len] = '\0';
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
-							if (is_action_url_spam(buf)) {
-								rs->status |= ST_SPAM;
-								set_flags(rc->flags, SR_SPAM);
+							if (is_action_url_spam(buf, len)) {
+								rs->status |= ST_URL_SPAM;
 							}
 						}
 					}
@@ -1345,8 +1344,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					unknown = FALSE;		/* Disables ext_has_ascii_word() */
 					/* FALLTHROUGH */
 				case EXT_T_UNKNOWN:
-					if (unknown)
+					if (unknown) {
 						has_unknown = TRUE;
+					}
 					if (
 						!validate_only &&
 						ext_paylen(e) &&
@@ -1704,9 +1704,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							buf[len] = '\0';
 							if (utf8_is_valid_string(buf)) {
 								rc->xml = atom_str_get(buf);
-								if (is_action_url_spam(buf)) {
-									rs->status |= ST_SPAM;
-									set_flags(rc->flags, SR_SPAM);
+								if (is_action_url_spam(buf, len)) {
+									rs->status |= ST_URL_SPAM;
 								}
 							}
 						}
@@ -1743,6 +1742,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 			if (exvcnt)
 				ext_reset(exv, MAX_EXTVEC);
+		} else {
+			const gchar *priv = &trailer[5] + open_size;
+			size_t privlen = endptr - priv;
+			
+			if (is_action_url_spam(priv, privlen)) {
+				rs->status |= ST_URL_SPAM;
+			}
 		}
 
 		if (search_debug > 1) {
@@ -1788,6 +1794,20 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 		c_addr = (rs->status & ST_UDP) ? rs->last_hop : rs->addr;
 		rs->country = gip_country(c_addr);
+	}
+
+	if ((ST_URL_SPAM | ST_ALT_SPAM) & rs->status) {
+		GSList *sl;
+
+		/*
+		 * For URL or Alt-Loc spam mark every single record as spam
+		 * too because this kind of spam is never emitted by innocent
+		 * peers.
+		 */
+		for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
+			gnet_record_t *record = sl->data;
+			set_flags(record->flags, SR_SPAM);
+		}
 	}
 
 	return rs;
