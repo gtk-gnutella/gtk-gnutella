@@ -60,13 +60,15 @@ typedef struct gnet_host_vec {
  * Result sets `status' flags.
  */
 enum {
-	 ST_BROWSE				= (1 << 17), /**< Browse Host "search" result */
-	 ST_LOCAL				= (1 << 16), /**< Local search result */
-	 ST_FW2FW				= (1 << 15), /**< Firewall-to-Firewall support */
-	 ST_HOSTILE				= (1 << 14), /**< From an hostile host */
-	 ST_UNREQUESTED			= (1 << 13), /**< Unrequested (OOB) result */
-	 ST_EVIL				= (1 << 12), /**< Carries evil filename */
-	 ST_SPAM				= (1 << 11), /**< Carries spam */
+	 ST_BROWSE				= (1 << 19), /**< Browse Host "search" result */
+	 ST_LOCAL				= (1 << 18), /**< Local search result */
+	 ST_FW2FW				= (1 << 17), /**< Firewall-to-Firewall support */
+	 ST_HOSTILE				= (1 << 16), /**< From an hostile host */
+	 ST_UNREQUESTED			= (1 << 15), /**< Unrequested (OOB) result */
+	 ST_EVIL				= (1 << 14), /**< Carries evil filename */
+	 ST_ALT_SPAM			= (1 << 13), /**< Carries alt-loc spam */
+	 ST_URL_SPAM			= (1 << 12), /**< Carries action URL spam */
+	 ST_URN_SPAM			= (1 << 11), /**< Carries spam known by URN */
 	 ST_TLS					= (1 << 10), /**< Indicated support for TLS */
 	 ST_BH					= (1 << 9),	 /**< Browse Host support */
 	 ST_KNOWN_VENDOR		= (1 << 8),	 /**< Found known vendor code */
@@ -77,7 +79,9 @@ enum {
 	 ST_GGEP				= (1 << 3),	 /**< Trailer has a GGEP extension */
 	 ST_UPLOADED			= (1 << 2),	 /**< Is "stable", people downloaded */
 	 ST_BUSY				= (1 << 1),	 /**< Has currently no slots */
-	 ST_FIREWALL			= (1 << 0)	 /**< Is behind a firewall */
+	 ST_FIREWALL			= (1 << 0),	 /**< Is behind a firewall */
+
+	 ST_SPAM				= (ST_ALT_SPAM | ST_URL_SPAM | ST_URN_SPAM)
 };
 
 /*
