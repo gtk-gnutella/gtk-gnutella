@@ -640,6 +640,32 @@ is_action_url_spam(const gchar *data, size_t size)
 	return FALSE;
 }
 
+static gboolean
+has_dupe_spam(const gnet_results_set_t *rs)
+{
+	GSList *sl;
+	guint dupes = 0;
+
+	for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
+		gnet_record_t *r1, *r2;
+
+		if (!g_slist_next(sl))
+			break;
+		r1 = sl->data;
+		r2 = g_slist_next(sl)->data;
+		if (
+			r1->file_index == r2->file_index &&
+			r1->name == r2->name &&
+			r1->sha1 == r2->sha1 &&
+			r1->size == r2->size
+		) {
+			dupes++;
+		}
+	}
+
+	return dupes > 4;	/* Tolerate a few dupes for now */
+}
+
 /**
  * Normalizes characters from an URL (partially or completely) encoded
  * string.
@@ -1796,13 +1822,15 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		rs->country = gip_country(c_addr);
 	}
 
-	if ((ST_URL_SPAM | ST_ALT_SPAM) & rs->status) {
+	if (has_dupe_spam(rs)) {
+		rs->status |= ST_DUP_SPAM;
+	}
+	if ((ST_SPAM & ~ST_URN_SPAM) & rs->status) {
 		GSList *sl;
 
 		/*
-		 * For URL or Alt-Loc spam mark every single record as spam
-		 * too because this kind of spam is never emitted by innocent
-		 * peers.
+		 * Spam other than listed URNs is never sent by innocent peers,
+		 * thus mark all records of the set as spam.
 		 */
 		for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
 			gnet_record_t *record = sl->data;
