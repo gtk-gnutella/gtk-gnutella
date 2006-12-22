@@ -1065,9 +1065,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		dump_hex(stdout, "Query Hit Data", n->data, n->size);
 
 	while (endptr - s > 10 && nr < rs->num_recs) {
-		READ_GUINT32_LE(s, idx);
+		idx = peek_le32(s);
 		s += 4;					/* File Index */
-		READ_GUINT32_LE(s, size);
+		size = peek_le32(s);
 		s += 4;					/* File Size */
 
 		/* Followed by file name, and termination (double NUL) */
@@ -1496,17 +1496,17 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 	if (trailer) {
 		guint32 t;
-		guint open_size = trailer[4];
-		guint open_parsing_size = trailer[4];
-		guint32 enabler_mask = (guint32) trailer[5];
-		guint32 flags_mask = (guint32) trailer[6];
+		guint8 open_size = trailer[4];
+		guint8 open_parsing_size = trailer[4];
+		guint8 enabler_mask = trailer[5];
+		guint8 flags_mask = trailer[6];
 
         vendor = lookup_vendor_name(rs->vcode);
 
         if (vendor != NULL && is_vendor_known(rs->vcode))
             rs->status |= ST_KNOWN_VENDOR;
 
-		READ_GUINT32_BE(trailer, t);
+		t = peek_be32(trailer);
 
 		if (open_size == 4)
 			open_parsing_size = 2;		/* We ignore XML data size */
@@ -1525,7 +1525,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			break;
 		default:
 			if (open_parsing_size == 2) {
-				guint32 status = enabler_mask & flags_mask;
+				guint8 status = enabler_mask & flags_mask;
 				if (status & 0x04) rs->status |= ST_BUSY;
 				if (status & 0x01) rs->status |= ST_FIREWALL;
 				if (status & 0x08) rs->status |= ST_UPLOADED;
@@ -1592,13 +1592,20 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		 */
 
 		if (rs->status & ST_GGEP) {
-			gchar *priv = &trailer[5] + open_size;
-			gint privlen = endptr - priv;
+			gchar *priv;
+			size_t privlen;
 			gint exvcnt = 0;
 			extvec_t exv[MAX_EXTVEC];
 			gboolean seen_ggep = FALSE;
 			gint i;
 
+			if (endptr - trailer >= (gint) open_size + 5) {
+				priv = &trailer[5] + open_size;
+				privlen = endptr - priv;
+			} else {
+				priv = NULL;
+				privlen = 0;
+			}
 			if (privlen > 0) {
 				ext_prepare(exv, MAX_EXTVEC);
 				exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
@@ -1754,7 +1761,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
 				if (search_debug > 2)
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-				if (search_debug > 3)
+				if (search_debug > 3 && priv)
 					dump_hex(stderr, "Query Hit private data", priv, privlen);
 			} else if (!seen_ggep && ggep_debug) {
 				g_warning("%s from %s claimed GGEP extensions in trailer, "
@@ -1769,10 +1776,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			if (exvcnt)
 				ext_reset(exv, MAX_EXTVEC);
 		} else {
-			const gchar *priv = &trailer[5] + open_size;
-			size_t privlen = endptr - priv;
-			
-			if (is_action_url_spam(priv, privlen)) {
+			if (is_action_url_spam(trailer, endptr - trailer)) {
 				rs->status |= ST_URL_SPAM;
 			}
 		}
