@@ -999,7 +999,7 @@ wfree_host_addr(gpointer key, gpointer unused_data)
  *			of the machine.
  */
 GSList *
-host_addr_get_interface_addrs(void)
+host_addr_get_interface_addrs(const enum net_type net)
 #if defined(HAS_GETIFADDRS)
 {
 	struct ifaddrs *ifa0, *ifa;
@@ -1039,7 +1039,10 @@ host_addr_get_interface_addrs(void)
 			addr = zero_host_addr;
 		}
 
-		if (is_host_addr(addr)) {
+		if (
+			(NET_TYPE_NONE == net || host_addr_net(addr) == net) &&
+			is_host_addr(addr)
+		) {
 			sl_addrs = g_slist_prepend(sl_addrs, wcopy(&addr, sizeof addr));
 		}
 	}

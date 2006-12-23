@@ -1048,6 +1048,53 @@ connect_socksv5(struct gnutella_socket *s)
 	return 0;
 }
 
+/**
+ * Checks whether our current IPv6 address has changed and updates it
+ * if a change is detected.
+ */
+static void
+socket_check_ipv6_address(void)
+{
+	switch (network_protocol) {
+	case NET_USE_IPV4:
+		return;
+	case NET_USE_BOTH:
+	case NET_USE_IPV6:
+		break;
+	}
+	if (!force_local_ip6) {
+		GSList *sl_addrs, *sl;
+		host_addr_t addr, old_addr, first_addr;
+
+		addr = zero_host_addr;
+		first_addr = zero_host_addr;
+		old_addr = listen_addr6();
+		
+		sl_addrs = host_addr_get_interface_addrs(NET_TYPE_IPV6);
+		for (sl = sl_addrs; NULL != sl; sl = g_slist_next(sl)) {
+			host_addr_t *addr_ptr;
+
+			addr_ptr = sl->data;
+			addr = *addr_ptr;
+			if (!host_addr_is_routable(addr)) {
+				continue;
+			}
+			if (host_addr_equal(old_addr, addr)) {
+				break;
+			}
+			if (!is_host_addr(first_addr)) {
+				first_addr = addr;
+			}
+		}
+		host_addr_free_interface_addrs(&sl_addrs);
+		if (!is_host_addr(addr)) {
+			addr = first_addr;
+		}
+		if (!host_addr_equal(old_addr, addr)) {
+			gnet_prop_set_ip_val(PROP_LOCAL_IP6, addr);
+		}
+	}
+}
 
 /**
  * Called by main timer.
@@ -1086,8 +1133,16 @@ socket_timer(time_t now)
 		struct gnutella_socket *s = l->data;
 		socket_destroy(s, "Connection timeout");
 	}
-
 	g_slist_free(to_remove);
+
+	{
+		static time_t last_check;
+
+		if (!last_check || delta_time(now, last_check) > 30) {
+			last_check = now;
+			socket_check_ipv6_address();
+		}
+	}
 }
 
 /**

@@ -536,7 +536,7 @@ const gchar *host_addr_to_name(const host_addr_t addr);
 gboolean string_to_host_or_addr(const char *s, const gchar **endptr,
 		host_addr_t *ha);
 
-GSList *host_addr_get_interface_addrs(void);
+GSList *host_addr_get_interface_addrs(enum net_type net);
 void host_addr_free_interface_addrs(GSList **sl_ptr);
 
 guint packed_host_addr_size(const struct packed_host_addr paddr);
