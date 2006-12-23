@@ -635,7 +635,7 @@ ext_huge_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 */
 
 		token = rw_urn_screen(name_buf, &name);
-		p = name_end;
+		p = &name_end[1];
 	}
 
 	/*
