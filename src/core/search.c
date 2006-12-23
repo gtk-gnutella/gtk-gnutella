@@ -915,6 +915,262 @@ search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
 }
 
 /**
+ * Compute status bits, decompile trailer info, if present
+ */
+static void
+search_results_handle_trailer(const gnutella_node_t *n, gboolean validate_only,
+	gnet_results_set_t *rs, const gchar *trailer, size_t trailer_size)
+{
+	guint8 open_size, open_parsing_size, enabler_mask, flags_mask;
+	const gchar *vendor;
+
+	if (!trailer || trailer_size < 7)
+		return;
+
+	vendor = lookup_vendor_name(rs->vcode);
+	open_size = trailer[4];
+	open_parsing_size = trailer[4];
+	enabler_mask = trailer[5];
+	flags_mask = trailer[6];
+
+	if (open_size == 4)
+		open_parsing_size = 2;		/* We ignore XML data size */
+
+	if (T_NAPS == peek_be32(&rs->vcode.be32)) {	
+		/*
+		 * NapShare has a one-byte only flag: no enabler, just setters.
+		 *		--RAM, 17/12/2001
+		 */
+		if (open_size == 1) {
+			if (enabler_mask & 0x04) rs->status |= ST_BUSY;
+			if (enabler_mask & 0x01) rs->status |= ST_FIREWALL;
+			rs->status |= ST_PARSED_TRAILER;
+		}
+	} else {
+		if (open_parsing_size == 2) {
+			guint8 status = enabler_mask & flags_mask;
+			if (status & 0x04) rs->status |= ST_BUSY;
+			if (status & 0x01) rs->status |= ST_FIREWALL;
+			if (status & 0x08) rs->status |= ST_UPLOADED;
+			if (status & 0x08) rs->status |= ST_UPLOADED;
+			if (status & 0x20) rs->status |= ST_GGEP;
+			rs->status |= ST_PARSED_TRAILER;
+		} else if (rs->status  & ST_KNOWN_VENDOR) {
+			if (search_debug > 1)
+				g_warning("vendor %s changed # of open data bytes to %d",
+						vendor, open_size);
+		} else if (vendor) {
+			if (search_debug > 1)
+				g_warning("ignoring %d open data byte%s from "
+						"unknown vendor %s",
+						open_size, open_size == 1 ? "" : "s", vendor);
+		}
+	}
+
+	/*
+	 * Parse trailer after the open data, if we have a GGEP extension.
+	 */
+
+	if (rs->status & ST_GGEP) {
+		const gchar *priv;
+		size_t privlen;
+		gint exvcnt = 0;
+		extvec_t exv[MAX_EXTVEC];
+		gboolean seen_ggep = FALSE;
+		gint i;
+
+		if (trailer_size >= (size_t) open_size + 5) {
+			priv = &trailer[5 + open_size];
+			privlen = &trailer[trailer_size] - priv;
+		} else {
+			priv = NULL;
+			privlen = 0;
+		}
+		if (privlen > 0) {
+			ext_prepare(exv, MAX_EXTVEC);
+			exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
+		}
+
+		for (i = 0; i < exvcnt; i++) {
+			extvec_t *e = &exv[i];
+			ggept_status_t ret;
+
+			if (e->ext_type == EXT_GGEP)
+				seen_ggep = TRUE;
+
+			if (validate_only)
+				continue;
+
+			switch (e->ext_token) {
+			case EXT_T_GGEP_BH:
+				rs->status |= ST_BH;
+				break;
+			case EXT_T_GGEP_FW:
+				rs->status |= ST_FW2FW;
+				break;
+			case EXT_T_GGEP_GTKG_TLS:
+				rs->status |= ST_TLS;
+				break;
+			case EXT_T_GGEP_GTKG_IPV6:
+				{
+					host_addr_t addr;
+
+					ret = ggept_gtkg_ipv6_extract(e, &addr);
+					if (GGEP_OK == ret) {
+						if (
+							NET_TYPE_IPV4 != network_protocol &&
+							is_host_addr(addr) &&
+							!hostiles_check(rs->addr) &&
+							!hostiles_check(addr)
+						) {
+							rs->addr = addr;
+						}
+					} else if (ret == GGEP_INVALID) {
+						if (search_debug > 3 || ggep_debug > 3) {
+							g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
+				}
+				break;
+			case EXT_T_GGEP_GTKGV1:
+				{
+					struct ggep_gtkgv1 vi;
+
+					ret = ggept_gtkgv1_extract(e, &vi);
+					if (ret == GGEP_OK) {
+						static const version_t zero_ver;
+						version_t ver = zero_ver;
+
+						ver.major = vi.major;
+						ver.minor = vi.minor;
+						ver.patchlevel = vi.patch;
+						ver.tag = vi.revchar;
+						/* Build information valid after 2006-08-27 */
+						if (vi.release >= 1156629600)
+							ver.build = vi.build;
+						if (ver.tag)
+							ver.timestamp = vi.release;
+
+						rs->version = atom_str_get(version_str(&ver));
+					} else if (ret == GGEP_INVALID) {
+						if (search_debug > 3 || ggep_debug > 3) {
+							g_warning("%s bad GGEP \"GTKGV1\" (dumping)",
+									gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
+				}
+				break;
+			case EXT_T_GGEP_PUSH:
+				if (rs->proxies != NULL) {
+					g_warning("%s has multiple GGEP \"PUSH\" (ignoring)",
+							gmsg_infostr(&n->header));
+					break;
+				}
+				rs->status |= ST_PUSH_PROXY;
+				if (!validate_only) {
+					gnet_host_t *hvec;
+					gint hvcnt = 0;
+
+					ret = ggept_push_extract(e, &hvec, &hvcnt);
+
+					if (ret == GGEP_OK) {
+						gnet_host_vec_t *v = walloc(sizeof(*v));
+						v->hvec = hvec;
+						v->hvcnt = hvcnt;
+						rs->proxies = v;
+					} else {
+						if (search_debug > 3 || ggep_debug > 3) {
+							g_warning("%s bad GGEP \"PUSH\" (dumping)",
+									gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
+				}
+				break;
+			case EXT_T_GGEP_HNAME:
+				if (!validate_only) {
+					gchar hostname[256];
+
+					ret = ggept_hname_extract(e, hostname, sizeof(hostname));
+					if (ret == GGEP_OK)
+						rs->hostname = atom_str_get(hostname);
+					else {
+						if (search_debug > 3 || ggep_debug > 3) {
+							g_warning("%s bad GGEP \"HNAME\" (dumping)",
+									gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
+				}
+				break;
+			case EXT_T_XML:
+				{
+					size_t paylen = ext_paylen(e);
+					const gchar *payload = ext_payload(e);
+					gnet_record_t *rc;
+
+					/* XXX: Add the XML data to the next best record.
+					 *		Maybe better to all? It's just an atom.
+					 */
+					rc = rs->records ? rs->records->data : NULL; 
+					if (rc && !rc->xml && paylen > 0) {
+						size_t len;
+						gchar buf[4096];
+
+						len = MIN((size_t) paylen, sizeof buf - 1);
+						memcpy(buf, payload, len);
+						buf[len] = '\0';
+						if (utf8_is_valid_string(buf)) {
+							rc->xml = atom_str_get(buf);
+							if (is_action_url_spam(buf, len)) {
+								rs->status |= ST_URL_SPAM;
+							}
+						}
+					}
+				}
+				break;
+			case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
+				if (search_debug > 3 || ggep_debug > 3) {
+					g_warning("%s unknown GGEP \"%s\" in trailer (dumping)",
+							gmsg_infostr(&n->header), ext_ggep_id_str(e));
+					ext_dump(stderr, e, 1, "....", "\n", TRUE);
+				}
+				break;
+			default:
+				break;
+			}
+		}
+
+		if (exvcnt == MAX_EXTVEC) {
+			g_warning("%s from %s has %d trailer extensions!",
+					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
+			if (search_debug > 2)
+				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+			if (search_debug > 3 && priv)
+				dump_hex(stderr, "Query Hit private data", priv, privlen);
+		} else if (!seen_ggep && ggep_debug) {
+			g_warning("%s from %s claimed GGEP extensions in trailer, "
+					"seen none",
+					gmsg_infostr(&n->header), vendor ? vendor : "????");
+		} else if (search_debug > 2) {
+			g_message("%s from %s has %d trailer extensions:",
+					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
+			ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+		}
+
+		if (exvcnt)
+			ext_reset(exv, MAX_EXTVEC);
+	} else {
+		if (is_action_url_spam(trailer, trailer_size)) {
+			rs->status |= ST_URL_SPAM;
+		}
+	}
+}
+
+/**
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
  *
@@ -944,7 +1200,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	gboolean multiple_sha1 = FALSE;
 	gint multiple_alt = 0;
 	const gchar *vendor = NULL;
-	gchar hostname[256];
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -1463,6 +1718,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 		if (trailer) {
 			memcpy(&rs->vcode.be32, trailer, 4);
+			vendor = lookup_vendor_name(rs->vcode);
+			if (vendor != NULL && is_vendor_known(rs->vcode)) {
+				rs->status |= ST_KNOWN_VENDOR;
+			}
 		} else {
 			if (search_debug) {
 				g_warning(
@@ -1490,315 +1749,84 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	rs->guid = atom_guid_get(endptr);
 	rs->stamp = tm_time();
 
+	if (trailer) {
+		search_results_handle_trailer(n, validate_only,
+			rs, trailer, endptr - trailer);
+	}
+	
 	/*
-	 * Compute status bits, decompile trailer info, if present
+	 * Now that we have the vendor, warn if the message has SHA1 errors.
+	 * Then drop the packet!
 	 */
 
-	if (trailer) {
-		guint32 t;
-		guint8 open_size = trailer[4];
-		guint8 open_parsing_size = trailer[4];
-		guint8 enabler_mask = trailer[5];
-		guint8 flags_mask = trailer[6];
-
-        vendor = lookup_vendor_name(rs->vcode);
-
-        if (vendor != NULL && is_vendor_known(rs->vcode))
-            rs->status |= ST_KNOWN_VENDOR;
-
-		t = peek_be32(trailer);
-
-		if (open_size == 4)
-			open_parsing_size = 2;		/* We ignore XML data size */
-
-		switch (t) {
-		case T_NAPS:
-			/*
-			 * NapShare has a one-byte only flag: no enabler, just setters.
-			 *		--RAM, 17/12/2001
-			 */
-			if (open_size == 1) {
-				if (enabler_mask & 0x04) rs->status |= ST_BUSY;
-				if (enabler_mask & 0x01) rs->status |= ST_FIREWALL;
-				rs->status |= ST_PARSED_TRAILER;
-			}
-			break;
-		default:
-			if (open_parsing_size == 2) {
-				guint8 status = enabler_mask & flags_mask;
-				if (status & 0x04) rs->status |= ST_BUSY;
-				if (status & 0x01) rs->status |= ST_FIREWALL;
-				if (status & 0x08) rs->status |= ST_UPLOADED;
-				if (status & 0x08) rs->status |= ST_UPLOADED;
-				if (status & 0x20) rs->status |= ST_GGEP;
-				rs->status |= ST_PARSED_TRAILER;
-			} else if (rs->status  & ST_KNOWN_VENDOR) {
-				if (search_debug > 1)
-					g_warning("vendor %s changed # of open data bytes to %d",
-							  vendor, open_size);
-			} else if (vendor) {
-				if (search_debug > 1)
-					g_warning("ignoring %d open data byte%s from "
-						"unknown vendor %s",
-						open_size, open_size == 1 ? "" : "s", vendor);
-			}
-			break;
-		}
-
-		/*
-		 * Now that we have the vendor, warn if the message has SHA1 errors.
-		 * Then drop the packet!
-		 */
-
-		if (sha1_errors) {
-			if (search_debug) g_warning(
+	if (sha1_errors) {
+		if (search_debug) g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %d SHA1 error%s over %u record%s",
-				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_vendor(n), node_addr(n),
-				 sha1_errors, sha1_errors == 1 ? "" : "s",
-				 nr, nr == 1 ? "" : "s");
-            gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
-			goto bad_packet;		/* Will drop this bad query hit */
-		}
+				gmsg_infostr(&n->header), vendor ? vendor : "????",
+				node_vendor(n), node_addr(n),
+				sha1_errors, sha1_errors == 1 ? "" : "s",
+				nr, nr == 1 ? "" : "s");
+		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
+		goto bad_packet;		/* Will drop this bad query hit */
+	}
 
-		/*
-		 * If we have bad ALT locations, or ALT without hashes, warn but
-		 * do not drop.
-		 */
+	/*
+	 * If we have bad ALT locations, or ALT without hashes, warn but
+	 * do not drop.
+	 */
 
-		if (alt_errors && search_debug) {
-			g_warning(
+	if (alt_errors && search_debug) {
+		g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %d ALT error%s over %u record%s",
-				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_vendor(n), node_addr(n),
-				 alt_errors, alt_errors == 1 ? "" : "s",
-				 nr, nr == 1 ? "" : "s");
-		}
+				gmsg_infostr(&n->header), vendor ? vendor : "????",
+				node_vendor(n), node_addr(n),
+				alt_errors, alt_errors == 1 ? "" : "s",
+				nr, nr == 1 ? "" : "s");
+	}
 
-		if (alt_without_hash && search_debug) {
-			g_warning(
+	if (alt_without_hash && search_debug) {
+		g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %d ALT extension%s with no hash over %u record%s",
-				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_vendor(n), node_addr(n),
-				 alt_without_hash, alt_without_hash == 1 ? "" : "s",
-				 nr, nr == 1 ? "" : "s");
-		}
+				gmsg_infostr(&n->header), vendor ? vendor : "????",
+				node_vendor(n), node_addr(n),
+				alt_without_hash, alt_without_hash == 1 ? "" : "s",
+				nr, nr == 1 ? "" : "s");
+	}
+
+	if (search_debug > 1) {
+		if (seen_ggep_h && search_debug > 3)
+			g_message("%s from %s used GGEP \"H\" extension",
+					gmsg_infostr(&n->header), vendor ? vendor : "????");
+		if (seen_ggep_alt && search_debug > 3)
+			g_message("%s from %s used GGEP \"ALT\" extension",
+					gmsg_infostr(&n->header), vendor ? vendor : "????");
+		if (seen_bitprint && search_debug > 3)
+			g_message("%s from %s used urn:bitprint",
+					gmsg_infostr(&n->header), vendor ? vendor : "????");
+		if (multiple_sha1)
+			g_warning("%s from %s had records with multiple SHA1",
+					gmsg_infostr(&n->header), vendor ? vendor : "????");
+		if (multiple_alt)
+			g_warning("%s from %s had records with multiple ALT",
+					gmsg_infostr(&n->header), vendor ? vendor : "????");
+	}
+
+	if (!validate_only) {
+		host_addr_t c_addr;
+
+		g_string_free(info, TRUE);
+		info = NULL;
 
 		/*
-		 * Parse trailer after the open data, if we have a GGEP extension.
+		 * Prefer an UDP source IP for the country computation.
 		 */
 
-		if (rs->status & ST_GGEP) {
-			gchar *priv;
-			size_t privlen;
-			gint exvcnt = 0;
-			extvec_t exv[MAX_EXTVEC];
-			gboolean seen_ggep = FALSE;
-			gint i;
-
-			if (endptr - trailer >= (gint) open_size + 5) {
-				priv = &trailer[5] + open_size;
-				privlen = endptr - priv;
-			} else {
-				priv = NULL;
-				privlen = 0;
-			}
-			if (privlen > 0) {
-				ext_prepare(exv, MAX_EXTVEC);
-				exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
-			}
-
-			for (i = 0; i < exvcnt; i++) {
-				extvec_t *e = &exv[i];
-				ggept_status_t ret;
-
-				if (e->ext_type == EXT_GGEP)
-					seen_ggep = TRUE;
-
-				if (validate_only)
-					continue;
-
-				switch (e->ext_token) {
-				case EXT_T_GGEP_BH:
-					rs->status |= ST_BH;
-					break;
-				case EXT_T_GGEP_FW:
-					rs->status |= ST_FW2FW;
-					break;
-				case EXT_T_GGEP_GTKG_TLS:
-					rs->status |= ST_TLS;
-					break;
-				case EXT_T_GGEP_GTKG_IPV6:
-					{
-						host_addr_t addr;
-
-						ret = ggept_gtkg_ipv6_extract(e, &addr);
-						if (GGEP_OK == ret) {
-							if (is_host_addr(addr) && !hostiles_check(rs->addr))
-								rs->addr = addr;
-						} else if (ret == GGEP_INVALID) {
-							if (search_debug > 3 || ggep_debug > 3) {
-								g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
-									gmsg_infostr(&n->header));
-								ext_dump(stderr, e, 1, "....", "\n", TRUE);
-							}
-						}
-					}
-					break;
-				case EXT_T_GGEP_GTKGV1:
-					{
-						struct ggep_gtkgv1 vi;
-
-						ret = ggept_gtkgv1_extract(e, &vi);
-						if (ret == GGEP_OK) {
-							static const version_t zero_ver;
-							version_t ver = zero_ver;
-
-							ver.major = vi.major;
-							ver.minor = vi.minor;
-							ver.patchlevel = vi.patch;
-							ver.tag = vi.revchar;
-							/* Build information valid after 2006-08-27 */
-							if (vi.release >= 1156629600)
-								ver.build = vi.build;
-							if (ver.tag)
-								ver.timestamp = vi.release;
-
-							rs->version = atom_str_get(version_str(&ver));
-						} else if (ret == GGEP_INVALID) {
-							if (search_debug > 3 || ggep_debug > 3) {
-								g_warning("%s bad GGEP \"GTKGV1\" (dumping)",
-										gmsg_infostr(&n->header));
-								ext_dump(stderr, e, 1, "....", "\n", TRUE);
-							}
-						}
-					}
-					break;
-				case EXT_T_GGEP_PUSH:
-					if (rs->proxies != NULL) {
-						g_warning("%s has multiple GGEP \"PUSH\" (ignoring)",
-							gmsg_infostr(&n->header));
-						break;
-					}
-					rs->status |= ST_PUSH_PROXY;
-					if (!validate_only) {
-						gnet_host_t *hvec;
-						gint hvcnt = 0;
-
-						ret = ggept_push_extract(e, &hvec, &hvcnt);
-
-						if (ret == GGEP_OK) {
-							gnet_host_vec_t *v = walloc(sizeof(*v));
-							v->hvec = hvec;
-							v->hvcnt = hvcnt;
-							rs->proxies = v;
-						} else {
-							if (search_debug > 3 || ggep_debug > 3) {
-								g_warning("%s bad GGEP \"PUSH\" (dumping)",
-									gmsg_infostr(&n->header));
-								ext_dump(stderr, e, 1, "....", "\n", TRUE);
-							}
-						}
-					}
-					break;
-				case EXT_T_GGEP_HNAME:
-					if (!validate_only) {
-						ret = ggept_hname_extract(e,
-								hostname, sizeof(hostname));
-						if (ret == GGEP_OK)
-							rs->hostname = atom_str_get(hostname);
-						else {
-							if (search_debug > 3 || ggep_debug > 3) {
-								g_warning("%s bad GGEP \"HNAME\" (dumping)",
-									gmsg_infostr(&n->header));
-								ext_dump(stderr, e, 1, "....", "\n", TRUE);
-							}
-						}
-					}
-					break;
-				case EXT_T_XML:
-					{
-						size_t paylen = ext_paylen(e);
-						const gchar *payload = ext_payload(e);
-
-						/* XXX: Add the XML data to the next best record.
-						 *		Maybe better to all? It's just an atom.
-						 */
-						rc = rs->records ? rs->records->data : NULL; 
-						if (rc && !rc->xml && paylen > 0) {
-							size_t len;
-							gchar buf[4096];
-
-							len = MIN((size_t) paylen, sizeof buf - 1);
-							memcpy(buf, payload, len);
-							buf[len] = '\0';
-							if (utf8_is_valid_string(buf)) {
-								rc->xml = atom_str_get(buf);
-								if (is_action_url_spam(buf, len)) {
-									rs->status |= ST_URL_SPAM;
-								}
-							}
-						}
-					}
-					break;
-				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
-					if (search_debug > 3 || ggep_debug > 3) {
-						g_warning("%s unknown GGEP \"%s\" in trailer (dumping)",
-							gmsg_infostr(&n->header), ext_ggep_id_str(e));
-						ext_dump(stderr, e, 1, "....", "\n", TRUE);
-					}
-					break;
-				default:
-					break;
-				}
-			}
-
-			if (exvcnt == MAX_EXTVEC) {
-				g_warning("%s from %s has %d trailer extensions!",
-					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
-				if (search_debug > 2)
-					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-				if (search_debug > 3 && priv)
-					dump_hex(stderr, "Query Hit private data", priv, privlen);
-			} else if (!seen_ggep && ggep_debug) {
-				g_warning("%s from %s claimed GGEP extensions in trailer, "
-					"seen none",
-					gmsg_infostr(&n->header), vendor ? vendor : "????");
-			} else if (search_debug > 2) {
-				g_message("%s from %s has %d trailer extensions:",
-					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
-				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-			}
-
-			if (exvcnt)
-				ext_reset(exv, MAX_EXTVEC);
-		} else {
-			if (is_action_url_spam(trailer, endptr - trailer)) {
-				rs->status |= ST_URL_SPAM;
-			}
-		}
-
-		if (search_debug > 1) {
-			if (seen_ggep_h && search_debug > 3)
-				g_message("%s from %s used GGEP \"H\" extension",
-					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			if (seen_ggep_alt && search_debug > 3)
-				g_message("%s from %s used GGEP \"ALT\" extension",
-					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			if (seen_bitprint && search_debug > 3)
-				g_message("%s from %s used urn:bitprint",
-					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			if (multiple_sha1)
-				g_warning("%s from %s had records with multiple SHA1",
-					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			if (multiple_alt)
-				g_warning("%s from %s had records with multiple ALT",
-					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-		}
-
+		c_addr = (rs->status & ST_UDP) ? rs->last_hop : rs->addr;
+		rs->country = gip_country(c_addr);
+		
 		/*
 		 * If we're not only validating (i.e. we're going to peruse this hit),
 		 * and if the server is marking its hits with the Push flag, check
@@ -1807,23 +1835,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		 */
 
 		if (
-			!validate_only && (rs->status & ST_FIREWALL) &&
+			(rs->status & ST_FIREWALL) &&
 			download_server_nopush(rs->guid, rs->addr, rs->port)
-		)
+		) {
 			rs->status &= ~ST_FIREWALL;		/* Clear "Push" indication */
-	}
-
-	if (!validate_only) {
-		host_addr_t c_addr;
-
-		g_string_free(info, TRUE);
-
-		/*
-		 * Prefer an UDP source IP for the country computation.
-		 */
-
-		c_addr = (rs->status & ST_UDP) ? rs->last_hop : rs->addr;
-		rs->country = gip_country(c_addr);
+		}
 	}
 
 	if (has_dupe_spam(rs)) {
