@@ -1528,7 +1528,7 @@ http_async_info(
 void
 http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(data != NULL);
@@ -1543,7 +1543,7 @@ http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn)
 gpointer
 http_async_get_opaque(gpointer handle)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -1585,7 +1585,7 @@ http_async_free_recursive(struct http_async *ha)
 	 */
 
 	for (l = ha->children; l; l = l->next) {
-		struct http_async *cha = (struct http_async *) l->data;
+		struct http_async *cha = l->data;
 		http_async_free_recursive(cha);
 	}
 
@@ -1631,7 +1631,7 @@ http_async_free_pending(void)
 	GSList *l;
 
 	for (l = sl_ha_freed; l; l = l->next) {
-		struct http_async *ha = (struct http_async *) l->data;
+		struct http_async *ha = l->data;
 
 		g_assert(ha->flags & HA_F_FREED);
 		wfree(ha, sizeof(*ha));
@@ -1647,7 +1647,7 @@ http_async_free_pending(void)
 void
 http_async_close(gpointer handle)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -1660,7 +1660,7 @@ http_async_close(gpointer handle)
 static void
 http_async_remove(gpointer handle, http_errtype_t type, gpointer code)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -1932,7 +1932,7 @@ http_async_get_addr(
 void
 http_async_set_op_request(gpointer handle, http_op_request_t op)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(op != NULL);
@@ -1946,7 +1946,7 @@ http_async_set_op_request(gpointer handle, http_op_request_t op)
 void
 http_async_on_state_change(gpointer handle, http_state_change_t fn)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(fn != NULL);
@@ -1960,7 +1960,7 @@ http_async_on_state_change(gpointer handle, http_state_change_t fn)
 void
 http_async_allow_redirects(gpointer handle, gboolean allow)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -1975,7 +1975,7 @@ static gboolean
 http_subreq_header_ind(
 	gpointer handle, struct header *header, gint code, const gchar *message)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(ha->parent != NULL);
@@ -1992,7 +1992,7 @@ static void
 http_subreq_data_ind(
 	gpointer handle, gchar *data, gint len)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(ha->parent != NULL);
@@ -2009,7 +2009,7 @@ static void
 http_subreq_error_ind(
 	gpointer handle, http_errtype_t error, gpointer val)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(ha->parent != NULL);
@@ -2149,7 +2149,7 @@ http_got_data(struct http_async *ha, gboolean eof)
 static void
 http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	struct http_async *ha = (struct http_async *) data;
+	struct http_async *ha = data;
 	struct gnutella_socket *s = ha->socket;
 	ssize_t r;
 
@@ -2321,7 +2321,7 @@ http_got_header(struct http_async *ha, header_t *header)
 http_state_t
 http_async_state(gpointer handle)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -2336,7 +2336,7 @@ http_async_state(gpointer handle)
 		g_assert(ha->children);
 
 		for (l = ha->children; l; l = g_slist_next(l)) {
-			struct http_async *cha = (struct http_async *) l->data;
+			struct http_async *cha = l->data;
 
 			switch (cha->state) {
 			case HTTP_AS_REDIRECTED:
@@ -2363,7 +2363,7 @@ http_async_state(gpointer handle)
 static void
 call_http_got_header(gpointer obj, header_t *header)
 {
-	struct http_async *ha = (struct http_async *) obj;
+	struct http_async *ha = obj;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -2378,7 +2378,7 @@ static struct io_error http_io_error;
 static void
 http_header_start(gpointer handle)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -2411,7 +2411,7 @@ static void
 http_async_write_request(gpointer data, gint unused_source,
 	inputevt_cond_t cond)
 {
-	struct http_async *ha = (struct http_async *) data;
+	struct http_async *ha = data;
 	struct gnutella_socket *s = ha->socket;
 	http_buffer_t *r = ha->delayed;
 	ssize_t sent;
@@ -2472,7 +2472,7 @@ http_async_write_request(gpointer data, gint unused_source,
 void
 http_async_connected(gpointer handle)
 {
-	struct http_async *ha = (struct http_async *) handle;
+	struct http_async *ha = handle;
 	struct gnutella_socket *s = ha->socket;
 	size_t rw;
 	ssize_t sent;
@@ -2667,7 +2667,7 @@ http_timer(time_t now)
 
 retry:
 	for (l = sl_outgoing; l; l = l->next) {
-		struct http_async *ha = (struct http_async *) l->data;
+		struct http_async *ha = l->data;
 		gint elapsed = delta_time(now, ha->last_update);
 		gint timeout = ha->bio ?
 			download_connected_timeout :
@@ -2707,8 +2707,7 @@ void
 http_close(void)
 {
 	while (sl_outgoing)
-		http_async_error(
-			(struct http_async *) sl_outgoing->data, HTTP_ASYNC_CANCELLED);
+		http_async_error(sl_outgoing->data, HTTP_ASYNC_CANCELLED);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
