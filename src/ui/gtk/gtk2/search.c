@@ -1593,6 +1593,28 @@ search_gui_init_dnd(GtkTreeView *tv)
         G_CALLBACK(drag_end), &dnd_url);
 }
 
+static void
+on_search_list_row_deleted(GtkTreeModel *model, GtkTreePath *unused_path,
+	gpointer unused_udata)
+{
+	GtkTreeIter iter;
+	gboolean valid;
+	GList *list;
+
+	(void) unused_path;
+	(void) unused_udata;
+
+	valid = gtk_tree_model_get_iter_first(model, &iter);
+	for (list = searches; list != NULL; list = g_list_next(list)) {
+		g_assert(valid);
+		list->data = NULL;
+    	gtk_tree_model_get(model, &iter, c_sl_sch, &list->data, (-1));
+		g_assert(list->data);
+		valid = gtk_tree_model_iter_next(model, &iter);
+	}
+	search_gui_option_menu_searches_update();
+}
+
 /***
  *** Public functions
  ***/
@@ -1612,17 +1634,19 @@ search_gui_init(void)
 	gtk_notebook_popup_enable(notebook_search_results);
 
 	search_gui_common_init();
-	
+
+	gtk_tree_view_set_reorderable(tree_view_search, TRUE);	
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view_search),
 		GTK_SELECTION_MULTIPLE);
-	g_signal_connect(GTK_OBJECT(tree_view_search), "button_press_event",
+	g_signal_connect(GTK_OBJECT(tree_view_search), "button-press-event",
 		G_CALLBACK(on_search_list_button_press_event), NULL);
-
 	gtk_tree_view_set_model(tree_view_search, create_searches_model());
 	add_list_columns(tree_view_search);
 	g_signal_connect(G_OBJECT(tree_view_search), "cursor-changed",
 		G_CALLBACK(on_tree_view_search_cursor_changed), NULL);
-
+	g_signal_connect_after(
+		GTK_OBJECT(gtk_tree_view_get_model(tree_view_search)),
+		"row-deleted", G_CALLBACK(on_search_list_row_deleted), NULL);
 	gui_search_create_tree_view(&default_scrolled_window,
 		&default_search_tree_view, NULL);
     gtk_notebook_remove_page(notebook_search_results, 0);
