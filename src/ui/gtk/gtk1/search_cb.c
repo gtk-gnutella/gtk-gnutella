@@ -163,12 +163,12 @@ search_gui_set_details(const record_t *rc)
 			break;
 			
 		case info_source:
-			gtk_entry_set_text(e,
-				rc->results_set->hostname
-					? hostname_port_to_string(rc->results_set->hostname,
-						rc->results_set->port)
-					: host_addr_port_to_string(rc->results_set->addr,
-						rc->results_set->port));
+			gtk_entry_printf(e, "%s%s%s%s",
+				host_addr_port_to_string(rc->results_set->addr,
+					rc->results_set->port),
+				rc->results_set->hostname ? " (" : "",
+				rc->results_set->hostname ? rc->results_set->hostname : "",
+				rc->results_set->hostname ? ")" : "");
 			break;
 
 		case info_country:

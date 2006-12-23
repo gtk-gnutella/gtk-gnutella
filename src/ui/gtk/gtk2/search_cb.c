@@ -531,16 +531,13 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 		rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
 		rc->sha1 ? sha1_base32(rc->sha1) : "");
 
-	if (rc->results_set->hostname)
-		gtk_entry_set_text(GTK_ENTRY(
-					gui_main_window_lookup("entry_result_info_source")),
-				hostname_port_to_string(
-					rc->results_set->hostname, rc->results_set->port));
-	else
-		gtk_entry_set_text(GTK_ENTRY(
-					gui_main_window_lookup("entry_result_info_source")),
-				host_addr_port_to_string(rc->results_set->addr,
-					rc->results_set->port));
+	gtk_entry_printf(
+		GTK_ENTRY(gui_main_window_lookup("entry_result_info_source")),
+		"%s%s%s%s",
+		host_addr_port_to_string(rc->results_set->addr, rc->results_set->port),
+		rc->results_set->hostname ? " (" : "",
+		rc->results_set->hostname ? rc->results_set->hostname : "",
+		rc->results_set->hostname ? ")" : "");
 
 	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
 	gtk_entry_printf(
