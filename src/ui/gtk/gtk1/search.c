@@ -2128,19 +2128,20 @@ search_gui_get_searches(void)
 void
 search_gui_remove_search(search_t * sch)
 {
-    gint row;
     gboolean sensitive;
     search_t *current_search;
-    GtkCList *clist_search;
     GtkNotebook *notebook;
 
     g_assert(sch != NULL);
 
-    clist_search = GTK_CLIST(gui_main_window_lookup("clist_search"));
-    notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
-
-    row = gtk_clist_find_row_from_data(clist_search, sch);
-    gtk_clist_remove(clist_search, row);
+	{
+		GtkCList *clist;
+		gint row;
+		
+		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
+		row = gtk_clist_find_row_from_data(clist, sch);
+		gtk_clist_remove(clist, row);
+	}
 
     gtk_timeout_remove(sch->tab_updating);
 
@@ -2149,6 +2150,8 @@ search_gui_remove_search(search_t * sch)
         gtk_widget_destroy(sch->arrow);
         sch->arrow = NULL;
     }
+
+	notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 
     if (searches) {				/* Some other searches remain. */
 		gtk_notebook_remove_page(notebook,
@@ -2203,7 +2206,6 @@ search_gui_set_current_search(search_t *sch)
     static gboolean locked = FALSE;
     search_t *old_sch = search_gui_get_current_search();
     GtkWidget *spinbutton_reissue_timeout;
-   	GtkCList *clist;
     gboolean frozen;
     gboolean active;
     guint32 reissue_timeout;
@@ -2246,16 +2248,18 @@ search_gui_set_current_search(search_t *sch)
 	search_gui_forget_current_search();
     spinbutton_reissue_timeout =
 		gui_main_window_lookup("spinbutton_search_reissue_timeout");
-   	clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
 
     if (sch != NULL) {
         gui_search_force_update_tab_label(sch);
         search_gui_update_items(sch);
 
-		if (0) {
-			gint row;	
+		{
+   			GtkCList *clist;
+			gint row;
 
+   			clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
 			row = gtk_clist_find_row_from_data(clist, sch);
+			gtk_clist_unselect_all(clist);
 			gtk_clist_select_row(clist, row, 0);
 			if (!GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(clist)))
 				gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
