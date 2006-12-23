@@ -94,8 +94,8 @@ RCSID("$Id$")
  * each time a new extension is found.
  */
 typedef struct extdesc {
-	gchar *ext_phys_payload;	/**< Start of payload buffer */
-	gchar *ext_payload;			/**< "virtual" payload */
+	const gchar *ext_phys_payload;	/**< Start of payload buffer */
+	const gchar *ext_payload;		/**< "virtual" payload */
 	guint16 ext_phys_len;		/**< Extension length (header + payload) */
 	guint16 ext_phys_paylen;	/**< Extension payload length */
 	guint16 ext_paylen;			/**< "virtual" payload length */
@@ -276,7 +276,7 @@ rw_ggep_screen(gchar *word, const gchar **retkw)
  * If keyword was found, its static shared string is returned in `retkw'.
  */
 static ext_token_t
-rw_urn_screen(gchar *word, const gchar **retkw)
+rw_urn_screen(const gchar *word, const gchar **retkw)
 {
 	return rw_screen(FALSE, urntable, G_N_ELEMENTS(urntable), word, retkw);
 }
@@ -361,11 +361,11 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
  * Parses a GGEP block (can hold several extensions).
  */
 static gint
-ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_ggep_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	gchar *p = *retp;
-	gchar *end = p + len;
-	gchar *lastp = p;				/* Last parsed point */
+	const gchar *p = *retp;
+	const gchar *end = &p[len];
+	const gchar *lastp = p;				/* Last parsed point */
 	gint count;
 
 	for (count = 0; count < exvcnt && p < end; /* empty */) {
@@ -570,15 +570,14 @@ abort:
  * Parses a URN block (one URN only).
  */
 static gint
-ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_huge_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	gchar *p = *retp;
-	gchar *end = p + len;
-	gchar *lastp = p;				/* Last parsed point */
-	gchar *name_start;
+	const gchar *p = *retp;
+	const gchar *end = &p[len];
+	const gchar *lastp = p;				/* Last parsed point */
 	ext_token_t token;
-	gchar *payload_start = NULL;
-	gint data_length = 0;
+	const gchar *payload_start = NULL;
+	gint data_length;
 	const gchar *name = NULL;
 	extdesc_t *d;
 
@@ -607,7 +606,7 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	if (p == end || *p == '\0' || *p == HUGE_FS) {
 		token = EXT_T_URN_EMPTY;
 		payload_start = p;
-		g_assert(data_length == 0);
+		data_length = 0;
 		goto found;
 	}
 
@@ -615,26 +614,29 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 * Look for the end of the name, identified by ':'.
 	 */
 
-	name_start = p;
+	{
+		const gchar *name_start, *name_end;
+		size_t name_len;
+		gchar name_buf[16];
 
-	while (p < end) {
-		if (*p == ':')
-			break;
-		p++;
+		name_start = p;
+		name_end = memchr(p, ':', end - name_start);
+		name_len = name_end ? name_end - name_start : 0;
+
+		/* Not found, empty name or too long */
+		if (0 == name_len || name_len >= sizeof name_buf)
+			return 0;
+
+		memcpy(name_buf, name_start, name_len);
+		name_buf[name_len] = '\0';
+
+		/*
+		 * Lookup the token.
+		 */
+
+		token = rw_urn_screen(name_buf, &name);
+		p = name_end;
 	}
-
-	if (p == end || p == name_start)	/* Not found, or empty name */
-		return 0;
-
-	g_assert(*p == ':');
-
-	/*
-	 * Lookup the token.
-	 */
-
-	*p = '\0';
-	token = rw_urn_screen(name_start, &name);
-	*p++ = ':';
 
 	/*
 	 * Now extract the payload (must be made of alphanum chars),
@@ -643,17 +645,13 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 */
 
 	payload_start = p;
-
-	while (p < end) {
-		guchar c = *p++;
+	for (/* NOTHING*/; p < end; p++) {
+		guchar c = *p;
 		if (!is_ascii_alnum(c) || c == (guchar) GGEP_MAGIC) {
-			p--;
 			break;
 		}
-		data_length++;
 	}
-
-	g_assert(data_length == p - payload_start);
+	data_length = p - payload_start;
 
 found:
 	g_assert(payload_start);
@@ -683,20 +681,19 @@ found:
  * Parses a XML block (grabs the whole xml up to the first NUL or separator).
  */
 static gint
-ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_xml_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	gchar *p = *retp;
-	gchar *end = p + len;
-	gchar *lastp = p;				/* Last parsed point */
+	const gchar *p = *retp;
+	const gchar *end = &p[len];
+	const gchar *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
 	g_assert(exv->opaque == NULL);
 
-	while (p < end) {
-		guchar c = *p++;
+	for (/* NOTHING */; p != end; p++) {
+		guchar c = *p;
 		if (c == '\0' || c == (guchar) HUGE_FS) {
-			p--;
 			break;
 		}
 	}
@@ -731,11 +728,11 @@ ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
  * If `skip' is TRUE, we don't resync on the first resync point.
  */
 static gint
-ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
+ext_unknown_parse(const gchar **retp, gint len, extvec_t *exv,
 	gint exvcnt, gboolean skip)
 {
-	gchar *p = *retp;
-	gchar *lastp = p;				/* Last parsed point */
+	const gchar *p = *retp;
+	const gchar *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
@@ -807,22 +804,20 @@ ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
  * "none" extension.
  */
 static gint
-ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_none_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	gchar *p = *retp;
-	gchar *end = p + len;
-	gchar *lastp = p;				/* Last parsed point */
+	const gchar *p = *retp;
+	const gchar *end = &p[len];
+	const gchar *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
 	g_assert(exv->opaque == NULL);
 
-	while (p < end) {
-		guchar c = *p++;
-		if (c == '\0' || c == (guchar) HUGE_FS)
-			continue;
-		p--;						/* Point back to the non-NULL char */
-		break;
+	for (/* NOTHING */; p != end; p++) {
+		guchar c = *p;
+		if (c != '\0' && c != (guchar) HUGE_FS)
+			break;
 	}
 
 	/*
@@ -863,9 +858,9 @@ ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 static void
 ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 {
-	gchar *end;
-	gchar *nend;
-	gchar *nbase;
+	const gchar *end;
+	const gchar *nend;
+	const gchar *nbase;
 	guint16 added;
 	extdesc_t *d = exv->opaque;
 	extdesc_t *nd = next->opaque;
@@ -922,10 +917,9 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
  * @return the number of filled entries.
  */
 gint
-ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt)
+ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 {
-	gchar *p = buf;
-	gchar *end = buf + len;
+	const gchar *p = buf, *end = &buf[len];
 	gint cnt = 0;
 
 	g_assert(buf);
@@ -935,8 +929,8 @@ ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 	g_assert(exv->opaque == NULL);
 
 	while (p < end && exvcnt > 0) {
+		const gchar *old_p = p;
 		gint found = 0;
-		gchar *old_p = p;
 
 		g_assert(len > 0);
 
@@ -1039,7 +1033,7 @@ out:
  * @returns NULL on error.
  */
 static gchar *
-ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
+ext_ggep_inflate(const gchar *buf, gint len, guint16 *retlen, const gchar *name)
 {
 	gchar *result;					/* Inflated buffer */
 	gint rsize;						/* Result's buffer size */
@@ -1166,7 +1160,7 @@ ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
 static void
 ext_ggep_decode(const extvec_t *e)
 {
-	gchar *pbase;					/* Current payload base */
+	const gchar *pbase;				/* Current payload base */
 	size_t plen;					/* Curernt payload length */
 	gchar *uncobs = NULL;			/* COBS-decoded buffer */
 	size_t uncobs_len = 0;			/* Length of walloc()'ed buffer */
@@ -1532,10 +1526,13 @@ ext_reset(extvec_t *exv, gint exvcnt)
 		d = e->opaque;
 
 		if (d->ext_payload != NULL && d->ext_payload != d->ext_phys_payload) {
-			if (d->ext_rpaylen == 0)
-				g_free(d->ext_payload);
-			else
-				wfree(d->ext_payload, d->ext_rpaylen);
+			gpointer p = deconstify_gpointer(d->ext_payload);
+			if (d->ext_rpaylen == 0) {
+				g_free(p);
+			} else {
+				wfree(p, d->ext_rpaylen);
+			}
+			d->ext_payload = NULL;
 		}
 
 		wfree(d, sizeof(*d));

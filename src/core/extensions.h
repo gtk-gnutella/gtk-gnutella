@@ -148,7 +148,7 @@ void ext_init(void);
 void ext_close(void);
 
 void ext_prepare(extvec_t *exv, gint exvcnt);
-gint ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt);
+gint ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt);
 void ext_reset(extvec_t *exv, gint exvcnt);
 
 gboolean ext_is_printable(const extvec_t *e);
