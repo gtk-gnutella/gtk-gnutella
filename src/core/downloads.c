@@ -1267,18 +1267,20 @@ hostvec_to_slist(const gnet_host_vec_t *vec)
 static void
 free_proxies(struct dl_server *server)
 {
-	GSList *sl;
-
 	g_assert(dl_server_valid(server));
-	g_assert(server->proxies);
 
-	for (sl = server->proxies; sl; sl = g_slist_next(sl)) {
-		struct gnutella_host *h = sl->data;
-		wfree(h, sizeof *h);
+	if (server->proxies) {
+		GSList *sl;
+
+
+		for (sl = server->proxies; sl; sl = g_slist_next(sl)) {
+			struct gnutella_host *h = sl->data;
+			wfree(h, sizeof *h);
+		}
+
+		g_slist_free(server->proxies);
+		server->proxies = NULL;
 	}
-
-	g_slist_free(server->proxies);
-	server->proxies = NULL;
 }
 
 /**
@@ -1451,11 +1453,8 @@ free_server(struct dl_server *server)
 	 * Get rid of the known push proxies, if any.
 	 */
 
-	if (server->proxies)
-		free_proxies(server);
-
+	free_proxies(server);
 	atom_str_free_null(&server->hostname);
-
 	server_list_free_all(server);
 
 	{
@@ -1596,8 +1595,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	 * Get rid of the known push proxies, if any.
 	 */
 
-	if (server->proxies)
-		free_proxies(server);
+	free_proxies(server);
 
 	if (download_debug) {
 		gchar buf[128];
@@ -4380,8 +4378,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 */
 
 	if (proxies != NULL && delta_time(stamp, server->proxies_stamp) > 0) {
-		if (server->proxies)
-			free_proxies(server);
+		free_proxies(server);
 		server->proxies = hostvec_to_slist(proxies);
 		server->proxies_stamp = stamp;
 	}
@@ -5332,7 +5329,6 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	 * used has been broken).
 	 */
 
-	
 	packet = build_push(&size, hard_ttl_limit, 0, guid,
 				listen_addr(), listen_addr6(), port, file_id, supports_tls);
 
@@ -6713,14 +6709,9 @@ check_push_proxies(struct download *d, header_t *header)
 		}
 	}
 
-	{
-		struct dl_server *server = d->server;
-		if (server->proxies)
-			free_proxies(server);
-
-		server->proxies = sl;
-		server->proxies_stamp = tm_time();
-	}
+	free_proxies(d->server);
+	d->server->proxies = sl;
+	d->server->proxies_stamp = tm_time();
 }
 
 /**
