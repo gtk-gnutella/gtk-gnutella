@@ -8123,8 +8123,10 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 	info->is_pseudo = node == udp_node || node == udp6_node;
 
 	if (info->is_pseudo) {
-		info->gnet_addr = node->addr;
-		info->gnet_port = node->port;
+    	info->addr = node == udp_node ? listen_addr() : listen_addr6();
+    	info->port = listen_port;
+		info->gnet_addr = info->addr;
+		info->gnet_port = info->port;
 	} else if (host_addr_initialized(node->gnet_addr)) {
 		info->gnet_addr = node->gnet_addr;
 		info->gnet_port = node->gnet_port;
