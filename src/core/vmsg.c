@@ -206,7 +206,7 @@ struct vms_feature {
  * @returns handler callback if found, NULL otherwise.
  */
 static const struct vmsg *
-find_message(union vendor_code vc, guint16 id, guint16 version)
+find_message(vendor_code_t vc, guint16 id, guint16 version)
 {
   gint c_vendor, c_id, c_version;
   guint32 vendor = ntohl(vc.be32);
@@ -243,7 +243,7 @@ const gchar *
 vmsg_infostr(gconstpointer data, gint size)
 {
 	static gchar msg[80];
-	union vendor_code vc;
+	vendor_code_t vc;
 	guint16 id;
 	guint16 version;
 	const struct vmsg *vm;
@@ -287,7 +287,7 @@ vmsg_handle(struct gnutella_node *n)
 {
 	gnutella_vendor_t *v = cast_to_gpointer(n->data);
 	const struct vmsg *vm;
-	union vendor_code vc;
+	vendor_code_t vc;
 	guint16 id, version;
 
 	if (n->size < sizeof *v) {
@@ -444,7 +444,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 	for (i = 0; i < count; i++) {
 		const struct vmsg *vm;
-		union vendor_code vendor;
+		vendor_code_t vendor;
 		guint16 id, version;
 
 		memcpy(&vendor.be32, &description[0], 4);
@@ -581,7 +581,7 @@ handle_features_supported(struct gnutella_node *n,
 	 */
 
 	for (i = 0; i < count; i++) {
-		union vendor_code vendor;
+		vendor_code_t vendor;
 		guint16 version;
 
 		memcpy(&vendor, &description[0], 4);

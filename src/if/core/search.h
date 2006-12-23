@@ -115,7 +115,7 @@ typedef struct gnet_results_set {
 	time_t  stamp;				/**< Reception time of the hit */
 
 	gint country;				/**< Country code -- encoded ISO3166 */
-	union vendor_code vcode;	/**< Vendor code */
+	vendor_code_t vcode;		/**< Vendor code */
 	guint32 speed;
 	guint32 num_recs;
 	

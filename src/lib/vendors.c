@@ -151,7 +151,7 @@ find_vendor(guint32 code)
  * @return true is gtk-gnutella knows the given 4-byte vendor code.
  */
 gboolean
-is_vendor_known(union vendor_code code)
+is_vendor_known(vendor_code_t code)
 {
     if (code.be32 == 0)
         return FALSE;
@@ -195,7 +195,7 @@ vendor_code_str(guint32 code)
  * consists only of printable characters, return the code as a string.
  */
 const gchar *
-lookup_vendor_name(union vendor_code code)
+lookup_vendor_name(vendor_code_t code)
 {
 	static gchar temp[5];
 	const gchar *name;

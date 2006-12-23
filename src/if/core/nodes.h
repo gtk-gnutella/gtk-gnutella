@@ -277,7 +277,7 @@ typedef struct gnet_node_info {
 	gint proto_minor;		/**< Protocol minor number */
 	const gchar *vendor;	/**< Vendor information (always UTF-8) */
 	gint country;			/**< Country information */
-	union vendor_code vcode;/**< Vendor code (vcode.u32 == 0 when unknown) */
+	vendor_code_t vcode;	/**< Vendor code (vcode.u32 == 0 when unknown) */
 
 	host_addr_t addr;		/**< ip of the node (connected) */
 	guint16 port;			/**< port of the node (connected) */

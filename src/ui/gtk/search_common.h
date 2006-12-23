@@ -65,7 +65,7 @@ typedef struct results_set {
 	host_addr_t last_hop;		/**< IP of delivering node */
 	time_t  stamp;				/**< Reception time of the hit */
 
-	union vendor_code vcode;	/**< Vendor code */
+	vendor_code_t vcode;		/**< Vendor code */
 	gint country;				/**< Country code -- encoded ISO3166 */
 	guint32 status;				/**< Parsed status bits from trailer */
 	guint16 port;
