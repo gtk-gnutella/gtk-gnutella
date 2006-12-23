@@ -38,6 +38,7 @@
 
 #include "common.h"
 #include "lib/host_addr.h"
+#include "if/core/search.h"
 
 /**
  * Extraction interface return types.
@@ -74,11 +75,8 @@ ggept_status_t ggept_lf_extract(extvec_t *exv, guint64 *fs);
 ggept_status_t ggept_du_extract(extvec_t *exv, guint32 *uptime);
 ggept_status_t ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr);
 
-ggept_status_t ggept_alt_extract(extvec_t *exv,
-	struct gnutella_host **hvec, gint *hvcnt);
-
-ggept_status_t ggept_push_extract(extvec_t *exv,
-	struct gnutella_host **hvec, gint *hvcnt);
+ggept_status_t ggept_alt_extract(extvec_t *exv, gnet_host_vec_t **hvec);
+ggept_status_t ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec);
 
 gint ggept_lf_encode(guint64 filesize, gchar *data);
 gint ggept_du_encode(guint32 uptime, gchar *data);

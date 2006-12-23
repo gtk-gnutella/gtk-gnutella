@@ -153,9 +153,6 @@ void search_gui_set_current_search(search_t *sch);
 void search_gui_forget_current_search(void);
 void search_gui_current_search(search_t *sch);
 
-void search_gui_free_alt_locs(record_t *rc);
-void search_gui_host_vec_free(gnet_host_vec_t *v);
-gnet_host_vec_t *search_gui_proxies_clone(gnet_host_vec_t *v);
 void search_gui_free_proxies(results_set_t *rs);
 void search_gui_clean_r_set(results_set_t *rs);
 void search_gui_free_r_set(results_set_t *rs);

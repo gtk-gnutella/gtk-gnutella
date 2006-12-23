@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 
 #include "if/core/hosts.h"
+#include "if/core/search.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -132,38 +133,40 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 }
 
 static ggept_status_t
-ggept_ip_vec_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
+ggept_ip_vec_extract(extvec_t *exv, gnet_host_vec_t **hvec)
 {
-	struct gnutella_host *vec;
-	const gchar *p;
-	gint tlen, cnt, i;
+	gint len;
 
 	g_assert(exv);
 	g_assert(hvec);
-	g_assert(hvcnt);
 	g_assert(EXT_GGEP == exv->ext_type);
 
-	tlen = ext_paylen(exv);
+	len = ext_paylen(exv);
 
-	if (tlen <= 0)
+	if (len <= 0)
 		return GGEP_INVALID;
 
-	if (tlen % 6 != 0)
+	if (len % 6 != 0)
 		return GGEP_INVALID;
 
-	p = ext_payload(exv);
+	if (hvec) {
+		gnet_host_vec_t *vec;
+		const gchar *p;
+		guint n, i;
 
-	cnt = tlen / 6;
-	vec = walloc(cnt * sizeof *vec);
+		vec = gnet_host_vec_alloc();
+		n = len / 6;
+		n = MIN(n, 255);	/* n_ipv4 is guint8 */
+		vec->n_ipv4 = n;
+		vec->hvec_v4 = walloc(n * sizeof vec->hvec_v4[0]);
 
-	for (i = 0; i < cnt; i++) {
-		gnet_host_set(&vec[i],
-			host_addr_get_ipv4(peek_be32(&p[0])), peek_le16(&p[4]));
-		p += 6;
+		p = ext_payload(exv);
+		for (i = 0; i < n; i++) {
+			memcpy(&vec->hvec_v4[i].data, p, 6);
+			p += 6;
+		}
+		*hvec = vec;
 	}
-
-	*hvec = vec;
-	*hvcnt = cnt;
 
 	return GGEP_OK;
 }
@@ -173,36 +176,32 @@ ggept_ip_vec_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
  *
  * @param `exv'		no brief description.
  * @param `hvec'	pointer is filled with a dynamically allocated vector.
- * @param `hvcnt'	is filled with the size of the allocated vector (number
- *					of items).
  *
  * Unless GGEP_OK is returned, no memory allocation takes place.
  */
 ggept_status_t
-ggept_alt_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
+ggept_alt_extract(extvec_t *exv, gnet_host_vec_t **hvec) 
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_ALT);
 
-	return ggept_ip_vec_extract(exv, hvec, hvcnt);
+	return ggept_ip_vec_extract(exv, hvec);
 }
 
 /**
  * Extract vector of IP:port push proxy locations.
  *
- * The `hvec' pointer is filled with a dynamically allocated vector, and
- * the `hvcnt' is filled with the size of the allocated vector (number of
- * items).
+ * The `hvec' pointer is filled with a dynamically allocated vector.
  *
  * Unless GGEP_OK is returned, no memory allocation takes place.
  */
 ggept_status_t
-ggept_push_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
+ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec)
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_PUSH);
 
-	return ggept_ip_vec_extract(exv, hvec, hvcnt);
+	return ggept_ip_vec_extract(exv, hvec);
 }
 
 /**

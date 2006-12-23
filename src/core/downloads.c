@@ -1250,11 +1250,11 @@ hostvec_to_slist(const gnet_host_vec_t *vec)
 	GSList *sl = NULL;
 	gint i;
 
-	for (i = vec->hvcnt - 1; i >= 0; i--) {
-		const gnet_host_t *h = &vec->hvec[i];
+	for (i = gnet_host_vec_count(vec) - 1; i >= 0; i--) {
 		gnet_host_t *host = walloc(sizeof *host);
 
-		*host = *h;
+		host = walloc(sizeof *host);
+		*host = gnet_host_vec_get(vec, i);
 		sl = g_slist_prepend(sl, host);
 	}
 

@@ -2130,14 +2130,15 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 			 */
 
 			if (rc->alt_locs != NULL) {
-				gint i;
 				gnet_host_vec_t *alt = rc->alt_locs;
+				gint i;
 
-				for (i = alt->hvcnt - 1; i >= 0; i--) {
-					struct gnutella_host *h = &alt->hvec[i];
-
+				for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
+					struct gnutella_host host;
+				   
+					host = gnet_host_vec_get(alt, i);
 					dmesh_fill_info(&info, rc->sha1,
-						gnet_host_get_addr(h), gnet_host_get_port(h),
+						gnet_host_get_addr(&host), gnet_host_get_port(&host),
 						URN_INDEX, NULL);
 					(void) dmesh_raw_add(rc->sha1, &info, now);
 				}

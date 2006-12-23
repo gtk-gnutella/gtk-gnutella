@@ -494,41 +494,13 @@ search_already_sent_to_node(const search_ctrl_t *sch, const gnutella_node_t *n)
 	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
 }
 
-static void
-alt_locs_free(gnet_host_vec_t **alt_ptr)
-{
-	g_assert(alt_ptr != NULL);
-
-	if (*alt_ptr) {
-		gnet_host_vec_t *alt;
-	
-		alt = *alt_ptr;
-		wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
-		wfree(alt, sizeof *alt);
-		*alt_ptr = NULL;
-	}
-}
-
-static gnet_host_vec_t *
-alt_locs_copy(const gnet_host_vec_t *alt)
-{
-	gnet_host_vec_t *alt_copy;
-
-	g_return_val_if_fail(alt, NULL);
-	g_return_val_if_fail(alt->hvcnt > 0, NULL);
-
-	alt_copy = wcopy(alt, sizeof *alt);
-	alt_copy->hvec = wcopy(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
-	return alt_copy;
-}
-
 /**
  * Free the alternate locations held within a file record.
  */
 void
 search_free_alt_locs(gnet_record_t *rc)
 {
-	alt_locs_free(&rc->alt_locs);
+	gnet_host_vec_free(&rc->alt_locs);
 }
 
 /**
@@ -538,15 +510,7 @@ static void
 search_free_proxies(gnet_results_set_t *rs)
 {
 	g_assert(rs);
-
-	if (rs->proxies) {
-		gnet_host_vec_t *v;
-
-		v = rs->proxies;
-		wfree(v->hvec, v->hvcnt * sizeof *v->hvec);
-		wfree(v, sizeof *v);
-		rs->proxies = NULL;
-	}
+	gnet_host_vec_free(&rs->proxies);
 }
 
 /**
@@ -1071,16 +1035,11 @@ search_results_handle_trailer(const gnutella_node_t *n, gboolean validate_only,
 				}
 				rs->status |= ST_PUSH_PROXY;
 				if (!validate_only) {
-					gnet_host_t *hvec;
-					gint hvcnt = 0;
+					gnet_host_vec_t *hvec = NULL;
 
-					ret = ggept_push_extract(e, &hvec, &hvcnt);
-
+					ret = ggept_push_extract(e, &hvec);
 					if (ret == GGEP_OK) {
-						gnet_host_vec_t *v = walloc(sizeof(*v));
-						v->hvec = hvec;
-						v->hvcnt = hvcnt;
-						rs->proxies = v;
+						rs->proxies = hvec;
 					} else {
 						if (search_debug > 3 || ggep_debug > 3) {
 							g_warning("%s bad GGEP \"PUSH\" (dumping)",
@@ -1401,8 +1360,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			extvec_t exv[MAX_EXTVEC];
 			gint exvcnt;
 			gint i;
-			gnet_host_t *hvec = NULL;		/* For GGEP "ALT" */
-			gint hvcnt = 0;
+			gnet_host_vec_t *hvec = NULL;		/* For GGEP "ALT" */
 			gboolean has_hash = FALSE;
 			gboolean has_unknown = FALSE;
 
@@ -1433,8 +1391,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				case EXT_T_URN_SHA1:		/* SHA1 URN, the HUGE way */
 					has_hash = TRUE;
 					paylen = ext_paylen(e);
-					if (e->ext_token == EXT_T_URN_BITPRINT)
+					if (e->ext_token == EXT_T_URN_BITPRINT) {
 						paylen = MIN(paylen, SHA1_BASE32_SIZE);
+					}
 					if (
 						huge_sha1_extract32(ext_payload(e),
 								paylen, sha1_digest, &n->header, TRUE)
@@ -1457,8 +1416,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								set_flags(rc->flags, SR_SPAM);
 							}
 						}
-					} else
+					} else {
+						if (search_debug > 0) {
+							g_message("huge_sha1_extract32() failed");
+						}
 						sha1_errors++;
+					}
 					break;
 				case EXT_T_GGEP_u:		/* HUGE URN, without leading urn: */
 					paylen = ext_paylen(e);
@@ -1478,9 +1441,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						memcpy(buf, payload, paylen);
 						buf[paylen] = '\0';
 
-						if (!urn_get_sha1_no_prefix(buf, sha1_digest)) {
-							sha1_errors++;
-						} else {
+						if (urn_get_sha1_no_prefix(buf, sha1_digest)) {
 							gboolean is_spam;
 							
 							count_sha1(sha1_digest);
@@ -1492,9 +1453,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							if (
 								huge_improbable_sha1(sha1_digest,
 									SHA1_RAW_SIZE)
-							)
+							) {
+								if (search_debug > 0) {
+									g_message("Improbable SHA-1 detected");
+								}
 								sha1_errors++;
-							else if (!validate_only) {
+							} else if (!validate_only) {
 								if (rc->sha1 != NULL) {
 									multiple_sha1 = TRUE;
 									atom_sha1_free(rc->sha1);
@@ -1503,6 +1467,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								if (is_spam)
 									set_flags(rc->flags, SR_SPAM);
 							}
+						} else {
+							if (search_debug > 0) {
+								g_message("urn_get_sha1_no_prefix() failed");
+							}
+							sha1_errors++;
 						}
 						wfree(buf, paylen + 1);
 					}
@@ -1519,9 +1488,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							rs->status |= ST_URN_SPAM;
 						}
 
-						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
+						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE)) {
+							if (search_debug > 0) {
+								g_message("Improbable SHA-1 detected");
+							}
 							sha1_errors++;
-						else if (!validate_only) {
+						} else if (!validate_only) {
 							if (rc->sha1 != NULL) {
 								multiple_sha1 = TRUE;
 								atom_sha1_free(rc->sha1);
@@ -1551,10 +1523,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						multiple_alt++;
 						break;
 					}
-					ret = ggept_alt_extract(e, &hvec, &hvcnt);
+					ret = ggept_alt_extract(e, &hvec);
 					if (ret == GGEP_OK) {
 						seen_ggep_alt = TRUE;
-						if (hvcnt > 16) {
+						if (gnet_host_vec_count(hvec) > 16) {
 							/* Known limits: LIME: 10, GTKG: 15, BEAR: >10? */
 							rs->status |= ST_ALT_SPAM;
 						}
@@ -1671,8 +1643,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				rc->tag = atom_str_get(info->str);
 
 			if (hvec != NULL) {
-				g_assert(hvcnt > 0);
-
 				if (!has_hash)
 					alt_without_hash++;
 
@@ -1681,13 +1651,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				 */
 
 				if (!validate_only && rc->sha1 != NULL) {
-					gnet_host_vec_t *alt = walloc(sizeof(*alt));
-
-					alt->hvec = hvec;
-					alt->hvcnt = hvcnt;
-					rc->alt_locs = alt;
-				} else
-					wfree(hvec, hvcnt * sizeof(*hvec));
+					rc->alt_locs = hvec;
+				} else {
+					gnet_host_vec_free(&hvec);
+				}
 			}
 		}
 
@@ -2978,8 +2945,7 @@ search_notify_sent(gpointer search, guint32 id, guint32 node_id)
  * if there are any.  Then free the alternate location from the record.
  */
 static void
-search_check_alt_locs(
-	gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
+search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 {
 	gnet_host_vec_t *alt = rc->alt_locs;
 	gint ignored = 0;
@@ -2987,13 +2953,14 @@ search_check_alt_locs(
 
 	g_assert(alt != NULL);
 
-	for (i = alt->hvcnt - 1; i >= 0; i--) {
-		const struct gnutella_host *h = &alt->hvec[i];
+	for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
+		struct gnutella_host host;
 		host_addr_t addr;
 		guint16 port;
 
-		addr = gnet_host_get_addr(h);
-		port = gnet_host_get_port(h);
+		host = gnet_host_vec_get(alt, i);
+		addr = gnet_host_get_addr(&host);
+		port = gnet_host_get_port(&host);
 		if (host_is_valid(addr, port)) {
 			download_auto_new(rc->name, rc->size, URN_INDEX, addr, port,
 				blank_guid, rs->hostname, rc->sha1, rs->stamp, TRUE, fi,
@@ -3807,8 +3774,7 @@ search_dissociate_browse(gnet_search_t sh, gpointer download)
 }
 
 static void
-search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
-	const gnet_host_vec_t *alt_locs)
+search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 {
 	gnet_record_t *rc;
 
@@ -3827,9 +3793,6 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf,
 	if (sha1_hash_available(sf)) {
 		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
 	}
-	if (rc->alt_locs) {
-		rc->alt_locs = alt_locs_copy(alt_locs);
-	}
 
 	rs->records = g_slist_prepend(rs->records, rc);
 	rs->num_recs++;
@@ -3843,7 +3806,6 @@ search_locally(gnet_search_t sh, const gchar *query)
 	shared_file_t *sf;
 	regex_t *re;
 	gint error;
-	gnet_host_vec_t *alt_loc;
 
     g_assert(query);
 
@@ -3883,20 +3845,8 @@ search_locally(gnet_search_t sh, const gchar *query)
 	rs = search_new_r_set();
 
 	rs->addr = listen_addr();
-	if (is_host_addr(rs->addr)) {
-		host_addr_t addr_v6 = listen_addr6();
-
-		if (is_host_addr(addr_v6)) {
-			alt_loc = walloc(sizeof *alt_loc);	
-			alt_loc->hvcnt = 1;
-			alt_loc->hvec = walloc(alt_loc->hvcnt * sizeof *alt_loc->hvec);
-			gnet_host_set(&alt_loc->hvec[0], addr_v6, listen_port);
-		} else {
-			alt_loc = NULL;
-		}
-	} else {
+	if (!is_host_addr(rs->addr)) {
 		rs->addr = listen_addr6();
-		alt_loc = NULL;
 	}
 	rs->port = listen_port;
 	rs->last_hop = zero_host_addr;
@@ -3906,7 +3856,7 @@ search_locally(gnet_search_t sh, const gchar *query)
     rs->status |= ST_LOCAL | ST_KNOWN_VENDOR;
 
 	if (sf) {
-		search_add_local_file(rs, sf, alt_loc);
+		search_add_local_file(rs, sf);
 	} else {
 		guint num_files, idx;
 
@@ -3936,10 +3886,9 @@ search_locally(gnet_search_t sh, const gchar *query)
 					continue;
 				}
 			}
-			search_add_local_file(rs, sf, alt_loc);	
+			search_add_local_file(rs, sf);
 		}
 	}
-	alt_locs_free(&alt_loc);
 
 	if (rs->records) {	
 		GSList *search;

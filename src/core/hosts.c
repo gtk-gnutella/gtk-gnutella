@@ -54,6 +54,8 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 gboolean host_low_on_pongs = FALSE;			/**< True when less than 12% full */
@@ -104,6 +106,48 @@ host_cmp(gconstpointer v1, gconstpointer v2)
 	return host_eq(v1, v2) ? 0 : 1;
 }
 
+void
+gnet_host_vec_free(gnet_host_vec_t **vec_ptr)
+{
+	g_assert(vec_ptr != NULL);
+
+	if (*vec_ptr) {
+		gnet_host_vec_t *vec;
+	
+		vec = *vec_ptr;
+		WFREE_NULL(vec->hvec_v4, vec->n_ipv4 * sizeof vec->hvec_v4[0]);
+		WFREE_NULL(vec->hvec_v6, vec->n_ipv6 * sizeof vec->hvec_v6[0]);
+		wfree(vec, sizeof *vec);
+		*vec_ptr = NULL;
+	}
+}
+
+gnet_host_vec_t *
+gnet_host_vec_alloc(void)
+{
+	static const gnet_host_vec_t zero_vec;
+	return wcopy(&zero_vec, sizeof zero_vec);
+}
+
+gnet_host_vec_t *
+gnet_host_vec_copy(const gnet_host_vec_t *vec)
+{
+	gnet_host_vec_t *vec_copy;
+
+	g_return_val_if_fail(vec, NULL);
+	g_return_val_if_fail(vec->n_ipv4 + vec->n_ipv6 > 0, NULL);
+
+	vec_copy = wcopy(vec, sizeof *vec);
+	if (vec->n_ipv4 > 0) {
+		vec_copy->hvec_v4 = wcopy(vec->hvec_v4,
+								vec->n_ipv4 * sizeof *vec->hvec_v4);
+	}
+	if (vec->n_ipv6 > 0) {
+		vec_copy->hvec_v6 = wcopy(vec->hvec_v6,
+								vec->n_ipv6 * sizeof *vec->hvec_v6);
+	}
+	return vec_copy;
+}
 
 /***
  *** Host periodic timer.

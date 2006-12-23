@@ -279,26 +279,13 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
 /**
  * Free the alternate locations held within a file record.
  */
-void
+static void
 search_gui_free_alt_locs(record_t *rc)
 {
-	gnet_host_vec_t *alt = rc->alt_locs;
-
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
-	g_assert(alt != NULL);
 
-	{
-		gint i;
-
-		for (i = 0; i < alt->hvcnt; i++)
-			g_assert(host_addr_initialized(gnet_host_get_addr(&alt->hvec[i])));
-	}
-
-	wfree(alt->hvec, alt->hvcnt * sizeof *alt->hvec);
-	wfree(alt, sizeof *alt);
-
-	rc->alt_locs = NULL;
+	gnet_host_vec_free(&rc->alt_locs);
 }
 
 /**
@@ -307,30 +294,17 @@ search_gui_free_alt_locs(record_t *rc)
 gnet_host_vec_t *
 search_gui_proxies_clone(gnet_host_vec_t *v)
 {
-	gnet_host_vec_t *new;
-
-	if (v == NULL)
-		return NULL;
-
-	new = walloc(sizeof *new);
-	new->hvec = walloc(v->hvcnt * sizeof(*v->hvec));
-	new->hvcnt = v->hvcnt;
-
-	memcpy(new->hvec, v->hvec, v->hvcnt * sizeof(*v->hvec));
-
-	return new;
+	return v ? gnet_host_vec_copy(v) : NULL;
 }
 
 /**
  * Free the cloned vector of host.
  */
-void
+static void
 search_gui_host_vec_free(gnet_host_vec_t *v)
 {
 	g_assert(v != NULL);
-
-	wfree(v->hvec, v->hvcnt * sizeof(*v->hvec));
-	wfree(v, sizeof *v);
+	gnet_host_vec_free(&v);
 }
 
 /**
@@ -371,8 +345,7 @@ search_gui_free_record(record_t *rc)
 	atom_str_free_null(&rc->xml);
 	atom_str_free_null(&rc->info);
 	atom_sha1_free_null(&rc->sha1);
-	if (rc->alt_locs != NULL)
-		search_gui_free_alt_locs(rc);
+	search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
 	rc->magic = 0xBAD;
 	rc->sha1 = GUINT_TO_POINTER(1U);
@@ -804,7 +777,7 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 	}
 
 	if (rc->alt_locs != NULL) {
-		gint count = rc->alt_locs->hvcnt;
+		gint count = gnet_host_vec_count(rc->alt_locs);
 		g_assert(rw < sizeof info);
 		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
 			info[0] != '\0' ? ", " : "");
@@ -878,16 +851,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	}
 
 	if (NULL != r->alt_locs) {
-		gint i;
-
-		for (i = 0; i < r->alt_locs->hvcnt; i++) {
-			g_assert(host_addr_initialized(
-						gnet_host_get_addr(&r->alt_locs->hvec[i])));
-		}
-
-		rc->alt_locs = wcopy(r->alt_locs, sizeof *r->alt_locs);
-		rc->alt_locs->hvec = wcopy(r->alt_locs->hvec,
-								r->alt_locs->hvcnt * sizeof *r->alt_locs->hvec);
+		rc->alt_locs = gnet_host_vec_copy(r->alt_locs);
 	}
 
     return rc;
@@ -1005,21 +969,22 @@ void
 search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 {
 	gnet_host_vec_t *alt = rc->alt_locs;
-	gint i;
+	gint i, n;
 
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 	g_assert(alt != NULL);
 	g_assert(rs->proxies == NULL);	/* Since we downloaded record already */
 
-	for (i = 0; i < alt->hvcnt; i++) {
-		gnet_host_t *h = &alt->hvec[i];
+	n = gnet_host_vec_count(alt);
+	for (i = 0; i < n; i++) {
+		gnet_host_t host;
 		host_addr_t addr;
 		guint16 port;
 
-		addr = gnet_host_get_addr(h);
-		port = gnet_host_get_port(h);
-		g_assert(host_addr_initialized(addr));
+		host = gnet_host_vec_get(alt, i);
+		addr = gnet_host_get_addr(&host);
+		port = gnet_host_get_port(&host);
 		if (port > 0 && host_addr_is_routable(addr)) {
 			guc_download_auto_new(rc->name, rc->size, URN_INDEX,
 				addr, port, blank_guid, rs->hostname,

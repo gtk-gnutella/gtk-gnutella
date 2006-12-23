@@ -1112,11 +1112,15 @@ search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 			const gnet_host_vec_t *alt = parent->record->alt_locs;
 			gint i, n;
 
-			n = MIN(10, alt->hvcnt);
+			n = gnet_host_vec_count(alt);
+			n = MIN(10, n);
+
 			for (i = 0; i < n; i++) {
+				gnet_host_t host;
+
+				host = gnet_host_vec_get(alt, i);
 				magnet_add_sha1_source(magnet, parent->record->sha1,
-					gnet_host_get_addr(&alt->hvec[i]),
-					gnet_host_get_port(&alt->hvec[i]));
+					gnet_host_get_addr(&host), gnet_host_get_port(&host));
 			}
 		}
 	}
@@ -1158,8 +1162,7 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	/* Re-store the parent to refresh the display/sorting */
 	search_gui_set_data(model, rd);
 
-	if (rs->proxies != NULL)
-		search_gui_free_proxies(rs);
+	search_gui_free_proxies(rs);
 
 	if (rc->alt_locs != NULL)
 		search_gui_check_alt_locs(rs, rc);
