@@ -1115,8 +1115,8 @@ search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 			n = MIN(10, alt->hvcnt);
 			for (i = 0; i < n; i++) {
 				magnet_add_sha1_source(magnet, parent->record->sha1,
-						parent->record->results_set->addr,
-						parent->record->results_set->port);
+					gnet_host_get_addr(&alt->hvec[i]),
+					gnet_host_get_port(&alt->hvec[i]));
 			}
 		}
 	}
