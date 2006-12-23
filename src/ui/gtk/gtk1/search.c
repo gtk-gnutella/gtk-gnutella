@@ -1614,8 +1614,7 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 			created++;
 		}
 
-		if (rs->proxies != NULL)
-			search_gui_free_proxies(rs);
+		search_gui_free_proxies(rs);
 
 		if (rc->alt_locs != NULL)
 			search_gui_check_alt_locs(rs, rc);
