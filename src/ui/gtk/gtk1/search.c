@@ -2046,6 +2046,25 @@ static gint search_results_compare_func
 }
 #endif
 
+static void
+on_search_list_row_move_event(GtkCList *clist,
+	gint unused_from, gint unused_to, gpointer unused_udata)
+{
+	GList *iter;
+	gint i;
+
+	(void) unused_udata;
+	(void) unused_from;
+	(void) unused_to;
+
+	i = 0;
+	for (iter = searches; iter != NULL; iter = g_list_next(iter)) {
+		iter->data = gtk_clist_get_row_data(clist, i++);
+		g_assert(iter->data);
+	}
+	search_gui_option_menu_searches_update();
+}
+
 /***
  *** Public functions
  ***/
@@ -2089,9 +2108,12 @@ search_gui_init(void)
 		GtkCList *clist;
 		
 		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
+		gtk_clist_set_reorderable(clist, TRUE);
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
-		gtk_signal_connect(GTK_OBJECT(clist), "button_press_event",
+		gtk_signal_connect(GTK_OBJECT(clist), "button-press-event",
 			GTK_SIGNAL_FUNC(on_search_list_button_press_event), NULL);
+		gtk_signal_connect_after(GTK_OBJECT(clist), "row-move",
+			GTK_SIGNAL_FUNC(on_search_list_row_move_event), NULL);
 	}
 }
 
