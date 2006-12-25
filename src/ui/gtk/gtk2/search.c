@@ -133,6 +133,45 @@ search_gui_set_data(GtkTreeModel *model, struct result_data *rd)
 	gtk_tree_store_set_value(GTK_TREE_STORE(model), &rd->iter, 0, &value);
 }
 
+static void
+search_gui_synchronize_list(GtkTreeModel *model)
+{
+	GtkTreeIter iter;
+	gboolean valid;
+	GList *list;
+
+	valid = gtk_tree_model_get_iter_first(model, &iter);
+	for (list = searches; list != NULL; list = g_list_next(list)) {
+		g_assert(valid);
+		list->data = NULL;
+    	gtk_tree_model_get(model, &iter, c_sl_sch, &list->data, (-1));
+		g_assert(list->data);
+		valid = gtk_tree_model_iter_next(model, &iter);
+	}
+}
+
+static void
+on_search_list_row_deleted(GtkTreeModel *model, GtkTreePath *unused_path,
+	gpointer unused_udata)
+{
+	(void) unused_path;
+	(void) unused_udata;
+
+	search_gui_synchronize_list(model);
+	search_gui_option_menu_searches_update();
+}
+
+void
+on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
+{
+	(void) unused_udata;
+	
+	search_gui_synchronize_list(gtk_tree_view_get_model(
+		GTK_TREE_VIEW(column->tree_view)));
+	search_gui_option_menu_searches_update();
+}
+
+
 /**
  * Callback handler used with gtk_tree_model_foreach() to record the current
  * rank/position in tree enabling stable sorting. 
@@ -1431,14 +1470,15 @@ add_list_columns(GtkTreeView *tv)
 		G_N_ELEMENTS(width));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		GtkTreeViewColumn *col;
+		GtkTreeViewColumn *column;
 		
-		col = add_column(tv, _(columns[i].title), columns[i].id,
-				width[i], columns[i].align, NULL, c_sl_fg, c_sl_bg);
-		gtk_tree_view_column_set_sort_column_id(col, columns[i].id);
+		column = add_column(tv, _(columns[i].title), columns[i].id,
+					width[i], columns[i].align, NULL, c_sl_fg, c_sl_bg);
+		gtk_tree_view_column_set_sort_column_id(column, columns[i].id);
+		g_signal_connect_after(G_OBJECT(column), "clicked",
+			G_CALLBACK(on_search_list_column_clicked),
+			NULL);
 	}
-
-	
 }
 
 static void
@@ -1593,28 +1633,6 @@ search_gui_init_dnd(GtkTreeView *tv)
         G_CALLBACK(drag_end), &dnd_url);
 }
 
-static void
-on_search_list_row_deleted(GtkTreeModel *model, GtkTreePath *unused_path,
-	gpointer unused_udata)
-{
-	GtkTreeIter iter;
-	gboolean valid;
-	GList *list;
-
-	(void) unused_path;
-	(void) unused_udata;
-
-	valid = gtk_tree_model_get_iter_first(model, &iter);
-	for (list = searches; list != NULL; list = g_list_next(list)) {
-		g_assert(valid);
-		list->data = NULL;
-    	gtk_tree_model_get(model, &iter, c_sl_sch, &list->data, (-1));
-		g_assert(list->data);
-		valid = gtk_tree_model_iter_next(model, &iter);
-	}
-	search_gui_option_menu_searches_update();
-}
-
 /***
  *** Public functions
  ***/
@@ -1644,8 +1662,7 @@ search_gui_init(void)
 	add_list_columns(tree_view_search);
 	g_signal_connect(G_OBJECT(tree_view_search), "cursor-changed",
 		G_CALLBACK(on_tree_view_search_cursor_changed), NULL);
-	g_signal_connect_after(
-		GTK_OBJECT(gtk_tree_view_get_model(tree_view_search)),
+	g_signal_connect_after(G_OBJECT(gtk_tree_view_get_model(tree_view_search)),
 		"row-deleted", G_CALLBACK(on_search_list_row_deleted), NULL);
 	gui_search_create_tree_view(&default_scrolled_window,
 		&default_search_tree_view, NULL);
@@ -1656,9 +1673,9 @@ search_gui_init(void)
   	gtk_notebook_set_tab_label_text(notebook_search_results,
 		default_scrolled_window, _("(no search)"));
 
-	g_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page",
+	g_signal_connect(GTK_OBJECT(notebook_search_results), "switch-page",
 		G_CALLBACK(on_search_notebook_switch), NULL);
-	g_signal_connect(GTK_OBJECT(notebook_search_results), "focus_tab",
+	g_signal_connect(GTK_OBJECT(notebook_search_results), "focus-tab",
 		G_CALLBACK(on_search_notebook_focus_tab), NULL);
 
    	current_search = search_gui_get_current_search();
@@ -2299,9 +2316,9 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkTreeView ** tv, gpointer udata)
 
 	g_signal_connect(GTK_OBJECT(treeview), "cursor-changed",
 		G_CALLBACK(on_tree_view_search_results_select_row), treeview);
-	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
+	g_signal_connect(GTK_OBJECT(treeview), "button-press-event",
 		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "key_press_event",
+    g_signal_connect(GTK_OBJECT(treeview), "key-press-event",
 		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), NULL);
