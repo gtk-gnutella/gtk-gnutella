@@ -639,20 +639,19 @@ pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
 	g_assert(slist);
 
 	n = slist_length(slist);
-	n = MIN(n, MAX_IOV_COUNT);
 
 	if (n > 0) {
 		slist_iter_t *iter;
 		gint i;
 
+		n = MIN(n, MAX_IOV_COUNT);
 		iov = g_malloc(n * sizeof *iov);
 
 		iter = slist_iter_before_head(slist);
-		for (i = 0; slist_iter_has_next(iter); i++) {
+		for (i = 0; i < n; i++) {
 			pmsg_t *mb;
 			size_t size;
 
-			g_assert(i < n);	
 			mb = slist_iter_next(iter);
 			g_assert(mb);
 
