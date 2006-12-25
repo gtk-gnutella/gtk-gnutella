@@ -619,7 +619,6 @@ has_dupe_spam(const gnet_results_set_t *rs)
 		r2 = g_slist_next(sl)->data;
 		if (
 			r1->file_index == r2->file_index &&
-			r1->name == r2->name &&
 			r1->sha1 == r2->sha1 &&
 			r1->size == r2->size
 		) {
