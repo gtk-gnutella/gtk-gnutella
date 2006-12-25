@@ -56,6 +56,7 @@ OBJECTS =   \$(OBJ)
 GLIB_CFLAGS =  $glibcflags
 XML2_CFLAGS =  $xmlcflags
 GNUTLS_CFLAGS =  $gnutlscflags
+SOCKER_CFLAGS =  $sockercflags
 SQLITE_CFLAGS =  $sqlitecflags
 
 ########################################################################
@@ -251,7 +252,7 @@ OBJ = \
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
-	$(SQLITE_CFLAGS) \
+	$(SOCKER_CFLAGS) $(SQLITE_CFLAGS) \
 	-DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
