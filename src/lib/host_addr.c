@@ -1052,6 +1052,7 @@ host_addr_get_interface_addrs(const enum net_type net)
 }
 #else	/* !HAS_GETIFADDRS */
 {
+	(void) net;
 	return NULL;
 }
 #endif	/* HAS_GETIFADDRS */
