@@ -252,27 +252,16 @@
 63.243.162.0/27
 63.243.181.0/27
 
-# ZIP files containing setup.exe and small DRMed WMA files.
-# Uses Shareaza; identifies as "Jironimo"; hosted by surfplanet.de
-# results copy the query string adding diverse prefixes.
+# ZIP files containing setup.exe and small DRMed WMA files.  Uses Shareaza;
+# some peers identify as "Jironimo" Can be found at ranges of surfplanet.de,
+# VersaTel and HanseNet; always German ISPs; results copy the query string
+# adding diverse prefixes and suffixes. "ysbweb dot com" (Integrated Search
+# Technologies) is the origin of this spam.
+66.152.93.0/25
+# root servers or vservers so the addresses should be stable
+81.209.165.73
 85.88.2.192/27
 85.88.9.0/26
-# Versatel; dynamic pool but keep them for a while anyway
-89.246.8.180
-89.246.12.132
-89.246.53.174
-87.122.23.75
-87.122.145.56
-87.122.146.48
-87.122.147.34
-87.122.149.182
-87.122.153.199
-87.122.158.215
-# Does not identify as Jironimo but seems to be the same
-85.176.134.234
-85.176.167.202
-85.176.168.79
-85.176.173.241
 
 # Spammer hosted by pie.us
 # (Sansui Ltd. has 206.223.156.0/24)
@@ -292,7 +281,7 @@
 63.246.153.64/28
 64.40.98.106
 # drmspace.com, 66103.vidlock.com
-216.55.178.165
+216.55.178.0/24
 # vidlock.com
 216.255.180.114
 217.116.225.250
@@ -622,10 +611,6 @@
 
 # www.aup.lockeddns.com; used by DynDNS.org to hijack hosts of past users.
 82.94.222.186
-
-# Jironimo-like Shareaza spam;
-# root server or vserver so the address should be stable
-81.209.165.73
 
 # University of Mississippi
 130.74.0.0/16
