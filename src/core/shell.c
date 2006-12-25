@@ -1578,7 +1578,9 @@ shell_write(gnutella_shell_t *sh, const gchar *text)
 		len -= n;
 	}
 	if (len > 0) {
-		slist_append(sh->output, pmsg_new(PMSG_P_DATA, text, len));
+		mb = pmsg_new(PMSG_P_DATA, NULL, MAX(compat_pagesize(), len));
+		pmsg_write(mb, text, len);
+		slist_append(sh->output, mb);
 	}
 
 	if (!writing) {
