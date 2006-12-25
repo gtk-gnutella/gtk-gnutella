@@ -940,6 +940,9 @@ search_gui_common_init(void)
 	label_search_expiry = GTK_LABEL(
 		gui_main_window_lookup("label_search_expiry"));
 	
+    gtk_combo_set_case_sensitive(
+        GTK_COMBO(gui_main_window_lookup("combo_search")), TRUE);
+
 	gui_color_init();
 }
 
