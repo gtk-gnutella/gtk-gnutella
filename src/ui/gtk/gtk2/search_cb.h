@@ -44,7 +44,7 @@ void on_button_search_download_clicked(GtkButton *button, gpointer user_data);
 gboolean on_tree_view_search_results_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 gboolean on_tree_view_search_results_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_button_search_filter_clicked (GtkButton *button, gpointer user_data);
-gboolean on_tree_view_search_results_click_column(GtkTreeViewColumn * tree_view_column, gpointer user_data);
+void on_tree_view_search_results_click_column(GtkTreeViewColumn * tree_view_column, gpointer user_data);
 void on_tree_view_search_results_select_row(GtkTreeView * tree_view, gpointer user_data);
 void on_tree_view_search_results_unselect_row(GtkTreeView * tree_view, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_tree_view_search_results_resize_column(GtkTreeView * tree_view, gint column, gint width, gpointer user_data);
