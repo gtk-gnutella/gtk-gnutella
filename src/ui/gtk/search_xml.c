@@ -1110,11 +1110,14 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 
 	xml_free_null(&query);
 
-    /*
-     * Also parse all children.
-     */
-	for (node = xmlnode->children; node != NULL; node = node->next)
-        parse_xml(node, search->filter);
+	if (search) {
+		/*
+		 * Also parse all children.
+		 */
+		for (node = xmlnode->children; node != NULL; node = node->next) {
+			parse_xml(node, search->filter);
+		}
+	}
 }
 
 static void

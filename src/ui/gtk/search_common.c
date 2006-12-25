@@ -1809,6 +1809,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 
 		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
 			const gchar *query;
+			search_t *search;
 
 			/* Note that SEARCH_F_LITERAL is used to prevent that these
 			 * searches are parsed for magnets or other special items. */
@@ -1817,14 +1818,17 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			if (
 				search_gui_new_search_full(query, tm_time(), 0, 0,
 			 		search_sort_default_column, search_sort_default_order,
-			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, NULL)
+			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, &search)
 			) {
-				n_searches++;
+				if (search) {
+					n_searches++;
+				}
 			}
 		}
 
 		if (!res->sources && res->sha1) {
 			gchar query[128];
+			search_t *search;
 			
 			concat_strings(query, sizeof query,
 				"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
@@ -1835,9 +1839,11 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			if (
 				search_gui_new_search_full(query, tm_time(), 0, 0,
 			 		search_sort_default_column, search_sort_default_order,
-			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, NULL)
+			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, &search)
 			) {
-				n_searches++;
+				if (search) {
+					n_searches++;
+				}
 			}
 
 			/*
@@ -1976,8 +1982,7 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 			 		search_sort_default_column, search_sort_default_order,
 			 		SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
 					&search);
-		if (success) {
-			g_assert(search);
+		if (success && search) {
           	search_gui_start_massive_update(search);
 			success = guc_search_locally(search->search_handle, text);
           	search_gui_end_massive_update(search);
@@ -2254,25 +2259,17 @@ search_gui_history_add(const gchar *s)
 void
 search_gui_new_search_entered(void)
 {
-	GtkWidget *widget;
+	GtkWidget *entry;
 	gchar *text;
 	
-    widget = gui_main_window_lookup("entry_search");
-   	text = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
+    entry = gui_main_window_lookup("entry_search");
+   	text = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(entry), 0, -1));
     g_strstrip(text);
 	
 	if ('\0' != text[0]) {
         filter_t *default_filter;
         search_t *search;
         gboolean res;
-
-        /*
-         * It's important gui_search_history_add is called before
-         * new_search, otherwise the search entry will not be
-         * cleared.
-         *      --BLUE, 04/05/2002
-         */
-        search_gui_history_add(text);
 
         /*
          * We have to capture the selection here already, because
@@ -2283,31 +2280,31 @@ search_gui_new_search_entered(void)
 					gui_main_window_lookup("optionmenu_search_filter")));
 
 		res = search_gui_new_search(text, 0, &search);
+        if (res) {
+			if (default_filter) {
+				rule_t *rule;
 
-        /*
-         * If we should set a default filter, we do that.
-         */
-        if (res && (default_filter != NULL)) {
-            rule_t *rule;
-		   
-			rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
+				rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
 
-            /*
-             * Since we don't want to distrub the shadows and
-             * do a "force commit" without the user having pressed
-             * the "ok" button in the dialog, we add the rule
-             * manually.
-             */
-            search->filter->ruleset =
+				/*
+				 * Since we don't want to distrub the shadows and
+				 * do a "force commit" without the user having pressed
+				 * the "ok" button in the dialog, we add the rule
+				 * manually.
+				 */
+				search->filter->ruleset =
 					g_list_append(search->filter->ruleset, rule);
-            rule->target->refcount++;
-        }
+				rule->target->refcount++;
+			}
 
-        if (!res)
+        	search_gui_history_add(text);
+			gtk_entry_set_text(GTK_ENTRY(entry), "");
+		} else {
         	gdk_beep();
+		}
     }
 
-	gtk_widget_grab_focus(widget);
+	gtk_widget_grab_focus(entry);
 	G_FREE_NULL(text);
 }
 
@@ -2356,6 +2353,9 @@ search_gui_new_browse_host(
 			 search_sort_default_column, search_sort_default_order,
 			 SEARCH_F_BROWSE | SEARCH_F_ENABLED, &search)
 	)
+		goto failed;
+
+	if (!search)
 		goto failed;
 
 	if (

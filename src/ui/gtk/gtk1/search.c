@@ -291,8 +291,8 @@ search_gui_close_search(search_t *sch)
  * Create a new search and start it.
  *
  * @returns TRUE if search was sucessfully created and FALSE if an error
- * happened. If the "search" argument is not NULL a pointer to the new
- * search is stored there.
+ *			occured. If the "search" argument is not NULL a pointer to the new
+ *			search is stored there.
  */
 gboolean
 search_gui_new_search_full(const gchar *query_str,
@@ -312,16 +312,18 @@ search_gui_new_search_full(const gchar *query_str,
     gint row;
 	gboolean is_only_search = FALSE;
 
-	query = search_gui_handle_query(query_str, flags, &error_str);
-	if (query || !error_str) {
-		gtk_entry_set_text(
-				GTK_ENTRY(gui_main_window_lookup("entry_search")), "");
+	if (search) {
+		*search = NULL;
 	}
+
+	query = search_gui_handle_query(query_str, flags, &error_str);
 	if (!query) {
 		if (error_str) {
 			statusbar_gui_warning(5, "%s", error_str);
+			return FALSE;
+		} else {
+			return TRUE;
 		}
-		return FALSE;
 	}
 	g_assert(query);
 	g_assert(query->text);

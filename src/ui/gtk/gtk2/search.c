@@ -589,8 +589,8 @@ search_gui_restore_sorting(search_t *sch)
 
 /**
  * @returns TRUE if search was sucessfully created and FALSE if an error
- * happened. If the "search" argument is not NULL a pointer to the new
- * search is stored there.
+ * 			occured. If the "search" argument is not NULL a pointer to the new
+ *			search is stored there.
  */
 gboolean
 search_gui_new_search_full(const gchar *query_str,
@@ -606,16 +606,17 @@ search_gui_new_search_full(const gchar *query_str,
 	GtkTreeIter iter;
 	gboolean is_only_search;
 	
-	query = search_gui_handle_query(query_str, flags, &error_str);
-	if (query || !error_str) {
-		gtk_entry_set_text(
-			GTK_ENTRY(gui_main_window_lookup("entry_search")), "");
+	if (search) {
+		*search = NULL;
 	}
+	query = search_gui_handle_query(query_str, flags, &error_str);
 	if (!query) {
 		if (error_str) {
 			statusbar_gui_warning(5, "%s", error_str);
+			return FALSE;
+		} else {
+			return TRUE;
 		}
-		return FALSE;
 	}
 	g_assert(query);
 	g_assert(query->text);
@@ -1499,7 +1500,7 @@ add_results_column(
    	gtk_tree_view_column_set_sort_column_id(column, id);
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model), id,
 		sortfunc, NULL, NULL);
-	g_signal_connect(G_OBJECT(column), "clicked",
+	g_signal_connect_after(G_OBJECT(column), "clicked",
 		G_CALLBACK(on_tree_view_search_results_click_column),
 		udata);
 }
