@@ -503,10 +503,10 @@ check_dev_poll(struct poll_ctx *poll_ctx, gint *timeout_ms_ptr)
 	tm_now_exact(&after);
 	tm_elapsed(&elapsed, &after, &before);
 	d = tm2ms(&elapsed);
-	if (d < timeout_ms) {
-		timeout_ms -= d;
-	} else {
+	if (d >= timeout_ms || ret > 0) {
 		timeout_ms = 0;
+	} else {
+		timeout_ms -= d;
 	}
 	poll_ctx->num_ready = MAX(0, ret);
 
