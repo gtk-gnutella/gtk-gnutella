@@ -624,6 +624,10 @@ pdata_unref(pdata_t *db)
 
 /**
  * Creates an iovec from a singly-linked list of pmsg_t buffers.
+ * NOTE: The iovec will hold no more than MAX_IOV_COUNT items. That means
+ *       the iovec might not cover the whole buffered data. This limited
+ *		 is applied because writev() could fail with EINVAL otherwise
+ *		 which would simply add more unnecessary complexity.
  */
 struct iovec *
 pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
@@ -635,6 +639,8 @@ pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
 	g_assert(slist);
 
 	n = slist_length(slist);
+	n = MIN(n, MAX_IOV_COUNT);
+
 	if (n > 0) {
 		slist_iter_t *iter;
 		size_t i;
