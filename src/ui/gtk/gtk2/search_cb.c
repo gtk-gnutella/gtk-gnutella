@@ -328,7 +328,7 @@ on_button_search_download_clicked(GtkButton *unused_button,
     search_gui_download_files();
 }
 
-gboolean
+void
 on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gpointer udata)
 {
@@ -339,7 +339,7 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 
 	/* The default treeview is empty */
 	if (!sch)
-		return FALSE;
+		return;
 
 	model = GTK_TREE_SORTABLE(
 				gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view)));
@@ -416,8 +416,6 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	}
 	/* Make the column stays clickable. */
 	gtk_tree_view_column_set_clickable(column, TRUE);
-
-	return TRUE;
 }
 
 static const gchar *
