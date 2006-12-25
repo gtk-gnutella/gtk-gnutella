@@ -305,7 +305,9 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	}
 
 	if (q->putq_entered++ > 0) {
-		g_warning("mq_udp_putq: recursion detected");
+		if (dbg > 0) {
+			g_warning("mq_udp_putq: recursion detected");
+		}
 		goto cleanup;
 	}
 

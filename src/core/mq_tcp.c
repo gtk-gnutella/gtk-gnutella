@@ -320,7 +320,9 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	}
 
 	if (q->putq_entered++ > 0) {
-		g_warning("mq_tcp_putq: recursion detected");
+		if (dbg > 0) {
+			g_warning("mq_tcp_putq: recursion detected");
+		}
 		goto cleanup;
 	}
 
