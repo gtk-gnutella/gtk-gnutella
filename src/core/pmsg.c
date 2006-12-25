@@ -643,7 +643,7 @@ pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
 
 	if (n > 0) {
 		slist_iter_t *iter;
-		size_t i;
+		gint i;
 
 		iov = g_malloc(n * sizeof *iov);
 
@@ -680,7 +680,7 @@ pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
  * Discard `n_bytes' from the pmsg_t buffer slist and free all completely
  * discarded buffers.
  */
-struct iovec *
+void
 pmsg_slist_discard(slist_t *slist, size_t n_bytes)
 {
 	slist_iter_t *iter;
