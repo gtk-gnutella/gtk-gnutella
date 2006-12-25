@@ -622,4 +622,86 @@ pdata_unref(pdata_t *db)
 		pdata_free(db);
 }
 
+/**
+ * Creates an iovec from a singly-linked list of pmsg_t buffers.
+ */
+struct iovec *
+pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
+{
+	struct iovec *iov;
+	size_t held = 0;
+	gint n;
+
+	g_assert(slist);
+
+	n = slist_length(slist);
+	if (n > 0) {
+		slist_iter_t *iter;
+		size_t i;
+
+		iov = g_malloc(n * sizeof *iov);
+
+		iter = slist_iter_before_head(slist);
+		for (i = 0; slist_iter_has_next(iter); i++) {
+			pmsg_t *mb;
+			size_t size;
+
+			g_assert(i < n);	
+			mb = slist_iter_next(iter);
+			g_assert(mb);
+
+			size = pmsg_size(mb);
+			g_assert(size > 0);
+			held += size;
+
+			iov[i].iov_base = deconstify_gpointer(pmsg_read_base(mb));
+			iov[i].iov_len = size;
+		}
+		slist_iter_free(&iter);
+	} else {
+		iov = NULL;
+	}
+	if (iovcnt_ptr) {
+		*iovcnt_ptr = MAX(0, n);
+	}
+	if (size_ptr) {
+		*size_ptr = held;
+	}
+	return iov;
+}
+
+/**
+ * Discard `n_bytes' from the pmsg_t buffer slist and free all completely
+ * discarded buffers.
+ */
+struct iovec *
+pmsg_slist_discard(slist_t *slist, size_t n_bytes)
+{
+	slist_iter_t *iter;
+
+	g_assert(slist);
+
+	iter = slist_iter_on_head(slist);
+	while (n_bytes > 0) {
+		pmsg_t *mb;
+		size_t size;
+
+		g_assert(slist_iter_has_item(iter));
+		mb = slist_iter_current(iter);
+		g_assert(mb);
+
+		size = pmsg_size(mb);
+		if (size > n_bytes) {
+			pmsg_discard(mb, n_bytes);
+			break;
+		} else {
+			pmsg_free(mb);
+			n_bytes -= size;
+			slist_iter_remove(iter);
+		}
+	}
+	slist_iter_free(&iter);
+}
+
+
 /* vi: set ts=4 sw=4 cindent: */

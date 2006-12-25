@@ -678,14 +678,14 @@ buffers_reset_reading(struct download *d)
  * Reset the I/O vector for writing the whole data held in the buffer.
  */
 static struct iovec *
-buffers_to_iovec(struct download *d)
+buffers_to_iovec(struct download *d, gint *iov_cnt)
 {
 	struct dl_buffers *b;
 	struct iovec *iov;
-	slist_iter_t *iter;
-	size_t held = 0, i, n;
+	size_t held;
 
 	download_check(d);
+	g_assert(iov_cnt);
 
 	g_assert(d->buffers != NULL);
 	g_assert(d->socket != NULL);
@@ -696,40 +696,14 @@ buffers_to_iovec(struct download *d)
 	g_assert(b->held > 0);
 	g_assert(b->list);
 	
-	n = slist_length(b->list);
-	g_assert(n > 0);
-
-	iov = walloc(n * sizeof *iov);
-
-	iter = slist_iter_before_head(b->list);
-	for (i = 0; slist_iter_has_next(iter); i++) {
-		pmsg_t *mb;
-		size_t size;
-	
-	   	g_assert(i < n);	
-		mb = slist_iter_next(iter);
-	   	g_assert(mb);
-
-		size = pmsg_size(mb);
-		g_assert(size > 0);
-		held += size;
-
-		iov[i].iov_base = deconstify_gpointer(pmsg_read_base(mb));
-		iov[i].iov_len = size;
-	}
+	iov = pmsg_slist_to_iovec(b->list, iov_cnt, &held);
+	g_assert(iov);
+	g_assert(*iov_cnt > 0);
 	g_assert(held == b->held);
-	slist_iter_free(&iter);
 
 	b->mode = DL_BUF_WRITING;
 
 	return iov;
-}
-
-static void
-buffers_iovec_free(struct iovec *iov, size_t n)
-{
-	g_assert(iov);
-	wfree(iov, n * sizeof iov[0]);
 }
 
 /**
@@ -903,8 +877,6 @@ buffers_strip_leading(struct download *d, size_t amount)
 {
 	struct dl_buffers *b;
 	fileinfo_t *fi;
-	slist_iter_t *iter;
-	size_t n;
 
 	download_check(d);
 	g_assert(d->buffers != NULL);
@@ -920,28 +892,7 @@ buffers_strip_leading(struct download *d, size_t amount)
 		return;
 	}
 
-	n = amount;
-	iter = slist_iter_on_head(b->list);
-	while (n > 0) {
-		pmsg_t *mb;
-		size_t size;
-
-		g_assert(slist_iter_has_item(iter));
-		mb = slist_iter_current(iter);
-		g_assert(mb);
-
-		size = pmsg_size(mb);
-		if (size > n) {
-			pmsg_discard(mb, n);
-			break;
-		} else {
-			pmsg_free(mb);
-			n -= size;
-			slist_iter_remove(iter);
-		}
-	}
-	slist_iter_free(&iter);
-
+	pmsg_slist_discard(b->list, amount);
 	b->held -= amount;
 
 	if (fi->buffered >= amount)
@@ -5729,19 +5680,16 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	do {
 		struct iovec *iov;
 		ssize_t ret;
-		guint n;
+		gint n;
 
 		buffers_check_held(d);
-		n = slist_length(b->list);
-		g_assert(n > 0);
 
 		/*
 		 * Prepare I/O vector for writing.
 		 */
-		iov = buffers_to_iovec(d); 
+		iov = buffers_to_iovec(d, &n); 
 		ret = file_object_pwritev(d->out_file, iov, n, d->pos);
-		buffers_iovec_free(iov, n);
-		iov = NULL;
+		G_FREE_NULL(iov);
 
 		b->mode = DL_BUF_READING;
 

@@ -38,6 +38,8 @@
 
 #include "common.h"
 
+#include "lib/slist.h"
+
 /**
  * A data buffer, can be shared by several message blocks.
  *
@@ -174,6 +176,10 @@ pdata_t *pdata_allocb_ext(void *buf, gint len,
 	pdata_free_t freecb, gpointer freearg);
 void pdata_free_nop(gpointer p, gpointer arg);
 void pdata_unref(pdata_t *db);
+
+struct iovec *pmsg_slist_to_iovec(slist_t *slist,
+				gint *iovcnt_ptr, size_t *size_ptr);
+struct iovec *pmsg_slist_discard(slist_t *slist, size_t n_bytes);
 
 #endif	/* _core_pmsg_h_ */
 

@@ -1395,23 +1395,25 @@ shell_write_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
 	ssize_t written;
-	pmsg_t *mb;
+	struct iovec *iov;
+	gint iov_cnt;
 
 	shell_check(sh);
 	g_assert(sh->output);
 	g_assert(IS_PROCESSING(sh));
 
+	s = sh->socket;
+	socket_check(s);
+
 	sh->last_update = tm_time();
 
-	s = sh->socket;
-	mb = slist_head(sh->output);
-	g_assert(mb);
+	iov = pmsg_slist_to_iovec(sh->output, &iov_cnt, NULL);
+	written = s->wio.writev(&s->wio, iov, iov_cnt);
 
-	written = s->wio.write(&s->wio, pmsg_read_base(mb), pmsg_size(mb));
 	switch (written) {
 	case (ssize_t) -1:
 		if (is_temporary_error(errno))
-			return;
+			goto done;
 
 		/* FALL THRU */
 	case 0:
@@ -1422,17 +1424,17 @@ shell_write_data(gnutella_shell_t *sh)
 		break;
 
 	default:
-		pmsg_discard(mb, written);
-		if (0 == pmsg_size(mb)) {
-			slist_remove(sh->output, mb);
-			pmsg_free(mb);
-		}
+		pmsg_slist_discard(sh->output, written);
 	}
 
 	if (!IS_PROCESSING(sh)) {
 		socket_evt_clear(sh->socket);
 		socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
 	}
+	
+done:
+	G_FREE_NULL(iov);
+	return;
 }
 
 /**
@@ -1578,7 +1580,7 @@ shell_write(gnutella_shell_t *sh, const gchar *text)
 		len -= n;
 	}
 	if (len > 0) {
-		mb = pmsg_new(PMSG_P_DATA, NULL, MAX(compat_pagesize(), len));
+		mb = pmsg_new(PMSG_P_DATA, NULL, len);
 		pmsg_write(mb, text, len);
 		slist_append(sh->output, mb);
 	}
