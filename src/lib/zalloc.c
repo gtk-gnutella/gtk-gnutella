@@ -262,11 +262,10 @@ zdump_used(zone_t *zone)
 	gchar *p;
 	gpointer leakset = leak_init();
 
-	p = zone->zn_base;
-	next = zone->zn_next;
-
-	for (;;) {
+	for (next = zone->zn_next; next; next = next->sz_next) {
 		gint cnt = zone->zn_hint;		/* Amount of blocks per zone */
+
+		p = next->sz_base;
 
 		while (cnt-- > 0) {
 			if (*(gchar **) p == BLOCK_USED) {
@@ -275,12 +274,6 @@ zdump_used(zone_t *zone)
 			}
 			p += zone->zn_size;
 		}
-
-		if (next == NULL)
-			break;
-
-		p = next->zn_base;
-		next = next->zn_next;
 	}
 
 	if (used != zone->zn_cnt)
