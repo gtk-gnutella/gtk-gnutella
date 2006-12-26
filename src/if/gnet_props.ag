@@ -3281,25 +3281,6 @@ prop = {
 };
 
 prop = {
-    name = "download_buffer_read_ahead";
-    desc = "Extra amount of data per downloading source that gtk-gnutella "
-		"will try to read-ahead.  This gives more room for reading large "
-		"amount of data without issuing too many system calls. "
-		"It complements buffering nicely because it prevents reading a few "
-		"bytes before committing the buffered data to disk: when read-ahead "
-		"space is available, it will be used in addition to buffering, but "
-		"read-ahead data is committed to disk immediately.  If you don't "
-		"wish to reserve more memory per active source, you can disable this "
-		"feature by setting the read-ahead buffer size to 0.";
-    type = guint32;
-    data = {
-        default = 4096;
-        min = 0;
-        max = 16384;
-    };
-};
-
-prop = {
 	name = "browse_copied_to_passive";
 	desc = "When set, all search results from host browsing are dispatched "
 		   "to all opened passive searches.  This is useful if you have "

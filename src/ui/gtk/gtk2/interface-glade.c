@@ -12749,13 +12749,9 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *label918;
   GtkWidget *label919;
   GtkWidget *label934;
-  GtkWidget *label935;
   GtkObject *spinbutton_download_buffer_size_adj;
   GtkWidget *spinbutton_download_buffer_size;
-  GtkObject *spinbutton_download_buffer_read_ahead_adj;
-  GtkWidget *spinbutton_download_buffer_read_ahead;
   GtkWidget *label936;
-  GtkWidget *label937;
   GtkWidget *viewport117;
   GtkWidget *frame103;
   GtkWidget *table93;
@@ -13399,28 +13395,11 @@ create_dlg_prefs_dl_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label934), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label934), 4, 0);
 
-  label935 = gtk_label_new (_("Read-ahead buffer"));
-  gtk_widget_set_name (label935, "label935");
-  gtk_widget_show (label935);
-  gtk_table_attach (GTK_TABLE (table94), label935, 0, 1, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label935), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label935), 4, 0);
-
   spinbutton_download_buffer_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_download_buffer_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_size_adj), 1, 0);
   gtk_widget_set_name (spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
   gtk_widget_show (spinbutton_download_buffer_size);
   gtk_table_attach (GTK_TABLE (table94), spinbutton_download_buffer_size, 1, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  spinbutton_download_buffer_read_ahead_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_download_buffer_read_ahead = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_buffer_read_ahead_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_download_buffer_read_ahead, "spinbutton_download_buffer_read_ahead");
-  gtk_widget_show (spinbutton_download_buffer_read_ahead);
-  gtk_table_attach (GTK_TABLE (table94), spinbutton_download_buffer_read_ahead, 1, 2, 4, 5,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -13431,14 +13410,6 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label936), 0, 0.5);
-
-  label937 = gtk_label_new (_("bytes"));
-  gtk_widget_set_name (label937, "label937");
-  gtk_widget_show (label937);
-  gtk_table_attach (GTK_TABLE (table94), label937, 2, 3, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label937), 0, 0.5);
 
   viewport117 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport117, "viewport117");
@@ -13606,11 +13577,8 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label918, "label918");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label919, "label919");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label934, "label934");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label935, "label935");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_download_buffer_read_ahead, "spinbutton_download_buffer_read_ahead");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label936, "label936");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label937, "label937");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, viewport117, "viewport117");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame103, "frame103");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table93, "table93");

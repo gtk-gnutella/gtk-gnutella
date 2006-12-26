@@ -326,7 +326,6 @@ extern const guint32  qhits_browse_count;
 extern const guint32  qhits_browse_served;
 extern const gboolean overloaded_cpu;
 extern const guint32  download_buffer_size;
-extern const guint32  download_buffer_read_ahead;
 extern const gboolean browse_copied_to_passive;
 extern const gboolean display_metric_units;
 extern const guint32  rudp_debug;

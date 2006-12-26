@@ -4047,14 +4047,6 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
-        PROP_DOWNLOAD_BUFFER_READ_AHEAD,
-        update_spinbutton,
-        TRUE,
-        "spinbutton_download_buffer_read_ahead",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_dlg_prefs,
         PROP_FUZZY_THRESHOLD,
         update_spinbutton,
         TRUE,
