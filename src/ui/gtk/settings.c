@@ -686,7 +686,12 @@ static gboolean current_display_metric_units;
 static gboolean
 display_metric_units_changed(property_t prop)
 {
+	GtkWidget *widget;
+	
+    widget = gui_dlg_prefs_lookup("checkbutton_config_metric");
     gnet_prop_get_boolean_val(prop, &current_display_metric_units);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+		current_display_metric_units);
     return FALSE;
 }
 
