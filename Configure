@@ -572,8 +572,7 @@ ccversion=''
 archobjs=''
 : Possible local include directories to search.
 : Set locincpth to "" in a hint file to defeat local include searches.
-locincpth="/usr/local/include /opt/local/include /usr/gnu/include"
-locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
+locincpth=""
 :
 : no include file wanted by default
 inclwanted=''
@@ -584,8 +583,8 @@ libnames=''
 : change the next line if compiling for Xenix/286 on Xenix/386
 xlibpth='/usr/lib/386 /lib/386'
 : Possible local library directories to search.
-loclibpth="/usr/local/lib /opt/local/lib /usr/gnu/lib"
-loclibpth="$loclibpth /opt/gnu/lib /usr/GNU/lib /opt/GNU/lib"
+
+loclibpth=""
 
 : general looking path for locating libraries
 glibpth="/lib /usr/lib $xlibpth"
