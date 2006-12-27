@@ -227,16 +227,17 @@ search_gui_set_details(const record_t *rc)
 		}
 	}
 
-	if (rc->xml) {
-		gchar *xml_text = search_xml_indent(rc->xml);
-		if (xml_text) {
-			gtk_text_freeze(xml);
-			gtk_text_set_point(xml, 0);
-			gtk_text_insert(xml, NULL, NULL, NULL,
-					lazy_utf8_to_ui_string(xml_text), -1);
-			gtk_text_thaw(xml);
-			G_FREE_NULL(xml_text);
-		}
+	{
+		gchar *xml_text;
+	   
+		xml_text = rc->xml ? search_xml_indent(rc->xml) : NULL;
+		gtk_text_freeze(xml);
+		gtk_text_set_point(xml, 0);
+		gtk_text_insert(xml, NULL, NULL, NULL,
+			xml_text ? lazy_utf8_to_ui_string(xml_text) : "",
+			-1);
+		gtk_text_thaw(xml);
+		G_FREE_NULL(xml_text);
 	}
 }
 
