@@ -97,7 +97,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11746 2006-08-26 14:39:06Z rmanfredi $
+# $X-Id: Jmakefile 12683 2006-12-27 10:36:13Z rmanfredi $
 
 all::
 
@@ -262,7 +262,7 @@ local_install:: gtk-gnutella
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(BINDIR) || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(BINDIR)); \
-	$(INSTALL) -c -s -m 555  gtk-gnutella$(_EXE) $(INSTALL_PREFIX)$(BINDIR)
+	$(INSTALL) -c -m 555  gtk-gnutella$(_EXE) $(INSTALL_PREFIX)$(BINDIR)
 
 local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(BINDIR)/gtk-gnutella$(_EXE)
