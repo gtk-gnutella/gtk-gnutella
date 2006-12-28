@@ -612,6 +612,9 @@
 # www.aup.lockeddns.com; used by DynDNS.org to hijack hosts of past users.
 82.94.222.186
 
+# PDF and QuickTime spam; FrostWire
+216.17.108.12
+
 # University of Mississippi
 130.74.0.0/16
 
