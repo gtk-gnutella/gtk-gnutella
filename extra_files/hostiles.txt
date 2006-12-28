@@ -245,6 +245,7 @@
 70.86.75.0/24
 
 # DRM WMV spammer; giFT-based
+70.84.168.80/28
 70.85.234.0/28
 74.52.89.240/28
 
@@ -614,6 +615,10 @@
 
 # PDF and QuickTime spam; FrostWire
 216.17.108.12
+
+# kwjmehkq dot com; DRM license server used in QuickTime spam a la p2pblast
+# The whois data is clearly bogus.
+66.111.54.160/28
 
 # University of Mississippi
 130.74.0.0/16
