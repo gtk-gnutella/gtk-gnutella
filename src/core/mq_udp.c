@@ -287,6 +287,7 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	guint8 function;
 	guint8 hops;
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */
+	gboolean error = FALSE;
 
 again:
 	g_assert(q);
@@ -413,8 +414,19 @@ cleanup:
 		pmsg_free(mb);
 		mb = NULL;
 	}
-	g_assert(q->putq_entered > 0);
-	q->putq_entered--;
+
+	/*
+	 * When reaching that point with a zero putq_entered counter, it means
+	 * we triggered an early error condition.  Bail out.
+	 */
+
+	g_assert(q->putq_entered >= 0);
+
+	if (q->putq_entered == 0)
+		error = TRUE;
+	else
+		q->putq_entered--;
+
 	mq_check(q, 0);
 
 	/*
@@ -422,7 +434,7 @@ cleanup:
 	 * pop an item off the head of the list and iterate again.
 	 */
 
-	if (0 == q->putq_entered) {
+	if (0 == q->putq_entered && !error) {
 		mbe = slist_shift(q->qwait);
 		if (mbe) {
 			struct mq_udp_info *mi = pmsg_get_metadata(mbe);

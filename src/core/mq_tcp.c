@@ -428,8 +428,18 @@ cleanup:
 		pmsg_free(mb);
 		mb = NULL;
 	}
-	g_assert(q->putq_entered > 0);
-	q->putq_entered--;
+	g_assert(q->putq_entered >= 0);
+
+	/*
+	 * When reaching that point with a zero putq_entered counter, it means
+	 * we triggered an early error condition.  Bail out.
+	 */
+
+	if (q->putq_entered == 0)
+		error = TRUE;
+	else
+		q->putq_entered--;
+
 	mq_check(q, 0);
 
 	/*
