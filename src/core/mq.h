@@ -42,6 +42,8 @@
 #include "pmsg.h"
 #include "tx.h"
 
+#include "lib/slist.h"
+
 typedef struct mqueue mqueue_t;
 
 /**
@@ -89,6 +91,7 @@ struct mqueue {
 	const struct mq_cops *cops;		/**< Common operations */
 	txdrv_t *tx_drv;				/**< Network TX stack driver */
 	GList *qhead, *qtail, **qlink;
+	slist_t *qwait;			/**< Waiting queue during putq recursions */
 	gpointer swift_ev;		/**< Callout queue event in "swift" mode */
 	gint swift_elapsed;		/**< Scheduled elapsed time, in ms */
 	gint qlink_count;		/**< Amount of entries in `qlink' */
@@ -101,7 +104,7 @@ struct mqueue {
 	gint last_written;		/**< Amount last written by service routine */
 	gint flowc_written;		/**< Amount written during flow control */
 	gint last_size;			/**< Queue size at last "swift" event callback */
-    gint putq_entered;
+    gint putq_entered;		/**< For recursion checks in mq_putq() */
 };
 
 /*
@@ -138,6 +141,7 @@ void mq_shutdown(mqueue_t *q);
 void mq_fill_ops(struct mq_ops *ops);
 
 const struct mq_cops *mq_get_cops(void);
+const gchar *mq_info(const mqueue_t *q);
 
 /*
  * Message queue assertions.

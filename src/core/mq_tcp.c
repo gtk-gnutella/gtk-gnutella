@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/core/main.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -79,6 +80,7 @@ mq_tcp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 	q->maxsize = maxsize;
 	q->lowat = maxsize >> 2;		/* 25% of max size */
 	q->hiwat = maxsize >> 1;		/* 50% of max size */
+	q->qwait = slist_new();
 	q->ops = &mq_tcp_ops;
 	q->cops = mq_get_cops();
 
@@ -298,16 +300,24 @@ update_servicing:
 static void
 mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 {
-	gint size = pmsg_size(mb);
-	gchar *mbs = pmsg_start(mb);
-	guint8 function = gmsg_function(mbs);
-	guint8 hops = gmsg_hops(mbs);
-	gboolean prioritary = pmsg_prio(mb) != PMSG_P_DATA;
+	gint size;				/* Message size */
+	gchar *mbs;				/* Start of message */
+	guint8 function;		/* Gnutella message function */
+	guint8 hops;			/* Gnutella message hop count */
+	gboolean prioritary;	/* Is message prioritary? */
+	gboolean error = FALSE;
 
+again:
 	g_assert(q);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
 	mq_check(q, 0);
+
+	size = pmsg_size(mb);
+	mbs = pmsg_start(mb);
+	function = gmsg_function(mbs);
+	hops = gmsg_hops(mbs);
+	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
@@ -319,13 +329,24 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 		goto cleanup;
 	}
 
-	if (q->putq_entered++ > 0) {
-		if (dbg > 0) {
-			g_warning("mq_tcp_putq: recursion detected");
-		}
-		goto cleanup;
+	/*
+	 * Protect against recursion: we must not invoke puthere() whilst in
+	 * the middle of another putq() or we would corrupt the qlink array:
+	 * Messages received during recursion are inserted into the qwait list
+	 * and will be stuffed back into the queue when the initial putq() ends.
+	 *		--RAM, 2006-12-29
+	 */
+
+	if (q->putq_entered > 0) {
+		if (debugging(0))
+			g_warning(
+				"mq_tcp_putq: %s recursion detected (%d already pending)",
+				mq_info(q), slist_length(q->qwait));
+		slist_append(q->qwait, mb);
+		return;
 	}
 
+	q->putq_entered++;
 	gnet_stats_count_queued(q->node, function, hops, size);
 
 	/*
@@ -341,19 +362,25 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 
 			written = tx_write(q->tx_drv, mbs, size);
 
-			/**
-			 * FIXME: The following assertion check failed.
-			 *			--cbiere, 2005-11-01
+			/*
+			 * If that assertion fails, then it means there is an error
+			 * in the TX stack which set tx_has_error() even though it
+			 * reports data written and not -1.
+			 *		--RAM, 2006-12-29
 			 */
 			g_assert((ssize_t) -1 == written || !tx_has_error(q->tx_drv));
 
-			if ((ssize_t) -1 == written)
+			if ((ssize_t) -1 == written) {
+				error = TRUE;
 				goto cleanup;
+			}
 
 			if (prioritary && written == size) {
 				tx_flush(q->tx_drv);
-				if (tx_has_error(q->tx_drv))
+				if (tx_has_error(q->tx_drv)) {
+					error = TRUE;
 					goto cleanup;
+				}
 			}
 		} else {
 			gnet_stats_count_flowc(mbs);
@@ -404,6 +431,24 @@ cleanup:
 	g_assert(q->putq_entered > 0);
 	q->putq_entered--;
 	mq_check(q, 0);
+
+	/*
+	 * If we're exiting here with no other putq() registered, then we must
+	 * pop an item off the head of the list and iterate again.  We stop as
+	 * soon as a write error is reported by the TX stack.
+	 */
+
+	if (0 == q->putq_entered && !error) {
+		mb = slist_shift(q->qwait);
+		if (mb) {
+			if (debugging(0))
+				g_warning(
+					"mq_tcp_putq: %s flushing waiting (%d still pending)",
+					mq_info(q), slist_length(q->qwait));
+			goto again;
+		}
+	}
+
 	return;
 }
 

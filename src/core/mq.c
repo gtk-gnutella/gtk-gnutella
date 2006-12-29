@@ -119,7 +119,7 @@ mq_node(const struct mqueue *q)
 /**
  * Compute readable queue information.
  */
-static const gchar *
+const gchar *
 mq_info(const mqueue_t *q)
 {
 	static gchar buf[160];
@@ -286,6 +286,7 @@ mq_free(mqueue_t *q)
 {
 	GList *l;
 	gint n;
+	pmsg_t *mb;
 
 	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
@@ -307,6 +308,11 @@ mq_free(mqueue_t *q)
 	}
 
 	g_list_free(q->qhead);
+
+	while ((mb = slist_shift(q->qwait)))
+		pmsg_free(mb);
+	slist_free(&q->qwait);
+
 	q->qhead = NULL;
 	q->magic = 0;
 	wfree(q, sizeof(*q));
@@ -1289,11 +1295,18 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 					"to FLOWC node %s, %d bytes queued [KILLING]",
 					node_addr(q->node), q->size);
 
-			/* XXX: Is the check for UDP the correct fix or just a
-			 *		workaround? node_bye_v() asserts that the node isn't
-			 *		the UDP node.
-			 *		-- cbiere, 2004-12-20
+			/*
+			 * Is the check for UDP the correct fix or just a
+			 * workaround? node_bye_v() asserts that the node isn't
+			 * the UDP node.	-- cbiere, 2004-12-20
+			 *
+			 * Yes, it's the correct fix: node_bye() should only be called
+			 * when a TCP connection is made.  We could teach about UDP
+			 * in node_bye(), but I don't like routines with an unclear
+			 * contract (which attempt to "do the right thing" depending on
+			 * the parameter values). --RAM, 2006-12-29
 			 */
+
 			if (!NODE_IS_UDP(q->node)) {
 				node_bye(q->node, 502, "Send queue reached %d bytes",
 					q->maxsize);

@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/core/main.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -160,6 +161,7 @@ mq_udp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 	q->maxsize = maxsize;
 	q->lowat = maxsize >> 2;		/* 25% of max size */
 	q->hiwat = maxsize >> 1;		/* 50% of max size */
+	q->qwait = slist_new();
 	q->ops = &mq_udp_ops;
 	q->cops = mq_get_cops();
 
@@ -284,8 +286,9 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	gchar *mbs;
 	guint8 function;
 	guint8 hops;
-	pmsg_t *mbe;
+	pmsg_t *mbe = NULL;		/* Extended message with destination info */
 
+again:
 	g_assert(q);
 	g_assert(mb);
 	g_assert(!pmsg_was_sent(mb));
@@ -304,11 +307,29 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 		goto cleanup;
 	}
 
+	/*
+	 * Protect against recursion: we must not invoke puthere() whilst in
+	 * the middle of another putq() or we would corrupt the qlink array:
+	 * Messages received during recursion are inserted into the qwait list
+	 * and will be stuffed back into the queue when the initial putq() ends.
+	 *		--RAM, 2006-12-29
+	 */
+
 	if (q->putq_entered++ > 0) {
-		if (dbg > 0) {
-			g_warning("mq_udp_putq: recursion detected");
-		}
-		goto cleanup;
+		pmsg_t *extended;
+
+		if (debugging(0))
+			g_warning("mq_udp_putq: %s recursion detected (%d already pending)",
+				mq_info(q), slist_length(q->qwait));
+
+		/*
+		 * We insert extended messages into the waiting queue since we need
+		 * the destination information as well.
+		 */
+
+		extended = mq_udp_attach_metadata(mb, to);
+		slist_append(q->qwait, extended);
+		return;
 	}
 
 	mbs = pmsg_start(mb);
@@ -370,7 +391,9 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	}
 
 	/*
-	 * Attach the destination information as metadata to the message.
+	 * Attach the destination information as metadata to the message, unless
+	 * it is already known (possible only during unfolding of the queued data
+	 * during re-entrant calls).
 	 *
 	 * This is later extracted via pmsg_get_metadata() on the extended
 	 * message by the message queue to get the destination information.
@@ -378,7 +401,8 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	 * Then enqueue the extended message.
 	 */
 
-	mbe = mq_udp_attach_metadata(mb, to);
+	if (NULL == mbe)
+		mbe = mq_udp_attach_metadata(mb, to);
 
 	q->cops->puthere(q, mbe, size);
 	mb = NULL;
@@ -392,6 +416,30 @@ cleanup:
 	g_assert(q->putq_entered > 0);
 	q->putq_entered--;
 	mq_check(q, 0);
+
+	/*
+	 * If we're exiting here with no other putq() registered, then we must
+	 * pop an item off the head of the list and iterate again.
+	 */
+
+	if (0 == q->putq_entered) {
+		mbe = slist_shift(q->qwait);
+		if (mbe) {
+			struct mq_udp_info *mi = pmsg_get_metadata(mbe);
+
+			mb = mbe;		/* An extended message "is-a" message */
+			to = &mi->to;
+
+			if (debugging(0))
+				g_warning(
+					"mq_udp_putq: %s flushing waiting to %s (%d still pending)",
+					mq_info(q), gnet_host_to_string(to),
+					slist_length(q->qwait));
+
+			goto again;
+		}
+	}
+
 	return;
 }
 
