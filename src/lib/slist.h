@@ -35,6 +35,7 @@ typedef struct slist slist_t;
 slist_t *slist_new(void);
 void slist_free(slist_t **slist_ptr);
 gboolean slist_remove(slist_t *slist, gpointer key);
+gpointer slist_shift(slist_t *slist);
 void slist_append(slist_t *slist, gpointer key);
 void slist_prepend(slist_t *slist, gpointer key);
 void slist_insert_sorted(slist_t *slist, gpointer key, GCompareFunc func);

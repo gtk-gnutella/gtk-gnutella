@@ -301,6 +301,27 @@ slist_remove(slist_t *slist, gpointer key)
 }
 
 /**
+ * Remove first item from the slist, if any.
+ *
+ * @return the data pointer of the removed item, or NULL if there was no item.
+ */
+gpointer
+slist_shift(slist_t *slist)
+{
+	gpointer data = NULL;
+
+	slist_check(slist);
+	g_assert(1 == slist->refcount);
+
+	if (slist->head != NULL) {
+		data = slist->head->data;
+		slist_remove_item(slist, NULL, slist->head);
+	}
+	
+	return data;
+}
+
+/**
  * @returns The data associated with the tail item, or NULL if none.
  */
 gpointer
