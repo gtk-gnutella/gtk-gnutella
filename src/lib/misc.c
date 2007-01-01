@@ -60,9 +60,7 @@ RCSID("$Id$")
 #endif
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
-static const char hex_alphabet_lower[] = "0123456789abcdef";
-
-
+const char hex_alphabet_lower[] = "0123456789abcdef";
 
 #ifndef HAS_STRLCPY
 size_t
@@ -322,19 +320,6 @@ print_uint16_hex(gchar *dst, guint16 v)
 
 	*p = '\0';
 	return p - dst;
-}
-
-/**
- * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
- * this is just a convenience function.
- *
- * @param x An integer between 0 and 15.
- * @return The ASCII character corresponding to the hex digit [0-9a-f].
- */
-static inline guchar
-hex_digit(guchar x)
-{
-	return hex_alphabet_lower[x & 0xf]; 
 }
 
 /**
@@ -2040,7 +2025,8 @@ random_init(void)
  * Check whether buffer contains printable data, suitable for "%s" printing.
  * If not, consider dump_hex().
  */
-gboolean is_printable(const gchar *buf, gint len)
+gboolean
+is_printable(const gchar *buf, gint len)
 {
 	const gchar *p = buf;
 	gint l = len;

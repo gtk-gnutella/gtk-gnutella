@@ -89,6 +89,20 @@ gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
 gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
 
 /**
+ * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
+ * this is just a convenience function.
+ *
+ * @param x An integer between 0 and 15.
+ * @return The ASCII character corresponding to the hex digit [0-9a-f].
+ */
+static inline guchar
+hex_digit(guchar x)
+{
+	extern const char hex_alphabet_lower[];
+	return hex_alphabet_lower[x & 0xf]; 
+}
+
+/**
  * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
  *
  * @param c the character to convert.
@@ -253,6 +267,21 @@ static inline WARN_UNUSED_RESULT gchar *
 skip_ascii_non_spaces(const gchar *s)
 {
 	while ('\0' != *s && !is_ascii_space(*s))
+		s++;
+
+	return deconstify_gchar(s);
+}
+
+/**
+ * Skips over all characters which are ASCII alphanumerical characters
+ * starting at ``s''.
+ *
+ * @return a pointer to the first space or NUL character starting from s.
+ */
+static inline WARN_UNUSED_RESULT gchar *
+skip_ascii_alnum(const gchar *s)
+{
+	while (is_ascii_alnum(*s))
 		s++;
 
 	return deconstify_gchar(s);

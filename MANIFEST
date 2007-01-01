@@ -484,6 +484,8 @@ src/lib/aging.c
 src/lib/aging.h
 src/lib/atoms.c
 src/lib/atoms.h
+src/lib/base16.c
+src/lib/base16.h
 src/lib/base32.c
 src/lib/base32.h
 src/lib/base64.c

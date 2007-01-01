@@ -88,6 +88,7 @@ LSRC = \
 	adns.c \
 	aging.c \
 	atoms.c \
+	base16.c \
 	base32.c \
 	base64.c \
 	bg.c \
@@ -145,6 +146,7 @@ LOBJ = \
 	adns.o \
 	aging.o \
 	atoms.o \
+	base16.o \
 	base32.o \
 	base64.o \
 	bg.o \

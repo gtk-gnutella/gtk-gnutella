@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/base16.h"
 #include "lib/base32.h"
 #include "lib/file.h"
 #include "lib/fuzzy.h"
@@ -1957,10 +1958,47 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 }
 
 gboolean
+search_gui_handle_sha1(const gchar *text, const gchar **error_str)
+{
+	gchar sha1[SHA1_RAW_SIZE];
+	size_t ret;
+
+	g_return_val_if_fail(text, FALSE);
+
+	text = is_strcaseprefix(text, "sha1:");
+	g_return_val_if_fail(text, FALSE);
+
+	if (!error_str) {
+		static const gchar *error_dummy;
+		error_str = &error_dummy;
+	}
+
+	if (
+		strlen(text) >= SHA1_BASE16_SIZE &&
+		!is_ascii_alnum(text[SHA1_BASE16_SIZE])
+	) {
+		ret = base16_decode(sha1, sizeof sha1, text, SHA1_BASE16_SIZE);
+	} else {
+		ret = (size_t) -1;
+	}
+
+	if (sizeof sha1 != ret) {
+		*error_str = _("The given SHA-1 is not correctly encoded.");
+		return FALSE;
+	} else {
+		static const gchar urnsha1[] = "urn:sha1:";
+		gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
+
+		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), (void *) 0);
+		return search_gui_handle_urn(urn, error_str);
+	}
+}
+
+gboolean
 search_gui_handle_local(const gchar *query, const gchar **error_str)
 {
 	gboolean success, rebuilding;
-	const gchar *text, *error_dummy;
+	const gchar *text;
 
 	g_return_val_if_fail(query, FALSE);
 
@@ -1968,6 +2006,7 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 	g_return_val_if_fail(text, FALSE);
 
 	if (!error_str) {
+		static const gchar *error_dummy;
 		error_str = &error_dummy;
 	}
 
@@ -2081,23 +2120,32 @@ search_gui_handle_query(const gchar *query_str, flag_t flags,
 	 * Prevent recursively parsing special search strings i.e., magnet links.
 	 */
 	parse = !((SEARCH_F_PASSIVE | SEARCH_F_BROWSE | SEARCH_F_LITERAL) & flags);
-	if (parse) {
-		if (is_strcaseprefix(query_str, "magnet:")) {
-			search_gui_handle_magnet(query_str, error_str);
-			return NULL;
-		} else if (is_strcaseprefix(query_str, "http:")) {
-			search_gui_handle_http(query_str, error_str);
-			return NULL;
-		} else if (is_strcaseprefix(query_str, "local:")) {
-			search_gui_handle_local(query_str, error_str);
-			return NULL;
-		} else if (is_strcaseprefix(query_str, "urn:")) {
-			search_gui_handle_urn(query_str, error_str);
-			return NULL;
-		} else if (is_strcaseprefix(query_str, "browse:")) {
-			search_gui_handle_browse(query_str, error_str);
-			return NULL;
+	if (parse && ':' == *skip_ascii_alnum(query_str)) {
+		static const struct {
+			const gchar *prefix;
+			gboolean (*handler)(const gchar *, const gchar **);
+		} tab[] = {
+			{ "browse:",	search_gui_handle_browse },
+			{ "http:",		search_gui_handle_http },
+			{ "local:",		search_gui_handle_local },
+			{ "magnet:",	search_gui_handle_magnet },
+			{ "sha1:",		search_gui_handle_sha1 },
+			{ "urn:",		search_gui_handle_urn },
+		};
+		guint i;
+
+		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+			if (is_strcaseprefix(query_str, tab[i].prefix)) {
+				tab[i].handler(query_str, error_str);
+				return NULL;
+			}
 		}
+		/*
+		 * It is better to reject "blah:", so that the behaviour does not
+		 * change for some strings in the future.
+		 */
+		*error_str = _("Unhandled search prefix.");
+		return NULL;
 	}
 
 	{	

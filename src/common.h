@@ -565,6 +565,7 @@ G_STMT_START {			\
 #define GTA_BUILD					"$Revision$"
 
 /* The next two defines came from huge.h --- Emile */
+#define SHA1_BASE16_SIZE 	40		/**< 160 bits in base16 representation */
 #define SHA1_BASE32_SIZE 	32		/**< 160 bits in base32 representation */
 #define SHA1_RAW_SIZE		20		/**< 160 bits in binary representation */
 
