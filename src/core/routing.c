@@ -1530,7 +1530,7 @@ route_push(struct route_log *route_log,
 	 * If IP address is among the hostile set, drop.
 	 */
 
-	addr = host_addr_get_ipv4(peek_be32(&sender->data[20]));
+	addr = host_addr_peek_ipv4(&sender->data[20]);
 
 	if (hostiles_check(addr)) {
 		gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);

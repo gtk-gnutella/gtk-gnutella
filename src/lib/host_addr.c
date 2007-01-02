@@ -159,7 +159,7 @@ host_addr_6to4_to_ipv4(const host_addr_t from, host_addr_t *to)
 {
 	if (host_addr_is_6to4(from)) {
 		if (to) {
-			*to = host_addr_get_ipv4(peek_be32(&from.addr.ipv6[2]));
+			*to = host_addr_peek_ipv4(&from.addr.ipv6[2]);
 		}
 		return TRUE;
 	} else {
@@ -474,7 +474,7 @@ string_to_host_addr(const char *s, const gchar **endptr, host_addr_t *addr_ptr)
 		guint8 ipv6[16];
 		if (parse_ipv6_addr(s, ipv6, endptr)) {
 			if (addr_ptr) {
-				*addr_ptr = host_addr_get_ipv6(ipv6);
+				*addr_ptr = host_addr_peek_ipv6(ipv6);
 			}
 			return TRUE;
 		}
@@ -513,7 +513,7 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 		if (parse_ipv6_addr(&s[1], ipv6, &ep) && ']' == *ep) {
 
 			if (ha) {
-				*ha = host_addr_get_ipv6(ipv6);
+				*ha = host_addr_peek_ipv6(ipv6);
 			}
 			if (endptr)
 				*endptr = ++ep;
@@ -772,7 +772,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 				const struct sockaddr_in *sin4;
 
 				sin4 = cast_to_gconstpointer(ai->ai_addr);
-				addr = host_addr_get_ipv4(ntohl(sin4->sin_addr.s_addr));
+				addr = host_addr_peek_ipv4(&sin4->sin_addr.s_addr);
 			}
 			break;
 
@@ -782,7 +782,7 @@ resolve_hostname(const gchar *host, enum net_type net)
 				const struct sockaddr_in6 *sin6;
 
 				sin6 = cast_to_gconstpointer(ai->ai_addr);
-				addr = host_addr_get_ipv6(cast_to_gconstpointer(
+				addr = host_addr_peek_ipv6(cast_to_gconstpointer(
 							sin6->sin6_addr.s6_addr));
 			}
 			break;
@@ -855,12 +855,12 @@ resolve_hostname(const gchar *host, enum net_type net)
 
 		switch (he->h_addrtype) {
 		case AF_INET:
-			addr = host_addr_get_ipv4(peek_be32(he->h_addr_list[i]));
+			addr = host_addr_peek_ipv4(&he->h_addr_list[i]);
 			break;
 
 #ifdef HAS_IPV6
 		case AF_INET6:
-			addr = host_addr_get_ipv6(
+			addr = host_addr_peek_ipv6(
 						cast_to_gconstpointer(he->h_addr_list[i]));
 			break;
 #endif /* !HAS_IPV6 */
@@ -1027,13 +1027,13 @@ host_addr_get_interface_addrs(const enum net_type net)
             const struct sockaddr_in *sin4;
 			
 			sin4 = cast_to_gconstpointer(ifa->ifa_addr);
-			addr = host_addr_get_ipv4(ntohl(sin4->sin_addr.s_addr));
+			addr = host_addr_peek_ipv4(&sin4->sin_addr.s_addr);
 #ifdef HAS_IPV6
 		} else if (AF_INET6 == ifa->ifa_addr->sa_family) {
             const struct sockaddr_in6 *sin6;
 
 			sin6 = cast_to_gconstpointer(ifa->ifa_addr);
-			addr = host_addr_get_ipv6(sin6->sin6_addr.s6_addr);
+			addr = host_addr_peek_ipv6(sin6->sin6_addr.s6_addr);
 #endif /* HAS_IPV6 */
 		} else {
 			addr = zero_host_addr;
@@ -1108,9 +1108,9 @@ packed_host_addr_unpack(const struct packed_host_addr paddr)
 {
 	switch (paddr.net) {
 	case NET_TYPE_IPV4:
-		return host_addr_get_ipv4(peek_be32(paddr.addr));
+		return host_addr_peek_ipv4(paddr.addr);
 	case NET_TYPE_IPV6:
-		return host_addr_get_ipv6(paddr.addr);
+		return host_addr_peek_ipv6(paddr.addr);
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return zero_host_addr;
@@ -1152,12 +1152,12 @@ packed_host_unpack(const struct packed_host phost,
 	switch (phost.ha.net) {
 	case NET_TYPE_IPV4:
 		if (addr_ptr) {
-			*addr_ptr = host_addr_get_ipv4(peek_be32(phost.ha.addr));
+			*addr_ptr = host_addr_peek_ipv4(phost.ha.addr);
 		}
 		return TRUE;
 	case NET_TYPE_IPV6:
 		if (addr_ptr) {
-			*addr_ptr = host_addr_get_ipv6(phost.ha.addr);
+			*addr_ptr = host_addr_peek_ipv6(phost.ha.addr);
 		}
 		return TRUE;
 	case NET_TYPE_LOCAL:

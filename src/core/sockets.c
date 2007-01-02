@@ -1913,7 +1913,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 
 	len = sizeof sin4;
 	if (-1 != getsockname(fd, cast_to_gpointer(&sin4), &len)) {
-		addr = host_addr_get_ipv4(ntohl(sin4.sin_addr.s_addr));
+		addr = host_addr_peek_ipv4(&sin4.sin_addr.s_addr);
 		port = sin4.sin_port;
 	}
 
@@ -1923,7 +1923,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 
 		len = sizeof sin6;
 		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
-			addr = host_addr_get_ipv6(sin6.sin6_addr.s6_addr);
+			addr = host_addr_peek_ipv6(sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
 		}
 	}
@@ -2170,7 +2170,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 			data = CMSG_DATA(p);
 			if (sizeof addr == p->cmsg_len - ptr_diff(data, p)) {
 				memcpy(&addr, data, sizeof addr);
-				*dst_addr = host_addr_get_ipv4(ntohl(addr.s_addr));
+				*dst_addr = host_addr_peek_ipv4(&addr.s_addr);
 				return TRUE;
 			}
 #endif /* IP_RECVDSTADDR */
@@ -2185,7 +2185,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 			data = CMSG_DATA(p);
 			if (sizeof info == p->cmsg_len - ptr_diff(data, p)) {
 				memcpy(&info, data, sizeof info);
-				*dst_addr = host_addr_get_ipv6(info.ipi6_addr.s6_addr);
+				*dst_addr = host_addr_peek_ipv6(info.ipi6_addr.s6_addr);
 				return TRUE;
 			}
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */

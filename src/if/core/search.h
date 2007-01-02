@@ -49,11 +49,11 @@ enum {
 };
 
 typedef struct {
-	guint8 data[4 + 2];
+	guint8 data[4 + 2];		/* IPv4 address (BE) + Port (LE) */
 } gnet_ipv4_host_t;
 
 typedef struct {
-	guint8 data[16 + 2];
+	guint8 data[16 + 2];	/* IPv6 address + Port (LE) */
 } gnet_ipv6_host_t;
 
 /*
@@ -82,12 +82,12 @@ gnet_host_vec_get(const gnet_host_vec_t *hvec, guint i)
 	g_assert(i < (guint) gnet_host_vec_count(hvec));
 
 	if (i < hvec->n_ipv4) {
-		addr = host_addr_get_ipv4(peek_be32(hvec->hvec_v4[i].data));
-		port = peek_be16(&hvec->hvec_v4[i].data[4]);
+		addr = host_addr_peek_ipv4(hvec->hvec_v4[i].data);
+		port = peek_le16(&hvec->hvec_v4[i].data[4]);
 	} else {
 		i -= hvec->n_ipv4;
-		addr = host_addr_get_ipv6(hvec->hvec_v6[i].data);
-		port = peek_be16(&hvec->hvec_v6[i].data[16]);
+		addr = host_addr_peek_ipv6(hvec->hvec_v6[i].data);
+		port = peek_le16(&hvec->hvec_v6[i].data[16]);
 	}
 
 	gnet_host_set(&host, addr, port);

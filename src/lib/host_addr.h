@@ -38,7 +38,9 @@
 #define _host_addr_h_
 
 #include "common.h"
-#include "misc.h"
+
+#include "lib/endian.h"
+#include "lib/misc.h"
 
 /**
  * @note AF_UNIX/AF_LOCAL (unix domain) sockets are not fully supported. These
@@ -231,7 +233,13 @@ host_addr_get_ipv4(guint32 ip)
 }
 
 static inline host_addr_t
-host_addr_get_ipv6(const guint8 *ipv6)
+host_addr_peek_ipv4(const void *ipv4)
+{
+	return host_addr_get_ipv4(peek_be32(ipv4));
+}
+
+static inline host_addr_t
+host_addr_peek_ipv6(const guint8 *ipv6)
 {
 	host_addr_t ha;
 	
@@ -409,10 +417,10 @@ socket_addr_get_addr(const socket_addr_t *addr)
 	g_assert(addr);
 
 	if (AF_INET == addr->inet4.sin_family) {
-		ha = host_addr_get_ipv4(ntohl(addr->inet4.sin_addr.s_addr));
+		ha = host_addr_peek_ipv4(&addr->inet4.sin_addr.s_addr);
 #if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		ha = host_addr_get_ipv6(addr->inet6.sin6_addr.s6_addr);
+		ha = host_addr_peek_ipv6(addr->inet6.sin6_addr.s6_addr);
 #endif /* HAS_IPV6 */
 	} else {
 		ha = zero_host_addr;

@@ -470,7 +470,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 		host_addr_t ha;
 		guint16 port;
 
-		ha = host_addr_get_ipv4(peek_be32(p));
+		ha = host_addr_peek_ipv4(p);
 		p += 4;
 		port = peek_le16(p);
 		p += 2;

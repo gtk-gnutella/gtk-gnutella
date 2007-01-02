@@ -162,6 +162,7 @@ ggept_ip_vec_extract(extvec_t *exv, gnet_host_vec_t **hvec)
 
 		p = ext_payload(exv);
 		for (i = 0; i < n; i++) {
+			/* IPv4 address (BE) + Port (LE) */
 			memcpy(&vec->hvec_v4[i].data, p, 6);
 			p += 6;
 		}
@@ -314,7 +315,8 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 			*addr = zero_host_addr;
 		} else {
 			g_assert(len >= 16);
-			*addr = host_addr_get_ipv6(cast_to_gconstpointer(ext_payload(exv)));
+			*addr = host_addr_peek_ipv6(
+						cast_to_gconstpointer(ext_payload(exv)));
 		}
 	}
 

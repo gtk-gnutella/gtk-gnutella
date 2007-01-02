@@ -561,7 +561,7 @@ handle_push_request(struct gnutella_node *n)
 	info = n->data + 16;					/* Start of file information */
 
 	file_index = peek_le32(&info[0]);
-	ha = host_addr_get_ipv4(peek_be32(&info[4]));
+	ha = host_addr_peek_ipv4(&info[4]);
 	port = peek_le16(&info[8]);
 
 	if (n->size > sizeof(gnutella_push_request_t)) {
