@@ -115,7 +115,6 @@ WIDGET(main_window)
 WIDGET(popup_downloads)
 WIDGET(popup_monitor)
 WIDGET(popup_nodes)
-WIDGET(popup_queue)
 WIDGET(popup_search)
 WIDGET(popup_search_list)
 WIDGET(popup_uploads)
@@ -154,14 +153,7 @@ static const struct {
 	{     1, N_("Hostcache"),		nb_main_page_hostcache },
 	{   0,	 N_("Uploads"),			nb_main_page_uploads },
 	{     1, N_("History"), 		nb_main_page_uploads_stats },
-#ifdef USE_GTK1
-	{   0,	 N_("Downloads"),		nb_main_page_dl_files },
-	{     1, N_("Active"),			nb_main_page_dl_active },
-	{     1, N_("Queue"),			nb_main_page_dl_queue },
-#endif /* USE_GTK1 */
-#ifdef USE_GTK2
 	{   0,	 N_("Downloads"),		nb_main_page_downloads },
-#endif /* USE_GTK1 */
 	{   0,	 N_("Search"),			nb_main_page_search },
 	{     1, N_("Monitor"),			nb_main_page_monitor },
 	{     1, N_("Stats"),			nb_main_page_search_stats },
@@ -601,7 +593,6 @@ gui_init_dlg_faq(void)
  *	- $HOME/.gtk/gtkrc
  *	- $HOME/.gtk1/gtkrc ($HOME/.gtk2/gtkrc if GTK2 interface is used)
  *	- $GTK_GNUTELLA_DIR/gtkrc
- *	- ./gtkrc
  *
  * Where the last one can overrule settings from earlier resource files.
  */
@@ -640,8 +631,6 @@ main_gui_gtkrc_init(void)
 	userrc = make_pathname(guc_settings_config_dir(), rcfn);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
-
-	gtk_rc_parse("." G_DIR_SEPARATOR_S "gtkrc");
 }
 
 /***
@@ -688,16 +677,8 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	/* popup menus */
 	gui_popup_search_set(create_popup_search());
 	gui_popup_search_list_set(create_popup_search_list());
-
-#if defined(USE_GTK2)
 	gui_popup_downloads_set(create_popup_downloads());
-#elif defined(USE_GTK1)
-	gui_popup_downloads_set(create_popup_dl_active());
-	gui_popup_queue_set(create_popup_dl_queued());
-#endif /* USE_GTK1 */
-
 	gui_popup_monitor_set(create_popup_monitor());
-
 	gui_popup_nodes_set(create_popup_nodes());
     nodes_gui_early_init();
 
@@ -741,28 +722,6 @@ main_gui_init(void)
 #ifdef USE_GTK2
 	GTK_WINDOW(gui_main_window())->allow_shrink = TRUE;
 #endif /* USE_GTK2 */
-
-#ifdef USE_GTK1
-    /* FIXME: those gtk_widget_set_sensitive should become obsolete when
-     * all property-change callbacks are set up properly
-     */
-	gtk_widget_set_sensitive
-        (gui_popup_downloads_lookup("popup_downloads_remove_file"), FALSE);
-    gtk_widget_set_sensitive
-        (gui_popup_downloads_lookup("popup_downloads_copy_url"), FALSE);
-	gtk_widget_set_sensitive
-        (gui_popup_queue_lookup("popup_queue_abort"), FALSE);
-	gtk_widget_set_sensitive
-        (gui_popup_queue_lookup("popup_queue_abort_named"), FALSE);
-	gtk_widget_set_sensitive
-        (gui_popup_queue_lookup("popup_queue_abort_host"), FALSE);
-    gtk_widget_set_sensitive(
-        gui_popup_downloads_lookup("popup_downloads_push"),
-    	!gtk_toggle_button_get_active(
-            GTK_TOGGLE_BUTTON
-                (lookup_widget(gui_main_window(),
-                               "checkbutton_downloads_never_push"))));
-#endif /* USE_GTK1 */
 
     settings_gui_init();
     fi_gui_init();
