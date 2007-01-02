@@ -1,0 +1,50 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_locale_charset: Myread Setvar cat rm +cc +ccflags +ldflags i_libcharset
+?MAKE:	-pick add $@ %<
+?S:d_locale_charset:
+?S:	This variable conditionally defines the HAS_LOCALE_CHARSET symbol, which
+?S:	indicates to the C program that locale_charset() support is available.
+?S:.
+?C:HAS_LOCALE_CHARSET:
+?C:	This symbol is defined when locale_charset() can be used.
+?C:.
+?H:#$d_locale_charset HAS_LOCALE_CHARSET
+?H:.
+?T:flags
+?LINT: set d_locale_charset
+: can we use locale_charset?
+echo " "
+echo "Checking whether locale_charset() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+
+#ifdef I_LIBCHARSET
+#include <libcharset.h>
+#endif
+
+int
+main(void)
+{
+  if (*locale_charset())
+	return 1;
+  return 0;
+}
+EOC
+case "$i_libcharset" in
+"$define") flags='-DI_LIBCHARSET';;
+esac
+if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like locale_charset() is usable on your system, good.
+EOM
+else
+	echo "Sorry, I will not be using locale_charset()."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_locale_charset
+eval $setvar
+

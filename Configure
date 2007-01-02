@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Dec  3 17:57:02 CET 2006 [metaconfig 3.0 PL70]
+# Generated on Tue Jan  2 23:45:15 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -324,6 +324,7 @@ d_ipv6=''
 d_isascii=''
 d_kevent_int_udata=''
 d_kqueue=''
+d_locale_charset=''
 d_lstat=''
 d_madvise=''
 d_memalign=''
@@ -583,7 +584,6 @@ libnames=''
 : change the next line if compiling for Xenix/286 on Xenix/386
 xlibpth='/usr/lib/386 /lib/386'
 : Possible local library directories to search.
-
 loclibpth=""
 
 : general looking path for locating libraries
@@ -5596,6 +5596,43 @@ case "$version" in
 	;;
 esac
 
+: see if this is a libcharset system
+set libcharset.h i_libcharset
+eval $inhdr
+
+: can we use locale_charset?
+echo " "
+echo "Checking whether locale_charset() is available ..." >&4
+val="$define"
+$cat >try.c <<'EOC'
+
+#ifdef I_LIBCHARSET
+#include <libcharset.h>
+#endif
+
+int
+main(void)
+{
+  if (*locale_charset())
+	return 1;
+  return 0;
+}
+EOC
+case "$i_libcharset" in
+"$define") flags='-DI_LIBCHARSET';;
+esac
+if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
+    $cat <<'EOM'
+It looks like locale_charset() is usable on your system, good.
+EOM
+else
+	echo "Sorry, I will not be using locale_charset()."
+	val="$undef"
+fi
+$rm -f try try.c
+set d_locale_charset
+eval $setvar
+
 : see if lstat exists
 set lstat d_lstat
 eval $inlibc
@@ -7767,10 +7804,6 @@ eval $inhdr
 set langinfo.h i_langinfo
 eval $inhdr
 
-: see if this is a libcharset system
-set libcharset.h i_libcharset
-eval $inhdr
-
 : see if this is a netdb.h system
 set netdb.h i_netdb
 eval $inhdr
@@ -8434,6 +8467,7 @@ d_kevent_int_udata='$d_kevent_int_udata'
 d_kqueue='$d_kqueue'
 d_libxml2='$d_libxml2'
 d_linux='$d_linux'
+d_locale_charset='$d_locale_charset'
 d_lstat='$d_lstat'
 d_madvise='$d_madvise'
 d_memalign='$d_memalign'

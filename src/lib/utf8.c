@@ -48,7 +48,7 @@ RCSID("$Id$")
 
 #include <locale.h>
 
-#if defined(I_LIBCHARSET)
+#if defined(I_LIBCHARSET) && defined(HAS_LOCALE_CHARSET)
 #include <libcharset.h>
 #else /* !I_LIBCHARSET */
 
@@ -1252,7 +1252,7 @@ locale_get_charset(void)
 #if defined(USE_GLIB2)
 		g_get_charset(&cs);
 #else /* !USE_GLIB2 */
-#if defined(I_LIBCHARSET)
+#if defined(HAS_LOCALE_CHARSET) 
 		cs = locale_charset();
 #else /* !I_LIBCHARSET */
 		cs = get_iconv_charset_alias(nl_langinfo(CODESET));
@@ -1575,7 +1575,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12574 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12699 "))
 		utf8_regression_checks();
 
 	locale_init_passed = TRUE;
