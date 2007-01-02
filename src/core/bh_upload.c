@@ -416,8 +416,7 @@ browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
 		files = g_slist_reverse(files);			/* Preserve order */
 
 		qhit_build_results(files, i, BH_MAX_QHIT_SIZE,
-			browse_host_record_hit, bh,
-			blank_guid, TRUE);
+			browse_host_record_hit, bh, blank_guid);
 
 		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
 

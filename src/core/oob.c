@@ -80,7 +80,6 @@ struct oob_results {
 	gnet_host_t dest;		/**< The host to which we must deliver */
 	gint count;				/**< Amount of hits to deliver */
 	gint notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
-	gboolean use_ggep_h;	/**< Whether GGEP "H" can be used for SHA1 coding */
 	gint refcount;
 };
 
@@ -135,8 +134,7 @@ static gint num_oob_records;	/**< Leak and duplicate free detector */
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
  */
 static struct oob_results *
-results_make(const gchar *muid, GSList *files,
-	gint count, gnet_host_t *to, gboolean ggep_h)
+results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to)
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
@@ -148,7 +146,6 @@ results_make(const gchar *muid, GSList *files,
 	r->files = files;
 	r->count = count;
 	r->dest = *to;			/* Struct copy */
-	r->use_ggep_h = ggep_h;
 	r->refcount = 1;
 
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
@@ -501,9 +498,7 @@ oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted)
 		qhit_build_results(
 			r->files, deliver_count,
 			s->can_deflate ? OOB_MAX_DQHIT_SIZE : OOB_MAX_QHIT_SIZE,
-			oob_record_hit, s,
-			r->muid,
-			r->use_ggep_h);
+			oob_record_hit, s, r->muid);
 
 	if (wanted < r->count)
 		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
@@ -615,11 +610,9 @@ oob_send_reply_ind(struct oob_results *r)
  * @param n				the node from which we got the query
  * @param files			the list of shared_file_t entries that make up results
  * @param count			the amount of results
- * @param use_ggep_h	whether GGEP "H" can be used to send the SHA1 of files
  */
 void
-oob_got_results(
-	struct gnutella_node *n, GSList *files, gint count, gboolean use_ggep_h)
+oob_got_results(struct gnutella_node *n, GSList *files, gint count)
 {
 	struct oob_results *r;
 	gnet_host_t to;
@@ -631,9 +624,7 @@ oob_got_results(
 
 	guid_oob_get_addr_port(gnutella_header_get_muid(&n->header), &addr, &port);
 	gnet_host_set(&to, addr, port);
-	r = results_make(gnutella_header_get_muid(&n->header),
-			files, count, &to, use_ggep_h);
-
+	r = results_make(gnutella_header_get_muid(&n->header), files, count, &to);
 	oob_send_reply_ind(r);
 }
 

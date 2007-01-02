@@ -1810,7 +1810,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	guint offset = 0;			/**< Query string start offset */
 	gboolean drop_it = FALSE;
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
-	gboolean use_ggep_h = FALSE;
 	struct query_context *qctx;
 	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
@@ -2188,7 +2187,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
 	oob = tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY);
-	use_ggep_h = tagged_speed && (req_speed & QUERY_SPEED_GGEP_H);
 
 	/*
 	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
@@ -2207,14 +2205,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		) {
 			gboolean requery;
 		   
-			requery = guid_is_requery(gnutella_header_get_muid(&n->header));
-
-			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
-			if (!use_ggep_h)
-				use_ggep_h =
-					major >= 1 || minor > 91 || (minor == 91 && release);
-
 			gnet_stats_count_general(GNR_GTKG_TOTAL_QUERIES, 1);
+			requery = guid_is_requery(gnutella_header_get_muid(&n->header));
 			if (requery)
 				gnet_stats_count_general(GNR_GTKG_REQUERIES, 1);
 
@@ -2225,7 +2217,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 	}
 
-	if (use_ggep_h)
+	if (tagged_speed && (req_speed & QUERY_SPEED_GGEP_H))
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
 
 	/*
@@ -2466,9 +2458,9 @@ finish:
 
 	if (qctx->found) {
 		if (oob && should_oob)
-			oob_got_results(n, qctx->files, qctx->found, use_ggep_h);
+			oob_got_results(n, qctx->files, qctx->found);
 		else
-			qhit_send_results(n, qctx->files, qctx->found, muid, use_ggep_h);
+			qhit_send_results(n, qctx->files, qctx->found, muid);
 	}
 
 	share_query_context_free(qctx);

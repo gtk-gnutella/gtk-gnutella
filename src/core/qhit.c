@@ -83,7 +83,6 @@ struct found_struct {
 	size_t pos;					/**< current write position */
 	size_t files;				/**< amount of file entries */
 	size_t max_size;			/**< max query hit size */
-	gboolean use_ggep_h;		/**< whether to use GGEP "H" to send SHA1 */
 	const gchar *muid;			/**< the MUID to put in all query hits */
 	qhit_process_t process;		/**< processor once query hit is built */
 	gpointer udata;				/**< processor argument */
@@ -113,12 +112,6 @@ static void
 found_add_files(size_t n)
 {
 	found_get()->files += n;
-}
-
-static gboolean 
-found_ggep_h(void)
-{
-	return found_get()->use_ggep_h;
 }
 
 static gchar *
@@ -260,7 +253,7 @@ found_process(void)
 }
 
 static void
-found_init(size_t max_size, const gchar *xuid, gboolean ggep_h,
+found_init(size_t max_size, const gchar *xuid,
 	qhit_process_t proc, gpointer udata)
 {
 	struct found_struct *f = found_get();
@@ -271,7 +264,6 @@ found_init(size_t max_size, const gchar *xuid, gboolean ggep_h,
 
 	f->max_size = max_size;
 	f->muid = xuid;
-	f->use_ggep_h = ggep_h;
 	f->process = proc;
 	f->udata = udata;
 	f->open = FALSE;
@@ -612,21 +604,6 @@ add_file(const struct shared_file *sf)
 	 */
 
 	/*
-	 * Emit the SHA1 as a plain ASCII URN if they don't grok "H".
-	 */
-
-	if (sha1_available && !found_ggep_h()) {
-		static const gchar urnsha1[] = "urn:sha1:";
-		const gchar *b32 = sha1_base32(shared_file_sha1(sf));
-		/* Good old way: ASCII URN */
-
-		if (!found_write(urnsha1, CONST_STRLEN(urnsha1)))
-			return FALSE;
-		if (!found_write(b32, SHA1_BASE32_SIZE))
-			return FALSE;
-	}
-
-	/*
 	 * From now on, we emit GGEP extensions, if we emit at all.
 	 */
 
@@ -638,7 +615,7 @@ add_file(const struct shared_file *sf)
 	 * Emit the SHA1 as GGEP "H" if they said they understand it.
 	 */
 
-	if (sha1_available && found_ggep_h()) {
+	if (sha1_available) {
 		/* Modern way: GGEP "H" for binary URN */
 		guint8 type = GGEP_H_SHA1;
 
@@ -746,8 +723,6 @@ add_file(const struct shared_file *sf)
  *
  * @param max_size the maximum size in bytes of individual query hits
  *
- * @param use_ggep_h whether GGEP "H" can be used to send the SHA1 of files
- *
  * @param muid is the MUID that should be put in all the generated hits.
  * This must point to a memory location that is guaranteed to stay accurate
  * during all the processing.
@@ -761,11 +736,11 @@ add_file(const struct shared_file *sf)
  */
 static void
 found_reset(size_t max_size, const gchar *muid,
-	gboolean use_ggep_h, qhit_process_t process, gpointer udata)
+	qhit_process_t process, gpointer udata)
 {
 	g_assert(process != NULL);
 	g_assert(max_size <= INT_MAX);
-	found_init(max_size, muid, use_ggep_h, process, udata);
+	found_init(max_size, muid, process, udata);
 	found_clear();
 }
 
@@ -777,12 +752,10 @@ found_reset(size_t max_size, const gchar *muid,
  * @param files			the list of shared_file_t entries that make up results
  * @param count			the amount of results
  * @param muid			the query's MUID
- * @param use_ggep_h	whether GGEP "H" can be used to send the SHA1 of files
  */
 void
-qhit_send_results(
-	struct gnutella_node *n, GSList *files, gint count,
-	const gchar *muid, gboolean use_ggep_h)
+qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
+	const gchar *muid)
 {
 	GSList *sl;
 	gint sent = 0;
@@ -795,7 +768,7 @@ qhit_send_results(
 	 * to forward to other nodes).
 	 */
 
-	found_reset(QHIT_SIZE_THRESHOLD, muid, use_ggep_h, qhit_send_node, n);
+	found_reset(QHIT_SIZE_THRESHOLD, muid, qhit_send_node, n);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = sl->data;
@@ -834,20 +807,16 @@ qhit_send_results(
  * @param cb			the processor callback to invoke on each built hit
  * @param udata			argument to pass to callback
  * @param muid			the MUID to use on each generated hit
- * @param use_ggep_h	whether GGEP "H" can be used to send the SHA1 of files
  */
 void
-qhit_build_results(
-	const GSList *files, gint count,
-	size_t max_msgsize,
-	qhit_process_t cb, gpointer udata,
-	const gchar *muid, gboolean use_ggep_h)
+qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
+	qhit_process_t cb, gpointer udata, const gchar *muid)
 {
 	const GSList *sl;
 	gint sent;
 
 	g_assert(cb != NULL);
-	found_reset(max_msgsize, muid, use_ggep_h, cb, udata);
+	found_reset(max_msgsize, muid, cb, udata);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
 		const shared_file_t *sf = sl->data;
