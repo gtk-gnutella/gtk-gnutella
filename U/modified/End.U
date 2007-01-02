@@ -11,7 +11,7 @@
 ?X: To force any unit to be included, copy this unit to your private U directory
 ?X: and add the name of the unit desired to the ?MAKE: dependency line.
 ?X: 
-?MAKE:End: $W cat gtkversion d_libxml2 libs remotectrl \
+?MAKE:End: $W cat gtkversion d_libxml2 remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
 	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_sqlite d_headless \
 	d_glib d_gtk Alpha_mieee GCC_pipe
@@ -28,43 +28,48 @@ frontend="GTK1"
 case "$gtkversion" in
 2) frontend="GTK2";;
 esac
+
 case "$d_headless" in
 "$define") frontend="none";;
 esac
+
 dbus=no
 case "$d_dbus" in
 "$define") dbus=yes;;
 esac
+
 ipv6=no
 case "$d_ipv6" in
 "$define") ipv6=yes;;
 esac
-case " $libs " in
-*" -lz "*)
-	case "$i_zlib$d_deflate$d_inflate" in
-	"$define$define$define") zlib=yes;;
-	esac
-	;;
+
+zlib=no
+case "$i_zlib$d_deflate$d_inflate" in
+"$define$define$define") zlib=yes;;
 esac
 
 gnutls=no
 case "$d_gnutls" in
 "$define") gnutls=yes;;
 esac
+
 remote=no
 if $remotectrl; then remote=yes; fi
 nls=no
 case "$d_enablenls" in
 "$define") nls=yes;;
 esac
+
 fastassert=no
 case "$d_fast_assert" in
 "$define") fastassert=yes;;
 esac
+
 sqlite=no
 case "$d_sqlite" in
 "$define") sqlite=yes;;
 esac
+
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):

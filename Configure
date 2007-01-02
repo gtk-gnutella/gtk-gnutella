@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Jan  2 23:45:15 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Wed Jan  3 00:10:57 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8214,43 +8214,48 @@ frontend="GTK1"
 case "$gtkversion" in
 2) frontend="GTK2";;
 esac
+
 case "$d_headless" in
 "$define") frontend="none";;
 esac
+
 dbus=no
 case "$d_dbus" in
 "$define") dbus=yes;;
 esac
+
 ipv6=no
 case "$d_ipv6" in
 "$define") ipv6=yes;;
 esac
-case " $libs " in
-*" -lz "*)
-	case "$i_zlib$d_deflate$d_inflate" in
-	"$define$define$define") zlib=yes;;
-	esac
-	;;
+
+zlib=no
+case "$i_zlib$d_deflate$d_inflate" in
+"$define$define$define") zlib=yes;;
 esac
 
 gnutls=no
 case "$d_gnutls" in
 "$define") gnutls=yes;;
 esac
+
 remote=no
 if $remotectrl; then remote=yes; fi
 nls=no
 case "$d_enablenls" in
 "$define") nls=yes;;
 esac
+
 fastassert=no
 case "$d_fast_assert" in
 "$define") fastassert=yes;;
 esac
+
 sqlite=no
 case "$d_sqlite" in
 "$define") sqlite=yes;;
 esac
+
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
