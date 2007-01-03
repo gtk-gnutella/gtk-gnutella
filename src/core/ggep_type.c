@@ -258,38 +258,73 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 }
 
 /**
+ * Encodes a variable-length integer. This encoding is equivalent to
+ * little-endian encoding whereas trailing zeros are discarded.
+ *
+ * @param v the value to encode.
+ * @param data must point to a sufficiently large buffer.
+ *
+ * @return the length in bytes of the encoded variable-length integer.
+ */
+static inline gint
+ggep_vlint_encode(guint64 v, gchar *data)
+{
+	gchar *p;
+
+	for (p = data; v != 0; v >>= 8)	{
+		*p++ = v & 0xff;
+	}
+
+	return p - data;
+}
+
+/**
+ * Decodes a variable-length integer. This encoding is equivalent to
+ * little-endian encoding whereas trailing zeros are discarded.
+ *
+ * @param data The payload to decode.
+ * @param len The length of data in bytes.
+ *
+ * @return The decoded value.
+ */
+static inline guint64
+ggep_vlint_decode(const gchar *data, size_t len)
+{
+	guint64 v;
+	guint i;
+
+	v = 0;
+	if (len <= 8) {
+		for (i = 0; i < len; i++) {
+			v |= (((guint64) data[i]) & 0xff) << (i * 8);
+		}
+	}
+	return v;
+}
+
+/**
  * Extract filesize length into `filesize' from GGEP "LF" extension.
  */
 ggept_status_t
 ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 {
-	guint64 fs, b;
-	gint i, j, tlen;
-	const gchar *payload;
+	guint64 fs;
+	size_t len;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_LF);
 
-	tlen = ext_paylen(exv);
-
-	if (tlen < 1 || tlen > 8)
+	len = ext_paylen(exv);
+	if (len < 1 || len > 8) {
 		return GGEP_INVALID;
-
-	payload = ext_payload(exv);
-
-	fs = j = i = 0;
-	do {
-		b = (guint8) payload[i];
-		fs |= b << j;
-		j += 8;
-	} while (++i < tlen);
-
-	if (0 == b)
+	}
+	fs = ggep_vlint_decode(ext_payload(exv), len);
+	if (0 == fs) {
 		return GGEP_INVALID;
-
-	if (filesize)
+	}
+	if (filesize) {
 		*filesize = fs;
-
+	}
 	return GGEP_OK;
 }
 
@@ -325,27 +360,6 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 
 
 /**
- * Encodes a variable-length integer. This encoding is equivalent to
- * little-endian encoding whereas trailing zeros are discarded.
- *
- * @param v the value to encode.
- * @param data must point to a sufficiently large buffer.
- *
- * @return the length in bytes of the encoded variable-length integer.
- */
-static inline gint
-ggep_vlint_encode(guint64 v, gchar *data)
-{
-	gchar *p;
-
-	for (p = data; v != 0; v >>= 8)	{
-		*p++ = v & 0xff;
-	}
-
-	return p - data;
-}
-
-/**
  * Encode `filesize' for the GGEP "LF" extension into `data'.
  *
  * @return the amount of chars written.
@@ -362,30 +376,20 @@ ggept_lf_encode(guint64 filesize, gchar *data)
 ggept_status_t
 ggept_du_extract(extvec_t *exv, guint32 *uptime)
 {
-	guint32 up, b;
-	gint i, j, tlen;
-	const gchar *payload;
+	guint32 up;
+	size_t len;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_DU);
 
-	tlen = ext_paylen(exv);
-
-	if (tlen < 1 || tlen > 4)
+	len = ext_paylen(exv);
+	if (len < 1 || len > 4) {
 		return GGEP_INVALID;
-
-	payload = ext_payload(exv);
-
-	up = j = i = 0;
-	do {
-		b = payload[i];
-		up |= b << j;
-		j += 8;
-	} while (++i < tlen);
-
-	if (uptime)
+	}
+	up = ggep_vlint_decode(ext_payload(exv), len);
+	if (uptime) {
 		*uptime = up;
-
+	}
 	return GGEP_OK;
 }
 
