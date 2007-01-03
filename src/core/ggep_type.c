@@ -404,4 +404,33 @@ ggept_du_encode(guint32 uptime, gchar *data)
 	return ggep_vlint_encode(uptime, data);
 }
 
+ggept_status_t
+ggept_ct_extract(extvec_t *exv, time_t *stamp_ptr)
+{
+	guint64 v;
+	size_t len;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_CT);
+
+	len = ext_paylen(exv);
+	if (len < 1 || len > 8) {
+		return GGEP_INVALID;
+	}
+	v = ggep_vlint_decode(ext_payload(exv), len);
+	if (stamp_ptr) {
+		*stamp_ptr = MIN(v, TIME_T_MAX);
+	}
+	return GGEP_OK;
+}
+
+/**
+ * @return the amount of chars written.
+ */
+gint
+ggept_ct_encode(time_t stamp, gchar *data)
+{
+	return ggep_vlint_encode(stamp, data);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

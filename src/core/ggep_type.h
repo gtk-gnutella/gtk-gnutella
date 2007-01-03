@@ -73,6 +73,7 @@ ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
 ggept_status_t ggept_hname_extract(extvec_t *exv, gchar *buf, gint len);
 ggept_status_t ggept_lf_extract(extvec_t *exv, guint64 *fs);
 ggept_status_t ggept_du_extract(extvec_t *exv, guint32 *uptime);
+ggept_status_t ggept_ct_extract(extvec_t *exv, time_t *stamp_ptr);
 ggept_status_t ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr);
 
 ggept_status_t ggept_alt_extract(extvec_t *exv, gnet_host_vec_t **hvec);
@@ -80,6 +81,7 @@ ggept_status_t ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec);
 
 gint ggept_lf_encode(guint64 filesize, gchar *data);
 gint ggept_du_encode(guint32 uptime, gchar *data);
+gint ggept_ct_encode(time_t stamp, gchar *data);
 
 #endif	/* _core_ggep_type_h_ */
 
