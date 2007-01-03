@@ -2062,6 +2062,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 		g_warning("had to close a banned fd to accept new connection");
 	}
+	fd = get_non_stdio_fd(fd);
 
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
@@ -2501,6 +2502,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 		g_warning("had to close a banned fd to prepare new connection");
 	}
+	fd = get_non_stdio_fd(fd);
 
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
@@ -2862,6 +2864,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 				type_str, net_str, bind_addr_str, g_strerror(errno));
 		}
 	} else {
+		fd = get_non_stdio_fd(fd);
 		set_close_on_exec(fd);
 		socket_set_nonblocking(fd);
 	}
@@ -2938,6 +2941,7 @@ socket_local_listen(const gchar *pathname)
 			g_strerror(errno));
 		return NULL;
 	}
+	fd = get_non_stdio_fd(fd);
 
 	(void) unlink(pathname);
 

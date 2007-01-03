@@ -349,32 +349,35 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 #endif /* O_NOCTTY */
 
 	fd = open(path, flags, mode);
-	if (fd >= 0)
-		return fd;
+	if (fd < 0) {
+		if (flags & O_CREAT)
+			what = "create";
+		else if (flags & O_RDONLY)
+			what = "read";
+		else if (flags & O_WRONLY)
+			what = "write into";
+		else
+			what = "open";
 
-	if (flags & O_CREAT)
-		what = "create";
-	else if (flags & O_RDONLY)
-		what = "read";
-	else if (flags & O_WRONLY)
-		what = "write into";
-	else
-		what = "open";
+		/*
+		 * If we ran out of file descriptors, try to reclaim one from the
+		 * banning pool and retry.
+		 */
 
-	/*
-	 * If we ran out of file descriptors, try to reclaim one from the
-	 * banning pool and retry.
-	 */
-
-	if (
-		(errno == EMFILE || errno == ENFILE) &&
-		reclaim_fd != NULL && (*reclaim_fd)()
-	) {
-		fd = open(path, flags, mode);
-		if (fd >= 0) {
-			g_warning("do_open(): had to close a banned fd to %s file", what);
-			return fd;
+		if (
+			(errno == EMFILE || errno == ENFILE) &&
+			reclaim_fd != NULL && (*reclaim_fd)()
+		) {
+			fd = open(path, flags, mode);
+			if (fd >= 0) {
+				g_warning("do_open(): had to close a banned fd to %s file",
+					what);
+			}
 		}
+	}
+
+	if (fd > 0) {
+		return get_non_stdio_fd(fd);
 	}
 
 	/*

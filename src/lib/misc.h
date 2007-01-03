@@ -583,6 +583,8 @@ void compat_fadvise_sequential(int fd, off_t offset, off_t size);
 void *compat_memmem(const void *data, size_t data_size,
 		const void *pattern, size_t pattern_size);
 
+int get_non_stdio_fd(int fd);
+
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
 

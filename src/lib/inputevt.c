@@ -369,7 +369,7 @@ check_poll_events(struct poll_ctx *poll_ctx)
 static int
 create_poll_fd(void)
 {
-	return open("/dev/poll", O_RDWR);
+	return get_non_stdio_fd(open("/dev/poll", O_RDWR));
 }
 
 static gint

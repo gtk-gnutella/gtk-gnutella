@@ -181,7 +181,7 @@ vmm_mmap_anonymous(size_t size)
 #else
 	flags = MAP_PRIVATE;
 	if (-1 == fd) {
-		fd = open("/dev/zero", O_RDWR, 0);
+		fd = get_non_stdio_fd(open("/dev/zero", O_RDWR, 0));
 		return_value_unless(fd >= 0, NULL);
 		set_close_on_exec(fd);
 	}

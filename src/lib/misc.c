@@ -3791,6 +3791,35 @@ compat_memmem(const void *data, size_t data_size,
 	return deconstify_gchar(p);
 }
 
+/**
+ * Tries to reassign 'fd' to a file descriptor that is not used for stdio
+ * functions in order to reserve others for stdio. File descriptors above
+ * 255 are returned as-is. The original file descriptor is closed if it
+ * was reassigned.
+ *
+ * @note The FD_CLOEXEC flag set will be cleared if the file descriptor
+ *		 is successfully reassigned.
+ *
+ * @return On success a new file descriptor above 255 is returned.
+ *         On failure the original file descriptor is returned.
+ */
+int
+get_non_stdio_fd(int fd)
+{
+	if (fd >= 0 && fd < 256) {
+		int nfd, saved_errno;
+
+		saved_errno = errno;
+		nfd = fcntl(fd, F_DUPFD, 256);
+		if (nfd > 0) {
+			close(fd);
+			fd = nfd;
+		}
+		errno = saved_errno;
+	}
+	return fd;
+}
+
 void
 misc_init(void)
 {

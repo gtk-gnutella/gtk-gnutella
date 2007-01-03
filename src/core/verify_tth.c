@@ -151,7 +151,7 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 
 		g_message("[tiger tree] Trying to hash %s", ctx->file->file_name);
 
-		ctx->fd = open(ctx->file->file_name, O_RDONLY);
+		ctx->fd = file_open(ctx->file->file_name, O_RDONLY);
 		if (ctx->fd < 0) {
 			g_warning("[tiger tree] "
 				  "Could not open %s for tigertree hashing: %s",

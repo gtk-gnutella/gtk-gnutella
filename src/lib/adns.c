@@ -843,6 +843,10 @@ adns_init(void)
 	/* parent process */
 	close(fd_query[0]);
 	close(fd_reply[1]);
+	
+	fd_query[1] = get_non_stdio_fd(fd_query[1]);
+	fd_reply[0] = get_non_stdio_fd(fd_reply[0]);
+	
 	adns_query_fd = fd_query[1];
 
 	set_close_on_exec(adns_query_fd);
