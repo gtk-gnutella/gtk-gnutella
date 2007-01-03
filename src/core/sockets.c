@@ -2018,7 +2018,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	socklen_t len = sizeof addr;
 	struct gnutella_socket *s = data;
 	struct gnutella_socket *t = NULL;
-	gint sd;
+	gint fd;
 
 	(void) unused_source;
 	socket_check(s);
@@ -2039,8 +2039,8 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	sd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
-	if (sd == -1) {
+	fd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
+	if (fd < 0) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
 		 * banning pool and retry.
@@ -2050,31 +2050,31 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 			(errno == EMFILE || errno == ENFILE) &&
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
-			sd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
-			if (sd >= 0) {
-				g_warning("had to close a banned fd to accept new connection");
-				goto accepted;
-			}
+			fd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
 		}
 
-		if (errno != ECONNABORTED && !is_temporary_error(errno))
-			g_warning("accept() failed (%s)", g_strerror(errno));
-		return;
+		if (fd < 0) {
+			if (errno != ECONNABORTED && !is_temporary_error(errno)) {
+				g_warning("accept() failed (%s)", g_strerror(errno));
+			}
+			return;
+		}
+
+		g_warning("had to close a banned fd to accept new connection");
 	}
 
-accepted:
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
 	/*
 	 * Create a new struct socket for this incoming connection
 	 */
 
-	/* Set the file descriptor non blocking */
-	socket_set_nonblocking(sd);
+	set_close_on_exec(fd);
+	socket_set_nonblocking(fd);
 
 	t = socket_alloc();
 
-	t->file_desc = sd;
+	t->file_desc = fd;
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
 	t->getline = getline_make(MAX_LINE_SIZE);
@@ -2136,7 +2136,6 @@ accepted:
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
 	if (!force_local_ip)
 		guess_local_addr(t);
-
 }
 
 #if defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR)
@@ -2462,7 +2461,8 @@ static gint
 socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, guint16 port, enum socket_type type, guint32 flags)
 {
-	gint sd, option, family;
+	static const int enable = 1;
+	gint fd, family;
 
 	socket_check(s);
 
@@ -2477,8 +2477,8 @@ socket_connect_prepare(struct gnutella_socket *s,
 		return -1;
 	}
 
-	sd = socket(family, SOCK_STREAM, 0);
-	if (sd < 0) {
+	fd = socket(family, SOCK_STREAM, 0);
+	if (fd < 0) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
 		 * banning pool and retry.
@@ -2488,25 +2488,24 @@ socket_connect_prepare(struct gnutella_socket *s,
 			(errno == EMFILE || errno == ENFILE) &&
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
-			sd = socket(family, SOCK_STREAM, 0);
-			if (sd >= 0) {
-				g_warning("had to close a banned fd to prepare new connection");
-			}
+			fd = socket(family, SOCK_STREAM, 0);
 		}
+
+		if (fd < 0) {
+			gint saved_errno = errno;
+			g_warning("unable to create a socket (%s)",
+				g_strerror(saved_errno));
+			errno = saved_errno;
+			return -1;
+		}
+
+		g_warning("had to close a banned fd to prepare new connection");
 	}
 
-	if (sd < 0) {
-		gint saved_errno = errno;
-		g_warning("unable to create a socket (%s)", g_strerror(saved_errno));
-		errno = saved_errno;
-		return -1;
-	}
-
-	set_close_on_exec(sd);
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
 	s->net = host_addr_net(addr);
-	s->file_desc = sd;
+	s->file_desc = fd;
 	s->port = port;
 	s->flags |= SOCK_F_TCP | flags;
 
@@ -2519,17 +2518,14 @@ socket_connect_prepare(struct gnutella_socket *s,
         
 	socket_wio_link(s);
 
-	option = 1;
-	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &option, sizeof option);
-	option = 1;
-	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
+	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
+	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
-	socket_set_linger(s->file_desc);
-
-	/* Set the file descriptor non blocking */
 	socket_set_nonblocking(s->file_desc);
-
+	set_close_on_exec(fd);
+	socket_set_linger(s->file_desc);
 	socket_tos_normal(s);
+
 	return 0;
 }
 
@@ -2771,12 +2767,23 @@ socket_connect_by_name(const gchar *host, guint16 port,
 	return s;
 }
 
+/**
+ * Creates a listening socket and binds it to `bind_addr' unless it is
+ * of type NET_TYPE_NONE. The socket is also set to non-blocking mode
+ * and the FD_CLOEXEC flag is set as well.
+ *
+ * @param bind_addr The address to bind the socket to.
+ * @param port The UDP or TCP port to use.
+ * @param type Either SOCK_DGRAM or SOCK_STREAM.
+ *
+ * @return The new file descriptor of socket or -1 on failure.
+ */
 gint
 socket_create_and_bind(const host_addr_t bind_addr,
 	const guint16 port, const int type)
 {
 	gboolean socket_failed;
-	gint sd, saved_errno, family;
+	gint fd, saved_errno, family;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
@@ -2793,8 +2800,8 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		errno = EINVAL;
 		return -1;
 	}
-	sd = socket(family, type, 0);
-	if (sd < 0) {
+	fd = socket(family, type, 0);
+	if (fd < 0) {
 		socket_failed = TRUE;
 		saved_errno = errno;
 	} else {
@@ -2803,12 +2810,12 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		socklen_t len;
 
 		/* Linux absolutely wants this before bind() unlike BSD */
-		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
+		setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
 #if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
 		if (
 			NET_TYPE_IPV6 == host_addr_net(bind_addr) &&
-			setsockopt(sd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
+			setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
 		) {
 			g_warning("setsockopt() failed for IPV6_V6ONLY (%s)",
 				g_strerror(errno));
@@ -2818,28 +2825,28 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		/* bind() the socket */
 		socket_failed = FALSE;
 		len = socket_addr_set(&addr, bind_addr, port);
-		if (-1 == bind(sd, socket_addr_get_const_sockaddr(&addr), len)) {
+		if (-1 == bind(fd, socket_addr_get_const_sockaddr(&addr), len)) {
 			saved_errno = errno;
-			close(sd);
-			sd = -1;
+			close(fd);
+			fd = -1;
 		} else {
 			saved_errno = 0;
 		}
 	}
 
 #if defined(HAS_SOCKER_GET)
-	if (sd < 0 && (EACCES == saved_errno || EPERM == saved_errno)) {
+	if (fd < 0 && (EACCES == saved_errno || EPERM == saved_errno)) {
 		gchar addr_str[128];
 
 		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
-		sd = socker_get(family, type, 0, addr_str, port);
-		if (sd < 0) {
+		fd = socker_get(family, type, 0, addr_str, port);
+		if (fd < 0) {
 			g_warning("socker_get() failed (%s)", g_strerror(errno));
 		}
 	}
 #endif /* HAS_SOCKER_GET */
 
-	if (sd < 0) {
+	if (fd < 0) {
 		const gchar *type_str = SOCK_DGRAM == type ? "datagram" : "stream";
 		const gchar *net_str = net_type_to_string(host_addr_net(bind_addr));
 
@@ -2855,10 +2862,11 @@ socket_create_and_bind(const host_addr_t bind_addr,
 				type_str, net_str, bind_addr_str, g_strerror(errno));
 		}
 	} else {
-		set_close_on_exec(sd);
+		set_close_on_exec(fd);
+		socket_set_nonblocking(fd);
 	}
 
-	return sd;
+	return fd;
 }
 
 /**
@@ -2907,7 +2915,7 @@ socket_local_listen(const gchar *pathname)
 {
 	struct sockaddr_un addr;
 	struct gnutella_socket *s;
-	int sd;
+	int fd;
 
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
@@ -2924,13 +2932,12 @@ socket_local_listen(const gchar *pathname)
 		}
 	}
 
-	sd = socket(PF_LOCAL, SOCK_STREAM, 0);
-	if (sd < 0) {
+	fd = socket(PF_LOCAL, SOCK_STREAM, 0);
+	if (fd < 0) {
 		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %s",
 			g_strerror(errno));
 		return NULL;
 	}
-	set_close_on_exec(sd);
 
 	(void) unlink(pathname);
 
@@ -2940,14 +2947,14 @@ socket_local_listen(const gchar *pathname)
 	
 		/* umask 177 -> mode 200; write-only for user */
 		mask = umask(S_IRUSR | S_IXUSR | S_IRWXG | S_IRWXO);
-    	ret = bind(sd, cast_to_gconstpointer(&addr), sizeof addr);
+    	ret = bind(fd, cast_to_gconstpointer(&addr), sizeof addr);
 		saved_errno = errno;
 		(void) umask(mask);
 
 		if (0 != ret) {
 			g_warning("socket_local_listen(): bind() failed: %s",
 				g_strerror(saved_errno));
-			close(sd);
+			close(fd);
 			return NULL;
 		}
 	}
@@ -2956,19 +2963,19 @@ socket_local_listen(const gchar *pathname)
 
 	s->type = SOCK_TYPE_CONTROL;
 	s->direction = SOCK_CONN_LISTENING;
-	s->file_desc = sd;
+	s->file_desc = fd;
 	s->pos = 0;
 	s->flags |= SOCK_F_LOCAL;
 
-	/* Set the file descriptor non blocking */
-	socket_set_nonblocking(sd);
+	set_close_on_exec(fd);
+	socket_set_nonblocking(fd);
 
 	s->net = NET_TYPE_NONE;
 	s->local_port = 0;
 
 	/* listen() the socket */
 
-	if (listen(sd, 5) == -1) {
+	if (listen(fd, 5) == -1) {
 		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
@@ -2991,34 +2998,31 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 {
 	static const int enable = 1;
 	struct gnutella_socket *s;
-	int sd;
+	int fd;
 
 	/* Create a socket, then bind() and listen() it */
-	sd = socket_create_and_bind(bind_addr, port, SOCK_STREAM);
-	if (sd < 0)
+	fd = socket_create_and_bind(bind_addr, port, SOCK_STREAM);
+	if (fd < 0)
 		return NULL;
 
 	s = socket_alloc();
 
 	s->type = SOCK_TYPE_CONTROL;
 	s->direction = SOCK_CONN_LISTENING;
-	s->file_desc = sd;
+	s->file_desc = fd;
 	s->pos = 0;
 	s->flags |= SOCK_F_TCP;
 
-	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
+	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
 
 	socket_set_linger(s->file_desc);
 	socket_set_accept_filters(s->file_desc);
-
-	/* Set the file descriptor non blocking */
-	socket_set_nonblocking(sd);
 
 	s->net = host_addr_net(bind_addr);
 
 	/* listen() the socket */
 
-	if (listen(sd, 5) == -1) {
+	if (listen(fd, 5) == -1) {
 		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
@@ -3031,7 +3035,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	} else {
 		socket_addr_t addr;
 
-		if (0 != socket_addr_getsockname(&addr, sd)) {
+		if (0 != socket_addr_getsockname(&addr, fd)) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
@@ -3095,11 +3099,11 @@ struct gnutella_socket *
 socket_udp_listen(host_addr_t bind_addr, guint16 port)
 {
 	struct gnutella_socket *s;
-	int sd;
+	int fd;
 
 	/* Create a socket, then bind() */
-	sd = socket_create_and_bind(bind_addr, port, SOCK_DGRAM);
-	if (sd < 0)
+	fd = socket_create_and_bind(bind_addr, port, SOCK_DGRAM);
+	if (fd < 0)
 		return NULL;
 
 	s = socket_alloc();
@@ -3107,7 +3111,7 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	socket_alloc_buffer(s);
 	s->type = SOCK_TYPE_UDP;
 	s->direction = SOCK_CONN_LISTENING;
-	s->file_desc = sd;
+	s->file_desc = fd;
 	s->pos = 0;
 	s->flags |= SOCK_F_UDP;
 	s->net = host_addr_net(bind_addr);
@@ -3115,9 +3119,6 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	socket_wio_link(s);				/* Link to the I/O functions */
 
 	socket_enable_recvdstaddr(s);
-
-	/* Set the file descriptor non blocking */
-	socket_set_nonblocking(sd);
 
 	/*
 	 * Attach the socket information so that we may record the origin
@@ -3133,7 +3134,7 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	} else {
 		socket_addr_t addr;
 
-		if (0 != socket_addr_getsockname(&addr, sd)) {
+		if (0 != socket_addr_getsockname(&addr, fd)) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
