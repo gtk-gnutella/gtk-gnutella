@@ -3791,22 +3791,52 @@ compat_memmem(const void *data, size_t data_size,
 	return deconstify_gchar(p);
 }
 
+static gboolean
+need_get_non_stdio_fd(void)
+{
+	int fd;
+
+	/* Assume that STDIN_FILENO is open. */
+	fd = fcntl(STDIN_FILENO, F_DUPFD, 256);
+	if (fd >= 0) {
+		FILE *f;
+
+		f = fdopen(fd, "r");
+		if (f) {
+			fclose(f);
+		} else {
+			close(fd);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 /**
- * Tries to reassign 'fd' to a file descriptor that is not used for stdio
- * functions in order to reserve others for stdio. File descriptors above
- * 255 are returned as-is. The original file descriptor is closed if it
- * was reassigned.
+ * If we detect that stdio cannot handle file descriptors above 255, this
+ * functions tries to reassign 'fd' to a file descriptor above 255 in order to
+ * reserve lower file descriptors for stdio. File descriptors below 3 or above
+ * 255 are returned as-is. The original file descriptor is closed if it was
+ * reassigned. On systems which do not need this workaround, the original
+ * file descriptor is returned.
  *
- * @note The FD_CLOEXEC flag set will be cleared if the file descriptor
- *		 is successfully reassigned.
+ * @note The FD_CLOEXEC flag set will be cleared on the new file descriptor if
+ *		 the file descriptor is successfully reassigned.
  *
- * @return On success a new file descriptor above 255 is returned.
- *         On failure the original file descriptor is returned.
+ * @return	On success a new file descriptor above 255 is returned.
+ *         	On failure or if reassigning was not necessary the original file
+ *			descriptor is returned.
  */
 int
 get_non_stdio_fd(int fd)
 {
-	if (fd >= 0 && fd < 256) {
+	static gboolean initialized, needed;
+
+	if (!initialized) {
+		initialized = TRUE;
+		needed = need_get_non_stdio_fd();
+	}
+	if (needed && fd > 2 && fd < 256) {
 		int nfd, saved_errno;
 
 		saved_errno = errno;
