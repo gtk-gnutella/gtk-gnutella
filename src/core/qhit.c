@@ -687,6 +687,23 @@ add_file(const struct shared_file *sf)
 		}
 	}
 
+	{
+		time_t mtime;	
+
+		/* FIXME: Create time != modification time */
+		mtime = shared_file_modification_time(sf);
+		if (mtime) {
+			gchar buf[sizeof mtime];
+			gint len;
+			len = ggept_ct_encode(shared_file_modification_time(sf), buf);
+			g_assert(len > 0 && len <= (gint) sizeof buf);
+
+			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
+			if (!ok)
+				g_warning("could not write GGEP \"CT\" extension in query hit");
+		}
+	}
+
 	/*
 	 * Because we don't know exactly the size of the GGEP extension
 	 * (could be COBS-encoded or not), we need to adjust the real
