@@ -276,6 +276,11 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 			text = sha1_base32(data->record->sha1);
 		}
 		break;
+	case c_sr_ctime:
+		if (data->record->create_time) {
+			text = timestamp_to_string(data->record->create_time);
+		}
+		break;
 	case c_sr_num:
 		g_assert_not_reached();
 		break;
@@ -825,6 +830,21 @@ search_gui_cmp_sha1(
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
 	ret = search_gui_cmp_sha1s(d1->record->sha1, d2->record->sha1);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
+search_gui_cmp_ctime(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	ret = delta_time(d1->record->create_time, d2->record->create_time);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -1978,6 +1998,7 @@ add_results_columns(GtkTreeView *treeview, gpointer udata)
 		{ N_("Spam"),      c_sr_spam,	  0.0, search_gui_cmp_spam },
 		{ N_("Hostile"),   c_sr_hostile,  0.0, search_gui_cmp_hostile },
 		{ N_("SHA-1"),     c_sr_sha1,     0.0, search_gui_cmp_sha1 },
+		{ N_("Created"),   c_sr_ctime,    0.0, search_gui_cmp_ctime },
 	};
 	guint32 width[G_N_ELEMENTS(columns)];
 	guint i;

@@ -582,6 +582,10 @@ search_gui_compare_records(gint sort_col,
            	result = search_gui_cmp_sha1s(r1->sha1, r2->sha1);
 			break;
 			
+        case c_sr_ctime:
+           	result = delta_time(r1->create_time, r2->create_time);
+			break;
+
         case c_sr_num:
 			g_assert_not_reached();
 			break;
@@ -1233,6 +1237,11 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 			case c_sr_sha1:
 				if (rc->sha1) {
 					text = sha1_base32(rc->sha1);
+				}
+				break;
+			case c_sr_ctime:
+				if (rc->create_time) {
+					text = timestamp_to_string(rc->create_time);
 				}
 				break;
 			case c_sr_meta:
@@ -2086,7 +2095,7 @@ search_gui_init(void)
   	gtk_notebook_set_tab_label_text(notebook,
 		default_scrolled_window, _("(no search)"));
 
-	gtk_signal_connect(GTK_OBJECT(notebook), "switch_page",
+	gtk_signal_connect(GTK_OBJECT(notebook), "switch-page",
 		GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
 
     /*
@@ -2391,6 +2400,7 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 		{ N_("Spam"),      	c_sr_spam,		FALSE },
 		{ N_("Hostile"),   	c_sr_hostile,	FALSE },
 		{ N_("SHA-1"),     	c_sr_sha1,		FALSE },
+		{ N_("Created"),   	c_sr_ctime,		FALSE },
 	};
 	guint i;
 
@@ -2550,8 +2560,9 @@ gui_search_clear_results(void)
 static void
 set_search_color(struct search *sch)
 {
-	GtkCList * clist_search;
 	static GtkNotebook *notebook_search_results = NULL;
+	GtkCList *clist_search;
+	GdkColor *color;
 
 	clist_search = GTK_CLIST(gui_main_window_lookup("clist_search"));
 
@@ -2560,19 +2571,14 @@ set_search_color(struct search *sch)
 			GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 
 	if (search_gui_is_enabled(sch)) {
-        gtk_clist_set_foreground(
-            clist_search,
-			gtk_notebook_page_num(notebook_search_results,
-				sch->scrolled_window),
-            NULL);
+		color = NULL;
 	} else {
-        gtk_clist_set_foreground(
-            clist_search,
-			gtk_notebook_page_num(notebook_search_results,
-				sch->scrolled_window),
-            &gtk_widget_get_style(GTK_WIDGET(clist_search))
-                ->fg[GTK_STATE_INSENSITIVE]);
+		color = &gtk_widget_get_style(GTK_WIDGET(clist_search))
+					->fg[GTK_STATE_INSENSITIVE];
 	}
+	gtk_clist_set_foreground(clist_search,
+		gtk_notebook_page_num(notebook_search_results, sch->scrolled_window),
+		color);
 }
 
 

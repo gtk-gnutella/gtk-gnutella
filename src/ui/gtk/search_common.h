@@ -74,14 +74,6 @@ typedef struct results_set {
 	guint8 ttl;
 } results_set_t;
 
-/**
- * Host vector held in query hits.
- */
-typedef struct host_vec {
-	gnet_host_t *hvec;			/**< Vector of alternate locations */
-	gint hvcnt;					/**< Amount of hosts in vector */
-} host_vec_t;
-
 typedef enum {
 	RECORD_MAGIC = 0x3fb9c04e
 } record_magic_t;
@@ -111,6 +103,7 @@ typedef struct record {
 	const gchar *path;			/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
 	filesize_t size;			/**< Size of file, in bytes */
+	time_t  create_time;		/**< Create Time of file; zero if unknown */
 	guint32 file_index;			/**< Index for GET command */
     flag_t  flags;              /**< same flags as in gnet_record_t */
 } record_t;

@@ -819,7 +819,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     	rc->tag = atom_str_get(r->tag);
 	}
    	rc->flags = r->flags;
-
+   	rc->create_time = r->create_time;
 	rc->name = atom_str_get(r->name);
 	
 	{
@@ -878,7 +878,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     rs->port = r_set->port;
     rs->status = r_set->status;
     rs->speed = r_set->speed;
-    rs->stamp = r_set->stamp;
+	rs->stamp = r_set->stamp;
     rs->vcode = r_set->vcode;
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;

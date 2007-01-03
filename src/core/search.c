@@ -1171,7 +1171,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	info = validate_only ? NULL : g_string_sized_new(80);
 
 	rs = search_new_r_set();
-
+	rs->stamp = tm_time();
 	rs->country = -1;
 	rs->hops = gnutella_header_get_hops(&n->header);
 	rs->ttl	= gnutella_header_get_ttl(&n->header);
@@ -1585,6 +1585,22 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						rc->path = atom_str_get(buf);
 					}
 					break;
+				case EXT_T_GGEP_CT:		/* Create Time */
+					{
+						time_t stamp;
+
+						ret = ggept_ct_extract(e, &stamp);
+						if (GGEP_OK == ret) {
+							rc->create_time = stamp;
+						} else {
+							if (search_debug > 3 || ggep_debug > 3) {
+								g_warning("%s bad GGEP \"CT\" (dumping)",
+										gmsg_infostr(&n->header));
+								ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							}
+						}
+					}
+					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
 					if (search_debug > 3 || ggep_debug > 3) {
 						g_warning("%s unknown GGEP \"%s\" (dumping)",
@@ -1713,7 +1729,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	/* We now have the guid of the node */
 
 	rs->guid = atom_guid_get(endptr);
-	rs->stamp = tm_time();
 
 	if (trailer) {
 		search_results_handle_trailer(n, validate_only,
@@ -3792,7 +3807,8 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	if (sha1_hash_available(sf)) {
 		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
 	}
-
+	/* FIXME: Create time != modification time */
+	rc->create_time = shared_file_modification_time(sf);
 	rs->records = g_slist_prepend(rs->records, rc);
 	rs->num_recs++;
 }

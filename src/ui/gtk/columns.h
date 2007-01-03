@@ -163,6 +163,7 @@ enum c_sr_columns {
     c_sr_hostile,
     c_sr_owned,
     c_sr_sha1,
+	c_sr_ctime,
 
 #define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_num)
 	c_sr_num

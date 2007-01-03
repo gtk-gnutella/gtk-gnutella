@@ -154,8 +154,8 @@ typedef struct gnet_results_set {
 	const gchar *query;			/**< Optional: Original query string (atom) */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	GSList *records;
-	time_t  stamp;				/**< Reception time of the hit */
 
+	time_t  stamp;				/**< Reception time of the hit */
 	gint country;				/**< Country code -- encoded ISO3166 */
 	vendor_code_t vcode;		/**< Vendor code */
 	guint32 speed;
@@ -193,6 +193,7 @@ typedef struct gnet_record {
 	const gchar  *path;			/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
 	filesize_t size;			/**< Size of file, in bytes */
+	time_t  create_time;		/**< Create Time of file; zero if unknown */
 	guint32 file_index;			/**< Index for GET command */
     flag_t  flags;
 } gnet_record_t;
