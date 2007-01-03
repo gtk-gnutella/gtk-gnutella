@@ -95,7 +95,7 @@ shell_check(gnutella_shell_t *sh)
 }
 
 static inline gboolean
-IS_PROCESSING(gnutella_shell_t *sh)
+shell_has_pending_output(gnutella_shell_t *sh)
 {
 	shell_check(sh);
 	return sh->output && slist_length(sh->output) > 0;
@@ -148,7 +148,6 @@ static enum shell_reply
 shell_exec_node(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -200,7 +199,6 @@ static enum shell_reply
 shell_exec_search(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -237,7 +235,6 @@ shell_exec_print(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	property_t prop;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -272,7 +269,6 @@ shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	property_t prop;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -312,7 +308,6 @@ shell_exec_whatis(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	property_t prop;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -348,7 +343,6 @@ static enum shell_reply
 shell_exec_rescan(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -475,7 +469,6 @@ shell_exec_horizon(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	gboolean all;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -604,7 +597,6 @@ shell_exec_nodes(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	const GSList *sl;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -655,7 +647,6 @@ shell_exec_uploads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	GSList *sl_info;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -681,7 +672,6 @@ static enum shell_reply
 shell_exec_download(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -791,7 +781,6 @@ shell_exec_downloads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	const GSList *sl;
 	
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -818,7 +807,6 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	time_t now;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -968,7 +956,6 @@ static enum shell_reply
 shell_exec_offline(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -985,7 +972,6 @@ static enum shell_reply
 shell_exec_online(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -1004,7 +990,6 @@ shell_exec_props(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	GSList *props, *sl;
 
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -1044,7 +1029,6 @@ static enum shell_reply
 shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 
@@ -1078,7 +1062,6 @@ static enum shell_reply
 shell_exec_quit(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 	
@@ -1091,7 +1074,6 @@ static enum shell_reply
 shell_exec_shutdown(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	shell_check(sh);
-	g_assert(!IS_PROCESSING(sh));
 	g_assert(argv);
 	g_assert(argc > 0);
 	
@@ -1315,7 +1297,7 @@ shell_write_data(gnutella_shell_t *sh)
 
 	shell_check(sh);
 	g_assert(sh->output);
-	g_assert(IS_PROCESSING(sh));
+	g_assert(shell_has_pending_output(sh));
 
 	s = sh->socket;
 	socket_check(s);
@@ -1342,7 +1324,7 @@ shell_write_data(gnutella_shell_t *sh)
 		pmsg_slist_discard(sh->output, written);
 	}
 
-	if (!IS_PROCESSING(sh)) {
+	if (!shell_has_pending_output(sh)) {
 		socket_evt_clear(sh->socket);
 		socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
 	}
@@ -1454,11 +1436,11 @@ shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	if ((cond & INPUT_EVENT_W) && IS_PROCESSING(sh))
+	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh))
 		shell_write_data(sh);
 
 	if (sh->shutdown) {
-		if (!IS_PROCESSING(sh)) {
+		if (!shell_has_pending_output(sh)) {
 			shell_destroy(sh);
 		}
 		return;
@@ -1473,7 +1455,6 @@ static void
 shell_write(gnutella_shell_t *sh, const gchar *text)
 {
 	size_t len;
-	gboolean writing;
 	pmsg_t *mb;
 
 	shell_check(sh);
@@ -1484,7 +1465,11 @@ shell_write(gnutella_shell_t *sh, const gchar *text)
 	g_return_if_fail(len < (size_t) -1);
 	g_return_if_fail(len > 0);
 
-	writing = IS_PROCESSING(sh);
+	if (!shell_has_pending_output(sh)) {
+		socket_evt_clear(sh->socket);
+		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
+	}
+
 	mb = slist_tail(sh->output);
 	if (mb && pmsg_writable_length(mb) > 0) {
 		size_t n;
@@ -1498,11 +1483,6 @@ shell_write(gnutella_shell_t *sh, const gchar *text)
 		mb = pmsg_new(PMSG_P_DATA, NULL, len);
 		pmsg_write(mb, text, len);
 		slist_append(sh->output, mb);
-	}
-
-	if (!writing) {
-		socket_evt_clear(sh->socket);
-		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
 	}
 }
 
@@ -1636,7 +1616,7 @@ shell_add(struct gnutella_socket *s)
 
 	getline_reset(s->getline); /* clear AUTH command from buffer */
 
-	if (!IS_PROCESSING(sh) && sh->shutdown) {
+	if (!shell_has_pending_output(sh) && sh->shutdown) {
 		shell_destroy(sh);
 	}
 }
