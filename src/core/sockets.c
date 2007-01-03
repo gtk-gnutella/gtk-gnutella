@@ -102,6 +102,8 @@ struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
+static void socket_accept(gpointer data, gint, inputevt_cond_t cond);
+
 static struct gnutella_socket *
 socket_alloc(void)
 {
@@ -1096,6 +1098,18 @@ socket_check_ipv6_address(void)
 	}
 }
 
+static void
+socket_enable_accept(struct gnutella_socket *s)
+{
+	/* For convience allow passing NULL here */
+	if (s) {
+		socket_check(s);
+		if (0 == s->gdk_tag) {
+			socket_evt_set(s, INPUT_EVENT_RX, socket_accept, s);
+		}
+	}
+}
+
 /**
  * Called by main timer.
  * Expires inactive sockets.
@@ -1143,6 +1157,10 @@ socket_timer(time_t now)
 			socket_check_ipv6_address();
 		}
 	}
+
+	socket_enable_accept(s_tcp_listen);
+	socket_enable_accept(s_tcp_listen6);
+	socket_enable_accept(s_local_listen);
 }
 
 /**
@@ -2056,6 +2074,13 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		if (fd < 0) {
 			if (errno != ECONNABORTED && !is_temporary_error(errno)) {
 				g_warning("accept() failed (%s)", g_strerror(errno));
+				if (errno == EMFILE || errno == ENFILE) {
+					/*
+					 * Disable accept() temporarily to prevent spinning
+					 * on socket_accept(). It's re-enabled from socket_timer()
+					 */
+					socket_evt_clear(s);
+				}
 			}
 			return;
 		}
@@ -2989,7 +3014,7 @@ socket_local_listen(const gchar *pathname)
 	s->tls.enabled = TRUE;
 #endif /* HAS_GNUTLS */
 
-	socket_evt_set(s, INPUT_EVENT_RX, socket_accept, s);
+	socket_enable_accept(s);
 	return s;
 }
 
@@ -3053,7 +3078,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	s->tls.enabled = TRUE;
 #endif /* HAS_GNUTLS */
 
-	socket_evt_set(s, INPUT_EVENT_RX, socket_accept, s);
+	socket_enable_accept(s);
 	return s;
 }
 
