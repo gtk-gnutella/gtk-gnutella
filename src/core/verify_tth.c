@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/bg.h"
+#include "lib/file.h"
 #include "lib/tigertree.h"
 #include "lib/tiger.h"
 #include "lib/tm.h"
