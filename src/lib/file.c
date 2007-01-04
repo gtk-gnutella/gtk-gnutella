@@ -336,8 +336,8 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
 static gint
 do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 {
-	gint fd;
 	const gchar *what;
+	gint fd;
 
 	if (!is_absolute_path(path)) {
 		errno = EPERM;
@@ -376,7 +376,7 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 		}
 	}
 
-	if (fd > 0) {
+	if (fd >= 0) {
 		return get_non_stdio_fd(fd);
 	}
 
