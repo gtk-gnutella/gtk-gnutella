@@ -681,7 +681,13 @@
 81.179.74.0/24
 # This one seems to belong to these; it emits results for fake audio and
 # video files; switches GUID
+64.248.219.98
 64.248.219.196
+
+# These are probably completely bogus but block them anyway as these are
+# returned by those GUID switchers
+67.11.22.33
+99.11.22.33
 
 # Time Warner Telecom
 64.128.109.144/28
