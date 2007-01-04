@@ -257,6 +257,9 @@ search_gui_current_search(search_t *sch)
 
 /**
  * Create a new search and start it. Use default reissue timeout.
+ *
+ * @note `*search' may be set to NULL even on success. You have to check this
+ *		 explicitely.
  */
 gboolean
 search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
@@ -2329,7 +2332,7 @@ search_gui_new_search_entered(void)
 
 		res = search_gui_new_search(text, 0, &search);
         if (res) {
-			if (default_filter) {
+			if (search && default_filter) {
 				rule_t *rule;
 
 				rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
@@ -2340,8 +2343,14 @@ search_gui_new_search_entered(void)
 				 * the "ok" button in the dialog, we add the rule
 				 * manually.
 				 */
+
+				g_assert(search->filter);
 				search->filter->ruleset =
 					g_list_append(search->filter->ruleset, rule);
+
+				g_assert(rule);
+				g_assert(rule->target);
+				g_assert(rule->target->refcount >= 0);
 				rule->target->refcount++;
 			}
 
