@@ -4233,8 +4233,7 @@ download_escape_name(const gchar *name)
 /**
  * Create a new download.
  *
- * When `interactive' is false, we assume that `file' was already duped,
- * and take ownership of the pointer.
+ * When `interactive' is TRUE, we assume the filename is not yet sanitized.
  *
  * @attention
  * NB: If `record_index' == URN_INDEX, and a `sha1' is also supplied, then
@@ -4245,7 +4244,7 @@ download_escape_name(const gchar *name)
  * @returns created download structure, or NULL if none.
  */
 static struct download *
-create_download(const gchar *file, const gchar *uri, filesize_t size,
+create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 	guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
 	const gchar *hostname, const gchar *sha1, time_t stamp,
@@ -4254,7 +4253,6 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 {
 	struct dl_server *server;
 	struct download *d;
-	const gchar *file_name;
 	const gchar *file_uri = NULL;
 	fileinfo_t *fi;
 
@@ -4289,20 +4287,21 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	}
 
 	if (interactive) {
+		const gchar *atom;
 		gchar *s;
 		
-		s = gm_sanitize_filename(file, FALSE, FALSE);
-		
-		/* An empty filename would create a corrupt download entry */
-    	file_name = atom_str_get('\0' != s[0] ? s : "noname");
+		s = gm_sanitize_filename(file_name, FALSE, FALSE);
 
-		if (file != s) {
+		/* An empty filename would create a corrupt download entry */
+    	atom = atom_str_get('\0' != s[0] ? s : "noname");
+
+		if (file_name != s) {
 			G_FREE_NULL(s);
 		}
+		file_name = atom_str_get(atom);
 	} else {
-    	file_name = deconstify_gchar(file);
+		file_name = atom_str_get(file_name);
 	}
-
 
     if (uri) {
 	    file_uri = atom_str_get(uri);
@@ -4335,8 +4334,9 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	d = has_same_download(file_name, sha1, size, guid, addr, port);
 	if (d) {
 		download_check(d);
-		if (interactive)
+		if (interactive) {
 			g_message("rejecting duplicate download for %s", file_name);
+		}
 		atom_str_free_null(&file_name);
 		return NULL;
 	}
@@ -4363,7 +4363,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	}
 
 	d->file_name = file_name;
-	d->escaped_name = download_escape_name(file_name);
+	d->escaped_name = download_escape_name(d->file_name);
 	d->uri = file_uri;
 	d->file_size = size;
 
@@ -4393,7 +4393,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 */
 
 	fi = file_info == NULL ?
-		file_info_get(file_name, save_file_path, size, sha1, file_size_known)
+		file_info_get(d->file_name, save_file_path, size, sha1, file_size_known)
 		: file_info;
 
 	if (fi->flags & FI_F_SUSPEND)
@@ -4422,7 +4422,7 @@ create_download(const gchar *file, const gchar *uri, filesize_t size,
 	 */
 
 	if (!d->always_push && d->sha1 && !d->uri)
-		dmesh_add(d->sha1, addr, port, record_index, file_name, stamp);
+		dmesh_add(d->sha1, addr, port, record_index, d->file_name, stamp);
 
 	/*
 	 * When we know our SHA1, if we don't have a SHA1 in the `fi' and we
@@ -5358,10 +5358,11 @@ err_header_read_error(gpointer o, gint error)
 		if (d->retries < download_max_retries) {
 			d->retries++;
 
-			if (!DOWNLOAD_IS_QUEUED(d)) {
-				download_queue_delay(d, download_retry_stopped_delay,
-					_("Stopped (%s)"), g_strerror(error));
+			if (!(DL_F_FOOBAR & d->flags)) {
+				d->flags |= DL_F_FOOBAR;
 			}
+			download_queue_delay(d, download_retry_stopped_delay,
+				_("Stopped (%s)"), g_strerror(error));
 		} else {
 			download_unavailable(d, GTA_DL_ERROR,
 				_("Too many attempts (%u times)"), d->retries);
