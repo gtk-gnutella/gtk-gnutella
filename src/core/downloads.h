@@ -100,7 +100,7 @@ void download_proxy_newstate(struct download *d);
 void download_proxy_sent(struct download *d);
 void download_proxy_failed(struct download *d);
 
-struct download * download_browse_start(const gchar *name,
+struct download * download_browse_start(
 	const gchar *hostname, host_addr_t addr, guint16 port,
 	const gchar *guid, const gnet_host_vec_t *proxies,
 	gnet_search_t search, guint32 flags);

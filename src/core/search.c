@@ -3762,7 +3762,7 @@ search_browse(gnet_search_t sh,
 	 * to the special search for display.
 	 */
 
-	sch->download = download_browse_start(sch->query, hostname, addr, port,
+	sch->download = download_browse_start(hostname, addr, port,
 						guid, proxies, sh, flags);
 
 	return sch->download != NULL;

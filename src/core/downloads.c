@@ -5355,8 +5355,8 @@ err_header_read_error(gpointer o, gint error)
 		if (d->retries < download_max_retries) {
 			d->retries++;
 
-			if (!(DL_F_FOOBAR & d->flags)) {
-				d->flags |= DL_F_FOOBAR;
+			if (DL_F_INITIAL & d->flags) {
+				d->server->attrs |= DLS_A_FOOBAR;
 			}
 			download_queue_delay(d, download_retry_stopped_delay,
 				_("Stopped (%s)"), g_strerror(error));
@@ -6965,6 +6965,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	download_check(d);
 	
+	d->flags &= ~DL_F_INITIAL;
 	is_followup = d->keep_alive;
 	s = d->socket;
 	fi = d->file_info;
@@ -8017,6 +8018,14 @@ http_version_nofix:
 		return;
 	}
 
+	if (d->flags & DL_F_PREFIX_HEAD) {
+		d->flags &= ~DL_F_PREFIX_HEAD;
+		d->status = GTA_DL_CONNECTING;
+		file_info_clear_download(d, TRUE);
+		download_send_request(d);
+		return;
+	}
+
 	/*
 	 * Freeing of the RX stack must be asynchronous: each time we establish
 	 * a new connection, dismantle the previous stack.  Otherwise the RX
@@ -8319,7 +8328,7 @@ download_send_request(struct download *d)
 	fileinfo_t *fi;
 	size_t rw;
 	ssize_t sent;
-	const gchar *sha1;
+	const gchar *sha1, *method;
 
 	download_check(d);
 
@@ -8431,24 +8440,35 @@ picked:
 	 * Build the HTTP request.
 	 */
 
+	if (
+		(DLS_A_FOOBAR & d->server->attrs) &&
+		DL_F_INITIAL == ((DL_F_BROWSE | DL_F_INITIAL) & d->flags)
+	) {
+		d->flags |= DL_F_PREFIX_HEAD;
+		method = "HEAD";
+	} else {
+		method = "GET";
+	}
+
 	if (d->uri) {
 		gchar *escaped_uri;
 
 		escaped_uri = url_fix_escape(d->uri);
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
-				"GET %s HTTP/1.1\r\n", escaped_uri);
+				"%s %s HTTP/1.1\r\n", method, escaped_uri);
 		if (escaped_uri != d->uri) {
 			G_FREE_NULL(escaped_uri);
 		}
 	} else if (sha1) {
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n", sha1_base32(sha1));
+				"%s /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
+				method, sha1_base32(sha1));
 	} else {
 		gchar *escaped = url_escape(d->file_name);
 
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /get/%u/%s HTTP/1.1\r\n",
-			(guint) d->record_index, escaped);
+				"%s /get/%lu/%s HTTP/1.1\r\n",
+				method, (gulong) d->record_index, escaped);
 
 		if (escaped != d->file_name) {
 			G_FREE_NULL(escaped);
@@ -8682,6 +8702,7 @@ download_connected(struct download *d)
 	download_check(d);
 	socket_check(d->socket);
 
+	d->flags |= DL_F_INITIAL;
 	download_send_request(d);
 }
 
@@ -10237,7 +10258,6 @@ download_something_to_clear(void)
  * query hits will be feed back to the search given as parameter for
  * display.
  *
- * @param name		the stringified "addr:port" of the host.
  * @param hostname	the DNS name of the host, or NULL if none known
  * @param addr		the IP address of the host to browse
  * @param port		the port to contact
@@ -10249,29 +10269,32 @@ download_something_to_clear(void)
  * @return created download, or NULL on error.
  */
 struct download *
-download_browse_start(const gchar *name, const gchar *hostname,
+download_browse_start(const gchar *hostname,
 	host_addr_t addr, guint16 port, const gchar *guid,
 	const gnet_host_vec_t *proxies, gnet_search_t search, guint32 flags)
 {
 	struct download *d;
 	fileinfo_t *fi;
-	gchar *dname;
 
-	if (!host_addr_initialized(addr))
-		return FALSE;
+	g_return_val_if_fail(host_addr_initialized(addr), FALSE);
 
-	dname = g_strdup_printf(_("<Browse Host %s>"), name);
-	fi = file_info_get_transient(dname);
+	{
+		gchar *dname;
+
+		dname = g_strdup_printf(_("<Browse Host %s>"),
+					host_port_to_string(hostname, addr, port));
+
+		fi = file_info_get_transient(dname);
+		G_FREE_NULL(dname);
+	}
 
 	if (!guid)
 		guid = blank_guid;
 
-	d = create_download(dname, "/", 0, 0, addr, port, guid, hostname,
+	d = create_download(fi->file_name, "/", 0, 0, addr, port, guid, hostname,
 			NULL, tm_time(), TRUE, FALSE, fi, proxies, flags);
 
-	G_FREE_NULL(dname);
-
-	if (d != NULL) {
+	if (d) {
 		gnet_host_t host;
 
 		download_check(d);

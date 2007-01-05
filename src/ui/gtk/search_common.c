@@ -2382,7 +2382,7 @@ search_gui_new_browse_host(
 	const gchar *hostname, host_addr_t addr, guint16 port,
 	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
-	const gchar *hostport;
+	gchar *host_and_port;
 	search_t *search;
 
 	/*
@@ -2401,38 +2401,31 @@ search_gui_new_browse_host(
 	 * so its lifetime is implicitely this session only.
 	 */
 
-	hostport = hostname ?
-		hostname_port_to_string(hostname, port) :
-		host_addr_port_to_string(addr, port);
+	host_and_port = g_strdup(host_port_to_string(hostname, addr, port));
 
-	if (
-		!search_gui_new_search_full(hostport, tm_time(), 0, 0,
-			 search_sort_default_column, search_sort_default_order,
-			 SEARCH_F_BROWSE | SEARCH_F_ENABLED, &search)
-	)
-		goto failed;
+	(void) search_gui_new_search_full(host_and_port, tm_time(), 0, 0,
+			 	search_sort_default_column, search_sort_default_order,
+			 	SEARCH_F_BROWSE | SEARCH_F_ENABLED, &search);
 
-	if (!search)
-		goto failed;
-
-	if (
-		!guc_search_browse(search->search_handle, hostname, addr, port,
-			guid, proxies, flags)
-	) {
-		search_gui_close_search(search);
-		goto failed;
+	if (search) {
+		if (
+			guc_search_browse(search->search_handle, hostname, addr, port,
+				guid, proxies, flags)
+		) {
+			statusbar_gui_message(15,
+				_("Added search showing browsing results for %s"),
+				host_and_port);
+		} else {
+			search_gui_close_search(search);
+			search = NULL;
+		}
 	}
-
-	statusbar_gui_message(15,
-		_("Added search showing browsing results for %s"), hostport);
-
-	return TRUE;
-
-failed:
-	statusbar_gui_message(10,
-		_("Could not launch browse host for %s"), hostport);
-
-	return FALSE;
+	if (!search) {
+		statusbar_gui_message(10,
+			_("Could not launch browse host for %s"), host_and_port);
+	}
+	G_FREE_NULL(host_and_port);
+	return NULL != search;
 }
 
 gint
