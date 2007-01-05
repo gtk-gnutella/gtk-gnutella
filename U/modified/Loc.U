@@ -214,7 +214,7 @@ trylist="
 	msgfmt msgmerge \
 	uname uniq uuname vi zcat zip
 pth=`echo $PATH | sed -e "s/$p_/ /g"`
-pth="$pth /lib /usr/lib"
+pth="$pth /sbin /usr/sbin /lib /usr/lib /etc"
 for file in $loclist; do
 ?X:
 ?X: Allow them to -Dmake=pmake on the command line for instance...

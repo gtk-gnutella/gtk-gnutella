@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Jan  5 04:17:36 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Fri Jan  5 07:11:34 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -1523,7 +1523,7 @@ uname
 xgettext
 "
 pth=`echo $PATH | sed -e "s/$p_/ /g"`
-pth="$pth /lib /usr/lib"
+pth="$pth /sbin /usr/sbin /lib /usr/lib /etc"
 for file in $loclist; do
 	eval xxx=\$$file
 	case "$xxx" in
