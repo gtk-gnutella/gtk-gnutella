@@ -5057,11 +5057,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	/*
 	 * If we're a leaf node, only accept connections to "modern" ultra nodes.
 	 * A modern ultra node supports high outdegree and dynamic querying.
-	 *
-	 * NB: gtk-gnutella/0.94 is not an ancient node by our standards.  However,
-	 * to enable bootstrapping the new 0.95 base, we let 0.95 leaves connect
-	 * to older GTKGs until 0.95 widespreads a little.
-	 *		--RAM, 2004-11-13
 	 */
 
 	if (
