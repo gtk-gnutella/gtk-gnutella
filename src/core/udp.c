@@ -68,6 +68,8 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	const gchar *msg;
 	guint16 size;				/**< Payload size, from the Gnutella message */
 
+	g_return_val_if_fail(n, FALSE);
+
 	if (s->pos < GTA_HEADER_SIZE) {
 		msg = "Too short";
 		goto not;
@@ -270,19 +272,19 @@ void
 udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
-	gnutella_msg_init_t *m;
-	guint32 size;
 
-	if (!udp_active() || !n->outq)
-		return;
+	if (n && n->outq) {
+		gnutella_msg_init_t *m;
+		guint32 size;
 
-	m = build_ping_msg(muid, 1, FALSE, &size);
+		m = build_ping_msg(muid, 1, FALSE, &size);
 
-	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, size), n);
+		mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, size), n);
 
-	if (udp_debug > 19)
-		printf("UDP queued connect-back PING %s (%u bytes) to %s\n",
-			guid_hex_str(muid), size, host_addr_port_to_string(addr, port));
+		if (udp_debug > 19)
+			printf("UDP queued connect-back PING %s (%u bytes) to %s\n",
+				guid_hex_str(muid), size, host_addr_port_to_string(addr, port));
+	}
 }
 
 /**
@@ -292,14 +294,14 @@ void
 udp_send_ping(const host_addr_t addr, guint16 port)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
-	gnutella_msg_init_t *m;
-	guint32 size;
 
-	if (!udp_active() || !n->outq)
-		return;
+	if (n && n->outq) {
+		gnutella_msg_init_t *m;
+		guint32 size;
 
-	m = build_ping_msg(NULL, 1, FALSE, &size);
-	udp_send_msg(n, m, size);
+		m = build_ping_msg(NULL, 1, FALSE, &size);
+		udp_send_msg(n, m, size);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

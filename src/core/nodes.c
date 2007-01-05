@@ -424,7 +424,6 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	 */
 
 	if (
-		udp_active() &&
 		!(n->flags & NODE_F_TSYNC_TCP) &&
 		is_host_addr(n->gnet_addr)
 	)
@@ -5719,23 +5718,24 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 {
 	gnutella_node_t *n = NULL;
 
-	switch (host_addr_net(addr)) {
-	case NET_TYPE_IPV4:
-		n = udp_node;
-		break;
-	case NET_TYPE_IPV6:
-		n = udp6_node;
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		g_assert_not_reached();
-		break;
+	if (udp_active()) {
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			n = udp_node;
+			break;
+		case NET_TYPE_IPV6:
+			n = udp6_node;
+			break;
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			g_assert_not_reached();
+			break;
+		}
+		g_return_val_if_fail(n, NULL);
+
+		n->addr = addr;
+		n->port = port;
 	}
-	g_return_val_if_fail(n, NULL);
-
-	n->addr = addr;
-	n->port = port;
-
 	return n;
 }
 

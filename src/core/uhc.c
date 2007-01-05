@@ -323,7 +323,8 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
 		struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 		gnutella_msg_init_t *m;
 		guint32 size;
-		
+	
+		g_return_if_fail(n);	
 		m = build_ping_msg(NULL, 1, TRUE, &size);
 		muid = atom_guid_get(gnutella_header_get_muid(m));
 		udp_send_msg(n, m, size);

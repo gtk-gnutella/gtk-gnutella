@@ -65,6 +65,7 @@
 #include "geo_ip.h"
 #include "bh_download.h"
 #include "tls_cache.h"
+#include "udp.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -118,7 +119,7 @@ static const gchar file_what[] = "downloads"; /**< What is persisted to file */
 static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
-static gboolean send_push_request(const gchar *, guint32, guint16);
+static gboolean download_send_push_request(struct download *d);
 static gboolean download_read(struct download *d, pmsg_t *mb);
 static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
@@ -2626,15 +2627,30 @@ download_clear_stopped(gboolean complete,
 		struct download *d = sl->data;
 
 		download_check(d);
-		if (d->status == GTA_DL_REMOVED)
-			continue;
 
 		switch (d->status) {
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
+			if (
+				!(failed && !d->unavailable) &&
+				!(unavailable && d->unavailable)
+			) {
+				continue;
+			}
+			break;
 		case GTA_DL_COMPLETED:
 		case GTA_DL_DONE:
+			if (!complete) {
+				continue;
+			}
 			break;
+		case GTA_DL_VERIFIED:
+			if (!now) {
+				/* We don't want clear "finished" downloads automagically
+				 * because it would make it difficult to notice them in the
+				 * GUI. */
+				continue;
+			}
 		default:
 			continue;
 		}
@@ -2644,23 +2660,7 @@ download_clear_stopped(gboolean complete,
 			delta_time(current_time, d->last_update) >
 				(time_delta_t) entry_removal_timeout
 		) {
-			if (
-				complete && (
-					d->status == GTA_DL_DONE ||
-					d->status == GTA_DL_COMPLETED)
-			) {
-				download_remove(d);
-			}
-			else if (
-				d->status == GTA_DL_ERROR ||
-				d->status == GTA_DL_ABORTED
-			) {
-				if (
-					(failed && !d->unavailable) ||
-					(unavailable && d->unavailable)
-				)
-					download_remove(d);
-			}
+			download_remove(d);
 		}
 	}
 
@@ -2672,9 +2672,6 @@ download_clear_stopped(gboolean complete,
  * Downloads management
  */
 
-/**
- * download_add_to_list
- */
 static void
 download_add_to_list(struct download *d, enum dl_list idx)
 {
@@ -4042,10 +4039,7 @@ download_push(struct download *d, gboolean on_timeout)
 	if (use_push_proxy(d))
 		return;
 
-	if (0 == socket_listen_port())
-		return;
-
-	if (send_push_request(download_guid(d), d->record_index, listen_port))
+	if (download_send_push_request(d))
 		return;
 
 	if (!d->always_push) {
@@ -4156,9 +4150,7 @@ download_fallback_to_push(struct download *d,
 	download_check(d);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_warning(
-			"BUG: download_fallback_to_push() called on a queued download!?!");
-		return;
+		g_warning("download_fallback_to_push() called on a queued download");
 	}
 
 	/* If we're receiving data or already sent push, we're wrong
@@ -5256,7 +5248,7 @@ download_proxy_failed(struct download *d)
  * @returns TRUE if the request could be sent, FALSE if we don't have the route.
  */
 static gboolean
-send_push_request(const gchar *guid, guint32 file_id, guint16 port)
+download_send_push_request(struct download *d)
 {
 	static const gboolean supports_tls =
 #ifdef HAS_GNUTLS
@@ -5264,14 +5256,14 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 #else
 		FALSE;
 #endif /* HAS_GNUTLS */
-	GSList *nodes;
 	const gchar *packet;
 	size_t size;
+	guint16 port;
 
+	download_check(d);
+
+	port = socket_listen_port();
 	if (0 == port)
-		return FALSE;
-
-	if (NULL == (nodes = route_towards_guid(guid)))
 		return FALSE;
 
 	/*
@@ -5280,24 +5272,44 @@ send_push_request(const gchar *guid, guint32 file_id, guint16 port)
 	 * used has been broken).
 	 */
 
-	packet = build_push(&size, hard_ttl_limit, 0, guid,
-				listen_addr(), listen_addr6(), port, file_id, supports_tls);
+	packet = build_push(&size, hard_ttl_limit, 0 /* Hops */,
+				download_guid(d), listen_addr(), listen_addr6(), port,
+				d->record_index, supports_tls);
 
 	if (packet) {
-		/*
-		 * Send the message to all the nodes that can route our request back
-		 * to the source of the query hit.
-		 */
-		gmsg_sendto_all(nodes, packet, size);
+		GSList *nodes;
+		gboolean success = FALSE;
+
+		if (host_is_valid(download_addr(d), download_port(d))) {
+			struct gnutella_node *n;
+				
+			n = node_udp_get_addr_port(download_addr(d), download_port(d));
+			if (n) {
+				success = TRUE;
+				udp_send_msg(n, packet, size);
+			}
+		}
+
+		nodes = route_towards_guid(download_guid(d));
+		if (nodes) {
+			success = TRUE;
+
+			/*
+			 * Send the message to all the nodes that can route our request back
+			 * to the source of the query hit.
+			 */
+			gmsg_sendto_all(nodes, packet, size);
+
+			g_slist_free(nodes);
+			nodes = NULL;
+		}
+		return success;
 	} else {
-		g_warning("Failed to send push to %s (index=%lu)",
-			host_addr_port_to_string(listen_addr(), port), (gulong) file_id);
+		g_warning("Failed to send PUSH for %s (index=%lu)",
+			host_addr_port_to_string(download_addr(d), download_port(d)),
+				(gulong) d->record_index);
+		return FALSE;
 	}
-
-	g_slist_free(nodes);
-	nodes = NULL;
-
-	return NULL != packet;
 }
 
 /***
@@ -5341,15 +5353,21 @@ err_header_read_error(gpointer o, gint error)
 	download_check(d);
 
 	if (error == ECONNRESET) {
-		if (d->retries++ < download_max_retries)
-			download_queue_delay(d, download_retry_stopped_delay,
-				_("Stopped (%s)"), g_strerror(error));
-		else
+		if (d->retries < download_max_retries) {
+			d->retries++;
+
+			if (!DOWNLOAD_IS_QUEUED(d)) {
+				download_queue_delay(d, download_retry_stopped_delay,
+					_("Stopped (%s)"), g_strerror(error));
+			}
+		} else {
 			download_unavailable(d, GTA_DL_ERROR,
-				_("Too many attempts (%u times)"), d->retries - 1);
-	} else
+				_("Too many attempts (%u times)"), d->retries);
+		}
+	} else {
 		download_stop(d, GTA_DL_ERROR, _("Failed (Read error: %s)"),
 			g_strerror(error));
+	}
 }
 
 static void
@@ -5375,13 +5393,14 @@ err_header_read_eof(gpointer o)
 		download_get_server_name(d, header);
 	}
 
-	if (d->retries++ < download_max_retries)
+	if (d->retries < download_max_retries) {
+		d->retries++;
 		download_queue_delay(d, download_retry_stopped_delay,
 			d->keep_alive ? _("Connection not kept-alive (EOF)") :
 			_("Stopped (EOF) <err_header_read_eof>"));
-	else
+	} else
 		download_unavailable(d, GTA_DL_ERROR,
-			_("Too many attempts (%u times)"), d->retries - 1);
+			_("Too many attempts (%u times)"), d->retries);
 }
 
 static struct io_error download_io_error = {
