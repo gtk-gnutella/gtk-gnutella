@@ -258,7 +258,8 @@ enum {
 	DL_F_TRANSIENT		= 1 << 11,	/**< Transient, don't persist */
 	DL_F_SUSPENDED		= 1 << 12,	/**< Suspended, do not schedule */
 	DL_F_MARK			= 1 << 13,	/**< Marked in traversal */
-	DL_F_FOOBAR			= 1 << 14	/**< Host is foobar */
+	DL_F_PREFIX_HEAD	= 1 << 14,	/**< Sent HEAD request before GET */
+	DL_F_INITIAL		= 1 << 15	/**< First request on this connection */
 };
 
 /*
@@ -272,7 +273,8 @@ enum {
 	DLS_A_MINIMAL_HTTP	= 1 << 4,	/**< Use minimalist HTTP with server */
 	DLS_A_BANNING		= 1 << 5,	/**< Server might be banning us */
 	DLS_A_DNS_LOOKUP	= 1 << 6,	/**< Perform DNS lookup if possible */
-	DLS_A_REMOVED		= 1 << 7	/**< Server marked for removal */
+	DLS_A_REMOVED		= 1 << 7,	/**< Server marked for removal */
+	DLS_A_FOOBAR		= 1 << 8	/**< Host is foobar */
 };
 
 /*
