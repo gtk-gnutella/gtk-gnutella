@@ -4287,18 +4287,18 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 	}
 
 	if (interactive) {
-		const gchar *atom;
+		const gchar *orig_name;
 		gchar *s;
 		
-		s = gm_sanitize_filename(file_name, FALSE, FALSE);
+		orig_name = file_name;
+		s = gm_sanitize_filename(orig_name, FALSE, FALSE);
 
 		/* An empty filename would create a corrupt download entry */
-    	atom = atom_str_get('\0' != s[0] ? s : "noname");
+    	file_name = atom_str_get('\0' != s[0] ? s : "noname");
 
-		if (file_name != s) {
+		if (orig_name != s) {
 			G_FREE_NULL(s);
 		}
-		file_name = atom_str_get(atom);
 	} else {
 		file_name = atom_str_get(file_name);
 	}
