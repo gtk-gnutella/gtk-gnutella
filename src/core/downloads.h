@@ -68,6 +68,7 @@ void download_forget(struct download *, gboolean unavailable);
 gboolean download_start_prepare(struct download *d);
 gboolean download_start_prepare_running(struct download *d);
 void download_send_request(struct download *);
+void download_connected(struct download *);
 void download_retry(struct download *);
 void download_close(void);
 gboolean download_server_nopush(const gchar *guid,

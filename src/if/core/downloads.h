@@ -120,28 +120,29 @@ dl_server_valid(const struct dl_server *s)
  */
 
 typedef enum {
-    GTA_DL_QUEUED           = 1,  /**< Download queued, will start later */
-    GTA_DL_CONNECTING       = 2,  /**< We are connecting to the server */
-    GTA_DL_PUSH_SENT        = 3,  /**< Sent a push, waiting connection */
-    GTA_DL_FALLBACK         = 4,  /**< Direct request failed, using push */
-    GTA_DL_REQ_SENT         = 5,  /**< Request sent, waiting for HTTP headers */
-    GTA_DL_HEADERS          = 6,  /**< We are receiving the HTTP headers */
-    GTA_DL_RECEIVING        = 7,  /**< We are receiving the data of the file */
-    GTA_DL_COMPLETED        = 8,  /**< Download is completed */
-    GTA_DL_ERROR            = 9,  /**< Download is stopped due to error */
-    GTA_DL_ABORTED          = 10, /**< User used the 'Abort Download' button */
-    GTA_DL_TIMEOUT_WAIT     = 11, /**< Waiting to try connecting again */
-    GTA_DL_REMOVED          = 12, /**< Download was removed, pending free */
-    GTA_DL_VERIFY_WAIT      = 13, /**< Waiting to verify SHA1 */
-    GTA_DL_VERIFYING        = 14, /**< Computing SHA1 */
-    GTA_DL_VERIFIED         = 15, /**< Verify of SHA1 done */
-    GTA_DL_MOVE_WAIT        = 16, /**< Waiting to be moved to "done/bad" dir */
-    GTA_DL_MOVING           = 17, /**< Being moved to "done/bad" dir */
-    GTA_DL_DONE             = 18, /**< All done! */
-    GTA_DL_SINKING          = 19, /**< Sinking HTML reply */
-    GTA_DL_ACTIVE_QUEUED    = 20, /**< Actively queued */
-    GTA_DL_PASSIVE_QUEUED   = 21, /**< Passively queued */
-    GTA_DL_REQ_SENDING      = 22  /**< Sending HTTP request */
+    GTA_DL_INVALID,			/**< Never used */
+    GTA_DL_QUEUED,			/**< Download queued, will start later */
+    GTA_DL_CONNECTING,  	/**< We are connecting to the server */
+    GTA_DL_PUSH_SENT,		/**< Sent a push, waiting connection */
+    GTA_DL_FALLBACK,		/**< Direct request failed, using push */
+    GTA_DL_REQ_SENT,		/**< Request sent, waiting for HTTP headers */
+    GTA_DL_HEADERS,			/**< We are receiving the HTTP headers */
+    GTA_DL_RECEIVING,		/**< We are receiving the data of the file */
+    GTA_DL_COMPLETED,		/**< Download is completed */
+    GTA_DL_ERROR,			/**< Download is stopped due to error */
+    GTA_DL_ABORTED,			/**< User used the 'Abort Download' button */
+    GTA_DL_TIMEOUT_WAIT,	/**< Waiting to try connecting again */
+    GTA_DL_REMOVED,			/**< Download was removed, pending free */
+    GTA_DL_VERIFY_WAIT,		/**< Waiting to verify SHA1 */
+    GTA_DL_VERIFYING,		/**< Computing SHA1 */
+    GTA_DL_VERIFIED,		/**< Verify of SHA1 done */
+    GTA_DL_MOVE_WAIT,		/**< Waiting to be moved to "done/bad" dir */
+    GTA_DL_MOVING,			/**< Being moved to "done/bad" dir */
+    GTA_DL_DONE,			/**< All done! */
+    GTA_DL_SINKING,			/**< Sinking HTML reply */
+    GTA_DL_ACTIVE_QUEUED,	/**< Actively queued */
+    GTA_DL_PASSIVE_QUEUED,	/**< Passively queued */
+    GTA_DL_REQ_SENDING		/**< Sending HTTP request */
 } download_status_t;
 
 typedef struct download download_t;
@@ -242,33 +243,37 @@ struct download {
  * Download flags.
  */
 
-#define DL_F_URIRES			0x00000001	/**< We sent a "/uri-res/N2R?" request */
-#define DL_F_PUSH_IGN		0x00000002	/**< Trying to ignore push flag */
-#define DL_F_OVERLAPPED		0x00000004	/**< We went through overlap checking */
-#define DL_F_REPLIED		0x00000008	/**< Servent replied to last request */
-#define DL_F_CHUNK_CHOSEN	0x00000010	/**< Retrying with specific chunk */
-#define DL_F_SHRUNK_REPLY	0x00000020	/**< Server sending less than we asked */
-#define DL_F_SUNK_DATA		0x00000040	/**< Whether we previously sunk data */
-#define DL_F_ACTIVE_QUEUED	0x00000080	/**< Download is actively queued */
-#define DL_F_PASSIVE_QUEUED	0x00000100	/**< Download is passively queued */
-#define DL_F_DNS_LOOKUP		0x00000200	/**< Attempted DNS lookup */
-#define DL_F_BROWSE			0x00000400	/**< Browse host type (requests "/") */
-#define DL_F_TRANSIENT		0x20000000	/**< Transient, don't persist */
-#define DL_F_SUSPENDED		0x40000000	/**< Suspended, do not schedule */
-#define DL_F_MARK			0x80000000	/**< Marked in traversal */
+enum {
+	DL_F_URIRES			= 1 << 0,	/**< We sent a "/uri-res/N2R?" request */
+	DL_F_PUSH_IGN		= 1 << 1,	/**< Trying to ignore push flag */
+	DL_F_OVERLAPPED		= 1 << 2,	/**< We went through overlap checking */
+	DL_F_REPLIED		= 1 << 3,	/**< Servent replied to last request */
+	DL_F_CHUNK_CHOSEN	= 1 << 4,	/**< Retrying with specific chunk */
+	DL_F_SHRUNK_REPLY	= 1 << 5,	/**< Server sending less than we asked */
+	DL_F_SUNK_DATA		= 1 << 6,	/**< Whether we previously sunk data */
+	DL_F_ACTIVE_QUEUED	= 1 << 7,	/**< Download is actively queued */
+	DL_F_PASSIVE_QUEUED	= 1 << 8,	/**< Download is passively queued */
+	DL_F_DNS_LOOKUP		= 1 << 9,	/**< Attempted DNS lookup */
+	DL_F_BROWSE			= 1 << 10,	/**< Browse host type (requests "/") */
+	DL_F_TRANSIENT		= 1 << 11,	/**< Transient, don't persist */
+	DL_F_SUSPENDED		= 1 << 12,	/**< Suspended, do not schedule */
+	DL_F_MARK			= 1 << 13,	/**< Marked in traversal */
+	DL_F_FOOBAR			= 1 << 14	/**< Host is foobar */
+};
 
 /*
  * Server attributes.
  */
-
-#define DLS_A_UNUSED_1		0x00000001	/**< UNUSED */
-#define DLS_A_PUSH_IGN		0x00000002	/**< Ignore pushes, connect directly */
-#define DLS_A_UNUSED_2		0x00000004	/**< UNUSED */
-#define DLS_A_NO_HTTP_1_1	0x00000008	/**< Server does NOT support HTTP/1.1 */
-#define DLS_A_MINIMAL_HTTP	0x00000010	/**< Use minimalist HTTP with server */
-#define DLS_A_BANNING		0x00000020	/**< Server might be banning us */
-#define DLS_A_DNS_LOOKUP	0x00000080	/**< Perform DNS lookup if possible */
-#define DLS_A_REMOVED		0x80000000	/**< Server marked for removal */
+enum {
+	DLS_A_UNUSED_1		= 1 << 0,	/**< UNUSED */
+	DLS_A_PUSH_IGN		= 1 << 1,	/**< Ignore pushes, connect directly */
+	DLS_A_UNUSED_2		= 1 << 2,	/**< UNUSED */
+	DLS_A_NO_HTTP_1_1	= 1 << 3,	/**< Server does NOT support HTTP/1.1 */
+	DLS_A_MINIMAL_HTTP	= 1 << 4,	/**< Use minimalist HTTP with server */
+	DLS_A_BANNING		= 1 << 5,	/**< Server might be banning us */
+	DLS_A_DNS_LOOKUP	= 1 << 6,	/**< Perform DNS lookup if possible */
+	DLS_A_REMOVED		= 1 << 7	/**< Server marked for removal */
+};
 
 /*
  * Access macros.

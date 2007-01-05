@@ -54,8 +54,6 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define CMD_MAX_SIZE 1024
-
 enum shell_reply {
 	REPLY_NONE		= 0,
 	REPLY_READY		= 100,
@@ -741,6 +739,7 @@ get_download_status_string(const struct download *d)
 	case GTA_DL_ACTIVE_QUEUED:	return "actively queued";
 	case GTA_DL_PASSIVE_QUEUED:	return "passively queued";
 	case GTA_DL_REQ_SENDING:	return "sending request";
+	case GTA_DL_INVALID:		g_assert_not_reached();
 	}
 	return "unknown";
 }
@@ -1530,14 +1529,11 @@ shell_destroy(gnutella_shell_t *sh)
 	shell_check(sh);
 
 	if (dbg > 0)
-		g_warning("shell_destroy");
+		g_message("shell_destroy");
 
 	sl_shells = g_slist_remove(sl_shells, sh);
-
 	socket_evt_clear(sh->socket);
-
 	shell_discard_output(sh);
-	
 	socket_free_null(&sh->socket);
 	shell_free(sh);
 }
@@ -1730,16 +1726,10 @@ shell_init(void)
 void
 shell_close(void)
 {
-	GSList *sl, *to_remove;
-
-	to_remove = g_slist_copy(sl_shells);
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-		gnutella_shell_t *sh = sl->data;
+	while (sl_shells) {
+		gnutella_shell_t *sh = sl_shells->data;
 		shell_destroy(sh);
 	}
-
-	g_slist_free(to_remove);
-	g_assert(NULL == sl_shells);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

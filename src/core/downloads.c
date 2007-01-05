@@ -1143,6 +1143,8 @@ download_timer(time_t now)
 			g_error("found queued download in sl_unqueued list: \"%s\"",
 				download_outname(d));
 			break;
+		case GTA_DL_INVALID:
+			g_assert_not_reached();
 		}
 	}
 
@@ -8671,6 +8673,18 @@ picked:
 	}
 
 	download_request_sent(d);
+}
+
+/**
+ * This function is called once a connection has been established.
+ */
+void
+download_connected(struct download *d)
+{
+	download_check(d);
+	socket_check(d->socket);
+
+	download_send_request(d);
 }
 
 /**

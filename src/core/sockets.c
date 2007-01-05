@@ -1887,7 +1887,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				struct download *d = s->resource.download;
 
 				g_assert(d->socket == s);
-				download_send_request(d);
+				download_connected(d);
 			}
 			break;
 
