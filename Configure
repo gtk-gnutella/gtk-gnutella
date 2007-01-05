@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Jan  3 00:10:57 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Fri Jan  5 04:17:36 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -68,28 +68,6 @@ if test -d c:/. ; then
 		esac
 	fi
 fi
-
-: Proper PATH setting
-paths='/bin /usr/bin /usr/local/bin /usr/ucb /usr/local /usr/lbin'
-paths="$paths /opt/bin /opt/local/bin /opt/local /opt/lbin"
-paths="$paths /usr/5bin /etc /usr/gnu/bin /usr/new /usr/new/bin /usr/nbin"
-paths="$paths /opt/gnu/bin /opt/new /opt/new/bin /opt/nbin"
-paths="$paths /sys5.3/bin /sys5.3/usr/bin /bsd4.3/bin /bsd4.3/usr/ucb"
-paths="$paths /bsd4.3/usr/bin /usr/bsd /bsd43/bin /usr/ccs/bin"
-paths="$paths /etc /usr/lib /usr/ucblib /lib /usr/ccs/lib"
-paths="$paths /sbin /usr/sbin /usr/libexec"
-paths="$paths /system/gnu_library/bin"
-
-for p in $paths
-do
-	case "$p_$PATH$p_" in
-	*$p_$p$p_*) ;;
-	*) test -d $p && PATH=$PATH$p_$p ;;
-	esac
-done
-
-PATH=.$p_$PATH
-export PATH
 
 : shall we be using ksh?
 inksh=''
