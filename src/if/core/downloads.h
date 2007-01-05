@@ -274,7 +274,7 @@ enum {
 	DLS_A_BANNING		= 1 << 5,	/**< Server might be banning us */
 	DLS_A_DNS_LOOKUP	= 1 << 6,	/**< Perform DNS lookup if possible */
 	DLS_A_REMOVED		= 1 << 7,	/**< Server marked for removal */
-	DLS_A_FOOBAR		= 1 << 8	/**< Host is foobar */
+	DLS_A_FOOBAR		= 1 << 8	/**< Server is foobar */
 };
 
 /*
