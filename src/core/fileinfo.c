@@ -3337,10 +3337,10 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 }
 
 /**
- * Create a transient fileinfo structure to be perused by browse host.
+ * Create a transient fileinfo structure.
  */
 fileinfo_t *
-file_info_get_browse(const gchar *name)
+file_info_get_transient(const gchar *name)
 {
 	fileinfo_t *fi;
 

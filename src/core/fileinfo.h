@@ -112,7 +112,7 @@ gboolean file_info_restrict_range(
 fileinfo_t *file_info_has_identical(const gchar *file, filesize_t size,
 				const gchar *sha1);
 
-fileinfo_t *file_info_get_browse(const gchar *name);
+fileinfo_t *file_info_get_transient(const gchar *name);
 void file_info_remove(fileinfo_t *fi);
 
 /***

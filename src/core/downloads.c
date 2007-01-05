@@ -4480,13 +4480,12 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
  * Automatic download request.
  */
 void
-download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
+download_auto_new(const gchar *file_name, filesize_t size, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
 	const gchar *hostname, const gchar *sha1, time_t stamp,
 	gboolean file_size_known, fileinfo_t *fi,
 	gnet_host_vec_t *proxies, guint32 flags)
 {
-	const gchar *file_name;
 	const char *reason;
 	enum ignore_val ign_reason;
 
@@ -4506,7 +4505,7 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	 */
 
 	ign_reason = ignore_is_requested(
-		fi ? fi->file_name : file,
+		fi ? fi->file_name : file_name,
 		fi ? fi->size : size,
 		fi ? fi->sha1 : sha1);
 
@@ -4523,8 +4522,6 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 	 * Create download.
 	 */
 
-	file_name = atom_str_get(file);
-
 	create_download(file_name, NULL, size, record_index, addr, port,
 		guid, hostname, sha1, stamp, FALSE, file_size_known, fi,
 		proxies, flags);
@@ -4533,7 +4530,7 @@ download_auto_new(const gchar *file, filesize_t size, guint32 record_index,
 
 abort_download:
 	if (download_debug > 4)
-		g_message("ignoring auto download for \"%s\": %s", file, reason);
+		g_message("ignoring auto download for \"%s\": %s", file_name, reason);
 	return;
 }
 
@@ -9519,12 +9516,8 @@ download_retrieve(void)
 			parq_dl_add_id(d, parq_id);
 		}
 
-		/*
-		 * Don't free `d_name', we gave it to create_download()!
-		 */
-
 	next_entry:
-		d_name = NULL;
+		atom_str_free_null(&d_name);
 		flags = 0;
 		recline = 0;				/* Mark the end */
 		has_sha1 = FALSE;
@@ -10262,15 +10255,13 @@ download_browse_start(const gchar *name, const gchar *hostname,
 {
 	struct download *d;
 	fileinfo_t *fi;
-	const gchar *dname;
+	gchar *dname;
 
 	if (!host_addr_initialized(addr))
 		return FALSE;
 
-	gm_snprintf(dl_tmp, sizeof dl_tmp, _("<Browse Host %s>"), name);
-
-	dname = atom_str_get(dl_tmp);
-	fi = file_info_get_browse(dname);
+	dname = g_strdup_printf(_("<Browse Host %s>"), name);
+	fi = file_info_get_transient(dname);
 
 	if (!guid)
 		guid = blank_guid;
@@ -10278,7 +10269,7 @@ download_browse_start(const gchar *name, const gchar *hostname,
 	d = create_download(dname, "/", 0, 0, addr, port, guid, hostname,
 			NULL, tm_time(), TRUE, FALSE, fi, proxies, flags);
 
-	atom_str_free_null(&dname);
+	G_FREE_NULL(dname);
 
 	if (d != NULL) {
 		gnet_host_t host;
@@ -10289,9 +10280,9 @@ download_browse_start(const gchar *name, const gchar *hostname,
 		gnet_host_set(&host, addr, port);
 		d->browse = browse_host_dl_create(d, &host, search);
 		file_info_changed(fi);		/* Update status! */
-	} else
+	} else {
 		file_info_remove(fi);
-
+	}
 	return d;
 }
 
