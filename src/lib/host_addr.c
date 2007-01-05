@@ -447,6 +447,25 @@ host_addr_port_to_string2(const host_addr_t ha, guint16 port)
 	return buf;
 }
 
+const gchar *
+host_port_to_string(const gchar *hostname, host_addr_t addr, guint16 port)
+{
+	static gchar buf[MAX_HOSTLEN + 32];
+
+	if (hostname) {
+		gchar port_buf[UINT32_DEC_BUFLEN];
+
+		uint32_to_string_buf(port, port_buf, sizeof port_buf);
+		strncpy(buf, hostname, MAX_HOSTLEN);
+		buf[MAX_HOSTLEN] = '\0';
+		strncat(buf, ":", sizeof buf);
+		strncat(buf, port_buf, sizeof buf);
+	} else {
+		host_addr_port_to_string_buf(addr, port, buf, sizeof buf);
+	}
+	return buf;
+}
+
 /**
  * Parses IPv4 and IPv6 addresses. The latter requires IPv6 support to be
  * enabled.

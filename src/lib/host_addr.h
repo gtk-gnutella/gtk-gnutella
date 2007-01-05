@@ -534,6 +534,8 @@ size_t host_addr_port_to_string_buf(const host_addr_t addr,
 				guint16 port, gchar *, size_t);
 gboolean string_to_host_addr_port(const gchar *str, const gchar **endptr,
 	host_addr_t *addr_ptr, guint16 *port_ptr);
+const gchar *host_port_to_string(const gchar *hostname,
+				host_addr_t addr, guint16 port);
 
 GSList *name_to_host_addr(const gchar *host, enum net_type net);
 void host_addr_free_list(GSList **sl_ptr);
