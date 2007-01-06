@@ -5,14 +5,14 @@
 # Copyright (C) 2001-2006 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # T'aZ <tazdev@punkass.com>, 2004-2005.
-# FlashCode <flashcode@flashtux.org>, 2006.
+# FlashCode <flashcode@flashtux.org>, 2006-2007.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.2u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-11-02 20:11+0100\n"
-"PO-Revision-Date: 2006-11-02 20:15+0100\n"
+"POT-Creation-Date: 2007-01-05 22:54+0100\n"
+"PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -80,8 +80,14 @@ msgstr[1] "Connexion refusée (%u essais)"
 msgid "Dup SHA1 during creation"
 msgstr "SHA1 en double pendant la création"
 
-msgid "No download slot (create)"
-msgstr "Pas de créneau libre pour télécharger (création)"
+msgid "Max. number of downloads reached"
+msgstr "Nombre max de téléchargements atteint"
+
+msgid "Max. number of downloads for this host reached"
+msgstr "Nombre max de téléchargements atteint pour cette machine"
+
+msgid "Has already enough active sources"
+msgstr "Il y a déjà assez de sources actives"
 
 msgid "Stopped (Index changed)"
 msgstr "Stoppé (Index changé)"
@@ -250,19 +256,6 @@ msgstr "Spam"
 
 msgid "Evil filename"
 msgstr "Mauvais nom de fichier"
-
-#, c-format
-msgid "Got %d host from %s"
-msgid_plural "Got %d hosts from %s"
-msgstr[0] "Reçu %d hôte depuis %s"
-msgstr[1] "Reçu %d hôtes depuis %s"
-
-#, c-format
-msgid "Connecting to web cache %s"
-msgstr "Connexion au cache web %s"
-
-msgid "Updated web cache "
-msgstr "Cache web mis à jour "
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -490,6 +483,9 @@ msgstr "String de la demande manquante"
 msgid "Search added"
 msgstr "Rcherche ajoutée"
 
+msgid "The search could not be created"
+msgstr "La recherche ne peux pas être créée"
+
 msgid "Property missing"
 msgstr "Propriété manquante"
 
@@ -505,25 +501,17 @@ msgstr "Valeur trouvée et affichée"
 msgid "Value missing"
 msgstr "Valeur manquante"
 
-msgid "Type not supported"
-msgstr "Type non supporté"
-
 msgid "Value found and set"
 msgstr "Valeur trouvée et utilisée"
 
 msgid "Help: "
 msgstr "Aide:"
 
-msgid "Unknown parameter"
-msgstr "Paramètre inconnu"
+msgid "The library is currently being rebuilt."
+msgstr "La bibliothèque est en cours de reconstruction."
 
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "Taille de l'horizon (%u/%u noeuds supportant HSEP):"
-
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr "Taille d'horizon via le noeud HSEP %s (%s):"
+msgid "A rescan has already been scheduled"
+msgstr "Un parcours a déjà été planifié"
 
 msgid "Hops"
 msgstr "Sauts"
@@ -536,6 +524,26 @@ msgstr "Fichiers"
 
 msgid "Size"
 msgstr " Taille "
+
+msgid "Unknown parameter"
+msgstr "Paramètre inconnu"
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr "Taille de l'horizon (%u/%u noeuds supportant HSEP):"
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr "Taille d'horizon via le noeud HSEP %s (%s):"
+
+msgid "URL missing"
+msgstr "URL manquant"
+
+msgid "The download could not be created"
+msgstr "Le téléchargement ne peut pas être créé"
+
+msgid "Download added"
+msgstr "Téléchargement ajouté"
 
 msgid "No matching property."
 msgstr "Aucune propriété correspondant."
@@ -1138,9 +1146,6 @@ msgstr "Niveau de débugage pour le code partagé entre l'interface et le noyau.
 
 msgid "Verbosity of Bitzi related debug messages."
 msgstr "Verbosité des messages de debug liés à Bitzi."
-
-msgid "Verbosity of GWebCache related debug messages."
-msgstr "Verbosité des messages de debug liés aux GWebCache."
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr "Verbosité des messages de debug liés à la manipulation des URL."
@@ -2398,25 +2403,6 @@ msgstr ""
 "maximum si vous avez de la RAM."
 
 msgid ""
-"Extra amount of data per downloading source that gtk-gnutella will try to "
-"read-ahead.  This gives more room for reading large amount of data without "
-"issuing too many system calls. It complements buffering nicely because it "
-"prevents reading a few bytes before committing the buffered data to disk: "
-"when read-ahead space is available, it will be used in addition to "
-"buffering, but read-ahead data is committed to disk immediately.  If you "
-"don't wish to reserve more memory per active source, you can disable this "
-"feature by setting the read-ahead buffer size to 0."
-msgstr ""
-"Extra amount of data per downloading source that gtk-gnutella will try to "
-"read-ahead.  This gives more room for reading large amount of data without "
-"issuing too many system calls. It complements buffering nicely because it "
-"prevents reading a few bytes before committing the buffered data to disk: "
-"when read-ahead space is available, it will be used in addition to "
-"buffering, but read-ahead data is committed to disk immediately.  If you "
-"don't wish to reserve more memory per active source, you can disable this "
-"feature by setting the read-ahead buffer size to 0."
-
-msgid ""
 "When set, all search results from host browsing are dispatched to all opened "
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
@@ -2453,6 +2439,38 @@ msgid ""
 msgstr ""
 "Si activé, Gtk-Gnutella écoute aussi sur une socket locale (domaine unix) "
 "qui est dans ~/.gtk-gnutella/socket."
+
+msgid "Don't start more than this number of parallel downloads per file."
+msgstr ""
+"Ne pas démarrer plus de transferts en parallèle par fichier que ce nombre."
+
+msgid ""
+"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
+"dump."
+msgstr ""
+"Si activé, tous les paquets reçus sont copiés dans $GTK_GNUTELLA_DIR/"
+"packets_rx.dump."
+
+msgid ""
+"If enabled, queries are also matched against the directory names which are "
+"relative to the shared ones. Further, search results will show these. This "
+"is especially useful if the shared filenames are ambiguous or meaningless "
+"without knowing the directory names as well. However, be sure the directory "
+"names do not expose confidential information. You have to initiate a rescan "
+"of the shared files before a change becomes fully effective."
+msgstr ""
+"If enabled, queries are also matched against the directory names which are "
+"relative to the shared ones. Further, search results will show these. This "
+"is especially useful if the shared filenames are ambiguous or meaningless "
+"without knowing the directory names as well. However, be sure the directory "
+"names do not expose confidential information. You have to initiate a rescan "
+"of the shared files before a change becomes fully effective."
+
+msgid "Debug level for the shell."
+msgstr "Niveau de débugage pour le shell."
+
+msgid "If larger than zero, no downloads are started."
+msgstr "Si supérieur à zéro, aucun téléchargeement n'est démarré."
 
 msgid "disable"
 msgstr "désactiver"
@@ -2680,6 +2698,9 @@ msgstr "Taille de l'arbre de filtre dans le dialogue de filtre."
 
 msgid "Show tabs or search list."
 msgstr "Afficher les onglets ou la liste des recherches."
+
+msgid "Display Searchbar."
+msgstr "Afficher la barre de recherche."
 
 msgid "Display Sidebar."
 msgstr "Afficher la Sidebar."
@@ -4355,9 +4376,6 @@ msgstr "<aucun>"
 msgid "%s (%s bytes)"
 msgstr "%s (%s octets)"
 
-msgid "gtk-gnutella"
-msgstr "gtk-gnutella"
-
 msgid "_File"
 msgstr "_Fichier"
 
@@ -4593,9 +4611,6 @@ msgstr "Envoyé:"
 msgid "Downloaded:"
 msgstr "Téléchargé:"
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr "Quelqu'un me dit un tooltips approprié pour ceci."
-
 msgid "Chunks/Files:"
 msgstr "Blocs/fichiers:"
 
@@ -4618,9 +4633,6 @@ msgstr ""
 "L'adresse IP actuelle et le port d'écoute pour ce noeud. Pour les changer "
 "aller dans Fichier->Configuration->Réseau."
 
-msgid "[Gnet]"
-msgstr "[Gnet]"
-
 msgid "Message/flow control stats"
 msgstr "Stats du contrôle message/flux"
 
@@ -4635,33 +4647,6 @@ msgstr "Raison"
 
 msgid "_General"
 msgstr "_Général"
-
-msgid "0"
-msgstr "0"
-
-msgid "1"
-msgstr "1"
-
-msgid "2"
-msgstr "2"
-
-msgid "3"
-msgstr "3"
-
-msgid "4"
-msgstr "4"
-
-msgid "5"
-msgstr "5"
-
-msgid "6"
-msgstr "6"
-
-msgid "7"
-msgstr "7"
-
-msgid "8+"
-msgstr "8+"
 
 msgid "FC/_TTL"
 msgstr "FC/_TTL"
@@ -4708,9 +4693,6 @@ msgstr "Afficher le _protocole:"
 msgid "Show r_easons for"
 msgstr "Afficher les _raisons pour"
 
-msgid "[Gnet Stats]"
-msgstr "[Gnet Stats]"
-
 msgid "Hostcache statistics"
 msgstr "Statistiques du cache des hôtes"
 
@@ -4740,9 +4722,6 @@ msgstr "Ultrapeers"
 
 msgid "Bad hosts"
 msgstr "Hôtes mauvais"
-
-msgid "[Hostcache]"
-msgstr "[Cache des hôtes]"
 
 msgid "Uploads"
 msgstr "Envois"
@@ -4783,9 +4762,6 @@ msgstr "Max d'envois simultanés"
 msgid "Max. uploads to a single host"
 msgstr "Max d'envois vers un seul hôte"
 
-msgid "[Uploads]"
-msgstr "[Envois]"
-
 msgid "Upload history"
 msgstr "Historique d'envois"
 
@@ -4804,29 +4780,14 @@ msgstr "Tout effacer"
 msgid "Fully served "
 msgstr "Servi entièrement "
 
-msgid "[BH HTML served]"
-msgstr "[Servi BH HTML]"
-
 msgid " / "
 msgstr " / "
-
-msgid "[BH HTML]"
-msgstr "[BH HTML]"
 
 msgid " HTML and "
 msgstr " HTML et "
 
-msgid "[BH qhits served]"
-msgstr "[BH qhits servis]"
-
-msgid "[BH qhits]"
-msgstr "[BH qhits]"
-
 msgid " Gnutella browse requests"
 msgstr " Requêtes de parcours Gnutella"
-
-msgid "[Upload Stats]"
-msgstr "[Stats d'envois]"
 
 msgid "Files to get"
 msgstr "Fichiers à recevoir"
@@ -4882,20 +4843,11 @@ msgstr "Noms de fichiers alternatifs"
 msgid "_Purge selected"
 msgstr "_Purger ceux sélectionnés"
 
-msgid "[all count]"
-msgstr "[tous les compteurs]"
-
 msgid " registered, "
 msgstr " enregistré, "
 
-msgid "[with source count]"
-msgstr "[compteur avec source]"
-
 msgid " with sources"
 msgstr " avec sources"
-
-msgid "[Downloads]"
-msgstr "[Téléchargements]"
 
 msgid "Active sources"
 msgstr "Sources actives"
@@ -4906,15 +4858,6 @@ msgstr "Serveur"
 msgid "Download settings"
 msgstr "Paramètres de téléchargement"
 
-msgid "Max. simultaneous downloads"
-msgstr "Max de téléchargements simultanés"
-
-msgid "Max. downloads from single host"
-msgstr "Max de téléchargements simultanés d'un seul hôte"
-
-msgid "Bytes to back off on mismatch"
-msgstr "Nombre d'octets à supprimer lors d'une disparité"
-
 msgid "Never send a push request"
 msgstr "Ne jamais envoyer une requête push"
 
@@ -4923,6 +4866,18 @@ msgstr "Supprimer le fichier lors de l'arrêt"
 
 msgid "Remove file on mismatch"
 msgstr "Supprimer le fichier lors d'une disparité"
+
+msgid "Bytes to back off on mismatch"
+msgstr "Nombre d'octets à supprimer lors d'une disparité"
+
+msgid "Max. downloads from single host"
+msgstr "Max de téléchargements simultanés d'un seul hôte"
+
+msgid "Max. simultaneous downloads"
+msgstr "Max de téléchargements simultanés"
+
+msgid "Max. simultaneous downloads per file"
+msgstr "Max de téléchargements simultanés par fichier"
 
 msgid "Auto clear stopped downloads"
 msgstr "Effacer automatiquement les téléchargements arrêtés"
@@ -4952,9 +4907,6 @@ msgstr ""
 msgid "Clear stopped"
 msgstr "Effacer ceux arrêtés"
 
-msgid "[running]"
-msgstr "[en cours]"
-
 msgid "("
 msgstr "("
 
@@ -4973,9 +4925,6 @@ msgstr ")"
 msgid "Show settings"
 msgstr "Afficher les paramètres"
 
-msgid "[Active]"
-msgstr "[Actif]"
-
 msgid "Inactive sources"
 msgstr "Sources inactives"
 
@@ -4988,23 +4937,14 @@ msgstr "Geler la file"
 msgid "Thaw queue"
 msgstr "Débloquer la file"
 
-msgid "[queued downloads]"
-msgstr "[téléchargements en file]"
-
 msgid " queued ("
 msgstr " dans la file ("
-
-msgid "[hosts alive]"
-msgstr "[hôtes en vie]"
 
 msgid " alive with "
 msgstr " en vie avec "
 
 msgid " passive)"
 msgstr " passif)"
-
-msgid "[Queue]"
-msgstr "[File]"
 
 msgid "Search results"
 msgstr "Résultats de la recherche"
@@ -5099,9 +5039,6 @@ msgstr "Tout regrouper"
 msgid "_Clear results"
 msgstr "Effa_cer les résultats"
 
-msgid "[Search]"
-msgstr "[Recherche]"
-
 msgid "Search _monitor enabled"
 msgstr "_Moniteur de recherche activé"
 
@@ -5110,9 +5047,6 @@ msgstr "Afficher les _dernier(e)s"
 
 msgid "searches"
 msgstr "recherches"
-
-msgid "[Monitor]"
-msgstr "[Moniteur]"
 
 msgid "_Update interval (sec)"
 msgstr "I_ntervalle de lise à jour (sec)"
@@ -5131,9 +5065,6 @@ msgstr "_Réinitialiser les stats"
 
 msgid "0 terms counted"
 msgstr "0 terme compté"
-
-msgid "[Search Stats]"
-msgstr "[Stats de recherche]"
 
 msgid "You seem to be offline."
 msgstr "Vous semblez être déconnecté."
@@ -5387,9 +5318,6 @@ msgstr "Ajouter une règle sur l'IP"
 msgid "Add state rule"
 msgstr "Ajouter une règle d'état"
 
-msgid "[Add/Remove]"
-msgstr "[Ajouter/Retirer]"
-
 msgid "invert condition"
 msgstr "inverser la condition"
 
@@ -5408,17 +5336,11 @@ msgstr "Sauver"
 msgid "Remove"
 msgstr "Retirer"
 
-msgid "[Filename]"
-msgstr "[Nom de fichier]"
-
 msgid "Condition: If IP address matches"
 msgstr "Condition: Si l'adresse IP correspond"
 
 msgid "IP address/mask"
 msgstr "Adresse IP/masque"
-
-msgid "[IP address]"
-msgstr "[Adresse IP]"
 
 msgid "Condition: If file size matches"
 msgstr "Condition: Si la taille du fichier correspond"
@@ -5431,9 +5353,6 @@ msgstr "Taille maximum:"
 
 msgid "bytes"
 msgstr "octets"
-
-msgid "[Filesize]"
-msgstr "[Taille de fichier]"
 
 msgid "Condition: always"
 msgstr "Condition: toujours"
@@ -5448,9 +5367,6 @@ msgstr ""
 "ne pouvez inverser cette condition. Si vous pouviez, cette règle serait "
 "juste ignorée."
 
-msgid "[Jump]"
-msgstr "[Sauter]"
-
 msgid "Condition: If urn:sha1 matches"
 msgstr "Condition: Si urn:sha1 correspond"
 
@@ -5459,9 +5375,6 @@ msgstr "hash SHA1 (pas éditable, ajouter depuis la fenêtre de recherche)"
 
 msgid "Originally obtained from"
 msgstr "Obtenu à l'origine depuis"
-
-msgid "[SHA1]"
-msgstr "[SHA1]"
 
 msgid "Condition: If result has flags"
 msgstr "Condition: Si le résultat a des drapeaux"
@@ -5481,9 +5394,6 @@ msgstr "mis"
 msgid "Stable"
 msgstr "Stable"
 
-msgid "[Flags]"
-msgstr "[Drapeaux]"
-
 msgid "Condition: If current filter result properties match"
 msgstr "Condition: Si les propriétés du résultat du filtre actuel correspond"
 
@@ -5498,9 +5408,6 @@ msgstr "faire"
 
 msgid "ignore"
 msgstr "ignorer"
-
-msgid "[State]"
-msgstr "[Etat]"
 
 msgid "Apply"
 msgstr "Appliquer"
@@ -5528,14 +5435,8 @@ msgstr ""
 "\n"
 "Temps de grâce restant:"
 
-msgid "[time]"
-msgstr "[heure]"
-
 msgid "About gtk-gnutella"
 msgstr "A propos de gtk-gnutella"
-
-msgid "[name and version]"
-msgstr "[nom et version]"
 
 msgid "Original author:"
 msgstr "Auteur original:"
@@ -5723,9 +5624,6 @@ msgstr ""
 
 msgid "Currently used"
 msgstr "Utilisé actuellement"
-
-msgid "[place holder]"
-msgstr "[place holder]"
 
 msgid "Use global hostiles.txt"
 msgstr "Utiliser le hostiles.txt global"
@@ -5915,9 +5813,6 @@ msgstr "Nombre de messages en _doubles tolérés par noeud"
 
 msgid "RX flow control ratio"
 msgstr "Proportion du contrôle de flux RX"
-
-msgid "%"
-msgstr "%"
 
 msgid "Watch for similar queries"
 msgstr "Prêter attention aux demandes similaires"
@@ -6475,14 +6370,26 @@ msgstr "gtk-gnutella - Questions fréquemment posées"
 msgid "Frequently Asked Questions:"
 msgstr "Questions fréquemment posées:"
 
+msgid "_Stop this search"
+msgstr "_Arrêter cette recherche"
+
+msgid "Resu_me this search"
+msgstr "Repren_dre cette recherche"
+
+msgid "_Restart this search"
+msgstr "_Recommencer cette recherche"
+
+msgid "_Duplicate this search"
+msgstr "_Dupliquer cette recherche"
+
+msgid "_Close this search"
+msgstr "_Fermer la recherche"
+
 msgid "Country"
 msgstr "Pays"
 
 msgid "Failed to create the search"
 msgstr "Echec de création de la recherche"
-
-msgid "TCP"
-msgstr "TCP"
 
 msgid "owned"
 msgstr "détenu"
@@ -6540,6 +6447,9 @@ msgstr "Hostile"
 
 msgid "SHA-1"
 msgstr "SHA-1"
+
+msgid "Created"
+msgstr "Créé"
 
 msgid "Not in database"
 msgstr "Pas dans la base de données"
@@ -6656,8 +6566,20 @@ msgstr "Adresse/Port:"
 msgid "Uploaded data:"
 msgstr "Données envoyées :"
 
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "Quelqu'un me dit un tooltips approprié pour ceci."
+
 msgid "Served "
 msgstr "Servi "
+
+msgid "[BH HTML served]"
+msgstr "[Servi BH HTML]"
+
+msgid "[BH HTML]"
+msgstr "[BH HTML]"
+
+msgid "[BH qhits]"
+msgstr "[BH qhits]"
 
 msgid "Current _search:"
 msgstr "Recherche _actuelle:"
@@ -6743,14 +6665,11 @@ msgstr "tentatives"
 msgid "_Remove directory"
 msgstr "_Retirer un répertoire"
 
+msgid "E_xpose relative paths"
+msgstr "M_ontrer les chemins relatifs"
+
 msgid "Minimum chunk _size"
 msgstr "Taille minimum des _blocs"
-
-msgid "Edit filters"
-msgstr "Editer les filtres"
-
-msgid "Close this search"
-msgstr "Fermer la recherche"
 
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
@@ -6924,9 +6843,6 @@ msgstr ""
 msgid "<unparsed>"
 msgstr "<non examiné>"
 
-msgid ", browsable"
-msgstr ", parcourable"
-
 msgid "browsable"
 msgstr "parcourable"
 
@@ -6983,8 +6899,14 @@ msgstr "Lien aimant manipulé (%s, %s)."
 msgid "The given urn type is not supported."
 msgstr "Le type urn n'est pas supporté."
 
+msgid "The given SHA-1 is not correctly encoded."
+msgstr "Le SHA-1 n'est pas correctement encodé."
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "La chaîne de recherche n'est pas encodée en UTF-8"
+
+msgid "Unhandled search prefix."
+msgstr "Préfixe de recherche non supporté."
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -7138,3 +7060,170 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Got %d host from %s"
+#~ msgid_plural "Got %d hosts from %s"
+#~ msgstr[0] "Reçu %d hôte depuis %s"
+#~ msgstr[1] "Reçu %d hôtes depuis %s"
+
+#~ msgid "Connecting to web cache %s"
+#~ msgstr "Connexion au cache web %s"
+
+#~ msgid "Updated web cache "
+#~ msgstr "Cache web mis à jour "
+
+#~ msgid "Type not supported"
+#~ msgstr "Type non supporté"
+
+#~ msgid "Verbosity of GWebCache related debug messages."
+#~ msgstr "Verbosité des messages de debug liés aux GWebCache."
+
+#~ msgid ""
+#~ "Extra amount of data per downloading source that gtk-gnutella will try to "
+#~ "read-ahead.  This gives more room for reading large amount of data "
+#~ "without issuing too many system calls. It complements buffering nicely "
+#~ "because it prevents reading a few bytes before committing the buffered "
+#~ "data to disk: when read-ahead space is available, it will be used in "
+#~ "addition to buffering, but read-ahead data is committed to disk "
+#~ "immediately.  If you don't wish to reserve more memory per active source, "
+#~ "you can disable this feature by setting the read-ahead buffer size to 0."
+#~ msgstr ""
+#~ "Extra amount of data per downloading source that gtk-gnutella will try to "
+#~ "read-ahead.  This gives more room for reading large amount of data "
+#~ "without issuing too many system calls. It complements buffering nicely "
+#~ "because it prevents reading a few bytes before committing the buffered "
+#~ "data to disk: when read-ahead space is available, it will be used in "
+#~ "addition to buffering, but read-ahead data is committed to disk "
+#~ "immediately.  If you don't wish to reserve more memory per active source, "
+#~ "you can disable this feature by setting the read-ahead buffer size to 0."
+
+#~ msgid "No download slot (create)"
+#~ msgstr "Pas de créneau libre pour télécharger (création)"
+
+#~ msgid "gtk-gnutella"
+#~ msgstr "gtk-gnutella"
+
+#~ msgid "[Gnet]"
+#~ msgstr "[Gnet]"
+
+#~ msgid "0"
+#~ msgstr "0"
+
+#~ msgid "1"
+#~ msgstr "1"
+
+#~ msgid "2"
+#~ msgstr "2"
+
+#~ msgid "3"
+#~ msgstr "3"
+
+#~ msgid "4"
+#~ msgstr "4"
+
+#~ msgid "5"
+#~ msgstr "5"
+
+#~ msgid "6"
+#~ msgstr "6"
+
+#~ msgid "7"
+#~ msgstr "7"
+
+#~ msgid "8+"
+#~ msgstr "8+"
+
+#~ msgid "[Gnet Stats]"
+#~ msgstr "[Gnet Stats]"
+
+#~ msgid "[Hostcache]"
+#~ msgstr "[Cache des hôtes]"
+
+#~ msgid "[Uploads]"
+#~ msgstr "[Envois]"
+
+#~ msgid "[BH qhits served]"
+#~ msgstr "[BH qhits servis]"
+
+#~ msgid "[Upload Stats]"
+#~ msgstr "[Stats d'envois]"
+
+#~ msgid "[all count]"
+#~ msgstr "[tous les compteurs]"
+
+#~ msgid "[with source count]"
+#~ msgstr "[compteur avec source]"
+
+#~ msgid "[Downloads]"
+#~ msgstr "[Téléchargements]"
+
+#~ msgid "[running]"
+#~ msgstr "[en cours]"
+
+#~ msgid "[Active]"
+#~ msgstr "[Actif]"
+
+#~ msgid "[queued downloads]"
+#~ msgstr "[téléchargements en file]"
+
+#~ msgid "[hosts alive]"
+#~ msgstr "[hôtes en vie]"
+
+#~ msgid "[Queue]"
+#~ msgstr "[File]"
+
+#~ msgid "[Search]"
+#~ msgstr "[Recherche]"
+
+#~ msgid "[Monitor]"
+#~ msgstr "[Moniteur]"
+
+#~ msgid "[Search Stats]"
+#~ msgstr "[Stats de recherche]"
+
+#~ msgid "[Add/Remove]"
+#~ msgstr "[Ajouter/Retirer]"
+
+#~ msgid "[Filename]"
+#~ msgstr "[Nom de fichier]"
+
+#~ msgid "[IP address]"
+#~ msgstr "[Adresse IP]"
+
+#~ msgid "[Filesize]"
+#~ msgstr "[Taille de fichier]"
+
+#~ msgid "[Jump]"
+#~ msgstr "[Sauter]"
+
+#~ msgid "[SHA1]"
+#~ msgstr "[SHA1]"
+
+#~ msgid "[Flags]"
+#~ msgstr "[Drapeaux]"
+
+#~ msgid "[State]"
+#~ msgstr "[Etat]"
+
+#~ msgid "[time]"
+#~ msgstr "[heure]"
+
+#~ msgid "[name and version]"
+#~ msgstr "[nom et version]"
+
+#~ msgid "[place holder]"
+#~ msgstr "[place holder]"
+
+#~ msgid "%"
+#~ msgstr "%"
+
+#~ msgid "TCP"
+#~ msgstr "TCP"
+
+#~ msgid "Edit filters"
+#~ msgstr "Editer les filtres"
+
+#~ msgid ", browsable"
+#~ msgstr ", parcourable"
+
+ 	  	 
