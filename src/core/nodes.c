@@ -399,6 +399,24 @@ string_table_free(GHashTable *ht)
 	g_hash_table_destroy(ht);
 }
 
+/**
+ * Sends a PING to the node over UDP (if enabled).
+ */
+static void
+node_send_udp_ping(struct gnutella_node *n)
+{
+	struct gnutella_node *udp;
+   
+	udp = node_udp_get_addr_port(n->addr, n->port);
+	if (udp) {
+		gnutella_msg_init_t *m;
+		guint32 size;
+
+		m = build_ping_msg(NULL, 1, TRUE, &size);
+		udp_send_msg(udp, m, size);
+	}
+}
+
 /***
  *** Time Sync operations.
  ***/
@@ -929,6 +947,7 @@ node_timer(time_t now)
 					delta_time(now, n->last_update) >
 						(time_delta_t) node_connecting_timeout
 				) {
+					node_send_udp_ping(n);
 					node_remove(n, _("Timeout"));
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0, "timeout");
 				}
@@ -5372,15 +5391,7 @@ err_header_read_error(gpointer obj, gint error)
 	struct gnutella_node *n = NODE(obj);
  
 	if (ECONNRESET == error && GTA_NODE_HELLO_SENT == n->status) {
-		struct gnutella_node *udp = node_udp_get_addr_port(n->addr, n->port);
-
-		if (udp) {
-			gnutella_msg_init_t *m;
-			guint32 size;
-
-			m = build_ping_msg(NULL, 1, TRUE, &size);
-			udp_send_msg(udp, m, size);
-		}
+		node_send_udp_ping(n);
 	}
 	node_remove(n, _("Failed (Input error: %s)"), g_strerror(error));
 }
