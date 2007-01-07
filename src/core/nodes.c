@@ -5369,7 +5369,20 @@ err_input_buffer_full(gpointer obj)
 static void
 err_header_read_error(gpointer obj, gint error)
 {
-	node_remove(NODE(obj), _("Failed (Input error: %s)"), g_strerror(error));
+	struct gnutella_node *n = NODE(obj);
+ 
+	if (ECONNRESET == error && GTA_NODE_HELLO_SENT == n->status) {
+		struct gnutella_node *udp = node_udp_get_addr_port(n->addr, n->port);
+
+		if (udp) {
+			gnutella_msg_init_t *m;
+			guint32 size;
+
+			m = build_ping_msg(NULL, 1, TRUE, &size);
+			udp_send_msg(udp, m, size);
+		}
+	}
+	node_remove(n, _("Failed (Input error: %s)"), g_strerror(error));
 }
 
 static void
