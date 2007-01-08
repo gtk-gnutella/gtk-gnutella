@@ -2294,8 +2294,9 @@ search_gui_set_current_search(search_t *sch)
 			row = gtk_clist_find_row_from_data(clist, sch);
 			gtk_clist_unselect_all(clist);
 			gtk_clist_select_row(clist, row, 0);
-			if (!GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(clist)))
+			if (GTK_VISIBILITY_FULL != gtk_clist_row_is_visible(clist, row)) {
 				gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
+			}
 		}
 
         gtk_spin_button_set_value
