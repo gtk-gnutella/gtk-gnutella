@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Jan  9 02:21:25 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Tue Jan  9 02:29:46 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4746,8 +4746,7 @@ $rm -f attrib*
 : see whether the program compiles and links
 trylink='
 var=$1;
-cat try.c >> ~/tmp/Trylink.log;
-if $cc $ccflags -o try try.c $ldflags >> ~/tmp/Trylink.log 2>&1; then
+if $cc $ccflags -o try try.c $ldflags >/dev/null 2>&1; then
 	eval "$var=\$define";
 else
 	eval "$var=\$undef";
