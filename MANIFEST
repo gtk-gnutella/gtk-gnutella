@@ -64,8 +64,6 @@ U/new/i_libintl.U
 U/new/i_netdb.U
 U/new/i_netif.U
 U/new/i_niip.U
-U/new/i_poll.U
-U/new/i_syspoll.U
 U/new/i_syssendfile.U
 U/new/i_syssysctl.U
 U/new/i_sysutsname.U
