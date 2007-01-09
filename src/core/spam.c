@@ -231,7 +231,7 @@ spam_add_sha1(const sha1_t *sha1)
 	}
 #else	/* USE_SQLITE */
 	if (spam_lut.ht) {
-		const gchar *atom = atom_sha1_get(cast_to_gpointer(sha1->data));
+		const gchar *atom = atom_sha1_get(cast_to_gconstpointer(sha1->data));
 		gm_hash_table_insert_const(spam_lut.ht, atom, atom);
 	}
 #endif	/* USE_SQLITE */
