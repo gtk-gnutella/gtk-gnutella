@@ -1929,7 +1929,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 	if (sent_sha1) {
 		struct shared_file *sfn;
 		
-		if (spam_check(digest)) {
+		if (spam_check_sha1(digest)) {
 			goto not_found;
 		}
 
@@ -2136,7 +2136,7 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 		goto not_found;
 	}
 
-	if (spam_check(digest)) {
+	if (spam_check_sha1(digest)) {
 		goto not_found;
 	}
 

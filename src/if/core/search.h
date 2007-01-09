@@ -102,14 +102,15 @@ gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *vec);
  * Result sets `status' flags.
  */
 enum {
-	 ST_BROWSE				= (1 << 20), /**< Browse Host "search" result */
-	 ST_LOCAL				= (1 << 19), /**< Local search result */
-	 ST_FW2FW				= (1 << 18), /**< Firewall-to-Firewall support */
-	 ST_HOSTILE				= (1 << 17), /**< From an hostile host */
-	 ST_UNREQUESTED			= (1 << 16), /**< Unrequested (OOB) result */
-	 ST_EVIL				= (1 << 15), /**< Carries evil filename */
-	 ST_ALT_SPAM			= (1 << 14), /**< Carries alt-loc spam */
-	 ST_DUP_SPAM			= (1 << 13), /**< Carries spam known by URN */
+	 ST_BROWSE				= (1 << 21), /**< Browse Host "search" result */
+	 ST_LOCAL				= (1 << 20), /**< Local search result */
+	 ST_FW2FW				= (1 << 19), /**< Firewall-to-Firewall support */
+	 ST_HOSTILE				= (1 << 18), /**< From an hostile host */
+	 ST_UNREQUESTED			= (1 << 17), /**< Unrequested (OOB) result */
+	 ST_EVIL				= (1 << 16), /**< Carries evil filename */
+	 ST_ALT_SPAM			= (1 << 15), /**< Carries alt-loc spam */
+	 ST_DUP_SPAM			= (1 << 14), /**< Carries spam known by URN */
+	 ST_NAME_SPAM			= (1 << 13), /**< Carries alt-loc spam */
 	 ST_URL_SPAM			= (1 << 12), /**< Carries action URL spam */
 	 ST_URN_SPAM			= (1 << 11), /**< Carries spam known by URN */
 	 ST_TLS					= (1 << 10), /**< Indicated support for TLS */

@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "settings.h"
 #include "nodes.h"
 
+#include "lib/halloc.h"
 #include "lib/atoms.h"
 #include "lib/bit_array.h"
 #include "lib/file.h"
@@ -56,6 +57,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
+#include "lib/utf8.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -85,20 +87,18 @@ struct spam_lut {
 #endif /* USE_SQLITE */
 };
 
-struct spam_lut spam_lut;
+static struct spam_lut spam_lut;
+static GSList *sl_names;
 
 typedef enum {
 	SPAM_TAG_UNKNOWN = 0,
 	SPAM_TAG_ADDED,
 	SPAM_TAG_END,
+	SPAM_TAG_NAME,
 	SPAM_TAG_SHA1,
 
 	NUM_SPAM_TAGS
 } spam_tag_t;
-
-struct spam_item {
-	gchar sha1[SHA1_RAW_SIZE];
-};
 
 static const struct spam_tag {
 	spam_tag_t	tag;
@@ -109,6 +109,7 @@ static const struct spam_tag {
 #define SPAM_TAG(x) { CAT2(SPAM_TAG_,x), #x }
 	SPAM_TAG(ADDED),
 	SPAM_TAG(END),
+	SPAM_TAG(NAME),
 	SPAM_TAG(SHA1),
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
@@ -199,10 +200,10 @@ failure:
 }
 #endif	/* USE_SQLITE */
 
-void
-spam_add(const struct spam_item *item)
+static void
+spam_add_sha1(const sha1_t *sha1)
 {
-	g_assert(item);
+	g_assert(sha1);
 
 #ifdef USE_SQLITE
 	if (spam_lut.insert_stmt) {
@@ -212,30 +213,43 @@ spam_add(const struct spam_item *item)
 		ret = gdb_stmt_reset(stmt);
 		if (0 == ret) {
 			ret = gdb_stmt_bind_static_blob(stmt,
-					1, item->sha1, sizeof item->sha1);
+					1, sha1->data, sizeof sha1->data);
 			if (0 == ret) {
 				ret = gdb_stmt_step(stmt);
 				if (GDB_STEP_DONE != ret) {
 					g_warning("%s: gdb_stmt_step() failed: %s",
-						"spam_add", gdb_error_message());
+						"spam_add_sha1", gdb_error_message());
 				}
 			} else {
 				g_warning("%s: gdb_stmt_bind_static_blob() failed: %s",
-					"spam_add", gdb_error_message());
+					"spam_add_sha1", gdb_error_message());
 			}
 		} else {
 			g_warning("%s: gdb_stmt_reset() failed: %s",
-				"spam_add", gdb_error_message());
+				"spam_add_sha1", gdb_error_message());
 		}
 	}
 #else	/* USE_SQLITE */
 	if (spam_lut.ht) {
-		const gchar *sha1 = atom_sha1_get(item->sha1);
-		gm_hash_table_insert_const(spam_lut.ht, sha1, sha1);
+		const gchar *atom = atom_sha1_get(cast_to_gpointer(sha1->data));
+		gm_hash_table_insert_const(spam_lut.ht, atom, atom);
 	}
 #endif	/* USE_SQLITE */
 }
 
+static void
+spam_add_name(regex_t *name)
+{
+	g_assert(name);
+	sl_names = g_slist_prepend(sl_names, name);	
+}
+
+
+struct spam_item {
+	sha1_t	sha1;
+	regex_t *name;
+	gboolean done;
+};
 
 /**
  * Load spam database from the supplied FILE.
@@ -249,7 +263,7 @@ spam_add(const struct spam_item *item)
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static glong
+static gulong
 spam_load(FILE *f)
 {
 	static const struct spam_item zero_item;
@@ -257,13 +271,11 @@ spam_load(FILE *f)
 	gchar line[1024];
 	guint line_no = 0;
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_SPAM_TAGS)];
-	gboolean done = FALSE;
 	gulong item_count = 0;
 
 	g_assert(f);
 
 	/* Reset state */
-	done = FALSE;
 	item = zero_item;
 	bit_array_clear_range(tag_used, 0, (guint) NUM_SPAM_TAGS - 1);
 
@@ -314,7 +326,7 @@ spam_load(FILE *f)
 		if (SPAM_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning("spam_load(): duplicate tag \"%s\" in entry in line %u",
 				tag_name, line_no);
-			break;
+			continue;
 		}
 		
 		switch (tag) {
@@ -338,24 +350,53 @@ spam_load(FILE *f)
 					const gchar *raw;
 
 					raw = base32_sha1(value);
-					if (!raw)
-						damaged = TRUE;
+					if (raw)
+						memcpy(item.sha1.data, raw, sizeof item.sha1.data);
 					else
-						memcpy(item.sha1, raw, sizeof item.sha1);
+						damaged = TRUE;
+				}
+			}
+			break;
+
+		case SPAM_TAG_NAME:
+			{
+				if ('\0' == value[0]) {
+					damaged = TRUE;
+					g_warning("spam_load(): Missing filename pattern.");
+				} else if (!utf8_is_valid_string(value)) {
+					damaged = TRUE;
+					g_warning("spam_load(): Filename pattern is not UTF-8.");
+				} else {
+					int error;
+
+					item.name = g_malloc(sizeof *item.name);
+					error = regcomp(item.name, value, REG_EXTENDED | REG_NOSUB);
+					if (error) {
+						gchar buf[1024];
+
+						regerror(error, item.name, buf, sizeof buf);
+						g_warning("spam_load(): regcomp() failed: %s", buf);
+						regfree(item.name);
+						G_FREE_NULL(item.name);
+						damaged = TRUE;
+					}
 				}
 			}
 			break;
 
 		case SPAM_TAG_END:
-			if (!bit_array_get(tag_used, SPAM_TAG_SHA1)) {
-				g_warning("spam_load(): missing SHA1 tag");
+			if (
+				!bit_array_get(tag_used, SPAM_TAG_SHA1) &&
+				!bit_array_get(tag_used, SPAM_TAG_NAME)
+			) {
+				g_warning("spam_load(): missing SHA1 or NAME tag");
 				damaged = TRUE;
 			}
 			if (!bit_array_get(tag_used, SPAM_TAG_ADDED)) {
 				g_warning("spam_load(): missing ADDED tag");
 				damaged = TRUE;
 			}
-			done = TRUE;
+			item.done = TRUE;
 			break;
 
 		case SPAM_TAG_UNKNOWN:
@@ -371,21 +412,26 @@ spam_load(FILE *f)
 			g_warning("Damaged spam entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
 				line_no, tag_name, value);
-			break;
+			continue;
 		}
 
-		if (done) {
-			if (spam_check(item.sha1)) {
-				g_warning(
-					"Ignoring duplicate spam item around line %u (sha1=%s)",
-				   	line_no, sha1_base32(item.sha1));
-			} else {
-				spam_add(&item);
+		if (item.done) {
+			if (bit_array_get(tag_used, SPAM_TAG_SHA1)) {
+				if (spam_check_sha1(cast_to_gpointer(item.sha1.data))) {
+					g_warning(
+						"Ignoring duplicate spam item around line %u (sha1=%s)",
+						line_no, sha1_base32(cast_to_gpointer(item.sha1.data)));
+				} else {
+					spam_add_sha1(&item.sha1);
+					item_count++;
+				}
+			}
+			if (bit_array_get(tag_used, SPAM_TAG_NAME)) {
+				spam_add_name(item.name);
 				item_count++;
 			}
-			
+
 			/* Reset state */
-			done = FALSE;
 			item = zero_item;
 			bit_array_clear_range(tag_used, 0, (guint) NUM_SPAM_TAGS - 1);
 		}
@@ -454,8 +500,18 @@ spam_retrieve(void)
 			fp, G_N_ELEMENTS(fp), &idx);
 
 	if (f) {
+		gulong n_bytes, n_chunks;
+
+		n_bytes = halloc_bytes_allocated();
+		n_chunks = halloc_chunks_allocated();
+
 		spam_retrieve_from_file(f, fp[idx].dir, fp[idx].name);
 		fclose(f);
+
+		n_bytes = halloc_bytes_allocated() - n_bytes;
+		n_chunks = halloc_chunks_allocated() - n_chunks;
+		g_message("Memory allocated: %s (%lu chunks)",
+			short_size(n_bytes, display_metric_units), n_chunks);
 	}
 }
 
@@ -470,7 +526,7 @@ spam_init(void)
 
 #ifndef USE_SQLITE
 static void
-spam_item_free(gpointer key, gpointer value, gpointer unused_x)
+spam_sha1_free(gpointer key, gpointer value, gpointer unused_x)
 {
 	(void) unused_x;
 
@@ -490,7 +546,7 @@ spam_close(void)
 	gdb_stmt_finalize(&spam_lut.lookup_stmt);
 #else /* USE_SQLITE */
 	if (spam_lut.ht) {
-		g_hash_table_foreach(spam_lut.ht, spam_item_free, NULL);
+		g_hash_table_foreach(spam_lut.ht, spam_sha1_free, NULL);
 		g_hash_table_destroy(spam_lut.ht);
 		spam_lut.ht = NULL;
 	}
@@ -504,9 +560,9 @@ spam_close(void)
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-spam_check(const char *sha1)
+spam_check_sha1(const char *sha1)
 {
-	g_assert(sha1);
+	g_return_val_if_fail(sha1, FALSE);
 
 #ifdef USE_SQLITE
 	if (spam_lut.lookup_stmt) {
@@ -543,6 +599,26 @@ spam_check(const char *sha1)
 		return NULL != g_hash_table_lookup(spam_lut.ht, sha1);
 	}
 #endif	/* USE_SQLITE */
+	return FALSE;
+}
+
+/**
+ * Check the given filename against the spam database.
+ *
+ * @param filename the filename to check.
+ * @returns TRUE if found, and FALSE if not.
+ */
+gboolean
+spam_check_filename(const char *filename)
+{
+	const GSList *sl;
+
+	g_return_val_if_fail(filename, FALSE);
+	for (sl = sl_names; NULL != sl; sl = g_slist_next(sl)) {
+		if (0 == regexec(sl->data, filename, 0, NULL, 0)) {
+			return TRUE;
+		}
+	}
 	return FALSE;
 }
 

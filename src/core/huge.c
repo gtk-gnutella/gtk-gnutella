@@ -461,7 +461,7 @@ put_sha1_back_into_share_library(struct shared_file *sf, const gchar *digest)
 		return request_sha1(sf);					/* Retry! */
 	}
 
-	if (spam_check(digest)) {
+	if (spam_check_sha1(digest)) {
 		g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 		shared_file_remove(sf);
 		return FALSE;
@@ -824,7 +824,7 @@ request_sha1(struct shared_file *sf)
 
 	cached_sha1 = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
 	if (cached_sha1 && cached_entry_up_to_date(cached_sha1, sf)) {
-		if (spam_check(cached_sha1->digest)) {
+		if (spam_check_sha1(cached_sha1->digest)) {
 			g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 			shared_file_remove(sf);
 			return FALSE;

@@ -262,7 +262,7 @@ count_sha1(const gchar *sha1)
 	gpointer key, value;
 	guint n;
 
-	if (spam_check(sha1)) {
+	if (spam_check_sha1(sha1)) {
 		return;
 	}
 
@@ -1350,6 +1350,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				set_flags(rc->flags, SR_IGNORED);
 			}
 		}
+		if (spam_check_filename(fname)) {
+			rs->status |= ST_NAME_SPAM;
+			if (rc) {
+				set_flags(rc->flags, SR_SPAM);
+			}
+		}
 
 		/*
 		 * If we have a tag, parse it for extensions.
@@ -1400,7 +1406,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						gboolean is_spam;
 						
 						count_sha1(sha1_digest);
-						is_spam = spam_check(sha1_digest);
+						is_spam = spam_check_sha1(sha1_digest);
 						if (is_spam) {
 							rs->status |= ST_URN_SPAM;
 						}
@@ -1444,7 +1450,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 							gboolean is_spam;
 							
 							count_sha1(sha1_digest);
-							is_spam = spam_check(sha1_digest);
+							is_spam = spam_check_sha1(sha1_digest);
 							if (is_spam) {
 								rs->status |= ST_URN_SPAM;
 							}
@@ -1482,7 +1488,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						
 						has_hash = TRUE;
 						count_sha1(sha1_digest);
-						is_spam = spam_check(sha1_digest);
+						is_spam = spam_check_sha1(sha1_digest);
 						if (is_spam) {
 							rs->status |= ST_URN_SPAM;
 						}
@@ -1826,7 +1832,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	if (has_dupe_spam(rs)) {
 		rs->status |= ST_DUP_SPAM;
 	}
-	if ((ST_SPAM & ~ST_URN_SPAM) & rs->status) {
+	if ((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM)) & rs->status) {
 		GSList *sl;
 
 		/*
