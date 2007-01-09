@@ -325,7 +325,7 @@ dht_free_node_hashlist(hash_list_t *hl)
 	if (count)
 		g_warning("freeing hashlist with %u items at %s", count, _WHERE_);
 
-	hash_list_free(hl);
+	hash_list_free(&hl);
 }
 
 /**

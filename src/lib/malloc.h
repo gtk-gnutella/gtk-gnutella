@@ -210,7 +210,7 @@ void hashtable_destroy_track(GHashTable *h, gchar *file, gint line);
 
 hash_list_t *hash_list_new_track(
 	GHashFunc hash_func, GEqualFunc eq_func, gchar *file, gint line);
-void hash_list_free_track(hash_list_t *h, gchar *file, gint line);
+void hash_list_free_track(hash_list_t **hl_ptr, gchar *file, gint line);
 
 GSList *track_slist_alloc(gchar *file, gint line);
 GSList *track_slist_append(GSList *l, gpointer data, gchar *file, gint line);

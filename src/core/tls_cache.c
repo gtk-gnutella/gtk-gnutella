@@ -348,7 +348,7 @@ tls_cache_remove_oldest(void)
 {
 	struct tls_cache_item *item;
 	
-	item = hash_list_first(tls_hosts);
+	item = hash_list_head(tls_hosts);
 	if (item) {
 		hash_list_remove(tls_hosts, item);
 		wfree(item, sizeof *item);
@@ -362,11 +362,11 @@ tls_cache_insert_intern(const struct tls_cache_item *item)
 
 	g_return_if_fail(item);
 
-	if (hash_list_contains(tls_hosts, item, &key)) {
+	key = hash_list_remove(tls_hosts, item);
+	if (key) {
 		struct tls_cache_item *item_ptr = deconstify_gpointer(key);
 
 		/* We'll move the host to the end of the list */
-		hash_list_remove(tls_hosts, item_ptr);
 		if (tls_debug) {
 			g_message("Refreshing TLS host %s",
 				gnet_host_to_string(&item->host));
@@ -610,14 +610,14 @@ tls_cache_dump(FILE *f)
 	g_return_if_fail(tls_hosts);
 
 	iter = hash_list_iterator(tls_hosts);
-	while (hash_list_has_next(iter)) {
+	while (hash_list_iter_has_next(iter)) {
 		const struct tls_cache_item *item;
 		
-		item = hash_list_next(iter);
+		item = hash_list_iter_next(iter);
 		fprintf(f, "HOST %s\nSEEN %s\nEND\n\n",
 			gnet_host_to_string(&item->host), timestamp_to_string(item->seen));
 	}
-	hash_list_release(iter);
+	hash_list_iter_release(&iter);
 }
 
 static void
@@ -649,8 +649,7 @@ tls_cache_close(void)
 		while (hash_list_length(tls_hosts) > 0) {
 			tls_cache_remove_oldest();
 		}
-		hash_list_free(tls_hosts);
-		tls_hosts = NULL;
+		hash_list_free(&tls_hosts);
 	}
 }
 #endif	/* HAS_SQLITE */

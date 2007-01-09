@@ -392,7 +392,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
     g_assert(hash_list_length(to->hostlist) == 0);
     g_assert(to->host_count == 0);
 
-	hash_list_free(to->hostlist);
+	hash_list_free(&to->hostlist);
     to->hostlist = from->hostlist;
     to->host_count = from->host_count;
     from->hostlist = hash_list_new(NULL, NULL);
@@ -405,7 +405,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 
 	iter = hash_list_iterator(to->hostlist);
 
-	while (NULL != (item = hash_list_next(iter))) {
+	while (NULL != (item = hash_list_iter_next(iter))) {
         hostcache_entry_t *hce;
 
         hce = hcache_get_metadata((gnet_host_t *) item);
@@ -414,7 +414,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
         hce->type = to->type;
     }
 
-	hash_list_release(iter);
+	hash_list_iter_release(&iter);
 }
 
 /**
@@ -458,10 +458,13 @@ hcache_require_caught(hostcache_t *hc)
 static void
 hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 {
+	gconstpointer orig_key;
+	
 	g_assert(hc->host_count > 0 && hc->hostlist != NULL);
-	g_assert(hash_list_contains(hc->hostlist, host, NULL));
 
-	hash_list_remove(hc->hostlist, host);
+	orig_key = hash_list_remove(hc->hostlist, host);
+	g_assert(orig_key);
+
     hc->host_count--;
 
     if (hc->mass_update == 0) {
@@ -602,6 +605,8 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 	 */
 
 	if (hcache_ht_get(addr, port, &host, &hce)) {
+		gconstpointer orig_key;
+
         g_assert(hce != NULL);
 
         hc->hits++;
@@ -648,9 +653,9 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 		 * OK, we can move it from the `hce->type' cache to the `type' one.
 		 */
 
-		g_assert(hash_list_contains(caches[hce->type]->hostlist, host, NULL));
+		orig_key = hash_list_remove(caches[hce->type]->hostlist, host);
+		g_assert(orig_key);
 
-		hash_list_remove(caches[hce->type]->hostlist, host);
 		caches[hce->type]->host_count--;
 		hash_list_prepend(hc->hostlist, host);
 		hc->host_count++;
@@ -816,7 +821,7 @@ hcache_remove_all(hostcache_t *hc)
 
     start_mass_update(hc);
 
-    while (NULL != (h = hash_list_first(hc->hostlist)))
+    while (NULL != (h = hash_list_head(hc->hostlist)))
         hcache_remove(h);
 
     g_assert(hash_list_length(hc->hostlist) == 0);
@@ -908,7 +913,7 @@ hcache_expire_cache(hostcache_t *hc, time_t now)
      * sorted by time_added
 	 */
 
-    while (NULL != (h = hash_list_last(hc->hostlist))) {
+    while (NULL != (h = hash_list_tail(hc->hostlist))) {
         hostcache_entry_t *hce = hcache_get_metadata(h);
 
         g_assert(hce != NULL);
@@ -996,7 +1001,7 @@ hcache_prune(hcache_type_t type)
 
     hcache_require_caught(hc);
 	while (extra > 0) {
-		gnet_host_t *h = hash_list_first(hc->hostlist);
+		gnet_host_t *h = hash_list_head(hc->hostlist);
 		if (NULL == h) {
 			g_warning("BUG: asked to remove hosts, "
                 "but hostcache list is empty: %s", hc->name);
@@ -1068,12 +1073,12 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
 	 * Not enough fresh pongs, get some from our reserve.
 	 */
 
-	iter = hash_list_iterator_last(hc->hostlist);
+	iter = hash_list_iterator_tail(hc->hostlist);
 
 	for (
-        h = hash_list_previous(iter);
+        h = hash_list_iter_previous(iter);
         i < hcount && h != NULL;
-        i++, h = hash_list_previous(iter)
+        i++, h = hash_list_iter_previous(iter)
     ) {
 		if (g_hash_table_lookup(seen_host, h))
 			continue;
@@ -1083,7 +1088,7 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
 		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
 	}
 
-	hash_list_release(iter);
+	hash_list_iter_release(&iter);
 
 done:
 	g_hash_table_destroy(seen_host);	/* Keys point directly into vector */
@@ -1145,11 +1150,13 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 
 	/* iterate through whole list */
 
-	iter = reading ? hash_list_iterator(hc->hostlist) :
-		hash_list_iterator_last(hc->hostlist);
-
-	for (h = hash_list_follower(iter); h; h = hash_list_follower(iter)) {
-
+	if (reading) {
+		iter = hash_list_iterator(hc->hostlist);
+	} else {
+		iter = hash_list_iterator_tail(hc->hostlist);
+	}
+	for (;;) {
+		h = reading ? hash_list_iter_next(iter) : hash_list_iter_previous(iter);
 		if (host_is_nearby(gnet_host_get_addr(h))) {
             *addr = gnet_host_get_addr(h);
             *port = gnet_host_get_port(h);
@@ -1158,8 +1165,7 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 			break;
 		}
 	}
-
-	hash_list_release(iter);
+	hash_list_iter_release(&iter);
 
 	if (result)
 		hcache_unlink_host(hc, h);
@@ -1224,7 +1230,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 	 * tail of the list.  Otherwise, get the first host in that list.
 	 */
 
-	h = reading ? hash_list_first(hc->hostlist) : hash_list_last(hc->hostlist);
+	h = reading ? hash_list_head(hc->hostlist) : hash_list_tail(hc->hostlist);
 
 	*addr = gnet_host_get_addr(h);
 	*port = gnet_host_get_port(h);
@@ -1278,7 +1284,7 @@ hcache_free(hostcache_t *hc)
     g_assert(hc->host_count == 0);
     g_assert(hash_list_length(hc->hostlist) == 0);
 
-	hash_list_free(hc->hostlist);
+	hash_list_free(&hc->hostlist);
 	G_FREE_NULL(hc);
 }
 
@@ -1444,11 +1450,10 @@ hcache_write(FILE *f, hostcache_t *hc)
 	gnet_host_t *h;
 
 	iter = hash_list_iterator(hc->hostlist);
-
-	for (h = hash_list_next(iter); h != NULL; h = hash_list_next(iter)) {
+	while (NULL != (h = hash_list_iter_next(iter))) {
 		fprintf(f, "%s\n", gnet_host_to_string(h));
 	}
-	hash_list_release(iter);
+	hash_list_iter_release(&iter);
 }
 
 /**

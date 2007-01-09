@@ -413,13 +413,12 @@ upload_stats_free_all(void)
 	if (upload_stats_list) {
 		struct ul_stats *s;
 
-		while (NULL != (s = hash_list_first(upload_stats_list))) {
+		while (NULL != (s = hash_list_head(upload_stats_list))) {
 			hash_list_remove(upload_stats_list, s);
 			atom_str_free_null(&s->filename);
 			wfree(s, sizeof *s);
 		}
-		hash_list_free(upload_stats_list);
-		upload_stats_list = NULL;
+		hash_list_free(&upload_stats_list);
 	}
 	dirty = TRUE;
 }

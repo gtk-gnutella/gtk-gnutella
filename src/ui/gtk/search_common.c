@@ -599,8 +599,7 @@ search_gui_free_r_sets(search_t *sch)
 
 	if (NULL != sch->r_sets) {
 		hash_list_foreach(sch->r_sets, free_r_sets_helper, NULL);
-		hash_list_free(sch->r_sets);
-		sch->r_sets = NULL;
+		hash_list_free(&sch->r_sets);
 	}
 }
 
@@ -1348,7 +1347,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	hash_list_prepend(sch->r_sets, rs);
 	rs->refcount++;
    	g_assert(hash_list_contains(sch->r_sets, rs, NULL));
-	g_assert(hash_list_first(sch->r_sets) == rs);
+	g_assert(hash_list_head(sch->r_sets) == rs);
 
 	if (old_items == 0 && sch == current_search && sch->items > 0)
 		search_gui_set_clear_button_sensitive(TRUE);

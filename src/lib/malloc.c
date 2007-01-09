@@ -814,10 +814,12 @@ hash_list_new_track(
  * Wrapper over hash_list_free().
  */
 void
-hash_list_free_track(hash_list_t *h, gchar *file, gint line)
+hash_list_free_track(hash_list_t **hl_ptr, gchar *file, gint line)
 {
-	free_record(h, file, line);
-	hash_list_free(h);
+	if (*hl_ptr) {
+		free_record(*hl_ptr, file, line);
+		hash_list_free(hl_ptr);
+	}
 }
 
 /***

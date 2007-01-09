@@ -236,13 +236,9 @@ rudp_con_eq(gconstpointer v1, gconstpointer v2)
 static void
 rudp_list_add(enum rudp_list i, struct rudp_con *con, gboolean ready)
 {
-	gpointer key;
-
 	g_return_if_fail(con);
 
-	if (hash_list_contains(rudp_list[i], con, &key)) {
-		hash_list_remove(rudp_list[i], key);
-	}
+	hash_list_remove(rudp_list[i], con);
 	if (ready) {
 		hash_list_prepend(rudp_list[i], con);
 	}

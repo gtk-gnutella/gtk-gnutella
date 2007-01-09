@@ -526,7 +526,7 @@ query_muid_map_remove_oldest(void)
 {
 	const gchar *old_muid;
 
-	old_muid = hash_list_first(query_muids);
+	old_muid = hash_list_head(query_muids);
 	if (old_muid) {
 		const gchar *old_query;
 		
@@ -551,8 +551,7 @@ query_muid_map_close(void)
 
 	g_hash_table_destroy(muid_to_query_map);
 	muid_to_query_map = NULL;
-	hash_list_free(query_muids);
-	query_muids = NULL;
+	hash_list_free(&query_muids);
 }
 
 static void
@@ -584,12 +583,12 @@ record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
 	if (search_muid_track_amount > 0) {
 		gconstpointer orig_key;
 
-		if (hash_list_contains(query_muids, muid, &orig_key)) {
+		orig_key = hash_list_remove(query_muids, muid);
+	   	if (orig_key) {
 			const gchar *old_query;
 
 			/* We'll append the new value to the list */
 			key = orig_key;
-			hash_list_remove(query_muids, deconstify_gpointer(muid));
 			old_query = g_hash_table_lookup(muid_to_query_map, key);
 			atom_str_free_null(&old_query);
 			g_hash_table_remove(muid_to_query_map, old_query);

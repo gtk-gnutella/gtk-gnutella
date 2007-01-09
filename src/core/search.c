@@ -795,7 +795,7 @@ oob_reply_acks_remove_oldest(void)
 {
 	struct ora *ora;
 
-	ora = hash_list_first(oob_reply_acks);
+	ora = hash_list_head(oob_reply_acks);
 	if (ora) {
 		hash_list_remove(oob_reply_acks, ora);
 		ora_free(&ora);
@@ -812,7 +812,7 @@ oob_reply_acks_garbage_collect(void)
 	do {
 		struct ora *ora;
 
-		ora = hash_list_first(oob_reply_acks);
+		ora = hash_list_head(oob_reply_acks);
 		if (!ora || delta_time(now, ora->sent) <= oob_reply_ack_timeout)
 			break;
 	} while (oob_reply_acks_remove_oldest());
@@ -830,8 +830,7 @@ oob_reply_acks_close(void)
 	while (oob_reply_acks_remove_oldest()) {
 		continue;
 	}
-	hash_list_free(oob_reply_acks);
-	oob_reply_acks = NULL;
+	hash_list_free(&oob_reply_acks);
 }
 
 static void
