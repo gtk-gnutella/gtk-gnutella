@@ -125,7 +125,7 @@ enum {
 	 ST_BUSY				= (1 << 1),	 /**< Has currently no slots */
 	 ST_FIREWALL			= (1 << 0),	 /**< Is behind a firewall */
 
-	 ST_SPAM				= (ST_ALT_SPAM|ST_DUP_SPAM|ST_URL_SPAM|ST_URN_SPAM)
+	 ST_SPAM	= (ST_ALT_SPAM|ST_DUP_SPAM|ST_NAME_SPAM|ST_URL_SPAM|ST_URN_SPAM)
 };
 
 /*
