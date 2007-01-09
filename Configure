@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Jan  5 07:11:34 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Tue Jan  9 02:21:25 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -391,6 +391,7 @@ i_netif=''
 i_niin=''
 i_sysin=''
 i_niip=''
+i_poll=''
 d_pwage=''
 d_pwchange=''
 d_pwclass=''
@@ -405,6 +406,7 @@ strings=''
 i_sysfile=''
 i_sysmman=''
 i_sysparam=''
+i_syspoll=''
 i_sysresrc=''
 i_syssendfile=''
 i_syssock=''
@@ -4741,9 +4743,30 @@ set d_attribut
 eval $setvar
 $rm -f attrib*
 
+: see whether the program compiles and links
+trylink='
+var=$1;
+cat try.c >> ~/tmp/Trylink.log;
+if $cc $ccflags -o try try.c $ldflags >> ~/tmp/Trylink.log 2>&1; then
+	eval "$var=\$define";
+else
+	eval "$var=\$undef";
+fi;
+$rm -f try try.c;
+'
+
 : see if bcopy exists
-set bcopy d_bcopy
-eval $inlibc
+$cat >try.c <<EOC
+#include <strings.h>
+int main(void)
+{
+	static int src, dst;
+	bcopy(&src, &dst, sizeof(dst));
+	return 0;
+}
+EOC
+set d_bcopy
+eval $trylink
 
 : see if bind_textdomain_codeset exists
 set bind_textdomain_codeset d_bindtxtcode
@@ -5437,28 +5460,17 @@ set d_ipv6
 eval $setvar
 
 : Look for isascii
-echo " "
-$cat >isascii.c <<'EOCP'
-#include <stdio.h>
+$cat >try.c <<EOC
 #include <ctype.h>
-int main() {
-	int c = 'A';
-	if (isascii(c))
-		exit(0);
-	else
-		exit(1);
+int main(void)
+{
+	static int ret, c;
+	ret |= isascii(c);
+	return ret ? 0 : 1;
 }
-EOCP
-if $cc $ccflags $ldflags -o isascii isascii.c $libs >/dev/null 2>&1 ; then
-	echo "isascii() found." >&4
-	val="$define"
-else
-	echo "isascii() NOT found." >&4
-	val="$undef"
-fi
+EOC
 set d_isascii
-eval $setvar
-$rm -f isascii*
+eval $trylink
 
 : check whether udata in struct kevent is an integer
 echo " "
@@ -5611,25 +5623,93 @@ $rm -f try try.c
 set d_locale_charset
 eval $setvar
 
+: see if sys/stat.h is available
+set sys/stat.h i_sysstat
+eval $inhdr
+
 : see if lstat exists
-set lstat d_lstat
-eval $inlibc
+$cat >try.c <<EOC
+#$i_sysstat I_SYS_STAT
+#ifdef I_SYS_STAT
+#include <sys/stat.h>
+#endif
+int main(void)
+{
+	static int ret;
+	struct stat sb;
+	ret |= lstat("path", &sb);
+	return ret ? 0 : 1;
+}
+EOC
+set d_lstat
+eval $trylink
 
 : see if madvise exists
 set madvise d_madvise
 eval $inlibc
 
+: see if stdlib is available
+set stdlib.h i_stdlib
+eval $inhdr
+
 : see if memalign exists
-set memalign d_memalign
-eval $inlibc
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	static size_t align, size;
+	void *p;
+	p = memalign(align, size);
+	return p ? 0 : 1;
+}
+EOC
+set d_memalign
+eval $trylink
 
 : see if memcpy exists
-set memcpy d_memcpy
-eval $inlibc
+$cat >try.c <<EOC
+#include <string.h>
+int main(void)
+{
+	static char src, dst;
+	void *p;
+	p = memcpy(&dst, &src, sizeof(dst));
+	return p ? 0 : 1;
+}
+EOC
+set d_memcpy
+eval $trylink
+
+: see if sys/mman.h has to be included
+set sys/mman.h i_sysmman
+eval $inhdr
 
 : see if mmap exists
-set mmap d_mmap
-eval $inlibc
+$cat >try.c <<EOC
+#$i_sysmman I_SYS_MMAN
+#ifdef I_SYS_MMAN
+#include <sys/mman.h>
+#endif
+int main(void)
+{
+	static off_t offset;
+	static void *addr;
+	static size_t len;
+	static int flags, fd, prot;
+	void *p;
+	flags |= PROT_NONE;
+	flags |= PROT_READ;
+	flags |= PROT_WRITE;
+	flags |= PROT_EXEC;
+	p = mmap(addr, len, prot, flags, fd, offset);
+	return p ? 0 : 1;
+}
+EOC
+set d_mmap
+eval $trylink
 
 : check for msg_flags in struct msghdr
 echo " "
@@ -5717,9 +5797,43 @@ set d_open3
 eval $setvar
 $rm -f open3*
 
+: see if there is a poll.h file
+set poll.h i_poll
+eval $inhdr
+
+: see if there is a sys/poll.h file
+set sys/poll.h i_syspoll
+eval $inhdr
+
 : see if poll exists
-set poll d_poll
-eval $inlibc
+$cat >try.c <<EOC
+#$i_syspoll I_SYS_POLL
+#ifdef I_SYS_POLL
+#include <sys/poll.h>
+#endif
+#$i_poll I_POLL
+#ifdef I_POLL
+#include <poll.h>
+#endif
+int main(void)
+{
+	static int ret, timeout;
+	static nfds_t n;
+	static struct pollfd pfd;
+	pfd.fd |= 1;
+	pfd.revents |= 1;
+	pfd.events |= POLLIN;
+	pfd.events |= POLLOUT;
+	pfd.events |= POLLPRI;
+	pfd.events |= POLLERR;
+	pfd.events |= POLLHUP;
+	pfd.events |= POLLNVAL;
+	ret |= poll(&pfd, n, timeout);
+	return ret ? 0 : 1;
+}
+EOC
+set d_poll
+eval $trylink
 
 : can we use posix_fadvise?
 echo " "
@@ -5789,21 +5903,89 @@ $rm -f try try.c
 set d_posix_memalign
 eval $setvar
 
+: see if this is a unistd.h system
+set unistd.h i_unistd
+eval $inhdr
+
 : see if pread exists
-set pread d_pread
-eval $inlibc
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static ssize_t ret;
+	static int fd;
+	static char buf[1];
+	static size_t size;
+	static off_t offset;
+	ret |= pread(fd, buf, size, offset);
+	return ret ? 0 : 1;
+}
+EOC
+set d_pread
+eval $trylink
 
 : see if preadv exists
-set preadv d_preadv
-eval $inlibc
+$cat >try.c <<EOC
+#include <sys/uio.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static ssize_t ret;
+	static int fd, iovcnt;
+	static struct iovec iov;
+	static off_t offset;
+	ret |= preadv(fd, &iov, iovcnt, offset);
+	return ret ? 0 : 1;
+}
+EOC
+set d_preadv
+eval $trylink
 
 : see if pwrite exists
-set pwrite d_pwrite
-eval $inlibc
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static ssize_t ret;
+	static int fd;
+	static char buf[1];
+	static size_t size;
+	static off_t offset;
+	ret |= pwrite(fd, buf, size, offset);
+	return ret ? 0 : 1;
+}
+EOC
+set d_pwrite
+eval $trylink
 
 : see if pwritev exists
-set pwritev d_pwritev
-eval $inlibc
+$cat >try.c <<EOC
+#include <sys/uio.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static ssize_t ret;
+	static int fd, iovcnt;
+	static struct iovec iov;
+	static off_t offset;
+	ret |= pwritev(fd, &iov, iovcnt, offset);
+	return ret ? 0 : 1;
+}
+EOC
+set d_pwritev
+eval $trylink
 
 : see if random exists
 set random d_random
@@ -5835,9 +6017,27 @@ fi
 set d_regparm
 eval $setvar
 
+: see if sys/resource.h has to be included
+set sys/resource.h i_sysresrc
+eval $inhdr
+
 : see if getrusage exists
-set getrusage d_rusage
-eval $inlibc
+$cat >try.c <<EOC
+#$i_sysresrc I_SYS_RESOURCE
+#ifdef I_SYS_RESOURCE
+#include <sys/resource.h>
+#endif
+int main(void)
+{
+	static struct rusage ru;
+	static int ret;
+	ret |= getrusage(RUSAGE_SELF, &ru);
+	ret |= getrusage(RUSAGE_CHILDREN, &ru);
+	return ret ? 0 : 1;
+}
+EOC
+set d_rusage
+eval $trylink
 
 : can we use SA_INTERRUPT?
 echo " "
@@ -6355,8 +6555,20 @@ case "$d_phostname" in
 esac
 
 : see if usleep exists
-set usleep d_usleep
-eval $inlibc
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static unsigned ret;
+	ret |= usleep(1);
+	return ret ? 0 : 1;
+}
+EOC
+set d_usleep
+eval $trylink
 
 : check for volatile keyword
 echo " "
@@ -6395,10 +6607,6 @@ eval $inlibc
 
 : preserve RCS keywords in files with variable substitution, grrr
 Id='$Id'
-
-: see if this is a unistd.h system
-set unistd.h i_unistd
-eval $inhdr
 
 : determine how to compile for large 64-bit file support
 echo " "
@@ -7958,20 +8166,8 @@ case "$val" in
 esac
 $rm -f varargs*
 
-: see if stdlib is available
-set stdlib.h i_stdlib
-eval $inhdr
-
-: see if sys/mman.h has to be included
-set sys/mman.h i_sysmman
-eval $inhdr
-
 : see if this is a sys/param system
 set sys/param.h i_sysparam
-eval $inhdr
-
-: see if sys/resource.h has to be included
-set sys/resource.h i_sysresrc
 eval $inhdr
 
 : see if this is a sys/sendfile system
@@ -7980,10 +8176,6 @@ eval $inhdr
 
 : see if this is a sys/socket.h system
 set sys/socket.h i_syssock
-eval $inhdr
-
-: see if sys/stat.h is available
-set sys/stat.h i_sysstat
 eval $inhdr
 
 : see if this is a sys/sysctl system
@@ -8562,6 +8754,7 @@ i_netdb='$i_netdb'
 i_netif='$i_netif'
 i_niin='$i_niin'
 i_niip='$i_niip'
+i_poll='$i_poll'
 i_pwd='$i_pwd'
 i_regex='$i_regex'
 i_stdarg='$i_stdarg'
@@ -8571,6 +8764,7 @@ i_sysfile='$i_sysfile'
 i_sysin='$i_sysin'
 i_sysmman='$i_sysmman'
 i_sysparam='$i_sysparam'
+i_syspoll='$i_syspoll'
 i_sysresrc='$i_sysresrc'
 i_syssendfile='$i_syssendfile'
 i_syssock='$i_syssock'
