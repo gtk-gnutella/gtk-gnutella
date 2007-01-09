@@ -79,6 +79,7 @@ static const gchar spam_what[] = "Spam database";
 #endif
 
 struct spam_lut {
+	GSList *sl_names;	/* List of g_malloc()ed regex_t items */
 #ifdef USE_SQLITE
 	struct gdb_stmt *lookup_stmt;
 	struct gdb_stmt *insert_stmt;
@@ -88,7 +89,6 @@ struct spam_lut {
 };
 
 static struct spam_lut spam_lut;
-static GSList *sl_names;
 
 typedef enum {
 	SPAM_TAG_UNKNOWN = 0,
@@ -241,7 +241,7 @@ static void
 spam_add_name(regex_t *name)
 {
 	g_assert(name);
-	sl_names = g_slist_prepend(sl_names, name);	
+	spam_lut.sl_names = g_slist_prepend(spam_lut.sl_names, name);	
 }
 
 
@@ -551,6 +551,16 @@ spam_close(void)
 		spam_lut.ht = NULL;
 	}
 #endif /* USE_SQLITE */
+	{
+		GSList *sl;
+
+		for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
+			regfree(sl->data);
+			G_FREE_NULL(sl->data);
+		}
+		g_slist_free(spam_lut.sl_names);
+		spam_lut.sl_names = NULL;
+	}
 }
 
 /**
@@ -614,7 +624,7 @@ spam_check_filename(const char *filename)
 	const GSList *sl;
 
 	g_return_val_if_fail(filename, FALSE);
-	for (sl = sl_names; NULL != sl; sl = g_slist_next(sl)) {
+	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
 		if (0 == regexec(sl->data, filename, 0, NULL, 0)) {
 			return TRUE;
 		}
