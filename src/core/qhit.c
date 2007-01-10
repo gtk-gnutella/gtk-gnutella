@@ -693,10 +693,11 @@ add_file(const struct shared_file *sf)
 		/* FIXME: Create time != modification time */
 		mtime = shared_file_modification_time(sf);
 		if (mtime) {
-			gchar buf[sizeof mtime];
+			gchar buf[sizeof(guint64)];
 			gint len;
+
 			len = ggept_ct_encode(shared_file_modification_time(sf), buf);
-			g_assert(len > 0 && len <= (gint) sizeof buf);
+			g_assert(len >= 0 && len <= (gint) sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
 			if (!ok)
