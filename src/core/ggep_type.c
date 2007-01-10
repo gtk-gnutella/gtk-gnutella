@@ -383,7 +383,7 @@ ggept_du_extract(extvec_t *exv, guint32 *uptime)
 	g_assert(exv->ext_token == EXT_T_GGEP_DU);
 
 	len = ext_paylen(exv);
-	if (len < 0 || len > 4) {
+	if (len > 4) {
 		return GGEP_INVALID;
 	}
 	up = ggep_vlint_decode(ext_payload(exv), len);
@@ -414,7 +414,7 @@ ggept_ct_extract(extvec_t *exv, time_t *stamp_ptr)
 	g_assert(exv->ext_token == EXT_T_GGEP_CT);
 
 	len = ext_paylen(exv);
-	if (len < 0 || len > 8) {
+	if (len > 8) {
 		return GGEP_INVALID;
 	}
 	v = ggep_vlint_decode(ext_payload(exv), len);
