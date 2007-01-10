@@ -692,7 +692,7 @@ add_file(const struct shared_file *sf)
 
 		/* FIXME: Create time != modification time */
 		mtime = shared_file_modification_time(sf);
-		if ((time_t) -1 != time) {
+		if ((time_t) -1 != mtime) {
 			gchar buf[sizeof(guint64)];
 			gint len;
 
