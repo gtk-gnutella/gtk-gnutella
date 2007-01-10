@@ -880,7 +880,7 @@ search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
  * Compute status bits, decompile trailer info, if present
  */
 static void
-search_results_handle_trailer(const gnutella_node_t *n, gboolean validate_only,
+search_results_handle_trailer(const gnutella_node_t *n,
 	gnet_results_set_t *rs, const gchar *trailer, size_t trailer_size)
 {
 	guint8 open_size, open_parsing_size, enabler_mask, flags_mask;
@@ -960,9 +960,6 @@ search_results_handle_trailer(const gnutella_node_t *n, gboolean validate_only,
 			if (e->ext_type == EXT_GGEP)
 				seen_ggep = TRUE;
 
-			if (validate_only)
-				continue;
-
 			switch (e->ext_token) {
 			case EXT_T_GGEP_BH:
 				rs->status |= ST_BH;
@@ -1032,7 +1029,7 @@ search_results_handle_trailer(const gnutella_node_t *n, gboolean validate_only,
 					break;
 				}
 				rs->status |= ST_PUSH_PROXY;
-				if (!validate_only) {
+				{
 					gnet_host_vec_t *hvec = NULL;
 
 					ret = ggept_push_extract(e, &hvec);
@@ -1048,7 +1045,7 @@ search_results_handle_trailer(const gnutella_node_t *n, gboolean validate_only,
 				}
 				break;
 			case EXT_T_GGEP_HNAME:
-				if (!validate_only) {
+				{
 					gchar hostname[256];
 
 					ret = ggept_hname_extract(e, hostname, sizeof(hostname));
@@ -1131,18 +1128,13 @@ search_results_handle_trailer(const gnutella_node_t *n, gboolean validate_only,
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
  *
- * If `validate_only' is set, we only validate the results and don't wish
- * to permanently use the results, so don't allocate any memory for each
- * record.
- *
  * @returns a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
 static gnet_results_set_t *
-get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
+get_results_set(gnutella_node_t *n, gboolean browse)
 {
 	gnet_results_set_t *rs;
-	gnet_record_t *rc = NULL;
 	gchar *endptr, *s, *fname, *tag;
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
@@ -1167,7 +1159,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		return NULL;
 	}
 
-	info = validate_only ? NULL : g_string_sized_new(80);
+	info = g_string_sized_new(80);
 
 	rs = search_new_r_set();
 	rs->stamp = tm_time();
@@ -1237,9 +1229,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
                 host_addr_to_string(rs->addr));
         }
 		rs->status |= ST_HOSTILE;
-
-		if (validate_only)
-			goto bad_packet;
 	}
 
 	if (browse) {
@@ -1277,6 +1266,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 		dump_hex(stdout, "Query Hit Data", n->data, n->size);
 
 	while (endptr - s > 10 && nr < rs->num_recs) {
+		gnet_record_t *rc;
+
 		idx = peek_le32(s);
 		s += 4;					/* File Index */
 		size = peek_le32(s);
@@ -1331,13 +1322,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 		nr++;
 
-		if (!validate_only) {
-			rc = search_record_new();
-
-			rc->file_index = idx;
-			rc->size = size;
-			rc->name = atom_str_get(fname);
-		}
+		rc = search_record_new();
+		rc->file_index = idx;
+		rc->size = size;
+		rc->name = atom_str_get(fname);
 
 		if (is_evil_filename(fname)) {
 			if (search_debug) {
@@ -1345,15 +1333,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					fname);
 			}
 			rs->status |= ST_EVIL;
-			if (rc) {
-				set_flags(rc->flags, SR_IGNORED);
-			}
+			set_flags(rc->flags, SR_IGNORED);
 		}
 		if (spam_check_filename(fname)) {
 			rs->status |= ST_NAME_SPAM;
-			if (rc) {
-				set_flags(rc->flags, SR_SPAM);
-			}
+			set_flags(rc->flags, SR_SPAM);
 		}
 
 		/*
@@ -1377,8 +1361,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			 * Look for a valid SHA1 or a tag string we can display.
 			 */
 
-			if (!validate_only)
-				g_string_truncate(info, 0);
+			g_string_truncate(info, 0);
 
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
@@ -1409,16 +1392,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						if (is_spam) {
 							rs->status |= ST_URN_SPAM;
 						}
-
-						if (!validate_only) {
-							if (rc->sha1 != NULL) {
-								multiple_sha1 = TRUE;
-								atom_sha1_free(rc->sha1);
-							}
-							rc->sha1 = atom_sha1_get(sha1_digest);
-							if (is_spam) {
-								set_flags(rc->flags, SR_SPAM);
-							}
+						if (rc->sha1 != NULL) {
+							multiple_sha1 = TRUE;
+							atom_sha1_free(rc->sha1);
+						}
+						rc->sha1 = atom_sha1_get(sha1_digest);
+						if (is_spam) {
+							set_flags(rc->flags, SR_SPAM);
 						}
 					} else {
 						if (search_debug > 0) {
@@ -1462,7 +1442,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 									g_message("Improbable SHA-1 detected");
 								}
 								sha1_errors++;
-							} else if (!validate_only) {
+							} else {
 								if (rc->sha1 != NULL) {
 									multiple_sha1 = TRUE;
 									atom_sha1_free(rc->sha1);
@@ -1497,7 +1477,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 								g_message("Improbable SHA-1 detected");
 							}
 							sha1_errors++;
-						} else if (!validate_only) {
+						} else {
 							if (rc->sha1 != NULL) {
 								multiple_sha1 = TRUE;
 								atom_sha1_free(rc->sha1);
@@ -1549,9 +1529,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 
 					   	ret = ggept_lf_extract(e, &fs);
 						if (ret == GGEP_OK) {
-							if (rc) {
-								rc->size = fs;
-							}
+							rc->size = fs;
 						} else {
 							g_warning("%s bad GGEP \"LF\" (dumping)",
 								gmsg_infostr(&n->header));
@@ -1562,7 +1540,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				case EXT_T_GGEP_LIME_XML:
 					paylen = ext_paylen(e);
 					payload = ext_payload(e);
-					if (rc && !rc->xml && paylen > 0) {
+					if (!rc->xml && paylen > 0) {
 						size_t len;
 						gchar buf[4096];
 
@@ -1580,7 +1558,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				case EXT_T_GGEP_PATH:		/* Path */
 					paylen = ext_paylen(e);
 					payload = ext_payload(e);
-					if (rc && !rc->path && paylen > 0) {
+					if (!rc->path && paylen > 0) {
 						size_t len;
 						gchar buf[1024];
 
@@ -1621,7 +1599,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 						has_unknown = TRUE;
 					}
 					if (
-						!validate_only &&
 						ext_paylen(e) &&
 						(!unknown || ext_has_ascii_word(e))
 					) {
@@ -1659,7 +1636,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			if (exvcnt)
 				ext_reset(exv, MAX_EXTVEC);
 
-			if (!validate_only && info->len)
+			if (info->len)
 				rc->tag = atom_str_get(info->str);
 
 			if (hvec != NULL) {
@@ -1670,7 +1647,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 				 * GGEP "ALT" is only meaningful when there is a SHA1!
 				 */
 
-				if (!validate_only && rc->sha1 != NULL) {
+				if (rc->sha1 != NULL) {
 					rc->alt_locs = hvec;
 				} else {
 					gnet_host_vec_free(&hvec);
@@ -1678,8 +1655,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 			}
 		}
 
-		if (!validate_only) 
-			rs->records = g_slist_prepend(rs->records, rc);
+		rs->records = g_slist_prepend(rs->records, rc);
 	}
 
 	/*
@@ -1736,8 +1712,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	rs->guid = atom_guid_get(endptr);
 
 	if (trailer) {
-		search_results_handle_trailer(n, validate_only,
-			rs, trailer, endptr - trailer);
+		search_results_handle_trailer(n, rs, trailer, endptr - trailer);
 	}
 	
 	/*
@@ -1800,7 +1775,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 					gmsg_infostr(&n->header), vendor ? vendor : "????");
 	}
 
-	if (!validate_only) {
+	{
 		host_addr_t c_addr;
 
 		g_string_free(info, TRUE);
@@ -1863,9 +1838,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only, gboolean browse)
 	}
 
 	search_free_r_set(rs);
-
-	if (!validate_only)
-		g_string_free(info, TRUE);
+	g_string_free(info, TRUE);
 
 	return NULL;				/* Forget set, comes from a bad node */
 }
@@ -2665,7 +2638,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	GSList *search = NULL;
 	GSList *sl;
 
-	rs = get_results_set(n, FALSE, TRUE);
+	rs = get_results_set(n, TRUE);
 	if (rs == NULL)
 		return;
 
@@ -2761,10 +2734,7 @@ search_results(gnutella_node_t *n, gint *results)
 	 * based on the SHA1, the packet is only parsed for validation.
 	 */
 
-	rs = get_results_set(n,
-		   !selected_searches &&
-		   !auto_download_identical &&
-		   !auto_feed_download_mesh, FALSE);
+	rs = get_results_set(n, FALSE);
 
 	if (rs == NULL) {
         /*
