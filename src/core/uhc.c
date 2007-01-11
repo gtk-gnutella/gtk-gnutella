@@ -99,6 +99,8 @@ static const struct {
 	{ "uhc.udp-host-cache.com:9999" },
 	{ "uhc2.limewire.com:20181" },
 	{ "void.ghostwhitecrab.de:10706" },
+	{ "yin.cloud.bishopston.net:33558" },
+	{ "yang.cloud.bishopston.net:33558" },
 	{ "zomfg.gtkg.org:40000" },
 };
 
