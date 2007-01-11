@@ -3366,8 +3366,9 @@ node_is_now_connected(struct gnutella_node *n)
 	 */
 
 	if (
-		current_peermode == NODE_P_LEAF ||
-		(current_peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP))
+		NODE_IS_ULTRA(n) &&
+			(current_peermode == NODE_P_LEAF ||
+			(current_peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP)))
 	) {
 		gpointer qrt = qrt_get_table();
 
