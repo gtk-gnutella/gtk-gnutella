@@ -50,10 +50,13 @@
  * Operating flags.
  */
 
-#define FI_F_SUSPEND		0x00000001U	/**< Marked "suspended" new downloads */
-#define FI_F_DISCARD		0x00000002U	/**< Discard fileinfo if refcount = 0 */
-#define FI_F_TRANSIENT		0x40000000U	/**< Don't persist to disk */
-#define FI_F_MARK			0x80000000U	/**< Marked during traversal */
+enum {
+	FI_F_SUSPEND	= 1 << 0,	/**< Marked "suspended" new downloads */
+	FI_F_DISCARD	= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
+	FI_F_TRANSIENT	= 1 << 2,	/**< Don't persist to disk */
+	FI_F_MARK		= 1 << 3,	/**< Marked during traversal */
+	FI_F_PAUSED		= 1 << 4	/**< Paused by user */
+};
 
 /*
  * Public interface.
