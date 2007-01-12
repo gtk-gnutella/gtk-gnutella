@@ -1816,12 +1816,13 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 
 	fprintf(f, "SIZE %s\n", uint64_to_string(fi->size));
-	fprintf(f, "FSKN %d\n", fi->file_size_known ? 1 : 0);
+	fprintf(f, "FSKN %u\n", fi->file_size_known ? 1 : 0);
+	fprintf(f, "PAUS %u\n", (FI_F_PAUSED & fi->flags) ? 1 : 0);
 	fprintf(f, "DONE %s\n", uint64_to_string(fi->done));
 	fprintf(f, "TIME %s\n", uint64_to_string(fi->stamp));
 	fprintf(f, "CTIM %s\n", uint64_to_string(fi->ctime));
 	fprintf(f, "NTIM %s\n", uint64_to_string(fi->ntime));
-	fprintf(f, "SWRM %d\n", fi->use_swarming ? 1 : 0);
+	fprintf(f, "SWRM %u\n", fi->use_swarming ? 1 : 0);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
@@ -1884,6 +1885,7 @@ file_info_store(void)
 		"#	ALIA <alias file name>\n"
 		"#	SIZE <size>\n"
 		"#	FSKN <boolean; file_size_known>\n"
+		"#	PAUS <boolean; paused>\n"
 		"#	SHA1 <server sha1>\n"
 		"#	CHA1 <computed sha1> [when done only]\n"
 		"#	DONE <bytes done>\n"
@@ -2522,21 +2524,22 @@ extract_sha1(const gchar *s)
 
 typedef enum {
 	FI_TAG_UNKNOWN = 0,
-	FI_TAG_NAME,
-	FI_TAG_PATH,
-	FI_TAG_GENR,
 	FI_TAG_ALIA,
-	FI_TAG_SIZE,
-	FI_TAG_FSKN,
-	FI_TAG_SHA1,
 	FI_TAG_CHA1,
-	FI_TAG_DONE,
-	FI_TAG_TIME,
-	FI_TAG_CTIM,
-	FI_TAG_NTIM,
-	FI_TAG_SWRM,
 	FI_TAG_CHNK,
+	FI_TAG_CTIM,
+	FI_TAG_DONE,
+	FI_TAG_FSKN,
+	FI_TAG_GENR,
 	FI_TAG_GUID,
+	FI_TAG_NAME,
+	FI_TAG_NTIM,
+	FI_TAG_PATH,
+	FI_TAG_PAUS,
+	FI_TAG_SHA1,
+	FI_TAG_SIZE,
+	FI_TAG_SWRM,
+	FI_TAG_TIME,
 
 	NUM_FI_TAGS
 } fi_tag_t;
@@ -2547,21 +2550,22 @@ static const struct fi_tag {
 } fi_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
-	{ FI_TAG_ALIA, "ALIA" },
-	{ FI_TAG_CHA1, "CHA1" },
-	{ FI_TAG_CHNK, "CHNK" },
-	{ FI_TAG_CTIM, "CTIM" },
-	{ FI_TAG_DONE, "DONE" },
-	{ FI_TAG_FSKN, "FSKN" },
-	{ FI_TAG_GENR, "GENR" },
-	{ FI_TAG_GUID, "GUID" },
-	{ FI_TAG_NAME, "NAME" },
-	{ FI_TAG_NTIM, "NTIM" },
-	{ FI_TAG_PATH, "PATH" },
-	{ FI_TAG_SHA1, "SHA1" },
-	{ FI_TAG_SIZE, "SIZE" },
-	{ FI_TAG_SWRM, "SWRM" },
-	{ FI_TAG_TIME, "TIME" },
+	{ FI_TAG_ALIA,	"ALIA" },
+	{ FI_TAG_CHA1,	"CHA1" },
+	{ FI_TAG_CHNK,	"CHNK" },
+	{ FI_TAG_CTIM,	"CTIM" },
+	{ FI_TAG_DONE,	"DONE" },
+	{ FI_TAG_FSKN,	"FSKN" },
+	{ FI_TAG_GENR,	"GENR" },
+	{ FI_TAG_GUID,	"GUID" },
+	{ FI_TAG_NAME,	"NAME" },
+	{ FI_TAG_NTIM,	"NTIM" },
+	{ FI_TAG_PATH,	"PATH" },
+	{ FI_TAG_PAUS,	"PAUS" },
+	{ FI_TAG_SHA1, 	"SHA1" },
+	{ FI_TAG_SIZE, 	"SIZE" },
+	{ FI_TAG_SWRM, 	"SWRM" },
+	{ FI_TAG_TIME, 	"TIME" },
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
@@ -3023,6 +3027,11 @@ file_info_retrieve(void)
 			/* XXX: Check the pathname more thoroughly */
 			damaged = !is_absolute_path(value);
 			fi->path = damaged ? NULL : atom_str_get(value);
+			break;
+		case FI_TAG_PAUS:
+			v = parse_uint32(value, &ep, 10, &error);
+			damaged = error || '\0' != *ep || v > 1;
+			fi->flags |= v ? FI_F_PAUSED : 0;
 			break;
 		case FI_TAG_ALIA:
 			if (looks_like_urn(value)) {
