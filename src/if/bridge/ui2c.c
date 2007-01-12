@@ -157,6 +157,12 @@ guc_download_start(struct download *d, gboolean check_allowed)
 	download_start(d, check_allowed);
 }
 
+void
+guc_download_pause(struct download *d)
+{
+	download_pause(d);
+}
+
 gboolean
 guc_download_remove(struct download *d)
 {

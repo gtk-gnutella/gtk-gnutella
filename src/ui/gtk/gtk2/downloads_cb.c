@@ -217,7 +217,8 @@ on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 /**
  * For all selected active downloads, remove file.
  */
-void on_popup_downloads_remove_file_activate(GtkMenuItem *unused_menuitem,
+void
+on_popup_downloads_remove_file_activate(GtkMenuItem *unused_menuitem,
      gpointer unused_udata)
 {
 	GSList *sl, *selected;
@@ -337,6 +338,30 @@ on_popup_downloads_start_now_activate(GtkMenuItem *unused_menuitem,
 }
 
 /**
+ * For all selected downloads, activate them.
+ */
+void
+on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *sl, *selected;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+   	selected = fi_gui_download_select(TRUE);
+	if (!selected)
+		return;
+
+	for (sl = selected; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		guc_download_pause(d);
+   	}
+	g_slist_free(selected);
+}
+
+
+/**
  * For all selected downloads, remove them.
  */
 void
@@ -433,57 +458,6 @@ on_popup_downloads_abort_activate(GtkMenuItem *unused_menuitem,
  *** downloads pane
  ***/
 
-
-/**
- * For all selected active downloads, forget them.
- */
-void
-on_button_downloads_abort_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-	GSList *selected, *sl;
-
-	(void) unused_button;
-	(void) unused_udata;
-
-   	selected = fi_gui_download_select(TRUE);
-	if (!selected)
-		return;
-
-	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-		guc_download_abort(d);
-	}
-	g_slist_free(selected);
-}
-
-
-
-/**
- * For all selected active downloads, resume.
- */
-void
-on_button_downloads_resume_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-   	GSList *sl, *selected;
-
-	(void) unused_button;
-	(void) unused_udata;
-
-   	selected = fi_gui_download_select(TRUE);
-	if (!selected)
-		return;
-
-	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-     	guc_download_resume(d);
-	}
-	g_slist_free(selected);
-
-	gui_update_download_abort_resume();
-	gui_update_download_clear();
-}
 
 void
 on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,

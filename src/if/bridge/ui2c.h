@@ -75,6 +75,7 @@ void guc_download_remove_file(struct download *d, gboolean reset);
 gboolean guc_download_file_exists(const struct download *d);
 void guc_download_requeue(struct download *d);
 void guc_download_start(struct download *d, gboolean check_allowed);
+void guc_download_pause(struct download *d);
 gboolean guc_download_remove(struct download *d);
 void guc_download_abort(struct download *d);
 void guc_download_resume(struct download *d);

@@ -4988,6 +4988,11 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->size           = fi->size;
     s->aqueued_count  = fi->aqueued_count;
     s->pqueued_count  = fi->pqueued_count;
+	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
+
+	s->copied 		  = 0;
+	s->sha1_hashed    = FALSE;
+	s->sha1_matched   = FALSE;
 
 	if (fi->done == fi->size) {
 		s->has_sha1 = fi->sha1 != NULL;

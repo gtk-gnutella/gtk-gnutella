@@ -2288,9 +2288,11 @@ download_info_reget(struct download *d)
 	file_info_add_source(fi, d);
 	fi->lifecount++;
 
-	d->flags &= ~DL_F_SUSPENDED;
+	d->flags &= ~(DL_F_SUSPENDED | DL_F_PAUSED);
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
+	if (fi->flags & FI_F_PAUSED)
+		d->flags |= DL_F_PAUSED;
 
 	downloads_with_name_inc(download_outname(d));
 }
@@ -3502,6 +3504,11 @@ download_start_prepare_running(struct download *d)
 		return FALSE;
 	}
 
+	if (d->flags & DL_F_PAUSED) {
+		download_queue(d, _("Paused"));
+		return FALSE;
+	}
+
 	/*
 	 * If the file already exists, and has less than `download_overlap_range'
 	 * bytes, we restart the download from scratch.	Otherwise, we request
@@ -3787,6 +3794,12 @@ download_start(struct download *d, gboolean check_allowed)
 	addr = download_addr(d);
 	port = download_port(d);
 
+	d->flags &= ~DL_F_PAUSED;
+	if (FI_F_PAUSED & d->file_info->flags) {
+		d->file_info->flags &= ~FI_F_PAUSED;
+		file_info_changed(d->file_info);
+	}
+
 	/*
 	 * If caller did not check whether we were allowed to start downloading
 	 * this file, do it now. --RAM, 03/09/2001
@@ -3884,6 +3897,32 @@ download_start(struct download *d, gboolean check_allowed)
 }
 
 /**
+ * Pause a download.
+ */
+void
+download_pause(struct download *d)
+{
+	download_check(d);
+
+	d->flags |= DL_F_PAUSED;
+	if (d->file_info && !(FI_F_PAUSED & d->file_info->flags)) {
+		d->file_info->flags |= FI_F_PAUSED;
+		file_info_changed(d->file_info);
+	}
+
+	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
+		return;
+
+	if (!DOWNLOAD_IS_QUEUED(d)) {
+
+		if (DOWNLOAD_IS_STOPPED(d))
+			d->file_info->lifecount++;
+
+		download_queue(d, _("Paused"));
+	}
+}
+
+/**
  * Pick up new downloads from the queue as needed.
  */
 void
@@ -3964,7 +4003,7 @@ download_pickup_queued(void)
 				if (delta_time(now, d->retry_after) < 0)
 					break;	/* List is sorted */
 
-				if (d->flags & DL_F_SUSPENDED)
+				if (d->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
 					continue;
 
 				found = TRUE;
@@ -4398,6 +4437,8 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
+	if (fi->flags & FI_F_PAUSED)
+		d->flags |= DL_F_PAUSED;
 
 	fi->lifecount++;
 	if (stamp == MAGIC_TIME)			/* Download recreated at startup */
@@ -4457,6 +4498,8 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 
 		if (d->flags & DL_F_SUSPENDED) {
 			reason = _("Suspended (SHA1 checking)");
+		} else if (d->flags & DL_F_PAUSED) {
+			reason = _("Paused");
 		} else if (count_running_downloads() >= max_downloads) {
 			reason = _("Max. number of downloads reached");
 		} else if (count_running_on_server(d->server) >= max_host_downloads) {
@@ -5093,12 +5136,21 @@ download_resume(struct download *d)
 {
 	download_check(d);
 
-	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
+	d->flags &= ~DL_F_PAUSED;
+	if (d->file_info && (FI_F_PAUSED & d->file_info->flags)) {
+		d->file_info->flags &= ~FI_F_PAUSED;
+		file_info_changed(d->file_info);
+	}
 
-	if (DOWNLOAD_IS_RUNNING(d) || DOWNLOAD_IS_WAITING(d))
+	if (
+		!DOWNLOAD_IS_QUEUED(d) ||
+		DOWNLOAD_IS_RUNNING(d) ||
+		DOWNLOAD_IS_WAITING(d)
+	) {
 		return;
+	}
 
-	g_assert(d->list_idx == DL_LIST_STOPPED);
+	g_return_if_fail(d->list_idx == DL_LIST_STOPPED);
 
 	switch (d->status) {
 	case GTA_DL_COMPLETED:
@@ -8826,7 +8878,7 @@ select_push_download(GSList *servers)
 			if (delta_time(now, d->retry_after) < 0)
 				break;		/* List is sorted */
 
-			if (d->flags & DL_F_SUSPENDED)
+			if (d->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
 				continue;
 
 			if (download_debug > 2) g_message(
@@ -9168,8 +9220,10 @@ download_find_waiting_unparq(const host_addr_t addr, guint16 port)
 		download_check(d);
 		g_assert(!DOWNLOAD_IS_RUNNING(d));
 
-		if (d->flags & DL_F_SUSPENDED)		/* Suspended, cannot pick */
+		if (d->flags & (DL_F_SUSPENDED | DL_F_PAUSED)) {
+			/* Suspended, cannot pick */
 			continue;
+		}
 
 		if (d->queue_status == NULL) {		/* No PARQ information yet */
 			found = TRUE;
@@ -9976,8 +10030,10 @@ download_resume_bg_tasks(void)
 		 * we had a fi->cha1 in the record...
 		 */
 
-		if (fi->flags & FI_F_SUSPEND)	/* Already computing SHA1 or moving */
+		if (fi->flags & (FI_F_SUSPEND | FI_F_PAUSED)) {
+			/* Already computing SHA1, moving or paused by user */
 			continue;
+		}
 
 		if (DOWNLOAD_IS_QUEUED(d))
 			download_unqueue(d);
