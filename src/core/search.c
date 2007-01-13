@@ -1135,7 +1135,7 @@ static gnet_results_set_t *
 get_results_set(gnutella_node_t *n, gboolean browse)
 {
 	gnet_results_set_t *rs;
-	gchar *endptr, *s, *fname, *tag;
+	gchar *endptr, *s, *tag;
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
 	GString *info;
@@ -1267,6 +1267,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	while (endptr - s > 10 && nr < rs->num_recs) {
 		gnet_record_t *rc;
+		gchar *filename;
 
 		idx = peek_le32(s);
 		s += 4;					/* File Index */
@@ -1274,7 +1275,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		s += 4;					/* File Size */
 
 		/* Followed by file name, and termination (double NUL) */
-		fname = s;
+		filename = s;
 
 		s = memchr(s, '\0', endptr - s);
 		if (!s) {
@@ -1325,19 +1326,15 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		rc = search_record_new();
 		rc->file_index = idx;
 		rc->size = size;
-		rc->name = atom_str_get(fname);
+		rc->name = atom_str_get(filename);
 
-		if (is_evil_filename(fname)) {
+		if (is_evil_filename(rc->name)) {
 			if (search_debug) {
 				g_message("get_results_set(): Ignoring evil filename \"%s\"",
-					fname);
+					rc->name);
 			}
 			rs->status |= ST_EVIL;
 			set_flags(rc->flags, SR_IGNORED);
-		}
-		if (spam_check_filename(fname)) {
-			rs->status |= ST_NAME_SPAM;
-			set_flags(rc->flags, SR_SPAM);
 		}
 
 		/*
@@ -1653,6 +1650,14 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					gnet_host_vec_free(&hvec);
 				}
 			}
+		}
+
+		/*
+		 * Check the filename only if the record is not already marked as spam.
+		 */
+		if (0 == (SR_SPAM & rc->flags) && spam_check_filename(rc->name)) {
+			rs->status |= ST_NAME_SPAM;
+			set_flags(rc->flags, SR_SPAM);
 		}
 
 		rs->records = g_slist_prepend(rs->records, rc);
