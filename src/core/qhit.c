@@ -696,6 +696,12 @@ add_file(const struct shared_file *sf)
 			gchar buf[sizeof(guint64)];
 			gint len;
 
+			/*
+			 * Suppress negative values (if time_t is signed) as this would
+			 * be interpreted as a date far in this future.
+			 */
+			mtime = MAX(0, mtime);
+
 			len = ggept_ct_encode(mtime, buf);
 			g_assert(len >= 0 && len <= (gint) sizeof buf);
 
