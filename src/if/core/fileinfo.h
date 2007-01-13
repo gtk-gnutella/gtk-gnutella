@@ -66,10 +66,11 @@ typedef struct gnet_fi_status {
 	 * The following are set only when file has been completely downloaded.
 	 */
 
-	gboolean	has_sha1;
-	gboolean	sha1_matched;
 	filesize_t  sha1_hashed;
 	filesize_t	copied;
+	gboolean	has_sha1;
+	gboolean	sha1_matched;
+	gboolean	paused;
 } gnet_fi_status_t;
 
 typedef struct gnet_fi_chunks {

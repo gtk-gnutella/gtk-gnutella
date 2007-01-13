@@ -93,6 +93,7 @@ struct fileinfo_data {
 	struct {
 		guint actively_queued, passively_queued, life_count, recv_count;
 		gnet_fi_t handle;
+		gboolean paused;
 	}	file;
 };
 
@@ -377,8 +378,7 @@ fi_gui_clear_details(void)
 }
 
 void
-on_treeview_downloads_cursor_changed(GtkTreeView *tv,
-	gpointer unused_udata)
+on_treeview_downloads_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 {
 	GtkTreeIter iter;
 	GtkTreePath *path;
@@ -499,6 +499,8 @@ fi_get_status_string(gnet_fi_status_t s)
             _("Queued (%u active, %u passive)"),
             s.aqueued_count, s.aqueued_count);
 		return buf;
+    } else if (s.paused) {
+        return _("Paused");
     } else {
         return _("Waiting");
     }
@@ -519,6 +521,7 @@ fi_gui_fill_status(struct fileinfo_data *data)
 	data->file.actively_queued = s.aqueued_count;
 	data->file.passively_queued = s.pqueued_count;
 	data->file.life_count = s.lifecount;
+	data->file.paused = s.paused;
 	data->size = s.size;
 	data->done = s.done;
 
@@ -629,10 +632,11 @@ fileinfo_numeric_status(const struct fileinfo_data *data)
 
 	v = fi_gui_relative_done(data, 100);
 	if (!data->is_download) {
-		v |= data->size > 0 && data->size == data->done ? (1 << 10) : 0;
-		v |= data->file.recv_count > 0 ? (1 << 9) : 0;
+		v |= data->size > 0 && data->size == data->done ? (1 << 11) : 0;
+		v |= data->file.recv_count > 0 ? (1 << 10) : 0;
 		v |= (data->file.actively_queued || data->file.passively_queued)
-				? (1 << 8) : 0;
+				? (1 << 9) : 0;
+		v |= data->file.paused ? (1 << 8) : 0;
 		v |= data->file.life_count > 0 ? (1 << 7) : 0;
 	}
 	return v;
