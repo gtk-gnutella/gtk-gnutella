@@ -397,6 +397,7 @@ void download_remove_file(struct download *d, gboolean reset);
 gboolean download_file_exists(const struct download *d);
 void download_requeue(struct download *);
 void download_start(struct download *, gboolean);
+void download_pause(struct download *);
 gboolean download_remove(struct download *);
 void download_abort(struct download *);
 void download_resume(struct download *);
