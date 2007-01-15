@@ -1654,8 +1654,8 @@ vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
 	ggep_stream_init(&gs, p, payload_end - (gchar *) p);
 
 	if (ri->answer_flags & RNODE_RQ_GGEP_DU) {
-		gchar uptime[sizeof ri->ggep_du];
-		gint len;
+		gchar uptime[sizeof(guint64)];
+		guint len;
 
 		len = ggept_du_encode(ri->ggep_du, uptime);
 		ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);

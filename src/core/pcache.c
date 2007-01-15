@@ -312,9 +312,9 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_DU) {	/* Daily average uptime */
-			gchar uptime[sizeof meta->daily_uptime];
+			gchar uptime[sizeof(guint64)];
 			guint32 value = MIN(meta->daily_uptime, 86400);
-			gint len;
+			guint len;
 
 			len = ggept_du_encode(value, uptime);
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);

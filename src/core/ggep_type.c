@@ -261,8 +261,9 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
  * Encodes a variable-length integer. This encoding is equivalent to
  * little-endian encoding whereas trailing zeros are discarded.
  *
- * @param v the value to encode.
- * @param data must point to a sufficiently large buffer.
+ * @param v		The value to encode.
+ * @param data  Must point to a sufficiently large buffer. At maximum
+ *				8 bytes are required.
  *
  * @return the length in bytes of the encoded variable-length integer.
  */
@@ -362,9 +363,11 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 /**
  * Encode `filesize' for the GGEP "LF" extension into `data'.
  *
+ * @param filesize The filesize to encode.
+ * @param data A buffer of at least 8 bytes.
  * @return the amount of chars written.
  */
-gint
+guint
 ggept_lf_encode(guint64 filesize, gchar *data)
 {
 	return ggep_vlint_encode(filesize, data);
@@ -396,9 +399,11 @@ ggept_du_extract(extvec_t *exv, guint32 *uptime)
 /**
  * Encode `uptime' for the GGEP "DU" extension into `data'.
  *
+ * @param uptime The uptime (in seconds) to encode.
+ * @param data A buffer of at least 4 bytes.
  * @return the amount of chars written.
  */
-gint
+guint
 ggept_du_encode(guint32 uptime, gchar *data)
 {
 	return ggep_vlint_encode(uptime, data);
@@ -425,12 +430,16 @@ ggept_ct_extract(extvec_t *exv, time_t *stamp_ptr)
 }
 
 /**
+ * Encode `timestamp' for the GGEP "CT" extension into `data'.
+ *
+ * @param timestamp The timestamp (seconds since epoch) to encode.
+ * @param data A buffer of at least 8 bytes.
  * @return the amount of chars written.
  */
-gint
-ggept_ct_encode(time_t stamp, gchar *data)
+guint
+ggept_ct_encode(time_t timestamp, gchar *data)
 {
-	return ggep_vlint_encode(stamp, data);
+	return ggep_vlint_encode(timestamp, data);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
