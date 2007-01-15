@@ -54,6 +54,8 @@
 
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
 
+struct download;
+
 /*
  * Global Functions
  */
@@ -71,7 +73,7 @@ guint32 search_get_kept_results_by_handle(gnet_search_t sh);
 void search_oob_pending_results(
 	gnutella_node_t *n, const gchar *muid, gint hits, gboolean udp_firewalled);
 
-void search_dissociate_browse(gnet_search_t sh, gpointer download);
+void search_dissociate_browse(gnet_search_t sh, struct download *d);
 void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
 
 #endif /* _core_search_h_ */

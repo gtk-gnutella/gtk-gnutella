@@ -10369,10 +10369,8 @@ download_browse_start(const gchar *hostname,
  * Abort browse-hosst download when corresponding search is closed.
  */
 void
-download_abort_browse_host(gpointer download, gnet_search_t sh)
+download_abort_browse_host(struct download *d, gnet_search_t sh)
 {
-	struct download *d = download;
-
 	download_check(d);
 	g_assert(d->flags & DL_F_BROWSE);
 	g_assert(browse_host_dl_for_search(d->browse, sh));

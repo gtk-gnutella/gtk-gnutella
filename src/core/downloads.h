@@ -105,7 +105,7 @@ struct download * download_browse_start(
 	const gchar *guid, const gnet_host_vec_t *proxies,
 	gnet_search_t search, guint32 flags);
 
-void download_abort_browse_host(gpointer download, gnet_search_t sh);
+void download_abort_browse_host(struct download *d, gnet_search_t sh);
 void download_got_eof(struct download *d);
 void download_rx_done(struct download *d);
 void download_browse_received(struct download *d, ssize_t received);

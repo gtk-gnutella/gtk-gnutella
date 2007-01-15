@@ -147,7 +147,7 @@ typedef struct search_ctrl {
 	 * For browse-host requests.
 	 */
 
-	gpointer download;			/**< Associated download for browse-host */
+	struct download *download;	/**< Associated download for browse-host */
 } search_ctrl_t;
 
 /*
@@ -3754,13 +3754,13 @@ search_browse(gnet_search_t sh,
  * the removed download.
  */
 void
-search_dissociate_browse(gnet_search_t sh, gpointer download)
+search_dissociate_browse(gnet_search_t sh, struct download *d)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
 	g_assert(sbool_get(sch->browse));
-	g_assert(sch->download == download);
+	g_assert(sch->download == d);
 
 	sch->download = NULL;
 
