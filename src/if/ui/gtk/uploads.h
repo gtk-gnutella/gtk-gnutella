@@ -26,7 +26,7 @@
 #ifndef _if_ui_gtk_uploads_h_
 #define _if_ui_gtk_uploads_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "lib/host_addr.h"
 

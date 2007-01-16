@@ -26,7 +26,7 @@
 #ifndef _if_core_main_h_
 #define _if_core_main_h_
 
-#include <glib.h>
+#include "common.h"
 
 guint32 main_get_build(void);
 

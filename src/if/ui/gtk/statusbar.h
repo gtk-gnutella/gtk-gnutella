@@ -26,7 +26,7 @@
 #ifndef _if_ui_gtk_statusbar_h_
 #define _if_ui_gtk_statusbar_h_
 
-#include <glib.h>
+#include "common.h"
 
 typedef enum {
     SB_MESSAGE,

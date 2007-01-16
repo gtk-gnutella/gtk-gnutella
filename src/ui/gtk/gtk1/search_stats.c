@@ -46,10 +46,11 @@
  * Released with gtk-gnutella & its license.
  */
 
-#include "gtk/gui.h"
+#include "common.h"
 
 RCSID("$Id$")
 
+#include "gtk/gui.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/search_stats.h"
 #include "gtk/columns.h"

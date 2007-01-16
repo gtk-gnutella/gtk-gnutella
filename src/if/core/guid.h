@@ -26,7 +26,7 @@
 #ifndef _if_core_guid_h_
 #define _if_core_guid_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "lib/misc.h"		/* For GUID_RAW_SIZE */
 

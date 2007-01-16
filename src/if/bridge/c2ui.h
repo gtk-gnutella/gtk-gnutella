@@ -36,6 +36,8 @@
 #ifndef _if_bridge_c2ui_h_
 #define _if_bridge_c2ui_h_
 
+#include "common.h"
+
 /*
  *	SECTION 1 - Interface includes
  */
@@ -49,9 +51,6 @@
 
 /* Property table includes */
 #include "if/gui_property.h"
-
-/* Other includes */
-#include <glib.h>
 
 /* download interface functions */
 void gcu_download_enable_start_now(guint32 running_downloads,

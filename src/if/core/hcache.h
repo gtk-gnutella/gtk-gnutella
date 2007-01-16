@@ -26,7 +26,7 @@
 #ifndef _if_core_hcache_h_
 #define _if_core_hcache_h_
 
-#include <glib.h>
+#include "common.h"
 
 /***
  *** Gnet host cache

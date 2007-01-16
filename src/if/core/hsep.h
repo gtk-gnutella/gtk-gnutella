@@ -26,7 +26,7 @@
 #ifndef _if_core_hsep_h_
 #define _if_core_hsep_h_
 
-#include <glib.h>
+#include "common.h"
 
 #include "lib/event.h"		/* For frequency_t */
 

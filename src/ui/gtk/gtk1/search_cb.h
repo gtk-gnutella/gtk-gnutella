@@ -26,6 +26,7 @@
 #ifndef _gtk1_search_cb_h_
 #define _gtk1_search_cb_h_
 
+#include "common.h"
 #include <gtk/gtk.h>
 
 void search_gui_set_cursor_position(gint x, gint y);

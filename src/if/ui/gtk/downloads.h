@@ -26,7 +26,7 @@
 #ifndef _if_ui_gtk_downloads_h_
 #define _if_ui_gtk_downloads_h_
 
-#include <glib.h>
+#include "common.h"
 
 /*
  * Public interface, visible from the bridge.

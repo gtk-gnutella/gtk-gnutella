@@ -25,10 +25,11 @@
  *----------------------------------------------------------------------
  */
 
-#include "gtk/gui.h"
+#include "common.h"
 
 RCSID("$Id$")
 
+#include "gtk/gui.h"
 #include "nodes_cb.h"
 
 #include "gtk/gtkcolumnchooser.h"

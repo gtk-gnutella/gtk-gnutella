@@ -23,10 +23,11 @@
  *----------------------------------------------------------------------
  */
 
-#include "gtk/gui.h"
+#include "common.h"
 
 RCSID("$Id$")
 
+#include "gtk/gui.h"
 #include "gtk/monitor_cb.h"
 #include "gtk/search.h"
 
