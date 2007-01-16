@@ -52,7 +52,7 @@ enum net_type {
 	NET_TYPE_NONE	= 0,
 	NET_TYPE_LOCAL	= 1,
 	NET_TYPE_IPV4	= 4,
-	NET_TYPE_IPV6	= 6,
+	NET_TYPE_IPV6	= 6
 };
 
 static inline gint
