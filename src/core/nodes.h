@@ -507,6 +507,7 @@ void node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		guint16 port, guint32 flags);
 void node_remove(struct gnutella_node *,
 	const gchar * reason, ...) G_GNUC_PRINTF(2, 3);
+guint node_remove_by_addr(const host_addr_t addr, guint16 port);
 void node_bye(gnutella_node_t *, gint code,
 	const gchar * reason, ...) G_GNUC_PRINTF(3, 4);
 void node_real_remove(gnutella_node_t *);

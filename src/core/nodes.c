@@ -2117,6 +2117,40 @@ node_remove(struct gnutella_node *n, const gchar *reason, ...)
 }
 
 /**
+ * Determine if the node with specified IP and port is connected.  If
+ * so, schedule it to be removed.
+ *
+ * @param addr The address of the node.
+ * @param port A port number of zero means to match all connections to the
+ * 			   host. Often the port is redundant [from a user perspective] as
+ *			   it is not often that two nodes will be at the same IP and
+ *			   connected to us.
+ * @return The number of nodes that have been removed.
+ */
+guint
+node_remove_by_addr(const host_addr_t addr, guint16 port)
+{
+	guint n_removed = 0;
+
+    /* Look for the node structure, if it is connected. */
+    if (!port || node_ht_connected_nodes_has(addr , port)) {
+        const GSList *sl;
+
+        for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+            struct gnutella_node *n = sl->data;
+
+            if ((!port || n->port == port) && host_addr_equal(n->addr, addr)) {
+        		node_remove_by_handle(n->node_handle);
+				n_removed++;
+                if (port)
+					break;
+            }
+        }
+    }
+	return n_removed;
+}
+
+/**
  * The vectorized version of node_eof().
  */
 static void

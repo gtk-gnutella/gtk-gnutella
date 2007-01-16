@@ -143,8 +143,97 @@ shell_token_end(const gchar *s)
 }
 
 static enum shell_reply
+shell_exec_node_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
+{
+	const gchar *host, *end;
+	gint flags = SOCK_F_FORCE;
+	guint16 port;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3)
+		goto error;
+
+	host = argv[2];
+	end = is_strprefix(host, "tls:");
+	if (end) {
+		host = end;
+		flags |= SOCK_F_TLS;
+	}
+	if (argc > 3) {
+		gint error;
+		port = parse_uint16(argv[3], NULL, 10, &error);
+	} else {
+		port = GTA_PORT;
+	}
+	if (port) {
+		node_add_by_name(host, port, flags);
+		sh->msg = _("Node added");
+	} else {
+		sh->msg = _("Invalid IP/Port");
+		goto error;
+	}
+
+error:
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
+shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
+{
+	host_addr_t addr;
+	guint16 port;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3)
+		goto error;
+
+	if (!string_to_host_addr(argv[2], NULL, &addr)) {
+		/* Bad address. */
+		sh->msg = _("Invalid IP");
+		goto error;
+	}
+
+	/* No port is a wild card.. */
+	if (argc > 3) {
+		gint error;
+		port = parse_uint16(argv[3], NULL, 10, &error);
+		if (error || 0 == port) {
+			sh->msg = _("Invalid port");
+			goto error;
+		}
+	} else {
+		port = 0;
+	}
+	
+	{
+		gchar buf[256];
+		guint n;
+		
+		n = node_remove_by_addr(addr, port);
+		gm_snprintf(buf, sizeof buf,
+			NG_("Removed %u node", "Removed %u nodes", n), n);
+		shell_write(sh, buf);
+		shell_write(sh, "\n");
+	}
+
+	sh->msg = "";
+	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
 shell_exec_node(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
+	enum shell_reply reply_code;
+
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
@@ -153,43 +242,17 @@ shell_exec_node(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		goto error;
 
 	if (0 == strcasecmp(argv[1], "add")) {
-		const gchar *host, *end;
-		gint flags = SOCK_F_FORCE;
-		guint16 port;
-
-		if (argc < 3)
-			goto error;
-		
-		host = argv[2];
-		end = is_strprefix(host, "tls:");
-		if (end) {
-			host = end;
-			flags |= SOCK_F_TLS;
-		}
-		if (argc > 3) {
-			gint error;
-			port = parse_uint16(argv[3], NULL, 10, &error);
-		} else {
-			port = GTA_PORT;
-		}
-		if (port) {
-			node_add_by_name(host, port, flags);
-			sh->msg = _("Node added");
-		} else {
-			sh->msg = _("Invalid IP/Port");
-			goto error;
-		}
+		reply_code = shell_exec_node_add(sh, argc, argv);
+	} else if (0 == strcasecmp(argv[1], "drop")){
+		reply_code = shell_exec_node_drop(sh, argc, argv);
 	} else {
 		sh->msg = _("Unknown operation");
 		goto error;
 	}
 
-	return REPLY_READY;
+	return reply_code;
 
 error:
-	if (!sh->msg) {
-		sh->msg = _("Malformed command");
-	}
 	return REPLY_ERROR;
 }
 
@@ -221,9 +284,6 @@ shell_exec_search(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 
 error:
-	if (!sh->msg) {
-		sh->msg = _("Malformed command");
-	}
 	return REPLY_ERROR;
 }
 
@@ -255,9 +315,6 @@ shell_exec_print(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 
 error:
-	if (!sh->msg) {
-		sh->msg = _("Malformed command");
-	}
 	return REPLY_ERROR;
 }
 
@@ -291,9 +348,6 @@ shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 
 error:
-	if (!sh->msg) {
-		sh->msg = _("Malformed command");
-	}
 	return REPLY_ERROR;
 }
 
@@ -328,9 +382,6 @@ shell_exec_whatis(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 
 error:
-	if (!sh->msg) {
-		sh->msg = _("Malformed command");
-	}
 	return REPLY_ERROR;
 }
 
@@ -526,9 +577,6 @@ shell_exec_horizon(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 
 error:
-	if (!sh->msg) {
-		sh->msg = _("Malformed command");
-	}
 	return REPLY_ERROR;
 }
 
@@ -705,9 +753,6 @@ shell_exec_download(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	}
 
 error:
-	if (!sh->msg) {
-		sh->msg = _("Malformed command");
-	}
 	return REPLY_ERROR;
 }
 
@@ -787,7 +832,7 @@ shell_exec_downloads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 	shell_write(sh, "100~ \n");
 
-	for (sl = downloads_get_list(); sl; sl = g_slist_next(sl)) {
+	for (sl = downloads_get_list(); NULL != sl; sl = g_slist_next(sl)) {
 		print_download_info(sh, sl->data);
 	}
 
@@ -1039,6 +1084,7 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		"help\n"
 		"horizon [all]\n"
 		"node add <ip> [port]\n"
+		"node drop <ip> [port]\n"
 		"nodes\n"
 		"offline\n"
 		"online\n"
@@ -1255,6 +1301,9 @@ shell_exec(gnutella_shell_t *sh, const gchar *line)
 		handler = shell_cmd_get_handler(argv[0]);
 		if (handler) {
 			reply_code = (*handler)(sh, argc, argv);
+			if (REPLY_ERROR == reply_code && !sh->msg) {
+				sh->msg = _("Malformed command");
+			}
 		} else {
 			sh->msg = _("Unknown command");
 			reply_code = REPLY_ERROR;
