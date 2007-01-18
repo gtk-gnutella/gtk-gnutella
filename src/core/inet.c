@@ -179,8 +179,11 @@ ip_record_destroy(cqueue_t *unused_cq, gpointer obj)
 }
 
 /**
- * @returns whether ip is that of the local machine of in the same local
- * network area.
+ * Checks whether a host address is considered being "local".
+ *
+ * @param addr The host address to check.
+ * @returns TRUE if the IP address is that of the local machine or
+ *			a private address. Otherwise FALSE is returned.
  */
 static gboolean
 is_local_addr(const host_addr_t addr)
@@ -254,21 +257,11 @@ is_local_addr(const host_addr_t addr)
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
-		{
-			static host_addr_t loopback;
-
-			if (!is_host_addr(loopback))
-				string_to_host_addr("127.0.0.0", NULL, &loopback);
-
-			return	host_addr_matches(addr, loopback, 8) ||
-					host_addr_matches(addr, our_addr, 24); /* Same LAN/24 */
-		}
 	case NET_TYPE_IPV6:
-		return	host_addr_matches(addr, ipv6_link_local, 10) ||
-				host_addr_matches(addr, ipv6_site_local, 10);
+		return is_private_addr(addr);
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		return FALSE;
+		return TRUE;
 	}
 	g_assert_not_reached();
 	return FALSE;
