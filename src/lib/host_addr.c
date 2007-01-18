@@ -85,15 +85,18 @@ host_addr_family(const host_addr_t ha)
 }
 
 /**
- * Checks for RFC1918 private addresses.
+ * Checks for RFC1918 private addresses but also IPv6 link-local and site-local
+ * addresses.
  *
  * @return TRUE if is a private address.
  */
 gboolean
-is_private_addr(const host_addr_t ha)
+is_private_addr(const host_addr_t addr)
 {
-	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
-		guint32 ip = host_addr_ipv4(ha);
+	host_addr_t addr_ipv4;
+
+	if (host_addr_convert(addr, &addr_ipv4, NET_TYPE_IPV4)) {
+		guint32 ip = host_addr_ipv4(addr_ipv4);
 
 		/* 10.0.0.0 -- (10/8 prefix) */
 		if ((ip & 0xff000000) == 0xa000000)
@@ -110,11 +113,21 @@ is_private_addr(const host_addr_t ha)
 		/* 192.168.0.0 -- (192.168/16 prefix) */
 		if ((ip & 0xffff0000) == 0xc0a80000)
 			return TRUE;
-		
-	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
-		return host_addr_equal(ha, ipv6_loopback);
-	}
+	} else {
 
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			g_assert_not_reached();
+		case NET_TYPE_IPV6:
+			return	host_addr_equal(addr, ipv6_loopback) ||
+					host_addr_matches(addr, ipv6_link_local, 10) ||
+					host_addr_matches(addr, ipv6_site_local, 10);
+		case NET_TYPE_LOCAL:
+			return TRUE;
+		case NET_TYPE_NONE:
+			break;
+		}
+	}
 	return FALSE;
 }
 
@@ -228,7 +241,7 @@ host_addr_is_routable(const host_addr_t addr)
 
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		break;
+		return FALSE;
 	}
 
 	g_assert_not_reached();
