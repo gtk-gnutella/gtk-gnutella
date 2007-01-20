@@ -453,6 +453,8 @@ gtk_gnutella_exit(gint n)
 	host_close();
 	hcache_close();		/* After host_close() */
 	bogons_close();		/* Idem, since host_close() can touch the cache */
+	tx_collect();		/* Prevent spurious leak notifications */
+	rx_collect();		/* Idem */
 	hostiles_close();
 	spam_close();
 	gip_close();
