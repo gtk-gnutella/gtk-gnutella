@@ -120,9 +120,23 @@ static void
 socket_alloc_buffer(struct gnutella_socket *s)
 {
 	socket_check(s);
+	g_assert((0 == s->buf_size) ^ (NULL != s->buf));
+
 	if (!s->buf) {
 		s->buf_size = SOCK_BUFSZ;
 		s->buf = g_malloc(s->buf_size);
+	}
+}
+
+static void
+socket_free_buffer(struct gnutella_socket *s)
+{
+	socket_check(s);
+	g_assert((0 == s->buf_size) ^ (NULL != s->buf));
+
+	if (s->buf) {
+		s->buf_size = 0;
+		G_FREE_NULL(s->buf);
 	}
 }
 
@@ -140,7 +154,6 @@ socket_dealloc(struct gnutella_socket **s_ptr)
 		*s_ptr = NULL;
 	}
 }
-
 
 host_addr_t
 socket_ipv6_trt_map(const host_addr_t addr)
@@ -1352,7 +1365,7 @@ socket_free(struct gnutella_socket *s)
 		}
 		s->file_desc = -1;
 	}
-	g_free(s->buf);
+	socket_free_buffer(s);
 	socket_dealloc(&s);
 }
 
