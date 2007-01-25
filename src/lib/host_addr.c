@@ -718,7 +718,7 @@ host_addr_to_name(host_addr_t addr)
 		static gchar host[1025];
 		gint error;
 
-		error = getnameinfo(socket_addr_get_sockaddr(&sa),
+		error = getnameinfo(socket_addr_get_const_sockaddr(&sa),
 					socket_addr_get_len(&sa), host, sizeof host, NULL, 0, 0);
 		if (error) {
 			gchar buf[HOST_ADDR_BUFLEN];
