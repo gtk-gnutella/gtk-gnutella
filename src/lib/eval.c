@@ -65,7 +65,7 @@ static gboolean initialized;
  * @returns a string atom.
  */
 static const gchar *
-constant_make(gchar *s)
+constant_make(const gchar *s)
 {
 	const gchar *v;
 
@@ -175,9 +175,9 @@ eval_subst(const gchar *str)
 
 	len = g_strlcpy(buf, str, sizeof buf);
 	if (len >= sizeof buf) {
-		g_warning("eval_subst: string too large for substitution (%d bytes)",
-			(int) len);
-		return constant_make((gchar *) str);
+		g_warning("eval_subst: string too large for substitution (%lu bytes)",
+			(unsigned long) len);
+		return constant_make(str);
 	}
 
 
