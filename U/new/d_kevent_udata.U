@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_kevent_int_udata: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_kevent_int_udata: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_kevent_int_udata:
 ?S:	This variable conditionally defines the HAS_KEVENT_INT_UDATA symbol,
@@ -25,25 +25,14 @@ $cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
-int
-main(void) {
+int main(void)
+{
   static struct kevent ev;
   ev.udata |= 1;
   return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	$cat <<'EOM'
-Yes, the member "udata" of "struct kevent" is an integer.
-EOM
-	val="$define"
-else
-	$cat <<'EOM'
-No, the member "udata" of "struct kevent" is no integer.
-EOM
-	val="$undef"
-fi
-$rm -f try.c try
+
 set d_kevent_int_udata
-eval $setvar
+eval $trylink
 

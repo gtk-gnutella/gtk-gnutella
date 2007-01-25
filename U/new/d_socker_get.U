@@ -2,8 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_socker_get sockercflags sockerldflags: Myread Setvar \
-	cat rm +cc +ccflags +ldflags
+?MAKE:d_socker_get sockercflags sockerldflags: Trylink cat ccflags ldflags
 ?MAKE:	-pick add $@ %<
 ?S:d_socker_get:
 ?S:	This variable conditionally defines the HAS_SOCKER_GET symbol, which
@@ -21,33 +20,31 @@
 ?C:.
 ?H:#$d_socker_get HAS_SOCKER_GET
 ?H:.
+?T:saved_ccflags saved_ldflags
+?LINT:change ccflags ldflags
 ?LINT:set d_socker_get
 : determine whether socker_get is available
-echo " "
-echo "Checking whether socker_get() is available..." >&4
-val="$define"
 $cat >try.c <<'EOC'
 #include <socker.h>
-int
-main(void)
+int main(void)
 {
-  int fd;
-  
-  fd = socker_get(1, 2, 3, "", 5);
-  return 0;
+  static int ret;
+  ret |= socker_get(1, 2, 3, "", 5);
+  return ret ? 0 : 1;
 }
 EOC
+
 sockercflags=`socker-config --cflags 2>/dev/null`
 sockerldflags=`socker-config --libs 2>/dev/null`
-if $cc $ccflags  $sockercflags $ldflags -o try try.c $sockerldflags \
-	>/dev/null 2>&1
-then
-	echo "Good, you have socker: we'll be able to bind to privileged ports."
-else
-	echo "Seems like socker is missing: privileged ports won't be usable." >&4
-	val="$undef"
-fi
-$rm -f try try.c
+
+saved_ccflags=$ccflags
+saved_ldflags=$ldflags
+ccflags="$ccflags $sockercflags"
+ldflags="$ldflags $sockerldflags"
+
 set d_socker_get
-eval $setvar
+eval $trylink
+
+ccflags=$saved_ccflags
+ldflags=$saved_ldflags
 

@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_built_popcount: cat rm +cc +ccflags +ldflags Setvar
+?MAKE:d_built_popcount: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_built_popcount:
 ?S:	This variable conditionally defines the HAS_BUILTIN_POPCOUNT symbol, which
@@ -14,25 +14,16 @@
 ?C:.
 ?H:#$d_built_popcount HAS_BUILTIN_POPCOUNT	/**/
 ?H:.
-?F:!try.c !try
 ?LINT:set d_built_popcount
 : check for __builtin_popcount
-echo " "
-echo "Checking whether $cc has __builtin_popcount..." >&4
 $cat >try.c <<EOC
-int main()
+int main(void)
 {
-	return __builtin_popcount(127);
+	static int ret;
+	ret |= __builtin_popcount(127);
+	return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	val="$define"
-	echo "Good, it does."
-else
-	val="$undef"
-	echo "No, it doesn't but that's okay."
-fi
 set d_built_popcount
-eval $setvar
-$rm -f try try.c
+eval $trylink
 

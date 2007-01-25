@@ -2,17 +2,18 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:Largefile: cat cc ccflags ldflags i_unistd
+?MAKE:Largefile: Trylink cat ccflags i_unistd
 ?MAKE:	-pick add $@ %<
-?T:flags large
-?F:!try.c !try
+?T:flags result saved_ccflags
 ?W:%<:off_t
 ?LINT:change ccflags
 : determine how to compile for large 64-bit file support
 echo " "
 echo "Checking whether we need flags for large file support..." >&4
-$cat >try.c <<'EOC'
+flags='-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64'
+$cat >try.c <<EOC
 #include <sys/types.h>
+#$i_unistd I_UNISTD
 #ifdef I_UNISTD
 #include <unistd.h>
 #endif
@@ -22,20 +23,32 @@ int main(void)
 	return 0;
 }
 EOC
-flags=''
-large='-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64'
-case "$i_unistd" in
-"$define") flags='-DI_UNISTD';;
-esac
-if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
+
+set result
+eval $trylink
+
+case "$result" in
+"$define")
 	echo "Selected C flags already provide 64-bit file support."
-else
+	;;
+"$undef")
 	echo "You're not natively compiling for large file, fixing..." >&4
-	if $cc $ccflags $flags $large $ldflags -o try try.c >/dev/null 2>&1
-	then
-		echo "(Adding $large)"; ccflags="$ccflags $large"
-	else
+
+	saved_ccflags=$ccflags
+	ccflags="$ccflags $flags"
+
+	set result
+	eval $trylink
+
+	case "$result" in
+	"$define")
+		echo "(Adding $flags)"
+		;;
+	"$undef")
 		echo "(Could not compile the test program, using 32-bit files)" >&4
-	fi
-fi
+		ccflags=$saved_ccflags
+		;;
+	esac	
+	;;
+esac
 

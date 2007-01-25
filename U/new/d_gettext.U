@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_gettext: Inlibc
+?MAKE:d_gettext: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_gettext:
 ?S:	This variable conditionally defines the HAS_GETTEXT symbol, which
@@ -16,6 +16,15 @@
 ?H:.
 ?LINT:set d_gettext
 : see if gettext exists
-set gettext d_gettext
-eval $inlibc
+$cat >try.c <<EOC
+#include <libintl.h>
+int main(void)
+{
+	static char ret;
+	ret |= *gettext("msgid");
+	return ret ? 0 : 1;
+}
+EOC
+set d_gettext '-lintl'
+eval $trylink
 

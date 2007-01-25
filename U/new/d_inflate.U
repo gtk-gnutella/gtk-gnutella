@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_inflate: Inlibc
+?MAKE:d_inflate: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_inflate:
 ?S:	This variable conditionally defines the HAS_INFLATE symbol, which
@@ -17,6 +17,19 @@
 ?H:.
 ?LINT:set d_inflate
 : see if inflate exists
-set inflate d_inflate
-eval $inlibc
+$cat >try.c <<EOC
+#include <zlib.h>
+int main(void)
+{
+	static int ret, flush;
+	static z_stream zs;
+	flush |= Z_SYNC_FLUSH;
+	flush |= Z_FULL_FLUSH;
+	flush |= Z_FINISH;
+	ret |= inflate(&zs, flush);
+	return ret ? 0 : 1;
+}
+EOC
+set d_inflate '-lz'
+eval $trylink
 

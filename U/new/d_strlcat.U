@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_strlcat: Inlibc
+?MAKE:d_strlcat: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_strlcat:
 ?S:	This variable conditionally defines the HAS_STRLCAT symbol, which
@@ -16,6 +16,16 @@
 ?H:.
 ?LINT:set d_strlcat
 : see if strlcat exists
-set strlcat d_strlcat
-eval $inlibc
+$cat >try.c <<EOC
+#include <string.h>
+int main(void)
+{
+	static size_t ret, size;
+	static char dst;
+	ret |= strlcat(&dst, "src", size);
+	return ret ? 0 : 1;
+}
+EOC
+set d_strlcat
+eval $trylink
 

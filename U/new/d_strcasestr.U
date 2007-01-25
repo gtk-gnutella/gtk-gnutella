@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_strcasestr: Inlibc
+?MAKE:d_strcasestr: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_strcasestr:
 ?S:	This variable conditionally defines the HAS_STRCASESTR symbol, which
@@ -16,6 +16,15 @@
 ?H:.
 ?LINT:set d_strcasestr
 : see if strcasestr exists
-set strcasestr d_strcasestr
-eval $inlibc
+$cat >try.c <<EOC
+#include <string.h>
+int main(void)
+{
+	static char ret;
+	ret |= *strcasestr("big", "little");
+	return ret ? 0 : 1;
+}
+EOC
+set d_strcasestr
+eval $trylink
 

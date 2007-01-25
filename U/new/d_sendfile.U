@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_sendfile: Inlibc
+?MAKE:d_sendfile: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_sendfile:
 ?S:	This variable conditionally defines the HAS_SENDFILE symbol, which
@@ -16,6 +16,18 @@
 ?H:.
 ?LINT:set d_sendfile
 : see if sendfile exists
-set sendfile d_sendfile
-eval $inlibc
+$cat >try.c <<EOC
+#include <sys/sendfile.h>
+int main(void)
+{
+	static ssize_t ret;
+	static int out_fd, in_fd;
+	static off_t offset;
+	static size_t n;
+	ret |= sendfile(out_fd, in_fd, &offset, n);
+	return ret ? 0 : 1;
+}
+EOC
+set d_sendfile
+eval $trylink
 

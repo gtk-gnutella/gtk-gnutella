@@ -1,7 +1,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_getinvent: Inlibc
+?MAKE:d_getinvent: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_getinvent:
 ?S:    This variable conditionally defines the HAS_GETINVENT symbol, which
@@ -15,6 +15,15 @@
 ?H:.
 ?LINT:set d_getinvent
 : see if getinvent exists
-set getinvent d_getinvent
-eval $inlibc
+$cat >try.c <<EOC
+#include <invent.h>
+int main(void)
+{
+	static inventory_t *ret;
+	ret = getinvent();
+	return ret ? 0 : 1;
+}
+EOC
+set d_getinvent
+eval $trylink
 

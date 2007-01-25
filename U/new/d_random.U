@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_random: Inlibc
+?MAKE:d_random: Trylink cat i_stdlib
 ?MAKE:	-pick add $@ %<
 ?S:d_random:
 ?S:	This variable conditionally defines the HAS_RANDOM symbol, which
@@ -16,6 +16,18 @@
 ?H:.
 ?LINT:set d_random
 : see if random exists
-set random d_random
-eval $inlibc
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	static long ret;
+	ret |= random();
+	return ret ? 0 : 1;
+}
+EOC
+set d_random
+eval $trylink
 

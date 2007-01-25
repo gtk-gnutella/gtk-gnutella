@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_posix_fadvise: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_posix_fadvise: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_posix_fadvise:
 ?S:	This variable conditionally defines the HAS_POSIX_FADVISE symbol, which
@@ -21,9 +21,8 @@ val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <fcntl.h>
-
-int
-main(void) {
+int main(void)
+{
   static int ret, fd;
   static off_t offset, size;
   static int hint;
@@ -36,21 +35,10 @@ main(void) {
 	| POSIX_FADV_NOREUSE;
 
   ret |= posix_fadvise(fd, offset, size, hint);
-  if (0 != ret)
-	return 1;
-
-  return 0;
+  return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like posix_fadvise() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using posix_fadvise()."
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_posix_fadvise
-eval $setvar
+eval $trylink
 

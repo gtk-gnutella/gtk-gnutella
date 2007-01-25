@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_sa_interrupt: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_sa_interrupt: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_sa_interrupt:
 ?S:	This variable conditionally defines the HAS_SA_INTERRUPT symbol, which
@@ -21,18 +21,14 @@ echo "Checking whether SA_INTERRUPT is available in <signal.h>..." >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <signal.h>
-int
-main(void) {
-  return SA_INTERRUPT + 1;
+int main(void)
+{
+  static int ret;
+  ret |= SA_INTERRUPT;
+  return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	echo 'Good, SA_INTERRUPT is defined.'
-else
-	echo 'Sorry, no SA_INTERRUPT flag, will try to do without it.'
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_sa_interrupt
-eval $setvar
+eval $trylink
 

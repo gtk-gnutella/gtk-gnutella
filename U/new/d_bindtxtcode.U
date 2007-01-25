@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_bindtxtcode: Inlibc
+?MAKE:d_bindtxtcode: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_bindtxtcode:
 ?S:	This variable conditionally defines the HAS_BIND_TEXTDOMAIN_CODESET symbol,
@@ -17,6 +17,15 @@
 ?H:.
 ?LINT:set d_bindtxtcode
 : see if bind_textdomain_codeset exists
-set bind_textdomain_codeset d_bindtxtcode
-eval $inlibc
+$cat >try.c <<EOC
+#include <libintl.h>
+int main(void)
+{
+	static char ret;
+	ret |= *bind_textdomain_codeset("domain", "codeset");
+	return ret ? 0 : 1;
+}
+EOC
+set d_bindtxtcode '-lintl'
+eval $trylink
 

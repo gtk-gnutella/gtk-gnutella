@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_herror: Inlibc
+?MAKE:d_herror: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_herror:
 ?S:	This variable conditionally defines the HAS_HERROR symbol, which
@@ -16,6 +16,14 @@
 ?H:.
 ?LINT:set d_herror
 : see if herror exists
-set herror d_herror
-eval $inlibc
+$cat >try.c <<EOC
+#include <netdb.h>
+int main(void)
+{
+	herror("string");
+	return 0;
+}
+EOC
+set d_herror
+eval $trylink
 

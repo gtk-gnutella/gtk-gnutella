@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_posix_memalign: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_posix_memalign: Trylink cat i_stdlib
 ?MAKE:	-pick add $@ %<
 ?S:d_posix_memalign:
 ?S:	This variable conditionally defines the HAS_POSIX_MEMALIGN symbol, which
@@ -18,27 +18,21 @@
 echo " "
 echo "Checking whether posix_memalign() is available ..." >&4
 val="$define"
-$cat >try.c <<'EOC'
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
 #include <stdlib.h>
-
-int
-main(void) {
-  int ret = 0;
+#endif
+int main(void)
+{
+  static int ret;
+  static size_t align, size;
   void *p;
-
-  ret |= posix_memalign(&p, sizeof(void *), 1);
-  return 0;
+  ret |= posix_memalign(&p, align, size);
+  return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like posix_memalign() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using posix_memalign()."
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_posix_memalign
-eval $setvar
+eval $trylink
 

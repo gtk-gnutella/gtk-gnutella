@@ -2,45 +2,61 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:GCC_pipe: cat cc ccflags ldflags rm gccversion optimize
+?MAKE:GCC_pipe: Trylink cat ccflags gccversion optimize
 ?MAKE:	-pick add $@ %<
-?F:!try.c !try
-?T:flag
+?T:flag result saved_ccflags
 ?LINT:change ccflags
 : check whether -pipe should be used
 flag='-pipe'
 echo " "
 echo "Checking whether $flag should be used..." >&4
-if [ "x$gccversion" != x ]
-then
+case "$gccversion" in
+'');;
+*)
 	case "$ccflags $optimize" in
 	*-save-temps*);;
 	*-pipe*);;
 	*)
-	$cat >try.c <<'EOC'
+		$cat >try.c <<'EOC'
 int main(void)
 {
 	return 0;
 }
 EOC
-	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
-	then
-	$cat >try.c <<'EOC'
+		saved_ccflags=$ccflags
+		ccflags="$ccflags $flag"
+
+		set result
+		eval $trylink
+	
+		case "$result" in
+		"$define")
+			$cat >try.c <<EOC
 main("This is not C")
 {
 	(. || 
-	switch (1) { case 1: case 1: }
+	switch (**1) { case 1: case 1: }
 }
 EOC
-		if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
-		then
-			echo "With $flag the compiler seems to see no code."
-		else
-			echo "(Adding $flag)"; ccflags="$ccflags $flag"
-		fi
-	fi
-	$rm -f try try.c
-	;;
+			set result
+			eval $trylink
+	
+			case "$result" in
+			"$define")
+				echo "With $flag the compiler seems to see no code."
+				ccflags=$saved_ccflags
+				;;
+			"$undef")
+				echo "(Adding $flag)"
+				;;
+			esac
+			;;
+		"$undef")
+			ccflags=$saved_ccflags
+			;;
+		esac
+		;;
 	esac
-fi
+	;;
+esac
 

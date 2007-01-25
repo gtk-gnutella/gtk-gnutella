@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_vsnprintf: Inlibc
+?MAKE:d_vsnprintf: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_vsnprintf:
 ?S:	This variable conditionally defines the HAS_VSNPRINTF symbol, which
@@ -16,6 +16,25 @@
 ?H:.
 ?LINT:set d_vsnprintf
 : see if vsnprintf exists
-set vsnprintf d_vsnprintf
-eval $inlibc
+$cat >try.c <<EOC
+#include <stdarg.h>
+#include <stdio.h>
+int func(char *s, ...)
+{
+	static int ret;
+	static char buf;
+	static size_t n;
+	va_list ap;
+	(void) s;
+	ret |= vsnprintf(&buf, n, "fmt", ap);
+	return ret;
+}
+
+int main(void)
+{
+	return func("xxx", 1);
+}
+EOC
+set d_vsnprintf
+eval $trylink
 

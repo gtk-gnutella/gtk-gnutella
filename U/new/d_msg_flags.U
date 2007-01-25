@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_msghdr_msg_flags: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_msghdr_msg_flags: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_msghdr_msg_flags:
 ?S:	This variable conditionally defines the HAS_MSGHDR_MSG_FLAGS symbol,
@@ -31,18 +31,7 @@ int main(void)
 	return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	$cat <<'EOM'
-Yes, "struct msghdr" has a "msg_flags" member.
-EOM
-	val="$define"
-else
-	$cat <<'EOM'
-No, there's no "msg_flags" in your "struct msghdr".
-EOM
-	val="$undef"
-fi
-$rm -f try.c try
+
 set d_msghdr_msg_flags
-eval $setvar
+eval $trylink
 

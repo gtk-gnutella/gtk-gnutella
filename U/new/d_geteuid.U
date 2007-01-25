@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_geteuid: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_geteuid: Trylink cat i_unistd
 ?MAKE:	-pick add $@ %<
 ?S:d_geteuid:
 ?S:	This variable conditionally defines the HAS_GETEUID symbol, which
@@ -17,23 +17,19 @@
 : can we use geteuid?
 echo " "
 echo "Checking whether geteuid() is available ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
+$cat >try.c <<EOC
 #include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
 #include <unistd.h>
-int
-main(void) {
-  (void) geteuid();
-  return 0;
+#endif
+int main(void)
+{
+	static uid_t ret;
+	ret |= geteuid();
+	return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	echo 'It looks like geteuid() exists on your system, good.'
-else
-	echo 'Sorry, geteuid() does not seem to exist.'
-	val="$undef"
-fi
-$rm -f try try.c
 set d_geteuid
-eval $setvar
+eval $trylink
 

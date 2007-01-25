@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_ipv6: cc ccflags ldflags rm cat Myread Setvar
+?MAKE:d_ipv6: Trylink cat i_arpainet i_netdb
 ?MAKE:	-pick add $@ %<
 ?S:d_ipv6:
 ?S: This variable conditionally defines HAS_IPV6.
@@ -12,18 +12,25 @@
 ?C:.
 ?H:#$d_ipv6 HAS_IPV6	/**/
 ?H:.
+?T:result
 : determine whether IPv6 can be used
 case "$d_ipv6" in
 "$undef") ;;
 *)
 	echo " "
 	echo "Checking whether IPv6 can be used ..." >&4
-	$cat >try.c <<'EOC'
+	$cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#$i_arpainet I_ARPA_INET
+#ifdef I_ARPA_INET
 #include <arpa/inet.h>
+#endif
+#$i_netdb I_NETDB
+#ifdef I_NETDB
 #include <netdb.h>
+#endif
 #define STATIC_ASSERT(x)	\
 	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
 
@@ -55,20 +62,10 @@ int main(void)
 	return 0;
 }
 EOC
-	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	$cat <<'EOM'
- It looks like IPv6 is usable on your system, good.
 
-EOM
-		d_ipv6="$define"
-	  else
-		echo "Sorry, I will not be using IPv6."
-		d_ipv6="$undef"
-	  fi
-	  $rm -f try try.c
-	  ;;
+	set result
+	eval $trylink
+	d_ipv6=$result
+	;;
 esac
-
-set d_ipv6
-eval $setvar
 

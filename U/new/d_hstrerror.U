@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_hstrerror: Inlibc
+?MAKE:d_hstrerror: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_hstrerror:
 ?S:	This variable conditionally defines the HAS_HSTRERROR symbol, which
@@ -16,6 +16,15 @@
 ?H:.
 ?LINT:set d_hstrerror
 : see if hstrerror exists
-set hstrerror d_hstrerror
-eval $inlibc
+$cat >try.c <<EOC
+#include <netdb.h>
+int main(void)
+{
+	static char ret;
+	ret |= *hstrerror(1);
+	return ret ? 0 : 1;
+}
+EOC
+set d_hstrerror 
+eval $trylink
 

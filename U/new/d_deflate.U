@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_deflate: Inlibc
+?MAKE:d_deflate: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_deflate:
 ?S:	This variable conditionally defines the HAS_DEFLATE symbol, which
@@ -17,6 +17,19 @@
 ?H:.
 ?LINT:set d_deflate
 : see if deflate exists
-set deflate d_deflate
-eval $inlibc
+$cat >try.c <<EOC
+#include <zlib.h>
+int main(void)
+{
+	static int ret, flush;
+	static z_stream zs;
+	flush |= Z_FULL_FLUSH;
+	flush |= Z_SYNC_FLUSH;
+	flush |= Z_FINISH;
+	ret |= deflate(&zs, flush);
+	return ret ? 0 : 1;
+}
+EOC
+set d_deflate '-lz'
+eval $trylink
 

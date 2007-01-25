@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_kqueue: Myread Setvar cat rm +cc +ccflags +ldflags
+?MAKE:d_kqueue: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_kqueue:
 ?S:	This variable conditionally defines the HAS_KQUEUE symbol, which
@@ -22,34 +22,33 @@ $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
-
-int
-main(void) {
-  static struct kevent changes[1], events[1];
+int main(void)
+{
+  static struct kevent changes, events;
   static struct timespec ts;
-  static unsigned long filters[] = { EVFILT_READ, EVFILT_WRITE,
-    EVFILT_SIGNAL, EVFILT_PROC, EVFILT_VNODE };
-  int kq = kqueue();
-  int fd = 0;
+  static unsigned long filter;
+  static int kq, fd;
   unsigned long flags;
-
-  flags = EV_ADD | EV_ENABLE | EV_ONESHOT;
-  flags &= ~(EV_CLEAR | EV_EOF | EV_ERROR | EV_DISABLE | EV_DELETE);
-  EV_SET(&changes[0], fd, filters[0], flags, 0, 0, 0);
-  kevent(kq, changes, 1, events, 1, &ts);
-
+  filter |= EVFILT_READ;
+  filter |= EVFILT_WRITE;
+  filter |= EVFILT_SIGNAL;
+  filter |= EVFILT_VNODE;
+  filter |= EVFILT_PROC;
+  flags |= EV_ADD;
+  flags |= EV_ENABLE;
+  flags |= EV_ONESHOT;
+  flags |= EV_CLEAR;
+  flags |= EV_EOF;
+  flags |= EV_ERROR;
+  flags |= EV_DISABLE;
+  flags |= EV_DELETE;
+  EV_SET(&changes, fd, filter, flags, 0, 0, 0);
+  kq |= kqueue();
+  kevent(kq, &changes, 1, &events, 1, &ts);
   return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like kqueue() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using kqueue()."
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_kqueue
-eval $setvar
+eval $trylink
 

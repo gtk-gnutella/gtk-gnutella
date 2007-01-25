@@ -2,32 +2,29 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:Sendfile64: Largefile d_sendfile i_syssendfile cc ccflags ldflags rm cat
+?MAKE:Sendfile64: Largefile Trylink d_sendfile i_syssendfile cat
 ?MAKE:	-pick add $@ %<
+?T:result
 ?LINT:change i_syssendfile d_sendfile
 : determine whether sendfile works with 64-bit file support
-echo " "
-case "$i_syssendfile" in
-"$define")
-	echo "Checking whether we can use sendfile() with large file support..." >&4
-	$cat >try.c <<'EOC'
+$cat >try.c <<EOC
+#$i_syssendfile I_SYS_SENDFILE
+#ifdef I_SYS_SENDFILE
 #include <sys/sendfile.h>
+#endif
 int main(void)
 {
 	return 0;
 }
 EOC
-	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-		echo "It looks like we can use sendfile()."
-	else
-		echo "Sorry, I'll have to disable sendfile()."
-		i_syssendfile="$undef"
-		d_sendfile="$undef"
-	fi
-	$rm -f try try.c
-	;;
-*)
-	echo "No <sys/sendfile.h>, sendfile() should be safe with large files." >&4
+
+set result
+eval $trylink
+
+case "$result" in
+"$undef")
+	i_syssendfile="$undef"
+	d_sendfile="$undef"
 	;;
 esac
 

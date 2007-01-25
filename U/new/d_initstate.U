@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_initstate: Inlibc
+?MAKE:d_initstate: Trylink cat i_stdlib
 ?MAKE:	-pick add $@ %<
 ?S:d_initstate:
 ?S:	This variable conditionally defines the HAS_INITSTATE symbol, which
@@ -17,6 +17,20 @@
 ?H:.
 ?LINT:set d_initstate
 : see if initstate exists
-set initstate d_initstate
-eval $inlibc
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	static long state[31];
+	static size_t size;
+	static char ret;
+	ret |= *initstate(1U, (char *) state, size);
+	return ret ? 0 : 1;
+}
+EOC
+set d_initstate
+eval $trylink
 

@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_madvise: Inlibc
+?MAKE:d_madvise: Trylink cat i_sysmman
 ?MAKE:	-pick add $@ %<
 ?S:d_madvise:
 ?S:	This variable conditionally defines the HAS_MADVISE symbol, which
@@ -16,6 +16,20 @@
 ?H:.
 ?LINT:set d_madvise
 : see if madvise exists
-set madvise d_madvise
-eval $inlibc
+$cat >try.c <<EOC
+#$i_sysmman I_SYS_MMAN
+#ifdef I_SYS_MMAN
+#include <sys/mman.h>
+#endif
+int main(void)
+{
+	static int ret;
+	static void *p;
+	size_t len;
+	ret |= madvise(p, len, 1);
+	return ret ? 0 : 1;
+}
+EOC
+set d_madvise 
+eval $trylink
 

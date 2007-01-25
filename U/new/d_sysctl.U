@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_sysctl: Inlibc
+?MAKE:d_sysctl: Trylink cat
 ?MAKE:	-pick add $@ %<
 ?S:d_sysctl:
 ?S:	This variable conditionally defines the HAS_SYSCTL symbol, which
@@ -16,6 +16,19 @@
 ?H:.
 ?LINT:set d_sysctl
 : see if sysctl exists
-set sysctl d_sysctl
-eval $inlibc
+$cat >try.c <<EOC
+#include <sys/param.h>
+#include <sys/sysctl.h>
+int main(void)
+{
+	static int ret, name;
+	static unsigned int namelen;
+	static void *oldp, *newp;
+	static size_t oldlen, newlen;
+	ret |= sysctl(&name, namelen, oldp, &oldlen, newp, newlen);
+	return ret ? 0 : 1;
+}
+EOC
+set d_sysctl
+eval $trylink
 

@@ -2,31 +2,39 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:Alpha_mieee: cat cc ccflags ldflags rm gccversion
+?MAKE:Alpha_mieee: Trylink cat ccflags gccversion
 ?MAKE:	-pick add $@ %<
-?F:!try.c !try
-?T:flag
+?T:flag result saved_ccflags
 ?LINT:change ccflags
 : check whether -mieee should be used
 flag='-mieee'
 echo " "
 echo "Checking whether $flag should be used..." >&4
-if [ "x$gccversion" != x ]
-then
-	$cat >try.c <<'EOC'
+case "$gccversion" in
+'');;
+*)
+	$cat >try.c <<EOC
 int main(void)
 {
-#if defined(__GNUC__) && (defined(_alpha) || defined(__alpha__))
-	return 0;
-#else
+#if !(defined(__GNUC__) && (defined(_alpha) || defined(__alpha__)))
 	switch (sizeof(int[-23])) { case 1: case 1: }
 #endif
+	return 0;
 }
 EOC
-	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
-	then
-		echo "(Adding $flag)"; ccflags="$ccflags $flag"
-	fi
-	$rm -f try try.c
-fi
+	saved_ccflags=$ccflags
+	ccflags="$ccflags $flag"
+	set result
+	eval $trylink
+
+	case "$result" in
+	"$define")	echo "(Adding $flag)"
+			ccflags="$ccflags $flag"
+			;;
+	"$undef")
+			ccflags=$saved_ccflags
+			;;
+	esac
+	;;
+esac
 
