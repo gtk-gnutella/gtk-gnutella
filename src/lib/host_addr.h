@@ -467,26 +467,26 @@ socket_addr_get_len(const socket_addr_t *addr)
 	return 0;
 }
 
-static inline struct sockaddr *
-socket_addr_get_sockaddr(socket_addr_t *addr)
+static inline const struct sockaddr *
+socket_addr_get_const_sockaddr(const socket_addr_t *addr)
 {
 	g_assert(addr != NULL);
 
 	if (AF_INET == addr->inet4.sin_family) {
-		return cast_to_gpointer(&addr->inet4);
+		return cast_to_gconstpointer(&addr->inet4);
 #if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		return cast_to_gpointer(&addr->inet6);
+		return cast_to_gconstpointer(&addr->inet6);
 #endif /* HAS_IPV6 */
 	}
 
 	return NULL;
 }
 
-static inline const struct sockaddr *
-socket_addr_get_const_sockaddr(const socket_addr_t *addr)
+static inline struct sockaddr *
+socket_addr_get_sockaddr(socket_addr_t *addr)
 {
-	return socket_addr_get_sockaddr((socket_addr_t *) addr);
+	return (struct sockaddr *) socket_addr_get_const_sockaddr(addr);
 }
 
 static inline gint
