@@ -1812,6 +1812,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	struct query_context *qctx;
 	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
+	gboolean may_oob_proxy = TRUE;
 	gchar muid[GUID_RAW_SIZE];
 
 	/*
@@ -1953,9 +1954,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
 				ext_reset(exv, MAX_EXTVEC);
 				return TRUE;			/* Drop message! */
-			}
-
-			if (e->ext_token == EXT_T_URN_SHA1) {
+			} else if (e->ext_token == EXT_T_URN_SHA1) {
 				gchar *sha1_digest = exv_sha1[exv_sha1cnt].sha1_digest;
 				gint paylen = ext_paylen(e);
 
@@ -1990,6 +1989,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				}
 
 				last_sha1_digest = sha1_digest;
+			} else if (e->ext_token == EXT_T_GGEP_NP) {
+				may_oob_proxy = FALSE;
 			}
 		}
 
@@ -2288,7 +2289,12 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * Clear the OOB flag.
 		 */
 
-		if (oob && NODE_IS_LEAF(n) && (req_speed & QUERY_SPEED_FIREWALLED)) {
+		if (
+			oob &&
+			may_oob_proxy &&
+			NODE_IS_LEAF(n) &&
+			(req_speed & QUERY_SPEED_FIREWALLED)
+		) {
 			query_strip_oob_flag(n, n->data);
 			oob = FALSE;
 
@@ -2342,8 +2348,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	memcpy(muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
 
 	if (
-		!oob && udp_active() && proxy_oob_queries && !is_udp_firewalled &&
-		NODE_IS_LEAF(n) && host_is_valid(listen_addr(), socket_listen_port())
+		!oob &&
+		may_oob_proxy &&
+		udp_active() &&
+		proxy_oob_queries &&
+		!is_udp_firewalled &&
+		NODE_IS_LEAF(n) &&
+		host_is_valid(listen_addr(), socket_listen_port())
 	) {
 		oob_proxy_create(n);
 		oob = TRUE;
