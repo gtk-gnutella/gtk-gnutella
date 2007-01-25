@@ -23,51 +23,50 @@
 ?C:.
 ?H:#$d_sqlite HAS_SQLITE  /**/
 ?H:.
-?T:modver version vint sqlite
+?T:version vint
 ?LINT: set d_sqlite
 : how can we find information about SQLite?
 echo " "
-case "$d_sqlite" in
-"$undef") sqlite="$undef";;
-*) sqlite="$define";;
-esac
-echo "Checking how we can gather information about SQLite..." >&4
-if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite3"
-	modver=--modversion
-elif pkg-config sqlite --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite"
-	modver=--modversion
-else
-	echo "You've don't seem to have SQLite installed?" >&4
-	sqliteconfig='false'
-	modver=''
-fi
-echo "(I'll use '$sqliteconfig' to gather that information.)"
 
-?X: Make sure we have a good enough version
+val="$undef"
 sqlitecflags=""
 sqliteldflags=""
-version=`$sqliteconfig $modver`
-val="$undef"
-case "$version" in
-'') ;;
+sqliteconfig='false'
+
+case "$d_sqlite" in
+"$undef") ;;
 *)
-	sqlitecflags=`$sqliteconfig --cflags`
-	sqliteldflags=`$sqliteconfig --libs`
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 030300; then
-		echo "Sorry, you have SQLite $version, I need at least 3.3.0." >&4
+	echo "Checking how we can gather information about SQLite..." >&4
+	if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
+		sqliteconfig="pkg-config sqlite3"
+	elif pkg-config sqlite --cflags >/dev/null 2>&1; then
+		sqliteconfig="pkg-config sqlite"
 	else
-		val="$define"
-		echo "Good, you have SQLite $version."
-		
-		$cat <<'EOM'
+		echo "You've don't seem to have SQLite installed?" >&4
+	fi
+	echo "(I'll use '$sqliteconfig' to gather that information.)"
+
+	version=`$sqliteconfig --modversion`
+	case "$version" in
+	'') ;;
+	*)
+		vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+		if test 0$vint -lt 030300; then
+			echo "Sorry, you have SQLite $version, I need at least 3.3.0." >&4
+			$cat <<'EOM'
 
 For more information, see http://www.sqlite.org/.
 EOM
-	fi
+		else
+			val="$define"
+			sqlitecflags=`$sqliteconfig --cflags`
+			sqliteldflags=`$sqliteconfig --libs`
+			echo "Good, you have SQLite $version."
+		fi
+	esac
+	;;
 esac
+
 set d_sqlite
 eval $setvar
 
