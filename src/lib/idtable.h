@@ -78,7 +78,7 @@ void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value);
 
 void idtable_free_id(idtable_t *tbl, guint32 id);
 
-G_INLINE_FUNC gboolean idtable_is_id_used(idtable_t *tbl, guint32 id);
+gboolean idtable_is_id_used(idtable_t *tbl, guint32 id);
 
 void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value);
 gpointer idtable_get_value(idtable_t *tbl, guint32 id);

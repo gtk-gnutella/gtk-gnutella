@@ -53,7 +53,8 @@ RCSID("$Id$")
  *** Private functions
  ***/
 
-static guint32 find_unused_id(idtable_t *tbl)
+static guint32
+find_unused_id(idtable_t *tbl)
 {
     guint32 blk = ID_BLOCK(tbl->last_id);
     guint32 id;
@@ -79,7 +80,7 @@ static guint32 find_unused_id(idtable_t *tbl)
     id = 0;
     blk_buf = tbl->used_ids[blk];
     while (blk_buf & 0x80000000) {
-        blk_buf = blk_buf << 1;
+        blk_buf <<= 1;
         id++;
     }
 
@@ -94,7 +95,8 @@ static guint32 find_unused_id(idtable_t *tbl)
     return id;
 }
 
-static void idtable_extend(idtable_t *tbl)
+static void
+idtable_extend(idtable_t *tbl)
 {
     guint32 old_blk_count = BLOCK_COUNT(tbl);
 
@@ -121,14 +123,13 @@ static void idtable_extend(idtable_t *tbl)
  ***/
 
 /**
- * idtable_new
- *
  * Allocate new id table. Sizes will be rounded up to multiples of
  * 32. The size of the table will be automatically expanded if necessary.
  * Initial size and extend size must be larger then 0 and are internally
  * rounded up to the closest multiple of 32.
  */
-idtable_t *idtable_new(guint32 isize, guint32 esize)
+idtable_t *
+idtable_new(guint32 isize, guint32 esize)
 {
     idtable_t *tbl;
 
@@ -153,12 +154,11 @@ idtable_t *idtable_new(guint32 isize, guint32 esize)
 }
 
 /**
- * idtable_destroy:
- *
  * Free all memory occupied by this table. The table must not be used
  * again after idtable_destroy call called on it.
  */
-void idtable_destroy(idtable_t *tbl)
+void
+idtable_destroy(idtable_t *tbl)
 {
     g_assert(tbl != NULL);
     g_assert(tbl->last_id < tbl->size);
@@ -176,12 +176,11 @@ void idtable_destroy(idtable_t *tbl)
 }
 
 /**
- * idtable_new_id:
- *
  * Get a id for the given value. The id can be used to look up the
  * value later.
  */
-guint32 idtable_new_id(idtable_t *tbl, gpointer value)
+guint32
+idtable_new_id(idtable_t *tbl, gpointer value)
 {
     guint32 id;
 
@@ -209,14 +208,13 @@ guint32 idtable_new_id(idtable_t *tbl, gpointer value)
 }
 
 /**
- * idtable_new_id_value
- *
  * Request a special id for a given value. If the id must not be already in
  * use.Best check whether the id is already in use with the idtable_is_id_used
  * call. If the id is outside the current id range, the table is extend
  * until the id is in range.
  */
-void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value)
+void
+idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value)
 {
     g_assert(tbl != NULL);
     g_assert(tbl->last_id < tbl->size);
@@ -231,11 +229,10 @@ void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value)
 }
 
 /**
- * idtable_set_value:
- *
  * Replace the value of a give id. The id must already be in use.
  */
-void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
+void
+idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
 {
     g_assert(tbl != NULL);
     g_assert(id < tbl->size);
@@ -246,13 +243,12 @@ void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
 }
 
 /**
- * idtable_get_value:
- *
  * Fetch the value associated with the given id. The id must have been
  * requested with idtable_request_id before and must not be accessed
  * after it has been dropped by idtable_drop_id.
  */
-gpointer idtable_get_value(idtable_t *tbl, guint32 id)
+gpointer
+idtable_get_value(idtable_t *tbl, guint32 id)
 {
     g_assert(tbl != NULL);
     g_assert(id < tbl->size);
@@ -263,13 +259,12 @@ gpointer idtable_get_value(idtable_t *tbl, guint32 id)
 }
 
 /**
- * idtable_is_id_used:
- *
  * @returns TRUE if a id is already in use, returns FALSE if the id is
  * not in use. If the id is outside the current table range it also returns
  * FALSE. The table is not modified by this call.
  */
-G_INLINE_FUNC gboolean idtable_is_id_used(idtable_t *tbl, guint32 id)
+gboolean
+idtable_is_id_used(idtable_t *tbl, guint32 id)
 {
     g_assert(tbl != NULL);
     g_assert(tbl->last_id < tbl->size);
@@ -278,18 +273,17 @@ G_INLINE_FUNC gboolean idtable_is_id_used(idtable_t *tbl, guint32 id)
 }
 
 /**
- * idtable_free_id:
- *
  * Mark this id as unused. If will eventually be reissued.
  */
-void idtable_free_id(idtable_t *tbl, guint32 id)
+void
+idtable_free_id(idtable_t *tbl, guint32 id)
 {
     g_assert(tbl != NULL);
     g_assert(id < tbl->size);
     g_assert(IS_ID_TAKEN(tbl, id));
     g_assert(tbl->last_id < tbl->size);
 
-    tbl->ids --;
+    tbl->ids--;
 
     CLEAR_ID(tbl, id);
     tbl->data[id] = NULL;
