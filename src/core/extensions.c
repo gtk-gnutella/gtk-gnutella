@@ -172,10 +172,12 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(IPP),		/**< IP:Port in pongs (UHC) */
 	GGEP_ID(LF),		/**< Large file size in qhits */
 	GGEP_ID(LOC),		/**< Locale preferences, for clustering  */
+	GGEP_ID(NP),		/**< do Not Proxy (queries; OOB) */
 	GGEP_ID(PATH),		/**< Shared file path, in query hits */
 	GGEP_ID(PHC),		/**< Packed host caches (UHC) in pongs */
 	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
 	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
+	GGEP_ID(SO),		/**< Secure OOB */
 	GGEP_ID(T),			/**< Textual information in qhits */
 	GGEP_ID(UA),		/**< User-Agent string */
 	GGEP_ID(UDPHC),		/**< Is an UDP hostcache (UHC) , in pongs */

@@ -91,10 +91,12 @@ typedef enum ext_token {
 	EXT_T_GGEP_IPP,			/**< IP:Port, in pongs (UHC) */
 	EXT_T_GGEP_LF,			/**< Large File, in query hits */
 	EXT_T_GGEP_LOC,			/**< Locale preferences */
+	EXT_T_GGEP_NP,			/**< do Not Proxy the query (OOB) */
 	EXT_T_GGEP_PATH,		/**< Shared file path, in query hits */
 	EXT_T_GGEP_PHC,			/**< Packed HostCaches, in pongs (UHC) */
 	EXT_T_GGEP_PUSH,		/**< Push proxy info, in query hits */
 	EXT_T_GGEP_SCP,			/**< Support Cached Pongs, in pings (UHC) */
+	EXT_T_GGEP_SO,			/**< Secure OOB */
 	EXT_T_GGEP_T,			/**< Textual information in query hits */
 	EXT_T_GGEP_UA,			/**< User-Agent string */
 	EXT_T_GGEP_UDPHC,		/**< UDP HostCache, in pongs (UHC) */
