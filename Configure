@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Jan  9 02:29:46 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Thu Jan 25 03:05:10 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3135,6 +3135,23 @@ else
 	installprivlib="$privlibexp"
 fi
 
+: Determine the C compiler to be used
+echo " "
+case "$cc" in
+'') dflt=cc;;
+*) dflt="$cc";;
+esac
+rp="Use which C compiler?"
+. ./myread
+cc="$ans"
+
+: See whether they have no cc but they do have gcc
+. ./trygcc
+if $test -f cc.cbu; then
+    . ./cc.cbu
+fi
+. ./checkcc
+
 : make some quick guesses about what we are up against
 echo " "
 $echo $n "Hmm...  $c"
@@ -3255,146 +3272,6 @@ chmod +x bsd usg v7 osf1 eunice xenix venix dos os2 gnu linux
 $eunicefix bsd usg v7 osf1 eunice xenix venix dos os2 gnu linux
 $rm -f foo
 
-: What should the include directory be ?
-echo " "
-$echo $n "Hmm...  $c"
-dflt='/usr/include'
-incpath=''
-mips_type=''
-if $test -f /bin/mips && /bin/mips; then
-	echo "Looks like a MIPS system..."
-	$cat >usr.c <<'EOCP'
-#ifdef SYSTYPE_BSD43
-/bsd43
-#endif
-EOCP
-	if cc -E usr.c > usr.out && $contains / usr.out >/dev/null 2>&1; then
-		dflt='/bsd43/usr/include'
-		incpath='/bsd43'
-		mips_type='BSD 4.3'
-	else
-		mips_type='System V'
-	fi
-	$rm -f usr.c usr.out
-	echo "and you're compiling with the $mips_type compiler and libraries."
-	xxx_prompt=y
-	echo "exit 0" >mips
-else
-	echo "Doesn't look like a MIPS system."
-	xxx_prompt=n
-	echo "exit 1" >mips
-fi
-chmod +x mips
-$eunicefix mips
-case "$usrinc" in
-'') ;;
-*) dflt="$usrinc";;
-esac
-case "$xxx_prompt" in
-y)	fn=d/
-	echo " "
-	rp='Where are the include files you want to use?'
-	. ./getfile
-	usrinc="$ans"
-	;;
-*)	usrinc="$dflt"
-	;;
-esac
-
-: Set private lib path
-case "$plibpth" in
-'') if ./mips; then
-		plibpth="$incpath/usr/lib /usr/local/lib /usr/ccs/lib"
-	fi;;
-esac
-case "$libpth" in
-' ') dlist='';;
-'') dlist="$loclibpth $plibpth $glibpth";;
-*) dlist="$libpth";;
-esac
-
-: Now check and see which directories actually exist, avoiding duplicates
-libpth=''
-for xxx in $dlist
-do
-    if $test -d $xxx; then
-		case " $libpth " in
-		*" $xxx "*) ;;
-		*) libpth="$libpth $xxx";;
-		esac
-    fi
-done
-$cat <<'EOM'
-
-Some systems have incompatible or broken versions of libraries.  Among
-the directories listed in the question below, please remove any you
-know not to be holding relevant libraries, and add any that are needed.
-Say "none" for none.
-
-EOM
-case "$libpth" in
-'') dflt='none';;
-*)
-	set X $libpth
-	shift
-	dflt=${1+"$@"}
-	;;
-esac
-rp="Directories to use for library searches?"
-. ./myread
-case "$ans" in
-none) libpth=' ';;
-*) libpth="$ans";;
-esac
-
-: compute shared library extension
-case "$so" in
-'')
-	if xxx=`./loc libc.sl X $libpth`; $test -f "$xxx"; then
-		dflt='sl'
-	else
-		dflt='so'
-	fi
-	;;
-*) dflt="$so";;
-esac
-$cat <<EOM
-
-On some systems, shared libraries may be available.  Answer 'none' if
-you want to suppress searching of shared libraries for the remainder
-of this configuration.
-
-EOM
-rp='What is the file extension used for shared libraries?'
-. ./myread
-so="$ans"
-
-: Define several unixisms.
-: Hints files or command line option can be used to override them.
-case "$_a" in
-'') _a='.a';;
-esac
-case "$_o" in
-'') _o='.o';;
-esac
-
-: Determine the C compiler to be used
-echo " "
-case "$cc" in
-'') dflt=cc;;
-*) dflt="$cc";;
-esac
-rp="Use which C compiler?"
-. ./myread
-cc="$ans"
-
-: See whether they have no cc but they do have gcc
-. ./trygcc
-if $test -f cc.cbu; then
-    . ./cc.cbu
-fi
-. ./checkcc
-
 : Check whether they have gcc in any guise.  
 echo " "
 echo "Checking for GNU cc in disguise and/or its version number..." >&4
@@ -3473,6 +3350,52 @@ case "$gccversion" in
        locincpth=`echo $locincpth | sed s!$incdir!!`
     done
     $rm -f try try.*
+esac
+
+: What should the include directory be ?
+echo " "
+$echo $n "Hmm...  $c"
+dflt='/usr/include'
+incpath=''
+mips_type=''
+if $test -f /bin/mips && /bin/mips; then
+	echo "Looks like a MIPS system..."
+	$cat >usr.c <<'EOCP'
+#ifdef SYSTYPE_BSD43
+/bsd43
+#endif
+EOCP
+	if cc -E usr.c > usr.out && $contains / usr.out >/dev/null 2>&1; then
+		dflt='/bsd43/usr/include'
+		incpath='/bsd43'
+		mips_type='BSD 4.3'
+	else
+		mips_type='System V'
+	fi
+	$rm -f usr.c usr.out
+	echo "and you're compiling with the $mips_type compiler and libraries."
+	xxx_prompt=y
+	echo "exit 0" >mips
+else
+	echo "Doesn't look like a MIPS system."
+	xxx_prompt=n
+	echo "exit 1" >mips
+fi
+chmod +x mips
+$eunicefix mips
+case "$usrinc" in
+'') ;;
+*) dflt="$usrinc";;
+esac
+case "$xxx_prompt" in
+y)	fn=d/
+	echo " "
+	rp='Where are the include files you want to use?'
+	. ./getfile
+	usrinc="$ans"
+	;;
+*)	usrinc="$dflt"
+	;;
 esac
 
 : see how we invoke the C preprocessor
@@ -3624,6 +3547,52 @@ case "$cppstdin" in
 *) $rm -f $wrapper;;
 esac
 $rm -f testcpp.c testcpp.out
+
+: Set private lib path
+case "$plibpth" in
+'') if ./mips; then
+		plibpth="$incpath/usr/lib /usr/local/lib /usr/ccs/lib"
+	fi;;
+esac
+case "$libpth" in
+' ') dlist='';;
+'') dlist="$loclibpth $plibpth $glibpth";;
+*) dlist="$libpth";;
+esac
+
+: Now check and see which directories actually exist, avoiding duplicates
+libpth=''
+for xxx in $dlist
+do
+    if $test -d $xxx; then
+		case " $libpth " in
+		*" $xxx "*) ;;
+		*) libpth="$libpth $xxx";;
+		esac
+    fi
+done
+$cat <<'EOM'
+
+Some systems have incompatible or broken versions of libraries.  Among
+the directories listed in the question below, please remove any you
+know not to be holding relevant libraries, and add any that are needed.
+Say "none" for none.
+
+EOM
+case "$libpth" in
+'') dflt='none';;
+*)
+	set X $libpth
+	shift
+	dflt=${1+"$@"}
+	;;
+esac
+rp="Directories to use for library searches?"
+. ./myread
+case "$ans" in
+none) libpth=' ';;
+*) libpth="$ans";;
+esac
 
 : determine optimize, if desired, or use for debug flag also
 case "$optimize" in
@@ -3907,6 +3876,683 @@ y)
 n) echo "OK, that should do.";;
 esac
 $rm -f try try.* core
+
+: see whether the program compiles and links
+trylink='
+var=$1;
+shift;
+eval "$var=\$undef";
+file="${TMPDIR:-/tmp}/trylink.log";
+cat try.c >> "$file";
+while :; do
+	if $cc $ccflags -o try try.c $ldflags $1 >> "$file" 2>&1; then
+		eval "$var=\$define";
+		break;
+	fi;
+	if $test $# -lt 1; then
+		break;
+	fi;
+	shift;
+done;
+$rm -f try try.c;
+'
+
+: see if gettext exists
+$cat >try.c <<EOC
+#include <libintl.h>
+int main(void)
+{
+	static char ret;
+	ret |= *gettext("msgid");
+	return ret ? 0 : 1;
+}
+EOC
+set d_gettext '-lintl'
+eval $trylink
+
+: determine filename position in cpp output
+echo " "
+echo "Computing filename position in cpp output for #include directives..." >&4
+echo '#include <stdio.h>' > foo.c
+case "$osname" in
+vos)
+	testaccess=-e
+	cppfilter="tr '\\\\>' '/' |"
+	;;
+*)
+	testaccess=-r
+	cppfilter=''
+	;;
+esac
+$cat >fieldn <<EOF
+$startsh
+$cppstdin $cppflags $cppminus <foo.c 2>/dev/null | \
+$grep '^[ 	]*#.*stdio\.h' | \
+while read cline; do
+	pos=1
+	set \$cline
+	while $test \$# -gt 0; do
+		if $test $testaccess \`echo \$1 | $tr -d '"'\`; then
+			echo "\$pos"
+			exit 0
+		fi
+		shift
+		pos=\`expr \$pos + 1\`
+	done
+done
+EOF
+chmod +x fieldn
+fieldn=`./fieldn`
+$rm -f foo.c fieldn
+case $fieldn in
+'') pos='???';;
+1) pos=first;;
+2) pos=second;;
+3) pos=third;;
+*) pos="${fieldn}th";;
+esac
+echo "Your cpp writes the filename in the $pos field of the line."
+
+: locate header file
+$cat >findhdr <<EOF
+$startsh
+wanted=\$1
+name=''
+for usrincdir in $usrinc; do
+	if test -f \$usrincdir/\$wanted; then
+		echo "\$usrincdir/\$wanted"
+		exit 0
+	fi
+done
+awkprg='{ print \$$fieldn }'
+echo "#include <\$wanted>" > foo\$\$.c
+$cppstdin $cppminus $cppflags < foo\$\$.c 2>/dev/null | \
+$cppfilter $grep "^[ 	]*#.*\$wanted" | \
+while read cline; do
+	name=\`echo \$cline | $awk "\$awkprg" | $tr -d '"'\`
+	case "\$name" in
+	*[/\\\\]\$wanted) echo "\$name"; exit 1;;
+	*[\\\\/]\$wanted) echo "\$name"; exit 1;;
+	*) exit 2;;
+	esac
+done
+status=\$?
+$rm -f foo\$\$.c
+if test \$status -eq 1; then
+	exit 0
+fi
+exit 1
+EOF
+chmod +x findhdr
+$eunicefix findhdr
+
+: define an alternate in-header-list? function
+inhdr='echo " "; td=$define; tu=$undef; yyy=$@;
+cont=true; xxf="echo \"<\$1> found.\" >&4";
+case $# in 2) xxnf="echo \"<\$1> NOT found.\" >&4";;
+*) xxnf="echo \"<\$1> NOT found, ...\" >&4";;
+esac;
+case $# in 4) instead=instead;; *) instead="at last";; esac;
+while $test "$cont"; do
+	xxx=`./findhdr $1`
+	var=$2; eval "was=\$$2";
+	if $test "$xxx" && $test -r "$xxx";
+	then eval $xxf;
+	eval "case \"\$$var\" in $undef) . ./whoa; esac"; eval "$var=\$td";
+		cont="";
+	else eval $xxnf;
+	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu"; fi;
+	set $yyy; shift; shift; yyy=$@;
+	case $# in 0) cont="";;
+	2) xxf="echo \"but I found <\$1> $instead.\" >&4";
+		xxnf="echo \"and I did not find <\$1> either.\" >&4";;
+	*) xxf="echo \"but I found <\$1\> instead.\" >&4";
+		xxnf="echo \"there is no <\$1>, ...\" >&4";;
+	esac;
+done;
+while $test "$yyy";
+do set $yyy; var=$2; eval "was=\$$2";
+	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu";
+	set $yyy; shift; shift; yyy=$@;
+done'
+
+: see if this is a libintl system
+set libintl.h i_libintl
+eval $inhdr
+
+: determine whether we support NLS
+echo " "
+case "$d_nls" in
+"$define")
+		echo "You have NLS support." >&4
+		val="$define"
+		;;
+*)
+	case "$d_gettext$i_libintl" in
+	"$define$define")
+		echo "You have NLS support." >&4
+		val="$define"
+		;;
+	*)
+		echo "I don't see support for NLS here..." >&4
+		val="$undef"
+		;;
+	esac
+	;;
+esac
+set d_nls
+eval $setvar
+
+: determine whether to enable NLS
+echo " "
+case "$d_nls" in
+"$undef")
+	echo "I won't enable NLS since you don't have that feature." >&4
+	val="$undef"
+	;;
+*)
+	$cat <<EOM
+I can compile $package with Native Language Support (NLS), which
+will enable internationalization of some messages, provided there is
+a suitable translation available.
+
+EOM
+	dflt=y
+	case "$d_enablenls" in
+	"$undef") dflt=n;;
+	esac
+	rp='Shall I enable NLS'
+	. ./myread
+	case "$ans" in
+	y) val="$define";;
+	*) val="$undef";;
+	esac
+	;;
+esac
+set d_enablenls
+eval $setvar
+case "$d_enablenls" in
+"$define") enablenls=true;;
+"$undef") enablenls=false;;
+esac
+
+: determine where locale files go
+case "$enablenls" in
+false) ;;
+*)
+	set locale locale
+	eval $prefixit
+	case "$locale" in
+	'')
+		dflt=`./loc . "." $prefixexp/share/locale \
+			/usr/share/locale /usr/local/share/locale`
+		set dflt
+		eval $prefixup
+		;;
+	*)  dflt="$locale";;
+	esac
+	fn=d~
+	$cat <<EOM
+
+$spackage comes with a set of files holding translations for various
+languages.  Those need to be installed in order for you to benefit
+from those translations and have $package localized.
+
+EOM
+	rp='Where do you want to put the localization files?'
+	. ./getfile
+	locale="$ans"
+	localeexp="$ansexp"
+	;;
+esac
+
+: Look for GNU-cc style attribute checking
+echo " "
+echo "Checking whether your compiler can handle __attribute__ ..." >&4
+$cat >attrib.c <<'EOCP'
+#include <stdio.h>
+void croak (char* pat,...) __attribute__((format(printf,1,2),noreturn));
+EOCP
+if $cc $ccflags -c attrib.c >attrib.out 2>&1 ; then
+	if $contains 'warning' attrib.out >/dev/null 2>&1; then
+		echo "Your C compiler doesn't fully support __attribute__."
+		val="$undef"
+	else
+		echo "Your C compiler supports __attribute__."
+		val="$define"
+	fi
+else
+	echo "Your C compiler doesn't seem to understand __attribute__ at all."
+	val="$undef"
+fi
+set d_attribut
+eval $setvar
+$rm -f attrib*
+
+: see if bcopy exists
+$cat >try.c <<EOC
+#include <strings.h>
+int main(void)
+{
+	static int src, dst;
+	bcopy(&src, &dst, sizeof(dst));
+	return 0;
+}
+EOC
+set d_bcopy
+eval $trylink
+
+: see if bind_textdomain_codeset exists
+$cat >try.c <<EOC
+#include <libintl.h>
+int main(void)
+{
+	static char ret;
+	ret |= *bind_textdomain_codeset("domain", "codeset");
+	return ret ? 0 : 1;
+}
+EOC
+set d_bindtxtcode '-lintl'
+eval $trylink
+
+: check for __builtin_popcount
+$cat >try.c <<EOC
+int main(void)
+{
+	static int ret;
+	ret |= __builtin_popcount(127);
+	return ret ? 0 : 1;
+}
+EOC
+set d_built_popcount
+eval $trylink
+
+: check for const keyword
+echo " "
+echo 'Checking to see if your C compiler knows about "const"...' >&4
+$cat >const.c <<'EOCP'
+typedef struct spug { int drokk; } spug;
+int main()
+{
+	const char *foo;
+	const spug y;
+}
+EOCP
+if $cc -c $ccflags const.c >/dev/null 2>&1 ; then
+	val="$define"
+	echo "Yup, it does."
+else
+	val="$undef"
+	echo "Nope, it doesn't."
+fi
+set d_const
+eval $setvar
+$rm -f const.c const.o
+
+: how can we find information about dbus?
+echo " "
+d_dbus="$define"
+echo "Checking how we can gather information about dbus..." >&4
+if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
+	dbusconfig="pkg-config dbus-1"
+	modver=--modversion
+else
+	echo "You've don't seem to have dbus installed?" >&4
+	d_dbus="$undef"
+	dbusconfig='false'
+	modver=''
+fi
+echo "(I'll use '$dbusconfig' to gather that information.)"
+
+dbuscflags=""
+dbusldflags=""
+d_dbus="$undef"
+version=`$dbusconfig $modver`
+case "$version" in
+'') ;;
+*)
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 03502; then
+		echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
+	else
+		echo "Good, you have dbus $version."
+		dbuscflags=`$dbusconfig --cflags`
+		dbusldflags=`$dbusconfig --libs`
+		
+		$cat <<'EOM'
+
+D-Bus support allows me to send out messages onto the D-Bus message
+bus. That way external applications can easily act on certain 
+events that happen, such as a completed download.
+
+For more information, see doc/other/dbus-support.txt
+
+EOM
+		case "$dbus" in
+		false) dflt=n;;
+		*) dflt=y;;
+		esac
+		rp="Enable D-Bus support"
+		. ./myread
+		case "$ans" in
+		y) dbus=true; d_dbus="$define";;
+		*) dbus=false; d_dbus="$undef";;
+		esac
+	fi
+	;;
+esac
+
+: can we use /dev/poll?
+$cat >try.c <<EOC
+#include <poll.h>
+#include <stropts.h>
+#include <sys/devpoll.h>
+int main(void)
+{
+  static struct pollfd pfd;
+  static struct dvpoll dvp;
+  static int ret;
+  pfd.fd |= 1;
+  pfd.events |= POLLIN;
+  pfd.events |= POLLPRI;
+  pfd.events |= POLLOUT;
+  pfd.events |= POLLHUP;
+  pfd.events |= POLLERR;
+  pfd.events |= POLLNVAL;
+  pfd.events |= POLLREMOVE;
+  pfd.revents |= 1;
+  dvp.dp_timeout |= 1;
+  dvp.dp_nfds |= 1;
+  dvp.dp_fds = &pfd;
+  ret |= ioctl(1, DP_POLL, &dvp);
+  return 0;
+}
+EOC
+set d_dev_poll
+eval $trylink
+
+: see if this is a dirent system
+echo " "
+if xinc=`./findhdr dirent.h`; $test "$xinc"; then
+	val="$define"
+	echo "<dirent.h> found." >&4
+else
+	val="$undef"
+	if xinc=`./findhdr sys/dir.h`; $test "$xinc"; then
+		echo "<sys/dir.h> found." >&4
+		echo " "
+	else
+		xinc=`./findhdr sys/ndir.h`
+	fi
+	echo "<dirent.h> NOT found." >&4
+fi
+set i_dirent
+eval $setvar
+
+
+: check whether struct dirent has a member d_type.
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_dirent I_DIRENT
+#ifdef I_DIRENT
+#include <dirent.h>
+#endif
+int main(void)
+{
+  static struct dirent dir_entry;
+  dir_entry.d_type |= 1
+	| DT_UNKNOWN
+	| DT_FIFO
+	| DT_CHR
+	| DT_DIR
+	| DT_BLK
+	| DT_REG
+	| DT_LNK
+	| DT_SOCK
+	| DT_WHT;
+  return 0;
+}
+EOC
+set d_dirent_d_type
+eval $trylink
+
+: can we use epoll?
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/epoll.h>
+int main(void)
+{
+  static struct epoll_event ev;
+  static int ret, epfd;
+  epfd |= epoll_create(1);
+  ev.events |= EPOLLOUT; 
+  ev.events |= EPOLLPRI; 
+  ev.events |= EPOLLERR; 
+  ev.events |= EPOLLHUP; 
+  ev.events |= EPOLLET; 
+  ev.data.ptr = (void *) 0; 
+  ev.data.fd |= 1; 
+  ev.data.u32 |= 1; 
+  ev.data.u64 |= 1; 
+  ret |= epoll_ctl(epfd, 1, EPOLL_CTL_ADD, &ev);
+  ret |= epoll_ctl(epfd, 1, EPOLL_CTL_MOD, &ev);
+  ret |= epoll_ctl(epfd, 1, EPOLL_CTL_DEL, &ev);
+  ret |= epoll_wait(epfd, &ev, 1, -1);
+  return 0 != ret;
+}
+EOC
+set d_epoll
+eval $trylink
+
+: determine whether to enable fast assertions
+echo " "
+case "$d_fast_assert" in
+"$undef")
+	dflt=n;;
+*)
+	dflt=y;;
+esac
+$cat <<EOM
+$spackage contains code called "fast assertions" which are lightweight
+assertions in terms of code space used.  They use much less code than
+their glib counterpart, and therefore should be more efficient.
+
+EOM
+rp='Shall I enable "fast assertions"'
+. ./myread
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_fast_assert
+eval $setvar
+case "$gccversion" in
+'') ;;
+*)
+	case "$d_fast_assert" in
+	"$define")
+		$cat >try.c <<'EOC'
+int main()
+{
+	return 0;
+}
+EOC
+	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
+	then
+		case "$ccflags" in
+		*-momit-leaf-frame-pointer*) ;;
+		*)
+			ccflags="$ccflags -momit-leaf-frame-pointer"
+			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
+			;;
+		esac
+	else
+		case "$ccflags" in
+		*-momit-leaf-frame-pointer*)
+			echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
+			ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
+		;;
+		esac
+	fi
+	;;
+	esac
+;;
+esac
+
+: see if arpa/inet.h has to be included
+set arpa/inet.h i_arpainet
+eval $inhdr
+
+: see if this is a netdb.h system
+set netdb.h i_netdb
+eval $inhdr
+
+: can we use getaddrinfo?
+echo " "
+echo "Checking whether getaddrinfo() can be used ..." >&4
+val="$define"
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#$i_arpainet I_ARPA_INET
+#ifdef I_ARPA_INET
+#include <arpa/inet.h>
+#endif
+#$i_netdb I_NETDB
+#ifdef I_NETDB
+#include <netdb.h>
+#endif
+int main(void)
+{
+	struct addrinfo hints, *res;
+	int ret;
+
+	hints.ai_flags = 1;
+	hints.ai_family = PF_UNSPEC;
+	hints.ai_socktype = 1;
+	hints.ai_protocol = 1;
+	hints.ai_addrlen = (socklen_t) 1;
+	hints.ai_canonname = "canonname";
+	hints.ai_addr = (struct sockaddr *) 0;
+	hints.ai_next = (struct addrinfo *) 0;
+	ret = getaddrinfo("localhost", "www", &hints, &res);
+	if (0 != ret) {
+		const char *s;
+		s = gai_strerror(ret);
+		(void) s;
+	}
+	if (res)
+		freeaddrinfo(res);
+	return 0;
+}
+EOC
+set d_getaddrinfo
+eval $trylink
+
+: see if this is a unistd.h system
+set unistd.h i_unistd
+eval $inhdr
+
+: can we use geteuid?
+echo " "
+echo "Checking whether geteuid() is available ..." >&4
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static uid_t ret;
+	ret |= geteuid();
+	return ret ? 0 : 1;
+}
+EOC
+set d_geteuid
+eval $trylink
+
+: see if this is a net/if.h system
+set net/if.h i_netif
+eval $inhdr
+
+: can we use getifaddrs?
+echo " "
+echo "Checking whether getifaddrs() is available ..." >&4
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/socket.h>
+#$i_netif I_NET_IF
+#ifdef I_NET_IF
+#include <net/if.h>
+#endif
+#include <ifaddrs.h>
+int main(void)
+{
+  struct ifaddrs *ifa0, *ifa;
+  static int ret;
+
+  ret |= getifaddrs(&ifa0);
+
+  for (ifa = ifa0; ifa; ifa = ifa->ifa_next) {
+    (void) ifa->ifa_flags;
+    (void) ifa->ifa_addr;
+    (void) ifa->ifa_addr->sa_family;
+    (void) ifa->ifa_netmask;
+    if ((IFF_LOOPBACK | IFF_UP | IFF_RUNNING) & ifa->ifa_flags)
+	break;
+  }
+  freeifaddrs(ifa0);
+  return 0;
+}
+EOC
+set d_getifaddrs
+eval $trylink
+
+: see if getinvent exists
+$cat >try.c <<EOC
+#include <invent.h>
+int main(void)
+{
+	static inventory_t *ret;
+	ret = getinvent();
+	return ret ? 0 : 1;
+}
+EOC
+set d_getinvent
+eval $trylink
+
+: compute shared library extension
+case "$so" in
+'')
+	if xxx=`./loc libc.sl X $libpth`; $test -f "$xxx"; then
+		dflt='sl'
+	else
+		dflt='so'
+	fi
+	;;
+*) dflt="$so";;
+esac
+$cat <<EOM
+
+On some systems, shared libraries may be available.  Answer 'none' if
+you want to suppress searching of shared libraries for the remainder
+of this configuration.
+
+EOM
+rp='What is the file extension used for shared libraries?'
+. ./myread
+so="$ans"
+
+: Define several unixisms.
+: Hints files or command line option can be used to override them.
+case "$_a" in
+'') _a='.a';;
+esac
+case "$_o" in
+'') _o='.o';;
+esac
 
 : Looking for optional libraries
 echo " "
@@ -4493,678 +5139,6 @@ yes)
 esac;
 eval "$2=$tval"'
 
-: define an is-in-libc? function
-inlibc='echo " "; td=$define; tu=$undef;
-sym=$1; var=$2; eval "was=\$$2";
-tx=yes;
-case "$reuseval$was" in
-true) ;;
-true*) tx=no;;
-esac;
-case "$tx" in
-yes)
-	set $sym tres -f;
-	eval $csym;
-	case "$tres" in
-	true)
-		echo "$sym() found." >&4;
-		case "$was" in $undef) . ./whoa; esac; eval "$var=\$td";;
-	*)
-		echo "$sym() NOT found." >&4;
-		case "$was" in $define) . ./whoa; esac; eval "$var=\$tu";;
-	esac;;
-*)
-	case "$was" in
-	$define) echo "$sym() found." >&4;;
-	*) echo "$sym() NOT found." >&4;;
-	esac;;
-esac'
-
-: see if gettext exists
-set gettext d_gettext
-eval $inlibc
-
-: determine filename position in cpp output
-echo " "
-echo "Computing filename position in cpp output for #include directives..." >&4
-echo '#include <stdio.h>' > foo.c
-case "$osname" in
-vos)
-	testaccess=-e
-	cppfilter="tr '\\\\>' '/' |"
-	;;
-*)
-	testaccess=-r
-	cppfilter=''
-	;;
-esac
-$cat >fieldn <<EOF
-$startsh
-$cppstdin $cppflags $cppminus <foo.c 2>/dev/null | \
-$grep '^[ 	]*#.*stdio\.h' | \
-while read cline; do
-	pos=1
-	set \$cline
-	while $test \$# -gt 0; do
-		if $test $testaccess \`echo \$1 | $tr -d '"'\`; then
-			echo "\$pos"
-			exit 0
-		fi
-		shift
-		pos=\`expr \$pos + 1\`
-	done
-done
-EOF
-chmod +x fieldn
-fieldn=`./fieldn`
-$rm -f foo.c fieldn
-case $fieldn in
-'') pos='???';;
-1) pos=first;;
-2) pos=second;;
-3) pos=third;;
-*) pos="${fieldn}th";;
-esac
-echo "Your cpp writes the filename in the $pos field of the line."
-
-: locate header file
-$cat >findhdr <<EOF
-$startsh
-wanted=\$1
-name=''
-for usrincdir in $usrinc; do
-	if test -f \$usrincdir/\$wanted; then
-		echo "\$usrincdir/\$wanted"
-		exit 0
-	fi
-done
-awkprg='{ print \$$fieldn }'
-echo "#include <\$wanted>" > foo\$\$.c
-$cppstdin $cppminus $cppflags < foo\$\$.c 2>/dev/null | \
-$cppfilter $grep "^[ 	]*#.*\$wanted" | \
-while read cline; do
-	name=\`echo \$cline | $awk "\$awkprg" | $tr -d '"'\`
-	case "\$name" in
-	*[/\\\\]\$wanted) echo "\$name"; exit 1;;
-	*[\\\\/]\$wanted) echo "\$name"; exit 1;;
-	*) exit 2;;
-	esac
-done
-status=\$?
-$rm -f foo\$\$.c
-if test \$status -eq 1; then
-	exit 0
-fi
-exit 1
-EOF
-chmod +x findhdr
-$eunicefix findhdr
-
-: define an alternate in-header-list? function
-inhdr='echo " "; td=$define; tu=$undef; yyy=$@;
-cont=true; xxf="echo \"<\$1> found.\" >&4";
-case $# in 2) xxnf="echo \"<\$1> NOT found.\" >&4";;
-*) xxnf="echo \"<\$1> NOT found, ...\" >&4";;
-esac;
-case $# in 4) instead=instead;; *) instead="at last";; esac;
-while $test "$cont"; do
-	xxx=`./findhdr $1`
-	var=$2; eval "was=\$$2";
-	if $test "$xxx" && $test -r "$xxx";
-	then eval $xxf;
-	eval "case \"\$$var\" in $undef) . ./whoa; esac"; eval "$var=\$td";
-		cont="";
-	else eval $xxnf;
-	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu"; fi;
-	set $yyy; shift; shift; yyy=$@;
-	case $# in 0) cont="";;
-	2) xxf="echo \"but I found <\$1> $instead.\" >&4";
-		xxnf="echo \"and I did not find <\$1> either.\" >&4";;
-	*) xxf="echo \"but I found <\$1\> instead.\" >&4";
-		xxnf="echo \"there is no <\$1>, ...\" >&4";;
-	esac;
-done;
-while $test "$yyy";
-do set $yyy; var=$2; eval "was=\$$2";
-	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu";
-	set $yyy; shift; shift; yyy=$@;
-done'
-
-: see if this is a libintl system
-set libintl.h i_libintl
-eval $inhdr
-
-: determine whether we support NLS
-echo " "
-case "$d_nls" in
-"$define")
-		echo "You have NLS support." >&4
-		val="$define"
-		;;
-*)
-	case "$d_gettext$i_libintl" in
-	"$define$define")
-		echo "You have NLS support." >&4
-		val="$define"
-		;;
-	*)
-		echo "I don't see support for NLS here..." >&4
-		val="$undef"
-		;;
-	esac
-	;;
-esac
-set d_nls
-eval $setvar
-
-: determine whether to enable NLS
-echo " "
-case "$d_nls" in
-"$undef")
-	echo "I won't enable NLS since you don't have that feature." >&4
-	val="$undef"
-	;;
-*)
-	$cat <<EOM
-I can compile $package with Native Language Support (NLS), which
-will enable internationalization of some messages, provided there is
-a suitable translation available.
-
-EOM
-	dflt=y
-	case "$d_enablenls" in
-	"$undef") dflt=n;;
-	esac
-	rp='Shall I enable NLS'
-	. ./myread
-	case "$ans" in
-	y) val="$define";;
-	*) val="$undef";;
-	esac
-	;;
-esac
-set d_enablenls
-eval $setvar
-case "$d_enablenls" in
-"$define") enablenls=true;;
-"$undef") enablenls=false;;
-esac
-
-: determine where locale files go
-case "$enablenls" in
-false) ;;
-*)
-	set locale locale
-	eval $prefixit
-	case "$locale" in
-	'')
-		dflt=`./loc . "." $prefixexp/share/locale \
-			/usr/share/locale /usr/local/share/locale`
-		set dflt
-		eval $prefixup
-		;;
-	*)  dflt="$locale";;
-	esac
-	fn=d~
-	$cat <<EOM
-
-$spackage comes with a set of files holding translations for various
-languages.  Those need to be installed in order for you to benefit
-from those translations and have $package localized.
-
-EOM
-	rp='Where do you want to put the localization files?'
-	. ./getfile
-	locale="$ans"
-	localeexp="$ansexp"
-	;;
-esac
-
-: Look for GNU-cc style attribute checking
-echo " "
-echo "Checking whether your compiler can handle __attribute__ ..." >&4
-$cat >attrib.c <<'EOCP'
-#include <stdio.h>
-void croak (char* pat,...) __attribute__((format(printf,1,2),noreturn));
-EOCP
-if $cc $ccflags -c attrib.c >attrib.out 2>&1 ; then
-	if $contains 'warning' attrib.out >/dev/null 2>&1; then
-		echo "Your C compiler doesn't fully support __attribute__."
-		val="$undef"
-	else
-		echo "Your C compiler supports __attribute__."
-		val="$define"
-	fi
-else
-	echo "Your C compiler doesn't seem to understand __attribute__ at all."
-	val="$undef"
-fi
-set d_attribut
-eval $setvar
-$rm -f attrib*
-
-: see whether the program compiles and links
-trylink='
-var=$1;
-if $cc $ccflags -o try try.c $ldflags >/dev/null 2>&1; then
-	eval "$var=\$define";
-else
-	eval "$var=\$undef";
-fi;
-$rm -f try try.c;
-'
-
-: see if bcopy exists
-$cat >try.c <<EOC
-#include <strings.h>
-int main(void)
-{
-	static int src, dst;
-	bcopy(&src, &dst, sizeof(dst));
-	return 0;
-}
-EOC
-set d_bcopy
-eval $trylink
-
-: see if bind_textdomain_codeset exists
-set bind_textdomain_codeset d_bindtxtcode
-eval $inlibc
-
-: check for __builtin_popcount
-echo " "
-echo "Checking whether $cc has __builtin_popcount..." >&4
-$cat >try.c <<EOC
-int main()
-{
-	return __builtin_popcount(127);
-}
-EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	val="$define"
-	echo "Good, it does."
-else
-	val="$undef"
-	echo "No, it doesn't but that's okay."
-fi
-set d_built_popcount
-eval $setvar
-$rm -f try try.c
-
-: check for const keyword
-echo " "
-echo 'Checking to see if your C compiler knows about "const"...' >&4
-$cat >const.c <<'EOCP'
-typedef struct spug { int drokk; } spug;
-int main()
-{
-	const char *foo;
-	const spug y;
-}
-EOCP
-if $cc -c $ccflags const.c >/dev/null 2>&1 ; then
-	val="$define"
-	echo "Yup, it does."
-else
-	val="$undef"
-	echo "Nope, it doesn't."
-fi
-set d_const
-eval $setvar
-$rm -f const.c const.o
-
-: how can we find information about dbus?
-echo " "
-d_dbus="$define"
-echo "Checking how we can gather information about dbus..." >&4
-if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
-	dbusconfig="pkg-config dbus-1"
-	modver=--modversion
-else
-	echo "You've don't seem to have dbus installed?" >&4
-	d_dbus="$undef"
-	dbusconfig='false'
-	modver=''
-fi
-echo "(I'll use '$dbusconfig' to gather that information.)"
-
-dbuscflags=""
-dbusldflags=""
-d_dbus="$undef"
-version=`$dbusconfig $modver`
-case "$version" in
-'') ;;
-*)
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 03502; then
-		echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
-	else
-		echo "Good, you have dbus $version."
-		dbuscflags=`$dbusconfig --cflags`
-		dbusldflags=`$dbusconfig --libs`
-		
-		$cat <<'EOM'
-
-D-Bus support allows me to send out messages onto the D-Bus message
-bus. That way external applications can easily act on certain 
-events that happen, such as a completed download.
-
-For more information, see doc/other/dbus-support.txt
-
-EOM
-		case "$dbus" in
-		false) dflt=n;;
-		*) dflt=y;;
-		esac
-		rp="Enable D-Bus support"
-		. ./myread
-		case "$ans" in
-		y) dbus=true; d_dbus="$define";;
-		*) dbus=false; d_dbus="$undef";;
-		esac
-	fi
-	;;
-esac
-
-: can we use /dev/poll?
-echo " "
-echo "Checking whether /dev/poll is available ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
-#include <poll.h>
-#include <stropts.h>
-#include <sys/devpoll.h>
-
-int
-main(void) {
-  static struct pollfd pfds[1];
-  static struct dvpoll dvp;
-  static int ret;
-
-  pfds[0].fd |= 1;
-  pfds[0].events |= POLLIN | POLLPRI | POLLOUT | POLLHUP | POLLERR | POLLNVAL;
-  pfds[0].events |= POLLREMOVE;
-  pfds[0].revents |= 1;
-
-  dvp.dp_timeout |= 1;
-  dvp.dp_nfds |= 1;
-  dvp.dp_fds = pfds;
-
-  ret |= ioctl(1, DP_POLL, &dvp);
-
-  return 0;
-}
-EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like /dev/poll is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using /dev/poll."
-	val="$undef"
-fi
-$rm -f try try.c
-set d_dev_poll
-eval $setvar
-
-: check whether struct dirent has a member d_type.
-echo " "
-$cat << 'EOM' >&4
-Checking whether "struct dirent" has a member "d_type" ...
-EOM
-$cat >try.c <<EOC
-#include <sys/types.h>
-#include <dirent.h>
-int
-main(void) {
-  static struct dirent dir_entry;
-  dir_entry.d_type |= 1
-	| DT_UNKNOWN
-	| DT_FIFO
-	| DT_CHR
-	| DT_DIR
-	| DT_BLK
-	| DT_REG
-	| DT_LNK
-	| DT_SOCK
-	| DT_WHT;
-  return 0;
-}
-EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	$cat <<'EOM'
-Yes, "struct dirent" has a member "d_type".
-EOM
-	val="$define"
-else
-	$cat <<'EOM'
-No, "struct dirent" has no integer member "d_type".
-EOM
-	val="$undef"
-fi
-$rm -f try.c try
-set d_dirent_d_type
-eval $setvar
-
-: can we use epoll?
-echo " "
-echo "Checking whether epoll() is available ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
-#include <sys/types.h>
-#include <sys/epoll.h>
-int
-main(void) {
-  struct epoll_event ev[1];
-  int ret, epfd;
-
-  epfd = epoll_create(1);
-  
-  ev[0].events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP | EPOLLET; 
-  ev[0].data.ptr = (void *) 0; 
-  ev[0].data.fd = 1; 
-  ev[0].data.u32 = 1; 
-  ev[0].data.u64 = 1; 
-  
-  ret = epoll_ctl(epfd, 1, EPOLL_CTL_ADD, &ev[0]);
-  ret = epoll_ctl(epfd, 1, EPOLL_CTL_MOD, &ev[0]);
-  ret = epoll_ctl(epfd, 1, EPOLL_CTL_DEL, &ev[0]);
-  
-  ret = epoll_wait(epfd, &ev[0], 1, -1);
-
-  return 0;
-}
-EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	echo 'It looks like epoll() is usable on your system, good.'
-else
-	echo 'Sorry, I will not be using epoll().'
-	val="$undef"
-fi
-$rm -f try try.c
-set d_epoll
-eval $setvar
-
-: determine whether to enable fast assertions
-echo " "
-case "$d_fast_assert" in
-"$undef")
-	dflt=n;;
-*)
-	dflt=y;;
-esac
-$cat <<EOM
-$spackage contains code called "fast assertions" which are lightweight
-assertions in terms of code space used.  They use much less code than
-their glib counterpart, and therefore should be more efficient.
-
-EOM
-rp='Shall I enable "fast assertions"'
-. ./myread
-case "$ans" in
-y) val="$define";;
-*) val="$undef";;
-esac
-set d_fast_assert
-eval $setvar
-case "$gccversion" in
-'') ;;
-*)
-	case "$d_fast_assert" in
-	"$define")
-		$cat >try.c <<'EOC'
-int main()
-{
-	return 0;
-}
-EOC
-	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
-	then
-		case "$ccflags" in
-		*-momit-leaf-frame-pointer*) ;;
-		*)
-			ccflags="$ccflags -momit-leaf-frame-pointer"
-			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
-			;;
-		esac
-	else
-		case "$ccflags" in
-		*-momit-leaf-frame-pointer*)
-			echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
-			ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
-		;;
-		esac
-	fi
-	;;
-	esac
-;;
-esac
-
-: can we use getaddrinfo?
-echo " "
-echo "Checking whether getaddrinfo() can be used ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-int
-main(void) {
-	struct addrinfo hints, *res;
-	int ret;
-
-	hints.ai_flags = 1;
-	hints.ai_family = PF_UNSPEC;
-	hints.ai_socktype = 1;
-	hints.ai_protocol = 1;
-	hints.ai_addrlen = (socklen_t) 1;
-	hints.ai_canonname = "canonname";
-	hints.ai_addr = (struct sockaddr *) 0;
-	hints.ai_next = (struct addrinfo *) 0;
-	ret = getaddrinfo("localhost", "www", &hints, &res);
-	if (0 != ret) {
-		const char *s;
-		s = gai_strerror(ret);
-		(void) s;
-	}
-	if (res)
-		freeaddrinfo(res);
-	return 0;
-}
-EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like getaddrinfo() is usable on your system, good.
-EOM
-
-else
-	echo "Sorry, I will not be using getaddrinfo()."
-	val="$undef"
-fi
-$rm -f try try.c
-set d_getaddrinfo
-eval $setvar
-
-: can we use geteuid?
-echo " "
-echo "Checking whether geteuid() is available ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
-#include <sys/types.h>
-#include <unistd.h>
-int
-main(void) {
-  (void) geteuid();
-  return 0;
-}
-EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	echo 'It looks like geteuid() exists on your system, good.'
-else
-	echo 'Sorry, geteuid() does not seem to exist.'
-	val="$undef"
-fi
-$rm -f try try.c
-set d_geteuid
-eval $setvar
-
-: see if this is a net/if.h system
-set net/if.h i_netif
-eval $inhdr
-
-: can we use getifaddrs?
-echo " "
-echo "Checking whether getifaddrs() is available ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
-#include <sys/types.h>
-#include <sys/socket.h>
-#ifdef I_NET_IF
-#include <net/if.h>
-#endif
-#include <ifaddrs.h>
-
-int
-main(void) {
-  struct ifaddrs *ifa0, *ifa;
-  static int ret;
-
-  ret |= getifaddrs(&ifa0);
-
-  for (ifa = ifa0; ifa; ifa = ifa->ifa_next) {
-    (void) ifa->ifa_flags;
-    (void) ifa->ifa_addr;
-    (void) ifa->ifa_addr->sa_family;
-    (void) ifa->ifa_netmask;
-    if ((IFF_LOOPBACK | IFF_UP | IFF_RUNNING) & ifa->ifa_flags)
-	break;
-  }
-  freeifaddrs(ifa0);
-  return 0;
-}
-EOC
-case "$i_netif" in
-"$define") flags='-DI_NET_IF';;
-esac
-if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like getifaddrs() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using getifaddrs()."
-	val="$undef"
-fi
-$rm -f try try.c
-set d_getifaddrs
-eval $setvar
-
-: see if getinvent exists
-set getinvent d_getinvent
-eval $inlibc
-
 : see if getdtablesize exists
 echo " "
 case "$d_gettblsz" in
@@ -5253,24 +5227,21 @@ $rm -f nofile*
 echo " "
 echo "Checking whether getuid() is available ..." >&4
 val="$define"
-$cat >try.c <<'EOC'
+$cat >try.c <<EOC
 #include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
 #include <unistd.h>
-int
-main(void) {
-  (void) getuid();
-  return 0;
+#endif
+int main(void)
+{
+	static uid_t ret;
+	ret |= getuid();
+	return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	echo 'It looks like getuid() exists on your system, good.'
-else
-	echo 'Sorry, getuid() does not seem to exist.'
-	val="$undef"
-fi
-$rm -f try try.c
 set d_getuid
-eval $setvar
+eval $trylink
 
 : how can we find information about GNU TLS?
 echo " "
@@ -5335,16 +5306,51 @@ set d_gnutls
 eval $setvar
 
 : see if herror exists
-set herror d_herror
-eval $inlibc
+$cat >try.c <<EOC
+#include <netdb.h>
+int main(void)
+{
+	herror("string");
+	return 0;
+}
+EOC
+set d_herror
+eval $trylink
 
 : see if hstrerror exists
-set hstrerror d_hstrerror
-eval $inlibc
+$cat >try.c <<EOC
+#include <netdb.h>
+int main(void)
+{
+	static char ret;
+	ret |= *hstrerror(1);
+	return ret ? 0 : 1;
+}
+EOC
+set d_hstrerror 
+eval $trylink
+
+: see if stdlib is available
+set stdlib.h i_stdlib
+eval $inhdr
 
 : see if initstate exists
-set initstate d_initstate
-eval $inlibc
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	static long state[31];
+	static size_t size;
+	static char ret;
+	ret |= *initstate(1U, (char *) state, size);
+	return ret ? 0 : 1;
+}
+EOC
+set d_initstate
+eval $trylink
 
 : see if this is a netinet/in.h or sys/in.h system
 set netinet/in.h i_niin sys/in.h i_sysin
@@ -5404,12 +5410,18 @@ case "$d_ipv6" in
 *)
 	echo " "
 	echo "Checking whether IPv6 can be used ..." >&4
-	$cat >try.c <<'EOC'
+	$cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#$i_arpainet I_ARPA_INET
+#ifdef I_ARPA_INET
 #include <arpa/inet.h>
+#endif
+#$i_netdb I_NETDB
+#ifdef I_NETDB
 #include <netdb.h>
+#endif
 #define STATIC_ASSERT(x)	\
 	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
 
@@ -5441,22 +5453,12 @@ int main(void)
 	return 0;
 }
 EOC
-	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	$cat <<'EOM'
- It looks like IPv6 is usable on your system, good.
 
-EOM
-		d_ipv6="$define"
-	  else
-		echo "Sorry, I will not be using IPv6."
-		d_ipv6="$undef"
-	  fi
-	  $rm -f try try.c
-	  ;;
+	set result
+	eval $trylink
+	d_ipv6=$result
+	;;
 esac
-
-set d_ipv6
-eval $setvar
 
 : Look for isascii
 $cat >try.c <<EOC
@@ -5480,27 +5482,16 @@ $cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
-int
-main(void) {
+int main(void)
+{
   static struct kevent ev;
   ev.udata |= 1;
   return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	$cat <<'EOM'
-Yes, the member "udata" of "struct kevent" is an integer.
-EOM
-	val="$define"
-else
-	$cat <<'EOM'
-No, the member "udata" of "struct kevent" is no integer.
-EOM
-	val="$undef"
-fi
-$rm -f try.c try
+
 set d_kevent_int_udata
-eval $setvar
+eval $trylink
 
 : can we use kqueue?
 echo " "
@@ -5510,36 +5501,35 @@ $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
-
-int
-main(void) {
-  static struct kevent changes[1], events[1];
+int main(void)
+{
+  static struct kevent changes, events;
   static struct timespec ts;
-  static unsigned long filters[] = { EVFILT_READ, EVFILT_WRITE,
-    EVFILT_SIGNAL, EVFILT_PROC, EVFILT_VNODE };
-  int kq = kqueue();
-  int fd = 0;
+  static unsigned long filter;
+  static int kq, fd;
   unsigned long flags;
-
-  flags = EV_ADD | EV_ENABLE | EV_ONESHOT;
-  flags &= ~(EV_CLEAR | EV_EOF | EV_ERROR | EV_DISABLE | EV_DELETE);
-  EV_SET(&changes[0], fd, filters[0], flags, 0, 0, 0);
-  kevent(kq, changes, 1, events, 1, &ts);
-
+  filter |= EVFILT_READ;
+  filter |= EVFILT_WRITE;
+  filter |= EVFILT_SIGNAL;
+  filter |= EVFILT_VNODE;
+  filter |= EVFILT_PROC;
+  flags |= EV_ADD;
+  flags |= EV_ENABLE;
+  flags |= EV_ONESHOT;
+  flags |= EV_CLEAR;
+  flags |= EV_EOF;
+  flags |= EV_ERROR;
+  flags |= EV_DISABLE;
+  flags |= EV_DELETE;
+  EV_SET(&changes, fd, filter, flags, 0, 0, 0);
+  kq |= kqueue();
+  kevent(kq, &changes, 1, &events, 1, &ts);
   return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like kqueue() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using kqueue()."
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_kqueue
-eval $setvar
+eval $trylink
 
 : how can we find information about libxml2?
 echo " "
@@ -5590,37 +5580,20 @@ set libcharset.h i_libcharset
 eval $inhdr
 
 : can we use locale_charset?
-echo " "
-echo "Checking whether locale_charset() is available ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
-
+$cat >try.c <<EOC
+#$i_libcharset I_LIBCHARSET
 #ifdef I_LIBCHARSET
 #include <libcharset.h>
 #endif
-
-int
-main(void)
+int main(void)
 {
-  if (*locale_charset())
-	return 1;
-  return 0;
+	static char ret;
+	ret |= *locale_charset();
+	return ret ? 0 : 1;
 }
 EOC
-case "$i_libcharset" in
-"$define") flags='-DI_LIBCHARSET';;
-esac
-if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like locale_charset() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using locale_charset()."
-	val="$undef"
-fi
-$rm -f try try.c
 set d_locale_charset
-eval $setvar
+eval $trylink
 
 : see if sys/stat.h is available
 set sys/stat.h i_sysstat
@@ -5643,13 +5616,27 @@ EOC
 set d_lstat
 eval $trylink
 
-: see if madvise exists
-set madvise d_madvise
-eval $inlibc
-
-: see if stdlib is available
-set stdlib.h i_stdlib
+: see if sys/mman.h has to be included
+set sys/mman.h i_sysmman
 eval $inhdr
+
+: see if madvise exists
+$cat >try.c <<EOC
+#$i_sysmman I_SYS_MMAN
+#ifdef I_SYS_MMAN
+#include <sys/mman.h>
+#endif
+int main(void)
+{
+	static int ret;
+	static void *p;
+	size_t len;
+	ret |= madvise(p, len, 1);
+	return ret ? 0 : 1;
+}
+EOC
+set d_madvise 
+eval $trylink
 
 : see if memalign exists
 $cat >try.c <<EOC
@@ -5682,12 +5669,9 @@ EOC
 set d_memcpy
 eval $trylink
 
-: see if sys/mman.h has to be included
-set sys/mman.h i_sysmman
-eval $inhdr
-
 : see if mmap exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_sysmman I_SYS_MMAN
 #ifdef I_SYS_MMAN
 #include <sys/mman.h>
@@ -5725,20 +5709,9 @@ int main(void)
 	return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	$cat <<'EOM'
-Yes, "struct msghdr" has a "msg_flags" member.
-EOM
-	val="$define"
-else
-	$cat <<'EOM'
-No, there's no "msg_flags" in your "struct msghdr".
-EOM
-	val="$undef"
-fi
-$rm -f try.c try
+
 set d_msghdr_msg_flags
-eval $setvar
+eval $trylink
 
 : Initialize h_fcntl
 h_fcntl=false
@@ -5806,6 +5779,7 @@ eval $inhdr
 
 : see if poll exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_syspoll I_SYS_POLL
 #ifdef I_SYS_POLL
 #include <sys/poll.h>
@@ -5817,7 +5791,7 @@ $cat >try.c <<EOC
 int main(void)
 {
 	static int ret, timeout;
-	static nfds_t n;
+	static unsigned n;
 	static struct pollfd pfd;
 	pfd.fd |= 1;
 	pfd.revents |= 1;
@@ -5841,9 +5815,8 @@ val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <fcntl.h>
-
-int
-main(void) {
+int main(void)
+{
   static int ret, fd;
   static off_t offset, size;
   static int hint;
@@ -5856,58 +5829,38 @@ main(void) {
 	| POSIX_FADV_NOREUSE;
 
   ret |= posix_fadvise(fd, offset, size, hint);
-  if (0 != ret)
-	return 1;
-
-  return 0;
+  return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like posix_fadvise() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using posix_fadvise()."
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_posix_fadvise
-eval $setvar
+eval $trylink
 
 : can we use posix_memalign?
 echo " "
 echo "Checking whether posix_memalign() is available ..." >&4
 val="$define"
-$cat >try.c <<'EOC'
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
 #include <stdlib.h>
-
-int
-main(void) {
-  int ret = 0;
+#endif
+int main(void)
+{
+  static int ret;
+  static size_t align, size;
   void *p;
-
-  ret |= posix_memalign(&p, sizeof(void *), 1);
-  return 0;
+  ret |= posix_memalign(&p, align, size);
+  return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like posix_memalign() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using posix_memalign()."
-	val="$undef"
-fi
-$rm -f try try.c
-set d_posix_memalign
-eval $setvar
 
-: see if this is a unistd.h system
-set unistd.h i_unistd
-eval $inhdr
+set d_posix_memalign
+eval $trylink
 
 : see if pread exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_unistd I_UNISTD
 #ifdef I_UNISTD
 #include <unistd.h>
@@ -5928,6 +5881,7 @@ eval $trylink
 
 : see if preadv exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #include <sys/uio.h>
 #$i_unistd I_UNISTD
 #ifdef I_UNISTD
@@ -5948,6 +5902,7 @@ eval $trylink
 
 : see if pwrite exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_unistd I_UNISTD
 #ifdef I_UNISTD
 #include <unistd.h>
@@ -5968,6 +5923,7 @@ eval $trylink
 
 : see if pwritev exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #include <sys/uio.h>
 #$i_unistd I_UNISTD
 #ifdef I_UNISTD
@@ -5987,8 +5943,20 @@ set d_pwritev
 eval $trylink
 
 : see if random exists
-set random d_random
-eval $inlibc
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	static long ret;
+	ret |= random();
+	return ret ? 0 : 1;
+}
+EOC
+set d_random
+eval $trylink
 
 : check whether '__attribute__((__regparm__(n)))' can be used
 val="$undef"
@@ -6022,6 +5990,8 @@ eval $inhdr
 
 : see if getrusage exists
 $cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/time.h>
 #$i_sysresrc I_SYS_RESOURCE
 #ifdef I_SYS_RESOURCE
 #include <sys/resource.h>
@@ -6044,75 +6014,64 @@ echo "Checking whether SA_INTERRUPT is available in <signal.h>..." >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <signal.h>
-int
-main(void) {
-  return SA_INTERRUPT + 1;
+int main(void)
+{
+  static int ret;
+  ret |= SA_INTERRUPT;
+  return ret ? 0 : 1;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-	echo 'Good, SA_INTERRUPT is defined.'
-else
-	echo 'Sorry, no SA_INTERRUPT flag, will try to do without it.'
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_sa_interrupt
-eval $setvar
+eval $trylink
 
 : see if sendfile exists
-set sendfile d_sendfile
-eval $inlibc
+$cat >try.c <<EOC
+#include <sys/sendfile.h>
+int main(void)
+{
+	static ssize_t ret;
+	static int out_fd, in_fd;
+	static off_t offset;
+	static size_t n;
+	ret |= sendfile(out_fd, in_fd, &offset, n);
+	return ret ? 0 : 1;
+}
+EOC
+set d_sendfile
+eval $trylink
 
 : can we use setproctitle?
-echo " "
-echo "Checking whether setproctitle() is available ..." >&4
-val="$define"
-$cat >try.c <<'EOC'
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
 #include <stdlib.h>
-int
-main(void) {
+#endif
+int main(void)
+{
   setproctitle("%s %d %s %c", "blah", 1, "x", 'X');
   return 0;
 }
 EOC
-if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-    $cat <<'EOM'
-It looks like setproctitle() is usable on your system, good.
-EOM
-else
-	echo "Sorry, I will not be using setproctitle()."
-	val="$undef"
-fi
-$rm -f try try.c
+
 set d_setproctitle
-eval $setvar
+eval $trylink
 
 : see if we have sigaction
-echo " "
-if set sigaction val -f d_sigaction; eval $csym; $val; then
-	echo 'sigaction() found.' >&4
-	val="$define"
-else
-	echo 'sigaction NOT found.' >&4
-	val="$undef"
-fi
-$cat > set.c <<'EOP'
+$cat >try.c <<EOC
 #include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
-int main()
+int main(void)
 {
-    struct sigaction act, oact;
+	struct sigaction act, oact;
+	static int ret, sig;
+	ret |= sigaction(sig, &act, &oact);
+	return ret ? 0 : 1;
 }
-EOP
-if $cc $ccflags $ldflags -o set set.c $libs >/dev/null 2>&1; then
-	:
-else
-	echo "But you don't seem to have a useable struct sigaction." >&4
-	val="$undef"
-fi
-set d_sigaction; eval $setvar
-$rm -f set set$_o set.c
+EOC
+set d_sigaction
+eval $trylink
 
 : see if sigsetjmp exists
 echo " "
@@ -6159,149 +6118,161 @@ eval $setvar
 $rm -f set.c set
 
 : determine whether socker_get is available
-echo " "
-echo "Checking whether socker_get() is available..." >&4
-val="$define"
 $cat >try.c <<'EOC'
 #include <socker.h>
-int
-main(void)
+int main(void)
 {
-  int fd;
-  
-  fd = socker_get(1, 2, 3, "", 5);
-  return 0;
+  static int ret;
+  ret |= socker_get(1, 2, 3, "", 5);
+  return ret ? 0 : 1;
 }
 EOC
+
 sockercflags=`socker-config --cflags 2>/dev/null`
 sockerldflags=`socker-config --libs 2>/dev/null`
-if $cc $ccflags  $sockercflags $ldflags -o try try.c $sockerldflags \
-	>/dev/null 2>&1
-then
-	echo "Good, you have socker: we'll be able to bind to privileged ports."
-else
-	echo "Seems like socker is missing: privileged ports won't be usable." >&4
-	val="$undef"
-fi
-$rm -f try try.c
+
+saved_ccflags=$ccflags
+saved_ldflags=$ldflags
+ccflags="$ccflags $sockercflags"
+ldflags="$ldflags $sockerldflags"
+
 set d_socker_get
-eval $setvar
+eval $trylink
+
+ccflags=$saved_ccflags
+ldflags=$saved_ldflags
 
 : how can we find information about SQLite?
 echo " "
-case "$d_sqlite" in
-"$undef") sqlite="$undef";;
-*) sqlite="$define";;
-esac
-echo "Checking how we can gather information about SQLite..." >&4
-if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite3"
-	modver=--modversion
-elif pkg-config sqlite --cflags >/dev/null 2>&1; then
-	sqliteconfig="pkg-config sqlite"
-	modver=--modversion
-else
-	echo "You've don't seem to have SQLite installed?" >&4
-	sqliteconfig='false'
-	modver=''
-fi
-echo "(I'll use '$sqliteconfig' to gather that information.)"
 
+val="$undef"
 sqlitecflags=""
 sqliteldflags=""
-version=`$sqliteconfig $modver`
-val="$undef"
-case "$version" in
-'') ;;
+sqliteconfig='false'
+
+case "$d_sqlite" in
+"$undef") ;;
 *)
-	sqlitecflags=`$sqliteconfig --cflags`
-	sqliteldflags=`$sqliteconfig --libs`
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 030300; then
-		echo "Sorry, you have SQLite $version, I need at least 3.3.0." >&4
+	echo "Checking how we can gather information about SQLite..." >&4
+	if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
+		sqliteconfig="pkg-config sqlite3"
+	elif pkg-config sqlite --cflags >/dev/null 2>&1; then
+		sqliteconfig="pkg-config sqlite"
 	else
-		val="$define"
-		echo "Good, you have SQLite $version."
-		
-		$cat <<'EOM'
+		echo "You've don't seem to have SQLite installed?" >&4
+	fi
+	echo "(I'll use '$sqliteconfig' to gather that information.)"
+
+	version=`$sqliteconfig --modversion`
+	case "$version" in
+	'') ;;
+	*)
+		vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+		if test 0$vint -lt 030300; then
+			echo "Sorry, you have SQLite $version, I need at least 3.3.0." >&4
+			$cat <<'EOM'
 
 For more information, see http://www.sqlite.org/.
 EOM
-	fi
+		else
+			val="$define"
+			sqlitecflags=`$sqliteconfig --cflags`
+			sqliteldflags=`$sqliteconfig --libs`
+			echo "Good, you have SQLite $version."
+		fi
+	esac
+	;;
 esac
+
 set d_sqlite
 eval $setvar
 
 : see if srandom exists
-set srandom d_srandom
-eval $inlibc
-
-: see which of string.h or strings.h is needed
-echo " "
-strings=`./findhdr string.h`
-if $test "$strings" && $test -r "$strings"; then
-	echo "Using <string.h> instead of <strings.h>." >&4
-	val="$define"
-else
-	val="$undef"
-	strings=`./findhdr strings.h`
-	if $test "$strings" && $test -r "$strings"; then
-		echo "Using <strings.h> instead of <string.h>." >&4
-	else
-		./warn "No string header found -- You'll surely have problems."
-	fi
-fi
-set i_string
-eval $setvar
-case "$i_string" in
-"$undef") strings=`./findhdr strings.h`;;
-*)	  strings=`./findhdr string.h`;;
-esac
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	srandom(1UL);
+	return 0;
+}
+EOC
+set d_srandom
+eval $trylink
 
 : index or strchr
-echo " "
-if set index val -f; eval $csym; $val; then
-	if set strchr val -f d_strchr; eval $csym; $val; then
-		if $contains strchr "$strings" >/dev/null 2>&1 ; then
-			val="$define"
-			vali="$undef"
-			echo "strchr() found." >&4
-		else
-			val="$undef"
-			vali="$define"
-			echo "index() found." >&4
-		fi
-	else
-		val="$undef"
-		vali="$define"
-		echo "index() found." >&4
-	fi
-else
-	if set strchr val -f d_strchr; eval $csym; $val; then
-		val="$define"
-		vali="$undef"
-		echo "strchr() found." >&4
-	else
-		echo "No index() or strchr() found!" >&4
-		val="$undef"
-		vali="$undef"
-	fi
-fi
-set d_strchr; eval $setvar
-val="$vali"
-set d_index; eval $setvar
+$cat >try.c <<EOC
+#include <string.h>
+int main(void)
+{
+	static char ret;
+	static int c;
+	ret |= *strchr("string", c);
+	return ret ? 0 : 1;
+}
+EOC
+set d_strchr
+eval $trylink
+
+$cat >try.c <<EOC
+#include <strings.h>
+int main(void)
+{
+	static char ret;
+	static int c;
+	ret |= *index("string", c);
+	return ret ? 0 : 1;
+}
+EOC
+set d_index 
+eval $trylink
 
 : see if strlcat exists
-set strlcat d_strlcat
-eval $inlibc
+$cat >try.c <<EOC
+#include <string.h>
+int main(void)
+{
+	static size_t ret, size;
+	static char dst;
+	ret |= strlcat(&dst, "src", size);
+	return ret ? 0 : 1;
+}
+EOC
+set d_strlcat
+eval $trylink
 
 : see if strlcpy exists
-set strlcpy d_strlcpy
-eval $inlibc
+$cat >try.c <<EOC
+#include <string.h>
+int main(void)
+{
+	static size_t ret, size;
+	static char dst;
+	ret |= strlcpy(&dst, "src", size);
+	return ret ? 0 : 1;
+}
+EOC
+set d_strlcpy
+eval $trylink
 
 : see if sysctl exists
-set sysctl d_sysctl
-eval $inlibc
+$cat >try.c <<EOC
+#include <sys/param.h>
+#include <sys/sysctl.h>
+int main(void)
+{
+	static int ret, name;
+	static unsigned int namelen;
+	static void *oldp, *newp;
+	static size_t oldlen, newlen;
+	ret |= sysctl(&name, namelen, oldp, &oldlen, newp, newlen);
+	return ret ? 0 : 1;
+}
+EOC
+set d_sysctl
+eval $trylink
 
 : define an is-a-typedef? function
 typedef='type=$1; var=$2; def=$3; shift; shift; shift; inclist=$@;
@@ -6601,8 +6572,27 @@ eval $setvar
 $rm -f try.*
 
 : see if vsnprintf exists
-set vsnprintf d_vsnprintf
-eval $inlibc
+$cat >try.c <<EOC
+#include <stdarg.h>
+#include <stdio.h>
+int func(char *s, ...)
+{
+	static int ret;
+	static char buf;
+	static size_t n;
+	va_list ap;
+	(void) s;
+	ret |= vsnprintf(&buf, n, "fmt", ap);
+	return ret;
+}
+
+int main(void)
+{
+	return func("xxx", 1);
+}
+EOC
+set d_vsnprintf
+eval $trylink
 
 : preserve RCS keywords in files with variable substitution, grrr
 Id='$Id'
@@ -6610,8 +6600,10 @@ Id='$Id'
 : determine how to compile for large 64-bit file support
 echo " "
 echo "Checking whether we need flags for large file support..." >&4
-$cat >try.c <<'EOC'
+flags='-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64'
+$cat >try.c <<EOC
 #include <sys/types.h>
+#$i_unistd I_UNISTD
 #ifdef I_UNISTD
 #include <unistd.h>
 #endif
@@ -6621,22 +6613,34 @@ int main(void)
 	return 0;
 }
 EOC
-flags=''
-large='-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64'
-case "$i_unistd" in
-"$define") flags='-DI_UNISTD';;
-esac
-if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
+
+set result
+eval $trylink
+
+case "$result" in
+"$define")
 	echo "Selected C flags already provide 64-bit file support."
-else
+	;;
+"$undef")
 	echo "You're not natively compiling for large file, fixing..." >&4
-	if $cc $ccflags $flags $large $ldflags -o try try.c >/dev/null 2>&1
-	then
-		echo "(Adding $large)"; ccflags="$ccflags $large"
-	else
+
+	saved_ccflags=$ccflags
+	ccflags="$ccflags $flags"
+
+	set result
+	eval $trylink
+
+	case "$result" in
+	"$define")
+		echo "(Adding $flags)"
+		;;
+	"$undef")
 		echo "(Could not compile the test program, using 32-bit files)" >&4
-	fi
-fi
+		ccflags=$saved_ccflags
+		;;
+	esac	
+	;;
+esac
 
 : check for alignment requirements
 echo " "
@@ -7897,29 +7901,6 @@ none) yaccflags='';;
 *) yaccflags="$ans";;
 esac
 
-: see if arpa/inet.h has to be included
-set arpa/inet.h i_arpainet
-eval $inhdr
-
-: see if this is a dirent system
-echo " "
-if xinc=`./findhdr dirent.h`; $test "$xinc"; then
-	val="$define"
-	echo "<dirent.h> found." >&4
-else
-	val="$undef"
-	if xinc=`./findhdr sys/dir.h`; $test "$xinc"; then
-		echo "<sys/dir.h> found." >&4
-		echo " "
-	else
-		xinc=`./findhdr sys/ndir.h`
-	fi
-	echo "<dirent.h> NOT found." >&4
-fi
-set i_dirent
-eval $setvar
-
-
 : see if this is a sys/file.h system
 val=''
 set sys/file.h val
@@ -7987,10 +7968,6 @@ eval $inhdr
 
 : see if this is a langinfo system
 set langinfo.h i_langinfo
-eval $inhdr
-
-: see if this is a netdb.h system
-set netdb.h i_netdb
 eval $inhdr
 
 : see if this is a pwd.h system
@@ -8165,6 +8142,28 @@ case "$val" in
 esac
 $rm -f varargs*
 
+: see which of string.h or strings.h is needed
+echo " "
+strings=`./findhdr string.h`
+if $test "$strings" && $test -r "$strings"; then
+	echo "Using <string.h> instead of <strings.h>." >&4
+	val="$define"
+else
+	val="$undef"
+	strings=`./findhdr strings.h`
+	if $test "$strings" && $test -r "$strings"; then
+		echo "Using <strings.h> instead of <string.h>." >&4
+	else
+		./warn "No string header found -- You'll surely have problems."
+	fi
+fi
+set i_string
+eval $setvar
+case "$i_string" in
+"$undef") strings=`./findhdr strings.h`;;
+*)	  strings=`./findhdr string.h`;;
+esac
+
 : see if this is a sys/param system
 set sys/param.h i_sysparam
 eval $inhdr
@@ -8277,40 +8276,62 @@ set sys/utsname.h i_sysutsname
 eval $inhdr
 
 : see if deflate exists
-set deflate d_deflate
-eval $inlibc
+$cat >try.c <<EOC
+#include <zlib.h>
+int main(void)
+{
+	static int ret, flush;
+	static z_stream zs;
+	flush |= Z_FULL_FLUSH;
+	flush |= Z_SYNC_FLUSH;
+	flush |= Z_FINISH;
+	ret |= deflate(&zs, flush);
+	return ret ? 0 : 1;
+}
+EOC
+set d_deflate '-lz'
+eval $trylink
 
 : see if inflate exists
-set inflate d_inflate
-eval $inlibc
+$cat >try.c <<EOC
+#include <zlib.h>
+int main(void)
+{
+	static int ret, flush;
+	static z_stream zs;
+	flush |= Z_SYNC_FLUSH;
+	flush |= Z_FULL_FLUSH;
+	flush |= Z_FINISH;
+	ret |= inflate(&zs, flush);
+	return ret ? 0 : 1;
+}
+EOC
+set d_inflate '-lz'
+eval $trylink
 
 : see if this is a zlib.h system
 set zlib.h i_zlib
 eval $inhdr
 
 : determine whether sendfile works with 64-bit file support
-echo " "
-case "$i_syssendfile" in
-"$define")
-	echo "Checking whether we can use sendfile() with large file support..." >&4
-	$cat >try.c <<'EOC'
+$cat >try.c <<EOC
+#$i_syssendfile I_SYS_SENDFILE
+#ifdef I_SYS_SENDFILE
 #include <sys/sendfile.h>
+#endif
 int main(void)
 {
 	return 0;
 }
 EOC
-	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
-		echo "It looks like we can use sendfile()."
-	else
-		echo "Sorry, I'll have to disable sendfile()."
-		i_syssendfile="$undef"
-		d_sendfile="$undef"
-	fi
-	$rm -f try try.c
-	;;
-*)
-	echo "No <sys/sendfile.h>, sendfile() should be safe with large files." >&4
+
+set result
+eval $trylink
+
+case "$result" in
+"$undef")
+	i_syssendfile="$undef"
+	d_sendfile="$undef"
 	;;
 esac
 
@@ -8318,61 +8339,87 @@ esac
 flag='-mieee'
 echo " "
 echo "Checking whether $flag should be used..." >&4
-if [ "x$gccversion" != x ]
-then
-	$cat >try.c <<'EOC'
+case "$gccversion" in
+'');;
+*)
+	$cat >try.c <<EOC
 int main(void)
 {
-#if defined(__GNUC__) && (defined(_alpha) || defined(__alpha__))
-	return 0;
-#else
+#if !(defined(__GNUC__) && (defined(_alpha) || defined(__alpha__)))
 	switch (sizeof(int[-23])) { case 1: case 1: }
 #endif
+	return 0;
 }
 EOC
-	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
-	then
-		echo "(Adding $flag)"; ccflags="$ccflags $flag"
-	fi
-	$rm -f try try.c
-fi
+	saved_ccflags=$ccflags
+	ccflags="$ccflags $flag"
+	set result
+	eval $trylink
+
+	case "$result" in
+	"$define")	echo "(Adding $flag)"
+			ccflags="$ccflags $flag"
+			;;
+	"$undef")
+			ccflags=$saved_ccflags
+			;;
+	esac
+	;;
+esac
 
 : check whether -pipe should be used
 flag='-pipe'
 echo " "
 echo "Checking whether $flag should be used..." >&4
-if [ "x$gccversion" != x ]
-then
+case "$gccversion" in
+'');;
+*)
 	case "$ccflags $optimize" in
 	*-save-temps*);;
 	*-pipe*);;
 	*)
-	$cat >try.c <<'EOC'
+		$cat >try.c <<'EOC'
 int main(void)
 {
 	return 0;
 }
 EOC
-	if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
-	then
-	$cat >try.c <<'EOC'
+		saved_ccflags=$ccflags
+		ccflags="$ccflags $flag"
+
+		set result
+		eval $trylink
+	
+		case "$result" in
+		"$define")
+			$cat >try.c <<EOC
 main("This is not C")
 {
 	(. || 
-	switch (1) { case 1: case 1: }
+	switch (**1) { case 1: case 1: }
 }
 EOC
-		if $cc $ccflags $flag $ldflags -o try try.c >/dev/null 2>&1
-		then
-			echo "With $flag the compiler seems to see no code."
-		else
-			echo "(Adding $flag)"; ccflags="$ccflags $flag"
-		fi
-	fi
-	$rm -f try try.c
-	;;
+			set result
+			eval $trylink
+	
+			case "$result" in
+			"$define")
+				echo "With $flag the compiler seems to see no code."
+				ccflags=$saved_ccflags
+				;;
+			"$undef")
+				echo "(Adding $flag)"
+				;;
+			esac
+			;;
+		"$undef")
+			ccflags=$saved_ccflags
+			;;
+		esac
+		;;
 	esac
-fi
+	;;
+esac
 
 : end of configuration questions
 echo " "
