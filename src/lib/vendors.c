@@ -105,7 +105,7 @@ static const struct vendor {
     { T_QTEL, "Qtella" },
     { T_RASP, "Rasputin" },
     { T_RAZA, "Shareaza" },
-    { T_RAZB, "Shareaza-v2" },
+    { T_RAZB, "Shareaza Beta" },
     { T_SHNB, "Shinobu" },
     { T_SNOW, "FrostWire" },
     { T_SNUT, "SwapNut" },
