@@ -102,12 +102,12 @@ struct shell_buf {
 	size_t size;	/**< Amount of bytes that buf can hold */
 	size_t fill;	/**< Amount readable bytes in buf from pos */
 	size_t pos;		/**< Read position in buf */
-	int eof:1;		/**< If set, no further read() possible due to EOF */
-	int hup:1;		/**< If set, no further write() possible due to HUP */
-	int readable:1;	/**< If set, read() should succeed */
-	int writable:1;	/**< If set, write() should succeed */
-	int shutdown:1;	/**< If set, a shutdown has been signalled */
-	int wrote:1;	/**< If set, last call to write() succeeded */
+	int eof;		/**< If set, no further read() possible due to EOF */
+	int hup;		/**< If set, no further write() possible due to HUP */
+	int readable;	/**< If set, read() should succeed */
+	int writable;	/**< If set, write() should succeed */
+	int shutdown;	/**< If set, a shutdown has been signalled */
+	int wrote;	/**< If set, last call to write() succeeded */
 };
 
 struct line_buf {
