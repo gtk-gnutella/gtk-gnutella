@@ -367,12 +367,22 @@ typedef void (*GCallback) (void);
 #define S_ISLNK(mode) (((mode) & S_IFMT) == S_IFLNK)
 #endif	/* S_ISLNK */
 
-/* Determines the maximum value of the given integer type "t". This
- * works for signed as well as unsigned types. However, it's assumed
- * the type consists of exactly sizeof (type) * CHAR_BIT bits. */
+/*
+ * These macros determine the maximum/minimum value of the given integer type
+ * "t". This works for signed as well as unsigned types. This code does
+ * carefully avoid integer overflows and undefined behaviour.
+ * However, it's assumed the type consists of exactly sizeof(type) * CHAR_BIT
+ * bits.
+ */
+
+#define MAX_INT_VAL_STEP(t) \
+	((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 1)))
+	 
 #define MAX_INT_VAL(t) \
-	(((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 0))) \
-   	- 1 + ((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 0))))
+	((MAX_INT_VAL_STEP(t) - 1) + MAX_INT_VAL_STEP(t))
+
+#define MIN_INT_VAL(t) \
+	((t) -MAX_INT_VAL(t) - 1)
 
 #ifndef TIME_T_MAX
 /* This assumes time_t is an integer, not a float */
