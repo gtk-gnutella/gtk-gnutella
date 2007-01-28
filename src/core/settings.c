@@ -1015,7 +1015,7 @@ get_bind_addr(enum net_type net)
 	
 	switch (net) {
 	case NET_TYPE_IPV4:
-		addr = listen_addr();
+		addr = force_local_ip ? forced_local_ip : local_ip;
 		if (
 			!force_local_ip ||
 			!bind_to_forced_local_ip ||
@@ -1025,7 +1025,7 @@ get_bind_addr(enum net_type net)
 		}
 		break;
 	case NET_TYPE_IPV6:
-		addr = listen_addr6();
+		addr = force_local_ip6 ? forced_local_ip6 : local_ip6;
 		if (
 			!force_local_ip6 ||
 			!bind_to_forced_local_ip6 ||
