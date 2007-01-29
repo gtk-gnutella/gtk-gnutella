@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Jan 29 08:55:32 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Mon Jan 29 09:07:29 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6045,9 +6045,14 @@ eval $trylink
 
 : can we use setproctitle?
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_stdlib I_STDLIB
 #ifdef I_STDLIB
 #include <stdlib.h>
+#endif
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
 #endif
 int main(void)
 {
