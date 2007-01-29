@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_setproctitle: Trylink cat i_stdlib
+?MAKE:d_setproctitle: Trylink cat i_stdlib i_unistd
 ?MAKE:	-pick add $@ %<
 ?S:d_setproctitle:
 ?S:	This variable conditionally defines the HAS_SETPROCTITLE
@@ -18,9 +18,14 @@
 ?LINT: set d_setproctitle
 : can we use setproctitle?
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_stdlib I_STDLIB
 #ifdef I_STDLIB
 #include <stdlib.h>
+#endif
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
 #endif
 int main(void)
 {
