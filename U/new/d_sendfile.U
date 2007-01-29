@@ -17,6 +17,7 @@
 ?LINT:set d_sendfile
 : see if sendfile exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #include <sys/sendfile.h>
 int main(void)
 {

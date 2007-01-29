@@ -25,6 +25,7 @@
 ?LINT:set d_socker_get
 : determine whether socker_get is available
 $cat >try.c <<'EOC'
+#include <sys/types.h>
 #include <socker.h>
 int main(void)
 {

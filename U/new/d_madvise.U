@@ -17,6 +17,7 @@
 ?LINT:set d_madvise
 : see if madvise exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_sysmman I_SYS_MMAN
 #ifdef I_SYS_MMAN
 #include <sys/mman.h>
