@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Jan 25 03:05:10 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Mon Jan 29 08:55:32 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5622,6 +5622,7 @@ eval $inhdr
 
 : see if madvise exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_sysmman I_SYS_MMAN
 #ifdef I_SYS_MMAN
 #include <sys/mman.h>
@@ -6027,6 +6028,7 @@ eval $trylink
 
 : see if sendfile exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #include <sys/sendfile.h>
 int main(void)
 {
@@ -6119,6 +6121,7 @@ $rm -f set.c set
 
 : determine whether socker_get is available
 $cat >try.c <<'EOC'
+#include <sys/types.h>
 #include <socker.h>
 int main(void)
 {
