@@ -175,6 +175,7 @@ shell_exec_node_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		sh->msg = _("Invalid IP/Port");
 		goto error;
 	}
+	return REPLY_READY;
 
 error:
 	return REPLY_ERROR;
@@ -218,6 +219,7 @@ shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		n = node_remove_by_addr(addr, port);
 		gm_snprintf(buf, sizeof buf,
 			NG_("Removed %u node", "Removed %u nodes", n), n);
+		shell_write(sh, "100~ ");
 		shell_write(sh, buf);
 		shell_write(sh, "\n");
 	}
