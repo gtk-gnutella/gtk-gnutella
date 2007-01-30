@@ -75,7 +75,7 @@ cq_make(cq_time_t now)
 	 * The cq_hash hash list is used to speed up insert/delete operations.
 	 */
 
-	cq->cq_hash = g_malloc0(HASH_SIZE * sizeof(struct chash));
+	cq->cq_hash = g_malloc0(HASH_SIZE * sizeof *cq->cq_hash);
 	cq->cq_items = 0;
 	cq->cq_ticks = 0;
 	cq->cq_time = now;
@@ -261,7 +261,7 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	ev = walloc(sizeof *ev);
 
 	ev->ce_magic = EV_MAGIC;
-	ev->ce_time = time_advance(cq->cq_time, delay);
+	ev->ce_time = cq->cq_time + delay;
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
 
@@ -328,7 +328,7 @@ cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 	 */
 
 	ev_unlink(cq, ev);
-	ev->ce_time = time_advance(cq->cq_time, delay);
+	ev->ce_time = cq->cq_time + delay;
 	ev_link(cq, ev);
 }
 
