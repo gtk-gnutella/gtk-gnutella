@@ -1671,22 +1671,28 @@ shell_add(struct gnutella_socket *s)
 void
 shell_timer(time_t now)
 {
-	GSList *sl, *to_remove = NULL;
+	time_delta_t timeout = remote_shell_timeout;
 
-	for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
-		gnutella_shell_t *sh = sl->data;
-		time_delta_t timeout = remote_shell_timeout;
+	if (timeout > 0) {
+		GSList *sl, *to_remove = NULL;
 
-		if (timeout > 0 && delta_time(now, sh->last_update) > timeout)
-			to_remove = g_slist_prepend(to_remove, sh);
+		for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
+			gnutella_shell_t *sh = sl->data;
+
+			shell_check(sh);
+			if (
+				0 == (SOCK_F_LOCAL & sh->socket->flags) &&
+				delta_time(now, sh->last_update) > timeout
+			) {
+				to_remove = g_slist_prepend(to_remove, sh);
+			}
+		}
+		for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+			gnutella_shell_t *sh = sl->data;
+			shell_destroy(sh);
+		}
+		g_slist_free(to_remove);
 	}
-
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		gnutella_shell_t *sh = sl->data;
-		shell_destroy(sh);
-	}
-
-	g_slist_free(to_remove);
 
 	if (library_rescan_requested) {
 		library_rescan_requested = FALSE;
