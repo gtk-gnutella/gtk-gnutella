@@ -37,7 +37,9 @@
 
 RCSID("$Id$")
 
-#include <math.h>			/* For pow() */
+#ifdef I_MATH
+#include <math.h>	/* For pow() */
+#endif	/* I_MATH */
 
 #include "dq.h"
 #include "mq.h"

@@ -37,7 +37,10 @@
 
 RCSID("$Id$")
 
+#ifdef I_MATH
 #include <math.h>
+#endif	/* I_MATH */
+
 #include <zlib.h>
 
 #include "qrp.h"

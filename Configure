@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Jan 29 09:07:29 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Tue Jan 30 22:22:27 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -386,6 +386,7 @@ i_invent=''
 i_langinfo=''
 i_libcharset=''
 i_libintl=''
+i_math=''
 i_netdb=''
 i_netif=''
 i_niin=''
@@ -4265,7 +4266,7 @@ int main(void)
   dvp.dp_nfds |= 1;
   dvp.dp_fds = &pfd;
   ret |= ioctl(1, DP_POLL, &dvp);
-  return 0;
+  return 0 != ret;
 }
 EOC
 set d_dev_poll
@@ -7978,6 +7979,28 @@ eval $inhdr
 set langinfo.h i_langinfo
 eval $inhdr
 
+: see if this is a math.h system
+set math.h i_math
+eval $inhdr
+
+: see whether we need libm
+$cat >try.c <<EOC
+#$i_math I_MATH
+#ifdef I_MATH
+#include <math.h>
+#endif
+int main(void)
+{
+	static double ret;
+
+	ret += 1.2 * pow(1.2, 1.2);
+	ret += 1.2 * sqrt(ret);
+	return 0 != ret;
+}
+EOC
+set val '-lm'
+eval $trylink
+
 : see if this is a pwd.h system
 set pwd.h i_pwd
 eval $inhdr
@@ -8804,6 +8827,7 @@ i_invent='$i_invent'
 i_langinfo='$i_langinfo'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
+i_math='$i_math'
 i_netdb='$i_netdb'
 i_netif='$i_netif'
 i_niin='$i_niin'

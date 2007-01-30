@@ -274,6 +274,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_inttypes I_INTTYPES		/**/
 
+/* I_MATH:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <math.h>.
+ */
+#$i_math I_MATH		/**/
+
 /* I_NETINET_IN:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <netinet/in.h>. Otherwise, you may try <sys/in.h>.
