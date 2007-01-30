@@ -12,5 +12,5 @@
 ?MAKE:	-pick add $@ %<
 ?LINT:change libswanted
 ?LINT:nocomment
-libswanted='sendfile z intl resolv iconv'
+libswanted='sendfile z intl resolv iconv m'
 

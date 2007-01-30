@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Jan 30 22:22:27 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Tue Jan 30 23:30:27 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -586,7 +586,7 @@ usesocks=''
 : full support for void wanted by default
 defvoidused=15
 
-libswanted='sendfile z intl resolv iconv'
+libswanted='sendfile z intl resolv iconv m'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
