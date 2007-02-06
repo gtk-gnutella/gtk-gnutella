@@ -7522,7 +7522,7 @@ node_remove_useless_leaf(gboolean *is_gtkg)
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		time_t target = (time_t) -1;
-		gint diff;
+		time_delta_t diff;
 
 		if (!NODE_IS_ESTABLISHED(n))
 			continue;
