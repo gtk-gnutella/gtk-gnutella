@@ -83,7 +83,7 @@ watcher_mtime(const gchar *filename)
 static void
 watcher_check_mtime(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
-	struct monitored *m = (struct monitored *) value;
+	struct monitored *m = value;
 	time_t new_mtime;
 
 	(void) unused_key;
@@ -180,7 +180,7 @@ watcher_unregister(const gchar *filename)
 {
 	struct monitored *m;
 
-	m = (struct monitored *) g_hash_table_lookup(monitored, filename);
+	m = g_hash_table_lookup(monitored, filename);
 
 	g_assert(m != NULL);
 
@@ -219,7 +219,7 @@ watcher_init(void)
 static void
 free_monitored_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
-	struct monitored *m = (struct monitored *) value;
+	struct monitored *m = value;
 
 	(void) unused_key;
 	(void) unused_udata;
