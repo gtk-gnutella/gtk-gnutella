@@ -491,14 +491,20 @@ spam_retrieve_from_file(FILE *f, const gchar *path, const gchar *filename)
 static void
 spam_retrieve(void)
 {
+	static file_path_t fp[3];
+	guint num_fp = G_N_ELEMENTS(fp) - 1;
 	FILE *f;
 	gint idx;
-	file_path_t fp[1];
-
+	
 	file_path_set(&fp[0], settings_config_dir(), spam_text_file);
-	f = file_config_open_read_norename_chosen(spam_what,
-			fp, G_N_ELEMENTS(fp), &idx);
+	file_path_set(&fp[1], PRIVLIB_EXP, spam_text_file);
 
+#ifndef OFFICIAL_BUILD
+	file_path_set(&fp[2], PACKAGE_EXTRA_SOURCE_DIR, spam_text_file);
+	num_fp++;
+#endif	/* !OFFICIAL_BUILD */
+
+	f = file_config_open_read_norename_chosen(spam_what, fp, num_fp, &idx);
 	if (f) {
 		gulong n_bytes, n_chunks;
 
