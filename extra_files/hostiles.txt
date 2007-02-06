@@ -8,8 +8,7 @@
 #
 # The following list is a default, based on a list provided by BearShare.
 # If you want to customize this list, put it into your ~/.gtk-gnutella
-# directory and edit it.  When hostiles.txt is present under that directory,
-# the global list is ignored.
+# directory and edit it.
 #
 # This file may be changed whilst gtk-gnutella is running: it will notice
 # the update and reload the file.
@@ -683,6 +682,8 @@
 # video files; switches GUID
 64.248.219.98
 64.248.219.196
+66.134.169.213
+66.160.133.149
 
 # These are probably completely bogus but block them anyway as these are
 # returned by those GUID switchers
