@@ -111,25 +111,13 @@ typedef void (*func_ptr_t)(void);
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gpointer
 cast_func_to_gpointer(func_ptr_t f)
 {
-	union {
-		func_ptr_t f;
-		gpointer p;
-	} u;
-
-	u.f = f;
-	return u.p;
+	return (gpointer) f;
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE func_ptr_t
 cast_gpointer_to_func(gconstpointer p)
 {
-	union {
-		func_ptr_t f;
-		gconstpointer p;
-	} u;
-
-	u.p = p;
-	return u.f;
+	return (func_ptr_t) p;
 }
 
 static inline size_t G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
