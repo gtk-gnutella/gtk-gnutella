@@ -219,7 +219,7 @@ shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		n = node_remove_by_addr(addr, port);
 		gm_snprintf(buf, sizeof buf,
 			NG_("Removed %u node", "Removed %u nodes", n), n);
-		shell_write(sh, "100~ ");
+		shell_write(sh, "100-");
 		shell_write(sh, buf);
 		shell_write(sh, "\n");
 	}
