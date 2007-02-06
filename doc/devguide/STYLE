@@ -467,7 +467,7 @@ Ladies and gentleman, here's the
      this prevents usage of deallocated memory and helps to trigger bugs.
 
 9.4  If a function has unused parameters (e.g., a callback function) the
-     names of the unused parameters should be appended with "unused_" and
+     names of the unused parameters should be prefixed with "unused_" and
      the function body should contain a (void) reference to it to document
      that it's intentionally unused and to suppress compiler warnings:
 
