@@ -37,7 +37,7 @@ int main(void)
   dvp.dp_nfds |= 1;
   dvp.dp_fds = &pfd;
   ret |= ioctl(1, DP_POLL, &dvp);
-  return 0;
+  return 0 != ret;
 }
 EOC
 set d_dev_poll
