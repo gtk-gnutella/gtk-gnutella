@@ -34,7 +34,8 @@ EXTRA_FILES = \
 	favicon.png \
 	geo-ip.txt \
 	hostiles.txt \
-	robots.txt
+	robots.txt \
+	spam.txt
 
 PIXMAP_FILES = \
 	gtk-gnutella.png	\
