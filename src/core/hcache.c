@@ -309,26 +309,19 @@ hcache_ht_add(hcache_type_t type, gnet_host_t *host)
 static void
 hcache_ht_remove(gnet_host_t *host)
 {
-	union {
-		hostcache_entry_t *hce;
-		gpointer ptr;
-	} entry;
-	gpointer key;
-	gboolean found;
+	hostcache_entry_t *hce;
+	gpointer key, value;
 
-	found = g_hash_table_lookup_extended(ht_known_hosts,
-		(gconstpointer) host, &key, &entry.ptr);
-
-	if (!found) {
+	if (!g_hash_table_lookup_extended(ht_known_hosts, host, &key, &value)) {
 		g_warning("hcache_ht_remove: attempt to remove unknown host: %s",
 			  gnet_host_to_string(host));
 		return;
 	}
-
+	hce = value;
 	g_hash_table_remove(ht_known_hosts, host);
 
-	if (entry.hce != NO_METADATA)
-		hce_free(entry.hce);
+	if (hce != NO_METADATA)
+		hce_free(hce);
 }
 
 /**
