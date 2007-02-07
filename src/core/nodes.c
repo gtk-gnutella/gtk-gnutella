@@ -6860,8 +6860,8 @@ node_init_outgoing(struct gnutella_node *n)
 	 */
 
 	if (!n->hello.ptr) {
-		host_addr_t my_addr, my_addr_v6;
-		guint16 my_port;
+		gchar my_addr[HOST_ADDR_PORT_BUFLEN];
+		gchar my_addr_v6[HOST_ADDR_PORT_BUFLEN];
 
 		g_assert(0 == s->gdk_tag);
 
@@ -6886,9 +6886,26 @@ node_init_outgoing(struct gnutella_node *n)
 				"X-Degree: 32\r\n"
 				"X-Max-TTL: 4\r\n");
 
-		my_addr = listen_addr();
-		my_addr_v6 = listen_addr6();
-		my_port = socket_listen_port();
+		{
+			host_addr_t addr;
+			guint16 port;
+			
+			port = socket_listen_port();
+			addr = listen_addr();
+			if (is_host_addr(addr)) {
+				host_addr_port_to_string_buf(addr, port,
+					my_addr, sizeof my_addr);
+			} else {
+				my_addr[0] = '\0';
+			}
+			addr = listen_addr6();
+			if (is_host_addr(addr)) {
+				host_addr_port_to_string_buf(addr, port,
+					my_addr_v6, sizeof my_addr_v6);
+			} else {
+				my_addr_v6[0] = '\0';
+			}
+		}
 		
 		n->hello.len = gm_snprintf(n->hello.ptr, n->hello.size,
 			"%s%d.%d\r\n"
@@ -6910,12 +6927,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s",		/* X-Requeries */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
-			is_host_addr(my_addr)
-			 ? host_addr_port_to_string(my_addr, my_port) : "",
-			(is_host_addr(my_addr) && is_host_addr(my_addr_v6))
-			 ? ", " : "",
-			is_host_addr(my_addr_v6)
-			 ? host_addr_port_to_string(my_addr_v6, my_port) : "",
+			my_addr, my_addr[0] && my_addr_v6[0] ? ", " : "", my_addr_v6,
 			host_addr_to_string(n->addr),
 			version_string,
 			gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
