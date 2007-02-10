@@ -7548,10 +7548,13 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 
 		/*
 		 * Our targets are non-sharing leaves, or leaves preventing
-		 * any querying via hops-flow.
+		 * any querying via hops-flow or lack of QRT.
 		 */
 
 		if (n->gnet_files_count == 0)
+			target = n->connect_date;
+
+		if (n->recv_query_table == NULL && n->qrt_receive == NULL)
 			target = n->connect_date;
 
 		if (n->leaf_flowc_start != 0)
