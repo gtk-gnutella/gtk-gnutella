@@ -399,6 +399,8 @@ icon_init(void)
 
     	icon_pixbuf = create_pixbuf("icon.xpm");
 		status_icon = gtk_status_icon_new_from_pixbuf(icon_pixbuf);
+		gtk_status_icon_set_tooltip(status_icon,
+			_("Gtk-Gnutella: Click to minimize/restore"));
 		gtk_status_icon_set_visible(status_icon, TRUE);
     	g_signal_connect(G_OBJECT(status_icon), "activate",
 			G_CALLBACK(on_status_icon_activate), NULL);
