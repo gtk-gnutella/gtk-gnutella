@@ -1,7 +1,7 @@
 
 
 html: manual.xml
-	docbook2html --nochunks manual.xml
+	docbook2html -c /usr/pkg/etc/sgml/catalog --nochunks manual.xml
 
 dvi: manual.xml
 	docbook2dvi manual.xml

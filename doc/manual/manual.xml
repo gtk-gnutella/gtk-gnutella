@@ -1,14 +1,28 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "docbook/xml-dtd-4.3/docbookx.dtd">
+
+<!-- 
+     Icons - for advanced and basic usage.
+     Appendix, index or reference section.  Short topics with pointers to more?
+-->
+
 <book>
 <bookinfo>
-  <title>GTK-Gnutella manual</title>
-  <author><firstname>Hans</firstname><surname>de
-  Graaff</surname></author>
+  <title>gtk-gnutella manual</title>
+
+<authorgroup>  
+  <author><firstname>Hans</firstname><surname>de Graaff</surname></author>
+  <author><firstname>Bill</firstname><surname>Pringlemeir</surname></author>
+</authorgroup>
+
   <copyright><year>2002</year><year>2004</year>
     <holder>Hans de Graaff</holder>
     <holder>Vidar Madsen and Markus Goetz</holder>
   </copyright>
+  <copyright><year>2007</year>
+    <holder>Bill Pringlemeir</holder>
+  </copyright>
+
 </bookinfo>
 
 <preface>
@@ -16,65 +30,67 @@
 
   <para>This manual is far from finished. Currently it mostly
   incorporates documentation written by other people over time located
-  on the website and in the source distribution. As I have time I will
-  add additional text to the manual, but please feel free to
-  contribute parts if you like.</para>
+  on the gtk-gnutella home page and in the source distribution. As I
+  have time I will add additional text to the manual, but please feel
+  free to contribute parts if you like.</para>
 
-  <section><title>Document style</title>
-    <para>Murphy has proposed the following documentation style for
-    GTK-Gnutella documentation:</para>
+<!--
+  <section}<title}Document style</title}
+    <para}Murphy has proposed the following documentation style for
+    gtk-gnutella documentation:</para}
 
-    <literallayout>
+    <literallayout}
 Document Style for unformatted gtk-gnutella docs
 
-It is intended that these unformatted documents will be pasted into whatever 
-markup we (eventually) decide to use for presentation - at this point probably 
-manpage and html.  
+It is intended that these unformatted documents will be pasted into
+whatever mark up we (eventually) decide to use for presentation - at
+this point probably man page and html.
 
-Lines should be wrapped at no more than 80 characters and should end in a space 
-to ease reformatting.  
+Lines should be wrapped at no more than 80 characters and should end
+in a space to ease reformatting.
 
-Sentences should end in two spaces, even at the end of a line or paragraph.  
-This makes it easier to automagically recognise sentences.  Use double quotes 
-("), not single quotes ('), so contractions don't confuse syntax highlighting 
-editors.  
+Sentences should end in two spaces, even at the end of a line or
+paragraph.  This makes it easier to automatically recognize sentences.
+Use double quotes (""), not single quotes ('), so contractions don't
+confuse syntax highlighting editors.
 
-Certain terms should always be written the same way to facilitate future search 
-and replace operations:  
+Certain terms should always be written the same way to facilitate
+future search and replace operations:
 
-gtk-gnutella - should not be abbreviated or capitalized, even at the beginning 
-of a sentence.  
+gtk-gnutella - should not be abbreviated or capitalized, even at the
+beginning of a sentence.
 
-gnet - should not be capitalized.  It's an abbreviation for GnutellaNet but I'm 
-going by precedence here.  
+gnet - should not be capitalized.  It's an abbreviation for
+GnutellaNet but I'm going by precedence here.
 
-Avoid acronyms, for the most part.  Use "internet service provider" rather than 
-"ISP" and "local area network" rather than "LAN" but we don't have to get too 
-carried away; "IP" is fine, for instance.  It doesn't really matter which we use, 
-as long as it's consistant.  The more rigidly consistent we are, the more 
-flexibily we have for future search and replace if we change our minds.  So 
-look at the previously written docs for precedence.  
+Avoid acronyms, for the most part.  Use "Internet service provider"
+rather than "ISP" and "local area network" rather than "LAN" but we
+don't have to get too carried away; "IP" is fine, for instance.  It
+doesn't really matter which we use, as long as it's consistent.  The
+more rigidly consistent we are, the more flexibly we have for future
+search and replace if we change our minds.  So look at the previously
+written docs for precedence.
 
-When describing UI elements, use the exact spelling and capitalization as they 
-appear.  
+When describing UI elements, use the exact spelling and capitalization
+as they appear.
 
-Avoid just restating the tooltips.  The tooltips in gtk-gnutella are excellent 
-but if the user doesn't understand them, it does no good to repeat them in the 
-documentation.  
-    </literallayout>
+Avoid just restating the tool tips.  The tool tips in gtk-gnutella are
+excellent but if the user doesn't understand them, it does no good to
+repeat them in the documentation.  </literallayout}
 
-  </section>
+  </section}
+-->
     
 </preface>
 
 <part>
 <title>Getting started</title>
 
-<chapter id="ch1">
-<title>A quick introduction to the Gnutella network</title>
+<chapter id="network_intro">
+<title>Network Introduction</title>
 
-<para>GTK-Gnutella is a servant on the Gnutella peer-to-peer
-network. In order to make the most out of GTK-Gnutella it helps to
+<para>gtk-gnutella is a servant on the Gnutella peer-to-peer
+network. In order to make the most out of gtk-gnutella it helps to
 understand a bit about peer to peer networking in general, and the
 Gnutella network in particular.</para>
 
@@ -84,13 +100,13 @@ Gnutella network in particular.</para>
 <para>The concept of a peer to peer network is that each participant
 in the network has the same level of rights in the network. Everyone
 is equal, no one is unique, and everyone can be missed without
-jepardizing the network.</para>
+jeopardizing the network.</para>
 
 <para>To make this possible each participant has the full
 functionality needed to create the network. Any two participants
 together can create a fully functional network. To realize why this is
 special consider how information is normally distributed on the
-internet. 
+Internet.
 
 </para>
 
@@ -99,57 +115,491 @@ internet.
 
 </chapter>
 
-<chapter id="getting"><title>Getting and installing GTK-Gnutella</title>
+<chapter id="getting"><title>Installation</title>
 
-<section><title>Getting GTK-Gnutella</title>
+<section><title>Getting gtk-gnutella</title>
 
-<para>The easiest way to get GTK-Gnutella is to install it as part of
-your distribution. Most distributions carry GTK-Gnutella pre-packaged
+<para>The easiest way to get gtk-gnutella is to install it as part of
+your distribution. Most distributions carry gtk-gnutella pre-packaged
 these days. This is not always the best option, though. Since the
 Gnutella sometimes undergoes significant change, and since buggy
-clients may cause many problems to the Gnutella network, GTK-Gnutella
+clients may cause many problems to the Gnutella network, gtk-gnutella
 clients are coded with a maximum lifetime. After a pre-determined
-period GTK-Gnutella will start to complain and eventually will stop
+period gtk-gnutella will start to complain and eventually will stop
 working. Distributions are not always quick to pick up new versions
 because stability is important to them, so you may be installing a
-version of GTK-Gnutella that is close to or already past its maximum
+version of gtk-gnutella that is close to or already past its maximum
 lifetime date. This is true in particular if you install from offline
 media such as DVD.</para>
 
-<para>A better way to get GTK-Gnutella is to install it yourself. The
-GTK-Gnutella website contains several binary distributions and the
-source archive which allows you to compile GTK-Gnutella yourself. You
-can also use the website to check if your currently installed version
-is still the most recent version. The website address is
-<ulink url="http://gtk-gnutella.sourceforge.net/"></ulink></para>
+<para>A better way to get gtk-gnutella is to install it yourself. The
+gtk-gnutella web site contains several binary distributions and the
+source archive which allows you to compile gtk-gnutella yourself. You
+can also use the web site to check if your currently installed version
+is still the most recent version. The web site address is <ulink
+url="http://gtk-gnutella.sourceforge.net/"></ulink></para>
 
 </section>
 </chapter>
 
 <chapter id="firsttime">
-<title>Starting GTK-Gnutella for the first time</title>
-<para>Placeholder</para>
+<title>First start</title>
 
+<para> gtk-gnutella is abbreviated as GTKG for short. </para>
+
+<section> <title>GUI overview</title>
+
+<para> A document called "Gnutella for users" is available on the
+internet. <ulink url="http://en.wikisource.org/wiki/GnuFU"> GnuFU
+</ulink> and also <ulink
+url="http://basis.gnufu.net/gnufu/index.php/GnuFU_en"> GnuFU
+</ulink>. </para>
+
+<para> The <link linkend="gtkg-diagram"> figure </link> below labels
+the areas of the GTKG screen.  In most cases, menu items, context help
+and other documents will also use the same names to refer to these
+areas.  This is for the GTK2 version of the program.  The GTK1 program
+may locate the status icons in the status bar.</para>
+
+<figure id="gtkg-diagram"><title>GTKG Screen Areas</title>
+<screenshot>
+<graphic fileref="images/gtkg-diagram.ps"></graphic>
+</screenshot>
+</figure>
+
+<para> The mid-section of the screen is divided in two.  To the left
+is the side bar.  The side bar contains a navigation tree, a search
+list, and gnet status information.  To the right is the "working
+area".  This changes depending on the current activity. The following
+table gives a short summary of each area.  These are covered in more
+detail in the following sections. </para>
+
+<para>
+<informaltable>
+<tgroup cols='3' align="left">
+<colspec colname="c1" colwidth="1*" />
+<colspec colname="c2" colwidth="3*" />
+<colspec colname="c3" colwidth="11*" />
+<spanspec spanname="hspan" namest="c1" nameend="c2" align="left" />
+
+<thead><row><entry>Area</entry>
+<entry>Sub-Area</entry>
+<entry>Short Description</entry></row>
+</thead>
+<tbody>
+
+<row><entry spanname="hspan">Menu</entry> <entry>The menus are File,
+Transfer, Search, View and Help. Each menu has several entries that
+change the working area, bring up the preferences dialog, or alter the
+screen configuration. </entry> </row>
+
+<row><entry spanname="hspan">Status Icons</entry> 
+<entry>Icons include CPU overload, file copying, library SHA, download
+SHA, library building, firewall and gnet status. Icons may change
+according to current conditions</entry> </row>
+
+<row><entry spanname="hspan">Search Bar</entry> 
+<entry>Contains a text feild for entering new search criteria.  Also
+constains a drop-down filter selection button, and search and passive
+search buttons. </entry> </row>
+
+<row><entry spanname="hspan"> Working Area</entry>
+<entry>This area changes depending on your current activity.  It is
+one of the following nine items. </entry></row>
+
+<row><entry morerows="8" /><entry colname="c2">gnet Connections</entry>
+<entry>This shows detailed information about all nodes directly
+connected to GTKG.  Various flags are shown as well as the type of
+client, location, etc. </entry></row>
+
+<row><entry colname="c2">gnet Statistics</entry> 
+<entry>This working area has tabs along the top.  Statistics
+relevant to the currently selected tab are shown.</entry></row>
+
+<row><entry colname="c2">gnet Hostcache</entry>
+<entry>This area manages previously seen hosts seen on the gnet.
+Having a full host cache allows quicker connection to the gnet when
+starting.  These entries are also relayed to other nodes to help them
+connect to the gnet.</entry></row>
+
+<row><entry colname="c2">Downloads</entry>
+<entry>When downloads are the active working area, a list of all
+downloads is shown.  Details on the currently selected download are
+shown at the bottom of the working area. </entry></row>
+
+<row><entry colname="c2">Uploads</entry>
+<entry>This working area shows files being sent to other gnet
+nodes.</entry></row>
+
+<row><entry colname="c2">Upload History</entry>
+<entry>This working area show previously sent files (or partially sent
+files).</entry></row>
+
+<row><entry colname="c2">Search Results</entry>
+<entry>Gives all results found for the selected search.  The search is
+selected via the "search list" or by using the "Current search"
+selection button.  Any of the search results can be scheduled for
+downloading.</entry></row>
+
+<row><entry colname="c2">Search Monitor</entry>
+<entry>Shows searches passing through our node.</entry></row>
+
+<row><entry colname="c2">Search Stats</entry>
+<entry>Statistics about where searches are coming from etc.</entry></row>
+
+<row><entry spanname="hspan">Side bar</entry>
+<entry> The entire side bar can be hidden with the "F8" key or using
+the "View|show Sidebar" menu.  The side bar contains the following
+three items.  </entry></row>
+
+<row><entry morerows="2" /><entry colname="c2">Navigation Tree</entry>
+<entry>An alternate to using the menu to change GTKGs working area.
+This (and most items) can be disable by using the "View"
+menu. ("View|show Navigation Tree").</entry></row>
+
+<row><entry colname="c2">Search List</entry>
+<entry>Lists GTKG searches. Greyed values are inactive.  Clicking on
+an item changes the working area to show that search.</entry></row>
+
+<row><entry colname="c2">gnet Status</entry>
+<entry>Graphical summary of the gnet status.</entry></row>
+
+<row><entry spanname="hspan">Status bar</entry> 
+<entry>Contains messages from time to time.  Also contains estimates
+of connected nodes, available files, size of all files and up time. A
+button at the bottom left can disconnect from gnet while leaving GTKG
+running.  Current downloads and uploads will complete. </entry></row>
+
+</tbody></tgroup></informaltable>
+</para>
+
+
+<para> When first run, gtk-gnutella will be very busy trying to
+connect to the gnet for the first little while.  When three nodes are
+found, GTKG is fully connected to the network.  The gnet Status will
+show "3/3 connections". If this does not happen after several minutes,
+GTKG might be having problems seeing the Internet.  You will have to
+consult the <link linkend="networking"> Network troubleshooting </link>
+chapter.</para>
+
+<para>There are also two dialog screens.  Once is under the File menu
+and is named <link linkend="settings"> Preferences </link>.  This is a
+tabbed dialog that allows GTKG to be configured.  There are many
+options in the preference dialogs. The other dialog allows you to
+build <link linkend="ch-filtering"> filters </link> to improve search
+results.</para>
+
+<section> <title>gtk-gnutella activities</title>
+
+<para> There are several distinct activities that you can perform with
+GTKG.  A required activity is getting connected to the gnet.  Once
+this is configured properly for your little section of the Internet,
+GTKG will take care of this for you with little or no attention.
+However, when you first use GTKG, it can be rather daunting to get
+proper network connectivity.  The good news is the GTKG can work
+partially even with limited network connectivity.  If the status icon,
+second from the left, has a smiley face with sun-glasses, then you are
+in good shape! <graphic fileref="images/no_firewall.ps"/></para>
+
+<para> There are several variation of the "firewalled" icon.
+Firewalled is a mis-leading term.  It actually means that GTKG is not
+detecting good connections to the rest of the gnet.  It is ok to
+continue with this icon, if you have connections showing in the gnet
+Status area (ie. "3/3 Connections").  <graphic
+fileref="images/firewall.ps"/> </para>
+
+<para> Another task that GTKG helps you with is finding files.  This
+is called "Searching".  There are all kinds of people connected to the
+gnet with different purposes.  Some people are spreading spam, spy
+ware and viruses.  Some people are mis-labelling files.  Some people
+mistakenly or purposely share corrupted files.  GTKG has a very
+powerful filter mechanism that can help to reduce the number of the
+bad files found in a search.  GTKG also has some built-in features to
+reduce the amount of spam and other bogus files.</para>
+
+<para> From the search screen, you can highlight a result and use the
+"Download selected" button to start downloading.  The download screen
+will show you all files that you are downloading and the progress each
+has made. </para>
+
+<para> Ok, so maybe you wonder where all the files come from?  This is
+the last major activity that GTKG facilitates.  It allows you to share
+your files for others to download.  This takes some care as you might
+have some information that you wish to keep private.  By default, GTKG
+will share anything downloaded.  These files are generally in
+"~/gtk-gnutella-downloads/complete".  Some people will disconnect you
+if you don't share anything (or very little).  Of course, if you live
+somewhere where you afraid of getting sued, you might not share so
+much.  There is nothing wrong with sharing files that do not have
+restrictions; manuals like this one for instance.</para>
+
+</section>
+
+</section>
 </chapter>
-<chapter id="ch3">
+
+<chapter id="searching">
 <title>Searching for files</title>
-<para>Placeholder</para>
+
+<para> There are three different items in the Search menu.
+"Search|Results" displays searches that you initiate in the working
+area.  "Search|Monitor" and "Search|Stats" are for examining all
+searches passing through our section of the gnet.</para>
+
+<section> <title>Search results</title>
+
+<para> Identifying what to download is a major task in any peer to
+peer network.  This is especially true with all sorts of people
+filling the network with garbage.</para>
+
+<para>Searches are initiated in the search bar.  You type in text that
+you wish to search for.  An active search is then started by pressing
+the button to the left called" search".  This button will scour the
+gnet and try to find file matching your text. </para>
+
+<para> The "passive" search is an alternate method of finding files.
+Passive searching monitors other active searches that flow through
+your computer.  You can use it in leaf mode, but you will have to have
+other active searches running at the same time to get results. This
+can actually be very useful.  </para>
+
+<para> What is "leaf mode"?  In the menu bar, at the top right of the
+screen are the status icons.  The icon to the far right is either a
+"leaf" or a "ultra" icon.
+
+<informaltable>
+<tgroup cols='2'>
+<tbody>
+<row>
+<entry><graphic width="32" depth="32" fileref="images/leaf.ps"/> Leaf icon</entry>
+<entry><graphic width="32" depth="32" fileref="images/smallserver.ps"/> Ultra icon </entry>
+</row>
+</tbody></tgroup></informaltable>
+</para>
+
+<para> A leaf node only connects to a few ultra nodes.  The ultra
+nodes connect to many leaves and other ultra nodes.  For the most
+part, searches will flow through node connections.  For this reason,
+you will get many more passive results if you are an ultra
+node. </para>
+
+<para> The other item that determines search results is the filter
+used.  This is a drop-down button to the left of the search edit box.
+You can use filters with either active or passive searches.  It can be
+useful to run an active search with a filter and a passive search with
+no filter.  Comparing the two helps figuring out what is
+filtered. </para>
+
+<para> The search results display several columns of information.  The
+results can be sorted by column.  Delete results results by selecting
+them and using the delete key.  Groups of results can be deleted by
+using the mouse and the control or shift key.  This can make it easier
+to decide which of several results to download as you don't have to
+scroll through many different items. </para>
+
+<figure><title>GTKG Search</title>
+<screenshot>
+<graphic fileref="images/search.ps"/>
+</screenshot>
+</figure>
+
+</section>
+
+<section> <title>Bitzi and Magnet links</title>
+
+<para> An alternative to searching with GTKG is to use a web site like
+<ulink url="http://bitzi.com">Bitzi</ulink>, <ulink
+url="http://www.magnetmix.com"> magnetmix </ulink> , or <ulink
+url="http://www.freebase.be/"> Freebase </ulink>.  These sites have
+web search capabilities and descriptions of files with magnet links.
+A magnet link is just text that GTKG can understand (a URI in computer
+parlance).  Magnet links can be copied to IRC and other chat programs,
+sent in emails, posted to Usenet groups or put on your own web
+site. Paste the magnet link to the GTKG search box and GTKG will start
+to download the file as soon as a source is found.</para> </section>
+
+<section> <title>Search "Monitor"</title>
+
+<para> The search monitor allows you to see what other people on the
+gnet are searching for.  This will only work if you are an ultra
+node. Sometimes this is useful.  It is certainly instructive to do
+this once or twice just to see what can be seen.  It can be
+entertaining if you are bored.  Don't do it for too long though, it
+might get you down on people.  I am sure all the people searching for
+"back street boys" and "lesbian granny" are using Limewire. </para>
+
+<figure><title>GTKG Search monitor</title>
+<screenshot>
+<graphic fileref="images/search-monitor.ps"></graphic>
+</screenshot>
+</figure>
+
+</section>
+
+<section> <title>Search "Stats"</title>
+<para> The Search stats work area allows you to see what search terms
+are popular and where they are coming from.  This will allow you to
+make statements like "Those Germans sure like porn.", "What is with
+the French and Jerry Lewis." and "Where is Canada?".  Psst, I don't
+really find this that useful myself...</para>
+
+<figure><title>GTKG Search statistics</title>
+<screenshot>
+<graphic fileref="images/search-stats.ps"></graphic>
+</screenshot>
+</figure>
+
+</section>
 
 </chapter>
-<chapter id="ch4">
+
+<chapter id="downloading">
 <title>Downloading files</title>
-<para>Placeholder</para>
+
+<para>Downloads are started automatically with magnet links.  If you
+wish to download a search result, you can right click and select from
+the menu or you can use the "Download selected" button at the bottom
+of the search work area.</para>
+
+<para>The download work area is divided into two sections.  The top
+portion lists all downloads.  Completed downloads (showing "Finished;
+SHA1 OK") can be removed by using the "Purge Selected" button at the
+bottom of the work area.  This will not delete a
+<emphasis>completed</emphasis> download; it is just removed from the
+display.  If the download is not completed, including the SHA check,
+the file will be deleted!</para>
+
+<para>The lower section of the download area is dedicated to
+information on the currently selected entry in the download list.  It
+displays information on the file, a colour progress bar and a list of
+file names.  The list of file names can be useful in identifying
+mis-labeled files and spam.  The various colours in the progress bar
+are explained in the tooltip. </para>
+
+<figure><title>GTKG downloads</title>
+<screenshot>
+<graphic fileref="images/downloads.ps"></graphic>
+</screenshot>
+</figure>
 
 </chapter>
-<chapter id="ch5">
+<chapter id="sharing">
 <title>Sharing your own files</title>
-<para>Placeholder</para>
+
+<para> Sharing too many files is just as bad as sharing too few.  If
+everyone shares too few files, gnet would be empty.  Sharing your
+entire hard drive is also very bad.  Most people wouldn't want to do
+this for privacy reasons.  However, even if you don't care about the
+confidentiality of your files, it is still bad to share
+everything.  </para>
+
+<para> Consider someone searching for "Gimp", maybe looking for advice
+on how to use this program.  If people share their entire hardrive,
+all of the individual files in the "Gimp" package could be returned
+>from this search.  This makes it difficult to find relevant files.
+Not only that, but this will be flooding the gnet with useless search
+results.  Share what you would want to download, but no more! </para>
+
+<figure><title>GTKG Uploads</title>
+<screenshot>
+<graphic fileref="images/uploads.ps"></graphic>
+</screenshot>
+</figure>
+
+<para>The uploads work area allows you to see what other client are
+currently downloads from your GTKG.  You can right click on an upload
+and use the "Browse host" feature to see what files they share; At
+least they are people with similar interests.  Unfortunately not every
+client implements (or allows) the "Browse host" feature, or has it
+enabled.</para>
+
+<para>The files you share are configured using the "File|Preferences"
+menu (or control-P).  The settings are under the "Uploads" tab.  You
+can configure the directories and extensions that you wish to share.
+Every directory underneath directories you list will be shared.  The
+expose relative paths checkbox will include the sub-directory names in
+your "search terms".  For instance if you store your music as
+"music/Artist/Alblum/song.mp3", the "Expose relative paths" will add
+both "Artist" and "Alblum" to the search terms.  Without this, your
+GTKG will only return result if someone searches for "song" (or
+"song.mp3").</para>
+
+<figure><title>GTKG Upload Preferences</title>
+<screenshot>
+<graphic fileref="images/preferences-upload.ps"></graphic>
+</screenshot>
+</figure>
+
+<para>Other interesting items are the "Browse Host" feature.  This
+allows other gnet nodes to request a list of all shared files.  The
+partial files sharing allows others to download a file as you are
+downloading it.  You might wish to disable this if you get corrupted
+downloads (mainly larger video files).  A future feature called "Tiger
+Tree Hashing" will allow better use of this feature with large files
+(Ie, video files).</para>
+
+<figure><title>GTKG gnet upload history</title>
+<screenshot>
+<graphic fileref="images/upload-history.ps"></graphic>
+</screenshot>
+</figure>
+
+<para>The "Upload history" work area can allow you to see what files
+are taking the most bandwidth and what your most popular shares are.
+If many people have downloaded your file it should be easy to find on
+other machines in the gnet.  You might consider removing a popular
+share from your shares so you can provide rarer content.  The popular
+share should be available from many other sources, if the people who
+downloaded the file are also sharing it.</para>
 
 </chapter>
 
-<chapter id="ch6">
+<chapter id="settings">
 <title>Adjusting settings</title>
-<para>Placeholder</para>
+
+<figure><title>GTKG Preferences dialog</title>
+<screenshot>
+<graphic fileref="images/preferences.ps"></graphic>
+</screenshot>
+</figure>
+
+<para>As mentioned before, the preferences dialog can be accessed by
+File | Preferences menu or by pressing control-P.  There are seven
+tabs in this dialog.  The "User Interface" tab can be used to
+customize GTKG.  The "Debugging" tab is mainly of use for developers.
+The network tab is used to handle oddities of your section of the
+Internet.  If you have problems connecting to any other gnet nodes,
+you will need to use this tab.  Information in the <link
+linkend="networking"> networking section </link> will also be of help.  The
+remaining tabs are related to file sharing. </para>
+
+
+<para> The GnutellaNet tab configure how you connect to other
+nodes. To begin with, you only need to change items in the top group.
+If your machine is slow, you might want to set the peermode to "leaf".
+You can also configure the number of leave that are allowed to connect
+when in "ultra" mode.  The number of leaves should be above thirty.
+Leaves don't consume much bandwith or CPU usage.  The number of
+Ultra-nodes to connect to is found at the bottom of the GnutellaNet
+work area (strangely enough).</para>
+
+<para> The Bandwidth tab allows you to configure how GTKG uses your
+bandwidth.  See the traffic shaping section for more on how to address
+this problem.  Appropriate values for Incoming and Outgoing traffic
+are 30 and 40 KiB/s.  Leaves require 2 and 3 KiB/s for incoming and
+outgoing traffic.  HTTP traffic is mainly for uploading and
+downloading files. OS Traffic shaping can limit this, or you can set
+limits here as well. </para>
+
+<para>The "Downloads" tab allows configuration of where downloaded
+files are stored.  There are also many parameters on how to retrieve
+files.  The particular options will depend on the size of the file,
+the number of sources, and the number of hostile hosts.  The tooltips
+explain the parameters, but the defaults are good for most
+users.</para>
+
+<para>Uploads configuration was covered in the <link
+linkend="sharing">Uploading chapter</link></para>
 
 </chapter>
 
@@ -159,13 +609,11 @@ is still the most recent version. The website address is
 <title>Advanced features</title>
 
 <chapter id="ch-filtering">
-<title>Filtering
-<footnote>
+<title>Filtering </title>
+
 <para>The text in this chapter is copied verbatim from the Filtering
 mini-Howto by Vidar Madsen and Markus Goetz. It is copyright 2002 by
 them.</para>
-</footnote>
-</title>
 
 <section>
 <title>Introduction</title>
@@ -226,7 +674,8 @@ rule in your search filters to call your "movie" filter.</para></listitem>
 <section>
 <title>Rules</title>
 
-<para>There are several different rule types. Most of them have some flags that might warrant an explanation;</para>
+<para>There are several different rule types. Most of them have some
+flags that might warrant an explanation;</para>
 
 <itemizedlist>
 
@@ -401,11 +850,178 @@ DISPLAY</entry><entry>DOWNLOAD</entry></row>
 <part>
 <title>The gory details</title>
 
-<chapter id="ch7">
+<chapter id="gnet">
 <title>The GnutellaNet pane</title>
-<para>Placeholder</para>
+
+<figure><title>GTKG gnet</title>
+<screenshot>
+<graphic fileref="images/gnet.ps"></graphic>
+</screenshot>
+</figure>
+
+<para></para>
+
+<figure><title>GTKG Host Cache</title>
+<screenshot>
+<graphic fileref="images/host-cache.ps"></graphic>
+</screenshot>
+</figure>
+
+<figure><title>GTKG gnet statistics</title>
+<screenshot>
+<graphic fileref="images/gnet-stats.ps"></graphic>
+</screenshot>
+</figure>
+
 </chapter>
 
+</part>
+
+
+<part>
+<title>Trouble shooting</title>
+
+<chapter id="networking">
+<title>Networking.</title>
+<para>
+Describe NAT, masquarade, etc.
+     IP  - ip configuration section, NAT, firewalls, 
+           public and private networks. SNAT, DNAT, PAT, masquarade...
+</para>
+</chapter>
+
+<chapter id="traffic_shaping">
+<title>OS Traffic shaping.</title>
+
+<para> If you are using OS traffic shaping, the "Use IP Type of
+Service (TOS)" is useful.  Uploads use "maximum throughput", Downloads
+use "lowdelay" and other traffic is normal service.  This can be used
+to classify the gnet traffic. </para>
+
+<para>
+TOC - example script to minimize latency. (also iftop)
+iptables -m tos -h:
+                                     Minimize-Delay 16 (0x10)
+                                     Maximize-Throughput 8 (0x08)
+                                     Maximize-Reliability 4 (0x04)
+                                     Minimize-Cost 2 (0x02)
+                                     Normal-Service 0 (0x00)
+myshaper script.  Kernel config. tools, FAQ.
+</para>
+</chapter>
+
+<chapter id="headless">
+<title>Headless mode.</title>
+<para>Using headless as daemon server.</para>
+</chapter>
+
+<chapter id="kernel_mode_pppoe">
+<title>Kernel mode PPPoE.</title>
+
+<para> ADSL and cable modem user that require PPPoE should consider
+using a kernel that supports PPPoE.  The user mode PPPoE consumed
+about 20% of CPU on an AMD-K6/2 300MHz running a GTKG Ultra on Linux
+2.6.  When using kernel mode PPPoE, this drops to near zero.  This is
+especially important if you wish to support many connections as an
+ultra node. </para>
+
+<informaltable>
+<tgroup cols='6'>
+
+<thead> <row>
+  <entry>Operating System   </entry>
+  <entry>PPP additional info</entry>
+  <entry>Transfer rate      </entry>
+  <entry>Ping               </entry>
+  <entry>CPU usage          </entry>
+  <entry>CPU usage breakdown</entry>
+ </row>
+</thead>
+
+<tbody>
+<row>
+  <entry> Linux 2.2 (64MB RAM)  </entry>
+  <entry> usermode, async       </entry>
+  <entry> ~4.1Mbits/s           </entry>
+  <entry> 1.4/1.1               </entry>
+  <entry> 100%                  </entry>
+  <entry> pppoe 95%, nc 5%      </entry>
+ </row>
+
+<row>
+  <entry> Linux 2.2 (64MB RAM)  </entry>
+  <entry> usermode, sync        </entry>
+  <entry> Network max           </entry>
+  <entry> 1.0/0.8               </entry>
+  <entry> 50%                   </entry>
+  <entry> pppoe 40%, nc 10%     </entry>
+</row>
+
+<row>
+  <entry> Linux 2.4 (64MB RAM)  </entry>
+  <entry> kernelmode            </entry>
+  <entry> Network max           </entry>
+  <entry> 0.7/0.5               </entry>
+  <entry> 26%                   </entry>
+  <entry> system 24%, nc 11%    </entry>
+</row>
+
+<row>
+  <entry> NetBSD 1.6 (64MB RAM)   </entry>
+  <entry> kernelmode              </entry>
+  <entry> Network max             </entry>     
+  <entry> 0.9/0.5                 </entry>
+  <entry> 23%                     </entry>
+  <entry> sys 15%, nc 17%         </entry>
+</row>
+
+<row>
+  <entry> NetBSD 1.6 (32MB RAM)  </entry>
+  <entry> kernelmode             </entry>
+  <entry> Network max            </entry>
+  <entry> 1.1/0.6                </entry>
+  <entry> 23%                    </entry>
+  <entry> sys 15%, nc 17%        </entry>
+ </row>
+
+<row>
+  <entry> FreeBSD 4.7 (64MB RAM)  </entry>
+  <entry> usermode,sync           </entry>
+  <entry> ~6.5Mbits/s             </entry>
+  <entry> 2.0/1.9                 </entry>
+  <entry> 100%                    </entry>
+  <entry> ppp 80%, nc 15%, int 5%  </entry>
+</row>
+
+ <row>
+  <entry> FreeBSD 4.7 (64MB RAM)  </entry>
+  <entry> kernelmode              </entry>
+  <entry> ~7.7Mbits/s             </entry>
+  <entry> 0.7/0.5                 </entry>
+  <entry> 35%                     </entry>
+  <entry> nc 17%, sys 16%, int 18%  </entry>
+</row>
+
+<row>  
+  <entry> OpenBSD 3.2 (64MB RAM) </entry>
+  <entry> usermode,sync          </entry>
+  <entry> ~2.0Mbits/s            </entry>
+  <entry> 2.9/2.3                </entry>
+  <entry> 99%                    </entry>
+  <entry> sys 87%, pppoe 65%, ppp 23%, nc 7% </entry>
+</row>
+
+</tbody></tgroup></informaltable>
+
+
+<para> This table is from an <ulink
+url="http://www.jraitala.net/comp/articles/2002/pppoe/"> article
+entitled "PPPoE performance under Linux and BSDs"</ulink> by Juuso
+Raitala and others.  Please refer to this excellent article for
+details of the testing.  The important point is that kernel mode PPPoE
+will significantly reduce CPU load when running GTKG as an ultra
+node.</para>
+</chapter>
 </part>
 
 <index>
