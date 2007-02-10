@@ -61,7 +61,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 10281 2005-11-22 19:07:59Z rmanfredi $
+# $X-Id: Jmakefile 12791 2007-02-06 22:52:39Z cbiere $
 
 all::
 
@@ -70,7 +70,8 @@ EXTRA_FILES = \
 	favicon.png \
 	geo-ip.txt \
 	hostiles.txt \
-	robots.txt
+	robots.txt \
+	spam.txt
 
 PIXMAP_FILES = \
 	gtk-gnutella.png	\
