@@ -591,6 +591,7 @@
 213.251.185.126/31
 
 # PDF spammer; uses Gtk-Gnutella; PDFs link to cyber-spy dot com
+70.52.236.2
 72.38.54.147
 72.38.54.162
 72.38.54.183
