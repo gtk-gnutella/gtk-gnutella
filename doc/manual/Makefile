@@ -1,13 +1,56 @@
+# Our primary source will be the png files.
+IMGS = search-stats.png search-monitor.png \
+ no_firewall.png         firewall.png      \
+ leaf.png                smallserver.png
 
+IMGS_SCALE =                              \
+ downloads.png       gtkg-diagram.png     \
+ gnet.png            gnet-stats.png       \
+ host-cache.png      upload-history.png   \
+ search.png          uploads.png          \
+ preferences.png     preferences-upload.png
 
-html: manual.xml
-	docbook2html -c /usr/pkg/etc/sgml/catalog --nochunks manual.xml
+# Create a list of postscript files.  Needed to produce dvi and pdf
+# output.
+IMAGE_SCALE = $(addprefix images/, $(addsuffix .ps, $(basename $(IMGS_SCALE))))
+IMAGE_LIST  = $(addprefix images/, $(addsuffix .ps, $(basename $(IMGS))))
 
-dvi: manual.xml
-	docbook2dvi manual.xml
+all: manual.html manual.pdf
 
-pdf: manual.xml
-	docbook2pdf manual.xml
+# The xml will reference the postscript images.  The html output needs
+# to reference something that web browsers understand.
+manual.html: manual.xml
+	docbook2html --nochunks manual.xml
+	sed -i -e s/\\\.ps/\\\.png/g manual.html
 
+# docbook2dvi seems to generate many "errors".  However, output is
+# generated.
+manual.dvi: manual.xml $(IMAGE_LIST) $(IMAGE_SCALE)
+	- docbook2dvi manual.xml
+	if [ -e manual.dvi ]; then echo "ok"; else exit -1; fi
+
+# Alternatives create a pdf from the dvi file.
+# eg, dvipdf dvipdfm
+#
+# docbook2pdf creates unreadable fonts on my system.  Perhaps because
+# some fonts are not installed.
+#
+manual.pdf: manual.dvi
+	dvipdfm manual.dvi
+
+# Check the validity of the xml.
 valid: manual.xml
-	nsgmls -sv -c /etc/xml/catalog /usr/share/sgml/xml.dcl manual.xml
+	nsgmls -sv -c /etc/sgml/catalog /usr/share/sgml/xml.dcl manual.xml
+
+# Remove generated files (not images).
+clean:
+	- rm manual.dvi manual.log manual.pdf manual.aux manual.html manual.out
+
+# Create postscript images from the PNGs.
+$(IMAGE_SCALE) : %.ps : %.png
+	pngtopnm -mix -background white $< | pnmtops -noturn  -nocenter -nosetpage -imagewidth 6.5 > $@
+
+$(IMAGE_LIST) :  %.ps : %.png
+	pngtopnm -mix -background white $< | pnmtops -noturn -nocenter -nosetpage > $@
+
+
