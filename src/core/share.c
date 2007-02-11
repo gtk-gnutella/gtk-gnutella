@@ -922,21 +922,18 @@ shared_file_unref(shared_file_t **sf_ptr)
 	}
 }
 
-static inline gint
-off_t_cmp(off_t a, off_t b)
-{
-	return CMP(a, b);	
-}
-
 /**
  * Is file too big to be shared on Gnutella?
+ *
+ * Note: The original purpose was to avoid files larger than 2^32-1 bytes.
+ *		 Keep it just in case that a platform has an off_t with more than
+ *		 64 bits.
  */
 static inline gboolean
-too_big_for_gnutella(gint size)
+too_big_for_gnutella(off_t size)
 {
 	g_return_val_if_fail(size >= 0, TRUE);
-	return size > MAX_INT_VAL(gint32) &&
-		off_t_cmp(size, MAX_INT_VAL(gint64)) > 0;
+	return size + (filesize_t)0 > (filesize_t)-1 + (off_t)0;
 }
 
 /**
