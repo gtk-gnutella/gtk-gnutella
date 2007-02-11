@@ -591,8 +591,11 @@
 213.251.185.126/31
 
 # PDF spammer; uses Gtk-Gnutella; PDFs link to cyber-spy dot com
+# whois points to tcst dot net which matches 72.38.54.0/24.
 70.52.236.2
+72.38.54.146
 72.38.54.147
+72.38.54.156
 72.38.54.162
 72.38.54.183
 
