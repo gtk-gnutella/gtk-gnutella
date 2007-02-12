@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "extensions.h"
 #include "nodes.h"
 #include "uploads.h"
+#include "ggep_type.h"
 #include "gnet_stats.h"
 #include "search.h"		/* For QUERY_SPEED_MARK */
 #include "guid.h"
@@ -1912,7 +1913,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	/*
-	 * If there are extra data after the first NUL, fill the extension vector.
+	 * If there is extra data after the first NUL, fill the extension vector.
 	 */
 
 	if (search_len + 3 != n->size) {
@@ -1943,36 +1944,70 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		for (i = 0; i < exvcnt; i++) {
 			extvec_t *e = &exv[i];
+			gchar *sha1_digest;
 
-			if (e->ext_token == EXT_T_OVERHEAD) {
+			switch (e->ext_token) {
+			case EXT_T_OVERHEAD:
 				if (share_debug > 6)
 					dump_hex(stderr, "Query Packet (BAD: has overhead)",
 						search, MIN(n->size - 2, 256));
 				gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
 				ext_reset(exv, MAX_EXTVEC);
 				return TRUE;			/* Drop message! */
-			} else if (e->ext_token == EXT_T_URN_SHA1) {
-				gchar *sha1_digest = exv_sha1[exv_sha1cnt].sha1_digest;
-				gint paylen = ext_paylen(e);
 
-				if (paylen == 0)
-					continue;				/* A simple "urn:sha1:" */
+			case EXT_T_GGEP_NP:
+				may_oob_proxy = FALSE;
+				break;
 
-				if (
-					!huge_sha1_extract32(ext_payload(e), paylen,
-						sha1_digest, &n->header, FALSE)
-                ) {
-                    gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
-					ext_reset(exv, MAX_EXTVEC);
-					return TRUE;			/* Drop message! */
-                }
+			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
+			case EXT_T_URN_SHA1:
+				sha1_digest = exv_sha1[exv_sha1cnt].sha1_digest;
+
+				if (EXT_T_GGEP_H == e->ext_token) {
+					gint ret;
+				
+					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
+					if (GGEP_OK == ret) {
+						/* Okay */
+					} else if (GGEP_NOT_FOUND == ret) {
+						if (search_debug > 3 || ggep_debug > 3) {
+							g_warning("%s GGEP \"H\" with no SHA1 (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+						continue;		/* Unsupported hash type */
+					} else {
+						if (search_debug > 3 || ggep_debug > 3) {
+							g_warning("%s bad GGEP \"H\" (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+						return TRUE;			/* Drop message! */
+					}
+				} else if (EXT_T_URN_SHA1 == e->ext_token) {
+					gint paylen = ext_paylen(e);
+
+					if (paylen == 0)
+						continue;				/* A simple "urn:sha1:" */
+
+					if (
+						!huge_sha1_extract32(ext_payload(e), paylen,
+							sha1_digest, &n->header, FALSE)
+					) {
+						gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
+						ext_reset(exv, MAX_EXTVEC);
+						return TRUE;			/* Drop message! */
+					}
+
+				}
+
+				if (share_debug > 4) {
+					g_message("valid SHA1 #%d in query: %s",
+						exv_sha1cnt, sha1_base32(sha1_digest));
+				}
 
 				exv_sha1[exv_sha1cnt].matched = FALSE;
 				exv_sha1cnt++;
-
-				if (share_debug > 4)
-					g_message("valid SHA1 #%d in query: %32s",
-						exv_sha1cnt, ext_payload(e));
 
 				/*
 				 * Add valid URN query to the list of query hashes, if we
@@ -1982,12 +2017,16 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				if (qhv != NULL) {
 					gm_snprintf(stmp_1, sizeof(stmp_1),
 						"urn:sha1:%s", sha1_base32(sha1_digest));
-					qhvec_add(qhv, stmp_1, QUERY_H_URN);
+						qhvec_add(qhv, stmp_1, QUERY_H_URN);
 				}
 
 				last_sha1_digest = sha1_digest;
-			} else if (e->ext_token == EXT_T_GGEP_NP) {
-				may_oob_proxy = FALSE;
+				break;
+
+			default:
+				if (share_debug > 4) {
+					g_message("Unhandled extension in query");
+				}
 			}
 		}
 
