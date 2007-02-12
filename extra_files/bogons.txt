@@ -12,7 +12,7 @@
 #
 # For more information on this project see http://www.completewhois.com/bogons/
 # This file is based on data collected on Sat Feb 10 04:26:00 PST 2007
-0.0.0.1/7
+0.0.0.0/7
 2.0.0.0/8
 5.0.0.0/8
 7.0.0.0/8
