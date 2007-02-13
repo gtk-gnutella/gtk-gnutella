@@ -1958,7 +1958,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			case EXT_T_GGEP_NP:
 				if (ext_paylen(e) > 0) {
-					const gchar *payload = ext_payload(e);
+					const guchar *payload = ext_payload(e);
 
 					/* We support OOB up to v3 so far */
 					if (payload[0] > 3)
