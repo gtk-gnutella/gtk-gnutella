@@ -102,6 +102,7 @@ gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *vec);
  * Result sets `status' flags.
  */
 enum {
+	 ST_GOOD_TOKEN			= (1 << 22), /**< OOB v3 matched */
 	 ST_BROWSE				= (1 << 21), /**< Browse Host "search" result */
 	 ST_LOCAL				= (1 << 20), /**< Local search result */
 	 ST_FW2FW				= (1 << 19), /**< Firewall-to-Firewall support */
