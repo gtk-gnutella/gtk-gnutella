@@ -1957,7 +1957,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				return TRUE;			/* Drop message! */
 
 			case EXT_T_GGEP_NP:
-				may_oob_proxy = FALSE;
+				if (ext_paylen(e) > 0) {
+					const gchar *payload = ext_payload(e);
+
+					/* We support OOB up to v3 so far */
+					if (payload[0] > 3)
+						may_oob_proxy = FALSE;
+				} else {
+					may_oob_proxy = FALSE;
+				}
 				break;
 
 			case EXT_T_GGEP_SO:
