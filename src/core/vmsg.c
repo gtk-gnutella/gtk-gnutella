@@ -1165,16 +1165,12 @@ handle_oob_reply_ack(struct gnutella_node *n,
 	wanted = (guchar) payload[0] & 0xff;
 
 	token = zero_array;
-	if (vmsg->version > 2) {
+	if (vmsg->version > 2 && size > 1) {
 		extvec_t exv[MAX_EXTVEC];
 		gint i, exvcnt;
 
-		if (size > 1) {
-			ext_prepare(exv, MAX_EXTVEC);
-			exvcnt = ext_parse(&payload[1], size - 1, exv, MAX_EXTVEC);
-		} else {
-			exvcnt = 0;
-		}
+		ext_prepare(exv, MAX_EXTVEC);
+		exvcnt = ext_parse(&payload[1], size - 1, exv, MAX_EXTVEC);
 
 		for (i = 0; i < exvcnt; i++) {
 			extvec_t *e = &exv[i];
@@ -1190,7 +1186,7 @@ handle_oob_reply_ack(struct gnutella_node *n,
 						g_warning("GGEP \"SO\" too large");
 					len = sizeof token_data;	/* truncate it */
 				}
-				if (len > 0 && len < sizeof token_data) {
+				if (len > 0 && len <= sizeof token_data) {
 					memcpy(token_data, ext_payload(e), len);
 					token = array_init(token_data, len); 
 				}
