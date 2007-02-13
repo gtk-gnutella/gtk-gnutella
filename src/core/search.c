@@ -2172,9 +2172,17 @@ build_search_msg(search_ctrl_t *sch)
 	 * Indicate support for OOB v3.
 	 * @see http://the-gdf.org/index.php?title=OutOfBandV3
 	 */
-	if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
+
+	if (QUERY_SPEED_OOB_REPLY & speed) {
+		/*
+		 * Since our ultrapeers might not support OOB v3 and not understand
+		 * GGEP "SO" either, only add this if we're not OOB proxied. Otherwise,
+		 * we won't receive OOB results.
+		 */
+		if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
 			g_warning("could not add GGEP \"SO\" extension to query");
 			goto error;
+		}
 	}
 
 	size += ggep_stream_close(&gs);
