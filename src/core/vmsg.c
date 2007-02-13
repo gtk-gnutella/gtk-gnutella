@@ -1223,7 +1223,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 	if (token->data) {
 		ggep_stream_t gs;
 
-		ggep_stream_init(&gs, payload, sizeof v_tmp - paysize);
+		ggep_stream_init(&gs, &payload[paysize], sizeof v_tmp - paysize);
 		ggep_stream_pack(&gs, GGEP_NAME(SO), token->data, token->size, 0);
 		paysize += ggep_stream_close(&gs);
 	}
