@@ -409,9 +409,13 @@ flush_match(void)
 			g_warning("could not write GGEP \"GTKGV1\" extension in query hit");
 	}
 
-	if (found_token()) {
-		if (!ggep_stream_pack(&gs, GGEP_NAME(SO),
-				found_token()->data, found_token()->size, 0))
+	{
+		const struct array *token = found_token();
+		
+		if (
+			token->data &&
+			!ggep_stream_pack(&gs, GGEP_NAME(SO), token->data, token->size, 0)
+		)
 			g_warning("could not add GGEP \"SO\" extension to query hit");
 	}
 
