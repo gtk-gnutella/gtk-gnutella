@@ -6,7 +6,7 @@ Gtk-Gnutella homepage at http://gtk-gnutella.sourceforge.net/.
   Most of the homepage content is maintained with SVN.
 
   You can checkout the tree as follows:
-  $ svn co https://svn.sourceforge.net/svnroot/gtk-gnutella/trunk/htdocs htdocs
+  $ svn co https://gtk-gnutella.svn.sourceforge.net/svnroot/gtk-gnutella/trunk/htdocs htdocs
 
 2. Structure
 

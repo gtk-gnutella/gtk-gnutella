@@ -71,8 +71,9 @@ Release steps
 8. Tag whole SVN:
 
 	cd "top directory"
-	svn copy https://svn.sourceforge.net/svnroot/gtk-gnutella/trunk \
-	         https://svn.sourceforge.net/svnroot/gtk-gnutella/tags/V-0-91
+	svn copy \
+	  https://gtk-gnutella.svn.sourceforge.net/svnroot/gtk-gnutella/trunk \
+	  https://gtk-gnutella.svn.sourceforge.net/svnroot/gtk-gnutella/tags/V-0-91
 
 9. Make a clean distribution package:
 
