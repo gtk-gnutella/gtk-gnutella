@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "downloads.h"
 #include "gnet_stats.h"
 #include "ignore.h"
+#include "ggep.h"
 #include "ggep_type.h"
 #include "version.h"
 #include "qrp.h"
@@ -1986,67 +1987,37 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 /**
  * Create a search request message for specified search.
  *
- * Since this is inherently a variable sized structure, fill in `len'
- * to be the actual size of the allocated message, and `sizep' the
- * length of the built message.
- *
- * NB: the actual Gnutella messsage can be SHORTER if we compacted the
- * query string.  Don't use the reported length as an indicator of the
- * message size.  Use the value returned in `sizep' instead.
+ * On success a walloc()ated message is returned. Use wfree() to release
+ * the memory. The is can be derived from the header, add GTA_HEADER_SIZE.
  *
  * @returns NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
 gnutella_msg_search_t *
-build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
+build_search_msg(search_ctrl_t *sch)
 {
-	static const gchar urn_prefix[] = "urn:sha1:";
-	gnutella_msg_search_t *m;
-	guint32 size;
-	guint32 plen;			/* Length of payload */
-	size_t qlen;			/* Length of query text */
-	gboolean is_urn_search = FALSE;
+	static union {
+		gnutella_msg_search_t data;
+		gchar bytes[1024];
+		guint64 align8;
+	} msg;
+	ggep_stream_t gs;
+	size_t size;
 	guint16 speed;
+	gboolean is_sha1_search;
+	gchar digest[SHA1_RAW_SIZE];
 
+	STATIC_ASSERT(25 == sizeof msg.data);
+	size = sizeof msg.data;
+	
     g_assert(sch != NULL);
-    g_assert(len != NULL);
-    g_assert(sizep != NULL);
     g_assert(sbool_get(sch->active));
 	g_assert(!sbool_get(sch->frozen));
 	g_assert(sch->muids);
 
-	/*
-	 * Are we dealing with an URN search?
-	 */
-
-	is_urn_search = NULL != is_strprefix(sch->query, urn_prefix);
-	if (is_urn_search) {
-		/*
-		 * We're sending an empty search text (NUL only), then the 9+32 bytes
-		 * of the URN query, plus a trailing NUL.
-		 */
-		qlen = 0;
-		size = CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE + 2;	/* 2 NULs */
-	} else {
-		/*
-		 * We're adding a trailing NUL after the query text.
-		 *
-		 * Starting 24/09/2002, we no longer send the trailing "urn:\0" as
-		 * most servents will now send any SHA1 they have, unsolicited,
-		 * as we always did ourselves.
-		 */
-
-		qlen = strlen(sch->query);
-		size = qlen + 1;	/* 1 NUL */
-	}
-
-	size += sizeof *m;
-	m = walloc(size);
-	*len = size;	/* What we allocated */
-
 	/* Use the first MUID on the list (the last one allocated) */
 	{
-		gnutella_header_t *header = gnutella_msg_search_header(m);
+		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
 		
 		gnutella_header_set_muid(header, sch->muids->data);
 		gnutella_header_set_function(header, GTA_MSG_SEARCH);
@@ -2101,70 +2072,109 @@ build_search_msg(search_ctrl_t *sch, guint32 *len, guint32 *sizep)
 		guint16 port;
 
 		guid_oob_get_addr_port(
-			gnutella_header_get_muid(gnutella_msg_search_header(m)),
+			gnutella_header_get_muid(gnutella_msg_search_header(&msg.data)),
 			&addr, &port);
 
 		if (is_my_address(addr, port))
 			speed |= QUERY_SPEED_OOB_REPLY;
 	}
 
-	gnutella_msg_search_set_speed(m, speed);
+	gnutella_msg_search_set_speed(&msg.data, speed);
+	
+	/*
+	 * Are we dealing with an URN search?
+	 */
 
-	if (is_urn_search) {
-		gchar *query;
-		size_t hash_len;
+	is_sha1_search = urn_get_sha1(sch->query, digest);
 
-		STATIC_ASSERT(25 == sizeof *m);
-		query = cast_to_gpointer(&m[1]);
-		*query = '\0';
-		hash_len = CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE;
-		strncpy(&query[1], sch->query, hash_len); /* urn:sha1:32bytes */
-		query[hash_len + 1] = '\0';
-	} else {
-		gchar *query;
-		size_t new_len;
+	{	
+		size_t len;
 
-		STATIC_ASSERT(25 == sizeof *m);
-		query = cast_to_gpointer(&m[1]);
-		strcpy(query, sch->query);
-		new_len = compact_query(query);
-
-		g_assert(new_len <= qlen);
-
-		if (new_len == 0) {
-			g_warning("dropping invalid local query \"%s\"", sch->query);
-			goto cleanup;
-		} else if (new_len < qlen) {
-			size -= (qlen - new_len);
-			if (search_debug > 1)
-				g_message("compacted query \"%s\" into \"%s\"",
-					sch->query, query);
+		len = strlen(sch->query);
+		if (len >= sizeof msg.bytes - size) {
+			g_warning("dropping too large query \"%s\"", sch->query);
+			goto error;
 		}
+		memcpy(&msg.bytes[size], sch->query, len);
+		msg.bytes[size + len] = '\0';
+	
+		if (!is_sha1_search) {
+			size_t new_len;
+
+			new_len = compact_query(&msg.bytes[size]);
+			g_assert(new_len <= len);
+
+			if (new_len == 0) {
+				g_warning("dropping empty query \"%s\"", sch->query);
+				goto error;
+			}
+
+			if (new_len < len) {
+				len = new_len;
+				if (search_debug > 1)
+					g_message("compacted query \"%s\" into \"%s\"",
+						sch->query, &msg.bytes[size]);
+			}
+		}
+		size += len + 1;
 	}
 
-	plen = size - GTA_HEADER_SIZE;	/* Payload length */
-	gnutella_header_set_size(gnutella_msg_search_header(m), plen);
-	*sizep = size;
+	ggep_stream_init(&gs, &msg.bytes[size], sizeof msg.bytes - size);
 
-	if (plen > search_queries_forward_size) {
+	if (is_sha1_search) {
+		/* TODO: We cannot emit empty queries with GGEP H attached because
+		 *		 GTKG before 0.96.4 does not parse GGEP H in queries.
+		 */
+#if 0
+		const guint8 type = GGEP_H_SHA1;
+		gboolean ok;
+
+		ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
+			ggep_stream_write(&gs, &type, 1) &&
+			ggep_stream_write(&gs, digest, sizeof digest) &&
+			ggep_stream_end(&gs);
+
+		if (!ok) {
+			g_warning("could not add GGEP \"H\" to query");
+			goto error;
+		}
+#endif
+	}
+
+#if 0
+	/** 
+	 * TODO: Not implemented yet.
+	 * @see http://the-gdf.org/index.php?title=OutOfBandV3
+	 */
+	if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
+			g_warning("could not add GGEP \"SO\" extension to query");
+			goto error;
+	}
+#endif
+
+	size += ggep_stream_close(&gs);
+
+	if (size - GTA_HEADER_SIZE > search_queries_forward_size) {
 		g_warning("not sending query \"%s\": larger than max query size (%d)",
 			sch->query, search_queries_forward_size);
-		goto cleanup;
+		goto error;
 	}
+
+	gnutella_header_set_size(gnutella_msg_search_header(&msg.data),
+		size - GTA_HEADER_SIZE);
 
 	if (search_debug > 3)
 		g_message("%squery \"%s\" message built with MUID %s",
-			is_urn_search ? "URN " : "", sch->query,
-			guid_hex_str(
-				gnutella_header_get_muid(gnutella_msg_search_header(m))));
+			is_sha1_search ? "URN " : "", sch->query,
+			guid_hex_str(gnutella_header_get_muid(
+							gnutella_msg_search_header(&msg.data))));
 
-	message_add(gnutella_header_get_muid(gnutella_msg_search_header(m)),
+	message_add(gnutella_header_get_muid(gnutella_msg_search_header(&msg.data)),
 		GTA_MSG_SEARCH, NULL);
 
-	return m;
+	return wcopy(&msg.bytes, size);
 
-cleanup:
-	wfree(m, *len);
+error:
 	return NULL;
 }
 
@@ -2211,18 +2221,18 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 static void
 search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 {
-	gnutella_msg_search_t *m;
-	guint32 size;
-	guint32 alloclen;
+	gnutella_msg_search_t *msg;
+	size_t size;
 
     g_assert(sch != NULL);
     g_assert(sbool_get(sch->active));
 	g_assert(!sbool_get(sch->frozen));
 
-	m = build_search_msg(sch, &alloclen, &size);
-
-	if (m == NULL)
+	if (NULL == (msg = build_search_msg(sch)))
 		return;
+
+	size = gnutella_header_get_size(gnutella_msg_search_header(msg));
+	size += GTA_HEADER_SIZE;
 
 	/*
 	 * All the gmsg_search_xxx() routines include the search handle.
@@ -2241,7 +2251,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	if (n) {
 		mark_search_sent_to_node(sch, n);
-		gmsg_search_sendto_one(n, sch->search_handle, (gchar *) m, size);
+		gmsg_search_sendto_one(n, sch->search_handle, (gchar *) msg, size);
 		goto cleanup;
 	}
 
@@ -2255,7 +2265,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	if (current_peermode != NODE_P_ULTRA) {
 		mark_search_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(
-			node_all_nodes(), sch->search_handle, (gchar *) m, size);
+			node_all_nodes(), sch->search_handle, (gchar *) msg, size);
 		goto cleanup;
 	}
 
@@ -2265,12 +2275,12 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	search_qhv_fill(sch, query_hashvec);
 	sq_global_putq(sch->search_handle,
-		gmsg_to_pmsg(m, size), qhvec_clone(query_hashvec));
+		gmsg_to_pmsg(msg, size), qhvec_clone(query_hashvec));
 
 	/* FALL THROUGH */
 
 cleanup:
-	wfree(m, alloclen);
+	wfree(msg, size);
 }
 
 /**
