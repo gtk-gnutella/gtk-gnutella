@@ -81,6 +81,7 @@ struct oob_results {
 	gint count;				/**< Amount of hits to deliver */
 	gint notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
 	gint refcount;
+	gboolean secure;		/**< TRUE -> secure OOB, FALSE -> normal OOB */
 };
 
 /**
@@ -134,7 +135,8 @@ static gint num_oob_records;	/**< Leak and duplicate free detector */
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
  */
 static struct oob_results *
-results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to)
+results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to,
+	gboolean secure)
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
@@ -147,6 +149,7 @@ results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to)
 	r->count = count;
 	r->dest = *to;			/* Struct copy */
 	r->refcount = 1;
+	r->secure = secure;
 
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
 
@@ -397,9 +400,11 @@ oob_record_hit(gpointer data, size_t len, gpointer udata)
  * @param n			where we got the message from
  * @param muid		the query identifier
  * @param wanted	the amount of results they want delivered
+ * @param token		the token for secure OOB; NULL if none
  */
 void
-oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted)
+oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
+	const struct array *token)
 {
 	struct oob_results *r;
 	struct gservent *s;
@@ -498,7 +503,7 @@ oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted)
 		qhit_build_results(
 			r->files, deliver_count,
 			s->can_deflate ? OOB_MAX_DQHIT_SIZE : OOB_MAX_QHIT_SIZE,
-			oob_record_hit, s, r->muid);
+			oob_record_hit, s, r->muid, token);
 
 	if (wanted < r->count)
 		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
@@ -590,7 +595,7 @@ oob_send_reply_ind(struct oob_results *r)
 	if (q == NULL)
 		return;
 
-	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255));
+	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255), r->secure);
 	emb = pmsg_clone_extend(mb, oob_pmsg_free, r);
 	r->refcount++;
 	pmsg_free(mb);
@@ -610,9 +615,11 @@ oob_send_reply_ind(struct oob_results *r)
  * @param n				the node from which we got the query
  * @param files			the list of shared_file_t entries that make up results
  * @param count			the amount of results
+ * @param secure		whether secure OOB was requested
  */
 void
-oob_got_results(struct gnutella_node *n, GSList *files, gint count)
+oob_got_results(struct gnutella_node *n, GSList *files,
+	gint count, gboolean secure)
 {
 	struct oob_results *r;
 	gnet_host_t to;
@@ -624,7 +631,8 @@ oob_got_results(struct gnutella_node *n, GSList *files, gint count)
 
 	guid_oob_get_addr_port(gnutella_header_get_muid(&n->header), &addr, &port);
 	gnet_host_set(&to, addr, port);
-	r = results_make(gnutella_header_get_muid(&n->header), files, count, &to);
+	r = results_make(gnutella_header_get_muid(&n->header), files, count, &to,
+			secure);
 	oob_send_reply_ind(r);
 }
 

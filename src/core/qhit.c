@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"			/* For main_get_build() */
 
+#include "lib/array.h"
 #include "lib/getdate.h"
 #include "lib/endian.h"
 #include "lib/misc.h"
@@ -84,6 +85,7 @@ struct found_struct {
 	size_t files;				/**< amount of file entries */
 	size_t max_size;			/**< max query hit size */
 	const gchar *muid;			/**< the MUID to put in all query hits */
+	const struct array *token;	/**< Optional secure OOB token */
 	qhit_process_t process;		/**< processor once query hit is built */
 	gpointer udata;				/**< processor argument */
 	gboolean open;				/**< Set if found_open() was used */
@@ -252,9 +254,16 @@ found_process(void)
 	f->process(f->data, f->pos, f->udata);
 }
 
+static const struct array *
+found_token(void)
+{
+	struct found_struct *f = found_get();
+	return f->token;
+}
+
 static void
 found_init(size_t max_size, const gchar *xuid,
-	qhit_process_t proc, gpointer udata)
+	qhit_process_t proc, gpointer udata, const struct array *token)
 {
 	struct found_struct *f = found_get();
 
@@ -267,6 +276,7 @@ found_init(size_t max_size, const gchar *xuid,
 	f->process = proc;
 	f->udata = udata;
 	f->open = FALSE;
+	f->token = token && token->data ? token : NULL;
 }
 
 static time_t release_date;
@@ -396,6 +406,12 @@ flush_match(void)
 
 		if (!ok)
 			g_warning("could not write GGEP \"GTKGV1\" extension in query hit");
+	}
+
+	if (found_token()) {
+		if (!ggep_stream_pack(&gs, GGEP_NAME(SO),
+				found_token()->data, found_token()->size, 0))
+			g_warning("could not add GGEP \"SO\" extension to query hit");
 	}
 
 	/*
@@ -760,11 +776,11 @@ add_file(const struct shared_file *sf)
  */
 static void
 found_reset(size_t max_size, const gchar *muid,
-	qhit_process_t process, gpointer udata)
+	qhit_process_t process, gpointer udata, const struct array *token)
 {
 	g_assert(process != NULL);
 	g_assert(max_size <= INT_MAX);
-	found_init(max_size, muid, process, udata);
+	found_init(max_size, muid, process, udata, token);
 	found_clear();
 }
 
@@ -792,7 +808,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
 	 * to forward to other nodes).
 	 */
 
-	found_reset(QHIT_SIZE_THRESHOLD, muid, qhit_send_node, n);
+	found_reset(QHIT_SIZE_THRESHOLD, muid, qhit_send_node, n, NULL);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = sl->data;
@@ -834,13 +850,14 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
  */
 void
 qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const gchar *muid)
+	qhit_process_t cb, gpointer udata, const gchar *muid,
+	const struct array *token)
 {
 	const GSList *sl;
 	gint sent;
 
 	g_assert(cb != NULL);
-	found_reset(max_msgsize, muid, cb, udata);
+	found_reset(max_msgsize, muid, cb, udata, token);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
 		const shared_file_t *sf = sl->data;

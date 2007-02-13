@@ -73,8 +73,6 @@ ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 
 	tlen = ext_paylen(exv);
 
-#define TIGER_RAW_SIZE	24		/**< XXX temporary, until we implement tiger */
-
 	if (tlen == -1)
 		return GGEP_NOT_FOUND;			/* Don't know what this is */
 
@@ -87,7 +85,7 @@ ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 		if (tlen != (SHA1_RAW_SIZE + 1))
 			return GGEP_INVALID;			/* Size is not right */
 	} else if (payload[0] == GGEP_H_BITPRINT) {
-		if (tlen != (SHA1_RAW_SIZE + TIGER_RAW_SIZE + 1))
+		if (tlen != (SHA1_RAW_SIZE + TTH_RAW_SIZE + 1))
 			return GGEP_INVALID;			/* Size is not right */
 	} else
 		return GGEP_NOT_FOUND;

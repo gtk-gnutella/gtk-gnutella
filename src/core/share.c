@@ -1807,6 +1807,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	guint offset = 0;			/**< Query string start offset */
 	gboolean drop_it = FALSE;
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
+	gboolean secure_oob = FALSE;
 	struct query_context *qctx;
 	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
@@ -1957,6 +1958,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			case EXT_T_GGEP_NP:
 				may_oob_proxy = FALSE;
+				break;
+
+			case EXT_T_GGEP_SO:
+				secure_oob = TRUE;
 				break;
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
@@ -2504,7 +2509,7 @@ finish:
 
 	if (qctx->found) {
 		if (oob && should_oob)
-			oob_got_results(n, qctx->files, qctx->found);
+			oob_got_results(n, qctx->files, qctx->found, secure_oob);
 		else
 			qhit_send_results(n, qctx->files, qctx->found, muid);
 	}

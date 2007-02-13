@@ -43,14 +43,16 @@
  */
 
 struct gnutella_node;
+struct array;
 
 void oob_init(void);
 void oob_shutdown(void);
 void oob_close(void);
 
-void oob_got_results(struct gnutella_node *n, GSList *files, gint count);
-void oob_deliver_hits(struct gnutella_node *n,
-	const gchar *muid, guint8 wanted);
+void oob_got_results(struct gnutella_node *n, GSList *files,
+		gint count, gboolean secure_oob);
+void oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
+	const struct array *token);
 
 #endif /* _core_oob_h_ */
 

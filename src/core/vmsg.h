@@ -49,7 +49,7 @@ struct rnode_info;
  */
 
 void vmsg_handle(struct gnutella_node *n);
-const gchar *vmsg_infostr(gconstpointer data, gint size);
+const gchar *vmsg_infostr(gconstpointer data, size_t size);
 
 void vmsg_send_messages_supported(struct gnutella_node *n);
 void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops);
@@ -68,7 +68,8 @@ void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);
 void vmsg_send_node_info_ans(struct gnutella_node *n,
 	const struct rnode_info *ri);
 
-struct pmsg *vmsg_build_oob_reply_ind(const gchar *muid, guint8 hits);
+struct pmsg *vmsg_build_oob_reply_ind(const gchar *muid,
+				guint8 hits, gboolean secure);
 
 void vmsg_init(void);
 

@@ -45,6 +45,7 @@ typedef void (*qhit_process_t)(gpointer data, size_t len, gpointer udata);
  */
 
 struct gnutella_node;
+struct array; 
 
 void qhit_init(void);
 void qhit_close(void);
@@ -52,7 +53,8 @@ void qhit_close(void);
 void qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
 	const gchar *muid);
 void qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const gchar *muid);
+	qhit_process_t cb, gpointer udata, const gchar *muid,
+	const struct array *token);
 
 #endif /* _core_qhit_h_ */
 
