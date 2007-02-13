@@ -308,9 +308,10 @@ vmsg_handle(struct gnutella_node *n)
 	vm = find_message(vc, id, version);
 
 	if (vmsg_debug > 4)
-		g_message("VMSG %s \"%s\": %s/%uv%u",
+		g_message("VMSG %s \"%s\": %s/%uv%u from %s",
 			gmsg_infostr(&n->header), vm == NULL ? "UNKNOWN" : vm->name,
-			vendor_code_str(ntohl(vc.be32)), id, version);
+			vendor_code_str(ntohl(vc.be32)), id, version,
+			host_addr_port_to_string(n->addr, n->port));
 
 	/*
 	 * If we can't handle the message, we count it as "unknown type", which
@@ -1075,10 +1076,8 @@ handle_oob_reply_ind(struct gnutella_node *n,
 		expected_size = 1;
 		break;
 	case 2:
-		expected_size = 2;
-		break;
 	case 3:
-		expected_size = 2 + 5;	/* At least GGEP "SO" */
+		expected_size = 2;
 		break;
 	default:
 		goto not_handling;
@@ -1086,7 +1085,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 
 	if (size < expected_size) {
 		vmsg_bad_payload(n, vmsg, size, 1);
-		return;
+		goto not_handling;
 	}
 
 	hits = (guchar) payload[0] & 0xff;
@@ -1094,7 +1093,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 		g_warning("no results advertised in %s/%uv%u from %s",
 			vendor_code_str(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
-		return;
+		goto not_handling;
 	}
 
 	secure = vmsg->version > 2;
