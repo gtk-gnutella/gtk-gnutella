@@ -230,7 +230,7 @@ oob_proxy_create(gnutella_node_t *n)
 gboolean
 oob_proxy_pending_results(
 	gnutella_node_t *n, const gchar *muid,
-	gint hits, gboolean uu_udp_firewalled)
+	gint hits, gboolean uu_udp_firewalled, const struct array *token)
 {
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
@@ -241,6 +241,7 @@ oob_proxy_pending_results(
 
 	g_assert(NODE_IS_UDP(n));
 	g_assert(hits > 0);
+	g_assert(token);
 
 	opr = g_hash_table_lookup(proxied_queries, muid);
 	if (opr == NULL)
@@ -334,7 +335,7 @@ oob_proxy_pending_results(
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n), opr->node_id,
 			leaf == NULL ? "???" : node_gnet_addr(leaf), wanted);
 
-	vmsg_send_oob_reply_ack(n, muid, MIN(hits, 254));
+	vmsg_send_oob_reply_ack(n, muid, MIN(hits, 254), token);
 
 	return TRUE;
 

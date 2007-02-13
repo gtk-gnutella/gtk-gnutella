@@ -40,6 +40,7 @@
 
 #include "lib/tm.h"
 
+struct array;
 struct gnutella_node;
 struct pmsg;
 struct rnode_info;
@@ -61,7 +62,7 @@ void vmsg_send_qstat_answer(struct gnutella_node *n,
 		const gchar *muid, guint16 hits);
 void vmsg_send_proxy_cancel(struct gnutella_node *n);
 void vmsg_send_oob_reply_ack(struct gnutella_node *n,
-		const gchar *muid, guint8 want);
+		const gchar *muid, guint8 want, const struct array *token);
 void vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);

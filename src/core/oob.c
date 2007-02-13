@@ -400,7 +400,7 @@ oob_record_hit(gpointer data, size_t len, gpointer udata)
  * @param n			where we got the message from
  * @param muid		the query identifier
  * @param wanted	the amount of results they want delivered
- * @param token		the token for secure OOB; NULL if none
+ * @param token		the token for secure OOB
  */
 void
 oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
@@ -412,6 +412,7 @@ oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
 	gboolean servent_created = FALSE;
 
 	g_assert(NODE_IS_UDP(n));
+	g_assert(token);
 
 	r = g_hash_table_lookup(results_by_muid, muid);
 

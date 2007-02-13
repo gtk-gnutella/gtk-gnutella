@@ -270,13 +270,14 @@ found_init(size_t max_size, const gchar *xuid,
 	g_assert(max_size <= INT_MAX);
 	g_assert(xuid != NULL);
 	g_assert(proc != NULL);
+	g_assert(token != NULL);
 
 	f->max_size = max_size;
 	f->muid = xuid;
 	f->process = proc;
 	f->udata = udata;
 	f->open = FALSE;
-	f->token = token && token->data ? token : NULL;
+	f->token = token;
 }
 
 static time_t release_date;
@@ -808,7 +809,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
 	 * to forward to other nodes).
 	 */
 
-	found_reset(QHIT_SIZE_THRESHOLD, muid, qhit_send_node, n, NULL);
+	found_reset(QHIT_SIZE_THRESHOLD, muid, qhit_send_node, n, &zero_array);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = sl->data;
@@ -857,6 +858,8 @@ qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
 	gint sent;
 
 	g_assert(cb != NULL);
+	g_assert(token);
+
 	found_reset(max_msgsize, muid, cb, udata, token);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {

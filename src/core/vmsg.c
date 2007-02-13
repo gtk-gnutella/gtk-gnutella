@@ -1056,6 +1056,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 {
 	gboolean can_recv_unsolicited = FALSE;
 	size_t expected_size;
+	gboolean secure;
 	gint hits;
 
 	if (!NODE_IS_UDP(n)) {
@@ -1096,12 +1097,11 @@ handle_oob_reply_ind(struct gnutella_node *n,
 		return;
 	}
 
-	if (vmsg->version > 1) {
-		can_recv_unsolicited = (*(guchar *) &payload[1]) & 0x1;
-	}
+	secure = vmsg->version > 2;
+	can_recv_unsolicited = vmsg->version > 1 && payload[1] & 0x1;
 
 	search_oob_pending_results(n, gnutella_header_get_muid(&n->header),
-		hits, can_recv_unsolicited);
+		hits, can_recv_unsolicited, secure);
 	return;
 
 not_handling:
@@ -1200,8 +1200,7 @@ handle_oob_reply_ack(struct gnutella_node *n,
 		}
 	}
 
-	oob_deliver_hits(n, gnutella_header_get_muid(&n->header), wanted,
-		token.data ? &token : NULL);
+	oob_deliver_hits(n, gnutella_header_get_muid(&n->header), wanted, &token);
 }
 
 /**
@@ -1213,20 +1212,30 @@ handle_oob_reply_ack(struct gnutella_node *n,
  * compress the query hits if necessary and if supported.
  */
 void
-vmsg_send_oob_reply_ack(struct gnutella_node *n, const gchar *muid, guint8 want)
+vmsg_send_oob_reply_ack(struct gnutella_node *n,
+	const gchar *muid, guint8 want, const struct array *token)
 {
 	guint32 msgsize;
 	guint32 paysize = sizeof(guint8);
 	gchar *payload;
 
 	g_assert(NODE_IS_UDP(n));
+	g_assert(token);
+
+	payload = vmsg_fill_type(v_tmp_data, T_LIME, 11, token->data ? 3 : 2);
+	payload[0] = want;
+
+	if (token->data) {
+		ggep_stream_t gs;
+
+		ggep_stream_init(&gs, payload, sizeof v_tmp - paysize);
+		ggep_stream_pack(&gs, GGEP_NAME(SO), token->data, token->size, 0);
+		paysize += ggep_stream_close(&gs);
+	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	vmsg_advertise_udp_compression(v_tmp_header);	/* Can deflate UDP */
 	gnutella_header_set_muid(v_tmp_header, muid);
-	payload = vmsg_fill_type(v_tmp_data, T_LIME, 11, 2);
-
-	*payload = want;
 
 	udp_send_msg(n, v_tmp, msgsize);
 

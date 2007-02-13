@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/array.h"
 #include "lib/header.h"
 #include "lib/misc.h"
 #include "lib/url.h"
@@ -416,7 +417,7 @@ browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
 		files = g_slist_reverse(files);			/* Preserve order */
 
 		qhit_build_results(files, i, BH_MAX_QHIT_SIZE,
-			browse_host_record_hit, bh, blank_guid, NULL);
+			browse_host_record_hit, bh, blank_guid, &zero_array);
 
 		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
 

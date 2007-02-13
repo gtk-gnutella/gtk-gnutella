@@ -75,6 +75,7 @@ RCSID("$Id$")
 
 #include "if/core/hosts.h"
 
+#include "lib/array.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
@@ -725,11 +726,13 @@ struct ora {
 	const gchar *muid;	/* GUID atom */
 	time_t sent;
 	host_addr_t addr;
+	guint32 token;
 	guint16 port;
 };
 
-struct ora *
-ora_alloc(const gchar muid[GUID_RAW_SIZE], const host_addr_t addr, guint16 port)
+static struct ora *
+ora_alloc(const gchar muid[GUID_RAW_SIZE], const host_addr_t addr, guint16 port,
+		guint32 token)
 {
 	struct ora *ora;
 
@@ -737,6 +740,7 @@ ora_alloc(const gchar muid[GUID_RAW_SIZE], const host_addr_t addr, guint16 port)
 	ora->muid = atom_guid_get(muid);
 	ora->addr = addr;
 	ora->port = port;
+	ora->token = token;
 	return ora;
 }
 
@@ -758,7 +762,8 @@ ora_hash(gconstpointer key)
 {
 	const struct ora *ora = key;
 
-	return guid_hash(ora->muid) ^
+	return ora->token ^
+		guid_hash(ora->muid) ^
 		host_addr_hash(ora->addr) ^
 		(((guint32) ora->port << 16) | ora->port);
 }
@@ -768,14 +773,15 @@ ora_eq(gconstpointer v1, gconstpointer v2)
 {
 	const struct ora *a = v1, *b = v2;
 
-	return a->port == b->port &&
+	return a->token == b->token &&
+		a->port == b->port &&
 		host_addr_equal(a->addr, b->addr) &&
 		guid_eq(a->muid, b->muid);
 }
 
 static struct ora *
 ora_lookup(const gchar muid[GUID_RAW_SIZE],
-	const host_addr_t addr, guint16 port)
+	const host_addr_t addr, guint16 port, guint32 token)
 {
 	struct ora ora;
 	gconstpointer key;
@@ -784,6 +790,7 @@ ora_lookup(const gchar muid[GUID_RAW_SIZE],
 	ora.sent = 0;
 	ora.addr = addr;
 	ora.port = port;
+	ora.token = token;
 
 	if (hash_list_contains(oob_reply_acks, &ora, &key)) {
 		return deconstify_gpointer(key);
@@ -836,18 +843,18 @@ oob_reply_acks_close(void)
 
 static void
 oob_reply_ack_record(const gchar muid[GUID_RAW_SIZE],
-	const host_addr_t addr, guint16 port)
+	const host_addr_t addr, guint16 port, guint32 token)
 {
 	struct ora *ora;
 	
 	g_assert(muid);
 
-	ora = ora_lookup(muid, addr, port);
+	ora = ora_lookup(muid, addr, port, token);
 	if (ora) {
 		/* We'll append the new value to the list */
 		hash_list_remove(oob_reply_acks, ora);
 	} else {
-		ora = ora_alloc(muid, addr, port);
+		ora = ora_alloc(muid, addr, port, token);
 	}
 	ora->sent = tm_time();
 
@@ -862,13 +869,13 @@ oob_reply_ack_record(const gchar muid[GUID_RAW_SIZE],
  * @param addr	the address from which the results come via UDP
  * @param port	the port from which results come
  */
-gboolean
+static gboolean
 search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
-	const host_addr_t addr, guint16 port)
+	const host_addr_t addr, guint16 port, guint32 token)
 {
 	struct ora *ora;
 
-	ora = ora_lookup(muid, addr, port);
+	ora = ora_lookup(muid, addr, port, token);
 	if (ora) {
 		if (delta_time(tm_time(), ora->sent) <= oob_reply_ack_timeout)
 			return TRUE;
@@ -886,6 +893,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 {
 	guint8 open_size, open_parsing_size, enabler_mask, flags_mask;
 	const gchar *vendor;
+	guint32 token;
+	gboolean has_token;
 
 	if (!trailer || trailer_size < 7)
 		return;
@@ -895,6 +904,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	open_parsing_size = trailer[4];
 	enabler_mask = trailer[5];
 	flags_mask = trailer[6];
+	has_token = FALSE;
+	token = 0;
 
 	if (open_size == 4)
 		open_parsing_size = 2;		/* We ignore XML data size */
@@ -970,6 +981,12 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				break;
 			case EXT_T_GGEP_GTKG_TLS:
 				rs->status |= ST_TLS;
+				break;
+			case EXT_T_GGEP_SO:
+				if ((ST_UDP & rs->status) && ext_paylen(e) == sizeof token) {
+					memcpy(&token, ext_payload(e), sizeof token);
+					has_token = TRUE;
+				}
 				break;
 			case EXT_T_GGEP_GTKG_IPV6:
 				{
@@ -1123,6 +1140,28 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			rs->status |= ST_URL_SPAM;
 		}
 	}
+
+	/**
+	 * Check whether the results were actually requested.
+	 */
+
+	if (ST_UDP & rs->status) {
+		if (
+			search_results_are_requested(
+				gnutella_header_get_muid(&n->header), n->addr, n->port, token)
+		) {
+			if (has_token)
+				rs->status |= ST_GOOD_TOKEN;
+		} else {
+			rs->status |= ST_UNREQUESTED;
+			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
+			if (search_debug) {
+				g_message("Received unrequested query hit from %s",
+                	host_addr_port_to_string(n->addr, n->port));
+			}
+		}
+	}
+
 }
 
 /**
@@ -1206,18 +1245,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			!is_private_addr(rs->addr)
 		)
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
-
-		if (
-			!search_results_are_requested(
-				gnutella_header_get_muid(&n->header), n->addr, n->port)
-		) {
-			rs->status |= ST_UNREQUESTED;
-			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
-			if (search_debug) {
-				g_message("Received unrequested query hit from %s",
-                	host_addr_port_to_string(n->addr, n->port));
-			}
-		}
 	}
 
 	count_host(rs->addr);
@@ -2141,16 +2168,14 @@ build_search_msg(search_ctrl_t *sch)
 #endif
 	}
 
-#if 0
 	/** 
-	 * TODO: Not implemented yet.
+	 * Indicate support for OOB v3.
 	 * @see http://the-gdf.org/index.php?title=OutOfBandV3
 	 */
 	if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
 			g_warning("could not add GGEP \"SO\" extension to query");
 			goto error;
 	}
-#endif
 
 	size += ggep_stream_close(&gs);
 
@@ -3556,13 +3581,24 @@ search_get_kept_results_by_handle(gnet_search_t sh)
  */
 void
 search_oob_pending_results(
-	gnutella_node_t *n, const gchar *muid, gint hits, gboolean udp_firewalled)
+	gnutella_node_t *n, const gchar *muid, gint hits,
+	gboolean udp_firewalled, gboolean secure)
 {
+	struct array token_opaque;
+	guint32 token;
 	guint32 kept;
 	gint ask;
 
 	g_assert(NODE_IS_UDP(n));
 	g_assert(hits > 0);
+
+	if (secure) {
+		token = random_raw();
+		token_opaque = array_init(&token, sizeof token);
+	} else {
+		token = 0;
+		token_opaque = zero_array;
+	}
 
 	/*
 	 * Locate the search bearing this MUID and get the amount of results
@@ -3578,9 +3614,11 @@ search_oob_pending_results(
 
 		if (
 			proxy_oob_queries &&
-			oob_proxy_pending_results(n, muid, hits, udp_firewalled)
-		)
-			return;
+			oob_proxy_pending_results(n, muid, hits, udp_firewalled,
+				&token_opaque)
+		) {
+			goto record_token;	
+		}
 
 		if (search_debug)
 			g_warning("got OOB indication of %d hit%s for unknown search %s",
@@ -3631,15 +3669,17 @@ search_oob_pending_results(
 
 	ask = MIN(hits, 254);
 	ask = MIN((guint) ask, search_max_items);
+	g_assert(ask < 255);
 
 	/*
 	 * Ok, ask them the hits then.
 	 */
 
-	g_assert(ask < 255);
 
-	vmsg_send_oob_reply_ack(n, muid, ask);
-	oob_reply_ack_record(muid, n->addr, n->port);
+	vmsg_send_oob_reply_ack(n, muid, ask, &token_opaque);
+
+record_token:
+	oob_reply_ack_record(muid, n->addr, n->port, token);
 }
 
 const gchar *
