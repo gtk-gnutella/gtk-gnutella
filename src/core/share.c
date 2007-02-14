@@ -1796,8 +1796,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean decoded = FALSE;
 	guint32 max_replies;
 	gboolean skip_file_search = FALSE;
-	extvec_t exv[MAX_EXTVEC];
-	gint exvcnt = 0;
 	struct {
 		gchar sha1_digest[SHA1_RAW_SIZE];
 		gboolean matched;
@@ -1840,7 +1838,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
 		gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
-		return TRUE;		/* Drop the message! */
+		goto drop;		/* Drop the message! */
 	}
 	/* We can now use `search' safely as a C string: it embeds a NUL */
 
@@ -1852,7 +1850,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		is_strprefix(search, qtrax2_con)
 	) {
 		gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
-		return TRUE;		/* Drop the message! */
+		goto drop;		/* Drop the message! */
 	}
 
 	/*
@@ -1872,7 +1870,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (!query_utf8_decode(search, &offset)) {
 			gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
-			return TRUE;					/* Drop message! */
+			goto drop;					/* Drop message! */
 		}
 		decoded = TRUE;
 
@@ -1918,9 +1916,11 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	if (search_len + 3 != n->size) {
-		gint extra = n->size - 3 - search_len;		/* Amount of extra data */
-		gint i;
+		extvec_t exv[MAX_EXTVEC];
+		gint i, exvcnt;
+		size_t extra;
 
+	   	extra = n->size - 3 - search_len;		/* Amount of extra data */
 		ext_prepare(exv, MAX_EXTVEC);
 		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
 
@@ -1953,8 +1953,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					dump_hex(stderr, "Query Packet (BAD: has overhead)",
 						search, MIN(n->size - 2, 256));
 				gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
-				ext_reset(exv, MAX_EXTVEC);
-				return TRUE;			/* Drop message! */
+				drop_it = TRUE;
+				break;
 
 			case EXT_T_GGEP_NP:
 				if (ext_paylen(e) > 0) {
@@ -1995,7 +1995,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
 						}
-						return TRUE;			/* Drop message! */
+						drop_it = TRUE;
+						break;
 					}
 				} else if (EXT_T_URN_SHA1 == e->ext_token) {
 					gint paylen = ext_paylen(e);
@@ -2008,8 +2009,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 							sha1_digest, &n->header, FALSE)
 					) {
 						gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
-						ext_reset(exv, MAX_EXTVEC);
-						return TRUE;			/* Drop message! */
+						drop_it = TRUE;
+						break;
 					}
 
 				}
@@ -2041,6 +2042,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					g_message("Unhandled extension in query");
 				}
 			}
+			
+			if (drop_it)
+				break;
 		}
 
 		if (exv_sha1cnt)
@@ -2048,6 +2052,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (exvcnt)
 			ext_reset(exv, MAX_EXTVEC);
+
+		if (drop_it)
+			goto drop;
 	}
 
     /*
@@ -2077,7 +2084,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
     if (0 == exv_sha1cnt && skip_file_search) {
         gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
-		return TRUE;					/* Drop this search message */
+		goto drop;					/* Drop this search message */
     }
 
 	/*
@@ -2133,7 +2140,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				node_addr(n), node_vendor(n), query,
 				(gint) delta_time(now, seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
-			return TRUE;		/* Drop the message! */
+			goto drop;		/* Drop the message! */
 		}
 
 		if (!found)
@@ -2187,7 +2194,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				gnutella_header_get_ttl(&n->header),
 				node_addr(n), node_vendor(n));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
-			return TRUE;		/* Drop the message! */
+			goto drop;		/* Drop the message! */
 		}
 
 		gm_hash_table_insert_const(n->qrelayed,
@@ -2290,7 +2297,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (hostiles_check(addr)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-			return TRUE;		/* Drop the message! */
+			goto drop;		/* Drop the message! */
 		}
 
 		/*
@@ -2313,7 +2320,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					node_addr(n), node_vendor(n),
 					host_addr_port_to_string(addr, port), node_gnet_addr(n));
 
-			return TRUE;		/* Drop the message! */
+			goto drop;		/* Drop the message! */
 		}
 
 		/*
@@ -2380,7 +2387,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		!(oob && should_oob)
 	) {
         gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
-		return TRUE;					/* Drop this long-lived search */
+		goto drop;					/* Drop this long-lived search */
     }
 
 	/*
@@ -2524,7 +2531,13 @@ finish:
 
 	share_query_context_free(qctx);
 
-	return drop_it;
+	if (drop_it)
+		goto drop;
+
+	return FALSE;
+
+drop:
+	return TRUE;
 }
 
 /*
