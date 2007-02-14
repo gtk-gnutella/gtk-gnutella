@@ -1957,7 +1957,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				break;
 
 			case EXT_T_GGEP_NP:
-				/* as we support OOB v3, we can ignore this */
+				/* This may override LIME/13v1 */
+				may_oob_proxy = FALSE;
 				break;
 
 			case EXT_T_GGEP_SO:
