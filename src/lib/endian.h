@@ -33,7 +33,7 @@
  * or little-endian.
  */
 
-static inline guchar
+static inline ALWAYS_INLINE guchar
 peek_u8(gconstpointer p)
 {
 	const guchar *q = p;
@@ -101,7 +101,7 @@ peek_le32(gconstpointer p)
  * written bytes.
  */
 
-static inline gpointer
+static inline ALWAYS_INLINE gpointer
 poke_u8(gpointer p, guchar v)
 {
 	guchar *q = p;
