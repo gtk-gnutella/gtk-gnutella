@@ -1264,22 +1264,19 @@ out:
 /**
  * @returns a pointer to the extension's payload.
  */
-const gchar *
+gconstpointer
 ext_payload(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
 
 	g_assert(e->opaque != NULL);
 
-	if (d->ext_payload != NULL)
-		return d->ext_payload;
-
-	/*
-	 * GGEP payload is COBS-ed and/or deflated.
-	 */
-
-	ext_ggep_decode(e);
-
+	if (NULL == d->ext_payload) {
+		/*
+		 * GGEP payload is COBS-ed and/or deflated.
+		 */
+		ext_ggep_decode(e);
+	}
 	return d->ext_payload;
 }
 
@@ -1293,15 +1290,12 @@ ext_paylen(const extvec_t *e)
 
 	g_assert(e->opaque != NULL);
 
-	if (d->ext_payload != NULL)
-		return d->ext_paylen;
-
-	/*
-	 * GGEP payload is COBS-ed and/or deflated.
-	 */
-
-	ext_ggep_decode(e);
-
+	if (NULL == d->ext_payload) {
+		/*
+		 * GGEP payload is COBS-ed and/or deflated.
+		 */
+		ext_ggep_decode(e);
+	}
 	return d->ext_paylen;
 }
 
@@ -1376,16 +1370,13 @@ ext_ggep_id_str(const extvec_t *e)
 gboolean
 ext_is_printable(const extvec_t *e)
 {
-	const gchar *p = ext_payload(e);
-	gint len = ext_paylen(e);
+	const guchar *p = ext_payload(e);
+	size_t len;
 
-	g_assert(len >= 0);
-	while (len--) {
-		guchar c = *p++;
-		if (!isprint(c))
+	for (len = ext_paylen(e); len > 0; len--, p++) {
+		if (!isprint(*p))
 			return FALSE;
 	}
-
 	return TRUE;
 }
 
@@ -1395,16 +1386,13 @@ ext_is_printable(const extvec_t *e)
 gboolean
 ext_is_ascii(const extvec_t *e)
 {
-	const gchar *p = ext_payload(e);
-	gint len = ext_paylen(e);
+	const guchar *p = ext_payload(e);
+	size_t len;
 
-	g_assert(len >= 0);
-	while (len--) {
-		guchar c = *p++;
-		if (!isascii(c))
+	for (len = ext_paylen(e); len > 0; len--, p++) {
+		if (!isascii(*p))
 			return FALSE;
 	}
-
 	return TRUE;
 }
 
@@ -1414,19 +1402,15 @@ ext_is_ascii(const extvec_t *e)
 gboolean
 ext_has_ascii_word(const extvec_t *e)
 {
-	const gchar *p = ext_payload(e);
-	gint len = ext_paylen(e);
+	const guchar *p = ext_payload(e);
+	size_t len;
 	gboolean has_alnum = FALSE;
 
-	g_assert(len >= 0);
-	while (len--) {
-		guchar c = *p++;
-		if (!isascii(c))
+	for (len = ext_paylen(e); len > 0; len--, p++) {
+		if (!isascii(*p))
 			return FALSE;
-		if (!has_alnum && is_ascii_alnum(c))
-			has_alnum = TRUE;
+		has_alnum |= is_ascii_alnum(*p);
 	}
-
 	return has_alnum;
 }
 
@@ -1496,8 +1480,10 @@ void
 ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
 	const gchar *prefix, const gchar *postfix, gboolean payload)
 {
-	while (exvcnt--)
-		ext_dump_one(fd, exv++, prefix, postfix, payload);
+	gint i;
+
+	for (i = 0; i < exvcnt; i++)
+		ext_dump_one(fd, &exv[i], prefix, postfix, payload);
 }
 
 /**
@@ -1507,8 +1493,10 @@ ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
 void
 ext_prepare(extvec_t *exv, gint exvcnt)
 {
-	while (exvcnt--)
-		(exv++)->opaque = NULL;
+	gint i;
+
+	for (i = 0; i < exvcnt; i++)
+		exv[i].opaque = NULL;
 }
 
 /**
@@ -1518,8 +1506,10 @@ ext_prepare(extvec_t *exv, gint exvcnt)
 void
 ext_reset(extvec_t *exv, gint exvcnt)
 {
-	while (exvcnt--) {
-		extvec_t *e = exv++;
+	gint i;
+	
+	for (i = 0; i < exvcnt; i++) {
+		extvec_t *e = &exv[i];
 		extdesc_t *d;
 
 		if (e->opaque == NULL)		/* No more allocated extensions */

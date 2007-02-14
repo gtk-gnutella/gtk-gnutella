@@ -115,17 +115,12 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 
 	payload = p = ext_payload(exv);
 
-	info->major = *p++;
-	info->minor = *p++;
-	info->patch = *p++;
-	info->revchar = *p++;
-
-	READ_GUINT32_BE(p, info->release);
-	p += 4;
-	READ_GUINT32_BE(p, info->build);
-	p += 4;
-
-	g_assert(p - payload == 12);
+	info->major = p[0];
+	info->minor = p[1];
+	info->patch = p[2];
+	info->revchar = p[3];
+	info->release = peek_be32(&p[4]);
+	info->build = peek_be32(&p[8]);
 
 	return GGEP_OK;
 }
@@ -349,8 +344,7 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 			*addr = zero_host_addr;
 		} else {
 			g_assert(len >= 16);
-			*addr = host_addr_peek_ipv6(
-						cast_to_gconstpointer(ext_payload(exv)));
+			*addr = host_addr_peek_ipv6(ext_payload(exv));
 		}
 	}
 

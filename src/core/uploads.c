@@ -576,17 +576,12 @@ handle_push_request(struct gnutella_node *n)
 
 		for (i = 0; i < exvcnt; i++) {
 			extvec_t *e = &exv[i];
-			const gchar *payload;
-			guint16 paylen;
 
 			switch (e->ext_token) {
 			case EXT_T_GGEP_GTKG_IPV6:
 				{
 					host_addr_t addr;
 					ggept_status_t ret;
-
-					paylen = ext_paylen(e);
-					payload = ext_payload(e);
 
 					ret = ggept_gtkg_ipv6_extract(e, &addr);
 					if (GGEP_OK == ret) {
@@ -607,10 +602,10 @@ handle_push_request(struct gnutella_node *n)
 				break;
 			default:
 				if (ggep_debug > 1 && e->ext_type == EXT_GGEP) {
-					paylen = ext_paylen(e);
-					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%d byte%s)",
-							gmsg_infostr(&n->header), ext_ggep_id_str(e),
-							paylen, paylen == 1 ? "" : "s");
+					size_t paylen = ext_paylen(e);
+					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%lu byte%s)",
+						gmsg_infostr(&n->header), ext_ggep_id_str(e),
+						(gulong) paylen, paylen == 1 ? "" : "s");
 				}
 				break;
 			}

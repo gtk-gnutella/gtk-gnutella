@@ -1081,7 +1081,6 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			case EXT_T_XML:
 				{
 					size_t paylen = ext_paylen(e);
-					const gchar *payload = ext_payload(e);
 					gnet_record_t *rc;
 
 					/* XXX: Add the XML data to the next best record.
@@ -1093,7 +1092,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 						gchar buf[4096];
 
 						len = MIN((size_t) paylen, sizeof buf - 1);
-						memcpy(buf, payload, len);
+						memcpy(buf, ext_payload(e), len);
 						buf[len] = '\0';
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
@@ -1564,13 +1563,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					break;
 				case EXT_T_GGEP_LIME_XML:
 					paylen = ext_paylen(e);
-					payload = ext_payload(e);
 					if (!rc->xml && paylen > 0) {
 						size_t len;
 						gchar buf[4096];
 
 						len = MIN((size_t) paylen, sizeof buf - 1);
-						memcpy(buf, payload, len);
+						memcpy(buf, ext_payload(e), len);
 						buf[len] = '\0';
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
@@ -1582,13 +1580,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					break;
 				case EXT_T_GGEP_PATH:		/* Path */
 					paylen = ext_paylen(e);
-					payload = ext_payload(e);
 					if (!rc->path && paylen > 0) {
 						size_t len;
 						gchar buf[1024];
 
 						len = MIN((size_t) paylen, sizeof buf - 1);
-						memcpy(buf, payload, len);
+						memcpy(buf, ext_payload(e), len);
 						buf[len] = '\0';
 						rc->path = atom_str_get(buf);
 					}

@@ -463,7 +463,8 @@ ping_type(const gnutella_node_t *n)
 
 				paylen = ext_paylen(e);
 				if (paylen >= 1) {
-					guint8 mask = ext_payload(e)[0];
+					const guchar *payload = ext_payload(e);
+					guint8 mask = payload[0];
 					flags |= (mask & 0x1) ? PING_F_UHC_ULTRA : PING_F_UHC_LEAF;
 				} else {
 					flags |= PING_F_UHC_ANY;
@@ -1580,8 +1581,8 @@ pong_extract_metadata(struct gnutella_node *n)
 
 	for (i = 0; i < n->extcount; i++) {
 		extvec_t *e = &n->extvec[i];
+		const guchar *payload;
 		guint16 paylen;
-		const gchar *payload;
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_DU:
@@ -1605,9 +1606,12 @@ pong_extract_metadata(struct gnutella_node *n)
 			 */
 
 			ALLOCATE(GUE);
-			meta->guess = 0x1;
-			if (ext_paylen(e) >= 1)
-				meta->guess = *ext_payload(e);
+			if (ext_paylen(e) > 0) {
+				payload = ext_payload(e);
+				meta->guess = payload[0];
+			} else {
+				meta->guess = 0x1;
+			}
 			break;
 		case EXT_T_GGEP_LOC:
 			/*
@@ -1625,13 +1629,13 @@ pong_extract_metadata(struct gnutella_node *n)
 
 			paylen = ext_paylen(e);
 
-			if (paylen >= 2) {
+			if (paylen > 1) {
 				payload = ext_payload(e);
 				ALLOCATE(LOC);
 				memcpy(meta->language, payload, 2);
 				meta->country[0] = '\0';		/* Signals no country code */
-				if (paylen >= 5 && payload[2] == '_')
-					memcpy(meta->country, payload + 3, 2);
+				if (paylen > 4 && payload[2] == '_')
+					memcpy(meta->country, &payload[3], 2);
 			}
 			break;
 		case EXT_T_GGEP_UP:
@@ -1644,7 +1648,7 @@ pong_extract_metadata(struct gnutella_node *n)
 
 			paylen = ext_paylen(e);
 
-			if (paylen >= 3) {
+			if (paylen > 2) {
 				payload = ext_payload(e);
 				ALLOCATE(UP);
 				meta->version_up = payload[0];

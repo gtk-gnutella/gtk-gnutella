@@ -160,7 +160,7 @@ gboolean ext_has_ascii_word(const extvec_t *e);
 void ext_dump(FILE *fd, const extvec_t *extvec, gint extcnt,
 	const gchar *prefix, const gchar *postfix, gboolean payload);
 
-const gchar *ext_payload(const extvec_t *e);
+gconstpointer ext_payload(const extvec_t *e);
 guint16 ext_paylen(const extvec_t *e);
 const gchar *ext_base(const extvec_t *e);
 guint16 ext_headlen(const extvec_t *e);
