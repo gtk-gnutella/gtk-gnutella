@@ -301,7 +301,6 @@ handle_features_supported(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
 	const gchar *description;
-	size_t expected_size;
 	guint16 count;
 
 	count = peek_le16(payload);
