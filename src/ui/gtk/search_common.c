@@ -1850,6 +1850,17 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, &search)
 			) {
 				if (search) {
+					filter_t *target;
+					rule_t *rule;
+
+					target = filter_get_drop_target();
+					g_assert(target != NULL);
+
+					rule = filter_new_sha1_rule(res->sha1, NULL, target,
+								RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
+					g_assert(search->filter);
+					filter_append_rule(search->filter, rule);
+
 					n_searches++;
 				}
 			}
