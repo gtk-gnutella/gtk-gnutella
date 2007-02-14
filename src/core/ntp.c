@@ -89,28 +89,18 @@ struct ntp_msg {
 static void
 ntp_tm_serialize(guchar dest[8], tm_t *t)
 {
-	guint32 b;
-
-	b = (guint32) t->tv_sec + OFFSET_1900;
-	WRITE_GUINT32_BE(b, &dest[0]);
-
-	b = (guint32) (t->tv_usec * 1.0e-6 * NTP_FP_SCALE);
-	WRITE_GUINT32_BE(b, &dest[4]);
+	poke_be32(&dest[0], t->tv_sec + OFFSET_1900);
+	poke_be32(&dest[4], t->tv_usec * 1.0e-6 * NTP_FP_SCALE);
 }
 
 /**
  * Construct a tm_t time from an NTP timestamp.
  */
 static void
-ntp_tm_deserialize(guchar src[8], tm_t *dest)
+ntp_tm_deserialize(const guchar src[8], tm_t *dest)
 {
-	guint32 b;
-
-	READ_GUINT32_BE(&src[0], b);
-	dest->tv_sec = b - OFFSET_1900;
-
-	READ_GUINT32_BE(&src[4], b);
-	dest->tv_usec = (gint) (b * 1.0e6 / NTP_FP_SCALE);
+	dest->tv_sec = peek_be32(&src[0]) - OFFSET_1900;
+	dest->tv_usec = (guint32) (peek_be32(&src[4]) * 1.0e6 / NTP_FP_SCALE);
 }
 
 /**

@@ -1545,10 +1545,10 @@ dq_common_init(dquery_t *dq)
 	}
 
 	if (dq_debug) {
-		gchar *start = pmsg_start(dq->mb);
+		const gchar *start = pmsg_start(dq->mb);
 		guint16 req_speed;
 
-		READ_GUINT16_LE(start + GTA_HEADER_SIZE, req_speed);
+		req_speed = peek_le16(&start[GTA_HEADER_SIZE]);
 
 		g_message("DQ[%d] created for node #%d: TTL=%d max_results=%d "
 			"guidance=%s routing=%s "
@@ -1588,7 +1588,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	dq = walloc0(sizeof(*dq));
 
-	READ_GUINT16_LE(n->data, req_speed);
+	req_speed = peek_le16(n->data);
 	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
 
 	/*
@@ -1648,7 +1648,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 			 */
 
 			query_strip_oob_flag(n, n->data);
-			READ_GUINT16_LE(n->data, req_speed);	/* Refresh our cache */
+			req_speed = peek_le16(n->data);	/* Refresh our cache */
 
 			if (dq_debug > 19)
 				g_message(

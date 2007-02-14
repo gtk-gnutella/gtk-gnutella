@@ -3494,15 +3494,15 @@ static void
 node_got_bye(struct gnutella_node *n)
 {
 	guint16 code;
-	gchar *message = n->data + 2;
+	const gchar *message = n->data + 2;
+	const gchar *p;
 	guchar c;
 	guint cnt;
-	gchar *p;
 	gboolean warned = FALSE;
 	gboolean is_plain_message = TRUE;
 	guint message_len = n->size - 2;
 
-	READ_GUINT16_LE(n->data, code);
+	code = peek_le16(n->data);
 
 	/*
 	 * Codes are supposed to be 2xx, 4xx or 5xx.
@@ -8907,8 +8907,7 @@ node_crawl_fill(pmsg_t *mb,
 			guint32 minutes = connected > 0 ? connected / 60 : 0;
 			gchar value[2];
 
-			minutes = MIN(minutes, 0xffffU);
-			WRITE_GUINT16_LE(minutes, value);
+			poke_le16(value, MIN(minutes, 0xffffU));
 
 			if (sizeof value != pmsg_write(mb, value, sizeof value))
 				break;

@@ -548,6 +548,29 @@ hsep_connection_close(struct gnutella_node *n)
 	hsep_fire_global_table_changed(tm_time());
 }
 
+static inline void
+hsep_fix_endian(hsep_triple *messaget, size_t n)
+{
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	(void) messaget;
+	(void) n;
+#else
+	size_t i, j;
+
+	/*
+	 * Convert message from little endian to native byte order.
+	 * Only the part of the message we are using is converted.
+	 * If native byte order is little endian, do nothing.
+	 */
+
+	for (i = 0; i < n; i++) {
+		for (j = 0; j < G_N_ELEMENTS(messaget[0]); j++) {
+			poke_le64(&messaget[i][j], messaget[i][j]);
+		}
+	}
+#endif	/* LITTLE ENDIAN */
+}
+
 /**
  * Processes a received HSEP message by updating the
  * connection's and the global HSEP table.
@@ -600,17 +623,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 
 	/* truncate if peer servent sent more triples than we need */
 	max = MIN(msgmax, HSEP_N_MAX);
-
-	/*
-	 * Convert message from little endian to native byte order.
-	 * Only the part of the message we are using is converted.
-	 * If native byte order is little endian, do nothing.
-	 */
-
-	for (i = 0; i < max; i++) {
-		for (j = 0; j < G_N_ELEMENTS(messaget[0]); j++)
-			messaget[i][j] = guint64_to_LE(messaget[i][j]);
-	}
+	hsep_fix_endian(messaget, max);
 
 	/*
 	 * Perform sanity check on received message.
@@ -758,7 +771,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 
 			val = hsep_own[j] + (0 == i ? 0 : other[j]) +
 				hsep_global_table[i][j] - hsep->table[i][j];
-			tmp[i][j] = guint64_to_LE(val);
+			poke_le64(&tmp[i][j], val);
 		}
 	}
 

@@ -443,8 +443,8 @@ flush_match(void)
 				struct gnutella_node *n = l->data;
 
 				if (NET_TYPE_IPV4 == host_addr_net(n->proxy_addr)) {
-					WRITE_GUINT32_BE(host_addr_ipv4(n->proxy_addr), &proxy[0]);
-					WRITE_GUINT16_LE(n->proxy_port, &proxy[4]);
+					poke_be32(&proxy[0], host_addr_ipv4(n->proxy_addr));
+					poke_le16(&proxy[4], n->proxy_port);
 					ok = ggep_stream_write(&gs, proxy, sizeof proxy);
 				}
 			}
@@ -606,10 +606,10 @@ add_file(const struct shared_file *sf)
 
 	fs32 = shared_file_size(sf) >= (1U << 31) ? ~0U : shared_file_size(sf);
 
-	WRITE_GUINT32_LE(shared_file_index(sf), &idx_le);
+	poke_le32(&idx_le, shared_file_index(sf));
 	if (!found_write(&idx_le, sizeof idx_le))
 		return FALSE;
-	WRITE_GUINT32_LE(fs32, &fs32_le);
+	poke_le32(&fs32_le, fs32);
 	if (!found_write(&fs32_le, sizeof fs32_le))
 		return FALSE;
 	if (!found_write(shared_file_name_nfc(sf), shared_file_name_nfc_len(sf)))

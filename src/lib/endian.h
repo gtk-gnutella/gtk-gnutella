@@ -28,94 +28,9 @@
 
 #include "common.h"
 
-#if G_BYTE_ORDER == G_BIG_ENDIAN
-#define guint64_to_BE(x)	x
-#define guint64_to_LE(x)	GUINT64_SWAP_LE_BE(x)
-#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-#define guint64_to_BE(x)	GUINT64_SWAP_LE_BE(x)
-#define guint64_to_LE(x)	x
-#else
-#error "Byte order not supported"
-#endif
-
-/*
- * Macros
- *
- * "a" is an address, "v" is the variable to which the value is written
- * in a READ operation (i.e. its address is taken).  On a WRITE operation,
- * the value is copied from "v", which can therefore be a manifest value.
- *
- * WATCH OUT: the order of the arguments for READ and WRITE is inverted.
- */
-
-/*
- * 16-bit
- */
-
-#define READ_GUINT16_LE(a,v) G_STMT_START { \
-	STATIC_ASSERT(2 == sizeof (v));		\
-    memcpy(&v, a, 2); v = GUINT16_FROM_LE(v); \
-} G_STMT_END
-
-#define WRITE_GUINT16_LE(v,a) G_STMT_START { \
-    guint16 _v = GUINT16_TO_LE(v); memcpy(a, &_v, 2); \
-} G_STMT_END
-
-#define READ_GUINT16_BE(a,v) G_STMT_START { \
-	STATIC_ASSERT(2 == sizeof (v));		\
-    memcpy(&v, a, 2); v = ntohs(v); \
-} G_STMT_END
-
-#define WRITE_GUINT16_BE(v,a) G_STMT_START { \
-    guint16 _v = htons(v); memcpy(a, &_v, 2); \
-} G_STMT_END
-
-/*
- * 32-bit
- */
-
-#define READ_GUINT32_LE(a,v) G_STMT_START { \
-	STATIC_ASSERT(4 == sizeof (v));		\
-    memcpy(&v, a, 4); v = GUINT32_FROM_LE(v); \
-} G_STMT_END
-
-#define READ_GUINT32_BE(a,v) G_STMT_START { \
-	STATIC_ASSERT(4 == sizeof (v));		\
-    memcpy(&v, a, 4); v = ntohl(v); \
-} G_STMT_END
-
-#define WRITE_GUINT32_LE(v,a) G_STMT_START { \
-    guint32 _v = GUINT32_TO_LE(v); memcpy(a, &_v, 4); \
-} G_STMT_END
-
-#define WRITE_GUINT32_BE(v,a) G_STMT_START { \
-    guint32 _v = htonl(v); memcpy(a, &_v, 4); \
-} G_STMT_END
-
-/*
- * 64-bit
- */
-
-#define READ_GUINT64_BE(a,v) G_STMT_START { \
-	STATIC_ASSERT(8 == sizeof (v));		\
-    memcpy(&v, a, 8); v = guint64_to_BE(v); \
-} G_STMT_END
-
-#define READ_GUINT64_LE(a,v) G_STMT_START { \
-	STATIC_ASSERT(8 == sizeof (v));		\
-    memcpy(&v, a, 8); v = guint64_to_LE(v); \
-} G_STMT_END
-
-#define WRITE_GUINT64_BE(v,a) G_STMT_START { \
-    guint64 _v = guint64_to_BE(v); memcpy(a, &_v, sizeof _v); \
-} G_STMT_END
-
-#define WRITE_GUINT64_LE(v,a) G_STMT_START { \
-    guint64 _v = guint64_to_LE(v); memcpy(a, &_v, sizeof _v); \
-} G_STMT_END
-
-/*
- * Alternate inline functions
+/**
+ * Functions for writing and reading fixed-size integers in big-endian
+ * or little-endian.
  */
 
 static inline guchar
@@ -129,28 +44,56 @@ static inline guint16
 peek_be16(gconstpointer p)
 {
 	const guchar *q = p;
-	return ((guint16) peek_u8(q) << 8) | peek_u8(&q[1]);
+	guint16 v;
+
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(&v, q, sizeof v);
+#else
+	v = ((guint16) peek_u8(q) << 8) | peek_u8(&q[sizeof v / 2]);
+#endif
+	return v;
 }
 
 static inline guint32
 peek_be32(gconstpointer p)
 {
 	const guchar *q = p;
-	return ((guint32) peek_be16(q) << 16) | peek_be16(&q[2]);
+	guint32 v;
+
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(&v, q, sizeof v);
+#else
+	v = ((guint32) peek_be16(q) << 16) | peek_be16(&q[sizeof v / 2]);
+#endif
+	return v;
 }
 
 static inline guint16
 peek_le16(gconstpointer p)
 {
 	const guchar *q = p;
-	return peek_u8(q) | ((guint16) peek_u8(&q[1]) << 8);
+	guint16 v;
+
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	memcpy(&v, q, sizeof v);
+#else
+	v = peek_u8(q) | ((guint16) peek_u8(&q[sizeof v / 2]) << 8);
+#endif
+	return v;
 }
 
 static inline guint32
 peek_le32(gconstpointer p)
 {
 	const guchar *q = p;
-	return peek_le16(q) | ((guint32) peek_le16(&q[2]) << 16);
+	guint32 v;
+
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	memcpy(&v, q, sizeof v);
+#else
+	v = peek_le16(q) | ((guint32) peek_le16(&q[sizeof v / 2]) << 16);
+#endif
+	return v;
 }
 
 /*
@@ -159,14 +102,26 @@ peek_le32(gconstpointer p)
  */
 
 static inline gpointer
+poke_u8(gpointer p, guchar v)
+{
+	guchar *q = p;
+	*q = v & 0xff;
+	return &q[sizeof v];
+}
+
+static inline gpointer
 poke_be16(gpointer p, guint16 v)
 {
 	guchar *q = p;
 
-	q[0] = (v >> 8) & 0xff;
-	q[1] = v & 0xff;
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(q, &v, sizeof v);
+#else
+	poke_u8(&q[0], v >> 8);
+	poke_u8(&q[sizeof v / 2], v);
+#endif
 
-	return &q[2];
+	return &q[sizeof v];
 }
 
 static inline gpointer
@@ -174,10 +129,14 @@ poke_be32(gpointer p, guint32 v)
 {
 	guchar *q = p;
 
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(q, &v, sizeof v);
+#else
 	poke_be16(&q[0], v >> 16);
-	poke_be16(&q[2], v & (guint16)-1);
+	poke_be16(&q[sizeof v / 2], v);
+#endif
 
-	return &q[4];
+	return &q[sizeof v];
 }
 
 static inline gpointer
@@ -185,10 +144,14 @@ poke_be64(gpointer p, guint64 v)
 {
 	guchar *q = p;
 
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(q, &v, sizeof v);
+#else
 	poke_be32(&q[0], v >> 32);
-	poke_be32(&q[4], v & (guint32)-1);
+	poke_be32(&q[sizeof v / 2], v);
+#endif
 
-	return &q[8];
+	return &q[sizeof v];
 }
 
 static inline gpointer
@@ -196,10 +159,14 @@ poke_le16(gpointer p, guint16 v)
 {
 	guchar *q = p;
 
-	q[0] = v & 0xff;
-	q[1] = (v >> 8) & 0xff;
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	memcpy(q, &v, sizeof v);
+#else
+	poke_u8(&q[0], v);
+	poke_u8(&q[sizeof v / 2], v >> 8);
+#endif
 
-	return &q[2];
+	return &q[sizeof v];
 }
 
 static inline gpointer
@@ -207,10 +174,14 @@ poke_le32(gpointer p, guint32 v)
 {
 	guchar *q = p;
 
-	poke_le16(&q[0], v & (guint16)-1);
-	poke_le16(&q[2], v >> 16);
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	memcpy(q, &v, sizeof v);
+#else
+	poke_le16(&q[0], v);
+	poke_le16(&q[sizeof v / 2], v >> 16);
+#endif
 
-	return &q[4];
+	return &q[sizeof v];
 }
 
 static inline gpointer
@@ -218,10 +189,14 @@ poke_le64(gpointer p, guint64 v)
 {
 	guchar *q = p;
 
-	poke_le32(&q[0], v & (guint32)-1);
-	poke_le32(&q[4], v >> 32);
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	memcpy(q, &v, sizeof v);
+#else
+	poke_le32(&q[0], v);
+	poke_le32(&q[sizeof v / 2], v >> 32);
+#endif
 
-	return &q[8];
+	return &q[sizeof v];
 }
 
 #endif /* _endian_h_ */
