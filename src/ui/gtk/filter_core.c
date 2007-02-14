@@ -670,8 +670,7 @@ filter_new_sha1_rule(const gchar *sha1, const gchar *filename,
    	rule_t *f;
 
     g_assert(target != NULL);
-    g_assert(filename != NULL);
-    g_assert(utf8_is_valid_string(filename));
+    g_assert(NULL == filename || utf8_is_valid_string(filename));
 
     f = g_new0(rule_t, 1);
 
@@ -679,8 +678,8 @@ filter_new_sha1_rule(const gchar *sha1, const gchar *filename,
 
   	f->target = target;
     f->u.sha1.hash = sha1 != NULL ? g_memdup(sha1, SHA1_RAW_SIZE) : NULL;
-    f->u.sha1.filename = g_strdup(filename);
-    f->flags  = flags;
+    f->u.sha1.filename = g_strdup(filename ? filename : "");
+    f->flags = flags;
     set_flags(f->flags, RULE_FLAG_VALID);
 
     return f;
