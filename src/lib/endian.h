@@ -118,32 +118,39 @@
  * Alternate inline functions
  */
 
+static inline guchar
+peek_u8(gconstpointer p)
+{
+	const guchar *q = p;
+	return q[0] & 0xff;
+}
+
 static inline guint16
 peek_be16(gconstpointer p)
 {
-	const guint8 *q = p;
-	return q[1] | (q[0] << 8);
+	const guchar *q = p;
+	return ((guint16) peek_u8(q) << 8) | peek_u8(&q[1]);
 }
 
 static inline guint32
 peek_be32(gconstpointer p)
 {
-	const guint8 *q = p;
-	return q[3] | (q[2] << 8) | (q[1] << 16) | (q[0] << 24);
+	const guchar *q = p;
+	return ((guint32) peek_be16(q) << 16) | peek_be16(&q[2]);
 }
 
 static inline guint16
 peek_le16(gconstpointer p)
 {
-	const guint8 *q = p;
-	return q[0] | (q[1] << 8);
+	const guchar *q = p;
+	return peek_u8(q) | ((guint16) peek_u8(&q[1]) << 8);
 }
 
 static inline guint32
 peek_le32(gconstpointer p)
 {
-	const guint8 *q = p;
-	return q[0] | (q[1] << 8) | (q[2] << 16) | (q[3] << 24);
+	const guchar *q = p;
+	return peek_le16(q) | ((guint32) peek_le16(&q[2]) << 16);
 }
 
 /*
@@ -154,10 +161,10 @@ peek_le32(gconstpointer p)
 static inline gpointer
 poke_be16(gpointer p, guint16 v)
 {
-	guint8 *q = p;
+	guchar *q = p;
 
-	q[0] = v >> 8;
-	q[1] = v;
+	q[0] = (v >> 8) & 0xff;
+	q[1] = v & 0xff;
 
 	return &q[2];
 }
@@ -165,12 +172,10 @@ poke_be16(gpointer p, guint16 v)
 static inline gpointer
 poke_be32(gpointer p, guint32 v)
 {
-	guint8 *q = p;
+	guchar *q = p;
 
-	q[0] = v >> 24;
-	q[1] = v >> 16;
-	q[2] = v >> 8;
-	q[3] = v;
+	poke_be16(&q[0], v >> 16);
+	poke_be16(&q[2], v & (guint16)-1);
 
 	return &q[4];
 }
@@ -178,13 +183,10 @@ poke_be32(gpointer p, guint32 v)
 static inline gpointer
 poke_be64(gpointer p, guint64 v)
 {
-	guint8 *q = p;
-	guint i;
+	guchar *q = p;
 
-	for (i = 0; i < 8; i++) {
-		q[i ^ 7] = v;
-		v >>= 8;
-	}
+	poke_be32(&q[0], v >> 32);
+	poke_be32(&q[4], v & (guint32)-1);
 
 	return &q[8];
 }
@@ -192,10 +194,10 @@ poke_be64(gpointer p, guint64 v)
 static inline gpointer
 poke_le16(gpointer p, guint16 v)
 {
-	guint8 *q = p;
+	guchar *q = p;
 
-	q[0] = v;
-	q[1] = v >> 8;
+	q[0] = v & 0xff;
+	q[1] = (v >> 8) & 0xff;
 
 	return &q[2];
 }
@@ -203,12 +205,10 @@ poke_le16(gpointer p, guint16 v)
 static inline gpointer
 poke_le32(gpointer p, guint32 v)
 {
-	guint8 *q = p;
+	guchar *q = p;
 
-	q[0] = v;
-	q[1] = v >> 8;
-	q[2] = v >> 16;
-	q[3] = v >> 24;
+	poke_le16(&q[0], v & (guint16)-1);
+	poke_le16(&q[2], v >> 16);
 
 	return &q[4];
 }
@@ -216,13 +216,10 @@ poke_le32(gpointer p, guint32 v)
 static inline gpointer
 poke_le64(gpointer p, guint64 v)
 {
-	guint8 *q = p;
-	guint i;
+	guchar *q = p;
 
-	for (i = 0; i < 8; i++) {
-		q[i] = v;
-		v >>= 8;
-	}
+	poke_le32(&q[0], v & (guint32)-1);
+	poke_le32(&q[4], v >> 32);
 
 	return &q[8];
 }
