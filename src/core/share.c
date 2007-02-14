@@ -1957,7 +1957,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				break;
 
 			case EXT_T_GGEP_NP:
-				may_oob_proxy = FALSE;
+				/* as we support OOB v3, we can ignore this */
 				break;
 
 			case EXT_T_GGEP_SO:
@@ -2231,7 +2231,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * interpretation. --RAM
 	 */
 
-	READ_GUINT16_LE(n->data, req_speed);
+	req_speed = peek_le16(n->data);
 
 	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
 	oob = tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY);
