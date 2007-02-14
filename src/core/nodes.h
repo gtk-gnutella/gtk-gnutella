@@ -287,6 +287,7 @@ typedef struct gnutella_node {
 #define NODE_F_TSYNC_TCP	0x00400000 /**< No replies via UDP, use TCP */
 #define NODE_F_GTKG			0x00800000 /**< Node is another gtk-gnutella */
 #define NODE_F_FORCE		0x01000000 /**< Connection is forced */
+#define NODE_F_NO_OOB_PROXY	0x02000000 /**< Do not OOB proxy the leaf */
 
 /*
  * Node attributes.

@@ -127,6 +127,8 @@ static void handle_node_info_req(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, size_t size);
 static void handle_node_info_ans(struct gnutella_node *n,
 	const struct vmsg *vmsg, gchar *payload, size_t size);
+static void handle_oob_proxy_veto(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, size_t size);
 
 #if 0
 static void handle_udp_head_ping(struct gnutella_node *n,
@@ -160,6 +162,7 @@ static const struct vmsg vmsg_map[] = {
 	{ T_LIME, 12,  1, handle_oob_reply_ind, "OOB Reply Indication" },
 	{ T_LIME, 12,  2, handle_oob_reply_ind, "OOB Reply Indication" },
 	{ T_LIME, 12,  3, handle_oob_reply_ind, "OOB Reply Indication" },
+	{ T_LIME, 13,  1, handle_oob_proxy_veto, "OOB Proxy Veto" },
 	{ T_LIME, 21,  1, handle_proxy_req, "Push-Proxy Request" },
 	{ T_LIME, 21,  2, handle_proxy_req, "Push-Proxy Request" },
 	{ T_LIME, 22,  1, handle_proxy_ack, "Push-Proxy Acknowledgment" },
@@ -1196,6 +1199,25 @@ handle_oob_reply_ack(struct gnutella_node *n,
 	}
 
 	oob_deliver_hits(n, gnutella_header_get_muid(&n->header), wanted, &token);
+}
+
+static void
+handle_oob_proxy_veto(struct gnutella_node *n,
+	const struct vmsg *vmsg, gchar *payload, size_t size)
+{
+	if (NODE_IS_UDP(n)) {
+		g_warning("got %s/%uv%u from TCP via %s, ignoring",
+			vendor_code_str(vmsg->vendor),
+			vmsg->id, vmsg->version, node_addr(n));
+		return;
+	}
+
+	if (size > 0 && peek_u8(payload) < 3) {
+		/* we support OOB v3 */
+		n->flags &= ~NODE_F_NO_OOB_PROXY;
+	} else {
+		n->flags |= NODE_F_NO_OOB_PROXY;
+	}
 }
 
 /**

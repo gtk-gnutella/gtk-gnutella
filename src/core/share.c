@@ -1809,7 +1809,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	struct query_context *qctx;
 	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
-	gboolean may_oob_proxy = TRUE;
+	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
 	gchar muid[GUID_RAW_SIZE];
 
 	/*
@@ -1957,15 +1957,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				break;
 
 			case EXT_T_GGEP_NP:
-				if (ext_paylen(e) > 0) {
-					const guchar *payload = ext_payload(e);
-
-					/* We support OOB up to v3 so far */
-					if (payload[0] > 3)
-						may_oob_proxy = FALSE;
-				} else {
-					may_oob_proxy = FALSE;
-				}
+				may_oob_proxy = FALSE;
 				break;
 
 			case EXT_T_GGEP_SO:
