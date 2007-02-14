@@ -51,6 +51,10 @@
 #define QUERY_SPEED_GGEP_H		0x0008	/**< Recipient understands GGEP "H" */
 #define QUERY_SPEED_OOB_REPLY	0x0004	/**< Out-of-band reply possible */
 #define QUERY_SPEED_FW_TO_FW	0x0002	/**< Can do fw to fw transfers */
+/**
+ * NOTE: At this point all of the bits are exhausted. 0x0001 is not available
+ * 		 because the next 9 bits are not available for flags.
+ */
 
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
 
