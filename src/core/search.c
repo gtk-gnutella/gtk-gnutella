@@ -2025,7 +2025,6 @@ build_search_msg(search_ctrl_t *sch)
 		gchar bytes[1024];
 		guint64 align8;
 	} msg;
-	ggep_stream_t gs;
 	size_t size;
 	guint16 speed;
 	gboolean is_sha1_search;
@@ -2119,11 +2118,15 @@ build_search_msg(search_ctrl_t *sch)
 			g_warning("dropping too large query \"%s\"", sch->query);
 			goto error;
 		}
-		memcpy(&msg.bytes[size], sch->query, len);
-		msg.bytes[size + len] = '\0';
 	
-		if (!is_sha1_search) {
+		if (is_sha1_search) {
+			msg.bytes[size] = '\0';	/* empty query string */
+			memcpy(&msg.bytes[size + 1], sch->query, len);
+		} else {
 			size_t new_len;
+
+			memcpy(&msg.bytes[size], sch->query, len);
+			msg.bytes[size + len] = '\0';
 
 			new_len = compact_query(&msg.bytes[size]);
 			g_assert(new_len <= len);
@@ -2143,34 +2146,49 @@ build_search_msg(search_ctrl_t *sch)
 		size += len + 1;
 	}
 
-	ggep_stream_init(&gs, &msg.bytes[size], sizeof msg.bytes - size);
+	if (QUERY_SPEED_OOB_REPLY & speed) {
+		ggep_stream_t gs;
 
-	if (is_sha1_search) {
+		if (is_sha1_search) {
+			/* As long as we have to use plain text hash queries instead
+			 * of GGEP H, we need to add a separator between the hash
+			 * and the following GGEP block.
+			 */
+			if (sizeof msg.bytes == size) {
+				g_warning("dropping too large query \"%s\"", sch->query);
+				goto error;
+			}
+			msg.bytes[size] = 0x1C; /* extension separator */
+			size++;
+		}
+
+		ggep_stream_init(&gs, &msg.bytes[size], sizeof msg.bytes - size);
+
 		/* TODO: We cannot emit empty queries with GGEP H attached because
 		 *		 GTKG before 0.96.4 does not parse GGEP H in queries.
 		 */
 #if 0
-		const guint8 type = GGEP_H_SHA1;
-		gboolean ok;
+		if (is_sha1_search) {
+			const guint8 type = GGEP_H_SHA1;
+			gboolean ok;
 
-		ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
-			ggep_stream_write(&gs, &type, 1) &&
-			ggep_stream_write(&gs, digest, sizeof digest) &&
-			ggep_stream_end(&gs);
+			ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
+				ggep_stream_write(&gs, &type, 1) &&
+				ggep_stream_write(&gs, digest, sizeof digest) &&
+				ggep_stream_end(&gs);
 
-		if (!ok) {
-			g_warning("could not add GGEP \"H\" to query");
-			goto error;
+			if (!ok) {
+				g_warning("could not add GGEP \"H\" to query");
+				goto error;
+			}
 		}
 #endif
-	}
 
-	/** 
-	 * Indicate support for OOB v3.
-	 * @see http://the-gdf.org/index.php?title=OutOfBandV3
-	 */
+		/** 
+		 * Indicate support for OOB v3.
+		 * @see http://the-gdf.org/index.php?title=OutOfBandV3
+		 */
 
-	if (QUERY_SPEED_OOB_REPLY & speed) {
 		/*
 		 * Since our ultrapeers might not support OOB v3 and not understand
 		 * GGEP "SO" either, only add this if we're not OOB proxied. Otherwise,
@@ -2180,9 +2198,9 @@ build_search_msg(search_ctrl_t *sch)
 			g_warning("could not add GGEP \"SO\" extension to query");
 			goto error;
 		}
-	}
 
-	size += ggep_stream_close(&gs);
+		size += ggep_stream_close(&gs);
+	}
 
 	if (size - GTA_HEADER_SIZE > search_queries_forward_size) {
 		g_warning("not sending query \"%s\": larger than max query size (%d)",
