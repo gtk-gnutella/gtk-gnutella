@@ -95,12 +95,13 @@ static const struct {
 } boot_hosts[] = {
 	{ "g6.6dns.org:1337" },
 	{ "guruz.udp-host-cache.com:6666" },
+	{ "hikaru.ghostwhitecrab.de:38751" },
 	{ "secondary.udp-host-cache.com:9999" },
 	{ "uhc.udp-host-cache.com:9999" },
 	{ "uhc2.limewire.com:20181" },
 	{ "void.ghostwhitecrab.de:10706" },
-	{ "yin.cloud.bishopston.net:33558" },
 	{ "yang.cloud.bishopston.net:33558" },
+	{ "yin.cloud.bishopston.net:33558" },
 	{ "zomfg.gtkg.org:40000" },
 };
 
