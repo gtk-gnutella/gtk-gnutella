@@ -3958,7 +3958,7 @@ download_pickup_queued(void)
 			struct dl_server *server = l->data;
 			list_iter_t *iter;
 			struct download *d;
-			gboolean found;
+			guint n;
 
 			g_assert(dl_server_valid(server));
 
@@ -3983,35 +3983,57 @@ download_pickup_queued(void)
 
 			g_assert(server->list[DL_LIST_WAITING]);	/* Since count != 0 */
 
-			found = FALSE;
+			n = 0;
 			d = NULL;
 			iter = list_iter_before_head(server->list[DL_LIST_WAITING]);
 			while (list_iter_has_next(iter)) {
+				struct download *cur;
 
-				d = list_iter_next(iter);
-				download_check(d);
+				cur = list_iter_next(iter);
+				download_check(cur);
 
-				if (download_has_enough_active_sources(d))
+				if (cur->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
+					continue;
+
+				if (download_has_enough_active_sources(cur))
 					continue;
 
 				if (
-					delta_time(now, d->last_update) <=
-						(time_delta_t) d->timeout_delay
+					delta_time(now, cur->last_update) <=
+						(time_delta_t) cur->timeout_delay
 				)
 					continue;
 
-				if (delta_time(now, d->retry_after) < 0)
+				/* Note that we skip over paused and suspend downloads. */
+				if (delta_time(now, cur->retry_after) < 0)
 					break;	/* List is sorted */
 
-				if (d->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
+				/*
+				 * Pick the download with the most progress. Otherwise we
+				 * easily end up with dozens of partials from the the server.
+				 */
+
+				if (
+					d &&
+					download_total_progress(d) >= download_total_progress(cur)
+				)
 					continue;
 
-				found = TRUE;
-				break;		/* Don't schedule all files on same host at once */
+				d = cur;
+
+				/*
+				 * If there are a lot of downloads queued at a single server we
+				 * might spend a lot of time scanning the queue of a download
+				 * to pick. Thus limit the amount of items we're going to take
+				 * into account.
+				 */
+
+				if (n++ > 100)
+					break;
 			}
 			list_iter_free(&iter);
 
-			if (found) {
+			if (d) {
 				download_start(d, FALSE);
 				if (DOWNLOAD_IS_RUNNING(d))
 					running++;
