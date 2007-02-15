@@ -34,7 +34,6 @@
 38.144.72.0/24
 38.144.96.0/24
 63.148.99.224/27
-64.124.130.128/27
 64.14.0.0/16
 64.156.27.93
 64.217.126.87
@@ -124,7 +123,6 @@
 66.186.194.0/24
 
 # Media Sentry
-64.124.145.0/25
 66.250.46.0/24
 66.250.47.0/25
 
@@ -759,13 +757,10 @@
 # Spamming subnets from Cogent Communications
 216.28.31.0/24
 
-# Suspicious spamming ranges from Abovenet
-64.124.113.0/24
-64.124.15.0/24
-
-# Suspicious individual IP addresses serving fakes
-# From Abovenet:
-64.124.58.153
+# Spamming ranges from Abovenet; they host MediaSentry and possibly others
+# most of them use giFT; they upload huge rar or zip files which contain
+# nothing but lame insults.
+64.124.0.0/16
 
 ###
 ### The following come from an htaccess denying RIAA/MPAA access
