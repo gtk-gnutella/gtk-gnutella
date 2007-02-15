@@ -944,7 +944,7 @@ short_size(guint64 size, gboolean metric)
 		gchar c;
 
 		c = norm_size_scale(size, &q, &r, metric);
-		r /= metric ? 10.0 : 10.24;
+		r = (r * 100) / kilo(metric);
 		gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
@@ -967,7 +967,7 @@ short_html_size(guint64 size, gboolean metric)
 		gchar c;
 
 		c = norm_size_scale(size, &q, &r, metric);
-		r /= metric ? 10.0 : 10.24;
+		r = (r * 100) / kilo(metric);
 		gm_snprintf(b, sizeof b, "%u.%02u&nbsp;%c%s", q, r, c,
 			byte_suffix(metric));
 	}
@@ -979,14 +979,18 @@ const gchar *
 short_kb_size(guint64 size, gboolean metric)
 {
 	static gchar b[SIZE_FIELD_MAX];
-	guint q, r;
-	gchar c;
 	
-	c = kib_size_scale(size, &q, &r, metric);
-	if (0 != r) {
-		r /= metric ? 10.0 : 10.24;
+	if (size < kilo(metric)) {
+		gm_snprintf(b, sizeof b, "%u %s", (guint) size, metric ? "kB" : "KiB");
+	} else {
+		guint q, r;
+		gchar c;
+
+		c = kib_size_scale(size, &q, &r, metric);
+		r = (r * 100) / kilo(metric);
+		gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
-	gm_snprintf(b, sizeof b, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
+
 	return b;
 }
 
@@ -997,14 +1001,18 @@ const gchar *
 compact_kb_size(guint32 size, gboolean metric)
 {
 	static gchar b[SIZE_FIELD_MAX];
-	guint q, r;
-	gchar c;
 
-	c = kib_size_scale(size, &q, &r, metric);
-	if (0 != r) {
-		r /= metric ? 100.0 : 102.4;
+	if (size < kilo(metric)) {
+		gm_snprintf(b, sizeof b, "%u%s", (guint) size, metric ? "kB" : "KiB");
+	} else {
+		guint q, r;
+		gchar c;
+
+		c = kib_size_scale(size, &q, &r, metric);
+		r = (r * 10) / kilo(metric);
+		gm_snprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
 	}
-	gm_snprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
+
 	return b;
 }
 
@@ -1012,28 +1020,34 @@ compact_kb_size(guint32 size, gboolean metric)
 gchar *
 compact_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 {
-	guint q, r;
-	gchar c;
+	if (v < kilo(metric)) {
+		gm_snprintf(buf, size, "%u", (guint) v);
+	} else {
+		guint q, r;
+		gchar c;
 
-	c = norm_size_scale(v, &q, &r, metric);
-	if (0 != r) {
-		r /= metric ? 100.0 : 102.4;
+		c = norm_size_scale(v, &q, &r, metric);
+		r = (r * 10) / kilo(metric);
+		gm_snprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
 	}
-	gm_snprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
+
 	return buf;
 }
 
 gchar *
 short_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 {
-	guint q, r;
-	gchar c;
+	if (v < kilo(metric)) {
+		gm_snprintf(buf, size, "%u ", (guint) v);
+	} else {
+		guint q, r;
+		gchar c;
 
-	c = norm_size_scale(v, &q, &r, metric);
-	if (0 != r) {
-		r /= metric ? 10.0 : 10.24;
+		c = norm_size_scale(v, &q, &r, metric);
+		r = (r * 100) / kilo(metric);
+		gm_snprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	}
-	gm_snprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
+	
 	return buf;
 }
 
