@@ -438,11 +438,15 @@ search_gui_clear_store(search_t *search)
 {
 	GtkTreeModel *model;
 
+	search_gui_start_massive_update(search);
+
 	model = gtk_tree_view_get_model(search->tree);
 	gtk_tree_model_foreach(model, unref_record, search->dups);
 	gtk_tree_store_clear(GTK_TREE_STORE(model));
 	search_gui_clear_queue(search);
 	g_assert(0 == g_hash_table_size(search->dups));
+
+	search_gui_end_massive_update(search);
 }
 
 /**
@@ -1448,6 +1452,8 @@ search_gui_discard_files(void)
 		return;
 	}
 
+	search_gui_start_massive_update(search);
+
 	ctx.tv = GTK_TREE_VIEW(search->tree);
 	ctx.iters = &sl;
 	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(ctx.tv),
@@ -1460,6 +1466,8 @@ search_gui_discard_files(void)
 		g_slist_foreach(sl, remove_selected_file, model);
     	g_slist_free(sl);
 	}
+
+	search_gui_end_massive_update(search);
 
     gui_search_force_update_tab_label(search, tm_time());
     search_gui_update_items(search);
@@ -1745,6 +1753,11 @@ search_gui_get_searches(void)
 	return (const GList *) searches;
 }
 
+#if 0
+/*
+ * This is deactivated because this can be *extremely* slow with a few
+ * thousand rows in sorted treeviews.
+ */
 static void
 selection_counter_helper(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
@@ -1769,6 +1782,13 @@ selection_counter(GtkTreeView *tv)
 
 	return rows;
 }
+#else
+static gint
+selection_counter(GtkTreeView *tv)
+{
+	return 1;	/* Pretend there's at least one selected row */
+}
+#endif	/* 0 */
 
 /**
  * Remove the search from the gui and update all widget accordingly.
