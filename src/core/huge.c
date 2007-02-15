@@ -958,7 +958,7 @@ huge_improbable_sha1(const gchar *buf, size_t len)
  */
 gboolean
 huge_sha1_extract32(const gchar *buf, size_t len, gchar *retval,
-	gpointer header, gboolean check_old)
+	gconstpointer header, gboolean check_old)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
