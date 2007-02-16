@@ -891,3 +891,11 @@
 # MP3 files using an extremely aggressive buzzword filter.
 216.58.72.33
 
+# These participate in the sharewarning dot com spam; the site uses a
+# chain of redirects:
+# -> my-freemusic dot info
+# -> myaffiliateads dot com
+# -> allcoolmusic dot com
+69.89.16.0/20
+209.172.32.0/19
+216.251.32.0/20
