@@ -596,6 +596,7 @@
 72.38.54.156
 72.38.54.162
 72.38.54.183
+70.52.236.2
 
 # returns results for pr0n MPEGs not matching the query; Gtk-Gnutella
 64.20.48.66
@@ -641,8 +642,7 @@
 
 # Macrovision Corporation, Inc. - Smokeblower Networks
 # Extremely oversensitive buzzword spammers returning bogus results
-64.92.245.0/24
-64.92.246.0/23
+64.92.224.0/19
 209.10.214.0/24
 209.11.121.0/24
 209.11.134.0/24
