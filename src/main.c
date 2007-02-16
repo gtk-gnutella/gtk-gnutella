@@ -835,15 +835,25 @@ extern char **environ;
 
 enum main_arg {
 	main_arg_daemonize,
+	main_arg_exec_on_crash,
 	main_arg_geometry,
 	main_arg_help,
 	main_arg_log_stderr,
 	main_arg_log_stdout,
+	main_arg_no_xshm,
 	main_arg_ping,
 	main_arg_shell,
 	main_arg_version,
-	main_arg_exec_on_crash,
-	main_arg_no_xshm,
+
+	/* Passed through for Gtk+/GDK/GLib */
+	main_arg_class,				
+	main_arg_g_fatal_warnings,	
+	main_arg_gdk_debug,			
+	main_arg_gdk_no_debug,		
+	main_arg_gtk_debug,			
+	main_arg_gtk_no_debug,			
+	main_arg_gtk_module,			
+	main_arg_name,				
 
 	num_main_args
 };
@@ -856,23 +866,29 @@ static struct {
 	const gchar *arg;
 	gboolean used;
 } options[] = {
-#define OPTION(name, summary, has_arg) \
+#define OPTION(name, has_arg, summary) \
 	{ main_arg_ ## name , #name, summary, has_arg, NULL, FALSE }
 
-#define OPTION_FLAG(name, summary)	OPTION(name, summary, FALSE)
-#define OPTION_WARG(name, summary)	OPTION(name, summary, TRUE)
-	OPTION_FLAG(daemonize,		"Daemonize the process."),
-	OPTION_WARG(geometry,		"Placement of the main GUI window."),
-	OPTION_FLAG(help, 			"Print this message."),
-	OPTION_WARG(log_stderr,		"Log standard output to a file."),
-	OPTION_WARG(log_stdout,		"Log standard error output to a file."),
-	OPTION_FLAG(ping,			"Check whether gtk-gnutella is running."),
-	OPTION_FLAG(shell,			"Access the local shell interface."),
-	OPTION_FLAG(version,		"Show version information."),
-	OPTION_WARG(exec_on_crash,	"Execute a command on crash."),
-	OPTION_FLAG(no_xshm,		"Disabled MIT shared memory extension."),
-#undef OPTION_WARG
-#undef OPTION_FLAG
+	OPTION(daemonize, 		0,	"Daemonize the process."),
+	OPTION(exec_on_crash, 	1,	"Execute a command on crash."),
+	OPTION(geometry,		1,	"Placement of the main GUI window."),
+	OPTION(help, 			0,	"Print this message."),
+	OPTION(log_stderr,		1,	"Log standard output to a file."),
+	OPTION(log_stdout,		1,	"Log standard error output to a file."),
+	OPTION(no_xshm,			0,	"Disabled MIT shared memory extension."),
+	OPTION(ping,			0,	"Check whether gtk-gnutella is running."),
+	OPTION(shell,			0,	"Access the local shell interface."),
+	OPTION(version,			0,	"Show version information."),
+
+	/* These are handled by Gtk+/GDK/GLib */
+	OPTION(class,				1, NULL),
+	OPTION(g_fatal_warnings,	0, NULL),
+	OPTION(gdk_debug,			1, NULL),
+	OPTION(gdk_no_debug,		1, NULL),
+	OPTION(gtk_debug,			1, NULL),
+	OPTION(gtk_no_debug,		1, NULL),
+	OPTION(gtk_module,			1, NULL),
+	OPTION(name,				1, NULL),
 #undef OPTION
 };
 
@@ -963,22 +979,24 @@ usage(int exit_code)
 	
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
 	for (i = 0; i < G_N_ELEMENTS(options); i++) {
-		const gchar *arg, *name;
-		size_t pad;
-
 		g_assert(options[i].id == i);
 
-		name = option_pretty_name(options[i].name);
-		arg = options[i].has_arg ? " <argument>" : "";
-		pad = strlen(name) + strlen(arg);
-		if (pad < 32) {
-			pad = 32 - pad;
-		} else {
-			pad = 0;
-		}
+		if (options[i].summary) {
+			const gchar *arg, *name;
+			size_t pad;
 
-		fprintf(f, "  --%s%s%-*s%s\n",
-			name, arg, (gint) pad, "", options[i].summary);
+			name = option_pretty_name(options[i].name);
+			arg = options[i].has_arg ? " <argument>" : "";
+			pad = strlen(name) + strlen(arg);
+			if (pad < 32) {
+				pad = 32 - pad;
+			} else {
+				pad = 0;
+			}
+
+			fprintf(f, "  --%s%s%-*s%s\n",
+				name, arg, (gint) pad, "", options[i].summary);
+		}
 	}
 	
 	exit(exit_code);
@@ -999,31 +1017,39 @@ handle_arguments(int argc, char **argv)
 	}
 
 	argv0 = argv[0];
+	argv++;
+	argc--;
 
 	while (argc > 0) {
-		const gchar *s = argv[0];
+		const gchar *s;
+
+		s = is_strprefix(argv[0], "--");
+		if (!s)
+			usage(EXIT_FAILURE);
+		if ('\0' == s[0])
+			break;
 
 		argv++;
 		argc--;
-		
-		s = is_strprefix(s, "--");
-		if (!s || '\0' == s[0]) {
-			continue;
-		}
 
 		for (i = 0; i < G_N_ELEMENTS(options); i++) {
 			if (option_match(options[i].name, s)) {
 				options[i].used = TRUE;
 				if (options[i].has_arg) {
-					if (argc < 1 || NULL == argv[0] || '-' == argv[0][0]) {
-						fprintf(stderr, "Missing argument for %s\n", s);
+					if (argc < 0 || NULL == argv[0] || '-' == argv[0][0]) {
+						fprintf(stderr, "Missing argument for \"--%s\"\n", s);
 						usage(EXIT_FAILURE);
 					}
 					options[i].arg = g_strdup(argv[0]);
 					argv++;
 					argc--;
 				}
+				break;
 			}
+		}
+		if (G_N_ELEMENTS(options) == i) {
+			fprintf(stderr, "Unknown option \"--%s\"\n", s);
+			usage(EXIT_FAILURE);
 		}
 	}
 
