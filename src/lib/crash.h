@@ -43,7 +43,7 @@
 
 #include "common.h"
 
-void crash_init(const char *pathname, const char *argv0);
+void crash_init(const char *pathname, const char *argv0, int pause_process);
 
 #endif	/* _crash_h_ */
 /* vi: set ts=4 sw=4 cindent: */

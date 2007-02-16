@@ -841,6 +841,7 @@ enum main_arg {
 	main_arg_log_stderr,
 	main_arg_log_stdout,
 	main_arg_no_xshm,
+	main_arg_pause_on_crash,
 	main_arg_ping,
 	main_arg_shell,
 	main_arg_version,
@@ -876,6 +877,7 @@ static struct {
 	OPTION(log_stderr,		1,	"Log standard output to a file."),
 	OPTION(log_stdout,		1,	"Log standard error output to a file."),
 	OPTION(no_xshm,			0,	"Disabled MIT shared memory extension."),
+	OPTION(pause_on_crash, 	0,	"Pause the process on crash."),
 	OPTION(ping,			0,	"Check whether gtk-gnutella is running."),
 	OPTION(shell,			0,	"Access the local shell interface."),
 	OPTION(version,			0,	"Show version information."),
@@ -1057,8 +1059,12 @@ handle_arguments(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if (options[main_arg_exec_on_crash].used) {
-		crash_init(options[main_arg_exec_on_crash].arg, argv0);
+	if (
+		options[main_arg_exec_on_crash].used ||
+		options[main_arg_pause_on_crash].used
+	) {
+		crash_init(options[main_arg_exec_on_crash].arg, argv0,
+			options[main_arg_pause_on_crash].used);
 	}
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);

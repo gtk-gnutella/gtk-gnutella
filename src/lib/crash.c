@@ -47,8 +47,11 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const char *exec_pathname;	/* The file to execute. */
-static const char *orig_argv0;		/* The original argv[0]. */
+static struct {
+	const char *pathname;	/* The file to execute. */
+	const char *argv0;		/* The original argv[0]. */
+	int pause_process;
+} vars;
 
 static const int signals[] = {
 #ifdef SIGBUS
@@ -64,17 +67,10 @@ static const int signals[] = {
 };
 
 static void
-crash_handler(int signo)
+crash_exec(const char *pathname, const char *argv0)
 {
 	char pid_buf[32], *pid_ptr;
 	pid_t pid;
-	unsigned i;
-
-	(void) signo;
-
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		set_signal(signals[i], SIG_DFL);
-	}
 
 	pid = getpid();
 	pid_ptr = &pid_buf[sizeof pid_buf - 1];
@@ -91,8 +87,8 @@ crash_handler(int signo)
 	if (0 == pid) {
 		char const *argv[8];
 
-		argv[0] = exec_pathname;
-		argv[1] = orig_argv0;
+		argv[0] = pathname;
+		argv[1] = argv0;
 		argv[2] = pid_ptr;
 		argv[3] = NULL;
 
@@ -113,6 +109,27 @@ crash_handler(int signo)
 		int status;
 		waitpid(pid, &status, 0);
 	}
+}
+
+static void
+crash_handler(int signo)
+{
+	unsigned i;
+
+	(void) signo;
+
+	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+		set_signal(signals[i], SIG_DFL);
+	}
+	if (vars.pathname) {
+		crash_exec(vars.pathname, vars.argv0);
+	}
+	if (vars.pause_process) {
+		sigset_t oset;
+
+		sigprocmask(SIG_BLOCK, NULL, &oset);
+		sigsuspend(&oset);
+	}
 	_exit(EXIT_FAILURE);
 }
 
@@ -123,12 +140,13 @@ crash_handler(int signo)
  * @param argv0 The original argv[0] from main().
  */
 void
-crash_init(const char *pathname, const char *argv0)
+crash_init(const char *pathname, const char *argv0, int pause_process)
 {
 	unsigned i;
 
-	exec_pathname = prot_strdup(pathname);
-	orig_argv0 = prot_strdup(argv0);
+	vars.pathname = prot_strdup(pathname);
+	vars.argv0 = prot_strdup(argv0);
+	vars.pause_process = pause_process;
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		set_signal(signals[i], crash_handler);
