@@ -90,6 +90,10 @@ Commands
     Try to connect to given <ip>. [port] is optional. If no [port] is given
     the default gnutella port 6346 is used.
 
+  - node drop <ip> [port]
+    Disconnect the node with the given <ip> and port. [port] is optional. If
+    no [port] is given, all nodes with the given <ip> are disconnected.
+
   - print <property>
     Print the current value of a property.  Refer to gnet_props.ag and 
     gui_props.ag to find names, descriptions, and possible values of 
