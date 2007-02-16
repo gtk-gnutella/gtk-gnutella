@@ -643,6 +643,7 @@
 # Macrovision Corporation, Inc. - Smokeblower Networks
 # Extremely oversensitive buzzword spammers returning bogus results
 64.92.224.0/19
+192.156.198.0/24
 209.10.214.0/24
 209.11.121.0/24
 209.11.134.0/24
