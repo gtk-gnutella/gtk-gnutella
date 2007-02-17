@@ -353,11 +353,10 @@
 68.178.144.112
 
 # Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
-72.51.37.145
-72.51.42.70
-72.51.33.176
-72.51.33.238
-72.51.34.174
+72.51.22.0/24
+72.51.33.0/24
+72.51.37.0/24
+72.51.42.0/24
 
 # Gnucleus-based DRM WMV spammer hosted by eNET
 206.222.26.34
@@ -898,3 +897,7 @@
 69.89.16.0/20
 209.172.32.0/19
 216.251.32.0/20
+
+# GeekHosters; sub-range of Reflected Networks; security violations
+64.210.144.128/25
+
