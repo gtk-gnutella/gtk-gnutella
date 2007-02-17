@@ -596,7 +596,6 @@
 72.38.54.156
 72.38.54.162
 72.38.54.183
-70.52.236.2
 
 # returns results for pr0n MPEGs not matching the query; Gtk-Gnutella
 64.20.48.66
