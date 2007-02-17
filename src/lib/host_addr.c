@@ -537,6 +537,7 @@ gboolean
 string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 {
 	const gchar *ep;
+	size_t len;
 	host_addr_t addr;
 
 	if ('[' == s[0]) {
@@ -571,7 +572,8 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 	if (endptr)
 		*endptr = ep;
 
-	return s != ep ? TRUE : FALSE;
+	len = ep - s;
+	return len > 0 && len <= MAX_HOSTLEN;
 }
 
 gboolean
