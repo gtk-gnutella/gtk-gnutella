@@ -145,7 +145,8 @@ shell_token_end(const gchar *s)
 static enum shell_reply
 shell_exec_node_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
-	const gchar *host, *end;
+	const gchar *host, *endptr, *port_str;
+	gchar host_buf[MAX_HOSTLEN + 1];
 	gint flags = SOCK_F_FORCE;
 	guint16 port;
 
@@ -157,24 +158,50 @@ shell_exec_node_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		goto error;
 
 	host = argv[2];
-	end = is_strprefix(host, "tls:");
-	if (end) {
-		host = end;
+	endptr = is_strprefix(host, "tls:");
+	if (endptr) {
+		host = endptr;
 		flags |= SOCK_F_TLS;
 	}
-	if (argc > 3) {
+	if (!string_to_host_or_addr(host, &endptr, NULL))
+		goto error;
+	
+	switch (endptr[0]) {
+	case ':':
+		{
+			size_t n;
+		  
+		    endptr++;	
+			n = endptr - host;
+			n = MIN(n, sizeof host_buf);
+			g_strlcpy(host_buf, host, n);
+			host = host_buf;
+			g_message("host=\"%s\"", host);
+			port_str = endptr;
+		}
+		break;
+	case '\0':
+		port_str = NULL;
+		break;
+	default:
+		goto error;
+	}
+	if (argc > 3 && !port_str) {
+		port_str = argv[3];
+	}
+	if (port_str) {
 		gint error;
-		port = parse_uint16(argv[3], NULL, 10, &error);
+		port = parse_uint16(port_str, NULL, 10, &error);
 	} else {
 		port = GTA_PORT;
 	}
-	if (port) {
-		node_add_by_name(host, port, flags);
-		sh->msg = _("Node added");
-	} else {
+	if (0 == port) {
 		sh->msg = _("Invalid IP/Port");
 		goto error;
 	}
+
+	node_add_by_name(host, port, flags);
+	sh->msg = _("Node added");
 	return REPLY_READY;
 
 error:
@@ -184,6 +211,7 @@ error:
 static enum shell_reply
 shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
+	const char *endptr, *port_str;
 	host_addr_t addr;
 	guint16 port;
 
@@ -194,16 +222,29 @@ shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	if (argc < 3)
 		goto error;
 
-	if (!string_to_host_addr(argv[2], NULL, &addr)) {
+	if (!string_to_host_addr(argv[2], &endptr, &addr)) {
 		/* Bad address. */
 		sh->msg = _("Invalid IP");
 		goto error;
 	}
+	switch (endptr[0]) {
+	case ':':
+		port_str = &endptr[1];
+		break;
+	case '\0':
+		port_str = NULL;
+		break;
+	default:
+		goto error;
+	}
 
+	if (argc > 3 && !port_str) {
+		port_str = argv[3];
+	}
 	/* No port is a wild card.. */
-	if (argc > 3) {
+	if (port_str) {
 		gint error;
-		port = parse_uint16(argv[3], NULL, 10, &error);
+		port = parse_uint16(port_str, NULL, 10, &error);
 		if (error || 0 == port) {
 			sh->msg = _("Invalid port");
 			goto error;
@@ -1085,8 +1126,8 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		"downloads\n"
 		"help\n"
 		"horizon [all]\n"
-		"node add <ip> [port]\n"
-		"node drop <ip> [port]\n"
+		"node add <ip>[:][port]\n"
+		"node drop <ip>[:][port]\n"
 		"nodes\n"
 		"offline\n"
 		"online\n"
