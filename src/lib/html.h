@@ -95,6 +95,7 @@ void html_output_set_tag(struct html_output *output,
 void *html_output_get_udata(struct html_output *output);
 void html_output_free(struct html_output **output_ptr);
 
-int html_handle_file(struct html_output *output, int fd);
+int html_load_file(struct html_output *output, int fd);
+int html_load_memory(struct html_output *output, const struct array data);
 
 #endif	/* _html_h_ */

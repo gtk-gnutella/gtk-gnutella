@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "lib/html.h"
 #include "lib/misc.h"
 #include "lib/utf8.h"
+#include "lib/walloc.h"
 
 struct html_context {
 	struct html_output *output;
@@ -57,8 +58,27 @@ struct html_context {
 #endif	/* Gtk+ >= 2.0 */
 };
 
-static const struct html_context zero_html_context;
+static struct html_context *
+html_context_alloc(void)
+{
+	static const struct html_context zero_html_context;
+	struct html_context *ctx;
 
+	ctx = walloc(sizeof *ctx);
+	*ctx = zero_html_context;
+	return ctx;
+}
+
+static void
+html_context_free(struct html_context **ctx_ptr)
+{
+	struct html_context *ctx = *ctx_ptr;
+	if (ctx) {
+		html_output_free(&ctx->output);
+		*ctx_ptr = NULL;
+	}
+}
+	
 static void
 html_output_print(struct html_output *output, const struct array *text)
 {
@@ -84,7 +104,8 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 		static gchar bullet[5];
 
 		initialized = TRUE;
-		utf8_encode_char(locale_is_utf8() ? 0x2022 : 0x002D, bullet, sizeof bullet);
+		utf8_encode_char(locale_is_utf8() ? 0x2022 : 0x002D,
+			bullet, sizeof bullet);
 		utf8_encode_char(0xFE4E, centre_line, sizeof centre_line);
 		concat_strings(list_item_prefix, sizeof list_item_prefix,
 			" ", bullet, " ", (void *) 0);
@@ -129,17 +150,14 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 			text = "\t";
 		break;
 	case HTML_TAG_P:
+	case HTML_TAG_DIV:
 		text = closing ? "\n\n" : "\n";
 		break;
 	case HTML_TAG_DL:
-	case HTML_TAG_DIV:
 	case HTML_TAG_TABLE:
 	case HTML_TAG_TR:
 	case HTML_TAG_UL:
 	case HTML_TAG_OL:
-		if (closing)
-			text = "\n";
-		break;
 	case HTML_TAG_BR:
 		text = "\n";
 		break;
@@ -251,49 +269,50 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 	}
 }
 
-void
-html_view_load(GtkWidget *widget, int fd)
+static struct html_context *
+html_view_load(GtkWidget *widget)
 {
-	struct html_context ctx;
+	struct html_context *ctx;
 
-	g_return_if_fail(widget);
-	g_return_if_fail(fd >= 0);
-	
-	ctx = zero_html_context;
+	g_return_val_if_fail(widget, NULL);
+
+	ctx = html_context_alloc();
 
 #if GTK_CHECK_VERSION(2,0,0)
-	ctx.view = GTK_TEXT_VIEW(widget);
-	ctx.buffer = gtk_text_view_get_buffer(ctx.view);
-	gtk_text_buffer_get_start_iter(ctx.buffer, &ctx.iter);
+	ctx->view = GTK_TEXT_VIEW(widget);
+	gtk_text_view_set_buffer(ctx->view, NULL);
+	ctx->buffer = gtk_text_view_get_buffer(ctx->view);
 
-	gtk_text_buffer_create_tag(ctx.buffer, "word_wrap",
+	gtk_text_buffer_get_start_iter(ctx->buffer, &ctx->iter);
+
+	gtk_text_buffer_create_tag(ctx->buffer, "word_wrap",
 		"wrap_mode",		GTK_WRAP_WORD,
 		(void *) 0);
-	gtk_text_buffer_create_tag(ctx.buffer, "monospace",
+	gtk_text_buffer_create_tag(ctx->buffer, "monospace",
 		"family",			"monospace",
 		NULL);
-	gtk_text_buffer_create_tag(ctx.buffer,	"anchor", 
+	gtk_text_buffer_create_tag(ctx->buffer,	"anchor", 
 		"foreground",		"blue", 
 		"underline",		PANGO_UNDERLINE_SINGLE, 
 		(void *) 0);
-	gtk_text_buffer_create_tag(ctx.buffer, "bold",
+	gtk_text_buffer_create_tag(ctx->buffer, "bold",
 		"weight",			PANGO_WEIGHT_BOLD,
 		(void *) 0);
-	gtk_text_buffer_create_tag(ctx.buffer, "italic",
+	gtk_text_buffer_create_tag(ctx->buffer, "italic",
 		"style",			PANGO_STYLE_ITALIC,
 		(void *) 0);
-	gtk_text_buffer_create_tag(ctx.buffer, "center",
+	gtk_text_buffer_create_tag(ctx->buffer, "center",
 		"justification",	GTK_JUSTIFY_CENTER,
 		(void *) 0);
-	gtk_text_buffer_create_tag(ctx.buffer, "underline",
+	gtk_text_buffer_create_tag(ctx->buffer, "underline",
 		"underline",		PANGO_UNDERLINE_SINGLE,
 		(void *) 0);
-	gtk_text_buffer_create_tag(ctx.buffer, "title",
+	gtk_text_buffer_create_tag(ctx->buffer, "title",
 		"justification",	GTK_JUSTIFY_CENTER,
 		"weight",			PANGO_WEIGHT_BOLD,
 		"size",				15 * PANGO_SCALE,
 		(void *) 0);
-	gtk_text_buffer_create_tag(ctx.buffer, "heading",
+	gtk_text_buffer_create_tag(ctx->buffer, "heading",
 		"weight",			PANGO_WEIGHT_BOLD,
 		"size",				15 * PANGO_SCALE,
 		(void *) 0);
@@ -301,17 +320,47 @@ html_view_load(GtkWidget *widget, int fd)
 
 #else	/* Gtk+ < 2.0 */
 
-	ctx.view = GTK_TEXT(widget);
-	gtk_text_set_word_wrap(ctx.view, TRUE);
+	ctx->view = GTK_TEXT(widget);
+	gtk_text_set_word_wrap(ctx->view, TRUE);
 	
 #endif	/* Gtk+ >= 2.0 */
 
-	ctx.output = html_output_alloc();
-	html_output_set_udata(ctx.output, &ctx);
-	html_output_set_print(ctx.output, html_output_print);
-	html_output_set_tag(ctx.output, html_output_tag);
-	html_handle_file(ctx.output, fd);
-	html_output_free(&ctx.output);
+	ctx->output = html_output_alloc();
+	html_output_set_udata(ctx->output, ctx);
+	html_output_set_print(ctx->output, html_output_print);
+	html_output_set_tag(ctx->output, html_output_tag);
+
+	return ctx;
+}
+
+void
+html_view_load_file(GtkWidget *widget, int fd)
+{
+	struct html_context *ctx;
+
+	g_return_if_fail(widget);
+	g_return_if_fail(fd >= 0);
+	
+	ctx = html_view_load(widget);
+	if (ctx) {
+		html_load_file(ctx->output, fd);
+		html_context_free(&ctx);
+	}
+}
+
+void
+html_view_load_memory(GtkWidget *widget, const struct array memory)
+{
+	struct html_context *ctx;
+	
+	g_return_if_fail(widget);
+	g_return_if_fail(memory.data);
+
+	ctx = html_view_load(widget);
+	if (ctx) {
+		html_load_memory(ctx->output, memory);
+		html_context_free(&ctx);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

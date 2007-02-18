@@ -706,7 +706,13 @@ error:
 }
 
 int
-html_handle_file(struct html_output *output, int fd)
+html_load_memory(struct html_output *output, const struct array data)
+{
+	return parse(output, data);
+}
+
+int
+html_load_file(struct html_output *output, int fd)
 {
 	struct stat sb;
 	size_t size = 0;
@@ -732,7 +738,9 @@ html_handle_file(struct html_output *output, int fd)
 		goto error;
 	}
 	close(fd);
-	ret = parse(output, array_init(deconstify_gchar(p), size));
+	fd = -1;
+
+	ret = html_load_memory(output, array_init(deconstify_gchar(p), size));
 
 error:
 	if (fd >= 0) {

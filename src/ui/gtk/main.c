@@ -61,7 +61,6 @@ RCSID("$Id$")
 #include "statusbar.h"
 #include "search_stats.h"
 #include "gnet_stats.h"
-#include "html_view.h"
 #include "uploads.h"
 #include "upload_stats.h"
 #include "downloads.h"
@@ -78,7 +77,6 @@ RCSID("$Id$")
 
 #include "if/bridge/ui2c.h"
 
-#include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -508,44 +506,6 @@ gui_init_dlg_about(void)
     	Q_("translation_credit|"));
 }
 
-static void
-gui_init_dlg_faq(void)
-{
-	static const gchar faq_file[] = "FAQ";
-	static file_path_t fp[4];
-	GtkWidget *textview;
-	const gchar *lang;
-	guint i = 0;
-	FILE *f;
-
-	textview = gui_dlg_faq_lookup("textview_faq");
-	lang = locale_get_language();
-
-	file_path_set(&fp[i++], make_pathname(PRIVLIB_EXP, lang), faq_file);
-	file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
-	
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[i++],
-		make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang), faq_file);
-
-	file_path_set(&fp[i++],
-		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", faq_file);
-#endif /* !OFFICIAL_BUILD */
-
-	g_assert(i <= G_N_ELEMENTS(fp));
-
-	f = file_config_open_read_norename("FAQ", fp, i);
-	if (f) {
-		html_view_load(textview, fileno(f));
-		fclose(f);
-	} else {
-		static const gchar msg[] =
-		N_(	"The FAQ document could not be loaded. Please read the online FAQ "
-			"at http://gtk-gnutella.sourceforge.net/?page=faq instead.");
-		text_widget_append(GTK_WIDGET(textview), _(msg));
-	}
-}
-
 /**
  * Searches for the gktrc file to use. Order in which they are scanned:
  *
@@ -629,8 +589,6 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	gui_init_dlg_about();
 
     gui_dlg_faq_set(create_dlg_faq());
-    gui_init_dlg_faq();
-
     gui_dlg_prefs_set(create_dlg_prefs());
 	gui_init_dlg_prefs();
 

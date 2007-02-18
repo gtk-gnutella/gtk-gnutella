@@ -31,15 +31,63 @@ RCSID("$Id$")
 #include "main.h"
 #include "misc.h"
 #include "notebooks.h"
+#include "html_view.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
+
+#include "lib/file.h"
+#include "lib/utf8.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
 /***
  *** Private functions
  ***/
+
+static void
+load_faq(void)
+{
+	static const gchar faq_file[] = "FAQ";
+	static file_path_t fp[4];
+	GtkWidget *textview;
+	const gchar *lang;
+	guint i = 0;
+	FILE *f;
+
+	textview = gui_dlg_faq_lookup("textview_faq");
+	lang = locale_get_language();
+
+	file_path_set(&fp[i++], make_pathname(PRIVLIB_EXP, lang), faq_file);
+	file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
+	
+#ifndef OFFICIAL_BUILD
+	file_path_set(&fp[i++],
+		make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang), faq_file);
+
+	file_path_set(&fp[i++],
+		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", faq_file);
+#endif /* !OFFICIAL_BUILD */
+
+	g_assert(i <= G_N_ELEMENTS(fp));
+
+	f = file_config_open_read_norename("FAQ", fp, i);
+	if (f) {
+		html_view_load_file(textview, fileno(f));
+		fclose(f);
+	} else {
+		static const gchar msg[] =
+		N_(
+			"<html><body><p>"
+			"The FAQ document could not be loaded. Please read the"
+			"<a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">"
+			"FAQ online</a> instead."
+			"</p></body></html>"
+		);
+
+		html_view_load_memory(textview, array_from_string(msg));
+	}
+}
 
 static void
 quit(gboolean force)
@@ -105,6 +153,7 @@ on_menu_faq_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	(void) unused_udata;
 
 	g_return_if_fail(gui_dlg_faq());
+	load_faq();
     gtk_widget_show(gui_dlg_faq());
 	g_return_if_fail(gui_dlg_faq()->window);
 	gdk_window_raise(gui_dlg_faq()->window);

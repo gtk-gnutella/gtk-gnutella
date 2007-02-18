@@ -28,6 +28,10 @@
 
 #include "common.h"
 
-void html_view_load(GtkWidget *textview, int fd);
+#include "gui.h"
+#include "lib/array.h"
+
+void html_view_load_file(GtkWidget *textview, int fd);
+void html_view_load_memory(GtkWidget *textview, const struct array memory);
 
 #endif /* _gtk_html_view_h_ */
