@@ -112,7 +112,7 @@ struct ip_record {
 
 #define OUTGOING_WINDOW		150			/**< Outgoing monitoring window */
 
-static guint32 activity_seen = 0;		/**< Activity recorded in period */
+static gboolean activity_seen;			/**< Activity recorded in period */
 static gpointer outgoing_ev = NULL;		/**< Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
@@ -316,7 +316,7 @@ got_no_udp_solicited(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_obj;
 
 	if (dbg)
-		printf("FW: got no solicited UDP traffic for %d secs\n",
+		g_message("FW: got no solicited UDP traffic for %d secs",
 			FW_SOLICITED_WINDOW);
 
 	solicited_udp_ev = NULL;
@@ -332,11 +332,10 @@ inet_udp_got_solicited(void)
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, TRUE);
 
 	if (solicited_udp_ev == NULL) {
-		activity_seen++;
 		cq_insert(callout_queue,
 			FW_SOLICITED_WINDOW * 1000, got_no_udp_solicited, NULL);
 		if (dbg)
-			printf("FW: got solicited UDP traffic\n");
+			g_message("FW: got solicited UDP traffic");
 	} else
 		cq_resched(callout_queue,
 			solicited_udp_ev, FW_SOLICITED_WINDOW * 1000);
@@ -412,17 +411,17 @@ inet_udp_not_firewalled(void)
 void
 inet_got_incoming(const host_addr_t addr)
 {
-	gboolean is_local = is_local_addr(addr);
+	if (is_local_addr(addr))
+		return;
 
 	/*
 	 * If we get an incoming connection from the outside, we're surely
 	 * connected to the Internet.
 	 */
 
-	if (!is_local)
-		activity_seen++;				/* In case we have a timer set */
+	activity_seen = TRUE;				/* In case we have a timer set */
 
-	if (!is_inet_connected && !is_local)
+	if (!is_inet_connected)
 		inet_set_is_connected(TRUE);
 
 	/*
@@ -442,12 +441,10 @@ inet_got_incoming(const host_addr_t addr)
 	 * If we're not, then we're not firewalled.
 	 */
 
-	if (!is_local)
-		inet_not_firewalled();
+	inet_not_firewalled();
 
-	incoming_ev = cq_insert(
-		callout_queue, FW_INCOMING_WINDOW * 1000,
-		got_no_connection, NULL);
+	incoming_ev = cq_insert(callout_queue, FW_INCOMING_WINDOW * 1000,
+					got_no_connection, NULL);
 }
 
 /**
@@ -477,9 +474,8 @@ inet_udp_got_unsolicited_incoming(void)
 
 	g_assert(incoming_udp_ev == NULL);
 
-	incoming_udp_ev = cq_insert(
-		callout_queue, FW_INCOMING_WINDOW * 1000,
-		got_no_udp_unsolicited, NULL);
+	incoming_udp_ev = cq_insert(callout_queue, FW_INCOMING_WINDOW * 1000,
+							got_no_udp_unsolicited, NULL);
 }
 
 /**
@@ -488,12 +484,12 @@ inet_udp_got_unsolicited_incoming(void)
 void
 inet_udp_got_incoming(const host_addr_t addr)
 {
-	gboolean is_local = is_local_addr(addr);
+	if (is_local_addr(addr))
+		return;
 
-	if (!is_local)
-		activity_seen++;				/* In case we have a timer set */
+	activity_seen = TRUE;				/* In case we have a timer set */
 
-	if (!is_inet_connected && !is_local)
+	if (!is_inet_connected)
 		inet_set_is_connected(TRUE);
 
 	/*
@@ -502,14 +498,9 @@ inet_udp_got_incoming(const host_addr_t addr)
 	 * some data to that IP address.
 	 */
 
-	if (!is_local_addr(addr)) {
-		gpointer ipr;
-
-		ipr = g_hash_table_lookup(outgoing_udp, &addr);
-		inet_udp_got_solicited();
-		if (NULL == ipr)
-			inet_udp_got_unsolicited_incoming();
-	}
+	inet_udp_got_solicited();
+	if (NULL == g_hash_table_lookup(outgoing_udp, &addr))
+		inet_udp_got_unsolicited_incoming();
 }
 
 /**
@@ -587,7 +578,7 @@ inet_set_is_connected(gboolean val)
 	gnet_prop_set_boolean_val(PROP_IS_INET_CONNECTED, val);
 
 	if (dbg)
-		printf("FW: we're %sconnected to the Internet\n",
+		g_message("FW: we're %sconnected to the Internet",
 			val ? "" : "no longer ");
 }
 
@@ -603,10 +594,12 @@ check_outgoing_connection(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (activity_seen == 0)				/* Nothing over the period */
+	if (activity_seen) {
+		activity_seen = FALSE;
+	} else {
+		/* Nothing over the period */
 		inet_set_is_connected(FALSE);
-
-	activity_seen = 0;
+	}
 }
 
 /**
@@ -627,7 +620,7 @@ inet_connection_attempted(const host_addr_t addr)
 	 */
 
 	if (!outgoing_ev) {
-		activity_seen = 0;
+		activity_seen = FALSE;
 		outgoing_ev = cq_insert(
 			callout_queue, OUTGOING_WINDOW * 1000,
 			check_outgoing_connection, NULL);
@@ -647,7 +640,7 @@ inet_connection_succeeded(const host_addr_t addr)
 	if (is_local_addr(addr))
 		return;
 
-	activity_seen++;
+	activity_seen = TRUE;
 
 	if (!is_inet_connected)
 		inet_set_is_connected(TRUE);
@@ -659,7 +652,7 @@ inet_connection_succeeded(const host_addr_t addr)
 void
 inet_read_activity(void)
 {
-	activity_seen++;
+	activity_seen = TRUE;
 
 	/*
 	 * We're not sure activity was not with a local node, so don't
