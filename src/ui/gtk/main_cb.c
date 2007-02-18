@@ -79,7 +79,7 @@ load_faq(void)
 		static const gchar msg[] =
 		N_(
 			"<html><body><p>"
-			"The FAQ document could not be loaded. Please read the"
+			"The FAQ document could not be loaded. Please read the "
 			"<a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">"
 			"FAQ online</a> instead."
 			"</p></body></html>"
@@ -226,6 +226,7 @@ on_dlg_faq_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 
 	g_return_val_if_fail(gui_dlg_faq(), TRUE);
 
+	html_view_clear(gui_dlg_faq_lookup("textview_faq"));
 	gtk_widget_hide(gui_dlg_faq());
 	return TRUE;
 }

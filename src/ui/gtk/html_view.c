@@ -92,13 +92,14 @@ html_output_print(struct html_output *output, const struct array *text)
 }
 
 static void
-html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
+html_output_tag(struct html_output *output, const struct array *tag)
 {
 	static gboolean initialized;
 	static gchar centre_line[5];
 	static gchar list_item_prefix[7];
 	struct html_context *ctx;
 	const gchar *style, *text, *attr;
+	gboolean closing;
  
 	if (!initialized) {
 		static gchar bullet[5];
@@ -114,10 +115,11 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 	style = NULL;
 	text = NULL;
 	attr = NULL;
+	closing = html_tag_is_closing(tag);
 	ctx = html_output_get_udata(output);
-	ctx->tag = tag;
+	ctx->tag = html_parse_tag(tag);
 
-	switch (tag) {
+	switch (ctx->tag) {
 	case HTML_TAG_BODY:
 		style = "word_wrap";
 		break;
@@ -195,7 +197,7 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 		break;
 	case HTML_TAG_HR:
 #if GTK_CHECK_VERSION(2,0,0)
-		ctx->start[tag] = gtk_text_buffer_create_mark(ctx->buffer, NULL,
+		ctx->start[ctx->tag] = gtk_text_buffer_create_mark(ctx->buffer, NULL,
 								&ctx->iter, TRUE);
 		gtk_text_buffer_insert_with_tags_by_name(ctx->buffer, &ctx->iter,
 			centre_line, (-1), "center", (void *) 0);
@@ -203,6 +205,17 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 		closing = TRUE;
 		text = "\n";
 #else
+#endif
+		break;
+	case HTML_TAG_COMMENT:
+#if 0 
+		/* Comments can be made visible this way */
+		ctx->start[ctx->tag] = gtk_text_buffer_create_mark(ctx->buffer, NULL,
+								&ctx->iter, TRUE);
+		gtk_text_buffer_insert_with_tags_by_name(ctx->buffer, &ctx->iter,
+				tag->data, tag->size, "italic", (void *) 0);
+		closing = TRUE;
+		text = "\n";
 #endif
 		break;
 	case HTML_TAG_HTML:
@@ -242,19 +255,19 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 #if GTK_CHECK_VERSION(2,0,0)
 			GtkTextIter start;
 		
-			if (ctx->start[tag]) {
+			if (ctx->start[ctx->tag]) {
 				gtk_text_buffer_get_iter_at_mark(ctx->buffer,
-						&start, ctx->start[tag]);
+						&start, ctx->start[ctx->tag]);
 				gtk_text_buffer_apply_tag_by_name(ctx->buffer, style,
 						&start, &ctx->iter);
-				ctx->start[tag] = NULL;
+				ctx->start[ctx->tag] = NULL;
 			}
 #else
 #endif
 		} else {
 #if GTK_CHECK_VERSION(2,0,0)
-			ctx->start[tag] = gtk_text_buffer_create_mark(ctx->buffer, NULL,
-								&ctx->iter, TRUE);
+			ctx->start[ctx->tag] = gtk_text_buffer_create_mark(ctx->buffer,
+										NULL, &ctx->iter, TRUE);
 #else
 #endif
 		}
@@ -361,6 +374,27 @@ html_view_load_memory(GtkWidget *widget, const struct array memory)
 		html_load_memory(ctx->output, memory);
 		html_context_free(&ctx);
 	}
+}
+
+void
+html_view_clear(GtkWidget *widget)
+{
+	g_return_if_fail(widget);
+
+#if GTK_CHECK_VERSION(2,0,0)
+	{
+		GtkTextBuffer *buffer;
+		GtkTextIter start, end;
+		
+		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
+		gtk_text_buffer_get_start_iter(buffer, &start);
+		gtk_text_buffer_get_end_iter(buffer, &end);
+		gtk_text_buffer_delete(buffer, &start, &end);
+		gtk_text_buffer_remove_all_tags(buffer, &start, &end);
+	}
+#else
+	/* FIXME: Implement */
+#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */

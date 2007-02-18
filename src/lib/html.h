@@ -48,6 +48,7 @@ enum html_tag {
 	HTML_TAG_BR,
 	HTML_TAG_CODE,
 	HTML_TAG_COL,
+	HTML_TAG_COMMENT,
 	HTML_TAG_DD,
 	HTML_TAG_DIV,
 	HTML_TAG_DL,
@@ -91,8 +92,10 @@ void html_output_set_udata(struct html_output *output, void *udata);
 void html_output_set_print(struct html_output *output,
 	void (*print)(struct html_output *, const struct array *));
 void html_output_set_tag(struct html_output *output,
-	void (*tag)(struct html_output *, enum html_tag, gboolean closing));
+	void (*tag)(struct html_output *, const struct array *));
 void *html_output_get_udata(struct html_output *output);
+enum html_tag html_parse_tag(const struct array *tag);
+gboolean html_tag_is_closing(const struct array *tag);
 void html_output_free(struct html_output **output_ptr);
 
 int html_load_file(struct html_output *output, int fd);

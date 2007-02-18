@@ -33,5 +33,6 @@
 
 void html_view_load_file(GtkWidget *textview, int fd);
 void html_view_load_memory(GtkWidget *textview, const struct array memory);
+void html_view_clear(GtkWidget *textview);
 
 #endif /* _gtk_html_view_h_ */

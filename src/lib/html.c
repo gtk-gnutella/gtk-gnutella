@@ -222,7 +222,7 @@ html_node_free(struct html_node **node_ptr)
 
 struct html_output {
 	void (*print)(struct html_output *, const struct array *);
-	void (*tag)(struct html_output *, enum html_tag, gboolean closing);
+	void (*tag)(struct html_output *, const struct array *);
 	void *udata;
 };
 
@@ -243,10 +243,10 @@ html_output_print(struct html_output *output, const struct array text)
 }
 
 static void
-html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
+html_output_tag(struct html_output *output, const struct array tag)
 {
 	if (output->tag)
-		output->tag(output, tag, closing);
+		output->tag(output, &tag);
 }
 
 
@@ -286,7 +286,7 @@ html_output_set_print(struct html_output *output,
 
 void
 html_output_set_tag(struct html_output *output,
-	void (*tag)(struct html_output *, enum html_tag, gboolean closing))
+	void (*tag)(struct html_output *, const struct array *))
 {
 	output->tag = tag;
 }
@@ -313,6 +313,7 @@ parse_tag(const struct array tag)
 		D(BR),
 		D(COL),
 		D(CODE),
+		{ "!--", HTML_TAG_COMMENT },
 		D(DD),
 		D(DIV),
 		D(DL),
@@ -348,7 +349,7 @@ parse_tag(const struct array tag)
 #undef D
 	};
 	size_t i, len;
-	char name[16];
+	char name[32];
 
 	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_TAGS);
 	
@@ -356,50 +357,58 @@ parse_tag(const struct array tag)
 	for (i = 0; i < tag.size; i++) {
 		const unsigned char c = tag.data[i];
 
-		if (len >= G_N_ELEMENTS(name))
-			goto done;
-
-		if (!isascii(c))
-			goto done;
+		if (G_N_ELEMENTS(name) == len || !isascii(c))
+			break;
 
 		if (0 == len) {
-			if (isspace(c))
-				continue;
 			if ('/' == c && 0 == i)
 				continue;
-		}
-
-		if (!isalnum(c))
+			if (!isalnum(c) && '!' != c && '?' != c)
+				break;
+		} else if (!isalnum(c) && '-' != c) {
 			break;
+		}
 		name[len] = isupper(c) ? c : toupper(c);
 		len++;
 	}
 
-	if (len > 0) {
+	if (len > 0 && len < (int)G_N_ELEMENTS(name)) {
+		name[len] = '\0';
 		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
-			if (strlen(tab[i].name) == len
-			    && 0 == memcmp(tab[i].name, name, len)
-			) {
+			if (0 == strcmp(name, tab[i].name))
 				return tab[i].tag;
-			}		
 		}
-		len = MAX((size_t) INT_MAX, len);
-		g_warning("Unknown tag: \"%.*s\"", (int) len, name);
+		g_warning("Unknown tag: \"%s\"", name);
 	}
-done:
 	return HTML_TAG_UNKNOWN;
+}
+
+gboolean
+html_tag_is_closing(const struct array *tag)
+{
+	return	tag &&
+			tag->data &&
+			tag->size > 0 &&
+			('/' == tag->data[tag->size - 1] || '/' == tag->data[0]);
+}
+
+enum html_tag
+html_parse_tag(const struct array *tag)
+{
+	if (tag && tag->data) {
+		return parse_tag(*tag);
+	} else {
+		return HTML_TAG_UNKNOWN;
+	}
 }
 
 static void
 render_tag(struct render_context *ctx, const struct array tag)
 {
 	if (tag.size > 0) {
-		enum html_tag id;
-
-		ctx->closing = '/' == tag.data[tag.size - 1] || '/' == tag.data[0];
-		id = parse_tag(tag);
-		html_output_tag(ctx->output, id, ctx->closing);
-		if (HTML_TAG_PRE == id) {
+		ctx->closing = html_tag_is_closing(&tag);
+		html_output_tag(ctx->output, tag);
+		if (HTML_TAG_PRE == parse_tag(tag)) {
 			ctx->preformatted = !ctx->closing;
 		}
 	}
@@ -632,26 +641,35 @@ parse(struct html_output *output, const struct array array)
 		switch (c) {
 		case '<':
 			if (tag.data) {
-				msg = "'<' inside tag";
-				goto error;
-			}
-			if (text.data && text.size > 0) {
-				struct html_node *node;
+				tag.size += c_len;
+			} else {
+				if (text.data && text.size > 0) {
+					struct html_node *node;
 
-				node = html_node_alloc();
-				node->type = HTML_NODE_TEXT;
-				node->array = text;
-				node->next = NULL;
-				nodes->next = node;
-				nodes = node;
-				text = zero_array;
+					node = html_node_alloc();
+					node->type = HTML_NODE_TEXT;
+					node->array = text;
+					node->next = NULL;
+					nodes->next = node;
+					nodes = node;
+					text = zero_array;
+				}
+				tag.data = deconstify_gchar(next_ptr);
+				tag.size = 0;
 			}
-			tag.data = deconstify_gchar(next_ptr);
-			tag.size = 0;
 			break;
 			
 		case '>':
-			if (tag.data) {
+			if (!tag.data) {
+				g_warning("'>' but no open tag");
+				if (text.data)
+					text.size += c_len;
+			} else if (
+				HTML_TAG_COMMENT == parse_tag(tag) &&
+				0 != memcmp(&tag.data[tag.size - 2], "--", 2)
+			) {
+				tag.size += c_len;
+			} else {
 				struct html_node *node;
 
 				node = html_node_alloc();
@@ -660,12 +678,9 @@ parse(struct html_output *output, const struct array array)
 				node->next = NULL;
 				nodes->next = node;
 				nodes = node;
-			} else {
-				msg = "'>' but no open tag";
-				goto error;
+				tag = zero_array;
+				text = array_init(deconstify_gchar(next_ptr), 0); 
 			}
-			tag = zero_array;
-			text = array_init(deconstify_gchar(next_ptr), 0); 
 			break;
 
 		case '\n':
