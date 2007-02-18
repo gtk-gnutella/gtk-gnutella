@@ -96,6 +96,7 @@ LSRC = \
 	gtk-missing.c \
 	gtkcolumnchooser.c \
 	hcache_common.c \
+	html_view.c \
 	icon.c \
 	main.c \
 	main_cb.c \
@@ -122,6 +123,7 @@ LOBJ = \
 	gtk-missing.o \
 	gtkcolumnchooser.o \
 	hcache_common.o \
+	html_view.o \
 	icon.o \
 	main.o \
 	main_cb.o \

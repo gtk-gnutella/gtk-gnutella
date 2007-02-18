@@ -39,7 +39,7 @@ RCSID("$Id$")
 
 #include "base32.h"
 #include "endian.h"
-#include "html.h"
+#include "html_entities.h"
 #include "misc.h"
 #include "glib-missing.h"
 #include "sha1.h"

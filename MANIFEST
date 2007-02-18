@@ -537,7 +537,9 @@ src/lib/header.c
 src/lib/header.h
 src/lib/host_addr.c
 src/lib/host_addr.h
+src/lib/html.c
 src/lib/html.h
+src/lib/html_entities.h
 src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c
@@ -686,6 +688,8 @@ src/ui/gtk/gui.h
 src/ui/gtk/hcache.h
 src/ui/gtk/hcache_common.c
 src/ui/gtk/hcache_common.h
+src/ui/gtk/html_view.c
+src/ui/gtk/html_view.h
 src/ui/gtk/icon.c
 src/ui/gtk/icon.h
 src/ui/gtk/main.c

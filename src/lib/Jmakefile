@@ -57,6 +57,7 @@ LSRC = \
 	hashtable.c \
 	header.c \
 	host_addr.c \
+	html.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \

@@ -38,6 +38,7 @@ LSRC = \
 	gtk-missing.c \
 	gtkcolumnchooser.c \
 	hcache_common.c \
+	html_view.c \
 	icon.c \
 	main.c \
 	main_cb.c \

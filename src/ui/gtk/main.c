@@ -61,6 +61,7 @@ RCSID("$Id$")
 #include "statusbar.h"
 #include "search_stats.h"
 #include "gnet_stats.h"
+#include "html_view.h"
 #include "uploads.h"
 #include "upload_stats.h"
 #include "downloads.h"
@@ -512,12 +513,12 @@ gui_init_dlg_faq(void)
 {
 	static const gchar faq_file[] = "FAQ";
 	static file_path_t fp[4];
-	GtkWidget *text;
+	GtkWidget *textview;
 	const gchar *lang;
 	guint i = 0;
 	FILE *f;
 
-	text = gui_dlg_faq_lookup("textview_faq");
+	textview = gui_dlg_faq_lookup("textview_faq");
 	lang = locale_get_language();
 
 	file_path_set(&fp[i++], make_pathname(PRIVLIB_EXP, lang), faq_file);
@@ -535,62 +536,13 @@ gui_init_dlg_faq(void)
 
 	f = file_config_open_read_norename("FAQ", fp, i);
 	if (f) {
-		gchar buf[4096];
-		gboolean tag = FALSE;
-
-		while (fgets(buf, sizeof buf, f)) {
-			const gchar *s;
-			gchar *p;
-
-			if (!utf8_is_valid_string(buf)) {
-				text_widget_append(GTK_WIDGET(text),
-					_("\nThe FAQ document is damaged.\n"));
-				break;
-			}
-
-			/* Strip HTML tags */
-			for (s = buf, p = buf; *s != '\0'; s++) {
-				if (tag) {
-					if (*s == '>')
-						tag = FALSE;
-				} else if (*s != '<') {
-					*p++ = *s;
-				} else {
-					tag = TRUE;
-				}
-			}
-			*p = '\0';
-			
-			/* Convert entities */
-			p = buf;
-			for (s = buf; '\0' != *s; s++) {
-				if ('&' == *s) {
-					const gchar *endptr;
-					guint32 uc;
-
-					uc = html_decode_entity(s, &endptr);
-					if ((guint32) -1 != uc) {
-						guint n;
-
-						n = utf8_encode_char(uc, p, (endptr - s) + 1);
-						p += n;
-						s = endptr;
-						continue;
-					}
-				}
-				*p++ = *s;
-			}
-			*p = '\0';
-			
-			text_widget_append(GTK_WIDGET(text), lazy_utf8_to_ui_string(buf));
-		}
-
+		html_view_load(textview, fileno(f));
 		fclose(f);
 	} else {
 		static const gchar msg[] =
 		N_(	"The FAQ document could not be loaded. Please read the online FAQ "
 			"at http://gtk-gnutella.sourceforge.net/?page=faq instead.");
-		text_widget_append(GTK_WIDGET(text), _(msg));
+		text_widget_append(GTK_WIDGET(textview), _(msg));
 	}
 }
 

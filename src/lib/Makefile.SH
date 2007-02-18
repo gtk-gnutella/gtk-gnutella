@@ -113,6 +113,7 @@ LSRC = \
 	hashtable.c \
 	header.c \
 	host_addr.c \
+	html.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
@@ -171,6 +172,7 @@ LOBJ = \
 	hashtable.o \
 	header.o \
 	host_addr.o \
+	html.o \
 	idtable.o \
 	inputevt.o \
 	iprange.o \
