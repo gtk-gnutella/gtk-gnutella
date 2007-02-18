@@ -1633,33 +1633,46 @@ complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src,
 	g_assert(0 == dst_left || dst);
 
 	if ((iconv_t) -1 == cd) {
+		if (common_dbg > 1)
+			g_warning("complete_iconv: bad cd");
 		errno = EBADF;
 		goto error;
 	}
 
-	if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL))	/* reset state */
+	/* reset state */
+	if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL)) {
+		if (common_dbg > 1)
+			g_warning("complete_iconv: iconv() reset failed");
 		goto error;
+	}
 
 	src_left = strlen(src);
 
 	while (src_left > 0) {
-		gchar buf[256];
-		size_t ret, n;
+		gchar buf[4096];
+		size_t ret, n_read, n_written;
 
 		{
-			size_t buf_size = sizeof buf;
-			gchar *p = buf;
+			size_t left0, left, buf_size = sizeof buf;
+			gchar *buf_ptr = buf;
 
-			ret = iconv(cd, cast_to_gpointer(&src), &src_left, &p, &buf_size);
-			n = p - buf;
+			/* To avoid E2BIG, feed only a part of src to iconv() */
+			left0 = MIN(sizeof buf / 32, src_left);
+			left = left0;
+
+			ret = iconv(cd, cast_to_gpointer(&src), &left, &buf_ptr, &buf_size);
+
+			n_read = left0 - left;
+			n_written = buf_ptr - buf;
+			src_left -= n_read;
 		}
 
 		if (dst0 && dst_left > 1) {
-			size_t m = MIN(n, dst_left - 1);
-			memcpy(dst, buf, m);
-			dst_left -= m;
+			size_t n_copy = MIN(n_written, dst_left - 1);
+			memcpy(dst, buf, n_copy);
+			dst_left -= n_copy;
 		}
-		dst += n;
+		dst += n_written;
 
 		if ((size_t) -1 == ret) {
 			gint e = errno;
@@ -1667,21 +1680,38 @@ complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src,
 			if (common_dbg > 1)
 				g_warning("complete_iconv: iconv() failed: %s", g_strerror(e));
 
+			if (EINVAL == e) {
+				/*
+				 * An invalid character may be caused by feeding only a part of
+				 * the input to iconv().
+				 */
+				if (n_read > 0)
+					continue;
+			}
+
 			if (abort_on_error)
 				goto error;
 
 			if (EILSEQ != e && EINVAL != e) {
 				errno = e;
 				goto error;
+			} else {
+				size_t buf_size = sizeof buf;
+				gchar *buf_ptr = buf_ptr;
+
+				/* reset state; iconv() might store a shift reset sequence */
+				if ((size_t) -1 == iconv(cd, NULL, NULL, &buf_ptr, &buf_size))
+					goto error;
+
+				n_written = (buf_ptr - buf) + 1;
+				if (dst0 && dst_left > n_written) {
+					dst_left -= n_written;
+					*dst = '_';
+				}
+				dst += n_written;
+				src++;
+				src_left--;
 			}
-			/* reset state */
-			if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL))
-				goto error;
-
-			if (dst0 && dst_left > 1)
-				--dst_left, *dst = '_';
-
-			--src_left, ++src, ++dst;
 		}
 	}
 
