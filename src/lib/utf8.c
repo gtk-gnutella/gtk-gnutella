@@ -1575,7 +1575,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12868 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12886 "))
 		utf8_regression_checks();
 
 	locale_init_passed = TRUE;
