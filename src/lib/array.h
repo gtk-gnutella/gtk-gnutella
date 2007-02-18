@@ -56,6 +56,15 @@ array_init(void *data, size_t size)
 	return array;
 }
 
+static inline struct array
+array_from_string(const char *str)
+{
+	struct array array;
+	array.data = (char *) str;
+	array.size = strlen(str);
+	return array;
+}
+
 #endif /* _array_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
