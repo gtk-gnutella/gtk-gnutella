@@ -39,7 +39,6 @@ RCSID("$Id$")
 
 #include "lib/html.h"
 #include "lib/html_entities.h"
-#include "lib/utf8.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -384,7 +383,8 @@ parse_tag(const struct array tag)
 				return tab[i].tag;
 			}		
 		}
-		g_warning("Unknown tag: \"%.*s\"", (int)len, name);
+		len = MAX((size_t) INT_MAX, len);
+		g_warning("Unknown tag: \"%.*s\"", (int) len, name);
 	}
 done:
 	return HTML_TAG_UNKNOWN;
@@ -393,66 +393,16 @@ done:
 static void
 render_tag(struct render_context *ctx, const struct array tag)
 {
-	enum html_tag id;
-	const char *str;
+	if (tag.size > 0) {
+		enum html_tag id;
 
-	if (tag.size <= 0)
-		return;
-
-	ctx->closing = '/' == tag.data[tag.size - 1] || '/' == tag.data[0];
-	id = parse_tag(tag);
-	str = NULL;
-
-	html_output_tag(ctx->output, id, ctx->closing);
-
-	switch (id) {
-	case HTML_TAG_PRE:
-		ctx->preformatted = !ctx->closing;
-		break;
-	case HTML_TAG_A:
-	case HTML_TAG_B:
-	case HTML_TAG_BODY:
-	case HTML_TAG_BR:
-	case HTML_TAG_CODE:
-	case HTML_TAG_COL:
-	case HTML_TAG_DD:
-	case HTML_TAG_DIV:
-	case HTML_TAG_DL:
-	case HTML_TAG_DT:
-	case HTML_TAG_EM:
-	case HTML_TAG_H1:
-	case HTML_TAG_H2:
-	case HTML_TAG_H3:
-	case HTML_TAG_H4:
-	case HTML_TAG_H5:
-	case HTML_TAG_HEAD:
-	case HTML_TAG_HR:
-	case HTML_TAG_HTML:
-	case HTML_TAG_I:
-	case HTML_TAG_IMG:
-	case HTML_TAG_KBD:
-	case HTML_TAG_LI:
-	case HTML_TAG_META:
-	case HTML_TAG_OL:
-	case HTML_TAG_P:
-	case HTML_TAG_Q:
-	case HTML_TAG_SPAN:
-	case HTML_TAG_STRONG:
-	case HTML_TAG_TABLE:
-	case HTML_TAG_TBODY:
-	case HTML_TAG_TD:
-	case HTML_TAG_TH:
-	case HTML_TAG_THEAD:
-	case HTML_TAG_TITLE:
-	case HTML_TAG_TR:
-	case HTML_TAG_UL:
-	case HTML_TAG_UNKNOWN:
-		break;
-	case NUM_HTML_TAGS:
-		g_assert_not_reached();
+		ctx->closing = '/' == tag.data[tag.size - 1] || '/' == tag.data[0];
+		id = parse_tag(tag);
+		html_output_tag(ctx->output, id, ctx->closing);
+		if (HTML_TAG_PRE == id) {
+			ctx->preformatted = !ctx->closing;
+		}
 	}
-	if (str)
-		html_output_print(ctx->output, array_from_string(str));
 }
 
 static guint32
@@ -603,7 +553,7 @@ render_text(struct render_context *ctx, const struct array text)
 			}
 		}
 		if (is_whitespace) {
-			if (i > 0)
+			if (i > 0 || ctx->closing)
 				html_output_print(ctx->output, array_from_string(" "));
 		} else if ('&' == c) {
 			if (entity.data) {
