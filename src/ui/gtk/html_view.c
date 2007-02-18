@@ -129,8 +129,7 @@ html_output_tag(struct html_output *output, enum html_tag tag, gboolean closing)
 			text = "\t";
 		break;
 	case HTML_TAG_P:
-		if (closing)
-			text = "\n\n";
+		text = closing ? "\n\n" : "\n";
 		break;
 	case HTML_TAG_DL:
 	case HTML_TAG_DIV:
