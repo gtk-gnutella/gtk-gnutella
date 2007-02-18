@@ -262,59 +262,63 @@ typedef struct gnutella_node {
  * Node flags.
  */
 
-#define NODE_F_HDSK_PING	0x00000001 /**< Expecting handshake ping */
-#define NODE_F_STALE_QRP	0x00000002 /**< Is sending a stale QRP patch */
-#define NODE_F_INCOMING		0x00000004 /**< Incoming (permanent) connection */
-#define NODE_F_ESTABLISHED	0x00000008 /**< Gnutella connection established */
-#define NODE_F_VALID		0x00000010 /**< Handshaked with a Gnutella node */
-#define NODE_F_ALIEN_IP		0x00000020 /**< Pong-IP did not match TCP/IP addr */
-#define NODE_F_WRITABLE		0x00000040 /**< Node is writable */
-#define NODE_F_READABLE		0x00000080 /**< Node is readable, process queries */
-#define NODE_F_BYE_SENT		0x00000100 /**< Bye message was queued */
-#define NODE_F_NODELAY		0x00000200 /**< TCP_NODELAY was activated */
-#define NODE_F_NOREAD		0x00000400 /**< Prevent further reading from node */
-#define NODE_F_EOF_WAIT		0x00000800 /**< At final shutdown, waiting EOF */
-#define NODE_F_CLOSING		0x00001000 /**< Initiated bye or shutdown */
-#define NODE_F_ULTRA		0x00002000 /**< Is one of our ultra nodes */
-#define NODE_F_LEAF			0x00004000 /**< Is one of our leaves */
-#define NODE_F_CRAWLER		0x00008000 /**< Is a Gnutella Crawler */
-#define NODE_F_FAKE_NAME	0x00010000 /**< Was unable to validate GTKG name */
-#define NODE_F_PROXY		0x00020000 /**< Sent a push-proxy request to it */
-#define NODE_F_PROXIED		0x00040000 /**< We are push-proxy for that node */
-#define NODE_F_QRP_SENT		0x00080000 /**< Undergone 1 complete QRP sending */
-#define NODE_F_TLS			0x00100000 /**< TLS-tunneled */
-#define NODE_F_TSYNC_WAIT	0x00200000 /**< Time sync pending via TCP */
-#define NODE_F_TSYNC_TCP	0x00400000 /**< No replies via UDP, use TCP */
-#define NODE_F_GTKG			0x00800000 /**< Node is another gtk-gnutella */
-#define NODE_F_FORCE		0x01000000 /**< Connection is forced */
-#define NODE_F_NO_OOB_PROXY	0x02000000 /**< Do not OOB proxy the leaf */
+enum {
+	NODE_F_HDSK_PING	= 1 << 0,	/**< Expecting handshake ping */
+	NODE_F_STALE_QRP	= 1 << 1,	/**< Is sending a stale QRP patch */
+	NODE_F_INCOMING		= 1 << 2,	/**< Incoming (permanent) connection */
+	NODE_F_ESTABLISHED	= 1 << 3,	/**< Gnutella connection established */
+	NODE_F_VALID		= 1 << 4,	/**< Handshaked with a Gnutella node */
+	NODE_F_ALIEN_IP		= 1 << 5,	/**< Pong-IP did not match TCP/IP addr */
+	NODE_F_WRITABLE		= 1 << 6,	/**< Node is writable */
+	NODE_F_READABLE		= 1 << 7,	/**< Node is readable, process queries */
+	NODE_F_BYE_SENT		= 1 << 8,	/**< Bye message was queued */
+	NODE_F_NODELAY		= 1 << 9,	/**< TCP_NODELAY was activated */
+	NODE_F_NOREAD		= 1 << 10,	/**< Prevent further reading from node */
+	NODE_F_EOF_WAIT		= 1 << 11,	/**< At final shutdown, waiting EOF */
+	NODE_F_CLOSING		= 1 << 12,	/**< Initiated bye or shutdown */
+	NODE_F_ULTRA		= 1 << 13,	/**< Is one of our ultra nodes */
+	NODE_F_LEAF			= 1 << 14,	/**< Is one of our leaves */
+	NODE_F_CRAWLER		= 1 << 15,	/**< Is a Gnutella Crawler */
+	NODE_F_FAKE_NAME	= 1 << 16,	/**< Was unable to validate GTKG name */
+	NODE_F_PROXY		= 1 << 17,	/**< Sent a push-proxy request to it */
+	NODE_F_PROXIED		= 1 << 18,	/**< We are push-proxy for that node */
+	NODE_F_QRP_SENT		= 1 << 19,	/**< Undergone 1 complete QRP sending */
+	NODE_F_TLS			= 1 << 20,	/**< TLS-tunneled */
+	NODE_F_TSYNC_WAIT	= 1 << 21,	/**< Time sync pending via TCP */
+	NODE_F_TSYNC_TCP	= 1 << 22,	/**< No replies via UDP, use TCP */
+	NODE_F_GTKG			= 1 << 23,	/**< Node is another gtk-gnutella */
+	NODE_F_FORCE		= 1 << 24,	/**< Connection is forced */
+	NODE_F_NO_OOB_PROXY	= 1 << 25	/**< Do not OOB proxy the leaf */
+};
 
 /*
  * Node attributes.
  */
 
-#define NODE_A_BYE_PACKET	0x00000001 /**< Supports Bye-Packet */
-#define NODE_A_PONG_CACHING	0x00000002 /**< Supports Pong-Caching */
-#define NODE_A_PONG_ALIEN	0x00000004 /**< Alien Pong-Caching scheme */
-#define NODE_A_QHD_NO_VTAG	0x00000008 /**< Servent has no vendor tag in QHD */
-#define NODE_A_RX_INFLATE	0x00000010 /**< Reading compressed data */
-#define NODE_A_TX_DEFLATE	0x00000020 /**< Sending compressed data */
-#define NODE_A_ULTRA		0x00000040 /**< Node wants to be an Ultrapeer */
-#define NODE_A_NO_ULTRA		0x00000080 /**< Node is NOT ultra capable */
-#define NODE_A_UP_QRP		0x00000100 /**< Supports intra-UP QRP */
-#define NODE_A_GUIDANCE		0x00000200 /**< Can leaf-guide dyn queries */
-#define NODE_A_TIME_SYNC	0x00000400 /**< Supports time sync */
-#define NODE_A_CRAWLABLE	0x00000800 /**< Node can be UDP-crawled */
-#define NODE_A_DYN_QUERY	0x00001000 /**< Node can perform dynamic queries */
-#define NODE_A_CAN_SFLAG	0x00002000 /**< Node supports flags in headers */
+enum {
+	NODE_A_BYE_PACKET	= 1 << 0,	/**< Supports Bye-Packet */
+	NODE_A_PONG_CACHING	= 1 << 1,	/**< Supports Pong-Caching */
+	NODE_A_PONG_ALIEN	= 1 << 2,	/**< Alien Pong-Caching scheme */
+	NODE_A_QHD_NO_VTAG	= 1 << 3,	/**< Servent has no vendor tag in QHD */
+	NODE_A_RX_INFLATE	= 1 << 4,	/**< Reading compressed data */
+	NODE_A_TX_DEFLATE	= 1 << 5,	/**< Sending compressed data */
+	NODE_A_ULTRA		= 1 << 6,	/**< Node wants to be an Ultrapeer */
+	NODE_A_NO_ULTRA		= 1 << 7,	/**< Node is NOT ultra capable */
+	NODE_A_UP_QRP		= 1 << 8,	/**< Supports intra-UP QRP */
+	NODE_A_GUIDANCE		= 1 << 9,	/**< Can leaf-guide dyn queries */
+	NODE_A_TIME_SYNC	= 1 << 10,	/**< Supports time sync */
+	NODE_A_CRAWLABLE	= 1 << 11,	/**< Node can be UDP-crawled */
+	NODE_A_DYN_QUERY	= 1 << 12,	/**< Node can perform dynamic queries */
+	NODE_A_CAN_SFLAG	= 1 << 13,	/**< Node supports flags in headers */
  
-#define NODE_A_NO_KEPT_ZERO	0x01000000 /**< For GTKG < 2006-08-15: no kept=0! */
-#define NODE_A_NO_DUPS		0x02000000 /**< For broken old GTKG: no dups! */
-#define NODE_A_CAN_HSEP		0x04000000 /**< Node supports HSEP */
-#define NODE_A_CAN_QRP		0x08000000 /**< Node supports query routing */
-#define NODE_A_CAN_VENDOR	0x10000000 /**< Node supports vendor messages */
-#define NODE_A_CAN_ULTRA	0x40000000 /**< Node is ultra capable */
-#define NODE_A_CAN_INFLATE	0x80000000 /**< Node capable of inflating */
+	NODE_A_NO_KEPT_ZERO	= 1 << 14,	/**< For GTKG < 2006-08-15: no kept=0! */
+	NODE_A_NO_DUPS		= 1 << 15,	/**< For broken old GTKG: no dups! */
+	NODE_A_CAN_HSEP		= 1 << 16,	/**< Node supports HSEP */
+	NODE_A_CAN_QRP		= 1 << 17,	/**< Node supports query routing */
+	NODE_A_CAN_VENDOR	= 1 << 18,	/**< Node supports vendor messages */
+	NODE_A_CAN_ULTRA	= 1 << 19,	/**< Node is ultra capable */
+	NODE_A_CAN_INFLATE	= 1 << 20	/**< Node capable of inflating */
+};
  
 /*
  * UDP crawling "feature" flags.
