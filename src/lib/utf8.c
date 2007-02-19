@@ -1575,7 +1575,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12886 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 12889 "))
 		utf8_regression_checks();
 
 	locale_init_passed = TRUE;
@@ -1611,7 +1611,7 @@ locale_close(void)
  *
  * @param cd an iconv context; if it is (iconv_t) -1, NULL will be returned.
  * @param dst the destination buffer; may be NULL IFF dst_size is zero.
- * @param dst_left no document.
+ * @param dst_size the size of the destination buffer in bytes.
  * @param src the source string to convert.
  * @param abort_on_error If TRUE, the conversion is be aborted and zero
  *						 is returned on any error. Otherwise, if iconv()
@@ -1623,14 +1623,13 @@ locale_close(void)
  *         trailing NUL. Otherwise, zero is returned.
  */
 static size_t
-complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src,
+complete_iconv(iconv_t cd, gchar *dst, const size_t dst_size, const gchar *src,
 	gboolean abort_on_error)
 {
-	const gchar * const dst0 = dst;
-	size_t src_left;
+	size_t src_left, size = 0;
 
 	g_assert(src);
-	g_assert(0 == dst_left || dst);
+	g_assert(0 == dst_size || dst);
 
 	if ((iconv_t) -1 == cd) {
 		if (common_dbg > 1)
@@ -1647,7 +1646,6 @@ complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src,
 	}
 
 	src_left = strlen(src);
-
 	while (src_left > 0) {
 		gchar buf[4096];
 		size_t ret, n_read, n_written;
@@ -1667,12 +1665,11 @@ complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src,
 			src_left -= n_read;
 		}
 
-		if (dst0 && dst_left > 1) {
-			size_t n_copy = MIN(n_written, dst_left - 1);
-			memcpy(dst, buf, n_copy);
-			dst_left -= n_copy;
+		size += n_written;
+		if (dst_size > size) {
+			memcpy(dst, buf, n_written);
+			dst += n_written;
 		}
-		dst += n_written;
 
 		if ((size_t) -1 == ret) {
 			gint e = errno;
@@ -1680,45 +1677,50 @@ complete_iconv(iconv_t cd, gchar *dst, size_t dst_left, const gchar *src,
 			if (common_dbg > 1)
 				g_warning("complete_iconv: iconv() failed: %s", g_strerror(e));
 
+			g_assert(E2BIG != e);
+			g_assert(EINVAL == e || EILSEQ == e);
+
 			if (EINVAL == e) {
 				/*
 				 * An invalid character may be caused by feeding only a part of
 				 * the input to iconv().
 				 */
-				if (n_read > 0)
+				if (n_read > 0 && src_left > 0)
 					continue;
 			}
 
-			if (abort_on_error)
-				goto error;
-
-			if (EILSEQ != e && EINVAL != e) {
-				errno = e;
+			if (abort_on_error) {
 				goto error;
 			} else {
 				size_t buf_size = sizeof buf;
-				gchar *buf_ptr = buf_ptr;
+				gchar *buf_ptr = buf;
 
 				/* reset state; iconv() might store a shift reset sequence */
 				if ((size_t) -1 == iconv(cd, NULL, NULL, &buf_ptr, &buf_size))
 					goto error;
 
-				n_written = (buf_ptr - buf) + 1;
-				if (dst0 && dst_left > n_written) {
-					dst_left -= n_written;
-					*dst = '_';
+				n_written = buf_ptr - buf;
+				size += n_written;
+				if (dst_size > size) {
+					memcpy(dst, buf, n_written);
+					dst += n_written;
 				}
-				dst += n_written;
-				src++;
-				src_left--;
+				size += 1;
+				if (dst_size > size) {
+					*dst++ = '_';
+				}
+				if (0 == n_read) {
+					src++;
+					src_left--;
+				}
 			}
 		}
 	}
 
-	if (dst0 && dst_left > 0)
+	if (dst_size > size)
 		*dst = '\0';
 
-	return (dst - dst0) + 1;
+	return size + 1;	/* Includes terminating NUL */
 
 error:
 	return 0;
@@ -5279,7 +5281,7 @@ regression_iconv_utf8_to_utf8(void)
 				UNI_NORM_NFC);
 }
 
-/*
+/**
  * Verify that each UTF-8 encoded codepoint is decoded to the same
  * codepoint.
  */
@@ -5315,6 +5317,21 @@ regression_utf8_bijection(void)
 		}
 #endif /* TEST_UTF8_DECODER */
 	}
+}
+
+/**
+ * Verify that unknown_to_utf8() works for some test cases.
+ * NOTE: Because unknown_to_utf8() falls back to the locale, the output
+ *		 can differ. Thus it only checks whether it crashes or not.
+ */
+static void
+regression_utf8_unknown_conversion(void)
+{
+	const gchar *input = "\xe6\x3f\x8b\x20\xe3\x3f\x99\xe3\x82\x8b\x20\xe3\x82\xb7\xe3\x3f\xb9";
+	const gchar *output;
+
+	output = unknown_to_utf8(input, NULL);
+	g_assert(output);
 }
 
 #if defined(TEST_UTF8_DECODER)
@@ -5854,6 +5871,7 @@ utf8_regression_checks(void)
 	REGRESSION(bug_1211413);
 	REGRESSION(iconv_utf8_to_utf8);
 	REGRESSION(utf8_bijection);
+	REGRESSION(utf8_unknown_conversion);
 
 #if defined(TEST_UTF8_DECODER)
 	REGRESSION(utf8_decoder);
