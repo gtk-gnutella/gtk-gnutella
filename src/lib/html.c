@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "lib/html.h"
 #include "lib/html_entities.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -298,6 +299,50 @@ html_output_get_udata(struct html_output *output)
 	return output->udata;
 }
 
+static enum html_attr
+parse_attribute(const struct array attr)
+{
+	static const struct {
+		const char *name;
+		enum html_attr attr;
+	} tab[] = {
+#define D(x) { #x, HTML_ATTR_ ## x, }
+		D(ALT),
+		D(HEIGHT),
+		D(HREF),
+		D(NAME),
+		D(SRC),
+		D(TARGET),
+		D(WIDTH),
+#undef D
+	};
+	size_t i, len;
+	char name[32];
+
+	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_ATTR - 1);
+	
+	len = 0;
+	for (i = 0; i < attr.size; i++) {
+		const unsigned char c = attr.data[i];
+
+		if (G_N_ELEMENTS(name) == len || !is_ascii_alpha(c))
+			break;
+
+		name[len] = ascii_toupper(c);
+		len++;
+	}
+
+	if (len > 0 && len < (int)G_N_ELEMENTS(name)) {
+		name[len] = '\0';
+		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+			if (0 == strcmp(name, tab[i].name))
+				return tab[i].attr;
+		}
+		g_warning("Unknown attribute: \"%s\"", name);
+	}
+	return HTML_ATTR_UNKNOWN;
+}
+
 static enum html_tag
 parse_tag(const struct array tag)
 {
@@ -313,7 +358,6 @@ parse_tag(const struct array tag)
 		D(BR),
 		D(COL),
 		D(CODE),
-		{ "!--", HTML_TAG_COMMENT },
 		D(DD),
 		D(DIV),
 		D(DL),
@@ -324,6 +368,7 @@ parse_tag(const struct array tag)
 		D(H3),
 		D(H4),
 		D(H5),
+		D(H6),
 		D(HR),
 		D(HEAD),
 		D(HTML),
@@ -345,30 +390,33 @@ parse_tag(const struct array tag)
 		D(THEAD),
 		D(TITLE),
 		D(TR),
+		D(TT),
 		D(UL),
+		{ "!--",		HTML_TAG_COMMENT },
+		{ "!DOCTYPE",	HTML_TAG_DOCTYPE },
 #undef D
 	};
 	size_t i, len;
 	char name[32];
 
-	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_TAGS);
+	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_TAG);
 	
 	len = 0;
 	for (i = 0; i < tag.size; i++) {
 		const unsigned char c = tag.data[i];
 
-		if (G_N_ELEMENTS(name) == len || !isascii(c))
+		if (G_N_ELEMENTS(name) == len)
 			break;
 
 		if (0 == len) {
 			if ('/' == c && 0 == i)
 				continue;
-			if (!isalnum(c) && '!' != c && '?' != c)
+			if (!is_ascii_alnum(c) && '!' != c && '?' != c)
 				break;
-		} else if (!isalnum(c) && '-' != c) {
+		} else if (!is_ascii_alnum(c) && '-' != c) {
 			break;
 		}
-		name[len] = isupper(c) ? c : toupper(c);
+		name[len] = ascii_toupper(c);
 		len++;
 	}
 
@@ -402,6 +450,86 @@ html_parse_tag(const struct array *tag)
 	}
 }
 
+struct array
+html_get_attribute(const struct array *tag, enum html_attr attribute)
+{
+	size_t i = 0;
+
+	if (
+		!tag || !tag->data ||
+		NUM_HTML_ATTR == attribute || HTML_ATTR_UNKNOWN == attribute
+	)
+		goto not_found;
+
+	/**
+	   <tag-name>([<space>][<attr>[<space>]'='[<space>]'"'<value>'"'])*
+	 */
+			
+	/* skip <tag-name> */
+	while (i < tag->size && !is_ascii_space(tag->data[i]))
+		i++;
+
+	while (i < tag->size) {
+		struct array value, attr;
+
+		/* skip <space> */
+		while (i < tag->size && is_ascii_space(tag->data[i]))
+			i++;
+
+		attr = array_init(&tag->data[i], tag->size - i);
+
+		/* skip <attr> */
+		while (i < tag->size) {
+			const unsigned char c = tag->data[i];
+			if ('=' == c || is_ascii_space(c))
+				break;
+			i++;
+		}
+
+		/* skip <space> */
+		while (i < tag->size && is_ascii_space(tag->data[i]))
+			i++;
+
+		if (i < tag->size && '=' == tag->data[i]) {
+			gboolean quoted;
+			size_t start;
+
+			i++;
+
+			/* skip <space> */
+			while (i < tag->size && is_ascii_space(tag->data[i]))
+				i++;
+
+			if (i < tag->size && '"' == tag->data[i]) {
+				i++;
+				quoted = TRUE;
+			}
+			start = i;
+
+			/* skip <value> */
+			while (i < tag->size) {
+				const unsigned char c = tag->data[i];
+				if (quoted) {
+					if ('"' == c)
+						break;
+				} else if (is_ascii_space(c)) {
+					break;
+				}
+				i++;
+			}
+			value = array_init(&tag->data[start], i - start);
+		} else {
+			value = array_init(&tag->data[i], 0);
+		}
+
+		if (attribute == parse_attribute(attr))
+			return value;
+	}
+
+not_found:	
+	return zero_array;
+}
+
 static void
 render_tag(struct render_context *ctx, const struct array tag)
 {
@@ -424,9 +552,9 @@ parse_named_entity(const struct array entity)
 	for (i = 0; i < entity.size; i++) {
 		const unsigned char c = entity.data[i];
 
-		if (len >= G_N_ELEMENTS(name) - 1 || !isascii(c) || !isalnum(c))
+		if (len >= G_N_ELEMENTS(name) - 1 || !is_ascii_alnum(c))
 			goto error;
-		name[len] = isupper(c) ? c : toupper(c);
+		name[len] = ascii_toupper(c);
 		len++;
 	}
 
@@ -449,35 +577,29 @@ static guint32
 parse_numeric_entity(const struct array entity)
 {
 	if (entity.size > 1 && '#' == entity.data[0]) {
-		unsigned char c;
 		unsigned base;
 		guint32 v;
 		size_t i;
 
-		i = 1;
-		c = entity.data[i];
-		if ('x' == c || 'X' == c) {
+		switch (entity.data[0]) {
+		case 'x':
+		case 'X':
 			base = 16;
-			i++;
-		} else {
+			i = 1;
+			break;
+		default:
 			base = 10;
+			i = 0;
 		}
 		v = 0;
-		for (/* NOTHING */; i < entity.size; i++) {
-			static const char hexa[] = "0123456789abcdef";
-			const char *p;
-
-			c = entity.data[i];
-			if (!isascii(c))
-				goto error;
-			p = memchr(hexa, tolower(c), sizeof hexa - 1);
-			if (!p)
-				goto error;
-			c = p - hexa;
-			if (c > base)
+		while (i < entity.size) {
+			int d;
+			
+			d = hex2int_inline(entity.data[i++]);
+			if (d < 0 || d + 0U > base)
 				goto error;
 
-			v = v * 10 + c;
+			v = v * base + d;
 			if (v >= 0x10ffffU)
 				goto error;
 		}
@@ -498,7 +620,7 @@ parse_entity(const struct array entity)
 
 		if ('#' == c) {
 			return parse_numeric_entity(entity);
-		} else if (isascii(c) && isalpha(c)) {
+		} else if (is_ascii_alpha(c)) {
 			return parse_named_entity(entity);
 		}
 	}
@@ -541,7 +663,7 @@ render_text(struct render_context *ctx, const struct array text)
 
 		is_whitespace = FALSE;
 		c_len = utf8_first_byte_length_hint(c);
-		if (!ctx->preformatted && isascii(c) && isspace(c)) {
+		if (!ctx->preformatted && is_ascii_space(c)) {
 			if (whitespace)
 				continue;
 			is_whitespace = TRUE;
@@ -549,7 +671,7 @@ render_text(struct render_context *ctx, const struct array text)
 			if (0x20 == c && i > 0 && i < text.size - c_len) {
 				const unsigned char next_c = text.data[i + c_len];
 
-				if (!(isascii(next_c) && isspace(next_c)))
+				if (!is_ascii_space(next_c))
 					is_whitespace = FALSE;
 			}
 		} else {

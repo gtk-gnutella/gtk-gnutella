@@ -40,8 +40,23 @@
 
 #include "lib/array.h"
 
+enum html_attr {
+	HTML_ATTR_UNKNOWN,
+
+	HTML_ATTR_ALT,
+	HTML_ATTR_HEIGHT,
+	HTML_ATTR_HREF,
+	HTML_ATTR_NAME,
+	HTML_ATTR_SRC,
+	HTML_ATTR_TARGET,
+	HTML_ATTR_WIDTH,
+
+	NUM_HTML_ATTR
+};
+
 enum html_tag {
 	HTML_TAG_UNKNOWN,
+
 	HTML_TAG_A,
 	HTML_TAG_B,
 	HTML_TAG_BODY,
@@ -49,6 +64,7 @@ enum html_tag {
 	HTML_TAG_CODE,
 	HTML_TAG_COL,
 	HTML_TAG_COMMENT,
+	HTML_TAG_DOCTYPE,
 	HTML_TAG_DD,
 	HTML_TAG_DIV,
 	HTML_TAG_DL,
@@ -59,6 +75,7 @@ enum html_tag {
 	HTML_TAG_H3,
 	HTML_TAG_H4,
 	HTML_TAG_H5,
+	HTML_TAG_H6,
 	HTML_TAG_HEAD,
 	HTML_TAG_HTML,
 	HTML_TAG_HR,
@@ -80,9 +97,10 @@ enum html_tag {
 	HTML_TAG_THEAD,
 	HTML_TAG_TITLE,
 	HTML_TAG_TR,
+	HTML_TAG_TT,
 	HTML_TAG_UL,
 
-	NUM_HTML_TAGS
+	NUM_HTML_TAG
 };
 
 struct html_output;
@@ -96,6 +114,8 @@ void html_output_set_tag(struct html_output *output,
 void *html_output_get_udata(struct html_output *output);
 enum html_tag html_parse_tag(const struct array *tag);
 gboolean html_tag_is_closing(const struct array *tag);
+struct array html_get_attribute(const struct array *tag,
+			enum html_attr attribute);
 void html_output_free(struct html_output **output_ptr);
 
 int html_load_file(struct html_output *output, int fd);
