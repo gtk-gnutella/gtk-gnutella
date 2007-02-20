@@ -450,10 +450,10 @@ parse_numeric_entity(const struct array entity)
 		}
 		v = 0;
 		while (i < entity.size) {
-			int d;
+			unsigned d;
 			
 			d = hex2int_inline(entity.data[i++]);
-			if (d < 0 || d + 0U >= base)
+			if (d >= base)
 				goto error;
 
 			v = v * base + d;
