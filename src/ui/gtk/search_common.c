@@ -129,7 +129,7 @@ gui_color_set(const enum gui_color id, GdkColor *color)
 }
 
 void
-gui_color_init(void)
+gui_color_init(GtkWidget *widget)
 {
     GdkColormap *cmap;
 	guint i;
@@ -145,6 +145,10 @@ gui_color_init(void)
 		gdk_color_parse(colors[i].spec, &color);
 		gdk_colormap_alloc_color(cmap, &color, FALSE, TRUE);
 		gui_color_set(colors[i].id, &color);
+	}
+	if (widget) {
+		gui_color_set(GUI_COLOR_DEFAULT,
+			&gtk_widget_get_style(GTK_WIDGET(widget))->fg[GTK_STATE_NORMAL]);
 	}
 }
 
@@ -954,8 +958,6 @@ search_gui_common_init(void)
 	
     gtk_combo_set_case_sensitive(
         GTK_COMBO(gui_main_window_lookup("combo_search")), TRUE);
-
-	gui_color_init();
 }
 
 /**

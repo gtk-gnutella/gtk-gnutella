@@ -2089,6 +2089,7 @@ search_gui_init(void)
 	search_gui_common_init();
 
 	gui_search_create_ctree(&default_scrolled_window, &default_search_ctree);
+	gui_color_init(GTK_WIDGET(default_search_ctree));
     gtk_notebook_remove_page(notebook, 0);
 	gtk_notebook_set_scrollable(notebook, TRUE);
 	gtk_notebook_append_page(notebook, default_scrolled_window, NULL);

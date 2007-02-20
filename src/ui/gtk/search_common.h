@@ -127,7 +127,7 @@ enum gui_color {
 	NUM_GUI_COLORS
 };
 
-void gui_color_init(void);
+void gui_color_init(GtkWidget *widget);
 GdkColor *gui_color_get(enum gui_color id);
 void gui_color_set(const enum gui_color id, GdkColor *color);
 void gui_search_get_colors(search_t *sch,

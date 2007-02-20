@@ -288,7 +288,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	g_object_set(cell,
 		"text", text,
 		"foreground-gdk", gui_color_get(data->color),
-		"background-gdk", NULL,
+		"background-gdk", (void *) 0,
 		(void *) 0);
 }
 
@@ -1695,6 +1695,7 @@ search_gui_init(void)
 		"row-deleted", G_CALLBACK(on_search_list_row_deleted), NULL);
 	gui_search_create_tree_view(&default_scrolled_window,
 		&default_search_tree_view, NULL);
+	gui_color_init(GTK_WIDGET(default_search_tree_view));
     gtk_notebook_remove_page(notebook_search_results, 0);
 	gtk_notebook_set_scrollable(notebook_search_results, TRUE);
 	gtk_notebook_append_page(notebook_search_results,
@@ -1786,6 +1787,7 @@ selection_counter(GtkTreeView *tv)
 static gint
 selection_counter(GtkTreeView *tv)
 {
+	g_return_val_if_fail(tv, 0);
 	return 1;	/* Pretend there's at least one selected row */
 }
 #endif	/* 0 */
