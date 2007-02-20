@@ -4093,6 +4093,9 @@ download_push(struct download *d, gboolean on_timeout)
 
 	g_assert(d->push);
 
+	if (download_send_push_request(d))
+		return;
+
 	/*
 	 * Before sending a push on Gnet, look whether we have some push-proxies
 	 * available for the server.
@@ -4100,9 +4103,6 @@ download_push(struct download *d, gboolean on_timeout)
 	 */
 
 	if (use_push_proxy(d))
-		return;
-
-	if (download_send_push_request(d))
 		return;
 
 	if (!d->always_push) {
@@ -4213,7 +4213,10 @@ download_fallback_to_push(struct download *d,
 	download_check(d);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_warning("download_fallback_to_push() called on a queued download");
+		if (!d->push) {
+			download_push_insert(d);
+		}
+		return;
 	}
 
 	/* If we're receiving data or already sent push, we're wrong
@@ -5339,13 +5342,7 @@ download_send_push_request(struct download *d)
 	if (0 == port)
 		return FALSE;
 
-	/*
-	 * NB: we send the PUSH message with hard_ttl_limit, not my_ttl, in case
-	 * the message needs to be alternatively routed (the path the query hit
-	 * used has been broken).
-	 */
-
-	packet = build_push(&size, hard_ttl_limit, 0 /* Hops */,
+	packet = build_push(&size, my_ttl, 0 /* Hops */,
 				download_guid(d), listen_addr(), listen_addr6(), port,
 				d->record_index, supports_tls);
 
@@ -8859,7 +8856,10 @@ select_push_download(GSList *servers)
 			download_check(d);
 			g_assert(DOWNLOAD_IS_RUNNING(d));
 
-			if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
+			if (!DOWNLOAD_IS_EXPECTING_GIV(d))
+				continue;
+
+			if (d->socket == NULL) {
 				if (download_debug > 1) g_message(
 					"GIV: selected active download \"%s\" from %s at %s <%s>",
 					download_outname(d), guid_hex_str(server->key->guid),
@@ -8893,6 +8893,9 @@ select_push_download(GSList *servers)
 			download_check(d);
 			g_assert(!DOWNLOAD_IS_RUNNING(d));
 			g_assert(d->file_info);
+
+			if (!DOWNLOAD_IS_EXPECTING_GIV(d))
+				continue;
 
 			if (download_has_enough_active_sources(d))
 				continue;
@@ -9153,6 +9156,11 @@ download_push_ack(struct gnutella_socket *s)
 		g_message("mapped GIV \"%s\" to \"%s\" from %s <%s>",
 			giv, download_outname(d), host_addr_to_string(s->addr),
 			download_vendor_str(d));
+
+	if (d->io_opaque) {
+		g_warning("d->io_opaque is already set!");
+		goto discard;
+	}
 
 	/*
 	 * Install socket for the download.
