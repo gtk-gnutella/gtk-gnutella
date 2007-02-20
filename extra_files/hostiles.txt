@@ -26,13 +26,7 @@
 24.83.108.12
 24.84.58.65
 24.86.202.220
-#38.118.0.0/16
-#38.119.64.0/22
-38.144.195.0/24
-38.144.198.0/24
-38.144.68.0/24
-38.144.72.0/24
-38.144.96.0/24
+38.144.0.0/16
 63.148.99.224/27
 64.14.0.0/16
 64.156.27.93
@@ -115,6 +109,7 @@
 # There are certainly non-hostile hosts but it's not worth or possible to
 # differ.
 38.112.0.0/12
+38.100.0.0/16
 
 64.15.0.0/16
 66.186.39.0/26
@@ -245,6 +240,7 @@
 70.84.168.80/28
 70.85.234.0/28
 74.52.0.0/17
+69.93.107.0/24
 
 # Generic pr0n spammer, adds search term to filenames (mostly WMVs)
 63.243.162.0/27
@@ -302,7 +298,6 @@
 
 # WMV spammer with over-sensitive buzzword sensor; fake LimeWire; giFT-based
 38.96.5.128/26
-38.100.232.193
 
 # Gnucleus-based DRM WMV spammer hosted by GoDaddy
 68.178.200.89
@@ -452,8 +447,6 @@
 72.11.158.128/27
 216.144.227.64/26
 216.144.235.64/26
-38.100.236.0/28
-38.100.228.161
 
 # MOV pr0n spammer; giFT-based; links to i2cams dot com.
 204.69.64.0/18
@@ -554,7 +547,6 @@
 66.232.99.34
 66.232.99.186
 66.232.99.218
-38.100.229.105
 
 # MOV spammer; adds dozens hundreds of fake alt-locs; links to p2pblast com
 # LimeWire-based
