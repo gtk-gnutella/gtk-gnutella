@@ -687,7 +687,7 @@ handle_push_request(struct gnutella_node *n)
 			return;
 		break;
 	default:
-		g_assert(0);
+		g_assert_not_reached();
 	}
 
 	/*
