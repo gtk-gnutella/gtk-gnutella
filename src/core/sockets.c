@@ -2505,6 +2505,13 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	socket_check(s);
 
+	if (!(s->flags & SOCK_F_FORCE) && hostiles_check(addr)) {
+		g_warning("Not connecting to hostile host %s",
+			host_addr_to_string(addr));
+		errno = EPERM;
+		return -1;
+	}
+
 	if (0 == (SOCK_F_TLS & flags) && tls_cache_lookup(addr, port)) {
 		flags |= SOCK_F_TLS;
 	}
