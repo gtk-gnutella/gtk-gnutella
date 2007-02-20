@@ -45,6 +45,8 @@ RCSID("$Id$")
  *** Private functions
  ***/
 
+static struct html_view *faq_html_view;
+
 static void
 load_faq(void)
 {
@@ -54,6 +56,8 @@ load_faq(void)
 	const gchar *lang;
 	guint i = 0;
 	FILE *f;
+
+	html_view_free(&faq_html_view);
 
 	textview = gui_dlg_faq_lookup("textview_faq");
 	lang = locale_get_language();
@@ -73,7 +77,7 @@ load_faq(void)
 
 	f = file_config_open_read_norename("FAQ", fp, i);
 	if (f) {
-		html_view_load_file(textview, fileno(f));
+		faq_html_view = html_view_load_file(textview, fileno(f));
 		fclose(f);
 	} else {
 		static const gchar msg[] =
@@ -85,7 +89,7 @@ load_faq(void)
 			"</p></body></html>"
 		);
 
-		html_view_load_memory(textview, array_from_string(msg));
+		faq_html_view = html_view_load_memory(textview, array_from_string(msg));
 	}
 }
 
@@ -226,7 +230,7 @@ on_dlg_faq_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 
 	g_return_val_if_fail(gui_dlg_faq(), TRUE);
 
-	html_view_clear(gui_dlg_faq_lookup("textview_faq"));
+	html_view_free(&faq_html_view);
 	gtk_widget_hide(gui_dlg_faq());
 	return TRUE;
 }

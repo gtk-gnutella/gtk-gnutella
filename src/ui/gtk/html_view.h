@@ -31,8 +31,12 @@
 #include "gui.h"
 #include "lib/array.h"
 
-void html_view_load_file(GtkWidget *textview, int fd);
-void html_view_load_memory(GtkWidget *textview, const struct array memory);
-void html_view_clear(GtkWidget *textview);
+struct html_view;
+
+struct html_view *html_view_load_file(GtkWidget *textview, int fd);
+struct html_view *html_view_load_memory(GtkWidget *textview,
+			const struct array memory);
+void html_view_clear(struct html_view *html_view);
+void html_view_free(struct html_view **html_view_ptr);
 
 #endif /* _gtk_html_view_h_ */
