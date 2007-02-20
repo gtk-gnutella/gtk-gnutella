@@ -338,8 +338,7 @@ static const guint8 utf8len_mark[] = {
 #define UNI_BYTE_ORDER_MARK		0xfffe
 #define UNI_ILLEGAL				0xffff
 
-#define UNICODE_IS_SURROGATE(x)	\
-	((x) >= UNI_SURROGATE_FIRST && (x) <= UNI_SURROGATE_LAST)
+#define UNICODE_IS_SURROGATE(x)	utf32_is_surrogate(x)
 
 #define UNICODE_IS_HANGUL(x)	\
 	((x) >= UNI_HANGUL_FIRST && (x) <= UNI_HANGUL_LAST)
@@ -485,19 +484,6 @@ utf32_composition_exclude(guint32 uc)
 #undef FOUND
 #undef GET_ITEM
 	return FALSE;
-}
-
-/**
- * Checks whether the character is a non-character which is not the
- * same as an unassigned character.
- *
- * @param uc an UTF-32 character
- * @return TRUE if the the character is a non-character, FALSE otherwise.
- */
-static inline gboolean
-utf32_is_non_character(guint32 uc)
-{
-	return 0xfffeU == (uc & 0xfffeU) || (uc >= 0xfdd0U && uc <= 0xfdefU);
 }
 
 static inline gint
