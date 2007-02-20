@@ -244,7 +244,7 @@
 # DRM WMV spammer; giFT-based
 70.84.168.80/28
 70.85.234.0/28
-74.52.89.240/28
+74.52.0.0/17
 
 # Generic pr0n spammer, adds search term to filenames (mostly WMVs)
 63.243.162.0/27
@@ -432,9 +432,6 @@
 # Another range of Level 3; there are many buggy modded clients in these
 # ranges probably engaged in sabotage
 8.9.196.0/22
-
-# swapexits.com; DRM license server
-74.52.9.122
 
 # DRM WMV pr0n spammer; filenames are all caps; license server is 74.52.9.122
 88.85.65.130
