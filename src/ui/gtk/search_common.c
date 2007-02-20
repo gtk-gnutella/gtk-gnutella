@@ -103,7 +103,7 @@ static struct {
 	const enum gui_color id;
 	GdkColor color;
 } colors[] = {
-	{ NULL,			GUI_COLOR_DEFAULT,		{ 0, 0, 0, 0 } },
+	{ "#000000",	GUI_COLOR_DEFAULT,		{ 0, 0, 0, 0 } },
 	{ "#326732",	GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } },
 	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },
 	{ "#7F7F7F",	GUI_COLOR_IGNORED,		{ 0, 0, 0, 0 } },
@@ -125,10 +125,9 @@ gui_color_init(void)
 
 	for (i = 0; i < NUM_GUI_COLORS; i++) {
 		g_assert(colors[i].id == i);
-		if (colors[i].spec) {
-			gdk_color_parse(colors[i].spec, &colors[i].color);
-			gdk_colormap_alloc_color(cmap, &colors[i].color, FALSE, TRUE);
-		}
+		g_assert(colors[i].spec);
+		gdk_color_parse(colors[i].spec, &colors[i].color);
+		gdk_colormap_alloc_color(cmap, &colors[i].color, FALSE, TRUE);
 	}
 }
 
