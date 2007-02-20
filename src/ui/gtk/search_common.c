@@ -113,6 +113,21 @@ static struct {
 	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
 };
 
+GdkColor *
+gui_color_get(const enum gui_color id)
+{
+	g_assert((guint) id <= NUM_GUI_COLORS);
+	return &colors[(guint) id].color;
+}
+
+void
+gui_color_set(const enum gui_color id, GdkColor *color)
+{
+	g_assert((guint) id <= NUM_GUI_COLORS);
+	g_return_if_fail(color);
+	colors[(guint) id].color = *color;
+}
+
 void
 gui_color_init(void)
 {
@@ -124,18 +139,13 @@ gui_color_init(void)
     g_assert(cmap);
 
 	for (i = 0; i < NUM_GUI_COLORS; i++) {
-		g_assert(colors[i].id == i);
-		g_assert(colors[i].spec);
-		gdk_color_parse(colors[i].spec, &colors[i].color);
-		gdk_colormap_alloc_color(cmap, &colors[i].color, FALSE, TRUE);
-	}
-}
+		GdkColor color;
 
-GdkColor *
-gui_color_get(const enum gui_color id)
-{
-	g_assert((guint) id <= NUM_GUI_COLORS);
-	return &colors[(guint) id].color;
+		g_assert(colors[i].id == i);
+		gdk_color_parse(colors[i].spec, &color);
+		gdk_colormap_alloc_color(cmap, &color, FALSE, TRUE);
+		gui_color_set(colors[i].id, &color);
+	}
 }
 
 search_t *

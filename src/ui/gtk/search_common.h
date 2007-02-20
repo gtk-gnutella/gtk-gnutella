@@ -129,6 +129,7 @@ enum gui_color {
 
 void gui_color_init(void);
 GdkColor *gui_color_get(enum gui_color id);
+void gui_color_set(const enum gui_color id, GdkColor *color);
 void gui_search_get_colors(search_t *sch,
 		GdkColor **mark_color, GdkColor **ignore_color);
 
