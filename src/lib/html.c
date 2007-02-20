@@ -432,27 +432,28 @@ error:
 static guint32
 parse_numeric_entity(const struct array entity)
 {
-	if (entity.size > 1 && '#' == entity.data[0]) {
+	size_t i = 0;
+
+	if (i < entity.size && '#' == entity.data[i]) {
 		unsigned base;
 		guint32 v;
-		size_t i;
 
-		switch (entity.data[0]) {
+		i++;
+		switch (entity.data[i]) {
 		case 'x':
 		case 'X':
 			base = 16;
-			i = 1;
+			i++;
 			break;
 		default:
 			base = 10;
-			i = 0;
 		}
 		v = 0;
 		while (i < entity.size) {
 			int d;
 			
 			d = hex2int_inline(entity.data[i++]);
-			if (d < 0 || d + 0U > base)
+			if (d < 0 || d + 0U >= base)
 				goto error;
 
 			v = v * base + d;
