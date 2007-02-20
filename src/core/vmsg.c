@@ -427,10 +427,25 @@ static void
 handle_udp_connect_back(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
+	const gchar *guid;
+	size_t expected_size;
 	guint16 port;
-	gchar guid_buf[GUID_RAW_SIZE];
 
-	g_assert(vmsg->version <= 2);
+	g_assert(vmsg->version >= 1 && vmsg->version <= 2);
+
+	expected_size = sizeof(port);
+	if (vmsg->version < 2) {
+		expected_size += GUID_RAW_SIZE;
+	}
+	if (VMSG_CHECK_SIZE(n, vmsg, size, expected_size))
+		return;
+
+	port = peek_le16(payload);
+	if (0 == port) {
+		g_warning("got improper port #%d in %s from %s <%s>",
+			port, vmsg->name, node_addr(n), node_vendor(n));
+		return;
+	}
 
 	/*
 	 * Version 1 included the GUID at the end of the payload.
@@ -438,32 +453,15 @@ handle_udp_connect_back(struct gnutella_node *n,
 	 * of the PING to send back.
 	 */
 
-	switch (vmsg->version) {
-	case 1:
-		if (VMSG_CHECK_SIZE(n, vmsg, size, 18))
-			return;
+	if (vmsg->version == 1) {
 		/* Get GUID from payload */
-		memcpy(guid_buf, &payload[2], 16);
-		break;
-	case 2:
-		if (VMSG_CHECK_SIZE(n, vmsg, size, 2))
-			return;
+		guid = &payload[2];
+	} else {
 		/* Get GUID from MUID */
-		memcpy(guid_buf, gnutella_header_get_muid(&n->header), 16);
-		break;
-	default:
-		g_assert_not_reached();
+		guid = gnutella_header_get_muid(&n->header);
 	}
 
-	port = peek_le16(payload);
-
-	if (port == 0) {
-		g_warning("got improper port #%d in %s from %s <%s>",
-			port, vmsg->name, node_addr(n), node_vendor(n));
-		return;
-	}
-
-	udp_connect_back(n->addr, port, guid_buf);
+	udp_connect_back(n->addr, port, guid);
 }
 
 /**
