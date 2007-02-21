@@ -57,8 +57,8 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+static const time_delta_t tls_cache_max_time = 12 * 3600;
 static const size_t tls_cache_max_items = 10000;
-static const size_t tls_cache_max_time = 12 * 3600;
 
 #ifdef HAS_SQLITE
 
@@ -235,9 +235,7 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 
 		step = gdb_stmt_step(stmt);
 		if (GDB_STEP_ROW == step) {
-			const time_delta_t max_delta = tls_cache_max_time;
-			time_t seen, now;
-			time_delta_t delta;
+			time_t seen;
 			gint64 value;
 
 			value = gdb_stmt_column_int64(stmt, 0);
@@ -253,9 +251,7 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 			} else {
 				seen = value;
 			}
-			now = tm_time();
-			delta = delta_time(now, seen);
-			delete = delta < 0 || delta > max_delta;
+			delete = tls_cache_item_expired(seen, tm_time());
 			found = !delete;
 		} else if (GDB_STEP_DONE != step) {
 			g_warning("%s: gdb_stmt_step() failed: %s",
@@ -343,6 +339,13 @@ struct tls_cache_item {
 	time_t seen;
 };
 
+static gboolean
+tls_cache_item_expired(time_t seen, time_t now)
+{
+	time_delta_t d = delta_time(now, seen);
+	return d < 0 || d > tls_cache_max_time;
+}
+
 static void
 tls_cache_remove_oldest(void)
 {
@@ -383,6 +386,11 @@ tls_cache_insert_intern(const struct tls_cache_item *item)
 	/* Remove the oldest host once we hit a reasonable limit */
 	if (hash_list_length(tls_hosts) > tls_cache_max_items) {
 		tls_cache_remove_oldest();
+	} else {
+		item = hash_list_head(tls_hosts);
+		if (item && tls_cache_item_expired(item->seen, tm_time())) {
+			tls_cache_remove_oldest();
+		}
 	}
 }
 
@@ -409,17 +417,12 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 		gnet_host_set(&item.host, addr, port);
 		if (hash_list_contains(tls_hosts, &item, &key)) {
 			struct tls_cache_item *item_ptr = deconstify_gpointer(key);
-			time_t now = tm_time();
-			time_delta_t upper_limit = tls_cache_max_time;
 			
-			if (
-				delta_time(now, item_ptr->seen) >= 0 && 
-				delta_time(now, item_ptr->seen) < upper_limit
-			) {
-				return TRUE;
-			} else {
+			if (tls_cache_item_expired(item_ptr->seen, tm_time())) {
 				hash_list_remove(tls_hosts, item_ptr);
 				wfree(item_ptr, sizeof *item_ptr);
+			} else {
+				return TRUE;
 			}
 		}
 	}
@@ -560,14 +563,14 @@ tls_cache_parse(FILE *f)
 				g_warning(
 					"Ignoring duplicate TLS cache item around line %u (%s)",
 				   	line_no, gnet_host_to_string(&item.host));
-			} else {
+			} else if (!tls_cache_item_expired(item.seen, tm_time())) {
 				tls_cache_insert_intern(&item);
 			}
 			
 			/* Reset state */
 			done = FALSE;
 			item = zero_item;
-			bit_array_clear_range(tag_used, 0, (guint) NUM_TLS_CACHE_TAGS - 1);
+			bit_array_clear_range(tag_used, 0, NUM_TLS_CACHE_TAGS - 1U);
 		}
 	}
 }
