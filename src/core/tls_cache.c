@@ -60,6 +60,13 @@ RCSID("$Id$")
 static const time_delta_t tls_cache_max_time = 12 * 3600;
 static const size_t tls_cache_max_items = 10000;
 
+static gboolean
+tls_cache_item_expired(time_t seen, time_t now)
+{
+	time_delta_t d = delta_time(now, seen);
+	return d < 0 || d > tls_cache_max_time;
+}
+
 #ifdef HAS_SQLITE
 
 static struct gdb_stmt *select_stmt;
@@ -338,13 +345,6 @@ struct tls_cache_item {
 	gnet_host_t host;
 	time_t seen;
 };
-
-static gboolean
-tls_cache_item_expired(time_t seen, time_t now)
-{
-	time_delta_t d = delta_time(now, seen);
-	return d < 0 || d > tls_cache_max_time;
-}
 
 static void
 tls_cache_remove_oldest(void)
