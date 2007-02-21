@@ -166,6 +166,7 @@ parse_attribute(const struct array attr)
 		D(ALT),
 		D(HEIGHT),
 		D(HREF),
+		D(LANG),
 		D(NAME),
 		D(SRC),
 		D(TARGET),
