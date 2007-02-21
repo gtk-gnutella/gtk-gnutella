@@ -16699,17 +16699,11 @@ create_dlg_faq (void)
 {
   GtkWidget *dlg_faq;
   GdkPixbuf *dlg_faq_icon_pixbuf;
-  GtkWidget *vbox146;
-  GtkWidget *frame143;
   GtkWidget *scrolledwindow80;
-  GtkWidget *viewport472;
   GtkWidget *textview_faq;
-  GtkWidget *label953;
-  GtkWidget *hseparator15;
 
   dlg_faq = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_faq, "dlg_faq");
-  gtk_window_set_title (GTK_WINDOW (dlg_faq), _("gtk-gnutella - Frequently Asked Questions"));
   gtk_window_set_position (GTK_WINDOW (dlg_faq), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_faq), 600, 400);
   dlg_faq_icon_pixbuf = create_pixbuf ("icon.xpm");
@@ -16719,46 +16713,20 @@ create_dlg_faq (void)
       gdk_pixbuf_unref (dlg_faq_icon_pixbuf);
     }
 
-  vbox146 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox146, "vbox146");
-  gtk_widget_show (vbox146);
-  gtk_container_add (GTK_CONTAINER (dlg_faq), vbox146);
-
-  frame143 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame143, "frame143");
-  gtk_widget_show (frame143);
-  gtk_box_pack_start (GTK_BOX (vbox146), frame143, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame143), 3);
-
   scrolledwindow80 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow80, "scrolledwindow80");
   gtk_widget_show (scrolledwindow80);
-  gtk_container_add (GTK_CONTAINER (frame143), scrolledwindow80);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow80), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-  viewport472 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport472, "viewport472");
-  gtk_widget_show (viewport472);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow80), viewport472);
+  gtk_container_add (GTK_CONTAINER (dlg_faq), scrolledwindow80);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow80), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
   textview_faq = gtk_text_view_new ();
   gtk_widget_set_name (textview_faq, "textview_faq");
   gtk_widget_show (textview_faq);
-  gtk_container_add (GTK_CONTAINER (viewport472), textview_faq);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow80), textview_faq);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (textview_faq), FALSE);
-  gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (textview_faq), FALSE);
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (textview_faq), GTK_WRAP_WORD);
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview_faq), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview_faq), 4);
-
-  label953 = gtk_label_new (_("Frequently Asked Questions:"));
-  gtk_widget_set_name (label953, "label953");
-  gtk_widget_show (label953);
-  gtk_frame_set_label_widget (GTK_FRAME (frame143), label953);
-
-  hseparator15 = gtk_hseparator_new ();
-  gtk_widget_set_name (hseparator15, "hseparator15");
-  gtk_widget_show (hseparator15);
-  gtk_box_pack_start (GTK_BOX (vbox146), hseparator15, FALSE, TRUE, 2);
 
   g_signal_connect ((gpointer) dlg_faq, "delete_event",
                     G_CALLBACK (on_dlg_faq_delete_event),
@@ -16766,13 +16734,8 @@ create_dlg_faq (void)
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_faq, dlg_faq, "dlg_faq");
-  GLADE_HOOKUP_OBJECT (dlg_faq, vbox146, "vbox146");
-  GLADE_HOOKUP_OBJECT (dlg_faq, frame143, "frame143");
   GLADE_HOOKUP_OBJECT (dlg_faq, scrolledwindow80, "scrolledwindow80");
-  GLADE_HOOKUP_OBJECT (dlg_faq, viewport472, "viewport472");
   GLADE_HOOKUP_OBJECT (dlg_faq, textview_faq, "textview_faq");
-  GLADE_HOOKUP_OBJECT (dlg_faq, label953, "label953");
-  GLADE_HOOKUP_OBJECT (dlg_faq, hseparator15, "hseparator15");
 
   gtk_widget_grab_focus (textview_faq);
   return dlg_faq;
