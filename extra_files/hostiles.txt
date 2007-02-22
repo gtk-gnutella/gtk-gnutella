@@ -284,7 +284,10 @@
 
 # getlaidquickly dot com; spam results for files which do not even exist;
 # seemingly just an attempt to make the website well-known
-38.99.20.0/23
+#38.99.20.0/23
+# WMA spam
+#38.99.253.0/24
+38.99.0.0/16
 
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
 63.216.80.0/24
