@@ -55,6 +55,7 @@ STYLE_TAG(HEADING_3)
 STYLE_TAG(HEADING_4)
 STYLE_TAG(ITALIC)
 STYLE_TAG(MONOSPACE)
+STYLE_TAG(STRETCH)
 STYLE_TAG(UNDERLINE)
 STYLE_TAG(WORD_WRAP)
 #undef STYLE_TAG
@@ -154,7 +155,6 @@ html_output_print(struct html_output *output, const struct array *text)
 		G_FREE_NULL(to_free);
 	}
 #endif
-
 }
 
 static inline const gchar *
@@ -169,7 +169,7 @@ get_style_for_href(const gchar *href)
 	return ':' == c ? STYLE_TAG_ANCHOR_EXTERN : STYLE_TAG_ANCHOR;
 }
 
-static short_string_t
+static inline short_string_t
 utf8_char(guint32 codepoint)
 {
 	short_string_t buf;
@@ -183,30 +183,30 @@ utf8_char(guint32 codepoint)
 
 static void
 html_output_tag(struct html_output *output, const struct array *tag)
+#if GTK_CHECK_VERSION(2,0,0)
 {
 	static struct {
 		gboolean initialized;
-		short_string_t centre_line, nbsp, bullet, soft_hyphen;
+		short_string_t centre_line, nbsp, bullet, soft_hyphen, em_dash;
 		short_string_t list_item_prefix;
 	} special;
 	struct html_context *ctx;
 	const gchar *style, *text, *attr;
 	enum html_tag id;
 	gboolean closing;
-#if GTK_CHECK_VERSION(2,0,0)
 	GtkTextBuffer *buffer;
-#endif
 
 	if (!special.initialized) {
 
 		special.initialized = TRUE;
-		special.bullet = utf8_char(locale_is_utf8() ? 0x2022 : 0x002D);
+		special.bullet = utf8_char(0x2022);
 		special.centre_line = utf8_char(0xFE4E);
 		special.soft_hyphen = utf8_char(0x00AD);
 		special.nbsp = utf8_char(0x00A0);
+		special.em_dash = utf8_char(0x2014);
 		concat_strings(special.list_item_prefix.str,
 			sizeof special.list_item_prefix.str,
-			special.nbsp.str, special.bullet.str, special.nbsp.str, (void *) 0);
+			" ", special.bullet.str, " ", (void *) 0);
 	}
 	
 	style = NULL;
@@ -215,10 +215,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 	closing = html_tag_is_closing(tag);
 	ctx = html_output_get_udata(output);
 	id = html_parse_tag(tag);
- 
-#if GTK_CHECK_VERSION(2,0,0)
 	buffer = gtk_text_view_get_buffer(ctx->html_view->widget);
-#endif
 
 	switch (id) {
 	case HTML_TAG_BODY:
@@ -226,7 +223,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		break;
 	case HTML_TAG_A:
 		if (closing) {
-#if GTK_CHECK_VERSION(2,0,0)
 			if (ctx->start[id] && ctx->href) {
 				GtkTextIter start, end;
 				GtkTextTag *anchor;
@@ -241,14 +237,11 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				style = get_style_for_href(ctx->href);
 				ctx->href = NULL;
 			}
-#else
-#endif
 		} else {
 			struct array value;
 
 			value = html_get_attribute(tag, HTML_ATTR_HREF);
 			if (value.data && value.size > 0) {
-#if GTK_CHECK_VERSION(2,0,0)
 				GtkTextIter iter;
 
 				ctx->href = g_strndup(value.data, value.size);
@@ -259,12 +252,9 @@ html_output_tag(struct html_output *output, const struct array *tag)
 										NULL, &iter, TRUE);
 				g_object_set_data(G_OBJECT(ctx->start[id]), "href",
 					deconstify_gchar(ctx->href));
-#else
-#endif
 			}
 			value = html_get_attribute(tag, HTML_ATTR_NAME);
 			if (value.data && value.size > 0) {
-#if GTK_CHECK_VERSION(2,0,0)
 				GtkTextTagTable *table;
 				gchar name[256];
 				size_t n;
@@ -282,8 +272,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 					gtk_text_buffer_get_end_iter(buffer, &iter);
 					gtk_text_buffer_create_mark(buffer, name, &iter, TRUE);
 				}
-#else
-#endif
 			}
 		}
 		break;
@@ -316,7 +304,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 			}
 			value = html_get_attribute(tag, HTML_ATTR_SRC);
 			if (value.data) {
-#if GTK_CHECK_VERSION(2,0,0)
 				GdkPixbuf *pixbuf;
 				gchar *filename;
 				GtkTextIter iter;
@@ -333,8 +320,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 					text = msg;
 				}
 				G_FREE_NULL(filename);
-#else
-#endif
 			}
 			if (!text) {
 				text = "\n[image]\n";
@@ -361,10 +346,38 @@ html_output_tag(struct html_output *output, const struct array *tag)
 	case HTML_TAG_DT:
 	case HTML_TAG_LI:
 		if (closing) {
-			text = "\n";
+			GtkTextIter start, end;
+			GtkTextTag *margin;
+			PangoLayout *pl;
+			gint width;
+
+			pl = pango_layout_new(gtk_widget_get_pango_context(
+						GTK_WIDGET(ctx->html_view->widget)));
+			pango_layout_set_text(pl, special.list_item_prefix.str, -1);
+			pango_layout_get_pixel_size(pl, &width, NULL);
+			g_object_unref(G_OBJECT(pl));
+
+			margin = gtk_text_buffer_create_tag(buffer, NULL,
+						"left-margin",		width * 2,
+						"left-margin-set",	TRUE,
+						(void *) 0);
+
+			gtk_text_buffer_get_iter_at_mark(buffer, &start, ctx->start[id]);
+			gtk_text_buffer_get_end_iter(buffer, &end);
+			gtk_text_buffer_apply_tag(buffer, margin, &start, &end);
 		} else {
-			text = special.list_item_prefix.str;
-			attr = STYLE_TAG_BOLD;
+			GtkTextIter iter;
+		
+			gtk_text_buffer_get_end_iter(buffer, &iter);
+			gtk_text_buffer_insert(buffer, &iter, "\n", (-1));
+
+			gtk_text_buffer_get_end_iter(buffer, &iter);
+			gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
+					special.list_item_prefix.str, (-1),
+					STYLE_TAG_BOLD, (void *) 0);
+			gtk_text_buffer_get_end_iter(buffer, &iter);
+			ctx->start[id] = gtk_text_buffer_create_mark(buffer, NULL,
+					&iter, TRUE);
 		}
 		break;
 	case HTML_TAG_CODE:
@@ -407,22 +420,15 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		}
 		break;
 	case HTML_TAG_HR:
-#if 0 && GTK_CHECK_VERSION(2,0,0)
 		{
 			GtkTextIter iter;
 
 			gtk_text_buffer_get_end_iter(buffer, &iter);
-			ctx->start[id] = gtk_text_buffer_create_mark(buffer, NULL,
-								&iter, TRUE);
-			gtk_text_buffer_get_end_iter(buffer, &iter);
 			gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
-					special.centre_line, (-1), STYLE_TAG_CENTER, (void *) 0);
+					"\n    \n", (-1),
+					STYLE_TAG_CENTER, STYLE_TAG_UNDERLINE, (void *) 0);
 		}
-		style = STYLE_TAG_HEADING;
-		closing = TRUE;
 		text = "\n";
-#else
-#endif
 		break;
 	case HTML_TAG_COMMENT:
 #if 0 
@@ -461,7 +467,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 
 			value = html_get_attribute(tag, HTML_ATTR_LANG);
 			if (value.data && value.size > 0) {
-#if GTK_CHECK_VERSION(2,0,0)
 				GtkTextIter iter;
 
 				ctx->lang = g_strndup(value.data, value.size);
@@ -470,8 +475,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				gtk_text_buffer_get_end_iter(buffer, &iter);
 				ctx->start[id] = gtk_text_buffer_create_mark(buffer,
 										NULL, &iter, TRUE);
-#else
-#endif
 			}
 		}
 	case HTML_TAG_HEAD:
@@ -489,7 +492,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 
 	if (style) {
 		if (closing) {
-#if GTK_CHECK_VERSION(2,0,0)
 			if (ctx->start[id]) {
 				GtkTextIter start, end;
 		
@@ -499,30 +501,103 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				gtk_text_buffer_apply_tag_by_name(buffer, style, &start, &end);
 				ctx->start[id] = NULL;
 			}
-#else
-#endif
 		} else {
-#if GTK_CHECK_VERSION(2,0,0)
 			GtkTextIter iter;
 			gtk_text_buffer_get_end_iter(buffer, &iter);
 			ctx->start[id] = gtk_text_buffer_create_mark(buffer,
 										NULL, &iter, TRUE);
-#else
-#endif
 		}
 	}
 	if (text) {
-#if GTK_CHECK_VERSION(2,0,0)
 		GtkTextIter iter;
 
 		gtk_text_buffer_get_end_iter(buffer, &iter);
 		gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
 			text, (-1), attr, (void *) 0);
-#else
-		gtk_text_insert(ctx->html_view->widget, NULL, NULL, NULL, text, (-1));
-#endif
 	}
 }
+#else	/* Gtk+ < 2.0 */
+{
+	struct html_context *ctx;
+	const gchar *text;
+	enum html_tag id;
+	gboolean closing;
+
+	text = NULL;
+	closing = html_tag_is_closing(tag);
+	ctx = html_output_get_udata(output);
+	id = html_parse_tag(tag);
+
+	switch (id) {
+	case HTML_TAG_BR:
+	case HTML_TAG_DL:
+	case HTML_TAG_OL:
+	case HTML_TAG_TABLE:
+	case HTML_TAG_TR:
+	case HTML_TAG_UL:
+		text = "\n";
+		break;
+	case HTML_TAG_DIV:
+	case HTML_TAG_P:
+		text = closing ? "\n\n" : NULL;
+		break;
+	case HTML_TAG_DT:
+	case HTML_TAG_LI:
+		text = closing ? NULL : "\n - ";
+		break;
+	case HTML_TAG_H1:
+	case HTML_TAG_H2:
+	case HTML_TAG_H3:
+	case HTML_TAG_H4:
+	case HTML_TAG_H5:
+	case HTML_TAG_H6:
+		text = closing ? "\n\n" : "\n";
+		break;
+	case HTML_TAG_HR:
+		text = "\n";
+		break;
+	case HTML_TAG_IMG:
+		text = closing ? "\n[image]\n" : NULL;
+		break;
+	case HTML_TAG_TD:
+		text = closing ? "\t" : NULL;
+		break;
+	case HTML_TAG_TH:
+		text = closing ? "\t" : NULL;
+		break;
+	case HTML_TAG_A:
+	case HTML_TAG_B:
+	case HTML_TAG_BODY:
+	case HTML_TAG_CODE:
+	case HTML_TAG_COL:
+	case HTML_TAG_COMMENT:
+	case HTML_TAG_DD:
+	case HTML_TAG_DOCTYPE:
+	case HTML_TAG_EM:
+	case HTML_TAG_HEAD:
+	case HTML_TAG_HTML:
+	case HTML_TAG_I:
+	case HTML_TAG_KBD:
+	case HTML_TAG_META:
+	case HTML_TAG_PRE:
+	case HTML_TAG_Q:
+	case HTML_TAG_SPAN:
+	case HTML_TAG_STRONG:
+	case HTML_TAG_TBODY:
+	case HTML_TAG_THEAD:
+	case HTML_TAG_TITLE:
+	case HTML_TAG_TT:
+	case HTML_TAG_UNKNOWN:
+		break;
+	case NUM_HTML_TAG:
+		g_assert_not_reached();
+	}
+		
+	if (text) {
+		gtk_text_insert(ctx->html_view->widget, NULL, NULL, NULL, text, (-1));
+	}
+}
+#endif	/* Gtk+ >= 2.0	*/
 
 #if GTK_CHECK_VERSION(2,0,0)
 static GdkCursor *hand_cursor, *regular_cursor;
@@ -704,7 +779,11 @@ html_view_load(struct html_view *html_view)
 				(void *) 0);
 		gtk_text_buffer_create_tag(buffer, STYLE_TAG_MONOSPACE,
 				"family",			"monospace",
-				NULL);
+				(void *) 0);
+		gtk_text_buffer_create_tag(buffer, STYLE_TAG_STRETCH,
+				"stretch",			PANGO_STRETCH_ULTRA_EXPANDED,
+				"stretch-set",		TRUE,
+				(void *) 0);
 		gtk_text_buffer_create_tag(buffer,	STYLE_TAG_ANCHOR,
 				"foreground",		"blue", 
 				"underline",		PANGO_UNDERLINE_SINGLE, 
