@@ -4816,32 +4816,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 	}
 
-	/* X-Ultrapeer -- support for ultra peer mode */
-
-	field = header_get(head, "X-Ultrapeer");
-	if (field) {
-		n->attrs |= NODE_A_CAN_ULTRA;
-		if (0 == ascii_strcasecmp(field, "true"))
-			n->attrs |= NODE_A_ULTRA;
-		else if (0 == ascii_strcasecmp(field, "false")) {
-			if (current_peermode == NODE_P_ULTRA)
-				n->flags |= NODE_F_LEAF;
-		}
-	} else {
-		/*
-		 * BearShare 4.3.x decided to no longer send X-Ultrapeer on connection,
-		 * but rather include the X-Ultrapeer-Needed header.  Hopefully, only
-		 * their UPs will send back such a header.
-		 *		--RAM, 01/11/2003
-		 */
-
-		field = header_get(head, "X-Ultrapeer-Needed");
-		if (field)
-			n->attrs |= NODE_A_CAN_ULTRA | NODE_A_ULTRA;
-		else
-			n->attrs |= NODE_A_NO_ULTRA;
-	}
-
 	if (gnet_deflate_enabled) {
 		/*
 	 	 * Accept-Encoding -- decompression support on the remote side
