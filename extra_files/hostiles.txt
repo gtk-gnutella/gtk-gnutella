@@ -893,3 +893,6 @@
 # GeekHosters; sub-range of Reflected Networks; security violations
 64.210.144.128/25
 
+# HTML/RAR/ZIP ebook link spam; 10045
+124.197.24.92
+
