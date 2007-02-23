@@ -895,7 +895,10 @@
 # HTML/RAR/ZIP ebook link spam; 10045
 124.197.24.92
 
-# Phex; port 10897; shares thousands of ZIP files (about 30 kB) infected
-# with Trojan.Downloader.Small.Ehb
+# Phex; port 10897/45206; shares thousands of ZIP files (about 30 kB) infected
+# with Trojan.Downloader.Small.Ehb which downloads
+# media.teddycash.com/te-110-12-000073.exe
 64.246.52.90
+216.127.90.31
+194.90.224.81
 
