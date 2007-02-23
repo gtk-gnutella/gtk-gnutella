@@ -895,3 +895,7 @@
 # HTML/RAR/ZIP ebook link spam; 10045
 124.197.24.92
 
+# Phex; port 10897; shares thousands of ZIP files (about 30 kB) infected
+# with Trojan.Downloader.Small.Ehb
+64.246.52.90
+
