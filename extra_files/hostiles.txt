@@ -256,6 +256,8 @@
 81.209.165.73
 85.88.2.192/27
 85.88.9.0/26
+# Jironimo at Versatel; dynamic range
+83.135.89.16
 
 # Spammer hosted by pie.us
 # (Sansui Ltd. has 206.223.156.0/24)
