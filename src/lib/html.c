@@ -348,7 +348,7 @@ html_get_attribute(const struct array *tag, enum html_attr attribute)
 			i++;
 
 		if (i < tag->size && '=' == tag->data[i]) {
-			gboolean quoted;
+			gboolean quoted = FALSE;
 			size_t start;
 
 			i++;
@@ -722,7 +722,7 @@ html_load_file(struct html_output *output, int fd)
 		g_warning("not a regular file");
 		goto error;
 	}
-	if (sb.st_size < 0 || sb.st_size + (size_t)0 >= (size_t)-1) {
+	if (sb.st_size < 0 || UNSIGNED(sb.st_size) >= (size_t)-1) {
 		g_warning("file is too large");
 		goto error;
 	}
