@@ -96,6 +96,7 @@ typedef enum {
 	SPAM_TAG_END,
 	SPAM_TAG_NAME,
 	SPAM_TAG_SHA1,
+	SPAM_TAG_SIZE,
 
 	NUM_SPAM_TAGS
 } spam_tag_t;
@@ -111,6 +112,7 @@ static const struct spam_tag {
 	SPAM_TAG(END),
 	SPAM_TAG(NAME),
 	SPAM_TAG(SHA1),
+	SPAM_TAG(SIZE),
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 #undef SPAM_TAG
@@ -120,7 +122,7 @@ static const struct spam_tag {
 static spam_tag_t
 spam_string_to_tag(const gchar *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(spam_tag_map) == (NUM_SPAM_TAGS - 1));
+	STATIC_ASSERT(G_N_ELEMENTS(spam_tag_map) == NUM_SPAM_TAGS - 1U);
 
 #define GET_ITEM(i) (spam_tag_map[(i)].str)
 #define FOUND(i) G_STMT_START { \
@@ -237,18 +239,47 @@ spam_add_sha1(const sha1_t *sha1)
 #endif	/* USE_SQLITE */
 }
 
-static void
-spam_add_name(regex_t *name)
+struct namesize_item {
+	regex_t		pattern;
+	filesize_t	min_size;
+	filesize_t	max_size;
+};
+
+static gboolean 
+spam_add_name_and_size(const gchar *name,
+	filesize_t min_size, filesize_t max_size)
 {
-	g_assert(name);
-	spam_lut.sl_names = g_slist_prepend(spam_lut.sl_names, name);	
+	struct namesize_item *item;
+	int error;
+
+	g_return_val_if_fail(name, TRUE);
+	g_return_val_if_fail(min_size <= max_size, TRUE);
+
+	item = walloc(sizeof *item);
+	error = regcomp(&item->pattern, name, REG_EXTENDED | REG_NOSUB);
+	if (error) {
+		gchar buf[1024];
+
+		regerror(error, &item->pattern, buf, sizeof buf);
+		g_warning("spam_add_name_and_size(): regcomp() failed: %s", buf);
+		regfree(&item->pattern);
+		wfree(item, sizeof *item);
+		return TRUE;
+	} else {
+		item->min_size = min_size;
+		item->max_size = max_size;
+		spam_lut.sl_names = g_slist_prepend(spam_lut.sl_names, item);
+		return FALSE;
+	}
 }
 
-
 struct spam_item {
-	sha1_t	sha1;
-	regex_t *name;
-	gboolean done;
+	sha1_t		sha1;
+	gchar		*name;
+	filesize_t  min_size;
+	filesize_t  max_size;
+	gboolean	done;
+	gboolean	damaged;
 };
 
 /**
@@ -277,7 +308,7 @@ spam_load(FILE *f)
 
 	/* Reset state */
 	item = zero_item;
-	bit_array_clear_range(tag_used, 0, (guint) NUM_SPAM_TAGS - 1);
+	bit_array_clear_range(tag_used, 0, NUM_SPAM_TAGS - 1U);
 
 	if (0 != spam_db_open(&spam_lut)) {
 		return -1;
@@ -287,12 +318,10 @@ spam_load(FILE *f)
 	while (fgets(line, sizeof line, f)) {
 		const gchar *tag_name, *value;
 		gchar *sp, *nl;
-		gboolean damaged;
 		spam_tag_t tag;
 
 		line_no++;
 
-		damaged = FALSE;
 		nl = strchr(line, '\n');
 		if (!nl) {
 			/*
@@ -322,7 +351,8 @@ spam_load(FILE *f)
 		tag_name = line;
 
 		tag = spam_string_to_tag(tag_name);
-		g_assert((gint) tag >= 0 && tag < NUM_SPAM_TAGS);
+		g_assert(UNSIGNED(tag) < UNSIGNED(NUM_SPAM_TAGS));
+
 		if (SPAM_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning("spam_load(): duplicate tag \"%s\" in entry in line %u",
 				tag_name, line_no);
@@ -336,7 +366,7 @@ spam_load(FILE *f)
 				
 				t = date2time(value, tm_time());
 				if ((time_t) -1 == t) {
-					damaged |= TRUE;
+					item.damaged = TRUE;
 				}
 			}
 			break;
@@ -344,7 +374,7 @@ spam_load(FILE *f)
 		case SPAM_TAG_SHA1:
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
-					damaged = TRUE;
+					item.damaged = TRUE;
 					g_warning("spam_load(): SHA-1 has wrong length.");
 				} else {
 					const gchar *raw;
@@ -353,7 +383,7 @@ spam_load(FILE *f)
 					if (raw)
 						memcpy(item.sha1.data, raw, sizeof item.sha1.data);
 					else
-						damaged = TRUE;
+						item.damaged = TRUE;
 				}
 			}
 			break;
@@ -361,24 +391,45 @@ spam_load(FILE *f)
 		case SPAM_TAG_NAME:
 			{
 				if ('\0' == value[0]) {
-					damaged = TRUE;
+					item.damaged = TRUE;
 					g_warning("spam_load(): Missing filename pattern.");
 				} else if (!utf8_is_valid_string(value)) {
-					damaged = TRUE;
+					item.damaged = TRUE;
 					g_warning("spam_load(): Filename pattern is not UTF-8.");
 				} else {
-					int error;
+					item.name = g_strdup(value);
+				}
+			}
+			break;
 
-					item.name = g_malloc(sizeof *item.name);
-					error = regcomp(item.name, value, REG_EXTENDED | REG_NOSUB);
-					if (error) {
-						gchar buf[1024];
+		case SPAM_TAG_SIZE:
+			{
+				const gchar *endptr;
+				guint64 u;
+				gint error;
+					
+				u = parse_uint64(value, &endptr, 10, &error);
+				if (error) {
+					item.damaged = TRUE;
+					g_warning("spam_load(): Cannot parse SIZE: %s", value);
+				} else {
+					item.min_size = u;
+					item.max_size = u;
 
-						regerror(error, item.name, buf, sizeof buf);
-						g_warning("spam_load(): regcomp() failed: %s", buf);
-						regfree(item.name);
-						G_FREE_NULL(item.name);
-						damaged = TRUE;
+					if ('-' == endptr[0]) {
+						u = parse_uint64(&endptr[1], &endptr, 10, &error);
+						if (error) {
+							item.damaged = TRUE;
+							g_warning("spam_load(): Cannot parse SIZE: %s",
+								value);
+						}
+						if (u < item.min_size) {
+							item.damaged = TRUE;
+							g_warning("spam_load(): "
+								"Maximum size below minimum size");
+						} else {
+							item.max_size = u;
+						}
 					}
 				}
 			}
@@ -390,11 +441,11 @@ spam_load(FILE *f)
 				!bit_array_get(tag_used, SPAM_TAG_NAME)
 			) {
 				g_warning("spam_load(): missing SHA1 or NAME tag");
-				damaged = TRUE;
+				item.damaged = TRUE;
 			}
 			if (!bit_array_get(tag_used, SPAM_TAG_ADDED)) {
 				g_warning("spam_load(): missing ADDED tag");
-				damaged = TRUE;
+				item.damaged = TRUE;
 			}
 			item.done = TRUE;
 			break;
@@ -408,14 +459,7 @@ spam_load(FILE *f)
 			break;
 		}
 
-		if (damaged) {
-			g_warning("Damaged spam entry in line %u: "
-				"tag_name=\"%s\", value=\"%s\"",
-				line_no, tag_name, value);
-			continue;
-		}
-
-		if (item.done) {
+		if (item.done && !item.damaged) {
 			if (bit_array_get(tag_used, SPAM_TAG_SHA1)) {
 				if (spam_check_sha1(cast_to_gpointer(item.sha1.data))) {
 					g_warning(
@@ -427,13 +471,32 @@ spam_load(FILE *f)
 				}
 			}
 			if (bit_array_get(tag_used, SPAM_TAG_NAME)) {
-				spam_add_name(item.name);
-				item_count++;
+				if (!bit_array_get(tag_used, SPAM_TAG_SIZE)) {
+					item.min_size = 0;
+					item.max_size = MAX_INT_VAL(filesize_t);
+				}
+				if (
+					spam_add_name_and_size(item.name,
+						item.min_size, item.max_size)
+				) {
+					item.damaged = TRUE;	
+				} else {
+					item_count++;
+				}
 			}
+		}
 
+		if (item.damaged) {
+			g_warning("Damaged spam entry in line %u: "
+				"tag_name=\"%s\", value=\"%s\"",
+				line_no, tag_name, value);
+		}
+
+		if (item.done) {
 			/* Reset state */
+			G_FREE_NULL(item.name);
 			item = zero_item;
-			bit_array_clear_range(tag_used, 0, (guint) NUM_SPAM_TAGS - 1);
+			bit_array_clear_range(tag_used, 0, NUM_SPAM_TAGS - 1U);
 		}
 	}
 
@@ -561,8 +624,11 @@ spam_close(void)
 		GSList *sl;
 
 		for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
-			regfree(sl->data);
-			G_FREE_NULL(sl->data);
+			struct namesize_item *item = sl->data;
+
+			g_assert(item);
+			regfree(&item->pattern);
+			wfree(item, sizeof *item);
 		}
 		g_slist_free(spam_lut.sl_names);
 		spam_lut.sl_names = NULL;
@@ -625,13 +691,21 @@ spam_check_sha1(const char *sha1)
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-spam_check_filename(const char *filename)
+spam_check_filename_and_size(const char *filename, filesize_t size)
 {
 	const GSList *sl;
 
 	g_return_val_if_fail(filename, FALSE);
+
 	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
-		if (0 == regexec(sl->data, filename, 0, NULL, 0)) {
+		const struct namesize_item *item = sl->data;
+
+		g_assert(item);
+		if (
+			size >= item->min_size &&
+			size <= item->max_size &&
+			0 == regexec(&item->pattern, filename, 0, NULL, 0)
+		) {
 			return TRUE;
 		}
 	}
