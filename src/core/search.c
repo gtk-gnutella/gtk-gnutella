@@ -1680,7 +1680,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		/*
 		 * Check the filename only if the record is not already marked as spam.
 		 */
-		if (0 == (SR_SPAM & rc->flags) && spam_check_filename(rc->name)) {
+		if (
+			0 == (SR_SPAM & rc->flags) &&
+			spam_check_filename_and_size(rc->name, rc->size)
+		) {
 			rs->status |= ST_NAME_SPAM;
 			set_flags(rc->flags, SR_SPAM);
 		}
