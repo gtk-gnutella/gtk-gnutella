@@ -5750,7 +5750,7 @@ node_udp_get_outq(enum net_type net)
 gnutella_node_t *
 node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 {
-	gnutella_node_t *n = NULL;
+	gnutella_node_t *n;
 
 	if (udp_active()) {
 		switch (host_addr_net(addr)) {
@@ -5765,12 +5765,13 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 			g_assert_not_reached();
 			break;
 		}
-		g_return_val_if_fail(n, NULL);
-
-		n->addr = addr;
-		n->port = port;
+		if (n && n->outq) {
+			n->addr = addr;
+			n->port = port;
+			return n;
+		}
 	}
-	return n;
+	return NULL;
 }
 
 /**
