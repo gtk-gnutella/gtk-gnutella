@@ -1071,6 +1071,20 @@ handle_arguments(int argc, char **argv)
 	}
 	if (options[main_arg_version].used) {
 		printf("%s\n", version_build_string());
+
+		printf("GLib %u.%u.%u (compiled against %u.%u.%u)\n",
+			glib_major_version, glib_minor_version, glib_micro_version,
+			GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+
+#ifndef USE_TOPLESS
+		printf("Gtk+ %u.%u.%u (compiled against %u.%u.%u)\n",
+			gtk_major_version, gtk_minor_version, gtk_micro_version,
+			GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+#endif	/* USE_TOPLESS */
+
+		if (tls_version_string())
+			printf("%s\n", tls_version_string());
+
 		exit(EXIT_SUCCESS);
 	}
 	if (options[main_arg_ping].used) {
