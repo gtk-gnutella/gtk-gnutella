@@ -66,13 +66,19 @@ RCSID("$Id$")
 #define OOB_MAX_QUEUED		50				/**< Max # of messages per host */
 #define OOB_MAX_RETRY		3				/**< Retry # if LIME/12v2 dropped */
 
-#define OOB_MAX_QHIT_SIZE	645				/**< Flush hits larger than this */
-#define OOB_MAX_DQHIT_SIZE	1075			/**< Flush limit for deflated hits */
+#define OOB_MAX_QHIT_SIZE	645			/**< Flush hits larger than this */
+#define OOB_MAX_DQHIT_SIZE	1075		/**< Flush limit for deflated hits */
+
+typedef enum {
+	OOB_RESULTS_MAGIC = 0x7ae5e685
+} oob_results_magic_t;
 
 /**
  * A set of hits awaiting delivery.
  */
 struct oob_results {
+	oob_results_magic_t	magic;
+	gint refcount;
 	gpointer ev_expire;		/**< Global expiration event */
 	gpointer ev_timeout;	/**< Reply waiting timeout */
 	const gchar *muid;		/**< (atom) MUID of the query that generated hits */
@@ -80,7 +86,6 @@ struct oob_results {
 	gnet_host_t dest;		/**< The host to which we must deliver */
 	gint count;				/**< Amount of hits to deliver */
 	gint notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
-	gint refcount;
 	gboolean secure;		/**< TRUE -> secure OOB, FALSE -> normal OOB */
 };
 
@@ -129,6 +134,16 @@ static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
 static gint num_oob_records;	/**< Leak and duplicate free detector */
+static gboolean oob_shutdown_running;
+
+static void
+oob_results_check(const struct oob_results *r)
+{
+	g_assert(r);
+	g_assert(OOB_RESULTS_MAGIC == r->magic);
+	g_assert(r->refcount > 0);
+	g_assert(r->muid);
+}
 
 /**
  * Create new "struct oob_results" to handle the initial negotiation of
@@ -143,15 +158,15 @@ results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to,
 
 	r = walloc(sizeof *r);
 	*r = zero_results;
-
+	r->magic = OOB_RESULTS_MAGIC;
 	r->muid = atom_guid_get(muid);
 	r->files = files;
 	r->count = count;
 	r->dest = *to;			/* Struct copy */
-	r->refcount = 1;
 	r->secure = secure;
 
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
+	r->refcount++;
 
 	g_assert(!g_hash_table_lookup(results_by_muid, r->muid));
 	gm_hash_table_insert_const(results_by_muid, r->muid, r);
@@ -172,17 +187,29 @@ results_free_remove(struct oob_results *r)
 {
 	GSList *sl;
 
-	g_assert(r->refcount > 0);
+	oob_results_check(r);
+	
+	if (r->ev_expire) {
+		cq_cancel(callout_queue, r->ev_expire);
+		r->ev_expire = NULL;
+		g_assert(r->refcount > 0);
+		r->refcount--;
+	}
+	if (r->ev_timeout) {
+		cq_cancel(callout_queue, r->ev_timeout);
+		r->ev_timeout = NULL;
+		g_assert(r->refcount > 0);
+		r->refcount--;
+	}
 
-	r->refcount--;
-
-	if (NULL == r->ev_expire || 0 == r->refcount) {
+	if (0 == r->refcount) {
 		if (r->muid) {
-			g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
-			g_hash_table_remove(results_by_muid, r->muid);
-
-			atom_guid_free(r->muid);
-			r->muid = NULL;
+			/* We must not modify the hash table whilst iterating over it */
+			if (!oob_shutdown_running) {
+				g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
+				g_hash_table_remove(results_by_muid, r->muid);
+			}
+			atom_guid_free_null(&r->muid);
 		}
 
 		for (sl = r->files; sl; sl = g_slist_next(sl)) {
@@ -191,26 +218,15 @@ results_free_remove(struct oob_results *r)
 		}
 		g_slist_free(r->files);
 		r->files = NULL;
+
+		g_assert(num_oob_records > 0);
+		num_oob_records--;
+		if (query_debug > 2)
+			g_message("results_free: num_oob_records=%d", num_oob_records);
+
+		r->magic = 0;
+		wfree(r, sizeof *r);
 	}
-
-	if (r->refcount > 0)
-		return;
-
-	g_assert(num_oob_records > 0);
-	num_oob_records--;
-	if (query_debug > 2)
-		g_message("results_free: num_oob_records=%d", num_oob_records);
-
-	if (r->ev_expire) {
-		cq_cancel(callout_queue, r->ev_expire);
-		r->ev_expire = NULL;
-	}
-	if (r->ev_timeout) {
-		cq_cancel(callout_queue, r->ev_timeout);
-		r->ev_timeout = NULL;
-	}
-
-	wfree(r, sizeof *r);
 }
 
 /**
@@ -222,6 +238,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 	struct oob_results *r = obj;
 
 	(void) unused_cq;
+	oob_results_check(r);
 
 	if (query_debug)
 		g_message("OOB query %s from %s expired with unclaimed %d hit%s",
@@ -231,6 +248,8 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
 
 	r->ev_expire = NULL;		/* The timer which just triggered */
+	r->refcount--;
+
 	results_free_remove(r);
 }
 
@@ -243,6 +262,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 	struct oob_results *r = obj;
 
 	(void) unused_cq;
+	oob_results_check(r);
 
 	if (query_debug)
 		g_message("OOB query %s, no ACK from %s to claim %d hit%s",
@@ -252,6 +272,8 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
 
 	r->ev_timeout = NULL;		/* The timer which just triggered */
+	r->refcount--;
+
 	results_free_remove(r);
 }
 
@@ -425,6 +447,7 @@ oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
 				wanted, wanted == 1 ? "" : "s");
 		return;
 	}
+	oob_results_check(r);
 
 	/*
 	 * Here's what could happen with proxied OOB queries:
@@ -536,6 +559,8 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 	struct oob_results *r = arg;
 
 	g_assert(pmsg_is_extended(mb));
+	oob_results_check(r);
+	r->refcount--;
 
 	/*
 	 * If we sent the message, great!  Arm a timer to ensure we get a
@@ -563,23 +588,22 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 
 			r->ev_timeout = cq_insert(callout_queue, OOB_TIMEOUT_MS,
 					results_timeout, r);
+			r->refcount++;
 		}
+	} else {
+		/*
+		 * If we were not able to send the message,
+		 */
 
-		return;
+		if (query_debug)
+			g_message("OOB query %s, previous LIME12/v2 #%d was dropped",
+					guid_hex_str(r->muid), r->notify_requeued);
+
+		if (++r->notify_requeued < OOB_MAX_RETRY)
+			oob_send_reply_ind(r);
+		else
+			results_free_remove(r);
 	}
-
-	/*
-	 * If we were not able to send the message,
-	 */
-
-	if (query_debug)
-		g_message("OOB query %s, previous LIME12/v2 #%d was dropped",
-			guid_hex_str(r->muid), r->notify_requeued);
-
-	if (++r->notify_requeued < OOB_MAX_RETRY)
-		oob_send_reply_ind(r);
-	else
-		results_free_remove(r);
 }
 
 /**
@@ -591,6 +615,9 @@ oob_send_reply_ind(struct oob_results *r)
 	mqueue_t *q;
 	pmsg_t *mb;
 	pmsg_t *emb;
+
+	g_assert(r);
+	g_assert(r->muid);
 
 	q = node_udp_get_outq(host_addr_net(gnet_host_get_addr(&r->dest)));
 	if (q == NULL)
@@ -657,16 +684,16 @@ free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 	struct oob_results *r = value;
 
 	(void) unused_udata;
-	g_assert(r->refcount > 0);
-	g_assert(NULL != r->muid);
+	oob_results_check(r);
 	g_assert(muid == r->muid);		/* Key is same as results's MUID */
 
-	/* Must be freed here to prevent that results_free_remove() tries
-	 * to remove it from the hash table whilst iterating over it. */
-	atom_guid_free(r->muid);
-	r->muid = NULL;
-
-	r->refcount = 1; /* Enforce release */
+	r->refcount = 0; /* Enforce release */
+	if (r->ev_timeout) {
+		r->refcount++;
+	}
+	if (r->ev_expire) {
+		r->refcount++;
+	}
 	results_free_remove(r);
 }
 
@@ -691,6 +718,8 @@ free_servent_kv(gpointer key, gpointer value, gpointer unused_udata)
 void
 oob_shutdown(void)
 {
+	oob_shutdown_running = TRUE;
+
 	g_hash_table_foreach(results_by_muid, free_oob_kv, NULL);
 	g_hash_table_destroy(results_by_muid);
 	results_by_muid = NULL;
