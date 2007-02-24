@@ -57,6 +57,7 @@ void tls_free(tls_context_t *ctx_ptr);
 void tls_wio_link(struct wrap_io *wio);
 
 void tls_global_init(void);
+const gchar *tls_version_string(void);
 
 #endif /* _core_tls_common_h_ */
 /* vi: set ts=4 sw=4 cindent: */

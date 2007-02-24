@@ -842,6 +842,18 @@ tls_wio_link(struct wrap_io *wio)
 	wio->sendto = tls_no_sendto;
 }
 
+const char *
+tls_version_string(void)
+{
+	static char buf[128];
+	if ('\0' == buf[0]) {
+		concat_strings(buf, sizeof buf, "GNU TLS ", gnutls_check_version(NULL),
+			" (compiled against ", LIBGNUTLS_VERSION, ")",
+			(void *) 0);
+	}
+	return buf;
+}
+
 #else	/* !HAS_GNUTLS*/
 
 enum tls_handshake_result
@@ -869,6 +881,12 @@ void
 tls_global_init(void)
 {
 	/* Nothing to do */
+}
+
+const char *
+tls_version_string(void)
+{
+	return NULL;
 }
 
 #endif	/* HAS_GNUTLS */
