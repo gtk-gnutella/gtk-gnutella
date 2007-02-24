@@ -203,14 +203,12 @@ results_free_remove(struct oob_results *r)
 	}
 
 	if (0 == r->refcount) {
-		if (r->muid) {
-			/* We must not modify the hash table whilst iterating over it */
-			if (!oob_shutdown_running) {
-				g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
-				g_hash_table_remove(results_by_muid, r->muid);
-			}
-			atom_guid_free_null(&r->muid);
+		/* We must not modify the hash table whilst iterating over it */
+		if (!oob_shutdown_running) {
+			g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
+			g_hash_table_remove(results_by_muid, r->muid);
 		}
+		atom_guid_free_null(&r->muid);
 
 		for (sl = r->files; sl; sl = g_slist_next(sl)) {
 			shared_file_t *sf = sl->data;
@@ -616,8 +614,7 @@ oob_send_reply_ind(struct oob_results *r)
 	pmsg_t *mb;
 	pmsg_t *emb;
 
-	g_assert(r);
-	g_assert(r->muid);
+	oob_results_check(r);
 
 	q = node_udp_get_outq(host_addr_net(gnet_host_get_addr(&r->dest)));
 	if (q == NULL)
@@ -680,12 +677,11 @@ oob_init(void)
 static void
 free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
-	gchar *muid = key;
 	struct oob_results *r = value;
 
 	(void) unused_udata;
 	oob_results_check(r);
-	g_assert(muid == r->muid);		/* Key is same as results's MUID */
+	g_assert(key == r->muid);		/* Key is same as results's MUID */
 
 	r->refcount = 0; /* Enforce release */
 	if (r->ev_timeout) {
