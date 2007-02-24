@@ -92,6 +92,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/dbus_util.h"
+#include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
 #include "lib/endian.h"
@@ -6184,7 +6185,7 @@ node_dump_packet(const struct gnutella_node *node)
 			gchar *pathname;
 
 			pathname = make_pathname(settings_config_dir(), "packets_rx.dump");
-			f = fopen(pathname, "a");
+			f = file_fopen_missing(pathname, "a");
 			G_FREE_NULL(pathname);
 		}
 		if (f) {
