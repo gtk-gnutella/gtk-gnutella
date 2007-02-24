@@ -5753,6 +5753,7 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 	gnutella_node_t *n;
 
 	if (udp_active()) {
+		n = NULL;
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
 			n = udp_node;
