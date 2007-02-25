@@ -836,6 +836,8 @@ vmsg_build_oob_reply_ind(const gchar *muid, guint8 hits, gboolean secure)
 	guint32 paysize = sizeof(guint8) + sizeof(guint8);
 	gchar *payload;
 
+	g_assert(muid);
+
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header, muid);
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 12, secure ? 3 : 2);
