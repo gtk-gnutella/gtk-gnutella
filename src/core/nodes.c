@@ -406,16 +406,7 @@ string_table_free(GHashTable *ht)
 static void
 node_send_udp_ping(struct gnutella_node *n)
 {
-	struct gnutella_node *udp;
-   
-	udp = node_udp_get_addr_port(n->addr, n->port);
-	if (udp) {
-		gnutella_msg_init_t *m;
-		guint32 size;
-
-		m = build_ping_msg(NULL, 1, TRUE, &size);
-		udp_send_msg(udp, m, size);
-	}
+	udp_send_ping(n->addr, n->port, TRUE);	
 }
 
 /***
@@ -744,7 +735,25 @@ can_become_ultra(time_t now)
 void
 node_slow_timer(time_t now)
 {
-	time_t last_switch = node_last_ultra_leaf_switch;	/* Property */
+	
+	if (udp_active()) {
+		static time_t last_ping;
+
+		/**
+		 * Periodically emit an UHC ping to a random node to keep the cache
+		 * fresh and diverse.
+		 */
+
+		if (!last_ping || delta_time(now, last_ping) > 120) {
+			host_addr_t addr;
+			guint16 port;
+			
+			last_ping = now;
+			if (hcache_get_caught(HOST_ANY, &addr, &port)) {
+				udp_send_ping(addr, port, TRUE);	
+			}
+		}
+	}
 
 	/*
 	 * Clear `no_leaves_connected' if we have something connected, or
@@ -773,7 +782,8 @@ node_slow_timer(time_t now)
 		(configured_peermode == NODE_P_AUTO ||
 			configured_peermode == NODE_P_ULTRA) &&
 		current_peermode == NODE_P_LEAF &&
-		delta_time(now, last_switch) > (time_delta_t) leaf_to_up_switch &&
+		delta_time(now, node_last_ultra_leaf_switch) >
+			(time_delta_t) leaf_to_up_switch &&
 		can_become_ultra(now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
@@ -796,7 +806,7 @@ node_slow_timer(time_t now)
 	if (
 		configured_peermode == NODE_P_AUTO &&
 		current_peermode == NODE_P_ULTRA &&
-		delta_time(now, last_switch) > NODE_AUTO_SWITCH_MIN &&
+		delta_time(now, node_last_ultra_leaf_switch) > NODE_AUTO_SWITCH_MIN &&
 		!can_become_ultra(now)
 	) {
 		leaf_to_up_switch *= 2;
@@ -3454,7 +3464,7 @@ node_is_now_connected(struct gnutella_node *n)
 		}
 		if (udp_active()) {
 			if (!recv_solicited_udp)
-				udp_send_ping(n->addr, n->port);
+				udp_send_ping(n->addr, n->port, FALSE);
 			else if (is_udp_firewalled && 0 != socket_listen_port())
 				vmsg_send_udp_connect_back(n, socket_listen_port());
 		}

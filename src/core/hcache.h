@@ -79,7 +79,7 @@ gboolean hcache_is_low(host_type_t type);
 gint hcache_fill_caught_array(
 	host_type_t type, gnet_host_t *hosts, gint hcount);
 
-void hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port);
+gboolean hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port);
 gboolean hcache_find_nearby(host_type_t type,
 	host_addr_t *addr, guint16 *port);
 

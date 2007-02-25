@@ -1170,7 +1170,7 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
  * Get host IP/port information from our caught host list, or from the
  * recent pong cache, in alternance.
  */
-void
+gboolean
 hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 {
 	static guint alternate = 0;
@@ -1180,7 +1180,10 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 	gnet_host_t *h;
 	gboolean available;
 
-    switch(type) {
+	g_assert(addr);
+	g_assert(port);
+	
+    switch (type) {
     case HOST_ANY:
         hc = caches[HCACHE_FRESH_ANY];
         break;
@@ -1209,14 +1212,14 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 		use_netmasks && number_local_networks &&
 		hcache_find_nearby(type, addr, port)
 	)
-		return;
+		return TRUE;
 
 	/*
 	 * Try the recent pong cache when `alternate' is odd.
 	 */
 
 	if (alternate++ & 0x1 && pcache_get_recent(type, addr, port))
-		return;
+		return TRUE;
 
 	/*
 	 * If we're done reading from the host file, get latest host, at the
@@ -1224,11 +1227,14 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 	 */
 
 	h = reading ? hash_list_head(hc->hostlist) : hash_list_tail(hc->hostlist);
+	if (h) {
+		*addr = gnet_host_get_addr(h);
+		*port = gnet_host_get_port(h);
+		hcache_unlink_host(hc, h);
+		return TRUE;
+	}
 
-	*addr = gnet_host_get_addr(h);
-	*port = gnet_host_get_port(h);
-
-    hcache_unlink_host(hc, h);
+	return FALSE;
 }
 
 /***

@@ -260,6 +260,7 @@ void
 udp_send_msg(const gnutella_node_t *n, gconstpointer buf, gint len)
 {
 	g_assert(NODE_IS_UDP(n));
+	g_return_if_fail(n->outq);
 
 	mq_udp_node_putq(n->outq, gmsg_to_pmsg(buf, len), n);
 }
@@ -291,7 +292,7 @@ udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
  * Send a Gnutella ping to the specified host.
  */
 void
-udp_send_ping(const host_addr_t addr, guint16 port)
+udp_send_ping(const host_addr_t addr, guint16 port, gboolean uhc_ping)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 
@@ -299,7 +300,7 @@ udp_send_ping(const host_addr_t addr, guint16 port)
 		gnutella_msg_init_t *m;
 		guint32 size;
 
-		m = build_ping_msg(NULL, 1, FALSE, &size);
+		m = build_ping_msg(NULL, 1, uhc_ping, &size);
 		udp_send_msg(n, m, size);
 	}
 }
