@@ -260,6 +260,7 @@
 83.135.89.16
 87.122.145.255
 87.122.149.179
+89.246.50.198
 
 # Spammer hosted by pie.us
 # (Sansui Ltd. has 206.223.156.0/24)
@@ -548,12 +549,9 @@
 
 # pr0n spammer with ancient LimeWire 2.3.3 Pro; results have no SHA-1
 # oversensitive buzzword sensor; standard port
-63.246.140.16/28
-66.232.96.74
-66.232.96.162
-66.232.99.34
-66.232.99.186
-66.232.99.218
+63.246.140.0/24
+66.232.96.0/24
+66.232.99.0/24
 
 # MOV spammer; adds dozens hundreds of fake alt-locs; links to p2pblast com
 # LimeWire-based
