@@ -900,3 +900,6 @@
 216.127.90.31
 194.90.224.81
 
+# "Accelerator" spam; ZIP files; hosted at bezeqint.net
+212.25.103.182
+
