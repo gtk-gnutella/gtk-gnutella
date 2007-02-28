@@ -118,9 +118,10 @@ typedef struct search_ctrl {
 
 	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
 
-	const gchar  *query;		/**< The search query (atom) */
-	time_t  time;				/**< Time when this search was started */
-	GSList *muids;				/**< Message UIDs of this search */
+	const gchar *query;	/**< The normalized search query (atom) */
+	const gchar *name;	/**< The original search term (atom) */
+	time_t  time;		/**< Time when this search was started */
+	GSList *muids;		/**< Message UIDs of this search */
 
 	sbool passive;	/**< Is this a passive search? */
 	sbool frozen;	/**< XXX: If TRUE, the query is not issued to nodes
@@ -885,9 +886,11 @@ search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
 }
 
 /**
- * Compute status bits, decompile trailer info, if present
+ * Compute status bits, decompile trailer info, if present.
+ *
+ * @return TRUE if there were errors and the packet should be dropped.
  */
-static void
+static gboolean
 search_results_handle_trailer(const gnutella_node_t *n,
 	gnet_results_set_t *rs, const gchar *trailer, size_t trailer_size)
 {
@@ -897,7 +900,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	gboolean has_token;
 
 	if (!trailer || trailer_size < 7)
-		return;
+		return FALSE;
 
 	vendor = lookup_vendor_name(rs->vcode);
 	open_size = trailer[4];
@@ -907,8 +910,14 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	has_token = FALSE;
 	token = 0;
 
-	if (open_size == 4)
+	if (open_size > trailer_size - 4) {
+		if (search_debug) {
+			g_warning("Trailer is too small for open size field");
+		}
+		return TRUE;
+	} else if (open_size == 4) {
 		open_parsing_size = 2;		/* We ignore XML data size */
+	}
 
 	if (T_NAPS == peek_be32(&rs->vcode.be32)) {	
 		/*
@@ -1160,7 +1169,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			}
 		}
 	}
-
+	return FALSE;	/* no errors */
 }
 
 /**
@@ -1744,8 +1753,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	rs->guid = atom_guid_get(endptr);
 
-	if (trailer) {
-		search_results_handle_trailer(n, rs, trailer, endptr - trailer);
+	if (
+		trailer &&
+		search_results_handle_trailer(n, rs, trailer, endptr - trailer)
+	) {
+        gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+		goto bad_packet;		
 	}
 	
 	/*
@@ -3184,6 +3197,7 @@ search_close(gnet_search_t sh)
 	}
 
 	atom_str_free_null(&sch->query);
+	atom_str_free_null(&sch->name);
 	wfree(sch, sizeof *sch);
 }
 
@@ -3405,7 +3419,9 @@ search_new(const gchar *query,
 			return (gnet_search_t) -1;
 		}
 		qdup = g_strdup(query);
-	} else if (!(flags & (SEARCH_F_LOCAL | SEARCH_F_BROWSE | SEARCH_F_PASSIVE))) {
+	} else if (
+		!(flags & (SEARCH_F_LOCAL | SEARCH_F_BROWSE | SEARCH_F_PASSIVE))
+	) {
 		qdup = UNICODE_CANONIZE(query);
 		g_assert(qdup != query);
 		
@@ -3425,6 +3441,7 @@ search_new(const gchar *query,
 
 	g_hash_table_insert(searches, sch, GINT_TO_POINTER(1));
 
+	sch->name = atom_str_get(query);
 	sch->query = atom_str_get(qdup);
 	sch->frozen = sbool_set(TRUE);
 	sch->create_time = create_time;
@@ -3714,9 +3731,9 @@ search_query(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
-    g_assert(sch->query != NULL);
+    g_assert(sch->name != NULL);
 
-    return sch->query;
+    return sch->name;
 }
 
 gboolean
