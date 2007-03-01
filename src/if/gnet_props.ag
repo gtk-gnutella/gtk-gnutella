@@ -219,7 +219,6 @@ prop = {
     };
 };
 
-
 prop = {
     name = "average_ip_uptime";
     desc = "Average uptime with the same IPv4 address.";
@@ -3393,6 +3392,15 @@ prop = {
     desc = "If larger than zero, no downloads are started.";
     type = guint32;
     save = FALSE;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "sq_debug";
+    desc = "Debug level for the search queue.";
+    type = guint32;
     data = {
         default = 0;
     };
