@@ -84,7 +84,6 @@ U/packages/xmlconfig.U
 U/specific/d_headless.U
 U/specific/gtkgversion.U
 config_h.SH                  Produces config.h
-configure.gnu                GNU configure-like wrapper
 cygwin/dirs
 cygwin/rules
 debian/changelog
