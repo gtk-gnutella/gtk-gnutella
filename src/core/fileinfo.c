@@ -1340,23 +1340,24 @@ file_info_shared_sha1(const gchar *sha1)
 	fileinfo_t *fi;
 
 	fi = g_hash_table_lookup(fi_by_sha1, sha1);
-	if (!fi)
-		return NULL;
+	if (fi) {
+		file_info_check(fi);
+		if (fi->done > 0 && fi->size >= pfsp_minimum_filesize) {
+			g_assert(NULL != fi->sha1);
 
-	file_info_check(fi);
-	if (0 == fi->done || fi->size < pfsp_minimum_filesize)
-		return NULL;
+			/*
+			 * Build shared_file entry if not already present.
+			 */
 
-	g_assert(NULL != fi->sha1);
-
-	/*
-	 * Build shared_file entry if not already present.
-	 */
-
-	if (NULL == fi->sf) {
-		shared_file_from_fileinfo(fi);
+			if (fi->sf) {
+				shared_file_check(fi->sf);
+			} else {
+				shared_file_from_fileinfo(fi);
+			}
+			return fi->sf;
+		}
 	}
-	return fi->sf;
+	return NULL;
 }
 
 /**
