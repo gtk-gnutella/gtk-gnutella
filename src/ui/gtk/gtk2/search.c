@@ -640,6 +640,7 @@ search_gui_new_search_full(const gchar *query_str,
 		 */
 		statusbar_gui_warning(5, "%s",
 			_("The normalized search text is too short."));
+		search_gui_query_free(&query);
 		return FALSE;
 	}
 

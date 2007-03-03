@@ -332,6 +332,7 @@ search_gui_new_search_full(const gchar *query_str,
 				reissue_timeout, flags);
 	if ((gnet_search_t) -1 == sch_id) {
 		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
+		search_gui_query_free(&query);
 		return FALSE;
 	}
 
