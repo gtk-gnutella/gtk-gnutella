@@ -347,12 +347,12 @@ gmsg_to_ctrl_pmsg_extend(gconstpointer msg, guint32 size,
 static void
 write_message(pmsg_t *mb, gconstpointer head, gconstpointer data, guint32 size)
 {
-	gint written;
+	size_t written;
 
 	written = pmsg_write(mb, head, GTA_HEADER_SIZE);
 	written += pmsg_write(mb, data, size - GTA_HEADER_SIZE);
 
-	g_assert((guint32) written == size);
+	g_assert(written == size);
 }
 
 /**
@@ -556,7 +556,7 @@ gmsg_search_sendto_all(
 		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct gnutella_node *dn = sl->data;
 
 		/*
 		 * When switching UP -> leaf, it may happen that we try to send
@@ -676,20 +676,20 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
 		gmsg_split_sendto_all_but_one(node_all_nodes(), rt_node,
-			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
+			&n->header, n->data, n->size + GTA_HEADER_SIZE);
 		return;
 	case ROUTE_NO_DUPS_BUT_ONE:
 		g_assert(n == rt_node);
 		gmsg_split_sendto_all_but_one(node_all_but_broken_gtkg(), rt_node,
-			(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
+			&n->header, n->data, n->size + GTA_HEADER_SIZE);
 		return;
 	case ROUTE_MULTI:
 		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
-			rt_node = (struct gnutella_node *) sl->data;
+			rt_node = sl->data;
 			if (n->header_flags && !NODE_CAN_SFLAG(rt_node))
 				continue;
 			gmsg_split_sendto_one(rt_node,
-				(guchar *) &n->header, n->data, n->size + GTA_HEADER_SIZE);
+				&n->header, n->data, n->size + GTA_HEADER_SIZE);
 		}
 		return;
 	}
