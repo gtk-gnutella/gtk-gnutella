@@ -1517,6 +1517,13 @@ sha1_base32(const gchar *sha1)
 	return sha1_to_base32_buf(sha1, digest_b32, sizeof digest_b32);
 }
 
+const gchar *
+sha1_to_string(const struct sha1 sha1)
+{
+	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
+	return sha1_to_base32_buf(&sha1.data, digest_b32, sizeof digest_b32);
+}
+
 /**
  * Convert base32 string into binary SHA1.
  *
