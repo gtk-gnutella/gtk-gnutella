@@ -716,7 +716,7 @@ routing_init(void)
 	 * Make sure it segfaults if we try to access it, but it must be
 	 * distinct from NULL.
 	 */
-	fake_node = (struct gnutella_node *) 0x01;
+	fake_node = deconstify_gpointer(vmm_trap_page());
 	fake_route.saved_messages = 0;
 	fake_route.node = fake_node;
 
