@@ -406,6 +406,11 @@ guc_gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats)
 	gnet_get_bw_stats(type, stats);
 }
 
+const gchar *
+guc_gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
+{
+	return gnet_stats_drop_reason_to_string(reason);
+}
 
 /*	hcache interface functions (UI -> Core)*/
 void

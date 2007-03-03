@@ -81,48 +81,8 @@ msg_type_str_size(void)
 const gchar *
 msg_drop_str(gint value)
 {
-	static const char * const strs[] = {
-		N_("Bad size"),
-		N_("Too small"),
-		N_("Too large"),
-		N_("Way too large"),
-		N_("Unknown message type"),
-		N_("Unexpected message"),
-		N_("Message sent with TTL = 0"),
-		N_("Improper hops/TTL combination"),
-		N_("Max TTL exceeded"),
-		N_("Message throttle"),
-		N_("Unusable Pong"),
-		N_("Hard TTL limit reached"),
-		N_("Max hop count reached"),
-		N_("Route lost"),
-		N_("No route"),
-		N_("Duplicate message"),
-		N_("Message to banned GUID"),
-		N_("Node shutting down"),
-		N_("Flow control"),
-		N_("Query text had no trailing NUL"),
-		N_("Query text too short"),
-		N_("Query had unnecessary overhead"),
-		N_("Message with malformed SHA1"),
-		N_("Message with malformed UTF-8"),
-		N_("Malformed Query Hit"),
-		N_("Bad return address"),
-		N_("Hostile IP address"),
-		N_("Spam"),
-		N_("Evil filename"),
-		N_("Payload inflating error"),
-		N_("Unknown header flags present"),
-	};
-
-	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_DROP_REASON_COUNT);
-
-	if ((guint) value >= G_N_ELEMENTS(strs)) {
-		g_warning("Requested general_type_str %d is invalid", value);
-		return "";
-	}
-
-	return _(strs[value]);
+	g_return_val_if_fail(UNSIGNED(value) < MSG_DROP_REASON_COUNT, "");
+	return _(guc_gnet_stats_drop_reason_to_string(value));
 }
 
 /**
