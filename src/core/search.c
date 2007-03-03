@@ -1749,9 +1749,13 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		goto bad_packet;
     }
 
-	/* We now have the guid of the node */
+	/* We now have the GUID of the node */
 
 	rs->guid = atom_guid_get(endptr);
+	if (guid_eq(rs->guid, servent_guid)) {
+        gnet_stats_count_dropped(n, MSG_DROP_OWN_RESULT);
+		goto bad_packet;		
+	}
 
 	if (
 		trailer &&
