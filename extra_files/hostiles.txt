@@ -414,11 +414,9 @@
 
 # Same as above but the primary source is a seemingly random address
 # at port 80; these emit also unrequested results.
-204.11.216.192/26
-204.11.217.0/26
-204.11.217.192/26
-204.11.222.128/28
-204.11.223.0/26
+204.11.216.0/23
+204.11.218.0/23
+204.11.222.0/23
 
 # Aggressivly connecting; getting disconnected due to security violations
 # Yes, this is Cisco Systems.
@@ -902,4 +900,7 @@
 
 # "Accelerator" spam; ZIP files; hosted at bezeqint.net
 212.25.103.182
+# *_ShareAccelerator.zip; urn:sha1:ORKMW4AIZ6ERTDIZERO263GYCCTHRWX2;
+# hosted at FDC Servers.net; LimeWire
+67.159.44.0/28
 
