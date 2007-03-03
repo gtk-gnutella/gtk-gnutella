@@ -126,7 +126,7 @@ void file_info_remove(fileinfo_t *fi);
  * Return amount of currently active sources.
  */
 static inline G_GNUC_CONST WARN_UNUSED_RESULT guint32
-fi_alive_count(fileinfo_t *fi)
+fi_alive_count(const fileinfo_t *fi)
 {
 	return fi->aqueued_count + fi->pqueued_count + fi->recvcount;
 }
