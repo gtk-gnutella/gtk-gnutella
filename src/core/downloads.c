@@ -9951,6 +9951,7 @@ download_verify_done(struct download *d, const gchar *digest, guint elapsed)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	fi = d->file_info;
+	file_info_check(fi);
 	name = file_info_readable_filename(fi);
 	fi->cha1 = atom_sha1_get(digest);
 	fi->cha1_elapsed = elapsed;
