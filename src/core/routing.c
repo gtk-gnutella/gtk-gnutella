@@ -1674,6 +1674,10 @@ route_query_hit(struct route_log *route_log,
 	gboolean node_is_target = FALSE;
 	struct gnutella_node *found;
 	gboolean is_oob_proxied;
+	const gchar *origin_guid;
+
+	g_assert(sender->size >= 16);
+   	origin_guid = &sender->data[sender->size - 16];
 
 	/*
 	 * We have to record we have seen a hit reply from the GUID held at
@@ -1683,19 +1687,14 @@ route_query_hit(struct route_log *route_log,
 	 */
 
 	if (!NODE_IS_UDP(sender)) {
-		const gchar *guid;
-		
-		g_assert(sender->size >= 16);
-	   	guid = &sender->data[sender->size - 16];
-
-		if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m)) {
+		if (!find_message(origin_guid, QUERY_HIT_ROUTE_SAVE, &m)) {
 			/*
 			 * We've never seen any Query Hit from that servent.
 			 * Ensure it's not a banned GUID though.
 			 */
 
-			if (!g_hash_table_lookup(ht_banned_push, guid))
-				message_add(guid, QUERY_HIT_ROUTE_SAVE, sender);
+			if (!g_hash_table_lookup(ht_banned_push, origin_guid))
+				message_add(origin_guid, QUERY_HIT_ROUTE_SAVE, sender);
 		} else if (m->routes == NULL || !node_sent_message(sender, m)) {
 			struct route_data *route;
 
@@ -1818,10 +1817,22 @@ route_query_hit(struct route_log *route_log,
 		found = NULL;
 		for (sl = m->routes; sl; sl = g_slist_next(sl)) {
 			struct route_data *route = sl->data;
-			if (route->node != sender) {
-				found = route->node;
-				break;
+
+			g_assert(route);
+			g_assert(route->node);
+
+			if (route->node == sender)
+				continue;
+
+			if (
+				route->node->gnet_guid &&
+				guid_eq(route->node->gnet_guid, origin_guid)
+			) {
+				continue;
 			}
+
+			found = route->node;
+			break;
 		}
 	}
 
@@ -1858,15 +1869,13 @@ route_lost:
 	routing_log_extra(route_log, "route to target lost");
 
 	gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
-	goto final;
+	return FALSE;
 
 handle:
 	if (node_is_target)
 		routing_log_extra(route_log, "we are the target%s",
 			is_oob_proxied ? " (OOB-proxy)" : "");
 
-	/* FALL THROUGH */
-final:
 	/*
 	 * We apply the TTL limits differently for replies.
 	 *
