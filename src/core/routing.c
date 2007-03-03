@@ -210,7 +210,7 @@ routing_log_init(struct route_log *route_log,
 	route_log->function = function;
 	route_log->hops = hops;
 	route_log->ttl = ttl;
-	memcpy(route_log->muid, muid, 16);
+	memcpy(route_log->muid, muid, GUID_RAW_SIZE);
 
 	route_log->extra[0] = '\0';
 	route_log->handle = FALSE;
@@ -359,10 +359,8 @@ route_mangled_oob_muid(const gchar *muid)
 {
 	static gchar mangled[GUID_RAW_SIZE];
 
-	memcpy(mangled, muid, GUID_RAW_SIZE);
-
-	mangled[0] = mangled[1] = mangled[2] = mangled[3] = 0;	/* Clear IP */
-	mangled[13] = mangled[14] = 0;							/* Clear port */
+	memcpy(&mangled[4], &muid[4], 9);	/* Clear IP address (bytes 0-4) */
+	mangled[15] = muid[15];				/* Clear port (bytes 13-14) */
 
 	return mangled;
 }
@@ -683,7 +681,8 @@ message_compare_func(gconstpointer p, gconstpointer q)
 {
 	const struct message *a = p, *b = q;
 
-	return a->function == b->function && 0 == memcmp(a->muid, b->muid, 16);
+	return a->function == b->function &&
+		0 == memcmp(a->muid, b->muid, GUID_RAW_SIZE);
 }
 
 /**
@@ -747,7 +746,8 @@ routing_init(void)
 
     gnet_prop_get_storage(PROP_SERVENT_GUID, guid_buf, sizeof(guid_buf));
 
-	for (i = 0; i < 15; i++) {		/* Not 16 since byte #15 is a marker */
+	/* The last byte (#15) is a marker */
+	for (i = 0; i < GUID_RAW_SIZE - 1; i++) {
 		if (guid_buf[i]) {
 			need_guid = FALSE;
 			break;
@@ -985,7 +985,7 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 		g_assert(entry->routes == NULL);
 
 		/* fill in that storage space */
-		memcpy(entry->muid, muid, 16);
+		memcpy(entry->muid, muid, GUID_RAW_SIZE);
 		entry->function = function;
 	}
 
@@ -1087,7 +1087,7 @@ find_message(const gchar *muid, guint8 function, struct message **m)
 	struct message dummyMessage;
 	struct message * found_message;
 
-	memcpy(dummyMessage.muid, muid, 16);
+	memcpy(dummyMessage.muid, muid, GUID_RAW_SIZE);
 	dummyMessage.function = function;
 
 	found_message = g_hash_table_lookup(routing.messages_hashed, &dummyMessage);
@@ -1497,13 +1497,13 @@ route_push(struct route_log *route_log,
 	 * servent of the Push.
 	 */
 
-	g_assert(sender->size > 16);	/* Must be a valid push */
+	g_assert(sender->size > GUID_RAW_SIZE);	/* Must be a valid push */
 
 	/*
 	 * Is it for us?
 	 */
 
-	if (0 == memcmp(servent_guid, sender->data, 16)) {
+	if (0 == memcmp(servent_guid, sender->data, GUID_RAW_SIZE)) {
 		routing_log_extra(route_log, "we are the target");
 		return TRUE;
 	}
@@ -1676,8 +1676,8 @@ route_query_hit(struct route_log *route_log,
 	gboolean is_oob_proxied;
 	const gchar *origin_guid;
 
-	g_assert(sender->size >= 16);
-   	origin_guid = &sender->data[sender->size - 16];
+	g_assert(sender->size >= GUID_RAW_SIZE);
+   	origin_guid = &sender->data[sender->size - GUID_RAW_SIZE];
 
 	/*
 	 * We have to record we have seen a hit reply from the GUID held at
