@@ -67,7 +67,17 @@ enum share_mime_type {
 	SHARE_M_TEXT_PLAIN,
 };
 
-#define SHARE_REBUILDING	((struct shared_file *) 0x1)
+#define SHARE_REBUILDING shared_file_dummy()
+
+static inline struct shared_file *
+shared_file_dummy(void)
+{
+	static struct shared_file *dummy;
+	if (!dummy) {
+		dummy = deconstify_gpointer(vmm_trap_page());
+	}
+	return dummy;
+}
 
 struct gnutella_node;
 struct query_hashvec;
