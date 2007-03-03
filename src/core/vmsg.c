@@ -37,28 +37,30 @@
 
 RCSID("$Id$")
 
-#include "vmsg.h"
-#include "nodes.h"
-#include "search.h"
-#include "gmsg.h"
-#include "routing.h"		/* For message_set_muid() */
-#include "gnet_stats.h"
-#include "dq.h"
-#include "udp.h"
-#include "sockets.h"		/* For socket_listen_addr() */
-#include "settings.h"		/* For listen_addr() */
-#include "guid.h"			/* For blank_guid[] */
-#include "inet.h"
-#include "oob.h"
-#include "mq.h"
-#include "mq_udp.h"
 #include "clock.h"
-#include "tsync.h"
-#include "hosts.h"
-#include "pmsg.h"
-#include "hostiles.h"
+#include "dq.h"
+#include "fileinfo.h"
 #include "ggep.h"
 #include "ggep_type.h"
+#include "gmsg.h"
+#include "gnet_stats.h"
+#include "guid.h"			/* For blank_guid[] */
+#include "hostiles.h"
+#include "hosts.h"
+#include "inet.h"
+#include "mq.h"
+#include "mq_udp.h"
+#include "nodes.h"
+#include "oob.h"
+#include "pmsg.h"
+#include "routing.h"		/* For message_set_muid() */
+#include "search.h"
+#include "settings.h"		/* For listen_addr() */
+#include "sockets.h"		/* For socket_listen_addr() */
+#include "tsync.h"
+#include "udp.h"
+#include "uploads.h"
+#include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -66,7 +68,9 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
+#include "lib/urn.h"
 #include "lib/vendors.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 static gchar v_tmp[4128];	/**< Large enough for a payload of 4K */
@@ -1476,7 +1480,89 @@ handle_node_info_ans(struct gnutella_node *n,
 	(void) payload;
 }
 
+enum {
+	VMSG_HEAD_F_RANGES		= 1 << 0,
+	VMSG_HEAD_F_ALT			= 1 << 1,
+	VMSG_HEAD_F_ALT_PUSH	= 1 << 2,
+	VMSG_HEAD_F_GGEP		= 1 << 4,
+
+	VMSG_HEAD_F_MASK		= 0x1f
+};
+
+enum {
+	VMSG_HEAD_CODE_NOT_FOUND	= 0,
+	VMSG_HEAD_CODE_COMPLETE		= 1 << 0,
+	VMSG_HEAD_CODE_PARTIAL		= 1 << 1,
+	VMSG_HEAD_CODE_FIREWALLED	= 1 << 2,
+	VMSG_HEAD_CODE_DOWNLOADING	= 1 << 3,
+
+	VMSG_HEAD_CODE_MASK			= 0x0f
+};
+
+void
+vmsg_send_head_pong(struct gnutella_node *n, guint8 code)
+{
+	guint32 msgsize;
+	guint32 paysize;
+	gchar *payload;
+	guint32 slots;
+
+	g_assert(NODE_IS_UDP(n));
+
+	payload = vmsg_fill_type(v_tmp_data, T_LIME, 24, 1);
+
+	code |= is_firewalled ? VMSG_HEAD_CODE_PARTIAL : 0;
+	slots = upload_is_enabled() ? max_uploads - ul_running : 0;
+	slots = MIN(0x7e, slots);
+	if (0 == slots) {
+		slots = 0x7f; /* Busy */
+	}
+	
+	poke_u8(&payload[0], 0);		/* Features */
+	poke_u8(&payload[1], code);		/* Result code (found, partial, etc.) */
+	poke_be32(&payload[2], T_GTKG);	/* Vendor code */
+	poke_u8(&payload[6], slots);	/* Queue status */
+	paysize = 7;
+
+	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
+	gnutella_header_set_muid(v_tmp_header,
+		gnutella_header_get_muid(&n->header));
+	udp_send_msg(n, v_tmp, msgsize);
+}
+
+void
+vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
+{
+	static const gchar prefix[] = "urn:sha1:";
+	guint32 msgsize;
+	guint32 paysize;
+	gchar *payload;
+
+	g_assert(NODE_IS_UDP(n));
+
+	payload = vmsg_fill_type(v_tmp_data, T_LIME, 23, 1);
+
+	poke_u8(&payload[0], VMSG_HEAD_F_ALT | VMSG_HEAD_F_ALT_PUSH);
+	memcpy(&payload[1], prefix, CONST_STRLEN(prefix));
+	memcpy(&payload[1 + CONST_STRLEN(prefix)],
+		sha1_to_string(sha1), SHA1_BASE32_SIZE);
+	paysize = 1 + CONST_STRLEN(prefix) + SHA1_BASE32_SIZE;
+
+	/* TODO: We can also add a GUID in case of a firewalled peer,
+	 *		 this works just a like a PUSH message then.
+	 */
+
+	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
+	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
+	udp_send_msg(n, v_tmp, msgsize);
+}
+
 #if 0
+/**
+ * NOTE: This is still too incomplete to be enabled, especially forwarding
+ *		 for firewalled peers is missing.
+ */
+
 /**
  * Handle reception of an UDP Head Ping
  */
@@ -1484,8 +1570,13 @@ static void
 handle_udp_head_ping(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
-	const guint expect_size = 1 + CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE;
+	const size_t expect_size = 1 + CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE;
+	struct sha1 sha1;
 	guint8 features;
+
+	/* TODO: HEAD pings may also arrive via TCP if they are forwarded
+	 *		 from a PUSH proxy. The HEAD ping contains a GUID then.
+	 */
 
 	/*
 	 * We expect those messages to come via UDP.
@@ -1510,8 +1601,58 @@ handle_udp_head_ping(struct gnutella_node *n,
 	if (VMSG_CHECK_SIZE(n, vmsg, size, expect_size))
 		return;
 
-	features = payload[0];
-	/* TODO: Implement this */
+	features = peek_u8(&payload[0]);
+	if (urn_get_sha1(&payload[1], cast_to_gchar_ptr(sha1.data))) {
+		const struct shared_file *sf;
+		guint8 code;
+
+		sf = shared_file_by_sha1(cast_to_gchar_ptr(sha1.data));
+		if (SHARE_REBUILDING == sf) {
+			/*
+			 * Just ignore the request because rebuilding only takes a few
+			 * seconds, so the sender might want to retry in a moment.  Over
+			 * HTTP we would also claim "Busy" (503) instead of "Not found"
+			 * (404).
+			 */
+			if (vmsg_debug) {
+				g_message(
+					"Got HEAD Ping from %s for urn:sha1:%s whilst rebuilding",
+					node_addr(n), sha1_to_string(sha1));
+			}
+		} else {
+			if (sf) {
+				const fileinfo_t *fi;
+				
+				shared_file_check(sf);
+				fi = shared_file_fileinfo(sf);
+				if (fi) {
+					g_message("Got HEAD Ping from %s for partial urn:sha1:%s",
+						node_addr(n), sha1_to_string(sha1));
+
+					if (pfsp_server) {
+						code = VMSG_HEAD_CODE_PARTIAL;
+						if (fi->recvcount > 0) {
+							code |= VMSG_HEAD_CODE_DOWNLOADING;
+						}
+					} else {
+						code = VMSG_HEAD_CODE_NOT_FOUND;
+					}
+				}  else {
+					g_message("Got HEAD Ping from %s for shared urn:sha1:%s",
+						node_addr(n), sha1_to_string(sha1));
+
+					code = VMSG_HEAD_CODE_COMPLETE;
+				}
+			} else {
+				if (vmsg_debug) {
+					g_message("Got HEAD Ping from %s for unknown urn:sha1:%s",
+						node_addr(n), sha1_to_string(sha1));
+				}
+				code = VMSG_HEAD_CODE_NOT_FOUND;
+			}
+			vmsg_send_head_pong(n, code);
+		}
+	}
 }
 
 /**
@@ -1519,11 +1660,15 @@ handle_udp_head_ping(struct gnutella_node *n,
  */
 static void
 handle_udp_head_pong(struct gnutella_node *n,
-	const struct vmsg *vmsg, const gchar *payload, gint size)
+	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
-	const guint expected_size = 2; /* features and code */
-	guint8 features;
-	guint8 code;
+	const size_t expected_size = 2; /* features and code */
+	guint8 features, code, queue;
+	const gchar *vendor;
+
+	/* TODO: HEAD pongs may also arrive via TCP if they are forwarded
+	 *		 from a PUSH proxy. The HEAD pong contains a GUID then.
+	 */
 
 	/*
 	 * We expect those messages to come via UDP.
@@ -1535,6 +1680,9 @@ handle_udp_head_pong(struct gnutella_node *n,
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
+
+	if (VMSG_CHECK_SIZE(n, vmsg, size, expected_size))
+		return;
 
 	/*
 	 * The format of the message was reverse-engineered from LimeWire's code.
@@ -1551,18 +1699,27 @@ handle_udp_head_pong(struct gnutella_node *n,
 	 *
 	 */
 
-	if (VMSG_CHECK_SIZE(n, vmsg, size, expected_size)
-		return;
+	features = peek_u8(&payload[0]);
+	code = peek_u8(&payload[1]) & VMSG_HEAD_CODE_MASK;
+	vendor = size >= 6 ? vendor_code_str(peek_be32(&payload[2])) : "?";
+	queue = size > 6 ? peek_u8(&payload[6]) : 0;
 
-	features = payload[0];
-	code = payload[1];
-
-	/* TODO: Implement this */
+	g_message("Got HEAD pong from %s (%s): code=\"%s%s\"%s, queue=%u",
+		node_addr(n),
+		vendor,
+		VMSG_HEAD_CODE_COMPLETE & code
+			? "complete"
+			: (VMSG_HEAD_CODE_PARTIAL | VMSG_HEAD_CODE_DOWNLOADING) & code
+				? "partial"
+				: "not found",
+		VMSG_HEAD_CODE_DOWNLOADING & code ?  "downloading" : "",
+		VMSG_HEAD_CODE_FIREWALLED & code ?  " (firewalled)" : "",
+		queue);
 }
-#endif
+#endif /* 0 */
 
 
-#if 0
+#if 0 
 /**
  * Send an "UDP Crawler Ping" message to specified node. -- For testing only
  */
@@ -1585,7 +1742,7 @@ vmsg_send_udp_crawler_ping(struct gnutella_node *n,
 
 	udp_send_msg(n, v_tmp, msgsize);
 }
-#endif
+#endif	/* 0 */
 
 /**
  * Handle the "Messages Supported" message.
@@ -1704,8 +1861,8 @@ static const struct vmsg vmsg_map[] = {
 	{ T_LIME, 22,  2, handle_proxy_ack,				"Push-Proxy ACK" },
 
 #if 0
-	{ T_LIME, 23, 1, handle_udp_head_ping, "UDP Head Ping" },
-	{ T_LIME, 24, 1, handle_udp_head_pong, "UDP Head Pong" },
+	{ T_LIME, 23,  1, handle_udp_head_ping,			"UDP Head Ping" },
+	{ T_LIME, 24,  1, handle_udp_head_pong,			"UDP Head Pong" },
 #endif
 
 	/* Above line intentionally left blank (for "!}sort" in vi) */
