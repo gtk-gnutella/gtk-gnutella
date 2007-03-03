@@ -61,7 +61,7 @@ RCSID("$Id$")
  * With VMM_PROTECT_FREE_PAGES freed pages are completely protected. This may
  * help to detect access-after-free bugs.
  */
-#define VMM_PROTECT_FREE_PAGES 1
+/* #define VMM_PROTECT_FREE_PAGES 1 */
 
 /*
  * Cached pages older than `page_cache_prune_timeout' seconds are released
@@ -524,6 +524,26 @@ prot_strdup(const char *s)
 		mprotect(p, n, PROT_READ);
 	}
 	return p;
+}
+
+/**
+ * @return	A page-sized and page-aligned chunk of memory which causes an
+ *			exception to be raised if accessed.
+ */
+const void *
+vmm_trap_page(void)
+{
+		static void *trap_page;
+
+		if (!trap_page) {
+			size_t size;
+		   
+			size = compat_pagesize();
+			trap_page = alloc_pages_intern(size);
+			RUNTIME_ASSERT(trap_page);
+			mprotect(trap_page, size, PROT_NONE);
+		}
+		return trap_page;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -46,6 +46,7 @@ void *alloc_pages(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void free_pages(void *p, size_t size);
 size_t prune_page_cache(void);
 const char *prot_strdup(const char *s);
+const void *vmm_trap_page(void);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);
