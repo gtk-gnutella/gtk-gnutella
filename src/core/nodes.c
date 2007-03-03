@@ -5902,15 +5902,6 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		s->getline = NULL;
 	}
 
-	if (!forced && !allow_private_network_connection && is_private_addr(addr)) {
-		if (s) {
-			if (major > 0 || minor > 4)
-				send_node_error(s, 404, "Denied access from private IP");
-			socket_free_null(&s);
-		}
-		return;
-	}
-
 	if (s && major == 0 && minor < 6) {
 		socket_free_null(&s);
 		return;
