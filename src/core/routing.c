@@ -1683,8 +1683,10 @@ route_query_hit(struct route_log *route_log,
 	 */
 
 	if (!NODE_IS_UDP(sender)) {
-		gchar *guid = sender->data + sender->size - 16;
+		const gchar *guid;
+		
 		g_assert(sender->size >= 16);
+	   	guid = &sender->data[sender->size - 16];
 
 		if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m)) {
 			/*
