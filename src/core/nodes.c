@@ -973,7 +973,7 @@ node_timer(time_t now)
 				current_peermode == NODE_P_ULTRA &&
 				NODE_IS_ULTRA(n)
 			) {
-				glong quiet = delta_time(now, n->last_tx);
+				time_delta_t quiet = delta_time(now, n->last_tx);
 
 				/*
 				 * Ultra node connected to another ultra node.
@@ -985,7 +985,7 @@ node_timer(time_t now)
 				 */
 
 				if (
-					quiet > (glong) node_connected_timeout &&
+					quiet > (time_delta_t) node_connected_timeout &&
 					NODE_MQUEUE_COUNT(n)
 				) {
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0,
@@ -1013,8 +1013,8 @@ node_timer(time_t now)
 		 */
 
 		if (n->status == GTA_NODE_CONNECTED) {
-			glong tx_quiet = delta_time(now, n->last_tx);
-			glong rx_quiet = delta_time(now, n->last_rx);
+			time_delta_t tx_quiet = delta_time(now, n->last_tx);
+			time_delta_t rx_quiet = delta_time(now, n->last_rx);
 
 			if (n->n_weird >= MAX_WEIRD_MSG) {
 
@@ -1041,7 +1041,7 @@ node_timer(time_t now)
 			if (
 				node_connected_timeout > 2*NODE_TSYNC_CHECK &&
 				MAX(tx_quiet, rx_quiet) >
-					(glong) node_connected_timeout - NODE_TSYNC_CHECK &&
+					(time_delta_t) node_connected_timeout - NODE_TSYNC_CHECK &&
 				(n->attrs & NODE_A_TIME_SYNC) &&
 				!(n->flags & NODE_F_TSYNC_WAIT)
 			) {
