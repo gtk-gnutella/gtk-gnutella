@@ -1521,7 +1521,8 @@ const gchar *
 sha1_to_string(const struct sha1 sha1)
 {
 	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
-	return sha1_to_base32_buf(&sha1.data, digest_b32, sizeof digest_b32);
+	return sha1_to_base32_buf(cast_to_gchar_ptr(sha1.data),
+				digest_b32, sizeof digest_b32);
 }
 
 /**
