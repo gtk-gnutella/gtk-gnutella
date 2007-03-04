@@ -604,10 +604,10 @@ message_dump(const struct gnutella_node *n)
 /**
  * Check whether node is a gtk-gnutella node.
  */
-static gboolean
+static inline gboolean
 node_is_gtkg(const struct gnutella_node *n)
 {
-	return n->vendor && is_strprefix(n->vendor, "gtk-gnutella/");
+	return 0 != (NODE_F_GTKG & n->flags);
 }
 
 /**
@@ -2574,16 +2574,16 @@ formatted_connection_pongs(const gchar *field, host_type_t htype, gint num)
 static gint
 node_gtkg_cmp(const void *np1, const void *np2)
 {
-	gnutella_node_t *n1 = *(gnutella_node_t **) np1;
-	gnutella_node_t *n2 = *(gnutella_node_t **) np2;
+	const gnutella_node_t *n1 = *(const gnutella_node_t **) np1;
+	const gnutella_node_t *n2 = *(const gnutella_node_t **) np2;
 
-	if (n1->flags & NODE_F_GTKG)
-		return (n2->flags & NODE_F_GTKG) ? 0 : -1;
-
-	if (n2->flags & NODE_F_GTKG)
-		return (n1->flags & NODE_F_GTKG) ? 0 : +1;
-
-	return 0;
+	if (node_is_gtkg(n1)) {
+		return node_is_gtkg(n2) ? 0 : -1;
+	} else if (node_is_gtkg(n2)) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 /**
@@ -2840,7 +2840,7 @@ send_error(
 	 */
 
 	if (n != NULL && n->vendor != NULL) {
-		if (n->flags & NODE_F_GTKG) {
+		if (node_is_gtkg(n)) {
 			if (!(n->flags & NODE_F_FAKE_NAME))	/* A genuine GTKG peer */
 				pongs = CONNECT_PONGS_COUNT;	/* Give it the maximum */
 		} else {
@@ -8778,11 +8778,11 @@ node_ua_cmp(const void *np1, const void *np2)
 	 * Put gtk-gnutella nodes at the beginning of the array.
 	 */
 
-	if (n1->flags & NODE_F_GTKG)
-		return (n2->flags & NODE_F_GTKG) ? strcmp(n1->vendor, n2->vendor) : -1;
+	if (node_is_gtkg(n1))
+		return node_is_gtkg(n2) ? strcmp(n1->vendor, n2->vendor) : -1;
 
-	if (n2->flags & NODE_F_GTKG)
-		return (n1->flags & NODE_F_GTKG) ? strcmp(n1->vendor, n2->vendor) : +1;
+	if (node_is_gtkg(n2))
+		return node_is_gtkg(n1) ? strcmp(n1->vendor, n2->vendor) : +1;
 
 	/*
 	 * Nodes without user-agent are put at the end of the array.
@@ -8859,7 +8859,7 @@ node_crawl_fill(pmsg_t *mb,
 		gnutella_node_t *n = ary[i];
 		gchar addr[6];
 
-		if (!gtkg != !(n->flags & NODE_F_GTKG))
+		if (!gtkg != !node_is_gtkg(n))
 			goto next;
 
 		/*
