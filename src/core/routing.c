@@ -155,7 +155,7 @@ static const gchar * const banned_push[] = {
 	"9c51e42153d4c94a858f8e8a8391173d",		/**< morph471 4.7.1.326 */
 	"27630b632f070ca9ffc48eb06a72c700",		/**< Morpheus?, 2005-08-30 */
 };
-GHashTable *ht_banned_push = NULL;
+static GHashTable *ht_banned_push = NULL;
 
 #define BANNED_PUSH_COUNT	G_N_ELEMENTS(banned_push)
 
@@ -165,7 +165,7 @@ GHashTable *ht_banned_push = NULL;
  * It maps a GUID to a node, so that we can easily send a push message
  * on behalf of a requesting node to the proper connection.
  */
-GHashTable *ht_proxyfied = NULL;
+static GHashTable *ht_proxyfied = NULL;
 
 /**
  * Routing logging.
@@ -1489,7 +1489,6 @@ route_push(struct route_log *route_log,
 {
 	struct gnutella_node *sender = *node;
 	struct message *m;
-	host_addr_t addr;
 
 	/*
 	 * A Push request is not broadcasted as other requests, it is routed
@@ -1522,7 +1521,6 @@ route_push(struct route_log *route_log,
 				node_addr(sender), guid_hex_str(sender->data));
 
 		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
-
 		return FALSE;
 	}
 
@@ -1530,9 +1528,7 @@ route_push(struct route_log *route_log,
 	 * If IP address is among the hostile set, drop.
 	 */
 
-	addr = host_addr_peek_ipv4(&sender->data[20]);
-
-	if (hostiles_check(addr)) {
+	if (hostiles_check(host_addr_peek_ipv4(&sender->data[20]))) {
 		gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
 		return FALSE;
 	}
