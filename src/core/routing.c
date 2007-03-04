@@ -359,7 +359,7 @@ route_mangled_oob_muid(const gchar *muid)
 {
 	static gchar mangled[GUID_RAW_SIZE];
 
-	memcpy(&mangled[4], &muid[4], 9);	/* Clear IP address (bytes 0-4) */
+	memcpy(&mangled[4], &muid[4], 9);	/* Clear IP address (bytes 0-3) */
 	mangled[15] = muid[15];				/* Clear port (bytes 13-14) */
 
 	return mangled;
@@ -1227,7 +1227,7 @@ forward_message(
 					== GTA_MSG_PUSH_REQUEST);
 
 			for (l = routes, count = 0; l; l = g_slist_next(l), count++) {
-				struct route_data *rd = (struct route_data *) l->data;
+				struct route_data *rd = l->data;
 				if (rd->node == sender)
 					continue;
 
