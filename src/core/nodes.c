@@ -929,6 +929,10 @@ node_timer(time_t now)
 		 */
  		sl = g_slist_next(sl);
 
+		if (n->flags & NODE_F_CAN_TLS) {
+			tls_cache_insert(n->addr, n->port);
+		}
+
 		/*
 		 * If we're sending a BYE message, check whether the whole TX
 		 * stack finally flushed.
@@ -5097,6 +5101,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 	if (0 == (NODE_F_INCOMING & n->flags)) {
 		if (header_get_feature("tls", head, NULL, NULL)) {
+			n->flags |= NODE_F_CAN_TLS;
 			tls_cache_insert(n->addr, n->port);
 		}
 	}
@@ -8450,8 +8455,6 @@ node_gnet_addr(const gnutella_node_t *n)
 void
 node_connect_back(const gnutella_node_t *n, guint16 port)
 {
-	struct gnutella_socket *s;
-
 	/*
 	 * Attempt asynchronous connection.
 	 *
@@ -8459,10 +8462,7 @@ node_connect_back(const gnutella_node_t *n, guint16 port)
 	 * from the socket layer.
 	 */
 
-	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, SOCK_F_TLS);
-
-	if (s == NULL)
-		return;
+	(void)socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, SOCK_F_TLS);
 
 	/*
 	 * There is no specific resource attached to the socket.
