@@ -546,19 +546,19 @@ handle_push_request(struct gnutella_node *n)
 	host_addr_t ha;
 	guint32 file_index, flags = 0;
 	guint16 port;
-	gchar *info;
+	const gchar *info;
 	gboolean show_banning = FALSE;
 	const gchar *file_name = "<invalid file index>";
 
 	/* Servent ID matches our GUID? */
-	if (0 != memcmp(n->data, servent_guid, 16))
+	if (!guid_eq(n->data, servent_guid))
 		return;								/* No: not for us */
 
 	/*
 	 * We are the target of the push.
 	 */
 
-	info = n->data + 16;					/* Start of file information */
+	info = &n->data[GUID_RAW_SIZE];			/* Start of file information */
 
 	file_index = peek_le32(&info[0]);
 	ha = host_addr_peek_ipv4(&info[4]);
@@ -581,19 +581,23 @@ handle_push_request(struct gnutella_node *n)
 			case EXT_T_GGEP_GTKG_IPV6:
 				{
 					host_addr_t addr;
-					ggept_status_t ret;
 
-					ret = ggept_gtkg_ipv6_extract(e, &addr);
-					if (GGEP_OK == ret) {
+					switch (ggept_gtkg_ipv6_extract(e, &addr)) {
+					case GGEP_OK:
 						/* XXX: Check validity, hostiles etc. */
-						if (is_host_addr(addr))
+						if (is_host_addr(addr)) {
 							ha = addr;
-					} else if (ret == GGEP_INVALID) {
+						}
+						break;
+					case GGEP_INVALID:
+					case GGEP_NOT_FOUND:
+					case GGEP_BAD_SIZE:
 						if (ggep_debug > 3) {
 							g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
 									gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
 						}
+						break;
 					}
 				}
 				break;
