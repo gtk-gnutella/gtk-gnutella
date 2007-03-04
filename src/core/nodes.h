@@ -283,12 +283,13 @@ enum {
 	NODE_F_PROXY		= 1 << 17,	/**< Sent a push-proxy request to it */
 	NODE_F_PROXIED		= 1 << 18,	/**< We are push-proxy for that node */
 	NODE_F_QRP_SENT		= 1 << 19,	/**< Undergone 1 complete QRP sending */
-	NODE_F_TLS			= 1 << 20,	/**< TLS-tunneled */
-	NODE_F_TSYNC_WAIT	= 1 << 21,	/**< Time sync pending via TCP */
-	NODE_F_TSYNC_TCP	= 1 << 22,	/**< No replies via UDP, use TCP */
-	NODE_F_GTKG			= 1 << 23,	/**< Node is another gtk-gnutella */
-	NODE_F_FORCE		= 1 << 24,	/**< Connection is forced */
-	NODE_F_NO_OOB_PROXY	= 1 << 25	/**< Do not OOB proxy the leaf */
+	NODE_F_TSYNC_WAIT	= 1 << 20,	/**< Time sync pending via TCP */
+	NODE_F_TSYNC_TCP	= 1 << 21,	/**< No replies via UDP, use TCP */
+	NODE_F_GTKG			= 1 << 22,	/**< Node is another gtk-gnutella */
+	NODE_F_FORCE		= 1 << 23,	/**< Connection is forced */
+	NODE_F_NO_OOB_PROXY	= 1 << 24,	/**< Do not OOB proxy the leaf */
+	NODE_F_TLS			= 1 << 25,	/**< TLS-tunneled */
+	NODE_F_CAN_TLS		= 1 << 26	/**< Indicated support for TLS */
 };
 
 /*
