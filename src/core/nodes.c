@@ -6154,7 +6154,7 @@ struct dump_header {
  *	uint8_t addr[16];
  *	uint8_t port[2];
  */
-	uint8_t data[19];
+	guchar data[19];
 };
 
 static void
