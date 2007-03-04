@@ -157,8 +157,6 @@ static const gchar * const banned_push[] = {
 };
 static GHashTable *ht_banned_push = NULL;
 
-#define BANNED_PUSH_COUNT	G_N_ELEMENTS(banned_push)
-
 /**
  * Push-proxy table.
  *
@@ -725,7 +723,7 @@ routing_init(void)
 
 	ht_banned_push = g_hash_table_new(guid_hash, guid_eq);
 
-	for (i = 0; i < BANNED_PUSH_COUNT; i++) {
+	for (i = 0; i < G_N_ELEMENTS(banned_push); i++) {
 		gchar g[GUID_RAW_SIZE];
 		const gchar *hex = banned_push[i];
 
