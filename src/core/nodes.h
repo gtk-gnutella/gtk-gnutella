@@ -602,6 +602,13 @@ gnutella_node_t *node_browse_prepare(
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 
+static inline void
+node_check(const struct gnutella_node * const n)
+{
+	g_assert(n);
+	g_assert(NODE_MAGIC == n->magic);
+}
+
 #endif /* _core_nodes_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
