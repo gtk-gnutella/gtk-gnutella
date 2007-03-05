@@ -5646,6 +5646,7 @@ node_udp_enable_by_net(enum net_type net)
 	}
 	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
 	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
+	n->flags |= NODE_F_WRITABLE;
 	
     node_fire_node_added(n);
     node_fire_node_flags_changed(n);
@@ -5672,6 +5673,8 @@ node_udp_disable_by_net(enum net_type net)
 	}
 
 	node_check(n);
+
+	n->flags &= ~NODE_F_WRITABLE;
 	if (n->socket) {
 		socket_check(n->socket);
 		node_fire_node_removed(n);
