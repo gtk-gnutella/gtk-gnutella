@@ -1799,11 +1799,38 @@ extract_guid(const gchar *data, size_t size, gchar guid[GUID_RAW_SIZE])
 	return success;
 }
 
+static struct gnutella_node *
+node_by_guid(const gchar *guid)
+{
+	struct gnutella_node *target = NULL;
+	GSList *nodes, *iter;
+		
+	nodes = route_towards_guid(guid);
+	for (iter = nodes; NULL != iter; iter = g_slist_next(iter)) {
+		struct gnutella_node *n = iter->data;
+
+		/* Forward the packet only to a direct neighbour */
+		if (n->guid && guid_eq(n->guid, guid)) {
+			if (NODE_A_CAN_HEAD & n->attrs) {
+				target = n;
+			} else {
+				if (vmsg_debug) {
+					g_message(
+						"HEAD Ping target %s does not support HEAD pings",
+						node_addr(n));
+				}
+			}
+			break;
+		}
+	}
+	g_slist_free(nodes);
+	return target;
+}
 /**
  * Handle reception of an UDP Head Ping
  */
 static void
-handle_udp_head_ping(struct gnutella_node *sender,
+handle_udp_head_ping(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
 	static const gchar prefix[] = "urn:sha1:";
@@ -1822,15 +1849,15 @@ handle_udp_head_ping(struct gnutella_node *sender,
 	 *   urn:       typically urn:sha1:<base32 sha1>
 	 */
 
-	if (VMSG_CHECK_SIZE(sender, vmsg, size, expect_size))
+	if (VMSG_CHECK_SIZE(n, vmsg, size, expect_size))
 		return;
 
 	if (vmsg_debug) {
 		g_message("Got HEAD Ping from %s%s (TTL=%u, hops=%u)",
-			node_addr(sender),
-			NODE_IS_UDP(sender) ? " (UDP)" : "",
-			gnutella_header_get_ttl(sender->header),
-			gnutella_header_get_hops(sender->header));
+			node_addr(n),
+			NODE_IS_UDP(n) ? " (UDP)" : "",
+			gnutella_header_get_ttl(n->header),
+			gnutella_header_get_hops(n->header));
 	}
 
 	flags = peek_u8(&payload[0]);
@@ -1872,56 +1899,39 @@ handle_udp_head_ping(struct gnutella_node *sender,
 	}
 
 	if (has_guid && !guid_eq(guid, servent_guid)) {
-		GSList *nodes;
-		
+		struct gnutella_node *target;
+
 		if (NODE_P_LEAF == current_peermode) {
 		   	if (vmsg_debug) {
 				g_message("Not forwarding HEAD Ping as leaf");
 			}
 			return;
 		}
-
-		/* TODO: leaf_by_guid() would be more appropriate */
-		nodes = route_towards_guid(guid);
-		if (nodes) {
-			GSList *iter;
-
-			for (iter = nodes; NULL != iter; iter = g_slist_next(iter)) {
-				struct gnutella_node *n = iter->data;
-
-				/* Forward the packet only to a direct neighbour */
-				if (n->guid && guid_eq(n->guid, guid)) {
-					g_message("Not route found for HEAD Ping");
-					if (NODE_A_CAN_HEAD & n->attrs) {
-						const gchar *muid;
-						gnutella_header_t header;
-
-						memcpy(header, sender->header, GTA_HEADER_SIZE);
-						gnutella_header_set_ttl(&header, 1);
-						gnutella_header_set_hops(&header, 1);
-						muid = gnutella_header_get_muid(header);
-						if (head_ping_register(muid, sha1, sender)) {
-							if (vmsg_debug) {
-								g_message("Forwarding HEAD Ping to %s",
-									node_addr(n));
-							}
-							gmsg_split_sendto_one(n, header,
-								sender->data, sender->size);
-						}
-					} else {
-						if (vmsg_debug) {
-							g_message("HEAD Ping target %s does not support "
-								"HEAD pings", node_addr(n));
-						}
-					}
-					break;
-				}
+		if (gnutella_header_get_hops(&n->header) > 0) {
+		   	if (vmsg_debug) {
+				g_message("Not forwarding forwarded HEAD Ping");
 			}
-			g_slist_free(nodes);
-			nodes = NULL;
+			return;
+		}
+
+		target = node_by_guid(guid);
+		if (target && target != n) {
+			gnutella_header_t header;
+			const gchar *muid;
+
+			memcpy(header, n->header, GTA_HEADER_SIZE);
+			gnutella_header_set_ttl(&header, 1);
+			gnutella_header_set_hops(&header, 1);
+			muid = gnutella_header_get_muid(header);
+			if (head_ping_register(muid, sha1, n)) {
+				if (vmsg_debug) {
+					g_message("Forwarding HEAD Ping to %s", node_addr(n));
+				}
+				gmsg_split_sendto_one(target, header, n->data, n->size);
+			}
 		} else {
 			if (vmsg_debug) {
-				g_message("Not route found for HEAD Ping");
+				g_message("No route found for HEAD Ping");
 			}
 		}
 	} else {
@@ -1969,7 +1979,7 @@ handle_udp_head_ping(struct gnutella_node *sender,
 				}
 				code = VMSG_HEAD_CODE_NOT_FOUND;
 			}
-			vmsg_send_head_pong(sender, &sha1, code, flags);
+			vmsg_send_head_pong(n, &sha1, code, flags);
 		}
 	}
 }
