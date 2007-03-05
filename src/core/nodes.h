@@ -318,7 +318,8 @@ enum {
 	NODE_A_CAN_QRP		= 1 << 17,	/**< Node supports query routing */
 	NODE_A_CAN_VENDOR	= 1 << 18,	/**< Node supports vendor messages */
 	NODE_A_CAN_ULTRA	= 1 << 19,	/**< Node is ultra capable */
-	NODE_A_CAN_INFLATE	= 1 << 20	/**< Node capable of inflating */
+	NODE_A_CAN_INFLATE	= 1 << 20,	/**< Node capable of inflating */
+	NODE_A_CAN_HEAD		= 1 << 21	/**< Supports HEAD ping (vendor message) */
 };
  
 /*
