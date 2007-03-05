@@ -2064,21 +2064,20 @@ route_towards_guid(const gchar *guid)
 {
 	struct message *m;
 	GSList *nodes = NULL;
-	GSList *sl;
 
-	if (is_banned_push(guid))	/* Banned for PUSH */
-		return NULL;
-
-	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL)
-		return NULL;
-
-	revitalize_entry(m, TRUE);
-
-	for (sl = m->routes; sl; sl = g_slist_next(sl)) {
-		struct route_data *rd = sl->data;
-		nodes = g_slist_prepend(nodes, rd->node);
+	if (
+		!is_banned_push(guid) &&
+		find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) &&
+		NULL != m->routes
+	) {
+		GSList *sl;
+		
+		revitalize_entry(m, TRUE);
+		for (sl = m->routes; NULL != sl; sl = g_slist_next(sl)) {
+			struct route_data *rd = sl->data;
+			nodes = g_slist_prepend(nodes, rd->node);
+		}
 	}
-
 	return nodes;
 }
 
