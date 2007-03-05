@@ -184,6 +184,12 @@ struct route_log {
 
 static void free_route_list(struct message *m);
 
+static inline gboolean
+is_banned_push(const gchar *guid)
+{
+	return NULL != g_hash_table_lookup(ht_banned_push, guid);
+}
+
 /**
  * Record message parameters.
  */
@@ -763,7 +769,7 @@ retry:
 	 * If by extraordinary, we have generated a banned GUID, retry.
 	 */
 
-	if (g_hash_table_lookup(ht_banned_push, guid_buf)) {
+	if (is_banned_push(guid_buf)) {
 		need_guid = TRUE;
 		goto retry;
 	}
@@ -1487,6 +1493,7 @@ route_push(struct route_log *route_log,
 {
 	struct gnutella_node *sender = *node;
 	struct message *m;
+	const gchar *guid;
 
 	/*
 	 * A Push request is not broadcasted as other requests, it is routed
@@ -1495,12 +1502,13 @@ route_push(struct route_log *route_log,
 	 */
 
 	g_assert(sender->size > GUID_RAW_SIZE);	/* Must be a valid push */
+	guid = sender->data;
 
 	/*
 	 * Is it for us?
 	 */
 
-	if (0 == memcmp(servent_guid, sender->data, GUID_RAW_SIZE)) {
+	if (0 == memcmp(servent_guid, guid, GUID_RAW_SIZE)) {
 		routing_log_extra(route_log, "we are the target");
 		return TRUE;
 	}
@@ -1512,11 +1520,11 @@ route_push(struct route_log *route_log,
 	 * If the GUID is banned, drop it immediately.
 	 */
 
-	if (g_hash_table_lookup(ht_banned_push, sender->data)) {
+	if (is_banned_push(guid)) {
 		if (routing_debug > 3)
 			gmsg_log_dropped(&sender->header,
 				"from %s, banned GUID %s",
-				node_addr(sender), guid_hex_str(sender->data));
+				node_addr(sender), guid_hex_str(guid));
 
 		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
 		return FALSE;
@@ -1536,17 +1544,14 @@ route_push(struct route_log *route_log,
 	 * message, hence we pass `sender->data' to find_message().
 	 */
 
-	if (
-		!find_message(sender->data, QUERY_HIT_ROUTE_SAVE, &m) ||
-		m->routes == NULL
-	) {
+	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL) {
 		if (m && m->routes == NULL) {
 			routing_log_extra(route_log, "route to target GUID %s gone",
-				guid_hex_str(sender->data));
+				guid_hex_str(guid));
 			gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
 		} else {
 			routing_log_extra(route_log, "no route to target GUID %s",
-				guid_hex_str(sender->data));
+				guid_hex_str(guid));
 			gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
 		}
 
@@ -1687,8 +1692,9 @@ route_query_hit(struct route_log *route_log,
 			 * Ensure it's not a banned GUID though.
 			 */
 
-			if (!g_hash_table_lookup(ht_banned_push, origin_guid))
+			if (!is_banned_push(origin_guid)) {
 				message_add(origin_guid, QUERY_HIT_ROUTE_SAVE, sender);
+			}
 		} else if (m->routes == NULL || !node_sent_message(sender, m)) {
 			struct route_data *route;
 
@@ -2060,7 +2066,7 @@ route_towards_guid(const gchar *guid)
 	GSList *nodes = NULL;
 	GSList *sl;
 
-	if (g_hash_table_lookup(ht_banned_push, guid))	/* Banned for PUSH */
+	if (is_banned_push(guid))	/* Banned for PUSH */
 		return NULL;
 
 	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL)
