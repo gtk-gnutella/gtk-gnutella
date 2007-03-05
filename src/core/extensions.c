@@ -49,7 +49,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
-#define HUGE_FS		'\x1c'		/**< Field separator (HUGE) */
+#define HUGE_FS		0x1CU		/**< Field separator (HUGE) */
 
 #define GGEP_MAXLEN	65535		/**< Maximum decompressed length */
 #define GGEP_GROW	512			/**< Minimum chunk growth when resizing */
@@ -649,7 +649,7 @@ ext_huge_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	payload_start = p;
 	for (/* NOTHING*/; p < end; p++) {
 		guchar c = *p;
-		if (!is_ascii_alnum(c) || c == (guchar) GGEP_MAGIC) {
+		if (!is_ascii_alnum(c) || c == GGEP_MAGIC) {
 			break;
 		}
 	}
@@ -695,7 +695,7 @@ ext_xml_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 
 	for (/* NOTHING */; p != end; p++) {
 		guchar c = *p;
-		if (c == '\0' || c == (guchar) HUGE_FS) {
+		if (c == '\0' || c == HUGE_FS) {
 			break;
 		}
 	}
@@ -750,8 +750,8 @@ ext_unknown_parse(const gchar **retp, gint len, extvec_t *exv,
 
 		switch ((guchar) *p) {
 		case '\0':
-		case (guchar) HUGE_FS:
-		case (guchar) GGEP_MAGIC:
+		case HUGE_FS:
+		case GGEP_MAGIC:
 			found = TRUE;
 			break;
 		case 'u':
@@ -818,7 +818,7 @@ ext_none_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 
 	for (/* NOTHING */; p != end; p++) {
 		guchar c = *p;
-		if (c != '\0' && c != (guchar) HUGE_FS)
+		if (c != '\0' && c != HUGE_FS)
 			break;
 	}
 
@@ -942,7 +942,7 @@ ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 		 * that predate GGEP (HUGE and XML) and were not properly encapsulated.
 		 */
 
-		switch (*p) {
+		switch ((guchar) *p) {
 		case GGEP_MAGIC:
 			p++;
 			if (p == end)
@@ -980,7 +980,7 @@ ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 		g_assert(found == 0 || p != old_p);
 
 		if (found == 0) {
-			g_assert(*old_p == GGEP_MAGIC || p == old_p);
+			g_assert((guchar) *old_p == GGEP_MAGIC || p == old_p);
 
 			/*
 			 * If we were initially on a GGEP magic byte, and since we did
@@ -988,7 +988,7 @@ ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 			 * about to skip the first synchronization point...
 			 */
 
-			if (*old_p == GGEP_MAGIC) {
+			if ((guchar) *old_p == GGEP_MAGIC) {
 				p--;
 				g_assert(p == old_p);
 			}

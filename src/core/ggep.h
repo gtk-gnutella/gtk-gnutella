@@ -42,7 +42,7 @@
 #include "lib/cobs.h"
 #include "lib/zlib_util.h"
 
-#define GGEP_MAGIC		'\xc3'		/**< GGEP extension prefix */
+#define GGEP_MAGIC		0xC3U		/**< GGEP extension prefix */
 
 /*
  * GGEP Extension Header Flags.
