@@ -41,14 +41,14 @@
 #include "common.h"
 
 struct array {
-	char *data;
+	const char *data;
 	size_t size;
 };
 
 static const struct array zero_array;
 
 static inline struct array
-array_init(void *data, size_t size)
+array_init(const void *data, size_t size)
 {
 	struct array array;
 	array.data = data;
@@ -59,7 +59,7 @@ array_init(void *data, size_t size)
 static inline struct array
 array_from_string(const char *str)
 {
-	return array_init((char *) str, strlen(str));
+	return array_init(str, strlen(str));
 }
 
 #endif /* _array_h_ */

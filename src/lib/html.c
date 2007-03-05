@@ -605,7 +605,7 @@ parse(struct html_output *output, const struct array array)
 	nodes = root;
 
 	tag = zero_array;
-	text = array_init(deconstify_gchar(array.data), 0); 
+	text = array_init(array.data, 0); 
 
 	for (i = 0; i < array.size; i += c_len) {
 		const char *next_ptr;
@@ -659,7 +659,7 @@ parse(struct html_output *output, const struct array array)
 				nodes->next = node;
 				nodes = node;
 				tag = zero_array;
-				text = array_init(deconstify_gchar(next_ptr), 0); 
+				text = array_init(next_ptr, 0); 
 			}
 			break;
 
@@ -735,7 +735,7 @@ html_load_file(struct html_output *output, int fd)
 	close(fd);
 	fd = -1;
 
-	ret = html_load_memory(output, array_init(deconstify_gchar(p), size));
+	ret = html_load_memory(output, array_init(p, size));
 
 error:
 	if (fd >= 0) {
