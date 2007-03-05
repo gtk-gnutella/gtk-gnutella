@@ -74,6 +74,7 @@ struct pmsg *vmsg_build_oob_reply_ind(const gchar *muid,
 				guint8 hits, gboolean secure);
 
 void vmsg_init(void);
+void vmsg_close(void);
 
 #endif	/* _core_vmsg_h_ */
 

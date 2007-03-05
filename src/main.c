@@ -463,6 +463,7 @@ gtk_gnutella_exit(gint n)
 	whitelist_close();
 	features_close();
 	clock_close();
+	vmsg_close();
 	watcher_close();
 	tsync_close();
 	cq_close();
@@ -1185,11 +1186,11 @@ main(int argc, char **argv)
 	iso3166_init();
 	dbus_util_init();
 	vendor_init();
-	vmsg_init();
 
 	main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);
 
 	cq_init();
+	vmsg_init();
 	tsync_init();
 	watcher_init();
 	hcache_init();			/* before settings_init() */

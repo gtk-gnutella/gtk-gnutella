@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "clock.h"
+#include "dmesh.h"
 #include "dq.h"
 #include "fileinfo.h"
 #include "ggep.h"
@@ -65,11 +66,14 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/array.h"
+#include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/vendors.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -393,8 +397,10 @@ handle_tcp_connect_back(struct gnutella_node *n,
 
 	port = peek_le16(payload);
 	if (port == 0) {
-		g_warning("got improper port #%d in %s from %s <%s>",
-			port, vmsg->name, node_addr(n), node_vendor(n));
+		if (vmsg_debug) {
+			g_warning("got improper port #%d in %s from %s <%s>",
+				port, vmsg->name, node_addr(n), node_vendor(n));
+		}
 		return;
 	}
 
@@ -446,8 +452,10 @@ handle_udp_connect_back(struct gnutella_node *n,
 
 	port = peek_le16(payload);
 	if (0 == port) {
-		g_warning("got improper port #%d in %s from %s <%s>",
-			port, vmsg->name, node_addr(n), node_vendor(n));
+		if (vmsg_debug) {
+			g_warning("got improper port #%d in %s from %s <%s>",
+				port, vmsg->name, node_addr(n), node_vendor(n));
+		}
 		return;
 	}
 
@@ -852,6 +860,45 @@ vmsg_build_oob_reply_ind(const gchar *muid, guint8 hits, gboolean secure)
 	return gmsg_to_pmsg(v_tmp, msgsize);
 }
 
+#define MAX_OOB_TOKEN_SIZE 16
+
+static struct array
+extract_token(const gchar *data, size_t size, gchar token[MAX_OOB_TOKEN_SIZE])
+{
+	extvec_t exv[MAX_EXTVEC];
+	gint i, exvcnt;
+	size_t token_size = 0;
+
+	ext_prepare(exv, MAX_EXTVEC);
+	exvcnt = ext_parse(data, size, exv, MAX_EXTVEC);
+
+	for (i = 0; i < exvcnt; i++) {
+		const extvec_t *e = &exv[i];
+
+		if (EXT_T_GGEP_SO == e->ext_token) {
+			size_t len = ext_paylen(e);
+
+			if (len < 1) {
+				if (vmsg_debug)
+					g_warning("Empty GGEP \"SO\"");
+			} else if (len > MAX_OOB_TOKEN_SIZE) {
+				if (vmsg_debug)
+					g_warning("GGEP \"SO\" too large");
+				len = MAX_OOB_TOKEN_SIZE;	/* truncate it */
+			}
+			if (len > 0 && len <= MAX_OOB_TOKEN_SIZE) {
+				memcpy(token, ext_payload(e), MAX_OOB_TOKEN_SIZE);
+				token_size = len;
+			}
+			break;
+		}
+	}
+	if (exvcnt) {
+		ext_reset(exv, MAX_EXTVEC);
+	}	
+	return token_size > 0 ? array_init(token, token_size) : zero_array;
+}
+
 /**
  * Handle reception of an "OOB Reply Ack" message, whereby the remote
  * host informs us about the amount of query hits it wants delivered
@@ -861,8 +908,8 @@ static void
 handle_oob_reply_ack(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
+	gchar token_data[MAX_OOB_TOKEN_SIZE];
 	struct array token;
-	gchar token_data[16];
 	gint wanted;
 
 	if (VMSG_CHECK_SIZE(n, vmsg, size, 1))
@@ -881,35 +928,10 @@ handle_oob_reply_ack(struct gnutella_node *n,
 
 	wanted = peek_u8(&payload[0]);
 
-	token = zero_array;
 	if (vmsg->version > 2 && size > 1) {
-		extvec_t exv[MAX_EXTVEC];
-		gint i, exvcnt;
-
-		ext_prepare(exv, MAX_EXTVEC);
-		exvcnt = ext_parse(&payload[1], size - 1, exv, MAX_EXTVEC);
-
-		for (i = 0; i < exvcnt; i++) {
-			extvec_t *e = &exv[i];
-
-			if (EXT_T_GGEP_SO == e->ext_token) {
-				size_t len = ext_paylen(e);
-
-				if (len < 1) {
-					if (vmsg_debug)
-						g_warning("Empty GGEP \"SO\"");
-				} else if (len > sizeof token_data) {
-					if (vmsg_debug)
-						g_warning("GGEP \"SO\" too large");
-					len = sizeof token_data;	/* truncate it */
-				}
-				if (len > 0 && len <= sizeof token_data) {
-					memcpy(token_data, ext_payload(e), len);
-					token = array_init(token_data, len); 
-				}
-				break;
-			}
-		}
+		token = extract_token(&payload[1], size - 1, token_data);
+	} else {
+		token = zero_array;
 	}
 
 	oob_deliver_hits(n, gnutella_header_get_muid(&n->header), wanted, &token);
@@ -1476,7 +1498,7 @@ handle_node_info_ans(struct gnutella_node *n,
 	if (VMSG_CHECK_SIZE(n, vmsg, size, 20))
 		return;
 
-	/* XXX */
+	/* TODO: Implement this */
 	(void) payload;
 }
 
@@ -1500,34 +1522,216 @@ enum {
 };
 
 void
-vmsg_send_head_pong(struct gnutella_node *n, guint8 code)
+vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
+	guint8 code, guint8 flags)
 {
 	guint32 msgsize;
 	guint32 paysize;
-	gchar *payload;
-	guint32 slots;
-
-	g_assert(NODE_IS_UDP(n));
+	gchar *payload, *p;
 
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 24, 1);
+	paysize = 2;
 
-	code |= is_firewalled ? VMSG_HEAD_CODE_PARTIAL : 0;
-	slots = upload_is_enabled() ? max_uploads - ul_running : 0;
-	slots = MIN(0x7e, slots);
-	if (0 == slots) {
-		slots = 0x7f; /* Busy */
+	code &= VMSG_HEAD_CODE_MASK;
+	flags &= VMSG_HEAD_F_MASK;
+
+	p = poke_u8(&payload[0], flags);
+	p = poke_u8(&payload[1], code);
+
+	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
+		flags = 0;
+	} else {
+		guint32 slots;
+
+		code |= is_firewalled ? VMSG_HEAD_CODE_PARTIAL : 0;
+
+		slots = upload_is_enabled() ? max_uploads - ul_running : 0;
+		slots = MIN(max_uploads, slots);
+		slots = MIN(0x7eU, slots);
+		if (0 == slots) {
+			slots = 0x7f; /* Busy */
+		}
+
+		p = poke_be32(p, T_GTKG);	/* Vendor code */
+		p = poke_u8(p, slots);		/* Queue status */
+
+		/* Optional ranges for partial files */
+		if (VMSG_HEAD_F_RANGES & flags) {
+			flags &= ~VMSG_HEAD_F_RANGES;	/* Not implemented */
+		}
+
+		/* Optional firewalled alternate locations */
+		if (VMSG_HEAD_F_ALT_PUSH & flags) {
+			flags &= ~VMSG_HEAD_F_ALT_PUSH;	/* Not implemented */	
+		}
+
+		/* Optional alternate locations */
+		if (VMSG_HEAD_F_ALT & flags) {
+			gnet_host_t hvec[15];	/* 15 * 6 = 90 bytes (max) */
+			gint hcnt = 0;
+		   	
+			if (sha1) {
+				hcnt = dmesh_fill_alternate(cast_to_gchar_ptr(sha1->data),
+							hvec, G_N_ELEMENTS(hvec));
+			}
+			if (hcnt > 0) {
+				gint i;
+				
+				p = poke_be16(p, hcnt * 6);
+				for (i = 0; i < hcnt; i++) {
+					p = poke_be32(p,
+							host_addr_ipv4(gnet_host_get_addr(&hvec[i])));
+					p = poke_le16(p, gnet_host_get_port(&hvec[i]));
+				}
+			} else {
+				flags &= ~VMSG_HEAD_F_ALT;
+			}
+		}
 	}
-	
-	poke_u8(&payload[0], 0);		/* Features */
-	poke_u8(&payload[1], code);		/* Result code (found, partial, etc.) */
-	poke_be32(&payload[2], T_GTKG);	/* Vendor code */
-	poke_u8(&payload[6], slots);	/* Queue status */
-	paysize = 7;
+
+	poke_u8(&payload[0], flags);	/* Update flags */
+	paysize = p - payload;
+
+	if (vmsg_debug) {
+		g_message("Sending HEAD Pong to %s", node_addr(n));
+	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
 	udp_send_msg(n, v_tmp, msgsize);
+}
+
+struct head_ping_data {
+	struct sha1 sha1;
+	host_addr_t addr;
+	guint16 port;
+};
+
+struct head_ping_source {
+	gchar muid[GUID_RAW_SIZE];	/* Must be at offset zero */
+	time_t added;
+	struct head_ping_data data;
+};
+
+static const time_delta_t HEAD_PING_TIMEOUT	    = 30;	/**< seconds */
+static const size_t		  HEAD_PING_MAX 		= 1024;	/**< amount to track */
+static const gint 		  HEAD_PING_PERIODIC_MS = 5000;	/**< milliseconds */
+
+static hash_list_t *head_pings;	/**< Tracks send/forwarded HEAD Pings */
+static gpointer head_ping_ev;	/**< Monitoring event */
+
+static inline void
+head_ping_source_free(struct head_ping_source *source)
+{
+	wfree(source, sizeof *source);
+}
+
+static void
+head_ping_expire(gboolean forced)
+{
+	time_t now;
+
+	g_return_if_fail(head_pings);
+
+	now = tm_time();
+	for (;;) {
+		struct head_ping_source *source;
+		time_delta_t d;
+
+		source = hash_list_head(head_pings);
+		if (!source) {
+			break;
+		}
+		if (!forced) {
+			d = delta_time(now, source->added);
+			if (d > 0 && d <= HEAD_PING_TIMEOUT) {
+				break;
+			}
+		}
+		hash_list_remove(head_pings, source);
+		head_ping_source_free(source);
+	}
+}
+
+/**
+ * Callout queue callback to perform periodic monitoring of the
+ * registered files.
+ */
+static void
+head_ping_timer(cqueue_t *unused_cq, gpointer unused_udata)
+{
+	(void) unused_cq;
+	(void) unused_udata;
+
+	/*
+	 * Re-install timer for next time.
+	 */
+
+	head_ping_ev = cq_insert(callout_queue, HEAD_PING_PERIODIC_MS,
+					head_ping_timer, NULL);
+	head_ping_expire(FALSE);
+}
+
+static gboolean
+head_ping_register(const gchar *muid, struct sha1 sha1, struct gnutella_node *n)
+{
+	struct head_ping_source *source;
+	guint length;
+
+	g_assert(muid);
+	g_return_val_if_fail(head_pings, FALSE);
+
+	if (n) {
+		if (!NODE_IS_UDP(n) || !host_is_valid(n->addr, n->port))
+			return FALSE;
+	}
+	if (hash_list_contains(head_pings, muid, NULL)) {
+		/* Probably a duplicate */
+		return FALSE;
+	}
+
+	/* random early drop */
+	length = hash_list_length(head_pings);
+	if (length >= HEAD_PING_MAX) {
+		return FALSE;
+	} else if (length > (HEAD_PING_MAX / 4) * 3) {
+		if ((random_raw() % HEAD_PING_MAX) < length)
+			return FALSE;
+	}
+
+	source = walloc(sizeof *source);
+	memcpy(source->muid, muid, GUID_RAW_SIZE);
+	source->added = tm_time();
+	source->data.sha1 = sha1;
+	if (n) {
+		source->data.addr = n->addr;
+		source->data.port = n->port;
+	} else {
+		source->data.addr = zero_host_addr;
+		source->data.port = 0;
+	}
+	hash_list_append(head_pings, source);
+	return TRUE;
+}
+
+static gboolean
+head_ping_is_registered(const gchar *muid, struct head_ping_data *data)
+{
+	struct head_ping_source *source;
+
+	g_assert(muid);
+	g_assert(data);
+	g_return_val_if_fail(head_pings, FALSE);
+
+	source = hash_list_remove(head_pings, muid);
+	if (source) {
+		*data = source->data;
+		head_ping_source_free(source);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
 }
 
 void
@@ -1554,55 +1758,173 @@ vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
+	head_ping_register(gnutella_header_get_muid(v_tmp_header), sha1, NULL);
+
 	udp_send_msg(n, v_tmp, msgsize);
 }
 
-#if 0
-/**
- * NOTE: This is still too incomplete to be enabled, especially forwarding
- *		 for firewalled peers is missing.
- */
+static gboolean
+extract_guid(const gchar *data, size_t size, gchar guid[GUID_RAW_SIZE])
+{
+	extvec_t exv[MAX_EXTVEC];
+	gint i, exvcnt;
+	gboolean success = FALSE;
+
+	ext_prepare(exv, MAX_EXTVEC);
+	exvcnt = ext_parse(data, size, exv, MAX_EXTVEC);
+
+	for (i = 0; i < exvcnt; i++) {
+		const extvec_t *e = &exv[i];
+
+		if (EXT_T_GGEP_PUSH == e->ext_token) {
+			/**
+			 * LimeWire has redefined the meaning of GGEP PUSH in this
+			 * context. The payload is GUID of target peer i.e., it does
+			 * not contain an array of PUSH proxies as usual.
+			 */
+			if (ext_paylen(e) < GUID_RAW_SIZE) {
+				if (vmsg_debug) {
+					g_warning("GUID too short in HEAD Ping");
+				}
+			} else {
+				memcpy(guid, ext_payload(e), GUID_RAW_SIZE);
+				success = TRUE;
+			}
+			break;
+		}
+	}
+	if (exvcnt) {
+		ext_reset(exv, MAX_EXTVEC);
+	}	
+	return success;
+}
 
 /**
  * Handle reception of an UDP Head Ping
  */
 static void
-handle_udp_head_ping(struct gnutella_node *n,
+handle_udp_head_ping(struct gnutella_node *sender,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
-	const size_t expect_size = 1 + CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE;
+	static const gchar prefix[] = "urn:sha1:";
+	const size_t expect_size = 1 + CONST_STRLEN(prefix) + SHA1_BASE32_SIZE;
+	gchar guid[GUID_RAW_SIZE];
+	gboolean has_guid = FALSE;
 	struct sha1 sha1;
-	guint8 features;
-
-	/* TODO: HEAD pings may also arrive via TCP if they are forwarded
-	 *		 from a PUSH proxy. The HEAD ping contains a GUID then.
-	 */
-
-	/*
-	 * We expect those messages to come via UDP.
-	 */
-
-	if (!NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
-		return;
-	}
+	guint8 flags;
 
 	/*
 	 * The format of the message was reverse-engineered from LimeWire's code.
 	 *
-	 * The payload is made of a single "feature" byte and an URN:
+	 * The payload is made of a single "flags" byte and an URN:
 	 *
-	 *	 features:		some flags defining what to return
-	 *   urn:           typically urn:sha1:<base32 sha1>
+	 *	 flags:		some flags defining what to return
+	 *   urn:       typically urn:sha1:<base32 sha1>
 	 */
 
-	if (VMSG_CHECK_SIZE(n, vmsg, size, expect_size))
+	if (VMSG_CHECK_SIZE(sender, vmsg, size, expect_size))
 		return;
 
-	features = peek_u8(&payload[0]);
-	if (urn_get_sha1(&payload[1], cast_to_gchar_ptr(sha1.data))) {
+	if (vmsg_debug) {
+		g_message("Got HEAD Ping from %s%s (TTL=%u, hops=%u)",
+			node_addr(sender),
+			NODE_IS_UDP(sender) ? " (UDP)" : "",
+			gnutella_header_get_ttl(sender->header),
+			gnutella_header_get_hops(sender->header));
+	}
+
+	flags = peek_u8(&payload[0]);
+	if (
+		size > (CONST_STRLEN(prefix) + SHA1_BASE32_SIZE) &&
+		urn_get_sha1(&payload[1], cast_to_gchar_ptr(sha1.data))
+	) {
+		if (vmsg_debug) {
+			g_warning("HEAD Ping for %s%s", prefix, sha1_to_string(sha1));
+		}
+	} else {
+		if (vmsg_debug) {
+			g_warning("No SHA-1 in HEAD Ping");
+		}
+		return;
+	}
+
+	if (VMSG_HEAD_F_GGEP & flags) {
+		const gchar *p;
+
+		/*
+		 * The hash length can differ (bitprint or sha1) but it's
+		 * ASCII not binary, so GGEP_MAGIC (0xc3) should appear in
+		 * it.
+		 */
+		p = memchr(&payload[1], GGEP_MAGIC, size - 1);
+		if (p) {
+			has_guid = extract_guid(p, p - &payload[1], guid);
+		}
+		if (has_guid) {
+		   	if (vmsg_debug) {
+				g_message("HEAD Ping carries GUID %s", guid_hex_str(guid));
+			}
+		} else {
+		   	if (vmsg_debug) {
+				g_message("No GUID in HEAD Ping");
+			}
+		}
+	}
+
+	if (has_guid && !guid_eq(guid, servent_guid)) {
+		GSList *nodes;
+		
+		if (NODE_P_LEAF == current_peermode) {
+		   	if (vmsg_debug) {
+				g_message("Not forwarding HEAD Ping as leaf");
+			}
+			return;
+		}
+
+		/* TODO: leaf_by_guid() would be more appropriate */
+		nodes = route_towards_guid(guid);
+		if (nodes) {
+			GSList *iter;
+
+			for (iter = nodes; NULL != iter; iter = g_slist_next(iter)) {
+				struct gnutella_node *n = iter->data;
+
+				/* Forward the packet only to a direct neighbour */
+				if (n->guid && guid_eq(n->guid, guid)) {
+					g_message("Not route found for HEAD Ping");
+					if (NODE_A_CAN_HEAD & n->attrs) {
+						const gchar *muid;
+						gnutella_header_t header;
+
+						memcpy(header, sender->header, GTA_HEADER_SIZE);
+						gnutella_header_set_ttl(&header, 1);
+						gnutella_header_set_hops(&header, 1);
+						muid = gnutella_header_get_muid(header);
+						if (head_ping_register(muid, sha1, sender)) {
+							if (vmsg_debug) {
+								g_message("Forwarding HEAD Ping to %s",
+									node_addr(n));
+							}
+							gmsg_split_sendto_one(n, header,
+								sender->data, sender->size);
+						}
+					} else {
+						if (vmsg_debug) {
+							g_message("HEAD Ping target %s does not support "
+								"HEAD pings", node_addr(n));
+						}
+					}
+					break;
+				}
+			}
+			g_slist_free(nodes);
+			nodes = NULL;
+		} else {
+			if (vmsg_debug) {
+				g_message("Not route found for HEAD Ping");
+			}
+		}
+	} else {
 		const struct shared_file *sf;
 		guint8 code;
 
@@ -1615,9 +1937,7 @@ handle_udp_head_ping(struct gnutella_node *n,
 			 * (404).
 			 */
 			if (vmsg_debug) {
-				g_message(
-					"Got HEAD Ping from %s for urn:sha1:%s whilst rebuilding",
-					node_addr(n), sha1_to_string(sha1));
+				g_message("HEAD Ping whilst rebuilding library");
 			}
 		} else {
 			if (sf) {
@@ -1626,9 +1946,9 @@ handle_udp_head_ping(struct gnutella_node *n,
 				shared_file_check(sf);
 				fi = shared_file_fileinfo(sf);
 				if (fi) {
-					g_message("Got HEAD Ping from %s for partial urn:sha1:%s",
-						node_addr(n), sha1_to_string(sha1));
-
+					if (vmsg_debug) {
+						g_message("HEAD Ping for partial file");
+					}
 					if (pfsp_server) {
 						code = VMSG_HEAD_CODE_PARTIAL;
 						if (fi->recvcount > 0) {
@@ -1638,21 +1958,32 @@ handle_udp_head_ping(struct gnutella_node *n,
 						code = VMSG_HEAD_CODE_NOT_FOUND;
 					}
 				}  else {
-					g_message("Got HEAD Ping from %s for shared urn:sha1:%s",
-						node_addr(n), sha1_to_string(sha1));
-
+					if (vmsg_debug) {
+						g_message("HEAD Ping for shared file");
+					}
 					code = VMSG_HEAD_CODE_COMPLETE;
 				}
 			} else {
 				if (vmsg_debug) {
-					g_message("Got HEAD Ping from %s for unknown urn:sha1:%s",
-						node_addr(n), sha1_to_string(sha1));
+					g_message("HEAD Ping for unknown file");
 				}
 				code = VMSG_HEAD_CODE_NOT_FOUND;
 			}
-			vmsg_send_head_pong(n, code);
+			vmsg_send_head_pong(sender, &sha1, code, flags);
 		}
 	}
+}
+
+static gint
+block_length(const struct array array)
+{
+	if (array.size >= 2) {
+		guint len = peek_be16(array.data);
+		if (array.size >= len + 2) {
+			return len;
+		}
+	}
+	return -1;
 }
 
 /**
@@ -1662,27 +1993,32 @@ static void
 handle_udp_head_pong(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
-	const size_t expected_size = 2; /* features and code */
-	guint8 features, code, queue;
-	const gchar *vendor;
-
-	/* TODO: HEAD pongs may also arrive via TCP if they are forwarded
-	 *		 from a PUSH proxy. The HEAD pong contains a GUID then.
-	 */
-
-	/*
-	 * We expect those messages to come via UDP.
-	 */
-
-	if (!NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
-		return;
-	}
+	const size_t expected_size = 2; /* flags and code */
+	const gchar *vendor, *muid, *p, *endptr;
+	struct head_ping_data data;
+	guint8 flags, code;
+	gint8 queue;
 
 	if (VMSG_CHECK_SIZE(n, vmsg, size, expected_size))
 		return;
+
+	if (vmsg_debug) {
+		g_message("Got HEAD Pong from %s%s (TTL=%u, hops=%u)",
+			node_addr(n),
+			NODE_IS_UDP(n) ? " (UDP)" : "",
+			gnutella_header_get_ttl(n->header),
+			gnutella_header_get_hops(n->header));
+	}
+
+	muid = gnutella_header_get_muid(&n->header);
+	if (!head_ping_is_registered(muid, &data)) {
+		if (vmsg_debug) {
+			g_warning("HEAD Pong MUID is not registered");
+		}
+		return;
+	}
+
+	endptr = &payload[size];
 
 	/*
 	 * The format of the message was reverse-engineered from LimeWire's code.
@@ -1699,25 +2035,120 @@ handle_udp_head_pong(struct gnutella_node *n,
 	 *
 	 */
 
-	features = peek_u8(&payload[0]);
+	flags = peek_u8(&payload[0]);
 	code = peek_u8(&payload[1]) & VMSG_HEAD_CODE_MASK;
-	vendor = size >= 6 ? vendor_code_str(peek_be32(&payload[2])) : "?";
-	queue = size > 6 ? peek_u8(&payload[6]) : 0;
+	queue = 0;
+	vendor = "?";
 
-	g_message("Got HEAD pong from %s (%s): code=\"%s%s\"%s, queue=%u",
-		node_addr(n),
-		vendor,
-		VMSG_HEAD_CODE_COMPLETE & code
-			? "complete"
-			: (VMSG_HEAD_CODE_PARTIAL | VMSG_HEAD_CODE_DOWNLOADING) & code
-				? "partial"
-				: "not found",
-		VMSG_HEAD_CODE_DOWNLOADING & code ?  "downloading" : "",
-		VMSG_HEAD_CODE_FIREWALLED & code ?  " (firewalled)" : "",
-		queue);
+	p = &payload[2];
+	if (endptr - p >= 4) {
+		vendor = vendor_code_str(peek_be32(p));
+		p += 4;
+		if (p != endptr) {
+			queue = peek_u8(p);
+			p++;
+		}
+	}
+
+	if (vmsg_debug) {
+		g_message(
+			"HEAD Pong vendor=%s, urn:sha1:%s, result=\"%s%s%s\", queue=%d",
+			vendor,
+			sha1_to_string(data.sha1),
+			VMSG_HEAD_CODE_COMPLETE & code
+				? "complete"
+				: (VMSG_HEAD_CODE_PARTIAL | VMSG_HEAD_CODE_DOWNLOADING) & code
+					? "partial"
+					: "not found",
+			VMSG_HEAD_CODE_DOWNLOADING & code ?  ", downloading" : "",
+			VMSG_HEAD_CODE_FIREWALLED & code ?  ", firewalled" : "",
+			queue);
+	}
+
+	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
+		/* LimeWire sends only code and flags if the file was not found */
+		return;
+	}
+	
+	/* Optional ranges for partial files */
+	if (VMSG_HEAD_F_RANGES & flags) {
+		gint len;
+
+		len = block_length(array_init(p, endptr - p));
+		if (len < 0 || len % 8) {
+			if (vmsg_debug) {
+				g_warning("HEAD Pong carries truncated ranges");
+			}
+			return;
+		} else {
+			if (vmsg_debug) {
+				g_message("HEAD Pong carries ranges (%u bytes)", len);
+			}
+			p += 2;
+			p += len;
+		}
+	}
+
+	/* Optional firewalled alternate locations */
+	if (VMSG_HEAD_F_ALT_PUSH & flags) {
+		gint len;
+		
+		len = block_length(array_init(p, endptr - p));
+		if (len != 0 && (len < 23 || (len - 23) % 6)) {
+			if (vmsg_debug) {
+				g_warning("HEAD Pong carries truncated firewalled alt-locs");
+			}
+			return;
+		} else {
+			if (vmsg_debug) {
+				g_message("HEAD Pong carries firewalled alt-locs (%u bytes)",
+					len);
+			}
+			p += 2;
+			p += len;
+		}
+	}
+
+	/* Optional alternate locations */
+	if (VMSG_HEAD_F_ALT & flags) {
+		gint len;
+		
+		len = block_length(array_init(p, endptr - p));
+		if (len < 0 || len % 6) {
+			if (vmsg_debug) {
+				g_warning("HEAD Pong carries truncated alt-locs");
+			}
+			return;
+		} else {
+			if (vmsg_debug) {
+				g_message("HEAD Pong carries %u alt-locs", len / 6);
+			}
+			p += 2;
+		   	p += len;
+		}
+	}
+
+	if (
+		NODE_P_LEAF != current_peermode &&
+		gnutella_header_get_ttl(&n->header) > 0 &&
+		gnutella_header_get_hops(&n->header) < max_ttl &&
+		host_is_valid(data.addr, data.port)
+	) {
+		struct gnutella_node *udp;
+
+		udp = node_udp_get_addr_port(data.addr, data.port);
+		if (udp) {
+			gnutella_header_t header;
+
+			memcpy(header, n->header, GTA_HEADER_SIZE);
+			gnutella_header_set_ttl(&header,
+				gnutella_header_get_ttl(&header) - 1);
+			gnutella_header_set_hops(&header,
+				gnutella_header_get_hops(&header) + 1);
+			gmsg_split_sendto_one(udp, header, n->data, n->size);
+		}
+	}
 }
-#endif /* 0 */
-
 
 #if 0 
 /**
@@ -1826,6 +2257,9 @@ handle_messages_supported(struct gnutella_node *n,
 
 		if (vm->handler == handle_udp_crawler_ping)
 			n->attrs |= NODE_A_CRAWLABLE;
+
+		if (vm->handler == handle_udp_head_ping)
+			n->attrs |= NODE_A_CAN_HEAD;
 	}
 }
 
@@ -1860,10 +2294,8 @@ static const struct vmsg vmsg_map[] = {
 	{ T_LIME, 22,  1, handle_proxy_ack,				"Push-Proxy ACK" },
 	{ T_LIME, 22,  2, handle_proxy_ack,				"Push-Proxy ACK" },
 
-#if 0
-	{ T_LIME, 23,  1, handle_udp_head_ping,			"UDP Head Ping" },
-	{ T_LIME, 24,  1, handle_udp_head_pong,			"UDP Head Pong" },
-#endif
+	{ T_LIME, 23,  1, handle_udp_head_ping,			"HEAD Ping" },
+	{ T_LIME, 24,  1, handle_udp_head_pong,			"HEAD Pong" },
 
 	/* Above line intentionally left blank (for "!}sort" in vi) */
 };
@@ -1985,6 +2417,17 @@ void
 vmsg_init(void)
 {
 	vmsg_map_is_sorted();
+	head_pings = hash_list_new(guid_hash, guid_eq);
+	head_ping_ev = cq_insert(callout_queue, HEAD_PING_PERIODIC_MS,
+					head_ping_timer, NULL);
+}
+
+void
+vmsg_close(void)
+{
+	head_ping_expire(TRUE);
+	hash_list_free(&head_pings);
+	cq_cancel(callout_queue, head_ping_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
