@@ -168,9 +168,6 @@ guint16 ext_len(const extvec_t *e);
 const gchar *ext_ggep_id_str(const extvec_t *e);
 const gchar *ext_ggep_name(ext_token_t id);
 
-void ext_prepare(extvec_t *exv, gint exvcnt);
-void ext_reset(extvec_t *exv, gint exvcnt);
-
 #endif	/* _core_extensions_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
