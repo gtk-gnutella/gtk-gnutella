@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "if/core/pproxy.h"
+#include "lib/array.h"
 
 /***
  *** Server side
@@ -79,7 +80,7 @@ struct cproxy *cproxy_create(struct download *d,
 void cproxy_free(struct cproxy *cp);
 void cproxy_reparent(struct download *d, struct download *cd);
 
-const gchar *build_push(size_t *size_ptr, guint8 ttl, guint8 hops,
+struct array build_push(guint8 ttl, guint8 hops,
 	const gchar *guid, host_addr_t addr_v4, host_addr_t addr_v6,
 	guint16 port, guint32 file_idx, gboolean supports_tls);
 

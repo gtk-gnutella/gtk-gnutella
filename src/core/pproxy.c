@@ -497,10 +497,10 @@ error:
  * @param port the port number the receiving peer should connect to.
  * @param file_idx the file index this push is for.
  * @return	A pointer to a static buffer holding the created Gnutella PUSH
- *			packet on success, NULL on failure.
+ *			packet on success, an empty array on failure.
  */
-const gchar *
-build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
+struct array
+build_push(guint8 ttl, guint8 hops, const gchar *guid,
 	host_addr_t addr_v4, host_addr_t addr_v6, guint16 port,
 	guint32 file_idx, gboolean supports_tls)
 {
@@ -512,7 +512,6 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 	size_t len = 0, size = sizeof packet;
 	ggep_stream_t gs;
 
-	g_assert(size_ptr);
 	g_assert(guid);
 	g_assert(0 != port);
 
@@ -547,7 +546,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0)) {
 			g_warning("could not write GGEP \"GTKG.TLS\" extension into PUSH");
 			ggep_stream_close(&gs);
-			return NULL;
+			return zero_array;
 		}
 	}
 
@@ -557,7 +556,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0)) {
 			g_warning("could not write GGEP \"GTKG.IPV6\" extension into PUSH");
 			ggep_stream_close(&gs);
-			return NULL;
+			return zero_array;
 		}
 	}
 
@@ -584,8 +583,7 @@ build_push(size_t *size_ptr, guint8 ttl, guint8 hops, const gchar *guid,
 		gnutella_header_get_muid(gnutella_msg_push_request_header(&packet.m)),
 		GTA_MSG_PUSH_REQUEST, NULL);
 
-	*size_ptr = p - packet.data;
-	return packet.data;
+	return array_init(packet.data, p - packet.data);
 }
 
 /**
@@ -756,25 +754,24 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	n = route_proxy_find(pp->guid);
 
 	if (n != NULL) {
-		const gchar *packet;
-		size_t size;
+		struct array packet;
 
 		/*
  		 * We set TTL=max_ttl-1 and hops=1 since
 		 * it does not come from our node really.
 		 */
 
-		packet = build_push(&size, max_ttl - 1, 1, pp->guid,
-					pp->addr_v4, pp->addr_v6, pp->port, pp->file_idx,
-					supports_tls);
+		packet = build_push(max_ttl - 1, 1, pp->guid,
+					pp->addr_v4, pp->addr_v6, pp->port,
+					pp->file_idx, supports_tls);
 
-		if (NULL == packet) {
+		if (NULL == packet.data) {
 			g_warning("Failed to send push for %s/%s (index=%lu)",
 				host_addr_port_to_string(pp->addr_v4, pp->port),
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
 				(gulong) pp->file_idx);
 		} else {
-			gmsg_sendto_one(n, &packet, size);
+			gmsg_sendto_one(n, packet.data, packet.size);
 			gnet_stats_count_general(GNR_PUSH_PROXY_RELAYED, 1);
 
 			http_send_status(pp->socket, 202, FALSE, NULL, 0,
@@ -793,19 +790,18 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 */
 
 	if (NULL != (nodes = route_towards_guid(pp->guid))) {
-		const gchar *packet;
-		size_t size;
+		struct array packet;
 
 		/*
  		 * We set TTL=max_ttl-1 and hops=1 since
 		 * it does not come from our node really.
 		 */
 
-		packet = build_push(&size, max_ttl - 1, 1,
-					pp->guid, pp->addr_v4, pp->addr_v6, pp->port,
+		packet = build_push(max_ttl - 1, 1, pp->guid,
+					pp->addr_v4, pp->addr_v6, pp->port,
 					pp->file_idx, supports_tls);
 
-		if (NULL == packet) {
+		if (NULL == packet.data) {
 			g_warning("Failed to send push to %s/%s (index=%lu)",
 				host_addr_port_to_string(pp->addr_v4, pp->port),
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
@@ -813,7 +809,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		} else {
 			gint cnt;
 
-			gmsg_sendto_all(nodes, packet, size);
+			gmsg_sendto_all(nodes, packet.data, packet.size);
 			gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
 
 			cnt = g_slist_length(nodes);

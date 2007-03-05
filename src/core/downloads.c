@@ -72,6 +72,7 @@
 #include "if/bridge/c2ui.h"
 
 #include "lib/adns.h"
+#include "lib/array.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/dbus_util.h"
@@ -5317,6 +5318,23 @@ download_proxy_failed(struct download *d)
  * IO functions
  */
 
+static gboolean
+send_udp_push(const struct array packet, host_addr_t addr, guint16 port)
+{
+	gboolean success = FALSE;
+	
+	if (host_is_valid(addr, port)) {
+		struct gnutella_node *n;
+				
+		n = node_udp_get_addr_port(addr, port);
+		if (n) {
+			success = TRUE;
+			udp_send_msg(n, packet.data, packet.size);
+		}
+	}
+	return success;
+}
+
 /**
  * Send a push request to the target GUID, in order to request the push of
  * the file whose index is `file_id' there onto our local port `port'.
@@ -5332,8 +5350,7 @@ download_send_push_request(struct download *d)
 #else
 		FALSE;
 #endif /* HAS_GNUTLS */
-	const gchar *packet;
-	size_t size;
+	struct array packet;
 	guint16 port;
 
 	download_check(d);
@@ -5342,24 +5359,15 @@ download_send_push_request(struct download *d)
 	if (0 == port)
 		return FALSE;
 
-	packet = build_push(&size, my_ttl, 0 /* Hops */,
+	packet = build_push(my_ttl, 0 /* Hops */,
 				download_guid(d), listen_addr(), listen_addr6(), port,
 				d->record_index, supports_tls);
 
-	if (packet) {
+	if (packet.data) {
 		GSList *nodes;
-		gboolean success = FALSE;
+		gboolean success;
 
-		if (host_is_valid(download_addr(d), download_port(d))) {
-			struct gnutella_node *n;
-				
-			n = node_udp_get_addr_port(download_addr(d), download_port(d));
-			if (n) {
-				success = TRUE;
-				udp_send_msg(n, packet, size);
-			}
-		}
-
+		success = send_udp_push(packet, download_addr(d), download_port(d));
 		nodes = route_towards_guid(download_guid(d));
 		if (nodes) {
 			success = TRUE;
@@ -5368,7 +5376,7 @@ download_send_push_request(struct download *d)
 			 * Send the message to all the nodes that can route our request back
 			 * to the source of the query hit.
 			 */
-			gmsg_sendto_all(nodes, packet, size);
+			gmsg_sendto_all(nodes, packet.data, packet.size);
 
 			g_slist_free(nodes);
 			nodes = NULL;
