@@ -614,6 +614,8 @@ handle_push_request(struct gnutella_node *n)
 				break;
 			}
 		}
+		if (exvcnt)
+			ext_reset(exv, MAX_EXTVEC);
 	}
 
 	/*
