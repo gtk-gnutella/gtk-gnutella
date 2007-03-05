@@ -1043,8 +1043,7 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
 	 * Fetch the mesh entry for this SHA1.
 	 */
 
-	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
-
+	dm = g_hash_table_lookup(mesh, sha1);
 	if (dm == NULL)						/* SHA1 unknown */
 		return 0;
 
@@ -1053,13 +1052,15 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
 	 */
 
 	for (i = 0, l = dm->entries; l; l = l->next) {
-		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+		struct dmesh_entry *dme = l->data;
 
 		if (dme->url.idx != URN_INDEX)
 			continue;
 
-		g_assert(i < MAX_ENTRIES);
+		if (NET_TYPE_IPV4 != host_addr_net(dme->url.addr))
+			continue;
 
+		g_assert(i < MAX_ENTRIES);
 		selected[i++] = dme;
 	}
 

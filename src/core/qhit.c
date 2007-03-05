@@ -562,22 +562,8 @@ add_file(const struct shared_file *sf)
 	 */
 
 	if (sha1_available) {
-		gint i, j;
-
 		needed += 9 + SHA1_BASE32_SIZE;
 		hcnt = dmesh_fill_alternate(shared_file_sha1(sf), hvec, QHIT_MAX_ALT);
-
-		/* Scrap all non-IPv4 alt-locs. Unfortunately there is no
-		 * GGEP item to hold IPv6 addresses as of yet.
-		 */
-		for (i = 0, j = 0; i < hcnt; i++) {
-			if (NET_TYPE_IPV4 == gnet_host_get_net(&hvec[i]) && j != i) {
-				hvec[j] = hvec[i];
-				j++;
-			}
-		}
-		hcnt = j;
-
 		needed += hcnt * 6 + 6;
 	}
 
