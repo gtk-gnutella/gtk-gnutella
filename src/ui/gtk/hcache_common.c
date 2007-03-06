@@ -33,18 +33,21 @@ RCSID("$Id$")
 /**
  * Gets the host cache names.
  */
-const gchar *get_hcache_name(hcache_type_t type)
+const gchar *
+get_hcache_name(hcache_type_t type)
 {
 	switch (type) {
-		case HCACHE_FRESH_ANY:   return _("Fresh regular");
-		case HCACHE_VALID_ANY:   return _("Valid regular");
-		case HCACHE_FRESH_ULTRA: return _("Fresh ultra");
-		case HCACHE_VALID_ULTRA: return _("Valid ultra");
-		case HCACHE_TIMEOUT:     return _("Timeout");
-		case HCACHE_BUSY:        return _("Busy");
-		case HCACHE_UNSTABLE:    return _("Unstable");
-		default:
-			g_warning("get_hcache_name: unknown hcache %d", type);
-			return "";
+	case HCACHE_FRESH_ANY:   return _("Fresh regular");
+	case HCACHE_VALID_ANY:   return _("Valid regular");
+	case HCACHE_FRESH_ULTRA: return _("Fresh ultra");
+	case HCACHE_VALID_ULTRA: return _("Valid ultra");
+	case HCACHE_TIMEOUT:     return _("Timeout");
+	case HCACHE_BUSY:        return _("Busy");
+	case HCACHE_UNSTABLE:    return _("Unstable");
+	case HCACHE_NONE:
+	case HCACHE_MAX:
+		break;
 	}
+	g_warning("get_hcache_name: unknown hcache %d", type);
+	return "";
 }
