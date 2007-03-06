@@ -82,10 +82,6 @@ RCSID("$Id$")
 typedef struct hostcache_entry {
     hcache_type_t type;				/**< Hostcache which contains this host */
     time_t        time_added;		/**< Time when entry was added */
-#if 0
-	guint32       avg_uptime;		/**< Reported average uptime (seconds) */
-	gchar *       vendor;			/**< Latest known vendor name (atom) */
-#endif
 } hostcache_entry_t;
 
 /** No metadata for host */
@@ -105,7 +101,6 @@ typedef struct hostcache {
     guint           hits;               /**< Hits to the cache */
     guint           misses;             /**< Misses to the cache */
 
-    guint           host_count;			/**< Amount of hosts in cache */
 	gnet_property_t reading;			/**< Property to signal reading */
     gnet_property_t hosts_in_catcher;   /**< Property to update host count */
     gint            mass_update;        /**< If a mass update is in progess */
@@ -174,25 +169,22 @@ stop_mass_update(hostcache_t *hc)
     if (hc->mass_update == 0) {
         switch (hc->type) {
         case HCACHE_FRESH_ANY:
-        case HCACHE_VALID_ANY: {
-            gnet_prop_set_guint32_val(hc->hosts_in_catcher,
-                caches[HCACHE_FRESH_ANY]->host_count +
-                caches[HCACHE_VALID_ANY]->host_count);
+        case HCACHE_VALID_ANY:
+           	gnet_prop_set_guint32_val(hc->hosts_in_catcher,
+				hcache_size(HOST_ANY));
             break;
-        }
         case HCACHE_FRESH_ULTRA:
         case HCACHE_VALID_ULTRA:
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
-                caches[HCACHE_FRESH_ULTRA]->host_count +
-                caches[HCACHE_VALID_ULTRA]->host_count);
+				hcache_size(HOST_ULTRA));
             break;
         case HCACHE_TIMEOUT:
         case HCACHE_UNSTABLE:
         case HCACHE_BUSY:
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
-                caches[HCACHE_TIMEOUT]->host_count +
-                caches[HCACHE_UNSTABLE]->host_count +
-                caches[HCACHE_BUSY]->host_count);
+                hash_list_length(caches[HCACHE_TIMEOUT]->hostlist) +
+                hash_list_length(caches[HCACHE_UNSTABLE]->hostlist) +
+                hash_list_length(caches[HCACHE_BUSY]->hostlist));
             break;
         default:
             g_error("stop_mass_update: unknown cache type: %d", hc->type);
@@ -208,10 +200,7 @@ static GHashTable * ht_known_hosts = NULL;
 static void
 hcache_update_low_on_pongs(void)
 {
-    host_low_on_pongs = (guint) (
-            caches[HCACHE_FRESH_ANY]->host_count +
-            caches[HCACHE_VALID_ANY]->host_count
-        ) < (max_hosts_cached >> 3);
+    host_low_on_pongs = hcache_size(HOST_ANY) < (max_hosts_cached / 8);
 }
 
 /***
@@ -221,14 +210,21 @@ hcache_update_low_on_pongs(void)
 static hostcache_entry_t *
 hce_alloc(void)
 {
-	return walloc0(sizeof(struct hostcache_entry));
+	static const hostcache_entry_t zero_hce;
+	hostcache_entry_t *hce;
+
+	hce = walloc(sizeof *hce);
+	*hce = zero_hce;
+	return hce;
 }
 
 static void
 hce_free(struct hostcache_entry *hce)
 {
-	g_assert(hce && hce != NO_METADATA);
-	wfree(hce, sizeof(*hce));
+	g_assert(hce);
+	g_assert(hce != NO_METADATA);
+
+	wfree(hce, sizeof *hce);
 }
 
 /**
@@ -237,10 +233,8 @@ hce_free(struct hostcache_entry *hce)
 static void
 hcache_dump_info(const struct hostcache *hc, const gchar *what)
 {
-    g_message("[%s|%s] %u (%d) hosts (%u hits, %u misses)",
-        hc->name, what, hc->host_count,
-        hash_list_length(hc->hostlist),
-        hc->hits, hc->misses);
+    g_message("[%s|%s] %u hosts (%u hits, %u misses)",
+        hc->name, what, hash_list_length(hc->hostlist), hc->hits, hc->misses);
 }
 
 /***
@@ -356,7 +350,7 @@ hcache_node_is_bad(const host_addr_t addr)
 	gnet_host_set(&h, addr, 0);
     hce = hcache_get_metadata(&h);
 
-    if ((hce == NULL) || (hce == NO_METADATA))
+    if (hce == NULL || hce == NO_METADATA)
         return FALSE;
 
     caches[hce->type]->hits++;
@@ -383,13 +377,10 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 	gpointer item;
 
     g_assert(hash_list_length(to->hostlist) == 0);
-    g_assert(to->host_count == 0);
 
 	hash_list_free(&to->hostlist);
     to->hostlist = from->hostlist;
-    to->host_count = from->host_count;
     from->hostlist = hash_list_new(NULL, NULL);
-    from->host_count = 0;
 
     /*
      * Make sure that after switching hce->list points to the new
@@ -401,7 +392,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 	while (NULL != (item = hash_list_iter_next(iter))) {
         hostcache_entry_t *hce;
 
-        hce = hcache_get_metadata((gnet_host_t *) item);
+        hce = hcache_get_metadata(item);
         if (hce == NULL || hce == NO_METADATA)
             continue;
         hce->type = to->type;
@@ -428,20 +419,18 @@ hcache_require_caught(hostcache_t *hc)
     switch (hc->type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_VALID_ANY:
-        if (caches[HCACHE_FRESH_ANY]->host_count == 0) {
-            hcache_move_entries(
-                caches[HCACHE_FRESH_ANY], caches[HCACHE_VALID_ANY]);
+        if (hash_list_length(caches[hc->type]->hostlist) == 0) {
+            hcache_move_entries(caches[hc->type], caches[HCACHE_VALID_ANY]);
         }
-        return caches[HCACHE_FRESH_ANY]->host_count != 0;
+        return hash_list_length(caches[hc->type]->hostlist) != 0;
     case HCACHE_FRESH_ULTRA:
     case HCACHE_VALID_ULTRA:
-        if (caches[HCACHE_FRESH_ULTRA]->host_count == 0) {
-            hcache_move_entries(
-                caches[hc->type], caches[HCACHE_VALID_ULTRA]);
+        if (hash_list_length(caches[hc->type]->hostlist) == 0) {
+            hcache_move_entries(caches[hc->type], caches[HCACHE_VALID_ULTRA]);
         }
-        return caches[HCACHE_FRESH_ULTRA]->host_count != 0;
+        return hash_list_length(caches[hc->type]->hostlist) != 0;
     default:
-        return hc->host_count != 0;
+        return hash_list_length(hc->hostlist) != 0;
     }
 }
 
@@ -453,12 +442,11 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 {
 	gconstpointer orig_key;
 	
-	g_assert(hc->host_count > 0 && hc->hostlist != NULL);
+	g_assert(hc->hostlist != NULL);
+	g_assert(hash_list_length(hc->hostlist) > 0);
 
 	orig_key = hash_list_remove(hc->hostlist, host);
 	g_assert(orig_key);
-
-    hc->host_count--;
 
     if (hc->mass_update == 0) {
         guint32 cur;
@@ -507,26 +495,22 @@ host_type_to_string(host_type_t type)
  * Several types share common pools. Adding a host of one type may
  * affect the number of slots left on other types.
  */
-static gint32
+static gint
 hcache_slots_left(hcache_type_t type)
 {
-    g_assert((guint) type < HCACHE_MAX);
+    g_assert(UNSIGNED(type) < HCACHE_MAX);
 
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_VALID_ANY:
-        return max_hosts_cached -
-            caches[HCACHE_FRESH_ANY]->host_count -
-            caches[HCACHE_VALID_ANY]->host_count;
+        return max_hosts_cached - hcache_size(HOST_ANY);
     case HCACHE_FRESH_ULTRA:
     case HCACHE_VALID_ULTRA:
-        return max_ultra_hosts_cached -
-            caches[HCACHE_FRESH_ULTRA]->host_count -
-            caches[HCACHE_VALID_ULTRA]->host_count;
+        return max_ultra_hosts_cached - hcache_size(HOST_ULTRA);
 	case HCACHE_NONE:
 		g_assert_not_reached();
     default:
-        return max_bad_hosts_cached - caches[type]->host_count;
+        return max_bad_hosts_cached - hash_list_length(caches[type]->hostlist);
     }
 }
 
@@ -649,9 +633,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 		orig_key = hash_list_remove(caches[hce->type]->hostlist, host);
 		g_assert(orig_key);
 
-		caches[hce->type]->host_count--;
 		hash_list_prepend(hc->hostlist, host);
-		hc->host_count++;
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
 		hce->type = type;
@@ -693,7 +675,6 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
     }
 
     hc->misses++;
-	hc->host_count++;
 	hc->dirty = TRUE;
 
     if (hc->mass_update == 0) {
@@ -783,18 +764,7 @@ hcache_remove(gnet_host_t *h)
 gboolean
 hcache_is_low(host_type_t type)
 {
-    switch (type) {
-    case HOST_ANY:
-        return (caches[HCACHE_FRESH_ANY]->host_count +
-            caches[HCACHE_VALID_ANY]->host_count) < MIN_RESERVE_SIZE;
-    case HOST_ULTRA:
-        return (caches[HCACHE_FRESH_ULTRA]->host_count +
-            caches[HCACHE_VALID_ULTRA]->host_count) < MIN_RESERVE_SIZE;
-    case HOST_MAX:
-		g_assert_not_reached();
-    }
-    g_error("hcache_is_low: unknown host type: %d", type);
-    return FALSE; /* Only here to make -Wall happy */
+	return hcache_size(type) < MIN_RESERVE_SIZE;
 }
 
 /**
@@ -805,10 +775,8 @@ hcache_remove_all(hostcache_t *hc)
 {
 	gnet_host_t *h;
 
-    if (hc->host_count == 0) {
-		g_assert(hash_list_length(hc->hostlist) == 0);
+    if (hash_list_length(hc->hostlist) == 0)
         return;
-	}
 
     /* FIXME: may be possible to do this faster */
 
@@ -818,10 +786,9 @@ hcache_remove_all(hostcache_t *hc)
         hcache_remove(h);
 
     g_assert(hash_list_length(hc->hostlist) == 0);
-    g_assert(hc->host_count == 0);
 
     stop_mass_update(hc);
-    g_assert(hc->host_count == 0);
+    g_assert(hash_list_length(hc->hostlist) == 0);
 }
 
 /**
@@ -869,16 +836,16 @@ hcache_clear(hcache_type_t type)
 /**
  * @return the amount of hosts in the cache.
  */
-gint
+guint
 hcache_size(host_type_t type)
 {
     switch (type) {
     case HOST_ANY:
-        return (caches[HCACHE_FRESH_ANY]->host_count +
-            caches[HCACHE_VALID_ANY]->host_count);
+        return hash_list_length(caches[HCACHE_FRESH_ANY]->hostlist) +
+            hash_list_length(caches[HCACHE_VALID_ANY]->hostlist);
     case HOST_ULTRA:
-        return (caches[HCACHE_FRESH_ULTRA]->host_count +
-            caches[HCACHE_VALID_ULTRA]->host_count);
+        return hash_list_length(caches[HCACHE_FRESH_ULTRA]->hostlist) +
+            hash_list_length(caches[HCACHE_VALID_ULTRA]->hostlist);
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -961,10 +928,11 @@ hcache_prune(hcache_type_t type)
 
 	hc = caches[type];
 
-#define HALF_PRUNE(x) do {		\
-	if (hc->host_count < caches[x]->host_count) \
+#define HALF_PRUNE(x) G_STMT_START {		\
+	if (hash_list_length(hc->hostlist) < \
+			hash_list_length(caches[x]->hostlist)) \
 		hc = caches[x];			\
-} while (0)
+} G_STMT_END
 
     switch (type) {
     case HCACHE_VALID_ANY:
@@ -985,15 +953,14 @@ hcache_prune(hcache_type_t type)
 
 #undef HALF_PRUNE
 
-    extra = -hcache_slots_left(hc->type);
-
-    if (extra <= 0)
+    extra = hcache_slots_left(hc->type);
+    if (extra >= 0)
         return;
 
     start_mass_update(hc);
 
     hcache_require_caught(hc);
-	while (extra > 0) {
+	while (extra++ < 0) {
 		gnet_host_t *h = hash_list_head(hc->hostlist);
 		if (NULL == h) {
 			g_warning("BUG: asked to remove hosts, "
@@ -1001,7 +968,6 @@ hcache_prune(hcache_type_t type)
 			break;
 		}
 		hcache_remove(h);
-        extra--;
 	}
 
     stop_mass_update(hc);
@@ -1280,7 +1246,6 @@ static void
 hcache_free(hostcache_t *hc)
 {
     g_assert(hc != NULL);
-    g_assert(hc->host_count == 0);
     g_assert(hash_list_length(hc->hostlist) == 0);
 
 	hash_list_free(&hc->hostlist);
@@ -1342,12 +1307,10 @@ read_done(hostcache_t *hc)
 static bgret_t
 read_step(gpointer unused_h, gpointer u, gint ticks)
 {
+	static gchar h_tmp[1024];
 	struct read_ctx *rctx = u;
 	hostcache_t *hc;
-	gint max_read;
-	gint count;
-	gint i;
-	static gchar h_tmp[1024];
+	gint max_read, count, i;
 
 	(void) unused_h;
 	g_assert(READ_MAGIC == rctx->magic);
@@ -1497,7 +1460,7 @@ hcache_get_stats(hcache_stats_t *s)
     for (n = 0; n < HCACHE_MAX; n++) {
 		if (n == HCACHE_NONE)
 			continue;
-        s[n].host_count = caches[n]->host_count;
+        s[n].host_count = hash_list_length(caches[n]->hostlist);
         s[n].hits       = caches[n]->hits;
         s[n].misses     = caches[n]->misses;
         s[n].reading    = FALSE;
@@ -1725,13 +1688,13 @@ void hcache_close(void)
 
 		/* Make sure all previous caches have been cleared */
 		for (j = 0; j < type; j++)
-    		g_assert(caches[j]->host_count == 0);
+    		g_assert(hash_list_length(caches[j]->hostlist) == 0);
 
         hcache_remove_all(caches[type]);
 
 		/* Make sure no caches have been refilled */
 		for (j = 0; j <= type; j++)
-    		g_assert(caches[j]->host_count == 0);
+    		g_assert(hash_list_length(caches[j]->hostlist) == 0);
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(types); i++) {
