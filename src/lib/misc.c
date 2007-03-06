@@ -1206,6 +1206,36 @@ guid_hex_str(const gchar *guid)
 	return buf;
 }
 
+size_t
+guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
+{
+	gchar *p = dst;
+
+	if (size > 0) {
+		size = (size - 1) / 2;
+		size = MIN(size, GUID_RAW_SIZE);
+
+		while (size > 0) {
+			guchar c = peek_u8(guid++);
+			*p++ = hex_alphabet_lower[c >> 4];
+			*p++ = hex_alphabet_lower[c & 0x0f];
+		}
+		*p = '\0';
+	}
+	return p - dst;
+}
+
+const gchar *
+guid_to_string(const gchar *guid)
+{
+	static gchar buf[GUID_HEX_SIZE + 1];
+	size_t ret;
+
+	ret = guid_to_string_buf(guid, buf, sizeof buf);
+	g_assert(GUID_HEX_SIZE == ret);
+	return buf;
+}
+
 /**
  * @return hexadecimal string representation of "small" binary buffer.
  *

@@ -487,6 +487,8 @@ const struct tth *base32_tth(const gchar *base32);
  */
 const gchar *guid_hex_str(const gchar *guid);
 gboolean hex_to_guid(const gchar *hexguid, gchar *guid);
+size_t guid_to_string_buf(const gchar *guid, gchar *dst, size_t size);
+const gchar *guid_to_string(const gchar *guid);
 
 /*
  * GUID<->base32 string conversion
