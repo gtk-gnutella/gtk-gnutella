@@ -4792,7 +4792,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
-		if (major > 0 || (major == 0 && minor > 1))
+		if (major > 0 || (major == 0 && minor > 2))
 			if (node_debug) g_warning("node %s <%s> claims Vendor-Message "
 				"version %u.%u",
 				node_addr(n), node_vendor(n), major, minor);
@@ -5273,7 +5273,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"Pong-Caching: 0.1\r\n"
 				"Bye-Packet: 0.1\r\n"
 				"GGEP: 0.5\r\n"
-				"Vendor-Message: 0.1\r\n"
+				"Vendor-Message: 0.2\r\n"
 				"Remote-IP: %s\r\n"
 				"%s"
 				"%s"		/* Content-Encoding */
@@ -6909,7 +6909,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
 			"GGEP: 0.5\r\n"
-			"Vendor-Message: 0.1\r\n"
+			"Vendor-Message: 0.2\r\n"
 			"%s"		/* "Accept-Encoding: deflate */
 			"X-Token: %s\r\n"
 			"X-Live-Since: %s\r\n"
