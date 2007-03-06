@@ -1212,8 +1212,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	rs = search_new_r_set();
 	rs->stamp = tm_time();
 	rs->country = -1;
-	rs->hops = gnutella_header_get_hops(&n->header);
+
+	/* hops and TTL have already been modified by route message */
+	rs->hops = gnutella_header_get_hops(&n->header) - 1;
 	rs->ttl	= gnutella_header_get_ttl(&n->header);
+	rs->ttl = MAX(1, rs->ttl);
+
 	{
 		const gchar *query;
 
@@ -1927,14 +1931,12 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
 
 		if (n->vcode.be32 != 0 && vendor == NULL) {
-			const guint8 *u8 = cast_to_gconstpointer(&n->vcode.be32);
-
 			n->n_weird++;
 			if (search_debug > 1) g_warning("[weird #%d] "
-				"node %s (%s) had tag %c%c%c%c in its query hits, "
+				"node %s (%s) had tag %4.4s in its query hits, "
 				"now has none in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				u8[0], u8[1], u8[2], u8[3],
+				cast_to_gchar_ptr(&n->vcode.be32),
 				gmsg_infostr(&n->header));
 		}
 	}
@@ -1947,17 +1949,12 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		STATIC_ASSERT(sizeof n->vcode == sizeof rs->vcode);
 
 		if (n->vcode.be32 != 0 && n->vcode.be32 != rs->vcode.be32) {
-			const guint8 *n_vendor, *rs_vendor;
-		   
-			n_vendor = cast_to_gconstpointer(&n->vcode.be32);
-			rs_vendor = cast_to_gconstpointer(&rs->vcode.be32);
-
 			n->n_weird++;
 			if (search_debug > 1) g_warning("[weird #%d] "
-				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c in %s",
+				"node %s (%s) moved from tag %4.4s to %4.4s in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				n_vendor[0], n_vendor[1], n_vendor[2], n_vendor[3],
-				rs_vendor[0], rs_vendor[1], rs_vendor[2], rs_vendor[3],
+				cast_to_gchar_ptr(&n->vcode.be32),
+				cast_to_gchar_ptr(&rs->vcode.be32),
 				gmsg_infostr(&n->header));
 		}
 
