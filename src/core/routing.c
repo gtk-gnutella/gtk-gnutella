@@ -1825,8 +1825,8 @@ route_query_hit(struct route_log *route_log,
 				continue;
 
 			if (
-				route->node->gnet_guid &&
-				guid_eq(route->node->gnet_guid, origin_guid)
+				node_guid(route->node) &&
+				guid_eq(node_guid(route->node), origin_guid)
 			) {
 				continue;
 			}

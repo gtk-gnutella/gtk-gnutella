@@ -1213,10 +1213,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	rs->stamp = tm_time();
 	rs->country = -1;
 
-	/* hops and TTL have already been modified by route message */
+	/*
+	 * NB: route_message() increases hops by 1 for messages we handle.
+	 */
 	rs->hops = gnutella_header_get_hops(&n->header) - 1;
 	rs->ttl	= gnutella_header_get_ttl(&n->header);
-	rs->ttl = MAX(1, rs->ttl);
 
 	{
 		const gchar *query;
@@ -1966,24 +1967,23 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	 * Save node's GUID.
 	 */
 
-	if (n->gnet_guid) {
-		if (!guid_eq(n->gnet_guid, rs->guid)) {
+	if (node_guid(n)) {
+		if (!guid_eq(node_guid(n), rs->guid)) {
 			n->n_weird++;
 			if (search_debug > 1) {
-				gchar old[33];
-				strncpy(old, guid_hex_str(n->gnet_guid), sizeof(old));
+				gchar guid_buf[GUID_HEX_SIZE + 1];
 
+				guid_to_string_buf(rs->guid, guid_buf, sizeof guid_buf);
 				g_warning("[weird #%d] "
-					"node %s (%s) moved from GUID %s to %s in %s",
+					"Node %s (%s) has GUID %s but used %s in %s",
 					n->n_weird, node_addr(n), node_vendor(n),
-					old, guid_hex_str(rs->guid), gmsg_infostr(&n->header));
+					guid_hex_str(node_guid(n)), guid_buf,
+					gmsg_infostr(&n->header));
 			}
-			atom_guid_free_null(&n->gnet_guid);
 		}
+	} else {
+		node_set_guid(n, rs->guid);
 	}
-
-	if (n->gnet_guid == NULL)
-		n->gnet_guid = atom_guid_get(rs->guid);
 
 	/*
 	 * We don't declare any weirdness if the address in the results matches
@@ -2815,7 +2815,6 @@ search_results(gnutella_node_t *n, gint *results)
 	 */
 
 	rs = get_results_set(n, FALSE);
-
 	if (rs == NULL) {
         /*
          * get_results_set takes care of telling the stats that
@@ -2826,18 +2825,15 @@ search_results(gnutella_node_t *n, gint *results)
 	}
 
 	g_assert(rs->num_recs > 0);
-
 	*results = rs->num_recs;
 
 	/*
 	 * If we're handling a message from our immediate neighbour, grab the
 	 * vendor code from the QHD.  This is useful for 0.4 handshaked nodes
 	 * to determine and display their vendor ID.
-	 *
-	 * NB: route_message() increases hops by 1 for messages we handle.
 	 */
 
-	if (gnutella_header_get_hops(&n->header) == 1 && !NODE_IS_UDP(n))
+	if (rs->hops == 0 && !NODE_IS_UDP(n))
 		update_neighbour_info(n, rs);
 
 	/*

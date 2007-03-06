@@ -165,7 +165,6 @@ typedef struct gnutella_node {
 	host_addr_t addr;			/**< ip of the node */
 	guint16 port;				/**< port of the node */
 
-	const gchar *guid;			/**< GUID of node (atom) for push-proxying */
 	host_addr_t proxy_addr;		/**< ip of the node for push proxyfication */
 	guint16 proxy_port;			/**< port of the node for push proxyfication */
 
@@ -215,7 +214,7 @@ typedef struct gnutella_node {
 	guint32 gnet_kbytes_count;	/**< Used to answer "Crawling" pings */
 	host_addr_t gnet_pong_addr;	/**< When != 0, last IP we got in pong */
 	host_addr_t gnet_qhit_addr;	/**< When != 0, last IP we got in query hit */
-	const gchar *gnet_guid;		/**< GUID of node (atom) seen on the network */
+	const gchar *guid;			/**< GUID of node (atom) seen on the network */
 
 	guint32 n_ping_throttle;  /**< Number of pings we throttled */
 	guint32 n_ping_accepted;  /**< Number of pings we accepted */
@@ -567,7 +566,7 @@ void node_connected_back(struct gnutella_socket *s);
 
 void node_mark_bad_vendor(struct gnutella_node *n);
 
-void node_proxying_remove(gnutella_node_t *n, gboolean discard);
+void node_proxying_remove(gnutella_node_t *n);
 gboolean node_proxying_add(gnutella_node_t *n, const gchar *guid);
 void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
@@ -610,6 +609,15 @@ node_check(const struct gnutella_node * const n)
 	g_assert(n);
 	g_assert(NODE_MAGIC == n->magic);
 }
+
+static inline const gchar *
+node_guid(const struct gnutella_node * const n)
+{
+	return n->guid;
+}
+
+gboolean node_set_guid(struct gnutella_node *n, const gchar *guid);
+struct gnutella_node *node_by_guid(const gchar *guid);
 
 #endif /* _core_nodes_h_ */
 

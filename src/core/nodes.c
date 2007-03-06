@@ -155,16 +155,17 @@ RCSID("$Id$")
 #define TCP_CRAWLER_FREQ		300		/**< once every 5 minutes */
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
-const gchar *start_rfc822_date = NULL;		/**< RFC822 format of start_time */
+const gchar *start_rfc822_date;			/**< RFC822 format of start_time */
 
-static GSList *sl_nodes = NULL;
-static GSList *sl_nodes_without_broken_gtkg = NULL;
-static GHashTable *nodes_by_id = NULL;
-static gnutella_node_t *udp_node = NULL;
-static gnutella_node_t *udp6_node = NULL;
-static gnutella_node_t *browse_node = NULL;
-static gchar *payload_inflate_buffer = NULL;
-static gint payload_inflate_buffer_len = 0;
+static GSList *sl_nodes;
+static GSList *sl_nodes_without_broken_gtkg;
+static GHashTable *nodes_by_id;
+static GHashTable *nodes_by_guid;
+static gnutella_node_t *udp_node;
+static gnutella_node_t *udp6_node;
+static gnutella_node_t *browse_node;
+static gchar *payload_inflate_buffer;
+static gint payload_inflate_buffer_len;
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
@@ -1207,6 +1208,7 @@ node_init(void)
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
 	nodes_by_id        = g_hash_table_new(NULL, NULL);
+	nodes_by_guid      = g_hash_table_new(guid_hash, guid_eq);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
 	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
@@ -1500,6 +1502,11 @@ node_real_remove(gnutella_node_t *n)
 
 	atom_str_free_null(&n->vendor);
 
+	if (n->guid) {
+		g_hash_table_remove(nodes_by_guid, n->guid);
+		atom_guid_free_null(&n->guid);
+	}
+
 	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
 	 * whilst on the "data reception" interrupt path.
@@ -1645,7 +1652,6 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		socket_free_null(&n->socket);
 	}
 
-	atom_guid_free_null(&n->gnet_guid);
 	if (n->tsync_ev) {
 		cq_cancel(callout_queue, n->tsync_ev);
 		n->tsync_ev = NULL;
@@ -1656,7 +1662,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	n->last_update = tm_time();
 
     node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
-	node_proxying_remove(n, TRUE);
+	node_proxying_remove(n);
 
 	if (n->flags & NODE_F_EOF_WAIT) {
 		g_assert(pending_byes > 0);
@@ -8022,6 +8028,53 @@ node_add_rxdrop(gnutella_node_t *n, gint x)
 	n->rx_dropped += x;
 }
 
+struct gnutella_node *
+node_by_guid(const gchar *guid)
+{
+	struct gnutella_node *n;
+
+	g_return_val_if_fail(guid, NULL);
+	n = g_hash_table_lookup(nodes_by_guid, guid);
+	if (n) {
+		node_check(n);
+		g_assert(!NODE_IS_UDP(n));
+	}
+	return n;
+}
+
+/**
+ * Set the GUID of a connected node.
+ *
+ * @return TRUE if any error occured and the GUID was not set.
+ */
+gboolean
+node_set_guid(struct gnutella_node *n, const gchar *guid)
+{
+	struct gnutella_node *owner;
+
+	node_check(n);
+
+	g_return_val_if_fail(!NODE_IS_UDP(n), TRUE);
+	g_return_val_if_fail(guid, TRUE);
+	g_return_val_if_fail(!n->guid, TRUE);
+
+	if (guid_eq(guid, servent_guid)) {
+		g_warning("Node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
+		return TRUE;
+	}
+
+	owner = node_by_guid(guid);
+	if (owner) {
+		g_warning("Node %s (%s) uses same GUID as %s (%s)",
+			node_addr(n), node_vendor(n), node_addr2(owner), node_vendor(n));
+		return TRUE;
+	} else {
+		n->guid = atom_guid_get(guid);
+		gm_hash_table_insert_const(nodes_by_guid, n->guid, n);
+		return FALSE;
+	}
+}
+
 /**
  * Record vendor name (user-agent string).
  *
@@ -8199,10 +8252,8 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 		info->gnet_port = 0;
 	}
 
-	if (node->gnet_guid != NULL)
-		memcpy(info->gnet_guid, node->gnet_guid, GUID_RAW_SIZE);
-	else
-		memcpy(info->gnet_guid, blank_guid, GUID_RAW_SIZE);
+	memcpy(info->gnet_guid, node_guid(node) ? node_guid(node) : blank_guid,
+		GUID_RAW_SIZE);
 }
 
 /**
@@ -8495,16 +8546,15 @@ node_connected_back(struct gnutella_socket *s)
  * GUID and route information.
  */
 void
-node_proxying_remove(gnutella_node_t *n, gboolean discard)
+node_proxying_remove(gnutella_node_t *n)
 {
-	n->flags &= ~NODE_F_PROXIED;
+	if (NODE_F_PROXIED & n->flags) {
+		n->flags &= ~NODE_F_PROXIED;
+		node_fire_node_flags_changed(n);
 
-	if (n->guid && discard) {
-		route_proxy_remove(n->guid);
-		atom_guid_free_null(&n->guid);
+		g_return_if_fail(node_guid(n));
+		route_proxy_remove(node_guid(n));
 	}
-
-	node_fire_node_flags_changed(n);
 }
 
 /**
@@ -8515,6 +8565,10 @@ node_proxying_remove(gnutella_node_t *n, gboolean discard)
 gboolean
 node_proxying_add(gnutella_node_t *n, const gchar *guid)
 {
+	g_return_val_if_fail(n, FALSE);
+	g_return_val_if_fail(guid, FALSE);
+	g_return_val_if_fail(!NODE_IS_UDP(n), FALSE);
+
 	/*
 	 * If we're firewalled, we can't accept.
 	 */
@@ -8552,45 +8606,42 @@ node_proxying_add(gnutella_node_t *n, const gchar *guid)
 	 * So we can have a GUID recorded already, but NODE_F_PROXIED cleared.
 	 */
 
-	if (n->guid != NULL) {
-		gchar old[33];
-
-		if (n->flags & NODE_F_PROXIED)
-			if (node_debug) g_warning(
-				"spurious push-proxyfication request from %s <%s>",
+	if (NODE_F_PROXIED & n->flags) {
+		if (node_debug) {
+			g_warning("spurious push-proxyfication request from %s <%s>",
 				node_addr(n), node_vendor(n));
-
-		if (!guid_eq(guid, n->guid)) {
-			strncpy(old, guid_hex_str(n->guid), sizeof(old));
-
-			if (node_debug) g_warning(
-				"new GUID %s for node %s <%s> (was %s)",
-				guid_hex_str(guid), node_addr(n), node_vendor(n), old);
-
-			route_proxy_remove(n->guid);
-			atom_guid_free_null(&n->guid);
 		}
+		return TRUE;	/* Route already recorded */
 	}
 
-	n->flags |= NODE_F_PROXIED;
+	if (node_guid(n)) {
+		if (!guid_eq(node_guid(n), guid)) {
+			if (node_debug) {
+				gchar guid_buf[GUID_HEX_SIZE + 1];
 
-	if (n->guid != NULL)
-		return TRUE;				/* Route already recorded */
+				guid_to_string_buf(guid, guid_buf, sizeof guid_buf);
+				g_warning("Node %s <%s> has GUID %s but used %s",
+					guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
+					guid_buf);
+			}
+			return FALSE;
+		}
+	} else if (node_set_guid(n, guid)) {
+		return FALSE;
+	}
 
-	n->guid = atom_guid_get(guid);
-	if (route_proxy_add(n->guid, n)) {
+	if (route_proxy_add(node_guid(n), n)) {
+		n->flags |= NODE_F_PROXIED;
 		node_fire_node_flags_changed(n);
 		return TRUE;
+	} else {
+		if (node_debug) {
+			g_warning("push-proxyfication failed for %s <%s>: "
+				"conflicting GUID %s",
+				node_addr(n), node_vendor(n), guid_hex_str(guid));
+		}
+		return FALSE;
 	}
-
-	if (node_debug) g_warning(
-		"push-proxyfication failed for %s <%s>: conflicting GUID %s",
-		node_addr(n), node_vendor(n), guid_hex_str(guid));
-
-	atom_guid_free_null(&n->guid);
-	n->flags &= ~NODE_F_PROXIED;
-
-	return FALSE;
 }
 
 /**
