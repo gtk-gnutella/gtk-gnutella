@@ -757,14 +757,7 @@ guc_listen_port(void)
 host_addr_t
 guc_listen_addr(enum net_type net)
 {
-	switch (net) {
-	case NET_TYPE_IPV4: return listen_addr();
-	case NET_TYPE_IPV6: return listen_addr6();
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		break;
-	}
-	return zero_host_addr;
+	return listen_addr_by_net(net);
 }
 
 const gchar *

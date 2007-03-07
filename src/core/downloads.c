@@ -3380,7 +3380,7 @@ download_ignore_requested(struct download *d)
 	 * if someone echoes back our own alt-locs to us with PFSP).
 	 */
 
-	if (is_my_address(download_addr(d), download_port(d)))
+	if (is_my_address_and_port(download_addr(d), download_port(d)))
 		reason = IGNORE_OURSELVES;
 	else if (hostiles_check(download_addr(d)))
 		reason = IGNORE_HOSTILE;

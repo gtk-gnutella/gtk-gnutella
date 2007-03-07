@@ -2498,7 +2498,7 @@ node_bye_if_writable(
 gboolean
 node_is_connected(const host_addr_t addr, guint16 port, gboolean incoming)
 {
-	if (is_my_address(addr, port)) {
+	if (is_my_address_and_port(addr, port)) {
 		return TRUE;
 	}
 

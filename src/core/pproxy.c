@@ -535,10 +535,10 @@ build_push(guint8 ttl, guint8 hops, const gchar *guid,
 
 #ifdef HAS_GNUTLS
 	if (is_host_addr(addr_v4)) {
-		supports_tls |= is_my_address(addr_v4, port);
+		supports_tls |= is_my_address_and_port(addr_v4, port);
 	}
 	if (is_host_addr(addr_v6)) {
-		supports_tls |= is_my_address(addr_v6, port);
+		supports_tls |= is_my_address_and_port(addr_v6, port);
 	}
 #endif /* HAS_GNUTLS */
 	

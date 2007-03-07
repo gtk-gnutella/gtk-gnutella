@@ -2115,7 +2115,7 @@ build_search_msg(search_ctrl_t *sch)
 			gnutella_header_get_muid(gnutella_msg_search_header(&msg.data)),
 			&addr, &port);
 
-		if (is_my_address(addr, port))
+		if (is_my_address_and_port(addr, port))
 			speed |= QUERY_SPEED_OOB_REPLY;
 	}
 

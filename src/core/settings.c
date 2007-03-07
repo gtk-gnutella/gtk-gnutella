@@ -133,13 +133,29 @@ listen_addr6(void)
 	}
 }
 
-gboolean
-is_my_address(const host_addr_t addr, guint16 port)
+host_addr_t
+listen_addr_by_net(enum net_type net)
 {
-	return port == listen_port && (
-		host_addr_equal(addr, listen_addr()) ||
-		host_addr_equal(addr, listen_addr6())
-	);
+	switch (net) {
+	case NET_TYPE_IPV4: return listen_addr();
+	case NET_TYPE_IPV6: return listen_addr6();
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+	return zero_host_addr;
+}
+	
+gboolean
+is_my_address(const host_addr_t addr)
+{
+	return host_addr_equal(addr, listen_addr_by_net(host_addr_net(addr)));
+}
+
+gboolean
+is_my_address_and_port(const host_addr_t addr, guint16 port)
+{
+	return port == listen_port && is_my_address(addr);
 }
 
 

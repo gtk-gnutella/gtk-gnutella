@@ -732,7 +732,7 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 	 * Reject if this is for our host, or if the host is a private/hostile IP.
 	 */
 
-	if (is_my_address(addr, port))
+	if (is_my_address_and_port(addr, port))
 		return FALSE;
 
 	if (!host_is_valid(addr, port))
