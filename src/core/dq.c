@@ -68,35 +68,35 @@ RCSID("$Id$")
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
-#include "lib/override.h"			/* Must be the last header included */
+#include "lib/override.h"		   /* Must be the last header included */
 
-#define DQ_MAX_LIFETIME		600000	/**< 10 minutes, in ms */
-#define DQ_PROBE_TIMEOUT  	1500	/**< 1.5 s extra per connection */
-#define DQ_PENDING_TIMEOUT 	1200	/**< 1.2 s extra per pending message */
-#define DQ_QUERY_TIMEOUT	3700	/**< 3.7 s */
-#define DQ_TIMEOUT_ADJUST	100		/**< 100 ms at each connection */
-#define DQ_MIN_TIMEOUT		1500	/**< 1.5 s at least between queries */
-#define DQ_LINGER_TIMEOUT	180000	/**< 3 minutes, in ms */
-#define DQ_STATUS_TIMEOUT	40000	/**< 40 s, in ms, to reply to query status */
-#define DQ_MAX_PENDING		3		/**< Max pending queries we allow */
-#define DQ_MAX_STAT_TIMEOUT	2		/**< Max # of stat timeouts we allow */
-#define DQ_STAT_THRESHOLD	3		/**< Request status every 3 UP probed */
-#define DQ_MIN_FOR_GUIDANCE	20		/**< Request guidance if 20+ new results */
+#define DQ_MAX_LIFETIME		600000 /**< 10 minutes, in ms */
+#define DQ_PROBE_TIMEOUT  	1500   /**< 1.5 s extra per connection */
+#define DQ_PENDING_TIMEOUT 	1200   /**< 1.2 s extra per pending message */
+#define DQ_QUERY_TIMEOUT	3700   /**< 3.7 s */
+#define DQ_TIMEOUT_ADJUST	100	   /**< 100 ms at each connection */
+#define DQ_MIN_TIMEOUT		1500   /**< 1.5 s at least between queries */
+#define DQ_LINGER_TIMEOUT	180000 /**< 3 minutes, in ms */
+#define DQ_STATUS_TIMEOUT	40000  /**< 40 s, in ms, to reply to query status */
+#define DQ_MAX_PENDING		3	   /**< Max pending queries we allow */
+#define DQ_MAX_STAT_TIMEOUT	2	   /**< Max # of stat timeouts we allow */
+#define DQ_STAT_THRESHOLD	3	   /**< Request status every 3 UP probed */
+#define DQ_MIN_FOR_GUIDANCE	20	   /**< Request guidance if 20+ new results */
 
-#define DQ_LEAF_RESULTS		50		/**< # of results targetted for leaves */
-#define DQ_LOCAL_RESULTS	150		/**< # of results for local queries */
-#define DQ_SHA1_DECIMATOR	25		/**< Divide expected by that much for SHA1 */
-#define DQ_PROBE_UP			3		/**< Amount of UPs for initial probe */
-#define DQ_MAX_HORIZON		500000	/**< Stop after that many UP queried */
-#define DQ_MIN_HORIZON		3000	/**< Min horizon before timeout adjustment */
-#define DQ_LOW_RESULTS		10		/**< After DQ_MIN_HORIZON queried for adj. */
-#define DQ_PERCENT_KEPT		5		/**< Assume 5% of results kept, worst case */
+#define DQ_LEAF_RESULTS		50	   /**< # of results targetted for leaves */
+#define DQ_LOCAL_RESULTS	150	   /**< # of results for local queries */
+#define DQ_SHA1_DECIMATOR	25	   /**< Divide expected by that much for SHA1 */
+#define DQ_PROBE_UP			3	   /**< Amount of UPs for initial probe */
+#define DQ_MAX_HORIZON		500000 /**< Stop after that many UP queried */
+#define DQ_MIN_HORIZON		3000   /**< Min horizon before timeout adjustment */
+#define DQ_LOW_RESULTS		10	   /**< After DQ_MIN_HORIZON queried for adj. */
+#define DQ_PERCENT_KEPT		5	   /**< Assume 5% of results kept, worst case */
 
-#define DQ_MAX_TTL			5		/**< Max TTL we can use */
-#define DQ_AVG_ULTRA_NODES	3		/**< Avg # of ultranodes a leaf queries */
+#define DQ_MAX_TTL			5	   /**< Max TTL we can use */
+#define DQ_AVG_ULTRA_NODES	3	   /**< Avg # of ultranodes a leaf queries */
 
-#define DQ_MQ_EPSILON		2048	/**< Queues identical at +/- 2K */
-#define DQ_FUZZY_FACTOR		0.80	/**< Corrector for theoretical horizon */
+#define DQ_MQ_EPSILON		2048   /**< Queues identical at +/- 2K */
+#define DQ_FUZZY_FACTOR		0.80   /**< Corrector for theoretical horizon */
 
 /**
  * Structure produced by dq_fill_next_up, representing the nodes to which
@@ -155,27 +155,29 @@ typedef struct dquery {
 	pmsg_t *by_ttl[DQ_MAX_TTL];	/**< Copied mesages, one for each TTL */
 } dquery_t;
 
-#define DQ_F_ID_CLEANING	0x00000001	/**< Cleaning the `by_node_id' table */
-#define DQ_F_LINGER			0x00000002	/**< Lingering to monitor extra hits */
-#define DQ_F_LEAF_GUIDED	0x00000004	/**< Leaf-guided query */
-#define DQ_F_WAITING		0x00000008	/**< Waiting guidance reply from leaf */
-#define DQ_F_GOT_GUIDANCE	0x00000010	/**< Got some leaf guidance */
-#define DQ_F_USR_CANCELLED	0x00000020	/**< Explicitely cancelled by user */
-#define DQ_F_ROUTING_HITS	0x00000040	/**< We'll be routing all hits */
-#define DQ_F_EXITING		0x80000000	/**< Final cleanup at exit time */
+enum {
+	DQ_F_ID_CLEANING	= 1 << 0,	/**< Cleaning the `by_node_id' table */
+	DQ_F_LINGER			= 1 << 1,	/**< Lingering to monitor extra hits */
+	DQ_F_LEAF_GUIDED	= 1 << 2,	/**< Leaf-guided query */
+	DQ_F_WAITING		= 1 << 3,	/**< Waiting guidance reply from leaf */
+	DQ_F_GOT_GUIDANCE	= 1 << 4,	/**< Got some leaf guidance */
+	DQ_F_USR_CANCELLED	= 1 << 5,	/**< Explicitely cancelled by user */
+	DQ_F_ROUTING_HITS	= 1 << 6,	/**< We'll be routing all hits */
+	DQ_F_EXITING		= 1 << 7	/**< Final cleanup at exit time */
+};
 
 /**
  * This table keeps track of all the dynamic query objects that we have
  * created and which are alive.
  */
-static GHashTable *dqueries = NULL;
+static GHashTable *dqueries;
 
 /**
  * This table keeps track of all the dynamic query objects created
  * for a given node ID.  The key is the node ID (converted to a pointer) and
  * the value is a GSList containing all the queries for that node.
  */
-static GHashTable *by_node_id = NULL;
+static GHashTable *by_node_id;
 
 /**
  * This table keeps track of the association between a MUID and the
@@ -184,7 +186,7 @@ static GHashTable *by_node_id = NULL;
  *
  * The keys are MUIDs (GUID atoms), the values are the dquery_t object.
  */
-static GHashTable *by_muid = NULL;
+static GHashTable *by_muid;
 
 /**
  * This table keeps track of the association between a leaf MUID and the
@@ -192,7 +194,7 @@ static GHashTable *by_muid = NULL;
  * account them for the relevant query (since for OOB-proxied query, the
  * MUID we'll get is the one the leaf knows about).
  */
-static GHashTable *by_leaf_muid = NULL;
+static GHashTable *by_leaf_muid;
 
 /**
  * Information about query messages sent.
@@ -209,11 +211,11 @@ static GHashTable *by_leaf_muid = NULL;
  * meta-information about it.
  */
 struct pmsg_info {
-	dquery_t *dq;			/**< The dynamic query that sent the query */
-	guint32 qid;			/**< Query ID of the dynamic query */
-	guint32 node_id;		/**< The ID of the node we sent it to */
-	guint16 degree;			/**< The advertised degree of the destination node */
-	guint8 ttl;				/**< The TTL used for that query */
+	dquery_t *dq;		/**< The dynamic query that sent the query */
+	guint32 qid;		/**< Query ID of the dynamic query */
+	guint32 node_id;	/**< The ID of the node we sent it to */
+	guint16 degree;		/**< The advertised degree of the destination node */
+	guint8 ttl;			/**< The TTL used for that query */
 };
 
 /*
@@ -411,7 +413,7 @@ dq_alive(dquery_t *dq, guint32 qid)
 static void
 dq_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct pmsg_info *pmi = (struct pmsg_info *) arg;
+	struct pmsg_info *pmi = arg;
 	dquery_t *dq = pmi->dq;
 
 	g_assert(pmsg_is_extended(mb));
@@ -557,7 +559,7 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 	gint i = 0;
 
 	for (sl = node_all_nodes(); i < ncount && sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+		struct gnutella_node *n = sl->data;
 
 		if (!NODE_IS_ULTRA(n))
 			continue;
@@ -628,7 +630,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 	 */
 
 	for (sl = node_all_nodes(); i < ncount && sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+		struct gnutella_node *n = sl->data;
 		struct next_up *nup;
 		struct next_up *old_nup;
 
@@ -877,7 +879,7 @@ dq_free(dquery_t *dq)
 static void
 dq_expired(cqueue_t *unused_cq, gpointer obj)
 {
-	dquery_t *dq = (dquery_t *) obj;
+	dquery_t *dq = obj;
 
 	(void) unused_cq;
 
@@ -914,7 +916,7 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 static void
 dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 {
-	dquery_t *dq = (dquery_t *) obj;
+	dquery_t *dq = obj;
 	gnutella_node_t *n;
 	gint timeout;
 	guint32 avg;
@@ -1096,8 +1098,8 @@ dq_terminate(dquery_t *dq)
 static gint
 node_mq_cmp(const void *np1, const void *np2)
 {
-	gnutella_node_t *n1 = *(gnutella_node_t **) np1;
-	gnutella_node_t *n2 = *(gnutella_node_t **) np2;
+	const gnutella_node_t *n1 = *(const gnutella_node_t **) np1;
+	const gnutella_node_t *n2 = *(const gnutella_node_t **) np2;
 	gint qs1 = NODE_MQUEUE_PENDING(n1);
 	gint qs2 = NODE_MQUEUE_PENDING(n2);
 
@@ -1119,10 +1121,10 @@ node_mq_cmp(const void *np1, const void *np2)
 static gint
 node_mq_qrp_cmp(const void *np1, const void *np2)
 {
-	struct next_up *nu1 = (struct next_up *) np1;
-	struct next_up *nu2 = (struct next_up *) np2;
-	gnutella_node_t *n1 = nu1->node;
-	gnutella_node_t *n2 = nu2->node;
+	struct next_up *nu1 = deconstify_gpointer(np1);
+	struct next_up *nu2 = deconstify_gpointer(np2);
+	const gnutella_node_t *n1 = nu1->node;
+	const gnutella_node_t *n2 = nu2->node;
 	gint qs1 = nu1->queue_pending;
 	gint qs2 = nu2->queue_pending;
 
@@ -1131,8 +1133,9 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
 	 * several function calls to go down to the link layer buffers.
 	 */
 
-	if (qs1 == -1)
+	if (qs1 == -1) {
 		qs1 = nu1->queue_pending = NODE_MQUEUE_PENDING(n1);
+	}
 	if (qs2 == -1)
 		qs2 = nu2->queue_pending = NODE_MQUEUE_PENDING(n2);
 
@@ -1299,7 +1302,7 @@ dq_send_next(dquery_t *dq)
 		return;
 	}
 
-	nv = walloc(ncount * sizeof(struct next_up));
+	nv = walloc(ncount * sizeof nv[0]);
 	found = dq_fill_next_up(dq, nv, ncount);
 
 	g_assert(dq->nv == nv);		/* Saved for next time */
@@ -1320,7 +1323,7 @@ dq_send_next(dquery_t *dq)
 	 * with a QRP match.
 	 */
 
-	qsort(nv, found, sizeof(struct next_up), node_mq_qrp_cmp);
+	qsort(nv, found, sizeof nv[0], node_mq_qrp_cmp);
 
 	/*
 	 * Select the first node, and compute the proper TTL for the query.
@@ -1403,7 +1406,7 @@ dq_send_probe(dquery_t *dq)
 
 	g_assert(dq->results_ev == NULL);
 
-	nv = walloc(ncount * sizeof(gnutella_node_t *));
+	nv = walloc(ncount * sizeof nv[0]);
 	found = dq_fill_probe_up(dq, nv, ncount);
 
 	if (dq_debug > 19)
@@ -1439,7 +1442,7 @@ dq_send_probe(dquery_t *dq)
 	 * the less pending data are listed first.
 	 */
 
-	qsort(nv, found, sizeof(gnutella_node_t *), node_mq_cmp);
+	qsort(nv, found, sizeof nv[0], node_mq_cmp);
 
 	/*
 	 * Send the probe query to the first DQ_PROBE_UP nodes.
@@ -1461,7 +1464,7 @@ dq_send_probe(dquery_t *dq)
 		dq_results_expired, dq);
 
 cleanup:
-	wfree(nv, ncount * sizeof(gnutella_node_t *));
+	wfree(nv, ncount * sizeof nv[0]);
 }
 
 /**
@@ -1773,7 +1776,7 @@ dq_node_removed(guint32 node_id)
 		return;		/* No dynamic query for this node */
 
 	for (sl = value; sl; sl = g_slist_next(sl)) {
-		dquery_t *dq = (dquery_t *) sl->data;
+		dquery_t *dq = sl->data;
 
 		if (dq_debug)
 			g_message("DQ[%d] terminated by node #%u removal (queried %u UP%s)",
@@ -2067,8 +2070,8 @@ struct cancel_context {
 static void
 dq_cancel_local(gpointer key, gpointer unused_value, gpointer udata)
 {
-	struct cancel_context *ctx = (struct cancel_context *) udata;
-	dquery_t *dq = (dquery_t *) key;
+	struct cancel_context *ctx = udata;
+	dquery_t *dq = key;
 
 	(void) unused_value;
 	if (dq->node_id != NODE_ID_LOCAL || dq->sh != ctx->handle)
@@ -2181,7 +2184,7 @@ dq_init(void)
 static void
 free_query(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
-	dquery_t *dq = (dquery_t *) key;
+	dquery_t *dq = key;
 
 	(void) unused_value;
 	(void) unused_udata;
@@ -2198,7 +2201,7 @@ free_query(gpointer key, gpointer unused_value, gpointer unused_udata)
 static void
 free_query_list(gpointer key, gpointer value, gpointer unused_udata)
 {
-	GSList *list = (GSList *) value;
+	GSList *list = value;
 	gint count = g_slist_length(list);
 	GSList *sl;
 
@@ -2207,7 +2210,7 @@ free_query_list(gpointer key, gpointer value, gpointer unused_udata)
 		count, count == 1 ? "y" : "ies", GPOINTER_TO_UINT(key));
 
 	for (sl = list; sl; sl = g_slist_next(sl)) {
-		dquery_t *dq = (dquery_t *) sl->data;
+		dquery_t *dq = sl->data;
 
 		/* Don't remove query from the table we're traversing in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
