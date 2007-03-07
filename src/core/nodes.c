@@ -3905,7 +3905,7 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 		return;
 
 	addr = extract_my_addr(head);
-	if (!is_host_addr(addr) || host_addr_equal(addr, local_ip))
+	if (!is_host_addr(addr) || is_my_address(addr))
 		return;
 
 	if (node_debug > 0) {
