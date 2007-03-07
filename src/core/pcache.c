@@ -2125,7 +2125,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 * (tests) or someone is trying to fool us.
 	 */
 
-	if (is_my_address(addr, port))
+	if (is_my_address_and_port(addr, port))
 		return;
 
 	/*
