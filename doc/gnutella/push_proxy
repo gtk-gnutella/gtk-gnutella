@@ -17,13 +17,13 @@ reached.
 
 The original Gnutella protocol has a workaround called Push.  With Push,
 the downloader constructs and sends a Gnutella Push packet on the GNET
-containing the down loader’s address and port, as well as the server’s ID.
-If this message travels through the cloud and eventually finds its’ way
+containing the down loader's address and port, as well as the server's ID.
+If this message travels through the cloud and eventually finds its way
 to the server, the server opens a connection back to the downloader,
 sends a special header, then waits for the downloader to begin a HTTP
 conversation on this open connection.
 
-This Push mechanism works… sometimes.  The problem is that the cloud
+This Push mechanism works sometimes.  The problem is that the cloud
 is too dynamic.  Intermediate hosts come and go, thus breaking the
 path, and making it so that the Push packet rarely reaches the server.
 This is exacerbated if the downloader must log off the GNET for any period
@@ -31,7 +31,7 @@ of time.  A second problem is that when the Push route is broken, the
 downloader cannot tell if the server went down, or if the route was lost.
 These issues result in frustrated users who see search results they
 cannot download, and an underutilization of large numbers of resources -
-machines that can’t be used as servers.
+machines that can't be used as servers.
 
 This Push Proxy proposal outlines a technique to do away with these
 problems, therefore increasing the likelihood that a downloader can
@@ -137,7 +137,7 @@ in the Download Mesh 0.1 document.
 
 5 Contacting a Proxy Server
 ===========================
-A downloader sends a HTTP message to the FS via the FS’s PP.
+A downloader sends a HTTP message to the FS via the FS's PP.
 
 The downloader sends this message to endpoints of the PP discovered in 
 section 4. 
