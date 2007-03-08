@@ -1606,14 +1606,15 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 
 struct head_ping_data {
 	struct sha1 sha1;
+	node_id_t node_id;
 	host_addr_t addr;
 	guint16 port;
 };
 
 struct head_ping_source {
-	gchar muid[GUID_RAW_SIZE];	/* Must be at offset zero */
+	gchar muid[GUID_RAW_SIZE];	/* MUST be at offset zero */
+	struct head_ping_data ping;
 	time_t added;
-	struct head_ping_data data;
 };
 
 static const time_delta_t HEAD_PING_TIMEOUT	    = 30;	/**< seconds */
@@ -1676,17 +1677,20 @@ head_ping_timer(cqueue_t *unused_cq, gpointer unused_udata)
 }
 
 static gboolean
-head_ping_register(const gchar *muid, struct sha1 sha1, struct gnutella_node *n)
+head_ping_register(const gchar *muid, struct sha1 sha1, node_id_t node_id)
 {
 	struct head_ping_source *source;
+	struct gnutella_node *n = NULL;
 	guint length;
 
 	g_assert(muid);
 	g_return_val_if_fail(head_pings, FALSE);
 
-	if (n) {
-		if (!NODE_IS_UDP(n) || !host_is_valid(n->addr, n->port))
+	if (NODE_ID_SELF != node_id) {
+		n = node_active_by_id(node_id);
+		if (!n || (NODE_IS_UDP(n) && !host_is_valid(n->addr, n->port))) {
 			return FALSE;
+		}
 	}
 	if (hash_list_contains(head_pings, muid, NULL)) {
 		/* Probably a duplicate */
@@ -1705,30 +1709,32 @@ head_ping_register(const gchar *muid, struct sha1 sha1, struct gnutella_node *n)
 	source = walloc(sizeof *source);
 	memcpy(source->muid, muid, GUID_RAW_SIZE);
 	source->added = tm_time();
-	source->data.sha1 = sha1;
-	if (n) {
-		source->data.addr = n->addr;
-		source->data.port = n->port;
+	source->ping.sha1 = sha1;
+	if (n && NODE_IS_UDP(n)) {
+		source->ping.node_id = NODE_ID_SELF;
+		source->ping.addr = n->addr;
+		source->ping.port = n->port;
 	} else {
-		source->data.addr = zero_host_addr;
-		source->data.port = 0;
+		source->ping.node_id = node_id;
+		source->ping.addr = zero_host_addr;
+		source->ping.port = 0;
 	}
 	hash_list_append(head_pings, source);
 	return TRUE;
 }
 
 static gboolean
-head_ping_is_registered(const gchar *muid, struct head_ping_data *data)
+head_ping_is_registered(const gchar *muid, struct head_ping_data *ping)
 {
 	struct head_ping_source *source;
 
 	g_assert(muid);
-	g_assert(data);
+	g_assert(ping);
 	g_return_val_if_fail(head_pings, FALSE);
 
 	source = hash_list_remove(head_pings, muid);
 	if (source) {
-		*data = source->data;
+		*ping = source->ping;
 		head_ping_source_free(source);
 		return TRUE;
 	} else {
@@ -1740,11 +1746,10 @@ void
 vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 {
 	static const gchar urn_prefix[] = "urn:sha1:";
+	const gchar *muid;
 	guint32 msgsize;
 	guint32 paysize;
 	gchar *payload;
-
-	g_assert(NODE_IS_UDP(n));
 
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 23, 1);
 
@@ -1760,9 +1765,11 @@ vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
-	head_ping_register(gnutella_header_get_muid(v_tmp_header), sha1, NULL);
-
-	udp_send_msg(n, v_tmp, msgsize);
+	muid = gnutella_header_get_muid(v_tmp_header);
+	
+	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
+		gmsg_sendto_one(n, v_tmp, msgsize);
+	}
 }
 
 static gboolean
@@ -1919,7 +1926,7 @@ handle_udp_head_ping(struct gnutella_node *n,
 			gnutella_header_set_ttl(&header, 1);
 			gnutella_header_set_hops(&header, 1);
 			muid = gnutella_header_get_muid(header);
-			if (head_ping_register(muid, sha1, n)) {
+			if (head_ping_register(muid, sha1, NODE_ID(n))) {
 				if (vmsg_debug) {
 					g_message("Forwarding HEAD Ping to %s", node_addr(n));
 				}
@@ -2001,7 +2008,7 @@ handle_udp_head_pong(struct gnutella_node *n,
 {
 	const size_t expected_size = 2; /* flags and code */
 	const gchar *vendor, *muid, *p, *endptr;
-	struct head_ping_data data;
+	struct head_ping_data ping;
 	guint8 flags, code;
 	gint8 queue;
 
@@ -2018,7 +2025,7 @@ handle_udp_head_pong(struct gnutella_node *n,
 	}
 
 	muid = gnutella_header_get_muid(&n->header);
-	if (!head_ping_is_registered(muid, &data)) {
+	if (!head_ping_is_registered(muid, &ping)) {
 		if (vmsg_debug) {
 			g_warning("HEAD Pong MUID is not registered");
 		}
@@ -2061,7 +2068,7 @@ handle_udp_head_pong(struct gnutella_node *n,
 		g_message(
 			"HEAD Pong vendor=%s, urn:sha1:%s, result=\"%s%s%s\", queue=%d",
 			vendor,
-			sha1_to_string(data.sha1),
+			sha1_to_string(ping.sha1),
 			VMSG_HEAD_CODE_COMPLETE & code
 				? "complete"
 				: (VMSG_HEAD_CODE_PARTIAL | VMSG_HEAD_CODE_DOWNLOADING) & code
@@ -2138,13 +2145,16 @@ handle_udp_head_pong(struct gnutella_node *n,
 	if (
 		NODE_P_LEAF != current_peermode &&
 		gnutella_header_get_ttl(&n->header) > 0 &&
-		gnutella_header_get_hops(&n->header) < max_ttl &&
-		host_is_valid(data.addr, data.port)
+		gnutella_header_get_hops(&n->header) < max_ttl
 	) {
-		struct gnutella_node *udp;
+		struct gnutella_node *target;
 
-		udp = node_udp_get_addr_port(data.addr, data.port);
-		if (udp) {
+		if (NODE_ID_SELF != ping.node_id) {
+			target = node_active_by_id(ping.node_id);
+		} else {
+			target = node_udp_get_addr_port(ping.addr, ping.port);
+		}
+		if (target) {
 			gnutella_header_t header;
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
@@ -2152,7 +2162,7 @@ handle_udp_head_pong(struct gnutella_node *n,
 				gnutella_header_get_ttl(&header) - 1);
 			gnutella_header_set_hops(&header,
 				gnutella_header_get_hops(&header) + 1);
-			gmsg_split_sendto_one(udp, header, n->data, n->size);
+			gmsg_split_sendto_one(target, header, n->data, n->size);
 		}
 	}
 }
