@@ -81,9 +81,9 @@ typedef struct smsg {
  * react when the message queue informs us it has processed it.
  */
 struct smsg_info {
-	gpointer search;			/**< The search object which sends the query */
-	guint32 id;					/**< The unique search ID */
-	guint32 node_id;			/**< The unique node ID to which we're sending */
+	node_id_t node_id;		/**< The unique node ID to which we're sending */
+	gpointer search;		/**< The search object which sends the query */
+	guint32 id;				/**< The unique search ID */
 };
 
 static squeue_t *global_sq = NULL;
@@ -167,7 +167,7 @@ smsg_mutate(smsg_t *sb, struct gnutella_node *n)
 
 	smi = (struct smsg_info *) walloc(sizeof(*smi));
 	smi->id = search_get_id(sb->shandle, &smi->search);
-	smi->node_id = n->id;
+	smi->node_id = NODE_ID(n);
 
 	omb = sb->mb;
 	sb->mb = pmsg_clone_extend(omb, sq_pmsg_free, smi);

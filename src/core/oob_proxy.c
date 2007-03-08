@@ -70,7 +70,7 @@ RCSID("$Id$")
 struct oob_proxy_rec {
 	const gchar *leaf_muid;		/**< Original MUID, set by leaf (atom) */
 	const gchar *proxied_muid;	/**< Proxied MUID (atom) */
-	guint32 node_id;			/**< The ID of the node leaf */
+	node_id_t node_id;			/**< The ID of the node leaf */
 	gpointer expire_ev;			/**< Expire event, to clear this record */
 };
 
@@ -104,7 +104,7 @@ static GHashTable *proxied_queries = NULL;	/* New MUID => oob_proxy_rec */
  */
 static struct oob_proxy_rec *
 oob_proxy_rec_make(
-	const gchar *leaf_muid, const gchar *proxied_muid, guint32 node_id)
+	const gchar *leaf_muid, const gchar *proxied_muid, node_id_t node_id)
 {
 	struct oob_proxy_rec *opr;
 
@@ -190,7 +190,7 @@ oob_proxy_create(gnutella_node_t *n)
 	 */
 
 	opr = oob_proxy_rec_make(gnutella_header_get_muid(&n->header),
-			proxied_muid, n->id);
+			proxied_muid, NODE_ID(n));
 	g_hash_table_insert(proxied_queries, (gchar *) opr->proxied_muid, opr);
 
 	opr->expire_ev = cq_insert(callout_queue, PROXY_EXPIRE_MS,
@@ -330,9 +330,10 @@ oob_proxy_pending_results(
 
 	if (query_debug > 5 || oob_proxy_debug > 1)
 		g_message("QUERY OOB-proxied %s notified of %d hits at %s %s"
-			" for leaf #%u %s, wants %u",
+			" for leaf #%s %s, wants %u",
 			guid_hex_str(muid), hits,
-			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n), opr->node_id,
+			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
+			node_id_to_string(opr->node_id),
 			leaf == NULL ? "???" : node_gnet_addr(leaf), wanted);
 
 	vmsg_send_oob_reply_ack(n, muid, MIN(hits, 254), token);
@@ -342,9 +343,10 @@ oob_proxy_pending_results(
 ignore:
 	if (query_debug > 5 || oob_proxy_debug > 1)
 		g_message("QUERY OOB-proxied %s "
-			"notified of %d hits at %s %s for leaf #%u %s, ignored (%s)",
+			"notified of %d hits at %s %s for leaf #%s %s, ignored (%s)",
 			guid_hex_str(muid), hits,
-			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n), opr->node_id,
+			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
+			node_id_to_string(opr->node_id),
 			leaf == NULL ? "???" : node_gnet_addr(leaf), msg);
 
 	return TRUE;
@@ -393,10 +395,10 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 
 		if (query_debug > 5 || oob_proxy_debug > 1)
 			g_message(
-				"QUERY OOB-proxied %s dropping %d hit%s from %s: no leaf #%u",
+				"QUERY OOB-proxied %s dropping %d hit%s from %s: no leaf #%s",
 				guid_hex_str(opr->proxied_muid),
 				results, results == 1 ? "" : "s",
-				node_addr(n), opr->node_id);
+				node_addr(n), node_id_to_string(opr->node_id));
 
 		return TRUE;		/* Leaf gone, drop the message */
 	}

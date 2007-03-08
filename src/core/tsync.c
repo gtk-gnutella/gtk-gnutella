@@ -60,11 +60,11 @@ typedef enum {
  * along with the event that will expire those entries.
  */
 struct tsync {
-	tsync_magic_t magic;	/**< Magic of this structure for consistency checks */
-	tm_t sent;				/**< Time at which we sent the synchronization */
-	guint32 node_id;		/**< Node to which we sent the request */
-	gpointer expire_ev;		/**< Expiration callout queue callback */
-	gboolean udp;			/**< Whether request was sent using UDP */
+	tsync_magic_t magic; /**< Magic of this structure for consistency checks */
+	tm_t sent;			 /**< Time at which we sent the synchronization */
+	node_id_t node_id;	 /**< Node to which we sent the request */
+	gpointer expire_ev;	 /**< Expiration callout queue callback */
+	gboolean udp;		 /**< Whether request was sent using UDP */
 };
 
 /*
@@ -130,7 +130,7 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
  * we're sending the time synchronization request.
  */
 void
-tsync_send(struct gnutella_node *n, guint32 node_id)
+tsync_send(struct gnutella_node *n, node_id_t node_id)
 {
 	struct tsync *ts;
 

@@ -209,8 +209,7 @@ node_drop_handle(gnet_node_t n)
     idtable_free_id(node_handle_map, n);
 }
 
-static guint32 shutdown_nodes = 0;
-static guint32 node_id = 0;
+static guint32 shutdown_nodes;
 
 static gboolean allow_gnet_connections = FALSE;
 
@@ -1183,6 +1182,35 @@ node_timer(time_t now)
 	sq_process(sq_global_queue(), now);
 }
 
+guint
+node_id_hash(gconstpointer key)
+{
+	const node_id_t *p = key;
+	return uint64_hash(p);
+}
+
+gboolean
+node_id_eq(gconstpointer a, gconstpointer b)
+{
+	const node_id_t *p = a, *q = b;
+	return uint64_eq(p, q);
+}
+
+const gchar *
+node_id_to_string(node_id_t node_id)
+{
+	static gchar buf[UINT64_DEC_BUFLEN];
+	uint64_to_string_buf(node_id, buf, sizeof buf);
+	return buf; 
+}
+
+static node_id_t
+node_id_generate(void)
+{
+	static node_id_t node_id = NODE_ID_SELF;
+	return ++node_id;
+}
+
 /**
  * Network init.
  */
@@ -1207,7 +1235,7 @@ node_init(void)
 
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
-	nodes_by_id        = g_hash_table_new(NULL, NULL);
+	nodes_by_id        = g_hash_table_new(node_id_hash, node_id_eq);
 	nodes_by_guid      = g_hash_table_new(guid_hash, guid_eq);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
@@ -1467,7 +1495,7 @@ node_real_remove(gnutella_node_t *n)
 	sl_nodes = g_slist_remove(sl_nodes, n);
 	sl_nodes_without_broken_gtkg =
 		g_slist_remove(sl_nodes_without_broken_gtkg, n);
-	g_hash_table_remove(nodes_by_id, GUINT_TO_POINTER(n->id));
+	g_hash_table_remove(nodes_by_id, &n->id);
     node_drop_handle(n->node_handle);
 
 	/*
@@ -5496,7 +5524,7 @@ node_browse_create(void)
 
 	n = node_alloc();
     n->node_handle = node_request_handle(n);
-    n->id = node_id++;
+    n->id = node_id_generate();
 	n->proto_major = 0;
 	n->proto_minor = 6;
 	n->peermode = NODE_P_LEAF;
@@ -5560,24 +5588,16 @@ static gnutella_node_t *
 node_udp_create(enum net_type net)
 {
 	gnutella_node_t *n;
-	gboolean is_ipv4 = FALSE;
+	host_addr_t addr;
 
-	switch (net) {
-	case NET_TYPE_IPV4:
-		is_ipv4 = TRUE;
-		break;
-	case NET_TYPE_IPV6:
-		is_ipv4 = FALSE;
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
+	addr = listen_addr_by_net(net);
+	if (!is_host_addr(addr))
 		return NULL;
-	}
-	
+
 	n = node_alloc();
-	n->addr = is_ipv4 ? listen_addr() : listen_addr6();
+	n->addr = addr;
     n->node_handle = node_request_handle(n);
-    n->id = node_id++;
+    n->id = node_id_generate();
 	n->port = listen_port;
 	n->proto_major = 0;
 	n->proto_minor = 6;
@@ -5589,7 +5609,8 @@ node_udp_create(enum net_type net)
 		gchar buf[256];
 
 		concat_strings(buf, sizeof buf,
-			_("Pseudo UDP node"), " ", is_ipv4 ? "(IPv4)" : "(IPv6)",
+			_("Pseudo UDP node"), " ",
+			NET_TYPE_IPV4 == host_addr_net(n->addr) ? "(IPv4)" : "(IPv6)",
 			(void *) 0);
 		n->vendor = atom_str_get(buf);
 	}
@@ -5784,7 +5805,7 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
 {
 	gnutella_node_t *n;
 
-	if (udp_active()) {
+	if (port != 0 && udp_active()) {
 		n = NULL;
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
@@ -5972,7 +5993,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
 	n = node_alloc();
     n->node_handle = node_request_handle(n);
-    n->id = node_id++;
+    n->id = node_id_generate();
 	n->addr = addr;
 	n->port = port;
 	n->proto_major = major;
@@ -6057,7 +6078,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
-	g_hash_table_insert(nodes_by_id, GUINT_TO_POINTER(n->id), n);
+	g_hash_table_insert(nodes_by_id, &n->id, n);
 
 	if (n->status != GTA_NODE_REMOVING)
         node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
@@ -8793,22 +8814,26 @@ node_all_but_broken_gtkg(void)
  * @return writable node given its ID, or NULL if we can't reach that node.
  */
 gnutella_node_t *
-node_active_by_id(guint32 id)
+node_active_by_id(node_id_t node_id)
 {
 	gnutella_node_t *n;
 
-	n = g_hash_table_lookup(nodes_by_id, GUINT_TO_POINTER(id));
-	if (n == NULL || !NODE_IS_WRITABLE(n))
-		return NULL;
+	g_return_val_if_fail(NODE_ID_SELF != node_id, NULL);
 
-	return n;
+	n = g_hash_table_lookup(nodes_by_id, &node_id);
+	if (n) {
+		node_check(n);
+		return NODE_IS_WRITABLE(n) ? n : NULL;
+	} else {
+		return NULL;
+	}
 }
 
 /**
  * Set leaf-guidance support indication from give node ID.
  */
 void
-node_set_leaf_guidance(guint32 id, gboolean supported)
+node_set_leaf_guidance(node_id_t id, gboolean supported)
 {
 	gnutella_node_t *n;
 

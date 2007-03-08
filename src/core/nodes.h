@@ -91,6 +91,8 @@ struct node_rxfc_mon {
 #define PING_REG_THROTTLE		3		/**< seconds, regular peer */
 #define PING_LEAF_THROTTLE		60		/**< seconds, peer is leaf node */
 
+typedef guint64 node_id_t;
+
 typedef struct gnutella_node {
 	node_magic_t magic;			/**< Magic value for consistency checks */
     gnet_node_t node_handle;    /**< Handle of this node */
@@ -200,7 +202,7 @@ typedef struct gnutella_node {
 	 *		--RAM, 02/02/2002
 	 */
 
-	guint32 id;					/**< Unique internal ID */
+	node_id_t id;				/**< Unique internal ID */
 	guint ping_throttle;		/**< Period for accepting new pings (secs) */
 	time_t ping_accept;			/**< Time after which we accept new pings */
 	time_t next_ping;			/**< When to send a ping, for "OLD" clients */
@@ -485,7 +487,7 @@ enum {
 #define GNUTELLA_HELLO "GNUTELLA CONNECT/"
 #define GNUTELLA_HELLO_LENGTH	(sizeof(GNUTELLA_HELLO) - 1)
 
-#define NODE_ID_LOCAL	0x0U		/**< ID for "local node" (ourselves) */
+#define NODE_ID_SELF	((node_id_t) 0)	/**< ID for "our node" (ourselves) */
 
 extern const gchar *start_rfc822_date;
 
@@ -575,8 +577,12 @@ void node_http_proxies_add(
 GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
 const GSList *node_all_but_broken_gtkg(void);
-gnutella_node_t *node_active_by_id(guint32 id);
-void node_set_leaf_guidance(guint32 id, gboolean supported);
+
+guint node_id_hash(gconstpointer key);
+gboolean node_id_eq(gconstpointer a, gconstpointer b);
+const gchar *node_id_to_string(node_id_t node_id);
+gnutella_node_t *node_active_by_id(node_id_t id);
+void node_set_leaf_guidance(node_id_t id, gboolean supported);
 
 void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
