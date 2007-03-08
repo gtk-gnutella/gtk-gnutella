@@ -169,5 +169,8 @@ GSList *gm_hash_table_all_keys(GHashTable *ht);
 		} \
 	} while(0)
 
+#define GM_SLIST_FOREACH(slist, iter) \
+	for ((iter) = (slist); NULL != (iter); (iter) = g_slist_next(iter))
+
 /* vi: set ts=4 sw=4: */
 #endif	/* _glib_missing_h_ */
