@@ -117,10 +117,15 @@ struct next_up {
 	gint queue_pending;		/**< -1 = unknown, otherwise cached queue size */
 };
 
+typedef enum {
+	DQUERY_MAGIC = 0x53608af3
+} dquery_magic_t;
+
 /**
  * The dynamic query.
  */
 typedef struct dquery {
+	dquery_magic_t magic;
 	node_id_t node_id;		/**< ID of the node that originated the query */
 	guint32 qid;			/**< Unique query ID, to detect ghosts */
 	guint32 flags;			/**< Operational flags */
@@ -235,6 +240,13 @@ static guint32 dyn_query_id = 0;
 
 static void dq_send_next(dquery_t *dq);
 static void dq_terminate(dquery_t *dq);
+
+static void
+dquery_check(dquery_t *dq)
+{
+	g_assert(dq);
+	g_assert(DQUERY_MAGIC == dq->magic);
+}
 
 /**
  * Compute the hosts[] table so that:
@@ -363,9 +375,11 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
 static void
 free_queried_item(gpointer key, gpointer value, gpointer unused_udata)
 {
+	node_id_t *node_id = key;
+	
 	(void) unused_udata;
 	g_assert(key == value);
-	atom_uint64_free(key);
+	atom_uint64_free(node_id);
 }
 
 /**
@@ -753,7 +767,7 @@ dq_free(dquery_t *dq)
 	gpointer key;
 	gpointer value;
 
-	g_assert(dq != NULL);
+	dquery_check(dq);
 	g_assert(g_hash_table_lookup(dqueries, dq));
 
 	if (dq_debug > 19)
@@ -878,6 +892,7 @@ dq_free(dquery_t *dq)
 
 	pmsg_free(dq->mb);			/* Now that we used the MUID */
 
+	dq->magic = 0;
 	wfree(dq, sizeof(*dq));
 }
 
@@ -902,20 +917,20 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 
 	if (dq->flags & DQ_F_LINGER) {
 		dq_free(dq);
-		return;
+	} else {
+
+		/*
+		 * Put query in lingering mode, to be able to monitor extra results
+		 * that come back after we stopped querying.
+		 */
+
+		if (dq->results_ev) {
+			cq_cancel(callout_queue, dq->results_ev);
+			dq->results_ev = NULL;
+		}
+
+		dq_terminate(dq);
 	}
-
-	/*
-	 * Put query in lingering mode, to be able to monitor extra results
-	 * that come back after we stopped querying.
-	 */
-
-	if (dq->results_ev) {
-		cq_cancel(callout_queue, dq->results_ev);
-		dq->results_ev = NULL;
-	}
-
-	dq_terminate(dq);
 }
 
 /**
@@ -1061,8 +1076,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 		g_message("DQ[%d] status reply timeout set to %d s", dq->qid,
 			timeout / 1000);
 
-	dq->results_ev = cq_insert(callout_queue, timeout,
-		dq_results_expired, dq);
+	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
 }
 
 /**
@@ -1493,8 +1507,7 @@ dq_common_init(dquery_t *dq)
 	 * DQ_MAX_LIFETIME ms, whatever happens.
 	 */
 
-	dq->expire_ev = cq_insert(callout_queue, DQ_MAX_LIFETIME,
-		dq_expired, dq);
+	dq->expire_ev = cq_insert(callout_queue, DQ_MAX_LIFETIME, dq_expired, dq);
 
 	/*
 	 * Record the query as being "alive".
@@ -1598,6 +1611,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
 	dq = walloc0(sizeof(*dq));
+	dq->magic = DQUERY_MAGIC;
 
 	req_speed = peek_le16(n->data);
 	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
@@ -1746,6 +1760,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	 */
 
 	dq = walloc0(sizeof(*dq));
+	dq->magic = DQUERY_MAGIC;
 
 	dq->node_id = NODE_ID_SELF;
 	dq->mb = mb;
@@ -2044,9 +2059,10 @@ dq_got_query_status(const gchar *muid, node_id_t node_id, guint16 kept)
 		dq->flags |= DQ_F_USR_CANCELLED;
 
 		if (!(dq->flags & DQ_F_LINGER)) {
-			if (dq->results_ev)
+			if (dq->results_ev) {
 				cq_cancel(callout_queue, dq->results_ev);
-			dq->results_ev = NULL;
+				dq->results_ev = NULL;
+			}
 			dq_terminate(dq);
 		}
 		return;
@@ -2084,18 +2100,9 @@ dq_cancel_local(gpointer key, gpointer unused_value, gpointer udata)
 	dquery_t *dq = key;
 
 	(void) unused_value;
-	if (dq->node_id != NODE_ID_SELF || dq->sh != ctx->handle)
-		return;
-
-	/*
-	 * Don't remove `dq' from the table over which we're iterating,
-	 * just remember it in the context for later removal.
-	 */
-
-	dq->flags |= DQ_F_EXITING;		/* So nothing is removed from the table */
-	dq_free(dq);
-
-	ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
+	if (NODE_ID_SELF == dq->node_id && dq->sh == ctx->handle) {
+		ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
+	}
 }
 
 /**
@@ -2104,20 +2111,18 @@ dq_cancel_local(gpointer key, gpointer unused_value, gpointer udata)
 void
 dq_search_closed(gnet_search_t handle)
 {
-	struct cancel_context *ctx;
+	struct cancel_context ctx;
 	GSList *sl;
 
-	ctx = walloc(sizeof(*ctx));
-	ctx->handle = handle;
-	ctx->cancelled = NULL;
+	ctx.handle = handle;
+	ctx.cancelled = NULL;
 
-	g_hash_table_foreach(dqueries, dq_cancel_local, ctx);
+	g_hash_table_foreach(dqueries, dq_cancel_local, &ctx);
 
-	for (sl = ctx->cancelled; sl; sl = g_slist_next(sl))
-		g_hash_table_remove(dqueries, sl->data);
-
-	g_slist_free(ctx->cancelled);
-	wfree(ctx, sizeof(*ctx));
+	for (sl = ctx.cancelled; sl; sl = g_slist_next(sl)) {
+		dq_free(sl->data);
+	}
+	g_slist_free(ctx.cancelled);
 }
 
 /**
