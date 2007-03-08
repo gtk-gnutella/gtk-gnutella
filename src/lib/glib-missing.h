@@ -95,6 +95,8 @@ gm_hash_table_insert_const(GHashTable *ht,
 	g_hash_table_insert(ht, (gpointer) key, (gpointer) value);
 }
 
+GSList *gm_hash_table_all_keys(GHashTable *ht);
+
 /*
  * The G_*LIST_FOREACH_* macros are supposed to be used with ``func'' being
  * a function declared ``static inline'' whereas the protoype MUST match

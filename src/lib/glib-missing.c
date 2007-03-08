@@ -685,4 +685,22 @@ gm_slist_is_looping(const GSList *slist)
 	return NULL != p;
 }
 
+static void
+gm_hash_table_all_keys_helper(gpointer key,
+	gpointer unused_value, gpointer udata)
+{
+	GSList **sl_ptr = udata;
+	
+	(void) unused_value;
+	*sl_ptr = g_slist_prepend(*sl_ptr, key);
+}
+
+GSList *
+gm_hash_table_all_keys(GHashTable *ht)
+{
+	GSList *keys = NULL;
+	g_hash_table_foreach(ht, gm_hash_table_all_keys_helper, &keys);
+	return keys;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
