@@ -372,16 +372,6 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
 	return ttl;
 }
 
-static void
-free_queried_item(gpointer key, gpointer value, gpointer unused_udata)
-{
-	node_id_t *node_id = key;
-	
-	(void) unused_udata;
-	g_assert(key == value);
-	atom_uint64_free(node_id);
-}
-
 /**
  * Create a pmsg_info structure, giving meta-information about the message
  * we're about to send.
@@ -763,9 +753,6 @@ static void
 dq_free(dquery_t *dq)
 {
 	gint i;
-	gboolean found;
-	gpointer key;
-	gpointer value;
 
 	dquery_check(dq);
 	g_assert(g_hash_table_lookup(dqueries, dq));
@@ -815,8 +802,17 @@ dq_free(dquery_t *dq)
 			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_RESULTS, 1);
 	}
 
-	g_hash_table_foreach(dq->queried, free_queried_item, NULL);
-	g_hash_table_destroy(dq->queried);
+	{
+		GSList *keys, *iter;
+		
+		keys = gm_hash_table_all_keys(dq->queried);
+		g_hash_table_destroy(dq->queried);
+		for (iter = keys; NULL != iter; iter = g_slist_next(iter)) {
+			node_id_t *node_id = iter->data;
+			atom_uint64_free(node_id);
+		}
+		g_slist_free(keys);
+	}
 
 	qhvec_free(dq->qhv);
 
@@ -847,6 +843,8 @@ dq_free(dquery_t *dq)
 		dq->node_id != NODE_ID_SELF &&
 		!(dq->flags & DQ_F_ID_CLEANING)
 	) {
+		gpointer key, value;
+		gboolean found;
 		GSList *list;
 
 		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
@@ -867,14 +865,18 @@ dq_free(dquery_t *dq)
 	/*
 	 * Remove query's MUID.
 	 */
+	{
+		gpointer key, value;
+		gboolean found;
 
-	found = g_hash_table_lookup_extended(by_muid,
-				gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
+		found = g_hash_table_lookup_extended(by_muid,
+					gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
 
-	if (found) {			/* Could be missing if a MUID conflict occurred */
-		if (value == dq) {	/* Make sure it's for us in case of conflicts */
-			g_hash_table_remove(by_muid, key);
-			atom_guid_free(key);
+		if (found) {		/* Could be missing if a MUID conflict occurred */
+			if (value == dq) {	/* Make sure it's for us in case of conflicts */
+				g_hash_table_remove(by_muid, key);
+				atom_guid_free(key);
+			}
 		}
 	}
 
@@ -883,6 +885,9 @@ dq_free(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
+		gpointer key, value;
+		gboolean found;
+
 		found = g_hash_table_lookup_extended(
 			by_leaf_muid, dq->lmuid, &key, &value);
 		if (found && value == dq)
@@ -1520,9 +1525,8 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (dq->node_id != NODE_ID_SELF) {
+		gpointer key, value;
 		gboolean found;
-		gpointer key;
-		gpointer value;
 		GSList *list;
 
 		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
@@ -1789,13 +1793,10 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 void
 dq_node_removed(node_id_t node_id)
 {
-	gboolean found;
-	gpointer key;
 	gpointer value;
 	GSList *sl;
 
-	found = g_hash_table_lookup_extended(by_node_id, &node_id, &key, &value);
-	if (!found)
+	if (!g_hash_table_lookup_extended(by_node_id, &node_id, NULL, &value))
 		return;		/* No dynamic query for this node */
 
 	for (sl = value; sl; sl = g_slist_next(sl)) {
@@ -1811,7 +1812,7 @@ dq_node_removed(node_id_t node_id)
 		dq_free(dq);
 	}
 
-	g_hash_table_remove(by_node_id, key);
+	g_hash_table_remove(by_node_id, &node_id);
 	g_slist_free(value);
 }
 
