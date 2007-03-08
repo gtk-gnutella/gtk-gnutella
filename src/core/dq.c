@@ -873,7 +873,10 @@ dq_free(dquery_t *dq)
 				G_STRLOC, node_id_to_string(dq->node_id));
 			dq->flags |= DQ_F_REMOVED; 
 		} else if (list != value) {
-			g_hash_table_replace(by_node_id, &dq->node_id, list);
+			dquery_t *key = list->data;
+
+			dquery_check(key);
+			g_hash_table_replace(by_node_id, &key->node_id, list);
 			g_assert(g_hash_table_lookup(by_node_id, &dq->node_id) == list);
 			g_message("%s: Added %s",
 				G_STRLOC, node_id_to_string(dq->node_id));
@@ -916,7 +919,13 @@ dq_free(dquery_t *dq)
 	pmsg_free(dq->mb);			/* Now that we used the MUID */
 	dq->mb = NULL;
 
-	g_assert(!g_hash_table_lookup_extended(by_node_id, &dq->node_id, 0, 0));
+	{
+		gpointer key;
+		
+		if (g_hash_table_lookup_extended(by_node_id, &dq->node_id, &key, 0)) {
+			g_assert(&dq->node_id != key);
+		}
+	}
 	dq->magic = 0;
 	wfree(dq, sizeof(*dq));
 }
