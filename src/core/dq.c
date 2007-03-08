@@ -570,9 +570,13 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 	const GSList *sl;
 	gint i = 0;
 
-	for (sl = node_all_nodes(); i < ncount && sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = sl->data;
+	GM_SLIST_FOREACH(node_all_nodes(), sl) {
+		struct gnutella_node *n;
 
+		if (i >= ncount)
+			break;
+
+		n = sl->data;
 		if (!NODE_IS_ULTRA(n))
 			continue;
 
@@ -641,11 +645,14 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 	 * Select candidate ultra peers for sending query.
 	 */
 
-	for (sl = node_all_nodes(); i < ncount && sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = sl->data;
-		struct next_up *nup;
-		struct next_up *old_nup;
+	GM_SLIST_FOREACH(node_all_nodes(), sl) {
+		struct next_up *nup, *old_nup;
+		struct gnutella_node *n;
 
+		if (i >= ncount)
+			break;
+
+		n = sl->data;
 		if (!NODE_IS_ULTRA(n) || !NODE_IS_WRITABLE(n))
 			continue;
 
@@ -794,7 +801,7 @@ dq_free(dquery_t *dq)
 	if (dq->linger_results) {
 		if (dq->results >= dq->max_results)
 			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_EXTRA, 1);
-		else if (dq->results + dq->linger_results >= dq->max_results)
+		else if (dq->linger_results >= dq->max_results - dq->results)
 			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_COMPLETED, 1);
 		else
 			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_RESULTS, 1);
@@ -805,7 +812,7 @@ dq_free(dquery_t *dq)
 		
 		keys = gm_hash_table_all_keys(dq->queried);
 		g_hash_table_destroy(dq->queried);
-		for (iter = keys; NULL != iter; iter = g_slist_next(iter)) {
+		GM_SLIST_FOREACH(keys, iter) {
 			node_id_t *node_id = iter->data;
 			atom_uint64_free(node_id);
 		}
@@ -820,8 +827,10 @@ dq_free(dquery_t *dq)
 	}
 
 	for (i = 0; i < DQ_MAX_TTL; i++) {
-		if (dq->by_ttl[i] != NULL)
+		if (dq->by_ttl[i] != NULL) {
 			pmsg_free(dq->by_ttl[i]);
+			dq->by_ttl[i] = NULL;
+		}
 	}
 
 	if (!(dq->flags & DQ_F_EXITING))
@@ -859,11 +868,13 @@ dq_free(dquery_t *dq)
 		if (list == NULL) {
 			/* Last item removed, get rid of the entry */
 			g_hash_table_remove(by_node_id, &dq->node_id);
+			g_assert(!g_hash_table_lookup_extended(by_node_id, &dq->node_id, 0, 0));
 			g_message("%s: Removed %s",
 				G_STRLOC, node_id_to_string(dq->node_id));
 			dq->flags |= DQ_F_REMOVED; 
 		} else if (list != value) {
-			g_hash_table_insert(by_node_id, &dq->node_id, list);
+			g_hash_table_replace(by_node_id, &dq->node_id, list);
+			g_assert(g_hash_table_lookup(by_node_id, &dq->node_id) == list);
 			g_message("%s: Added %s",
 				G_STRLOC, node_id_to_string(dq->node_id));
 		}
@@ -903,7 +914,9 @@ dq_free(dquery_t *dq)
 	}
 
 	pmsg_free(dq->mb);			/* Now that we used the MUID */
+	dq->mb = NULL;
 
+	g_assert(!g_hash_table_lookup_extended(by_node_id, &dq->node_id, 0, 0));
 	dq->magic = 0;
 	wfree(dq, sizeof(*dq));
 }
@@ -929,16 +942,16 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 
 	if (dq->flags & DQ_F_LINGER) {
 		dq_free(dq);
-	} else {
-
-		/*
-		 * Put query in lingering mode, to be able to monitor extra results
-		 * that come back after we stopped querying.
-		 */
-
-		cq_cancel(callout_queue, &dq->results_ev);
-		dq_terminate(dq);
+		return;
 	}
+
+	/*
+	 * Put query in lingering mode, to be able to monitor extra results
+	 * that come back after we stopped querying.
+	 */
+
+	cq_cancel(callout_queue, &dq->results_ev);
+	dq_terminate(dq);
 }
 
 /**
@@ -1541,7 +1554,8 @@ dq_common_init(dquery_t *dq)
 			g_assert(list == value);		/* Head not changed */
 		} else {
 			list = g_slist_prepend(NULL, dq);
-			g_hash_table_insert(by_node_id, &dq->node_id, list);
+			g_hash_table_replace(by_node_id, &dq->node_id, list);
+			g_assert(g_hash_table_lookup(by_node_id, &dq->node_id) == list);
 			g_message("%s: Added %s",
 				G_STRLOC, node_id_to_string(dq->node_id));
 		}
@@ -1803,21 +1817,24 @@ dq_node_removed(node_id_t node_id)
 	if (!g_hash_table_lookup_extended(by_node_id, &node_id, NULL, &value))
 		return;		/* No dynamic query for this node */
 
-	for (sl = value; sl; sl = g_slist_next(sl)) {
+	g_hash_table_remove(by_node_id, &node_id);
+	g_message("%s: Removed %s", G_STRLOC, node_id_to_string(node_id));
+	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, 0, 0));
+
+	GM_SLIST_FOREACH(value, sl) {
 		dquery_t *dq = sl->data;
 
 		if (dq_debug)
 			g_message("DQ[%d] terminated by node #%s removal (queried %u UP%s)",
 				dq->qid, node_id_to_string(dq->node_id),
 				dq->up_sent, dq->up_sent == 1 ? "" : "s");
-
+		
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
 		dq_free(dq);
 	}
 
-	g_hash_table_remove(by_node_id, &node_id);
-	g_message("%s: Removed %s", G_STRLOC, node_id_to_string(node_id));
+	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, 0, 0));
 	g_slist_free(value);
 }
 
@@ -2121,7 +2138,7 @@ dq_search_closed(gnet_search_t handle)
 
 	g_hash_table_foreach(dqueries, dq_cancel_local, &ctx);
 
-	for (sl = ctx.cancelled; sl; sl = g_slist_next(sl)) {
+	GM_SLIST_FOREACH(ctx.cancelled, sl) {
 		dq_free(sl->data);
 	}
 	g_slist_free(ctx.cancelled);
@@ -2218,15 +2235,14 @@ free_query(gpointer key, gpointer unused_value, gpointer unused_udata)
 static void
 free_query_list(gpointer key, gpointer value, gpointer unused_udata)
 {
-	GSList *list = value;
+	GSList *sl, *list = value;
 	gint count = g_slist_length(list);
-	GSList *sl;
 
 	(void) unused_udata;
 	g_warning("remained %d un-freed dynamic quer%s for node #%u",
 		count, count == 1 ? "y" : "ies", GPOINTER_TO_UINT(key));
 
-	for (sl = list; sl; sl = g_slist_next(sl)) {
+	GM_SLIST_FOREACH(list, sl) {
 		dquery_t *dq = sl->data;
 
 		/* Don't remove query from the table we're traversing in dq_free() */
