@@ -142,7 +142,7 @@ struct mesh_info_key {
 
 struct mesh_info_val {
 	guint32 stamp;					/**< When we last sent the mesh */
-	gpointer cq_ev;					/**< Scheduled cleanup callout event */
+	cevent_t *cq_ev;				/**< Scheduled cleanup callout event */
 };
 
 /* Keep mesh info about uploaders for that long (unit: ms) */
@@ -1440,9 +1440,7 @@ mi_val_free(struct mesh_info_val *miv)
 {
 	g_assert(miv);
 
-	if (miv->cq_ev)
-		cq_cancel(callout_queue, miv->cq_ev);
-
+	cq_cancel(callout_queue, &miv->cq_ev);
 	wfree(miv, sizeof(*miv));
 }
 

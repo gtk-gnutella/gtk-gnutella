@@ -79,8 +79,8 @@ typedef enum {
 struct oob_results {
 	oob_results_magic_t	magic;
 	gint refcount;
-	gpointer ev_expire;		/**< Global expiration event */
-	gpointer ev_timeout;	/**< Reply waiting timeout */
+	cevent_t *ev_expire;	/**< Global expiration event */
+	cevent_t *ev_timeout;	/**< Reply waiting timeout */
 	const gchar *muid;		/**< (atom) MUID of the query that generated hits */
 	GSList *files;			/**< List of shared_file_t */
 	gnet_host_t dest;		/**< The host to which we must deliver */
@@ -108,10 +108,10 @@ static GHashTable *servent_by_host = NULL;
  * A servent entry, used as values in the `servent_by_host' table.
  */
 struct gservent {
-	gpointer ev_service;	/**< Callout event for servicing FIFO */
-	gnet_host_t *host;		/**< The servent host (also used as key for table) */
-	fifo_t *fifo;			/**< The servent's FIFO, holding pmsg_t items */
-	gboolean can_deflate;	/**< Whether servent supports UDP compression */
+	cevent_t *ev_service; /**< Callout event for servicing FIFO */
+	gnet_host_t *host;	  /**< The servent host (also used as key for table) */
+	fifo_t *fifo;		  /**< The servent's FIFO, holding pmsg_t items */
+	gboolean can_deflate; /**< Whether servent supports UDP compression */
 };
 
 /*
@@ -190,14 +190,12 @@ results_free_remove(struct oob_results *r)
 	oob_results_check(r);
 	
 	if (r->ev_expire) {
-		cq_cancel(callout_queue, r->ev_expire);
-		r->ev_expire = NULL;
+		cq_cancel(callout_queue, &r->ev_expire);
 		g_assert(r->refcount > 0);
 		r->refcount--;
 	}
 	if (r->ev_timeout) {
-		cq_cancel(callout_queue, r->ev_timeout);
-		r->ev_timeout = NULL;
+		cq_cancel(callout_queue, &r->ev_timeout);
 		g_assert(r->refcount > 0);
 		r->refcount--;
 	}
@@ -389,10 +387,7 @@ free_pmsg(gpointer item, gpointer unused_udata)
 static void
 servent_free(struct gservent *s)
 {
-	if (s->ev_service) {
-		cq_cancel(callout_queue, s->ev_service);
-		s->ev_service = NULL;
-	}
+	cq_cancel(callout_queue, &s->ev_service);
 	wfree(s->host, sizeof *s->host);
 	fifo_free_all(s->fifo, free_pmsg, NULL);
 	wfree(s, sizeof *s);

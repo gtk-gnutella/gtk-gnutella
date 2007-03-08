@@ -59,8 +59,8 @@ RCSID("$Id$")
 
 struct used_val {
 	host_addr_t addr;			/**< The IP address */
+	cevent_t *cq_ev;			/**< Scheduled cleanup event */
 	gint precision;				/**< The precision used for the last update */
-	gpointer cq_ev;				/**< Scheduled cleanup event */
 };
 
 static GHashTable *used;		/**< Records the IP address used */
@@ -97,9 +97,7 @@ val_free(struct used_val *v)
 	g_assert(v);
 	g_assert(is_host_addr(v->addr));
 
-	if (v->cq_ev)
-		cq_cancel(callout_queue, v->cq_ev);
-
+	cq_cancel(callout_queue, &v->cq_ev);
 	wfree(v, sizeof *v);
 }
 

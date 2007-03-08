@@ -63,14 +63,14 @@ struct tsync {
 	tsync_magic_t magic; /**< Magic of this structure for consistency checks */
 	tm_t sent;			 /**< Time at which we sent the synchronization */
 	node_id_t node_id;	 /**< Node to which we sent the request */
-	gpointer expire_ev;	 /**< Expiration callout queue callback */
+	cevent_t *expire_ev; /**< Expiration callout queue callback */
 	gboolean udp;		 /**< Whether request was sent using UDP */
 };
 
 /*
  * Table recording the "tsync" structures, indexed by sent time.
  */
-static GHashTable *tsync_by_time = NULL;	/**< tm_t -> tsync */
+static GHashTable *tsync_by_time;	/**< tm_t -> tsync */
 
 /**
  * Free a tsync structure.
@@ -81,9 +81,7 @@ tsync_free(struct tsync *ts)
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
 
-	if (ts->expire_ev)
-		cq_cancel(callout_queue, ts->expire_ev);
-
+	cq_cancel(callout_queue, &ts->expire_ev);
 	ts->magic = 0;
 	wfree(ts, sizeof(*ts));
 }
@@ -150,8 +148,7 @@ tsync_send(struct gnutella_node *n, node_id_t node_id)
 	 * the next TSYNC_EXPIRE_MS millisecs.
 	 */
 
-	ts->expire_ev = cq_insert(callout_queue, TSYNC_EXPIRE_MS,
-		tsync_expire, ts);
+	ts->expire_ev = cq_insert(callout_queue, TSYNC_EXPIRE_MS, tsync_expire, ts);
 
 	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
 

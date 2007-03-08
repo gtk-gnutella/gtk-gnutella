@@ -302,11 +302,7 @@ mq_free(mqueue_t *q)
 	if (q->qlink)
 		qlink_free(q);
 
-	if (q->swift_ev) {
-		cq_cancel(callout_queue, q->swift_ev);
-		q->swift_ev = NULL;
-	}
-
+	cq_cancel(callout_queue, &q->swift_ev);
 	g_list_free(q->qhead);
 
 	while ((mb = slist_shift(q->qwait)))
@@ -575,11 +571,7 @@ mq_leave_flowc(mqueue_t *q)
 	if (q->qlink)
 		qlink_free(q);
 
-	if (q->swift_ev) {
-		cq_cancel(callout_queue, q->swift_ev);
-		q->swift_ev = NULL;
-	}
-
+	cq_cancel(callout_queue, &q->swift_ev);
 	node_tx_leave_flowc(q->node);	/* Signal end flow control */
 }
 

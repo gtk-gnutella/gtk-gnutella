@@ -54,7 +54,7 @@ struct rpc_cb {
 	host_addr_t addr;			/**< The host from which we expect a reply */
 	dht_rpc_cb_t cb;			/**< Callback routine to invoke */
 	gpointer arg;				/**< Additional opaque argument */
-	gpointer timeout;			/**< Callout queue timeout event */
+	cevent_t *timeout;			/**< Callout queue timeout event */
 	enum dht_rpc_op op;			/**< Operation type */
 };
 
@@ -100,12 +100,7 @@ rpc_cb_free(struct rpc_cb *rcb)
 {
 	atom_guid_free((gchar *) rcb->guid);
 	kuid_atom_free(rcb->kuid);
-
-	if (rcb->timeout != NULL) {
-		cq_cancel(callout_queue, rcb->timeout);
-		rcb->timeout = NULL;
-	}
-
+	cq_cancel(callout_queue, &rcb->timeout);
 	wfree(rcb, sizeof(*rcb));
 }
 

@@ -60,8 +60,8 @@ struct monitored {
 	gpointer udata;			/**< User supplied data to hand-out to callback */
 };
 
-static gpointer monitor_ev = NULL;		/**< Monitoring event */
-static GHashTable *monitored = NULL;	/**< filename -> struct monitored */
+static cevent_t *monitor_ev;		/**< Monitoring event */
+static GHashTable *monitored;	/**< filename -> struct monitored */
 
 /**
  * Compute the modified time of the file on disk.
@@ -235,7 +235,7 @@ watcher_close(void)
 	g_hash_table_foreach(monitored, free_monitored_kv, NULL);
 	g_hash_table_destroy(monitored);
 
-	cq_cancel(callout_queue, monitor_ev);
+	cq_cancel(callout_queue, &monitor_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

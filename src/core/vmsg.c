@@ -1622,7 +1622,7 @@ static const size_t		  HEAD_PING_MAX 		= 1024;	/**< amount to track */
 static const gint 		  HEAD_PING_PERIODIC_MS = 5000;	/**< milliseconds */
 
 static hash_list_t *head_pings;	/**< Tracks send/forwarded HEAD Pings */
-static gpointer head_ping_ev;	/**< Monitoring event */
+static cevent_t *head_ping_ev;	/**< Monitoring event */
 
 static inline void
 head_ping_source_free(struct head_ping_source *source)
@@ -2444,8 +2444,7 @@ vmsg_close(void)
 {
 	head_ping_expire(TRUE);
 	hash_list_free(&head_pings);
-	cq_cancel(callout_queue, head_ping_ev);
-	head_ping_ev = NULL;
+	cq_cancel(callout_queue, &head_ping_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

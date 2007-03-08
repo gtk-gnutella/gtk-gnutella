@@ -89,7 +89,7 @@ struct attr {
 	size_t unflushed;			/**< Amount of bytes written since last flush */
 	gint flags;					/**< Operating flags */
 	cqueue_t *cq;				/**< The callout queue to use for Nagle */
-	gpointer tm_ev;				/**< The timer event */
+	cevent_t *tm_ev;			/**< The timer event */
 	const struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
 	gpointer closed_arg;		/**< Argument for closing routine */
@@ -208,9 +208,7 @@ deflate_nagle_stop(txdrv_t *tx)
 	g_assert(attr->flags & DF_NAGLE);
 	g_assert(NULL != attr->tm_ev);
 
-	cq_cancel(attr->cq, attr->tm_ev);
-
-	attr->tm_ev = NULL;
+	cq_cancel(attr->cq, &attr->tm_ev);
 	attr->flags &= ~DF_NAGLE;
 }
 
@@ -797,10 +795,7 @@ tx_deflate_destroy(txdrv_t *tx)
 			gnet_host_to_string(&tx->host), zlib_strerror(ret));
 
 	wfree(attr->outz, sizeof *attr->outz);
-
-	if (attr->tm_ev)
-		cq_cancel(attr->cq, attr->tm_ev);
-
+	cq_cancel(attr->cq, &attr->tm_ev);
 	wfree(attr, sizeof *attr);
 }
 

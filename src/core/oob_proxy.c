@@ -71,7 +71,7 @@ struct oob_proxy_rec {
 	const gchar *leaf_muid;		/**< Original MUID, set by leaf (atom) */
 	const gchar *proxied_muid;	/**< Proxied MUID (atom) */
 	node_id_t node_id;			/**< The ID of the node leaf */
-	gpointer expire_ev;			/**< Expire event, to clear this record */
+	cevent_t *expire_ev;		/**< Expire event, to clear this record */
 };
 
 /**
@@ -122,12 +122,9 @@ oob_proxy_rec_make(
 static void
 oob_proxy_rec_free(struct oob_proxy_rec *opr)
 {
-	if (opr->expire_ev)
-		cq_cancel(callout_queue, opr->expire_ev);
-
-	atom_guid_free(opr->leaf_muid);
-	atom_guid_free(opr->proxied_muid);
-
+	cq_cancel(callout_queue, &opr->expire_ev);
+	atom_guid_free_null(&opr->leaf_muid);
+	atom_guid_free_null(&opr->proxied_muid);
 	wfree(opr, sizeof(*opr));
 }
 

@@ -69,7 +69,7 @@ struct aging {
 struct aging_value {
 	gpointer value;			/**< The value they inserted in the table */
 	gpointer key;			/**< The associated key object */
-	gpointer cq_ev;			/**< Scheduled cleanup event */
+	cevent_t *cq_ev;		/**< Scheduled cleanup event */
 	struct aging *ag;		/**< Holding container */
 	gint ttl;				/**< Time to live */
 	time_t last_insert;		/**< Last insertion time */
@@ -122,8 +122,7 @@ aging_free_kv(gpointer key, gpointer value, gpointer udata)
 	if (ag->kfree != NULL)
 		(*ag->kfree)(key, ag->kdata);
 
-	if (aval->cq_ev)
-		cq_cancel(callout_queue, aval->cq_ev);
+	cq_cancel(callout_queue, &aval->cq_ev);
 
 	if (ag->vfree != NULL)
 		(*ag->vfree)(aval->value, ag->vdata);

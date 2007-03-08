@@ -64,7 +64,7 @@ RCSID("$Id$")
 #define NTP_MINSIZE		sizeof(struct ntp_msg)
 #define NTP_MAXSIZE		(NTP_MINSIZE + NTP_AUTHSIZE)
 
-static gpointer wait_ev = NULL;			/**< Callout queue waiting event */
+static cevent_t *wait_ev;			/**< Callout queue waiting event */
 
 /**
  * An NTP message, as described in RFC2030 (trailing auth-data ignored).
@@ -226,9 +226,7 @@ ntp_probe(void)
 	if (dbg)
 		printf("NTP sent probe to localhost\n");
 
-	if (wait_ev != NULL)
-		cq_cancel(callout_queue, wait_ev);
-
+	cq_cancel(callout_queue, &wait_ev);
 	wait_ev = cq_insert(callout_queue, NTP_WAIT_MS, ntp_no_reply, NULL);
 }
 
@@ -272,10 +270,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	 * Since we know NTP runs locally, disarm the timeout.
 	 */
 
-	if (wait_ev != NULL) {
-		cq_cancel(callout_queue, wait_ev);
-		wait_ev = NULL;
-	}
+	cq_cancel(callout_queue, &wait_ev);
 
 	gnet_prop_set_boolean_val(PROP_HOST_RUNS_NTP, TRUE);
 	gnet_prop_set_boolean_val(PROP_NTP_DETECTED, TRUE);
@@ -321,8 +316,7 @@ ntp_init(void)
 void
 ntp_close(void)
 {
-	if (wait_ev != NULL)
-		cq_cancel(callout_queue, wait_ev);
+	cq_cancel(callout_queue, &wait_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

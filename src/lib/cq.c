@@ -43,6 +43,57 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
+/**
+ * Callout queue event.
+ */
+struct cevent {
+	struct cevent *ce_bnext;	/**< Next item in hash bucket */
+	struct cevent *ce_bprev;	/**< Prev item in hash bucket */
+	cq_service_t ce_fn;			/**< Callback routine */
+	gpointer ce_arg;			/**< Argument to pass to said callback */
+	cq_time_t ce_time;			/**< Absolute trigger time (virtual cq time) */
+	guint ce_magic;				/**< Magic number */
+};
+
+/**
+ * @struct cqueue
+ *
+ * Callout queue descriptor.
+ *
+ * A callout queue is really a sorted linked list of events that are to
+ * happen in the near future, most recent coming first.
+ *
+ * Naturally, the insertion/deletion of items has to be relatively efficient.
+ * We don't want to go through all the items in the list to find the proper
+ * position for insertion.
+ *
+ * To do that, we maintain a parallel hash list of all the events, each event
+ * being inserted in the bucket i, where i is computed by abs_time % size,
+ * abs_time being the absolute time where the event is to be triggered
+ * and size being the size of the hash list. All the items under the bucket
+ * list are further sorted by increasing trigger time.
+ *
+ * To be completely generic, the callout queue "absolute time" is a mere
+ * unsigned long value. It can represent an amount of ms, or an amount of
+ * yet-to-come messages, or whatever. We don't care, and we don't want to care.
+ * The notion of "current time" is simply given by calling cq_clock() at
+ * regular intervals and giving it the "elasped time" since the last call.
+ */
+
+struct chash {
+	cevent_t *ch_head;			/**< Bucket list head */
+	cevent_t *ch_tail;			/**< Bucket list tail */
+};
+
+struct cqueue {
+	struct chash *cq_hash;		/**< Array of buckets for hash list */
+	cq_time_t cq_time;			/**< "current time" */
+	gint cq_ticks;				/**< Number of cq_clock() calls processed */
+	gint cq_items;				/**< Amount of recorded events */
+	gint cq_last_bucket;		/**< Last bucket slot we were at */
+	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
+};
+
 #define HASH_SIZE	1024			/**< Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
 #define EV_MAGIC	0xc0110172U		/**< Magic number for event marking */
@@ -249,7 +300,7 @@ ev_unlink(cqueue_t *cq, cevent_t *ev)
  *
  * @returns the handle, or NULL on error.
  */
-gpointer
+cevent_t *
 cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 {
 	cevent_t *ev;				/* Event to insert */
@@ -280,18 +331,21 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
  * the list before firing it off.
  */
 void
-cq_cancel(cqueue_t *cq, gpointer handle)
+cq_cancel(cqueue_t *cq, cevent_t **handle_ptr)
 {
-	cevent_t *ev = handle;
+	cevent_t *ev = *handle_ptr;
 
-	g_assert(valid_ptr(cq));
-	g_assert(valid_ptr(handle));
-	g_assert(ev->ce_magic == EV_MAGIC);
-	g_assert(cq->cq_items > 0);
+	if (ev) {
+		g_assert(valid_ptr(cq));
+		g_assert(valid_ptr(ev));
+		g_assert(ev->ce_magic == EV_MAGIC);
+		g_assert(cq->cq_items > 0);
 
-	ev_unlink(cq, ev);
-	ev->ce_magic = 0;			/* Prevent further use as a valid event */
-	wfree(ev, sizeof *ev);
+		ev_unlink(cq, ev);
+		ev->ce_magic = 0;			/* Prevent further use as a valid event */
+		wfree(ev, sizeof *ev);
+		*handle_ptr = NULL;
+	}
 }
 
 /**
@@ -300,7 +354,7 @@ cq_cancel(cqueue_t *cq, gpointer handle)
  * expired, i.e. that the event has not triggered yet.
  */
 void
-cq_resched(cqueue_t *cq, gpointer handle, gint delay)
+cq_resched(cqueue_t *cq, cevent_t *handle, gint delay)
 {
 	cevent_t *ev = handle;
 
@@ -345,7 +399,7 @@ cq_expire(cqueue_t *cq, cevent_t *ev)
 	g_assert(ev->ce_magic == EV_MAGIC);
 	g_assert(valid_ptr(cast_func_to_gpointer((func_ptr_t) fn)));
 
-	cq_cancel(cq, ev);			/* Remove event from queue before firing */
+	cq_cancel(cq, &ev);			/* Remove event from queue before firing */
 
 	/*
 	 * All the callout queue data structures were updated.
@@ -490,6 +544,12 @@ gdouble
 callout_queue_coverage(gint old_ticks)
 {
 	return (callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;
+}
+
+gint
+cq_ticks(cqueue_t *cq)
+{
+	return cq->cq_ticks;
 }
 
 /**

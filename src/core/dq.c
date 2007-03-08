@@ -149,8 +149,8 @@ typedef struct dquery {
 	guint32 kept_results;	/**< Results they say they kept after filtering */
 	guint32 result_timeout;	/**< The current timeout for getting results */
 	guint32 stat_timeouts;	/**< The amount of status request timeouts we had */
-	gpointer expire_ev;		/**< Callout queue global expiration event */
-	gpointer results_ev;	/**< Callout queue results expiration event */
+	cevent_t *expire_ev;	/**< Callout queue global expiration event */
+	cevent_t *results_ev;	/**< Callout queue results expiration event */
 	gpointer alive;			/**< Alive ping stats for computing timeouts */
 	time_t start;			/**< Time at which it started */
 	time_t stop;			/**< Time at which it was terminated */
@@ -168,7 +168,8 @@ enum {
 	DQ_F_GOT_GUIDANCE	= 1 << 4,	/**< Got some leaf guidance */
 	DQ_F_USR_CANCELLED	= 1 << 5,	/**< Explicitely cancelled by user */
 	DQ_F_ROUTING_HITS	= 1 << 6,	/**< We'll be routing all hits */
-	DQ_F_EXITING		= 1 << 7	/**< Final cleanup at exit time */
+	DQ_F_EXITING		= 1 << 7,	/**< Final cleanup at exit time */
+	DQ_F_REMOVED		= 1 << 8
 };
 
 /**
@@ -766,11 +767,8 @@ dq_free(dquery_t *dq)
 			node_id_to_string(dq->node_id), dq->ttl, dq->up_sent, dq->horizon,
 			dq->results, dq->linger_results);
 
-	if (dq->results_ev)
-		cq_cancel(callout_queue, dq->results_ev);
-
-	if (dq->expire_ev)
-		cq_cancel(callout_queue, dq->expire_ev);
+	cq_cancel(callout_queue, &dq->results_ev);
+	cq_cancel(callout_queue, &dq->expire_ev);
 
 	/*
 	 * Update statistics.
@@ -843,23 +841,32 @@ dq_free(dquery_t *dq)
 		dq->node_id != NODE_ID_SELF &&
 		!(dq->flags & DQ_F_ID_CLEANING)
 	) {
-		gpointer key, value;
+		gpointer value;
 		gboolean found;
 		GSList *list;
 
+		g_assert(0 == (DQ_F_REMOVED & dq->flags));
 		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
-					&key, &value);
+					NULL, &value);
 
-		g_assert(found);
+		if (!found) {
+			g_error("%s: Missing %s", G_STRLOC, node_id_to_string(dq->node_id));
+		}
 
 		list = value;
 		list = g_slist_remove(list, dq);
 
 		if (list == NULL) {
 			/* Last item removed, get rid of the entry */
-			g_hash_table_remove(by_node_id, key);
-		} else if (list != value)
-			g_hash_table_insert(by_node_id, key, list);
+			g_hash_table_remove(by_node_id, &dq->node_id);
+			g_message("%s: Removed %s",
+				G_STRLOC, node_id_to_string(dq->node_id));
+			dq->flags |= DQ_F_REMOVED; 
+		} else if (list != value) {
+			g_hash_table_insert(by_node_id, &dq->node_id, list);
+			g_message("%s: Added %s",
+				G_STRLOC, node_id_to_string(dq->node_id));
+		}
 	}
 
 	/*
@@ -929,11 +936,7 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 		 * that come back after we stopped querying.
 		 */
 
-		if (dq->results_ev) {
-			cq_cancel(callout_queue, dq->results_ev);
-			dq->results_ev = NULL;
-		}
-
+		cq_cancel(callout_queue, &dq->results_ev);
 		dq_terminate(dq);
 	}
 }
@@ -1525,12 +1528,12 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (dq->node_id != NODE_ID_SELF) {
-		gpointer key, value;
+		gpointer value;
 		gboolean found;
 		GSList *list;
 
 		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
-					&key, &value);
+					NULL, &value);
 
 		if (found) {
 			list = value;
@@ -1538,8 +1541,9 @@ dq_common_init(dquery_t *dq)
 			g_assert(list == value);		/* Head not changed */
 		} else {
 			list = g_slist_prepend(NULL, dq);
-			key = &dq->node_id;
-			g_hash_table_insert(by_node_id, key, list);
+			g_hash_table_insert(by_node_id, &dq->node_id, list);
+			g_message("%s: Added %s",
+				G_STRLOC, node_id_to_string(dq->node_id));
 		}
 	}
 
@@ -1813,6 +1817,7 @@ dq_node_removed(node_id_t node_id)
 	}
 
 	g_hash_table_remove(by_node_id, &node_id);
+	g_message("%s: Removed %s", G_STRLOC, node_id_to_string(node_id));
 	g_slist_free(value);
 }
 
@@ -2060,10 +2065,7 @@ dq_got_query_status(const gchar *muid, node_id_t node_id, guint16 kept)
 		dq->flags |= DQ_F_USR_CANCELLED;
 
 		if (!(dq->flags & DQ_F_LINGER)) {
-			if (dq->results_ev) {
-				cq_cancel(callout_queue, dq->results_ev);
-				dq->results_ev = NULL;
-			}
+			cq_cancel(callout_queue, &dq->results_ev);
 			dq_terminate(dq);
 		}
 		return;
@@ -2076,8 +2078,7 @@ dq_got_query_status(const gchar *muid, node_id_t node_id, guint16 kept)
 	if (dq->flags & DQ_F_WAITING) {
 		g_assert(dq->results_ev != NULL);	/* The "timeout" for status */
 
-		cq_cancel(callout_queue, dq->results_ev);
-		dq->results_ev = NULL;
+		cq_cancel(callout_queue, &dq->results_ev);
 		dq->flags &= ~DQ_F_WAITING;
 
 		dq_send_next(dq);

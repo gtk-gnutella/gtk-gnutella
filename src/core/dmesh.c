@@ -121,7 +121,7 @@ static GHashTable *ban_mesh = NULL;
 
 struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/**< The banned URL (same as key) */
-	gpointer cq_ev;			/**< Scheduled callout event */
+	cevent_t *cq_ev;		/**< Scheduled callout event */
 	const gchar *sha1;		/**< The SHA1, if any */
 	time_t ctime;			/**< Last time we saw this banned URL */
 };
@@ -2504,7 +2504,7 @@ dmesh_close(void)
 
 	for (sl = banned; sl; sl = g_slist_next(sl)) {
 		struct dmesh_banned *dmb = sl->data;
-		cq_cancel(callout_queue, dmb->cq_ev);
+		cq_cancel(callout_queue, &dmb->cq_ev);
 		dmesh_ban_expire(callout_queue, dmb);
 	}
 

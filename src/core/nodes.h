@@ -195,7 +195,7 @@ typedef struct gnutella_node {
 
 	guint32 tcp_rtt;			/**< RTT when exchange takes place over TCP */
 	guint32 udp_rtt;			/**< RTT when exchange takes place over UDP  */
-	gpointer tsync_ev;			/**< Time sync event */
+	cevent_t *tsync_ev;			/**< Time sync event */
 
 	/*
 	 * Data structures used by the ping/pong reduction scheme.
@@ -614,6 +614,7 @@ node_check(const struct gnutella_node * const n)
 {
 	g_assert(n);
 	g_assert(NODE_MAGIC == n->magic);
+	g_assert(NODE_ID_SELF != n->id);
 }
 
 static inline const gchar *

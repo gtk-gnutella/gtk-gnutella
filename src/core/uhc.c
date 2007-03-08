@@ -72,11 +72,11 @@ RCSID("$Id$")
  */
 static struct uhc_context {
 	GHashTable *guids;			/**< GUIDs we sent */
-	gint attempts;				/**< Connection / resolution attempts */
 	const gchar *host;			/**< Last selected host */
+	cevent_t *timeout_ev;		/**< Ping timeout */
+	gint attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
 	guint16 port;				/**< Port of selected host cache */
-	gpointer timeout_ev;		/**< Ping timeout */
 } uhc_ctx;
 
 static GList *uhc_avail = NULL;	/**< List of UHCs as string */
@@ -514,8 +514,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 
 		if (cnt) {
 			replied = TRUE;
-			cq_cancel(callout_queue, uhc_ctx.timeout_ev);
-			uhc_ctx.timeout_ev = NULL;
+			cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
 			uhc_connecting = FALSE;
 		} else
 			uhc_try_random();
@@ -575,10 +574,7 @@ uhc_close(void)
 {
 	uhc_guid_reset();
 	g_hash_table_destroy(uhc_ctx.guids);
-
-	if (uhc_ctx.timeout_ev)
-		cq_cancel(callout_queue, uhc_ctx.timeout_ev);
-
+	cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
 	uhc_connecting = FALSE;
 }
 

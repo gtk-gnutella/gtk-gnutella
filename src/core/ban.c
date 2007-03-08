@@ -87,7 +87,7 @@ struct addr_info {
 	gfloat counter;				/**< Counts connection, decayed linearily */
 	host_addr_t addr;			/**< IP address */
 	time_t ctime;				/**< When did last connection occur? */
-	gpointer cq_ev;				/**< Scheduled callout event */
+	cevent_t *cq_ev;			/**< Scheduled callout event */
 	gint ban_delay;				/**< Banning delay, in seconds */
 	gint ban_count;				/**< Amount of time we banned this source */
 	const gchar *ban_msg;		/**< Banning message (atom) */
@@ -140,12 +140,8 @@ ipf_free(struct addr_info *ipf)
 {
 	g_assert(ipf);
 
-	if (ipf->cq_ev)
-		cq_cancel(callout_queue, ipf->cq_ev);
-
-	if (ipf->ban_msg)
-		atom_str_free(ipf->ban_msg);
-
+	cq_cancel(callout_queue, &ipf->cq_ev);
+	atom_str_free_null(&ipf->ban_msg);
 	zfree(ipf_zone, ipf);
 }
 
@@ -317,7 +313,7 @@ ban_allow(const host_addr_t addr)
 	 */
 
 	if (ipf->counter > (gfloat) MAX_REQUEST) {
-		cq_cancel(callout_queue, ipf->cq_ev);	/* Cancel ipf_destroy */
+		cq_cancel(callout_queue, &ipf->cq_ev);	/* Cancel ipf_destroy */
 
 		ipf->banned = TRUE;
 
@@ -377,10 +373,9 @@ ban_record(const host_addr_t addr, const gchar *msg)
 	if (ipf->banned)
 		cq_resched(callout_queue, ipf->cq_ev, MAX_BAN * 1000);
 	else {
-		cq_cancel(callout_queue, ipf->cq_ev);	/* Cancel ipf_destroy */
+		cq_cancel(callout_queue, &ipf->cq_ev);	/* Cancel ipf_destroy */
 		ipf->banned = TRUE;
-		ipf->cq_ev =
-			cq_insert(callout_queue, MAX_BAN * 1000, ipf_unban, ipf);
+		ipf->cq_ev = cq_insert(callout_queue, MAX_BAN * 1000, ipf_unban, ipf);
 	}
 }
 

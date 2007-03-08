@@ -1688,8 +1688,8 @@ node_rx_size_changed(property_t prop)
  * future.
  */
 
-static gpointer ev_file_descriptor_shortage = NULL;
-static gpointer ev_file_descriptor_runout = NULL;
+static cevent_t *ev_file_descriptor_shortage;
+static cevent_t *ev_file_descriptor_runout;
 
 #define RESET_PROP_TM	(10*60*1000)	/**< 10 minutes in ms */
 
@@ -1723,7 +1723,7 @@ static gboolean
 file_descriptor_x_changed(property_t prop)
 {
 	gboolean state;
-	gpointer *ev = NULL;
+	cevent_t **ev = NULL;
 
 	gnet_prop_get_boolean_val(prop, &state);
 	if (!state)
@@ -2070,14 +2070,8 @@ settings_callbacks_shutdown(void)
 {
     guint n;
 
-	if (ev_file_descriptor_shortage != NULL) {
-		cq_cancel(callout_queue, ev_file_descriptor_shortage);
-		ev_file_descriptor_shortage = NULL;
-	}
-	if (ev_file_descriptor_runout != NULL) {
-		cq_cancel(callout_queue, ev_file_descriptor_runout);
-		ev_file_descriptor_runout = NULL;
-	}
+	cq_cancel(callout_queue, &ev_file_descriptor_shortage);
+	cq_cancel(callout_queue, &ev_file_descriptor_runout);
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
         if (property_map[n].cb) {

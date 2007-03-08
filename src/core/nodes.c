@@ -1680,10 +1680,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		socket_free_null(&n->socket);
 	}
 
-	if (n->tsync_ev) {
-		cq_cancel(callout_queue, n->tsync_ev);
-		n->tsync_ev = NULL;
-	}
+	cq_cancel(callout_queue, &n->tsync_ev);
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);

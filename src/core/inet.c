@@ -79,9 +79,9 @@ static time_t fw_time = 0;				/**< When we last became firewalled */
  * mode.
  */
 
-static gpointer incoming_ev = NULL;			/**< Callout queue timer */
-static gpointer incoming_udp_ev = NULL;		/**< Idem */
-static gpointer solicited_udp_ev = NULL;	/**< Idem */
+static cevent_t *incoming_ev;		/**< Callout queue timer */
+static cevent_t *incoming_udp_ev;	/**< Idem */
+static cevent_t *solicited_udp_ev;	/**< Idem */
 
 /*
  * Unfortunately, to accurately detect true unsolicited UDP traffic, we have
@@ -96,7 +96,7 @@ static GHashTable *outgoing_udp = NULL;		/**< Maps "IP" => "ip_record" */
 
 struct ip_record {
 	host_addr_t addr;			/**< The IP address to which we sent data */
-	gpointer timeout_ev;		/**< The expiration time for the fw breach */
+	cevent_t *timeout_ev;		/**< The expiration time for the fw breach */
 };
 
 /***
@@ -113,7 +113,7 @@ struct ip_record {
 #define OUTGOING_WINDOW		150			/**< Outgoing monitoring window */
 
 static gboolean activity_seen;			/**< Activity recorded in period */
-static gpointer outgoing_ev = NULL;		/**< Callout queue timer */
+static cevent_t *outgoing_ev;			/**< Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
 
@@ -139,8 +139,7 @@ ip_record_make(const host_addr_t addr)
 static void
 ip_record_free(struct ip_record *ipr)
 {
-	if (ipr->timeout_ev)
-		cq_cancel(callout_queue, ipr->timeout_ev);
+	cq_cancel(callout_queue, &ipr->timeout_ev);
 	wfree(ipr, sizeof *ipr);
 }
 
@@ -279,12 +278,7 @@ inet_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, TRUE);
 	fw_time = tm_time();
-
-	if (incoming_ev) {
-		cq_cancel(callout_queue, incoming_ev);
-		incoming_ev = NULL;
-	}
-
+	cq_cancel(callout_queue, &incoming_ev);
 	node_became_firewalled();
 }
 
@@ -295,12 +289,7 @@ void
 inet_udp_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
-
-	if (incoming_udp_ev) {
-		cq_cancel(callout_queue, incoming_udp_ev);
-		incoming_udp_ev = NULL;
-	}
-
+	cq_cancel(callout_queue, &incoming_udp_ev);
 	node_became_udp_firewalled();
 }
 
@@ -722,12 +711,9 @@ inet_close(void)
 	g_hash_table_foreach(outgoing_udp, free_ip_record, NULL);
 	g_hash_table_destroy(outgoing_udp);
 
-	if (incoming_ev)
-		cq_cancel(callout_queue, incoming_ev);
-	if (incoming_udp_ev)
-		cq_cancel(callout_queue, incoming_udp_ev);
-	if (solicited_udp_ev)
-		cq_cancel(callout_queue, solicited_udp_ev);
+	cq_cancel(callout_queue, &incoming_ev);
+	cq_cancel(callout_queue, &incoming_udp_ev);
+	cq_cancel(callout_queue, &solicited_udp_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

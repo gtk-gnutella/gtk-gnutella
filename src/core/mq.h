@@ -42,6 +42,7 @@
 #include "pmsg.h"
 #include "tx.h"
 
+#include "lib/cq.h"
 #include "lib/slist.h"
 
 typedef struct mqueue mqueue_t;
@@ -92,7 +93,7 @@ struct mqueue {
 	txdrv_t *tx_drv;				/**< Network TX stack driver */
 	GList *qhead, *qtail, **qlink;
 	slist_t *qwait;			/**< Waiting queue during putq recursions */
-	gpointer swift_ev;		/**< Callout queue event in "swift" mode */
+	cevent_t *swift_ev;		/**< Callout queue event in "swift" mode */
 	gint swift_elapsed;		/**< Scheduled elapsed time, in ms */
 	gint qlink_count;		/**< Amount of entries in `qlink' */
 	gint maxsize;			/**< Maximum size of this queue (total queued) */

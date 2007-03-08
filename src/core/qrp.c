@@ -137,11 +137,11 @@ struct routing_patch {
 	gboolean compressed;
 };
 
-static struct routing_table *routing_table = NULL; /**< Our table */
-static struct routing_patch *routing_patch = NULL; /**< Against empty table */
-static struct routing_table *local_table = NULL;   /**< Table for local files */
-static struct routing_table *merged_table = NULL;  /**< From all our leaves */
-static gint generation = 0;
+static struct routing_table *routing_table; /**< Our table */
+static struct routing_patch *routing_patch; /**< Against empty table */
+static struct routing_table *local_table;   /**< Table for local files */
+static struct routing_table *merged_table;  /**< From all our leaves */
+static gint generation;
 
 static void qrt_compress_cancel_all(void);
 static void qrt_patch_compute(
@@ -151,7 +151,7 @@ void test_hash(void);
 
 static void qrp_monitor(cqueue_t *cq, gpointer obj);
 
-static gpointer monitor_ev = NULL;
+static cevent_t *monitor_ev;
 
 /**
  * Install supplied routing_table as the global `routing_table'.
@@ -3865,7 +3865,7 @@ qrp_init(void)
 void
 qrp_close(void)
 {
-	cq_cancel(callout_queue, monitor_ev);
+	cq_cancel(callout_queue, &monitor_ev);
 	qrp_cancel_computation();
 
 	if (routing_table)
