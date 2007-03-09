@@ -308,6 +308,14 @@ g_slist_delete_link(GSList *sl, GSList *lnk)
 	g_slist_free_1(lnk);
 	return head;
 }
+
+void
+g_hash_table_replace(GHashtable *ht, gpointer key, gpointer value)
+{
+	g_hash_table_remove(ht, key);
+	g_hash_table_insert(ht, key, value);
+}
+
 #endif /* USE_GLIB1 */
 
 #endif /* !TRACK_MALLOC */
