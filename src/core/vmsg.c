@@ -1605,7 +1605,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 }
 
 struct head_ping_data {
-	struct sha1 sha1;	/**< The SHA-1 of the HEAD Ping request	*/
+	const gchar *sha1;	/**< The SHA-1 of the HEAD Ping request	(atom) */
 	node_id_t node_id;	/**< The sender of the HEAD Ping */
 	host_addr_t addr;	/**< In case of UDP, the address of the sender */
 	guint16 port;		/**< In case of UDP, the port of the sender */
@@ -1627,6 +1627,7 @@ static cevent_t *head_ping_ev;	/**< Monitoring event */
 static inline void
 head_ping_source_free(struct head_ping_source *source)
 {
+	atom_sha1_free_null(&source->ping.sha1);
 	wfree(source, sizeof *source);
 }
 
@@ -1677,7 +1678,7 @@ head_ping_timer(cqueue_t *unused_cq, gpointer unused_udata)
 }
 
 static gboolean
-head_ping_register(const gchar *muid, struct sha1 sha1, node_id_t node_id)
+head_ping_register(const gchar *muid, const gchar *sha1, node_id_t node_id)
 {
 	struct head_ping_source *source;
 	struct gnutella_node *n = NULL;
@@ -1709,7 +1710,7 @@ head_ping_register(const gchar *muid, struct sha1 sha1, node_id_t node_id)
 	source = walloc(sizeof *source);
 	memcpy(source->muid, muid, GUID_RAW_SIZE);
 	source->added = tm_time();
-	source->ping.sha1 = sha1;
+	source->ping.sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 	if (n && NODE_IS_UDP(n)) {
 		source->ping.node_id = NODE_ID_SELF;
 		source->ping.addr = n->addr;
@@ -1767,7 +1768,7 @@ vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
-	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
+	if (head_ping_register(muid, cast_to_gchar_ptr(sha1.data), NODE_ID_SELF)) {
 		gmsg_sendto_one(n, v_tmp, msgsize);
 	}
 }
@@ -1920,13 +1921,19 @@ handle_head_ping(struct gnutella_node *n,
 		target = head_ping_target_by_guid(guid);
 		if (target && target != n) {
 			gnutella_header_t header;
-			const gchar *muid;
+			const gchar *muid, *requested_sha1;
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
 			gnutella_header_set_ttl(&header, 1);
 			gnutella_header_set_hops(&header, 1);
 			muid = gnutella_header_get_muid(header);
-			if (head_ping_register(muid, sha1, NODE_ID(n))) {
+			/*
+			 *  We don't need the SHA-1 for routing, thus only record it
+			 * for debugging purposes here.
+			 */
+			requested_sha1 = vmsg_debug ? cast_to_gchar_ptr(sha1.data) : NULL;
+
+			if (head_ping_register(muid, requested_sha1, NODE_ID(n))) {
 				if (vmsg_debug) {
 					g_message("Forwarding HEAD Ping to %s", node_addr(n));
 				}
@@ -2066,9 +2073,10 @@ handle_head_pong(struct gnutella_node *n,
 
 	if (vmsg_debug) {
 		g_message(
-			"HEAD Pong vendor=%s, urn:sha1:%s, result=\"%s%s%s\", queue=%d",
+			"HEAD Pong vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
 			vendor,
-			sha1_to_string(ping.sha1),
+			ping.sha1 ? "urn:sha1:" : "<unknown hash>",
+			ping.sha1 ? sha1_base32(ping.sha1) : "",
 			VMSG_HEAD_CODE_COMPLETE & code
 				? "complete"
 				: (VMSG_HEAD_CODE_PARTIAL | VMSG_HEAD_CODE_DOWNLOADING) & code
