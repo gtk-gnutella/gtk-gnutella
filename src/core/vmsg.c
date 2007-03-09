@@ -1678,7 +1678,7 @@ head_ping_timer(cqueue_t *unused_cq, gpointer unused_udata)
 }
 
 static gboolean
-head_ping_register(const gchar *muid, const gchar *sha1, node_id_t node_id)
+head_ping_register(const gchar *muid, const struct sha1 sha1, node_id_t node_id)
 {
 	struct head_ping_source *source;
 	struct gnutella_node *n = NULL;
@@ -1710,7 +1710,16 @@ head_ping_register(const gchar *muid, const gchar *sha1, node_id_t node_id)
 	source = walloc(sizeof *source);
 	memcpy(source->muid, muid, GUID_RAW_SIZE);
 	source->added = tm_time();
-	source->ping.sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
+	
+	/*
+	 * We don't need the SHA-1 for routing, thus only record it
+ 	 * for debugging purposes or if we are the origin.
+	 */
+	if (NODE_ID_SELF == node_id || vmsg_debug) {
+		source->ping.sha1 = atom_sha1_get(cast_to_gconstpointer(sha1.data));
+	} else {
+		source->ping.sha1 = NULL;
+	}
 	if (n && NODE_IS_UDP(n)) {
 		source->ping.node_id = NODE_ID_SELF;
 		source->ping.addr = n->addr;
@@ -1768,7 +1777,7 @@ vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
-	if (head_ping_register(muid, cast_to_gchar_ptr(sha1.data), NODE_ID_SELF)) {
+	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
 		gmsg_sendto_one(n, v_tmp, msgsize);
 	}
 }
@@ -1921,19 +1930,14 @@ handle_head_ping(struct gnutella_node *n,
 		target = head_ping_target_by_guid(guid);
 		if (target && target != n) {
 			gnutella_header_t header;
-			const gchar *muid, *requested_sha1;
+			const gchar *muid;
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
 			gnutella_header_set_ttl(&header, 1);
 			gnutella_header_set_hops(&header, 1);
 			muid = gnutella_header_get_muid(header);
-			/*
-			 *  We don't need the SHA-1 for routing, thus only record it
-			 * for debugging purposes here.
-			 */
-			requested_sha1 = vmsg_debug ? cast_to_gchar_ptr(sha1.data) : NULL;
 
-			if (head_ping_register(muid, requested_sha1, NODE_ID(n))) {
+			if (head_ping_register(muid, sha1, NODE_ID(n))) {
 				if (vmsg_debug) {
 					g_message("Forwarding HEAD Ping to %s", node_addr(n));
 				}
