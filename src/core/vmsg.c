@@ -1605,16 +1605,16 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 }
 
 struct head_ping_data {
-	struct sha1 sha1;
-	node_id_t node_id;
-	host_addr_t addr;
-	guint16 port;
+	struct sha1 sha1;	/**< The SHA-1 of the HEAD Ping request	*/
+	node_id_t node_id;	/**< The sender of the HEAD Ping */
+	host_addr_t addr;	/**< In case of UDP, the address of the sender */
+	guint16 port;		/**< In case of UDP, the port of the sender */
 };
 
 struct head_ping_source {
 	gchar muid[GUID_RAW_SIZE];	/* MUST be at offset zero */
 	struct head_ping_data ping;
-	time_t added;
+	time_t added;				/**< Timestamp of insertion */
 };
 
 static const time_delta_t HEAD_PING_TIMEOUT	    = 30;	/**< seconds */
