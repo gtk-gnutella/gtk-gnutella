@@ -173,14 +173,23 @@ static zone_t *rc_zone = NULL;		/**< Allocation of record */
 static idtable_t *search_handle_map = NULL;
 static query_hashvec_t *query_hashvec = NULL;
 
-#define search_find_by_handle(n) \
-    (search_ctrl_t *) idtable_get_value(search_handle_map, n)
+static inline search_ctrl_t *
+search_find_by_handle(gnet_search_t n)
+{
+	return idtable_get_value(search_handle_map, n);
+}
 
-#define search_request_handle(n) \
-    idtable_new_id(search_handle_map, n)
+static inline gnet_search_t
+search_request_handle(search_ctrl_t *sch)
+{
+	return idtable_new_id(search_handle_map, sch);
+}
 
-#define search_drop_handle(n) \
+static inline void
+search_drop_handle(gnet_search_t n)
+{
     idtable_free_id(search_handle_map, n);
+}
 
 static void search_check_results_set(gnet_results_set_t *rs);
 
