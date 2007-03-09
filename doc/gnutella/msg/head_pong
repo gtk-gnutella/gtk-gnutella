@@ -1,0 +1,100 @@
+                The "HEAD Pong" Vendor-specific Message
+                              Version 1
+
+
+INTRODUCTION
+
+Please read the Vendor-Messages specifications if you have not done so
+already.
+
+
+SPECIFICATIONS
+
+    Name: "HEAD Pong"
+    Vendor: LIME
+    ID: 24
+    Version: 1
+    TTL: 1
+    Payload: 1 byte flags + 1 byte result code + additional data
+
+
+DESCRIPTION
+
+The flags (offset 0x00; 1 byte):
+
+    Bit 0 (0x01): Carries available ranges
+    Bit 1 (0x02): Carries alternate locations
+    Bit 2 (0x04): Carries alternate push locations
+
+The result code (offset 0x01; byte):
+
+    The lower 3 bits report the general status:
+
+    0x00: File not found
+    0x01: Complete file
+    0x02: Partial file
+
+    The next 2 bits indicate further information:
+
+    Bit 2: (0x04):   Firewalled
+    Bit 3: (0x08):   Currently downloading
+
+If the receiver of a HEAD Ping does not share a file with requested
+URN (partial or complete), it returns a HEAD Pong which carries only
+flags and a zero result code. Otherwise, the HEAD Pong carries further
+data:
+
+Vendor code (offset 0x02-0x05; 4 bytes):
+
+This is simply the 4-byte vendor code of the sender for
+informational purposes.
+
+Queue status (offset 0x06; 1 byte):
+
+This is signed 8-bit integer. The value 0x7f is special and indicates
+a "busy" queue. Otherwise positive values indicate the number of
+available upload slots. If the value is negative an immediate upload
+request is unlikely to succeed and absolute value indicates how many
+requests are queued currently.
+
+Additional data (offset 0x07; variable size):
+
+Note that additional data has a fixed order. Receivers must carefully
+check for truncated data.  The sender should only include requested data
+and must clear the relevant bit for data not included. Nonetheless
+receivers must be able to deal with unrequested items and at least be
+able to skip over it. The sender must also be careful to keep the size
+of the response sufficiently small especially when it is send over UDP.
+
+First, available ranges:
+
+If flag bit 0 is set, the HEAD Pong carries a list of available ranges.
+The next two bytes define the size in bytes of this sub-payload (16-bit
+big-endian integer).  This is a multiple of 8 bytes whereas the lower 4
+bytes are the 32-bit start offset and the next two are the 32-bit end
+offset. It is therefore not possible to indicate ranges beyond the
+first 4 GiB in case of large files.
+
+Second, alternate push locations:
+
+If flag bit 2 is set, the HEAD Pong carries a list of alternate push
+locations. The next two bytes define the size in bytes of this
+sub-payload (16-bit big-endian integer). Alternate push locations are
+encoded as a one byte of flags; followed by a 16 byte GUID, a 6-byte
+IPv4 peer address[1] and finally up to 7 push proxy adresses encoded as
+6-byte peer addresses. This includes RUDP-capable push locations.
+
+Third, alternate locations:
+
+If flag bit 1 is set, the HEAD Pong carries a list of alternate
+locations. The next two bytes define the size in bytes of this
+sub-payload (16-bit big-endian integer). Alternate locations are encoded
+as a 6-byte IPv4 peer address. This sub-payload size must therefore be a
+multiple of 6 bytes.
+
+
+[1] A 6-byte IPv4 address consists of a 4-byte IPv4 address followed by
+2 bytes encoding the 16-bit port number as little-endian integer. This
+is the usual format as used elsewhere by the Gnutella protocol.
+
+/* vi: set tw=72 ts=4 et: */

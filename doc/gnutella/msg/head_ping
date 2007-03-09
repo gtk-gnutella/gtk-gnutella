@@ -1,0 +1,49 @@
+                The "HEAD Ping" Vendor-specific Message
+                              Version 1
+
+
+INTRODUCTION
+
+Please read the Vendor-Messages specifications if you have not done so
+already.
+
+
+SPECIFICATIONS
+
+    Name: "HEAD Ping"
+    Vendor: LIME
+    ID: 23
+    Version: 1
+    TTL: 1
+    Payload: 1 byte flags followed by clear text URN
+
+
+DESCRIPTION
+
+The flags:
+
+    Bit 0 (0x01): Request available ranges
+    Bit 1 (0x02): Request alternate locations
+    Bit 2 (0x04): Request alternate push locations
+    Bit 3 (0x08): Request alternate RUDP-capable push locations
+    Bit 4 (0x10): Ping carries GGEP data
+
+The URN should be urn:sha1:<base32 hash> but other URNs might be
+supported as well.
+
+If flag bit 4 is set, the Ping carries additional GGEP data. If there is
+GGEP "PUSH" block, the payload of this block specifies the GUID of the
+destination node. Thus GGEP "PUSH" differs in this context and does not
+carry addresses of push proxies. Ultrapeers (i.e., push-proxies) should
+forward the HEAD Ping to the leaf identified by this GUID. The HEAD
+Ping should be forwarded over the TCP connection rather than UDP.
+
+The forwarding peer should never respond to the HEAD Ping itself whether
+it shares the file or not. If the GUID matches the receiver's servent
+GUID, the receiver should respond with a HEAD Pong. Note that HEAD Pings
+are forwarded exactly once even if the TTL is 1.
+
+If the receiver has no leaf with the specified GUID and does not match
+its own, the HEAD Ping is simply ignored.
+
+/* vi: set tw=72 ts=4 et: */
