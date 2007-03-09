@@ -5704,7 +5704,7 @@ file_info_init(void)
 	fi_by_guid     = g_hash_table_new(guid_hash, guid_eq);
 	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
 
-    fi_handle_map = idtable_new(32, 32);
+    fi_handle_map = idtable_new();
 
     fi_events[EV_FI_ADDED]          = event_new("fi_added");
     fi_events[EV_FI_REMOVED]        = event_new("fi_removed");

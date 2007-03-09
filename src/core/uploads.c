@@ -4302,7 +4302,7 @@ upload_init(void)
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
 						NULL, NULL, NULL);
-    upload_handle_map = idtable_new(32, 32);
+    upload_handle_map = idtable_new();
 	header_features_add(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 }

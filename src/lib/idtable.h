@@ -57,30 +57,16 @@
 
 #include "common.h" 
 
-#define idtable_ids(tbl) (tbl->ids)
-#define idtable_size(tbl) (tbl->size)
+struct idtable;
+typedef struct idtable idtable_t;
 
-typedef struct idtable {
-    guint32   size;      /**< numbers of slots available */
-    guint32   esize;     /**< number of slots to add if table is full */
-    guint32   ids;       /**< numbers of slots currently used */
-    guint32   last_id;   /**< last issued id */
-    guint32  *used_ids;  /**< binary array of used ids */
-    gpointer *data;      /**< actual table array */
-} idtable_t;
-
-idtable_t *idtable_new(guint32 isize, guint32 esize);
-
+idtable_t *idtable_new(void);
 void idtable_destroy(idtable_t *table);
-
+guint idtable_ids(idtable_t *tbl);
 guint32 idtable_new_id(idtable_t *tbl, gpointer value);
-void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value);
-
 void idtable_free_id(idtable_t *tbl, guint32 id);
-
-gboolean idtable_is_id_used(idtable_t *tbl, guint32 id);
-
+gboolean idtable_is_id_used(const idtable_t *tbl, guint32 id);
 void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value);
-gpointer idtable_get_value(idtable_t *tbl, guint32 id);
+gpointer idtable_get_value(const idtable_t *tbl, guint32 id);
 
 #endif /* _idtable_h_ */

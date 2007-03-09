@@ -2674,7 +2674,7 @@ search_init(void)
 
 	searches = g_hash_table_new(NULL, NULL);
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
-    search_handle_map = idtable_new(32, 32);
+    search_handle_map = idtable_new();
 	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
 	oob_reply_acks_init();
 }

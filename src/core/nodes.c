@@ -1223,7 +1223,7 @@ node_init(void)
 
 	g_assert(23 == sizeof(gnutella_header_t));
 
-    node_handle_map = idtable_new(32, 32);
+    node_handle_map = idtable_new();
 	header_features_add(FEATURES_CONNECTIONS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 

@@ -231,7 +231,7 @@ static idtable_t *src_handle_map = NULL;
 static void
 src_init(void)
 {
-    src_handle_map = idtable_new(32, 32);
+    src_handle_map = idtable_new();
 
     src_events[EV_SRC_ADDED]          = event_new("src_added");
     src_events[EV_SRC_REMOVED]        = event_new("src_removed");
