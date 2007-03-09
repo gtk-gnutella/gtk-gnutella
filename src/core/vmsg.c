@@ -1601,7 +1601,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
-	udp_send_msg(n, v_tmp, msgsize);
+	gmsg_sendto_one(n, v_tmp, msgsize);
 }
 
 struct head_ping_data {
