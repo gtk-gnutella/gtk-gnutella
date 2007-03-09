@@ -868,9 +868,8 @@ dq_free(dquery_t *dq)
 		if (list == NULL) {
 			/* Last item removed, get rid of the entry */
 			g_hash_table_remove(by_node_id, &dq->node_id);
-			g_assert(!g_hash_table_lookup_extended(by_node_id, &dq->node_id, 0, 0));
-			g_message("%s: Removed %s",
-				G_STRLOC, node_id_to_string(dq->node_id));
+			g_assert(!g_hash_table_lookup_extended(by_node_id, &dq->node_id,
+						NULL, NULL));
 			dq->flags |= DQ_F_REMOVED; 
 		} else if (list != value) {
 			dquery_t *key = list->data;
@@ -878,8 +877,6 @@ dq_free(dquery_t *dq)
 			dquery_check(key);
 			g_hash_table_replace(by_node_id, &key->node_id, list);
 			g_assert(g_hash_table_lookup(by_node_id, &dq->node_id) == list);
-			g_message("%s: Added %s",
-				G_STRLOC, node_id_to_string(dq->node_id));
 		}
 	}
 
@@ -922,9 +919,8 @@ dq_free(dquery_t *dq)
 	{
 		gpointer key;
 		
-		if (g_hash_table_lookup_extended(by_node_id, &dq->node_id, &key, 0)) {
+		if (g_hash_table_lookup_extended(by_node_id, &dq->node_id, &key, NULL))
 			g_assert(&dq->node_id != key);
-		}
 	}
 	dq->magic = 0;
 	wfree(dq, sizeof(*dq));
@@ -1565,8 +1561,6 @@ dq_common_init(dquery_t *dq)
 			list = g_slist_prepend(NULL, dq);
 			g_hash_table_replace(by_node_id, &dq->node_id, list);
 			g_assert(g_hash_table_lookup(by_node_id, &dq->node_id) == list);
-			g_message("%s: Added %s",
-				G_STRLOC, node_id_to_string(dq->node_id));
 		}
 	}
 
@@ -1827,8 +1821,7 @@ dq_node_removed(node_id_t node_id)
 		return;		/* No dynamic query for this node */
 
 	g_hash_table_remove(by_node_id, &node_id);
-	g_message("%s: Removed %s", G_STRLOC, node_id_to_string(node_id));
-	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, 0, 0));
+	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, NULL, NULL));
 
 	GM_SLIST_FOREACH(value, sl) {
 		dquery_t *dq = sl->data;
@@ -1843,7 +1836,7 @@ dq_node_removed(node_id_t node_id)
 		dq_free(dq);
 	}
 
-	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, 0, 0));
+	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, NULL, NULL));
 	g_slist_free(value);
 }
 
