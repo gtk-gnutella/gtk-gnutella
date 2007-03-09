@@ -1601,7 +1601,11 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
-	gmsg_sendto_one(n, v_tmp, msgsize);
+
+	if (NODE_IS_UDP(n))
+		udp_send_msg(n, v_tmp, msgsize);
+	else
+		gmsg_sendto_one(n, v_tmp, msgsize);
 }
 
 struct head_ping_data {
@@ -1778,7 +1782,10 @@ vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
 	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
-		gmsg_sendto_one(n, v_tmp, msgsize);
+		if (NODE_IS_UDP(n))
+			udp_send_msg(n, v_tmp, msgsize);
+		else
+			gmsg_sendto_one(n, v_tmp, msgsize);
 	}
 }
 
@@ -2168,13 +2175,21 @@ handle_head_pong(struct gnutella_node *n,
 		}
 		if (target) {
 			gnutella_header_t header;
+			pmsg_t *mb;
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
 			gnutella_header_set_ttl(&header,
 				gnutella_header_get_ttl(&header) - 1);
 			gnutella_header_set_hops(&header,
 				gnutella_header_get_hops(&header) + 1);
-			gmsg_split_sendto_one(target, header, n->data, n->size);
+		
+			mb = gmsg_split_to_pmsg(header, n->data, n->size);
+			if (NODE_IS_UDP(target)) {
+				udp_send_mb(target, mb);
+			} else {
+				gmsg_mb_sendto_one(target, mb);
+			}
+			pmsg_free(mb);
 		}
 	}
 }
