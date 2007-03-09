@@ -1830,7 +1830,7 @@ head_ping_target_by_guid(const gchar *guid)
  * Handle reception of an UDP Head Ping
  */
 static void
-handle_udp_head_ping(struct gnutella_node *n,
+handle_head_ping(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
 	static const gchar urn_prefix[] = "urn:sha1:";
@@ -2003,7 +2003,7 @@ block_length(const struct array array)
  * Handle reception of an Head Pong
  */
 static void
-handle_udp_head_pong(struct gnutella_node *n,
+handle_head_pong(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
 	const size_t expected_size = 2; /* flags and code */
@@ -2275,7 +2275,7 @@ handle_messages_supported(struct gnutella_node *n,
 		if (vm->handler == handle_udp_crawler_ping)
 			n->attrs |= NODE_A_CRAWLABLE;
 
-		if (vm->handler == handle_udp_head_ping)
+		if (vm->handler == handle_head_ping)
 			n->attrs |= NODE_A_CAN_HEAD;
 	}
 }
@@ -2311,8 +2311,8 @@ static const struct vmsg vmsg_map[] = {
 	{ T_LIME, 22,  1, handle_proxy_ack,				"Push-Proxy ACK" },
 	{ T_LIME, 22,  2, handle_proxy_ack,				"Push-Proxy ACK" },
 
-	{ T_LIME, 23,  1, handle_udp_head_ping,			"HEAD Ping" },
-	{ T_LIME, 24,  1, handle_udp_head_pong,			"HEAD Pong" },
+	{ T_LIME, 23,  1, handle_head_ping,				"HEAD Ping" },
+	{ T_LIME, 24,  1, handle_head_pong,				"HEAD Pong" },
 
 	/* Above line intentionally left blank (for "!}sort" in vi) */
 };
