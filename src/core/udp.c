@@ -265,6 +265,15 @@ udp_send_msg(const gnutella_node_t *n, gconstpointer buf, gint len)
 	mq_udp_node_putq(n->outq, gmsg_to_pmsg(buf, len), n);
 }
 
+void
+udp_send_mb(const gnutella_node_t *n, pmsg_t *mb)
+{
+	g_assert(NODE_IS_UDP(n));
+	g_return_if_fail(n->outq);
+
+	mq_udp_node_putq(n->outq, pmsg_clone(mb), n);
+}
+
 /**
  * Send a Gnutella ping to the specified host via UDP, using the
  * specified MUID.
