@@ -72,7 +72,7 @@ GList *g_list_delete_link(GList *l, GList *lnk);
 GSList *g_slist_delete_link(GSList *sl, GSList *lnk);
 GString *g_string_append_len(GString *gs, const gchar *val, gssize len);
 
-void g_hash_table_replace(GHashtable *ht, gpointer key, gpointer value);
+void g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value);
 
 void g_mem_set_vtable(GMemVTable *vtable);
 gboolean g_mem_is_system_malloc(void);

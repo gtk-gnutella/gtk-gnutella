@@ -310,7 +310,7 @@ g_slist_delete_link(GSList *sl, GSList *lnk)
 }
 
 void
-g_hash_table_replace(GHashtable *ht, gpointer key, gpointer value)
+g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value)
 {
 	g_hash_table_remove(ht, key);
 	g_hash_table_insert(ht, key, value);
