@@ -403,14 +403,23 @@ static gboolean looks_like_urn(const gchar *filename);
 
 static idtable_t *fi_handle_map = NULL;
 
-#define file_info_find_by_handle(n) \
-    (fileinfo_t *) idtable_get_value(fi_handle_map, n)
+static inline fileinfo_t *
+file_info_find_by_handle(gnet_fi_t n)
+{
+	return idtable_get_value(fi_handle_map, n);
+}
 
-#define file_info_request_handle(n) \
-    idtable_new_id(fi_handle_map, n)
+static inline gnet_fi_t
+file_info_request_handle(fileinfo_t *fi)
+{
+	return idtable_new_id(fi_handle_map, fi);
+}
 
-#define file_info_drop_handle(n) \
+static inline void
+file_info_drop_handle(gnet_fi_t n)
+{
     idtable_free_id(fi_handle_map, n);
+}
 
 event_t *fi_events[EV_FI_EVENTS] = {
     NULL, NULL, NULL, NULL, NULL, NULL };
