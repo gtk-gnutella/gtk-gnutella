@@ -146,7 +146,6 @@ SRC = \
 	sockets.c \
 	spam.c \
 	sq.c \
-	gdb.c \
 	tls_cache.c \
 	tls_common.c \
 	token.c \
@@ -229,7 +228,6 @@ OBJ = \
 	sockets.o \
 	spam.o \
 	sq.o \
-	gdb.o \
 	tls_cache.o \
 	tls_common.o \
 	token.o \

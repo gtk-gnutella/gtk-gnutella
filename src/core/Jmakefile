@@ -90,7 +90,6 @@ SRC = \
 	sockets.c \
 	spam.c \
 	sq.c \
-	gdb.c \
 	tls_cache.c \
 	tls_common.c \
 	token.c \
