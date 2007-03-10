@@ -5585,14 +5585,9 @@ static gnutella_node_t *
 node_udp_create(enum net_type net)
 {
 	gnutella_node_t *n;
-	host_addr_t addr;
-
-	addr = listen_addr_by_net(net);
-	if (!is_host_addr(addr))
-		return NULL;
 
 	n = node_alloc();
-	n->addr = addr;
+	n->addr = listen_addr_by_net(net);
     n->node_handle = node_request_handle(n);
     n->id = node_id_generate();
 	n->port = listen_port;
@@ -5606,8 +5601,8 @@ node_udp_create(enum net_type net)
 		gchar buf[256];
 
 		concat_strings(buf, sizeof buf,
-			_("Pseudo UDP node"), " ",
-			NET_TYPE_IPV4 == host_addr_net(n->addr) ? "(IPv4)" : "(IPv6)",
+			_("Pseudo UDP node"),
+			" (", net_type_to_string(host_addr_net(n->addr)), ")",
 			(void *) 0);
 		n->vendor = atom_str_get(buf);
 	}
