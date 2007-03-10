@@ -54,7 +54,6 @@ USRINC = $usrinc
 SOURCES =   \$(SRC)
 OBJECTS =   \$(OBJ)
 GLIB_CFLAGS =  $glibcflags
-SQLITE_CFLAGS =  $sqlitecflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -94,8 +93,7 @@ OBJ = \
 	rpc.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(SQLITE_CFLAGS) \
-	-DCORE_SOURCES -DCURDIR=$(CURRENT)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../if

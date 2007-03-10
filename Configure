@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Jan 30 23:30:27 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Sat Mar 10 21:27:09 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -490,10 +490,6 @@ so=''
 sharpbang=''
 shsharp=''
 spitshell=''
-d_sqlite=''
-sqlitecflags=''
-sqliteconfig=''
-sqliteldflags=''
 src=''
 startsh=''
 sysman=''
@@ -6151,51 +6147,6 @@ eval $trylink
 ccflags=$saved_ccflags
 ldflags=$saved_ldflags
 
-: how can we find information about SQLite?
-echo " "
-
-val="$undef"
-sqlitecflags=""
-sqliteldflags=""
-sqliteconfig='false'
-
-case "$d_sqlite" in
-"$undef") ;;
-*)
-	echo "Checking how we can gather information about SQLite..." >&4
-	if pkg-config sqlite3 --cflags >/dev/null 2>&1; then
-		sqliteconfig="pkg-config sqlite3"
-	elif pkg-config sqlite --cflags >/dev/null 2>&1; then
-		sqliteconfig="pkg-config sqlite"
-	else
-		echo "You've don't seem to have SQLite installed?" >&4
-	fi
-	echo "(I'll use '$sqliteconfig' to gather that information.)"
-
-	version=`$sqliteconfig --modversion`
-	case "$version" in
-	'') ;;
-	*)
-		vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-		if test 0$vint -lt 030300; then
-			echo "Sorry, you have SQLite $version, I need at least 3.3.0." >&4
-			$cat <<'EOM'
-
-For more information, see http://www.sqlite.org/.
-EOM
-		else
-			val="$define"
-			sqlitecflags=`$sqliteconfig --cflags`
-			sqliteldflags=`$sqliteconfig --libs`
-			echo "Good, you have SQLite $version."
-		fi
-	esac
-	;;
-esac
-
-set d_sqlite
-eval $setvar
-
 : see if srandom exists
 $cat >try.c <<EOC
 #$i_stdlib I_STDLIB
@@ -8498,11 +8449,6 @@ case "$d_fast_assert" in
 "$define") fastassert=yes;;
 esac
 
-sqlite=no
-case "$d_sqlite" in
-"$define") sqlite=yes;;
-esac
-
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
@@ -8514,7 +8460,6 @@ IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
 Fast assertions                    : $fastassert
 DBus support (experimental)        : $dbus
-SQLite (experimental)              : $sqlite
 Remote Shell Interface (deprecated): $remote
 -------------------------------------------------
 EOM
@@ -8755,7 +8700,6 @@ d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'
 d_sigsetjmp='$d_sigsetjmp'
 d_socker_get='$d_socker_get'
-d_sqlite='$d_sqlite'
 d_srandom='$d_srandom'
 d_strchr='$d_strchr'
 d_strlcat='$d_strlcat'
@@ -8962,9 +8906,6 @@ sort='$sort'
 spackage='$spackage'
 spitshell='$spitshell'
 split='$split'
-sqlitecflags='$sqlitecflags'
-sqliteconfig='$sqliteconfig'
-sqliteldflags='$sqliteldflags'
 src='$src'
 startsh='$startsh'
 strings='$strings'

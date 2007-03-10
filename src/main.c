@@ -38,7 +38,6 @@
 
 #define CORE_SOURCES
 
-#include "core/gdb.h"
 #include "core/ban.h"
 #include "core/bitzi.h"
 #include "core/bogons.h"
@@ -479,7 +478,6 @@ gtk_gnutella_exit(gint n)
 	adns_close();
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
 	tls_cache_close();
-	gdb_close();
 	file_object_close();
 	settings_close();	/* Must come after hcache_close() */
 	atoms_close();
@@ -1196,7 +1194,6 @@ main(int argc, char **argv)
 	hcache_init();			/* before settings_init() */
 	bsched_early_init();	/* before settings_init() */
 	settings_init();
-	gdb_init();
 	tls_global_init();
 	tls_cache_init();
     hcache_retrieve_all();	/* after settings_init() */

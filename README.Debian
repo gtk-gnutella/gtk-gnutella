@@ -29,9 +29,8 @@ If you want to use the Gtk+ 1.2 front-end instead:
   apt-get install libglib1.2-dev # GLib 1.2
   apt-get install libgtk1.2-dev	 # Gtk+ 1.2
 
-The following packages are optional:
+The following package is optional:
 
-  apt-get install libsqlite3-dev # SQLite 3.x
   apt-get install libdbus-1-dev	 # D-Bus
 
 

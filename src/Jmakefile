@@ -55,10 +55,6 @@ OBJ = main.o
 ++SOCKER_CFLAGS $sockercflags
 ++SOCKER_LDFLAGS $sockerldflags
 
-/* Add the SQLite flags */
-++SQLITE_CFLAGS $sqlitecflags
-++SQLITE_LDFLAGS $sqliteldflags
-
 /*
  * Due to cross-referencing between the GUI and the core, libcore.a wraps
  * the GUI libraries and the libgtk-common.a library wraps the libgtkx.a
@@ -77,7 +73,6 @@ CFLAGS = -I.. -I. \
 	$(DBUS_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) \
-	$(SQLITE_CFLAGS) \
 	-DCURDIR=$(CURRENT)
 
 DPFLAGS = $(CFLAGS)
@@ -89,7 +84,7 @@ LDFLAGS = \
 -case
 	-ldht -lcore -Llib -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
-	$(SOCKER_LDFLAGS) $(SQLITE_LDFLAGS)
+	$(SOCKER_LDFLAGS)
 
 RemoteTargetDependency(gtk-gnutella, lib, libshared.a)
 RemoteTargetDependency(gtk-gnutella, core, libcore.a)

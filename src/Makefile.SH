@@ -66,11 +66,9 @@ GTK_CFLAGS =  $gtkcflags
 GNUTLS_LDFLAGS =  $gnutlsldflags
 GNUTLS_CFLAGS =  $gnutlscflags
 DBUS_LDFLAGS =  $dbusldflags
-SQLITE_CFLAGS =  $sqlitecflags
 XML2_LDFLAGS =  $xmlldflags
 GTK_LDFLAGS =  $gtkldflags
 OBJECTS =   \$(OBJ) \$(EXTRA)
-SQLITE_LDFLAGS =  $sqliteldflags
 SOCKER_LDFLAGS =  $sockerldflags
 DBUS_CFLAGS =  $dbuscflags
 XML2_CFLAGS =  $xmlcflags
@@ -124,7 +122,6 @@ CFLAGS = -I.. -I. \
 	$(DBUS_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SOCKER_CFLAGS) \
-	$(SQLITE_CFLAGS) \
 	-DCURDIR=$(CURRENT)
 
 DPFLAGS = $(CFLAGS)
@@ -142,7 +139,7 @@ esac
 $spitshell >>Makefile <<'!NO!SUBS!'
 	-ldht -lcore -Llib -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
-	$(SOCKER_LDFLAGS) $(SQLITE_LDFLAGS)
+	$(SOCKER_LDFLAGS)
 
 .FORCE:
 

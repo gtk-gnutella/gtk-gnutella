@@ -57,7 +57,6 @@ GLIB_CFLAGS =  $glibcflags
 XML2_CFLAGS =  $xmlcflags
 GNUTLS_CFLAGS =  $gnutlscflags
 SOCKER_CFLAGS =  $sockercflags
-SQLITE_CFLAGS =  $sqlitecflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -252,8 +251,7 @@ OBJ = \
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
-	$(SOCKER_CFLAGS) $(SQLITE_CFLAGS) \
-	-DCORE_SOURCES -DCURDIR=$(CURRENT)
+	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../if

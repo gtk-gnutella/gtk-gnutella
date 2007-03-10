@@ -37,20 +37,15 @@
 
 RCSID("$Id$")
 
-#ifdef HAS_SQLITE
-#include <sqlite3.h>
-#else	/* !HAS_SQLITE */
 #include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
 #include "lib/walloc.h"
-#endif	/* HAS_SQLITE */
 
 #include "lib/endian.h"
 #include "lib/host_addr.h"
 
-#include "gdb.h"
 #include "hosts.h"
 #include "settings.h"
 #include "tls_cache.h"
@@ -66,233 +61,6 @@ tls_cache_item_expired(time_t seen, time_t now)
 	time_delta_t d = delta_time(now, seen);
 	return d < 0 || d > tls_cache_max_time;
 }
-
-#ifdef HAS_SQLITE
-
-static struct gdb_stmt *select_stmt;
-static struct gdb_stmt *insert_stmt;
-static struct gdb_stmt *delete_stmt;
-
-static int
-tls_cache_db_open(void)
-{
-	{
-		static const char cmd[] =
-			"CREATE TABLE IF NOT EXISTS tls_hosts ("
-			"host BLOB PRIMARY KEY, "
-			"seen INTEGER"
-			");";
-		char *errmsg;
-		int ret;
-
-		ret = gdb_exec(cmd, &errmsg);
-		if (0 != ret) {
-			g_warning("gdb_exec() failed: %s", errmsg);
-			gdb_free(errmsg);
-			goto failure;
-		}
-		ret = gdb_declare_types("tls_hosts", "host", GDB_CT_HOST, (void *) 0);
-		if (0 != ret) {
-			g_warning("gdb_declare_types() failed: %s", gdb_error_message());
-			goto failure;
-		}
-	}
-
-	{
-		static const char cmd[] =
-			"INSERT OR REPLACE INTO tls_hosts VALUES(?1, ?2);";
-		int ret;
-	   
-		ret = gdb_stmt_prepare(cmd, &insert_stmt);
-		if (0 != ret) {
-			g_warning("gdb_stmt_prepare() failed: %s", gdb_error_message());
-			goto failure;
-		}
-	}
-
-	{
-		static const char cmd[] =
-			"SELECT seen FROM tls_hosts WHERE host = ?1;";
-		int ret;
-
-		ret = gdb_stmt_prepare(cmd, &select_stmt);
-		if (0 != ret) {
-			g_warning("gdb_stmt_prepare() failed: %s", gdb_error_message());
-			goto failure;
-		}
-	}
-
-	{
-		static const char cmd[] =
-			"DELETE FROM tls_hosts WHERE host = ?1;";
-		int ret;
-
-		ret = gdb_stmt_prepare(cmd, &delete_stmt);
-		if (0 != ret) {
-			g_warning("gdb_stmt_prepare() failed: %s", gdb_error_message());
-			goto failure;
-		}
-	}
-
-	return 0;
-	
-failure:
-	tls_cache_close();
-	return -1;
-}
-
-static int
-tls_cache_bind_key(struct gdb_stmt *stmt, const host_addr_t addr, guint16 port)
-{
-	static struct packed_host host;
-	guint size;
-	int ret;
-
-	host = host_pack(addr, port);
-	size = packed_host_size(host);
-	ret = gdb_stmt_bind_static_blob(stmt, 1, &host, size);
-	if (0 != ret) {
-		g_warning("%s: gdb_stmt_bind_static_blob() failed: %s",
-			"tls_cache_bind_key", gdb_error_message());
-	}
-	return ret;
-}
-
-void
-tls_cache_insert(const host_addr_t addr, guint16 port)
-{
-	struct gdb_stmt *stmt = insert_stmt;
-	enum gdb_step step;
-	int ret;
-		
-	g_return_if_fail(stmt);
-
-	if (tls_debug) {
-		g_message("tls_cache_insert: %s", host_addr_port_to_string(addr, port));
-	}
-
-	if (0 != tls_cache_bind_key(stmt, addr, port)) {
-		goto reset;
-	}
-
-	ret = gdb_stmt_bind_int64(stmt, 2, tm_time());
-	if (0 != ret) {
-		g_warning("%s: gdb_stmt_bind_int64() failed: %s",
-			"tls_cache_insert", gdb_error_message());
-		goto reset;
-	}
-
-	step = gdb_stmt_step(stmt);
-	if (GDB_STEP_DONE != step) {
-		g_warning("%s: gdb_stmt_step() failed: %s",
-			"tls_cache_insert", gdb_error_message());
-		goto reset;
-	}
-
-reset:
-	ret = gdb_stmt_reset(stmt);
-	if (0 != ret) {
-		g_warning("%s: gdb_stmt_reset() failed: %s",
-			"tls_cache_add", gdb_error_message());
-	}
-}
-
-void
-tls_cache_delete(const host_addr_t addr, guint16 port)
-{
-	struct gdb_stmt *stmt = delete_stmt;
-
-	g_return_if_fail(stmt);
-
-	if (tls_debug) {
-		g_message("tls_cache_delete: %s", host_addr_port_to_string(addr, port));
-	}
-
-	if (0 == tls_cache_bind_key(stmt, addr, port)) {
-		enum gdb_step step;
-
-		step = gdb_stmt_step(stmt);
-		if (GDB_STEP_DONE != step) {
-			g_warning("%s: gdb_stmt_step() failed: %s",
-				"tls_cache_delete", gdb_error_message());
-		}
-	}
-
-	if (0 != gdb_stmt_reset(stmt)) {
-		g_warning("%s: gdb_stmt_reset() failed: %s",
-			"tls_cache_delete", gdb_error_message());
-	}
-}
-
-gboolean
-tls_cache_lookup(const host_addr_t addr, guint16 port)
-{
-	struct gdb_stmt *stmt = select_stmt;
-	gboolean found = FALSE, delete = FALSE;
-
-	g_return_val_if_fail(stmt, FALSE);
-	g_return_val_if_fail(host_addr_initialized(addr), FALSE);
-	g_return_val_if_fail(0 != port, FALSE);
-	if (!is_host_addr(addr)) {
-		return FALSE;
-	}
-
-	if (0 == tls_cache_bind_key(stmt, addr, port)) {
-		enum gdb_step step;
-
-		step = gdb_stmt_step(stmt);
-		if (GDB_STEP_ROW == step) {
-			time_t seen;
-			gint64 value;
-
-			value = gdb_stmt_column_int64(stmt, 0);
-
-			if (tls_debug) {
-				g_message("tls_cache_lookup: found %s (%s)",
-					host_addr_port_to_string(addr, port),
-					timestamp_to_string(value));
-			}
-
-			if (value > TIME_T_MAX) {
-				seen = TIME_T_MAX;
-			} else {
-				seen = value;
-			}
-			delete = tls_cache_item_expired(seen, tm_time());
-			found = !delete;
-		} else if (GDB_STEP_DONE != step) {
-			g_warning("%s: gdb_stmt_step() failed: %s",
-				"tls_cache_lookup", gdb_error_message());
-		}
-	}
-
-	if (0 != gdb_stmt_reset(stmt)) {
-		g_warning("%s: gdb_stmt_reset() failed: %s",
-			"tls_cache_lookup", gdb_error_message());
-	}
-
-	if (delete) {
-		tls_cache_delete(addr, port);
-	}
-
-	return found;
-}
-
-void
-tls_cache_init(void)
-{
-	tls_cache_db_open();
-}
-
-void
-tls_cache_close(void)
-{
-	gdb_stmt_finalize(&insert_stmt);
-	gdb_stmt_finalize(&select_stmt);
-	gdb_stmt_finalize(&delete_stmt);
-}
-
-#else	/* !HAS_SQLITE */
 
 static hash_list_t *tls_hosts = NULL;
 
@@ -655,6 +423,5 @@ tls_cache_close(void)
 		hash_list_free(&tls_hosts);
 	}
 }
-#endif	/* HAS_SQLITE */
 
 /* vi: set ts=4 sw=4 cindent: */

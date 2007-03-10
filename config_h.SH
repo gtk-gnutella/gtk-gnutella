@@ -772,11 +772,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_remotectrl USE_REMOTE_CTRL    /**/
 
-/* HAS_SQLITE:
- * This symbol is defined when SQLite is present
- */
-#$d_sqlite HAS_SQLITE  /**/
-
 /* HAS_LIBXML2:
  * This symbol is defined when libxml 2.4.19, at least, is present.
  */

@@ -13,11 +13,11 @@
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_sqlite d_headless \
+	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_headless \
 	d_glib d_gtk Alpha_mieee GCC_pipe
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
-?T:glib_used frontend remote nls fastassert sqlite zlib
+?T:glib_used frontend remote nls fastassert zlib
 ?T:gnutls ipv6 dbus bailout
 : end of configuration questions
 echo " "
@@ -65,11 +65,6 @@ case "$d_fast_assert" in
 "$define") fastassert=yes;;
 esac
 
-sqlite=no
-case "$d_sqlite" in
-"$define") sqlite=yes;;
-esac
-
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
@@ -81,7 +76,6 @@ IPv6 support                       : $ipv6
 NLS (Native Language Support)      : $nls
 Fast assertions                    : $fastassert
 DBus support (experimental)        : $dbus
-SQLite (experimental)              : $sqlite
 Remote Shell Interface (deprecated): $remote
 -------------------------------------------------
 EOM

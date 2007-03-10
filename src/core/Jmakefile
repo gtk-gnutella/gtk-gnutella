@@ -128,13 +128,9 @@ OBJ = \
 /* Add the Socker flags */
 ++SOCKER_CFLAGS $sockercflags
 
-/* Add the SQLite flags */
-++SQLITE_CFLAGS $sqlitecflags
-
 ;# Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
-	$(SOCKER_CFLAGS) $(SQLITE_CFLAGS) \
-	-DCORE_SOURCES -DCURDIR=$(CURRENT)
+	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../if

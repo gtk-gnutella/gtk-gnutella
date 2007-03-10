@@ -79,7 +79,6 @@ U/packages/gnutlsconfig.U
 U/packages/gtkconfig.U
 U/packages/gtkversion.U
 U/packages/remotectrl.U
-U/packages/sqliteconfig.U
 U/packages/xmlconfig.U
 U/specific/d_headless.U
 U/specific/gtkgversion.U
@@ -283,8 +282,6 @@ src/core/file_object.c
 src/core/file_object.h
 src/core/fileinfo.c
 src/core/fileinfo.h
-src/core/gdb.c
-src/core/gdb.h
 src/core/geo_ip.c
 src/core/geo_ip.h
 src/core/ggep.c

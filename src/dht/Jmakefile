@@ -41,12 +41,8 @@ OBJ = \
 /* Additional flags for GTK compilation, added in the substituted section */
 ++GLIB_CFLAGS $glibcflags
 
-/* Add the SQLite flags */
-++SQLITE_CFLAGS $sqlitecflags
-
 ;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(SQLITE_CFLAGS) \
-	-DCORE_SOURCES -DCURDIR=$(CURRENT)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../if
