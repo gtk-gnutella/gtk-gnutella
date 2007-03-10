@@ -254,8 +254,9 @@ host_timer(void)
             missing = to_add;
 
 			while (hcache_size(htype) && missing-- > 0) {
-				hcache_get_caught(htype, &addr, &port);
-				node_add(addr, port, 0);
+				if (hcache_get_caught(htype, &addr, &port)) {
+					node_add(addr, port, 0);
+				}
 			}
 
 			if (missing > 0 && hcache_read_finished()) {

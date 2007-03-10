@@ -1135,6 +1135,8 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 /**
  * Get host IP/port information from our caught host list, or from the
  * recent pong cache, in alternance.
+ *
+ * @return TRUE on sucess, FALSE on failure.
  */
 gboolean
 hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
@@ -1148,6 +1150,9 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 
 	g_assert(addr);
 	g_assert(port);
+
+	*addr = zero_host_addr;
+	*port = 0;
 	
     switch (type) {
     case HOST_ANY:
@@ -1166,9 +1171,10 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
     gnet_prop_get_boolean_val(hc->reading, &reading);
     available = hcache_require_caught(hc);
 
-    g_assert(available);
-
     hcache_update_low_on_pongs();
+
+	if (!available)
+		return FALSE;
 
 	/*
 	 * First, try to find a local host
