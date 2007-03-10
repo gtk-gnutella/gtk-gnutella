@@ -33,7 +33,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"			/* Must be the last header included */
 
-#define IDTABLE_BASE (((guint32)-1) >> 1)
+#define IDTABLE_MASK (((guint32)-1) >> 1)
+#define IDTABLE_BASE (IDTABLE_MASK + 1)
 
 struct idtable {
 	GHashTable *ht;
@@ -55,7 +56,7 @@ idtable_new(void)
 
 	tbl = walloc(sizeof *tbl);
 	*tbl = zero_idtable;
-	tbl->last_id = (random_raw() & IDTABLE_BASE) + IDTABLE_BASE;
+	tbl->last_id = (random_raw() & IDTABLE_MASK) + IDTABLE_BASE;
 	tbl->ht = g_hash_table_new(NULL, NULL);
 	return tbl;
 }
@@ -91,7 +92,7 @@ guint32
 idtable_new_id(idtable_t *tbl, gpointer value)
 {
 	while (idtable_is_id_used(tbl, tbl->last_id)) {
-		tbl->last_id = ((tbl->last_id + 1) & IDTABLE_BASE) + IDTABLE_BASE;
+		tbl->last_id = ((tbl->last_id + 1) & IDTABLE_MASK) + IDTABLE_BASE;
 	}
 	g_hash_table_insert(tbl->ht, GUINT_TO_POINTER(tbl->last_id), value);
 	return tbl->last_id;
