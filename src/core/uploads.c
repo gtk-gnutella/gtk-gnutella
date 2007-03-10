@@ -4164,12 +4164,12 @@ upload_special_flushed(gpointer arg)
 	u->special = NULL;
 
 	if (upload_debug)
-		g_message("BROWSE %s from %s (%s) done: %lu bytes, %lu sent",
+		g_message("BROWSE %s from %s (%s) done: %s bytes, %s sent",
 			u->name,
 			host_addr_to_string(u->socket->addr),
 			upload_vendor_str(u),
-			(gulong) u->sent,			/* Sent to TX stack = final RX size */
-			(gulong) u->file_size);		/* True amount sent on the wire */
+			uint64_to_string(u->sent),	/* Sent to TX stack = final RX size */
+			uint64_to_string2(u->file_size));/* True amount sent on the wire */
 
 	upload_fire_upload_info_changed(u);		/* Update size info */
 	upload_completed(u);	/* We're done, wait for next request if any */
