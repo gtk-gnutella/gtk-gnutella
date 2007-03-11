@@ -97,6 +97,13 @@ gm_hash_table_insert_const(GHashTable *ht,
 	g_hash_table_insert(ht, (gpointer) key, (gpointer) value);
 }
 
+static inline void
+gm_hash_table_replace_const(GHashTable *ht,
+	gconstpointer key, gconstpointer value)
+{
+	g_hash_table_replace(ht, (gpointer) key, (gpointer) value);
+}
+
 GSList *gm_hash_table_all_keys(GHashTable *ht);
 
 /*
