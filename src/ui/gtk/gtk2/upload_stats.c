@@ -68,13 +68,26 @@ RCSID("$Id$")
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/utf8.h"
+#include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /* Private variables */
-static GtkTreeView *upload_stats_treeview = NULL;
-static GtkWidget *popup_upload_stats = NULL;
+static GtkTreeView *upload_stats_treeview;
+static GtkWidget *popup_upload_stats;
+
+static GHashTable *ht_uploads;
+
+struct upload_data {
+	GtkTreeIter iter;
+
+	const struct ul_stats *us;
+	const gchar *filename;	/**< Atom; utf-8 */
+};
+
 
 /**
  * Private callbacks.
@@ -95,65 +108,44 @@ on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
 	return FALSE;
 }
 
-/**
- * Render the size column.
- *
- * Generate the text string which should be displayed
- * in the size cell.
- *
- * @param column The column which is being rendered.
- * @param cell The cell renderer for the column.
- * @param model The model holding the upload stats info.
- * @param iter The iter of the row we are working with.
- * @param unused_data user data passed to the function.
- *
- */
 static void
-cell_render_size_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
-	GtkTreeModel *model, GtkTreeIter *iter, gpointer unused_data)
+cell_renderer_func(GtkTreeViewColumn *column,
+	GtkCellRenderer *cell, GtkTreeModel *model, GtkTreeIter *iter,
+	gpointer udata)
 {
-	guint val = 0;
+	static const GValue zero_value;
+	const struct upload_data *data;
+	const gchar *text = NULL;
+	gchar buf[64];
+	GValue value;
 
-	(void) unused_data;
-	g_assert(column != NULL);
-	g_assert(cell != NULL);
-	g_assert(model != NULL);
-	g_assert(iter != NULL);
+	if (!gtk_tree_view_column_get_visible(column))
+		return;
 
-	gtk_tree_model_get(model, iter, c_us_size, &val, (-1));
-	g_object_set(cell, "text",
-		short_size(val, show_metric_units()), (void *) 0);
-}
-
-/**
- * Render the normalized statistic column.
- *
- * Generate the text string which should be displayed
- * in the normalized cell.
- *
- * @param column The column which is being rendered.
- * @param cell The cell renderer for the column.
- * @param model The model holding the upload stats info.
- * @param iter The iter of the row we are working with.
- * @param unused_data user data passed to the function.
- *
- */
-static void
-cell_render_norm_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
-	GtkTreeModel *model, GtkTreeIter *iter, gpointer unused_data)
-{
-	gfloat val = 0.0;
-	gchar tmpstr[32];
-
-	(void) unused_data;
-	g_assert(column != NULL);
-	g_assert(cell != NULL);
-	g_assert(model != NULL);
-	g_assert(iter != NULL);
-
-	gtk_tree_model_get(model, iter, c_us_norm, &val, (-1));
-	gm_snprintf(tmpstr, sizeof tmpstr, "%1.3f", val);
-	g_object_set(cell, "text", tmpstr, (void *) 0);
+	value = zero_value;
+	gtk_tree_model_get_value(model, iter, 0, &value);
+	data = g_value_get_pointer(&value);
+	switch (GPOINTER_TO_UINT(udata)) {
+	case c_us_filename:
+		text = data->filename;
+		break;
+	case c_us_size:
+		text = short_size(data->us->size, show_metric_units());
+		break;
+	case c_us_attempts:
+		gm_snprintf(buf, sizeof buf, "%u", data->us->attempts);
+		text = buf;
+		break;
+	case c_us_complete:
+		gm_snprintf(buf, sizeof buf, "%u", data->us->complete);
+		text = buf;
+		break;
+	case c_us_norm:
+		gm_snprintf(buf, sizeof buf, "%1.3f", data->us->norm);
+		text = buf;
+		break;
+	}
+	g_object_set(cell, "text", text, (void *) 0);
 }
 
 /**
@@ -173,10 +165,11 @@ cell_render_norm_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
  */
 static void
 add_column(
-    GtkTreeView *tree,
+    GtkTreeView *tv,
 	gint column_id,
 	const gchar *title,
 	gfloat xalign,
+	GtkTreeIterCompareFunc sortfunc,
 	GtkTreeCellDataFunc cell_data_func)
 {
     GtkTreeViewColumn *column;
@@ -184,15 +177,13 @@ add_column(
 
 	g_assert(column_id >= 0);
 	g_assert(column_id <= c_us_num);
-	g_assert(tree != NULL);
+	g_assert(tv);
 
 	renderer = gtk_cell_renderer_text_new();
-   	column = gtk_tree_view_column_new_with_attributes(
-		title, renderer, "text", column_id, NULL);
-	if (cell_data_func != NULL) {
-		gtk_tree_view_column_set_cell_data_func(column, renderer,
+   	column = gtk_tree_view_column_new_with_attributes(title, renderer,
+				(void *) 0);
+	gtk_tree_view_column_set_cell_data_func(column, renderer,
 			cell_data_func, GINT_TO_POINTER(column_id), NULL);
-	}
 
 	g_object_set(renderer,
 		"xalign", xalign,
@@ -207,7 +198,10 @@ add_column(
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		(void *) 0);
    	gtk_tree_view_column_set_sort_column_id(column, column_id);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(tv), column);
+	gtk_tree_sortable_set_sort_func(
+		GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)),
+		column_id, sortfunc, NULL, NULL);
 }
 
 /**
@@ -225,31 +219,87 @@ add_column(
  * parameters.
  *
  */
-static struct ul_stats *
-upload_stats_gui_find(
-	const gchar *name,
-	guint64 size,
-	GtkTreeModel *model,
-	GtkTreeIter *iter)
+static struct upload_data *
+upload_stats_gui_find(const struct ul_stats *us)
 {
-	gboolean valid;
-
-	g_assert(name != NULL);
-	g_assert(iter != NULL);
-	g_assert(model != NULL);
-
-	valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(model), iter);
-	while (valid) {
-		struct ul_stats *us = NULL;
-
-		gtk_tree_model_get(GTK_TREE_MODEL(model), iter, c_us_stat, &us, (-1));
-		if (us->size == size && 0 == strcmp(us->filename, name)) {
-			return us;
-		}
-		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(model), iter);
-	}
-	return NULL;
+	return g_hash_table_lookup(ht_uploads, us);
 }
+
+static inline struct upload_data *
+get_upload_data(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+
+	gtk_tree_model_get_value(model, iter, 0, &value);
+	return g_value_get_pointer(&value);
+}
+
+static gint
+upload_stats_gui_cmp_filename(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct upload_data *d1, *d2;
+	
+	(void) unused_udata;
+	
+	d1 = get_upload_data(model, a);
+	d2 = get_upload_data(model, b);
+	return strcmp(d1->filename, d2->filename);
+}
+
+static gint
+upload_stats_gui_cmp_size(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct upload_data *d1, *d2;
+	
+	(void) unused_udata;
+	
+	d1 = get_upload_data(model, a);
+	d2 = get_upload_data(model, b);
+	return CMP(d1->us->size, d2->us->size);
+}
+
+static gint
+upload_stats_gui_cmp_norm(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct upload_data *d1, *d2;
+
+	(void) unused_udata;
+
+	d1 = get_upload_data(model, a);
+	d2 = get_upload_data(model, b);
+	return CMP(d1->us->norm, d2->us->norm);
+}
+
+static gint
+upload_stats_gui_cmp_attempts(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct upload_data *d1, *d2;
+
+	(void) unused_udata;
+	
+	d1 = get_upload_data(model, a);
+	d2 = get_upload_data(model, b);
+	return CMP(d1->us->attempts, d2->us->attempts);
+}
+
+static gint
+upload_stats_gui_cmp_complete(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct upload_data *d1, *d2;
+
+	(void) unused_udata;
+	
+	d1 = get_upload_data(model, a);
+	d2 = get_upload_data(model, b);
+	return CMP(d1->us->complete, d2->us->complete);
+}
+
 
 /**
  * Initialize the upload statistics GUI.
@@ -263,16 +313,16 @@ static void
 upload_stats_gui_init_intern(gboolean intern)
 {
 	static const struct {
-		const gint id;
+		const guint id;
 		const gchar * const title;
 		const gfloat align;
-		const GtkTreeCellDataFunc func;
+		const GtkTreeIterCompareFunc func;
 	} columns[] = {
-		{ c_us_filename, N_("Filename"),   0.0, NULL },
-		{ c_us_size,	 N_("Size"),	   1.0, cell_render_size_func },
-		{ c_us_attempts, N_("Attempts"),   1.0, NULL },
-		{ c_us_complete, N_("Complete"),   1.0, NULL },
-    	{ c_us_norm, 	 N_("Normalized"), 1.0, cell_render_norm_func }
+		{ c_us_filename, N_("Filename"),   0.0, upload_stats_gui_cmp_filename },
+		{ c_us_size,	 N_("Size"),	   1.0, upload_stats_gui_cmp_size },
+		{ c_us_attempts, N_("Attempts"),   1.0, upload_stats_gui_cmp_attempts },
+		{ c_us_complete, N_("Complete"),   1.0, upload_stats_gui_cmp_complete },
+    	{ c_us_norm, 	 N_("Normalized"), 1.0, upload_stats_gui_cmp_norm },
 	};
 	static gboolean initialized = FALSE;
 	GtkTreeModel *model;
@@ -281,14 +331,10 @@ upload_stats_gui_init_intern(gboolean intern)
 	STATIC_ASSERT(G_N_ELEMENTS(columns) == UPLOAD_STATS_GUI_VISIBLE_COLUMNS);
 
 	if (!initialized) {
+		initialized = TRUE;
+		ht_uploads = g_hash_table_new(NULL, NULL);
     	popup_upload_stats = create_popup_upload_stats();
-		model = GTK_TREE_MODEL(gtk_list_store_new(c_us_num,
-			G_TYPE_STRING,		/* Filename (UTF-8 encoded) */
-			G_TYPE_UINT,		/* Size */
-			G_TYPE_UINT,		/* Attempts */
-			G_TYPE_UINT,		/* Completed */
-			G_TYPE_FLOAT,		/* Normalized */
-			G_TYPE_POINTER)); 	/* struct ul_stats */
+		model = GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_POINTER));
 		upload_stats_treeview = GTK_TREE_VIEW(
 			gui_main_window_lookup("treeview_ul_stats"));
 		gtk_tree_view_set_model(upload_stats_treeview, model);
@@ -299,15 +345,14 @@ upload_stats_gui_init_intern(gboolean intern)
 				columns[i].id,
 				_(columns[i].title),
 				columns[i].align,
-				columns[i].func);
+				columns[i].func,
+				cell_renderer_func);
 		}
 
 		g_signal_connect(GTK_OBJECT(upload_stats_treeview),
 			"button_press_event",
 			G_CALLBACK(on_button_press_event),
 			NULL);
-
-		initialized = TRUE;
 	}
 
 	if (!intern) {
@@ -338,27 +383,28 @@ upload_stats_gui_init_intern(gboolean intern)
 void
 upload_stats_gui_add(const struct ul_stats *us)
 {
+	struct upload_data *data;
     GtkListStore *store;
-	GtkTreeIter iter;
 	gchar *filename;
 
 	g_assert(us != NULL);
 
-	filename = filename_to_utf8_normalized(us->filename, UNI_NORM_GUI);
-
 	upload_stats_gui_init_intern(TRUE);
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
-	gtk_list_store_append(store, &iter);
-	gtk_list_store_set(store, &iter,
-		c_us_filename, filename,
-		c_us_attempts, us->attempts,
-		c_us_complete, us->complete,
-		c_us_size, (guint) us->size,
-		c_us_norm, (gfloat) us->norm,
-		c_us_stat, us,
-		(-1));
-	
+	g_return_if_fail(store);
+	g_return_if_fail(NULL == g_hash_table_lookup(ht_uploads, us));
+
+	data = walloc(sizeof *data);
+	data->us = us;
+
+	filename = filename_to_utf8_normalized(us->filename, UNI_NORM_GUI);
+	data->filename = atom_str_get(filename);
 	G_FREE_NULL(filename);
+
+	gm_hash_table_insert_const(ht_uploads, data->us, data);
+
+	gtk_list_store_append(store, &data->iter);
+    gtk_list_store_set(store, &data->iter, 0, data, (-1));
 }
 
 void
@@ -375,22 +421,38 @@ upload_stats_gui_init(void)
  *
  */
 void
-upload_stats_gui_update(const gchar *name, guint64 size)
+upload_stats_gui_update(const struct ul_stats *us)
 {
 	GtkListStore *store;
-	GtkTreeIter iter;
-	struct ul_stats *us;
+	struct upload_data *data;
 
-	g_assert(name != NULL);
+	g_assert(us);
+
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
-	g_assert(store != NULL);
-	us = upload_stats_gui_find(name, size, GTK_TREE_MODEL(store), &iter);
-	g_assert(us != NULL);
-	gtk_list_store_set(store, &iter,
-		c_us_attempts, (guint) us->attempts,
-		c_us_complete, (guint) us->complete,
-		c_us_norm, (gfloat) us->norm,
-		(-1));
+	g_return_if_fail(store);
+
+	data = upload_stats_gui_find(us);
+	if (data) {
+    	gtk_list_store_set(store, &data->iter, 0, data, (-1));
+	} else {
+		upload_stats_gui_add(us);
+	}
+}
+
+static gboolean
+free_upload_data(gpointer unused_key, gpointer value, gpointer unused_data)
+{
+	struct upload_data *data = value;
+
+	(void) unused_key;
+	(void) unused_data;
+	g_assert(data->us);
+	g_assert(data->filename);
+
+	data->us = NULL;
+	atom_str_free_null(&data->filename);
+	wfree(data, sizeof *data);
+	return TRUE;
 }
 
 /**
@@ -403,8 +465,14 @@ upload_stats_gui_clear_all(void)
 	GtkListStore *store;
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
-	g_assert(store != NULL);
-	gtk_list_store_clear(store);
+	if (store) {
+		gtk_list_store_clear(store);
+	}
+	if (ht_uploads) {
+		g_hash_table_foreach_remove(ht_uploads, free_upload_data, NULL);
+		g_hash_table_destroy(ht_uploads);
+		ht_uploads = g_hash_table_new(NULL, NULL);
+	}
 }
 
 void
@@ -412,6 +480,7 @@ upload_stats_gui_shutdown(void)
 {
 	tree_view_save_widths(upload_stats_treeview, PROP_UL_STATS_COL_WIDTHS);
 	tree_view_save_visibility(upload_stats_treeview, PROP_UL_STATS_COL_VISIBLE);
+	upload_stats_gui_clear_all();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

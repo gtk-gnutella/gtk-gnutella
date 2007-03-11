@@ -59,8 +59,8 @@
 #define	gui_update_files_scanned()
 #define	gui_allow_rescan_dir(flag) ((void) flag)
 #define search_gui_new_search(query, flags, x) (query && flags) ? FALSE : FALSE
-#define upload_stats_gui_add(stat) ((void) stat)
-#define upload_stats_gui_update(name, size) ((void) name, (void) size)
+#define upload_stats_gui_add(s) ((void) s)
+#define upload_stats_gui_update(s) ((void) s)
 #define	upload_stats_gui_clear_all()
 #define statusbar_gui_warning(sec, fmt, message) g_message((fmt), (message))
 #define statusbar_gui_message(sec, fmt, message) g_message((fmt), (message))
@@ -189,15 +189,15 @@ gcu_search_gui_new_search(const gchar *query, flag_t flags)
 
 /*	upload interface functions (CORE -> UI)*/
 void
-gcu_upload_stats_gui_add(struct ul_stats *s)
+gcu_upload_stats_gui_add(const struct ul_stats *s)
 {
 	upload_stats_gui_add(s);
 }
 
 void
-gcu_upload_stats_gui_update(const gchar *name, guint64 size)
+gcu_upload_stats_gui_update(const struct ul_stats *s)
 {
-	upload_stats_gui_update(name, size);
+	upload_stats_gui_update(s);
 }
 
 void

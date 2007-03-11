@@ -57,7 +57,6 @@
 #include "if/core/search.h"
 #include "if/core/share.h"
 #include "if/core/settings.h"
-#include "if/core/upload_stats.h"
 #include "if/core/uploads.h"
 #include "if/core/upload_stats.h"
 #include "if/core/version.h"

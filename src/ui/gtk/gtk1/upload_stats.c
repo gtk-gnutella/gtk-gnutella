@@ -122,7 +122,7 @@ upload_stats_gui_shutdown(void)
 }
 
 void
-upload_stats_gui_add(struct ul_stats *s)
+upload_stats_gui_add(const struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
 	const gchar *rowdata[5];
@@ -132,13 +132,13 @@ upload_stats_gui_add(struct ul_stats *s)
 	gchar complete_tmp[16];
 	gchar norm_tmp[16];
 
-	g_strlcpy(size_tmp, short_size(s->size, show_metric_units()),
+	g_strlcpy(size_tmp, short_size(us->size, show_metric_units()),
 		sizeof size_tmp);
-	gm_snprintf(attempts_tmp, sizeof attempts_tmp, "%u", s->attempts);
-	gm_snprintf(complete_tmp, sizeof complete_tmp, "%u", s->complete);
-	gm_snprintf(norm_tmp, sizeof norm_tmp, "%.3f", s->norm);
+	gm_snprintf(attempts_tmp, sizeof attempts_tmp, "%u", us->attempts);
+	gm_snprintf(complete_tmp, sizeof complete_tmp, "%u", us->complete);
+	gm_snprintf(norm_tmp, sizeof norm_tmp, "%.3f", us->norm);
 
-	rowdata[c_us_filename] = s->filename;
+	rowdata[c_us_filename] = us->filename;
 	rowdata[c_us_size] = size_tmp;
 	rowdata[c_us_attempts] = attempts_tmp;
 	rowdata[c_us_complete] = complete_tmp;
@@ -147,7 +147,7 @@ upload_stats_gui_add(struct ul_stats *s)
     row = gtk_clist_insert(clist, 0, deconstify_gpointer(rowdata));
 	ul_rows++;
 
-	gtk_clist_set_row_data_full(clist, row, s, NULL);
+	gtk_clist_set_row_data_full(clist, row, deconstify_gpointer(us), NULL);
 
     /* FIXME: should use auto_sort? */
 	gtk_clist_sort(clist);
@@ -158,7 +158,7 @@ upload_stats_gui_add(struct ul_stats *s)
  * Called when a row of the upload stats should be updated
  */
 void
-upload_stats_gui_update(const gchar *name, guint64 size)
+upload_stats_gui_update(const struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
 	gint row;
@@ -166,7 +166,7 @@ upload_stats_gui_update(const gchar *name, guint64 size)
 	static gchar tmpstr[16];
 
 	/* find this file in the clist_ul_stats */
-	row = ul_find_row_by_upload(name, size, &s);
+	row = ul_find_row_by_upload(us->filename, us->size, &s);
 	if (-1 == row) {
 		g_assert_not_reached();
 		return;

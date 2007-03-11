@@ -88,7 +88,7 @@ ul_stats_hash(gconstpointer p)
 {
 	const struct ul_stats *s = p;
   
-	return ((size_t) s->filename >> 3) ^ s->size;
+	return g_str_hash(s->filename) ^ s->size;
 }
 
 static struct ul_stats *
@@ -325,7 +325,7 @@ upload_stats_file_begin(const struct shared_file *sf)
 		upload_stats_add(name, size, 1, 0, 0);
 	} else {
 		s->attempts++;
-		gcu_upload_stats_gui_update(name, size);
+		gcu_upload_stats_gui_update(s);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
@@ -357,7 +357,7 @@ upload_stats_file_add(const gchar *name, filesize_t size,
 		s->bytes_sent += sent;
 		s->norm = (gfloat) s->bytes_sent / (gfloat) s->size;
 		s->complete += comp;
-		gcu_upload_stats_gui_update(name, size);
+		gcu_upload_stats_gui_update(s);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
@@ -376,7 +376,6 @@ upload_stats_file_aborted(const struct shared_file *sf, filesize_t done)
 		filesize_t size = shared_file_size(sf);
 
 		upload_stats_file_add(name, size, 0, done);
-		gcu_upload_stats_gui_update(name, size);
 	}
 }
 
