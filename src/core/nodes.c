@@ -99,7 +99,6 @@ RCSID("$Id$")
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/header.h"
-#include "lib/idtable.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
