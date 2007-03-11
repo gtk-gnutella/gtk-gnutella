@@ -63,21 +63,33 @@ RCSID("$Id$")
  */
 #define PROXY_EXPIRE_MS		(11*60*1000)	/**< 11 minutes at most */
 
+typedef enum oob_proxy_rec_magic {
+	OOB_PROXY_REC_MAGIC = 0xe3c9bc13U
+} oob_proxy_rec_magic_t;
+
 /**
  * Record keeping track of the MUID remappings happening for the proxied
  * OOB queries.
  */
 struct oob_proxy_rec {
+	oob_proxy_rec_magic_t magic;
 	const gchar *leaf_muid;		/**< Original MUID, set by leaf (atom) */
 	const gchar *proxied_muid;	/**< Proxied MUID (atom) */
 	node_id_t node_id;			/**< The ID of the node leaf */
 	cevent_t *expire_ev;		/**< Expire event, to clear this record */
 };
 
+static void
+oob_proxy_rec_check(const struct oob_proxy_rec * const opr)
+{
+	g_assert(opr);
+	g_assert(OOB_PROXY_REC_MAGIC == opr->magic);
+}
+
 /**
  * Table recording the proxied OOB query MUID.
  */
-static GHashTable *proxied_queries = NULL;	/* New MUID => oob_proxy_rec */
+static GHashTable *proxied_queries;	/* New MUID => oob_proxy_rec */
 
 /*
  * High-level description of what's happening here.
@@ -104,14 +116,15 @@ static GHashTable *proxied_queries = NULL;	/* New MUID => oob_proxy_rec */
  */
 static struct oob_proxy_rec *
 oob_proxy_rec_make(
-	const gchar *leaf_muid, const gchar *proxied_muid, node_id_t node_id)
+	const gchar *leaf_muid, const gchar *proxied_muid, const node_id_t node_id)
 {
 	struct oob_proxy_rec *opr;
 
 	opr = walloc0(sizeof(*opr));
+	opr->magic = OOB_PROXY_REC_MAGIC;
 	opr->leaf_muid = atom_guid_get(leaf_muid);
 	opr->proxied_muid = atom_guid_get(proxied_muid);
-	opr->node_id = node_id;
+	opr->node_id = node_id_ref(node_id);
 
 	return opr;
 }
@@ -122,9 +135,12 @@ oob_proxy_rec_make(
 static void
 oob_proxy_rec_free(struct oob_proxy_rec *opr)
 {
+	oob_proxy_rec_check(opr);
 	cq_cancel(callout_queue, &opr->expire_ev);
 	atom_guid_free_null(&opr->leaf_muid);
 	atom_guid_free_null(&opr->proxied_muid);
+	node_id_unref(opr->node_id);
+	opr->magic = 0;
 	wfree(opr, sizeof(*opr));
 }
 
@@ -135,6 +151,7 @@ oob_proxy_rec_free(struct oob_proxy_rec *opr)
 static void
 oob_proxy_rec_free_remove(struct oob_proxy_rec *opr)
 {
+	oob_proxy_rec_check(opr);
 	g_hash_table_remove(proxied_queries, opr->proxied_muid);
 	oob_proxy_rec_free(opr);
 }
@@ -145,9 +162,10 @@ oob_proxy_rec_free_remove(struct oob_proxy_rec *opr)
 static void
 oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 {
-	struct oob_proxy_rec *opr = (struct oob_proxy_rec *) obj;
+	struct oob_proxy_rec *opr = obj;
 
 	(void) unused_cq;
+	oob_proxy_rec_check(opr);
 
 	if (query_debug || oob_proxy_debug)
 		g_message("OOB proxied query leaf-MUID=%s proxied-MUID=%s expired",
@@ -244,6 +262,7 @@ oob_proxy_pending_results(
 	if (opr == NULL)
 		return FALSE;
 
+	oob_proxy_rec_check(opr);
 	/*
 	 * OOB query is still alive, delay its expiration time.
 	 */
@@ -375,6 +394,7 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
 	if (opr == NULL)
 		return FALSE;
 
+	oob_proxy_rec_check(opr);
 	/*
 	 * Delay the expiration timer: we still get results for the proxied query.
 	 */
@@ -457,7 +477,12 @@ oob_proxy_muid_proxied(const gchar *muid)
 	const struct oob_proxy_rec *opr;
 	
 	opr = g_hash_table_lookup(proxied_queries, muid);
-	return opr ? opr->leaf_muid : NULL;
+	if (opr) {
+		oob_proxy_rec_check(opr);
+		return opr->leaf_muid;
+	} else {
+		return NULL;
+	}
 }
 
 /**
@@ -475,10 +500,11 @@ oob_proxy_init(void)
 static void
 free_oob_proxy_kv(gpointer uu_key, gpointer value, gpointer uu_udata)
 {
-	struct oob_proxy_rec *opr = (struct oob_proxy_rec *) value;
+	struct oob_proxy_rec *opr = value;
 
 	(void) uu_key;
 	(void) uu_udata;
+	oob_proxy_rec_check(opr);
 	oob_proxy_rec_free(opr);
 }
 

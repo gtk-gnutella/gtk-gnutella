@@ -443,7 +443,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	if (!host_is_valid(tn->addr, tn->port))
 		return;
 
-	tsync_send(tn, n->id);
+	tsync_send(tn, NODE_ID(n));
 
 	/*
 	 * Next sync will occur in NODE_TSYNC_PERIOD_MS milliseconds.
@@ -483,7 +483,7 @@ node_tsync_tcp(gnutella_node_t *n)
 	g_assert(!NODE_IS_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
-	tsync_send(n, n->id);
+	tsync_send(n, NODE_ID(n));
 }
 
 /***
@@ -1182,33 +1182,68 @@ node_timer(time_t now)
 	sq_process(sq_global_queue(), now);
 }
 
+static inline guint64
+node_id_value(const node_id_t node_id)
+{
+	return *(const guint64 *) node_id;
+}
+	
+gboolean
+node_id_self(const node_id_t node_id)
+{
+	return 0 == node_id_value(node_id);
+}
+
+static const guint64 NODE_SELF_ID;
+
+node_id_t
+node_id_get_self(void)
+{
+	return (node_id_t) &NODE_SELF_ID;
+}
+
 guint
 node_id_hash(gconstpointer key)
 {
-	const node_id_t *p = key;
+	node_id_t p = key;
 	return uint64_hash(p);
 }
 
 gboolean
-node_id_eq(gconstpointer a, gconstpointer b)
+node_id_eq(const node_id_t p, const node_id_t q)
 {
-	const node_id_t *p = a, *q = b;
-	return uint64_eq(p, q);
+	guint64 a = node_id_value(p), b = node_id_value(q);
+	return uint64_eq(&a, &b);
 }
 
 const gchar *
-node_id_to_string(node_id_t node_id)
+node_id_to_string(const node_id_t node_id)
 {
 	static gchar buf[UINT64_DEC_BUFLEN];
-	uint64_to_string_buf(node_id, buf, sizeof buf);
+	uint64_to_string_buf(node_id_value(node_id), buf, sizeof buf);
 	return buf; 
 }
 
-static node_id_t
-node_id_generate(void)
+node_id_t
+node_id_ref(const node_id_t node_id)
 {
-	static node_id_t node_id = NODE_ID_SELF;
-	return ++node_id;
+	return (node_id_t) atom_uint64_get((guint64 *) node_id);
+}
+
+void
+node_id_unref(const node_id_t node_id)
+{
+	g_assert(node_id != node_id_get_self());
+	atom_uint64_free((const guint64 *) node_id);
+}
+
+static node_id_t
+node_id_new(void)
+{
+	static guint64 node_id;
+
+	node_id++;
+	return node_id_ref((node_id_t) &node_id);
 }
 
 /**
@@ -1235,7 +1270,7 @@ node_init(void)
 
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
-	nodes_by_id        = g_hash_table_new(node_id_hash, node_id_eq);
+	nodes_by_id        = g_hash_table_new(node_id_hash, node_id_eq_func);
 	nodes_by_guid      = g_hash_table_new(guid_hash, guid_eq);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
@@ -1265,16 +1300,6 @@ node_init(void)
 	 */
 
 	header_features_add(FEATURES_CONNECTIONS, "sflag", 0, 1);
-}
-
-/**
- * Post GUI initialization.
- */
-void
-node_post_init(void)
-{
-	if (udp_active())
-		node_udp_enable();
 }
 
 /**
@@ -1495,7 +1520,7 @@ node_real_remove(gnutella_node_t *n)
 	sl_nodes = g_slist_remove(sl_nodes, n);
 	sl_nodes_without_broken_gtkg =
 		g_slist_remove(sl_nodes_without_broken_gtkg, n);
-	g_hash_table_remove(nodes_by_id, &n->id);
+	g_hash_table_remove(nodes_by_id, NODE_ID(n));
     node_drop_handle(n->node_handle);
 
 	/*
@@ -1553,6 +1578,9 @@ node_real_remove(gnutella_node_t *n)
 
 	if (n->alive_pings)			/* Must be freed after the TX stack */
 		alive_free(n->alive_pings);
+
+	node_id_unref(NODE_ID(n));
+	n->id = NULL;
 
 	n->magic = 0;
 	wfree(n, sizeof(*n));
@@ -1715,7 +1743,8 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 			hsep_connection_close(n);
 		}
 		if (NODE_IS_LEAF(n)) {
-			dq_node_removed(n->id);	/* Purge dynamic queries for that node */
+			/* Purge dynamic queries for that node */
+			dq_node_removed(NODE_ID(n));
 		}
 		node_fire_node_info_changed(n);
 		node_fire_node_flags_changed(n);
@@ -5521,7 +5550,7 @@ node_browse_create(void)
 
 	n = node_alloc();
     n->node_handle = node_request_handle(n);
-    n->id = node_id_generate();
+    n->id = node_id_new();
 	n->proto_major = 0;
 	n->proto_minor = 6;
 	n->peermode = NODE_P_LEAF;
@@ -5589,7 +5618,7 @@ node_udp_create(enum net_type net)
 	n = node_alloc();
 	n->addr = listen_addr_by_net(net);
     n->node_handle = node_request_handle(n);
-    n->id = node_id_generate();
+    n->id = node_id_new();
 	n->port = listen_port;
 	n->proto_major = 0;
 	n->proto_minor = 6;
@@ -5646,10 +5675,6 @@ node_udp_enable_by_net(enum net_type net)
 	node_check(n);
 	g_assert(s != NULL);
 
-#if 0
-	g_assert(NULL == n->socket);
-#endif
-
 	socket_check(s);
 	n->socket = s;
 
@@ -5705,7 +5730,7 @@ node_udp_disable_by_net(enum net_type net)
 	n->socket = NULL;
 }
 
-void
+static void
 node_udp_enable(void)
 {
 	if (s_udp_listen)
@@ -5985,7 +6010,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
 	n = node_alloc();
     n->node_handle = node_request_handle(n);
-    n->id = node_id_generate();
+    n->id = node_id_new();
 	n->addr = addr;
 	n->port = port;
 	n->proto_major = major;
@@ -6070,7 +6095,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
-	g_hash_table_insert(nodes_by_id, &n->id, n);
+	gm_hash_table_insert_const(nodes_by_id, NODE_ID(n), n);
 
 	if (n->status != GTA_NODE_REMOVING)
         node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
@@ -8801,36 +8826,47 @@ node_all_but_broken_gtkg(void)
 	return (const GSList *) sl_nodes_without_broken_gtkg;
 }
 
+/**
+ * @return writable node given its ID, or NULL if we can't reach that node.
+ */
+gnutella_node_t *
+node_by_id(const node_id_t node_id)
+{
+	gnutella_node_t *n;
+	
+	g_return_val_if_fail(!node_id_self(node_id), NULL);
+	n = g_hash_table_lookup(nodes_by_id, node_id);
+	if (n) {
+		node_check(n);
+	}
+	return n;	
+}
 
 /**
  * @return writable node given its ID, or NULL if we can't reach that node.
  */
 gnutella_node_t *
-node_active_by_id(node_id_t node_id)
+node_active_by_id(const node_id_t node_id)
 {
 	gnutella_node_t *n;
 
-	g_return_val_if_fail(NODE_ID_SELF != node_id, NULL);
-
-	n = g_hash_table_lookup(nodes_by_id, &node_id);
-	if (n) {
-		node_check(n);
-		return NODE_IS_WRITABLE(n) ? n : NULL;
-	} else {
-		return NULL;
-	}
+	n = node_by_id(node_id);
+	return (n && NODE_IS_WRITABLE(n)) ? n : NULL;
 }
 
 /**
  * Set leaf-guidance support indication from give node ID.
  */
 void
-node_set_leaf_guidance(node_id_t id, gboolean supported)
+node_set_leaf_guidance(const node_id_t id, gboolean supported)
 {
 	gnutella_node_t *n;
 
 	n = node_active_by_id(id);
+
 	if (n != NULL) {
+		g_return_if_fail(!NODE_IS_UDP(n));
+
 		if (supported)
 			n->attrs |= NODE_A_GUIDANCE;		/* Record support */
 		else
@@ -9392,6 +9428,16 @@ node_peermode_to_string(node_peer_t m)
 	}
 
 	return _("Unknown");
+}
+
+/**
+ * Post GUI initialization.
+ */
+void
+node_post_init(void)
+{
+	if (udp_active())
+		node_udp_enable();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

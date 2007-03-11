@@ -91,7 +91,10 @@ struct node_rxfc_mon {
 #define PING_REG_THROTTLE		3		/**< seconds, regular peer */
 #define PING_LEAF_THROTTLE		60		/**< seconds, peer is leaf node */
 
-typedef guint64 node_id_t;
+struct node_id;
+typedef const struct node_id *node_id_t;
+
+#define NODE_ID_SELF (node_id_get_self())
 
 typedef struct gnutella_node {
 	node_magic_t magic;			/**< Magic value for consistency checks */
@@ -487,8 +490,6 @@ enum {
 #define GNUTELLA_HELLO "GNUTELLA CONNECT/"
 #define GNUTELLA_HELLO_LENGTH	(sizeof(GNUTELLA_HELLO) - 1)
 
-#define NODE_ID_SELF	((node_id_t) 0)	/**< ID for "our node" (ourselves) */
-
 extern const gchar *start_rfc822_date;
 
 extern GHookList node_added_hook_list;
@@ -578,18 +579,21 @@ GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
 const GSList *node_all_but_broken_gtkg(void);
 
-guint node_id_hash(gconstpointer key);
-gboolean node_id_eq(gconstpointer a, gconstpointer b);
-const gchar *node_id_to_string(node_id_t node_id);
-gnutella_node_t *node_active_by_id(node_id_t id);
-void node_set_leaf_guidance(node_id_t id, gboolean supported);
+guint node_id_hash(gconstpointer node_id);
+
+#define node_id_eq_func ((GCompareFunc) node_id_eq)
+
+gboolean node_id_eq(const node_id_t a, const node_id_t b);
+const gchar *node_id_to_string(const node_id_t node_id);
+gnutella_node_t *node_by_id(const node_id_t node_id);
+gnutella_node_t *node_active_by_id(const node_id_t node_id);
+void node_set_leaf_guidance(const node_id_t node_id, gboolean supported);
 
 void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
-void node_udp_enable(void);
 void node_udp_disable(void);
 void node_udp_process(struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, guint16 port);
@@ -609,12 +613,16 @@ gnutella_node_t *node_browse_prepare(
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 
+node_id_t node_id_get_self(void);
+gboolean node_id_self(const node_id_t node_id);
+node_id_t node_id_ref(const node_id_t node_id);
+void node_id_unref(const node_id_t node_id);
+
 static inline void
 node_check(const struct gnutella_node * const n)
 {
 	g_assert(n);
 	g_assert(NODE_MAGIC == n->magic);
-	g_assert(NODE_ID_SELF != n->id);
 }
 
 static inline const gchar *

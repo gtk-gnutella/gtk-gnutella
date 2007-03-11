@@ -470,28 +470,39 @@ mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
  *** Management of the "sent_node_ids" hash table.
  ***/
 
+static gboolean
+free_node_id(gpointer key, gpointer value, gpointer unused_udata)
+{
+	const node_id_t node_id = key;
+
+	g_assert(key == value);
+	(void) unused_udata;
+	node_id_unref(node_id);
+	return TRUE;
+}
+
 static void
 search_free_sent_node_ids(search_ctrl_t *sch)
 {
+	g_hash_table_foreach_remove(sch->sent_node_ids, free_node_id, NULL);
 	g_hash_table_destroy(sch->sent_node_ids);
+	sch->sent_node_ids = NULL;
 }
 
 static void
 search_reset_sent_node_ids(search_ctrl_t *sch)
 {
 	search_free_sent_node_ids(sch);
-	sch->sent_node_ids = g_hash_table_new(NULL, NULL);
+	sch->sent_node_ids = g_hash_table_new(node_id_hash, node_id_eq_func);
 }
 
 static void
-mark_search_sent_to_node_id(search_ctrl_t *sch, guint32 node_id)
+mark_search_sent_to_node_id(search_ctrl_t *sch, const node_id_t node_id)
 {
-	gpointer key = GUINT_TO_POINTER(node_id);
-
-	if (g_hash_table_lookup(sch->sent_node_ids, key))
-		return;
-
-	g_hash_table_insert(sch->sent_node_ids, key, GUINT_TO_POINTER(1));
+	if (NULL == g_hash_table_lookup(sch->sent_node_ids, node_id)) {
+		const node_id_t key = node_id_ref(node_id);
+		gm_hash_table_insert_const(sch->sent_node_ids, key, key);
+	}
 }
 
 /**
@@ -2540,7 +2551,8 @@ search_alive(search_ctrl_t *sch, guint32 id)
  * marker to indicate the search was closed.
  */
 static void
-search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
+search_send_query_status(search_ctrl_t *sch,
+	const node_id_t node_id, guint16 kept)
 {
 	struct gnutella_node *n;
 
@@ -2578,8 +2590,8 @@ search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
 static void
 search_send_status(gpointer key, gpointer unused_value, gpointer udata)
 {
-	guint node_id = GPOINTER_TO_UINT(key);
-	search_ctrl_t *sch = (search_ctrl_t *) udata;
+	const node_id_t node_id = key;
+	search_ctrl_t *sch = udata;
 	guint16 kept;
 
 	(void) unused_value;
@@ -2590,7 +2602,6 @@ search_send_status(gpointer key, gpointer unused_value, gpointer udata)
 	 */
 
 	kept = MIN(sch->kept_results, (CLOSED_SEARCH - 1));
-
 	search_send_query_status(sch, node_id, kept);
 }
 
@@ -2612,7 +2623,7 @@ search_update_results(search_ctrl_t *sch)
 static void
 search_send_closed(gpointer key, gpointer unused_value, gpointer udata)
 {
-	guint node_id = GPOINTER_TO_UINT(key);
+	const node_id_t node_id = key;
 	search_ctrl_t *sch = udata;
 
 	(void) unused_value;
@@ -3004,7 +3015,7 @@ search_get_id(gnet_search_t sh, gpointer *search)
  * specified node ID.
  */
 void
-search_notify_sent(gpointer search, guint32 id, guint32 node_id)
+search_notify_sent(gpointer search, guint32 id, const node_id_t node_id)
 {
 	search_ctrl_t *sch = search;
 
@@ -3474,7 +3485,7 @@ search_new(const gchar *query,
 
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);
-		sch->sent_node_ids = g_hash_table_new(NULL, NULL);
+		sch->sent_node_ids = g_hash_table_new(node_id_hash, node_id_eq_func);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);

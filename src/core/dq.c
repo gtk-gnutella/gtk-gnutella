@@ -313,7 +313,7 @@ dq_kept_results(dquery_t *dq)
 	 * update the amount now.
 	 */
 
-	if (dq->node_id == NODE_ID_SELF)
+	if (node_id_self(dq->node_id))
 		return dq->kept_results = search_get_kept_results_by_handle(dq->sh);
 
 	/*
@@ -383,20 +383,19 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
  * @param node_id the ID of the node to which we send the message
  */
 static struct pmsg_info *
-dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl, node_id_t node_id)
+dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl, const node_id_t node_id)
 {
 	struct pmsg_info *pmi;
-	const node_id_t *node_id_atom;
+	const node_id_t key = node_id_ref(node_id);	
 
 	pmi = walloc(sizeof(*pmi));
-
 	pmi->dq = dq;
 	pmi->qid = dq->qid;
 	pmi->degree = degree;
 	pmi->ttl = ttl;
-	pmi->node_id = node_id;
-	node_id_atom = atom_uint64_get(&node_id);
-	gm_hash_table_insert_const(dq->queried, node_id_atom, node_id_atom);
+	pmi->node_id = node_id_ref(node_id);
+
+	gm_hash_table_insert_const(dq->queried, key, key);
 
 	return pmi;
 }
@@ -407,6 +406,7 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl, node_id_t node_id)
 static void
 dq_pmi_free(struct pmsg_info *pmi)
 {
+	node_id_unref(pmi->node_id);	
 	wfree(pmi, sizeof(*pmi));
 }
 
@@ -450,7 +450,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 	dq->pending--;
 
 	if (!pmsg_was_sent(mb)) {
-		node_id_t *key;
+		node_id_t key;
 
 		/*
 		 * The message was not sent: we need to remove the entry for the
@@ -458,14 +458,14 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		 * make it through the network.
 		 */
 
-		key = g_hash_table_lookup(dq->queried, &pmi->node_id);
+		key = g_hash_table_lookup(dq->queried, pmi->node_id);
 		g_assert(key);		/* Or something is seriously corrupted */
 		g_hash_table_remove(dq->queried, key);
-		atom_uint64_free(key);
+		node_id_unref(key);
 
 		if (dq_debug > 19)
 			g_message("DQ[%d] %snode #%s degree=%d dropped message TTL=%d",
-				dq->qid, dq->node_id == NODE_ID_SELF ? "(local) " : "",
+				dq->qid, node_id_self(dq->node_id) ? "(local) " : "",
 				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl);
 
 		/*
@@ -490,11 +490,11 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		if (dq_debug > 19) {
 			g_message("DQ[%d] %snode #%s degree=%d sent message TTL=%d",
-				dq->qid, dq->node_id == NODE_ID_SELF ? "(local) " : "",
+				dq->qid, node_id_self(dq->node_id) ? "(local) " : "",
 				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl);
 			g_message("DQ[%d] %s(%d secs) queried %d UP%s, "
 				"horizon=%d, results=%d",
-				dq->qid, dq->node_id == NODE_ID_SELF ? "local " : "",
+				dq->qid, node_id_self(dq->node_id) ? "local " : "",
 				(gint) (tm_time() - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
 				dq->horizon, dq->results);
@@ -633,11 +633,11 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 	if (dq->nv != NULL) {
 		gint j;
 
-		old = g_hash_table_new(node_id_hash, node_id_eq);
+		old = g_hash_table_new(node_id_hash, node_id_eq_func);
 
 		for (j = 0; j < dq->nvfound; j++) {
 			struct next_up *nup = &dq->nv[j];
-			g_hash_table_insert(old, &nup->nid, nup);
+			gm_hash_table_insert_const(old, nup->nid, nup);
 		}
 	}
 
@@ -664,7 +664,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 		if (n->received == 0)
 			continue;
 
-		if (g_hash_table_lookup(dq->queried, &n->id))
+		if (g_hash_table_lookup(dq->queried, NODE_ID(n)))
 			continue;
 
 		/*
@@ -692,9 +692,9 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 
 		if (
 			old &&
-			(old_nup = g_hash_table_lookup(old, &n->id))
+			(old_nup = g_hash_table_lookup(old, NODE_ID(n)))
 		) {
-			g_assert(NODE_ID(n) == old_nup->nid);
+			g_assert(node_id_eq(NODE_ID(n), old_nup->nid));
 			g_assert(n == old_nup->node);
 
 			nup->can_route = old_nup->can_route;
@@ -754,6 +754,15 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	g_slist_free(nodes);
 }
 
+static gboolean
+free_node_id(gpointer key, gpointer value, gpointer unused_udata)
+{
+	g_assert(key == value);
+	(void) unused_udata;
+	node_id_unref(key);
+	return TRUE;
+}
+
 /**
  * Release the dynamic query object.
  */
@@ -768,7 +777,7 @@ dq_free(dquery_t *dq)
 	if (dq_debug > 19)
 		g_message("DQ[%d] %s(%d secs; +%d secs) node #%s ending: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d+%d",
-			dq->qid, dq->node_id == NODE_ID_SELF ? "local " : "",
+			dq->qid, node_id_self(dq->node_id) ? "local " : "",
 			(gint) (tm_time() - dq->start),
 			(dq->flags & DQ_F_LINGER) ? (gint) (tm_time() - dq->stop) : 0,
 			node_id_to_string(dq->node_id), dq->ttl, dq->up_sent, dq->horizon,
@@ -788,8 +797,7 @@ dq_free(dquery_t *dq)
 	if (
 		dq->results >= dq->max_results ||
 		(dq->flags & (DQ_F_USR_CANCELLED | DQ_F_ID_CLEANING)) ||
-		dq->kept_results /
-			(dq->node_id == NODE_ID_SELF ? 1 : DQ_AVG_ULTRA_NODES)
+		dq->kept_results / (node_id_self(dq->node_id) ? 1 : DQ_AVG_ULTRA_NODES)
 			>= dq->max_results
 	)
 		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_FULL, 1);
@@ -807,17 +815,8 @@ dq_free(dquery_t *dq)
 			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_RESULTS, 1);
 	}
 
-	{
-		GSList *keys, *iter;
-		
-		keys = gm_hash_table_all_keys(dq->queried);
-		g_hash_table_destroy(dq->queried);
-		GM_SLIST_FOREACH(keys, iter) {
-			node_id_t *node_id = iter->data;
-			atom_uint64_free(node_id);
-		}
-		g_slist_free(keys);
-	}
+	g_hash_table_foreach_remove(dq->queried, free_node_id, NULL);
+	g_hash_table_destroy(dq->queried);
 
 	qhvec_free(dq->qhv);
 
@@ -847,7 +846,7 @@ dq_free(dquery_t *dq)
 	 */
 
 	if (
-		dq->node_id != NODE_ID_SELF &&
+		!node_id_self(dq->node_id) &&
 		!(dq->flags & DQ_F_ID_CLEANING)
 	) {
 		gpointer value;
@@ -855,7 +854,7 @@ dq_free(dquery_t *dq)
 		GSList *list;
 
 		g_assert(0 == (DQ_F_REMOVED & dq->flags));
-		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
+		found = g_hash_table_lookup_extended(by_node_id, dq->node_id,
 					NULL, &value);
 
 		if (!found) {
@@ -867,16 +866,16 @@ dq_free(dquery_t *dq)
 
 		if (list == NULL) {
 			/* Last item removed, get rid of the entry */
-			g_hash_table_remove(by_node_id, &dq->node_id);
-			g_assert(!g_hash_table_lookup_extended(by_node_id, &dq->node_id,
+			g_hash_table_remove(by_node_id, dq->node_id);
+			g_assert(!g_hash_table_lookup_extended(by_node_id, dq->node_id,
 						NULL, NULL));
 			dq->flags |= DQ_F_REMOVED; 
 		} else if (list != value) {
 			dquery_t *key = list->data;
 
 			dquery_check(key);
-			g_hash_table_replace(by_node_id, &key->node_id, list);
-			g_assert(g_hash_table_lookup(by_node_id, &dq->node_id) == list);
+			gm_hash_table_replace_const(by_node_id, key->node_id, list);
+			g_assert(g_hash_table_lookup(by_node_id, dq->node_id) == list);
 		}
 	}
 
@@ -916,12 +915,7 @@ dq_free(dquery_t *dq)
 	pmsg_free(dq->mb);			/* Now that we used the MUID */
 	dq->mb = NULL;
 
-	{
-		gpointer key;
-		
-		if (g_hash_table_lookup_extended(by_node_id, &dq->node_id, &key, NULL))
-			g_assert(&dq->node_id != key);
-	}
+	node_id_unref(dq->node_id);
 	dq->magic = 0;
 	wfree(dq, sizeof(*dq));
 }
@@ -1056,7 +1050,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 		return;
 	}
 
-	g_assert(dq->node_id != NODE_ID_SELF);
+	g_assert(!node_id_self(dq->node_id));
 	g_assert(dq->alive != NULL);
 
 	/*
@@ -1226,7 +1220,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 	struct pmsg_info *pmi;
 	pmsg_t *mb;
 
-	g_assert(!g_hash_table_lookup(dq->queried, &n->id));
+	g_assert(!g_hash_table_lookup(dq->queried, NODE_ID(n)));
 	g_assert(NODE_IS_WRITABLE(n));
 
 	pmi = dq_pmi_alloc(dq, n->degree, MIN(n->max_ttl, ttl), NODE_ID(n));
@@ -1524,7 +1518,7 @@ dq_common_init(dquery_t *dq)
 	gconstpointer head;
 
 	dq->qid = dyn_query_id++;
-	dq->queried = g_hash_table_new(node_id_hash, node_id_eq);
+	dq->queried = g_hash_table_new(node_id_hash, node_id_eq_func);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
 	dq->start = tm_time();
 
@@ -1545,12 +1539,12 @@ dq_common_init(dquery_t *dq)
 	 * If query is not for the local node, insert it in `by_node_id'.
 	 */
 
-	if (dq->node_id != NODE_ID_SELF) {
+	if (!node_id_self(dq->node_id)) {
 		gpointer value;
 		gboolean found;
 		GSList *list;
 
-		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
+		found = g_hash_table_lookup_extended(by_node_id, dq->node_id,
 					NULL, &value);
 
 		if (found) {
@@ -1559,8 +1553,8 @@ dq_common_init(dquery_t *dq)
 			g_assert(list == value);		/* Head not changed */
 		} else {
 			list = g_slist_prepend(NULL, dq);
-			g_hash_table_replace(by_node_id, &dq->node_id, list);
-			g_assert(g_hash_table_lookup(by_node_id, &dq->node_id) == list);
+			gm_hash_table_replace_const(by_node_id, dq->node_id, list);
+			g_assert(g_hash_table_lookup(by_node_id, dq->node_id) == list);
 		}
 	}
 
@@ -1722,7 +1716,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	)
 		dq->flags |= DQ_F_ROUTING_HITS;
 
-	dq->node_id = NODE_ID(n);
+	dq->node_id = node_id_ref(NODE_ID(n));
 	dq->mb = gmsg_split_to_pmsg(&n->header, n->data, n->size + GTA_HEADER_SIZE);
 	dq->qhv = qhvec_clone(qhv);
 	if (qhvec_has_urn(qhv))
@@ -1787,7 +1781,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq = walloc0(sizeof(*dq));
 	dq->magic = DQUERY_MAGIC;
 
-	dq->node_id = NODE_ID_SELF;
+	dq->node_id = node_id_ref(NODE_ID_SELF);
 	dq->mb = mb;
 	dq->qhv = qhv;
 	dq->sh = handle;
@@ -1812,16 +1806,16 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
  * Get rid of all the queries registered for that node.
  */
 void
-dq_node_removed(node_id_t node_id)
+dq_node_removed(const node_id_t node_id)
 {
 	gpointer value;
 	GSList *sl;
 
-	if (!g_hash_table_lookup_extended(by_node_id, &node_id, NULL, &value))
+	if (!g_hash_table_lookup_extended(by_node_id, node_id, NULL, &value))
 		return;		/* No dynamic query for this node */
 
-	g_hash_table_remove(by_node_id, &node_id);
-	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, NULL, NULL));
+	g_hash_table_remove(by_node_id, node_id);
+	g_assert(!g_hash_table_lookup_extended(by_node_id, node_id, NULL, NULL));
 
 	GM_SLIST_FOREACH(value, sl) {
 		dquery_t *dq = sl->data;
@@ -1836,7 +1830,7 @@ dq_node_removed(node_id_t node_id)
 		dq_free(dq);
 	}
 
-	g_assert(!g_hash_table_lookup_extended(by_node_id, &node_id, NULL, NULL));
+	g_assert(!g_hash_table_lookup_extended(by_node_id, node_id, NULL, NULL));
 	g_slist_free(value);
 }
 
@@ -1894,13 +1888,13 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
 		if (dq_debug > 19) {
 			if (dq->flags & DQ_F_LINGER)
 				g_message("DQ[%d] %s(%d secs; +%d secs) +%d ignored (firewall)",
-					dq->qid, dq->node_id == NODE_ID_SELF ? "local " : "",
+					dq->qid, node_id_self(dq->node_id) ? "local " : "",
 					(gint) (tm_time() - dq->start),
 					(gint) (tm_time() - dq->stop),
 					count);
 			else
 				g_message("DQ[%d] %s(%d secs) +%d ignored (firewall)",
-					dq->qid, dq->node_id == NODE_ID_SELF ? "local " : "",
+					dq->qid, node_id_self(dq->node_id) ? "local " : "",
 					(gint) (tm_time() - dq->start),
 					count);
 		}
@@ -1918,12 +1912,12 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
 	}
 
 	if (dq_debug > 19) {
-		if (dq->node_id == NODE_ID_SELF)
+		if (node_id_self(dq->node_id))
 			dq->kept_results = search_get_kept_results_by_handle(dq->sh);
 		if (dq->flags & DQ_F_LINGER)
 			g_message("DQ[%d] %s(%d secs; +%d secs) "
 				"+%d %slinger_results=%d kept=%d",
-				dq->qid, dq->node_id == NODE_ID_SELF ? "local " : "",
+				dq->qid, node_id_self(dq->node_id) ? "local " : "",
 				(gint) (tm_time() - dq->start),
 				(gint) (tm_time() - dq->stop),
 				count, oob ? "OOB " : "",
@@ -1931,7 +1925,7 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
 		else
 			g_message("DQ[%d] %s(%d secs) "
 				"+%d %sresults=%d new=%d kept=%d oob=%d",
-				dq->qid, dq->node_id == NODE_ID_SELF ? "local " : "",
+				dq->qid, node_id_self(dq->node_id) ? "local " : "",
 				(gint) (tm_time() - dq->start),
 				count, oob ? "OOB " : "",
 				dq->results, dq->new_results, dq->kept_results,
@@ -2017,7 +2011,7 @@ dq_oob_results_got(const gchar *muid, guint count)
  * The special value 0xffff is a request to stop the query immediately.
  */
 void
-dq_got_query_status(const gchar *muid, node_id_t node_id, guint16 kept)
+dq_got_query_status(const gchar *muid, const node_id_t node_id, guint16 kept)
 {
 	dquery_t *dq;
 
@@ -2034,7 +2028,7 @@ dq_got_query_status(const gchar *muid, node_id_t node_id, guint16 kept)
 	if (dq == NULL)
 		return;
 
-	if (dq->node_id != node_id)
+	if (!node_id_eq(dq->node_id, node_id))
 		return;
 
 	dq->kept_results = kept;
@@ -2121,7 +2115,7 @@ dq_cancel_local(gpointer key, gpointer unused_value, gpointer udata)
 	dquery_t *dq = key;
 
 	(void) unused_value;
-	if (NODE_ID_SELF == dq->node_id && dq->sh == ctx->handle) {
+	if (node_id_self(dq->node_id) && dq->sh == ctx->handle) {
 		ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
 	}
 }
@@ -2208,7 +2202,7 @@ void
 dq_init(void)
 {
 	dqueries = g_hash_table_new(NULL, NULL);
-	by_node_id = g_hash_table_new(node_id_hash, node_id_eq);
+	by_node_id = g_hash_table_new(node_id_hash, node_id_eq_func);
 	by_muid = g_hash_table_new(guid_hash, guid_eq);
 	by_leaf_muid = g_hash_table_new(guid_hash, guid_eq);
 	fill_hosts();

@@ -1632,6 +1632,7 @@ static inline void
 head_ping_source_free(struct head_ping_source *source)
 {
 	atom_sha1_free_null(&source->ping.sha1);
+	node_id_unref(source->ping.node_id);
 	wfree(source, sizeof *source);
 }
 
@@ -1682,7 +1683,8 @@ head_ping_timer(cqueue_t *unused_cq, gpointer unused_udata)
 }
 
 static gboolean
-head_ping_register(const gchar *muid, const struct sha1 sha1, node_id_t node_id)
+head_ping_register(const gchar *muid,
+	const struct sha1 sha1, const node_id_t node_id)
 {
 	struct head_ping_source *source;
 	struct gnutella_node *n = NULL;
@@ -1691,7 +1693,7 @@ head_ping_register(const gchar *muid, const struct sha1 sha1, node_id_t node_id)
 	g_assert(muid);
 	g_return_val_if_fail(head_pings, FALSE);
 
-	if (NODE_ID_SELF != node_id) {
+	if (!node_id_self(node_id)) {
 		n = node_active_by_id(node_id);
 		if (!n || (NODE_IS_UDP(n) && !host_is_valid(n->addr, n->port))) {
 			return FALSE;
@@ -1719,17 +1721,17 @@ head_ping_register(const gchar *muid, const struct sha1 sha1, node_id_t node_id)
 	 * We don't need the SHA-1 for routing, thus only record it
  	 * for debugging purposes or if we are the origin.
 	 */
-	if (NODE_ID_SELF == node_id || vmsg_debug) {
+	if (node_id_self(node_id) || vmsg_debug) {
 		source->ping.sha1 = atom_sha1_get(cast_to_gconstpointer(sha1.data));
 	} else {
 		source->ping.sha1 = NULL;
 	}
 	if (n && NODE_IS_UDP(n)) {
-		source->ping.node_id = NODE_ID_SELF;
+		source->ping.node_id = node_id_ref(NODE_ID_SELF);
 		source->ping.addr = n->addr;
 		source->ping.port = n->port;
 	} else {
-		source->ping.node_id = node_id;
+		source->ping.node_id = node_id_ref(node_id);
 		source->ping.addr = zero_host_addr;
 		source->ping.port = 0;
 	}
@@ -2168,7 +2170,7 @@ handle_head_pong(struct gnutella_node *n,
 	) {
 		struct gnutella_node *target;
 
-		if (NODE_ID_SELF != ping.node_id) {
+		if (!node_id_self(ping.node_id)) {
 			target = node_active_by_id(ping.node_id);
 		} else {
 			target = node_udp_get_addr_port(ping.addr, ping.port);

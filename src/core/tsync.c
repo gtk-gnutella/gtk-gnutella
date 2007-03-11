@@ -82,6 +82,7 @@ tsync_free(struct tsync *ts)
 	g_assert(ts->magic == TSYNC_MAGIC);
 
 	cq_cancel(callout_queue, &ts->expire_ev);
+	node_id_unref(ts->node_id);
 	ts->magic = 0;
 	wfree(ts, sizeof(*ts));
 }
@@ -128,7 +129,7 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
  * we're sending the time synchronization request.
  */
 void
-tsync_send(struct gnutella_node *n, node_id_t node_id)
+tsync_send(struct gnutella_node *n, const node_id_t node_id)
 {
 	struct tsync *ts;
 
@@ -140,7 +141,7 @@ tsync_send(struct gnutella_node *n, node_id_t node_id)
 	ts->magic = TSYNC_MAGIC;
 	tm_now_exact(&ts->sent);
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
-	ts->node_id = node_id;
+	ts->node_id = node_id_ref(node_id);
 	ts->udp = NODE_IS_UDP(n);
 
 	/*
