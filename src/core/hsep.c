@@ -983,7 +983,8 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 
 		other_nodes++;
 
-		node_get_status(n->node_handle, &status);
+		if (!node_get_status(NODE_ID(n), &status))
+			continue;
 
 		if (status.gnet_info_known) {
 			other_files += status.gnet_files_count;

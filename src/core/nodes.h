@@ -91,14 +91,10 @@ struct node_rxfc_mon {
 #define PING_REG_THROTTLE		3		/**< seconds, regular peer */
 #define PING_LEAF_THROTTLE		60		/**< seconds, peer is leaf node */
 
-struct node_id;
-typedef const struct node_id *node_id_t;
-
 #define NODE_ID_SELF (node_id_get_self())
 
 typedef struct gnutella_node {
 	node_magic_t magic;			/**< Magic value for consistency checks */
-    gnet_node_t node_handle;    /**< Handle of this node */
 	node_peer_t peermode;		/**< Operating mode (leaf, ultra, normal) */
 	node_peer_t start_peermode;	/**< Operating mode when handshaking begun */
 
@@ -579,12 +575,7 @@ GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
 const GSList *node_all_but_broken_gtkg(void);
 
-guint node_id_hash(gconstpointer node_id);
 
-#define node_id_eq_func ((GCompareFunc) node_id_eq)
-
-gboolean node_id_eq(const node_id_t a, const node_id_t b);
-const gchar *node_id_to_string(const node_id_t node_id);
 gnutella_node_t *node_by_id(const node_id_t node_id);
 gnutella_node_t *node_active_by_id(const node_id_t node_id);
 void node_set_leaf_guidance(const node_id_t node_id, gboolean supported);
@@ -615,8 +606,6 @@ void node_kill_hostiles(void);
 
 node_id_t node_id_get_self(void);
 gboolean node_id_self(const node_id_t node_id);
-node_id_t node_id_ref(const node_id_t node_id);
-void node_id_unref(const node_id_t node_id);
 
 static inline void
 node_check(const struct gnutella_node * const n)

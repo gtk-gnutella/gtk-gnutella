@@ -535,27 +535,27 @@ guc_node_add(const host_addr_t addr, guint16 port, guint32 flags)
 }
 
 void
-guc_node_remove_by_handle(gnet_node_t n)
+guc_node_remove_by_id(const node_id_t node_id)
 {
-	node_remove_by_handle(n);
+	node_remove_by_id(node_id);
 }
 
 void
-guc_node_remove_nodes_by_handle(GSList *node_list)
+guc_node_remove_nodes_by_id(const GSList *node_list)
 {
-	node_remove_nodes_by_handle(node_list);
+	node_remove_nodes_by_id(node_list);
 }
 
-void
-guc_node_get_status(const gnet_node_t n, gnet_node_status_t *s)
+gboolean
+guc_node_get_status(const node_id_t node_id, gnet_node_status_t *s)
 {
-	node_get_status(n, s);
+	return node_get_status(node_id, s);
 }
 
 gnet_node_info_t *
-guc_node_get_info(const gnet_node_t n)
+guc_node_get_info(const node_id_t node_id)
 {
-	return node_get_info(n);
+	return node_get_info(node_id);
 }
 
 void
@@ -570,16 +570,16 @@ guc_node_free_info(gnet_node_info_t *info)
 	node_free_info(info);
 }
 
-void
-guc_node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags)
+gboolean
+guc_node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags)
 {
-	node_fill_flags(n, flags);
+	return node_fill_flags(node_id, flags);
 }
 
-void
-guc_node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
+gboolean
+guc_node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
 {
-	node_fill_info(n, info);
+	return node_fill_info(node_id, info);
 }
 
 const gchar *

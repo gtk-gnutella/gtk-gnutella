@@ -189,25 +189,6 @@ static int node_error_threshold = 6;	/**< This requires an average uptime of
 static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 
 static GSList *sl_proxies = NULL;	/* Our push proxies */
-static idtable_t *node_handle_map = NULL;
-
-static inline gnutella_node_t *
-node_find_by_handle(gnet_node_t n)
-{
-	return idtable_get_value(node_handle_map, n);
-}
-
-static inline gnet_node_t
-node_request_handle(gnutella_node_t *n) 
-{
-    return idtable_new_id(node_handle_map, n);
-}
-
-static inline void
-node_drop_handle(gnet_node_t n)
-{
-    idtable_free_id(node_handle_map, n);
-}
 
 static guint32 shutdown_nodes;
 
@@ -328,26 +309,26 @@ static void
 node_fire_node_added(gnutella_node_t *n)
 {
     n->last_update = tm_time();
-    LISTENER_EMIT(node_added, (n->node_handle));
+    LISTENER_EMIT(node_added, (NODE_ID(n)));
 }
 
 static void
 node_fire_node_removed(gnutella_node_t *n)
 {
     n->last_update = tm_time();
-    LISTENER_EMIT(node_removed, (n->node_handle));
+    LISTENER_EMIT(node_removed, (NODE_ID(n)));
 }
 
 static void
 node_fire_node_info_changed(gnutella_node_t *n)
 {
-    LISTENER_EMIT(node_info_changed, (n->node_handle));
+    LISTENER_EMIT(node_info_changed, (NODE_ID(n)));
 }
 
 static void
 node_fire_node_flags_changed(gnutella_node_t *n)
 {
-    LISTENER_EMIT(node_flags_changed, (n->node_handle));
+    LISTENER_EMIT(node_flags_changed, (NODE_ID(n)));
 }
 
 /***
@@ -1238,12 +1219,16 @@ node_id_unref(const node_id_t node_id)
 }
 
 static node_id_t
-node_id_new(void)
+node_id_new(const struct gnutella_node *n)
 {
-	static guint64 node_id;
+	static guint64 counter;
+	node_id_t node_id;
 
-	node_id++;
-	return node_id_ref((node_id_t) &node_id);
+	node_check(n);
+	counter++;
+	node_id = node_id_ref((node_id_t) &counter);
+	gm_hash_table_insert_const(nodes_by_id, node_id, n);
+	return node_id;
 }
 
 /**
@@ -1258,7 +1243,6 @@ node_init(void)
 
 	g_assert(23 == sizeof(gnutella_header_t));
 
-    node_handle_map = idtable_new();
 	header_features_add(FEATURES_CONNECTIONS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR);
 
@@ -1521,7 +1505,6 @@ node_real_remove(gnutella_node_t *n)
 	sl_nodes_without_broken_gtkg =
 		g_slist_remove(sl_nodes_without_broken_gtkg, n);
 	g_hash_table_remove(nodes_by_id, NODE_ID(n));
-    node_drop_handle(n->node_handle);
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
@@ -1782,24 +1765,21 @@ node_recursive_shutdown_v(
  * Removes or shuts down the given node.
  */
 void
-node_remove_by_handle(gnet_node_t n)
+node_remove_by_id(const node_id_t node_id)
 {
     gnutella_node_t *node;
 
-	node = node_find_by_handle(n);
-	node_check(node);
-
-	if (node == udp_node || node == udp6_node) {
-		/* This is too obscure. */
-#if 0
-		gnet_prop_set_boolean_val(PROP_ENABLE_UDP, FALSE);
-#endif
-	} else if (NODE_IS_WRITABLE(node)) {
-        node_bye(node, 201, "User manual removal");
-	} else {
-        node_remove(node, no_reason);
-        node_real_remove(node);
-    }
+	node = node_by_id(node_id);
+	if (node) {
+		if (node == udp_node || node == udp6_node) {
+			/* Ignore */
+		} else if (NODE_IS_WRITABLE(node)) {
+			node_bye(node, 201, "User manual removal");
+		} else {
+			node_remove(node, no_reason);
+			node_real_remove(node);
+		}
+	}
 }
 
 /**
@@ -1810,8 +1790,8 @@ node_remove_by_handle(gnet_node_t n)
  * @note when we're low on pongs, we never refuse a connection, so this
  * routine always returns NODE_BAD_OK.
  */
-static enum
-node_bad node_is_bad(struct gnutella_node *n)
+static enum node_bad
+node_is_bad(struct gnutella_node *n)
 {
 	node_bad_client_t *bad_client = NULL;
 
@@ -2224,7 +2204,7 @@ node_remove_by_addr(const host_addr_t addr, guint16 port)
             struct gnutella_node *n = sl->data;
 
             if ((!port || n->port == port) && host_addr_equal(n->addr, addr)) {
-        		node_remove_by_handle(n->node_handle);
+        		node_remove_by_id(NODE_ID(n));
 				n_removed++;
                 if (port)
 					break;
@@ -5549,8 +5529,7 @@ node_browse_create(void)
 	gnutella_node_t *n;
 
 	n = node_alloc();
-    n->node_handle = node_request_handle(n);
-    n->id = node_id_new();
+    n->id = node_id_new(n);
 	n->proto_major = 0;
 	n->proto_minor = 6;
 	n->peermode = NODE_P_LEAF;
@@ -5617,8 +5596,7 @@ node_udp_create(enum net_type net)
 
 	n = node_alloc();
 	n->addr = listen_addr_by_net(net);
-    n->node_handle = node_request_handle(n);
-    n->id = node_id_new();
+    n->id = node_id_new(n);
 	n->port = listen_port;
 	n->proto_major = 0;
 	n->proto_minor = 6;
@@ -6009,8 +5987,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
 	n = node_alloc();
-    n->node_handle = node_request_handle(n);
-    n->id = node_id_new();
+    n->id = node_id_new(n);
 	n->addr = addr;
 	n->port = port;
 	n->proto_major = major;
@@ -6095,7 +6072,6 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
-	gm_hash_table_insert_const(nodes_by_id, NODE_ID(n), n);
 
 	if (n->status != GTA_NODE_REMOVING)
         node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
@@ -8032,11 +8008,7 @@ node_close(void)
     g_hash_table_destroy(ht_connected_nodes);
     ht_connected_nodes = NULL;
 
-    g_assert(idtable_ids(node_handle_map) == 0);
-
 	g_hash_table_destroy(nodes_by_id);
-    idtable_destroy(node_handle_map);
-    node_handle_map = NULL;
 	qhvec_free(query_hashvec);
 
 	aging_destroy(tcp_crawls);
@@ -8219,21 +8191,17 @@ fire:
  *
  * The returned information must be freed manually by the caller using
  * the node_free_info call.
- *
- * O(1):
- * Since the gnet_node_t is actually a pointer to the gnutella_node
- * struct, this call is O(1). It would be safer to have gnet_node be
- * an index in a list or a number, but depending on the underlying
- * container structure of sl_nodes, that would have O(log(n)) (balanced
- * tree) or O(n) (list) runtime.
  */
 gnet_node_info_t *
-node_get_info(const gnet_node_t n)
+node_get_info(const node_id_t node_id)
 {
     gnet_node_info_t *info;
 
 	info = walloc(sizeof *info);
-	node_fill_info(n, info);
+	if (!node_fill_info(node_id, info)) {
+		wfree(info, sizeof *info);
+		info = NULL;
+	}
     return info;
 }
 
@@ -8244,6 +8212,7 @@ void
 node_clear_info(gnet_node_info_t *info)
 {
 	atom_str_free_null(&info->vendor);
+	node_id_unref(info->node_id);
 }
 
 /**
@@ -8259,12 +8228,15 @@ node_free_info(gnet_node_info_t *info)
 /**
  * Fill in supplied info structure.
  */
-void
-node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
+gboolean
+node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
 {
-    gnutella_node_t  *node = node_find_by_handle(n);
+    gnutella_node_t  *node = node_by_id(node_id);
 
-    info->node_handle = n;
+	if (NULL == node)
+		return FALSE;
+
+    info->node_id = node_id_ref(node_id);
 
     info->proto_major = node->proto_major;
     info->proto_minor = node->proto_minor;
@@ -8292,15 +8264,19 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
 
 	memcpy(info->gnet_guid, node_guid(node) ? node_guid(node) : blank_guid,
 		GUID_RAW_SIZE);
+	return TRUE;
 }
 
 /**
  * Fill in supplied flags structure.
  */
-void
-node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
+gboolean
+node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags)
 {
-	gnutella_node_t *node = node_find_by_handle(n);
+	gnutella_node_t *node = node_by_id(node_id);
+
+	if (NULL == node)
+		return FALSE;
 
 	flags->peermode = node->peermode;
 	if (node->peermode == NODE_P_UNKNOWN) {
@@ -8361,17 +8337,21 @@ node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 				flags->qrt_state = QRT_S_SENT;
 		}
 	}
+	return TRUE;
 }
 
 /**
  * Fetch node status for the GUI display.
  */
-void
-node_get_status(const gnet_node_t n, gnet_node_status_t *status)
+gboolean
+node_get_status(const node_id_t node_id, gnet_node_status_t *status)
 {
-    const gnutella_node_t  *node = node_find_by_handle(n);
+    const gnutella_node_t  *node = node_by_id(node_id);
 
     g_assert(status != NULL);
+
+	if (NULL == node)
+		return FALSE;
 
     status->status     = node->status;
 
@@ -8472,6 +8452,8 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	if (node->alive_pings != NULL && node->status == GTA_NODE_CONNECTED)
 		alive_get_roundtrip_ms(node->alive_pings,
 			&status->rt_avg, &status->rt_last);
+
+	return TRUE;
 }
 
 /**
@@ -8479,12 +8461,14 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
  * NULL elements or duplicate elements.
  */
 void
-node_remove_nodes_by_handle(GSList *node_list)
+node_remove_nodes_by_id(const GSList *node_list)
 {
-    GSList *sl;
+    const GSList *sl;
 
-    for (sl = node_list; sl != NULL; sl = g_slist_next(sl))
-        node_remove_by_handle((gnet_node_t) GPOINTER_TO_UINT(sl->data));
+    for (sl = node_list; sl != NULL; sl = g_slist_next(sl)) {
+		const node_id_t node_id = sl->data;
+        node_remove_by_id(node_id);
+	}
 }
 
 /***

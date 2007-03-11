@@ -158,31 +158,23 @@ const gchar *guc_http_range_to_string(const GSList *list);
 GSList * guc_http_range_merge(GSList *old_list, GSList *new_list);
 
 /* node interface functions */
-void guc_node_add_node_added_listener
-	(node_added_listener_t l);
-void guc_node_add_node_removed_listener
-	(node_removed_listener_t l);
-void guc_node_add_node_info_changed_listener
-	(node_info_changed_listener_t l);
-void guc_node_add_node_flags_changed_listener
-	(node_flags_changed_listener_t l);
-void guc_node_remove_node_added_listener
-	(node_added_listener_t l);
-void guc_node_remove_node_removed_listener
-	(node_removed_listener_t l);
-void guc_node_remove_node_info_changed_listener
-	(node_info_changed_listener_t l);
-void guc_node_remove_node_flags_changed_listener
-	(node_flags_changed_listener_t l);
+void guc_node_add_node_added_listener(node_added_listener_t l);
+void guc_node_add_node_removed_listener(node_removed_listener_t l);
+void guc_node_add_node_info_changed_listener(node_info_changed_listener_t l);
+void guc_node_add_node_flags_changed_listener(node_flags_changed_listener_t l);
+void guc_node_remove_node_added_listener(node_added_listener_t l);
+void guc_node_remove_node_removed_listener(node_removed_listener_t l);
+void guc_node_remove_node_info_changed_listener(node_info_changed_listener_t l);
+void guc_node_remove_node_flags_changed_listener(node_flags_changed_listener_t l);
 void guc_node_add(const host_addr_t addr, guint16 port, guint32 flags);
-void guc_node_remove_by_handle(gnet_node_t n);
-void guc_node_remove_nodes_by_handle(GSList *node_list);
-void guc_node_get_status(const gnet_node_t n, gnet_node_status_t *s);
-gnet_node_info_t *guc_node_get_info(const gnet_node_t n);
+void guc_node_remove_by_id(const node_id_t node_id);
+void guc_node_remove_nodes_by_id(const GSList *node_list);
+gboolean guc_node_get_status(const node_id_t node_id, gnet_node_status_t *s);
+gnet_node_info_t *guc_node_get_info(const node_id_t node_id);
 void guc_node_clear_info(gnet_node_info_t *info);
 void guc_node_free_info(gnet_node_info_t *info);
-void guc_node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
-void guc_node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
+gboolean guc_node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags);
+gboolean guc_node_fill_info(const node_id_t node_id, gnet_node_info_t *info);
 const gchar *guc_node_flags_to_string(const gnet_node_flags_t *flags);
 const gchar *guc_node_peermode_to_string(node_peer_t m);
 

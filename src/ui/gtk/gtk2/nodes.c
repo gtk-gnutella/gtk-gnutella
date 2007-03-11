@@ -68,17 +68,17 @@ RCSID("$Id$")
  * changed. By using this the number of updates to the gui can be
  * significantly reduced.
  */
-static GHashTable *ht_node_info_changed = NULL;
-static GHashTable *ht_node_flags_changed = NULL;
+static GHashTable *ht_node_info_changed;
+static GHashTable *ht_node_flags_changed;
 
-static GtkTreeView *treeview_nodes = NULL;
-static GtkListStore *nodes_model = NULL;
+static GtkTreeView *treeview_nodes;
+static GtkListStore *nodes_model;
 
 /* hash table for fast handle -> GtkTreeIter mapping */
-static GHashTable *nodes_handles = NULL;
+static GHashTable *nodes_handles;
 /* list of all node handles */
 
-static GHashTable *ht_pending_lookups = NULL;
+static GHashTable *ht_pending_lookups;
 
 static tree_view_motion_t *tvm_nodes;
 
@@ -86,10 +86,28 @@ static tree_view_motion_t *tvm_nodes;
  *** Private functions
  ***/
 
-static void nodes_gui_node_removed(gnet_node_t);
-static void nodes_gui_node_added(gnet_node_t);
-static void nodes_gui_node_info_changed(gnet_node_t);
-static void nodes_gui_node_flags_changed(gnet_node_t);
+static void nodes_gui_node_removed(const node_id_t);
+static void nodes_gui_node_added(const node_id_t);
+static void nodes_gui_node_info_changed(const node_id_t);
+static void nodes_gui_node_flags_changed(const node_id_t);
+
+static gboolean 
+remove_item(GHashTable *ht, const node_id_t node_id)
+{
+	gpointer orig_key;
+
+	g_return_val_if_fail(ht, FALSE);
+	g_return_val_if_fail(node_id, FALSE);
+	
+	orig_key = g_hash_table_lookup(ht, node_id);
+	if (orig_key) {
+    	g_hash_table_remove(ht, orig_key);
+		node_id_unref(orig_key);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
 
 /**
  * Create a column, associating the attribute ``attr'' (usually "text") of the
@@ -141,7 +159,7 @@ struct node_data {
 	GtkTreeIter iter;
 	gchar version[24];
 	gchar flags[16 + sizeof "<tt></tt>"];
-	gnet_node_t handle;
+	node_id_t node_id;
 };
 
 static void
@@ -149,21 +167,30 @@ node_data_free(gpointer value)
 {
 	struct node_data *data = value;
 
-	if (data->user_agent)
-		atom_str_free(data->user_agent);
+	atom_str_free_null(&data->user_agent);
 	WFREE_NULL(data->host, data->host_size);
 	WFREE_NULL(data->info, data->info_size);
+	node_id_unref(data->node_id);
 	WFREE_NULL(data, sizeof *data);
 }
 
-static void
-nodes_handles_foreach_free(gpointer unused_key, gpointer value,
-	gpointer unused_udata)
+static gboolean
+free_node_id(gpointer key, gpointer value, gpointer unused_udata)
+{
+	g_assert(key == value);
+	(void) unused_udata;
+	node_id_unref(key);
+	return TRUE;
+}
+
+static gboolean 
+free_node_data(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_key;
 	(void) unused_udata;
 	
 	node_data_free(value);
+	return TRUE;
 }
 
 static GtkListStore *
@@ -291,7 +318,7 @@ nodes_gui_remove_selected_helper(GtkTreeModel *model,
 	(void) unused_path;
 
 	gtk_tree_model_get(model, iter, 0, &data, (-1));
-	*list = g_slist_prepend(*list, GUINT_TO_POINTER(data->handle));
+	*list = g_slist_prepend(*list, deconstify_gpointer(data->node_id));
 }
 
 /**
@@ -299,9 +326,9 @@ nodes_gui_remove_selected_helper(GtkTreeModel *model,
  * and knows the GtkTreeIter.
  */
 static inline struct node_data *
-find_node(gnet_node_t n)
+find_node(const node_id_t node_id)
 {
-	return g_hash_table_lookup(nodes_handles, GUINT_TO_POINTER(n));
+	return g_hash_table_lookup(nodes_handles, node_id);
 }
 
 /**
@@ -315,17 +342,18 @@ nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
     g_assert(info != NULL);
 
     if (data == NULL)
-        data = find_node(info->node_handle);
+        data = find_node(info->node_id);
 
 	g_assert(NULL != data);
-	g_assert(data->handle == info->node_handle);
+	g_assert(data->node_id == info->node_id);
 
-    guc_node_get_status(info->node_handle, &status);
-    gm_snprintf(data->version, sizeof data->version, "%u.%u",
-		info->proto_major, info->proto_minor);
-	atom_str_free_null(&data->user_agent);
-	data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
-	data->country = info->country;
+    if (guc_node_get_status(info->node_id, &status)) {
+		gm_snprintf(data->version, sizeof data->version, "%u.%u",
+				info->proto_major, info->proto_minor);
+		atom_str_free_null(&data->user_agent);
+		data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
+		data->country = info->country;
+	}
 }
 
 /**
@@ -349,15 +377,13 @@ nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 static void
 update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
+	const struct node_data *data = NULL;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	const struct node_data *data;
-	gnet_node_t n;
 
 	g_assert(tv != NULL);
-	if (!path) {
-		n = (gnet_node_t) -1;
-	} else {
+
+	if (path) {
 		GtkTreeIter parent;
 		
 		model = gtk_tree_view_get_model(tv);
@@ -369,25 +395,17 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			iter = parent;
 
 		gtk_tree_model_get(model, &iter, 0, &data, (-1));
-		n = data->handle;
 	}
 
-	if ((gnet_node_t) -1 == n || !find_node(n)) {
-		GtkWidget *w;
-
-		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
-			_("Move the cursor over a row to see details."), NULL);
-		w = settings_gui_tooltips()->tip_window;
-		if (w)
-			gtk_widget_hide(w);
-	} else {
+	if (data && find_node(data->node_id)) {
 		gnet_node_info_t info;
 		gnet_node_flags_t flags;
 		gchar text[1024];
 
-		guc_node_fill_flags(n, &flags);
-		guc_node_fill_info(n, &info);
-		g_assert(info.node_handle == n);
+		guc_node_fill_flags(data->node_id, &flags);
+		guc_node_fill_info(data->node_id, &info);
+		g_assert(info.node_id == data->node_id);
+
 		gm_snprintf(text, sizeof text,
 			"%s %s\n"
 			"%s %s (%s)\n"
@@ -407,6 +425,14 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		guc_node_clear_info(&info);
 		gtk_tooltips_set_tip(settings_gui_tooltips(),
 			GTK_WIDGET(tv), text, NULL);
+	} else {
+		GtkWidget *w;
+
+		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
+			_("Move the cursor over a row to see details."), NULL);
+		w = settings_gui_tooltips()->tip_window;
+		if (w)
+			gtk_widget_hide(w);
 	}
 }
 
@@ -424,7 +450,7 @@ on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 static void
 host_lookup_callback(const gchar *hostname, gpointer key)
 {
-	gnet_node_t n = GPOINTER_TO_UINT(key);
+	const node_id_t node_id = key;
 	gnet_node_info_t info;
 	struct node_data *data;
 	GtkListStore *store;
@@ -432,22 +458,21 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 	host_addr_t addr;
 	guint16 port;
 
-	if (
-		!ht_pending_lookups ||
-		!g_hash_table_lookup(ht_pending_lookups, key)
-	)
-		return;
+	if (!ht_pending_lookups)
+		goto finish;
 
-	g_hash_table_remove(ht_pending_lookups, key);
+	if (!remove_item(ht_pending_lookups, node_id))
+		goto finish;
 
 	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
-	data = find_node(n);
+	data = find_node(node_id);
 	if (!data)
-		return;
+		goto finish;
 
-	guc_node_fill_info(n, &info);
-	g_assert(n == info.node_handle);
+	guc_node_fill_info(node_id, &info);
+	g_assert(node_id == info.node_id);
+	
 	addr = info.addr;
 	port = info.port;
 	guc_node_clear_info(&info);
@@ -479,6 +504,9 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 							host_addr_port_to_string(addr, port),
 							(void *) 0);
 	}
+
+finish:
+	node_id_unref(node_id);
 }
 
 static void
@@ -527,11 +555,10 @@ nodes_gui_init(void)
     g_object_set(treeview_nodes, "fixed_height_mode", TRUE, (void *) 0);
 #endif /* GTK+ >= 2.4.0 */
 
-	nodes_handles = g_hash_table_new(NULL, NULL);
-
-    ht_node_info_changed = g_hash_table_new(NULL, NULL);
-    ht_node_flags_changed = g_hash_table_new(NULL, NULL);
-    ht_pending_lookups = g_hash_table_new(NULL, NULL);
+	nodes_handles = g_hash_table_new(node_id_hash, node_id_eq_func);
+    ht_node_info_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
+    ht_node_flags_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
+    ht_pending_lookups = g_hash_table_new(node_id_hash, node_id_eq_func);
 
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
@@ -572,16 +599,20 @@ nodes_gui_shutdown(void)
 	nodes_model = NULL;
 	gtk_tree_view_set_model(treeview_nodes, NULL);
 
-	g_hash_table_foreach(nodes_handles, nodes_handles_foreach_free, NULL);
+	g_hash_table_foreach_remove(nodes_handles, free_node_data, NULL);
 	g_hash_table_destroy(nodes_handles);
 	nodes_handles = NULL;
 
+	g_hash_table_foreach_remove(ht_node_info_changed, free_node_id, NULL);
     g_hash_table_destroy(ht_node_info_changed);
-    g_hash_table_destroy(ht_node_flags_changed);
-    g_hash_table_destroy(ht_pending_lookups);
-
     ht_node_info_changed = NULL;
+
+	g_hash_table_foreach_remove(ht_node_flags_changed, free_node_id, NULL);
+    g_hash_table_destroy(ht_node_flags_changed);
     ht_node_flags_changed = NULL;
+
+	g_hash_table_foreach_remove(ht_pending_lookups, free_node_id, NULL);
+    g_hash_table_destroy(ht_pending_lookups);
     ht_pending_lookups = NULL;
 }
 
@@ -589,7 +620,7 @@ nodes_gui_shutdown(void)
  * Removes all references to the given node handle in the gui.
  */
 void
-nodes_gui_remove_node(gnet_node_t n)
+nodes_gui_remove_node(const node_id_t node_id)
 {
 	struct node_data *data;
 
@@ -597,17 +628,19 @@ nodes_gui_remove_node(gnet_node_t n)
      * Make sure node is removed from the "changed" hash tables so
      * we don't try an update later.
      */
-    g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
-    g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
-    g_hash_table_remove(ht_pending_lookups, GUINT_TO_POINTER(n));
 
-	data = find_node(n);
-	g_assert(NULL != data);
-	g_assert(n == data->handle);
+	remove_item(ht_node_info_changed, node_id);
+	remove_item(ht_node_flags_changed, node_id);
+	remove_item(ht_pending_lookups, node_id);
 
-	gtk_list_store_remove(nodes_model, &data->iter);
-	g_hash_table_remove(nodes_handles, GUINT_TO_POINTER(n));
-	node_data_free(data);
+	data = find_node(node_id);
+	if (data) {
+		g_assert(node_id_eq(node_id, data->node_id));
+
+		gtk_list_store_remove(nodes_model, &data->iter);
+		g_hash_table_remove(nodes_handles, data->node_id);
+		node_data_free(data);
+	}
 }
 
 /**
@@ -625,7 +658,7 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	data = walloc(sizeof *data);
 	*data = zero_data;
 
-	data->handle = info->node_handle;
+	data->node_id = node_id_ref(info->node_id);
 	data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
 	data->country = info->country;
 	data->host_size = w_concat_strings(&data->host,
@@ -634,16 +667,15 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	gm_snprintf(data->version, sizeof data->version, "%u.%u",
 		info->proto_major, info->proto_minor);
 
-	guc_node_fill_flags(data->handle, &flags);
+	guc_node_fill_flags(data->node_id, &flags);
 	nodes_gui_update_node_flags(data, &flags);
 
-	g_hash_table_insert(nodes_handles, GUINT_TO_POINTER(data->handle), data);
+	gm_hash_table_insert_const(nodes_handles, data->node_id, data);
 
     gtk_list_store_append(nodes_model, &data->iter);
     gtk_list_store_set(nodes_model, &data->iter, 0, data, (-1));
 
 }
-
 
 static inline void
 update_row(gpointer key, gpointer value, gpointer user_data)
@@ -651,34 +683,31 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 	struct node_data *data = value;
 	time_t *now_ptr = user_data, now = *now_ptr;
 	gnet_node_status_t status;
-	gnet_node_t n;
 
 	g_assert(NULL != data);
-	g_assert(GUINT_TO_POINTER(data->handle) == key);
+	g_assert(data->node_id == key);
 
-	n = data->handle;
-	guc_node_get_status(n, &status);
+	if (!guc_node_get_status(data->node_id, &status))
+		return;
 
     /*
      * Update additional info too if it has recorded changes.
      */
-    if (
-		g_hash_table_lookup(ht_node_info_changed, GUINT_TO_POINTER(n))
-	) {
+    if (remove_item(ht_node_info_changed, data->node_id)) {
         gnet_node_info_t info;
 
-        g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
-        guc_node_fill_info(n, &info);
-        nodes_gui_update_node_info(data, &info);
-        guc_node_clear_info(&info);
+        if (guc_node_fill_info(data->node_id, &info)) {
+			nodes_gui_update_node_info(data, &info);
+			guc_node_clear_info(&info);
+		}
     }
 
-    if (g_hash_table_lookup(ht_node_flags_changed, GUINT_TO_POINTER(n))) {
+    if (remove_item(ht_node_flags_changed, data->node_id)) {
         gnet_node_flags_t flags;
 
-        g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
-        guc_node_fill_flags(n, &flags);
-        nodes_gui_update_node_flags(data, &flags);
+        if (guc_node_fill_flags(data->node_id, &flags)) {
+			nodes_gui_update_node_flags(data, &flags);
+		}
     }
 
 	if (status.connect_date)
@@ -785,12 +814,12 @@ nodes_gui_update_nodes_display(time_t now)
  * Removes all references to the node from the frontend.
  */
 static void
-nodes_gui_node_removed(gnet_node_t n)
+nodes_gui_node_removed(const node_id_t node_id)
 {
     if (gui_debug >= 5)
-        g_warning("nodes_gui_node_removed(%u)\n", (guint) n);
+        g_message("nodes_gui_node_removed(%s)\n", node_id_to_string(node_id));
 
-    nodes_gui_remove_node(n);
+    nodes_gui_remove_node(node_id);
 }
 
 /**
@@ -799,38 +828,48 @@ nodes_gui_node_removed(gnet_node_t n)
  * Adds the node to the gui.
  */
 static void
-nodes_gui_node_added(gnet_node_t n)
+nodes_gui_node_added(const node_id_t node_id)
 {
     gnet_node_info_t *info;
 
     if (gui_debug >= 5)
-        g_warning("nodes_gui_node_added(%u)\n", n);
+        g_message("nodes_gui_node_added(%s)\n", node_id_to_string(node_id));
 
-    info = guc_node_get_info(n);
-    nodes_gui_add_node(info);
-    guc_node_free_info(info);
+    info = guc_node_get_info(node_id);
+	if (info) {
+    	nodes_gui_add_node(info);
+    	guc_node_free_info(info);
+	}
 }
 
 /**
  * Callback: called when node information was changed by the backend.
  *
- * This updates the node information in the gui.
+ * This schedules an update of the node information in the gui at the
+ * next tick.
  */
 static void
-nodes_gui_node_info_changed(gnet_node_t n)
+nodes_gui_node_info_changed(const node_id_t node_id)
 {
-    g_hash_table_insert(ht_node_info_changed,
-        GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
+    if (!g_hash_table_lookup(ht_node_info_changed, node_id)) {
+		const node_id_t key = node_id_ref(node_id);
+    	gm_hash_table_insert_const(ht_node_info_changed, key, key);
+	}
 }
 
 /**
  * Callback invoked when the node's user-visible flags are changed.
+ *
+ * This schedules an update of the node information in the gui at the
+ * next tick.
  */
 static void
-nodes_gui_node_flags_changed(gnet_node_t n)
+nodes_gui_node_flags_changed(const node_id_t node_id)
 {
-    g_hash_table_insert(ht_node_flags_changed,
-        GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
+    if (!g_hash_table_lookup(ht_node_flags_changed, node_id)) {
+		const node_id_t key = node_id_ref(node_id);
+    	gm_hash_table_insert_const(ht_node_flags_changed, key, key);
+	}
 }
 
 /**
@@ -847,7 +886,7 @@ nodes_gui_remove_selected(void)
 	selection = gtk_tree_view_get_selection(treeview);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_remove_selected_helper, &node_list);
-	guc_node_remove_nodes_by_handle(node_list);
+	guc_node_remove_nodes_by_id(node_list);
 	g_slist_free(node_list);
 }
 
@@ -857,30 +896,31 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 {
 	struct node_data *data;
 	gnet_node_info_t info;
-	gpointer key;
 
 	(void) unused_path;
 	(void) unused_data;
 
 	gtk_tree_model_get(model, iter, 0, &data, (-1));
-	g_assert(NULL != find_node(data->handle));
+	g_assert(NULL != find_node(data->node_id));
 
-	key = GUINT_TO_POINTER(data->handle);
-	if (NULL != g_hash_table_lookup(ht_pending_lookups, key))
+	if (NULL != g_hash_table_lookup(ht_pending_lookups, data->node_id))
 		return;
 
-	guc_node_fill_info(data->handle, &info);
-	g_assert(data->handle == info.node_handle);
+	guc_node_fill_info(data->node_id, &info);
+	g_assert(data->node_id == info.node_id);
 
 	if (!info.is_pseudo) {
+		const node_id_t key = node_id_ref(data->node_id);
+
 		WFREE_NULL(data->host, data->host_size);
 		data->host_size = w_concat_strings(&data->host,
 				_("Reverse lookup in progress..."),
 				" (", host_addr_port_to_string(info.addr, info.port), ")",
 				(void *) 0);
 
-		g_hash_table_insert(ht_pending_lookups, key, GINT_TO_POINTER(1));
-		adns_reverse_lookup(info.addr, host_lookup_callback, key);
+		gm_hash_table_insert_const(ht_pending_lookups, key, key);
+		adns_reverse_lookup(info.addr, host_lookup_callback,
+			deconstify_gpointer(node_id_ref(key)));
 	}
 	guc_node_clear_info(&info);
 }
@@ -911,7 +951,7 @@ nodes_gui_browse_selected_helper(GtkTreeModel *model,
 	(void) unused_data;
 	
 	gtk_tree_model_get(model, iter, 0, &data, (-1));
-	info = guc_node_get_info(data->handle);
+	info = guc_node_get_info(data->node_id);
 	if (!info->is_pseudo) {
 		search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
 			info->gnet_guid, NULL, 0);

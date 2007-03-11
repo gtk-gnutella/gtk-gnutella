@@ -123,13 +123,13 @@ on_clist_nodes_button_press_event(GtkWidget *unused_widget,
 static void
 remove_selected_nodes(void)
 {
-    GSList *node_list = NULL;
     GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
+    GSList *node_list;
 
     g_assert(clist != NULL);
 
     node_list = clist_collect_data(clist, TRUE, NULL);
-    guc_node_remove_nodes_by_handle(node_list);
+    guc_node_remove_nodes_by_id(node_list);
     g_slist_free(node_list);
 }
 
@@ -228,8 +228,11 @@ on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
     node_list = clist_collect_data(clist, TRUE, NULL);
 
 	for (sl = node_list; sl != NULL; sl = g_slist_next(sl)) {
-		gnet_node_t handle = GPOINTER_TO_UINT(sl->data);
+		const node_id_t handle = sl->data;
 		gnet_node_info_t *info = guc_node_get_info(handle);
+
+		if (!info)
+			continue;
 
 		if (!info->is_pseudo) {
 			search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,

@@ -33,6 +33,18 @@
 #include "lib/host_addr.h"
 #include "lib/vendors.h"
 
+struct node_id;
+typedef const struct node_id *node_id_t;
+
+node_id_t node_id_ref(const node_id_t node_id);
+void node_id_unref(const node_id_t node_id);
+
+const gchar *node_id_to_string(const node_id_t node_id);
+
+#define node_id_eq_func ((GCompareFunc) node_id_eq)
+gboolean node_id_eq(const node_id_t a, const node_id_t b);
+guint node_id_hash(gconstpointer node_id);
+
 /**
  * Remote node mode, as specified for GTKG/23v1.
  */
@@ -184,11 +196,6 @@ typedef struct rnode_info {
 #define RNODE_O2_LEAF_GUIDE	(1 << 11)	/**< Leaf-guided querying */
 #define RNODE_O2_OOQ_CHUNK	(1 << 12)	/**< Out-of-Queue small chunk service */
 
-/**
- * Gnet node specific types.
- */
-typedef guint32 gnet_node_t;
-
 /*
  * XXX this structure should really be inlined in a node,
  * XXX to avoid definition duplication --RAM, 2004-08-21
@@ -270,7 +277,7 @@ typedef struct gnet_node_status {
 } gnet_node_status_t;
 
 typedef struct gnet_node_info {
-    gnet_node_t node_handle;    /**< Internal node handle */
+    node_id_t node_id;    	/**< Internal node ID */
 
     gchar *error_str;       /**< To sprintf() error strings with vars */
 	gint proto_major;		/**< Protocol major number */
@@ -354,10 +361,10 @@ typedef enum {
 /*
  * Nodes callback definitions
  */
-typedef void (*node_added_listener_t) (gnet_node_t);
-typedef void (*node_removed_listener_t) (gnet_node_t);
-typedef void (*node_info_changed_listener_t) (gnet_node_t);
-typedef void (*node_flags_changed_listener_t) (gnet_node_t);
+typedef void (*node_added_listener_t) (node_id_t);
+typedef void (*node_removed_listener_t) (node_id_t);
+typedef void (*node_info_changed_listener_t) (node_id_t);
+typedef void (*node_flags_changed_listener_t) (node_id_t);
 
 #define node_add_listener(signal, callback) \
     CAT3(node_add_,signal,_listener)(callback);
@@ -385,14 +392,14 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
  */
 void node_add(const host_addr_t addr, guint16, guint32 flags);
 void node_add_by_name(const gchar *host, guint16, guint32 flags);
-void node_remove_by_handle(gnet_node_t n);
-void node_remove_nodes_by_handle(GSList *node_list);
-void node_get_status(const gnet_node_t n, gnet_node_status_t *s);
-gnet_node_info_t *node_get_info(const gnet_node_t n);
+void node_remove_by_id(const node_id_t node_id);
+void node_remove_nodes_by_id(const GSList *node_list);
+gboolean node_get_status(const node_id_t node_id, gnet_node_status_t *s);
+gnet_node_info_t *node_get_info(const node_id_t node_id);
 void node_clear_info(gnet_node_info_t *info);
 void node_free_info(gnet_node_info_t *info);
-void node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
-void node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
+gboolean node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags);
+gboolean node_fill_info(const node_id_t node_id, gnet_node_info_t *info);
 const gchar *node_flags_to_string(const gnet_node_flags_t *flags);
 const gchar *node_peermode_to_string(node_peer_t m);
 

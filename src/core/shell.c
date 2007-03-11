@@ -637,14 +637,16 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 	g_return_if_fail(sh);
 	g_return_if_fail(n);
 	
-	if (!NODE_IS_ESTABLISHED(n)) {
+	if (
+		!NODE_IS_ESTABLISHED(n) ||
+		!node_fill_flags(NODE_ID(n), &flags)
+	) {
 		return;
 	}
 
 	now = tm_time();
 	con = n->connect_date ? delta_time(now, n->connect_date) : 0;
 	up = n->up_date ? delta_time(now, n->up_date) : 0;
-	node_fill_flags(n->node_handle, &flags);
 
 	{
 		const gchar *vendor;
