@@ -96,7 +96,7 @@ static void cap_queue(squeue_t *sq);
 static void
 sq_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct smsg_info *smi = (struct smsg_info *) arg;
+	struct smsg_info *smi = arg;
 
 	g_assert(pmsg_is_extended(mb));
 
@@ -166,7 +166,7 @@ smsg_mutate(smsg_t *sb, struct gnutella_node *n)
 	struct smsg_info *smi;
 	pmsg_t *omb;
 
-	smi = (struct smsg_info *) walloc(sizeof(*smi));
+	smi = walloc(sizeof(*smi));
 	smi->id = search_get_id(sb->shandle, &smi->search);
 	smi->node_id = node_id_ref(NODE_ID(n));
 
@@ -274,7 +274,7 @@ sq_clear(squeue_t *sq)
 			sq->n_sent, sq->n_dropped);
 
 	for (l = sq->searches; l; l = g_list_next(l)) {
-		smsg_t *sb = (smsg_t *) l->data;
+		smsg_t *sb = l->data;
 
 		smsg_discard(sb);
 	}
@@ -422,7 +422,7 @@ retry:
 	g_assert(sq->searches);
 
 	item = g_list_first(sq->searches);
-	sb = (smsg_t *) item->data;
+	sb = item->data;
 
 	g_assert(sq->count > 0);
 	sq->count--;
@@ -502,7 +502,7 @@ cap_queue(squeue_t *sq)
 {
     while (sq->count > search_queue_size) {
     	GList *item = g_list_last(sq->searches);
-		smsg_t *sb = (smsg_t *) item->data;
+		smsg_t *sb = item->data;
 
 		sq->searches = g_list_remove_link(sq->searches, item);
 
@@ -533,7 +533,7 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 	GList *next;
 
 	for (l = sq->searches; l; l = next) {
-		smsg_t *sb = (smsg_t *) l->data;
+		smsg_t *sb = l->data;
 
 		next = g_list_next(l);
 
