@@ -170,7 +170,7 @@ gint uint64_eq(gconstpointer a, gconstpointer b);
 guint binary_hash(const guchar *key, guint len);
 
 #ifdef TRACK_ATOMS
-gconst pointer atom_get_track(enum atom_type, gconstpointer key,
+gconstpointer atom_get_track(enum atom_type, gconstpointer key,
 			gchar *file, gint line);
 void atom_free_track(enum atom_type, gconstpointer key, gchar *file, gint line);
 #endif

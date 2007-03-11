@@ -873,7 +873,7 @@ struct spot {
 gconstpointer
 atom_get_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
 {
-	gpointer atom;
+	gconstpointer atom;
 	atom_t *a;
 	gchar buf[512];
 	gpointer k;
