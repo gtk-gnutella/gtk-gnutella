@@ -4,6 +4,8 @@
 <!-- 
      Icons - for advanced and basic usage.
      Appendix, index or reference section.  Short topics with pointers to more?
+     index items.
+     Other activity is connectivity!
 -->
 
 <book>
@@ -59,9 +61,6 @@ future search and replace operations:
 
 gtk-gnutella - should not be abbreviated or capitalized, even at the
 beginning of a sentence.
-
-gnet - should not be capitalized.  It's an abbreviation for
-GnutellaNet but I'm going by precedence here.
 
 Avoid acronyms, for the most part.  Use "Internet service provider"
 rather than "ISP" and "local area network" rather than "LAN" but we
@@ -128,16 +127,25 @@ clients are coded with a maximum lifetime. After a pre-determined
 period gtk-gnutella will start to complain and eventually will stop
 working. Distributions are not always quick to pick up new versions
 because stability is important to them, so you may be installing a
-version of gtk-gnutella that is close to or already past its maximum
-lifetime date. This is true in particular if you install from offline
-media such as DVD.</para>
+version of gtk-gnutella that is close to or already past its limited
+lifetime. This is true in particular if you install from offline media
+such as DVD.</para>
+
+<para> Some web sights offer gtk-gnutella packages.  <ulink
+url="http://rpmfind.net/linux/rpm2html/search.php?query=gtk-gnutella">
+RPM find </ulink> and <ulink
+url="http://linuxappfinder.com/package/gtk-gnutella"> Linux App finder
+</ulink> have packages for some popular Linux distributions.  Also,
+the <ulink url="http://gtk-gnutella.sourceforge.net/"> gtk-gnutella
+</ulink> web site may contains some packages. </para>
 
 <para>A better way to get gtk-gnutella is to install it yourself. The
-gtk-gnutella web site contains several binary distributions and the
-source archive which allows you to compile gtk-gnutella yourself. You
-can also use the web site to check if your currently installed version
-is still the most recent version. The web site address is <ulink
-url="http://gtk-gnutella.sourceforge.net/"></ulink></para>
+<ulink url="http://gtk-gnutella.sourceforge.net/"> gtk-gnutella
+</ulink> web site contains the source archive which allows you to
+compile gtk-gnutella yourself. You can also use the web site to check
+if your currently installed version is still the most recent version;
+gtk-gnutella will also notify you if it sees a newer version on the
+gnutella network. </para>
 
 </section>
 </chapter>
@@ -150,7 +158,7 @@ url="http://gtk-gnutella.sourceforge.net/"></ulink></para>
 <section> <title>GUI overview</title>
 
 <para> A document called "Gnutella for users" is available on the
-internet. <ulink url="http://en.wikisource.org/wiki/GnuFU"> GnuFU
+Internet. <ulink url="http://en.wikisource.org/wiki/GnuFU"> GnuFU
 </ulink> and also <ulink
 url="http://basis.gnufu.net/gnufu/index.php/GnuFU_en"> GnuFU
 </ulink>. </para>
@@ -169,7 +177,7 @@ may locate the status icons in the status bar.</para>
 
 <para> The mid-section of the screen is divided in two.  To the left
 is the side bar.  The side bar contains a navigation tree, a search
-list, and gnet status information.  To the right is the "working
+list, and gnutella status information.  To the right is the "working
 area".  This changes depending on the current activity. The following
 table gives a short summary of each area.  These are covered in more
 detail in the following sections. </para>
@@ -195,32 +203,32 @@ screen configuration. </entry> </row>
 
 <row><entry spanname="hspan">Status Icons</entry> 
 <entry>Icons include CPU overload, file copying, library SHA, download
-SHA, library building, firewall and gnet status. Icons may change
+SHA, library building, firewall and GnutellaNet status. Icons may change
 according to current conditions</entry> </row>
 
 <row><entry spanname="hspan">Search Bar</entry> 
-<entry>Contains a text feild for entering new search criteria.  Also
-constains a drop-down filter selection button, and search and passive
+<entry>Contains a text field for entering new search criteria.  Also
+contains a drop-down filter selection button, and search and passive
 search buttons. </entry> </row>
 
 <row><entry spanname="hspan"> Working Area</entry>
 <entry>This area changes depending on your current activity.  It is
 one of the following nine items. </entry></row>
 
-<row><entry morerows="8" /><entry colname="c2">gnet Connections</entry>
-<entry>This shows detailed information about all nodes directly
-connected to GTKG.  Various flags are shown as well as the type of
-client, location, etc. </entry></row>
+<row><entry morerows="8" /><entry colname="c2">GnutellaNet
+Connections</entry> <entry>This shows detailed information about all
+nodes directly connected to GTKG.  Various flags are shown as well as
+the type of client, location, etc. </entry></row>
 
-<row><entry colname="c2">gnet Statistics</entry> 
+<row><entry colname="c2">GnutellaNet Statistics</entry> 
 <entry>This working area has tabs along the top.  Statistics
 relevant to the currently selected tab are shown.</entry></row>
 
-<row><entry colname="c2">gnet Hostcache</entry>
-<entry>This area manages previously seen hosts seen on the gnet.
-Having a full host cache allows quicker connection to the gnet when
-starting.  These entries are also relayed to other nodes to help them
-connect to the gnet.</entry></row>
+<row><entry colname="c2">GnutellaNet Hostcache</entry> <entry>This
+area manages previously seen hosts seen on gnutella.  Having a full
+host cache allows quicker connection to the GnutellaNet when starting.
+These entries are also relayed to other nodes to help them connect to
+gnutella.</entry></row>
 
 <row><entry colname="c2">Downloads</entry>
 <entry>When downloads are the active working area, a list of all
@@ -228,7 +236,7 @@ downloads is shown.  Details on the currently selected download are
 shown at the bottom of the working area. </entry></row>
 
 <row><entry colname="c2">Uploads</entry>
-<entry>This working area shows files being sent to other gnet
+<entry>This working area shows files being sent to other gnutella
 nodes.</entry></row>
 
 <row><entry colname="c2">Upload History</entry>
@@ -261,13 +269,13 @@ menu. ("View|show Navigation Tree").</entry></row>
 <entry>Lists GTKG searches. Greyed values are inactive.  Clicking on
 an item changes the working area to show that search.</entry></row>
 
-<row><entry colname="c2">gnet Status</entry>
-<entry>Graphical summary of the gnet status.</entry></row>
+<row><entry colname="c2">GnutellaNet Status</entry>
+<entry>Graphical summary of the GnutellaNet status.</entry></row>
 
 <row><entry spanname="hspan">Status bar</entry> 
 <entry>Contains messages from time to time.  Also contains estimates
 of connected nodes, available files, size of all files and up time. A
-button at the bottom left can disconnect from gnet while leaving GTKG
+button at the bottom left can disconnect from gnutella while leaving GTKG
 running.  Current downloads and uploads will complete. </entry></row>
 
 </tbody></tgroup></informaltable>
@@ -275,12 +283,12 @@ running.  Current downloads and uploads will complete. </entry></row>
 
 
 <para> When first run, gtk-gnutella will be very busy trying to
-connect to the gnet for the first little while.  When three nodes are
-found, GTKG is fully connected to the network.  The gnet Status will
-show "3/3 connections". If this does not happen after several minutes,
-GTKG might be having problems seeing the Internet.  You will have to
-consult the <link linkend="networking"> Network troubleshooting </link>
-chapter.</para>
+connect to the GnutellaNet for the first little while.  When three
+nodes are found, GTKG is fully connected to the network.  The
+GnutellaNet Status will show "3/3 connections". If this does not
+happen after several minutes, GTKG might be having problems seeing the
+Internet.  You will have to consult the <link linkend="networking">
+Network troubleshooting </link> chapter.</para>
 
 <para>There are also two dialog screens.  Once is under the File menu
 and is named <link linkend="settings"> Preferences </link>.  This is a
@@ -292,7 +300,7 @@ results.</para>
 <section> <title>gtk-gnutella activities</title>
 
 <para> There are several distinct activities that you can perform with
-GTKG.  A required activity is getting connected to the gnet.  Once
+GTKG.  A required activity is getting connected to gnutella.  Once
 this is configured properly for your little section of the Internet,
 GTKG will take care of this for you with little or no attention.
 However, when you first use GTKG, it can be rather daunting to get
@@ -303,14 +311,14 @@ in good shape! <graphic fileref="images/no_firewall.ps"/></para>
 
 <para> There are several variation of the "firewalled" icon.
 Firewalled is a mis-leading term.  It actually means that GTKG is not
-detecting good connections to the rest of the gnet.  It is ok to
-continue with this icon, if you have connections showing in the gnet
-Status area (ie. "3/3 Connections").  <graphic
+detecting good connections to the rest of the GnutellaNet.  It is ok
+to continue with this icon, if you have connections showing in the
+GnutellaNet Status area (ie. "3/3 Connections").  <graphic
 fileref="images/firewall.ps"/> </para>
 
 <para> Another task that GTKG helps you with is finding files.  This
-is called "Searching".  There are all kinds of people connected to the
-gnet with different purposes.  Some people are spreading spam, spy
+is called "Searching".  There are all kinds of people connected to
+gnutella with different purposes.  Some people are spreading spam, spy
 ware and viruses.  Some people are mis-labelling files.  Some people
 mistakenly or purposely share corrupted files.  GTKG has a very
 powerful filter mechanism that can help to reduce the number of the
@@ -344,7 +352,7 @@ restrictions; manuals like this one for instance.</para>
 <para> There are three different items in the Search menu.
 "Search|Results" displays searches that you initiate in the working
 area.  "Search|Monitor" and "Search|Stats" are for examining all
-searches passing through our section of the gnet.</para>
+searches passing through our section of the GnutellaNet.</para>
 
 <section> <title>Search results</title>
 
@@ -354,8 +362,8 @@ filling the network with garbage.</para>
 
 <para>Searches are initiated in the search bar.  You type in text that
 you wish to search for.  An active search is then started by pressing
-the button to the left called" search".  This button will scour the
-gnet and try to find file matching your text. </para>
+the button to the left called" search".  This button will scour
+gnutella and try to find file matching your text. </para>
 
 <para> The "passive" search is an alternate method of finding files.
 Passive searching monitors other active searches that flow through
@@ -421,12 +429,12 @@ to download the file as soon as a source is found.</para> </section>
 <section> <title>Search "Monitor"</title>
 
 <para> The search monitor allows you to see what other people on the
-gnet are searching for.  This will only work if you are an ultra
-node. Sometimes this is useful.  It is certainly instructive to do
-this once or twice just to see what can be seen.  It can be
+GnutellaNet are searching for.  This will only work if you are an
+ultra node. Sometimes this is useful.  It is certainly instructive to
+do this once or twice just to see what can be seen.  It can be
 entertaining if you are bored.  Don't do it for too long though, it
 might get you down on people.  I am sure all the people searching for
-"back street boys" and "lesbian granny" are using Limewire. </para>
+"back street boys" and "lesbian granny" are using MLDonkey. </para>
 
 <figure><title>GTKG Search monitor</title>
 <screenshot>
@@ -487,7 +495,7 @@ are explained in the tooltip. </para>
 <title>Sharing your own files</title>
 
 <para> Sharing too many files is just as bad as sharing too few.  If
-everyone shares too few files, gnet would be empty.  Sharing your
+everyone shares too few files, gnutella would be empty.  Sharing your
 entire hard drive is also very bad.  Most people wouldn't want to do
 this for privacy reasons.  However, even if you don't care about the
 confidentiality of your files, it is still bad to share
@@ -496,9 +504,10 @@ everything.  </para>
 <para> Consider someone searching for "Gimp", maybe looking for advice
 on how to use this program.  If people share their entire hardrive,
 all of the individual files in the "Gimp" package could be returned
->from this search.  This makes it difficult to find relevant files.
-Not only that, but this will be flooding the gnet with useless search
-results.  Share what you would want to download, but no more! </para>
+from this search.  This makes it difficult to find relevant files.
+Not only that, but this will be flooding the GnutellaNet with useless
+search results.  Share what you would want to download, but no more!
+</para>
 
 <figure><title>GTKG Uploads</title>
 <screenshot>
@@ -520,7 +529,7 @@ Every directory underneath directories you list will be shared.  The
 expose relative paths checkbox will include the sub-directory names in
 your "search terms".  For instance if you store your music as
 "music/Artist/Alblum/song.mp3", the "Expose relative paths" will add
-both "Artist" and "Alblum" to the search terms.  Without this, your
+both "Artist" and "Album" to the search terms.  Without this, your
 GTKG will only return result if someone searches for "song" (or
 "song.mp3").</para>
 
@@ -531,14 +540,14 @@ GTKG will only return result if someone searches for "song" (or
 </figure>
 
 <para>Other interesting items are the "Browse Host" feature.  This
-allows other gnet nodes to request a list of all shared files.  The
+allows other gnutella nodes to request a list of all shared files.  The
 partial files sharing allows others to download a file as you are
 downloading it.  You might wish to disable this if you get corrupted
 downloads (mainly larger video files).  A future feature called "Tiger
 Tree Hashing" will allow better use of this feature with large files
 (Ie, video files).</para>
 
-<figure><title>GTKG gnet upload history</title>
+<figure><title>GTKG upload history</title>
 <screenshot>
 <graphic fileref="images/upload-history.ps"></graphic>
 </screenshot>
@@ -547,7 +556,7 @@ Tree Hashing" will allow better use of this feature with large files
 <para>The "Upload history" work area can allow you to see what files
 are taking the most bandwidth and what your most popular shares are.
 If many people have downloaded your file it should be easy to find on
-other machines in the gnet.  You might consider removing a popular
+other machines in the GnutellaNet.  You might consider removing a popular
 share from your shares so you can provide rarer content.  The popular
 share should be available from many other sources, if the people who
 downloaded the file are also sharing it.</para>
@@ -568,7 +577,7 @@ File | Preferences menu or by pressing control-P.  There are seven
 tabs in this dialog.  The "User Interface" tab can be used to
 customize GTKG.  The "Debugging" tab is mainly of use for developers.
 The network tab is used to handle oddities of your section of the
-Internet.  If you have problems connecting to any other gnet nodes,
+Internet.  If you have problems connecting to any other gnutella nodes,
 you will need to use this tab.  Information in the <link
 linkend="networking"> networking section </link> will also be of help.  The
 remaining tabs are related to file sharing. </para>
@@ -576,10 +585,10 @@ remaining tabs are related to file sharing. </para>
 
 <para> The GnutellaNet tab configure how you connect to other
 nodes. To begin with, you only need to change items in the top group.
-If your machine is slow, you might want to set the peermode to "leaf".
+If your machine is slow, you might want to set the peer mode to "leaf".
 You can also configure the number of leave that are allowed to connect
 when in "ultra" mode.  The number of leaves should be above thirty.
-Leaves don't consume much bandwith or CPU usage.  The number of
+Leaves don't consume much bandwidth or CPU usage.  The number of
 Ultra-nodes to connect to is found at the bottom of the GnutellaNet
 work area (strangely enough).</para>
 
@@ -594,7 +603,7 @@ limits here as well. </para>
 <para>The "Downloads" tab allows configuration of where downloaded
 files are stored.  There are also many parameters on how to retrieve
 files.  The particular options will depend on the size of the file,
-the number of sources, and the number of hostile hosts.  The tooltips
+the number of sources, and the number of hostile hosts.  The tool tips
 explain the parameters, but the defaults are good for most
 users.</para>
 
@@ -850,10 +859,10 @@ DISPLAY</entry><entry>DOWNLOAD</entry></row>
 <part>
 <title>The gory details</title>
 
-<chapter id="gnet">
+<chapter id="GnutellaNet">
 <title>The GnutellaNet pane</title>
 
-<figure><title>GTKG gnet</title>
+<figure><title>GTKG GnutellaNet</title>
 <screenshot>
 <graphic fileref="images/gnet.ps"></graphic>
 </screenshot>
@@ -867,7 +876,7 @@ DISPLAY</entry><entry>DOWNLOAD</entry></row>
 </screenshot>
 </figure>
 
-<figure><title>GTKG gnet statistics</title>
+<figure><title>GTKG GnutellaNet statistics</title>
 <screenshot>
 <graphic fileref="images/gnet-stats.ps"></graphic>
 </screenshot>
@@ -884,35 +893,332 @@ DISPLAY</entry><entry>DOWNLOAD</entry></row>
 <chapter id="networking">
 <title>Networking.</title>
 <para>
-Describe NAT, masquarade, etc.
+Describe NAT, masquerade, etc.
      IP  - ip configuration section, NAT, firewalls, 
-           public and private networks. SNAT, DNAT, PAT, masquarade...
+           public and private networks. SNAT, DNAT, PAT, masquerade...
 </para>
 </chapter>
 
 <chapter id="traffic_shaping">
 <title>OS Traffic shaping.</title>
 
+<para>The bandwidth preferences are excellent tools for configuring
+the bandwidth use of GTKG.  However, you must often be a pessimistic
+when using Application layer bandwidth control.  Consider a system
+running GTKG, a BitTorrent client, a web server and a secure shell
+server (sshd).  The bandwidth can be divided into four (possibly
+unequal) at the application level.  </para>
+
+<para>Simple division of bandwidth is not ideal.  The ssh task doesn't
+need a lot of bandwidth.  The important item is response or "latency".
+This is also true for many real time gaming applications.  Ftp, and
+peer-to-peer applications like GTKG need bandwidth.  Web pages also
+need to be responsive.  It also becomes obvious that dividing the
+bandwidth is not making full use of your network connection.  The web
+traffic will be very bursty as users click links.  GTKG and BitTorrent
+traffic is also bursty as new clients come and go.</para>
+
+<para>Fortunately there are better ways to do this.  Linux provides
+the "tc" program.  BSD provides "ipfw" queue and pipe commands.  When
+using traffic shaping, it is useful to have some diagnostic tools. The
+<ulink url="http://www.ex-parrot.com/pdw/iftop/">iftop</ulink> program
+is useful in observing bandwidth usage.</para>
+
+<para>The following is an example ".iftoprc" that is useful for
+sorting bandwidth based on destination port.
+
+<informalexample><programlisting>
+interface: ppp0
+dns-resolution: yes
+port-resolution: no
+show-bars: yes
+promiscuous: no
+port-display: source-only
+hide-source: yes
+hide-destination: yes
+use-bytes: yes
+sort: 2s
+line-display: one-line-both
+show-totals: yes
+log-scale: no
+</programlisting></informalexample>
+
+The "iftop" program requires libpcap and must be run as root.
+However, root access is not an issue as all traffic shaping commands
+need to be run a root level.</para>
+
+<para>As mentioned previously, there are two factors that affect
+network performance.  One is bandwidth, the other is latency.  As most
+network traffic is bursty, all routers on the Internet buffer packets.
+This allows momentary handling of traffic that is above a links
+capacity.  However, this buffer forms a queue which increases latency.
+If the traffic never subsides latency will increase for interactive
+traffic, like ssh, web and gaming applications.  A key to configuring
+traffic shaping is to limit the total outbound traffic below the link
+capacity (bandwidth).  Running "iftop" without any traffic shaping
+and use "ftp" or another application to use all your bandwidth.  It is
+important to get real numbers.  If you over-estimate your bandwidth,
+the latency will increase.  The "f" key allows a filter to be
+installed.  The filter "src host <emphasis>ip</emphasis>" will show
+only outbound traffic on most home networks (single IP).  Your
+<emphasis>ip</emphasis> is your actual ip, found with "ifconfig" or
+any other method.</para>
+
+<para>It is not possible to control incoming traffic.</para>
+
+<section><title>BSD Traffic Shaping</title>
+<para>Please add information here.</para>
+</section>
+
+<section><title>Linux Traffic Shaping</title>
+
 <para> If you are using OS traffic shaping, the "Use IP Type of
 Service (TOS)" is useful.  Uploads use "maximum throughput", Downloads
-use "lowdelay" and other traffic is normal service.  This can be used
-to classify the gnet traffic. </para>
+use "low-delay" and other traffic is normal service.  This can be used
+to classify the gnutella traffic. </para>
 
 <para>
 TOC - example script to minimize latency. (also iftop)
 iptables -m tos -h:
-                                     Minimize-Delay 16 (0x10)
-                                     Maximize-Throughput 8 (0x08)
-                                     Maximize-Reliability 4 (0x04)
-                                     Minimize-Cost 2 (0x02)
-                                     Normal-Service 0 (0x00)
+            Minimize-Delay 16 (0x10)
+            Maximize-Throughput 8 (0x08)
+            Maximize-Reliability 4 (0x04)
+            Minimize-Cost 2 (0x02)
+            Normal-Service 0 (0x00)
 myshaper script.  Kernel config. tools, FAQ.
 </para>
+
+<informalexample><programlisting>
+#!/bin/bash
+#
+# myshaper - DSL/Cable modem outbound traffic shaper and prioritizer.
+#            Based on the ADSL/Cable wondershaper (www.lartc.org)
+#
+# Written by Dan Singletary (8/7/02)
+#
+# Configuration options for myshaper:
+#  DEV    - set to ethX that connects to DSL/Cable Modem
+#  RATEUP - set this to slightly lower than your
+#           outbound bandwidth on the DSL/Cable Modem.
+#           I have a 1500/128 DSL line and setting
+#           RATEUP=90 works well for my 128kbps upstream.
+#           However, your mileage may vary.
+#   
+
+
+DEV=ppp0
+
+# NB: Value is kbits.  Multiply by 8 bits per byte!
+RATEUP=1050
+
+GTKG_PORT=`grep listen_port $HOME/.gtk-gnutella/config_gnet | cut -d= -f2`
+
+# 
+# End Configuration Options
+#
+
+if [ "$1" = "status" ]
+then
+        echo "[qdisc]"
+        tc -s qdisc show dev $DEV
+        echo "[class]"
+        tc -s class show dev $DEV
+        echo "[filter]"
+        tc -s filter show dev $DEV
+        echo "[iptables]"
+        iptables -t mangle -L MYSHAPER-OUT -v -x 2> /dev/null
+        exit
+fi
+
+# Reset everything to a known state (cleared)
+tc qdisc del dev $DEV root    2> /dev/null > /dev/null
+iptables -t mangle -D POSTROUTING -o $DEV -j MYSHAPER-OUT 2> /dev/null > /dev/null
+iptables -t mangle -F MYSHAPER-OUT 2> /dev/null > /dev/null
+iptables -t mangle -X MYSHAPER-OUT 2> /dev/null > /dev/null
+
+if [ "$1" = "stop" ] 
+then 
+        echo "Shaping removed on $DEV."
+        exit
+fi
+
+###########################################################
+#
+# Outbound Shaping (limits total bandwidth to RATEUP)
+
+# set queue size to give latency of about 2 seconds on low-prio packets
+# ip link set dev $DEV qlen 30
+
+# changes mtu on the outbound device.  Lowering the mtu will result
+# in lower latency but will also cause slightly lower throughput due 
+# to IP and TCP protocol overhead.
+# ip link set dev $DEV mtu 1000
+
+# add HTB root qdisc
+tc qdisc add dev $DEV root handle 1: htb default 26
+
+# add main rate limit classes
+tc class add dev $DEV parent 1: classid 1:1 htb rate ${RATEUP}kbit
+
+# add leaf classes 
+#
+#    - We grant each class at LEAST it's "fair share" of bandwidth.
+#      this way no class will ever be starved by another class.  Each
+#      class is also permitted to consume all of the available bandwidth
+#      if no other classes are in use.
+tc class add dev $DEV parent 1:1 classid 1:20 htb rate $[$RATEUP/7]kbit ceil ${RATEUP}kbit prio 0
+tc class add dev $DEV parent 1:1 classid 1:21 htb rate $[$RATEUP/7]kbit ceil ${RATEUP}kbit prio 1
+tc class add dev $DEV parent 1:1 classid 1:22 htb rate $[$RATEUP/7]kbit ceil ${RATEUP}kbit prio 2
+tc class add dev $DEV parent 1:1 classid 1:23 htb rate $[$RATEUP/7]kbit ceil ${RATEUP}kbit prio 3
+tc class add dev $DEV parent 1:1 classid 1:24 htb rate $[$RATEUP/7]kbit ceil ${RATEUP}kbit prio 4
+tc class add dev $DEV parent 1:1 classid 1:25 htb rate $[$RATEUP/7]kbit ceil ${RATEUP}kbit prio 5
+tc class add dev $DEV parent 1:1 classid 1:26 htb rate $[$RATEUP/7]kbit ceil ${RATEUP}kbit prio 6
+
+# attach qdisc to leaf classes 
+#
+#     - here we at SFQ to each priority class.  SFQ insures that
+#       within each class connections will be treated (almost) fairly.
+tc qdisc add dev $DEV parent 1:20 handle 20: sfq perturb 10
+tc qdisc add dev $DEV parent 1:21 handle 21: sfq perturb 10
+tc qdisc add dev $DEV parent 1:22 handle 22: sfq perturb 10
+tc qdisc add dev $DEV parent 1:23 handle 23: sfq perturb 10
+tc qdisc add dev $DEV parent 1:24 handle 24: sfq perturb 10
+tc qdisc add dev $DEV parent 1:25 handle 25: sfq perturb 10
+tc qdisc add dev $DEV parent 1:26 handle 26: sfq perturb 10
+
+# filter traffic into classes by fwmark 
+#
+#     - here we direct traffic into priority class according to the
+#     fwmark set on the packet (we set fwmark with iptables later).
+#     Note that above we've set the default priority class to 1:26 so
+#     unmarked packets (or packets marked with unfamiliar IDs) will be
+#     defaulted to the lowest priority class.
+
+tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 20 fw flowid 1:20
+tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 21 fw flowid 1:21
+tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 22 fw flowid 1:22
+tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 23 fw flowid 1:23
+tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 24 fw flowid 1:24
+tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 25 fw flowid 1:25
+tc filter add dev $DEV parent 1:0 prio 0 protocol ip handle 26 fw flowid 1:26
+
+# add MYSHAPER-OUT chain to the mangle table in iptables 
+# 
+# - this sets up the table we'll use to filter and mark packets.
+iptables -t mangle -N MYSHAPER-OUT
+iptables -t mangle -I POSTROUTING -o $DEV -j MYSHAPER-OUT
+
+# add fwmark entries to classify different types of traffic - Set
+# fwmark from 20-26 according to desired class. 20 is highest prio.
+iptables -t mangle -A MYSHAPER-OUT -p tcp --sport 0:1024 -j MARK --set-mark 23 # Default for low port traffic 
+iptables -t mangle -A MYSHAPER-OUT -p tcp --dport 0:1024 -j MARK --set-mark 23 # "" 
+iptables -t mangle -A MYSHAPER-OUT -p tcp --dport 20 -j MARK --set-mark 26     # ftp-data port, low prio
+iptables -t mangle -A MYSHAPER-OUT -p icmp -j MARK --set-mark 20               # ICMP (ping) - high prio 
+iptables -t mangle -A MYSHAPER-OUT -p udp -j MARK --set-mark 21                # DNS 
+iptables -t mangle -A MYSHAPER-OUT -p tcp --dport ssh -j MARK --set-mark 22    # secure shell
+iptables -t mangle -A MYSHAPER-OUT -p tcp --sport ssh -j MARK --set-mark 22    # secure shell
+iptables -t mangle -A MYSHAPER-OUT -p tcp --sport http -j MARK --set-mark 24   # Local web server
+iptables -t mangle -A MYSHAPER-OUT -p tcp --dport http -j MARK --set-mark 24   # Local web server
+iptables -t mangle -A MYSHAPER-OUT -p tcp -m length --length :64 -j MARK --set-mark 21 # small packets
+iptables -t mangle -A MYSHAPER-OUT -m mark --mark 0 -j MARK --set-mark 26      # redundant- mark packets as low prio
+iptables -t mangle -A MYSHAPER-OUT -p tcp --sport $GTKG_PORT -j MARK --set-mark 25
+iptables -t mangle -A MYSHAPER-OUT -p udp --sport $GTKG_PORT -j MARK --set-mark 25
+
+# Done with outbound shaping
+#
+####################################################
+
+#[!] --tos value               Match Type of Service field from one of the
+#                              following numeric or descriptive values:
+
+#	Minimize-Delay 16 (0x10)
+#       Maximize-Throughput 8 (0x08)
+#       Maximize-Reliability 4 (0x04)
+#       Minimize-Cost 2 (0x02)
+#       Normal-Service 0 (0x00)
+
+# GTKG, upload is throughput, download is delay, others are normal.
+
+
+echo "Outbound shaping added to $DEV.  Rate: ${RATEUP}Kbit/sec."
+echo "GTKG is $GTKG_PORT."
+</programlisting></informalexample>
+
+
+</section>
+
 </chapter>
 
 <chapter id="headless">
-<title>Headless mode.</title>
-<para>Using headless as daemon server.</para>
+<title>Headless mode.</title> 
+
+<para>GTKG has a configuration called "headless".  This configuration
+doesn't use either GTK1 or GTK2.  It will operate without an X-windows
+system.  It is a low CPU overhead mode of running and
+Ultra-node.</para>
+
+<para>See the chapter <link linkend="getting">on getting
+Gtk-Gnutella</link> on how to get the source code.  The following
+"Configure" invocation will produce a headless version of GTKG.
+
+<informalexample><programlisting>
+./Configure -Oders \
+ -D prefix=/usr/local \
+ -D sysman=/usr/local/man/man1 \
+ -D bindir=/usr/local/bin \
+ -D privlib=/usr/local/lib/gtk-gnutella \
+ -D cc=cc \
+ -D ccflags='-W -Wall -Wformat=2 -Wshadow -I/usr/local/include \
+    -momit-leaf-frame-pointer -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE \
+    -D_FILE_OFFSET_BITS=64 -pipe' \
+ -D gtkversion=2 \
+ -D yacc='bison -y' \
+ -D official=false \
+ -D d_gnutls \
+ -U d_enablenls \
+ -U d_headless \
+ -U d_ipv6 \
+ -D d_headless
+</programlisting></informalexample>
+
+Run this Configure command and "make" in the source directory.
+
+</para>
+
+<para> Assuming you have run a graphical version of GTKG, copy all
+files in $HOME/.gtk-gnutella to a backup directory.  Run the graphical
+GTKG and configure the networking parameters for the "headless"
+version.  You may wish to let it run for a while to verify that it is
+operating well.  Make sure you change the listening port.  Exit the
+graphical GTKG.</para>
+
+<para>Create a directory to install the headless version to and copy
+all files from $HOME/.gtk-gnutella.  Restore the graphical GTKG
+configuration from the backup directory.  Edit the config_gnet and
+delete the entry "guid" so that a new id is generated.  Copy the
+"gtk-gnutella" binary from the "src" directory to this directory.
+Here is a possible script for invoking the headless GTKG.
+
+<informalexample><programlisting>
+#!/bin/sh
+
+# turn on core dumps and delete old dump
+ulimit -S -c unlimited -s unlimited
+rm -f core
+export LD_LIBRARY_PATH=/usr/local/lib
+
+# run gtk-gnutella 
+export GTK_GNUTELLA_DIR=`pwd`;./gtk-gnutella --log-stderr err --log-stdout log
+</programlisting></informalexample>
+
+
+You can name this script "headless" and invoke it like this
+"./headless &".  You can then use the GnutellaNet working area in the
+graphical GTKG to connect to this headless Ultra, using
+"127.0.0.1:port".
+
+</para>
+
 </chapter>
 
 <chapter id="kernel_mode_pppoe">
