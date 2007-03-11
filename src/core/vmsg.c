@@ -592,7 +592,7 @@ vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid)
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
 	if (vmsg_debug > 2)
-		g_warning("sent proxy REQ to %s <%s>", node_addr(n), node_vendor(n));
+		g_message("sent proxy REQ to %s <%s>", node_addr(n), node_vendor(n));
 }
 
 /**
@@ -660,7 +660,9 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
 		 * side goofed, or they closed the search.
 		 */
 
-		g_warning("Could not find matching search");
+		if (vmsg_debug) {
+			g_warning("Could not find matching search");
+		}
 		kept = 0xffffU;		/* Magic value telling them to stop the search */
 	} else {
 		kept = MIN(kept, 0xfffeU);
@@ -1888,7 +1890,7 @@ handle_head_ping(struct gnutella_node *n,
 		urn_get_sha1(&payload[1], cast_to_gchar_ptr(sha1.data))
 	) {
 		if (vmsg_debug) {
-			g_warning("HEAD Ping for %s%s", urn_prefix, sha1_to_string(sha1));
+			g_message("HEAD Ping for %s%s", urn_prefix, sha1_to_string(sha1));
 		}
 	} else {
 		if (vmsg_debug) {
