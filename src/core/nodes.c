@@ -419,7 +419,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	)
 		udp = node_udp_get_addr_port(n->gnet_addr, n->gnet_port);
 
-	tn = (udp && udp->outq) ? udp : n;
+	tn = udp ? udp : n;
 	if (!host_is_valid(tn->addr, tn->port))
 		return;
 
