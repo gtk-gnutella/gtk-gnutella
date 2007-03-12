@@ -2412,7 +2412,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			return FALSE;			/* Both servents are firewalled */
 	}
 
-	if (!skip_file_search) {
+	if (!skip_file_search || exv_sha1cnt > 0) {
 		struct query_context *qctx;
 		guint32 max_replies;
 
@@ -2446,37 +2446,39 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			}
 		}
 
-		/*
-		 * Keep only UTF8 encoded queries (This includes ASCII)
-		 */
+		if (!skip_file_search) {
+			/*
+			 * Keep only UTF8 encoded queries (This includes ASCII)
+			 */
 
-		g_assert('\0' == search[search_len]);
+			g_assert('\0' == search[search_len]);
 
-		if (!decoded) {
-			if (!query_utf8_decode(search, &offset)) {
-				gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
-				drop_it = TRUE;				/* Drop message! */
-				goto finish;				/* Flush any SHA1 result we have */
+			if (!decoded) {
+				if (!query_utf8_decode(search, &offset)) {
+					gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
+					drop_it = TRUE;			/* Drop message! */
+					goto finish;			/* Flush any SHA1 result we have */
+				}
+				decoded = TRUE;
+
+				if (!is_ascii_string(search))
+					gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 			}
-			decoded = TRUE;
 
-			if (!is_ascii_string(search))
-				gnet_stats_count_general(GNR_QUERY_UTF8, 1);
+			/*
+			 * Because st_search() will apply a character map over the string,
+			 * we always need to copy the query string to avoid changing the
+			 * data inplace.
+			 *
+			 * `stmp_1' is a static buffer.  Note that we copy the trailing NUL
+			 * into the buffer, hence the "+1" below.
+			 */
+
+			search_len -= offset;
+			memcpy(stmp_1, &search[offset], search_len + 1);
+
+			st_search(search_table, stmp_1, got_match, qctx, max_replies, qhv);
 		}
-
-		/*
-		 * Because st_search() will apply a character map over the string,
-		 * we always need to copy the query string to avoid changing the
-		 * data inplace.
-		 *
-		 * `stmp_1' is a static buffer.  Note that we copy the trailing NUL
-		 * into the buffer, hence the "+1" below.
-		 */
-
-		search_len -= offset;
-		memcpy(stmp_1, &search[offset], search_len + 1);
-
-		st_search(search_table, stmp_1, got_match, qctx, max_replies, qhv);
 
 finish:
 		if (qctx->found > 0) {
