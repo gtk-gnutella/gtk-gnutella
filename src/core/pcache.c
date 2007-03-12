@@ -2102,8 +2102,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 * If it was an acknowledge for one of our alive pings, don't cache.
 		 */
 
-		if (alive_ack_ping(n->alive_pings,
-				gnutella_header_get_muid(&n->header)))
+		if (alive_ack_ping(n->alive_pings, gnutella_header_get_muid(&n->header)))
 			return;
 	}
 
