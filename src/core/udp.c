@@ -37,24 +37,28 @@
 
 RCSID("$Id$")
 
-#include "udp.h"
-#include "gmsg.h"
-#include "inet.h"
-#include "nodes.h"
-#include "sockets.h"
+#include "bogons.h"
 #include "bsched.h"
+#include "gmsg.h"
 #include "gnet_stats.h"
 #include "gnutella.h"
+#include "inet.h"
 #include "mq_udp.h"
-#include "routing.h"
-#include "pcache.h"
+#include "nodes.h"
 #include "ntp.h"
-#include "bogons.h"
+#include "pcache.h"
+#include "routing.h"
+#include "sockets.h"
+#include "udp.h"
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/hashlist.h"
 #include "lib/misc.h"
+#include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -283,7 +287,7 @@ udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 
-	if (n && n->outq) {
+	if (n) {
 		gnutella_msg_init_t *m;
 		guint32 size;
 
@@ -297,6 +301,121 @@ udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 	}
 }
 
+struct udp_ping {
+	gchar muid[GUID_RAW_SIZE];	/* MUST be at offset zero */
+	time_t added;				/**< Timestamp of insertion */
+};
+
+static const time_delta_t UDP_PING_TIMEOUT	    = 30;	/**< seconds */
+static const size_t		  UDP_PING_MAX 			= 1024;	/**< amount to track */
+static const gint 		  UDP_PING_PERIODIC_MS	= 5000;	/**< milliseconds */
+
+static hash_list_t *udp_pings;	/**< Tracks send/forwarded UDP Pings */
+static cevent_t *udp_ping_ev;	/**< Monitoring event */
+
+static inline void
+udp_ping_free(struct udp_ping *ping)
+{
+	wfree(ping, sizeof *ping);
+}
+
+static void
+udp_ping_expire(gboolean forced)
+{
+	time_t now;
+
+	g_return_if_fail(udp_pings);
+
+	now = tm_time();
+	for (;;) {
+		struct udp_ping *ping;
+		time_delta_t d;
+
+		ping = hash_list_head(udp_pings);
+		if (!ping) {
+			break;
+		}
+		if (!forced) {
+			d = delta_time(now, ping->added);
+			if (d > 0 && d <= UDP_PING_TIMEOUT) {
+				break;
+			}
+		}
+		hash_list_remove(udp_pings, ping);
+		udp_ping_free(ping);
+	}
+}
+
+/**
+ * Callout queue callback to perform periodic monitoring of the
+ * registered files.
+ */
+static void
+udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
+{
+	(void) unused_udata;
+
+	/*
+	 * Re-install timer for next time.
+	 */
+
+	udp_ping_ev = cq_insert(cq, UDP_PING_PERIODIC_MS, udp_ping_timer, NULL);
+	udp_ping_expire(FALSE);
+}
+
+static gboolean
+udp_ping_register(const gchar *muid)
+{
+	static gboolean initialized;
+	struct udp_ping *ping;
+	guint length;
+
+	g_assert(muid);
+
+	if (!initialized) {
+		udp_pings = hash_list_new(guid_hash, guid_eq);
+		udp_ping_timer(callout_queue, NULL);
+	}
+	g_return_val_if_fail(udp_pings, FALSE);
+
+	if (hash_list_contains(udp_pings, muid, NULL)) {
+		/* Probably a duplicate */
+		return FALSE;
+	}
+
+	/* random early drop */
+	length = hash_list_length(udp_pings);
+	if (length >= UDP_PING_MAX) {
+		return FALSE;
+	} else if (length > (UDP_PING_MAX / 4) * 3) {
+		if ((random_raw() % UDP_PING_MAX) < length)
+			return FALSE;
+	}
+
+	ping = walloc(sizeof *ping);
+	memcpy(ping->muid, muid, GUID_RAW_SIZE);
+	ping->added = tm_time();
+	hash_list_append(udp_pings, ping);
+	return TRUE;
+}
+
+gboolean
+udp_ping_is_registered(const gchar *muid)
+{
+	g_assert(muid);
+
+	if (udp_pings) {
+		struct udp_ping *ping;
+
+		ping = hash_list_remove(udp_pings, muid);
+		if (ping) {
+			udp_ping_free(ping);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 /**
  * Send a Gnutella ping to the specified host.
  */
@@ -305,12 +424,14 @@ udp_send_ping(const host_addr_t addr, guint16 port, gboolean uhc_ping)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 
-	if (n && n->outq) {
+	if (n) {
 		gnutella_msg_init_t *m;
 		guint32 size;
 
 		m = build_ping_msg(NULL, 1, uhc_ping, &size);
-		udp_send_msg(n, m, size);
+		if (udp_ping_register(gnutella_header_get_muid(m))) {
+			udp_send_msg(n, m, size);
+		}
 	}
 }
 

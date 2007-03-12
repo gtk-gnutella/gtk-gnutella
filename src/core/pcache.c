@@ -1919,6 +1919,9 @@ pcache_udp_pong_received(struct gnutella_node *n)
 
 	g_assert(NODE_IS_UDP(n));
 
+	if (!udp_ping_is_registered(gnutella_header_get_muid(&n->header)))
+		return;
+
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
 	 * the GGEP "IPP" extension, containing a packed set of IP:port.
