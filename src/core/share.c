@@ -614,7 +614,6 @@ map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE])
 	return NULL;
 }
 
-
 /**
  * Initialization of the sharing library.
  */
@@ -1794,7 +1793,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gchar *search;
 	size_t search_len, max_len;
 	gboolean decoded = FALSE;
-	guint32 max_replies;
 	gboolean skip_file_search = FALSE;
 	struct {
 		gchar sha1_digest[SHA1_RAW_SIZE];
@@ -1806,7 +1804,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean drop_it = FALSE;
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
 	gboolean secure_oob = FALSE;
-	struct query_context *qctx;
 	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
 	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
@@ -1992,7 +1989,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 						break;
 					}
 				} else if (EXT_T_URN_SHA1 == e->ext_token) {
-					gint paylen = ext_paylen(e);
+					size_t paylen = ext_paylen(e);
 
 					if (paylen == 0)
 						continue;				/* A simple "urn:sha1:" */
@@ -2415,37 +2412,39 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			return FALSE;			/* Both servents are firewalled */
 	}
 
-	/*
-	 * Perform search...
-	 */
+	if (!skip_file_search) {
+		struct query_context *qctx;
+		guint32 max_replies;
 
-    gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
-	if (current_peermode == NODE_P_LEAF && node_ultra_received_qrp(n))
-		node_inc_qrp_query(n);
+		/*
+		 * Perform search...
+		 */
 
-	qctx = share_query_context_make();
-	max_replies = (search_max_items == (guint32) -1) ? 255 : search_max_items;
+		gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
+		if (current_peermode == NODE_P_LEAF && node_ultra_received_qrp(n))
+			node_inc_qrp_query(n);
 
-	/*
-	 * Search each SHA1.
-	 */
+		qctx = share_query_context_make();
+		max_replies = (search_max_items == (guint32) -1) ? 255 : search_max_items;
 
-	if (exv_sha1cnt) {
-		gint i;
+		/*
+		 * Search each SHA1.
+		 */
 
-		for (i = 0; i < exv_sha1cnt && max_replies > 0; i++) {
-			struct shared_file *sf;
+		if (exv_sha1cnt) {
+			gint i;
 
-			sf = shared_file_by_sha1(exv_sha1[i].sha1_digest);
-			if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf)) {
-				shared_file_check(sf);
-				got_match(qctx, sf);
-				max_replies--;
+			for (i = 0; i < exv_sha1cnt && max_replies > 0; i++) {
+				struct shared_file *sf;
+
+				sf = shared_file_by_sha1(exv_sha1[i].sha1_digest);
+				if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf)) {
+					shared_file_check(sf);
+					got_match(qctx, sf);
+					max_replies--;
+				}
 			}
 		}
-	}
-
-	if (!skip_file_search) {
 
 		/*
 		 * Keep only UTF8 encoded queries (This includes ASCII)
@@ -2454,13 +2453,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		g_assert('\0' == search[search_len]);
 
 		if (!decoded) {
-		   	if (!query_utf8_decode(search, &offset)) {
+			if (!query_utf8_decode(search, &offset)) {
 				gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
 				drop_it = TRUE;				/* Drop message! */
 				goto finish;				/* Flush any SHA1 result we have */
 			}
 			decoded = TRUE;
-		
+
 			if (!is_ascii_string(search))
 				gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 		}
@@ -2478,51 +2477,51 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		memcpy(stmp_1, &search[offset], search_len + 1);
 
 		st_search(search_table, stmp_1, got_match, qctx, max_replies, qhv);
-	}
 
 finish:
-	if (qctx->found > 0) {
-        gnet_stats_count_general(GNR_LOCAL_HITS, qctx->found);
-		if (current_peermode == NODE_P_LEAF && node_ultra_received_qrp(n))
-			node_inc_qrp_match(n);
+		if (qctx->found > 0) {
+			gnet_stats_count_general(GNR_LOCAL_HITS, qctx->found);
+			if (current_peermode == NODE_P_LEAF && node_ultra_received_qrp(n))
+				node_inc_qrp_match(n);
 
-		if (share_debug > 3) {
-			g_message("share HIT %u files '%s'%s ", qctx->found,
-				search + offset,
-				skip_file_search ? " (skipped)" : "");
-			if (exv_sha1cnt) {
-				gint i;
-				for (i = 0; i < exv_sha1cnt; i++)
-					g_message("\t%c(%32s)",
-						exv_sha1[i].matched ? '+' : '-',
-						sha1_base32(exv_sha1[i].sha1_digest));
+			if (share_debug > 3) {
+				g_message("share HIT %u files '%s'%s ", qctx->found,
+						search + offset,
+						skip_file_search ? " (skipped)" : "");
+				if (exv_sha1cnt) {
+					gint i;
+					for (i = 0; i < exv_sha1cnt; i++)
+						g_message("\t%c(%32s)",
+								exv_sha1[i].matched ? '+' : '-',
+								sha1_base32(exv_sha1[i].sha1_digest));
+				}
+				g_message("\treq_speed=%u ttl=%d hops=%d", (guint) req_speed,
+						(gint) gnutella_header_get_ttl(&n->header),
+						(gint) gnutella_header_get_hops(&n->header));
 			}
-			g_message("\treq_speed=%u ttl=%d hops=%d", (guint) req_speed,
-				(gint) gnutella_header_get_ttl(&n->header),
-				(gint) gnutella_header_get_hops(&n->header));
 		}
+
+		if (share_debug > 3)
+			g_message("QUERY %s \"%s\" has %u hit%s",
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					search, qctx->found,
+					qctx->found == 1 ? "" : "s");
+
+		/*
+		 * If we got a query marked for OOB results delivery, send them
+		 * a reply out-of-band but only if the query's hops is > 1.  Otherwise,
+		 * we have a direct link to the queryier.
+		 */
+
+		if (qctx->found) {
+			if (oob && should_oob)
+				oob_got_results(n, qctx->files, qctx->found, secure_oob);
+			else
+				qhit_send_results(n, qctx->files, qctx->found, muid);
+		}
+
+		share_query_context_free(qctx);
 	}
-
-	if (share_debug > 3)
-		g_message("QUERY %s \"%s\" has %u hit%s",
-			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			search, qctx->found,
-			qctx->found == 1 ? "" : "s");
-
-	/*
-	 * If we got a query marked for OOB results delivery, send them
-	 * a reply out-of-band but only if the query's hops is > 1.  Otherwise,
-	 * we have a direct link to the queryier.
-	 */
-
-	if (qctx->found) {
-		if (oob && should_oob)
-			oob_got_results(n, qctx->files, qctx->found, secure_oob);
-		else
-			qhit_send_results(n, qctx->files, qctx->found, muid);
-	}
-
-	share_query_context_free(qctx);
 
 	if (drop_it)
 		goto drop;
