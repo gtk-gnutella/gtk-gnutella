@@ -156,6 +156,8 @@ results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to,
 	static const struct oob_results zero_results;
 	struct oob_results *r;
 
+	g_return_val_if_fail(!g_hash_table_lookup(results_by_muid, muid), NULL);
+
 	r = walloc(sizeof *r);
 	*r = zero_results;
 	r->magic = OOB_RESULTS_MAGIC;
@@ -168,7 +170,6 @@ results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to,
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
 	r->refcount++;
 
-	g_assert(!g_hash_table_lookup(results_by_muid, r->muid));
 	gm_hash_table_insert_const(results_by_muid, r->muid, r);
 
 	g_assert(num_oob_records >= 0);
@@ -653,7 +654,9 @@ oob_got_results(struct gnutella_node *n, GSList *files,
 	gnet_host_set(&to, addr, port);
 	r = results_make(gnutella_header_get_muid(&n->header), files, count, &to,
 			secure);
-	oob_send_reply_ind(r);
+	if (r) {
+		oob_send_reply_ind(r);
+	}
 }
 
 /**
