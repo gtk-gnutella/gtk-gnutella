@@ -552,6 +552,7 @@ gchar *control_escape(const gchar *s);
 const gchar *lazy_string_to_printf_escape(const gchar *src);
 gint highest_bit_set(guint32 n) G_GNUC_CONST;
 gfloat force_range(gfloat value, gfloat min, gfloat max);
+gchar *absolute_pathname(const gchar *file);
 gchar *make_pathname(const gchar *dir, const gchar *file);
 gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);

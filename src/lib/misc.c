@@ -772,6 +772,26 @@ str_chomp(gchar *str, size_t len)
 }
 
 /**
+ * Create an absolute path.
+ */
+gchar *
+absolute_pathname(const char *file)
+{
+	g_assert(file);
+	
+	if (is_absolute_path(file)) {
+		return g_strdup(file);
+	} else if ('\0' == file[0]) {
+		return NULL;
+	} else {
+		gchar buf[4096], *ret;
+
+		ret = getcwd(buf, sizeof buf);
+		return ret ? make_pathname(ret, file) : NULL;
+	}
+}
+
+/**
  * Check whether path is an absolute path.
  */
 gboolean
