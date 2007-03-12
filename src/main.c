@@ -858,38 +858,44 @@ enum main_arg {
 	num_main_args
 };
 
+enum arg_type {
+	ARG_TYPE_NONE,
+	ARG_TYPE_TEXT,
+	ARG_TYPE_PATH
+};
+
 static struct {
 	const enum main_arg id;
 	const gchar * const name;
 	const gchar * const summary;
-	const gboolean has_arg;
+	const enum arg_type type;
 	const gchar *arg;
 	gboolean used;
 } options[] = {
-#define OPTION(name, has_arg, summary) \
-	{ main_arg_ ## name , #name, summary, has_arg, NULL, FALSE }
+#define OPTION(name, type, summary) \
+	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
 
-	OPTION(daemonize, 		0,	"Daemonize the process."),
-	OPTION(exec_on_crash, 	1,	"Execute a command on crash."),
-	OPTION(geometry,		1,	"Placement of the main GUI window."),
-	OPTION(help, 			0,	"Print this message."),
-	OPTION(log_stderr,		1,	"Log standard output to a file."),
-	OPTION(log_stdout,		1,	"Log standard error output to a file."),
-	OPTION(no_xshm,			0,	"Disabled MIT shared memory extension."),
-	OPTION(pause_on_crash, 	0,	"Pause the process on crash."),
-	OPTION(ping,			0,	"Check whether gtk-gnutella is running."),
-	OPTION(shell,			0,	"Access the local shell interface."),
-	OPTION(version,			0,	"Show version information."),
+	OPTION(daemonize, 		NONE, "Daemonize the process."),
+	OPTION(exec_on_crash, 	PATH, "Execute a command on crash."),
+	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
+	OPTION(help, 			NONE, "Print this message."),
+	OPTION(log_stderr,		PATH, "Log standard output to a file."),
+	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
+	OPTION(no_xshm,			NONE, "Disabled MIT shared memory extension."),
+	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
+	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
+	OPTION(shell,			NONE, "Access the local shell interface."),
+	OPTION(version,			NONE, "Show version information."),
 
 	/* These are handled by Gtk+/GDK/GLib */
-	OPTION(class,				1, NULL),
-	OPTION(g_fatal_warnings,	0, NULL),
-	OPTION(gdk_debug,			1, NULL),
-	OPTION(gdk_no_debug,		1, NULL),
-	OPTION(gtk_debug,			1, NULL),
-	OPTION(gtk_no_debug,		1, NULL),
-	OPTION(gtk_module,			1, NULL),
-	OPTION(name,				1, NULL),
+	OPTION(class,				TEXT, NULL),
+	OPTION(g_fatal_warnings,	TEXT, NULL),
+	OPTION(gdk_debug,			TEXT, NULL),
+	OPTION(gdk_no_debug,		TEXT, NULL),
+	OPTION(gtk_debug,			TEXT, NULL),
+	OPTION(gtk_no_debug,		TEXT, NULL),
+	OPTION(gtk_module,			TEXT, NULL),
+	OPTION(name,				TEXT, NULL),
 #undef OPTION
 };
 
@@ -986,11 +992,22 @@ usage(int exit_code)
 			const gchar *arg, *name;
 			size_t pad;
 
+			arg = "";
 			name = option_pretty_name(options[i].name);
-			arg = options[i].has_arg ? " <argument>" : "";
+			switch (options[i].type) {
+			case ARG_TYPE_NONE:
+				break;
+			case ARG_TYPE_TEXT:
+				arg = " <argument>";
+				break;
+			case ARG_TYPE_PATH:
+				arg = " <path>";
+				break;
+			}
+			
 			pad = strlen(name) + strlen(arg);
-			if (pad < 32) {
-				pad = 32 - pad;
+			if (pad < 24) {
+				pad = 24 - pad;
 			} else {
 				pad = 0;
 			}
@@ -1034,23 +1051,42 @@ handle_arguments(int argc, char **argv)
 		argc--;
 
 		for (i = 0; i < G_N_ELEMENTS(options); i++) {
-			if (option_match(options[i].name, s)) {
-				options[i].used = TRUE;
-				if (options[i].has_arg) {
-					if (argc < 0 || NULL == argv[0] || '-' == argv[0][0]) {
-						fprintf(stderr, "Missing argument for \"--%s\"\n", s);
-						usage(EXIT_FAILURE);
-					}
-					options[i].arg = g_strdup(argv[0]);
-					argv++;
-					argc--;
-				}
+			if (option_match(options[i].name, s))
 				break;
-			}
 		}
 		if (G_N_ELEMENTS(options) == i) {
 			fprintf(stderr, "Unknown option \"--%s\"\n", s);
 			usage(EXIT_FAILURE);
+		}
+
+		options[i].used = TRUE;
+		switch (options[i].type) {
+		case ARG_TYPE_NONE:
+			break;
+		case ARG_TYPE_TEXT:
+		case ARG_TYPE_PATH:
+			if (argc < 0 || NULL == argv[0] || '-' == argv[0][0]) {
+				fprintf(stderr, "Missing argument for \"--%s\"\n", s);
+				usage(EXIT_FAILURE);
+			}
+			switch (options[i].type) {
+			case ARG_TYPE_TEXT:
+				options[i].arg = g_strdup(argv[0]);
+				break;
+			case ARG_TYPE_PATH:
+				options[i].arg = absolute_pathname(argv[0]);
+				if (NULL == options[i].arg) {
+					fprintf(stderr,
+						"Could not determine absolute path for \"--%s\"\n", s);
+					usage(EXIT_FAILURE);
+				}
+				break;
+			case ARG_TYPE_NONE:
+				g_assert_not_reached();
+			}
+			argv++;
+			argc--;
+			break;
 		}
 	}
 
