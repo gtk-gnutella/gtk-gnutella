@@ -917,6 +917,6 @@
 67.19.151.0/28
 
 # MOV pr0n spam; giFt-based; fake LimeWire; xxx-marks dot com
-69.64.69.43
+69.64.69.0/24
 64.40.113.70
 
