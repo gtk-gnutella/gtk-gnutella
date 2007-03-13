@@ -3244,11 +3244,14 @@ sock_cork(struct gnutella_socket *s, gboolean on)
 		return;
 	}
 
-	if (-1 == setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg))
-		g_warning("unable to %s TCP_CORK on fd#%d: %s",
-			on ? "set" : "clear", s->file_desc, g_strerror(errno));
-	else
+	if (-1 == setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg)) {
+		if (ECONNRESET != errno) {
+			g_warning("unable to %s TCP_CORK on fd#%d: %s",
+				on ? "set" : "clear", s->file_desc, g_strerror(errno));
+		}
+	} else {
 		s->corked = on;
+	}
 }
 #else
 {
