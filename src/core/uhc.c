@@ -38,20 +38,21 @@
 RCSID("$Id$")
 
 #include "gnutella.h"
-#include "uhc.h"
-#include "udp.h"
-#include "nodes.h"
-#include "sockets.h"
-#include "pcache.h"
+#include "guid.h"
 #include "hcache.h"
 #include "hosts.h"
+#include "nodes.h"
+#include "pcache.h"
+#include "sockets.h"
+#include "udp.h"
+#include "uhc.h"
 
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
-#include "lib/hashlist.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/misc.h"
 
 #include "if/gnet_property_priv.h"
@@ -60,9 +61,9 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define UHC_MAX_ATTEMPTS	3	/**< Maximum connection / resolution attempts */
-#define UHC_TIMEOUT			20	/**< Host cache timeout, in seconds */
-#define UHC_RETRY_AFTER		3600 /**< Frequency of contacts for an UHC (secs) */
+#define UHC_MAX_ATTEMPTS 3		/**< Maximum connection / resolution attempts */
+#define UHC_TIMEOUT		 20000	/**< Host cache timeout, milliseconds */
+#define UHC_RETRY_AFTER	 3600	/**< Frequency of contacts for an UHC (secs) */
 
 /**
  * Request context, used when we decide to get hosts via the UDP host caches.
@@ -252,11 +253,10 @@ uhc_pick(void)
  * Free GUID atoms held in hash table.	-- foreach() callback
  */
 static gboolean
-uhc_guid_free(gpointer key, gpointer uu_data, gpointer uu_user)
+uhc_guid_free(gpointer key, gpointer value, gpointer unused_data)
 {
-	(void) uu_user;
-	(void) uu_data;
-
+	(void) unused_data;
+	g_assert(key == value);
 	atom_guid_free(key);
 	return TRUE;
 }
@@ -318,55 +318,51 @@ uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
 static void
 uhc_send_ping(const host_addr_t addr, guint16 port)
 {
-	const gchar *muid;
+	gchar muid[GUID_RAW_SIZE];
 
 	g_assert(uhc_connecting);
 
-	{
-		struct gnutella_node *n = node_udp_get_addr_port(addr, port);
-		gnutella_msg_init_t *m;
-		guint32 size;
-	
-		g_return_if_fail(n);	
-		m = build_ping_msg(NULL, 1, TRUE, &size);
-		muid = atom_guid_get(gnutella_header_get_muid(m));
-		udp_send_msg(n, m, size);
+	guid_random_muid(muid);	
+	g_return_if_fail(NULL == g_hash_table_lookup(uhc_ctx.guids, muid));
+
+	if (udp_send_ping(muid, addr, port, TRUE)) {
+		const gchar *atom;
+
+		/*
+		 * Save the GUID of the ping we sent, to be able to determine when
+		 * we get a reply from our queries.
+		 */
+
+		atom = atom_guid_get(muid);
+		gm_hash_table_insert_const(uhc_ctx.guids, atom, atom);
+
+		if (bootstrap_debug)
+			g_message("BOOT sent UDP SCP ping %s to %s",
+				guid_hex_str(muid), host_addr_port_to_string(addr, port));
+		/*
+		 * Give GUI feedback.
+		 */
+		{
+			gchar msg[256];
+
+			gm_snprintf(msg, sizeof msg, _("Sent ping to UDP host cache %s:%u"),
+					uhc_ctx.host, uhc_ctx.port);
+			gcu_statusbar_message(msg);
+		}
+
+		/*
+		 * Arm a timer to see whether we should not try to ping another
+		 * host cache if we don't get a timely reply.
+		 */
+
+		g_assert(uhc_ctx.timeout_ev == NULL);
+
+		uhc_ctx.timeout_ev = cq_insert(callout_queue,
+				UHC_TIMEOUT, uhc_ping_timeout, NULL);
+	} else {
+		g_message("BOOT failed to send UDP SCP to %s",
+			host_addr_port_to_string(addr, port));
 	}
-
-	/*
-	 * Save the GUID of the ping we sent, to be able to determine when
-	 * we get a reply from our queries.
-	 */
-
-	if (g_hash_table_lookup(uhc_ctx.guids, muid))
-		g_warning("GUID random number generator is weak");
-	else
-		gm_hash_table_insert_const(uhc_ctx.guids, muid, GUINT_TO_POINTER(1));
-
-	if (bootstrap_debug)
-		g_message("BOOT sent UDP SCP ping %s to %s",
-			guid_hex_str(muid), host_addr_port_to_string(addr, port));
-
-	/*
-	 * Give GUI feedback.
-	 */
-	{
-		gchar msg[256];
-
-		gm_snprintf(msg, sizeof msg, _("Sent ping to UDP host cache %s:%u"),
-			uhc_ctx.host, uhc_ctx.port);
-		gcu_statusbar_message(msg);
-	}
-
-	/*
-	 * Arm a timer to see whether we should not try to ping another
-	 * host cache if we don't get a timely reply.
-	 */
-
-	g_assert(uhc_ctx.timeout_ev == NULL);
-
-	uhc_ctx.timeout_ev = cq_insert(callout_queue,
-		UHC_TIMEOUT * 1000, uhc_ping_timeout, NULL);
 }
 
 /**
