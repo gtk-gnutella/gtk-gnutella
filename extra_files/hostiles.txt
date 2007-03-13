@@ -921,3 +921,9 @@
 69.64.69.0/24
 64.40.113.70
 
+# Rogers Cable Inc. KTGC KTGC-HSI; semi-dynamic; probably stable for long
+# durations; LimeWire; MOV spam;
+# like p2pblast but for 5000passwords dot com; possibly a free-rider
+# urn:sha1:QYIOU2FA3DCVHZH6KSCTX6GM623MFJBR
+74.122.64.105
+
