@@ -386,7 +386,7 @@ string_table_free(GHashTable *ht)
 static void
 node_send_udp_ping(struct gnutella_node *n)
 {
-	udp_send_ping(n->addr, n->port, TRUE);	
+	udp_send_ping(NULL, n->addr, n->port, TRUE);	
 }
 
 /***
@@ -730,7 +730,7 @@ node_slow_timer(time_t now)
 			
 			last_ping = now;
 			if (hcache_get_caught(HOST_ANY, &addr, &port)) {
-				udp_send_ping(addr, port, TRUE);	
+				udp_send_ping(NULL, addr, port, TRUE);	
 			}
 		}
 	}
@@ -3516,7 +3516,7 @@ node_is_now_connected(struct gnutella_node *n)
 		}
 		if (udp_active()) {
 			if (!recv_solicited_udp)
-				udp_send_ping(n->addr, n->port, FALSE);
+				udp_send_ping(NULL, n->addr, n->port, FALSE);
 			else if (is_udp_firewalled && 0 != socket_listen_port())
 				vmsg_send_udp_connect_back(n, socket_listen_port());
 		}
