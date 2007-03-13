@@ -1670,17 +1670,15 @@ head_ping_expire(gboolean forced)
  * registered files.
  */
 static void
-head_ping_timer(cqueue_t *unused_cq, gpointer unused_udata)
+head_ping_timer(cqueue_t *cq, gpointer unused_udata)
 {
-	(void) unused_cq;
 	(void) unused_udata;
 
 	/*
 	 * Re-install timer for next time.
 	 */
 
-	head_ping_ev = cq_insert(callout_queue, HEAD_PING_PERIODIC_MS,
-					head_ping_timer, NULL);
+	head_ping_ev = cq_insert(cq, HEAD_PING_PERIODIC_MS, head_ping_timer, NULL);
 	head_ping_expire(FALSE);
 }
 
