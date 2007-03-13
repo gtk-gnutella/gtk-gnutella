@@ -895,11 +895,17 @@
 194.90.224.81
 
 # "Accelerator" spam; ZIP files; hosted at bezeqint.net
+192.115.190.0/24
 212.25.103.0/24
 212.179.64.0/24
-# *_ShareAccelerator.zip;
+# *_ShareAccelerator.zip; 
 # urn:sha1:ORKMW4AIZ6ERTDIZERO263GYCCTHRWX2;
 # urn:sha1:4FVEOYAEYEAJJEH4KDKGFORCUE6FUAIW;
+# *_Web_Hottest_Videos_Player.zip;
+# urn:sha1:JJXUWD5P3VGGDFEMMDT52WYN3LWJ7LBC
+# HobbyTentToolbar.zip;
+# urn:sha1:JQOOOH5FRXFVR7DOLHFP7PPMAASMFDY6
+#
 # hosted at FDC Servers.net; LimeWire
 67.159.44.0/24
 66.90.101.0/24
