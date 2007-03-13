@@ -384,8 +384,10 @@ rudp_send_packet(struct rudp_con *con, gconstpointer data, size_t size)
   }
 
   n = node_udp_get_addr_port(con->addr, con->port);
-  udp_send_msg(n, data, size);
-  tm_now(&con->out.last_event);
+  if (n) {
+  	udp_send_msg(n, data, size);
+  	tm_now(&con->out.last_event);
+  }
 }
 
 static inline gboolean
