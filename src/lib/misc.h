@@ -463,7 +463,7 @@ short_string_t short_rate_get_string(guint64 rate, gboolean metric);
  * SHA1<->base32 string conversion
  */
 typedef struct sha1 {
-	guchar data[SHA1_RAW_SIZE];
+	gchar data[SHA1_RAW_SIZE];
 } sha1_t;
 
 const gchar *sha1_to_string(const struct sha1 sha1);

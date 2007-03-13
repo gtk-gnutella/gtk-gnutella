@@ -1575,7 +1575,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 			gint hcnt = 0;
 		   	
 			if (sha1) {
-				hcnt = dmesh_fill_alternate(cast_to_gchar_ptr(sha1->data),
+				hcnt = dmesh_fill_alternate(sha1->data,
 							hvec, G_N_ELEMENTS(hvec));
 			}
 			if (hcnt > 0) {
@@ -1722,7 +1722,7 @@ head_ping_register(const gchar *muid,
  	 * for debugging purposes or if we are the origin.
 	 */
 	if (node_id_self(node_id) || vmsg_debug) {
-		source->ping.sha1 = atom_sha1_get(cast_to_gconstpointer(sha1.data));
+		source->ping.sha1 = atom_sha1_get(sha1.data);
 	} else {
 		source->ping.sha1 = NULL;
 	}
@@ -1885,7 +1885,7 @@ handle_head_ping(struct gnutella_node *n,
 	flags = peek_u8(&payload[0]);
 	if (
 		is_strcaseprefix(&payload[1], urn_prefix) &&
-		urn_get_sha1(&payload[1], cast_to_gchar_ptr(sha1.data))
+		urn_get_sha1(&payload[1], sha1.data)
 	) {
 		if (vmsg_debug) {
 			g_message("HEAD Ping for %s%s", urn_prefix, sha1_to_string(sha1));
@@ -1961,7 +1961,7 @@ handle_head_ping(struct gnutella_node *n,
 		const struct shared_file *sf;
 		guint8 code;
 
-		sf = shared_file_by_sha1(cast_to_gchar_ptr(sha1.data));
+		sf = shared_file_by_sha1(sha1.data);
 		if (SHARE_REBUILDING == sf) {
 			/*
 			 * Just ignore the request because rebuilding only takes a few
