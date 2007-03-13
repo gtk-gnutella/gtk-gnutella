@@ -52,7 +52,6 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
-#include "lib/hashlist.h"
 #include "lib/misc.h"
 
 #include "if/gnet_property_priv.h"
@@ -72,12 +71,12 @@ RCSID("$Id$")
  * in the pings.
  */
 static struct uhc_context {
-	GHashTable *guids;			/**< GUIDs we sent */
 	const gchar *host;			/**< Last selected host */
 	cevent_t *timeout_ev;		/**< Ping timeout */
 	gint attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
 	guint16 port;				/**< Port of selected host cache */
+	gchar muid[GUID_RAW_SIZE];	/**< MUID of the ping */
 } uhc_ctx;
 
 static GList *uhc_avail = NULL;	/**< List of UHCs as string */
@@ -250,27 +249,6 @@ uhc_pick(void)
 }
 
 /**
- * Free GUID atoms held in hash table.	-- foreach() callback
- */
-static gboolean
-uhc_guid_free(gpointer key, gpointer value, gpointer unused_data)
-{
-	(void) unused_data;
-	g_assert(key == value);
-	atom_guid_free(key);
-	return TRUE;
-}
-
-/**
- * Reset the list of ping GUIDs.
- */
-static void
-uhc_guid_reset(void)
-{
-	g_hash_table_foreach_remove(uhc_ctx.guids, uhc_guid_free, NULL);
-}
-
-/**
  * Try a random host cache.
  */
 static void
@@ -316,37 +294,26 @@ uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
  * Send an UDP ping to the host cache.
  */
 static void
-uhc_send_ping(const host_addr_t addr, guint16 port)
+uhc_send_ping(void)
 {
-	gchar muid[GUID_RAW_SIZE];
-
 	g_assert(uhc_connecting);
 
-	guid_random_muid(muid);	
-	g_return_if_fail(NULL == g_hash_table_lookup(uhc_ctx.guids, muid));
+	guid_random_muid(uhc_ctx.muid);	
 
-	if (udp_send_ping(muid, addr, port, TRUE)) {
-		const gchar *atom;
-
-		/*
-		 * Save the GUID of the ping we sent, to be able to determine when
-		 * we get a reply from our queries.
-		 */
-
-		atom = atom_guid_get(muid);
-		gm_hash_table_insert_const(uhc_ctx.guids, atom, atom);
+	if (udp_send_ping(uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
 
 		if (bootstrap_debug)
-			g_message("BOOT sent UDP SCP ping %s to %s",
-				guid_hex_str(muid), host_addr_port_to_string(addr, port));
+			g_message("BOOT sent UDP SCP ping %s to %s:%u",
+				guid_hex_str(uhc_ctx.muid), uhc_ctx.host, uhc_ctx.port);
 		/*
 		 * Give GUI feedback.
 		 */
 		{
 			gchar msg[256];
 
-			gm_snprintf(msg, sizeof msg, _("Sent ping to UDP host cache %s:%u"),
-					uhc_ctx.host, uhc_ctx.port);
+			gm_snprintf(msg, sizeof msg,
+				_("Sent ping to UDP host cache %s:%u"),
+				uhc_ctx.host, uhc_ctx.port);
 			gcu_statusbar_message(msg);
 		}
 
@@ -361,7 +328,7 @@ uhc_send_ping(const host_addr_t addr, guint16 port)
 				UHC_TIMEOUT, uhc_ping_timeout, NULL);
 	} else {
 		g_message("BOOT failed to send UDP SCP to %s",
-			host_addr_port_to_string(addr, port));
+			host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port));
 	}
 }
 
@@ -398,7 +365,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 	 * Now send the ping.
 	 */
 
-	uhc_send_ping(uhc_ctx.addr, uhc_ctx.port);
+	uhc_send_ping();
 }
 
 /**
@@ -434,7 +401,6 @@ uhc_get_hosts(void)
 
 	uhc_connecting = TRUE;
 	uhc_ctx.attempts = 0;
-	uhc_guid_reset();
 
 	g_assert(uhc_ctx.timeout_ev == NULL);
 
@@ -451,10 +417,7 @@ uhc_get_hosts(void)
 void
 uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 {
-	const gchar *p;
-	gint i;
-	gint cnt;
-	gboolean replied = FALSE;
+	gint i, cnt;
 
 	g_assert(0 == paylen % 6);
 
@@ -466,14 +429,12 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n),
 			uhc_connecting ? "expected" : "unsollicited");
 
-	for (i = 0, p = payload; i < cnt; i++) {
+	for (i = 0; i < cnt; i++) {
 		host_addr_t ha;
 		guint16 port;
 
-		ha = host_addr_peek_ipv4(p);
-		p += 4;
-		port = peek_le16(p);
-		p += 2;
+		ha = host_addr_peek_ipv4(&payload[i * 6]);
+		port = peek_le16(&payload[i * 6 + 4]);
 
 		hcache_add_caught(HOST_ULTRA, ha, port, "UDP-HC");
 
@@ -481,6 +442,9 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 			g_message("BOOT collected %s from UDP IPP pong from %s",
 				host_addr_to_string(ha), node_addr(n));
 	}
+
+	if (!uhc_connecting)
+		return;
 
 	/*
 	 * Check whether this was a reply from our request.
@@ -490,46 +454,33 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	 * check whether we're still in a probing cycle.
 	 */
 
-	if (
-		uhc_connecting &&
-		g_hash_table_lookup(uhc_ctx.guids,
-			gnutella_header_get_muid(&n->header))
-	) {
-		g_assert(uhc_ctx.timeout_ev != NULL);
+	if (!guid_eq(uhc_ctx.muid, gnutella_header_get_muid(&n->header)))
+		return;
 
-		if (bootstrap_debug)
-			g_message("BOOT UDP cache \"%s\" (%s) replied: "
-				"got %d host%s from %s",
-				uhc_ctx.host,
-				host_addr_port_to_string(uhc_ctx.addr, uhc_ctx.port),
-				cnt, cnt == 1 ? "" : "s", node_addr(n));
-
-		/*
-		 * Terminate the probing cycle if we got hosts.
-		 */
-
-		if (cnt) {
-			replied = TRUE;
-			cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
-			uhc_connecting = FALSE;
-		} else
-			uhc_try_random();
+	if (bootstrap_debug) {
+		g_message("BOOT UDP cache \"%s\" replied: got %d host%s from %s",
+			uhc_ctx.host, cnt, cnt == 1 ? "" : "s", node_addr(n));
 	}
 
 	/*
-	 * Display GUI feedback, if we got a sollicited reply.
+	 * Terminate the probing cycle if we got hosts.
 	 */
 
-	if (replied) {
+	if (cnt > 0) {
 		gchar msg[256];
 
+		cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
+		uhc_connecting = FALSE;
+
 		gm_snprintf(msg, sizeof(msg),
-			NG_("Got %d host from UDP host cache %s:%u",
-				"Got %d hosts from UDP host cache %s:%u",
+			NG_("Got %d host from UDP host cache %s",
+				"Got %d hosts from UDP host cache %s",
 				cnt),
-			cnt, uhc_ctx.host, uhc_ctx.port);
+			cnt, uhc_ctx.host);
 
 		gcu_statusbar_message(msg);
+	} else {
+		uhc_try_random();
 	}
 }
 
@@ -558,8 +509,6 @@ uhc_init(void)
 
 		add_available_uhc(uhc);
 	}
-
-	uhc_ctx.guids = g_hash_table_new(guid_hash, guid_eq);
 }
 
 /**
@@ -568,8 +517,6 @@ uhc_init(void)
 void
 uhc_close(void)
 {
-	uhc_guid_reset();
-	g_hash_table_destroy(uhc_ctx.guids);
 	cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
 	uhc_connecting = FALSE;
 }
