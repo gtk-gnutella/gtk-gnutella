@@ -900,7 +900,7 @@
 # urn:sha1:ORKMW4AIZ6ERTDIZERO263GYCCTHRWX2;
 # urn:sha1:4FVEOYAEYEAJJEH4KDKGFORCUE6FUAIW;
 # hosted at FDC Servers.net; LimeWire
-67.159.44.0/28
+67.159.44.0/24
 66.90.101.0/24
 
 # LimeWire; security violations; hosted at RapidSwitch
