@@ -896,6 +896,7 @@
 
 # "Accelerator" spam; ZIP files; hosted at bezeqint.net
 212.25.103.0/24
+212.179.64.0/24
 # *_ShareAccelerator.zip;
 # urn:sha1:ORKMW4AIZ6ERTDIZERO263GYCCTHRWX2;
 # urn:sha1:4FVEOYAEYEAJJEH4KDKGFORCUE6FUAIW;
