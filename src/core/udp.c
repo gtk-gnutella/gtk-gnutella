@@ -363,7 +363,7 @@ udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
 	udp_ping_expire(FALSE);
 }
 
-static gboolean
+gboolean
 udp_ping_register(const gchar *muid)
 {
 	static gboolean initialized;
@@ -419,8 +419,9 @@ udp_ping_is_registered(const gchar *muid)
 /**
  * Send a Gnutella ping to the specified host.
  */
-void
-udp_send_ping(const host_addr_t addr, guint16 port, gboolean uhc_ping)
+gboolean
+udp_send_ping(const gchar *muid, const host_addr_t addr, guint16 port,
+	gboolean uhc_ping)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 
@@ -428,11 +429,13 @@ udp_send_ping(const host_addr_t addr, guint16 port, gboolean uhc_ping)
 		gnutella_msg_init_t *m;
 		guint32 size;
 
-		m = build_ping_msg(NULL, 1, uhc_ping, &size);
+		m = build_ping_msg(muid, 1, uhc_ping, &size);
 		if (udp_ping_register(gnutella_header_get_muid(m))) {
 			udp_send_msg(n, m, size);
+			return TRUE;
 		}
 	}
+	return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
