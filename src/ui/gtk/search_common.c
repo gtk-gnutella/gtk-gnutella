@@ -2064,12 +2064,69 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 	return success;
 }
 
+struct browse_request {
+	const gchar *host;	/**< atom */
+	guint32 flags;		/**< socket flags */
+	guint16 port;		/**< port to connect to */
+};
+
+static void
+browse_request_free(struct browse_request **req_ptr)
+{
+	struct browse_request *req;
+	
+	g_assert(req_ptr);
+
+	req = *req_ptr;
+	if (req) {
+		g_assert(req);
+
+		atom_str_free_null(&req->host);
+		wfree(req, sizeof *req);
+		*req_ptr = NULL;
+	}
+}
+
+
+/**
+ * Called when we got a reply from the ADNS process.
+ */
+static void
+search_gui_browse_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
+{
+	struct browse_request *req = user_data;
+
+	g_assert(addrs);
+	g_assert(req);
+
+	if (n > 0) {
+		size_t i = random_raw() % n;
+
+		search_gui_new_browse_host(req->host, addrs[i], req->port,
+			NULL, NULL, req->flags);
+	}
+	browse_request_free(&req);
+}
+
+static void
+search_gui_browse(const gchar *host, guint16 port, guint32 flags)
+{
+	struct browse_request *req;
+
+	req = walloc(sizeof *req);
+
+	req->host = atom_str_get(host);
+	req->port = port;
+	req->flags = flags;
+	guc_adns_resolve(req->host, search_gui_browse_helper, req);
+}
+
 gboolean
 search_gui_handle_browse(const gchar *s, const gchar **error_str)
 {
-	gboolean success;
+	gboolean success = FALSE;
 	host_addr_t addr;
-	const gchar *ep;
+	const gchar *endptr;
 	guint32 flags = SOCK_F_FORCE;
 	guint16 port;
 
@@ -2078,20 +2135,40 @@ search_gui_handle_browse(const gchar *s, const gchar **error_str)
 	s = is_strcaseprefix(s, "browse:");
 	g_return_val_if_fail(s, FALSE);
 	
-	ep = is_strprefix(s, "tls:");
-	if (ep) {
-		s = ep;
+	if (!error_str) {
+		static const gchar *dummy;
+		error_str = &dummy;
+	}
+	*error_str = NULL;
+
+	endptr = is_strprefix(s, "tls:");
+	if (endptr) {
+		s = endptr;
 		flags |= SOCK_F_TLS;
 	}
 
-	if (string_to_host_addr_port(s, &ep, &addr, &port)) {
-		search_gui_new_browse_host(NULL, addr, port, NULL, NULL, flags);
-		success = TRUE;
+	if (string_to_host_or_addr(s, &endptr, &addr)) {
+		gchar hostname[MAX_HOSTLEN + 1];
+		size_t size;
+
+		size = (endptr - s) + 1;
+		size = MIN(size, sizeof hostname);
+		g_strlcpy(hostname, s, size);
+
+		if (':' == endptr[0]) {
+			gint error;
+			port = parse_uint16(&endptr[1], NULL, 10, &error);
+		} else {
+			port = 0;
+		}
+		if (port > 0) {
+			search_gui_browse(hostname, port, flags);
+			success = TRUE;
+		} else {
+			*error_str = _("Missing port number");
+		}
 	} else {
-		success = FALSE;
-	}
-	if (error_str) {
-		*error_str = NULL;
+		*error_str = _("Could not parse host address");
 	}
 
 	return success;
