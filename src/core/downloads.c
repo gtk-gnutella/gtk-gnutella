@@ -3380,10 +3380,13 @@ download_ignore_requested(struct download *d)
 	 * if someone echoes back our own alt-locs to us with PFSP).
 	 */
 
-	if (is_my_address_and_port(download_addr(d), download_port(d)))
-		reason = IGNORE_OURSELVES;
-	else if (hostiles_check(download_addr(d)))
-		reason = IGNORE_HOSTILE;
+	if (!(SOCK_F_FORCE & d->cflags)) {
+		if (is_my_address_and_port(download_addr(d), download_port(d))) {
+			reason = IGNORE_OURSELVES;
+		} else if (hostiles_check(download_addr(d))) {
+			reason = IGNORE_HOSTILE;
+		}
+	}
 
 	if (reason == IGNORE_FALSE)
 		reason = ignore_is_requested(download_outname(d), fi->size, fi->sha1);
@@ -5040,8 +5043,7 @@ download_remove(struct download *d)
 
 		gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
 		if (d->flags & DL_F_REPLIED) {
-			gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT,
-				dl_qalive_count - 1);
+			gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
 		}
 		g_assert((gint) dl_qalive_count >= 0);
 	}
