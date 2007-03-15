@@ -1178,12 +1178,11 @@ node_id_self(const node_id_t node_id)
 	return 0 == node_id_value(node_id);
 }
 
-static const node_id_t NODE_SELF_ID;
-
 node_id_t
 node_id_get_self(void)
 {
-	return NODE_SELF_ID;
+	static const struct node_id NODE_SELF_ID;
+	return &NODE_SELF_ID;
 }
 
 guint
