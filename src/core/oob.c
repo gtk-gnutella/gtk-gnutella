@@ -141,7 +141,7 @@ oob_results_check(const struct oob_results *r)
 {
 	g_assert(r);
 	g_assert(OOB_RESULTS_MAGIC == r->magic);
-	g_assert(r->refcount > 0);
+	g_assert(r->refcount >= 0);
 	g_assert(r->muid);
 }
 
