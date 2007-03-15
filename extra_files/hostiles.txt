@@ -496,7 +496,7 @@
 69.42.87.192/26
 216.255.178.18
 216.130.182.228
-216.130.188.210/30
+216.130.188.210/31
 # Above mentioned adware downloads executables from the following web servers
 # puzzledesktop dot com
 64.40.106.131
