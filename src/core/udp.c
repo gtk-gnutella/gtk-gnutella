@@ -285,19 +285,10 @@ udp_send_mb(const gnutella_node_t *n, pmsg_t *mb)
 void
 udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 {
-	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
-
-	if (n) {
-		gnutella_msg_init_t *m;
-		guint32 size;
-
-		m = build_ping_msg(muid, 1, FALSE, &size);
-
-		mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, size), n);
-
+	if (udp_send_ping(muid, addr, port, FALSE)) {
 		if (udp_debug > 19)
-			printf("UDP queued connect-back PING %s (%u bytes) to %s\n",
-				guid_hex_str(muid), size, host_addr_port_to_string(addr, port));
+			g_message("UDP queued connect-back PING %s to %s\n",
+				guid_hex_str(muid), host_addr_port_to_string(addr, port));
 	}
 }
 
