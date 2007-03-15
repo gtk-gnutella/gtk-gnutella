@@ -35,17 +35,17 @@ Also visit the main website for news, updates, FAQ, and more at:
 Introduction
 ------------
 
-Gtk-Gnutella is a GUI based Gnutella servent. It's based upon the original
+gtk-gnutella is a GUI based Gnutella servent. It's based upon the original
 look of Gnutella v0.5.
 
 It's a fully featured Gnutella servent designed to share any type of file
-the user wishes to share.  Gtk-Gnutella implements compressed gnutella net 
+the user wishes to share.  gtk-gnutella implements compressed gnutella net 
 connections, ultra and leaf nodes, Partial File Sharing, Push Proxies and 
 uses Passive/Active Remote Queueing (PARQ).  
 
 It's supposed to work on any Unix-like system, and can be built with either a
 GTK+ (1.2 or above) or GTK+ 2.x GUI and libxml2. Gnome is not required.
-Gtk-Gnutella is currently developed and tested under Linux (Debian 2.2) and is
+gtk-gnutella is currently developed and tested under Linux (Debian 2.2) and is
 known to run at least on Linux, FreeBSD, NetBSD, OpenBSD, Darwin, Solaris,
 Tru64 UNIX (OSF/1), SGI IRIX, BeOS whereas CPU architectures include x86,
 AMD64, PowerPC, SPARC, MIPS.
@@ -57,7 +57,7 @@ For further information on Gnutella, try:
     http://www.infoanarchy.org/wiki/wiki.pl?Gnutella
     http://rfc-gnutella.sourceforge.net/
 
-The Gtk-Gnutella Home Page is:
+The gtk-gnutella Home Page is:
     http://gtk-gnutella.sourceforge.net/
 
 The Project Page is:
@@ -66,7 +66,7 @@ The Project Page is:
 Open Discussion Forums, try:
     http://www.gnutellaforums.com/
 
-There is an IRC channel for Gtk-Gnutella on http://www.freenode.net:
+There is an IRC channel for gtk-gnutella on http://www.freenode.net:
     irc.freenode.net #gtk-gnutella
 
 Mailing lists
@@ -133,16 +133,16 @@ interface:
 
 -U d_enablenls
 
-Gtk-Gnutella can also be compiled for headless operation the so-called
+gtk-gnutella can also be compiled for headless operation the so-called
 "topless" mode. The resulting executable won't use or depend on Gtk+
-and Gtk-Gnutella can only be controlled through the remote shell in
+and gtk-gnutella can only be controlled through the remote shell in
 this case. Use the following flag for Configure if you want a topless
-Gtk-Gnutella:
+gtk-gnutella:
 
 -D d_headless
 
 The option "official" should be set to "true" unless you want to test
-Gtk-Gnutella from SVN or are a developer. Currently, an "inofficial" build
+gtk-gnutella from SVN or are a developer. Currently, an "inofficial" build
 will access files in the sources directory to ease the process of testing.
 However, the meaning of this option might change at any time.  Therefore,
 software distributions and admins are urged to provide "official" builds
@@ -216,7 +216,7 @@ share your "done" directory.  When downloaded files are complete, they are
 moved to the done directory and then can be uploaded by others.  Once you have 
 selected your shared directories, click the "Rescan" button.  Sharing is the 
 whole point of the Gnutella network.  Those who don't share are called 
-"leechers" and some people will refuse to share with them.  Gtk-Gnutella 
+"leechers" and some people will refuse to share with them.  gtk-gnutella 
 offers fine-tuned bandwith control so even if you only have a dialup 
 connection, you should devote some bandwith to sharing.  
 

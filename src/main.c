@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Main functions for Gtk-Gnutella.
+ * Main functions for gtk-gnutella.
  *
  * @author Raphael Manfredi
  * @date 2001-2003

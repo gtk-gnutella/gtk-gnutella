@@ -730,7 +730,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[3].name = "new_version_str";
-    gnet_property->props[3].desc = _("Gtk-Gnutella found a newer version on the Gnet and gives information about it here.");
+    gnet_property->props[3].desc = _("gtk-gnutella found a newer version on the Gnet and gives information about it here.");
     gnet_property->props[3].ev_changed = event_new("new_version_str_changed");
     gnet_property->props[3].save = FALSE;
     gnet_property->props[3].vector_size = 1;
@@ -2755,7 +2755,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[108].name = "allow_private_network_connection";
-    gnet_property->props[108].desc = _("Check this button if you want to use Gtk-Gnutella on your Local Area Network. RFC1918 will be ignored.");
+    gnet_property->props[108].desc = _("Check this button if you want to use gtk-gnutella on your Local Area Network. RFC1918 will be ignored.");
     gnet_property->props[108].ev_changed = event_new("allow_private_network_connection_changed");
     gnet_property->props[108].save = TRUE;
     gnet_property->props[108].vector_size = 1;
@@ -2772,7 +2772,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[109].name = "use_ip_tos";
-    gnet_property->props[109].desc = _("Check this button if you want Gtk-Gnutella to use IP TOS to differentiate interactive, normal and bulk data. This is probably a good idea in most cases, and can particularly help with badly misconfigured hosts, LANs, and ISPs.");
+    gnet_property->props[109].desc = _("Check this button if you want gtk-gnutella to use IP TOS to differentiate interactive, normal and bulk data. This is probably a good idea in most cases, and can particularly help with badly misconfigured hosts, LANs, and ISPs.");
     gnet_property->props[109].ev_changed = event_new("use_ip_tos_changed");
     gnet_property->props[109].save = TRUE;
     gnet_property->props[109].vector_size = 1;
@@ -5855,7 +5855,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[272].name = "use_global_hostiles_txt";
-    gnet_property->props[272].desc = _("If set to TRUE, the global hostiles.txt is used as well as the private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban list from the global one distributed with Gtk-Gnutella.");
+    gnet_property->props[272].desc = _("If set to TRUE, the global hostiles.txt is used as well as the private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban list from the global one distributed with gtk-gnutella.");
     gnet_property->props[272].ev_changed = event_new("use_global_hostiles_txt_changed");
     gnet_property->props[272].save = TRUE;
     gnet_property->props[272].vector_size = 1;
@@ -6137,7 +6137,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[287].name = "enable_local_socket";
-    gnet_property->props[287].desc = _("If set Gtk-Gnutella also listens on a local (unix domain) socketwhich is located in ~/.gtk-gnutella/socket.");
+    gnet_property->props[287].desc = _("If set gtk-gnutella also listens on a local (unix domain) socketwhich is located in ~/.gtk-gnutella/socket.");
     gnet_property->props[287].ev_changed = event_new("enable_local_socket_changed");
     gnet_property->props[287].save = TRUE;
     gnet_property->props[287].vector_size = 1;

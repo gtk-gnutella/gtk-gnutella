@@ -1565,7 +1565,7 @@ for all filters</property>
 	  <child>
 	    <widget class="GtkLabel" id="label184">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Gtk-Gnutella is shutting down.
+	      <property name="label" translatable="yes">gtk-gnutella is shutting down.
 Sending bye messages to peers.
 
 Grace time remaining:</property>
@@ -18041,7 +18041,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckButton" id="checkbutton_config_no_rfc1918">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Check this button if you want to use Gtk-Gnutella on your Local Area Network. RFC1918 will be ignored.</property>
+			      <property name="tooltip" translatable="yes">Check this button if you want to use gtk-gnutella on your Local Area Network. RFC1918 will be ignored.</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">Allow connections from and to _LAN addresses</property>
 			      <property name="use_underline">True</property>

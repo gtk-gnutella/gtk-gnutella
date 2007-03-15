@@ -581,7 +581,7 @@
 # BearShare; belongs to the above Mutella peers
 213.251.185.126/31
 
-# PDF spammer; uses Gtk-Gnutella; PDFs link to cyber-spy dot com
+# PDF spammer; uses gtk-gnutella; PDFs link to cyber-spy dot com
 # whois points to tcst dot net which matches 72.38.54.0/24.
 70.52.236.2
 72.38.54.146
@@ -590,7 +590,7 @@
 72.38.54.162
 72.38.54.183
 
-# returns results for pr0n MPEGs not matching the query; Gtk-Gnutella
+# returns results for pr0n MPEGs not matching the query; gtk-gnutella
 64.20.48.66
 
 # jailbait spammer; FBI or other degenerated scum; either part of an

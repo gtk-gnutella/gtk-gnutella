@@ -1,14 +1,14 @@
 [Desktop Entry]
 Version=1.0
 Encoding=UTF-8
-Name=Gtk-Gnutella
-Name[de]=Gtk-Gnutella
-Name[fr]=Gtk-Gnutella
-Name[hu]=Gtk-Gnutella
-Name[ja]=Gtk-Gnutella
-Name[nb]=Gtk-Gnutella
-Name[nl]=Gtk-Gnutella
-Name[nn]=Gtk-Gnutella
+Name=gtk-gnutella
+Name[de]=gtk-gnutella
+Name[fr]=gtk-gnutella
+Name[hu]=gtk-gnutella
+Name[ja]=gtk-gnutella
+Name[nb]=gtk-gnutella
+Name[nl]=gtk-gnutella
+Name[nn]=gtk-gnutella
 Comment=A GUI based Gnutella Servent
 Comment[de]=Ein grafischer Gnutella-Servent
 Comment[fr]=Un servent Gnutella graphique

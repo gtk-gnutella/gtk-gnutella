@@ -43,7 +43,7 @@ space. The following is a result of my case (IRIX 6.5, MIPS R10000
 
   - The peak memory usage is about 80MB (70MB constantly).
   - The disk space consumption is over 90MB (only HTML, in passing,
-    entire size of Gtk-Gnutella source code is about 17MB).
+    entire size of gtk-gnutella source code is about 17MB).
   - Total spending time is about 10 hours.
 
 In contrast, if you disable HAVE_DOT and CALL_GRAPH the complete

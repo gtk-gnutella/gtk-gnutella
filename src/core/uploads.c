@@ -978,7 +978,7 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 				"</script>"
 				"</head>"
 				"<body onload=\"main();\">"
-				"<h1>Gtk-Gnutella</h1>"
+				"<h1>gtk-gnutella</h1>"
 				"<p>The download starts in <em id=\"x\">%ld</em> seconds.</p>"
 				"</body>"
 				"</html>"

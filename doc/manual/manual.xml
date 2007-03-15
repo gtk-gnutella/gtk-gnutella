@@ -1158,7 +1158,7 @@ system.  It is a low CPU overhead mode of running and
 Ultra-node.</para>
 
 <para>See the chapter <link linkend="getting">on getting
-Gtk-Gnutella</link> on how to get the source code.  The following
+gtk-gnutella</link> on how to get the source code.  The following
 "Configure" invocation will produce a headless version of GTKG.
 
 <informalexample><programlisting>
@@ -1334,3 +1334,5 @@ node.</para>
 </index>
 
 </book>
+
+

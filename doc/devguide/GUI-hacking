@@ -24,7 +24,7 @@ To achive this, simply:
 * add the desired widget (GtkSpinButton or GtkToggleButton) to the GUI 
   using Glade and give it the proper name (in this case 
   "spinbutton_up_connections". You do not need to add any callbacks within
-  Glade. The callbacks will be added by the GUI core within Gtk-Gnutella
+  Glade. The callbacks will be added by the GUI core within gtk-gnutella
   later.
 * Add a new entry to the property_map in settings_gui.c. In this case it
   should look like:

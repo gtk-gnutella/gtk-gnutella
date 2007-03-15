@@ -44,6 +44,6 @@ bus.add_signal_receiver(peermode_change_handler,
 
 # Indicate readyness and start the main loop which will call the
 # callback when the correct signal is received.
-print "Listening for Gtk-Gnutella events"
+print "Listening for gtk-gnutella events"
 loop = gobject.MainLoop()
 loop.run()

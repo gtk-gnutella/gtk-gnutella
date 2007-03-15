@@ -334,7 +334,7 @@ flush_match(void)
 	gchar *trailer_start;
 
 	/*
-	 * Build Gtk-Gnutella trailer.
+	 * Build gtk-gnutella trailer.
 	 * It is compatible with BearShare's one in the "open data" section.
 	 */
 

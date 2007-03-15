@@ -3,7 +3,7 @@
 # $Id$
 #
 # This script generates a list of magnets of all currently shared files using
-# the SHA-1 cache of Gtk-Gnutella. The host itself is added as exact source.
+# the SHA-1 cache of gtk-gnutella. The host itself is added as exact source.
 # The filename will be URL-encoded. Thus this script may be useful to create a
 # mirror of host.
 

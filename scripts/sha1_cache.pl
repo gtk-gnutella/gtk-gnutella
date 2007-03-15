@@ -8,14 +8,14 @@
 # Purpose:
 #
 #	Create a list of files and their SHA1 sums, filesizes and
-#       modification times. This list can be used with Gtk-Gnutella.
+#       modification times. This list can be used with gtk-gnutella.
 #	Just copy or append it to ~/.gtk-gnutella/sha1_cache but
-#	make sure Gtk-Gnutella is not running at the same time. This
+#	make sure gtk-gnutella is not running at the same time. This
 #	is especially useful if you want to add a large amount of
-#	files to your shared collection. Gtk-Gnutella has to throttle
+#	files to your shared collection. gtk-gnutella has to throttle
 #	SHA-1 calculation to prevent long stalls. Thus, this script
 #       will be faster and you can off-load the calculation to a
-#	different machine or use it when Gtk-Gnutella is not running.
+#	different machine or use it when gtk-gnutella is not running.
 #
 # Example:
 #
@@ -24,11 +24,11 @@
 #	$ cd /my_shared_files
 #	$ find . -type f -print0 | xargs -0 sha1_cache.pl > ~/tmp/filelist
 #
-#       Terminate Gtk-Gnutella if it's currently running
+#       Terminate gtk-gnutella if it's currently running
 #
 #	$ cat ~/tmp/filelist >> ~/.gtk-gnutella/sha1_cache
 #
-#	Restart Gtk-Gnutella and add "/my_shared_files" to your shared
+#	Restart gtk-gnutella and add "/my_shared_files" to your shared
 #	directories under "Preferences->Uploads" and click on "Rescan".
 #	The blue SHA-1 icon should not show up since all SHA-1 hashes
 #	are already known.

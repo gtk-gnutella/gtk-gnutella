@@ -1,7 +1,7 @@
 	Supplementary Compile Instructions for Debian-based Systems
 	===========================================================
 
-Unfortunately, many people have trouble compiling Gtk-Gnutella on Linux
+Unfortunately, many people have trouble compiling gtk-gnutella on Linux
 distributions albeit it should be very simple. The following applies to
 Debian-based system that is also Ubuntu.
 
@@ -47,11 +47,11 @@ and it will build the .deb package for you in the parent directory.
 3. Finish:
 ==========
 
-You can then run Gtk-Gnutella without installing:
+You can then run gtk-gnutella without installing:
 
   src/gtk-gnutella
 
-To install Gtk-Gnutella just run (version and architecture will vary):
+To install gtk-gnutella just run (version and architecture will vary):
 
   cd ..
   su

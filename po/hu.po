@@ -755,10 +755,10 @@ msgstr ""
 
 #, fuzzy
 msgid ""
-"Gtk-Gnutella found a newer version on the Gnet and gives information about "
+"gtk-gnutella found a newer version on the Gnet and gives information about "
 "it here."
 msgstr ""
-"Gtk-gnutella újabb verziót talált a gNet-en és itt ad róla tájékoztatást"
+"gtk-gnutella újabb verziót talált a gNet-en és itt ad róla tájékoztatást"
 
 #, fuzzy
 msgid ""
@@ -1363,7 +1363,7 @@ msgstr "A helyi hálózatokhoz próbál csatlakozni először"
 
 #, fuzzy
 msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
+"Check this button if you want to use gtk-gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
 msgstr ""
 "Pipálja ki ezt a négyzetet, ha a helyi hálózatokon akarja használni GTK-"
@@ -1371,7 +1371,7 @@ msgstr ""
 
 #, fuzzy
 msgid ""
-"Check this button if you want Gtk-Gnutella to use IP TOS to differentiate "
+"Check this button if you want gtk-gnutella to use IP TOS to differentiate "
 "interactive, normal and bulk data. This is probably a good idea in most "
 "cases, and can particularly help with badly misconfigured hosts, LANs, and "
 "ISPs."
@@ -1712,19 +1712,19 @@ msgstr ""
 
 #, fuzzy
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
-msgstr "Gtk-gnutella szerint tűzfal mögött vagyunk-e"
+msgstr "gtk-gnutella szerint tűzfal mögött vagyunk-e"
 
 #, fuzzy
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
-msgstr "Gtk-gnutella szerint csatlakoztunk-e az Internethez"
+msgstr "gtk-gnutella szerint csatlakoztunk-e az Internethez"
 
 #, fuzzy
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
-msgstr "Gtk-gnutella szerint tűzfal mögött vagyunk-e"
+msgstr "gtk-gnutella szerint tűzfal mögött vagyunk-e"
 
 #, fuzzy
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
-msgstr "Gtk-gnutella szerint csatlakoztunk-e az Internethez"
+msgstr "gtk-gnutella szerint csatlakoztunk-e az Internethez"
 
 #, fuzzy
 msgid ""
@@ -1838,13 +1838,13 @@ msgid ""
 "ultra node if bandwidth and uptime permits, provided that you are not "
 "firewalled."
 msgstr ""
-"Gtk-gnutella kívánt üzemmódja. Amikor auto, végpontként kezd és előlép "
+"gtk-gnutella kívánt üzemmódja. Amikor auto, végpontként kezd és előlép "
 "átjátszó csomóponttá, ha a sávszélesség és a futási idő engedi, feltéve, "
 "hogy nem vagyunk tűzfallal elzárva."
 
 #, fuzzy
 msgid "Current peer mode for gtk-gnutella."
-msgstr "Gtk-gnutella jelenlegi üzemmódja"
+msgstr "gtk-gnutella jelenlegi üzemmódja"
 
 #, fuzzy
 msgid "How many file descriptors this process can open."
@@ -2341,7 +2341,7 @@ msgstr ""
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
 "$GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate your private ban "
-"list from the global one distributed with Gtk-Gnutella."
+"list from the global one distributed with gtk-gnutella."
 msgstr ""
 
 msgid "If set to TRUE, SO_LINGER is used for sockets."
@@ -2427,7 +2427,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "A gui hibajavítási szintje"
 
 msgid ""
-"If set Gtk-Gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -5304,7 +5304,7 @@ msgid ""
 "results. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
-"Gtk-gnutella szerint tűzfal mögött van. Senki sem csatlakozott be eddig. "
+"gtk-gnutella szerint tűzfal mögött van. Senki sem csatlakozott be eddig. "
 "Nyomás nem működik, amely megakadályozhatja nagy mennyiségű adat fogadását."
 
 msgid ""
@@ -5321,7 +5321,7 @@ msgid ""
 "download files. You will not see push results, which may prevent you from "
 "seeing a large amount of results."
 msgstr ""
-"Gtk-gnutella szerint tűzfal mögött van. Senki sem csatlakozott be eddig. "
+"gtk-gnutella szerint tűzfal mögött van. Senki sem csatlakozott be eddig. "
 "Nyomás nem működik befelé, ami megakadályozhatja nagy mennyiségű adat "
 "fogadását."
 
@@ -5674,12 +5674,12 @@ msgstr "gtk-gnutella leállítása"
 
 #, fuzzy
 msgid ""
-"Gtk-Gnutella is shutting down.\n"
+"gtk-gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
 msgstr ""
-"Gtk-gnutella leáll.\n"
+"gtk-gnutella leáll.\n"
 "Elköszönés a többi csomóponttól.\n"
 "\n"
 "Várakozási idő:"
@@ -5689,7 +5689,7 @@ msgid "[time]"
 msgstr "Futási idő"
 
 msgid "About gtk-gnutella"
-msgstr "Gtk-gnutella névjegye"
+msgstr "gtk-gnutella névjegye"
 
 msgid "[name and version]"
 msgstr ""
@@ -6111,7 +6111,7 @@ msgid "Connection settings"
 msgstr "Kapcsolat beállítása"
 
 msgid "Connections reserved for gtk-gnutella nodes"
-msgstr "Gtk-gnutella társaknak fenntartott kapcsolatok"
+msgstr "gtk-gnutella társaknak fenntartott kapcsolatok"
 
 msgid "Max connections allowed per unique vendor"
 msgstr "Legtöbb egy szállítóra jutó kapcsolat"

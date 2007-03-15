@@ -18,7 +18,7 @@ is as easy as:
 $ emerge xmingw-binutils xmingw-gcc xmingw-w32api xmingw-runtime
 
 By the way, if you also want a C++ compiler under your xmingw, you need to
-emerge xmingw-gcc twice. Gtk-gnutella doesn't need one though.
+emerge xmingw-gcc twice. gtk-gnutella doesn't need one though.
 
 Next thing we need is the gtk+ devel packages for mingw. You could either
 compile all needed packages by hand, or take the easy road and grab them from

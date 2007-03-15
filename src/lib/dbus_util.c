@@ -29,7 +29,7 @@
  *
  * Interface to dbus messaging bus.
  *
- * Gtk-Gnutella will send notifications on the dbus message bus as
+ * gtk-gnutella will send notifications on the dbus message bus as
  * signals with a string parameter. Depending on the signal the
  * parameter will have a different meaning. Also see the documenation
  * in doc/other/dbus-support.txt

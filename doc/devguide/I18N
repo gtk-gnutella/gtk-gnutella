@@ -248,7 +248,7 @@ Key[locale]=localestring
 
 For example:
 
-Name[nl]=Gtk-Gnutella
+Name[nl]=gtk-gnutella
 
 Make sure the file stays UTF-8 encoded.
 

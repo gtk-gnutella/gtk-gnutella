@@ -393,14 +393,14 @@ icon_init(void)
 		GdkPixbuf *icon_pixbuf;
 		
 		/*
-		 * Create an status so that Gtk-Gnutella can be minimized to a
+		 * Create an status so that gtk-gnutella can be minimized to a
 		 * so-called "system tray" if supported by the window manager.
 		 */
 
     	icon_pixbuf = create_pixbuf("icon.xpm");
 		status_icon = gtk_status_icon_new_from_pixbuf(icon_pixbuf);
 		gtk_status_icon_set_tooltip(status_icon,
-			_("Gtk-Gnutella: Click to minimize/restore"));
+			_("gtk-gnutella: Click to minimize/restore"));
 		gtk_status_icon_set_visible(status_icon, TRUE);
     	g_signal_connect(G_OBJECT(status_icon), "activate",
 			G_CALLBACK(on_status_icon_activate), NULL);

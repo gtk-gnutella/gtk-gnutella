@@ -9,7 +9,7 @@ Package: gtk-gnutella
 Architecture: any
 Depends: ${shlibs:Depends} ${misc:Depends}
 Description: shares files in a peer to peer network
- Gtk-Gnutella is a reliable and efficient Gnutella client, supporting the
+ gtk-gnutella is a reliable and efficient Gnutella client, supporting the
  latest Gnutella protocol, bandwidth limitation (both incoming and outgoing)
  traffic compression, and advanced search filters among other features.
  .
@@ -17,7 +17,7 @@ Description: shares files in a peer to peer network
  running a Gnutella client to search for and download files from other
  Gnutella users, as well as share some files of his/her own.
  .
- Gtk-Gnutella offers all the extra features you expect from a modern client:
+ gtk-gnutella offers all the extra features you expect from a modern client:
  persistent downloads, searches and filters, intuitive interface, upload
  statistics, queuing, and of course total control over many configuration
  parameters.

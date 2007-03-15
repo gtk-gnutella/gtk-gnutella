@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Gtk-Gnutella configuration.
+ * gtk-gnutella configuration.
  *
  * @author Raphael Manfredi
  * @author Richard Eckart

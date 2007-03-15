@@ -13,7 +13,7 @@
   <li><a href="#general-gtkg">What is GTKG?</a></li>
   <li><a href="#general1">This eats up too much bandwidth!</a></li>
   <li><a href="#general-ultrapeer">What are Ultrapeers and Leaf nodes?</a></li>
-  <li><a href="#general-firewall">Why does Gtk-Gnutella claim it's firewalled
+  <li><a href="#general-firewall">Why does gtk-gnutella claim it's firewalled
     when it's not?</a>
   </li>
 </ul>
@@ -164,12 +164,12 @@
   firewalled leaf nodes.
 </p>
 
-<h3><a name="general-firewall">Why does Gtk-Gnutella claim it's firewalled
+<h3><a name="general-firewall">Why does gtk-gnutella claim it's firewalled
   when it's not?</a>
 </h3>
 
 <p>
-Gtk-Gnutella needs to receive an incoming connection to determine if you
+gtk-gnutella needs to receive an incoming connection to determine if you
 can be reached from the outside. Until then, it's assumed that there's
 a firewall which blocks the configured listening TCP port.
 If you want to speed up the detection, use a web browser, telnet or similar
@@ -464,7 +464,7 @@ See also,
 <h3><a name="down2">Why is the same file downloaded X times?</a></h3>
 <p>
   Check the <em>Range</em> column. This is called
-  <a href="#down3">swarming</a>.  Gtk-Gnutella tries to get the file in
+  <a href="#down3">swarming</a>.  gtk-gnutella tries to get the file in
   <a href="#down4">chunks</a> and will get it from multiple hosts in parallel,
   if possible.
 </p>
@@ -472,7 +472,7 @@ See also,
 <h3><a name="down3">What is "swarming"?</a></h3>
 <p>
   Swarming describes the ability to download a single file from multiple hosts
-  in parallel. Gtk-Gnutella will automatically try to find additional sources
+  in parallel. gtk-gnutella will automatically try to find additional sources
   for any queued file using the <a href="#down5">download mesh</a> and by
   monitoring routed results.
 </p>
@@ -523,7 +523,7 @@ See also,
   <a href="#gnet1">firewalls</a>.
 </p>
 <p>
-  Otherwise if Gtk-Gnutella says it has only a few sources for the file
+  Otherwise if gtk-gnutella says it has only a few sources for the file
   (best seen in the fileinfo subtab in the downloads pane) then this can have
   two reasons:
 </p>

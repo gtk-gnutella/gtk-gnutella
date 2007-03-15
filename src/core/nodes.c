@@ -8936,7 +8936,7 @@ node_crawl_append_vendor(GString *ua, const gchar *vendor)
  * @param features	the selected features to insert
  * @param now		current time, for connection time computation
  * @param ua		the concatenated user-agent string
- * @param gtkg		if TRUE only Gtk-Gnutella nodes are added,
+ * @param gtkg		if TRUE only gtk-gnutella nodes are added,
  *					otherwise only nodes of other vendors are added.
  *
  * @return the amount of entries successfully written

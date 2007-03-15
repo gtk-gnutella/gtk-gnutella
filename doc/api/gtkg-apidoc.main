@@ -1,8 +1,8 @@
-/** @mainpage Gtk-Gnutella
+/** @mainpage gtk-gnutella
  *
  * @section intro Introduction
  *
- * Gtk-Gnutella is a GUI based Gnutella servent, which features:
+ * gtk-gnutella is a GUI based Gnutella servent, which features:
  *
  *  - Share files on the gnutella network (LimeWire, BearShare, Xolox,
  *    Gnucleus, Shareaza, Morpheus ...)
@@ -31,9 +31,9 @@
  *       - QRP (Query Routing Proposal)
  *       - Push Proxies
  *
- * These pages document the source code of Gtk-Gnutella.
+ * These pages document the source code of gtk-gnutella.
  *
- * @section sects Main sections of the Gtk-Gnutella code
+ * @section sects Main sections of the gtk-gnutella code
  *
  *  The following sections are the broad categories into which the
  *  various modules belong.
@@ -74,14 +74,14 @@
  * @defgroup gtk GTK+ Interface
  * @ingroup ui
  *
- * GTK+ Interface for Gtk-Gnutella.
+ * GTK+ Interface for gtk-gnutella.
  */
 
 /**
  * @defgroup console Console Interface
  * @ingroup ui
  *
- * Console Interface for Gtk-Gnutella.
+ * Console Interface for gtk-gnutella.
  */
 
 /**

@@ -50,7 +50,7 @@
  * The current offset is shared that means, you should always use pread()
  * instead of read(), pwrite() instead of write() etc. The replacement
  * functions do not restore the original file offset and they are NOT
- * thread-safe. As Gtk-Gnutella is mono-threaded this should never be a
+ * thread-safe. As gtk-gnutella is mono-threaded this should never be a
  * problem.
  *
  * The file objects created with O_RDWR are returned for all

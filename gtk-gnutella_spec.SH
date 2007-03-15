@@ -75,8 +75,8 @@ BuildRequires: gtk+-devel glib-devel libxml2-devel bison
 %endif
 
 %description
-Gtk-Gnutella is a GUI based Gnutella p2p servent. It's a fully featured  
-servent designed to share any type of file.  Gtk-gnutella implements 
+gtk-gnutella is a GUI based Gnutella p2p servent. It's a fully featured  
+servent designed to share any type of file.  gtk-gnutella implements 
 compressed gnutella net connections, ultrapeer and leaf nodes and uses 
 Passive/Active Remote Queueing (PARQ) and other modern gnutella network
 features.

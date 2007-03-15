@@ -25,13 +25,13 @@ Improvements:
  - New shell commands: online, offline, props, status.
  - The search list allows selection of multiple items and applying actions to
    them now.
- - Added a tray icon to hide the Gtk-Gnutella application windows. This
+ - Added a tray icon to hide the gtk-gnutella application windows. This
    feature requires Gtk+ 2.10 or newer.
  - Added a limit of downloads per file which defaults to 40 to prevent using
    an unreasonably large amount of sources.
  - Keep certain irrelevant columns empty for "local:" searches instead of
    showing bogus data.
- - Added README.Debian with instructions how to compile Gtk-Gnutella yourself
+ - Added README.Debian with instructions how to compile gtk-gnutella yourself
    on Debian-derived systems.
 
 Under the hood:
@@ -53,7 +53,7 @@ Bug fixes:
  - Fixed bug #1467681 "weird HTTP acknowledgment".
  - Fixed bug #1422526 "`Drop results' should prepend, not append, to filters".
  - Fixed bugs in the dynamic querying logic that caused leaves to
-   receive very few results through Gtk-Gnutella ultrapeers.
+   receive very few results through gtk-gnutella ultrapeers.
  - Fixed crash on 64-bit platforms when using the navigation tree.
  - Fixed format mismatches in some translated message catalogs.
 
@@ -547,7 +547,7 @@ Under the hood:
   * The use of Unicode in queries now matches that of other Gnutella
     clients. This will make it easier to search for file names which
     contain non-Latin characters. At the time of release only
-    Gtk-Gnutella 0.95.1 and Limewire will respond properly to Unicode
+    gtk-gnutella 0.95.1 and Limewire will respond properly to Unicode
     queries.
   * Files are shared with their names converted to UTF-8, and
     downloads are stored with UTF-8 file names.
@@ -582,12 +582,12 @@ Under the hood:
   the ~/.gtk-gnutella directory. So you only need to put private
   additions into ~/.gtk-gnutella/hostiles.txt. These files are also
   automagically reloaded on change, so you don't need to restart
-  Gtk-Gnutella to make the changes effective.
+  gtk-gnutella to make the changes effective.
 - Updated listings for geographic information, bogus addresses and
   spam sites.
 - Greatly enhanced stability as compared to 0.95 due to many bug
   fixes. Other noteworthy bugs fixed are:
-  * Gtk-Gnutella as ultrapeer was not routing any searches iff uploads
+  * gtk-gnutella as ultrapeer was not routing any searches iff uploads
     had been disabled.
   * Problems with the UDP/TCP port setting have been fixed (bug #1091827).
 - German, Japanese, and Spanish translation updated.
@@ -1921,7 +1921,7 @@ Under the hood:
 - Search results are now buffered by the GUI for burst updates, which reduces
   CPU usage and the amount of redrawing significantly.  The buffering time
   is configurable from the GUI.
-- Gtk-gnutella is now fully compliant with LimeWire regarding I18N queries,
+- gtk-gnutella is now fully compliant with LimeWire regarding I18N queries,
   provided you have the ICU library.  Otherwise, it should be OK for roman
   charsets only.
 
@@ -4447,7 +4447,7 @@ WARNING:
 
 - (2002.12.07 - RAM)
  * Even when node is connected, it can lack the "alive_ping" object.
- * Refuse connection from "Gtk-Gnutella" (spoofed/tempered-with string).
+ * Refuse connection from "gtk-gnutella" (spoofed/tempered-with string).
  * Changed "Transmit timeout" message into "Flow-controlled for too long".
  * Added vendor codes GDNA and GNTD.
  * Switched vendor searching from linear to dichotomic lookup.
@@ -5547,7 +5547,7 @@ KNOWN BUGS/PROBLEMS:
 
 - (2002.07.10 - Richard)
   * Fixed two serious typos in filter_gui.c causing removed filters
-    to be removed from dialog. Gtk-gnutella would crash when selecting
+    to be removed from dialog. gtk-gnutella would crash when selecting
     such a filter.
 
 - (2002.07.09 - Richard)
@@ -5556,7 +5556,7 @@ KNOWN BUGS/PROBLEMS:
   * Optimized redrawing of download queue.
   
 - (2002.07.09 - Richard)
-  * Gtk-gnutella is now compatible with Gtk2. To compile against Gtk2, 
+  * gtk-gnutella is now compatible with Gtk2. To compile against Gtk2, 
     use the --enable-gtk2 switch with the configure script.
   * Now have two glade files, one for Gtk1.2/Glade 0.6.4 and one for
     Gtk2/Glade 1.1.0. The format is not trivially upgradable, so for
@@ -5592,7 +5592,7 @@ Highlight of changes (user-visible):
 - Both HTTP and Gnet bandwidth is now displayed real time.
 - Added full HUGE support (Hash/URN Gnutella Extensions).
 - Added support for local host preference.
-- Gtk-gnutella can do traffic compression when connecting to a node that
+- gtk-gnutella can do traffic compression when connecting to a node that
   also supports it.
 - Upload and downloads will now show User-Agent/Server information.
 - Added status to the download queue.
@@ -6848,7 +6848,7 @@ Detailed changes:
 - Results differing only by connection speed are now considered identical
 - The payload size of query hits was written in native format, instead of LE!
 - Optimized query hit packet construction, reducing mem fragmentation
-- Now shows itself as "Gtk-Gnut" instead of "Gtk-Gnutella"
+- Now shows itself as "Gtk-Gnut" instead of "gtk-gnutella"
 - Fixed important sharing bug where extensions were not matched for correctly
 - Can now configure a max size for the host cache (defaults to 20480)
 - Kicking policies for dup messages and high TTL now configurable
@@ -6904,7 +6904,7 @@ Detailed changes:
 - Search strict AND filter feature added (config option)
 - Debug assist code added, prints hex, dbg variable added
 - Some readme doc updates
-- Client identifies itself properly as Gtk-Gnutella 'GTKG' to the net
+- Client identifies itself properly as gtk-gnutella 'GTKG' to the net
 - 503 and other returns handled better, queue is better
 - Lots of other fixes and many hours testing
 
@@ -6979,13 +6979,13 @@ Detailed changes:
   GTA_GNUTELLA_DIR/hosts
 - Catched hosts can be imported from and exported to any text file (using
   right mouse button on the gnutella host catcher)
-- Gtk-Gnutella should now compile (using gcc) and run on more processors
+- gtk-gnutella should now compile (using gcc) and run on more processors
 - A few memory leaks removed, but some remain (I don't know where yet)
-- Serious bug that made Gtk-Gnutella send garbage when the sendqueue for slow
+- Serious bug that made gtk-gnutella send garbage when the sendqueue for slow
   nodes excedeed 1024 bytes has been fixed
 - Completed download files are now moved to a different directory, that can be
   choosen in the config screen
-- Gtk-Gnutella now remembers the position and the size of the window
+- gtk-gnutella now remembers the position and the size of the window
 - Automatic sorting of search results can be stopped by right clicking in the
   search results list (GTK doesn't seem to handle well auto sorting)
 
@@ -7005,9 +7005,9 @@ Detailed changes:
 - Do not allow more than one incoming connection from the same IP, to prevent
   connect flood attacks (Somebody tried to establish more than 32 simultaneous
   connections (from the same IP) to my client today...)
-- Catched hosts are now saved, and reloaded next time Gtk-Gnutella is started.
+- Catched hosts are now saved, and reloaded next time gtk-gnutella is started.
 
 
 * v 0.1           2000.04.16
 
-- First release of Gtk-Gnutella :)
+- First release of gtk-gnutella :)

@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Common header for Gtk-Gnutella.
+ * Common header for gtk-gnutella.
  *
  * @author Richard Eckart
  * @date 2001-2003
@@ -61,7 +61,7 @@
 #endif
 
 #ifndef HAS_LIBXML2
-#error "You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella"
+#error "You need libxml2 (http://www.xmlsoft.org/) to compile gtk-gnutella"
 #endif
 
 /*
@@ -287,11 +287,11 @@ struct passwd
 #include <glib.h>
 
 #if defined(USE_GLIB1) && !defined(GLIB_MAJOR_VERSION)
-#error "Install GLib 1.2 to compile Gtk-Gnutella against GLib 1.2."
+#error "Install GLib 1.2 to compile gtk-gnutella against GLib 1.2."
 #endif
 
 #if defined(USE_GLIB2) && !defined(GLIB_MAJOR_VERSION)
-#error "Install GLib 2.x to compile Gtk-Gnutella against GLib 2.x."
+#error "Install GLib 2.x to compile gtk-gnutella against GLib 2.x."
 #endif
 
 #ifdef USE_LINT

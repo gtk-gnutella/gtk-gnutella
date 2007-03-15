@@ -166,7 +166,7 @@ the leaf has sharing of files turned on. Setting hops to 0 results in a
 substantial bandwidth reduction with modem users who have large shared
 file sets but turn sharing off to speed up downloads.
 
-Gtk-Gnutella also uses the Hops Flow feature between ultra nodes to
+gtk-gnutella also uses the Hops Flow feature between ultra nodes to
 inform the remote node about a flow-control condition locally and to
 request that the remote node no longer be sending queries that would
 immediately be dropped anyway upon reception.  In that case, the Hops

@@ -1625,7 +1625,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		goto end;
 
 	fprintf(config,
-			"#\n# Gtk-Gnutella %s%s (%s) by Olrick & Co.\n# %s\n#\n",
+			"#\n# gtk-gnutella %s%s (%s) by Olrick & Co.\n# %s\n#\n",
 			GTA_VERSION_NUMBER,
 #ifdef GTA_REVISION
 			" " GTA_REVISION,

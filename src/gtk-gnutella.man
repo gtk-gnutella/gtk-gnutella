@@ -235,7 +235,7 @@ This is where the cache of all the computed SHA1 is stored.
 This file keeps track of the upload statistics.
 .RE
 .SH ENVIRONMENT
-.I Gtk-Gnutella
+.I gtk-gnutella
 searches
 .B GTK_GNUTELLA_DIR
 for configuration files. If this variable is not set,
@@ -271,7 +271,7 @@ Additional information about gnutella is available at
 .B  http://rfc-gnutella.sourceforge.net/
 .SH AUTHORS
 Yann Grossel wrote the original
-.B Gtk-Gnutella .
+.B gtk-gnutella .
 .PP
 Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
 and project leader (since version 0.14, released early September 2001).

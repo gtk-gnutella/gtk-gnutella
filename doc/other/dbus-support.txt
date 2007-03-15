@@ -1,6 +1,6 @@
 
 -------------------------------------------------------------------------------
-                          Gtk-Gnutella D-Bus support
+                          gtk-gnutella D-Bus support
 -------------------------------------------------------------------------------
 Date: 3.8.2005
 Author: Hans de Graaff
@@ -10,15 +10,15 @@ $Id$
 Introduction
 ------------
 
-  Gtk-Gnutella D-Bus support aims to be an easy way to connect what it
-  going on inside Gtk-Gnutella with the outside world. Current use of
-  D-Bus is limited to Gtk-Gnutella sending notifications on the
+  gtk-gnutella D-Bus support aims to be an easy way to connect what it
+  going on inside gtk-gnutella with the outside world. Current use of
+  D-Bus is limited to gtk-gnutella sending notifications on the
   session bus. Other applications can listen to these notifications
   and possibly act on them.
 
   Note that D-Bus is still experimental. It should be considered
   unstable, and until a version 1.0 is released the support of
-  Gtk-Gnutella for D-Bus should be considered experimental and
+  gtk-gnutella for D-Bus should be considered experimental and
   unstable as well.
 
 
@@ -43,7 +43,7 @@ What is D-Bus
 What benefits does D-Bus integration bring?
 -------------------------------------------
 
-  D-Bus allows Gtk-Gnutella to send out notifications without having
+  D-Bus allows gtk-gnutella to send out notifications without having
   prior knowledge about which application will listen for which
   event. In addition, D-Bus allows multiple applications to listen
   for the notifications that they want to receive, even if they both
@@ -55,22 +55,22 @@ What benefits does D-Bus integration bring?
 
   This flexibility will enable users and developers to quickly and
   easily create tools to enable them to customize their experience
-  with Gtk-Gnutella. Examples of such tools are:
+  with gtk-gnutella. Examples of such tools are:
 
   - create an audible alert when a download is completed.
 
-  - create a notification applet to show whether Gtk-Gnutella is
+  - create a notification applet to show whether gtk-gnutella is
     running and whether there are problems.
 
   - process files automatically once they are correctly downloaded.
 
 
-Which events does Gtk-Gnutella currently support?
+Which events does gtk-gnutella currently support?
 -------------------------------------------------
 
   Event support is still in its infancy. We expect this list to change
   in the future as our thinking about notifications and events
-  matures. If you have ideas about specific events which Gtk-Gnutella
+  matures. If you have ideas about specific events which gtk-gnutella
   should generate, then please let us know about them. Tell us also
   what you would like to use the events for!
 
@@ -80,14 +80,14 @@ Which events does Gtk-Gnutella currently support?
   Signal name            Values           Description
   -----------            ------           -----------
 
-  DownloadDone			 <filename>		  The file <filename> has been
-										  downloaded
+  DownloadDone           <filename>       The file <filename> has been
+                                          downloaded
 
-  Events                 started          Gtk-Gnutella is started
-						 stopped		  Gtk-Gnutella is stopped
+  Events                 started          gtk-gnutella is started
+                         stopped          gtk-gnutella is stopped
 
-  PeermodeChange		 normal, ultra,	  Type of Gnutella node
-						 leaf
+  PeermodeChange         normal, ultra,   Type of Gnutella node
+                         leaf
 
 
 

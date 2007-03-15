@@ -52,7 +52,7 @@ prop = {
 
 prop = {
     name = "new_version_str";
-    desc = "Gtk-Gnutella found a newer version on the Gnet and gives "
+    desc = "gtk-gnutella found a newer version on the Gnet and gives "
            "information about it here.";
     type = string;
     save = FALSE;
@@ -1226,7 +1226,7 @@ prop = {
 
 prop = {
     name = "allow_private_network_connection";
-    desc =	"Check this button if you want to use Gtk-Gnutella on your "
+    desc =	"Check this button if you want to use gtk-gnutella on your "
 			"Local Area Network. RFC1918 will be ignored.";
     type = boolean;
     data = {
@@ -1236,7 +1236,7 @@ prop = {
 
 prop = {
     name = "use_ip_tos";
-    desc =	"Check this button if you want Gtk-Gnutella to use IP TOS to "
+    desc =	"Check this button if you want gtk-gnutella to use IP TOS to "
 			"differentiate interactive, normal and bulk data. This is "
 			"probably a good idea in most cases, and can particularly help "
 			"with badly misconfigured hosts, LANs, and ISPs.";
@@ -3168,7 +3168,7 @@ prop = {
 	desc = "If set to TRUE, the global hostiles.txt is used as well as the "
 			"private $GTK_GNUTELLA_DIR/hostiles.txt. This allows to separate "
 			"your private ban list from the global one distributed with "
-			"Gtk-Gnutella.";
+			"gtk-gnutella.";
 	type = boolean;
 	data = {
 		default = TRUE;
@@ -3333,7 +3333,7 @@ prop = {
 
 prop = {
 	name = "enable_local_socket";
-    desc = "If set Gtk-Gnutella also listens on a local (unix domain) socket"
+    desc = "If set gtk-gnutella also listens on a local (unix domain) socket"
 			"which is located in ~/.gtk-gnutella/socket.";
 	type = boolean;
 	data = {

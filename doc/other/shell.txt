@@ -1,6 +1,6 @@
 
 -------------------------------------------------------------------------------
-                          Gtk-Gnutella shell interface
+                          gtk-gnutella shell interface
 -------------------------------------------------------------------------------
 Date: 2002-12-17
 Author: Richard Eckart
@@ -10,15 +10,15 @@ $Id$
 Introduction
 ------------
 
-  Gtk-Gnutella supports a so-called shell interface. This feature is available
+  gtk-gnutella supports a so-called shell interface. This feature is available
   locally and optionally remotely as well. At the moment, the shell has still
   limited use but is nonetheless sufficient for special tasks and uses. It is
-  especially useful and important when using Gtk-Gnutella Topless.
+  especially useful and important when using gtk-gnutella Topless.
 
 Connecting
 ----------
 
-  Gtk-Gnutella has a simple built-in application which can be used to
+  gtk-gnutella has a simple built-in application which can be used to
   access the shell over the local socket by invoking it as follows:
 
   $ gtk-gnutella --shell
@@ -53,7 +53,7 @@ Authentication
 
     HELO [credential]
 
-  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie. Gtk-Gnutella
+  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie. gtk-gnutella
   creates this file at startup and stores a random base32 value in it.  The
   file is readable only by the owner.
 
@@ -82,7 +82,7 @@ Commands
     requests and even magnets are handled, so even downloads can be started
     this way.
 
-    NOTE: This command does not yet for Gtk-Gnutella Topless because large
+    NOTE: This command does not yet for gtk-gnutella Topless because large
     parts of the code responsible for handling searches and search results
     are implemented in the GUI.
 
