@@ -194,7 +194,11 @@
 67.159.5.0/24
 208.53.138.0/24
 208.53.158.0/23
+208.98.11.0/28
+208.98.23.192/26
+208.98.49.128/25
 208.98.56.192/26
+
 
 # DRM WMV pr0n spammer "Hollywood Interactive, Inc." using Mutella
 # DRM header links to smutlounge dot com
@@ -361,6 +365,7 @@
 # Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
 72.51.22.0/24
 72.51.33.0/24
+72.51.34.0/24
 72.51.37.0/24
 72.51.42.0/24
 
@@ -894,7 +899,7 @@
 216.127.90.31
 194.90.224.81
 
-# "Accelerator" spam; ZIP files; hosted at bezeqint.net
+# "Accelerator" spam; ZIP files; hosted at Bezeq International
 192.115.190.0/24
 212.25.103.0/24
 212.179.64.0/24
