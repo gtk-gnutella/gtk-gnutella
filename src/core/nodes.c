@@ -1162,10 +1162,14 @@ node_timer(time_t now)
 	sq_process(sq_global_queue(), now);
 }
 
+struct node_id {
+	guint64 value;
+};
+
 static inline guint64
 node_id_value(const node_id_t node_id)
 {
-	return *(const guint64 *) node_id;
+	return node_id->value;
 }
 	
 gboolean
@@ -1174,12 +1178,12 @@ node_id_self(const node_id_t node_id)
 	return 0 == node_id_value(node_id);
 }
 
-static const guint64 NODE_SELF_ID;
+static const node_id_t NODE_SELF_ID;
 
 node_id_t
 node_id_get_self(void)
 {
-	return (node_id_t) &NODE_SELF_ID;
+	return NODE_SELF_ID;
 }
 
 guint
@@ -1207,25 +1211,25 @@ node_id_to_string(const node_id_t node_id)
 node_id_t
 node_id_ref(const node_id_t node_id)
 {
-	return (node_id_t) atom_uint64_get((guint64 *) node_id);
+	return (node_id_t) atom_uint64_get(&node_id->value);
 }
 
 void
 node_id_unref(const node_id_t node_id)
 {
 	g_assert(node_id != node_id_get_self());
-	atom_uint64_free((const guint64 *) node_id);
+	atom_uint64_free(&node_id->value);
 }
 
 static node_id_t
 node_id_new(const struct gnutella_node *n)
 {
-	static guint64 counter;
+	static struct node_id counter;
 	node_id_t node_id;
 
 	node_check(n);
-	counter++;
-	node_id = node_id_ref((node_id_t) &counter);
+	counter.value++;
+	node_id = node_id_ref(&counter);
 	gm_hash_table_insert_const(nodes_by_id, node_id, n);
 	return node_id;
 }
