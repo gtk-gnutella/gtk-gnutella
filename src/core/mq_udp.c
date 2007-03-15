@@ -319,7 +319,7 @@ again:
 	if (q->putq_entered++ > 0) {
 		pmsg_t *extended;
 
-		if (debugging(0))
+		if (debugging(20))
 			g_warning("mq_udp_putq: %s recursion detected (%d already pending)",
 				mq_info(q), slist_length(q->qwait));
 
@@ -442,7 +442,7 @@ cleanup:
 			mb = mbe;		/* An extended message "is-a" message */
 			to = &mi->to;
 
-			if (debugging(0))
+			if (debugging(20))
 				g_warning(
 					"mq_udp_putq: %s flushing waiting to %s (%d still pending)",
 					mq_info(q), gnet_host_to_string(to),

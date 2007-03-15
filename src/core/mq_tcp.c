@@ -338,7 +338,7 @@ again:
 	 */
 
 	if (q->putq_entered > 0) {
-		if (debugging(0))
+		if (debugging(20))
 			g_warning(
 				"mq_tcp_putq: %s recursion detected (%d already pending)",
 				mq_info(q), slist_length(q->qwait));
@@ -451,7 +451,7 @@ cleanup:
 	if (0 == q->putq_entered && !error) {
 		mb = slist_shift(q->qwait);
 		if (mb) {
-			if (debugging(0))
+			if (debugging(20))
 				g_warning(
 					"mq_tcp_putq: %s flushing waiting (%d still pending)",
 					mq_info(q), slist_length(q->qwait));
