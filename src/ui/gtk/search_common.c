@@ -1805,28 +1805,51 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
+			const gchar *guid;
+			gnet_host_vec_t *proxy;
 			host_addr_t addr;
+			guint16 port;
+			guint32 flags;
 
-			if (!ms->path && !res->sha1) {
+			if (
+				0 == ms->port ||
+				(NULL == ms->path && NULL == res->sha1) ||
+				(NULL == ms->hostname && !is_host_addr(ms->addr))
+			) {
 				g_message("Unusable magnet source");
 				continue;
 			}
-			
+
 			/* Note: We use 0.0.0.0 instead of zero_host_addr because
 			 *       the core would bark when using the latter.
 			 */
-			addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
+
+			if (ms->guid) {
+				addr = ipv4_unspecified;
+				flags = SOCK_F_PUSH;
+				guid = ms->guid;
+				port = 0;
+				proxy = gnet_host_vec_alloc();
+				gnet_host_vec_add(proxy, ms->addr, ms->port);
+			} else {
+				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
+				flags = 0;
+				guid = blank_guid;
+				port = ms->port;
+				proxy = NULL;
+			}
+			
 			if (ms->path) {
 				guc_download_new_uri(filename, ms->path, res->size,
-					addr, ms->port, blank_guid, ms->hostname,
-					res->sha1, tm_time(), NULL, NULL, 0);
+					addr, port, guid, ms->hostname,
+					res->sha1, tm_time(), NULL, proxy, flags);
 			} else if (res->sha1) {
 				guc_download_new(filename, res->size, URN_INDEX,
-					addr, ms->port, blank_guid, ms->hostname,
-					res->sha1, tm_time(), NULL, NULL, 0);
+					addr, port, guid, ms->hostname,
+					res->sha1, tm_time(), NULL, proxy, flags);
 			}
-			n_downloads += ((is_host_addr(addr) || ms->hostname) &&
-								0 != ms->port);
+			n_downloads++;
+			gnet_host_vec_free(&proxy);
 		}
 
 		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
@@ -1905,6 +1928,8 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 				NG_("%u search", "%u searches", n_searches), n_searches);
 			statusbar_gui_message(15, _("Handled magnet link (%s, %s)."),
 				msg_download, msg_search);
+		} else {
+			statusbar_gui_message(15, _("Ignored unusable magnet link."));
 		}
 	}
 
@@ -1920,6 +1945,41 @@ search_gui_handle_http(const gchar *url, const gchar **error_str)
 
 	g_return_val_if_fail(url, FALSE);
 	g_return_val_if_fail(is_strcaseprefix(url, "http://"), FALSE);
+
+	{
+		struct magnet_resource *magnet;
+		gchar *escaped_url;
+
+		/* Assume the URL was entered by a human; humans don't escape
+		 * URLs except on accident and probably incorrectly. Try to
+		 * correct the escaping but don't touch '?', '&', '=', ':'.
+		 */
+		escaped_url = url_fix_escape(url);
+
+		/* Magnet values are ALWAYS escaped. */
+		magnet = magnet_resource_new();
+		magnet_add_source_by_url(magnet, escaped_url);
+		if (escaped_url != url) {
+			G_FREE_NULL(escaped_url);
+		}
+		magnet_url = magnet_to_string(magnet);
+		magnet_resource_free(magnet);
+	}
+	
+	success = search_gui_handle_magnet(magnet_url, error_str);
+	G_FREE_NULL(magnet_url);
+
+	return success;
+}
+
+gboolean
+search_gui_handle_push(const gchar *url, const gchar **error_str)
+{
+	gchar *magnet_url;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(is_strcaseprefix(url, "push://"), FALSE);
 
 	{
 		struct magnet_resource *magnet;
@@ -2238,6 +2298,7 @@ search_gui_handle_query(const gchar *query_str, flag_t flags,
 			{ "http:",		search_gui_handle_http },
 			{ "local:",		search_gui_handle_local },
 			{ "magnet:",	search_gui_handle_magnet },
+			{ "push:",		search_gui_handle_push },
 			{ "sha1:",		search_gui_handle_sha1 },
 			{ "urn:",		search_gui_handle_urn },
 		};

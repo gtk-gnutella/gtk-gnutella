@@ -1128,6 +1128,45 @@ search_gui_set_clear_button_sensitive(gboolean flag)
 /* ----------------------------------------- */
 
 
+static void
+search_gui_magnet_add_source(struct magnet_resource *magnet, record_t *record)
+{
+	struct results_set *rs;
+
+	g_assert(magnet);
+	g_assert(record);
+	
+	rs = record->results_set;
+
+	if (ST_FIREWALL & rs->status) {
+		if (rs->proxies) {
+			gnet_host_t host;
+
+			host = gnet_host_vec_get(rs->proxies, 0);
+			magnet_add_sha1_source(magnet, record->sha1,
+				gnet_host_get_addr(&host), gnet_host_get_port(&host),
+				rs->guid);
+		}
+	} else {
+		magnet_add_sha1_source(magnet, record->sha1, rs->addr, rs->port, NULL);
+	}
+
+	if (record->alt_locs) {
+		gint i, n;
+
+		n = gnet_host_vec_count(record->alt_locs);
+		n = MIN(10, n);
+
+		for (i = 0; i < n; i++) {
+			gnet_host_t host;
+
+			host = gnet_host_vec_get(record->alt_locs, i);
+			magnet_add_sha1_source(magnet, record->sha1,
+				gnet_host_get_addr(&host), gnet_host_get_port(&host), NULL);
+		}
+	}
+}
+
 gchar *
 search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 {
@@ -1150,43 +1189,17 @@ search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 
 		magnet_set_sha1(magnet, parent->record->sha1);
 		magnet_set_filesize(magnet, parent->record->size);
-		
-		if (0 == (ST_FIREWALL & parent->record->results_set->status)) {
-			magnet_add_sha1_source(magnet, parent->record->sha1,
-				parent->record->results_set->addr,
-				parent->record->results_set->port);
-		}
 
+		search_gui_magnet_add_source(magnet, parent->record);
+		
 		if (gtk_tree_model_iter_children(model, &child, &parent->iter)) {
 			do {	
 				struct result_data *data;
 
 				data = get_result_data(model, &child);
 				g_assert(data);
-
-				if (0 != (ST_FIREWALL & data->record->results_set->status))
-					continue;
-
-				magnet_add_sha1_source(magnet, data->record->sha1,
-					data->record->results_set->addr,
-					data->record->results_set->port);
+				search_gui_magnet_add_source(magnet, data->record);
 			} while (gtk_tree_model_iter_next(model, &child));
-		}
-
-		if (parent->record->alt_locs) {
-			const gnet_host_vec_t *alt = parent->record->alt_locs;
-			gint i, n;
-
-			n = gnet_host_vec_count(alt);
-			n = MIN(10, n);
-
-			for (i = 0; i < n; i++) {
-				gnet_host_t host;
-
-				host = gnet_host_vec_get(alt, i);
-				magnet_add_sha1_source(magnet, parent->record->sha1,
-					gnet_host_get_addr(&host), gnet_host_get_port(&host));
-			}
 		}
 	}
 

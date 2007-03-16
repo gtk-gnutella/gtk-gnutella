@@ -110,46 +110,31 @@ plus_to_space(gchar *s)
 	}
 }
 
-struct magnet_source *
-magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
+static struct magnet_source *
+magnet_parse_location(const gchar *uri, const gchar **error_str)
 {
 	static const struct magnet_source zero_ms;
 	struct magnet_source ms;
-	const gchar *p, *ep, *host, *host_end;
-	const gchar *error_dummy;
+	const gchar *p, *endptr, *host, *host_end;
 
 	g_return_val_if_fail(uri, NULL);
 
-	if (!error_str) {
-		error_str = &error_dummy;
-	}
-
 	ms = zero_ms;
+	p = uri;
 
-	/* XXX: This should be handled elsewhere e.g., downloads.c in
-	 *		a generic way. */
-
-	p = is_strcaseprefix(uri, "http://");
-	if (NULL == p) {
-		*error_str =
-			_("MAGNET URI contained source URL for an unsupported protocol");
-		/* Skip this parameter */
-		return NULL;
-	}
-
-	if (!string_to_host_or_addr(p, &ep, &ms.addr)) {
+	if (!string_to_host_or_addr(p, &endptr, &ms.addr)) {
 		*error_str = "Expected host part";
 		return NULL;
 	}
 
-	if (!is_host_addr(ms.addr)) {
-		host = p;
-		host_end = ep;
-	} else {
+	if (is_host_addr(ms.addr)) {
 		host = NULL;
 		host_end = NULL;
+	} else {
+		host = p;
+		host_end = endptr;
 	}
-	p += ep - p;
+	p += endptr - p;
 
 	if (':' == *p) {
 		const gchar *ep2;
@@ -177,11 +162,11 @@ magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
 	}
 	g_assert(*p == '/');
 
-	ep = is_strprefix(p, "/uri-res/N2R?");
-	if (ep) {
+	endptr = is_strprefix(p, "/uri-res/N2R?");
+	if (endptr) {
 		gchar digest[SHA1_RAW_SIZE];
 		
-		p = ep;
+		p = endptr;
 		if (!urn_get_sha1(p, digest)) {
 			*error_str = "Bad SHA1 in MAGNET URI";
 			return NULL;
@@ -198,6 +183,76 @@ magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
 	}
 
 	return wcopy(&ms, sizeof ms);
+}
+
+static struct magnet_source *
+magnet_parse_http_source(const gchar *uri, const gchar **error_str)
+{
+	const gchar *p;
+
+	g_return_val_if_fail(uri, NULL);
+
+	p = is_strprefix(uri, "http://");
+	g_return_val_if_fail(p, NULL);
+
+	return magnet_parse_location(p, error_str);
+}
+
+static struct magnet_source *
+magnet_parse_push_source(const gchar *uri, const gchar **error_str)
+{
+	struct magnet_source *ms;
+	const gchar *p, *endptr;
+	gchar guid[GUID_RAW_SIZE];
+
+	g_return_val_if_fail(uri, NULL);
+
+	p = is_strprefix(uri, "push://");
+	g_return_val_if_fail(p, NULL);
+
+	endptr = strchr(p, ':');
+	if (
+		NULL == endptr ||
+		GUID_HEX_SIZE != (endptr - p) ||
+		!hex_to_guid(p, guid)
+	) {
+		*error_str = "Bad GUID in push source";
+		return NULL;
+	}
+
+	p = &endptr[1];
+	ms = magnet_parse_location(p, error_str);
+	if (ms) {
+		ms->guid = atom_guid_get(guid);
+	}
+	return ms;
+}
+
+struct magnet_source *
+magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
+{
+
+	g_return_val_if_fail(uri, NULL);
+
+	if (!error_str) {
+		static const gchar *dummy;
+		error_str = &dummy;
+	}
+	*error_str = NULL;
+
+	/* XXX: This should be handled elsewhere e.g., downloads.c in
+	 *		a generic way. */
+
+	if (is_strcaseprefix(uri, "http://")) {
+		return magnet_parse_http_source(uri, error_str);
+	} else if (is_strcaseprefix(uri, "push://")) {
+		return magnet_parse_push_source(uri, error_str);
+	} else {
+		*error_str =
+			_("MAGNET URI contained source URL for an unsupported protocol");
+		/* Skip this parameter */
+		return NULL;
+	}
 }
 
 static void
@@ -348,6 +403,7 @@ magnet_source_free(struct magnet_source *ms)
 		atom_str_free_null(&ms->path);
 		atom_str_free_null(&ms->url);
 		atom_sha1_free_null(&ms->sha1);
+		atom_guid_free_null(&ms->guid);
 		wfree(ms, sizeof *ms);
 	}
 }
@@ -417,7 +473,7 @@ magnet_add_source_by_url(struct magnet_resource *res, const gchar *url)
 
 void
 magnet_add_sha1_source(struct magnet_resource *res, const gchar *sha1,
-	const host_addr_t addr, const guint16 port)
+	const host_addr_t addr, const guint16 port, const gchar *guid)
 {
 	struct magnet_source *s;
 
@@ -434,6 +490,7 @@ magnet_add_sha1_source(struct magnet_resource *res, const gchar *sha1,
 	s->addr = addr;
 	s->port = port;
 	s->sha1 = atom_sha1_get(sha1);
+	s->guid = guid ? atom_guid_get(guid) : NULL;
 	magnet_add_source(res, s);
 }
 
@@ -541,12 +598,24 @@ magnet_source_to_string(struct magnet_source *s)
 	if (s->url) {
 		url = g_strdup(s->url);
 	} else {
-		const gchar *host;
+		const gchar *host, *prefix;
+		gchar prefix_buf[256];
 		gchar port_buf[16];
 
 		g_return_val_if_fail(0 != s->port, NULL);
 		g_return_val_if_fail(s->hostname || is_host_addr(s->addr), NULL);
 		g_return_val_if_fail(s->path || s->sha1, NULL);
+
+		if (s->guid) {
+			gchar guid_buf[GUID_HEX_SIZE + 1];
+			
+			guid_to_string_buf(s->guid, guid_buf, sizeof guid_buf);
+			concat_strings(prefix_buf, sizeof prefix_buf,
+				"push://", guid_buf, ":", (void *) 0);
+			prefix = prefix_buf;
+		} else {
+			prefix = "http://";
+		}
 		
 		port_buf[0] = '\0';
 		if (s->hostname) {
@@ -559,10 +628,10 @@ magnet_source_to_string(struct magnet_source *s)
 			host = host_addr_port_to_string(s->addr, s->port);
 		}
 		if (s->path) {
-			url = g_strconcat("http://", host, port_buf, s->path, (void *) 0);
+			url = g_strconcat(prefix, host, port_buf, s->path, (void *) 0);
 		} else {
 			g_assert(s->sha1);
-			url = g_strconcat("http://", host, port_buf,
+			url = g_strconcat(prefix, host, port_buf,
 					"/uri-res/N2R?urn:sha1:", sha1_base32(s->sha1),
 					(void *) 0);
 		}
