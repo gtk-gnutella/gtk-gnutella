@@ -1381,7 +1381,7 @@ free_server(struct dl_server *server)
 	ipk.addr = server->key->addr;
 	ipk.port = server->key->port;
 
-	if (host_is_valid(ipk.addr, ipk.port)) {
+	{
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
 
@@ -4347,10 +4347,10 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 	 * if someone echoes back our own alt-locs to us with PFSP).
 	 */
 
-	if (host_addr_equal(addr, listen_addr()) && port == listen_port) {
-		if (download_debug)
+	if (0 != port && is_my_address_and_port(addr, port)) {
+		if (download_debug) {
 			g_warning("create_download(): ignoring download from own address");
-
+		}
 		return NULL;
 	}
 
@@ -4788,6 +4788,7 @@ struct download_request {
 	const gchar *file;
 	const gchar *sha1;
 	const gchar *uri;
+	gnet_host_vec_t *proxies;
 	fileinfo_t *fi;
 	filesize_t size;
 	time_t stamp;
@@ -4812,6 +4813,7 @@ download_request_free(struct download_request **req_ptr)
 	atom_str_free_null(&req->hostname);
 	atom_str_free_null(&req->file);
 	atom_guid_free_null(&req->guid);
+	gnet_host_vec_free(&req->proxies);
 	wfree(req, sizeof *req);
 }
 
@@ -4860,7 +4862,7 @@ gboolean
 download_new(const gchar *file, filesize_t size, guint32 record_index,
 	const host_addr_t addr, guint16 port, const gchar *guid,
 	const gchar *hostname, const gchar *sha1, time_t stamp,
-	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
+	fileinfo_t *fi, const gnet_host_vec_t *proxies, guint32 flags)
 {
 	if (hostname) {
 		static struct download_request zero_req;
@@ -4880,11 +4882,7 @@ download_new(const gchar *file, filesize_t size, guint32 record_index,
 		req->stamp = stamp;
 		req->fi = fi;	/* XXX: Increase ref counter or what? */
 		req->flags = flags;
-
-		/*
-		 * Ignore proxies because they might be freed before the hostname
-		 * has been resolved.
-		 */
+		req->proxies = proxies ? gnet_host_vec_copy(proxies) : NULL;
 
 		download_new_by_hostname(req);
 		return TRUE;
@@ -4912,7 +4910,7 @@ gboolean
 download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 	  const host_addr_t addr, guint16 port, const gchar *guid,
 	  const gchar *hostname, const gchar *sha1, time_t stamp,
-	  fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
+	  fileinfo_t *fi, const gnet_host_vec_t *proxies, guint32 flags)
 {
 	if (hostname) {
 		static struct download_request zero_req;
@@ -4932,18 +4930,15 @@ download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
 		req->stamp = stamp;
 		req->fi = fi;	/* XXX: Increase ref counter or what? */
 		req->flags = flags;
-
-		/*
-		 * Ignore proxies because they might be freed before the hostname
-		 * has been resolved.
-		 */
+		req->proxies = proxies ? gnet_host_vec_copy(proxies) : NULL;
 
 		download_new_by_hostname(req);
 		return TRUE;
+	} else {
+		return NULL != create_download(file, uri, size, 0, addr, port,
+				guid, hostname, sha1, stamp, TRUE,
+				size != 0 ? TRUE : FALSE, fi, proxies, flags);
 	}
-	return NULL != create_download(file, uri, size, 0, addr, port,
-						guid, hostname, sha1, stamp, TRUE,
-						size != 0 ? TRUE : FALSE, fi, proxies, flags);
 }
 
 /**
