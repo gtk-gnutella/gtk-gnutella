@@ -10223,7 +10223,10 @@ download_close(void)
 gchar *
 download_build_url(const struct download *d)
 {
-	const gchar *sha1;
+	gchar prefix_buf[256];
+	const gchar *sha1, *host, *prefix;
+	host_addr_t addr;
+	guint16 port;
 	gchar *url;
 
 	g_return_val_if_fail(d, NULL);
@@ -10231,26 +10234,49 @@ download_build_url(const struct download *d)
 
 	sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
 
-	if (!is_host_addr(download_addr(d)) || 0 == download_port(d))
-		return NULL;
+	if (DOWNLOAD_IS_IN_PUSH_MODE(d) || d->always_push) {
 
-	/* XXX: "https:" when TLS is possible? */
+		g_assert(NULL == d->server || dl_server_valid(d->server));
+	
+		if (download_guid(d) && d->server && d->server->proxies) {
+			gchar guid_buf[GUID_HEX_SIZE + 1];
+			
+			/* Pick the first push-proxy */
+			addr = gnet_host_get_addr(d->server->proxies->data);
+			port = gnet_host_get_port(d->server->proxies->data);
+
+			guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
+			concat_strings(prefix_buf, sizeof prefix_buf,
+				"push://", guid_buf, ":", (void *) 0);
+			prefix = prefix_buf;
+		} else {
+			goto failure;
+		}
+	} else {
+		/* FIXME: "https:" when TLS is possible? */
+
+		addr = download_addr(d);
+		port = download_port(d);
+		prefix = "http://";
+	}
+
+	if (0 == port || !is_host_addr(addr))
+		goto failure;
+
+	host = host_addr_port_to_string(addr, port);
 
 	if (d->browse) {
-		url = g_strdup_printf("http://%s/",
-			host_addr_port_to_string(download_addr(d), download_port(d)));
+		url = g_strconcat(prefix, host, "/", (void *) 0);
 	} else if (d->uri) {
 		url = g_strdup(d->uri);
 	} else if (sha1) {
-		url = g_strdup_printf("http://%s/uri-res/N2R?urn:sha1:%s",
-			 host_addr_port_to_string(download_addr(d), download_port(d)),
-			 sha1_base32(sha1));
+		url = g_strconcat(prefix, host, "/uri-res/N2R?urn:sha1:",
+				sha1_base32(sha1), (void *) 0);
 	} else {
 		gchar *buf = url_escape(d->file_name);
 
-		url = g_strdup_printf("http://%s/get/%u/%s",
-		   		host_addr_port_to_string(download_addr(d), download_port(d)),
-		   		d->record_index, buf);
+		url = g_strdup_printf("%s%s/get/%u/%s",
+				prefix, host, d->record_index, buf);
 
 		/*
 	 	* Since url_escape() creates a new string ONLY if
@@ -10265,6 +10291,9 @@ download_build_url(const struct download *d)
 	}
 
 	return url;
+
+failure:
+	return NULL;
 }
 
 const gchar *
