@@ -3835,7 +3835,6 @@ download_start(struct download *d, gboolean check_allowed)
 	 */
 
 	if (d->always_push && (d->server->attrs & DLS_A_PUSH_IGN)) {
-		g_assert(host_is_valid(addr, port));	/* Or would not have set flag */
 		if (d->push)
 			download_push_remove(d);
 		d->always_push = FALSE;
