@@ -1475,17 +1475,16 @@ alnum2int_init(void)
 gboolean
 hex_to_guid(const gchar *hexguid, gchar *guid)
 {
-	gulong i;
+	guint i;
 
 	for (i = 0; i < GUID_RAW_SIZE; i++) {
- 		gint a;
- 		gint b;
+ 		guchar a, b;
 
-		a = (guchar) hexguid[i << 1];
+		a = *hexguid++;
 		if (!is_ascii_xdigit(a))
 			return FALSE;
 
-		b = (guchar) hexguid[(i << 1) + 1];
+		b = *hexguid++;
 		if (!is_ascii_xdigit(b))
 			return FALSE;
 
