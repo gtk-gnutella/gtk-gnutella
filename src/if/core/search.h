@@ -97,6 +97,7 @@ gnet_host_vec_get(const gnet_host_vec_t *hvec, guint i)
 gnet_host_vec_t *gnet_host_vec_alloc(void);
 void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
 gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *vec);
+void gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port);
 
 /*
  * Result sets `status' flags.

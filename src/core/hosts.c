@@ -149,6 +149,50 @@ gnet_host_vec_copy(const gnet_host_vec_t *vec)
 	return vec_copy;
 }
 
+void
+gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
+{
+	g_return_if_fail(vec);
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		if (vec->n_ipv4 < 255) {
+			gchar *dest;
+			size_t size, old_size;
+			
+			old_size = vec->n_ipv4 * sizeof *vec->hvec_v4;
+			vec->n_ipv4++;	
+			size = vec->n_ipv4 * sizeof *vec->hvec_v4;
+			vec->hvec_v4 = vec->hvec_v4
+								? wrealloc(vec->hvec_v4, old_size, size)
+								: walloc(size);
+			dest = cast_to_gpointer(&vec->hvec_v4[vec->n_ipv4 - 1]);
+			poke_be32(&dest[0], host_addr_ipv4(addr));
+			poke_le16(&dest[4], port);
+		}
+		break;
+	case NET_TYPE_IPV6:
+		if (vec->n_ipv6 < 255) {
+			gchar *dest;
+			size_t size, old_size;
+			
+			old_size = vec->n_ipv6 * sizeof *vec->hvec_v6;
+			vec->n_ipv6++;	
+			size = vec->n_ipv6 * sizeof *vec->hvec_v6;
+			vec->hvec_v6 = vec->hvec_v6
+								? wrealloc(vec->hvec_v6, old_size, size)
+								: walloc(size);
+			dest = cast_to_gpointer(&vec->hvec_v6[vec->n_ipv6 - 1]);
+			memcpy(dest, host_addr_ipv6(&addr), 16);
+			poke_le16(&dest[16], port);
+		}
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+}
+
 /***
  *** Host periodic timer.
  ***/
