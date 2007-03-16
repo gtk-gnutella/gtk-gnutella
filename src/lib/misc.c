@@ -1208,24 +1208,6 @@ short_uptime(time_delta_t uptime)
 	return b;
 }
 
-/**
- * @return hexadecimal string representing given GUID.
- */
-const gchar *
-guid_hex_str(const gchar *guid)
-{
-	static gchar buf[33];
-	guint i;
-
-	for (i = 0; i < 32; guid++) {
-		buf[i++] = hex_alphabet_lower[(guint8) *guid >> 4];
-		buf[i++] = hex_alphabet_lower[*guid & 0x0f];
-	}
-
-	buf[32] = '\0';
-	return buf;
-}
-
 size_t
 guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
 {
@@ -1235,7 +1217,7 @@ guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
 		size = (size - 1) / 2;
 		size = MIN(size, GUID_RAW_SIZE);
 
-		while (size > 0) {
+		while (size-- > 0) {
 			guchar c = peek_u8(guid++);
 			*p++ = hex_alphabet_lower[c >> 4];
 			*p++ = hex_alphabet_lower[c & 0x0f];
@@ -1247,6 +1229,20 @@ guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
 
 const gchar *
 guid_to_string(const gchar *guid)
+{
+	static gchar buf[GUID_HEX_SIZE + 1];
+	size_t ret;
+
+	ret = guid_to_string_buf(guid, buf, sizeof buf);
+	g_assert(GUID_HEX_SIZE == ret);
+	return buf;
+}
+
+/**
+ * @return hexadecimal string representing given GUID.
+ */
+const gchar *
+guid_hex_str(const gchar *guid)
 {
 	static gchar buf[GUID_HEX_SIZE + 1];
 	size_t ret;
