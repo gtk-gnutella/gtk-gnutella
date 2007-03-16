@@ -8784,6 +8784,7 @@ download_connected(struct download *d)
 	socket_check(d->socket);
 
 	d->flags |= DL_F_INITIAL;
+	sock_nodelay(d->socket, TRUE);
 	download_send_request(d);
 }
 
