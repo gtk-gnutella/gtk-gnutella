@@ -10603,9 +10603,17 @@ download_handle_magnet(const gchar *url)
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
+			gnet_host_vec_t *proxy;
+			const gchar *guid;
 			host_addr_t addr;
+			guint16 port;
+			guint32 flags;
 
-			if (!ms->path && !res->sha1) {
+			if (
+				0 == ms->port ||
+				(NULL == ms->path && NULL == res->sha1) ||
+				(NULL == ms->hostname && !is_host_addr(ms->addr))
+			) {
 				g_message("Unusable magnet source");
 				continue;
 			}
@@ -10613,18 +10621,33 @@ download_handle_magnet(const gchar *url)
 			/* Note: We use 0.0.0.0 instead of zero_host_addr because
 			 *       the core would bark when using the latter.
 			 */
-			addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
+			
+			if (ms->guid) {
+				addr = ipv4_unspecified;
+				port = 0;
+				flags = SOCK_F_PUSH;
+				guid = ms->guid;
+				proxy = gnet_host_vec_alloc();
+				gnet_host_vec_add(proxy, ms->addr, ms->port);
+			} else {
+				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
+				port = ms->port;
+				flags = 0;
+				guid = blank_guid;
+				proxy = NULL;
+			}
 			if (ms->path) {
 				download_new_uri(filename, ms->path, res->size,
-					addr, ms->port, blank_guid, ms->hostname,
-					res->sha1, tm_time(), NULL, NULL, 0);
+					addr, ms->port, guid, ms->hostname,
+					res->sha1, tm_time(), NULL, proxy, flags);
 			} else if (res->sha1) {
 				download_new(filename, res->size, URN_INDEX,
-					addr, ms->port, blank_guid, ms->hostname,
-					res->sha1, tm_time(), NULL, NULL, 0);
+					addr, ms->port, guid, ms->hostname,
+					res->sha1, tm_time(), NULL, proxy, flags);
 			}
-			n_downloads += ((is_host_addr(addr) || ms->hostname) &&
-								0 != ms->port);
+			n_downloads++;
+
+			gnet_host_vec_free(&proxy);
 		}
 
 		if (!res->sources && res->sha1 && res->display_name) {
