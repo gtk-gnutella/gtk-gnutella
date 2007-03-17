@@ -195,7 +195,7 @@ pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
 	}
 
 	if (dbg > 1) {
-		printf("push-proxy: ending request from %s (%s): %s\n",
+		g_message("push-proxy: ending request from %s (%s): %s",
 			pp->socket ? host_addr_to_string(pp->socket->addr) : "<no socket>",
 			pproxy_vendor_str(pp),
 			logreason);
@@ -426,7 +426,7 @@ get_params(struct pproxy *pp, const gchar *request,
 		}
 
 		if (dbg > 4)
-			printf("PUSH-PROXY: decoding %s=%s as base32\n", attr, value);
+			g_message("PUSH-PROXY: decoding %s=%s as base32", attr, value);
 
 		guid = base32_to_guid(value);
 		if (guid == NULL) {
@@ -451,7 +451,7 @@ get_params(struct pproxy *pp, const gchar *request,
 		}
 
 		if (dbg > 4)
-			printf("PUSH-PROXY: decoding %s=%s as hexadecimal\n", attr, value);
+			g_message("PUSH-PROXY: decoding %s=%s as hexadecimal", attr, value);
 
 		if (!hex_to_guid(value, guid)) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
@@ -631,12 +631,10 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	gboolean supports_tls;
 
 	if (dbg > 2) {
-		printf("----Push-proxy request from %s:\n",
-			host_addr_to_string(s->addr));
-		printf("%s\n", request);
-		header_dump(header, stdout);
-		printf("----\n");
-		fflush(stdout);
+		g_message("----Push-proxy request from %s:\n%s",
+			host_addr_to_string(s->addr), request);
+		header_dump(header, stderr);
+		g_message("----");
 	}
 
 	/*
@@ -656,7 +654,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		return;				/* Already reported the error in get_params() */
 
 	if (dbg > 2)
-		printf("PUSH-PROXY: %s requesting a push to %s for file #%d\n",
+		g_message("PUSH-PROXY: %s requesting a push to %s for file #%d",
 			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
 			pp->file_idx);
 
@@ -1105,7 +1103,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 	}
 
 	if (dbg > 2 && cp->sent)
-		printf("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s\n",
+		g_message("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s",
 			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx,
 			cp->directly ? "directly" : "via Gnet");
