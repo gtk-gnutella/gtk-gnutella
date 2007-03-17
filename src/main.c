@@ -633,7 +633,7 @@ check_cpu_usage(void)
 	load_avg += (load >> 3) - (load_avg >> 3);
 	avg = load_avg / 100;
 
-	if (dbg > 1 && last_cpu)
+	if (cpu_debug > 1 && last_cpu)
 		g_message("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
 			cpu - last_cpu, elapsed, cpu_percent, coverage, avg);
 
