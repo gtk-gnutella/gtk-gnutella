@@ -60,7 +60,7 @@ extern guint32 lib_debug;
 static const guint8 is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
     0,7,0,0,7,0,4,7,7,7,7,0,7,7,7,7,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
-    7,7,7,7,7,7,7,7,7,7,4,0,0,4,0,4,	/* 0123456789:;<=>? -  48 -> 63  */
+    7,7,7,7,7,7,7,7,7,7,6,0,0,4,0,4,	/* 0123456789:;<=>? -  48 -> 63  */
     0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
     7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,7,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
     0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,	/* `abcdefghijklmno -  96 -> 111 */
@@ -170,7 +170,10 @@ url_escape(const gchar *url)
 }
 
 /**
- * Same as url_escape(), but '+' are also escaped for the query string.
+ * Same as url_escape() except for:
+ *
+ * '+' is also escaped for the query string.
+ * ':' is not escaped.
  *
  * @return argument if no escaping is necessary, or a new string otherwise.
  */

@@ -576,7 +576,7 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 	if (escape_value) {
 		gchar *escaped;
 
-		escaped = url_escape(value);
+		escaped = url_escape_query(value);
 		gs = g_string_append(gs, escaped);
 		if (escaped != value) {
 			G_FREE_NULL(escaped);
