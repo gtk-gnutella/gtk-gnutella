@@ -194,7 +194,7 @@ pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
 		}
 	}
 
-	if (dbg > 1) {
+	if (push_proxy_debug > 0) {
 		g_message("push-proxy: ending request from %s (%s): %s",
 			pp->socket ? host_addr_to_string(pp->socket->addr) : "<no socket>",
 			pproxy_vendor_str(pp),
@@ -425,7 +425,7 @@ get_params(struct pproxy *pp, const gchar *request,
 			goto error;
 		}
 
-		if (dbg > 4)
+		if (push_proxy_debug > 0)
 			g_message("PUSH-PROXY: decoding %s=%s as base32", attr, value);
 
 		guid = base32_to_guid(value);
@@ -450,7 +450,7 @@ get_params(struct pproxy *pp, const gchar *request,
 			goto error;
 		}
 
-		if (dbg > 4)
+		if (push_proxy_debug > 0)
 			g_message("PUSH-PROXY: decoding %s=%s as hexadecimal", attr, value);
 
 		if (!hex_to_guid(value, guid)) {
@@ -630,7 +630,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	GSList *nodes;
 	gboolean supports_tls;
 
-	if (dbg > 2) {
+	if (push_proxy_debug > 0) {
 		g_message("----Push-proxy request from %s:\n%s",
 			host_addr_to_string(s->addr), request);
 		header_dump(header, stderr);
@@ -653,7 +653,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (!get_params(pp, request, &pp->guid, &pp->file_idx))
 		return;				/* Already reported the error in get_params() */
 
-	if (dbg > 2)
+	if (push_proxy_debug > 0)
 		g_message("PUSH-PROXY: %s requesting a push to %s for file #%d",
 			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
 			pp->file_idx);
@@ -1102,7 +1102,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 		break;
 	}
 
-	if (dbg > 2 && cp->sent)
+	if (push_proxy_debug > 0 && cp->sent)
 		g_message("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s",
 			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx,

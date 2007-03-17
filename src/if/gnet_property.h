@@ -330,6 +330,7 @@ typedef enum {
     PROP_SHELL_DEBUG,
     PROP_DOWNLOAD_QUEUE_FROZEN,
     PROP_SQ_DEBUG,
+    PROP_PUSH_PROXY_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
