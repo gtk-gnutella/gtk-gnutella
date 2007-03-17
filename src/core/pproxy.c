@@ -1039,10 +1039,15 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 	struct cproxy *cp = http_async_get_opaque(handle);
 	gchar *token;
 	gchar *server;
+	gchar *to_free;
 
 	g_assert(cp != NULL);
 	g_assert(cp->d != NULL);
 	g_assert(cp->magic == CPROXY_MAGIC);
+
+	/* message is not valid anymore after http_async_cancel() */
+	to_free = g_strdup(message);
+	message = to_free;
 
 	/*
 	 * Extract vendor information.
@@ -1061,6 +1066,11 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 	 */
 
 	g_assert(handle == cp->http_handle);
+
+	http_async_cancel(cp->http_handle);
+	cp->http_handle = NULL;
+
+	g_assert(cp->done);		/* Set by the error_ind callback during cancel */
 
 	/*
 	 * Analyze status.
@@ -1100,10 +1110,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 			guid_hex_str(cp->guid), cp->file_idx,
 			cp->directly ? "directly" : "via Gnet");
 
-	http_async_cancel(cp->http_handle);
-	cp->http_handle = NULL;
-
-	g_assert(cp->done);		/* Set by the error_ind callback during cancel */
+	G_FREE_NULL(to_free);
 
 	return FALSE;		/* Don't continue -- handle invalid now anyway */
 }
