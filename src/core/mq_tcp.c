@@ -314,10 +314,6 @@ again:
 	mq_check(q, 0);
 
 	size = pmsg_size(mb);
-	mbs = pmsg_start(mb);
-	function = gmsg_function(mbs);
-	hops = gmsg_hops(mbs);
-	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
@@ -347,6 +343,12 @@ again:
 	}
 
 	q->putq_entered++;
+	
+	mbs = pmsg_start(mb);
+	function = gmsg_function(mbs);
+	hops = gmsg_hops(mbs);
+	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
+
 	gnet_stats_count_queued(q->node, function, hops, size);
 
 	/*
