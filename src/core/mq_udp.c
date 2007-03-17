@@ -316,7 +316,7 @@ again:
 	 *		--RAM, 2006-12-29
 	 */
 
-	if (q->putq_entered++ > 0) {
+	if (q->putq_entered > 0) {
 		pmsg_t *extended;
 
 		if (debugging(20))
@@ -332,6 +332,7 @@ again:
 		slist_append(q->qwait, extended);
 		return;
 	}
+	q->putq_entered++;
 
 	mbs = pmsg_start(mb);
 	function = gmsg_function(mbs);
