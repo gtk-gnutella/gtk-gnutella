@@ -4,7 +4,7 @@
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2006 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Daichi Kawahata <daichik@users.sourceforge.net>, 2004-2006.
+# Daichi Kawahata <daichik@users.sourceforge.net>, 2004-2007.
 #
 # 対訳一覧:
 #
@@ -74,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-03-17 19:06+0900\n"
-"PO-Revision-Date: 2006-06-25 22:58+0900\n"
+"PO-Revision-Date: 2007-03-17 21:48+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -110,9 +110,8 @@ msgstr "一時休止 (SHA1確認中)"
 msgid " at %s - rescheduled for %s"
 msgstr " (現在時: %s - 再予定時: %s)"
 
-#, fuzzy
 msgid "Paused"
-msgstr "受動検索"
+msgstr "一時停止中"
 
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
@@ -324,15 +323,14 @@ msgstr "有害IPアドレス"
 msgid "Spam"
 msgstr "スパム"
 
-#, fuzzy
 msgid "Evil filename"
-msgstr "ファイル名"
+msgstr "有害ファイル名"
 
 msgid "Payload inflating error"
 msgstr ""
 
 msgid "Unknown header flags present"
-msgstr ""
+msgstr "不明なヘッダーフラッグが存在"
 
 #, fuzzy
 msgid "Own search results"
@@ -496,9 +494,9 @@ msgstr "HELLO の最中に接続がリセットされました"
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "除外されました: メッセージ %s は大きすぎます (%d バイト)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Kicked: %s message too big (>= 64KiB limit)"
-msgstr "除外されました: メッセージ %s は大きすぎます (%d バイト)"
+msgstr "除外されました: メッセージ %s は大きすぎます (64KiB 以上)"
 
 msgid "Leaf"
 msgstr "リーフ"
@@ -544,9 +542,8 @@ msgstr "IPv4 UDPソケットの作成に失敗しました"
 msgid "Failed to create IPv6 UDP socket"
 msgstr "IPv6 UDPソケットの作成に失敗しました"
 
-#, fuzzy
 msgid "Failed to create local socket"
-msgstr "待ち受けポートの作成に失敗しました"
+msgstr "ローカルソケットの作成に失敗しました"
 
 msgid "Failed to create listening sockets"
 msgstr "待ち受けポートの作成に失敗しました"
@@ -561,18 +558,16 @@ msgstr "無効な IP/ポートです"
 msgid "Node added"
 msgstr "ピアが追加されました"
 
-#, fuzzy
 msgid "Invalid IP"
-msgstr "無効な IP/ポートです"
+msgstr "無効な IP"
 
-#, fuzzy
 msgid "Invalid port"
-msgstr "無効な IP/ポートです"
+msgstr "無効な ポートです"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
-msgstr[0] "%u 件のダウンロードを削除しました。"
+msgstr[0] "%u 基のノードを削除しました。"
 
 msgid "Unknown operation"
 msgstr "不明な操作です"
@@ -641,21 +636,18 @@ msgstr "到達領域サイズの合計 (%u/%u 基のHSEP対応ピア):"
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "HSEPピア %s (%s) 経由の到達領域サイズ:"
 
-#, fuzzy
 msgid "URL missing"
-msgstr "値がありません"
+msgstr "URL がありません"
 
 # FIXME: what does `create' mean?
-#, fuzzy
 msgid "The download could not be created"
-msgstr "ダウンロードスロットがありません (作成)"
+msgstr "ダウンロードを作成できませんでした"
 
-#, fuzzy
 msgid "Download added"
-msgstr "ダウンロード:"
+msgstr "ダウンロードが追加されました"
 
 msgid "No matching property."
-msgstr ""
+msgstr "該当するプロパティがありません。"
 
 msgid "Good bye"
 msgstr "Good bye"
@@ -693,10 +685,10 @@ msgstr "UDP ホストキャッシュ %s を探しています。"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "UDP ホストキャッシュ %s:%u に ping を送信しました。"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d host from UDP host cache %s"
 msgid_plural "Got %d hosts from UDP host cache %s"
-msgstr[0] "UDP ホストキャッシュ %2$s:%3$u から %1$d 基のホストを取得しました。"
+msgstr[0] "UDP ホストキャッシュ %2$s から %1$d 基のホストを取得しました。"
 
 msgid "Connect back timeout"
 msgstr "折り返し接続がタイムアウトしました"
@@ -780,17 +772,17 @@ msgstr "明示的に中断されました"
 msgid "IP denying uploads"
 msgstr "IP がアップロードを拒否します"
 
-#, fuzzy, c-format
+#, c-format
 msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - 新しいバージョンが利用可能です: リリース %s / CVS %s"
+msgstr " - 新しいバージョンが利用可能です: リリース %s / SVN %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr " - 新しいバージョンが利用可能です: リリース %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid " - Newer version available: from SVN %s"
-msgstr " - 新しいバージョンが利用可能です: CVS %s"
+msgstr " - 新しいバージョンが利用可能です: SVN %s"
 
 msgid "No proxy"
 msgstr "使用しない"
@@ -2187,9 +2179,8 @@ msgstr "共有ファイルの索引作成を開始した時間です。"
 msgid "Time spent indexing shared files."
 msgstr "共有ファイルの索引作成に費やした時間です。"
 
-#, fuzzy
 msgid "Memory used by the QRP tables"
-msgstr "QRP テーブルが使用するスロットの数です。"
+msgstr "QRP テーブルが使用するメモリです。"
 
 msgid "Time at which we started query routing table generation."
 msgstr "検索クエリー経路設定テーブルの生成を開始した時間です。"
@@ -2482,12 +2473,11 @@ msgid ""
 "of the shared files before a change becomes fully effective."
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the shell."
-msgstr "GUI のバグ解析レベルです。"
+msgstr "シェルのバグ解析レベルです。"
 
 msgid "If larger than zero, no downloads are started."
-msgstr ""
+msgstr "0より大きい場合は、ダウンロードを開始しません。"
 
 #, fuzzy
 msgid "Debug level for the search queue."
@@ -2529,9 +2519,8 @@ msgstr "QRP"
 msgid "HSEP"
 msgstr "HSEP"
 
-#, fuzzy
 msgid "RUDP"
-msgstr "UDP"
+msgstr "RUDP"
 
 msgid "Vendor spec."
 msgstr "ベンダー特定"
@@ -2713,9 +2702,8 @@ msgstr "フィルターダイアログ内でのフィルター木の大きさで
 msgid "Show tabs or search list."
 msgstr "タブあるいは検索一覧を表示します。"
 
-#, fuzzy
 msgid "Display Searchbar."
-msgstr "サイドバーを表示します。"
+msgstr "検索バーを表示します。"
 
 msgid "Display Sidebar."
 msgstr "サイドバーを表示します。"
@@ -2994,10 +2982,10 @@ msgid ""
 msgstr "検索の有効期限です。この期限が経過すると、検索は打ち切られます。"
 
 msgid "Anonymizing proxies"
-msgstr "匿名代理サーバー"
+msgstr "匿名プロキシサーバー"
 
 msgid "Satellite providers"
-msgstr "衛星プロバイダ"
+msgstr "衛星プロバイダー"
 
 msgid "Andorra"
 msgstr ""
@@ -3023,9 +3011,8 @@ msgstr "アルメニア共和国"
 msgid "Netherlands Antilles"
 msgstr "蘭領アンティル"
 
-#, fuzzy
 msgid "Angola"
-msgstr "英領アンギラ島"
+msgstr "アンゴラ共和国"
 
 msgid "Asia/Pacific Region"
 msgstr "アジア/太平洋地域"
@@ -3033,15 +3020,14 @@ msgstr "アジア/太平洋地域"
 msgid "Antarctica"
 msgstr ""
 
-#, fuzzy
 msgid "Argentina"
-msgstr "アルメニア共和国"
+msgstr "アルゼンチン共和国"
 
 msgid "American Samoa"
 msgstr "米領サモア"
 
 msgid "Austria"
-msgstr ""
+msgstr "オーストリア共和国"
 
 msgid "Australia"
 msgstr ""
@@ -3066,15 +3052,14 @@ msgstr "バルバドス"
 msgid "Bangladesh"
 msgstr ""
 
-#, fuzzy
 msgid "Belgium"
-msgstr "ベリーズ"
+msgstr "ベルギー王国"
 
 msgid "Burkina Faso"
 msgstr "ブルキナファソ"
 
 msgid "Bulgaria"
-msgstr ""
+msgstr "ブルガリア共和国"
 
 msgid "Bahrain"
 msgstr ""
@@ -3102,7 +3087,7 @@ msgid "Bahamas"
 msgstr ""
 
 msgid "Bhutan"
-msgstr ""
+msgstr "ブータン王国"
 
 #, fuzzy
 msgid "Bouvet Island"
@@ -3123,19 +3108,17 @@ msgstr "カナダ"
 msgid "Cocos (Keeling) Islands"
 msgstr "ココス (キーリング) 諸島"
 
-#, fuzzy
 msgid "Congo (Democratic Republic)"
 msgstr "コンゴ民主共和国"
 
 msgid "Central African Republic"
 msgstr "中央アフリカ共和国"
 
-#, fuzzy
 msgid "Congo"
-msgstr "Pong"
+msgstr "コンゴ民主共和国"
 
 msgid "Switzerland"
-msgstr ""
+msgstr "スイス連邦"
 
 msgid "Cote d'Ivoire"
 msgstr ""
@@ -3143,31 +3126,27 @@ msgstr ""
 msgid "Cook Islands"
 msgstr "クック諸島"
 
-#, fuzzy
 msgid "Chile"
-msgstr "個のファイル"
+msgstr "チリ共和国"
 
 msgid "Cameroon"
-msgstr ""
+msgstr "カメルーン共和国"
 
 msgid "China"
-msgstr ""
+msgstr "中華人民共和国"
 
 msgid "Colombia"
-msgstr ""
+msgstr "コロンビア共和国"
 
-#, fuzzy
 msgid "Costa Rica"
 msgstr "コスタリカ共和国"
 
 msgid "Serbia and Montenegro"
 msgstr "セルビア共和国・モンテネグロ共和国"
 
-#, fuzzy
 msgid "Cuba"
-msgstr "蘭領アルバ"
+msgstr "キューバ共和国"
 
-#, fuzzy
 msgid "Cape Verde"
 msgstr "カーボヴェルデ共和国"
 
@@ -3175,7 +3154,7 @@ msgid "Christmas Island"
 msgstr "豪領クリスマス諸島"
 
 msgid "Cyprus"
-msgstr ""
+msgstr "キプロス共和国"
 
 msgid "Czech Republic"
 msgstr "チェコ共和国"
@@ -3184,12 +3163,11 @@ msgid "Germany"
 msgstr "ドイツ連邦共和国"
 
 msgid "Djibouti"
-msgstr ""
+msgstr "ジブチ共和国"
 
 msgid "Denmark"
-msgstr ""
+msgstr "デンマーク王国"
 
-#, fuzzy
 msgid "Dominica"
 msgstr "ドミニカ共和国"
 
@@ -3197,16 +3175,16 @@ msgid "Dominican Republic"
 msgstr "ドミニカ共和国"
 
 msgid "Algeria"
-msgstr ""
+msgstr "アルジェリア民主人民共和国"
 
 msgid "Ecuador"
-msgstr ""
+msgstr "エクアドル共和国"
 
 msgid "Estonia"
 msgstr "エストニア共和国"
 
 msgid "Egypt"
-msgstr ""
+msgstr "エジプト・アラブ共和国"
 
 msgid "Western Sahara"
 msgstr "西サハラ"
@@ -3214,9 +3192,8 @@ msgstr "西サハラ"
 msgid "Eritrea"
 msgstr "エリトリア国"
 
-#, fuzzy
 msgid "Spain"
-msgstr "間隔"
+msgstr "スペイン"
 
 msgid "Ethiopia"
 msgstr "エチオピア連邦民主共和国"
@@ -3224,9 +3201,8 @@ msgstr "エチオピア連邦民主共和国"
 msgid "Europe"
 msgstr "ヨーロッパ"
 
-#, fuzzy
 msgid "Finland"
-msgstr "丁領グリーンランド"
+msgstr "フィンランド共和国"
 
 msgid "Fiji"
 msgstr ""
@@ -3237,21 +3213,17 @@ msgstr "英領フォークランド諸島 (マルビーナス諸島)"
 msgid "Micronesia"
 msgstr ""
 
-#, fuzzy
 msgid "Faroe Islands"
 msgstr "丁領フェロー諸島"
 
-# FIXME: should be accelerated
-#, fuzzy
 msgid "France"
-msgstr "キャンセル"
+msgstr "フランス共和国"
 
 msgid "Gabon"
 msgstr ""
 
-#, fuzzy
 msgid "United Kingdom"
-msgstr "スウェーデン王国"
+msgstr "大ブリテン・北アイルランド連合王国"
 
 msgid "Grenada"
 msgstr "グレナダ"
@@ -3292,9 +3264,8 @@ msgid "Equatorial Guinea"
 msgstr "赤道ギニア共和国"
 
 msgid "Greece"
-msgstr ""
+msgstr "ギリシャ共和国"
 
-#, fuzzy
 msgid "South Georgia and The South Sandwich Islands"
 msgstr "英領南ジョージア・南サンドイッチ諸島"
 
@@ -3314,18 +3285,16 @@ msgid "Guyana"
 msgstr "ミャンマー連邦"
 
 msgid "Hong Kong"
-msgstr ""
+msgstr "香港特別行政区"
 
-#, fuzzy
 msgid "Heard Island and McDonald Islands"
 msgstr "豪領ハード・マクドナルド諸島"
 
 msgid "Honduras"
 msgstr ""
 
-#, fuzzy
 msgid "Croatia"
-msgstr "ラトビア共和国"
+msgstr "クロアチア共和国"
 
 #, fuzzy
 msgid "Haiti"
@@ -3335,22 +3304,20 @@ msgid "Hungary"
 msgstr ""
 
 msgid "Indonesia"
-msgstr ""
+msgstr "インドネシア共和国"
 
 msgid "Ireland"
 msgstr "アイルランド"
 
-#, fuzzy
 msgid "Israel"
-msgstr "アイルランド"
+msgstr "イスラエル国"
 
 msgid "Isle of Man"
 msgstr ""
 
 msgid "India"
-msgstr ""
+msgstr "インド共和国"
 
-#, fuzzy
 msgid "British Indian Ocean Territory"
 msgstr "英領インド洋地域 (チャゴス諸島)"
 
@@ -3366,7 +3333,7 @@ msgid "Iceland"
 msgstr "アイルランド"
 
 msgid "Italy"
-msgstr ""
+msgstr "イタリア共和国"
 
 msgid "Jersey"
 msgstr ""
@@ -3401,10 +3368,10 @@ msgid "Saint Kitts and Nevis"
 msgstr "セントクリストファー・ネイビス連邦"
 
 msgid "North Korea"
-msgstr ""
+msgstr "朝鮮民主主義人民共和国"
 
 msgid "South Korea"
-msgstr ""
+msgstr "大韓民国"
 
 msgid "Kuwait"
 msgstr ""
@@ -3462,20 +3429,17 @@ msgstr "モニター"
 msgid "Moldova"
 msgstr ""
 
-#, fuzzy
 msgid "Montenegro"
-msgstr "セルビア共和国・モンテネグロ共和国"
+msgstr "モンテネグロ共和国"
 
-#, fuzzy
 msgid "Madagascar"
 msgstr "マダガスカル共和国"
 
 msgid "Marshall Islands"
 msgstr "マーシャル諸島共和国"
 
-#, fuzzy
 msgid "Macedonia"
-msgstr "仏領ニューカレドニア"
+msgstr "マケドニア共和国"
 
 #, fuzzy
 msgid "Mali"
@@ -3518,7 +3482,7 @@ msgid "Malawi"
 msgstr "マレーシア"
 
 msgid "Mexico"
-msgstr ""
+msgstr "メキシコ合衆国"
 
 msgid "Malaysia"
 msgstr "マレーシア"
@@ -3544,9 +3508,8 @@ msgstr ""
 msgid "Nicaragua"
 msgstr ""
 
-#, fuzzy
 msgid "Netherlands"
-msgstr "蘭領アンティル"
+msgstr "オランダ王国"
 
 msgid "Norway"
 msgstr ""
@@ -3570,9 +3533,8 @@ msgstr ""
 msgid "Panama"
 msgstr "カナダ"
 
-#, fuzzy
 msgid "Peru"
-msgstr "ピア:"
+msgstr "ペルー共和国"
 
 msgid "French Polynesia"
 msgstr "仏領ポリネシア"
@@ -3587,9 +3549,8 @@ msgstr ""
 msgid "Pakistan"
 msgstr "タジキスタン共和国"
 
-#, fuzzy
 msgid "Poland"
-msgstr "アイルランド"
+msgstr "ポーランド共和国"
 
 #, fuzzy
 msgid "Saint Pierre and Miquelon"
@@ -3602,21 +3563,17 @@ msgstr "英領ピトケアン島"
 msgid "Puerto Rico"
 msgstr "米領プエルトリコ"
 
-#, fuzzy
 msgid "Palestinian Territory"
 msgstr "パレスチナ自治区"
 
-# FIXME: separation (src/if/gui_property.c: Total -> All)
-#, fuzzy
 msgid "Portugal"
-msgstr "合計"
+msgstr "ポルトガル共和国"
 
 msgid "Palau"
 msgstr "パラオ共和国"
 
-#, fuzzy
 msgid "Paraguay"
-msgstr "パラオ共和国"
+msgstr "パラグアイ共和国"
 
 msgid "Qatar"
 msgstr ""
@@ -3627,9 +3584,8 @@ msgstr "仏領レユニオン島"
 msgid "Romania"
 msgstr ""
 
-#, fuzzy
 msgid "Serbia"
-msgstr "グルジア"
+msgstr "セルビア共和国"
 
 msgid "Russian Federation"
 msgstr "ロシア連邦"
@@ -3659,7 +3615,6 @@ msgstr ""
 msgid "Singapore"
 msgstr "無視"
 
-#, fuzzy
 msgid "Saint Helena"
 msgstr "英領セントヘレナ島"
 
@@ -3670,15 +3625,12 @@ msgstr "スロベニア共和国"
 msgid "Svalbard and Jan Mayen"
 msgstr "諾領スバルバール・ヤンメイヤン諸島"
 
-#, fuzzy
 msgid "Slovakia"
-msgstr "スロベニア共和国"
+msgstr "スロバキア共和国"
 
-#, fuzzy
 msgid "Sierra Leone"
 msgstr "シエラレオネ共和国"
 
-#, fuzzy
 msgid "San Marino"
 msgstr "サンマリノ共和国"
 
@@ -3693,11 +3645,9 @@ msgstr ""
 msgid "Suriname"
 msgstr "名前で"
 
-#, fuzzy
 msgid "Sao Tome and Principe"
 msgstr "サントメ・プリンシペ民主共和国"
 
-#, fuzzy
 msgid "El Salvador"
 msgstr "エルサルバドル共和国"
 
@@ -3720,7 +3670,7 @@ msgid "Togo"
 msgstr ""
 
 msgid "Thailand"
-msgstr ""
+msgstr "タイ王国"
 
 msgid "Tajikistan"
 msgstr "タジキスタン共和国"
@@ -3743,7 +3693,7 @@ msgid "Tonga"
 msgstr "Pong"
 
 msgid "Turkey"
-msgstr ""
+msgstr "トルコ共和国"
 
 #, fuzzy
 msgid "Trinidad and Tobago"
@@ -3752,9 +3702,8 @@ msgstr "トリニダード・トバゴ共和国"
 msgid "Tuvalu"
 msgstr "ツバル"
 
-#, fuzzy
 msgid "Taiwan"
-msgstr "タジキスタン共和国"
+msgstr "中華民国台湾"
 
 msgid "Tanzania"
 msgstr ""
@@ -3769,12 +3718,11 @@ msgstr "カナダ"
 msgid "United States Minor Outlying Islands"
 msgstr "アメリカ辺境諸島"
 
-#, fuzzy
 msgid "United States"
 msgstr "アメリカ合衆国"
 
 msgid "Uruguay"
-msgstr ""
+msgstr "ウルグアイ共和国"
 
 msgid "Uzbekistan"
 msgstr "ウズベキスタン共和国"
@@ -3782,27 +3730,24 @@ msgstr "ウズベキスタン共和国"
 msgid "Holy See (Vatican City State)"
 msgstr "聖座 (バチカン市国)"
 
-#, fuzzy
 msgid "Saint Vincent and The Grenadines"
 msgstr "セントビンセント及びグレナディーン諸島"
 
 msgid "Venezuela"
-msgstr ""
+msgstr "ベネズエラ共和国"
 
 msgid "British Virgin Islands"
 msgstr "英領バージン諸島"
 
-#, fuzzy
 msgid "U.S. Virgin Islands"
-msgstr "英領バージン諸島"
+msgstr "米領バージン諸島"
 
 msgid "Viet Nam"
-msgstr ""
+msgstr "ベトナム共和国"
 
 msgid "Vanuatu"
 msgstr "バヌアツ共和国"
 
-#, fuzzy
 msgid "Wallis and Futuna"
 msgstr "仏領ワリス・フツナ諸島"
 
@@ -3816,7 +3761,6 @@ msgstr "イエメン共和国"
 msgid "Mayotte"
 msgstr "仏領マヨット島"
 
-#, fuzzy
 msgid "South Africa"
 msgstr "南アフリカ共和国"
 
@@ -5526,9 +5470,8 @@ msgstr "条件: ファイル名が一致するかどうか"
 msgid "case sensitive"
 msgstr "大・小文字を区別"
 
-#, fuzzy
 msgid "Save"
-msgstr "保存済"
+msgstr "保存"
 
 msgid "Remove"
 msgstr "削除"
@@ -5624,14 +5567,13 @@ msgstr "キャンセル"
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutellaの停止"
 
-#, fuzzy
 msgid ""
 "Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
 msgstr ""
-"gtk-gnutella を停止中です。\n"
+"Gtk-Gnutella をシャットダウン中です。\n"
 "各ピアに Bye メッセージを送信しています。\n"
 "\n"
 "終了までの残り時間:"
@@ -5743,24 +5685,20 @@ msgstr "UDPを有効にする(_U)"
 msgid "Network protocol:"
 msgstr "ネットワークのプロトコル:"
 
-#, fuzzy
 msgid "(Disable: 0, Random: 1)"
-msgstr "無効: 0, ランダム: 1"
+msgstr "(無効: 0, ランダム: 1)"
 
-#, fuzzy
 msgid "IPv4 settings"
-msgstr "IP設定"
+msgstr "IPv4設定"
 
 msgid "Force external IPv_4 address to"
 msgstr ""
 
-#, fuzzy
 msgid "Bind to this address"
-msgstr "不正な返却アドレス"
+msgstr "このアドレスにバインド"
 
-#, fuzzy
 msgid "IPv6 settings"
-msgstr "IP設定"
+msgstr "IPv6設定"
 
 msgid "Force external IPv_6 address to"
 msgstr ""
@@ -5840,9 +5778,8 @@ msgstr "時計の誤差:"
 msgid "Miscellaneous"
 msgstr "その他"
 
-#, fuzzy
 msgid "Enable remote _shell control interface"
-msgstr "「シェル」制御インターフェイスを有効にする(_S)"
+msgstr "遠隔シェル制御インターフェイスを有効にする(_S)"
 
 msgid "Socket receive buffer size"
 msgstr "ソケット受信バッファサイズ"
@@ -6575,27 +6512,22 @@ msgid "gtk-gnutella - Frequently Asked Questions"
 msgstr "gtk-gnutella - よく訊かれる質問"
 
 msgid "Frequently Asked Questions:"
-msgstr "よく訊かれる質問:"
+msgstr "よくある質問:"
 
-#, fuzzy
 msgid "_Stop this search"
-msgstr "この検索を中止する"
+msgstr "この検索を中止する(_S)"
 
-#, fuzzy
 msgid "Resu_me this search"
-msgstr "この検索を再開する(リジューム)"
+msgstr "この検索を再開(リジューム)する(_M)"
 
-#, fuzzy
 msgid "_Restart this search"
-msgstr "この検索を再開する"
+msgstr "この検索を再開する(_R)"
 
-#, fuzzy
 msgid "_Duplicate this search"
-msgstr "この検索をコピーする"
+msgstr "この検索をコピーする(_D)"
 
-#, fuzzy
 msgid "_Close this search"
-msgstr "この検索を閉じる"
+msgstr "この検索を閉じる(_C)"
 
 msgid "Country"
 msgstr "国(地域)"
@@ -6656,23 +6588,20 @@ msgstr "メタデータ"
 msgid "Route"
 msgstr "経路"
 
-#, fuzzy
 msgid "Protocol"
-msgstr "米領プエルトリコ"
+msgstr "プロトコル"
 
 msgid "TTL"
-msgstr ""
+msgstr "TTL"
 
 msgid "Owned"
 msgstr ""
 
-#, fuzzy
 msgid "Hostile"
-msgstr "ホスト"
+msgstr "有害ホスト"
 
-#, fuzzy
 msgid "SHA-1"
-msgstr "SHA1:"
+msgstr "SHA-1"
 
 # FIXME:
 #, fuzzy
@@ -6738,9 +6667,8 @@ msgstr[0] "選択された %u/%u 件のダウンロードが「%s」に一致し
 msgid "Cache contains"
 msgstr "キャッシュ内容"
 
-#, fuzzy
 msgid "Pause"
-msgstr "PUSH"
+msgstr "一時停止"
 
 msgid "Copy Magnet to clipboard"
 msgstr "マグネットをクリップボードへコピー"
@@ -6872,20 +6800,17 @@ msgstr "DNSの逆引き検索"
 msgid "Force external IPv4 address to"
 msgstr ""
 
-#, fuzzy
 msgid "_Bind to this address"
-msgstr "不正な返却アドレス"
+msgstr "このアドレスにバインド(_B)"
 
-#, fuzzy
 msgid "IPv_4 settings"
-msgstr "IP設定"
+msgstr "IPv4設定(_4)"
 
 msgid "Force external IPv6 address to"
 msgstr ""
 
-#, fuzzy
 msgid "IPv_6 settings"
-msgstr "IP設定"
+msgstr "IPv6設定(_6)"
 
 msgid ""
 "This option can give performance boosts to those on a large network with "
@@ -6979,9 +6904,8 @@ msgstr "逆引き検索を実行中..."
 msgid "The normalized search text is too short."
 msgstr "正規化された検索テキストが短すぎます。"
 
-#, fuzzy
 msgid " (partial)"
-msgstr "両方 (垂直に並べる)"
+msgstr " (部分的)"
 
 # FIXME: messy
 msgid "Fresh regular"
@@ -7152,16 +7076,14 @@ msgstr ""
 msgid "The given urn type is not supported."
 msgstr "このタイプのURNには対応しません。"
 
-#, fuzzy
 msgid "The given SHA-1 is not correctly encoded."
-msgstr "このタイプのURNには対応しません。"
+msgstr "指定されたSHA-1は正しくエンコードされていません。"
 
 msgid "Missing port number"
-msgstr ""
+msgstr "ポート番号がありません。"
 
-#, fuzzy
 msgid "Could not parse host address"
-msgstr "ホスト %s を参照できませんでした。"
+msgstr "ホストアドレスを解析できませんでした。"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "この検索クエリーは UTF-8 でエンコードされていません。"
@@ -7272,17 +7194,16 @@ msgstr "まだ出力はありません..."
 msgid "Got push, connecting back..."
 msgstr "PUSH されました、折り返し接続中..."
 
-#, fuzzy, c-format
+#, c-format
 msgid "Completed (%s) %s%s"
-msgstr "%s完了しました (%s) %s"
+msgstr "完了しました (%s) %s%s"
 
 msgid "< 1s"
 msgstr "1秒未満"
 
-# MERGEBLE:
-#, fuzzy, c-format
+#, c-format
 msgid "%s(%s) TR: %s %s"
-msgstr "%s%s(%s) 残り時間: %s"
+msgstr "%s(%s) 残り時間: %s %s"
 
 msgid "stalled"
 msgstr "停滞しています"
