@@ -122,12 +122,14 @@ guc_download_remove_all_from_peer(const gchar *guid, const host_addr_t addr,
 	return download_remove_all_from_peer(guid, addr, port, unavailable);
 }
 
-gint guc_download_remove_all_named(const gchar *name)
+gint
+guc_download_remove_all_named(const gchar *name)
 {
 	return download_remove_all_named(name);
 }
 
-gint guc_download_remove_all_with_sha1(const gchar *sha1)
+gint
+guc_download_remove_all_with_sha1(const gchar *sha1)
 {
 	return download_remove_all_with_sha1(sha1);
 }
@@ -203,6 +205,12 @@ guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now)
 {
 	download_clear_stopped(complete, failed, unavailable, now);
+}
+
+guint
+guc_download_handle_magnet(const gchar *url)
+{
+	return download_handle_magnet(url);
 }
 
 void
@@ -619,6 +627,12 @@ guc_get_parq_dl_retry_delay(const struct download *d)
 }
 
 /*	search interface functions (UI -> Core)*/
+guint
+guc_search_handle_magnet(const gchar *url)
+{
+	return search_handle_magnet(url);
+}
+
 void
 guc_search_update_items(gnet_search_t sh, guint32 items)
 {

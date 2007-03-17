@@ -74,6 +74,7 @@ RCSID("$Id$")
 #endif /* USE_TOPLESS */
 
 #include "if/core/hosts.h"
+#include "if/bridge/c2ui.h"
 
 #include "lib/array.h"
 #include "lib/atoms.h"
@@ -82,6 +83,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/listener.h"
+#include "lib/magnet.h"
 #include "lib/misc.h"
 #include "lib/sbool.h"
 #include "lib/tm.h"
@@ -4011,6 +4013,51 @@ done:
 		wfree(re, sizeof *re);
 	}
 	return !error;
+}
+
+
+guint
+search_handle_magnet(const gchar *url)
+{
+	struct magnet_resource *res;
+	guint n_searches = 0;
+
+	res = magnet_parse(url, NULL);
+	if (res) {
+		GSList *sl;
+
+		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
+			const gchar *query;
+
+			/* Note that SEARCH_F_LITERAL is used to prevent that these
+			 * searches are parsed for magnets or other special items. */
+			query = sl->data;
+			g_assert(query);
+			if (
+				gcu_search_gui_new_search(query,
+					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
+			) {
+				n_searches++;
+			}
+		}
+
+		if (!res->sources && res->sha1) {
+			gchar query[128];
+
+			concat_strings(query, sizeof query,
+					"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
+
+			if (
+				gcu_search_gui_new_search(query,
+					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
+			) {
+				n_searches++;
+			}
+		}
+
+		magnet_resource_free(res);
+	}
+	return n_searches;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

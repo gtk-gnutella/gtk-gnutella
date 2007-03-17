@@ -84,6 +84,7 @@ void guc_download_thaw_queue(void);
 gboolean guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
+guint guc_download_handle_magnet(const gchar *url);
 void guc_download_auto_new(const gchar *file, filesize_t size,
 	guint32 record_index, const host_addr_t addr, guint16 port,
 	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
@@ -185,6 +186,7 @@ gint guc_get_parq_dl_eta(const struct download *d);
 gint guc_get_parq_dl_retry_delay(const struct download *d);
 
 /* search interface functions */
+guint guc_search_handle_magnet(const gchar *url);
 void guc_search_update_items(gnet_search_t sh, guint32 items);
 guint guc_search_get_lifetime(gnet_search_t sh);
 time_t guc_search_get_create_time(gnet_search_t sh);

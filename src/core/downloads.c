@@ -10542,16 +10542,16 @@ download_browse_maybe_finished(struct download *d)
 		download_rx_done(d);
 }
 
-gboolean
+guint
 download_handle_magnet(const gchar *url)
 {
 	struct magnet_resource *res;
+	guint n_downloads = 0;
 
 	res = magnet_parse(url, NULL);
 	if (res) {
 		gchar *filename;	/* strdup */
 		GSList *sl;
-		guint n_downloads = 0, n_searches = 0;
 
 		filename = g_strdup(res->display_name);
 		if (!filename) {
@@ -10627,36 +10627,11 @@ download_handle_magnet(const gchar *url)
 								0 != ms->port);
 		}
 
-		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
-			const gchar *query;
-
-			/* Note that SEARCH_F_LITERAL is used to prevent that these
-			 * searches are parsed for magnets or other special items. */
-			query = sl->data;
-			g_assert(query);
-			if (
-				gcu_search_gui_new_search(query,
-					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
-			) {
-				n_searches++;
-			}
-		}
-
-		if (!res->sources && res->sha1) {
+		if (!res->sources && res->sha1 && res->display_name) {
 			gchar query[128];
 			
 			concat_strings(query, sizeof query,
 				"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
-
-			/* Note that SEARCH_F_LITERAL is used to prevent an infinite
-			 * recursion between search_gui_new_search_full() and this
-			 * function. */
-			if (
-				gcu_search_gui_new_search(query,
-					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
-			) {
-				n_searches++;
-			}
 
 			/*
 			 * When we know the urn:sha1: and a proper name, we reserve
@@ -10665,21 +10640,19 @@ download_handle_magnet(const gchar *url)
 			 * though as the user might not have an idea what the search
 			 * is supposed to find.
 			 */
-			if (res->display_name) {
-				download_new(filename, res->size, URN_INDEX,
-					ipv4_unspecified, 0, blank_guid, NULL,
-					res->sha1, tm_time(), NULL, NULL, 0);
-				n_downloads++;
-			}
+
+			download_new(filename, res->size, URN_INDEX,
+				ipv4_unspecified, 0, blank_guid, NULL,
+				res->sha1, tm_time(), NULL, NULL, 0);
+
+			n_downloads++;
 		}
 
 		G_FREE_NULL(filename);
 
 		magnet_resource_free(res);
-		return TRUE;
-	} else {
-		return FALSE;
 	}
+	return n_downloads;
 }
 
 gboolean

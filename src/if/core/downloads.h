@@ -386,6 +386,7 @@ void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
 void src_remove_listener(src_listener_t, gnet_src_ev_t);
 struct download *src_get_download(gnet_src_t src_handle);
 
+guint download_handle_magnet(const gchar *url);
 gchar *download_build_url(const struct download *d);
 gint download_get_http_req_percent(const struct download *d);
 void download_fallback_to_push(struct download *, gboolean, gboolean);

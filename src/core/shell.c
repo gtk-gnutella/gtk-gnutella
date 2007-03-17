@@ -782,7 +782,11 @@ shell_exec_download(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		if (is_strcaseprefix(url, "http://")) {
 			success = download_handle_http(url);
 		} else if (is_strcaseprefix(url, "magnet:?")) {
-			success = download_handle_magnet(url);
+			guint n_downloads, n_searches;
+
+			n_downloads = download_handle_magnet(url);
+			n_searches = search_handle_magnet(url);
+			success = n_downloads > 0 || n_searches > 0;
 		} else {
 			success = FALSE;
 		}

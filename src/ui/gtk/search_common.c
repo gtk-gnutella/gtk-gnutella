@@ -1743,181 +1743,12 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	struct magnet_resource *res;
 
 	res = magnet_parse(url, error_str);
-	if (!res) {
-		if (error_str && *error_str) {
-			statusbar_gui_warning(10, "%s", *error_str);
-		}
-		return FALSE;
-	}
-
-	{
-		gchar *filename;	/* strdup */
+	if (res) {
+		guint n_downloads, n_searches;
 		GSList *sl;
-		guint n_downloads = 0, n_searches = 0;
 
-		filename = g_strdup(res->display_name);
-		if (!filename) {
-			for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
-				struct magnet_source *ms = sl->data;
-
-				if (ms->path) {
-					const gchar *endptr;
-					
-					/*
-					 * If the path contains a '?', this is most-likely a
-					 * `search' with parameters e.g., "/index.php?yadda=1",
-					 * so we cut the search part off for the filename.
-					 */
-					endptr = strchr(ms->path, '?');
-					if (!endptr) {
-						endptr = strchr(ms->path, '\0');
-					}
-
-					{
-						gchar *path, *unescaped;
-
-						path = g_strndup(ms->path, endptr - ms->path);
-						unescaped = url_unescape(path, FALSE);
-						if (unescaped) {
-							filename = g_strdup(filepath_basename(unescaped));
-							if (unescaped != path) {
-								G_FREE_NULL(unescaped);
-							}
-						}
-						G_FREE_NULL(path);
-					}
-
-					if (filename && '\0' != filename[0]) {
-						break;
-					}
-					G_FREE_NULL(filename);
-				}
-			}
-		}
-		if (!filename) {
-			if (res->sha1) {
-				filename = g_strconcat("urn:sha1:",
-								sha1_base32(res->sha1), (void *) 0);
-			} else {
-				filename = g_strdup("magnet-download");
-			}
-		}
-
-		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
-			struct magnet_source *ms = sl->data;
-			const gchar *guid;
-			gnet_host_vec_t *proxy;
-			host_addr_t addr;
-			guint16 port;
-			guint32 flags;
-
-			if (
-				0 == ms->port ||
-				(NULL == ms->path && NULL == res->sha1) ||
-				(NULL == ms->hostname && !is_host_addr(ms->addr))
-			) {
-				g_message("Unusable magnet source");
-				continue;
-			}
-
-			/* Note: We use 0.0.0.0 instead of zero_host_addr because
-			 *       the core would bark when using the latter.
-			 */
-
-			if (ms->guid) {
-				addr = ipv4_unspecified;
-				flags = SOCK_F_PUSH;
-				guid = ms->guid;
-				port = 0;
-				proxy = gnet_host_vec_alloc();
-				gnet_host_vec_add(proxy, ms->addr, ms->port);
-			} else {
-				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
-				flags = 0;
-				guid = blank_guid;
-				port = ms->port;
-				proxy = NULL;
-			}
-			
-			if (ms->path) {
-				guc_download_new_uri(filename, ms->path, res->size,
-					addr, port, guid, ms->hostname,
-					res->sha1, tm_time(), NULL, proxy, flags);
-			} else if (res->sha1) {
-				guc_download_new(filename, res->size, URN_INDEX,
-					addr, port, guid, ms->hostname,
-					res->sha1, tm_time(), NULL, proxy, flags);
-			}
-			n_downloads++;
-			gnet_host_vec_free(&proxy);
-		}
-
-		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
-			const gchar *query;
-			search_t *search;
-
-			/* Note that SEARCH_F_LITERAL is used to prevent that these
-			 * searches are parsed for magnets or other special items. */
-			query = sl->data;
-			g_assert(query);
-			if (
-				search_gui_new_search_full(query, tm_time(), 0, 0,
-			 		search_sort_default_column, search_sort_default_order,
-			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, &search)
-			) {
-				if (search) {
-					n_searches++;
-				}
-			}
-		}
-
-		if (!res->sources && res->sha1) {
-			gchar query[128];
-			search_t *search;
-			
-			concat_strings(query, sizeof query,
-				"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
-
-			/* Note that SEARCH_F_LITERAL is used to prevent an infinite
-			 * recursion between search_gui_new_search_full() and this
-			 * function. */
-			if (
-				search_gui_new_search_full(query, tm_time(), 0, 0,
-			 		search_sort_default_column, search_sort_default_order,
-			 		SEARCH_F_ENABLED | SEARCH_F_LITERAL, &search)
-			) {
-				if (search) {
-					filter_t *target;
-					rule_t *rule;
-
-					target = filter_get_drop_target();
-					g_assert(target != NULL);
-
-					rule = filter_new_sha1_rule(res->sha1, NULL, target,
-								RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
-					g_assert(search->filter);
-					filter_append_rule(search->filter, rule);
-
-					n_searches++;
-				}
-			}
-
-			/*
-			 * When we know the urn:sha1: and a proper name, we reserve
-			 * a download immediately so that it starts as soon as a
-			 * source is found. Don't do this for a plain "urn:sha1:"
-			 * though as the user might not have an idea what the search
-			 * is supposed to find.
-			 */
-			if (res->display_name) {
-				guc_download_new(filename, res->size, URN_INDEX,
-					ipv4_unspecified, 0, blank_guid, NULL,
-					res->sha1, tm_time(), NULL, NULL, 0);
-				n_downloads++;
-			}
-		}
-
-		G_FREE_NULL(filename);
+		n_downloads = guc_download_handle_magnet(url);
+		n_searches = guc_search_handle_magnet(url);
 
 		if (n_downloads > 0 || n_searches > 0) {
 			gchar msg_search[128], msg_download[128];
@@ -1931,10 +1762,15 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		} else {
 			statusbar_gui_message(15, _("Ignored unusable magnet link."));
 		}
-	}
 
-	magnet_resource_free(res);
-	return TRUE;
+		magnet_resource_free(res);
+		return TRUE;
+	} else {
+		if (error_str && *error_str) {
+			statusbar_gui_warning(10, "%s", *error_str);
+		}
+		return FALSE;
+	}
 }
 
 gboolean

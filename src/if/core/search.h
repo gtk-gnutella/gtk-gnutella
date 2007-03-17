@@ -251,6 +251,7 @@ gboolean search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
 	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean search_locally(gnet_search_t sh, const gchar *query);
+guint search_handle_magnet(const gchar *url);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_search_h_ */
