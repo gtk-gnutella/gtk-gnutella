@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-17 19:06+0900\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -2025,6 +2025,9 @@ msgid "If larger than zero, no downloads are started."
 msgstr ""
 
 msgid "Debug level for the search queue."
+msgstr ""
+
+msgid "Debug level for push-proxy code."
 msgstr ""
 
 msgid "disable"

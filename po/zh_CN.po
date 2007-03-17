@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-17 19:06+0900\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -2141,6 +2141,10 @@ msgstr ""
 #, fuzzy
 msgid "Debug level for the search queue."
 msgstr "动态查询的debug级别。"
+
+#, fuzzy
+msgid "Debug level for push-proxy code."
+msgstr "用于HTTP代码的debug级别。"
 
 msgid "disable"
 msgstr ""

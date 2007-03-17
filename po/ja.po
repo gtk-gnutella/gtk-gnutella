@@ -73,7 +73,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-17 19:06+0900\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: 2007-03-17 21:48+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2482,6 +2482,10 @@ msgstr "0より大きい場合は、ダウンロードを開始しません。"
 #, fuzzy
 msgid "Debug level for the search queue."
 msgstr "GUI のバグ解析レベルです。"
+
+#, fuzzy
+msgid "Debug level for push-proxy code."
+msgstr "HTTP コードのバグ解析レベルです。"
 
 msgid "disable"
 msgstr "表示しない"

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-17 19:06+0900\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -2390,6 +2390,10 @@ msgstr ""
 #, fuzzy
 msgid "Debug level for the search queue."
 msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+#, fuzzy
+msgid "Debug level for push-proxy code."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα HTTP."
 
 msgid "disable"
 msgstr "απενεργοποίηση"

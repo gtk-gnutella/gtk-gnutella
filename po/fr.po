@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-17 19:06+0900\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2503,6 +2503,10 @@ msgstr "Si supérieur à zéro, aucun téléchargeement n'est démarré."
 #, fuzzy
 msgid "Debug level for the search queue."
 msgstr "Niveau de débugage pour le shell."
+
+#, fuzzy
+msgid "Debug level for push-proxy code."
+msgstr "Niveau de débugage pour le code HTTP."
 
 msgid "disable"
 msgstr "désactiver"

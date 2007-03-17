@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-10-31 16:01+0100\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -41,6 +41,9 @@ msgstr ""
 
 #, c-format
 msgid " at %s - rescheduled for %s"
+msgstr ""
+
+msgid "Paused"
 msgstr ""
 
 msgid "Waiting for a free chunk"
@@ -76,7 +79,13 @@ msgstr[1] ""
 msgid "Dup SHA1 during creation"
 msgstr ""
 
-msgid "No download slot (create)"
+msgid "Max. number of downloads reached"
+msgstr ""
+
+msgid "Max. number of downloads for this host reached"
+msgstr ""
+
+msgid "Has already enough active sources"
 msgstr ""
 
 msgid "Stopped (Index changed)"
@@ -247,17 +256,13 @@ msgstr ""
 msgid "Evil filename"
 msgstr ""
 
-#, c-format
-msgid "Got %d host from %s"
-msgid_plural "Got %d hosts from %s"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format
-msgid "Connecting to web cache %s"
+msgid "Payload inflating error"
 msgstr ""
 
-msgid "Updated web cache "
+msgid "Unknown header flags present"
+msgstr ""
+
+msgid "Own search results"
 msgstr ""
 
 #, c-format
@@ -415,6 +420,24 @@ msgstr ""
 msgid "Kicked: %s message too big (>= 64KiB limit)"
 msgstr ""
 
+msgid "Leaf"
+msgstr ""
+
+msgid "Ultrapeer"
+msgstr ""
+
+msgid "Legacy"
+msgstr ""
+
+msgid "Crawler"
+msgstr ""
+
+msgid "UDP"
+msgstr ""
+
+msgid "Unknown"
+msgstr ""
+
 msgid "Read failed (Input Exception)"
 msgstr ""
 
@@ -450,22 +473,34 @@ msgstr ""
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 
-msgid "Node added"
-msgstr ""
-
 msgid "Invalid IP/Port"
 msgstr ""
 
-msgid "Unknown operation"
+msgid "Node added"
 msgstr ""
 
-msgid "Malformed command"
+msgid "Invalid IP"
+msgstr ""
+
+msgid "Invalid port"
+msgstr ""
+
+#, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Unknown operation"
 msgstr ""
 
 msgid "Query string missing"
 msgstr ""
 
 msgid "Search added"
+msgstr ""
+
+msgid "The search could not be created"
 msgstr ""
 
 msgid "Property missing"
@@ -483,33 +518,16 @@ msgstr ""
 msgid "Value missing"
 msgstr ""
 
-msgid "Type not supported"
-msgstr ""
-
 msgid "Value found and set"
 msgstr ""
 
 msgid "Help: "
 msgstr ""
 
-msgid "Unknown parameter"
+msgid "The library is currently being rebuilt."
 msgstr ""
 
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr ""
-
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr ""
-
-msgid "leaf"
-msgstr ""
-
-msgid "ultrapeer"
-msgstr ""
-
-msgid "normal node"
+msgid "A rescan has already been scheduled"
 msgstr ""
 
 msgid "Hops"
@@ -524,10 +542,36 @@ msgstr ""
 msgid "Size"
 msgstr ""
 
+msgid "Unknown parameter"
+msgstr ""
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr ""
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr ""
+
+msgid "URL missing"
+msgstr ""
+
+msgid "The download could not be created"
+msgstr ""
+
+msgid "Download added"
+msgstr ""
+
+msgid "No matching property."
+msgstr ""
+
 msgid "Good bye"
 msgstr ""
 
 msgid "Shutdown sequence initiated."
+msgstr ""
+
+msgid "Malformed command"
 msgstr ""
 
 msgid "Unknown command"
@@ -558,8 +602,8 @@ msgid "Sent ping to UDP host cache %s:%u"
 msgstr ""
 
 #, c-format
-msgid "Got %d host from UDP host cache %s:%u"
-msgid_plural "Got %d hosts from UDP host cache %s:%u"
+msgid "Got %d host from UDP host cache %s"
+msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -691,6 +735,9 @@ msgid "ultra node"
 msgstr ""
 
 msgid "leaf node"
+msgstr ""
+
+msgid "normal node"
 msgstr ""
 
 msgid "Indicates whether the hostcache file is being read."
@@ -998,9 +1045,6 @@ msgid "Debug level for code shared between gui and core."
 msgstr ""
 
 msgid "Verbosity of Bitzi related debug messages."
-msgstr ""
-
-msgid "Verbosity of GWebCache related debug messages."
 msgstr ""
 
 msgid "Verbosity of URL handling related debug messages."
@@ -1921,17 +1965,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Extra amount of data per downloading source that gtk-gnutella will try to "
-"read-ahead.  This gives more room for reading large amount of data without "
-"issuing too many system calls. It complements buffering nicely because it "
-"prevents reading a few bytes before committing the buffered data to disk: "
-"when read-ahead space is available, it will be used in addition to "
-"buffering, but read-ahead data is committed to disk immediately.  If you "
-"don't wish to reserve more memory per active source, you can disable this "
-"feature by setting the read-ahead buffer size to 0."
-msgstr ""
-
-msgid ""
 "When set, all search results from host browsing are dispatched to all opened "
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
@@ -1958,6 +1991,35 @@ msgid ""
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
+msgid "Don't start more than this number of parallel downloads per file."
+msgstr ""
+
+msgid ""
+"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
+"dump."
+msgstr ""
+
+msgid ""
+"If enabled, queries are also matched against the directory names which are "
+"relative to the shared ones. Further, search results will show these. This "
+"is especially useful if the shared filenames are ambiguous or meaningless "
+"without knowing the directory names as well. However, be sure the directory "
+"names do not expose confidential information. You have to initiate a rescan "
+"of the shared files before a change becomes fully effective."
+msgstr ""
+
+msgid "Debug level for the shell."
+msgstr ""
+
+msgid "If larger than zero, no downloads are started."
+msgstr ""
+
+msgid "Debug level for the search queue."
+msgstr ""
+
+msgid "Debug level for push-proxy code."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -1977,9 +2039,6 @@ msgid "TCP only"
 msgstr ""
 
 msgid "UDP only"
-msgstr ""
-
-msgid "Unknown"
 msgstr ""
 
 msgid "Ping"
@@ -2174,6 +2233,9 @@ msgid "Size of the filter tree in the filter dialog."
 msgstr ""
 
 msgid "Show tabs or search list."
+msgstr ""
+
+msgid "Display Searchbar."
 msgstr ""
 
 msgid "Display Sidebar."
@@ -3444,18 +3506,6 @@ msgstr ""
 msgid "Query hit"
 msgstr ""
 
-msgid "Improper hops/TTL combination"
-msgstr ""
-
-msgid "Flow control"
-msgstr ""
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
 msgid "Routing errors"
 msgstr ""
 
@@ -3791,9 +3841,6 @@ msgstr ""
 msgid "%s (%s bytes)"
 msgstr ""
 
-msgid "gtk-gnutella"
-msgstr ""
-
 msgid "_File"
 msgstr ""
 
@@ -4028,9 +4075,6 @@ msgstr ""
 msgid "Downloaded:"
 msgstr ""
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr ""
-
 msgid "Chunks/Files:"
 msgstr ""
 
@@ -4051,9 +4095,6 @@ msgid ""
 "to File->Preferences->Network."
 msgstr ""
 
-msgid "[Gnet]"
-msgstr ""
-
 msgid "Message/flow control stats"
 msgstr ""
 
@@ -4067,33 +4108,6 @@ msgid "Reason"
 msgstr ""
 
 msgid "_General"
-msgstr ""
-
-msgid "0"
-msgstr ""
-
-msgid "1"
-msgstr ""
-
-msgid "2"
-msgstr ""
-
-msgid "3"
-msgstr ""
-
-msgid "4"
-msgstr ""
-
-msgid "5"
-msgstr ""
-
-msgid "6"
-msgstr ""
-
-msgid "7"
-msgstr ""
-
-msgid "8+"
 msgstr ""
 
 msgid "FC/_TTL"
@@ -4141,9 +4155,6 @@ msgstr ""
 msgid "Show r_easons for"
 msgstr ""
 
-msgid "[Gnet Stats]"
-msgstr ""
-
 msgid "Hostcache statistics"
 msgstr ""
 
@@ -4172,9 +4183,6 @@ msgid "Ultrapeers"
 msgstr ""
 
 msgid "Bad hosts"
-msgstr ""
-
-msgid "[Hostcache]"
 msgstr ""
 
 msgid "Uploads"
@@ -4216,9 +4224,6 @@ msgstr ""
 msgid "Max. uploads to a single host"
 msgstr ""
 
-msgid "[Uploads]"
-msgstr ""
-
 msgid "Upload history"
 msgstr ""
 
@@ -4237,28 +4242,13 @@ msgstr ""
 msgid "Fully served "
 msgstr ""
 
-msgid "[BH HTML served]"
-msgstr ""
-
 msgid " / "
-msgstr ""
-
-msgid "[BH HTML]"
 msgstr ""
 
 msgid " HTML and "
 msgstr ""
 
-msgid "[BH qhits served]"
-msgstr ""
-
-msgid "[BH qhits]"
-msgstr ""
-
 msgid " Gnutella browse requests"
-msgstr ""
-
-msgid "[Upload Stats]"
 msgstr ""
 
 msgid "Files to get"
@@ -4308,19 +4298,10 @@ msgstr ""
 msgid "_Purge selected"
 msgstr ""
 
-msgid "[all count]"
-msgstr ""
-
 msgid " registered, "
 msgstr ""
 
-msgid "[with source count]"
-msgstr ""
-
 msgid " with sources"
-msgstr ""
-
-msgid "[Downloads]"
 msgstr ""
 
 msgid "Active sources"
@@ -4332,15 +4313,6 @@ msgstr ""
 msgid "Download settings"
 msgstr ""
 
-msgid "Max. simultaneous downloads"
-msgstr ""
-
-msgid "Max. downloads from single host"
-msgstr ""
-
-msgid "Bytes to back off on mismatch"
-msgstr ""
-
 msgid "Never send a push request"
 msgstr ""
 
@@ -4348,6 +4320,18 @@ msgid "Delete file on abort"
 msgstr ""
 
 msgid "Remove file on mismatch"
+msgstr ""
+
+msgid "Bytes to back off on mismatch"
+msgstr ""
+
+msgid "Max. downloads from single host"
+msgstr ""
+
+msgid "Max. simultaneous downloads"
+msgstr ""
+
+msgid "Max. simultaneous downloads per file"
 msgstr ""
 
 msgid "Auto clear stopped downloads"
@@ -4377,9 +4361,6 @@ msgstr ""
 msgid "Clear stopped"
 msgstr ""
 
-msgid "[running]"
-msgstr ""
-
 msgid "("
 msgstr ""
 
@@ -4398,9 +4379,6 @@ msgstr ""
 msgid "Show settings"
 msgstr ""
 
-msgid "[Active]"
-msgstr ""
-
 msgid "Inactive sources"
 msgstr ""
 
@@ -4413,22 +4391,13 @@ msgstr ""
 msgid "Thaw queue"
 msgstr ""
 
-msgid "[queued downloads]"
-msgstr ""
-
 msgid " queued ("
-msgstr ""
-
-msgid "[hosts alive]"
 msgstr ""
 
 msgid " alive with "
 msgstr ""
 
 msgid " passive)"
-msgstr ""
-
-msgid "[Queue]"
 msgstr ""
 
 msgid "Search results"
@@ -4524,9 +4493,6 @@ msgstr ""
 msgid "_Clear results"
 msgstr ""
 
-msgid "[Search]"
-msgstr ""
-
 msgid "Search _monitor enabled"
 msgstr ""
 
@@ -4534,9 +4500,6 @@ msgid "Show _last"
 msgstr ""
 
 msgid "searches"
-msgstr ""
-
-msgid "[Monitor]"
 msgstr ""
 
 msgid "_Update interval (sec)"
@@ -4555,9 +4518,6 @@ msgid "_Reset stats"
 msgstr ""
 
 msgid "0 terms counted"
-msgstr ""
-
-msgid "[Search Stats]"
 msgstr ""
 
 msgid "You seem to be offline."
@@ -4768,9 +4728,6 @@ msgstr ""
 msgid "Add state rule"
 msgstr ""
 
-msgid "[Add/Remove]"
-msgstr ""
-
 msgid "invert condition"
 msgstr ""
 
@@ -4789,16 +4746,10 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
-msgid "[Filename]"
-msgstr ""
-
 msgid "Condition: If IP address matches"
 msgstr ""
 
 msgid "IP address/mask"
-msgstr ""
-
-msgid "[IP address]"
 msgstr ""
 
 msgid "Condition: If file size matches"
@@ -4813,9 +4764,6 @@ msgstr ""
 msgid "bytes"
 msgstr ""
 
-msgid "[Filesize]"
-msgstr ""
-
 msgid "Condition: always"
 msgstr ""
 
@@ -4825,9 +4773,6 @@ msgid ""
 "condition. If you could, this rule would just be ignored."
 msgstr ""
 
-msgid "[Jump]"
-msgstr ""
-
 msgid "Condition: If urn:sha1 matches"
 msgstr ""
 
@@ -4835,9 +4780,6 @@ msgid "SHA1 hash (not editable, add from search popup)"
 msgstr ""
 
 msgid "Originally obtained from"
-msgstr ""
-
-msgid "[SHA1]"
 msgstr ""
 
 msgid "Condition: If result has flags"
@@ -4858,9 +4800,6 @@ msgstr ""
 msgid "Stable"
 msgstr ""
 
-msgid "[Flags]"
-msgstr ""
-
 msgid "Condition: If current filter result properties match"
 msgstr ""
 
@@ -4874,9 +4813,6 @@ msgid "do"
 msgstr ""
 
 msgid "ignore"
-msgstr ""
-
-msgid "[State]"
 msgstr ""
 
 msgid "Apply"
@@ -4895,22 +4831,13 @@ msgid "gtk-gnutella shutdown"
 msgstr ""
 
 msgid ""
-"gtk-gnutella is shutting down.\n"
+"Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
 msgstr ""
 
-msgid "[time]"
-msgstr ""
-
 msgid "About gtk-gnutella"
-msgstr ""
-
-msgid "[name and version]"
-msgstr ""
-
-msgid "$Id$"
 msgstr ""
 
 msgid "Original author:"
@@ -5088,9 +5015,6 @@ msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
 msgstr ""
 
 msgid "Currently used"
-msgstr ""
-
-msgid "[place holder]"
 msgstr ""
 
 msgid "Use global hostiles.txt"
@@ -5276,9 +5200,6 @@ msgid "Number of tolerable _duplicate messages per node"
 msgstr ""
 
 msgid "RX flow control ratio"
-msgstr ""
-
-msgid "%"
 msgstr ""
 
 msgid "Watch for similar queries"
@@ -5812,16 +5733,25 @@ msgstr ""
 msgid "Frequently Asked Questions:"
 msgstr ""
 
+msgid "_Stop this search"
+msgstr ""
+
+msgid "Resu_me this search"
+msgstr ""
+
+msgid "_Restart this search"
+msgstr ""
+
+msgid "_Duplicate this search"
+msgstr ""
+
+msgid "_Close this search"
+msgstr ""
+
 msgid "Country"
 msgstr ""
 
 msgid "Failed to create the search"
-msgstr ""
-
-msgid "UDP"
-msgstr ""
-
-msgid "TCP"
 msgstr ""
 
 msgid "owned"
@@ -5879,6 +5809,9 @@ msgid "Hostile"
 msgstr ""
 
 msgid "SHA-1"
+msgstr ""
+
+msgid "Created"
 msgstr ""
 
 msgid "Not in database"
@@ -5942,6 +5875,9 @@ msgstr[1] ""
 msgid "Cache contains"
 msgstr ""
 
+msgid "Pause"
+msgstr ""
+
 msgid "Copy Magnet to clipboard"
 msgstr ""
 
@@ -5992,7 +5928,19 @@ msgstr ""
 msgid "Uploaded data:"
 msgstr ""
 
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr ""
+
 msgid "Served "
+msgstr ""
+
+msgid "[BH HTML served]"
+msgstr ""
+
+msgid "[BH HTML]"
+msgstr ""
+
+msgid "[BH qhits]"
 msgstr ""
 
 msgid "Current _search:"
@@ -6051,6 +5999,11 @@ msgid ""
 "many peers by trying to locate files on the local networks first."
 msgstr ""
 
+msgid ""
+"Check this button if you want to use Gtk-Gnutella on your Local Area "
+"Network. RFC1918 will be ignored."
+msgstr ""
+
 msgid "_Addresses of local network(s)"
 msgstr ""
 
@@ -6075,13 +6028,10 @@ msgstr ""
 msgid "_Remove directory"
 msgstr ""
 
+msgid "E_xpose relative paths"
+msgstr ""
+
 msgid "Minimum chunk _size"
-msgstr ""
-
-msgid "Edit filters"
-msgstr ""
-
-msgid "Close this search"
 msgstr ""
 
 msgid ""
@@ -6104,21 +6054,6 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-msgid "Leaf"
-msgstr ""
-
-msgid "Ultrapeer"
-msgstr ""
-
-msgid "Legacy"
-msgstr ""
-
-msgid "Crawler"
-msgstr ""
-
-msgid "Move the cursor over a row to see details."
-msgstr ""
-
 msgid "Peer:"
 msgstr ""
 
@@ -6129,6 +6064,9 @@ msgid "incoming"
 msgstr ""
 
 msgid "outgoing"
+msgstr ""
+
+msgid "Move the cursor over a row to see details."
 msgstr ""
 
 #, c-format
@@ -6180,16 +6118,6 @@ msgstr ""
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
 msgid "translation_credit|"
-msgstr ""
-
-msgid ""
-"\n"
-"The FAQ document is damaged.\n"
-msgstr ""
-
-msgid ""
-"The FAQ document could not be loaded. Please read the online FAQ at http://"
-"gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
 
 #, c-format
@@ -6257,9 +6185,6 @@ msgstr ""
 msgid "<unparsed>"
 msgstr ""
 
-msgid ", browsable"
-msgstr ""
-
 msgid "browsable"
 msgstr ""
 
@@ -6311,10 +6236,25 @@ msgstr[1] ""
 msgid "Handled magnet link (%s, %s)."
 msgstr ""
 
+msgid "Ignored unusable magnet link."
+msgstr ""
+
 msgid "The given urn type is not supported."
 msgstr ""
 
+msgid "The given SHA-1 is not correctly encoded."
+msgstr ""
+
+msgid "Missing port number"
+msgstr ""
+
+msgid "Could not parse host address"
+msgstr ""
+
 msgid "The query string is not UTF-8 encoded"
+msgstr ""
+
+msgid "Unhandled search prefix."
 msgstr ""
 
 #, c-format

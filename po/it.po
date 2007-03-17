@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-17 19:06+0900\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -2502,6 +2502,10 @@ msgstr ""
 #, fuzzy
 msgid "Debug level for the search queue."
 msgstr "Livello di collaudo per l'interfaccia utente."
+
+#, fuzzy
+msgid "Debug level for push-proxy code."
+msgstr "Livello di collaudo per il codice condiviso dei file."
 
 msgid "disable"
 msgstr "disabilita"

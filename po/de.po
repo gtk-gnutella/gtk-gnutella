@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-17 19:06+0900\n"
+"POT-Creation-Date: 2007-03-18 04:31+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2373,6 +2373,10 @@ msgstr ""
 #, fuzzy
 msgid "Debug level for the search queue."
 msgstr "Debug-Level für dias GUI"
+
+#, fuzzy
+msgid "Debug level for push-proxy code."
+msgstr "Debug-Level für HTTP"
 
 msgid "disable"
 msgstr "deaktiviert"
