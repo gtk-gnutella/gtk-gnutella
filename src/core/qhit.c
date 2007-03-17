@@ -292,7 +292,7 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 	gnutella_header_t *packet_head = data;
 
 	if (dbg > 3) {
-		g_message("flushing query hit (%u entr%s, %u bytes sofar) to %s\n",
+		g_message("flushing query hit (%u entr%s, %u bytes sofar) to %s",
 			(guint) found_file_count(),
 			found_file_count() == 1 ? "y" : "ies",
 			(guint) found_size(),
@@ -814,7 +814,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
 	g_slist_free(files);
 
 	if (dbg > 3)
-		g_message("sent %d/%d hits to %s\n", sent, count, node_addr(n));
+		g_message("sent %d/%d hits to %s", sent, count, node_addr(n));
 }
 
 /**
