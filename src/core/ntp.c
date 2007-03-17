@@ -147,8 +147,12 @@ ntp_send_probe(const host_addr_t addr)
 
 	s = NULL;
 	switch (host_addr_net(addr)) {
-	case NET_TYPE_IPV4: s = s_udp_listen;
-	case NET_TYPE_IPV6: s = s_udp_listen6;
+	case NET_TYPE_IPV4:
+		s = s_udp_listen;
+		break;
+	case NET_TYPE_IPV6:
+		s = s_udp_listen6;
+		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
