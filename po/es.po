@@ -9,9 +9,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.2u\n"
+"Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-10-31 16:01+0100\n"
+"POT-Creation-Date: 2007-03-17 19:06+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -48,6 +48,10 @@ msgstr "Suspendido (comprobando SHA1)"
 msgid " at %s - rescheduled for %s"
 msgstr ""
 
+#, fuzzy
+msgid "Paused"
+msgstr "Pasivo"
+
 msgid "Waiting for a free chunk"
 msgstr "Esperando bloques libres"
 
@@ -83,8 +87,16 @@ msgid "Dup SHA1 during creation"
 msgstr "Doble SHA1 durante la creación"
 
 #, fuzzy
-msgid "No download slot (create)"
-msgstr "Ranuras de bajada agotadas"
+msgid "Max. number of downloads reached"
+msgstr "_Número máximo de resultados"
+
+#, fuzzy
+msgid "Max. number of downloads for this host reached"
+msgstr "_Número máximo de resultados"
+
+#, fuzzy
+msgid "Has already enough active sources"
+msgstr "Fuentes inactivas"
 
 msgid "Stopped (Index changed)"
 msgstr "Parado (El índice cambió)"
@@ -258,18 +270,15 @@ msgstr ""
 msgid "Evil filename"
 msgstr "Archivo"
 
-#, c-format
-msgid "Got %d host from %s"
-msgid_plural "Got %d hosts from %s"
-msgstr[0] ""
-msgstr[1] ""
+msgid "Payload inflating error"
+msgstr ""
 
-#, c-format
-msgid "Connecting to web cache %s"
-msgstr "Conectando a la caché web %s"
+msgid "Unknown header flags present"
+msgstr ""
 
-msgid "Updated web cache "
-msgstr "Caché web actualizada "
+#, fuzzy
+msgid "Own search results"
+msgstr "Resultados de búsquedas"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -427,6 +436,25 @@ msgstr "Pateado: mensaje %s demasiado grande (%d bytes)"
 msgid "Kicked: %s message too big (>= 64KiB limit)"
 msgstr "Pateado: mensaje %s demasiado grande (%d bytes)"
 
+msgid "Leaf"
+msgstr "Hoja"
+
+msgid "Ultrapeer"
+msgstr "Ultranodo"
+
+msgid "Legacy"
+msgstr "Antiguo"
+
+#, fuzzy
+msgid "Crawler"
+msgstr "Limpiar"
+
+msgid "UDP"
+msgstr "UDP"
+
+msgid "Unknown"
+msgstr "Desconocido"
+
 msgid "Read failed (Input Exception)"
 msgstr "Lectura fallida (Excepción de entrada)"
 
@@ -467,23 +495,37 @@ msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 "Sólo se puede ejecutar en modo hoja cuando se está tras uncortafuegos TCP"
 
-msgid "Node added"
-msgstr "Nodo añadido"
-
 msgid "Invalid IP/Port"
 msgstr "IP/Puerto inválido"
 
+msgid "Node added"
+msgstr "Nodo añadido"
+
+#, fuzzy
+msgid "Invalid IP"
+msgstr "IP/Puerto inválido"
+
+#, fuzzy
+msgid "Invalid port"
+msgstr "IP/Puerto inválido"
+
+#, fuzzy, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "Quitada %u bajada"
+msgstr[1] "Quitadas %u bajadas"
+
 msgid "Unknown operation"
 msgstr "Operación desconocida"
-
-msgid "Malformed command"
-msgstr "Comando malformado"
 
 msgid "Query string missing"
 msgstr "Texto de la petición inexistente"
 
 msgid "Search added"
 msgstr "Búsqueda añadida"
+
+msgid "The search could not be created"
+msgstr ""
 
 msgid "Property missing"
 msgstr "Falta la propiedad"
@@ -500,34 +542,17 @@ msgstr "Valor encontrado y mostrado"
 msgid "Value missing"
 msgstr "Falta el valor"
 
-msgid "Type not supported"
-msgstr "Tipo no soportado"
-
 msgid "Value found and set"
 msgstr "Valor encontrado y ajustado"
 
 msgid "Help: "
 msgstr "Ayudai: "
 
-msgid "Unknown parameter"
-msgstr "Parámetro desconocido"
+msgid "The library is currently being rebuilt."
+msgstr ""
 
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "Tamaño total del horizonte (%u/%u nodos soportan HSEP):"
-
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr "Tamaño del horizonte por nodo HSEP %s (%s)"
-
-msgid "leaf"
-msgstr "hoja"
-
-msgid "ultrapeer"
-msgstr "ultranodo"
-
-msgid "normal node"
-msgstr "nodo normal"
+msgid "A rescan has already been scheduled"
+msgstr ""
 
 msgid "Hops"
 msgstr "Saltos"
@@ -541,11 +566,40 @@ msgstr "Archivos"
 msgid "Size"
 msgstr "Tamaño"
 
+msgid "Unknown parameter"
+msgstr "Parámetro desconocido"
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr "Tamaño total del horizonte (%u/%u nodos soportan HSEP):"
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr "Tamaño del horizonte por nodo HSEP %s (%s)"
+
+#, fuzzy
+msgid "URL missing"
+msgstr "Falta el valor"
+
+#, fuzzy
+msgid "The download could not be created"
+msgstr "Ranuras de bajada agotadas"
+
+#, fuzzy
+msgid "Download added"
+msgstr "Bajados:"
+
+msgid "No matching property."
+msgstr ""
+
 msgid "Good bye"
 msgstr "Adiós"
 
 msgid "Shutdown sequence initiated."
 msgstr ""
+
+msgid "Malformed command"
+msgstr "Comando malformado"
 
 msgid "Unknown command"
 msgstr "Comando desconocido"
@@ -574,9 +628,9 @@ msgstr "Buscando caché de nodos UDP %s"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Ping enviado a la caché de nodos UDP %s:%u"
 
-#, c-format
-msgid "Got %d host from UDP host cache %s:%u"
-msgid_plural "Got %d hosts from UDP host cache %s:%u"
+#, fuzzy, c-format
+msgid "Got %d host from UDP host cache %s"
+msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] "Recibido %d nodo de la caché de nodos UDP %s:%u"
 msgstr[1] "Recibidos %d nodos de la caché de nodos UDP %s:%u"
 
@@ -713,6 +767,9 @@ msgstr "ultra nodo"
 
 msgid "leaf node"
 msgstr "nodo hoja"
+
+msgid "normal node"
+msgstr "nodo normal"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Indica si la caché de nodos está siendo leida."
@@ -1128,9 +1185,6 @@ msgstr ""
 "núcleo"
 
 msgid "Verbosity of Bitzi related debug messages."
-msgstr ""
-
-msgid "Verbosity of GWebCache related debug messages."
 msgstr ""
 
 msgid "Verbosity of URL handling related debug messages."
@@ -2277,17 +2331,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Extra amount of data per downloading source that gtk-gnutella will try to "
-"read-ahead.  This gives more room for reading large amount of data without "
-"issuing too many system calls. It complements buffering nicely because it "
-"prevents reading a few bytes before committing the buffered data to disk: "
-"when read-ahead space is available, it will be used in addition to "
-"buffering, but read-ahead data is committed to disk immediately.  If you "
-"don't wish to reserve more memory per active source, you can disable this "
-"feature by setting the read-ahead buffer size to 0."
-msgstr ""
-
-msgid ""
 "When set, all search results from host browsing are dispatched to all opened "
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
@@ -2317,6 +2360,35 @@ msgid ""
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
+#, fuzzy
+msgid "Don't start more than this number of parallel downloads per file."
+msgstr "No subir más de este número de archivos paralelamente a un único nodo."
+
+msgid ""
+"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
+"dump."
+msgstr ""
+
+msgid ""
+"If enabled, queries are also matched against the directory names which are "
+"relative to the shared ones. Further, search results will show these. This "
+"is especially useful if the shared filenames are ambiguous or meaningless "
+"without knowing the directory names as well. However, be sure the directory "
+"names do not expose confidential information. You have to initiate a rescan "
+"of the shared files before a change becomes fully effective."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the shell."
+msgstr "Nivel de depurado para la interfaz gráfica."
+
+msgid "If larger than zero, no downloads are started."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the search queue."
+msgstr "Nivel de depurado para la interfaz gráfica."
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -2337,9 +2409,6 @@ msgstr "sólo TCP"
 
 msgid "UDP only"
 msgstr "sólo UDP"
-
-msgid "Unknown"
-msgstr "Desconocido"
 
 msgid "Ping"
 msgstr "Ping"
@@ -2550,6 +2619,10 @@ msgstr "Tamaño del árbol de filtros en el diálogo de filtros."
 
 msgid "Show tabs or search list."
 msgstr "Mostrar pestañas o lista de resultados."
+
+#, fuzzy
+msgid "Display Searchbar."
+msgstr "Mostrar barra de utilidades."
 
 #, fuzzy
 msgid "Display Sidebar."
@@ -3929,18 +4002,6 @@ msgstr ""
 msgid "Query hit"
 msgstr ""
 
-msgid "Improper hops/TTL combination"
-msgstr "Combinación incorrecta de saltos/TTL"
-
-msgid "Flow control"
-msgstr "Control de flujo"
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
 msgid "Routing errors"
 msgstr "Errores de enrutado"
 
@@ -4284,9 +4345,6 @@ msgstr "<nada>"
 msgid "%s (%s bytes)"
 msgstr "%s (%s bytes)"
 
-msgid "gtk-gnutella"
-msgstr "gtk-gnutella"
-
 msgid "_File"
 msgstr "_Archivo"
 
@@ -4548,9 +4606,6 @@ msgstr "Subido:"
 msgid "Downloaded:"
 msgstr "Bajados:"
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr "Que alguien aporte una ayuda decente para esto."
-
 msgid "Chunks/Files:"
 msgstr "Bloques/Archivos:"
 
@@ -4574,9 +4629,6 @@ msgstr ""
 "La dirección IP actual y el puerto TCP de escucha para este nodo. Para "
 "cambiarlos, ir a Configuración->Red."
 
-msgid "[Gnet]"
-msgstr ""
-
 msgid "Message/flow control stats"
 msgstr ""
 
@@ -4592,33 +4644,6 @@ msgstr "Razón"
 #, fuzzy
 msgid "_General"
 msgstr "General"
-
-msgid "0"
-msgstr ""
-
-msgid "1"
-msgstr ""
-
-msgid "2"
-msgstr ""
-
-msgid "3"
-msgstr ""
-
-msgid "4"
-msgstr ""
-
-msgid "5"
-msgstr ""
-
-msgid "6"
-msgstr ""
-
-msgid "7"
-msgstr ""
-
-msgid "8+"
-msgstr ""
 
 #, fuzzy
 msgid "FC/_TTL"
@@ -4673,10 +4698,6 @@ msgstr "Mostrar protocolo:"
 msgid "Show r_easons for"
 msgstr "Mostrar razones para"
 
-#, fuzzy
-msgid "[Gnet Stats]"
-msgstr "Estadísticas generales"
-
 msgid "Hostcache statistics"
 msgstr "Estadísticas de la caché de nodos"
 
@@ -4706,10 +4727,6 @@ msgstr "Ultranodos"
 
 msgid "Bad hosts"
 msgstr "Nodos incorrectos"
-
-#, fuzzy
-msgid "[Hostcache]"
-msgstr "Caché de nodos"
 
 msgid "Uploads"
 msgstr "Subidas"
@@ -4750,10 +4767,6 @@ msgstr "Máximas subidas simultáneas"
 msgid "Max. uploads to a single host"
 msgstr "Máximo de subidas a un único nodo"
 
-#, fuzzy
-msgid "[Uploads]"
-msgstr "Subidas"
-
 msgid "Upload history"
 msgstr "Historial de subidas"
 
@@ -4772,30 +4785,14 @@ msgstr "Limpiar todo"
 msgid "Fully served "
 msgstr ""
 
-msgid "[BH HTML served]"
-msgstr ""
-
 msgid " / "
-msgstr ""
-
-msgid "[BH HTML]"
 msgstr ""
 
 msgid " HTML and "
 msgstr ""
 
-msgid "[BH qhits served]"
-msgstr ""
-
-msgid "[BH qhits]"
-msgstr ""
-
 msgid " Gnutella browse requests"
 msgstr ""
-
-#, fuzzy
-msgid "[Upload Stats]"
-msgstr "Subidas"
 
 msgid "Files to get"
 msgstr "Archivos para descargar"
@@ -4851,22 +4848,11 @@ msgstr "Nombres de archivo alternativos"
 msgid "_Purge selected"
 msgstr "_Purgar selección"
 
-msgid "[all count]"
-msgstr ""
-
 msgid " registered, "
 msgstr " registrados, "
 
-#, fuzzy
-msgid "[with source count]"
-msgstr " con fuentes"
-
 msgid " with sources"
 msgstr " con fuentes"
-
-#, fuzzy
-msgid "[Downloads]"
-msgstr "Bajadas"
 
 msgid "Active sources"
 msgstr "Fuentes activas"
@@ -4877,15 +4863,6 @@ msgstr "Servidor"
 msgid "Download settings"
 msgstr "Ajustes de descargas"
 
-msgid "Max. simultaneous downloads"
-msgstr "Número máximo de descargas simultáneas"
-
-msgid "Max. downloads from single host"
-msgstr "Número máximo de descargas de un sólo nodo"
-
-msgid "Bytes to back off on mismatch"
-msgstr "Bytes a retroceder si no coincide"
-
 msgid "Never send a push request"
 msgstr "No enviar nunca una petición 'push'"
 
@@ -4894,6 +4871,19 @@ msgstr "Borrar el archivo físicamente al abortar"
 
 msgid "Remove file on mismatch"
 msgstr "Borrar el archivo si no coincide"
+
+msgid "Bytes to back off on mismatch"
+msgstr "Bytes a retroceder si no coincide"
+
+msgid "Max. downloads from single host"
+msgstr "Número máximo de descargas de un sólo nodo"
+
+msgid "Max. simultaneous downloads"
+msgstr "Número máximo de descargas simultáneas"
+
+#, fuzzy
+msgid "Max. simultaneous downloads per file"
+msgstr "Número máximo de descargas simultáneas"
 
 msgid "Auto clear stopped downloads"
 msgstr "Autolimpiar descargas detenidas"
@@ -4922,10 +4912,6 @@ msgstr "Limpiar descargas completadas, fallidas o no disponibles de la lista"
 msgid "Clear stopped"
 msgstr "Limpiar completadas"
 
-#, fuzzy
-msgid "[running]"
-msgstr "Banear"
-
 msgid "("
 msgstr ""
 
@@ -4944,10 +4930,6 @@ msgstr ""
 msgid "Show settings"
 msgstr "Mostrar configuración"
 
-#, fuzzy
-msgid "[Active]"
-msgstr "activo"
-
 msgid "Inactive sources"
 msgstr "Fuentes inactivas"
 
@@ -4960,25 +4942,14 @@ msgstr "Congelar cola"
 msgid "Thaw queue"
 msgstr "Reactivar cola"
 
-#, fuzzy
-msgid "[queued downloads]"
-msgstr "%u/%u bajada"
-
 msgid " queued ("
 msgstr " encolado ("
-
-msgid "[hosts alive]"
-msgstr ""
 
 msgid " alive with "
 msgstr " vivo con "
 
 msgid " passive)"
 msgstr " pasivo)"
-
-#, fuzzy
-msgid "[Queue]"
-msgstr "Cola"
 
 msgid "Search results"
 msgstr "Resultados de búsquedas"
@@ -5075,10 +5046,6 @@ msgstr "Colapsar todo"
 msgid "_Clear results"
 msgstr "_Limpiar resultados"
 
-#, fuzzy
-msgid "[Search]"
-msgstr "Buscar"
-
 msgid "Search _monitor enabled"
 msgstr "_Monitor de búsquedas activado"
 
@@ -5087,10 +5054,6 @@ msgstr "Mostrar _últimas"
 
 msgid "searches"
 msgstr "búsquedas"
-
-#, fuzzy
-msgid "[Monitor]"
-msgstr "Monitor"
 
 msgid "_Update interval (sec)"
 msgstr "Intervalo de _actualización (seg)"
@@ -5109,10 +5072,6 @@ msgstr "_Reiniciar estadísticas"
 
 msgid "0 terms counted"
 msgstr "0 términos contados"
-
-#, fuzzy
-msgid "[Search Stats]"
-msgstr "Filtros de búsqueda"
 
 msgid "You seem to be offline."
 msgstr "Parece que está desconectado."
@@ -5345,10 +5304,6 @@ msgstr "Añadir regla de IP"
 msgid "Add state rule"
 msgstr "Añadir regla de estado"
 
-#, fuzzy
-msgid "[Add/Remove]"
-msgstr "Quitar"
-
 msgid "invert condition"
 msgstr "invertir condición"
 
@@ -5368,19 +5323,11 @@ msgstr "Servidor"
 msgid "Remove"
 msgstr "Quitar"
 
-#, fuzzy
-msgid "[Filename]"
-msgstr "Archivo"
-
 msgid "Condition: If IP address matches"
 msgstr "Condición: Si la dirección IP coincide"
 
 #, fuzzy
 msgid "IP address/mask"
-msgstr "Dirección IP"
-
-#, fuzzy
-msgid "[IP address]"
 msgstr "Dirección IP"
 
 msgid "Condition: If file size matches"
@@ -5395,10 +5342,6 @@ msgstr "Tamaño máximo:"
 msgid "bytes"
 msgstr "bytes"
 
-#, fuzzy
-msgid "[Filesize]"
-msgstr "Archivos"
-
 msgid "Condition: always"
 msgstr "Condición: siempre"
 
@@ -5411,9 +5354,6 @@ msgstr ""
 "en el filtro objetivo especificado. También es por eso que no se puede "
 "invertir esta condición. Si se pudiese, esta regla se ignoraría."
 
-msgid "[Jump]"
-msgstr ""
-
 msgid "Condition: If urn:sha1 matches"
 msgstr "Condición: Si urn:sha1 coincide"
 
@@ -5422,10 +5362,6 @@ msgstr ""
 
 msgid "Originally obtained from"
 msgstr "Obtenido originalmente desde"
-
-#, fuzzy
-msgid "[SHA1]"
-msgstr "SHA1:"
 
 msgid "Condition: If result has flags"
 msgstr ""
@@ -5445,9 +5381,6 @@ msgstr "activado"
 msgid "Stable"
 msgstr "Estable"
 
-msgid "[Flags]"
-msgstr ""
-
 msgid "Condition: If current filter result properties match"
 msgstr "Condición: Si las propiedades del resultado del filtro actual coincide"
 
@@ -5462,10 +5395,6 @@ msgstr "hacer"
 
 msgid "ignore"
 msgstr "ignorar"
-
-#, fuzzy
-msgid "[State]"
-msgstr "Estadísticas"
 
 msgid "Apply"
 msgstr "Aplicar"
@@ -5482,8 +5411,9 @@ msgstr "Cancelar"
 msgid "gtk-gnutella shutdown"
 msgstr "Cerrar gtk-gnutella"
 
+#, fuzzy
 msgid ""
-"gtk-gnutella is shutting down.\n"
+"Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
@@ -5493,18 +5423,8 @@ msgstr ""
 "\n"
 "Tiempo de gracia restante:"
 
-#, fuzzy
-msgid "[time]"
-msgstr "Tiempo en ejecución"
-
 msgid "About gtk-gnutella"
 msgstr "Acerca de gtk-gnutella"
-
-msgid "[name and version]"
-msgstr ""
-
-msgid "$Id$"
-msgstr ""
 
 msgid "Original author:"
 msgstr "Autor original:"
@@ -5695,9 +5615,6 @@ msgstr ""
 msgid "Currently used"
 msgstr "Actualmente usados"
 
-msgid "[place holder]"
-msgstr ""
-
 msgid "Use global hostiles.txt"
 msgstr "Usar hostiles.txt global"
 
@@ -5887,9 +5804,6 @@ msgid "Number of tolerable _duplicate messages per node"
 msgstr "Número tolerable de mensajes _duplicados por nodo"
 
 msgid "RX flow control ratio"
-msgstr ""
-
-msgid "%"
 msgstr ""
 
 msgid "Watch for similar queries"
@@ -6453,17 +6367,31 @@ msgid "Frequently Asked Questions:"
 msgstr ""
 
 #, fuzzy
+msgid "_Stop this search"
+msgstr "Detener esta búsqueda"
+
+#, fuzzy
+msgid "Resu_me this search"
+msgstr "Continuar con eta búsqueda"
+
+#, fuzzy
+msgid "_Restart this search"
+msgstr "Reiniciar esta búsqueda"
+
+#, fuzzy
+msgid "_Duplicate this search"
+msgstr "Duplicar esta búsqueda"
+
+#, fuzzy
+msgid "_Close this search"
+msgstr "Cerrar esta búsqueda"
+
+#, fuzzy
 msgid "Country"
 msgstr "País:"
 
 msgid "Failed to create the search"
 msgstr "Imposible crear la búsqueda"
-
-msgid "UDP"
-msgstr "UDP"
-
-msgid "TCP"
-msgstr ""
 
 #, fuzzy
 msgid "owned"
@@ -6530,6 +6458,10 @@ msgstr "Nodo"
 msgid "SHA-1"
 msgstr "SHA1:"
 
+#, fuzzy
+msgid "Created"
+msgstr "Completadas"
+
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
@@ -6592,6 +6524,10 @@ msgid "Cache contains"
 msgstr "Cache contiene"
 
 #, fuzzy
+msgid "Pause"
+msgstr "Push"
+
+#, fuzzy
 msgid "Copy Magnet to clipboard"
 msgstr "Copiar URL al portapapeles"
 
@@ -6647,9 +6583,21 @@ msgstr "Dirección/Puerto:"
 msgid "Uploaded data:"
 msgstr "Datos subbidos:"
 
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "Que alguien aporte una ayuda decente para esto."
+
 #, fuzzy
 msgid "Served "
 msgstr "Servidor"
+
+msgid "[BH HTML served]"
+msgstr ""
+
+msgid "[BH HTML]"
+msgstr ""
+
+msgid "[BH qhits]"
+msgstr ""
 
 #, fuzzy
 msgid "Current _search:"
@@ -6717,6 +6665,14 @@ msgstr ""
 "Esta opción podría mejorar significativamente a aquellos en una red grande "
 "con muchos nodos tratando de encontrar archivos en las redes locales primero."
 
+#, fuzzy
+msgid ""
+"Check this button if you want to use Gtk-Gnutella on your Local Area "
+"Network. RFC1918 will be ignored."
+msgstr ""
+"Actívelo para usar gtk-gnutella en su red de área local. RFC1918 será "
+"ignorado."
+
 msgid "_Addresses of local network(s)"
 msgstr "_Dirección(es) de red(es) local(es)"
 
@@ -6744,15 +6700,12 @@ msgstr "Reintentos"
 msgid "_Remove directory"
 msgstr "_Añadir directorio"
 
+msgid "E_xpose relative paths"
+msgstr ""
+
 #, fuzzy
 msgid "Minimum chunk _size"
 msgstr "Tamaño de bloque mí_nimo"
-
-msgid "Edit filters"
-msgstr "Editar filtros"
-
-msgid "Close this search"
-msgstr "Cerrar esta búsqueda"
 
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
@@ -6776,22 +6729,6 @@ msgstr "Datos descargados:"
 msgid "Version"
 msgstr "Extensión"
 
-msgid "Leaf"
-msgstr "Hoja"
-
-msgid "Ultrapeer"
-msgstr "Ultranodo"
-
-msgid "Legacy"
-msgstr "Antiguo"
-
-#, fuzzy
-msgid "Crawler"
-msgstr "Limpiar"
-
-msgid "Move the cursor over a row to see details."
-msgstr "Mueve el cursor sobre una fila para ver detalles."
-
 msgid "Peer:"
 msgstr "Nodo:"
 
@@ -6803,6 +6740,9 @@ msgstr "entrada"
 
 msgid "outgoing"
 msgstr "salida"
+
+msgid "Move the cursor over a row to see details."
+msgstr "Mueve el cursor sobre una fila para ver detalles."
 
 #, c-format
 msgid "Reverse lookup for %s failed"
@@ -6856,16 +6796,6 @@ msgstr "Monitor"
 #. and append your name to the list.
 msgid "translation_credit|"
 msgstr "Traducción al español: Paco Arjonilla"
-
-msgid ""
-"\n"
-"The FAQ document is damaged.\n"
-msgstr ""
-
-msgid ""
-"The FAQ document could not be loaded. Please read the online FAQ at http://"
-"gtk-gnutella.sourceforge.net/?page=faq instead."
-msgstr ""
 
 #, c-format
 msgid "%d second"
@@ -6937,9 +6867,6 @@ msgstr ""
 msgid "<unparsed>"
 msgstr "<sin analizar>"
 
-msgid ", browsable"
-msgstr ""
-
 #, fuzzy
 msgid "browsable"
 msgstr "estable"
@@ -6997,13 +6924,29 @@ msgstr[1] "Ninguna búsqueda"
 msgid "Handled magnet link (%s, %s)."
 msgstr "Fracasado (Imposible enviar %s: %s)"
 
+msgid "Ignored unusable magnet link."
+msgstr ""
+
 #, fuzzy
 msgid "The given urn type is not supported."
 msgstr "Tipo no soportado"
 
 #, fuzzy
+msgid "The given SHA-1 is not correctly encoded."
+msgstr "Tipo no soportado"
+
+msgid "Missing port number"
+msgstr ""
+
+msgid "Could not parse host address"
+msgstr ""
+
+#, fuzzy
 msgid "The query string is not UTF-8 encoded"
 msgstr "La petición SHA1 no está codificada correctamente"
+
+msgid "Unhandled search prefix."
+msgstr ""
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -7158,6 +7101,113 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#~ msgid "Connecting to web cache %s"
+#~ msgstr "Conectando a la caché web %s"
+
+#~ msgid "Updated web cache "
+#~ msgstr "Caché web actualizada "
+
+#~ msgid "Type not supported"
+#~ msgstr "Tipo no soportado"
+
+#~ msgid "leaf"
+#~ msgstr "hoja"
+
+#~ msgid "ultrapeer"
+#~ msgstr "ultranodo"
+
+#~ msgid "Improper hops/TTL combination"
+#~ msgstr "Combinación incorrecta de saltos/TTL"
+
+#~ msgid "Flow control"
+#~ msgstr "Control de flujo"
+
+#~ msgid "gtk-gnutella"
+#~ msgstr "gtk-gnutella"
+
+#, fuzzy
+#~ msgid "[Gnet Stats]"
+#~ msgstr "Estadísticas generales"
+
+#, fuzzy
+#~ msgid "[Hostcache]"
+#~ msgstr "Caché de nodos"
+
+#, fuzzy
+#~ msgid "[Uploads]"
+#~ msgstr "Subidas"
+
+#, fuzzy
+#~ msgid "[Upload Stats]"
+#~ msgstr "Subidas"
+
+#, fuzzy
+#~ msgid "[with source count]"
+#~ msgstr " con fuentes"
+
+#, fuzzy
+#~ msgid "[Downloads]"
+#~ msgstr "Bajadas"
+
+#, fuzzy
+#~ msgid "[running]"
+#~ msgstr "Banear"
+
+#, fuzzy
+#~ msgid "[Active]"
+#~ msgstr "activo"
+
+#, fuzzy
+#~ msgid "[queued downloads]"
+#~ msgstr "%u/%u bajada"
+
+#, fuzzy
+#~ msgid "[Queue]"
+#~ msgstr "Cola"
+
+#, fuzzy
+#~ msgid "[Search]"
+#~ msgstr "Buscar"
+
+#, fuzzy
+#~ msgid "[Monitor]"
+#~ msgstr "Monitor"
+
+#, fuzzy
+#~ msgid "[Search Stats]"
+#~ msgstr "Filtros de búsqueda"
+
+#, fuzzy
+#~ msgid "[Add/Remove]"
+#~ msgstr "Quitar"
+
+#, fuzzy
+#~ msgid "[Filename]"
+#~ msgstr "Archivo"
+
+#, fuzzy
+#~ msgid "[IP address]"
+#~ msgstr "Dirección IP"
+
+#, fuzzy
+#~ msgid "[Filesize]"
+#~ msgstr "Archivos"
+
+#, fuzzy
+#~ msgid "[SHA1]"
+#~ msgstr "SHA1:"
+
+#, fuzzy
+#~ msgid "[State]"
+#~ msgstr "Estadísticas"
+
+#, fuzzy
+#~ msgid "[time]"
+#~ msgstr "Tiempo en ejecución"
+
+#~ msgid "Edit filters"
+#~ msgstr "Editar filtros"
 
 #~ msgid "Albania, People's Socialist Republic of"
 #~ msgstr "Albania, República Socialista Popular de"

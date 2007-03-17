@@ -8,9 +8,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.2u\n"
+"Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-10-31 16:01+0100\n"
+"POT-Creation-Date: 2007-03-17 19:06+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -48,6 +48,10 @@ msgid " at %s - rescheduled for %s"
 msgstr ""
 
 #, fuzzy
+msgid "Paused"
+msgstr "Passzív"
+
+#, fuzzy
 msgid "Waiting for a free chunk"
 msgstr "SHA1 ellenőrzésre várakozás…"
 
@@ -81,8 +85,16 @@ msgid "Dup SHA1 during creation"
 msgstr "SHA1 készítése létrehozás közben"
 
 #, fuzzy
-msgid "No download slot (create)"
-msgstr "Nics letöltő nyílás"
+msgid "Max. number of downloads reached"
+msgstr "Eredmények leg_nagyobb száma"
+
+#, fuzzy
+msgid "Max. number of downloads for this host reached"
+msgstr "Eredmények leg_nagyobb száma"
+
+#, fuzzy
+msgid "Has already enough active sources"
+msgstr "Inaktív forrás"
 
 msgid "Stopped (Index changed)"
 msgstr ""
@@ -257,17 +269,15 @@ msgstr ""
 msgid "Evil filename"
 msgstr "Fájlnév"
 
-#, c-format
-msgid "Got %d host from %s"
-msgid_plural "Got %d hosts from %s"
-msgstr[0] ""
-
-#, fuzzy, c-format
-msgid "Connecting to web cache %s"
-msgstr "Géphez csatlakozik"
-
-msgid "Updated web cache "
+msgid "Payload inflating error"
 msgstr ""
+
+msgid "Unknown header flags present"
+msgstr ""
+
+#, fuzzy
+msgid "Own search results"
+msgstr "Keresési eredmények"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -432,6 +442,27 @@ msgstr ""
 msgid "Kicked: %s message too big (>= 64KiB limit)"
 msgstr ""
 
+#, fuzzy
+msgid "Leaf"
+msgstr "Törlés"
+
+#, fuzzy
+msgid "Ultrapeer"
+msgstr "Átjátszók"
+
+msgid "Legacy"
+msgstr ""
+
+#, fuzzy
+msgid "Crawler"
+msgstr "Törlés"
+
+msgid "UDP"
+msgstr ""
+
+msgid "Unknown"
+msgstr "Ismeretlen"
+
 msgid "Read failed (Input Exception)"
 msgstr ""
 
@@ -471,18 +502,26 @@ msgstr "E keresés megkettőzése"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 
+msgid "Invalid IP/Port"
+msgstr ""
+
 msgid "Node added"
 msgstr ""
 
-msgid "Invalid IP/Port"
+msgid "Invalid IP"
 msgstr ""
+
+msgid "Invalid port"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "%v/%u letöltés"
 
 #, fuzzy
 msgid "Unknown operation"
 msgstr "Ismeretlen hiba"
-
-msgid "Malformed command"
-msgstr ""
 
 msgid "Query string missing"
 msgstr ""
@@ -490,6 +529,9 @@ msgstr ""
 #, fuzzy
 msgid "Search added"
 msgstr "Keresések"
+
+msgid "The search could not be created"
+msgstr ""
 
 #, fuzzy
 msgid "Property missing"
@@ -509,9 +551,6 @@ msgstr ""
 msgid "Value missing"
 msgstr ""
 
-msgid "Type not supported"
-msgstr ""
-
 msgid "Value found and set"
 msgstr ""
 
@@ -519,29 +558,11 @@ msgstr ""
 msgid "Help: "
 msgstr "Súgó"
 
-#, fuzzy
-msgid "Unknown parameter"
-msgstr "Ismeretlen hiba"
-
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgid "The library is currently being rebuilt."
 msgstr ""
 
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
+msgid "A rescan has already been scheduled"
 msgstr ""
-
-#, fuzzy
-msgid "leaf"
-msgstr "Törlés"
-
-#, fuzzy
-msgid "ultrapeer"
-msgstr "átjátszó csomóponthoz"
-
-#, fuzzy
-msgid "normal node"
-msgstr "Saját pont"
 
 msgid "Hops"
 msgstr "Ugrás"
@@ -555,10 +576,39 @@ msgstr "Fájl"
 msgid "Size"
 msgstr "Méret"
 
+#, fuzzy
+msgid "Unknown parameter"
+msgstr "Ismeretlen hiba"
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr ""
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr ""
+
+msgid "URL missing"
+msgstr ""
+
+#, fuzzy
+msgid "The download could not be created"
+msgstr "Nics letöltő nyílás"
+
+#, fuzzy
+msgid "Download added"
+msgstr "Letöltve"
+
+msgid "No matching property."
+msgstr ""
+
 msgid "Good bye"
 msgstr ""
 
 msgid "Shutdown sequence initiated."
+msgstr ""
+
+msgid "Malformed command"
 msgstr ""
 
 #, fuzzy
@@ -591,9 +641,10 @@ msgid "Sent ping to UDP host cache %s:%u"
 msgstr ""
 
 #, c-format
-msgid "Got %d host from UDP host cache %s:%u"
-msgid_plural "Got %d hosts from UDP host cache %s:%u"
+msgid "Got %d host from UDP host cache %s"
+msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy
 msgid "Connect back timeout"
@@ -735,6 +786,10 @@ msgstr "Átjátszó üzemmód"
 
 #, fuzzy
 msgid "leaf node"
+msgstr "Saját pont"
+
+#, fuzzy
+msgid "normal node"
 msgstr "Saját pont"
 
 #, fuzzy
@@ -1184,9 +1239,6 @@ msgid "Debug level for code shared between gui and core."
 msgstr "Hibajavítás szintje a felhasználói felület és a mag osztott kódjára"
 
 msgid "Verbosity of Bitzi related debug messages."
-msgstr ""
-
-msgid "Verbosity of GWebCache related debug messages."
 msgstr ""
 
 msgid "Verbosity of URL handling related debug messages."
@@ -2391,17 +2443,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Extra amount of data per downloading source that gtk-gnutella will try to "
-"read-ahead.  This gives more room for reading large amount of data without "
-"issuing too many system calls. It complements buffering nicely because it "
-"prevents reading a few bytes before committing the buffered data to disk: "
-"when read-ahead space is available, it will be used in addition to "
-"buffering, but read-ahead data is committed to disk immediately.  If you "
-"don't wish to reserve more memory per active source, you can disable this "
-"feature by setting the read-ahead buffer size to 0."
-msgstr ""
-
-msgid ""
 "When set, all search results from host browsing are dispatched to all opened "
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
@@ -2432,6 +2473,35 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "Don't start more than this number of parallel downloads per file."
+msgstr "Nem tölt fel ennél több fájlt egyidejűleg egy gépre."
+
+msgid ""
+"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
+"dump."
+msgstr ""
+
+msgid ""
+"If enabled, queries are also matched against the directory names which are "
+"relative to the shared ones. Further, search results will show these. This "
+"is especially useful if the shared filenames are ambiguous or meaningless "
+"without knowing the directory names as well. However, be sure the directory "
+"names do not expose confidential information. You have to initiate a rescan "
+"of the shared files before a change becomes fully effective."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the shell."
+msgstr "A gui hibajavítási szintje"
+
+msgid "If larger than zero, no downloads are started."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the search queue."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
 msgid "disable"
 msgstr "biztos"
 
@@ -2454,9 +2524,6 @@ msgstr ""
 
 msgid "UDP only"
 msgstr ""
-
-msgid "Unknown"
-msgstr "Ismeretlen"
 
 msgid "Ping"
 msgstr "Kip"
@@ -2698,6 +2765,10 @@ msgstr "A szűrőfa mérete a szűrő dialógusban"
 #, fuzzy
 msgid "Show tabs or search list."
 msgstr "Tabokat mutat a keresőlistában"
+
+#, fuzzy
+msgid "Display Searchbar."
+msgstr "Eszköztárat mutat"
 
 #, fuzzy
 msgid "Display Sidebar."
@@ -4084,18 +4155,6 @@ msgstr ""
 msgid "Query hit"
 msgstr "Találat"
 
-msgid "Improper hops/TTL combination"
-msgstr "Helytelen ugrás/TTL párosítás"
-
-msgid "Flow control"
-msgstr "Folyamvezérlés"
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
 msgid "Routing errors"
 msgstr "Útválasztó hiba"
 
@@ -4437,9 +4496,6 @@ msgstr "<semmi>"
 msgid "%s (%s bytes)"
 msgstr "%s (%lu bájt)"
 
-msgid "gtk-gnutella"
-msgstr "gtk-gnutella"
-
 msgid "_File"
 msgstr "_Fájl"
 
@@ -4709,9 +4765,6 @@ msgstr "Feltöltve"
 msgid "Downloaded:"
 msgstr "Letöltve"
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr "Valaki mondjon egy értelmes tippet erre!"
-
 #, fuzzy
 msgid "Chunks/Files:"
 msgstr "Darab/Fájl"
@@ -4737,9 +4790,6 @@ msgstr ""
 "E pont jelenlegi IP-címe és bejövő kapuja. Megváltoztatása: "
 "Beállítások→Hálózat"
 
-msgid "[Gnet]"
-msgstr ""
-
 msgid "Message/flow control stats"
 msgstr "Üzenet/folyamvezérlés stat"
 
@@ -4755,33 +4805,6 @@ msgstr "Ok"
 #, fuzzy
 msgid "_General"
 msgstr "Általános"
-
-msgid "0"
-msgstr ""
-
-msgid "1"
-msgstr ""
-
-msgid "2"
-msgstr ""
-
-msgid "3"
-msgstr ""
-
-msgid "4"
-msgstr ""
-
-msgid "5"
-msgstr ""
-
-msgid "6"
-msgstr ""
-
-msgid "7"
-msgstr ""
-
-msgid "8+"
-msgstr ""
 
 #, fuzzy
 msgid "FC/_TTL"
@@ -4837,10 +4860,6 @@ msgstr ""
 msgid "Show r_easons for"
 msgstr "Okok megjelenítése"
 
-#, fuzzy
-msgid "[Gnet Stats]"
-msgstr "Általános"
-
 msgid "Hostcache statistics"
 msgstr "Gazdatár statisztika"
 
@@ -4870,10 +4889,6 @@ msgstr "Átjátszók"
 
 msgid "Bad hosts"
 msgstr "Rossz gazdák"
-
-#, fuzzy
-msgid "[Hostcache]"
-msgstr "Gazdatár"
 
 msgid "Uploads"
 msgstr "Feltöltések"
@@ -4915,10 +4930,6 @@ msgstr "Legtöbb egyidejű feltöltés"
 msgid "Max. uploads to a single host"
 msgstr "Legtöbb feltöltés egy gépre"
 
-#, fuzzy
-msgid "[Uploads]"
-msgstr "Feltöltések"
-
 msgid "Upload history"
 msgstr "Feltöltés-napló"
 
@@ -4937,30 +4948,14 @@ msgstr "Minden törlése"
 msgid "Fully served "
 msgstr ""
 
-msgid "[BH HTML served]"
-msgstr ""
-
 msgid " / "
-msgstr ""
-
-msgid "[BH HTML]"
 msgstr ""
 
 msgid " HTML and "
 msgstr ""
 
-msgid "[BH qhits served]"
-msgstr ""
-
-msgid "[BH qhits]"
-msgstr ""
-
 msgid " Gnutella browse requests"
 msgstr ""
-
-#, fuzzy
-msgid "[Upload Stats]"
-msgstr "Feltöltések"
 
 msgid "Files to get"
 msgstr "Várt fájlok"
@@ -5017,22 +5012,11 @@ msgstr "Alternatív fájlnevek"
 msgid "_Purge selected"
 msgstr "Kijelölt takarítása"
 
-msgid "[all count]"
-msgstr ""
-
 msgid " registered, "
 msgstr " regisztrálva, "
 
-#, fuzzy
-msgid "[with source count]"
-msgstr " forrással"
-
 msgid " with sources"
 msgstr " forrással"
-
-#, fuzzy
-msgid "[Downloads]"
-msgstr "Letöltések"
 
 msgid "Active sources"
 msgstr "Aktív forrás"
@@ -5043,15 +5027,6 @@ msgstr "Kiszolgáló"
 msgid "Download settings"
 msgstr "Letöltés beállítása"
 
-msgid "Max. simultaneous downloads"
-msgstr "Legtöbb egyidejű letöltés"
-
-msgid "Max. downloads from single host"
-msgstr "Legtöbb letöltés egy gépről"
-
-msgid "Bytes to back off on mismatch"
-msgstr "bájt vissza hiba esetén"
-
 msgid "Never send a push request"
 msgstr "Soha sem kér nyomást"
 
@@ -5060,6 +5035,19 @@ msgstr "Abbahagyva fájl törlése"
 
 msgid "Remove file on mismatch"
 msgstr "Eltérő fájlok törlése"
+
+msgid "Bytes to back off on mismatch"
+msgstr "bájt vissza hiba esetén"
+
+msgid "Max. downloads from single host"
+msgstr "Legtöbb letöltés egy gépről"
+
+msgid "Max. simultaneous downloads"
+msgstr "Legtöbb egyidejű letöltés"
+
+#, fuzzy
+msgid "Max. simultaneous downloads per file"
+msgstr "Legtöbb egyidejű letöltés"
 
 msgid "Auto clear stopped downloads"
 msgstr "Leállt letöltések önműködő törlése"
@@ -5088,10 +5076,6 @@ msgstr "Sikeres, sikertelen és elérhetetlen letöltések törlése a listáró
 msgid "Clear stopped"
 msgstr "Leálltak törlése"
 
-#, fuzzy
-msgid "[running]"
-msgstr "Foglalás"
-
 msgid "("
 msgstr ""
 
@@ -5111,10 +5095,6 @@ msgstr ""
 msgid "Show settings"
 msgstr "Beállítások megjelenítése"
 
-#, fuzzy
-msgid "[Active]"
-msgstr "aktív"
-
 msgid "Inactive sources"
 msgstr "Inaktív forrás"
 
@@ -5127,25 +5107,14 @@ msgstr "Sor befagyasztása"
 msgid "Thaw queue"
 msgstr "Sor olvasztása"
 
-#, fuzzy
-msgid "[queued downloads]"
-msgstr "%u/%u letöltés"
-
 msgid " queued ("
 msgstr " sorbaállt ("
-
-msgid "[hosts alive]"
-msgstr ""
 
 msgid " alive with "
 msgstr " működik "
 
 msgid " passive)"
 msgstr " passzív)"
-
-#, fuzzy
-msgid "[Queue]"
-msgstr "Sorban"
 
 msgid "Search results"
 msgstr "Keresési eredmények"
@@ -5248,10 +5217,6 @@ msgstr "Minden összecsukása"
 msgid "_Clear results"
 msgstr "Eredmények _törlése"
 
-#, fuzzy
-msgid "[Search]"
-msgstr "Keresés"
-
 msgid "Search _monitor enabled"
 msgstr "Keresés _figyelése"
 
@@ -5260,10 +5225,6 @@ msgstr "_Utolsó"
 
 msgid "searches"
 msgstr "keresés megjelenítése"
-
-#, fuzzy
-msgid "[Monitor]"
-msgstr "Figyelő"
 
 msgid "_Update interval (sec)"
 msgstr "Időszerűsítés időtartama (mp)"
@@ -5282,10 +5243,6 @@ msgstr "Adatok _nullázása"
 
 msgid "0 terms counted"
 msgstr "0 szó számlálva"
-
-#, fuzzy
-msgid "[Search Stats]"
-msgstr "Kereső szűrők"
 
 msgid "You seem to be offline."
 msgstr "Úgy tűnik ön nincs vonalban."
@@ -5532,10 +5489,6 @@ msgstr "IP-szabály"
 msgid "Add state rule"
 msgstr "Állapotszabály"
 
-#, fuzzy
-msgid "[Add/Remove]"
-msgstr "Eltávolítás"
-
 msgid "invert condition"
 msgstr "Fordított feltétel"
 
@@ -5555,19 +5508,11 @@ msgstr "Kiszolgáló"
 msgid "Remove"
 msgstr "Eltávolítás"
 
-#, fuzzy
-msgid "[Filename]"
-msgstr "Fájlnév"
-
 msgid "Condition: If IP address matches"
 msgstr "Feltétel: ha az IP-cím illik"
 
 #, fuzzy
 msgid "IP address/mask"
-msgstr "IP-cím"
-
-#, fuzzy
-msgid "[IP address]"
 msgstr "IP-cím"
 
 msgid "Condition: If file size matches"
@@ -5584,10 +5529,6 @@ msgstr "legnagyobb méret"
 msgid "bytes"
 msgstr "bájt"
 
-#, fuzzy
-msgid "[Filesize]"
-msgstr "Fájl"
-
 msgid "Condition: always"
 msgstr "Feltétel: mindig"
 
@@ -5600,9 +5541,6 @@ msgstr ""
 "célként megadott szűrőben. Ezért nem lehet megfordítani ezt a feltételt. Ha "
 "lehetne, ez a feltétel mellőzve lenne."
 
-msgid "[Jump]"
-msgstr ""
-
 msgid "Condition: If urn:sha1 matches"
 msgstr "Feltétel: ha urn:sha1 illik"
 
@@ -5611,10 +5549,6 @@ msgstr "SHA1 hash (nem szerkeszthető, a kereső felugróból lehet hozzáadni)"
 
 msgid "Originally obtained from"
 msgstr "Eredetileg jön"
-
-#, fuzzy
-msgid "[SHA1]"
-msgstr "SHA1:"
 
 msgid "Condition: If result has flags"
 msgstr "Feltétel: ha az eredményben vannak jelzések"
@@ -5634,10 +5568,6 @@ msgstr "bekapcsolva"
 msgid "Stable"
 msgstr "Stabil"
 
-#, fuzzy
-msgid "[Flags]"
-msgstr "Jelzések"
-
 msgid "Condition: If current filter result properties match"
 msgstr "Feltétel: ha a jelenlegi szűrő eredmény tulajdonságai illenek"
 
@@ -5652,10 +5582,6 @@ msgstr "tegye"
 
 msgid "ignore"
 msgstr "mellőz"
-
-#, fuzzy
-msgid "[State]"
-msgstr "Statisztika"
 
 msgid "Apply"
 msgstr "Alkalm"
@@ -5674,7 +5600,7 @@ msgstr "gtk-gnutella leállítása"
 
 #, fuzzy
 msgid ""
-"gtk-gnutella is shutting down.\n"
+"Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
@@ -5684,18 +5610,8 @@ msgstr ""
 "\n"
 "Várakozási idő:"
 
-#, fuzzy
-msgid "[time]"
-msgstr "Futási idő"
-
 msgid "About gtk-gnutella"
 msgstr "gtk-gnutella névjegye"
-
-msgid "[name and version]"
-msgstr ""
-
-msgid "$Id$"
-msgstr ""
 
 msgid "Original author:"
 msgstr "Eredeti szerző:"
@@ -5891,9 +5807,6 @@ msgstr "A használt fájleírók száma – futási időben nem változtatható"
 
 msgid "Currently used"
 msgstr "Jelenleg használt"
-
-msgid "[place holder]"
-msgstr ""
 
 msgid "Use global hostiles.txt"
 msgstr ""
@@ -6094,9 +6007,6 @@ msgstr "_Kettőzött üzenetek tűrhető száma pontonként"
 
 msgid "RX flow control ratio"
 msgstr "RX folyamvezérlés aránya"
-
-msgid "%"
-msgstr ""
 
 msgid "Watch for similar queries"
 msgstr "Hasonló keresések figyelése"
@@ -6700,18 +6610,32 @@ msgid "Frequently Asked Questions:"
 msgstr ""
 
 #, fuzzy
+msgid "_Stop this search"
+msgstr "Leállítja e keresést"
+
+#, fuzzy
+msgid "Resu_me this search"
+msgstr "Folytatja e keresést"
+
+#, fuzzy
+msgid "_Restart this search"
+msgstr "Újrakezdi e keresést"
+
+#, fuzzy
+msgid "_Duplicate this search"
+msgstr "E keresés megkettőzése"
+
+#, fuzzy
+msgid "_Close this search"
+msgstr "Keresés bezárása"
+
+#, fuzzy
 msgid "Country"
 msgstr "Szám"
 
 #, fuzzy
 msgid "Failed to create the search"
 msgstr "E keresés megkettőzése"
-
-msgid "UDP"
-msgstr ""
-
-msgid "TCP"
-msgstr ""
 
 #, fuzzy
 msgid "owned"
@@ -6772,6 +6696,10 @@ msgstr "Gép"
 #, fuzzy
 msgid "SHA-1"
 msgstr "SHA1:"
+
+#, fuzzy
+msgid "Created"
+msgstr "Befejezve"
 
 msgid "Not in database"
 msgstr ""
@@ -6834,6 +6762,10 @@ msgid "Cache contains"
 msgstr "Gyorstár tartalmaz"
 
 #, fuzzy
+msgid "Pause"
+msgstr "Nyomás"
+
+#, fuzzy
 msgid "Copy Magnet to clipboard"
 msgstr "Url-t vágólapra másol"
 
@@ -6892,9 +6824,21 @@ msgstr "Cím/Kapu:"
 msgid "Uploaded data:"
 msgstr "Feltöltve"
 
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "Valaki mondjon egy értelmes tippet erre!"
+
 #, fuzzy
 msgid "Served "
 msgstr "Kiszolgáló"
+
+msgid "[BH HTML served]"
+msgstr ""
+
+msgid "[BH HTML]"
+msgstr ""
+
+msgid "[BH qhits]"
+msgstr ""
 
 #, fuzzy
 msgid "Current _search:"
@@ -6962,6 +6906,14 @@ msgstr ""
 "hogy először a helyi hálózatokon keresi a fájlokat."
 
 #, fuzzy
+msgid ""
+"Check this button if you want to use Gtk-Gnutella on your Local Area "
+"Network. RFC1918 will be ignored."
+msgstr ""
+"Pipálja ki ezt a négyzetet, ha a helyi hálózatokon akarja használni GTK-"
+"Gnutellát. RFC1918-at mellőzi."
+
+#, fuzzy
 msgid "_Addresses of local network(s)"
 msgstr "Helyi hálózatok _címei"
 
@@ -6989,16 +6941,12 @@ msgstr "Próbálkozás"
 msgid "_Remove directory"
 msgstr " Mappa hozzáadása "
 
+msgid "E_xpose relative paths"
+msgstr ""
+
 #, fuzzy
 msgid "Minimum chunk _size"
 msgstr "Leg_kisebb darabméret"
-
-msgid "Edit filters"
-msgstr "Szűrők szerkesztése"
-
-#, fuzzy
-msgid "Close this search"
-msgstr "Keresés bezárása"
 
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
@@ -7024,24 +6972,6 @@ msgid "Version"
 msgstr "Végződés"
 
 #, fuzzy
-msgid "Leaf"
-msgstr "Törlés"
-
-#, fuzzy
-msgid "Ultrapeer"
-msgstr "Átjátszók"
-
-msgid "Legacy"
-msgstr ""
-
-#, fuzzy
-msgid "Crawler"
-msgstr "Törlés"
-
-msgid "Move the cursor over a row to see details."
-msgstr ""
-
-#, fuzzy
 msgid "Peer:"
 msgstr "Soha"
 
@@ -7053,6 +6983,9 @@ msgid "incoming"
 msgstr ""
 
 msgid "outgoing"
+msgstr ""
+
+msgid "Move the cursor over a row to see details."
 msgstr ""
 
 #, c-format
@@ -7106,16 +7039,6 @@ msgstr "Figyelő"
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
 msgid "translation_credit|"
-msgstr ""
-
-msgid ""
-"\n"
-"The FAQ document is damaged.\n"
-msgstr ""
-
-msgid ""
-"The FAQ document could not be loaded. Please read the online FAQ at http://"
-"gtk-gnutella.sourceforge.net/?page=faq instead."
 msgstr ""
 
 #, fuzzy, c-format
@@ -7190,9 +7113,6 @@ msgstr ""
 msgid "<unparsed>"
 msgstr "<feldolgozatlan>"
 
-msgid ", browsable"
-msgstr ""
-
 #, fuzzy
 msgid "browsable"
 msgstr "biztos"
@@ -7245,10 +7165,25 @@ msgstr[0] "Nincs keresés"
 msgid "Handled magnet link (%s, %s)."
 msgstr "Nyomás elküldése sikertelen"
 
+msgid "Ignored unusable magnet link."
+msgstr ""
+
 msgid "The given urn type is not supported."
 msgstr ""
 
+msgid "The given SHA-1 is not correctly encoded."
+msgstr ""
+
+msgid "Missing port number"
+msgstr ""
+
+msgid "Could not parse host address"
+msgstr ""
+
 msgid "The query string is not UTF-8 encoded"
+msgstr ""
+
+msgid "Unhandled search prefix."
 msgstr ""
 
 #, c-format
@@ -7400,6 +7335,114 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "Connecting to web cache %s"
+#~ msgstr "Géphez csatlakozik"
+
+#, fuzzy
+#~ msgid "leaf"
+#~ msgstr "Törlés"
+
+#, fuzzy
+#~ msgid "ultrapeer"
+#~ msgstr "átjátszó csomóponthoz"
+
+#~ msgid "Improper hops/TTL combination"
+#~ msgstr "Helytelen ugrás/TTL párosítás"
+
+#~ msgid "Flow control"
+#~ msgstr "Folyamvezérlés"
+
+#~ msgid "gtk-gnutella"
+#~ msgstr "gtk-gnutella"
+
+#, fuzzy
+#~ msgid "[Gnet Stats]"
+#~ msgstr "Általános"
+
+#, fuzzy
+#~ msgid "[Hostcache]"
+#~ msgstr "Gazdatár"
+
+#, fuzzy
+#~ msgid "[Uploads]"
+#~ msgstr "Feltöltések"
+
+#, fuzzy
+#~ msgid "[Upload Stats]"
+#~ msgstr "Feltöltések"
+
+#, fuzzy
+#~ msgid "[with source count]"
+#~ msgstr " forrással"
+
+#, fuzzy
+#~ msgid "[Downloads]"
+#~ msgstr "Letöltések"
+
+#, fuzzy
+#~ msgid "[running]"
+#~ msgstr "Foglalás"
+
+#, fuzzy
+#~ msgid "[Active]"
+#~ msgstr "aktív"
+
+#, fuzzy
+#~ msgid "[queued downloads]"
+#~ msgstr "%u/%u letöltés"
+
+#, fuzzy
+#~ msgid "[Queue]"
+#~ msgstr "Sorban"
+
+#, fuzzy
+#~ msgid "[Search]"
+#~ msgstr "Keresés"
+
+#, fuzzy
+#~ msgid "[Monitor]"
+#~ msgstr "Figyelő"
+
+#, fuzzy
+#~ msgid "[Search Stats]"
+#~ msgstr "Kereső szűrők"
+
+#, fuzzy
+#~ msgid "[Add/Remove]"
+#~ msgstr "Eltávolítás"
+
+#, fuzzy
+#~ msgid "[Filename]"
+#~ msgstr "Fájlnév"
+
+#, fuzzy
+#~ msgid "[IP address]"
+#~ msgstr "IP-cím"
+
+#, fuzzy
+#~ msgid "[Filesize]"
+#~ msgstr "Fájl"
+
+#, fuzzy
+#~ msgid "[SHA1]"
+#~ msgstr "SHA1:"
+
+#, fuzzy
+#~ msgid "[Flags]"
+#~ msgstr "Jelzések"
+
+#, fuzzy
+#~ msgid "[State]"
+#~ msgstr "Statisztika"
+
+#, fuzzy
+#~ msgid "[time]"
+#~ msgstr "Futási idő"
+
+#~ msgid "Edit filters"
+#~ msgstr "Szűrők szerkesztése"
 
 #, fuzzy
 #~ msgid "Auto-download selected by..."

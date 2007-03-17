@@ -8,9 +8,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.2u\n"
+"Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-10-31 16:01+0100\n"
+"POT-Creation-Date: 2007-03-17 19:06+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -47,6 +47,10 @@ msgstr "Ingeslapen (SHA1 verifieren)"
 msgid " at %s - rescheduled for %s"
 msgstr " op %s - opnieuw gepland voor %s"
 
+#, fuzzy
+msgid "Paused"
+msgstr "Passief"
+
 msgid "Waiting for a free chunk"
 msgstr "Wacht op een vrije chunk"
 
@@ -80,8 +84,17 @@ msgstr[1] "Verbinding geweigerd (%u pogingen)"
 msgid "Dup SHA1 during creation"
 msgstr "Dubbele SHA1 tijdens creatie"
 
-msgid "No download slot (create)"
-msgstr "Geen download slot (aanmaken)"
+#, fuzzy
+msgid "Max. number of downloads reached"
+msgstr "Max. aantal resultaten"
+
+#, fuzzy
+msgid "Max. number of downloads for this host reached"
+msgstr "Max. aantal resultaten"
+
+#, fuzzy
+msgid "Has already enough active sources"
+msgstr "Inactieve bronnen"
 
 msgid "Stopped (Index changed)"
 msgstr "Gestopped (Index veranderd)"
@@ -254,18 +267,15 @@ msgstr ""
 msgid "Evil filename"
 msgstr "Bestandsnaam"
 
-#, c-format
-msgid "Got %d host from %s"
-msgid_plural "Got %d hosts from %s"
-msgstr[0] "%d host ontvangen van %s"
-msgstr[1] "%d hosts ontvangen van %s"
+msgid "Payload inflating error"
+msgstr ""
 
-#, c-format
-msgid "Connecting to web cache %s"
-msgstr "Aan het verbinden met web cache %s"
+msgid "Unknown header flags present"
+msgstr ""
 
-msgid "Updated web cache "
-msgstr "Web cache bijgewerkt"
+#, fuzzy
+msgid "Own search results"
+msgstr "Zoekresultaten"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -422,6 +432,24 @@ msgstr "Verwijderd: %s bericht te groot (%d bytes)"
 msgid "Kicked: %s message too big (>= 64KiB limit)"
 msgstr "Verwijderd: %s bericht te groot (%d bytes)"
 
+msgid "Leaf"
+msgstr "Leaf"
+
+msgid "Ultrapeer"
+msgstr "Ultrapeer"
+
+msgid "Legacy"
+msgstr "Legacy"
+
+msgid "Crawler"
+msgstr "Crawler"
+
+msgid "UDP"
+msgstr "UDP"
+
+msgid "Unknown"
+msgstr "Onbekend"
+
 msgid "Read failed (Input Exception)"
 msgstr "Lezen mislukt (Invoer fout)"
 
@@ -461,23 +489,37 @@ msgstr "Aanmaken zoekopdracht mislukt"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Als TCP-firewalled kan er alleen als leaf worden geopereerd"
 
-msgid "Node added"
-msgstr "Node toegevoegd"
-
 msgid "Invalid IP/Port"
 msgstr "Ongeldige IP/Poort"
 
+msgid "Node added"
+msgstr "Node toegevoegd"
+
+#, fuzzy
+msgid "Invalid IP"
+msgstr "Ongeldige IP/Poort"
+
+#, fuzzy
+msgid "Invalid port"
+msgstr "Ongeldige IP/Poort"
+
+#, fuzzy, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "%u download verwijderd"
+msgstr[1] "%u downloads verwijderd"
+
 msgid "Unknown operation"
 msgstr "Onbekende error"
-
-msgid "Malformed command"
-msgstr "Commando ongeldig"
 
 msgid "Query string missing"
 msgstr "Zoek text mist"
 
 msgid "Search added"
 msgstr "Zoek opdracht toegevoegd"
+
+msgid "The search could not be created"
+msgstr ""
 
 msgid "Property missing"
 msgstr "Property mist"
@@ -494,34 +536,17 @@ msgstr "Waarde gevonden en weergegeven"
 msgid "Value missing"
 msgstr "Waarde mist"
 
-msgid "Type not supported"
-msgstr "Type wordt niet ondersteund"
-
 msgid "Value found and set"
 msgstr "Waarde gevonden en gezet"
 
 msgid "Help: "
 msgstr "Help:"
 
-msgid "Unknown parameter"
-msgstr "Onbekende parameter"
+msgid "The library is currently being rebuilt."
+msgstr ""
 
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "Horizon grote (%u/%u node ondersteunen HSEP):"
-
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr "Horizon grootte via HSEP node %s (%s):"
-
-msgid "leaf"
-msgstr "leaf"
-
-msgid "ultrapeer"
-msgstr "ultrapeer"
-
-msgid "normal node"
-msgstr "Normale node"
+msgid "A rescan has already been scheduled"
+msgstr ""
 
 msgid "Hops"
 msgstr "Hops"
@@ -535,11 +560,40 @@ msgstr "Bestanden"
 msgid "Size"
 msgstr "Grootte"
 
+msgid "Unknown parameter"
+msgstr "Onbekende parameter"
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr "Horizon grote (%u/%u node ondersteunen HSEP):"
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr "Horizon grootte via HSEP node %s (%s):"
+
+#, fuzzy
+msgid "URL missing"
+msgstr "Waarde mist"
+
+#, fuzzy
+msgid "The download could not be created"
+msgstr "Geen download slot (aanmaken)"
+
+#, fuzzy
+msgid "Download added"
+msgstr "Gedownload:"
+
+msgid "No matching property."
+msgstr ""
+
 msgid "Good bye"
 msgstr "Tot ziens"
 
 msgid "Shutdown sequence initiated."
 msgstr ""
+
+msgid "Malformed command"
+msgstr "Commando ongeldig"
 
 msgid "Unknown command"
 msgstr "Commando onbekend"
@@ -568,9 +622,9 @@ msgstr "Zoeken naar UDP host cache %s"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Ping naar UDP host cache %s verzonden: %u"
 
-#, c-format
-msgid "Got %d host from UDP host cache %s:%u"
-msgid_plural "Got %d hosts from UDP host cache %s:%u"
+#, fuzzy, c-format
+msgid "Got %d host from UDP host cache %s"
+msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] "Ontving %d host van de UDP host cache %s:%u"
 msgstr[1] "Ontving %d hosts van de UDP host cache %s:%u"
 
@@ -703,6 +757,9 @@ msgstr "ultra-node"
 
 msgid "leaf node"
 msgstr "leaf node"
+
+msgid "normal node"
+msgstr "Normale node"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Geeft aan of het hostcache bestand word gelezen."
@@ -1131,9 +1188,6 @@ msgstr "Debug level voor code die wordt gedeelt tussen de GUI en de core."
 
 msgid "Verbosity of Bitzi related debug messages."
 msgstr "Detail level voor Bitiz gerelateerde debug berichten."
-
-msgid "Verbosity of GWebCache related debug messages."
-msgstr "Detail level voor GWebCache gerelateerde debug berichten."
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr "Detail level voor URL afhandeling gerelateerde debug berichten."
@@ -2400,24 +2454,6 @@ msgstr ""
 "maximale waarde als e genoeg RAM hebt."
 
 msgid ""
-"Extra amount of data per downloading source that gtk-gnutella will try to "
-"read-ahead.  This gives more room for reading large amount of data without "
-"issuing too many system calls. It complements buffering nicely because it "
-"prevents reading a few bytes before committing the buffered data to disk: "
-"when read-ahead space is available, it will be used in addition to "
-"buffering, but read-ahead data is committed to disk immediately.  If you "
-"don't wish to reserve more memory per active source, you can disable this "
-"feature by setting the read-ahead buffer size to 0."
-msgstr ""
-"Hoeveelheid data dat gtk-gnutella vooruit moet proberen te lezen per bron "
-"die aan het downloaden is. Dit voorkomt teveel systeem aanroepen tijdens het "
-"lezen van grote hoeveelheid data. Dit vult bufferen mooi aan, aangezien dit "
-"voorkomt dat er een paar bytes worden gelezen en vervolgens de gebufferde "
-"data naar de schijf wordt weggeschreven terwijl er nog ruimte is voor het "
-"vooruit lezen. Als je dit wilt uitzetten, dan kan je vooruit lees buffer op "
-"0 zetten."
-
-msgid ""
 "When set, all search results from host browsing are dispatched to all opened "
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
@@ -2447,6 +2483,35 @@ msgid ""
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
+#, fuzzy
+msgid "Don't start more than this number of parallel downloads per file."
+msgstr "Upload niet meer dan dit aantal bestanden tegelijk naar één host."
+
+msgid ""
+"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
+"dump."
+msgstr ""
+
+msgid ""
+"If enabled, queries are also matched against the directory names which are "
+"relative to the shared ones. Further, search results will show these. This "
+"is especially useful if the shared filenames are ambiguous or meaningless "
+"without knowing the directory names as well. However, be sure the directory "
+"names do not expose confidential information. You have to initiate a rescan "
+"of the shared files before a change becomes fully effective."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the shell."
+msgstr "Debug level voor de gui."
+
+msgid "If larger than zero, no downloads are started."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the search queue."
+msgstr "Debug level voor de gui."
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -2467,9 +2532,6 @@ msgstr "Alleen TCP"
 
 msgid "UDP only"
 msgstr "Alleen UDP"
-
-msgid "Unknown"
-msgstr "Onbekend"
 
 msgid "Ping"
 msgstr "Ping"
@@ -2679,6 +2741,10 @@ msgstr "Grootte van de filter boom in het filter dialoog."
 
 msgid "Show tabs or search list."
 msgstr "Gebruik tabs of een zoek lijst."
+
+#, fuzzy
+msgid "Display Searchbar."
+msgstr "Zijbalk tonen."
 
 msgid "Display Sidebar."
 msgstr "Zijbalk tonen."
@@ -4059,18 +4125,6 @@ msgstr "TERUG"
 msgid "Query hit"
 msgstr "Zoekresultaat"
 
-msgid "Improper hops/TTL combination"
-msgstr "Ongeldige hops/TTL combinatie"
-
-msgid "Flow control"
-msgstr "Flow control"
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
 msgid "Routing errors"
 msgstr "Errors dmv routeren"
 
@@ -4418,9 +4472,6 @@ msgstr "<geen>"
 msgid "%s (%s bytes)"
 msgstr "%s (%s bytes)"
 
-msgid "gtk-gnutella"
-msgstr "gtk-gnutella"
-
 msgid "_File"
 msgstr "Bestand"
 
@@ -4657,9 +4708,6 @@ msgstr "Geupload:"
 msgid "Downloaded:"
 msgstr "Gedownload:"
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr "Is er een toepasselijke tooltip voor deze?"
-
 msgid "Chunks/Files:"
 msgstr "Fragmenten/Bestanden:"
 
@@ -4682,9 +4730,6 @@ msgstr ""
 "Het huidige IP-adres en de luisterende poort voor deze node. Om deze waarde "
 "te wijzigen ga dan naar: Bestand->Configuratie->Netwerk."
 
-msgid "[Gnet]"
-msgstr ""
-
 msgid "Message/flow control stats"
 msgstr "berichten/flow control statistieken"
 
@@ -4699,33 +4744,6 @@ msgstr "Reden"
 
 msgid "_General"
 msgstr "Algemeen"
-
-msgid "0"
-msgstr ""
-
-msgid "1"
-msgstr ""
-
-msgid "2"
-msgstr ""
-
-msgid "3"
-msgstr ""
-
-msgid "4"
-msgstr ""
-
-msgid "5"
-msgstr ""
-
-msgid "6"
-msgstr ""
-
-msgid "7"
-msgstr ""
-
-msgid "8+"
-msgstr ""
 
 msgid "FC/_TTL"
 msgstr "FC/_TTL"
@@ -4772,10 +4790,6 @@ msgstr "Toon pr_otocol:"
 msgid "Show r_easons for"
 msgstr "Toon de r_eden voor"
 
-#, fuzzy
-msgid "[Gnet Stats]"
-msgstr "Gnutella statistieken"
-
 msgid "Hostcache statistics"
 msgstr "Hostcache statistieken"
 
@@ -4805,10 +4819,6 @@ msgstr "Ultrapeers"
 
 msgid "Bad hosts"
 msgstr "Slechte hosts"
-
-#, fuzzy
-msgid "[Hostcache]"
-msgstr "Hostcache"
 
 msgid "Uploads"
 msgstr "Uploads"
@@ -4849,10 +4859,6 @@ msgstr "Max. gelijktijdige uploads"
 msgid "Max. uploads to a single host"
 msgstr "Maximum uploads naar één host"
 
-#, fuzzy
-msgid "[Uploads]"
-msgstr "Uploads"
-
 msgid "Upload history"
 msgstr "Upload geschiedenis"
 
@@ -4871,32 +4877,14 @@ msgstr "Opschonen"
 msgid "Fully served "
 msgstr ""
 
-#, fuzzy
-msgid "[BH HTML served]"
-msgstr "[BH HTML]"
-
 msgid " / "
 msgstr ""
-
-msgid "[BH HTML]"
-msgstr "[BH HTML]"
 
 msgid " HTML and "
 msgstr " HTML en"
 
-#, fuzzy
-msgid "[BH qhits served]"
-msgstr "[BH qhits]"
-
-msgid "[BH qhits]"
-msgstr "[BH qhits]"
-
 msgid " Gnutella browse requests"
 msgstr " Gnutella verzoek tot browsen"
-
-#, fuzzy
-msgid "[Upload Stats]"
-msgstr "Uploads"
 
 msgid "Files to get"
 msgstr "Op te halen bestanden"
@@ -4950,22 +4938,11 @@ msgstr "Alternatieve bestandsnamen"
 msgid "_Purge selected"
 msgstr "Verwijder de selectie voorgoed"
 
-msgid "[all count]"
-msgstr ""
-
 msgid " registered, "
 msgstr ".geregistreerd, "
 
-#, fuzzy
-msgid "[with source count]"
-msgstr " met bronnen"
-
 msgid " with sources"
 msgstr " met bronnen"
-
-#, fuzzy
-msgid "[Downloads]"
-msgstr "Downloads"
 
 msgid "Active sources"
 msgstr "Actieve bronnen"
@@ -4976,15 +4953,6 @@ msgstr "Server"
 msgid "Download settings"
 msgstr "Download instellingen"
 
-msgid "Max. simultaneous downloads"
-msgstr "Max. gelijktijdige downloads"
-
-msgid "Max. downloads from single host"
-msgstr "Max. downloads van één host"
-
-msgid "Bytes to back off on mismatch"
-msgstr "Bytes om te verwijderen als er geen overeenkomst is"
-
 msgid "Never send a push request"
 msgstr "Verstuur nooit een push verzoek"
 
@@ -4993,6 +4961,19 @@ msgstr "Verwijder bestand als deze word afgebroken"
 
 msgid "Remove file on mismatch"
 msgstr "Verwijder bestand als deze niet overeen komt"
+
+msgid "Bytes to back off on mismatch"
+msgstr "Bytes om te verwijderen als er geen overeenkomst is"
+
+msgid "Max. downloads from single host"
+msgstr "Max. downloads van één host"
+
+msgid "Max. simultaneous downloads"
+msgstr "Max. gelijktijdige downloads"
+
+#, fuzzy
+msgid "Max. simultaneous downloads per file"
+msgstr "Max. gelijktijdige downloads"
 
 msgid "Auto clear stopped downloads"
 msgstr "Automatisch opschonen: afgeronde downloads"
@@ -5022,10 +5003,6 @@ msgstr ""
 msgid "Clear stopped"
 msgstr "Afgeronde verwijderen"
 
-#, fuzzy
-msgid "[running]"
-msgstr "Bannen"
-
 msgid "("
 msgstr ""
 
@@ -5044,10 +5021,6 @@ msgstr ""
 msgid "Show settings"
 msgstr "Geef instellingen weer"
 
-#, fuzzy
-msgid "[Active]"
-msgstr "Actief"
-
 msgid "Inactive sources"
 msgstr "Inactieve bronnen"
 
@@ -5060,25 +5033,14 @@ msgstr "Pauzeer de wachtrij"
 msgid "Thaw queue"
 msgstr "Ontdoei de wachtrij"
 
-#, fuzzy
-msgid "[queued downloads]"
-msgstr "%u/%u downloads"
-
 msgid " queued ("
 msgstr " wachtende ("
-
-msgid "[hosts alive]"
-msgstr ""
 
 msgid " alive with "
 msgstr " levend met "
 
 msgid " passive)"
 msgstr " passief)"
-
-#, fuzzy
-msgid "[Queue]"
-msgstr "In de wacht"
 
 msgid "Search results"
 msgstr "Zoekresultaten"
@@ -5175,10 +5137,6 @@ msgstr "Alles inklappen"
 msgid "_Clear results"
 msgstr "Verwijder resultaten"
 
-#, fuzzy
-msgid "[Search]"
-msgstr "Zoek"
-
 msgid "Search _monitor enabled"
 msgstr "Zoekopdrachten monitor geactiveerd"
 
@@ -5187,10 +5145,6 @@ msgstr "Toon laatste"
 
 msgid "searches"
 msgstr "zoek opdrachten"
-
-#, fuzzy
-msgid "[Monitor]"
-msgstr "Monitor"
 
 msgid "_Update interval (sec)"
 msgstr "Update interval (sec)"
@@ -5209,10 +5163,6 @@ msgstr "Zet statistieken op nul"
 
 msgid "0 terms counted"
 msgstr "0 termen geteld"
-
-#, fuzzy
-msgid "[Search Stats]"
-msgstr "Zoek filters"
 
 msgid "You seem to be offline."
 msgstr "Het ziet er naar uit dat u offline bent."
@@ -5470,10 +5420,6 @@ msgstr "Voeg IP regel toe"
 msgid "Add state rule"
 msgstr "Voeg regel toe"
 
-#, fuzzy
-msgid "[Add/Remove]"
-msgstr "Verwijder"
-
 msgid "invert condition"
 msgstr "inverteer voorwaarde"
 
@@ -5493,18 +5439,10 @@ msgstr "Opgeslagen"
 msgid "Remove"
 msgstr "Verwijder"
 
-#, fuzzy
-msgid "[Filename]"
-msgstr "Bestandsnaam"
-
 msgid "Condition: If IP address matches"
 msgstr "Voorwaarde: Als IP-adres overeenkomt"
 
 msgid "IP address/mask"
-msgstr "IP-adres/masker"
-
-#, fuzzy
-msgid "[IP address]"
 msgstr "IP-adres/masker"
 
 msgid "Condition: If file size matches"
@@ -5519,10 +5457,6 @@ msgstr "maximale grootte:"
 msgid "bytes"
 msgstr "bytes"
 
-#, fuzzy
-msgid "[Filesize]"
-msgstr "Bestanden"
-
 msgid "Condition: always"
 msgstr "Voorwaarde: altijd"
 
@@ -5536,9 +5470,6 @@ msgstr ""
 "voorwaarde niet geinverteerd kan worden, daardoor zou deze regel gewoon "
 "genegeerd worden."
 
-msgid "[Jump]"
-msgstr ""
-
 msgid "Condition: If urn:sha1 matches"
 msgstr "Voorwaarde: Als urn:sha1 overeenkomt"
 
@@ -5547,10 +5478,6 @@ msgstr "SHA1 hash (niet bewerkbaar, voeg toe vanuit zoek popup)"
 
 msgid "Originally obtained from"
 msgstr "Oorspronkelijk verkregen van"
-
-#, fuzzy
-msgid "[SHA1]"
-msgstr "SHA1:"
 
 msgid "Condition: If result has flags"
 msgstr "Voorwaarde: Als resultaat de flag heeft"
@@ -5570,10 +5497,6 @@ msgstr "zet"
 msgid "Stable"
 msgstr "Stabiel"
 
-#, fuzzy
-msgid "[Flags]"
-msgstr "Vlag"
-
 msgid "Condition: If current filter result properties match"
 msgstr ""
 "Conditie: Als huidige filter resultaat eigenschappen van toepassing zijn"
@@ -5590,10 +5513,6 @@ msgstr "doe"
 msgid "ignore"
 msgstr "negeer"
 
-#, fuzzy
-msgid "[State]"
-msgstr "Statistieken"
-
 msgid "Apply"
 msgstr "Toepassen"
 
@@ -5609,8 +5528,9 @@ msgstr "Annuleren"
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutella afsluiten"
 
+#, fuzzy
 msgid ""
-"gtk-gnutella is shutting down.\n"
+"Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
@@ -5620,18 +5540,8 @@ msgstr ""
 "\n"
 "Tijd tot werkelijk afsluiten:"
 
-#, fuzzy
-msgid "[time]"
-msgstr "Tijd draaiend"
-
 msgid "About gtk-gnutella"
 msgstr "Over gtk-gnutella"
-
-msgid "[name and version]"
-msgstr ""
-
-msgid "$Id$"
-msgstr ""
 
 msgid "Original author:"
 msgstr "Oorspronkelijke auteur:"
@@ -5824,9 +5734,6 @@ msgstr ""
 msgid "Currently used"
 msgstr "Momenteel gebruikt"
 
-msgid "[place holder]"
-msgstr ""
-
 msgid "Use global hostiles.txt"
 msgstr "Gebruike algemene hostiles.txt"
 
@@ -6016,9 +5923,6 @@ msgstr "Aantal acceptable duplicaten van berichten per node"
 
 msgid "RX flow control ratio"
 msgstr "RX flow control percentage"
-
-msgid "%"
-msgstr ""
 
 msgid "Watch for similar queries"
 msgstr "Kijk uit naar identieke zoekopdrachten"
@@ -6574,17 +6478,31 @@ msgstr "gtk-gnutella - Vaak gestelde vragen"
 msgid "Frequently Asked Questions:"
 msgstr "Veel gestelde vragen"
 
+#, fuzzy
+msgid "_Stop this search"
+msgstr "Stop deze zoekopdracht"
+
+#, fuzzy
+msgid "Resu_me this search"
+msgstr "Hervat deze zoekopdracht"
+
+#, fuzzy
+msgid "_Restart this search"
+msgstr "Begin deze zoekopdracht opnieuw"
+
+#, fuzzy
+msgid "_Duplicate this search"
+msgstr "Dupliceer deze zoekopdracht"
+
+#, fuzzy
+msgid "_Close this search"
+msgstr "Sluit deze zoekopdracht"
+
 msgid "Country"
 msgstr "Land"
 
 msgid "Failed to create the search"
 msgstr "Aanmaken zoekopdracht mislukt"
-
-msgid "UDP"
-msgstr "UDP"
-
-msgid "TCP"
-msgstr ""
 
 #, fuzzy
 msgid "owned"
@@ -6650,6 +6568,10 @@ msgstr "Host"
 msgid "SHA-1"
 msgstr "SHA1:"
 
+#, fuzzy
+msgid "Created"
+msgstr "Afgerond"
+
 msgid "Not in database"
 msgstr "Niet in de database"
 
@@ -6713,6 +6635,10 @@ msgid "Cache contains"
 msgstr "Cache bevat"
 
 #, fuzzy
+msgid "Pause"
+msgstr "Push"
+
+#, fuzzy
 msgid "Copy Magnet to clipboard"
 msgstr "Kopieer naar klembord"
 
@@ -6766,8 +6692,21 @@ msgstr "Adres/Poort:"
 msgid "Uploaded data:"
 msgstr "Geuploade data:"
 
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "Is er een toepasselijke tooltip voor deze?"
+
 msgid "Served "
 msgstr "Geserveerd"
+
+#, fuzzy
+msgid "[BH HTML served]"
+msgstr "[BH HTML]"
+
+msgid "[BH HTML]"
+msgstr "[BH HTML]"
+
+msgid "[BH qhits]"
+msgstr "[BH qhits]"
 
 msgid "Current _search:"
 msgstr "Huidige zoekopdracht:"
@@ -6831,6 +6770,14 @@ msgstr ""
 "hier een snelheidswinst behalen door eerst te zoeken naar bestanden op het "
 "lokale netwerk."
 
+#, fuzzy
+msgid ""
+"Check this button if you want to use Gtk-Gnutella on your Local Area "
+"Network. RFC1918 will be ignored."
+msgstr ""
+"Activeer dit als je GTK-Gnutella wilt gebruiken op je Lokale Netwerk (LAN). "
+"De RFC1918 zal dan worden genegeerd."
+
 msgid "_Addresses of local network(s)"
 msgstr "_Adressen van (het) Lokale Netwerk(en)"
 
@@ -6855,14 +6802,11 @@ msgstr "pogingen"
 msgid "_Remove directory"
 msgstr "Verwijder directory"
 
+msgid "E_xpose relative paths"
+msgstr ""
+
 msgid "Minimum chunk _size"
 msgstr "Minimale stuk grootte"
-
-msgid "Edit filters"
-msgstr "Bewerk filters"
-
-msgid "Close this search"
-msgstr "Sluit deze zoekopdracht"
 
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
@@ -6887,21 +6831,6 @@ msgstr "Gedownloade data:"
 msgid "Version"
 msgstr "Versie"
 
-msgid "Leaf"
-msgstr "Leaf"
-
-msgid "Ultrapeer"
-msgstr "Ultrapeer"
-
-msgid "Legacy"
-msgstr "Legacy"
-
-msgid "Crawler"
-msgstr "Crawler"
-
-msgid "Move the cursor over a row to see details."
-msgstr "Beweeg de cursor over een rij om de details te zien"
-
 msgid "Peer:"
 msgstr "Peer:"
 
@@ -6913,6 +6842,9 @@ msgstr "inkomend"
 
 msgid "outgoing"
 msgstr "uitgaand"
+
+msgid "Move the cursor over a row to see details."
+msgstr "Beweeg de cursor over een rij om de details te zien"
 
 #, c-format
 msgid "Reverse lookup for %s failed"
@@ -6965,20 +6897,6 @@ msgstr "Monitor"
 #. and append your name to the list.
 msgid "translation_credit|"
 msgstr ""
-
-msgid ""
-"\n"
-"The FAQ document is damaged.\n"
-msgstr ""
-"\n"
-"Het FAQ document is beschadigd.\n"
-
-msgid ""
-"The FAQ document could not be loaded. Please read the online FAQ at http://"
-"gtk-gnutella.sourceforge.net/?page=faq instead."
-msgstr ""
-"Het FAQ document kon niet worden geladen. Lees in plaats daarvan de FAQ "
-"op http://gtk-gnutella.sourceforge.net/?page=faq"
 
 #, c-format
 msgid "%d second"
@@ -7050,9 +6968,6 @@ msgstr ""
 msgid "<unparsed>"
 msgstr "<niet verwerkt>"
 
-msgid ", browsable"
-msgstr ", bladerbaar"
-
 msgid "browsable"
 msgstr "bladerbaar"
 
@@ -7106,12 +7021,29 @@ msgstr[1] "Geen zoekopdrachten"
 msgid "Handled magnet link (%s, %s)."
 msgstr "Mislukt (Kon '%s' niet versturen: %s)"
 
+msgid "Ignored unusable magnet link."
+msgstr ""
+
 #, fuzzy
 msgid "The given urn type is not supported."
 msgstr "Type wordt niet ondersteund"
 
+#, fuzzy
+msgid "The given SHA-1 is not correctly encoded."
+msgstr "Type wordt niet ondersteund"
+
+msgid "Missing port number"
+msgstr ""
+
+#, fuzzy
+msgid "Could not parse host address"
+msgstr "Kon geen host bladeren initialiseren voor %s"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "De opdracht tekst is niet in UTF-8 gecodeerd"
+
+msgid "Unhandled search prefix."
+msgstr ""
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -7266,6 +7198,164 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid "Got %d host from %s"
+#~ msgid_plural "Got %d hosts from %s"
+#~ msgstr[0] "%d host ontvangen van %s"
+#~ msgstr[1] "%d hosts ontvangen van %s"
+
+#~ msgid "Connecting to web cache %s"
+#~ msgstr "Aan het verbinden met web cache %s"
+
+#~ msgid "Updated web cache "
+#~ msgstr "Web cache bijgewerkt"
+
+#~ msgid "Type not supported"
+#~ msgstr "Type wordt niet ondersteund"
+
+#~ msgid "leaf"
+#~ msgstr "leaf"
+
+#~ msgid "ultrapeer"
+#~ msgstr "ultrapeer"
+
+#~ msgid "Verbosity of GWebCache related debug messages."
+#~ msgstr "Detail level voor GWebCache gerelateerde debug berichten."
+
+#~ msgid ""
+#~ "Extra amount of data per downloading source that gtk-gnutella will try to "
+#~ "read-ahead.  This gives more room for reading large amount of data "
+#~ "without issuing too many system calls. It complements buffering nicely "
+#~ "because it prevents reading a few bytes before committing the buffered "
+#~ "data to disk: when read-ahead space is available, it will be used in "
+#~ "addition to buffering, but read-ahead data is committed to disk "
+#~ "immediately.  If you don't wish to reserve more memory per active source, "
+#~ "you can disable this feature by setting the read-ahead buffer size to 0."
+#~ msgstr ""
+#~ "Hoeveelheid data dat gtk-gnutella vooruit moet proberen te lezen per bron "
+#~ "die aan het downloaden is. Dit voorkomt teveel systeem aanroepen tijdens "
+#~ "het lezen van grote hoeveelheid data. Dit vult bufferen mooi aan, "
+#~ "aangezien dit voorkomt dat er een paar bytes worden gelezen en vervolgens "
+#~ "de gebufferde data naar de schijf wordt weggeschreven terwijl er nog "
+#~ "ruimte is voor het vooruit lezen. Als je dit wilt uitzetten, dan kan je "
+#~ "vooruit lees buffer op 0 zetten."
+
+#~ msgid "Improper hops/TTL combination"
+#~ msgstr "Ongeldige hops/TTL combinatie"
+
+#~ msgid "Flow control"
+#~ msgstr "Flow control"
+
+#~ msgid "gtk-gnutella"
+#~ msgstr "gtk-gnutella"
+
+#, fuzzy
+#~ msgid "[Gnet Stats]"
+#~ msgstr "Gnutella statistieken"
+
+#, fuzzy
+#~ msgid "[Hostcache]"
+#~ msgstr "Hostcache"
+
+#, fuzzy
+#~ msgid "[Uploads]"
+#~ msgstr "Uploads"
+
+#, fuzzy
+#~ msgid "[BH qhits served]"
+#~ msgstr "[BH qhits]"
+
+#, fuzzy
+#~ msgid "[Upload Stats]"
+#~ msgstr "Uploads"
+
+#, fuzzy
+#~ msgid "[with source count]"
+#~ msgstr " met bronnen"
+
+#, fuzzy
+#~ msgid "[Downloads]"
+#~ msgstr "Downloads"
+
+#, fuzzy
+#~ msgid "[running]"
+#~ msgstr "Bannen"
+
+#, fuzzy
+#~ msgid "[Active]"
+#~ msgstr "Actief"
+
+#, fuzzy
+#~ msgid "[queued downloads]"
+#~ msgstr "%u/%u downloads"
+
+#, fuzzy
+#~ msgid "[Queue]"
+#~ msgstr "In de wacht"
+
+#, fuzzy
+#~ msgid "[Search]"
+#~ msgstr "Zoek"
+
+#, fuzzy
+#~ msgid "[Monitor]"
+#~ msgstr "Monitor"
+
+#, fuzzy
+#~ msgid "[Search Stats]"
+#~ msgstr "Zoek filters"
+
+#, fuzzy
+#~ msgid "[Add/Remove]"
+#~ msgstr "Verwijder"
+
+#, fuzzy
+#~ msgid "[Filename]"
+#~ msgstr "Bestandsnaam"
+
+#, fuzzy
+#~ msgid "[IP address]"
+#~ msgstr "IP-adres/masker"
+
+#, fuzzy
+#~ msgid "[Filesize]"
+#~ msgstr "Bestanden"
+
+#, fuzzy
+#~ msgid "[SHA1]"
+#~ msgstr "SHA1:"
+
+#, fuzzy
+#~ msgid "[Flags]"
+#~ msgstr "Vlag"
+
+#, fuzzy
+#~ msgid "[State]"
+#~ msgstr "Statistieken"
+
+#, fuzzy
+#~ msgid "[time]"
+#~ msgstr "Tijd draaiend"
+
+#~ msgid "Edit filters"
+#~ msgstr "Bewerk filters"
+
+#~ msgid ""
+#~ "\n"
+#~ "The FAQ document is damaged.\n"
+#~ msgstr ""
+#~ "\n"
+#~ "Het FAQ document is beschadigd.\n"
+
+#~ msgid ""
+#~ "The FAQ document could not be loaded. Please read the online FAQ at "
+#~ "http://gtk-gnutella.sourceforge.net/?page=faq instead."
+#~ msgstr ""
+#~ "Het FAQ document kon niet worden geladen. Lees in plaats daarvan de FAQ "
+#~ "op http://gtk-gnutella.sourceforge.net/?page=faq"
+
+#~ msgid ", browsable"
+#~ msgstr ", bladerbaar"
 
 #~ msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
 #~ msgstr "Ivoorkust"

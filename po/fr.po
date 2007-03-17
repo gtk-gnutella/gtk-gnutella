@@ -9,9 +9,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.2u\n"
+"Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-01-05 22:54+0100\n"
+"POT-Creation-Date: 2007-03-17 19:06+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -46,6 +46,10 @@ msgstr "Suspendu (vérification SHA1)"
 #, c-format
 msgid " at %s - rescheduled for %s"
 msgstr " à %s - replanifié pour %s"
+
+#, fuzzy
+msgid "Paused"
+msgstr "Passif"
 
 msgid "Waiting for a free chunk"
 msgstr "En attente d'un bloc libre"
@@ -257,6 +261,16 @@ msgstr "Spam"
 msgid "Evil filename"
 msgstr "Mauvais nom de fichier"
 
+msgid "Payload inflating error"
+msgstr "Erreur d'exrtaction de la charge utile"
+
+msgid "Unknown header flags present"
+msgstr "Drapeaux d'en-tête inconnus présents"
+
+#, fuzzy
+msgid "Own search results"
+msgstr "Résultats de la recherche"
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr "Arrêt (%s)"
@@ -465,17 +479,28 @@ msgstr "Impossible de créer des sockets d'écoute"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Ne fonctionne qu'en mode feuille si firewallé en TCP"
 
-msgid "Node added"
-msgstr "Noeud ajouté"
-
 msgid "Invalid IP/Port"
 msgstr "IP/Port invalide"
 
+msgid "Node added"
+msgstr "Noeud ajouté"
+
+#, fuzzy
+msgid "Invalid IP"
+msgstr "IP/Port invalide"
+
+#, fuzzy
+msgid "Invalid port"
+msgstr "IP/Port invalide"
+
+#, fuzzy, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "Enlevé %u téléchargement"
+msgstr[1] "Enlevé %u téléchargements"
+
 msgid "Unknown operation"
 msgstr "opération inconnue"
-
-msgid "Malformed command"
-msgstr "commande malformée"
 
 msgid "Query string missing"
 msgstr "String de la demande manquante"
@@ -554,6 +579,9 @@ msgstr "Aurevoir"
 msgid "Shutdown sequence initiated."
 msgstr "Séquence d'arrêt engagée."
 
+msgid "Malformed command"
+msgstr "commande malformée"
+
 msgid "Unknown command"
 msgstr "Commande inconnue"
 
@@ -581,9 +609,9 @@ msgstr "Recherche du cache d'hôtes UDP %s"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Ping envoyé au cache d'hôte UDP %s:%u"
 
-#, c-format
-msgid "Got %d host from UDP host cache %s:%u"
-msgid_plural "Got %d hosts from UDP host cache %s:%u"
+#, fuzzy, c-format
+msgid "Got %d host from UDP host cache %s"
+msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] "Reçu %d hôte du cache UDP %s:%u"
 msgstr[1] "Reçu %d hôtes du cache UDP %s:%u"
 
@@ -2472,6 +2500,10 @@ msgstr "Niveau de débugage pour le shell."
 msgid "If larger than zero, no downloads are started."
 msgstr "Si supérieur à zéro, aucun téléchargeement n'est démarré."
 
+#, fuzzy
+msgid "Debug level for the search queue."
+msgstr "Niveau de débugage pour le shell."
+
 msgid "disable"
 msgstr "désactiver"
 
@@ -4025,18 +4057,6 @@ msgstr "RETOUR"
 msgid "Query hit"
 msgstr "Hit de recherche"
 
-msgid "Improper hops/TTL combination"
-msgstr "Combinaison inexacte de hops/TTL"
-
-msgid "Flow control"
-msgstr "Contrôle de flux"
-
-msgid "Payload inflating error"
-msgstr "Erreur d'exrtaction de la charge utile"
-
-msgid "Unknown header flags present"
-msgstr "Drapeaux d'en-tête inconnus présents"
-
 msgid "Routing errors"
 msgstr "Erreurs de routage"
 
@@ -5424,8 +5444,9 @@ msgstr "Annuler"
 msgid "gtk-gnutella shutdown"
 msgstr "arrêt de gtk-gnutella"
 
+#, fuzzy
 msgid ""
-"gtk-gnutella is shutting down.\n"
+"Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
@@ -6512,6 +6533,10 @@ msgstr[1] "%u téléchargements sur %u correspondant à \"%s\"."
 msgid "Cache contains"
 msgstr "Le cache contient"
 
+#, fuzzy
+msgid "Pause"
+msgstr "Push"
+
 msgid "Copy Magnet to clipboard"
 msgstr "Copier Magnet vers le presse-papiers"
 
@@ -6640,6 +6665,14 @@ msgstr ""
 "réseaux avec beaucoup de clients en essayant de trouver les fichiers sur les "
 "réseaux locaux en premier."
 
+#, fuzzy
+msgid ""
+"Check this button if you want to use Gtk-Gnutella on your Local Area "
+"Network. RFC1918 will be ignored."
+msgstr ""
+"Cochez ce bouton si vous voulez utilisez gtk-gnutella dans votre réseau "
+"local. La RFC1918 sera ignorée."
+
 msgid "_Addresses of local network(s)"
 msgstr "_Adresses du/des réseaux locaux"
 
@@ -6693,9 +6726,6 @@ msgstr "Données téléchargées:"
 msgid "Version"
 msgstr "Version"
 
-msgid "Move the cursor over a row to see details."
-msgstr "Déplacer le curseur sur une ligne pour voir les détails."
-
 msgid "Peer:"
 msgstr "Hôte:"
 
@@ -6707,6 +6737,9 @@ msgstr "entrant"
 
 msgid "outgoing"
 msgstr "sortant"
+
+msgid "Move the cursor over a row to see details."
+msgstr "Déplacer le curseur sur une ligne pour voir les détails."
 
 #, c-format
 msgid "Reverse lookup for %s failed"
@@ -6758,20 +6791,6 @@ msgstr "Moniteur"
 #. and append your name to the list.
 msgid "translation_credit|"
 msgstr ""
-
-msgid ""
-"\n"
-"The FAQ document is damaged.\n"
-msgstr ""
-"\n"
-"Le document FAQ est endommagé.\n"
-
-msgid ""
-"The FAQ document could not be loaded. Please read the online FAQ at http://"
-"gtk-gnutella.sourceforge.net/?page=faq instead."
-msgstr ""
-"Le document FAQ ne peut pas être chargé. Merci de lire la FAQ en ligne à "
-"http://gtk-gnutella.sourceforge.net/?page=faq"
 
 #, c-format
 msgid "%d second"
@@ -6896,11 +6915,21 @@ msgstr[1] "%u recherches"
 msgid "Handled magnet link (%s, %s)."
 msgstr "Lien aimant manipulé (%s, %s)."
 
+msgid "Ignored unusable magnet link."
+msgstr ""
+
 msgid "The given urn type is not supported."
 msgstr "Le type urn n'est pas supporté."
 
 msgid "The given SHA-1 is not correctly encoded."
 msgstr "Le SHA-1 n'est pas correctement encodé."
+
+msgid "Missing port number"
+msgstr ""
+
+#, fuzzy
+msgid "Could not parse host address"
+msgstr "Impossible de lancer le parcours d'hôte pour %s"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "La chaîne de recherche n'est pas encodée en UTF-8"
@@ -7060,6 +7089,26 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Improper hops/TTL combination"
+#~ msgstr "Combinaison inexacte de hops/TTL"
+
+#~ msgid "Flow control"
+#~ msgstr "Contrôle de flux"
+
+#~ msgid ""
+#~ "\n"
+#~ "The FAQ document is damaged.\n"
+#~ msgstr ""
+#~ "\n"
+#~ "Le document FAQ est endommagé.\n"
+
+#~ msgid ""
+#~ "The FAQ document could not be loaded. Please read the online FAQ at "
+#~ "http://gtk-gnutella.sourceforge.net/?page=faq instead."
+#~ msgstr ""
+#~ "Le document FAQ ne peut pas être chargé. Merci de lire la FAQ en ligne à "
+#~ "http://gtk-gnutella.sourceforge.net/?page=faq"
 
 #~ msgid "Got %d host from %s"
 #~ msgid_plural "Got %d hosts from %s"
@@ -7225,5 +7274,3 @@ msgstr "QUEUE envoyé, en attente des en-têtes..."
 
 #~ msgid ", browsable"
 #~ msgstr ", parcourable"
-
- 	  	 

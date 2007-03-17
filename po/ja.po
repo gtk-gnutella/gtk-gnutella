@@ -71,9 +71,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.2u\n"
+"Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2006-10-31 16:01+0100\n"
+"POT-Creation-Date: 2007-03-17 19:06+0900\n"
 "PO-Revision-Date: 2006-06-25 22:58+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -110,6 +110,10 @@ msgstr "一時休止 (SHA1確認中)"
 msgid " at %s - rescheduled for %s"
 msgstr " (現在時: %s - 再予定時: %s)"
 
+#, fuzzy
+msgid "Paused"
+msgstr "受動検索"
+
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
@@ -142,9 +146,17 @@ msgstr[0] "接続を拒否されました (%u 回目)"
 msgid "Dup SHA1 during creation"
 msgstr "重複するSHA1を検知しました"
 
-# FIXME: what does `create' mean?
-msgid "No download slot (create)"
-msgstr "ダウンロードスロットがありません (作成)"
+#, fuzzy
+msgid "Max. number of downloads reached"
+msgstr "ホスト参照結果の最大数"
+
+#, fuzzy
+msgid "Max. number of downloads for this host reached"
+msgstr "ホスト参照結果の最大数"
+
+#, fuzzy
+msgid "Has already enough active sources"
+msgstr "待機中の送信元"
 
 msgid "Stopped (Index changed)"
 msgstr "中断されました (インデックスが変更されました)"
@@ -316,17 +328,15 @@ msgstr "スパム"
 msgid "Evil filename"
 msgstr "ファイル名"
 
-#, c-format
-msgid "Got %d host from %s"
-msgid_plural "Got %d hosts from %s"
-msgstr[0] "%2$s から %1$d 基のホストを取得しました。"
+msgid "Payload inflating error"
+msgstr ""
 
-#, c-format
-msgid "Connecting to web cache %s"
-msgstr "ウェブキャッシュ %s に接続しています。"
+msgid "Unknown header flags present"
+msgstr ""
 
-msgid "Updated web cache "
-msgstr "ウェブキャッシュを更新しました。"
+#, fuzzy
+msgid "Own search results"
+msgstr "検索結果"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -490,6 +500,24 @@ msgstr "除外されました: メッセージ %s は大きすぎます (%d バ�
 msgid "Kicked: %s message too big (>= 64KiB limit)"
 msgstr "除外されました: メッセージ %s は大きすぎます (%d バイト)"
 
+msgid "Leaf"
+msgstr "リーフ"
+
+msgid "Ultrapeer"
+msgstr "ウルトラピア"
+
+msgid "Legacy"
+msgstr "レガシー"
+
+msgid "Crawler"
+msgstr "クロウラー"
+
+msgid "UDP"
+msgstr "UDP"
+
+msgid "Unknown"
+msgstr "不明"
+
 msgid "Read failed (Input Exception)"
 msgstr "読込み失敗 (入力例外が発生しました)"
 
@@ -526,24 +554,37 @@ msgstr "待ち受けポートの作成に失敗しました"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
+msgid "Invalid IP/Port"
+msgstr "無効な IP/ポートです"
+
 # FIXME: node -> peer
 msgid "Node added"
 msgstr "ピアが追加されました"
 
-msgid "Invalid IP/Port"
+#, fuzzy
+msgid "Invalid IP"
 msgstr "無効な IP/ポートです"
+
+#, fuzzy
+msgid "Invalid port"
+msgstr "無効な IP/ポートです"
+
+#, fuzzy, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "%u 件のダウンロードを削除しました。"
 
 msgid "Unknown operation"
 msgstr "不明な操作です"
-
-msgid "Malformed command"
-msgstr "変なコマンドです"
 
 msgid "Query string missing"
 msgstr "検索クエリー文字列がありません"
 
 msgid "Search added"
 msgstr "検索が追加されました"
+
+msgid "The search could not be created"
+msgstr ""
 
 msgid "Property missing"
 msgstr "プロパティがありません"
@@ -560,36 +601,17 @@ msgstr "値発見、表示します"
 msgid "Value missing"
 msgstr "値がありません"
 
-msgid "Type not supported"
-msgstr "このタイプはサポートしません"
-
 msgid "Value found and set"
 msgstr "値発見、設定します"
 
 msgid "Help: "
 msgstr "へルプ: "
 
-msgid "Unknown parameter"
-msgstr "不明なパラメータです"
+msgid "The library is currently being rebuilt."
+msgstr ""
 
-# FIXME: peer
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "到達領域サイズの合計 (%u/%u 基のHSEP対応ピア):"
-
-# FIXME: node -> peer
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr "HSEPピア %s (%s) 経由の到達領域サイズ:"
-
-msgid "leaf"
-msgstr "リーフ"
-
-msgid "ultrapeer"
-msgstr "ウルトラピア"
-
-msgid "normal node"
-msgstr "通常のピア"
+msgid "A rescan has already been scheduled"
+msgstr ""
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
 msgid "Hops"
@@ -606,11 +628,43 @@ msgstr "ファイル数"
 msgid "Size"
 msgstr "大きさ"
 
+msgid "Unknown parameter"
+msgstr "不明なパラメータです"
+
+# FIXME: peer
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr "到達領域サイズの合計 (%u/%u 基のHSEP対応ピア):"
+
+# FIXME: node -> peer
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr "HSEPピア %s (%s) 経由の到達領域サイズ:"
+
+#, fuzzy
+msgid "URL missing"
+msgstr "値がありません"
+
+# FIXME: what does `create' mean?
+#, fuzzy
+msgid "The download could not be created"
+msgstr "ダウンロードスロットがありません (作成)"
+
+#, fuzzy
+msgid "Download added"
+msgstr "ダウンロード:"
+
+msgid "No matching property."
+msgstr ""
+
 msgid "Good bye"
 msgstr "Good bye"
 
 msgid "Shutdown sequence initiated."
 msgstr ""
+
+msgid "Malformed command"
+msgstr "変なコマンドです"
 
 msgid "Unknown command"
 msgstr "不明なコマンドエラーです"
@@ -639,9 +693,9 @@ msgstr "UDP ホストキャッシュ %s を探しています。"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "UDP ホストキャッシュ %s:%u に ping を送信しました。"
 
-#, c-format
-msgid "Got %d host from UDP host cache %s:%u"
-msgid_plural "Got %d hosts from UDP host cache %s:%u"
+#, fuzzy, c-format
+msgid "Got %d host from UDP host cache %s"
+msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] "UDP ホストキャッシュ %2$s:%3$u から %1$d 基のホストを取得しました。"
 
 msgid "Connect back timeout"
@@ -778,6 +832,9 @@ msgstr "ウルトラピア"
 # FIXME: node -> peer
 msgid "leaf node"
 msgstr "リーフ"
+
+msgid "normal node"
+msgstr "通常のピア"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "ホストキャッシュファイルが読込めるかどうかを示します。"
@@ -1173,9 +1230,6 @@ msgstr "GUI とコアの間で共有されるコードのバグ解析レベル�
 
 msgid "Verbosity of Bitzi related debug messages."
 msgstr "Bitzi 関連のバグ解析メッセージの冗長度です。"
-
-msgid "Verbosity of GWebCache related debug messages."
-msgstr "Gnutella ウェブキャッシュ関連のバグ解析メッセージの冗長度です。"
 
 msgid "Verbosity of URL handling related debug messages."
 msgstr "URL ハンドリング関連のバグ解析メッセージの冗長度です。"
@@ -2374,25 +2428,6 @@ msgstr ""
 "下さい。"
 
 msgid ""
-"Extra amount of data per downloading source that gtk-gnutella will try to "
-"read-ahead.  This gives more room for reading large amount of data without "
-"issuing too many system calls. It complements buffering nicely because it "
-"prevents reading a few bytes before committing the buffered data to disk: "
-"when read-ahead space is available, it will be used in addition to "
-"buffering, but read-ahead data is committed to disk immediately.  If you "
-"don't wish to reserve more memory per active source, you can disable this "
-"feature by setting the read-ahead buffer size to 0."
-msgstr ""
-"gtk-gnutella が前もって読み込もうとする送信元ごとの余分なデータ量です。システ"
-"ムコールを頻発することなく、大量のデータを読み込むゆとりができます。バッファ"
-"に置かれたデータをディスクに書き込む前に、僅かなバイトのデータがあってもそれ"
-"を読み込まないようにするので、バッファ処理をうまく補完します。先読みしておく"
-"スペースが利用可能な場合はバッファ処理に加えて利用されますが、その先読みされ"
-"たデータは即座に書き込まれてしまいます。アクティブな送信元ごとにこれ以上のメ"
-"モリを割り当てたくないのでしたら、先読みバッファサイズを 0 にする事でこの機能"
-"を無効にすることができます。"
-
-msgid ""
 "When set, all search results from host browsing are dispatched to all opened "
 "passive searches.  This is useful if you have different selection filters on "
 "your passive searches because it lets you classify files easily, regardless "
@@ -2428,6 +2463,36 @@ msgid ""
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
+#, fuzzy
+msgid "Don't start more than this number of parallel downloads per file."
+msgstr ""
+"この数以上のファイルを一つのホストに対して並行してアップロードしません。"
+
+msgid ""
+"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
+"dump."
+msgstr ""
+
+msgid ""
+"If enabled, queries are also matched against the directory names which are "
+"relative to the shared ones. Further, search results will show these. This "
+"is especially useful if the shared filenames are ambiguous or meaningless "
+"without knowing the directory names as well. However, be sure the directory "
+"names do not expose confidential information. You have to initiate a rescan "
+"of the shared files before a change becomes fully effective."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the shell."
+msgstr "GUI のバグ解析レベルです。"
+
+msgid "If larger than zero, no downloads are started."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the search queue."
+msgstr "GUI のバグ解析レベルです。"
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -2448,9 +2513,6 @@ msgstr "TCPのみ"
 
 msgid "UDP only"
 msgstr "UDPのみ"
-
-msgid "Unknown"
-msgstr "不明"
 
 msgid "Ping"
 msgstr "Ping"
@@ -2650,6 +2712,10 @@ msgstr "フィルターダイアログ内でのフィルター木の大きさで
 
 msgid "Show tabs or search list."
 msgstr "タブあるいは検索一覧を表示します。"
+
+#, fuzzy
+msgid "Display Searchbar."
+msgstr "サイドバーを表示します。"
 
 msgid "Display Sidebar."
 msgstr "サイドバーを表示します。"
@@ -4094,18 +4160,6 @@ msgstr "リターン"
 msgid "Query hit"
 msgstr "検索クエリーヒット"
 
-msgid "Improper hops/TTL combination"
-msgstr "ホップ数/TTLの組合せが無効"
-
-msgid "Flow control"
-msgstr "フロー制御"
-
-msgid "Payload inflating error"
-msgstr ""
-
-msgid "Unknown header flags present"
-msgstr ""
-
 msgid "Routing errors"
 msgstr "経路設定エラー"
 
@@ -4462,9 +4516,6 @@ msgstr "<無し>"
 msgid "%s (%s bytes)"
 msgstr "%s (%s バイト)"
 
-msgid "gtk-gnutella"
-msgstr "gtk-gnutella"
-
 msgid "_File"
 msgstr "ファイル(_F)"
 
@@ -4713,9 +4764,6 @@ msgstr "アップロード:"
 msgid "Downloaded:"
 msgstr "ダウンロード:"
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr "相応しいツールチップを教えてください。"
-
 msgid "Chunks/Files:"
 msgstr "チャンク数/ファイル数:"
 
@@ -4738,9 +4786,6 @@ msgstr ""
 "このピアの現在の IP アドレスと利用するポートです。「ファイル->環境設定->ネッ"
 "トワーク」の項目で変更できます。"
 
-msgid "[Gnet]"
-msgstr ""
-
 msgid "Message/flow control stats"
 msgstr "メッセージ/フロー制御統計"
 
@@ -4755,33 +4800,6 @@ msgstr "原因"
 
 msgid "_General"
 msgstr "一般(_G)"
-
-msgid "0"
-msgstr ""
-
-msgid "1"
-msgstr ""
-
-msgid "2"
-msgstr ""
-
-msgid "3"
-msgstr ""
-
-msgid "4"
-msgstr ""
-
-msgid "5"
-msgstr ""
-
-msgid "6"
-msgstr ""
-
-msgid "7"
-msgstr ""
-
-msgid "8+"
-msgstr ""
 
 msgid "FC/_TTL"
 msgstr "FC/_TTL"
@@ -4828,10 +4846,6 @@ msgstr "プロトコル(_O):"
 msgid "Show r_easons for"
 msgstr "破棄された理由(_E)"
 
-#, fuzzy
-msgid "[Gnet Stats]"
-msgstr "Gnutellaネットワークの統計"
-
 msgid "Hostcache statistics"
 msgstr "ホストキャッシュ統計"
 
@@ -4861,10 +4875,6 @@ msgstr "ウルトラピア"
 
 msgid "Bad hosts"
 msgstr "不正なホスト"
-
-#, fuzzy
-msgid "[Hostcache]"
-msgstr "ホストキャッシュ"
 
 msgid "Uploads"
 msgstr "アップロード"
@@ -4907,10 +4917,6 @@ msgstr "同時アップロードの最大数"
 msgid "Max. uploads to a single host"
 msgstr "一基のホストへの最大アップロード数"
 
-#, fuzzy
-msgid "[Uploads]"
-msgstr "アップロード"
-
 msgid "Upload history"
 msgstr "アップロード履歴"
 
@@ -4933,20 +4939,12 @@ msgstr "全て消去"
 msgid "Fully served "
 msgstr " "
 
-# NOTE: it shouldn't be translated, you can simply copy & paste
-msgid "[BH HTML served]"
-msgstr "[BH HTML served]"
-
 # NOTE: this string is used as follows
 #
 # 'Fully served 0 / 0 HTML and 0 / 0 Gnutella browse requests'
 #
 msgid " / "
 msgstr "/"
-
-# NOTE: it shouldn't be translated, you can simply copy & paste
-msgid "[BH HTML]"
-msgstr "[BH HTML]"
 
 # NOTE: this string is used as follows
 #
@@ -4955,25 +4953,12 @@ msgstr "[BH HTML]"
 msgid " HTML and "
 msgstr "件のHTMLと"
 
-# NOTE: it shouldn't be translated, you can simply copy & paste
-#, fuzzy
-msgid "[BH qhits served]"
-msgstr "[BH qhits]"
-
-# NOTE: it shouldn't be translated, you can simply copy & paste
-msgid "[BH qhits]"
-msgstr "[BH qhits]"
-
 # NOTE: this string is used as follows
 #
 # 'Fully served 0 / 0 HTML and 0 / 0 Gnutella browse requests'
 #
 msgid " Gnutella browse requests"
 msgstr "件のGnutella参照リクエストに応じました。"
-
-#, fuzzy
-msgid "[Upload Stats]"
-msgstr "アップロード"
 
 msgid "Files to get"
 msgstr "取得ファイル"
@@ -5029,22 +5014,11 @@ msgstr "ファイルの別名"
 msgid "_Purge selected"
 msgstr "選択したものを撤去(_P)"
 
-msgid "[all count]"
-msgstr ""
-
 msgid " registered, "
 msgstr " 件が登録済, "
 
-#, fuzzy
-msgid "[with source count]"
-msgstr " 件が送信元有り"
-
 msgid " with sources"
 msgstr " 件が送信元有り"
-
-#, fuzzy
-msgid "[Downloads]"
-msgstr "ダウンロード"
 
 msgid "Active sources"
 msgstr "動作中の送信元"
@@ -5055,15 +5029,6 @@ msgstr "サーバー"
 msgid "Download settings"
 msgstr "ダウンロード設定"
 
-msgid "Max. simultaneous downloads"
-msgstr "同時ダウンロードの最大数"
-
-msgid "Max. downloads from single host"
-msgstr "一基のホストからの最大ダウンロード数"
-
-msgid "Bytes to back off on mismatch"
-msgstr "不一致の際に取消されるバイト"
-
 msgid "Never send a push request"
 msgstr "PUSH リクエストを送らない"
 
@@ -5072,6 +5037,19 @@ msgstr "中止する場合ファイルを削除"
 
 msgid "Remove file on mismatch"
 msgstr "一致しない場合ファイルを削除"
+
+msgid "Bytes to back off on mismatch"
+msgstr "不一致の際に取消されるバイト"
+
+msgid "Max. downloads from single host"
+msgstr "一基のホストからの最大ダウンロード数"
+
+msgid "Max. simultaneous downloads"
+msgstr "同時ダウンロードの最大数"
+
+#, fuzzy
+msgid "Max. simultaneous downloads per file"
+msgstr "同時ダウンロードの最大数"
 
 msgid "Auto clear stopped downloads"
 msgstr "中断したダウンロードの自動消去"
@@ -5103,10 +5081,6 @@ msgstr "完了・失敗・取得不可のダウンロードをリストから消
 msgid "Clear stopped"
 msgstr "中断したものを消去"
 
-#, fuzzy
-msgid "[running]"
-msgstr "禁止処理"
-
 msgid "("
 msgstr ""
 
@@ -5126,10 +5100,6 @@ msgstr ""
 msgid "Show settings"
 msgstr "設定の表示"
 
-#, fuzzy
-msgid "[Active]"
-msgstr "アクティブ"
-
 msgid "Inactive sources"
 msgstr "待機中の送信元"
 
@@ -5142,25 +5112,14 @@ msgstr "キューの凍結"
 msgid "Thaw queue"
 msgstr "凍結の解除"
 
-#, fuzzy
-msgid "[queued downloads]"
-msgstr "%u 件のダウンロード"
-
 msgid " queued ("
 msgstr " 件が待機中 ("
-
-msgid "[hosts alive]"
-msgstr ""
 
 msgid " alive with "
 msgstr " 件が現存, 内 "
 
 msgid " passive)"
 msgstr " 件が受動状態)"
-
-#, fuzzy
-msgid "[Queue]"
-msgstr "キュー"
 
 msgid "Search results"
 msgstr "検索結果"
@@ -5264,10 +5223,6 @@ msgstr "全て折畳む"
 msgid "_Clear results"
 msgstr "結果を消去(_C)"
 
-#, fuzzy
-msgid "[Search]"
-msgstr "検索"
-
 msgid "Search _monitor enabled"
 msgstr "検索モニターを実行する(_M)"
 
@@ -5284,10 +5239,6 @@ msgstr "最新(_L)"
 #
 msgid "searches"
 msgstr "件の検索を表示"
-
-#, fuzzy
-msgid "[Monitor]"
-msgstr "モニター"
 
 msgid "_Update interval (sec)"
 msgstr "更新する間隔(_U) (秒)"
@@ -5307,10 +5258,6 @@ msgstr "状態をリセット(_R)"
 
 msgid "0 terms counted"
 msgstr "0 件の検索クエリー"
-
-#, fuzzy
-msgid "[Search Stats]"
-msgstr "検索フィルター"
 
 msgid "You seem to be offline."
 msgstr "オフラインのようです。"
@@ -5566,10 +5513,6 @@ msgstr "IP ルールの追加"
 msgid "Add state rule"
 msgstr "状態ルールの追加"
 
-#, fuzzy
-msgid "[Add/Remove]"
-msgstr "削除"
-
 msgid "invert condition"
 msgstr "条件を逆転"
 
@@ -5590,18 +5533,10 @@ msgstr "保存済"
 msgid "Remove"
 msgstr "削除"
 
-#, fuzzy
-msgid "[Filename]"
-msgstr "ファイル名"
-
 msgid "Condition: If IP address matches"
 msgstr "条件: IP アドレスが一致するかどうか"
 
 msgid "IP address/mask"
-msgstr "IP アドレス/マスク"
-
-#, fuzzy
-msgid "[IP address]"
 msgstr "IP アドレス/マスク"
 
 msgid "Condition: If file size matches"
@@ -5616,11 +5551,6 @@ msgstr "最大の大きさ:"
 msgid "bytes"
 msgstr "バイト"
 
-# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
-#, fuzzy
-msgid "[Filesize]"
-msgstr "ファイル数"
-
 msgid "Condition: always"
 msgstr "条件: 常に"
 
@@ -5633,9 +5563,6 @@ msgstr ""
 "マッチ処理が続行されます。この条件を反転できないのはそのためです。仮に反転で"
 "きるとしたら、このルールは単に無視されるでしょう。"
 
-msgid "[Jump]"
-msgstr ""
-
 msgid "Condition: If urn:sha1 matches"
 msgstr "条件: URN:SHA1が一致するかどうか"
 
@@ -5644,10 +5571,6 @@ msgstr "SHA1 ハッシュ (編集不可、検索ポップアップから追加�
 
 msgid "Originally obtained from"
 msgstr "取得元は"
-
-#, fuzzy
-msgid "[SHA1]"
-msgstr "SHA1:"
 
 msgid "Condition: If result has flags"
 msgstr "条件: 検索結果にフラッグがあるかどうか"
@@ -5667,10 +5590,6 @@ msgstr "○"
 msgid "Stable"
 msgstr "安定"
 
-#, fuzzy
-msgid "[Flags]"
-msgstr "フラッグ"
-
 msgid "Condition: If current filter result properties match"
 msgstr "条件: 現フィルターの検索結果のプロパティが一致するかどうか"
 
@@ -5685,10 +5604,6 @@ msgstr "○"
 
 msgid "ignore"
 msgstr "無視"
-
-#, fuzzy
-msgid "[State]"
-msgstr "統計"
 
 # FIXME: should be accelerated
 msgid "Apply"
@@ -5709,8 +5624,9 @@ msgstr "キャンセル"
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutellaの停止"
 
+#, fuzzy
 msgid ""
-"gtk-gnutella is shutting down.\n"
+"Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
@@ -5720,18 +5636,8 @@ msgstr ""
 "\n"
 "終了までの残り時間:"
 
-#, fuzzy
-msgid "[time]"
-msgstr "稼動時間"
-
 msgid "About gtk-gnutella"
 msgstr "gtk-gnutellaについて"
-
-msgid "[name and version]"
-msgstr ""
-
-msgid "$Id$"
-msgstr ""
 
 msgid "Original author:"
 msgstr "原著作者:"
@@ -5918,9 +5824,6 @@ msgstr "使用されるファイル記述子の実際の数 -- 実行時には�
 
 msgid "Currently used"
 msgstr "現在の使用数"
-
-msgid "[place holder]"
-msgstr ""
 
 msgid "Use global hostiles.txt"
 msgstr "システム用の hostiles.txt を使用する"
@@ -6119,9 +6022,6 @@ msgstr "ピアにつき受容可能な重複メッセージ数(_D)"
 
 msgid "RX flow control ratio"
 msgstr "受信フロー制御比"
-
-msgid "%"
-msgstr ""
 
 msgid "Watch for similar queries"
 msgstr "類似検索クエリーを見張る"
@@ -6677,17 +6577,31 @@ msgstr "gtk-gnutella - よく訊かれる質問"
 msgid "Frequently Asked Questions:"
 msgstr "よく訊かれる質問:"
 
+#, fuzzy
+msgid "_Stop this search"
+msgstr "この検索を中止する"
+
+#, fuzzy
+msgid "Resu_me this search"
+msgstr "この検索を再開する(リジューム)"
+
+#, fuzzy
+msgid "_Restart this search"
+msgstr "この検索を再開する"
+
+#, fuzzy
+msgid "_Duplicate this search"
+msgstr "この検索をコピーする"
+
+#, fuzzy
+msgid "_Close this search"
+msgstr "この検索を閉じる"
+
 msgid "Country"
 msgstr "国(地域)"
 
 msgid "Failed to create the search"
 msgstr "検索の作成に失敗しました。"
-
-msgid "UDP"
-msgstr "UDP"
-
-msgid "TCP"
-msgstr "TCP"
 
 # FIXME:
 #, fuzzy
@@ -6760,6 +6674,11 @@ msgstr "ホスト"
 msgid "SHA-1"
 msgstr "SHA1:"
 
+# FIXME:
+#, fuzzy
+msgid "Created"
+msgstr "完了しました"
+
 msgid "Not in database"
 msgstr "データベースにありません"
 
@@ -6818,6 +6737,10 @@ msgstr[0] "選択された %u/%u 件のダウンロードが「%s」に一致し
 
 msgid "Cache contains"
 msgstr "キャッシュ内容"
+
+#, fuzzy
+msgid "Pause"
+msgstr "PUSH"
 
 msgid "Copy Magnet to clipboard"
 msgstr "マグネットをクリップボードへコピー"
@@ -6887,12 +6810,27 @@ msgstr "アドレス/ポート:"
 msgid "Uploaded data:"
 msgstr "アップロード済データ:"
 
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "相応しいツールチップを教えてください。"
+
 # NOTE: this string is used as follows
 #
 # 'Served 0 HTML and 0 Gnutella browse requests'
 #
 msgid "Served "
 msgstr " "
+
+# NOTE: it shouldn't be translated, you can simply copy & paste
+msgid "[BH HTML served]"
+msgstr "[BH HTML served]"
+
+# NOTE: it shouldn't be translated, you can simply copy & paste
+msgid "[BH HTML]"
+msgstr "[BH HTML]"
+
+# NOTE: it shouldn't be translated, you can simply copy & paste
+msgid "[BH qhits]"
+msgstr "[BH qhits]"
 
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
@@ -6956,6 +6894,14 @@ msgstr ""
 "このオプションを使用すると、まずローカルネット上でファイルを位置付けてみる事"
 "で、多くのピアを伴う巨大なネットワーク上での能率を押し上げます。"
 
+#, fuzzy
+msgid ""
+"Check this button if you want to use Gtk-Gnutella on your Local Area "
+"Network. RFC1918 will be ignored."
+msgstr ""
+"gtk-gnutella を LAN 上で使用したければ有効にして下さい。RFC1918 は無視されま"
+"す。"
+
 msgid "_Addresses of local network(s)"
 msgstr "ローカルネットのアドレス(_A)"
 
@@ -6980,14 +6926,11 @@ msgstr "回"
 msgid "_Remove directory"
 msgstr "フォルダを削除(_R)"
 
+msgid "E_xpose relative paths"
+msgstr ""
+
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
-
-msgid "Edit filters"
-msgstr "フィルター編集"
-
-msgid "Close this search"
-msgstr "この検索を閉じる"
 
 msgid ""
 "Erases all selected files as far as they are incomplete and discontinues the "
@@ -7011,21 +6954,6 @@ msgstr "ダウンロード済データ:"
 msgid "Version"
 msgstr "バージョン"
 
-msgid "Leaf"
-msgstr "リーフ"
-
-msgid "Ultrapeer"
-msgstr "ウルトラピア"
-
-msgid "Legacy"
-msgstr "レガシー"
-
-msgid "Crawler"
-msgstr "クロウラー"
-
-msgid "Move the cursor over a row to see details."
-msgstr "表示したい行にカーソルを移動すると詳細が見られます。"
-
 msgid "Peer:"
 msgstr "ピア:"
 
@@ -7037,6 +6965,9 @@ msgstr "内への接続"
 
 msgid "outgoing"
 msgstr "外への接続"
+
+msgid "Move the cursor over a row to see details."
+msgstr "表示したい行にカーソルを移動すると詳細が見られます。"
 
 #, c-format
 msgid "Reverse lookup for %s failed"
@@ -7093,20 +7024,6 @@ msgstr "モニター"
 #. and append your name to the list.
 msgid "translation_credit|"
 msgstr "翻訳者: Daichi Kawahata"
-
-msgid ""
-"\n"
-"The FAQ document is damaged.\n"
-msgstr ""
-"\n"
-"FAQ 文書に欠陥があります。\n"
-
-msgid ""
-"The FAQ document could not be loaded. Please read the online FAQ at http://"
-"gtk-gnutella.sourceforge.net/?page=faq instead."
-msgstr ""
-"FAQ 文書を読み込めませんでした。代わりに http://gtk-gnutella.sourceforge."
-"net/?page=faq にあるオンラインの FAQ を御覧下さい。"
 
 #, c-format
 msgid "%d second"
@@ -7179,9 +7096,6 @@ msgstr ""
 msgid "<unparsed>"
 msgstr "<未解析>"
 
-msgid ", browsable"
-msgstr ", 参照可"
-
 msgid "browsable"
 msgstr "参照可"
 
@@ -7232,11 +7146,28 @@ msgstr[0] "%u 件の検索"
 msgid "Handled magnet link (%s, %s)."
 msgstr "マグネットリンク (%s, %s)。"
 
+msgid "Ignored unusable magnet link."
+msgstr ""
+
 msgid "The given urn type is not supported."
 msgstr "このタイプのURNには対応しません。"
 
+#, fuzzy
+msgid "The given SHA-1 is not correctly encoded."
+msgstr "このタイプのURNには対応しません。"
+
+msgid "Missing port number"
+msgstr ""
+
+#, fuzzy
+msgid "Could not parse host address"
+msgstr "ホスト %s を参照できませんでした。"
+
 msgid "The query string is not UTF-8 encoded"
 msgstr "この検索クエリーは UTF-8 でエンコードされていません。"
+
+msgid "Unhandled search prefix."
+msgstr ""
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -7387,411 +7318,3 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
-
-#~ msgid "Albania, People's Socialist Republic of"
-#~ msgstr "アルバニア共和国"
-
-#~ msgid "Algeria, People's Democratic Republic of"
-#~ msgstr "アルジェリア民主人民共和国"
-
-#~ msgid "Andorra, Principality of"
-#~ msgstr "アンドラ公国"
-
-#~ msgid "Angola, Republic of"
-#~ msgstr "アンゴラ共和国"
-
-#~ msgid "Antarctica (the territory South of 60 deg S)"
-#~ msgstr "南極 (南緯60度以南の地域)"
-
-#~ msgid "Argentina, Argentine Republic"
-#~ msgstr "アルゼンチン共和国"
-
-#~ msgid "Australia, Commonwealth of"
-#~ msgstr "オーストラリア連邦"
-
-#~ msgid "Austria, Republic of"
-#~ msgstr "オーストリア共和国"
-
-#~ msgid "Bahamas, Commonwealth of the"
-#~ msgstr "バハマ国"
-
-#~ msgid "Bahrain, Kingdom of"
-#~ msgstr "バーレーン王国"
-
-#~ msgid "Bangladesh, People's Republic of"
-#~ msgstr "バングラデシュ人民共和国"
-
-#~ msgid "Belgium, Kingdom of"
-#~ msgstr "ベルギー王国"
-
-#~ msgid "Benin, People's Republic of"
-#~ msgstr "ベニン共和国"
-
-#~ msgid "Bhutan, Kingdom of"
-#~ msgstr "ブータン王国"
-
-#~ msgid "Bolivia, Republic of"
-#~ msgstr "ボリビア共和国"
-
-#~ msgid "Botswana, Republic of"
-#~ msgstr "ボツワナ共和国"
-
-#~ msgid "Brazil, Federative Republic of"
-#~ msgstr "ブラジル連邦共和国"
-
-#~ msgid "Bulgaria, People's Republic of"
-#~ msgstr "ブルガリア共和国"
-
-#~ msgid "Burundi, Republic of"
-#~ msgstr "ブルンジ共和国"
-
-#~ msgid "Cambodia, Kingdom of"
-#~ msgstr "カンボジア王国"
-
-#~ msgid "Cameroon, United Republic of"
-#~ msgstr "カメルーン共和国"
-
-#~ msgid "Chad, Republic of"
-#~ msgstr "チャド共和国"
-
-#~ msgid "Chile, Republic of"
-#~ msgstr "チリ共和国"
-
-#~ msgid "China, People's Republic of"
-#~ msgstr "中華人民共和国"
-
-#~ msgid "Colombia, Republic of"
-#~ msgstr "コロンビア共和国"
-
-#~ msgid "Comoros, Union of the"
-#~ msgstr "コモロ連合"
-
-#~ msgid "Congo, People's Republic of"
-#~ msgstr "コンゴ民主共和国"
-
-#~ msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
-#~ msgstr "コートジボワール (象牙海岸) 共和国"
-
-#~ msgid "Cuba, Republic of"
-#~ msgstr "キューバ共和国"
-
-#~ msgid "Cyprus, Republic of"
-#~ msgstr "キプロス共和国"
-
-#~ msgid "Denmark, Kingdom of"
-#~ msgstr "デンマーク王国"
-
-#~ msgid "Djibouti, Republic of"
-#~ msgstr "ジブチ共和国"
-
-#~ msgid "Dominica, Commonwealth of"
-#~ msgstr "ドミニカ国"
-
-#~ msgid "Ecuador, Republic of"
-#~ msgstr "エクアドル共和国"
-
-#~ msgid "Egypt, Arab Republic of"
-#~ msgstr "エジプト・アラブ共和国"
-
-#~ msgid "Fiji, Republic of the Fiji Islands"
-#~ msgstr "フィジー諸島共和国"
-
-#~ msgid "Finland, Republic of"
-#~ msgstr "フィンランド共和国"
-
-#~ msgid "France, French Republic"
-#~ msgstr "フランス共和国"
-
-#~ msgid "Gabon, Gabonese Republic"
-#~ msgstr "ガボン共和国"
-
-#~ msgid "Gambia, Republic of the"
-#~ msgstr "ガンビア共和国"
-
-#~ msgid "Ghana, Republic of"
-#~ msgstr "ガーナ共和国"
-
-#~ msgid "Greece, Hellenic Republic"
-#~ msgstr "ギリシャ共和国"
-
-#~ msgid "Guatemala, Republic of"
-#~ msgstr "ガテマラ共和国"
-
-#~ msgid "Guinea, Revolutionary People's Rep'c of"
-#~ msgstr "ギニア共和国"
-
-#~ msgid "Guyana, Republic of"
-#~ msgstr "ガイアナ協同共和国"
-
-#~ msgid "Haiti, Republic of"
-#~ msgstr "ハイチ共和国"
-
-#~ msgid "Honduras, Republic of"
-#~ msgstr "ホンジュラス共和国"
-
-#~ msgid "Hong Kong, Special Administrative Region of China"
-#~ msgstr "香港特別行政区"
-
-#~ msgid "Hrvatska (Croatia)"
-#~ msgstr "クロアチア共和国"
-
-#~ msgid "Hungary, Hungarian People's Republic"
-#~ msgstr "ハンガリー共和国"
-
-#~ msgid "Iceland, Republic of"
-#~ msgstr "アイスランド共和国"
-
-#~ msgid "India, Republic of"
-#~ msgstr "インド共和国"
-
-#~ msgid "Indonesia, Republic of"
-#~ msgstr "インドネシア共和国"
-
-#~ msgid "Iran, Islamic Republic of"
-#~ msgstr "イラン・イスラム共和国"
-
-#~ msgid "Iraq, Republic of"
-#~ msgstr "イラク共和国"
-
-#~ msgid "Israel, State of"
-#~ msgstr "イスラエル国"
-
-#~ msgid "Italy, Italian Republic"
-#~ msgstr "イタリア共和国"
-
-#~ msgid "Jordan, Hashemite Kingdom of"
-#~ msgstr "ヨルダン・ハシェミット王国"
-
-#~ msgid "Kenya, Republic of"
-#~ msgstr "ケニア共和国"
-
-#~ msgid "Kiribati, Republic of"
-#~ msgstr "キリバス共和国"
-
-#~ msgid "Korea, Democratic People's Republic of"
-#~ msgstr "朝鮮民主主義人民共和国"
-
-#~ msgid "Korea, Republic of"
-#~ msgstr "大韓民国"
-
-#~ msgid "Kuwait, State of"
-#~ msgstr "クウェート国"
-
-#~ msgid "Kyrgyz Republic"
-#~ msgstr "キルギス共和国"
-
-#~ msgid "Lao People's Democratic Republic"
-#~ msgstr "ラオス人民民主共和国"
-
-#~ msgid "Lebanon, Lebanese Republic"
-#~ msgstr "レバノン共和国"
-
-#~ msgid "Lesotho, Kingdom of"
-#~ msgstr "レソト王国"
-
-#~ msgid "Liberia, Republic of"
-#~ msgstr "リベリア共和国"
-
-#~ msgid "Luxembourg, Grand Duchy of"
-#~ msgstr "ルクセンブルグ大公国"
-
-#~ msgid "Macao, Special Administrative Region of China"
-#~ msgstr "澳門特別行政区"
-
-#~ msgid "Macedonia, the former Yugoslav Republic of"
-#~ msgstr "マケドニア旧ユーゴスラビア共和国"
-
-#~ msgid "Malawi, Republic of"
-#~ msgstr "マラウイ共和国"
-
-#~ msgid "Maldives, Republic of"
-#~ msgstr "モルディブ共和国"
-
-#~ msgid "Mali, Republic of"
-#~ msgstr "マリ共和国"
-
-#~ msgid "Malta, Republic of"
-#~ msgstr "マルタ共和国"
-
-#~ msgid "Mauritania, Islamic Republic of"
-#~ msgstr "モーリタニア・イスラム共和国"
-
-#~ msgid "Mexico, United Mexican States"
-#~ msgstr "メキシコ合衆国"
-
-#~ msgid "Micronesia, Federated States of"
-#~ msgstr "ミクロネシア連邦"
-
-#~ msgid "Moldova, Republic of"
-#~ msgstr "モルドバ共和国"
-
-#~ msgid "Monaco, Principality of"
-#~ msgstr "モナコ公国"
-
-#~ msgid "Mongolia, Mongolian People's Republic"
-#~ msgstr "モンゴル国"
-
-#~ msgid "Morocco, Kingdom of"
-#~ msgstr "モロッコ王国"
-
-#~ msgid "Mozambique, People's Republic of"
-#~ msgstr "モザンビーク共和国"
-
-#~ msgid "Nauru, Republic of"
-#~ msgstr "ナウル共和国"
-
-#~ msgid "Nepal, Kingdom of"
-#~ msgstr "ネパール王国"
-
-#~ msgid "Netherlands, Kingdom of the"
-#~ msgstr "オランダ王国"
-
-#~ msgid "Nicaragua, Republic of"
-#~ msgstr "ニカラグア共和国"
-
-#~ msgid "Niger, Republic of the"
-#~ msgstr "ニジェール共和国"
-
-#~ msgid "Nigeria, Federal Republic of"
-#~ msgstr "ナイジェリア連邦共和国"
-
-#~ msgid "Niue, Republic of"
-#~ msgstr "新領ニウエ島"
-
-#~ msgid "Norway, Kingdom of"
-#~ msgstr "ノルウェー王国"
-
-#~ msgid "Oman, Sultanate of"
-#~ msgstr "オマーン国"
-
-#~ msgid "Pakistan, Islamic Republic of"
-#~ msgstr "パキスタン・イスラム共和国"
-
-#~ msgid "Panama, Republic of"
-#~ msgstr "パナマ共和国"
-
-#~ msgid "Paraguay, Republic of"
-#~ msgstr "パラグアイ共和国"
-
-#~ msgid "Peru, Republic of"
-#~ msgstr "ペルー共和国"
-
-#~ msgid "Philippines, Republic of the"
-#~ msgstr "フィリピン共和国"
-
-#~ msgid "Poland, Polish People's Republic"
-#~ msgstr "ポーランド共和国"
-
-#~ msgid "Portugal, Portuguese Republic"
-#~ msgstr "ポルトガル共和国"
-
-#~ msgid "Qatar, State of"
-#~ msgstr "カタール国"
-
-#~ msgid "Romania, Socialist Republic of"
-#~ msgstr "ルーマニア"
-
-#~ msgid "Rwanda, Rwandese Republic"
-#~ msgstr "ルワンダ共和国"
-
-#~ msgid "Samoa, Independent State of"
-#~ msgstr "サモア独立国"
-
-#~ msgid "Senegal, Republic of"
-#~ msgstr "セネガル共和国"
-
-#~ msgid "Seychelles, Republic of"
-#~ msgstr "セーシェル共和国"
-
-#~ msgid "Singapore, Republic of"
-#~ msgstr "シンガポール共和国"
-
-#~ msgid "Slovakia (Slovak Republic)"
-#~ msgstr "スロバキア共和国"
-
-#~ msgid "Somalia, Somali Republic"
-#~ msgstr "ソマリア民主共和国"
-
-#~ msgid "Spain, Kingdom of"
-#~ msgstr "スペイン王国"
-
-#~ msgid "Sri Lanka, Democratic Socialist Republic of"
-#~ msgstr "スリランカ民主社会主義共和国"
-
-#~ msgid "Sudan, Democratic Republic of the"
-#~ msgstr "スーダン共和国"
-
-#~ msgid "Suriname, Republic of"
-#~ msgstr "スリナム共和国"
-
-#~ msgid "Swaziland, Kingdom of"
-#~ msgstr "スワジランド王国"
-
-#~ msgid "Switzerland, Swiss Confederation"
-#~ msgstr "スイス連邦"
-
-#~ msgid "Taiwan, Province of China"
-#~ msgstr "中華民国台湾"
-
-#~ msgid "Tanzania, United Republic of"
-#~ msgstr "タンザニア連合共和国"
-
-#~ msgid "Thailand, Kingdom of"
-#~ msgstr "タイ王国"
-
-#~ msgid "Timor-Leste, Democratic Republic of"
-#~ msgstr "東ティモール民主共和国"
-
-#~ msgid "Togo, Togolese Republic"
-#~ msgstr "トーゴ共和国"
-
-#~ msgid "Tokelau (Tokelau Islands)"
-#~ msgstr "トケラウ (トケラウ諸島)"
-
-#~ msgid "Tonga, Kingdom of"
-#~ msgstr "トンガ王国"
-
-#~ msgid "Tunisia, Republic of"
-#~ msgstr "チュニジア共和国"
-
-#~ msgid "Turkey, Republic of"
-#~ msgstr "トルコ共和国"
-
-#~ msgid "Uganda, Republic of"
-#~ msgstr "ウガンダ共和国"
-
-#~ msgid "United Kingdom of Great Britain & N. Ireland"
-#~ msgstr "大ブリテン・北アイルランド連合王国"
-
-#~ msgid "Uruguay, Eastern Republic of"
-#~ msgstr "ウルグアイ東方共和国"
-
-#~ msgid "Venezuela, Bolivarian Republic of"
-#~ msgstr "ベネズエラ・ボリバル共和国"
-
-#~ msgid "Viet Nam, Socialist Republic of"
-#~ msgstr "ベトナム社会主義共和国"
-
-#~ msgid "Yugoslavia"
-#~ msgstr "ユーゴスラビア"
-
-#~ msgid "Zambia, Republic of"
-#~ msgstr "ザンビア共和国"
-
-#~ msgid "Auto-download selected by..."
-#~ msgstr "自動ダウンロード..."
-
-#~ msgid "urn:sha1"
-#~ msgstr "URN:SHA1で"
-
-#~ msgid "New search from selected"
-#~ msgstr "新規の検索"
-
-#~ msgid "Add/Replace"
-#~ msgstr "新規/置換"
-
-#~ msgid "Force local _IP to"
-#~ msgstr "強制ローカルIP(_I)"
-
-#~ msgid "New/replace"
-#~ msgstr "新規/置換"
