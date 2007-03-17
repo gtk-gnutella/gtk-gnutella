@@ -1203,7 +1203,11 @@ search_matched(search_t *sch, results_set_t *rs)
     gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &is_firewalled);
 
 	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-	skip_records = (!send_pushes || is_firewalled) && (flags & SOCK_F_PUSH);
+	if (ST_LOCAL & rs->status) {
+		skip_records = FALSE;
+	} else {
+		skip_records = (!send_pushes || is_firewalled) && (flags & SOCK_F_PUSH);
+	}
 
 	if (gui_debug > 6)
 		printf("search_matched: [%s] got hit with %d record%s (from %s) "
