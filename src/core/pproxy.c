@@ -1062,11 +1062,6 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 
 	g_assert(handle == cp->http_handle);
 
-	http_async_cancel(cp->http_handle);
-	cp->http_handle = NULL;
-
-	g_assert(cp->done);		/* Set by the error_ind callback during cancel */
-
 	/*
 	 * Analyze status.
 	 */
@@ -1104,6 +1099,11 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx,
 			cp->directly ? "directly" : "via Gnet");
+
+	http_async_cancel(cp->http_handle);
+	cp->http_handle = NULL;
+
+	g_assert(cp->done);		/* Set by the error_ind callback during cancel */
 
 	return FALSE;		/* Don't continue -- handle invalid now anyway */
 }
