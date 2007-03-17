@@ -3962,6 +3962,20 @@ search_locally(gnet_search_t sh, const gchar *query)
 	poke_be32(&rs->vcode.be32, T_GTKG);
     rs->status |= ST_LOCAL | ST_KNOWN_VENDOR;
 
+	if (is_firewalled)
+		rs->status |= ST_FIREWALL;
+	
+	if (is_firewalled || !host_is_valid(rs->addr, rs->port)) {
+		const GSList *nodes = node_push_proxies();
+
+		if (nodes) {
+			struct gnutella_node *n = nodes->data;
+
+			rs->proxies = gnet_host_vec_alloc();
+			gnet_host_vec_add(rs->proxies, n->proxy_addr, n->proxy_port);
+		}
+	}
+
 	if (sf) {
 		search_add_local_file(rs, sf);
 	} else {
