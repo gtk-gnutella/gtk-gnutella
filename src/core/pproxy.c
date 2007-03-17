@@ -375,7 +375,7 @@ get_params(struct pproxy *pp, const gchar *request,
 	for (i = 0; i < G_N_ELEMENTS(req_types); i++) {
 		gchar *q;
 
-		if (NULL != (q = is_strprefix(req_types[i].req, uri))) {
+		if (NULL != (q = is_strprefix(uri, req_types[i].req))) {
 			attr = req_types[i].attr;
 			uri = q;
 			break;
