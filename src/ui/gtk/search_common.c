@@ -1745,7 +1745,6 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	res = magnet_parse(url, error_str);
 	if (res) {
 		guint n_downloads, n_searches;
-		GSList *sl;
 
 		n_downloads = guc_download_handle_magnet(url);
 		n_searches = guc_search_handle_magnet(url);
