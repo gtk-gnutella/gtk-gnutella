@@ -1563,11 +1563,10 @@ http_async_free_recursive(struct http_async *ha)
 
 	g_assert(sl_outgoing);
 
-	atom_str_free(ha->url);
-	atom_str_free(ha->path);
+	atom_str_free_null(&ha->url);
+	atom_str_free_null(&ha->path);
+	atom_str_free_null(&ha->host);
 
-	if (ha->host)
-		atom_str_free(ha->host);
 	if (ha->io_opaque)
 		io_free(ha->io_opaque);
 	if (ha->bio)
@@ -1674,7 +1673,8 @@ http_async_remove(gpointer handle, http_errtype_t type, gpointer code)
 void
 http_async_cancel(gpointer handle)
 {
-	http_async_remove(handle, HTTP_ASYNC_ERROR, (gpointer) HTTP_ASYNC_CANCELLED);
+	http_async_remove(handle, HTTP_ASYNC_ERROR,
+		GINT_TO_POINTER(HTTP_ASYNC_CANCELLED));
 }
 
 /**
