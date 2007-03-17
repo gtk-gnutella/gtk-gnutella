@@ -1540,11 +1540,6 @@ node_real_remove(gnutella_node_t *n)
 
 	atom_str_free_null(&n->vendor);
 
-	if (n->guid) {
-		g_hash_table_remove(nodes_by_guid, n->guid);
-		atom_guid_free_null(&n->guid);
-	}
-
 	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
 	 * whilst on the "data reception" interrupt path.
@@ -1721,6 +1716,10 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	if (n->qrelayed_old != NULL) {
 		string_table_free(n->qrelayed_old);
 		n->qrelayed_old = NULL;
+	}
+	if (n->guid) {
+		g_hash_table_remove(nodes_by_guid, n->guid);
+		atom_guid_free_null(&n->guid);
 	}
 
 	if (!in_shutdown) {
