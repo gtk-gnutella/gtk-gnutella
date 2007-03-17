@@ -2,7 +2,7 @@
 #
 # Japanese translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2006 Raphaël Manfredi.
+# Copyright (C) 2001-2007 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Daichi Kawahata <daichik@users.sourceforge.net>, 2004-2007.
 #
@@ -74,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-03-18 04:31+0900\n"
-"PO-Revision-Date: 2007-03-17 21:48+0900\n"
+"PO-Revision-Date: 2007-03-18 04:35+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -145,13 +145,11 @@ msgstr[0] "接続を拒否されました (%u 回目)"
 msgid "Dup SHA1 during creation"
 msgstr "重複するSHA1を検知しました"
 
-#, fuzzy
 msgid "Max. number of downloads reached"
-msgstr "ホスト参照結果の最大数"
+msgstr "最大ダウンロード数に達しました。"
 
-#, fuzzy
 msgid "Max. number of downloads for this host reached"
-msgstr "ホスト参照結果の最大数"
+msgstr "このホストの最大ダウンロード数に達しました。"
 
 #, fuzzy
 msgid "Has already enough active sources"
@@ -579,7 +577,7 @@ msgid "Search added"
 msgstr "検索が追加されました"
 
 msgid "The search could not be created"
-msgstr ""
+msgstr "検索を作成できませんでした"
 
 msgid "Property missing"
 msgstr "プロパティがありません"
@@ -603,10 +601,10 @@ msgid "Help: "
 msgstr "へルプ: "
 
 msgid "The library is currently being rebuilt."
-msgstr ""
+msgstr "現在ライブラリの再構築中です。"
 
 msgid "A rescan has already been scheduled"
-msgstr ""
+msgstr "再スキャンは既に予定されています。"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
 msgid "Hops"
@@ -1179,91 +1177,91 @@ msgstr ""
 "さくなっている必要があります。"
 
 msgid "For development use: debug level."
-msgstr "開発用: バグ解析レベルです。"
+msgstr "開発用: デバッグレベルです。"
 
 msgid "Debug level for banning code."
-msgstr "禁止処理コードのバグ解析レベルです。"
+msgstr "禁止処理コードのデバッグレベルです。"
 
 msgid "If not zero, periodic messages show the used CPU time."
 msgstr "0 でない場合は、利用 CPU 時間が定期的に表示されます。"
 
 msgid "Debug level for download mesh management."
-msgstr "ダウンロード・メッシュ管理のバグ解析レベルです。"
+msgstr "ダウンロード・メッシュ管理のデバッグレベルです。"
 
 msgid "Debug level for Gnutella messages."
-msgstr "Gnutella メッセージのバグ解析レベルです。"
+msgstr "Gnutella メッセージのデバッグレベルです。"
 
 msgid "Debug level for file sharing code."
-msgstr "ファイル共有コードのバグ解析レベルです。"
+msgstr "ファイル共有コードのデバッグレベルです。"
 
 msgid "Debug level for Gnutella nodes."
-msgstr "Gnutella ピアのバグ解析レベルです。"
+msgstr "Gnutella ピアのデバッグレベルです。"
 
 msgid "Debug level for sockets."
-msgstr "ソケットのバグ解析レベルです。"
+msgstr "ソケットのデバッグレベルです。"
 
 msgid "Debug level for bootstrapping into the network."
-msgstr "ネットワークへのブートストラップのバグ解析レベルです。"
+msgstr "ネットワークへのブートストラップのデバッグレベルです。"
 
 msgid "Debug level for HTTP code."
-msgstr "HTTP コードのバグ解析レベルです。"
+msgstr "HTTP コードのデバッグレベルです。"
 
 msgid "Debug level for downloads."
-msgstr "ダウンロードのバグ解析レベルです。"
+msgstr "ダウンロードのデバッグレベルです。"
 
 msgid "Debug level for fileinfo."
-msgstr "ファイル情報のバグ解析レベルです。"
+msgstr "ファイル情報のデバッグレベルです。"
 
 msgid "Debug level for uploads."
-msgstr "アップロードのバグ解析レベルです。"
+msgstr "アップロードのデバッグレベルです。"
 
 msgid "Debug level for code shared between gui and core."
-msgstr "GUI とコアの間で共有されるコードのバグ解析レベルです。"
+msgstr "GUI とコアの間で共有されるコードのデバッグレベルです。"
 
 msgid "Verbosity of Bitzi related debug messages."
-msgstr "Bitzi 関連のバグ解析メッセージの冗長度です。"
+msgstr "Bitzi 関連のデバッグメッセージの冗長度です。"
 
 msgid "Verbosity of URL handling related debug messages."
-msgstr "URL ハンドリング関連のバグ解析メッセージの冗長度です。"
+msgstr "URL ハンドリング関連のデバッグメッセージの冗長度です。"
 
 msgid "Debug level for dynamic query hit routing."
-msgstr "動的検索クエリーヒット経路設定のバグ解析レベルです。"
+msgstr "動的検索クエリーヒット経路設定のデバッグレベルです。"
 
 msgid "Debug level for dynamic queries."
-msgstr "動的検索クエリーのバグ解析レベルです。"
+msgstr "動的検索クエリーのデバッグレベルです。"
 
 msgid "Debug level for vendor messages."
-msgstr "ベンダーメッセージのバグ解析レベルです。"
+msgstr "ベンダーメッセージのデバッグレベルです。"
 
 msgid "Debug level for queries."
-msgstr "検索クエリーのバグ解析レベルです。"
+msgstr "検索クエリーのデバッグレベルです。"
 
 msgid "Debug level for searches and search results management."
-msgstr "検索と検索結果管理のバグ解析レベルです。"
+msgstr "検索と検索結果管理のデバッグレベルです。"
 
 msgid "Debug level for the UDP traffic layer."
-msgstr "UDP トラフィックレイヤのバグ解析レベルです。"
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
 
 msgid "Debug level for the Query Routing Protocol."
-msgstr "検索クエリー経路設定プロトコル (QRP) のバグ解析レベルです。"
+msgstr "検索クエリー経路設定プロトコル (QRP) のデバッグレベルです。"
 
 msgid "Debug level for message routing."
-msgstr "メッセージ経路設定のバグ解析レベルです。"
+msgstr "メッセージ経路設定のデバッグレベルです。"
 
 msgid "Debug level for GGEP."
-msgstr "GGEP のバグ解析レベルです。"
+msgstr "GGEP のデバッグレベルです。"
 
 msgid "Debug level for pong caching."
-msgstr "Pong キャッシュのバグ解析レベルです。"
+msgstr "Pong キャッシュのデバッグレベルです。"
 
 msgid "Debug level for HSEP."
-msgstr "HSEP のバグ解析レベルです。"
+msgstr "HSEP のデバッグレベルです。"
 
 msgid "Debug level for TLS."
-msgstr "TLS のバグ解析レベルです。"
+msgstr "TLS のデバッグレベルです。"
 
 msgid "Debug level for PARQ."
-msgstr "PARQ のバグ解析レベルです。"
+msgstr "PARQ のデバッグレベルです。"
 
 msgid ""
 "If set, PARQ will calculate its ETA and retry times more optimistically. If "
@@ -2437,27 +2435,25 @@ msgstr ""
 "無効にした場合、例えばファイルサイズの単位は、バイナリー・プリフィックスが付"
 "く旧来の Base2 変換を使用して表示されます。"
 
-#, fuzzy
 msgid "Debug level for Reliable UDP (RUDP) code."
-msgstr "ファイル共有コードのバグ解析レベルです。"
+msgstr "高信頼 UDP (RUDP) のデバッグレベルです。"
 
-#, fuzzy
 msgid "Debug level for the Distributed Hash Table (DHT) code."
-msgstr "ファイル共有コードのバグ解析レベルです。"
+msgstr "分散ハッシュテーブル (DHT) のデバッグレベルです。"
 
 #, fuzzy
 msgid "Debug level for the OOB-proxying of queries."
-msgstr "動的検索クエリーのバグ解析レベルです。"
+msgstr "動的検索クエリーのデバッグレベルです。"
 
 msgid ""
 "If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
-#, fuzzy
 msgid "Don't start more than this number of parallel downloads per file."
 msgstr ""
-"この数以上のファイルを一つのホストに対して並行してアップロードしません。"
+"一つのファイルに対してこの数以上のファイルを同時並行してダウンロードしませ"
+"ん。"
 
 msgid ""
 "If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
@@ -2474,18 +2470,17 @@ msgid ""
 msgstr ""
 
 msgid "Debug level for the shell."
-msgstr "シェルのバグ解析レベルです。"
+msgstr "シェルのデバッグレベルです。"
 
 msgid "If larger than zero, no downloads are started."
 msgstr "0より大きい場合は、ダウンロードを開始しません。"
 
-#, fuzzy
 msgid "Debug level for the search queue."
-msgstr "GUI のバグ解析レベルです。"
+msgstr "検索キューのデバッグレベルです。"
 
 #, fuzzy
 msgid "Debug level for push-proxy code."
-msgstr "HTTP コードのバグ解析レベルです。"
+msgstr "HTTP コードのデバッグレベルです。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -2698,7 +2693,7 @@ msgid "Maximum number of results to show in a browse_host request."
 msgstr "ホスト参照リクエストで表示する最大数です。"
 
 msgid "Debug level for the gui."
-msgstr "GUI のバグ解析レベルです。"
+msgstr "GUI のデバッグレベルです。"
 
 msgid "Size of the filter tree in the filter dialog."
 msgstr "フィルターダイアログ内でのフィルター木の大きさです。"
@@ -2788,7 +2783,7 @@ msgid "Discard search results which carry no hashsum."
 msgstr "ハッシュ値の無い検索結果を破棄します。"
 
 msgid "Jump to newly created searches"
-msgstr ""
+msgstr "新規作成された検索に移動する"
 
 msgid "Display download settings."
 msgstr "ダウンロード設定を表示します。"
@@ -2992,7 +2987,7 @@ msgid "Satellite providers"
 msgstr "衛星プロバイダー"
 
 msgid "Andorra"
-msgstr ""
+msgstr "アンドラ公国"
 
 msgid "United Arab Emirates"
 msgstr "アラブ首長国連邦"
@@ -3007,7 +3002,7 @@ msgid "Anguilla"
 msgstr "英領アンギラ島"
 
 msgid "Albania"
-msgstr ""
+msgstr "アルバニア共和国"
 
 msgid "Armenia"
 msgstr "アルメニア共和国"
@@ -3022,7 +3017,7 @@ msgid "Asia/Pacific Region"
 msgstr "アジア/太平洋地域"
 
 msgid "Antarctica"
-msgstr ""
+msgstr "南極"
 
 msgid "Argentina"
 msgstr "アルゼンチン共和国"
@@ -3034,7 +3029,7 @@ msgid "Austria"
 msgstr "オーストリア共和国"
 
 msgid "Australia"
-msgstr ""
+msgstr "オーストラリア連邦"
 
 msgid "Aruba"
 msgstr "蘭領アルバ"
@@ -3043,7 +3038,6 @@ msgstr "蘭領アルバ"
 msgid "Åland Islands"
 msgstr "英領ケイマン諸島"
 
-#, fuzzy
 msgid "Azerbaijan"
 msgstr "アゼルバイジャン共和国"
 
@@ -3054,7 +3048,7 @@ msgid "Barbados"
 msgstr "バルバドス"
 
 msgid "Bangladesh"
-msgstr ""
+msgstr "バングラデシュ人民共和国"
 
 msgid "Belgium"
 msgstr "ベルギー王国"
@@ -3066,14 +3060,13 @@ msgid "Bulgaria"
 msgstr "ブルガリア共和国"
 
 msgid "Bahrain"
-msgstr ""
+msgstr "バーレーン王国"
 
 msgid "Burundi"
-msgstr ""
+msgstr "ブルンジ共和国"
 
-#, fuzzy
 msgid "Benin"
-msgstr "仏領レユニオン島"
+msgstr "ベナン共和国"
 
 msgid "Bermuda"
 msgstr "英領バミューダ諸島"
@@ -3082,23 +3075,22 @@ msgid "Brunei Darussalam"
 msgstr "ブルネイ・ダルサラーム国"
 
 msgid "Bolivia"
-msgstr ""
+msgstr "ボリビア共和国"
 
 msgid "Brazil"
-msgstr ""
+msgstr "ブラジル連邦共和国"
 
 msgid "Bahamas"
-msgstr ""
+msgstr "バハマ共和国"
 
 msgid "Bhutan"
 msgstr "ブータン王国"
 
-#, fuzzy
 msgid "Bouvet Island"
 msgstr "諾領ブーヴェ島"
 
 msgid "Botswana"
-msgstr ""
+msgstr "ボツワナ共和国"
 
 msgid "Belarus"
 msgstr "ベラルーシ共和国"
@@ -3209,13 +3201,13 @@ msgid "Finland"
 msgstr "フィンランド共和国"
 
 msgid "Fiji"
-msgstr ""
+msgstr "フィジー諸島共和国"
 
 msgid "Falkland Islands (Malvinas)"
 msgstr "英領フォークランド諸島 (マルビーナス諸島)"
 
 msgid "Micronesia"
-msgstr ""
+msgstr "ミクロネシア連邦"
 
 msgid "Faroe Islands"
 msgstr "丁領フェロー諸島"
@@ -3224,7 +3216,7 @@ msgid "France"
 msgstr "フランス共和国"
 
 msgid "Gabon"
-msgstr ""
+msgstr "ガボン共和国"
 
 msgid "United Kingdom"
 msgstr "大ブリテン・北アイルランド連合王国"
@@ -3238,12 +3230,11 @@ msgstr "グルジア"
 msgid "French Guiana"
 msgstr "仏領ギアナ"
 
-#, fuzzy
 msgid "Guernsey"
-msgstr "ドイツ連邦共和国"
+msgstr "英王室属領ガーンジー島"
 
 msgid "Ghana"
-msgstr ""
+msgstr "ガーナ共和国"
 
 msgid "Gibraltar"
 msgstr "英領ジブラルタル"
@@ -3251,19 +3242,15 @@ msgstr "英領ジブラルタル"
 msgid "Greenland"
 msgstr "丁領グリーンランド"
 
-#, fuzzy
 msgid "Gambia"
-msgstr "ナミビア共和国"
+msgstr "ガンビア共和国"
 
-#, fuzzy
 msgid "Guinea"
-msgstr "一般"
+msgstr "ギニア共和国"
 
-#, fuzzy
 msgid "Guadeloupe"
 msgstr "仏領グアドループ島"
 
-#, fuzzy
 msgid "Equatorial Guinea"
 msgstr "赤道ギニア共和国"
 
@@ -3273,20 +3260,17 @@ msgstr "ギリシャ共和国"
 msgid "South Georgia and The South Sandwich Islands"
 msgstr "英領南ジョージア・南サンドイッチ諸島"
 
-#, fuzzy
 msgid "Guatemala"
-msgstr "グアム"
+msgstr "グァテマラ共和国"
 
 msgid "Guam"
 msgstr "グアム"
 
-#, fuzzy
 msgid "Guinea-Bissau"
 msgstr "ギニアビサウ共和国"
 
-#, fuzzy
 msgid "Guyana"
-msgstr "ミャンマー連邦"
+msgstr "ガイアナ協同共和国"
 
 msgid "Hong Kong"
 msgstr "香港特別行政区"
@@ -3295,17 +3279,16 @@ msgid "Heard Island and McDonald Islands"
 msgstr "豪領ハード・マクドナルド諸島"
 
 msgid "Honduras"
-msgstr ""
+msgstr "ホンジュラス共和国"
 
 msgid "Croatia"
 msgstr "クロアチア共和国"
 
-#, fuzzy
 msgid "Haiti"
-msgstr "待受中"
+msgstr "ハイチ共和国"
 
 msgid "Hungary"
-msgstr ""
+msgstr "ハンガリー共和国"
 
 msgid "Indonesia"
 msgstr "インドネシア共和国"
@@ -3326,46 +3309,43 @@ msgid "British Indian Ocean Territory"
 msgstr "英領インド洋地域 (チャゴス諸島)"
 
 msgid "Iraq"
-msgstr ""
+msgstr "イラク共和国"
 
-#, fuzzy
 msgid "Iran"
-msgstr "アイルランド"
+msgstr "イラン・イスラム共和国"
 
-#, fuzzy
 msgid "Iceland"
-msgstr "アイルランド"
+msgstr "アイスランド共和国"
 
 msgid "Italy"
 msgstr "イタリア共和国"
 
 msgid "Jersey"
-msgstr ""
+msgstr "英王室属領ジャージー島"
 
 msgid "Jamaica"
 msgstr "ジャマイカ"
 
 msgid "Jordan"
-msgstr ""
+msgstr "ヨルダン・ハシェミット王国"
 
 msgid "Japan"
 msgstr "日本国"
 
 msgid "Kenya"
-msgstr ""
+msgstr "ケニア共和国"
 
 msgid "Kyrgyzstan"
-msgstr ""
+msgstr "キルギス共和国"
 
-#, fuzzy
 msgid "Cambodia"
-msgstr "ナミビア共和国"
+msgstr "カンボジア王国"
 
 msgid "Kiribati"
-msgstr ""
+msgstr "キリバス共和国"
 
 msgid "Comoros"
-msgstr ""
+msgstr "コモロ連合"
 
 #, fuzzy
 msgid "Saint Kitts and Nevis"
@@ -3378,44 +3358,40 @@ msgid "South Korea"
 msgstr "大韓民国"
 
 msgid "Kuwait"
-msgstr ""
+msgstr "クウェート国"
 
 msgid "Cayman Islands"
 msgstr "英領ケイマン諸島"
 
-#, fuzzy
 msgid "Kazakhstan"
 msgstr "カザフスタン共和国"
 
 msgid "Laos"
-msgstr ""
+msgstr "ラオス人民民主共和国"
 
-#, fuzzy
 msgid "Lebanon"
-msgstr "原因"
+msgstr "レバノン共和国"
 
-#, fuzzy
 msgid "Saint lucia"
 msgstr "セントルシア"
 
-#, fuzzy
 msgid "Liechtenstein"
 msgstr "リヒテンシュタイン公国"
 
 msgid "Sri Lanka"
-msgstr ""
+msgstr "スリランカ民主社会主義共和国"
 
 msgid "Liberia"
-msgstr ""
+msgstr "リベリア共和国"
 
 msgid "Lesotho"
-msgstr ""
+msgstr "レソト王国"
 
 msgid "Lithuania"
 msgstr "リトアニア共和国"
 
 msgid "Luxembourg"
-msgstr ""
+msgstr "ルクセンブルク大公国"
 
 msgid "Latvia"
 msgstr "ラトビア共和国"
@@ -3424,14 +3400,13 @@ msgid "Libyan Arab Jamahiriya"
 msgstr "大リビア・アラブ社会主義人民ジャマーヒリーヤ国"
 
 msgid "Morocco"
-msgstr ""
+msgstr "モロッコ王国"
 
-#, fuzzy
 msgid "Monaco"
-msgstr "モニター"
+msgstr "モナコ広告"
 
 msgid "Moldova"
-msgstr ""
+msgstr "モルドバ共和国"
 
 msgid "Montenegro"
 msgstr "モンテネグロ共和国"
@@ -3445,18 +3420,17 @@ msgstr "マーシャル諸島共和国"
 msgid "Macedonia"
 msgstr "マケドニア共和国"
 
-#, fuzzy
 msgid "Mali"
-msgstr "マレーシア"
+msgstr "マリ共和国"
 
 msgid "Myanmar"
 msgstr "ミャンマー連邦"
 
 msgid "Mongolia"
-msgstr ""
+msgstr "モンゴル国"
 
 msgid "Macao"
-msgstr ""
+msgstr "マカオ特別行政区"
 
 msgid "Northern Mariana Islands"
 msgstr "米自治領北マリアナ諸島"
@@ -3464,26 +3438,23 @@ msgstr "米自治領北マリアナ諸島"
 msgid "Martinique"
 msgstr "仏領マルチニーク島"
 
-#, fuzzy
 msgid "Mauritania"
 msgstr "モーリシャス共和国"
 
 msgid "Montserrat"
 msgstr "英領モントセラト島"
 
-#, fuzzy
 msgid "Malta"
-msgstr "マレーシア"
+msgstr "マルタ共和国"
 
 msgid "Mauritius"
 msgstr "モーリシャス共和国"
 
 msgid "Maldives"
-msgstr ""
+msgstr "モルディブ共和国"
 
-#, fuzzy
 msgid "Malawi"
-msgstr "マレーシア"
+msgstr "マラウイ共和国"
 
 msgid "Mexico"
 msgstr "メキシコ合衆国"
@@ -3492,7 +3463,7 @@ msgid "Malaysia"
 msgstr "マレーシア"
 
 msgid "Mozambique"
-msgstr ""
+msgstr "モザンビーク共和国"
 
 msgid "Namibia"
 msgstr "ナミビア共和国"
@@ -3501,41 +3472,40 @@ msgid "New Caledonia"
 msgstr "仏領ニューカレドニア"
 
 msgid "Niger"
-msgstr ""
+msgstr "ニジェール共和国"
 
 msgid "Norfolk Island"
 msgstr "豪領ノーフォーク島"
 
 msgid "Nigeria"
-msgstr ""
+msgstr "ナイジェリア連邦共和国"
 
 msgid "Nicaragua"
-msgstr ""
+msgstr "ニカラグア共和国"
 
 msgid "Netherlands"
 msgstr "オランダ王国"
 
 msgid "Norway"
-msgstr ""
+msgstr "ノルウェイ王国"
 
 msgid "Nepal"
-msgstr ""
+msgstr "ネパール"
 
 msgid "Nauru"
-msgstr ""
+msgstr "ナウル共和国"
 
 msgid "Niue"
-msgstr ""
+msgstr "ニウエ島"
 
 msgid "New Zealand"
 msgstr "ニュージーランド"
 
 msgid "Oman"
-msgstr ""
+msgstr "オマーン国"
 
-#, fuzzy
 msgid "Panama"
-msgstr "カナダ"
+msgstr "パナマ共和国"
 
 msgid "Peru"
 msgstr "ペルー共和国"
@@ -3547,20 +3517,17 @@ msgid "Papua New Guinea"
 msgstr "パプアニューギニア独立国"
 
 msgid "Philippines"
-msgstr ""
+msgstr "フィリピン共和国"
 
-#, fuzzy
 msgid "Pakistan"
-msgstr "タジキスタン共和国"
+msgstr "パキスタン・イスラム共和国"
 
 msgid "Poland"
 msgstr "ポーランド共和国"
 
-#, fuzzy
 msgid "Saint Pierre and Miquelon"
 msgstr "仏領サンピエール及びミクロン島"
 
-#, fuzzy
 msgid "Pitcairn"
 msgstr "英領ピトケアン島"
 
@@ -3580,13 +3547,13 @@ msgid "Paraguay"
 msgstr "パラグアイ共和国"
 
 msgid "Qatar"
-msgstr ""
+msgstr "カタール国"
 
 msgid "Reunion"
 msgstr "仏領レユニオン島"
 
 msgid "Romania"
-msgstr ""
+msgstr "ルーマニア共和国"
 
 msgid "Serbia"
 msgstr "セルビア共和国"
@@ -3594,30 +3561,26 @@ msgstr "セルビア共和国"
 msgid "Russian Federation"
 msgstr "ロシア連邦"
 
-#, fuzzy
 msgid "Rwanda"
-msgstr "カナダ"
+msgstr "ルワンダ共和国"
 
-#, fuzzy
 msgid "Saudi Arabia"
 msgstr "サウジアラビア王国"
 
 msgid "Solomon Islands"
 msgstr "ソロモン諸島"
 
-#, fuzzy
 msgid "Seychelles"
-msgstr "検索"
+msgstr "セーシェル共和国"
 
 msgid "Sudan"
-msgstr ""
+msgstr "スーダン共和国"
 
 msgid "Sweden"
-msgstr ""
+msgstr "スウェーデン王国"
 
-#, fuzzy
 msgid "Singapore"
-msgstr "無視"
+msgstr "シンガポール共和国"
 
 msgid "Saint Helena"
 msgstr "英領セントヘレナ島"
@@ -3625,7 +3588,6 @@ msgstr "英領セントヘレナ島"
 msgid "Slovenia"
 msgstr "スロベニア共和国"
 
-#, fuzzy
 msgid "Svalbard and Jan Mayen"
 msgstr "諾領スバルバール・ヤンメイヤン諸島"
 
@@ -3638,16 +3600,14 @@ msgstr "シエラレオネ共和国"
 msgid "San Marino"
 msgstr "サンマリノ共和国"
 
-#, fuzzy
 msgid "Senegal"
-msgstr "一般"
+msgstr "セネガル共和国"
 
 msgid "Somalia"
-msgstr ""
+msgstr "ソマリア"
 
-#, fuzzy
 msgid "Suriname"
-msgstr "名前で"
+msgstr "スリナム共和国"
 
 msgid "Sao Tome and Principe"
 msgstr "サントメ・プリンシペ民主共和国"
@@ -3659,19 +3619,19 @@ msgid "Syrian Arab Republic"
 msgstr "シリア・アラブ共和国"
 
 msgid "Swaziland"
-msgstr ""
+msgstr "スワジランド王国"
 
 msgid "Turks and Caicos Islands"
 msgstr "英領タークス諸島・カイコス諸島"
 
 msgid "Chad"
-msgstr ""
+msgstr "チャド共和国"
 
 msgid "French Southern Territories"
 msgstr "仏領極南諸島"
 
 msgid "Togo"
-msgstr ""
+msgstr "トーゴ共和国"
 
 msgid "Thailand"
 msgstr "タイ王国"
@@ -3680,7 +3640,7 @@ msgid "Tajikistan"
 msgstr "タジキスタン共和国"
 
 msgid "Tokelau"
-msgstr ""
+msgstr "新西蘭領トケラウ諸島"
 
 msgid "Timor-leste"
 msgstr ""
@@ -3688,18 +3648,15 @@ msgstr ""
 msgid "Turkmenistan"
 msgstr "トルクメニスタン"
 
-#, fuzzy
 msgid "Tunisia"
-msgstr "トルクメニスタン"
+msgstr "チュニジア共和国"
 
-#, fuzzy
 msgid "Tonga"
-msgstr "Pong"
+msgstr "トンガ王国"
 
 msgid "Turkey"
 msgstr "トルコ共和国"
 
-#, fuzzy
 msgid "Trinidad and Tobago"
 msgstr "トリニダード・トバゴ共和国"
 
@@ -3710,14 +3667,13 @@ msgid "Taiwan"
 msgstr "中華民国台湾"
 
 msgid "Tanzania"
-msgstr ""
+msgstr "タンザニア連合共和国"
 
 msgid "Ukraine"
 msgstr "ウクライナ"
 
-#, fuzzy
 msgid "Uganda"
-msgstr "カナダ"
+msgstr "ウガンダ共和国"
 
 msgid "United States Minor Outlying Islands"
 msgstr "アメリカ辺境諸島"
@@ -3755,9 +3711,8 @@ msgstr "バヌアツ共和国"
 msgid "Wallis and Futuna"
 msgstr "仏領ワリス・フツナ諸島"
 
-#, fuzzy
 msgid "Samoa"
-msgstr "スパム"
+msgstr "サモア独立国"
 
 msgid "Yemen"
 msgstr "イエメン共和国"
@@ -3768,9 +3723,8 @@ msgstr "仏領マヨット島"
 msgid "South Africa"
 msgstr "南アフリカ共和国"
 
-#, fuzzy
 msgid "Zambia"
-msgstr "ナミビア共和国"
+msgstr "ザンビア共和国"
 
 msgid "Zimbabwe"
 msgstr "ジンバブエ共和国"
@@ -4995,9 +4949,8 @@ msgstr "一基のホストからの最大ダウンロード数"
 msgid "Max. simultaneous downloads"
 msgstr "同時ダウンロードの最大数"
 
-#, fuzzy
 msgid "Max. simultaneous downloads per file"
-msgstr "同時ダウンロードの最大数"
+msgstr "一つのファイルに対する同時ダウンロードの最大数"
 
 msgid "Auto clear stopped downloads"
 msgstr "中断したダウンロードの自動消去"
@@ -5030,7 +4983,7 @@ msgid "Clear stopped"
 msgstr "中断したものを消去"
 
 msgid "("
-msgstr ""
+msgstr "("
 
 msgid "active"
 msgstr "有効にする"
@@ -5043,7 +4996,7 @@ msgid "queued"
 msgstr "待機"
 
 msgid ")"
-msgstr ""
+msgstr ")"
 
 msgid "Show settings"
 msgstr "設定の表示"
@@ -6510,7 +6463,7 @@ msgid "Available physical memory:"
 msgstr "利用可能な物理メモリ量:"
 
 msgid "Debugging"
-msgstr "バグ解析"
+msgstr "デバッグ"
 
 msgid "gtk-gnutella - Frequently Asked Questions"
 msgstr "gtk-gnutella - よく訊かれる質問"
@@ -6539,18 +6492,14 @@ msgstr "国(地域)"
 msgid "Failed to create the search"
 msgstr "検索の作成に失敗しました。"
 
-# FIXME:
-#, fuzzy
 msgid "owned"
-msgstr "終了"
+msgstr ""
 
-#, fuzzy
 msgid "partial"
-msgstr "ラトビア共和国"
+msgstr ""
 
-#, fuzzy
 msgid "shared"
-msgstr "停滞しています"
+msgstr ""
 
 # NOTE: this string is used as follows
 #
@@ -6607,10 +6556,8 @@ msgstr "有害ホスト"
 msgid "SHA-1"
 msgstr "SHA-1"
 
-# FIXME:
-#, fuzzy
 msgid "Created"
-msgstr "完了しました"
+msgstr ""
 
 msgid "Not in database"
 msgstr "データベースにありません"
@@ -6823,12 +6770,11 @@ msgstr ""
 "このオプションを使用すると、まずローカルネット上でファイルを位置付けてみる事"
 "で、多くのピアを伴う巨大なネットワーク上での能率を押し上げます。"
 
-#, fuzzy
 msgid ""
 "Check this button if you want to use Gtk-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
 msgstr ""
-"gtk-gnutella を LAN 上で使用したければ有効にして下さい。RFC1918 は無視されま"
+"Gtk-Gnutella を LAN 上で使用したければ有効にして下さい。RFC1918 は無視されま"
 "す。"
 
 msgid "_Addresses of local network(s)"
@@ -6853,10 +6799,10 @@ msgid "attempts"
 msgstr "回"
 
 msgid "_Remove directory"
-msgstr "フォルダを削除(_R)"
+msgstr "フォルダを削除する(_R)"
 
 msgid "E_xpose relative paths"
-msgstr ""
+msgstr "相対パスを公開する(_X)"
 
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
@@ -7069,13 +7015,12 @@ msgid "%u search"
 msgid_plural "%u searches"
 msgstr[0] "%u 件の検索"
 
-# FIXME: without a doubt
 #, c-format
 msgid "Handled magnet link (%s, %s)."
-msgstr "マグネットリンク (%s, %s)。"
+msgstr "マグネットリンク (%s, %s) を取り扱います。"
 
 msgid "Ignored unusable magnet link."
-msgstr ""
+msgstr "無効なマグネットリンクが無視されました。"
 
 msgid "The given urn type is not supported."
 msgstr "このタイプのURNには対応しません。"
