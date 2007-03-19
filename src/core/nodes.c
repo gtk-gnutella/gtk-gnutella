@@ -372,12 +372,16 @@ string_table_clear(GHashTable *ht)
  * Dispose of hash table whose keys are atoms and values ignored.
  */
 static void
-string_table_free(GHashTable *ht)
+string_table_free(GHashTable **ht_ptr)
 {
-	g_assert(ht != NULL);
+	g_assert(ht_ptr);
+	if (*ht_ptr) {
+		GHashTable *ht = *ht_ptr;
 
-	g_hash_table_foreach(ht, free_key, NULL);
-	g_hash_table_destroy(ht);
+		g_hash_table_foreach(ht, free_key, NULL);
+		g_hash_table_destroy(ht);
+		*ht_ptr = NULL;
+	}
 }
 
 /**
@@ -1705,18 +1709,9 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	if (is_host_addr(n->proxy_addr)) {
 		sl_proxies = g_slist_remove(sl_proxies, n);
 	}
-	if (n->qseen != NULL) {
-		string_table_free(n->qseen);
-		n->qseen = NULL;
-	}
-	if (n->qrelayed != NULL) {
-		string_table_free(n->qrelayed);
-		n->qrelayed = NULL;
-	}
-	if (n->qrelayed_old != NULL) {
-		string_table_free(n->qrelayed_old);
-		n->qrelayed_old = NULL;
-	}
+	string_table_free(&n->qseen);
+	string_table_free(&n->qrelayed);
+	string_table_free(&n->qrelayed_old);
 	if (n->guid) {
 		g_hash_table_remove(nodes_by_guid, n->guid);
 		atom_guid_free_null(&n->guid);
