@@ -1011,8 +1011,12 @@ gui_update_download(struct download *d, gboolean force)
 	switch (d->status) {
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
-			gint elapsed = delta_time(now, d->last_update);
-
+			time_delta_t elapsed;
+			
+			elapsed = delta_time(now, d->last_update);
+			elapsed = MAX(0, elapsed);
+			elapsed = MIN(elapsed, INT_MAX);
+			
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), _("Queued"));
 
 			if (guc_get_parq_dl_position(d) > 0) {
@@ -1165,7 +1169,7 @@ gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_COMPLETED:
 		if (d->last_update != d->start_date) {
-			guint32 t = delta_time(d->last_update, d->start_date);
+			time_delta_t t = delta_time(d->last_update, d->start_date);
 			
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
@@ -1247,13 +1251,11 @@ gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_RECEIVING:
 		if (d->pos + download_buffered(d) > d->skip) {
-			gdouble p = 0;
 			gint bps;
 			guint32 avg_bps;
 			filesize_t downloaded;
 
 			downloaded = d->pos - d->skip + download_buffered(d);
-			p = guc_download_source_progress(d);
 
 			if (d->bio) {
 				bps = bio_bps(d->bio);
@@ -1277,7 +1279,7 @@ gui_update_download(struct download *d, gboolean force)
 
                 s = remain / avg_bps;
 
-				if (now - d->last_update > IO_STALLED)
+				if (delta_time(now, d->last_update) > IO_STALLED)
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " %s",
 						_("(stalled)"));
 				else
@@ -1301,8 +1303,10 @@ gui_update_download(struct download *d, gboolean force)
 					}
 				}
 			} else {
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%4.02f%% %s", p,
-					(now - d->last_update > IO_STALLED) ? _("(stalled)") : "");
+				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%4.02f%% %s",
+					  guc_download_source_progress(d),
+					  delta_time(now, d->last_update) > IO_STALLED
+					  	? _("(stalled)") : "");
 			}
 
 			/*
@@ -1333,9 +1337,13 @@ gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_TIMEOUT_WAIT:
 		{
-			gint when = d->timeout_delay - (now - d->last_update);
-			gm_snprintf(tmpstr, sizeof(tmpstr),
-				_("Retry in %ds"), MAX(0, when));
+			time_delta_t when;
+			
+			when = d->timeout_delay - delta_time(now, d->last_update);
+			when = MAX(0, when);
+			when = MIN(when, INT_MAX);
+			gm_snprintf(tmpstr, sizeof(tmpstr), _("Retry in %us"),
+				(unsigned) when);
 		}
 		a = tmpstr;
 		break;

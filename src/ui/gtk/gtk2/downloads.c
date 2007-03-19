@@ -137,6 +137,10 @@ gui_update_download(download_t *d, gboolean force)
 		{
 			time_delta_t elapsed = delta_time(now, d->last_update);
 
+			elapsed = delta_time(now, d->last_update);
+			elapsed = MAX(0, elapsed);
+			elapsed = MIN(elapsed, INT_MAX);
+			
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
 
 			if (guc_get_parq_dl_position(d) > 0) {
@@ -275,7 +279,7 @@ gui_update_download(download_t *d, gboolean force)
 
 	case GTA_DL_COMPLETED:
 		if (d->last_update != d->start_date) {
-			guint32 t = delta_time(d->last_update, d->start_date);
+			time_delta_t t = delta_time(d->last_update, d->start_date);
 			
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
@@ -428,8 +432,13 @@ gui_update_download(download_t *d, gboolean force)
 
 	case GTA_DL_TIMEOUT_WAIT:
 		{
-			guint when = d->timeout_delay - delta_time(now, d->last_update);
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), _("Retry in %us"), when);
+			time_delta_t when;
+			
+			when = d->timeout_delay - delta_time(now, d->last_update);
+			when = MAX(0, when);
+			when = MIN(when, INT_MAX);
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr), _("Retry in %us"),
+					(unsigned) when);
 		}
 		status = tmpstr;
 		break;
