@@ -1220,6 +1220,7 @@ node_id_ref(const node_id_t node_id)
 void
 node_id_unref(const node_id_t node_id)
 {
+	g_assert(node_id);
 	g_assert(node_id != node_id_get_self());
 	atom_uint64_free(&node_id->value);
 }
