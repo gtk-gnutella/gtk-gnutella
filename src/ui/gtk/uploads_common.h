@@ -33,10 +33,10 @@
 
 #include "if/ui/gtk/uploads.h"
 
-gfloat uploads_gui_progress(
-	const gnet_upload_status_t *u, const upload_row_data_t *data);
-const gchar *uploads_gui_status_str(
-    const gnet_upload_status_t *u, const upload_row_data_t *data);
+gdouble uploads_gui_progress(const gnet_upload_status_t *u,
+		const upload_row_data_t *data);
+const gchar *uploads_gui_status_str(const gnet_upload_status_t *u,
+		const upload_row_data_t *data);
 gboolean upload_should_remove(time_t now, const upload_row_data_t *ul);
 const gchar *uploads_gui_host_string(const gnet_upload_info_t *u);
 void uploads_gui_browse_host(host_addr_t addr, guint16 port);
