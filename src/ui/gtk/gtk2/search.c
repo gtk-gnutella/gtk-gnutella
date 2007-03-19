@@ -218,6 +218,9 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	case c_sr_meta:
 		text = data->meta;
 		break;
+	case c_sr_vendor:
+		text = lookup_vendor_name(rs->vcode);
+		break;
 	case c_sr_info:
 		text = data->record->info;
 		break;
@@ -918,6 +921,22 @@ search_gui_cmp_country(
 }
 
 static gint
+search_gui_cmp_vendor(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct result_data *d1, *d2;
+	gint ret;
+
+	(void) unused_udata;
+
+	d1 = get_result_data(model, a);
+	d2 = get_result_data(model, b);
+	ret = CMP(d1->record->results_set->vcode.be32,
+				d2->record->results_set->vcode.be32);
+	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+}
+
+static gint
 search_gui_cmp_info(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
 {
@@ -928,9 +947,10 @@ search_gui_cmp_info(
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->record->info, d1->record->info);
+	ret = search_gui_cmp_strings(d1->record->info, d2->record->info);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
+
 
 static gint
 search_gui_cmp_route(
@@ -2025,6 +2045,7 @@ add_results_columns(GtkTreeView *treeview, gpointer udata)
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_cmp_count },
 		{ N_("Loc"),	   c_sr_loc,	  0.0, search_gui_cmp_country },
 		{ N_("Metadata"),  c_sr_meta,	  0.0, search_gui_cmp_meta },
+		{ N_("Vendor"),	   c_sr_vendor,	  0.0, search_gui_cmp_vendor },
 		{ N_("Info"),	   c_sr_info,	  0.0, search_gui_cmp_info },
 		{ N_("Route"),	   c_sr_route,	  0.0, search_gui_cmp_route },
 		{ N_("Protocol"),  c_sr_protocol, 0.0, search_gui_cmp_protocol },

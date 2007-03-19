@@ -514,6 +514,10 @@ search_gui_compare_records(gint sort_col,
 				result = (r1->size > r2->size) ? +1 : -1;
             break;
 
+        case c_sr_vendor:
+			result = CMP(rs1->vcode.be32, rs2->vcode.be32);
+            break;
+
         case c_sr_info:
 			result = strcmp(EMPTY_STRING(r1->info), EMPTY_STRING(r2->info));
             break;
@@ -1185,6 +1189,9 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 			case c_sr_charset:
 				if (!(ST_LOCAL & rs->status))
 					text = rc->charset;
+				break;
+	 		case c_sr_vendor:
+				text = lookup_vendor_name(rs->vcode);
 				break;
 	 		case c_sr_info:
 				text = EMPTY_STRING(rc->info);
@@ -2394,6 +2401,7 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 		{ N_("#"),			c_sr_count,		TRUE },
 		{ N_("Loc"),		c_sr_loc,		FALSE },
 		{ N_("Metadata"),	c_sr_meta,		TRUE },
+		{ N_("Vendor"),		c_sr_vendor,	TRUE },
 		{ N_("Info"),		c_sr_info,		TRUE },
 		{ N_("Route"),		c_sr_route,		FALSE },
 		{ N_("Protocol"),	c_sr_protocol, 	FALSE },

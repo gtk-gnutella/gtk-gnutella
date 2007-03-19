@@ -65,7 +65,6 @@ RCSID("$Id$")
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
-#include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/zalloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -853,9 +852,9 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 		} else {
 			utf8_name = lazy_unknown_to_utf8_normalized(name,
 							UNI_NORM_GUI, &rc->charset);
-		}
-		if (utf8_name == name || 0 == strcmp("UTF-8", rc->charset)) {
-			rc->charset = NULL;
+			if (utf8_name == name || 0 == strcmp("UTF-8", rc->charset)) {
+				rc->charset = NULL;
+			}
 		}
 		rc->utf8_name = atom_str_get(utf8_name);
 		G_FREE_NULL(to_free);
@@ -1139,7 +1138,6 @@ search_matched(search_t *sch, results_set_t *rs)
 	guint32 old_items = sch->items;
 	gboolean skip_records;		/* Shall we skip those records? */
 	GString *vinfo = g_string_sized_new(40);
-	const gchar *vendor;
     GSList *sl;
     gboolean send_pushes;
     gboolean is_firewalled;
@@ -1150,17 +1148,8 @@ search_matched(search_t *sch, results_set_t *rs)
     g_assert(sch != NULL);
     g_assert(rs != NULL);
 
-    vendor = lookup_vendor_name(rs->vcode);
 	max_results = search_gui_is_browse(sch)
 		? browse_host_max_results : search_max_results;
-
-   	if (vendor) {
-		g_string_append(vinfo, vendor);
-		if (rs->version) {
-			g_string_append(vinfo, "/");
-			g_string_append(vinfo, rs->version);
-		}
-	}
 
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
@@ -1170,7 +1159,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		}
 	}
 
-	if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
+	if (!(rs->status & ST_PARSED_TRAILER)) {
 		if (vinfo->len)
 			g_string_append(vinfo, ", ");
 		g_string_append(vinfo, _("<unparsed>"));
