@@ -501,7 +501,8 @@ search_gui_compare_records(gint sort_col,
             break;
 
         case c_sr_charset:
-            result = strcmp(r1->charset, r2->charset);
+            result = strcmp(EMPTY_STRING(r1->charset),
+						EMPTY_STRING(r2->charset));
             break;
 
         case c_sr_size:
@@ -1184,7 +1185,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				text = lazy_utf8_to_ui_string(rc->utf8_name);
 				break;
 	 		case c_sr_ext:
-				text = EMPTY_STRING(rc->ext);
+				text = rc->ext;
 				break;
 			case c_sr_charset:
 				if (!(ST_LOCAL & rs->status))
@@ -1194,14 +1195,14 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				text = lookup_vendor_name(rs->vcode);
 				break;
 	 		case c_sr_info:
-				text = EMPTY_STRING(rc->info);
+				text = rc->info;
 				break;
 	 		case c_sr_loc:
 				if (!((ST_LOCAL | ST_BROWSE) & rs->status))
 					text = iso3166_country_cc(rs->country);
 				break;
 	 		case c_sr_route:
-				text = EMPTY_STRING(search_gui_get_route(rc));
+				text = search_gui_get_route(rc);
 				break;
 			case c_sr_protocol:
 				if (!((ST_LOCAL | ST_BROWSE) & rs->status))
@@ -1260,7 +1261,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				g_assert_not_reached();
 				break;
 			}
-			titles[i] = text;
+			titles[i] = EMPTY_STRING(text);
 		}
 	}
 
