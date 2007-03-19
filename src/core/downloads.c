@@ -527,7 +527,7 @@ has_good_sha1(const struct download *d)
 
 /**
  * Return the total progress of a download.  The range
- * on the return value should be 0 -> 1 but there is no
+ * on the return value should be 0..1 but there is no
  * guarantee.
  *
  * @param d The download structure which we are interested
@@ -538,14 +538,13 @@ has_good_sha1(const struct download *d)
 gdouble
 download_total_progress(const struct download *d)
 {
-	filesize_t filesize = download_filesize(d);
-
-	return filesize < 1 ? 0.0 : (gdouble) download_filedone(d) / filesize;
+	return filesize_per_10000(download_filesize(d), download_filedone(d))
+			/ 10000.0;
 }
 
 /**
  * Return the total progress of a download source.  The
- * range on the return value should be 0 -> 1 but there is
+ * range on the return value should be 0..1 but there is
  * no guarantee.
  *
  * Same as download_total_progress() if source is not receiving.
@@ -559,9 +558,12 @@ download_total_progress(const struct download *d)
 gdouble
 download_source_progress(const struct download *d)
 {
-	return !DOWNLOAD_IS_ACTIVE(d) || d->size < 1
-		? 0.0
-		: (d->pos - d->skip + download_buffered(d)) / (gdouble) d->size;
+	if (DOWNLOAD_IS_ACTIVE(d)) {
+		filesize_t done = d->pos - d->skip + download_buffered(d);
+		return filesize_per_10000(d->size, done) / 10000.0;
+	} else {
+		return 0.0;
+	}
 }
 
 /**
