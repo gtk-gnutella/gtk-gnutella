@@ -285,9 +285,6 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 	reclaim_fd = callback;
 }
 
-
-static gboolean ip_computed = FALSE;
-
 static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
 
 static void guess_local_addr(struct gnutella_socket *s);
@@ -1973,9 +1970,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 static void
 guess_local_addr(struct gnutella_socket *s)
 {
-	gboolean can_supersede;
-	host_addr_t addr, current;
-	property_t prop;
+	socket_addr_t saddr;
 	int fd;
 
 	g_return_if_fail(s);
@@ -1983,45 +1978,19 @@ guess_local_addr(struct gnutella_socket *s)
 	fd = s->file_desc;
 	g_return_if_fail(fd >= 0);
 
-	if (socket_is_local(s))
-		return;
-
-	{
-		socket_addr_t saddr;
-
-		if (0 != socket_addr_getsockname(&saddr, fd))
-			return;
+	if (!socket_is_local(s) && 0 == socket_addr_getsockname(&saddr, fd)) {
+		host_addr_t addr;
 
 		addr = socket_addr_get_addr(&saddr);
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
-			prop = PROP_LOCAL_IP;
-			current = local_ip;
-			break;
 		case NET_TYPE_IPV6:
-			prop = PROP_LOCAL_IP6;
-			current = local_ip6;
+			settings_addr_changed(addr, s->addr);
 			break;
-		default:
-			return;
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			break;
 		}
-	}
-
-	/*
-	 * If local IP was unknown, keep what we got here, even if it's a
-	 * private IP. Otherwise, we discard private IPs unless the previous
-	 * IP was private.
-	 *		--RAM, 17/05/2002
-	 */
-
-	can_supersede = !is_private_addr(addr) || is_private_addr(current);
-
-	if (!ip_computed) {
-		if (!is_host_addr(current) || can_supersede)
-			gnet_prop_set_ip_val(prop, addr);
-		ip_computed = TRUE;
-	} else if (can_supersede) {
-		gnet_prop_set_ip_val(prop, addr);
 	}
 }
 
