@@ -110,8 +110,7 @@ RCSID("$Id$")
  * and cache the result of qrp_node_can_route() calls into `can_route'.
  */
 struct next_up {
-	node_id_t nid;			/**< Selected node ID */
-	gnutella_node_t *node;	/**< Selected node */
+	node_id_t node_id;		/**< Selected node ID */
 	query_hashvec_t *qhv;	/**< Query hash vector for the query */
 	gint can_route;			/**< -1 = unknown, otherwise TRUE / FALSE */
 	gint queue_pending;		/**< -1 = unknown, otherwise cached queue size */
@@ -608,6 +607,26 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 	return i;
 }
 
+static void
+dq_free_next_up(dquery_t *dq)
+{
+	g_assert(dq);
+	g_assert(dq->nvcount >= 0);
+	g_assert((NULL == dq->nv) ^ (dq->nvcount > 0));
+
+	if (dq->nv) {
+		gint i;
+
+		for (i = 0; i < dq->nvcount; i++) {
+			node_id_unref(dq->nv[i].node_id);
+		}
+		wfree(dq->nv, dq->nvcount * sizeof dq->nv[0]);
+		dq->nv = NULL;
+		dq->nvcount = 0;
+		dq->nvfound = 0;
+	}
+}
+
 /**
  * Fill node vector with UP hosts to which we could send our next query.
  *
@@ -637,7 +656,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 
 		for (j = 0; j < dq->nvfound; j++) {
 			struct next_up *nup = &dq->nv[j];
-			gm_hash_table_insert_const(old, nup->nid, nup);
+			gm_hash_table_insert_const(old, nup->node_id, nup);
 		}
 	}
 
@@ -686,17 +705,14 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 		 * to not have it accurate).
 		 */
 
-		nup->node = n;
-		nup->nid = NODE_ID(n);		/* To be able to compare later */
+		nup->node_id = node_id_ref(NODE_ID(n)); /* To be able to compare */
 		nup->qhv = dq->qhv;
 
 		if (
 			old &&
-			(old_nup = g_hash_table_lookup(old, NODE_ID(n)))
+			(old_nup = g_hash_table_lookup(old, nup->node_id))
 		) {
-			g_assert(node_id_eq(NODE_ID(n), old_nup->nid));
-			g_assert(n == old_nup->node);
-
+			g_assert(node_id_eq(NODE_ID(n), old_nup->node_id));
 			nup->can_route = old_nup->can_route;
 		} else
 			nup->can_route = -1;	/* We don't know yet */
@@ -708,9 +724,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 
 	if (old) {
 		g_assert(dq->nv != NULL);
-		g_assert(dq->nvcount);
-
-		wfree(dq->nv, dq->nvcount * sizeof dq->nv[0]);
+		dq_free_next_up(dq);
 		g_hash_table_destroy(old);
 	}
 
@@ -819,11 +833,7 @@ dq_free(dquery_t *dq)
 	g_hash_table_destroy(dq->queried);
 
 	qhvec_free(dq->qhv);
-
-	if (dq->nv != NULL) {
-		g_assert(dq->nvcount);
-		wfree(dq->nv, dq->nvcount * sizeof dq->nv[0]);
-	}
+	dq_free_next_up(dq);
 
 	for (i = 0; i < DQ_MAX_TTL; i++) {
 		if (dq->by_ttl[i] != NULL) {
@@ -1168,8 +1178,7 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
 {
 	struct next_up *nu1 = deconstify_gpointer(np1);
 	struct next_up *nu2 = deconstify_gpointer(np2);
-	const gnutella_node_t *n1 = nu1->node;
-	const gnutella_node_t *n2 = nu2->node;
+	const gnutella_node_t *n1, *n2;
 	gint qs1 = nu1->queue_pending;
 	gint qs2 = nu2->queue_pending;
 
@@ -1177,6 +1186,9 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
 	 * Cache the results of NODE_MQUEUE_PENDING() since it involves
 	 * several function calls to go down to the link layer buffers.
 	 */
+
+	n1 = node_by_id(nu1->node_id);
+	n2 = node_by_id(nu2->node_id);
 
 	if (qs1 == -1) {
 		qs1 = nu1->queue_pending = NODE_MQUEUE_PENDING(n1);
@@ -1261,7 +1273,6 @@ dq_send_next(dquery_t *dq)
 	struct next_up *nv;
 	gint ncount = max_connections;
 	gint found;
-	gnutella_node_t *node;
 	gint ttl;
 	gint timeout;
 	gint i;
@@ -1375,7 +1386,9 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	for (i = 0; i < found; i++) {
-		node = nv[i].node;
+		struct gnutella_node *node;
+
+		node = node_by_id(nv[i].node_id);
 		ttl = dq_select_ttl(dq, node, found);
 
 		if (
