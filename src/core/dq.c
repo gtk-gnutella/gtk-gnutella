@@ -154,8 +154,8 @@ typedef struct dquery {
 	time_t start;			/**< Time at which it started */
 	time_t stop;			/**< Time at which it was terminated */
 	struct next_up *nv;		/**< Previous "next UP vector" */
-	gint nvcount;			/**< Number of items allocated for `nv' */
-	gint nvfound;			/**< Valid entries in `nv' */
+	gint nv_count;			/**< Number of items allocated for `nv' */
+	gint nv_found;			/**< Valid entries in `nv' */
 	pmsg_t *by_ttl[DQ_MAX_TTL];	/**< Copied mesages, one for each TTL */
 } dquery_t;
 
@@ -611,19 +611,20 @@ static void
 dq_free_next_up(dquery_t *dq)
 {
 	g_assert(dq);
-	g_assert(dq->nvcount >= 0);
-	g_assert((NULL == dq->nv) ^ (dq->nvcount > 0));
+	g_assert(dq->nv_count >= 0);
+	g_assert(dq->nv_count >= dq->nv_found);
+	g_assert((NULL == dq->nv) ^ (dq->nv_count > 0));
 
 	if (dq->nv) {
 		gint i;
 
-		for (i = 0; i < dq->nvcount; i++) {
+		for (i = 0; i < dq->nv_found; i++) {
 			node_id_unref(dq->nv[i].node_id);
 		}
-		wfree(dq->nv, dq->nvcount * sizeof dq->nv[0]);
+		wfree(dq->nv, dq->nv_count * sizeof dq->nv[0]);
 		dq->nv = NULL;
-		dq->nvcount = 0;
-		dq->nvfound = 0;
+		dq->nv_count = 0;
+		dq->nv_found = 0;
 	}
 }
 
@@ -654,7 +655,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 
 		old = g_hash_table_new(node_id_hash, node_id_eq_func);
 
-		for (j = 0; j < dq->nvfound; j++) {
+		for (j = 0; j < dq->nv_found; j++) {
 			struct next_up *nup = &dq->nv[j];
 			gm_hash_table_insert_const(old, nup->node_id, nup);
 		}
@@ -729,8 +730,8 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 	}
 
 	dq->nv = nv;
-	dq->nvcount = ncount;
-	dq->nvfound = i;
+	dq->nv_count = ncount;
+	dq->nv_found = i;
 
 	return i;
 }
