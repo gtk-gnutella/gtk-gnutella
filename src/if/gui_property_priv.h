@@ -110,7 +110,6 @@ extern const gboolean progressbar_bws_glout_avg;
 extern const gboolean search_sort_casesense;
 extern const guint32  search_sort_default_order;
 extern const guint32  search_sort_default_column;
-extern const gboolean show_search_results_settings;
 extern const gboolean search_discard_spam;
 extern const gboolean search_discard_hashless;
 extern const gboolean search_jump_to_created;

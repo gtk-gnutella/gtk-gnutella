@@ -695,15 +695,6 @@ prop = {
 };
 
 prop = {
-    name = "show_search_results_settings";
-    desc = "Display search settings.";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
     name = "search_discard_spam";
     desc = "Discard search results which are considered spam.";
     type = boolean;
