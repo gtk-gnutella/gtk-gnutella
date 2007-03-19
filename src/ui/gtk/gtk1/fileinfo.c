@@ -774,25 +774,13 @@ fi_gui_update_display(time_t now)
 }
 
 static inline guint
-fi_gui_relative_done(const gnet_fi_status_t *s, guint base)
+fi_gui_relative_done(const struct fileinfo_data *s, gboolean percent)
 {
-	filesize_t x;
-
-	/**
-	 * Use integer arithmetic because float or double might be too small
-	 * for 64-bit values.
-	 */
-	if (s->size == s->done) {
-		return base;
-	}
-	if (s->size > base) {
-		x = s->size / base;
-		x = s->done / MAX(1, x);
+	if (percent) {
+		return filesize_per_100(s->size, s->done);
 	} else {
-		x = (s->done * base) / MAX(1, s->size);
+		return filesize_per_1000(s->size, s->done);
 	}
-	base--;
-	return MIN(x, base);
 }
 
 static inline guint
@@ -800,7 +788,7 @@ fi_gui_numeric_status(const gnet_fi_status_t *s)
 {
 	guint v;
 
-	v = fi_gui_relative_done(s, 100);
+	v = fi_gui_relative_done(s, TRUE);
 	v |= (s->lifecount > 0)						? (1 <<  7) : 0;
 	v |= (s->aqueued_count || s->pqueued_count)	? (1 <<  8) : 0;
 	v |= (s->recvcount > 0)						? (1 <<  9) : 0;
@@ -862,7 +850,7 @@ fi_gui_cmp_done(GtkCList *unused_clist,
     guc_fi_get_status(fi_a, &a);
     guc_fi_get_status(fi_b, &b);
 
-	ret = CMP(fi_gui_relative_done(&a, 1000), fi_gui_relative_done(&b, 1000));
+	ret = CMP(fi_gui_relative_done(&a, FALSE), fi_gui_relative_done(&b, FALSE));
 	return 0 == ret ? CMP(a.done, b.done) : ret;
 }
 

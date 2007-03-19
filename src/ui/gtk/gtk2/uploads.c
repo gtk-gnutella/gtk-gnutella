@@ -612,7 +612,7 @@ update_row(gpointer key, gpointer data, gpointer user_data)
 	time_t now = *(const time_t *) user_data;
 	upload_row_data_t *rd = data;
 	gnet_upload_status_t status;
-	gint progress;
+	guint progress;
 
 	g_assert(NULL != rd);
 	g_assert(GPOINTER_TO_UINT(key) == rd->handle);
@@ -622,8 +622,9 @@ update_row(gpointer key, gpointer data, gpointer user_data)
 	rd->last_update = now;
 	guc_upload_get_status(rd->handle, &status);
 	progress = 100.0 * uploads_gui_progress(&status, rd);
+	progress = MIN(progress, 100);
 	gtk_list_store_set(store_uploads, &rd->iter,
-		c_ul_progress, CLAMP(progress, 0, 100),
+		c_ul_progress, progress,
 		c_ul_status, uploads_gui_status_str(&status, rd),
 		(-1));
 }

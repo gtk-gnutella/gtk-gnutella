@@ -603,34 +603,21 @@ fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
 }
 
 static inline guint
-fi_gui_relative_done(const struct fileinfo_data *s, guint base)
+fi_gui_relative_done(const struct fileinfo_data *s, gboolean percent)
 {
-	filesize_t x;
-
-	/**
-	 * Use integer arithmetic because float or double might be too small
-	 * for 64-bit values.
-	 */
-	if (s->size == s->done) {
-		return base;
-	}
-	if (s->size > base) {
-		x = s->size / base;
-		x = s->done / MAX(1, x);
+	if (percent) {
+		return filesize_per_100(s->size, s->done);
 	} else {
-		x = (s->done * base) / MAX(1, s->size);
+		return filesize_per_1000(s->size, s->done);
 	}
-	base--;
-	return MIN(x, base);
 }
-
 
 static inline guint
 fileinfo_numeric_status(const struct fileinfo_data *data)
 {
 	guint v;
 
-	v = fi_gui_relative_done(data, 100);
+	v = fi_gui_relative_done(data, TRUE);
 	if (!data->is_download) {
 		v |= data->size > 0 && data->size == data->done ? (1 << 11) : 0;
 		v |= data->file.recv_count > 0 ? (1 << 10) : 0;
@@ -662,7 +649,8 @@ fileinfo_data_cmp(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
 		ret = CMP(a->size, b->size);
 		break;
 	case c_fi_done:
-		ret = CMP(fi_gui_relative_done(a, 1000), fi_gui_relative_done(b, 1000));
+		ret = CMP(fi_gui_relative_done(a, FALSE),
+					fi_gui_relative_done(b, FALSE));
 		if (0 == ret) {
 			ret = CMP(a->done, b->done);
 		}
