@@ -774,7 +774,7 @@ fi_gui_update_display(time_t now)
 }
 
 static inline guint
-fi_gui_relative_done(const struct fileinfo_data *s, gboolean percent)
+fi_gui_relative_done(const gnet_fi_status_t *s, gboolean percent)
 {
 	if (percent) {
 		return filesize_per_100(s->size, s->done);
