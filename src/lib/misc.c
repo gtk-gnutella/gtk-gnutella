@@ -884,6 +884,40 @@ seek_to_filepos(gint fd, filesize_t pos)
 }
 
 static inline guint
+filesize_fraction(filesize_t size, filesize_t part, guint base)
+{
+	filesize_t x;
+
+	/**
+	 * Use integer arithmetic because float or double might be too small
+	 * for 64-bit values.
+	 */
+	if (size == part) {
+		return base;
+	}
+	if (size > base) {
+		x = size / base;
+		x = part / MAX(1, x);
+	} else {
+		x = (part * base) / MAX(1, size);
+	}
+	base--;
+	return MIN(x, base);
+}
+
+#define GENERATE_FILESIZE_PER_X(base) \
+guint \
+filesize_per_ ## base (filesize_t size, filesize_t part) \
+{ \
+	return filesize_fraction(size, part, base); \
+}
+
+GENERATE_FILESIZE_PER_X(100)
+GENERATE_FILESIZE_PER_X(1000)
+GENERATE_FILESIZE_PER_X(10000)
+#undef GENERATE_FILESIZE_PER_X
+
+static inline guint
 kilo(gboolean metric)
 {
 	return metric ? 1000 : 1024;

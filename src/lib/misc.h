@@ -720,6 +720,10 @@ is_temporary_error(gint error)
 /* Wrapper around lseek() to handle filesize -> off_t conversion. */
 gint seek_to_filepos(gint fd, filesize_t pos);
 
+guint filesize_per_100(filesize_t size, filesize_t part);
+guint filesize_per_1000(filesize_t size, filesize_t part);
+guint filesize_per_10000(filesize_t size, filesize_t part);
+
 /*
  * CIDR split of IP range.
  */
