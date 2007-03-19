@@ -50,12 +50,11 @@ RCSID("$Id$")
  * @returns a floating point value from [0:1] which indicates
  * the total progress of the upload.
  */
-gfloat
+gdouble
 uploads_gui_progress(const gnet_upload_status_t *u,
 	const upload_row_data_t *data)
 {
-	gfloat progress = 0.0;
-	filesize_t requested;
+	gdouble progress = 0.0;
 
 	if (u->pos < data->range_start) /* No progress yet */
 		return 0.0;
@@ -77,15 +76,12 @@ uploads_gui_progress(const gnet_upload_status_t *u,
 		progress = 1.0;
 		break;
 	case GTA_UL_SENDING:
-		requested = data->range_end - data->range_start + 1;
-		if (requested != 0) {
-			/*
-			 * position divided by 1 percentage point, found by dividing
-			 * the total size by 100
-			 */
-			progress = (gfloat) (u->pos - data->range_start) / requested;
-		} else {
-			progress = 0.0;
+		{
+			filesize_t requested, done;
+
+			requested = data->range_end - data->range_start + 1;
+			done = requested > 0 ? u->pos - data->range_start : 0;
+			progress = filesize_per_100(requested, done) / 100.0;
 		}
 		break;
 	}
@@ -111,14 +107,14 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 
     case GTA_UL_COMPLETE:
 		{
-			gint t = delta_time(u->last_update, data->start_date);
+			time_delta_t d = delta_time(u->last_update, data->start_date);
 	        filesize_t requested = data->range_end - data->range_start + 1;
 
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Completed (%s) %s%s"),
-				t > 0 ? short_rate(requested / t, show_metric_units())
+				d > 0 ? short_rate(requested / d, show_metric_units())
 						: _("< 1s"),
-				t > 0 ? short_time(t) : "",
+				d > 0 ? short_time(d) : "",
 				u->parq_quick ? " (quick)" : "");
 		}
         break;
