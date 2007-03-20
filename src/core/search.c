@@ -3844,9 +3844,6 @@ search_browse(gnet_search_t sh,
 	g_assert(!sbool_get(sch->frozen));
 	g_assert(sch->download == NULL);
 
-	if (!port_is_valid(port))
-		return FALSE;
-
 	/*
 	 * Host browsing is done thusly: a non-persistent search was created and
 	 * it is now associated with a special download that will know it will
