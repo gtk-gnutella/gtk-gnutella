@@ -1192,7 +1192,8 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 					text = rc->charset;
 				break;
 	 		case c_sr_vendor:
-				text = lookup_vendor_name(rs->vcode);
+				if (!(ST_LOCAL & rs->status))
+					text = lookup_vendor_name(rs->vcode);
 				break;
 	 		case c_sr_info:
 				text = rc->info;
