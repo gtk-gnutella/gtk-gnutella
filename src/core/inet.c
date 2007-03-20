@@ -220,8 +220,6 @@ is_local_addr(const host_addr_t addr)
 				}
 			}
 		}
-		if (host_addr_equal(addr, listen_addr()))	/* Ourselves */
-			return TRUE;
 	}
 	
 	if (NET_USE_IPV6 == network_protocol || NET_USE_BOTH == network_protocol) {
@@ -249,10 +247,10 @@ is_local_addr(const host_addr_t addr)
 				}
 			}
 		}
-
-		if (host_addr_equal(addr, listen_addr6()))	/* Ourselves */
-			return TRUE;
 	}
+
+	if (is_my_address(addr))
+		return TRUE;
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
