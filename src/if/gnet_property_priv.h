@@ -302,7 +302,6 @@ extern const guint32  qrp_hashed_keywords;
 extern const guint32  qrp_patch_raw_length;
 extern const guint32  qrp_patch_length;
 extern const guint32  qrp_patch_comp_ratio;
-extern const gchar   *ancient_version_force;
 extern const guint32  ancient_version_left_days;
 extern const gboolean file_descriptor_shortage;
 extern const gboolean file_descriptor_runout;

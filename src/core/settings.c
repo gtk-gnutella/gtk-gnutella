@@ -731,28 +731,6 @@ settings_max_msg_size(void)
 }
 
 /**
- * Ask them to set a property to be able to run.
- */
-void
-settings_ask_for_property(const gchar *name, const gchar *value)
-{
-	fprintf(stderr, "\n*** ANCIENT VERSION DETECTED! ***\n\n");
-	fprintf(stderr,
-		"Sorry, this program is too ancient to run without\n"
-		"an explicit user action: If it's not possible to upgrade\n"
-		"you may edit the file\n\n"
-		"\t%s%s%s\n\n"
-		"and set the variable \"%s\" to\n\"%s\".\n\n"
-		"You will then be able to run this version forever, but\n"
-		"please consider upgrading, as Gnutella is an evolving\n"
-		"network in which ancient software is less useful or even\n"
-		"harmful!\n\n",
-		config_dir, G_DIR_SEPARATOR_S, config_file, name, value);
-	fprintf(stderr, "*** EXITING ***\n\n");
-	exit(EXIT_FAILURE);
-}
-
-/**
  * Called at exit time to flush the property files.
  */
 void

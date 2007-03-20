@@ -1483,7 +1483,7 @@ ancient_version_left_days_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &remain);
 
 	if (remain == 0)
-		statusbar_gui_message(15, _("*** VERSION WILL SOON BECOME OLD! ***"));
+		statusbar_gui_message(15, _("*** Please update gtk-gnutella ***"));
 	else 
 		statusbar_gui_message(15,
 			NG_("*** VERSION WILL BECOME OLD IN %d DAY! ***",

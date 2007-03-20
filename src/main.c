@@ -517,7 +517,6 @@ static void
 slow_main_timer(time_t now)
 {
 	static guint i = 0;
-	static time_t last_warn = 0;
 
 	if (cpu_debug) {
 		static tm_t since = { 0, 0 };
@@ -562,11 +561,6 @@ slow_main_timer(time_t now)
 
 	node_slow_timer(now);
 	ignore_timer(now);
-
-	if (delta_time(now, last_warn) > 600) {
-		version_ancient_warn();
-		last_warn = now;
-	}
 }
 
 #if !defined(USE_TOPLESS)

@@ -2989,16 +2989,6 @@ prop = {
 };
 
 prop = {
-	name = "ancient_version_force";
-	desc = "This property must be set to the current version number "
-		"of gtk-gnutella in order to allow it to run when it is ancient.";
-	type = string;
-	data = {
-		default = "";
-	};
-};
-
-prop = {
     name = "ancient_version_left_days";
     desc = "Indicates that gtk-gnutella will expire in that many days.";
     type = guint32;

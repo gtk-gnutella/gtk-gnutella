@@ -733,38 +733,9 @@ version_init(void)
 		delta_time(now, our_version.timestamp) > VERSION_ANCIENT_WARN ||
 		(our_version.tag &&
 			delta_time(now, our_version.timestamp) > VERSION_UNSTABLE_WARN)
-	)
-		*(guint32 *) &ancient_version = TRUE;
-}
-
-/**
- * Called when the version has expired since the indicated amount.
- * If that amount is greater than our grace period, refuse to run unless
- * they set the "ancient_version_force" property explicitly.
- */
-static void
-version_maybe_refuse(gint overtime)
-{
-	gchar *force;
-	property_t prop = PROP_ANCIENT_VERSION_FORCE;
-
-	if (overtime < VERSION_ANCIENT_GRACE)
-		return;
-
-	force = gnet_prop_get_string(prop, NULL, 0);
-
-	if (0 == strcmp(force, version_string)) {
-		G_FREE_NULL(force);
-		return;
+	) {
+		*deconstify_gboolean(&ancient_version) = TRUE;
 	}
-
-	/*
-	 * Sorry, they must explicitly allow us to run, we're too ancient.
-	 */
-
-	settings_ask_for_property(gnet_prop_name(prop), version_string);
-
-	/* NOTREACHED */
 }
 
 /**
@@ -797,14 +768,12 @@ version_ancient_warn(void)
 	elapsed = delta_time(now, our_version.timestamp);
 
 	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
-		version_maybe_refuse(elapsed - VERSION_ANCIENT_WARN);
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
 		return;
 	}
 
 	if (our_version.tag && elapsed > VERSION_UNSTABLE_WARN) {
-		version_maybe_refuse(elapsed - VERSION_UNSTABLE_WARN);
 		g_warning("unstable version of gtk-gnutella is aging, please upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
 		return;
