@@ -5365,7 +5365,13 @@ download_send_push_request(struct download *d)
 		GSList *nodes;
 		gboolean success;
 
-		success = send_udp_push(packet, download_addr(d), download_port(d));
+		send_udp_push(packet, download_addr(d), download_port(d));
+		if (d->server && d->server->proxies) {
+			/* Pick the first push-proxy */
+			send_udp_push(packet,
+				gnet_host_get_addr(d->server->proxies->data),
+				gnet_host_get_port(d->server->proxies->data));
+		}
 		nodes = route_towards_guid(download_guid(d));
 		if (nodes) {
 			success = TRUE;
