@@ -89,6 +89,7 @@ struct found_struct {
 	qhit_process_t process;		/**< processor once query hit is built */
 	gpointer udata;				/**< processor argument */
 	gboolean open;				/**< Set if found_open() was used */
+	gboolean use_ggep_h;        /**< whether to use GGEP "H" to send SHA-1 */
 };
 
 static struct found_struct *
@@ -114,6 +115,12 @@ static void
 found_add_files(size_t n)
 {
 	found_get()->files += n;
+}
+
+static gboolean
+found_ggep_h(void)
+{
+	return found_get()->use_ggep_h;
 }
 
 static gchar *
@@ -262,7 +269,7 @@ found_token(void)
 }
 
 static void
-found_init(size_t max_size, const gchar *xuid,
+found_init(size_t max_size, const gchar *xuid, gboolean ggep_h,
 	qhit_process_t proc, gpointer udata, const struct array *token)
 {
 	struct found_struct *f = found_get();
@@ -274,6 +281,7 @@ found_init(size_t max_size, const gchar *xuid,
 
 	f->max_size = max_size;
 	f->muid = xuid;
+	f->use_ggep_h = ggep_h;
 	f->process = proc;
 	f->udata = udata;
 	f->open = FALSE;
@@ -611,6 +619,21 @@ add_file(const struct shared_file *sf)
 	 */
 
 	/*
+	 * Emit the SHA1 as a plain ASCII URN if they don't grok "H".
+	 */
+
+	if (sha1_available && !found_ggep_h()) {
+		static const gchar urnsha1[] = "urn:sha1:";
+		const gchar *b32 = sha1_base32(shared_file_sha1(sf));
+
+		/* Good old way: ASCII URN */
+		if (!found_write(urnsha1, CONST_STRLEN(urnsha1)))
+			return FALSE;
+		if (!found_write(b32, SHA1_BASE32_SIZE))
+			return FALSE;
+	}
+
+	/*
 	 * From now on, we emit GGEP extensions, if we emit at all.
 	 */
 
@@ -622,7 +645,7 @@ add_file(const struct shared_file *sf)
 	 * Emit the SHA1 as GGEP "H" if they said they understand it.
 	 */
 
-	if (sha1_available) {
+	if (sha1_available && found_ggep_h()) {
 		/* Modern way: GGEP "H" for binary URN */
 		guint8 type = GGEP_H_SHA1;
 
@@ -766,12 +789,12 @@ add_file(const struct shared_file *sf)
  * have to be sent out-of-bound
  */
 static void
-found_reset(size_t max_size, const gchar *muid,
+found_reset(size_t max_size, const gchar *muid, gboolean ggep_h,
 	qhit_process_t process, gpointer udata, const struct array *token)
 {
 	g_assert(process != NULL);
 	g_assert(max_size <= INT_MAX);
-	found_init(max_size, muid, process, udata, token);
+	found_init(max_size, muid, ggep_h, process, udata, token);
 	found_clear();
 }
 
@@ -786,7 +809,7 @@ found_reset(size_t max_size, const gchar *muid,
  */
 void
 qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
-	const gchar *muid)
+	const gchar *muid, gboolean ggep_h)
 {
 	GSList *sl;
 	gint sent = 0;
@@ -799,7 +822,8 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
 	 * to forward to other nodes).
 	 */
 
-	found_reset(QHIT_SIZE_THRESHOLD, muid, qhit_send_node, n, &zero_array);
+	found_reset(QHIT_SIZE_THRESHOLD, muid, ggep_h, qhit_send_node, n,
+		&zero_array);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = sl->data;
@@ -841,7 +865,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
  */
 void
 qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const gchar *muid,
+	qhit_process_t cb, gpointer udata, const gchar *muid, gboolean ggep_h,
 	const struct array *token)
 {
 	const GSList *sl;
@@ -850,7 +874,7 @@ qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
 	g_assert(cb != NULL);
 	g_assert(token);
 
-	found_reset(max_msgsize, muid, cb, udata, token);
+	found_reset(max_msgsize, muid, ggep_h, cb, udata, token);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
 		const shared_file_t *sf = sl->data;

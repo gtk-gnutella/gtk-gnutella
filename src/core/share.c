@@ -1806,6 +1806,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean secure_oob = FALSE;
 	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
+	gboolean ggep_h = FALSE;
 	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
 	gchar muid[GUID_RAW_SIZE];
 
@@ -2263,8 +2264,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 	}
 
-	if (tagged_speed && (req_speed & QUERY_SPEED_GGEP_H))
+	if (tagged_speed && (req_speed & QUERY_SPEED_GGEP_H)) {
+		ggep_h = TRUE;
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
+	}
 
 	/*
 	 * If OOB reply is wanted, validate a few things.
@@ -2517,9 +2520,10 @@ finish:
 
 		if (qctx->found) {
 			if (oob && should_oob)
-				oob_got_results(n, qctx->files, qctx->found, secure_oob);
+				oob_got_results(n, qctx->files, qctx->found,
+					secure_oob, ggep_h);
 			else
-				qhit_send_results(n, qctx->files, qctx->found, muid);
+				qhit_send_results(n, qctx->files, qctx->found, muid, ggep_h);
 		}
 
 		share_query_context_free(qctx);

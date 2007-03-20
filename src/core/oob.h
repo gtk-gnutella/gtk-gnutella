@@ -50,7 +50,7 @@ void oob_shutdown(void);
 void oob_close(void);
 
 void oob_got_results(struct gnutella_node *n, GSList *files,
-		gint count, gboolean secure_oob);
+		gint count, gboolean secure_oob, gboolean ggep_h);
 void oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
 	const struct array *token);
 
