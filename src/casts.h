@@ -42,6 +42,12 @@
  * print a diagnostic message if you accidently try to deconstify an
  * incompatible type. A direct typecast would hide such a mistake.
  */
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gboolean *
+deconstify_gboolean(const gboolean *p)
+{
+	return (gboolean *) p;
+}
+
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gchar *
 deconstify_gchar(const gchar *p)
 {
