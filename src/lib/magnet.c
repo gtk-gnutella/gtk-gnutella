@@ -39,13 +39,15 @@
 
 RCSID("$Id$")
 
-#include "magnet.h"
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/magnet.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -263,6 +265,11 @@ magnet_handle_key(struct magnet_resource *res,
 	g_return_if_fail(name);
 	g_return_if_fail(value);
 	
+	if (utf8_is_valid_string(value)) {
+		g_message("MAGNET URI key \"%s\" is not UTF-8 encoded", name);
+		return;
+	}
+
 	switch (magnet_key_get(name)) {
 	case MAGNET_KEY_DISPLAY_NAME:
 		if (!res->display_name) {
