@@ -7179,7 +7179,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 *		--RAM, 2006-02-22
 	 */
 
-	if (http_major == 0 && !ancient_version) {
+	if (http_major == 0) {
 		buf = header_get(header, "X-Available-Ranges");
 		if (buf != NULL)
 			goto http_version_fix;	/* PFS implies HTTP/1.1 hopefully */
@@ -7630,9 +7630,6 @@ http_version_nofix:
 
 		download_bad_source(d);
 
-		if (ancient_version)
-			goto report_error;		/* Old versions don't circumvent banning */
-
 		/*
 		 * Check whether server is banning us based on our user-agent.
 		 *
@@ -7730,7 +7727,6 @@ http_version_nofix:
 			upload_kill_addr(download_addr(d));
 		}
 
-	report_error:
 		download_stop(d, GTA_DL_ERROR,
 			"%sHTTP %u %s", short_read, ack_code, ack_message);
 		return;
@@ -8367,7 +8363,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	} else if (download_debug > 2) {
 		g_message(
-			"----Sent Request (%s) completely to %s (%u bytes):\n%.*s----\n",
+			"----Sent Request (%s) completely to %s (%u bytes):\n%.*s----",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
@@ -8758,7 +8754,7 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (download_debug > 2) {
-		g_message("----Sent Request (%s%s%s%s) to %s (%u bytes):\n%.*s----\n",
+		g_message("----Sent Request (%s%s%s%s) to %s (%u bytes):\n%.*s----",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",

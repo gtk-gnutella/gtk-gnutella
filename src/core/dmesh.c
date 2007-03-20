@@ -1631,7 +1631,7 @@ dmesh_check_deferred_against_themselves(const gchar *sha1,
 				g_message("dmesh_check_deferred_against_themselves failed with:"
 					" %s\n\t"
 					"(only scoring %lu against:\n\t"
-					"%s\n",
+					"%s",
 					current->dmesh_url->name, score, first->dmesh_url->name);
 			return;
 		}

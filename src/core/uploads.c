@@ -684,7 +684,7 @@ handle_push_request(struct gnutella_node *n)
 		/* FALL THROUGH */
 	case BAN_FORCE:				/* Refused, no ack */
 		if (upload_debug)
-			g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s\n",
+			g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				host_addr_port_to_string(ha, port),
@@ -701,7 +701,7 @@ handle_push_request(struct gnutella_node *n)
 	 */
 
 	if (upload_debug > 3)
-		g_message("PUSH (hops=%d, ttl=%d) to %s: %s\n",
+		g_message("PUSH (hops=%d, ttl=%d) to %s: %s",
 			gnutella_header_get_hops(&n->header),
 			gnutella_header_get_ttl(&n->header),
 			host_addr_port_to_string(ha, port),
@@ -1476,7 +1476,7 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
 	g_assert(miv->cq_ev);
 
 	if (upload_debug > 4)
-		g_message("upload MESH info (%s/%s) discarded\n",
+		g_message("upload MESH info (%s/%s) discarded",
 			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
 	g_hash_table_remove(mesh_info, mik);
@@ -1516,7 +1516,7 @@ mi_get_stamp(const host_addr_t addr, const gchar *sha1, time_t now)
 		miv->stamp = (guint32) now;
 
 		if (upload_debug > 4)
-			g_message("upload MESH info (%s/%s) has stamp=%u\n",
+			g_message("upload MESH info (%s/%s) has stamp=%u",
 				host_addr_to_string(addr), sha1_base32(sha1), oldstamp);
 
 		return oldstamp;
@@ -1533,7 +1533,7 @@ mi_get_stamp(const host_addr_t addr, const gchar *sha1, time_t now)
 	g_hash_table_insert(mesh_info, mik, miv);
 
 	if (upload_debug > 4)
-		g_message("new upload MESH info (%s/%s) stamp=%u\n",
+		g_message("new upload MESH info (%s/%s) stamp=%u",
 			host_addr_to_string(addr), sha1_base32(sha1), (guint32) now);
 
 	return 0;			/* Don't remember sending info about this file */
@@ -1694,7 +1694,7 @@ upload_connect_conf(gnutella_upload_t *u)
 			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
 	} else if (upload_debug > 2) {
 		g_message(
-			"----Sent GIV to %s:\n%.*s----\n", host_addr_to_string(s->addr),
+			"----Sent GIV to %s:\n%.*s----", host_addr_to_string(s->addr),
 			(gint) MIN(rw, (size_t) INT_MAX), giv);
 	}
 
@@ -1990,7 +1990,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 			if (u->push) {
 				if (upload_debug > 1)
 					g_message("INDEX FIXED (push, SHA1 = %s): "
-						"requested %u, serving %u: %s\n",
+						"requested %u, serving %u: %s",
 						sha1_base32(digest), idx,
 						(guint) shared_file_index(sfn),
 						shared_file_path(sfn));
@@ -2008,7 +2008,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 			if (shared_file_is_partial(sfn)) {
 				if (upload_debug > 1)
 					g_message("REQUEST FIXED (partial, SHA1 = %s): "
-						"requested \"%s\", serving \"%s\"\n",
+						"requested \"%s\", serving \"%s\"",
 						sha1_base32(digest), u->name,
 						shared_file_path(sfn));
 				sf = sfn;
@@ -2057,10 +2057,10 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 
 		if (upload_debug > 1) {
 			if (sf)
-				g_message("BAD INDEX FIXED: requested %u, serving %u: %s\n",
+				g_message("BAD INDEX FIXED: requested %u, serving %u: %s",
 					idx, (guint) shared_file_index(sf), shared_file_path(sf));
 			else
-				g_message("BAD INDEX NOT FIXED: requested %u: %s\n",
+				g_message("BAD INDEX NOT FIXED: requested %u: %s",
 					idx, u->name);
 		}
 
@@ -2071,11 +2071,11 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 
 		if (upload_debug > 1) {
 			if (sfn)
-				g_message("INDEX FIXED: requested %u, serving %u: %s\n",
+				g_message("INDEX FIXED: requested %u, serving %u: %s",
 					idx, (guint) shared_file_index(sfn),
 					shared_file_path(sfn));
 			else
-				g_message("INDEX MISMATCH: requested %u: %s (has %s)\n",
+				g_message("INDEX MISMATCH: requested %u: %s (has %s)",
 					idx, u->name, shared_file_name_nfc(sf));
 		}
 
@@ -3596,7 +3596,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				if (upload_debug)
 					g_message(
 						"Overriden slot limit because u/l b/w used at "
-						"%lu%% (minimum set to %d%%)\n",
+						"%lu%% (minimum set to %d%%)",
 						bsched_avg_pct(BSCHED_BWS_OUT),
 						ul_usage_min_percentage);
 			}
