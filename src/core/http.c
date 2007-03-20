@@ -261,7 +261,7 @@ http_send_status(
 			(gulong) sent, rw, code, status_msg, host_addr_to_string(s->addr));
 		return FALSE;
 	} else if (http_debug > 2) {
-		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
+		g_message("----\nSent HTTP Status to %s (%d bytes):\n%.*s\n----",
 			host_addr_to_string(s->addr), rw, rw, header);
 	}
 
@@ -475,7 +475,7 @@ http_extract_version(
 	limit = sizeof("X / HTTP/1.0") - 1;
 
 	if (http_debug > 4)
-		printf("HTTP req (%lu bytes): %s\n", (gulong) len, request);
+		g_message("HTTP req (%lu bytes): %s", (gulong) len, request);
 
 	if (len < limit)
 		return FALSE;
@@ -508,13 +508,13 @@ http_extract_version(
 		0 != parse_major_minor(p, NULL, major, minor)
 	) {
 		if (http_debug > 1)
-			printf("HTTP req (%lu bytes): no protocol tag: %s\n",
+			g_message("HTTP req (%lu bytes): no protocol tag: %s",
 				(gulong) len, request);
 		return FALSE;
 	}
 
 	if (http_debug > 4)
-		printf("HTTP req OK (%u.%u)\n", *major, *minor);
+		g_message("HTTP req OK (%u.%u)", *major, *minor);
 
 	/*
 	 * We don't check trailing chars after the HTTP/x.x indication.
@@ -1130,13 +1130,14 @@ final:
 
 	if (http_debug > 4) {
 		GSList *l;
-		printf("Saw %d ranges in %s %s: %s\n",
+
+		g_message("Saw %d ranges in %s %s: %s",
 			count, request ? "request" : "reply", field, value);
 		if (ranges)
-			printf("...retained:\n");
+			g_message("...retained:");
 		for (l = ranges; l; l = g_slist_next(l)) {
 			http_range_t *r = (http_range_t *) l->data;
-			printf("...  %s-%s\n",
+			g_message("...  %s-%s",
 				uint64_to_string(r->start), uint64_to_string2(r->end));
 		}
 	}
@@ -2201,11 +2202,11 @@ http_got_header(struct http_async *ha, header_t *header)
 	guint http_major = 0, http_minor = 0;
 
 	if (http_debug > 2) {
-		printf("----Got HTTP reply from %s:\n", host_addr_to_string(s->addr));
-		printf("%s\n", status);
-		header_dump(header, stdout);
-		printf("----\n");
-		fflush(stdout);
+		g_message("----\nGot HTTP reply from %s:\n",
+			host_addr_to_string(s->addr));
+		g_message("%s", status);
+		header_dump(header, stderr);
+		g_message("----");
 	}
 
 	/*
@@ -2263,7 +2264,7 @@ http_got_header(struct http_async *ha, header_t *header)
 			(ack_code == 302 && (ha->type == HTTP_GET || ha->type == HTTP_HEAD))
 		) {
 			if (http_debug > 2)
-				printf("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"\n",
+				g_message("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"",
 					http_verb[ha->type], ack_code, ack_message, ha->url, buf);
 
 			/*
@@ -2442,10 +2443,10 @@ http_async_write_request(gpointer data, gint unused_source,
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (http_debug > 2) {
-		printf("----Sent HTTP request completely to %s (%d bytes):\n%.*s----\n",
+		g_message("----\n"
+			"Sent HTTP request completely to %s (%d bytes):\n%.*s\n----\n",
 			host_addr_port_to_string(s->addr, s->port), http_buffer_length(r),
 			http_buffer_length(r), http_buffer_base(r));
-		fflush(stdout);
 	}
 
 	/*
@@ -2525,7 +2526,7 @@ http_async_connected(gpointer handle)
 
 		return;
 	} else if (http_debug > 2) {
-		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s----",
+		g_message("----\nSent HTTP request to %s (%d bytes):\n%.*s\n----",
 			host_addr_port_to_string(s->addr, s->port), (int) rw, (int) rw, req);
 	}
 

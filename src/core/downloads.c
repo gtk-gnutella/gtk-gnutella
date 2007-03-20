@@ -7074,12 +7074,11 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (download_debug > 2) {
 		const gchar *incomplete = ok ? "" : "INCOMPLETE ";
-		g_message("----Got %sreply from %s:", incomplete,
+		g_message("----\nGot %sreply from %s:", incomplete,
 			host_addr_to_string(s->addr));
-		fprintf(stderr, "%s\n", status);
+		g_message("%s", status);
 		header_dump(header, stderr);
-		fprintf(stderr, "----\n");
-		fflush(stderr);
+		g_message("----");
 	}
 
 	/*
@@ -8369,7 +8368,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	} else if (download_debug > 2) {
 		g_message(
-			"----Sent Request (%s) completely to %s (%u bytes):\n%.*s----",
+			"----\nSent Request (%s) completely to %s (%u bytes):\n%.*s\n----",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
@@ -8760,7 +8759,7 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (download_debug > 2) {
-		g_message("----Sent Request (%s%s%s%s) to %s (%u bytes):\n%.*s----",
+		g_message("----\nSent Request (%s%s%s%s) to %s (%u bytes):\n%.*s\n----",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
@@ -9096,7 +9095,7 @@ download_push_ack(struct gnutella_socket *s)
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
 	if (download_debug > 2)
-		g_message("----Got GIV from %s:\n%s\n----",
+		g_message("----\nGot GIV from %s:\n%s\n----",
 			host_addr_to_string(s->addr), giv);
 
 	/*
