@@ -631,6 +631,8 @@ add_file(const struct shared_file *sf)
 			return FALSE;
 		if (!found_write(b32, SHA1_BASE32_SIZE))
 			return FALSE;
+		if (!found_write("\x1c", 1))
+			return FALSE;
 	}
 
 	/*
