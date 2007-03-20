@@ -265,7 +265,7 @@ magnet_handle_key(struct magnet_resource *res,
 	g_return_if_fail(name);
 	g_return_if_fail(value);
 	
-	if (utf8_is_valid_string(value)) {
+	if (!utf8_is_valid_string(value)) {
 		g_message("MAGNET URI key \"%s\" is not UTF-8 encoded", name);
 		return;
 	}
