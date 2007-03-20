@@ -2396,7 +2396,13 @@ search_gui_new_browse_host(
 	 * so its lifetime is implicitely this session only.
 	 */
 
-	host_and_port = g_strdup(host_port_to_string(hostname, addr, port));
+	if (guid && (!is_host_addr(addr) || 0 == port)) {
+		host_and_port = g_strdup(guid_to_string(guid));
+		addr = ipv4_unspecified;
+		port = 0;
+	} else {
+		host_and_port = g_strdup(host_port_to_string(hostname, addr, port));
+	}
 
 	(void) search_gui_new_search_full(host_and_port, tm_time(), 0, 0,
 			 	search_sort_default_column, search_sort_default_order,
