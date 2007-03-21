@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -6450,6 +6450,10 @@ msgstr "Αδυναμία εύρεσης του αρχείου pixmap: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Σφάλμα κατά το φόρτωμα του αρχείου pixmap: %s"
 
+#, fuzzy
+msgid " (partial)"
+msgstr "Και τα δύο (κάθετα)"
+
 #, c-format
 msgid " (slot %u"
 msgstr " (υποδοχή %u"
@@ -6699,10 +6703,6 @@ msgstr "Ανεστραμμένη εύρεση σε εξέλιξη..."
 msgid "The normalized search text is too short."
 msgstr "Το κείμενο κανονικοποιημένης αναζήτησης είναι πολύ μικρό."
 
-#, fuzzy
-msgid " (partial)"
-msgstr "Και τα δύο (κάθετα)"
-
 msgid "Fresh regular"
 msgstr "Νέοι συνήθεις"
 
@@ -6717,6 +6717,9 @@ msgstr "Έγκυροι υπερ-κόμβοι"
 
 msgid "Unstable"
 msgstr "Ασταθές"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr "Στατιστικά"
@@ -6746,6 +6749,15 @@ msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d δευτερόλεπτο"
 msgstr[1] "%d δευτερόλεπτα"
+
+#, fuzzy
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
+"Το έγγραφο FAQ δεν ήταν δυνατό να φορτωθεί. Παρακαλούμε διαβάστε το FAQ στο "
+"http://gtk-gnutella.sourceforge.net/?page=faq."
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6917,6 +6929,14 @@ msgstr "Ανάγνωση λανθάνουσας μνήμης υπολογιστ�
 
 msgid "Reading ultra cache..."
 msgstr "Ανάγνωση λανθάνουσας μνήμης υπερ-κόμβων..."
+
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
+msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** ΤΡΕΧΕΤΕ ΠΑΛΙΑ ΕΚΔΟΣΗ! ***"
@@ -7215,13 +7235,6 @@ msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδ�
 #~ msgstr ""
 #~ "\n"
 #~ "Το έγγραφο FAQ είναι κατεστραμμένο.\n"
-
-#~ msgid ""
-#~ "The FAQ document could not be loaded. Please read the online FAQ at "
-#~ "http://gtk-gnutella.sourceforge.net/?page=faq instead."
-#~ msgstr ""
-#~ "Το έγγραφο FAQ δεν ήταν δυνατό να φορτωθεί. Παρακαλούμε διαβάστε το FAQ "
-#~ "στο http://gtk-gnutella.sourceforge.net/?page=faq."
 
 #~ msgid ", browsable"
 #~ msgstr ", εξερευνήσιμο"

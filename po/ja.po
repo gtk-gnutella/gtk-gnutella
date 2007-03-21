@@ -73,7 +73,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2007-03-22 02:01+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -6577,6 +6577,9 @@ msgstr "Pixmap ファイルがありません: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Pixmap ファイルを読み込み中にエラー: %s"
 
+msgid " (partial)"
+msgstr " (部分的)"
+
 #, c-format
 msgid " (slot %u"
 msgstr " (スロット %u"
@@ -6842,9 +6845,6 @@ msgstr "逆引き検索を実行中..."
 msgid "The normalized search text is too short."
 msgstr "正規化された検索テキストが短すぎます。"
 
-msgid " (partial)"
-msgstr " (部分的)"
-
 # FIXME: messy
 msgid "Fresh regular"
 msgstr "新規の通常ピア"
@@ -6863,6 +6863,9 @@ msgstr "有効なウルトラピア"
 
 msgid "Unstable"
 msgstr "不安定"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr "統計"
@@ -6891,6 +6894,12 @@ msgstr "翻訳者: Daichi Kawahata"
 msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d 秒"
+
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -7056,6 +7065,14 @@ msgstr "ホストキャッシュを読み込み中..."
 
 msgid "Reading ultra cache..."
 msgstr "ウルトラキャッシュを読み込み中..."
+
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
+msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** 古いバージョンを実行しています！ ***"

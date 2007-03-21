@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -6726,6 +6726,9 @@ msgstr "%s képfájl betöltése sikertelen!"
 msgid "Error loading pixmap file: %s"
 msgstr "Hiba %s képfájl betöltése közben!"
 
+msgid " (partial)"
+msgstr ""
+
 #, c-format
 msgid " (slot %u"
 msgstr ""
@@ -6991,9 +6994,6 @@ msgstr ""
 msgid "The normalized search text is too short."
 msgstr ""
 
-msgid " (partial)"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr "Friss hagyományos"
 
@@ -7008,6 +7008,9 @@ msgstr "Érvényes átjátszó"
 
 msgid "Unstable"
 msgstr "Bizonytalan"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr "Statisztika"
@@ -7038,6 +7041,12 @@ msgstr ""
 msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "másodperc"
+
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
 
 #, fuzzy, c-format
 msgid "%lu file shared (%s)"
@@ -7206,6 +7215,14 @@ msgstr "Gazdatár olvasása"
 
 msgid "Reading ultra cache..."
 msgstr "Átjátszó gazdatár olvasása"
+
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
+msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "☹☹☹ RÉGI VÁLTOZAT! ☹☹☹"

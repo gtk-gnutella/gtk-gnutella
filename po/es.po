@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -6489,6 +6489,10 @@ msgstr "No se pùdo encontrar la imagen: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Error durante la carga de la imagen: %s"
 
+#, fuzzy
+msgid " (partial)"
+msgstr "Ambos (vertical)"
+
 #, fuzzy, c-format
 msgid " (slot %u"
 msgstr " (ranura %d"
@@ -6749,10 +6753,6 @@ msgstr "Resolución inversa de nombre en progreso..."
 msgid "The normalized search text is too short."
 msgstr ""
 
-#, fuzzy
-msgid " (partial)"
-msgstr "Ambos (vertical)"
-
 msgid "Fresh regular"
 msgstr "Nomales recientes"
 
@@ -6767,6 +6767,9 @@ msgstr "Ultra válidos"
 
 msgid "Unstable"
 msgstr "Inestable"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr "Estadísticas"
@@ -6797,6 +6800,12 @@ msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d segundo"
 msgstr[1] "%d segundos"
+
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6971,6 +6980,14 @@ msgstr "Leyendo cache de hosts..."
 
 msgid "Reading ultra cache..."
 msgstr "Leyendo cache de ultranodos..."
+
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
+msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** ¡EJECUTANDO VERSIÓN ANTIGUA! ***"

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -6501,6 +6501,9 @@ msgstr "Ne peut trouver le fichier pixmap: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Ne peut trouver le fichier pixmap: %s"
 
+msgid " (partial)"
+msgstr " (partiel)"
+
 #, c-format
 msgid " (slot %u"
 msgstr " (créneau %u"
@@ -6748,9 +6751,6 @@ msgstr "Recherche inverse en cours..."
 msgid "The normalized search text is too short."
 msgstr "Le texte normalisé est trop court."
 
-msgid " (partial)"
-msgstr " (partiel)"
-
 msgid "Fresh regular"
 msgstr "Régulier frais"
 
@@ -6765,6 +6765,9 @@ msgstr "Ultra valide"
 
 msgid "Unstable"
 msgstr "Instable"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr "Stats"
@@ -6794,6 +6797,15 @@ msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d seconde"
 msgstr[1] "%d secondes"
+
+#, fuzzy
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
+"Le document FAQ ne peut pas être chargé. Merci de lire la FAQ en ligne à "
+"http://gtk-gnutella.sourceforge.net/?page=faq"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6963,6 +6975,14 @@ msgstr "Lecture du cache des hôtes..."
 msgid "Reading ultra cache..."
 msgstr "Lecture du cache des Ultra..."
 
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
+msgstr ""
+
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** EXÉCUTION D'UNE ANCIENNE VERSION ! ***"
 
@@ -7126,13 +7146,6 @@ msgstr "QUEUE envoyé, en attente des en-têtes..."
 #~ msgstr ""
 #~ "\n"
 #~ "Le document FAQ est endommagé.\n"
-
-#~ msgid ""
-#~ "The FAQ document could not be loaded. Please read the online FAQ at "
-#~ "http://gtk-gnutella.sourceforge.net/?page=faq instead."
-#~ msgstr ""
-#~ "Le document FAQ ne peut pas être chargé. Merci de lire la FAQ en ligne à "
-#~ "http://gtk-gnutella.sourceforge.net/?page=faq"
 
 #~ msgid "Got %d host from %s"
 #~ msgid_plural "Got %d hosts from %s"

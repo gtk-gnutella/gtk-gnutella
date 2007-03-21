@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -6335,6 +6335,10 @@ msgstr "Kann Pixmap-Datei nicht finden: %s"
 msgid "Error loading pixmap file: %s"
 msgstr "Kann Pixmap-Datei nicht laden: %s"
 
+#, fuzzy
+msgid " (partial)"
+msgstr "Beides (vertikal)"
+
 #, c-format
 msgid " (slot %u"
 msgstr ""
@@ -6585,10 +6589,6 @@ msgstr ""
 msgid "The normalized search text is too short."
 msgstr ""
 
-#, fuzzy
-msgid " (partial)"
-msgstr "Beides (vertikal)"
-
 msgid "Fresh regular"
 msgstr ""
 
@@ -6603,6 +6603,9 @@ msgstr ""
 
 msgid "Unstable"
 msgstr "Instabil"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr "Statistiken"
@@ -6632,6 +6635,12 @@ msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d Sekunde"
 msgstr[1] "%d Sekunden"
+
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6801,6 +6810,14 @@ msgstr "Lese Host-Cache..."
 
 msgid "Reading ultra cache..."
 msgstr "Lese Ultra-Cache..."
+
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
+msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** ALTE VERSION IM BETRIEB! ***"

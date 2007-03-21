@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2006-05-28 23:37+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <nb@li.org>\n"
@@ -6486,6 +6486,10 @@ msgstr "Klarte ikke finne pikselkartfilen «%s»"
 msgid "Error loading pixmap file: %s"
 msgstr "Klarte ikke åpne pikselkartfilen «%s»"
 
+#, fuzzy
+msgid " (partial)"
+msgstr "Begge (loddrett)"
+
 #, c-format
 msgid " (slot %u"
 msgstr " (plass %u"
@@ -6732,10 +6736,6 @@ msgstr "Holder på med omvendt oppslag . . ."
 msgid "The normalized search text is too short."
 msgstr "Den normaliserte søketeksten er for kort."
 
-#, fuzzy
-msgid " (partial)"
-msgstr "Begge (loddrett)"
-
 msgid "Fresh regular"
 msgstr "Fersk vanlig"
 
@@ -6750,6 +6750,9 @@ msgstr "Gyldig ultra"
 
 msgid "Unstable"
 msgstr "Ustabil"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr "Statistikk"
@@ -6779,6 +6782,15 @@ msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d sekund"
 msgstr[1] "%d sekunder"
+
+#, fuzzy
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
+"Klarte ikke åpne dokumentet med ofte stitle spørsmål. Les det på Internett "
+"på «http://gtk-gnutella.sourceforge.net/?page=faq» i stedet."
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6949,6 +6961,14 @@ msgstr "Leser verthurtigminne . . ."
 
 msgid "Reading ultra cache..."
 msgstr "Leser ultrahurtigminne . . ."
+
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
+msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** DETTE ER EN GAMMEL VERSJON ***"
@@ -7254,13 +7274,6 @@ msgstr "Sendte KØ, venter på hoder . . ."
 #~ msgstr ""
 #~ "\n"
 #~ "Dokumentet med ofte stilte spørsmål er skadet.\n"
-
-#~ msgid ""
-#~ "The FAQ document could not be loaded. Please read the online FAQ at "
-#~ "http://gtk-gnutella.sourceforge.net/?page=faq instead."
-#~ msgstr ""
-#~ "Klarte ikke åpne dokumentet med ofte stitle spørsmål. Les det på "
-#~ "Internett på «http://gtk-gnutella.sourceforge.net/?page=faq» i stedet."
 
 #~ msgid ", browsable"
 #~ msgstr ", kan leses i"

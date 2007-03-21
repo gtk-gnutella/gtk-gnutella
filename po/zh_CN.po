@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 01:59+0900\n"
+"POT-Creation-Date: 2007-03-22 03:09+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -6033,6 +6033,9 @@ msgstr ""
 msgid "Error loading pixmap file: %s"
 msgstr ""
 
+msgid " (partial)"
+msgstr ""
+
 #, c-format
 msgid " (slot %u"
 msgstr ""
@@ -6277,9 +6280,6 @@ msgstr ""
 msgid "The normalized search text is too short."
 msgstr ""
 
-msgid " (partial)"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr ""
 
@@ -6294,6 +6294,9 @@ msgstr ""
 
 msgid "Unstable"
 msgstr "不稳定"
+
+msgid "gtk-gnutella: Click to minimize/restore"
+msgstr ""
 
 msgid "Stats"
 msgstr ""
@@ -6323,6 +6326,12 @@ msgstr ""
 msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d 秒"
+
+msgid ""
+"<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
+"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6481,6 +6490,14 @@ msgid "Reading host cache..."
 msgstr "正读取主机缓存..."
 
 msgid "Reading ultra cache..."
+msgstr ""
+
+msgid ""
+"<html><head><title>Ancient version detected!</title></"
+"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
+"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"body></html>"
 msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
