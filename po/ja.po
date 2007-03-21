@@ -12,6 +12,7 @@
 # Host Browse                         ホスト参照
 # Partial File Sharing Protocol       部分ファイル共有プロトコル (PFSP)
 # Passive/Active Remote Queuing       受動/能動遠隔キューイング (RARQ)
+# Reliable UDP                        高信頼性 UDP (RUDP)
 # Swarming                            多元 (マルチソース) ダウンロード
 #
 # TX/RX               送信/受信
@@ -74,7 +75,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-03-22 03:09+0900\n"
-"PO-Revision-Date: 2007-03-22 02:01+0900\n"
+"PO-Revision-Date: 2007-03-22 04:33+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -1529,6 +1530,9 @@ msgid ""
 "Hits to the original search term. In the worst case this causes about 300 "
 "bytes per Query of memory overhead."
 msgstr ""
+"記録しておくクエリーMUIDの最大数です。これで、クエリーヒットのMUIDを元の検索"
+"語のままでマッピングしておくことが可能になります。ただし最悪の場合、クエリー"
+"ごとに300バイトのメモリのオーバーヘッドが発生します。"
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -2430,13 +2434,13 @@ msgstr ""
 "く旧来の Base2 変換を使用して表示されます。"
 
 msgid "Debug level for Reliable UDP (RUDP) code."
-msgstr "高信頼 UDP (RUDP) のデバッグレベルです。"
+msgstr "高信頼性 UDP (RUDP) のデバッグレベルです。"
 
 msgid "Debug level for the Distributed Hash Table (DHT) code."
 msgstr "分散ハッシュテーブル (DHT) のデバッグレベルです。"
 
 msgid "Debug level for the OOB-proxying of queries."
-msgstr ""
+msgstr "プロキシ経由のOOBクエリーのデバッグレベルです。"
 
 msgid ""
 "If set gtk-gnutella also listens on a local (unix domain) socket which is "
@@ -2924,7 +2928,7 @@ msgid ""
 "Whether we should display message counts for duplicate, bad, weird and "
 "messages bearing an hostile IP address."
 msgstr ""
-"重複、不正、変なメッセージと敵対 IP アドレスが送信するメッセージの回数を表示"
+"重複、不正、変なメッセージと有害 IP アドレスが送信するメッセージの回数を表示"
 "するかどうかを表します。"
 
 msgid ""
@@ -3028,7 +3032,7 @@ msgid "Aruba"
 msgstr "蘭領アルバ"
 
 msgid "Åland Islands"
-msgstr ""
+msgstr "オーランド諸島"
 
 msgid "Azerbaijan"
 msgstr "アゼルバイジャン共和国"
@@ -4068,44 +4072,54 @@ msgstr "あなたの共有ファイルにヒット"
 msgid "Query hits received for local queries"
 msgstr "あなたの検索クエリーが受取った検索クエリーヒット"
 
+# XXX: wtf
 msgid "Query hits received for OOB-proxied queries"
 msgstr "OOB代理検索クエリーで受取った検索クエリーヒット"
 
+# XXX: wtf
 msgid "Queries requesting OOB hit delivery"
 msgstr "OOBヒット配送を要求する検索クエリー"
 
+# XXX: wtf
 msgid "Stripped OOB flag on queries"
 msgstr "検索クエリーでの削除済OOBフラッグ"
 
+# XXX: wtf
 msgid "Duplicates with higher TTL"
 msgstr "高TTLでの重複"
 
+# XXX: wtf
 msgid "Duplicate OOB-proxied queries"
 msgstr "重複するOOB代理検索クエリー"
 
+# XXX: wtf
 msgid "OOB hits received for OOB-proxied queries"
 msgstr "OOB代理検索クエリーで受取ったOOBヒット"
 
+# XXX: wtf
 msgid "OOB hits bearing alien IP address"
-msgstr "余所のIPアドレスを運ぶOOBヒット"
+msgstr "無関係なIPアドレスに関するOOBヒット"
 
-# FIXME: wtf
+# XXX: wtf
 msgid "Unclaimed locally-generated OOB hits"
-msgstr "催促無しのローカル生成OOBヒット"
+msgstr "要求のないローカル生成OOBヒット"
 
-# FIXME: wtf
+# XXX: wtf
 msgid "Partially claimed locally-generated OOB hits"
-msgstr "部分催促されているローカル生成OOBヒット"
+msgstr "一部要求されているローカル生成OOBヒット"
 
+# XXX: wtf
 msgid "Unrequested OOB hits received"
-msgstr ""
+msgstr "リクエストしていないOOBヒットの受信数"
 
+# XXX: wtf
 msgid "Spurious OOB hit claiming received"
-msgstr ""
+msgstr "受信した偽のOOBヒット要求"
 
 msgid "Compacted queries"
 msgstr "圧縮検索クエリー"
 
+# XXX: wtf
 msgid "Bytes saved by compacting"
 msgstr "圧縮保存済バイト"
 
@@ -4133,6 +4147,7 @@ msgstr "ローカル生成の動的検索クエリー"
 msgid "Leaf-generated dynamic queries"
 msgstr "リーフ生成の動的検索クエリー"
 
+# XXX: wtf
 msgid "OOB-proxied leaf queries"
 msgstr "代理OOBリーフ検索クエリー"
 
@@ -4175,13 +4190,13 @@ msgid "QUEUE callbacks received"
 msgstr "受信したQUEUEコールバック"
 
 msgid "UDP messages with bogus source IP"
-msgstr "偽送信IPでのUDPメッセージ"
+msgstr "UDPメッセージ (偽の送信元IP)"
 
 msgid "Alien UDP messages (non-Gnutella)"
-msgstr "余所のUDPメッセージ (非Gnutella)"
+msgstr "無関係なUDPメッセージ (非Gnutella)"
 
 msgid "Unprocessed UDP Gnutella messages"
-msgstr "未処理のUDP Gnutellaメッセージ"
+msgstr "未処理のUDPメッセージ (Gnutella)"
 
 msgid "Compressed UDP messages enqueued"
 msgstr "キューにある圧縮UDPメッセージ"
@@ -4189,8 +4204,9 @@ msgstr "キューにある圧縮UDPメッセージ"
 msgid "Compressed UDP messages received"
 msgstr "受信した圧縮UDPメッセージ"
 
+# XXX: wtf
 msgid "Uncompressed UDP messages due to no gain"
-msgstr ""
+msgstr "有効性が無いため圧縮されないUDPメッセージ"
 
 msgid "node"
 msgid_plural "nodes"
@@ -5022,7 +5038,7 @@ msgid "(no search)"
 msgstr "(検索無し)"
 
 msgid "General search settings (affect all searches)"
-msgstr "一般検索設定 (全検索に影響します)"
+msgstr "全体検索設定"
 
 msgid "Max. _number of results"
 msgstr "結果表示の最大数(_N)"
@@ -5053,7 +5069,7 @@ msgid "Discard results without SHA-1 hashes"
 msgstr "SHA1ハッシュの無い検索結果を破棄する"
 
 msgid "Information about selected file"
-msgstr "選択したファイルに関する情報"
+msgstr "ファイルに関する情報"
 
 msgid "Index:"
 msgstr "インデックス:"
@@ -6481,13 +6497,15 @@ msgid "Failed to create the search"
 msgstr "検索の作成に失敗しました。"
 
 msgid "owned"
-msgstr ""
+msgstr "取得済"
 
+# FIXME: should be revised.
 msgid "partial"
-msgstr ""
+msgstr "部分取得済"
 
+# FIXME: should be revised.
 msgid "shared"
-msgstr ""
+msgstr "共有中"
 
 # NOTE: this string is used as follows
 #
@@ -6538,7 +6556,7 @@ msgid "TTL"
 msgstr "TTL"
 
 msgid "Owned"
-msgstr ""
+msgstr "取得状況"
 
 msgid "Hostile"
 msgstr "有害ホスト"
@@ -6547,7 +6565,7 @@ msgid "SHA-1"
 msgstr "SHA-1"
 
 msgid "Created"
-msgstr ""
+msgstr "作成日"
 
 msgid "Not in database"
 msgstr "データベースにありません"
@@ -6789,8 +6807,9 @@ msgstr "回"
 msgid "_Remove directory"
 msgstr "フォルダを削除する(_R)"
 
+# XXX: is not opposite of "absolute paths".
 msgid "E_xpose relative paths"
-msgstr "相対パスを公開する(_X)"
+msgstr "関連するパスを公開する(_X)"
 
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
@@ -6865,7 +6884,7 @@ msgid "Unstable"
 msgstr "不安定"
 
 msgid "gtk-gnutella: Click to minimize/restore"
-msgstr ""
+msgstr "gtk-gnutella: クリックで最大化/元に戻します"
 
 msgid "Stats"
 msgstr "統計"
@@ -6900,6 +6919,9 @@ msgid ""
 "document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
 "sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
 msgstr ""
+"<html><head><title>よくある質問</title></head><body><p>FAQ ドキュメントがロー"
+"ドされませんでした。代わりに <a href=\"http://gtk-gnutella.sourceforge.net/?"
+"page=faq\">FAQ オンライン</a> をご覧ください。</p></body></html>"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -7073,6 +7095,10 @@ msgid ""
 "gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
 "body></html>"
 msgstr ""
+"<html><head><title>このバージョンは古すぎます！</title></head><body><h1>警告"
+"</h1><p>このバージョンは古すぎます。<a href=\"http://gtk-gnutella."
+"sourceforge.net/\">http://gtk-gnutella.sourceforge.net/</a> を訪れてあなたの "
+"Gtk-Gnutella をアップデートしてください。</p></body></html>"
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** 古いバージョンを実行しています！ ***"
