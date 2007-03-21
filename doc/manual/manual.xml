@@ -373,23 +373,23 @@ can actually be very useful.  </para>
 
 <para> What is "leaf mode"?  In the menu bar, at the top right of the
 screen are the status icons.  The icon to the far right is either a
-"leaf" or a "ultra" icon.
+"leaf" or a "ultrapeer" icon.
 
 <informaltable>
 <tgroup cols='2'>
 <tbody>
 <row>
 <entry><graphic width="32" depth="32" fileref="images/leaf.ps"/> Leaf icon</entry>
-<entry><graphic width="32" depth="32" fileref="images/smallserver.ps"/> Ultra icon </entry>
+<entry><graphic width="32" depth="32" fileref="images/smallserver.ps"/> Ultrapeer icon </entry>
 </row>
 </tbody></tgroup></informaltable>
 </para>
 
-<para> A leaf node only connects to a few ultra nodes.  The ultra
-nodes connect to many leaves and other ultra nodes.  For the most
+<para> A leaf node only connects to a few ultrapeers.  The ultrapeers
+connect to many leaves and other ultrapeers.  For the most
 part, searches will flow through node connections.  For this reason,
-you will get many more passive results if you are an ultra
-node. </para>
+you will get many more passive results if you are an ultrapeer.
+</para>
 
 <para> The other item that determines search results is the filter
 used.  This is a drop-down button to the left of the search edit box.
@@ -430,7 +430,7 @@ to download the file as soon as a source is found.</para> </section>
 
 <para> The search monitor allows you to see what other people on the
 GnutellaNet are searching for.  This will only work if you are an
-ultra node. Sometimes this is useful.  It is certainly instructive to
+ultrapeer. Sometimes this is useful.  It is certainly instructive to
 do this once or twice just to see what can be seen.  It can be
 entertaining if you are bored.  Don't do it for too long though, it
 might get you down on people.  I am sure all the people searching for
@@ -587,9 +587,9 @@ remaining tabs are related to file sharing. </para>
 nodes. To begin with, you only need to change items in the top group.
 If your machine is slow, you might want to set the peer mode to "leaf".
 You can also configure the number of leave that are allowed to connect
-when in "ultra" mode.  The number of leaves should be above thirty.
+when in "ultrapeer" mode.  The number of leaves should be above thirty.
 Leaves don't consume much bandwidth or CPU usage.  The number of
-Ultra-nodes to connect to is found at the bottom of the GnutellaNet
+ultrapeer to connect to is found at the bottom of the GnutellaNet
 work area (strangely enough).</para>
 
 <para> The Bandwidth tab allows you to configure how GTKG uses your
@@ -618,7 +618,7 @@ linkend="sharing">Uploading chapter</link></para>
 <title>Advanced features</title>
 
 <chapter id="ch-filtering">
-<title>Filtering </title>
+<title>Filtering</title>
 
 <para>The text in this chapter is copied verbatim from the Filtering
 mini-Howto by Vidar Madsen and Markus Goetz. It is copyright 2002 by
@@ -891,7 +891,7 @@ DISPLAY</entry><entry>DOWNLOAD</entry></row>
 <title>Trouble shooting</title>
 
 <chapter id="networking">
-<title>Networking.</title>
+<title>Networking</title>
 <para>
 Describe NAT, masquerade, etc.
      IP  - ip configuration section, NAT, firewalls, 
@@ -900,7 +900,7 @@ Describe NAT, masquerade, etc.
 </chapter>
 
 <chapter id="traffic_shaping">
-<title>OS Traffic shaping.</title>
+<title>OS Traffic shaping</title>
 
 <para>The bandwidth preferences are excellent tools for configuring
 the bandwidth use of GTKG.  However, you must often be a pessimistic
@@ -1150,39 +1150,26 @@ echo "GTKG is $GTKG_PORT."
 </chapter>
 
 <chapter id="headless">
-<title>Headless mode.</title> 
+<title>Headless mode</title> 
 
 <para>GTKG has a configuration called "headless".  This configuration
-doesn't use either GTK1 or GTK2.  It will operate without an X-windows
-system.  It is a low CPU overhead mode of running and
-Ultra-node.</para>
+doesn't use either GTK1 or GTK2.  It will operate without the X Window
+System. Due to abscence of a GUI it uses even less resources - CPU and
+memory. This mode is mostly useful for ultrapeers.
+</para>
 
 <para>See the chapter <link linkend="getting">on getting
 gtk-gnutella</link> on how to get the source code.  The following
 "Configure" invocation will produce a headless version of GTKG.
 
 <informalexample><programlisting>
-./Configure -Oders \
- -D prefix=/usr/local \
- -D sysman=/usr/local/man/man1 \
- -D bindir=/usr/local/bin \
- -D privlib=/usr/local/lib/gtk-gnutella \
- -D cc=cc \
- -D ccflags='-W -Wall -Wformat=2 -Wshadow -I/usr/local/include \
-    -momit-leaf-frame-pointer -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE \
-    -D_FILE_OFFSET_BITS=64 -pipe' \
- -D gtkversion=2 \
- -D yacc='bison -y' \
- -D official=false \
- -D d_gnutls \
- -U d_enablenls \
- -U d_headless \
- -U d_ipv6 \
- -D d_headless
+./Configure -Oders -D d_headless [...]
 </programlisting></informalexample>
 
 Run this Configure command and "make" in the source directory.
 
+After compiling, rename the gtk-gnutella binary to gtk-gnutella-headless
+and copy it to a directory in your PATH, for example, /usr/local/bin.
 </para>
 
 <para> Assuming you have run a graphical version of GTKG, copy all
@@ -1192,29 +1179,37 @@ version.  You may wish to let it run for a while to verify that it is
 operating well.  Make sure you change the listening port.  Exit the
 graphical GTKG.</para>
 
-<para>Create a directory to install the headless version to and copy
-all files from $HOME/.gtk-gnutella.  Restore the graphical GTKG
-configuration from the backup directory.  Edit the config_gnet and
-delete the entry "guid" so that a new id is generated.  Copy the
-"gtk-gnutella" binary from the "src" directory to this directory.
-Here is a possible script for invoking the headless GTKG.
+<para>
+Now, you move the configuration directory for use by the headless
+gtk-gnutella:
 
 <informalexample><programlisting>
-#!/bin/sh
-
-# turn on core dumps and delete old dump
-ulimit -S -c unlimited -s unlimited
-rm -f core
-export LD_LIBRARY_PATH=/usr/local/lib
-
-# run gtk-gnutella 
-export GTK_GNUTELLA_DIR=`pwd`;./gtk-gnutella --log-stderr err --log-stdout log
+ mv -i ~/.gtk-gnutella ~/.gtk-gnutella-headless
 </programlisting></informalexample>
 
+Note that you should not copy the file "config_gnet" directly. However,
+if you do so, delete the lines containing "guid" and "servent_kuid".
+These IDs have to be globally unique and must therefore not be shared by
+two running peers at the same time. Thus, delete these lines so that
+gtk-gnutella generates new IDs on startup.
 
-You can name this script "headless" and invoke it like this
-"./headless &".  You can then use the GnutellaNet working area in the
-graphical GTKG to connect to this headless Ultra, using
+Using grep to copy any but the mentioned lines is another possibility:
+
+<informalexample><programlisting>
+ grep -Ev '^(guid|servent_kuid)' ~/.gtk-gnutella/config_gnet
+</programlisting></informalexample>
+
+<informalexample><programlisting>
+#! /bin/sh
+
+GTK_GNUTELLA_DIR=~/.gtk-gnutella-headless
+export GTK_GNUTELLA_DIR
+gtk-gnutella-headless --daemonize --log-stderr ~/tmp/error.log
+</programlisting></informalexample>
+
+You can name this script "gtkg-headless" and invoke it like this
+"gtkg-headless". You can then use the GnutellaNet working area in the
+graphical GTKG to connect to this headless ultrapeer, using
 "127.0.0.1:port".
 
 </para>
@@ -1226,10 +1221,10 @@ graphical GTKG to connect to this headless Ultra, using
 
 <para> ADSL and cable modem user that require PPPoE should consider
 using a kernel that supports PPPoE.  The user mode PPPoE consumed
-about 20% of CPU on an AMD-K6/2 300MHz running a GTKG Ultra on Linux
+about 20% of CPU on an AMD-K6/2 300MHz running a GTKG ultrapeer on Linux
 2.6.  When using kernel mode PPPoE, this drops to near zero.  This is
 especially important if you wish to support many connections as an
-ultra node. </para>
+ultrapeer. </para>
 
 <informaltable>
 <tgroup cols='6'>
@@ -1325,8 +1320,8 @@ url="http://www.jraitala.net/comp/articles/2002/pppoe/"> article
 entitled "PPPoE performance under Linux and BSDs"</ulink> by Juuso
 Raitala and others.  Please refer to this excellent article for
 details of the testing.  The important point is that kernel mode PPPoE
-will significantly reduce CPU load when running GTKG as an ultra
-node.</para>
+will significantly reduce CPU load when running GTKG as an ultrapeer.
+</para>
 </chapter>
 </part>
 
