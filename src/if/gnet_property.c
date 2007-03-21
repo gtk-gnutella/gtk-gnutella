@@ -6116,7 +6116,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[286].name = "enable_local_socket";
-    gnet_property->props[286].desc = _("If set gtk-gnutella also listens on a local (unix domain) socketwhich is located in ~/.gtk-gnutella/socket.");
+    gnet_property->props[286].desc = _("If set gtk-gnutella also listens on a local (unix domain) socket which is located in ~/.gtk-gnutella/socket.");
     gnet_property->props[286].ev_changed = event_new("enable_local_socket_changed");
     gnet_property->props[286].save = TRUE;
     gnet_property->props[286].vector_size = 1;
