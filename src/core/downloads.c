@@ -5365,7 +5365,7 @@ download_send_push_request(struct download *d)
 		GSList *nodes;
 		gboolean success;
 
-		send_udp_push(packet, download_addr(d), download_port(d));
+		success = send_udp_push(packet, download_addr(d), download_port(d));
 		if (d->server && d->server->proxies) {
 			/* Pick the first push-proxy */
 			send_udp_push(packet,
