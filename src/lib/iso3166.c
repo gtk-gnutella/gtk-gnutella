@@ -75,7 +75,7 @@ static const struct {
 	{ "at", N_("Austria") },
 	{ "au", N_("Australia") },
 	{ "aw", N_("Aruba") },
-	{ "ax", N_("Aland Islands") },
+	{ "ax", N_("\xc3\x85land Islands") },
 	{ "az", N_("Azerbaijan") },
 	{ "ba", N_("Bosnia and Herzegovina") },
 	{ "bb", N_("Barbados") },
