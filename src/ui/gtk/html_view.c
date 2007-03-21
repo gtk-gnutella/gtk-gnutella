@@ -565,6 +565,21 @@ html_output_tag(struct html_output *output, const struct array *tag)
 	case HTML_TAG_TH:
 		text = closing ? "\t" : NULL;
 		break;
+	case HTML_TAG_TITLE:
+		if (closing) {
+			if (ctx->title) {
+				GtkWidget *window;
+
+				window = gtk_widget_get_toplevel(
+							GTK_WIDGET(ctx->html_view->widget));
+				gtk_window_set_title(GTK_WINDOW(window), ctx->title->str);
+				g_string_free(ctx->title, TRUE);
+				ctx->title = NULL;
+			}
+		} else {
+			ctx->title = g_string_new("");
+		}
+		break;
 	case HTML_TAG_A:
 	case HTML_TAG_B:
 	case HTML_TAG_BODY:
@@ -585,7 +600,6 @@ html_output_tag(struct html_output *output, const struct array *tag)
 	case HTML_TAG_STRONG:
 	case HTML_TAG_TBODY:
 	case HTML_TAG_THEAD:
-	case HTML_TAG_TITLE:
 	case HTML_TAG_TT:
 	case HTML_TAG_UNKNOWN:
 		break;
