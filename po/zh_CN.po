@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -1951,11 +1951,6 @@ msgstr ""
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr ""
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr ""
 
@@ -2109,7 +2104,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "动态查询的debug级别。"
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2435,9 +2430,6 @@ msgid "Default sort order for search results."
 msgstr ""
 
 msgid "Default sort column for search results."
-msgstr ""
-
-msgid "Display search settings."
 msgstr ""
 
 msgid "Discard search results which are considered spam."
@@ -3898,7 +3890,7 @@ msgid "Unknown error"
 msgstr ""
 
 #, c-format
-msgid "Retry in %ds"
+msgid "Retry in %us"
 msgstr ""
 
 #, c-format
@@ -5987,6 +5979,9 @@ msgstr ""
 msgid "Metadata"
 msgstr ""
 
+msgid "Vendor"
+msgstr ""
+
 #, fuzzy
 msgid "Route"
 msgstr "路由丢失"
@@ -6051,10 +6046,6 @@ msgid "Sending request (%u%%)"
 msgstr ""
 
 #, c-format
-msgid "Retry in %us"
-msgstr ""
-
-#, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr ""
 
@@ -6085,6 +6076,18 @@ msgstr ""
 #, fuzzy
 msgid "_Remove filter"
 msgstr "#|文件名"
+
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella正在关闭。\n"
+"正在对peers发送bye消息。\n"
+"\n"
+"请稍候："
 
 msgid "Gnet _traffic stats"
 msgstr ""
@@ -6143,12 +6146,6 @@ msgstr ""
 msgid "Current _search:"
 msgstr "当前使用"
 
-msgid "Displaying"
-msgstr "正显示"
-
-msgid "Sho_w settings"
-msgstr "显示设置 (_w)"
-
 msgid "Flow _control"
 msgstr ""
 
@@ -6200,12 +6197,6 @@ msgid ""
 "many peers by trying to locate files on the local networks first."
 msgstr ""
 
-#, fuzzy
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr "如果你在LAN中使用gtk-gnutella，请勾选此按钮。RFC1918将被忽略。"
-
 msgid "_Addresses of local network(s)"
 msgstr "本地网络地址 (_A)"
 
@@ -6248,6 +6239,9 @@ msgstr "从列表中删除已下载项"
 
 msgid "_Clear completed"
 msgstr ""
+
+msgid "Sho_w settings"
+msgstr "显示设置 (_w)"
 
 msgid "Select all matching regex"
 msgstr ""
@@ -6504,7 +6498,7 @@ msgstr ""
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr ""
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
+msgid "*** Please update gtk-gnutella ***"
 msgstr ""
 
 #, c-format
@@ -6608,6 +6602,15 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#~ msgid "Displaying"
+#~ msgstr "正显示"
+
+#, fuzzy
+#~ msgid ""
+#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
+#~ "Network. RFC1918 will be ignored."
+#~ msgstr "如果你在LAN中使用gtk-gnutella，请勾选此按钮。RFC1918将被忽略。"
 
 #~ msgid "Got %d host from %s"
 #~ msgid_plural "Got %d hosts from %s"

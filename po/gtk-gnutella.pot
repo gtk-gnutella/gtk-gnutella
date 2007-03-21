@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1832,11 +1832,6 @@ msgstr ""
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr ""
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr ""
 
@@ -1987,7 +1982,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr ""
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2305,9 +2300,6 @@ msgid "Default sort order for search results."
 msgstr ""
 
 msgid "Default sort column for search results."
-msgstr ""
-
-msgid "Display search settings."
 msgstr ""
 
 msgid "Discard search results which are considered spam."
@@ -3766,7 +3758,7 @@ msgid "Unknown error"
 msgstr ""
 
 #, c-format
-msgid "Retry in %ds"
+msgid "Retry in %us"
 msgstr ""
 
 #, c-format
@@ -5793,6 +5785,9 @@ msgstr ""
 msgid "Metadata"
 msgstr ""
 
+msgid "Vendor"
+msgstr ""
+
 msgid "Route"
 msgstr ""
 
@@ -5856,10 +5851,6 @@ msgid "Sending request (%u%%)"
 msgstr ""
 
 #, c-format
-msgid "Retry in %us"
-msgstr ""
-
-#, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr ""
 
@@ -5888,6 +5879,13 @@ msgid "Copy to clipboard"
 msgstr ""
 
 msgid "_Remove filter"
+msgstr ""
+
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
 msgstr ""
 
 msgid "Gnet _traffic stats"
@@ -5946,12 +5944,6 @@ msgstr ""
 msgid "Current _search:"
 msgstr ""
 
-msgid "Displaying"
-msgstr ""
-
-msgid "Sho_w settings"
-msgstr ""
-
 msgid "Flow _control"
 msgstr ""
 
@@ -5999,11 +5991,6 @@ msgid ""
 "many peers by trying to locate files on the local networks first."
 msgstr ""
 
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-
 msgid "_Addresses of local network(s)"
 msgstr ""
 
@@ -6043,6 +6030,9 @@ msgid "Remove completed downloads from list"
 msgstr ""
 
 msgid "_Clear completed"
+msgstr ""
+
+msgid "Sho_w settings"
 msgstr ""
 
 msgid "Select all matching regex"
@@ -6301,7 +6291,7 @@ msgstr ""
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr ""
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
+msgid "*** Please update gtk-gnutella ***"
 msgstr ""
 
 #, c-format

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -1834,11 +1834,6 @@ msgstr ""
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr ""
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr ""
 
@@ -1989,7 +1984,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr ""
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2308,9 +2303,6 @@ msgid "Default sort order for search results."
 msgstr ""
 
 msgid "Default sort column for search results."
-msgstr ""
-
-msgid "Display search settings."
 msgstr ""
 
 msgid "Discard search results which are considered spam."
@@ -3774,8 +3766,8 @@ msgid "Unknown error"
 msgstr "Bilinmeyen hata"
 
 #, c-format
-msgid "Retry in %ds"
-msgstr "%ds sonra yeniden dene"
+msgid "Retry in %us"
+msgstr ""
 
 #, c-format
 msgid "Sinking (%s bytes left)"
@@ -5805,6 +5797,10 @@ msgid "Metadata"
 msgstr ""
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Sağlayıcı:"
+
+#, fuzzy
 msgid "Route"
 msgstr "dışarı"
 
@@ -5870,10 +5866,6 @@ msgid "Sending request (%u%%)"
 msgstr ""
 
 #, c-format
-msgid "Retry in %us"
-msgstr ""
-
-#, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr ""
 
@@ -5903,6 +5895,13 @@ msgstr "Panoya kopyala"
 
 msgid "_Remove filter"
 msgstr "Filtreyi _Kaldır"
+
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
 
 msgid "Gnet _traffic stats"
 msgstr "Gnet _trafik istatistikleri"
@@ -5960,12 +5959,6 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Şu anki _arama:"
 
-msgid "Displaying"
-msgstr ""
-
-msgid "Sho_w settings"
-msgstr "Seçenekleri _göster"
-
 msgid "Flow _control"
 msgstr ""
 
@@ -6015,11 +6008,6 @@ msgid ""
 "many peers by trying to locate files on the local networks first."
 msgstr ""
 
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-
 msgid "_Addresses of local network(s)"
 msgstr ""
 
@@ -6060,6 +6048,9 @@ msgstr ""
 
 msgid "_Clear completed"
 msgstr "Bitenleri _temizle"
+
+msgid "Sho_w settings"
+msgstr "Seçenekleri _göster"
 
 msgid "Select all matching regex"
 msgstr ""
@@ -6310,7 +6301,7 @@ msgstr ""
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr ""
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
+msgid "*** Please update gtk-gnutella ***"
 msgstr ""
 
 #, c-format
@@ -6414,6 +6405,9 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "Retry in %ds"
+#~ msgstr "%ds sonra yeniden dene"
 
 #~ msgid "leaf"
 #~ msgstr "yaprak"

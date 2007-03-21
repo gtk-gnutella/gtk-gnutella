@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -2296,14 +2296,6 @@ msgstr "Végső QRP-folttábla hossza, lehetséges tömörítés után."
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "QRP-folttábla tömörítési arány, százalékban, 0 a tömörítetlené."
 
-#, fuzzy
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-"Ezt a tulajdonságot a gtk-gnutella aktuális változatszámára kell állítani, "
-"hogy fusson, amikor már ősi."
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr "Jelzi, hogy a gtk-gnutella ennyi nap alatt le fog járni."
 
@@ -2468,7 +2460,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "A gui hibajavítási szintje"
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2862,10 +2854,6 @@ msgstr ""
 #, fuzzy
 msgid "Default sort column for search results."
 msgstr "Az oszlopok szélessége a keresés eredményei táblán"
-
-#, fuzzy
-msgid "Display search settings."
-msgstr "Kereső-beállításokat mutat"
 
 msgid "Discard search results which are considered spam."
 msgstr ""
@@ -4423,8 +4411,8 @@ msgstr "Összekapcsolva"
 msgid "Unknown error"
 msgstr "Ismeretlen hiba"
 
-#, c-format
-msgid "Retry in %ds"
+#, fuzzy, c-format
+msgid "Retry in %us"
 msgstr "%d után újra"
 
 #, fuzzy, c-format
@@ -6681,6 +6669,10 @@ msgid "Metadata"
 msgstr ""
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Eladó:"
+
+#, fuzzy
 msgid "Route"
 msgstr "ki"
 
@@ -6747,10 +6739,6 @@ msgid "Sending request (%u%%)"
 msgstr "(%d%%) kérelem elküldése"
 
 #, fuzzy, c-format
-msgid "Retry in %us"
-msgstr "%d után újra"
-
-#, fuzzy, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr "Várósorban (%d aktív/ %d passzív)"
 
@@ -6783,6 +6771,18 @@ msgstr "Url-t vágólapra másol"
 #, fuzzy
 msgid "_Remove filter"
 msgstr "Szűrő eltávolítása"
+
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella leáll.\n"
+"Elköszönés a többi csomóponttól.\n"
+"\n"
+"Várakozási idő:"
 
 #, fuzzy
 msgid "Gnet _traffic stats"
@@ -6848,12 +6848,6 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Jelenlegi keresés"
 
-msgid "Displaying"
-msgstr "Kijelzés"
-
-msgid "Sho_w settings"
-msgstr "_Beállítások megjelenítése"
-
 msgid "Flow _control"
 msgstr "Folyamvezérlés"
 
@@ -6910,14 +6904,6 @@ msgstr ""
 "hogy először a helyi hálózatokon keresi a fájlokat."
 
 #, fuzzy
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-"Pipálja ki ezt a négyzetet, ha a helyi hálózatokon akarja használni GTK-"
-"Gnutellát. RFC1918-at mellőzi."
-
-#, fuzzy
 msgid "_Addresses of local network(s)"
 msgstr "Helyi hálózatok _címei"
 
@@ -6962,6 +6948,9 @@ msgstr "Sikeres letöltéseket töröl a listáról"
 
 msgid "_Clear completed"
 msgstr "Sikeres _törlése"
+
+msgid "Sho_w settings"
+msgstr "_Beállítások megjelenítése"
 
 #, fuzzy
 msgid "Select all matching regex"
@@ -7233,8 +7222,8 @@ msgstr "☹☹☹ ELFOGYOTAK A FÁJLLEÍRÓK! ☹☹☹"
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "☹☹☹ KEVÉS FÁJLLEÍRÓ! ☹☹☹"
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
-msgstr "☹☹☹ VÁLTOZAT HAMAROSAN ELAVUL! ☹☹☹"
+msgid "*** Please update gtk-gnutella ***"
+msgstr ""
 
 #, fuzzy, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
@@ -7339,6 +7328,35 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid ""
+#~ "This property must be set to the current version number of gtk-gnutella "
+#~ "in order to allow it to run when it is ancient."
+#~ msgstr ""
+#~ "Ezt a tulajdonságot a gtk-gnutella aktuális változatszámára kell "
+#~ "állítani, hogy fusson, amikor már ősi."
+
+#, fuzzy
+#~ msgid "Display search settings."
+#~ msgstr "Kereső-beállításokat mutat"
+
+#~ msgid "Retry in %ds"
+#~ msgstr "%d után újra"
+
+#~ msgid "Displaying"
+#~ msgstr "Kijelzés"
+
+#, fuzzy
+#~ msgid ""
+#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
+#~ "Network. RFC1918 will be ignored."
+#~ msgstr ""
+#~ "Pipálja ki ezt a négyzetet, ha a helyi hálózatokon akarja használni GTK-"
+#~ "Gnutellát. RFC1918-at mellőzi."
+
+#~ msgid "*** VERSION WILL SOON BECOME OLD! ***"
+#~ msgstr "☹☹☹ VÁLTOZAT HAMAROSAN ELAVUL! ☹☹☹"
 
 #, fuzzy
 #~ msgid "Connecting to web cache %s"

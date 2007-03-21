@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -2150,13 +2150,6 @@ msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr ""
 "Δείκτης συμπίεσης μπαλώματος πίνακα QRP, τοις εκατό, 0 σημαίνει καθόλου."
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-"Αυτή η ιδιότητα πρέπει να οριστεί στην τρέχουσα έκδοση του gtk-gnutella ώστε "
-"να επιτρέπεται να τρέχει όταν είναι παλιά."
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr "Προσδιορίζει ότι το gtk-gnutella θα λήξει σε τόσες μέρες."
 
@@ -2356,7 +2349,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "Επίπεδο αποσφαλμάτωσης δυναμικών ερωτημάτων."
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2691,9 +2684,6 @@ msgstr "Προεπιλεγμένη σειρά ταξινόμησης των απ
 
 msgid "Default sort column for search results."
 msgstr "Προεπιλεγμένη στήλη ταξινόμησης των αποτελεσμάτων αναζήτησης."
-
-msgid "Display search settings."
-msgstr "Εμφάνιση ρυθμίσεων αναζήτησης."
 
 msgid "Discard search results which are considered spam."
 msgstr ""
@@ -4268,8 +4258,8 @@ msgid "Unknown error"
 msgstr "Άγνωστο σφάλμα"
 
 #, c-format
-msgid "Retry in %ds"
-msgstr "Προσπάθεια ξανά σε %ds"
+msgid "Retry in %us"
+msgstr "Προσπάθεια ξανά σε %us"
 
 #, c-format
 msgid "Sinking (%s bytes left)"
@@ -6402,6 +6392,10 @@ msgid "Metadata"
 msgstr ""
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Κατασκευαστής:"
+
+#, fuzzy
 msgid "Route"
 msgstr "έξω"
 
@@ -6468,10 +6462,6 @@ msgstr " προσπάθεια ξανά σε %us"
 msgid "Sending request (%u%%)"
 msgstr "Αποστολή αιτήματος (%u%%)"
 
-#, c-format
-msgid "Retry in %us"
-msgstr "Προσπάθεια ξανά σε %us"
-
 #, fuzzy, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr "Μπήκε στη λίστα αναμονής (%d ενεργές, %d παθητικές)"
@@ -6504,6 +6494,18 @@ msgstr "Αντιγραφή στο πρόχειρο"
 
 msgid "_Remove filter"
 msgstr "_Αφαίρεση φίλτρου"
+
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"Το gtk-gnutella τερματίζει.\n"
+"Αποστολή μηνυμάτων αποχώρησης στους κόμβους.\n"
+"\n"
+"Λήξη προθεσμίας:"
 
 msgid "Gnet _traffic stats"
 msgstr "στατιστικά _κυκλοφορίας Gnet"
@@ -6564,12 +6566,6 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Τρέχουσα_ αναζήτηση:"
 
-msgid "Displaying"
-msgstr "Εμφάνιση"
-
-msgid "Sho_w settings"
-msgstr "Εμφάνιση _ρυθμίσεων"
-
 msgid "Flow _control"
 msgstr "Έλεγ_χος ροής"
 
@@ -6620,14 +6616,6 @@ msgid ""
 "many peers by trying to locate files on the local networks first."
 msgstr ""
 
-#, fuzzy
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-"Ενεργοποιήστε αυτό το κουμπί αν θέλετε να χρησιμοποιήσετε το gtk-gnutella "
-"στο τοπικό σας δίκτυο. Θα γίνει παράβλεψη του RFC1918."
-
 msgid "_Addresses of local network(s)"
 msgstr "Δι_ευθύνσεις τοπικού δικτύου(ων)"
 
@@ -6673,6 +6661,9 @@ msgstr "Αφαίρεση ολοκληρωμένων λήψεων από τη λ�
 
 msgid "_Clear completed"
 msgstr "_Καθαρισμός ολοκληρωμένων"
+
+msgid "Sho_w settings"
+msgstr "Εμφάνιση _ρυθμίσεων"
 
 msgid "Select all matching regex"
 msgstr ""
@@ -6942,8 +6933,8 @@ msgstr "*** ΟΙ ΠΕΡΙΓΡΑΦΕΙΣ ΑΡΧΕΙΩΝ ΤΕΛΕΙΩΣΑΝ! ***"
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ΟΙ ΠΕΡΙΓΡΑΦΕΙΣ ΑΡΧΕΙΩΝ ΕΙΝΑΙ ΠΟΛΥ ΛΙΓΟΙ! ***"
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
-msgstr "*** Η ΕΚΔΟΣΗ ΣΥΝΤΟΜΑ ΘΑ ΓΙΝΕΙ ΠΑΛΙΑ! ***"
+msgid "*** Please update gtk-gnutella ***"
+msgstr ""
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
@@ -7051,6 +7042,33 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#~ msgid ""
+#~ "This property must be set to the current version number of gtk-gnutella "
+#~ "in order to allow it to run when it is ancient."
+#~ msgstr ""
+#~ "Αυτή η ιδιότητα πρέπει να οριστεί στην τρέχουσα έκδοση του gtk-gnutella "
+#~ "ώστε να επιτρέπεται να τρέχει όταν είναι παλιά."
+
+#~ msgid "Display search settings."
+#~ msgstr "Εμφάνιση ρυθμίσεων αναζήτησης."
+
+#~ msgid "Retry in %ds"
+#~ msgstr "Προσπάθεια ξανά σε %ds"
+
+#~ msgid "Displaying"
+#~ msgstr "Εμφάνιση"
+
+#, fuzzy
+#~ msgid ""
+#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
+#~ "Network. RFC1918 will be ignored."
+#~ msgstr ""
+#~ "Ενεργοποιήστε αυτό το κουμπί αν θέλετε να χρησιμοποιήσετε το gtk-gnutella "
+#~ "στο τοπικό σας δίκτυο. Θα γίνει παράβλεψη του RFC1918."
+
+#~ msgid "*** VERSION WILL SOON BECOME OLD! ***"
+#~ msgstr "*** Η ΕΚΔΟΣΗ ΣΥΝΤΟΜΑ ΘΑ ΓΙΝΕΙ ΠΑΛΙΑ! ***"
 
 #~ msgid "Got %d host from %s"
 #~ msgid_plural "Got %d hosts from %s"

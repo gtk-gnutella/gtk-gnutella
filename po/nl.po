@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -2248,13 +2248,6 @@ msgstr "Uiteindelijke QRP tabelaanpassingslengte, na mogelijke compressie."
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "QRP tabelaanpassing compressie percentage, 0 betekent geen compressie."
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-"Deze eigenschap moet het huidige versienummer van gtk-gnutella bevatten om "
-"te zorgen dat het kan blijven draaien als het erg oud is."
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr ""
 "Geeft aan dat de gtk-gnutella versie die je draait in dit aantal dagen zal "
@@ -2479,7 +2472,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "Debug level voor de dynamische zoekopdrachten."
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2826,9 +2819,6 @@ msgstr "Standaard sorteer volgorde voor zoekresultaten."
 
 msgid "Default sort column for search results."
 msgstr "Breedte van de kolommen in de zoekopdrachten tabel."
-
-msgid "Display search settings."
-msgstr "Zoek instellingen weergeven."
 
 msgid "Discard search results which are considered spam."
 msgstr ""
@@ -4400,8 +4390,8 @@ msgid "Unknown error"
 msgstr "Onbekende error"
 
 #, c-format
-msgid "Retry in %ds"
-msgstr "Opnieuw proberen in %ds;"
+msgid "Retry in %us"
+msgstr "Opnieuw proberen in %us"
 
 #, c-format
 msgid "Sinking (%s bytes left)"
@@ -6551,6 +6541,10 @@ msgid "Metadata"
 msgstr "Metagegevens"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Maker:"
+
+#, fuzzy
 msgid "Route"
 msgstr "uitgaand"
 
@@ -6617,10 +6611,6 @@ msgstr "opnieuw proberen over %us"
 msgid "Sending request (%u%%)"
 msgstr "Verzoek wordt verstuurd (%u%%)"
 
-#, c-format
-msgid "Retry in %us"
-msgstr "Opnieuw proberen in %us"
-
 #, fuzzy, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr "In de wacht(%d actief, %d passief)"
@@ -6654,6 +6644,18 @@ msgstr "Kopieer naar klembord"
 
 msgid "_Remove filter"
 msgstr "Ve_rwijder filter"
+
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella is bezig met afsluiten.\n"
+"Er wordt een 'bye' bericht verstuurd naar de verbonden peers.\n"
+"\n"
+"Tijd tot werkelijk afsluiten:"
 
 msgid "Gnet _traffic stats"
 msgstr "Gnet verkeer statistieken"
@@ -6715,12 +6717,6 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "Huidige zoekopdracht:"
 
-msgid "Displaying"
-msgstr "Weergave"
-
-msgid "Sho_w settings"
-msgstr "Geef instellingen _weer"
-
 msgid "Flow _control"
 msgstr "Flow control"
 
@@ -6774,14 +6770,6 @@ msgstr ""
 "hier een snelheidswinst behalen door eerst te zoeken naar bestanden op het "
 "lokale netwerk."
 
-#, fuzzy
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-"Activeer dit als je GTK-Gnutella wilt gebruiken op je Lokale Netwerk (LAN). "
-"De RFC1918 zal dan worden genegeerd."
-
 msgid "_Addresses of local network(s)"
 msgstr "_Adressen van (het) Lokale Netwerk(en)"
 
@@ -6824,6 +6812,9 @@ msgstr "Verwijderde de afgeronde downloads van de lijst"
 
 msgid "_Clear completed"
 msgstr "Verwijder afgeronde"
+
+msgid "Sho_w settings"
+msgstr "Geef instellingen _weer"
 
 #, fuzzy
 msgid "Select all matching regex"
@@ -7093,8 +7084,8 @@ msgstr "*** MAXIMUM FILE DESCRIPTORS BEREIKT! ***"
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** MAXIMUM FILE DESCRIPTORS BIJNA BEREIKT! ***"
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
-msgstr "*** VERSIE WORDT BINNENKORT TE OUD! ***"
+msgid "*** Please update gtk-gnutella ***"
+msgstr ""
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
@@ -7202,6 +7193,33 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid ""
+#~ "This property must be set to the current version number of gtk-gnutella "
+#~ "in order to allow it to run when it is ancient."
+#~ msgstr ""
+#~ "Deze eigenschap moet het huidige versienummer van gtk-gnutella bevatten "
+#~ "om te zorgen dat het kan blijven draaien als het erg oud is."
+
+#~ msgid "Display search settings."
+#~ msgstr "Zoek instellingen weergeven."
+
+#~ msgid "Retry in %ds"
+#~ msgstr "Opnieuw proberen in %ds;"
+
+#~ msgid "Displaying"
+#~ msgstr "Weergave"
+
+#, fuzzy
+#~ msgid ""
+#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
+#~ "Network. RFC1918 will be ignored."
+#~ msgstr ""
+#~ "Activeer dit als je GTK-Gnutella wilt gebruiken op je Lokale Netwerk "
+#~ "(LAN). De RFC1918 zal dan worden genegeerd."
+
+#~ msgid "*** VERSION WILL SOON BECOME OLD! ***"
+#~ msgstr "*** VERSIE WORDT BINNENKORT TE OUD! ***"
 
 #~ msgid "Got %d host from %s"
 #~ msgid_plural "Got %d hosts from %s"

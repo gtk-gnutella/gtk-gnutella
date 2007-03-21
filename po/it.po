@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -2242,11 +2242,6 @@ msgstr ""
 "Livello di compressione della patch della tabella QRP, in percentuale, 0 "
 "significa nessuna."
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr "Indica che gtk-gnutella spirerà nei giorni dati."
 
@@ -2468,7 +2463,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "Livello di collaudo per l'interfaccia utente."
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2816,9 +2811,6 @@ msgstr "Ordinamento predefinito per i risultati delle ricerche."
 
 msgid "Default sort column for search results."
 msgstr "Ordinamento predefinito delle colonne per i risultati delle ricerche."
-
-msgid "Display search settings."
-msgstr "Mostra le impostazioni delle ricerche."
 
 msgid "Discard search results which are considered spam."
 msgstr ""
@@ -4363,8 +4355,8 @@ msgid "Unknown error"
 msgstr "Errore sconosciuto"
 
 #, c-format
-msgid "Retry in %ds"
-msgstr "Ritenta in %ds"
+msgid "Retry in %us"
+msgstr "Ritenta in %us"
 
 #, c-format
 msgid "Sinking (%s bytes left)"
@@ -6503,6 +6495,10 @@ msgid "Metadata"
 msgstr "Metadati"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Offerente:"
+
+#, fuzzy
 msgid "Route"
 msgstr "Perso instradamento"
 
@@ -6568,10 +6564,6 @@ msgstr " ritenta in %us"
 msgid "Sending request (%u%%)"
 msgstr "Invio richiesta (%u%%)"
 
-#, c-format
-msgid "Retry in %us"
-msgstr "Ritenta in %us"
-
 #, fuzzy, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr "Accodati (%d attivi, %d passivi)"
@@ -6605,6 +6597,18 @@ msgstr "Copia negli appunti"
 
 msgid "_Remove filter"
 msgstr "_Rimuovi il filtro"
+
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella sta per spegnersi.\n"
+"Invio messaggio di saluto ai peers.\n"
+"\n"
+"Tempo rimasto:"
 
 msgid "Gnet _traffic stats"
 msgstr "Statistiche del _traffico Gnet"
@@ -6666,12 +6670,6 @@ msgstr "[BH qtent.]"
 msgid "Current _search:"
 msgstr "Ricerca _corrente"
 
-msgid "Displaying"
-msgstr "Visualizzazione"
-
-msgid "Sho_w settings"
-msgstr "Mostra _impostazioni"
-
 msgid "Flow _control"
 msgstr "_Controllo di flusso"
 
@@ -6722,14 +6720,6 @@ msgid ""
 "many peers by trying to locate files on the local networks first."
 msgstr ""
 
-#, fuzzy
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-"Spunta questo pulsante se desideri utilizzare gtk-gnutella sulla tua rete "
-"locale. L'RFC1918 verrà ignorato."
-
 msgid "_Addresses of local network(s)"
 msgstr "_Indirizzo(i)i della(e) rete(i) locale(i)"
 
@@ -6774,6 +6764,9 @@ msgstr "Rimuovi dall'elenco gli scaricamenti completati"
 
 msgid "_Clear completed"
 msgstr "Ri_pulisci completati"
+
+msgid "Sho_w settings"
+msgstr "Mostra _impostazioni"
 
 #, fuzzy
 msgid "Select all matching regex"
@@ -7043,7 +7036,7 @@ msgstr ""
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr ""
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
+msgid "*** Please update gtk-gnutella ***"
 msgstr ""
 
 #, c-format
@@ -7152,6 +7145,23 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#~ msgid "Display search settings."
+#~ msgstr "Mostra le impostazioni delle ricerche."
+
+#~ msgid "Retry in %ds"
+#~ msgstr "Ritenta in %ds"
+
+#~ msgid "Displaying"
+#~ msgstr "Visualizzazione"
+
+#, fuzzy
+#~ msgid ""
+#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
+#~ "Network. RFC1918 will be ignored."
+#~ msgstr ""
+#~ "Spunta questo pulsante se desideri utilizzare gtk-gnutella sulla tua rete "
+#~ "locale. L'RFC1918 verrà ignorato."
 
 #~ msgid "Got %d host from %s"
 #~ msgid_plural "Got %d hosts from %s"

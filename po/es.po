@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2163,13 +2163,6 @@ msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr ""
 "Porcentaje de compresión del parche de la tabla QRP, 0 indica sin compresión."
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-"Esta propiedad debe estar ajustada al número de versión actual de gtk-"
-"gnutella para permitirle su ejecución cuando se quede anticuado."
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr "Indica que gtk-gnutella expirará en tantos días."
 
@@ -2356,7 +2349,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "Nivel de depurado para peticiones dinámicas."
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2702,9 +2695,6 @@ msgstr ""
 #, fuzzy
 msgid "Default sort column for search results."
 msgstr "Ancho de las columnas en las tablas de resultados de búsquedas."
-
-msgid "Display search settings."
-msgstr "Mostrar ajustes de búsquedas."
 
 msgid "Discard search results which are considered spam."
 msgstr ""
@@ -4269,8 +4259,8 @@ msgstr "Conectado"
 msgid "Unknown error"
 msgstr "Error desconocido"
 
-#, c-format
-msgid "Retry in %ds"
+#, fuzzy, c-format
+msgid "Retry in %us"
 msgstr "Reintento en %ds"
 
 #, c-format
@@ -6441,6 +6431,10 @@ msgid "Metadata"
 msgstr "Metadatos"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Cliente:"
+
+#, fuzzy
 msgid "Route"
 msgstr "salida"
 
@@ -6508,10 +6502,6 @@ msgid "Sending request (%u%%)"
 msgstr "Enviando petición (%d%%)"
 
 #, fuzzy, c-format
-msgid "Retry in %us"
-msgstr "Reintento en %ds"
-
-#, fuzzy, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr "Encolado (%d activos, %d pasivos)"
 
@@ -6545,6 +6535,18 @@ msgstr "Copiar URL al portapapeles"
 #, fuzzy
 msgid "_Remove filter"
 msgstr "Borrar filtro"
+
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella se está cerrando.\n"
+"Despidiéndose de los nodos.\n"
+"\n"
+"Tiempo de gracia restante:"
 
 #, fuzzy
 msgid "Gnet _traffic stats"
@@ -6607,12 +6609,6 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Búsqueda actual:"
 
-msgid "Displaying"
-msgstr "Mostrando"
-
-msgid "Sho_w settings"
-msgstr "_Mostrar configuración"
-
 msgid "Flow _control"
 msgstr "_Control de flujo"
 
@@ -6669,14 +6665,6 @@ msgstr ""
 "Esta opción podría mejorar significativamente a aquellos en una red grande "
 "con muchos nodos tratando de encontrar archivos en las redes locales primero."
 
-#, fuzzy
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-"Actívelo para usar gtk-gnutella en su red de área local. RFC1918 será "
-"ignorado."
-
 msgid "_Addresses of local network(s)"
 msgstr "_Dirección(es) de red(es) local(es)"
 
@@ -6721,6 +6709,9 @@ msgstr "Quitar de la lista las descargas completadas"
 
 msgid "_Clear completed"
 msgstr "_Limpiar completadas"
+
+msgid "Sho_w settings"
+msgstr "_Mostrar configuración"
 
 #, fuzzy
 msgid "Select all matching regex"
@@ -6996,8 +6987,8 @@ msgstr "*** ¡NO QUEDAN DESCRIPTORES DE ARCHIVO! ***"
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ¡DESCRIPTORES DE ARCHIVO ESCASOS! ***"
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
-msgstr "*** ¡ESTA VERSIÓN PRONTO SE QUEDARÁ ANTICUADA! ***"
+msgid "*** Please update gtk-gnutella ***"
+msgstr ""
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
@@ -7105,6 +7096,33 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#~ msgid ""
+#~ "This property must be set to the current version number of gtk-gnutella "
+#~ "in order to allow it to run when it is ancient."
+#~ msgstr ""
+#~ "Esta propiedad debe estar ajustada al número de versión actual de gtk-"
+#~ "gnutella para permitirle su ejecución cuando se quede anticuado."
+
+#~ msgid "Display search settings."
+#~ msgstr "Mostrar ajustes de búsquedas."
+
+#~ msgid "Retry in %ds"
+#~ msgstr "Reintento en %ds"
+
+#~ msgid "Displaying"
+#~ msgstr "Mostrando"
+
+#, fuzzy
+#~ msgid ""
+#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
+#~ "Network. RFC1918 will be ignored."
+#~ msgstr ""
+#~ "Actívelo para usar gtk-gnutella en su red de área local. RFC1918 será "
+#~ "ignorado."
+
+#~ msgid "*** VERSION WILL SOON BECOME OLD! ***"
+#~ msgstr "*** ¡ESTA VERSIÓN PRONTO SE QUEDARÁ ANTICUADA! ***"
 
 #~ msgid "Connecting to web cache %s"
 #~ msgstr "Conectando a la caché web %s"

@@ -73,7 +73,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-18 04:31+0900\n"
+"POT-Creation-Date: 2007-03-22 01:17+0900\n"
 "PO-Revision-Date: 2007-03-18 04:35+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2219,13 +2219,6 @@ msgstr "可能な圧縮が終わった後の、最終的な QRP テーブルパ�
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "QRP テーブルパッチの圧縮比率を割合で表します。0 は非圧縮を意味します。"
 
-msgid ""
-"This property must be set to the current version number of gtk-gnutella in "
-"order to allow it to run when it is ancient."
-msgstr ""
-"古い gtk-gnutella を走らせるのを許可するために、このプロパティには必ず現在の"
-"バージョン番号を設定する必要があります。"
-
 msgid "Indicates that gtk-gnutella will expire in that many days."
 msgstr ""
 "gtk-gnutella が古すぎて期限切れになってからかなりの日数が経過しています。"
@@ -2446,7 +2439,7 @@ msgid "Debug level for the OOB-proxying of queries."
 msgstr "動的検索クエリーのデバッグレベルです。"
 
 msgid ""
-"If set gtk-gnutella also listens on a local (unix domain) socketwhich is "
+"If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
 
@@ -2772,9 +2765,6 @@ msgstr "検索結果ペインでの標準の並び順です。"
 
 msgid "Default sort column for search results."
 msgstr "検索結果ペインでの標準の表示欄の並び順です。"
-
-msgid "Display search settings."
-msgstr "検索設定を表示します。"
 
 msgid "Discard search results which are considered spam."
 msgstr "スパムと思われる検索結果を破棄します。"
@@ -4342,8 +4332,8 @@ msgid "Unknown error"
 msgstr "不明なエラー"
 
 #, c-format
-msgid "Retry in %ds"
-msgstr "%d秒後に再実行"
+msgid "Retry in %us"
+msgstr "%u秒後に再実行"
 
 #, c-format
 msgid "Sinking (%s bytes left)"
@@ -6537,6 +6527,10 @@ msgstr "数"
 msgid "Metadata"
 msgstr "メタデータ"
 
+#, fuzzy
+msgid "Vendor"
+msgstr "ベンダー:"
+
 # FIXME:
 msgid "Route"
 msgstr "経路"
@@ -6600,10 +6594,6 @@ msgid "Sending request (%u%%)"
 msgstr "リクエストを送信しています (%u%%)"
 
 #, c-format
-msgid "Retry in %us"
-msgstr "%u秒後に再実行"
-
-#, c-format
 msgid "Queued (%u active, %u passive)"
 msgstr "待機中 (%u 件が動作、%u 件が受動)"
 
@@ -6632,6 +6622,18 @@ msgstr "クリップボードへコピー"
 
 msgid "_Remove filter"
 msgstr "フィルターを削除(_R)"
+
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"Gtk-Gnutella をシャットダウン中です。\n"
+"各ピアに Bye メッセージを送信しています。\n"
+"\n"
+"終了までの残り時間:"
 
 msgid "Gnet _traffic stats"
 msgstr "Gnetトラフィック統計(_T)"
@@ -6714,12 +6716,6 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
 
-msgid "Displaying"
-msgstr "表示内容"
-
-msgid "Sho_w settings"
-msgstr "設定の表示(_W)"
-
 msgid "Flow _control"
 msgstr "フロー制御(_C)"
 
@@ -6770,13 +6766,6 @@ msgstr ""
 "このオプションを使用すると、まずローカルネット上でファイルを位置付けてみる事"
 "で、多くのピアを伴う巨大なネットワーク上での能率を押し上げます。"
 
-msgid ""
-"Check this button if you want to use Gtk-Gnutella on your Local Area "
-"Network. RFC1918 will be ignored."
-msgstr ""
-"Gtk-Gnutella を LAN 上で使用したければ有効にして下さい。RFC1918 は無視されま"
-"す。"
-
 msgid "_Addresses of local network(s)"
 msgstr "ローカルネットのアドレス(_A)"
 
@@ -6819,6 +6808,9 @@ msgstr "完了したダウンロードを一覧から削除する"
 
 msgid "_Clear completed"
 msgstr "完了したものを消去(_C)"
+
+msgid "Sho_w settings"
+msgstr "設定の表示(_W)"
 
 msgid "Select all matching regex"
 msgstr "正規表現に一致する全てのキューを選択"
@@ -7083,8 +7075,8 @@ msgstr "*** ファイル記述子の数が尽きました！ ***"
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ファイル記述子の数が尽きかけています！ ***"
 
-msgid "*** VERSION WILL SOON BECOME OLD! ***"
-msgstr "*** このバージョンはもうすぐ古いものになります！ ***"
+msgid "*** Please update gtk-gnutella ***"
+msgstr ""
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
