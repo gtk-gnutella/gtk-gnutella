@@ -16661,3 +16661,53 @@ create_dlg_faq (void)
   return dlg_faq;
 }
 
+GtkWidget*
+create_dlg_ancient (void)
+{
+  GtkWidget *dlg_ancient;
+  GdkPixbuf *dlg_ancient_icon_pixbuf;
+  GtkWidget *scrolledwindow81;
+  GtkWidget *textview_ancient;
+
+  dlg_ancient = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_name (dlg_ancient, "dlg_ancient");
+  gtk_window_set_position (GTK_WINDOW (dlg_ancient), GTK_WIN_POS_MOUSE);
+  gtk_window_set_default_size (GTK_WINDOW (dlg_ancient), 320, 240);
+  dlg_ancient_icon_pixbuf = create_pixbuf ("icon.xpm");
+  if (dlg_ancient_icon_pixbuf)
+    {
+      gtk_window_set_icon (GTK_WINDOW (dlg_ancient), dlg_ancient_icon_pixbuf);
+      gdk_pixbuf_unref (dlg_ancient_icon_pixbuf);
+    }
+  gtk_window_set_urgency_hint (GTK_WINDOW (dlg_ancient), TRUE);
+
+  scrolledwindow81 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow81, "scrolledwindow81");
+  gtk_widget_show (scrolledwindow81);
+  gtk_container_add (GTK_CONTAINER (dlg_ancient), scrolledwindow81);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow81), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  textview_ancient = gtk_text_view_new ();
+  gtk_widget_set_name (textview_ancient, "textview_ancient");
+  gtk_widget_show (textview_ancient);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow81), textview_ancient);
+  gtk_text_view_set_editable (GTK_TEXT_VIEW (textview_ancient), FALSE);
+  gtk_text_view_set_accepts_tab (GTK_TEXT_VIEW (textview_ancient), FALSE);
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (textview_ancient), GTK_WRAP_WORD);
+  gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (textview_ancient), FALSE);
+  gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview_ancient), 4);
+  gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview_ancient), 4);
+
+  g_signal_connect ((gpointer) dlg_ancient, "delete_event",
+                    G_CALLBACK (on_dlg_ancient_delete_event),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (dlg_ancient, dlg_ancient, "dlg_ancient");
+  GLADE_HOOKUP_OBJECT (dlg_ancient, scrolledwindow81, "scrolledwindow81");
+  GLADE_HOOKUP_OBJECT (dlg_ancient, textview_ancient, "textview_ancient");
+
+  gtk_widget_grab_focus (textview_ancient);
+  return dlg_ancient;
+}
+

@@ -35,6 +35,7 @@
 	GtkWidget *gui_ ## name ## _lookup(const gchar *id);
 
 WIDGET(dlg_about)
+WIDGET(dlg_ancient)
 WIDGET(dlg_faq)
 WIDGET(dlg_prefs)
 WIDGET(dlg_quit)

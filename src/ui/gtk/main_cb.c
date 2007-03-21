@@ -27,11 +27,12 @@
 
 RCSID("$Id$")
 
-#include "main_cb.h"
+#include "html_view.h"
 #include "main.h"
+#include "main_cb.h"
 #include "misc.h"
 #include "notebooks.h"
-#include "html_view.h"
+#include "settings.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
@@ -82,16 +83,24 @@ load_faq(void)
 	} else {
 		static const gchar msg[] =
 		N_(
-			"<html><body><p>"
+			"<html>"
+			"<head>"
+			"<title>Frequently Asked Questions</title>"
+			"</head>"
+			"<body>"
+			"<p>"
 			"The FAQ document could not be loaded. Please read the "
 			"<a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">"
 			"FAQ online</a> instead."
-			"</p></body></html>"
+			"</p>"
+			"</body>"
+			"</html>"
 		);
 
 		faq_html_view = html_view_load_memory(textview, array_from_string(msg));
 	}
 }
+
 
 static void
 quit(gboolean force)
@@ -217,6 +226,17 @@ on_dlg_about_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	return TRUE;
 }
 
+gboolean
+on_dlg_ancient_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+
+	ancient_version_dialog_hide();
+	return TRUE;
+}
 /***
  *** FAQ dialog
  ***/

@@ -58,12 +58,15 @@ void
 on_menu_keyboard_shortcuts_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
 
+void on_button_ancient_close_clicked(GtkButton *button, gpointer user_data);
+gboolean on_dlg_ancient_delete_event(
+    GtkWidget *widget, GdkEvent *event, gpointer user_data);
+
 /***
  *** FAQ dialog
  ***/
-void on_button_faq_close_clicked(GtkButton *button, gpointer user_data);
-gboolean on_dlg_faq_delete_event(
-    GtkWidget *widget, GdkEvent *event, gpointer user_data);
+gboolean on_dlg_faq_delete_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data);
 
 /***
  *** Prefs dialog

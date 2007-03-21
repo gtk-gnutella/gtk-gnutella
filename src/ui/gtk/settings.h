@@ -40,4 +40,7 @@ void settings_gui_save_if_dirty(void);
 void settings_gui_shutdown(void);
 gboolean show_metric_units(void);
 
+void ancient_version_dialog_show(void);
+void ancient_version_dialog_hide(void);
+
 #endif /* _gtk_settings_h_ */

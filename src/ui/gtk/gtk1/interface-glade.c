@@ -17974,43 +17974,14 @@ GtkWidget*
 create_dlg_faq (void)
 {
   GtkWidget *dlg_faq;
-  GtkWidget *vbox146;
-  GtkWidget *hseparator20;
-  GtkWidget *frame144;
   GtkWidget *scrolledwindow493;
   GtkWidget *textview_faq;
 
   dlg_faq = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_faq, "dlg_faq");
   gtk_object_set_data (GTK_OBJECT (dlg_faq), "dlg_faq", dlg_faq);
-  gtk_window_set_title (GTK_WINDOW (dlg_faq), _("gtk-gnutella - Frequently Asked Questions"));
   gtk_window_set_position (GTK_WINDOW (dlg_faq), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_faq), 600, 400);
-
-  vbox146 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox146, "vbox146");
-  gtk_widget_ref (vbox146);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "vbox146", vbox146,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox146);
-  gtk_container_add (GTK_CONTAINER (dlg_faq), vbox146);
-
-  hseparator20 = gtk_hseparator_new ();
-  gtk_widget_set_name (hseparator20, "hseparator20");
-  gtk_widget_ref (hseparator20);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "hseparator20", hseparator20,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hseparator20);
-  gtk_box_pack_start (GTK_BOX (vbox146), hseparator20, FALSE, TRUE, 0);
-
-  frame144 = gtk_frame_new (_("Frequently Asked Questions:"));
-  gtk_widget_set_name (frame144, "frame144");
-  gtk_widget_ref (frame144);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "frame144", frame144,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame144);
-  gtk_box_pack_start (GTK_BOX (vbox146), frame144, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame144), 3);
 
   scrolledwindow493 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow493, "scrolledwindow493");
@@ -18018,7 +17989,7 @@ create_dlg_faq (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_faq), "scrolledwindow493", scrolledwindow493,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow493);
-  gtk_container_add (GTK_CONTAINER (frame144), scrolledwindow493);
+  gtk_container_add (GTK_CONTAINER (dlg_faq), scrolledwindow493);
   gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow493), 2);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow493), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 
@@ -18158,5 +18129,43 @@ create_popup_search_list (void)
                       NULL);
 
   return popup_search_list;
+}
+
+GtkWidget*
+create_dlg_ancient (void)
+{
+  GtkWidget *dlg_ancient;
+  GtkWidget *scrolledwindow494;
+  GtkWidget *textview_ancient;
+
+  dlg_ancient = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_name (dlg_ancient, "dlg_ancient");
+  gtk_object_set_data (GTK_OBJECT (dlg_ancient), "dlg_ancient", dlg_ancient);
+  gtk_window_set_position (GTK_WINDOW (dlg_ancient), GTK_WIN_POS_MOUSE);
+  gtk_window_set_default_size (GTK_WINDOW (dlg_ancient), 320, 240);
+
+  scrolledwindow494 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow494, "scrolledwindow494");
+  gtk_widget_ref (scrolledwindow494);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_ancient), "scrolledwindow494", scrolledwindow494,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow494);
+  gtk_container_add (GTK_CONTAINER (dlg_ancient), scrolledwindow494);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow494), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  textview_ancient = gtk_text_new (NULL, NULL);
+  gtk_widget_set_name (textview_ancient, "textview_ancient");
+  gtk_widget_ref (textview_ancient);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_ancient), "textview_ancient", textview_ancient,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (textview_ancient);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow494), textview_ancient);
+  gtk_widget_set_usize (textview_ancient, 240, 100);
+
+  gtk_signal_connect (GTK_OBJECT (dlg_ancient), "delete_event",
+                      GTK_SIGNAL_FUNC (on_dlg_ancient_delete_event),
+                      NULL);
+
+  return dlg_ancient;
 }
 

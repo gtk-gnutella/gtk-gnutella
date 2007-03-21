@@ -37,17 +37,18 @@
 
 RCSID("$Id$")
 
-#include "settings.h"
-#include "monitor.h"
-#include "statusbar.h"
-#include "search.h"
-#include "filter.h"
-#include "search_stats.h"
-#include "nodes_common.h"
-#include "settings_cb.h"
 #include "columns.h"
-#include "misc.h"
+#include "filter.h"
 #include "gtk-missing.h"
+#include "html_view.h"
+#include "misc.h"
+#include "monitor.h"
+#include "nodes_common.h"
+#include "search.h"
+#include "search_stats.h"
+#include "settings.h"
+#include "settings_cb.h"
+#include "statusbar.h"
 
 #include "if/gnet_property.h"
 #include "if/gui_property_priv.h"
@@ -1370,6 +1371,57 @@ hostcache_size_changed(property_t prop)
     return FALSE;
 }
 
+static void
+ancient_version_dialog(gboolean show)
+{
+	static struct html_view *ancient_html_view;
+
+	if (show) {
+		static const gchar msg[] = N_(
+			"<html>"
+			"<head>"
+			"<title>Ancient version detected!</title>"
+			"</head>"
+			"<body>"
+			"<h1>Warning</h1>"
+			"<p>"
+			"This version of gtk-gnutella is pretty old. Please visit "
+			"<a href=\"http://gtk-gnutella.sourceforge.net/\">"
+			"http://gtk-gnutella.sourceforge.net/</a> and "
+			"update your copy of gtk-gnutella."
+			"</p>"
+			"</body>"
+			"</html>"
+		);
+
+		html_view_free(&ancient_html_view);
+		ancient_html_view = html_view_load_memory(
+				gui_dlg_ancient_lookup("textview_ancient"),
+				array_from_string(msg));
+		gtk_widget_show(gui_dlg_ancient());
+		if (gui_dlg_ancient()->window) {
+			gdk_window_raise(gui_dlg_ancient()->window);
+		}
+	} else {
+		html_view_free(&ancient_html_view);
+		if (gui_dlg_ancient()) {
+			gtk_widget_hide(gui_dlg_ancient());
+		}
+	}
+}
+
+void
+ancient_version_dialog_show(void)
+{
+	ancient_version_dialog(TRUE);
+}
+
+void
+ancient_version_dialog_hide(void)
+{
+	ancient_version_dialog(FALSE);
+}
+
 static gboolean
 ancient_version_changed(property_t prop)
 {
@@ -1383,6 +1435,7 @@ ancient_version_changed(property_t prop)
     stub->boolean.get(prop, &b, 0, 1);
 
     if (b) {
+		ancient_version_dialog_show();
         statusbar_gui_message(15, _("*** RUNNING AN OLD VERSION! ***"));
         gtk_widget_show(w);
     } else {
