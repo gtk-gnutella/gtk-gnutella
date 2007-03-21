@@ -3323,7 +3323,7 @@ prop = {
 
 prop = {
 	name = "enable_local_socket";
-    desc = "If set gtk-gnutella also listens on a local (unix domain) socket"
+    desc = "If set gtk-gnutella also listens on a local (unix domain) socket "
 			"which is located in ~/.gtk-gnutella/socket.";
 	type = boolean;
 	data = {
