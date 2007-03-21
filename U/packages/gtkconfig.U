@@ -57,7 +57,8 @@ case "$gtkversion" in
 			echo "OK, you have GTK+ $version"
 		fi
 		;;
-	*) ./warn "you asked for GTK+ $gtkversion, I found $version";;
+	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
+		;;
 	esac
 	;;
 2)
@@ -71,7 +72,8 @@ case "$gtkversion" in
 			echo "OK, you have GTK+ $version"
 		fi
 		;;
-	*) ./warn "you asked for GTK+ $gtkversion, I found $version";;
+	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
+		;;
 	esac
 	;;
 *)
@@ -143,7 +145,7 @@ then
   d_gtk="$define"
   echo "We'll be using Gtk+ version $version."
 else 
-  ./warn "Cannot compile against Gtk+ version '$version'"
+  ./warn "Cannot compile against Gtk+ version '$version'" 4>&4
 fi
 $rm -f try try.c
 ;;

@@ -86,7 +86,7 @@ then
   d_glib="$define"
   echo "We'll be using glib version $version."
 else 
-  ./warn "Cannot compile against glib version '$version'"
+  ./warn "Cannot compile against glib version '$version'" 4>&4
 fi
 $rm -f try try.c
 

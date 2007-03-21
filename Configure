@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Mar 10 21:27:09 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Wed Mar 21 21:00:17 CET 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -1745,7 +1745,7 @@ EOM
                 [yY]*) cc=gcc; ccname=gcc; ccflags=''; despair=no;
                        $cat *.cbu >checktmp 2>/dev/null
                        if $contains ccflags checktmp >/dev/null; then
-                           ./warn <<EOM 
+                           ./warn 4>&4 <<EOM 
 Any previous setting of the C compiler flags has been lost.
 It may be necessary to pass -Dcc=gcc to Configure right away.
 EOM
@@ -2457,7 +2457,7 @@ false)
 	official=false
 	val="$undef"
 
-	./warn 'This build will not be suitable for distribution.'
+	./warn 'This build will not be suitable for distribution.' 4>&4
 
 ;;
 *)
@@ -5761,7 +5761,7 @@ elif $test `./findhdr fcntl.h` && \
 	fi
 else
 	val="$undef"
-	./warn "I can't find the O_* constant definitions!  You got problems."
+	./warn "I can't find the O_* constant definitions!  You got problems." 4>&4
 fi
 set d_open3
 eval $setvar
@@ -6667,7 +6667,7 @@ Hopefully, $package does not need this feature.
 EOM
 	fi
 else
-	./warn <<EOM
+	./warn 4>&4 <<EOM
 I can't seem to be able to catenate tokens with your cpp.
 You're going to have to edit the values of the following
 macros in config.h:
@@ -6866,7 +6866,7 @@ EOCP
 		esac
 		val="$define"
 		if test "$status" = "$rd_nodata"; then
-			./warn "your read() can't distinguish between EOF and no data!"
+			./warn "your read() can't distinguish between EOF and no data!" 4>&4
 			val="$undef"
 		fi
 	else
@@ -6963,7 +6963,7 @@ then
   d_glib="$define"
   echo "We'll be using glib version $version."
 else 
-  ./warn "Cannot compile against glib version '$version'"
+  ./warn "Cannot compile against glib version '$version'" 4>&4
 fi
 $rm -f try try.c
 
@@ -7002,7 +7002,8 @@ case "$gtkversion" in
 			echo "OK, you have GTK+ $version"
 		fi
 		;;
-	*) ./warn "you asked for GTK+ $gtkversion, I found $version";;
+	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
+		;;
 	esac
 	;;
 2)
@@ -7016,7 +7017,8 @@ case "$gtkversion" in
 			echo "OK, you have GTK+ $version"
 		fi
 		;;
-	*) ./warn "you asked for GTK+ $gtkversion, I found $version";;
+	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
+		;;
 	esac
 	;;
 *)
@@ -7083,7 +7085,7 @@ then
   d_gtk="$define"
   echo "We'll be using Gtk+ version $version."
 else 
-  ./warn "Cannot compile against Gtk+ version '$version'"
+  ./warn "Cannot compile against Gtk+ version '$version'" 4>&4
 fi
 $rm -f try try.c
 ;;
@@ -7384,7 +7386,7 @@ none)
 	esac
 	;;
 *)
-	./warn "Unrecognized memory models--you may have to edit Makefile.SH"
+	./warn "Unrecognized memory models--you may have to edit Makefile.SH" 4>&4
 	;;
 esac
 $rm -f pdp11.* pdp11
@@ -8103,7 +8105,7 @@ case "$valstd" in
 esac
 case "$val" in
 '')
-	./warn "I could not find the definition for va_dcl... You have problems..."
+	./warn "I could not find the definition for va_dcl... You have problems..." 4>&4
 	val="$undef"; set i_stdarg; eval $setvar
 	val="$undef"; set i_varargs; eval $setvar
 	;;
@@ -8136,7 +8138,7 @@ else
 	if $test "$strings" && $test -r "$strings"; then
 		echo "Using <strings.h> instead of <string.h>." >&4
 	else
-		./warn "No string header found -- You'll surely have problems."
+		./warn "No string header found -- You'll surely have problems." 4>&4
 	fi
 fi
 set i_string

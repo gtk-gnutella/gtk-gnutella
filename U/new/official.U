@@ -29,7 +29,7 @@ false)
 	official=false
 	val="$undef"
 
-	./warn 'This build will not be suitable for distribution.'
+	./warn 'This build will not be suitable for distribution.' 4>&4
 
 ;;
 *)
