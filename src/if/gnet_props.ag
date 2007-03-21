@@ -2728,7 +2728,7 @@ prop = {
 
 prop = {
 	name = "remote_shell_timeout";
-	desc = "Amount of seconds until an idle remote shell session gets"
+	desc = "Amount of seconds until an idle remote shell session gets "
 		"disconnected. If set to zero, no timeout occurs.";
 	type = guint32;
 	data = {
