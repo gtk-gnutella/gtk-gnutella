@@ -5133,7 +5133,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[234].name = "remote_shell_timeout";
-    gnet_property->props[234].desc = _("Amount of seconds until an idle remote shell session getsdisconnected. If set to zero, no timeout occurs.");
+    gnet_property->props[234].desc = _("Amount of seconds until an idle remote shell session gets disconnected. If set to zero, no timeout occurs.");
     gnet_property->props[234].ev_changed = event_new("remote_shell_timeout_changed");
     gnet_property->props[234].save = TRUE;
     gnet_property->props[234].vector_size = 1;
