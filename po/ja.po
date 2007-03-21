@@ -42,7 +42,7 @@
 # requery             再問合わせ
 # requeued            (再び)キュー/待機列へ入れられる
 # route               経路 (ルート)
-# routing             経路設定 (ルート設定)
+# routing             経路制御 (ルート制御)
 # servent             サーバント
 # server              サーバー
 # shielded            保護ノード (註: リーフまたはファイアウォール内にある状態)
@@ -51,7 +51,7 @@
 # source              送信元
 # stats               統計
 # status              ステータス
-# timeout             タイムアウト (時間切れ)
+# timeout             タイムアウト
 # vendor              ベンダー
 #
 # TODO:
@@ -75,7 +75,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-03-22 03:09+0900\n"
-"PO-Revision-Date: 2007-03-22 04:33+0900\n"
+"PO-Revision-Date: 2007-03-22 06:16+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -690,10 +690,10 @@ msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] "UDP ホストキャッシュ %2$s から %1$d 基のホストを取得しました。"
 
 msgid "Connect back timeout"
-msgstr "折り返し接続がタイムアウトしました"
+msgstr "折り返しの接続がタイムアウトしました"
 
 msgid "Timeout waiting for follow-up"
-msgstr ""
+msgstr "後続リクエストの待合せがタイムアウトしました"
 
 msgid "Lifetime expired"
 msgstr "有効期限が切れました"
@@ -1226,7 +1226,7 @@ msgid "Verbosity of URL handling related debug messages."
 msgstr "URL ハンドリング関連のデバッグメッセージの冗長度です。"
 
 msgid "Debug level for dynamic query hit routing."
-msgstr "動的検索クエリーヒット経路設定のデバッグレベルです。"
+msgstr "動的検索クエリーヒット経路制御のデバッグレベルです。"
 
 msgid "Debug level for dynamic queries."
 msgstr "動的検索クエリーのデバッグレベルです。"
@@ -1244,10 +1244,10 @@ msgid "Debug level for the UDP traffic layer."
 msgstr "UDP トラフィックレイヤのデバッグレベルです。"
 
 msgid "Debug level for the Query Routing Protocol."
-msgstr "検索クエリー経路設定プロトコル (QRP) のデバッグレベルです。"
+msgstr "検索クエリー経路制御プロトコル (QRP) のデバッグレベルです。"
 
 msgid "Debug level for message routing."
-msgstr "メッセージ経路設定のデバッグレベルです。"
+msgstr "メッセージ経路制御のデバッグレベルです。"
 
 msgid "Debug level for GGEP."
 msgstr "GGEP のデバッグレベルです。"
@@ -2187,7 +2187,7 @@ msgid "Memory used by the QRP tables"
 msgstr "QRP テーブルが使用するメモリです。"
 
 msgid "Time at which we started query routing table generation."
-msgstr "検索クエリー経路設定テーブルの生成を開始した時間です。"
+msgstr "検索クエリー経路制御テーブルの生成を開始した時間です。"
 
 msgid "Time spent computing the QRP table, in seconds."
 msgstr "QRP を算出するのに費やした時間を秒で表します。"
@@ -2199,7 +2199,7 @@ msgid "Time spent computing the QRP table patch, in seconds."
 msgstr "QRP テーブルパッチの算出に費やした時間を秒で表します。"
 
 msgid "Query routing table generation number."
-msgstr "検索クエリー経路設定テーブルの生成番号です。"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
 
 msgid "Amount of slots used by our QRP table."
 msgstr "QRP テーブルが使用するスロットの数です。"
@@ -2469,6 +2469,15 @@ msgid ""
 "names do not expose confidential information. You have to initiate a rescan "
 "of the shared files before a change becomes fully effective."
 msgstr ""
+"有効にすると、外からの検索クエリーが共有しているファイルの上位のフォルダ名に"
+"もマッチするようになります (検索結果にこれらのフォルダ名も表示されるようにな"
+"ります)。フォルダ名がないと共有しているファイル名の意味が分かりづらかったり、"
+"無意味だったりする場合には特に役立つでしょう。ですが、フォルダ名に知られたく"
+"ない情報が含まれているようでしたらお気を付けください。変更を反映させるには共"
+"有ファイルを再スキャンする必要があります。\n"
+"\n"
+"註: ここで述べられている「上位フォルダ」は、共有対象フォルダに含まれているサ"
+"ブフォルダを指します。"
 
 msgid "Debug level for the shell."
 msgstr "シェルのデバッグレベルです。"
@@ -2917,7 +2926,7 @@ msgid ""
 "the passing threshold and 'e' the efficiency, i.e. the proportion of "
 "received queries that are sent to the node after QRP table filtering."
 msgstr ""
-"検索クエリー経路設定プロトコル (QRP) の統計を表示するかどうかを選択します。"
+"検索クエリー経路制御プロトコル (QRP) の統計を表示するかどうかを選択します。"
 "リーフモードにおいて、これは単に受信した検索クエリーの量を越える検索クエリー"
 "ヒットの比率です。ウルトラピアにおいては、QRP テーブルでのスロットの数を表示"
 "し、「g」は生成数、「f」は充足比率、「t」は通過の閾値、そして「e」は効率で"
@@ -4058,7 +4067,7 @@ msgid "Query hit"
 msgstr "検索クエリーヒット"
 
 msgid "Routing errors"
-msgstr "経路設定エラー"
+msgstr "経路制御エラー"
 
 # XXX: free translation
 msgid "Searches to local DB"
@@ -6283,7 +6292,7 @@ msgid "File scanning time:"
 msgstr "ファイルのスキャン時間:"
 
 msgid "Query Routing Protocol:"
-msgstr "検索クエリー経路設定プロトコル (QRP):"
+msgstr "検索クエリー経路制御プロトコル (QRP):"
 
 msgid "Indexing started on:"
 msgstr "索引作成の開始時間:"
@@ -6298,7 +6307,7 @@ msgid "Patch generation started on:"
 msgstr "パッチ生成の開始時間:"
 
 msgid "Query routing table information:"
-msgstr "検索クエリー経路設定テーブル情報:"
+msgstr "検索クエリー経路制御テーブル情報:"
 
 msgid "Keywords:"
 msgstr "キーワード:"
@@ -6319,7 +6328,7 @@ msgid "Conflict ratio:"
 msgstr "競合比率:"
 
 msgid "Query routing patch information:"
-msgstr "検索クエリー経路設定パッチ情報:"
+msgstr "検索クエリー経路制御パッチ情報:"
 
 msgid "Raw length:"
 msgstr "そのままの長さ:"
@@ -6699,7 +6708,7 @@ msgid ""
 "routing packets in the Gnutella network."
 msgstr ""
 "このピアに関係付けられた識別子 (GUID - Global Unique IDentifier) です。これ"
-"は Gnutella ネットワーク上のパケット経路設定に用いられます。"
+"は Gnutella ネットワーク上のパケット経路制御に用いられます。"
 
 msgid "Address/Port:"
 msgstr "アドレス/ポート:"
@@ -6805,11 +6814,11 @@ msgid "attempts"
 msgstr "回"
 
 msgid "_Remove directory"
-msgstr "フォルダを削除する(_R)"
+msgstr "フォルダを削除(_R)"
 
 # XXX: is not opposite of "absolute paths".
 msgid "E_xpose relative paths"
-msgstr "関連するパスを公開する(_X)"
+msgstr "上位パスを公開する(_X)"
 
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
