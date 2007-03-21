@@ -74,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-03-22 01:59+0900\n"
-"PO-Revision-Date: 2007-03-22 01:26+0900\n"
+"PO-Revision-Date: 2007-03-22 02:01+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -151,9 +151,9 @@ msgstr "最大ダウンロード数に達しました。"
 msgid "Max. number of downloads for this host reached"
 msgstr "このホストの最大ダウンロード数に達しました。"
 
-#, fuzzy
+# FIXME: should be revised.
 msgid "Has already enough active sources"
-msgstr "待機中の送信元"
+msgstr "既に十分な送信元があります。"
 
 msgid "Stopped (Index changed)"
 msgstr "中断されました (インデックスが変更されました)"
@@ -2113,6 +2113,8 @@ msgid ""
 "Amount of seconds until an idle remote shell session gets disconnected. If "
 "set to zero, no timeout occurs."
 msgstr ""
+"アイドル状態にある遠隔シェルのセッションを切断するまでの秒数です。0に設定する"
+"と、タイムアウトは発生しません。"
 
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
@@ -2376,7 +2378,6 @@ msgstr "このセッション中に受信した Gnutella 参照リクエスト�
 msgid "Number of Gnutella browsing requests fully served in this session."
 msgstr "このセッション中に完全に送信された Gnutella 参照リクエストの回数です。"
 
-#, fuzzy
 msgid ""
 "The average CPU usage indicates overloading, so gtk-gnutella is reducing the "
 "amount of non-critical processing it is performing. Note that the "
@@ -2385,11 +2386,11 @@ msgid ""
 "persists, GUI refreshing is reduced and background tasks (SHA1 computation, "
 "file moving) are slowed down."
 msgstr ""
-"CPU の平均使用率が過負荷になっていますので、特に重要ではない実行中の処理数を"
-"減らしています。この過負荷は他のプロセスと CPU を奪い合っているために、gtk-"
-"gnutella が十分な CPU タイムを得ていないことから生じます。この過負荷が解消さ"
-"れない限り、GUI の更新頻度は減らされ、見えない所で行われているタスク (SHA1 の"
-"計算、ファイルの移動) は一時停止状態におかれます。"
+"CPU の平均使用率が高負荷状態を示していますので、Gtk-Gnutella が実行中の処理の"
+"うち特に重要ではないものを減らしています。この高負荷は他のプロセスと CPU を奪"
+"い合っているために、十分な CPU 時間を得られないことから生じています。高負荷状"
+"態が解消されない限り GUI の更新頻度は減らされ、背後で行われているタスク "
+"(SHA1 の算出やファイルの移動) には遅延が生じます。"
 
 msgid ""
 "Amount of data per downloading source that gtk-gnutella will buffer before "
@@ -2400,7 +2401,7 @@ msgid ""
 "disk as soon as it receives some data. Increase to maximum value if you have "
 "RAM."
 msgstr ""
-"gtk-gnutella がディスクに書き込む前にバッファに置いておく送信元ごとのデータ量"
+"Gtk-Gnutella がディスクに書き込む前にバッファに置いておく送信元ごとのデータ量"
 "です。多くの送信元から多元ダウンロードを行っている時には、より大きな値を設定"
 "することで、システムコールを頻繁に使用するのを避けるのに役立つでしょう、また"
 "ファイルシステム上のデータの断片化 (フラグメンテーション) を減らすのにも一役"
@@ -4096,9 +4097,8 @@ msgstr "催促無しのローカル生成OOBヒット"
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "部分催促されているローカル生成OOBヒット"
 
-#, fuzzy
 msgid "Unrequested OOB hits received"
-msgstr "OOBヒット配送を要求する検索クエリー"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr ""
@@ -4183,16 +4183,14 @@ msgstr "余所のUDPメッセージ (非Gnutella)"
 msgid "Unprocessed UDP Gnutella messages"
 msgstr "未処理のUDP Gnutellaメッセージ"
 
-#, fuzzy
 msgid "Compressed UDP messages enqueued"
-msgstr "未処理のUDP Gnutellaメッセージ"
+msgstr "キューにある圧縮UDPメッセージ"
 
 msgid "Compressed UDP messages received"
 msgstr "受信した圧縮UDPメッセージ"
 
-#, fuzzy
 msgid "Uncompressed UDP messages due to no gain"
-msgstr "未処理のUDP Gnutellaメッセージ"
+msgstr ""
 
 msgid "node"
 msgid_plural "nodes"
@@ -7019,16 +7017,17 @@ msgid "The given SHA-1 is not correctly encoded."
 msgstr "指定されたSHA-1は正しくエンコードされていません。"
 
 msgid "Missing port number"
-msgstr "ポート番号がありません。"
+msgstr "ポート番号が指定されていません。"
 
 msgid "Could not parse host address"
 msgstr "ホストアドレスを解析できませんでした。"
 
 msgid "The query string is not UTF-8 encoded"
-msgstr "この検索クエリーは UTF-8 でエンコードされていません。"
+msgstr "この検索クエリーはUTF-8でエンコードされていません。"
 
+# FIXME: should be revised.
 msgid "Unhandled search prefix."
-msgstr ""
+msgstr "この検索プリフィクスは無効です。"
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -7062,16 +7061,16 @@ msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** 古いバージョンを実行しています！ ***"
 
 msgid "*** CPU OVERLOADED -- TRYING TO SAVE CYCLES ***"
-msgstr "** CPU への負荷が掛かり過ぎています --- サイクルを節約します ***"
+msgstr "** CPU が高負荷状態になっています --- サイクルを減らすよう試みます ***"
 
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** アップロードが停滞しています --- 帯域幅が不足していませんか？ ***"
 
 msgid "*** FILE DESCRIPTORS HAVE RUN OUT! ***"
-msgstr "*** ファイル記述子の数が尽きました！ ***"
+msgstr "*** ファイル記述子の数が足りません！ ***"
 
 msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
-msgstr "*** ファイル記述子の数が尽きかけています！ ***"
+msgstr "*** ファイル記述子の数が足りなくなってきています！ ***"
 
 msgid "*** Please update gtk-gnutella ***"
 msgstr "*** Gtk-Gnutella をアップデートしてください ***"
@@ -7153,12 +7152,12 @@ msgstr "ヘッダーを待受中..."
 msgid "Waiting for further request..."
 msgstr "リクエストの詳細を待受中..."
 
-#, fuzzy
 msgid "Reading follow-up request..."
-msgstr "リクエストの詳細を待受中..."
+msgstr "後続リクエストを読込中..."
 
+# FIXME: should be revised.
 msgid "Unavailable range, waiting retry..."
-msgstr "取得できない範囲、再実行するのを待受中..."
+msgstr "この部分を取得できません、間をおいて再実行します..."
 
 msgid "Transmission aborted"
 msgstr "転送が中断されました"
