@@ -86,18 +86,20 @@ typedef struct vp_info {
 
 static GHashTable *vp_info_hash; /**< Hash table with our cached fileinfo info */
 
-static GdkColor done;       /**< Pre-filled color (green) for DONE chunks */
-static GdkColor done_old;	/**< Pre-filled color (dull green) for DONE
+static struct {
+	GdkColor base;      /**< Theme-defined background color */
+	GdkColor done;       /**< Pre-filled color (green) for DONE chunks */
+	GdkColor done_old;	/**< Pre-filled color (dull green) for DONE
 								 chunks from previous sessions */
-static GdkColor busy;       /**< Pre-filled color (yellow) for BUSY chunks */
-static GdkColor arrow;      /**< Pre-filled color (blue) for start of BUSY */
-static GdkColor empty;      /**< Pre-filled color (red) for EMPTY chunks */
-static GdkColor black;      /**< Pre-filled color (black) for general drawing */
-static GdkColor available;  /**< Pre-filled color (blue) available on network */
-static GdkColor nosize;     /**< Pre-filled color (gray) indicates
+	GdkColor busy;       /**< Pre-filled color (yellow) for BUSY chunks */
+	GdkColor arrow;      /**< Pre-filled color (blue) for start of BUSY */
+	GdkColor empty;      /**< Pre-filled color (red) for EMPTY chunks */
+	GdkColor black;      /**< Pre-filled color (black) for general drawing */
+	GdkColor available;  /**< Pre-filled color (blue) available on network */
+	GdkColor nosize;     /**< Pre-filled color (gray) indicates
 								 chunk information is not available
 								 (e.g. file size == 0 */
-static GdkColor *base;      /**< Theme-defined background color */
+} colors;
 
 /**
  * The visual progress context for drawing fileinfo information.
@@ -150,14 +152,14 @@ vp_draw_chunk(gpointer data, gpointer user_data)
     vp_info_t *v = user_data;
 
     if (DL_CHUNK_EMPTY == chunk->status)
-        gdk_gc_set_foreground(v->context->gc, &empty);
+        gdk_gc_set_foreground(v->context->gc, &colors.empty);
     if (DL_CHUNK_BUSY == chunk->status)
-        gdk_gc_set_foreground(v->context->gc, &busy);
+        gdk_gc_set_foreground(v->context->gc, &colors.busy);
     if (DL_CHUNK_DONE == chunk->status) {
         if (chunk->old)
-            gdk_gc_set_foreground(v->context->gc, &done_old);
+            gdk_gc_set_foreground(v->context->gc, &colors.done_old);
         else
-            gdk_gc_set_foreground(v->context->gc, &done);
+            gdk_gc_set_foreground(v->context->gc, &colors.done);
     }
 
     vp_draw_rectangle(v,
@@ -189,12 +191,12 @@ vp_draw_arrow(vp_info_t *v, filesize_t at)
 	points[1].y = VP_ARROW_HEIGHT;
 	points[2].x = s_at + VP_ARROW_HEIGHT;
 	points[2].y = 0;
-	gdk_gc_set_foreground(v->context->gc, &arrow);
+	gdk_gc_set_foreground(v->context->gc, &colors.arrow);
 	gdk_draw_polygon(v->context->drawable, v->context->gc,
 		TRUE, points, G_N_ELEMENTS(points));
 
 	/* Draw a black border around the arrow */
-	gdk_gc_set_foreground(v->context->gc, &black);
+	gdk_gc_set_foreground(v->context->gc, &colors.black);
 	gdk_draw_polygon(v->context->drawable, v->context->gc,
 		FALSE, points, G_N_ELEMENTS(points));
 }
@@ -226,7 +228,7 @@ vp_draw_range (gpointer data, gpointer user_data)
 	http_range_t *range = data;
 	vp_info_t *v = user_data;
 
-	gdk_gc_set_foreground(v->context->gc, &available);
+	gdk_gc_set_foreground(v->context->gc, &colors.available);
 	vp_draw_rectangle(v,
 		range->start, range->end,
         v->context->widget->allocation.height - 3,
@@ -269,14 +271,14 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 				g_slist_foreach(v->chunks_list, vp_draw_arrows, v);
 				g_slist_foreach(v->ranges_list, vp_draw_range, v);
 			} else {
-				gdk_gc_set_foreground(fi_context.gc, &nosize);
+				gdk_gc_set_foreground(fi_context.gc, &colors.nosize);
 				gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
 								   0, 0,
 								   fi_context.widget->allocation.width,
 								   fi_context.widget->allocation.height);
 			}
 		} else {
-			gdk_gc_set_foreground(fi_context.gc, base);
+			gdk_gc_set_foreground(fi_context.gc, &colors.base);
 			gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
 							   0, 0,
 							   fi_context.widget->allocation.width,
@@ -301,7 +303,7 @@ on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
     g_assert(fi_context.gc);
 
 	style = gtk_widget_get_style(widget);
-	base = gdk_color_copy(&(style->base[GTK_STATE_INSENSITIVE]));
+	colors.base = style->base[GTK_STATE_INSENSITIVE];
 }
 
 /**
@@ -792,22 +794,22 @@ vp_gui_init(void)
 
 	cmap = gdk_colormap_get_system();
     g_assert(cmap);
-    gdk_color_parse("green4", &done_old);
-    gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE);
-    gdk_color_parse("green", &done);
-    gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE);
-    gdk_color_parse("yellow2", &busy);
-    gdk_colormap_alloc_color(cmap, &busy, FALSE, TRUE);
-	gdk_color_parse("light sky blue", &arrow);
-	gdk_colormap_alloc_color(cmap, &arrow, FALSE, TRUE);
-    gdk_color_parse("red2", &empty);
-    gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE);
-    gdk_color_parse("black", &black);
-    gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE);
-	gdk_color_parse("blue", &available);
-	gdk_colormap_alloc_color(cmap, &available, FALSE, TRUE);
-	gdk_color_parse("gray", &nosize);
-	gdk_colormap_alloc_color(cmap, &nosize, FALSE, TRUE);
+    gdk_color_parse("green4", &colors.done_old);
+    gdk_colormap_alloc_color(cmap, &colors.done_old, FALSE, TRUE);
+    gdk_color_parse("green", &colors.done);
+    gdk_colormap_alloc_color(cmap, &colors.done, FALSE, TRUE);
+    gdk_color_parse("yellow2", &colors.busy);
+    gdk_colormap_alloc_color(cmap, &colors.busy, FALSE, TRUE);
+	gdk_color_parse("light sky blue", &colors.arrow);
+	gdk_colormap_alloc_color(cmap, &colors.arrow, FALSE, TRUE);
+    gdk_color_parse("red2", &colors.empty);
+    gdk_colormap_alloc_color(cmap, &colors.empty, FALSE, TRUE);
+    gdk_color_parse("black", &colors.black);
+    gdk_colormap_alloc_color(cmap, &colors.black, FALSE, TRUE);
+	gdk_color_parse("blue", &colors.available);
+	gdk_colormap_alloc_color(cmap, &colors.available, FALSE, TRUE);
+	gdk_color_parse("gray", &colors.nosize);
+	gdk_colormap_alloc_color(cmap, &colors.nosize, FALSE, TRUE);
 
     /*
      * No progress fih has been seen yet
