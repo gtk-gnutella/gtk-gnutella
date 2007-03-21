@@ -74,7 +74,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-03-22 01:17+0900\n"
-"PO-Revision-Date: 2007-03-18 04:35+0900\n"
+"PO-Revision-Date: 2007-03-22 01:26+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -330,9 +330,8 @@ msgstr ""
 msgid "Unknown header flags present"
 msgstr "不明なヘッダーフラッグが存在"
 
-#, fuzzy
 msgid "Own search results"
-msgstr "検索結果"
+msgstr ""
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -650,8 +649,9 @@ msgstr "該当するプロパティがありません。"
 msgid "Good bye"
 msgstr "Good bye"
 
+# FIXME: should be revised.
 msgid "Shutdown sequence initiated."
-msgstr ""
+msgstr "一連のシャットダウン処理が始まりました。"
 
 msgid "Malformed command"
 msgstr "変なコマンドです"
@@ -1634,11 +1634,11 @@ msgid "Total number of completed uploads in this session."
 msgstr "このセッションでのアップロード完了総数です。"
 
 msgid "Global Unique IDentifier of this node."
-msgstr "このピアの識別子 (GUID) です。"
+msgstr "このピア個別の識別子 (GUID) です。"
 
-#, fuzzy
 msgid "Kademlia Unique IDentifier of this node in the DHT."
-msgstr "このピアの識別子 (GUID) です。"
+msgstr ""
+"分散ハッシュツリー (DHT) におけるこのピア個別の Kademlia 識別子 (KUID) です。"
 
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr ""
@@ -2079,9 +2079,9 @@ msgstr "ウルトラピアになるのに必要なメモリがあるかどうか
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr "ウルトラピアになるのに必要な帯域幅があるのかどうかを表します。"
 
-#, fuzzy
+# FIXME: should be revised.
 msgid "Whether we meet the UDP requirements to become an Ultra node."
-msgstr "ウルトラピアになるのに必要なメモリがあるかどうかを表します。"
+msgstr "ウルトラピアになるのに必要なUDPサポートがあるかどうかを表します。"
 
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
@@ -2434,14 +2434,15 @@ msgstr "高信頼 UDP (RUDP) のデバッグレベルです。"
 msgid "Debug level for the Distributed Hash Table (DHT) code."
 msgstr "分散ハッシュテーブル (DHT) のデバッグレベルです。"
 
-#, fuzzy
 msgid "Debug level for the OOB-proxying of queries."
-msgstr "動的検索クエリーのデバッグレベルです。"
+msgstr ""
 
 msgid ""
 "If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
 msgstr ""
+"有効にすると、~/.gtk-gnutella/socket にあるローカル (Unix ドメイン) ソケット"
+"も使うようになります。"
 
 msgid "Don't start more than this number of parallel downloads per file."
 msgstr ""
@@ -2452,6 +2453,8 @@ msgid ""
 "If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
 "dump."
 msgstr ""
+"有効にすると、受信した全てのパケットを $GTK_GNUTELLA_DIR/packets_rx.dump にダ"
+"ンプします。"
 
 msgid ""
 "If enabled, queries are also matched against the directory names which are "
@@ -2471,9 +2474,8 @@ msgstr "0より大きい場合は、ダウンロードを開始しません。"
 msgid "Debug level for the search queue."
 msgstr "検索キューのデバッグレベルです。"
 
-#, fuzzy
 msgid "Debug level for push-proxy code."
-msgstr "HTTP コードのデバッグレベルです。"
+msgstr "PUSHプロキシコードのデバッグレベルです。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -3024,9 +3026,8 @@ msgstr "オーストラリア連邦"
 msgid "Aruba"
 msgstr "蘭領アルバ"
 
-#, fuzzy
 msgid "Åland Islands"
-msgstr "英領ケイマン諸島"
+msgstr ""
 
 msgid "Azerbaijan"
 msgstr "アゼルバイジャン共和国"
@@ -3107,7 +3108,7 @@ msgid "Switzerland"
 msgstr "スイス連邦"
 
 msgid "Cote d'Ivoire"
-msgstr ""
+msgstr "コートジボワール共和国"
 
 msgid "Cook Islands"
 msgstr "クック諸島"
@@ -3290,7 +3291,7 @@ msgid "Israel"
 msgstr "イスラエル国"
 
 msgid "Isle of Man"
-msgstr ""
+msgstr "マン島"
 
 msgid "India"
 msgstr "インド共和国"
@@ -3337,7 +3338,6 @@ msgstr "キリバス共和国"
 msgid "Comoros"
 msgstr "コモロ連合"
 
-#, fuzzy
 msgid "Saint Kitts and Nevis"
 msgstr "セントクリストファー・ネイビス連邦"
 
@@ -3633,7 +3633,7 @@ msgid "Tokelau"
 msgstr "新西蘭領トケラウ諸島"
 
 msgid "Timor-leste"
-msgstr ""
+msgstr "東ティモール民主共和国"
 
 msgid "Turkmenistan"
 msgstr "トルクメニスタン"
@@ -4187,9 +4187,8 @@ msgstr "未処理のUDP Gnutellaメッセージ"
 msgid "Compressed UDP messages enqueued"
 msgstr "未処理のUDP Gnutellaメッセージ"
 
-#, fuzzy
 msgid "Compressed UDP messages received"
-msgstr "未処理のUDP Gnutellaメッセージ"
+msgstr "受信した圧縮UDPメッセージ"
 
 #, fuzzy
 msgid "Uncompressed UDP messages due to no gain"
@@ -5639,19 +5638,19 @@ msgid "IPv4 settings"
 msgstr "IPv4設定"
 
 msgid "Force external IPv_4 address to"
-msgstr ""
+msgstr "強制的にこのIPv4アドレスを使う(_4)"
 
 msgid "Bind to this address"
-msgstr "このアドレスにバインド"
+msgstr "このアドレスにバインドする"
 
 msgid "IPv6 settings"
 msgstr "IPv6設定"
 
 msgid "Force external IPv_6 address to"
-msgstr ""
+msgstr "強制的にこのIPv6アドレスを使う(_6)"
 
 msgid "Use IPv6-to-IPv4 TRT prefix:"
-msgstr ""
+msgstr "IPv6-IPv4 TRT プリフィックスを使う:"
 
 msgid "Proxy settings"
 msgstr "代理サーバー設定"
@@ -5799,8 +5798,9 @@ msgstr "充分な平均稼動時間がある"
 msgid "Enough min # of connections"
 msgstr "充分な最小接続件数がある"
 
+# FIXME: should be revised.
 msgid "Engouh UDP support"
-msgstr ""
+msgstr "UDPをサポートしている"
 
 msgid "Searches"
 msgstr "検索"
@@ -6527,11 +6527,9 @@ msgstr "数"
 msgid "Metadata"
 msgstr "メタデータ"
 
-#, fuzzy
 msgid "Vendor"
-msgstr "ベンダー:"
+msgstr "ベンダー"
 
-# FIXME:
 msgid "Route"
 msgstr "経路"
 
@@ -6623,7 +6621,6 @@ msgstr "クリップボードへコピー"
 msgid "_Remove filter"
 msgstr "フィルターを削除(_R)"
 
-#, fuzzy
 msgid ""
 "gtk-gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
@@ -6745,16 +6742,16 @@ msgid "Reverse DNS lookup"
 msgstr "DNSの逆引き検索"
 
 msgid "Force external IPv4 address to"
-msgstr ""
+msgstr "強制的にこのIPv4アドレスを使う"
 
 msgid "_Bind to this address"
-msgstr "このアドレスにバインド(_B)"
+msgstr "このアドレスにバインドする(_B)"
 
 msgid "IPv_4 settings"
 msgstr "IPv4設定(_4)"
 
 msgid "Force external IPv6 address to"
-msgstr ""
+msgstr "強制的にこのIPv6アドレスを使う"
 
 msgid "IPv_6 settings"
 msgstr "IPv6設定(_6)"
@@ -6769,8 +6766,9 @@ msgstr ""
 msgid "_Addresses of local network(s)"
 msgstr "ローカルネットのアドレス(_A)"
 
+# FIXME: should be revised.
 msgid "Enough UDP support"
-msgstr ""
+msgstr "UPDをサポートしている"
 
 msgid "seconds (0 - disable)"
 msgstr "秒 (0 - 無効)"
@@ -7076,7 +7074,7 @@ msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** ファイル記述子の数が尽きかけています！ ***"
 
 msgid "*** Please update gtk-gnutella ***"
-msgstr ""
+msgstr "*** Gtk-Gnutella をアップデートしてください ***"
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
