@@ -32087,7 +32087,7 @@ message</property>
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
-  <property name="urgency_hint">True</property>
+  <property name="urgency_hint">False</property>
   <signal name="delete_event" handler="on_dlg_ancient_delete_event" last_modification_time="Wed, 21 Mar 2007 16:26:36 GMT"/>
 
   <child>

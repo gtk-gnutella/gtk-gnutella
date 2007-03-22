@@ -16642,7 +16642,6 @@ create_dlg_ancient (void)
       gtk_window_set_icon (GTK_WINDOW (dlg_ancient), dlg_ancient_icon_pixbuf);
       gdk_pixbuf_unref (dlg_ancient_icon_pixbuf);
     }
-  gtk_window_set_urgency_hint (GTK_WINDOW (dlg_ancient), TRUE);
 
   scrolledwindow81 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow81, "scrolledwindow81");
