@@ -722,15 +722,6 @@ prop = {
 };
 
 prop = {
-    name = "show_dl_settings";
-    desc = "Display download settings.";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
     name = "search_stats_mode";
     desc = "Collect statistics about searches that go through this node.";
     type = multichoice;

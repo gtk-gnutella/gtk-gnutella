@@ -1958,43 +1958,6 @@ min_dup_ratio_changed(property_t prop)
 }
 
 static gboolean
-show_dl_settings_changed(property_t prop)
-{
-    GtkWidget *w;
-    GtkWidget *frame;
-    gboolean val;
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
-
-    if (!top)
-        return FALSE;
-
-    stub->boolean.get(prop, &val, 0, 1);
-
-    w = lookup_widget(top, map_entry->wid);
-    frame = lookup_widget(top, "frame_dl_settings");
-
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
-
-    if (val) {
-        gtk_label_set_text(
-            GTK_LABEL(lookup_widget(top,
-                "label_dl_show_settings")),
-            _("Hide settings"));
-        gtk_widget_show(frame);
-    } else {
-        gtk_label_set_text(
-            GTK_LABEL(lookup_widget(top,
-                "label_dl_show_settings")),
-            _("Show settings"));
-        gtk_widget_hide(frame);
-    }
-
-    return FALSE;
-}
-
-static gboolean
 update_address_information(void)
 {
     static host_addr_t old_address;
@@ -4636,14 +4599,6 @@ static prop_map_t property_map[] = {
         plug_icon_changed,
         TRUE,
         "togglebutton_online",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_main_window,
-        PROP_SHOW_DL_SETTINGS,
-        show_dl_settings_changed,
-        TRUE,
-        "checkbutton_dl_show_settings",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

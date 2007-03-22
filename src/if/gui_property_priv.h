@@ -113,7 +113,6 @@ extern const guint32  search_sort_default_column;
 extern const gboolean search_discard_spam;
 extern const gboolean search_discard_hashless;
 extern const gboolean search_jump_to_created;
-extern const gboolean show_dl_settings;
 extern const guint32  search_stats_mode;
 extern const guint32  search_stats_update_interval;
 extern const guint32  search_stats_delcoef;
