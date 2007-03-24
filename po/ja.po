@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-03-22 23:13+0900\n"
-"PO-Revision-Date: 2007-03-24 20:39+0900\n"
+"PO-Revision-Date: 2007-03-25 06:26+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -201,13 +201,13 @@ msgid "Weird HTTP status (protocol desync?)"
 msgstr "変なHTTPステータス (プロトコルの同期が破損した可能性があります)"
 
 msgid "No URN on server, waiting for overlap"
-msgstr "相手側に URN がありません、オーバーラップ待受中"
+msgstr "相手側にURNがありません、オーバーラップ待受中"
 
 msgid "No URN on server to validate"
 msgstr "相手側に検証するための URN がありません"
 
 msgid "URN fileinfo mismatch"
-msgstr "URN ファイル情報が一致しません"
+msgstr "URNファイル情報が一致しません"
 
 msgid "Discovered dup SHA1"
 msgstr "重複するSHA1を発見しました"
@@ -326,14 +326,16 @@ msgstr "スパム"
 msgid "Evil filename"
 msgstr "有害ファイル名"
 
+# XXX: wtf
 msgid "Payload inflating error"
-msgstr ""
+msgstr "ペイロード膨張エラー"
 
 msgid "Unknown header flags present"
 msgstr "不明なヘッダーフラッグが存在"
 
+# FIXME: should be revised.
 msgid "Own search results"
-msgstr ""
+msgstr "自分自身の検索結果数"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -1582,13 +1584,13 @@ msgstr ""
 
 msgid "Ignore symbolically linked directories when scanning files to share."
 msgstr ""
-"共有するファイルの走査時に、シンボリックリンクされているフォルダを無視しま"
-"す。"
+"共有するファイルのスキャン時に、シンボリックリンクされているフォルダを無視し"
+"ます。"
 
 msgid "Ignore symbolically linked regular files when scanning files to share."
 msgstr ""
-"共有するファイルの走査時に、シンボリックリンクされているファイルを無視しま"
-"す。"
+"共有するファイルのスキャン時に、シンボリックリンクされているファイルを無視し"
+"ます。"
 
 msgid "Store incomplete files in this directory."
 msgstr "未完成のファイルをこのフォルダに格納します。"
