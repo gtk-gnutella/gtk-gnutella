@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 03:09+0900\n"
+"POT-Creation-Date: 2007-03-22 23:13+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -2863,10 +2863,6 @@ msgstr ""
 
 msgid "Jump to newly created searches"
 msgstr ""
-
-#, fuzzy
-msgid "Display download settings."
-msgstr "Letöltő-beállításokat mutat"
 
 #, fuzzy
 msgid "Collect statistics about searches that go through this node."
@@ -6952,9 +6948,6 @@ msgstr "Sikeres letöltéseket töröl a listáról"
 msgid "_Clear completed"
 msgstr "Sikeres _törlése"
 
-msgid "Sho_w settings"
-msgstr "_Beállítások megjelenítése"
-
 #, fuzzy
 msgid "Select all matching regex"
 msgstr "Minden illeszkedő reg.kif. törlése a sorból"
@@ -7247,9 +7240,6 @@ msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "☹☹☹ VÁLTOZAT %d NAPON BELÜL ELAVUL! ☹☹☹"
 
-msgid "Hide settings"
-msgstr "Beállítások rejtése"
-
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "Cím/Kapu %s-re változott"
@@ -7345,6 +7335,16 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "Display download settings."
+#~ msgstr "Letöltő-beállításokat mutat"
+
+#~ msgid "Sho_w settings"
+#~ msgstr "_Beállítások megjelenítése"
+
+#~ msgid "Hide settings"
+#~ msgstr "Beállítások rejtése"
 
 #, fuzzy
 #~ msgid ""

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 03:09+0900\n"
+"POT-Creation-Date: 2007-03-22 23:13+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2670,9 +2670,6 @@ msgstr ""
 
 msgid "Jump to newly created searches"
 msgstr ""
-
-msgid "Display download settings."
-msgstr "Download-Einstellungen einblenden"
 
 msgid "Collect statistics about searches that go through this node."
 msgstr "Statistiken über Suchen ermitteln, die durch diesen Knoten gehen"
@@ -6551,9 +6548,6 @@ msgstr "Fertige Downloads von Liste entfernen"
 msgid "_Clear completed"
 msgstr "_Fertige Downloads entfernen"
 
-msgid "Sho_w settings"
-msgstr "Einstellungen _einblenden"
-
 #, fuzzy
 msgid "Select all matching regex"
 msgstr "Alle von Warteschlange nach Regex selektieren"
@@ -6843,9 +6837,6 @@ msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** VERSION WIRD IN %d TAG VERALTEN! ***"
 msgstr[1] "*** VERSION WIRD IN %d TAGEN VERALTEN! ***"
 
-msgid "Hide settings"
-msgstr "Einstellungen ausblenden"
-
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "Adresse/Port geändert auf: %s"
@@ -6943,6 +6934,15 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#~ msgid "Display download settings."
+#~ msgstr "Download-Einstellungen einblenden"
+
+#~ msgid "Sho_w settings"
+#~ msgstr "Einstellungen _einblenden"
+
+#~ msgid "Hide settings"
+#~ msgstr "Einstellungen ausblenden"
 
 #~ msgid ""
 #~ "This property must be set to the current version number of gtk-gnutella "

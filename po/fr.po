@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 03:09+0900\n"
+"POT-Creation-Date: 2007-03-22 23:13+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2822,9 +2822,6 @@ msgstr "Ecarter les résultats de recherche qui ne portent pas de hashsum."
 
 msgid "Jump to newly created searches"
 msgstr "Sauter aux recherches créées en dernier"
-
-msgid "Display download settings."
-msgstr "Afficher les paramètres de téléchargement."
 
 msgid "Collect statistics about searches that go through this node."
 msgstr ""
@@ -6714,9 +6711,6 @@ msgstr "Enlever les téléchargements terminés de la liste"
 msgid "_Clear completed"
 msgstr "_Effacer ceux terminés"
 
-msgid "Sho_w settings"
-msgstr "Afficher les para_mètres"
-
 msgid "Select all matching regex"
 msgstr "Sélectionner tous ceux correspondant à la regex"
 
@@ -7007,9 +7001,6 @@ msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** CETTE VERSION SERA ANCIENNE DANS %d JOUR ! ***"
 msgstr[1] "*** CETTE VERSION SERA ANCIENNE DANS %d JOURS ! ***"
 
-msgid "Hide settings"
-msgstr "Cacher les paramètres"
-
 #, c-format
 msgid "Address/port changed to: %s"
 msgstr "Adresse/Port changé en: %s"
@@ -7106,6 +7097,15 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Display download settings."
+#~ msgstr "Afficher les paramètres de téléchargement."
+
+#~ msgid "Sho_w settings"
+#~ msgstr "Afficher les para_mètres"
+
+#~ msgid "Hide settings"
+#~ msgstr "Cacher les paramètres"
 
 #~ msgid ""
 #~ "This property must be set to the current version number of gtk-gnutella "
