@@ -364,6 +364,7 @@ udp_ping_register(const gchar *muid)
 	g_assert(muid);
 
 	if (!initialized) {
+		initialized = TRUE;
 		udp_pings = hash_list_new(guid_hash, guid_eq);
 		udp_ping_timer(callout_queue, NULL);
 	}
