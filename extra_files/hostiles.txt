@@ -939,9 +939,16 @@
 # urn:sha1:QYIOU2FA3DCVHZH6KSCTX6GM623MFJBR
 74.122.64.105
 
-# MOV pr0n spam for girl2schoolgirl dot com
+# MOV pr0n spam; sometimes disguised as JPG, GIF, MPEG
 # hosted by Alpha Red and Reflected Networks
 # LimeWire
 69.80.226.130
+# URLs point to this server:
+# nats dot girl2schoolgirl dot com
+# nats dot asianpervert dot com
+# nats dot ticklehorror dot com
+# nats dot solidvpn dot com
 66.254.116.176
+# Black Oak Computers
+216.131.127.58
 
