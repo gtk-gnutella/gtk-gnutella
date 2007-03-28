@@ -4033,9 +4033,9 @@ analyse_status(struct gnutella_node *n, gint *code)
 	 * Is the connection OK?
 	 */
 
-	if (!ack_ok)
+	if (!ack_ok) {
 		node_remove(n, _("Weird HELLO %s"), what);
-	else if (ack_code < 200 || ack_code >= 300) {
+	} else if (ack_code < 200 || ack_code >= 300) {
 		if (ack_code == 401) {
             /* Unauthorized */
             hcache_add(HCACHE_UNSTABLE, n->addr, 0, "unauthorized");
@@ -4046,14 +4046,16 @@ analyse_status(struct gnutella_node *n, gint *code)
             hcache_add(HCACHE_BUSY, n->addr, 0, "ack_code 503");
         }
 
-		node_remove(n, _("HELLO %s error %d (%s)"), what, ack_code, ack_message);
+		node_remove(n, _("HELLO %s error %d (%s)"),
+			what, ack_code, ack_message);
 		ack_ok = FALSE;
-	}
-	else if (!incoming && ack_code == 204) {
+	} else if (!incoming && ack_code == 204) {
 		node_remove(n, _("Shielded node"));
 		ack_ok = FALSE;
 	}
-
+	if (GTA_NODE_REMOVING == n->status) {
+		ack_ok = FALSE;
+	}
 	return ack_ok;
 }
 
