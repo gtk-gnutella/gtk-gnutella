@@ -64,10 +64,10 @@
 #define TIGERSIZE 24
 
 /* size of each block independently tiger-hashed, not counting leaf 0x00 prefix */
-#define BLOCKSIZE 1024
+#define TTH_BLOCKSIZE 1024
 
 /* size of input to each non-leaf hash-tree node, not counting node 0x01 prefix */
-#define NODESIZE (TIGERSIZE*2)
+#define TTH_NODESIZE (TIGERSIZE*2)
 
 /* default size of interim values stack, in TIGERSIZE
  * blocks. If this overflows (as it will for input
@@ -76,18 +76,18 @@
 
 typedef struct tt_context {
   guint64 count;                   /* total blocks processed */
-  guchar leaf[1+BLOCKSIZE]; /* leaf in progress */
+  guchar leaf[1+TTH_BLOCKSIZE]; /* leaf in progress */
   guchar *block;            /* leaf data */
-  guchar node[1+NODESIZE]; /* node scratch space */
+  guchar node[1+TTH_NODESIZE]; /* node scratch space */
   gint idx;                      /* index into block */
   guchar *top;             /* top (next empty) stack slot */
   guchar nodes[TTH_STACKSIZE]; /* stack of interim node values */
-} TT_CONTEXT;
+} TTH_CONTEXT;
 
 void tt_check(void);
-void tt_init(TT_CONTEXT *ctx);
-void tt_update(TT_CONTEXT *ctx, gconstpointer data, size_t len);
-void tt_digest(TT_CONTEXT *ctx, guchar hash[TIGERSIZE]);
+void tt_init(TTH_CONTEXT *ctx);
+void tt_update(TTH_CONTEXT *ctx, gconstpointer data, size_t len);
+void tt_digest(TTH_CONTEXT *ctx, guchar hash[TIGERSIZE]);
 
 #endif /* _tigertree_h_ */
 /* vi: set ts=4 sw=4 cindent: */

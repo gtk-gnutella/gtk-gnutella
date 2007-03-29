@@ -113,7 +113,7 @@ struct tt_computation_context_s {
 	gint fd;					/**< Handle to the file we are computing. */
 	tt_file_to_hash_t *file;	/**< The file we are computing */
 
-	TT_CONTEXT *tt_ctx;
+	TTH_CONTEXT *tt_ctx;
 	gchar *buffer;
 	size_t buffer_size;
 	time_t start;
@@ -201,7 +201,7 @@ tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 		hashtree_append_leaf_node(ctx->tt_node, (gpointer) hash);
 	}
 
-	if (r < BLOCKSIZE) {
+	if (r < TTH_BLOCKSIZE) {
 		struct tth cur_hash;
 
 		tt_digest(ctx->tt_ctx, cur_hash.data);
@@ -268,7 +268,7 @@ request_tigertree(const struct shared_file *sf)
 		ctx = walloc0(sizeof(*ctx));
 		ctx->fd = -1;
 		ctx->tt_ctx = walloc0(sizeof(*ctx->tt_ctx));
-		ctx->buffer_size = 32 * BLOCKSIZE + 1;
+		ctx->buffer_size = 32 * TTH_BLOCKSIZE + 1;
 		ctx->buffer = walloc(ctx->buffer_size);
 
 		ctx->tt_node = hashtree_new(tt_internal_hash);

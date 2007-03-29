@@ -32,7 +32,7 @@
  * Patterned after sha.c by A.M. Kuchling and others.
  *
  * To use:
- *    -# allocate a TT_CONTEXT in your own code;
+ *    -# allocate a TTH_CONTEXT in your own code;
  *    -# tt_init(ttctx);
  *    -# tt_update(ttctx, buffer, length); as many times as necessary
  *    -# tt_digest(ttctx,resultptr);
@@ -60,7 +60,7 @@
  * constant amount of memory; rather, the memory required grows
  * with the size of input. (Roughly, one more interim value must
  * be remembered for each doubling of the input size.) The
- * default TT_CONTEXT struct size reserves enough memory for
+ * default TTH_CONTEXT struct size reserves enough memory for
  * input up to 2^64 in length
  *
  * Requires the tiger() function as defined in the reference
@@ -88,7 +88,7 @@ RCSID("$Id$")
 
 /* Initialize the tigertree context */
 void
-tt_init(TT_CONTEXT *ctx)
+tt_init(TTH_CONTEXT *ctx)
 {
   ctx->count = 0;
   ctx->leaf[0] = 0; /* flag for leaf  calculation -- never changed */
@@ -99,19 +99,19 @@ tt_init(TT_CONTEXT *ctx)
 }
 
 static void
-tt_compose(TT_CONTEXT *ctx)
+tt_compose(TTH_CONTEXT *ctx)
 {
-  guint8 *node = ctx->top - NODESIZE;
+  guint8 *node = ctx->top - TTH_NODESIZE;
 
-  memmove(&ctx->node[1], node, NODESIZE); /* copy to scratch area */
+  memmove(&ctx->node[1], node, TTH_NODESIZE); /* copy to scratch area */
   /* combine two nodes */
-  tiger(ctx->node, NODESIZE + 1, ctx->top);
+  tiger(ctx->node, TTH_NODESIZE + 1, ctx->top);
   memmove(node,ctx->top,TIGERSIZE);           /* move up result */
   ctx->top -= TIGERSIZE;                      /* update top ptr */
 }
 
 static void
-tt_block(TT_CONTEXT *ctx)
+tt_block(TTH_CONTEXT *ctx)
 {
   guint64 b;
 
@@ -126,31 +126,31 @@ tt_block(TT_CONTEXT *ctx)
 }
 
 void
-tt_update(TT_CONTEXT *ctx, gconstpointer data, size_t len)
+tt_update(TTH_CONTEXT *ctx, gconstpointer data, size_t len)
 {
   const guint8 *buffer = data;
 
   if (ctx->idx) { /* Try to fill partial block */
- 	unsigned left = BLOCKSIZE - ctx->idx;
+ 	unsigned left = TTH_BLOCKSIZE - ctx->idx;
   	if (len < left) {
 		memmove(ctx->block + ctx->idx, buffer, len);
 		ctx->idx += len;
 		return; /* Finished */
 	} else {
 		memmove(ctx->block + ctx->idx, buffer, left);
-		ctx->idx = BLOCKSIZE;
+		ctx->idx = TTH_BLOCKSIZE;
 		tt_block(ctx);
 		buffer += left;
 		len -= left;
 	}
   }
 
-  while (len >= BLOCKSIZE) {
-	memmove(ctx->block, buffer, BLOCKSIZE);
-	ctx->idx = BLOCKSIZE;
+  while (len >= TTH_BLOCKSIZE) {
+	memmove(ctx->block, buffer, TTH_BLOCKSIZE);
+	ctx->idx = TTH_BLOCKSIZE;
 	tt_block(ctx);
-	buffer += BLOCKSIZE;
-	len -= BLOCKSIZE;
+	buffer += TTH_BLOCKSIZE;
+	len -= TTH_BLOCKSIZE;
   }
   ctx->idx = len;
   if (0 != len) {
@@ -161,7 +161,7 @@ tt_update(TT_CONTEXT *ctx, gconstpointer data, size_t len)
 
 /* no need to call this directly; tt_digest calls it for you */
 static void
-tt_final(TT_CONTEXT *ctx)
+tt_final(TTH_CONTEXT *ctx)
 {
   /* do last partial block, unless idx is 1 (empty leaf) */
   /* AND we're past the first block */
@@ -171,7 +171,7 @@ tt_final(TT_CONTEXT *ctx)
 }
 
 void
-tt_digest(TT_CONTEXT *ctx, guchar hash[TIGERSIZE])
+tt_digest(TTH_CONTEXT *ctx, guchar hash[TIGERSIZE])
 {
   tt_final(ctx);
   while(ctx->top - TIGERSIZE > ctx->nodes) {
@@ -208,7 +208,7 @@ tt_check(void)
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 		char digest[TTH_BASE32_SIZE + 1];
 		struct tth hash;
-		TT_CONTEXT ctx;
+		TTH_CONTEXT ctx;
 
 		tt_init(&ctx);
 		tt_update(&ctx, tests[i].data, tests[i].size);
