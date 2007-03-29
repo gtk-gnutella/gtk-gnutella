@@ -665,6 +665,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_enablenls ENABLE_NLS	/**/
 
+/* I_ICONV:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <iconv.h>.
+ */
+#$i_iconv I_ICONV	/**/
+
 /* I_IFADDRS:
  *    This symbol, if defined, indicates to the C program that it should
  *    include <ifaddrs.h>.

@@ -34,6 +34,7 @@ U/new/d_getuid.U
 U/new/d_gnugettext.U
 U/new/d_herror.U
 U/new/d_hstrerror.U
+U/new/d_iconv.U
 U/new/d_inflate.U
 U/new/d_initstate.U
 U/new/d_iptos.U
@@ -56,6 +57,7 @@ U/new/d_strlcpy.U
 U/new/d_sysctl.U
 U/new/d_vsnprintf.U
 U/new/enablenls.U
+U/new/i_iconv.U
 U/new/i_ifaddrs.U
 U/new/i_invent.U
 U/new/i_langinfo.U

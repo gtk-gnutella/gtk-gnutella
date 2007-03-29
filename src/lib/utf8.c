@@ -58,7 +58,9 @@ RCSID("$Id$")
 
 #endif /* I_LIBCHARSET */
 
+#if defined(I_ICONV)
 #include <iconv.h>
+#endif	/* I_ICONV */
 
 #include "utf8_tables.h"
 
@@ -1561,7 +1563,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 13070 "))
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 13208 "))
 		utf8_regression_checks();
 
 	locale_init_passed = TRUE;

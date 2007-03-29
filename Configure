@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Mar 21 21:00:17 CET 2007 [metaconfig 3.0 PL70]
+# Generated on Thu Mar 29 16:22:04 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -295,6 +295,7 @@ gnulibc_version=''
 d_headless=''
 d_herror=''
 d_hstrerror=''
+d_iconv=''
 d_inflate=''
 d_initstate=''
 d_iptos=''
@@ -380,6 +381,7 @@ d_dirnamlen=''
 direntrytype=''
 i_dirent=''
 i_fcntl=''
+i_iconv=''
 i_ifaddrs=''
 i_inttypes=''
 i_invent=''
@@ -8259,6 +8261,10 @@ eval $inhdr
 set sys/utsname.h i_sysutsname
 eval $inhdr
 
+: see if this is a iconv.h system
+set iconv.h i_iconv
+eval $inhdr
+
 : see if deflate exists
 $cat >try.c <<EOC
 #include <zlib.h>
@@ -8318,6 +8324,27 @@ case "$result" in
 	d_sendfile="$undef"
 	;;
 esac
+
+: see if iconv exists
+$cat >try.c <<EOC
+#$i_iconv I_ICONV
+#ifdef I_ICONV
+#include <iconv.h>
+#endif
+int main(void)
+{
+	static size_t n, srcleft, dstleft;
+	static char *src, *dst;
+	static int ret;
+	iconv_t cd;
+	cd = iconv_open("ISO8859-1", "UTF-8");
+	n |= iconv(cd, (void **) &src, &srcleft, (void **) &dst, &dstleft);
+	ret |= iconv_close(cd);
+	return 0 != ret;
+}
+EOC
+set d_iconv
+eval $trylink
 
 : check whether -mieee should be used
 flag='-mieee'
@@ -8451,6 +8478,12 @@ case "$d_fast_assert" in
 "$define") fastassert=yes;;
 esac
 
+iconv=no
+case "$d_iconv" in
+"$define") iconv=yes;;
+esac
+
+
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
@@ -8484,6 +8517,11 @@ esac
 
 if [ "$zlib" != yes ]; then
 	echo 'ERROR: Cannot compile against zlib. Library or header files might be missing.' >&4
+	bailout=yes
+fi
+
+if [ "$iconv" != yes ]; then
+	echo 'ERROR: Cannot find iconv(). Library or header files might be missing.' >&4
 	bailout=yes
 fi
 
@@ -8656,6 +8694,7 @@ d_gtk='$d_gtk'
 d_headless='$d_headless'
 d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
+d_iconv='$d_iconv'
 d_index='$d_index'
 d_inflate='$d_inflate'
 d_initstate='$d_initstate'
@@ -8767,6 +8806,7 @@ huge='$huge'
 i_arpainet='$i_arpainet'
 i_dirent='$i_dirent'
 i_fcntl='$i_fcntl'
+i_iconv='$i_iconv'
 i_ifaddrs='$i_ifaddrs'
 i_inttypes='$i_inttypes'
 i_invent='$i_invent'

@@ -1,0 +1,25 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?X:
+?X: This unit looks whether <iconv.h> is available or not
+?X:
+?MAKE:i_iconv: Inhdr
+?MAKE:	-pick add $@ %<
+?S:i_iconv:
+?S:	This variable conditionally defines I_ICONV, which indicates
+?S:	to the C program that it should include <iconv.h>.
+?S:.
+?C:I_ICONV:
+?C:	This symbol, if defined, indicates to the C program that it should
+?C:	include <iconv.h>.
+?C:.
+?H:#$i_iconv I_ICONV	/**/
+?H:.
+?Y:BOTTOM
+?LINT:set i_iconv
+: see if this is a iconv.h system
+set iconv.h i_iconv
+eval $inhdr
+

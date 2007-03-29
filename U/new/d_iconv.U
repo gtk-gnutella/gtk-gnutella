@@ -1,0 +1,39 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_iconv: Trylink cat i_iconv
+?MAKE:	-pick add $@ %<
+?S:d_iconv:
+?S:	This variable conditionally defines the HAS_ICONV symbol, which
+?S:	indicates to the C program that the iconv() routine from iconv is
+?S: available.
+?S:.
+?C:HAS_ICONV:
+?C:	This symbol, if defined, indicates that the iconv iconv() routine is
+?C:	available.
+?C:.
+?H:#$d_iconv HAS_ICONV		/**/
+?H:.
+?LINT:set d_iconv
+: see if iconv exists
+$cat >try.c <<EOC
+#$i_iconv I_ICONV
+#ifdef I_ICONV
+#include <iconv.h>
+#endif
+int main(void)
+{
+	static size_t n, srcleft, dstleft;
+	static char *src, *dst;
+	static int ret;
+	iconv_t cd;
+	cd = iconv_open("ISO8859-1", "UTF-8");
+	n |= iconv(cd, (void **) &src, &srcleft, (void **) &dst, &dstleft);
+	ret |= iconv_close(cd);
+	return 0 != ret;
+}
+EOC
+set d_iconv
+eval $trylink
+
