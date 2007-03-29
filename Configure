@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Mar 29 16:22:04 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Thu Mar 29 16:48:30 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8327,6 +8327,7 @@ esac
 
 : see if iconv exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_iconv I_ICONV
 #ifdef I_ICONV
 #include <iconv.h>

@@ -18,6 +18,7 @@
 ?LINT:set d_iconv
 : see if iconv exists
 $cat >try.c <<EOC
+#include <sys/types.h>
 #$i_iconv I_ICONV
 #ifdef I_ICONV
 #include <iconv.h>
