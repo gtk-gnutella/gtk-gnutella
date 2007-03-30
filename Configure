@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Mar 30 18:57:29 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Fri Mar 30 19:02:33 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6039,7 +6039,7 @@ int main(void)
 	return ret ? 0 : 1;
 }
 EOC
-set d_sendfile
+set d_sendfile '-lsendfile'
 eval $trylink
 
 : can we use setproctitle?
