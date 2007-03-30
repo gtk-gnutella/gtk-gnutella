@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Mar 29 16:48:30 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Fri Mar 30 18:57:29 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8344,7 +8344,7 @@ int main(void)
 	return 0 != ret;
 }
 EOC
-set d_iconv
+set d_iconv '-liconv'
 eval $trylink
 
 : check whether -mieee should be used
