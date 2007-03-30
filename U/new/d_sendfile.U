@@ -29,6 +29,6 @@ int main(void)
 	return ret ? 0 : 1;
 }
 EOC
-set d_sendfile
+set d_sendfile '-lsendfile'
 eval $trylink
 
