@@ -35,6 +35,6 @@ int main(void)
 	return 0 != ret;
 }
 EOC
-set d_iconv
+set d_iconv '-liconv'
 eval $trylink
 
