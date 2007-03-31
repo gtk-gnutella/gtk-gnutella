@@ -18,7 +18,7 @@
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend remote nls fastassert zlib iconv
-?T:gnutls ipv6 dbus bailout
+?T:gnutls ipv6 dbus bailout aptget
 : end of configuration questions
 echo " "
 echo "End of configuration questions."
@@ -70,6 +70,7 @@ case "$d_iconv" in
 "$define") iconv=yes;;
 esac
 
+which apt-get >/dev/null 2>&1 && aptget=echo || aptget=:
 
 $cat >&4 <<EOM
 
@@ -90,33 +91,43 @@ bailout=no
 
 case "$d_glib" in
 "$undef")
-	echo 'ERROR: Cannot compile against GLib. Library or header files might be missing.' >&4
 	bailout=yes
+	echo 'ERROR: Cannot compile against GLib. Library or header files might be missing.' >&4
+	case "$glibversion" in
+	1) $aptget 'ADVICE: Run "apt-get install libglib1.2-dev".' >&4;;
+	2) $aptget 'ADVICE: Run "apt-get install libglib2.0-dev".' >&4;;
+	esac
 	;;
 esac
 
 case "$d_libxml2" in
 "$undef")
-	echo 'ERROR: Cannot compile against libxml2. Library or header files might be missing.' >&4
 	bailout=yes
+	echo 'ERROR: Cannot compile against libxml2. Library or header files might be missing.' >&4
+	$aptget 'ADVICE: Run "apt-get install libxml2-dev".' >&4
 	;;
 esac
 
 if [ "$zlib" != yes ]; then
-	echo 'ERROR: Cannot compile against zlib. Library or header files might be missing.' >&4
 	bailout=yes
+	echo 'ERROR: Cannot compile against zlib. Library or header files might be missing.' >&4
+	$aptget 'ADVICE: Run "apt-get install zlib1g-dev".' >&4
 fi
 
 if [ "$iconv" != yes ]; then
-	echo 'ERROR: Cannot find iconv(). Library or header files might be missing.' >&4
 	bailout=yes
+	echo 'ERROR: Cannot find iconv(). Library or header files might be missing.' >&4
 fi
 
 if [ "$frontend" != none ]; then
 case "$d_gtk" in
 "$undef")
-	echo 'ERROR: Cannot compile against Gtk+. Library or header files might be missing.' >&4
 	bailout=yes
+	echo 'ERROR: Cannot compile against Gtk+. Library or header files might be missing.' >&4
+	case "$gtkversion" in
+	1) $aptget 'ADVICE: Run "apt-get install libgtk1.2-dev".' >&4;;
+	2) $aptget 'ADVICE: Run "apt-get install libgtk2.0-dev".' >&4;;
+	esac
 	;;
 esac
 fi
