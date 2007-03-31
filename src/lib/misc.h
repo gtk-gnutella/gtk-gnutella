@@ -507,6 +507,7 @@ gboolean file_exists(const gchar *pathname);
 gboolean file_does_not_exist(const gchar *pathname);
 guint32 next_pow2(guint32 n);
 
+#define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
 /**
  * Checks whether the given value is a power of 2.
  *
@@ -521,7 +522,7 @@ is_pow2(guint32 value)
 }
 #else /* !HAS_BUILTIN_POPCOUNT */
 {
-	return value && 0 == (value & (value - 1));
+	return IS_POWER_OF_2(value);
 }
 #endif /* HAS_BUILTIN_POPCOUNT */
 
