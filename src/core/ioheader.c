@@ -77,7 +77,7 @@ struct io_header {
 void
 io_free(gpointer opaque)
 {
-	struct io_header *ih = (struct io_header *) opaque;
+	struct io_header *ih = opaque;
 
 	g_assert(ih);
 	g_assert(ih->io_opaque);
@@ -103,7 +103,7 @@ io_free(gpointer opaque)
 struct header *
 io_header(gpointer opaque)
 {
-	struct io_header *ih = (struct io_header *) opaque;
+	struct io_header *ih = opaque;
 
 	g_assert(ih);
 	g_assert(ih->io_opaque);
@@ -120,7 +120,7 @@ io_header(gpointer opaque)
 struct getline *
 io_getline(gpointer opaque)
 {
-	struct io_header *ih = (struct io_header *) opaque;
+	struct io_header *ih = opaque;
 
 	g_assert(ih);
 	g_assert(ih->io_opaque);
@@ -140,7 +140,7 @@ io_getline(gpointer opaque)
 gchar *
 io_gettext(gpointer opaque)
 {
-	struct io_header *ih = (struct io_header *) opaque;
+	struct io_header *ih = opaque;
 
 	g_assert(ih);
 	g_assert(ih->io_opaque);
@@ -498,7 +498,7 @@ io_continue_header(
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
 	io_start_cb_t start)		/**< Optional: called when reading 1st byte */
 {
-	struct io_header *ih = (struct io_header *) opaque;
+	struct io_header *ih = opaque;
 
 	g_assert(ih);
 	g_assert(ih->flags & IO_3_WAY);
