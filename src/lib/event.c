@@ -27,8 +27,6 @@
  * @ingroup lib
  * @file
  *
- * Functions that should be in GTK+ 1.2 or GTK+ 2.x but are not.
- *
  * @author Richard Eckart
  * @date 2002-2003
  */
