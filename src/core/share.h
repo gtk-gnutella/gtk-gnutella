@@ -136,6 +136,7 @@ fileinfo_t *shared_file_fileinfo(const shared_file_t *sf);
 const gchar *shared_file_content_type(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 
+void record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query);
 const gchar *map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE]);
 
 #endif /* _core_share_h_ */

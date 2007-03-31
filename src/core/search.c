@@ -2424,8 +2424,10 @@ search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 		search_reset_sent_node_ids(sch);
 	}
 
-	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
+	sch->muids = g_slist_prepend(sch->muids, muid);
 	g_hash_table_insert(search_by_muid, muid, sch);
+
+	record_query_string(muid, sch->query);
 
 	/*
 	 * If we got more than MUID_MAX entries in the list, chop last items.

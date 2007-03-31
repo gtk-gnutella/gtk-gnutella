@@ -573,7 +573,7 @@ query_muid_map_garbage_collect(void)
 	}
 }
 
-static void
+void
 record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
 {
 	const gchar *key;
