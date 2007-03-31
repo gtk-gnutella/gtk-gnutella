@@ -483,6 +483,7 @@
 # X-Gnutella-Content-URN: urn:sha1:K4JPX22BKXHMEQOJR3FNCUF2DSSK2SHQ
 #
 67.159.21.0/27
+67.159.52.0/24
 
 # .exe spam from fake LimeWire; does not match query at all; giFT-based;
 # spam is ubiquitous and shows up in *every single* search;
