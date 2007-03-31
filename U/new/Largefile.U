@@ -37,6 +37,18 @@ case "$result" in
 	saved_ccflags=$ccflags
 	ccflags="$ccflags $flags"
 
+	$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	switch (0) { case 0: case (sizeof(off_t) >= 8): break; }
+	return 0;
+}
+EOC
 	set result
 	eval $trylink
 

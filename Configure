@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Mar 31 15:56:03 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Sat Mar 31 16:12:53 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6589,6 +6589,18 @@ case "$result" in
 	saved_ccflags=$ccflags
 	ccflags="$ccflags $flags"
 
+	$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	switch (0) { case 0: case (sizeof(off_t) >= 8): break; }
+	return 0;
+}
+EOC
 	set result
 	eval $trylink
 
