@@ -430,9 +430,9 @@
 65.57.247.0/24
 65.59.209.0/29
 
-# Another range of Level 3; there are many buggy modded clients in these
-# ranges probably engaged in sabotage
-8.9.196.0/22
+# Another range of Level 3; many fake clients emitting arbitrary spam files;
+# MP3s contain only noise or beeps
+8.9.192.0/20
 
 # DRM WMV pr0n spammer; filenames are all caps; license server is 74.52.9.122
 88.85.65.130
