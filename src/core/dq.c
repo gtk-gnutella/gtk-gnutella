@@ -1601,6 +1601,14 @@ dq_common_init(dquery_t *dq)
 				deconstify_gpointer(dq->lmuid), dq);
 	}
 
+	if (search_muid_track_amount > 0) {
+		gconstpointer packet;
+
+		packet = pmsg_start(dq->mb);
+		record_query_string(gnutella_header_get_muid(packet),
+			gnutella_msg_search_get_text(packet));
+	}
+
 	if (dq_debug) {
 		const gchar *start = pmsg_start(dq->mb);
 		guint16 req_speed;
