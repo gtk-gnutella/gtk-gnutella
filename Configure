@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Mar 31 16:12:53 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Sat Mar 31 16:16:36 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8351,7 +8351,7 @@ int main(void)
 	static int ret;
 	iconv_t cd;
 	cd = iconv_open("ISO8859-1", "UTF-8");
-	n |= iconv(cd, (void **) &src, &srcleft, (void **) &dst, &dstleft);
+	n |= iconv(cd, (void *) &src, &srcleft, (void *) &dst, &dstleft);
 	ret |= iconv_close(cd);
 	return 0 != ret;
 }
