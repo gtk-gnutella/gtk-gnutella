@@ -840,14 +840,14 @@ enum main_arg {
 	main_arg_version,
 
 	/* Passed through for Gtk+/GDK/GLib */
-	main_arg_class,				
-	main_arg_g_fatal_warnings,	
-	main_arg_gdk_debug,			
-	main_arg_gdk_no_debug,		
-	main_arg_gtk_debug,			
-	main_arg_gtk_no_debug,			
-	main_arg_gtk_module,			
-	main_arg_name,				
+	main_arg_class,
+	main_arg_g_fatal_warnings,
+	main_arg_gdk_debug,
+	main_arg_gdk_no_debug,
+	main_arg_gtk_debug,
+	main_arg_gtk_no_debug,
+	main_arg_gtk_module,
+	main_arg_name,
 
 	num_main_args
 };
