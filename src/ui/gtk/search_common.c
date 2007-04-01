@@ -1079,17 +1079,11 @@ search_gui_retrieve_searches(void)
  *		   is returned.
  */
 const gchar *
-search_gui_get_route(const record_t *rc)
+search_gui_get_route(const struct results_set *rs)
 {
-	const results_set_t *rs;
-	
-	g_assert(rc);
-	g_assert(rc->magic == RECORD_MAGIC);
-	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
-	
-	rs = rc->results_set;
 	g_assert(rs);
-
+	g_assert(rs->refcount >= 0 && rs->refcount < INT_MAX);
+	
 	if ((ST_LOCAL | ST_BROWSE) & rs->status) {
 		return NULL;
 	} else {

@@ -333,12 +333,12 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gpointer udata)
 {
 	GtkTreeSortable *model;
-	search_t *sch = udata;
+	search_t *search = udata;
 	GtkSortType order;
 	gint sort_col;
 
 	/* The default treeview is empty */
-	if (!sch)
+	if (!search)
 		return;
 
 	model = GTK_TREE_SORTABLE(
@@ -363,10 +363,10 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gtk_tree_sortable_get_sort_column_id(model, &sort_col, NULL);
 
 	/* If the user switched to another sort column, reset the sort order. */
-	if (sch->sort_col != sort_col) {
+	if (search->sort_col != sort_col) {
 		guint32 rank = 0;
 
-		sch->sort_order = SORT_NONE;
+		search->sort_order = SORT_NONE;
 		/*
 		 * Iterate over all rows and record their current rank/position so
 	 	 * that re-sorting is stable.
@@ -375,42 +375,41 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 			search_gui_update_rank, &rank);
 	}
 
-	sch->sort_col = sort_col;
+	search->sort_col = sort_col;
 
 	/* The search has to keep state about the sort order itself because
 	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
-	switch (sch->sort_order) {
+	switch (search->sort_order) {
 	case SORT_NONE:
 	case SORT_NO_COL:
-		sch->sort_order = SORT_ASC;
+		search->sort_order = SORT_ASC;
 		break;
 	case SORT_ASC:
-		sch->sort_order = SORT_DESC;
+		search->sort_order = SORT_DESC;
 		break;
 	case SORT_DESC:
-		sch->sort_order = SORT_NONE;
+		search->sort_order = SORT_NONE;
 		break;
 	}
 
-	if (SORT_NONE == sch->sort_order) {
+	if (SORT_NONE == search->sort_order) {
 		/*
 		 * Reset the sorting and let the arrow disappear from the
 		 * header. Gtk+ actually seems to change the order of the
 		 * rows back to the original order (i.e., chronological).
 		 */
-		gtk_tree_view_column_set_sort_indicator(column, FALSE);
 #if GTK_CHECK_VERSION(2,6,0)
 		gtk_tree_sortable_set_sort_column_id(model,
 			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
-		gtk_tree_view_column_set_sort_indicator(column, FALSE);
 #endif /* Gtk+ >= 2.6.0 */
+		gtk_tree_view_column_set_sort_indicator(column, FALSE);
 	} else {
 		/*
 		 * Enforce the order as decided from the search state. Gtk+
 		 * might disagree but it'll do as told.
 		 */
 		gtk_tree_sortable_set_sort_column_id(model, sort_col,
-			SORT_ASC == sch->sort_order
+			SORT_ASC == search->sort_order
 				? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
 		gtk_tree_view_column_set_sort_indicator(column, TRUE);
 	}
@@ -419,24 +418,25 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 }
 
 static const gchar *
-search_get_vendor_from_record(const record_t *rc)
+search_gui_get_vendor(const struct results_set *rs)
 {
-	const gchar *s;
+	const gchar *vendor;
 
-	g_assert(rc != NULL);
+	g_assert(rs);
 
-	s = lookup_vendor_name(rc->results_set->vcode);
-	if (s == NULL)
-		return _("Unknown");
+	vendor = lookup_vendor_name(rs->vcode);
+	if (vendor) {
+		if (rs->version) {
+			static gchar buf[128];
 
-	if (rc->results_set->version) {
-		static gchar buf[128];
-
-		gm_snprintf(buf, sizeof buf, "%s/%s", s, rc->results_set->version);
-		return buf;
+			concat_strings(buf, sizeof buf, vendor, "/", rs->version,
+				(void *) 0);
+			vendor = buf;
+		}
+	} else {
+		vendor = _("Unknown");
 	}
-
-	return s;
+	return vendor;
 }
 
 void
@@ -465,10 +465,6 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
-#if 0
-		if (w)
-			gtk_widget_hide(w);
-#endif
 	} else {
 		gchar text[4096], extra[1024];
 		gboolean has_extra;
@@ -493,7 +489,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			iso3166_country_name(rc->results_set->country),
 			iso3166_country_cc(rc->results_set->country),
 			_("Vendor:"),
-			search_get_vendor_from_record(rc),
+			search_gui_get_vendor(rc->results_set),
 			_("Size:"),
 			short_size(rc->size, show_metric_units()),
 			has_extra ? "\nExtra: " : "",
@@ -505,117 +501,163 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 }
 
 static void
-search_update_details(GtkTreeView *tv, GtkTreePath *path)
+search_append_detail(GtkTreeModel *model,
+	const gchar *title, const gchar *value)
 {
-	const record_t *rc = NULL;
-	gchar bytes[UINT64_DEC_BUFLEN];
+	GtkTreeIter iter;
+
+	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
+}
+
+/* Display XML data from the result if any */
+static void
+search_set_xml_metadata(const record_t *rc)
+{
+	GtkTextBuffer *txt;
 	gchar *xml_txt;
-
-	g_assert(tv != NULL);
-	g_assert(path != NULL);
-
-	rc = search_gui_get_record_at_path(tv, path);
-	g_return_if_fail(rc != NULL);
-	
-	gtk_entry_set_text(
-		GTK_ENTRY(gui_main_window_lookup("entry_result_info_filename")),
-		rc->name
-			? lazy_unknown_to_utf8_normalized(rc->name, UNI_NORM_GUI, NULL)
-			: "");
-	
-	gtk_entry_printf(
-		GTK_ENTRY(gui_main_window_lookup("entry_result_info_sha1")),
-		"%s%s",
-		rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
-		rc->sha1 ? sha1_base32(rc->sha1) : "");
-
-	gtk_entry_printf(
-		GTK_ENTRY(gui_main_window_lookup("entry_result_info_source")),
-		"%s%s%s%s",
-		host_addr_port_to_string(rc->results_set->addr, rc->results_set->port),
-		rc->results_set->hostname ? " (" : "",
-		rc->results_set->hostname ? rc->results_set->hostname : "",
-		rc->results_set->hostname ? ")" : "");
-
-	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
-	gtk_entry_printf(
-			GTK_ENTRY(gui_main_window_lookup("entry_result_info_size")),
-			_("%s (%s bytes)"), short_size(rc->size, show_metric_units()),
-			bytes);
-
-	gtk_entry_set_text(
-			GTK_ENTRY(gui_main_window_lookup("entry_result_info_guid")),
-			guid_hex_str(rc->results_set->guid));
-
-	gtk_entry_printf(GTK_ENTRY(
-				gui_main_window_lookup("entry_result_info_timestamp")),
-			"%24.24s", ctime(&rc->results_set->stamp));
-			/* discard trailing '\n' (see ctime(3) */
-
-	gtk_entry_set_text(
-			GTK_ENTRY(gui_main_window_lookup("entry_result_info_vendor")),
-			search_get_vendor_from_record(rc));
-
-	gtk_entry_printf(
-			GTK_ENTRY(gui_main_window_lookup("entry_result_info_index")),
-			"%lu", (gulong) rc->file_index);
-
-	{
-		const gchar *query = rc->results_set->query;
-		GtkEntry *entry;
-	   
-		entry = GTK_ENTRY(gui_main_window_lookup("entry_result_info_tag"));
-		query = rc->results_set->query;
-		if (query) {
-			gchar *s;
-
-			s = unknown_to_utf8_normalized(query, UNI_NORM_GUI, NULL);
-			gtk_entry_set_text(entry, s ? s : "");
-			if (query != s) {
-				G_FREE_NULL(s);
-			}
-		} else {
-			gtk_entry_set_text(entry, "");
-		}
-	}
-
-	/* Display XML data from the result if any */
-	{
-		GtkTextBuffer *txt;
 		
-		txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
+	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
 					gui_main_window_lookup("textview_result_info_xml")));
 	
-		/*
-		 * Character set detection usually fails here because XML
-		 * is mostly ASCII so that the thresholds are not reached.
-		 */
-		if (rc->xml) {
-			gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI, NULL);
-			xml_txt = search_xml_indent(s);
-			if (rc->xml != s) {
-				G_FREE_NULL(s);
-			}
-		} else {
-			xml_txt = NULL;
-		}
-		gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
-		G_FREE_NULL(xml_txt);
-	}
-
-#if 0
-	/**
-	 * Dump the raw filename to enhance the character set detection.
-	 * The following helps to figure out what the actual encoding is:
-	 *
-	 *	for cs in $(iconv -l); do
-	 *	  printf "${cs}: ${filename}" | iconv -f "${cs}" -t UTF-8 2>/dev/null
-	 *	done
+	/*
+	 * Character set detection usually fails here because XML
+	 * is mostly ASCII so that the thresholds are not reached.
 	 */
-	g_message("filename[] = \"%s\"",
-		rc->name ? lazy_string_to_printf_escape(rc->name) : "(null)");
-	(void) lazy_string_to_printf_escape("");	/* release buffer if any */
-#endif
+	if (rc->xml) {
+		gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI, NULL);
+		xml_txt = search_xml_indent(s);
+		if (rc->xml != s) {
+			G_FREE_NULL(s);
+		}
+	} else {
+		xml_txt = NULL;
+	}
+	gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
+	G_FREE_NULL(xml_txt);
+}
+
+static const gchar *
+search_gui_nice_size(const record_t *rc)
+{
+	static gchar buf[256];
+	gchar bytes[UINT64_DEC_BUFLEN];
+
+	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
+	gm_snprintf(buf, sizeof buf,
+		_("%s (%s bytes)"), short_size(rc->size, show_metric_units()),
+		bytes);
+	return buf;
+}
+
+gchar *
+gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
+{
+	GString *gs;
+	guint i, n;
+
+	g_return_val_if_fail(hvec, NULL);
+
+	gs = g_string_new("");
+	n = gnet_host_vec_count(hvec);
+	for (i = 0; i < n; i++) {
+		gnet_host_t host;
+		gchar buf[128];
+
+		if (i > 0) {
+			g_string_append(gs, ", ");
+		}
+		host = gnet_host_vec_get(hvec, i);
+		host_addr_port_to_string_buf(gnet_host_get_addr(&host),
+			gnet_host_get_port(&host), buf, sizeof buf);
+		g_string_append(gs, buf);
+	}
+	return gm_string_finalize(gs);
+}
+
+static void
+search_set_details(const record_t *rc)
+{
+	const struct results_set *rs;
+	GtkTreeModel *model;
+	GtkTreeView *tv;
+	gchar *hosts;
+
+	g_return_if_fail(rc);
+
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_search_details"));
+	g_return_if_fail(tv);
+
+	model = gtk_tree_view_get_model(tv);
+	g_return_if_fail(model);
+
+	gtk_list_store_clear(GTK_LIST_STORE(model));
+
+	rs = rc->results_set;
+
+	search_append_detail(model, _("Filename"), rc->utf8_name);
+	search_append_detail(model, _("Extension"), rc->ext);
+	search_append_detail(model, _("SHA-1"),
+		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
+	search_append_detail(model, _("Size"), search_gui_nice_size(rc));
+	search_append_detail(model, _("Source"),
+		host_addr_port_to_string(rs->addr, rs->port));
+	
+	search_append_detail(model, _("Browsable"),
+		ST_BROWSE & rs->status ? _("Yes") : _("No"));
+
+	search_append_detail(model, _("Hostile"),
+		ST_HOSTILE & rs->status ? _("Yes") : _("No"));
+
+	search_append_detail(model, _("Owned"),
+		(SR_OWNED & rs->status)  ? _("owned") :
+		(SR_PARTIAL & rc->flags) ? _("partial") :
+		(SR_SHARED & rc->flags)  ? _("shared") :
+		_("No"));
+
+	search_append_detail(model, _("Spam"),
+		(SR_SPAM & rc->flags) ? _("Yes") :
+		(ST_SPAM & rs->status) ? _("Maybe") :
+		_("No"));
+
+	search_append_detail(model, _("Created"),
+		timestamp_to_string(rc->create_time));
+
+	search_append_detail(model, _("Hostname"), rs->hostname);
+	search_append_detail(model, _("Servent ID"), guid_to_string(rs->guid));
+	search_append_detail(model, _("Vendor"), search_gui_get_vendor(rs));
+	search_append_detail(model, _("Index"), uint32_to_string(rc->file_index));
+	search_append_detail(model, _("Route"), search_gui_get_route(rs));
+
+	search_append_detail(model, _("Protocol"),
+		ST_UDP & rs->status ? "UDP" : "TCP");
+
+	search_append_detail(model, _("Hops"), uint32_to_string(rs->hops));
+	search_append_detail(model, _("TTL"), uint32_to_string(rs->ttl));
+
+	hosts = rc->alt_locs ? gnet_host_vec_to_string(rc->alt_locs) : NULL;
+	search_append_detail(model, _("Alt-Locs"), hosts);
+	G_FREE_NULL(hosts);
+	
+	hosts = rs->proxies ? gnet_host_vec_to_string(rs->proxies) : NULL;
+	search_append_detail(model, _("Push-proxies"), hosts);
+	G_FREE_NULL(hosts);
+
+	search_append_detail(model, _("Query"),
+		lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query), UNI_NORM_GUI,
+			NULL));
+	search_append_detail(model, _("Received"), timestamp_to_string(rs->stamp));
+
+	search_set_xml_metadata(rc);
+}
+
+static void
+search_update_details(GtkTreeView *tv, GtkTreePath *path)
+{
+	g_assert(tv);
+	g_assert(path);
+	
+	search_set_details(search_gui_get_record_at_path(tv, path));
 }
 
 
@@ -630,6 +672,7 @@ on_tree_view_search_results_select_row(GtkTreeView *tv, gpointer unused_udata)
 
 	(void) unused_udata;
 
+	/* FIXME: Note the event but handle it only periodically not immediately. */
 	gtk_tree_view_get_cursor(tv, &path, NULL);
 	if (path != NULL) {
 		search_update_tooltip(tv, path);

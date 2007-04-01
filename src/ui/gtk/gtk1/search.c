@@ -1203,7 +1203,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 					text = iso3166_country_cc(rs->country);
 				break;
 	 		case c_sr_route:
-				text = search_gui_get_route(rc);
+				text = search_gui_get_route(rs);
 				break;
 			case c_sr_protocol:
 				if (!((ST_LOCAL | ST_BROWSE) & rs->status))

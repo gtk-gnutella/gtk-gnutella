@@ -240,7 +240,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 			text = data->record->charset;
 		break;
 	case c_sr_route:
-		text = search_gui_get_route(data->record);
+		text = search_gui_get_route(rs);
 		break;
 	case c_sr_protocol:
 		if (!((ST_LOCAL | ST_BROWSE) & rs->status))
@@ -303,13 +303,11 @@ create_cell_renderer(gfloat xalign)
 	
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_text_set_fixed_height_from_font(
-		GTK_CELL_RENDERER_TEXT(renderer), 1);
-	g_object_set(G_OBJECT(renderer),
+		GTK_CELL_RENDERER_TEXT(renderer), TRUE);
+	g_object_set(renderer,
 		"mode",		GTK_CELL_RENDERER_MODE_INERT,
 		"xalign",	xalign,
 		"ypad",		(guint) GUI_CELL_RENDERER_YPAD,
-		"foreground-set", TRUE,
-		"background-set", TRUE,
 		(void *) 0);
 
 	return renderer;
@@ -330,6 +328,11 @@ add_column(
 	GtkCellRenderer *renderer;
 
 	renderer = create_cell_renderer(xalign);
+	g_object_set(G_OBJECT(renderer),
+		"foreground-set",	TRUE,
+		"background-set",	TRUE,
+		(void *) 0);
+
 	if (cell_data_func) {
 		column = gtk_tree_view_column_new_with_attributes(name, renderer,
 					(void *) 0);
@@ -340,14 +343,14 @@ add_column(
 					"text", id, (void *) 0);
 	}
 
-	if (fg_col > 0)
+	if (fg_col >= 0)
 		gtk_tree_view_column_add_attribute(column, renderer,
 			"foreground-gdk", fg_col);
-	if (bg_col > 0)
+	if (bg_col >= 0)
 		gtk_tree_view_column_add_attribute(column, renderer,
 			"background-gdk", bg_col);
 			
-	g_object_set(G_OBJECT(column),
+	g_object_set(column,
 		"fixed-width", MAX(1, width),
 		"min-width", 1,
 		"reorderable", FALSE,
@@ -1568,6 +1571,52 @@ add_results_column(
 		udata);
 }
 
+static void
+search_details_treeview_init(void)
+{
+	static const struct {
+		const gchar *title;
+		gfloat xalign;
+		gboolean editable;
+	} tab[] = {
+		{ "Item",	1.0, FALSE },
+		{ "Value",	0.0, TRUE },
+	};
+	GtkTreeView *tv;
+	GtkTreeModel *model;
+	guint i;
+
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_search_details"));
+	g_return_if_fail(tv);
+
+	model = GTK_TREE_MODEL(
+				gtk_list_store_new(G_N_ELEMENTS(tab),
+				G_TYPE_STRING, G_TYPE_STRING));
+
+	gtk_tree_view_set_model(tv, model);
+	g_object_unref(model);
+
+	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+    	GtkTreeViewColumn *column;
+		GtkCellRenderer *renderer;
+		
+		renderer = create_cell_renderer(tab[i].xalign);
+		g_object_set(G_OBJECT(renderer),
+			"editable", tab[i].editable,
+			(void *) 0);
+		column = gtk_tree_view_column_new_with_attributes(tab[i].title,
+					renderer, "text", i, (void *) 0);
+		g_object_set(column,
+			"min-width", 1,
+			"resizable", TRUE,
+			(void *) 0);
+		g_object_set(column,
+			"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
+			(void *) 0);
+    	gtk_tree_view_append_column(tv, column);
+	}
+}
+
 static GtkTreeModel *
 create_searches_model(void)
 {
@@ -1716,6 +1765,7 @@ search_gui_init(void)
 	gtk_notebook_popup_enable(notebook_search_results);
 
 	search_gui_common_init();
+	search_details_treeview_init();
 
 	gtk_tree_view_set_reorderable(tree_view_search, TRUE);	
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view_search),
