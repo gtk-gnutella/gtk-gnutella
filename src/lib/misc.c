@@ -1604,6 +1604,23 @@ sha1_to_string(const struct sha1 sha1)
 }
 
 /**
+ * Convert binary SHA1 into a urn:sha1:<base32> string.
+ *
+ * @param sha1 A binary SHA-1.
+ * @return The SHA-1 converted to an URN string.
+ */
+const gchar *
+sha1_to_urn_string(const gchar *sha1)
+{
+	static const gchar prefix[] = "urn:sha1:";
+	static gchar buf[CONST_STRLEN(prefix) + SHA1_BASE32_SIZE + 1];
+
+	memcpy(buf, prefix, CONST_STRLEN(prefix));
+	sha1_to_base32_buf(sha1, &buf[CONST_STRLEN(prefix)], SHA1_BASE32_SIZE + 1);
+	return buf;
+}
+
+/**
  * Convert base32 string into binary SHA1.
  *
  * @param base32 a buffer holding SHA1_BASE32_SIZE or more bytes.

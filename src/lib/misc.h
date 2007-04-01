@@ -468,6 +468,7 @@ typedef struct sha1 {
 
 const gchar *sha1_to_string(const struct sha1 sha1);
 
+const gchar *sha1_to_urn_string(const gchar *sha1);
 gchar *sha1_to_base32_buf(const gchar *sha1, gchar *dst, size_t size);
 gchar *sha1_base32(const gchar *sha1);
 gchar *base32_sha1(const gchar *base32);
