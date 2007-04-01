@@ -1694,7 +1694,7 @@ upload_connect_conf(gnutella_upload_t *u)
 			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
 	} else if (upload_debug > 2) {
 		g_message(
-			"----\nSent GIV to %s:\n%.*s\n----", host_addr_to_string(s->addr),
+			"----Sent GIV to %s:\n%.*s\n----", host_addr_to_string(s->addr),
 			(gint) MIN(rw, (size_t) INT_MAX), giv);
 	}
 
@@ -2826,7 +2826,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	u->from_browser = upload_likely_from_browser(header);
 
 	if (upload_debug > 2) {
-		g_message("----\n%s Request from %s%s:\n%s",
+		g_message("----%s Request from %s%s:\n%s",
 			is_followup ? "Follow-up" : "Incoming",
 			host_addr_to_string(s->addr),
 			u->from_browser ? " (via browser)" : "",
