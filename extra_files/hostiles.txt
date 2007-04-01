@@ -257,6 +257,7 @@
 # Technologies) is the origin of this spam.
 66.152.93.0/25
 # root servers or vservers so the addresses should be stable
+80.237.174.147
 81.209.165.73
 85.88.2.192/27
 85.88.9.0/26
@@ -952,4 +953,7 @@
 66.254.116.176
 # Black Oak Computers
 216.131.127.58
+
+# Gnucleus 1.8.4.0; seems spam with adware or trojans
+209.85.52.226
 
