@@ -1747,8 +1747,7 @@ downloads_with_name_dec(const gchar *name)
 	guint val;
 
 	val = GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
-
-	g_assert(val);		/* Cannot decrement something not present */
+	g_return_if_fail(val > 0);		/* Cannot decrement something not present */
 
 	if (val > 1)
 		gm_hash_table_insert_const(dl_count_by_name,
@@ -7073,10 +7072,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	d->last_update = tm_time();			/* Done reading headers */
 
 	if (download_debug > 2) {
-		const gchar *incomplete = ok ? "" : "INCOMPLETE ";
-		g_message("----\nGot %sreply from %s:", incomplete,
-			host_addr_to_string(s->addr));
-		g_message("%s", status);
+		g_message("----Got %sreply from %s:\n%s",
+			ok ? "" : "INCOMPLETE ", host_addr_to_string(s->addr), status);
 		header_dump(header, stderr);
 		g_message("----");
 	}
@@ -8368,7 +8365,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	} else if (download_debug > 2) {
 		g_message(
-			"----\nSent Request (%s) completely to %s (%u bytes):\n%.*s\n----",
+			"----Sent Request (%s) completely to %s (%u bytes):\n%.*s\n----",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
@@ -8759,7 +8756,7 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (download_debug > 2) {
-		g_message("----\nSent Request (%s%s%s%s) to %s (%u bytes):\n%.*s\n----",
+		g_message("----Sent Request (%s%s%s%s) to %s (%u bytes):\n%.*s\n----",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
@@ -9095,7 +9092,7 @@ download_push_ack(struct gnutella_socket *s)
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
 	if (download_debug > 2)
-		g_message("----\nGot GIV from %s:\n%s\n----",
+		g_message("----Got GIV from %s:\n%s\n----",
 			host_addr_to_string(s->addr), giv);
 
 	/*
