@@ -215,9 +215,12 @@
 
 # hosted by voxel.net, massive spamming, uploaded file contains also GWebCache
 # URLs and possibly a trojan, SHA1 match fails continously
+# Used by PeerSentry which is also the source of *freeclub spam
 69.9.186.0/23
 69.9.188.0/23
 69.9.190.0/24
+# Applied Innovations
+66.252.232.0/21
 
 # hosted by net-sentry.net, suspicious GWebCache polling
 69.26.174.0/24
