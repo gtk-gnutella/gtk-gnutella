@@ -610,9 +610,9 @@ search_set_details(const record_t *rc)
 		ST_HOSTILE & rs->status ? _("Yes") : _("No"));
 
 	search_append_detail(model, _("Owned"),
-		(SR_OWNED & rs->status)  ? _("owned") :
+		(SR_OWNED   & rc->flags)  ? _("owned") :
 		(SR_PARTIAL & rc->flags) ? _("partial") :
-		(SR_SHARED & rc->flags)  ? _("shared") :
+		(SR_SHARED  & rc->flags)  ? _("shared") :
 		_("No"));
 
 	search_append_detail(model, _("Spam"),
