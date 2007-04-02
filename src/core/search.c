@@ -1300,8 +1300,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			/*
 			 * Sometimes peers report a private IP address in the results
 			 * even though they're TCP connectible.
-			 *
-			 * XXX: Is this correct or might n->addr be the push-proxy?
 			 */
 			rs->addr = n->addr;
 		}
