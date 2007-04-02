@@ -4321,7 +4321,6 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 {
 	struct dl_server *server;
 	struct download *d;
-	const gchar *file_uri = NULL;
 	fileinfo_t *fi;
 
 	g_assert(size == 0 || file_size_known);
@@ -4369,10 +4368,6 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 		}
 	} else {
 		file_name = atom_str_get(file_name);
-	}
-
-    if (uri) {
-	    file_uri = atom_str_get(uri);
 	}
 
 	/*
@@ -4432,7 +4427,7 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 
 	d->file_name = file_name;
 	d->escaped_name = download_escape_name(d->file_name);
-	d->uri = file_uri;
+	d->uri = uri ? atom_str_get(uri) : NULL;
 	d->file_size = size;
 
 	/*
