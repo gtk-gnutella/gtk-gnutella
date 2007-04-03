@@ -653,7 +653,8 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	struct node_data *data;
 	gnet_node_flags_t flags;
 
-    g_assert(info != NULL);
+    g_return_if_fail(info);
+	g_return_if_fail(!g_hash_table_lookup(nodes_handles, info->node_id));
 
 	data = walloc(sizeof *data);
 	*data = zero_data;
