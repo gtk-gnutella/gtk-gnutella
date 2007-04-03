@@ -47,10 +47,6 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-/*
- * A "database" descriptor, holding the CIDR networks and their attached value.
- */
-
 enum iprange_db_magic {
    	IPRANGE_DB_MAGIC = 0x01b3a59e
 };
@@ -60,10 +56,13 @@ enum iprange_db_magic {
  */
 struct iprange_net {
 	guint32 ip;		/**< The IP of the network */
-	guint32 mask;	/**< The network bit mask, selecting meaningful bits */
+	guint8  bits;	/**< The network bit mask, selecting meaningful bits */
 	gpointer value;	/**< Value held */
 };
 
+/*
+ * A "database" descriptor, holding the CIDR networks and their attached value.
+ */
 struct iprange_db {
 	enum iprange_db_magic magic; /**< Magic number */
 	
@@ -146,7 +145,7 @@ cmp_iprange_net(const void *p, const void *q)
 	const struct iprange_net *a = p, *b = q;
 	guint32 mask, a_key, b_key;
 
-	mask = a->mask & b->mask;
+	mask = cidr_to_netmask(MIN(a->bits, b->bits));
 	a_key = a->ip & mask;
 	b_key = b->ip & mask;
 	return CMP(a_key, b_key);
@@ -168,7 +167,7 @@ iprange_get(const struct iprange_db *idb, guint32 ip)
 	iprange_db_check(idb);
 
 	key.ip = ip;
-	key.mask = (guint32)-1;
+	key.bits = 32;
 	
 #define GET_ITEM(i) (&idb->items[(i)])
 #define FOUND(i) G_STMT_START { \
@@ -203,8 +202,10 @@ iprange_add_cidr(struct iprange_db *idb,
 	guint32 mask;
 	
 	iprange_db_check(idb);
+	g_return_val_if_fail(bits > 0, IPR_ERR_BAD_PREFIX);
+	g_return_val_if_fail(bits <= 32, IPR_ERR_BAD_PREFIX);
 
-	mask = (guint32)-1 << (32 - bits);
+	mask = cidr_to_netmask(bits);
 	if ((net & mask) != net)
 		return IPR_ERR_BAD_PREFIX;
 	
@@ -218,7 +219,7 @@ iprange_add_cidr(struct iprange_db *idb,
 	idb->num_added++;
 
 	item->ip = net;
-	item->mask = mask;
+	item->bits = bits;
 	item->value = udata;
 
 	return IPR_ERR_OK;
@@ -257,13 +258,13 @@ iprange_sync(struct iprange_db *idb)
 			
 			removed++;
 
-			g_warning("iprange_sync(): %s/0x%x overlaps with %s/0x%x",
-				ip_to_string(a->ip), a->mask,
-				host_addr_to_string(host_addr_get_ipv4(b->ip)), b->mask);
+			g_warning("iprange_sync(): %s/%u overlaps with %s/%u",
+				ip_to_string(a->ip), a->bits,
+				host_addr_to_string(host_addr_get_ipv4(b->ip)), b->bits);
 
 			/* Overwrite the current item with last listed item. */
 			last = &idb->items[idb->num_added - removed];
-			if (a->mask > b->mask) {
+			if (a->bits > b->bits) {
 				*a = *last;
 			} else {
 				*b = *last;
@@ -284,6 +285,10 @@ iprange_sync(struct iprange_db *idb)
 		idb->num_size = idb->num_items;
 		idb->items = g_realloc(idb->items,
 						idb->num_size * sizeof idb->items[0]);
+	}
+	
+	for (i = 0; i < idb->num_items; i++) {
+		g_assert(iprange_get(idb, idb->items[i].ip) == idb->items[i].value);
 	}
 }
 
@@ -314,7 +319,7 @@ iprange_get_host_count(const struct iprange_db *idb)
 
 	iprange_db_check(idb);
 	for (i = 0; i < idb->num_items; i++) {
-		n += ~idb->items[i].mask << 1;
+		n += 1 << (32 - idb->items[i].bits);
 	}
 	return n;
 }
