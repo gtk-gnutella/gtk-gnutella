@@ -59,8 +59,6 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define THERE	GUINT_TO_POINTER(0x2)
-
 typedef enum {
 	HOSTILE_GLOBAL = 0,
 	HOSTILE_PRIVATE = 1,
@@ -68,13 +66,14 @@ typedef enum {
 	NUM_HOSTILES
 } hostiles_t;
 
+static const gchar hostile[] = "hostile";
 static const gchar hostiles_file[] = "hostiles.txt";
 static const gchar * const hostiles_what[NUM_HOSTILES] = {
 	"hostile IP addresses (global)",
 	"hostile IP addresses (private)"
 };
 
-static gpointer hostile_db[NUM_HOSTILES];		/**< The hostile database */
+static struct iprange_db *hostile_db[NUM_HOSTILES];	/**< The hostile database */
 
 /**
  * Frees all entries in the given hostiles.
@@ -82,12 +81,10 @@ static gpointer hostile_db[NUM_HOSTILES];		/**< The hostile database */
 static void
 hostiles_close_one(hostiles_t which)
 {
-	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
-
-	if (hostile_db[which]) {
-		iprange_free_each(hostile_db[which], NULL);
-		hostile_db[which] = NULL;
-	}
+	guint i = which;
+	
+	g_assert(i < NUM_HOSTILES);
+	iprange_free(&hostile_db[i]);
 }
 
 /**
@@ -102,15 +99,13 @@ hostiles_load(FILE *f, hostiles_t which)
 	gchar *p;
 	guint32 ip, netmask;
 	int linenum = 0;
-	gint count = 0;
 	gint bits;
 	iprange_err_t error;
-	guint32 hosts = 0;
 
 	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
 	g_assert(NULL == hostile_db[which]);
 
-	hostile_db[which] = iprange_make(NULL, NULL);
+	hostile_db[which] = iprange_make();
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -139,21 +134,12 @@ hostiles_load(FILE *f, hostiles_t which)
 		}
 
 		bits = netmask_to_cidr(netmask);
-		error = iprange_add_cidr(hostile_db[which], ip, bits, THERE);
+		error = iprange_add_cidr(hostile_db[which], ip, bits,
+					deconstify_gchar(hostile));
 
 		switch (error) {
 		case IPR_ERR_OK:
-			hosts += 1 << (32 - bits);
 			break;
-		case IPR_ERR_RANGE_OVERLAP:
-			error = iprange_add_cidr_force(hostile_db[which],
-						ip, bits, THERE, NULL);
-			if (dbg > 0 && error == IPR_ERR_OK) {
-				g_warning("%s: line %d: "
-					"entry \"%s\" (%s/%d) superseded earlier smaller range",
-					hostiles_file, linenum, line, ip_to_string(ip), bits);
-				break;
-			}
 			/* FALL THROUGH */
 		default:
 			if (dbg > 0 || error != IPR_ERR_RANGE_SUBNET) {
@@ -163,22 +149,16 @@ hostiles_load(FILE *f, hostiles_t which)
 			}
 			continue;
 		}
-
-		count++;
 	}
+
+	iprange_sync(hostile_db[which]);
 
 	if (dbg) {
-		iprange_stats_t stats;
-
-		iprange_get_stats(hostile_db[which], &stats);
-
-		g_message("loaded %d hostile IP addresses/netmasks (%u hosts)",
-			count, hosts);
-		g_message("hostile stats: count=%d level2=%d heads=%d enlisted=%d",
-			stats.count, stats.level2, stats.heads, stats.enlisted);
+		g_message("loaded %u hostile IP addresses/netmasks (%u hosts)",
+			iprange_get_item_count(hostile_db[which]),
+			iprange_get_host_count(hostile_db[which]));
 	}
-
-	return count;
+	return iprange_get_item_count(hostile_db[which]);
 }
 
 /**
@@ -361,7 +341,7 @@ hostiles_check(const host_addr_t ha)
 
 			if (
 				NULL != hostile_db[i] &&
-				THERE == iprange_get(hostile_db[i], ip)
+				hostile == iprange_get(hostile_db[i], ip)
 			)
 				return TRUE;
 		}

@@ -52,12 +52,12 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define THERE	GUINT_TO_POINTER(0x2)
+static const gchar bogon[] = "bogon";
 
 static const gchar bogons_file[] = "bogons.txt";
 static const gchar bogons_what[] = "Bogus IP addresses";
 
-static gpointer bogons_db;		/**< The database of bogus CIDR ranges */
+static struct iprange_db *bogons_db; /**< The database of bogus CIDR ranges */
 
 /**
  * Load bogons data from the supplied FILE.
@@ -71,11 +71,10 @@ bogons_load(FILE *f)
 	gchar *p;
 	guint32 ip, netmask;
 	int linenum = 0;
-	gint count = 0;
 	gint bits;
 	iprange_err_t error;
 
-	bogons_db = iprange_make(NULL, NULL);
+	bogons_db = iprange_make();
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -104,19 +103,12 @@ bogons_load(FILE *f)
 		}
 
 		bits = netmask_to_cidr(netmask);
-		error = iprange_add_cidr(bogons_db, ip, bits, THERE);
+		error = iprange_add_cidr(bogons_db, ip, bits,
+					deconstify_gpointer(bogon));
 
 		switch (error) {
 		case IPR_ERR_OK:
 			break;
-		case IPR_ERR_RANGE_OVERLAP:
-			error = iprange_add_cidr_force(bogons_db, ip, bits, THERE, NULL);
-			if (error == IPR_ERR_OK) {
-				g_warning("%s, line %d: "
-					"entry \"%s\" (%s/%d) superseded earlier smaller range",
-					bogons_file, linenum, line, ip_to_string(ip), bits);
-				break;
-			}
 			/* FALL THROUGH */
 		default:
 			g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
@@ -124,21 +116,17 @@ bogons_load(FILE *f)
 				iprange_strerror(error));
 			continue;
 		}
-
-		count++;
 	}
+
+	iprange_sync(bogons_db);
 
 	if (dbg) {
-		iprange_stats_t stats;
-
-		iprange_get_stats(bogons_db, &stats);
-
-		g_message("loaded %d bogus IP ranges", count);
-		g_message("bogons stats: count=%d level2=%d heads=%d enlisted=%d",
-			stats.count, stats.level2, stats.heads, stats.enlisted);
+		g_message("loaded %u bogus IP ranges (%u hosts)",
+			iprange_get_item_count(bogons_db),
+			iprange_get_host_count(bogons_db));
 	}
 
-	return count;
+	return iprange_get_item_count(bogons_db);
 }
 
 /**
@@ -225,10 +213,7 @@ bogons_init(void)
 void
 bogons_close(void)
 {
-	if (bogons_db) {
-		iprange_free_each(bogons_db, NULL);
-		bogons_db = NULL;
-	}
+	iprange_free(&bogons_db);
 }
 
 /**
@@ -241,7 +226,7 @@ bogons_check(const host_addr_t ha)
 {
 	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
 		guint32 ip = host_addr_ipv4(ha);
-		return bogons_db != NULL && THERE == iprange_get(bogons_db, ip);
+		return bogons_db != NULL && bogon == iprange_get(bogons_db, ip);
 	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 		host_addr_t to;
 

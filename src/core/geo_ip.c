@@ -56,7 +56,7 @@ RCSID("$Id$")
 static const gchar gip_file[] = "geo-ip.txt";
 static const gchar gip_what[] = "Geographic IP mappings";
 
-static gpointer geo_db;			/**< The database of bogus CIDR ranges */
+static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
 
 /**
  * Context used during ip_range_split() calls.
@@ -65,7 +65,6 @@ struct range_context {
 	guint32 ip1;				/**< Original lower IP in global range */
 	guint32 ip2;				/**< Original upper IP in global range */
 	gint country;				/**< Country code (numerical encoded) */
-	gint count;					/**< Amount of ranges we added, for stats */
 	gchar *line;				/**< The line from the input file */
 	gint linenum;				/**< Line number in input file, for errors */
 };
@@ -92,14 +91,6 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 	switch (error) {
 	case IPR_ERR_OK:
 		break;
-	case IPR_ERR_RANGE_OVERLAP:
-		error = iprange_add_cidr_force(geo_db, ip, bits, ccode, NULL);
-		if (error == IPR_ERR_OK) {
-			g_warning("%s, line %d: "
-				"entry \"%s\" (%s/%d) superseded earlier smaller range",
-				gip_file, ctx->linenum, ctx->line, ip_to_string(ip), bits);
-			break;
-		}
 		/* FALL THROUGH */
 	default:
 		g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
@@ -107,8 +98,6 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 			iprange_strerror(error));
 		return;
 	}
-
-	ctx->count++;
 }
 
 /**
@@ -116,7 +105,7 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
  *
  * @return The amount of entries loaded.
  */
-static gint
+static guint
 gip_load(FILE *f)
 {
 	gchar line[1024];
@@ -126,8 +115,7 @@ gip_load(FILE *f)
 	gint c, code;
 	struct range_context ctx;
 
-	geo_db = iprange_make(NULL, NULL);
-	ctx.count = 0;
+	geo_db = iprange_make();
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -235,17 +223,14 @@ gip_load(FILE *f)
 		ip_range_split(ctx.ip1, ctx.ip2, gip_add_cidr, &ctx);
 	}
 
+	iprange_sync(geo_db);
+
 	if (dbg) {
-		iprange_stats_t stats;
-
-		iprange_get_stats(geo_db, &stats);
-
-		g_message("loaded %d geographical IP ranges", ctx.count);
-		g_message("geo IP stats: count=%d level2=%d heads=%d enlisted=%d",
-			stats.count, stats.level2, stats.heads, stats.enlisted);
+		g_message("loaded %u geographical IP ranges (%u hosts)",
+			iprange_get_item_count(geo_db),
+			iprange_get_host_count(geo_db));
 	}
-
-	return ctx.count;
+	return iprange_get_item_count(geo_db);
 }
 
 /**
@@ -257,7 +242,7 @@ gip_changed(const gchar *filename, gpointer unused)
 {
 	FILE *f;
 	gchar buf[80];
-	gint count;
+	guint count;
 
 	(void) unused;
 
@@ -269,7 +254,7 @@ gip_changed(const gchar *filename, gpointer unused)
 	count = gip_load(f);
 	fclose(f);
 
-	gm_snprintf(buf, sizeof(buf), "Reloaded %d geographic IP ranges.", count);
+	gm_snprintf(buf, sizeof(buf), "Reloaded %u geographic IP ranges.", count);
 	gcu_statusbar_message(buf);
 }
 
@@ -333,10 +318,7 @@ gip_init(void)
 void
 gip_close(void)
 {
-	if (geo_db) {
-		iprange_free_each(geo_db, NULL);
-		geo_db = NULL;
-	}
+	iprange_free(&geo_db);
 }
 
 /**

@@ -38,19 +38,6 @@
 
 #include "common.h"
 
-typedef void (*iprange_free_t)(gpointer value, gpointer udata);
-typedef gpointer (*iprange_clone_t)(gpointer value);
-
-/**
- * Statistics.
- */
-typedef struct {
-	gint count;					/**< Items held in database */
-	gint level2;				/**< Level-2 pages used */
-	gint heads;					/**< Lists of network ranges used */
-	gint enlisted;				/**< Items held in lists */
-} iprange_stats_t;
-
 /**
  * Error codes.
  */
@@ -70,16 +57,19 @@ typedef enum {
  * Public interface.
  */
 
+struct iprange_db;
+
 const gchar *iprange_strerror(iprange_err_t errnum);
 
-gpointer iprange_make(iprange_free_t freecb, iprange_clone_t clonecb);
-void iprange_free_each(gpointer db, gpointer udata);
+struct iprange_db *iprange_make(void);
 iprange_err_t iprange_add_cidr(
-	gpointer db, guint32 net, guint bits, gpointer udata);
-iprange_err_t iprange_add_cidr_force(
-	gpointer db, guint32 net, guint bits, gpointer udata, gpointer cdata);
-gpointer iprange_get(gpointer db, guint32 ip);
-void iprange_get_stats(gpointer db, iprange_stats_t *stats);
+	struct iprange_db *db, guint32 net, guint bits, gpointer udata);
+gpointer iprange_get(const struct iprange_db *db, guint32 ip);
+void iprange_sync(struct iprange_db *idb);
+void iprange_free(struct iprange_db **idb_ptr);
+
+guint iprange_get_item_count(const struct iprange_db *idb);
+guint iprange_get_host_count(const struct iprange_db *idb);
 
 #endif	/* _iprange_h_ */
 
