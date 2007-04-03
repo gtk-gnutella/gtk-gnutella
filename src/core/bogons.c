@@ -74,7 +74,7 @@ bogons_load(FILE *f)
 	gint bits;
 	iprange_err_t error;
 
-	bogons_db = iprange_make();
+	bogons_db = iprange_new();
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -226,7 +226,7 @@ bogons_check(const host_addr_t ha)
 {
 	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
 		guint32 ip = host_addr_ipv4(ha);
-		return bogons_db != NULL && bogon == iprange_get(bogons_db, ip);
+		return bogons_db && iprange_get(bogons_db, ip);
 	} else if (NET_TYPE_IPV6 == host_addr_net(ha)) {
 		host_addr_t to;
 

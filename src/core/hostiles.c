@@ -105,7 +105,7 @@ hostiles_load(FILE *f, hostiles_t which)
 	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
 	g_assert(NULL == hostile_db[which]);
 
-	hostile_db[which] = iprange_make();
+	hostile_db[which] = iprange_new();
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -341,7 +341,7 @@ hostiles_check(const host_addr_t ha)
 
 			if (
 				NULL != hostile_db[i] &&
-				hostile == iprange_get(hostile_db[i], ip)
+				NULL != iprange_get(hostile_db[i], ip)
 			)
 				return TRUE;
 		}

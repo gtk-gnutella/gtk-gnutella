@@ -61,10 +61,10 @@ struct iprange_db;
 
 const gchar *iprange_strerror(iprange_err_t errnum);
 
-struct iprange_db *iprange_make(void);
+struct iprange_db *iprange_new(void);
 iprange_err_t iprange_add_cidr(
-	struct iprange_db *db, guint32 net, guint bits, gpointer udata);
-gpointer iprange_get(const struct iprange_db *db, guint32 ip);
+	struct iprange_db *db, guint32 net, guint bits, void *value);
+void *iprange_get(const struct iprange_db *db, guint32 ip);
 void iprange_sync(struct iprange_db *idb);
 void iprange_free(struct iprange_db **idb_ptr);
 

@@ -115,7 +115,7 @@ gip_load(FILE *f)
 	gint c, code;
 	struct range_context ctx;
 
-	geo_db = iprange_make();
+	geo_db = iprange_new();
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
