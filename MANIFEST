@@ -570,6 +570,8 @@ src/lib/slist.c
 src/lib/slist.h
 src/lib/socket.c
 src/lib/socket.h
+src/lib/sorted_array.c
+src/lib/sorted_array.h
 src/lib/stats.c
 src/lib/stats.h
 src/lib/tiger.c

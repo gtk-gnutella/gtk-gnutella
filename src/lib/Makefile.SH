@@ -127,6 +127,7 @@ LSRC = \
 	prop.c \
 	sha1.c \
 	slist.c \
+	sorted_array.c \
 	stats.c \
 	tiger.c \
 	tigertree.c \
@@ -186,6 +187,7 @@ LOBJ = \
 	prop.o \
 	sha1.o \
 	slist.o \
+	sorted_array.o \
 	stats.o \
 	tiger.o \
 	tigertree.o \
