@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/sorted_array.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/utf8.h"
@@ -69,7 +70,7 @@ static const gchar spam_what[] = "Spam database";
 
 struct spam_lut {
 	GSList *sl_names;	/* List of g_malloc()ed regex_t items */
-	GHashTable *ht;
+	struct sorted_array *tab;
 };
 
 static struct spam_lut spam_lut;
@@ -123,25 +124,39 @@ spam_string_to_tag(const gchar *s)
 	return SPAM_TAG_UNKNOWN;
 }
 
-static gint
-spam_db_open(struct spam_lut *lut)
+static inline int
+sha1_cmp_func(const void *a, const void *b)
 {
-	g_assert(lut);
-
-	lut->ht = g_hash_table_new(sha1_hash, sha1_eq);
-	return 0;
+	return sha1_cmp(a, b);
 }
 
 static void
-spam_add_sha1(const sha1_t *sha1)
+spam_add_sha1(const struct sha1 *sha1)
 {
-	g_assert(sha1);
+	g_return_if_fail(sha1);
+	if (NULL == spam_lut.tab) {
+		spam_lut.tab = sorted_array_new(sizeof *sha1, sha1_cmp_func);
+	}
+	sorted_array_add(spam_lut.tab, sha1);
+}
 
-	if (spam_lut.ht) {
-		const gchar *atom = atom_sha1_get(cast_to_gconstpointer(sha1->data));
-		gm_hash_table_insert_const(spam_lut.ht, atom, atom);
+int
+sha1_collision(const void *a, const void *b)
+{
+	(void) a;
+	g_warning("spam_sha1_sync(): Removing duplicate SHA-1 %s",
+		sha1_base32(b));
+	return 1;
+}
+
+void
+spam_sha1_sync(void)
+{
+	if (spam_lut.tab) {
+		sorted_array_sync(spam_lut.tab, sha1_collision);
 	}
 }
+
 
 struct namesize_item {
 	regex_t		pattern;
@@ -178,7 +193,7 @@ spam_add_name_and_size(const gchar *name,
 }
 
 struct spam_item {
-	sha1_t		sha1;
+	struct sha1 sha1;
 	gchar		*name;
 	filesize_t  min_size;
 	filesize_t  max_size;
@@ -213,10 +228,6 @@ spam_load(FILE *f)
 	/* Reset state */
 	item = zero_item;
 	bit_array_clear_range(tag_used, 0, NUM_SPAM_TAGS - 1U);
-
-	if (0 != spam_db_open(&spam_lut)) {
-		return -1;
-	}
 
 	while (fgets(line, sizeof line, f)) {
 		const gchar *tag_name, *value;
@@ -403,6 +414,8 @@ spam_load(FILE *f)
 		}
 	}
 
+	spam_sha1_sync();
+
 	return item_count;
 }
 
@@ -494,39 +507,25 @@ spam_init(void)
 	spam_retrieve();
 }
 
-static void
-spam_sha1_free(gpointer key, gpointer value, gpointer unused_x)
-{
-	(void) unused_x;
-
-	g_assert(key == value);
-	atom_sha1_free(key);
-}
-
 /**
  * Frees all entries in the spam database.
  */
 void
 spam_close(void)
 {
-	if (spam_lut.ht) {
-		g_hash_table_foreach(spam_lut.ht, spam_sha1_free, NULL);
-		g_hash_table_destroy(spam_lut.ht);
-		spam_lut.ht = NULL;
-	}
-	{
-		GSList *sl;
+	GSList *sl;
 
-		for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
-			struct namesize_item *item = sl->data;
+	sorted_array_free(&spam_lut.tab);
 
-			g_assert(item);
-			regfree(&item->pattern);
-			wfree(item, sizeof *item);
-		}
-		g_slist_free(spam_lut.sl_names);
-		spam_lut.sl_names = NULL;
+	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
+		struct namesize_item *item = sl->data;
+
+		g_assert(item);
+		regfree(&item->pattern);
+		wfree(item, sizeof *item);
 	}
+	g_slist_free(spam_lut.sl_names);
+	spam_lut.sl_names = NULL;
 }
 
 /**
@@ -539,11 +538,7 @@ gboolean
 spam_check_sha1(const char *sha1)
 {
 	g_return_val_if_fail(sha1, FALSE);
-
-	if (spam_lut.ht) {
-		return NULL != g_hash_table_lookup(spam_lut.ht, sha1);
-	}
-	return FALSE;
+	return spam_lut.tab && NULL != sorted_array_lookup(spam_lut.tab, sha1);
 }
 
 /**
