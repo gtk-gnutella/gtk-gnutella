@@ -686,6 +686,19 @@ netmask_to_cidr(guint32 netmask)
 #endif /* HAVE_BUILTIN_POPCOUNT */
 
 /**
+ * Converts the CIDR prefix length to a IPv4 netmask in host byte order.
+ * No checks are performed.
+ *
+ * @param bits A value between 1..32.
+ * @return The equivalent netmask in host byte order.
+ */
+static inline G_GNUC_CONST WARN_UNUSED_RESULT guint32
+cidr_to_netmask(guint bits)
+{
+	return (guint32)-1 << (32 - bits);
+}
+
+/**
  * Rounds ``n'' up so that it matches the given alignment ``align''.
  */
 static inline size_t
