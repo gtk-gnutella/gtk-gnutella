@@ -473,6 +473,12 @@ gchar *sha1_to_base32_buf(const gchar *sha1, gchar *dst, size_t size);
 gchar *sha1_base32(const gchar *sha1);
 gchar *base32_sha1(const gchar *base32);
 
+static inline int
+sha1_cmp(const struct sha1 *a, const struct sha1 *b)
+{
+	return memcmp(a, b, SHA1_RAW_SIZE);
+}
+
 /*
  * TTH <-> base32 string conversion
  */
