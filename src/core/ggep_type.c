@@ -40,8 +40,10 @@ RCSID("$Id$")
 #include "ggep.h"
 #include "ggep_type.h"
 #include "hosts.h"				/* For struct gnutella_host */
+
 #include "lib/endian.h"
 #include "lib/misc.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 
 #include "if/core/hosts.h"
@@ -230,6 +232,10 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 	memcpy(buf, payload, slen);
 	buf[slen] = '\0';
 
+	if (!utf8_is_valid_string(buf)) {
+		return GGEP_INVALID;
+	}
+
 	/*
 	 * Make sure the full string qualifies as hostname and is not an
 	 * IP address.
@@ -246,7 +252,7 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 			return GGEP_INVALID;
 		}
 	}
-	
+
 	return GGEP_OK;
 }
 
