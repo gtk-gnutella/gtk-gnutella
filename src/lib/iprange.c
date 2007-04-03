@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "host_addr.h"
 #include "iprange.h"
 #include "misc.h"
+#include "sorted_array.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -56,8 +57,8 @@ enum iprange_db_magic {
  */
 struct iprange_net {
 	guint32 ip;		/**< The IP of the network */
-	guint8  bits;	/**< The network bit mask, selecting meaningful bits */
-	gpointer value;	/**< Value held */
+	guint32 mask;	/**< The network bit mask, selecting meaningful bits */
+	gpointer value;
 };
 
 /*
@@ -65,11 +66,7 @@ struct iprange_net {
  */
 struct iprange_db {
 	enum iprange_db_magic magic; /**< Magic number */
-	
-	struct iprange_net *items;
-	size_t num_items;			 /**< Number of valid items */
-	size_t num_size;			 /**< Number of allocated items */
-	size_t num_added;			 /**< Number of items added */
+	struct sorted_array *tab;
 };
 
 static inline void
@@ -105,11 +102,23 @@ iprange_strerror(iprange_err_t errnum)
 	return iprange_errstr[errnum];
 }
 
+static inline int
+iprange_net_cmp(const void *p, const void *q)
+{
+	const struct iprange_net *a = p, *b = q;
+	guint32 mask, a_key, b_key;
+
+	mask = a->mask & b->mask;
+	a_key = a->ip & mask;
+	b_key = b->ip & mask;
+	return CMP(a_key, b_key);
+}
+
 /**
  * Create a new IP range database.
  */
 struct iprange_db *
-iprange_make(void)
+iprange_new(void)
 {
 	static const struct iprange_db zero_idb;
 	struct iprange_db *idb;
@@ -117,6 +126,7 @@ iprange_make(void)
 	idb = walloc(sizeof *idb);
 	*idb = zero_idb;
 	idb->magic = IPRANGE_DB_MAGIC;
+	idb->tab = sorted_array_new(sizeof(struct iprange_net), iprange_net_cmp);
 	return idb;
 }
 
@@ -133,22 +143,10 @@ iprange_free(struct iprange_db **idb_ptr)
 	idb = *idb_ptr;
 	if (idb) {
 		iprange_db_check(idb);
-		G_FREE_NULL(idb->items);
+		sorted_array_free(&idb->tab);
 		wfree(idb, sizeof *idb);
 		*idb_ptr = NULL;
 	}
-}
-
-static inline int
-cmp_iprange_net(const void *p, const void *q)
-{
-	const struct iprange_net *a = p, *b = q;
-	guint32 mask, a_key, b_key;
-
-	mask = cidr_to_netmask(MIN(a->bits, b->bits));
-	a_key = a->ip & mask;
-	b_key = b->ip & mask;
-	return CMP(a_key, b_key);
 }
 
 /**
@@ -159,30 +157,18 @@ cmp_iprange_net(const void *p, const void *q)
  * @param ip	the IPv4 address to lookup
  * @return The data associated with the IPv address or NULL if not found.
  */
-gpointer
+void *
 iprange_get(const struct iprange_db *idb, guint32 ip)
 {
-	struct iprange_net key;
+	struct iprange_net key, *item;
 
 	iprange_db_check(idb);
 
 	key.ip = ip;
-	key.bits = 32;
-	
-#define GET_ITEM(i) (&idb->items[(i)])
-#define FOUND(i) G_STMT_START { \
-	return idb->items[(i)].value; \
-	/* NOTREACHED */ \
-} G_STMT_END
-	
-	BINARY_SEARCH(const struct iprange_net *, &key,
-		idb->num_items, cmp_iprange_net, GET_ITEM, FOUND);
-
-#undef GET_ITEM
-#undef FOUND
-	return NULL;
+	key.mask = cidr_to_netmask(32);
+	item = sorted_array_lookup(idb->tab, &key);
+	return item ? item->value : NULL;
 }
-
 
 /**
  * Add CIDR network to the database.
@@ -190,39 +176,42 @@ iprange_get(const struct iprange_db *idb, guint32 ip)
  * @param db	the IP range database
  * @param net	the network prefix
  * @param bits	the amount of bits in the network prefix
- * @param udata	value associated to this IP network
+ * @param value	value associated to this IP network
  *
  * @return IPR_ERR_OK if successful, an error code otherwise.
  */
 iprange_err_t
 iprange_add_cidr(struct iprange_db *idb,
-	guint32 net, guint bits, gpointer udata)
+	guint32 net, guint bits, void *value)
 {
-	struct iprange_net *item;
-	guint32 mask;
+	struct iprange_net item;
 	
 	iprange_db_check(idb);
 	g_return_val_if_fail(bits > 0, IPR_ERR_BAD_PREFIX);
 	g_return_val_if_fail(bits <= 32, IPR_ERR_BAD_PREFIX);
 
-	mask = cidr_to_netmask(bits);
-	if ((net & mask) != net)
+	item.ip = net;
+	item.mask = cidr_to_netmask(bits);
+	item.value = value;
+
+	if ((item.ip & item.mask) != item.ip) {
 		return IPR_ERR_BAD_PREFIX;
-	
-	if (idb->num_added >= idb->num_size) {
-		idb->num_size = idb->num_size ? (idb->num_size * 2) : 8;
-		idb->items = g_realloc(idb->items,
-						idb->num_size * sizeof idb->items[0]);
+	} else {
+		sorted_array_add(idb->tab, &item);
+		return IPR_ERR_OK;
 	}
+}
 
-	item = &idb->items[idb->num_added];
-	idb->num_added++;
+static inline int
+iprange_net_collision(const void *p, const void *q)
+{
+	const struct iprange_net *a = p, *b = q;
 
-	item->ip = net;
-	item->bits = bits;
-	item->value = udata;
+	g_warning("iprange_sync(): %s/0x%x overlaps with %s/0x%x",
+		ip_to_string(a->ip), a->mask,
+		host_addr_to_string(host_addr_get_ipv4(b->ip)), b->mask);
 
-	return IPR_ERR_OK;
+	return a->mask > b->mask ? 1 : -1;
 }
 
 /**
@@ -236,60 +225,8 @@ iprange_add_cidr(struct iprange_db *idb,
 void
 iprange_sync(struct iprange_db *idb)
 {
-	size_t i, removed;
-
 	iprange_db_check(idb);
-
-	qsort(idb->items, idb->num_added, sizeof idb->items[0], cmp_iprange_net);
-
-	/*
-	 * Remove duplicates and overlapping ranges. Wider ranges override
-	 * narrow ranges.
-	 */
-
-	removed = 0;
-	for (i = 1; i < idb->num_added; i++) {
-		struct iprange_net *a, *b;
-
-		a = &idb->items[i - 1];
-		b = &idb->items[i];
-		if (0 == cmp_iprange_net(a, b)) {
-			struct iprange_net *last;
-			
-			removed++;
-
-			g_warning("iprange_sync(): %s/%u overlaps with %s/%u",
-				ip_to_string(a->ip), a->bits,
-				host_addr_to_string(host_addr_get_ipv4(b->ip)), b->bits);
-
-			/* Overwrite the current item with last listed item. */
-			last = &idb->items[idb->num_added - removed];
-			if (a->bits > b->bits) {
-				*a = *last;
-			} else {
-				*b = *last;
-			}
-		}
-	}
-
-	if (removed > 0) {
-		/* Finally, correct order and item count. */
-		idb->num_added -= removed;
-		qsort(idb->items, idb->num_added, sizeof idb->items[0],
-				cmp_iprange_net);
-	}
-	idb->num_items = idb->num_added;
-	
-	/* Compact the array if possible to save some memory. */
-	if (idb->num_size > idb->num_items) {
-		idb->num_size = idb->num_items;
-		idb->items = g_realloc(idb->items,
-						idb->num_size * sizeof idb->items[0]);
-	}
-	
-	for (i = 0; i < idb->num_items; i++) {
-		g_assert(iprange_get(idb, idb->items[i].ip) == idb->items[i].value);
-	}
+	sorted_array_sync(idb->tab, iprange_net_collision);
 }
 
 /**
@@ -302,7 +239,7 @@ guint
 iprange_get_item_count(const struct iprange_db *idb)
 {
 	iprange_db_check(idb);
-	return idb->num_items;
+	return sorted_array_size(idb->tab);
 }
 
 /**
@@ -314,14 +251,16 @@ iprange_get_item_count(const struct iprange_db *idb)
 guint
 iprange_get_host_count(const struct iprange_db *idb)
 {
-	size_t i;
-	guint n = 0;
+	size_t i, n;
+	guint hosts = 0;
 
-	iprange_db_check(idb);
-	for (i = 0; i < idb->num_items; i++) {
-		n += 1 << (32 - idb->items[i].bits);
+	n = iprange_get_item_count(idb);
+
+	for (i = 0; i < n; i++) {
+		struct iprange_net *item = sorted_array_item(idb->tab, i);
+		hosts += ~item->mask + 1;
 	}
-	return n;
+	return hosts;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
