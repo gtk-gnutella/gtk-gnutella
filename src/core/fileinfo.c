@@ -4777,7 +4777,7 @@ file_info_active(const gchar *sha1)
  */
 void
 file_info_try_to_swarm_with(
-	const gchar *file_name, guint32 idx, const host_addr_t addr, guint16 port,
+	const gchar *file_name, const host_addr_t addr, guint16 port,
 	const gchar *sha1)
 {
 	fileinfo_t *fi;
@@ -4791,8 +4791,16 @@ file_info_try_to_swarm_with(
 
 	file_info_check(fi);
 	download_auto_new(file_name ? file_name : fi->file_name,
-		fi->size, idx, addr, port, blank_guid, NULL,
-		sha1, tm_time(), TRUE, fi, NULL, /* XXX: TLS? */ 0);
+		fi->size,
+		addr,
+		port,
+		blank_guid,
+		NULL,	/* hostname */
+		sha1,
+		tm_time(),
+		fi,
+		NULL,	/* proxies */
+		/* XXX: TLS? */ 0);
 }
 
 /**

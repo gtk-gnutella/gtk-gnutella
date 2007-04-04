@@ -4294,6 +4294,38 @@ download_escape_name(const gchar *name)
 	return atom;
 }
 
+static guint32
+get_index_from_uri(const gchar *uri)
+{
+	guint32 idx = 0;
+
+	if (uri) {
+		const gchar *endptr;
+
+		endptr = is_strprefix(uri, "/get/");
+		if (endptr) {
+			gint error;
+
+			/*
+			 * Only accept URIs of this form with a non-empty filename:
+			 *
+			 *	"/get/<32-bit integer>/<filename>"
+			 */
+
+			idx = parse_uint32(endptr, &endptr, 10, &error);
+			if (
+				error ||
+				'/' != endptr[0] ||
+				'\0' == endptr[1] ||
+				NULL != strchr(&endptr[1], '/')
+			) {
+				idx = 0;
+			}
+		}
+	}
+	return idx;
+}
+
 /*
  * Downloads creation and destruction
  */
@@ -4301,35 +4333,29 @@ download_escape_name(const gchar *name)
 /**
  * Create a new download.
  *
- * When `interactive' is TRUE, we assume the filename is not yet sanitized.
- *
- * @attention
- * NB: If `record_index' == URN_INDEX, and a `sha1' is also supplied, then
- * this is our convention for expressing a /uri-res/N2R? download URL.
- * However, we don't forbid 0 as a valid record index if it does not
- * have a SHA1.
- *
  * @returns created download structure, or NULL if none.
  */
 static struct download *
-create_download(const gchar *file_name, const gchar *uri, filesize_t size,
-	guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid,
-	const gchar *hostname, const gchar *sha1, time_t stamp,
-	gboolean interactive, gboolean file_size_known,
-	fileinfo_t *file_info, const gnet_host_vec_t *proxies, guint32 cflags)
+create_download(
+	const gchar *file_name,
+	const gchar *uri,
+	filesize_t size,
+	const host_addr_t addr,
+	guint16 port, const gchar *guid,
+	const gchar *hostname,
+	const gchar *sha1,
+	time_t stamp,
+	fileinfo_t *file_info,
+	const gnet_host_vec_t *proxies,
+	guint32 cflags,
+	const gchar *parq_id)
 {
 	struct dl_server *server;
 	struct download *d;
+	guint32 record_index;
 	fileinfo_t *fi;
 
-	g_assert(size == 0 || file_size_known);
 	g_assert(host_addr_initialized(addr));
-
-	if (!file_size_known) {
-		size = 0;
-		/* Value should be updated later when known by HTTP headers */
-	}
 
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
@@ -4353,7 +4379,7 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 		return NULL;
 	}
 
-	if (interactive) {
+	{
 		const gchar *orig_name;
 		gchar *s;
 		
@@ -4366,8 +4392,6 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 		if (orig_name != s) {
 			G_FREE_NULL(s);
 		}
-	} else {
-		file_name = atom_str_get(file_name);
 	}
 
 	/*
@@ -4397,9 +4421,6 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 	d = has_same_download(file_name, sha1, size, guid, addr, port);
 	if (d) {
 		download_check(d);
-		if (interactive) {
-			g_message("rejecting duplicate download for %s", file_name);
-		}
 		atom_str_free_null(&file_name);
 		return NULL;
 	}
@@ -4456,7 +4477,7 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 	 */
 
 	fi = file_info == NULL ?
-		file_info_get(d->file_name, save_file_path, size, sha1, file_size_known)
+		file_info_get(d->file_name, save_file_path, size, sha1, 0 != size)
 		: file_info;
 
 	if (fi->flags & FI_F_SUSPEND)
@@ -4486,7 +4507,9 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 	 * Insert in download mesh if it does not require a push and has a SHA1.
 	 */
 
-	if (!d->always_push && d->sha1 && !d->uri)
+	record_index = get_index_from_uri(d->uri);
+
+	if (!d->always_push && d->sha1 && (NULL == d->uri || 0 != record_index))
 		dmesh_add(d->sha1, addr, port, record_index, d->file_name, stamp);
 
 	/*
@@ -4540,6 +4563,15 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
 		download_queue(d, "%s", reason);
 	}
 
+	/*
+	 * Record PARQ id if present, so we may answer QUEUE callbacks.
+	 */
+
+	if (parq_id) {
+		d->queue_status = parq_dl_create(d);
+		parq_dl_add_id(d, parq_id);
+	}
+
 	return d;
 }
 
@@ -4547,11 +4579,17 @@ create_download(const gchar *file_name, const gchar *uri, filesize_t size,
  * Automatic download request.
  */
 void
-download_auto_new(const gchar *file_name, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid,
-	const gchar *hostname, const gchar *sha1, time_t stamp,
-	gboolean file_size_known, fileinfo_t *fi,
-	gnet_host_vec_t *proxies, guint32 flags)
+download_auto_new(const gchar *file_name,
+	filesize_t size,
+	const host_addr_t addr,
+   	guint16 port,
+	const gchar *guid,
+	const gchar *hostname,
+	const gchar *sha1,
+	time_t stamp,
+	fileinfo_t *fi,
+	gnet_host_vec_t *proxies,
+	guint32 flags)
 {
 	const char *reason;
 	enum ignore_val ign_reason;
@@ -4589,9 +4627,19 @@ download_auto_new(const gchar *file_name, filesize_t size, guint32 record_index,
 	 * Create download.
 	 */
 
-	create_download(file_name, NULL, size, record_index, addr, port,
-		guid, hostname, sha1, stamp, FALSE, file_size_known, fi,
-		proxies, flags);
+	create_download(file_name,
+		NULL, /* URI */
+		size,
+		addr,
+		port,
+		guid,
+		hostname,
+		sha1,
+		stamp,
+		fi,
+		proxies,
+		flags,
+		NULL); /* PARQ ID */
 
 	return;
 
@@ -4780,17 +4828,57 @@ struct download_request {
 	host_addr_t addr;
 	const gchar *guid;
 	const gchar *hostname;
-	const gchar *file;
+	const gchar *filename;
 	const gchar *sha1;
 	const gchar *uri;
+	const gchar *parq_id;
 	gnet_host_vec_t *proxies;
 	fileinfo_t *fi;
 	filesize_t size;
 	time_t stamp;
 	guint32 flags;
-	guint32 record_index;
 	guint16 port;
 };
+
+static struct download_request *
+download_request_new(
+	const gchar *filename,
+	const gchar *uri,
+	filesize_t size,
+	host_addr_t addr,
+	guint16 port,
+	const gchar *guid,
+	const gchar *hostname,
+	const struct sha1 *sha1,
+	time_t stamp,
+	fileinfo_t *fi,
+	guint32 flags,
+	const gnet_host_vec_t *proxies,
+	const gchar *parq_id)
+{
+	static struct download_request zero_req;
+	struct download_request *req;
+
+	g_return_val_if_fail(filename, NULL);
+
+	req = walloc(sizeof *req);
+	*req = zero_req;
+
+	req->filename = atom_str_get(filename);
+	req->uri = uri ? atom_str_get(uri) : NULL;
+	req->size = size;
+	req->addr = addr;
+	req->port = port;
+	req->guid = guid ? atom_guid_get(guid) : NULL;
+	req->hostname = hostname ? atom_str_get(hostname) : NULL;
+	req->sha1 = sha1 ? atom_sha1_get(sha1->data) : NULL;
+	req->stamp = stamp;
+	req->fi = fi;	/* XXX: Increase ref counter or what? */
+	req->flags = flags;
+	req->proxies = proxies ? gnet_host_vec_copy(proxies) : NULL;
+	req->parq_id = parq_id ? atom_str_get(parq_id) : NULL;
+	return req;
+}
 
 static void
 download_request_free(struct download_request **req_ptr)
@@ -4806,7 +4894,8 @@ download_request_free(struct download_request **req_ptr)
 	atom_str_free_null(&req->uri);
 	atom_sha1_free_null(&req->sha1);
 	atom_str_free_null(&req->hostname);
-	atom_str_free_null(&req->file);
+	atom_str_free_null(&req->filename);
+	atom_str_free_null(&req->parq_id);
 	atom_guid_free_null(&req->guid);
 	gnet_host_vec_free(&req->proxies);
 	wfree(req, sizeof *req);
@@ -4830,10 +4919,19 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 		/**
 		 * @todo TODO: All resolved addresses should be attempted.
 		 */
-		create_download(req->file, req->uri, req->size,
-			req->record_index, addrs[i],
-			req->port, req->guid, req->hostname, req->sha1, req->stamp,
-			TRUE, 0 != req->size, req->fi, NULL, req->flags);
+		create_download(req->filename,
+			req->uri,
+			req->size,
+			addrs[i],
+			req->port,
+			req->guid,
+			req->hostname,
+			req->sha1,
+			req->stamp,
+			req->fi,
+			NULL,
+			req->flags,
+			req->parq_id);
 	}
 	download_request_free(&req);
 }
@@ -4854,86 +4952,43 @@ download_new_by_hostname(struct download_request *req)
  * @return whether download was created.
  */
 gboolean
-download_new(const gchar *file, filesize_t size, guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid,
-	const gchar *hostname, const gchar *sha1, time_t stamp,
-	fileinfo_t *fi, const gnet_host_vec_t *proxies, guint32 flags)
+download_new(const gchar *filename,
+	const gchar *uri,
+	filesize_t size,
+	const host_addr_t addr,
+	guint16 port,
+	const gchar *guid,
+	const gchar *hostname,
+	const gchar *sha1,
+	time_t stamp,
+	fileinfo_t *fi,
+	const gnet_host_vec_t *proxies,
+	guint32 flags,
+	const gchar *parq_id)
 {
 	if (hostname) {
-		static struct download_request zero_req;
 		struct download_request *req;
 
-		req = walloc(sizeof *req);
-		*req = zero_req;
-
-		req->file = atom_str_get(file);
-		req->size = size;
-		req->record_index = record_index;
-		req->addr = addr;
-		req->port = port;
-		req->guid = atom_guid_get(guid);
-		req->hostname = atom_str_get(hostname);
-		req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
-		req->stamp = stamp;
-		req->fi = fi;	/* XXX: Increase ref counter or what? */
-		req->flags = flags;
-		req->proxies = proxies ? gnet_host_vec_copy(proxies) : NULL;
+		req = download_request_new(filename,
+				uri,
+				size,
+				addr,
+				port,
+				guid,
+				hostname,
+				(const struct sha1 *) sha1,
+				stamp,
+				fi,
+				flags,
+				proxies,
+				parq_id);
 
 		download_new_by_hostname(req);
 		return TRUE;
 	}
-	return NULL != create_download(file, NULL, size, record_index, addr,
-					port, guid, hostname, sha1, stamp, TRUE,
-					0 != size, fi, proxies, flags);
-}
-
-/**
- * Create a new download whose total size is unknown.
- */
-gboolean
-download_new_unknown_size(const gchar *file, guint32 record_index,
-	const host_addr_t addr, guint16 port, const gchar *guid,
-	const gchar *hostname, const gchar *sha1, time_t stamp,
-	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags)
-{
-	return NULL != create_download(file, NULL, 0, record_index, addr, port,
-						guid, hostname, sha1, stamp, TRUE, FALSE, fi,
-						proxies, flags);
-}
-
-gboolean
-download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
-	  const host_addr_t addr, guint16 port, const gchar *guid,
-	  const gchar *hostname, const gchar *sha1, time_t stamp,
-	  fileinfo_t *fi, const gnet_host_vec_t *proxies, guint32 flags)
-{
-	if (hostname) {
-		static struct download_request zero_req;
-		struct download_request *req;
-
-		req = walloc(sizeof *req);
-		*req = zero_req;
-
-		req->file = atom_str_get(file);
-		req->uri = atom_str_get(uri);
-		req->size = size;
-		req->addr = addr;
-		req->port = port;
-		req->guid = atom_guid_get(guid);
-		req->hostname = atom_str_get(hostname);
-		req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
-		req->stamp = stamp;
-		req->fi = fi;	/* XXX: Increase ref counter or what? */
-		req->flags = flags;
-		req->proxies = proxies ? gnet_host_vec_copy(proxies) : NULL;
-
-		download_new_by_hostname(req);
-		return TRUE;
-	} else {
-		return NULL != create_download(file, uri, size, 0, addr, port,
-				guid, hostname, sha1, stamp, TRUE,
-				size != 0 ? TRUE : FALSE, fi, proxies, flags);
-	}
+	return NULL != create_download(filename, NULL, size, addr,
+					port, guid, hostname, sha1, stamp,
+					fi, proxies, flags, parq_id);
 }
 
 /**
@@ -4941,25 +4996,23 @@ download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
  * its fileinfo trailer.
  */
 void
-download_orphan_new(const gchar *file, filesize_t size, const gchar *sha1,
+download_orphan_new(const gchar *filename, filesize_t size, const gchar *sha1,
 	fileinfo_t *fi)
 {
 	time_t ntime = fi->ntime;
-	(void) create_download(file,
+	(void) create_download(filename,
 			NULL,	/* uri */
 		   	size,
-			0,		/* record_index */
 			ipv4_unspecified,	/* for host_addr_initialized() */
 			0,		/* port */
 			blank_guid,
 			NULL,	/* hostname*/
 			sha1,
 			tm_time(),
-			TRUE,	/* interactive */
-			TRUE,	/* file_size_known */
 			fi,
 			NULL,	/* proxies */
-			0);		/* cflags */
+			0,		/* cflags */
+			NULL);	/* PARQ ID */
 	fi->ntime = ntime;
 }
 
@@ -9276,9 +9329,7 @@ static gboolean retrieving = FALSE;
 gchar *
 download_build_magnet(const struct download *d)
 {
-	struct magnet_resource *magnet;
 	const fileinfo_t *fi;
-	const gchar *sha1, *parq_id;
 	gchar *url, *dl_url;
    
 	download_check(d);
@@ -9288,26 +9339,31 @@ download_build_magnet(const struct download *d)
 	file_info_check(fi);
 
 	dl_url = download_build_url(d);
-	g_return_val_if_fail(dl_url, NULL);
+	if (dl_url) {
+		struct magnet_resource *magnet;
+		const gchar *sha1, *parq_id;
 	
-	magnet = magnet_resource_new();
-	sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
-	if (sha1) {
-		magnet_set_sha1(magnet, sha1);
+		magnet = magnet_resource_new();
+		sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
+		if (sha1) {
+			magnet_set_sha1(magnet, sha1);
+		}
+		if (fi->file_name) {
+			magnet_set_display_name(magnet, fi->file_name);
+		}
+		if (fi->file_size_known && fi->size) {
+			magnet_set_filesize(magnet, fi->size);
+		}
+		parq_id = get_parq_dl_id(d);
+		if (parq_id) {
+			magnet_set_parq_id(magnet, parq_id);
+		}
+		magnet_add_source_by_url(magnet, dl_url);
+		url = magnet_to_string(magnet);
+		magnet_resource_free(&magnet);
+	} else {
+		url = NULL;
 	}
-	if (fi->file_name) {
-		magnet_set_display_name(magnet, fi->file_name);
-	}
-	if (fi->file_size_known && fi->size) {
-		magnet_set_filesize(magnet, fi->size);
-	}
-	parq_id = get_parq_dl_id(d);
-	if (parq_id) {
-		magnet_set_parq_id(magnet, parq_id);
-	}
-	magnet_add_source_by_url(magnet, dl_url);
-	url = magnet_to_string(magnet);
-	magnet_resource_free(&magnet);
 	return url;
 }
 
@@ -9684,9 +9740,9 @@ download_retrieve(void)
 				d_name, uint64_to_string(d_size), host_addr_to_string(d_addr),
 				d_hostname, has_sha1 ? sha1_base32(sha1_digest) : "<none>");
 
-		d = create_download(d_name, NULL, d_size, d_index, d_addr,
+		d = create_download(d_name, NULL, d_size, d_addr,
 				d_port, d_guid, d_hostname, has_sha1 ? sha1_digest : NULL,
-				1, FALSE, TRUE, NULL, NULL, flags);
+				1, NULL, NULL, flags, parq_id);
 
 		if (d == NULL) {
 			if (download_debug)
@@ -9694,15 +9750,6 @@ download_retrieve(void)
 					line - maxlines + 1,
 					host_addr_port_to_string(d_addr, d_port));
 			goto next_entry;
-		}
-
-		/*
-		 * Record PARQ id if present, so we may answer QUEUE callbacks.
-		 */
-
-		if (parq_id != NULL) {
-			d->queue_status = parq_dl_create(d);
-			parq_dl_add_id(d, parq_id);
 		}
 
 	next_entry:
@@ -10491,8 +10538,8 @@ download_browse_start(const gchar *hostname,
 	if (!guid)
 		guid = blank_guid;
 
-	d = create_download(fi->file_name, "/", 0, 0, addr, port, guid, hostname,
-			NULL, tm_time(), TRUE, FALSE, fi, proxies, flags);
+	d = create_download(fi->file_name, "/", 0, addr, port, guid, hostname,
+			NULL, tm_time(), fi, proxies, flags, NULL);
 
 	if (d) {
 		gnet_host_t host;
@@ -10715,18 +10762,23 @@ download_handle_magnet(const gchar *url)
 				guid = blank_guid;
 				proxy = NULL;
 			}
-			if (ms->path) {
-				download_new_uri(filename, ms->path, res->size,
-					addr, ms->port, guid, ms->hostname,
-					res->sha1, tm_time(), NULL, proxy, flags);
-			} else if (res->sha1) {
-				download_new(filename, res->size, URN_INDEX,
-					addr, ms->port, guid, ms->hostname,
-					res->sha1, tm_time(), NULL, proxy, flags);
-			}
-			n_downloads++;
 
+			download_new(filename,
+				ms->path,
+				res->size,
+				addr,
+				ms->port,
+				guid,
+				ms->hostname,
+				res->sha1,
+				tm_time(),
+				NULL,
+				proxy,
+				flags,
+				res->parq_id);
+			
 			gnet_host_vec_free(&proxy);
+			n_downloads++;
 		}
 
 		if (!res->sources && res->sha1 && res->display_name) {
@@ -10743,9 +10795,19 @@ download_handle_magnet(const gchar *url)
 			 * is supposed to find.
 			 */
 
-			download_new(filename, res->size, URN_INDEX,
-				ipv4_unspecified, 0, blank_guid, NULL,
-				res->sha1, tm_time(), NULL, NULL, 0);
+			download_new(filename,
+				NULL,	/* URI */
+				res->size,
+				ipv4_unspecified,
+				0,		/* port */
+				blank_guid,
+				NULL,	/* hostname */
+				res->sha1,
+				tm_time(),
+				NULL,	/* proxy */
+				NULL,	/* fileinfo */
+				0,		/* flags */
+				NULL);	/* PARQ ID */
 
 			n_downloads++;
 		}

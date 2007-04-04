@@ -326,7 +326,7 @@ search_gui_host_vec_free(gnet_host_vec_t *v)
 /**
  * Free the push proxies held within a result set.
  */
-void
+static void
 search_gui_free_proxies(results_set_t *rs)
 {
 	g_assert(rs);
@@ -981,34 +981,82 @@ search_gui_common_shutdown(void)
  * Check for alternate locations in the result set, and enqueue the downloads
  * if there are any.  Then free the alternate location from the record.
  */
-void
-search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
+static void
+search_gui_check_alt_locs(record_t *rc)
 {
-	gnet_host_vec_t *alt = rc->alt_locs;
-	gint i, n;
-
 	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
-	g_assert(alt != NULL);
-	g_assert(rs->proxies == NULL);	/* Since we downloaded record already */
 
-	n = gnet_host_vec_count(alt);
-	for (i = 0; i < n; i++) {
-		gnet_host_t host;
-		host_addr_t addr;
-		guint16 port;
+	if (rc->alt_locs) {
+		gint i, n;
 
-		host = gnet_host_vec_get(alt, i);
-		addr = gnet_host_get_addr(&host);
-		port = gnet_host_get_port(&host);
-		if (port > 0 && host_addr_is_routable(addr)) {
-			guc_download_auto_new(rc->name, rc->size, URN_INDEX,
-				addr, port, blank_guid, rs->hostname,
-				rc->sha1, rs->stamp, TRUE, NULL, NULL, 0);
+		n = gnet_host_vec_count(rc->alt_locs);
+		for (i = 0; i < n; i++) {
+			gnet_host_t host;
+			host_addr_t addr;
+			guint16 port;
+
+			host = gnet_host_vec_get(rc->alt_locs, i);
+			addr = gnet_host_get_addr(&host);
+			port = gnet_host_get_port(&host);
+			if (port > 0 && host_addr_is_routable(addr)) {
+				guc_download_auto_new(rc->name,
+					rc->size,
+					addr,
+					port,
+					blank_guid,
+					NULL,	/* hostname */
+					rc->sha1,
+					rc->results_set->stamp,
+					NULL,	/* fileinfo */
+					NULL,	/* proxies */
+					0);		/* flags */
+			}
 		}
 	}
+}
 
-	search_gui_free_alt_locs(rc);
+void
+search_gui_download(record_t *rc)
+{
+	const results_set_t *rs;
+	guint32 flags = 0;
+	gchar *uri;
+
+	g_return_if_fail(rc);	
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
+
+	rs = rc->results_set;
+	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+
+	if (rc->sha1) {
+		uri = NULL;
+	} else {
+		uri = g_strdup_printf("/get/%lu/%s", (gulong) rc->file_index, rc->name);
+	}
+
+	guc_download_new(rc->name,
+		uri,
+		rc->size,
+		rs->addr,
+		rs->port,
+		rs->guid,
+		rs->hostname,
+		rc->sha1,
+		rs->stamp,
+		NULL,	/* fileinfo */
+		rs->proxies,
+		flags,
+		NULL);	/* PARQ ID */
+
+	rc->flags |= SR_DOWNLOADED;
+	search_gui_check_alt_locs(rc);
+
+	g_assert(rc->refcount > 0);
+
+	G_FREE_NULL(uri);
 }
 
 /**
@@ -1277,11 +1325,17 @@ search_matched(search_t *sch, results_set_t *rs)
 				0 == spam_score &&
 				FILTER_PROP_STATE_DO == filter_download
 		   ) {
-				guc_download_auto_new(rc->name, rc->size, rc->file_index,
-						rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
-						rs->stamp, TRUE, NULL, rs->proxies, flags);
-
-				search_gui_free_proxies(rs);
+				guc_download_auto_new(rc->name,
+					rc->size,
+					rs->addr,
+					rs->port,
+					rs->guid,
+					rs->hostname,
+					rc->sha1,
+					rs->stamp,
+					NULL,	/* fileinfo */
+					rs->proxies,
+					flags);
 
 				rc->flags |= SR_DOWNLOADED;
 				sch->auto_downloaded++;

@@ -1608,8 +1608,6 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 		sel_list != NULL;
 		sel_list = GTK_CLIST(ctree)->selection
 	) {
-		guint32 flags = 0;
-
 		node = sel_list->data;
 		if (NULL == node)
 			break;
@@ -1624,21 +1622,8 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 			continue;
         }
 
-		rs = rc->results_set;
-		flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-		flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
-
-		if (guc_download_new(rc->name, rc->size, rc->file_index,
-				rs->addr, rs->port, rs->guid, rs->hostname,
-				rc->sha1, rs->stamp, NULL, rs->proxies, flags)
-		) {
-			created++;
-		}
-
-		search_gui_free_proxies(rs);
-
-		if (rc->alt_locs != NULL)
-			search_gui_check_alt_locs(rs, rc);
+		search_gui_download(rc);
+		created++;
 
         if (remove_downloaded) {
 			/* Check if we should re-sort after we remove the download.

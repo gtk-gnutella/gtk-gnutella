@@ -324,13 +324,19 @@ tt_parse_header(struct download *d, header_t *header)
 	fi = file_info_get(hash, save_file_path, 0, NULL);
 #endif
 
-	download_new_uri(hash /* file */, uri /* uri */, 0 /* size */,
-		d->socket->addr, d->socket->port,
-#if 0
-		NULL, NULL,
-#endif
-		blank_guid, NULL /* hostname */, NULL /* SHA1 */, tm_time(),
-		NULL /* fi */, NULL /* proxies */, 0 /* flags */);
+	download_new(hash, /* filename */
+		uri,
+		0,		/* unknown size */
+		d->socket->addr,
+		d->socket->port,
+		blank_guid,
+		NULL,	/* hostname */
+		NULL,	/* SHA1 */
+		tm_time(),
+		NULL,	/* fi */
+		NULL,	/* proxies */
+		0,		/* flags */
+		NULL);	/* PARQ ID */
 
 }
 

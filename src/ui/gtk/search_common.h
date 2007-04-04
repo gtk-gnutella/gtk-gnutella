@@ -147,7 +147,6 @@ void search_gui_set_current_search(search_t *sch);
 void search_gui_forget_current_search(void);
 void search_gui_current_search(search_t *sch);
 
-void search_gui_free_proxies(results_set_t *rs);
 void search_gui_clean_r_set(results_set_t *rs);
 void search_gui_free_r_set(results_set_t *rs);
 void search_gui_dispose_results(results_set_t *rs);
@@ -162,7 +161,6 @@ const gchar *search_gui_get_route(const struct results_set *rs);
 search_t *search_gui_find(gnet_search_t sh);
 gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
-void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);
 void search_gui_set_sort_defaults(void);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
@@ -277,6 +275,8 @@ gboolean search_gui_is_browse(const search_t *search);
 gboolean search_gui_is_enabled(const search_t *search);
 gboolean search_gui_is_local(const search_t *search);
 gboolean search_gui_is_passive(const search_t *search);
+
+void search_gui_download(record_t *rc);
 
 #endif /* _gtk_search_common_h_ */
 

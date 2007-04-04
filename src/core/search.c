@@ -3049,9 +3049,17 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 		addr = gnet_host_get_addr(&host);
 		port = gnet_host_get_port(&host);
 		if (host_is_valid(addr, port)) {
-			download_auto_new(rc->name, rc->size, URN_INDEX, addr, port,
-				blank_guid, rs->hostname, rc->sha1, rs->stamp, TRUE, fi,
-				rs->proxies, (rs->status & ST_TLS) ? SOCK_F_TLS : 0);
+			download_auto_new(rc->name,
+				rc->size,
+				addr,
+				port,
+				blank_guid,
+				NULL,	/* hostname */
+				rc->sha1,
+				rs->stamp,
+				fi,
+				NULL,	/* proxies */
+				0);		/* flags */
 
 			search_free_proxies(rs);
 		} else {
@@ -3124,13 +3132,19 @@ search_check_results_set(gnet_results_set_t *rs)
 			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
 			flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 			
-			download_auto_new(rc->name, rc->size, rc->file_index,
-				rs->addr, rs->port, rs->guid, rs->hostname, rc->sha1,
-				rs->stamp, TRUE, fi, rs->proxies, flags);
-
+			download_auto_new(rc->name,
+				rc->size,
+				rs->addr,
+				rs->port,
+				rs->guid,
+			   	rs->hostname,
+				rc->sha1,
+				rs->stamp,
+				fi,
+				rs->proxies,
+				flags);
 
 			search_free_proxies(rs);
-
             set_flags(rc->flags, SR_DOWNLOADED);
 
 			/*

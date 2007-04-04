@@ -95,7 +95,7 @@ enum dl_chunk_status file_info_pos_status(fileinfo_t *fi,
 void file_info_close(void);
 void file_info_close_pre(void);
 void file_info_try_to_swarm_with(
-	const gchar *file_name, guint32 idx, const host_addr_t addr,
+	const gchar *file_name, const host_addr_t addr,
 	guint16 port, const gchar *sha1);
 void file_info_spot_completed_orphans(void);
 void file_info_add_source(fileinfo_t *fi, struct download *dl);

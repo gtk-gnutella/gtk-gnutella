@@ -62,6 +62,34 @@ gboolean guc_adns_resolve(const gchar *hostname,
 			adns_callback_t user_callback, gpointer user_data);
 
 /* download and src interface functions */
+gboolean
+guc_download_new(const gchar *filename,
+	const gchar *uri,
+	filesize_t size,
+	const host_addr_t addr,
+	guint16 port,
+	const gchar *guid,
+	const gchar *hostname,
+	const gchar *sha1,
+	time_t stamp,
+	fileinfo_t *fi,
+	gnet_host_vec_t *proxies,
+	guint32 flags,
+	const gchar *parq_id);
+
+void
+guc_download_auto_new(const gchar *filename,
+	filesize_t size,
+	const host_addr_t addr,
+	guint16 port,
+	const gchar *guid,
+	const gchar *hostname,
+	const gchar *sha1,
+	time_t stamp,
+	fileinfo_t *fi,
+	gnet_host_vec_t *proxies,
+	guint32 flags);
+
 gchar *guc_download_build_url(const struct download *d);
 gchar *guc_file_info_build_magnet(gnet_fi_t handle);
 gint guc_download_get_http_req_percent(const struct download *d);
@@ -85,24 +113,6 @@ gboolean guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
 guint guc_download_handle_magnet(const gchar *url);
-void guc_download_auto_new(const gchar *file, filesize_t size,
-	guint32 record_index, const host_addr_t addr, guint16 port,
-	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
-	gboolean file_size_known, fileinfo_t *fi,
-	gnet_host_vec_t *proxies, guint32 flags);
-gboolean guc_download_new(const gchar *file, filesize_t size,
-	guint32 record_index, const host_addr_t addr, guint16 port,
-	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
-	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags);
-gboolean guc_download_new_uri(const gchar *file, const gchar *uri,
-	filesize_t size, const host_addr_t addr, guint16 port,
-	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
-	fileinfo_t *fi, gnet_host_vec_t *proxies, guint32 flags);
-gboolean guc_download_new_unknown_size(const gchar *file,
-	guint32 record_index, const host_addr_t addr, guint16 port,
-	const gchar *guid, const gchar *hostname, const gchar *sha1, time_t stamp,
-	fileinfo_t *fi, gnet_host_vec_t *proxies,
-	guint32 flags);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
 gdouble guc_download_source_progress(const struct download *d);

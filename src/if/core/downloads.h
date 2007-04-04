@@ -368,18 +368,30 @@ download_check(const struct download * const d)
 void download_index_changed(const host_addr_t, guint16, const gchar *,
 		guint32, guint32);
 
-gboolean download_new(const gchar *,
-	filesize_t, guint32, const host_addr_t addr, guint16,
-	const gchar *, const gchar *, const gchar *, time_t,
-    struct dl_file_info *, const gnet_host_vec_t *proxies, guint32 flags);
-gboolean download_new_uri(const gchar *file, const gchar *uri, filesize_t size,
-	  const host_addr_t addr, guint16 port, const gchar *guid,
-	  const gchar *hostname, const gchar *sha1, time_t stamp,
-	  struct dl_file_info *fi, const gnet_host_vec_t *proxies, guint32 flags);
-void download_auto_new(const gchar *,
- 	filesize_t, guint32, const host_addr_t, guint16, const gchar *,
-	const gchar *, const gchar *, time_t,
-    gboolean, struct dl_file_info *, gnet_host_vec_t *,
+gboolean download_new(const gchar *filename,
+	const gchar *uri,
+	filesize_t size,
+	const host_addr_t addr,
+	guint16 port,
+	const gchar *guid,
+	const gchar *hostname,
+	const gchar *sha1,
+	time_t stamp,
+    struct dl_file_info *fi,
+	const gnet_host_vec_t *proxies,
+	guint32 flags,
+	const gchar *parq_id);
+
+void download_auto_new(const gchar *filename,
+ 	filesize_t size,
+	const host_addr_t addr,
+	guint16 port,
+	const gchar *guid,
+	const gchar *hostname,
+	const gchar *sha1,
+	time_t stamp,
+	struct dl_file_info *fi,
+	gnet_host_vec_t *proxies,
 	guint32 flags);
 
 void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
@@ -406,10 +418,6 @@ void download_freeze_queue(void);
 void download_thaw_queue(void);
 gboolean download_queue_is_frozen(void);
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
-gboolean download_new_unknown_size(const gchar *file, guint32 record_index,
-	 const host_addr_t addr, guint16 port, const gchar *guid,
-	 const gchar *hostname, const gchar *sha1, time_t stamp,
-	struct dl_file_info *fi, gnet_host_vec_t *proxies, guint32 flags);
 const gchar *download_get_hostname(const struct download *d);
 gdouble download_source_progress(const struct download *);
 gdouble download_total_progress(const struct download *);

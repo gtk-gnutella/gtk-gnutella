@@ -1236,9 +1236,7 @@ static void
 download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 {
 	struct result_data *rd;
-	struct results_set *rs;
 	struct record *rc;
-	guint32 flags = 0;
 
 	g_assert(model != NULL);
 	g_assert(iter != NULL);
@@ -1251,25 +1249,13 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	rc = rd->record;
 	g_assert(rc->refcount > 0);
 
-	rs = rc->results_set;
-	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-	flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+	search_gui_download(rc);
 
-	guc_download_new(rc->name, rc->size, rc->file_index, rs->addr,
-		rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
-		NULL, rs->proxies, flags);
-
-	rc->flags |= SR_DOWNLOADED;
-	rd->color = GUI_COLOR_DOWNLOADING;
-	/* Re-store the parent to refresh the display/sorting */
-	search_gui_set_data(model, rd);
-
-	search_gui_free_proxies(rs);
-
-	if (rc->alt_locs != NULL)
-		search_gui_check_alt_locs(rs, rc);
-
-	g_assert(rc->refcount > 0);
+	if (SR_DOWNLOADED & rc->flags) {
+		rd->color = GUI_COLOR_DOWNLOADING;
+		/* Re-store the parent to refresh the display/sorting */
+		search_gui_set_data(model, rd);
+	}
 }
 
 static void

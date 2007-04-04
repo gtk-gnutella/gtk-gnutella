@@ -830,7 +830,7 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
 		 * filename, so that the existing name is used instead.
 		 */
 		file_info_try_to_swarm_with(URN_INDEX == idx && sha1 ? NULL : name,
-			idx, addr, port, sha1);
+			addr, port, sha1);
 	}
 
 	return dme != NULL;			/* TRUE means we added the entry */
@@ -2186,9 +2186,17 @@ dmesh_multiple_downloads(const gchar *sha1, filesize_t size, fileinfo_t *fi)
 		filename = URN_INDEX == p->idx && fi && fi->file_name
 			? fi->file_name
 			: p->name;
-		download_auto_new(p->name, size, p->idx, p->addr, p->port,
-			blank_guid, NULL, sha1, now,
-			fi->file_size_known, fi, NULL, /* XXX: TLS? */ 0);
+		download_auto_new(p->name,
+			size,
+			p->addr,
+			p->port,
+			blank_guid,
+			NULL,	/* hostname */
+			sha1,
+			now,
+			fi,
+			NULL,	/* proxies */
+			0);		/* flags */
 	}
 }
 
