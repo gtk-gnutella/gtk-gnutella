@@ -5544,7 +5544,7 @@ file_info_build_magnet(gnet_fi_t handle)
 	}
 
 	url = magnet_to_string(magnet);
-	magnet_resource_free(magnet);
+	magnet_resource_free(&magnet);
 	return url;
 }
 

@@ -1749,7 +1749,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 			statusbar_gui_message(15, _("Ignored unusable magnet link."));
 		}
 
-		magnet_resource_free(res);
+		magnet_resource_free(&res);
 		return TRUE;
 	} else {
 		if (error_str && *error_str) {
@@ -1785,7 +1785,7 @@ search_gui_handle_http(const gchar *url, const gchar **error_str)
 			G_FREE_NULL(escaped_url);
 		}
 		magnet_url = magnet_to_string(magnet);
-		magnet_resource_free(magnet);
+		magnet_resource_free(&magnet);
 	}
 	
 	success = search_gui_handle_magnet(magnet_url, error_str);
@@ -1820,7 +1820,7 @@ search_gui_handle_push(const gchar *url, const gchar **error_str)
 			G_FREE_NULL(escaped_url);
 		}
 		magnet_url = magnet_to_string(magnet);
-		magnet_resource_free(magnet);
+		magnet_resource_free(&magnet);
 	}
 	
 	success = search_gui_handle_magnet(magnet_url, error_str);
@@ -1858,11 +1858,11 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 			if (error_str) {
 				*error_str = _("The given urn type is not supported.");
 			}
-			magnet_resource_free(magnet);
+			magnet_resource_free(&magnet);
 			return FALSE;
 		}
 		magnet_url = magnet_to_string(magnet);
-		magnet_resource_free(magnet);
+		magnet_resource_free(&magnet);
 	}
 	
 	success = search_gui_handle_magnet(magnet_url, error_str);

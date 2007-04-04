@@ -4066,7 +4066,7 @@ search_handle_magnet(const gchar *url)
 			}
 		}
 
-		magnet_resource_free(res);
+		magnet_resource_free(&res);
 	}
 	return n_searches;
 }

@@ -51,7 +51,8 @@ struct magnet_source {
 
 struct magnet_resource {
 	const gchar *display_name;	/* string atom */
-	const gchar *sha1;		/* sha1 atom */
+	const gchar *sha1;			/* sha1 atom */
+	const gchar *parq_id;		/* string atom */
 	GSList *sources;	/* List of walloc()ed (struct magnet_source *) */
 	GSList *searches;	/* List of string atoms */
 	filesize_t size;
@@ -61,8 +62,8 @@ struct magnet_resource *magnet_parse(const gchar *url, const gchar **error_str);
 struct magnet_source *magnet_parse_exact_source(const gchar *uri,
 							const gchar **error_str);
 
-void magnet_source_free(struct magnet_source *ms);
-void magnet_resource_free(struct magnet_resource *res);
+void magnet_source_free(struct magnet_source **ms_ptr);
+void magnet_resource_free(struct magnet_resource **res_ptr);
 
 struct magnet_resource *magnet_resource_new(void);
 struct magnet_source *magnet_source_new(void);
@@ -77,6 +78,9 @@ void magnet_add_source_by_url(struct magnet_resource *res, const gchar *url);
 void magnet_add_sha1_source(struct magnet_resource *res,
 		const gchar *sha1, const host_addr_t addr, const guint16 port,
 		const gchar *guid);
+
+/* Extensions */
+void magnet_set_parq_id(struct magnet_resource *res, const gchar *parq_id);
 
 #endif /* _magnet_h_ */
 /* vi: set ts=4 sw=4 cindent: */

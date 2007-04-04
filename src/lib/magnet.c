@@ -65,6 +65,7 @@ enum magnet_key {
 	MAGNET_KEY_EXACT_LENGTH,	/* eXact file Length */
 	MAGNET_KEY_EXACT_SOURCE,	/* eXact Source */
 	MAGNET_KEY_EXACT_TOPIC,		/* eXact Topic */
+	MAGNET_KEY_PARQ_ID,			/* PARQ ID */
 	
 	NUM_MAGNET_KEYS
 };
@@ -79,6 +80,7 @@ static const struct {
 	{ "xl",		MAGNET_KEY_EXACT_LENGTH },
 	{ "xs",		MAGNET_KEY_EXACT_SOURCE },
 	{ "xt",		MAGNET_KEY_EXACT_TOPIC },
+	{ "x.parq",	MAGNET_KEY_PARQ_ID },
 };
 
 /*
@@ -289,7 +291,7 @@ magnet_handle_key(struct magnet_resource *res,
 				if (!ms->sha1 || sha1_eq(res->sha1, ms->sha1)) {
 					res->sources = g_slist_prepend(res->sources, ms);
 				} else {
-					magnet_source_free(ms);
+					magnet_source_free(&ms);
 				}
 			}
 		}
@@ -315,6 +317,10 @@ magnet_handle_key(struct magnet_resource *res,
 				magnet_set_filesize(res, u);
 			}
 		}
+		break;
+
+	case MAGNET_KEY_PARQ_ID:
+		magnet_set_parq_id(res, value);
 		break;
 
 	case MAGNET_KEY_NONE:
@@ -403,8 +409,10 @@ magnet_parse(const gchar *url, const gchar **error_str)
 }
 
 void
-magnet_source_free(struct magnet_source *ms)
+magnet_source_free(struct magnet_source **ms_ptr)
 {
+	struct magnet_source *ms = *ms_ptr;
+	
 	if (ms) {
 		atom_str_free_null(&ms->hostname);
 		atom_str_free_null(&ms->path);
@@ -412,12 +420,15 @@ magnet_source_free(struct magnet_source *ms)
 		atom_sha1_free_null(&ms->sha1);
 		atom_guid_free_null(&ms->guid);
 		wfree(ms, sizeof *ms);
+		*ms_ptr = NULL;
 	}
 }
 
 void
-magnet_resource_free(struct magnet_resource *res)
+magnet_resource_free(struct magnet_resource **res_ptr)
 {
+	struct magnet_resource *res = *res_ptr;
+
 	if (res) {
 		GSList *sl;
 
@@ -426,7 +437,7 @@ magnet_resource_free(struct magnet_resource *res)
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
-			magnet_source_free(ms);
+			magnet_source_free(&ms);
 		}
 		g_slist_free(res->sources);
 		res->sources = NULL;
@@ -439,6 +450,7 @@ magnet_resource_free(struct magnet_resource *res)
 		res->searches = NULL;
 		
 		wfree(res, sizeof *res);
+		*res_ptr = NULL;
 	}
 }
 
@@ -672,6 +684,9 @@ magnet_to_string(struct magnet_resource *res)
 			(void *) 0);
 		magnet_append_item(&gs, FALSE, "xt", buf);
 	}
+	if (res->parq_id) {
+		magnet_append_item(&gs, TRUE, "x.parq_id", res->parq_id);
+	}
 
 	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
 		gchar *url;
@@ -686,6 +701,24 @@ magnet_to_string(struct magnet_resource *res)
 	}
 
 	return gm_string_finalize(gs);
+}
+
+/**
+ * This is a bit of a hack (an extension anyway) and should only be used
+ * for magnets with a single logical source because the PARQ ID is only
+ * valid for a certain source.
+ */
+void
+magnet_set_parq_id(struct magnet_resource *res, const gchar *parq_id)
+{
+	const gchar *atom;
+
+	g_return_if_fail(res);
+	g_return_if_fail(parq_id);
+
+	atom = atom_str_get(parq_id);
+	atom_str_free_null(&res->parq_id);
+	res->parq_id = atom;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

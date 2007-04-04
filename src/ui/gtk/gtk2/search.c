@@ -1228,7 +1228,7 @@ search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
 	}
 
 	url = magnet_to_string(magnet);
-	magnet_resource_free(magnet);	
+	magnet_resource_free(&magnet);
 	return url;
 }
 

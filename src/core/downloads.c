@@ -9269,8 +9269,130 @@ download_find_waiting_unparq(const host_addr_t addr, guint16 port)
  *** Queue persistency routines
  ***/
 
-static const gchar *download_file = "downloads";
+static const gchar download_file[] = "downloads";
+static const gchar download_magnet_file[] = "downloads.magnet";
 static gboolean retrieving = FALSE;
+
+gchar *
+download_build_magnet(const struct download *d)
+{
+	struct magnet_resource *magnet;
+	const fileinfo_t *fi;
+	const gchar *sha1, *parq_id;
+	gchar *url, *dl_url;
+   
+	download_check(d);
+
+	fi = d->file_info;
+	g_return_val_if_fail(fi, NULL);
+	file_info_check(fi);
+
+	dl_url = download_build_url(d);
+	g_return_val_if_fail(dl_url, NULL);
+	
+	magnet = magnet_resource_new();
+	sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
+	if (sha1) {
+		magnet_set_sha1(magnet, sha1);
+	}
+	if (fi->file_name) {
+		magnet_set_display_name(magnet, fi->file_name);
+	}
+	if (fi->file_size_known && fi->size) {
+		magnet_set_filesize(magnet, fi->size);
+	}
+	parq_id = get_parq_dl_id(d);
+	if (parq_id) {
+		magnet_set_parq_id(magnet, parq_id);
+	}
+	magnet_add_source_by_url(magnet, dl_url);
+	url = magnet_to_string(magnet);
+	magnet_resource_free(&magnet);
+	return url;
+}
+
+
+static void
+download_store_magnet(FILE *f, const struct download *d)
+{
+	gchar *url;
+
+	g_return_if_fail(f);
+	download_check(d);
+
+	if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
+		return;
+	if (d->flags & DL_F_TRANSIENT)
+		return;
+
+	url = download_build_magnet(d);
+	if (url) {
+		fprintf(f, "%s\n\n", url);
+		G_FREE_NULL(url);
+	}
+}
+
+static void
+download_store_magnets(void)
+{
+	file_path_t fp;
+	FILE *f;
+
+	file_path_set(&fp, settings_config_dir(), download_magnet_file);
+	f = file_config_open_write(download_magnet_file, &fp);
+	if (f) {
+		const GSList *iter;
+		
+		for (iter = sl_downloads; NULL != iter; iter = g_slist_next(iter)) {
+			download_store_magnet(f, iter->data);
+		}
+	}
+	file_config_close(f, &fp);
+}
+
+static void
+download_store_one(FILE *f, const struct download *d)
+{
+	const gchar *id, *guid, *hostname;
+
+	g_return_if_fail(f);
+	download_check(d);
+
+	if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
+		return;
+	if (d->always_push)
+		return;
+	if (d->flags & DL_F_TRANSIENT)
+		return;
+
+	if (d->uri) {
+		/* XXX: If we have a custom URI, we have to store this URI
+		 *		and load it on startup. Currently, the URI isn't
+		 *		stored and we would create a bogus URI from the
+		 *		SHA1 or the index. */
+		return;
+	}
+
+	id = get_parq_dl_id(d);
+	guid = has_blank_guid(d) ? NULL : download_guid(d);
+	hostname = d->server->hostname;
+
+	/* XXX: TLS? */
+	fprintf(f,
+		"%s\n" /* File name */
+		"%s, %u%s%s, %s%s%s\n" /* size,index,ip:port[,hostname] */
+		"%s\n" /* SHA1 */
+		"%s\n" /* PARQ id */
+		"\n\n",
+		d->escaped_name,
+		uint64_to_string(d->file_info->size), d->record_index,
+		guid == NULL ? "" : ":", guid == NULL ? "" : guid_hex_str(guid),
+		host_addr_port_to_string(download_addr(d), download_port(d)),
+		hostname == NULL ? "" : ", ", hostname == NULL ? "" : hostname,
+		d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*",
+		id != NULL ? id : "*"
+	);
+}
 
 /**
  * Store all pending downloads that are not in PUSH mode (since we'll loose
@@ -9281,74 +9403,36 @@ static gboolean retrieving = FALSE;
 static void
 download_store(void)
 {
-	FILE *out;
-	const GSList *sl;
+	FILE *f;
 	file_path_t fp;
 
 	if (retrieving)
 		return;
 
+	download_store_magnets();
+
 	file_path_set(&fp, settings_config_dir(), download_file);
-	out = file_config_open_write(file_what, &fp);
+	f = file_config_open_write(file_what, &fp);
+	if (f) {
+		const GSList *iter;
 
-	if (!out)
-		return;
+		file_config_preamble(f, "Downloads");
+		fputs(	"#\n# Format is:\n"
+				"#   File name\n"
+				"#   size, index[:GUID], IP:port[, hostname]\n"
+				"#   SHA1 or * if none\n"
+				"#   PARQ id or * if none\n"
+				"#   FILE_SIZE_KNOWN true or false \n"
+				"#   <blank line>\n"
+				"#\n\n"
+				"RECLINES=4\n\n", f);
 
-	file_config_preamble(out, "Downloads");
-
-	fputs(	"#\n# Format is:\n"
-			"#   File name\n"
-			"#   size, index[:GUID], IP:port[, hostname]\n"
-			"#   SHA1 or * if none\n"
-			"#   PARQ id or * if none\n"
-			"#   FILE_SIZE_KNOWN true or false \n"
-			"#   <blank line>\n"
-			"#\n\n"
-			"RECLINES=4\n\n", out);
-
-	for (sl = sl_downloads; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-		const gchar *id, *guid, *hostname;
-
-		download_check(d);
-
-		if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
-			continue;
-		if (d->always_push)
-			continue;
-		if (d->flags & DL_F_TRANSIENT)
-			continue;
-		if (d->uri) {
-			/* XXX: If we have a custom URI, we have to store this URI
-			 *		and load it on startup. Currently, the URI isn't
-			 *		stored and we would create a bogus URI from the
-			 *		SHA1 or the index. */
-			continue;
+		for (iter = sl_downloads; NULL != iter; iter = g_slist_next(iter)) {
+			download_store_one(f, iter->data);
 		}
-
-		id = get_parq_dl_id(d);
-		guid = has_blank_guid(d) ? NULL : download_guid(d);
-		hostname = d->server->hostname;
-
-		/* XXX: TLS? */
-		fprintf(out,
-			"%s\n" /* File name */
-			"%s, %u%s%s, %s%s%s\n" /* size,index,ip:port[,hostname] */
-			"%s\n" /* SHA1 */
-			"%s\n" /* PARQ id */
-			"\n\n",
-			d->escaped_name,
-			uint64_to_string(d->file_info->size), d->record_index,
-			guid == NULL ? "" : ":", guid == NULL ? "" : guid_hex_str(guid),
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-			hostname == NULL ? "" : ", ", hostname == NULL ? "" : hostname,
-			d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*",
-			id != NULL ? id : "*"
-		);
+		file_config_close(f, &fp);
+		download_dirty = FALSE;
 	}
-
-	file_config_close(out, &fp);
-	download_dirty = FALSE;
 }
 
 /**
@@ -10668,7 +10752,7 @@ download_handle_magnet(const gchar *url)
 
 		G_FREE_NULL(filename);
 
-		magnet_resource_free(res);
+		magnet_resource_free(&res);
 	}
 	return n_downloads;
 }
@@ -10699,7 +10783,7 @@ download_handle_http(const gchar *url)
 			G_FREE_NULL(escaped_url);
 		}
 		magnet_url = magnet_to_string(magnet);
-		magnet_resource_free(magnet);
+		magnet_resource_free(&magnet);
 	}
 	
 	success = download_handle_magnet(magnet_url);
