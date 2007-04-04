@@ -8074,8 +8074,11 @@ node_set_guid(struct gnutella_node *n, const gchar *guid)
 
 	owner = node_by_guid(guid);
 	if (owner) {
-		g_warning("Node %s (%s) uses same GUID as %s (%s)",
-			node_addr(n), node_vendor(n), node_addr2(owner), node_vendor(n));
+		if (node_debug > 0 || !host_addr_equal(n->addr, owner->addr)) {
+			g_warning("Node %s (%s) uses same GUID as %s (%s)",
+				node_addr(n), node_vendor(n),
+				node_addr2(owner), node_vendor(n));
+		}
 		return TRUE;
 	} else {
 		n->guid = atom_guid_get(guid);

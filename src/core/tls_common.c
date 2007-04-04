@@ -213,9 +213,18 @@ enum tls_handshake_result
 tls_handshake(struct gnutella_socket *s)
 {
 	gnutls_session session;
+	gboolean do_warn;
 	int ret;
 
 	g_assert(s);
+
+	/*
+	 * For connect-back probes, the handshake will probably fail. We use
+	 * TLS anyway to avoid getting blocked which the remote peer would
+	 * not notice. Thus suppress warnings for failed handshakes in this
+	 * case.
+	 */
+	do_warn = SOCK_TYPE_CONNBACK != s->type;
 
 	session = tls_socket_get_session(s);
 	g_return_val_if_fail(session, TLS_HANDSHAKE_ERROR);
@@ -273,10 +282,12 @@ tls_handshake(struct gnutella_socket *s)
 		}
 		break;
 	default:
-		g_warning("gnutls_handshake() failed: host=%s (%s) error=\"%s\"",
-			host_addr_port_to_string(s->addr, s->port),
-			SOCK_CONN_INCOMING == s->direction ? "incoming" : "outgoing",
-			gnutls_strerror(ret));
+		if (do_warn) {
+			g_warning("gnutls_handshake() failed: host=%s (%s) error=\"%s\"",
+				host_addr_port_to_string(s->addr, s->port),
+				SOCK_CONN_INCOMING == s->direction ? "incoming" : "outgoing",
+				gnutls_strerror(ret));
+		}
 	}
 	return TLS_HANDSHAKE_ERROR;
 }
