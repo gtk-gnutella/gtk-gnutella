@@ -1895,7 +1895,7 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 		if (dmesh_debug > 6)
 			g_message("MESH (parsed=%d): \"%s\"", ok, url);
 
-		if (!ok)
+		if (!ok && (dmesh_debug > 1 || !is_strprefix(url, "ed2kftp://")))
 			g_warning("cannot parse Alternate-Location URL \"%s\": %s",
 				url, dmesh_url_strerror(dmesh_url_errno));
 
