@@ -116,7 +116,6 @@ static gchar dl_tmp[4096];
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
-static const gchar file_what[] = "downloads"; /**< What is persisted to file */
 static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
@@ -9323,7 +9322,7 @@ download_find_waiting_unparq(const host_addr_t addr, guint16 port)
  ***/
 
 static const gchar download_file[] = "downloads";
-static const gchar download_magnet_file[] = "downloads.magnet";
+static const gchar file_what[] = "downloads"; /**< What is persisted to file */
 static gboolean retrieving = FALSE;
 
 gchar *
@@ -9394,100 +9393,31 @@ download_store_magnets(void)
 	file_path_t fp;
 	FILE *f;
 
-	file_path_set(&fp, settings_config_dir(), download_magnet_file);
-	f = file_config_open_write(download_magnet_file, &fp);
+	g_return_if_fail(!retrieving);
+
+	file_path_set(&fp, settings_config_dir(), download_file);
+	f = file_config_open_write(file_what, &fp);
 	if (f) {
 		const GSList *iter;
 		
+		file_config_preamble(f, "Downloads");
 		for (iter = sl_downloads; NULL != iter; iter = g_slist_next(iter)) {
 			download_store_magnet(f, iter->data);
 		}
+		file_config_close(f, &fp);
 	}
-	file_config_close(f, &fp);
-}
-
-static void
-download_store_one(FILE *f, const struct download *d)
-{
-	const gchar *id, *guid, *hostname;
-
-	g_return_if_fail(f);
-	download_check(d);
-
-	if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
-		return;
-	if (d->always_push)
-		return;
-	if (d->flags & DL_F_TRANSIENT)
-		return;
-
-	if (d->uri) {
-		/* XXX: If we have a custom URI, we have to store this URI
-		 *		and load it on startup. Currently, the URI isn't
-		 *		stored and we would create a bogus URI from the
-		 *		SHA1 or the index. */
-		return;
-	}
-
-	id = get_parq_dl_id(d);
-	guid = has_blank_guid(d) ? NULL : download_guid(d);
-	hostname = d->server->hostname;
-
-	/* XXX: TLS? */
-	fprintf(f,
-		"%s\n" /* File name */
-		"%s, %u%s%s, %s%s%s\n" /* size,index,ip:port[,hostname] */
-		"%s\n" /* SHA1 */
-		"%s\n" /* PARQ id */
-		"\n\n",
-		d->escaped_name,
-		uint64_to_string(d->file_info->size), d->record_index,
-		guid == NULL ? "" : ":", guid == NULL ? "" : guid_hex_str(guid),
-		host_addr_port_to_string(download_addr(d), download_port(d)),
-		hostname == NULL ? "" : ", ", hostname == NULL ? "" : hostname,
-		d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*",
-		id != NULL ? id : "*"
-	);
 }
 
 /**
- * Store all pending downloads that are not in PUSH mode (since we'll loose
- * routing information when we quit).
+ * Store all pending downloads.
  *
  * The downloads are normally stored in ~/.gtk-gnutella/downloads.
  */
 static void
 download_store(void)
 {
-	FILE *f;
-	file_path_t fp;
-
-	if (retrieving)
-		return;
-
-	download_store_magnets();
-
-	file_path_set(&fp, settings_config_dir(), download_file);
-	f = file_config_open_write(file_what, &fp);
-	if (f) {
-		const GSList *iter;
-
-		file_config_preamble(f, "Downloads");
-		fputs(	"#\n# Format is:\n"
-				"#   File name\n"
-				"#   size, index[:GUID], IP:port[, hostname]\n"
-				"#   SHA1 or * if none\n"
-				"#   PARQ id or * if none\n"
-				"#   FILE_SIZE_KNOWN true or false \n"
-				"#   <blank line>\n"
-				"#\n\n"
-				"RECLINES=4\n\n", f);
-
-		for (iter = sl_downloads; NULL != iter; iter = g_slist_next(iter)) {
-			download_store_one(f, iter->data);
-		}
-		file_config_close(f, &fp);
-		download_dirty = FALSE;
+	if (!retrieving) {
+		download_store_magnets();
 	}
 }
 
@@ -9507,14 +9437,64 @@ download_store_if_dirty(void)
 	}
 }
 
-/**
- * Retrieve download list and requeue each download.
- * The downloads are normally retrieved from ~/.gtk-gnutella/downloads.
- */
-static void
-download_retrieve(void)
+static gboolean
+download_retrieve_magnets(FILE *f)
 {
-	FILE *in;
+	const size_t buffer_size = 64 * 1024;
+	gchar *buffer = NULL;
+	gboolean expect_old_format = TRUE;
+
+	if (f) {
+		gboolean truncated = FALSE;
+		guint line = 0;
+
+		buffer = g_malloc(buffer_size);
+		while (fgets(buffer, buffer_size, f)) {
+			gchar *endptr;
+
+			endptr = strchr(buffer, '\n');
+			if (NULL == endptr) {
+				g_warning("%s, line %u: line too long or unterminated",
+					download_file, line);
+				truncated = TRUE;
+				continue;
+			}
+			line++; /* Increase line counter */
+			if (truncated) {
+				truncated = FALSE;
+				continue;
+			}
+
+			do {
+				*endptr = '\0';
+			} while (endptr != buffer && is_ascii_space(*--endptr));
+
+			if ('#' == buffer[0] || '\0' == buffer[0]) {
+				/* Skip comments and empty lines */
+				continue;
+			}
+
+			if (expect_old_format && is_strprefix(buffer, "RECLINES=")) {
+				g_message("Detected old downloads format");
+				break;
+			}
+
+			if (is_strcaseprefix(buffer, "magnet:?")) {
+				expect_old_format = FALSE;
+				(void) download_handle_magnet(buffer);
+			} else {
+				g_warning("%s, line %u: Ignored unknown item",
+					download_file, line);
+			}
+		}
+	}
+	G_FREE_NULL(buffer);
+	return !expect_old_format;
+}
+
+static void
+download_retrieve_old(FILE *f)
+{
 	filesize_t d_size = 0;	/* The d_ vars are what we deserialize */
 	guint64 size64;
 	gint error;
@@ -9531,17 +9511,12 @@ download_retrieve(void)
 	gchar sha1_digest[SHA1_RAW_SIZE];
 	gboolean has_sha1 = FALSE;
 	gint maxlines = -1;
-	file_path_t fp;
 	gboolean allow_comments = TRUE;
 	gchar *parq_id = NULL;
 	const gchar *endptr;
 	struct download *d;
 
-	file_path_set(&fp, settings_config_dir(), download_file);
-	in = file_config_open_read(file_what, &fp, 1);
-
-	if (!in)
-		return;
+	g_return_if_fail(f);
 
 	/*
 	 * Retrieval algorithm:
@@ -9553,13 +9528,11 @@ download_retrieve(void)
 	 * error.
 	 */
 
-	retrieving = TRUE;			/* Prevent download_store() runs */
-
 	line = recline = 0;
 	d_name = NULL;
 	flags = 0;
 
-	while (fgets(dl_tmp, sizeof(dl_tmp) - 1, in)) { /* Room for trailing NUL */
+	while (fgets(dl_tmp, sizeof(dl_tmp) - 1, f)) { /* Room for trailing NUL */
 		line++;
 
 		if (dl_tmp[0] == '#' && allow_comments)
@@ -9761,10 +9734,38 @@ download_retrieve(void)
 	}
 
 out:
-	retrieving = FALSE;			/* Re-enable download_store() runs */
 	atom_str_free_null(&d_name);
-	fclose(in);
-	download_store();			/* Persist what we have retrieved */
+}
+
+/**
+ * Retrieve download list and requeue each download.
+ * The downloads are normally retrieved from ~/.gtk-gnutella/downloads.
+ */
+static void
+download_retrieve(void)
+{
+	file_path_t fp[1];
+	FILE *f;
+
+	file_path_set(fp, settings_config_dir(), download_file);
+	f = file_config_open_read(file_what, fp, G_N_ELEMENTS(fp));
+	if (f) {
+		retrieving = TRUE;			/* Prevent download_store() runs */
+
+		if (!download_retrieve_magnets(f)) {
+			clearerr(f);
+			if (fseek(f, 0, SEEK_SET)) {
+				g_warning("fseek(f, 0, SEEK_SET) failed: %s",
+					g_strerror(errno));
+			} else {
+				download_retrieve_old(f);
+			}
+		}
+
+		retrieving = FALSE;			/* Re-enable download_store() runs */
+		fclose(f);
+		download_store();			/* Persist what we have retrieved */
+	}
 }
 
 /**
