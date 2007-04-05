@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -6670,6 +6670,10 @@ msgstr "[BH qtent.]"
 msgid "Current _search:"
 msgstr "Ricerca _corrente"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "Metadati"
+
 msgid "Flow _control"
 msgstr "_Controllo di flusso"
 
@@ -6800,6 +6804,38 @@ msgstr "Inversione DNS in progressione..."
 
 msgid "The normalized search text is too short."
 msgstr "Il testo normalizzato della ricerca è troppo breve."
+
+#, fuzzy
+msgid "Source"
+msgstr "Sorgenti"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "consultabile"
+
+msgid "No"
+msgstr ""
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Cache host"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "ID server:"
+
+#, fuzzy
+msgid "Index"
+msgstr "Indice:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
 
 msgid "Fresh regular"
 msgstr "Fresco regolare"
@@ -7008,9 +7044,6 @@ msgstr "Non posso lanciare la consultazione per l'host %s"
 
 msgid "Never"
 msgstr "Mai"
-
-msgid "No"
-msgstr ""
 
 #, c-format
 msgid "%u/%u host (%u%%)"

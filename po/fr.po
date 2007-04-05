@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -6617,6 +6617,10 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "Recherche _actuelle:"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "Métadonnées"
+
 msgid "Flow _control"
 msgstr "_Contrôle de flux"
 
@@ -6744,6 +6748,39 @@ msgstr "Recherche inverse en cours..."
 
 msgid "The normalized search text is too short."
 msgstr "Le texte normalisé est trop court."
+
+#, fuzzy
+msgid "Source"
+msgstr "Sources"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "parcourable"
+
+msgid "No"
+msgstr "Non"
+
+#, fuzzy
+msgid "Maybe"
+msgstr "Mayotte"
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Cache des hôtes"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "ID servent:"
+
+#, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
 
 msgid "Fresh regular"
 msgstr "Régulier frais"
@@ -6950,9 +6987,6 @@ msgstr "Impossible de lancer le parcours d'hôte pour %s"
 
 msgid "Never"
 msgstr "Jamais"
-
-msgid "No"
-msgstr "Non"
 
 #, c-format
 msgid "%u/%u host (%u%%)"

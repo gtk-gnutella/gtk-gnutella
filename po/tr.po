@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -5959,6 +5959,10 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Şu anki _arama:"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "XML bilgisi:"
+
 msgid "Flow _control"
 msgstr ""
 
@@ -6081,6 +6085,38 @@ msgid "Reverse lookup in progress..."
 msgstr ""
 
 msgid "The normalized search text is too short."
+msgstr ""
+
+#, fuzzy
+msgid "Source"
+msgstr "Kaynaklar"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "_Gözat"
+
+msgid "No"
+msgstr "Hayır"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "IP Önbelleği"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Sunucu"
+
+#, fuzzy
+msgid "Index"
+msgstr "İçerik:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
 msgstr ""
 
 msgid "Fresh regular"
@@ -6271,9 +6307,6 @@ msgstr ""
 
 msgid "Never"
 msgstr "Hiçbir zaman"
-
-msgid "No"
-msgstr "Hayır"
 
 #, c-format
 msgid "%u/%u host (%u%%)"

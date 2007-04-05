@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -6567,6 +6567,10 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Τρέχουσα_ αναζήτηση:"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "Δεδομένα XML:"
+
 msgid "Flow _control"
 msgstr "Έλεγ_χος ροής"
 
@@ -6696,6 +6700,38 @@ msgstr "Ανεστραμμένη εύρεση σε εξέλιξη..."
 
 msgid "The normalized search text is too short."
 msgstr "Το κείμενο κανονικοποιημένης αναζήτησης είναι πολύ μικρό."
+
+#, fuzzy
+msgid "Source"
+msgstr "Πηγές"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "εξερευνήσιμο"
+
+msgid "No"
+msgstr "Όχι"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Λανθάνουσα μνήμη υπολογιστών"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "ID πελάτη:"
+
+#, fuzzy
+msgid "Index"
+msgstr "Ευρετήριο:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
 
 msgid "Fresh regular"
 msgstr "Νέοι συνήθεις"
@@ -6905,9 +6941,6 @@ msgstr ""
 
 msgid "Never"
 msgstr "Ποτέ"
-
-msgid "No"
-msgstr "Όχι"
 
 #, c-format
 msgid "%u/%u host (%u%%)"

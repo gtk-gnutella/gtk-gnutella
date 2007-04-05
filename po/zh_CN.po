@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -6146,6 +6146,10 @@ msgstr ""
 msgid "Current _search:"
 msgstr "当前使用"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "XML 数据："
+
 msgid "Flow _control"
 msgstr ""
 
@@ -6272,6 +6276,37 @@ msgid "Reverse lookup in progress..."
 msgstr ""
 
 msgid "The normalized search text is too short."
+msgstr ""
+
+#, fuzzy
+msgid "Source"
+msgstr "%u 个源"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "稳定"
+
+msgid "No"
+msgstr "否"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "主机(_o)："
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Servent关闭"
+
+msgid "Index"
+msgstr ""
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
 msgstr ""
 
 msgid "Fresh regular"
@@ -6468,9 +6503,6 @@ msgstr ""
 
 msgid "Never"
 msgstr "从不"
-
-msgid "No"
-msgstr "否"
 
 #, c-format
 msgid "%u/%u host (%u%%)"

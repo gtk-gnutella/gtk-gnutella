@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -6454,6 +6454,10 @@ msgstr ""
 msgid "Current _search:"
 msgstr "_Suche:"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "Meta-Daten"
+
 msgid "Flow _control"
 msgstr "Fluss_kontrolle"
 
@@ -6581,6 +6585,38 @@ msgid "Reverse lookup in progress..."
 msgstr ""
 
 msgid "The normalized search text is too short."
+msgstr ""
+
+#, fuzzy
+msgid "Source"
+msgstr "Quellen"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "stabil"
+
+msgid "No"
+msgstr "Nein"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Host-Cache"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Server"
+
+#, fuzzy
+msgid "Index"
+msgstr "Knoten"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
 msgstr ""
 
 msgid "Fresh regular"
@@ -6786,9 +6822,6 @@ msgstr ""
 
 msgid "Never"
 msgstr "Nie"
-
-msgid "No"
-msgstr "Nein"
 
 #, c-format
 msgid "%u/%u host (%u%%)"

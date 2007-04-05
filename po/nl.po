@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -6718,6 +6718,10 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "Huidige zoekopdracht:"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "Metagegevens"
+
 msgid "Flow _control"
 msgstr "Flow control"
 
@@ -6848,6 +6852,39 @@ msgstr "Bezig met omgekeerd opzoeken..."
 
 msgid "The normalized search text is too short."
 msgstr "The opgeschoonde zoek tekst is te kort."
+
+#, fuzzy
+msgid "Source"
+msgstr "Bronnen"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "bladerbaar"
+
+msgid "No"
+msgstr "Nee"
+
+#, fuzzy
+msgid "Maybe"
+msgstr "Mayotte"
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Hostcache"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Verkoper ID:"
+
+#, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
 
 msgid "Fresh regular"
 msgstr "Regulier geldig"
@@ -7056,9 +7093,6 @@ msgstr "Kon geen host bladeren initialiseren voor %s"
 
 msgid "Never"
 msgstr "Nooit"
-
-msgid "No"
-msgstr "Nee"
 
 #, c-format
 msgid "%u/%u host (%u%%)"

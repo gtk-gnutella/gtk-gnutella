@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-03-22 23:13+0900\n"
+"POT-Creation-Date: 2007-04-05 20:34+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -6847,6 +6847,10 @@ msgstr ""
 msgid "Current _search:"
 msgstr "Jelenlegi keresés"
 
+#, fuzzy
+msgid "XML Metadata"
+msgstr "Kereső stat"
+
 msgid "Flow _control"
 msgstr "Folyamvezérlés"
 
@@ -6985,6 +6989,38 @@ msgid "Reverse lookup in progress..."
 msgstr ""
 
 msgid "The normalized search text is too short."
+msgstr ""
+
+#, fuzzy
+msgid "Source"
+msgstr "Forrás"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "biztos"
+
+msgid "No"
+msgstr "Nem"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Gazdatár"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Kiszolgáló-azonosító:"
+
+#, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
 msgstr ""
 
 msgid "Fresh regular"
@@ -7191,9 +7227,6 @@ msgstr ""
 
 msgid "Never"
 msgstr "Soha"
-
-msgid "No"
-msgstr "Nem"
 
 #, fuzzy, c-format
 msgid "%u/%u host (%u%%)"
