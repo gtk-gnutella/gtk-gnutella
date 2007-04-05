@@ -1054,7 +1054,7 @@ search_gui_download(record_t *rc)
 	rc->flags |= SR_DOWNLOADED;
 	search_gui_check_alt_locs(rc);
 
-	g_assert(rc->refcount > 0);
+	g_assert(rc->refcount >= 0);
 
 	G_FREE_NULL(uri);
 }
