@@ -101,6 +101,8 @@ static prop_set_t *properties = NULL;
 
 static const gchar pidfile[] = "gtk-gnutella.pid";
 
+static gboolean settings_init_running;
+
 static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
 static void update_uptimes(void);
@@ -378,6 +380,8 @@ settings_init(void)
 	guint64 amount = memory / 1024;
 	guint max_fd;
 
+	settings_init_running = TRUE;
+
 #ifdef RLIMIT_DATA 
 	{
 		struct rlimit lim;
@@ -453,6 +457,7 @@ settings_init(void)
 	}
 
     settings_callbacks_init();
+	settings_init_running = FALSE;
 	return;
 
 no_config_dir:
@@ -1226,8 +1231,10 @@ listen_port_changed(property_t prop)
 		gnet_prop_set_guint32_val(prop, port);
 	}
 
-	inet_firewalled();
-	inet_udp_firewalled();
+	if (!settings_init_running) {
+		inet_firewalled();
+		inet_udp_firewalled();
+	}
 
 	/*
      * If socket allocation failed, reset the property
@@ -1249,7 +1256,7 @@ network_protocol_changed(property_t prop)
 {
 
 	(void) prop;
-	request_new_sockets(listen_port, TRUE);
+	request_new_sockets(listen_port, !settings_init_running);
 	return FALSE;
 }
 
@@ -1515,7 +1522,7 @@ forced_local_ip_changed(property_t prop)
 	(void) prop;
 	if (force_local_ip || force_local_ip6) {
 		update_address_lifetime();
-		request_new_sockets(listen_port, TRUE);
+		request_new_sockets(listen_port, !settings_init_running);
 	}
     return FALSE;
 }
