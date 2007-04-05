@@ -814,7 +814,7 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 		g_assert(written == size);
 		pmsg_free(mb);
 
-		if (download_debug > 1)
+		if (download_debug > 10)
 			g_message("buffers_add_read(): copied %d bytes "
 				"into %d-byte long previous #%d (had %d bytes free)",
 				written, pmsg_size(prev_mb) - written,
@@ -5780,7 +5780,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	b = d->buffers;
 	g_assert(b != NULL);
 
-	if (download_debug > 1)
+	if (download_debug > 10)
 		g_message("flushing %lu bytes (%u buffers) for \"%s\"%s",
 			(gulong) b->held, slist_length(b->list),
 			download_outname(d), may_stop ? "" : " on stop");
