@@ -1795,17 +1795,16 @@ dmesh_collect_compact_locations(const gchar *sha1, const gchar *value)
  * sources for a given SHA1 key.
  */
 void
-dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
+dmesh_collect_locations(const gchar *sha1, const gchar *value, gboolean defer)
 {
-	gchar *p = value;
+	const gchar *p = value;
 	guchar c;
 	time_t now = tm_time();
     GSList *nonurn_altlocs = NULL;
 	gboolean finished = FALSE;
 
 	do {
-		gchar *url;
-		gchar *date;
+		const gchar *date_start, *url_start;
 		time_t stamp;
 		gboolean ok;
 		dmesh_urlinfo_t info;
@@ -1828,7 +1827,8 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 			goto free_urlinfo;
 		}
 
-		for (url = p; '\0' != (c = *p); p++) {
+		url_start = p;
+		for (/* NOTHING */; '\0' != (c = *p); p++) {
 			/*
 			 * Quoted identifiers are one big token.
 			 */
@@ -1875,11 +1875,11 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 
 		g_assert((guchar) *p == c);
 
-		if (*url == '"') {				/* URL enclosed in quotes? */
-			url++;						/* Skip that needless quote */
+		if (*url_start == '"') {				/* URL enclosed in quotes? */
+			url_start++;						/* Skip that needless quote */
 			if (c != '"')
 				g_warning("Alternate-Location URL \"%s\" started with leading "
-					"quote, but did not end with one!", url);
+					"quote, but did not end with one!", url_start);
 		}
 
 		/*
@@ -1889,17 +1889,21 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 		 * so that this atom can be freed.
 		 */
 
-		*p = '\0';
-		ok = dmesh_url_parse(url, &info);
+		{
+			gchar *url;
 
-		if (dmesh_debug > 6)
-			g_message("MESH (parsed=%d): \"%s\"", ok, url);
+			url = g_strndup(url_start, p - url_start);
+			ok = dmesh_url_parse(url, &info);
 
-		if (!ok && (dmesh_debug > 1 || !is_strprefix(url, "ed2kftp://")))
-			g_warning("cannot parse Alternate-Location URL \"%s\": %s",
-				url, dmesh_url_strerror(dmesh_url_errno));
+			if (dmesh_debug > 6)
+				g_message("MESH (parsed=%d): \"%s\"", ok, url);
 
-		*p = c;
+			if (!ok && (dmesh_debug > 1 || !is_strprefix(url, "ed2kftp://"))) {
+				g_warning("cannot parse Alternate-Location URL \"%s\": %s",
+					url, dmesh_url_strerror(dmesh_url_errno));
+			}
+			G_FREE_NULL(url);
+		}
 
 		if (c == '"')				/* URL ended with a quote, skip it */
 			c = *(++p);
@@ -1922,7 +1926,7 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 		if (c != '\0')
 			p++;
 
-		date = p;
+		date_start = p;
 
 	more_date:
 		for (/* NOTHING */; '\0' != (c = *p); p++) {
@@ -1940,7 +1944,7 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 		 * Disambiguate "Mon, 17 Jun 2002 07:53:14 +0200"
 		 */
 
-		if (c == ',' && p - date == 3) {
+		if (c == ',' && p - date_start == 3) {
 			p++;
 			goto more_date;
 		}
@@ -1957,21 +1961,22 @@ dmesh_collect_locations(const gchar *sha1, gchar *value, gboolean defer)
 		 * Parse date, if present.
 		 */
 
-		if (p != date) {
-			g_assert((guchar) *p == c);
+		if (p != date_start) {
+			gchar *date;
 
-			*p = '\0';
+			g_assert((guchar) *p == c);
+			date = g_strndup(date_start, p - date_start);
 			stamp = date2time(date, now);
 
 			if (dmesh_debug > 6)
-				g_message("MESH (stamp=%u): \"%s\"", (guint) stamp, date);
+				g_message("MESH (stamp=%s): \"%s\"",
+					timestamp_to_string(stamp), date);
 
 			if (stamp == (time_t) -1) {
 				g_warning("cannot parse Alternate-Location date: %s", date);
 				stamp = 0;
 			}
-
-			*p = c;
+			G_FREE_NULL(date);
 		} else
 			stamp = 0;
 
