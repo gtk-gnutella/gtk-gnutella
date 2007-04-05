@@ -1231,7 +1231,7 @@ listen_port_changed(property_t prop)
 		gnet_prop_set_guint32_val(prop, port);
 	}
 
-	if (!settings_init_running) {
+	if (is_firewalled || !settings_init_running) {
 		inet_firewalled();
 		inet_udp_firewalled();
 	}
@@ -1256,7 +1256,7 @@ network_protocol_changed(property_t prop)
 {
 
 	(void) prop;
-	request_new_sockets(listen_port, !settings_init_running);
+	request_new_sockets(listen_port, is_firewalled || !settings_init_running);
 	return FALSE;
 }
 
@@ -1522,7 +1522,8 @@ forced_local_ip_changed(property_t prop)
 	(void) prop;
 	if (force_local_ip || force_local_ip6) {
 		update_address_lifetime();
-		request_new_sockets(listen_port, !settings_init_running);
+		request_new_sockets(listen_port,
+			is_firewalled || !settings_init_running);
 	}
     return FALSE;
 }
