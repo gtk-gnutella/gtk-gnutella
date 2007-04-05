@@ -1325,20 +1325,10 @@ search_matched(search_t *sch, results_set_t *rs)
 				0 == spam_score &&
 				FILTER_PROP_STATE_DO == filter_download
 		   ) {
-				guc_download_auto_new(rc->name,
-					rc->size,
-					rs->addr,
-					rs->port,
-					rs->guid,
-					rs->hostname,
-					rc->sha1,
-					rs->stamp,
-					NULL,	/* fileinfo */
-					rs->proxies,
-					flags);
-
-				rc->flags |= SR_DOWNLOADED;
-				sch->auto_downloaded++;
+				search_gui_download(rc);
+				if (SR_DOWNLOADED & rc->flags) {
+					sch->auto_downloaded++;
+				}
 			}
 
 			/*
