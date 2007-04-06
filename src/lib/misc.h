@@ -657,12 +657,15 @@ EMPTY_STRING(const gchar *s)
 static inline G_GNUC_CONST guint32
 swap_guint32(guint32 i)
 {
-	gint a = i & 0x000000ff;
-	gint b = (i & 0x0000ff00) >> 8;
-	gint c = (i & 0x00ff0000) >> 16;
-	gint d = (i & 0xff000000) >> 24;
-
-	return d + (c << 8) + (b << 16) + (a << 24);
+	guint32 a;
+	guint32 b;
+                                  /* i -> ABCD */
+	a = (i & 0x00ff00ff) << 8;    /* a -> B0D0 */
+	b = (i & 0xff00ff00) >> 8;    /* b -> 0A0C */
+	i = a | b;                    /* i -> BADC */
+	i = (i << 16) | (i >> 16);    /* i -> DCBA */
+    
+	return i;
 }
 
 /**
