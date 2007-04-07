@@ -1226,7 +1226,6 @@ main(int argc, char **argv)
 	settings_init();
 	tls_global_init();
 	tls_cache_init();
-    hcache_retrieve_all();	/* after settings_init() */
 	hostiles_init();
 	spam_init();
 	bogons_init();
@@ -1244,6 +1243,7 @@ main(int argc, char **argv)
 	gmsg_init();
 	bsched_init();
 	node_init();
+    hcache_retrieve_all();	/* after settings_init() and node_init() */
 	routing_init();
 	search_init();
 	share_init();

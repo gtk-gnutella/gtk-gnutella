@@ -59,7 +59,6 @@ RCSID("$Id$")
 #include "bogons.h"
 #include "hostiles.h"
 
-#include "lib/bg.h"
 #include "lib/file.h"
 #include "lib/hashlist.h"
 #include "lib/tm.h"
@@ -101,7 +100,6 @@ typedef struct hostcache {
     guint           hits;               /**< Hits to the cache */
     guint           misses;             /**< Misses to the cache */
 
-	gnet_property_t reading;			/**< Property to signal reading */
     gnet_property_t hosts_in_catcher;   /**< Property to update host count */
     gint            mass_update;        /**< If a mass update is in progess */
 } hostcache_t;
@@ -133,8 +131,6 @@ static const gchar * const host_type_names[HOST_MAX] = {
     "ultra",
 };
 
-
-static gpointer bg_reader[HCACHE_MAX];
 
 enum {
     HCACHE_ALREADY_CONNECTED,
@@ -1070,7 +1066,6 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 	guint16 first_port;
 	gboolean got_recent;
 	hostcache_t *hc = NULL;
-	gboolean reading;
     gboolean result = FALSE;
 	hash_list_iter_t *iter;
 
@@ -1087,8 +1082,6 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 
 	if (!hc)
         g_error("hcache_get_caught: unknown host type: %d", type);
-
-    gnet_prop_get_boolean_val(hc->reading, &reading);
 
 	if (alternate++ & 1) {
 		/* Iterate through all recent pongs */
@@ -1109,13 +1102,9 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 
 	/* iterate through whole list */
 
-	if (reading) {
-		iter = hash_list_iterator(hc->hostlist);
-	} else {
-		iter = hash_list_iterator_tail(hc->hostlist);
-	}
-	for (;;) {
-		h = reading ? hash_list_iter_next(iter) : hash_list_iter_previous(iter);
+	iter = hash_list_iterator(hc->hostlist);
+	while (hash_list_iter_has_next(iter)) {
+		h = hash_list_iter_next(iter);
 		if (host_is_nearby(gnet_host_get_addr(h))) {
             *addr = gnet_host_get_addr(h);
             *port = gnet_host_get_port(h);
@@ -1143,7 +1132,6 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 {
 	static guint alternate = 0;
 	hostcache_t *hc = NULL;
-	gboolean reading;
 	extern guint32 number_local_networks;
 	gnet_host_t *h;
 	gboolean available;
@@ -1168,7 +1156,6 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 	if (!hc)
         g_error("hcache_get_caught: unknown host type: %d", type);
 
-    gnet_prop_get_boolean_val(hc->reading, &reading);
     available = hcache_require_caught(hc);
 
     hcache_update_low_on_pongs();
@@ -1193,12 +1180,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 	if (alternate++ & 0x1 && pcache_get_recent(type, addr, port))
 		return TRUE;
 
-	/*
-	 * If we're done reading from the host file, get latest host, at the
-	 * tail of the list.  Otherwise, get the first host in that list.
-	 */
-
-	h = reading ? hash_list_head(hc->hostlist) : hash_list_tail(hc->hostlist);
+	h = hash_list_head(hc->hostlist);
 	if (h) {
 		*addr = gnet_host_get_addr(h);
 		*port = gnet_host_get_port(h);
@@ -1221,13 +1203,9 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
  *
  * The `maxhosts' variable is the pointer to the variable giving the maximum
  * amount of hosts we can store.
- *
- * The `reading' variable is the property to update to signal whether we're
- * reading the persisted file.
  */
 static hostcache_t *
-hcache_alloc(hcache_type_t type, gnet_property_t reading,
-	gnet_property_t catcher, const gchar *name)
+hcache_alloc(hcache_type_t type, gnet_property_t catcher, const gchar *name)
 {
 	struct hostcache *hc;
 
@@ -1238,7 +1216,6 @@ hcache_alloc(hcache_type_t type, gnet_property_t reading,
 	hc->hostlist = hash_list_new(NULL, NULL);
 	hc->name = name;
 	hc->type = type;
-	hc->reading = reading;
     hc->hosts_in_catcher = catcher;
     hc->addr_only = FALSE;
 
@@ -1258,121 +1235,28 @@ hcache_free(hostcache_t *hc)
 	G_FREE_NULL(hc);
 }
 
-/***
- *** Hosts text files
- ***/
-
-/*
- * Host reading context.
- */
-
-#define READ_MAGIC		0x3d00003d
-#define HOST_READ_CNT	20			/**< Amount of hosts to read each tick */
-
-struct read_ctx {
-	gint magic;						/**< Magic number */
-	FILE *fd;						/**< File descriptor to read from */
-	hostcache_t *hc;				/**< Hostcache to fill */
-};
-
 /**
- * Dispose of the read context.
+ * Parse and load the hostcache file.
  */
 static void
-read_ctx_free(gpointer u)
+hcache_load_file(hostcache_t *hc, FILE *f)
 {
-	struct read_ctx *rctx = u;
+	gchar buffer[1024];
 
-	g_assert(rctx->magic == READ_MAGIC);
+	g_return_if_fail(hc);
+	g_return_if_fail(f);
 
-	if (rctx->fd != NULL)
-		fclose(rctx->fd);
+	while (fgets(buffer, sizeof buffer, f)) {
+		host_addr_t addr;
+		guint16 port;
 
-	wfree(rctx, sizeof(*rctx));
-}
-
-/**
- * Read is finished.
- */
-static void
-read_done(hostcache_t *hc)
-{
-    /*
-     * Order is important so the GUI can update properly. First we say
-     * that loading has finished, then we tell the GUI the number of
-     * hosts in the catcher.
-     *      -- Richard, 6/8/2002
-     */
-
-    gnet_prop_set_boolean_val(hc->reading, FALSE);
-}
-
-/**
- * One reading step.
- */
-static bgret_t
-read_step(gpointer unused_h, gpointer u, gint ticks)
-{
-	static gchar h_tmp[1024];
-	struct read_ctx *rctx = u;
-	hostcache_t *hc;
-	gint max_read, count, i;
-
-	(void) unused_h;
-	g_assert(READ_MAGIC == rctx->magic);
-	g_assert(rctx->fd);
-
-	hc = rctx->hc;
-
-	max_read = hcache_slots_left(hc->type);
-	count = ticks * HOST_READ_CNT;
-	count = MIN(max_read, count);
-
-	if (dbg > 9)
-		printf("read_step(%s): ticks=%d, count=%d\n", hc->name, ticks, count);
-
-	for (i = 0; i < count; i++) {
-		if (fgets(h_tmp, sizeof(h_tmp) - 1, rctx->fd)) { /* NUL appended */
-			host_addr_t addr;
-			guint16 port;
-
-			if (string_to_host_addr_port(h_tmp, NULL, &addr, &port))
-                hcache_add(hc->type, addr, port, "on-disk cache");
-		} else
-			goto done;
+		if (string_to_host_addr_port(buffer, NULL, &addr, &port)) {
+			hcache_add(hc->type, addr, port, "on-disk cache");
+			if (hcache_slots_left(hc->type) < 1) {
+				break;
+			}
+		}
 	}
-
-	if (count < max_read)
-		return BGR_MORE;		/* Host cache not full, need to read more */
-
-	/* Fall through */
-
-done:
-	fclose(rctx->fd);
-	rctx->fd = NULL;
-
-	read_done(hc);
-
-	return BGR_DONE;
-}
-
-/**
- * Invoked when the task is completed.
- */
-static void
-bg_reader_done(gpointer unused_h, gpointer ctx,
-		bgstatus_t unused_status, gpointer unused_arg)
-{
-	struct read_ctx *rctx = ctx;
-	hostcache_t *hc;
-
-	(void) unused_h;
-	(void) unused_status;
-	(void) unused_arg;
-	g_assert(rctx->magic == READ_MAGIC);
-
-	hc = rctx->hc;
-	bg_reader[hc->type] = NULL;
 }
 
 /**
@@ -1381,31 +1265,15 @@ bg_reader_done(gpointer unused_h, gpointer ctx,
 static void
 hcache_retrieve(hostcache_t *hc, const gchar *filename)
 {
-	struct read_ctx *rctx;
-	FILE *fd;
-	bgstep_cb_t step = read_step;
+	file_path_t fp[1];
+	FILE *f;
 
-    {
-		file_path_t fp;
-
-		file_path_set(&fp, settings_config_dir(), filename);
-		fd = file_config_open_read("hosts", &fp, 1);
+	file_path_set(fp, settings_config_dir(), filename);
+	f = file_config_open_read("hosts", fp, G_N_ELEMENTS(fp));
+	if (f) {
+		hcache_load_file(hc, f);
+		fclose(f);
 	}
-
-	if (!fd)
-		return;
-
-	rctx = walloc(sizeof(*rctx));
-	rctx->magic = READ_MAGIC;
-	rctx->fd = fd;
-	rctx->hc = hc;
-
-    gnet_prop_set_boolean_val(hc->reading, TRUE);
-
-	bg_reader[hc->type] = bg_task_create(
-		hc->type == HCACHE_FRESH_ANY ?
-			"Hostcache reading" : "Ultracache reading",
-		&step, 1, rctx, read_ctx_free, bg_reader_done, NULL);
 }
 
 /**
@@ -1504,45 +1372,42 @@ hcache_timer(time_t now)
 void
 hcache_init(void)
 {
-    memset(bg_reader, 0, sizeof(bg_reader));
-    memset(stats, 0, sizeof(stats));
-
 	ht_known_hosts = g_hash_table_new(host_hash, host_eq);
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(
-        HCACHE_FRESH_ANY, PROP_READING_HOSTFILE,
+        HCACHE_FRESH_ANY,
         PROP_HOSTS_IN_CATCHER,
         "hosts.fresh.any");
 
     caches[HCACHE_FRESH_ULTRA] = hcache_alloc(
-        HCACHE_FRESH_ULTRA, PROP_READING_ULTRAFILE,
+        HCACHE_FRESH_ULTRA,
         PROP_HOSTS_IN_ULTRA_CATCHER,
         "hosts.fresh.ultra");
 
     caches[HCACHE_VALID_ANY] = hcache_alloc(
-        HCACHE_VALID_ANY, PROP_READING_HOSTFILE,
+        HCACHE_VALID_ANY,
         PROP_HOSTS_IN_CATCHER,
         "hosts.valid.any");
 
     caches[HCACHE_VALID_ULTRA] = hcache_alloc(
-        HCACHE_VALID_ULTRA, PROP_READING_ULTRAFILE,
+        HCACHE_VALID_ULTRA,
         PROP_HOSTS_IN_ULTRA_CATCHER,
         "hosts.valid.ultra");
 
     caches[HCACHE_TIMEOUT] = hcache_alloc(
-        HCACHE_TIMEOUT, PROP_READING_HOSTFILE,
+        HCACHE_TIMEOUT,
         PROP_HOSTS_IN_BAD_CATCHER,
         "hosts.timeout");
     caches[HCACHE_TIMEOUT]->addr_only = TRUE;
 
     caches[HCACHE_BUSY] = hcache_alloc(
-        HCACHE_BUSY, PROP_READING_HOSTFILE,
+        HCACHE_BUSY,
         PROP_HOSTS_IN_BAD_CATCHER,
         "hosts.busy");
     caches[HCACHE_BUSY]->addr_only = TRUE;
 
     caches[HCACHE_UNSTABLE] = hcache_alloc(
-        HCACHE_UNSTABLE, PROP_READING_HOSTFILE,
+        HCACHE_UNSTABLE,
         PROP_HOSTS_IN_BAD_CATCHER,
         "hosts.unstable");
     caches[HCACHE_UNSTABLE]->addr_only = TRUE;
@@ -1565,7 +1430,6 @@ void
 hcache_store_if_dirty(host_type_t type)
 {
 	gnet_property_t prop;
-	gboolean reading;
 	hcache_type_t first, second;
 	const gchar *file;
 
@@ -1587,11 +1451,6 @@ hcache_store_if_dirty(host_type_t type)
 		return;
 	}
 
-	gnet_prop_get_boolean_val(prop, &reading);
-
-	if (reading)
-		return;
-
 	if (!caches[first]->dirty && !caches[second]->dirty)
 		return;
 
@@ -1601,69 +1460,20 @@ hcache_store_if_dirty(host_type_t type)
 }
 
 /**
- * Check whether the host caches are completely read. This should be
- * used before contacting a GWebCache at start-up time.
- *
- * @returns TRUE if the host caches have been completely loaded and FALSE
- *			if the loading is still in process.
- */
-gboolean
-hcache_read_finished(void)
-{
-	gboolean reading;
-
-	gnet_prop_get_boolean_val(PROP_READING_HOSTFILE, &reading);
-	if (reading)
-		return FALSE;
-
-	gnet_prop_get_boolean_val(PROP_READING_ULTRAFILE, &reading);
-	if (reading)
-		return FALSE;
-
-	return TRUE;
-}
-
-/**
  * Shutdown host caches.
  */
 void
 hcache_shutdown(void)
 {
-	gboolean reading;
-
-	/*
-	 * Write "valid" hosts first.  Next time we are launched, we'll first
-	 * start reading from the head first.  And once the whole cache has
-	 * been read in memory, we'll begin using the tail of the list, i.e.
-	 * possibly older hosts, which will help ensure we don't always connect
-	 * to the same set of hosts.
-	 */
-
-	/* Save the caught hosts */
-
-	gnet_prop_get_boolean_val(PROP_READING_HOSTFILE, &reading);
-
-	if (reading)
-		g_warning("exit() while still reading the hosts file, "
-			"caught hosts not saved!");
-	else
-		hcache_store(HCACHE_VALID_ANY, "hosts", HCACHE_FRESH_ANY);
-
-	/* Save the caught ultra hosts */
-
-	gnet_prop_get_boolean_val(PROP_READING_ULTRAFILE, &reading);
-
-	if (reading)
-		g_warning("exit() while still reading the ultrahosts file, "
-			"caught hosts not saved !");
-	else
-		hcache_store(HCACHE_VALID_ULTRA, "ultras", HCACHE_FRESH_ULTRA);
+	hcache_store(HCACHE_VALID_ANY, "hosts", HCACHE_FRESH_ANY);
+	hcache_store(HCACHE_VALID_ULTRA, "ultras", HCACHE_FRESH_ULTRA);
 }
 
 /**
  * Destroy all host caches.
  */
-void hcache_close(void)
+void
+hcache_close(void)
 {
 	static const hcache_type_t types[] = {
         HCACHE_FRESH_ANY,
@@ -1688,9 +1498,6 @@ void hcache_close(void)
 	for (i = 0; i < G_N_ELEMENTS(types); i++) {
 		guint j;
 		hcache_type_t type = types[i];
-
-		if (bg_reader[type] != NULL)
-			bg_task_cancel(bg_reader[type]);
 
 		/* Make sure all previous caches have been cleared */
 		for (j = 0; j < type; j++)

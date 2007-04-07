@@ -303,7 +303,7 @@ host_timer(void)
 				}
 			}
 
-			if (missing > 0 && hcache_read_finished()) {
+			if (missing > 0) {
 				if (!uhc_is_waiting()) {
 					uhc_get_hosts();	/* Get from UDP pong caches */
 				} else if (bootstrap_debug > 2)

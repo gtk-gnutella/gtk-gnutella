@@ -72,7 +72,6 @@ gboolean hcache_node_is_bad(const host_addr_t addr);
 
 void hcache_prune(hcache_type_t type);
 
-gboolean hcache_read_finished(void);
 guint hcache_size(host_type_t type);
 gboolean hcache_is_low(host_type_t type);
 
