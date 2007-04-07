@@ -25,8 +25,8 @@ build_install=
 
 while [ $# -gt 0 ]; do
 	case "$1" in
-	--prefix=*)	build_prefix="-D ${1##--}";;
-	--yacc=*)	build_yacc="-D ${1##--}";;
+	--prefix=*)	build_prefix="-D '${1##--}'";;
+	--yacc=*)	build_yacc="-D '${1##--}'";;
 	--unofficial)	build_official='-Dofficial=false';;
 	--topless)	build_ui='-D d_headless';;
 	--gtk1)		build_ui='-D gtkversion=1';;
@@ -61,20 +61,20 @@ echo '  CC, CFLAGS, LDFLAGS, PREFIX'
 done
 
 if [ "X$build_yacc" = X ]; then
-	build_yacc='-D yacc=bison'
-	which yacc >/dev/null 2>&1 && build_yacc='-D yacc=yacc'
+	build_yacc="-D 'yacc=bison'"
+	which yacc >/dev/null 2>&1 && build_yacc="-D 'yacc=yacc'"
 fi
 
 if [ "X$build_cc" = X ] && [ "X$CC" != X ]; then
-	build_cc="-D cc=$CC"
+	build_cc="-D 'cc=$CC'"
 fi
 
 if [ "X$build_ccflags" = X ] && [ "X$CFLAGS" != X ]; then
-	build_ccflags="-D ccflags=$CFLAGS"
+	build_ccflags="-D 'ccflags=$CFLAGS'"
 fi
 
 if [ "X$build_ldflags" = X ] && [ "X$LDFLAGS" != X ]; then
-	build_ldflags="-D ldflags=$LDFLAGS"
+	build_ldflags="-D 'ldflags=$LDFLAGS'"
 fi
 
 if [ "X$build_prefix" = X ]; then
@@ -102,18 +102,18 @@ if [ "X$build_localedir" = X ]; then
 fi
 
 if [ "X$build_official" = X ]; then
-	build_official='-D official=true'
+	build_official="-D 'official=true'"
 fi
 
 if [ "X$build_ui" = X ]; then
 	build_ui='-D gtkversion=2'
 fi
 
-build_prefix="-D prefix=${build_prefix}"
-build_bindir="-D bindir=${build_bindir}"
-build_datadir="-D bindir=${build_datadir}"
-build_localedir="-D localdir=${build_localedir}"
-build_mandir="-D sysman=$build_mandir/man1"
+build_prefix="-D 'prefix=${build_prefix}'"
+build_bindir="-D 'bindir=${build_bindir}'"
+build_mandir="-D 'sysman=$build_mandir/man1'"
+build_datadir="-D 'bindir=${build_datadir}'"
+build_localedir="-D 'localdir=${build_localedir}'"
 
 make clobber >/dev/null 2>&1 || : ignore failure
 
