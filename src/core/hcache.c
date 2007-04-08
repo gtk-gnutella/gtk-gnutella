@@ -1066,7 +1066,6 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 	guint16 first_port;
 	gboolean got_recent;
 	hostcache_t *hc = NULL;
-    gboolean result = FALSE;
 	hash_list_iter_t *iter;
 
     switch (type) {
@@ -1103,22 +1102,20 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 	/* iterate through whole list */
 
 	iter = hash_list_iterator(hc->hostlist);
-	while (hash_list_iter_has_next(iter)) {
-		h = hash_list_iter_next(iter);
+	while (NULL != (h = hash_list_iter_next(iter))) {
 		if (host_is_nearby(gnet_host_get_addr(h))) {
             *addr = gnet_host_get_addr(h);
             *port = gnet_host_get_port(h);
-
-            result = TRUE;
 			break;
 		}
 	}
 	hash_list_iter_release(&iter);
 
-	if (result)
+	if (h) {
 		hcache_unlink_host(hc, h);
-
-	return result;
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /**
