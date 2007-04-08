@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Mar 31 16:16:36 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Sun Apr  8 19:26:20 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -2556,7 +2556,7 @@ EOM
 	;;
 esac
 
-: decide which version of glib to use -- tied to the choice of GTK
+: decide which version of GLib to use -- tied to the choice of GTK
 case "$gtkversion" in
 1) ver=1;;
 *) ver=2;;
@@ -4190,35 +4190,39 @@ $rm -f const.c const.o
 
 : how can we find information about dbus?
 echo " "
-d_dbus="$define"
-echo "Checking how we can gather information about dbus..." >&4
-if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
-	dbusconfig="pkg-config dbus-1"
-	modver=--modversion
-else
-	echo "You've don't seem to have dbus installed?" >&4
-	d_dbus="$undef"
-	dbusconfig='false'
-	modver=''
-fi
-echo "(I'll use '$dbusconfig' to gather that information.)"
 
-dbuscflags=""
-dbusldflags=""
-d_dbus="$undef"
-version=`$dbusconfig $modver`
-case "$version" in
-'') ;;
+dbus="$undef"
+dbuscflags=
+dbusldflags=
+dbusconfig='false'
+modver=''
+
+case "$d_dbus" in
+"$undef") ;;
 *)
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 03502; then
-		echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
-	else
-		echo "Good, you have dbus $version."
-		dbuscflags=`$dbusconfig --cflags`
-		dbusldflags=`$dbusconfig --libs`
+	echo "Checking how we can gather information about dbus..." >&4
+	if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
+		dbusconfig="pkg-config dbus-1"
+		modver=--modversion
+		echo "(I'll use '$dbusconfig' to gather that information.)"
+
+		?X: Make sure we have a good enough version
+		version=`$dbusconfig $modver`
+		case "$version" in
+		'') ;;
+		*)
+			vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+			if test 0$vint -lt 03502; then
+				echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
+				dbuscflags=
+				dbusldflags=
+			else
+				echo "Good, you have dbus $version."
+
+				dbuscflags=`$dbusconfig --cflags`
+				dbusldflags=`$dbusconfig --libs`
 		
-		$cat <<'EOM'
+				$cat <<'EOM'
 
 D-Bus support allows me to send out messages onto the D-Bus message
 bus. That way external applications can easily act on certain 
@@ -4227,19 +4231,25 @@ events that happen, such as a completed download.
 For more information, see doc/other/dbus-support.txt
 
 EOM
-		case "$dbus" in
-		false) dflt=n;;
-		*) dflt=y;;
+				rp="Enable D-Bus support"
+				dflt=y
+				. ./myread
+				case "$ans" in
+				y) dbus="$define";;
+				*) dbus="$undef";;
+				esac
+			fi
+			;;
 		esac
-		rp="Enable D-Bus support"
-		. ./myread
-		case "$ans" in
-		y) dbus=true; d_dbus="$define";;
-		*) dbus=false; d_dbus="$undef";;
-		esac
+	else
+		echo "You've don't seem to have dbus installed?" >&4
 	fi
 	;;
 esac
+
+val=$dbus
+set d_dbus
+eval $setvar
 
 : can we use /dev/poll?
 $cat >try.c <<EOC
@@ -4354,7 +4364,7 @@ esac
 $cat <<EOM
 $spackage contains code called "fast assertions" which are lightweight
 assertions in terms of code space used.  They use much less code than
-their glib counterpart, and therefore should be more efficient.
+their GLib counterpart, and therefore should be more efficient.
 
 EOM
 rp='Shall I enable "fast assertions"'
@@ -5245,15 +5255,15 @@ eval $trylink
 : how can we find information about GNU TLS?
 echo " "
 
-gnutlscflags=''
-gnutlsldflags=''
+gnutls="$undef"
+gnutlscflags=
+gnutlsldflags=
 gnutlsconfig='false'
-val="$undef"
-modver=''
+modver=
 
 case "$d_gnutls" in
-"$undef") gnutls="$undef";;
-*) gnutls="$define"
+"$undef") ;;
+*)
 echo "Checking how we can gather information about GNU TLS..." >&4
 if pkg-config gnutls --cflags >/dev/null 2>&1; then
 	gnutlsconfig="pkg-config gnutls"
@@ -5262,9 +5272,12 @@ elif libgnutls-config --cflags >/dev/null 2>&1; then
 	gnutlsconfig="libgnutls-config"
 	modver=--version
 else
-	echo "You've don't seem to have GNU TLS installed?" >&4
+	echo "You don't seem to have GNU TLS installed?" >&4
 fi
-echo "(I'll use '$gnutlsconfig' to gather that information.)"
+
+if [ "$gnutlsconfig" != false ]; then
+	echo "(I'll use '$gnutlsconfig' to gather that information.)"
+fi
 
 version=`$gnutlsconfig $modver`
 case "$version" in
@@ -5275,6 +5288,8 @@ case "$version" in
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
 	if test 0$vint -lt 010016; then
 		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
+		gnutlscflags=
+		gnutlsldflags=
 	else
 		echo "Good, you have GNU TLS $version."
 		
@@ -5285,15 +5300,12 @@ GNU TLS allows encryption of downloads, uploads and Gnutella connections.
 For more information, see http://www.gnu.org/software/gnutls/.
 
 EOM
-		case "$gnutls" in
-		"$define") dflt=y;;
-		*) dflt=n;;
-		esac
 		rp="Enable GNU TLS support"
+		dflt=y
 		. ./myread
 		case "$ans" in
-		y) val="$define";;
-		*) val="$undef";;
+		y) gnutls="$define";;
+		*) gnutls="$undef";;
 		esac
 	fi
 	;;
@@ -5301,6 +5313,7 @@ esac
 ;;
 esac
 
+val=$gnutls
 set d_gnutls
 eval $setvar
 
@@ -6913,9 +6926,9 @@ case "$gtkversion" in
 esac
 echo "Compiling for GTK $gtkversion: we'll use '$glade'." >&4
 
-: how can we find information about glib?
+: how can we find information about GLib?
 echo " "
-echo "Checking how we can gather information about glib..." >&4
+echo "Checking how we can gather information about GLib..." >&4
 d_glib="$undef"
 if pkg-config $glibpackage --cflags >/dev/null 2>&1; then
 	glibconfig="pkg-config $glibpackage"
@@ -6924,7 +6937,7 @@ elif glib-config --cflags >/dev/null 2>&1; then
 	glibconfig='glib-config'
 	modver=--version
 else
-	echo "You've got problems!  Do you have glib installed?" >&4
+	echo "You've got problems!  Do you have GLib installed?" >&4
 	glibconfig='false'
 	modver=''
 fi
@@ -6975,9 +6988,9 @@ EOC
 if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags >/dev/null 2>&1;
 then
   d_glib="$define"
-  echo "We'll be using glib version $version."
+  echo "We'll be using GLib version $version."
 else 
-  ./warn "Cannot compile against glib version '$version'" 4>&4
+  ./warn "Cannot compile against GLib version '$version'" 4>&4
 fi
 $rm -f try try.c
 
@@ -7051,7 +7064,7 @@ for flag in "$glibcflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some glib C flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib C flags are missing from GTK+ flags, adding all of them.)"
 	gtkcflags="$gtkcflags $glibcflags"
 	allok=false
 fi
@@ -7063,12 +7076,12 @@ for flag in "$glibldflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some glib ld flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib ld flags are missing from GTK+ flags, adding all of them.)"
 	gtkldflags="$gtkldflags $glibldflags"
 	allok=false
 fi
 if $allok; then
-	echo "Good, all the cc and ld flags from glib are included in GTK+ flags."
+	echo "Good, all the cc and ld flags from GLib are included in GTK+ flags."
 fi
 ;;
 esac
