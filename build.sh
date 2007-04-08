@@ -12,6 +12,7 @@ build_cc=
 build_ccflags=
 build_datadir=
 build_dbus=
+build_gnutls=
 build_ipv6=
 build_ldflags=
 build_localedir=
@@ -131,6 +132,7 @@ make clobber >/dev/null 2>&1 || : ignore failure
 	${build_ccflags} \
 	${build_datadir} \
 	${build_dbus} \
+	${build_gnutls} \
 	${build_ipv6} \
 	${build_ldflags} \
 	${build_localedir} \
