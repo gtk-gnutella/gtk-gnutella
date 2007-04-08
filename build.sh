@@ -24,20 +24,20 @@ build_yacc=
 
 while [ $# -gt 0 ]; do
 	case "$1" in
-	--bindir=*)		build_bindir="-D '${1##--}'";;
-	--datadir=*)		build_datadir="-D '${1##--}'";;
+	--bindir=*)		build_bindir="${1##--*=}";;
+	--datadir=*)		build_datadir="${1##--*=}";;
 	--disable-dbus)		build_dbus='-U d_dbus';;
 	--disable-gnutls)	build_gnutls='-U d_gnutls';;
 	--disable-ipv6)		build_ipv6='-U d_ipv6';;
 	--disable-nls)		build_nls='-U d_enablenls';;
 	--gtk1)			build_ui='-D gtkversion=1';;
 	--gtk2)			build_ui='-D gtkversion=2';;
-	--localedir=*)		build_localedir="-D '${1##--}'";;
-	--mandir=*)		build_mandir="-D '${1##--}'";;
-	--prefix=*)		build_prefix="-D '${1##--}'";;
+	--localedir=*)		build_localedir="${1##--*=}";;
+	--mandir=*)		build_mandir="${1##--*=}";;
+	--prefix=*)		build_prefix="${1##--*=}";;
 	--topless)		build_ui='-D d_headless';;
 	--unofficial)		build_official='-D official=false';;
-	--yacc=*)		build_yacc="-D '${1##--}'";;
+	--yacc=*)		build_yacc="${1##--*=}";;
 	--) 		break
 			;;
 	*)
@@ -59,16 +59,25 @@ echo '  --mandir=PATH    Directory used for installing manual pages.'
 echo
 echo 'The following environment variables are honored:'
 echo
-echo '  CC, CFLAGS, LDFLAGS, PREFIX'
+echo '  CC, CFLAGS, LDFLAGS, PREFIX, MAKE, YACC'
 			exit 1
 			;;
 	esac
 	shift
 done
 
+if [ "X$MAKE" = X ]; then
+	MAKE=make
+	which gmake >/dev/null 2>&1 && MAKE=gmake
+fi
+
 if [ "X$build_yacc" = X ]; then
-	build_yacc="-D 'yacc=bison'"
-	which yacc >/dev/null 2>&1 && build_yacc="-D 'yacc=yacc'"
+	if [ "X$YACC" = X ]; then
+		build_yacc=bison
+		which yacc >/dev/null 2>&1 && build_yacc=yacc
+	else
+		build_yacc=$YACC
+	fi
 fi
 
 if [ "X$build_cc" = X ] && [ "X$CC" != X ]; then
@@ -84,11 +93,7 @@ if [ "X$build_ldflags" = X ] && [ "X$LDFLAGS" != X ]; then
 fi
 
 if [ "X$build_prefix" = X ]; then
-	if [ "X$PREFIX" != X ]; then
-		build_prefix=$PREFIX
-	else
-		build_prefix=/usr/local
-	fi
+	build_prefix=${PREFIX:-/usr/local}
 fi
 
 if [ "X$build_bindir" = X ]; then
@@ -120,9 +125,10 @@ build_bindir="-D 'bindir=${build_bindir}'"
 build_mandir="-D 'sysman=$build_mandir/man1'"
 build_datadir="-D 'bindir=${build_datadir}'"
 build_localedir="-D 'localdir=${build_localedir}'"
+build_yacc="-D 'yacc=${build_yacc}'"
 
 # Make sure previous Configure settings have no influence.
-make clobber >/dev/null 2>&1 || : ignore failure
+${MAKE} clobber >/dev/null 2>&1 || : ignore failure
 
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
@@ -143,8 +149,8 @@ make clobber >/dev/null 2>&1 || : ignore failure
 	${build_ui} \
 	${build_yacc} || { echo; echo 'ERROR: Configure failed.'; exit 1; }
 
-make || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
+${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
-echo 'Run "make install" to install gtk-gnutella.'
+echo "Run \"${MAKE} install\" to install gtk-gnutella."
 exit
 
