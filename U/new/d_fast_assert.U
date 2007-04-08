@@ -11,7 +11,7 @@
 ?C:FAST_ASSERTIONS:
 ?C:	This symbol, when defined, indicates that the program should make
 ?C:	use of its own asserting and failure reporting code, instead of
-?C:	the one from glib.
+?C:	the one from GLib.
 ?C:.
 ?H:#$d_fast_assert FAST_ASSERTIONS	/**/
 ?H:.
@@ -29,7 +29,7 @@ esac
 $cat <<EOM
 $spackage contains code called "fast assertions" which are lightweight
 assertions in terms of code space used.  They use much less code than
-their glib counterpart, and therefore should be more efficient.
+their GLib counterpart, and therefore should be more efficient.
 
 EOM
 rp='Shall I enable "fast assertions"'

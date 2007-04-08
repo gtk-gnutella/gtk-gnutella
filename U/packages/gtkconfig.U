@@ -23,7 +23,7 @@
 d_gtk="$undef"
 case "$d_headless" in
 "$define")
-?X: Since there is no GUI, simply include the glib flags
+?X: Since there is no GUI, simply include the GLib flags
 	gtkcflags="$glibcflags"
 	gtkldflags="$glibldflags"
 	;;
@@ -84,7 +84,7 @@ esac
 gtkcflags=`$gtkconfig --cflags`
 gtkldflags=`$gtkconfig --libs`
 ?X:
-?X: Make sure all the glib C flags are included, append all if any missing.
+?X: Make sure all the GLib C flags are included, append all if any missing.
 ?X:
 missing=false
 allok=true
@@ -95,11 +95,11 @@ for flag in "$glibcflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some glib C flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib C flags are missing from GTK+ flags, adding all of them.)"
 	gtkcflags="$gtkcflags $glibcflags"
 	allok=false
 fi
-?X: Make sure all the glib ld flags are included, append all if any missing.
+?X: Make sure all the GLib ld flags are included, append all if any missing.
 missing=false
 for flag in "$glibldflags"; do
 	case "$gtkldflags" in
@@ -108,12 +108,12 @@ for flag in "$glibldflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some glib ld flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib ld flags are missing from GTK+ flags, adding all of them.)"
 	gtkldflags="$gtkldflags $glibldflags"
 	allok=false
 fi
 if $allok; then
-	echo "Good, all the cc and ld flags from glib are included in GTK+ flags."
+	echo "Good, all the cc and ld flags from GLib are included in GTK+ flags."
 fi
 ?X: Remember, indentation wrong on purpose
 ;;

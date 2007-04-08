@@ -13,23 +13,23 @@
 ?S: for flags via pkg-config.
 ?S:.
 ?S:d_useglib1:
-?S:	This symbol conditionally defines USE_GLIB1 when compiling with glib 1.x.
+?S:	This symbol conditionally defines USE_GLIB1 when compiling with GLib 1.x.
 ?S:.
 ?S:d_useglib2:
-?S:	This symbol conditionally defines USE_GLIB2 when compiling with glib 2.x.
+?S:	This symbol conditionally defines USE_GLIB2 when compiling with GLib 2.x.
 ?S:.
 ?C:USE_GLIB1:
-?C: This symbol is defined when compiling for glib 1.x.
+?C: This symbol is defined when compiling for GLib 1.x.
 ?C:.
 ?C:USE_GLIB2:
-?C: This symbol is defined when compiling for glib 2.x.
+?C: This symbol is defined when compiling for GLib 2.x.
 ?C:.
 ?H:#$d_useglib1 USE_GLIB1    /**/
 ?H:#$d_useglib2 USE_GLIB2    /**/
 ?H:.
 ?Y:TOP
 ?T:ver
-: decide which version of glib to use -- tied to the choice of GTK
+: decide which version of GLib to use -- tied to the choice of GTK
 case "$gtkversion" in
 1) ver=1;;
 *) ver=2;;

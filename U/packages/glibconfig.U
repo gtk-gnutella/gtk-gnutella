@@ -6,22 +6,22 @@
 	ldflags cat rm gtkversion Warn d_headless glibversion
 ?MAKE:	-pick add $@ %<
 ?S:glibconfig:
-?S:	This variable holds the command to use to grab information about glib.
+?S:	This variable holds the command to use to grab information about GLib.
 ?S: Typically something like "pkg-config glib" or "glib-config".
 ?S:.
 ?S:glibcflags:
-?S:	This variable holds the compiler flags required to compile with glib.
+?S:	This variable holds the compiler flags required to compile with GLib.
 ?S:.
 ?S:glibldflags:
-?S:	This variable holds the linker flags required to link against glib.
+?S:	This variable holds the linker flags required to link against GLib.
 ?S:.
 ?S:d_glib:
 ?S:	This variable is set if compiling against GLib works.
 ?S:.
 ?T:modver version
-: how can we find information about glib?
+: how can we find information about GLib?
 echo " "
-echo "Checking how we can gather information about glib..." >&4
+echo "Checking how we can gather information about GLib..." >&4
 d_glib="$undef"
 if pkg-config $glibpackage --cflags >/dev/null 2>&1; then
 	glibconfig="pkg-config $glibpackage"
@@ -30,7 +30,7 @@ elif glib-config --cflags >/dev/null 2>&1; then
 	glibconfig='glib-config'
 	modver=--version
 else
-	echo "You've got problems!  Do you have glib installed?" >&4
+	echo "You've got problems!  Do you have GLib installed?" >&4
 	glibconfig='false'
 	modver=''
 fi
@@ -84,9 +84,9 @@ EOC
 if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags >/dev/null 2>&1;
 then
   d_glib="$define"
-  echo "We'll be using glib version $version."
+  echo "We'll be using GLib version $version."
 else 
-  ./warn "Cannot compile against glib version '$version'" 4>&4
+  ./warn "Cannot compile against GLib version '$version'" 4>&4
 fi
 $rm -f try try.c
 
