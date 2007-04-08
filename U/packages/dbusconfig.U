@@ -2,14 +2,13 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:dbusconfig dbuscflags dbusldflags d_dbus: awk cat Myread
+?MAKE:dbusconfig dbuscflags dbusldflags d_dbus: awk cat Myread Setvar
 ?MAKE:	-pick add $@ %<
 ?S:d_dbus:
 ?S: This variable determines if HAS_DBUS will be defined.
 ?S:.
 ?S:dbusconfig:
-?S:	This variable holds the command to use to grab information about dbus.
-?S: Typically something like "pkg-config dbus" or "dbus-config".
+?S: BLAH BLAH BLAH.
 ?S:.
 ?S:dbuscflags:
 ?S:	This variable holds the compiler flags required to compile with dbus.
@@ -22,39 +21,43 @@
 ?C:.
 ?H:#$d_dbus HAS_DBUS  /**/
 ?H:.
-?T:modver version dbus vint
+?T:modver version dbus vint dbusconfig
+?LINT: set d_dbus
 : how can we find information about dbus?
 echo " "
-d_dbus="$define"
-echo "Checking how we can gather information about dbus..." >&4
-if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
-	dbusconfig="pkg-config dbus-1"
-	modver=--modversion
-else
-	echo "You've don't seem to have dbus installed?" >&4
-	d_dbus="$undef"
-	dbusconfig='false'
-	modver=''
-fi
-echo "(I'll use '$dbusconfig' to gather that information.)"
 
-?X: Make sure we have a good enough version
-dbuscflags=""
-dbusldflags=""
-d_dbus="$undef"
-version=`$dbusconfig $modver`
-case "$version" in
-'') ;;
+dbus="$undef"
+dbuscflags=
+dbusldflags=
+dbusconfig='false'
+modver=''
+
+case "$d_dbus" in
+"$undef") ;;
 *)
-	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 03502; then
-		echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
-	else
-		echo "Good, you have dbus $version."
-		dbuscflags=`$dbusconfig --cflags`
-		dbusldflags=`$dbusconfig --libs`
+	echo "Checking how we can gather information about dbus..." >&4
+	if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
+		dbusconfig="pkg-config dbus-1"
+		modver=--modversion
+		echo "(I'll use '$dbusconfig' to gather that information.)"
+
+		?X: Make sure we have a good enough version
+		version=`$dbusconfig $modver`
+		case "$version" in
+		'') ;;
+		*)
+			vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+			if test 0$vint -lt 03502; then
+				echo "Sorry, you have dbus $version, I need at least 0.35.2." >&4
+				dbuscflags=
+				dbusldflags=
+			else
+				echo "Good, you have dbus $version."
+
+				dbuscflags=`$dbusconfig --cflags`
+				dbusldflags=`$dbusconfig --libs`
 		
-		$cat <<'EOM'
+				$cat <<'EOM'
 
 D-Bus support allows me to send out messages onto the D-Bus message
 bus. That way external applications can easily act on certain 
@@ -63,17 +66,23 @@ events that happen, such as a completed download.
 For more information, see doc/other/dbus-support.txt
 
 EOM
-		case "$dbus" in
-		false) dflt=n;;
-		*) dflt=y;;
+				rp="Enable D-Bus support"
+				dflt=y
+				. ./myread
+				case "$ans" in
+				y) dbus="$define";;
+				*) dbus="$undef";;
+				esac
+			fi
+			;;
 		esac
-		rp="Enable D-Bus support"
-		. ./myread
-		case "$ans" in
-		y) dbus=true; d_dbus="$define";;
-		*) dbus=false; d_dbus="$undef";;
-		esac
+	else
+		echo "You've don't seem to have dbus installed?" >&4
 	fi
 	;;
 esac
+
+val=$dbus
+set d_dbus
+eval $setvar
 

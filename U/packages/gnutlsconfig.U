@@ -8,9 +8,7 @@
 ?S: This variable determines if HAS_GNUTLS will be defined.
 ?S:.
 ?S:gnutlsconfig:
-?S:	This variable holds the command to use to grab information
-?S:	about GNU TLS.
-?S: Typically something "pkg-config gnutls".
+?S: BLAH BLAH BLAH
 ?S:.
 ?S:gnutlscflags:
 ?S:	This variable holds the compiler flags required to compile with GNU TLS.
@@ -23,20 +21,20 @@
 ?C:.
 ?H:#$d_gnutls HAS_GNUTLS  /**/
 ?H:.
-?T:modver version vint gnutls
+?T:modver version vint gnutls gnutlsconfig
 ?LINT: set d_gnutls
 : how can we find information about GNU TLS?
 echo " "
 
-gnutlscflags=''
-gnutlsldflags=''
+gnutls="$undef"
+gnutlscflags=
+gnutlsldflags=
 gnutlsconfig='false'
-val="$undef"
-modver=''
+modver=
 
 case "$d_gnutls" in
-"$undef") gnutls="$undef";;
-*) gnutls="$define"
+"$undef") ;;
+*)
 echo "Checking how we can gather information about GNU TLS..." >&4
 if pkg-config gnutls --cflags >/dev/null 2>&1; then
 	gnutlsconfig="pkg-config gnutls"
@@ -45,9 +43,12 @@ elif libgnutls-config --cflags >/dev/null 2>&1; then
 	gnutlsconfig="libgnutls-config"
 	modver=--version
 else
-	echo "You've don't seem to have GNU TLS installed?" >&4
+	echo "You don't seem to have GNU TLS installed?" >&4
 fi
-echo "(I'll use '$gnutlsconfig' to gather that information.)"
+
+if [ "$gnutlsconfig" != false ]; then
+	echo "(I'll use '$gnutlsconfig' to gather that information.)"
+fi
 
 ?X: Make sure we have a good enough version
 version=`$gnutlsconfig $modver`
@@ -59,6 +60,8 @@ case "$version" in
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
 	if test 0$vint -lt 010016; then
 		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
+		gnutlscflags=
+		gnutlsldflags=
 	else
 		echo "Good, you have GNU TLS $version."
 		
@@ -69,15 +72,12 @@ GNU TLS allows encryption of downloads, uploads and Gnutella connections.
 For more information, see http://www.gnu.org/software/gnutls/.
 
 EOM
-		case "$gnutls" in
-		"$define") dflt=y;;
-		*) dflt=n;;
-		esac
 		rp="Enable GNU TLS support"
+		dflt=y
 		. ./myread
 		case "$ans" in
-		y) val="$define";;
-		*) val="$undef";;
+		y) gnutls="$define";;
+		*) gnutls="$undef";;
 		esac
 	fi
 	;;
@@ -85,6 +85,7 @@ esac
 ;;
 esac
 
+val=$gnutls
 set d_gnutls
 eval $setvar
 
