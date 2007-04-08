@@ -17,23 +17,26 @@ build_ldflags=
 build_localedir=
 build_nls=
 build_official=
-build_optimize=
 build_prefix=
 build_ui=
 build_yacc=
-build_install=
 
 while [ $# -gt 0 ]; do
 	case "$1" in
-	--prefix=*)	build_prefix="-D '${1##--}'";;
-	--yacc=*)	build_yacc="-D '${1##--}'";;
-	--unofficial)	build_official='-Dofficial=false';;
-	--topless)	build_ui='-D d_headless';;
-	--gtk1)		build_ui='-D gtkversion=1';;
-	--gtk2)		build_ui='-D gtkversion=2';;
-	--disable-dbus)	build_dbus='-U d_dbus -D dbus=false';;
-	--disable-nls)	build_nls='-U d_enablenls';;
-	--disable-ipv6)	build_ipv6='-U d_ipv6';;
+	--bindir=*)		build_bindir="-D '${1##--}'";;
+	--datadir=*)		build_datadir="-D '${1##--}'";;
+	--disable-dbus)		build_dbus='-U d_dbus';;
+	--disable-gnutls)	build_gnutls='-U d_gnutls';;
+	--disable-ipv6)		build_ipv6='-U d_ipv6';;
+	--disable-nls)		build_nls='-U d_enablenls';;
+	--gtk1)			build_ui='-D gtkversion=1';;
+	--gtk2)			build_ui='-D gtkversion=2';;
+	--localedir=*)		build_localedir="-D '${1##--}'";;
+	--mandir=*)		build_mandir="-D '${1##--}'";;
+	--prefix=*)		build_prefix="-D '${1##--}'";;
+	--topless)		build_ui='-D d_headless';;
+	--unofficial)		build_official='-D official=false';;
+	--yacc=*)		build_yacc="-D '${1##--}'";;
 	--) 		break
 			;;
 	*)
@@ -43,12 +46,14 @@ echo '  --prefix=PATH    Path prefix used for installing files. [/usr/local]'
 echo '  --gtk2           Use Gtk+ 2.x for the user interface [default].'
 echo '  --gtk1           Use the deprecated Gtk+ 1.2 for the user interface.'
 echo '  --topless        Compile for topless use (no graphical user interface).'
-echo '  --disable-nls    Disable NLS (native language support).'
+echo '  --disable-dbus   Do not use D-Bus even if available.'
+echo '  --disable-gnutls Do not use GNU TLS even if available.'
 echo '  --disable-ipv6   Do not use IPv6 even if supported.'
+echo '  --disable-nls    Disable NLS (native language support).'
 echo '  --yacc=TOOL      Either "yacc" or "bison".'
 echo '  --bindir=PATH    Directory used for installing executables.'
-echo '  --localedir=PATH Directory used for installing locale data.'
 echo '  --datadir=PATH   Directory used for installing application data.'
+echo '  --localedir=PATH Directory used for installing locale data.'
 echo '  --mandir=PATH    Directory used for installing manual pages.'
 echo
 echo 'The following environment variables are honored:'
@@ -115,21 +120,28 @@ build_mandir="-D 'sysman=$build_mandir/man1'"
 build_datadir="-D 'bindir=${build_datadir}'"
 build_localedir="-D 'localdir=${build_localedir}'"
 
+# Make sure previous Configure settings have no influence.
 make clobber >/dev/null 2>&1 || : ignore failure
 
+# Use /bin/sh explicitely so that it works on noexec mounted file systems.
+# Note: Configure won't work as of yet on such a file system.
 /bin/sh ./Configure -Oders \
-	${build_prefix} \
 	${build_bindir} \
-	${build_mandir} \
-	${build_datadir} \
-	${build_localedir} \
-	${build_ui} \
+	${build_cc} \
 	${build_ccflags} \
+	${build_datadir} \
+	${build_dbus} \
+	${build_ipv6} \
 	${build_ldflags} \
+	${build_localedir} \
+	${build_mandir} \
 	${build_nls} \
-	${build_yacc}
+	${build_official} \
+	${build_prefix} \
+	${build_ui} \
+	${build_yacc} || { echo; echo 'ERROR: Configure failed.'; exit 1; }
 
-make
+make || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
 echo 'Run "make install" to install gtk-gnutella.'
 exit
