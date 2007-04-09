@@ -40,15 +40,16 @@
 
 RCSID("$Id$")
 
-#include "verify_tth.h"
 #include "downloads.h"
+#include "file_object.h"
 #include "guid.h"
 #include "sockets.h"
-#include "hashtree.h"
+#include "verify_tth.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/bg.h"
+#include "lib/slist.h"
 #include "lib/file.h"
 #include "lib/tigertree.h"
 #include "lib/tiger.h"
@@ -56,23 +57,20 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last inclusion */
 
-gpointer
-tt_internal_hash(gpointer hash1, gpointer hash2)
-{
-	gchar data[2 * TIGERSIZE + 1];
-	gpointer hash = g_malloc(TIGERSIZE);
+/***
+ *** Tigertree functions for sharing
+ ***/
 
-	data[0] = 0x01;		/* Tigertree specs, internal hash should be prefixed
-						 * with 0x01 before hashing */
-	memcpy(data + 1, hash1, TIGERSIZE);
-	memcpy(data + 1 + TIGERSIZE, hash2, TIGERSIZE);
+static struct bgtask *tt_calculate_task;
+static slist_t *files_to_hash;
 
-	g_assert(data[0] == 0x01);
-
-	tiger(data, 2 * TIGERSIZE + 1, hash);
-
-	return hash;
-}
+struct verify_tth {
+	struct file_object *file;
+	filesize_t filesize, offset;
+	size_t buffer_size;
+	char *buffer;
+	TTH_CONTEXT *tth;
+};
 
 /**
  * Initialises the background task for tigertree verification.
@@ -80,6 +78,12 @@ tt_internal_hash(gpointer hash1, gpointer hash2)
 void
 tt_verify_init(void)
 {
+	static gboolean initialized;
+
+	if (!initialized) {
+		initialized = TRUE;
+		files_to_hash = slist_new();
+	}
 }
 
 /**
@@ -88,194 +92,171 @@ tt_verify_init(void)
 void
 tt_verify_close(void)
 {
+	if (tt_calculate_task) {
+		bg_task_cancel(tt_calculate_task);
+		tt_calculate_task = NULL;
+	}
+	if (files_to_hash) {
+		struct shared_file *sf;
+
+		while (NULL != (sf = slist_shift(files_to_hash))) {
+			shared_file_unref(&sf);
+		}
+		slist_free(&files_to_hash);
+	}
 }
 
-/***
- *** Tigertree function for a download file / segment
- ***/
+static struct verify_tth *
+verify_tth_alloc(void)
+{
+	static const struct verify_tth zero_ctx;
+	struct verify_tth *ctx;
 
-
-/***
- *** Tigertree functions for sharing
- ***/
-
-static gpointer tt_calculate_task = NULL;
-static GList *files_to_hash = NULL;
-
-typedef struct tt_file_to_hash_s tt_file_to_hash_t;
-struct tt_file_to_hash_s {
-	const gchar *file_name;
-};
-
-typedef struct tt_computation_context_s tt_computation_context_t;
-
-struct tt_computation_context_s {
-	gint fd;					/**< Handle to the file we are computing. */
-	tt_file_to_hash_t *file;	/**< The file we are computing */
-
-	TTH_CONTEXT *tt_ctx;
-	gchar *buffer;
-	size_t buffer_size;
-	time_t start;
-	filesize_t dataread;
-	hashtree	*tt_node;
-};
+	ctx = walloc(sizeof *ctx);
+	*ctx = zero_ctx;
+	ctx->buffer_size = 128 * 1024;
+	ctx->buffer = g_malloc(ctx->buffer_size);
+	ctx->tth = walloc(tt_size());
+	return ctx;
+}
 
 static void
-tt_computation_context_free(gpointer u)
+verify_tth_free(struct verify_tth **ptr)
 {
-	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
+	struct verify_tth *ctx = *ptr;
 
-	if (ctx->tt_node != NULL) {
-		hashtree_destroy(ctx->tt_node);
-		wfree(ctx->tt_ctx, sizeof(*ctx->tt_ctx));
-		wfree(ctx->buffer, ctx->buffer_size);
+	if (ctx) {
+		file_object_release(&ctx->file);
+		G_FREE_NULL(ctx->buffer);
+		wfree(ctx->tth, tt_size());
+		wfree(ctx, sizeof *ctx);
+		*ptr = NULL;
 	}
-	wfree(ctx, sizeof(*ctx));
+}
+
+static void
+verify_tth_context_free(void *data)
+{
+	struct verify_tth *ctx = data;
+	verify_tth_free(&ctx);
 }
 
 static bgret_t
-tigertree_step_compute(gpointer h, gpointer u, gint ticks)
+tigertree_step_compute(struct bgtask *h, void *data, int ticks)
 {
-	tt_computation_context_t *ctx = u;
-	ssize_t r;
+	struct verify_tth *ctx = data;
 
+	g_assert(ctx);
 	(void) ticks;
 
-	if (ctx->fd == -1) {
-		if (files_to_hash == NULL) {
-			return BGR_DONE;
-		}
+	bg_task_ticks_used(h, 0);
 
-		ctx->dataread = 0;
-		ctx->file = g_list_first(files_to_hash)->data;
+	if (NULL == ctx->file) {
+		struct shared_file *sf;
 
-		g_message("[tiger tree] Trying to hash %s", ctx->file->file_name);
+		sf = files_to_hash ? slist_shift(files_to_hash) : NULL;
+		if (sf) {
+			const char *pathname;
 
-		ctx->fd = file_open(ctx->file->file_name, O_RDONLY);
-		if (ctx->fd < 0) {
-			g_warning("[tiger tree] "
-				  "Could not open %s for tigertree hashing: %s",
-				ctx->file->file_name, g_strerror(errno));
+			pathname = shared_file_path(sf);
+			ctx->file = file_object_open(pathname, O_RDONLY);
+			if (NULL == ctx->file) {
+				int fd;
 
-			files_to_hash = g_list_remove(files_to_hash, ctx->file);
-
-			/* How many ticks did we use */
-			bg_task_ticks_used(h, 0);
-
-			atom_str_free(ctx->file->file_name);
-			wfree(ctx->file, sizeof(*ctx->file));
-
-			return BGR_ERROR;
-		}
-
-		ctx->tt_node = hashtree_new(tt_internal_hash);
-		tt_init(ctx->tt_ctx);
-	}
-
-	*ctx->buffer = 0x00;	/* Leaf hash */
-	r = read(ctx->fd, ctx->buffer + 1, ctx->buffer_size - 1);
-	if ((ssize_t) -1 == r) {
-		if (is_temporary_error(errno)) {
-			return BGR_MORE;
+				fd = file_open(pathname, O_RDONLY);
+				if (fd >= 0) {
+					ctx->file = file_object_new(fd, pathname, O_RDONLY);
+				}
+			}
+			if (ctx->file) {
+				g_warning("Starting to tigertree hashing of \"%s\"", pathname);
+			} else {
+				g_warning("Failed to open \"%s\" for tigertree hashing: %s",
+						pathname, g_strerror(errno));
+			}
+			shared_file_unref(&sf);
 		} else {
-			g_message("Error while reading file: %s", g_strerror(errno));
-			return BGR_ERROR;
+			goto done;
+		}
+		
+		if (ctx->file) {
+			struct stat sb;
+
+			if (fstat(file_object_get_fd(ctx->file), &sb)) {
+				g_warning("fstat() failed for \"%s\": %s",
+					file_object_get_pathname(ctx->file), g_strerror(errno));
+				goto error;
+			}
+			if (!S_ISREG(sb.st_mode) || sb.st_size < 0) {
+				g_warning("Not a regular file \"%s\": %s",
+					file_object_get_pathname(ctx->file), g_strerror(errno));
+				goto error;
+			}
+			ctx->filesize = sb.st_size;
+			ctx->offset = 0;
+			tt_init(ctx->tth);
 		}
 	}
+	if (ctx->file) {
+		ssize_t r;
 
-	ctx->dataread += r;
+		r = file_object_pread(ctx->file,
+				ctx->buffer, ctx->buffer_size, ctx->offset);
+		if ((ssize_t) -1 == r) {
+			if (!is_temporary_error(errno)) {
+				g_warning("Error while reading file: %s", g_strerror(errno));
+				goto error;
+			}
+		} else if (0 == r) {
+			if (ctx->offset != ctx->filesize) {
+				g_warning("File shrunk");
+				goto error;
+			} else {
+				struct tth tth;
 
-	/* Check wether we read data first, before trying to hash it */
-	if (r > 0 || ctx->dataread == 0) {
-		gpointer hash;
-
-		g_assert(ctx->buffer[0] == 0x00);
-
-		hash = g_malloc(TIGERSIZE + 1);
-		tiger(ctx->buffer, (gint64) (r + 1), hash);
-
-		g_assert(*ctx->buffer == 0x00);
-
-		tt_update(ctx->tt_ctx, ctx->buffer + 1, r);
-		hashtree_append_leaf_node(ctx->tt_node, (gpointer) hash);
-	}
-
-	if (r < TTH_BLOCKSIZE) {
-		struct tth cur_hash;
-
-		tt_digest(ctx->tt_ctx, cur_hash.data);
-
-		g_message("TT hash for '%s': %s",
-			ctx->file->file_name, tth_base32(&cur_hash));
-
-		g_message("  TT blocks processed: %s, index: %d",
-			uint64_to_string(ctx->tt_ctx->count), ctx->tt_ctx->idx);
-
-		hashtree_finish(ctx->tt_node);
-
-		{
-			struct tth tth;
+				tt_digest(ctx->tth, tth.data);
+				g_warning("File \"%s\" has TTH: %s",
+					file_object_get_pathname(ctx->file), tth_base32(&tth));
+				file_object_release(&ctx->file);
+			}
+		} else {
+			size_t n = r;
 			
-			memcpy(tth.data, ctx->tt_node->parent->hash, sizeof tth.data);
-			g_message("Calculated hash: %s", tth_base32(&tth));
-			g_message("  TT depth %d", ctx->tt_node->depth);
+			if (n > ctx->filesize - ctx->offset) {
+				g_warning("File grew");
+				goto error;
+			}
+			ctx->offset += n;
+			tt_update(ctx->tth, ctx->buffer, n);
 		}
-
-		hashtree_destroy(ctx->tt_node);
-		ctx->tt_node = NULL;
-
-		close(ctx->fd);
-		ctx->fd = -1;
-		files_to_hash = g_list_remove(files_to_hash, ctx->file);
-
-		atom_str_free(ctx->file->file_name);
-		wfree(ctx->file, sizeof(*ctx->file));
 	}
-
-	bg_task_ticks_used(h, 1);
-
 	return BGR_MORE;
-}
 
-/* Public functions */
+error:
+	file_object_release(&ctx->file);
+	return BGR_MORE;
 
-void
-tt_compute_close(void) {
-
-	while (files_to_hash != NULL) {
-		tt_file_to_hash_t *file_to_hash =
-			  (tt_file_to_hash_t *) files_to_hash->data;
-		files_to_hash = g_list_remove(files_to_hash, file_to_hash);
-
-		atom_str_free(file_to_hash->file_name);
-		wfree(file_to_hash, sizeof(*file_to_hash));
-	}
+done:
+	return BGR_DONE;
 }
 
 void
-request_tigertree(const struct shared_file *sf)
+request_tigertree(struct shared_file *sf)
 {
-	tt_file_to_hash_t *file_to_hash = walloc0(sizeof(tt_file_to_hash_t));
+	tt_verify_init();
 
-	file_to_hash->file_name = atom_str_get(shared_file_path(sf));
-	files_to_hash = g_list_append(files_to_hash, file_to_hash);
+	g_return_if_fail(sf);
+	g_return_if_fail(files_to_hash);
 
-	if (tt_calculate_task == NULL) {
-		bgstep_cb_t step = tigertree_step_compute;
-		tt_computation_context_t *ctx;
+	slist_append(files_to_hash, shared_file_ref(sf));
 
-		ctx = walloc0(sizeof(*ctx));
-		ctx->fd = -1;
-		ctx->tt_ctx = walloc0(sizeof(*ctx->tt_ctx));
-		ctx->buffer_size = 32 * TTH_BLOCKSIZE + 1;
-		ctx->buffer = walloc(ctx->buffer_size);
+	if (NULL == tt_calculate_task) {
+		bgstep_cb_t step[] = { tigertree_step_compute };
 
-		ctx->tt_node = hashtree_new(tt_internal_hash);
-
-		tt_calculate_task = bg_task_create("Tigertree calculation", &step, 1,
-			  ctx, tt_computation_context_free, NULL, NULL);
-
+		tt_calculate_task = bg_task_create("Tigertree calculation",
+								step, G_N_ELEMENTS(step),
+			  					verify_tth_alloc(), verify_tth_context_free,
+								NULL, NULL);
 	}
 }
 
@@ -283,9 +264,9 @@ request_tigertree(const struct shared_file *sf)
 void
 tt_parse_header(struct download *d, header_t *header)
 {
-	gchar *buf = NULL;
-	gchar *uri = NULL;
-	gchar hash[40];
+	char *buf = NULL;
+	char *uri = NULL;
+	char hash[40];
 
 	uri = buf = header_get(header, "X-Thex-Uri");
 
@@ -299,7 +280,7 @@ tt_parse_header(struct download *d, header_t *header)
 	buf = strchr(buf, ';');
 
 	if (buf == NULL) {
-		static const gchar prefix[] = "urn:tree:tiger/:";
+		static const char prefix[] = "urn:tree:tiger/:";
 
 		g_message("Incorrect X-Thex-Uri, trying to work around");
 		buf = header_get(header, "X-Thex-Uri");

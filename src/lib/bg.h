@@ -69,6 +69,8 @@ typedef enum {
 	BG_SIG_COUNT
 } bgsig_t;
 
+struct bgtask;
+
 /*
  * Signatures.
  *
@@ -81,14 +83,14 @@ typedef enum {
  * `bgnotify_cb_t' is the start/stop callback when daemon starts/stops working.
  */
 
-typedef bgret_t (*bgstep_cb_t)(gpointer h, gpointer ctx, gint ticks);
-typedef void (*bgsig_cb_t)(gpointer h, gpointer ctx, bgsig_t sig);
+typedef bgret_t (*bgstep_cb_t)(struct bgtask *h, gpointer ctx, gint ticks);
+typedef void (*bgsig_cb_t)(struct bgtask *h, gpointer ctx, bgsig_t sig);
 typedef void (*bgclean_cb_t)(gpointer ctx);
-typedef void (*bgdone_cb_t)(gpointer h, gpointer ctx,
+typedef void (*bgdone_cb_t)(struct bgtask *h, gpointer ctx,
 	bgstatus_t status, gpointer arg);
-typedef void (*bgstart_cb_t)(gpointer h, gpointer ctx, gpointer item);
-typedef void (*bgend_cb_t)(gpointer h, gpointer ctx, gpointer item);
-typedef void (*bgnotify_cb_t)(gpointer h, gboolean on);
+typedef void (*bgstart_cb_t)(struct bgtask *h, gpointer ctx, gpointer item);
+typedef void (*bgend_cb_t)(struct bgtask *h, gpointer ctx, gpointer item);
+typedef void (*bgnotify_cb_t)(struct bgtask *h, gboolean on);
 
 /*
  * Public interface.
@@ -97,33 +99,33 @@ typedef void (*bgnotify_cb_t)(gpointer h, gboolean on);
 void bg_close(void);
 void bg_sched_timer(gboolean overloaded);
 
-gpointer bg_task_create(
-	const gchar *name,					/**< Task name (for tracing) */
-	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
-	gpointer ucontext,					/**< User context */
-	bgclean_cb_t ucontext_free,			/**< Free routine for context */
-	bgdone_cb_t done_cb,				/**< Notification callback when done */
-	gpointer done_arg);					/**< Callback argument */
+struct bgtask *bg_task_create(
+	const gchar *name,
+	const bgstep_cb_t *steps, gint stepcnt,
+	gpointer ucontext,
+	bgclean_cb_t ucontext_free,
+	bgdone_cb_t done_cb,
+	gpointer done_arg);
 
-gpointer bg_daemon_create(
-	const gchar *name,					/**< Task name (for tracing) */
-	bgstep_cb_t *steps, gint stepcnt,	/**< Work to perform (copied) */
-	gpointer ucontext,					/**< User context */
-	bgclean_cb_t ucontext_free,			/**< Free routine for context */
-	bgstart_cb_t start_cb,				/**< Starting working on an item */
-	bgend_cb_t end_cb,					/**< Done working on an item */
-	bgclean_cb_t item_free,				/**< Free routine for work queue items */
-	bgnotify_cb_t notify);				/**< Start/Stop notify (optional) */
+struct bgtask *bg_daemon_create(
+	const gchar *name,
+	const bgstep_cb_t *steps, gint stepcnt,
+	gpointer ucontext,
+	bgclean_cb_t ucontext_free,
+	bgstart_cb_t start_cb,
+	bgend_cb_t end_cb,
+	bgclean_cb_t item_free,
+	bgnotify_cb_t notify);
 
-void bg_daemon_enqueue(gpointer h, gpointer item);
+void bg_daemon_enqueue(struct bgtask *h, gpointer item);
 
-void bg_task_cancel(gpointer h);
-void bg_task_exit(gpointer h, gint code) G_GNUC_NORETURN;
-void bg_task_ticks_used(gpointer h, gint used);
-bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler);
+void bg_task_cancel(struct bgtask *h);
+void bg_task_exit(struct bgtask *h, gint code) G_GNUC_NORETURN;
+void bg_task_ticks_used(struct bgtask *h, gint used);
+bgsig_cb_t bg_task_signal(struct bgtask *h, bgsig_t sig, bgsig_cb_t handler);
 
-gint bg_task_seqno(gpointer h);
-gpointer bg_task_context(gpointer h);
+gint bg_task_seqno(struct bgtask *h);
+gpointer bg_task_context(struct bgtask *h);
 
 #endif	/* _bg_h_ */
 

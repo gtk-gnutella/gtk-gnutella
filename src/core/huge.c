@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "share.h"
 #include "gmsg.h"
 #include "dmesh.h"
+#include "verify_tth.h"
 #include "version.h"
 #include "settings.h"
 #include "spam.h"
@@ -685,7 +686,7 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
  * The routine doing all the work.
  */
 static bgret_t
-sha1_step_compute(gpointer h, gpointer u, gint ticks)
+sha1_step_compute(struct bgtask *h, gpointer u, gint ticks)
 {
 	struct sha1_computation_context *ctx = u;
 	gint credit = ticks;
@@ -727,7 +728,7 @@ sha1_step_compute(gpointer h, gpointer u, gint ticks)
  * Dump SHA1 cache if it is dirty.
  */
 static bgret_t
-sha1_step_dump(gpointer unused_h, gpointer unused_u, gint unused_ticks)
+sha1_step_dump(struct bgtask *unused_h, gpointer unused_u, gint unused_ticks)
 {
 	(void) unused_h;
 	(void) unused_u;

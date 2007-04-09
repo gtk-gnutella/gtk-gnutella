@@ -56,7 +56,7 @@ RCSID("$Id$")
 #define COPY_BLOCK_SHIFT	12			/**< Power of two of copy unit credit */
 #define COPY_BUF_SIZE		65536		/**< Size of the reading buffer */
 
-static gpointer move_daemon = NULL;
+static struct bgtask *move_daemon;
 
 #define MOVED_MAGIC	0x00c0b100
 
@@ -109,8 +109,8 @@ we_free(gpointer data)
 {
 	struct work *we = data;
 
-	atom_str_free(we->dest);
-	atom_str_free(we->ext);
+	atom_str_free_null(&we->dest);
+	atom_str_free_null(&we->ext);
 	wfree(we, sizeof(*we));
 }
 
@@ -118,9 +118,9 @@ we_free(gpointer data)
  * Signal handler for termination.
  */
 static void
-d_sighandler(gpointer unused_h, gpointer u, bgsig_t sig)
+d_sighandler(struct bgtask *unused_h, gpointer u, bgsig_t sig)
 {
-	struct moved *md = (struct moved *) u;
+	struct moved *md = u;
 
 	(void) unused_h;
 	g_assert(md->magic == MOVED_MAGIC);
@@ -168,7 +168,7 @@ d_free(gpointer ctx)
  * Daemon's notification of start/stop.
  */
 static void
-d_notify(gpointer unused_h, gboolean on)
+d_notify(struct bgtask *unused_h, gboolean on)
 {
 	(void) unused_h;
 	gnet_prop_set_boolean_val(PROP_FILE_MOVING, on);
@@ -178,7 +178,7 @@ d_notify(gpointer unused_h, gboolean on)
  * Daemon's notification: starting to work on item.
  */
 static void
-d_start(gpointer h, gpointer ctx, gpointer item)
+d_start(struct bgtask *h, gpointer ctx, gpointer item)
 {
 	struct moved *md = ctx;
 	struct work *we = item;
@@ -260,7 +260,7 @@ abort_read:
  * Daemon's notification: finished working on item.
  */
 static void
-d_end(gpointer h, gpointer ctx, gpointer item)
+d_end(struct bgtask *h, gpointer ctx, gpointer item)
 {
 	struct moved *md = ctx;
 	struct download *d = md->d;
@@ -325,7 +325,7 @@ finish:
  * Copy file around, incrementally.
  */
 static bgret_t
-d_step_copy(gpointer h, gpointer u, gint ticks)
+d_step_copy(struct bgtask *h, gpointer u, gint ticks)
 {
 	struct moved *md = u;
 	ssize_t r;

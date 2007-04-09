@@ -53,7 +53,7 @@ RCSID("$Id$")
 #define HASH_BLOCK_SHIFT	12			/**< Power of two of hash unit credit */
 #define HASH_BUF_SIZE		65536		/**< Size of the reading buffer */
 
-static gpointer verify_daemon = NULL;
+static struct bgtask *verify_daemon;
 
 enum verifyd_magic { VERIFYD_MAGIC = 0x000e31f8 };
 
@@ -95,7 +95,7 @@ d_free(gpointer ctx)
  * Daemon's notification of start/stop.
  */
 static void
-d_notify(gpointer unused_h, gboolean on)
+d_notify(struct bgtask *unused_h, gboolean on)
 {
 	(void) unused_h;
 	gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, on);
@@ -105,7 +105,7 @@ d_notify(gpointer unused_h, gboolean on)
  * Daemon's notification: starting to work on item.
  */
 static void
-d_start(gpointer unused_h, gpointer ctx, gpointer item)
+d_start(struct bgtask *unused_h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = ctx;
 	struct download *d = item;
@@ -119,29 +119,23 @@ d_start(gpointer unused_h, gpointer ctx, gpointer item)
 	download_verify_start(d);
 
 	filename = make_pathname(download_path(d), download_outname(d));
-	g_return_if_fail(NULL != filename);
-
 	vd->fd = file_open(filename, O_RDONLY);
-
 	if (vd->fd == -1) {
 		vd->error = errno;
 		g_warning("can't open %s to verify SHA1: %s",
 			filename, g_strerror(errno));
-		G_FREE_NULL(filename);
-		return;
+	} else {
+		compat_fadvise_sequential(vd->fd, 0, 0);
+		vd->d = d;
+		vd->start = tm_time();
+		vd->size = download_filesize(d);
+		vd->hashed = 0;
+		vd->error = 0;
+		SHA1Reset(&vd->context);
+
+		if (dbg > 1)
+			g_message("Verifying SHA1 digest for %s\n", filename);
 	}
-
-	compat_fadvise_sequential(vd->fd, 0, 0);
-
-	vd->d = d;
-	vd->start = tm_time();
-	vd->size = download_filesize(d);
-	vd->hashed = 0;
-	vd->error = 0;
-	SHA1Reset(&vd->context);
-
-	if (dbg > 1)
-		g_message("Verifying SHA1 digest for %s\n", filename);
 	G_FREE_NULL(filename);
 }
 
@@ -149,7 +143,7 @@ d_start(gpointer unused_h, gpointer ctx, gpointer item)
  * Daemon's notification: finished working on item.
  */
 static void
-d_end(gpointer unused_h, gpointer ctx, gpointer item)
+d_end(struct bgtask *unused_h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = ctx;
 	struct download *d = item;
@@ -193,9 +187,9 @@ finish:
  * Compute SHA1 of current file.
  */
 static bgret_t
-d_step_compute(gpointer h, gpointer u, gint ticks)
+d_step_compute(struct bgtask *h, gpointer u, gint ticks)
 {
-	struct verifyd *vd = (struct verifyd *) u;
+	struct verifyd *vd = u;
 	ssize_t r;
 	size_t amount;
 	gint res;
@@ -283,8 +277,8 @@ verify_queue(struct download *d)
 void
 verify_init(void)
 {
+	static const bgstep_cb_t step[] = { d_step_compute };
 	struct verifyd *vd;
-	bgstep_cb_t step = d_step_compute;
 
 	vd = walloc(sizeof *vd);
 	vd->magic = VERIFYD_MAGIC;
@@ -293,7 +287,7 @@ verify_init(void)
 	vd->d = NULL;
 
 	verify_daemon = bg_daemon_create("SHA1 verification",
-		&step, 1,
+		step, G_N_ELEMENTS(step),
 		vd, d_free,
 		d_start, d_end, NULL,
 		d_notify);

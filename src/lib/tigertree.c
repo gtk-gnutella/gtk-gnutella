@@ -83,8 +83,36 @@ RCSID("$Id$")
 #include "tigertree.h"
 #include "override.h"		/* Must be the last header included */
 
+/*
+ * size of each block independently tiger-hashed,
+ * not counting leaf 0x00 prefix
+ */
+#define TTH_BLOCKSIZE 1024
 
-#include "tigertree.h"
+/* size of input to each non-leaf hash-tree node, not counting node 0x01 prefix */
+#define TTH_NODESIZE (TIGERSIZE*2)
+
+/* default size of interim values stack, in TIGERSIZE
+ * blocks. If this overflows (as it will for input
+ * longer than 2^64 in size), havoc may ensue. */
+#define TTH_STACKSIZE (TIGERSIZE*56)
+
+
+struct TTH_CONTEXT {
+  guint64 count;                   /* total blocks processed */
+  guchar leaf[1+TTH_BLOCKSIZE]; /* leaf in progress */
+  guchar *block;            /* leaf data */
+  guchar node[1+TTH_NODESIZE]; /* node scratch space */
+  gint idx;                      /* index into block */
+  guchar *top;             /* top (next empty) stack slot */
+  guchar nodes[TTH_STACKSIZE]; /* stack of interim node values */
+};
+
+size_t
+tt_size(void)
+{
+	return sizeof(struct TTH_CONTEXT);
+}
 
 /* Initialize the tigertree context */
 void

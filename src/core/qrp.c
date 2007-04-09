@@ -430,6 +430,7 @@ qrt_patch_free(struct routing_patch *rp)
 {
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
 	G_FREE_NULL(rp->arena);
+	rp->magic = 0;
 	wfree(rp, sizeof *rp);
 }
 
@@ -548,7 +549,7 @@ struct qrt_compress_context {
 	gpointer usr_arg;				/**< Arg for user-defined callback */
 };
 
-static GSList *sl_compress_tasks = NULL;
+static GSList *sl_compress_tasks;
 
 /**
  * Free compression context.
@@ -560,9 +561,11 @@ qrt_compress_free(gpointer u)
 
 	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
 
-	if (ctx->zd)
+	if (ctx->zd) {
 		zlib_deflater_free(ctx->zd, TRUE);
-
+		ctx->zd = NULL;
+	}
+	ctx->magic = 0;
 	wfree(ctx, sizeof *ctx);
 }
 
@@ -570,7 +573,7 @@ qrt_compress_free(gpointer u)
  * Perform incremental compression.
  */
 static bgret_t
-qrt_step_compress(gpointer h, gpointer u, gint ticks)
+qrt_step_compress(struct bgtask *h, gpointer u, gint ticks)
 {
 	struct qrt_compress_context *ctx = u;
 	gint ret;
@@ -639,7 +642,7 @@ done:
  * which lets us remove the task from the list.
  */
 static void
-qrt_patch_compress_done(gpointer h, gpointer u, bgstatus_t status,
+qrt_patch_compress_done(struct bgtask *h, gpointer u, bgstatus_t status,
 	gpointer unused_arg)
 {
 	struct qrt_compress_context *ctx = u;
@@ -675,7 +678,7 @@ qrt_patch_compress(
 {
 	struct qrt_compress_context *ctx;
 	zlib_deflater_t *zd;
-	gpointer task;
+	struct bgtask *task;
 	bgstep_cb_t step = qrt_step_compress;
 
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
@@ -774,8 +777,6 @@ qrt_free(struct routing_table *rt)
 {
 	g_assert(rt->refcnt == 0);
 
-	rt->magic = 0;				/* Prevent accidental reuse */
-
 	atom_sha1_free_null(&rt->digest);
 	G_FREE_NULL(rt->arena);
 	G_FREE_NULL(rt->name);
@@ -783,6 +784,7 @@ qrt_free(struct routing_table *rt)
 	gnet_prop_set_guint32_val(PROP_QRP_MEMORY, qrp_memory -
 		(rt->compacted ? rt->slots / 8 : rt->slots));
 
+	rt->magic = 0;				/* Prevent accidental reuse */
 	wfree(rt, sizeof *rt);
 }
 
@@ -892,7 +894,7 @@ qrt_get_info(gpointer obj, qrt_info_t *qi)
  *** Merging of the leaf node QRP tables into `merged_table'.
  ***/
 
-static gpointer merge_comp = NULL;		/* Background table merging handle */
+static struct bgtask *merge_comp;		/* Background table merging handle */
 
 enum merge_magic {
 	MERGE_MAGIC	= 0xe39ee39e
@@ -905,7 +907,7 @@ struct merge_context {
 	gint slots;					/* Amount of slots used for merged table */
 };
 
-static struct merge_context *merge_ctx = NULL;
+static struct merge_context *merge_ctx;
 
 /**
  * Free merge context.
@@ -929,6 +931,7 @@ merge_context_free(gpointer p)
 	g_slist_free(ctx->tables);
 
 	G_FREE_NULL(ctx->arena);
+	ctx->magic = 0;
 	wfree(ctx, sizeof *ctx);
 }
 
@@ -936,7 +939,7 @@ merge_context_free(gpointer p)
  * Fetch the list of all the QRT from our leaves.
  */
 static bgret_t
-mrg_step_get_list(gpointer unused_h, gpointer u, gint unused_ticks)
+mrg_step_get_list(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 {
 	struct merge_context *ctx = u;
 	const GSList *sl;
@@ -1029,7 +1032,7 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
  * Merge next leaf QRT table if node is still there.
  */
 static bgret_t
-mrg_step_merge_one(gpointer unused_h, gpointer u, gint ticks)
+mrg_step_merge_one(struct bgtask *unused_h, gpointer u, gint ticks)
 {
 	struct merge_context *ctx = u;
 	gint ticks_used = 0;
@@ -1070,7 +1073,7 @@ mrg_step_merge_one(gpointer unused_h, gpointer u, gint ticks)
  * Create and install the table.
  */
 static bgret_t
-mrg_step_install_table(gpointer unused_h, gpointer u, gint unused_ticks)
+mrg_step_install_table(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 {
 	struct merge_context *ctx = u;
 
@@ -1118,9 +1121,9 @@ mrg_compute(bgdone_cb_t done_cb)
 
 	g_assert(merge_ctx == NULL);	/* No computation active */
 
-	merge_ctx = ctx = walloc0(sizeof *ctx);
-
+	ctx = walloc0(sizeof *ctx);
 	ctx->magic = MERGE_MAGIC;
+	merge_ctx = ctx;
 
 	merge_comp = bg_task_create("Leaf QRT merging",
 		merge_steps, G_N_ELEMENTS(merge_steps),
@@ -1167,11 +1170,11 @@ struct query_routing {
 #define DEFAULT_BUF_SIZE	512
 #define MIN_BUF_GROW		256
 
-static GHashTable *ht_seen_words = NULL;
+static GHashTable *ht_seen_words;
 static struct {
 	gchar *arena;	/* g_malloc()ed */
 	gint len;
-} buffer = { NULL, 0 };
+} buffer;
 
 static void qrp_cancel_computation(void);
 
@@ -1409,8 +1412,8 @@ struct qrp_context {
 	gint expand;				/**< Expansion ratio from `st' to `lt' */
 };
 
-static gpointer qrp_comp = NULL;		/**< Background computation handle */
-static gpointer qrp_merge = NULL;		/**< Background merging handle */
+static struct bgtask *qrp_comp;	/**< Background computation handle */
+static struct bgtask *qrp_merge;/**< Background merging handle */
 
 /**
  * Free the `ht_seen_words' table.
@@ -1462,6 +1465,7 @@ qrp_context_free(gpointer p)
 	if (ctx->lt)
 		qrt_unref(ctx->lt);
 
+	ctx->magic = 0;
 	wfree(ctx, sizeof *ctx);
 }
 
@@ -1508,7 +1512,7 @@ qrp_cancel_computation(void)
  * Compute all the substrings we need to insert.
  */
 static bgret_t
-qrp_step_substring(gpointer unused_h, gpointer u, gint unused_ticks)
+qrp_step_substring(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 {
 	struct qrp_context *ctx = u;
 
@@ -1562,7 +1566,7 @@ qrt_eq(const struct routing_table *rt, const gchar *arena, gint slots)
  * Compute QRP table, iteration step.
  */
 static bgret_t
-qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
+qrp_step_compute(struct bgtask *h, gpointer u, gint unused_ticks)
 {
 	struct qrp_context *ctx = u;
 	gchar *table = NULL;
@@ -1681,7 +1685,7 @@ qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
  * Create the compacted routing table object.
  */
 static bgret_t
-qrp_step_create_table(gpointer unused_h, gpointer u, gint unused_ticks)
+qrp_step_create_table(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 {
 	struct qrp_context *ctx = u;
 	glong elapsed;
@@ -1724,7 +1728,7 @@ qrp_step_create_table(gpointer unused_h, gpointer u, gint unused_ticks)
  * Install the routing table we've built, if running as leaf.
  */
 static bgret_t
-qrp_step_install_leaf(gpointer unused_h, gpointer u, gint unused_ticks)
+qrp_step_install_leaf(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 {
 	struct qrp_context *ctx = u;
 
@@ -1759,7 +1763,7 @@ qrp_step_install_leaf(gpointer unused_h, gpointer u, gint unused_ticks)
  * Wait for the `merged_table' to be ready.
  */
 static bgret_t
-qrp_step_wait_for_merged_table(gpointer h, gpointer u, gint unused_ticks)
+qrp_step_wait_for_merged_table(struct bgtask *h, gpointer u, gint unused_ticks)
 {
 	struct qrp_context *ctx = u;
 	gint ratio;
@@ -1831,7 +1835,7 @@ qrp_step_wait_for_merged_table(gpointer h, gpointer u, gint unused_ticks)
  * Merge `local_table' with `merged_table'.
  */
 static bgret_t
-qrp_step_merge_with_leaves(gpointer unused_h, gpointer u, gint ticks)
+qrp_step_merge_with_leaves(struct bgtask *unused_h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = u;
 	gint used;
@@ -1887,7 +1891,7 @@ qrp_step_merge_with_leaves(gpointer unused_h, gpointer u, gint ticks)
  * QRT patch for new connections.
  */
 static bgret_t
-qrp_step_install_ultra(gpointer h, gpointer u, gint ticks)
+qrp_step_install_ultra(struct bgtask *h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = u;
 	struct routing_table *rt;
@@ -2018,7 +2022,7 @@ qrp_update_routing_table(void)
  * routing table.
  */
 static void
-qrp_merge_routing_table(gpointer unused_h, gpointer unused_c,
+qrp_merge_routing_table(struct bgtask *unused_h, gpointer unused_c,
 	bgstatus_t status, gpointer unused_arg)
 {
 	(void) unused_h;
@@ -2060,10 +2064,10 @@ enum qrt_patch_magic {
 
 struct qrt_patch_context {
 	enum qrt_patch_magic magic;
-	struct routing_patch **rpp;	/* Pointer where final patch is stored */
-	struct routing_patch *rp;	/* Routing patch being compressed */
-	struct routing_table *rt;	/* Table against which patch is computed */
-	gpointer compress;			/* The compression task */
+	struct routing_patch **rpp;	/**< Pointer where final patch is stored */
+	struct routing_patch *rp;	/**< Routing patch being compressed */
+	struct routing_table *rt;	/**< Table against which patch is computed */
+	struct bgtask *compress;	/**< The compression task */
 };
 
 typedef void (*qrt_patch_computed_cb_t)(gpointer arg, struct routing_patch *rp);
@@ -2073,15 +2077,15 @@ struct patch_listener_info {
 	gpointer arg;
 };
 
-static struct qrt_patch_context *qrt_patch_ctx = NULL;
-static GSList *qrt_patch_computed_listeners = NULL;
+static struct qrt_patch_context *qrt_patch_ctx;
+static GSList *qrt_patch_computed_listeners;
 
 
 /**
  * Callback invoked when the routing patch is computed.
  */
 static void
-qrt_patch_computed(gpointer unused_h, gpointer unused_u,
+qrt_patch_computed(struct bgtask *unused_h, gpointer unused_u,
 	bgstatus_t status, gpointer arg)
 {
 	struct qrt_patch_context *ctx = arg;
@@ -2130,6 +2134,7 @@ qrt_patch_computed(gpointer unused_h, gpointer unused_u,
 		wfree(pi, sizeof *pi);
 	}
 
+	ctx->magic = 0;
 	wfree(ctx, sizeof *ctx);
 
 	g_slist_free(qrt_patch_computed_listeners);
@@ -2182,12 +2187,11 @@ qrt_patch_computed_remove_listener(gpointer handle)
 static void
 qrt_patch_cancel_compute(void)
 {
-	gpointer comptask;
+	struct bgtask *comptask;
 
 	g_assert(qrt_patch_ctx != NULL);
 
 	comptask = qrt_patch_ctx->compress;
-
 	bg_task_cancel(comptask);
 	sl_compress_tasks = g_slist_remove(sl_compress_tasks, comptask);
 
@@ -2438,7 +2442,7 @@ struct qrt_update {
  * has been compressed.
  */
 static void
-qrt_compressed(gpointer unused_h, gpointer unused_u,
+qrt_compressed(struct bgtask *unused_h, gpointer unused_u,
 	bgstatus_t status, gpointer arg)
 {
 	struct qrt_update *qup = arg;
@@ -2676,7 +2680,7 @@ qrt_update_free(gpointer handle)
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (qup->compress != NULL) {
-		gpointer task = qup->compress;
+		struct bgtask *task = qup->compress;
 		bg_task_cancel(task);
 		sl_compress_tasks = g_slist_remove(sl_compress_tasks, task);
 	}
@@ -2686,10 +2690,10 @@ qrt_update_free(gpointer handle)
 	if (qup->listener)
 		qrt_patch_computed_remove_listener(qup->listener);
 
-	qup->magic = 0;						/* Prevent accidental reuse */
 	if (qup->patch)
 		qrt_patch_unref(qup->patch);
 
+	qup->magic = 0;						/* Prevent accidental reuse */
 	wfree(qup, sizeof *qup);
 }
 
@@ -2973,7 +2977,6 @@ qrt_receive_free(gpointer handle)
 	G_FREE_NULL(qrcv->data);
 
 	qrcv->magic = 0;			/* Prevent accidental reuse */
-
 	wfree(qrcv, sizeof *qrcv);
 }
 
