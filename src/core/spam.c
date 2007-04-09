@@ -483,18 +483,8 @@ spam_retrieve(void)
 
 	f = file_config_open_read_norename_chosen(spam_what, fp, num_fp, &idx);
 	if (f) {
-		gulong n_bytes, n_chunks;
-
-		n_bytes = halloc_bytes_allocated();
-		n_chunks = halloc_chunks_allocated();
-
 		spam_retrieve_from_file(f, fp[idx].dir, fp[idx].name);
 		fclose(f);
-
-		n_bytes = halloc_bytes_allocated() - n_bytes;
-		n_chunks = halloc_chunks_allocated() - n_chunks;
-		g_message("Memory allocated: %s (%lu chunks)",
-			short_size(n_bytes, display_metric_units), n_chunks);
 	}
 }
 
