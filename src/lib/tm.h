@@ -59,10 +59,17 @@
  */
 #define tm2ms(t)	((t)->tv_sec * 1000 + (t)->tv_usec / 1000)
 
+/**
+ * tm2us
+ *
+ * Convert timeval description into microseconds.
+ */
+#define tm2us(t)	((t)->tv_sec * 1000000 + (t)->tv_usec)
+
 typedef GTimeVal tm_t;
 
 void f2tm(double t, tm_t *tm);
-void tm_elapsed(tm_t *elapsed, const tm_t *last, const tm_t *old);
+void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);
 void tm_add(tm_t *tm, const tm_t *inc);
 int tm_cmp(const tm_t *a, const tm_t *b);

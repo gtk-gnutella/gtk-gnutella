@@ -58,13 +58,13 @@ f2tm(double t, tm_t *tm)
 }
 
 /**
- * Computes the elapsed time (last - old) in the supplied structure.
+ * Computes the elapsed time (t1 - t0) in the supplied structure.
  */
 void
-tm_elapsed(tm_t *elapsed, const tm_t *last, const tm_t *old)
+tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0)
 {
-	elapsed->tv_sec = last->tv_sec - old->tv_sec;
-	elapsed->tv_usec = last->tv_usec - old->tv_usec;
+	elapsed->tv_sec = t1->tv_sec - t0->tv_sec;
+	elapsed->tv_usec = t1->tv_usec - t0->tv_usec;
 	if (elapsed->tv_usec < 0) {
 		elapsed->tv_usec += 1000000;
 		elapsed->tv_sec--;
