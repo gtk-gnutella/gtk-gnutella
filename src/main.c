@@ -87,6 +87,7 @@
 #include "core/uhc.h"
 #include "core/upload_stats.h"
 #include "core/verify.h"
+#include "core/verify_tth.h"
 #include "core/version.h"
 #include "core/vmsg.h"
 #include "core/whitelist.h"
@@ -374,6 +375,7 @@ gtk_gnutella_exit(gint n)
 	DO(http_close);
 	DO(uhc_close);
 	DO(verify_close);
+	DO(tt_verify_close);
 	DO(move_close);
 
 	/*
