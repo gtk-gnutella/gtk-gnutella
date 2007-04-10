@@ -2018,9 +2018,8 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 			escaped = url_escape(shared_file_name_nfc(sfn));
 
 			gm_snprintf(location, sizeof(location),
-				"Location: http://%s/get/%u/%s\r\n",
-				host_addr_port_to_string(listen_addr(), listen_port),
-				(guint) shared_file_index(sfn), escaped);
+				"Location: /get/%lu/%s\r\n",
+				(gulong) shared_file_index(sfn), escaped);
 
 			if (escaped != shared_file_name_nfc(sfn)) {
 				g_free(deconstify_gchar(escaped));
