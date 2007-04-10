@@ -642,9 +642,12 @@ can_become_ultra(time_t now)
 	 *		--RAM, 2006-08-18
 	 */
 
-	good_udp_support = udp_active() &&
-		host_is_valid(listen_addr(), socket_listen_port()) &&
-		proxy_oob_queries;
+	good_udp_support = 
+		proxy_oob_queries &&
+		udp_active() && (
+		 	host_is_valid(listen_addr(), socket_listen_port()) ||
+			host_is_valid(listen_addr6(), socket_listen_port())
+		);
 
 	/*
 	 * System requirements
@@ -2568,12 +2571,8 @@ node_host_is_connected(const host_addr_t addr, guint16 port)
 {
 	/* Check our local address */
 
-	if (host_addr_equal(addr, listen_addr()))
-		return TRUE;
-	if (host_addr_equal(addr, listen_addr6()))
-		return TRUE;
-
-    return node_ht_connected_nodes_has(addr, port);
+	return is_my_address(addr) ||
+			node_ht_connected_nodes_has(addr, port);
 }
 
 /**
