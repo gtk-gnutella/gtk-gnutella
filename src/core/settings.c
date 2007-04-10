@@ -559,9 +559,11 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 	static host_addr_t peers[3], last_addr_seen;
 	guint i;
 
-	g_return_if_fail(!force_local_ip); /* Must be called when IP isn't forced */
 	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(new_addr));
 	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(peer));
+
+	if (force_local_ip)
+		return;
 
 	/*
 	 * Accept updates for private addresses only from peer in the same /16
@@ -612,9 +614,11 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 	static host_addr_t peers[3], last_addr_seen;
 	guint i;
 
-	g_return_if_fail(!force_local_ip6); /* Must not be called if IP is forced */
 	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(new_addr));
 	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(peer));
+
+	if (force_local_ip6)
+		return;
 
 	/*
 	 * Accept updates for private addresses only from peer in the same /64
