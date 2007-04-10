@@ -1689,8 +1689,11 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		NULL == oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 	) {
 		if (
-			udp_active() && proxy_oob_queries && !is_udp_firewalled &&
+			!is_udp_firewalled &&
+			proxy_oob_queries &&
+			udp_active() &&
 			host_is_valid(listen_addr(), socket_listen_port())
+			/* NOTE: IPv6 OOB proxying won't work, so don't check for IPv6 */
 		) {
 			/*
 			 * Running with UDP support.
