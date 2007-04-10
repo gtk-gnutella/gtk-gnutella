@@ -17249,7 +17249,7 @@ http://maxmind.com/</label>
 			<widget>
 			  <class>GtkLabel</class>
 			  <name>label784</name>
-			  <label>Engouh UDP support</label>
+			  <label>Enough UDP support</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0</xalign>

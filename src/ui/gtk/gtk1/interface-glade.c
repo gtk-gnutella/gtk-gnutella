@@ -13153,7 +13153,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
-  label784 = gtk_label_new (_("Engouh UDP support"));
+  label784 = gtk_label_new (_("Enough UDP support"));
   gtk_widget_set_name (label784, "label784");
   gtk_widget_ref (label784);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label784", label784,
