@@ -279,6 +279,13 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
     guint32 timeout;
 	gboolean ret;
 
+	if (!utf8_is_valid_string(query)) {
+		if (search) {
+			*search = NULL;
+		}
+		return FALSE;
+	}
+
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
 	if (!(SEARCH_F_PASSIVE & flags))
