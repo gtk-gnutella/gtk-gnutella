@@ -51,7 +51,9 @@ RCSID("$Id$")
 #include "lib/misc.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum shell_reply {
@@ -312,6 +314,10 @@ shell_exec_search(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	if (0 == strcasecmp(argv[1], "add")) {
 		if (argc < 3) {
 			sh->msg = _("Query string missing");
+			goto error;
+		}
+		if (!utf8_is_valid_string(argv[2])) {
+			sh->msg = _("Query string is not UTF-8 encoded");
 			goto error;
 		}
 		if (gcu_search_gui_new_search(argv[2], 0)) {
