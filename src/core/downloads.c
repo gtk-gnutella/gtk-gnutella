@@ -4985,7 +4985,7 @@ download_new(const gchar *filename,
 		download_new_by_hostname(req);
 		return TRUE;
 	}
-	return NULL != create_download(filename, NULL, size, addr,
+	return NULL != create_download(filename, uri, size, addr,
 					port, guid, hostname, sha1, stamp,
 					fi, proxies, flags, parq_id);
 }
@@ -6560,6 +6560,17 @@ check_xhost(struct download *d, const header_t *header)
 }
 
 /**
+ * Check whether this is a THEX data download.
+ */
+static gboolean
+download_is_thex(const struct download *d)
+{
+	download_check(d);
+
+	return d->uri && is_strprefix(d->uri, "/uri-res/N2X?");
+}
+
+/**
  * Check for X-Gnutella-Content-URN.
  *
  * @returns FALSE if we cannot continue with the download.
@@ -6572,6 +6583,15 @@ check_content_urn(struct download *d, header_t *header)
 	gboolean found_sha1 = FALSE;
 
 	download_check(d);
+
+	/**
+	 * LimeWire emits a X-Gnutella-Content-Urn header with the SHA-1 of
+	 * the file described by the THEX data. Thus the SHA-1 won't match
+	 * the THEX data we are actually downloading. As there are many
+	 * LimeWire clones we cannot just check the Server/User-Agent header.
+	 */
+	if (download_is_thex(d))
+		return TRUE;
 
 	buf = header_get(header, "X-Gnutella-Content-Urn");
 
@@ -10395,7 +10415,7 @@ download_build_url(const struct download *d)
 	if (d->browse) {
 		url = g_strconcat(prefix, host, "/", (void *) 0);
 	} else if (d->uri) {
-		url = g_strdup(d->uri);
+		url = g_strconcat(prefix, host, d->uri, (void *) 0);
 	} else if (sha1) {
 		url = g_strconcat(prefix, host, "/uri-res/N2R?urn:sha1:",
 				sha1_base32(sha1), (void *) 0);
