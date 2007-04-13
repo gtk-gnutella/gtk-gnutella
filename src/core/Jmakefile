@@ -37,6 +37,7 @@ SRC = \
 	bsched.c \
 	clock.c \
 	dh.c \
+	dime.c \
 	dmesh.c \
 	downloads.c \
 	dq.c \
@@ -92,6 +93,7 @@ SRC = \
 	sq.c \
 	tls_cache.c \
 	tls_common.c \
+	tth_cache.c \
 	token.c \
 	tsync.c \
 	tx.c \

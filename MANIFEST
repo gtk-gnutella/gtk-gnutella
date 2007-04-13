@@ -270,6 +270,8 @@ src/core/clock.c
 src/core/clock.h
 src/core/dh.c
 src/core/dh.h
+src/core/dime.c
+src/core/dime.h
 src/core/dmesh.c
 src/core/dmesh.h
 src/core/downloads.c
@@ -381,6 +383,8 @@ src/core/tls_cache.c
 src/core/tls_cache.h
 src/core/tls_common.c
 src/core/tls_common.h
+src/core/tth_cache.c
+src/core/tth_cache.h
 src/core/token.c
 src/core/token.h
 src/core/tsync.c
