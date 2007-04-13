@@ -30,13 +30,13 @@ while [ $# -gt 0 ]; do
 	--disable-gnutls)	build_gnutls='-U d_gnutls';;
 	--disable-ipv6)		build_ipv6='-U d_ipv6';;
 	--disable-nls)		build_nls='-U d_enablenls';;
-	--gtk1)			build_ui='-D gtkversion=1';;
-	--gtk2)			build_ui='-D gtkversion=2';;
+	--gtk1)			build_ui='gtkversion=1';;
+	--gtk2)			build_ui='gtkversion=2';;
 	--localedir=*)		build_localedir="${1##--*=}";;
 	--mandir=*)		build_mandir="${1##--*=}";;
 	--prefix=*)		build_prefix="${1##--*=}";;
-	--topless)		build_ui='-D d_headless';;
-	--unofficial)		build_official='-D official=false';;
+	--topless)		build_ui='d_headless';;
+	--unofficial)		build_official='false';;
 	--yacc=*)		build_yacc="${1##--*=}";;
 	--) 		break
 			;;
@@ -71,73 +71,41 @@ if [ "X$MAKE" = X ]; then
 	which gmake >/dev/null 2>&1 && MAKE=gmake
 fi
 
+build_yacc=${build_yacc:-$YACC}
 if [ "X$build_yacc" = X ]; then
-	if [ "X$YACC" = X ]; then
-		build_yacc=bison
-		which yacc >/dev/null 2>&1 && build_yacc=yacc
-	else
-		build_yacc=$YACC
-	fi
+	build_yacc=bison
+	which yacc >/dev/null 2>&1 && build_yacc=yacc
 fi
-build_yacc="-D 'yacc=${build_yacc}'"
+build_yacc=${build_yacc:+"'$build_yacc'"}
 
-if [ "X$build_cc" = X ] && [ "X$CC" != X ]; then
-	build_cc="'cc=$CC'"
-fi
+build_cc=${build_cc:-$CC}
+build_cc=${build_cc:+"'$build_cc'"}
 
-if [ "X$build_ccflags" = X ] && [ "X$CFLAGS" != X ]; then
-	build_ccflags="'ccflags=$CFLAGS'"
-fi
+build_ccflags=${build_ccflags:-$CFLAGS}
+build_ccflags=${build_ccflags:+"'$build_ccflags'"}
 
-if [ "X$build_ldflags" = X ] && [ "X$LDFLAGS" != X ]; then
-	build_ldflags="'ldflags=$LDFLAGS'"
-fi
+build_ldflags=${build_ldflags:-$LDFLAGS}
+build_ldflags=${build_ldflags:+"'$build_ldflags'"}
 
-if [ "X$build_prefix" = X ]; then
-	build_prefix=${PREFIX:-/usr/local}
-fi
+build_prefix=${build_prefix:-$PREFIX}
+build_prefix=${build_prefix:-/usr/local}
+build_prefix=${build_prefix:+"'$build_prefix'"}
 
-if [ "X$build_bindir" = X ]; then
-	build_bindir="$build_prefix/bin"
-fi
+build_bindir=${build_bindir:-$build_prefix/bin}
+build_bindir=${build_bindir:+"'$build_bindir'"}
 
-if [ "X$build_mandir" = X ]; then
-	build_mandir="$build_prefix/man"
-fi
+build_mandir=${build_mandir:-$build_prefix/man}
+build_mandir=${build_mandir:+"'$build_mandir'"}
 
-if [ "X$build_datadir" = X ]; then
-	build_datadir="$build_prefix/share"
-fi
+build_datadir=${build_datadir:-$build_prefix/share/gtk-gnutella}
+build_datadir=${build_datadir:+"'$build_datadir'"}
 
-if [ "X$build_localedir" = X ]; then
-	build_localedir="$build_prefix/share/locale"
-fi
+build_localedir=${build_localedir:-$build_prefix/share/locale}
+build_localedir=${build_localedir:+"'$build_localedir'"}
 
-if [ "X$build_official" = X ]; then
-	build_official="-D 'official=true'"
-fi
+build_official=${build_official:-true}
 
-if [ "X$build_ui" = X ]; then
-	build_ui="-D gtkversion=2"
-fi
-
-if [ "X$build_cc" != X ]; then
-	build_cc="-D '${build_cc}'"
-fi
-
-if [ "X$build_ccflags" != X ]; then
-	build_ccflags="-D '${build_ccflags}'"
-fi
-
-if [ "X$build_ldflags" != X ]; then
-	build_ldflags="-D '${build_ldflags}'"
-fi
-
-build_prefix="-D 'prefix=${build_prefix}'"
-build_bindir="-D 'bindir=${build_bindir}'"
-build_mandir="-D 'sysman=$build_mandir/man1'"
-build_datadir="-D 'bindir=${build_datadir}'"
-build_localedir="-D 'localdir=${build_localedir}'"
+build_ui=${build_ui:-gtkversion=2}
 
 # Make sure previous Configure settings have no influence.
 ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
@@ -145,21 +113,22 @@ ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
 /bin/sh ./Configure -Oders \
-	"${build_bindir}" \
-	"${build_cc}" \
-	"${build_ccflags}" \
-	"${build_datadir}" \
-	"${build_dbus}" \
-	"${build_gnutls}" \
-	"${build_ipv6}" \
-	"${build_ldflags}" \
-	"${build_localedir}" \
-	"${build_mandir}" \
-	"${build_nls}" \
-	"${build_official}" \
-	"${build_prefix}" \
-	"${build_ui}" \
-	"${build_yacc}" || { echo; echo 'ERROR: Configure failed.'; exit 1; }
+	${build_cc:+"-D cc='$build_cc'"} \
+	${build_yacc:+"-D yacc='$build_yacc'"} \
+	${build_ccflags:+"-D ccflags='$build_ccflags'"} \
+	${build_ldflags:+"-D ldflags='$build_ldflags'"} \
+	${build_prefix:+"-D prefix='$build_prefix'"} \
+	${build_bindir:+"-D bindir='$build_bindir'"} \
+	${build_datadir:+"-D privlib='$build_datadir'"} \
+	${build_localedir:+"-D locale='$build_localedir'"} \
+	${build_mandir:+"-D sysman='$build_mandir'"} \
+	${build_official:+"-D official='$build_official'"} \
+	${build_ui:+"-D '$build_ui'"} \
+	${build_nls:+"'$build_nls'"} \
+	${build_dbus:+"'$build_dbus'"} \
+	${build_gnutls:+"'$build_gnutls'"} \
+	${build_ipv6:+"'$build_ipv6'"} \
+	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
 
 ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
