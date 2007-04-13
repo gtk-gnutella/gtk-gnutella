@@ -148,7 +148,7 @@ d_end(struct bgtask *unused_h, gpointer ctx, gpointer item)
 	struct verifyd *vd = ctx;
 	struct download *d = item;
 	time_delta_t elapsed = 0;
-	guint8 digest[SHA1HashSize];
+	struct sha1 digest;
 
 	(void) unused_h;
 	g_assert(vd->magic == VERIFYD_MAGIC);
@@ -166,7 +166,7 @@ d_end(struct bgtask *unused_h, gpointer ctx, gpointer item)
 
 	if (vd->error == 0) {
 		g_assert(vd->hashed == vd->size);
-		SHA1Result(&vd->context, digest);
+		SHA1Result(&vd->context, &digest);
 	}
 
 	elapsed = delta_time(tm_time(), vd->start);
@@ -178,7 +178,7 @@ d_end(struct bgtask *unused_h, gpointer ctx, gpointer item)
 
 finish:
 	if (vd->error == 0)
-		download_verify_done(d, digest, elapsed);
+		download_verify_done(d, &digest, elapsed);
 	else
 		download_verify_error(d);
 }
