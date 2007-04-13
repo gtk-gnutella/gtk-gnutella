@@ -677,7 +677,7 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 	if ((size_t) r < amount) {					/* EOF reached */
 		struct sha1 sha1;
 
-		SHA1Result(&ctx->context, cast_to_gpointer(&sha1));
+		SHA1Result(&ctx->context, &sha1);
 		got_sha1_result(ctx, &sha1);
 		close_current_file(ctx);
 	}

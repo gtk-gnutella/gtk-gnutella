@@ -37,6 +37,7 @@
 
 RCSID("$Id$")
 
+#include "atoms.h"
 #include "base32.h"
 #include "endian.h"
 #include "html_entities.h"
@@ -2047,10 +2048,9 @@ random_init(void)
 	struct stat buf;
 	tm_t start, end;
 	guint32 seed;
-	guint8 digest[SHA1HashSize];
+	struct sha1 digest;
 	guint32 sys[17];
 	gint i;
-	gint j;
 	gboolean is_pipe = TRUE;
 
 	/*
@@ -2144,13 +2144,8 @@ random_init(void)
 	 * Reduce SHA1 to a single guint32.
 	 */
 
-	SHA1Result(&ctx, digest);
-
-	for (seed = 0, i = j = 0; i < SHA1HashSize; i++) {
-		guint32 b = digest[i];
-		seed ^= b << (j << 3);
-		j = (j + 1) & 0x3;
-	}
+	SHA1Result(&ctx, &digest);
+	seed = sha1_hash(&digest);
 
 	/*
 	 * Finally, can initialize the random number generator.
@@ -3822,7 +3817,7 @@ guint32
 cpu_noise(void)
 {
 	static guchar data[512];
-	guint8 digest[SHA1HashSize];
+	struct sha1 digest;
 	SHA1Context ctx;
 	guint32 r, i;
 	
@@ -3832,9 +3827,9 @@ cpu_noise(void)
 
 	SHA1Reset(&ctx);
 	SHA1Input(&ctx, data, i);
-	SHA1Result(&ctx, digest);
+	SHA1Result(&ctx, &digest);
 
-	return peek_le32(digest);
+	return peek_le32(digest.data);
 }
 
 /**

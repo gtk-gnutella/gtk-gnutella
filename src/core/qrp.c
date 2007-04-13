@@ -384,10 +384,10 @@ static struct sha1 *
 qrt_sha1(struct routing_table *rt)
 {
 	static struct sha1 sha1;
+	SHA1Context ctx;
 	gint i;
 	gint bytes;
 	guint8 vector[8];
-	SHA1Context ctx;
 	guint8 *p;
 
 	g_assert(rt->compacted);
@@ -406,7 +406,7 @@ qrt_sha1(struct routing_table *rt)
 		SHA1Input(&ctx, vector, sizeof vector);
 	}
 
-	SHA1Result(&ctx, cast_to_gpointer(&sha1));
+	SHA1Result(&ctx, &sha1);
 	return &sha1;
 }
 

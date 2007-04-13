@@ -336,6 +336,7 @@ tok_generate(time_t now, const gchar *version)
 	guint idx;
 	const gchar *key;
 	SHA1Context ctx;
+    struct sha1 sha1;
 	guint8 seed[3];
 	guint32 now32;
 	gint lvlsize;
@@ -355,14 +356,15 @@ tok_generate(time_t now, const gchar *version)
 	now = clock_loc2gmt(now);				/* As close to GMT as possible */
 
 	now32 = (guint32) htonl((guint32) now);
-	memcpy(digest, &now32, 4);
-	memcpy(digest + 4, &seed, 3);
+	memcpy(&digest[0], &now32, 4);
+	memcpy(&digest[4], &seed, 3);
 
 	SHA1Reset(&ctx);
-	SHA1Input(&ctx, (guint8 *) key, strlen(key));
-	SHA1Input(&ctx, (guint8 *) digest, 7);
-	SHA1Input(&ctx, (guint8 *) version, strlen(version));
-	SHA1Result(&ctx, (guint8 *) digest + 7);
+	SHA1Input(&ctx, key, strlen(key));
+	SHA1Input(&ctx, digest, 7);
+	SHA1Input(&ctx, version, strlen(version));
+	SHA1Result(&ctx, &sha1);
+	memcpy(&digest[7], sha1.data, SHA1_RAW_SIZE);
 
 	/*
 	 * Compute level.
@@ -491,7 +493,7 @@ tok_version_valid(
 	SHA1Context ctx;
 	gchar lvldigest[1024];
 	gchar token[TOKEN_VERSION_SIZE];
-	gchar digest[SHA1HashSize];
+	struct sha1 digest;
 	version_t rver;
 	gchar *end;
 	gint toklen;
@@ -538,12 +540,12 @@ tok_version_valid(
 	key = tk->keys[idx];
 
 	SHA1Reset(&ctx);
-	SHA1Input(&ctx, (guint8 *) key, strlen(key));
-	SHA1Input(&ctx, (guint8 *) token, 7);
-	SHA1Input(&ctx, (guint8 *) version, strlen(version));
-	SHA1Result(&ctx, (guint8 *) digest);
+	SHA1Input(&ctx, key, strlen(key));
+	SHA1Input(&ctx, token, 7);
+	SHA1Input(&ctx, version, strlen(version));
+	SHA1Result(&ctx, &digest);
 
-	if (0 != memcmp(token + 7, digest, SHA1HashSize))
+	if (0 != memcmp(&token[7], digest.data, SHA1_RAW_SIZE))
 		return TOK_INVALID;
 
 	if (!version_fill(version, &rver))		/* Remote version */

@@ -103,7 +103,7 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n)
 		iov = walloc(iov_size);
 
 		for (i = 0; i < n; i++) {
-			iov[i].iov_base = leaves[i].data;
+			iov[i].iov_base = deconstify_gpointer(leaves[i].data);
 			iov[i].iov_len = sizeof leaves[i].data;
 			size += sizeof leaves[i].data;
 		}
