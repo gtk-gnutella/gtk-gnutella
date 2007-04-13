@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "downloads.h"
+#include "file_object.h"
 #include "verify.h"
 
 #include "if/gnet_property.h"
@@ -62,8 +63,8 @@ enum verifyd_magic { VERIFYD_MAGIC = 0x000e31f8 };
  */
 struct verifyd {
 	enum verifyd_magic magic;	/**< Magic number */
-	struct download *d;		/**< Current download */
-	gint fd;				/**< Opened file descriptor, -1 if none */
+	struct download *d;			/**< Current download */
+	struct file_object *file;	/**< Opened file descriptor, -1 if none */
 	time_t start;			/**< Start time, to determine computation rate */
 	filesize_t size;		/**< Size of file */
 	filesize_t hashed;		/**< Amount of data hashed so far */
@@ -82,10 +83,7 @@ d_free(gpointer ctx)
 
 	g_assert(vd->magic == VERIFYD_MAGIC);
 
-	if (vd->fd != -1) {
-		close(vd->fd);
-		vd->fd = -1;
-	}
+	file_object_release(&vd->file);
 	G_FREE_NULL(vd->buffer);
 	vd->magic = 0;
 	wfree(vd, sizeof *vd);
@@ -109,34 +107,42 @@ d_start(struct bgtask *unused_h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = ctx;
 	struct download *d = item;
-	gchar *filename;
+	gchar *pathname;
 
 	(void) unused_h;
 	g_assert(vd->magic == VERIFYD_MAGIC);
-	g_assert(vd->fd == -1);
-	g_assert(vd->d == NULL);
+	g_assert(NULL == vd->file);
+	g_assert(NULL == vd->d);
 
 	download_verify_start(d);
 
-	filename = make_pathname(download_path(d), download_outname(d));
-	vd->fd = file_open(filename, O_RDONLY);
-	if (vd->fd == -1) {
-		vd->error = errno;
-		g_warning("can't open %s to verify SHA1: %s",
-			filename, g_strerror(errno));
-	} else {
-		compat_fadvise_sequential(vd->fd, 0, 0);
+	pathname = make_pathname(download_path(d), download_outname(d));
+	vd->file = file_object_open(pathname, O_RDONLY);
+	if (NULL == vd->file) {
+		int fd;
+
+		fd = file_open(pathname, O_RDONLY);
+		if (fd >= 0) {
+			vd->file = file_object_new(fd, pathname, O_RDONLY);
+		}
+	}
+	if (vd->file) {
+		if (dbg > 1) {
+			g_message("Verifying SHA1 digest for %s\n", pathname);
+		}
+		compat_fadvise_sequential(file_object_get_fd(vd->file), 0, 0);
 		vd->d = d;
 		vd->start = tm_time();
 		vd->size = download_filesize(d);
 		vd->hashed = 0;
 		vd->error = 0;
 		SHA1Reset(&vd->context);
-
-		if (dbg > 1)
-			g_message("Verifying SHA1 digest for %s\n", filename);
+	} else {
+		vd->error = errno ? errno : EIO;
+		g_warning("can't open %s to verify SHA1: %s",
+			pathname, g_strerror(errno));
 	}
-	G_FREE_NULL(filename);
+	G_FREE_NULL(pathname);
 }
 
 /**
@@ -153,15 +159,13 @@ d_end(struct bgtask *unused_h, gpointer ctx, gpointer item)
 	(void) unused_h;
 	g_assert(vd->magic == VERIFYD_MAGIC);
 
-	if (vd->fd == -1) {				/* Did not start properly */
+	if (NULL == vd->file) {				/* Did not start properly */
 		g_assert(vd->error);
 		goto finish;
 	}
+	file_object_release(&vd->file);
 
 	g_assert(vd->d == d);
-
-	close(vd->fd);
-	vd->fd = -1;
 	vd->d = NULL;
 
 	if (vd->error == 0) {
@@ -177,10 +181,10 @@ d_end(struct bgtask *unused_h, gpointer ctx, gpointer item)
 			download_outname(d), (gulong) (vd->size / elapsed), vd->error);
 
 finish:
-	if (vd->error == 0)
-		download_verify_done(d, &digest, elapsed);
-	else
+	if (vd->error)
 		download_verify_error(d);
+	else
+		download_verify_done(d, &digest, elapsed);
 }
 
 /**
@@ -198,7 +202,7 @@ d_step_compute(struct bgtask *h, gpointer u, gint ticks)
 
 	g_assert(vd->magic == VERIFYD_MAGIC);
 
-	if (vd->fd == -1)			/* Could not open the file */
+	if (NULL == vd->file)		/* Could not open the file */
 		return BGR_DONE;		/* Computation done */
 
 	if (vd->size == 0)			/* Empty file */
@@ -221,7 +225,7 @@ d_step_compute(struct bgtask *h, gpointer u, gint ticks)
 
 	g_assert(amount > 0);
 
-	r = read(vd->fd, vd->buffer, amount);
+	r = file_object_pread(vd->file, vd->buffer, amount, vd->hashed);
 	if ((ssize_t) -1 == r) {
 		if (is_temporary_error(errno)) {
 			return BGR_MORE;
@@ -256,7 +260,7 @@ d_step_compute(struct bgtask *h, gpointer u, gint ticks)
 		return BGR_DONE;
 	}
 
-	vd->hashed += r;
+	vd->hashed += (size_t) r;
 	download_verify_progress(vd->d, vd->hashed);
 
 	return vd->hashed == vd->size ? BGR_DONE : BGR_MORE;
@@ -278,13 +282,13 @@ void
 verify_init(void)
 {
 	static const bgstep_cb_t step[] = { d_step_compute };
+	static const struct verifyd zero_vd;
 	struct verifyd *vd;
 
 	vd = walloc(sizeof *vd);
+	*vd = zero_vd;
 	vd->magic = VERIFYD_MAGIC;
-	vd->fd = -1;
 	vd->buffer = g_malloc(HASH_BUF_SIZE);
-	vd->d = NULL;
 
 	verify_daemon = bg_daemon_create("SHA1 verification",
 		step, G_N_ELEMENTS(step),
