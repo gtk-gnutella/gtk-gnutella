@@ -65,6 +65,7 @@
  */
 
 #include "common.h"
+#include "endian.h"
 #include "sha1.h"
 #include "misc.h"			/* For RCSID */
 #include "override.h"		/* Must be the last header included */
@@ -103,8 +104,7 @@ int SHA1Reset(SHA1Context *context)
         return shaNull;
     }
 
-    context->Length_Low             = 0;
-    context->Length_High            = 0;
+    context->Length                 = 0;
     context->Message_Block_Index    = 0;
 
     context->Intermediate_Hash[0]   = 0x67452301;
@@ -138,10 +138,9 @@ int SHA1Reset(SHA1Context *context)
  *      sha Error Code.
  *
  */
-int SHA1Result( SHA1Context *context,
-                guint8 Message_Digest[SHA1HashSize])
+int SHA1Result( SHA1Context *context, struct sha1 *Message_Digest)
 {
-    int i;
+    unsigned i;
 
     if (!context || !Message_Digest)
     {
@@ -161,14 +160,13 @@ int SHA1Result( SHA1Context *context,
             /* message may be sensitive, clear it out */
             context->Message_Block[i] = 0;
         }
-        context->Length_Low = 0;    /* and clear length */
-        context->Length_High = 0;
+        context->Length = 0;    /* and clear length */
         context->Computed = 1;
     }
 
-    for(i = 0; i < SHA1HashSize; ++i)
+    for(i = 0; i < sizeof Message_Digest->data; ++i)
     {
-        Message_Digest[i] = context->Intermediate_Hash[i>>2]
+        Message_Digest->data[i] = context->Intermediate_Hash[i>>2]
                             >> 8 * ( 3 - ( i & 0x03 ) );
     }
 
@@ -196,9 +194,11 @@ int SHA1Result( SHA1Context *context,
  *
  */
 int SHA1Input(    SHA1Context    *context,
-                  const guint8  *message_array,
-                  unsigned       length)
+                  const void  *data,
+                  size_t       length)
 {
+    const unsigned char *message_array = data;
+
     if (!length)
     {
         return shaSuccess;
@@ -224,15 +224,11 @@ int SHA1Input(    SHA1Context    *context,
     context->Message_Block[context->Message_Block_Index++] =
                     (*message_array & 0xFF);
 
-    context->Length_Low += 8;
-    if (context->Length_Low == 0)
+    context->Length += 8;
+    if (context->Length < 8)
     {
-        context->Length_High++;
-        if (context->Length_High == 0)
-        {
             /* Message is too long */
             context->Corrupted = 1;
-        }
     }
 
     if (context->Message_Block_Index == 64)
@@ -487,14 +483,7 @@ void SHA1PadMessage(SHA1Context *context)
     /*
      *  Store the message length as the last 8 octets
      */
-    context->Message_Block[56] = context->Length_High >> 24;
-    context->Message_Block[57] = context->Length_High >> 16;
-    context->Message_Block[58] = context->Length_High >> 8;
-    context->Message_Block[59] = context->Length_High;
-    context->Message_Block[60] = context->Length_Low >> 24;
-    context->Message_Block[61] = context->Length_Low >> 16;
-    context->Message_Block[62] = context->Length_Low >> 8;
-    context->Message_Block[63] = context->Length_Low;
+    poke_be64(&context->Message_Block[56], context->Length);
 
     SHA1ProcessMessageBlock(context);
 }

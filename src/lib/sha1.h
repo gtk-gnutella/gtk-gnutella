@@ -51,7 +51,8 @@ enum
     shaStateError       /**< called Input after Result */
 };
 #endif
-#define SHA1HashSize 20
+
+struct sha1;
 
 /**
  *  This structure will hold context information for the SHA-1
@@ -59,10 +60,9 @@ enum
  */
 typedef struct SHA1Context
 {
-    guint32 Intermediate_Hash[SHA1HashSize/4]; /* Message Digest  */
+    guint32 Intermediate_Hash[SHA1_RAW_SIZE / 4]; /* Message Digest  */
 
-    guint32 Length_Low;            /* Message length in bits      */
-    guint32 Length_High;           /* Message length in bits      */
+    guint64 Length;            /* Message length in bits      */
 
                               /* Index into message block array   */
     gint Message_Block_Index;
@@ -78,11 +78,8 @@ typedef struct SHA1Context
 
 
 int SHA1Reset(  SHA1Context *);
-int SHA1Input(  SHA1Context *,
-                const guint8 *,
-                unsigned int);
-int SHA1Result( SHA1Context *,
-                guint8 Message_Digest[SHA1HashSize]);
+int SHA1Input(  SHA1Context *, const void *, size_t);
+int SHA1Result( SHA1Context *, struct sha1 *Message_Digest);
 
 #endif /* _sha1_h_ */
 
