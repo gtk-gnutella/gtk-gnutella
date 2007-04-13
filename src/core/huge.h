@@ -44,6 +44,7 @@
 
 struct shared_file;
 struct header;
+struct sha1;
 
 void huge_init(void);		/**< Call this function at the beginning */
 void huge_close(void);		/**< Call this when servent is shutdown */
@@ -58,9 +59,9 @@ gboolean request_sha1(struct shared_file *);
 gboolean sha1_is_cached(const struct shared_file *sf);
 
 gboolean huge_improbable_sha1(const gchar *buf, size_t len);
-gboolean huge_sha1_extract32(const gchar *buf, size_t len, gchar *retval,
+gboolean huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
 	gconstpointer header, gboolean check_old);
-void huge_collect_locations(const gchar *sha1, struct header *header);
+void huge_collect_locations(const struct sha1 *sha1, struct header *header);
 
 #endif	/* _core_huge_h_ */
 

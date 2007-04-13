@@ -53,8 +53,8 @@ void download_restore_state(void);
 void download_store_if_dirty(void);
 void download_timer(time_t now);
 void download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi);
-void download_orphan_new(const gchar *file, filesize_t size, const gchar *sha1,
-		fileinfo_t *fi);
+void download_orphan_new(const gchar *file, filesize_t size,
+		const struct sha1 *sha1, fileinfo_t *fi);
 void download_queue(struct download *d,
 	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 void download_stop(struct download *, download_status_t,
@@ -80,7 +80,7 @@ void download_actively_queued(struct download *d, gboolean queued);
 
 void download_verify_start(struct download *d);
 void download_verify_progress(struct download *d, guint32 hashed);
-void download_verify_done(struct download *d, const gchar *digest,
+void download_verify_done(struct download *d, const struct sha1 *sha1,
 		guint elapsed);
 void download_verify_error(struct download *d);
 
