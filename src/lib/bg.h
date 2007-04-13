@@ -124,8 +124,8 @@ void bg_task_exit(struct bgtask *h, gint code) G_GNUC_NORETURN;
 void bg_task_ticks_used(struct bgtask *h, gint used);
 bgsig_cb_t bg_task_signal(struct bgtask *h, bgsig_t sig, bgsig_cb_t handler);
 
-gint bg_task_seqno(struct bgtask *h);
-gpointer bg_task_context(struct bgtask *h);
+gint bg_task_seqno(const struct bgtask *h);
+gpointer bg_task_context(const struct bgtask *h);
 
 #endif	/* _bg_h_ */
 
