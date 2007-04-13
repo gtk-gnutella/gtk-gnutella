@@ -178,7 +178,7 @@ d_end(struct bgtask *unused_h, gpointer ctx, gpointer item)
 
 finish:
 	if (vd->error == 0)
-		download_verify_done(d, (gchar *) digest, elapsed);
+		download_verify_done(d, digest, elapsed);
 	else
 		download_verify_error(d);
 }

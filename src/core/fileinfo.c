@@ -1146,7 +1146,7 @@ file_info_has_filename(fileinfo_t *fi, const gchar *file)
  * @returns the fileinfo structure if found, NULL otherwise.
  */
 static fileinfo_t *
-file_info_lookup(const gchar *name, filesize_t size, const gchar *sha1)
+file_info_lookup(const gchar *name, filesize_t size, const struct sha1 *sha1)
 {
 	fileinfo_t *fi;
 	GSList *list, *sl;
@@ -1344,7 +1344,7 @@ file_info_readable_filename(const fileinfo_t *fi)
  * we have (which will happen only when PFSP-server is enabled).
  */
 shared_file_t *
-file_info_shared_sha1(const gchar *sha1)
+file_info_shared_sha1(const struct sha1 *sha1)
 {
 	fileinfo_t *fi;
 
@@ -1615,16 +1615,20 @@ G_STMT_START {				\
 					tmpguint, version, file);
 			break;
 		case FILE_INFO_FIELD_SHA1:
-			if (SHA1_RAW_SIZE == tmpguint)
-				fi->sha1 = atom_sha1_get(tmp);
-			else
+			if (SHA1_RAW_SIZE == tmpguint) {
+				struct sha1 sha1;
+				memcpy(sha1.data, tmp, SHA1_RAW_SIZE);
+				fi->sha1 = atom_sha1_get(&sha1);
+			} else
 				g_warning("bad length %d for SHA1 in fileinfo v%u for \"%s\"",
 					tmpguint, version, file);
 			break;
 		case FILE_INFO_FIELD_CHA1:
-			if (SHA1_RAW_SIZE == tmpguint)
-				fi->cha1 = atom_sha1_get(tmp);
-			else
+			if (SHA1_RAW_SIZE == tmpguint) {
+				struct sha1 sha1;
+				memcpy(sha1.data, tmp, SHA1_RAW_SIZE);
+				fi->cha1 = atom_sha1_get(&sha1);
+			} else
 				g_warning("bad length %d for CHA1 in fileinfo v%u for \"%s\"",
 					tmpguint, version, file);
 			break;
@@ -1960,7 +1964,7 @@ fi_dispose(fileinfo_t *fi)
 static void
 file_info_free_sha1_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *sha1 = key;
+	const struct sha1 *sha1 = key;
 	const fileinfo_t *fi = val;
 
 	(void) unused_x;
@@ -2428,7 +2432,7 @@ file_info_reparent_all(fileinfo_t *from, fileinfo_t *to)
  * @returns TRUE if OK, FALSE if a duplicate record with the same SHA1 exists.
  */
 gboolean
-file_info_got_sha1(fileinfo_t *fi, const gchar *sha1)
+file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 {
 	fileinfo_t *xfi;
 
@@ -2518,18 +2522,18 @@ extract_guid(const gchar *s)
  * Extract sha1 from SHA1/CHA1 line in the ASCII "fileinfo" summary file
  * and return NULL if none or invalid, the SHA1 atom otherwise.
  */
-static const gchar *
+static const struct sha1 *
 extract_sha1(const gchar *s)
 {
-	gchar sha1[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 
 	if (strlen(s) < SHA1_BASE32_SIZE)
 		return NULL;
 
-	if (!base32_decode_into(s, SHA1_BASE32_SIZE, sha1, sizeof sha1))
+	if (!base32_decode_into(s, SHA1_BASE32_SIZE, sha1.data, sizeof sha1.data))
 		return NULL;
 
-	return atom_sha1_get(sha1);
+	return atom_sha1_get(&sha1);
 }
 
 typedef enum {
@@ -3303,7 +3307,7 @@ file_info_new_outname(const gchar *name, const gchar *dir)
  */
 static fileinfo_t *
 file_info_create(const gchar *file, const gchar *path, filesize_t size,
-	const gchar *sha1, gboolean file_size_known)
+	const struct sha1 *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
 	struct stat st;
@@ -3437,7 +3441,7 @@ done:
  */
 fileinfo_t *
 file_info_get(const gchar *file, const gchar *path, filesize_t size,
-	const gchar *sha1, gboolean file_size_known)
+	const struct sha1 *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
 	const gchar *outname;
@@ -3593,7 +3597,8 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
  * and NULL otherwise.
  */
 fileinfo_t *
-file_info_has_identical(const gchar *file, filesize_t size, const gchar *sha1)
+file_info_has_identical(const gchar *file, filesize_t size,
+	const struct sha1 *sha1)
 {
 	GSList *p;
 	GSList *sizelist;
@@ -4758,7 +4763,7 @@ found:
  * @return a dl_file_info if there's an active one with the same sha1.
  */
 static fileinfo_t *
-file_info_active(const gchar *sha1)
+file_info_active(const struct sha1 *sha1)
 {
 	return g_hash_table_lookup(fi_by_sha1, sha1);
 }
@@ -4778,7 +4783,7 @@ file_info_active(const gchar *sha1)
 void
 file_info_try_to_swarm_with(
 	const gchar *file_name, const host_addr_t addr, guint16 port,
-	const gchar *sha1)
+	const struct sha1 *sha1)
 {
 	fileinfo_t *fi;
 
@@ -4935,7 +4940,7 @@ fi_get_info(gnet_fi_t fih)
 {
     fileinfo_t *fi;
     gnet_fi_info_t *info;
-	const gchar *sha1;
+	const struct sha1 *sha1;
 
     fi = file_info_find_by_handle(fih);
 	file_info_check(fi);

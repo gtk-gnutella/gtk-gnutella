@@ -70,7 +70,7 @@ guc_download_new(const gchar *filename,
 	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
@@ -84,7 +84,7 @@ guc_download_auto_new(const gchar *filename,
 	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
@@ -98,7 +98,7 @@ void guc_download_fallback_to_push(struct download *d, gboolean on_timeout,
 gint guc_download_remove_all_from_peer(const gchar *guid,
 		const host_addr_t addr, guint16 port, gboolean unavailable);
 gint guc_download_remove_all_named(const gchar *name);
-gint guc_download_remove_all_with_sha1(const gchar *sha1);
+gint guc_download_remove_all_with_sha1(const struct sha1 *sha1);
 void guc_download_remove_file(struct download *d, gboolean reset);
 gboolean guc_download_file_exists(const struct download *d);
 void guc_download_requeue(struct download *d);
@@ -269,8 +269,8 @@ void guc_upload_stats_clear_all(void);
 const gchar *guc_version_get_version_string(void);
 
 /* bitzi interface functions*/
-void guc_query_bitzi_by_sha1(const gchar *sha1);
-bitzi_data_t *guc_query_cache_bitzi_by_sha1(const gchar *sha1);
+void guc_query_bitzi_by_sha1(const struct sha1 *sha1);
+bitzi_data_t *guc_query_cache_bitzi_by_sha1(const struct sha1 *sha1);
 
 /** main functions */
 void guc_gtk_gnutella_exit(gint code);

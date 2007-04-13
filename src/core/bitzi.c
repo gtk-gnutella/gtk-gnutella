@@ -70,7 +70,7 @@
 static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
 
 typedef struct {
-	const gchar *sha1;			/**< binary SHA-1, atom */
+	const struct sha1 *sha1;			/**< binary SHA-1, atom */
 	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
 
 	/*
@@ -290,19 +290,19 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	s = xml_get_string(node, "about");
 	if (s) {
 		static const gchar urn_prefix[] = "urn:sha1:";
-		const gchar *sha1;
+		const struct sha1 *sha1;
+		const gchar *p;
 
-		sha1 = is_strprefix(s, urn_prefix);
-		if (sha1) {
-			size_t len;
-
+		p = is_strprefix(s, urn_prefix);
+		if (p) {
 			/* Skip the "urn:sha1:" prefix and check whether an SHA1
 			 * follows. We need to ensure that buf contains at least
 			 * SHA1_BASE32_SIZE bytes because that's what base32_sha1()
 			 * assumes. We allow trailing characters. */
 
-			len = strlen(sha1);
-			sha1 = len < SHA1_BASE32_SIZE ? NULL : base32_sha1(sha1);
+			sha1 = strlen(p) < SHA1_BASE32_SIZE ? NULL : base32_sha1(p);
+		} else {
+			sha1 = NULL;
 		}
 
 		if (!sha1) {
@@ -732,7 +732,7 @@ bitzi_heartbeat(gpointer unused_data)
  * nothing otherwise we return the
  */
 bitzi_data_t *
-bitzi_query_cache_by_sha1(const gchar *sha1)
+bitzi_query_cache_by_sha1(const struct sha1 *sha1)
 {
 	g_return_val_if_fail(NULL != sha1, NULL);
 	return g_hash_table_lookup(bitzi_cache_ht, sha1);
@@ -747,7 +747,7 @@ bitzi_query_cache_by_sha1(const gchar *sha1)
  * should always get some sort of data back from the service.
  */
 gpointer
-bitzi_query_by_sha1(const gchar *sha1)
+bitzi_query_by_sha1(const struct sha1 *sha1)
 {
 	bitzi_data_t *data = NULL;
 	bitzi_request_t	*request;
@@ -910,7 +910,7 @@ bitzi_load_cache(void)
 void
 bitzi_init(void)
 {
-	bitzi_cache_ht = g_hash_table_new(NULL, NULL);
+	bitzi_cache_ht = g_hash_table_new(pointer_hash_func, NULL);
 
 	bitzi_load_cache();
 

@@ -113,7 +113,7 @@ struct routing_table {
 	gint set_count;			/**< Amount of slots set in table */
 	gint fill_ratio;		/**< 100 * fill ratio for table (received) */
 	gint pass_throw;		/**< Query must pass a d100 throw to be forwarded */
-	const gchar *digest;	/**< SHA1 digest of the whole table (atom) */
+	const struct sha1 *digest;	/**< SHA1 digest of the whole table (atom) */
 	gchar *name;			/**< Name for dumping purposes */
 	gboolean reset;			/**< This is a new table, after a RESET */
 	gboolean compacted;
@@ -380,14 +380,14 @@ qrt_compact(struct routing_table *rt)
  * Computes the SHA1 of a compacted routing table.
  * @returns a pointer to static data.
  */
-static gchar *
+static struct sha1 *
 qrt_sha1(struct routing_table *rt)
 {
+	static struct sha1 sha1;
 	gint i;
 	gint bytes;
 	guint8 vector[8];
 	SHA1Context ctx;
-	static gchar digest[SHA1HashSize];
 	guint8 *p;
 
 	g_assert(rt->compacted);
@@ -406,9 +406,8 @@ qrt_sha1(struct routing_table *rt)
 		SHA1Input(&ctx, vector, sizeof vector);
 	}
 
-	SHA1Result(&ctx, cast_to_gpointer(digest));
-
-	return digest;
+	SHA1Result(&ctx, cast_to_gpointer(&sha1));
+	return &sha1;
 }
 
 /**
@@ -3659,11 +3658,7 @@ qrt_handle_patch(
 		}
 
 		g_assert(qrcv->current_index == rt->slots);
-
-		if (rt->digest) {
-			atom_sha1_free(rt->digest);
-			rt->digest = NULL;
-		}
+		atom_sha1_free_null(&rt->digest);
 
 		if (qrp_debug > 2)
 			rt->digest = atom_sha1_get(qrt_sha1(rt));
@@ -3911,13 +3906,12 @@ qrt_dump_is_slot_present(struct routing_table *rt, gint slot)
 static guint32
 qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 {
-	gint i;
-	gint j;
+	struct sha1 digest;
+	SHA1Context ctx;
 	gboolean last_status = FALSE;
 	gint last_slot = 0;
-	SHA1Context ctx;
-	guint8 digest[SHA1HashSize];
 	guint32 result;
+	gint i;
 
 	if (qrp_debug > 0) {
 		fprintf(f, "------ Query Routing Table \"%s\" "
@@ -3962,23 +3956,18 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 		}
 	}
 
-	SHA1Result(&ctx, digest);
+	SHA1Result(&ctx, cast_to_gpointer(&digest));
 
 	/*
 	 * Reduce SHA1 to a single guint32.
 	 */
 
-	for (result = 0, i = j = 0; i < SHA1HashSize; i++) {
-		guint32 b = digest[i];
-		result ^= b << (j << 3);
-		j = (j + 1) & 0x3;
-	}
-
+	result = sha1_hash(&digest);
 
 	if (qrp_debug > 0) {
 		fprintf(f, "------ End Routing Table \"%s\" "
 			"(gen=%d, SHA1=%s, token=0x%x)\n",
-			rt->name, rt->generation, sha1_base32((gchar *) digest), result);
+			rt->name, rt->generation, sha1_base32(&digest), result);
 	}
 
 	return result;

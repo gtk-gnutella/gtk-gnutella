@@ -1918,7 +1918,7 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 gboolean
 search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 {
-	gchar sha1[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 	size_t ret;
 
 	g_return_val_if_fail(text, FALSE);
@@ -1935,19 +1935,20 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 		strlen(text) >= SHA1_BASE16_SIZE &&
 		!is_ascii_alnum(text[SHA1_BASE16_SIZE])
 	) {
-		ret = base16_decode(sha1, sizeof sha1, text, SHA1_BASE16_SIZE);
+		ret = base16_decode(sha1.data, sizeof sha1.data,
+				text, SHA1_BASE16_SIZE);
 	} else {
 		ret = (size_t) -1;
 	}
 
-	if (sizeof sha1 != ret) {
+	if (sizeof sha1.data != ret) {
 		*error_str = _("The given SHA-1 is not correctly encoded.");
 		return FALSE;
 	} else {
-		static const gchar urnsha1[] = "urn:sha1:";
-		gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
+		static const gchar prefix[] = "urn:sha1:";
+		gchar urn[SHA1_BASE32_SIZE + sizeof prefix];
 
-		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), (void *) 0);
+		concat_strings(urn, sizeof urn, prefix, sha1_base32(&sha1), (void *) 0);
 		return search_gui_handle_urn(urn, error_str);
 	}
 }
@@ -2468,7 +2469,7 @@ search_gui_new_browse_host(
 }
 
 gint
-search_gui_cmp_sha1s(const gchar *a, const gchar *b)
+search_gui_cmp_sha1s(const struct sha1 *a, const struct sha1 *b)
 {
 	if (a && b) {
 		return a == b ? 0 : memcmp(a, b, SHA1_RAW_SIZE);

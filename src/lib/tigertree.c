@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2003-2004, Jeroen Asselman
+ * Copyright (c) 2005, Martijn van Oosterhout <kleptog@svana.org>
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -47,6 +48,10 @@
  *
  * @author Jeroen Asselman
  * @date 2003
+ * @author Martijn van Oosterhout
+ * @date 2005
+ * @author Christian Biere
+ * @date 2007
  *
  */
 
@@ -87,26 +92,206 @@ RCSID("$Id$")
  * size of each block independently tiger-hashed,
  * not counting leaf 0x00 prefix
  */
-#define TTH_BLOCKSIZE 1024
+#define TTH_BLOCKSIZE	1024
 
 /* size of input to each non-leaf hash-tree node, not counting node 0x01 prefix */
-#define TTH_NODESIZE (TIGERSIZE*2)
+#define TTH_NODESIZE	(TIGERSIZE * 2)
 
 /* default size of interim values stack, in TIGERSIZE
  * blocks. If this overflows (as it will for input
  * longer than 2^64 in size), havoc may ensue. */
-#define TTH_STACKSIZE (TIGERSIZE*56)
+#define TTH_STACKSIZE	(TIGERSIZE * 56)
 
+#define TTH_MAX_DEPTH	9
 
 struct TTH_CONTEXT {
-  guint64 count;                   /* total blocks processed */
-  guchar leaf[1+TTH_BLOCKSIZE]; /* leaf in progress */
-  guchar *block;            /* leaf data */
-  guchar node[1+TTH_NODESIZE]; /* node scratch space */
-  gint idx;                      /* index into block */
-  guchar *top;             /* top (next empty) stack slot */
-  guchar nodes[TTH_STACKSIZE]; /* stack of interim node values */
+	filesize_t bpl;       	/* blocks per leave at TTH_MAX_DEPTH */
+	filesize_t n;         	/* number of blocks processed */
+	unsigned block_fill;  	/* amount of bytes written to block[] */
+	unsigned si;          	/* current stack index */
+	unsigned li;         	/* current leave index */
+	unsigned depth;			/* current tree depth */
+	char block[TTH_BLOCKSIZE + 1];
+	struct tth stack[56];
+	struct tth leaves[1 << (TTH_MAX_DEPTH - 1)];
 };
+
+static filesize_t 
+tt_block_per_leaf(filesize_t filesize)
+{
+	filesize_t n_blocks, n_bpl;
+	unsigned depth;
+
+	n_blocks = filesize / TTH_BLOCKSIZE;
+	n_blocks += (filesize % TTH_BLOCKSIZE) ? 0 : 1;
+
+	depth = 1;
+	while (n_blocks > 1) {
+		n_blocks = (n_blocks + 1) / 2;
+		depth++;
+	}
+	if (depth > TTH_MAX_DEPTH) {
+		n_bpl = (filesize_t) 1 << (depth - TTH_MAX_DEPTH);
+	} else {
+		n_bpl = 1;
+	}
+	return n_bpl; 
+}
+
+void
+tt_init(TTH_CONTEXT *ctx, filesize_t filesize)
+{
+	g_assert(ctx);
+
+	ctx->block_fill = 1;
+	ctx->block[0] = 0x00;
+	ctx->si = 0;
+	ctx->li = 0;
+	ctx->n = 0;
+	ctx->bpl = tt_block_per_leaf(filesize);
+	ctx->depth = 1;
+}
+
+static void
+tt_internal_hash(const struct tth *a, const struct tth *b, struct tth *dst)
+{
+	char buf[TIGERSIZE * 2 + 1];
+
+	buf[0] = 0x01;
+	memcpy(&buf[1 + 0 * TIGERSIZE], a, TIGERSIZE);
+	memcpy(&buf[1 + 1 * TIGERSIZE], b, TIGERSIZE);
+	tiger(buf, sizeof buf, dst->data);
+}
+
+void
+tt_compose(TTH_CONTEXT *ctx)
+{
+	g_assert(ctx);
+	g_assert(ctx->si >= 2);
+
+    tt_internal_hash(&ctx->stack[ctx->si - 2],
+        &ctx->stack[ctx->si - 1], &ctx->stack[ctx->si - 2]);
+    ctx->si--;
+}
+
+void
+tt_collapse(TTH_CONTEXT *ctx)
+{
+	filesize_t n, x;
+
+	g_assert(ctx);
+
+	x = ctx->bpl;
+	n = ctx->n;
+	while (0 == (n & 1)) {
+		tt_compose(ctx);
+		n /= 2;
+		if (ctx->bpl > 1 && 0 == (ctx->n % ctx->bpl) && 2 == x) {
+			g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
+			ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
+			ctx->li++;
+		}
+		x /= 2;
+	}
+}
+
+void
+tt_block(TTH_CONTEXT *ctx)
+{
+	g_assert(ctx);
+
+	tiger(ctx->block, ctx->block_fill, ctx->stack[ctx->si].data);
+	if (ctx->bpl == 1) {
+		ctx->leaves[ctx->li] = ctx->stack[ctx->si];
+		ctx->li++;
+	}
+
+	ctx->block_fill = 1;
+
+	ctx->si++;
+	ctx->n++;
+
+	if (ctx->n > (1U << ctx->depth)) {
+		ctx->depth++;
+	}
+
+	tt_collapse(ctx);
+}
+
+void
+tt_update(TTH_CONTEXT *ctx, const void *data, size_t size)
+{
+	const char *block = data;
+
+	g_assert(ctx);
+	g_assert(size == 0 || NULL != data);
+
+	while (size > 0) {
+		size_t n = sizeof ctx->block - ctx->block_fill;
+
+		n = MIN(n, size);
+		memmove(&ctx->block[ctx->block_fill], block, n);
+		ctx->block_fill += n;
+		block += n;
+		size -= n;
+
+		if (sizeof ctx->block == ctx->block_fill) {
+			tt_block(ctx);
+		}
+	}
+}
+
+void
+tt_digest(TTH_CONTEXT *ctx, struct tth *hash)
+{
+	g_assert(ctx);
+	g_assert(hash);
+
+	if (0 == ctx->n || ctx->block_fill > 1) {
+		tt_block(ctx);
+	}
+
+	if (ctx->bpl > 1) {
+		size_t depth, n;
+
+		n = ctx->n;
+		depth = ctx->depth;
+		while (0 == (n & 1)) {
+			n /= 2;
+			depth--;
+		}
+		while (n > 1) {
+			if (0 == (n & 1)) {
+				tt_compose(ctx);
+			}
+			depth--;
+			n = (n + 1) / 2;
+			if (depth == TTH_MAX_DEPTH - 1) {
+				g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
+				ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
+				ctx->li++;
+			}
+		}
+	}
+
+	while (ctx->li > 1) {
+		size_t i, n;
+
+		i = 0;
+		n = ctx->li / 2;
+		for (i = 0; i < n; i++) {
+			tt_internal_hash(&ctx->leaves[i * 2], &ctx->leaves[i * 2 + 1],
+					&ctx->leaves[i]);
+		}
+		if (ctx->li & 1) {
+			ctx->leaves[i] = ctx->leaves[i * 2];
+			i++;
+		}
+		ctx->li = i;
+	}
+
+	memcpy(hash->data, ctx->leaves[0].data, sizeof hash->data);
+}
 
 size_t
 tt_size(void)
@@ -114,101 +299,20 @@ tt_size(void)
 	return sizeof(struct TTH_CONTEXT);
 }
 
-/* Initialize the tigertree context */
-void
-tt_init(TTH_CONTEXT *ctx)
+const struct tth *
+tt_leaves(TTH_CONTEXT *ctx)
 {
-  ctx->count = 0;
-  ctx->leaf[0] = 0; /* flag for leaf  calculation -- never changed */
-  ctx->node[0] = 1; /* flag for inner node calculation -- never changed */
-  ctx->block = ctx->leaf + 1 ; /* working area for blocks */
-  ctx->idx = 0;   /* partial block pointer/block length */
-  ctx->top = ctx->nodes;
+	g_assert(ctx);
+	return ctx->leaves;
 }
 
-static void
-tt_compose(TTH_CONTEXT *ctx)
+unsigned
+tt_leave_count(TTH_CONTEXT *ctx)
 {
-  guint8 *node = ctx->top - TTH_NODESIZE;
-
-  memmove(&ctx->node[1], node, TTH_NODESIZE); /* copy to scratch area */
-  /* combine two nodes */
-  tiger(ctx->node, TTH_NODESIZE + 1, ctx->top);
-  memmove(node,ctx->top,TIGERSIZE);           /* move up result */
-  ctx->top -= TIGERSIZE;                      /* update top ptr */
+	g_assert(ctx);
+	return ctx->li;
 }
 
-static void
-tt_block(TTH_CONTEXT *ctx)
-{
-  guint64 b;
-
-  tiger(ctx->leaf, ctx->idx + 1, ctx->top);
-  ctx->top += TIGERSIZE;
-  ++ctx->count;
-  b = ctx->count;
-  while (0 == (b & 1)) { /* while evenly divisible by 2... */
-    tt_compose(ctx);
-    b >>= 1;
-  }
-}
-
-void
-tt_update(TTH_CONTEXT *ctx, gconstpointer data, size_t len)
-{
-  const guint8 *buffer = data;
-
-  if (ctx->idx) { /* Try to fill partial block */
- 	unsigned left = TTH_BLOCKSIZE - ctx->idx;
-  	if (len < left) {
-		memmove(ctx->block + ctx->idx, buffer, len);
-		ctx->idx += len;
-		return; /* Finished */
-	} else {
-		memmove(ctx->block + ctx->idx, buffer, left);
-		ctx->idx = TTH_BLOCKSIZE;
-		tt_block(ctx);
-		buffer += left;
-		len -= left;
-	}
-  }
-
-  while (len >= TTH_BLOCKSIZE) {
-	memmove(ctx->block, buffer, TTH_BLOCKSIZE);
-	ctx->idx = TTH_BLOCKSIZE;
-	tt_block(ctx);
-	buffer += TTH_BLOCKSIZE;
-	len -= TTH_BLOCKSIZE;
-  }
-  ctx->idx = len;
-  if (0 != len) {
-	/* Buffer leftovers */
-	memmove(ctx->block, buffer, len);
-  }
-}
-
-/* no need to call this directly; tt_digest calls it for you */
-static void
-tt_final(TTH_CONTEXT *ctx)
-{
-  /* do last partial block, unless idx is 1 (empty leaf) */
-  /* AND we're past the first block */
-  if (ctx->idx > 0 || ctx->top == ctx->nodes) {
-    tt_block(ctx);
-  }
-}
-
-void
-tt_digest(TTH_CONTEXT *ctx, guchar hash[TIGERSIZE])
-{
-  tt_final(ctx);
-  while(ctx->top - TIGERSIZE > ctx->nodes) {
-    tt_compose(ctx);
-  }
-  memmove(hash, ctx->nodes, TIGERSIZE);
-}
-
-/* vi: set ai et sts=2 sw=2 cindent: */
 /**
  * Runs some test cases to check whether the implementation is alright.
  */
@@ -238,9 +342,9 @@ tt_check(void)
 		struct tth hash;
 		TTH_CONTEXT ctx;
 
-		tt_init(&ctx);
+		tt_init(&ctx, tests[i].size);
 		tt_update(&ctx, tests[i].data, tests[i].size);
-		tt_digest(&ctx, hash.data);
+		tt_digest(&ctx, &hash);
 	
 		memset(digest, 0, sizeof digest);	
 		base32_encode_into(cast_to_gconstpointer(hash.data),

@@ -39,7 +39,7 @@
 #include "common.h"
 
 void tiger_check(void);
-void tiger(gconstpointer data, guint64 length, guchar hash[24]);
+void tiger(gconstpointer data, guint64 length, gchar hash[24]);
 
 #endif /* _tiger_h_ */
 /* vi: set ts=4 sw=4 cindent: */

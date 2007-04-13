@@ -82,11 +82,11 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_reset(fileinfo_t *fi);
 void file_info_recreate(struct download *d);
 fileinfo_t *file_info_get(
-	const gchar *file, const gchar *path, filesize_t size, const gchar *sha1,
-	gboolean file_size_known);
+	const gchar *file, const gchar *path, filesize_t size,
+	const struct sha1 *sha1, gboolean file_size_known);
 void file_info_strip_binary(fileinfo_t *fi);
 void file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file);
-gboolean file_info_got_sha1(fileinfo_t *fi, const gchar *sha1);
+gboolean file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1);
 void file_info_size_known(struct download *d, filesize_t size);
 void file_info_update(struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
@@ -96,7 +96,7 @@ void file_info_close(void);
 void file_info_close_pre(void);
 void file_info_try_to_swarm_with(
 	const gchar *file_name, const host_addr_t addr,
-	guint16 port, const gchar *sha1);
+	guint16 port, const struct sha1 *sha1);
 void file_info_spot_completed_orphans(void);
 void file_info_add_source(fileinfo_t *fi, struct download *dl);
 void file_info_add_new_source(fileinfo_t *fi, struct download *dl);
@@ -107,13 +107,13 @@ void file_info_unlink(fileinfo_t *fi);
 void file_info_upload_stop(fileinfo_t *fi, const gchar *reason);
 void file_info_changed(fileinfo_t *fi);
 
-shared_file_t *file_info_shared_sha1(const gchar *sha1);
+shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
 gint file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size);
 gboolean file_info_restrict_range(
 	fileinfo_t *fi, filesize_t start, filesize_t *end);
 
 fileinfo_t *file_info_has_identical(const gchar *file, filesize_t size,
-				const gchar *sha1);
+				const struct sha1 *sha1);
 
 fileinfo_t *file_info_get_transient(const gchar *name);
 void file_info_remove(fileinfo_t *fi);

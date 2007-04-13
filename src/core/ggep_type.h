@@ -57,7 +57,7 @@ typedef enum ggept_status {
 
 struct gnutella_host;
 
-ggept_status_t ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len);
+ggept_status_t ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1);
 
 /** Decompiled payload of "GTKGV1" */
 struct ggep_gtkgv1 {

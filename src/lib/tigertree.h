@@ -58,7 +58,8 @@
 
 #include "common.h"
 
-#include "tiger.h"
+#include "lib/tiger.h"
+#include "lib/misc.h"
 
 /* tiger hash result size, in bytes */
 #define TIGERSIZE 24
@@ -69,9 +70,11 @@ typedef struct TTH_CONTEXT TTH_CONTEXT;
 size_t tt_size(void);
 void tt_check(void);
 
-void tt_init(TTH_CONTEXT *ctx);
+void tt_init(TTH_CONTEXT *ctx, filesize_t filesize);
+const struct tth *tt_leaves(TTH_CONTEXT *ctx);
+unsigned tt_leave_count(TTH_CONTEXT *ctx);
 void tt_update(TTH_CONTEXT *ctx, gconstpointer data, size_t len);
-void tt_digest(TTH_CONTEXT *ctx, guchar hash[TIGERSIZE]);
+void tt_digest(TTH_CONTEXT *ctx, struct tth *tth);
 
 #endif /* _tigertree_h_ */
 /* vi: set ts=4 sw=4 cindent: */

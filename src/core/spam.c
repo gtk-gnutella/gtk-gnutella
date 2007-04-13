@@ -291,11 +291,11 @@ spam_load(FILE *f)
 					item.damaged = TRUE;
 					g_warning("spam_load(): SHA-1 has wrong length.");
 				} else {
-					const gchar *raw;
+					const struct sha1 *raw;
 
 					raw = base32_sha1(value);
 					if (raw)
-						memcpy(item.sha1.data, raw, sizeof item.sha1.data);
+						item.sha1 = *raw;
 					else
 						item.damaged = TRUE;
 				}
@@ -525,7 +525,7 @@ spam_close(void)
  * @returns TRUE if found, and FALSE if not.
  */
 gboolean
-spam_check_sha1(const char *sha1)
+spam_check_sha1(const struct sha1 *sha1)
 {
 	g_return_val_if_fail(sha1, FALSE);
 	return spam_lut.tab && NULL != sorted_array_lookup(spam_lut.tab, sha1);

@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "file_object.h"
 #include "guid.h"
 #include "sockets.h"
+#include "tth_cache.h"
 #include "verify_tth.h"
 
 #include "lib/atoms.h"
@@ -55,6 +56,7 @@ RCSID("$Id$")
 #include "lib/tiger.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last inclusion */
 
 /***
@@ -194,7 +196,7 @@ tigertree_step_compute(struct bgtask *h, void *data, int ticks)
 			}
 			ctx->filesize = sb.st_size;
 			ctx->offset = 0;
-			tt_init(ctx->tth);
+			tt_init(ctx->tth, ctx->filesize);
 		}
 	}
 	if (ctx->file) {
@@ -214,10 +216,12 @@ tigertree_step_compute(struct bgtask *h, void *data, int ticks)
 			} else {
 				struct tth tth;
 
-				tt_digest(ctx->tth, tth.data);
+				tt_digest(ctx->tth, &tth);
 				g_warning("File \"%s\" has TTH: %s",
 					file_object_get_pathname(ctx->file), tth_base32(&tth));
 				file_object_release(&ctx->file);
+				tth_cache_insert(&tth,
+					tt_leaves(ctx->tth), tt_leave_count(ctx->tth));
 			}
 		} else {
 			size_t n = r;

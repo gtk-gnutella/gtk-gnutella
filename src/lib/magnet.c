@@ -168,14 +168,14 @@ magnet_parse_location(const gchar *uri, const gchar **error_str)
 
 	endptr = is_strprefix(p, "/uri-res/N2R?");
 	if (endptr) {
-		gchar digest[SHA1_RAW_SIZE];
+		struct sha1 sha1;
 		
 		p = endptr;
-		if (!urn_get_sha1(p, digest)) {
+		if (!urn_get_sha1(p, &sha1)) {
 			*error_str = "Bad SHA1 in MAGNET URI";
 			return NULL;
 		}
-		ms.sha1 = atom_sha1_get(digest);
+		ms.sha1 = atom_sha1_get(&sha1);
 	} else {
 		ms.path = atom_str_get(p);
 	}
@@ -418,6 +418,7 @@ magnet_source_free(struct magnet_source **ms_ptr)
 		atom_str_free_null(&ms->path);
 		atom_str_free_null(&ms->url);
 		atom_sha1_free_null(&ms->sha1);
+		atom_tth_free_null(&ms->tth);
 		atom_guid_free_null(&ms->guid);
 		wfree(ms, sizeof *ms);
 		*ms_ptr = NULL;
@@ -434,6 +435,7 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 
 		atom_str_free_null(&res->display_name);
 		atom_sha1_free_null(&res->sha1);
+		atom_tth_free_null(&res->tth);
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
@@ -491,7 +493,7 @@ magnet_add_source_by_url(struct magnet_resource *res, const gchar *url)
 }
 
 void
-magnet_add_sha1_source(struct magnet_resource *res, const gchar *sha1,
+magnet_add_sha1_source(struct magnet_resource *res, const struct sha1 *sha1,
 	const host_addr_t addr, const guint16 port, const gchar *guid)
 {
 	struct magnet_source *s;
@@ -525,9 +527,9 @@ magnet_add_search(struct magnet_resource *res, const gchar *search)
 
 
 void
-magnet_set_sha1(struct magnet_resource *res, const gchar *sha1)
+magnet_set_sha1(struct magnet_resource *res, const struct sha1 *sha1)
 {
-	const gchar *atom;
+	const struct sha1 *atom;
 
 	g_return_if_fail(res);
 	g_return_if_fail(sha1);
@@ -537,16 +539,30 @@ magnet_set_sha1(struct magnet_resource *res, const gchar *sha1)
 	res->sha1 = atom;
 }
 
+void
+magnet_set_tth(struct magnet_resource *res, const struct tth *tth)
+{
+	const struct tth *atom;
+
+	g_return_if_fail(res);
+	g_return_if_fail(tth);
+
+	atom = atom_tth_get(tth);
+	atom_tth_free_null(&res->tth);
+	res->tth = atom;
+}
+
+
 gboolean
 magnet_set_exact_topic(struct magnet_resource *res, const gchar *topic)
 {
-	gchar digest[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 
-	if (!urn_get_sha1(topic, digest)) {
+	if (!urn_get_sha1(topic, &sha1)) {
 		return FALSE;
 	}
 	if (!res->sha1) {
-		magnet_set_sha1(res, digest);
+		magnet_set_sha1(res, &sha1);
 	}
 	return TRUE;
 }
@@ -651,7 +667,7 @@ magnet_source_to_string(struct magnet_source *s)
 		} else {
 			g_assert(s->sha1);
 			url = g_strconcat(prefix, host, port_buf,
-					"/uri-res/N2R?urn:sha1:", sha1_base32(s->sha1),
+					"/uri-res/N2R?", bitprint_to_urn_string(s->sha1, s->tth),
 					(void *) 0);
 		}
 	}

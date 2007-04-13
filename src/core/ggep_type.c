@@ -55,17 +55,16 @@ RCSID("$Id$")
  * Extract the SHA1 hash of the "H" extension into the supplied buffer.
  *
  * @returns extraction status: only when GGEP_OK is returned will we have
- * the SHA1 in buf.
+ * the SHA1 in 'sha1'.
  */
 ggept_status_t
-ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
+ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1)
 {
 	const gchar *payload;
 	gint tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_H);
-	g_assert(len >= SHA1_RAW_SIZE);
 
 	/*
 	 * Try decoding as a SHA1 hash, which is <type> <sha1_digest>
@@ -92,7 +91,7 @@ ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 	} else
 		return GGEP_NOT_FOUND;
 
-	memcpy(buf, &payload[1], SHA1_RAW_SIZE);
+	memcpy(sha1->data, &payload[1], SHA1_RAW_SIZE);
 
 	return GGEP_OK;
 }

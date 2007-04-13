@@ -51,14 +51,16 @@ enum ignore_val {
 	IGNORE_SPAM				/**< Ignore because SHA1 is known spam */
 };
 
+struct sha1;
+
 void ignore_timer(time_t now);
 enum ignore_val ignore_is_requested(
-	const gchar *file, filesize_t size, const gchar *sha1);
+	const gchar *file, filesize_t size, const struct sha1 *sha1);
 const gchar *ignore_reason_to_string(enum ignore_val);
 
 void ignore_add_filesize(const gchar *file, filesize_t size);
-void ignore_add_sha1(const gchar *file, const gchar *sha1);
-gchar *ignore_sha1_filename(const gchar *sha1);
+void ignore_add_sha1(const gchar *file, const struct sha1 *sha1);
+const gchar *ignore_sha1_filename(const struct sha1 *sha1);
 
 #endif	/* _core_ignore_h_ */
 

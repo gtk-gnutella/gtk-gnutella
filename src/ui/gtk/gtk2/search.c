@@ -378,13 +378,13 @@ ht_unref_record(gpointer p)
 
 static inline void
 add_parent_with_sha1(GHashTable *ht,
-	const gchar *sha1, struct result_data *data)
+	const struct sha1 *sha1, struct result_data *data)
 {
-	g_hash_table_insert(ht, deconstify_gchar(sha1), data);
+	gm_hash_table_insert_const(ht, sha1, data);
 }
 
 static inline void
-remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
+remove_parent_with_sha1(GHashTable *ht, const struct sha1 *sha1)
 {
 	g_hash_table_remove(ht, sha1);
 }

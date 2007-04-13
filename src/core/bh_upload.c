@@ -281,7 +281,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 					}
 
 					if (sha1_hash_available(sf)) {
-						const gchar * const sha1 = shared_file_sha1(sf);
+						const struct sha1 *sha1 = shared_file_sha1(sf);
 
 						bh->w_buf_size = w_concat_strings(&bh->w_buf,
 							"<li><a href=\"/uri-res/N2R?urn:sha1:",

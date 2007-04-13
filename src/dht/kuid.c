@@ -111,13 +111,13 @@ kuid_to_string(const kuid_t *kuid)
 kuid_t *
 kuid_get_atom(const kuid_t *k)
 {
-	return (kuid_t *) atom_sha1_get((const gchar *) k);
+	return (kuid_t *) atom_sha1_get((const struct sha1 *) k);
 }
 
 void
 kuid_atom_free(const kuid_t *k)
 {
-	atom_sha1_free((const gchar *) k);
+	atom_sha1_free((const struct sha1 *) k);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

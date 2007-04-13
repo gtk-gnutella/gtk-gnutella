@@ -89,7 +89,7 @@ typedef struct upload {
 	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
 
 	guint32 last_dmesh;			/**< Time when last download mesh was sent */
-	const gchar *sha1;			/**< SHA1 of requested file */
+	const struct sha1 *sha1;	/**< SHA1 of requested file */
 	filesize_t total_requested;	/**< Total amount of bytes requested */
 	gint http_major;			/**< HTTP major version */
 	gint http_minor;			/**< HTTP minor version */

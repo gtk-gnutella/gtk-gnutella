@@ -83,7 +83,8 @@ struct shared_file {
 	enum shared_file_magic magic;
 
 	struct dl_file_info *fi;	/**< PFSP-server: the holding fileinfo */
-	const gchar *sha1;			/**< SHA1 digest, binary form, atom */
+	const struct sha1 *sha1;	/**< SHA1 digest, binary form, atom */
+	const struct tth *tth;		/**< TTH digest, binary form, atom */
 
 	const gchar *file_path;		/**< The full path of the file (atom!) */
 	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
@@ -188,7 +189,7 @@ share_query_context_make(void)
 	struct query_context *ctx;
 
 	ctx = walloc(sizeof *ctx);
-	ctx->found_indices = g_hash_table_new(NULL, NULL);	/**< direct hashing */
+	ctx->found_indices = g_hash_table_new(pointer_hash_func, NULL);	/**< direct hashing */
 	ctx->files = NULL;
 	ctx->found = 0;
 
@@ -329,13 +330,11 @@ shared_file_free(shared_file_t **sf_ptr)
 		shared_file_deindex(sf);
 
 		atom_sha1_free_null(&sf->sha1);
-		if (sf->relative_path) {
-			atom_str_free(sf->relative_path);
-			sf->relative_path = NULL;
-		}
-		atom_str_free(sf->file_path);
-		atom_str_free(sf->name_nfc);
-		atom_str_free(sf->name_canonic);
+		atom_tth_free_null(&sf->tth);
+		atom_str_free_null(&sf->relative_path);
+		atom_str_free_null(&sf->file_path);
+		atom_str_free_null(&sf->name_nfc);
+		atom_str_free_null(&sf->name_canonic);
 		sf->magic = 0;
 
 		wfree(sf, sizeof *sf);
@@ -518,7 +517,7 @@ shared_special(const gchar *path)
 static void
 query_muid_map_init(void)
 {
-	muid_to_query_map = g_hash_table_new(NULL, NULL);
+	muid_to_query_map = g_hash_table_new(pointer_hash_func, NULL);
 	query_muids = hash_list_new(guid_hash, guid_eq);
 }
 
@@ -1795,10 +1794,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean decoded = FALSE;
 	gboolean skip_file_search = FALSE;
 	struct {
-		gchar sha1_digest[SHA1_RAW_SIZE];
+		struct sha1 sha1;
 		gboolean matched;
 	} exv_sha1[MAX_EXTVEC];
-	gchar *last_sha1_digest = NULL;
+	struct sha1 *last_sha1_digest = NULL;
 	gint exv_sha1cnt = 0;
 	guint offset = 0;			/**< Query string start offset */
 	gboolean drop_it = FALSE;
@@ -1943,7 +1942,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		for (i = 0; i < exvcnt; i++) {
 			extvec_t *e = &exv[i];
-			gchar *sha1_digest;
+			struct sha1 *sha1;
 
 			switch (e->ext_token) {
 			case EXT_T_OVERHEAD:
@@ -1965,12 +1964,12 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 			case EXT_T_URN_SHA1:
-				sha1_digest = exv_sha1[exv_sha1cnt].sha1_digest;
+				sha1 = &exv_sha1[exv_sha1cnt].sha1;
 
 				if (EXT_T_GGEP_H == e->ext_token) {
 					gint ret;
 				
-					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
+					ret = ggept_h_sha1_extract(e, sha1);
 					if (GGEP_OK == ret) {
 						/* Okay */
 					} else if (GGEP_NOT_FOUND == ret) {
@@ -1997,7 +1996,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 					if (
 						!huge_sha1_extract32(ext_payload(e), paylen,
-							sha1_digest, &n->header, FALSE)
+							sha1, &n->header, FALSE)
 					) {
 						gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
 						drop_it = TRUE;
@@ -2008,7 +2007,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 				if (share_debug > 4) {
 					g_message("valid SHA1 #%d in query: %s",
-						exv_sha1cnt, sha1_base32(sha1_digest));
+						exv_sha1cnt, sha1_base32(sha1));
 				}
 
 				exv_sha1[exv_sha1cnt].matched = FALSE;
@@ -2021,11 +2020,11 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 				if (qhv != NULL) {
 					gm_snprintf(stmp_1, sizeof(stmp_1),
-						"urn:sha1:%s", sha1_base32(sha1_digest));
+						"urn:sha1:%s", sha1_base32(sha1));
 						qhvec_add(qhv, stmp_1, QUERY_H_URN);
 				}
 
-				last_sha1_digest = sha1_digest;
+				last_sha1_digest = sha1;
 				break;
 
 			default:
@@ -2203,7 +2202,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gint i;
 		for (i = 0; i < exv_sha1cnt; i++)
 			share_emit_search_request(QUERY_SHA1,
-				sha1_base32(exv_sha1[i].sha1_digest), n->addr, n->port);
+				sha1_base32(&exv_sha1[i].sha1), n->addr, n->port);
 	} else
 		share_emit_search_request(QUERY_STRING, search, n->addr, n->port);
 
@@ -2440,8 +2439,12 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			for (i = 0; i < exv_sha1cnt && max_replies > 0; i++) {
 				struct shared_file *sf;
 
-				sf = shared_file_by_sha1(exv_sha1[i].sha1_digest);
-				if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf)) {
+				sf = shared_file_by_sha1(&exv_sha1[i].sha1);
+				if (
+					sf &&
+					sf != SHARE_REBUILDING &&
+					!shared_file_is_partial(sf)
+				) {
 					shared_file_check(sf);
 					got_match(qctx, sf);
 					max_replies--;
@@ -2498,7 +2501,7 @@ finish:
 					for (i = 0; i < exv_sha1cnt; i++)
 						g_message("\t%c(%32s)",
 								exv_sha1[i].matched ? '+' : '-',
-								sha1_base32(exv_sha1[i].sha1_digest));
+								sha1_base32(&exv_sha1[i].sha1));
 				}
 				g_message("\treq_speed=%u ttl=%d hops=%d", (guint) req_speed,
 						(gint) gnutella_header_get_ttl(&n->header),
@@ -2579,7 +2582,7 @@ reinit_sha1_table(void)
  * huge.c when it knows what the hash associated to a file is.
  */
 void
-shared_file_set_sha1(struct shared_file *sf, const char *sha1)
+shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 {
 	shared_file_check(sf);
 
@@ -2591,13 +2594,13 @@ shared_file_set_sha1(struct shared_file *sf, const char *sha1)
 
 	if (sf->flags & SHARE_F_RECOMPUTING) {
 		sf->flags &= ~SHARE_F_RECOMPUTING;
-		g_tree_remove(sha1_to_share, deconstify_gchar(sf->sha1));
+		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
 	}
 
 	atom_sha1_free_null(&sf->sha1);
 	sf->sha1 = atom_sha1_get(sha1);
 	sf->flags |= SHARE_F_HAS_DIGEST;
-	g_tree_insert(sha1_to_share, deconstify_gchar(sf->sha1), sf);
+	g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
 }
 
 void
@@ -2659,7 +2662,7 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 	if (-1 == stat(sf->file_path, &buf)) {
 		g_warning("can't stat shared file #%d \"%s\": %s",
 			sf->file_index, sf->file_path, g_strerror(errno));
-		g_tree_remove(sha1_to_share, deconstify_gchar(sf->sha1));
+		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
 		atom_sha1_free_null(&sf->sha1);
 		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		return FALSE;
@@ -2667,7 +2670,7 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 
 	if (too_big_for_gnutella(buf.st_size)) {
 		g_warning("File is too big to be shared: \"%s\"", sf->file_path);
-		g_tree_remove(sha1_to_share, deconstify_gchar(sf->sha1));
+		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
 		atom_sha1_free_null(&sf->sha1);
 		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		return FALSE;
@@ -2716,11 +2719,18 @@ shared_file_index(const shared_file_t *sf)
 	return sf->file_index;
 }
 
-const gchar *
+const struct sha1 *
 shared_file_sha1(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return sf->sha1;
+}
+
+const struct tth *
+shared_file_tth(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+	return sf->tth;
 }
 
 const gchar *
@@ -2864,14 +2874,14 @@ shared_file_from_fileinfo(fileinfo_t *fi)
  * set of shared file is being rebuilt.
  */
 static struct shared_file *
-shared_file_complete_by_sha1(const gchar *sha1_digest)
+shared_file_complete_by_sha1(const struct sha1 *sha1)
 {
 	struct shared_file *f;
 
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
-	f = g_tree_lookup(sha1_to_share, deconstify_gchar(sha1_digest));
+	f = g_tree_lookup(sha1_to_share, deconstify_gpointer(sha1));
 	if (f) {
 		shared_file_check(f);
 	}
@@ -2904,11 +2914,11 @@ shared_file_complete_by_sha1(const gchar *sha1_digest)
  * set of shared file is being rebuilt.
  */
 shared_file_t *
-shared_file_by_sha1(const gchar *sha1_digest)
+shared_file_by_sha1(const struct sha1 *sha1)
 {
 	struct shared_file *f;
 
-	f = shared_file_complete_by_sha1(sha1_digest);
+	f = shared_file_complete_by_sha1(sha1);
 
 	/*
 	 * If we don't share this file, or if we're rebuilding, and provided
@@ -2918,7 +2928,7 @@ shared_file_by_sha1(const gchar *sha1_digest)
 
 	if (f == NULL || f == SHARE_REBUILDING) {
 		if (pfsp_server) {
-			struct shared_file *sf = file_info_shared_sha1(sha1_digest);
+			struct shared_file *sf = file_info_shared_sha1(sha1);
 			if (sf)
 				f = sf;
 		}

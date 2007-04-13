@@ -45,7 +45,6 @@ RCSID("$Id$")
 #include "share.h"
 #include "gmsg.h"
 #include "dmesh.h"
-#include "verify_tth.h"
 #include "version.h"
 #include "settings.h"
 #include "spam.h"
@@ -90,12 +89,12 @@ RCSID("$Id$")
  */
 
 struct sha1_cache_entry {
-    const gchar *file_name;			/**< Full path name (atom)          */
-	const gchar *digest;			/**< SHA-1 (binary; atom)			*/
-    filesize_t  size;				/**< File size                      */
-    time_t mtime;					/**< Last modification time         */
-    gboolean shared;				/**< There's a known entry for this
-                                         file in the share library      */
+    const gchar *file_name;		/**< Full path name (atom)          */
+	const struct sha1 *sha1;	/**< SHA-1 (binary; atom)			*/
+    filesize_t  size;			/**< File size                      */
+    time_t mtime;				/**< Last modification time         */
+    gboolean shared;			/**< There's a known entry for this
+                                     file in the share library      */
 };
 
 static GHashTable *sha1_cache = NULL;
@@ -120,18 +119,16 @@ static gboolean cache_dirty = FALSE;
  * Takes an in-memory cached entry, and update its content.
  */
 static void update_volatile_cache(
-	struct sha1_cache_entry *sha1_cached_entry,
+	struct sha1_cache_entry *item,
 	filesize_t size,
 	time_t mtime,
-	const char *digest)
+	const struct sha1 *sha1)
 {
-	sha1_cached_entry->shared = TRUE;
-	sha1_cached_entry->size = size;
-	sha1_cached_entry->mtime = mtime;
-	if (sha1_cached_entry->digest) {
-		atom_sha1_free(sha1_cached_entry->digest);
-	}	
-	sha1_cached_entry->digest = atom_sha1_get(digest);
+	item->shared = TRUE;
+	item->size = size;
+	item->mtime = mtime;
+	atom_sha1_free(item->sha1);
+	item->sha1 = atom_sha1_get(sha1);
 }
 
 /**
@@ -139,7 +136,7 @@ static void update_volatile_cache(
  */
 static void
 add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
-	const char *digest, gboolean known_to_be_shared)
+	const struct sha1 *sha1, gboolean known_to_be_shared)
 {
 	struct sha1_cache_entry *item;
    
@@ -147,7 +144,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	item->file_name = atom_str_get(filename);
 	item->size = size;
 	item->mtime = mtime;
-	item->digest = atom_sha1_get(digest);
+	item->sha1 = atom_sha1_get(sha1);
 	item->shared = known_to_be_shared;
 	g_hash_table_insert(sha1_cache, deconstify_gchar(item->file_name), item);
 }
@@ -166,19 +163,21 @@ static const char sha1_persistent_cache_file_header[] =
 static char *persistent_cache_file_name = NULL;
 
 static void
-cache_entry_print(FILE *f, const char *filename, const gchar *digest,
-	filesize_t size, time_t mtime)
+cache_entry_print(FILE *f, const char *filename,
+	const struct sha1 *sha1, filesize_t size, time_t mtime)
 {
-	const gchar *sha1;
 	gchar size_buf[UINT64_DEC_BUFLEN], mtime_buf[UINT64_DEC_BUFLEN];
+
+	g_return_if_fail(f);
+	g_return_if_fail(filename);
+	g_return_if_fail(sha1);
+	g_return_if_fail(size > 0);
 
 	uint64_to_string_buf(size, size_buf, sizeof size_buf);
 	uint64_to_string_buf(mtime, mtime_buf, sizeof mtime_buf);
 
-	sha1 = sha1_base32(digest);
-	g_assert(NULL != sha1);
-
-	fprintf(f, "%s\t%s\t%s\t%s\n", sha1, size_buf, mtime_buf, filename);
+	fprintf(f, "%s\t%s\t%s\t%s\n", sha1_base32(sha1),
+		size_buf, mtime_buf, filename);
 }
 
 /**
@@ -186,7 +185,7 @@ cache_entry_print(FILE *f, const char *filename, const gchar *digest,
  */
 static void
 add_persistent_cache_entry(const char *filename, filesize_t size,
-	time_t mtime, const char *digest)
+	time_t mtime, const struct sha1 *sha1)
 {
 	FILE *f;
 	struct stat sb;
@@ -212,7 +211,7 @@ add_persistent_cache_entry(const char *filename, filesize_t size,
 	if (0 == sb.st_size)
 		fputs(sha1_persistent_cache_file_header, f);
 
-	cache_entry_print(f, filename, digest, size, mtime);
+	cache_entry_print(f, filename, sha1, size, mtime);
 	fclose(f);
 }
 
@@ -229,7 +228,7 @@ dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
 	(void) unused_key;
 
 	if (e->shared)
-		cache_entry_print(f, e->file_name, e->digest, e->size, e->mtime);
+		cache_entry_print(f, e->file_name, e->sha1, e->size, e->mtime);
 }
 
 /**
@@ -264,48 +263,47 @@ dump_cache(void)
 static void
 parse_and_append_cache_entry(char *line)
 {
-	const char *sha1_digest_ascii;
 	const char *file_name;
 	char *file_name_end;
 	const char *p, *end; /* pointers to scan the line */
 	gint c, error;
 	filesize_t size;
 	time_t mtime;
-	char digest[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 
 	/* Skip comments and blank lines */
 	c = line[0];
 	if (c == '\0' || c == '#' || c == '\n')
 		return;
 
-	sha1_digest_ascii = line; /* SHA1 digest is the first field. */
+	{
+		const char *sha1_digest_ascii;
 
-	/* Scan until file size */
+		sha1_digest_ascii = line; /* SHA1 digest is the first field. */
 
-	p = line;
-	while ((c = *p) != '\0' && c != '\t' && c != '\n')
-		p++;
+		/* Scan until file size */
 
-	if (
-		*p != '\t' ||
-		(p - sha1_digest_ascii) != SHA1_BASE32_SIZE ||
-		!base32_decode_into(sha1_digest_ascii, SHA1_BASE32_SIZE,
-			digest, sizeof(digest))
-	) {
-		g_warning("Malformed line in SHA1 cache file %s[SHA1]: %s",
-			persistent_cache_file_name, line);
-		return;
+		p = line;
+		while ((c = *p) != '\0' && c != '\t' && c != '\n') {
+			p++;
+		}
+
+		if (
+			*p != '\t' ||
+			(p - sha1_digest_ascii) != SHA1_BASE32_SIZE ||
+			!base32_decode_into(sha1_digest_ascii, SHA1_BASE32_SIZE,
+					sha1.data, sizeof sha1.data)
+		) {
+			goto failure;
+		}
 	}
-
 	p++; /* Skip \t */
 
 	/* p is now supposed to point to the beginning of the file size */
 
 	size = parse_uint64(p, &end, 10, &error);
 	if (error || *end != '\t') {
-		g_warning("Malformed line in SHA1 cache file %s[size]: %s",
-			persistent_cache_file_name, line);
-		return;
+		goto failure;
 	}
 
 	p = ++end;
@@ -317,9 +315,7 @@ parse_and_append_cache_entry(char *line)
 
 	mtime = parse_uint64(p, &end, 10, &error);
 	if (error || *end != '\t') {
-		g_warning("Malformed line in SHA1 cache file %s[mtime]: %s",
-			persistent_cache_file_name, line);
-		return;
+		goto failure;
 	}
 
 	p = ++end;
@@ -330,15 +326,18 @@ parse_and_append_cache_entry(char *line)
 	file_name_end = strchr(file_name, '\n');
 
 	if (!file_name_end) {
-		g_warning("Malformed line in SHA1 cache file %s[file_name]: %s",
-			persistent_cache_file_name, line);
-		return;
+		goto failure;
 	}
 
 	/* Set string end markers */
 	*file_name_end = '\0';
 
-	add_volatile_cache_entry(file_name, size, mtime, digest, FALSE);
+	add_volatile_cache_entry(file_name, size, mtime, &sha1, FALSE);
+	return;
+
+failure:
+	g_warning("Malformed line in SHA1 cache file %s: %s",
+		persistent_cache_file_name, line);
 }
 
 /**
@@ -437,7 +436,8 @@ sha1_computation_context_free(gpointer u)
  * @return FALSE if the pointer "sf" is not valid any longer; TRUE otherwise.
  */
 static gboolean
-put_sha1_back_into_share_library(struct shared_file *sf, const gchar *digest)
+put_sha1_back_into_share_library(struct shared_file *sf,
+	const struct sha1 *sha1)
 {
 	struct sha1_cache_entry *cached_sha1;
 	struct stat sb;
@@ -462,13 +462,13 @@ put_sha1_back_into_share_library(struct shared_file *sf, const gchar *digest)
 		return request_sha1(sf);					/* Retry! */
 	}
 
-	if (spam_check_sha1(digest)) {
+	if (spam_check_sha1(sha1)) {
 		g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 		shared_file_remove(sf);
 		return FALSE;
 	}
 
-	shared_file_set_sha1(sf, digest);
+	shared_file_set_sha1(sf, sha1);
 
 	/* Update cache */
 
@@ -477,14 +477,14 @@ put_sha1_back_into_share_library(struct shared_file *sf, const gchar *digest)
 
 	if (cached_sha1) {
 		update_volatile_cache(cached_sha1, shared_file_size(sf),
-			shared_file_modification_time(sf), digest);
+			shared_file_modification_time(sf), sha1);
 		cache_dirty = TRUE;
 	} else {
 		add_volatile_cache_entry(shared_file_path(sf),
 			shared_file_size(sf), shared_file_modification_time(sf),
-			digest, TRUE);
+			sha1, TRUE);
 		add_persistent_cache_entry(shared_file_path(sf),
-			shared_file_size(sf), shared_file_modification_time(sf), digest);
+			shared_file_size(sf), shared_file_modification_time(sf), sha1);
 	}
 
 	return TRUE;
@@ -610,12 +610,12 @@ open_next_file(struct sha1_computation_context *ctx)
  * Callback to be called when a computation has completed.
  */
 static void
-got_sha1_result(struct sha1_computation_context *ctx, const gchar *digest)
+got_sha1_result(struct sha1_computation_context *ctx, const struct sha1 *sha1)
 {
 	g_assert(ctx->magic == SHA1_MAGIC);
 	shared_file_check(ctx->sf);
 
-	put_sha1_back_into_share_library(ctx->sf, digest);
+	put_sha1_back_into_share_library(ctx->sf, sha1);
 }
 
 /**
@@ -675,9 +675,10 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 	}
 
 	if ((size_t) r < amount) {					/* EOF reached */
-		guint8 digest[SHA1HashSize];
-		SHA1Result(&ctx->context, digest);
-		got_sha1_result(ctx, (const gchar *) digest);
+		struct sha1 sha1;
+
+		SHA1Result(&ctx->context, cast_to_gpointer(&sha1));
+		got_sha1_result(ctx, &sha1);
 		close_current_file(ctx);
 	}
 }
@@ -825,13 +826,13 @@ request_sha1(struct shared_file *sf)
 
 	cached_sha1 = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
 	if (cached_sha1 && cached_entry_up_to_date(cached_sha1, sf)) {
-		if (spam_check_sha1(cached_sha1->digest)) {
+		if (spam_check_sha1(cached_sha1->sha1)) {
 			g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 			shared_file_remove(sf);
 			return FALSE;
 		}
 
-		shared_file_set_sha1(sf, cached_sha1->digest);
+		shared_file_set_sha1(sf, cached_sha1->sha1);
 		cached_sha1->shared = TRUE;
 		return TRUE;
 	}
@@ -877,10 +878,8 @@ cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
 	(void) unused_key;
 	(void) unused_udata;
 
-	atom_str_free(e->file_name);
-	e->file_name = NULL;
-	atom_sha1_free(e->digest);
-	e->digest = NULL;
+	atom_str_free_null(&e->file_name);
+	atom_sha1_free_null(&e->sha1);
 	wfree(e, sizeof *e);
 
 	return TRUE;
@@ -946,7 +945,7 @@ huge_improbable_sha1(const gchar *buf, size_t len)
 
 /**
  * Validate `len' bytes starting from `buf' as a proper base32 encoding
- * of a SHA1 hash, and write decoded value in `retval'.
+ * of a SHA1 hash, and write decoded value in `sha1'.
  * Also make sure that the SHA1 is not an improbable value.
  *
  * `header' is the header of the packet where we found the SHA1, so that we
@@ -958,18 +957,18 @@ huge_improbable_sha1(const gchar *buf, size_t len)
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-huge_sha1_extract32(const gchar *buf, size_t len, gchar *retval,
+huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
 	gconstpointer header, gboolean check_old)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
 
-	if (base32_decode_into(buf, len, retval, SHA1_RAW_SIZE))
+	if (base32_decode_into(buf, len, sha1->data, sizeof sha1->data))
 		goto ok;
 
 	if (!check_old) {
 		if (dbg) {
-			if (base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
+			if (base32_decode_old_into(buf, len, sha1->data, sizeof sha1->data))
 				g_warning("%s old SHA1 ignored: %32s",
 					gmsg_infostr(header), buf);
 			else
@@ -978,7 +977,7 @@ huge_sha1_extract32(const gchar *buf, size_t len, gchar *retval,
 		return FALSE;
 	}
 
-	if (!base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
+	if (!base32_decode_old_into(buf, len, sha1->data, sizeof sha1->data))
 		goto bad;
 
 	if (dbg)
@@ -986,15 +985,15 @@ huge_sha1_extract32(const gchar *buf, size_t len, gchar *retval,
 
 ok:
 	/*
-	 * Make sure the decoded value in `retval' is "valid".
+	 * Make sure the decoded value in `sha1' is "valid".
 	 */
 
-	if (huge_improbable_sha1(retval, SHA1_RAW_SIZE)) {
+	if (huge_improbable_sha1(sha1->data, sizeof sha1->data)) {
 		if (dbg) {
 			if (is_printable(buf, len)) {
 				g_warning("%s has bad SHA1 (len=%d): %.*s, hex: %s",
 					gmsg_infostr(header), (gint) len, (gint) len, buf,
-					data_hex_str(retval, SHA1_RAW_SIZE));
+					data_hex_str(sha1->data, sizeof sha1->data));
 			} else
 				goto bad;		/* SHA1 should be printable originally */
 		}
@@ -1024,7 +1023,7 @@ bad:
  * about other sources for this file.
  */
 void
-huge_collect_locations(const gchar *sha1, header_t *header)
+huge_collect_locations(const struct sha1 *sha1, header_t *header)
 {
 	gchar *alt;
    

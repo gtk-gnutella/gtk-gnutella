@@ -126,7 +126,7 @@ typedef struct rule {
             filesize_t upper;           /**< upper limit or ~0 */
         } size;
         struct _f_sha1 {
-            gchar *hash;                /**< sha1 hash */
+            struct sha1 *hash;          /**< sha1 hash */
             gchar *filename;            /**< filename sha1 comes from */
         } sha1;
         struct _f_flag {
@@ -176,7 +176,8 @@ rule_t *filter_new_jump_rule(filter_t *,guint16);
 rule_t *filter_new_size_rule(filesize_t, filesize_t, filter_t *, guint16);
 rule_t *filter_new_text_rule(const gchar *, gint,
 		gboolean, filter_t *, guint16);
-rule_t *filter_new_sha1_rule(const gchar *, const gchar *, filter_t *, guint16);
+rule_t *filter_new_sha1_rule(const struct sha1 *, const gchar *,
+			filter_t *, guint16);
 rule_t *filter_new_flag_rule
     (enum rule_flag_action stable, enum rule_flag_action busy,
     enum rule_flag_action push, filter_t *target, guint16 flags);

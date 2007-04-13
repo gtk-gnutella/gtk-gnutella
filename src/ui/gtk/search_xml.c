@@ -340,7 +340,7 @@ target_to_string(filter_t *target)
 
 	if (!target_map) {
 		target_new_id(TRUE); /* Reset */
-		target_map = g_hash_table_new(NULL, NULL);
+		target_map = g_hash_table_new(pointer_hash_func, NULL);
 	}
 
 	if (!g_hash_table_lookup_extended(target_map, target, NULL, &value)) {
@@ -560,7 +560,7 @@ search_retrieve_xml(void)
 	}
 	G_FREE_NULL(path_orig);
 
-    id_map = g_hash_table_new(NULL, NULL);
+    id_map = g_hash_table_new(pointer_hash_func, NULL);
 
     /*
      * find nodes and add them to the list, this just
@@ -1446,7 +1446,7 @@ failure:
 static void
 xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 {
-    const gchar *hash = NULL;
+    const struct sha1 *sha1 = NULL;
     gchar *filename = NULL;
     gchar *buf;
     rule_t *rule;
@@ -1466,14 +1466,14 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_SHA1_HASH));
     if (buf != NULL) {
-		hash = strlen(buf) == SHA1_BASE32_SIZE ? base32_sha1(buf) : NULL;
+		sha1 = strlen(buf) == SHA1_BASE32_SIZE ? base32_sha1(buf) : NULL;
 		xml_free_null(&buf);
-		if (!hash) {
+		if (!sha1) {
         	g_warning("xml_to_sha1_rule: Invalidly encoded SHA1");
 			return;
 		}
 	} else {
-		hash = NULL;
+		sha1 = NULL;
 	}
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TARGET));
@@ -1486,7 +1486,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 	xml_free_null(&buf);
 
     flags = get_rule_flags_from_xml(xmlnode);
-    rule = filter_new_sha1_rule(hash, filename, target, flags);
+    rule = filter_new_sha1_rule(sha1, filename, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
     if (gui_debug >= 4) {

@@ -270,7 +270,7 @@ free_sha1(gpointer sha1)
 }
 
 static void
-count_sha1(const gchar *sha1)
+count_sha1(const struct sha1 *sha1)
 {
 	static guint calls;
 	gpointer key, value;
@@ -334,7 +334,7 @@ count_host(host_addr_t addr)
 		return;
 
 	if (!ht_host) {
-		ht_host = g_hash_table_new(NULL, NULL);
+		ht_host = g_hash_table_new(pointer_hash_func, NULL);
 		if (top_host) {
 			GList *l;
 
@@ -1423,7 +1423,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
-				gchar sha1_digest[SHA1_RAW_SIZE];
+				struct sha1 sha1_digest;
 				ggept_status_t ret;
 				gboolean unknown = TRUE;
 				gint paylen;
@@ -1441,12 +1441,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					}
 					if (
 						huge_sha1_extract32(ext_payload(e),
-								paylen, sha1_digest, &n->header, TRUE)
+								paylen, &sha1_digest, &n->header, TRUE)
 					) {
 						gboolean is_spam;
 						
-						count_sha1(sha1_digest);
-						is_spam = spam_check_sha1(sha1_digest);
+						count_sha1(&sha1_digest);
+						is_spam = spam_check_sha1(&sha1_digest);
 						if (is_spam) {
 							rs->status |= ST_URN_SPAM;
 						}
@@ -1454,7 +1454,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							multiple_sha1 = TRUE;
 							atom_sha1_free(rc->sha1);
 						}
-						rc->sha1 = atom_sha1_get(sha1_digest);
+						rc->sha1 = atom_sha1_get(&sha1_digest);
 						if (is_spam) {
 							set_flags(rc->flags, SR_SPAM);
 						}
@@ -1483,18 +1483,17 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						memcpy(buf, payload, paylen);
 						buf[paylen] = '\0';
 
-						if (urn_get_sha1_no_prefix(buf, sha1_digest)) {
+						if (urn_get_sha1_no_prefix(buf, &sha1_digest)) {
 							gboolean is_spam;
 							
-							count_sha1(sha1_digest);
-							is_spam = spam_check_sha1(sha1_digest);
+							count_sha1(&sha1_digest);
+							is_spam = spam_check_sha1(&sha1_digest);
 							if (is_spam) {
 								rs->status |= ST_URN_SPAM;
 							}
 
-							if (
-								huge_improbable_sha1(sha1_digest,
-									SHA1_RAW_SIZE)
+							if (huge_improbable_sha1(sha1_digest.data,
+									sizeof sha1_digest.data)
 							) {
 								if (search_debug > 0) {
 									g_message("Improbable SHA-1 detected");
@@ -1505,7 +1504,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 									multiple_sha1 = TRUE;
 									atom_sha1_free(rc->sha1);
 								}
-								rc->sha1 = atom_sha1_get(sha1_digest);
+								rc->sha1 = atom_sha1_get(&sha1_digest);
 								if (is_spam)
 									set_flags(rc->flags, SR_SPAM);
 							}
@@ -1519,18 +1518,20 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					}
 					break;
 				case EXT_T_GGEP_H:			/* Expect SHA1 value only */
-					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
+					ret = ggept_h_sha1_extract(e, &sha1_digest);
 					if (ret == GGEP_OK) {
 						gboolean is_spam;
 						
 						has_hash = TRUE;
-						count_sha1(sha1_digest);
-						is_spam = spam_check_sha1(sha1_digest);
+						count_sha1(&sha1_digest);
+						is_spam = spam_check_sha1(&sha1_digest);
 						if (is_spam) {
 							rs->status |= ST_URN_SPAM;
 						}
 
-						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE)) {
+						if (huge_improbable_sha1(sha1_digest.data,
+								sizeof sha1_digest.data)
+						) {
 							if (search_debug > 0) {
 								g_message("Improbable SHA-1 detected");
 							}
@@ -1540,7 +1541,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 								multiple_sha1 = TRUE;
 								atom_sha1_free(rc->sha1);
 							}
-							rc->sha1 = atom_sha1_get(sha1_digest);
+							rc->sha1 = atom_sha1_get(&sha1_digest);
 							if (is_spam)
 								set_flags(rc->flags, SR_SPAM);
 						}
@@ -2065,7 +2066,7 @@ build_search_msg(search_ctrl_t *sch)
 	size_t size;
 	guint16 speed;
 	gboolean is_sha1_search;
-	gchar digest[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 
 	STATIC_ASSERT(25 == sizeof msg.data);
 	size = sizeof msg.data;
@@ -2145,7 +2146,7 @@ build_search_msg(search_ctrl_t *sch)
 	 * Are we dealing with an URN search?
 	 */
 
-	is_sha1_search = urn_get_sha1(sch->query, digest);
+	is_sha1_search = urn_get_sha1(sch->query, &sha1);
 
 	{	
 		size_t len;
@@ -2211,7 +2212,7 @@ build_search_msg(search_ctrl_t *sch)
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
 				ggep_stream_write(&gs, &type, 1) &&
-				ggep_stream_write(&gs, digest, sizeof digest) &&
+				ggep_stream_write(&gs, &sha1, sizeof sha1.data) &&
 				ggep_stream_end(&gs);
 
 			if (!ok) {
@@ -2685,7 +2686,7 @@ search_init(void)
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
 
-	searches = g_hash_table_new(NULL, NULL);
+	searches = g_hash_table_new(pointer_hash_func, NULL);
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
     search_handle_map = idtable_new();
 	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
@@ -3939,14 +3940,14 @@ search_locally(gnet_search_t sh, const gchar *query)
 		re = NULL;
 		sf = NULL;
 	} else if (is_strprefix(query, "urn:sha1:")) {
-		gchar digest[SHA1_RAW_SIZE];
+		struct sha1 sha1;
 
 		re = NULL;
-		error = !urn_get_sha1(query, digest);
+		error = !urn_get_sha1(query, &sha1);
 		if (error) {
 			goto done;
 		}
-		sf = shared_file_by_sha1(digest);
+		sf = shared_file_by_sha1(&sha1);
 		error = !sf || SHARE_REBUILDING == sf;
 		if (error) {
 			goto done;

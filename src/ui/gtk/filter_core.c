@@ -664,7 +664,7 @@ filter_new_jump_rule(filter_t *target, guint16 flags)
 
 
 rule_t *
-filter_new_sha1_rule(const gchar *sha1, const gchar *filename,
+filter_new_sha1_rule(const struct sha1 *sha1, const gchar *filename,
 	filter_t *target, guint16 flags)
 {
    	rule_t *f;

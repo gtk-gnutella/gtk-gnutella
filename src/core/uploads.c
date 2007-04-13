@@ -137,7 +137,7 @@ upload_free_handle(gnet_upload_t n)
  */
 struct mesh_info_key {
 	host_addr_t addr;				/**< Remote host IP address */
-	const gchar *sha1;				/**< SHA1 atom */
+	const struct sha1 *sha1;		/**< SHA1 atom */
 };
 
 struct mesh_info_val {
@@ -1386,7 +1386,7 @@ call_upload_request(gpointer obj, header_t *header)
  ***/
 
 static struct mesh_info_key *
-mi_key_make(const host_addr_t addr, const gchar *sha1)
+mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
 {
 	struct mesh_info_key *mik;
 
@@ -1490,7 +1490,7 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
  * Always records `now' as the time we sent mesh information.
  */
 static guint32
-mi_get_stamp(const host_addr_t addr, const gchar *sha1, time_t now)
+mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 {
 	struct mesh_info_key mikey;
 	struct mesh_info_val *miv;
@@ -1756,7 +1756,7 @@ sha1_offset_in_uri(const gchar *uri, size_t *length)
  * Extract the SHA1 digest out of a "urn:sha1" or "urn:bitprint" URN.
  *
  * @param uri		the URI from which we wish to extract the SHA1 digest
- * @param digest	a SHA1_RAW_SIZE array where digest is written.
+ * @param sha1	a SHA1_RAW_SIZE array where digest is written.
  * @param malformed	only set when returning FALSE, to indicate malformation
  * 
  * @return TRUE if we correctly figured out the SHA1 digest, otherwise set
@@ -1765,7 +1765,7 @@ sha1_offset_in_uri(const gchar *uri, size_t *length)
  * an URN form we recognize as bearing a SHA1.
  */
 static gboolean
-sha1_extract_from_uri(const gchar *uri, gchar *digest, gboolean *malformed)
+sha1_extract_from_uri(const gchar *uri, struct sha1 *sha1, gboolean *malformed)
 {
 	gchar hash[SHA1_BASE32_SIZE + 1];
 	size_t ret, urn_len = 0;
@@ -1785,7 +1785,7 @@ sha1_extract_from_uri(const gchar *uri, gchar *digest, gboolean *malformed)
 	if (ret != urn_len)
 		goto malformed;
 
-	if (!urn_get_http_sha1(hash, digest))
+	if (!urn_get_http_sha1(hash, sha1))
 		goto malformed;
 
 	return TRUE;					/* Recognized URN, SHA1 extracted OK */
@@ -1805,10 +1805,10 @@ upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
 	if (upload_debug) {
 		const gchar *filename = NULL;
-		gchar digest[SHA1_RAW_SIZE];
+		struct sha1 sha1;
 
-		if (sha1_extract_from_uri(request, digest, NULL))
-			filename = ignore_sha1_filename(digest);
+		if (sha1_extract_from_uri(request, &sha1, NULL))
+			filename = ignore_sha1_filename(&sha1);
 
 		g_warning("returned 404 to %s <%s>: %s (%s)",
 			host_addr_to_string(u->socket->addr),
@@ -1881,7 +1881,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 {
 	struct shared_file *sf;
 	gboolean sent_sha1 = FALSE;
-	gchar digest[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 
 	g_assert(u);
 	g_assert(NULL == u->sf);
@@ -1916,7 +1916,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 		const gchar *urn = header_get(header, "X-Gnutella-Content-Urn");
 
 		if (urn)
-			sent_sha1 = dmesh_collect_sha1(urn, digest);
+			sent_sha1 = dmesh_collect_sha1(urn, &sha1);
 	}
 
 	/*
@@ -1928,7 +1928,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 	if (sent_sha1) {
 		struct shared_file *sfn;
 		
-		if (spam_check_sha1(digest)) {
+		if (spam_check_sha1(&sha1)) {
 			goto not_found;
 		}
 
@@ -1942,7 +1942,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 		 *		--RAM, 19/06/2002
 		 */
 
-		huge_collect_locations(digest, header);
+		huge_collect_locations(&sha1, header);
 
 		/*
 		 * They can share serveral clones of the same files, i.e. bearing
@@ -1954,7 +1954,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 		if (sf && sha1_hash_available(sf)) {
 			if (!sha1_hash_is_uptodate(sf))
 				goto sha1_recomputed;
-			if (sha1_eq(digest, shared_file_sha1(sf)))
+			if (sha1_eq(&sha1, shared_file_sha1(sf)))
 				goto found;
 		}
 
@@ -1965,7 +1965,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 		 * know the hash.
 		 */
 
-		sfn = shared_file_by_sha1(digest);
+		sfn = shared_file_by_sha1(&sha1);
 
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
@@ -1991,7 +1991,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 				if (upload_debug > 1)
 					g_message("INDEX FIXED (push, SHA1 = %s): "
 						"requested %u, serving %u: %s",
-						sha1_base32(digest), idx,
+						sha1_base32(&sha1), idx,
 						(guint) shared_file_index(sfn),
 						shared_file_path(sfn));
 				sf = sfn;
@@ -2009,7 +2009,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 				if (upload_debug > 1)
 					g_message("REQUEST FIXED (partial, SHA1 = %s): "
 						"requested \"%s\", serving \"%s\"",
-						sha1_base32(digest), u->name,
+						sha1_base32(&sha1), u->name,
 						shared_file_path(sfn));
 				sf = sfn;
 				goto found;
@@ -2115,7 +2115,7 @@ static gint
 get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 	const gchar *uri)
 {
-	gchar digest[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 	struct shared_file *sf;
 	const gchar *filename;
 	gboolean malformed;
@@ -2128,19 +2128,19 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (!sha1_extract_from_uri(uri, digest, &malformed)) {
+	if (!sha1_extract_from_uri(uri, &sha1, &malformed)) {
 		if (malformed)
 			goto malformed;
 		goto not_found;
 	}
 
-	if (spam_check_sha1(digest)) {
+	if (spam_check_sha1(&sha1)) {
 		goto not_found;
 	}
 
-	huge_collect_locations(digest, header);
+	huge_collect_locations(&sha1, header);
 
-	sf = shared_file_by_sha1(digest);
+	sf = shared_file_by_sha1(&sha1);
 
 	/*
 	 * Try to compute a suitable filename for the SHA1 digest.
@@ -2151,7 +2151,7 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 	 */
 
 	if (sf == NULL || sf == SHARE_REBUILDING) {
-		filename = ignore_sha1_filename(digest);
+		filename = ignore_sha1_filename(&sha1);
 		filename = filename == NULL ? atom_str_get(uri) :
 			atom_str_get(filename);
 	} else
@@ -2798,7 +2798,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	const gchar *http_msg;
 	http_extra_desc_t hev[10];
 	size_t hevcnt = 0;
-	const gchar *sha1 = NULL;
+	const struct sha1 *sha1 = NULL;
 	gboolean is_followup =
 		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;

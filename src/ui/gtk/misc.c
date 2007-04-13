@@ -278,18 +278,17 @@ gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
  * Tells if two hit records have the same SHA1.
  */
 gint
-gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
+gui_record_sha1_eq(gconstpointer p1, gconstpointer p2)
 {
-    const gchar *s1 = ((const record_t *) rec1)->sha1;
-    const gchar *s2 = ((const record_t *) rec2)->sha1;
+	const record_t *a = p1, *b = p2;
 
-    if (s1 == s2)
+    if (a->sha1 == b->sha1)
         return 0;
 
-    if (s1 == NULL || s2 == NULL)
+    if (a->sha1 == NULL || b->sha1 == NULL)
 		return 1;
 
-    return memcmp(s1, s2, SHA1_RAW_SIZE);
+    return memcmp(a->sha1, b->sha1, SHA1_RAW_SIZE);
 }
 
 /**

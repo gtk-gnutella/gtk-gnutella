@@ -99,7 +99,7 @@ const gchar *share_mime_type(enum share_mime_type type);
 shared_file_t *shared_file(guint idx);
 shared_file_t *shared_file_by_name(const gchar *filename);
 shared_file_t * shared_file_ref(shared_file_t *sf);
-shared_file_t *shared_file_by_sha1(const gchar *sha1_digest);
+shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
 shared_file_t *shared_special(const gchar *path);
 void shared_file_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
@@ -114,7 +114,7 @@ size_t compact_query(gchar *search);
 void query_strip_oob_flag(const struct gnutella_node *n, gchar *data);
 void query_set_oob_flag(const struct gnutella_node *n, gchar *data);
 
-void shared_file_set_sha1(struct shared_file *, const gchar *sha1_digest);
+void shared_file_set_sha1(struct shared_file *, const struct sha1 *sha1);
 void shared_file_set_modification_time(struct shared_file *sf, time_t mtime);
 
 void shared_file_check(const struct shared_file *sf);
@@ -125,7 +125,8 @@ filesize_t shared_file_size(const shared_file_t *sf);
 guint32 shared_file_index(const shared_file_t *sf);
 time_t shared_file_modification_time(const struct shared_file *sf);
 const gchar *shared_file_path(const shared_file_t *sf);
-const gchar *shared_file_sha1(const shared_file_t *sf);
+const struct sha1 *shared_file_sha1(const shared_file_t *sf);
+const struct tth *shared_file_tth(const shared_file_t *sf);
 const gchar *shared_file_name_nfc(const shared_file_t *sf);
 const gchar *shared_file_name_canonic(const shared_file_t *sf);
 const gchar *shared_file_relative_path(const shared_file_t *sf);

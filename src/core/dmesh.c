@@ -122,7 +122,7 @@ static GHashTable *ban_mesh = NULL;
 struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/**< The banned URL (same as key) */
 	cevent_t *cq_ev;		/**< Scheduled callout event */
-	const gchar *sha1;		/**< The SHA1, if any */
+	const struct sha1 *sha1;/**< The SHA1, if any */
 	time_t ctime;			/**< Last time we saw this banned URL */
 };
 
@@ -270,7 +270,7 @@ dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
  * If stamp is 0, the current timestamp is used.
  */
 static void
-dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
+dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 {
 	time_t now = tm_time();
 	struct dmesh_banned *dmb;
@@ -479,9 +479,9 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 			G_FREE_NULL(unescaped);
 		}
 	} else {
-		gchar digest[SHA1_RAW_SIZE];
+		struct sha1 sha1;
 		
-		if (!urn_get_sha1(file, digest)) {
+		if (!urn_get_sha1(file, &sha1)) {
 			dmesh_url_errno = DMESH_URL_BAD_URI_RES;
 			return FALSE;
 		}
@@ -499,7 +499,7 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
  * `sha1' is only passed in case we want to log the removal.
  */
 static void
-dm_expire(struct dmesh *dm, glong agemax, const gchar *sha1)
+dm_expire(struct dmesh *dm, glong agemax, const struct sha1 *sha1)
 {
 	GSList *l;
 	GSList *prev;
@@ -593,7 +593,7 @@ dm_remove(struct dmesh *dm, const host_addr_t addr,
  * Dispose of the entry slot, which must be empty.
  */
 static void
-dmesh_dispose(const gchar *sha1)
+dmesh_dispose(const struct sha1 *sha1)
 {
 	gpointer key;
 	gpointer value;
@@ -620,7 +620,7 @@ dmesh_dispose(const gchar *sha1)
  */
 static void
 dmesh_fill_info(dmesh_urlinfo_t *info,
-	const gchar *sha1, const host_addr_t addr,
+	const struct sha1 *sha1, const host_addr_t addr,
 	guint16 port, guint idx, const gchar *name)
 {
 	static const gchar urnsha1[] = "urn:sha1:";
@@ -642,7 +642,7 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
  * Remove entry from mesh due to a failed download attempt.
  */
 gboolean
-dmesh_remove(const gchar *sha1, const host_addr_t addr, guint16 port,
+dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, guint16 port,
 	guint idx, const gchar *name)
 {
 	struct dmesh *dm;
@@ -685,7 +685,7 @@ dmesh_remove(const gchar *sha1, const host_addr_t addr, guint16 port,
  * @return the number of dmesh entries
  */
 gint
-dmesh_count(const gchar *sha1)
+dmesh_count(const struct sha1 *sha1)
 {
 	struct dmesh *dm;
 
@@ -710,7 +710,8 @@ dmesh_count(const gchar *sha1)
  * it was the oldest record and we have enough already.
  */
 static gboolean
-dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
+dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
+	time_t stamp)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
@@ -840,8 +841,8 @@ dmesh_raw_add(const gchar *sha1, const dmesh_urlinfo_t *info, time_t stamp)
  * Same as dmesh_raw_add(), but this is for public consumption.
  */
 gboolean
-dmesh_add(const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
-	const gchar *name, time_t stamp)
+dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
+	guint16 port, guint idx, const gchar *name, time_t stamp)
 {
 	dmesh_urlinfo_t info;
 
@@ -1030,7 +1031,7 @@ dmesh_entry_to_string(const struct dmesh_entry *dme)
  * @return the amount of locations filled.
  */
 gint
-dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
+dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 {
 	struct dmesh *dm;
 	struct dmesh_entry *selected[MAX_ENTRIES];
@@ -1142,7 +1143,7 @@ dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  * @return amount of generated data.
  */
 gint
-dmesh_alternate_location(const gchar *sha1,
+dmesh_alternate_location(const struct sha1 *sha1,
 	gchar *buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const gchar *vendor,
 	fileinfo_t *fi, gboolean request)
@@ -1444,7 +1445,7 @@ typedef struct {
  * potentially valid urls on a "all or nothing" approach.
  */
 static GSList *
-dmesh_get_nonurn_altlocs(const gchar *sha1)
+dmesh_get_nonurn_altlocs(const struct sha1 *sha1)
 {
     struct dmesh *dm;
     GSList *sl, *nonurn_altlocs = NULL;
@@ -1526,7 +1527,7 @@ dmesh_free_deferred_altloc(dmesh_deferred_url_t *info)
  * and `n' the amount of existing entries.
  */
 static void
-dmesh_check_deferred_against_existing(const gchar *sha1,
+dmesh_check_deferred_against_existing(const struct sha1 *sha1,
 	GSList *existing_urls, GSList *deferred_urls)
 {
     GSList *ex, *def;
@@ -1604,7 +1605,7 @@ dmesh_check_deferred_against_existing(const gchar *sha1,
  * after itself yet.
  */
 static void
-dmesh_check_deferred_against_themselves(const gchar *sha1,
+dmesh_check_deferred_against_themselves(const struct sha1 *sha1,
 	GSList *deferred_urls)
 {
     dmesh_deferred_url_t *first;
@@ -1676,7 +1677,7 @@ dmesh_check_deferred_against_themselves(const gchar *sha1,
  *
  */
 static void
-dmesh_check_deferred_altlocs(const gchar *sha1, GSList *deferred_urls)
+dmesh_check_deferred_altlocs(const struct sha1 *sha1, GSList *deferred_urls)
 {
     GSList *existing_urls;
 
@@ -1704,7 +1705,7 @@ dmesh_check_deferred_altlocs(const gchar *sha1, GSList *deferred_urls)
  * @return whether we successfully extracted the SHA1.
  */
 gboolean
-dmesh_collect_sha1(const gchar *value, gchar *digest)
+dmesh_collect_sha1(const gchar *value, struct sha1 *sha1)
 {
 	const gchar *p;
 
@@ -1715,7 +1716,7 @@ dmesh_collect_sha1(const gchar *value, gchar *digest)
 		 */
 
 		p = skip_ascii_spaces(p);
-		if (urn_get_sha1(p, digest))
+		if (urn_get_sha1(p, sha1))
 			return TRUE;
 
 		/*
@@ -1735,7 +1736,7 @@ dmesh_collect_sha1(const gchar *value, gchar *digest)
  * for a given SHA1 key given in the new compact form.
  */
 void
-dmesh_collect_compact_locations(const gchar *sha1, const gchar *value)
+dmesh_collect_compact_locations(const struct sha1 *sha1, const gchar *value)
 {
 	time_t now = tm_time();
 	const gchar *p = value;
@@ -1795,7 +1796,8 @@ dmesh_collect_compact_locations(const gchar *sha1, const gchar *value)
  * sources for a given SHA1 key.
  */
 void
-dmesh_collect_locations(const gchar *sha1, const gchar *value, gboolean defer)
+dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
+	gboolean defer)
 {
 	const gchar *p = value;
 	guchar c;
@@ -1987,12 +1989,12 @@ dmesh_collect_locations(const gchar *sha1, const gchar *value, gboolean defer)
 		 */
 
 		if (info.idx == URN_INDEX) {
-			gchar digest[SHA1_RAW_SIZE];
+			struct sha1 digest;
 		
-			ok = urn_get_sha1(info.name, digest);
+			ok = urn_get_sha1(info.name, &digest);
 			g_assert(ok);
 
-			ok = sha1_eq(sha1, digest);
+			ok = sha1_eq(sha1, &digest);
 			if (!ok) {
 				g_assert(sha1);
 				g_warning("mismatch in /uri-res/N2R? Alternate-Location "
@@ -2063,7 +2065,7 @@ dmesh_collect_locations(const gchar *sha1, const gchar *value, gboolean defer)
  * @returns the amount of locations inserted.
  */
 static gint
-dmesh_alt_loc_fill(const gchar *sha1, dmesh_urlinfo_t *buf, gint count)
+dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, gint count)
 {
 	struct dmesh *dm;
 	GSList *sl;
@@ -2169,7 +2171,8 @@ dmesh_check_results_set(gnet_results_set_t *rs)
  * @param `fi' no brief description.
  */
 void
-dmesh_multiple_downloads(const gchar *sha1, filesize_t size, fileinfo_t *fi)
+dmesh_multiple_downloads(const struct sha1 *sha1,
+	filesize_t size, fileinfo_t *fi)
 {
 	dmesh_urlinfo_t buffer[DMESH_MAX], *p;
 	gint n;
@@ -2291,7 +2294,7 @@ dmesh_retrieve(void)
 {
 	FILE *f;
 	gchar tmp[4096];
-	gchar sha1[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
 	gboolean skip = FALSE, truncated = FALSE;
 	gint line = 0;
@@ -2338,11 +2341,12 @@ dmesh_retrieve(void)
 		str_chomp(tmp, 0);		/* Remove final "\n" */
 
 		if (has_sha1)
-			dmesh_collect_locations(sha1, tmp, FALSE);
+			dmesh_collect_locations(&sha1, tmp, FALSE);
 		else {
 			if (
 				strlen(tmp) < SHA1_BASE32_SIZE ||
-				!base32_decode_into(tmp, SHA1_BASE32_SIZE, sha1, sizeof sha1)
+				!base32_decode_into(tmp, SHA1_BASE32_SIZE,
+					sha1.data, sizeof sha1.data)
 			) {
 				g_warning("dmesh_retrieve: "
 					"bad base32 SHA1 '%.32s' at line #%d, ignoring", tmp, line);

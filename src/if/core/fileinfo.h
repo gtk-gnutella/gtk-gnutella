@@ -48,7 +48,7 @@ typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
 	const gchar *path;		/**< Path of the directory of the file on disk */
 	const gchar *file_name;	/**< Name of the file on disk */
-	const gchar *sha1;		/**< SHA1 (binary) of the file or NULL */
+	const struct sha1 *sha1;/**< SHA1 (binary) of the file or NULL */
 	GSList *aliases;		/**< List of aliases (NULL if none) */
 } gnet_fi_info_t;
 
@@ -94,8 +94,8 @@ typedef struct dl_file_info {
 	GSList *alias;			/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
 	const filesize_t *size_atom;/**< File size (atom) */
-	const gchar *sha1;		/**< server SHA1 (atom) if known, NULL if not. */
-	const gchar *cha1;		/**< computed SHA1 (atom) if known, NULL if not. */
+	const struct sha1 *sha1;/**< server SHA1 (atom) if known, NULL if not. */
+	const struct sha1 *cha1;/**< computed SHA1 (atom) if known, NULL if not. */
 	gint32 refcount;		/**< Reference count of file (number of sources)*/
 	GSList *sources;        /**< list of sources (struct download *) */
 	gint32 lifecount;		/**< Amount of "alive" downloads referencing us */

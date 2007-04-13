@@ -1572,11 +1572,11 @@ base32_to_guid(const gchar *base32)
  * @return dst.
  */
 gchar *
-sha1_to_base32_buf(const gchar *sha1, gchar *dst, size_t size)
+sha1_to_base32_buf(const struct sha1 *sha1, gchar *dst, size_t size)
 {
 	g_assert(sha1);
 	if (size > 0) {
-		base32_encode_into(sha1, SHA1_RAW_SIZE, dst, size);
+		base32_encode_into(sha1->data, sizeof sha1->data, dst, size);
 		dst[size - 1] = '\0';
 	}
 	return dst;
@@ -1587,8 +1587,8 @@ sha1_to_base32_buf(const gchar *sha1, gchar *dst, size_t size)
  *
  * @return pointer to static data.
  */
-gchar *
-sha1_base32(const gchar *sha1)
+const gchar *
+sha1_base32(const struct sha1 *sha1)
 {
 	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
 
@@ -1600,7 +1600,7 @@ const gchar *
 sha1_to_string(const struct sha1 sha1)
 {
 	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
-	return sha1_to_base32_buf(sha1.data, digest_b32, sizeof digest_b32);
+	return sha1_to_base32_buf(&sha1, digest_b32, sizeof digest_b32);
 }
 
 /**
@@ -1609,15 +1609,57 @@ sha1_to_string(const struct sha1 sha1)
  * @param sha1 A binary SHA-1.
  * @return The SHA-1 converted to an URN string.
  */
-const gchar *
-sha1_to_urn_string(const gchar *sha1)
+size_t
+sha1_to_urn_string_buf(const struct sha1 *sha1, gchar *dst, size_t size)
 {
 	static const gchar prefix[] = "urn:sha1:";
-	static gchar buf[CONST_STRLEN(prefix) + SHA1_BASE32_SIZE + 1];
+	size_t n;
 
-	memcpy(buf, prefix, CONST_STRLEN(prefix));
-	sha1_to_base32_buf(sha1, &buf[CONST_STRLEN(prefix)], SHA1_BASE32_SIZE + 1);
+	g_assert(sha1);
+
+	n = MIN(size, CONST_STRLEN(prefix));
+	memcpy(dst, prefix, n);
+	size -= n;
+	if (size > 0) {
+		n = MIN(size, (SHA1_BASE32_SIZE + 1));
+		sha1_to_base32_buf(sha1, &dst[CONST_STRLEN(prefix)], n);
+	}
+	return CONST_STRLEN(prefix) + SHA1_BASE32_SIZE + 1;
+}
+
+const gchar *
+sha1_to_urn_string(const struct sha1 *sha1)
+{
+	static gchar buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
+
+	g_assert(sha1);
+	sha1_to_urn_string_buf(sha1, buf, sizeof buf);
 	return buf;
+}
+
+const gchar *
+bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
+{
+	g_assert(sha1);
+
+	if (tth) {
+		static const gchar prefix[] = "urn:bitprint:";
+		static gchar buf[CONST_STRLEN(prefix) + BITPRINT_BASE32_SIZE + 1];
+
+		sha1_to_base32_buf(sha1,
+			&buf[CONST_STRLEN(prefix)],
+			SHA1_BASE32_SIZE + 1);
+		buf[CONST_STRLEN(prefix) + SHA1_BASE32_SIZE] = '.';
+		base32_encode_into(tth->data, sizeof tth->data,
+			&buf[CONST_STRLEN(prefix) + SHA1_BASE32_SIZE + 1],
+			TTH_BASE32_SIZE + 1);
+		return buf;
+	} else {
+		static gchar buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
+
+		sha1_to_urn_string_buf(sha1, buf, sizeof buf);
+		return buf;
+	}
 }
 
 /**
@@ -1628,17 +1670,16 @@ sha1_to_urn_string(const gchar *sha1)
  * @return	Returns pointer to static data or NULL if the input wasn't a
  *			validly base32 encoded SHA1.
  */
-gchar *
+const struct sha1 *
 base32_sha1(const gchar *base32)
 {
-	static gchar digest_sha1[SHA1_RAW_SIZE];
+	static struct sha1 sha1;
 	gint len;
 
 	g_assert(base32);
 	len = base32_decode_into(base32, SHA1_BASE32_SIZE,
-		digest_sha1, sizeof digest_sha1);
-
-	return SHA1_RAW_SIZE == len ? digest_sha1 : NULL;
+			sha1.data, sizeof sha1.data);
+	return SHA1_RAW_SIZE == len ? &sha1 : NULL;
 }
 
 /**

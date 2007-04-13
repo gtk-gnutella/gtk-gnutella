@@ -84,28 +84,30 @@ const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
-	const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
+	const struct sha1 *sha1, const host_addr_t addr, guint16 port, guint idx,
 	const gchar *name, time_t stamp);
 
 gboolean dmesh_remove(
-	const gchar *sha1, const host_addr_t addr, guint16 port, guint idx,
+	const struct sha1 *sha1, const host_addr_t addr, guint16 port, guint idx,
 	const gchar *name);
 
-gint dmesh_count(const gchar *sha1);
+gint dmesh_count(const struct sha1 *sha1);
 
-gboolean dmesh_collect_sha1(const gchar *value, gchar *digest);
-void dmesh_collect_locations(const gchar *sha1,
+gboolean dmesh_collect_sha1(const gchar *value, struct sha1 *sha1);
+void dmesh_collect_locations(const struct sha1 *sha1,
 		const gchar *value, gboolean defer);
-void dmesh_collect_compact_locations(const gchar *sha1, const gchar *value);
-gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);
+void dmesh_collect_compact_locations(const struct sha1 *sha1,
+		const gchar *value);
+gint dmesh_fill_alternate(const struct sha1 *sha1,
+		gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
-	const gchar *sha1, gchar * buf, size_t size, const host_addr_t addr,
+	const struct sha1 *sha1, gchar * buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const gchar *vendor, fileinfo_t *fi,
 	gboolean request);
 
 void dmesh_multiple_downloads(
-	const gchar *sha1, filesize_t size, fileinfo_t *fi);
+	const struct sha1 *sha1, filesize_t size, fileinfo_t *fi);
 
 void dmesh_check_results_set(gnet_results_set_t *rs);
 

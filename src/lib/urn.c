@@ -52,13 +52,14 @@ RCSID("$Id$")
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-urn_get_http_sha1(const gchar *buf, gchar *retval)
+urn_get_http_sha1(const gchar *buf, struct sha1 *sha1)
 {
+	struct sha1 raw;
 	gint i;
-	gchar raw[SHA1_RAW_SIZE];
 
-	if (!retval)
-		retval = raw;
+	if (!sha1) {
+		sha1 = &raw;
+	}
 
 	/*
 	 * Make sure we have at least SHA1_BASE32_SIZE characters before the
@@ -70,7 +71,8 @@ urn_get_http_sha1(const gchar *buf, gchar *retval)
 			goto invalid;
 	}
 
-	if (base32_decode_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
+	if (base32_decode_into(buf, SHA1_BASE32_SIZE,
+			sha1->data, sizeof sha1->data))
 		return TRUE;
 
 	/*
@@ -87,7 +89,8 @@ urn_get_http_sha1(const gchar *buf, gchar *retval)
 	 * which is 87.32%.
 	 */
 
-	if (base32_decode_old_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
+	if (base32_decode_old_into(buf, SHA1_BASE32_SIZE,
+			sha1->data, sizeof sha1->data))
 		return TRUE;
 
 invalid:
@@ -103,9 +106,9 @@ invalid:
  * @return whether we successfully extracted the SHA1.
  */
 gboolean
-urn_get_sha1(const gchar *buf, gchar *digest)
+urn_get_sha1(const gchar *buf, struct sha1 *sha1)
 {
-	const gchar *sha1;
+	const gchar *p;
 
 	/*
 	 * We handle both "urn:sha1:" and "urn:bitprint:".  In the latter case,
@@ -113,12 +116,12 @@ urn_get_sha1(const gchar *buf, gchar *digest)
 	 */
 
 	if (
-		NULL == (sha1 = is_strcaseprefix(buf, "urn:sha1:")) &&
-		NULL == (sha1 = is_strcaseprefix(buf, "urn:bitprint:"))
+		NULL == (p = is_strcaseprefix(buf, "urn:sha1:")) &&
+		NULL == (p = is_strcaseprefix(buf, "urn:bitprint:"))
 	)
 		return FALSE;
 
-	return urn_get_http_sha1(sha1, digest);
+	return urn_get_http_sha1(p, sha1);
 }
 
 /**
@@ -133,9 +136,9 @@ urn_get_sha1(const gchar *buf, gchar *digest)
  * @return whether we successfully extracted the SHA1.
  */
 gboolean
-urn_get_sha1_no_prefix(const gchar *buf, gchar *digest)
+urn_get_sha1_no_prefix(const gchar *buf, struct sha1 *sha1)
 {
-	const gchar *sha1;
+	const gchar *p;
 
 	/*
 	 * We handle both "sha1:" and "bitprint:".  In the latter case,
@@ -143,12 +146,12 @@ urn_get_sha1_no_prefix(const gchar *buf, gchar *digest)
 	 */
 
 	if (
-		NULL == (sha1 = is_strcaseprefix(buf, "sha1:")) &&
-		NULL == (sha1 = is_strcaseprefix(buf, "bitprint:"))
+		NULL == (p = is_strcaseprefix(buf, "sha1:")) &&
+		NULL == (p = is_strcaseprefix(buf, "bitprint:"))
 	)
 		return FALSE;
 
-	return urn_get_http_sha1(sha1, digest);
+	return urn_get_http_sha1(p, sha1);
 }
 
 /*

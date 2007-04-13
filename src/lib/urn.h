@@ -42,9 +42,9 @@
  * Public interface.
  */
 
-gboolean urn_get_http_sha1(const gchar *buf, gchar *retval);
-gboolean urn_get_sha1(const gchar *buf, gchar *digest);
-gboolean urn_get_sha1_no_prefix(const gchar *buf, gchar *digest);
+gboolean urn_get_http_sha1(const gchar *buf, struct sha1 *sha1);
+gboolean urn_get_sha1(const gchar *buf, struct sha1 *sha1);
+gboolean urn_get_sha1_no_prefix(const gchar *buf, struct sha1 *sha1);
 
 #endif	/* _urn_h_ */
 

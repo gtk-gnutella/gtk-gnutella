@@ -164,9 +164,7 @@ static void
 sha1_parse(FILE *f, const gchar *file)
 {
 	gint line = 0;
-	gchar sha1_digest[SHA1_RAW_SIZE];
-	const gchar *sha1;
-	const gchar *filename;
+	struct sha1 sha1;
 	gchar *p;
 	gint len;
 
@@ -187,14 +185,14 @@ sha1_parse(FILE *f, const gchar *file)
 		if (
 			len < SHA1_BASE32_SIZE ||
 			!base32_decode_into(ign_tmp, SHA1_BASE32_SIZE,
-				sha1_digest, sizeof(sha1_digest))
+				sha1.data, sizeof sha1.data)
 		) {
 			g_warning("invalid SHA1 at \"%s\" line %d: %s",
 				file, line, ign_tmp);
 			continue;
 		}
 
-		if (g_hash_table_lookup(by_sha1, sha1_digest))
+		if (g_hash_table_lookup(by_sha1, &sha1))
 			continue;
 
 		/*
@@ -208,11 +206,8 @@ sha1_parse(FILE *f, const gchar *file)
 		}
 
 		p = &ign_tmp[SHA1_BASE32_SIZE + 2];
-
-		sha1 = atom_sha1_get(sha1_digest);
-		filename = atom_str_get(p);
-
-		gm_hash_table_insert_const(by_sha1, sha1, filename);
+		gm_hash_table_insert_const(by_sha1,
+			atom_sha1_get(&sha1), atom_str_get(p));
 	}
 }
 
@@ -311,8 +306,8 @@ ignore_namesize_load(const gchar *file, time_t *stamp)
 /**
  * @return the filename associated with the digest if known, NULL otherwise.
  */
-gchar *
-ignore_sha1_filename(const gchar *sha1)
+const gchar *
+ignore_sha1_filename(const struct sha1 *sha1)
 {
 	return g_hash_table_lookup(by_sha1, sha1);
 }
@@ -342,7 +337,8 @@ ignore_reason_to_string(enum ignore_val reason)
  * @param sha1 must point to a SHA1 (binary) or NULL
  */
 enum ignore_val
-ignore_is_requested(const gchar *filename, filesize_t size, const gchar *sha1)
+ignore_is_requested(const gchar *filename, filesize_t size,
+	const struct sha1 *sha1)
 {
 	g_assert(filename != NULL);
 
@@ -372,7 +368,7 @@ ignore_is_requested(const gchar *filename, filesize_t size, const gchar *sha1)
  * Add `sha1' to the set of ignored entries.
  */
 void
-ignore_add_sha1(const gchar *file, const gchar *sha1)
+ignore_add_sha1(const gchar *file, const struct sha1 *sha1)
 {
 	g_assert(sha1);
 

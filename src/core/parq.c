@@ -208,7 +208,7 @@ struct parq_ul_queued {
 
 	gchar *addr_and_name;	/**< "IP name", used as key in hash table */
 	const gchar *name;		/**< NB: points directly into `addr_and_name' */
-	const gchar *sha1;		/**< SHA1 digest for easy reference */
+	const struct sha1 *sha1;	/**< SHA1 digest for easy reference */
 	host_addr_t remote_addr;		/**< IP address of the socket endpoint */
 
 	filesize_t file_size;	/**< Needed to recalculate ETA */
@@ -1254,7 +1254,6 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	/* Free the memory used by the current queued item */
 	G_FREE_NULL(parq_ul->addr_and_name);
 	atom_sha1_free_null(&parq_ul->sha1);
-	parq_ul->sha1 = NULL;
 	parq_ul->name = NULL;
 
 	wfree(parq_ul, sizeof *parq_ul);
@@ -3688,7 +3687,7 @@ parq_string_to_tag(const gchar *s)
 
 
 typedef struct {
-	const gchar *sha1;
+	const struct sha1 *sha1;
 	filesize_t filesize;
 	host_addr_t addr;
 	host_addr_t x_addr;
@@ -3878,13 +3877,14 @@ parq_upload_load_queue(void)
 					damaged = TRUE;
 					g_warning("Value has wrong length.");
 				} else {
-					const gchar *raw;
+					const struct sha1 *raw;
 
 					raw = base32_sha1(value);
-					if (!raw)
-						damaged = TRUE;
-					else
+					if (raw) {
 						entry.sha1 = atom_sha1_get(raw);
+					} else {
+						damaged = TRUE;
+					}
 				}
 			}
 			break;

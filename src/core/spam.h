@@ -42,7 +42,7 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-gboolean spam_check_sha1(const gchar *sha1);
+gboolean spam_check_sha1(const struct sha1 *sha1);
 gboolean spam_check_filename_and_size(const gchar *filename, filesize_t size);
 void spam_init(void);
 void spam_close(void);

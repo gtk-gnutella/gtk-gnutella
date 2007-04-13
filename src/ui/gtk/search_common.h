@@ -96,7 +96,7 @@ typedef struct record {
 	const gchar *ext;			/**< File extension (atom) */
 	const gchar *utf8_name;		/**< Path/Filename converted to UTF-8 (atom) */
 	const gchar *charset;		/**< Detected charset of name (static const) */
-	const gchar *sha1;			/**< SHA1 URN (binary form, atom) */
+	const struct sha1 *sha1;	/**< SHA1 URN (binary form, atom) */
 	const gchar *xml;			/**< Optional XML data string (atom) */
 	const gchar *tag;			/**< Optional tag data string (atom) */
 	const gchar *info;			/**< Short version of tag (atom) */
@@ -194,7 +194,7 @@ gchar *search_xml_indent(const gchar *s);
 
 void on_option_menu_search_changed(GtkOptionMenu *option_menu, gpointer unused_udata);
 
-gint search_gui_cmp_sha1s(const gchar *a, const gchar *b);
+gint search_gui_cmp_sha1s(const struct sha1 *a, const struct sha1 *b);
 
 void search_gui_duplicate_search(search_t *search);
 void search_gui_restart_search(search_t *search);

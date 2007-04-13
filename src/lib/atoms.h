@@ -46,6 +46,7 @@ enum atom_type {
 	ATOM_STRING,	/**< Strings */
 	ATOM_GUID,		/**< GUIDs (binary, 16 bytes) */
 	ATOM_SHA1,		/**< SHA1 (binary, 20 bytes) */
+	ATOM_TTH,		/**< TTH (binary, 24 bytes) */
 	ATOM_UINT64,	/**< integers (binary, 8 bytes) */
 	ATOM_FILESIZE,	/**< filesize_t (binary) */
 
@@ -71,6 +72,9 @@ void atom_free(enum atom_type type, gconstpointer key);
 
 #define atom_sha1_get(k)	atom_get_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 #define atom_sha1_free(k)	atom_free_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
+
+#define atom_tth_get(k)	atom_get_track(ATOM_TTH, (k), _WHERE_, __LINE__)
+#define atom_tth_free(k)	atom_free_track(ATOM_TTH, (k), _WHERE_, __LINE__)
 
 #define atom_uint64_get(k)	atom_get_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
 #define atom_uint64_free(k)	atom_free_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
@@ -111,16 +115,28 @@ atom_guid_free(const gchar *k)
 	return atom_free(ATOM_GUID, k);
 }
 
-static inline const gchar *
-atom_sha1_get(const gchar *k)
+static inline const struct sha1 *
+atom_sha1_get(const struct sha1 *k)
 {
 	return atom_get(ATOM_SHA1, k);
 }
 
 static inline void
-atom_sha1_free(const gchar *k)
+atom_sha1_free(const struct sha1 *k)
 {
 	return atom_free(ATOM_SHA1, k);
+}
+
+static inline const struct tth *
+atom_tth_get(const struct tth *k)
+{
+	return atom_get(ATOM_TTH, k);
+}
+
+static inline void
+atom_tth_free(const struct tth *k)
+{
+	return atom_free(ATOM_TTH, k);
 }
 
 static inline const guint64 *
@@ -163,6 +179,8 @@ guint filesize_hash(gconstpointer key);
 gint filesize_eq(gconstpointer a, gconstpointer b);
 guint sha1_hash(gconstpointer key);
 gint sha1_eq(gconstpointer a, gconstpointer b);
+guint tth_hash(gconstpointer key);
+gint tth_eq(gconstpointer a, gconstpointer b);
 guint guid_hash(gconstpointer key);
 gint guid_eq(gconstpointer a, gconstpointer b);
 guint uint64_hash(gconstpointer key);
@@ -185,10 +203,19 @@ atom_str_free_null(const gchar **k_ptr)
 }
 
 static inline void
-atom_sha1_free_null(const gchar **k_ptr)
+atom_sha1_free_null(const struct sha1 **k_ptr)
 {
 	if (*k_ptr) {
 		atom_free(ATOM_SHA1, *k_ptr);
+		*k_ptr = NULL;
+	}
+}
+
+static inline void
+atom_tth_free_null(const struct tth **k_ptr)
+{
+	if (*k_ptr) {
+		atom_free(ATOM_TTH, *k_ptr);
 		*k_ptr = NULL;
 	}
 }

@@ -215,7 +215,7 @@ struct download {
 
 	const gchar *remove_msg;
 
-	const gchar *sha1;			/**< Known SHA1 (binary atom), NULL if none */
+	const struct sha1 *sha1;	/**< Known SHA1 (binary atom), NULL if none */
 	const gchar *uri;			/**< Uri if not dealing with regular gnutella
 								 **< file download */
 	guint32 last_dmesh;			/**< Time when last download mesh was sent */
@@ -375,7 +375,7 @@ gboolean download_new(const gchar *filename,
 	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
     struct dl_file_info *fi,
 	const gnet_host_vec_t *proxies,
@@ -388,7 +388,7 @@ void download_auto_new(const gchar *filename,
 	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	struct dl_file_info *fi,
 	gnet_host_vec_t *proxies,
@@ -405,7 +405,7 @@ void download_fallback_to_push(struct download *, gboolean, gboolean);
 gint download_remove_all_from_peer(const gchar *guid,
 		host_addr_t addr, guint16 port, gboolean unavailable);
 gint download_remove_all_named(const gchar *name);
-gint download_remove_all_with_sha1(const gchar *sha1);
+gint download_remove_all_with_sha1(const struct sha1 *sha1);
 void download_remove_file(struct download *d, gboolean reset);
 gboolean download_file_exists(const struct download *d);
 void download_requeue(struct download *);

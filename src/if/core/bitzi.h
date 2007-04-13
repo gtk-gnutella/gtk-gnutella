@@ -49,11 +49,13 @@ typedef enum {
 	NUM_BITZI_FJ
 } bitzi_fj_t;
 
+struct sha1;
+
 /**
  * bitzi_data_t
  */
 typedef struct {
-	const gchar	*sha1;			/**< pointer to SHA-1 atom */
+	const struct sha1 *sha1;	/**< pointer to SHA-1 atom */
 	gchar		*mime_type;		/**< mime type */
 	gchar		*mime_desc;		/**< mime details (fps, bitrate etc) */
 	filesize_t	size;			/**< size of file */
@@ -74,8 +76,8 @@ typedef struct {
  * from within the core. They do not generate notification events
  */
 
-gpointer bitzi_query_by_sha1(const gchar *sha1);
-bitzi_data_t *bitzi_query_cache_by_sha1(const gchar *sha1);
+gpointer bitzi_query_by_sha1(const struct sha1 *sha1);
+bitzi_data_t *bitzi_query_cache_by_sha1(const struct sha1 *sha1);
 
 #endif /* CORE_SOURCES */
 

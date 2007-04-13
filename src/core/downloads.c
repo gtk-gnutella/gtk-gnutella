@@ -1755,7 +1755,7 @@ downloads_with_name_dec(const gchar *name)
 		g_hash_table_remove(dl_count_by_name, name);
 }
 
-static inline const gchar *
+static inline const struct sha1 *
 download_get_sha1(const struct download *d)
 {
 	download_check(d);
@@ -1776,7 +1776,7 @@ download_get_sha1(const struct download *d)
 static inline void
 server_sha1_count_inc(struct dl_server *server, struct download *d)
 {
-	const gchar *sha1;
+	const struct sha1 *sha1;
 
 	download_check(d);
 	g_assert(server == d->server);
@@ -1798,7 +1798,7 @@ server_sha1_count_inc(struct dl_server *server, struct download *d)
 static inline void
 server_sha1_count_dec(struct dl_server *server, struct download *d)
 {
-	const gchar *sha1;
+	const struct sha1 *sha1;
 
 	download_check(d);
 	g_assert(server == d->server);
@@ -1835,7 +1835,7 @@ static gboolean
 download_eq(gconstpointer p, gconstpointer q)
 {
 	const struct download *a = p, *b = q;
-	const char *a_sha1, *b_sha1;
+	const struct sha1 *a_sha1, *b_sha1;
 
 	if (a == b)
 		return TRUE;
@@ -1860,7 +1860,7 @@ download_eq(gconstpointer p, gconstpointer q)
 
 static struct download *
 server_list_lookup(const struct dl_server *server, enum dl_list idx,
-	const gchar *sha1, const gchar *file, filesize_t size)
+	const struct sha1 *sha1, const gchar *file, filesize_t size)
 {
 	struct download *d = NULL;
 
@@ -1965,8 +1965,8 @@ server_list_remove_download(struct dl_server *server, enum dl_list idx,
  */
 static struct download *
 has_same_download(
-	const gchar *file, const gchar *sha1, filesize_t size, const gchar *guid,
-	const host_addr_t addr, guint16 port)
+	const gchar *file, const struct sha1 *sha1, filesize_t size,
+	const gchar *guid, const host_addr_t addr, guint16 port)
 {
 	static const enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
@@ -2521,7 +2521,7 @@ download_remove_all_named(const gchar *name)
  * abort instead.
  */
 gint
-download_remove_all_with_sha1(const gchar *sha1)
+download_remove_all_with_sha1(const struct sha1 *sha1)
 {
 	GSList *sl;
 	GSList *to_remove = NULL;
@@ -2585,9 +2585,9 @@ download_set_socket_rx_size(gint rx_size)
 }
 
 static void
-download_set_sha1(struct download *d, const gchar *sha1)
+download_set_sha1(struct download *d, const struct sha1 *sha1)
 {
-	const gchar *old_atom;
+	const struct sha1 *old_atom;
 
 	download_check(d);
 
@@ -4342,7 +4342,7 @@ create_download(
 	const host_addr_t addr,
 	guint16 port, const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	fileinfo_t *file_info,
 	const gnet_host_vec_t *proxies,
@@ -4584,7 +4584,7 @@ download_auto_new(const gchar *file_name,
    	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
@@ -4828,7 +4828,7 @@ struct download_request {
 	const gchar *guid;
 	const gchar *hostname;
 	const gchar *filename;
-	const gchar *sha1;
+	const struct sha1 *sha1;
 	const gchar *uri;
 	const gchar *parq_id;
 	gnet_host_vec_t *proxies;
@@ -4870,7 +4870,7 @@ download_request_new(
 	req->port = port;
 	req->guid = guid ? atom_guid_get(guid) : NULL;
 	req->hostname = hostname ? atom_str_get(hostname) : NULL;
-	req->sha1 = sha1 ? atom_sha1_get(sha1->data) : NULL;
+	req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 	req->stamp = stamp;
 	req->fi = fi;	/* XXX: Increase ref counter or what? */
 	req->flags = flags;
@@ -4958,7 +4958,7 @@ download_new(const gchar *filename,
 	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	fileinfo_t *fi,
 	const gnet_host_vec_t *proxies,
@@ -4975,7 +4975,7 @@ download_new(const gchar *filename,
 				port,
 				guid,
 				hostname,
-				(const struct sha1 *) sha1,
+				sha1,
 				stamp,
 				fi,
 				flags,
@@ -4995,8 +4995,8 @@ download_new(const gchar *filename,
  * its fileinfo trailer.
  */
 void
-download_orphan_new(const gchar *filename, filesize_t size, const gchar *sha1,
-	fileinfo_t *fi)
+download_orphan_new(const gchar *filename, filesize_t size,
+	const struct sha1 *sha1, fileinfo_t *fi)
 {
 	time_t ntime = fi->ntime;
 	(void) create_download(filename,
@@ -6578,9 +6578,9 @@ download_is_thex(const struct download *d)
 static gboolean
 check_content_urn(struct download *d, header_t *header)
 {
-	gchar *buf;
-	gchar digest[SHA1_RAW_SIZE];
 	gboolean found_sha1 = FALSE;
+	struct sha1 sha1;
+	gchar *buf;
 
 	download_check(d);
 
@@ -6666,12 +6666,12 @@ check_content_urn(struct download *d, header_t *header)
 		return TRUE;		/* Nothing to check against, continue */
 	}
 
-	found_sha1 = dmesh_collect_sha1(buf, digest);
+	found_sha1 = dmesh_collect_sha1(buf, &sha1);
 
 	if (!found_sha1)
 		return TRUE;
 
-	if (d->sha1 && 0 != memcmp(digest, d->sha1, SHA1_RAW_SIZE)) {
+	if (d->sha1 && !sha1_eq(&sha1, d->sha1)) {
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "URN mismatch detected");
 		return FALSE;
@@ -6682,7 +6682,7 @@ check_content_urn(struct download *d, header_t *header)
 	 */
 
 	if (d->sha1 == NULL) {
-		download_set_sha1(d, digest);
+		download_set_sha1(d, &sha1);
 
 		/*
 		 * The following test for equality works because both SHA1
@@ -6763,16 +6763,10 @@ check_content_urn(struct download *d, header_t *header)
 	 */
 
 collect_locations:
-	{
-		const gchar *sha1;
+	g_assert(d->file_info != NULL);
+	g_assert(d->sha1 || d->file_info->sha1);
 
-		g_assert(d->file_info != NULL);
-		g_assert(d->sha1 || d->file_info->sha1);
-
-		sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
-
-		huge_collect_locations(sha1, header);
-	}
+	huge_collect_locations(d->sha1 ? d->sha1 : d->file_info->sha1, header);
 
 	return TRUE;
 }
@@ -8470,7 +8464,8 @@ download_send_request(struct download *d)
 	fileinfo_t *fi;
 	size_t rw;
 	ssize_t sent;
-	const gchar *sha1, *method;
+	const gchar *method;
+	const struct sha1 *sha1;
 
 	download_check(d);
 
@@ -9360,7 +9355,8 @@ download_build_magnet(const struct download *d)
 	dl_url = download_build_url(d);
 	if (dl_url) {
 		struct magnet_resource *magnet;
-		const gchar *sha1, *parq_id;
+		const struct sha1 *sha1;
+		const gchar *parq_id;
 	
 		magnet = magnet_resource_new();
 		sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
@@ -9528,7 +9524,7 @@ download_retrieve_old(FILE *f)
 	gint recline;			/* Record line number */
 	guint line;				/* File line number */
 	gchar d_guid[GUID_RAW_SIZE];
-	gchar sha1_digest[SHA1_RAW_SIZE];
+	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
 	gint maxlines = -1;
 	gboolean allow_comments = TRUE;
@@ -9684,7 +9680,7 @@ download_retrieve_old(FILE *f)
 			if (
 				strlen(dl_tmp) != (1+SHA1_BASE32_SIZE) ||	/* Final "\n" */
 				!base32_decode_into(dl_tmp, SHA1_BASE32_SIZE,
-					sha1_digest, sizeof(sha1_digest))
+					sha1.data, sizeof sha1.data)
 			) {
 				g_message("download_retrieve(): "
 					"bad base32 SHA1 '%32s' at line #%u, ignoring",
@@ -9731,10 +9727,10 @@ download_retrieve_old(FILE *f)
 		if (dbg)
 			g_message("DOWNLOAD '%s' (%s bytes) from %s (%s) SHA1=%s",
 				d_name, uint64_to_string(d_size), host_addr_to_string(d_addr),
-				d_hostname, has_sha1 ? sha1_base32(sha1_digest) : "<none>");
+				d_hostname, has_sha1 ? sha1_base32(&sha1) : "<none>");
 
 		d = create_download(d_name, NULL, d_size, d_addr,
-				d_port, d_guid, d_hostname, has_sha1 ? sha1_digest : NULL,
+				d_port, d_guid, d_hostname, has_sha1 ? &sha1 : NULL,
 				1, NULL, NULL, flags, parq_id);
 
 		if (d == NULL) {
@@ -10092,7 +10088,7 @@ download_verify_progress(struct download *d, guint32 hashed)
  * Called when download verification is finished and digest is known.
  */
 void
-download_verify_done(struct download *d, const gchar *digest, guint elapsed)
+download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
 {
 	fileinfo_t *fi;
 	const gchar *name;
@@ -10105,7 +10101,7 @@ download_verify_done(struct download *d, const gchar *digest, guint elapsed)
 	fi = d->file_info;
 	file_info_check(fi);
 	name = file_info_readable_filename(fi);
-	fi->cha1 = atom_sha1_get(digest);
+	fi->cha1 = atom_sha1_get(sha1);
 	fi->cha1_elapsed = elapsed;
 	fi->cha1_hashed = fi->size;
 	file_info_store_binary(fi);		/* Resync with computed SHA1 */
@@ -10371,7 +10367,8 @@ gchar *
 download_build_url(const struct download *d)
 {
 	gchar prefix_buf[256];
-	const gchar *sha1, *host, *prefix;
+	const gchar *host, *prefix;
+	const struct sha1 *sha1;
 	host_addr_t addr;
 	guint16 port;
 	gchar *url;

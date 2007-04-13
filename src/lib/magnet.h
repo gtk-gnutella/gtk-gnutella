@@ -37,21 +37,25 @@
 #define _magnet_h_
 
 #include "common.h"
-#include "host_addr.h"
+
+#include "lib/host_addr.h"
+#include "lib/misc.h"
 
 struct magnet_source {
-	const gchar *url;		/* string atom */
-	const gchar *hostname;	/* string atom */
-	const gchar *path;		/* string atom */
-	const gchar *sha1;		/* sha1 atom */
-	const gchar *guid;		/* guid atom */
+	const gchar *url;			/* string atom */
+	const gchar *hostname;		/* string atom */
+	const gchar *path;			/* string atom */
+	const struct sha1 *sha1;	/* SHA1 atom */
+	const struct tth *tth;		/* TTH atom */
+	const gchar *guid;			/* GUID atom */
 	host_addr_t addr;
 	guint16 port;
 };
 
 struct magnet_resource {
 	const gchar *display_name;	/* string atom */
-	const gchar *sha1;			/* sha1 atom */
+	const struct sha1 *sha1;	/* SHA1 atom */
+	const struct tth *tth;		/* TTH atom */
 	const gchar *parq_id;		/* string atom */
 	GSList *sources;	/* List of walloc()ed (struct magnet_source *) */
 	GSList *searches;	/* List of string atoms */
@@ -72,11 +76,12 @@ void magnet_set_filesize(struct magnet_resource *res, filesize_t size);
 void magnet_set_display_name(struct magnet_resource *res, const gchar *name);
 gboolean magnet_set_exact_topic(struct magnet_resource *res,
 			const gchar *topic);
-void magnet_set_sha1(struct magnet_resource *res, const gchar *sha1);
+void magnet_set_sha1(struct magnet_resource *res, const struct sha1 *sha1);
+void magnet_set_tth(struct magnet_resource *res, const struct tth *tth);
 void magnet_add_search(struct magnet_resource *res, const gchar *search);
 void magnet_add_source_by_url(struct magnet_resource *res, const gchar *url);
 void magnet_add_sha1_source(struct magnet_resource *res,
-		const gchar *sha1, const host_addr_t addr, const guint16 port,
+		const struct sha1 *sha1, const host_addr_t addr, const guint16 port,
 		const gchar *guid);
 
 /* Extensions */

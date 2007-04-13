@@ -127,7 +127,7 @@ add_parent_with_sha1(GHashTable *ht, const gchar *sha1,
  *  The atom used for the key is then freed
  */
 static inline void
-remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
+remove_parent_with_sha1(GHashTable *ht, const struct sha1 *sha1)
 {
 	gconstpointer key;
 	gpointer orig_key;
@@ -356,7 +356,7 @@ search_gui_new_search_full(const gchar *query_str,
 	sch->dups = g_hash_table_new(search_gui_hash_func,
 					search_gui_hash_key_compare);
 
-	sch->parents = g_hash_table_new(NULL, NULL);
+	sch->parents = g_hash_table_new(pointer_hash_func, NULL);
 
 	search_gui_filter_new(sch, query->rules);
 
@@ -1583,7 +1583,6 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 static guint
 download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 {
-	struct results_set *rs;
 	gui_record_t *grc;
 	record_t *rc;
 	GList *sel_list;

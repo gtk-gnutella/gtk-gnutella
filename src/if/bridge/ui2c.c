@@ -78,13 +78,13 @@ guc_adns_resolve(const gchar *hostname,
 /*	bitzi interface functions (UI -> Core)*/
 
 void
-guc_query_bitzi_by_sha1(const gchar *sha1)
+guc_query_bitzi_by_sha1(const struct sha1 *sha1)
 {
     bitzi_query_by_sha1(sha1);
 }
 
 bitzi_data_t *
-guc_query_cache_bitzi_by_sha1(const gchar *sha1)
+guc_query_cache_bitzi_by_sha1(const struct sha1 *sha1)
 {
     return bitzi_query_cache_by_sha1(sha1);
 }
@@ -129,7 +129,7 @@ guc_download_remove_all_named(const gchar *name)
 }
 
 gint
-guc_download_remove_all_with_sha1(const gchar *sha1)
+guc_download_remove_all_with_sha1(const struct sha1 *sha1)
 {
 	return download_remove_all_with_sha1(sha1);
 }
@@ -221,7 +221,7 @@ guc_download_new(const gchar *filename,
 	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
@@ -250,7 +250,7 @@ guc_download_auto_new(const gchar *filename,
 	guint16 port,
 	const gchar *guid,
 	const gchar *hostname,
-	const gchar *sha1,
+	const struct sha1 *sha1,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,

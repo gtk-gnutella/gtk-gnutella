@@ -421,6 +421,8 @@ static size_t guid_len(gconstpointer v);
 static const gchar *guid_str(gconstpointer v);
 static size_t sha1_len(gconstpointer v);
 static const gchar *sha1_str(gconstpointer v);
+static size_t tth_len(gconstpointer v);
+static const gchar *tth_str(gconstpointer v);
 static size_t uint64_len(gconstpointer v);
 static const gchar *uint64_str(gconstpointer v);
 static size_t filesize_len(gconstpointer v);
@@ -433,9 +435,10 @@ static table_desc_t atoms[] = {
 	{ "String",	NULL, g_str_hash,  g_str_equal, str_len,    str_str  },	/* 0 */
 	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
 	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
-	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 3 */
+	{ "TTH",	NULL, tth_hash,    tth_eq,	    tth_len,    tth_str },	/* 3 */
+	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 4 */
 	{ "filesize",
-		NULL, filesize_hash, filesize_eq, filesize_len, filesize_str},  /* 4 */
+		NULL, filesize_hash, filesize_eq, filesize_len, filesize_str},  /* 5 */
 };
 
 static GHashTable *ht_all_atoms;
@@ -546,7 +549,7 @@ guid_str(gconstpointer v)
 guint
 sha1_hash(gconstpointer key)
 {
-	return binary_hash(key, 20);
+	return binary_hash(key, SHA1_RAW_SIZE);
 }
 
 /**
@@ -558,22 +561,7 @@ sha1_hash(gconstpointer key)
 gint
 sha1_eq(gconstpointer a, gconstpointer b)
 {
-/* FIXME:	Disabled because of alignment problems
- *			This should work if sha1_t (?) was declared as guint32[5].
- */
-#if 0
-	const guint32 *ax = (const guint32 *) a;
-	const guint32 *bx = (const guint32 *) b;
-
-	return
-		ax[0] == bx[0] &&
-		ax[1] == bx[1] &&
-		ax[2] == bx[2] &&
-		ax[3] == bx[3] &&
-		ax[4] == bx[4];
-#else
-	return a == b || 0 == memcmp(a, b, 20);
-#endif
+	return a == b || 0 == memcmp(a, b, SHA1_RAW_SIZE);
 }
 
 /**
@@ -583,7 +571,7 @@ static size_t
 sha1_len(gconstpointer unused_sha1)
 {
 	(void) unused_sha1;
-	return 20;
+	return SHA1_RAW_SIZE;
 }
 
 /**
@@ -592,7 +580,47 @@ sha1_len(gconstpointer unused_sha1)
 static const gchar *
 sha1_str(gconstpointer sha1)
 {
-	return sha1_base32((const gchar *) sha1);
+	return sha1_base32(sha1);
+}
+
+/**
+ * Hash a TTH (24 bytes).
+ */
+guint
+tth_hash(gconstpointer key)
+{
+	return binary_hash(key, TTH_RAW_SIZE);
+}
+
+/**
+ * Test two TTHs for equality.
+ *
+ * @attention
+ * NB: This routine is visible for the download mesh.
+ */
+gint
+tth_eq(gconstpointer a, gconstpointer b)
+{
+	return a == b || 0 == memcmp(a, b, TTH_RAW_SIZE);
+}
+
+/**
+ * @return length of TTH.
+ */
+static size_t 
+tth_len(gconstpointer unused_tth)
+{
+	(void) unused_tth;
+	return TTH_RAW_SIZE;
+}
+
+/**
+ * @return printable form of a TTH, as pointer to static data.
+ */
+static const gchar *
+tth_str(gconstpointer tth)
+{
+	return tth_base32(tth);
 }
 
 /**

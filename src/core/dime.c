@@ -37,233 +37,247 @@
 
 #include "common.h"
 
-#define DIME_VERSION	0x01
-#define HEADER_SIZE	12
+RCSID("$Id$")
 
-typedef struct dime_record_s dime_record_t;
-struct dime_record_s
-{
-	char	*options;
-	guint16	 options_length;
+#include "dime.h"
 
-	char	*id;
-	guint16	 id_length;
+#include "lib/endian.h"
+#include "lib/walloc.h"
 
-	char	*type;
-	guint16	 type_length;
+#include "lib/override.h"
 
-	char	*data;
-	guint32	 data_length;
+#define DIME_VERSION		0x01
+#define DIME_HEADER_SIZE	12
+
+enum {
+	DIME_F_CF = 1 << 0,
+	DIME_F_ME = 1 << 1,
+	DIME_F_MB = 1 << 2
 };
 
-typedef struct dime_record_header_s dime_record_header_t;
-struct dime_record_header_s
+static struct dime_record *
+dime_record_alloc(void)
 {
-	char	version;
-	gboolean	MB;
-	gboolean	ME;
-	gboolean	CF;
-	char	type_t;
-	char	resrvd;
-	guint16	options_length;
-	guint16	id_length;
-	guint16	type_length;
-	guint32	data_length;
+	static const struct dime_record zero_record;
+	struct dime_record *record;
 
-	char	*options;
-	char	*id;
-	char	*type;
-	char	*data;
-};
+	record = walloc(sizeof *record);
+	*record = zero_record;
+	return record;
+}
+
+static void
+dime_record_free(struct dime_record **record_ptr)
+{
+	struct dime_record *record = *record_ptr;
+
+	if (record) {
+		wfree(record, sizeof *record);
+		*record_ptr = NULL;
+	}
+}
+
+void
+dime_list_free(GSList **list_ptr)
+{
+	GSList *list = *list_ptr;
+
+	if (list) {
+		GSList *iter;
+
+		for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
+			struct dime_record *record = iter->data;
+			dime_record_free(&record);
+		}
+		g_slist_free(list);
+		*list_ptr = NULL;
+	}
+}
 
 /**
  * Makes a value a multiple of 4.
  */
-size_t
+static inline size_t
 dime_ceil(size_t value)
 {
-	return (value + 3) & ~3;
+	return (value + 3) & ~(size_t) 3;
 }
 
 /**
  * Create a dime record header.
  */
-char *dime_create_record_header(dime_record_header_t * dime_record_header)
+static void
+dime_fill_record_header(const struct dime_record *record,
+	char *data, size_t size, guint flags)
 {
-	char *header;
+	unsigned char value;
 
-	header = (char *) malloc(HEADER_SIZE);	/* malloc0 */
+	g_assert(record);
+	g_assert(data);
+	g_assert(size >= DIME_HEADER_SIZE);
 
-	header[0] = dime_record_header->version << 3;
+	value = record->version << 3;
+	value |= (DIME_F_MB & flags);
+	value |= (DIME_F_ME & flags);
+	value |= (DIME_F_CF & flags);
 
-	if (dime_record_header->MB) {
-		header[0] = header[0] | 0x04;
-	}
-
-	if (dime_record_header->ME) {
-		header[0] = header[0] | 0x02;
-	}
-
-	if (dime_record_header->CF) {
-		header[0] = header[0] | 0x01;
-	}
-
-	header[1] = dime_record_header->type_t << 4;
-	header[1] = header[1] | dime_record_header->resrvd;
-
-	/* BE first */
-	/* GUINT16/32_TO_BE(dime_record_header->data_length); */
-
-	*((guint16 *) &header[2]) = dime_record_header->options_length;
-	*((guint16 *) &header[4]) = dime_record_header->id_length;
-	*((guint16 *) &header[6]) = dime_record_header->type_length;
-	*((guint32 *) &header[8]) = dime_record_header->data_length;
-
-	return header;
+	poke_u8(&data[0], value);
+	poke_u8(&data[1], (record->type_t << 4) | record->resrvd);
+	poke_be16(&data[2], record->options_length);
+	poke_be16(&data[4], record->id_length);
+	poke_be16(&data[6], record->type_length);
+	poke_be32(&data[8], record->data_length);
 }
 
-char *dime_create_record(dime_record_t *dime_record, gboolean firstrecord,
-						 gboolean lastrecord)
+char *
+dime_create_record(const struct dime_record *record,
+	gboolean first, gboolean last)
 {
-	dime_record_header_t dime_record_header;
-	int recordlength = HEADER_SIZE;
-	char *recordheader;
+	char *data0, *data;
+	size_t size;
+	guint flags;
 
-	char *record = (char *) malloc(HEADER_SIZE /* Header length */ +
-		dime_ceil(dime_record->options_length) +
-		dime_ceil(dime_record->id_length) +
-		dime_ceil(dime_record->type_length) +
-		dime_ceil(dime_record->data_length));
+	size = DIME_HEADER_SIZE +
+		dime_ceil(record->options_length) +
+		dime_ceil(record->id_length) +
+		dime_ceil(record->type_length) +
+		dime_ceil(record->data_length);
 
-	dime_record_header.MB = firstrecord;
-	dime_record_header.ME = lastrecord;
-	dime_record_header.CF = FALSE;
+	data0 = g_malloc0(size);
+	data = data0;
 
-	recordheader = dime_create_record_header(&dime_record_header);
+	flags = (first ? DIME_F_MB : 0) | (last ?  DIME_F_ME : 0);
+	dime_fill_record_header(record, data, size, flags);
+	data += DIME_HEADER_SIZE;
 
-	memcpy(record, recordheader, HEADER_SIZE);
-	free(recordheader);
+	memcpy(data, record->options, record->options_length);
+	data += dime_ceil(record->options_length);
 
-	memcpy(record + recordlength, dime_record->options, dime_record->options_length);
-	recordlength += dime_ceil(dime_record->options_length);
+	memcpy(data, record->id, record->id_length);
+	data += dime_ceil(record->id_length);
 
-	memcpy(record + recordlength, dime_record->id, dime_record->id_length);
-	recordlength += dime_ceil(dime_record->id_length);
+	memcpy(data, record->type, record->type_length);
+	data += dime_ceil(record->type_length);
 
-	memcpy(record + recordlength, dime_record->type, dime_record->type_length);
-	recordlength += dime_ceil(dime_record->type_length);
+	memcpy(data, record->data, record->data_length);
+	data += dime_ceil(record->data_length);
 
-	memcpy(record + recordlength, dime_record->data, dime_record->data_length);
-	recordlength += dime_ceil(dime_record->data_length);
-
-	return record;
+	return data0;
 }
 
 /***
  *** Parsing
  ***/
-gboolean
-dime_parse_record_header(char *dime_record,
-								  dime_record_header_t *dime_record_header)
+static size_t
+dime_parse_record_header(const char *data, size_t size,
+	struct dime_record *header)
 {
-	dime_record_header->version = dime_record[0] >> 3;
+	const char * const data0 = data;
+	size_t n;
+	
+	g_assert(data);
+	g_assert(header);
 
-	if (dime_record_header->version != DIME_VERSION) {
-		printf("Cannot parse dime version %d, only version %d is supported\n",
-			  dime_record_header->version, DIME_VERSION);
-		return FALSE;
+	n = DIME_HEADER_SIZE;
+	if (size < n) {
+		goto failure;
+	}
+	
+	header->version = peek_u8(&data[0]) >> 3;
+
+	if (DIME_VERSION != header->version) {
+		g_warning("Cannot parse dime version %u, only version %u is supported",
+			header->version, DIME_VERSION);
+		goto failure;
 	}
 
-	dime_record_header->MB = (dime_record[0] & 0x04) != 0;
-	dime_record_header->ME = (dime_record[0] & 0x02) != 0;
-	dime_record_header->CF = (dime_record[0] & 0x01) != 0;
+	header->flags = peek_u8(&data[0]) & (DIME_F_MB | DIME_F_ME | DIME_F_CF);
+	header->type_t = peek_u8(&data[1]) >> 4;
+	header->resrvd = peek_u8(&data[1]) & 0x0F;
 
-	dime_record_header->type_t = dime_record[1] >> 4;
-	dime_record_header->resrvd = dime_record[1] & 0x0F;
+	header->options_length	= peek_be16(&data[2]);
+	header->id_length		= peek_be16(&data[4]);
+	header->type_length		= peek_be16(&data[6]);
+	header->data_length		= peek_be32(&data[8]);
 
-	/* FIXME: GUINT16/32_FROM_BE() */
-	dime_record_header->options_length	= *(guint16 *) &dime_record[2];
-	dime_record_header->id_length		= *(guint16 *) &dime_record[4];
-	dime_record_header->type_length		= *(guint16 *) &dime_record[6];
+	size -= n;
+	data += n;
+	header->options	= data;
 
-	dime_record_header->data_length		= *(guint32 *) &dime_record[8];
+	n = dime_ceil(header->options_length);
+	if (size < n) {
+		goto failure;
+	}
+	size -= n;
+	data += n;
+	header->id = data;
 
-	dime_record_header->options	= &dime_record[8];
-	dime_record_header->id		=  dime_record_header->options	+
-		dime_record_header->options_length;	/* FIXME: Round to a multiple of 4 octets */
-	dime_record_header->type	=  dime_record_header->id		+
-		dime_record_header->id_length;		/* FIXME: Round to a multiple of 4 octets */
-	dime_record_header->data	=  dime_record_header->type		+
-		dime_record_header->type_length;	/* FIXME: Round to a multiple of 4 octets */
+	n = dime_ceil(header->id_length);
+	if (size < n) {
+		goto failure;
+	}
+	size -= n;
+	data += n;
+	header->type = data;
 
-	return TRUE;
+	n = dime_ceil(header->type_length);
+	if (size < n) {
+		goto failure;
+	}
+	size -= n;
+	data += n;
+	header->data = data;
+
+	n = dime_ceil(header->data_length);
+	if (size < n) {
+		goto failure;
+	}
+	size -= n;
+	data += n;
+
+	return data - data0;
+
+failure:
+	return 0;
 }
 
-gboolean dime_parse_records(char *data)
+GSList *
+dime_parse_records(const gchar *data, size_t size)
 {
-	dime_record_header_t record_header;
-	dime_record_t *dime_record = (dime_record_t *) malloc(sizeof(dime_record_t));
+	const gchar * const data0 = data;
+	GSList *list = NULL;
 
-	dime_record->data = NULL;
-	dime_record->data_length = 0;
-	dime_record->id = NULL;
-	dime_record->id_length = 0;
-	dime_record->options = NULL;
-	dime_record->options_length = 0;
-	dime_record->type = NULL;
-	dime_record->type_length = 0;
-
-	gboolean start = TRUE;
-
-	do {
-		if (!dime_parse_record_header(data, &record_header))
+	for (;;) {
+		struct dime_record *record;
+		size_t ret;
+		
+		record = dime_record_alloc();
+		list = g_slist_prepend(list, record);
+		
+		ret = dime_parse_record_header(data, size, record);
+		if (0 == ret) {
 			goto error;
+		}
+		data += ret;
+		size -= ret;
 
-		if (start) {
-			if (record_header.MB != TRUE) {
+		if (data0 == data) {
+			if (0 == (DIME_F_MB & record->flags)) {
 				/* FIXME: Warning, no message begin flag */
 				goto error;
 			}
 		}
-
-		dime_record->data = (char *) realloc(dime_record->data,
-			  dime_record->data_length + record_header.data_length);
-
-		memcpy(&dime_record->data[dime_record->data_length], record_header.data, record_header.data_length);
-
-		dime_record->data_length =
-			  dime_record->data_length + record_header.data_length;
-
-
-		if (!record_header.CF) {
-			/* FIXME: Add to Glist */
-			dime_record = (dime_record_t *) malloc(sizeof(dime_record_t));
+		if (0 == (DIME_F_ME & record->flags)) {
+			break;
 		}
+	}
 
-		start = FALSE;
-
-		/* Need some protection to avoid corrupt DIME packets and
-		 * start parsing memory which is not ours to parse */
-	} while(record_header.ME == FALSE);
-
-	return TRUE;
+	return g_slist_reverse(list);
 
 error:
-	/* For each in the list */
-	if (dime_record->data != NULL)
-		free(dime_record->data);
 
-	if (dime_record->id != NULL)
-		free(dime_record->id);
-
-	if (dime_record->options != NULL)
-		free(dime_record->options);
-
-	if (dime_record->type != NULL)
-		free(dime_record->type);
-
-	free(dime_record);
-
-	return FALSE;
+	dime_list_free(&list);
+	return NULL;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -202,7 +202,7 @@ tiger_compress(const guint64 *data, guint64 state[3])
 }
 
 void
-tiger(gconstpointer data, guint64 length, guchar hash[24])
+tiger(gconstpointer data, guint64 length, gchar hash[24])
 {
   guint64 i, j, res[3];
   const guint8 *data_u8 = data;
@@ -303,14 +303,13 @@ tiger_check(void)
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
-		guchar hash[24];
+		gchar hash[24];
 		gchar buf[40];
 		gboolean ok;
 
 		memset(buf, 0, sizeof buf);	
 		tiger(tests[i].s, tests[i].len, hash);
-		base32_encode_into(cast_to_gpointer(hash), sizeof hash,
-			buf, sizeof buf);
+		base32_encode_into(hash, sizeof hash, buf, sizeof buf);
 		buf[G_N_ELEMENTS(buf) - 1] = '\0';
 
 		ok = 0 == strcmp(tests[i].r, buf);

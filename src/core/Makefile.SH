@@ -93,6 +93,7 @@ SRC = \
 	bsched.c \
 	clock.c \
 	dh.c \
+	dime.c \
 	dmesh.c \
 	downloads.c \
 	dq.c \
@@ -148,6 +149,7 @@ SRC = \
 	sq.c \
 	tls_cache.c \
 	tls_common.c \
+	tth_cache.c \
 	token.c \
 	tsync.c \
 	tx.c \
@@ -175,6 +177,7 @@ OBJ = \
 	bsched.o \
 	clock.o \
 	dh.o \
+	dime.o \
 	dmesh.o \
 	downloads.o \
 	dq.o \
@@ -230,6 +233,7 @@ OBJ = \
 	sq.o \
 	tls_cache.o \
 	tls_common.o \
+	tth_cache.o \
 	token.o \
 	tsync.o \
 	tx.o \
