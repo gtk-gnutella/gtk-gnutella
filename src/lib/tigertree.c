@@ -102,8 +102,6 @@ RCSID("$Id$")
  * longer than 2^64 in size), havoc may ensue. */
 #define TTH_STACKSIZE	(TIGERSIZE * 56)
 
-#define TTH_MAX_DEPTH	9
-
 enum {
 	TTH_F_INITIALIZED	= 1 << 0,
 	TTH_F_FINISHED		= 1 << 1
@@ -122,14 +120,28 @@ struct TTH_CONTEXT {
 	struct tth leaves[1 << (TTH_MAX_DEPTH - 1)];
 };
 
+filesize_t 
+tt_bottom_node_count(filesize_t filesize)
+{
+	filesize_t n;
+
+	n = filesize / TTH_BLOCKSIZE;
+	n += (filesize % TTH_BLOCKSIZE) ? 1 : 0;
+
+	while (n > (1 << (TTH_MAX_DEPTH - 1))) {
+		n = (n + 1) / 2;
+	}
+	return n;
+}
+
 static filesize_t 
-tt_block_per_leaf(filesize_t filesize)
+tt_blocks_per_leaf(filesize_t filesize)
 {
 	filesize_t n_blocks, n_bpl;
 	unsigned depth;
 
 	n_blocks = filesize / TTH_BLOCKSIZE;
-	n_blocks += (filesize % TTH_BLOCKSIZE) ? 0 : 1;
+	n_blocks += (filesize % TTH_BLOCKSIZE) ? 1 : 0;
 
 	depth = 1;
 	while (n_blocks > 1) {
@@ -276,7 +288,7 @@ tt_init(TTH_CONTEXT *ctx, filesize_t filesize)
 	ctx->si = 0;
 	ctx->li = 0;
 	ctx->n = 0;
-	ctx->bpl = tt_block_per_leaf(filesize);
+	ctx->bpl = tt_blocks_per_leaf(filesize);
 	ctx->depth = 1;
 	ctx->flags = TTH_F_INITIALIZED;
 }
@@ -379,8 +391,7 @@ tt_check(void)
 		tt_digest(&ctx, &hash);
 	
 		memset(digest, 0, sizeof digest);	
-		base32_encode_into(cast_to_gconstpointer(hash.data),
-			sizeof hash.data, digest, sizeof digest);
+		base32_encode(digest, sizeof digest, hash.data, sizeof hash.data);
 		digest[G_N_ELEMENTS(digest) - 1] = '\0';
 
 		if (0 != strcmp(tests[i].digest, digest)) {

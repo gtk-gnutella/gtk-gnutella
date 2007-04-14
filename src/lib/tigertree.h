@@ -62,7 +62,10 @@
 #include "lib/misc.h"
 
 /* tiger hash result size, in bytes */
-#define TIGERSIZE 24
+#define TIGERSIZE	24
+
+/* Maximum depth to preserve */
+#define TTH_MAX_DEPTH	9
 
 struct TTH_CONTEXT;
 typedef struct TTH_CONTEXT TTH_CONTEXT;
@@ -77,6 +80,7 @@ void tt_digest(TTH_CONTEXT *ctx, struct tth *tth);
 const struct tth *tt_leaves(TTH_CONTEXT *ctx);
 size_t tt_leave_count(TTH_CONTEXT *ctx);
 struct tth *tt_root_hash(struct tth *leaves, size_t n_leaves);
+filesize_t tt_bottom_node_count(filesize_t filesize);
 
 #endif /* _tigertree_h_ */
 /* vi: set ts=4 sw=4 cindent: */
