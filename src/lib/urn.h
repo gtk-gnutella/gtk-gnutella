@@ -45,6 +45,8 @@
 gboolean urn_get_http_sha1(const gchar *buf, struct sha1 *sha1);
 gboolean urn_get_sha1(const gchar *buf, struct sha1 *sha1);
 gboolean urn_get_sha1_no_prefix(const gchar *buf, struct sha1 *sha1);
+gboolean urn_get_bitprint(const gchar *buf, size_t size,
+	struct sha1 *sha1, struct tth *tth);
 
 #endif	/* _urn_h_ */
 

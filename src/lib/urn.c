@@ -47,7 +47,6 @@ RCSID("$Id$")
  * of a SHA1 hash, and write decoded value in `retval'.
  *
  * The SHA1 typically comes from HTTP, in a X-Gnutella-Content-URN header.
- * Therefore, we unconditionally accept both old and new encodings.
  *
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
@@ -68,33 +67,12 @@ urn_get_http_sha1(const gchar *buf, struct sha1 *sha1)
 
 	for (i = 0; i < SHA1_BASE32_SIZE; i++) {
 		if ('\0' == buf[i])
-			goto invalid;
+			return FALSE;
 	}
 
-	if (base32_decode_into(buf, SHA1_BASE32_SIZE,
-			sha1->data, sizeof sha1->data))
+	if (SHA1_RAW_SIZE == base32_decode(sha1->data, sizeof sha1->data,
+							buf, SHA1_BASE32_SIZE))
 		return TRUE;
-
-	/*
-	 * When extracting SHA1 from HTTP headers, we want to get the proper
-	 * hash value: some servents were deployed with the old base32 encoding
-	 * (using the digits 8 and 9 in the alphabet instead of letters L and O
-	 * in the new one).
-	 *
-	 * Among the 32 groups of 5 bits, equi-probable, there is a 2/32 chance
-	 * of having a 8 or a 9 encoded in the old alphabet.  Therefore, the
-	 * probability of not having a 8 or a 9 in the first letter is 30/32.
-	 * The probability of having no 8 or 9 in the 32 letters is (30/32)^32.
-	 * So the probability of having at least an 8 or a 9 is 1-(30/32)^32,
-	 * which is 87.32%.
-	 */
-
-	if (base32_decode_old_into(buf, SHA1_BASE32_SIZE,
-			sha1->data, sizeof sha1->data))
-		return TRUE;
-
-invalid:
-	g_warning("ignoring invalid SHA1 base32 encoding: %s", buf);
 
 	return FALSE;
 }
@@ -122,6 +100,40 @@ urn_get_sha1(const gchar *buf, struct sha1 *sha1)
 		return FALSE;
 
 	return urn_get_http_sha1(p, sha1);
+}
+
+gboolean
+urn_get_bitprint(const gchar *buf, size_t size,
+	struct sha1 *sha1, struct tth *tth)
+{
+	static const char prefix[] = "urn:bitprint:";
+	size_t len;
+	const gchar *p;
+
+	g_assert(0 == size || NULL != buf);
+	g_assert(sha1);
+	g_assert(tth);
+
+	if (size < CONST_STRLEN(prefix) + BITPRINT_BASE32_SIZE) {
+		return FALSE;
+	}
+	p = is_strcaseprefix(buf, prefix);
+	if (NULL == p) {
+		return FALSE;
+	}
+	len = base32_decode(sha1->data, SHA1_RAW_SIZE, p, SHA1_BASE32_SIZE);
+	if (len != SHA1_RAW_SIZE) {
+		return FALSE;
+	}
+	p += SHA1_BASE32_SIZE;
+	if ('.' != *p++) {
+		return FALSE;
+	}
+	len = base32_decode(tth->data, TTH_RAW_SIZE, p, SHA1_BASE32_SIZE);
+	if (len != TTH_RAW_SIZE) {
+		return FALSE;
+	}
+	return TRUE;
 }
 
 /**
