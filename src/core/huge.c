@@ -404,7 +404,7 @@ gboolean
 huge_update_hashes(struct shared_file *sf,
 	const struct sha1 *sha1, const struct tth *tth)
 {
-	struct sha1_cache_entry *cached_sha1;
+	struct sha1_cache_entry *cached;
 	struct stat sb;
 
 	shared_file_check(sf);
@@ -439,11 +439,11 @@ huge_update_hashes(struct shared_file *sf,
 
 	/* Update cache */
 
-	cached_sha1 = g_hash_table_lookup(sha1_cache,
+	cached = g_hash_table_lookup(sha1_cache,
 					cast_to_gconstpointer(shared_file_path(sf)));
 
-	if (cached_sha1) {
-		update_volatile_cache(cached_sha1, shared_file_size(sf),
+	if (cached) {
+		update_volatile_cache(cached, shared_file_size(sf),
 			shared_file_modification_time(sf), sha1, tth);
 		cache_dirty = TRUE;
 	} else {
@@ -587,10 +587,10 @@ cached_entry_up_to_date(const struct sha1_cache_entry *cache_entry,
 gboolean
 sha1_is_cached(const struct shared_file *sf)
 {
-	const struct sha1_cache_entry *cached_sha1;
+	const struct sha1_cache_entry *cached;
 
-	cached_sha1 = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
-	return cached_sha1 && cached_entry_up_to_date(cached_sha1, sf);
+	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
+	return cached && cached_entry_up_to_date(cached, sf);
 }
 
 
@@ -603,32 +603,31 @@ sha1_is_cached(const struct shared_file *sf)
 gboolean
 request_sha1(struct shared_file *sf)
 {
-	struct sha1_cache_entry *cached_sha1;
+	struct sha1_cache_entry *cached;
 
 	shared_file_check(sf);
 
-	cached_sha1 = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
-	if (cached_sha1 && cached_entry_up_to_date(cached_sha1, sf)) {
-		if (spam_check_sha1(cached_sha1->sha1)) {
+	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
+	if (cached && cached_entry_up_to_date(cached, sf)) {
+		if (spam_check_sha1(cached->sha1)) {
 			g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 			shared_file_remove(sf);
 			return FALSE;
 		} else {
-			shared_file_set_sha1(sf, cached_sha1->sha1);
-			cached_sha1->shared = TRUE;
-			if (NULL == shared_file_tth(sf)) {
-				request_tigertree(sf);
-			}
+			cached->shared = TRUE;
+			shared_file_set_sha1(sf, cached->sha1);
+			shared_file_set_tth(sf, cached->tth);
+			request_tigertree(sf);
 			return TRUE;
 		}
 	} else {
 
 		if (dbg > 4) {
-			if (cached_sha1)
+			if (cached)
 				g_message("Cached SHA1 entry for \"%s\" outdated: "
 					"had mtime %lu, now %lu",
 					shared_file_path(sf),
-					(gulong) cached_sha1->mtime,
+					(gulong) cached->mtime,
 					(gulong) shared_file_modification_time(sf));
 			else
 				g_message("Queuing \"%s\" for SHA1 computation",
@@ -684,6 +683,7 @@ huge_close(void)
 
 	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
 	g_hash_table_destroy(sha1_cache);
+	sha1_cache = NULL;
 }
 
 /**
