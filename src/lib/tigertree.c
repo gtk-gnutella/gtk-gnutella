@@ -252,30 +252,41 @@ tt_finish(TTH_CONTEXT *ctx)
 			}
 		}
 	}
-	tt_root_hash(ctx->leaves, ctx->li);
+	ctx->stack[0] = tt_root_hash(ctx->leaves, ctx->li);
 	ctx->flags |= TTH_F_FINISHED;
 }
 
-struct tth *
-tt_root_hash(struct tth *leaves, size_t n_leaves)
+struct tth
+tt_root_hash(const struct tth *src, size_t n_leaves)
 {
-	g_return_val_if_fail(leaves, NULL);
-	g_return_val_if_fail(n_leaves > 0, NULL);
-	
-	while (n_leaves > 1) {
-		size_t i, n;
+	g_assert(src);
+	g_assert(n_leaves > 0);
 
-		n = n_leaves / 2;
-		for (i = 0; i < n; i++) {
-			tt_internal_hash(&leaves[i * 2], &leaves[i * 2 + 1], &leaves[i]);
-		}
-		if (n_leaves & 1) {
-			leaves[i] = leaves[i * 2];
-			i++;
-		}
-		n_leaves = i;
+	if (n_leaves > 1) {
+		struct tth root, *dst;
+
+		dst = g_malloc((n_leaves / 2 + 1) * sizeof dst[0]);
+		do {
+			size_t i, n;
+
+			n = n_leaves / 2;
+			for (i = 0; i < n; i++) {
+				tt_internal_hash(&src[i * 2], &src[i * 2 + 1], &dst[i]);
+			}
+			if (n_leaves & 1) {
+				dst[i] = src[i * 2];
+				i++;
+			}
+			n_leaves = i;
+			src = dst;
+		} while (n_leaves > 1);
+
+		root = dst[0];
+		G_FREE_NULL(dst);
+		return root;
+	} else {
+		return src[0];
 	}
-	return &leaves[0];
 }
 
 void
@@ -328,7 +339,7 @@ tt_digest(TTH_CONTEXT *ctx, struct tth *hash)
 	if (!(TTH_F_FINISHED & ctx->flags)) {
 		tt_finish(ctx);
 	}
-	memcpy(hash->data, ctx->leaves[0].data, sizeof hash->data);
+	memmove(hash->data, ctx->stack[0].data, sizeof hash->data);
 }
 
 size_t
