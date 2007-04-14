@@ -55,12 +55,16 @@ void huge_close(void);		/**< Call this when servent is shutdown */
  * the computed value is saved in the cache.
  */
 
+struct tth;
+
 gboolean request_sha1(struct shared_file *);
 gboolean sha1_is_cached(const struct shared_file *sf);
+gboolean huge_update_hashes(struct shared_file *sf,
+	const struct sha1 *sha1, const struct tth *tth);
 
 gboolean huge_improbable_sha1(const gchar *buf, size_t len);
 gboolean huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
-	gconstpointer header, gboolean check_old);
+	gconstpointer header);
 void huge_collect_locations(const struct sha1 *sha1, struct header *header);
 
 #endif	/* _core_huge_h_ */
