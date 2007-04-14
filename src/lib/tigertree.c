@@ -104,6 +104,11 @@ RCSID("$Id$")
 
 #define TTH_MAX_DEPTH	9
 
+enum {
+	TTH_F_INITIALIZED	= 1 << 0,
+	TTH_F_FINISHED		= 1 << 1
+};
+
 struct TTH_CONTEXT {
 	filesize_t bpl;       	/* blocks per leave at TTH_MAX_DEPTH */
 	filesize_t n;         	/* number of blocks processed */
@@ -111,6 +116,7 @@ struct TTH_CONTEXT {
 	unsigned si;          	/* current stack index */
 	unsigned li;         	/* current leave index */
 	unsigned depth;			/* current tree depth */
+	unsigned flags;
 	char block[TTH_BLOCKSIZE + 1];
 	struct tth stack[56];
 	struct tth leaves[1 << (TTH_MAX_DEPTH - 1)];
@@ -138,20 +144,6 @@ tt_block_per_leaf(filesize_t filesize)
 	return n_bpl; 
 }
 
-void
-tt_init(TTH_CONTEXT *ctx, filesize_t filesize)
-{
-	g_assert(ctx);
-
-	ctx->block_fill = 1;
-	ctx->block[0] = 0x00;
-	ctx->si = 0;
-	ctx->li = 0;
-	ctx->n = 0;
-	ctx->bpl = tt_block_per_leaf(filesize);
-	ctx->depth = 1;
-}
-
 static void
 tt_internal_hash(const struct tth *a, const struct tth *b, struct tth *dst)
 {
@@ -163,7 +155,7 @@ tt_internal_hash(const struct tth *a, const struct tth *b, struct tth *dst)
 	tiger(buf, sizeof buf, dst->data);
 }
 
-void
+static void
 tt_compose(TTH_CONTEXT *ctx)
 {
 	g_assert(ctx);
@@ -174,7 +166,7 @@ tt_compose(TTH_CONTEXT *ctx)
     ctx->si--;
 }
 
-void
+static void
 tt_collapse(TTH_CONTEXT *ctx)
 {
 	filesize_t n, x;
@@ -195,7 +187,7 @@ tt_collapse(TTH_CONTEXT *ctx)
 	}
 }
 
-void
+static void
 tt_block(TTH_CONTEXT *ctx)
 {
 	g_assert(ctx);
@@ -218,12 +210,85 @@ tt_block(TTH_CONTEXT *ctx)
 	tt_collapse(ctx);
 }
 
+static void
+tt_finish(TTH_CONTEXT *ctx)
+{
+	if (0 == ctx->n || ctx->block_fill > 1) {
+		tt_block(ctx);
+	}
+
+	if (ctx->bpl > 1) {
+		off_t n_blocks;
+		unsigned depth;
+
+		n_blocks = ctx->n;
+		depth = ctx->depth;
+		while (0 == (n_blocks & 1)) {
+			n_blocks /= 2;
+			depth--;
+		}
+		while (n_blocks > 1) {
+			if (0 == (n_blocks & 1)) {
+				tt_compose(ctx);
+			}
+			depth--;
+			n_blocks = (n_blocks + 1) / 2;
+			if (depth == TTH_MAX_DEPTH - 1) {
+				g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
+				ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
+				ctx->li++;
+			}
+		}
+	}
+	tt_root_hash(ctx->leaves, ctx->li);
+	ctx->flags |= TTH_F_FINISHED;
+}
+
+struct tth *
+tt_root_hash(struct tth *leaves, size_t n_leaves)
+{
+	g_return_val_if_fail(leaves, NULL);
+	g_return_val_if_fail(n_leaves > 0, NULL);
+	
+	while (n_leaves > 1) {
+		size_t i, n;
+
+		n = n_leaves / 2;
+		for (i = 0; i < n; i++) {
+			tt_internal_hash(&leaves[i * 2], &leaves[i * 2 + 1], &leaves[i]);
+		}
+		if (n_leaves & 1) {
+			leaves[i] = leaves[i * 2];
+			i++;
+		}
+		n_leaves = i;
+	}
+	return &leaves[0];
+}
+
+void
+tt_init(TTH_CONTEXT *ctx, filesize_t filesize)
+{
+	g_assert(ctx);
+
+	ctx->block_fill = 1;
+	ctx->block[0] = 0x00;
+	ctx->si = 0;
+	ctx->li = 0;
+	ctx->n = 0;
+	ctx->bpl = tt_block_per_leaf(filesize);
+	ctx->depth = 1;
+	ctx->flags = TTH_F_INITIALIZED;
+}
+
 void
 tt_update(TTH_CONTEXT *ctx, const void *data, size_t size)
 {
 	const char *block = data;
 
 	g_assert(ctx);
+	g_assert(TTH_F_INITIALIZED & ctx->flags);
+	g_assert(!(TTH_F_FINISHED & ctx->flags));
 	g_assert(size == 0 || NULL != data);
 
 	while (size > 0) {
@@ -246,50 +311,11 @@ tt_digest(TTH_CONTEXT *ctx, struct tth *hash)
 {
 	g_assert(ctx);
 	g_assert(hash);
+	g_assert(TTH_F_INITIALIZED & ctx->flags);
 
-	if (0 == ctx->n || ctx->block_fill > 1) {
-		tt_block(ctx);
+	if (!(TTH_F_FINISHED & ctx->flags)) {
+		tt_finish(ctx);
 	}
-
-	if (ctx->bpl > 1) {
-		size_t depth, n;
-
-		n = ctx->n;
-		depth = ctx->depth;
-		while (0 == (n & 1)) {
-			n /= 2;
-			depth--;
-		}
-		while (n > 1) {
-			if (0 == (n & 1)) {
-				tt_compose(ctx);
-			}
-			depth--;
-			n = (n + 1) / 2;
-			if (depth == TTH_MAX_DEPTH - 1) {
-				g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
-				ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
-				ctx->li++;
-			}
-		}
-	}
-
-	while (ctx->li > 1) {
-		size_t i, n;
-
-		i = 0;
-		n = ctx->li / 2;
-		for (i = 0; i < n; i++) {
-			tt_internal_hash(&ctx->leaves[i * 2], &ctx->leaves[i * 2 + 1],
-					&ctx->leaves[i]);
-		}
-		if (ctx->li & 1) {
-			ctx->leaves[i] = ctx->leaves[i * 2];
-			i++;
-		}
-		ctx->li = i;
-	}
-
 	memcpy(hash->data, ctx->leaves[0].data, sizeof hash->data);
 }
 
@@ -303,13 +329,19 @@ const struct tth *
 tt_leaves(TTH_CONTEXT *ctx)
 {
 	g_assert(ctx);
+	g_assert(TTH_F_INITIALIZED & ctx->flags);
+	g_assert(TTH_F_FINISHED & ctx->flags);
+
 	return ctx->leaves;
 }
 
-unsigned
+size_t
 tt_leave_count(TTH_CONTEXT *ctx)
 {
 	g_assert(ctx);
+	g_assert(TTH_F_INITIALIZED & ctx->flags);
+	g_assert(TTH_F_FINISHED & ctx->flags);
+
 	return ctx->li;
 }
 
