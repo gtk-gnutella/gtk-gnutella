@@ -162,7 +162,7 @@ static void upload_error_remove(gnutella_upload_t *u,
 static void upload_error_remove_ext(gnutella_upload_t *u,
 		const gchar *extended, int code,
 		const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
-static void upload_http_sha1_add(
+static void upload_http_content_urn_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_http_xhost_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
@@ -1024,7 +1024,7 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 		cb_sha1_arg.u = u;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_sha1_add;
+		hev[hevcnt].he_cb = upload_http_content_urn_add;
 		hev[hevcnt++].he_arg = &cb_sha1_arg;
 	}
 
@@ -2293,13 +2293,13 @@ upload_xfeatures_add(gchar *buf, gint *retval,
  * SHA1-specific headers (added to the HTTP status) into `buf'.
  */
 static void
-upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
+	guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
 	struct upload_http_cb *a = arg;
 	gnutella_upload_t *u = a->u;
-	gint needed_room;
 	gint range_length;
 	time_t now = tm_time();
 	guint32 last_sent;
@@ -2321,17 +2321,27 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	 *		--RAM, 18/10/2003
 	 */
 
-	needed_room = 33 + SHA1_BASE32_SIZE + 2;
-
 	if (
-		length > needed_room &&
 		!((flags & HTTP_CBF_BW_SATURATED) && u->n2r) &&
 		u->last_dmesh == 0
-	)
-		rw += gm_snprintf(buf, length,
-			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-			sha1_base32(shared_file_sha1(u->sf)));
+	) {
+		const struct sha1 *sha1;
+		const struct tth *tth;
+		gchar header[128];
+		size_t header_len;
 
+		sha1 = shared_file_sha1(u->sf);
+		tth = shared_file_tth(u->sf);
+		header_len = concat_strings(header, sizeof header,
+						"X-Gnutella-Content-URN: ",
+						bitprint_to_urn_string(sha1, tth),
+						"\r\n",
+						(void *) 0);
+
+		if (UNSIGNED(length) > header_len) {
+			rw += gm_snprintf(buf, length, "%s", header);
+		}
+	}
 
 	/*
 	 * PFSP-server: if they requested a partial file, let them know about
@@ -3392,7 +3402,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		cb_sha1_arg.u = u;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_sha1_add;
+		hev[hevcnt].he_cb = upload_http_content_urn_add;
 		hev[hevcnt++].he_arg = &cb_sha1_arg;
 
 		g_assert(hevcnt <= G_N_ELEMENTS(hev));
@@ -3862,7 +3872,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		cb_sha1_arg.u = u;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_sha1_add;
+		hev[hevcnt].he_cb = upload_http_content_urn_add;
 		hev[hevcnt++].he_arg = &cb_sha1_arg;
 		g_assert(hevcnt <= G_N_ELEMENTS(hev));
 	}
