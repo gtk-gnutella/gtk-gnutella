@@ -60,14 +60,14 @@
  * Normally, file objects should be acquired as follows:
  *
  *  // Try to reuse an existing file object
- *  file = file_object(path, mode);
+ *  file = file_object_open(pathname, mode);
  *  if (!file) {
  *      int fd;
  * 
  *      // If none exists, create a new file object
- *      fd = open_the_file(path, mode);
+ *      fd = open_the_file(pathname, mode);
  *      if (fd >= 0) {
- *      	file = file_object_new(fd, path, mode);
+ *      	file = file_object_new(fd, pathname, mode);
  *      }
  *  }
  *  if (!file) {
