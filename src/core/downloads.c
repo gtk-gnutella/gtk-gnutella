@@ -9679,8 +9679,8 @@ download_retrieve_old(FILE *f)
 				goto no_sha1;
 			if (
 				strlen(dl_tmp) != (1+SHA1_BASE32_SIZE) ||	/* Final "\n" */
-				!base32_decode_into(dl_tmp, SHA1_BASE32_SIZE,
-					sha1.data, sizeof sha1.data)
+				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
+									dl_tmp, SHA1_BASE32_SIZE)
 			) {
 				g_message("download_retrieve(): "
 					"bad base32 SHA1 '%32s' at line #%u, ignoring",
