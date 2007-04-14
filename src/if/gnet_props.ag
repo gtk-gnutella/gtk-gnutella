@@ -3405,4 +3405,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "experimental_tigertree_support";
+    desc = "This is an interim property while Tigertree support is unfinished.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
 /* vi: set ts=4: */

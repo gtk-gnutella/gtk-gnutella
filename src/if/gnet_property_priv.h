@@ -338,6 +338,7 @@ extern const guint32  shell_debug;
 extern const guint32  download_queue_frozen;
 extern const guint32  sq_debug;
 extern const guint32  push_proxy_debug;
+extern const gboolean experimental_tigertree_support;
 
 
 prop_set_t *gnet_prop_init(void);

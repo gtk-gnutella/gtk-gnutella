@@ -654,6 +654,8 @@ guint32  sq_debug     = 0;
 guint32  sq_debug_def = 0;
 guint32  push_proxy_debug     = 0;
 guint32  push_proxy_debug_def = 0;
+gboolean experimental_tigertree_support     = FALSE;
+gboolean experimental_tigertree_support_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6259,6 +6261,23 @@ gnet_prop_init(void) {
     gnet_property->props[293].data.guint32.choices = NULL;
     gnet_property->props[293].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[293].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_EXPERIMENTAL_TIGERTREE_SUPPORT:
+     *
+     * General data:
+     */
+    gnet_property->props[294].name = "experimental_tigertree_support";
+    gnet_property->props[294].desc = _("This is an interim property while Tigertree support is unfinished.");
+    gnet_property->props[294].ev_changed = event_new("experimental_tigertree_support_changed");
+    gnet_property->props[294].save = TRUE;
+    gnet_property->props[294].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[294].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[294].data.boolean.def   = &experimental_tigertree_support_def;
+    gnet_property->props[294].data.boolean.value = &experimental_tigertree_support;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
