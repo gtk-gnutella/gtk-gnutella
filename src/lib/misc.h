@@ -55,8 +55,9 @@
 #include "vmm.h"
 
 #define SIZE_FIELD_MAX 64		/**< Max size of sprintf-ed size quantity */
-#define GUID_RAW_SIZE	16		/**< Binary representation of 128 bits */
-#define GUID_HEX_SIZE	32		/**< Hexadecimal GUID representation */
+#define GUID_RAW_SIZE		16	/**< Binary representation of 128 bits */
+#define GUID_HEX_SIZE		32	/**< Hexadecimal GUID representation */
+#define GUID_BASE32_SIZE	26	/**< base32 GUID representation */
 
 typedef struct short_string {
 	gchar str[SIZE_FIELD_MAX];
