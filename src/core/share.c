@@ -1996,7 +1996,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 					if (
 						!huge_sha1_extract32(ext_payload(e), paylen,
-							sha1, &n->header, FALSE)
+							sha1, &n->header)
 					) {
 						gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
 						drop_it = TRUE;
@@ -2601,6 +2601,17 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 	sf->sha1 = atom_sha1_get(sha1);
 	sf->flags |= SHARE_F_HAS_DIGEST;
 	g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
+}
+
+void
+shared_file_set_tth(struct shared_file *sf, const struct tth *tth)
+{
+	shared_file_check(sf);
+
+	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
+
+	atom_tth_free_null(&sf->tth);
+	sf->tth = tth ? atom_tth_get(tth) : NULL;
 }
 
 void

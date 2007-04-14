@@ -2345,8 +2345,8 @@ dmesh_retrieve(void)
 		else {
 			if (
 				strlen(tmp) < SHA1_BASE32_SIZE ||
-				!base32_decode_into(tmp, SHA1_BASE32_SIZE,
-					sha1.data, sizeof sha1.data)
+				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
+									tmp, SHA1_BASE32_SIZE)
 			) {
 				g_warning("dmesh_retrieve: "
 					"bad base32 SHA1 '%.32s' at line #%d, ignoring", tmp, line);

@@ -115,6 +115,7 @@ void query_strip_oob_flag(const struct gnutella_node *n, gchar *data);
 void query_set_oob_flag(const struct gnutella_node *n, gchar *data);
 
 void shared_file_set_sha1(struct shared_file *, const struct sha1 *sha1);
+void shared_file_set_tth(struct shared_file *, const struct tth *tth);
 void shared_file_set_modification_time(struct shared_file *sf, time_t mtime);
 
 void shared_file_check(const struct shared_file *sf);

@@ -1441,7 +1441,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					}
 					if (
 						huge_sha1_extract32(ext_payload(e),
-								paylen, &sha1_digest, &n->header, TRUE)
+								paylen, &sha1_digest, &n->header)
 					) {
 						gboolean is_spam;
 						

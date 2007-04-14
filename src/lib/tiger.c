@@ -309,7 +309,7 @@ tiger_check(void)
 
 		memset(buf, 0, sizeof buf);	
 		tiger(tests[i].s, tests[i].len, hash);
-		base32_encode_into(hash, sizeof hash, buf, sizeof buf);
+		base32_encode(buf, sizeof buf, hash, sizeof hash);
 		buf[G_N_ELEMENTS(buf) - 1] = '\0';
 
 		ok = 0 == strcmp(tests[i].r, buf);

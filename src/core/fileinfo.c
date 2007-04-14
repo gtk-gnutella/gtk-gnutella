@@ -2530,7 +2530,8 @@ extract_sha1(const gchar *s)
 	if (strlen(s) < SHA1_BASE32_SIZE)
 		return NULL;
 
-	if (!base32_decode_into(s, SHA1_BASE32_SIZE, sha1.data, sizeof sha1.data))
+	if (SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
+							s, SHA1_BASE32_SIZE))
 		return NULL;
 
 	return atom_sha1_get(&sha1);
