@@ -1,60 +1,38 @@
 /*
- * $Id$
+ * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
+ * All rights reserved.
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- *----------------------------------------------------------------------
- * This file is part of gtk-gnutella.
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the authors nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
- *  gtk-gnutella is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  gtk-gnutella is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with gtk-gnutella; if not, write to the Free Software
- *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *----------------------------------------------------------------------
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  */
 
-/**
- * @ingroup lib
- * @file
- *
- * Base32 encoding/decoding.
- *
- * @author Raphael Manfredi
- * @date 2002-2003
- */
+#ifndef BASE32_HEADER_FILE
+#define BASE32_HEADER_FILE
 
-#ifndef _base32_h_
-#define _base32_h_
+size_t base32_decode(char *dst, size_t size, const void *data, size_t len);
+size_t base32_encode(char *dst, size_t size, const void *data, size_t len);
 
-#include "common.h"
-
-/*
- * Public interface.
- */
-
-gchar *base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding);
-void base32_encode_into(const gchar *buf, gint len,
-	gchar *encbuf, gint enclen);
-void base32_encode_str_into(const gchar *buf, gint len,
-	gchar *encbuf, gint enclen, gboolean padding);
-
-gchar *base32_decode(const gchar *buf, gint len, gint *outbuf);
-gint base32_decode_into(const gchar *buf, gint len,
-	gchar *decbuf, gint declen);
-gint base32_decode_old_into(const gchar *buf, gint len,
-	gchar *decbuf, gint declen);
-
-#endif	/* _base32_h_ */
-
-/* vi: set ts=4: */
-
+#endif /* BASE32_HEADER_FILE */
+/* vi: set ai et sts=2 sw=2 cindent: */
