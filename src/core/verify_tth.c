@@ -63,7 +63,7 @@ RCSID("$Id$")
  *** Tigertree functions for sharing
  ***/
 
-static struct bgtask *tt_calculate_task;
+static struct bgtask *verify_task;
 static slist_t *files_to_hash;
 
 struct verify_tth {
@@ -94,9 +94,9 @@ tt_verify_init(void)
 void
 tt_verify_close(void)
 {
-	if (tt_calculate_task) {
-		bg_task_cancel(tt_calculate_task);
-		tt_calculate_task = NULL;
+	if (verify_task) {
+		bg_task_cancel(verify_task);
+		verify_task = NULL;
 	}
 	if (files_to_hash) {
 		struct shared_file *sf;
@@ -140,6 +140,8 @@ static void
 verify_tth_context_free(void *data)
 {
 	struct verify_tth *ctx = data;
+
+	verify_task = NULL;		/* If we're called, the task is being terminated */
 	verify_tth_free(&ctx);
 }
 
@@ -254,13 +256,13 @@ request_tigertree(struct shared_file *sf)
 
 	slist_append(files_to_hash, shared_file_ref(sf));
 
-	if (NULL == tt_calculate_task) {
+	if (NULL == verify_task) {
 		bgstep_cb_t step[] = { tigertree_step_compute };
 
-		tt_calculate_task = bg_task_create("Tigertree calculation",
-								step, G_N_ELEMENTS(step),
-			  					verify_tth_alloc(), verify_tth_context_free,
-								NULL, NULL);
+		verify_task = bg_task_create("Tigertree calculation",
+						step, G_N_ELEMENTS(step),
+			  			verify_tth_alloc(), verify_tth_context_free,
+						NULL, NULL);
 	}
 }
 
