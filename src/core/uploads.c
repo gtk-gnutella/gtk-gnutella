@@ -2296,6 +2296,7 @@ static void
 upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 	guint32 flags)
 {
+	const struct sha1 *sha1;
 	gint rw = 0;
 	gint length = *retval;
 	struct upload_http_cb *a = arg;
@@ -2307,9 +2308,11 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 	gint mesh_len;
 	gboolean need_available_ranges = FALSE;
 
+	sha1 = shared_file_sha1(u->sf);
+	if (NULL == sha1)
+		return;
+
 	/*
-	 * Room for header + base32 SHA1 + crlf
-	 *
 	 * We don't send the SHA1 if we're short on bandwidth and they
 	 * made a request via the N2R resolver.  This will leave more room
 	 * for the mesh information.
@@ -2325,22 +2328,32 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 		!((flags & HTTP_CBF_BW_SATURATED) && u->n2r) &&
 		u->last_dmesh == 0
 	) {
-		const struct sha1 *sha1;
 		const struct tth *tth;
-		gchar header[128];
+		const gchar *sha1_urn;
+		gchar header[256];
 		size_t header_len;
 
-		sha1 = shared_file_sha1(u->sf);
-		tth = shared_file_tth(u->sf);
+		sha1_urn = sha1_to_urn_string(sha1);
 		header_len = concat_strings(header, sizeof header,
-						"X-Gnutella-Content-URN: ",
-						bitprint_to_urn_string(sha1, tth),
-						"\r\n",
+						"X-Gnutella-Content-URN: ", sha1_urn, "\r\n",
 						(void *) 0);
 
-		if (UNSIGNED(length) > header_len) {
-			rw += gm_snprintf(buf, length, "%s", header);
+		if (header_len < sizeof header && header_len < UNSIGNED(length)) {
+			rw += gm_snprintf(&buf[rw], length, "%s", header);
+			length -= header_len;
 		}
+
+		tth = shared_file_tth(u->sf);
+		if (tth) {
+			header_len = concat_strings(header, sizeof header,
+							"X-Thex-URI: /uri-res/N2X?", sha1_urn, ";",
+							tth_base32(tth), "\r\n",
+							(void *) 0);
+			if (header_len < sizeof header && header_len < UNSIGNED(length)) {
+				rw += gm_snprintf(&buf[rw], length, "%s", header);
+				length -= header_len;
+			}
+		}		
 	}
 
 	/*
@@ -2362,9 +2375,9 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 	 * our expiration timer on the external mesh information.
 	 */
 
-	last_sent = u->last_dmesh ?
-		u->last_dmesh :
-		mi_get_stamp(u->socket->addr, shared_file_sha1(u->sf), now);
+	last_sent = u->last_dmesh
+		? u->last_dmesh
+		: mi_get_stamp(u->socket->addr, sha1, now);
 
 	/*
 	 * Ranges are only emitted for partial files, so no pre-estimation of
@@ -2380,11 +2393,11 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 		need_available_ranges = TRUE;
 
 	if (need_available_ranges) {
-		mesh_len = dmesh_alternate_location(
-			shared_file_sha1(u->sf), tmp, sizeof(tmp), u->socket->addr,
-			last_sent, u->user_agent, NULL, FALSE);
+		mesh_len = dmesh_alternate_location(sha1,
+					tmp, sizeof(tmp), u->socket->addr,
+					last_sent, u->user_agent, NULL, FALSE);
 
-		if ((guint) mesh_len < sizeof(tmp) - 5)
+		if (UNSIGNED(mesh_len) < sizeof(tmp) - 5)
 			range_length = length - mesh_len;	/* Leave more room for ranges */
 	} else
 		mesh_len = 1;			/* Try to emit alt-locs later */
@@ -2423,9 +2436,9 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 		if (flags & HTTP_CBF_SMALL_REPLY)
 			maxlen = MIN((guint) maxlen, sizeof(tmp));
 
-		rw += dmesh_alternate_location(
-			shared_file_sha1(u->sf), &buf[rw], maxlen, u->socket->addr,
-			last_sent, u->user_agent, NULL, FALSE);
+		rw += dmesh_alternate_location(sha1,
+					&buf[rw], maxlen, u->socket->addr,
+					last_sent, u->user_agent, NULL, FALSE);
 
 		u->last_dmesh = now;
 	}
