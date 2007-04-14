@@ -2094,7 +2094,7 @@ download_file_exists(const struct download *d)
 
 	download_check(d);
 
-	path = make_pathname(d->file_info->path, download_outname(d));
+	path = make_pathname(download_path(d), download_outname(d));
 	g_return_val_if_fail(NULL != path, FALSE);
 
 	ret = -1 != stat(path, &buf);
@@ -10021,43 +10021,9 @@ download_move_error(struct download *d)
  ***/
 
 /**
- * Main entry point for verifying the SHA1 of a completed download.
- */
-static void
-download_verify_sha1(struct download *d)
-{
-	download_check(d);
-	g_assert(FILE_INFO_COMPLETE(d->file_info));
-	g_assert(DOWNLOAD_IS_STOPPED(d));
-	g_assert(!DOWNLOAD_IS_VERIFYING(d));
-	g_assert(!(d->flags & DL_F_SUSPENDED));
-	g_assert(d->list_idx == DL_LIST_STOPPED);
-
-	if (d->flags & DL_F_TRANSIENT) {
-		file_info_changed(d->file_info);		/* Update status! */
-		return;
-	}
-
-	/*
-	 * Even if download was aborted or in error, we have a complete file
-	 * anyway, so start verifying its SHA1.
-	 */
-
-	d->status = GTA_DL_VERIFY_WAIT;
-
-	queue_suspend_downloads_with_file(d->file_info, TRUE);
-	verify_queue(d);
-
-	if (!DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_add(d);
-
-	gcu_gui_update_download(d, TRUE);
-}
-
-/**
  * Called when the verification daemon task starts processing a download.
  */
-void
+static void
 download_verify_start(struct download *d)
 {
 	download_check(d);
@@ -10073,7 +10039,7 @@ download_verify_start(struct download *d)
 /**
  * Called to register the current verification progress.
  */
-void
+static void
 download_verify_progress(struct download *d, guint32 hashed)
 {
 	download_check(d);
@@ -10087,7 +10053,7 @@ download_verify_progress(struct download *d, guint32 hashed)
 /**
  * Called when download verification is finished and digest is known.
  */
-void
+static void
 download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
 {
 	fileinfo_t *fi;
@@ -10130,7 +10096,7 @@ download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
 /**
  * Called when we cannot verify the SHA1 for the file (I/O error, etc...).
  */
-void
+static void
 download_verify_error(struct download *d)
 {
 	fileinfo_t *fi;
@@ -10156,6 +10122,77 @@ download_verify_error(struct download *d)
 	ignore_add_filesize(name, fi->size);
 	queue_remove_downloads_with_file(fi, d);
 	download_move(d, move_file_path, DL_UNKN_EXT);
+	gcu_gui_update_download(d, TRUE);
+}
+
+static gboolean
+download_verify_callback(const struct verify *ctx, enum verify_status status,
+	void *user_data)
+{
+	struct download *d = user_data;
+
+	download_check(d);
+	switch (status) {
+	case VERIFY_START:
+		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, TRUE);
+		download_verify_start(d);
+		return TRUE;
+	case VERIFY_PROGRESS:
+		download_verify_progress(d, verify_hashed(ctx));
+		return TRUE;
+	case VERIFY_DONE:
+		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, FALSE);
+		download_verify_done(d, verify_sha1(ctx), verify_elapsed(ctx));
+		return TRUE;
+	case VERIFY_ERROR:
+		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, FALSE);
+		download_verify_error(d);
+		return TRUE;
+	case VERIFY_SHUTDOWN:
+		return TRUE;
+	case VERIFY_INVALID:
+		break;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+/**
+ * Main entry point for verifying the SHA1 of a completed download.
+ */
+static void
+download_verify_sha1(struct download *d)
+{
+	gchar *pathname;
+
+	download_check(d);
+	g_assert(FILE_INFO_COMPLETE(d->file_info));
+	g_assert(DOWNLOAD_IS_STOPPED(d));
+	g_assert(!DOWNLOAD_IS_VERIFYING(d));
+	g_assert(!(d->flags & DL_F_SUSPENDED));
+	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	if (d->flags & DL_F_TRANSIENT) {
+		file_info_changed(d->file_info);		/* Update status! */
+		return;
+	}
+
+	/*
+	 * Even if download was aborted or in error, we have a complete file
+	 * anyway, so start verifying its SHA1.
+	 */
+
+	d->status = GTA_DL_VERIFY_WAIT;
+
+	queue_suspend_downloads_with_file(d->file_info, TRUE);
+
+	pathname = make_pathname(download_path(d), download_outname(d));
+	verify_prepend(pathname, download_filesize(d), download_verify_callback, d);
+	G_FREE_NULL(pathname);
+
+	if (!DOWNLOAD_IS_VISIBLE(d))
+		gcu_download_gui_add(d);
+
 	gcu_gui_update_download(d, TRUE);
 }
 

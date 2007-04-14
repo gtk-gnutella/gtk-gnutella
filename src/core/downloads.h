@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "lib/header.h"
+
 #include "fileinfo.h"
 
 #include "if/core/downloads.h"
@@ -77,12 +78,6 @@ void download_free_removed(void);
 void download_redirect_to_server(struct download *d,
 		const host_addr_t addr, guint16 port);
 void download_actively_queued(struct download *d, gboolean queued);
-
-void download_verify_start(struct download *d);
-void download_verify_progress(struct download *d, guint32 hashed);
-void download_verify_done(struct download *d, const struct sha1 *sha1,
-		guint elapsed);
-void download_verify_error(struct download *d);
 
 void download_move_start(struct download *d);
 void download_move_progress(struct download *d, filesize_t copied);

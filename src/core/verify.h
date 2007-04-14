@@ -42,11 +42,31 @@
  * Public interface.
  */
 
-struct download;
+enum verify_status {
+	VERIFY_INVALID,		/**< Invalid context. */
+	VERIFY_START,		/**< Hash calculation is about to start. */
+	VERIFY_PROGRESS,	/**< Some chunk has been hashed. */
+	VERIFY_DONE,		/**< Hash calculation is finished. */
+	VERIFY_ERROR,		/**< Hash calculation failed (I/O error etc.). */
+	VERIFY_SHUTDOWN		/**< Hash calculation aborted due to shutdown. */
+};
+
+struct verify;
+typedef gboolean (*verify_callback)(const struct verify *,
+										enum verify_status, void *user_data);
 
 void verify_init(void);
 void verify_close(void);
-void verify_queue(struct download *d);
+
+void verify_append(const char *pathname, filesize_t filesize,
+	verify_callback callback, void *user_data);
+void verify_prepend(const char *pathname, filesize_t filesize,
+	verify_callback callback, void *user_data);
+
+const struct sha1 *verify_sha1(const struct verify *);
+filesize_t verify_hashed(const struct verify *);
+guint verify_elapsed(const struct verify *);
+void verify_cancel(const struct verify *);
 
 #endif	/* _core_verify_h_ */
 
