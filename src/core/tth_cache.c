@@ -121,6 +121,13 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n)
 	g_return_if_fail(leaves);
 	g_return_if_fail(n >= 1);
 
+	{
+		struct tth root;
+
+		root = tt_root_hash(leaves, n);
+		g_return_if_fail(tth_eq(tth, &root));
+	}
+
 	fd = tth_cache_file_create(tth);
 	if (fd >= 0) {
 		struct iovec *iov;
@@ -151,7 +158,7 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n)
 static gboolean
 tth_cache_check(const struct tth *tth, int fd, filesize_t filesize)
 {
-	struct tth nodes[1 << (TTH_MAX_DEPTH - 1)];
+	struct tth root, nodes[1 << (TTH_MAX_DEPTH - 1)];
 	char buf[G_N_ELEMENTS(nodes) * TTH_RAW_SIZE];
 	size_t n_nodes, i, size;
 	ssize_t r;
@@ -171,7 +178,11 @@ tth_cache_check(const struct tth *tth, int fd, filesize_t filesize)
 	for (i = 0; i < n_nodes; i++) {
 		memmove(nodes[i].data, &buf[i * TTH_RAW_SIZE], TTH_RAW_SIZE);
 	}
-	return tth_eq(tth, tt_root_hash(nodes, n_nodes));
+
+	root = tt_root_hash(nodes, n_nodes);
+	g_return_val_if_fail(tth_eq(tth, &root), FALSE);
+
+	return TRUE;
 }
 
 /**
@@ -180,9 +191,9 @@ tth_cache_check(const struct tth *tth, int fd, filesize_t filesize)
 size_t
 tth_cache_lookup(const struct tth *tth)
 {
+	size_t result = 0;
 	int fd, depth;
 	filesize_t size;
-	size_t result;
 	struct stat sb;
 	
 	g_return_val_if_fail(tth, 0);
@@ -216,7 +227,7 @@ tth_cache_lookup(const struct tth *tth)
 		g_warning("tth_cache_lookup(%s): Bad depth %u", tth_base32(tth), depth);
 		goto finish;
 	}
-	if (tth_cache_check(tth, fd, sb.st_size)) {
+	if (!tth_cache_check(tth, fd, sb.st_size)) {
 		g_warning("tth_cache_lookup(%s): Damaged file", tth_base32(tth));
 		goto finish;
 	}
