@@ -951,6 +951,8 @@
 66.254.116.176
 # Black Oak Computers
 216.131.127.58
+# leaseweb/ocom
+85.17.162.7
 
 # Gnucleus 1.8.4.0; seems spam with adware or trojans
 209.85.52.226
