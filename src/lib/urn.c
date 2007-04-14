@@ -129,7 +129,7 @@ urn_get_bitprint(const gchar *buf, size_t size,
 	if ('.' != *p++) {
 		return FALSE;
 	}
-	len = base32_decode(tth->data, TTH_RAW_SIZE, p, SHA1_BASE32_SIZE);
+	len = base32_decode(tth->data, TTH_RAW_SIZE, p, TTH_BASE32_SIZE);
 	if (len != TTH_RAW_SIZE) {
 		return FALSE;
 	}
