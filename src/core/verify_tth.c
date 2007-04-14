@@ -282,6 +282,8 @@ tigertree_step_compute(struct bgtask *bt, void *data, int ticks)
 void
 request_tigertree(struct shared_file *sf)
 {
+	const struct tth *tth;
+
 	if (!experimental_tigertree_support)
 		return;
 
@@ -290,11 +292,10 @@ request_tigertree(struct shared_file *sf)
 	g_return_if_fail(sf);
 	g_return_if_fail(files_to_hash);
 
-	if (shared_file_tth(sf)) {
-		const struct tth *tth;
+	tth = shared_file_tth(sf);
+	if (tth) {
 		size_t n, ret;
 		
-		tth = shared_file_tth(sf);
 		n = tt_bottom_node_count(shared_file_size(sf));
 		ret = tth_cache_lookup(tth);
 		if (n == ret) {
