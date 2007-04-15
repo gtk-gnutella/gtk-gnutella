@@ -17,6 +17,8 @@ IMAGE_LIST  = $(addprefix images/, $(addsuffix .ps, $(basename $(IMGS))))
 
 all: manual.html manual.pdf
 
+# docbook2html --dsl gtk-gnutella.dsl#html manual.xml
+
 # The xml will reference the postscript images.  The html output needs
 # to reference something that web browsers understand.
 manual.html: manual.xml
@@ -29,6 +31,10 @@ manual.dvi: manual.xml $(IMAGE_LIST) $(IMAGE_SCALE)
 	- docbook2dvi manual.xml
 	if [ -e manual.dvi ]; then echo "ok"; else exit -1; fi
 
+# Generate a TeX file, only use-able by [pdf]jadetex.
+manual.tex: manual.xml
+	docbook2tex manual.xml
+
 # Alternatives create a pdf from the dvi file.
 # eg, dvipdf dvipdfm
 #
@@ -38,13 +44,18 @@ manual.dvi: manual.xml $(IMAGE_LIST) $(IMAGE_SCALE)
 manual.pdf: manual.dvi
 	dvipdfm manual.dvi
 
+# Make a plain text file.
+manual.txt: manual.html
+	lynx  -dump  -nolist  manual.html > manual.txt
+
 # Check the validity of the xml.
 valid: manual.xml
 	nsgmls -sv -c /etc/sgml/catalog /usr/share/sgml/xml.dcl manual.xml
 
 # Remove generated files (not images).
 clean:
-	- rm manual.dvi manual.log manual.pdf manual.aux manual.html manual.out
+	- @rm manual.dvi manual.log manual.pdf manual.aux  2> /dev/null
+	- @rm manual.out manual.txt manual.tex manual.html 2> /dev/null
 
 # Create postscript images from the PNGs.
 $(IMAGE_SCALE) : %.ps : %.png
