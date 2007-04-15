@@ -2455,7 +2455,7 @@ strcmp_delimit_full(const gchar *a, const gchar *b,
  * Compare two strings case-senstive up to the specified delimiters.
  */
 gint
-ascii_strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
+strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
 {
 	return strcmp_delimit_full(a, b, delimit, TRUE);
 }

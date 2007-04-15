@@ -554,7 +554,7 @@ gboolean is_printable(const gchar *buf, gint len);
 void dump_hex(FILE *, const gchar *, gconstpointer, gint);
 void locale_strlower(gchar *, const gchar *);
 void ascii_strlower(gchar *dst, const gchar *src);
-gint ascii_strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
+gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 gint ascii_strcasecmp_delimit(const gchar *a, const gchar *b,
 		const gchar *delimit);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext,
