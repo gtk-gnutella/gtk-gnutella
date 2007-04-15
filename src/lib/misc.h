@@ -586,6 +586,7 @@ const gchar *uint64_to_string(guint64 v);
 const gchar *uint64_to_string2(guint64 v);
 const gchar *off_t_to_string(off_t v);
 const gchar *time_t_to_string(time_t v);
+const gchar *filesize_to_string(filesize_t v);
 gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
 gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;

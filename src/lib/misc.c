@@ -3230,6 +3230,19 @@ uint64_to_string2(guint64 v)
 }
 
 const gchar *
+filesize_to_string(filesize_t v)
+{
+	static gchar buf[UINT64_DEC_BUFLEN];
+	size_t n;
+
+	STATIC_ASSERT((filesize_t)-1 <= (guint64)-1);
+	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const gchar *
 off_t_to_string(off_t v)
 {
 	static gchar buf[OFF_T_DEC_BUFLEN];
