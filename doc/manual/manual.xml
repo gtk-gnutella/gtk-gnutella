@@ -1022,7 +1022,7 @@ problems, you are on a private network.  These addresses are found in
   <entry>192.168.255.255  </entry>
   <entry>192.168.0.0/16   </entry>
 </row>
-</tbody></informaltable>
+</tbody></tgroup></informaltable>
 
 <para>There are only a limited amount of real (routeable) IP addresses
 and they cost money.  In order to get around this, many networks use
