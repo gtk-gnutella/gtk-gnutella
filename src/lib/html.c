@@ -419,9 +419,8 @@ parse_named_entity(const struct array entity)
 		name[len] = '\0';
 
 		for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
-			if (strlen(html_entities[i].name) == len
-				&& 0 == strcasecmp(html_entities[i].name, name)
-			   )
+			if (strlen(html_entities[i].name) == len &&
+				0 == ascii_strcasecmp(html_entities[i].name, name))
 				return html_entities[i].uc;
 		}
 	}
