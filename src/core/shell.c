@@ -286,9 +286,9 @@ shell_exec_node(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	if (argc < 2)
 		goto error;
 
-	if (0 == strcasecmp(argv[1], "add")) {
+	if (0 == ascii_strcasecmp(argv[1], "add")) {
 		reply_code = shell_exec_node_add(sh, argc, argv);
-	} else if (0 == strcasecmp(argv[1], "drop")){
+	} else if (0 == ascii_strcasecmp(argv[1], "drop")){
 		reply_code = shell_exec_node_drop(sh, argc, argv);
 	} else {
 		sh->msg = _("Unknown operation");
@@ -311,7 +311,7 @@ shell_exec_search(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	if (argc < 2)
 		goto error;
 
-	if (0 == strcasecmp(argv[1], "add")) {
+	if (0 == ascii_strcasecmp(argv[1], "add")) {
 		if (argc < 3) {
 			sh->msg = _("Query string missing");
 			goto error;
@@ -775,7 +775,7 @@ shell_exec_download(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	if (argc < 2)
 		goto error;
 
-	if (0 == strcasecmp(argv[1], "add")) {
+	if (0 == ascii_strcasecmp(argv[1], "add")) {
 		const gchar *url;
 		gboolean success;
 

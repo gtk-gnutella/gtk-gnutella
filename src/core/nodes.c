@@ -1969,7 +1969,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 		 * but some people wrongly use " " as the separator.
 		 */
 
-		if (0 != strcasecmp_delimit(n->vendor, node->vendor, "/ 012345678"))
+		if (ascii_strcasecmp_delimit(n->vendor, node->vendor, "/ 012345678"))
 			continue;
 
 		if ((node->attrs & NODE_A_ULTRA) || (node->flags & NODE_F_ULTRA))

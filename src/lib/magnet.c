@@ -96,7 +96,7 @@ magnet_key_get(const gchar *s)
 	g_assert(s);
 	
 	for (i = 0; i < G_N_ELEMENTS(magnet_keys); i++) {
-		if (0 == strcasecmp(magnet_keys[i].key, s))
+		if (0 == ascii_strcasecmp(magnet_keys[i].key, s))
 			return magnet_keys[i].id;
 	}
 
