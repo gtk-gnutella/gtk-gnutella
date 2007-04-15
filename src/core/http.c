@@ -91,8 +91,8 @@ http_send_status(
 {
 	gchar header[2560];			/* 2.5 K max */
 	gchar status_msg[512];
-	gint rw;
-	gint mrw;
+	size_t rw, minimal_rw;
+	size_t header_size = sizeof(header);
 	ssize_t sent;
 	gint i;
 	va_list args;
@@ -102,7 +102,6 @@ http_send_status(
 	const gchar *date;
 	const gchar *token;
 	const gchar *body = NULL;
-	gint header_size = sizeof(header);
 	gboolean saturated = bsched_saturated(BSCHED_BWS_OUT);
 	gint cb_flags = 0;
 
@@ -170,7 +169,7 @@ http_send_status(
 	if (code < 300 || !keep_alive || body)
 		no_content = "";
 
-	g_assert((size_t) header_size <= sizeof header);
+	g_assert(header_size <= sizeof header);
 
 	date = timestamp_rfc1123_to_string(clock_loc2gmt(tm_time()));
 	rw = gm_snprintf(header, header_size,
@@ -186,60 +185,62 @@ http_send_status(
 		token ? "\r\n" : "",
 		no_content);
 
-	mrw = rw;		/* Minimal header length */
+	minimal_rw = rw;		/* Minimal header length */
 
 	/*
 	 * Append extra information to the minimal header created above.
 	 */
 
-	/*
-	 * The +3 is there to leave room for "\r\n\0"
-	 *		-- JA, 09/02/2004
-	 */
 	for (i = 0; i < hevcnt && rw + 3 < header_size; i++) {
 		http_extra_desc_t *he = &hev[i];
 		http_extra_type_t type = he->he_type;
+		size_t size;
+
+		g_assert(header_size >= rw);
+	   	size = header_size - rw;
+
+		if (size <= sizeof("\r\n"))
+			break;
+		size -= sizeof("\r\n");
 
 		switch (type) {
 		case HTTP_EXTRA_BODY:
 			/* Already handled above */
 			break;
 		case HTTP_EXTRA_LINE:
-			rw += gm_snprintf(&header[rw], header_size - rw, "%s", he->he_msg);
+			if (size > strlen(he->he_msg)) {
+				/* Don't emit truncated lines */
+				rw += gm_snprintf(&header[rw], size, "%s", he->he_msg);
+			}
 			break;
 		case HTTP_EXTRA_CALLBACK:
 			{
-				gint len = header_size - rw;
+				size_t len;
 
-				g_assert(header_size > rw);
-				g_assert(len > 0);
-
-				(*he->he_cb)(&header[rw], &len, he->he_arg, cb_flags);
-
-				g_assert(len >= 0);
-				g_assert(len + rw <= header_size);
-
+				len = (*he->he_cb)(&header[rw], size, he->he_arg, cb_flags);
+				g_assert(len < size);
 				rw += len;
 			}
 			break;
 		}
 	}
 
-	if (body)
+	if (body) {
 		rw += gm_snprintf(&header[rw], header_size - rw,
 						"Content-Length: %lu\r\n", (gulong) strlen(body));
-
-	if (rw < header_size)
+	}
+	if (rw < header_size) {
 		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
-
-	if (body)
+	}
+	if (body) {
 		rw += gm_snprintf(&header[rw], header_size - rw, "%s", body);
-
+	}
 	if (rw >= header_size && hev) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
 			code, status_msg);
 
-		rw = mrw + gm_snprintf(&header[mrw], header_size - mrw, "\r\n");
+		rw = minimal_rw;
+		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
 		g_assert(rw < header_size);
 	}
 
@@ -250,14 +251,17 @@ http_send_status(
 			g_warning("unable to send back HTTP status %d (%s) to %s: %s",
 			code, status_msg, host_addr_to_string(s->addr), g_strerror(errno));
 		return FALSE;
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		if (http_debug) g_warning(
-			"only sent %lu out of %d bytes of status %d (%s) to %s",
-			(gulong) sent, rw, code, status_msg, host_addr_to_string(s->addr));
+			"only sent %lu out of %lu bytes of status %d (%s) to %s",
+			(gulong) sent, (gulong) rw, code, status_msg,
+			host_addr_to_string(s->addr));
 		return FALSE;
-	} else if (http_debug > 2) {
-		g_message("----\nSent HTTP Status to %s (%d bytes):\n%.*s\n----",
-			host_addr_to_string(s->addr), rw, rw, header);
+	} else {
+		if (http_debug > 2)
+			g_message("----\nSent HTTP Status to %s (%lu bytes):\n%.*s\n----",
+				host_addr_to_string(s->addr), (gulong) rw,
+				(int) MIN(rw, INT_MAX), header);
 	}
 
 	return TRUE;
@@ -268,22 +272,22 @@ http_send_status(
  *
  * Add an X-Hostname line bearing the fully qualified hostname.
  */
-void
-http_hostname_add(gchar *buf, gint *retval, gpointer unused_arg, guint32 flags)
+size_t
+http_hostname_add(gchar *buf, size_t size, gpointer unused_arg, guint32 flags)
 {
-	size_t length = *retval;
-	size_t rw;
+	size_t len;
 
 	(void) unused_arg;
-	g_assert(length <= INT_MAX);
 
 	if (flags & HTTP_CBF_SMALL_REPLY)
-		rw = 0;
-	else
-		rw = gm_snprintf(buf, length, "X-Hostname: %s\r\n", server_hostname);
+		return 0;
+	if (NULL == server_hostname || server_hostname[0])
+		return 0;
 
-	if (rw != length - 1)
-		*retval = rw;
+	len = concat_strings(buf, size,
+			"X-Hostname: ", server_hostname, "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
 }
 
 /***

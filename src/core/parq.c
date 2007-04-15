@@ -303,6 +303,14 @@ get_header_version(gchar const * const header, guint *major, guint *minor)
 	return 0 == parse_major_minor(header, NULL, major, minor);
 }
 
+static const gchar *
+parq_get_x_queue_1_0_header(void)
+{
+	STATIC_ASSERT(PARQ_VERSION_MAJOR == 1);
+	STATIC_ASSERT(PARQ_VERSION_MINOR == 0);
+	return "X-Queue: 1.0";
+}
+
 /**
  * Get header value.
  *
@@ -937,9 +945,6 @@ void
 parq_download_add_header(
 	gchar *buf, size_t len, size_t *rw, struct download *d)
 {
-	gint major = PARQ_VERSION_MAJOR;
-	gint minor = PARQ_VERSION_MINOR;
-
 	g_assert(d != NULL);
 	g_assert(rw != NULL);
 	g_assert((int) len >= 0 && len <= INT_MAX);
@@ -947,7 +952,7 @@ parq_download_add_header(
 	g_assert(len >= *rw);
 
 	*rw += gm_snprintf(&buf[*rw], len - *rw,
-		"X-Queue: %d.%d\r\n", major, minor);
+				"%s\r\n", parq_get_x_queue_1_0_header());
 
 	/*
 	 * Only add X-Queued header if server really supports X-Queue: 1.x. Don't
@@ -1689,17 +1694,16 @@ parq_upload_find(const gnutella_upload_t *u)
 	g_assert(ul_all_parq_by_addr_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
 
-	if (u->parq_opaque != NULL)
+	if (u->parq_opaque) {
 		return u->parq_opaque;
-
-	/* Can't lookup an upload with no name */
-	if (u->name == NULL)
+	} else if (u->name) {
+		concat_strings(buf, sizeof buf,
+			host_addr_to_string(u->addr), " ", u->name,
+			(void *) 0);
+		return g_hash_table_lookup(ul_all_parq_by_addr_and_name, buf);
+	} else {
 		return NULL;
-
-	gm_snprintf(buf, sizeof(buf), "%s %s",
-		host_addr_to_string(u->addr), u->name);
-
-	return g_hash_table_lookup(ul_all_parq_by_addr_and_name, buf);
+	}
 }
 
 /**
@@ -2959,129 +2963,197 @@ parq_upload_remove(gnutella_upload_t *u)
 	return return_result;
 }
 
+static size_t
+parq_upload_add_retry_after_header(gchar *buf, size_t size, guint d)
+{
+	size_t len;
+
+	len = concat_strings(buf, size,
+			"Retry-After: ", uint32_to_string(d), "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+}
+
+static size_t
+parq_upload_add_old_queue_header(gchar *buf, size_t size,
+	struct parq_ul_queued *parq_ul, guint min_poll, guint max_poll,
+	gboolean small_reply)
+{
+	gboolean truncated;
+	size_t len;
+
+	if (small_reply) {
+		len = gm_snprintf(buf, size,
+				"X-Queue: position=%d, pollMin=%u, pollMax=%u\r\n",
+				parq_ul->relative_position, min_poll, max_poll);
+	} else {
+		len = gm_snprintf(buf, size,
+				"X-Queue: position=%d, length=%d, "
+				"limit=%d, pollMin=%u, pollMax=%u\r\n",
+				parq_ul->relative_position, parq_ul->queue->size,
+				1, min_poll, max_poll);
+	}
+	if (len >= size || (len > 0 && '\n' != buf[len - 1])) {
+		truncated = TRUE;
+	}
+	return truncated ? 0 : len;
+}
+
+static size_t
+parq_upload_add_x_queue_header(gchar *buf, size_t size)
+{
+	size_t len;
+
+	len = concat_strings(buf, size,
+			parq_get_x_queue_1_0_header(), "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+
+}
+
+static size_t
+parq_upload_add_x_queued_header(gchar *buf, size_t size,
+	struct parq_ul_queued *parq_ul, guint max_poll,
+	gboolean small_reply, gnutella_upload_t *u)
+{
+	size_t rw = 0, len;
+
+	/* Reserve space for the trailing \r\n */	
+	if (CONST_STRLEN("\r\n") >= size)
+		return 0;
+	size -= CONST_STRLEN("\r\n");
+
+	len = concat_strings(&buf[rw], size,
+			"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
+			/* No CRLF yet, we're still appending to this header */
+			(void *) 0);
+
+	if (len < size) {
+		rw += len;
+		size -= len;
+
+		parq_ul->flags |= PARQ_UL_ID_SENT;
+
+		len = concat_strings(&buf[rw], size,
+			"; position=", uint32_to_string(parq_ul->relative_position),
+			(void *) 0);
+
+		if (len < size) {
+			rw += len;
+			size -= len;
+
+			if (!small_reply) {
+				len = concat_strings(&buf[rw], size,
+					"; length=", uint32_to_string(parq_ul->queue->size),
+					(void *) 0);
+				if (len < size) {
+					rw += len;
+					size -= len;
+					len = concat_strings(&buf[rw], size,
+							"; ETA=", uint32_to_string(parq_ul->eta),
+							(void *) 0);
+					if (len < size) {
+						rw += len;
+						size -= len;
+						len = concat_strings(&buf[rw], size,
+								"; lifetime=", uint32_to_string(max_poll),
+								(void *) 0);
+						if (len < size) {
+							rw += len;
+							size -= len;
+						}
+					}
+				}
+			}
+		}
+
+		len = concat_strings(&buf[rw], CONST_STRLEN("\r\n"),
+				"\r\n",
+				(void *) 0);
+		rw += len;
+	}
+	return rw;
+}
+
 /**
  * Adds X-Queued status in the HTTP reply header for a queued upload.
  *
  * @param `buf'		is the start of the buffer where the headers are to
  *					be added.
- * @param `retval'	contains the length of the buffer initially, and is
- *					filled with the amount of data written.
+ * @param `size'	length of the buffer.
  * @param `arg'		no brief description.
  * @param `flags'	no brief description.
+ * @return The amount of bytes written to buf.
  *
  * @attention
  * NB: Adds a Retry-After field for servents that will not understand PARQ,
  * to make sure they do not re-request too soon.
  */
-void
-parq_upload_add_header(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+size_t
+parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
 {
-	gint rw = 0;
-	gint length = *retval;
-	time_t now = tm_time();
+	struct parq_ul_queued *parq_ul;
 	struct upload_http_cb *a = arg;
-	gboolean small_reply = (flags & HTTP_CBF_SMALL_REPLY);
+	gboolean small_reply;
+	time_delta_t d;
+	guint min_poll, max_poll;
+	time_t now;
+	size_t rw = 0;
 
-	g_assert(buf != NULL);
-	g_assert(retval != NULL);
-	g_assert(a->u != NULL);
+	if (!parq_upload_queued(a->u))
+		return 0;
+	
+	parq_ul = parq_upload_find(a->u);
+	g_return_val_if_fail(parq_ul, 0);
+		
+	now = tm_time();
+	d = delta_time(parq_ul->retry, now);
+	d = MAX(0, d);
+	d = MIN(d, INT_MAX);
+	min_poll = d;
+	
+	d = delta_time(parq_ul->expire, now);
+	d = MAX(0, d);
+	d = MIN(d, INT_MAX);
+	max_poll = d;
 
-	if (parq_upload_queued(a->u)) {
-		struct parq_ul_queued *parq_ul = parq_upload_find(a->u);
-		guint min_poll, max_poll;
-
-		min_poll = MAX(0, delta_time(parq_ul->retry, now));
-		max_poll = MAX(0, delta_time(parq_ul->expire, now));
-
-		if (
-			parq_ul->major == 0 &&
-			parq_ul->minor == 1 &&
-			a->u->status == GTA_UL_QUEUED
-		) {
-			g_assert(length > 0);
-
-			if (small_reply)
-				rw = gm_snprintf(buf, length,
-					"X-Queue: position=%d, pollMin=%u, pollMax=%u\r\n",
-					parq_ul->relative_position, min_poll, max_poll);
-			else
-				rw = gm_snprintf(buf, length,
-					"X-Queue: position=%d, length=%d, "
-					"limit=%d, pollMin=%u, pollMax=%u\r\n",
-					parq_ul->relative_position, parq_ul->queue->size,
-					1, min_poll, max_poll);
-		} else {
-			g_assert(length > 0);
-
-			if (small_reply)
-				rw = gm_snprintf(buf, length,
-					"X-Queue: %d.%d\r\n"
-					"X-Queued: position=%d; ID=%s\r\n"
-					"Retry-After: %d\r\n",
-					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-					parq_ul->relative_position,
-					guid_hex_str(parq_ul->id),
-					min_poll);
-			else
-				rw = gm_snprintf(buf, length,
-					"X-Queue: %d.%d\r\n"
-					"X-Queued: position=%d; ID=%s; length=%d;\r\n"
-					"\tETA=%d; lifetime=%d\r\n"
-					"Retry-After: %d\r\n",
-					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-					parq_ul->relative_position,
-					guid_hex_str(parq_ul->id),
-					parq_ul->queue->size,
-					parq_ul->eta,
-					max_poll,
-					min_poll);
-
-			/*
-			 * If we filled all the buffer, try with a shorter string, bearing
-			 * only the minimal amount of information.
-			 */
-			g_assert(length > 0);
-
-			if (rw == length - 1 && buf[rw - 1] != '\n')
-				rw = gm_snprintf(buf, length,
-					"X-Queue: %d.%d\r\n"
-					"X-Queued: ID=%s\r\n"
-					"Retry-After: %d\r\n",
-					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-					guid_hex_str(parq_upload_lookup_id(a->u)),
-					min_poll);
-
-			parq_ul->flags |= PARQ_UL_ID_SENT;
-		}
+	small_reply = 0 != (flags & HTTP_CBF_SMALL_REPLY);
+	
+	rw += parq_upload_add_retry_after_header(&buf[rw], size - rw, min_poll);
+		
+	if (
+		parq_ul->major == 0 &&
+		parq_ul->minor == 1 &&
+		a->u->status == GTA_UL_QUEUED
+	) {
+		rw += parq_upload_add_old_queue_header(&buf[rw], size - rw,
+				parq_ul, min_poll, max_poll, small_reply);
+	} else { 
+		rw += parq_upload_add_x_queue_header(&buf[rw], size - rw);
+		rw += parq_upload_add_x_queued_header(&buf[rw], size - rw,
+				parq_ul, max_poll, small_reply, a->u);
 	}
-
-	g_assert(rw < length);
-
-	*retval = rw;
+	return rw;
 }
 
 /**
  * Adds X-Queued status in the HTTP reply header showing the queue ID
  * for an upload getting a slot.
  *
- * `buf' is the start of the buffer where the headers are to be added.
- * `retval' contains the length of the buffer initially, and is filled
- * with the amount of data written.
+ * @param `buf' is the start of the buffer where the headers are to be added.
+ * @param `size' length of 'buf`.
+ * @return the amount of bytes written to `buf'.
  */
-void
-parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
-		guint32 unused_flags)
+size_t
+parq_upload_add_header_id(gchar *buf, size_t size, gpointer arg,
+	guint32 unused_flags)
 {
-	size_t rw = 0;
-	size_t length = *retval;
 	struct upload_http_cb *a = arg;
 	struct parq_ul_queued *parq_ul;
+	size_t rw = 0;
 
 	(void) unused_flags;
 	g_assert(buf != NULL);
-	g_assert(retval != NULL);
-	g_assert(length <= INT_MAX);
-	g_assert(length > 0);
 	g_assert(a->u != NULL);
 
 	parq_ul = parq_upload_find(a->u);
@@ -3097,18 +3169,25 @@ parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg,
 	 */
 
 	if (parq_ul->major >= 1) {
-		rw += gm_snprintf(buf, length,
-			"X-Queue: %d.%d\r\n"
-			"X-Queued: ID=%s\r\n",
-			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-			guid_hex_str(parq_upload_lookup_id(a->u)));
+		size_t len;
+
+		len = concat_strings(&buf[rw], size,
+				parq_get_x_queue_1_0_header(), "\r\n",
+				"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(a->u)),
+				"\r\n",
+				(void *) 0);
+
+		if (len >= size)
+			goto finish;
+
+		rw += len;
+		size -= len;
 
 		parq_ul->flags |= PARQ_UL_ID_SENT;
 	}
 
-	g_assert(rw < length);
-
-	*retval = rw;
+finish:
+	return rw;
 }
 
 /**

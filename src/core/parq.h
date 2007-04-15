@@ -72,10 +72,12 @@ gboolean parq_download_is_passive_queued(struct download *d);
 void parq_download_queue_ack(struct gnutella_socket *s);
 
 void parq_upload_timer(time_t now);
-void parq_upload_add_header(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags);
-void parq_upload_add_header_id(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags);
+
+size_t parq_upload_add_headers(gchar *buf, size_t size,
+	gpointer arg, guint32 flags);
+size_t parq_upload_add_header_id(gchar *buf, size_t size,
+	gpointer arg, guint32 flags);
+
 gpointer parq_upload_get(
 	gnutella_upload_t *u, header_t *header, gboolean replacing);
 gboolean parq_upload_request(gnutella_upload_t *u, guint used_slots);

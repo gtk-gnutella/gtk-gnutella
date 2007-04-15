@@ -162,12 +162,6 @@ static void upload_error_remove(gnutella_upload_t *u,
 static void upload_error_remove_ext(gnutella_upload_t *u,
 		const gchar *extended, int code,
 		const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
-static void upload_http_content_urn_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags);
-static void upload_http_xhost_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags);
-static void upload_xfeatures_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_writable(gpointer up, gint source, inputevt_cond_t cond);
 static void upload_special_writable(gpointer up);
 static void send_upload_error(gnutella_upload_t *u, int code,
@@ -245,6 +239,164 @@ upload_fire_upload_info_changed(gnutella_upload_t *n)
 /***
  *** Private functions
  ***/
+
+/***
+ *** Upload mesh info tracking.
+ ***/
+
+static struct mesh_info_key *
+mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
+{
+	struct mesh_info_key *mik;
+
+	mik = walloc(sizeof *mik);
+	mik->addr = addr;
+	mik->sha1 = atom_sha1_get(sha1);
+
+	return mik;
+}
+
+static void
+mi_key_free(struct mesh_info_key *mik)
+{
+	g_assert(mik);
+
+	atom_sha1_free(mik->sha1);
+	wfree(mik, sizeof *mik);
+}
+
+static guint
+mi_key_hash(gconstpointer key)
+{
+	const struct mesh_info_key *mik = key;
+
+	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
+}
+
+static gint
+mi_key_eq(gconstpointer a, gconstpointer b)
+{
+	const struct mesh_info_key *mika = a, *mikb = b;
+
+	return host_addr_equal(mika->addr, mikb->addr) &&
+		sha1_eq(mika->sha1, mikb->sha1);
+}
+
+static struct mesh_info_val *
+mi_val_make(guint32 stamp)
+{
+	struct mesh_info_val *miv;
+
+	miv = walloc(sizeof(*miv));
+	miv->stamp = stamp;
+	miv->cq_ev = NULL;
+
+	return miv;
+}
+
+static void
+mi_val_free(struct mesh_info_val *miv)
+{
+	g_assert(miv);
+
+	cq_cancel(callout_queue, &miv->cq_ev);
+	wfree(miv, sizeof(*miv));
+}
+
+/**
+ * Hash table iterator callback.
+ */
+static void
+mi_free_kv(gpointer key, gpointer value, gpointer unused_udata)
+{
+	(void) unused_udata;
+	mi_key_free(key);
+	mi_val_free(value);
+}
+
+/**
+ * Callout queue callback invoked to clear the entry.
+ */
+static void
+mi_clean(cqueue_t *unused_cq, gpointer obj)
+{
+	struct mesh_info_key *mik = obj;
+	struct mesh_info_val *miv;
+	gpointer key;
+	gpointer value;
+	gboolean found;
+
+	(void) unused_cq;
+	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
+	miv = value;
+
+	g_assert(found);
+	g_assert(obj == key);
+	g_assert(miv->cq_ev);
+
+	if (upload_debug > 4)
+		g_message("upload MESH info (%s/%s) discarded",
+			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
+
+	g_hash_table_remove(mesh_info, mik);
+	miv->cq_ev = NULL;
+	mi_free_kv(key, value, NULL);
+}
+
+/**
+ * Get timestamp at which we last sent download mesh information for (IP,SHA1).
+ * If we don't remember sending it, return 0.
+ * Always records `now' as the time we sent mesh information.
+ */
+static guint32
+mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
+{
+	struct mesh_info_key mikey;
+	struct mesh_info_val *miv;
+	struct mesh_info_key *mik;
+
+	mikey.addr = addr;
+	mikey.sha1 = sha1;
+
+	miv = g_hash_table_lookup(mesh_info, &mikey);
+
+	/*
+	 * If we have an entry, reschedule the cleanup in MESH_INFO_TIMEOUT.
+	 * Then return the timestamp.
+	 */
+
+	if (miv) {
+		guint32 oldstamp;
+
+		g_assert(miv->cq_ev);
+		cq_resched(callout_queue, miv->cq_ev, MESH_INFO_TIMEOUT);
+
+		oldstamp = miv->stamp;
+		miv->stamp = (guint32) now;
+
+		if (upload_debug > 4)
+			g_message("upload MESH info (%s/%s) has stamp=%u",
+				host_addr_to_string(addr), sha1_base32(sha1), oldstamp);
+
+		return oldstamp;
+	}
+
+	/*
+	 * Create new entry.
+	 */
+
+	mik = mi_key_make(addr, sha1);
+	miv = mi_val_make((guint32) now);
+	miv->cq_ev = cq_insert(callout_queue, MESH_INFO_TIMEOUT, mi_clean, mik);
+
+	g_hash_table_insert(mesh_info, mik, miv);
+
+	if (upload_debug > 4)
+		g_message("new upload MESH info (%s/%s) stamp=%u",
+			host_addr_to_string(addr), sha1_base32(sha1), (guint32) now);
+
+	return 0;			/* Don't remember sending info about this file */
+}
 
 /**
  * Dynamically computed stalling threshold.
@@ -862,6 +1014,337 @@ upload_likely_from_browser(header_t *header)
 }
 
 /**
+ * This routine is called by http_send_status() to generate the
+ * X-Host line (added to the HTTP status) into `buf'.
+ */
+static size_t
+upload_http_xhost_add(gchar *buf, size_t size,
+	gpointer unused_arg, guint32 unused_flags)
+{
+	host_addr_t addr;
+	guint16 port;
+	size_t len;
+
+	(void) unused_arg;
+	(void) unused_flags;
+	g_return_val_if_fail(!is_firewalled, 0);
+
+	addr = listen_addr();
+	port = socket_listen_port();
+
+	if (host_is_valid(addr, port)) {
+		len = concat_strings(buf, size,
+				"X-Host: ", host_addr_port_to_string(addr, port), "\r\n",
+				(void *) 0);
+	} else {
+		len = 0;
+	}
+	return len < size ? len : 0;
+}
+
+static size_t
+upload_xfeatures_add(gchar *buf, size_t size,
+	gpointer unused_arg, guint32 unused_flags)
+{
+	size_t rw = 0;
+
+	(void) unused_arg;
+	(void) unused_flags;
+
+	header_features_generate(FEATURES_UPLOADS, buf, size, &rw);
+	return rw;
+}
+
+static size_t
+upload_gnutella_content_urn_add(gchar *buf, size_t size,
+	gpointer arg, guint32 flags)
+{
+	struct upload_http_cb *a = arg;
+	gnutella_upload_t *u = a->u;
+	const struct sha1 *sha1;
+	size_t len;
+
+	g_return_val_if_fail(u->sf, 0);
+	shared_file_check(u->sf);
+
+	sha1 = shared_file_sha1(u->sf);
+	g_return_val_if_fail(sha1, 0);
+
+	/*
+	 * We don't send the SHA1 if we're short on bandwidth and they
+	 * made a request via the N2R resolver.  This will leave more room
+	 * for the mesh information.
+	 * NB: we use HTTP_CBF_BW_SATURATED, not HTTP_CBF_SMALL_REPLY on purpose.
+	 *
+	 * Also, if we sent mesh information for THIS upload, it means we're
+	 * facing a follow-up request and we don't need to send them the SHA1
+	 * again.
+	 *		--RAM, 18/10/2003
+	 */
+
+	if ((flags & HTTP_CBF_BW_SATURATED) && u->n2r)
+		return 0;
+
+	len = concat_strings(buf, size,
+			"X-Gnutella-Content-URN: ", sha1_to_urn_string(sha1), "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+}
+
+static size_t
+upload_thex_uri_add(gchar *buf, size_t size, gpointer arg, guint32 flags)
+{
+	struct upload_http_cb *a = arg;
+	gnutella_upload_t *u = a->u;
+	const struct sha1 *sha1;
+	const struct tth *tth;
+	size_t len = 0;
+
+	g_return_val_if_fail(u->sf, 0);
+	shared_file_check(u->sf);
+
+	sha1 = shared_file_sha1(u->sf);
+	g_return_val_if_fail(sha1, 0);
+
+	if ((flags & HTTP_CBF_BW_SATURATED) && u->n2r)
+		return 0;
+
+	tth = shared_file_tth(u->sf);
+	if (!tth)
+		return 0;
+	
+	len = concat_strings(buf, size,
+			"X-Thex-URI: /uri-res/N2X?", sha1_to_urn_string(sha1),
+			";", tth_base32(tth),
+			"\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+}
+
+/**
+ * This routine is called by http_send_status() to generate the
+ * SHA1-specific headers (added to the HTTP status) into `buf'.
+ */
+static size_t
+upload_http_content_urn_add(gchar *buf, size_t size, gpointer arg,
+	guint32 flags)
+{
+	const struct sha1 *sha1;
+	size_t rw = 0, mesh_len;
+	struct upload_http_cb *a = arg;
+	gnutella_upload_t *u = a->u;
+	time_t last_sent;
+
+	g_return_val_if_fail(u->sf, 0);
+	shared_file_check(u->sf);
+
+	sha1 = shared_file_sha1(u->sf);
+	g_return_val_if_fail(sha1, 0);
+
+	/*
+	 * Because of possible persistent uplaods, we have to keep track on
+	 * the last time we sent download mesh information within the upload
+	 * itself: the time for them to download a range will be greater than
+	 * our expiration timer on the external mesh information.
+	 */
+
+	if (u->last_dmesh) {
+		last_sent = u->last_dmesh;
+	} else {
+		rw += upload_gnutella_content_urn_add(&buf[rw], size - rw, arg, flags);
+		rw += upload_thex_uri_add(&buf[rw], size - rw, arg, flags);
+		last_sent = mi_get_stamp(u->socket->addr, sha1, tm_time());
+	} 
+
+	/*
+	 * Ranges are only emitted for partial files, so no pre-estimation of
+	 * the size of the mesh entries is needed when replying for a full file.
+	 *
+	 * However, we're not going to include the available ranges when we
+	 * are returning a 503 "busy" or "queued" indication, or any 4xx indication
+	 * since the data will be stale by the time it is needed.  We only dump
+	 * then when explicitly requested to do so.
+	 */
+
+	if (
+		pfsp_server &&
+		shared_file_is_partial(u->sf) &&
+		(flags & HTTP_CBF_SHOW_RANGES)
+	) {
+		gchar alt_locs[160];
+		
+		/*
+		 * PFSP-server: if they requested a partial file, let them know about
+		 * the set of available ranges.
+		 *
+		 * To know how much room we can use for ranges, try to see how much
+		 * locations we are going to fill.  In case we are under stringent
+		 * size control, it would be a shame to not emit ranges because we
+		 * want to leave size for alt-locs and yet there are none to emit!
+		 */
+
+		mesh_len = dmesh_alternate_location(sha1,
+					alt_locs, sizeof alt_locs, u->socket->addr,
+					last_sent, u->user_agent, NULL, FALSE);
+
+		if (size - rw > mesh_len) {
+			size_t len;
+			
+			/*
+			 * Emit the X-Available-Ranges: header if file is partial and we're
+			 * not returning a busy signal.
+			 */
+
+			len = file_info_available_ranges(shared_file_fileinfo(u->sf),
+					&buf[rw], size - rw - mesh_len);
+			rw += len;
+		}
+	} else {
+		mesh_len = 1;			/* Try to emit alt-locs later */
+	}
+
+	/*
+	 * Emit alt-locs only if there is anything to emit, using all the
+	 * remaining space, which may be larger than the room we tried to
+	 * emit locations to in the above pre-check, in case there was only
+	 * a little amount of ranges written!
+	 */
+
+	if (mesh_len > 0) {
+		size_t len, avail;
+		
+		avail = size - rw;
+
+		if (flags & HTTP_CBF_SMALL_REPLY) {
+			/*
+			 * If we're trying to limit the reply size, limit the size of the
+			 * mesh. When we send X-Alt: locations, this leaves room for quite
+			 * a few locations nonetheless!
+			 *		--RAM, 18/10/2003
+			 */
+
+			avail = MIN(avail, 160);
+		}
+
+		len = dmesh_alternate_location(sha1,
+					&buf[rw], avail, u->socket->addr,
+					last_sent, u->user_agent, NULL, FALSE);
+		rw += len;
+		u->last_dmesh = tm_time();
+	}
+
+	return rw;
+}
+
+/**
+ * This routine is called by http_send_status() to generate the
+ * additionnal headers on a "416 Request range not satisfiable" error.
+ */
+static size_t
+upload_416_extra(gchar *buf, size_t size, gpointer arg, guint32 unused_flags)
+{
+	const struct upload_http_cb *a = arg;
+	const gnutella_upload_t *u = a->u;
+	size_t len;
+	gchar fsize[UINT64_DEC_BUFLEN];
+
+	(void) unused_flags;
+	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
+	len = concat_strings(buf, size,
+			"Content-Range: bytes */", fsize, (void *) 0);
+	/* Don't emit a truncated header */
+	return len < size ? len : 0;
+}
+
+static size_t
+upload_http_content_length_add(gchar *buf, size_t size,
+	gpointer arg, guint32 unused_flags)
+{
+	struct upload_http_cb *a = arg;
+	gnutella_upload_t *u = a->u;
+	size_t len;
+
+	(void) unused_flags;
+	len = concat_strings(buf, size,
+			"Content-Length: ", uint64_to_string(u->end - u->skip + 1), "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+}
+
+static size_t
+upload_http_content_type_add(gchar *buf, size_t size,
+	gpointer arg, guint32 unused_flags)
+{
+	struct upload_http_cb *a = arg;
+	gnutella_upload_t *u = a->u;
+	size_t len;
+
+	(void) unused_flags;
+	if (!u->sf)
+		return 0;
+
+	shared_file_check(u->sf);
+	len = concat_strings(buf, size,
+			"Content-Type: ", shared_file_content_type(u->sf), "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+}
+
+static size_t
+upload_http_last_modified_add(gchar *buf, size_t size,
+	gpointer arg, guint32 unused_flags)
+{
+	struct upload_http_cb *a = arg;
+	size_t len;
+
+	(void) unused_flags;
+	len = concat_strings(buf, size,
+			"Last-Modified: ", timestamp_rfc1123_to_string(a->mtime), "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+}
+
+static size_t
+upload_http_content_range_add(gchar *buf, size_t size,
+	gpointer arg, guint32 unused_flags)
+{
+	struct upload_http_cb *a = arg;
+	gnutella_upload_t *u = a->u;
+	size_t len;
+
+	(void) unused_flags;
+	if (u->skip || u->end != (u->file_size - 1)) {
+		len = concat_strings(buf, size,
+				"Content-Range: bytes ", 
+				uint64_to_string(u->skip), "-", uint64_to_string2(u->end),
+				"/", filesize_to_string(u->file_size),
+				"\r\n",
+				(void *) 0);
+	} else {
+		len = 0;
+	}
+	return len < size ? len : 0;
+}
+
+
+/**
+ * This routine is called by http_send_status() to generate the
+ * upload-specific headers into `buf'.
+ */
+static size_t
+upload_http_status(gchar *buf, size_t size, gpointer arg, guint32 flags)
+{
+	size_t rw = 0;
+
+	rw += upload_http_content_length_add(&buf[rw], size - rw, arg, flags);
+	rw += upload_http_content_range_add(&buf[rw], size - rw, arg, flags);
+	rw += upload_http_last_modified_add(&buf[rw], size - rw, arg, flags);
+	rw += upload_http_content_type_add(&buf[rw], size - rw, arg, flags);
+	return rw;
+}
+
+
+/**
  * The vectorized (message-wise) version of send_upload_error().
  */
 static void
@@ -921,7 +1404,7 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 		cb_parq_arg.u = u;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = parq_upload_add_header;
+		hev[hevcnt].he_cb = parq_upload_add_headers;
 		hev[hevcnt++].he_arg = &cb_parq_arg;
 
 		/*
@@ -1379,164 +1862,6 @@ call_upload_request(gpointer obj, header_t *header)
 	atom_str_free_null(&u->name);
 
 	upload_request(cast_to_upload(obj), header);
-}
-
-/***
- *** Upload mesh info tracking.
- ***/
-
-static struct mesh_info_key *
-mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
-{
-	struct mesh_info_key *mik;
-
-	mik = walloc(sizeof *mik);
-	mik->addr = addr;
-	mik->sha1 = atom_sha1_get(sha1);
-
-	return mik;
-}
-
-static void
-mi_key_free(struct mesh_info_key *mik)
-{
-	g_assert(mik);
-
-	atom_sha1_free(mik->sha1);
-	wfree(mik, sizeof *mik);
-}
-
-static guint
-mi_key_hash(gconstpointer key)
-{
-	const struct mesh_info_key *mik = key;
-
-	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
-}
-
-static gint
-mi_key_eq(gconstpointer a, gconstpointer b)
-{
-	const struct mesh_info_key *mika = a, *mikb = b;
-
-	return host_addr_equal(mika->addr, mikb->addr) &&
-		sha1_eq(mika->sha1, mikb->sha1);
-}
-
-static struct mesh_info_val *
-mi_val_make(guint32 stamp)
-{
-	struct mesh_info_val *miv;
-
-	miv = walloc(sizeof(*miv));
-	miv->stamp = stamp;
-	miv->cq_ev = NULL;
-
-	return miv;
-}
-
-static void
-mi_val_free(struct mesh_info_val *miv)
-{
-	g_assert(miv);
-
-	cq_cancel(callout_queue, &miv->cq_ev);
-	wfree(miv, sizeof(*miv));
-}
-
-/**
- * Hash table iterator callback.
- */
-static void
-mi_free_kv(gpointer key, gpointer value, gpointer unused_udata)
-{
-	(void) unused_udata;
-	mi_key_free(key);
-	mi_val_free(value);
-}
-
-/**
- * Callout queue callback invoked to clear the entry.
- */
-static void
-mi_clean(cqueue_t *unused_cq, gpointer obj)
-{
-	struct mesh_info_key *mik = obj;
-	struct mesh_info_val *miv;
-	gpointer key;
-	gpointer value;
-	gboolean found;
-
-	(void) unused_cq;
-	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
-	miv = value;
-
-	g_assert(found);
-	g_assert(obj == key);
-	g_assert(miv->cq_ev);
-
-	if (upload_debug > 4)
-		g_message("upload MESH info (%s/%s) discarded",
-			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
-
-	g_hash_table_remove(mesh_info, mik);
-	miv->cq_ev = NULL;
-	mi_free_kv(key, value, NULL);
-}
-
-/**
- * Get timestamp at which we last sent download mesh information for (IP,SHA1).
- * If we don't remember sending it, return 0.
- * Always records `now' as the time we sent mesh information.
- */
-static guint32
-mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
-{
-	struct mesh_info_key mikey;
-	struct mesh_info_val *miv;
-	struct mesh_info_key *mik;
-
-	mikey.addr = addr;
-	mikey.sha1 = sha1;
-
-	miv = g_hash_table_lookup(mesh_info, &mikey);
-
-	/*
-	 * If we have an entry, reschedule the cleanup in MESH_INFO_TIMEOUT.
-	 * Then return the timestamp.
-	 */
-
-	if (miv) {
-		guint32 oldstamp;
-
-		g_assert(miv->cq_ev);
-		cq_resched(callout_queue, miv->cq_ev, MESH_INFO_TIMEOUT);
-
-		oldstamp = miv->stamp;
-		miv->stamp = (guint32) now;
-
-		if (upload_debug > 4)
-			g_message("upload MESH info (%s/%s) has stamp=%u",
-				host_addr_to_string(addr), sha1_base32(sha1), oldstamp);
-
-		return oldstamp;
-	}
-
-	/*
-	 * Create new entry.
-	 */
-
-	mik = mi_key_make(addr, sha1);
-	miv = mi_val_make((guint32) now);
-	miv->cq_ev = cq_insert(callout_queue, MESH_INFO_TIMEOUT, mi_clean, mik);
-
-	g_hash_table_insert(mesh_info, mik, miv);
-
-	if (upload_debug > 4)
-		g_message("new upload MESH info (%s/%s) stamp=%u",
-			host_addr_to_string(addr), sha1_base32(sha1), (guint32) now);
-
-	return 0;			/* Don't remember sending info about this file */
 }
 
 
@@ -2237,280 +2562,6 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header,
 
 	upload_error_not_found(u, uri);
 	return -1;
-}
-
-/**
- * This routine is called by http_send_status() to generate the
- * X-Host line (added to the HTTP status) into `buf'.
- */
-static void
-upload_http_xhost_add(gchar *buf, gint *retval,
-		gpointer unused_arg, guint32 unused_flags)
-{
-	size_t rw = 0;
-	size_t length = *retval;
-	host_addr_t addr;
-	guint16 port;
-
-	(void) unused_arg;
-	(void) unused_flags;
-	g_assert(length <= INT_MAX);
-	g_assert(!is_firewalled);
-
-	addr = listen_addr();
-	port = socket_listen_port();
-
-	if (host_is_valid(addr, port)) {
-		const gchar *xhost = host_addr_port_to_string(addr, port);
-		size_t needed_room = strlen(xhost) + CONST_STRLEN("X-Host: \r\n");
-
-		if (length > needed_room)
-			rw = gm_snprintf(buf, length, "X-Host: %s\r\n", xhost);
-	}
-
-	g_assert(rw < length);
-
-	*retval = rw;
-}
-
-static void
-upload_xfeatures_add(gchar *buf, gint *retval,
-		gpointer unused_arg, guint32 unused_flags)
-{
-	size_t rw = 0;
-	size_t length = *retval;
-
-	(void) unused_arg;
-	(void) unused_flags;
-	g_assert(length <= INT_MAX);
-
-	header_features_generate(FEATURES_UPLOADS, buf, length, &rw);
-
-	*retval = rw;
-}
-/**
- * This routine is called by http_send_status() to generate the
- * SHA1-specific headers (added to the HTTP status) into `buf'.
- */
-static void
-upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
-	guint32 flags)
-{
-	const struct sha1 *sha1;
-	size_t rw = 0, mesh_len = 0, avail = *retval;
-	struct upload_http_cb *a = arg;
-	gnutella_upload_t *u = a->u;
-	time_t last_sent;
-
-	if (*retval <= 0)
-		return;
-
-	sha1 = shared_file_sha1(u->sf);
-	if (NULL == sha1)
-		return;
-
-	/*
-	 * We don't send the SHA1 if we're short on bandwidth and they
-	 * made a request via the N2R resolver.  This will leave more room
-	 * for the mesh information.
-	 * NB: we use HTTP_CBF_BW_SATURATED, not HTTP_CBF_SMALL_REPLY on purpose.
-	 *
-	 * Also, if we sent mesh information for THIS upload, it means we're
-	 * facing a follow-up request and we don't need to send them the SHA1
-	 * again.
-	 *		--RAM, 18/10/2003
-	 */
-
-	if (
-		!((flags & HTTP_CBF_BW_SATURATED) && u->n2r) &&
-		u->last_dmesh == 0
-	) {
-		const struct tth *tth;
-		const gchar *sha1_urn;
-		gchar header[256];
-		size_t header_len;
-
-		sha1_urn = sha1_to_urn_string(sha1);
-		header_len = concat_strings(header, sizeof header,
-						"X-Gnutella-Content-URN: ", sha1_urn, "\r\n",
-						(void *) 0);
-
-		if (header_len < sizeof header && header_len < avail) {
-			rw += gm_snprintf(&buf[rw], avail, "%s", header);
-			avail -= header_len;
-		}
-
-		tth = shared_file_tth(u->sf);
-		if (tth) {
-			header_len = concat_strings(header, sizeof header,
-							"X-Thex-URI: /uri-res/N2X?", sha1_urn, ";",
-							tth_base32(tth), "\r\n",
-							(void *) 0);
-			if (header_len < sizeof header && header_len < avail) {
-				rw += gm_snprintf(&buf[rw], avail, "%s", header);
-				avail -= header_len;
-			}
-		}		
-	}
-
-	/*
-	 * Because of possible persistent uplaods, we have to keep track on
-	 * the last time we sent download mesh information within the upload
-	 * itself: the time for them to download a range will be greater than
-	 * our expiration timer on the external mesh information.
-	 */
-
-	last_sent = u->last_dmesh;
-	if (!last_sent) {
-		last_sent = mi_get_stamp(u->socket->addr, sha1, tm_time());
-	}
-
-	/*
-	 * Ranges are only emitted for partial files, so no pre-estimation of
-	 * the size of the mesh entries is needed when replying for a full file.
-	 *
-	 * However, we're not going to include the available ranges when we
-	 * are returning a 503 "busy" or "queued" indication, or any 4xx indication
-	 * since the data will be stale by the time it is needed.  We only dump
-	 * then when explicitly requested to do so.
-	 */
-
-	if (
-		pfsp_server &&
-		shared_file_is_partial(u->sf) &&
-		(flags & HTTP_CBF_SHOW_RANGES)
-	) {
-		gchar alt_locs[160];
-		
-		/*
-		 * PFSP-server: if they requested a partial file, let them know about
-		 * the set of available ranges.
-		 *
-		 * To know how much room we can use for ranges, try to see how much
-		 * locations we are going to fill.  In case we are under stringent
-		 * size control, it would be a shame to not emit ranges because we
-		 * want to leave size for alt-locs and yet there are none to emit!
-		 */
-
-		mesh_len = dmesh_alternate_location(sha1,
-					alt_locs, sizeof alt_locs, u->socket->addr,
-					last_sent, u->user_agent, NULL, FALSE);
-
-		if (avail > mesh_len) {
-			size_t len;
-			
-			/*
-			 * Emit the X-Available-Ranges: header if file is partial and we're
-			 * not returning a busy signal.
-			 */
-
-			len = file_info_available_ranges(shared_file_fileinfo(u->sf),
-					&buf[rw], avail - mesh_len);
-			rw += len;
-			avail -= len;
-		}
-	} else {
-		mesh_len = 1;			/* Try to emit alt-locs later */
-	}
-
-	/*
-	 * Emit alt-locs only if there is anything to emit, using all the
-	 * remaining space, which may be larger than the room we tried to
-	 * emit locations to in the above pre-check, in case there was only
-	 * a little amount of ranges written!
-	 */
-
-	if (mesh_len > 0) {
-		size_t len;
-		
-		if (flags & HTTP_CBF_SMALL_REPLY) {
-			/*
-			 * If we're trying to limit the reply size, limit the size of the
-			 * mesh. When we send X-Alt: locations, this leaves room for quite
-			 * a few locations nonetheless!
-			 *		--RAM, 18/10/2003
-			 */
-
-			avail = MIN(avail, 160);
-		}
-
-		len = dmesh_alternate_location(sha1,
-					&buf[rw], avail, u->socket->addr,
-					last_sent, u->user_agent, NULL, FALSE);
-		rw += len;
-		avail -= len;
-
-		u->last_dmesh = tm_time();
-	}
-
-	*retval = rw;
-}
-
-/**
- * This routine is called by http_send_status() to generate the
- * additionnal headers on a "416 Request range not satisfiable" error.
- */
-static void
-upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
-{
-	size_t rw = 0;
-	size_t len = *retval;
-	const struct upload_http_cb *a = arg;
-	const gnutella_upload_t *u = a->u;
-	gchar fsize[UINT64_DEC_BUFLEN];
-
-	(void) unused_flags;
-	g_assert(len <= INT_MAX);
-	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
-	rw = gm_snprintf(buf, len, "Content-Range: bytes */%s\r\n", fsize);
-	g_assert(rw < len);
-
-	*retval = rw;
-}
-
-/**
- * This routine is called by http_send_status() to generate the
- * upload-specific headers into `buf'.
- */
-static void
-upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
-{
-	gint rw = 0;
-	gint length = *retval;
-	struct upload_http_cb *a = arg;
-	gnutella_upload_t *u = a->u;
-	gchar csize[UINT64_DEC_BUFLEN];
-
-	(void) unused_flags;
-
-	g_assert(u->sf != NULL);
-
-	uint64_to_string_buf(u->end - u->skip + 1, csize, sizeof csize);
-	rw += gm_snprintf(&buf[rw], length - rw,
-		"Last-Modified: %s\r\n"
-		"Content-Type: %s\r\n"
-		"Content-Length: %s\r\n",
-			timestamp_rfc1123_to_string(a->mtime),
-			shared_file_content_type(u->sf),
-			csize);
-
-	g_assert(rw < length);
-
-	if (u->skip || u->end != (u->file_size - 1)) {
-		gchar rsize[UINT64_DEC_BUFLEN];
-	   	gchar start_buf[UINT64_DEC_BUFLEN];
-		gchar end_buf[UINT64_DEC_BUFLEN];
-
-		uint64_to_string_buf(u->skip, start_buf, sizeof start_buf),
-		uint64_to_string_buf(u->end, end_buf, sizeof end_buf),
-		uint64_to_string_buf(u->file_size, rsize, sizeof rsize);
-		rw += gm_snprintf(&buf[rw], length - rw,
-				"Content-Range: bytes %s-%s/%s\r\n", start_buf, end_buf, rsize);
-	}
-
-	g_assert(rw < length);
-
-	*retval = rw;
 }
 
 /***
@@ -3508,7 +3559,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (u->sf && !head_only) {
-		if (is_followup && parq_upload_lookup_position(u) == (guint) -1) {
+		if (is_followup && !parq_upload_queued(u)) {
 			/*
 			 * Allthough the request is an follow up request, the last time the
 			 * upload didn't get a parq slot. There is probably a good reason
@@ -3559,7 +3610,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *
 		 */
 
-		if (parq_upload_lookup_position(u) == (guint) -1) {
+		if (!parq_upload_queued(u)) {
 			time_t expire = parq_banned_source_expire(u->addr);
 			gchar retry_after[80];
 			gint delay = delta_time(expire, now);
@@ -3809,7 +3860,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 *
 	 * We never emit the queue ID for HEAD requests, nor during follow-ups
 	 * (which always occur for the same resource, meaning the PARQ ID was
-	 * arlready sent for those).
+	 * already sent for those).
 	 */
 
 	if (u->sf && !head_only && !is_followup && !parq_ul_id_sent(u)) {
