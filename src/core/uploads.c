@@ -2297,16 +2297,13 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 	guint32 flags)
 {
 	const struct sha1 *sha1;
-	gint rw = 0;
-	gint length = *retval;
+	size_t rw = 0, mesh_len = 0, avail = *retval;
 	struct upload_http_cb *a = arg;
 	gnutella_upload_t *u = a->u;
-	gint range_length;
-	time_t now = tm_time();
-	guint32 last_sent;
-	gchar tmp[160];
-	gint mesh_len;
-	gboolean need_available_ranges = FALSE;
+	time_t last_sent;
+
+	if (*retval <= 0)
+		return;
 
 	sha1 = shared_file_sha1(u->sf);
 	if (NULL == sha1)
@@ -2338,9 +2335,9 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 						"X-Gnutella-Content-URN: ", sha1_urn, "\r\n",
 						(void *) 0);
 
-		if (header_len < sizeof header && header_len < UNSIGNED(length)) {
-			rw += gm_snprintf(&buf[rw], length, "%s", header);
-			length -= header_len;
+		if (header_len < sizeof header && header_len < avail) {
+			rw += gm_snprintf(&buf[rw], avail, "%s", header);
+			avail -= header_len;
 		}
 
 		tth = shared_file_tth(u->sf);
@@ -2349,24 +2346,12 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 							"X-Thex-URI: /uri-res/N2X?", sha1_urn, ";",
 							tth_base32(tth), "\r\n",
 							(void *) 0);
-			if (header_len < sizeof header && header_len < UNSIGNED(length)) {
-				rw += gm_snprintf(&buf[rw], length, "%s", header);
-				length -= header_len;
+			if (header_len < sizeof header && header_len < avail) {
+				rw += gm_snprintf(&buf[rw], avail, "%s", header);
+				avail -= header_len;
 			}
 		}		
 	}
-
-	/*
-	 * PFSP-server: if they requested a partial file, let them know about
-	 * the set of available ranges.
-	 *
-	 * To know how much room we can use for ranges, try to see how much
-	 * locations we are going to fill.  In case we are under stringent
-	 * size control, it would be a shame to not emit ranges because we
-	 * want to leave size for alt-locs and yet there are none to emit!
-	 */
-
-	range_length = length - sizeof(tmp);
 
 	/*
 	 * Because of possible persistent uplaods, we have to keep track on
@@ -2375,9 +2360,10 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 	 * our expiration timer on the external mesh information.
 	 */
 
-	last_sent = u->last_dmesh
-		? u->last_dmesh
-		: mi_get_stamp(u->socket->addr, sha1, now);
+	last_sent = u->last_dmesh;
+	if (!last_sent) {
+		last_sent = mi_get_stamp(u->socket->addr, sha1, tm_time());
+	}
 
 	/*
 	 * Ranges are only emitted for partial files, so no pre-estimation of
@@ -2389,28 +2375,42 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 	 * then when explicitly requested to do so.
 	 */
 
-	if (shared_file_is_partial(u->sf) && (flags & HTTP_CBF_SHOW_RANGES))
-		need_available_ranges = TRUE;
+	if (
+		pfsp_server &&
+		shared_file_is_partial(u->sf) &&
+		(flags & HTTP_CBF_SHOW_RANGES)
+	) {
+		gchar alt_locs[160];
+		
+		/*
+		 * PFSP-server: if they requested a partial file, let them know about
+		 * the set of available ranges.
+		 *
+		 * To know how much room we can use for ranges, try to see how much
+		 * locations we are going to fill.  In case we are under stringent
+		 * size control, it would be a shame to not emit ranges because we
+		 * want to leave size for alt-locs and yet there are none to emit!
+		 */
 
-	if (need_available_ranges) {
 		mesh_len = dmesh_alternate_location(sha1,
-					tmp, sizeof(tmp), u->socket->addr,
+					alt_locs, sizeof alt_locs, u->socket->addr,
 					last_sent, u->user_agent, NULL, FALSE);
 
-		if (UNSIGNED(mesh_len) < sizeof(tmp) - 5)
-			range_length = length - mesh_len;	/* Leave more room for ranges */
-	} else
+		if (avail > mesh_len) {
+			size_t len;
+			
+			/*
+			 * Emit the X-Available-Ranges: header if file is partial and we're
+			 * not returning a busy signal.
+			 */
+
+			len = file_info_available_ranges(shared_file_fileinfo(u->sf),
+					&buf[rw], avail - mesh_len);
+			rw += len;
+			avail -= len;
+		}
+	} else {
 		mesh_len = 1;			/* Try to emit alt-locs later */
-
-	/*
-	 * Emit the X-Available-Ranges: header if file is partial and we're
-	 * not returning a busy signal.
-	 */
-
-	if (need_available_ranges && rw < range_length) {
-		g_assert(pfsp_server);		/* Or we would not have a partial file */
-		rw += file_info_available_ranges(shared_file_fileinfo(u->sf),
-				&buf[rw], range_length - rw);
 	}
 
 	/*
@@ -2421,26 +2421,26 @@ upload_http_content_urn_add(gchar *buf, gint *retval, gpointer arg,
 	 */
 
 	if (mesh_len > 0) {
-		gint maxlen = length - rw;
+		size_t len;
+		
+		if (flags & HTTP_CBF_SMALL_REPLY) {
+			/*
+			 * If we're trying to limit the reply size, limit the size of the
+			 * mesh. When we send X-Alt: locations, this leaves room for quite
+			 * a few locations nonetheless!
+			 *		--RAM, 18/10/2003
+			 */
 
-		g_assert(length >= rw);
-		g_assert(maxlen >= 0);
+			avail = MIN(avail, 160);
+		}
 
-		/*
-		 * If we're trying to limit the reply size, limit the size of the mesh.
-		 * When we send X-Alt: locations, this leaves room for quite a few
-		 * locations nonetheless!
-		 *		--RAM, 18/10/2003
-		 */
-
-		if (flags & HTTP_CBF_SMALL_REPLY)
-			maxlen = MIN((guint) maxlen, sizeof(tmp));
-
-		rw += dmesh_alternate_location(sha1,
-					&buf[rw], maxlen, u->socket->addr,
+		len = dmesh_alternate_location(sha1,
+					&buf[rw], avail, u->socket->addr,
 					last_sent, u->user_agent, NULL, FALSE);
+		rw += len;
+		avail -= len;
 
-		u->last_dmesh = now;
+		u->last_dmesh = tm_time();
 	}
 
 	*retval = rw;
