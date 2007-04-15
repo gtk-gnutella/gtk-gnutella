@@ -885,7 +885,8 @@ meanings,
      <para>N - very ancient client, should never see this.</para>
      <para>U - an ultrapeer connection.</para>
      <para>L - a leaf connection.</para>
-     <para>C - a crawler collecting statistics.</para></entry></row>
+     <para>C - a crawler collecting statistics.</para>
+     <para>P - udp pseudo-node (our own node).</para></entry></row>
 <row><entry>1, Origin</entry><entry>
      <para>I - an incoming connection.</para>
      <para>O - an outgoing connection.</para></entry></row>
@@ -908,13 +909,13 @@ meanings,
 <row><entry>7, Push proxy</entry><entry>
      <para>P - We are a push proxy for the node.</para>
      <para>p - The node is a push proxy for us.</para></entry></row>
-<row><entry>8, Incoming flow control</entry><entry>
+<row><entry>8, Outgoing flow control</entry><entry>
      <para>d - Some data queued.</para>
      <para>D - More data queued, getting concerned.</para>
      <para>F - This node is sending a lot of data.</para>
      <para>S - Swift control mode. 
                Too much data, dropping new searches.</para></entry></row>
-<row><entry>9, Outgoing flow control</entry><entry>
+<row><entry>9, Incoming flow control</entry><entry>
      <para>h - This node will not respond to new searched.</para>
      <para>f - Responds to limited searches.</para></entry></row>
 <row><entry>10, Encryption</entry>
