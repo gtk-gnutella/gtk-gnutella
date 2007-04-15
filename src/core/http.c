@@ -91,7 +91,6 @@ http_send_status(
 {
 	gchar header[2560];			/* 2.5 K max */
 	gchar status_msg[512];
-	gchar xlive[512];
 	gint rw;
 	gint mrw;
 	ssize_t sent;
@@ -143,20 +142,17 @@ http_send_status(
 	}
 
 	/*
-	 * If bandwidth is short, drop X-Live-Since, and reduce the header
-	 * size noticeably, so that only the most important stuff gets out.
+	 * If bandwidth is short, reduce the header size noticeably, so that only
+	 * the most important stuff gets out.
 	 *		--RAM, 12/10/2003
 	 */
 
 	if (saturated && code >= 300) {
-		xlive[0] = '\0';
 		version = version_short_string;
 		token = socket_omit_token(s) ? NULL : tok_short_version();
 		header_size = 512;
 		cb_flags |= HTTP_CBF_SMALL_REPLY;
 	} else {
-		gm_snprintf(xlive, sizeof(xlive)-1,
-			"X-Live-Since: %s\r\n", start_rfc822_date);
 		version = version_string;
 		token = socket_omit_token(s) ? NULL : tok_version();
 	}
@@ -183,13 +179,12 @@ http_send_status(
 		"Date: %s\r\n"
 		"%s"			/* Connection */
 		"%s%s%s"		/* X-Token (optional) */
-		"%s"			/* X-Live-Since */
 		"%s",			/* Content length */
 		code, status_msg, version, date, conn_close,
 		token ? "X-Token: " : "",
 		token ? token : "",
 		token ? "\r\n" : "",
-		xlive, no_content);
+		no_content);
 
 	mrw = rw;		/* Minimal header length */
 
