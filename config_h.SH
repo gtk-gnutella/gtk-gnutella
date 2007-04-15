@@ -496,7 +496,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 /* FAST_ASSERTIONS:
  *	This symbol, when defined, indicates that the program should make
  *	use of its own asserting and failure reporting code, instead of
- *	the one from glib.
+ *	the one from GLib.
  */
 #$d_fast_assert FAST_ASSERTIONS	/**/
 
@@ -751,10 +751,10 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_dbus HAS_DBUS  /**/
 
 /* USE_GLIB1:
- * This symbol is defined when compiling for glib 1.x.
+ * This symbol is defined when compiling for GLib 1.x.
  */
 /* USE_GLIB2:
- * This symbol is defined when compiling for glib 2.x.
+ * This symbol is defined when compiling for GLib 2.x.
  */
 #$d_useglib1 USE_GLIB1    /**/
 #$d_useglib2 USE_GLIB2    /**/
