@@ -377,6 +377,7 @@ src/core/sockets.c
 src/core/sockets.h
 src/core/spam.c
 src/core/spam.h
+src/core/special_upload.h
 src/core/sq.c
 src/core/sq.h
 src/core/tls_cache.c

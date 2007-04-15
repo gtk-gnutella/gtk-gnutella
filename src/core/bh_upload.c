@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "guid.h"
 #include "version.h"
 
+#include "if/core/hosts.h"
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
@@ -58,6 +59,7 @@ RCSID("$Id$")
 #include "lib/misc.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 /**
@@ -89,8 +91,8 @@ enum bh_type {
 	BH_TYPE_QHIT,			/* Send back Gnutella query hits */
 };
 
-struct browse_host_ctx {
-	struct special_ctx special;	/**< vtable, MUST be first field */
+struct browse_host_upload {
+	struct special_upload special;	/**< vtable, MUST be first field */
 	enum bh_type type;		/**< Type of data to send back */
 	gint flags;				/**< Opening flags */
 	txdrv_t *tx;			/**< The transmission stack */
@@ -102,9 +104,15 @@ struct browse_host_ctx {
 	guint file_index;		/**< Current file index (iterator) */
 	enum bh_state state;	/**< Current state of the state machine */
 	GSList *hits;			/**< Pending query hits to send back */
-	bh_closed_t cb;			/**< Callback to invoke when TX fully flushed */
+	special_upload_closed_t cb;	/**< Callback to invoke when TX fully flushed */
 	gpointer cb_arg;		/**< Callback argument */
 };
+
+struct browse_host_upload *
+cast_to_browse_host_upload(struct special_upload *p)
+{
+	return (void *) p;
+}
 
 /**
  * Copies up to ``*size'' bytes from current data block
@@ -118,7 +126,7 @@ struct browse_host_ctx {
  * @return The amount of bytes copied. Use this to advance ``dest''.
  */
 static inline size_t
-browse_host_read_data(struct browse_host_ctx *bh, gchar *dest, size_t *size)
+browse_host_read_data(struct browse_host_upload *bh, gchar *dest, size_t *size)
 {
 	size_t len;
 
@@ -141,7 +149,7 @@ browse_host_read_data(struct browse_host_ctx *bh, gchar *dest, size_t *size)
  * data block variables.
  */
 static inline void
-browse_host_next_state(struct browse_host_ctx *bh, enum bh_state state)
+browse_host_next_state(struct browse_host_upload *bh, enum bh_state state)
 {
 	g_assert(NULL != bh);
 	g_assert((gint) state >= 0 && state < NUM_BH_STATES);
@@ -169,7 +177,8 @@ browse_host_next_state(struct browse_host_ctx *bh, enum bh_state state)
  *         is returned.
  */
 static ssize_t
-browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
+browse_host_read_html(struct special_upload *ctx,
+	gpointer const dest, size_t size)
 {
 	static const gchar header[] =
 		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">\r\n"
@@ -179,7 +188,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 		"</head>\r\n"
 		"<body>\r\n";
 	static const gchar trailer[] = "</ul>\r\n</body>\r\n</html>\r\n";
-	struct browse_host_ctx *bh = ctx;
+	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 	gchar *p = dest;
 
 	g_assert(NULL != bh);
@@ -355,7 +364,7 @@ browse_host_read_html(gpointer ctx, gpointer const dest, size_t size)
 static void
 browse_host_record_hit(gpointer data, size_t len, gpointer udata)
 {
-	struct browse_host_ctx *bh = udata;
+	struct browse_host_upload *bh = udata;
 
 	bh->hits = g_slist_prepend(bh->hits, gmsg_to_pmsg(data, len));
 }
@@ -376,9 +385,10 @@ browse_host_record_hit(gpointer data, size_t len, gpointer udata)
  *         is returned.
  */
 static ssize_t
-browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
+browse_host_read_qhits(struct special_upload *ctx,
+	gpointer const dest, size_t size)
 {
-	struct browse_host_ctx *bh = ctx;
+	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 	size_t remain = size;
 	gchar *p = dest;
 
@@ -449,9 +459,9 @@ browse_host_read_qhits(gpointer ctx, gpointer const dest, size_t size)
  * Write data to the TX stack.
  */
 ssize_t
-browse_host_write(gpointer ctx, gconstpointer data, size_t size)
+browse_host_write(struct special_upload *ctx, gconstpointer data, size_t size)
 {
-	struct browse_host_ctx *bh = ctx;
+	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 
 	g_assert(bh->tx);
 
@@ -464,7 +474,7 @@ browse_host_write(gpointer ctx, gconstpointer data, size_t size)
 static void
 browse_tx_flushed(txdrv_t *unused_tx, gpointer arg)
 {
-	struct browse_host_ctx *bh = arg;
+	struct browse_host_upload *bh = arg;
 
 	(void) unused_tx;
 
@@ -479,9 +489,10 @@ browse_tx_flushed(txdrv_t *unused_tx, gpointer arg)
  * Flush the TX stack, invoking callback when it's done.
  */
 static void
-browse_host_flush(gpointer ctx, bh_closed_t cb, gpointer arg)
+browse_host_flush(struct special_upload *ctx,
+	special_upload_closed_t cb, gpointer arg)
 {
-	struct browse_host_ctx *bh = ctx;
+	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 
 	g_assert(bh->tx);
 
@@ -502,9 +513,9 @@ browse_host_flush(gpointer ctx, bh_closed_t cb, gpointer arg)
  * @return An initialized browse host context.
  */
 void
-browse_host_close(gpointer ctx, gboolean fully_served)
+browse_host_close(struct special_upload *ctx, gboolean fully_served)
 {
-	struct browse_host_ctx *bh = ctx;
+	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 	GSList *sl;
 
 	g_assert(bh);
@@ -552,17 +563,17 @@ browse_host_close(gpointer ctx, gboolean fully_served)
  *
  * @return An initialized browse host context.
  */
-struct special_ctx *
+struct special_upload *
 browse_host_open(
 	gpointer owner,
-	gnet_host_t *host,
-	bh_writable_t writable,
+	struct gnutella_host *host,
+	special_upload_writable_t writable,
 	const struct tx_deflate_cb *deflate_cb,
 	const struct tx_link_cb *link_cb,
-	wrap_io_t *wio,
+	struct wrap_io *wio,
 	gint flags)
 {
-	struct browse_host_ctx *bh;
+	struct browse_host_upload *bh;
 
 	/* BH_HTML xor BH_QHITS set */
 	g_assert(flags & (BH_HTML|BH_QHITS));

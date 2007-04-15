@@ -41,56 +41,56 @@
 
 #include "common.h"
 #include "bsched.h"
-#include "bh_upload.h"
 
 #include "if/core/uploads.h"
 
 struct gnutella_node;
 struct dl_file_info;
+struct special_upload;
 
 typedef struct upload {
     gnet_upload_t upload_handle;
 	guint32 flags;					/**< Operating flags */
 	upload_stage_t status;
-	struct gnutella_socket *socket;
 	gint error_sent;				/**< HTTP error code sent back */
 	gpointer io_opaque;				/**< Opaque I/O callback information */
 	gpointer parq_opaque;			/**< Opaque parq information */
 
+	struct gnutella_socket *socket;
 	struct shared_file *sf;			/**< File we're uploading */
 	struct file_object *file;		/**< uploaded file */
-	bio_source_t *bio;				/**< Bandwidth-limited source */
-	sendfile_ctx_t sendfile_ctx;
-	struct special_ctx *special;	/**< For special ops like browsing */
+	struct dl_file_info *file_info;	/**< For PFSP: only set when partial file */
+	struct special_upload *special;	/**< For special ops like browsing */
+	const gchar *name;
+	const struct sha1 *sha1;		/**< SHA1 of requested file */
+	struct bio_source *bio;			/**< Bandwidth-limited source */
+	struct sendfile_ctx sendfile_ctx;
 
 	gchar *buffer;
 	gint bpos;
 	gint bsize;
 	gint buf_size;
 
-	const gchar *name;
-	filesize_t file_size;
 	guint file_index;
 
 	time_t start_date;
 	time_t last_update;
-
-	struct dl_file_info *file_info;	/**< For PFSP: only set when partial file */
+	time_t last_dmesh;			/**< Time when last download mesh was sent */
 
 	host_addr_t addr;			/**< Remote IP address */
+	host_addr_t gnet_addr;		/**< Advertised remote IP address */
+	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
+
 	const gchar *user_agent;	/**< Remote user agent */
 	gint country;				/**< Country of origin, ISO3166 code */
+
+	filesize_t file_size;
 	filesize_t skip;			/**< First byte to send, inclusive */
 	filesize_t end;				/**< Last byte to send, inclusive */
 	filesize_t pos;				/**< Read position in file we're sending */
 	filesize_t sent;			/**< Bytes sent in this request */
-
-	host_addr_t gnet_addr;		/**< Advertised remote IP address */
-	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
-
-	guint32 last_dmesh;			/**< Time when last download mesh was sent */
-	const struct sha1 *sha1;	/**< SHA1 of requested file */
 	filesize_t total_requested;	/**< Total amount of bytes requested */
+
 	gint http_major;			/**< HTTP major version */
 	gint http_minor;			/**< HTTP minor version */
 
