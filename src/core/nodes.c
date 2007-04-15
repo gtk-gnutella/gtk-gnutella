@@ -8742,20 +8742,19 @@ node_proxy_cancel_all(void)
  * If we are still firewalled and have push-proxies, let the downloader
  * know about them via the X-Push-Proxy header.
  */
-void
-node_http_proxies_add(gchar *buf, gint *retval,
+size_t
+node_http_proxies_add(gchar *buf, size_t size,
 		gpointer unused_arg, guint32 unused_flags)
 {
-	gint rw = 0;
-	gint length = *retval;		/* Space available, starting at `buf' */
+	size_t rw = 0;
 
 	(void) unused_arg;
 	(void) unused_flags;
 
 	if (is_firewalled && sl_proxies != NULL) {
-		gpointer fmt = header_fmt_make("X-Push-Proxy", ", ", 0);
+		header_t *fmt = header_fmt_make("X-Push-Proxy", ", ", 0);
 		GSList *sl;
-		gint len;
+		size_t len;
 
 		for (sl = sl_proxies; sl; sl = g_slist_next(sl)) {
 			struct gnutella_node *n = sl->data;
@@ -8771,15 +8770,14 @@ node_http_proxies_add(gchar *buf, gint *retval,
 		header_fmt_end(fmt);
 		len = header_fmt_length(fmt);
 
-		if (len < length) {
-			strncpy(buf, header_fmt_string(fmt), length);
+		if (len < size) {
+			strncpy(buf, header_fmt_string(fmt), size);
 			rw += len;
 		}
 
 		header_fmt_free(fmt);
 	}
-
-	*retval = rw;			/* Tell them how much we wrote into `buf' */
+	return rw; /* Tell them how much we wrote into `buf' */
 }
 
 /**

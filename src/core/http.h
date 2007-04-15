@@ -63,15 +63,15 @@ typedef enum {
  * The callback used to generate custom headers.
  *
  * @param `buf' is where the callback can generate extra data.
- * @param `retlen' is initially filled with the room available in `buf'.
+ * @param `size' is the size of buf in bytes.
  * @param `arg' is user-supplied data.
  * @param `flags' are extra flags passed by callback invoker
  *
- * The callback is expected to fill `buf' and return the length of written
- * data into `retlen'.
+ * The callback is expected to fill `buf' and return the amount of bytes
+ * written to buf.
  */
-typedef void (*http_status_cb_t)(
-	gchar *buf, gint *retlen, gpointer arg, guint32 flags);
+typedef size_t (*http_status_cb_t)(
+	gchar *buf, size_t size, gpointer arg, guint32 flags);
 
 typedef struct {
 	http_extra_type_t he_type;		/**< Union discriminent */
@@ -221,8 +221,8 @@ gboolean http_send_status(struct gnutella_socket *s,
 	gint code, gboolean keep_alive, http_extra_desc_t *hev, gint hevcnt,
 	const gchar *reason, ...) G_GNUC_PRINTF(6, 7);
 
-void http_hostname_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags);
+size_t http_hostname_add(
+	gchar *buf, size_t size, gpointer arg, guint32 flags);
 
 gint http_status_parse(const gchar *line,
 	const gchar *proto, const gchar **msg, guint *major, guint *minor);
