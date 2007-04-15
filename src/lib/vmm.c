@@ -126,12 +126,16 @@ round_pagesize(size_t n)
 
 static long
 compat_pagesize_intern(void)
-#if defined (_SC_PAGE_SIZE)
+#if defined (_SC_PAGESIZE) || defined(_SC_PAGE_SIZE)
 {
 	long ret;
 
 	errno = 0;
+#if defined (_SC_PAGESIZE)
+	ret = sysconf(_SC_PAGESIZE);
+#else
 	ret = sysconf(_SC_PAGE_SIZE);
+#endif
 	if (-1L == ret) {
 		return_value_unless(0 == errno, 0);
 	}
