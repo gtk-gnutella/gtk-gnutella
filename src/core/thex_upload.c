@@ -148,7 +148,7 @@ thex_upload_xml(struct thex_upload *ctx)
 	dime_record_free(&dime);
 }
 
-static void
+static gboolean
 thex_upload_tree(struct thex_upload *ctx)
 {
 	struct dime_record *dime;
@@ -157,8 +157,8 @@ thex_upload_tree(struct thex_upload *ctx)
 
 	nodes = NULL;	
 	n_nodes = tth_cache_get_tree(ctx->tth, &nodes);
-	g_return_if_fail(n_nodes > 0);
-	g_return_if_fail(nodes);
+	g_return_val_if_fail(n_nodes > 0, FALSE);
+	g_return_val_if_fail(nodes, FALSE);
 
 	dime = dime_record_alloc();
 	STATIC_ASSERT(TTH_RAW_SIZE == sizeof nodes[0]);
@@ -166,6 +166,7 @@ thex_upload_tree(struct thex_upload *ctx)
 	dime_record_set_id(dime, thex_upload_uuid(ctx));
 	ctx->size = dime_create_record(dime, &ctx->data, FALSE, TRUE);
 	dime_record_free(&dime);
+	return TRUE;
 }
 
 static void 
@@ -218,7 +219,10 @@ thex_upload_read(struct special_upload *special_upload,
 
 		case THEX_STATE_XML_SENT:
 			g_assert(NULL == ctx->data);
-			thex_upload_tree(ctx);
+			if (!thex_upload_tree(ctx)) {
+				errno = EIO;
+				return (ssize_t)-1;
+			}
 			ctx->state++;
 			break;
 
