@@ -156,24 +156,18 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n)
 }
 
 static gboolean
-tth_cache_check(const struct tth *tth, int fd, filesize_t filesize)
+tth_cache_check(const struct tth *tth, const char *buf, size_t size)
 {
-	struct tth root, nodes[1 << (TTH_MAX_DEPTH - 1)];
-	char buf[G_N_ELEMENTS(nodes) * TTH_RAW_SIZE];
-	size_t n_nodes, i, size;
-	ssize_t r;
+	struct tth root, nodes[TTH_MAX_LEAVES];
+	size_t n_nodes, i;
 
 	g_return_val_if_fail(tth, FALSE);
-	g_return_val_if_fail(fd >= 0, FALSE);
-	g_return_val_if_fail(filesize >= TTH_RAW_SIZE, FALSE);
-	g_return_val_if_fail(0 == (filesize % TTH_RAW_SIZE), FALSE);
+	g_return_val_if_fail(buf, FALSE);
+	g_return_val_if_fail(size >= TTH_RAW_SIZE, FALSE);
+	g_return_val_if_fail(0 == (size % TTH_RAW_SIZE), FALSE);
 
-	n_nodes = filesize / TTH_RAW_SIZE;
+	n_nodes = size / TTH_RAW_SIZE;
 	g_return_val_if_fail(n_nodes <= G_N_ELEMENTS(nodes), FALSE);
-
-	size = n_nodes * TTH_RAW_SIZE;
-	r = read(fd, buf, size);
-	g_return_val_if_fail((size_t) r == size, FALSE);
 
 	for (i = 0; i < n_nodes; i++) {
 		memmove(nodes[i].data, &buf[i * TTH_RAW_SIZE], TTH_RAW_SIZE);
@@ -185,36 +179,34 @@ tth_cache_check(const struct tth *tth, int fd, filesize_t filesize)
 	return TRUE;
 }
 
-/**
- * @return The number of leaves or zero if unknown.
- */
-size_t
-tth_cache_lookup(const struct tth *tth)
+static size_t
+tth_cache_leave_count(const struct tth *tth, int fd)
 {
-	size_t result = 0;
-	int fd, depth;
-	filesize_t size;
 	struct stat sb;
-	
-	g_return_val_if_fail(tth, 0);
+	filesize_t size;
+	int depth;
 
-	fd = tth_cache_file_open(tth);
-	if (fd < 0) {
-		goto finish;
-	}
+	g_return_val_if_fail(tth, 0);
+	g_return_val_if_fail(fd >= 0, 0);
+
 	if (fstat(fd, &sb)) {
-		g_warning("tth_cache_lookup(%s): fstat() failed: %s", tth_base32(tth),
-			g_strerror(errno));
-		goto finish;
+		g_warning("tth_cache_leave_count(%s): fstat() failed: %s",
+			tth_base32(tth), g_strerror(errno));
+		return 0;
 	}
 	if (!S_ISREG(sb.st_mode)) {
-		g_warning("tth_cache_lookup(%s): Not a regular file", tth_base32(tth));
-		goto finish;
+		g_warning("tth_cache_leave_count(%s): Not a regular file",
+			tth_base32(tth));
+		return 0;
 	}
-	if (sb.st_size < TTH_RAW_SIZE || sb.st_size % TTH_RAW_SIZE) {
-		g_warning("tth_cache_lookup(%s): Bad filesize %s",
+	if (
+		sb.st_size % TTH_RAW_SIZE ||
+		sb.st_size < TTH_RAW_SIZE ||
+		sb.st_size > TTH_MAX_LEAVES * TTH_RAW_SIZE
+	) {
+		g_warning("tth_cache_leave_count(%s): Bad filesize %s",
 			tth_base32(tth), off_t_to_string(sb.st_size));
-		goto finish;
+		return 0;
 	}
 
 	size = sb.st_size / TTH_RAW_SIZE;
@@ -224,22 +216,29 @@ tth_cache_lookup(const struct tth *tth)
 		depth++;
 	}
 	if (depth > TTH_MAX_DEPTH) {
-		g_warning("tth_cache_lookup(%s): Bad depth %u", tth_base32(tth), depth);
-		goto finish;
+		g_warning("tth_cache_leave_count(%s): Bad depth %u",
+			tth_base32(tth), depth);
+		return 0;
 	}
-	if (!tth_cache_check(tth, fd, sb.st_size)) {
-		g_warning("tth_cache_lookup(%s): Damaged file", tth_base32(tth));
-		goto finish;
-	}
-	result = sb.st_size / TTH_RAW_SIZE;
-	
-finish:
+	return sb.st_size / TTH_RAW_SIZE;
+}
 
+/**
+ * @return The number of leaves or zero if unknown.
+ */
+size_t
+tth_cache_lookup(const struct tth *tth)
+{
+	int fd, leave_count = 0;
+	
+	g_return_val_if_fail(tth, 0);
+
+	fd = tth_cache_file_open(tth);
 	if (fd >= 0) {
+		leave_count = tth_cache_leave_count(tth, fd);
 		close(fd);
-		fd = -1;
 	}
-	return result;
+	return leave_count;
 }
 
 void
@@ -252,6 +251,76 @@ tth_cache_remove(const struct tth *tth)
 	pathname = tth_cache_pathname(tth);
 	remove(pathname);
 	G_FREE_NULL(pathname);
+}
+
+static size_t
+tth_cache_get_leaves(const struct tth *tth,
+	struct tth leaves[TTH_MAX_LEAVES], size_t n)
+{
+	int fd, ret = 0;
+
+	g_return_val_if_fail(tth, 0);
+	g_return_val_if_fail(leaves, 0);
+
+	fd = tth_cache_file_open(tth);
+	if (fd >= 0) {
+		size_t n_leaves;
+		
+		n_leaves = tth_cache_leave_count(tth, fd);
+		n_leaves = MIN(n, n_leaves);
+
+		if (n_leaves > 0) {
+			size_t size;
+			ssize_t r;
+
+			STATIC_ASSERT(TTH_RAW_SIZE == sizeof(leaves[0]));
+
+			size = TTH_RAW_SIZE * n_leaves;
+			r = read(fd, &leaves[0].data, size);
+			if ((size_t) r == size) {
+				ret = n_leaves;
+			}
+		}
+		close(fd);
+	}
+	return ret;
+}
+
+size_t
+tth_cache_get_tree(const struct tth *tth, struct tth **tree)
+{
+	static struct tth nodes[TTH_MAX_LEAVES * 2];
+	size_t n_leaves;
+
+	g_return_val_if_fail(tth, 0);
+	g_return_val_if_fail(tree, 0);
+
+	*tree = NULL;
+	
+	n_leaves = tth_cache_get_leaves(tth,
+					&nodes[TTH_MAX_LEAVES], TTH_MAX_LEAVES);
+	g_assert(n_leaves <= TTH_MAX_LEAVES);
+
+	if (n_leaves > 0) {
+		size_t n_nodes, dst, src;
+
+		n_nodes = n_leaves;
+		dst = TTH_MAX_LEAVES;
+
+		while (n_leaves > 1) {
+			src = dst;
+			dst = src - (n_leaves + 1) / 2;
+
+			n_leaves = tt_compute_parents(&nodes[dst], &nodes[src], n_leaves);
+			n_nodes += n_leaves;
+		}
+
+		g_return_val_if_fail(tth_eq(tth, &nodes[dst]), 0);
+		*tree = &nodes[dst];
+		return n_nodes;
+	} else {
+		return 0;
+	}
 }
 
 void
