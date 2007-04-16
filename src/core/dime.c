@@ -55,7 +55,23 @@ enum {
 	DIME_F_MB = 1 << 2
 };
 
-static struct dime_record *
+struct dime_record {
+	const char	*data;
+	const char	*options;
+	const char	*type;
+	const char	*id;
+	guint32	 data_length;
+	guint16	 options_length;
+	guint16	 type_length;
+	guint16	 id_length;
+
+	unsigned char	flags;
+	unsigned char	version;
+	unsigned char	type_t;
+	unsigned char	resrvd;
+};
+
+struct dime_record *
 dime_record_alloc(void)
 {
 	static const struct dime_record zero_record;
@@ -66,7 +82,7 @@ dime_record_alloc(void)
 	return record;
 }
 
-static void
+void
 dime_record_free(struct dime_record **record_ptr)
 {
 	struct dime_record *record = *record_ptr;
@@ -116,7 +132,7 @@ dime_fill_record_header(const struct dime_record *record,
 	g_assert(data);
 	g_assert(size >= DIME_HEADER_SIZE);
 
-	value = record->version << 3;
+	value = DIME_VERSION << 3;
 	value |= (DIME_F_MB & flags);
 	value |= (DIME_F_ME & flags);
 	value |= (DIME_F_CF & flags);
@@ -129,13 +145,11 @@ dime_fill_record_header(const struct dime_record *record,
 	poke_be32(&data[8], record->data_length);
 }
 
-char *
+size_t
 dime_create_record(const struct dime_record *record,
-	gboolean first, gboolean last)
+	char **data_ptr, gboolean first, gboolean last)
 {
-	char *data0, *data;
 	size_t size;
-	guint flags;
 
 	size = DIME_HEADER_SIZE +
 		dime_ceil(record->options_length) +
@@ -143,26 +157,32 @@ dime_create_record(const struct dime_record *record,
 		dime_ceil(record->type_length) +
 		dime_ceil(record->data_length);
 
-	data0 = g_malloc0(size);
-	data = data0;
+	if (data_ptr) {
+		char *data0, *data;
+		guint flags;
 
-	flags = (first ? DIME_F_MB : 0) | (last ?  DIME_F_ME : 0);
-	dime_fill_record_header(record, data, size, flags);
-	data += DIME_HEADER_SIZE;
+		data0 = g_malloc0(size);
+		data = data0;
 
-	memcpy(data, record->options, record->options_length);
-	data += dime_ceil(record->options_length);
+		flags = (first ? DIME_F_MB : 0) | (last ?  DIME_F_ME : 0);
+		dime_fill_record_header(record, data, size, flags);
+		data += DIME_HEADER_SIZE;
 
-	memcpy(data, record->id, record->id_length);
-	data += dime_ceil(record->id_length);
+		memcpy(data, record->options, record->options_length);
+		data += dime_ceil(record->options_length);
 
-	memcpy(data, record->type, record->type_length);
-	data += dime_ceil(record->type_length);
+		memcpy(data, record->id, record->id_length);
+		data += dime_ceil(record->id_length);
 
-	memcpy(data, record->data, record->data_length);
-	data += dime_ceil(record->data_length);
+		memcpy(data, record->type, record->type_length);
+		data += dime_ceil(record->type_length);
 
-	return data0;
+		memcpy(data, record->data, record->data_length);
+		data += dime_ceil(record->data_length);
+
+		*data_ptr = data0;
+	}
+	return size;
 }
 
 /***
@@ -278,6 +298,48 @@ error:
 
 	dime_list_free(&list);
 	return NULL;
+}
+
+gboolean
+dime_record_set_data(struct dime_record *record, const void *data, size_t size)
+{
+	g_return_val_if_fail(record, FALSE);
+	g_return_val_if_fail(NULL != data || 0 == size, FALSE);
+	g_return_val_if_fail(size < (guint32)-1, FALSE);
+
+	record->data = data;
+	record->data_length = size;
+	return TRUE;
+}
+	
+gboolean
+dime_record_set_id(struct dime_record *record, const char *id)
+{
+	size_t length;
+	
+	g_return_val_if_fail(record, FALSE);
+
+	length = id ? strlen(id) : 0;
+	g_return_val_if_fail(length < (guint16)-1, FALSE);
+
+	record->id = id;
+	record->id_length = length;
+	return TRUE;
+}
+
+gboolean
+dime_record_set_type(struct dime_record *record, const char *type)
+{
+	size_t length;
+	
+	g_return_val_if_fail(record, FALSE);
+
+	length = type ? strlen(type) : 0;
+	g_return_val_if_fail(length < (guint16)-1, FALSE);
+
+	record->type = type;
+	record->type_length = length;
+	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

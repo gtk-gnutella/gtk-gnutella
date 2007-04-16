@@ -40,21 +40,18 @@
 
 #include "common.h"
 
-struct dime_record {
-	const char	*data;
-	const char	*options;
-	const char	*type;
-	const char	*id;
-	guint32	 data_length;
-	guint16	 options_length;
-	guint16	 type_length;
-	guint16	 id_length;
+struct dime_record;
 
-	unsigned char	flags;
-	unsigned char	version;
-	unsigned char	type_t;
-	unsigned char	resrvd;
-};
+struct dime_record *dime_record_alloc(void);
+void dime_record_free(struct dime_record **record_ptr);
+
+size_t dime_create_record(const struct dime_record *record,
+			char **data_ptr, gboolean first, gboolean last);
+
+gboolean dime_record_set_data(struct dime_record *record,
+			const void *data, size_t size);
+gboolean dime_record_set_id(struct dime_record *record, const char *id);
+gboolean dime_record_set_type(struct dime_record *record, const char *type);
 
 void dime_list_free(GSList **list_ptr);
 GSList *dime_parse_records(const gchar *data, size_t size);
