@@ -117,18 +117,37 @@ struct TTH_CONTEXT {
 	unsigned flags;
 	char block[TTH_BLOCKSIZE + 1];
 	struct tth stack[56];
-	struct tth leaves[1 << (TTH_MAX_DEPTH - 1)];
+	struct tth leaves[TTH_MAX_LEAVES];
 };
+
+filesize_t
+tt_blocks_for_filesize(filesize_t filesize)
+{
+	return (filesize / TTH_BLOCKSIZE) + ((filesize % TTH_BLOCKSIZE) ? 1 : 0);
+}
+
+unsigned
+tt_depth_for_filesize(filesize_t filesize)
+{
+	filesize_t n_blocks;
+	unsigned depth;
+
+	n_blocks = tt_blocks_for_filesize(filesize); 
+	depth = 1;
+	while (n_blocks > 1) {
+		n_blocks = (n_blocks + 1) / 2;
+		depth++;
+	}
+	return depth;
+}
 
 filesize_t 
 tt_bottom_node_count(filesize_t filesize)
 {
 	filesize_t n;
 
-	n = filesize / TTH_BLOCKSIZE;
-	n += (filesize % TTH_BLOCKSIZE) ? 1 : 0;
-
-	while (n > (1 << (TTH_MAX_DEPTH - 1))) {
+	n = tt_blocks_for_filesize(filesize); 
+	while (n > TTH_MAX_LEAVES) {
 		n = (n + 1) / 2;
 	}
 	return n;
@@ -137,17 +156,10 @@ tt_bottom_node_count(filesize_t filesize)
 static filesize_t 
 tt_blocks_per_leaf(filesize_t filesize)
 {
-	filesize_t n_blocks, n_bpl;
+	filesize_t n_bpl;
 	unsigned depth;
 
-	n_blocks = filesize / TTH_BLOCKSIZE;
-	n_blocks += (filesize % TTH_BLOCKSIZE) ? 1 : 0;
-
-	depth = 1;
-	while (n_blocks > 1) {
-		n_blocks = (n_blocks + 1) / 2;
-		depth++;
-	}
+	depth = tt_depth_for_filesize(filesize);
 	if (depth > TTH_MAX_DEPTH) {
 		n_bpl = (filesize_t) 1 << (depth - TTH_MAX_DEPTH);
 	} else {
@@ -256,6 +268,28 @@ tt_finish(TTH_CONTEXT *ctx)
 	ctx->flags |= TTH_F_FINISHED;
 }
 
+/**
+ * @param dst must be (src_leaves + 1) / 2 elements large.
+ * @param src the nodes to compute the parents for.
+ * @param src_leaves the number of 'src' nodes.
+ * return The number of parents.
+ */
+size_t
+tt_compute_parents(struct tth *dst, const struct tth *src, size_t src_leaves)
+{
+	size_t i, n;
+
+	n = src_leaves / 2;
+	for (i = 0; i < n; i++) {
+		tt_internal_hash(&src[i * 2], &src[i * 2 + 1], &dst[i]);
+	}
+	if (src_leaves & 1) {
+		dst[i] = src[i * 2];
+		i++;
+	}
+	return i;
+}
+
 struct tth
 tt_root_hash(const struct tth *src, size_t n_leaves)
 {
@@ -263,26 +297,15 @@ tt_root_hash(const struct tth *src, size_t n_leaves)
 	g_assert(n_leaves > 0);
 
 	if (n_leaves > 1) {
-		struct tth root, *dst;
+		struct tth root, *buf;
 
-		dst = g_malloc((n_leaves / 2 + 1) * sizeof dst[0]);
-		do {
-			size_t i, n;
-
-			n = n_leaves / 2;
-			for (i = 0; i < n; i++) {
-				tt_internal_hash(&src[i * 2], &src[i * 2 + 1], &dst[i]);
-			}
-			if (n_leaves & 1) {
-				dst[i] = src[i * 2];
-				i++;
-			}
-			n_leaves = i;
-			src = dst;
-		} while (n_leaves > 1);
-
-		root = dst[0];
-		G_FREE_NULL(dst);
+		buf = g_malloc((n_leaves + 1) * 2 * sizeof buf[0]);
+		n_leaves = tt_compute_parents(buf, src, n_leaves);
+		while (n_leaves > 1) {
+			n_leaves = tt_compute_parents(buf, buf, n_leaves);
+		}
+		root = buf[0];
+		G_FREE_NULL(buf);
 		return root;
 	} else {
 		return src[0];

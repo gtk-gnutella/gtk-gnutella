@@ -66,6 +66,8 @@
 
 /* Maximum depth to preserve */
 #define TTH_MAX_DEPTH	9
+#define TTH_MAX_LEAVES	(1 << (TTH_MAX_DEPTH - 1))
+
 
 struct TTH_CONTEXT;
 typedef struct TTH_CONTEXT TTH_CONTEXT;
@@ -80,7 +82,10 @@ void tt_digest(TTH_CONTEXT *ctx, struct tth *tth);
 const struct tth *tt_leaves(TTH_CONTEXT *ctx);
 size_t tt_leave_count(TTH_CONTEXT *ctx);
 struct tth tt_root_hash(const struct tth *src, size_t n_leaves);
+size_t tt_compute_parents(struct tth *dst,
+		const struct tth *src, size_t src_leaves);
 filesize_t tt_bottom_node_count(filesize_t filesize);
+unsigned tt_depth_for_filesize(filesize_t filesize);
 
 #endif /* _tigertree_h_ */
 /* vi: set ts=4 sw=4 cindent: */
