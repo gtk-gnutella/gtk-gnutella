@@ -27,7 +27,8 @@
  * @ingroup core
  * @file
  *
- * Handles the server-side of the Browse Host function.
+ * For special uploads like data which is generated on the fly in contrast
+ * to serving shared files.
  *
  * @author Christian Biere
  * @author Raphael Manfredi
