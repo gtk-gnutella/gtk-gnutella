@@ -193,51 +193,52 @@ gconstpointer atom_get_track(enum atom_type, gconstpointer key,
 void atom_free_track(enum atom_type, gconstpointer key, gchar *file, gint line);
 #endif
 
-static inline void
-atom_str_free_null(const gchar **k_ptr)
-{
-	if (*k_ptr) {
-		atom_free(ATOM_STRING, *k_ptr);
-		*k_ptr = NULL;
-	}
+
+/**
+ * These functions dereference the given atom and nullify the pointer.
+ * The atom may also point to NULL, so the caller does not have to
+ * check this.
+ */
+#define GENERATE_ATOM_FREE_NULL(name, type) \
+static inline void \
+atom_ ## name ## _free_null(const type *k_ptr) \
+{ \
+	if (*k_ptr) { \
+		atom_ ## name ## _free(*k_ptr); \
+		*k_ptr = NULL; \
+	} \
 }
 
-static inline void
-atom_sha1_free_null(const struct sha1 **k_ptr)
-{
-	if (*k_ptr) {
-		atom_free(ATOM_SHA1, *k_ptr);
-		*k_ptr = NULL;
-	}
+GENERATE_ATOM_FREE_NULL(filesize, filesize_t *)
+GENERATE_ATOM_FREE_NULL(guid, gchar *)
+GENERATE_ATOM_FREE_NULL(sha1, struct sha1 *)
+GENERATE_ATOM_FREE_NULL(str, gchar *)
+GENERATE_ATOM_FREE_NULL(tth, struct tth *)
+GENERATE_ATOM_FREE_NULL(uint64, guint64 *)
+#undef GENERATE_ATOM_FREE_NULL
+
+/**
+ * These functions set an atom to a new value. The old atom is dereferenced.
+ * This prevents one issue: "value" might actually be the current atom. If
+ * it has a reference count of 1, dereferencing would free "value" as well
+ * and we end up with a corrupt atom.
+ */
+#define GENERATE_ATOM_CHANGE(name, type) \
+static inline void \
+atom_ ## name ## _change(const type *atom_ptr, const type value) \
+{ \
+	const void *atom = value ? atom_ ## name ## _get(value) : NULL; \
+	atom_ ## name ## _free_null(atom_ptr); \
+	*atom_ptr = atom; \
 }
 
-static inline void
-atom_tth_free_null(const struct tth **k_ptr)
-{
-	if (*k_ptr) {
-		atom_free(ATOM_TTH, *k_ptr);
-		*k_ptr = NULL;
-	}
-}
-
-static inline void
-atom_filesize_free_null(const filesize_t **k_ptr)
-{
-	if (*k_ptr) {
-		atom_free(ATOM_FILESIZE, *k_ptr);
-		*k_ptr = NULL;
-	}
-}
-
-static inline void
-atom_guid_free_null(const gchar **k_ptr)
-{
-	if (*k_ptr) {
-		atom_free(ATOM_GUID, *k_ptr);
-		*k_ptr = NULL;
-	}
-}
-
+GENERATE_ATOM_CHANGE(filesize, filesize_t *)
+GENERATE_ATOM_CHANGE(guid, gchar *)
+GENERATE_ATOM_CHANGE(sha1, struct sha1 *)
+GENERATE_ATOM_CHANGE(str, gchar *)
+GENERATE_ATOM_CHANGE(tth, struct tth *)
+GENERATE_ATOM_CHANGE(uint64, guint64 *)
+#undef GENERATE_ATOM_CHANGE
 
 #endif	/* _atoms_h_ */
 
