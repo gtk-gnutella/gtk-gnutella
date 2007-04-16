@@ -61,7 +61,8 @@ RCSID("$Id$")
 #include "share.h"
 #include "sockets.h"
 #include "spam.h"
-#include "special_upload.h"
+#include "thex_upload.h"
+#include "tth_cache.h"
 #include "tls_cache.h"
 #include "tx_deflate.h"
 #include "tx_link.h"		/* for callback structures */
@@ -919,6 +920,7 @@ upload_free_resources(gnutella_upload_t *u)
 		socket_free_null(&u->socket);
 	}
 	shared_file_unref(&u->sf);
+	shared_file_unref(&u->thex);
 
     upload_free_handle(u->upload_handle);
 }
@@ -964,6 +966,7 @@ upload_clone(gnutella_upload_t *u)
 	u->user_agent = NULL;
 	u->country = -1;
 	u->sha1 = NULL;
+	u->thex = NULL;
 
 	/*
 	 * Add the upload structure to the upload slist, so it's monitored
@@ -1552,6 +1555,7 @@ upload_aborted_file_stats(const struct upload *u)
 	if (
 		UPLOAD_IS_SENDING(u) &&
 		!u->browse_host &&
+		!u->thex &&
 		!u->accounted &&
 		u->sf &&
 		u->pos > u->skip
@@ -1861,6 +1865,7 @@ call_upload_request(gpointer obj, header_t *header)
 	 * what the last request was.
 	 */
 	shared_file_unref(&u->sf);
+	shared_file_unref(&u->thex);
 	atom_str_free_null(&u->name);
 
 	upload_request(cast_to_upload(obj), header);
@@ -2232,8 +2237,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 		return -1;
 	}
 
-	atom_str_free_null(&u->name);
-    u->name = atom_str_get(uri);
+    atom_str_change(&u->name, uri);
 
 	/*
 	 * If we have a X-Gnutella-Content-Urn, check whether we got a valid
@@ -2444,7 +2448,6 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 {
 	struct sha1 sha1;
 	struct shared_file *sf;
-	const gchar *filename;
 	gboolean malformed;
 
 	g_assert(u);
@@ -2478,14 +2481,13 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 	 */
 
 	if (sf == NULL || sf == SHARE_REBUILDING) {
-		filename = ignore_sha1_filename(&sha1);
-		filename = filename == NULL ? atom_str_get(uri) :
-			atom_str_get(filename);
-	} else
-		filename = atom_str_get(shared_file_name_nfc(sf));
+		const gchar *filename;
 
- 	atom_str_free_null(&u->name);
-    u->name = filename;
+		filename = ignore_sha1_filename(&sha1);
+ 		atom_str_change(&u->name, filename ? filename : uri);
+	} else {
+ 		atom_str_change(&u->name, shared_file_name_nfc(sf));
+	}
 
 	if (sf == SHARE_REBUILDING) {
 		/* Retry-able by user, hence 503 */
@@ -2516,6 +2518,81 @@ not_found:
 }
 
 /**
+ * Get the shared_file to upload from a given URN.
+ * @return -1 on error, 0 on success.
+ */
+static gint
+get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
+{
+	struct tth tth_buf, *tth = NULL;
+	struct sha1 sha1;
+	struct shared_file *sf;
+
+	g_assert(u);
+	g_assert(NULL == u->sf);
+
+	if (!experimental_tigertree_support)
+		goto not_found;
+
+	if (!uri)
+		goto malformed;
+
+	u->n2r = TRUE;		/* Remember we saw an N2R request */
+
+	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+		tth = &tth_buf;
+	} else if (urn_get_sha1(uri, &sha1)) {
+		tth = NULL;
+	} else {
+		goto malformed;
+	}
+
+	if (spam_check_sha1(&sha1)) {
+		goto not_found;
+	}
+
+	sf = shared_file_by_sha1(&sha1);
+	if (SHARE_REBUILDING == sf) {
+		/* Retry-able by user, hence 503 */
+		atom_str_change(&u->name, bitprint_to_urn_string(&sha1, tth));
+		upload_error_remove(u, 503, "Library being rebuilt");
+		return -1;
+	}
+	if (sf == NULL) {
+		atom_str_change(&u->name, bitprint_to_urn_string(&sha1, tth));
+		goto not_found;
+	}
+	atom_str_change(&u->name, shared_file_name_nfc(sf));
+
+	if (!sha1_hash_is_uptodate(sf)) {
+		upload_error_remove(u, 503, "SHA1 is being recomputed");
+		return -1;
+	}
+	if (!upload_file_present(sf)) {
+		goto not_found;
+	}
+	if (NULL == shared_file_tth(sf)) {
+		goto not_found;
+	}
+	if (tth && !tth_eq(tth, shared_file_tth(sf))) {
+		goto not_found;
+	}
+	if (0 == tth_cache_lookup(shared_file_tth(sf))) {
+		goto not_found;
+	}
+	u->thex = shared_file_ref(sf);
+	return 0;
+
+not_found:
+	upload_error_not_found(u, uri);			/* Unknown URN => not found */
+	return -1;
+
+malformed:
+	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2X request");
+	return -1;
+}
+
+/**
  * A dispatcher function to call either get_file_to_upload_from_index or
  * get_file_to_upload_from_sha1 depending on the syntax of the request.
  *
@@ -2533,7 +2610,7 @@ static gint
 get_file_to_upload(gnutella_upload_t *u, header_t *header,
 	gchar *uri, gchar *search)
 {
-	gchar *arg;
+	const gchar *endptr;
 
 	g_assert(u);
 	g_assert(NULL == u->sf);
@@ -2541,18 +2618,26 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header,
     if (u->name == NULL)
         u->name = atom_str_get(uri);
 
-	if (NULL != (arg = is_strprefix(uri, "/get/"))) {
-		const gchar *endptr;
+	if (NULL != (endptr = is_strprefix(uri, "/get/"))) {
 		guint32 idx;
 		gint error;
 
-		idx = parse_uint32(arg, &endptr, 10, &error);
-		if (!error && '/' == endptr[0] && '\0' != endptr[1]) {
-			arg = deconstify_gchar(&endptr[1]);
-			return get_file_to_upload_from_index(u, header, arg, idx);
+		idx = parse_uint32(endptr, &endptr, 10, &error);
+		if (
+			!error &&
+			'/' == endptr[0] &&
+			'\0' != endptr[1] &&
+			NULL == strchr(&endptr[1], '/')
+		) {
+			endptr = deconstify_gchar(&endptr[1]);
+			return get_file_to_upload_from_index(u, header, endptr, idx);
 		}
-	} else if (0 == strcmp(uri, "/uri-res/N2R")) {
-		return get_file_to_upload_from_urn(u, header, search);
+	} else if (NULL != (endptr = is_strprefix(uri, "/uri-res/"))) {
+		if (0 == strcmp(endptr, "N2R")) {
+			return get_file_to_upload_from_urn(u, header, search);
+		} else if (0 == strcmp(endptr, "N2X")) {
+			return get_thex_file_to_upload_from_urn(u, search);
+		}
 	} else {
 		shared_file_t *sf = shared_special(uri);
 
@@ -2609,8 +2694,8 @@ static const struct tx_link_cb upload_tx_link_cb = {
  *
  * @return The chosen compression method.
  *         0: no compression,
- *         BH_GZIP: gzip,
- *         BH_DEFLATE: deflate
+ *         BH_F_GZIP: gzip,
+ *         BH_F_DEFLATE: deflate
  */
 static gint
 select_encoding(header_t *header)
@@ -2626,11 +2711,11 @@ select_encoding(header_t *header)
 			
 			ua = header_get(header, "User-Agent");
 			if (NULL == ua || NULL == strstr(ua, "AppleWebKit"))
-				return BH_DEFLATE;
+				return BH_F_DEFLATE;
 		}
 
 		if (strstr(buf, "gzip"))
-			return BH_GZIP;
+			return BH_F_GZIP;
 	}
 
     return 0;
@@ -2674,7 +2759,7 @@ supports_chunked(const gnutella_upload_t *u, header_t *header)
  * host and either expect a new request now or terminated the connection.
  */
 static gboolean
-prepare_browsing(gnutella_upload_t *u, header_t *header,
+prepare_browse_host_upload(gnutella_upload_t *u, header_t *header,
 	const gchar *method, const gchar *host,
 	time_t now, http_extra_desc_t *hev, size_t hevlen,
 	size_t *hevsize, gint *flags)
@@ -2767,21 +2852,21 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 	if (buf) {
 		/* XXX needs more rigourous parsing */
 		if (strstr(buf, "application/x-gnutella-packets"))
-			bh_flags |= BH_QHITS;
+			bh_flags |= BH_F_QHITS;
 		else if (strstr(buf, "text/html"))
-			bh_flags |= BH_HTML;
+			bh_flags |= BH_F_HTML;
 		else if (strstr(buf, "*/*") || strstr(buf, "text/*"))
-			bh_flags |= BH_HTML;	/* A browser probably */
+			bh_flags |= BH_F_HTML;	/* A browser probably */
 		else {
 			upload_error_remove(u, 406, "Not Acceptable");
 			return FALSE;
 		}
 	} else
-		bh_flags |= BH_HTML;		/* No Accept, default to HTML */
+		bh_flags |= BH_F_HTML;		/* No Accept, default to HTML */
 
 	g_assert(hevcnt < hevlen);
 	hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-	hev[hevcnt].he_msg = (bh_flags & BH_HTML) ?
+	hev[hevcnt].he_msg = (bh_flags & BH_F_HTML) ?
 		"Content-Type: text/html; charset=utf-8\r\n" :
 		"Content-Type: application/x-gnutella-packets\r\n";
 	hev[hevcnt++].he_arg = NULL;
@@ -2792,10 +2877,10 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 
 	bh_flags |= select_encoding(header);
 
-	if (bh_flags & (BH_DEFLATE | BH_GZIP)) {
+	if (bh_flags & (BH_F_DEFLATE | BH_F_GZIP)) {
 		g_assert(hevcnt < hevlen);
 		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = (bh_flags & BH_GZIP)
+		hev[hevcnt].he_msg = (bh_flags & BH_F_GZIP)
 				? "Content-Encoding: gzip\r\n"
 				: "Content-Encoding: deflate\r\n";
 		hev[hevcnt++].he_arg = NULL;
@@ -2806,7 +2891,7 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 	 */
 
 	if (supports_chunked(u, header)) {
-		bh_flags |= BH_CHUNKED;
+		bh_flags |= BH_F_CHUNKED;
 
 		g_assert(hevcnt < hevlen);
 		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
@@ -2833,13 +2918,12 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 
 		gm_snprintf(name, sizeof name,
 				_("<Browse Host Request> [%s%s%s]"),
-				(bh_flags & BH_HTML) ? "HTML" : _("query hits"),
-				(bh_flags & BH_DEFLATE) ? _(", deflate") :
-					(bh_flags & BH_GZIP) ? _(", gzip") : "",
-				(bh_flags & BH_CHUNKED) ? _(", chunked") : "");
+				(bh_flags & BH_F_HTML) ? "HTML" : _("query hits"),
+				(bh_flags & BH_F_DEFLATE) ? _(", deflate") :
+					(bh_flags & BH_F_GZIP) ? _(", gzip") : "",
+				(bh_flags & BH_F_CHUNKED) ? _(", chunked") : "");
 
-		atom_str_free(u->name);
-		u->name = atom_str_get(name);
+		atom_str_change(&u->name, name);
 	}
 
 	*hevsize = hevcnt;
@@ -2847,7 +2931,6 @@ prepare_browsing(gnutella_upload_t *u, header_t *header,
 
 	return TRUE;
 }
-
 
 /**
  * Called to initiate the upload once all the HTTP headers have been
@@ -2896,6 +2979,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 	g_assert(NULL == u->sf);
 	g_assert(NULL == u->name);
+	g_assert(NULL == u->thex);
 	g_assert(!u->browse_host);
 
 	u->from_browser = upload_likely_from_browser(header);
@@ -3173,7 +3257,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (0 == strcmp(uri, "/")) {
 		if (
-			!prepare_browsing(u, header, method, host, now,
+			!prepare_browse_host_upload(u, header, method, host, now,
 				hev, G_N_ELEMENTS(hev), &hevcnt, &bh_flags)
 		)
 			return;
@@ -3226,11 +3310,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		u->file_index = idx;
 		/* Identify file for follow-up reqs */
-		if (!u->sha1 && sha1)
+		if (!u->sha1 && sha1) {
 			u->sha1 = atom_sha1_get(sha1);
-
-		atom_str_free_null(&u->name);
-		u->name = atom_str_get(shared_file_name_nfc(u->sf));
+		}
+		atom_str_change(&u->name, shared_file_name_nfc(u->sf));
 		/* NULL unless partially shared file */
 		u->file_info = shared_file_fileinfo(u->sf);
 
@@ -3449,8 +3532,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * length of the data in advance.
 	 */
 
-	if (u->browse_host && !(bh_flags & BH_CHUNKED))
+	if (
+		u->thex ||
+		(u->browse_host && !(bh_flags & BH_F_CHUNKED))
+	) {
 		u->keep_alive = FALSE;
+	}
 
 	/*
 	 * If the requested range was determined to be unavailable, signal it
@@ -3988,16 +4075,32 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		gnet_host_t h;
 
 		gnet_host_set(&h, u->socket->addr, u->socket->port);
-		u->special = browse_host_open(
-			u, &h, upload_special_writable,
-			&upload_tx_deflate_cb, &upload_tx_link_cb,
-			&u->socket->wio, bh_flags);
-	} else
+		u->special = browse_host_open(u,
+						&h,
+						upload_special_writable,
+						&upload_tx_deflate_cb,
+						&upload_tx_link_cb,
+						&u->socket->wio,
+						bh_flags);
+	} else if (u->thex) {
+		gnet_host_t h;
+
+		gnet_host_set(&h, u->socket->addr, u->socket->port);
+		u->special = thex_upload_open(u,
+						&h,
+						u->thex,
+						upload_special_writable,
+						&upload_tx_link_cb,
+						&u->socket->wio,
+						0);
+		shared_file_unref(&u->thex);
+	} else {
 		u->bio = bsched_source_add(BSCHED_BWS_OUT, &s->wio,
 			BIO_F_WRITE, upload_writable, u);
+		if (u->sf)
+			upload_stats_file_begin(u->sf);
+	}
 
-	if (u->sf)
-		upload_stats_file_begin(u->sf);
 }
 
 static void

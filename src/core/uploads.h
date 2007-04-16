@@ -63,6 +63,7 @@ typedef struct upload {
 	struct special_upload *special;	/**< For special ops like browsing */
 	const gchar *name;
 	const struct sha1 *sha1;		/**< SHA1 of requested file */
+	struct shared_file *thex;		/**< THEX owner we're uploading */
 	struct bio_source *bio;			/**< Bandwidth-limited source */
 	struct sendfile_ctx sendfile_ctx;
 
