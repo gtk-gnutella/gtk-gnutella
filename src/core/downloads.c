@@ -1607,8 +1607,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 			guid_eq(key->guid, blank_guid) &&
 			!guid_eq(duplicate->key->guid, blank_guid)
 		) {
-			atom_guid_free(key->guid);
-			key->guid = atom_guid_get(duplicate->key->guid);
+			atom_guid_change(&key->guid, duplicate->key->guid);
 		} else if (
 			!guid_eq(key->guid, duplicate->key->guid) &&
 			!guid_eq(duplicate->key->guid, blank_guid)
@@ -1684,14 +1683,7 @@ static void
 set_server_hostname(struct dl_server *server, const gchar *hostname)
 {
 	g_assert(dl_server_valid(server));
-
-	/* Creating an atom from an atom we just freed is a bad idea. */
-	g_return_if_fail(NULL == hostname || server->hostname != hostname);
-
-	atom_str_free_null(&server->hostname);
-	if (hostname) {
-		server->hostname = atom_str_get(hostname);
-	}
+	atom_str_change(&server->hostname, hostname);
 }
 
 /**

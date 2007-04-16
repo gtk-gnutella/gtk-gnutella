@@ -128,13 +128,13 @@ static void update_volatile_cache(
 	const struct sha1 *sha1,
 	const struct tth *tth)
 {
+	g_assert(sha1);	/* tth may be NULL but sha1 not */
+
 	item->shared = TRUE;
 	item->size = size;
 	item->mtime = mtime;
-	atom_sha1_free(item->sha1);
-	item->sha1 = atom_sha1_get(sha1);
-	atom_tth_free_null(&item->tth);
-	item->tth = tth ? atom_tth_get(tth) : NULL;
+	atom_sha1_change(&item->sha1, sha1);
+	atom_tth_change(&item->tth, tth);
 }
 
 /**

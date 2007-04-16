@@ -2597,8 +2597,7 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
 	}
 
-	atom_sha1_free_null(&sf->sha1);
-	sf->sha1 = atom_sha1_get(sha1);
+	atom_sha1_change(&sf->sha1, sha1);
 	sf->flags |= SHARE_F_HAS_DIGEST;
 	g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
 }
@@ -2610,8 +2609,7 @@ shared_file_set_tth(struct shared_file *sf, const struct tth *tth)
 
 	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
 
-	atom_tth_free_null(&sf->tth);
-	sf->tth = tth ? atom_tth_get(tth) : NULL;
+	atom_tth_change(&sf->tth, tth);
 }
 
 void
