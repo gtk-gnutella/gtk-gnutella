@@ -160,7 +160,7 @@ may locate the status icons in the status bar.</para>
 
 <figure id="gtkg-diagram"><title>gtk-gnutella Screen Areas</title>
 <screenshot>
-<graphic fileref="images/gtkg-diagram"></graphic>
+<graphic width="784" depth="600" fileref="images/gtkg-diagram"></graphic>
 </screenshot>
 </figure>
 
@@ -296,14 +296,14 @@ However, when you first use gtk-gnutella, it can be rather daunting to get
 proper network connectivity.  The good news is the gtk-gnutella can work
 partially even with limited network connectivity.  If the status icon,
 second from the left, has a smiley face with sun-glasses, then you are
-in good shape! <graphic fileref="images/no_firewall"/></para>
+in good shape! <graphic width="32" depth="32" fileref="images/no_firewall"/></para>
 
 <para> There are several variation of the "firewalled" icon.
 Firewalled is a mis-leading term.  It actually means that gtk-gnutella is not
 detecting good connections to the rest of the GnutellaNet.  It is ok
 to continue with this icon, if you have connections showing in the
 GnutellaNet Status area (ie. "3/3 Connections").  <graphic
-fileref="images/firewall"/> </para>
+width="32" depth="32" fileref="images/firewall"/> </para>
 
 <para> Another task that gtk-gnutella helps you with is finding files.  This
 is called "Searching".  There are all kinds of people connected to
@@ -396,7 +396,7 @@ scroll through many different items. </para>
 
 <figure><title>gtk-gnutella Searches</title>
 <screenshot>
-<graphic fileref="images/search"/>
+<graphic width="623" depth="542" fileref="images/search"/>
 </screenshot>
 </figure>
 
@@ -433,7 +433,7 @@ and "lesbian granny" are using MLDonkey. </para>
 
 <figure><title>gtk-gnutella Search monitor</title>
 <screenshot>
-<graphic fileref="images/search-monitor"></graphic>
+<graphic width="430" depth="580" fileref="images/search-monitor"></graphic>
 </screenshot>
 </figure>
 
@@ -479,7 +479,7 @@ are explained in the tooltip. </para>
 
 <figure><title>gtk-gnutella downloads</title>
 <screenshot>
-<graphic fileref="images/downloads"></graphic>
+<graphic  width="617" depth="542" fileref="images/downloads"></graphic>
 </screenshot>
 </figure>
 
@@ -504,7 +504,7 @@ search results.  Share what you would want to download, but no more!
 
 <figure><title>gtk-gnutella Uploads</title>
 <screenshot>
-<graphic fileref="images/uploads"></graphic>
+<graphic width="591" depth="535" fileref="images/uploads"></graphic>
 </screenshot>
 </figure>
 
@@ -528,7 +528,7 @@ gtk-gnutella will only return result if someone searches for "song" (or
 
 <figure><title>gtk-gnutella Upload Preferences</title>
 <screenshot>
-<graphic fileref="images/preferences-upload"></graphic>
+<graphic width="600" depth="433" fileref="images/preferences-upload"></graphic>
 </screenshot>
 </figure>
 
@@ -542,7 +542,7 @@ Tree Hashing" will allow better use of this feature with large files
 
 <figure><title>gtk-gnutella upload history</title>
 <screenshot>
-<graphic fileref="images/upload-history"></graphic>
+<graphic  width="611" depth="542" fileref="images/upload-history"></graphic>
 </screenshot>
 </figure>
 
@@ -561,7 +561,7 @@ rarer content.</para>
 
 <figure><title>gtk-gnutella Preferences dialog</title>
 <screenshot>
-<graphic fileref="images/preferences"></graphic>
+<graphic width="865" depth="570" fileref="images/preferences"></graphic>
 </screenshot>
 </figure>
 
@@ -851,7 +851,7 @@ DISPLAY</entry><entry>DOWNLOAD</entry></row>
 
 <figure><title>GnutellaNet</title>
 <screenshot>
-<graphic fileref="images/gnet"></graphic>
+<graphic  width="593" depth="541" fileref="images/gnet"></graphic>
 </screenshot>
 </figure>
 
@@ -939,7 +939,7 @@ An ultrapeer should never be "push proxied".</para> </chapter>
 <title>The Host Cache</title>
 <figure><title>gtk-gnutella Host Cache</title>
 <screenshot>
-<graphic fileref="images/host-cache"></graphic>
+<graphic  width="593" depth="541" fileref="images/host-cache"></graphic>
 </screenshot>
 </figure>
 
@@ -964,7 +964,7 @@ network. </para> </chapter>
 
 <figure><title>GnutellaNet Statistics</title>
 <screenshot>
-<graphic fileref="images/gnet-stats"></graphic>
+<graphic  width="592" depth="545" fileref="images/gnet-stats"></graphic>
 </screenshot>
 </figure>
 

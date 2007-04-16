@@ -1,5 +1,5 @@
 # Our primary source will be the png files.
-IMGS = search-stats.png search-monitor.png \
+IMGS = search-monitor.png \
  no_firewall.png         firewall.png      \
  leaf.png                smallserver.png
 
