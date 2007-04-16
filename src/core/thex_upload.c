@@ -67,7 +67,9 @@ enum thex_state {
 	THEX_STATE_XML,
 	THEX_STATE_XML_SENT,
 	THEX_STATE_TREE,
-	THEX_STATE_TREE_SENT
+	THEX_STATE_TREE_SENT,
+	
+	NUM_THEX_STATES
 };
 
 struct thex_upload {
@@ -201,6 +203,9 @@ thex_upload_read(struct special_upload *special_upload,
 	g_assert(0 == size || NULL != dest);
 	g_assert(0 == ctx->size || NULL != ctx->data);
 	g_assert(ctx->offset <= ctx->size);
+	g_assert(UNSIGNED(ctx->state) < NUM_THEX_STATES);
+
+	size = MIN(size, MAX_INT_VAL(ssize_t));
 
 	while (size > 0) {
 
@@ -243,10 +248,10 @@ thex_upload_read(struct special_upload *special_upload,
 		case THEX_STATE_TREE_SENT:
 			size = 0;
 			break;	
+		case NUM_THEX_STATES:
+			g_assert_not_reached();
 		}
-
 	}
-
 	return ret;
 }
 
