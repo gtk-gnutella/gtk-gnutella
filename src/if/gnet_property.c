@@ -656,6 +656,10 @@ guint32  push_proxy_debug     = 0;
 guint32  push_proxy_debug_def = 0;
 gboolean experimental_tigertree_support     = FALSE;
 gboolean experimental_tigertree_support_def = FALSE;
+guint32  thex_files_requested     = 0;
+guint32  thex_files_requested_def = 0;
+guint32  thex_files_served     = 0;
+guint32  thex_files_served_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6278,6 +6282,46 @@ gnet_prop_init(void) {
     gnet_property->props[294].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[294].data.boolean.def   = &experimental_tigertree_support_def;
     gnet_property->props[294].data.boolean.value = &experimental_tigertree_support;
+
+
+    /*
+     * PROP_THEX_FILES_REQUESTED:
+     *
+     * General data:
+     */
+    gnet_property->props[295].name = "thex_files_requested";
+    gnet_property->props[295].desc = _("Number of THEX file requests received in this session.");
+    gnet_property->props[295].ev_changed = event_new("thex_files_requested_changed");
+    gnet_property->props[295].save = FALSE;
+    gnet_property->props[295].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[295].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[295].data.guint32.def   = &thex_files_requested_def;
+    gnet_property->props[295].data.guint32.value = &thex_files_requested;
+    gnet_property->props[295].data.guint32.choices = NULL;
+    gnet_property->props[295].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[295].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_THEX_FILES_SERVED:
+     *
+     * General data:
+     */
+    gnet_property->props[296].name = "thex_files_served";
+    gnet_property->props[296].desc = _("Number of THEX file requests fully served in this session.");
+    gnet_property->props[296].ev_changed = event_new("thex_files_served_changed");
+    gnet_property->props[296].save = FALSE;
+    gnet_property->props[296].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[296].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[296].data.guint32.def   = &thex_files_served_def;
+    gnet_property->props[296].data.guint32.value = &thex_files_served;
+    gnet_property->props[296].data.guint32.choices = NULL;
+    gnet_property->props[296].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[296].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

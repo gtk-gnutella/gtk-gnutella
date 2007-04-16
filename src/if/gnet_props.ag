@@ -3414,4 +3414,24 @@ prop = {
 	};
 };
 
+prop = {
+    name = "thex_files_requested";
+    desc = "Number of THEX file requests received in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "thex_files_served";
+    desc = "Number of THEX file requests fully served in this session.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */
