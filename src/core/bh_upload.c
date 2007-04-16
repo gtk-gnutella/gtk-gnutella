@@ -537,10 +537,10 @@ browse_host_close(struct special_upload *ctx, gboolean fully_served)
 	 */
 
 	if (fully_served) {
-		if (bh->flags & BH_HTML) {
+		if (bh->flags & BH_F_HTML) {
 			gnet_prop_set_guint32_val(PROP_HTML_BROWSE_SERVED,
 				html_browse_served + 1);
-		} else if (bh->flags & BH_QHITS) {
+		} else if (bh->flags & BH_F_QHITS) {
 			gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_SERVED,
 				qhits_browse_served + 1);
 		}
@@ -576,12 +576,13 @@ browse_host_open(
 	struct browse_host_upload *bh;
 
 	/* BH_HTML xor BH_QHITS set */
-	g_assert(flags & (BH_HTML|BH_QHITS));
-	g_assert((flags & (BH_HTML|BH_QHITS)) != (BH_HTML|BH_QHITS));
+	g_assert(flags & (BH_F_HTML|BH_F_QHITS));
+	g_assert((flags & (BH_F_HTML|BH_F_QHITS)) != (BH_F_HTML|BH_F_QHITS));
 
 	bh = walloc(sizeof *bh);
-	bh->special.read =
-		(flags & BH_HTML) ? browse_host_read_html : browse_host_read_qhits;
+	bh->special.read = (flags & BH_F_HTML)
+						? browse_host_read_html
+						: browse_host_read_qhits;
 	bh->special.write = browse_host_write;
 	bh->special.flush = browse_host_flush;
 	bh->special.close = browse_host_close;
@@ -605,17 +606,17 @@ browse_host_open(
 		bh->tx = tx_make(owner, host, tx_link_get_ops(), &args);
 	}
 
-	if (flags & BH_CHUNKED)
+	if (flags & BH_F_CHUNKED)
 		bh->tx = tx_make_above(bh->tx, tx_chunk_get_ops(), 0);
 
-	if (flags & (BH_DEFLATE | BH_GZIP)) {
+	if (flags & (BH_F_DEFLATE | BH_F_GZIP)) {
 		struct tx_deflate_args args;
 		txdrv_t *ctx;
 
 		args.cq = callout_queue;
 		args.cb = deflate_cb;
 		args.nagle = FALSE;
-		args.gzip = 0 != (flags & BH_GZIP);
+		args.gzip = 0 != (flags & BH_F_GZIP);
 		args.buffer_flush = INT_MAX;		/* Flush only at the end */
 		args.buffer_size = BH_BUFSIZ;
 
@@ -642,11 +643,10 @@ browse_host_open(
 	 * Update statistics.
 	 */
 
-	if (flags & BH_HTML) {
+	if (flags & BH_F_HTML) {
 		gnet_prop_set_guint32_val(PROP_HTML_BROWSE_COUNT,
 			html_browse_count + 1);
-	}
-	if (flags & BH_QHITS) {
+	} else if (flags & BH_F_QHITS) {
 		gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_COUNT,
 			qhits_browse_count + 1);
 	}

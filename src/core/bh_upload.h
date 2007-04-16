@@ -50,11 +50,14 @@
 /**
  * Flags for browse_host_open().
  */
-#define BH_DEFLATE	(1 << 0)		/**< Deflate output */
-#define BH_GZIP		(1 << 1)		/**< gzip output */
-#define BH_CHUNKED	(1 << 2)		/**< Emit chunked data */
-#define BH_HTML		(1 << 3)		/**< Emit HTML data */
-#define BH_QHITS	(1 << 4)		/**< Emit Gnutella query hits */
+
+enum {
+	BH_F_DEFLATE = 1 << 0,		/**< Deflate output */
+	BH_F_GZIP	 = 1 << 1,		/**< gzip output */
+	BH_F_CHUNKED = 1 << 2,		/**< Emit chunked data */
+	BH_F_HTML	 = 1 << 3,		/**< Emit HTML data */
+	BH_F_QHITS	 = 1 << 4		/**< Emit Gnutella query hits */
+};
 
 struct gnutella_host;
 struct tx_deflate_cb;
