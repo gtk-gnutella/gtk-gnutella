@@ -78,7 +78,7 @@ static GSList *tx_freed = NULL;
  * @return NULL if there is an initialization problem.
  */
 txdrv_t *
-tx_make(gpointer owner, gnet_host_t *host,
+tx_make(gpointer owner, const gnet_host_t *host,
 	const struct txdrv_ops *ops, gpointer args)
 {
 	txdrv_t *tx;

@@ -99,7 +99,7 @@ struct txdrv_ops {
  * Public interface
  */
 
-txdrv_t *tx_make(gpointer owner, gnet_host_t *host,
+txdrv_t *tx_make(gpointer owner, const gnet_host_t *host,
 	const struct txdrv_ops *ops, gpointer args);
 txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops,
 	gpointer args);
