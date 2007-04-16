@@ -155,36 +155,10 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n)
 	}
 }
 
-static gboolean
-tth_cache_check(const struct tth *tth, const char *buf, size_t size)
-{
-	struct tth root, nodes[TTH_MAX_LEAVES];
-	size_t n_nodes, i;
-
-	g_return_val_if_fail(tth, FALSE);
-	g_return_val_if_fail(buf, FALSE);
-	g_return_val_if_fail(size >= TTH_RAW_SIZE, FALSE);
-	g_return_val_if_fail(0 == (size % TTH_RAW_SIZE), FALSE);
-
-	n_nodes = size / TTH_RAW_SIZE;
-	g_return_val_if_fail(n_nodes <= G_N_ELEMENTS(nodes), FALSE);
-
-	for (i = 0; i < n_nodes; i++) {
-		memmove(nodes[i].data, &buf[i * TTH_RAW_SIZE], TTH_RAW_SIZE);
-	}
-
-	root = tt_root_hash(nodes, n_nodes);
-	g_return_val_if_fail(tth_eq(tth, &root), FALSE);
-
-	return TRUE;
-}
-
 static size_t
 tth_cache_leave_count(const struct tth *tth, int fd)
 {
 	struct stat sb;
-	filesize_t size;
-	int depth;
 
 	g_return_val_if_fail(tth, 0);
 	g_return_val_if_fail(fd >= 0, 0);
@@ -209,17 +183,6 @@ tth_cache_leave_count(const struct tth *tth, int fd)
 		return 0;
 	}
 
-	size = sb.st_size / TTH_RAW_SIZE;
-	depth = 1;
-	while (size > 1) {
-		size = (size + 1) / 2;
-		depth++;
-	}
-	if (depth > TTH_MAX_DEPTH) {
-		g_warning("tth_cache_leave_count(%s): Bad depth %u",
-			tth_base32(tth), depth);
-		return 0;
-	}
 	return sb.st_size / TTH_RAW_SIZE;
 }
 
@@ -315,12 +278,18 @@ tth_cache_get_tree(const struct tth *tth, struct tth **tree)
 			n_nodes += n_leaves;
 		}
 
-		g_return_val_if_fail(tth_eq(tth, &nodes[dst]), 0);
-		*tree = &nodes[dst];
-		return n_nodes;
-	} else {
-		return 0;
+		if (tth_eq(tth, &nodes[dst])) {
+			*tree = &nodes[dst];
+			return n_nodes;
+		}
 	}
+
+	if (tth_cache_lookup(tth)) {
+		g_warning("tth_cache_get_tree(): Removing corrupted tigertree for %s",
+			tth_base32(tth));
+		tth_cache_remove(tth);
+	}
+	return 0;
 }
 
 void
