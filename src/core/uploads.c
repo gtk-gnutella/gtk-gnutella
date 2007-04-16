@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "tx_link.h"		/* for callback structures */
 #include "upload_stats.h"
 #include "uploads.h"
+#include "verify_tth.h"
 #include "version.h"
 
 #include "if/gnet_property.h"
@@ -2578,6 +2579,8 @@ get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
 		goto not_found;
 	}
 	if (0 == tth_cache_lookup(shared_file_tth(sf))) {
+		shared_file_set_tth(sf, NULL);
+		request_tigertree(sf);
 		goto not_found;
 	}
 	u->thex = shared_file_ref(sf);
