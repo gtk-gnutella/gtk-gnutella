@@ -147,6 +147,7 @@ SRC = \
 	sockets.c \
 	spam.c \
 	sq.c \
+	thex_upload.c \
 	tls_cache.c \
 	tls_common.c \
 	tth_cache.c \
@@ -231,6 +232,7 @@ OBJ = \
 	sockets.o \
 	spam.o \
 	sq.o \
+	thex_upload.o \
 	tls_cache.o \
 	tls_common.o \
 	tth_cache.o \

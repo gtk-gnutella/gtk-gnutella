@@ -91,6 +91,7 @@ SRC = \
 	sockets.c \
 	spam.c \
 	sq.c \
+	thex_upload.c \
 	tls_cache.c \
 	tls_common.c \
 	tth_cache.c \

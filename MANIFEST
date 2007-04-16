@@ -380,6 +380,8 @@ src/core/spam.h
 src/core/special_upload.h
 src/core/sq.c
 src/core/sq.h
+src/core/thex_upload.c
+src/core/thex_upload.h
 src/core/tls_cache.c
 src/core/tls_cache.h
 src/core/tls_common.c
