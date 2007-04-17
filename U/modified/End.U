@@ -11,7 +11,7 @@
 ?X: To force any unit to be included, copy this unit to your private U directory
 ?X: and add the name of the unit desired to the ?MAKE: dependency line.
 ?X: 
-?MAKE:End: $W cat gtkversion d_libxml2 remotectrl \
+?MAKE:End: $W cat gtkversion d_libxml2 d_remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
 	Sendfile64 d_ipv6 d_dbus d_gnutls d_fast_assert d_headless \
 	d_iconv d_glib d_gtk Alpha_mieee GCC_pipe
@@ -54,7 +54,10 @@ case "$d_gnutls" in
 esac
 
 remote=no
-if $remotectrl; then remote=yes; fi
+case "$d_remotectrl" in
+"$define") remote=yes;;
+esac
+
 nls=no
 case "$d_enablenls" in
 "$define") nls=yes;;
