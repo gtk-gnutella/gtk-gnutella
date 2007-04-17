@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Apr  8 19:26:20 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Tue Apr 17 16:03:51 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8493,7 +8493,10 @@ case "$d_gnutls" in
 esac
 
 remote=no
-if $remotectrl; then remote=yes; fi
+case "$d_remotectrl" in
+"$define") remote=yes;;
+esac
+
 nls=no
 case "$d_enablenls" in
 "$define") nls=yes;;
