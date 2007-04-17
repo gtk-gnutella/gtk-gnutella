@@ -2416,9 +2416,10 @@ socket_set_linger(gint fd)
 }
 
 static void
-socket_set_accept_filters(gint fd)
+socket_set_accept_filters(struct gnutella_socket *s)
 {
-	g_assert(fd >= 0);
+	socket_check(s);
+	g_assert(s->file_desc >= 0);
 
 #if defined(TCP_DEFER_ACCEPT)
 	if (tcp_defer_accept_timeout > 0) {
@@ -2429,7 +2430,7 @@ socket_set_accept_filters(gint fd)
 		timeout = tcp_defer_accept_timeout;
 
 		if (
-			setsockopt(fd, sol_tcp(), TCP_DEFER_ACCEPT,
+			setsockopt(s->file_desc, sol_tcp(), TCP_DEFER_ACCEPT,
 				&timeout, sizeof timeout)
 		) {
 			g_warning("setsockopt() for TCP_DEFER_ACCEPT(%d) failed: %s",
@@ -2447,9 +2448,15 @@ socket_set_accept_filters(gint fd)
 		STATIC_ASSERT(sizeof arg.af_name >= CONST_STRLEN(name));
 		strncpy(arg.af_name, name, sizeof arg.af_name);
 
-		if (setsockopt(fd, SOL_SOCKET, SO_ACCEPTFILTER, &arg, sizeof arg)) {
-			g_warning("Cannot set SO_ACCEPTFILTER (%s): %s",
-				name, g_strerror(errno));
+		if (setsockopt(s->file_desc, SOL_SOCKET, SO_ACCEPTFILTER,
+				&arg, sizeof arg)
+		) {
+			/* This is usually not supported for IPv6. Thus suppress
+			 * the warning by default. */
+			if (NET_TYPE_IPV6 != s->net || socket_debug > 0) {
+				g_warning("Cannot set SO_ACCEPTFILTER (%s): %s",
+					name, g_strerror(errno));
+			}
 		}
 	}
 #endif /* SO_ACCEPTFILTER */
@@ -3030,13 +3037,12 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	s->file_desc = fd;
 	s->pos = 0;
 	s->flags |= SOCK_F_TCP;
+	s->net = host_addr_net(bind_addr);
 
 	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
 
 	socket_set_linger(s->file_desc);
-	socket_set_accept_filters(s->file_desc);
-
-	s->net = host_addr_net(bind_addr);
+	socket_set_accept_filters(s);
 
 	/* listen() the socket */
 
