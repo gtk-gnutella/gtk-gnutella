@@ -62,6 +62,8 @@ RCSID("$Id$")
 
 #define THEX_BUFSIZ			16384	/**< Buffer size for TX deflation */
 
+#define THEX_TYPE "http://open-content.net/spec/thex/breadthfirst"
+
 enum thex_state {
 	THEX_STATE_INITIAL,
 	THEX_STATE_XML,
@@ -125,7 +127,7 @@ thex_upload_xml(struct thex_upload *ctx)
 
 	len = concat_strings(buf, sizeof buf,
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
-		"<!DOCTYPE hashtree system"
+		"<!DOCTYPE hashtree SYSTEM"
 			" \"http://open-content.net/spec/thex/thex.dtd\">\r\n"
 		"<hashtree>\r\n"
 		"<file"
@@ -136,7 +138,7 @@ thex_upload_xml(struct thex_upload *ctx)
 			" outputsize=\"24\"/>\r\n"
 		"<serializedtree"
 			" depth=\"", uint32_to_string(thex_upload_depth(ctx)), "\""
-			" type=\"http://open-content.net/spec/thex/breadthfirst\""
+			" type=\"" THEX_TYPE "\""
 			" uri=\"", thex_upload_uuid(ctx), "\"/>\r\n"
 		"</hashtree>\r\n",
 		(void *) 0);
@@ -163,6 +165,7 @@ thex_upload_tree(struct thex_upload *ctx)
 	dime = dime_record_alloc();
 	STATIC_ASSERT(TTH_RAW_SIZE == sizeof nodes[0]);
 	dime_record_set_data(dime, nodes, n_nodes * TTH_RAW_SIZE);
+	dime_record_set_type(dime, THEX_TYPE);
 	dime_record_set_id(dime, thex_upload_uuid(ctx));
 	ctx->size = dime_create_record(dime, &ctx->data, FALSE, TRUE);
 	dime_record_free(&dime);
