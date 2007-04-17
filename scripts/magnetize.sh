@@ -217,9 +217,13 @@ function urlencode(x) {
 BEGIN {
 	host=ENVIRON["host"] ":" ENVIRON["port"]
 }
-/^[A-Z0-9]/ {
+/^[a-zA-Z0-9]/ {
 	size=$2
-	url="http://" host "/uri-res/N2R?urn:sha1:" $1
+	urn=$1
+	if (!match(urn, "^urn:")) {
+		urn="urn:sha1:" urn
+	}
+	url="http://" host "/uri-res/N2R?" urn
 	name=$0
 	gsub("^.*[/]", "", name)
 	name=urlencode(name)
