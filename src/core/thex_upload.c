@@ -108,7 +108,7 @@ static gchar *
 thex_upload_uuid(struct thex_upload *ctx)
 {
 	static gchar buf[64];
-	gchar *data;
+	const gchar *data;
 
 	data = ctx->tth->data;
 	gm_snprintf(buf, sizeof buf,
@@ -127,7 +127,8 @@ thex_upload_xml(struct thex_upload *ctx)
 
 	len = concat_strings(buf, sizeof buf,
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
-		"<!DOCTYPE hashtree SYSTEM"
+		"<!DOCTYPE hashtree S"	/* NOTE: HIDE FROM METACONFIG */
+			"YSTEM"
 			" \"http://open-content.net/spec/thex/thex.dtd\">\r\n"
 		"<hashtree>\r\n"
 		"<file"
