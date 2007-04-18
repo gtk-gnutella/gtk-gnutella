@@ -259,7 +259,7 @@ http_send_status(
 		return FALSE;
 	} else {
 		if (http_debug > 2)
-			g_message("----\nSent HTTP Status to %s (%lu bytes):\n%.*s\n----",
+			g_message("----Sent HTTP Status to %s (%lu bytes):\n%.*s\n----",
 				host_addr_to_string(s->addr), (gulong) rw,
 				(int) MIN(rw, INT_MAX), header);
 	}
@@ -914,6 +914,7 @@ http_range_parse(
 	gint count = 0;
 
 	g_assert(size > 0);
+	vendor = vendor ? vendor : "unknown";
 
 	if (NULL != (str = is_strprefix(str, unit))) {
 		c = *str;
@@ -2201,7 +2202,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	guint http_major = 0, http_minor = 0;
 
 	if (http_debug > 2) {
-		g_message("----\nGot HTTP reply from %s:\n",
+		g_message("----Got HTTP reply from %s:\n",
 			host_addr_to_string(s->addr));
 		g_message("%s", status);
 		header_dump(header, stderr);
@@ -2442,7 +2443,7 @@ http_async_write_request(gpointer data, gint unused_source,
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (http_debug > 2) {
-		g_message("----\n"
+		g_message("----"
 			"Sent HTTP request completely to %s (%d bytes):\n%.*s\n----\n",
 			host_addr_port_to_string(s->addr, s->port), http_buffer_length(r),
 			http_buffer_length(r), http_buffer_base(r));
@@ -2525,7 +2526,7 @@ http_async_connected(gpointer handle)
 
 		return;
 	} else if (http_debug > 2) {
-		g_message("----\nSent HTTP request to %s (%d bytes):\n%.*s\n----",
+		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s\n----",
 			host_addr_port_to_string(s->addr, s->port), (int) rw, (int) rw, req);
 	}
 
