@@ -88,6 +88,29 @@ typedef struct {
 #define he_cb	u.u_cbk.u_cb
 #define he_arg	u.u_cbk.u_arg
 
+static inline void
+http_extra_callback_set(http_extra_desc_t *he,
+	http_status_cb_t callback, gpointer user_arg)
+{
+	he->he_type = HTTP_EXTRA_CALLBACK;
+	he->he_cb = callback;
+	he->he_arg = user_arg;
+}
+
+static inline void
+http_extra_line_set(http_extra_desc_t *he, const gchar *msg)
+{
+	he->he_type = HTTP_EXTRA_LINE;
+	he->he_msg = msg;
+}
+
+static inline void
+http_extra_body_set(http_extra_desc_t *he, const gchar *body)
+{
+	he->he_type = HTTP_EXTRA_BODY;
+	he->he_msg = body;
+}
+
 /*
  * Flags used during callback invocation.
  */
