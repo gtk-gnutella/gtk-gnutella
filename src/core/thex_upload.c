@@ -202,7 +202,6 @@ thex_upload_read(struct special_upload *special_upload,
 {
 	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
 	char *p = dest;
-	size_t ret = 0;
 
 	g_assert(ctx);
 	g_assert(0 == size || NULL != dest);
@@ -242,7 +241,6 @@ thex_upload_read(struct special_upload *special_upload,
 
 				memcpy(p, &ctx->data[ctx->offset], n);
 				ctx->offset += n;
-				ret += n;
 				p += n;
 				size -= n;
 
@@ -260,7 +258,8 @@ thex_upload_read(struct special_upload *special_upload,
 			g_assert_not_reached();
 		}
 	}
-	return ret;
+
+	return p - cast_to_gchar_ptr(dest);
 }
 
 /**
