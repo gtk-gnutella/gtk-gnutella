@@ -145,6 +145,22 @@ dime_fill_record_header(const struct dime_record *record,
 	poke_be32(&data[8], record->data_length);
 }
 
+static size_t
+copy_and_pad(char *dst, const char *src, size_t size)
+{
+	size_t pad;
+
+	g_assert(NULL != src || 0 == size);	
+	if (size > 0) {
+		pad = dime_ceil(size) - size;
+		memcpy(dst, src, size);
+		memset(&dst[size], 0, pad);
+	} else {
+		pad = 0;
+	}
+	return size + pad;
+}
+
 size_t
 dime_create_record(const struct dime_record *record,
 	char **data_ptr, gboolean first, gboolean last)
@@ -161,24 +177,17 @@ dime_create_record(const struct dime_record *record,
 		char *data0, *data;
 		guint flags;
 
-		data0 = g_malloc0(size);
+		data0 = g_malloc(size);
 		data = data0;
 
 		flags = (first ? DIME_F_MB : 0) | (last ?  DIME_F_ME : 0);
 		dime_fill_record_header(record, data, size, flags);
 		data += DIME_HEADER_SIZE;
 
-		memcpy(data, record->options, record->options_length);
-		data += dime_ceil(record->options_length);
-
-		memcpy(data, record->id, record->id_length);
-		data += dime_ceil(record->id_length);
-
-		memcpy(data, record->type, record->type_length);
-		data += dime_ceil(record->type_length);
-
-		memcpy(data, record->data, record->data_length);
-		data += dime_ceil(record->data_length);
+		data += copy_and_pad(data, record->options, record->options_length);
+		data += copy_and_pad(data, record->id, record->id_length);
+		data += copy_and_pad(data, record->type, record->type_length);
+		data += copy_and_pad(data, record->data, record->data_length);
 
 		*data_ptr = data0;
 	}
