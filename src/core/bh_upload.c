@@ -606,12 +606,12 @@ browse_host_open(
 		bh->tx = tx_make(owner, host, tx_link_get_ops(), &args);
 	}
 
-	if (flags & BH_F_CHUNKED)
+	if (flags & BH_F_CHUNKED) {
 		bh->tx = tx_make_above(bh->tx, tx_chunk_get_ops(), 0);
-
+	}
 	if (flags & (BH_F_DEFLATE | BH_F_GZIP)) {
 		struct tx_deflate_args args;
-		txdrv_t *ctx;
+		txdrv_t *tx;
 
 		args.cq = callout_queue;
 		args.cb = deflate_cb;
@@ -620,15 +620,15 @@ browse_host_open(
 		args.buffer_flush = INT_MAX;		/* Flush only at the end */
 		args.buffer_size = BH_BUFSIZ;
 
-		ctx = tx_make_above(bh->tx, tx_deflate_get_ops(), &args);
-		if (ctx == NULL) {
+		tx = tx_make_above(bh->tx, tx_deflate_get_ops(), &args);
+		if (tx == NULL) {
 			tx_free(bh->tx);
 			link_cb->eof_remove(owner, "Cannot setup compressing TX stack");
 			wfree(bh, sizeof *bh);
 			return NULL;
 		}
 
-		bh->tx = ctx;
+		bh->tx = tx;
 	}
 
 	/*
