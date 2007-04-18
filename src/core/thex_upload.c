@@ -344,8 +344,8 @@ thex_upload_close(struct special_upload *special_upload, gboolean fully_served)
 }
 
 /**
- * Creates a new browse host context. The context must be freed with
- * browse_host_close().
+ * Creates a new THEX upload context. The context must be freed with
+ * thex_upload_close().
  *
  * @param owner			the owner of the TX stack (the upload)
  * @param host			the host to which we're talking to
@@ -354,7 +354,7 @@ thex_upload_close(struct special_upload *special_upload, gboolean fully_served)
  * @param wio			no document
  * @param flags			opening flags
  *
- * @return An initialized browse host context.
+ * @return An initialized THEX upload context.
  */
 struct special_upload *
 thex_upload_open(
