@@ -308,6 +308,28 @@ hash_list_insert_sorted(hash_list_t *hl, gconstpointer key, GCompareFunc func)
 	hash_list_regression(hl);
 }
 
+static gpointer
+hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
+{
+	gpointer orig_key;
+
+	g_assert(item);
+	orig_key = deconstify_gpointer(item->orig_key);
+
+	if (hl->tail == item->list) {
+		hl->tail = g_list_previous(hl->tail);
+	}
+	hl->head = g_list_delete_link(hl->head, item->list);
+	g_hash_table_remove(hl->ht, orig_key);
+	wfree(item, sizeof *item);
+
+	hl->len--;
+	hl->stamp++;
+
+	hash_list_regression(hl);
+	return orig_key;
+}
+
 /**
  * Remove `data' from the list.
  * @return The data that associated with the given key.
@@ -321,23 +343,19 @@ hash_list_remove(hash_list_t *hl, gconstpointer key)
 	g_assert(1 == hl->refcount);
 
 	item = g_hash_table_lookup(hl->ht, key);
-	if (item) {
-		gpointer orig_key = deconstify_gpointer(item->orig_key);
+	return item ? hash_list_remove_item(hl, item) : NULL;
+}
 
-		if (hl->tail == item->list)
-			hl->tail = g_list_previous(hl->tail);
-		hl->head = g_list_delete_link(hl->head, item->list);
-		g_hash_table_remove(hl->ht, key);
-		wfree(item, sizeof *item);
+gpointer
+hash_list_shift(hash_list_t *hl)
+{
+	struct hash_list_item *item;
 
-		hl->len--;
-		hl->stamp++;
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
 
-		hash_list_regression(hl);
-		return orig_key;
-	} else {
-		return NULL;
-	}
+	item = hash_list_head(hl);
+	return item ? hash_list_remove_item(hl, item) : NULL;
 }
 
 /**
