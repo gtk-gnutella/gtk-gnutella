@@ -83,7 +83,8 @@ is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	if (!inputevt_data_available(&avail)) {
+	avail = inputevt_data_available();
+	if (0 == avail) {
 		/* buf_size should be equivalent to BUF_SIZE as defined in rxbuf.c.
 		 * If we don't know how much can be read immediately, we make a
 		 * guess. This prevents multiple readv() syscalls when reading from

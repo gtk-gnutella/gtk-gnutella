@@ -2365,9 +2365,7 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * as there are often several packets queued.
 	 */
 
-	if (!inputevt_data_available(&avail)) {
-		avail = 8;
-	}
+	avail = inputevt_data_available();
 	for (i = 0; i < 16; i++) {
 		ssize_t r;
 
@@ -2381,6 +2379,11 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 		if ((size_t) r >= avail)
 			break;
 		avail -= r;
+
+		/* kevent() reports 32 more bytes than there are, maybe
+		 * it refers to header or control msg data. */
+		if (avail <= 32)
+			break;
 	}
 }
 

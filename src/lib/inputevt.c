@@ -173,13 +173,10 @@ get_global_poll_ctx(void)
 #endif /* !USE_POLL */
 
 #ifndef HAS_KQUEUE
-gboolean
-inputevt_data_available(size_t *avail_ptr)
+size_t
+inputevt_data_available(void)
 {
-	if (avail_ptr) {
-		*avail_ptr = 0;
-	}
-	return FALSE;
+	return 0;
 }
 #endif	/* !HAS_KQUEUE */
 
@@ -216,17 +213,13 @@ get_poll_event_cond(gpointer p)
 }
 
 /**
- * @param avail_ptr Set to the amount of data available in the buffer if
- *                  this was read event.
- * @return TRUE if avail_ptr is valid, FALSE if the feature is not supported.
+ * @return A positive value indicates how much data is available for reading.
+ *		   If zero is returned the amount of available data is unknown.
  */
-gboolean
-inputevt_data_available(size_t *avail_ptr)
+size_t
+inputevt_data_available(void)
 {
-	if (avail_ptr) {
-		*avail_ptr = data_available;
-	}
-	return TRUE;
+	return data_available;
 }
 
 static inline void

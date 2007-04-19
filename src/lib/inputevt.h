@@ -79,7 +79,7 @@ guint inputevt_add(gint source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data);
 
 const gchar *inputevt_cond_to_string(inputevt_cond_t cond);
-gboolean inputevt_data_available(size_t *avail_ptr);
+size_t inputevt_data_available(void);
 void inputevt_remove(guint id);
 
 #endif  /* _inputevt_h_ */
