@@ -747,24 +747,6 @@ free_extensions(void)
 	}
 }
 
-static guint32
-ext_hash_func(gconstpointer key)
-{
-	const guchar *s = key;
-	gulong c, hash = 0;
-	
-	while ((c = ascii_tolower(*s++))) {
-		hash ^= (hash << 8) | c;
-	}
-	return hash ^ (((guint64) 1048573 * hash) >> 32);
-}
-
-gboolean
-ext_eq_func(gconstpointer a, gconstpointer b)
-{
-	return 0 == ascii_strcasecmp(a, b);
-}
-
 /**
  * Get the file extensions to scan.
  */
@@ -776,7 +758,7 @@ parse_extensions(const gchar *str)
 	guint i;
 
 	free_extensions();
-	extensions = g_hash_table_new(ext_hash_func, ext_eq_func);
+	extensions = g_hash_table_new(str_case_hash_func, str_case_eq_func);
 
 	for (i = 0; exts[i]; i++) {
 		gchar c;
