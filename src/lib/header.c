@@ -47,7 +47,7 @@ RCSID("$Id$")
 #include "override.h"		/* Must be the last header included */
 
 /*
- * The `headers' field is a hash table indexed by field name (normalized).
+ * The `headers' field is a hash table indexed by field name (case-insensitive).
  * Each value (GString) holds a private copy of the string making that header,
  * with all continuations removed (leading spaces collapsed into one), and
  * indentical fields concatenated using ", " separators, per RFC2616.
@@ -58,7 +58,7 @@ RCSID("$Id$")
  */
 
 struct header {
-	GHashTable *headers;		/**< Indexed by name, normalized */
+	GHashTable *headers;		/**< Indexed by name */
 	slist_t *fields;			/**< Ordered list of header_field_t */
 	gint flags;					/**< Various operating flags */
 	gint size;					/**< Total header size, in bytes */
@@ -132,46 +132,12 @@ header_num_lines(const header_t *h)
 	return h->num_lines;
 }
 
-/*
- * XXX share normalized header strings into hash table?
- */
-
-/***
- *** Utilities
- ***/
-
-/**
- * In-place normalize the header field name: all letters starting a word
- * are upper-cased, the others are lowercased.
- */
-static void
-normalize(gchar *field)
-{
-	gboolean start_word = TRUE;
-	gchar *s;
-	gint c;
-
-	for (s = field, c = *s; c; c = *(++s)) {
-		if (start_word) {
-			if (is_ascii_alnum(c)) {
-				start_word = FALSE;
-				*s = ascii_toupper(c);
-			}
-		} else {
-			if (is_ascii_alnum(c))
-				*s = ascii_tolower(c);
-			else
-				start_word = TRUE;
-		}
-	}
-}
-
 /***
  *** header_field object
  ***/
 
 /**
- * Create a new empty header field, whose normalized name is `name'.
+ * Create a new empty header field, whose name is `name'.
  * A private copy of `name' is done.
  */
 static header_field_t *
@@ -253,7 +219,7 @@ static GHashTable *
 header_get_table(header_t *o)
 {
 	if (!o->headers) {
-		o->headers = g_hash_table_new(g_str_hash, g_str_equal);
+		o->headers = g_hash_table_new(str_case_hash_func, str_case_eq_func);
 	}
 	return o->headers;
 }
@@ -328,9 +294,6 @@ header_reset(header_t *o)
  * Get field value, or NULL if not present.  The value returned is a
  * pointer to the internals of the header structure, so it must not be
  * kept around.
- *
- * The requested header field must be in normalized form since they are
- * stored that way.
  */
 gchar *
 header_get(const header_t *o, const gchar *field)
@@ -386,7 +349,7 @@ add_header(header_t *o, const gchar *field, const gchar *text)
 
 		key = g_strdup(field);
 		v = g_string_new(text);
-		g_hash_table_insert(ht, (gpointer) key, (gpointer) v);
+		g_hash_table_insert(ht, key, v);
 	}
 }
 
@@ -557,7 +520,6 @@ header_append(header_t *o, const gchar *text, gint len)
 		 * We have a valid header field in buf[].
 		 */
 
-		normalize(buf);
 		hf = hfield_make(buf);
 
 		/*
