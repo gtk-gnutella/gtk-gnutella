@@ -207,6 +207,18 @@ hash_list_free(hash_list_t **hl_ptr)
 	}
 }
 
+static void
+hash_list_insert_item(hash_list_t *hl, struct hash_list_item *item)
+{
+	g_assert(NULL == g_hash_table_lookup(hl->ht, item->orig_key));
+	gm_hash_table_insert_const(hl->ht, item->orig_key, item);
+
+	hl->len++;
+	hl->stamp++;
+
+	hash_list_regression(hl);
+}
+
 /**
  * Append `key' to the list.
  */
@@ -214,25 +226,18 @@ void
 hash_list_append(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
-	
+
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
 	item = walloc(sizeof *item);
-	item->orig_key = key;
-
 	hl->tail = g_list_last(g_list_append(hl->tail, item));
-	if (NULL == hl->head)
+	if (NULL == hl->head) {
 		hl->head = hl->tail;
+	}	
+	item->orig_key = key;
 	item->list = hl->tail;
-
-	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
-	g_hash_table_insert(hl->ht, deconstify_gpointer(key), item);
-
-	hl->len++;
-	hl->stamp++;
-
-	hash_list_regression(hl);
+	hash_list_insert_item(hl, item);
 }
 
 /**
@@ -247,20 +252,13 @@ hash_list_prepend(hash_list_t *hl, gconstpointer key)
 	g_assert(1 == hl->refcount);
 
 	item = walloc(sizeof *item);
-	item->orig_key = key;
-
 	hl->head = g_list_prepend(hl->head, item);
-	if (NULL == hl->tail)
+	if (NULL == hl->tail) {
 		hl->tail = hl->head;
+	}
+	item->orig_key = key;
 	item->list = hl->head;
-
-	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
-	g_hash_table_insert(hl->ht, deconstify_gpointer(key), item);
-
-	hl->len++;
-	hl->stamp++;
-
-	hash_list_regression(hl);
+	hash_list_insert_item(hl, item);
 }
 
 /**
@@ -314,13 +312,13 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 	gpointer orig_key;
 
 	g_assert(item);
-	orig_key = deconstify_gpointer(item->orig_key);
 
+	orig_key = deconstify_gpointer(item->orig_key);
+	g_hash_table_remove(hl->ht, orig_key);
 	if (hl->tail == item->list) {
 		hl->tail = g_list_previous(hl->tail);
 	}
 	hl->head = g_list_delete_link(hl->head, item->list);
-	g_hash_table_remove(hl->ht, orig_key);
 	wfree(item, sizeof *item);
 
 	hl->len--;
@@ -354,7 +352,7 @@ hash_list_shift(hash_list_t *hl)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = hash_list_head(hl);
+	item = hl->head ? hl->head->data : NULL;
 	return item ? hash_list_remove_item(hl, item) : NULL;
 }
 
