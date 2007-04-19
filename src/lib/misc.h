@@ -615,11 +615,29 @@ gchar *normalize_dir_separators(const gchar *s);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 guint32 cpu_noise(void);
 
-static inline guint32
+static inline guint
 pointer_hash_func(const void *p)
 {
 	size_t v = (size_t) p;
 	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
+}
+
+static inline guint
+str_case_hash_func(gconstpointer key)
+{
+	const guchar *s = key;
+	gulong c, hash = 0;
+	
+	while ((c = ascii_tolower(*s++))) {
+		hash ^= (hash << 8) | c;
+	}
+	return hash ^ (((guint64) 1048573 * hash) >> 32);
+}
+
+static inline gint
+str_case_eq_func(gconstpointer a, gconstpointer b)
+{
+	return 0 == ascii_strcasecmp(a, b);
 }
 
 /**
