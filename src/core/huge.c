@@ -454,7 +454,7 @@ huge_update_hashes(struct shared_file *sf,
 			shared_file_size(sf), shared_file_modification_time(sf),
 			sha1, tth);
 	}
-	request_tigertree(sf);
+	request_tigertree(sf, FALSE);
 
 	return TRUE;
 }
@@ -617,7 +617,7 @@ request_sha1(struct shared_file *sf)
 			cached->shared = TRUE;
 			shared_file_set_sha1(sf, cached->sha1);
 			shared_file_set_tth(sf, cached->tth);
-			request_tigertree(sf);
+			request_tigertree(sf, FALSE);
 			return TRUE;
 		}
 	} else {

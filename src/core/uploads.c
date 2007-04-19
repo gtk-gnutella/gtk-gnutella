@@ -111,9 +111,6 @@ static gboolean sendfile_failed = FALSE;
 
 static idtable_t *upload_handle_map = NULL;
 
-static gint running_uploads = 0;
-static gint registered_uploads = 0;
-
 static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
 
 static inline gnutella_upload_t *
@@ -216,28 +213,28 @@ upload_remove_upload_info_changed_listener(upload_info_changed_listener_t l)
 }
 
 static void
-upload_fire_upload_added(gnutella_upload_t *n)
+upload_fire_upload_added(gnutella_upload_t *u)
 {
-    LISTENER_EMIT(upload_added,
-		(n->upload_handle, running_uploads, registered_uploads));
-	gnet_prop_set_guint32_val(PROP_UL_RUNNING, running_uploads);
-	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
+	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, ul_registered + 1);
+    LISTENER_EMIT(upload_added, (u->upload_handle, ul_running, ul_registered));
 }
 
 static void
-upload_fire_upload_removed(gnutella_upload_t *n, const gchar *reason)
+upload_fire_upload_removed(gnutella_upload_t *u, const gchar *reason)
 {
+	if (u->was_running) {
+		gnet_prop_set_guint32_val(PROP_UL_RUNNING, ul_running - 1);
+	}
+	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, ul_registered - 1);
     LISTENER_EMIT(upload_removed,
-		(n->upload_handle, reason, running_uploads, registered_uploads));
-	gnet_prop_set_guint32_val(PROP_UL_RUNNING, running_uploads);
-	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
+			(u->upload_handle, reason, ul_running, ul_registered));
 }
 
 void
-upload_fire_upload_info_changed(gnutella_upload_t *n)
+upload_fire_upload_info_changed(gnutella_upload_t *u)
 {
     LISTENER_EMIT(upload_info_changed,
-		(n->upload_handle, running_uploads, registered_uploads));
+		(u->upload_handle, ul_running, ul_registered));
 }
 
 /***
@@ -625,12 +622,6 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	u->parq_status = FALSE;
 
 	/*
-	 * Record pending upload in the GUI.
-	 */
-
-	registered_uploads++;
-
-	/*
 	 * Add the upload structure to the upload slist, so it's monitored
 	 * from now on within the main loop for timeouts.
 	 */
@@ -922,6 +913,7 @@ upload_free_resources(gnutella_upload_t *u)
 	}
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
+	G_FREE_NULL(u->request);
 
     upload_free_handle(u->upload_handle);
 }
@@ -951,6 +943,7 @@ upload_clone(gnutella_upload_t *u)
 	cu->socket->resource.upload = cu;	/* Takes ownership of socket */
 	cu->accounted = FALSE;
 	cu->browse_host = FALSE;
+	cu->was_running = FALSE;
     cu->skip = 0;
     cu->end = 0;
 	cu->sent = 0;
@@ -968,6 +961,7 @@ upload_clone(gnutella_upload_t *u)
 	u->country = -1;
 	u->sha1 = NULL;
 	u->thex = NULL;
+	u->request = NULL;
 
 	/*
 	 * Add the upload structure to the upload slist, so it's monitored
@@ -1019,6 +1013,16 @@ upload_likely_from_browser(header_t *header)
 	return FALSE;
 }
 
+static gboolean 
+upload_send_http_status(struct upload *u,
+	gboolean keep_alive, gint code, const gchar *msg)
+{
+	g_assert(u);
+	g_assert(msg);
+	
+	return http_send_status(u->socket, code, keep_alive,
+				u->hev, u->hevcnt, "%s", msg);
+}
 /**
  * This routine is called by http_send_status() to generate the
  * X-Host line (added to the HTTP status) into `buf'.
@@ -1349,6 +1353,42 @@ upload_http_status(gchar *buf, size_t size, gpointer arg, guint32 flags)
 	return rw;
 }
 
+static void
+upload_http_extra_callback_add(gnutella_upload_t *u,
+	http_status_cb_t callback, gpointer user_arg)
+{
+	g_assert(u);
+	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
+
+	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+
+	http_extra_callback_set(&u->hev[u->hevcnt], callback, user_arg);
+	u->hevcnt++;
+}
+
+static void
+upload_http_extra_line_add(gnutella_upload_t *u, const gchar *msg)
+{
+	g_assert(u);
+	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
+
+	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+
+	http_extra_line_set(&u->hev[u->hevcnt], msg);
+	u->hevcnt++;
+}
+
+static void
+upload_http_extra_body_add(gnutella_upload_t *u, const gchar *body)
+{
+	g_assert(u);
+	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
+
+	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+
+	http_extra_body_set(&u->hev[u->hevcnt], body);
+	u->hevcnt++;
+}
 
 /**
  * The vectorized (message-wise) version of send_upload_error().
@@ -1360,9 +1400,8 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 	gchar reason[1024];
 	gchar extra[1024];
 	size_t slen = 0;
-	http_extra_desc_t hev[8];
-	guint hevcnt = 0;
-	struct upload_http_cb cb_parq_arg, cb_sha1_arg;
+
+	u->hevcnt = 0;
 
 	if (msg && no_reason != msg) {
 		gm_vsnprintf(reason, sizeof reason, msg, ap);
@@ -1386,8 +1425,7 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 		slen = g_strlcpy(extra, ext, sizeof(extra));
 
 		if (slen < sizeof(extra)) {
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt++].he_msg = extra;
+			upload_http_extra_line_add(u, extra);
 		} else
 			g_warning("send_upload_error_v: "
 				"ignoring too large extra header (%d bytes)", (int) slen);
@@ -1397,9 +1435,7 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 	 * Send X-Features on error too.
 	 *		-- JA, 03/11/2003
 	 */
-	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-	hev[hevcnt].he_cb = upload_xfeatures_add;
-	hev[hevcnt++].he_arg = NULL;
+	upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
 
 	/*
 	 * If the download got queued, also add the queueing information
@@ -1407,11 +1443,10 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 	 */
 
 	if (parq_upload_queued(u)) {
-		cb_parq_arg.u = u;
 
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = parq_upload_add_headers;
-		hev[hevcnt++].he_arg = &cb_parq_arg;
+		u->cb_parq_arg.u = u;
+		upload_http_extra_callback_add(u,
+			parq_upload_add_headers, &u->cb_parq_arg);
 
 		/*
 		 * If the request seems to come from a browser, send back a small
@@ -1424,12 +1459,6 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 			gchar href[1024];
 			gchar index_href[32];
 			glong retry;
-
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt++].he_msg = "Content-Type: text/html; charset=utf-8\r\n";
-
-			hev[hevcnt].he_type = HTTP_EXTRA_BODY;
-			hev[hevcnt++].he_msg = buf;
 
 			retry = delta_time(parq_upload_lookup_retry(u), tm_time());
 			retry = MAX(0, retry);
@@ -1474,6 +1503,9 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 					"\r\n",
 					retry, '\0' != href[0] ? index_href : "", href,
 					retry, retry);
+			upload_http_extra_line_add(u,
+				"Content-Type: text/html; charset=utf-8\r\n");
+			upload_http_extra_body_add(u, buf);
 		}
 	}
 
@@ -1486,13 +1518,9 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 	 */
 
 	if (u->push && !is_firewalled) {
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_xhost_add;
-		hev[hevcnt++].he_arg = NULL;
+		upload_http_extra_callback_add(u, upload_http_xhost_add, NULL);
 	} else if (is_firewalled) {
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = node_http_proxies_add;
-		hev[hevcnt++].he_arg = NULL;
+		upload_http_extra_callback_add(u, node_http_proxies_add, NULL);
 	}
 
 	/*
@@ -1500,9 +1528,7 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 	 */
 
 	if (!is_firewalled && give_server_hostname && 0 != *server_hostname) {
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = http_hostname_add;
-		hev[hevcnt++].he_arg = NULL;
+		upload_http_extra_callback_add(u, http_hostname_add, NULL);
 	}
 
 	/*
@@ -1510,26 +1536,17 @@ send_upload_error_v(gnutella_upload_t *u, const gchar *ext, int code,
 	 * as well as the download mesh.
 	 */
 	if (u->sf && sha1_hash_available(u->sf)) {
-		cb_sha1_arg.u = u;
-
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_content_urn_add;
-		hev[hevcnt++].he_arg = &cb_sha1_arg;
+		u->cb_sha1_arg.u = u;
+		upload_http_extra_callback_add(u,
+			upload_http_content_urn_add, &u->cb_sha1_arg);
 	}
-
-	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
 	/*
 	 * Keep connection alive when activly queued
 	 * 		-- JA, 22/4/2003
 	 */
-	if (u->status == GTA_UL_QUEUED)
-		http_send_status(u->socket, code, TRUE,
-			hevcnt ? hev : NULL, hevcnt, "%s", reason);
-	else
-		http_send_status(u->socket, code, FALSE,
-			hevcnt ? hev : NULL, hevcnt, "%s", reason);
-
+	u->keep_alive = GTA_UL_QUEUED == u->status;
+	upload_send_http_status(u, u->keep_alive, code, reason);
 	u->error_sent = code;
 }
 
@@ -1631,33 +1648,6 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 		if (reason == NULL)
 			logreason = "Bad Request";
 		send_upload_error(u, 400, "%s", logreason);
-	}
-
-	/*
-	 * If COMPLETE, we've already decremented `running_uploads' and
-	 * `registered_uploads'.
-	 * Moreover, if it's still connecting, then we've not even
-	 * incremented the `running_uploads' counter yet.
-	 * For keep-alive uploads still in the GTA_UL_WAITING state, the upload
-	 * slot is reserved so it must be decremented as well (we know it's a
-	 * follow-up request since u->keep_alive is set).
-	 */
-
-	if (!UPLOAD_IS_COMPLETE(u))
-		registered_uploads--;
-
-	switch (u->status) {
-	case GTA_UL_QUEUED:
-	case GTA_UL_PFSP_WAITING:
-		/* running_uploads was already decremented */
-		break;
-	default:
-		if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u)) {
-			running_uploads--;
-		} else if (u->keep_alive && UPLOAD_IS_CONNECTING(u)) {
-			running_uploads--;
-		}
-		break;
 	}
 
 	/*
@@ -1868,8 +1858,10 @@ call_upload_request(gpointer obj, header_t *header)
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
 	atom_str_free_null(&u->name);
+	G_FREE_NULL(u->request);
+	u->hevcnt = 0;
 
-	upload_request(cast_to_upload(obj), header);
+	upload_request(u, header);
 }
 
 
@@ -2136,7 +2128,7 @@ malformed:
 static void
 upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
-	if (upload_debug) {
+	if (request && upload_debug) {
 		const gchar *filename = NULL;
 		struct sha1 sha1;
 
@@ -2167,7 +2159,6 @@ upload_http_version(gnutella_upload_t *u, const gchar *request, size_t len)
 	 */
 
 	if (!http_extract_version(request, len, &http_major, &http_minor)) {
-		upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
 		return FALSE;
 	}
 
@@ -2439,6 +2430,30 @@ not_found:
 	return -1;
 }
 
+static void
+upload_request_tth(struct shared_file *sf)
+{
+	if (!experimental_tigertree_support)
+		return;
+
+	if (NULL == shared_file_tth(sf)) {
+		request_tigertree(sf, TRUE);
+	}
+}
+
+static gboolean
+upload_request_tth_matches(struct shared_file *sf, const struct tth *tth)
+{
+	if (!experimental_tigertree_support)
+		return TRUE;
+
+	if (NULL == tth || NULL == shared_file_tth(sf)) {
+		return TRUE;
+	} else {
+		return tth_eq(tth, shared_file_tth(sf));
+	}
+}
+
 /**
  * Get the shared_file to upload from a given URN.
  * @return -1 on error, 0 on success.
@@ -2447,9 +2462,9 @@ static gint
 get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 	const gchar *uri)
 {
+	struct tth tth_buf, *tth = NULL;
 	struct sha1 sha1;
 	struct shared_file *sf;
-	gboolean malformed;
 
 	g_assert(u);
 	g_assert(NULL == u->sf);
@@ -2459,10 +2474,12 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (!sha1_extract_from_uri(uri, &sha1, &malformed)) {
-		if (malformed)
-			goto malformed;
-		goto not_found;
+	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+		tth = &tth_buf;
+	} else if (urn_get_sha1(uri, &sha1)) {
+		tth = NULL;
+	} else {
+		goto malformed;
 	}
 
 	if (spam_check_sha1(&sha1)) {
@@ -2506,11 +2523,16 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 		goto not_found;
 	}
 
+	if (!upload_request_tth_matches(sf, tth)) {
+		goto not_found;
+	}
+
+	upload_request_tth(sf);
 	u->sf = shared_file_ref(sf);
 	return 0;
 
 malformed:
-	upload_error_remove(u, 400, "Malformed URN in /uri-res request");
+	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2R request");
 	return -1;
 
 not_found:
@@ -2569,20 +2591,22 @@ get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
 		upload_error_remove(u, 503, "SHA1 is being recomputed");
 		return -1;
 	}
-	if (!upload_file_present(sf)) {
+
+	if (!upload_request_tth_matches(sf, tth)) {
 		goto not_found;
 	}
+
 	if (NULL == shared_file_tth(sf)) {
-		goto not_found;
+		upload_request_tth(sf);
+		goto not_yet_available;
 	}
-	if (tth && !tth_eq(tth, shared_file_tth(sf))) {
-		goto not_found;
-	}
+
 	if (0 == tth_cache_lookup(shared_file_tth(sf))) {
 		shared_file_set_tth(sf, NULL);
-		request_tigertree(sf);
-		goto not_found;
+		upload_request_tth(sf);
+		goto not_yet_available;
 	}
+
 	u->thex = shared_file_ref(sf);
 	return 0;
 
@@ -2592,6 +2616,10 @@ not_found:
 
 malformed:
 	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2X request");
+	return -1;
+
+not_yet_available:
+	upload_error_remove(u, 503, "TTH is being computed");
 	return -1;
 }
 
@@ -2741,11 +2769,16 @@ supports_chunked(const gnutella_upload_t *u, header_t *header)
 
 		/*
 		 * It's assumed that LimeWire-based clients cannot handle 
-		 * "chunked" properly.
+		 * "chunked" properly. This is at least true for their Browse Host
+		 * support.
+		 *
+		 * BearShare apparently does not support it either, at least for
+		 * THEX (N2X) transfers.
 		 */
     	buf = header_get(header, "User-Agent");
 		chunked = NULL == buf || (
 			!is_strprefix(buf, "LimeWire") &&
+			!is_strprefix(buf, "BearShare") &&
 			!is_strprefix(buf, "FrostWire"));
 	} else {
 		/* HTTP/1.0 and older doesn't know about "chunked" */
@@ -2758,24 +2791,17 @@ supports_chunked(const gnutella_upload_t *u, header_t *header)
 /**
  * Prepare the browse host request.
  *
- * @return TRUE if we may go on, FALSE if we've replied to the remote
+ * @return 0 if we may go on, -1 if we've replied to the remote
  * host and either expect a new request now or terminated the connection.
  */
-static gboolean
+static gint
 prepare_browse_host_upload(gnutella_upload_t *u, header_t *header,
-	const gchar *method, const gchar *host,
-	time_t now, http_extra_desc_t *hev, size_t hevlen,
-	size_t *hevsize, gint *flags)
+	const gchar *host)
 {
-	size_t hevcnt = *hevsize;
 	gchar *buf;
-	gint bh_flags = 0;
-
-	g_assert(hevcnt < hevlen);
 
 	u->browse_host = TRUE;
 	u->name = atom_str_get(_("<Browse Host Request>"));
-	u->file_size = 0;
 
 	if (upload_debug > 1)
 		g_message("BROWSE request from %s (%s)",
@@ -2784,7 +2810,7 @@ prepare_browse_host_upload(gnutella_upload_t *u, header_t *header,
 
 	if (!browse_host_enabled) {
 		upload_error_remove(u, 403, "Browse Host Disabled");
-		return FALSE;
+		return -1;
 	}
 
 	/*
@@ -2802,28 +2828,23 @@ prepare_browse_host_upload(gnutella_upload_t *u, header_t *header,
 
 		gm_snprintf(location, sizeof location, fmt,
 			server_hostname, listen_port);
-
-		g_assert(hevcnt < hevlen);
-		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = location;
-		hev[hevcnt++].he_arg = NULL;
-
-		http_send_status(u->socket, 301, FALSE, hev, hevcnt, "Redirecting");
+		upload_http_extra_line_add(u, location);
+		upload_send_http_status(u, FALSE, 301, "Redirecting");
 		upload_remove(u, "Redirected to %s:%u", server_hostname, listen_port);
-		return FALSE;
+		return -1;
 	}
 
 	buf = header_get(header, "If-Modified-Since");
 	if (buf) {
 		time_t t;
 
-		t = date2time(buf, now);
+		t = date2time(buf, tm_time());
 		if (
 			(time_t) -1 != t &&
 			delta_time((time_t) library_rescan_finished, t) <= 0 
 		) {
 			upload_error_remove(u, 304, "Not Modified");
-			return FALSE;
+			return -1;
 		}
 	}
 
@@ -2838,287 +2859,648 @@ prepare_browse_host_upload(gnutella_upload_t *u, header_t *header,
 
 		gm_snprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
 			timestamp_rfc1123_to_string(library_rescan_finished));
-
-		g_assert(hevcnt < hevlen);
-		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = lm_buf;
-		hev[hevcnt++].he_arg = NULL;
+		upload_http_extra_line_add(u, lm_buf);
 	}
 
-	/*
-	 * Look at an Accept: line containing "application/x-gnutella-packets".
-	 * If we get that, then we can send query hits backs.  Otherwise,
-	 * we'll send HTML output.
-	 */
-
-	buf = header_get(header, "Accept");
-	if (buf) {
-		/* XXX needs more rigourous parsing */
-		if (strstr(buf, "application/x-gnutella-packets"))
-			bh_flags |= BH_F_QHITS;
-		else if (strstr(buf, "text/html"))
-			bh_flags |= BH_F_HTML;
-		else if (strstr(buf, "*/*") || strstr(buf, "text/*"))
-			bh_flags |= BH_F_HTML;	/* A browser probably */
-		else {
-			upload_error_remove(u, 406, "Not Acceptable");
-			return FALSE;
-		}
-	} else
-		bh_flags |= BH_F_HTML;		/* No Accept, default to HTML */
-
-	g_assert(hevcnt < hevlen);
-	hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-	hev[hevcnt].he_msg = (bh_flags & BH_F_HTML) ?
-		"Content-Type: text/html; charset=utf-8\r\n" :
-		"Content-Type: application/x-gnutella-packets\r\n";
-	hev[hevcnt++].he_arg = NULL;
-
-	/*
-	 * Accept-Encoding -- see whether they want compressed output.
-	 */
-
-	bh_flags |= select_encoding(header);
-
-	if (bh_flags & (BH_F_DEFLATE | BH_F_GZIP)) {
-		g_assert(hevcnt < hevlen);
-		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = (bh_flags & BH_F_GZIP)
-				? "Content-Encoding: gzip\r\n"
-				: "Content-Encoding: deflate\r\n";
-		hev[hevcnt++].he_arg = NULL;
-	}
-
-	/*
-	 * Starting at HTTP/1.1, we can send chunked data back.
-	 */
-
-	if (supports_chunked(u, header)) {
-		bh_flags |= BH_F_CHUNKED;
-
-		g_assert(hevcnt < hevlen);
-		hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-		hev[hevcnt].he_msg = "Transfer-Encoding: chunked\r\n";
-		hev[hevcnt++].he_arg = NULL;
-	}
-
-	/*
-	 * If it's a HEAD request, let them know we support Browse Host.
-	 */
-
-	if (0 == strcmp(method, "HEAD")) {
-		static const gchar msg[] = N_("Browse Host Enabled");
-		http_send_status(u->socket, 200, FALSE, hev, hevcnt, msg);
-		upload_remove(u, _(msg));
-		return FALSE;
-	}
-
-	/*
-	 * Change the name of the upload for the GUI.
-	 */
-	{
-		gchar name[1024];
-
-		gm_snprintf(name, sizeof name,
-				_("<Browse Host Request> [%s%s%s]"),
-				(bh_flags & BH_F_HTML) ? "HTML" : _("query hits"),
-				(bh_flags & BH_F_DEFLATE) ? _(", deflate") :
-					(bh_flags & BH_F_GZIP) ? _(", gzip") : "",
-				(bh_flags & BH_F_CHUNKED) ? _(", chunked") : "");
-
-		atom_str_change(&u->name, name);
-	}
-
-	*hevsize = hevcnt;
-	*flags = bh_flags;
-
-	return TRUE;
+	return 0;
 }
 
-/**
- * Called to initiate the upload once all the HTTP headers have been
- * read.  Validate the request, and begin processing it if all OK.
- * Otherwise cancel the upload.
- */
-static void
-upload_request(gnutella_upload_t *u, header_t *header)
+static gboolean
+upload_is_already_downloading(gnutella_upload_t *upload,
+	gboolean *replaced_stalling)
 {
-	struct gnutella_socket *s = u->socket;
-    guint32 idx = 0;
+	GSList *sl, *to_remove = NULL;
+	gboolean result = FALSE;
+
+	g_assert(upload);
+	g_assert(replaced_stalling);
+
+	*replaced_stalling = FALSE;
+
+	/*
+	 * Ensure that noone tries to download the same file twice, and
+	 * that they don't get beyond the max authorized downloads per IP.
+	 * NB: SHA1 are atoms, so it's OK to compare their addresses.
+	 *
+	 * This needs to be done before the upload enters PARQ. PARQ doesn't
+	 * handle multiple uploads for the same file very well as it tries to
+	 * keep 1 pointer to the upload structure as long as that structure
+	 * exists.
+	 * 		-- JA 12/7/'03
+	 */
+
+	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *up = sl->data;
+
+		g_assert(up);
+		if (up == upload)
+			continue;				/* Current upload is already in list */
+		if (!UPLOAD_IS_SENDING(up) && up->status != GTA_UL_QUEUED)
+			continue;
+		if (
+			host_addr_equal(up->socket->addr, upload->socket->addr) && (
+				(up->file_index != URN_INDEX &&
+				 up->file_index == upload->file_index) ||
+				(upload->sha1 && up->sha1 == upload->sha1)
+			)
+		) {
+			/*
+			 * If the duplicate upload we have is stalled or showed signs
+			 * of early stalling, the remote end might have seen no data
+			 * and is trying to reconnect.  Kill that old upload.
+			 *		--RAM, 07/12/2003
+			 */
+
+			if (0 == (up->flags & (UPLOAD_F_STALLED|UPLOAD_F_EARLY_STALL))) {
+				result = TRUE;
+				break;
+			}
+			to_remove = g_slist_prepend(to_remove, up);
+		}
+	}
+
+	if (!result) {
+		/*
+		 * Kill pre-stalling or stalling uploads we spotted as being
+		 * identical to their current request.  There should be only one
+		 * at most.
+		 */
+
+		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+			gnutella_upload_t *up = sl->data;
+			g_assert(up);
+
+			if (upload_debug) g_warning(
+				"stalling connection to %s (%s) replaced after %s bytes sent, "
+				"stall counter at %d",
+				host_addr_to_string(up->addr), upload_vendor_str(up),
+				uint64_to_string(up->sent), stalled);
+
+			upload_remove(up, _("Stalling upload replaced"));
+			*replaced_stalling = TRUE;
+		}
+	}
+
+	g_slist_free(to_remove);
+	return result;
+}
+
+static void
+upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
+{
 	filesize_t range_skip = 0, range_end = 0;
-	const gchar *fpath = NULL;
-	gchar *user_agent = NULL;
-	gchar *buf, *search, *uri;
-	const gchar *request = getline_str(s->getline);
-	GSList *sl;
-	gboolean head_only;
-	gboolean has_end = FALSE;
-	struct stat statbuf;
-	time_t mtime, now = tm_time();
-	struct upload_http_cb cb_parq_arg, cb_sha1_arg, cb_status_arg, cb_416_arg;
-	gint http_code;
-	const gchar *http_msg;
-	http_extra_desc_t hev[10];
-	size_t hevcnt = 0;
+	gboolean range_unavailable = FALSE, replaced_stalling = FALSE;
 	const struct sha1 *sha1 = NULL;
-	gboolean is_followup =
-		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
-	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
-	gboolean range_unavailable = FALSE;
-	gboolean replacing_stall = FALSE;
-	gchar *token;
-	gboolean known_for_stalling;
-	gint bh_flags = 0;
-	gboolean using_sendfile;
+	const gchar *buf;
+	time_t now = tm_time(), mtime;
 	gboolean parq_allows = FALSE;
-	const gchar *method;
-	gchar host[1 + MAX_HOSTLEN];
+    guint32 idx = 0;
 
 	g_assert(u);
-
-	/*
-	 * The upload context is recycled for keep-alive connections but
-	 * the following items are always released/cleared in advance.
-	 */
-	g_assert(NULL == u->sf);
-	g_assert(NULL == u->name);
-	g_assert(NULL == u->thex);
-	g_assert(!u->browse_host);
-
-	u->from_browser = upload_likely_from_browser(header);
-
-	if (upload_debug > 2) {
-		g_message("----%s Request from %s%s:\n%s",
-			is_followup ? "Follow-up" : "Incoming",
-			host_addr_to_string(s->addr),
-			u->from_browser ? " (via browser)" : "",
-			request);
-		header_dump(header, stderr);
-		g_message("----");
-	}
-
-	/* @todo TODO: Parse the HTTP request properly:
-	 *		- Check for illegal characters (like NUL)
-	 */
-
-	/*
-	 * If we remove the upload in upload_remove(), we'll decrement
-	 * running_uploads.  However, for followup-requests, the upload slot
-	 * is already accounted for.
-	 *
-	 * Exceptions:
-	 * We decremented `running_uploads' when moving to the GTA_UL_PFSP_WAITING
-	 * state, since we don't know whether they will re-emit something.
-	 * Therefore, it is necessary to re-increment it here.
-	 *
-	 *
-	 * This is for the moment being done if the upload really seems to be
-	 * getting an upload slot. This is to avoid messing with active queuing
-	 *		-- JA, 09/05/03
-	 */
-
-	if (!is_followup || u->status == GTA_UL_PFSP_WAITING)
-		running_uploads++;
-
-	/*
-	 * Technically, we have not started sending anything yet, but this
-	 * also serves as a marker in case we need to call upload_remove().
-	 * It will not send an HTTP reply by itself.
-	 */
-
-	u->status = GTA_UL_SENDING;
-	u->last_update = tm_time();		/* Done reading headers */
-
-	/*
-	 * Extract User-Agent.
-	 *
-	 * X-Token: GTKG token
-	 * User-Agent: whatever
-	 * Server: whatever (in case no User-Agent)
-	 */
-
-	token = header_get(header, "X-Token");
-	user_agent = header_get(header, "User-Agent");
-
-	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr);
+	g_assert(u->sf);
 	
-	if (u->push && header_get_feature("tls", header, NULL, NULL)) {
-		tls_cache_insert(u->addr, u->socket->port);
+	idx = shared_file_index(u->sf);
+	sha1 = sha1_hash_available(u->sf) ? shared_file_sha1(u->sf) : NULL;
+
+	/*
+	 * If we pushed this upload, and they are not requesting the same
+	 * file, that's OK, but warn.
+	 *		--RAM, 31/12/2001
+	 */
+
+	if (u->push && idx != u->file_index && upload_debug)
+		g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
+				host_addr_to_string(u->addr), u->file_index, u->name, idx,
+				shared_file_name_nfc(u->sf));
+
+	/*
+	 * We already have a non-NULL u->name in the structure, because we
+	 * saved the uri there or the name from a push request.
+	 * However, we want to display the actual name of the shared file.
+	 *		--Richard, 20/11/2002
+	 */
+
+	u->file_index = idx;
+	/* Identify file for follow-up reqs */
+	if (!u->sha1 && sha1) {
+		u->sha1 = atom_sha1_get(sha1);
 	}
+	atom_str_change(&u->name, shared_file_name_nfc(u->sf));
+	/* NULL unless partially shared file */
+	u->file_info = shared_file_fileinfo(u->sf);
 
-	/* Maybe they sent a Server: line, thinking they're a server? */
-	if (user_agent == NULL)
-		user_agent = header_get(header, "Server");
+	u->file_size = shared_file_size(u->sf);
 
-	if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
-		socket_disable_token(s);
-	}
-
-	if (u->user_agent == NULL && user_agent != NULL) {
-		gboolean faked = !version_check(user_agent, token, u->addr);
-		if (faked) {
-			gchar name[1024];
-
-			name[0] = '!';
-			g_strlcpy(&name[1], user_agent, sizeof name - 1);
-			u->user_agent = atom_str_get(name);
-		} else
-			u->user_agent = atom_str_get(user_agent);
+	if (!u->head_only && upload_is_already_downloading(u, &replaced_stalling)) {
+		upload_error_remove(u, 503, "Already downloading this file");
+		return;
 	}
 
 	/*
-	 * Make sure there is the HTTP/x.x tag at the end of the request,
-	 * thereby ruling out the HTTP/0.9 requests.
-	 *
-	 * This has to be done early, and before calling get_file_to_upload()
-	 * or the getline_length() call will no longer represent the length of
-	 * the string, since URL-unescaping happens inplace and can "shrink"
-	 * the request.
+	 * Range: bytes=10453-23456
 	 */
 
-	if (!upload_http_version(u, request, getline_length(s->getline))) {
-		return;
-	} else {
-		gchar *endptr;
+	buf = header_get(header, "Range");
+	if (buf && shared_file_size(u->sf) > 0) {
+		http_range_t *r;
+		GSList *ranges;
 
-		/* Get rid of the trailing HTTP/<whatever> */
-		endptr = strstr(request, " HTTP/");
-		g_assert(NULL != endptr);
+		ranges = http_range_parse("Range", buf,
+					shared_file_size(u->sf), u->user_agent);
 
-		while (endptr != request && is_ascii_blank(*(endptr - 1)))
-			endptr--;
-
-		*endptr = '\0';
-	}
-
-	/* Separate the HTTP method (like GET or HEAD) */
-	{
-		const gchar *endptr;
-
-		/*
-		 * If `head_only' is true, the request was a HEAD and we're only going
-		 * to send back the headers.
-		 */
-		
-		if (NULL != (endptr = is_strprefix(request, "HEAD"))) {
-			head_only = TRUE;
-			method = "HEAD";
-		} else if (NULL != (endptr = is_strprefix(request, "GET"))) {
-			head_only = FALSE;
-			method = "GET";
-		} else {
-			/* For stupid compilers */
-			head_only = FALSE;
-			method = NULL;
+		if (ranges == NULL) {
+			upload_error_remove(u, 400, "Malformed Range request");
+			return;
 		}
 
-		if (endptr && is_ascii_blank(endptr[0])) {
-			uri = skip_ascii_blanks(endptr);
+		/*
+		 * We don't properly support multiple ranges yet.
+		 * Just pick the first one, but warn so we know when people start
+		 * requesting multiple ranges at once.
+		 *		--RAM, 27/01/2003
+		 */
+
+		if (g_slist_next(ranges) != NULL) {
+			if (upload_debug)
+				g_warning("client %s <%s> requested several ranges "
+						"for \"%s\": %s", host_addr_to_string(u->addr),
+						u->user_agent ? u->user_agent : "",
+						shared_file_name_nfc(u->sf),
+						http_range_to_string(ranges));
+		}
+
+		r = ranges->data;
+
+		g_assert(r->start <= r->end);
+		g_assert(r->end < shared_file_size(u->sf));
+
+		range_skip = r->start;
+		range_end = r->end;
+
+		http_range_free(ranges);
+	} else {
+		range_end = u->file_size - 1;
+	}
+
+	/*
+	 * PFSP-server: restrict the end of the requested range if the file
+	 * we're about to upload is only partially available.  If the range
+	 * is not yet available, signal it but don't break the connection.
+	 *		--RAM, 11/10/2003
+	 */
+
+	if (
+		shared_file_is_partial(u->sf) &&
+		!file_info_restrict_range(shared_file_fileinfo(u->sf),
+				range_skip, &range_end)
+	) {
+		g_assert(pfsp_server);
+		range_unavailable = TRUE;
+	} else {
+		if (u->unavailable_range) { /* Previous request was for bad chunk */
+			u->is_followup = FALSE;		/* Perform as if original request */
+		}
+		u->unavailable_range = FALSE;
+	}
+
+	u->skip = range_skip;
+	u->end = range_end;
+	u->pos = range_skip;
+
+	/*
+	 * When requested range is invalid, the HTTP 416 reply should contain
+	 * a Content-Range header giving the total file size, so that they
+	 * know the limits of what they can request.
+	 *
+	 * XXX due to the use of http_range_parse() above, the following can
+	 * XXX no longer trigger here.  However, http_range_parse() should be
+	 * XXX able to report out-of-range errors so we can report a true 416
+	 * XXX here.  Hence I'm not removing this code.  --RAM, 11/10/2003
+	 */
+
+	if (range_skip >= u->file_size || range_end >= u->file_size) {
+		static const gchar msg[] = "Requested range not satisfiable";
+
+		u->cb_416_arg.u = u;
+		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
+		upload_send_http_status(u, FALSE, 416, msg);
+		upload_remove(u, msg);
+		return;
+	}
+
+	/*
+	 * A follow-up request must be for the same file, since the slot is
+	 * allocated on the basis of one file.  We compare SHA1s if available,
+	 * otherwise indices, in case the library has been rebuilt.
+	 */
+
+	if (
+		u->is_followup &&
+		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && idx != u->file_index
+	) {
+		if (upload_debug) g_warning(
+			"host %s sent initial request for %u (%s), now requesting %u (%s)",
+			host_addr_to_string(u->socket->addr),
+			u->file_index, u->name, idx, shared_file_name_nfc(u->sf));
+		upload_error_remove(u, 400, "Change of Resource Forbidden");
+		return;
+	}
+
+	/*
+	 * If the requested range was determined to be unavailable, signal it
+	 * to them.  Break the connection if it was a HEAD request, but allow
+	 * them an extra request if the last one was for a valid range.
+	 *		--RAM, 11/10/2003
+	 */
+
+	if (range_unavailable) {
+		static const gchar msg[] = "Requested range not available yet";
+
+		g_assert(sha1_hash_available(u->sf));
+		g_assert(pfsp_server);
+
+		u->cb_sha1_arg.u = u;
+		upload_http_extra_callback_add(u,
+			upload_http_content_urn_add, &u->cb_sha1_arg);
+
+		if (!u->head_only && u->keep_alive && !u->unavailable_range) {
+			u->unavailable_range = TRUE;
+			upload_send_http_status(u, TRUE, 416, msg);
+			expect_http_header(u, GTA_UL_PFSP_WAITING);
 		} else {
-			upload_error_remove(u, 501, "Not Implemented");
+			upload_send_http_status(u, FALSE, 416, msg);
+			upload_remove(u, msg);
+		}
+		return;
+	}
+
+	/*
+	 * We let all HEAD request go through, whether we're busy or not, since
+	 * we only send back the header.
+	 *
+	 * Follow-up requests already have their slots.
+	 */
+
+	if (!u->head_only) {
+		if (u->is_followup && !parq_upload_queued(u)) {
+			/*
+			 * Allthough the request is an follow up request, the last time the
+			 * upload didn't get a parq slot. There is probably a good reason
+			 * for this. The most logical explantion is that the client did a
+			 * HEAD only request with a keep-alive. However, no parq structure
+			 * is set for such an upload. So we should treat as a new upload.
+			 *		-- JA, 1/06/'03
+			 */
+			u->is_followup = FALSE;
+		}
+
+		if (parq_upload_queue_full(u)) {
+			upload_error_remove(u, 503, "Queue full");
+			return;
+		}
+
+		u->parq_opaque = parq_upload_get(u, header, replaced_stalling);
+		if (u->parq_opaque == NULL) {
+			upload_error_remove(u, 503,
+				"Another connection is still active");
+			return;
+		}
+
+		/*
+		 * Check whether we can perform this upload.
+		 *
+		 * Note that we perform this check even for follow-up requests, as
+		 * we can have allowed a quick upload to go through, but they
+		 * start requesting too many small chunks..
+		 */
+
+		parq_allows = parq_upload_request(u);
+	}
+
+	if (!u->head_only && !parq_allows) {
+		/*
+		 * Even though this test is less costly than the previous ones, doing
+		 * it afterwards allows them to be notified of a mismatch whilst they
+		 * wait for a download slot.  It would be a pity for them to get
+		 * a slot and be told about the mismatch only then.
+		 *		--RAM, 15/12/2001
+		 *
+ 		 * Althought the uploads slots are full, we could try to queue
+		 * the download in PARQ. If this also fails, then the requesting client
+		 * is out of luck.
+		 *		--JA, 05/02/2003
+		 *
+		 */
+
+		if (!parq_upload_queued(u)) {
+			time_t expire = parq_banned_source_expire(u->addr);
+			gchar retry_after[80];
+			gint delay = delta_time(expire, now);
+
+			if (delay <= 0)
+				delay = 60;		/* Let them retry in a minute, only */
+
+
+			gm_snprintf(retry_after, sizeof(retry_after),
+				"Retry-After: %d\r\n", (gint) delay);
+
+			/*
+			 * Looks like upload got removed from PARQ queue. For now this
+			 * only happens when a client got banned. Bye bye!
+			 *		-- JA, 19/05/'03
+			 */
+			upload_error_remove_ext(u, retry_after, 403,
+				"%s not honoured; removed from PARQ queue",
+				u->was_actively_queued ?
+					"Minimum retry delay" : "Retry-After");
+			return;
+		}
+
+		/*
+		 * Support for bandwith-dependent number of upload slots.
+		 * The upload bandwith limitation has to be enabled, otherwise
+		 * we cannot be sure that we have reasonable values for the
+		 * outgoing bandwith set.
+		 *		--TF 30/05/2002
+		 *
+		 * NB: if max_uploads is 0, then we disable sharing, period.
+		 *
+		 * Require that BOTH the average and "instantaneous" usage be
+		 * lower than the minimum to trigger the override.  This will
+		 * make it more robust when bandwidth stealing is enabled.
+		 *		--RAM, 27/01/2003
+		 *
+		 * Naturally, no new slot must be created when uploads are
+		 * stalling, since then b/w usage will be abnormally low and
+		 * creating new slots could make things worse.
+		 *		--RAM, 2005-08-27
+		 */
+
+		if (
+			!u->is_followup &&
+			bw_ul_usage_enabled &&
+			upload_is_enabled() &&
+			bws_out_enabled &&
+			stalled <= stall_thresh() &&
+			(gulong) bsched_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage &&
+			(gulong) bsched_avg_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage
+		) {
+			if (parq_upload_request_force(u, u->parq_opaque)) {
+				parq_allows = TRUE;
+				if (upload_debug)
+					g_message(
+						"Overriden slot limit because u/l b/w used at "
+						"%lu%% (minimum set to %d%%)",
+						bsched_avg_pct(BSCHED_BWS_OUT),
+						ul_usage_min_percentage);
+			}
+		}
+
+		if (!parq_allows) {
+			if (u->status == GTA_UL_QUEUED) {
+				send_upload_error(u, 503,
+					  "Queued (slot %d, ETA: %s)",
+					  parq_upload_lookup_position(u),
+					  short_time_ascii(parq_upload_lookup_eta(u)));
+
+				u->error_sent = 0;	/* Any new request should be allowed
+									   to retrieve an error code */
+
+				/* Avoid data timeout */
+				u->last_update = parq_upload_lookup_lifetime(u) -
+					  upload_connected_timeout;
+
+				expect_http_header(u, GTA_UL_QUEUED);
+				return;
+			} else if (parq_upload_queue_full(u)) {
+				upload_error_remove(u, 503, "Queue full");
+			} else {
+				upload_error_remove(u, 503,
+					N_("Queued (slot %d, ETA: %s)"),
+					parq_upload_lookup_position(u),
+					short_time_ascii(parq_upload_lookup_eta(u)));
+			}
 			return;
 		}
 	}
+
+	if (!u->head_only) {
+		/*
+		 * Avoid race conditions in case of QUEUE callback answer: they might
+		 * already have got an upload slot since we sent the QUEUE and they
+		 * replied.  Not sure this is the right fix though, but it does
+		 * the job.
+		 *		--RAM, 24/12/2003
+		 */
+
+		if (!u->is_followup && !parq_upload_addr_can_proceed(u)) {
+			upload_error_remove(u, 503,
+				"Too many uploads to this IP address (limit=%d)",
+				max_uploads_ip);
+			return;
+		}
+
+		parq_upload_busy(u, u->parq_opaque);
+	}
+
+	{
+		struct stat statbuf;
+		const gchar *fpath;
+
+		fpath = shared_file_path(u->sf);
+		if (-1 == stat(fpath, &statbuf)) {
+			upload_error_not_found(u, u->request);
+			return;
+		}
+
+		/*
+		 * Prepare date and modification time of file.
+		 */
+
+		mtime = statbuf.st_mtime;
+		if (delta_time(mtime, now) > 0) {
+			mtime = now;			/* Clock skew on file server */
+		}
+
+		/*
+		 * Ensure that a given persistent connection never requests more than
+		 * the total file length.  Add 10% to account for partial overlapping
+		 * ranges.
+		 */
+
+		u->total_requested += range_end - range_skip + 1;
+
+		if (!u->head_only && (u->total_requested / 11) * 10 > u->file_size) {
+			if (upload_debug) g_warning(
+				"host %s (%s) requesting more than there is to %u (%s)",
+				host_addr_to_string(u->socket->addr), upload_vendor_str(u),
+				u->file_index, u->name);
+			upload_error_remove(u, 400, "Requesting Too Much");
+			return;
+		}
+
+		g_assert(NULL == u->file);		/* File opened each time */
+
+		/* Open the file for reading. */
+		u->file = file_object_open(fpath, O_RDONLY);
+		if (!u->file) {
+			gint fd, accmode;
+
+			/* If this is a partial file, we open it with O_RDWR so that
+			 * the file descriptor can be shared with download operations
+			 * for the same file. */
+			accmode = u->file_info ? O_RDWR : O_RDONLY;
+			fd = file_open(fpath, accmode);
+			if (fd >= 0) {
+				u->file = file_object_new(fd, fpath, accmode);
+			}
+		}
+		if (!u->file) {
+			upload_error_not_found(u, NULL);
+			return;
+		}
+	}
+
+	/*
+	 * PARQ ID, emitted if needed.
+	 *
+	 * We do that before calling upload_http_status() to avoid lacking
+	 * room in the headers, should there by any alternate location present.
+	 *
+	 * We never emit the queue ID for HEAD requests, nor during follow-ups
+	 * (which always occur for the same resource, meaning the PARQ ID was
+	 * already sent for those).
+	 */
+
+	if (!u->head_only && !u->is_followup && !parq_ul_id_sent(u)) {
+		u->cb_parq_arg.u = u;
+		upload_http_extra_callback_add(u,
+			parq_upload_add_header_id, &u->cb_parq_arg);
+	}
+
+	{
+		/*
+		 * Content-Length, Last-Modified, etc...
+		 */
+
+		u->cb_status_arg.u = u;
+		u->cb_status_arg.mtime = mtime;
+		upload_http_extra_callback_add(u,
+			upload_http_status, &u->cb_status_arg);
+	}
+
+	{
+		static gchar cd_buf[1024];
+		size_t len, size = sizeof cd_buf;
+		gchar *p = cd_buf;
+
+		/*
+		 * This header tells the receiver our idea of the file's name.
+		 * It's especially - but not only - useful when downloading by
+		 * urn:sha1 or similar using a browser.
+		 *
+		 * See RFC 2183 and RFC 2184 for explanations. Basically,
+		 * the filename is URL-encoded and set character set is
+		 * declared as utf-8. The language is declared 'en' (English)
+		 * which is bogus but it's required.
+		 *
+		 * This works with Mozilla.
+		 */
+
+		len = g_strlcpy(p,
+				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
+		g_assert(len < sizeof cd_buf);
+
+		p += len;
+		size -= len;
+
+		len = url_escape_into(shared_file_name_nfc(u->sf), p, size);
+		if ((size_t) -1 != len) {
+			static const gchar term[] = "\"\r\n";
+
+			p += len;
+			size -= len;
+			if (size > CONST_STRLEN(term)) {
+				(void) g_strlcpy(p, term, size);
+				upload_http_extra_line_add(u, cd_buf);
+			}
+		}
+	}
+
+	/*
+	 * Propagate the SHA1 information for the file, if we have it.
+	 */
+
+	if (sha1) {
+		u->cb_sha1_arg.u = u;
+		upload_http_extra_callback_add(u,
+			upload_http_content_urn_add, &u->cb_sha1_arg);
+	}
+
+	/*
+	 * Send back HTTP status.
+	 */
+
+	{
+		
+		const gchar *http_msg;
+		gint http_code;
+
+		if ((u->skip || u->end != (u->file_size - 1))) {
+			http_code = 206;
+			http_msg = "Partial Content";
+		} else {
+			http_code = 200;
+			http_msg = "OK";
+		}
+
+		if (!upload_send_http_status(u, u->keep_alive, http_code, http_msg)) {
+			upload_remove(u, _("Cannot send whole HTTP status"));
+			return;
+		}
+	}
+
+	/*
+	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
+	 */
+
+	if (u->head_only) {
+		if (u->keep_alive) {
+			upload_wait_new_request(u);
+		} else {
+			upload_remove(u, no_reason);	/* No message, everything was OK */
+		}
+		return;
+	}
+
+	io_free(u->io_opaque);
+	u->io_opaque = NULL;
+
+	/*
+	 * Install the output I/O, which is via a bandwidth limited source.
+	 */
+
+	g_assert(u->socket->gdk_tag == 0);
+	g_assert(u->bio == NULL);
+
+	/* TODO: Add a property for this */
+	sock_send_buf(u->socket, 64 * 1024, FALSE);
+
+	u->bio = bsched_source_add(BSCHED_BWS_OUT, &u->socket->wio,
+				BIO_F_WRITE, upload_writable, u);
+	upload_stats_file_begin(u->sf);
+	upload_fire_upload_info_changed(u);
+	gnet_prop_set_guint32_val(PROP_UL_RUNNING, ul_running + 1);
+	u->was_running = TRUE;
+}
+
+static void
+upload_determine_peer_address(gnutella_upload_t *u, header_t *header)
+{
+	const gchar *buf;
+
+	g_assert(u);
+	g_assert(header);
 
 	/*
 	 * Look for X-Node or X-Listen-IP, which indicates the host's Gnutella
@@ -3140,24 +3522,341 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			upload_fire_upload_info_changed(u);
 		}
 	}
+}
+
+static void
+upload_request_handle_user_agent(gnutella_upload_t *u, header_t *header)
+{
+	const gchar *user_agent;
+
+	g_assert(u);
+	g_assert(header);
+	
+	user_agent = header_get(header, "User-Agent");
+	if (user_agent == NULL) {
+		/* Maybe they sent a Server: line, thinking they're a server? */
+		user_agent = header_get(header, "Server");
+	}
+	if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
+		socket_disable_token(u->socket);
+	}
+
+	if (u->user_agent == NULL && user_agent != NULL) {
+		const gchar *token;
+		gboolean faked;
+
+		/*
+		 * Extract User-Agent.
+		 *
+		 * X-Token: GTKG token
+		 * User-Agent: whatever
+		 * Server: whatever (in case no User-Agent)
+		 */
+
+		token = header_get(header, "X-Token");
+	   	faked = !version_check(user_agent, token, u->addr);
+		if (faked) {
+			gchar name[1024];
+
+			name[0] = '!';
+			g_strlcpy(&name[1], user_agent, sizeof name - 1);
+			u->user_agent = atom_str_get(name);
+		} else
+			u->user_agent = atom_str_get(user_agent);
+	}
+}
+
+
+static void
+upload_set_tos(gnutella_upload_t *u)
+{
+	gboolean known_for_stalling;
+
+	g_assert(u);
 
 	/*
-	 * Make sure there is no content sent along the request.
-	 * We could sink it, but no Gnutella servent should ever need to
-	 * send content along with GET/HEAD.
-	 *		--RAM, 2006-08-15
+	 * On linux, turn TCP_CORK on so that we only send out full TCP/IP
+	 * frames.  The exact size depends on your LAN interface, but on
+	 * Ethernet, it's about 1500 bytes.
+	 *
+	 * If they have some connections stalling recently, reduce the send buffer
+	 * size.  This will lower TCP's throughput but will prevent us from
+	 * writing too much before detecting the stall.
 	 */
 
-	buf = header_get(header, "Content-Length");
-	if (buf != NULL) {
-		guint64 v;
+	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->addr);
+
+	if (stalled <= stall_thresh() && !known_for_stalling) {
+		sock_cork(u->socket, TRUE);
+		socket_tos_throughput(u->socket);
+	} else {
+		socket_tos_normal(u->socket);	/* Make sure ACKs come back faster */
+		/* FIXME:
+		 * I think this is just bad. --cbiere, 2006-11-20
+		 */
+#if 0
+		sock_send_buf(s, UP_SEND_BUFSIZE, TRUE);	/* Shrink TX buffer */
+#endif
+	}
+}
+
+static gchar *
+upload_parse_uri(header_t *header, const gchar *uri,
+	gchar *host, size_t host_size)
+{
+	const gchar *ep;
+
+	g_assert(uri);
+	g_assert(host);
+	g_assert(host_size > 0);
+
+	host[0] = '\0';
+
+	if (NULL != (ep = is_strcaseprefix(uri, "http://"))) {
+		const gchar *h = ep;
+		size_t len = ep - h;
+
+		if (!string_to_host_or_addr(h, &ep, NULL)) {
+			/* Unparsable Host */
+			return NULL;
+		}
+
+		len = ep - h;
+		if (len >= host_size) {
+			/* Hostname Too Long */
+			return NULL;
+		}
+
+		g_strlcpy(host, h, 1 + len);
+		if (':' == *ep) {
+			guint32 v;
+			gint error;
+
+			ep++; /* Skip ':' */
+			v = parse_uint32(ep, &ep, 10, &error);
+			if (error || v < 1 || v > 65535) {
+				/* Bad Port */
+				return NULL;
+			}
+		}
+
+		uri = ep;
+	} else {
+		const gchar *value;
+		
+		if (header && NULL != (value = header_get(header, "Host"))) {
+			g_strlcpy(host, value, host_size);
+		}
+	}
+	return deconstify_gchar(uri);
+}
+
+static void
+remove_trailing_http_tag(gchar *request)
+{
+	gchar *endptr;
+
+	endptr = strstr(request, " HTTP/");
+	if (endptr) {
+		while (request != endptr && is_ascii_blank(*(endptr - 1))) {
+			endptr--;
+		}
+		*endptr = '\0';
+	}
+}
+
+guint64
+get_content_length(header_t *header)
+{
+	const gchar *value;
+	guint64 length = 0;
+	
+	value = header_get(header, "Content-Length");
+	if (value) {
 		gint error;
 		
-		v = parse_uint64(buf, NULL, 10, &error);
-		if (error || v > 0) {
-			upload_error_remove(u, 403, "No Content Allowed for %s", method);
+		length = parse_uint64(value, NULL, 10, &error);
+		if (error) {
+			length = (filesize_t)-1;
+		}
+	}
+	return length;
+}
+
+void
+upload_handle_connection_header(gnutella_upload_t *u, header_t *header)
+{
+	const gchar *buf;
+	
+	/*
+	 * Do we have to keep the connection after this request?
+	 */
+
+	buf = header_get(header, "Connection");
+
+	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
+		/* HTTP/1.1 or greater -- defaults to persistent connections */
+		u->keep_alive = TRUE;
+		if (buf && 0 == ascii_strcasecmp(buf, "close"))
+			u->keep_alive = FALSE;
+	} else {
+		/* HTTP/1.0 or lesser -- must request persistence */
+		u->keep_alive = FALSE;
+		if (buf && 0 == ascii_strcasecmp(buf, "keep-alive"))
+			u->keep_alive = TRUE;
+	}
+}
+
+/**
+ * Called to initiate the upload once all the HTTP headers have been
+ * read.  Validate the request, and begin processing it if all OK.
+ * Otherwise cancel the upload.
+ */
+static void
+upload_request(gnutella_upload_t *u, header_t *header)
+{
+	gchar *search, *uri;
+	time_t now = tm_time();
+	gchar host[1 + MAX_HOSTLEN];
+
+	g_assert(u);
+
+	/*
+	 * The upload context is recycled for keep-alive connections but
+	 * the following items are always released/cleared in advance.
+	 */
+
+	g_assert(NULL == u->request);
+	g_assert(0 == u->hevcnt);
+	g_assert(NULL == u->sf);
+	g_assert(NULL == u->name);
+	g_assert(NULL == u->thex);
+	g_assert(!u->browse_host);
+	g_assert(0 == u->socket->gdk_tag);
+	g_assert(NULL == u->bio);
+
+	u->start_date = now;
+	
+	/*
+	 * Technically, we have not started sending anything yet, but this
+	 * also serves as a marker in case we need to call upload_remove().
+	 * It will not send an HTTP reply by itself.
+	 */
+
+	u->last_update = tm_time();		/* Done reading headers */
+
+
+	u->was_actively_queued = FALSE;
+
+	switch (u->status) {
+	case GTA_UL_WAITING:
+	case GTA_UL_PFSP_WAITING:
+		u->is_followup = TRUE;
+		break;
+	case GTA_UL_QUEUED:
+		u->was_actively_queued = TRUE;
+		/* FALL THROUGH */
+	default:
+		u->is_followup = FALSE;
+		break;
+	}
+	u->from_browser = upload_likely_from_browser(header);
+	u->request = g_strdup(getline_str(u->socket->getline));
+
+	u->status = GTA_UL_SENDING;
+
+	getline_free(u->socket->getline);
+	u->socket->getline = NULL;
+
+	if (upload_debug > 2) {
+		g_message("----%s Request from %s%s:\n%s",
+			u->is_followup ? "Follow-up" : "Incoming",
+			host_addr_to_string(u->socket->addr),
+			u->from_browser ? " (via browser)" : "",
+			u->request);
+		header_dump(header, stderr);
+		g_message("----");
+	}
+
+	/* @todo TODO: Parse the HTTP request properly:
+	 *		- Check for illegal characters (like NUL)
+	 */
+
+	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr);
+	
+	if (u->push && header_get_feature("tls", header, NULL, NULL)) {
+		tls_cache_insert(u->addr, u->socket->port);
+	}
+
+	upload_request_handle_user_agent(u, header);
+
+	/*
+	 * Check vendor-specific banning.
+	 */
+
+	if (u->user_agent) {
+		const gchar *msg = ban_vendor(u->user_agent);
+
+		if (msg != NULL) {
+			ban_record(u->addr, msg);
+			upload_error_remove(u, 403, "%s", msg);
 			return;
 		}
+	}
+
+
+	/*
+	 * Make sure there is the HTTP/x.x tag at the end of the request,
+	 * thereby ruling out the HTTP/0.9 requests.
+	 *
+	 * This has to be done early, and before calling get_file_to_upload()
+	 * or the getline_length() call will no longer represent the length of
+	 * the string, since URL-unescaping happens inplace and can "shrink"
+	 * the request.
+	 */
+
+	if (upload_http_version(u, u->request, strlen(u->request))) {
+		/* Get rid of the trailing HTTP/<whatever> */
+		remove_trailing_http_tag(u->request);
+	} else {
+		upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
+		return;
+	}
+
+	/* Separate the HTTP method (like GET or HEAD) */
+	{
+		const gchar *endptr;
+
+		/*
+		 * If `head_only' is true, the request was a HEAD and we're only going
+		 * to send back the headers.
+		 */
+		
+		if (NULL != (endptr = is_strprefix(u->request, "HEAD"))) {
+			u->head_only = TRUE;
+		} else if (NULL != (endptr = is_strprefix(u->request, "GET"))) {
+			u->head_only = FALSE;
+		}
+
+		if (endptr && is_ascii_blank(endptr[0])) {
+			uri = skip_ascii_blanks(endptr);
+		} else {
+			upload_error_remove(u, 501, "Not Implemented");
+			return;
+		}
+	}
+
+	upload_determine_peer_address(u, header);
+
+	if (0 != get_content_length(header)) {
+		/*
+		 * Make sure there is no content sent along the request.
+		 * We could sink it, but no Gnutella servent should ever need to
+		 * send content along with GET/HEAD.
+		 *		--RAM, 2006-08-15
+		 */
+		upload_error_remove(u, 403, "No Content Allowed");
+		return;
 	}
 
 	search = strchr(uri, '?');
@@ -3170,42 +3869,10 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/* Extract the host and path from an absolute URI */
-	host[0] = '\0';
-	{
-		const gchar *ep;
-
-		if (NULL != (ep = is_strcaseprefix(uri, "http://"))) {
-			const gchar *h = ep;
-			size_t len = ep - h;
-
-			if (!string_to_host_or_addr(h, &ep, NULL)) {
-				upload_error_remove(u, 400, "Unparsable Host");
-				return;
-			}
-
-			len = ep - h;
-			if (len >= sizeof host) {
-				upload_error_remove(u, 400, "Hostname Too Long");
-				return;
-			}
-
-			g_strlcpy(host, h, 1 + len);
-			if (':' == *ep) {
-				guint32 v;
-				gint error;
-
-				ep++; /* Skip ':' */
-				v = parse_uint32(ep, &ep, 10, &error);
-				if (error || v < 1 || v > 65535) {
-					upload_error_remove(u, 400, "Bad Port");
-					return;
-				}
-			}
-
-			uri = deconstify_gchar(ep);
-		} else if (NULL != (buf = header_get(header, "Host"))) {
-			g_strlcpy(host, buf, sizeof host);
-		}
+	uri = upload_parse_uri(header, uri, host, sizeof host);
+	if (NULL == uri) {
+		upload_error_remove(u, 400, "Bad URI");
+		return;
 	}
 
 	if (
@@ -3259,153 +3926,19 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (0 == strcmp(uri, "/")) {
-		if (
-			!prepare_browse_host_upload(u, header, method, host, now,
-				hev, G_N_ELEMENTS(hev), &hevcnt, &bh_flags)
-		)
-			return;
-	} else {
-		if (get_file_to_upload(u, header, uri, search)) {
-			/* get_file_to_upload() has signaled the error already */
+		if (prepare_browse_host_upload(u, header, host)) {
 			return;
 		}
+	} else if (get_file_to_upload(u, header, uri, search)) {
+		/* get_file_to_upload() has signaled the error already */
+		return;
 	}
 
-
-	/*
-	 * Check vendor-specific banning.
-	 */
-
-	if (user_agent) {
-		const gchar *msg = ban_vendor(user_agent);
-
-		if (msg != NULL) {
-			ban_record(u->addr, msg);
-			upload_error_remove(u, 403, "%s", msg);
-			return;
-		}
-	}
 
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);
 
-	if (u->sf) {
-		idx = shared_file_index(u->sf);
-		sha1 = sha1_hash_available(u->sf) ? shared_file_sha1(u->sf) : NULL;
-
-		/*
-		 * If we pushed this upload, and they are not requesting the same
-		 * file, that's OK, but warn.
-		 *		--RAM, 31/12/2001
-		 */
-
-		if (u->push && idx != u->file_index && upload_debug)
-			g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
-				host_addr_to_string(u->addr), u->file_index, u->name, idx,
-				shared_file_name_nfc(u->sf));
-
-		/*
-		 * We already have a non-NULL u->name in the structure, because we
-		 * saved the uri there or the name from a push request.
-		 * However, we want to display the actual name of the shared file.
-		 *		--Richard, 20/11/2002
-		 */
-
-		u->file_index = idx;
-		/* Identify file for follow-up reqs */
-		if (!u->sha1 && sha1) {
-			u->sha1 = atom_sha1_get(sha1);
-		}
-		atom_str_change(&u->name, shared_file_name_nfc(u->sf));
-		/* NULL unless partially shared file */
-		u->file_info = shared_file_fileinfo(u->sf);
-
-		/*
-		 * Range: bytes=10453-23456
-		 */
-
-		buf = header_get(header, "Range");
-		if (buf && shared_file_size(u->sf) > 0) {
-			http_range_t *r;
-			GSList *ranges;
-
-			ranges = http_range_parse("Range", buf,
-						shared_file_size(u->sf), user_agent);
-
-			if (ranges == NULL) {
-				upload_error_remove(u, 400, "Malformed Range request");
-				return;
-			}
-
-			/*
-			 * We don't properly support multiple ranges yet.
-			 * Just pick the first one, but warn so we know when people start
-			 * requesting multiple ranges at once.
-			 *		--RAM, 27/01/2003
-			 */
-
-			if (g_slist_next(ranges) != NULL) {
-				if (upload_debug)
-					g_warning("client %s <%s> requested several ranges "
-						"for \"%s\": %s", host_addr_to_string(u->addr),
-						u->user_agent ? u->user_agent : "",
-						shared_file_name_nfc(u->sf),
-						http_range_to_string(ranges));
-			}
-
-			r = ranges->data;
-
-			g_assert(r->start <= r->end);
-			g_assert(r->end < shared_file_size(u->sf));
-
-			range_skip = r->start;
-			range_end = r->end;
-			has_end = TRUE;
-
-			http_range_free(ranges);
-		}
-
-		/*
-		 * Validate the requested range.
-		 */
-
-		fpath = shared_file_path(u->sf);
-		u->file_size = shared_file_size(u->sf);
-
-		if (!has_end)
-			range_end = u->file_size - 1;
-
-		/*
-		 * PFSP-server: restrict the end of the requested range if the file
-		 * we're about to upload is only partially available.  If the range
-		 * is not yet available, signal it but don't break the connection.
-		 *		--RAM, 11/10/2003
-		 */
-
-		if (
-			shared_file_is_partial(u->sf) &&
-			!file_info_restrict_range(shared_file_fileinfo(u->sf),
-				range_skip, &range_end)
-		   ) {
-			g_assert(pfsp_server);
-			range_unavailable = TRUE;
-		} else {
-			if (u->unavailable_range)	/* Previous request was for bad chunk */
-				is_followup = FALSE;		/* Perform as if original request */
-			u->unavailable_range = FALSE;
-		}
-
-		u->skip = range_skip;
-		u->end = range_end;
-		u->pos = range_skip;
-
-	}
-
-	g_assert(hevcnt <= G_N_ELEMENTS(hev));
-
-	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-	hev[hevcnt].he_cb = upload_xfeatures_add;
-	hev[hevcnt++].he_arg = NULL;
+	upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
 
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
@@ -3417,59 +3950,26 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (u->push && !is_firewalled) {
 		/* Only send X-Host the first time we reply */
-		if (!is_followup) {
-			hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-			hev[hevcnt].he_cb = upload_http_xhost_add;
-			hev[hevcnt++].he_arg = NULL;
+		if (!u->is_followup) {
+			upload_http_extra_callback_add(u, upload_http_xhost_add, NULL);
 		}
 	} else if (is_firewalled) {
 		/* Send X-Push-Proxy each time: might have changed! */
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = node_http_proxies_add;
-		hev[hevcnt++].he_arg = NULL;
+		upload_http_extra_callback_add(u, node_http_proxies_add, NULL);
 	}
-
+	
 	/*
 	 * Include X-Hostname if not in a followup reply and if we have a
 	 * known hostname, for which the user gave permission to advertise.
 	 */
 
 	if (
-		!is_firewalled && !is_followup &&
-		give_server_hostname && 0 != *server_hostname
+		!u->is_followup &&
+		!is_firewalled &&
+		give_server_hostname &&
+		0 != *server_hostname
 	) {
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = http_hostname_add;
-		hev[hevcnt++].he_arg = NULL;
-	}
-
-	g_assert(hevcnt <= G_N_ELEMENTS(hev));
-
-	/*
-	 * When requested range is invalid, the HTTP 416 reply should contain
-	 * a Content-Range header giving the total file size, so that they
-	 * know the limits of what they can request.
-	 *
-	 * XXX due to the use of http_range_parse() above, the following can
-	 * XXX no longer trigger here.  However, http_range_parse() should be
-	 * XXX able to report out-of-range errors so we can report a true 416
-	 * XXX here.  Hence I'm not removing this code.  --RAM, 11/10/2003
-	 */
-
-	if (u->sf && (range_skip >= u->file_size || range_end >= u->file_size)) {
-		static const gchar msg[] = "Requested range not satisfiable";
-
-		cb_416_arg.u = u;
-
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_416_extra;
-		hev[hevcnt++].he_arg = &cb_416_arg;
-
-		g_assert(hevcnt <= G_N_ELEMENTS(hev));
-
-		(void) http_send_status(u->socket, 416, FALSE, hev, hevcnt, msg);
-		upload_remove(u, msg);
-		return;
+		upload_http_extra_callback_add(u, http_hostname_add, NULL);
 	}
 
 	/*
@@ -3492,389 +3992,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	upload_fire_upload_info_changed(u);
 
-	/*
-	 * A follow-up request must be for the same file, since the slot is
-	 * allocated on the basis of one file.  We compare SHA1s if available,
-	 * otherwise indices, in case the library has been rebuilt.
-	 */
-
-	if (
-		is_followup &&
-		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && idx != u->file_index
-	) {
-		if (upload_debug) g_warning(
-			"host %s sent initial request for %u (%s), now requesting %u (%s)",
-			host_addr_to_string(s->addr),
-			u->file_index, u->name, idx, shared_file_name_nfc(u->sf));
-		upload_error_remove(u, 400, "Change of Resource Forbidden");
-		return;
-	}
-
-	/*
-	 * Do we have to keep the connection after this request?
-	 */
-
-	buf = header_get(header, "Connection");
-
-	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
-		/* HTTP/1.1 or greater -- defaults to persistent connections */
-		u->keep_alive = TRUE;
-		if (buf && 0 == ascii_strcasecmp(buf, "close"))
-			u->keep_alive = FALSE;
-	} else {
-		/* HTTP/1.0 or lesser -- must request persistence */
-		u->keep_alive = FALSE;
-		if (buf && 0 == ascii_strcasecmp(buf, "keep-alive"))
-			u->keep_alive = TRUE;
-	}
-
-	/*
-	 * If browsing our host with a client that cannot allow chunked
-	 * transmission encoding, we have no choice but to indicate the end
-	 * of the transmission with EOF since we don't want to compute the
-	 * length of the data in advance.
-	 */
-
-	if (
-		u->thex ||
-		(u->browse_host && !(bh_flags & BH_F_CHUNKED))
-	) {
-		u->keep_alive = FALSE;
-	}
-
-	/*
-	 * If the requested range was determined to be unavailable, signal it
-	 * to them.  Break the connection if it was a HEAD request, but allow
-	 * them an extra request if the last one was for a valid range.
-	 *		--RAM, 11/10/2003
-	 */
-
-	if (u->sf && range_unavailable) {
-		static const gchar msg[] = "Requested range not available yet";
-
-		g_assert(sha1_hash_available(u->sf));
-		g_assert(pfsp_server);
-
-		cb_sha1_arg.u = u;
-
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_content_urn_add;
-		hev[hevcnt++].he_arg = &cb_sha1_arg;
-
-		g_assert(hevcnt <= G_N_ELEMENTS(hev));
-
-		if (!head_only && u->keep_alive && !u->unavailable_range) {
-			u->unavailable_range = TRUE;
-			(void) http_send_status(u->socket, 416, TRUE, hev, hevcnt, msg);
-			running_uploads--;		/* Re-incremented if they ever come back */
-			expect_http_header(u, GTA_UL_PFSP_WAITING);
-		} else {
-			(void) http_send_status(u->socket, 416, FALSE, hev, hevcnt, msg);
-			upload_remove(u, msg);
-		}
-		return;
-	}
-
-	if (!head_only) {
-		GSList *to_remove = NULL;
-
-		/*
-		 * Ensure that noone tries to download the same file twice, and
-		 * that they don't get beyond the max authorized downloads per IP.
-		 * NB: SHA1 are atoms, so it's OK to compare their addresses.
-		 *
-		 * This needs to be done before the upload enters PARQ. PARQ doesn't
-		 * handle multiple uploads for the same file very well as it tries to
-		 * keep 1 pointer to the upload structure as long as that structure
-		 * exists.
-		 * 		-- JA 12/7/'03
-		 */
-
-		for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
-			gnutella_upload_t *up = sl->data;
-			g_assert(up);
-			if (up == u)
-				continue;				/* Current upload is already in list */
-			if (!UPLOAD_IS_SENDING(up) && up->status != GTA_UL_QUEUED)
-				continue;
-			if (
-				host_addr_equal(up->socket->addr, s->addr) && (
-					(up->file_index != URN_INDEX && up->file_index == idx) ||
-					(u->sha1 && up->sha1 == u->sha1)
-				)
-			) {
-				/*
-				 * If the duplicate upload we have is stalled or showed signs
-				 * of early stalling, the remote end might have seen no data
-				 * and is trying to reconnect.  Kill that old upload.
-				 *		--RAM, 07/12/2003
-				 */
-
-				if (up->flags & (UPLOAD_F_STALLED|UPLOAD_F_EARLY_STALL))
-					to_remove = g_slist_prepend(to_remove, up);
-				else {
-					upload_error_remove(u, 503,
-						"Already downloading that file");
-					g_slist_free(to_remove);
-					return;
-				}
-			}
-		}
-
-		/*
-		 * Kill pre-stalling or stalling uploads we spotted as being
-		 * identical to their current request.  There should be only one
-		 * at most.
-		 */
-
-		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
-			gnutella_upload_t *up = sl->data;
-			g_assert(up);
-
-			if (upload_debug) g_warning(
-				"stalling connection to %s (%s) replaced after %s bytes sent, "
-				"stall counter at %d",
-				host_addr_to_string(up->addr), upload_vendor_str(up),
-				uint64_to_string(up->sent), stalled);
-
-			upload_remove(up, _("Stalling upload replaced"));
-			replacing_stall = TRUE;
-		}
-		g_slist_free(to_remove);
-	}
-
-	/*
-	 * We let all HEAD request go through, whether we're busy or not, since
-	 * we only send back the header.
-	 *
-	 * Follow-up requests already have their slots.
-	 */
-
-	if (u->sf && !head_only) {
-		if (is_followup && !parq_upload_queued(u)) {
-			/*
-			 * Allthough the request is an follow up request, the last time the
-			 * upload didn't get a parq slot. There is probably a good reason
-			 * for this. The most logical explantion is that the client did a
-			 * HEAD only request with a keep-alive. However, no parq structure
-			 * is set for such an upload. So we should treat as a new upload.
-			 *		-- JA, 1/06/'03
-			 */
-			is_followup = FALSE;
-		}
-
-		if (parq_upload_queue_full(u)) {
-			upload_error_remove(u, 503, "Queue full");
-			return;
-		}
-
-		u->parq_opaque = parq_upload_get(u, header, replacing_stall);
-
-		if (u->parq_opaque == NULL) {
-			upload_error_remove(u, 503,
-				"Another connection is still active");
-			return;
-		}
-
-		/*
-		 * Check whether we can perform this upload.
-		 *
-		 * Note that we perform this check even for follow-up requests, as
-		 * we can have allowed a quick upload to go through, but they
-		 * start requesting too many small chunks..
-		 */
-
-		parq_allows = parq_upload_request(u, running_uploads - 1);
-	}
-
-	if (u->sf && !head_only && !parq_allows) {
-		/*
-		 * Even though this test is less costly than the previous ones, doing
-		 * it afterwards allows them to be notified of a mismatch whilst they
-		 * wait for a download slot.  It would be a pity for them to get
-		 * a slot and be told about the mismatch only then.
-		 *		--RAM, 15/12/2001
-		 *
- 		 * Althought the uploads slots are full, we could try to queue
-		 * the download in PARQ. If this also fails, then the requesting client
-		 * is out of luck.
-		 *		--JA, 05/02/2003
-		 *
-		 */
-
-		if (!parq_upload_queued(u)) {
-			time_t expire = parq_banned_source_expire(u->addr);
-			gchar retry_after[80];
-			gint delay = delta_time(expire, now);
-
-			if (delay <= 0)
-				delay = 60;		/* Let them retry in a minute, only */
-
-
-			gm_snprintf(retry_after, sizeof(retry_after),
-				"Retry-After: %d\r\n", (gint) delay);
-
-			/*
-			 * Looks like upload got removed from PARQ queue. For now this
-			 * only happens when a client got banned. Bye bye!
-			 *		-- JA, 19/05/'03
-			 */
-			upload_error_remove_ext(u, retry_after, 403,
-				"%s not honoured; removed from PARQ queue",
-				was_actively_queued ?
-					"Minimum retry delay" : "Retry-After");
-			return;
-		}
-
-		/*
-		 * Support for bandwith-dependent number of upload slots.
-		 * The upload bandwith limitation has to be enabled, otherwise
-		 * we cannot be sure that we have reasonable values for the
-		 * outgoing bandwith set.
-		 *		--TF 30/05/2002
-		 *
-		 * NB: if max_uploads is 0, then we disable sharing, period.
-		 *
-		 * Require that BOTH the average and "instantaneous" usage be
-		 * lower than the minimum to trigger the override.  This will
-		 * make it more robust when bandwidth stealing is enabled.
-		 *		--RAM, 27/01/2003
-		 *
-		 * Naturally, no new slot must be created when uploads are
-		 * stalling, since then b/w usage will be abnormally low and
-		 * creating new slots could make things worse.
-		 *		--RAM, 2005-08-27
-		 */
-
-		if (
-			!is_followup &&
-			bw_ul_usage_enabled &&
-			upload_is_enabled() &&
-			bws_out_enabled &&
-			stalled <= stall_thresh() &&
-			(gulong) bsched_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage &&
-			(gulong) bsched_avg_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage
-		) {
-			if (parq_upload_request_force(
-					u, u->parq_opaque, running_uploads - 1)) {
-				parq_allows = TRUE;
-				if (upload_debug)
-					g_message(
-						"Overriden slot limit because u/l b/w used at "
-						"%lu%% (minimum set to %d%%)",
-						bsched_avg_pct(BSCHED_BWS_OUT),
-						ul_usage_min_percentage);
-			}
-		}
-
-		if (!parq_allows) {
-			if (u->status == GTA_UL_QUEUED) {
-				/*
-				 * Cleanup data structures.
-				 */
-
-				io_free(u->io_opaque);
-				g_assert(u->io_opaque == NULL);
-
-				getline_free(s->getline);
-				s->getline = NULL;
-
-				send_upload_error(u, 503,
-					  "Queued (slot %d, ETA: %s)",
-					  parq_upload_lookup_position(u),
-					  short_time_ascii(parq_upload_lookup_eta(u)));
-
-				u->error_sent = 0;	/* Any new request should be allowed
-									   to retrieve an error code */
-
-				/* Avoid data timeout */
-				u->last_update = parq_upload_lookup_lifetime(u) -
-					  upload_connected_timeout;
-
-				running_uploads--;	/* will get increased next time
-									   upload_request is called */
-
-				expect_http_header(u, GTA_UL_QUEUED);
-				return;
-			} else
-			if (parq_upload_queue_full(u)) {
-				upload_error_remove(u, 503, "Queue full");
-			} else {
-				upload_error_remove(u, 503,
-					N_("Queued (slot %d, ETA: %s)"),
-					parq_upload_lookup_position(u),
-					short_time_ascii(parq_upload_lookup_eta(u)));
-			}
-			return;
-		}
-	}
-
-	if (u->sf && !head_only) {
-		/*
-		 * Avoid race conditions in case of QUEUE callback answer: they might
-		 * already have got an upload slot since we sent the QUEUE and they
-		 * replied.  Not sure this is the right fix though, but it does
-		 * the job.
-		 *		--RAM, 24/12/2003
-		 */
-
-		if (!is_followup && !parq_upload_addr_can_proceed(u)) {
-			upload_error_remove(u, 503,
-				"Too many uploads to this IP address (limit=%d)",
-				max_uploads_ip);
-			return;
-		}
-
-		parq_upload_busy(u, u->parq_opaque);
-	}
-
-	using_sendfile = use_sendfile(u);
-
-	if (u->sf) {
-
-		if (-1 == stat(fpath, &statbuf)) {
-			upload_error_not_found(u, request);
-			return;
-		}
-
-		/*
-		 * Ensure that a given persistent connection never requests more than
-		 * the total file length.  Add 10% to account for partial overlapping
-		 * ranges.
-		 */
-
-		u->total_requested += range_end - range_skip + 1;
-
-		if (!head_only && (u->total_requested / 11) * 10 > u->file_size) {
-			if (upload_debug) g_warning(
-				"host %s (%s) requesting more than there is to %u (%s)",
-				host_addr_to_string(s->addr), upload_vendor_str(u),
-				u->file_index, u->name);
-			upload_error_remove(u, 400, "Requesting Too Much");
-			return;
-		}
-
-		g_assert(NULL == u->file);		/* File opened each time */
-
-		/* Open the file for reading. */
-		u->file = file_object_open(fpath, O_RDONLY);
-		if (!u->file) {
-			gint fd, accmode;
-
-			/* If this is a partial file, we open it with O_RDWR so that
-			 * the file descriptor can be shared with download operations
-			 * for the same file. */
-			accmode = u->file_info ? O_RDWR : O_RDONLY;
-			fd = file_open(fpath, accmode);
-			if (fd >= 0) {
-				u->file = file_object_new(fd, fpath, accmode);
-			}
-		}
-		if (!u->file) {
-			upload_error_not_found(u, uri);
-			return;
-		}
-	}
+	upload_handle_connection_header(u, header);
 
 	/*
 	 * If we're not using sendfile() or if we don't have a requested file
@@ -3882,7 +4000,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * to need a buffer.
 	 */
 
-	if (!using_sendfile || !u->sf) {
+	if (NULL == u->sf || !use_sendfile(u)) {
 		u->bpos = 0;
 		u->bsize = 0;
 
@@ -3896,214 +4014,151 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Set remaining upload information
 	 */
 
-	u->start_date = now;
-	u->last_update = now;
-
-	/*
-	 * Prepare date and modification time of file.
-	 */
-
-	mtime = statbuf.st_mtime;
-	if (delta_time(mtime, now) > 0)
-		mtime = now;			/* Clock skew on file server */
-
-	/*
-	 * On linux, turn TCP_CORK on so that we only send out full TCP/IP
-	 * frames.  The exact size depends on your LAN interface, but on
-	 * Ethernet, it's about 1500 bytes.
-	 *
-	 * If they have some connections stalling recently, reduce the send buffer
-	 * size.  This will lower TCP's throughput but will prevent us from
-	 * writing too much before detecting the stall.
-	 */
-
-	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->addr);
-
-	if (stalled <= stall_thresh() && !known_for_stalling) {
-		sock_cork(s, TRUE);
-		socket_tos_throughput(s);
-	} else {
-		socket_tos_normal(s);	/* Make sure ACKs come back faster */
-		/* FIXME:
-		 * I think this is just bad. --cbiere, 2006-11-20
-		 */
-#if 0
-		sock_send_buf(s, UP_SEND_BUFSIZE, TRUE);	/* Shrink TX buffer */
-#endif
-	}
-
-	/*
-	 * Send back HTTP status.
-	 */
-
-	if (u->sf && (u->skip || u->end != (u->file_size - 1))) {
-		http_code = 206;
-		http_msg = "Partial Content";
-	} else {
-		http_code = 200;
-		http_msg = "OK";
-	}
-
-	/*
-	 * PARQ ID, emitted if needed.
-	 *
-	 * We do that before calling upload_http_status() to avoid lacking
-	 * room in the headers, should there by any alternate location present.
-	 *
-	 * We never emit the queue ID for HEAD requests, nor during follow-ups
-	 * (which always occur for the same resource, meaning the PARQ ID was
-	 * already sent for those).
-	 */
-
-	if (u->sf && !head_only && !is_followup && !parq_ul_id_sent(u)) {
-		cb_parq_arg.u = u;
-
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = parq_upload_add_header_id;
-		hev[hevcnt++].he_arg = &cb_parq_arg;
-	}
+	upload_set_tos(u);
 
 	if (u->sf) {
-		/*
-		 * Date, Content-Length, etc...
-		 */
+		upload_request_for_shared_file(u, header);
+	} else {
+		gboolean chunked_transfer = supports_chunked(u, header);
+		gint flags = 0;
+		
+		u->file_size = 0;
 
-		cb_status_arg.u = u;
-		cb_status_arg.now = now;
-		cb_status_arg.mtime = mtime;
-
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_status;
-		hev[hevcnt++].he_arg = &cb_status_arg;
-	}
-
-	if (u->sf) {
-		static gchar cd_buf[1024];
-		size_t len, size = sizeof cd_buf;
-		gchar *p = cd_buf;
-
-		/*
-		 * This header tells the receiver our idea of the file's name.
-		 * It's especially - but not only - useful when downloading by
-		 * urn:sha1 or similar using a browser.
-		 *
-		 * See RFC 2183 and RFC 2184 for explanations. Basically,
-		 * the filename is URL-encoded and set character set is
-		 * declared as utf-8. The language is declared 'en' (English)
-		 * which is bogus but it's required.
-		 *
-		 * This works with Mozilla.
-		 */
-
-		len = g_strlcpy(p,
-				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
-		g_assert(len < sizeof cd_buf);
-
-		p += len;
-		size -= len;
-
-		len = url_escape_into(shared_file_name_nfc(u->sf), p, size);
-		if ((size_t) -1 != len) {
-			static const gchar term[] = "\"\r\n";
-
-			p += len;
-			size -= len;
-			if (size > CONST_STRLEN(term)) {
-				len = g_strlcpy(p, term, size);
-
-				hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-				hev[hevcnt].he_msg = cd_buf;
-				hev[hevcnt++].he_arg = NULL;
+		if (chunked_transfer) {
+			if (!u->head_only) {
+				upload_http_extra_line_add(u, "Transfer-Encoding: chunked\r\n");
 			}
+		} else {
+			/*
+			 * If browsing our host with a client that cannot allow chunked
+			 * transmission encoding, we have no choice but to indicate the end
+			 * of the transmission with EOF since we don't want to compute the
+			 * length of the data in advance.
+			 */
+			u->keep_alive = FALSE;
 		}
-	}
 
-	g_assert(hevcnt <= G_N_ELEMENTS(hev));
+		if (u->browse_host) {
+			const gchar *buf;
+			gchar name[1024];
 
-	/*
-	 * Propagate the SHA1 information for the file, if we have it.
-	 */
+			/*
+			 * Look at an Accept: line with "application/x-gnutella-packets".
+			 * If we get that, then we can send query hits backs.  Otherwise,
+			 * we'll send HTML output.
+			 */
 
-	if (sha1) {
-		cb_sha1_arg.u = u;
+			buf = header_get(header, "Accept");
+			if (buf) {
+				/* FIXME: needs more rigourous parsing */
+				if (strstr(buf, "application/x-gnutella-packets")) {
+					flags |= BH_F_QHITS;
+				} else if (strstr(buf, "text/html")) {
+					flags |= BH_F_HTML;
+				} else if (strstr(buf, "*/*") || strstr(buf, "text/*")) {
+					flags |= BH_F_HTML;	/* A browser probably */
+				} else {
+					upload_error_remove(u, 406, "Not Acceptable");
+					return;
+				}
+			}
+			if (!(BH_F_QHITS & flags)) {
+				/* No Accept, default to HTML */
+				flags |= BH_F_HTML;
+			}
 
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_content_urn_add;
-		hev[hevcnt++].he_arg = &cb_sha1_arg;
-		g_assert(hevcnt <= G_N_ELEMENTS(hev));
-	}
+			if (flags & BH_F_HTML) {
+				upload_http_extra_line_add(u,
+						"Content-Type: text/html; charset=utf-8\r\n");
+			} else {
+				upload_http_extra_line_add(u,
+						"Content-Type: application/x-gnutella-packets\r\n");
+			}
 
+			flags |= chunked_transfer ? BH_F_CHUNKED : 0;
 
-	if (
-		!http_send_status(u->socket, http_code, u->keep_alive,
-			hev, hevcnt, "%s", http_msg)
-	) {
-		upload_remove(u, _("Cannot send whole HTTP status"));
-		return;
-	}
+			/*
+			 * Accept-Encoding -- see whether they want compressed output.
+			 */
 
-	/*
-	 * Cleanup data structures.
-	 */
+			flags |= select_encoding(header);
+			if (flags & (BH_F_DEFLATE | BH_F_GZIP)) {
+				const gchar *content_encoding;
 
-	io_free(u->io_opaque);
-	u->io_opaque = NULL;
+				if (flags & BH_F_GZIP) {
+					content_encoding = "Content-Encoding: gzip\r\n";
+				} else {
+					content_encoding = "Content-Encoding: deflate\r\n";
+				}
+				upload_http_extra_line_add(u, content_encoding);
+			}
 
-	getline_free(s->getline);
-	s->getline = NULL;
+			gm_snprintf(name, sizeof name,
+					_("<Browse Host Request> [%s%s%s]"),
+					(flags & BH_F_HTML) ? "HTML" : _("query hits"),
+					(flags & BH_F_DEFLATE) ? _(", deflate") :
+					(flags & BH_F_GZIP) ? _(", gzip") : "",
+					(flags & BH_F_CHUNKED) ? _(", chunked") : "");
 
-	/*
-	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
-	 */
+			atom_str_change(&u->name, name);
+		} else if (u->thex) {
+			gchar *name;
+			
+			flags |= chunked_transfer ? THEX_UPLOAD_F_CHUNKED : 0;
+		   	name = g_strdup_printf(_("<THEX data for %s>"), u->name);
+			atom_str_change(&u->name, name);
+			G_FREE_NULL(name);
 
-	if (head_only) {
-		if (u->keep_alive)
-			upload_wait_new_request(u);
-		else
-			upload_remove(u, no_reason);	/* No message, everything was OK */
-		return;
-	}
+			upload_http_extra_line_add(u, "Content-Type: application/dime\r\n");
+		}
 
-	/*
-	 * Install the output I/O, which is via a bandwidth limited source.
-	 */
+		if (!upload_send_http_status(u, u->keep_alive, 200, "OK")) {
+			upload_remove(u, _("Cannot send whole HTTP status"));
+			return;
+		}
 
-	g_assert(s->gdk_tag == 0);
-	g_assert(u->bio == NULL);
+		/*
+		 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
+		 */
 
-	/* TODO: Add a property for this */
-	sock_send_buf(s, 64 * 1024, FALSE);
+		if (u->head_only) {
+			if (u->keep_alive) {
+				upload_wait_new_request(u);
+			} else {
+				/* No message, everything was OK */
+				upload_remove(u, no_reason);
+			}
+			return;
+		} else {
+			gnet_host_t peer;
 
-	if (u->browse_host) {
-		gnet_host_t h;
+			io_free(u->io_opaque);
+			u->io_opaque = NULL;
 
-		gnet_host_set(&h, u->socket->addr, u->socket->port);
-		u->special = browse_host_open(u,
-						&h,
+			/* TODO: Add a property for this */
+			sock_send_buf(u->socket, 64 * 1024, FALSE);
+
+			gnet_host_set(&peer, u->socket->addr, u->socket->port);
+			if (u->browse_host) {
+				u->special = browse_host_open(u, &peer,
 						upload_special_writable,
 						&upload_tx_deflate_cb,
 						&upload_tx_link_cb,
 						&u->socket->wio,
-						bh_flags);
-	} else if (u->thex) {
-		gnet_host_t h;
-
-		gnet_host_set(&h, u->socket->addr, u->socket->port);
-		u->special = thex_upload_open(u,
-						&h,
+						flags);
+			} else if (u->thex) {
+				u->special = thex_upload_open(u, &peer,
 						u->thex,
 						upload_special_writable,
 						&upload_tx_link_cb,
 						&u->socket->wio,
-						0);
-		shared_file_unref(&u->thex);
-	} else {
-		u->bio = bsched_source_add(BSCHED_BWS_OUT, &s->wio,
-			BIO_F_WRITE, upload_writable, u);
-		if (u->sf)
-			upload_stats_file_begin(u->sf);
+						flags);
+				shared_file_unref(&u->thex);
+			}
+			gnet_prop_set_guint32_val(PROP_UL_RUNNING, ul_running + 1);
+			u->was_running = TRUE;
+		}
 	}
-
 }
 
 static void
@@ -4135,14 +4190,7 @@ upload_completed(gnutella_upload_t *u)
 		parq_upload_collect_stats(u);
 		cu = upload_clone(u);
 		upload_wait_new_request(cu);
-		/*
-		 * Don't decrement counters, we're still using the same slot.
-		 */
-	} else {
-		registered_uploads--;
-		running_uploads--;
 	}
-
 	upload_remove(u, no_reason);
 }
 
@@ -4345,7 +4393,7 @@ upload_special_flushed(gpointer arg)
 	u->special = NULL;
 
 	if (upload_debug)
-		g_message("BROWSE %s from %s (%s) done: %s bytes, %s sent",
+		g_message("%s from %s (%s) done: %s bytes, %s sent",
 			u->name,
 			host_addr_to_string(u->socket->addr),
 			upload_vendor_str(u),

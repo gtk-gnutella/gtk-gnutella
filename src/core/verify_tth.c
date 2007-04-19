@@ -54,7 +54,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/bg.h"
-#include "lib/slist.h"
+#include "lib/hashlist.h"
 #include "lib/file.h"
 #include "lib/tigertree.h"
 #include "lib/tiger.h"
@@ -68,7 +68,7 @@ RCSID("$Id$")
  ***/
 
 static struct bgtask *verify_task;
-static slist_t *files_to_hash;
+static hash_list_t *files_to_hash;
 
 struct verify_tth {
 	struct file_object *file;
@@ -78,6 +78,24 @@ struct verify_tth {
 	TTH_CONTEXT *tth;
 	struct shared_file *sf;
 };
+
+static guint
+shared_file_hash(gconstpointer key)
+{
+	const struct shared_file *sf = key;
+	return g_str_hash(shared_file_path(sf));
+}
+
+static gint
+shared_file_eq(gconstpointer a, gconstpointer b)
+{
+	const struct shared_file *sf_a = a, *sf_b = b;
+	const char *path_a, *path_b;
+
+	path_a = shared_file_path(sf_a);
+	path_b = shared_file_path(sf_b);
+	return path_a == path_b || 0 == strcmp(path_a, path_b);
+}
 
 /**
  * Initialises the background task for tigertree verification.
@@ -89,7 +107,7 @@ tt_verify_init(void)
 
 	if (!initialized) {
 		initialized = TRUE;
-		files_to_hash = slist_new();
+		files_to_hash = hash_list_new(shared_file_hash, shared_file_eq);
 	}
 }
 
@@ -106,10 +124,10 @@ tt_verify_close(void)
 	if (files_to_hash) {
 		struct shared_file *sf;
 
-		while (NULL != (sf = slist_shift(files_to_hash))) {
+		while (NULL != (sf = hash_list_shift(files_to_hash))) {
 			shared_file_unref(&sf);
 		}
-		slist_free(&files_to_hash);
+		hash_list_free(&files_to_hash);
 	}
 }
 
@@ -160,7 +178,7 @@ tigertree_next_file(struct verify_tth *ctx)
 	g_assert(NULL == ctx->sf);
 	g_assert(NULL == ctx->file);
 	
-	ctx->sf = files_to_hash ? slist_shift(files_to_hash) : NULL;
+	ctx->sf = files_to_hash ? hash_list_shift(files_to_hash) : NULL;
 	if (ctx->sf) {
 		const char *pathname;
 
@@ -276,13 +294,18 @@ tigertree_step_compute(struct bgtask *bt, void *data, int ticks)
 	if (ctx->file) {
 		tigertree_feed(ctx);
 	}
-	return ctx->file || slist_length(files_to_hash) > 0 ? BGR_MORE : BGR_DONE;
+	if (ctx->file || hash_list_length(files_to_hash) > 0) {
+		return BGR_MORE;
+	} else {
+		return BGR_DONE;
+	}
 }
 
 void
-request_tigertree(struct shared_file *sf)
+request_tigertree(struct shared_file *sf, gboolean high_priority)
 {
 	const struct tth *tth;
+	const void *orig_key;
 
 	if (!experimental_tigertree_support)
 		return;
@@ -290,7 +313,27 @@ request_tigertree(struct shared_file *sf)
 	tt_verify_init();
 
 	g_return_if_fail(sf);
+	shared_file_check(sf);
 	g_return_if_fail(files_to_hash);
+
+	if (hash_list_contains(files_to_hash, sf, &orig_key)) {
+		if (sf == orig_key) {
+			if (high_priority) {
+				g_message(
+					"Moving TTH computation for %s to the head of the queue",
+					shared_file_path(sf));
+				hash_list_moveto_head(files_to_hash, sf);
+			} else {
+				g_message("TTH computation for %s already queued",
+					shared_file_path(sf));
+			}
+			return;
+		} else {
+			struct shared_file *orig_sf = deconstify_gpointer(orig_key);
+			hash_list_remove(files_to_hash, orig_sf);
+			shared_file_unref(&orig_sf);
+		}
+	}
 
 	tth = shared_file_tth(sf);
 	if (tth) {
@@ -308,7 +351,11 @@ request_tigertree(struct shared_file *sf)
 		return;
 	}
 
-	slist_append(files_to_hash, shared_file_ref(sf));
+	if (high_priority) {
+		hash_list_prepend(files_to_hash, shared_file_ref(sf));
+	} else {
+		hash_list_append(files_to_hash, shared_file_ref(sf));
+	}
 
 	if (NULL == verify_task) {
 		bgstep_cb_t step[] = { tigertree_step_compute };

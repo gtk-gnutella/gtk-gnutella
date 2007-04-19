@@ -248,34 +248,6 @@ struct parq_dl_queued {
 	gchar *id;				/**< PARQ Queue ID, +1 for trailing NUL */
 };
 
-
-void parq_dl_del_id(struct download *d);
-
-static void parq_upload_free(struct parq_ul_queued *parq_ul);
-static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u);
-static struct parq_ul_queue *parq_upload_which_queue(gnutella_upload_t *u);
-static struct parq_ul_queue *parq_upload_new_queue();
-static void parq_upload_free_queue(struct parq_ul_queue *queue);
-static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue);
-static struct parq_ul_queued *parq_upload_find(const gnutella_upload_t *u);
-static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b);
-static gboolean parq_upload_continue(
-		struct parq_ul_queued *uq, gint free_slots);
-static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul);
-static void parq_upload_load_queue();
-static void parq_upload_update_relative_position(
-		struct parq_ul_queued *parq_ul);
-static void parq_upload_update_addr_and_name(struct parq_ul_queued *parq_ul,
-	gnutella_upload_t *u);
-
-static void parq_upload_register_send_queue(struct parq_ul_queued *parq_ul);
-static void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
-
-static gboolean parq_still_sharing(struct parq_ul_queued *);
-
-void parq_add_banned_source(const host_addr_t addr, time_t delay);
-void parq_del_banned_source(const host_addr_t addr);
-
 /***
  ***  Generic non PARQ specific functions
  ***/
@@ -611,6 +583,29 @@ parq_dl_remove(struct download *d)
 }
 
 /**
+ * Remove the memory used by the ID string, and removes it from
+ * various lists
+ */
+void
+parq_dl_del_id(struct download *d)
+{
+	struct parq_dl_queued *parq_dl = NULL;
+
+	g_assert(d != NULL);
+
+	parq_dl = (struct parq_dl_queued *) d->queue_status;
+
+	g_assert(parq_dl != NULL);
+	g_assert(parq_dl->id != NULL);
+
+	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
+	G_FREE_NULL(parq_dl->id);
+
+	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
+}
+
+
+/**
  * Removes the queue information for a download from memory.
  */
 void
@@ -674,28 +669,6 @@ parq_dl_add_id(struct download *d, const gchar *new_id)
 	g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, d);
 
 	g_assert(parq_dl->id != NULL);
-}
-
-/**
- * Remove the memory used by the ID string, and removes it from
- * various lists
- */
-void
-parq_dl_del_id(struct download *d)
-{
-	struct parq_dl_queued *parq_dl = NULL;
-
-	g_assert(d != NULL);
-
-	parq_dl = (struct parq_dl_queued *) d->queue_status;
-
-	g_assert(parq_dl != NULL);
-	g_assert(parq_dl->id != NULL);
-
-	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
-	G_FREE_NULL(parq_dl->id);
-
-	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
 }
 
 /**
@@ -1167,6 +1140,150 @@ handle_to_queued(gpointer handle)
 }
 
 /**
+ * Updates the ETA of all queued items in the given queue.
+ */
+static void
+parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
+{
+	GList *l;
+	guint eta = 0;
+	guint avg_bps;
+
+	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
+	avg_bps = MAX(1, avg_bps);
+
+	if (which_ul_queue->active_uploads) {
+		/*
+		 * Current queue has an upload slot. Use this one for a start ETA.
+		 * Locate the first active upload in this queue.
+		 */
+
+		for (l = which_ul_queue->by_position; l; l = g_list_next(l)) {
+			struct parq_ul_queued *parq_ul = l->data;
+
+			if (parq_ul->has_slot) {		/* Recompute ETA */
+				eta += parq_ul->file_size / avg_bps * max_uploads;
+				break;
+			}
+		}
+	}
+
+	if (eta == 0 && ul_running > max_uploads) {
+		/* We don't have an upload slot available, so a start ETA (for position
+		 * 1) is necessary.
+		 * Use the eta of another queue. First by the queue which uses more than
+		 * one upload slot. If that result is still 0, we have a small problem
+		 * as the ETA can't be calculated correctly anymore.
+		 */
+
+		for (l = ul_parqs; l; l = g_list_next(l)) {
+			struct parq_ul_queue *q = l->data;
+
+			if (q->active_uploads > 1) {
+				struct parq_ul_queued *parq_ul = q->by_rel_pos->data;
+
+				eta = parq_ul->eta;
+				break;
+			}
+		}
+
+		if (eta == 0)
+			g_warning("[PARQ UL] Was unable to calculate an accurate ETA");
+
+	}
+
+	for (l = which_ul_queue->by_rel_pos; l; l = g_list_next(l)) {
+		struct parq_ul_queued *parq_ul = l->data;
+
+		g_assert(parq_ul->is_alive);
+
+		parq_ul->eta = eta;
+
+		if (parq_ul->has_slot)
+			continue;			/* Skip already uploading uploads */
+
+		/* Recalculate ETA */
+		if (parq_optimistic)
+			eta += (parq_ul->file_size / avg_bps * max_uploads) /
+				(parq_ul->sha1 != NULL ? dmesh_count(parq_ul->sha1) + 1 : 1);
+		else
+			eta += parq_ul->file_size / avg_bps * max_uploads;
+
+	}
+}
+
+/**
+ * Decreases the position of all queued items after the given queued item.
+ */
+static void
+parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
+{
+	GList *l;
+	gint pos_cnt = 0;	/* Used for assertion */
+
+	g_assert(cur_parq_ul != NULL);
+	g_assert(cur_parq_ul->queue != NULL);
+	g_assert(cur_parq_ul->queue->by_position != NULL);
+	g_assert(cur_parq_ul->queue->size > 0);
+
+	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
+	pos_cnt = ((struct parq_ul_queued *) l->data)->position;
+
+	l = g_list_next(l);	/* Decrease _after_ current parq */
+
+	/*
+	 * Cycle through list and decrease all positions by one. Position should
+	 * never reach 0 which would mean the queued item is currently uploading
+	 */
+	for (;	l; l = g_list_next(l)) {
+		struct parq_ul_queued *parq_ul = l->data;
+
+		g_assert(parq_ul != NULL);
+		parq_ul->position--;
+
+		g_assert((gint) parq_ul->position == pos_cnt);
+
+		pos_cnt++;
+		g_assert(parq_ul->position > 0);
+	}
+}
+
+/**
+ * Updates the relative position of all queued after the given queued
+ * item.
+ */
+static void
+parq_upload_update_relative_position(struct parq_ul_queued *cur_parq_ul)
+{
+	GList *l = NULL;
+	guint rel_pos = cur_parq_ul->relative_position;
+
+	g_assert(cur_parq_ul != NULL);
+	g_assert(cur_parq_ul->queue != NULL);
+	g_assert(cur_parq_ul->queue->by_position != NULL);
+	g_assert(cur_parq_ul->queue->size > 0);
+	g_assert(rel_pos > 0);
+
+	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
+
+	if (cur_parq_ul->is_alive)
+		rel_pos++;
+
+	for (l = g_list_next(l); l; l = g_list_next(l)) {
+		struct parq_ul_queued *parq_ul = l->data;
+
+		g_assert(parq_ul != NULL);
+
+		parq_ul->relative_position = rel_pos;
+
+		if (parq_ul->is_alive)
+			rel_pos++;
+
+		g_assert(parq_ul->relative_position > 0);
+	}
+}
+
+/**
  * removes an parq_ul from the parq list and frees all its memory.
  */
 static void
@@ -1308,6 +1425,112 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	}
 
 	return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
+}
+
+/**
+ * Creates a new parq_ul_queue structure and places it in the ul_parqs
+ * linked list.
+ */
+static struct parq_ul_queue *
+parq_upload_new_queue(void)
+{
+	struct parq_ul_queue *queue = NULL;
+
+	queue = walloc(sizeof(*queue));
+	g_assert(queue != NULL);
+
+	queue->size = 0;
+	queue->active = TRUE;
+	queue->by_position = NULL;
+	queue->by_rel_pos = NULL;
+	queue->by_date_dead = NULL;
+	queue->active_uploads = 0;
+	queue->alive = 0;
+
+	ul_parqs = g_list_append(ul_parqs, queue);
+
+	if (parq_debug)
+		g_message("PARQ UL: Created new queue %d",
+			g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
+
+	g_assert(ul_parqs != NULL);
+	g_assert(ul_parqs->data != NULL);
+	g_assert(queue != NULL);
+
+	return queue;
+}
+
+/**
+ * Looks up in which queue the current upload should be placed and if the queue
+ * doesn't exist yet it will be created.
+ *
+ * @return a pointer to the queue in which the upload should be queued.
+ */
+static struct parq_ul_queue *
+parq_upload_which_queue(gnutella_upload_t *u)
+{
+	struct parq_ul_queue *queue;
+	guint size = PARQ_UL_LARGE_SIZE;
+	guint slot;
+
+	/*
+	 * Determine in which queue the upload should be placed. Upload queues:
+	 * 300 Mi < size < oo
+	 * 150 Mi < size <= 300 Mi
+	 *  75 Mi < size <= 150 Mi
+	 *   0 Mi < size <= 75 Mi
+	 * Smallest: PARQ_UL_LARGE_SIZE / 2^(parq_upload_slots-1)
+	 *
+	 * If the size doesn't fit in any of the first n-1 queues, it is put
+	 * into the last queue implicitly.
+	 */
+
+	for (slot = 1 ; slot < max_uploads; slot++) {
+		if (u->file_size > size)
+			break;
+		size = size / 2;
+	}
+
+	/* if necessary, create missing queues */
+	while (g_list_length(ul_parqs) < max_uploads)
+		parq_upload_new_queue();
+
+	queue = g_list_nth_data(ul_parqs, slot - 1);
+
+	/* We might need to reactivate the queue */
+	queue->active = TRUE;
+
+	g_assert(queue != NULL);
+	g_assert(queue->active == TRUE);
+
+	return queue;
+}
+
+/**
+ * Updates the IP and name entry in the queued structure and makes sure the hash
+ * table remains in sync
+ */
+static void
+parq_upload_update_addr_and_name(struct parq_ul_queued *parq_ul,
+	gnutella_upload_t *u)
+{
+	g_assert(parq_ul != NULL);
+	g_assert(u != NULL);
+	g_assert(u->name != NULL);
+
+	if (parq_ul->addr_and_name != NULL) {
+		g_hash_table_remove(ul_all_parq_by_addr_and_name,
+			parq_ul->addr_and_name);
+		G_FREE_NULL(parq_ul->addr_and_name);
+		parq_ul->name = NULL;
+	}
+
+	parq_ul->addr_and_name = g_strdup_printf("%s %s",
+								host_addr_to_string(u->addr), u->name);
+	parq_ul->name = strchr(parq_ul->addr_and_name, ' ') + 1;
+
+	g_hash_table_insert(ul_all_parq_by_addr_and_name, parq_ul->addr_and_name,
+		parq_ul);
 }
 
 /**
@@ -1466,85 +1689,6 @@ parq_upload_create(gnutella_upload_t *u)
 }
 
 /**
- * Looks up in which queue the current upload should be placed and if the queue
- * doesn't exist yet it will be created.
- *
- * @return a pointer to the queue in which the upload should be queued.
- */
-static struct parq_ul_queue *
-parq_upload_which_queue(gnutella_upload_t *u)
-{
-	struct parq_ul_queue *queue;
-	guint size = PARQ_UL_LARGE_SIZE;
-	guint slot;
-
-	/*
-	 * Determine in which queue the upload should be placed. Upload queues:
-	 * 300 Mi < size < oo
-	 * 150 Mi < size <= 300 Mi
-	 *  75 Mi < size <= 150 Mi
-	 *   0 Mi < size <= 75 Mi
-	 * Smallest: PARQ_UL_LARGE_SIZE / 2^(parq_upload_slots-1)
-	 *
-	 * If the size doesn't fit in any of the first n-1 queues, it is put
-	 * into the last queue implicitly.
-	 */
-
-	for (slot = 1 ; slot < max_uploads; slot++) {
-		if (u->file_size > size)
-			break;
-		size = size / 2;
-	}
-
-	/* if necessary, create missing queues */
-	while (g_list_length(ul_parqs) < max_uploads)
-		parq_upload_new_queue();
-
-	queue = g_list_nth_data(ul_parqs, slot - 1);
-
-	/* We might need to reactivate the queue */
-	queue->active = TRUE;
-
-	g_assert(queue != NULL);
-	g_assert(queue->active == TRUE);
-
-	return queue;
-}
-
-/**
- * Creates a new parq_ul_queue structure and places it in the ul_parqs
- * linked list.
- */
-static struct parq_ul_queue *
-parq_upload_new_queue(void)
-{
-	struct parq_ul_queue *queue = NULL;
-
-	queue = walloc(sizeof(*queue));
-	g_assert(queue != NULL);
-
-	queue->size = 0;
-	queue->active = TRUE;
-	queue->by_position = NULL;
-	queue->by_rel_pos = NULL;
-	queue->by_date_dead = NULL;
-	queue->active_uploads = 0;
-	queue->alive = 0;
-
-	ul_parqs = g_list_append(ul_parqs, queue);
-
-	if (parq_debug)
-		g_message("PARQ UL: Created new queue %d",
-			g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
-
-	g_assert(ul_parqs != NULL);
-	g_assert(ul_parqs->data != NULL);
-	g_assert(queue != NULL);
-
-	return queue;
-}
-
-/**
  * Frees the queue from memory and the ul_parqs linked list.
  */
 static void
@@ -1568,79 +1712,6 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	/* Free memory */
 	wfree(queue, sizeof(*queue));
 	queue = NULL;
-}
-
-/**
- * Updates the ETA of all queued items in the given queue.
- */
-static void
-parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
-{
-	GList *l;
-	guint eta = 0;
-	guint avg_bps;
-
-	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
-	avg_bps = MAX(1, avg_bps);
-
-	if (which_ul_queue->active_uploads) {
-		/*
-		 * Current queue has an upload slot. Use this one for a start ETA.
-		 * Locate the first active upload in this queue.
-		 */
-
-		for (l = which_ul_queue->by_position; l; l = g_list_next(l)) {
-			struct parq_ul_queued *parq_ul = l->data;
-
-			if (parq_ul->has_slot) {		/* Recompute ETA */
-				eta += parq_ul->file_size / avg_bps * max_uploads;
-				break;
-			}
-		}
-	}
-
-	if (eta == 0 && ul_running > max_uploads) {
-		/* We don't have an upload slot available, so a start ETA (for position
-		 * 1) is necessary.
-		 * Use the eta of another queue. First by the queue which uses more than
-		 * one upload slot. If that result is still 0, we have a small problem
-		 * as the ETA can't be calculated correctly anymore.
-		 */
-
-		for (l = ul_parqs; l; l = g_list_next(l)) {
-			struct parq_ul_queue *q = l->data;
-
-			if (q->active_uploads > 1) {
-				struct parq_ul_queued *parq_ul = q->by_rel_pos->data;
-
-				eta = parq_ul->eta;
-				break;
-			}
-		}
-
-		if (eta == 0)
-			g_warning("[PARQ UL] Was unable to calculate an accurate ETA");
-
-	}
-
-	for (l = which_ul_queue->by_rel_pos; l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = l->data;
-
-		g_assert(parq_ul->is_alive);
-
-		parq_ul->eta = eta;
-
-		if (parq_ul->has_slot)
-			continue;			/* Skip already uploading uploads */
-
-		/* Recalculate ETA */
-		if (parq_optimistic)
-			eta += (parq_ul->file_size / avg_bps * max_uploads) /
-				(parq_ul->sha1 != NULL ? dmesh_count(parq_ul->sha1) + 1 : 1);
-		else
-			eta += parq_ul->file_size / avg_bps * max_uploads;
-
-	}
 }
 
 static struct parq_ul_queued *
@@ -1681,6 +1752,89 @@ parq_upload_find_id(header_t *header)
 }
 
 /**
+ * Determine if we are still sharing this file, so that PARQ can
+ * determine if it makes sense to keep this file in the queue.
+ *
+ * @return FALSE if the file is no longer shared, or TRUE if the file
+ * is shared or if we don't know, e.g. if the library is being
+ * rebuilt.
+ */
+static gboolean
+parq_still_sharing(struct parq_ul_queued *parq_ul)
+{
+	struct shared_file *sf;
+
+	if (parq_ul->sha1) {
+		sf = shared_file_by_sha1(parq_ul->sha1);
+		if (NULL == sf) {
+			if (parq_debug)
+				g_message("[PARQ UL] We no longer share this file: "
+					"SHA1=%s \"%s\"",
+					sha1_base32(parq_ul->sha1), parq_ul->name);
+			return FALSE;
+		}
+		/* Either we have the file or we are rebuilding */
+	} else {
+		/*
+		 * Let's see if we can find the SHA1 for this file if there
+		 * isn't one on record yet. We can search for it by name, but
+		 * in that way we miss out on the partial files. This is not a
+		 * big deal here, because the partials will become normal
+		 * files over time, and new partials do have a SHA1 in the
+		 * PARQ data structure.
+		 */
+		sf = shared_file_by_name(parq_ul->name);
+		if (sf != SHARE_REBUILDING) {
+			if (NULL != sf && sha1_hash_available(sf)) {
+				parq_ul->sha1 = atom_sha1_get(shared_file_sha1(sf));
+				g_message("[PARQ UL] Found SHA1=%s for \"%s\"",
+					sha1_base32(parq_ul->sha1), parq_ul->name);
+				return TRUE;
+			} else {
+				if (parq_debug)
+					g_message("[PARQ UL] We no longer share this file \"%s\"",
+						parq_ul->name);
+				return FALSE;
+			}
+		}
+	}
+
+	/* Return TRUE by default because this is the safest condition */
+	return TRUE;
+}
+
+/**
+ * Possibly register the upload in the list for deferred QUEUE sending.
+ */
+static void
+parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
+{
+	g_assert(!(parq_ul->flags & PARQ_UL_QUEUE));
+
+	/* No known connect back port / ip */
+	if (parq_ul->port == 0 || !is_host_addr(parq_ul->addr)) {
+		if (parq_debug > 2) {
+			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+				"No port to send QUEUE: %s '%s'",
+				  g_list_position(ul_parqs,
+				  	g_list_find(ul_parqs, parq_ul->queue)) + 1,
+				  	g_list_length(ul_parqs),
+				  parq_ul->position,
+				  parq_ul->relative_position,
+				  parq_ul->queue->size,
+				  host_addr_to_string(parq_ul->remote_addr),
+				  parq_ul->name
+			);
+		}
+		parq_ul->flags |= PARQ_UL_NOQUEUE;
+		return;
+	}
+
+	ul_parq_queue = g_list_append(ul_parq_queue, parq_ul);
+	parq_ul->flags |= PARQ_UL_QUEUE;
+}
+
+/**
  * Finds an upload if available in the upload queue.
  *
  * @return NULL if upload could not be found.
@@ -1705,6 +1859,119 @@ parq_upload_find(const gnutella_upload_t *u)
 		return NULL;
 	}
 }
+
+/**
+ * Sends a QUEUE to a parq enabled client.
+ */
+static void
+parq_upload_send_queue(struct parq_ul_queued *parq_ul)
+{
+	struct gnutella_socket *s;
+	gnutella_upload_t *u;
+	time_t now = tm_time();
+
+	g_assert(parq_ul->flags & PARQ_UL_QUEUE);
+
+	parq_ul->last_queue_sent = now;		/* We tried... */
+	parq_ul->queue_sent++;
+	parq_ul->send_next_queue = 
+		now + QUEUE_PERIOD * (1 + (parq_ul->queue_sent - 1) / 2.0);
+	parq_ul->by_addr->last_queue_sent = now;
+
+	if (parq_debug)
+		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+			"Sending QUEUE #%d to %s: '%s'",
+			  g_list_position(ul_parqs,
+			  g_list_find(ul_parqs, parq_ul->queue)) + 1,
+			  g_list_length(ul_parqs),
+			  parq_ul->position,
+			  parq_ul->relative_position,
+			  parq_ul->queue->size,
+			  parq_ul->queue_sent,
+			  host_addr_port_to_string(parq_ul->addr, parq_ul->port),
+			  parq_ul->name);
+
+	s = socket_connect(parq_ul->addr, parq_ul->port, SOCK_TYPE_UPLOAD, 0);
+
+	if (!s) {
+		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",
+			parq_ul->queue_sent,
+			host_addr_port_to_string(parq_ul->addr, parq_ul->port));
+		return;
+	}
+
+	u = upload_create(s, TRUE);
+
+	u->status = GTA_UL_QUEUE;
+	u->name = atom_str_get(parq_ul->name);
+
+	/* TODO: Create an PARQ pointer in the download structure, so we don't need
+	 * to lookup the ID again, which we don't at the moment */
+	parq_upload_update_addr_and_name(parq_ul, u);
+	upload_fire_upload_info_changed(u);
+
+	/* Verify created upload entry */
+	g_assert(parq_upload_find(u) != NULL);
+}
+
+/**
+ * Adds an ip to the parq ban list.
+ *
+ * This list is used to deny connections from such a host. Sources will
+ * only make it in this list when they ignore our delay Retry-After header
+ * twice.
+ */
+void
+parq_add_banned_source(const host_addr_t addr, time_t delay)
+{
+	time_t now = tm_time();
+	struct parq_banned *banned = NULL;
+
+	g_assert(ht_banned_source != NULL);
+
+	banned = g_hash_table_lookup(ht_banned_source, &addr);
+	if (banned == NULL) {
+		/* Host not yet banned yet, good */
+		banned = walloc0(sizeof *banned);
+		banned->addr = addr;
+
+		g_hash_table_insert(ht_banned_source, &banned->addr, banned);
+		parq_banned_sources = g_list_append(parq_banned_sources, banned);
+	}
+
+	g_assert(banned != NULL);
+	g_assert(host_addr_equal(banned->addr, addr));
+
+	/* Update timestamp */
+	banned->added = now;
+	if (banned->expire < delay + now) {
+		banned->expire = delay + now;
+	}
+}
+
+/**
+ * Removes a banned ip from the parq banned list.
+ */
+void
+parq_del_banned_source(const host_addr_t addr)
+{
+	struct parq_banned *banned = NULL;
+
+	g_assert(ht_banned_source != NULL);
+	g_assert(parq_banned_sources != NULL);
+
+	banned = g_hash_table_lookup(ht_banned_source, &addr);
+
+	g_assert(banned != NULL);
+	g_assert(host_addr_equal(banned->addr, addr));
+
+	g_hash_table_remove(ht_banned_source, &addr);
+	parq_banned_sources = g_list_remove(parq_banned_sources, banned);
+
+	wfree(banned, sizeof *banned);
+	banned = NULL;
+}
+
 
 /**
  * Removes any PARQ uploads which show no activity.
@@ -2047,7 +2314,7 @@ parq_upload_addr_can_proceed(const gnutella_upload_t *u)
  * save.
  */
 static gboolean
-parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
+parq_upload_quick_continue(struct parq_ul_queued *uq)
 {
 	guint avg_bps;
 	filesize_t total;
@@ -2074,7 +2341,7 @@ parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
 		 * number of used_slots to also include this upload in the
 		 * calculation.
 		 */
-		if (total * (used_slots + 1) / avg_bps <= parq_time_always_continue)
+		if ((total * (ul_running + 1)) / avg_bps <= parq_time_always_continue)
 			return TRUE;
 	}
 
@@ -2085,31 +2352,33 @@ parq_upload_quick_continue(struct parq_ul_queued *uq, gint used_slots)
  * @return TRUE if the current upload is allowed to get an upload slot.
  */
 static gboolean
-parq_upload_continue(struct parq_ul_queued *uq, gint used_slots)
+parq_upload_continue(struct parq_ul_queued *uq)
 {
 	GList *l = NULL;
-	gint free_slots = max_uploads - used_slots;
 	gint slots_free = max_uploads;	/* Free slot calculater */
 	gboolean quick_allowed = FALSE;
+	gint allowed_max_uploads;
+
+	g_assert(uq != NULL);
 
 	/*
 	 * max_uploads holds the number of upload slots a queue may currently
 	 * use. This is the lowest number of upload slots used by a queue + 1.
 	 */
-	gint allowed_max_uploads = -1;
+	allowed_max_uploads = -1;
 
-	g_assert(uq != NULL);
-
-	if (parq_debug >= 5)
-		g_message("[PARQ UL] parq_upload_continue, free_slots %d", free_slots);
-
-	/*
-	 * If there are no free upload slots the queued upload isn't allowed an
-	 * upload slot anyway. So we might just as well abort here.
-	 */
-
-	if (free_slots <= 0)
+	if (ul_running >= max_uploads) {
+		/*
+		 * If there are no free upload slots the queued upload isn't allowed an
+		 * upload slot anyway. So we might just as well abort here.
+		 */
 		goto check_quick;
+	}
+
+	if (parq_debug >= 5) {
+		g_message("[PARQ UL] parq_upload_continue, free_slots=%d",
+			max_uploads - ul_running);
+	}
 
 	/*
 	 * Don't allow more than max_uploads_ip per single host (IP)
@@ -2237,7 +2506,7 @@ check_quick:
 	 * it will be queued back.
 	 */
 
-	quick_allowed = parq_upload_quick_continue(uq, used_slots);
+	quick_allowed = parq_upload_quick_continue(uq);
 
 	/*
 	 * If uploads are stalling, we're already short in bandwidth.  Don't
@@ -2263,33 +2532,6 @@ check_quick:
 }
 
 /**
- * Updates the IP and name entry in the queued structure and makes sure the hash
- * table remains in sync
- */
-static void
-parq_upload_update_addr_and_name(struct parq_ul_queued *parq_ul,
-	gnutella_upload_t *u)
-{
-	g_assert(parq_ul != NULL);
-	g_assert(u != NULL);
-	g_assert(u->name != NULL);
-
-	if (parq_ul->addr_and_name != NULL) {
-		g_hash_table_remove(ul_all_parq_by_addr_and_name,
-			parq_ul->addr_and_name);
-		G_FREE_NULL(parq_ul->addr_and_name);
-		parq_ul->name = NULL;
-	}
-
-	parq_ul->addr_and_name = g_strdup_printf("%s %s",
-								host_addr_to_string(u->addr), u->name);
-	parq_ul->name = strchr(parq_ul->addr_and_name, ' ') + 1;
-
-	g_hash_table_insert(ul_all_parq_by_addr_and_name, parq_ul->addr_and_name,
-		parq_ul);
-}
-
-/**
  * Function used to keep the relative position list sorted by relative position.
  * It should never be possible for 2 downloads to have the same relative
  * position in the same queue.
@@ -2303,6 +2545,7 @@ parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 
 	return as->relative_position - bs->relative_position;
 }
+
 
 void
 parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
@@ -2512,8 +2755,7 @@ cleanup:
  * first.
  */
 gboolean
-parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
-	guint used_slots)
+parq_upload_request_force(gnutella_upload_t *u, gpointer handle)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 
@@ -2522,27 +2764,28 @@ parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
 	 * move other queued items after the current item up one position in the
 	 * queue
 	 */
-	if (max_uploads - used_slots > 0)
+	if (max_uploads > ul_running) {
 		/* Again no!. We are not out of upload slots yet. So there is no reason
 		 * to let it continue now */
 		return FALSE;
-
-	if (parq_upload_continue(parq_ul, used_slots - 1)) {
-		if (u->status == GTA_UL_QUEUED)
+	}
+	if (parq_upload_continue(parq_ul)) {
+		if (u->status == GTA_UL_QUEUED) {
 			u->status = GTA_UL_SENDING;
-
+		}
 		return TRUE;
 	} else {
 		return FALSE;
 	}
 }
 
+
 /**
  * @return If the download may continue, TRUE is returned. FALSE otherwise
  * (which probably means the upload is queued).
  */
 gboolean
-parq_upload_request(gnutella_upload_t *u, guint used_slots)
+parq_upload_request(gnutella_upload_t *u)
 {
 	gpointer handle = u->parq_opaque;
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
@@ -2648,7 +2891,7 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 	 */
 
 	if (parq_ul->has_slot) {
-		if (!parq_ul->quick || parq_upload_quick_continue(parq_ul, used_slots))
+		if (!parq_ul->quick || parq_upload_quick_continue(parq_ul))
 			return TRUE;
 		if (parq_debug)
 			g_message("[PARQ UL] Fully checking quick upload slot");
@@ -2663,7 +2906,7 @@ parq_upload_request(gnutella_upload_t *u, guint used_slots)
 	 * queue
 	 */
 
-	if (parq_upload_continue(parq_ul, used_slots))
+	if (parq_upload_continue(parq_ul))
 		return TRUE;
 
 	if (parq_ul->has_slot) {
@@ -3357,162 +3600,6 @@ parq_upload_lookup_quick(const gnutella_upload_t *u)
 }
 
 /**
- * Updates the relative position of all queued after the given queued
- * item.
- */
-static void
-parq_upload_update_relative_position(struct parq_ul_queued *cur_parq_ul)
-{
-	GList *l = NULL;
-	guint rel_pos = cur_parq_ul->relative_position;
-
-	g_assert(cur_parq_ul != NULL);
-	g_assert(cur_parq_ul->queue != NULL);
-	g_assert(cur_parq_ul->queue->by_position != NULL);
-	g_assert(cur_parq_ul->queue->size > 0);
-	g_assert(rel_pos > 0);
-
-	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
-
-	if (cur_parq_ul->is_alive)
-		rel_pos++;
-
-	for (l = g_list_next(l); l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = l->data;
-
-		g_assert(parq_ul != NULL);
-
-		parq_ul->relative_position = rel_pos;
-
-		if (parq_ul->is_alive)
-			rel_pos++;
-
-		g_assert(parq_ul->relative_position > 0);
-	}
-}
-
-/**
- * Decreases the position of all queued items after the given queued item.
- */
-static void
-parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
-{
-	GList *l;
-	gint pos_cnt = 0;	/* Used for assertion */
-
-	g_assert(cur_parq_ul != NULL);
-	g_assert(cur_parq_ul->queue != NULL);
-	g_assert(cur_parq_ul->queue->by_position != NULL);
-	g_assert(cur_parq_ul->queue->size > 0);
-
-	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
-	pos_cnt = ((struct parq_ul_queued *) l->data)->position;
-
-	l = g_list_next(l);	/* Decrease _after_ current parq */
-
-	/*
-	 * Cycle through list and decrease all positions by one. Position should
-	 * never reach 0 which would mean the queued item is currently uploading
-	 */
-	for (;	l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = l->data;
-
-		g_assert(parq_ul != NULL);
-		parq_ul->position--;
-
-		g_assert((gint) parq_ul->position == pos_cnt);
-
-		pos_cnt++;
-		g_assert(parq_ul->position > 0);
-	}
-}
-
-/**
- * Possibly register the upload in the list for deferred QUEUE sending.
- */
-static void
-parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
-{
-	g_assert(!(parq_ul->flags & PARQ_UL_QUEUE));
-
-	/* No known connect back port / ip */
-	if (parq_ul->port == 0 || !is_host_addr(parq_ul->addr)) {
-		if (parq_debug > 2) {
-			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-				"No port to send QUEUE: %s '%s'",
-				  g_list_position(ul_parqs,
-				  	g_list_find(ul_parqs, parq_ul->queue)) + 1,
-				  	g_list_length(ul_parqs),
-				  parq_ul->position,
-				  parq_ul->relative_position,
-				  parq_ul->queue->size,
-				  host_addr_to_string(parq_ul->remote_addr),
-				  parq_ul->name
-			);
-		}
-		parq_ul->flags |= PARQ_UL_NOQUEUE;
-		return;
-	}
-
-	ul_parq_queue = g_list_append(ul_parq_queue, parq_ul);
-	parq_ul->flags |= PARQ_UL_QUEUE;
-}
-
-/**
- * Sends a QUEUE to a parq enabled client.
- */
-static void
-parq_upload_send_queue(struct parq_ul_queued *parq_ul)
-{
-	struct gnutella_socket *s;
-	gnutella_upload_t *u;
-	time_t now = tm_time();
-
-	g_assert(parq_ul->flags & PARQ_UL_QUEUE);
-
-	parq_ul->last_queue_sent = now;		/* We tried... */
-	parq_ul->queue_sent++;
-	parq_ul->send_next_queue = 
-		now + QUEUE_PERIOD * (1 + (parq_ul->queue_sent - 1) / 2.0);
-	parq_ul->by_addr->last_queue_sent = now;
-
-	if (parq_debug)
-		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-			"Sending QUEUE #%d to %s: '%s'",
-			  g_list_position(ul_parqs,
-			  g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			  g_list_length(ul_parqs),
-			  parq_ul->position,
-			  parq_ul->relative_position,
-			  parq_ul->queue->size,
-			  parq_ul->queue_sent,
-			  host_addr_port_to_string(parq_ul->addr, parq_ul->port),
-			  parq_ul->name);
-
-	s = socket_connect(parq_ul->addr, parq_ul->port, SOCK_TYPE_UPLOAD, 0);
-
-	if (!s) {
-		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",
-			parq_ul->queue_sent,
-			host_addr_port_to_string(parq_ul->addr, parq_ul->port));
-		return;
-	}
-
-	u = upload_create(s, TRUE);
-
-	u->status = GTA_UL_QUEUE;
-	u->name = atom_str_get(parq_ul->name);
-
-	/* TODO: Create an PARQ pointer in the download structure, so we don't need
-	 * to lookup the ID again, which we don't at the moment */
-	parq_upload_update_addr_and_name(parq_ul, u);
-	upload_fire_upload_info_changed(u);
-
-	/* Verify created upload entry */
-	g_assert(parq_upload_find(u) != NULL);
-}
-
-/**
  * 'Call back' connection was succesfull. So prepare to send headers
  */
 void
@@ -4066,64 +4153,6 @@ parq_upload_load_queue(void)
 }
 
 /**
- * Adds an ip to the parq ban list.
- *
- * This list is used to deny connections from such a host. Sources will
- * only make it in this list when they ignore our delay Retry-After header
- * twice.
- */
-void
-parq_add_banned_source(const host_addr_t addr, time_t delay)
-{
-	time_t now = tm_time();
-	struct parq_banned *banned = NULL;
-
-	g_assert(ht_banned_source != NULL);
-
-	banned = g_hash_table_lookup(ht_banned_source, &addr);
-	if (banned == NULL) {
-		/* Host not yet banned yet, good */
-		banned = walloc0(sizeof *banned);
-		banned->addr = addr;
-
-		g_hash_table_insert(ht_banned_source, &banned->addr, banned);
-		parq_banned_sources = g_list_append(parq_banned_sources, banned);
-	}
-
-	g_assert(banned != NULL);
-	g_assert(host_addr_equal(banned->addr, addr));
-
-	/* Update timestamp */
-	banned->added = now;
-	if (banned->expire < delay + now) {
-		banned->expire = delay + now;
-	}
-}
-
-/**
- * Removes a banned ip from the parq banned list.
- */
-void
-parq_del_banned_source(const host_addr_t addr)
-{
-	struct parq_banned *banned = NULL;
-
-	g_assert(ht_banned_source != NULL);
-	g_assert(parq_banned_sources != NULL);
-
-	banned = g_hash_table_lookup(ht_banned_source, &addr);
-
-	g_assert(banned != NULL);
-	g_assert(host_addr_equal(banned->addr, addr));
-
-	g_hash_table_remove(ht_banned_source, &addr);
-	parq_banned_sources = g_list_remove(parq_banned_sources, banned);
-
-	wfree(banned, sizeof *banned);
-	banned = NULL;
-}
-
-/**
  * @return expiration timestamp if source is banned, or 0 if it isn't banned.
  */
 time_t
@@ -4136,58 +4165,6 @@ parq_banned_source_expire(const host_addr_t addr)
 	banned = g_hash_table_lookup(ht_banned_source, &addr);
 
 	return banned ? banned->expire : 0;
-}
-
-/**
- * Determine if we are still sharing this file, so that PARQ can
- * determine if it makes sense to keep this file in the queue.
- *
- * @return FALSE if the file is no longer shared, or TRUE if the file
- * is shared or if we don't know, e.g. if the library is being
- * rebuilt.
- */
-static gboolean
-parq_still_sharing(struct parq_ul_queued *parq_ul)
-{
-	struct shared_file *sf;
-
-	if (parq_ul->sha1) {
-		sf = shared_file_by_sha1(parq_ul->sha1);
-		if (NULL == sf) {
-			if (parq_debug)
-				g_message("[PARQ UL] We no longer share this file: "
-					"SHA1=%s \"%s\"",
-					sha1_base32(parq_ul->sha1), parq_ul->name);
-			return FALSE;
-		}
-		/* Either we have the file or we are rebuilding */
-	} else {
-		/*
-		 * Let's see if we can find the SHA1 for this file if there
-		 * isn't one on record yet. We can search for it by name, but
-		 * in that way we miss out on the partial files. This is not a
-		 * big deal here, because the partials will become normal
-		 * files over time, and new partials do have a SHA1 in the
-		 * PARQ data structure.
-		 */
-		sf = shared_file_by_name(parq_ul->name);
-		if (sf != SHARE_REBUILDING) {
-			if (NULL != sf && sha1_hash_available(sf)) {
-				parq_ul->sha1 = atom_sha1_get(shared_file_sha1(sf));
-				g_message("[PARQ UL] Found SHA1=%s for \"%s\"",
-					sha1_base32(parq_ul->sha1), parq_ul->name);
-				return TRUE;
-			} else {
-				if (parq_debug)
-					g_message("[PARQ UL] We no longer share this file \"%s\"",
-						parq_ul->name);
-				return FALSE;
-			}
-		}
-	}
-
-	/* Return TRUE by default because this is the safest condition */
-	return TRUE;
 }
 
 /**

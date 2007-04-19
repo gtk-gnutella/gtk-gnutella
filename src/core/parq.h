@@ -80,9 +80,8 @@ size_t parq_upload_add_header_id(gchar *buf, size_t size,
 
 gpointer parq_upload_get(
 	gnutella_upload_t *u, header_t *header, gboolean replacing);
-gboolean parq_upload_request(gnutella_upload_t *u, guint used_slots);
-gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
-	  guint used_slots);
+gboolean parq_upload_request(gnutella_upload_t *u);
+gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle);
 guint parq_upload_lookup_position(const gnutella_upload_t *u);
 const gchar * parq_upload_lookup_id(const gnutella_upload_t *u);
 gboolean parq_upload_queue_full(gnutella_upload_t *u);

@@ -41,12 +41,21 @@
 
 #include "common.h"
 #include "bsched.h"
+#include "http.h"
 
 #include "if/core/uploads.h"
 
 struct gnutella_node;
 struct dl_file_info;
 struct special_upload;
+
+/**
+ * This structure is used for HTTP status printing callbacks.
+ */
+struct upload_http_cb {
+	struct upload *u;			/**< Upload being ACK'ed */
+	time_t mtime;				/**< File modification time */
+};
 
 typedef struct upload {
     gnet_upload_t upload_handle;
@@ -66,6 +75,14 @@ typedef struct upload {
 	struct shared_file *thex;		/**< THEX owner we're uploading */
 	struct bio_source *bio;			/**< Bandwidth-limited source */
 	struct sendfile_ctx sendfile_ctx;
+
+	gchar *request;
+	struct upload_http_cb cb_parq_arg;
+	struct upload_http_cb cb_sha1_arg;
+	struct upload_http_cb cb_416_arg;
+	struct upload_http_cb cb_status_arg;
+	http_extra_desc_t hev[16];
+	guint hevcnt;
 
 	gchar *buffer;
 	gint bpos;
@@ -103,6 +120,10 @@ typedef struct upload {
 	gboolean n2r;				/**< True when they sent an N2R request */
 	gboolean browse_host;		/**< True when they sent a Browse Host req. */
 	gboolean from_browser;		/**< True when request likely from browser */
+	gboolean head_only;
+	gboolean is_followup;
+	gboolean was_actively_queued;
+	gboolean was_running;
 
 	gboolean parq_status;
 } gnutella_upload_t;
@@ -115,15 +136,6 @@ typedef struct upload {
 
 #define UPLOAD_F_STALLED		0x00000001	/**< Stall condition present */
 #define UPLOAD_F_EARLY_STALL	0x00000002	/**< Pre-stalling condition */
-
-/**
- * This structure is used for HTTP status printing callbacks.
- */
-struct upload_http_cb {
-	gnutella_upload_t *u;			/**< Upload being ACK'ed */
-	time_t now;						/**< Current time */
-	time_t mtime;					/**< File modification time */
-};
 
 /*
  * Global Data
