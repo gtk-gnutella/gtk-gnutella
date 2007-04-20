@@ -215,7 +215,8 @@ dime_parse_record_header(const char *data, size_t size,
 	header->version = peek_u8(&data[0]) >> 3;
 
 	if (DIME_VERSION != header->version) {
-		g_warning("Cannot parse dime version %u, only version %u is supported",
+		g_warning("dime_parse_record_header(): Cannot parse dime version %u, "
+			"only version %u is supported",
 			header->version, DIME_VERSION);
 		goto failure;
 	}
@@ -235,6 +236,7 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->options_length);
 	if (size < n) {
+		g_warning("dime_parse_record_header(): Truncated options");
 		goto failure;
 	}
 	size -= n;
@@ -243,6 +245,7 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->id_length);
 	if (size < n) {
+		g_warning("dime_parse_record_header(): Truncated ID");
 		goto failure;
 	}
 	size -= n;
@@ -251,6 +254,7 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->type_length);
 	if (size < n) {
+		g_warning("dime_parse_record_header(): Truncated Type");
 		goto failure;
 	}
 	size -= n;
@@ -259,6 +263,7 @@ dime_parse_record_header(const char *data, size_t size,
 
 	n = dime_ceil(header->data_length);
 	if (size < n) {
+		g_warning("dime_parse_record_header(): Truncated Data");
 		goto failure;
 	}
 	size -= n;
@@ -296,7 +301,7 @@ dime_parse_records(const gchar *data, size_t size)
 				goto error;
 			}
 		}
-		if (0 == (DIME_F_ME & record->flags)) {
+		if (DIME_F_ME & record->flags) {
 			break;
 		}
 	}
@@ -349,6 +354,42 @@ dime_record_set_type(struct dime_record *record, const char *type)
 	record->type = type;
 	record->type_length = length;
 	return TRUE;
+}
+
+const char *
+dime_record_type(const struct dime_record *record)
+{
+	return record->type;
+}
+
+size_t
+dime_record_type_length(const struct dime_record *record)
+{
+	return record->type_length;
+}
+
+const char *
+dime_record_data(const struct dime_record *record)
+{
+	return record->data;
+}
+
+size_t
+dime_record_data_length(const struct dime_record *record)
+{
+	return record->data_length;
+}
+
+const char *
+dime_record_id(const struct dime_record *record)
+{
+	return record->id;
+}
+
+size_t
+dime_record_id_length(const struct dime_record *record)
+{
+	return record->id_length;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
