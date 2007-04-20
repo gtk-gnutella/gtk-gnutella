@@ -213,8 +213,8 @@ gnet_host_vec_create(gnet_host_t *hvec, gint hcnt)
 	}
 
 	vec = gnet_host_vec_alloc();
-	n_ipv4 = MIN(n_ipv4, 255);
-	n_ipv6 = MIN(n_ipv6, 255);
+	vec->n_ipv4 = MIN(n_ipv4, 255);
+	vec->n_ipv6 = MIN(n_ipv6, 255);
 
 	if (vec->n_ipv4 > 0) {
 		vec->hvec_v4 = walloc(vec->n_ipv4 * sizeof *vec->hvec_v4);
