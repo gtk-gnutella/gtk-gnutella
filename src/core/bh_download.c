@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "pmsg.h"
 #include "bsched.h"
 #include "gnet_stats.h"
+#include "rx_inflate.h"
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
@@ -227,7 +228,7 @@ browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	download_check(d);
 
 	if (!error) {
-		download_browse_maybe_finished(d);
+		download_maybe_finished(d);
 		download_check(d);
 	}
 
@@ -244,7 +245,7 @@ browse_rx_given(gpointer o, ssize_t r)
 {
 	struct browse_ctx *bc = o;
 
-	download_browse_received(bc->owner, r);
+	download_data_received(bc->owner, r);
 }
 
 static G_GNUC_PRINTF(2, 3) void

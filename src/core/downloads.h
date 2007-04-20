@@ -100,11 +100,18 @@ struct download * download_browse_start(
 	const gchar *guid, const gnet_host_vec_t *proxies,
 	gnet_search_t search, guint32 flags);
 
+struct download * download_thex_start(const gchar *uri,
+	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize,
+	const gchar *hostname, host_addr_t addr, guint16 port,
+	const gchar *guid, const gnet_host_vec_t *proxies,
+	guint32 flags);
+
 void download_abort_browse_host(struct download *d, gnet_search_t sh);
 void download_got_eof(struct download *d);
 void download_rx_done(struct download *d);
-void download_browse_received(struct download *d, ssize_t received);
-void download_browse_maybe_finished(struct download *d);
+
+void download_data_received(struct download *d, ssize_t received);
+void download_maybe_finished(struct download *d);
 
 gboolean download_handle_http(const gchar *url);
 

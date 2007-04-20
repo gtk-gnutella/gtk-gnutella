@@ -64,8 +64,10 @@
 #include "gnet_stats.h"
 #include "geo_ip.h"
 #include "bh_download.h"
+#include "thex_download.h"
 #include "tls_cache.h"
 #include "udp.h"
+#include "rx_inflate.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -2998,6 +3000,11 @@ download_stop_v(struct download *d, download_status_t new_status,
 			d->bio = NULL;		/* Was a copy via browse_host_io_source() */
 		}
 
+		if (d->flags & DL_F_THEX) {
+			thex_download_close(d->thex);
+			d->bio = NULL;		/* Was a copy via thex_download_io_source() */
+		}
+
 		/*
 		 * Dismantle RX stack for normal downloads.
 		 */
@@ -3081,9 +3088,15 @@ download_stop_v(struct download *d, download_status_t new_status,
 		}
 	}
 
-	if (d->browse && new_status == GTA_DL_COMPLETED) {
-		browse_host_dl_free(d->browse);
-		d->browse = NULL;
+	if (new_status == GTA_DL_COMPLETED) {
+		if (d->browse) {
+			browse_host_dl_free(d->browse);
+			d->browse = NULL;
+		}
+		if (d->thex) {
+			thex_download_free(d->thex);
+			d->thex = NULL;
+		}
 	}
 
 	if (d->list_idx != list_target)
@@ -4389,6 +4402,9 @@ create_download(
 	 * Create server if none exists already.
 	 */
 
+	if (NULL == guid) {
+		guid = blank_guid;
+	}
 	server = get_server(guid, addr, port, TRUE);
 
 	g_assert(dl_server_valid(server));
@@ -4996,7 +5012,7 @@ download_orphan_new(const gchar *filename, filesize_t size,
 		   	size,
 			ipv4_unspecified,	/* for host_addr_initialized() */
 			0,		/* port */
-			blank_guid,
+			NULL,	/* GUID */
 			NULL,	/* hostname*/
 			sha1,
 			tm_time(),
@@ -5103,6 +5119,11 @@ download_remove(struct download *d)
 		g_assert(d->flags & DL_F_BROWSE);
 		browse_host_dl_free(d->browse);
 		d->browse = NULL;
+	}
+	if (d->thex != NULL) {
+		g_assert(d->flags & DL_F_THEX);
+		thex_download_free(d->thex);
+		d->thex = NULL;
 	}
 
 	if (d->push)
@@ -6405,6 +6426,62 @@ extract_retry_after(struct download *d, const header_t *header)
 	return delay;
 }
 
+static void
+download_handle_thex_uri_header(struct download *d, header_t *header)
+{
+	const char *value, *endptr, *uri_end;
+	const struct tth *tth;
+	gchar *uri;
+
+	g_return_if_fail(d);
+	g_return_if_fail(header);
+
+	if (!experimental_tigertree_support)
+		return;
+
+	value = header_get(header, "X-Thex-Uri");
+	if (NULL == value)
+		return;
+
+	endptr = strchr(value, ';');
+	if (NULL == endptr) {
+		g_message("X-Thex-Uri header has no root hash");
+		return;
+	}
+
+	uri_end = endptr;
+	if (uri_end == value || '/' != value[0]) {
+		g_message("X-Thex-Uri header has no valid URI");
+		return;
+	}
+	uri_end--;	/* skip trailing semi-colon */
+	while (uri_end != value && is_ascii_space(uri_end[0])) {
+		uri_end--;	/* skip trailing spaces */
+	}
+	uri_end++;
+
+	endptr = skip_ascii_spaces(&endptr[1]);
+	if (strlen(endptr) < TTH_BASE32_SIZE) {
+		g_message("X-Thex-Uri header has no root hash");
+		return;
+	}
+
+	tth = base32_tth(endptr);
+	if (NULL == tth) {
+		g_message("X-Thex-Uri header has no root hash");
+		return;
+	}
+		
+	g_message("Tigertree value is %s", tth_base32(tth));
+
+	uri = g_strndup(value, uri_end - value);
+	download_thex_start(uri, d->sha1, tth, download_filesize(d),
+		NULL, download_addr(d), download_port(d), download_guid(d),
+		NULL, 0);
+	G_FREE_NULL(uri);
+}
+
+
 /**
  * Look for a Date: header in the reply and use it to update our skew.
  */
@@ -6559,7 +6636,8 @@ download_is_thex(const struct download *d)
 {
 	download_check(d);
 
-	return d->uri && is_strprefix(d->uri, "/uri-res/N2X?");
+	return d->uri && (is_strprefix(d->uri, "/uri-res/N2X?") ||
+						is_strprefix(d->uri, "/gnutella/thex/v1?"));
 }
 
 /**
@@ -7032,7 +7110,7 @@ download_mark_active(struct download *d)
 	 * If not a browse-host request, prepare reading buffers.
 	 */
 
-	if (!(d->flags & DL_F_BROWSE)) {
+	if (!(d->flags & (DL_F_BROWSE | DL_F_THEX))) {
 		buffers_alloc(d);
 		buffers_reset_reading(d);
 	}
@@ -7096,7 +7174,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	guint hold = 0;
 	gchar *path = NULL;
 	gboolean refusing;
-	guint32 bh_flags = 0;
 
 	download_check(d);
 	
@@ -7327,12 +7404,10 @@ http_version_nofix:
 		return;
 	}
 
-#ifdef TIGERTREE
-	/* FIXME TIGERTREE:
-	 * Temporary
-	 */
-	tt_parse_header(d, header);
-#endif
+	if (!check_content_urn(d, header))
+		return;
+
+	download_handle_thex_uri_header(d, header);
 
 	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
 
@@ -7346,7 +7421,7 @@ http_version_nofix:
 			d->sha1 && (d->flags & DL_F_URIRES) &&
 			!download_convert_to_urires(d)
 		) {
-				return;
+			return;
 		}
 
 		/*
@@ -7361,19 +7436,11 @@ http_version_nofix:
 				if (parq_download_is_active_queued(d)) {
 					download_passively_queued(d, FALSE);
 
-					/* Make sure we're waiting for the right file,
-					   collect alt-locs */
-					if (check_content_urn(d, header)) {
-
-						/* Update mesh */
-						if (!d->always_push && d->sha1 && !d->uri)
-							dmesh_add(d->sha1, addr, port, d->record_index,
-								d->file_name, 0);
-
-						return;
-
-					} /* Check content urn failed */
-
+					/* Update mesh */
+					if (!d->always_push && d->sha1 && !d->uri) {
+						dmesh_add(d->sha1, addr, port, d->record_index,
+							d->file_name, 0);
+					}
 					return;
 
 				} /* Download not active queued, continue as normal */
@@ -7423,10 +7490,6 @@ http_version_nofix:
 			 */
 
 			file_info_clear_download(d, TRUE);		/* `d' is running */
-
-			/* Ensure we're waiting for the right file */
-			if (!check_content_urn(d, header))
-				return;
 
 			/* Update mesh -- we're about to return */
 			if (!d->always_push && d->sha1 && !d->uri)
@@ -7622,21 +7685,12 @@ http_version_nofix:
 			 * PFSP code above), yet the server is sharing a partial file.
 			 * Give it some time and retry.
 			 */
-
-			/* Make sure we're waiting for the right file, collect alt-locs */
-			if (!check_content_urn(d, header))
-				return;
-
 			download_passively_queued(d, FALSE);
 			download_queue_hold(d,
 				delay ? delay : download_retry_timeout_delay,
 				"%sRequested range unavailable yet", short_read);
 			return;
 		case 503:				/* Busy */
-			/* Make sure we're waiting for the right file, collect alt-locs */
-			if (!check_content_urn(d, header))
-				return;
-
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
 			/* Update mesh */
@@ -7801,14 +7855,6 @@ http_version_nofix:
 	 */
 
 	(void) parq_download_parse_queue_status(d, header);
-
-	/*
-	 * If an URN is present, validate that we can continue this download.
- 	 */
-
- 	if (!check_content_urn(d, header))
- 		return;
-
 
 	/*
 	 * If they configured us to require a server name, and we have none
@@ -8090,27 +8136,49 @@ http_version_nofix:
 
 	if (d->flags & DL_F_BROWSE) {
 		gnet_host_t host;
+		guint32 flags = 0;
 
 		g_assert(d->browse != NULL);
 
 		gnet_host_set(&host, download_addr(d), download_port(d));
 
 		if (HTTP_CONTENT_ENCODING_DEFLATE == content_encoding) {
-			bh_flags |= BH_DL_INFLATE;
+			flags |= BH_DL_INFLATE;
 		}
 		if (is_chunked) {
-			bh_flags |= BH_DL_CHUNKED;
+			flags |= BH_DL_CHUNKED;
 		}
 
 		if (
 			!browse_host_dl_receive(d->browse, &host, &d->socket->wio,
-				download_vendor_str(d), bh_flags)
+				download_vendor_str(d), flags)
 		) {
 			download_stop(d, GTA_DL_ERROR, "Search already closed");
 			return;
 		}
 
 		d->bio = browse_host_io_source(d->browse);
+	} else if (d->flags & DL_F_THEX) {
+		gnet_host_t host;
+		guint32 flags = 0;
+
+		g_assert(d->thex != NULL);
+
+		gnet_host_set(&host, download_addr(d), download_port(d));
+
+		if (HTTP_CONTENT_ENCODING_DEFLATE == content_encoding) {
+			flags |= THEX_DOWNLOAD_F_INFLATE;
+		}
+		if (is_chunked) {
+			flags |= THEX_DOWNLOAD_F_CHUNKED;
+		}
+
+		if (!thex_download_receive(d->thex, &host, &d->socket->wio, flags)) {
+			download_stop(d, GTA_DL_ERROR, "THEX download aborted");
+			return;
+		}
+
+		d->bio = thex_download_io_source(d->thex);
 	} else if (d->size == 0 && fi->file_size_known) {
 		g_assert(d->flags & DL_F_SHRUNK_REPLY);
 		download_queue_delay(d,
@@ -8142,7 +8210,20 @@ http_version_nofix:
 			fi->recv_amount += s->pos;
 			browse_host_dl_write(d->browse, s->buf, s->pos);
 		}
+		return;
+	}
 
+	if (d->flags & DL_F_THEX) {
+		download_mark_active(d);
+
+		/*
+		 * If we have something in the socket buffer, feed it to the RX stack.
+	 	 */
+
+		if (s->pos > 0) {
+			fi->recv_amount += s->pos;
+			thex_download_write(d->thex, s->buf, s->pos);
+		}
 		return;
 	}
 
@@ -8635,9 +8716,14 @@ picked:
 		}
 	}
 
-	if (d->flags & DL_F_BROWSE)
+	if (d->flags & DL_F_BROWSE) {
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 				"Accept: application/x-gnutella-packets\r\n");
+	}
+	if (d->flags & DL_F_THEX) {
+		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+				"Accept: application/dime\r\n");
+	}
 
 	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 			"Accept-Encoding: deflate\r\n");
@@ -10353,6 +10439,8 @@ download_close(void)
 			cproxy_free(d->cproxy);
 		if (d->browse != NULL)
 			browse_host_dl_free(d->browse);
+		if (d->thex != NULL)
+			thex_download_free(d->thex);
 
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
@@ -10387,25 +10475,18 @@ download_close(void)
 	 */
 }
 
-/**
- * Creates a URL which points to a downloads (e.g. you can move this to a
- * browser and download the file there with this URL).
- * @return NULL on failure, an URL string which must be freed with g_free().
- */
 gchar *
-download_build_url(const struct download *d)
+download_url_for_uri(const struct download *d, const gchar *uri)
 {
+	const gchar *prefix;
 	gchar prefix_buf[256];
-	const gchar *host, *prefix;
-	const struct sha1 *sha1;
+	gchar host_buf[128];
 	host_addr_t addr;
 	guint16 port;
-	gchar *url;
 
 	g_return_val_if_fail(d, NULL);
+	g_return_val_if_fail(uri, NULL);
 	download_check(d);
-
-	sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
 
 	if (DOWNLOAD_IS_IN_PUSH_MODE(d) || d->always_push) {
 
@@ -10423,7 +10504,7 @@ download_build_url(const struct download *d)
 				"push://", guid_buf, ":", (void *) 0);
 			prefix = prefix_buf;
 		} else {
-			goto failure;
+			return NULL;
 		}
 	} else {
 		/* FIXME: "https:" when TLS is possible? */
@@ -10433,40 +10514,53 @@ download_build_url(const struct download *d)
 		prefix = "http://";
 	}
 
-	if (0 == port || !is_host_addr(addr))
-		goto failure;
+	if (0 == port || !is_host_addr(addr)) {
+		return NULL;
+	}
+	host_addr_port_to_string_buf(addr, port, host_buf, sizeof host_buf);
 
-	host = host_addr_port_to_string(addr, port);
+	if ('/' == uri[0]) {
+		uri++;
+	}
+	return g_strconcat(prefix, host_buf, "/", uri, (void *) 0);
+}
+
+/**
+ * Creates a URL which points to a downloads (e.g. you can move this to a
+ * browser and download the file there with this URL).
+ * @return NULL on failure, an URL string which must be freed with g_free().
+ */
+gchar *
+download_build_url(const struct download *d)
+{
+	gchar *url;
+
+	g_return_val_if_fail(d, NULL);
+	download_check(d);
 
 	if (d->browse) {
-		url = g_strconcat(prefix, host, "/", (void *) 0);
+		url = download_url_for_uri(d, "/");
 	} else if (d->uri) {
-		url = g_strconcat(prefix, host, d->uri, (void *) 0);
-	} else if (sha1) {
-		url = g_strconcat(prefix, host, "/uri-res/N2R?urn:sha1:",
-				sha1_base32(sha1), (void *) 0);
+		url = download_url_for_uri(d, d->uri);
+	} else if (d->sha1) {
+		gchar uri[128];
+
+		concat_strings(uri, sizeof uri,
+			"/uri-res/N2R?urn:sha1:", sha1_base32(d->sha1),
+			(void *) 0);
+		url = download_url_for_uri(d, uri);
 	} else {
-		gchar *buf = url_escape(d->file_name);
-
-		url = g_strdup_printf("%s%s/get/%u/%s",
-				prefix, host, d->record_index, buf);
-
-		/*
-	 	* Since url_escape() creates a new string ONLY if
-	 	* escaping is necessary, we have to check this and
-	 	* free memory accordingly.
-	 	* -- Richard, 30 Apr 2002
-	 	*/
-
-		if (buf != d->file_name) {
-			G_FREE_NULL(buf);
+		gchar *escaped, *uri;
+	   
+		escaped = url_escape(d->file_name);
+		uri = g_strdup_printf("/get/%u/%s", d->record_index, escaped);
+		url = download_url_for_uri(d, uri);
+		G_FREE_NULL(uri);
+		if (escaped != d->file_name) {
+			G_FREE_NULL(escaped);
 		}
 	}
-
 	return url;
-
-failure:
-	return NULL;
 }
 
 const gchar *
@@ -10570,7 +10664,7 @@ download_browse_start(const gchar *hostname,
 	struct download *d;
 	fileinfo_t *fi;
 
-	g_return_val_if_fail(host_addr_initialized(addr), FALSE);
+	g_return_val_if_fail(host_addr_initialized(addr), NULL);
 
 	{
 		gchar *dname;
@@ -10581,9 +10675,6 @@ download_browse_start(const gchar *hostname,
 		fi = file_info_get_transient(dname);
 		G_FREE_NULL(dname);
 	}
-
-	if (!guid)
-		guid = blank_guid;
 
 	d = create_download(fi->file_name, "/", 0, addr, port, guid, hostname,
 			NULL, tm_time(), fi, proxies, flags, NULL);
@@ -10596,6 +10687,79 @@ download_browse_start(const gchar *hostname,
 		d->flags |= DL_F_TRANSIENT | DL_F_BROWSE;
 		gnet_host_set(&host, addr, port);
 		d->browse = browse_host_dl_create(d, &host, search);
+		file_info_changed(fi);		/* Update status! */
+	} else {
+		file_info_remove(fi);
+	}
+	return d;
+}
+
+/**
+ * Create special non-persisted download that will request THEX data from the
+ * remote host.
+ *
+ * @param uri		the URI to request
+ * @param hostname	the DNS name of the host, or NULL if none known
+ * @param addr		the IP address of the host
+ * @param port		the port to contact
+ * @param guid		the GUID of the remote host
+ * @param push		whether a PUSH request is neeed to reach remote host
+ * @param proxies	vector holding known push-proxies
+ *
+ * @return created download, or NULL on error.
+ */
+struct download *
+download_thex_start(const gchar *uri,
+	const struct sha1 *sha1,
+	const struct tth *tth,
+	filesize_t filesize,
+	const gchar *hostname,
+	host_addr_t addr,
+	guint16 port,
+	const gchar *guid,
+	const gnet_host_vec_t *proxies,
+	guint32 flags)
+{
+	struct download *d;
+	fileinfo_t *fi;
+
+	g_return_val_if_fail(host_addr_initialized(addr), NULL);
+	g_return_val_if_fail(uri, NULL);
+	g_return_val_if_fail(sha1, NULL);
+	g_return_val_if_fail(tth, NULL);
+
+	{
+		gchar *dname;
+
+		dname = g_strdup_printf(_("<THEX data for %s>"),
+					bitprint_to_urn_string(sha1, tth));
+
+		fi = file_info_get_transient(dname);
+		G_FREE_NULL(dname);
+	}
+
+	d = create_download(fi->file_name,
+			uri,
+			0,			/* filesize */
+			addr,
+			port,
+			guid,
+			hostname,
+			NULL,		/* SHA-1 */
+			tm_time(),
+			fi,
+			proxies,
+			flags,
+			NULL);		/* PARQ ID */
+
+	if (d) {
+		gnet_host_t host;
+
+		download_check(d);
+
+		d->flags |= DL_F_TRANSIENT | DL_F_THEX;
+		gnet_host_set(&host, addr, port);
+		d->thex = thex_download_create(d, &host, sha1, tth, filesize);
 		file_info_changed(fi);		/* Update status! */
 	} else {
 		file_info_remove(fi);
@@ -10665,16 +10829,19 @@ download_rx_done(struct download *d)
 	fi = d->file_info;
 	g_assert(fi != NULL);
 
-	if (!d->browse && !fi->file_size_known) {
+	if (!d->browse && !d->thex && !fi->file_size_known) {
 		file_info_size_known(d, fi->done);
 		d->size = fi->size;
 		d->range_end = download_filesize(d);	/* New upper boundary */
 		gcu_gui_update_download_size(d);
 	}
 
+	if (d->thex) {
+		thex_download_finished(d->thex);
+	}
 	download_stop(d, GTA_DL_COMPLETED, no_reason);
 
-	if (!d->browse && fi->file_size_known) {
+	if (!d->browse && !d->thex && fi->file_size_known) {
 		download_verify_sha1(d);
 	}
 }
@@ -10683,7 +10850,7 @@ download_rx_done(struct download *d)
  * Called when more data has been received.
  */
 void
-download_browse_received(struct download *d, ssize_t received)
+download_data_received(struct download *d, ssize_t received)
 {
 	fileinfo_t *fi;
 
@@ -10703,7 +10870,7 @@ download_browse_received(struct download *d, ssize_t received)
  * check whether we are done.
  */
 void
-download_browse_maybe_finished(struct download *d)
+download_maybe_finished(struct download *d)
 {
 	fileinfo_t *fi = d->file_info;
 

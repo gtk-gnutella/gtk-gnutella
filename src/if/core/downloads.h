@@ -237,6 +237,7 @@ struct download {
 	struct cproxy *cproxy;		/**< Push proxy being used currently */
 	gpointer queue_status;		/**< Queuing status */
 	struct browse_ctx *browse;	/**< For browse-host requests */
+	struct thex_download *thex;	/**< For THEX downloads */
 };
 
 /*
@@ -260,7 +261,8 @@ enum {
 	DL_F_MARK			= 1 << 13,	/**< Marked in traversal */
 	DL_F_PREFIX_HEAD	= 1 << 14,	/**< Sent HEAD request before GET */
 	DL_F_INITIAL		= 1 << 15,	/**< First request on this connection */
-	DL_F_PAUSED			= 1 << 16	/**< Paused by user */
+	DL_F_PAUSED			= 1 << 16,	/**< Paused by user */
+	DL_F_THEX			= 1 << 17	/**< THEX download */
 };
 
 /*

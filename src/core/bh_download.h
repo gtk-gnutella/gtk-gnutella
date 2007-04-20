@@ -39,13 +39,6 @@
 #include "common.h"
 
 #include "search.h"
-#include "rx.h"
-#include "rx_link.h"
-#include "rx_inflate.h"
-#include "rx_chunk.h"
-
-#include "if/core/wrap.h"
-#include "if/core/gnutella.h"
 
 /**
  * Flags for browse_host_dl_open().
@@ -67,7 +60,7 @@ void browse_host_dl_free(struct browse_ctx *bc);
 gboolean browse_host_dl_for_search(struct browse_ctx *bc, gnet_search_t sh);
 void browse_host_dl_write(struct browse_ctx *bc, gchar *data, size_t len);
 gboolean browse_host_dl_receive(
-	struct browse_ctx *bc, gnet_host_t *host, wrap_io_t *wio,
+	struct browse_ctx *bc, gnet_host_t *host, struct wrap_io *wio,
 	const gchar *vendor, guint32 flags);
 struct bio_source *browse_host_io_source(struct browse_ctx *bc);
 void browse_host_dl_close(struct browse_ctx *bc);
