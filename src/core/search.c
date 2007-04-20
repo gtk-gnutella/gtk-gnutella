@@ -3953,9 +3953,10 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		rc->path = atom_str_get(shared_file_relative_path(sf));
 	}
 	rc->tag = atom_str_get(shared_file_path(sf));
-	if (sha1_hash_available(sf)) {
+
+	if (sha1_hash_available(sf))
 		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
-	}
+
 	/* FIXME: Create time != modification time */
 	rc->create_time = shared_file_modification_time(sf);
 	rs->records = g_slist_prepend(rs->records, rc);
@@ -4071,6 +4072,7 @@ search_locally(gnet_search_t sh, const gchar *query)
 	if (rs->records) {	
 		GSList *search;
 		
+		rs->status |= ST_PARSED_TRAILER;	/* Avoid <unparsed> in the GUI */
 		search = g_slist_prepend(NULL, GUINT_TO_POINTER(sch->search_handle));
 		search_fire_got_results(search, rs);	/* Dispatch browse results */
 		g_slist_free(search);

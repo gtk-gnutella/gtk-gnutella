@@ -761,14 +761,23 @@ search_gui_get_filename_extension(const gchar *filename_utf8)
 }
 
 static const gchar *
-search_gui_get_info(const record_t *rc, const gchar *vinfo)
+search_gui_get_info(const record_t *rc, const gchar *vinfo, gboolean local)
 {
   	gchar info[1024];
 	size_t rw = 0;
 
 	info[0] = '\0';
 
-	if (rc->tag) {
+	/*
+	 * The tag is usually shown in the "Info" column, but for local searches
+	 * it contains the complete file path, and this should only be shown in
+	 * the information summary, not in the Info column.
+	 *
+	 * XXX the GTK1 GUI does not have the Tag displayed in the summary at
+	 * XXX the bottom of the search pane.
+	 */
+
+	if (rc->tag && !local) {
 		const size_t MAX_TAG_SHOWN = 60; /**< Show only first chars of tag */
 		size_t size;
 
@@ -1374,13 +1383,10 @@ search_matched(search_t *sch, results_set_t *rs)
 		search_gui_ref_record(rc);
 		g_assert(rc->refcount >= 1);
 
-		if (0 == (ST_LOCAL & rs->status)) {
-			rc->info = search_gui_get_info(rc,
-								vinfo->len ? vinfo->str : NULL);
-		}
-		if (GUI_COLOR_MARKED != color) {
+		rc->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL,
+			rs->status & ST_LOCAL);
+		if (GUI_COLOR_MARKED != color)
 			color = search_gui_color_for_record(rc);
-		}
 		search_gui_add_record(sch, rc, color);
 	}
 
