@@ -3931,6 +3931,11 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		}
 	}
 
+	if (shared_file_is_partial(sf)) {
+   		set_flags(rc->flags, SR_PARTIAL);
+	} else {
+		set_flags(rc->flags, SR_SHARED);
+	}
 	rc->file_index = shared_file_index(sf);
 	rc->size = shared_file_size(sf);
 	rc->name = atom_str_get(shared_file_name_nfc(sf));
