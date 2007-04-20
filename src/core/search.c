@@ -3891,6 +3891,14 @@ search_dissociate_browse(gnet_search_t sh, struct download *d)
 	/* XXX notify the GUI that the browse is finished */
 }
 
+#define LOCAL_MAX_ALT	30		/* Max alt-locs we report for local searches */
+
+/**
+ * Add local file to a search result.
+ *
+ * This routine is used when searching for files locally (search string was
+ * prefixed with "local:"), not when replying to a network search.
+ */
 static void
 search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 {
@@ -3901,6 +3909,43 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	g_return_if_fail(SHARE_REBUILDING != sf);
 
 	rc = search_record_new();
+
+	if (
+		(shared_file_flags(sf) & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING)) ==
+		SHARE_F_HAS_DIGEST
+	) {
+		gnet_host_t hvec[LOCAL_MAX_ALT];
+		gint hcnt;
+
+		/*
+		 * SHA1 is available, look at the known alternate locations we have.
+		 */
+
+		hcnt = dmesh_fill_alternate(shared_file_sha1(sf), hvec, LOCAL_MAX_ALT);
+
+		/*
+		 * Propagate them to the results so that they can see how many entries
+		 * they have in the mesh for each shared file, up to a maximum of
+		 * LOCAL_MAX_ALT entries.
+		 */
+
+		if (hcnt) {
+			gint i;
+
+			rc->alt_locs = gnet_host_vec_alloc();
+
+			for (i = 0; i < hcnt; i++) {
+				gnet_host_t *gh = &hvec[i];
+				host_addr_t addr;
+				guint16 port;
+
+				if (packed_host_unpack(gh->data, &addr, &port))
+					gnet_host_vec_add(rc->alt_locs, addr, port);
+			}
+
+		}
+	}
+
 	rc->file_index = shared_file_index(sf);
 	rc->size = shared_file_size(sf);
 	rc->name = atom_str_get(shared_file_name_nfc(sf));
