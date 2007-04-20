@@ -682,13 +682,13 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 		 * got the download queue'd, replace it there too.
 		 *		--RAM, 17/12/2001 from a patch by Vladimir Klebanov
 		 *
-		 * XXX needs more care: handle is_old, and use GUID for patching.
-		 * XXX the client may change its GUID as well, and this must only
-		 * XXX be used in the hash table where we record which downloads are
-		 * XXX queued from whom.
-		 * XXX when the GUID changes for a download in push mode, we have to
-		 * XXX change it.  We have a new route anyway, since we just got a
-		 * XXX match!
+		 * FIXME needs more care: handle is_old, and use GUID for patching.
+		 * FIXME the client may change its GUID as well, and this must only
+		 * FIXME be used in the hash table where we record which downloads are
+		 * FIXME queued from whom.
+		 * FIXME when the GUID changes for a download in push mode, we have to
+		 * FIXME change it.  We have a new route anyway, since we just got a
+		 * FIXME match!
 		 */
 
 		if (rc->file_index != old_rc->file_index) {
@@ -761,8 +761,9 @@ search_gui_get_filename_extension(const gchar *filename_utf8)
 }
 
 static const gchar *
-search_gui_get_info(const record_t *rc, const gchar *vinfo, gboolean local)
+search_gui_get_info(const record_t *rc, const gchar *vinfo)
 {
+	const results_set_t *rs = rc->results_set;
   	gchar info[1024];
 	size_t rw = 0;
 
@@ -773,11 +774,11 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo, gboolean local)
 	 * it contains the complete file path, and this should only be shown in
 	 * the information summary, not in the Info column.
 	 *
-	 * XXX the GTK1 GUI does not have the Tag displayed in the summary at
-	 * XXX the bottom of the search pane.
+	 * FIXME the GTK1 GUI does not have the Tag displayed in the summary at
+	 * FIXME the bottom of the search pane.
 	 */
 
-	if (rc->tag && !local) {
+	if (rc->tag && 0 == (ST_LOCAL & rs->status)) {
 		const size_t MAX_TAG_SHOWN = 60; /**< Show only first chars of tag */
 		size_t size;
 
@@ -801,12 +802,12 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo, gboolean local)
 	}
 
 	if (rc->alt_locs != NULL) {
-		gint count = gnet_host_vec_count(rc->alt_locs);
+		guint count = gnet_host_vec_count(rc->alt_locs);
 		g_assert(rw < sizeof info);
 		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
 			info[0] != '\0' ? ", " : "");
 		if (count > 1)
-			rw += gm_snprintf(&info[rw], sizeof info - rw, "(%d)", count);
+			rw += gm_snprintf(&info[rw], sizeof info - rw, "(%u)", count);
 	}
 
 	return info[0] != '\0' ? atom_str_get(info) : NULL;
@@ -1383,8 +1384,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		search_gui_ref_record(rc);
 		g_assert(rc->refcount >= 1);
 
-		rc->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL,
-			rs->status & ST_LOCAL);
+		rc->info = search_gui_get_info(rc, vinfo->len ? vinfo->str : NULL);
 		if (GUI_COLOR_MARKED != color)
 			color = search_gui_color_for_record(rc);
 		search_gui_add_record(sch, rc, color);
@@ -1427,8 +1427,8 @@ search_matched(search_t *sch, results_set_t *rs)
 		gui_search_set_enabled(sch, FALSE);
 
 	/*
-	 * XXX When not for current_search, unseen_items is increased even if
-	 * XXX we're not at the search pane.  Is this a problem?
+	 * FIXME When not for current_search, unseen_items is increased even if
+	 * FIXME we're not at the search pane.  Is this a problem?
 	 */
 
 	if (sch == current_search)
@@ -1538,7 +1538,7 @@ search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
         printf("got incoming results...\n");
 
 #if 0
-	/* XXX: Use a hash list or remove the assertion? */
+	/* FIXME: Use a hash list or remove the assertion? */
     g_assert(!slist_contains_identical(accumulated_rs, rs));
 #endif
 
