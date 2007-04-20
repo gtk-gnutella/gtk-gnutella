@@ -3909,11 +3909,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	g_return_if_fail(SHARE_REBUILDING != sf);
 
 	rc = search_record_new();
-
-	if (
-		(shared_file_flags(sf) & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING)) ==
-		SHARE_F_HAS_DIGEST
-	) {
+	if (sha1_hash_available(sf)) {
 		gnet_host_t hvec[LOCAL_MAX_ALT];
 		gint hcnt;
 
@@ -3921,7 +3917,8 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		 * SHA1 is available, look at the known alternate locations we have.
 		 */
 
-		hcnt = dmesh_fill_alternate(shared_file_sha1(sf), hvec, LOCAL_MAX_ALT);
+		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
+		hcnt = dmesh_fill_alternate(rc->sha1, hvec, G_N_ELEMENTS(hvec));
 
 		/*
 		 * Propagate them to the results so that they can see how many entries
@@ -3953,9 +3950,6 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		rc->path = atom_str_get(shared_file_relative_path(sf));
 	}
 	rc->tag = atom_str_get(shared_file_path(sf));
-
-	if (sha1_hash_available(sf))
-		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
 
 	/* FIXME: Create time != modification time */
 	rc->create_time = shared_file_modification_time(sf);
