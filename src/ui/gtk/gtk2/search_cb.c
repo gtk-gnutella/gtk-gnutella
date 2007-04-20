@@ -600,40 +600,44 @@ search_set_details(const record_t *rc)
 	search_append_detail(model, _("SHA-1"),
 		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
 	search_append_detail(model, _("Size"), search_gui_nice_size(rc));
-	search_append_detail(model, _("Source"),
-		host_addr_port_to_string(rs->addr, rs->port));
-	
-	search_append_detail(model, _("Browsable"),
-		ST_BROWSE & rs->status ? _("Yes") : _("No"));
-
-	search_append_detail(model, _("Hostile"),
-		ST_HOSTILE & rs->status ? _("Yes") : _("No"));
-
+	search_append_detail(model, _("Index"), uint32_to_string(rc->file_index));
 	search_append_detail(model, _("Owned"),
 		(SR_OWNED   & rc->flags)  ? _("owned") :
 		(SR_PARTIAL & rc->flags) ? _("partial") :
 		(SR_SHARED  & rc->flags)  ? _("shared") :
 		_("No"));
 
-	search_append_detail(model, _("Spam"),
-		(SR_SPAM & rc->flags) ? _("Yes") :
-		(ST_SPAM & rs->status) ? _("Maybe") :
-		_("No"));
+	if (!(ST_LOCAL & rs->status)) {
+		search_append_detail(model, _("Source"),
+			host_addr_port_to_string(rs->addr, rs->port));
+		search_append_detail(model, _("Browsable"),
+			ST_BROWSE & rs->status ? _("Yes") : _("No"));
+		search_append_detail(model, _("Spam"),
+			(SR_SPAM & rc->flags) ? _("Yes") :
+			(ST_SPAM & rs->status) ? _("Maybe") :
+			_("No"));
+		search_append_detail(model, _("Hostile"),
+			ST_HOSTILE & rs->status ? _("Yes") : _("No"));
+		search_append_detail(model, _("Created"),
+			timestamp_to_string(rc->create_time));
+		search_append_detail(model, _("Hostname"), rs->hostname);
+		search_append_detail(model, _("Servent ID"), guid_to_string(rs->guid));
+		search_append_detail(model, _("Vendor"), search_gui_get_vendor(rs));
+		search_append_detail(model, _("Route"), search_gui_get_route(rs));
 
-	search_append_detail(model, _("Created"),
-		timestamp_to_string(rc->create_time));
+		search_append_detail(model, _("Protocol"),
+			ST_UDP & rs->status ? "UDP" : "TCP");
 
-	search_append_detail(model, _("Hostname"), rs->hostname);
-	search_append_detail(model, _("Servent ID"), guid_to_string(rs->guid));
-	search_append_detail(model, _("Vendor"), search_gui_get_vendor(rs));
-	search_append_detail(model, _("Index"), uint32_to_string(rc->file_index));
-	search_append_detail(model, _("Route"), search_gui_get_route(rs));
+		search_append_detail(model, _("Hops"), uint32_to_string(rs->hops));
+		search_append_detail(model, _("TTL"), uint32_to_string(rs->ttl));
 
-	search_append_detail(model, _("Protocol"),
-		ST_UDP & rs->status ? "UDP" : "TCP");
-
-	search_append_detail(model, _("Hops"), uint32_to_string(rs->hops));
-	search_append_detail(model, _("TTL"), uint32_to_string(rs->ttl));
+		search_append_detail(model, _("Query"),
+			lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+				UNI_NORM_GUI,
+			NULL));
+		search_append_detail(model,
+			_("Received"), timestamp_to_string(rs->stamp));
+	}
 
 	hosts = rc->alt_locs ? gnet_host_vec_to_string(rc->alt_locs) : NULL;
 	search_append_detail(model, _("Alt-Locs"), hosts);
@@ -642,11 +646,6 @@ search_set_details(const record_t *rc)
 	hosts = rs->proxies ? gnet_host_vec_to_string(rs->proxies) : NULL;
 	search_append_detail(model, _("Push-proxies"), hosts);
 	G_FREE_NULL(hosts);
-
-	search_append_detail(model, _("Query"),
-		lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query), UNI_NORM_GUI,
-			NULL));
-	search_append_detail(model, _("Received"), timestamp_to_string(rs->stamp));
 
 	search_set_xml_metadata(rc);
 }
