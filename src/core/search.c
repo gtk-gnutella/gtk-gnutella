@@ -3927,19 +3927,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		 */
 
 		if (hcnt) {
-			gint i;
-
-			rc->alt_locs = gnet_host_vec_alloc();
-
-			for (i = 0; i < hcnt; i++) {
-				gnet_host_t *gh = &hvec[i];
-				host_addr_t addr;
-				guint16 port;
-
-				if (packed_host_unpack(gh->data, &addr, &port))
-					gnet_host_vec_add(rc->alt_locs, addr, port);
-			}
-
+			rc->alt_locs = gnet_host_vec_create(hvec, hcnt);
 		}
 	}
 
