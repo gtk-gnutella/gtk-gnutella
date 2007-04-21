@@ -380,6 +380,7 @@ src/core/spam.h
 src/core/special_upload.h
 src/core/sq.c
 src/core/sq.h
+src/core/thex.h
 src/core/thex_download.c
 src/core/thex_download.h
 src/core/thex_upload.c
