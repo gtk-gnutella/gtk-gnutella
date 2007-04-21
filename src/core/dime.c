@@ -58,6 +58,7 @@ enum {
 enum dime_type_t {
 	DIME_T_UNCHANGED	= 0x00,
 	DIME_T_MIME			= 0x01,
+	DIME_T_URI			= 0x02,
 	DIME_T_UNKNOWN		= 0x03,
 	DIME_T_NONE			= 0x04
 };
