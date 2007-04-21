@@ -95,7 +95,12 @@ typedef struct dl_file_info {
 	filesize_t size;		/**< File size */
 	const filesize_t *size_atom;/**< File size (atom) */
 	const struct sha1 *sha1;/**< server SHA1 (atom) if known, NULL if not. */
+	const struct tth  *tth; /**< server TTH (atom) if known, NULL if not. */
 	const struct sha1 *cha1;/**< computed SHA1 (atom) if known, NULL if not. */
+	struct {
+		struct tth *leaves;	/**< Tigertree leaves */
+		size_t num_leaves;	/**< Number of tigertree leaves */
+	} tigertree;
 	gint32 refcount;		/**< Reference count of file (number of sources)*/
 	GSList *sources;        /**< list of sources (struct download *) */
 	gint32 lifecount;		/**< Amount of "alive" downloads referencing us */
