@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -174,6 +174,10 @@ msgstr "SHA1 komt niet overeen"
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Blader Host %s>"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 #, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -515,6 +519,10 @@ msgstr "Onbekende error"
 msgid "Query string missing"
 msgstr "Zoek text mist"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "De opdracht tekst is niet in UTF-8 gecodeerd"
+
 msgid "Search added"
 msgstr "Zoek opdracht toegevoegd"
 
@@ -651,8 +659,15 @@ msgstr "Niet mogelijk om GIV te verzenden"
 msgid "<Browse Host Request>"
 msgstr "<Browse host verzoek>"
 
-msgid "Browse Host Enabled"
-msgstr "Browse host geactiveerd"
+msgid "Stalling upload replaced"
+msgstr "Hangende upload vervangen"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "In de wacht (slot %d, geschatte resterende tijd: %s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr "Kon niet de hele HTTP status versturen"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -669,16 +684,6 @@ msgstr ", gzip"
 
 msgid ", chunked"
 msgstr ", chunked"
-
-msgid "Stalling upload replaced"
-msgstr "Hangende upload vervangen"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "In de wacht (slot %d, geschatte resterende tijd: %s)"
-
-msgid "Cannot send whole HTTP status"
-msgstr "Kon niet de hele HTTP status versturen"
 
 msgid "Write exception"
 msgstr "Schrijf exceptie"
@@ -2508,6 +2513,17 @@ msgstr "Debug level voor de gui."
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "Debug level voor de HTTP-code."
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
 
 msgid "disable"
 msgstr "uitschakelen"
@@ -6854,15 +6870,19 @@ msgid "The normalized search text is too short."
 msgstr "The opgeschoonde zoek tekst is te kort."
 
 #, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "No"
+msgstr "Nee"
+
+#, fuzzy
 msgid "Source"
 msgstr "Bronnen"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "bladerbaar"
-
-msgid "No"
-msgstr "Nee"
 
 #, fuzzy
 msgid "Maybe"
@@ -6875,10 +6895,6 @@ msgstr "Hostcache"
 #, fuzzy
 msgid "Servent ID"
 msgstr "Verkoper ID:"
-
-#, fuzzy
-msgid "Index"
-msgstr "Index:"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -7238,6 +7254,9 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid "Browse Host Enabled"
+#~ msgstr "Browse host geactiveerd"
 
 #~ msgid "Display download settings."
 #~ msgstr "Download instellingen weergeven."

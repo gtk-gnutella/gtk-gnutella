@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2006-05-28 23:37+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <nb@li.org>\n"
@@ -172,6 +172,10 @@ msgstr "Fant upassende SHA1"
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Bla i verten %s>"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Stoppet data (slutt på fil) <download_got_eof>"
@@ -509,6 +513,10 @@ msgstr "Ukjent operasjon"
 msgid "Query string missing"
 msgstr "Manglende spørringsstreng"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "Spørringsstrengen er ikke kodet i UTF-8"
+
 msgid "Search added"
 msgstr "La til søk"
 
@@ -645,8 +653,15 @@ msgstr "Klarte ikke sende GIV"
 msgid "<Browse Host Request>"
 msgstr "<Forespørsel om å bla i vert>"
 
-msgid "Browse Host Enabled"
-msgstr "Bla i vert er slått på"
+msgid "Stalling upload replaced"
+msgstr "Stoppende opplasting erstattet"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "Lagt i kø (plass %d, forventes ferdig: %s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr "Klarte ikke sende hele HTTP-statusen"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -663,16 +678,6 @@ msgstr ", gzip"
 
 msgid ", chunked"
 msgstr ", delt opp"
-
-msgid "Stalling upload replaced"
-msgstr "Stoppende opplasting erstattet"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "Lagt i kø (plass %d, forventes ferdig: %s)"
-
-msgid "Cannot send whole HTTP status"
-msgstr "Klarte ikke sende hele HTTP-statusen"
 
 msgid "Write exception"
 msgstr "Klarte ikke skrive"
@@ -2431,6 +2436,18 @@ msgstr "Feilsøkingsnivå for grensesnittet."
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "Feilsøkingsnivå for HTTP-kode."
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "Antall forespørsler om HTML-blaing som er mottatt i denne økten."
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr ""
+"Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
 
 msgid "disable"
 msgstr "slå av"
@@ -6735,15 +6752,19 @@ msgid "The normalized search text is too short."
 msgstr "Den normaliserte søketeksten er for kort."
 
 #, fuzzy
+msgid "Index"
+msgstr "Indeks:"
+
+msgid "No"
+msgstr "Nei"
+
+#, fuzzy
 msgid "Source"
 msgstr "Kilder"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "kan leses i"
-
-msgid "No"
-msgstr "Nei"
 
 #, fuzzy
 msgid "Maybe"
@@ -6756,10 +6777,6 @@ msgstr "Verthurtigminne"
 #, fuzzy
 msgid "Servent ID"
 msgstr "Tjenent-ID:"
-
-#, fuzzy
-msgid "Index"
-msgstr "Indeks:"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -7119,6 +7136,9 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "Browse Host Enabled"
+#~ msgstr "Bla i vert er slått på"
 
 #~ msgid "Display download settings."
 #~ msgstr "Vis nedlastingsinnstillinger."

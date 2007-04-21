@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -166,6 +166,10 @@ msgstr ""
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Kişiye Gözat %s>"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
@@ -498,6 +502,9 @@ msgstr ""
 msgid "Query string missing"
 msgstr ""
 
+msgid "Query string is not UTF-8 encoded"
+msgstr ""
+
 msgid "Search added"
 msgstr ""
 
@@ -632,7 +639,14 @@ msgstr ""
 msgid "<Browse Host Request>"
 msgstr ""
 
-msgid "Browse Host Enabled"
+msgid "Stalling upload replaced"
+msgstr ""
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr ""
+
+msgid "Cannot send whole HTTP status"
 msgstr ""
 
 #, c-format
@@ -649,16 +663,6 @@ msgid ", gzip"
 msgstr ""
 
 msgid ", chunked"
-msgstr ""
-
-msgid "Stalling upload replaced"
-msgstr ""
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr ""
-
-msgid "Cannot send whole HTTP status"
 msgstr ""
 
 msgid "Write exception"
@@ -2015,6 +2019,15 @@ msgid "Debug level for the search queue."
 msgstr ""
 
 msgid "Debug level for push-proxy code."
+msgstr ""
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+msgid "Number of THEX file requests received in this session."
+msgstr ""
+
+msgid "Number of THEX file requests fully served in this session."
 msgstr ""
 
 msgid "disable"
@@ -6088,15 +6101,19 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 #, fuzzy
+msgid "Index"
+msgstr "İçerik:"
+
+msgid "No"
+msgstr "Hayır"
+
+#, fuzzy
 msgid "Source"
 msgstr "Kaynaklar"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "_Gözat"
-
-msgid "No"
-msgstr "Hayır"
 
 msgid "Maybe"
 msgstr ""
@@ -6108,10 +6125,6 @@ msgstr "IP Önbelleği"
 #, fuzzy
 msgid "Servent ID"
 msgstr "Sunucu"
-
-#, fuzzy
-msgid "Index"
-msgstr "İçerik:"
 
 msgid "Alt-Locs"
 msgstr ""

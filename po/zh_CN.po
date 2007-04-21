@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -179,6 +179,10 @@ msgstr "检测到SHA不匹配"
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "允许浏览主机"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 #, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -524,6 +528,10 @@ msgstr "未知的操作"
 msgid "Query string missing"
 msgstr "查询字符串丢失"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "查询字符串丢失"
+
 msgid "Search added"
 msgstr "增加搜索"
 
@@ -660,8 +668,16 @@ msgstr "无法发送 GIV"
 msgid "<Browse Host Request>"
 msgstr "<请求浏览主机>"
 
-msgid "Browse Host Enabled"
-msgstr "允许浏览主机"
+#, fuzzy
+msgid "Stalling upload replaced"
+msgstr "停止的上传将被替换"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "排队(%d个插口，ETA：%s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr "无法发送整个HTTP状态"
 
 #, fuzzy, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -678,17 +694,6 @@ msgstr ""
 
 msgid ", chunked"
 msgstr ""
-
-#, fuzzy
-msgid "Stalling upload replaced"
-msgstr "停止的上传将被替换"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "排队(%d个插口，ETA：%s)"
-
-msgid "Cannot send whole HTTP status"
-msgstr "无法发送整个HTTP状态"
 
 msgid "Write exception"
 msgstr "写入异常"
@@ -2140,6 +2145,16 @@ msgstr "动态查询的debug级别。"
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "用于HTTP代码的debug级别。"
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+msgid "Number of THEX file requests received in this session."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr "本次会话中已完成的总数"
 
 msgid "disable"
 msgstr ""
@@ -6278,6 +6293,12 @@ msgstr ""
 msgid "The normalized search text is too short."
 msgstr ""
 
+msgid "Index"
+msgstr ""
+
+msgid "No"
+msgstr "否"
+
 #, fuzzy
 msgid "Source"
 msgstr "%u 个源"
@@ -6285,9 +6306,6 @@ msgstr "%u 个源"
 #, fuzzy
 msgid "Browsable"
 msgstr "稳定"
-
-msgid "No"
-msgstr "否"
 
 msgid "Maybe"
 msgstr ""
@@ -6299,9 +6317,6 @@ msgstr "主机(_o)："
 #, fuzzy
 msgid "Servent ID"
 msgstr "Servent关闭"
-
-msgid "Index"
-msgstr ""
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6642,6 +6657,9 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#~ msgid "Browse Host Enabled"
+#~ msgstr "允许浏览主机"
 
 #~ msgid "Sho_w settings"
 #~ msgstr "显示设置 (_w)"

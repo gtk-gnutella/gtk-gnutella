@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -171,6 +171,10 @@ msgstr "SHA1-Prüfsummenfehler"
 
 #, c-format
 msgid "<Browse Host %s>"
+msgstr ""
+
+#, c-format
+msgid "<THEX data for %s>"
 msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -514,6 +518,10 @@ msgstr "Unbekannte Operation"
 msgid "Query string missing"
 msgstr "Suchanfrage fehlt"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "Der Suchterm ist nicht UTF-8-kodiert"
+
 msgid "Search added"
 msgstr "Suche hinzugefügt"
 
@@ -650,8 +658,15 @@ msgstr ""
 msgid "<Browse Host Request>"
 msgstr "<Browse-Host-Anfrage>"
 
-msgid "Browse Host Enabled"
-msgstr "Browse-Host aktiviert"
+msgid "Stalling upload replaced"
+msgstr "Blockierenden Upload ersetzt"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "Warteschlange (Slot %d, ETA: %s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr ""
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -667,16 +682,6 @@ msgid ", gzip"
 msgstr ""
 
 msgid ", chunked"
-msgstr ""
-
-msgid "Stalling upload replaced"
-msgstr "Blockierenden Upload ersetzt"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "Warteschlange (Slot %d, ETA: %s)"
-
-msgid "Cannot send whole HTTP status"
 msgstr ""
 
 msgid "Write exception"
@@ -2370,6 +2375,17 @@ msgstr "Debug-Level für dias GUI"
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "Debug-Level für HTTP"
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "Anzahl der HTML-Browse-Anfragen seit Programmstart."
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr "Anzahl der erfolgreichen HTML-Browse-Anfragen seit Programmstart."
 
 msgid "disable"
 msgstr "deaktiviert"
@@ -6588,15 +6604,19 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 #, fuzzy
+msgid "Index"
+msgstr "Knoten"
+
+msgid "No"
+msgstr "Nein"
+
+#, fuzzy
 msgid "Source"
 msgstr "Quellen"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "stabil"
-
-msgid "No"
-msgstr "Nein"
 
 msgid "Maybe"
 msgstr ""
@@ -6608,10 +6628,6 @@ msgstr "Host-Cache"
 #, fuzzy
 msgid "Servent ID"
 msgstr "Server"
-
-#, fuzzy
-msgid "Index"
-msgstr "Knoten"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6967,6 +6983,9 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#~ msgid "Browse Host Enabled"
+#~ msgstr "Browse-Host aktiviert"
 
 #~ msgid "Display download settings."
 #~ msgstr "Download-Einstellungen einblenden"

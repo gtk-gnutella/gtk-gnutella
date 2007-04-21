@@ -75,8 +75,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
-"PO-Revision-Date: 2007-03-25 06:26+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"PO-Revision-Date: 2007-04-05 20:37+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -234,6 +234,10 @@ msgstr "SHA1が合致していません"
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<ホスト %s の参照>"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "データ転送が中断されました (EOF) <download_got_eof>"
@@ -576,6 +580,10 @@ msgstr "不明な操作です"
 msgid "Query string missing"
 msgstr "検索クエリー文字列がありません"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "この検索クエリーはUTF-8でエンコードされていません。"
+
 msgid "Search added"
 msgstr "検索が追加されました"
 
@@ -715,8 +723,15 @@ msgstr "GIV を送信できません"
 msgid "<Browse Host Request>"
 msgstr "<ホスト参照リクエスト>"
 
-msgid "Browse Host Enabled"
-msgstr "ホスト参照が有効になっています"
+msgid "Stalling upload replaced"
+msgstr "停滞中のアップロードが置換えられました"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "待機中 (スロット %d, 予定時間: %s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr "全 HTTP ステータスを送信できません"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -736,16 +751,6 @@ msgstr ", gzip"
 # FIXME: wtf
 msgid ", chunked"
 msgstr ", チャンク化"
-
-msgid "Stalling upload replaced"
-msgstr "停滞中のアップロードが置換えられました"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "待機中 (スロット %d, 予定時間: %s)"
-
-msgid "Cannot send whole HTTP status"
-msgstr "全 HTTP ステータスを送信できません"
 
 msgid "Write exception"
 msgstr "書込み例外が発生しました"
@@ -2493,6 +2498,17 @@ msgstr "検索キューのデバッグレベルです。"
 
 msgid "Debug level for push-proxy code."
 msgstr "PUSHプロキシコードのデバッグレベルです。"
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "このセッション中に受信した HTML 参照クエストの回数です。"
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr "このセッション中に完全に送信された HTML 参照クエストの回数です。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -6741,9 +6757,8 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
 
-#, fuzzy
 msgid "XML Metadata"
-msgstr "メタデータ"
+msgstr "XMLメタデータ"
 
 msgid "Flow _control"
 msgstr "フロー制御(_C)"
@@ -6874,38 +6889,32 @@ msgstr "逆引き検索を実行中..."
 msgid "The normalized search text is too short."
 msgstr "正規化された検索テキストが短すぎます。"
 
-#, fuzzy
-msgid "Source"
-msgstr "送信元"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "参照可"
+msgid "Index"
+msgstr "インデックス"
 
 msgid "No"
 msgstr "いいえ"
 
-#, fuzzy
+msgid "Source"
+msgstr "送信元"
+
+msgid "Browsable"
+msgstr "参照可"
+
 msgid "Maybe"
-msgstr "仏領マヨット島"
+msgstr "多分"
 
-#, fuzzy
 msgid "Hostname"
-msgstr "ホストキャッシュ"
+msgstr "ホスト名"
 
-#, fuzzy
 msgid "Servent ID"
-msgstr "サーバントID:"
-
-#, fuzzy
-msgid "Index"
-msgstr "インデックス:"
+msgstr "サーバントID"
 
 msgid "Alt-Locs"
 msgstr ""
 
 msgid "Push-proxies"
-msgstr ""
+msgstr "PUSHプロキシ"
 
 # FIXME: messy
 msgid "Fresh regular"

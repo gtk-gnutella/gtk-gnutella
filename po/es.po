@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -177,6 +177,10 @@ msgstr "Detectado distinto SHA1"
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "Consultar Nodo Activado"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 #, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -521,6 +525,10 @@ msgstr "Operación desconocida"
 msgid "Query string missing"
 msgstr "Texto de la petición inexistente"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "La petición SHA1 no está codificada correctamente"
+
 msgid "Search added"
 msgstr "Búsqueda añadida"
 
@@ -658,8 +666,15 @@ msgstr "Incapaz de enviar GIV"
 msgid "<Browse Host Request>"
 msgstr "<Petición de Consultar Nodo>"
 
-msgid "Browse Host Enabled"
-msgstr "Consultar Nodo Activado"
+msgid "Stalling upload replaced"
+msgstr "Subida atascándose reemplazada"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "Encolado (ranura %d, ETA: %s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr "Imposible enviar el estado completo HTTP"
 
 #, fuzzy, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -676,16 +691,6 @@ msgstr ""
 
 msgid ", chunked"
 msgstr ""
-
-msgid "Stalling upload replaced"
-msgstr "Subida atascándose reemplazada"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "Encolado (ranura %d, ETA: %s)"
-
-msgid "Cannot send whole HTTP status"
-msgstr "Imposible enviar el estado completo HTTP"
 
 msgid "Write exception"
 msgstr "Excepción de escritura"
@@ -2385,6 +2390,17 @@ msgstr "Nivel de depurado para la interfaz gráfica."
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "Nivel de depurado para el código HTTP."
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "Número total de subidas completadas en esta sesión"
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr "Número total de subidas completadas en esta sesión"
 
 msgid "disable"
 msgstr "desactivar"
@@ -6752,15 +6768,19 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 #, fuzzy
+msgid "Index"
+msgstr "Índice:"
+
+msgid "No"
+msgstr "No"
+
+#, fuzzy
 msgid "Source"
 msgstr "Fuentes"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "estable"
-
-msgid "No"
-msgstr "No"
 
 msgid "Maybe"
 msgstr ""
@@ -6772,10 +6792,6 @@ msgstr "Caché de nodos"
 #, fuzzy
 msgid "Servent ID"
 msgstr "ID del nodo:"
-
-#, fuzzy
-msgid "Index"
-msgstr "Índice:"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -7137,6 +7153,9 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#~ msgid "Browse Host Enabled"
+#~ msgstr "Consultar Nodo Activado"
 
 #~ msgid "Display download settings."
 #~ msgstr "Mostrar ajustes de bajadas."

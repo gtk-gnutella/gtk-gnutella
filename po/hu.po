@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -175,6 +175,10 @@ msgstr "SHA1 eltérés érzékelve"
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "_Tallóz"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
@@ -526,6 +530,9 @@ msgstr "Ismeretlen hiba"
 msgid "Query string missing"
 msgstr ""
 
+msgid "Query string is not UTF-8 encoded"
+msgstr ""
+
 #, fuzzy
 msgid "Search added"
 msgstr "Keresések"
@@ -672,7 +679,14 @@ msgstr "Nyomás elküldése sikertelen"
 msgid "<Browse Host Request>"
 msgstr ""
 
-msgid "Browse Host Enabled"
+msgid "Stalling upload replaced"
+msgstr ""
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr ""
+
+msgid "Cannot send whole HTTP status"
 msgstr ""
 
 #, c-format
@@ -690,16 +704,6 @@ msgid ", gzip"
 msgstr ""
 
 msgid ", chunked"
-msgstr ""
-
-msgid "Stalling upload replaced"
-msgstr ""
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr ""
-
-msgid "Cannot send whole HTTP status"
 msgstr ""
 
 msgid "Write exception"
@@ -2496,6 +2500,17 @@ msgstr "A gui hibajavítási szintje"
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "A gui hibajavítási szintje"
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "Csúszó látogatások az indulás óta"
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr "Csúszó látogatások az indulás óta"
 
 #, fuzzy
 msgid "disable"
@@ -6992,15 +7007,19 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 #, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "No"
+msgstr "Nem"
+
+#, fuzzy
 msgid "Source"
 msgstr "Forrás"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "biztos"
-
-msgid "No"
-msgstr "Nem"
 
 msgid "Maybe"
 msgstr ""
@@ -7012,10 +7031,6 @@ msgstr "Gazdatár"
 #, fuzzy
 msgid "Servent ID"
 msgstr "Kiszolgáló-azonosító:"
-
-#, fuzzy
-msgid "Index"
-msgstr "Index:"
 
 msgid "Alt-Locs"
 msgstr ""

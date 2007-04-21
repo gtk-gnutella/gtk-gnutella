@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -170,6 +170,10 @@ msgstr "Disparité SHA1 détectée"
 #, c-format
 msgid "<Browse Host %s>"
 msgstr "<Parcourir l'hôte %s>"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Données stoppées (EOF) <download_got_eof>"
@@ -505,6 +509,10 @@ msgstr "opération inconnue"
 msgid "Query string missing"
 msgstr "String de la demande manquante"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "La chaîne de recherche n'est pas encodée en UTF-8"
+
 msgid "Search added"
 msgstr "Rcherche ajoutée"
 
@@ -638,8 +646,15 @@ msgstr "Impossible d'envoyer GIV"
 msgid "<Browse Host Request>"
 msgstr "<Requête de parcours d'hôte>"
 
-msgid "Browse Host Enabled"
-msgstr "Parcours d'hôte activé"
+msgid "Stalling upload replaced"
+msgstr "Envoi bloqué remplacé"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "Dans la file (créneau %d, ETA: %s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr "Impossible d'envoyer le statut HTTP complet"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -656,16 +671,6 @@ msgstr ", gzip"
 
 msgid ", chunked"
 msgstr ", en morceau"
-
-msgid "Stalling upload replaced"
-msgstr "Envoi bloqué remplacé"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "Dans la file (créneau %d, ETA: %s)"
-
-msgid "Cannot send whole HTTP status"
-msgstr "Impossible d'envoyer le statut HTTP complet"
 
 msgid "Write exception"
 msgstr "Exception d'écriture"
@@ -2502,6 +2507,19 @@ msgstr "Niveau de débugage pour le shell."
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "Niveau de débugage pour le code HTTP."
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "Nombre de requêtes de parcours HTML reçues pendant cette session."
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr ""
+"Nombre de requêtes de parcours HTML entièrement servies pendant cette "
+"session."
 
 msgid "disable"
 msgstr "désactiver"
@@ -6750,15 +6768,19 @@ msgid "The normalized search text is too short."
 msgstr "Le texte normalisé est trop court."
 
 #, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "No"
+msgstr "Non"
+
+#, fuzzy
 msgid "Source"
 msgstr "Sources"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "parcourable"
-
-msgid "No"
-msgstr "Non"
 
 #, fuzzy
 msgid "Maybe"
@@ -6771,10 +6793,6 @@ msgstr "Cache des hôtes"
 #, fuzzy
 msgid "Servent ID"
 msgstr "ID servent:"
-
-#, fuzzy
-msgid "Index"
-msgstr "Index:"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -7131,6 +7149,9 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Browse Host Enabled"
+#~ msgstr "Parcours d'hôte activé"
 
 #~ msgid "Display download settings."
 #~ msgstr "Afficher les paramètres de téléchargement."

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-05 20:34+0900\n"
+"POT-Creation-Date: 2007-04-21 19:43+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -174,6 +174,10 @@ msgstr "Εντοπίστηκαν αταίριαστα SHA1"
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
 msgstr "Εξερεύνηση Υπολογιστή"
+
+#, c-format
+msgid "<THEX data for %s>"
+msgstr ""
 
 #, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -515,6 +519,10 @@ msgstr "Άγνωστη διαδικασία"
 msgid "Query string missing"
 msgstr "Λείπει η συμβολοσειρά ερωτήματος"
 
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "Το ερώτημα SHA1 δεν είναι κωδικοποιημένο σε UTF-8"
+
 msgid "Search added"
 msgstr "Προστέθηκε αναζήτηση"
 
@@ -654,8 +662,15 @@ msgstr "Αδυναμία αποστολής GIV"
 msgid "<Browse Host Request>"
 msgstr "<Αίτημα Εξερεύνησης Υπολογιστή>"
 
-msgid "Browse Host Enabled"
-msgstr "Ενεργοποίηση Εξερεύνησης Υπολογιστή"
+msgid "Stalling upload replaced"
+msgstr "Η σταματημένη αποστολή αντικαταστάθηκε"
+
+#, c-format
+msgid "Queued (slot %d, ETA: %s)"
+msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %d, ETA: %s)"
+
+msgid "Cannot send whole HTTP status"
+msgstr "Δεν είναι η αποστολή ολόκληρης της κατάστασης HTTP"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -672,16 +687,6 @@ msgstr ", gzip"
 
 msgid ", chunked"
 msgstr ", κομματιασμένο"
-
-msgid "Stalling upload replaced"
-msgstr "Η σταματημένη αποστολή αντικαταστάθηκε"
-
-#, c-format
-msgid "Queued (slot %d, ETA: %s)"
-msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %d, ETA: %s)"
-
-msgid "Cannot send whole HTTP status"
-msgstr "Δεν είναι η αποστολή ολόκληρης της κατάστασης HTTP"
 
 msgid "Write exception"
 msgstr "Εξαίρεση εγγραφής"
@@ -2387,6 +2392,17 @@ msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδια�
 #, fuzzy
 msgid "Debug level for push-proxy code."
 msgstr "Επίπεδο αποσφαλμάτωσης κώδικα HTTP."
+
+msgid "This is an interim property while Tigertree support is unfinished."
+msgstr ""
+
+#, fuzzy
+msgid "Number of THEX file requests received in this session."
+msgstr "Αριθμός αιτημάτων εξερεύνησης HTML που λήφθηκαν σε αυτή τη συνεδρία."
+
+#, fuzzy
+msgid "Number of THEX file requests fully served in this session."
+msgstr "Αριθμός αιτημάτων εξερεύνησης HTML που λήφθηκαν σε αυτή τη συνεδρία."
 
 msgid "disable"
 msgstr "απενεργοποίηση"
@@ -6702,15 +6718,19 @@ msgid "The normalized search text is too short."
 msgstr "Το κείμενο κανονικοποιημένης αναζήτησης είναι πολύ μικρό."
 
 #, fuzzy
+msgid "Index"
+msgstr "Ευρετήριο:"
+
+msgid "No"
+msgstr "Όχι"
+
+#, fuzzy
 msgid "Source"
 msgstr "Πηγές"
 
 #, fuzzy
 msgid "Browsable"
 msgstr "εξερευνήσιμο"
-
-msgid "No"
-msgstr "Όχι"
 
 msgid "Maybe"
 msgstr ""
@@ -6722,10 +6742,6 @@ msgstr "Λανθάνουσα μνήμη υπολογιστών"
 #, fuzzy
 msgid "Servent ID"
 msgstr "ID πελάτη:"
-
-#, fuzzy
-msgid "Index"
-msgstr "Ευρετήριο:"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -7086,6 +7102,9 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#~ msgid "Browse Host Enabled"
+#~ msgstr "Ενεργοποίηση Εξερεύνησης Υπολογιστή"
 
 #~ msgid "Display download settings."
 #~ msgstr "Εμφάνιση ρυθμίσεων λήψης."
