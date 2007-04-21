@@ -102,7 +102,7 @@ shell_has_pending_output(gnutella_shell_t *sh)
 }
 
 #ifdef USE_REMOTE_CTRL
-static gchar auth_cookie[SHA1_RAW_SIZE];
+static struct sha1 auth_cookie;
 static gboolean shell_auth(const gchar *str);
 #endif	/* USE_REMOTE_CTRL */
 
@@ -1777,7 +1777,7 @@ shell_auth(const gchar *str)
 	if (
 		tok_helo && 0 == strcmp("HELO", tok_helo) &&
 		tok_cookie && SHA1_BASE32_SIZE == strlen(tok_cookie) &&
-		0 == memcmp_diff(sha1_base32(auth_cookie), tok_cookie, SHA1_BASE32_SIZE)
+		0 == memcmp_diff(sha1_base32(&auth_cookie), tok_cookie, SHA1_BASE32_SIZE)
 	) {
 		ok = TRUE;
 	} else {
@@ -1805,7 +1805,7 @@ shell_dump_cookie(void)
 	if (!out)
 		return;
 
-	fputs(sha1_base32(auth_cookie), out);
+	fputs(sha1_base32(&auth_cookie), out);
 
 	file_config_close(out, &fp);
 }
@@ -1814,13 +1814,13 @@ void
 shell_init(void)
 {
 
-	gint n;
+	size_t i;
 
-	for (n = 0; n < SHA1_RAW_SIZE; n ++) {
+	for (i = 0; i < sizeof auth_cookie.data; i++) {
 		guint32 v = random_value(~0U);
 
 		v ^= (v >> 24) ^ (v >> 16) ^ (v >> 8);
-		auth_cookie[n] = v & 0xff;
+		auth_cookie.data[i] = v & 0xff;
 	}
 
 	shell_dump_cookie();
