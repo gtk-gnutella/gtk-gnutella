@@ -87,6 +87,9 @@ fileinfo_t *file_info_get(
 void file_info_strip_binary(fileinfo_t *fi);
 void file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file);
 gboolean file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1);
+void file_info_got_tth(fileinfo_t *fi, const struct tth *tth);
+void file_info_got_tigertree(fileinfo_t *fi,
+		const struct tth *leaves, size_t num_leaves);
 void file_info_size_known(struct download *d, filesize_t size);
 void file_info_update(struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
@@ -116,6 +119,7 @@ fileinfo_t *file_info_has_identical(const gchar *file, filesize_t size,
 				const struct sha1 *sha1);
 
 fileinfo_t *file_info_get_transient(const gchar *name);
+fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
 
 /***

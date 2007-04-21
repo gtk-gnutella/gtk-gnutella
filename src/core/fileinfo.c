@@ -67,6 +67,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/magnet.h"
+#include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/utf8.h"
@@ -79,7 +80,7 @@ RCSID("$Id$")
 #include "lib/override.h"			/* Must be the last header included */
 
 #define FI_MIN_CHUNK_SPLIT	512		/**< Smallest chunk we can split */
-#define FI_MAX_FIELD_LEN	1024	/**< Max field length we accept to save */
+#define FI_MAX_FIELD_LEN	8192	/**< Max field length we accept to save */
 
 enum dl_file_chunk_magic {
 	DL_FILE_CHUNK_MAGIC = 0xd63b483dU
@@ -147,6 +148,8 @@ enum dl_file_info_field {
 	FILE_INFO_FIELD_END,		/**< Marks end of field section */
 	FILE_INFO_FIELD_CHA1,
 	FILE_INFO_FIELD_GUID,
+	FILE_INFO_FIELD_TTH,
+	FILE_INFO_FIELD_TIGERTREE,
 	/* Add new fields here, never change ordering for backward compatibility */
 
 	NUM_FILE_INFO_FIELDS
@@ -595,6 +598,19 @@ file_info_fd_store_binary(fileinfo_t *fi,
 
 	FIELD_ADD(FILE_INFO_FIELD_GUID, GUID_RAW_SIZE, fi->guid, &checksum);
 
+	if (fi->tth)
+		FIELD_ADD(FILE_INFO_FIELD_TTH, TTH_RAW_SIZE, fi->tth, &checksum);
+
+	if (fi->tigertree.leaves) {
+		gconstpointer data;
+		size_t size;
+		
+		STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
+		data = fi->tigertree.leaves;
+		size = fi->tigertree.num_leaves * TTH_RAW_SIZE;
+		FIELD_ADD(FILE_INFO_FIELD_TIGERTREE, size, data, &checksum);
+	}
+
 	if (fi->sha1)
 		FIELD_ADD(FILE_INFO_FIELD_SHA1, SHA1_RAW_SIZE, fi->sha1, &checksum);
 
@@ -768,6 +784,20 @@ file_info_chunklist_free(fileinfo_t *fi)
 	fi->chunklist = NULL;
 }
 
+static void
+fi_tigertree_free(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	g_assert((NULL != fi->tigertree.leaves) ^ (0 == fi->tigertree.num_leaves));
+
+	if (fi->tigertree.leaves) {
+		wfree(fi->tigertree.leaves,
+				fi->tigertree.num_leaves * sizeof fi->tigertree.leaves[0]);
+		fi->tigertree.num_leaves = 0;
+		fi->tigertree.leaves = NULL;
+	}
+}
+
 /**
  * Free a `file_info' structure.
  */
@@ -811,6 +841,7 @@ fi_free(fileinfo_t *fi)
 	atom_guid_free_null(&fi->guid);
 	atom_str_free_null(&fi->file_name);
 	atom_str_free_null(&fi->path);
+	atom_tth_free_null(&fi->tth);
 	atom_sha1_free_null(&fi->sha1);
 	atom_sha1_free_null(&fi->cha1);
 
@@ -828,8 +859,10 @@ fi_free(fileinfo_t *fi)
 		g_slist_free(fi->alias);
 		fi->alias = NULL;
 	}
-	if (fi->seen_on_network)
+	if (fi->seen_on_network) {
 		fi_free_ranges(fi->seen_on_network);
+	}
+	fi_tigertree_free(fi);
 
 	fi->magic = 0;
 	wfree(fi, sizeof *fi);
@@ -1138,6 +1171,14 @@ file_info_has_filename(fileinfo_t *fi, const gchar *file)
 	return FALSE;
 }
 
+fileinfo_t *
+file_info_by_sha1(const struct sha1 *sha1)
+{
+	g_return_val_if_fail(sha1, NULL);
+	g_return_val_if_fail(fi_by_sha1, NULL);
+	return g_hash_table_lookup(fi_by_sha1, sha1);
+}
+
 /**
  * Lookup our existing fileinfo structs to see if we can spot one
  * referencing the supplied file `name' and `size', as well as the
@@ -1443,6 +1484,38 @@ fi_upgrade_older_version(fileinfo_t *fi)
 	return upgraded;
 }
 
+static void
+fi_tigertree_check(fileinfo_t *fi)
+{
+	if (fi->tigertree.leaves) {
+		struct tth root;
+
+		if (NULL == fi->tth) {
+			g_warning("Trailer contains tigertree but no root hash");
+			goto discard;
+		}
+
+		if (
+			fi->file_size_known &&
+			fi->tigertree.num_leaves > tt_bottom_node_count(fi->size)
+		) {
+			g_warning("Trailer contains tigertree with invalid leaf count");
+			goto discard;
+		}
+
+		STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
+		root = tt_root_hash(fi->tigertree.leaves, fi->tigertree.num_leaves);
+		if (!tth_eq(&root, fi->tth)) {
+			g_warning("Trailer contains tigertree with non-matching root hash");
+			goto discard;
+		}
+	}
+	return;
+
+discard:
+	fi_tigertree_free(fi);
+}
+
 /**
  * Reads the file metainfo from the trailer of a file, if it exists.
  *
@@ -1614,6 +1687,29 @@ G_STMT_START {				\
 				g_warning("bad length %d for GUID in fileinfo v%u for \"%s\"",
 					tmpguint, version, file);
 			break;
+		case FILE_INFO_FIELD_TTH:
+			if (TTH_RAW_SIZE == tmpguint) {
+				struct tth tth;
+				memcpy(tth.data, tmp, TTH_RAW_SIZE);
+				file_info_got_tth(fi, &tth);
+			} else {
+				g_warning("bad length %d for TTH in fileinfo v%u for \"%s\"",
+					tmpguint, version, file);
+			}
+			break;
+		case FILE_INFO_FIELD_TIGERTREE:
+			if (tmpguint > 0 && 0 == (tmpguint % TTH_RAW_SIZE)) {
+				const struct tth *leaves;
+				
+				STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
+				leaves = (const struct tth *) &tmp[0];
+				file_info_got_tigertree(fi, leaves, tmpguint / TTH_RAW_SIZE);
+			} else {
+				g_warning("bad length %d for TIGERTREE in fileinfo v%u "
+					"for \"%s\"",
+					tmpguint, version, file);
+			}
+			break;
 		case FILE_INFO_FIELD_SHA1:
 			if (SHA1_RAW_SIZE == tmpguint) {
 				struct sha1 sha1;
@@ -1736,6 +1832,7 @@ G_STMT_START {				\
 
 	close(fd);
 
+	fi_tigertree_check(fi);
 	file_info_merge_adjacent(fi);	/* Update fi->done */
 
 	if (fileinfo_debug > 3)
@@ -1826,6 +1923,8 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 
 	if (fi->sha1)
 		fprintf(f, "SHA1 %s\n", sha1_base32(fi->sha1));
+	if (fi->tth)
+		fprintf(f, "TTH %s\n", tth_base32(fi->tth));
 	if (fi->cha1)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 
@@ -1901,6 +2000,7 @@ file_info_store(void)
 		"#	FSKN <boolean; file_size_known>\n"
 		"#	PAUS <boolean; paused>\n"
 		"#	SHA1 <server sha1>\n"
+		"#	TTH  <server tth>\n"
 		"#	CHA1 <computed sha1> [when done only]\n"
 		"#	DONE <bytes done>\n"
 		"#	TIME <last update stamp>\n"
@@ -2500,6 +2600,31 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	return TRUE;
 }
 
+void
+file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
+{
+	file_info_check(fi);
+	
+	g_return_if_fail(tth);
+	g_return_if_fail(NULL == fi->tth);
+	fi->tth = atom_tth_get(tth);
+}
+
+void
+file_info_got_tigertree(fileinfo_t *fi,
+	const struct tth *leaves, size_t num_leaves)
+{
+	file_info_check(fi);
+	
+	g_return_if_fail(leaves);
+	g_return_if_fail(num_leaves > 0);
+	g_return_if_fail(fi->tigertree.num_leaves < num_leaves);
+
+	fi_tigertree_free(fi);
+	fi->tigertree.leaves = wcopy(leaves, num_leaves * sizeof leaves[0]);
+	fi->tigertree.num_leaves = num_leaves;
+}
+
 /**
  * Extract GUID from GUID line in the ASCII "fileinfo" summary file
  * and return NULL if none or invalid, the GUID atom otherwise.
@@ -2537,6 +2662,21 @@ extract_sha1(const gchar *s)
 	return atom_sha1_get(&sha1);
 }
 
+static const struct tth *
+extract_tth(const gchar *s)
+{
+	struct tth tth;
+
+	if (strlen(s) < TTH_BASE32_SIZE)
+		return NULL;
+
+	if (TTH_RAW_SIZE != base32_decode(tth.data, sizeof tth.data,
+							s, TTH_BASE32_SIZE))
+		return NULL;
+
+	return atom_tth_get(&tth);
+}
+
 typedef enum {
 	FI_TAG_UNKNOWN = 0,
 	FI_TAG_ALIA,
@@ -2555,6 +2695,7 @@ typedef enum {
 	FI_TAG_SIZE,
 	FI_TAG_SWRM,
 	FI_TAG_TIME,
+	FI_TAG_TTH,
 
 	NUM_FI_TAGS
 } fi_tag_t;
@@ -2581,6 +2722,7 @@ static const struct fi_tag {
 	{ FI_TAG_SIZE, 	"SIZE" },
 	{ FI_TAG_SWRM, 	"SWRM" },
 	{ FI_TAG_TIME, 	"TIME" },
+	{ FI_TAG_TTH, 	"TTH" },
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
@@ -3126,6 +3268,10 @@ file_info_retrieve(void)
 		case FI_TAG_GUID:
 			fi->guid = extract_guid(value);
 			damaged = NULL == fi->guid;
+			break;
+		case FI_TAG_TTH:
+			fi->tth = extract_tth(value);
+			damaged = NULL == fi->tth;
 			break;
 		case FI_TAG_SHA1:
 			fi->sha1 = extract_sha1(value);
@@ -5537,6 +5683,9 @@ file_info_build_magnet(gnet_fi_t handle)
 	magnet = magnet_resource_new();
 	if (fi->sha1) {
 		magnet_set_sha1(magnet, fi->sha1);
+	}
+	if (fi->tth) {
+		magnet_set_tth(magnet, fi->tth);
 	}
 	if (fi->file_name) {
 		magnet_set_display_name(magnet, fi->file_name);

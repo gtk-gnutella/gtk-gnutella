@@ -1022,6 +1022,17 @@ download_timer(time_t now)
 
 		sl = g_slist_next(sl);
 
+		if (d->thex && !DOWNLOAD_IS_STOPPED(d)) {
+			fileinfo_t *fi;
+
+			fi = file_info_by_sha1(thex_download_get_sha1(d->thex));
+			if (NULL == fi || fi->tigertree.leaves) {
+				download_stop(d, GTA_DL_ERROR,
+					"THEX download no longer required");
+				continue;
+			}
+		}
+
 		switch (d->status) {
 		case GTA_DL_RECEIVING:
 			/*
@@ -4016,16 +4027,23 @@ download_pickup_queued(void)
 				if (delta_time(now, cur->retry_after) < 0)
 					break;	/* List is sorted */
 
-				/*
-				 * Pick the download with the most progress. Otherwise we
-				 * easily end up with dozens of partials from the the server.
-				 */
+				if (d) {
+					if ((NULL != d->thex) == (NULL != cur->thex)) {
+						/*
+						 * Pick the download with the most progress. Otherwise
+						 * we easily end up with dozens of partials from the
+						 * the server.
+						 */
 
-				if (
-					d &&
-					download_total_progress(d) >= download_total_progress(cur)
-				)
-					continue;
+						if (download_total_progress(d)
+								>= download_total_progress(cur))
+							continue;
+					}
+
+					/* Give priority to THEX downloads */
+					if (d->thex && NULL == cur->thex)
+						continue;
+				}
 
 				d = cur;
 
@@ -6471,14 +6489,31 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		g_message("X-Thex-Uri header has no root hash");
 		return;
 	}
-		
+
 	g_message("Tigertree value is %s", tth_base32(tth));
 
-	uri = g_strndup(value, uri_end - value);
-	download_thex_start(uri, d->sha1, tth, download_filesize(d),
-		NULL, download_addr(d), download_port(d), download_guid(d),
-		NULL, 0);
-	G_FREE_NULL(uri);
+	if (d->file_info->tth) {
+		if (!tth_eq(tth, d->file_info->tth)) {
+			g_warning("X-Thex-Uri causes TTH mismatch");
+			return;
+		}
+	} else {
+		file_info_got_tth(d->file_info, tth);
+	}
+
+	if (NULL == d->file_info->tigertree.leaves) {
+		guint32 cflags = 0;
+		
+		
+		if (d->always_push && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
+			cflags |= SOCK_F_PUSH;
+		}
+		uri = g_strndup(value, uri_end - value);
+		download_thex_start(uri, d->sha1, tth, download_filesize(d),
+			NULL, download_addr(d), download_port(d), download_guid(d),
+			NULL, cflags);
+		G_FREE_NULL(uri);
+	}
 }
 
 
@@ -10694,6 +10729,32 @@ download_browse_start(const gchar *hostname,
 	return d;
 }
 
+void
+download_thex_success(const struct sha1 *sha1, const struct tth *tth,
+	const struct tth *leaves, size_t num_leaves)
+{
+	fileinfo_t *fi;
+
+	g_return_if_fail(sha1);
+	g_return_if_fail(tth);
+	g_return_if_fail(leaves);
+	g_return_if_fail(num_leaves > 0);
+
+	fi = file_info_by_sha1(sha1);
+	if (NULL == fi) {
+		g_message("Discarding tigertree data: No more download");
+		return;
+	}
+	if (NULL == fi->tth) {
+		file_info_got_tth(fi, tth);
+	}
+	if (fi->tigertree.num_leaves >= num_leaves) {
+		g_message("Discarding tigertree data: Already known.");
+		return;
+	}
+	file_info_got_tigertree(fi, leaves, num_leaves);
+}
+	
 /**
  * Create special non-persisted download that will request THEX data from the
  * remote host.
@@ -10759,7 +10820,8 @@ download_thex_start(const gchar *uri,
 
 		d->flags |= DL_F_TRANSIENT | DL_F_THEX;
 		gnet_host_set(&host, addr, port);
-		d->thex = thex_download_create(d, &host, sha1, tth, filesize);
+		d->thex = thex_download_create(d, &host, sha1, tth, filesize,
+					download_thex_success);
 		file_info_changed(fi);		/* Update status! */
 	} else {
 		file_info_remove(fi);

@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2005, Raphael Manfredi
+ * Copyright (c) 2005, Martijn van Oosterhout <kleptog@svana.org>
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,6 +31,7 @@
  * Handles downloads of THEX data.
  *
  * @author Raphael Manfredi
+ * @author Martijn van Oosterhout
  * @date 2005
  */
 
@@ -49,6 +51,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/tigertree.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -60,20 +63,56 @@ struct thex_download {
 	gpointer owner;					/**< Download owning us */
 	rxdrv_t *rx;					/**< RX stack top */
 	gnet_host_t host;				/**< Host we're browsing, for logging */
-	gchar *data;					/**< Where payload data is stored */
+	char *data;						/**< Where payload data is stored */
 	size_t data_size;				/**< Size of data buffer */
 	size_t pos;						/**< Reading position */
-	const struct sha1 *sha1;
-	const struct tth *tth;
-	filesize_t filesize;
+	const struct sha1 *sha1;		/**< SHA1 atom; refers to described file */
+	const struct tth *tth;			/**< TTH atom; refers to described file */
+	filesize_t filesize;			/**< filesize of the described file */
+	char *hashtree_id;				/**< DIME record ID; g_strdup() */
+	unsigned depth;					/**< depth of the hashtree (capped) */
+	thex_download_success_cb callback;
+	gboolean finished;
 };
+
+#define THEX_TREE_TYPE		"http://open-content.net/spec/thex/breadthfirst"
+#define THEX_HASH_ALGO		"http://open-content.net/spec/digest/tiger"
+#define THEX_HASH_SIZE		TTH_RAW_SIZE
+#define THEX_SEGMENT_SIZE	1024	/* TTH_BLOCKSIZE */
+
+/** Get rid of the obnoxious (xmlChar *) */
+static inline char *
+xml_get_string(xmlNode *node, const char *id)
+{
+	return (char *) xmlGetProp(node, (const xmlChar *) id);
+}
+
+/**
+ * Uses this to free strings returned by xml_get_string().
+ */
+static inline void
+xml_string_free(char **p)
+{
+	g_assert(p);
+	if (*p) {
+		xmlFree(*p);
+		*p = NULL;
+	}
+}
+
+static inline const xmlChar *
+string_to_xmlChar(const char *p)
+{
+	return (const xmlChar *) p;
+}
 
 /**
  * Initialize the THEX download context.
  */
 struct thex_download *
 thex_download_create(gpointer owner, gnet_host_t *host,
-	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize)
+	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize,
+	thex_download_success_cb callback)
 {
 	static const struct thex_download zero_ctx;
 	struct thex_download *ctx;
@@ -82,7 +121,7 @@ thex_download_create(gpointer owner, gnet_host_t *host,
 	g_return_val_if_fail(sha1, NULL);
 	g_return_val_if_fail(tth, NULL);
 
-	ctx = walloc0(sizeof *ctx);
+	ctx = walloc(sizeof *ctx);
 	*ctx = zero_ctx;
 	ctx->owner = owner;
 	ctx->host = *host;			/* Struct copy */
@@ -91,6 +130,7 @@ thex_download_create(gpointer owner, gnet_host_t *host,
 	ctx->sha1 = atom_sha1_get(sha1);
 	ctx->tth = atom_tth_get(tth);
 	ctx->filesize = filesize;
+	ctx->callback = callback;
 
 	return ctx;
 }
@@ -159,13 +199,54 @@ thex_download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	return !error && DOWNLOAD_IS_RUNNING(d);
 }
 
+/* XML helper functions */
+static xmlNode * 
+find_element_by_name(xmlNode *start, const char *name)
+{
+   xmlNode *cur_node;
+
+    for (cur_node = start; cur_node; cur_node = cur_node->next) {
+        if (XML_ELEMENT_NODE == cur_node->type) {
+            if (0 == xmlStrcmp(cur_node->name, string_to_xmlChar(name))) {
+				return cur_node;
+			}
+        }
+    }
+    return NULL;
+}
+
+static gboolean
+verify_element(xmlNode *node, const char *prop, const char *expect)
+{
+	gboolean result = FALSE;
+	char *value;
+	
+	value = xml_get_string(node, prop);
+  	if (NULL == value) {
+    	g_message("Couldn't find property \"%s\" of node \"%s\"",
+			prop, node->name);
+		goto finish;
+	}
+	if (0 != strcmp(value, expect)) {
+		g_message("Property %s/%s doesn't match expected value \"%s\", "
+			"got \"%s\"",
+			node->name, prop, expect, value);
+		goto finish;
+	}
+	result = TRUE;
+
+finish:
+	xml_string_free(&value);
+	return result;
+}
+
 static gboolean
 thex_download_handle_xml(struct thex_download *ctx,
 	const char *data, size_t size)
 {
 	gboolean result = FALSE;
+	xmlNode *root, *hashtree, *node;
 	xmlDocPtr doc;
-	xmlNode *root;
 
 	if (size <= 0) {
 		g_message("XML record has no data");
@@ -179,7 +260,82 @@ thex_download_handle_xml(struct thex_download *ctx,
 	}
 	root = xmlDocGetRootElement(doc);
 	
-	/* TODO: Extract filesize, depth, record ID, verify algo, blocksize etc. */
+  	hashtree = find_element_by_name(root, "hashtree");
+	if (NULL == hashtree) {
+		g_message("Couldn't find hashtree element");
+		goto finish;
+	}
+	
+	node = find_element_by_name(hashtree->children, "file");
+	if (node) {
+		if (!verify_element(node, "size", filesize_to_string(ctx->filesize)))
+			goto finish;
+		if (!verify_element(node, "segmentsize",
+					uint32_to_string(THEX_SEGMENT_SIZE)))
+			goto finish;
+	} else {
+		g_message("Couldn't find hashtree/file element");
+		goto finish;
+	}
+
+	node = find_element_by_name(hashtree->children, "digest");
+	if (node) {
+		if (!verify_element(node, "algorithm", THEX_HASH_ALGO))
+			goto finish;
+		if (!verify_element(node, "outputsize",
+					uint32_to_string(THEX_HASH_SIZE)))
+			goto finish;
+	} else {
+		g_message("Couldn't find hashtree/digest element");
+    	goto finish;
+	}
+  
+	node = find_element_by_name(hashtree->children, "serializedtree");
+	if (node) {
+		guint32 depth;
+		char *value;
+		int error;
+		
+		if (!verify_element(node, "type", THEX_TREE_TYPE))
+    		goto finish;
+
+		value = xml_get_string(node, "uri");
+		if (NULL == value) {
+			g_message("Couldn't find property \"uri\" of node \"%s\"",
+				node->name);
+			goto finish;
+		}
+		ctx->hashtree_id = g_strdup(value);
+		xml_string_free(&value);
+
+		value = xml_get_string(node, "depth");
+		if (NULL == value) {
+			g_message("Couldn't find property \"depth\" of node \"%s\"",
+				node->name);
+			goto finish;
+		}
+		
+		depth = parse_uint32(value, NULL, 10, &error);
+		error |= depth < 1 || depth > tt_depth_for_filesize(ctx->filesize);
+		if (error) {
+			g_message("Bad value for \"depth\" of node \"%s\": \"%s\"",
+				node->name, value);
+		}
+		xml_string_free(&value);
+		if (error)
+			goto finish;
+
+		/*
+		 * TODO: Some minimum for the depth we accept because a tree
+		 *		 with a low depth is hardly useful.
+		 */
+		ctx->depth = MIN(depth, TTH_MAX_DEPTH);
+	} else {
+		g_message("Couldn't find hashtree/serializedtree element");
+		goto finish;
+	}
+
+	/* TODO: Extract record ID */
 
 	result = TRUE;
 
@@ -194,9 +350,11 @@ static gboolean
 thex_download_handle_hashtree(struct thex_download *ctx,
 	const char *data, size_t size)
 {
-	struct tth tth;
 	gboolean result = FALSE;
-	
+	size_t n_nodes, n_leaves, n, start;
+	const struct tth *nodes;
+	struct tth tth;
+
 	if (size <= 0) {
 		g_message("Hashtree record has no data");
 		goto finish;
@@ -205,15 +363,89 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 		g_message("Hashtree record is too small");
 		goto finish;
 	}
+	if (size % TTH_RAW_SIZE) {
+		g_message("Hashtree has bad size");
+		goto finish;
+	}
 	memcpy(tth.data, data, TTH_RAW_SIZE);
 	if (!tth_eq(&tth, ctx->tth)) {
 		g_message("Hashtree has different root hash %s", tth_base32(&tth));
+		goto finish;
 	}
-	/* TODO: Check the rest of the tree */
+
+	n_leaves = tt_node_count_at_depth(ctx->filesize, ctx->depth);
+	n_nodes = size / TTH_RAW_SIZE;
+
+	start = 0;
+	n = n_leaves;
+	while (n > 1) {
+		n = (n + 1) / 2;
+		start += n;
+	}
+
+	if (n_nodes < start + n_leaves) {
+		g_message("Hashtree has too few nodes (nodes=%u, depth=%u)",
+			(unsigned) n_nodes, ctx->depth);
+		goto finish;
+	}
+	
+	STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
+	nodes = (const struct tth *) &data[start * TTH_RAW_SIZE];
+
+	tth = tt_root_hash(nodes, n_leaves);
+	if (!tth_eq(&tth, ctx->tth)) {
+		g_message("Hashtree does not match root hash %s", tth_base32(&tth));
+		goto finish;
+	}
+
+	if (ctx->callback) {
+		ctx->callback(ctx->sha1, ctx->tth, nodes, n_leaves);
+	}
 
 	result = TRUE;
 finish:
 	return result;
+}
+
+static const struct dime_record *
+dime_find_record(const GSList *records, const char *type, const char *id)
+{
+	size_t type_length, id_length;
+	const GSList *iter;
+
+	g_return_val_if_fail(type, NULL);
+
+	type_length = type ? strlen(type) : 0;
+	g_return_val_if_fail(type_length > 0, NULL);
+
+	id_length = id ? strlen(id) : 0;
+	
+	for (iter = records; NULL != iter; iter = g_slist_next(iter)) {
+		const struct dime_record *record;
+		
+		record = iter->data;
+		g_assert(record);
+
+		if (dime_record_type_length(record) != type_length)
+			continue;
+		if (0 != ascii_strncasecmp(dime_record_type(record), type, type_length))
+			continue;
+		if (id) {
+			if (dime_record_id_length(record) != id_length)
+				continue;
+			if (0 != strncasecmp(dime_record_id(record), id, id_length))
+				continue;
+		}
+		return record;
+	}
+
+	g_message("Could not find record (type=\"%s\", id=%s%s%s)",
+		type,
+		id ? "\"" : "",
+		id ? id : "<none>",
+		id ? "\"" : "");
+
+	return NULL;
 }
 
 void
@@ -222,56 +454,37 @@ thex_download_finished(struct thex_download *ctx)
 	GSList *records;
 
 	g_return_if_fail(ctx);
+	g_return_if_fail(!ctx->finished);
+
+	ctx->finished = TRUE;
 
 	records = dime_parse_records(ctx->data, ctx->data_size);
 	if (records) {
 		const struct dime_record *record;
-		static const char xml_type[] = "text/xml";
-		static const char hashtree_type[] =
-			"http://open-content.net/spec/thex/breadthfirst";
+		const char *data;
+		size_t size;
+		
+		record = dime_find_record(records, "text/xml", NULL);
+		if (NULL == record)
+			goto finish;
 
-		record = records->data;
-		g_assert(record);
+		data = dime_record_data(record);
+		size = dime_record_data_length(record);
+		if (!thex_download_handle_xml(ctx, data, size))
+			goto finish;
 
-		if (NULL == g_slist_next(records)) {
-			g_message("There is only 1 of 2 DIME records");
+		record = dime_find_record(records, THEX_TREE_TYPE, ctx->hashtree_id);
+		if (NULL == record)
 			goto finish;
-		}
-		if (
-			dime_record_type_length(record) != CONST_STRLEN(xml_type) ||
-			0 != ascii_strncasecmp(dime_record_type(record),
-					xml_type, CONST_STRLEN(xml_type))
-		) {
-			g_message("First DIME record has not type %s", xml_type);
-			goto finish;
-		}
-		if (
-			!thex_download_handle_xml(ctx, dime_record_data(record),
-				dime_record_data_length(record))
-		) {
-			goto finish;
-		}
 
-		record = g_slist_next(records)->data;
-		g_assert(record);
-	
-		if (
-			dime_record_type_length(record) != CONST_STRLEN(hashtree_type) ||
-			0 != ascii_strncasecmp(dime_record_type(record),
-					hashtree_type, CONST_STRLEN(hashtree_type))
-		) {
-			g_message("Second DIME record has not type %s", hashtree_type);
+		data = dime_record_data(record);
+		size = dime_record_data_length(record);
+		if (!thex_download_handle_hashtree(ctx, data, size))
 			goto finish;
-		}
 
-		if (
-			!thex_download_handle_hashtree(ctx, dime_record_data(record),
-				dime_record_data_length(record))
-		) {
-			goto finish;
-		}
 	} else {
 		g_message("Could not parse DIME records");
+		goto finish;
 	}
 
 finish:
@@ -291,7 +504,7 @@ thex_rx_given(gpointer o, ssize_t r)
 }
 
 static G_GNUC_PRINTF(2, 3) void
-thex_rx_error(gpointer o, const gchar *reason, ...)
+thex_rx_error(gpointer o, const char *reason, ...)
 {
 	struct thex_download *ctx = o;
 	va_list args;
@@ -406,7 +619,7 @@ thex_download_io_source(struct thex_download *ctx)
  * Received data from outside the RX stack.
  */
 void
-thex_download_write(struct thex_download *ctx, gchar *data, size_t len)
+thex_download_write(struct thex_download *ctx, char *data, size_t len)
 {
 	pdata_t *db;
 	pmsg_t *mb;
@@ -452,8 +665,16 @@ thex_download_free(struct thex_download *ctx)
 		rx_free(ctx->rx);
 		ctx->rx = NULL;
 	}
+	G_FREE_NULL(ctx->hashtree_id);
 	G_FREE_NULL(ctx->data);
 	wfree(ctx, sizeof *ctx);
+}
+
+const struct sha1 *
+thex_download_get_sha1(const struct thex_download *ctx)
+{
+	g_return_val_if_fail(ctx, NULL);
+	return ctx->sha1;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
