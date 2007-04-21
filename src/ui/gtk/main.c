@@ -484,6 +484,7 @@ gui_init_dlg_about(void)
 		"FlashCode <flashcode@flashtux.org>",
 		"U\304\237ur \303\207etin <ugur.jnmbk@gmail.com>",
 		"Lloyd Bryant <lloydbaz@msn.com>",
+		"Martijn van Oosterhout <kleptog@svana.org>",
     };
 	GtkWidget *text;
     guint i;
