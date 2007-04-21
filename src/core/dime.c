@@ -55,6 +55,14 @@ enum {
 	DIME_F_MB = 1 << 2
 };
 
+enum dime_type_t {
+	DIME_T_UNCHANGED	= 0x00,
+	DIME_T_MIME			= 0x01,
+	DIME_T_UNKNOWN		= 0x03,
+	DIME_T_NONE			= 0x04
+};
+
+
 struct dime_record {
 	const char	*data;
 	const char	*options;
@@ -341,8 +349,9 @@ dime_record_set_id(struct dime_record *record, const char *id)
 	return TRUE;
 }
 
-gboolean
-dime_record_set_type(struct dime_record *record, const char *type)
+static gboolean
+dime_record_set_type(struct dime_record *record,
+	enum dime_type_t type_t, const char *type)
 {
 	size_t length;
 	
@@ -353,7 +362,20 @@ dime_record_set_type(struct dime_record *record, const char *type)
 
 	record->type = type;
 	record->type_length = length;
+	record->type_t = type_t;
 	return TRUE;
+}
+
+gboolean
+dime_record_set_type_uri(struct dime_record *record, const char *type)
+{
+	return dime_record_set_type(record, DIME_T_URI, type);
+}
+
+gboolean
+dime_record_set_type_mime(struct dime_record *record, const char *type)
+{
+	return dime_record_set_type(record, DIME_T_MIME, type);
 }
 
 const char *

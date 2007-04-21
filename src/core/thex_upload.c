@@ -144,7 +144,7 @@ thex_upload_xml(struct thex_upload *ctx)
 
 	dime = dime_record_alloc();
 	dime_record_set_data(dime, buf, len);
-	dime_record_set_type(dime, "text/xml");
+	dime_record_set_type_mime(dime, "text/xml");
 	ctx->size = dime_create_record(dime, &ctx->data, TRUE, FALSE);
 	dime_record_free(&dime);
 }
@@ -164,7 +164,7 @@ thex_upload_tree(struct thex_upload *ctx)
 	dime = dime_record_alloc();
 	STATIC_ASSERT(TTH_RAW_SIZE == sizeof nodes[0]);
 	dime_record_set_data(dime, nodes, n_nodes * TTH_RAW_SIZE);
-	dime_record_set_type(dime, THEX_TREE_TYPE);
+	dime_record_set_type_uri(dime, THEX_TREE_TYPE);
 	dime_record_set_id(dime, thex_upload_uuid(ctx));
 	ctx->size = dime_create_record(dime, &ctx->data, FALSE, TRUE);
 	dime_record_free(&dime);

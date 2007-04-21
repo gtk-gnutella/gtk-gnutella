@@ -51,7 +51,8 @@ size_t dime_create_record(const struct dime_record *record,
 gboolean dime_record_set_data(struct dime_record *record,
 			const void *data, size_t size);
 gboolean dime_record_set_id(struct dime_record *record, const char *id);
-gboolean dime_record_set_type(struct dime_record *record, const char *type);
+gboolean dime_record_set_type_uri(struct dime_record *, const char *type);
+gboolean dime_record_set_type_mime(struct dime_record *, const char *type);
 
 void dime_list_free(GSList **list_ptr);
 GSList *dime_parse_records(const gchar *data, size_t size);
