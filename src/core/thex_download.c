@@ -42,12 +42,13 @@ RCSID("$Id$")
 #include <libxml/parser.h>                                                      
 #include <libxml/tree.h>                                                        
 
+#include "bsched.h"
 #include "dime.h"
-#include "thex_download.h"
 #include "downloads.h"
 #include "pmsg.h"
-#include "bsched.h"
 #include "rx_inflate.h"
+#include "thex.h"
+#include "thex_download.h"
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
@@ -74,11 +75,6 @@ struct thex_download {
 	thex_download_success_cb callback;
 	gboolean finished;
 };
-
-#define THEX_TREE_TYPE		"http://open-content.net/spec/thex/breadthfirst"
-#define THEX_HASH_ALGO		"http://open-content.net/spec/digest/tiger"
-#define THEX_HASH_SIZE		TTH_RAW_SIZE
-#define THEX_SEGMENT_SIZE	1024	/* TTH_BLOCKSIZE */
 
 /** Get rid of the obnoxious (xmlChar *) */
 static inline char *
@@ -270,8 +266,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 	if (node) {
 		if (!verify_element(node, "size", filesize_to_string(ctx->filesize)))
 			goto finish;
-		if (!verify_element(node, "segmentsize",
-					uint32_to_string(THEX_SEGMENT_SIZE)))
+		if (!verify_element(node, "segmentsize", THEX_SEGMENT_SIZE))
 			goto finish;
 	} else {
 		g_message("Couldn't find hashtree/file element");
@@ -282,8 +277,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 	if (node) {
 		if (!verify_element(node, "algorithm", THEX_HASH_ALGO))
 			goto finish;
-		if (!verify_element(node, "outputsize",
-					uint32_to_string(THEX_HASH_SIZE)))
+		if (!verify_element(node, "outputsize", THEX_HASH_SIZE))
 			goto finish;
 	} else {
 		g_message("Couldn't find hashtree/digest element");

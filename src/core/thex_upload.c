@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "dime.h"
 #include "share.h"
 #include "special_upload.h"
+#include "thex.h"
 #include "thex_upload.h"
 #include "tth_cache.h"
 #include "tx.h"
@@ -61,8 +62,6 @@ RCSID("$Id$")
 #include "lib/override.h"	/* Must be the last header included */
 
 #define THEX_BUFSIZ			16384	/**< Buffer size for TX deflation */
-
-#define THEX_TYPE "http://open-content.net/spec/thex/breadthfirst"
 
 enum thex_state {
 	THEX_STATE_INITIAL,
@@ -128,19 +127,18 @@ thex_upload_xml(struct thex_upload *ctx)
 	len = concat_strings(buf, sizeof buf,
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
 		"<!DOCTYPE hashtree S"	/* NOTE: HIDE FROM METACONFIG */
-			"YSTEM"
-			" \"http://open-content.net/spec/thex/thex.dtd\">\r\n"
+			"YSTEM \""			THEX_DOCTYPE "\">\r\n"
 		"<hashtree>\r\n"
 		"<file"
-			" size=\"", filesize_to_string(ctx->filesize), "\""
-			" segmentsize=\"1024\"/>\r\n"
+			" size=\"",			filesize_to_string(ctx->filesize), "\""
+			" segmentsize=\""	THEX_SEGMENT_SIZE "\"/>\r\n"
 		"<digest"
-			" algorithm=\"http://open-content.net/spec/digest/tiger\""
-			" outputsize=\"24\"/>\r\n"
+			" algorithm=\""		THEX_HASH_ALGO "\""
+			" outputsize=\""	THEX_HASH_SIZE "\"/>\r\n"
 		"<serializedtree"
-			" depth=\"", uint32_to_string(thex_upload_depth(ctx)), "\""
-			" type=\"" THEX_TYPE "\""
-			" uri=\"", thex_upload_uuid(ctx), "\"/>\r\n"
+			" depth=\"",		uint32_to_string(thex_upload_depth(ctx)), "\""
+			" type=\""			THEX_TREE_TYPE "\""
+			" uri=\"",			thex_upload_uuid(ctx), "\"/>\r\n"
 		"</hashtree>\r\n",
 		(void *) 0);
 
@@ -166,7 +164,7 @@ thex_upload_tree(struct thex_upload *ctx)
 	dime = dime_record_alloc();
 	STATIC_ASSERT(TTH_RAW_SIZE == sizeof nodes[0]);
 	dime_record_set_data(dime, nodes, n_nodes * TTH_RAW_SIZE);
-	dime_record_set_type(dime, THEX_TYPE);
+	dime_record_set_type(dime, THEX_TREE_TYPE);
 	dime_record_set_id(dime, thex_upload_uuid(ctx));
 	ctx->size = dime_create_record(dime, &ctx->data, FALSE, TRUE);
 	dime_record_free(&dime);
