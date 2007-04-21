@@ -84,6 +84,7 @@ size_t tt_leave_count(TTH_CONTEXT *ctx);
 struct tth tt_root_hash(const struct tth *src, size_t n_leaves);
 size_t tt_compute_parents(struct tth *dst,
 		const struct tth *src, size_t src_leaves);
+filesize_t tt_node_count_at_depth(filesize_t filesize, unsigned depth);
 filesize_t tt_bottom_node_count(filesize_t filesize);
 unsigned tt_depth_for_filesize(filesize_t filesize);
 

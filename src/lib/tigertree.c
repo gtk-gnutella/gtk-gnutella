@@ -142,15 +142,22 @@ tt_depth_for_filesize(filesize_t filesize)
 }
 
 filesize_t 
-tt_bottom_node_count(filesize_t filesize)
+tt_node_count_at_depth(filesize_t filesize, unsigned depth)
 {
-	filesize_t n;
+	filesize_t n, m;
 
+	m = 1 << (depth - 1);
 	n = tt_blocks_for_filesize(filesize); 
-	while (n > TTH_MAX_LEAVES) {
+	while (n > m) {
 		n = (n + 1) / 2;
 	}
 	return n;
+}
+
+filesize_t 
+tt_bottom_node_count(filesize_t filesize)
+{
+	return tt_node_count_at_depth(filesize, TTH_MAX_DEPTH);
 }
 
 static filesize_t 
