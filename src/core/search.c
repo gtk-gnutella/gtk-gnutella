@@ -1235,11 +1235,14 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	rs->stamp = tm_time();
 	rs->country = -1;
 
-	/*
-	 * NB: route_message() increases hops by 1 for messages we handle.
-	 */
-	rs->hops = gnutella_header_get_hops(&n->header) - 1;
 	rs->ttl	= gnutella_header_get_ttl(&n->header);
+	rs->hops = gnutella_header_get_hops(&n->header);
+	if (!browse) {
+		/*
+		 * NB: route_message() increases hops by 1 for messages we handle.
+		 */
+		rs->hops--;
+	}
 
 	{
 		const gchar *query;
