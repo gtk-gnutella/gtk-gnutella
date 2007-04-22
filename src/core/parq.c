@@ -3222,7 +3222,7 @@ parq_upload_add_old_queue_header(gchar *buf, size_t size,
 	struct parq_ul_queued *parq_ul, guint min_poll, guint max_poll,
 	gboolean small_reply)
 {
-	gboolean truncated;
+	gboolean truncated = FALSE;
 	size_t len;
 
 	if (small_reply) {
