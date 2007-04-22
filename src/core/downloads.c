@@ -4712,6 +4712,7 @@ download_clone(struct download *d)
 	cd->list_idx = DL_LIST_INVALID;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->escaped_name = atom_str_get(d->escaped_name);
+	cd->uri = atom_str_get(d->uri);
 	cd->push = FALSE;
 	cd->status = GTA_DL_CONNECTING;
 	cd->server->refcnt++;
@@ -5148,7 +5149,6 @@ download_remove(struct download *d)
 		download_push_remove(d);
 
 	download_set_sha1(d, NULL);
-	atom_str_free_null(&d->uri);
 
 	if (d->ranges) {
 		http_range_free(d->ranges);
@@ -5171,6 +5171,7 @@ download_remove(struct download *d)
 
 	atom_str_free_null(&d->file_name);
 	atom_str_free_null(&d->escaped_name);
+	atom_str_free_null(&d->uri);
 
 	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
 	d->file_info = NULL;
@@ -10482,6 +10483,7 @@ download_close(void)
 		download_remove_from_server(d, TRUE);
 		atom_str_free_null(&d->escaped_name);
 		atom_str_free_null(&d->file_name);
+		atom_str_free_null(&d->uri);
 		file_object_release(&d->out_file);	/* Close output file */
 
 		download_free(&d);
