@@ -311,10 +311,11 @@ request_tigertree(struct shared_file *sf, gboolean high_priority)
 		return;
 
 	tt_verify_init();
+	g_return_if_fail(files_to_hash);
 
 	g_return_if_fail(sf);
 	shared_file_check(sf);
-	g_return_if_fail(files_to_hash);
+	g_return_if_fail(!shared_file_is_partial(sf));
 
 	if (hash_list_contains(files_to_hash, sf, &orig_key)) {
 		if (sf == orig_key) {

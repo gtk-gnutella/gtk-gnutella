@@ -2436,7 +2436,7 @@ upload_request_tth(struct shared_file *sf)
 	if (!experimental_tigertree_support)
 		return;
 
-	if (NULL == shared_file_tth(sf)) {
+	if (!shared_file_is_partial(sf) && NULL == shared_file_tth(sf)) {
 		request_tigertree(sf, TRUE);
 	}
 }
