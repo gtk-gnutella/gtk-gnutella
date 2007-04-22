@@ -3222,7 +3222,6 @@ parq_upload_add_old_queue_header(gchar *buf, size_t size,
 	struct parq_ul_queued *parq_ul, guint min_poll, guint max_poll,
 	gboolean small_reply)
 {
-	gboolean truncated = FALSE;
 	size_t len;
 
 	if (small_reply) {
@@ -3237,9 +3236,10 @@ parq_upload_add_old_queue_header(gchar *buf, size_t size,
 				1, min_poll, max_poll);
 	}
 	if (len >= size || (len > 0 && '\n' != buf[len - 1])) {
-		truncated = TRUE;
+		return 0;	/* truncated */
+	} else {
+		return len;
 	}
-	return truncated ? 0 : len;
 }
 
 static size_t
