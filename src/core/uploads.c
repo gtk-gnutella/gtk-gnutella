@@ -2587,6 +2587,14 @@ get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
 	}
 	atom_str_change(&u->name, shared_file_name_nfc(sf));
 
+	if (shared_file_is_partial(sf)) {
+		/*
+		 * As long as we cannot verify the full TTH we should probably
+		 * not pass it on even if we already fetched THEX data.
+		 */
+		goto not_found;
+	}
+	
 	if (!sha1_hash_is_uptodate(sf)) {
 		upload_error_remove(u, 503, "SHA1 is being recomputed");
 		return -1;
@@ -2598,13 +2606,13 @@ get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
 
 	if (NULL == shared_file_tth(sf)) {
 		upload_request_tth(sf);
-		goto not_yet_available;
+		goto tth_recomputed;
 	}
 
 	if (0 == tth_cache_lookup(shared_file_tth(sf))) {
 		shared_file_set_tth(sf, NULL);
 		upload_request_tth(sf);
-		goto not_yet_available;
+		goto tth_recomputed;
 	}
 
 	u->thex = shared_file_ref(sf);
@@ -2618,7 +2626,7 @@ malformed:
 	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2X request");
 	return -1;
 
-not_yet_available:
+tth_recomputed:
 	upload_error_remove(u, 503, "TTH is being computed");
 	return -1;
 }
