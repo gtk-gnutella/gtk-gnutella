@@ -242,7 +242,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 {
 	gboolean result = FALSE;
 	xmlNode *root, *hashtree, *node;
-	xmlDocPtr doc;
+	xmlDocPtr doc = NULL;
 
 	if (size <= 0) {
 		g_message("XML record has no data");
