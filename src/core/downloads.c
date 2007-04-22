@@ -10515,9 +10515,8 @@ download_close(void)
 gchar *
 download_url_for_uri(const struct download *d, const gchar *uri)
 {
-	const gchar *prefix;
+	const gchar *prefix, *hostname = NULL;
 	gchar prefix_buf[256];
-	gchar host_buf[128];
 	host_addr_t addr;
 	guint16 port;
 
@@ -10548,18 +10547,19 @@ download_url_for_uri(const struct download *d, const gchar *uri)
 
 		addr = download_addr(d);
 		port = download_port(d);
+		hostname = d->server ? d->server->hostname : NULL;
 		prefix = "http://";
 	}
 
 	if (0 == port || !is_host_addr(addr)) {
 		return NULL;
 	}
-	host_addr_port_to_string_buf(addr, port, host_buf, sizeof host_buf);
 
 	if ('/' == uri[0]) {
 		uri++;
 	}
-	return g_strconcat(prefix, host_buf, "/", uri, (void *) 0);
+	return g_strconcat(prefix, host_port_to_string(hostname, addr, port),
+				"/", uri, (void *) 0);
 }
 
 /**
