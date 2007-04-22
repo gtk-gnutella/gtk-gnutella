@@ -121,8 +121,6 @@ thex_download_create(gpointer owner, gnet_host_t *host,
 	*ctx = zero_ctx;
 	ctx->owner = owner;
 	ctx->host = *host;			/* Struct copy */
-	ctx->data_size = THEX_DOWNLOAD_DEFAULT_SIZE;
-	ctx->data = g_malloc(ctx->data_size);
 	ctx->sha1 = atom_sha1_get(sha1);
 	ctx->tth = atom_tth_get(tth);
 	ctx->filesize = filesize;
@@ -139,21 +137,21 @@ thex_download_create(gpointer owner, gnet_host_t *host,
 static gboolean
 thex_download_data_read(struct thex_download *ctx, pmsg_t *mb)
 {
+	size_t size;
+	
 	g_assert(ctx);
-	g_assert(ctx->data);
-	g_assert(ctx->data_size > 0);
+	g_assert((NULL != ctx->data) ^ (0 == ctx->data_size));
 	g_assert(ctx->pos <= ctx->data_size);
 
-	while (pmsg_size(mb) > 0) {
-		const size_t size = ctx->data_size - ctx->pos;
-		ctx->pos += pmsg_read(mb, &ctx->data[ctx->pos], size);
-		if (ctx->pos > THEX_DOWNLOAD_MAX_SIZE) {
+	while ((size = pmsg_size(mb)) > 0) {
+		if (ctx->pos + size > THEX_DOWNLOAD_MAX_SIZE)
 			return TRUE;
-		}
-		if (ctx->pos == ctx->data_size) {
-			ctx->data_size *= 2;
+
+		if (size > ctx->data_size - ctx->pos) {
+			ctx->data_size += MAX(size, ctx->data_size);
 			ctx->data = g_realloc(ctx->data, ctx->data_size);
 		}
+		ctx->pos += pmsg_read(mb, &ctx->data[ctx->pos], size);
 	}
 	return FALSE;
 }
