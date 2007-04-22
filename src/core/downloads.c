@@ -4712,7 +4712,7 @@ download_clone(struct download *d)
 	cd->list_idx = DL_LIST_INVALID;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->escaped_name = atom_str_get(d->escaped_name);
-	cd->uri = uri ? atom_str_get(uri) : NULL;
+	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->push = FALSE;
 	cd->status = GTA_DL_CONNECTING;
 	cd->server->refcnt++;
