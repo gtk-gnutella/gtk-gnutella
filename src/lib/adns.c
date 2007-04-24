@@ -655,10 +655,6 @@ adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 
 		n = size - pos;
 		ret = read(source, cast_to_gchar_ptr(buf) + pos, n);
-		if (0 == ret) {
-			errno = ECONNRESET;
-			ret = (ssize_t) -1;
-		}
 		if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
 				g_warning("adns_reply_callback: read() failed: %s",
@@ -669,7 +665,7 @@ adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 				close(source);
 			}
 			break;
-		} else {
+		} else if (0 != ret) {
 			g_assert(ret > 0);
 			g_assert((size_t) ret <= n);
 			pos += (size_t) ret;
