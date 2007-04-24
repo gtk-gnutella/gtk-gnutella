@@ -76,10 +76,8 @@ if [ "X$build_yacc" = X ]; then
 	build_yacc=bison
 	which yacc >/dev/null 2>&1 && build_yacc=yacc
 fi
-build_yacc=${build_yacc:+"'$build_yacc'"}
 
 build_cc=${build_cc:-$CC}
-build_cc=${build_cc:+"'$build_cc'"}
 
 build_ccflags=${build_ccflags:-$CFLAGS}
 build_ccflags=${build_ccflags:+"'$build_ccflags'"}
@@ -89,7 +87,6 @@ build_ldflags=${build_ldflags:+"'$build_ldflags'"}
 
 build_prefix=${build_prefix:-$PREFIX}
 build_prefix=${build_prefix:-/usr/local}
-build_prefix=${build_prefix:+"'$build_prefix'"}
 
 build_bindir=${build_bindir:-$build_prefix/bin}
 build_bindir=${build_bindir:+"'$build_bindir'"}
@@ -103,8 +100,9 @@ build_datadir=${build_datadir:+"'$build_datadir'"}
 build_localedir=${build_localedir:-$build_prefix/share/locale}
 build_localedir=${build_localedir:+"'$build_localedir'"}
 
-build_official=${build_official:-true}
+build_prefix=${build_prefix:+"'$build_prefix'"}
 
+build_official=${build_official:-true}
 build_ui=${build_ui:-gtkversion=2}
 
 # Make sure previous Configure settings have no influence.
@@ -113,8 +111,8 @@ ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
 /bin/sh ./Configure -Oders \
-	${build_cc:+"-D cc='$build_cc'"} \
-	${build_yacc:+"-D yacc='$build_yacc'"} \
+	${build_cc:+"-D cc=$build_cc"} \
+	${build_yacc:+"-D yacc=$build_yacc"} \
 	${build_ccflags:+"-D ccflags='$build_ccflags'"} \
 	${build_ldflags:+"-D ldflags='$build_ldflags'"} \
 	${build_prefix:+"-D prefix='$build_prefix'"} \
@@ -122,12 +120,12 @@ ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
 	${build_datadir:+"-D privlib='$build_datadir'"} \
 	${build_localedir:+"-D locale='$build_localedir'"} \
 	${build_mandir:+"-D sysman='$build_mandir'"} \
-	${build_official:+"-D official='$build_official'"} \
-	${build_ui:+"-D '$build_ui'"} \
-	${build_nls:+"'$build_nls'"} \
-	${build_dbus:+"'$build_dbus'"} \
-	${build_gnutls:+"'$build_gnutls'"} \
-	${build_ipv6:+"'$build_ipv6'"} \
+	${build_official:+"-D official=$build_official"} \
+	${build_ui:+"-D $build_ui"} \
+	${build_nls:+"$build_nls"} \
+	${build_dbus:+"$build_dbus"} \
+	${build_gnutls:+"$build_gnutls"} \
+	${build_ipv6:+"$build_ipv6"} \
 	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
 
 ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
