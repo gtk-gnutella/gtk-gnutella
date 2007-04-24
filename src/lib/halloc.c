@@ -233,8 +233,14 @@ halloc_init_vtable(void)
 void
 halloc_init(void)
 {
+	/* NOTE: This string is not read-only because it will be overwritten
+	 *		 by gm_setproctitle() as it becomes part of the environment.
+	 *	     This happens at least on some Linux systems.
+	 */
+	static char variable[] = "G_SLICE=always-malloc";
+
 	RUNTIME_ASSERT(!hallocations);
-	putenv("G_SLICE=always-malloc");
+	putenv(variable);
 	hallocations = hash_table_new();
 	halloc_init_vtable();
 }
