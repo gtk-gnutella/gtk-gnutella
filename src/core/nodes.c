@@ -1082,8 +1082,10 @@ node_timer(time_t now)
 			 * Check whether we need to send more QRT patch updates.
 			 */
 
-			if (n->qrt_update != NULL)
+			if (n->qrt_update != NULL) {
+				g_assert(NODE_IS_CONNECTED(n));
 				node_send_patch_step(n);
+			}
 
 			/*
 			 * Check RX flow control.
@@ -7753,6 +7755,7 @@ node_send_qrt(struct gnutella_node *n, gpointer query_table)
 {
 	g_assert(current_peermode != NODE_P_NORMAL);
 	g_assert(NODE_IS_ULTRA(n));
+	g_assert(NODE_IS_CONNECTED(n));
 	g_assert(query_table != NULL);
 	g_assert(n->qrt_update == NULL);
 
@@ -7776,6 +7779,7 @@ node_send_patch_step(struct gnutella_node *n)
 	gboolean ok;
 
 	g_assert(NODE_IS_ULTRA(n));
+	g_assert(NODE_IS_CONNECTED(n));
 	g_assert(n->qrt_update);
 
 	if (qrt_update_send_next(n->qrt_update))
