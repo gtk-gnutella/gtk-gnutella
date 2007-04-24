@@ -439,8 +439,10 @@ G_STMT_START {			\
 /** HAVE_GCC allows conditionalization depending on the version of gcc
  *  being used to compile the source.
  *
- *  See "http://www.ohse.de/uwe/articles/gcc-attributes.html", for
- *  details on gcc support of attributes.
+ *  Check each version at "http://gcc.gnu.org/onlinedocs/" for
+ *  support.  Specific functionality may also be broken in some
+ *  compiler revisions, so it is useful to conditionalize on the
+ *  version.
  */
 #define HAVE_GCC(major, minor) \
 	((__GNUC__ > (major)) || \
@@ -528,7 +530,7 @@ G_STMT_START {			\
 #endif	/* GCC >= 3.0 */
 #endif	/* G_GNUC_MALLOC */
 
-#if HAVE_GCC(3, 0)
+#if HAVE_GCC(3, 1)
 #define ALWAYS_INLINE __attribute__((__always_inline__))
 #else
 #define ALWAYS_INLINE
