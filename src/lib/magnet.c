@@ -74,13 +74,13 @@ static const struct {
 	const char * const key;
 	const enum magnet_key id;
 } magnet_keys[] = {
-	{ "",		MAGNET_KEY_NONE },
-	{ "dn",		MAGNET_KEY_DISPLAY_NAME },
-	{ "kt",		MAGNET_KEY_KEYWORD_TOPIC },
-	{ "xl",		MAGNET_KEY_EXACT_LENGTH },
-	{ "xs",		MAGNET_KEY_EXACT_SOURCE },
-	{ "xt",		MAGNET_KEY_EXACT_TOPIC },
-	{ "x.parq",	MAGNET_KEY_PARQ_ID },
+	{ "",			MAGNET_KEY_NONE },
+	{ "dn",			MAGNET_KEY_DISPLAY_NAME },
+	{ "kt",			MAGNET_KEY_KEYWORD_TOPIC },
+	{ "xl",			MAGNET_KEY_EXACT_LENGTH },
+	{ "xs",			MAGNET_KEY_EXACT_SOURCE },
+	{ "xt",			MAGNET_KEY_EXACT_TOPIC },
+	{ "x.parq-id",	MAGNET_KEY_PARQ_ID },
 };
 
 /*
@@ -701,7 +701,7 @@ magnet_to_string(struct magnet_resource *res)
 		magnet_append_item(&gs, FALSE, "xt", buf);
 	}
 	if (res->parq_id) {
-		magnet_append_item(&gs, TRUE, "x.parq_id", res->parq_id);
+		magnet_append_item(&gs, TRUE, "x.parq-id", res->parq_id);
 	}
 
 	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
