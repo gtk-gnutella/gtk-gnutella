@@ -3224,12 +3224,11 @@ static struct rx_link_cb node_rx_link_cb = {
 static void
 node_is_now_connected(struct gnutella_node *n)
 {
-	struct gnutella_socket *s = n->socket;
-	txdrv_t *tx;
 	gboolean peermode_changed = FALSE;
 	gnet_host_t host;
+	txdrv_t *tx;
 
-	socket_check(s);
+	socket_check(n->socket);
 
 	/*
 	 * Temporary: if node is not a broken GTKG node, record it.
@@ -3484,10 +3483,10 @@ node_is_now_connected(struct gnutella_node *n)
 	 * flow control early.  Use their setup for the receive buffer.
 	 */
 
-	sock_send_buf(s, NODE_IS_LEAF(n) ?
+	sock_send_buf(n->socket, NODE_IS_LEAF(n) ?
 		NODE_SEND_LEAF_BUFSIZE : NODE_SEND_BUFSIZE, TRUE);
 
-	sock_recv_buf(s, node_rx_size * 1024, TRUE);
+	sock_recv_buf(n->socket, node_rx_size * 1024, TRUE);
 
 	/*
 	 * If we have an incoming connection, send an "alive" ping.
