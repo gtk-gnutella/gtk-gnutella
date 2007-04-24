@@ -656,22 +656,27 @@ adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 		n = size - pos;
 		ret = read(source, cast_to_gchar_ptr(buf) + pos, n);
 		if ((ssize_t) -1 == ret) {
-			if (!is_temporary_error(errno)) {
+		   	if (!is_temporary_error(errno)) {
 				g_warning("adns_reply_callback: read() failed: %s",
-						g_strerror(errno));
-				inputevt_remove(adns_reply_event_id);
-				adns_reply_event_id = 0;
-				g_warning("adns_reply_callback: removed myself");
-				close(source);
+					g_strerror(errno));
 			}
-			break;
-		} else if (0 != ret) {
+			goto error;
+		} else if (0 == ret) {
+			g_warning("adns_reply_callback: read() failed: EOF");
+			goto error;
+		} else {
 			g_assert(ret > 0);
 			g_assert((size_t) ret <= n);
 			pos += (size_t) ret;
 		}
 	}
 	return;
+	
+error:
+	inputevt_remove(adns_reply_event_id);
+	adns_reply_event_id = 0;
+	g_warning("adns_reply_callback: removed myself");
+	close(source);
 }
 
 /**
