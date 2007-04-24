@@ -7761,11 +7761,17 @@ node_send_qrt(struct gnutella_node *n, struct routing_table *query_table)
 	g_assert(n->qrt_update == NULL);
 
 	n->qrt_update = qrt_update_create(n, n->sent_query_table);
-
-	if (n->sent_query_table)
+	if (n->sent_query_table) {
 		qrt_unref(n->sent_query_table);
-
+	}
 	n->sent_query_table = qrt_ref(query_table);
+
+	/*
+	 * qrt_update_create() may presumly invoke a callback causing a
+	 * write() which may gain a connection reset.
+	 */
+	g_return_if_fail(NODE_IS_CONNECTED(n));
+
 	node_send_patch_step(n);
 
 	node_fire_node_flags_changed(n);
