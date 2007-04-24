@@ -435,6 +435,13 @@ G_STMT_START {			\
 } G_STMT_END
 
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
+
+/** HAVE_GCC allows conditionalization depending on the version of gcc
+ *  being used to compile the source.
+ *
+ *  See "http://www.ohse.de/uwe/articles/gcc-attributes.html", for
+ *  details on gcc support of attributes.
+ */
 #define HAVE_GCC(major, minor) \
 	((__GNUC__ > (major)) || \
 	 (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
@@ -460,17 +467,17 @@ G_STMT_START {			\
  * This is the same G_GNUC_FORMAT() but for function pointers. Older versions
  * of GCC do not allow function attributes for function pointers.
  */
-#if HAVE_GCC(3, 0)
+#if HAVE_GCC(2, 3)
 #define PRINTF_FUNC_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
-#else /* GCC < 3.0 */
+#else /* GCC < 2.3 */
 #define PRINTF_FUNC_PTR(x, y)
 #endif
 
 /* Functions using this attribute cause a warning if the returned
  * value is not used. */
-#if HAVE_GCC(3, 4)
+#if HAVE_GCC(3, 3)
 #define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
-#else /* GCC < 3.4 */
+#else /* GCC < 3.3 */
 #define WARN_UNUSED_RESULT
 #endif
 
