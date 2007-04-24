@@ -2532,7 +2532,7 @@ drop:
  * shared_file if we have one.
  */
 
-static GTree *sha1_to_share = NULL;
+static GTree *sha1_to_share;
 
 /**
  * Compare binary SHA1 hashes.
@@ -2570,18 +2570,17 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 
 	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
 
-	/*
-	 * If we were recomputing the SHA1, remove the old version.
-	 */
+	sf->flags &= ~SHARE_F_RECOMPUTING;
 
-	if (sf->flags & SHARE_F_RECOMPUTING) {
-		sf->flags &= ~SHARE_F_RECOMPUTING;
+	if (sf->sha1) {
+		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
 	}
-
 	atom_sha1_change(&sf->sha1, sha1);
-	sf->flags |= SHARE_F_HAS_DIGEST;
-	g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
+	if (sf->sha1) {
+		sf->flags |= SHARE_F_HAS_DIGEST;
+		g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
+	}
 }
 
 void
@@ -2653,17 +2652,13 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 	if (-1 == stat(sf->file_path, &buf)) {
 		g_warning("can't stat shared file #%d \"%s\": %s",
 			sf->file_index, sf->file_path, g_strerror(errno));
-		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
-		atom_sha1_free_null(&sf->sha1);
-		sf->flags &= ~SHARE_F_HAS_DIGEST;
+		shared_file_set_sha1(sf, NULL);
 		return FALSE;
 	}
 
 	if (too_big_for_gnutella(buf.st_size)) {
 		g_warning("File is too big to be shared: \"%s\"", sf->file_path);
-		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
-		atom_sha1_free_null(&sf->sha1);
-		sf->flags &= ~SHARE_F_HAS_DIGEST;
+		shared_file_set_sha1(sf, NULL);
 		return FALSE;
 	}
 
