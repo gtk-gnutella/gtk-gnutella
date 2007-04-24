@@ -234,7 +234,6 @@ void
 halloc_init(void)
 {
 	RUNTIME_ASSERT(!hallocations);
-	unsetenv("G_SLICE");
 	putenv("G_SLICE=always-malloc");
 	hallocations = hash_table_new();
 	halloc_init_vtable();
