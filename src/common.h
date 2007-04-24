@@ -467,9 +467,9 @@ G_STMT_START {			\
  * This is the same G_GNUC_FORMAT() but for function pointers. Older versions
  * of GCC do not allow function attributes for function pointers.
  */
-#if HAVE_GCC(2, 3)
+#if HAVE_GCC(3, 0)
 #define PRINTF_FUNC_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
-#else /* GCC < 2.3 */
+#else /* GCC < 3.0 */
 #define PRINTF_FUNC_PTR(x, y)
 #endif
 
