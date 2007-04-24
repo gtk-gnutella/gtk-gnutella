@@ -1150,19 +1150,19 @@ memory. This mode is mostly useful for ultrapeers.
 
 <para>See the chapter <link linkend="GETTING">on getting
 gtk-gnutella</link> on how to get the source code.  The following
-"Configure" invocation will produce a headless version of gtk-gnutella.
+"build.sh" invocation will produce a headless version of gtk-gnutella.
 </para>
 
 <para><informalexample><programlisting>
-./Configure -Oders -D d_headless [...]
+./build.sh --topless [...]
 </programlisting></informalexample></para>
 
 <para>
-Run this Configure command and "make" in the source directory.
+Run "build.sh" and "make" in the source directory.
 
-After compiling, rename the gtk-gnutella binary to gtk-gnutella-headless
-and copy it to a directory in your PATH, for example, /usr/local/bin.
-</para>
+After compiling, the gtk-gnutella binary is in the "src" subdirectory.
+Rename the gtk-gnutella binary to gtk-gnutella-headless and copy it to
+a directory in your PATH, for example, /usr/local/bin.  </para>
 
 <para> Assuming you have run a graphical version of gtk-gnutella, copy all
 files in $HOME/.gtk-gnutella to a backup directory.  Run the graphical
