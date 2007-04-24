@@ -477,9 +477,9 @@ G_STMT_START {			\
 
 /* Functions using this attribute cause a warning if the returned
  * value is not used. */
-#if HAVE_GCC(3, 3)
+#if HAVE_GCC(3, 4)
 #define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
-#else /* GCC < 3.3 */
+#else /* GCC < 3.4 */
 #define WARN_UNUSED_RESULT
 #endif
 
@@ -534,7 +534,7 @@ G_STMT_START {			\
 #define ALWAYS_INLINE __attribute__((__always_inline__))
 #else
 #define ALWAYS_INLINE
-#endif	/* GCC >= 3.0 */
+#endif	/* GCC >= 3.1 */
 
 #ifdef HAS_REGPARM
 #define REGPARM(n)	__attribute__((__regparm__((n))))
