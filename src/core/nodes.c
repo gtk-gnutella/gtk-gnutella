@@ -1086,6 +1086,8 @@ node_timer(time_t now)
 			if (n->qrt_update != NULL) {
 				g_assert(NODE_IS_CONNECTED(n));
 				node_send_patch_step(n);
+				if (!NODE_IS_CONNECTED(n))
+					return;
 			}
 
 			/*
@@ -3474,8 +3476,11 @@ node_is_now_connected(struct gnutella_node *n)
 		 * is called by the computation code.
 		 */
 
-		if (qrt)
+		if (qrt) {
 			node_send_qrt(n, qrt);
+			if (!NODE_IS_CONNECTED(n))
+				return;
+		}
 	}
 
 	/*
@@ -7769,14 +7774,13 @@ node_send_qrt(struct gnutella_node *n, struct routing_table *query_table)
 	n->sent_query_table = qrt_ref(query_table);
 
 	/*
-	 * qrt_update_create() may presumly invoke a callback causing a
+	 * qrt_update_create() may invoke a callback causing a
 	 * write() which may gain a connection reset.
 	 */
-	g_return_if_fail(NODE_IS_CONNECTED(n));
-
-	node_send_patch_step(n);
-
-	node_fire_node_flags_changed(n);
+	if (NODE_IS_CONNECTED(n)) {
+		node_send_patch_step(n);
+		node_fire_node_flags_changed(n);
+	}
 }
 
 /**
