@@ -173,11 +173,11 @@ typedef struct gnutella_node {
 	squeue_t *searchq;			/**< TX Search queue */
 	rxdrv_t *rx;				/**< RX stack top */
 
-	gpointer routing_data;		/**< Opaque info, for gnet message routing */
-	gpointer sent_query_table;	/**< Opaque info, query table sent to node */
-	gpointer recv_query_table;	/**< Opaque info, query table recved from node */
-	gpointer qrt_update;		/**< Opaque info, query routing update handle */
-	gpointer qrt_receive;		/**< Opaque info, query routing reception */
+	struct route_data *routing_data;		/**< for gnet message routing */
+	struct routing_table *sent_query_table;	/**< query table sent to node */
+	struct routing_table *recv_query_table;	/**< query table recved from node */
+	struct qrt_update *qrt_update;			/**< query routing update handle */
+	struct qrt_receive *qrt_receive;		/**< query routing reception */
 	qrt_info_t *qrt_info;		/**< Info about received query table */
 
 	gpointer alive_pings;		/**< Opaque info, for alive ping checks */
@@ -539,10 +539,10 @@ gboolean node_bye_pending(void);
 void node_close(void);
 gboolean node_remove_worst(gboolean non_local);
 
-void node_qrt_changed(gpointer query_table);
+void node_qrt_changed(struct routing_table *query_table);
 void node_qrt_discard(struct gnutella_node *n);
-void node_qrt_install(struct gnutella_node *n, gpointer query_table);
-void node_qrt_patched(struct gnutella_node *n, gpointer query_table);
+void node_qrt_install(struct gnutella_node *n, struct routing_table *);
+void node_qrt_patched(struct gnutella_node *n, struct routing_table *);
 
 void send_node_error(struct gnutella_socket *s, int code,
 	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);

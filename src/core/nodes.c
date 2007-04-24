@@ -235,7 +235,8 @@ static void node_disable_read(struct gnutella_node *n);
 static gboolean node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static void node_bye_sent(struct gnutella_node *n);
 static void call_node_process_handshake_ack(gpointer obj, header_t *header);
-static void node_send_qrt(struct gnutella_node *n, gpointer query_table);
+static void node_send_qrt(struct gnutella_node *n,
+				struct routing_table *query_table);
 static void node_send_patch_step(struct gnutella_node *n);
 static void node_bye_flags(guint32 mask, gint code, const gchar *message);
 static void node_bye_all_but_one(struct gnutella_node *nskip,
@@ -7751,7 +7752,7 @@ node_remove_worst(gboolean non_local)
  * Initiate sending of the query routing table.
  */
 static void
-node_send_qrt(struct gnutella_node *n, gpointer query_table)
+node_send_qrt(struct gnutella_node *n, struct routing_table *query_table)
 {
 	g_assert(current_peermode != NODE_P_NORMAL);
 	g_assert(NODE_IS_ULTRA(n));
@@ -7844,7 +7845,7 @@ node_qrt_discard(struct gnutella_node *n)
  * Invoked for ultra nodes to install new Query Routing Table.
  */
 void
-node_qrt_install(struct gnutella_node *n, gpointer query_table)
+node_qrt_install(struct gnutella_node *n, struct routing_table *query_table)
 {
 	g_assert(NODE_IS_LEAF(n) || NODE_IS_ULTRA(n));
 	g_assert(n->recv_query_table == NULL);
@@ -7862,7 +7863,7 @@ node_qrt_install(struct gnutella_node *n, gpointer query_table)
  * was fully patched (i.e. we got a new generation).
  */
 void
-node_qrt_patched(struct gnutella_node *n, gpointer query_table)
+node_qrt_patched(struct gnutella_node *n, struct routing_table *query_table)
 {
 	g_assert(NODE_IS_LEAF(n) || NODE_IS_ULTRA(n));
 	g_assert(n->recv_query_table == query_table);
@@ -7875,7 +7876,7 @@ node_qrt_patched(struct gnutella_node *n, gpointer query_table)
  * Invoked for nodes when our Query Routing Table changed.
  */
 void
-node_qrt_changed(gpointer query_table)
+node_qrt_changed(struct routing_table *query_table)
 {
 	struct gnutella_node *n;
 	GSList *sl;

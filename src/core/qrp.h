@@ -72,13 +72,12 @@ typedef struct qrt_info {
 } qrt_info_t;
 
 
-typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
-
 /*
  * Public interface.
  */
 
 struct gnutella_node;
+struct routing_table;
 struct shared_file;
 
 void qrp_init(void);
@@ -91,19 +90,21 @@ void qrp_prepare_computation(void);
 void qrp_add_file(struct shared_file *sf);
 void qrp_finalize_computation(void);
 
-gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table);
-void qrt_update_free(gpointer handle);
-gboolean qrt_update_send_next(gpointer handle);
-gboolean qrt_update_was_ok(gpointer handle);
+struct qrt_update *qrt_update_create(struct gnutella_node *n,
+						struct routing_table *);
+void qrt_update_free(struct qrt_update *);
+gboolean qrt_update_send_next(struct qrt_update *);
+gboolean qrt_update_was_ok(struct qrt_update *);
 
-gpointer qrt_receive_create(struct gnutella_node *n, gpointer query_table);
-void qrt_receive_free(gpointer handle);
-gboolean qrt_receive_next(gpointer handle, gboolean *done);
+struct qrt_receive *qrt_receive_create(struct gnutella_node *n,
+						struct routing_table *);
+void qrt_receive_free(struct qrt_receive *);
+gboolean qrt_receive_next(struct qrt_receive *, gboolean *done);
 
-gpointer qrt_get_table(void);
-gpointer qrt_ref(gpointer obj);
-void qrt_unref(gpointer obj);
-void qrt_get_info(gpointer obj, qrt_info_t *qi);
+struct routing_table *qrt_get_table(void);
+struct routing_table *qrt_ref(struct routing_table *);
+void qrt_unref(struct routing_table *);
+void qrt_get_info(const struct routing_table *, qrt_info_t *qi);
 
 struct query_hashvec *qhvec_alloc(gint size);
 void qhvec_free(struct query_hashvec *qhvec);

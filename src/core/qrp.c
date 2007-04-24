@@ -832,7 +832,7 @@ qrt_shrink_arena(gchar *arena, gint old_slots, gint new_slots, gint infinity)
 /**
  * @returns the query routing table, NULL if not computed yet.
  */
-gpointer
+struct routing_table *
 qrt_get_table(void)
 {
 	return routing_table;
@@ -842,16 +842,14 @@ qrt_get_table(void)
  * Get a new reference on the query routing table.
  * @returns its argument.
  */
-gpointer
-qrt_ref(gpointer obj)
+struct routing_table *
+qrt_ref(struct routing_table *rt)
 {
-	struct routing_table *rt = obj;
-
-	g_assert(obj);
+	g_assert(rt);
 	g_assert(rt->magic == QRP_ROUTE_MAGIC);
 
 	rt->refcnt++;
-	return obj;
+	return rt;
 }
 
 /**
@@ -859,11 +857,9 @@ qrt_ref(gpointer obj)
  * When the last reference is removed, the table is freed.
  */
 void
-qrt_unref(gpointer obj)
+qrt_unref(struct routing_table *rt)
 {
-	struct routing_table *rt = obj;
-
-	g_assert(obj);
+	g_assert(rt);
 	g_assert(rt->magic == QRP_ROUTE_MAGIC);
 	g_assert(rt->refcnt > 0);
 
@@ -875,11 +871,9 @@ qrt_unref(gpointer obj)
  * @returns information about query routing table.
  */
 void
-qrt_get_info(gpointer obj, qrt_info_t *qi)
+qrt_get_info(const struct routing_table *rt, qrt_info_t *qi)
 {
-	struct routing_table *rt = obj;
-
-	g_assert(obj);
+	g_assert(rt);
 	g_assert(rt->magic == QRP_ROUTE_MAGIC);
 	g_assert(rt->refcnt > 0);
 
@@ -2592,11 +2586,11 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
  *
  * @return opaque handle.
  */
-gpointer
-qrt_update_create(struct gnutella_node *n, gpointer query_table)
+struct qrt_update *
+qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 {
 	struct qrt_update *qup;
-	gpointer old_table = query_table;
+	struct routing_table *old_table = query_table;
 
 	g_assert(routing_table != NULL);
 
@@ -2607,7 +2601,7 @@ qrt_update_create(struct gnutella_node *n, gpointer query_table)
 	 */
 
 	if (old_table != NULL) {
-		struct routing_table *old = (struct routing_table *) old_table;
+		struct routing_table *old = old_table;
 
 		g_assert(old->magic == QRP_ROUTE_MAGIC);
 
@@ -2672,10 +2666,8 @@ qrt_update_create(struct gnutella_node *n, gpointer query_table)
  * Free query routing update tracker.
  */
 void
-qrt_update_free(gpointer handle)
+qrt_update_free(struct qrt_update *qup)
 {
-	struct qrt_update *qup = handle;
-
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (qup->compress != NULL) {
@@ -2701,9 +2693,8 @@ qrt_update_free(gpointer handle)
  * @returns whether the routing should still be called.
  */
 gboolean
-qrt_update_send_next(gpointer handle)
+qrt_update_send_next(struct qrt_update *qup)
 {
-	struct qrt_update *qup = handle;
 	time_t now;
 	time_t elapsed;
 	gint len;
@@ -2810,10 +2801,8 @@ qrt_update_send_next(gpointer handle)
  * Should be called when qrt_update_send_next() returned FALSE.
  */
 gboolean
-qrt_update_was_ok(gpointer handle)
+qrt_update_was_ok(struct qrt_update *qup)
 {
-	struct qrt_update *qup = handle;
-
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	return qup->empty_patch ||
@@ -2884,8 +2873,8 @@ qrt_unknown_patch(struct qrt_receive *unused_qrcv,
  *
  * @returns pointer to handler.
  */
-gpointer
-qrt_receive_create(struct gnutella_node *n, gpointer query_table)
+struct qrt_receive *
+qrt_receive_create(struct gnutella_node *n, struct routing_table *query_table)
 {
 	struct routing_table *table = query_table;
 	struct qrt_receive *qrcv;
@@ -2961,10 +2950,8 @@ qrt_receive_create(struct gnutella_node *n, gpointer query_table)
  * Dispose of the QRP receiving state.
  */
 void
-qrt_receive_free(gpointer handle)
+qrt_receive_free(struct qrt_receive *qrcv)
 {
-	struct qrt_receive *qrcv = handle;
-
 	g_assert(qrcv->magic == QRT_RECEIVE_MAGIC);
 
 	(void) inflateEnd(qrcv->inz);
@@ -3734,9 +3721,8 @@ qrt_handle_patch(
  * to TRUE.
  */
 gboolean
-qrt_receive_next(gpointer handle, gboolean *done)
+qrt_receive_next(struct qrt_receive *qrcv, gboolean *done)
 {
-	struct qrt_receive *qrcv = handle;
 	struct gnutella_node *n = qrcv->node;
 	guint8 type;
 
