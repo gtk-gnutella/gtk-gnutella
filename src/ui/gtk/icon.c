@@ -350,6 +350,16 @@ on_status_icon_activate(GtkStatusIcon *status_icon, gpointer unused_udata)
 		gtk_widget_show(gui_main_window());
 	}
 }
+
+static gboolean
+on_status_icon_size_changed(GtkStatusIcon *status_icon,
+	gint unused_size, gpointer unused_udata)
+{
+	(void) status_icon;
+	(void) unused_size;
+	(void) unused_udata;
+	return FALSE;	/* Let Gtk+ scale the icon */
+}
 #endif	/* Gtk+ >= 2.10.0 */
 
 /**
@@ -404,6 +414,8 @@ icon_init(void)
 		gtk_status_icon_set_visible(status_icon, TRUE);
     	g_signal_connect(G_OBJECT(status_icon), "activate",
 			G_CALLBACK(on_status_icon_activate), NULL);
+    	g_signal_connect(G_OBJECT(status_icon), "size-changed",
+			G_CALLBACK(on_status_icon_size_changed), NULL);
 	}
 #endif	/* Gtk+ >= 2.10.0 */
 }
