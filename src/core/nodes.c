@@ -3466,7 +3466,7 @@ node_is_now_connected(struct gnutella_node *n)
 			(current_peermode == NODE_P_LEAF ||
 			(current_peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP)))
 	) {
-		gpointer qrt = qrt_get_table();
+		struct routing_table *qrt = qrt_get_table();
 
 		/*
 		 * If we don't even have our first QRT computed yet, we
@@ -7749,6 +7749,9 @@ node_remove_worst(gboolean non_local)
 
 /**
  * Initiate sending of the query routing table.
+ *
+ * NOTE: Callers should check NODE_IS_CONNECTED(n) again after this
+ *       function because the node might be disconnected on return.
  */
 static void
 node_send_qrt(struct gnutella_node *n, struct routing_table *query_table)
@@ -7818,8 +7821,10 @@ node_send_patch_step(struct gnutella_node *n)
 	 */
 
 	if (n->flags & NODE_F_STALE_QRP) {
-		gpointer qrt = qrt_get_table();		/* Latest routing table */
+		struct routing_table *qrt;
+
 		n->flags &= ~NODE_F_STALE_QRP;		/* Clear flag */
+	   	qrt = qrt_get_table();				/* Latest routing table */
 		g_assert(qrt != NULL);				/* Must have a valid table now */
 		node_send_qrt(n, qrt);
 	}
