@@ -18,7 +18,7 @@
 ?S:	Controls whether HAS_LIBXML2 is defined.
 ?S:.
 ?C:HAS_LIBXML2:
-?C: This symbol is defined when libxml 2.4.19, at least, is present.
+?C: This symbol is defined when libxml 2.6.0, at least, is present.
 ?C:.
 ?H:#$d_libxml2 HAS_LIBXML2	/**/
 ?H:.
@@ -51,8 +51,8 @@ case "$version" in
 '') ;;
 *)
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
-	if test 0$vint -lt 20419; then
-		echo "Sorry, you have libxml2 $version, I need at least 2.4.19." >&4
+	if test 0$vint -lt 20600; then
+		echo "Sorry, you have libxml2 $version, I need at least 2.6.0." >&4
 	else
 		echo "Good, you have libxml2 $version.  Enabling XML persistence..."
 		xmlcflags=`$xmlconfig --cflags`
