@@ -6458,6 +6458,9 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	if (!experimental_tigertree_support)
 		return;
 
+	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
+		return;
+
 	value = header_get(header, "X-Thex-Uri");
 	if (NULL == value)
 		return;
@@ -6665,18 +6668,6 @@ check_xhost(struct download *d, const header_t *header)
 }
 
 /**
- * Check whether this is a THEX data download.
- */
-static gboolean
-download_is_thex(const struct download *d)
-{
-	download_check(d);
-
-	return d->uri && (is_strprefix(d->uri, "/uri-res/N2X?") ||
-						is_strprefix(d->uri, "/gnutella/thex/v1?"));
-}
-
-/**
  * Check for X-Gnutella-Content-URN.
  *
  * @returns FALSE if we cannot continue with the download.
@@ -6696,7 +6687,7 @@ check_content_urn(struct download *d, header_t *header)
 	 * the THEX data we are actually downloading. As there are many
 	 * LimeWire clones we cannot just check the Server/User-Agent header.
 	 */
-	if (download_is_thex(d))
+	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
 		return TRUE;
 
 	buf = header_get(header, "X-Gnutella-Content-Urn");
