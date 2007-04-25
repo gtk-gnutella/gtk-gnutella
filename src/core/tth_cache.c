@@ -113,37 +113,30 @@ tth_cache_file_open(const struct tth *tth)
 }
 
 void
-tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n)
+tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 {
 	int fd;
 	
 	g_return_if_fail(tth);
 	g_return_if_fail(leaves);
-	g_return_if_fail(n >= 1);
+	g_return_if_fail(n_leaves >= 1);
 
 	{
 		struct tth root;
 
-		root = tt_root_hash(leaves, n);
+		root = tt_root_hash(leaves, n_leaves);
 		g_return_if_fail(tth_eq(tth, &root));
 	}
 
 	fd = tth_cache_file_create(tth);
 	if (fd >= 0) {
-		struct iovec *iov;
+		size_t size;
 		ssize_t ret;
-		size_t iov_size, size = 0;
-		int i;
 
-		iov_size = n * sizeof iov[0];
-		iov = walloc(iov_size);
-
-		for (i = 0; i < n; i++) {
-			iov[i].iov_base = deconstify_gpointer(leaves[i].data);
-			iov[i].iov_len = sizeof leaves[i].data;
-			size += sizeof leaves[i].data;
-		}
-		ret = writev(fd, iov, n);
+		STATIC_ASSERT(TTH_RAW_SIZE == sizeof(leaves[0]));
+			
+		size = TTH_RAW_SIZE * n_leaves;
+		ret = write(fd, leaves, size);
 		if ((ssize_t) -1 == ret) {
 			g_warning("tth_cache_insert(): writev() failed: %s",
 				g_strerror(errno));
@@ -151,7 +144,6 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n)
 			g_warning("tth_cache_insert(): incomplete writev()");
 		}
 		close(fd);
-		wfree(iov, iov_size);
 	}
 }
 
@@ -220,7 +212,7 @@ static size_t
 tth_cache_get_leaves(const struct tth *tth,
 	struct tth leaves[TTH_MAX_LEAVES], size_t n)
 {
-	int fd, ret = 0;
+	int fd, num_leaves = 0;
 
 	g_return_val_if_fail(tth, 0);
 	g_return_val_if_fail(leaves, 0);
@@ -234,19 +226,19 @@ tth_cache_get_leaves(const struct tth *tth,
 
 		if (n_leaves > 0) {
 			size_t size;
-			ssize_t r;
+			ssize_t ret;
 
 			STATIC_ASSERT(TTH_RAW_SIZE == sizeof(leaves[0]));
 
 			size = TTH_RAW_SIZE * n_leaves;
-			r = read(fd, &leaves[0].data, size);
-			if ((size_t) r == size) {
-				ret = n_leaves;
+			ret = read(fd, &leaves[0].data, size);
+			if ((size_t) ret == size) {
+				num_leaves = n_leaves;
 			}
 		}
 		close(fd);
 	}
-	return ret;
+	return num_leaves;
 }
 
 size_t

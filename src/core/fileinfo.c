@@ -1497,7 +1497,7 @@ fi_tigertree_check(fileinfo_t *fi)
 
 		if (
 			fi->file_size_known &&
-			fi->tigertree.num_leaves > tt_bottom_node_count(fi->size)
+			fi->tigertree.num_leaves != tt_good_node_count(fi->size)
 		) {
 			g_warning("Trailer contains tigertree with invalid leaf count");
 			goto discard;

@@ -114,6 +114,7 @@ struct TTH_CONTEXT {
 	unsigned si;          	/* current stack index */
 	unsigned li;         	/* current leave index */
 	unsigned depth;			/* current tree depth */
+	unsigned good_depth;	/* the desired depth of the final leaves */
 	unsigned flags;
 	char block[TTH_BLOCKSIZE + 1];
 	struct tth stack[56];
@@ -121,21 +122,33 @@ struct TTH_CONTEXT {
 };
 
 filesize_t
-tt_blocks_for_filesize(filesize_t filesize)
+tt_block_count(filesize_t filesize)
 {
 	return (filesize / TTH_BLOCKSIZE) + ((filesize % TTH_BLOCKSIZE) ? 1 : 0);
 }
 
 unsigned
-tt_depth_for_filesize(filesize_t filesize)
+tt_full_depth(filesize_t filesize)
 {
 	filesize_t n_blocks;
 	unsigned depth;
 
-	n_blocks = tt_blocks_for_filesize(filesize); 
+	n_blocks = tt_block_count(filesize); 
 	depth = 1;
 	while (n_blocks > 1) {
 		n_blocks = (n_blocks + 1) / 2;
+		depth++;
+	}
+	return depth;
+}
+
+unsigned
+tt_good_depth(filesize_t filesize)
+{
+	unsigned depth = 1;
+
+	while (filesize >= 256 * 1024 && depth < TTH_MAX_DEPTH) {
+		filesize /= 2;
 		depth++;
 	}
 	return depth;
@@ -147,28 +160,29 @@ tt_node_count_at_depth(filesize_t filesize, unsigned depth)
 	filesize_t n, m;
 
 	m = 1 << (depth - 1);
-	n = tt_blocks_for_filesize(filesize); 
+	n = tt_block_count(filesize); 
 	while (n > m) {
 		n = (n + 1) / 2;
 	}
 	return n;
 }
 
-filesize_t 
-tt_bottom_node_count(filesize_t filesize)
+size_t
+tt_good_node_count(filesize_t filesize)
 {
-	return tt_node_count_at_depth(filesize, TTH_MAX_DEPTH);
+	return tt_node_count_at_depth(filesize, tt_good_depth(filesize));
 }
 
 static filesize_t 
 tt_blocks_per_leaf(filesize_t filesize)
 {
+	unsigned full_depth, good_depth;
 	filesize_t n_bpl;
-	unsigned depth;
 
-	depth = tt_depth_for_filesize(filesize);
-	if (depth > TTH_MAX_DEPTH) {
-		n_bpl = (filesize_t) 1 << (depth - TTH_MAX_DEPTH);
+	good_depth = tt_good_depth(filesize);
+	full_depth = tt_full_depth(filesize);
+	if (full_depth > good_depth) {
+		n_bpl = (filesize_t) 1 << (full_depth - good_depth);
 	} else {
 		n_bpl = 1;
 	}
@@ -264,7 +278,7 @@ tt_finish(TTH_CONTEXT *ctx)
 			}
 			depth--;
 			n_blocks = (n_blocks + 1) / 2;
-			if (depth == TTH_MAX_DEPTH - 1) {
+			if (depth == ctx->good_depth - 1) {
 				g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
 				ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
 				ctx->li++;
@@ -331,6 +345,7 @@ tt_init(TTH_CONTEXT *ctx, filesize_t filesize)
 	ctx->n = 0;
 	ctx->bpl = tt_blocks_per_leaf(filesize);
 	ctx->depth = 1;
+	ctx->good_depth = tt_good_depth(filesize);
 	ctx->flags = TTH_F_INITIALIZED;
 }
 

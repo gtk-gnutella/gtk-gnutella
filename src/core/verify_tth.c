@@ -338,15 +338,15 @@ request_tigertree(struct shared_file *sf, gboolean high_priority)
 
 	tth = shared_file_tth(sf);
 	if (tth) {
-		size_t n, ret;
+		size_t expected, ret;
 		
-		n = tt_bottom_node_count(shared_file_size(sf));
+		expected = tt_good_node_count(shared_file_size(sf));
 		ret = tth_cache_lookup(tth);
-		if (n == ret) {
+		if (expected == ret) {
 			g_message("TTH %s is already cached", tth_base32(tth));
 		} else {
 			g_message("TTH %s has %lu/%lu nodes",
-				tth_base32(tth), (gulong) ret, (gulong) n);
+				tth_base32(tth), (gulong) ret, (gulong) expected);
 			huge_update_hashes(sf, shared_file_sha1(sf), NULL);
 		}
 		return;

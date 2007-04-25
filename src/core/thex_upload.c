@@ -99,8 +99,7 @@ cast_to_thex_upload(struct special_upload *p)
 static unsigned
 thex_upload_depth(struct thex_upload *ctx)
 {
-	unsigned depth = tt_depth_for_filesize(ctx->filesize);
-	return MIN(depth, TTH_MAX_DEPTH);
+	return tt_good_depth(ctx->filesize);
 }
 
 static gchar *

@@ -308,7 +308,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 		}
 		
 		depth = parse_uint32(value, NULL, 10, &error);
-		error |= depth < 1 || depth > tt_depth_for_filesize(ctx->filesize);
+		error |= depth < 1 || depth > tt_full_depth(ctx->filesize);
 		if (error) {
 			g_message("Bad value for \"depth\" of node \"%s\": \"%s\"",
 				node->name, value);
@@ -317,10 +317,10 @@ thex_download_handle_xml(struct thex_download *ctx,
 		if (error)
 			goto finish;
 
-		/*
-		 * TODO: Some minimum for the depth we accept because a tree
-		 *		 with a low depth is hardly useful.
-		 */
+		if (depth < tt_good_depth(ctx->filesize)) {
+			g_message("Tree depth is below the \"good\" depth");
+			goto finish;
+		}
 		ctx->depth = MIN(depth, TTH_MAX_DEPTH);
 	} else {
 		g_message("Couldn't find hashtree/serializedtree element");
