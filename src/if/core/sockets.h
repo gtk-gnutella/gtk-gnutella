@@ -31,7 +31,7 @@
 /***
  *** Proxy protocols
  ***/
-enum {
+enum proxy_protocol {
     PROXY_NONE    = 0,
     PROXY_HTTP    = 1,
     PROXY_SOCKSV4 = 4,
