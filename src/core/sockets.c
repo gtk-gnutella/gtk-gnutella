@@ -509,6 +509,24 @@ proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
 	}
 }
 
+/**
+ * Verifies the proxy settings.
+ *
+ * @return TRUE if a proxy is configured.
+ */
+static gboolean
+proxy_is_enabled(void)
+{
+	switch ((enum proxy_protocol) proxy_protocol) {
+	case PROXY_NONE:	return FALSE;
+	case PROXY_HTTP:
+	case PROXY_SOCKSV4:
+	case PROXY_SOCKSV5:
+		return 0 != proxy_port && '\0' != proxy_hostname[0];
+	}
+	g_assert_not_reached();
+}
+
 /*
  * The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun Clowes
  * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
@@ -520,11 +538,7 @@ proxy_connect(int fd)
 	socket_addr_t server;
 	socklen_t len;
 
-	if (
-		!is_host_addr(proxy_addr) &&
-		0 != proxy_port &&
-		'\0' != proxy_hostname[0]
-	) {
+	if (!is_host_addr(proxy_addr) && proxy_is_enabled()) {
 		if (!in_progress) {
 			in_progress = TRUE;
 			g_warning("Resolving proxy name \"%s\"", proxy_hostname);
@@ -1770,7 +1784,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (cond & INPUT_EVENT_R) {
 		if (
-			proxy_protocol != PROXY_NONE &&
+			proxy_is_enabled() &&
 			s->direction == SOCK_CONN_PROXY_OUTGOING
 		) {
 			socket_evt_clear(s);
@@ -1841,7 +1855,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		}
 
 		if (
-			proxy_protocol != PROXY_NONE &&
+			proxy_is_enabled() &&
 			s->direction == SOCK_CONN_PROXY_OUTGOING
 		) {
 			if (proxy_protocol == PROXY_SOCKSV4) {
@@ -2624,7 +2638,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 		}
 	}
 
-	if (proxy_protocol != PROXY_NONE) {
+	if (proxy_is_enabled()) {
 		s->direction = SOCK_CONN_PROXY_OUTGOING;
 		res = proxy_connect(s->file_desc);
 	} else {
@@ -2633,10 +2647,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	}
 
 	if (-1 == res && EINPROGRESS != errno) {
-		if (
-			proxy_protocol != PROXY_NONE &&
-			(!is_host_addr(proxy_addr) || !proxy_port)
-		) {
+		if (proxy_is_enabled() && !is_host_addr(proxy_addr)) {
 			if (!is_temporary_error(errno)) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
 					proxy_hostname, proxy_port);
