@@ -1915,6 +1915,9 @@ pcache_ping_received(struct gnutella_node *n)
 static void
 pcache_udp_pong_received(struct gnutella_node *n)
 {
+	host_addr_t ipv4_addr;
+	host_addr_t ipv6_addr;
+	guint16 port;
 	gint i;
 
 	g_assert(NODE_IS_UDP(n));
@@ -1922,6 +1925,10 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	if (!udp_ping_is_registered(gnutella_header_get_muid(&n->header)))
 		return;
 
+	port = peek_le16(&n->data[0]);
+	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
+	ipv6_addr = zero_host_addr;
+	
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
 	 * the GGEP "IPP" extension, containing a packed set of IP:port.
@@ -1941,8 +1948,12 @@ pcache_udp_pong_received(struct gnutella_node *n)
 				g_warning("%s (UDP): bad length for GGEP \"%s\" (%d byte%s)",
 					gmsg_infostr(&n->header), ext_ggep_id_str(e),
 					paylen, paylen == 1 ? "" : "s");
-			} else
-				uhc_ipp_extract(n, payload, paylen);
+			} else {
+				uhc_ipp_extract(n, payload, paylen); 
+			}
+			break;
+		case EXT_T_GGEP_GTKG_IPV6:
+			ggept_gtkg_ipv6_extract(e, &ipv6_addr);
 			break;
 		default:
 			if (ggep_debug > 1 && e->ext_type == EXT_GGEP) {
@@ -1952,6 +1963,25 @@ pcache_udp_pong_received(struct gnutella_node *n)
 					paylen, paylen == 1 ? "" : "s");
 			}
 			break;
+		}
+	}
+
+	if (port == n->port) {
+		host_addr_t addr;
+
+		switch (host_addr_net(n->addr)) {
+		case NET_TYPE_IPV4:
+			addr = ipv4_addr;
+			break;
+		case NET_TYPE_IPV6:
+			addr = ipv6_addr;
+			break;
+		default:
+			addr = zero_host_addr;
+		}
+
+		if (host_addr_equal(addr, n->addr) && host_is_valid(addr, port)) {
+			host_add(addr, port, TRUE);
 		}
 	}
 }
