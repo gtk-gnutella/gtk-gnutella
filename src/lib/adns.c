@@ -659,8 +659,9 @@ adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 		   	if (!is_temporary_error(errno)) {
 				g_warning("adns_reply_callback: read() failed: %s",
 					g_strerror(errno));
+				goto error;
 			}
-			goto error;
+			break;
 		} else if (0 == ret) {
 			g_warning("adns_reply_callback: read() failed: EOF");
 			goto error;
