@@ -229,24 +229,10 @@ my_malloc(gsize n)
 		RUNTIME_ASSERT(to <= BIT_COUNT);
 		RUNTIME_ASSERT(to >= from);
 	
-#if 0	
-		{
-			size_t i;
-
-			for (i = from; i <= to; i++) {
-				RUNTIME_ASSERT(!bit_array_get(vars.allocated, i));
-				bit_array_set(vars.allocated, i);
-				bit_array_set(vars.touched, i);
-				RUNTIME_ASSERT(bit_array_get(vars.allocated, i));
-				RUNTIME_ASSERT(bit_array_get(vars.touched, i));
-			}
-		}
-#else
 		RUNTIME_ASSERT(!bit_array_get(vars.allocated, from));
 		RUNTIME_ASSERT(!bit_array_get(vars.allocated, to));
 		bit_array_set_range(vars.allocated, from, to);
 		bit_array_set_range(vars.touched, from, to);
-#endif
 	}
 	RUNTIME_ASSERT(fragcheck_meta_lookup(p));
 	return p;
@@ -278,24 +264,11 @@ my_free(gpointer p)
 			RUNTIME_ASSERT(to <= BIT_COUNT);
 			RUNTIME_ASSERT(to >= from);
 
-#if 0
-			{
-				size_t i;
-
-				for (i = from; i <= to; i++) {
-					RUNTIME_ASSERT(bit_array_get(vars.touched, i));
-					RUNTIME_ASSERT(bit_array_get(vars.allocated, i));
-					bit_array_clear(vars.allocated, i);
-					RUNTIME_ASSERT(!bit_array_get(vars.allocated, i));
-				}
-			}
-#else
 			RUNTIME_ASSERT(bit_array_get(vars.allocated, from));
 			RUNTIME_ASSERT(bit_array_get(vars.allocated, to));
 			RUNTIME_ASSERT(bit_array_get(vars.touched, from));
 			RUNTIME_ASSERT(bit_array_get(vars.touched, to));
-			bit_array_clear_range(vars.touched, from, to);
-#endif
+			bit_array_clear_range(vars.allocated, from, to);
 		}
 		memset(p, 0, meta->size);
 		fragcheck_meta_delete(meta);
@@ -310,7 +283,7 @@ my_realloc(gpointer p, gsize n)
 	static volatile gboolean lock;
 	gpointer x;
 
-	g_RUNTIME_ASSERT(!lock);
+	RUNTIME_ASSERT(!lock);
 	lock = TRUE;
 
 #ifdef FRAGCHECK_VERBOSE 
@@ -413,6 +386,13 @@ void
 fragcheck_init(void)
 {
 	static GMemVTable vtable;
+	/* NOTE: This string is not read-only because it will be overwritten
+	 *		 by gm_setproctitle() as it becomes part of the environment.
+	 *	     This happens at least on some Linux systems.
+	 */
+	static char variable[] = "G_SLICE=always-malloc";
+
+	putenv(variable);
 
 	vtable.malloc = my_malloc;
 	vtable.realloc = my_realloc;
