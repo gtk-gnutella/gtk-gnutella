@@ -6886,11 +6886,8 @@ node_init_outgoing(struct gnutella_node *n)
 
 		n->hello.pos = 0;
 		n->hello.len = 0;
-		n->hello.ptr = walloc((n->hello.size = MAX_LINE_SIZE));
-		if (!n->hello.ptr) {
-			node_remove(n, _("Out of memory"));
-			return;
-		}
+		n->hello.size = MAX_LINE_SIZE;
+		n->hello.ptr = walloc(n->hello.size);
 
 		if (current_peermode == NODE_P_ULTRA)
 			gm_snprintf(degree, sizeof(degree),
