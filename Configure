@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Apr 24 17:57:57 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Thu Apr 26 23:09:45 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -227,6 +227,7 @@ vi=''
 xgettext=''
 zcat=''
 zip=''
+libswanted=''
 hint=''
 myuname=''
 osname=''
@@ -583,8 +584,6 @@ libscheck=''
 usesocks=''
 : full support for void wanted by default
 defvoidused=15
-
-libswanted='sendfile z intl resolv iconv m'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -966,38 +965,6 @@ touch optdef.sh
 : create the posthint manipulation script and leave the file out there...
 touch posthint.sh
 
-: set package name
-package='gtk-gnutella'
-first=`echo $package | sed -e 's/^\(.\).*/\1/'`
-last=`echo $package | sed -e 's/^.\(.*\)/\1/'`
-case "`echo AbyZ | tr '[:lower:]' '[:upper:]' 2>/dev/null`" in
-ABYZ) spackage=`echo $first | tr '[:lower:]' '[:upper:]'`$last;;
-*) spackage=`echo $first | tr '[a-z]' '[A-Z]'`$last;;
-esac
-
-: script used to emulate mkdir -p
-cat >mkdirp <<EOS
-$startsh
-EOS
-cat >>mkdirp <<'EOS'
-name=$1;
-create="";
-while test $name; do
-	if test ! -d "$name"; then
-		create="$name $create"
-		name=`echo $name | sed -e "s|^[^/]*$||"`
-		name=`echo $name | sed -e "s|\(.*\)/.*|\1|"`
-	else
-		name=""
-	fi
-done
-for file in $create; do
-	mkdir $file
-done
-EOS
-chmod +x mkdirp
-$eunicefix mkdirp
-
 : Some greps do not return status, grrr.
 echo "grimblepritz" >grimble
 if grep blurfldyick grimble >/dev/null 2>&1 ; then
@@ -1019,140 +986,6 @@ EOSS
 chmod +x contains
 esac
 
-: Find the path to the source tree
-case "$src" in
-'') case "$0" in
-    */*)
-		src=`echo $0 | sed -e 's%/[^/][^/]*$%%'`
-		;;
-    *)	src='.';;
-    esac;;
-esac
-case "$src" in
-'')	src=/
-	rsrc=/
-	;;
-/*)	rsrc="$src";;
-*)	rsrc="../$src";;
-esac
-if test -f $rsrc/Configure && \
-	$contains "^package='$package'\$" $rsrc/Configure >/dev/null 2>&1
-then
-   : found it, so we are ok.
-else
-	rsrc=''
-	for src in . .. ../.. ../../.. ../../../..; do
-		if test -f ../$src/Configure && \
-			$contains "^package=$package$" ../$src/Configure >/dev/null 2>&1
-		then
-			rsrc=../$src
-			break
-		fi
-	done
-fi
-case "$rsrc" in
-'')
-	cat <<EOM >&4
-
-Sorry, I can't seem to locate the source dir for $package.  Please start
-Configure with an explicit path -- i.e. /some/path/Configure.
-
-EOM
-	exit 1
-	;;
-../.)	rsrc='..';;
-*)
-	echo " "
-	echo "Sources for $package found in \"$src\"." >&4
-	;;
-esac
-
-: script used to extract .SH files with variable substitutions
-cat >extract <<EOS
-CONFIG=true
-SRC="$src"
-EOS
-cat >>extract <<'EOS'
-echo "Doing variable substitutions on .SH files..."
-if test -f "$SRC/MANIFEST"; then
-	set x `awk '{print $1}' <$SRC/MANIFEST | grep '\.SH'`
-else
-	echo "(Looking for .SH files under the source directory.)"
-	set x `(cd "$SRC"; find . -name "*.SH" -print)`
-fi
-shift
-case $# in
-0) set x `(cd "$SRC"; echo *.SH)`; shift;;
-esac
-if test ! -f "$SRC/$1"; then
-	shift
-fi
-for file in $*; do
-	case "$SRC" in
-	".")
-		case "$file" in
-		*/*)
-			dir=`expr X$file : 'X\(.*\)/'`
-			file=`expr X$file : 'X.*/\(.*\)'`
-			(cd $dir && . ./$file)
-			;;
-		*)
-			. ./$file
-			;;
-		esac
-		;;
-	*)
-		case "$file" in
-		*/*)
-			dir=`expr X$file : 'X\(.*\)/'`
-			file=`expr X$file : 'X.*/\(.*\)'`
-			./mkdirp $dir
-			sh <"$SRC/$dir/$file"
-			;;
-		*)
-			sh <"$SRC/$file"
-			;;
-		esac
-		;;
-	esac
-done
-if test -f "$SRC/config_h.SH"; then
-	if test ! -f config.h; then
-		sh <"$SRC/config_h.SH"
-	fi
-fi
-EOS
-
-: extract files and exit if asked to do so
-case "$extractsh" in
-true)
-	case "$realsilent" in
-	true) ;;
-	*) exec 1>&4;;
-	esac
-	case "$config_sh" in
-	'') config_sh='config.sh';;
-	esac
-	echo " "
-	echo "Fetching answers from $config_sh..."
-	cd ..
-	. $config_sh
-	test "$override" && . ./optdef.sh
-	echo " "
-	. UU/extract
-	rm -rf UU
-	echo "Extraction done."
-	exit 0
-	;;
-esac
-
-: Eunice requires " " instead of "", can you believe it
-echo " "
-: Here we go...
-echo "Beginning of configuration questions for $package."
-
-trap 'echo " "; test -d ../UU && rm -rf X $rmlist; exit 1' 1 2 3 15
-
 : first determine how to suppress newline on echo command
 echo " "
 echo "Checking echo to see how to suppress newlines..."
@@ -1171,50 +1004,6 @@ fi
 echo $n "The star should be here-->$c"
 echo '*'
 rm -f .echotmp
-
-: Now test for existence of everything in MANIFEST
-echo " "
-if test -f "$rsrc/MANIFEST"; then
-	echo "First let's make sure your kit is complete.  Checking..." >&4
-	awk '$1 !~ /PACK[A-Z]+/ {print $1}' "$rsrc/MANIFEST" | \
-		(split -l 50 2>/dev/null || split -50)
-	rm -f missing
-	tmppwd=`pwd`
-	for filelist in x??; do
-		(cd "$rsrc"; ls `cat "$tmppwd/$filelist"` \
-			>/dev/null 2>>"$tmppwd/missing")
-	done
-	if test -s missing; then
-		cat missing >&4
-		cat >&4 <<'EOM'
-
-THIS PACKAGE SEEMS TO BE INCOMPLETE.
-
-You have the option of continuing the configuration process, despite the
-distinct possibility that your kit is damaged, by typing 'y'es.  If you
-do, don't blame me if something goes wrong.  I advise you to type 'n'o
-and contact the author (Raphael_Manfredi@pobox.com).
-
-EOM
-		echo $n "Continue? [n] $c" >&4
-		read ans
-		case "$ans" in
-		y*)
-			echo "Continuing..." >&4
-			rm -f missing
-			;;
-		*)
-			echo "ABORTING..." >&4
-			kill $$
-			;;
-		esac
-	else
-		echo "Looks good..."
-	fi
-else
-	echo "There is no MANIFEST file.  I hope your kit is complete !"
-fi
-rm -f missing x??
 
 : Find the appropriate value for a newline for tr
 echo " "
@@ -1354,6 +1143,15 @@ case "\$ans" in
 esac
 EOSC
 
+: set package name
+package='gtk-gnutella'
+first=`echo $package | sed -e 's/^\(.\).*/\1/'`
+last=`echo $package | sed -e 's/^.\(.*\)/\1/'`
+case "`echo AbyZ | tr '[:lower:]' '[:upper:]' 2>/dev/null`" in
+ABYZ) spackage=`echo $first | tr '[:lower:]' '[:upper:]'`$last;;
+*) spackage=`echo $first | tr '[a-z]' '[A-Z]'`$last;;
+esac
+
 : create .config dir to save info across Configure sessions
 test -d ../.config || mkdir ../.config
 cat >../.config/README <<EOF
@@ -1445,6 +1243,24 @@ EOH
 	true) echo $user >>../.config/instruct;;
 	esac
 fi
+
+: script used to emit important warnings
+cat >warn <<EOS
+$startsh
+if test \$# -gt 0; then
+	echo "\$@" >msg
+else
+	cat >msg
+fi
+echo "*** WARNING:" >&4
+sed -e 's/^/*** /' <msg >&4
+echo "*** " >&4
+cat msg >>config.msg
+echo " " >>config.msg
+rm -f msg
+EOS
+chmod +x warn
+$eunicefix warn
 
 : find out where common programs are
 echo " "
@@ -1682,24 +1498,6 @@ FOO
 	;;
 esac
 
-: script used to emit important warnings
-cat >warn <<EOS
-$startsh
-if test \$# -gt 0; then
-	echo "\$@" >msg
-else
-	cat >msg
-fi
-echo "*** WARNING:" >&4
-sed -e 's/^/*** /' <msg >&4
-echo "*** " >&4
-cat msg >>config.msg
-echo " " >>config.msg
-rm -f msg
-EOS
-chmod +x warn
-$eunicefix warn
-
 : generate the trygcc script for later perusal
 cat <<EOS >trygcc
 $startsh
@@ -1795,6 +1593,29 @@ EOM
 esac
 EOSC
 
+: script used to emulate mkdir -p
+cat >mkdirp <<EOS
+$startsh
+EOS
+cat >>mkdirp <<'EOS'
+name=$1;
+create="";
+while test $name; do
+	if test ! -d "$name"; then
+		create="$name $create"
+		name=`echo $name | sed -e "s|^[^/]*$||"`
+		name=`echo $name | sed -e "s|\(.*\)/.*|\1|"`
+	else
+		name=""
+	fi
+done
+for file in $create; do
+	mkdir $file
+done
+EOS
+chmod +x mkdirp
+$eunicefix mkdirp
+
 : determine whether symbolic links are supported
 echo " "
 $touch blurfl
@@ -1862,6 +1683,54 @@ case "$lns" in
 	$rm -f blurfl sym
 	;;
 *)	echo "No symbolic links, so not testing for their testing..." >&4
+	;;
+esac
+
+: Find the path to the source tree
+case "$src" in
+'') case "$0" in
+    */*)
+		src=`echo $0 | sed -e 's%/[^/][^/]*$%%'`
+		;;
+    *)	src='.';;
+    esac;;
+esac
+case "$src" in
+'')	src=/
+	rsrc=/
+	;;
+/*)	rsrc="$src";;
+*)	rsrc="../$src";;
+esac
+if test -f $rsrc/Configure && \
+	$contains "^package='$package'\$" $rsrc/Configure >/dev/null 2>&1
+then
+   : found it, so we are ok.
+else
+	rsrc=''
+	for src in . .. ../.. ../../.. ../../../..; do
+		if test -f ../$src/Configure && \
+			$contains "^package=$package$" ../$src/Configure >/dev/null 2>&1
+		then
+			rsrc=../$src
+			break
+		fi
+	done
+fi
+case "$rsrc" in
+'')
+	cat <<EOM >&4
+
+Sorry, I can't seem to locate the source dir for $package.  Please start
+Configure with an explicit path -- i.e. /some/path/Configure.
+
+EOM
+	exit 1
+	;;
+../.)	rsrc='..';;
+*)
+	echo " "
+	echo "Sources for $package found in \"$src\"." >&4
 	;;
 esac
 
@@ -2417,17 +2286,6 @@ none)  osvers='' ;;
 *) osvers="$ans" ;;
 esac
 
-: who configured the system
-cf_time=`LC_ALL=C; LANGUAGE=C; export LC_ALL; export LANGUAGE; $date 2>&1`
-cf_by=`(logname) 2>/dev/null`
-case "$cf_by" in
-"")
-	cf_by=`(whoami) 2>/dev/null`
-	case "$cf_by" in
-	"") cf_by=unknown ;;
-	esac ;;
-esac
-
 : set up the script used to warn in case of inconsistency
 cat <<EOS >whoa
 $startsh
@@ -2452,122 +2310,221 @@ $undef$define) . ./whoa; eval "$var=\$tu";;
 *) eval "$var=$val";;
 esac'
 
-: determine whether this is an official build
-
-case "$official" in
-false)
-	official=false
-	val="$undef"
-
-	./warn 'This build will not be suitable for distribution.' 4>&4
-
-;;
-*)
-	val="$define"
-	official=true
-	;;
-esac
-
-set d_official
-eval $setvar
-
-: ask them whether they want remote control support
-$cat <<EOM
-
-$spackage has a raw remote control service.
-
-Currently you can create searches, connect to nodes, and print and 
-set the values of properties as well as read the 'tooltips'.  It is
-not completely functional, but you may choose to enable it here at
-compile time.  The feature will need activation from the GUI.
-
-For more information, see doc/other/shell.txt
-
-EOM
-case "$remotectrl" in
-true) dflt=y;;
-*) dflt=n;;
-esac
-rp="Enable remote control service"
-. ./myread
-val="$ans"
-case "$ans" in
-y) val="$define";;
-*) val="$undef";;
-esac
-set d_remotectrl
-eval $setvar
-case "$d_remotectrl" in
-$define) remotectrl=true;;
-*) remotectrl=false;;
-esac
-
-: look whether they wish to run headless
-$cat <<EOM
-
-$spackage can run without any GUI interface in so-called "headless" mode.
-Therefore, monitoring of operations for $package will have to be done
-without relying on any GUI, and the configuration is done via files only.
-
-EOM
-case "$d_headless" in
-"$define") dflt=y;;
-*) dflt=n;;
-esac
-rp="Run without any GUI interface"
-. ./myread
-case "$ans" in
-y) val="$define";;
-*) val="$undef";;
-esac
-set d_headless
-eval $setvar
-
-: ask them wich GTK+ version they want
+: Determine the C compiler to be used
 echo " "
-case "$d_headless" in
-"$define")
-	echo "Turning off GTK+ since you want to run without any GUI"
-	d_usegtk1="$undef";
-	d_usegtk2="$undef";
+case "$cc" in
+'') dflt=cc;;
+*) dflt="$cc";;
+esac
+rp="Use which C compiler?"
+. ./myread
+cc="$ans"
+
+: See whether they have no cc but they do have gcc
+. ./trygcc
+if $test -f cc.cbu; then
+    . ./cc.cbu
+fi
+. ./checkcc
+
+: make some quick guesses about what we are up against
+echo " "
+$echo $n "Hmm...  $c"
+echo exit 1 >bsd
+echo exit 1 >usg
+echo exit 1 >v7
+echo exit 1 >osf1
+echo exit 1 >eunice
+echo exit 1 >xenix
+echo exit 1 >venix
+echo exit 1 >os2
+echo exit 1 >gnu
+echo exit 1 >linux
+echo exit 1 >dos
+d_bsd="$undef"
+d_linux="$undef"
+d_dos="$undef"
+d_os2="$undef"
+$cat /usr/include/signal.h /usr/include/sys/signal.h >foo 2>/dev/null
+if test -f /osf_boot || $contains 'OSF/1' /usr/include/ctype.h >/dev/null 2>&1
+then
+	echo "Looks kind of like an OSF/1 system, but we'll see..."
+	echo exit 0 >osf1
+elif test `echo abc | $tr a-z A-Z` = Abc ; then
+	xxx=`./loc addbib blurfl $pth`
+	if $test -f $xxx; then
+	echo "Looks kind of like a USG system with BSD features, but we'll see..."
+		echo exit 0 >bsd
+		echo exit 0 >usg
+	else
+		if $contains SIGTSTP foo >/dev/null 2>&1 ; then
+			echo "Looks kind of like an extended USG system, but we'll see..."
+		else
+			echo "Looks kind of like a USG system, but we'll see..."
+		fi
+		echo exit 0 >usg
+	fi
+elif $contains SIGTSTP foo >/dev/null 2>&1 ; then
+	echo "Looks kind of like a BSD system, but we'll see..."
+	d_bsd="$define"
+	echo exit 0 >bsd
+elif
+	$rm --version 2>/dev/null >foo;
+	$contains "Free Software Foundation" foo >/dev/null
+then
+	xxx=`uname`
+	echo exit 0 >gnu
+	echo "Looks kind of like a GNU/$xxx system, but we'll see..."
+	if $test X$xxx = XLinux; then
+		d_linux="$define"
+		echo exit 0 >linux
+	fi
+else
+	echo "Looks kind of like a Version 7 system, but we'll see..."
+	echo exit 0 >v7
+fi
+case "$eunicefix" in
+*unixtovms*)
+	$cat <<'EOI'
+There is, however, a strange, musty smell in the air that reminds me of
+something...hmm...yes...I've got it...there's a VMS nearby, or I'm a Blit.
+EOI
+	echo exit 0 >eunice
+	d_eunice="$define"
+: it so happens the Eunice I know will not run shell scripts in Unix format
 	;;
 *)
-	$cat <<'EOM'
-I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
-The GTK1 frontend will use much less CPU than the GTK2 one, so if you
-have a slow CPU, you are encouraged to choose GTK1.
+	echo " "
+	echo "Congratulations.  You aren't running Eunice."
+	d_eunice="$undef"
+	;;
+esac
+case "$p_" in
+:) ;;
+*)
+	$cat <<'EOI'
+I have the feeling something is not exactly right, however...don't tell me...
+EOI
+	if test -n "$DJGPP"; then
+		case "X${MACHTYPE:-nonesuchmach}" in
+		cygwin) echo "hah!... you're running under Cygwin!";;
+		*) echo "got it... you're running DOS with DJGPP!";;
+		esac
+		echo exit 0 >dos
+		d_dos="$define"
+	else
+		$cat <<'EOI'
+lemme think...does HAL ring a bell?...no, of course, you're only running OS/2!
+EOI
+		echo exit 0 >os2
+		d_os2="$define"
+	fi
+	;;
+esac
+if test -f /xenix; then
+	echo "Actually, this looks more like a XENIX system..."
+	echo exit 0 >xenix
+	d_xenix="$define"
+else
+	echo " "
+	echo "It's not Xenix..."
+	d_xenix="$undef"
+fi
+chmod +x xenix
+$eunicefix xenix
+if test -f /venix; then
+	echo "Actually, this looks more like a VENIX system..."
+	echo exit 0 >venix
+else
+	echo " "
+	if ./xenix; then
+		: null
+	else
+		echo "Nor is it Venix..."
+	fi
+fi
+chmod +x bsd usg v7 osf1 eunice xenix venix dos os2 gnu linux
+$eunicefix bsd usg v7 osf1 eunice xenix venix dos os2 gnu linux
+$rm -f foo
+
+: Check whether they have gcc in any guise.  
+echo " "
+echo "Checking for GNU cc in disguise and/or its version number..." >&4
+$cat >try.c <<EOM
+int main(void) {
+#ifdef __GNUC__
+gcc_version_major __GNUC__
+#ifdef __GNUC_MINOR__
+gcc_version_minor __GNUC__
+#endif
+#ifdef __GNUC_PATCHLEVEL__
+gcc_version_patchlevel __GNUC_PATCHLEVEL__
+#endif
+#endif
+}
+EOM
+if $cc $ccflags -E try.c > try 2>&1
+then
+	gccversion=`$grep gcc_version_major try | sed 's/^.*gcc_version_major[\t ]*//'`
+	case "$gccversion" in
+	'') echo "You are not using GNU cc." ;;
+	*)  echo "You are using GNU cc $gccversion."
+	    ccname=gcc	
+	    ;;
+	esac
+else
+	gccversion=''
+fi
+$rm -f try try.*
+case "$gccversion" in
+1*) cpp=`./loc gcc-cpp $cpp $pth` ;;
+esac
+case "$gccversion" in
+'') gccosandvers='' ;;
+*) gccshortvers=`echo "$gccversion"|sed 's/ .*//'`
+   gccosandvers=`$cc -v 2>&1 | \
+	$grep '/specs$'|sed "s!.*/[^-/]*-[^-/]*-\([^-/]*\)/$gccshortvers/specs!\1!"`
+   gccshortvers=''
+   case "$gccosandvers" in
+   $osname) gccosandvers='' ;; # linux gccs seem to have no linux osvers, grr
+   $osname$osvers) ;; # looking good
+   $osname*) cat <<EOM >&4
+
+*** WHOA THERE!!! ***
+
+    Your gcc has not been compiled for the exact release of
+    your operating system ($gccosandvers versus $osname$osvers).
+
+    In general it is a good idea to keep gcc synchronized with
+    the operating system because otherwise serious problems
+    may ensue when trying to compile software, like Perl.
+
+    I'm trying to be optimistic here, though, and will continue.
+    If later during the configuration and build icky compilation
+    problems appear (headerfile conflicts being the most common
+    manifestation), I suggest reinstalling the gcc to match
+    your operating system release.
 
 EOM
-	case "$gtkversion" in
-	'') dflt=1;;
-	2) dflt=2;;
-	*) dflt=1;;
-	esac
-	rp="Use which GTK toolkit (1 or 2)"
-	. ./myread
-	case "$ans" in
-	2)
-		gtkversion=2; gtkpackage=gtk+-2.0
-		d_usegtk2="$define"; d_usegtk1="$undef";;
-	*)
-		gtkversion=1; gtkpackage=gtk+
-		d_usegtk1="$define"; d_usegtk2="$undef";;
-	esac
-	;;
+      ;;
+   *) gccosandvers='' ;; # failed to parse, better be silent
+   esac
+   ;;
+esac
+case "$ccname" in
+'') ccname="$cc" ;;
 esac
 
-: decide which version of GLib to use -- tied to the choice of GTK
-case "$gtkversion" in
-1) ver=1;;
-*) ver=2;;
-esac
-case "$ver" in
-2)
-	glibversion=2; glibpackage="glib-2.0 gobject-2.0"
-	d_useglib2="$define"; d_useglib1="$undef";;
-*)
-	glibversion=1; glibpackage=glib
-	d_useglib1="$define"; d_useglib2="$undef";;
+: gcc 3.1 complains about adding -Idirectories that it already knows about,
+: so we will take those off from locincpth.
+case "$gccversion" in
+3*)
+    echo "main(){}">try.c
+    for incdir in `$cc -v -c try.c 2>&1 | \
+       sed '1,/^#include <\.\.\.>/d;/^End of search list/,$d;s/^ //'` ; do
+       locincpth=`echo $locincpth | sed s!$incdir!!`
+    done
+    $rm -f try try.*
 esac
 
 : decide how portable to be
@@ -2870,486 +2827,6 @@ dflt="$orig_dflt"
 rm -f getfile.ok
 test "X$gfpthkeep" != Xy && gfpth=""
 EOSC
-
-: determine root of directory hierarchy where package will be installed.
-case "$prefix" in
-'')
-	dflt=`./loc . /usr/local /usr/local /local /opt /usr`
-	;;
-*)
-	dflt="$prefix"
-	;;
-esac
-$cat <<EOM
-
-By default, $package will be installed in $dflt/bin, manual
-pages under $dflt/man, etc..., i.e. with $dflt as prefix for
-all installation directories. Typically set to /usr/local, but you
-may choose /usr if you wish to install $package among your system
-binaries. If you wish to have binaries under /bin but manual pages
-under /usr/local/man, that's ok: you will be prompted separately
-for each of the installation directories, the prefix being only used
-to set the defaults.
-
-EOM
-fn=d~
-rp='Installation prefix to use?'
-. ./getfile
-oldprefix=''
-case "$prefix" in
-'') ;;
-*)
-	case "$ans" in
-	"$prefix") ;;
-	*) oldprefix="$prefix";;
-	esac
-	;;
-esac
-prefix="$ans"
-prefixexp="$ansexp"
-
-: set the prefixit variable, to compute a suitable default value
-prefixit='case "$3" in
-""|none)
-	case "$oldprefix" in
-	"") eval "$1=\"\$$2\"";;
-	*)
-		case "$3" in
-		"") eval "$1=";;
-		none)
-			eval "tp=\"\$$2\"";
-			case "$tp" in
-			""|" ") eval "$1=\"\$$2\"";;
-			*) eval "$1=";;
-			esac;;
-		esac;;
-	esac;;
-*)
-	eval "tp=\"$oldprefix-\$$2-\""; eval "tp=\"$tp\"";
-	case "$tp" in
-	--|/*--|\~*--) eval "$1=\"$prefix/$3\"";;
-	/*-$oldprefix/*|\~*-$oldprefix/*)
-		eval "$1=\`echo \$$2 | sed \"s,^$oldprefix,$prefix,\"\`";;
-	*) eval "$1=\"\$$2\"";;
-	esac;;
-esac'
-
-: allow them to override the AFS root
-case "$afsroot" in
-'')	afsroot=/afs ;;
-*)	afsroot=$afsroot ;;
-esac
-
-: is AFS running?
-echo " "
-case "$afs" in
-$define|true)	afs=true ;;
-$undef|false)	afs=false ;;
-*)	if $test -d $afsroot; then
-		afs=true
-	else
-		afs=false
-	fi
-	;;
-esac
-if $afs; then
-	echo "AFS may be running... I'll be extra cautious then..." >&4
-else
-	echo "AFS does not seem to be running..." >&4
-fi
-
-: determine where public executables go
-echo " "
-set dflt bin bin
-eval $prefixit
-fn=d~
-rp='Pathname where the public executables will reside?'
-. ./getfile
-if $test "X$ansexp" != "X$binexp"; then
-	installbin=''
-fi
-bin="$ans"
-binexp="$ansexp"
-if $afs; then
-	$cat <<EOM
-
-Since you are running AFS, I need to distinguish the directory in which
-executables reside from the directory in which they are installed (and from
-which they are presumably copied to the former directory by occult means).
-
-EOM
-	case "$installbin" in
-	'') dflt=`echo $binexp | sed 's#^/afs/#/afs/.#'`;;
-	*) dflt="$installbin";;
-	esac
-	fn=de~
-	rp='Where will public executables be installed?'
-	. ./getfile
-	installbin="$ans"
-else
-	installbin="$binexp"
-fi
-
-: determine where manual pages are on this system
-echo " "
-case "$sysman" in
-'') 
-	syspath='/usr/share/man/man1 /usr/man/man1'
-	syspath="$syspath /usr/man/mann /usr/man/manl /usr/man/local/man1"
-	syspath="$syspath /usr/man/u_man/man1 /usr/share/man/man1"
-	syspath="$syspath /usr/catman/u_man/man1 /usr/man/l_man/man1"
-	syspath="$syspath /usr/local/man/u_man/man1 /usr/local/man/l_man/man1"
-	syspath="$syspath /usr/man/man.L /local/man/man1 /usr/local/man/man1"
-	sysman=`./loc . /usr/man/man1 $syspath`
-	;;
-esac
-if $test -d "$sysman"; then
-	echo "System manual is in $sysman." >&4
-else
-	echo "Could not find manual pages in source form." >&4
-fi
-
-: set the prefixup variable, to restore leading tilda escape
-prefixup='case "$prefixexp" in
-"$prefix") ;;
-*) eval "$1=\`echo \$$1 | sed \"s,^$prefixexp,$prefix,\"\`";;
-esac'
-
-: determine where manual pages go
-set mansrc mansrc none
-eval $prefixit
-$cat <<EOM
-
-$spackage has manual pages available in source form.
-EOM
-case "$nroff" in
-nroff)
-	echo "However, you don't have nroff, so they're probably useless to you."
-	case "$mansrc" in
-	'') mansrc="none";;
-	esac;;
-esac
-echo "If you don't want the manual sources installed, answer 'none'."
-case "$mansrc" in
-'')
-	lookpath="$prefixexp/share/man/man1 $prefixexp/man/man1"
-	lookpath="$lookpath $prefixexp/man/u_man/man1 $prefixexp/man/l_man/man1"
-	lookpath="$lookpath /usr/local/man/man1 /opt/man/man1 /usr/man/manl"
-	lookpath="$lookpath /usr/share/man/man1 /usr/local/share/man/man1"
-	lookpath="$lookpath /usr/man/local/man1 /usr/man/l_man/man1"
-	lookpath="$lookpath /usr/local/man/u_man/man1 /usr/local/man/l_man/man1"
-	lookpath="$lookpath /usr/man/man.L"
-	mansrc=`./loc . $prefixexp/man/man1 $lookpath`
-	if $test -d "$mansrc"; then
-		dflt="$mansrc"
-	else
-		dflt="$sysman"
-	fi
-	set dflt
-	eval $prefixup
-	;;
-' ') dflt=none;;
-*)  dflt="$mansrc"
-	;;
-esac
-echo " "
-fn=dn~
-rp='Where do the manual pages (source) go?'
-. ./getfile
-if test "X$mansrcexp" != "X$ansexp"; then
-	installmansrc=''
-fi
-mansrc="$ans"
-mansrcexp="$ansexp"
-case "$mansrc" in
-'') mansrc=' '
-	installmansrc='';;
-esac
-if $afs && $test "$mansrc"; then
-	$cat <<EOM
-
-Since you are running AFS, I need to distinguish the directory in which
-manual pages reside from the directory in which they are installed (and from
-which they are presumably copied to the former directory by occult means).
-
-EOM
-	case "$installmansrc" in
-	'') dflt=`echo $mansrcexp | sed 's#^/afs/#/afs/.#'`;;
-	*) dflt="$installmansrc";;
-	esac
-	fn=de~
-	rp='Where will man pages be installed?'
-	. ./getfile
-	installmansrc="$ans"
-else
-	installmansrc="$mansrcexp"
-fi
-
-case "$mansrc" in
-' ') manext='0';;
-*l) manext=l;;
-*n) manext=n;;
-*o) manext=l;;
-*p) manext=n;;
-*C) manext=C;;
-*L) manext=L;;
-*L1) manext=L1;;
-*) manext=1;;
-esac
-
-: determine where private executables go
-set dflt privlib lib/$package
-eval $prefixit
-$cat <<EOM
-
-There are some auxiliary files for $package that need to be put into a
-private library directory that is accessible by everyone.
-
-EOM
-fn=d~+
-rp='Pathname where the private library files will reside?'
-. ./getfile
-if $test "X$privlibexp" != "X$ansexp"; then
-	installprivlib=''
-fi
-privlib="$ans"
-privlibexp="$ansexp"
-if $afs; then
-	$cat <<EOM
-
-Since you are running AFS, I need to distinguish the directory in which
-private files reside from the directory in which they are installed (and from
-which they are presumably copied to the former directory by occult means).
-
-EOM
-	case "$installprivlib" in
-	'') dflt=`echo $privlibexp | sed 's#^/afs/#/afs/.#'`;;
-	*) dflt="$installprivlib";;
-	esac
-	fn=de~
-	rp='Where will private files be installed?'
-	. ./getfile
-	installprivlib="$ans"
-else
-	installprivlib="$privlibexp"
-fi
-
-: Determine the C compiler to be used
-echo " "
-case "$cc" in
-'') dflt=cc;;
-*) dflt="$cc";;
-esac
-rp="Use which C compiler?"
-. ./myread
-cc="$ans"
-
-: See whether they have no cc but they do have gcc
-. ./trygcc
-if $test -f cc.cbu; then
-    . ./cc.cbu
-fi
-. ./checkcc
-
-: make some quick guesses about what we are up against
-echo " "
-$echo $n "Hmm...  $c"
-echo exit 1 >bsd
-echo exit 1 >usg
-echo exit 1 >v7
-echo exit 1 >osf1
-echo exit 1 >eunice
-echo exit 1 >xenix
-echo exit 1 >venix
-echo exit 1 >os2
-echo exit 1 >gnu
-echo exit 1 >linux
-echo exit 1 >dos
-d_bsd="$undef"
-d_linux="$undef"
-d_dos="$undef"
-d_os2="$undef"
-$cat /usr/include/signal.h /usr/include/sys/signal.h >foo 2>/dev/null
-if test -f /osf_boot || $contains 'OSF/1' /usr/include/ctype.h >/dev/null 2>&1
-then
-	echo "Looks kind of like an OSF/1 system, but we'll see..."
-	echo exit 0 >osf1
-elif test `echo abc | $tr a-z A-Z` = Abc ; then
-	xxx=`./loc addbib blurfl $pth`
-	if $test -f $xxx; then
-	echo "Looks kind of like a USG system with BSD features, but we'll see..."
-		echo exit 0 >bsd
-		echo exit 0 >usg
-	else
-		if $contains SIGTSTP foo >/dev/null 2>&1 ; then
-			echo "Looks kind of like an extended USG system, but we'll see..."
-		else
-			echo "Looks kind of like a USG system, but we'll see..."
-		fi
-		echo exit 0 >usg
-	fi
-elif $contains SIGTSTP foo >/dev/null 2>&1 ; then
-	echo "Looks kind of like a BSD system, but we'll see..."
-	d_bsd="$define"
-	echo exit 0 >bsd
-elif
-	$rm --version 2>/dev/null >foo;
-	$contains "Free Software Foundation" foo >/dev/null
-then
-	xxx=`uname`
-	echo exit 0 >gnu
-	echo "Looks kind of like a GNU/$xxx system, but we'll see..."
-	if $test X$xxx = XLinux; then
-		d_linux="$define"
-		echo exit 0 >linux
-	fi
-else
-	echo "Looks kind of like a Version 7 system, but we'll see..."
-	echo exit 0 >v7
-fi
-case "$eunicefix" in
-*unixtovms*)
-	$cat <<'EOI'
-There is, however, a strange, musty smell in the air that reminds me of
-something...hmm...yes...I've got it...there's a VMS nearby, or I'm a Blit.
-EOI
-	echo exit 0 >eunice
-	d_eunice="$define"
-: it so happens the Eunice I know will not run shell scripts in Unix format
-	;;
-*)
-	echo " "
-	echo "Congratulations.  You aren't running Eunice."
-	d_eunice="$undef"
-	;;
-esac
-case "$p_" in
-:) ;;
-*)
-	$cat <<'EOI'
-I have the feeling something is not exactly right, however...don't tell me...
-EOI
-	if test -n "$DJGPP"; then
-		case "X${MACHTYPE:-nonesuchmach}" in
-		cygwin) echo "hah!... you're running under Cygwin!";;
-		*) echo "got it... you're running DOS with DJGPP!";;
-		esac
-		echo exit 0 >dos
-		d_dos="$define"
-	else
-		$cat <<'EOI'
-lemme think...does HAL ring a bell?...no, of course, you're only running OS/2!
-EOI
-		echo exit 0 >os2
-		d_os2="$define"
-	fi
-	;;
-esac
-if test -f /xenix; then
-	echo "Actually, this looks more like a XENIX system..."
-	echo exit 0 >xenix
-	d_xenix="$define"
-else
-	echo " "
-	echo "It's not Xenix..."
-	d_xenix="$undef"
-fi
-chmod +x xenix
-$eunicefix xenix
-if test -f /venix; then
-	echo "Actually, this looks more like a VENIX system..."
-	echo exit 0 >venix
-else
-	echo " "
-	if ./xenix; then
-		: null
-	else
-		echo "Nor is it Venix..."
-	fi
-fi
-chmod +x bsd usg v7 osf1 eunice xenix venix dos os2 gnu linux
-$eunicefix bsd usg v7 osf1 eunice xenix venix dos os2 gnu linux
-$rm -f foo
-
-: Check whether they have gcc in any guise.  
-echo " "
-echo "Checking for GNU cc in disguise and/or its version number..." >&4
-$cat >try.c <<EOM
-int main(void) {
-#ifdef __GNUC__
-gcc_version_major __GNUC__
-#ifdef __GNUC_MINOR__
-gcc_version_minor __GNUC__
-#endif
-#ifdef __GNUC_PATCHLEVEL__
-gcc_version_patchlevel __GNUC_PATCHLEVEL__
-#endif
-#endif
-}
-EOM
-if $cc $ccflags -E try.c > try 2>&1
-then
-	gccversion=`$grep gcc_version_major try | sed 's/^.*gcc_version_major[\t ]*//'`
-	case "$gccversion" in
-	'') echo "You are not using GNU cc." ;;
-	*)  echo "You are using GNU cc $gccversion."
-	    ccname=gcc	
-	    ;;
-	esac
-else
-	gccversion=''
-fi
-$rm -f try try.*
-case "$gccversion" in
-1*) cpp=`./loc gcc-cpp $cpp $pth` ;;
-esac
-case "$gccversion" in
-'') gccosandvers='' ;;
-*) gccshortvers=`echo "$gccversion"|sed 's/ .*//'`
-   gccosandvers=`$cc -v 2>&1 | \
-	$grep '/specs$'|sed "s!.*/[^-/]*-[^-/]*-\([^-/]*\)/$gccshortvers/specs!\1!"`
-   gccshortvers=''
-   case "$gccosandvers" in
-   $osname) gccosandvers='' ;; # linux gccs seem to have no linux osvers, grr
-   $osname$osvers) ;; # looking good
-   $osname*) cat <<EOM >&4
-
-*** WHOA THERE!!! ***
-
-    Your gcc has not been compiled for the exact release of
-    your operating system ($gccosandvers versus $osname$osvers).
-
-    In general it is a good idea to keep gcc synchronized with
-    the operating system because otherwise serious problems
-    may ensue when trying to compile software, like Perl.
-
-    I'm trying to be optimistic here, though, and will continue.
-    If later during the configuration and build icky compilation
-    problems appear (headerfile conflicts being the most common
-    manifestation), I suggest reinstalling the gcc to match
-    your operating system release.
-
-EOM
-      ;;
-   *) gccosandvers='' ;; # failed to parse, better be silent
-   esac
-   ;;
-esac
-case "$ccname" in
-'') ccname="$cc" ;;
-esac
-
-: gcc 3.1 complains about adding -Idirectories that it already knows about,
-: so we will take those off from locincpth.
-case "$gccversion" in
-3*)
-    echo "main(){}">try.c
-    for incdir in `$cc -v -c try.c 2>&1 | \
-       sed '1,/^#include <\.\.\.>/d;/^End of search list/,$d;s/^ //'` ; do
-       locincpth=`echo $locincpth | sed s!$incdir!!`
-    done
-    $rm -f try try.*
-esac
 
 : What should the include directory be ?
 echo " "
@@ -4074,6 +3551,535 @@ case "$d_enablenls" in
 "$define") enablenls=true;;
 "$undef") enablenls=false;;
 esac
+
+
+libswanted="sendfile z resolv iconv m"
+
+case "$d_enablenls" in
+"$define") libswanted="$libswanted intl";;
+esac
+
+: script used to extract .SH files with variable substitutions
+cat >extract <<EOS
+CONFIG=true
+SRC="$src"
+EOS
+cat >>extract <<'EOS'
+echo "Doing variable substitutions on .SH files..."
+if test -f "$SRC/MANIFEST"; then
+	set x `awk '{print $1}' <$SRC/MANIFEST | grep '\.SH'`
+else
+	echo "(Looking for .SH files under the source directory.)"
+	set x `(cd "$SRC"; find . -name "*.SH" -print)`
+fi
+shift
+case $# in
+0) set x `(cd "$SRC"; echo *.SH)`; shift;;
+esac
+if test ! -f "$SRC/$1"; then
+	shift
+fi
+for file in $*; do
+	case "$SRC" in
+	".")
+		case "$file" in
+		*/*)
+			dir=`expr X$file : 'X\(.*\)/'`
+			file=`expr X$file : 'X.*/\(.*\)'`
+			(cd $dir && . ./$file)
+			;;
+		*)
+			. ./$file
+			;;
+		esac
+		;;
+	*)
+		case "$file" in
+		*/*)
+			dir=`expr X$file : 'X\(.*\)/'`
+			file=`expr X$file : 'X.*/\(.*\)'`
+			./mkdirp $dir
+			sh <"$SRC/$dir/$file"
+			;;
+		*)
+			sh <"$SRC/$file"
+			;;
+		esac
+		;;
+	esac
+done
+if test -f "$SRC/config_h.SH"; then
+	if test ! -f config.h; then
+		sh <"$SRC/config_h.SH"
+	fi
+fi
+EOS
+
+: extract files and exit if asked to do so
+case "$extractsh" in
+true)
+	case "$realsilent" in
+	true) ;;
+	*) exec 1>&4;;
+	esac
+	case "$config_sh" in
+	'') config_sh='config.sh';;
+	esac
+	echo " "
+	echo "Fetching answers from $config_sh..."
+	cd ..
+	. $config_sh
+	test "$override" && . ./optdef.sh
+	echo " "
+	. UU/extract
+	rm -rf UU
+	echo "Extraction done."
+	exit 0
+	;;
+esac
+
+: Eunice requires " " instead of "", can you believe it
+echo " "
+: Here we go...
+echo "Beginning of configuration questions for $package."
+
+trap 'echo " "; test -d ../UU && rm -rf X $rmlist; exit 1' 1 2 3 15
+
+: Now test for existence of everything in MANIFEST
+echo " "
+if test -f "$rsrc/MANIFEST"; then
+	echo "First let's make sure your kit is complete.  Checking..." >&4
+	awk '$1 !~ /PACK[A-Z]+/ {print $1}' "$rsrc/MANIFEST" | \
+		(split -l 50 2>/dev/null || split -50)
+	rm -f missing
+	tmppwd=`pwd`
+	for filelist in x??; do
+		(cd "$rsrc"; ls `cat "$tmppwd/$filelist"` \
+			>/dev/null 2>>"$tmppwd/missing")
+	done
+	if test -s missing; then
+		cat missing >&4
+		cat >&4 <<'EOM'
+
+THIS PACKAGE SEEMS TO BE INCOMPLETE.
+
+You have the option of continuing the configuration process, despite the
+distinct possibility that your kit is damaged, by typing 'y'es.  If you
+do, don't blame me if something goes wrong.  I advise you to type 'n'o
+and contact the author (Raphael_Manfredi@pobox.com).
+
+EOM
+		echo $n "Continue? [n] $c" >&4
+		read ans
+		case "$ans" in
+		y*)
+			echo "Continuing..." >&4
+			rm -f missing
+			;;
+		*)
+			echo "ABORTING..." >&4
+			kill $$
+			;;
+		esac
+	else
+		echo "Looks good..."
+	fi
+else
+	echo "There is no MANIFEST file.  I hope your kit is complete !"
+fi
+rm -f missing x??
+
+: who configured the system
+cf_time=`LC_ALL=C; LANGUAGE=C; export LC_ALL; export LANGUAGE; $date 2>&1`
+cf_by=`(logname) 2>/dev/null`
+case "$cf_by" in
+"")
+	cf_by=`(whoami) 2>/dev/null`
+	case "$cf_by" in
+	"") cf_by=unknown ;;
+	esac ;;
+esac
+
+: determine whether this is an official build
+
+case "$official" in
+false)
+	official=false
+	val="$undef"
+
+	./warn 'This build will not be suitable for distribution.' 4>&4
+
+;;
+*)
+	val="$define"
+	official=true
+	;;
+esac
+
+set d_official
+eval $setvar
+
+: ask them whether they want remote control support
+$cat <<EOM
+
+$spackage has a raw remote control service.
+
+Currently you can create searches, connect to nodes, and print and 
+set the values of properties as well as read the 'tooltips'.  It is
+not completely functional, but you may choose to enable it here at
+compile time.  The feature will need activation from the GUI.
+
+For more information, see doc/other/shell.txt
+
+EOM
+case "$remotectrl" in
+true) dflt=y;;
+*) dflt=n;;
+esac
+rp="Enable remote control service"
+. ./myread
+val="$ans"
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_remotectrl
+eval $setvar
+case "$d_remotectrl" in
+$define) remotectrl=true;;
+*) remotectrl=false;;
+esac
+
+: look whether they wish to run headless
+$cat <<EOM
+
+$spackage can run without any GUI interface in so-called "headless" mode.
+Therefore, monitoring of operations for $package will have to be done
+without relying on any GUI, and the configuration is done via files only.
+
+EOM
+case "$d_headless" in
+"$define") dflt=y;;
+*) dflt=n;;
+esac
+rp="Run without any GUI interface"
+. ./myread
+case "$ans" in
+y) val="$define";;
+*) val="$undef";;
+esac
+set d_headless
+eval $setvar
+
+: ask them wich GTK+ version they want
+echo " "
+case "$d_headless" in
+"$define")
+	echo "Turning off GTK+ since you want to run without any GUI"
+	d_usegtk1="$undef";
+	d_usegtk2="$undef";
+	;;
+*)
+	$cat <<'EOM'
+I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
+The GTK1 frontend will use much less CPU than the GTK2 one, so if you
+have a slow CPU, you are encouraged to choose GTK1.
+
+EOM
+	case "$gtkversion" in
+	'') dflt=1;;
+	2) dflt=2;;
+	*) dflt=1;;
+	esac
+	rp="Use which GTK toolkit (1 or 2)"
+	. ./myread
+	case "$ans" in
+	2)
+		gtkversion=2; gtkpackage=gtk+-2.0
+		d_usegtk2="$define"; d_usegtk1="$undef";;
+	*)
+		gtkversion=1; gtkpackage=gtk+
+		d_usegtk1="$define"; d_usegtk2="$undef";;
+	esac
+	;;
+esac
+
+: decide which version of GLib to use -- tied to the choice of GTK
+case "$gtkversion" in
+1) ver=1;;
+*) ver=2;;
+esac
+case "$ver" in
+2)
+	glibversion=2; glibpackage="glib-2.0 gobject-2.0"
+	d_useglib2="$define"; d_useglib1="$undef";;
+*)
+	glibversion=1; glibpackage=glib
+	d_useglib1="$define"; d_useglib2="$undef";;
+esac
+
+: determine root of directory hierarchy where package will be installed.
+case "$prefix" in
+'')
+	dflt=`./loc . /usr/local /usr/local /local /opt /usr`
+	;;
+*)
+	dflt="$prefix"
+	;;
+esac
+$cat <<EOM
+
+By default, $package will be installed in $dflt/bin, manual
+pages under $dflt/man, etc..., i.e. with $dflt as prefix for
+all installation directories. Typically set to /usr/local, but you
+may choose /usr if you wish to install $package among your system
+binaries. If you wish to have binaries under /bin but manual pages
+under /usr/local/man, that's ok: you will be prompted separately
+for each of the installation directories, the prefix being only used
+to set the defaults.
+
+EOM
+fn=d~
+rp='Installation prefix to use?'
+. ./getfile
+oldprefix=''
+case "$prefix" in
+'') ;;
+*)
+	case "$ans" in
+	"$prefix") ;;
+	*) oldprefix="$prefix";;
+	esac
+	;;
+esac
+prefix="$ans"
+prefixexp="$ansexp"
+
+: set the prefixit variable, to compute a suitable default value
+prefixit='case "$3" in
+""|none)
+	case "$oldprefix" in
+	"") eval "$1=\"\$$2\"";;
+	*)
+		case "$3" in
+		"") eval "$1=";;
+		none)
+			eval "tp=\"\$$2\"";
+			case "$tp" in
+			""|" ") eval "$1=\"\$$2\"";;
+			*) eval "$1=";;
+			esac;;
+		esac;;
+	esac;;
+*)
+	eval "tp=\"$oldprefix-\$$2-\""; eval "tp=\"$tp\"";
+	case "$tp" in
+	--|/*--|\~*--) eval "$1=\"$prefix/$3\"";;
+	/*-$oldprefix/*|\~*-$oldprefix/*)
+		eval "$1=\`echo \$$2 | sed \"s,^$oldprefix,$prefix,\"\`";;
+	*) eval "$1=\"\$$2\"";;
+	esac;;
+esac'
+
+: allow them to override the AFS root
+case "$afsroot" in
+'')	afsroot=/afs ;;
+*)	afsroot=$afsroot ;;
+esac
+
+: is AFS running?
+echo " "
+case "$afs" in
+$define|true)	afs=true ;;
+$undef|false)	afs=false ;;
+*)	if $test -d $afsroot; then
+		afs=true
+	else
+		afs=false
+	fi
+	;;
+esac
+if $afs; then
+	echo "AFS may be running... I'll be extra cautious then..." >&4
+else
+	echo "AFS does not seem to be running..." >&4
+fi
+
+: determine where public executables go
+echo " "
+set dflt bin bin
+eval $prefixit
+fn=d~
+rp='Pathname where the public executables will reside?'
+. ./getfile
+if $test "X$ansexp" != "X$binexp"; then
+	installbin=''
+fi
+bin="$ans"
+binexp="$ansexp"
+if $afs; then
+	$cat <<EOM
+
+Since you are running AFS, I need to distinguish the directory in which
+executables reside from the directory in which they are installed (and from
+which they are presumably copied to the former directory by occult means).
+
+EOM
+	case "$installbin" in
+	'') dflt=`echo $binexp | sed 's#^/afs/#/afs/.#'`;;
+	*) dflt="$installbin";;
+	esac
+	fn=de~
+	rp='Where will public executables be installed?'
+	. ./getfile
+	installbin="$ans"
+else
+	installbin="$binexp"
+fi
+
+: determine where manual pages are on this system
+echo " "
+case "$sysman" in
+'') 
+	syspath='/usr/share/man/man1 /usr/man/man1'
+	syspath="$syspath /usr/man/mann /usr/man/manl /usr/man/local/man1"
+	syspath="$syspath /usr/man/u_man/man1 /usr/share/man/man1"
+	syspath="$syspath /usr/catman/u_man/man1 /usr/man/l_man/man1"
+	syspath="$syspath /usr/local/man/u_man/man1 /usr/local/man/l_man/man1"
+	syspath="$syspath /usr/man/man.L /local/man/man1 /usr/local/man/man1"
+	sysman=`./loc . /usr/man/man1 $syspath`
+	;;
+esac
+if $test -d "$sysman"; then
+	echo "System manual is in $sysman." >&4
+else
+	echo "Could not find manual pages in source form." >&4
+fi
+
+: set the prefixup variable, to restore leading tilda escape
+prefixup='case "$prefixexp" in
+"$prefix") ;;
+*) eval "$1=\`echo \$$1 | sed \"s,^$prefixexp,$prefix,\"\`";;
+esac'
+
+: determine where manual pages go
+set mansrc mansrc none
+eval $prefixit
+$cat <<EOM
+
+$spackage has manual pages available in source form.
+EOM
+case "$nroff" in
+nroff)
+	echo "However, you don't have nroff, so they're probably useless to you."
+	case "$mansrc" in
+	'') mansrc="none";;
+	esac;;
+esac
+echo "If you don't want the manual sources installed, answer 'none'."
+case "$mansrc" in
+'')
+	lookpath="$prefixexp/share/man/man1 $prefixexp/man/man1"
+	lookpath="$lookpath $prefixexp/man/u_man/man1 $prefixexp/man/l_man/man1"
+	lookpath="$lookpath /usr/local/man/man1 /opt/man/man1 /usr/man/manl"
+	lookpath="$lookpath /usr/share/man/man1 /usr/local/share/man/man1"
+	lookpath="$lookpath /usr/man/local/man1 /usr/man/l_man/man1"
+	lookpath="$lookpath /usr/local/man/u_man/man1 /usr/local/man/l_man/man1"
+	lookpath="$lookpath /usr/man/man.L"
+	mansrc=`./loc . $prefixexp/man/man1 $lookpath`
+	if $test -d "$mansrc"; then
+		dflt="$mansrc"
+	else
+		dflt="$sysman"
+	fi
+	set dflt
+	eval $prefixup
+	;;
+' ') dflt=none;;
+*)  dflt="$mansrc"
+	;;
+esac
+echo " "
+fn=dn~
+rp='Where do the manual pages (source) go?'
+. ./getfile
+if test "X$mansrcexp" != "X$ansexp"; then
+	installmansrc=''
+fi
+mansrc="$ans"
+mansrcexp="$ansexp"
+case "$mansrc" in
+'') mansrc=' '
+	installmansrc='';;
+esac
+if $afs && $test "$mansrc"; then
+	$cat <<EOM
+
+Since you are running AFS, I need to distinguish the directory in which
+manual pages reside from the directory in which they are installed (and from
+which they are presumably copied to the former directory by occult means).
+
+EOM
+	case "$installmansrc" in
+	'') dflt=`echo $mansrcexp | sed 's#^/afs/#/afs/.#'`;;
+	*) dflt="$installmansrc";;
+	esac
+	fn=de~
+	rp='Where will man pages be installed?'
+	. ./getfile
+	installmansrc="$ans"
+else
+	installmansrc="$mansrcexp"
+fi
+
+case "$mansrc" in
+' ') manext='0';;
+*l) manext=l;;
+*n) manext=n;;
+*o) manext=l;;
+*p) manext=n;;
+*C) manext=C;;
+*L) manext=L;;
+*L1) manext=L1;;
+*) manext=1;;
+esac
+
+: determine where private executables go
+set dflt privlib lib/$package
+eval $prefixit
+$cat <<EOM
+
+There are some auxiliary files for $package that need to be put into a
+private library directory that is accessible by everyone.
+
+EOM
+fn=d~+
+rp='Pathname where the private library files will reside?'
+. ./getfile
+if $test "X$privlibexp" != "X$ansexp"; then
+	installprivlib=''
+fi
+privlib="$ans"
+privlibexp="$ansexp"
+if $afs; then
+	$cat <<EOM
+
+Since you are running AFS, I need to distinguish the directory in which
+private files reside from the directory in which they are installed (and from
+which they are presumably copied to the former directory by occult means).
+
+EOM
+	case "$installprivlib" in
+	'') dflt=`echo $privlibexp | sed 's#^/afs/#/afs/.#'`;;
+	*) dflt="$installprivlib";;
+	esac
+	fn=de~
+	rp='Where will private files be installed?'
+	. ./getfile
+	installprivlib="$ans"
+else
+	installprivlib="$privlibexp"
+fi
 
 : determine where locale files go
 case "$enablenls" in
@@ -8906,6 +8912,7 @@ libsdirs='$libsdirs'
 libsfiles='$libsfiles'
 libsfound='$libsfound'
 libspath='$libspath'
+libswanted='$libswanted'
 line='$line'
 lint='$lint'
 lkflags='$lkflags'

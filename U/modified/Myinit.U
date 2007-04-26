@@ -8,9 +8,16 @@
 ?X: is included after variables are initialized but before any old
 ?X: config.sh file is read in and before any Configure switch processing.
 ?X:
-?MAKE:Myinit: Init
+?MAKE:libswanted Myinit: Init d_enablenls
 ?MAKE:	-pick add $@ %<
-?LINT:change libswanted
+?S:libswanted:
+?S:	This variable holds a list of libraries to link against if possible.
+?S:.
 ?LINT:nocomment
-libswanted='sendfile z intl resolv iconv m'
+
+libswanted="sendfile z resolv iconv m"
+
+case "$d_enablenls" in
+"$define") libswanted="$libswanted intl";;
+esac
 
