@@ -139,6 +139,37 @@ static GHashTable *file_basenames = NULL;
 static GHashTable *muid_to_query_map;
 static hash_list_t *query_muids;
 
+/**
+ * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
+ * shared_file if we have one.
+ */
+
+static GTree *sha1_to_share;
+
+/**
+ * Compare binary SHA1 hashes.
+ * @return 0 if they're the same, a negative or positive number if s1 if greater
+ * than s2 or s1 greater than s2, respectively.
+ * Used to search the sha1_to_share tree.
+ */
+static gint
+compare_share_sha1(gconstpointer s1, gconstpointer s2)
+{
+	return memcmp(s1, s2, SHA1_RAW_SIZE);
+}
+
+/**
+ * Reset sha1_to_share
+ */
+static void
+reinit_sha1_table(void)
+{
+	if (sha1_to_share)
+		g_tree_destroy(sha1_to_share);
+
+	sha1_to_share = g_tree_new(compare_share_sha1);
+}
+
 /***
  *** Callbacks
  ***/
@@ -1346,8 +1377,6 @@ shared_file_sort_by_mtime(gconstpointer f1, gconstpointer f2)
 	return CMP(t1, t2);
 }
 
-static void reinit_sha1_table(void);
-
 /**
  * Perform scanning of the shared directories to build up the list of
  * shared files.
@@ -2526,37 +2555,6 @@ drop:
 /*
  * SHA1 digest processing
  */
-
-/**
- * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
- * shared_file if we have one.
- */
-
-static GTree *sha1_to_share;
-
-/**
- * Compare binary SHA1 hashes.
- * @return 0 if they're the same, a negative or positive number if s1 if greater
- * than s2 or s1 greater than s2, respectively.
- * Used to search the sha1_to_share tree.
- */
-static gint
-compare_share_sha1(gconstpointer s1, gconstpointer s2)
-{
-	return memcmp(s1, s2, SHA1_RAW_SIZE);
-}
-
-/**
- * Reset sha1_to_share
- */
-static void
-reinit_sha1_table(void)
-{
-	if (sha1_to_share)
-		g_tree_destroy(sha1_to_share);
-
-	sha1_to_share = g_tree_new(compare_share_sha1);
-}
 
 /**
  * Set the SHA1 hash of a given shared_file. Take care of updating the
