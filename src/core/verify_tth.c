@@ -266,7 +266,7 @@ tigertree_feed(struct verify_tth *ctx)
 
 		finished = TRUE;
 		tt_digest(ctx->tth, &tth);
-		g_warning("File \"%s\" has TTH: %s",
+		g_message("File \"%s\" has TTH: %s",
 			file_object_get_pathname(ctx->file), tth_base32(&tth));
 		shared_file_set_tth(ctx->sf, &tth);
 		tth_cache_insert(&tth, tt_leaves(ctx->tth), tt_leave_count(ctx->tth));
