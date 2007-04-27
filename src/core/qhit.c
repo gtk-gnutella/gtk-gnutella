@@ -556,8 +556,7 @@ add_file(const struct shared_file *sf)
 
 	needed = 8 + 2 + shared_file_name_nfc_len(sf);	/* size of hit entry */
 
-	sha1_available = SHARE_F_HAS_DIGEST ==
-		(shared_file_flags(sf) & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
+	sha1_available = sha1_hash_available(sf);
 
 	/*
 	 * In case we emit the SHA1 as a GGEP "H", we'll grow the buffer
