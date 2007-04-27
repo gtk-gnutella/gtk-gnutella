@@ -1160,9 +1160,10 @@ main(int argc, char **argv)
 
 #ifdef FRAGCHECK
 	fragcheck_init();
-#endif
-
+#else
 	halloc_init();
+#endif
+	
 	misc_init();
 	tm_now_exact(&start_time);
 
