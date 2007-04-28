@@ -67,7 +67,7 @@ struct thex_download *thex_download_create(gpointer owner,
 							filesize_t filesize,
 							thex_download_success_cb callback);
 
-void thex_download_free(struct thex_download *);
+void thex_download_free(struct thex_download **ptr);
 void thex_download_write(struct thex_download *, gchar *data, size_t len);
 gboolean thex_download_receive(struct thex_download *,
 			struct gnutella_host *host, struct wrap_io *wio,

@@ -56,7 +56,7 @@ struct bio_source;
 
 struct browse_ctx *browse_host_dl_create(
 	gpointer owner, gnet_host_t *host, gnet_search_t sh);
-void browse_host_dl_free(struct browse_ctx *bc);
+void browse_host_dl_free(struct browse_ctx **ptr);
 gboolean browse_host_dl_for_search(struct browse_ctx *bc, gnet_search_t sh);
 void browse_host_dl_write(struct browse_ctx *bc, gchar *data, size_t len);
 gboolean browse_host_dl_receive(

@@ -408,17 +408,20 @@ browse_host_dl_close(struct browse_ctx *bc)
  * Terminate host browsing.
  */
 void
-browse_host_dl_free(struct browse_ctx *bc)
+browse_host_dl_free(struct browse_ctx **ptr)
 {
-	g_assert(bc != NULL);
+	struct browse_ctx *bc = *ptr;
 
-	atom_str_free_null(&bc->vendor);
-	if (bc->rx)
-		rx_free(bc->rx);
-	if (!bc->closed)
-		search_dissociate_browse(bc->sh, bc->owner);
-	G_FREE_NULL(bc->data);
-	wfree(bc, sizeof *bc);
+	if (bc) {	
+		atom_str_free_null(&bc->vendor);
+		if (bc->rx)
+			rx_free(bc->rx);
+		if (!bc->closed)
+			search_dissociate_browse(bc->sh, bc->owner);
+		G_FREE_NULL(bc->data);
+		wfree(bc, sizeof *bc);
+		*ptr = NULL;
+	}
 }
 
 /**

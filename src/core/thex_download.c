@@ -649,17 +649,20 @@ thex_download_close(struct thex_download *ctx)
  * Terminate host browsing.
  */
 void
-thex_download_free(struct thex_download *ctx)
+thex_download_free(struct thex_download **ptr)
 {
-	g_assert(ctx != NULL);
+	struct thex_download *ctx = *ptr;
 
-	if (ctx->rx) {
-		rx_free(ctx->rx);
-		ctx->rx = NULL;
+	if (ctx) {
+		if (ctx->rx) {
+			rx_free(ctx->rx);
+			ctx->rx = NULL;
+		}
+		G_FREE_NULL(ctx->hashtree_id);
+		G_FREE_NULL(ctx->data);
+		wfree(ctx, sizeof *ctx);
+		*ptr = NULL;
 	}
-	G_FREE_NULL(ctx->hashtree_id);
-	G_FREE_NULL(ctx->data);
-	wfree(ctx, sizeof *ctx);
 }
 
 const struct sha1 *

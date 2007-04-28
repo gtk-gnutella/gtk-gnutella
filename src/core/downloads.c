@@ -3100,14 +3100,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 
 	if (new_status == GTA_DL_COMPLETED) {
-		if (d->browse) {
-			browse_host_dl_free(d->browse);
-			d->browse = NULL;
-		}
-		if (d->thex) {
-			thex_download_free(d->thex);
-			d->thex = NULL;
-		}
+		browse_host_dl_free(&d->browse);
+		thex_download_free(&d->thex);
 	}
 
 	if (d->list_idx != list_target)
@@ -5134,15 +5128,13 @@ download_remove(struct download *d)
 	g_assert(d->io_opaque == NULL);
 	g_assert(d->buffers == NULL);
 
-	if (d->browse != NULL) {
+	if (d->browse) {
 		g_assert(d->flags & DL_F_BROWSE);
-		browse_host_dl_free(d->browse);
-		d->browse = NULL;
+		browse_host_dl_free(&d->browse);
 	}
-	if (d->thex != NULL) {
+	if (d->thex) {
 		g_assert(d->flags & DL_F_THEX);
-		thex_download_free(d->thex);
-		d->thex = NULL;
+		thex_download_free(&d->thex);
 	}
 
 	if (d->push)
@@ -10473,10 +10465,8 @@ download_close(void)
 			http_buffer_free(d->req);
 		if (d->cproxy)
 			cproxy_free(d->cproxy);
-		if (d->browse != NULL)
-			browse_host_dl_free(d->browse);
-		if (d->thex != NULL)
-			thex_download_free(d->thex);
+		browse_host_dl_free(&d->browse);
+		thex_download_free(&d->thex);
 
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
