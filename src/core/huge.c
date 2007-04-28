@@ -106,7 +106,7 @@ static GHashTable *sha1_cache;
  * TRUE.
  */
 static gboolean cache_dirty;
-static guint enqueued;
+static time_t cache_dumped;
 
 /**
  ** Elementary operations on SHA1 values
@@ -260,6 +260,7 @@ dump_cache(gboolean force)
 			g_warning("dump_cache: could not open \"%s\"",
 				persistent_cache_file_name);
 		}
+		cache_dumped = tm_time();
 	}
 }
 
@@ -446,6 +447,11 @@ huge_update_hashes(struct shared_file *sf,
 		update_volatile_cache(cached, shared_file_size(sf),
 			shared_file_modification_time(sf), sha1, tth);
 		cache_dirty = TRUE;
+
+		/* Dump the cache at most about once per minute. */
+		if (!cache_dumped || delta_time(tm_time(), cache_dumped) > 60) {
+			dump_cache(FALSE);
+		}
 	} else {
 		add_volatile_cache_entry(shared_file_path(sf),
 			shared_file_size(sf), shared_file_modification_time(sf),
@@ -455,7 +461,6 @@ huge_update_hashes(struct shared_file *sf,
 			sha1, tth);
 	}
 	request_tigertree(sf, FALSE);
-
 	return TRUE;
 }
 
@@ -540,10 +545,6 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 		/* FALL THROUGH */
 	case VERIFY_ERROR:
 	case VERIFY_SHUTDOWN:
-		enqueued--;
-		if (0 == enqueued % 100) {
-			dump_cache(FALSE);
-		}
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, FALSE);
 		shared_file_unref(&sf);
 		return TRUE;
@@ -565,7 +566,6 @@ queue_shared_file_for_sha1_computation(struct shared_file *sf)
 
 	verify_append(shared_file_path(sf), shared_file_size(sf),
 		huge_verify_callback, shared_file_ref(sf));
-	enqueued++;
 }
 
 /**
