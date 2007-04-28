@@ -45,7 +45,6 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/bg.h"
-#include "lib/sha1.h"
 #include "lib/slist.h"
 #include "lib/file.h"
 #include "lib/tm.h"
@@ -56,9 +55,6 @@ RCSID("$Id$")
 #define HASH_BLOCK_SHIFT	12			/**< Power of two of hash unit credit */
 #define HASH_BUF_SIZE		65536		/**< Size of the reading buffer */
 
-static struct bgtask *verify_task;
-static slist_t *files_to_hash;
-
 enum verify_magic { VERIFY_MAGIC = 0x2dc84379U };
 
 /**
@@ -66,14 +62,16 @@ enum verify_magic { VERIFY_MAGIC = 0x2dc84379U };
  */
 struct verify {
 	enum verify_magic magic;	/**< Magic number. */
+	slist_t *files_to_hash;
+	struct bgtask *task;
+	struct verify_hash hash;
 	struct file_object *file;	/**< The file object to access the file. */
-	filesize_t filesize;		/**< Total amount of bytes to hash. */
+	filesize_t amount;			/**< Total amount of bytes to hash. */
 	filesize_t offset;			/**< Current offset into the file. */
-	time_t start;			/**< Start time, to determine computation rate. */
+	filesize_t hashed;			/**< Amount of bytes hashes so far */
+	time_t start;				/**< Start time, to determine comp. rate */
 	char *buffer;				/**< Read buffer */
 	size_t buffer_size;			/**< Size of buffer in bytes. */
-	SHA1Context context;		/**< SHA1 computation context */
-	struct sha1 sha1;
 
 	verify_callback	callback;	/**< User-specified callback function. */
 	void *user_data;			/**< User-specified callback parameter. */
@@ -87,12 +85,37 @@ verify_check(const struct verify * const ctx)
 	g_assert(VERIFY_MAGIC == ctx->magic);
 }
 
+static inline void
+verify_hash_init(const struct verify * const ctx)
+{
+	ctx->hash.init(ctx->amount);
+}
+
+static inline int
+verify_hash_update(const struct verify * const ctx, const void *data, size_t n)
+{
+	return ctx->hash.update(data, n);
+}
+
+static inline int
+verify_hash_final(const struct verify * const ctx)
+{
+	return ctx->hash.final();
+}
+
+static inline const char *
+verify_hash_name(const struct verify * const ctx)
+{
+	return ctx->hash.name();
+}
+
 enum verify_file_magic { VERIFY_FILE_MAGIC = 0x863ac7adU };
 
 struct verify_file {
 	enum verify_file_magic magic;	/**< Magic number */
-	const char *pathname;	/**< Absolute path of the file */
-	filesize_t filesize;	/**< Size of file */
+	const char *pathname;			/**< Absolute path of the file */
+	filesize_t offset;				/**< Offset to start at */
+	filesize_t amount;				/**< Amount of bytes to hash */
 	verify_callback	callback;
 	void *user_data;
 };
@@ -105,7 +128,7 @@ verify_file_check(const struct verify_file * const item)
 }
 
 struct verify_file *
-verify_file_new(const char *pathname, filesize_t filesize,
+verify_file_new(const char *pathname, filesize_t offset, filesize_t amount,
 	verify_callback callback, void *user_data)
 {
 	static const struct verify_file zero_item;
@@ -118,7 +141,8 @@ verify_file_new(const char *pathname, filesize_t filesize,
 	*item = zero_item;
 	item->magic = VERIFY_FILE_MAGIC;
 	item->pathname = atom_str_get(pathname);
-	item->filesize = filesize;
+	item->offset = offset;
+	item->amount = amount;
 	item->callback = callback;
 	item->user_data = user_data;
 	return item;
@@ -183,17 +207,11 @@ verify_done(struct verify *ctx)
 	ctx->status = VERIFY_INVALID;
 }
 
-/**
- * The callback function may call this if and only if the current status
- * is VERIFY_DONE.
- */
-const struct sha1 *
-verify_sha1(const struct verify *ctx)
+enum verify_status
+verify_status(struct verify *ctx)
 {
 	verify_check(ctx);
-	g_return_val_if_fail(ctx->status == VERIFY_DONE, NULL);
-
-	return &ctx->sha1;
+	return ctx->status;
 }
 
 /**
@@ -206,7 +224,7 @@ verify_hashed(const struct verify *ctx)
 	verify_check(ctx);
 	g_assert(VERIFY_INVALID != ctx->status);
 
-	return ctx->offset;
+	return ctx->hashed;
 }
 
 /**
@@ -227,62 +245,45 @@ verify_elapsed(const struct verify *ctx)
 	return d;
 }
 
-/**
- * Initializes the background verification task.
- */
-void
-verify_init(void)
-{
-	static gboolean initialized;
-
-	if (!initialized) {
-		initialized = TRUE;
-		files_to_hash = slist_new();
-	}
-}
-
-/**
- * Called at shutdown time.
- */
-void
-verify_close(void)
-{
-	if (verify_task) {
-		bg_task_cancel(verify_task);
-		verify_task = NULL;
-	}
-	if (files_to_hash) {
-		struct verify_file *item;
-
-		while (NULL != (item = slist_shift(files_to_hash))) {
-			item->callback(NULL, VERIFY_SHUTDOWN, item->user_data);
-			verify_file_free(&item);
-		}
-		slist_free(&files_to_hash);
-	}
-}
-
-static struct verify *
-verify_alloc(void)
+struct verify *
+verify_new(const struct verify_hash *hash)
 {
 	static const struct verify zero_ctx;
 	struct verify *ctx;
+
+	g_assert(hash);
 
 	ctx = walloc(sizeof *ctx);
 	*ctx = zero_ctx;
 	ctx->magic = VERIFY_MAGIC;
 	ctx->buffer_size = HASH_BUF_SIZE;
 	ctx->buffer = g_malloc(ctx->buffer_size);
+	ctx->hash = *hash;
+	ctx->files_to_hash = slist_new();
 	return ctx;
 }
 
-static void
+void
 verify_free(struct verify **ptr)
 {
 	struct verify *ctx = *ptr;
 
-	if (ctx) {
+	if (ptr) {
 		verify_check(ctx);
+
+		if (ctx->task) {
+			bg_task_cancel(ctx->task);
+			ctx->task = NULL;
+		}
+		if (ctx->files_to_hash) {
+			struct verify_file *item;
+
+			while (NULL != (item = slist_shift(ctx->files_to_hash))) {
+				item->callback(NULL, VERIFY_SHUTDOWN, item->user_data);
+				verify_file_free(&item);
+			}
+			slist_free(&ctx->files_to_hash);
+		}
 		file_object_release(&ctx->file);
 		G_FREE_NULL(ctx->buffer);
 		ctx->magic = 0;
@@ -296,12 +297,131 @@ verify_context_free(void *data)
 {
 	struct verify *ctx = data;
 	
-	verify_task = NULL;		/* If we're called, the task is being terminated */
-	verify_free(&ctx);
+	verify_check(ctx);
+	/* If we're called, the task is being terminated */
+	ctx->task = NULL;
+}
+
+static void
+verify_next_file(struct verify *ctx)
+{
+	struct verify_file *item;
+
+	verify_check(ctx);
+
+	item = ctx->files_to_hash ? slist_shift(ctx->files_to_hash) : NULL;
+	if (item) {
+		verify_file_check(item);
+
+		ctx->user_data = item->user_data;
+		ctx->callback = item->callback;
+		ctx->offset = item->offset;
+		ctx->amount = item->amount;
+
+		if (verify_start(ctx)) {
+			ctx->file = file_object_open(item->pathname, O_RDONLY);
+			if (NULL == ctx->file) {
+				int fd;
+
+				fd = file_open(item->pathname, O_RDONLY);
+				if (fd >= 0) {
+					ctx->file = file_object_new(fd, item->pathname,
+							O_RDONLY);
+				}
+			}
+			if (NULL == ctx->file) {
+				g_warning("Failed to open \"%s\" for %s hashing: %s",
+					verify_hash_name(ctx), item->pathname, g_strerror(errno));
+			}
+		}
+		verify_file_free(&item);
+
+		if (NULL == ctx->file) {
+			goto error;
+		}
+	}
+
+	if (ctx->file) {
+		if (dbg > 1) {
+			g_message("Verifying %s digest for %s",
+				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
+		}
+		verify_hash_init(ctx);
+		compat_fadvise_sequential(file_object_get_fd(ctx->file), 0, 0);
+		ctx->start = tm_time_exact();
+	}
+	return;
+
+error:
+	verify_failure(ctx);
+	file_object_release(&ctx->file);
+}
+
+static void
+verify_final(struct verify *ctx)
+{
+	verify_check(ctx);
+
+	if (ctx->amount > 0) {
+		g_warning("File shrunk? \"%s\"",
+			file_object_get_pathname(ctx->file));
+		verify_failure(ctx);
+	} else if (verify_hash_final(ctx)) {
+		g_warning("verify_hash_final() failed for \"%s\"",
+			file_object_get_pathname(ctx->file));
+		verify_failure(ctx);
+	} else {
+		verify_done(ctx);
+	}
+	file_object_release(&ctx->file);
+}
+
+static void
+verify_update(struct verify *ctx)
+{
+	ssize_t r;
+
+	verify_check(ctx);
+
+	if (ctx->amount > 0) {
+		size_t n;
+
+		n = MIN(ctx->amount, ctx->buffer_size);
+		r = file_object_pread(ctx->file, ctx->buffer, n, ctx->offset);
+	} else {
+		r = 0;
+	}
+
+	if ((ssize_t) -1 == r) {
+		if (!is_temporary_error(errno)) {
+			g_warning("Error while reading file: %s", g_strerror(errno));
+			goto error;
+		}
+	} else if (0 == r) {
+		verify_final(ctx);
+	} else {
+		ctx->amount -= (size_t) r;
+		ctx->offset += (size_t) r;
+		ctx->hashed += (size_t) r;
+
+		if (verify_hash_update(ctx, ctx->buffer, r)) {
+			g_warning("%s computation error for %s",
+				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
+			goto error;
+		}
+		if (!verify_progress(ctx)) {
+			goto error;
+		}
+	}
+	return;
+
+error:
+	verify_failure(ctx);
+	file_object_release(&ctx->file);
 }
 
 static bgret_t
-sha1_step_compute(struct bgtask *bt, void *data, int ticks)
+verify_step_compute(struct bgtask *bt, void *data, int ticks)
 {
 	struct verify *ctx = data;
 
@@ -311,151 +431,77 @@ sha1_step_compute(struct bgtask *bt, void *data, int ticks)
 	bg_task_ticks_used(bt, 0);
 
 	if (NULL == ctx->file) {
-		struct verify_file *item;
-
-		item = files_to_hash ? slist_shift(files_to_hash) : NULL;
-		if (item) {
-			verify_file_check(item);
-
-			ctx->user_data = item->user_data;
-			ctx->callback = item->callback;
-			ctx->filesize = item->filesize;
-			ctx->offset = 0;
-
-			if (verify_start(ctx)) {
-				ctx->file = file_object_open(item->pathname, O_RDONLY);
-				if (NULL == ctx->file) {
-					int fd;
-
-					fd = file_open(item->pathname, O_RDONLY);
-					if (fd >= 0) {
-						ctx->file = file_object_new(fd, item->pathname,
-										O_RDONLY);
-					}
-				}
-				if (NULL == ctx->file) {
-					g_warning("Failed to open \"%s\" for SHA-1 hashing: %s",
-							item->pathname, g_strerror(errno));
-				}
-			}
-			verify_file_free(&item);
-
-			if (NULL == ctx->file) {
-				goto error;
-			}
-		}
-		
-		if (ctx->file) {
-			if (dbg > 1) {
-				g_message("Verifying SHA1 digest for %s",
-					file_object_get_pathname(ctx->file));
-			}
-			SHA1Reset(&ctx->context);
-			compat_fadvise_sequential(file_object_get_fd(ctx->file), 0, 0);
-			ctx->start = tm_time_exact();
-		}
+		verify_next_file(ctx);
 	}
 	if (ctx->file) {
-		ssize_t r;
-		filesize_t n;
-
-		n = ctx->filesize - ctx->offset;
-		n = MIN(n, ctx->buffer_size);
-		r = file_object_pread(ctx->file, ctx->buffer, n, ctx->offset);
-
-		if ((ssize_t) -1 == r) {
-			if (!is_temporary_error(errno)) {
-				g_warning("Error while reading file: %s", g_strerror(errno));
-				goto error;
-			}
-		} else if (0 == r) {
-			if (ctx->offset != ctx->filesize) {
-				g_warning("File shrunk");
-				goto error;
-			} else {
-				SHA1Result(&ctx->context, &ctx->sha1);
-				g_warning("File \"%s\" has SHA-1: %s",
-					file_object_get_pathname(ctx->file),
-					sha1_base32(&ctx->sha1));
-				verify_done(ctx);
-				file_object_release(&ctx->file);
-			}
-		} else {
-			ctx->offset += (size_t) r;
-			if (shaSuccess != SHA1Input(&ctx->context, ctx->buffer, r)) {
-				g_warning("SHA1 computation error for %s",
-					file_object_get_pathname(ctx->file));
-				goto error;
-			}
-			if (!verify_progress(ctx)) {
-				goto error;
-			}
-		}
+		verify_update(ctx);
 	}
-
-	goto finish;
 	
-error:
-	verify_failure(ctx);
-	file_object_release(&ctx->file);
-
-finish:	
-	return ctx->file || slist_length(files_to_hash) > 0 ? BGR_MORE : BGR_DONE;
+	if (ctx->file || slist_length(ctx->files_to_hash) > 0) {
+		return BGR_MORE;
+	} else {
+		return BGR_DONE;
+	}
 }
 
 static void
-verify_create_task(void)
+verify_create_task(struct verify *ctx)
 {
-	static const bgstep_cb_t step[] = { sha1_step_compute };
+	verify_check(ctx);
 
-	g_assert(NULL == verify_task);
-	verify_task = bg_task_create("SHA-1 calculation",
-					step, G_N_ELEMENTS(step),
-			  		verify_alloc(), verify_context_free,
-					NULL, NULL);
+	if (NULL == ctx->task) {
+		static const bgstep_cb_t step[] = { verify_step_compute };
+
+		ctx->task = bg_task_create(verify_hash_name(ctx),
+							step, G_N_ELEMENTS(step),
+			  				ctx, verify_context_free,
+							NULL, NULL);
+	}
 }
 
 static void
-verify_enqueue(const char *pathname, filesize_t filesize,
+verify_enqueue(struct verify *ctx,
+	const char *pathname, filesize_t offset, filesize_t amount,
 	verify_callback callback, void *user_data,
 	int append)
 {
 	struct verify_file *item;
-	
-	verify_init();
-	g_return_if_fail(files_to_hash);
+
+	verify_check(ctx);
+	g_return_if_fail(ctx->files_to_hash);
+
 	g_return_if_fail(pathname);
 	g_return_if_fail(callback);
 
-	item = verify_file_new(pathname, filesize, callback, user_data);
+	item = verify_file_new(pathname, offset, amount, callback, user_data);
 	if (append) {
-		slist_append(files_to_hash, item);
+		slist_append(ctx->files_to_hash, item);
 	} else {
-		slist_prepend(files_to_hash, item);
+		slist_prepend(ctx->files_to_hash, item);
 	}
-	if (NULL == verify_task) {
-		verify_create_task();
-	}
+	verify_create_task(ctx);
 }
 
 /**
  * Enqueue a file for verification at the tail of the queue.
  */
 void
-verify_append(const char *pathname, filesize_t filesize,
+verify_append(struct verify *ctx, const char *pathname,
+	filesize_t offset, filesize_t amount,
 	verify_callback callback, void *user_data)
 {
-	verify_enqueue(pathname, filesize, callback, user_data, TRUE);
+	verify_enqueue(ctx, pathname, offset, amount, callback, user_data, TRUE);
 }
 
 /**
  * Enqueue a file for verification at the head of the queue.
  */
 void
-verify_prepend(const char *pathname, filesize_t filesize,
+verify_prepend(struct verify *ctx, const char *pathname,
+	filesize_t offset, filesize_t amount,
 	verify_callback callback, void *user_data)
 {
-	verify_enqueue(pathname, filesize, callback, user_data, FALSE);
+	verify_enqueue(ctx, pathname, offset, amount, callback, user_data, FALSE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

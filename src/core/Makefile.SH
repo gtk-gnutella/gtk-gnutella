@@ -164,6 +164,7 @@ SRC = \
 	upload_stats.c \
 	uploads.c \
 	verify.c \
+	verify_sha1.c \
 	verify_tth.c \
 	version.c \
 	vmsg.c \
@@ -250,6 +251,7 @@ OBJ = \
 	upload_stats.o \
 	uploads.o \
 	verify.o \
+	verify_sha1.o \
 	verify_tth.o \
 	version.o \
 	vmsg.o \

@@ -108,6 +108,7 @@ SRC = \
 	upload_stats.c \
 	uploads.c \
 	verify.c \
+	verify_sha1.c \
 	verify_tth.c \
 	version.c \
 	vmsg.c \

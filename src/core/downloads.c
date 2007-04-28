@@ -48,7 +48,7 @@
 #include "version.h"
 #include "ignore.h"
 #include "ioheader.h"
-#include "verify.h"
+#include "verify_sha1.h"
 #include "move.h"
 #include "settings.h"
 #include "nodes.h"
@@ -10247,7 +10247,7 @@ download_verify_callback(const struct verify *ctx, enum verify_status status,
 		return TRUE;
 	case VERIFY_DONE:
 		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, FALSE);
-		download_verify_done(d, verify_sha1(ctx), verify_elapsed(ctx));
+		download_verify_done(d, verify_sha1_digest(ctx), verify_elapsed(ctx));
 		return TRUE;
 	case VERIFY_ERROR:
 		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, FALSE);
@@ -10292,7 +10292,8 @@ download_verify_sha1(struct download *d)
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
 
 	pathname = make_pathname(download_path(d), download_outname(d));
-	verify_prepend(pathname, download_filesize(d), download_verify_callback, d);
+	verify_sha1_prepend(pathname, download_filesize(d),
+			download_verify_callback, d);
 	G_FREE_NULL(pathname);
 
 	if (!DOWNLOAD_IS_VISIBLE(d))

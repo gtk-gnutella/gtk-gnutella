@@ -52,18 +52,28 @@ enum verify_status {
 };
 
 struct verify;
+
 typedef gboolean (*verify_callback)(const struct verify *,
 										enum verify_status, void *user_data);
 
-void verify_init(void);
-void verify_close(void);
+struct verify_hash {
+	const char *	(*name)(void);
+	void 			(*init)(filesize_t amount);
+	int  			(*update)(const void *data, size_t size);
+	int 			(*final)(void);
+};
 
-void verify_append(const char *pathname, filesize_t filesize,
+struct verify *verify_new(const struct verify_hash *);
+void verify_free(struct verify **ptr);
+
+void verify_append(struct verify *, const char *pathname,
+	filesize_t offset, filesize_t filesize,
 	verify_callback callback, void *user_data);
-void verify_prepend(const char *pathname, filesize_t filesize,
+void verify_prepend(struct verify *, const char *pathname,
+	filesize_t offset, filesize_t filesize,
 	verify_callback callback, void *user_data);
 
-const struct sha1 *verify_sha1(const struct verify *);
+enum verify_status verify_status(struct verify *ctx);
 filesize_t verify_hashed(const struct verify *);
 guint verify_elapsed(const struct verify *);
 void verify_cancel(const struct verify *);

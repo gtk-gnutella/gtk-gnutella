@@ -45,7 +45,7 @@ RCSID("$Id$")
 #include "share.h"
 #include "gmsg.h"
 #include "dmesh.h"
-#include "verify.h"
+#include "verify_sha1.h"
 #include "verify_tth.h"
 #include "version.h"
 #include "settings.h"
@@ -541,7 +541,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 	case VERIFY_PROGRESS:
 		return TRUE;
 	case VERIFY_DONE:
-		huge_update_hashes(sf, verify_sha1(ctx), NULL);
+		huge_update_hashes(sf, verify_sha1_digest(ctx), NULL);
 		/* FALL THROUGH */
 	case VERIFY_ERROR:
 	case VERIFY_SHUTDOWN:
@@ -564,7 +564,7 @@ queue_shared_file_for_sha1_computation(struct shared_file *sf)
 {
  	shared_file_check(sf);
 
-	verify_append(shared_file_path(sf), shared_file_size(sf),
+	verify_sha1_append(shared_file_path(sf), shared_file_size(sf),
 		huge_verify_callback, shared_file_ref(sf));
 }
 

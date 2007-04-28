@@ -416,6 +416,8 @@ src/core/uploads.c
 src/core/uploads.h
 src/core/verify.c
 src/core/verify.h
+src/core/verify_sha1.c
+src/core/verify_sha1.h
 src/core/verify_tth.c
 src/core/verify_tth.h
 src/core/version.c

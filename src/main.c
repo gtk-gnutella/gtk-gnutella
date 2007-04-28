@@ -86,7 +86,7 @@
 #include "core/tx.h"
 #include "core/uhc.h"
 #include "core/upload_stats.h"
-#include "core/verify.h"
+#include "core/verify_sha1.h"
 #include "core/verify_tth.h"
 #include "core/version.h"
 #include "core/vmsg.h"
@@ -374,8 +374,8 @@ gtk_gnutella_exit(gint n)
 	DO(pproxy_close);
 	DO(http_close);
 	DO(uhc_close);
-	DO(verify_close);
-	DO(tt_verify_close);
+	DO(verify_sha1_close);
+	DO(verify_tth_close);
 	DO(move_close);
 
 	/*
@@ -1235,7 +1235,8 @@ main(int argc, char **argv)
 	gip_init();
 	guid_init();
 	uhc_init();
-	verify_init();
+	verify_sha1_init();
+	verify_tth_init();
 	move_init();
 	ignore_init();
 	file_info_init();

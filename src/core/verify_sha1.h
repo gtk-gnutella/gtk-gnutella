@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,32 +27,30 @@
  * @ingroup core
  * @file
  *
- * Tigertree hash verification.
+ * Hash verification.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2002-2003
  */
 
-#ifndef _core_verify_tth_h_
-#define _core_verify_tth_h_
+#ifndef _core_verify_sha1_h_
+#define _core_verify_sha1_h_
 
 #include "common.h"
+
 #include "verify.h"
 
-struct tth;
-
-void verify_tth_append(const char *pathname,
-	filesize_t offset, filesize_t amount,
+void verify_sha1_append(const char *pathname, filesize_t filesize,
 	verify_callback callback, void *user_data);
-void verify_tth_prepend(const char *pathname,
-	filesize_t offset, filesize_t amount,
+void verify_sha1_prepend(const char *pathname, filesize_t filesize,
 	verify_callback callback, void *user_data);
 
-const struct tth *verify_tth_digest(const struct verify *);
+const struct sha1 *verify_sha1_digest(const struct verify *);
 
-void verify_tth_init(void);
-void verify_tth_close(void);
+void verify_sha1_init(void);
+void verify_sha1_close(void);
 
-void request_tigertree(struct shared_file *sf, gboolean high_priority);
+#endif	/* _core_verify_sha1_h_ */
 
-#endif /* _core_verify_tth_h_ */
+/* vi: set ts=4: */
+
