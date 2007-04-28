@@ -107,6 +107,7 @@ build_ui=${build_ui:-gtkversion=2}
 
 # Make sure previous Configure settings have no influence.
 ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
+rm -f config.sh
 
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
