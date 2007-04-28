@@ -295,7 +295,7 @@
 216.255.180.114
 217.116.225.250
 64.72.124.0/24
-64.72.126.0/24
+64.72.126.0/23
 
 # getlaidquickly dot com; spam results for files which do not even exist;
 # seemingly just an attempt to make the website well-known
