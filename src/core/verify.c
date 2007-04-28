@@ -208,7 +208,7 @@ verify_done(struct verify *ctx)
 }
 
 enum verify_status
-verify_status(struct verify *ctx)
+verify_status(const struct verify *ctx)
 {
 	verify_check(ctx);
 	return ctx->status;

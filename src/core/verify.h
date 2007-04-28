@@ -73,7 +73,7 @@ void verify_prepend(struct verify *, const char *pathname,
 	filesize_t offset, filesize_t filesize,
 	verify_callback callback, void *user_data);
 
-enum verify_status verify_status(struct verify *ctx);
+enum verify_status verify_status(const struct verify *);
 filesize_t verify_hashed(const struct verify *);
 guint verify_elapsed(const struct verify *);
 void verify_cancel(const struct verify *);
