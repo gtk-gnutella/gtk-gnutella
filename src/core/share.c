@@ -2565,19 +2565,51 @@ void
 shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 {
 	shared_file_check(sf);
-
 	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
 
-	sf->flags &= ~SHARE_F_RECOMPUTING;
+	sf->flags &= ~(SHARE_F_RECOMPUTING | SHARE_F_HAS_DIGEST);
+	sf->flags |= sha1 ? SHARE_F_HAS_DIGEST : 0;
 
 	if (sf->sha1) {
-		sf->flags &= ~SHARE_F_HAS_DIGEST;
-		g_tree_remove(sha1_to_share, deconstify_gpointer(sf->sha1));
+		struct shared_file *current;
+		gpointer key;
+
+		key = deconstify_gpointer(sf->sha1);
+		current = g_tree_lookup(sha1_to_share, key);
+		if (current) {
+			shared_file_check(current);
+			g_assert(SHARE_F_INDEXED & current->flags);
+
+			if (sf == current) {
+				g_tree_remove(sha1_to_share, key);
+			}
+		}
 	}
+
 	atom_sha1_change(&sf->sha1, sha1);
-	if (sf->sha1) {
-		sf->flags |= SHARE_F_HAS_DIGEST;
-		g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
+
+	/*
+	 * If the file is no longer in the index table, it must not be
+	 * put into the tree again. This might happen if a SHA-1 calculation
+	 * from a previous rescan finishes after newly initiated rescan.
+	 */
+	if ((SHARE_F_INDEXED & sf->flags) && sf->sha1) {
+		struct shared_file *current;
+		gpointer key;
+
+		key = deconstify_gpointer(sf->sha1);
+		current = g_tree_lookup(sha1_to_share, key);
+		if (current) {
+			shared_file_check(current);
+			g_assert(SHARE_F_INDEXED & current->flags);
+			
+			/*
+			 * There can be multiple shared files with the same SHA-1.
+			 * Only the first found is inserted into the tree.
+			 */
+		} else {
+			g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
+		}
 	}
 }
 
