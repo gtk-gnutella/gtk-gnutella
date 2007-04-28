@@ -9916,6 +9916,14 @@ download_moved_with_bad_sha1(struct download *d)
 		file_info_reset(d->file_info);
 		download_queue(d, _("SHA1 mismatch detected"));
 	}
+
+	/*
+	 * FIXME: If the download is not paused, the file would be downloaded
+	 *		  over and over again, even if there is just a single known
+	 *		  source. For now there really isn't any better option to
+	 *		  pause the download.
+	 */
+	download_pause(d);
 }
 
 /***
