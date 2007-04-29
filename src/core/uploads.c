@@ -618,7 +618,8 @@ upload_create(struct gnutella_socket *s, gboolean push)
 
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
-	u->last_update = tm_time();
+	u->start_date = tm_time();
+	u->last_update = u->start_date;
 	u->parq_status = FALSE;
 
 	/*
@@ -3275,9 +3276,7 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 									   to retrieve an error code */
 
 				/* Avoid data timeout */
-				u->last_update = parq_upload_lookup_lifetime(u) -
-					  upload_connected_timeout;
-
+				u->last_update = tm_time();
 				expect_http_header(u, GTA_UL_QUEUED);
 				return;
 			} else if (parq_upload_queue_full(u)) {
