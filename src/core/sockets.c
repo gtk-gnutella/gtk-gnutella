@@ -376,6 +376,8 @@ static gint
 socket_tos(const struct gnutella_socket *s, gint tos)
 {
 	socket_check(s);
+	g_return_val_if_fail(NET_TYPE_NONE != s->net, 0);
+
 	if (
 		use_ip_tos &&
 		NET_TYPE_IPV4 == s->net &&
@@ -2111,6 +2113,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		t->flags |= SOCK_F_LOCAL;
 		t->addr.net = NET_TYPE_LOCAL;
 	}
+	t->net = host_addr_net(t->addr);
 
 #ifdef HAS_GNUTLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
