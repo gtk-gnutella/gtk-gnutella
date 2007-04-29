@@ -220,7 +220,8 @@ share_query_context_make(void)
 	struct query_context *ctx;
 
 	ctx = walloc(sizeof *ctx);
-	ctx->found_indices = g_hash_table_new(pointer_hash_func, NULL);	/**< direct hashing */
+	/* Uses direct hashing */
+	ctx->found_indices = g_hash_table_new(pointer_hash_func, NULL);
 	ctx->files = NULL;
 	ctx->found = 0;
 
