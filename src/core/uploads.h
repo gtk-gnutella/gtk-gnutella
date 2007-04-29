@@ -45,8 +45,9 @@
 
 #include "if/core/uploads.h"
 
-struct gnutella_node;
 struct dl_file_info;
+struct gnutella_node;
+struct parq_ul_queued;
 struct special_upload;
 
 /**
@@ -63,7 +64,7 @@ typedef struct upload {
 	upload_stage_t status;
 	gint error_sent;				/**< HTTP error code sent back */
 	gpointer io_opaque;				/**< Opaque I/O callback information */
-	gpointer parq_opaque;			/**< Opaque parq information */
+	struct parq_ul_queued *parq_ul;	/**< PARQ information */
 
 	struct gnutella_socket *socket;
 	struct shared_file *sf;			/**< File we're uploading */

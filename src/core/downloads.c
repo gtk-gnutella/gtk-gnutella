@@ -4587,7 +4587,7 @@ create_download(
 	 */
 
 	if (parq_id) {
-		d->queue_status = parq_dl_create(d);
+		d->parq_dl = parq_dl_create(d);
 		parq_dl_add_id(d, parq_id);
 	}
 
@@ -4721,13 +4721,13 @@ download_clone(struct download *d)
 		download_push_insert(cd);
 	}
 
-	if (d->queue_status != NULL)
+	if (d->parq_dl)
 		parq_dl_reparent_id(d, cd);
 
 	if (d->cproxy != NULL)
 		cproxy_reparent(d, cd);
 
-	g_assert(d->queue_status == NULL);	/* Cleared by parq_dl_reparent_id() */
+	g_assert(d->parq_dl == NULL);	/* Cleared by parq_dl_reparent_id() */
 
 	/*
 	 * The following copied data are cleared in the child.
@@ -8488,10 +8488,10 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 		socket_eof(s);
 
-		if (d->queue_status == NULL)
-			download_stop(d, GTA_DL_ERROR, msg);
-		else
+		if (d->parq_dl)
 			download_queue_delay(d, download_retry_busy_delay, msg);
+		else
+			download_stop(d, GTA_DL_ERROR, msg);
 
 		return;
 	}
@@ -8507,11 +8507,12 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 		static const gchar msg[] = "Write failed: %s";
 
-		if (d->queue_status == NULL)
-			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
-		else
+		if (d->parq_dl) {
 			download_queue_delay(d, download_retry_busy_delay,
 				msg, g_strerror(errno));
+		} else {
+			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
+		}
 		return;
 	} else if (sent < rw) {
 		http_buffer_add_read(r, sent);
@@ -8885,12 +8886,13 @@ picked:
 		 *		--RAM, 17/05/2003
 		 */
 
-		if (d->queue_status == NULL)
-			download_stop(d, GTA_DL_ERROR,
-				"Write failed: %s", g_strerror(errno));
-		else
+		if (d->parq_dl) {
 			download_queue_delay(d, download_retry_busy_delay,
 				"Write failed: %s", g_strerror(errno));
+		} else {
+			download_stop(d, GTA_DL_ERROR,
+				"Write failed: %s", g_strerror(errno));
+		}
 		return;
 	} else if ((size_t) sent < rw) {
 		/*
@@ -9419,7 +9421,7 @@ download_find_waiting_unparq(const host_addr_t addr, guint16 port)
 			continue;
 		}
 
-		if (d->queue_status == NULL) {		/* No PARQ information yet */
+		if (d->parq_dl == NULL) {		/* No PARQ information yet */
 			found = TRUE;
 			break;
 		}

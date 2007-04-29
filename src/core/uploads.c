@@ -3168,8 +3168,8 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 
-		u->parq_opaque = parq_upload_get(u, header, replaced_stalling);
-		if (u->parq_opaque == NULL) {
+		u->parq_ul = parq_upload_get(u, header, replaced_stalling);
+		if (u->parq_ul == NULL) {
 			upload_error_remove(u, 503,
 				"Another connection is still active");
 			return;
@@ -3254,7 +3254,7 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 			(gulong) bsched_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage &&
 			(gulong) bsched_avg_pct(BSCHED_BWS_OUT) < ul_usage_min_percentage
 		) {
-			if (parq_upload_request_force(u, u->parq_opaque)) {
+			if (parq_upload_request_force(u, u->parq_ul)) {
 				parq_allows = TRUE;
 				if (upload_debug)
 					g_message(
@@ -3307,7 +3307,7 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 
-		parq_upload_busy(u, u->parq_opaque);
+		parq_upload_busy(u, u->parq_ul);
 	}
 
 	{

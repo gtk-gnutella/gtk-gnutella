@@ -235,7 +235,7 @@ struct download {
 	gboolean unavailable;		/**< Set on Timout, Push route lost */
 
 	struct cproxy *cproxy;		/**< Push proxy being used currently */
-	gpointer queue_status;		/**< Queuing status */
+	struct parq_dl_queued *parq_dl;	/**< Queuing status */
 	struct browse_ctx *browse;	/**< For browse-host requests */
 	struct thex_download *thex;	/**< For THEX downloads */
 };
