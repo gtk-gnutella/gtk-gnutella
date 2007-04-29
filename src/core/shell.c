@@ -1620,6 +1620,7 @@ shell_free(gnutella_shell_t *sh)
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->output); /* must have called shell_destroy before */
 
+	sh->magic = 0;
 	wfree(sh, sizeof *sh);
 }
 
