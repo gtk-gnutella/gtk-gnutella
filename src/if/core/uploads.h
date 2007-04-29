@@ -78,6 +78,7 @@ typedef struct gnet_upload_info {
 	filesize_t range_end;	/**< Last byte to send, inclusive */
 
 	time_t  start_date;
+	time_t  last_update;
 
 	const gchar  *user_agent;	/**< Remote user agent (converted to UTF-8) */
 	gint   country;  	/**< Contry of origin */

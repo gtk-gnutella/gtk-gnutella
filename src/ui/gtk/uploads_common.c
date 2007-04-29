@@ -107,7 +107,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 
     case GTA_UL_COMPLETE:
 		{
-			time_delta_t d = delta_time(u->last_update, data->start_date);
+			time_delta_t d = delta_time(data->last_update, data->start_date);
 	        filesize_t requested = data->range_end - data->range_start + 1;
 
 			gm_snprintf(tmpstr, sizeof(tmpstr),
@@ -125,7 +125,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			filesize_t tr = (data->range_end + 1 - u->pos) / MAX(1, u->avg_bps);
 			gdouble p = uploads_gui_progress(u, data);
 			time_t now = tm_time();
-			gboolean stalled = delta_time(now, u->last_update) > IO_STALLED;
+			gboolean stalled = delta_time(now, data->last_update) > IO_STALLED;
 			gchar pbuf[32];
 
 			gm_snprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);

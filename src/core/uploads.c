@@ -3743,17 +3743,14 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	g_assert(0 == u->socket->gdk_tag);
 	g_assert(NULL == u->bio);
 
-	u->start_date = now;
-	
 	/*
 	 * Technically, we have not started sending anything yet, but this
 	 * also serves as a marker in case we need to call upload_remove().
 	 * It will not send an HTTP reply by itself.
 	 */
 
-	u->last_update = tm_time();		/* Done reading headers */
-
-
+	u->start_date = now;
+	u->last_update = now;		/* Done reading headers */
 	u->was_actively_queued = FALSE;
 
 	switch (u->status) {
@@ -4606,6 +4603,7 @@ upload_get_info(gnet_upload_t uh)
     info->range_start   = u->skip;
     info->range_end     = u->end;
     info->start_date    = u->start_date;
+    info->last_update   = u->last_update;
     info->country       = u->country;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;

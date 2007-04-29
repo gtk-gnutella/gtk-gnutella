@@ -607,15 +607,18 @@ remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 }
 
 static inline void
-update_row(gpointer key, gpointer data, gpointer user_data)
+update_row(gpointer key, gpointer data, gpointer unused_udata)
 {
-	time_t now = *(const time_t *) user_data;
+	time_t now;
 	upload_row_data_t *rd = data;
 	gnet_upload_status_t status;
 	guint progress;
 
+	(void) unused_udata;
 	g_assert(NULL != rd);
 	g_assert(GPOINTER_TO_UINT(key) == rd->handle);
+
+	now = tm_time();
 	if (delta_time(now, rd->last_update) < 2)
 		return;
 
@@ -676,7 +679,7 @@ uploads_gui_update_display(time_t now)
 		sl_removed_uploads = ctx.sl_remaining;
 
 		/* Update the status column for all active uploads. */
-		g_hash_table_foreach(upload_handles, update_row, &now);
+		g_hash_table_foreach(upload_handles, update_row, NULL);
 
 		if (NULL == sl_removed_uploads)
 			gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
