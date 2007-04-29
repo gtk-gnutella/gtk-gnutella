@@ -247,15 +247,22 @@ dump_cache(gboolean force)
 {
 	if (force || cache_dirty) {
 		FILE *f;
-		
+
+		/* TODO: We should rather create a new file because if we fail
+		 *       to dump the cache, we'll have to hash all missing
+		 *		 files again which is a lot of work.
+		 */
 		f = file_fopen(persistent_cache_file_name, "w");
 		if (f) {
 
 			fputs(sha1_persistent_cache_file_header, f);
 			g_hash_table_foreach(sha1_cache, dump_cache_one_entry, f);
-			fclose(f);
-
-			cache_dirty = FALSE;
+			if (fclose(f)) {
+				g_warning("dump_cache: Failed to dump \"%s\": %s",
+					persistent_cache_file_name, g_strerror(errno));
+			} else {
+				cache_dirty = FALSE;
+			}
 		} else {
 			g_warning("dump_cache: could not open \"%s\"",
 				persistent_cache_file_name);
