@@ -52,8 +52,9 @@ RCSID("$Id$")
 
 #include "lib/override.h"	/* Must be the last header included */
 
-#define HASH_BLOCK_SHIFT	12			/**< Power of two of hash unit credit */
-#define HASH_BUF_SIZE		65536		/**< Size of the reading buffer */
+#define HASH_BUF_SIZE		(128 * 1024) /**< Size of the reading buffer */
+#define HASH_MS_PER_STEP	100	/**< Max. time to spent (in milliseconds) */
+#define HASH_RUNS_PER_STEP	64	/**< Upper limit; guard against bad clock */
 
 enum verify_magic { VERIFY_MAGIC = 0x2dc84379U };
 
@@ -424,17 +425,31 @@ static bgret_t
 verify_step_compute(struct bgtask *bt, void *data, int ticks)
 {
 	struct verify *ctx = data;
+	guint i = HASH_RUNS_PER_STEP;
+	tm_t t0;
 
 	verify_check(ctx);
 	(void) ticks;
 
 	bg_task_ticks_used(bt, 0);
+	tm_now_exact(&t0);
 
-	if (NULL == ctx->file) {
-		verify_next_file(ctx);
-	}
-	if (ctx->file) {
-		verify_update(ctx);
+	while (i-- > 0) {
+		tm_t t1, elapsed;
+
+		if (NULL == ctx->file) {
+			verify_next_file(ctx);
+		}
+		if (ctx->file) {
+			verify_update(ctx);
+		}
+		if (NULL == ctx->file && 0 == slist_length(ctx->files_to_hash))
+			break;
+
+		tm_now_exact(&t1);
+		tm_elapsed(&elapsed, &t1, &t0);
+		if (tm2ms(&elapsed) > HASH_MS_PER_STEP)
+			break;
 	}
 	
 	if (ctx->file || slist_length(ctx->files_to_hash) > 0) {
