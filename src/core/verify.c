@@ -53,7 +53,7 @@ RCSID("$Id$")
 #include "lib/override.h"	/* Must be the last header included */
 
 #define HASH_BUF_SIZE		(128 * 1024) /**< Size of the reading buffer */
-#define HASH_MS_PER_STEP	400	/**< Max. time to spent (in milliseconds) */
+#define HASH_MS_PER_STEP	50	/**< Max. time to spent (in milliseconds) */
 #define HASH_RUNS_PER_STEP	64	/**< Upper limit; guard against bad clock */
 
 enum verify_magic { VERIFY_MAGIC = 0x2dc84379U };
