@@ -51,13 +51,16 @@
  * Public interface.
  */
 
+struct parq_dl_queued;
+struct parq_ul_queued;
+
 void parq_init(void);
 void parq_close(void);
 
 const gchar *get_parq_dl_id(const struct download *d);
 void parq_dl_reparent_id(struct download *d, struct download *cd);
 
-gpointer parq_dl_create(struct download *d);
+struct parq_dl_queued *parq_dl_create(const struct download *d);
 void parq_dl_add_id(struct download *d, const gchar *new_id);
 void parq_dl_remove(struct download *d);
 void parq_dl_free(struct download *d);
@@ -65,10 +68,10 @@ void parq_dl_free(struct download *d);
 void parq_download_retry_active_queued(struct download *d);
 gboolean parq_download_supports_parq(header_t *header);
 gboolean parq_download_parse_queue_status(struct download *d, header_t *header);
-gboolean parq_download_is_active_queued(struct download *d);
+gboolean parq_download_is_active_queued(const struct download *d);
 void parq_download_add_header(
 		gchar *buf, size_t len, size_t *rw, struct download *d);
-gboolean parq_download_is_passive_queued(struct download *d);
+gboolean parq_download_is_passive_queued(const struct download *d);
 void parq_download_queue_ack(struct gnutella_socket *s);
 
 void parq_upload_timer(time_t now);
@@ -78,10 +81,11 @@ size_t parq_upload_add_headers(gchar *buf, size_t size,
 size_t parq_upload_add_header_id(gchar *buf, size_t size,
 	gpointer arg, guint32 flags);
 
-gpointer parq_upload_get(
-	gnutella_upload_t *u, header_t *header, gboolean replacing);
+struct parq_ul_queued *parq_upload_get(gnutella_upload_t *u, header_t *header,
+			gboolean replacing);
 gboolean parq_upload_request(gnutella_upload_t *u);
-gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle);
+gboolean parq_upload_request_force(gnutella_upload_t *u,
+		struct parq_ul_queued *handle);
 guint parq_upload_lookup_position(const gnutella_upload_t *u);
 const gchar * parq_upload_lookup_id(const gnutella_upload_t *u);
 gboolean parq_upload_queue_full(gnutella_upload_t *u);
@@ -101,7 +105,7 @@ void parq_upload_upload_got_freed(gnutella_upload_t *u);
 void parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu);
 void parq_upload_force_remove(gnutella_upload_t *u);
 void parq_upload_add(gnutella_upload_t *u);
-void parq_upload_busy(gnutella_upload_t *u, gpointer handle);
+void parq_upload_busy(gnutella_upload_t *u, struct parq_ul_queued *handle);
 void parq_upload_save_queue(void);
 void parq_upload_send_queue_conf(gnutella_upload_t *u);
 
