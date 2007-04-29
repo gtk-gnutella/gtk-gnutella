@@ -53,7 +53,7 @@ RCSID("$Id$")
 #include "lib/override.h"	/* Must be the last header included */
 
 #define HASH_BUF_SIZE		(128 * 1024) /**< Size of the reading buffer */
-#define HASH_MS_PER_STEP	100	/**< Max. time to spent (in milliseconds) */
+#define HASH_MS_PER_STEP	400	/**< Max. time to spent (in milliseconds) */
 #define HASH_RUNS_PER_STEP	64	/**< Upper limit; guard against bad clock */
 
 enum verify_magic { VERIFY_MAGIC = 0x2dc84379U };
@@ -69,8 +69,8 @@ struct verify {
 	struct file_object *file;	/**< The file object to access the file. */
 	filesize_t amount;			/**< Total amount of bytes to hash. */
 	filesize_t offset;			/**< Current offset into the file. */
-	filesize_t hashed;			/**< Amount of bytes hashes so far */
-	time_t start;				/**< Start time, to determine comp. rate */
+	filesize_t start;			/**< Initial offset. */
+	time_t started;				/**< Start time, to determine comp. rate */
 	char *buffer;				/**< Read buffer */
 	size_t buffer_size;			/**< Size of buffer in bytes. */
 
@@ -225,7 +225,7 @@ verify_hashed(const struct verify *ctx)
 	verify_check(ctx);
 	g_assert(VERIFY_INVALID != ctx->status);
 
-	return ctx->hashed;
+	return ctx->offset - ctx->start;
 }
 
 /**
@@ -240,7 +240,7 @@ verify_elapsed(const struct verify *ctx)
 	verify_check(ctx);
 	g_assert(VERIFY_INVALID != ctx->status);
 
-	d = delta_time(tm_time(), ctx->start);
+	d = delta_time(tm_time(), ctx->started);
 	d = MAX(0, d);
 	d = MIN(d, INT_MAX);
 	return d;
@@ -316,6 +316,7 @@ verify_next_file(struct verify *ctx)
 
 		ctx->user_data = item->user_data;
 		ctx->callback = item->callback;
+		ctx->start = item->offset;
 		ctx->offset = item->offset;
 		ctx->amount = item->amount;
 
@@ -349,7 +350,7 @@ verify_next_file(struct verify *ctx)
 		}
 		verify_hash_init(ctx);
 		compat_fadvise_sequential(file_object_get_fd(ctx->file), 0, 0);
-		ctx->start = tm_time_exact();
+		ctx->started = tm_time_exact();
 	}
 	return;
 
@@ -403,7 +404,6 @@ verify_update(struct verify *ctx)
 	} else {
 		ctx->amount -= (size_t) r;
 		ctx->offset += (size_t) r;
-		ctx->hashed += (size_t) r;
 
 		if (verify_hash_update(ctx, ctx->buffer, r)) {
 			g_warning("%s computation error for %s",
