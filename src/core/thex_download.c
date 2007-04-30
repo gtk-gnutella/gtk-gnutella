@@ -308,7 +308,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 		}
 		
 		depth = parse_uint32(value, NULL, 10, &error);
-		error |= depth < 1 || depth > tt_full_depth(ctx->filesize);
+		error |= depth > tt_full_depth(ctx->filesize);
 		if (error) {
 			g_message("Bad value for \"depth\" of node \"%s\": \"%s\"",
 				node->name, value);

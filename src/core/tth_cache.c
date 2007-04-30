@@ -31,7 +31,7 @@
  *
  * The TTH data for each file is stored in
  * $GTK_GNUTELLA_DIR/tth_cache/<base-32 TTH> in raw binary form. Only the
- * leaves are depth 9 or higher are stored. The root hash and the nodes at
+ * leaves at TTH_MAX_DEPTH or above are stored. The root hash and the nodes at
  * each level between above these leaves can be calculated from the leaves.
  *
  * @author Christian Biere

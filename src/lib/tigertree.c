@@ -134,7 +134,7 @@ tt_full_depth(filesize_t filesize)
 	unsigned depth;
 
 	n_blocks = tt_block_count(filesize); 
-	depth = 1;
+	depth = 0;
 	while (n_blocks > 1) {
 		n_blocks = (n_blocks + 1) / 2;
 		depth++;
@@ -145,7 +145,7 @@ tt_full_depth(filesize_t filesize)
 unsigned
 tt_good_depth(filesize_t filesize)
 {
-	unsigned depth = 1;
+	unsigned depth = 0;
 
 	while (filesize >= 256 * 1024 && depth < TTH_MAX_DEPTH) {
 		filesize /= 2;
@@ -159,7 +159,7 @@ tt_node_count_at_depth(filesize_t filesize, unsigned depth)
 {
 	filesize_t n, m;
 
-	m = 1 << (depth - 1);
+	m = 1 << depth;
 	n = tt_block_count(filesize); 
 	while (n > m) {
 		n = (n + 1) / 2;
@@ -344,7 +344,7 @@ tt_init(TTH_CONTEXT *ctx, filesize_t filesize)
 	ctx->li = 0;
 	ctx->n = 0;
 	ctx->bpl = tt_blocks_per_leaf(filesize);
-	ctx->depth = 1;
+	ctx->depth = 0;
 	ctx->good_depth = tt_good_depth(filesize);
 	ctx->flags = TTH_F_INITIALIZED;
 }

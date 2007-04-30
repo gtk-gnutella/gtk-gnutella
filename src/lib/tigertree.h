@@ -65,8 +65,8 @@
 #define TIGERSIZE	24
 
 /* Maximum depth to preserve */
-#define TTH_MAX_DEPTH	12
-#define TTH_MAX_LEAVES	(1 << (TTH_MAX_DEPTH - 1))
+#define TTH_MAX_DEPTH	11
+#define TTH_MAX_LEAVES	(1 << TTH_MAX_DEPTH)
 
 
 struct TTH_CONTEXT;
