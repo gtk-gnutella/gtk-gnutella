@@ -145,13 +145,26 @@ tt_full_depth(filesize_t filesize)
 unsigned
 tt_good_depth(filesize_t filesize)
 {
-	unsigned depth = 0;
+	static const unsigned long thresholds[] = {
+	            256 * 1024UL,	/* depth 0 */
+	            512 * 1024UL,	/* depth 1 */
+	       1 * 1024 * 1024UL,	/* depth 2 */
+	   	   2 * 1024 * 1024UL,	/* depth 3 */
+	   	   4 * 1024 * 1024UL,	/* depth 4 */
+	   	   8 * 1024 * 1024UL,	/* depth 5 */
+	  	  16 * 1024 * 1024UL,	/* depth 6 */
+	  	  32 * 1024 * 1024UL,	/* depth 7 */
+	  	  64 * 1024 * 1024UL,	/* depth 8 */
+	 	 256 * 1024 * 1024UL,	/* depth 9 */
+		1024 * 1024 * 1024UL,	/* depth 10 */
+	};
+	unsigned i;
 
-	while (filesize >= 256 * 1024 && depth < TTH_MAX_DEPTH) {
-		filesize /= 2;
-		depth++;
+	for (i = 0; i < G_N_ELEMENTS(thresholds); i++) {
+		if (filesize < thresholds[i])
+			break;
 	}
-	return depth;
+	return i;
 }
 
 filesize_t 
@@ -435,7 +448,7 @@ tt_check(void)
 #undef Ax1024
 #undef D
 	};
-	guint i;
+	unsigned i;
 
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 		char digest[TTH_BASE32_SIZE + 1];
@@ -451,11 +464,11 @@ tt_check(void)
 		digest[G_N_ELEMENTS(digest) - 1] = '\0';
 
 		if (0 != strcmp(tests[i].digest, digest)) {
-			guint j;
+			unsigned j;
 
 			g_warning("i=%u, digest=\"%s\"", i, digest);
 			for (j = 0; j < G_N_ELEMENTS(hash.data); j++) {
-				printf("%02x", (guint8) hash.data[j]);
+				printf("%02x", (unsigned char) hash.data[j] & 0xff);
 			}
 			printf("\n");
 			g_assert_not_reached();
