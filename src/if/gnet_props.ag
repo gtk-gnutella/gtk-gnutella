@@ -349,8 +349,8 @@ prop = {
 		   "times out.";
     type = guint32;
     data = {
-        default = 60;
-        min     = 10;
+        default = 90;
+        min     = 60;
         max     = 100000;
     };
 };
@@ -360,8 +360,8 @@ prop = {
     desc = "Number of seconds before a push request times out.";
     type = guint32;
     data = {
-        default = 60;
-        min     = 30;
+        default = 90;
+        min     = 60;
         max     = 100000;
     };
 };
@@ -372,8 +372,8 @@ prop = {
            "is received.";
     type = guint32;
     data = {
-        default = 60;
-        min     = 20;
+        default = 180;
+        min     = 120;
         max     = 100000;
     };
 };
@@ -483,8 +483,8 @@ prop = {
 			"whole HTTP request.";
     type = guint32;
     data = {
-        default = 60;
-        min     = 10;
+        default = 90;
+        min     = 60;
         max     = 100000;
     };
 };
@@ -496,7 +496,7 @@ prop = {
     type = guint32;
     data = {
         default = 180;
-        min     = 20;
+        min     = 120;
         max     = 100000;
     };
 };
@@ -568,8 +568,8 @@ prop = {
             "to start sending out its request.";
     type = guint32;
     data = {
-        default = 30;
-        min     = 15;
+        default = 60;
+        min     = 30;
         max     = 300;
     };
 };
@@ -2732,7 +2732,7 @@ prop = {
 		"disconnected. If set to zero, no timeout occurs.";
 	type = guint32;
 	data = {
-		default = 60;
+		default = 180;
 		min = 0;
 		max = 31536000; /* 365 * 24 * 3600 */
 	};
