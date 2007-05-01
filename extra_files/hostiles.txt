@@ -959,3 +959,6 @@
 # Gnucleus 1.8.4.0; seems spam with adware or trojans
 209.85.52.226
 
+# MOV pr0n spam; 21-plus dot com
+64.89.16.0/23
+
