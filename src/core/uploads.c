@@ -2610,7 +2610,7 @@ get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
 		goto tth_recomputed;
 	}
 
-	if (0 == tth_cache_lookup(shared_file_tth(sf))) {
+	if (0 == tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf))) {
 		shared_file_set_tth(sf, NULL);
 		upload_request_tth(sf);
 		goto tth_recomputed;

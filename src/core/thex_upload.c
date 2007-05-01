@@ -152,11 +152,12 @@ static gboolean
 thex_upload_tree(struct thex_upload *ctx)
 {
 	struct dime_record *dime;
-	struct tth *nodes;
+	const struct tth *nodes;
 	size_t n_nodes;
 
 	nodes = NULL;	
-	n_nodes = tth_cache_get_tree(ctx->tth, &nodes);
+	n_nodes = tth_cache_get_tree(ctx->tth, ctx->filesize, &nodes);
+
 	g_return_val_if_fail(n_nodes > 0, FALSE);
 	g_return_val_if_fail(nodes, FALSE);
 

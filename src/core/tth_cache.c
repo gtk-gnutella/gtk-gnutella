@@ -34,6 +34,8 @@
  * leaves at TTH_MAX_DEPTH or above are stored. The root hash and the nodes at
  * each level between above these leaves can be calculated from the leaves.
  *
+ * If the depth is 1 (root only), nothing is stored.
+ *
  * @author Christian Biere
  * @date 2007
  */
@@ -112,6 +114,20 @@ tth_cache_file_open(const struct tth *tth)
 	return fd;
 }
 
+static gboolean
+tth_cache_file_exists(const struct tth *tth)
+{
+	gboolean ret;
+	char *pathname;
+
+	g_return_val_if_fail(tth, FALSE);
+
+	pathname = tth_cache_pathname(tth);
+	ret = file_exists(pathname);
+	G_FREE_NULL(pathname);
+	return ret;
+}
+
 void
 tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 {
@@ -182,18 +198,24 @@ tth_cache_leave_count(const struct tth *tth, int fd)
  * @return The number of leaves or zero if unknown.
  */
 size_t
-tth_cache_lookup(const struct tth *tth)
+tth_cache_lookup(const struct tth *tth, filesize_t filesize)
 {
-	int fd, leave_count = 0;
+	size_t expected, leave_count = 0;
+	int fd;
 	
 	g_return_val_if_fail(tth, 0);
 
-	fd = tth_cache_file_open(tth);
-	if (fd >= 0) {
-		leave_count = tth_cache_leave_count(tth, fd);
-		close(fd);
+	expected = tt_good_node_count(filesize);
+	if (expected > 1) {
+		fd = tth_cache_file_open(tth);
+		if (fd >= 0) {
+			leave_count = tth_cache_leave_count(tth, fd);
+			close(fd);
+		}
+	} else {
+		leave_count = 1;
 	}
-	return leave_count;
+	return expected != leave_count ? 0 : leave_count;
 }
 
 void
@@ -242,13 +264,21 @@ tth_cache_get_leaves(const struct tth *tth,
 }
 
 size_t
-tth_cache_get_tree(const struct tth *tth, struct tth **tree)
+tth_cache_get_tree(const struct tth *tth, filesize_t filesize,
+	const struct tth **tree)
 {
 	static struct tth nodes[TTH_MAX_LEAVES * 2];
-	size_t n_leaves;
+	size_t n_leaves, expected;
 
 	g_return_val_if_fail(tth, 0);
 	g_return_val_if_fail(tree, 0);
+
+	expected = tt_good_node_count(filesize);
+	if (1 == expected) {
+		nodes[0] = *tth;
+		*tree = &nodes[0];
+		return 1;
+	}
 
 	*tree = NULL;
 	
@@ -256,7 +286,7 @@ tth_cache_get_tree(const struct tth *tth, struct tth **tree)
 					&nodes[TTH_MAX_LEAVES], TTH_MAX_LEAVES);
 	g_assert(n_leaves <= TTH_MAX_LEAVES);
 
-	if (n_leaves > 0) {
+	if (expected == n_leaves) {
 		size_t n_nodes, dst, src;
 
 		n_nodes = n_leaves;
@@ -276,7 +306,7 @@ tth_cache_get_tree(const struct tth *tth, struct tth **tree)
 		}
 	}
 
-	if (tth_cache_lookup(tth)) {
+	if (tth_cache_file_exists(tth)) {
 		g_warning("tth_cache_get_tree(): Removing corrupted tigertree for %s",
 			tth_base32(tth));
 		tth_cache_remove(tth);
