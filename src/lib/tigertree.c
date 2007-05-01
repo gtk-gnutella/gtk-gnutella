@@ -278,7 +278,7 @@ tt_finish(TTH_CONTEXT *ctx)
 			}
 			depth--;
 			n_blocks = (n_blocks + 1) / 2;
-			if (depth == ctx->good_depth - 1) {
+			if (depth == ctx->good_depth) {
 				g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
 				ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
 				ctx->li++;
