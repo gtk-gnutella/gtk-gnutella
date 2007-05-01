@@ -97,12 +97,12 @@ guint32  search_max_items     = 50;
 guint32  search_max_items_def = 50;
 guint32  ul_usage_min_percentage     = 70;
 guint32  ul_usage_min_percentage_def = 70;
-guint32  download_connecting_timeout     = 60;
-guint32  download_connecting_timeout_def = 60;
-guint32  download_push_sent_timeout     = 60;
-guint32  download_push_sent_timeout_def = 60;
-guint32  download_connected_timeout     = 60;
-guint32  download_connected_timeout_def = 60;
+guint32  download_connecting_timeout     = 90;
+guint32  download_connecting_timeout_def = 90;
+guint32  download_push_sent_timeout     = 90;
+guint32  download_push_sent_timeout_def = 90;
+guint32  download_connected_timeout     = 180;
+guint32  download_connected_timeout_def = 180;
 guint32  download_retry_timeout_min     = 20;
 guint32  download_retry_timeout_min_def = 20;
 guint32  download_retry_timeout_max     = 300;
@@ -119,8 +119,8 @@ guint32  download_retry_stopped_delay     = 15;
 guint32  download_retry_stopped_delay_def = 15;
 guint32  download_overlap_range     = 512;
 guint32  download_overlap_range_def = 512;
-guint32  upload_connecting_timeout     = 60;
-guint32  upload_connecting_timeout_def = 60;
+guint32  upload_connecting_timeout     = 90;
+guint32  upload_connecting_timeout_def = 90;
 guint32  upload_connected_timeout     = 180;
 guint32  upload_connected_timeout_def = 180;
 guint32  search_reissue_timeout     = 3600;
@@ -133,8 +133,8 @@ guint32  banned_count     = 0;
 guint32  banned_count_def = 0;
 guint32  max_banned_fd     = 100;
 guint32  max_banned_fd_def = 100;
-guint32  incoming_connecting_timeout     = 30;
-guint32  incoming_connecting_timeout_def = 30;
+guint32  incoming_connecting_timeout     = 60;
+guint32  incoming_connecting_timeout_def = 60;
 guint32  node_connecting_timeout     = 30;
 guint32  node_connecting_timeout_def = 30;
 guint32  node_connected_timeout     = 180;
@@ -534,8 +534,8 @@ guint32  search_queue_spacing     = 10;
 guint32  search_queue_spacing_def = 10;
 gboolean enable_shell     = FALSE;
 gboolean enable_shell_def = FALSE;
-guint32  remote_shell_timeout     = 60;
-guint32  remote_shell_timeout_def = 60;
+guint32  remote_shell_timeout     = 180;
+guint32  remote_shell_timeout_def = 180;
 guint32  entry_removal_timeout     = 5;
 guint32  entry_removal_timeout_def = 5;
 gboolean node_watch_similar_queries     = TRUE;
@@ -1249,7 +1249,7 @@ gnet_prop_init(void) {
     gnet_property->props[29].data.guint32.value = &download_connecting_timeout;
     gnet_property->props[29].data.guint32.choices = NULL;
     gnet_property->props[29].data.guint32.max   = 100000;
-    gnet_property->props[29].data.guint32.min   = 10;
+    gnet_property->props[29].data.guint32.min   = 60;
 
 
     /*
@@ -1269,7 +1269,7 @@ gnet_prop_init(void) {
     gnet_property->props[30].data.guint32.value = &download_push_sent_timeout;
     gnet_property->props[30].data.guint32.choices = NULL;
     gnet_property->props[30].data.guint32.max   = 100000;
-    gnet_property->props[30].data.guint32.min   = 30;
+    gnet_property->props[30].data.guint32.min   = 60;
 
 
     /*
@@ -1289,7 +1289,7 @@ gnet_prop_init(void) {
     gnet_property->props[31].data.guint32.value = &download_connected_timeout;
     gnet_property->props[31].data.guint32.choices = NULL;
     gnet_property->props[31].data.guint32.max   = 100000;
-    gnet_property->props[31].data.guint32.min   = 20;
+    gnet_property->props[31].data.guint32.min   = 120;
 
 
     /*
@@ -1469,7 +1469,7 @@ gnet_prop_init(void) {
     gnet_property->props[40].data.guint32.value = &upload_connecting_timeout;
     gnet_property->props[40].data.guint32.choices = NULL;
     gnet_property->props[40].data.guint32.max   = 100000;
-    gnet_property->props[40].data.guint32.min   = 10;
+    gnet_property->props[40].data.guint32.min   = 60;
 
 
     /*
@@ -1489,7 +1489,7 @@ gnet_prop_init(void) {
     gnet_property->props[41].data.guint32.value = &upload_connected_timeout;
     gnet_property->props[41].data.guint32.choices = NULL;
     gnet_property->props[41].data.guint32.max   = 100000;
-    gnet_property->props[41].data.guint32.min   = 20;
+    gnet_property->props[41].data.guint32.min   = 120;
 
 
     /*
@@ -1609,7 +1609,7 @@ gnet_prop_init(void) {
     gnet_property->props[47].data.guint32.value = &incoming_connecting_timeout;
     gnet_property->props[47].data.guint32.choices = NULL;
     gnet_property->props[47].data.guint32.max   = 300;
-    gnet_property->props[47].data.guint32.min   = 15;
+    gnet_property->props[47].data.guint32.min   = 30;
 
 
     /*
