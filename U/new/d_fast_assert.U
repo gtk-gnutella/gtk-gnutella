@@ -57,6 +57,7 @@ EOC
 	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
 	then
 		case "$ccflags" in
+		*-O0*) ;;
 		*-momit-leaf-frame-pointer*) ;;
 		*)
 			ccflags="$ccflags -momit-leaf-frame-pointer"
