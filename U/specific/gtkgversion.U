@@ -2,32 +2,30 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:gtkgversion: cat grep rsrc +cc rm
+?MAKE:gtkgversion: awk cat rm rsrc
 ?MAKE:	-pick add $@ %<
 ?S:gtkgversion:
 ?S:	The version of gtk-gnutella we're compiling.
 ?S:.
-?F:!ver.c !ver
+?F:!ver
 ?LINT:usefile ver.c
 : determine our version number
 echo " "
 echo "Figuring out my version number..." >&4
-$grep '^#define GTA' $rsrc/src/common.h | $grep -v GTA_INTERFACE >ver.c
-$cat >>ver.c <<'EOM'
-#include <stdio.h>
-int main()
-{
-#if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
-	printf("%d.%d.%d%s\n",
-		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR);
-#else
-	printf("%d.%d%s\n", GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR);
-#endif
-	return 0;
+$cat > ver <<'EOC'
+/^#define GTA_VERSION/		{ major=$3 }
+/^#define GTA_SUBVERSION/	{ minor=$3 }
+/^#define GTA_PATCHLEVEL/	{ tiny=$3 }
+/^#define GTA_REVCHAR/		{ rev=$3; gsub("[^a-zA-Z]", "", rev); }
+END {
+	if (tiny) {
+		printf("%u.%u.%u%s", major, minor, tiny, rev);
+	} else {
+		printf("%u.%u%s", major, minor, rev);
+	}
 }
-EOM
-$cc -o ver ver.c
-gtkgversion=`./ver`
+EOC
+gtkgversion=`$awk -f ./ver "$rsrc/src/common.h"`
 echo "(You have version $gtkgversion.)"
-$rm -f ver.c ver
+$rm -f ver
 
