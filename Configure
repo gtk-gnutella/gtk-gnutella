@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu May  3 00:47:22 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Thu May  3 20:28:36 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5290,13 +5290,9 @@ version=`$gnutlsconfig $modver`
 case "$version" in
 '') ;;
 *)
-	gnutlscflags=`$gnutlsconfig --cflags`
-	gnutlsldflags=`$gnutlsconfig --libs`
 	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
 	if test 0$vint -lt 010016; then
 		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
-		gnutlscflags=
-		gnutlsldflags=
 	else
 		echo "Good, you have GNU TLS $version."
 		
@@ -5311,8 +5307,10 @@ EOM
 		dflt=y
 		. ./myread
 		case "$ans" in
-		y) gnutls="$define";;
-		*) gnutls="$undef";;
+		y)	gnutlscflags=`$gnutlsconfig --cflags`
+			gnutlsldflags=`$gnutlsconfig --libs`
+			gnutls="$define";;
+		*)	gnutls="$undef";;
 		esac
 	fi
 	;;
