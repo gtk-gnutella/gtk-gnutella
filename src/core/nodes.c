@@ -5475,6 +5475,7 @@ err_header_read_error(gpointer obj, gint error)
 	struct gnutella_node *n = cast_to_node(obj);
  
 	if (ECONNRESET == error && GTA_NODE_HELLO_SENT == n->status) {
+        hcache_add(HCACHE_TIMEOUT, n->addr, 0, "connection reset");
 		node_send_udp_ping(n);
 	}
 	node_remove(n, _("Failed (Input error: %s)"), g_strerror(error));
