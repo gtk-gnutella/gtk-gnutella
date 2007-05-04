@@ -1980,7 +1980,11 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			addr = zero_host_addr;
 		}
 
-		if (host_addr_equal(addr, n->addr) && host_is_valid(addr, port)) {
+		if (
+			host_addr_equal(addr, n->addr) &&
+			host_is_valid(addr, port) &&
+        	!hcache_node_is_bad(addr)
+		) {
 			host_add(addr, port, TRUE);
 		}
 	}
