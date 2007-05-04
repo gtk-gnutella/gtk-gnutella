@@ -2982,7 +2982,6 @@ parq_upload_collect_stats(const gnutella_upload_t *u)
 
    	uq = parq_upload_find(u);
 	g_assert(uq != NULL);
-	g_assert(uq->has_slot || uq->had_slot || 0 == u->sent);
 
 	uq->uploaded_size += u->sent;
 }
