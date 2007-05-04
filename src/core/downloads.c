@@ -86,6 +86,7 @@
 #include "lib/idtable.h"
 #include "lib/palloc.h"
 #include "lib/magnet.h"
+#include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/utf8.h"
@@ -6497,7 +6498,10 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		file_info_got_tth(d->file_info, tth);
 	}
 
-	if (NULL == d->file_info->tigertree.leaves) {
+	if (
+		tt_good_depth(download_filesize(d)) > 0 &&
+		0 == d->file_info->tigertree.num_leaves
+	) {
 		guint32 cflags = 0;
 		
 		
