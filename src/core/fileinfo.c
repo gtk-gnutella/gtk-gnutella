@@ -4494,11 +4494,19 @@ list_clone_shift(fileinfo_t *fi)
 			clone = g_slist_copy(sl);
 			break;
 		}
+
+		/*
+		 * If offset lies within a free chunk, it will get split below.
+		 * So exit without cloning anything yet.
+		 */
+
+		if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset)
+			break;
 	}
 
 	/*
-	 * If we have not cloned anything, it means we have a big chunk
-	 * at the end and the selected offset lies within that chunk.
+	 * If we have not cloned anything, it means we have encountered a big chunk
+	 * and the selected offset lies within that chunk.
 	 * Be smarter and break-up any free chunk into two at the selected offset.
 	 */
 
@@ -4511,6 +4519,7 @@ list_clone_shift(fileinfo_t *fi)
 				struct dl_file_chunk *nfc;
 
 				g_assert(fc->from < offset);	/* Or we'd have cloned above */
+				g_assert(fc->download == NULL);	/* Chunk is empty */
 
 				/*
 				 * fc was [from, to[.  It becomes [from, offset[.
@@ -4520,16 +4529,14 @@ list_clone_shift(fileinfo_t *fi)
 				nfc = dl_file_chunk_alloc();
 				nfc->from = offset;
 				nfc->to = fc->to;
-				nfc->status = fc->status;
-				nfc->download = fc->download;
+				nfc->status = DL_CHUNK_EMPTY;
 				fc->to = nfc->from;
-
-				if (nfc->download) {
-					download_check(nfc->download);
-				}
 
 				fi->chunklist = gm_slist_insert_after(fi->chunklist, sl, nfc);
 				clone = g_slist_copy(g_slist_next(sl));
+
+				g_assert(clone != NULL);		/* The `nfc' chunk is there */
+
 				break;
 			}
 		}
