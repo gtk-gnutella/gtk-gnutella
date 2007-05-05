@@ -143,7 +143,8 @@ typedef enum {
     GTA_DL_SINKING,			/**< Sinking HTML reply */
     GTA_DL_ACTIVE_QUEUED,	/**< Actively queued */
     GTA_DL_PASSIVE_QUEUED,	/**< Passively queued */
-    GTA_DL_REQ_SENDING		/**< Sending HTTP request */
+    GTA_DL_REQ_SENDING,		/**< Sending HTTP request */
+	GTA_DL_IGNORING,		/**< Ignoring received data on resuming mismatch */
 } download_status_t;
 
 typedef struct download download_t;
@@ -213,6 +214,7 @@ struct download {
 	guint32 retries;
 	guint32 timeout_delay;
 	guint32 served_reqs;		/**< Amount of served requests on connection */
+	guint32 mismatches;			/**< Amount of resuming data mismatches */
 
 	const gchar *remove_msg;
 
@@ -332,7 +334,8 @@ enum {
 	|| (d)->status == GTA_DL_DONE       )
 
 #define DOWNLOAD_IS_ACTIVE(d)			\
-	(  (d)->status == GTA_DL_RECEIVING	)
+	(  (d)->status == GTA_DL_RECEIVING	\
+	|| (d)->status == GTA_DL_IGNORING	)
 
 #define DOWNLOAD_IS_WAITING(d)			\
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT)
@@ -345,6 +348,7 @@ enum {
 	|| (d)->status == GTA_DL_REQ_SENDING	\
 	|| (d)->status == GTA_DL_ACTIVE_QUEUED	\
 	|| (d)->status == GTA_DL_SINKING	\
+	|| (d)->status == GTA_DL_IGNORING	\
 	|| (d)->status == GTA_DL_HEADERS	)
 
 #define DOWNLOAD_IS_EXPECTING_GIV(d)	\

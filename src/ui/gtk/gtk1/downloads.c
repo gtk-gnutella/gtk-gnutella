@@ -986,6 +986,7 @@ gui_update_download(struct download *d, gboolean force)
 		switch (d->status) {
 		case GTA_DL_ACTIVE_QUEUED:
 		case GTA_DL_RECEIVING:
+		case GTA_DL_IGNORING:
 		case GTA_DL_HEADERS:
 		case GTA_DL_PUSH_SENT:
 		case GTA_DL_CONNECTING:
@@ -1250,6 +1251,7 @@ gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_RECEIVING:
+	case GTA_DL_IGNORING:
 		if (d->pos + download_buffered(d) > d->skip) {
 			gint bps;
 			guint32 avg_bps;
@@ -1314,7 +1316,7 @@ gui_update_download(struct download *d, gboolean force)
 			 */
 
 			if (d->ranges != NULL)
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 
 			/*
@@ -1323,8 +1325,12 @@ gui_update_download(struct download *d, gboolean force)
 			 */
 
 			if (d->served_reqs)
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" #%u", d->served_reqs + 1);
+
+			if (GTA_DL_IGNORING == d->status)
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					" (%s)", _("ignoring"));
 
 			a = tmpstr;
 		} else
@@ -1531,6 +1537,7 @@ gui_update_download_abort_resume(void)
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_HEADERS:
 		case GTA_DL_RECEIVING:
+		case GTA_DL_IGNORING:
 		case GTA_DL_ACTIVE_QUEUED:
 		case GTA_DL_SINKING:
 			do_abort = TRUE;

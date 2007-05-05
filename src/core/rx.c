@@ -145,6 +145,25 @@ rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind)
 }
 
 /**
+ * Replace the `data_ind' callback, returning the old one.
+ */
+rx_data_t
+rx_replace_data_ind(rxdrv_t *rx, rx_data_t data_ind)
+{
+	rx_data_t old_data_ind;
+
+	g_assert(rx);
+	g_assert(rx->upper == NULL);			/* Called on topmost driver */
+	g_assert(data_ind != rx_data_ind);		/* Must not use internal routine */
+	g_assert(rx->data_ind != rx_data_ind);	/* data_ind has been set already */
+
+	old_data_ind = rx->data_ind;
+	rx->data_ind = data_ind;
+
+	return old_data_ind;
+}
+
+/**
  * Called when an upper driver (urx) is attached on top of us.
  */
 static void

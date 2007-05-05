@@ -358,6 +358,7 @@ gui_update_download(download_t *d, gboolean force)
 		break;
 
 	case GTA_DL_RECEIVING:
+	case GTA_DL_IGNORING:
 		if (d->pos + download_buffered(d) > d->skip) {
 			gint bps;
 			guint32 avg_bps;
@@ -419,6 +420,10 @@ gui_update_download(download_t *d, gboolean force)
 			if (d->served_reqs)
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" #%u", d->served_reqs + 1);
+
+			if (GTA_DL_IGNORING == d->status)
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					" (%s)", _("ignoring"));
 
 			status = tmpstr;
 		} else {

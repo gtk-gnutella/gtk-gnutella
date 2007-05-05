@@ -105,6 +105,9 @@ RCSID("$Id$")
 #define DOWNLOAD_MIN_OVERLAP	64		/**< Minimum overlap for safety */
 #define DOWNLOAD_SHORT_DELAY	2		/**< Shortest retry delay */
 #define DOWNLOAD_MAX_SINK		16384	/**< Max amount of data to sink */
+#define DOWNLOAD_MAX_IGN_DATA	2097152	/**< Max amount of data to ignore */
+#define DOWNLOAD_MAX_IGN_TIME	300		/**< Max amount of secs we can ignore */
+#define DOWNLOAD_MAX_IGN_REQS	3		/**< How many mismatches per source */
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
 
@@ -124,6 +127,7 @@ static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean download_send_push_request(struct download *d);
 static gboolean download_read(struct download *d, pmsg_t *mb);
+static gboolean download_ignore_data(struct download *d, pmsg_t *mb);
 static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
@@ -318,6 +322,20 @@ download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	struct download *d = rx_owner(rx);
 
 	return download_read(d, mb);
+}
+
+/**
+ * RX data indication callback used to give us some new download traffic in a
+ * low-level message structure.
+ *
+ * @return FALSE if an error occurred.
+ */
+static gboolean
+download_ignore_data_ind(rxdrv_t *rx, pmsg_t *mb)
+{
+	struct download *d = rx_owner(rx);
+
+	return download_ignore_data(d, mb);
 }
 
 static const struct rx_link_cb download_rx_link_cb = {
@@ -1036,6 +1054,7 @@ download_timer(time_t now)
 
 		switch (d->status) {
 		case GTA_DL_RECEIVING:
+		case GTA_DL_IGNORING:
 			/*
 			 * Update the global average reception rate periodically.
 			 */
@@ -2156,7 +2175,7 @@ download_remove_file(struct download *d, gboolean reset)
 		case GTA_DL_ACTIVE_QUEUED:
 		case GTA_DL_PUSH_SENT:
 		case GTA_DL_FALLBACK:
-		case GTA_DL_SINKING:		/* Will only make a new request after */
+		case GTA_DL_SINKING:		/* Will only make one request afterwards */
 		case GTA_DL_CONNECTING:
 			continue;
 		default:
@@ -2794,7 +2813,7 @@ download_server_retry_after(struct dl_server *server, time_t now, gint hold)
 	/*
 	 * We impose a minimum of DOWNLOAD_SERVER_HOLD seconds between retries.
 	 * If we have some entries passively queued, well, we have some grace time
-	 * before the entry expires.  And even if it expires, we won't loose the
+	 * before the entry expires.  And even if it expires, we won't lose the
 	 * slot.  People having 100 entries passively queued on the same host with
 	 * low retry rates will have problems, but if they requested too often,
 	 * they would get banned anyway.  Let the system regulate itself via chaos.
@@ -2981,7 +3000,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	g_assert(d->file_info);
 	g_assert(d->file_info->refcount);
 
-	if (d->status == GTA_DL_RECEIVING) {
+	if (DOWNLOAD_IS_ACTIVE(d)) {
 		g_assert(d->file_info->recvcount > 0);
 		g_assert(d->file_info->recvcount <= d->file_info->refcount);
 		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
@@ -3004,7 +3023,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		d->file_info->dirty_status = TRUE;
 
 		/*
-		 * Dismantle RX stack for browse host.
+		 * Dismantle RX stack for browse host or THEX downloads.
 		 */
 
 		if (d->flags & DL_F_BROWSE) {
@@ -3885,7 +3904,7 @@ download_start(struct download *d, gboolean check_allowed)
 		if (!d->socket) {
 			/*
 			 * If we ran out of file descriptors, requeue this download.
-			 * We don't want to loose the source.  We can't be sure, but
+			 * We don't want to lose the source.  We can't be sure, but
 			 * if we see a banned_count of 0 and file_descriptor_runout set,
 			 * then the lack of connection is probably due to a lack of
 			 * descriptors.
@@ -4813,7 +4832,7 @@ download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
 				/*
 				 * We've sent a request with possibly the wrong index.
 				 * We can't know for sure, but it's safer to stop it, and
-				 * restart it in a while.  Sure, we might loose the download
+				 * restart it in a while.  Sure, we might lose the download
 				 * slot, but we might as well have gotten a wrong file.
 				 *
 				 * NB: this can't happen when the remote peer is gtk-gnutella
@@ -5636,6 +5655,40 @@ call_download_push_ready(gpointer o, header_t *unused_header)
 }
 
 /**
+ * Forget that we ever downloaded some bytes when there was a resuming
+ * mismatch at some point.
+ */
+static void
+download_backout(struct download *d)
+{
+	filesize_t begin, end;
+	guint32 backout;
+
+	/*
+	 * It is most likely that we have a mismatch because
+	 * the other guy's data is not in order, but we could
+	 * also have received bad data ourselves. Just to be
+	 * sure we back out some of our data. Eventually we
+	 * should find a host with good data, or we have
+	 * backed out enough times for our data to be good
+	 * again. This really is a stop-gap measure that TTH
+	 * will fill in a more permanent way.
+	 */
+
+	end = d->skip + 1;
+	gnet_prop_get_guint32_val(PROP_DL_MISMATCH_BACKOUT, &backout);
+	if (end >= backout)
+		begin = end - backout;
+	else
+		begin = 0;
+	file_info_update(d, begin, end, DL_CHUNK_EMPTY);
+	g_message("resuming data mismatch on %s, backed out %u bytes block"
+		" from %s to %s",
+		 download_outname(d), (guint) backout,
+		 uint64_to_string(begin), uint64_to_string2(end));
+}
+
+/**
  * Check that the leading overlapping data in the read buffers match with
  * the last ones in the downloaded file.  Then remove them.
  *
@@ -5728,6 +5781,10 @@ download_overlap_check(struct download *d)
 	}
 
 	if (!buffers_match(d, data, d->overlap_size)) {
+		/*
+		 * Resuming data mismatch.
+		 */
+
 		if (download_debug > 1) {
 			g_message("%u overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(guint) d->overlap_size,
@@ -5735,58 +5792,93 @@ download_overlap_check(struct download *d)
 				download_outname(d));
         }
 
+		d->pos += d->buffers->held;	/* Keep track of what we read so far */
+		d->mismatches++;
 		buffers_discard(d);			/* Discard everything we read so far */
-		download_bad_source(d);		/* Until proven otherwise if we resume it */
 
 		if (dl_remove_file_on_mismatch) {
+			download_bad_source(d);	/* Until proven otherwise if we resume it */
 			download_queue(d, "Resuming data mismatch @ %s",
 				uint64_to_string(d->skip - d->overlap_size));
 			download_remove_file(d, TRUE);
-		} else {
-			filesize_t begin, end;
-			guint32 backout;
-
-			/*
-			 * It is most likely that we have a mismatch because
-			 * the other guy's data is not in order, but we could
-			 * also have received bad data ourselves. Just to be
-			 * sure we back out some of our data. Eventually we
-			 * should find a host with good data, or we have
-			 * backed out enough times for our data to be good
-			 * again. This really is a stop-gap measure that TTH
-			 * will fill in a more permanent way.
-			 */
-
-			end = d->skip + 1;
-			gnet_prop_get_guint32_val(PROP_DL_MISMATCH_BACKOUT, &backout);
-			if (end >= backout)
-				begin = end - backout;
-			else
-				begin = 0;
-			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
-			g_message("resuming data mismatch on %s, backed out %u bytes block"
-				" from %s to %s",
-				 download_outname(d), (guint) backout,
-				 uint64_to_string(begin), uint64_to_string2(end));
-
-			/*
-			 * Don't always keep this source, and since there is doubt,
-			 * leave it to randomness.
-			 */
-
-			if (random_value(99) >= 50)
-				download_stop(d, GTA_DL_ERROR,
-					"Resuming data mismatch @ %s",
-					uint64_to_string(d->skip - d->overlap_size));
-			else
-				download_queue_delay(d, download_retry_busy_delay,
-					"Resuming data mismatch @ %s",
-					uint64_to_string(d->skip - d->overlap_size));
+			goto out;
 		}
+
+		/*
+		 * If we have not seen too many resuming mismatches from this source,
+		 * maybe we got fooled earlier and downloaded some bad data.  Give
+		 * this source a chance: if we don't have too much data requested,
+		 * simply ignore them and get a chance to issue a new request later.
+		 *		--RAM, 2007-05-05
+		 */
+
+		if (d->mismatches <= DOWNLOAD_MAX_IGN_REQS && d->keep_alive) {
+			filesize_t remain;
+			guint speed_avg;
+
+			/*
+			 * Look at how many bytes we need to download still for this
+			 * request.  If we have a known average download rate for the
+			 * server, great, we'll use it to estimate the time we'll spend.
+			 * Otherwise, use a size limit.
+			 */
+
+			g_assert(d->range_end >= d->pos);
+
+			remain = d->range_end - d->pos;
+			speed_avg = download_speed_avg(d);
+
+			if (speed_avg && remain / speed_avg > DOWNLOAD_MAX_IGN_TIME)
+				goto abort_download;
+
+			if (remain > DOWNLOAD_MAX_IGN_DATA)
+				goto abort_download;
+
+			/*
+			 * We're going to purely ignore the data until we reach the end
+			 * of this request, at which time we'll issue a new request,
+			 * possibly somewhere else: we don't know for sure whether the
+			 * source is bad or the data we had at the resuming point were
+			 * faulty, hence we have to leave that to randomness -- we take
+			 * our chances with the source..
+			 */
+
+			download_backout(d);	/* Forget some bytes at mismatch point */
+
+			(void) rx_replace_data_ind(d->rx, download_ignore_data_ind);
+			d->status = GTA_DL_IGNORING;
+
+			if (download_debug > 1)
+				g_message("will be ignoring next %s bytes of data for \"%s\"",
+					uint64_to_string(remain), download_outname(d));
+					
+			success = TRUE;			/* Act as if overlapping was OK */
+			goto out;
+		}
+
+	abort_download:
+
+		download_bad_source(d);	/* Until proven otherwise if we resume it */
+		download_backout(d);	/* Forget some bytes at mismatch point */
+
+		/*
+		 * Don't always keep this source, and since there is doubt,
+		 * leave it to randomness.
+		 */
+
+		if (random_value(99) >= 50)
+			download_stop(d, GTA_DL_ERROR,
+				"Resuming data mismatch @ %s",
+				uint64_to_string(d->skip - d->overlap_size));
+		else
+			download_queue_delay(d, download_retry_busy_delay,
+				"Resuming data mismatch @ %s",
+				uint64_to_string(d->skip - d->overlap_size));
 		goto out;
 	}
 
 	/*
+	 * Great, resuming data matched!
 	 * Remove the overlapping data from the read buffers.
 	 */
 
@@ -5962,6 +6054,53 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 }
 
 /**
+ * Called when a chunk has been fully received but the file is still incomplete
+ * and more data is to be fetched.
+ *
+ * Continue downloading from this source, now that the previous chunk was
+ * fully received: if the connection was flagged "keep alive", go on with
+ * the next request.
+ *
+ * @param d			the download source whose request has been completed
+ * @param trimmed	whether we had to trim the tail of the received data
+ */
+static void
+download_continue(struct download *d, gboolean trimmed)
+{
+	struct download *cd;					/* Cloned download */
+
+	/*
+	 * Since a download structure is associated with a GUI line entry, we
+	 * must clone it to be able to display the chunk as completed, yet
+	 * continue downloading.
+	 */
+
+	cd = download_clone(d);
+	download_stop(d, GTA_DL_COMPLETED, no_reason);
+
+	cd->served_reqs++;		/* We got one more served request */
+
+	/*
+	 * If we had to trim the data requested, it means the server did not
+	 * understand our Range: request properly, and it's going to send us
+	 * more data.  Something weird happened, and we can't even think
+	 * continuing with this connection.
+	 */
+
+	if (trimmed)
+		download_queue(cd, _("Requeued after trimmed data"));
+	else if (!cd->keep_alive)
+		download_queue(cd, _("Chunk done, connection closed"));
+	else {
+		if (download_start_prepare(cd)) {
+			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
+			gcu_download_gui_add(cd);
+			download_send_request(cd);		/* Will pick up new range */
+		}
+	}
+}
+
+/**
  * Write data in socket buffer to file.
  *
  * @return FALSE if an error occurred.
@@ -5972,7 +6111,6 @@ download_write_data(struct download *d)
 	struct dl_buffers *b;
 	fileinfo_t *fi;
 	gboolean trimmed = FALSE;
-	struct download *cd;					/* Cloned download, if completed */
 	enum dl_chunk_status status = DL_CHUNK_BUSY;
 	gboolean should_flush;
 
@@ -5993,7 +6131,7 @@ download_write_data(struct download *d)
 	if (d->overlap_size && !(d->flags & DL_F_OVERLAPPED)) {
 		g_assert(d->pos == d->skip);
 		if (b->held < d->overlap_size)		/* Not enough bytes yet */
-			return TRUE;						/* Don't even write anything */
+			return TRUE;					/* Don't even write anything */
 		if (!download_overlap_check(d))		/* Mismatch on overlapped bytes? */
 			return FALSE;					/* Download was stopped */
 		d->flags |= DL_F_OVERLAPPED;		/* Don't come here again */
@@ -6125,37 +6263,8 @@ partial_done:
 	g_assert(d->pos == d->range_end);
 	g_assert(fi->use_swarming);
 
-	/*
-	 * Since a download structure is associated with a GUI line entry, we
-	 * must clone it to be able to display the chunk as completed, yet
-	 * continue downloading.
-	 */
-
-	cd = download_clone(d);
-	download_stop(d, GTA_DL_COMPLETED, no_reason);
-
-	cd->served_reqs++;		/* We got one more served request */
-
-	/*
-	 * If we had to trim the data requested, it means the server did not
-	 * understand our Range: request properly, and it's going to send us
-	 * more data.  Something weird happened, and we can't even think
-	 * continuing with this connection.
-	 */
-
-	if (trimmed)
-		download_queue(cd, _("Requeued after trimmed data"));
-	else if (!cd->keep_alive)
-		download_queue(cd, _("Chunk done, connection closed"));
-	else {
-		if (download_start_prepare(cd)) {
-			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
-			gcu_download_gui_add(cd);
-			download_send_request(cd);		/* Will pick up new range */
-		}
-	}
-
-	return FALSE;
+	download_continue(d, trimmed);
+	return FALSE;	/* No error really, but this download has been stopped */
 
 	/*
 	 * We have completed the download of the requested file.
@@ -7270,7 +7379,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 * and will give us its IP:port.
 	 *
 	 * NB: do this before extracting the server token, as it may redirect
-	 * us to an alternate server, and we could therefore loose the server
+	 * us to an alternate server, and we could therefore lose the server
 	 * vendor string indication (attaching it to a discarded server object).
 	 */
 
@@ -7684,7 +7793,7 @@ http_version_nofix:
 			 * and is restarted before the retry timeout expires.
 			 *
 			 * If we did not special case this reply, then someone who
-			 * auto-cleans downloads from his queue on error would loose
+			 * auto-cleans downloads from his queue on error would lose
 			 * a source due to some error in GTKG, which is... embarrassing!
 			 *
 			 * NB: older GTKG before 2004-04-11 did not emit a Retry-After
@@ -8399,7 +8508,7 @@ download_incomplete_header(struct download *d)
 }
 
 /**
- * Read callback for file data.
+ * Read callback for file data from the RX stack.
  */
 static gboolean
 download_read(struct download *d, pmsg_t *mb)
@@ -8408,7 +8517,6 @@ download_read(struct download *d, pmsg_t *mb)
 
 	download_check(d);
 	g_assert(d->file_info->recvcount > 0);
-
 	g_assert(d->socket);
 	g_assert(d->file_info);
 
@@ -8432,7 +8540,7 @@ download_read(struct download *d, pmsg_t *mb)
 	d->last_update = tm_time();
 	fi->recv_amount += pmsg_size(mb);
 
-	buffers_add_read(d, mb);	/* Can free mb if data copied */
+	buffers_add_read(d, mb);	/* mb will be kept and freed there as needed */
 
 	/*
 	 * Possibly write data if we reached the end of the chunk we requested,
@@ -8444,6 +8552,43 @@ download_read(struct download *d, pmsg_t *mb)
 error:
 	pmsg_free(mb);
 	return FALSE;
+}
+
+/**
+ * Read callback for file data from the RX stack, used when we ignore those
+ * data after a failed resuming check.
+ */
+static gboolean
+download_ignore_data(struct download *d, pmsg_t *mb)
+{
+	fileinfo_t *fi;
+	gint r;
+
+	download_check(d);
+	g_assert(d->file_info->recvcount > 0);
+	g_assert(d->socket);
+	g_assert(d->file_info);
+
+	d->last_update = tm_time();
+	r = pmsg_size(mb);
+	fi = d->file_info;
+	fi->recv_amount += r;
+	d->pos += r;
+
+	gcu_gui_update_download(d, FALSE);
+
+	if (d->pos >= d->range_end) {
+		/*
+		 * We finished our request, go on with a new one, hoping it will
+		 * match this time or give us good data if we request elsewhere
+		 * with no resuming checking possibilities.
+		 */
+
+		download_continue(d, d->pos > d->range_end);
+	}
+
+	pmsg_free(mb);
+	return TRUE;
 }
 
 /**
@@ -8501,7 +8646,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
-		 * error or we'd loose the PARQ ID, and the download entry.  If the
+		 * error or we'd lose the PARQ ID, and the download entry.  If the
 		 * server contacts us back with a QUEUE callback, we could be unable
 		 * to resume!
 		 *		--RAM, 14/07/2003
@@ -8903,7 +9048,7 @@ picked:
 	if ((ssize_t) -1 == sent) {
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
-		 * error or we'd loose the PARQ ID, and the download entry.  If the
+		 * error or we'd lose the PARQ ID, and the download entry.  If the
 		 * server contacts us back with a QUEUE callback, we could be unable
 		 * to resume!
 		 *		--RAM, 17/05/2003
@@ -10926,7 +11071,9 @@ download_rx_done(struct download *d)
 }
 
 /**
- * Called when more data has been received.
+ * Called when more data has been received on the RX stack, for non-file
+ * downloads (e.g. when issuing a browse host request), so that we update
+ * the download structure for accurate GUI feedback.
  */
 void
 download_data_received(struct download *d, ssize_t received)
