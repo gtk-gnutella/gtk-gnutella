@@ -50,10 +50,12 @@ RCSID("$Id$")
  * callback, since the values can expire automatically.
  */
 
-#define AGING_MAGIC	0xa9179
+enum aging_magic {
+	AGING_MAGIC	= 0xb8e2fac3U
+};
 
 struct aging {
-	guint32 magic;			/**< Magic number */
+	enum aging_magic magic;			/**< Magic number */
 	GHashTable *table;		/**< The table holding values */
 	aging_free_t kfree;		/**< The freeing callback for keys */
 	aging_free_t vfree;		/**< The freeing callback for values */
@@ -142,6 +144,7 @@ aging_destroy(gpointer obj)
 
 	g_hash_table_foreach(ag->table, aging_free_kv, ag);
 	g_hash_table_destroy(ag->table);
+	ag->magic = 0;
 	wfree(ag, sizeof *ag);
 }
 
@@ -226,14 +229,15 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 	g_assert(ag->magic == AGING_MAGIC);
 
 	found = g_hash_table_lookup_extended(ag->table, key, &okey, &ovalue);
-
 	if (found) {
 		aval = ovalue;
 
 		g_assert(aval->key == okey);
 
-		if (aval->key != key && ag->kfree != NULL)
-			(*ag->kfree)(aval->key, ag->kdata);
+		if (aval->key != key && ag->kfree != NULL) {
+			/* We discard the new and keep the old key instead */
+			(*ag->kfree)(key, ag->kdata);
+		}
 
 		if (aval->value != value && ag->vfree != NULL)
 			(*ag->vfree)(aval->value, ag->vdata);
@@ -245,7 +249,6 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 		 */
 
 		aval->value = value;
-		aval->key = key;
 		aval->ttl -= delta_time(now, aval->last_insert);
 		aval->ttl += ag->delay;
 		aval->ttl = MAX(aval->ttl, 1);
@@ -265,7 +268,6 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 		aval->ag = ag;
 		aval->cq_ev = cq_insert(callout_queue,
 			1000 * aval->ttl, aging_expire, aval);
-
 		g_hash_table_insert(ag->table, key, aval);
 	}
 }
