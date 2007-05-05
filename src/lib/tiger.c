@@ -56,15 +56,6 @@ RCSID("$Id$")
 #include "tiger.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
- * The following macro denotes that an optimization
- * for 32-bit CPUs is desired. It is used only for
- * optimization of time. Otherwise it does nothing.
- */
-#if (G_MAXULONG == 0xffffffffUL)
-#define OPTIMIZE_FOR_32BIT 1
-#endif
-
 /* NOTE that this code is NOT FULLY OPTIMIZED for any  */
 /* machine. Assembly code might be much faster on some */
 /* machines, especially if the code is compiled with   */
@@ -90,7 +81,6 @@ RCSID("$Id$")
       bb = b; \
       cc = c;
 
-#if !defined(OPTIMIZE_FOR_32BIT)
 /* This is the official definition of round */
 #define round(a,b,c,x,mul) \
       c ^= x; \
@@ -99,21 +89,6 @@ RCSID("$Id$")
       b += t4[((c)>>(1*8))&0xFF] ^ t3[((c)>>(3*8))&0xFF] ^ \
 	   t2[((c)>>(5*8))&0xFF] ^ t1[((c)>>(7*8))&0xFF] ; \
       b *= mul;
-#else
-/* This code works faster when compiled on 32-bit machines */
-/* (but works slower on Alpha) */
-#define round(a,b,c,x,mul) \
-      c ^= x; \
-      a -= t1[(guint8)(c)] ^ \
-           t2[(guint8)(((guint32)(c))>>(2*8))] ^ \
-	   t3[(guint8)((c)>>(4*8))] ^ \
-           t4[(guint8)(((guint32)((c)>>(4*8)))>>(2*8))] ; \
-      b += t4[(guint8)(((guint32)(c))>>(1*8))] ^ \
-           t3[(guint8)(((guint32)(c))>>(3*8))] ^ \
-	   t2[(guint8)(((guint32)((c)>>(4*8)))>>(1*8))] ^ \
-           t1[(guint8)(((guint32)((c)>>(4*8)))>>(3*8))]; \
-      b *= mul;
-#endif
 
 #define pass(a,b,c,mul) \
       round(a,b,c,x0,mul) \
@@ -148,7 +123,6 @@ RCSID("$Id$")
       b -= bb; \
       c += cc;
 
-#if !defined(OPTIMIZE_FOR_32BIT)
 /* The loop is unrolled: works better on Alpha */
 #define compress \
       save_abc \
@@ -162,16 +136,6 @@ RCSID("$Id$")
 	pass(a,b,c,9) \
 	tmpa=a; a=c; c=b; b=tmpa;} \
       feedforward
-#else
-/* loop: works better on PC and Sun (smaller cache?) */
-#define compress \
-      save_abc \
-      for(pass_no=0; pass_no<PASSES; pass_no++) { \
-        if(pass_no != 0) {key_schedule} \
-	pass(a,b,c,(pass_no==0?5:pass_no==1?7:9)); \
-	tmpa=a; a=c; c=b; b=tmpa;} \
-      feedforward
-#endif
 
 #define tiger_compress_macro(str, state) \
 { \
