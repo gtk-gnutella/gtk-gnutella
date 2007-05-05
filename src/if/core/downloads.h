@@ -94,19 +94,20 @@ enum dl_server_magic { DL_SERVER_MAGIC = 0x5e45e4ffU };
 
 struct dl_server {
 	enum dl_server_magic magic;	/**< Magic number */
-	gint refcnt;			 /**< Reference count */
-	struct dl_key *key;		 /**< Key properties */
-	list_t *list[DL_LIST_SZ]; /**< Download lists */
-	const gchar *vendor;	 		/**< Remote server vendor string (atom) */
-	const gchar *hostname;	 	/**< Remote hostname, if known (atom) */
-	gint country;			 /**< Country of origin -- encoded ISO3166 */
-	time_t retry_after;		 /**< Time at which we may retry from this host */
-	time_t dns_lookup;		/**< Last DNS lookup for hostname */
+	gint refcnt;				/**< Reference count */
+	struct dl_key *key;			/**< Key properties */
+	list_t *list[DL_LIST_SZ];	/**< Download lists */
+	const gchar *vendor;		/**< Remote server vendor string (atom) */
+	const gchar *hostname;		/**< Remote hostname, if known (atom) */
+	gint country;				/**< Country of origin -- encoded ISO3166 */
+	time_t retry_after;			/**< Time at which we may retry from this host */
+	time_t dns_lookup;			/**< Last DNS lookup for hostname */
 	struct vernum parq_version; /**< Supported queueing version */
 	guint32 attrs;
 	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
 	time_t proxies_stamp;	/**< Time when list was last updated */
 	GHashTable *sha1_counts;
+	guint speed_avg;			/**< Average (EMA) upload speed, in bytes/sec */
 };
 
 static inline gboolean

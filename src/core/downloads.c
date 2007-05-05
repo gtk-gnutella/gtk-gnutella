@@ -3047,6 +3047,29 @@ download_stop_v(struct download *d, download_status_t new_status,
 
 	switch (new_status) {
 	case GTA_DL_COMPLETED:
+		{
+			/*
+			 * Update average download speed, computing a fast EMA on the
+			 * last 3 terms.  Average is initialized with the actual download
+			 * rate the first time we compute it.
+			 */
+
+			time_delta_t t = delta_time(d->last_update, d->start_date);
+			struct dl_server *server = d->server;
+
+			g_assert(server != NULL);
+
+			if (t > 0) {
+				filesize_t amount = d->range_end - d->skip + d->overlap_size;
+				guint avg = amount / t;
+
+				if (server->speed_avg == 0)
+					server->speed_avg = avg;	/* First time */
+				else
+					server->speed_avg += (avg >> 1) - (server->speed_avg >> 1);
+			}
+		}
+		/* FALL THROUGH */
 	case GTA_DL_ABORTED:
 	case GTA_DL_ERROR:
 		g_assert(d->file_info->lifecount <= d->file_info->refcount);
