@@ -57,6 +57,7 @@ typedef struct gnet_upload_status {
 	guint32 bps;         /**< Current transfer rate */
 	guint32 avg_bps;     /**< Average transfer rate */
 	time_t  last_update;
+	guint reqnum;		 /**< Count of uploaded chunks */
 
 	gboolean parq_quick;
 	guint	parq_position;

@@ -91,6 +91,7 @@ typedef struct upload {
 	gint buf_size;
 
 	guint file_index;
+	guint reqnum;				/**< Request number, incremented when serving */
 
 	time_t start_date;
 	time_t last_update;

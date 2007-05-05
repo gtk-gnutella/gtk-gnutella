@@ -3493,6 +3493,7 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 	/* TODO: Add a property for this */
 	sock_send_buf(u->socket, 64 * 1024, FALSE);
 
+	u->reqnum++;
 	u->bio = bsched_source_add(BSCHED_BWS_OUT, &u->socket->wio,
 				BIO_F_WRITE, upload_writable, u);
 	upload_stats_file_begin(u->sf);
@@ -4638,6 +4639,7 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
     si->bps         = 1;
     si->avg_bps     = 1;
     si->last_update = u->last_update;
+	si->reqnum      = u->reqnum;
 
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
