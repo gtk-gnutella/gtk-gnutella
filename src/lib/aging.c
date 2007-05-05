@@ -233,7 +233,7 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 		g_assert(aval->key == okey);
 
 		if (aval->key != key && ag->kfree != NULL)
-			(*ag->kfree)(key, ag->kdata);
+			(*ag->kfree)(aval->key, ag->kdata);
 
 		if (aval->value != value && ag->vfree != NULL)
 			(*ag->vfree)(aval->value, ag->vdata);
