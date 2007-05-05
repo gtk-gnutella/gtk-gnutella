@@ -116,7 +116,10 @@ struct TTH_CONTEXT {
 	unsigned depth;			/* current tree depth */
 	unsigned good_depth;	/* the desired depth of the final leaves */
 	unsigned flags;
-	char block[TTH_BLOCKSIZE + 1];
+	union {
+		guint64 u64;	/* Better alignment */
+		char bytes[TTH_BLOCKSIZE + 1];
+	} block;
 	struct tth stack[56];
 	struct tth leaves[TTH_MAX_LEAVES];
 };
@@ -205,12 +208,15 @@ tt_blocks_per_leaf(filesize_t filesize)
 static void
 tt_internal_hash(const struct tth *a, const struct tth *b, struct tth *dst)
 {
-	char buf[TIGERSIZE * 2 + 1];
+	union {
+		guint64 u64;	/* Better alignment */
+		char bytes[TIGERSIZE * 2 + 1];
+	} buf;
 
-	buf[0] = 0x01;
-	memcpy(&buf[1 + 0 * TIGERSIZE], a, TIGERSIZE);
-	memcpy(&buf[1 + 1 * TIGERSIZE], b, TIGERSIZE);
-	tiger(buf, sizeof buf, dst->data);
+	buf.bytes[0] = 0x01;
+	memcpy(&buf.bytes[1 + 0 * TIGERSIZE], a, TIGERSIZE);
+	memcpy(&buf.bytes[1 + 1 * TIGERSIZE], b, TIGERSIZE);
+	tiger(buf.bytes, sizeof buf.bytes, dst->data);
 }
 
 static void
@@ -250,7 +256,7 @@ tt_block(TTH_CONTEXT *ctx)
 {
 	g_assert(ctx);
 
-	tiger(ctx->block, ctx->block_fill, ctx->stack[ctx->si].data);
+	tiger(ctx->block.bytes, ctx->block_fill, ctx->stack[ctx->si].data);
 	if (ctx->bpl == 1) {
 		ctx->leaves[ctx->li] = ctx->stack[ctx->si];
 		ctx->li++;
@@ -352,7 +358,7 @@ tt_init(TTH_CONTEXT *ctx, filesize_t filesize)
 	g_assert(ctx);
 
 	ctx->block_fill = 1;
-	ctx->block[0] = 0x00;
+	ctx->block.bytes[0] = 0x00;
 	ctx->si = 0;
 	ctx->li = 0;
 	ctx->n = 0;
@@ -373,15 +379,15 @@ tt_update(TTH_CONTEXT *ctx, const void *data, size_t size)
 	g_assert(size == 0 || NULL != data);
 
 	while (size > 0) {
-		size_t n = sizeof ctx->block - ctx->block_fill;
+		size_t n = sizeof ctx->block.bytes - ctx->block_fill;
 
 		n = MIN(n, size);
-		memmove(&ctx->block[ctx->block_fill], block, n);
+		memmove(&ctx->block.bytes[ctx->block_fill], block, n);
 		ctx->block_fill += n;
 		block += n;
 		size -= n;
 
-		if (sizeof ctx->block == ctx->block_fill) {
+		if (sizeof ctx->block.bytes == ctx->block_fill) {
 			tt_block(ctx);
 		}
 	}
