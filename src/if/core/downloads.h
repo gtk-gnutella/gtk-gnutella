@@ -300,6 +300,13 @@ enum {
 #define download_filesize(d)	((d)->file_info->size)
 #define download_filedone(d)	((d)->file_info->done + (d)->file_info->buffered)
 #define download_buffered(d)	((d)->buffers == NULL ? 0 : (d)->buffers->held)
+#define download_speed_avg(d)	((d)->server->speed_avg)
+
+/*
+ * Sorted list of http_range_t objects, telling us about the available ranges
+ * on the remote size, in case the file is partial.
+ */
+#define download_ranges(d)		((d)->ranges)
 
 /*
  * State inspection macros.

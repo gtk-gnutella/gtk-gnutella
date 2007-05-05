@@ -4612,6 +4612,163 @@ fi_chunksize(fileinfo_t *fi)
 }
 
 /**
+ * Compute how much the source covers the missing chunks we still have which
+ * are not busy.  This is expressed as a percentage of those missing chunks.
+ */
+static gdouble
+fi_missing_coverage(struct download *d)
+{
+	GSList *ranges = download_ranges(d);
+	fileinfo_t *fi;
+	filesize_t missing_size = 0;
+	filesize_t covered_size = 0;
+	GSList *fclist;
+
+	g_assert(d);
+
+	if (ranges == NULL)
+		return 100.0;		/* Full coverage, as file is complete */
+
+	fi = d->file_info;
+	file_info_check(fi);
+	g_assert(file_info_check_chunklist(fi, TRUE));
+	g_assert(fi->lifecount > 0);
+
+	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+		const struct dl_file_chunk *fc = fclist->data;
+		const GSList *sl;
+
+		if (DL_CHUNK_EMPTY != fc->status)
+			continue;
+
+		missing_size += fc->to - fc->from;
+
+		/*
+		 * Look whether this empty chunk intersects with one of the
+		 * available ranges.
+		 *
+		 * NB: the list of ranges is sorted.  And contrary to fi chunks,
+		 * the upper boundary of the range (r->end) is part of the range.
+		 */
+
+		for (sl = ranges; sl; sl = g_slist_next(sl)) {
+			const http_range_t *r = sl->data;
+			filesize_t from, to;
+
+			if (r->start > fc->to)
+				break;					/* No further range will intersect */
+
+			if (r->start >= fc->from && r->start < fc->to) {
+				from = r->start;
+				to = MIN(r->end + 1, fc->to);
+				covered_size += to - from;
+				continue;
+			}
+
+			if (r->end >= fc->from && r->end < fc->to) {
+				from = MAX(r->start, fc->from);
+				to = r->end + 1;
+				covered_size += to - from;
+				continue;
+			}
+		}
+	}
+
+	g_assert(covered_size <= missing_size);
+
+	if (missing_size == 0)			/* Weird but... */
+		return 100.0;				/* they cover the whole of nothing! */
+
+	return (gdouble) covered_size / (gdouble) missing_size;
+}
+
+/**
+ * Find the spot we could download at the tail of an already active chunk
+ * to be aggressively completing the file ASAP.
+ *
+ * @param d		the download source we want to consider making a request to
+ * @param busy	the amount of known busy chunks in the file
+ * @param from	where the start of the possible chunk request will be written
+ * @param to	where the end of the possible chunk request will be written
+ *
+ * @return TRUE if we were able to find a candidate, with `from' and `to'
+ * being filled with the chunk we could be requesting.
+ */
+static gboolean
+fi_find_aggressive_candidate(
+	struct download *d, guint busy, filesize_t *from, filesize_t *to)
+{
+	fileinfo_t *fi = d->file_info;
+	filesize_t longest_from = 0, longest_to = 0;
+	gint starving;
+	filesize_t minchunk;
+	struct download *longest_dl = NULL;
+	gboolean can_be_aggressive = FALSE;
+	GSList *fclist;
+
+	/*
+	 * Compute minimum chunk size for splitting.  When we're told to
+	 * be aggressive and we need to be, we don't really want to honour
+	 * the dl_minchunksize setting!
+	 *
+	 * There are fi->lifecount active downloads (queued or running) for
+	 * this file, and `busy' chunks.  The difference is the amount of
+	 * starving downloads...
+	 */
+
+	starving = fi->lifecount - busy;	/* Starving downloads */
+	minchunk = MIN(dl_minchunksize, fi->size - fi->done) / (2 * starving);
+	if (minchunk < FI_MIN_CHUNK_SPLIT)
+		minchunk = FI_MIN_CHUNK_SPLIT;
+
+	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+		const struct dl_file_chunk *fc = fclist->data;
+
+		dl_file_chunk_check(fc);
+
+		if (DL_CHUNK_BUSY != fc->status) continue;
+		if ((fc->to - fc->from) < minchunk) continue;
+
+		if ((fc->to - fc->from) > (longest_to - longest_from)) {
+			longest_from = fc->from;
+			longest_to = fc->to;
+			longest_dl = fc->download;
+		}
+	}
+
+	/*
+	 * Do not let a slow uploading server interrupt a chunk served by
+	 * a faster server, because when the faster reaches the interrupting
+	 * point, we'll have no choice but to abort the connection with that
+	 * fast server.
+	 *
+	 * However, if the slower server covers 100% of the missing chunks we
+	 * need, whereas the faster server does not have 100% of them, it would
+	 * be a shame to lose the connection to this slower server.  So we
+	 * take into account the missing chunk coverage rate as well.
+	 */
+
+	if (longest_to) {
+		gdouble longest_missing_coverage = fi_missing_coverage(longest_dl);
+		gdouble missing_coverage = fi_missing_coverage(d);
+
+		can_be_aggressive =
+			missing_coverage > longest_missing_coverage ||
+			(missing_coverage == longest_missing_coverage &&
+				download_speed_avg(d) > download_speed_avg(longest_dl));
+	}
+
+	if (!can_be_aggressive)
+		return FALSE;
+
+	/* Start in the middle of the longest range. */
+	*from = (longest_from + longest_to) / 2;
+	*to = longest_to;
+
+	return TRUE;
+}
+	
+/**
  * Finds a range to download, and stores it in *from and *to.
  * If "aggressive" is off, it will return only ranges that are
  * EMPTY. If on, and no EMPTY ranges are available, it will
@@ -4738,45 +4895,12 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	g_assert(fi->lifecount > (gint32) busy); /* Or we'd found a chunk before */
 
 	if (use_aggressive_swarming) {
-		filesize_t longest_from = 0, longest_to = 0;
-		gint starving;
-		filesize_t minchunk;
+		filesize_t start, end;
 
-		/*
-		 * Compute minimum chunk size for splitting.  When we're told to
-		 * be aggressive and we need to be, we don't really want to honour
-		 * the dl_minchunksize setting!
-		 *
-		 * There are fi->lifecount active downloads (queued or running) for
-		 * this file, and `busy' chunks.  The difference is the amount of
-		 * starving downloads...
-		 */
-
-		starving = fi->lifecount - busy;	/* Starving downloads */
-		minchunk = MIN(dl_minchunksize, fi->size - fi->done) / (2 * starving);
-		if (minchunk < FI_MIN_CHUNK_SPLIT)
-			minchunk = FI_MIN_CHUNK_SPLIT;
-
-		for (fclist = cklist; fclist; fclist = g_slist_next(fclist)) {
-			const struct dl_file_chunk *fc = fclist->data;
-
-			dl_file_chunk_check(fc);
-
-			if (DL_CHUNK_BUSY != fc->status) continue;
-			if ((fc->to - fc->from) < minchunk) continue;
-
-			if ((fc->to - fc->from) > (longest_to - longest_from)) {
-				longest_from = fc->from;
-				longest_to = fc->to;
-			}
-		}
-
-		if (longest_to) {
-			/* Start in the middle of the longest range. */
-			*from = (longest_from + longest_to) / 2;
-			*to = longest_to;
-
-			file_info_update(d, *from, *to, DL_CHUNK_BUSY);
+		if (fi_find_aggressive_candidate(d, busy, &start, &end)) {
+			file_info_update(d, start, end, DL_CHUNK_BUSY);
+			*from = start;
+			*to = end;
 			goto selected;
 		}
 	}
@@ -4817,6 +4941,7 @@ file_info_find_available_hole(
 	filesize_t chunksize;
 	GSList *cklist;
 	gboolean cloned = FALSE;
+	guint busy = 0;
 
 	g_assert(d);
 	g_assert(ranges);
@@ -4856,8 +4981,11 @@ file_info_find_available_hole(
 		const struct dl_file_chunk *fc = fclist->data;
 		const GSList *sl;
 
-		if (DL_CHUNK_EMPTY != fc->status)
+		if (DL_CHUNK_EMPTY != fc->status) {
+			if (DL_CHUNK_BUSY == fc->status)
+				busy++;		/* Will be used by aggresive code below */
 			continue;
+		}
 
 		/*
 		 * Look whether this empty chunk intersects with one of the
@@ -4887,6 +5015,36 @@ file_info_find_available_hole(
 		}
 	}
 
+	if (use_aggressive_swarming) {
+		filesize_t start, end;
+
+		if (fi_find_aggressive_candidate(d, busy, &start, &end)) {
+			const GSList *sl;
+
+			/*
+			 * Look whether this candidate chunk is fully held in the
+			 * available remote chunks.
+			 *
+			 * NB: the list of ranges is sorted.  And contrary to fi chunks,
+			 * the upper boundary of the range (r->end) is part of the range.
+			 */
+
+			for (sl = ranges; sl; sl = g_slist_next(sl)) {
+				const http_range_t *r = sl->data;
+
+				if (r->start > end)
+					break;				/* No further range will intersect */
+
+				if (r->start <= start && r->end >= (end - 1)) {
+					/* Selected chunk is fully contained in remote range */
+					*from = start;
+					*to = end;
+					goto selected;
+				}
+			}
+		}
+	}
+
 	if (cloned)
 		g_slist_free(cklist);
 
@@ -4898,7 +5056,10 @@ found:
 	if ((*to - *from) > chunksize)
 		*to = *from + chunksize;
 
+selected:
 	file_info_update(d, *from, *to, DL_CHUNK_BUSY);
+
+	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	if (cloned)
 		g_slist_free(cklist);
