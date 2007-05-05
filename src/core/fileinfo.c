@@ -4625,14 +4625,15 @@ fi_chunksize(fileinfo_t *fi)
 static gdouble
 fi_missing_coverage(struct download *d)
 {
-	GSList *ranges = download_ranges(d);
+	GSList *ranges;
 	fileinfo_t *fi;
 	filesize_t missing_size = 0;
 	filesize_t covered_size = 0;
 	GSList *fclist;
 
-	g_assert(d);
+	download_check(d);
 
+	ranges = download_ranges(d);
 	if (ranges == NULL)
 		return 1.0;		/* Full coverage, as file is complete */
 
@@ -4950,7 +4951,7 @@ file_info_find_available_hole(
 	gboolean cloned = FALSE;
 	guint busy = 0;
 
-	g_assert(d);
+	download_check(d);
 	g_assert(ranges);
 
 	fi = d->file_info;
@@ -5867,7 +5868,7 @@ file_info_build_magnet(gnet_fi_t handle)
 		struct download *d = sl->data;
 		gchar *dl_url;
 
-		g_assert(d);
+		download_check(d);
 		dl_url = download_build_url(d);
 		if (dl_url) {
 			magnet_add_source_by_url(magnet, dl_url);
@@ -5924,7 +5925,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	GSList *new_r = NULL;
 
 	d = src_get_download(srcid);
-	g_assert(d);
+	download_check(d);
 
 	old_list = d->file_info->seen_on_network;
 
