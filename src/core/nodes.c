@@ -673,7 +673,7 @@ can_become_ultra(time_t now)
 		< 1024 / 2 * sys_physmem;
 
 	/* Bandwidth requirements */
-	enough_bw = bsched_enough_up_bandwidth() && !uploads_stalling;
+	enough_bw = bsched_enough_up_bandwidth();
 
 	/* Connection requirements */
 	enough_conn = up_connections >= NODE_MIN_UP_CONNECTIONS;
