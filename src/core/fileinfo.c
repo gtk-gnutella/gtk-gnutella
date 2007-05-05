@@ -4679,7 +4679,7 @@ fi_missing_coverage(struct download *d)
 	if (missing_size == 0)			/* Weird but... */
 		return 1.0;					/* they cover the whole of nothing! */
 
-	return (gdouble) covered_size / (gdouble) missing_size;
+	return (covered_size * 1.0) / (missing_size * 1.0);
 }
 
 /**
