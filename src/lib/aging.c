@@ -58,9 +58,6 @@ struct aging {
 	enum aging_magic magic;			/**< Magic number */
 	GHashTable *table;		/**< The table holding values */
 	aging_free_t kfree;		/**< The freeing callback for keys */
-	aging_free_t vfree;		/**< The freeing callback for values */
-	gpointer kdata;			/**< User data to give to key-freeing callback */
-	gpointer vdata;			/**< User data to give to value-freeing callback */
 	gint delay;				/**< Initial aging delay, in seconds */
 };
 
@@ -73,8 +70,8 @@ struct aging_value {
 	gpointer key;			/**< The associated key object */
 	cevent_t *cq_ev;		/**< Scheduled cleanup event */
 	struct aging *ag;		/**< Holding container */
-	gint ttl;				/**< Time to live */
 	time_t last_insert;		/**< Last insertion time */
+	gint ttl;				/**< Time to live */
 };
 
 /**
@@ -84,17 +81,11 @@ struct aging_value {
  * @param hash		the hashing function for the keys in the hash table
  * @param eq		the equality function for the keys in the hash table
  * @param kfree		the key freeing callback, NULL if none.
- * @param kdata		the extra parameter to pass to the key-freeing callback
- * @param vfree		the value freeing callback, NULL if none.
- * @param vdata		the extra parameter to pass to the value-freeing callback
  *
  * @return opaque handle to the container.
  */
-gpointer
-aging_make(
-	gint delay, GHashFunc hash, GEqualFunc eq,
-	aging_free_t kfree, gpointer kdata,
-	aging_free_t vfree, gpointer vdata)
+struct aging *
+aging_make(gint delay, GHashFunc hash, GEqualFunc eq, aging_free_t kfree)
 {
 	struct aging *ag;
 
@@ -102,9 +93,6 @@ aging_make(
 	ag->magic = AGING_MAGIC;
 	ag->table = g_hash_table_new(hash, eq);
 	ag->kfree = kfree;
-	ag->kdata = kdata;
-	ag->vfree = vfree;
-	ag->vdata = vdata;
 	ag->delay = delay;
 
 	return ag;
@@ -122,12 +110,9 @@ aging_free_kv(gpointer key, gpointer value, gpointer udata)
 	g_assert(aval->ag == ag);
 
 	if (ag->kfree != NULL)
-		(*ag->kfree)(key, ag->kdata);
+		(*ag->kfree)(key, aval->value);
 
 	cq_cancel(callout_queue, &aval->cq_ev);
-
-	if (ag->vfree != NULL)
-		(*ag->vfree)(aval->value, ag->vdata);
 
 	wfree(aval, sizeof *aval);
 }
@@ -136,10 +121,8 @@ aging_free_kv(gpointer key, gpointer value, gpointer udata)
  * Destroy container, freeing all keys and values.
  */
 void
-aging_destroy(gpointer obj)
+aging_destroy(struct aging *ag)
 {
-	struct aging *ag = obj;
-
 	g_assert(ag->magic == AGING_MAGIC);
 
 	g_hash_table_foreach(ag->table, aging_free_kv, ag);
@@ -168,9 +151,8 @@ aging_expire(cqueue_t *unused_cq, gpointer obj)
  * Lookup value in table.
  */
 gpointer
-aging_lookup(gpointer obj, gpointer key)
+aging_lookup(struct aging *ag, gpointer key)
 {
-	struct aging *ag = obj;
 	struct aging_value *aval;
 
 	g_assert(ag->magic == AGING_MAGIC);
@@ -184,12 +166,10 @@ aging_lookup(gpointer obj, gpointer key)
  * stored in the hash table, but leave the function parameter alone.
  */
 void
-aging_remove(gpointer obj, gpointer key)
+aging_remove(struct aging *ag, gpointer key)
 {
-	struct aging *ag = obj;
-	gpointer okey;
-	gpointer ovalue;
 	struct aging_value *aval;
+	gpointer okey, ovalue;
 
 	g_assert(ag->magic == AGING_MAGIC);
 
@@ -217,12 +197,10 @@ aging_remove(gpointer obj, gpointer key)
  * an insertion conflict and the value pointers are different.
  */
 void
-aging_insert(gpointer obj, gpointer key, gpointer value)
+aging_insert(struct aging *ag, gpointer key, gpointer value)
 {
-	struct aging *ag = obj;
 	gboolean found;
-	gpointer okey;
-	gpointer ovalue;
+	gpointer okey, ovalue;
 	time_t now = tm_time();
 	struct aging_value *aval;
 
@@ -236,11 +214,8 @@ aging_insert(gpointer obj, gpointer key, gpointer value)
 
 		if (aval->key != key && ag->kfree != NULL) {
 			/* We discard the new and keep the old key instead */
-			(*ag->kfree)(key, ag->kdata);
+			(*ag->kfree)(key, aval->value);
 		}
-
-		if (aval->value != value && ag->vfree != NULL)
-			(*ag->vfree)(aval->value, ag->vdata);
 
 		g_assert(aval->cq_ev != NULL);
 

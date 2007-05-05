@@ -669,7 +669,7 @@ send_neighbouring_info(struct gnutella_node *n)
  */
 
 static time_t pcache_expire_time = 0;
-static gpointer udp_pings = NULL;
+static struct aging *udp_pings;
 
 struct cached_pong {		/**< A cached pong */
 	gint refcount;			/**< How many lists reference us? */
@@ -752,8 +752,7 @@ pcache_init(void)
 	 */
 
 	udp_pings = aging_make(UDP_PING_FREQ,
-			host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
-			NULL, NULL, NULL);
+			host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	/*
 	 * The `local_meta' structure collects our meta data that we may send

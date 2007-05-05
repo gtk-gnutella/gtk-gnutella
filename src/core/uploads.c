@@ -152,7 +152,7 @@ struct mesh_info_val {
 static GHashTable *mesh_info = NULL;
 
 /* Remember IP address of stalling uploads for a while */
-static gpointer stalling_uploads = NULL;
+static struct aging *stalling_uploads;
 
 #define STALL_FIRST		GUINT_TO_POINTER(0x1)
 #define STALL_AGAIN		GUINT_TO_POINTER(0x2)
@@ -4534,8 +4534,8 @@ upload_init(void)
 {
 	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
 	stalling_uploads = aging_make(STALL_CLEAR,
-						host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
-						NULL, NULL, NULL);
+						host_addr_hash_func, host_addr_eq_func,
+						wfree_host_addr);
     upload_handle_map = idtable_new();
 	header_features_add(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR);

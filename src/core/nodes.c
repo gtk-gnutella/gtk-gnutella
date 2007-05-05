@@ -175,8 +175,8 @@ static guint32     connected_node_count = 0;
 static GHashTable *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
 
-static gpointer tcp_crawls = NULL;
-static gpointer udp_crawls = NULL;
+static struct aging *tcp_crawls;
+static struct aging *udp_crawls;
 
 typedef struct node_bad_client {
 	const char *vendor;
@@ -1287,12 +1287,10 @@ node_init(void)
 	 */
 
 	tcp_crawls = aging_make(TCP_CRAWLER_FREQ,
-		host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
-		NULL, NULL, NULL);
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	udp_crawls = aging_make(UDP_CRAWLER_FREQ,
-		host_addr_hash_func, host_addr_eq_func, wfree_host_addr,
-		NULL, NULL, NULL);
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	/*
 	 * Signal we support flags in the size header via "sflag/0.1"

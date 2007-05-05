@@ -35,16 +35,16 @@ typedef void (*aging_free_t)(gpointer value, gpointer udata);
  * Public interface.
  */
 
-gpointer aging_make(
-	gint delay, GHashFunc hash, GEqualFunc eq,
-	aging_free_t kfree, gpointer kdata,
-	aging_free_t vfree, gpointer vdata);
+struct aging;
 
-void aging_destroy(gpointer obj);
+struct aging *aging_make(gint delay, GHashFunc hash, GEqualFunc eq,
+			aging_free_t kfree);
 
-gpointer aging_lookup(gpointer obj, gpointer key);
-void aging_insert(gpointer obj, gpointer key, gpointer value);
-void aging_remove(gpointer obj, gpointer key);
+void aging_destroy(struct aging *);
+
+gpointer aging_lookup(struct aging *, gpointer key);
+void aging_insert(struct aging *, gpointer key, gpointer value);
+void aging_remove(struct aging *, gpointer key);
 
 #endif	/* _aging_h_ */
 
