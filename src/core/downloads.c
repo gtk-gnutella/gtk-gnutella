@@ -8141,17 +8141,14 @@ http_version_nofix:
 		return;
 	}
 
-#if 0
 	/*
-	 * If neither Content-Length nor Content-Range was seen, abort!
-	 *
-	 * If we were talking to an official web-server, we'd assume the length
-	 * to be correct and would be reading until EOF, but we're talking to
-	 * an unknown party, that we cannot trust too much.
-	 *		--RAM, 09/01/2002
+	 * If neither Content-Length nor Content-Range was seen, and they are
+	 * not using "chunked" Transfer-Encoding, abort, unless the connection
+	 * won't be kept alive (we'll read until EOF).
+	 *		--RAM, 2007-05-05
 	 */
 
-	if (!got_content_length && !is_chunked) {
+	if (!got_content_length && d->keep_alive && !is_chunked) {
 		const char *ua = header_get(header, "Server");
 		ua = ua ? ua : header_get(header, "User-Agent");
 		if (ua && download_debug)
@@ -8160,7 +8157,6 @@ http_version_nofix:
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
 		return;
 	}
-#endif
 
 	/*
 	 * Since we may request some overlap, ensure that the server did not
