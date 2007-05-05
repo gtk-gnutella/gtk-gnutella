@@ -4627,7 +4627,7 @@ fi_missing_coverage(struct download *d)
 	g_assert(d);
 
 	if (ranges == NULL)
-		return 100.0;		/* Full coverage, as file is complete */
+		return 1.0;		/* Full coverage, as file is complete */
 
 	fi = d->file_info;
 	file_info_check(fi);
