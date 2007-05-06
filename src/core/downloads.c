@@ -68,6 +68,7 @@
 #include "tls_cache.h"
 #include "udp.h"
 #include "rx_inflate.h"
+#include "vmsg.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -111,6 +112,7 @@ RCSID("$Id$")
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
 #define DOWNLOAD_STALLED		60		/**< Consider stalled after 60 secs */
+#define DOWNLOAD_PING_DELAY		300		/**< Minimum delay for 2 HEAD pings */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -3433,6 +3435,78 @@ download_push_remove(struct download *d)
 }
 
 /**
+ * Send a HEAD Ping vendor message to node to get alternate sources via
+ * UDP since we're not going to issue an HTTP request right now.
+ */
+static void
+download_send_head_ping(struct download *d)
+{
+	time_t now = tm_time();
+
+	download_check(d);
+	g_assert(d->file_info);
+	g_assert(d->server);
+
+	if (NULL == d->file_info->sha1)
+		return;
+
+	if (!udp_active() || is_firewalled || is_udp_firewalled)
+		return;
+
+	if (delta_time(now, d->head_ping_sent) < DOWNLOAD_PING_DELAY)
+		return;
+
+	if (d->always_push) {
+		GSList *sl;
+
+		/*
+		 * Requires a PUSH: send the HEAD Ping to all the HTTP proxies.
+		 */
+
+		g_assert(!has_blank_guid(d));
+
+		for (sl = d->server->proxies; sl; sl = g_slist_next(sl)) {
+			gnet_host_t *host = sl->data;
+			gnutella_node_t *n = node_udp_get_addr_port(
+				gnet_host_get_addr(host), gnet_host_get_port(host));
+			
+			vmsg_send_head_ping(n, d->file_info->sha1, download_guid(d));
+		}
+	} else {
+		gnutella_node_t *n = node_udp_get_addr_port(
+			download_addr(d), download_port(d));
+
+		/*
+		 * Not firewalled, just send direct message to the server.
+		 */
+
+		vmsg_send_head_ping(n, d->file_info->sha1, NULL);
+	}
+
+	d->head_ping_sent = now;
+}
+
+/**
+ * Send a HEAD Ping to all the downloads in the list.
+ */
+static void
+download_list_send_head_ping(list_t *list)
+{
+	list_iter_t *iter;
+
+	if (!udp_active() || is_firewalled || is_udp_firewalled)
+		return;
+
+	iter = list_iter_before_head(list);
+	while (list_iter_has_next(iter)) {
+		struct download *d;
+
+		d = list_iter_next(iter);
+		download_send_head_ping(d);
+	}
+}
+
+/**
  * Check whether download should be ignored, and stop it immediately if it is.
  *
  * @returns whether download was stopped (i.e. if it must be ignored).
@@ -3885,8 +3959,10 @@ download_start(struct download *d, gboolean check_allowed)
 		count_running_on_server(d->server) >= max_host_downloads ||
 		download_has_enough_active_sources(d))
 	) {
-		if (!DOWNLOAD_IS_QUEUED(d))
+		if (!DOWNLOAD_IS_QUEUED(d)) {
+			download_send_head_ping(d);
 			download_queue(d, _("No download slot (start)"));
+		}
 		return;
 	}
 
@@ -4044,11 +4120,13 @@ download_pickup_queued(void)
 			if (delta_time(now, server->retry_after) < 0)
 				break;
 
-			if (
-				server_list_length(server, DL_LIST_WAITING) == 0 ||
-				count_running_on_server(server) >= max_host_downloads
-			)
+			if (server_list_length(server, DL_LIST_WAITING) == 0)
 				continue;
+
+			if (count_running_on_server(server) >= max_host_downloads) {
+				download_list_send_head_ping(server->list[DL_LIST_WAITING]);
+				continue;
+			}
 
 			/*
 			 * OK, pick the download at the start of the waiting list, but
@@ -4069,16 +4147,20 @@ download_pickup_queued(void)
 				if (cur->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
 					continue;
 
-				if (download_has_enough_active_sources(cur))
+				if (download_has_enough_active_sources(cur)) {
+					download_send_head_ping(cur);
 					continue;
+				}
 
 				if (
 					delta_time(now, cur->last_update) <=
 						(time_delta_t) cur->timeout_delay
-				)
+				) {
+					download_send_head_ping(cur);
 					continue;
+				}
 
-				/* Note that we skip over paused and suspend downloads. */
+				/* Note that we skip over paused and suspended downloads */
 				if (delta_time(now, cur->retry_after) < 0)
 					break;	/* List is sorted */
 

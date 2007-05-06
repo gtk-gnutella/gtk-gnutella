@@ -209,6 +209,7 @@ struct download {
 	time_t last_gui_update;		/**< Last stats update on the GUI */
 	time_t record_stamp;		/**< Stamp of the query hit that launched us */
 	time_t retry_after;			/**< Time at which we may retry this download */
+	time_t head_ping_sent;		/**< Time at which last HEAD ping was sent */
 	tm_t header_sent;			/**< When we sent headers, for latency */
 
 	guint32 retries;
