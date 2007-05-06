@@ -3507,6 +3507,7 @@ download_list_send_head_ping(list_t *list)
 		d = list_iter_next(iter);
 		download_send_head_ping(d);
 	}
+	list_iter_free(&iter);
 }
 
 /**
