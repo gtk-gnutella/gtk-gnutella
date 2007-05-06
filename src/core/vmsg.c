@@ -2245,6 +2245,8 @@ handle_head_pong(struct gnutella_node *n,
 			}
 
 			dmesh_add_alternates(ping.sha1, vec);
+
+			gnet_host_vec_free(&vec);
 		}
 	}
 
