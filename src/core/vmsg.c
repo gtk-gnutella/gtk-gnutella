@@ -2292,7 +2292,7 @@ handle_head_pong(struct gnutella_node *n,
 	}
 
 out:
-	head_ping_source_free(&source);
+	head_ping_source_free(source);
 }
 
 #if 0 
