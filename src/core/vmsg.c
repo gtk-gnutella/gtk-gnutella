@@ -153,15 +153,27 @@ vmsg_infostr(gconstpointer data, size_t size)
 }
 
 /**
- * Send reply to node, via the appropriate channel.
+ * Send reply to node (message block), via the appropriate channel.
  */
 static void
 vmsg_send_reply(struct gnutella_node *n, pmsg_t *mb)
 {
 	if (NODE_IS_UDP(n))
-		mq_udp_node_putq(n->outq, mb, n);
+		udp_send_mb(n, mb);
 	else
-		mq_putq(n->outq, mb);
+		gmsg_mb_sendto_one(n, mb);
+}
+
+/**
+ * Send a message to node (data + size), via the appropriate channel.
+ */
+static void
+vmsg_send_data(struct gnutella_node *n, gconstpointer data, guint32 size)
+{
+	if (NODE_IS_UDP(n))
+		udp_send_msg(n, data, size);
+	else
+		gmsg_sendto_one(n, data, size);
 }
 
 /**
@@ -1603,10 +1615,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
 
-	if (NODE_IS_UDP(n))
-		udp_send_msg(n, v_tmp, msgsize);
-	else
-		gmsg_sendto_one(n, v_tmp, msgsize);
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 struct head_ping_data {
@@ -1757,6 +1766,14 @@ head_ping_is_registered(const gchar *muid, struct head_ping_data *ping)
 	}
 }
 
+/**
+ * Send a "HEAD Ping" -- LIME/23v1
+ *
+ * This message is used to gather information about an urn:sha1, such as
+ * getting more alternate location, or the list of available ranges.
+ *
+ * @param
+ */
 void
 vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 {
@@ -1782,12 +1799,8 @@ vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
-	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
-		if (NODE_IS_UDP(n))
-			udp_send_msg(n, v_tmp, msgsize);
-		else
-			gmsg_sendto_one(n, v_tmp, msgsize);
-	}
+	if (head_ping_register(muid, sha1, NODE_ID_SELF))
+		vmsg_send_data(n, v_tmp, msgsize);
 }
 
 static gboolean
@@ -2006,6 +2019,22 @@ handle_head_ping(struct gnutella_node *n,
 	}
 }
 
+/**
+ * This routine tries to intuit the size of the next "block" where the
+ * data following the payload has the usual variable-sized structure:
+ * an initial 16-bit big-endian value indicates the size of the block,
+ * followed by the actual (fix-sized) entries, whose size is known implicitly.
+ * For instance, when expecting IP:port data, this would be 6 bytes.
+ *
+ * The idiomatic way to use this routine is to say something like:
+ *
+ *	len = block_length(array_init(p, endptr - p));
+ *
+ * where 'p' is the current pointer within the payload and `endptr' is the
+ * pointer to the first byte AFTER the payload.
+ *
+ * @return the size in bytes of the next block within the payload.
+ */
 static gint
 block_length(const struct array array)
 {
@@ -2185,12 +2214,7 @@ handle_head_pong(struct gnutella_node *n,
 				gnutella_header_get_hops(&header) + 1);
 		
 			mb = gmsg_split_to_pmsg(header, n->data, n->size);
-			if (NODE_IS_UDP(target)) {
-				udp_send_mb(target, mb);
-			} else {
-				gmsg_mb_sendto_one(target, mb);
-			}
-			pmsg_free(mb);
+			vmsg_send_reply(target, mb);
 		}
 	}
 }
