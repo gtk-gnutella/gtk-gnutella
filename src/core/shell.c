@@ -839,6 +839,7 @@ get_download_status_string(const struct download *d)
 	case GTA_DL_ACTIVE_QUEUED:	return "actively queued";
 	case GTA_DL_PASSIVE_QUEUED:	return "passively queued";
 	case GTA_DL_REQ_SENDING:	return "sending request";
+	case GTA_DL_IGNORING:		return "ignoring data";
 	case GTA_DL_INVALID:		g_assert_not_reached();
 	}
 	return "unknown";
