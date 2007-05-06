@@ -3239,7 +3239,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 
 	if (fmt) {
 		size_t len;
-		gchar event[80], resched[80];
+		gchar event[80], resched[80], pfs[40];
 		time_t rescheduled;
 
 		len = gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
@@ -3259,10 +3259,16 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		time_locale_to_string_buf(tm_time(), event, sizeof event);
 		time_locale_to_string_buf(rescheduled, resched, sizeof resched);
 
+		/* Append PFS indication */
+		pfs[0] = '\0';
+		if (d->ranges != NULL)
+			gm_snprintf(pfs, sizeof pfs, " <PFS %4.02f%%>",
+				d->ranges_size * 100.0 / d->file_info->size);
+
 		gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
-			_(" at %s - rescheduled for %s"),
+			_(" at %s - rescheduled for %s%s"),
 			lazy_locale_to_ui_string(event),
-			lazy_locale_to_ui_string2(resched));
+			lazy_locale_to_ui_string2(resched), pfs);
 	}
 
 	if (DOWNLOAD_IS_VISIBLE(d))
