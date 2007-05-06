@@ -1832,8 +1832,12 @@ vmsg_send_head_ping(
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
-	if (head_ping_register(muid, sha1, NODE_ID_SELF))
+	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
+		if (vmsg_debug) {
+			g_message("Sending HEAD Ping to %s", node_addr(n));
+		}
 		vmsg_send_data(n, v_tmp, msgsize);
+	}
 }
 
 static gboolean
