@@ -4176,14 +4176,20 @@ download_pickup_queued(void)
 						 * the server.
 						 */
 
-						if (download_total_progress(d)
-								>= download_total_progress(cur))
+						if (
+							download_total_progress(d)
+								>= download_total_progress(cur)
+						) {
+							download_send_head_ping(cur);
 							continue;
+						}
 					}
 
 					/* Give priority to THEX downloads */
-					if (d->thex && NULL == cur->thex)
+					if (d->thex && NULL == cur->thex) {
+						download_send_head_ping(cur);
 						continue;
+					}
 				}
 
 				d = cur;
