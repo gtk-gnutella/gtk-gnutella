@@ -2225,28 +2225,24 @@ handle_head_pong(struct gnutella_node *n,
 			}
 			goto out;
 		} else {
-			gint n = len / 6;
-			gnet_host_vec_t *vec;
 			gint i;
 
 			if (vmsg_debug)
-				g_message("HEAD Pong carries %u alt-locs", n);
+				g_message("HEAD Pong carries %u alt-locs", len / 6);
 
 			p += 2;				/* Skip length indication */
 
-			vec = gnet_host_vec_alloc();
-			vec->n_ipv4 = n;
-			vec->hvec_v4 = walloc(n * sizeof vec->hvec_v4[0]);
-
-			for (i = 0; i < n; i++) {
+			for (i = len / 6; i > 0; i--) {
+				host_addr_t addr;
+				guint16 port;
+				
 				/* IPv4 address (BE) + Port (LE) */
-				memcpy(&vec->hvec_v4[i].data, p, 6);
+				addr = host_addr_peek_ipv4(&p[0]);
+				port = peek_le16(&p[4]);
 				p += 6;
+
+				dmesh_add_alternate(ping.sha1, addr, port);
 			}
-
-			dmesh_add_alternates(ping.sha1, vec);
-
-			gnet_host_vec_free(&vec);
 		}
 	}
 
