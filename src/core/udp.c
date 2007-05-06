@@ -269,13 +269,19 @@ udp_send_msg(const gnutella_node_t *n, gconstpointer buf, gint len)
 	mq_udp_node_putq(n->outq, gmsg_to_pmsg(buf, len), n);
 }
 
+/**
+ * Send a message to specified UDP node.
+ *
+ * It is up to the caller to clone the message if needed, otherwise the
+ * node's queue becomes the sole owner of the message and will pmsg_free() it.
+ */
 void
 udp_send_mb(const gnutella_node_t *n, pmsg_t *mb)
 {
 	g_assert(NODE_IS_UDP(n));
 	g_return_if_fail(n->outq);
 
-	mq_udp_node_putq(n->outq, pmsg_clone(mb), n);
+	mq_udp_node_putq(n->outq, mb, n);
 }
 
 /**
