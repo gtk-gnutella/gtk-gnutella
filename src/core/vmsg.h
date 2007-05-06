@@ -68,7 +68,8 @@ void vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);
 void vmsg_send_node_info_ans(struct gnutella_node *n,
 	const struct rnode_info *ri);
-void vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1);
+void vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 *sha1,
+	const gchar *guid);
 
 struct pmsg *vmsg_build_oob_reply_ind(const gchar *muid,
 				guint8 hits, gboolean secure);

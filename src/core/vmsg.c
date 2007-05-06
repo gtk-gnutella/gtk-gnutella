@@ -1522,6 +1522,7 @@ enum {
 	VMSG_HEAD_F_RANGES		= 1 << 0,
 	VMSG_HEAD_F_ALT			= 1 << 1,
 	VMSG_HEAD_F_ALT_PUSH	= 1 << 2,
+	VMSG_HEAD_F_RUDP		= 1 << 3,
 	VMSG_HEAD_F_GGEP		= 1 << 4,
 
 	VMSG_HEAD_F_MASK		= 0x1f
@@ -1692,7 +1693,7 @@ head_ping_timer(cqueue_t *cq, gpointer unused_udata)
 
 static gboolean
 head_ping_register(const gchar *muid,
-	const struct sha1 sha1, const node_id_t node_id)
+	const struct sha1 *sha1, const node_id_t node_id)
 {
 	struct head_ping_source *source;
 	struct gnutella_node *n = NULL;
@@ -1730,7 +1731,7 @@ head_ping_register(const gchar *muid,
  	 * for debugging purposes or if we are the origin.
 	 */
 	if (node_id_self(node_id) || vmsg_debug) {
-		source->ping.sha1 = atom_sha1_get(&sha1);
+		source->ping.sha1 = atom_sha1_get(sha1);
 	} else {
 		source->ping.sha1 = NULL;
 	}
@@ -1758,7 +1759,8 @@ head_ping_is_registered(const gchar *muid, struct head_ping_data *ping)
 
 	source = hash_list_remove(head_pings, muid);
 	if (source) {
-		*ping = source->ping;
+		*ping = source->ping;			/* Struct copy, including SHA1 atom */
+		source->ping.sha1 = NULL;		/* Do not free copied atom addr */
 		head_ping_source_free(source);
 		return TRUE;
 	} else {
@@ -1772,28 +1774,59 @@ head_ping_is_registered(const gchar *muid, struct head_ping_data *ping)
  * This message is used to gather information about an urn:sha1, such as
  * getting more alternate location, or the list of available ranges.
  *
- * @param
+ * @param n		the destination node
+ * @param sha1	the SHA1 we wish to know more about
+ * @param guid	(optional) the GUID of the node to which HEAD ping must be sent
+ *
+ * When the optional GUID is set, it means we're sending this message to a
+ * push-proxy, so it can relay the message to the leaf bearing that GUID.
  */
 void
-vmsg_send_head_ping(struct gnutella_node *n, const struct sha1 sha1)
+vmsg_send_head_ping(
+	struct gnutella_node *n, const struct sha1 *sha1, const gchar *guid)
 {
 	static const gchar urn_prefix[] = "urn:sha1:";
 	const gchar *muid;
 	guint32 msgsize;
 	guint32 paysize;
 	gchar *payload;
+	guint8 flags = VMSG_HEAD_F_ALT;
+
+	/*
+	 * TODO: in order to handle VMSG_HEAD_F_RANGES, we need to be able to
+	 * somehow tie a HEAD ping to a struct download.
+	 *
+	 * We don't send VMSG_HEAD_F_ALT_PUSH: our mesh is not propagating those.
+	 */
+
+	g_assert(sha1 != NULL);
 
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 23, 1);
 
-	poke_u8(&payload[0], VMSG_HEAD_F_ALT | VMSG_HEAD_F_ALT_PUSH);
+	if (guid != NULL)
+		flags |= VMSG_HEAD_F_GGEP;
+
+	poke_u8(&payload[0], flags);
 	memcpy(&payload[1], urn_prefix, CONST_STRLEN(urn_prefix));
 	memcpy(&payload[1 + CONST_STRLEN(urn_prefix)],
-		sha1_to_string(sha1), SHA1_BASE32_SIZE);
+		sha1_base32(sha1), SHA1_BASE32_SIZE);
 	paysize = 1 + CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE;
 
-	/* TODO: We can also add a GUID in case of a firewalled peer,
-	 *		 this works just a like a PUSH message then.
+	/*
+	 * Add a GGEP extension "PUSH" holding the GUID, if supplied.
 	 */
+
+	if (guid != NULL) {
+		ggep_stream_t gs;
+		size_t ggep_len;
+
+		ggep_stream_init(&gs, &payload[paysize],
+			&v_tmp[sizeof(v_tmp)] - &payload[paysize]);
+
+		(void) ggep_stream_pack(&gs, GGEP_NAME(PUSH), guid, GUID_RAW_SIZE, 0);
+		ggep_len = ggep_stream_close(&gs);
+		paysize += ggep_len;
+	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
@@ -1839,6 +1872,12 @@ extract_guid(const gchar *data, size_t size, gchar guid[GUID_RAW_SIZE])
 	return success;
 }
 
+/**
+ * Given a GUID, fetch the node to which we are connected that bears this GUID
+ * and support HEAD pings, so that we can forward the HEAD Ping to it.
+ *
+ * @return the target node, or NULL if not found or not capable of handling it.
+ */
 static struct gnutella_node *
 head_ping_target_by_guid(const gchar *guid)
 {
@@ -1958,7 +1997,7 @@ handle_head_ping(struct gnutella_node *n,
 			gnutella_header_set_hops(&header, 1);
 			muid = gnutella_header_get_muid(header);
 
-			if (head_ping_register(muid, sha1, NODE_ID(n))) {
+			if (head_ping_register(muid, &sha1, NODE_ID(n))) {
 				if (vmsg_debug) {
 					g_message("Forwarding HEAD Ping to %s", node_addr(n));
 				}
@@ -2130,10 +2169,10 @@ handle_head_pong(struct gnutella_node *n,
 
 	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
 		/* LimeWire sends only code and flags if the file was not found */
-		return;
+		goto out;
 	}
 	
-	/* Optional ranges for partial files */
+	/* Optional ranges for partial files -- IGNORED FOR NOW */
 	if (VMSG_HEAD_F_RANGES & flags) {
 		gint len;
 
@@ -2142,7 +2181,7 @@ handle_head_pong(struct gnutella_node *n,
 			if (vmsg_debug) {
 				g_warning("HEAD Pong carries truncated ranges");
 			}
-			return;
+			goto out;
 		} else {
 			if (vmsg_debug) {
 				g_message("HEAD Pong carries ranges (%u bytes)", len);
@@ -2152,7 +2191,7 @@ handle_head_pong(struct gnutella_node *n,
 		}
 	}
 
-	/* Optional firewalled alternate locations */
+	/* Optional firewalled alternate locations -- IGNORED FOR NOW */
 	if (VMSG_HEAD_F_ALT_PUSH & flags) {
 		gint len;
 		
@@ -2161,7 +2200,7 @@ handle_head_pong(struct gnutella_node *n,
 			if (vmsg_debug) {
 				g_warning("HEAD Pong carries truncated firewalled alt-locs");
 			}
-			return;
+			goto out;
 		} else {
 			if (vmsg_debug) {
 				g_message("HEAD Pong carries firewalled alt-locs (%u bytes)",
@@ -2172,7 +2211,10 @@ handle_head_pong(struct gnutella_node *n,
 		}
 	}
 
-	/* Optional alternate locations */
+	/*
+	 * Optional alternate locations: feed them to the mesh.
+	 */
+
 	if (VMSG_HEAD_F_ALT & flags) {
 		gint len;
 		
@@ -2181,15 +2223,37 @@ handle_head_pong(struct gnutella_node *n,
 			if (vmsg_debug) {
 				g_warning("HEAD Pong carries truncated alt-locs");
 			}
-			return;
+			goto out;
 		} else {
-			if (vmsg_debug) {
-				g_message("HEAD Pong carries %u alt-locs", len / 6);
+			gint n = len / 6;
+			gnet_host_vec_t *vec;
+			gint i;
+
+			if (vmsg_debug)
+				g_message("HEAD Pong carries %u alt-locs", n);
+
+			p += 2;				/* Skip length indication */
+
+			vec = gnet_host_vec_alloc();
+			vec->n_ipv4 = n;
+			vec->hvec_v4 = walloc(n * sizeof vec->hvec_v4[0]);
+
+			for (i = 0; i < n; i++) {
+				/* IPv4 address (BE) + Port (LE) */
+				memcpy(&vec->hvec_v4[i].data, p, 6);
+				p += 6;
 			}
-			p += 2;
-		   	p += len;
+
+			dmesh_add_alternates(ping.sha1, vec);
 		}
 	}
+
+	/*
+	 * Foward pong to proper target if we are an ultrapeer and we relayed
+	 * the ping (carrying a GUID) to the proper leaf node: that leaf node
+	 * is replying via TCP and we then forward the pong to the original
+	 * node that ping'ed us.
+	 */
 
 	if (
 		NODE_P_LEAF != current_peermode &&
@@ -2214,9 +2278,12 @@ handle_head_pong(struct gnutella_node *n,
 				gnutella_header_get_hops(&header) + 1);
 		
 			mb = gmsg_split_to_pmsg(header, n->data, n->size);
-			vmsg_send_reply(target, mb);
+			vmsg_send_reply(target, mb);	/* Forward to destination */
 		}
 	}
+
+out:
+	atom_sha1_free_null(&ping.sha1);
 }
 
 #if 0 
@@ -2362,7 +2429,6 @@ static const struct vmsg vmsg_map[] = {
 	{ T_LIME, 21,  2, handle_proxy_req,				"Push-Proxy Request" },
 	{ T_LIME, 22,  1, handle_proxy_ack,				"Push-Proxy ACK" },
 	{ T_LIME, 22,  2, handle_proxy_ack,				"Push-Proxy ACK" },
-
 	{ T_LIME, 23,  1, handle_head_ping,				"HEAD Ping" },
 	{ T_LIME, 24,  1, handle_head_pong,				"HEAD Pong" },
 
