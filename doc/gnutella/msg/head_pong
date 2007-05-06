@@ -83,7 +83,7 @@ sub-payload (16-bit big-endian integer). Alternate push locations are
 encoded as a one byte of flags; followed by a 16 byte GUID, optionally
 a 6-byte IPv4 peer address[1] and finally up to 7 push proxy adresses
 encoded as 6-byte peer addresses. This includes RUDP-capable push locations.
-The first byte of a push located is encoded as follows:
+The first byte of a push location is encoded as follows:
 
 Bits  Description
 0..2: Number of push proxies (0-7)
@@ -91,7 +91,7 @@ Bits  Description
 5..7: Other flags
 
 The peer address after the GUID might be omitted. Whether this is the
-case can be derived by the size of this item.
+case can be derived by the size of this sub-payload.
 
 Third, alternate locations:
 
