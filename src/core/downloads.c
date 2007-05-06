@@ -3240,13 +3240,24 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	if (fmt) {
 		size_t len;
 		gchar event[80], resched[80];
+		time_t rescheduled;
 
 		len = gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
 		/* d->remove_msg updated below */
 
+		/*
+		 * Rescheduling time is the largest of `retry_after' (absolute) and
+		 * `timeout_delay' secs after `last_update'.
+		 * See download_pickup_queued() for details on how this is handled.
+		 *		--RAM, 2007-05-06
+		 */
+
+		rescheduled = d->last_update + d->timeout_delay;
+		rescheduled = MAX(rescheduled, d->retry_after);
+
 		/* Append times of event/reschedule */
 		time_locale_to_string_buf(tm_time(), event, sizeof event);
-		time_locale_to_string_buf(d->retry_after, resched, sizeof resched);
+		time_locale_to_string_buf(rescheduled, resched, sizeof resched);
 
 		gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
 			_(" at %s - rescheduled for %s"),
@@ -7609,6 +7620,7 @@ http_version_nofix:
 
 	delay = extract_retry_after(d, header);
 	d->retry_after = (delay > 0) ? time_advance(tm_time(), delay) : 0;
+	d->timeout_delay = 0;			/* We managed to connect */
 
 	/*
 	 * Partial File Sharing Protocol (PFSP) -- client-side
