@@ -1547,7 +1547,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	} else {
 		guint32 slots;
 
-		code |= is_firewalled ? VMSG_HEAD_CODE_PARTIAL : 0;
+		code |= is_firewalled ? VMSG_HEAD_CODE_FIREWALLED : 0;
 
 		slots = upload_is_enabled() ? max_uploads - ul_running : 0;
 		slots = MIN(max_uploads, slots);
