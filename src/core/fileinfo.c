@@ -4769,6 +4769,16 @@ fi_find_aggressive_candidate(
 					download_is_stalled(longest_dl)
 				)
 			);
+
+		if (download_debug > 1)
+			g_message("will %s be aggressive for \"%s\" given d/l speed "
+				"of %s%u B/s for chunk owner and %u B/s for stealer, and a "
+				"coverage of missing chunks of %.2f%% and %.2f%% respectively",
+				can_be_aggressive ? "really" : "not",
+				download_outname(d),
+				download_is_stalled(longest_dl) ? "stalling " : "",
+				download_speed_avg(longest_dl), download_speed_avg(d),
+				longest_missing_coverage * 100.0, missing_coverage * 100.0);
 	}
 
 	if (!can_be_aggressive)
@@ -4777,6 +4787,12 @@ fi_find_aggressive_candidate(
 	/* Start in the middle of the longest range. */
 	*from = (longest_from + longest_to) / 2;
 	*to = longest_to;
+
+	if (download_debug > 1)
+		g_message("aggressively requesting %s@%s for \"%s\" using %s source",
+			filesize_to_string(*to - *from), short_size(*from, FALSE),
+			download_outname(d),
+			d->ranges != NULL ? "partial" : "complete");
 
 	return TRUE;
 }
