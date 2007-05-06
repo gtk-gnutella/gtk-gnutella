@@ -3064,8 +3064,6 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 				fi,
 				NULL,	/* proxies */
 				0);		/* flags */
-
-			search_free_proxies(rs);
 		} else {
 			ignored++;
 		}
