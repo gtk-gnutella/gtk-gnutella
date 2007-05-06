@@ -266,7 +266,8 @@ enum {
 	DL_F_PREFIX_HEAD	= 1 << 14,	/**< Sent HEAD request before GET */
 	DL_F_INITIAL		= 1 << 15,	/**< First request on this connection */
 	DL_F_PAUSED			= 1 << 16,	/**< Paused by user */
-	DL_F_THEX			= 1 << 17	/**< THEX download */
+	DL_F_THEX			= 1 << 17,	/**< THEX download */
+	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
 };
 
 /*

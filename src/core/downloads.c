@@ -4243,34 +4243,39 @@ download_push(struct download *d, gboolean on_timeout)
 		goto attempt_retry;
 	}
 
-	/*
-	 * The push request is sent with the listening port set to our Gnet port.
-	 *
-	 * To be able to later distinguish which download is referred to by each
-	 * GIV we'll receive back, we record the association file_index/guid of
-	 * the to-be-downloaded file with this download into a hash table.
-	 * When stopping a download for which d->push is true, we'll have to
-	 * remove the mapping.
-	 *
-	 *		--RAM, 30/12/2001
-	 */
-
 	if (!d->push)
 		download_push_insert(d);
 
 	g_assert(d->push);
 
-	if (download_send_push_request(d))
-		return;
+	if (download_send_push_request(d)) {
+		/*
+		 * The first time we come here, we simply record we did send UDP
+		 * pushes and return.  Next time, we'll continue below.
+		 * The rational here is that UDP is a faster way to propagate PUSH
+		 * requests, but we have to fallback in case it does not work.
+		 *		--RAM, 2007-05-06
+		 */
+
+		if (!(d->flags & DL_F_UDP_PUSH)) {
+			d->flags |= DL_F_UDP_PUSH;
+			return;
+		}
+
+		/* FALL THROUGH */
+	}
 
 	/*
-	 * Before sending a push on Gnet, look whether we have some push-proxies
-	 * available for the server.
-	 *		--RAM, 18/07/2003
+	 * Contact push proxies via TCP, if we have any.
 	 */
 
 	if (use_push_proxy(d))
 		return;
+
+	/*
+	 * Nothing is working, we may be out of reach.  Try to ignore the PUSH
+	 * flag if the address is deemed to be reacheable...
+	 */
 
 	if (!d->always_push) {
 		download_push_remove(d);
@@ -5554,6 +5559,10 @@ send_udp_push(const struct array packet, host_addr_t addr, guint16 port)
  * Send a push request to the target GUID, in order to request the push of
  * the file whose index is `file_id' there onto our local port `port'.
  *
+ * We're very aggressive: we send a PUSH via UDP to the host itself, as well
+ * as all the known push proxies.  We also broadcast to the proper routes
+ * on Gnutella.
+ *
  * @returns TRUE if the request could be sent, FALSE if we don't have the route.
  */
 static gboolean
@@ -5580,15 +5589,22 @@ download_send_push_request(struct download *d)
 
 	if (packet.data) {
 		GSList *nodes;
-		gboolean success;
+		gboolean success = FALSE;
 
-		success = send_udp_push(packet, download_addr(d), download_port(d));
+		/* Pure luck: try to reach the remote host directly via UDP... */
+		(void) send_udp_push(packet, download_addr(d), download_port(d));
+
 		if (d->server && d->server->proxies) {
-			/* Pick the first push-proxy */
-			send_udp_push(packet,
-				gnet_host_get_addr(d->server->proxies->data),
-				gnet_host_get_port(d->server->proxies->data));
+			GSList *sl;
+
+			for (sl = d->server->proxies; sl; sl = g_slist_next(sl)) {
+				gnet_host_t *host = sl->data;
+
+				success = success || send_udp_push(packet,
+					gnet_host_get_addr(host), gnet_host_get_port(host));
+			}
 		}
+
 		nodes = route_towards_guid(download_guid(d));
 		if (nodes) {
 			success = TRUE;
