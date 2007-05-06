@@ -4193,7 +4193,7 @@ download_pickup_queued(void)
 				}
 
 				if (d)
-					download_send_head_ping(cur);
+					download_send_head_ping(d);
 
 				d = cur;
 
