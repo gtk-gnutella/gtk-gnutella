@@ -4192,6 +4192,9 @@ download_pickup_queued(void)
 					}
 				}
 
+				if (d)
+					download_send_head_ping(cur);
+
 				d = cur;
 
 				/*
