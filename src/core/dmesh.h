@@ -93,6 +93,8 @@ gboolean dmesh_remove(
 
 void dmesh_add_alternate(const struct sha1 *sha1,
 		host_addr_t addr, guint16 port);
+void dmesh_remove_alternate(const struct sha1 *sha1,
+		host_addr_t addr, guint16 port);
 void dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *vec);
 
 gint dmesh_count(const struct sha1 *sha1);

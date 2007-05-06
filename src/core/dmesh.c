@@ -867,6 +867,12 @@ dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 	}
 }
 
+void
+dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
+{
+	dmesh_remove(sha1, addr, port, URN_INDEX, NULL);
+}
+
 /**
  * Add a set of alternate locations (IP + port) to the mesh.
  */
