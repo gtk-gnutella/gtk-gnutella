@@ -856,6 +856,17 @@ dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
 	return dmesh_raw_add(sha1, &info, stamp);
 }
 
+void
+dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
+{
+	if (host_is_valid(addr, port)) {
+		dmesh_urlinfo_t info;
+
+		dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
+		(void) dmesh_raw_add(sha1, &info, tm_time());
+	}
+}
+
 /**
  * Add a set of alternate locations (IP + port) to the mesh.
  */
@@ -863,11 +874,9 @@ void
 dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *alt)
 {
 	gint i;
-	time_t now = tm_time();
 
 	for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
 		struct gnutella_host host;
-		dmesh_urlinfo_t info;
 		host_addr_t addr;
 		guint16 port;
 
@@ -875,11 +884,7 @@ dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *alt)
 		addr = gnet_host_get_addr(&host);
 		port = gnet_host_get_port(&host);
 
-		if (!host_is_valid(addr, port))
-			continue;
-
-		dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
-		(void) dmesh_raw_add(sha1, &info, now);
+		dmesh_add_alternate(sha1, addr, port);
 	}
 }
 
