@@ -3469,8 +3469,11 @@ download_send_head_ping(struct download *d)
 			gnet_host_t *host = sl->data;
 			gnutella_node_t *n = node_udp_get_addr_port(
 				gnet_host_get_addr(host), gnet_host_get_port(host));
-			
-			vmsg_send_head_ping(n, d->file_info->sha1, download_guid(d));
+
+			if (n) {
+				vmsg_send_head_ping(n, d->file_info->sha1, download_guid(d));
+				d->head_ping_sent = now;
+			}
 		}
 	} else {
 		gnutella_node_t *n = node_udp_get_addr_port(
@@ -3479,11 +3482,11 @@ download_send_head_ping(struct download *d)
 		/*
 		 * Not firewalled, just send direct message to the server.
 		 */
-
-		vmsg_send_head_ping(n, d->file_info->sha1, NULL);
+		if (n) {
+			vmsg_send_head_ping(n, d->file_info->sha1, NULL);
+			d->head_ping_sent = now;
+		}
 	}
-
-	d->head_ping_sent = now;
 }
 
 /**
