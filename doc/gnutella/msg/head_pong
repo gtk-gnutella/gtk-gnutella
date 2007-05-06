@@ -80,9 +80,18 @@ Second, alternate push locations:
 If flag bit 2 is set, the HEAD Pong carries a list of alternate push
 locations. The next two bytes define the size in bytes of this
 sub-payload (16-bit big-endian integer). Alternate push locations are
-encoded as a one byte of flags; followed by a 16 byte GUID, a 6-byte
-IPv4 peer address[1] and finally up to 7 push proxy adresses encoded as
-6-byte peer addresses. This includes RUDP-capable push locations.
+encoded as a one byte of flags; followed by a 16 byte GUID, optionally
+a 6-byte IPv4 peer address[1] and finally up to 7 push proxy adresses
+encoded as 6-byte peer addresses. This includes RUDP-capable push locations.
+The first byte of a push located is encoded as follows:
+
+Bits  Description
+0..2: Number of push proxies (0-7)
+3..4: Supported RUDP protocol version (0 means unsupported)
+5..7: Other flags
+
+The peer address after the GUID might be omitted. Whether this is the
+case can be derived by the size of this item.
 
 Third, alternate locations:
 
