@@ -114,6 +114,7 @@ void download_data_received(struct download *d, ssize_t received);
 void download_maybe_finished(struct download *d);
 
 gboolean download_handle_http(const gchar *url);
+gboolean download_is_stalled(struct download *d);
 
 const GSList *downloads_get_list(void);
 

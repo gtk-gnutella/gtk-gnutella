@@ -110,6 +110,7 @@ RCSID("$Id$")
 #define DOWNLOAD_MAX_IGN_REQS	3		/**< How many mismatches per source */
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
+#define DOWNLOAD_STALLED		60		/**< Consider stalled after 60 secs */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -11292,6 +11293,16 @@ download_handle_http(const gchar *url)
 	G_FREE_NULL(magnet_url);
 
 	return success;
+}
+
+/**
+ * @return Whether download is stalled, not having received data for some
+ * time now.
+ */
+gboolean
+download_is_stalled(struct download *d)
+{
+	return delta_time(tm_time(), d->last_update) > DOWNLOAD_STALLED;
 }
 
 /**

@@ -4762,8 +4762,13 @@ fi_find_aggressive_candidate(
 
 		can_be_aggressive =
 			missing_coverage > longest_missing_coverage ||
-			(missing_coverage == longest_missing_coverage &&
-				download_speed_avg(d) > download_speed_avg(longest_dl));
+			(
+				missing_coverage == longest_missing_coverage &&
+				(
+					download_speed_avg(d) > download_speed_avg(longest_dl) ||
+					download_is_stalled(longest_dl)
+				)
+			);
 	}
 
 	if (!can_be_aggressive)
