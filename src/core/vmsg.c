@@ -1532,10 +1532,11 @@ enum {
 	VMSG_HEAD_CODE_NOT_FOUND	= 0,
 	VMSG_HEAD_CODE_COMPLETE		= 1 << 0,
 	VMSG_HEAD_CODE_PARTIAL		= 1 << 1,
-	VMSG_HEAD_CODE_FIREWALLED	= 1 << 2,
-	VMSG_HEAD_CODE_DOWNLOADING	= 1 << 3,
 
-	VMSG_HEAD_CODE_MASK			= 0x0f
+	VMSG_HEAD_STATUS_FIREWALLED	 = 1 << 2,
+	VMSG_HEAD_STATUS_DOWNLOADING = 1 << 3,
+	
+	VMSG_HEAD_CODE_MASK			= 0x03,
 };
 
 void
@@ -1549,7 +1550,6 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 24, 1);
 	paysize = 2;
 
-	code &= VMSG_HEAD_CODE_MASK;
 	flags &= VMSG_HEAD_F_MASK;
 
 	p = poke_u8(&payload[0], flags);
@@ -1560,7 +1560,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	} else {
 		guint32 slots;
 
-		code |= is_firewalled ? VMSG_HEAD_CODE_FIREWALLED : 0;
+		code |= is_firewalled ? VMSG_HEAD_STATUS_FIREWALLED : 0;
 
 		slots = upload_is_enabled() ? max_uploads - ul_running : 0;
 		slots = MIN(max_uploads, slots);
@@ -1748,24 +1748,13 @@ head_ping_register(const gchar *muid,
 	return TRUE;
 }
 
-static gboolean
-head_ping_is_registered(const gchar *muid, struct head_ping_data *ping)
+static struct head_ping_source *
+head_ping_is_registered(const gchar *muid)
 {
-	struct head_ping_source *source;
-
 	g_assert(muid);
-	g_assert(ping);
 	g_return_val_if_fail(head_pings, FALSE);
 
-	source = hash_list_remove(head_pings, muid);
-	if (source) {
-		*ping = source->ping;			/* Struct copy, including SHA1 atom */
-		source->ping.sha1 = NULL;		/* Do not free copied atom addr */
-		head_ping_source_free(source);
-		return TRUE;
-	} else {
-		return FALSE;
-	}
+	return hash_list_remove(head_pings, muid);
 }
 
 /**
@@ -2040,7 +2029,7 @@ handle_head_ping(struct gnutella_node *n,
 					if (pfsp_server) {
 						code = VMSG_HEAD_CODE_PARTIAL;
 						if (fi->recvcount > 0) {
-							code |= VMSG_HEAD_CODE_DOWNLOADING;
+							code |= VMSG_HEAD_STATUS_DOWNLOADING;
 						}
 					} else {
 						code = VMSG_HEAD_CODE_NOT_FOUND;
@@ -2099,7 +2088,7 @@ handle_head_pong(struct gnutella_node *n,
 {
 	const size_t expected_size = 2; /* flags and code */
 	const gchar *vendor, *muid, *p, *endptr;
-	struct head_ping_data ping;
+	struct head_ping_source *source;
 	guint8 flags, code;
 	gint8 queue;
 
@@ -2116,7 +2105,8 @@ handle_head_pong(struct gnutella_node *n,
 	}
 
 	muid = gnutella_header_get_muid(&n->header);
-	if (!head_ping_is_registered(muid, &ping)) {
+	source = head_ping_is_registered(muid);
+	if (!source) {
 		if (vmsg_debug) {
 			g_warning("HEAD Pong MUID is not registered");
 		}
@@ -2141,7 +2131,7 @@ handle_head_pong(struct gnutella_node *n,
 	 */
 
 	flags = peek_u8(&payload[0]);
-	code = peek_u8(&payload[1]) & VMSG_HEAD_CODE_MASK;
+	code = peek_u8(&payload[1]);
 	queue = 0;
 	vendor = "?";
 
@@ -2159,21 +2149,35 @@ handle_head_pong(struct gnutella_node *n,
 		g_message(
 			"HEAD Pong vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
 			vendor,
-			ping.sha1 ? "urn:sha1:" : "<unknown hash>",
-			ping.sha1 ? sha1_base32(ping.sha1) : "",
+			source->ping.sha1 ? "urn:sha1:" : "<unknown hash>",
+			source->ping.sha1 ? sha1_base32(source->ping.sha1) : "",
 			VMSG_HEAD_CODE_COMPLETE & code
 				? "complete"
-				: (VMSG_HEAD_CODE_PARTIAL | VMSG_HEAD_CODE_DOWNLOADING) & code
+				: (VMSG_HEAD_CODE_PARTIAL | VMSG_HEAD_STATUS_DOWNLOADING) & code
 					? "partial"
 					: "not found",
-			VMSG_HEAD_CODE_DOWNLOADING & code ?  ", downloading" : "",
-			VMSG_HEAD_CODE_FIREWALLED & code ?  ", firewalled" : "",
+			VMSG_HEAD_STATUS_DOWNLOADING & code ?  ", downloading" : "",
+			VMSG_HEAD_STATUS_FIREWALLED & code ?  ", firewalled" : "",
 			queue);
 	}
 
-	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
+	switch (code & VMSG_HEAD_CODE_MASK) {
+	case VMSG_HEAD_CODE_NOT_FOUND:
 		/* LimeWire sends only code and flags if the file was not found */
+		if (node_id_self(source->ping.node_id)) {
+			dmesh_remove_alternate(source->ping.sha1,
+				source->ping.addr, source->ping.port);
+		}
 		goto out;
+
+	case VMSG_HEAD_CODE_COMPLETE:
+	case VMSG_HEAD_CODE_PARTIAL:
+		/* LimeWire sends only code and flags if the file was not found */
+		if (node_id_self(source->ping.node_id)) {
+			dmesh_add_alternate(source->ping.sha1,
+				source->ping.addr, source->ping.port);
+		}
+		break;
 	}
 	
 	/* Optional ranges for partial files -- IGNORED FOR NOW */
@@ -2229,23 +2233,25 @@ handle_head_pong(struct gnutella_node *n,
 			}
 			goto out;
 		} else {
-			gint i;
-
 			if (vmsg_debug)
 				g_message("HEAD Pong carries %u alt-locs", len / 6);
 
 			p += 2;				/* Skip length indication */
 
-			for (i = len / 6; i > 0; i--) {
-				host_addr_t addr;
-				guint16 port;
-				
-				/* IPv4 address (BE) + Port (LE) */
-				addr = host_addr_peek_ipv4(&p[0]);
-				port = peek_le16(&p[4]);
-				p += 6;
+			if (node_id_self(source->ping.node_id) && source->ping.sha1) {
+				gint i;
 
-				dmesh_add_alternate(ping.sha1, addr, port);
+				for (i = len / 6; i > 0; i--) {
+					host_addr_t addr;
+					guint16 port;
+
+					/* IPv4 address (BE) + Port (LE) */
+					addr = host_addr_peek_ipv4(&p[0]);
+					port = peek_le16(&p[4]);
+					p += 6;
+
+					dmesh_add_alternate(source->ping.sha1, addr, port);
+				}
 			}
 		}
 	}
@@ -2264,10 +2270,11 @@ handle_head_pong(struct gnutella_node *n,
 	) {
 		struct gnutella_node *target;
 
-		if (!node_id_self(ping.node_id)) {
-			target = node_active_by_id(ping.node_id);
+		if (node_id_self(source->ping.node_id)) {
+			target = node_udp_get_addr_port(source->ping.addr,
+						source->ping.port);
 		} else {
-			target = node_udp_get_addr_port(ping.addr, ping.port);
+			target = node_active_by_id(source->ping.node_id);
 		}
 		if (target) {
 			gnutella_header_t header;
@@ -2285,7 +2292,7 @@ handle_head_pong(struct gnutella_node *n,
 	}
 
 out:
-	atom_sha1_free_null(&ping.sha1);
+	head_ping_source_free(&source);
 }
 
 #if 0 
