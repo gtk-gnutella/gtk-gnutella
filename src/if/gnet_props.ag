@@ -3435,4 +3435,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "tigertree_debug";
+    desc = "Debug level for Tigertree-related code.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

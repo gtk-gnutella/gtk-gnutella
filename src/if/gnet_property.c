@@ -660,6 +660,8 @@ guint32  thex_files_requested     = 0;
 guint32  thex_files_requested_def = 0;
 guint32  thex_files_served     = 0;
 guint32  thex_files_served_def = 0;
+guint32  tigertree_debug     = 0;
+guint32  tigertree_debug_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6322,6 +6324,26 @@ gnet_prop_init(void) {
     gnet_property->props[296].data.guint32.choices = NULL;
     gnet_property->props[296].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[296].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_TIGERTREE_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[297].name = "tigertree_debug";
+    gnet_property->props[297].desc = _("Debug level for Tigertree-related code.");
+    gnet_property->props[297].ev_changed = event_new("tigertree_debug_changed");
+    gnet_property->props[297].save = TRUE;
+    gnet_property->props[297].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[297].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[297].data.guint32.def   = &tigertree_debug_def;
+    gnet_property->props[297].data.guint32.value = &tigertree_debug;
+    gnet_property->props[297].data.guint32.choices = NULL;
+    gnet_property->props[297].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[297].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
