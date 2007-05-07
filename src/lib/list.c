@@ -258,7 +258,7 @@ list_insert_sorted(list_t *list, gpointer key, GCompareFunc func)
 
 /**
  * Remove `key' from the list.
- * @return The data that associated with the given key.
+ * @return whether we found the item in the list and deleted it.
  */
 gboolean
 list_remove(list_t *list, gpointer key)
