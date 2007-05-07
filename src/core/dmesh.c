@@ -30,7 +30,7 @@
  * Download mesh.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2007
  */
 
 #include "common.h"
@@ -60,6 +60,7 @@ RCSID("$Id$")
 #include "lib/fuzzy.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -78,23 +79,26 @@ dmesh_url_error_t dmesh_url_errno;	/**< Error from dmesh_url_parse() */
 static GHashTable *mesh = NULL;
 
 struct dmesh {				/**< A download mesh bucket */
-	GSList *entries;		/**< The download mesh entries, dmesh_entry data */
+	list_t *entries;		/**< The download mesh entries, dmesh_entry data */
+	GHashTable *by_host;	/**< Entries indexed by host */
 	time_t last_update;		/**< Timestamp of last insertion in the mesh */
-	gint count;				/**< Amount of entries in list */
+	const struct sha1 *sha1;	/**< For tracing, the SHA1 of this mesh */
 };
 
 struct dmesh_entry {
 	time_t inserted;		/**< When entry was inserted in mesh */
 	time_t stamp;			/**< When entry was last seen */
 	dmesh_urlinfo_t url;	/**< URL info */
+	hash_list_t *bad;		/**< Keeps track of IPs reporting entry as bad */
+	gboolean good;			/**< Whether marked as being a good entry */
 };
 
 #define MAX_LIFETIME	86400		/**< 1 day */
 #define MAX_ENTRIES		64			/**< Max amount of entries kept in list */
-#define MAX_STAMP		((time_t) -1)
 
 #define MIN_PFSP_SIZE	524288		/**< 512K, min size for PFSP advertising */
 #define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
+#define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
 
 /** If not at least 60% alike, dump! */
 #define FUZZY_DROP		((60 << FUZZY_SHIFT) / 100)
@@ -184,18 +188,6 @@ dmesh_init(void)
 }
 
 /**
- * Compare two dmesh_entry, based on the timestamp.  The greater the time
- * stamp, the samller the entry (i.e. the more recent).
- */
-static gint
-dmesh_entry_cmp(gconstpointer a, gconstpointer b)
-{
-	const struct dmesh_entry *ae = a, *be = b;
-
-	return delta_time(be->stamp, ae->stamp);
-}
-
-/**
  * Free download mesh entry.
  */
 static void
@@ -205,6 +197,11 @@ dmesh_entry_free(struct dmesh_entry *dme)
 
 	if (dme->url.name)
 		atom_str_free(dme->url.name);
+
+	if (dme->bad) {
+		hash_list_foreach(dme->bad, wfree_host_addr, NULL);
+		hash_list_free(&dme->bad);
+	}
 
 	wfree(dme, sizeof *dme);
 }
@@ -495,25 +492,138 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 }
 
 /**
- * Expire entries older than `agemax' in a given mesh bucket `dm'.
- * `sha1' is only passed in case we want to log the removal.
+ * Allocate a new download mesh structure (there is one per SHA1).
+ */
+static struct dmesh *
+dm_alloc(const struct sha1 *sha1)
+{
+	struct dmesh *dm;
+
+	dm = walloc(sizeof *dm);
+	dm->last_update = 0;
+	dm->entries = list_new();
+	dm->sha1 = atom_sha1_get(sha1);
+	dm->by_host =
+		g_hash_table_new(packed_host_hash_func, packed_host_eq_func);
+
+	return dm;
+}
+
+/**
+ * Free download mesh structure.
  */
 static void
-dm_expire(struct dmesh *dm, glong agemax, const struct sha1 *sha1)
+dm_free(struct dmesh *dm)
 {
-	GSList *l;
-	GSList *prev;
+	list_iter_t *iter;
+	struct dmesh_entry *dme;
+
+	iter = list_iter_before_head(dm->entries);
+
+	while ((dme = list_iter_next(iter)))
+		dmesh_entry_free(dme);
+
+	list_iter_free(&iter);
+	list_free(&dm->entries);
+
+	/*
+	 * Values in the dme->by_host table were the dmesh_entry structures
+	 * we just disposed of above, so we only need to get rid of the keys.
+	 */
+	
+	gm_hash_table_foreach_key(dm->by_host, wfree_packed_host, NULL);
+	g_hash_table_destroy(dm->by_host);
+	atom_sha1_free(dm->sha1);
+
+	wfree(dm, sizeof *dm);
+}
+
+/**
+ * Remove specified entry from mesh bucket and reclaim it.
+ */
+static void
+dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
+{
+	struct packed_host packed;
+	gpointer key;
+	gpointer value;
+	gboolean found;
+
+	g_assert(dm);
+	g_assert(list_length(dm->entries) > 0);
+
+	if (dmesh_debug)
+		g_message("dmesh entry removed for urn:sha1:%s at %s",
+			sha1_base32(dm->sha1),
+			host_addr_port_to_string(dme->url.addr, dme->url.port));
+
+	packed = host_pack(dme->url.addr, dme->url.port);
+	found = g_hash_table_lookup_extended(dm->by_host, &packed, &key, &value);
+
+	g_assert(found);
+	g_assert(value == (gpointer) dme);
+
+	found = list_remove(dm->entries, dme);		/* Remove from list */
+
+	g_assert(found);
+
+	g_hash_table_remove(dm->by_host, &packed);	/* And from hash table */
+	wfree_packed_host(key, NULL);
+	dmesh_entry_free(dme);
+}
+
+/**
+ * Remove the addr:port entry from mesh bucket, if present.
+ */
+static void
+dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
+{
+	struct packed_host packed;
+	struct dmesh_entry *dme;
+	gpointer key;
+	gpointer value;
+	gboolean found;
+
+	g_assert(dm);
+
+	packed = host_pack(addr, port);
+	found = g_hash_table_lookup_extended(dm->by_host, &packed, &key, &value);
+
+	if (!found)
+		return;
+
+	if (dmesh_debug)
+		g_message("dmesh entry removed for urn:sha1:%s at %s",
+			sha1_base32(dm->sha1), host_addr_port_to_string(addr, port));
+
+	dme = value;
+	found = list_remove(dm->entries, dme);		/* Remove from list */
+
+	g_assert(found);
+
+	g_hash_table_remove(dm->by_host, &packed);	/* And from hash table */
+	wfree_packed_host(key, NULL);
+	dmesh_entry_free(dme);
+}
+
+/**
+ * Expire entries older than `agemax' in a given mesh bucket `dm'.
+ */
+static void
+dm_expire(struct dmesh *dm, glong agemax)
+{
+	GSList *expired = NULL;
+	GSList *sl;
 	time_t now = tm_time();
+	list_iter_t *iter;
 
-	for (prev = NULL, l = dm->entries; l; /* empty */) {
-		struct dmesh_entry *dme = l->data;
-		GSList *next;
+	iter = list_iter_before_head(dm->entries);
 
-		if (delta_time(now, dme->stamp) <= agemax) {
-			prev = l;
-			l = l->next;
+	while (list_iter_has_next(iter)) {
+		struct dmesh_entry *dme = list_iter_next(iter);
+
+		if (delta_time(now, dme->stamp) <= agemax)
 			continue;
-		}
 
 		/*
 		 * Remove the entry.
@@ -522,71 +632,24 @@ dm_expire(struct dmesh *dm, glong agemax, const struct sha1 *sha1)
 		 * XXX to see whether the entry is still valid.
 		 */
 
-		g_assert(dm->count > 0);
-
 		if (dmesh_debug > 4)
 			g_message("MESH %s: EXPIRED \"%s\", age=%d",
-				sha1 ? sha1_base32(sha1) : "<no SHA-1 known>",
+				sha1_base32(dm->sha1),
 				dmesh_urlinfo_to_string(&dme->url),
 				(gint) delta_time(now, dme->stamp));
 
-		dmesh_entry_free(dme);
-		dm->count--;
-
-		next = l->next;
-		l->next = NULL;
-		g_slist_free_1(l);
-
-		if (prev == NULL)				/* At the head of the list */
-			dm->entries = next;
-		else
-			prev->next = next;
-
-		l = next;
+		expired = g_slist_prepend(expired, dme);
 	}
-}
 
-/**
- * Remove specified entry from mesh bucket, if it is older than `stamp'.
- *
- * @return TRUE if entry was removed or not found, FALSE otherwise.
- */
-static gboolean
-dm_remove(struct dmesh *dm, const host_addr_t addr,
-	guint16 port, guint idx, const gchar *name, time_t stamp)
-{
-	GSList *sl;
+	list_iter_free(&iter);
 
-	g_assert(dm);
-	g_assert(dm->count > 0);
-
-	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
+	for (sl = expired; sl; sl = g_slist_next(sl)) {
 		struct dmesh_entry *dme = sl->data;
 
-		if (
-			host_addr_equal(dme->url.addr, addr) &&
-			dme->url.port == port	&&
-			dme->url.idx == idx		&&
-			0 == strcmp(dme->url.name, name)
-		) {
-			/*
-			 * Found entry, remove it if older than `stamp'.
-			 *
-			 * If it's equal, we don't remove it either, to prevent addition
-			 * of an entry we already have.
-			 */
-
-			if (MAX_STAMP != stamp && delta_time(dme->stamp, stamp) >= 0)
-				return FALSE;
-
-			dm->entries = g_slist_remove(dm->entries, dme);
-			dm->count--;
-			dmesh_entry_free(dme);
-			break;
-		}
+		dm_remove_entry(dm, dme);
 	}
 
-	return TRUE;
+	g_slist_free(expired);
 }
 
 /**
@@ -604,14 +667,13 @@ dmesh_dispose(const struct sha1 *sha1)
 
 	dm = value;
 	g_assert(found);
-	g_assert(dm->count == 0);
-	g_assert(dm->entries == NULL);
+	g_assert(list_length(dm->entries) == 0);
 
 	/* Remove it from the hashtable before freeing key, just in case
 	 * that sha1 == key. */
 	g_hash_table_remove(mesh, sha1);
 	atom_sha1_free(key);
-	wfree(dm, sizeof *dm);
+	dm_free(dm);
 }
 
 /**
@@ -665,16 +727,14 @@ dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, guint16 port,
 	if (dm == NULL)				/* Nothing for this SHA1 key */
 		return FALSE;
 
-	(void) dm_remove(dm, addr, port, idx, info.name, MAX_STAMP);
+	dm_remove(dm, addr, port);
 
 	/*
 	 * If there is nothing left, clear the mesh entry.
 	 */
 
-	if (dm->count == 0) {
-		g_assert(dm->entries == NULL);
+	if (list_length(dm->entries) == 0)
 		dmesh_dispose(sha1);
-	}
 
     return TRUE;
 }
@@ -693,10 +753,7 @@ dmesh_count(const struct sha1 *sha1)
 
 	dm = g_hash_table_lookup(mesh, sha1);
 
-	if (dm)
-		return dm->count;
-
-	return 0;
+	return dm ? list_length(dm->entries) : 0;
 }
 
 /**
@@ -720,34 +777,46 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 	guint16 port = info->port;
 	guint idx = info->idx;
 	const gchar *name = info->name;
+	struct packed_host packed;
+	const gchar *reason = NULL;
 
 	g_return_val_if_fail(sha1, FALSE);
 
 	if (stamp == 0 || delta_time(stamp, now) > 0)
 		stamp = now;
 
-	if (delta_time(now, stamp) > MAX_LIFETIME)
-		return FALSE;
+	if (delta_time(now, stamp) > MAX_LIFETIME) {
+		reason = "expired";
+		goto rejected;
+	}
 
 	/*
 	 * Reject if this is for our host, or if the host is a private/hostile IP.
 	 */
 
-	if (is_my_address_and_port(addr, port))
-		return FALSE;
+	if (is_my_address_and_port(addr, port)) {
+		reason = "my own address and port";
+		goto rejected;
+	}
 
-	if (!host_is_valid(addr, port))
-		return FALSE;
+	if (!host_is_valid(addr, port)) {
+		reason = "address/port not valid";
+		goto rejected;
+	}
 
-	if (hostiles_check(addr))
-		return FALSE;
+	if (hostiles_check(addr)) {
+		reason = "hostile address";
+		goto rejected;
+	}
 
 	/*
 	 * See whether this URL is banned from the mesh.
 	 */
 
-	if (dmesh_is_banned(info))
-		return FALSE;
+	if (dmesh_is_banned(info)) {
+		reason = "in banned mesh";
+		goto rejected;
+	}
 
 	/*
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
@@ -761,80 +830,100 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 
 	dm =  g_hash_table_lookup(mesh, sha1);
 	if (dm == NULL) {
-		dm = walloc(sizeof *dm);
-
-		dm->count = 0;
-		dm->entries = NULL;
-
+		dm = dm_alloc(sha1);
 		gm_hash_table_insert_const(mesh, atom_sha1_get(sha1), dm);
 	} else {
-		g_assert(dm->count > 0);
-
-		dm_expire(dm, MAX_LIFETIME, sha1);
-
-		/*
-		 * If dm_remove() returns FALSE, it means that we found the entry
-		 * in the mesh, but it is not older than the supplied stamp.  So
-		 * we have the entry already, and reject this duplicate.
-		 */
-
-		if (dm->count && !dm_remove(dm, addr, port, idx, name, stamp))
-			return FALSE;
+		dm_expire(dm, MAX_LIFETIME);
 	}
 
 	/*
-	 * Allocate new entry.
+	 * See whether we knew something about this host already.
 	 */
 
-	dme = walloc(sizeof *dme);
+	packed = host_pack(addr, port);
+	dme = g_hash_table_lookup(dm->by_host, &packed);
 
-	dme->inserted = now;
-	dme->stamp = stamp;
-	dme->url.addr = addr;
-	dme->url.port = port;
-	dme->url.idx = idx;
-	dme->url.name = atom_str_get(name);
+	if (dme) {
+		/*
+		 * Entry for this host existed.
+		 */
 
-    if (dmesh_debug)
-		g_message("dmesh entry created, name %p: %s",
-				dme->url.name, dme->url.name);
+		g_assert(host_addr_equal(dme->url.addr, addr));
+		g_assert(dme->url.port == port);
 
-	/*
-	 * The entries are sorted by time.  We're going to unconditionally add
-	 * the new entry, and then we'll prune the last item (oldest) if we
-	 * reached our maximum capacity.
-	 */
+		/*
+		 * We favor URN_INDEX entries, if we can...
+		 */
 
-	dm->entries = g_slist_insert_sorted(dm->entries, dme, dmesh_entry_cmp);
-	dm->last_update = now;
+		if (dme->url.idx != idx && idx == URN_INDEX) {
+			dme->url.idx = idx;
+			atom_str_change(&dme->url.name, name);
+		}
 
-	if (dm->count == MAX_ENTRIES) {
-		struct dmesh_entry *last = g_slist_last(dm->entries)->data;
+		if (stamp > dme->stamp)		/* Don't move stamp back in the past */
+			dme->stamp = stamp;
 
-		dm->entries = g_slist_remove(dm->entries, last);
+		if (dmesh_debug)
+			g_message("dmesh entry reused for urn:sha1:%s at %s",
+				sha1_base32(sha1), host_addr_port_to_string(addr, port));
+	} else {
+		/*
+		 * Allocate new entry.
+		 */
 
-		dmesh_entry_free(last);
+		dme = walloc(sizeof *dme);
 
-		if (last == dme)		/* New entry turned out to be the oldest */
-			dme = NULL;
-	} else
-		dm->count++;
+		dme->inserted = now;
+		dme->stamp = stamp;
+		dme->url.addr = addr;
+		dme->url.port = port;
+		dme->url.idx = idx;
+		dme->url.name = atom_str_get(name);
+		dme->bad = NULL;
+		dme->good = FALSE;
+
+		if (dmesh_debug)
+			g_message("dmesh entry created for urn:sha1:%s at %s",
+				sha1_base32(sha1), host_addr_port_to_string(addr, port));
+
+		/*
+		 * We insert new entries at the tail of the list, and record them
+		 * into the hash table indexed by host.
+		 */
+
+		list_append(dm->entries, dme);
+		dm->last_update = now;
+
+		g_hash_table_insert(dm->by_host, walloc_packed_host(addr, port), dme);
+
+		if (list_length(dm->entries) == MAX_ENTRIES) {
+			struct dmesh_entry *oldest = list_head(dm->entries);
+			dm_remove_entry(dm, oldest);
+		}
+	}
 
 	/*
 	 * We got a new entry that could be used for swarming if we are
 	 * downloading that file.
+	 *
+	 * If this is from a uri-res URI, don't use the SHA1 as
+	 * filename, so that the existing name is used instead.
 	 */
 
-	if (dme != NULL) {
-		/*
-		 * If this is from a uri-res URI, don't use the SHA1 as
-		 * filename, so that the existing name is used instead.
-		 */
-		file_info_try_to_swarm_with(URN_INDEX == idx && sha1 ? NULL : name,
-			addr, port, sha1);
-	}
+	file_info_try_to_swarm_with(
+		URN_INDEX == idx && sha1 ? NULL : name, addr, port, sha1);
 
-	return dme != NULL;			/* TRUE means we added the entry */
+	return TRUE;			/* We added the entry */
+
+rejected:
+	if (dmesh_debug > 4)
+		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%d: %s",
+			sha1_base32(sha1),
+			dmesh_urlinfo_to_string(info), (guint) stamp,
+			(gint) delta_time(now, stamp),
+			reason);
+
+	return FALSE;
 }
 
 /**
@@ -856,6 +945,9 @@ dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
 	return dmesh_raw_add(sha1, &info, stamp);
 }
 
+/**
+ * Add addr:port as a known alternate location for given sha1.
+ */
 void
 dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 {
@@ -865,12 +957,6 @@ dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 		dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
 		(void) dmesh_raw_add(sha1, &info, tm_time());
 	}
-}
-
-void
-dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
-{
-	dmesh_remove(sha1, addr, port, URN_INDEX, NULL);
 }
 
 /**
@@ -892,6 +978,122 @@ dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *alt)
 
 		dmesh_add_alternate(sha1, addr, port);
 	}
+}
+
+/**
+ * Remove addr:port as a known alternate location for given sha1.
+ * This inserts the location into the banned mesh.
+ */
+void
+dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
+{
+	dmesh_remove(sha1, addr, port, URN_INDEX, NULL);
+}
+
+/**
+ * Record that addr:port was signalled negatively as an alternate location
+ * for given sha1.  The reporter's address is also given so that we can wait
+ * until we have sufficient evidence from at least 2 different parties.
+ *
+ * When there is sufficient evidence, the entry is evicted from the mesh
+ * and placed into the banned mesh.
+ */
+void
+dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
+	host_addr_t addr, guint16 port)
+{
+	struct dmesh *dm;
+	struct packed_host packed;
+	struct dmesh_entry *dme;
+
+	/*
+	 * Lookup SHA1 in the mesh to see if we already have entries for it.
+	 */
+
+	dm = g_hash_table_lookup(mesh, sha1);
+
+	if (dm == NULL)				/* Nothing for this SHA1 key */
+		return;
+
+	packed = host_pack(addr, port);
+	dme = g_hash_table_lookup(dm->by_host, &packed);
+
+	if (dme == NULL)
+		return;
+
+	g_assert(dme->url.port == port);
+	g_assert(host_addr_equal(dme->url.addr, addr));
+
+	if (dme->bad == NULL)
+		dme->bad = hash_list_new(host_addr_hash_func, host_addr_eq_func);
+
+	/*
+	 * If this host already reported this addr:port as being bad, ignore.
+	 */
+
+	if (hash_list_contains(dme->bad, &reporter, NULL))
+		return;
+
+	/*
+	 * Evict the entry only when there is enough evidence.
+	 */
+
+	if (hash_list_length(dme->bad) + 1 < MIN_BAD_REPORT) {
+		host_addr_t *raddr = walloc(sizeof *raddr);
+		*raddr = reporter;
+		hash_list_append(dme->bad, raddr);
+	} else
+		dm_remove_entry(dm, dme);
+}
+
+/**
+ * Flag dmesh entry for this SHA1, address and port as good or bad.
+ */
+void
+dmesh_good_mark(const struct sha1 *sha1,
+	host_addr_t addr, guint16 port, gboolean good)
+{
+	struct dmesh *dm;
+	struct packed_host packed;
+	struct dmesh_entry *dme;
+
+	dm = g_hash_table_lookup(mesh, sha1);
+	if (dm == NULL)
+		return;			/* Weird, but it doesn't matter */
+
+	packed = host_pack(addr, port);
+	dme = g_hash_table_lookup(dm->by_host, &packed);
+
+	g_assert(dme->url.port == port);
+	g_assert(host_addr_equal(dme->url.addr, addr));
+
+	/*
+	 * Get rid of the "bad" reporting if we're flagging it as good!
+	 */
+
+	if (good && dme->bad) {
+		hash_list_foreach(dme->bad, wfree_host_addr, NULL);
+		hash_list_free(&dme->bad);
+	}
+
+	/*
+	 * If we're flagging the entry as good for the first time, then
+	 * update the `inserted' field: indeed, we only send new entries
+	 * to remote parties, so we must update this.
+	 *
+	 * As a side effect, we also update the stamp when the entry is
+	 * flagged as good!
+	 */
+
+	if (good) {
+		time_t now = tm_time();
+
+		if (!dme->good)
+			dme->inserted = now;	/* First time flagged as good */
+		dme->stamp = now;			/* We know it's still alive */
+	}
+
+	dme->good = good;
 }
 
 /**
@@ -1076,7 +1278,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 	gint nselected;
 	gint i;
 	gint j;
-	GSList *l;
+	list_iter_t *iter;
 
 	/*
 	 * Fetch the mesh entry for this SHA1.
@@ -1087,14 +1289,22 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 		return 0;
 
 	/*
-	 * First pass: identify entries that can be requested by hash only.
+	 * First pass: identify good entries that can be requested by hash only.
 	 */
 
-	for (i = 0, l = dm->entries; l; l = l->next) {
-		struct dmesh_entry *dme = l->data;
+	i = 0;
+	iter = list_iter_before_head(dm->entries);
+
+	while (list_iter_has_next(iter)) {
+		struct dmesh_entry *dme = list_iter_next(iter);
 
 		if (dme->url.idx != URN_INDEX)
 			continue;
+
+#if 0	/* XXX not yet */
+		if (!dme->good)
+			continue;			/* Only propagate good alt locs */
+#endif
 
 		if (NET_TYPE_IPV4 != host_addr_net(dme->url.addr))
 			continue;
@@ -1104,11 +1314,12 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 	}
 
 	nselected = i;
+	list_iter_free(&iter);
 
 	if (nselected == 0)
 		return 0;
 
-	g_assert(nselected <= dm->count);
+	g_assert(nselected <= (gint) list_length(dm->entries));
 
 	/*
 	 * Second pass: choose at most `hcnt' entries at random.
@@ -1198,6 +1409,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	size_t maxlinelen = 0;
 	gpointer fmt;
 	gboolean added;
+	list_iter_t *iter;
 
 	g_assert(sha1);
 	g_assert(buf);
@@ -1359,10 +1571,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * Expire old entries.  If none remain, free entry and return.
 	 */
 
-	dm_expire(dm, MAX_LIFETIME, sha1);
+	dm_expire(dm, MAX_LIFETIME);
 
-	if (dm->count == 0) {
-		g_assert(dm->entries == NULL);
+	if (list_length(dm->entries) == 0) {
 		dmesh_dispose(sha1);
 		goto nomore;
 	}
@@ -1380,8 +1591,16 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * First pass.
 	 */
 
-	for (i = 0, l = dm->entries; l; l = l->next) {
-		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+	i = 0;
+	iter = list_iter_before_head(dm->entries);
+
+	while (list_iter_has_next(iter)) {
+		struct dmesh_entry *dme = list_iter_next(iter);
+
+#if 0	/* XXX not yet */
+		if (!dme->good)			/* Only report sources we've checked */
+			continue;
+#endif
 
 		if (delta_time(dme->inserted, last_sent) <= 0)
 			continue;
@@ -1398,11 +1617,12 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	}
 
 	nselected = i;
+	list_iter_free(&iter);
 
 	if (nselected == 0)
 		goto nomore;
 
-	g_assert(nselected <= dm->count);
+	g_assert(nselected <= (gint) list_length(dm->entries));
 
 	/*
 	 * Second pass.
@@ -1453,7 +1673,7 @@ nomore:
 	if (added) {
 		size_t length;
 
-		header_fmt_end(fmt);
+		header_fmt_end(fmt);			/* Only report sources we've checked */
 		length = header_fmt_length(fmt);
 		g_assert(length + len < size);
 		/* Add +1 for final NUL */
@@ -1486,7 +1706,8 @@ static GSList *
 dmesh_get_nonurn_altlocs(const struct sha1 *sha1)
 {
     struct dmesh *dm;
-    GSList *sl, *nonurn_altlocs = NULL;
+    GSList *nonurn_altlocs = NULL;
+	list_iter_t *iter;
 
     g_assert(sha1);
 
@@ -1494,12 +1715,16 @@ dmesh_get_nonurn_altlocs(const struct sha1 *sha1)
     if (dm == NULL)				/* SHA1 unknown */
 		return NULL;
 
-	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
-		struct dmesh_entry *dme = sl->data;
+	iter = list_iter_before_head(dm->entries);
+
+	while (list_iter_has_next(iter)) {
+		struct dmesh_entry *dme = list_iter_next(iter);
 
 		if (dme->url.idx != URN_INDEX)
 			nonurn_altlocs = g_slist_append(nonurn_altlocs, dme);
 	}
+
+	list_iter_free(&iter);
 
     return nonurn_altlocs;
 }
@@ -2106,7 +2331,7 @@ static gint
 dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, gint count)
 {
 	struct dmesh *dm;
-	GSList *sl;
+	list_iter_t *iter;
 	gint i;
 
 	g_assert(sha1);
@@ -2117,8 +2342,11 @@ dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, gint count)
 	if (dm == NULL)					/* SHA1 unknown */
 		return 0;
 
-	for (i = 0, sl = dm->entries; sl && i < count; sl = g_slist_next(sl)) {
-		struct dmesh_entry *dme = sl->data;
+	i = 0;
+	iter = list_iter_before_head(dm->entries);
+
+	while (list_iter_has_next(iter) && i < count) {
+		struct dmesh_entry *dme = list_iter_next(iter);
 		dmesh_urlinfo_t *from;
 
 		g_assert(i < MAX_ENTRIES);
@@ -2126,6 +2354,8 @@ dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, gint count)
 		from = &dme->url;
 		buf[i++] = *from;
 	}
+
+	list_iter_free(&iter);
 
 	return i;
 }
@@ -2254,15 +2484,19 @@ dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
 {
 	const struct dmesh *dm = value;
 	FILE *out = udata;
-	GSList *sl;
+	list_iter_t *iter;
 
 	g_assert(key);
 	fprintf(out, "%s\n", sha1_base32(key));
 
-	for (sl = dm->entries; sl; sl = g_slist_next(sl)) {
-		const struct dmesh_entry *dme = sl->data;
+	iter = list_iter_before_head(dm->entries);
+
+	while (list_iter_has_next(iter)) {
+		const struct dmesh_entry *dme = list_iter_next(iter);
 		fprintf(out, "%s\n", dmesh_entry_to_string(dme));
 	}
+
+	list_iter_free(&iter);
 
 	fputs("\n", out);
 }
@@ -2378,9 +2612,11 @@ dmesh_retrieve(void)
 
 		str_chomp(tmp, 0);		/* Remove final "\n" */
 
-		if (has_sha1)
+		if (has_sha1) {
+			if (dmesh_debug)
+				g_message("dmesh_retrieve(): parsing %s", tmp);
 			dmesh_collect_locations(&sha1, tmp, FALSE);
-		else {
+		} else {
 			if (
 				strlen(tmp) < SHA1_BASE32_SIZE ||
 				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
@@ -2506,16 +2742,10 @@ static gboolean
 dmesh_free_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	struct dmesh *dm = value;
-	GSList *sl;
 
 	(void) unused_udata;
 	atom_sha1_free(key);
-
-	for (sl = dm->entries; sl; sl = g_slist_next(sl))
-		dmesh_entry_free(sl->data);
-
-	g_slist_free(dm->entries);
-	wfree(dm, sizeof *dm);
+	dm_free(dm);
 
 	return TRUE;
 }

@@ -97,6 +97,11 @@ void dmesh_remove_alternate(const struct sha1 *sha1,
 		host_addr_t addr, guint16 port);
 void dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *vec);
 
+void dmesh_negative_alt(const struct sha1 *sha1,
+	host_addr_t reporter, host_addr_t addr, guint16 port);
+void dmesh_good_mark(const struct sha1 *sha1,
+	host_addr_t addr, guint16 port, gboolean good);
+
 gint dmesh_count(const struct sha1 *sha1);
 
 gboolean dmesh_collect_sha1(const gchar *value, struct sha1 *sha1);
