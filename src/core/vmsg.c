@@ -1609,7 +1609,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	paysize = p - payload;
 
 	if (vmsg_debug) {
-		g_message("Sending HEAD Pong to %s", node_addr(n));
+		g_message("Sending HEAD Pong to %s (%u bytes)", node_addr(n), paysize);
 	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
@@ -1823,7 +1823,9 @@ vmsg_send_head_ping(
 	
 	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
 		if (vmsg_debug) {
-			g_message("Sending HEAD Ping to %s", node_addr(n));
+			g_message(
+				"Sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
+					node_addr(n), paysize, sha1_base32(sha1));
 		}
 		vmsg_send_data(n, v_tmp, msgsize);
 	}
@@ -2096,12 +2098,13 @@ handle_head_pong(struct gnutella_node *n,
 		return;
 
 	if (vmsg_debug) {
-		g_message("Got %s from %s over %s (TTL=%u, hops=%u)",
+		g_message("Got %s from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			node_addr(n),
 			NODE_IS_UDP(n) ? "UDP" : "TCP",
 			gnutella_header_get_ttl(n->header),
-			gnutella_header_get_hops(n->header));
+			gnutella_header_get_hops(n->header),
+			(unsigned long) size);
 	}
 
 	muid = gnutella_header_get_muid(&n->header);
