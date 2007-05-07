@@ -130,7 +130,7 @@ struct dmesh_banned {
 	time_t ctime;			/**< Last time we saw this banned URL */
 };
 
-typedef void (*dmesh_add_t)(
+typedef void (*dmesh_add_cb)(
 	const struct sha1 *sha1, host_addr_t addr, guint16 port, gpointer udata);
 
 /**
@@ -2007,7 +2007,7 @@ dmesh_collect_sha1(const gchar *value, struct sha1 *sha1)
  */
 static void
 dmesh_parse_addr_port_list(const struct sha1 *sha1, const gchar *value,
-	dmesh_add_t func, gpointer udata)
+	dmesh_add_cb func, gpointer udata)
 {
 	const gchar *p = value;
 
