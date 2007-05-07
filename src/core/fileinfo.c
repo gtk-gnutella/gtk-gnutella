@@ -3403,45 +3403,25 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 	) {
 		result = atom_str_get(name);
 	} else {
-		gchar *ext, *name_copy;
+		const gchar *filename;
+		gchar *uniq;
 
-		name_copy = g_strdup(name);
-		{
-			gchar *dot;
-
-			dot = strrchr(name_copy, '.');
-			if (!dot || strlen(dot) > 32) {
-				/* Probably not an extension, don't preserve */
-				dot = strchr(name_copy, '\0');
-			}
-			ext = g_strdup(dot);
-			*dot = '\0';
+		uniq = unique_filename(dir, name, "", file_info_name_is_uniq);
+		if (!uniq) {
+			/* Should NOT happen */
+			g_error("no luck with random number generator");
 		}
+		/*
+		 * unique_filename() returns a full pathname, thus we
+		 * have to extract the basename here.
+		 */
+		filename = filepath_basename(uniq);
+		g_assert('\0' != filename[0]);
+		g_assert(!g_hash_table_lookup(fi_by_outname, filename));
 
-		{
-			const gchar *filename;
-			gchar *uniq;
+		result = atom_str_get(filename);
 
-			uniq = unique_filename(dir, name_copy, ext, file_info_name_is_uniq);
-			if (!uniq) {
-				/* Should NOT happen */
-				g_error("no luck with random number generator");
-			}
-			/*
-			 * unique_filename() returns a full pathname, thus we
-			 * have to extract the basename here.
-			 */
-			filename = filepath_basename(uniq);
-			g_assert('\0' != filename[0]);
-			g_assert(!g_hash_table_lookup(fi_by_outname, filename));
-
-			result = atom_str_get(filename);
-
-			G_FREE_NULL(uniq);
-		}
-		
-		G_FREE_NULL(name_copy);
-		G_FREE_NULL(ext);
+		G_FREE_NULL(uniq);
 	}
 
 	G_FREE_NULL(to_free);
