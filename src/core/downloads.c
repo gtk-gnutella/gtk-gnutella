@@ -5784,6 +5784,57 @@ call_download_push_ready(gpointer o, header_t *unused_header)
 }
 
 /**
+ * See whether we can ignore the data from now on, keeping the connection
+ * open and sinking to /dev/null: the idea is that we keep the slot busy
+ * to get a chance to re-issue another request later.
+ *
+ * @return TRUE if we successfully setup the downloaded data to be ignored.
+ */
+static gboolean
+download_can_ignore(struct download *d)
+{
+	filesize_t remain;
+	guint speed_avg;
+
+	download_check(d);
+	g_assert(d->range_end >= d->pos);
+
+	/*
+	 * Look at how many bytes we need to download still for this
+	 * request.  If we have a known average download rate for the
+	 * server, great, we'll use it to estimate the time we'll spend.
+	 * Otherwise, use a size limit.
+	 */
+
+	remain = d->range_end - d->pos;
+	speed_avg = download_speed_avg(d);
+
+	if (speed_avg && remain / speed_avg > DOWNLOAD_MAX_IGN_TIME)
+		return FALSE;
+
+	if (remain > DOWNLOAD_MAX_IGN_DATA)
+		return FALSE;
+
+	/*
+	 * We're going to purely ignore the data until we reach the end
+	 * of this request, at which time we'll issue a new request,
+	 * possibly somewhere else: we don't know for sure whether the
+	 * source is bad or the data we had at the resuming point were
+	 * faulty, hence we have to leave that to randomness -- we take
+	 * our chances with the source..
+	 */
+
+	(void) rx_replace_data_ind(d->rx, download_ignore_data_ind);
+	d->status = GTA_DL_IGNORING;
+
+	if (download_debug > 1)
+		g_message("will be ignoring next %s bytes of data for \"%s\"",
+			uint64_to_string(remain), download_outname(d));
+
+	return TRUE;
+}
+
+/**
  * Forget that we ever downloaded some bytes when there was a resuming
  * mismatch at some point.
  */
@@ -5941,54 +5992,18 @@ download_overlap_check(struct download *d)
 		 *		--RAM, 2007-05-05
 		 */
 
-		if (d->mismatches <= DOWNLOAD_MAX_IGN_REQS && d->keep_alive) {
-			filesize_t remain;
-			guint speed_avg;
+		download_backout(d);	/* Forget some bytes at mismatch point */
 
-			/*
-			 * Look at how many bytes we need to download still for this
-			 * request.  If we have a known average download rate for the
-			 * server, great, we'll use it to estimate the time we'll spend.
-			 * Otherwise, use a size limit.
-			 */
-
-			g_assert(d->range_end >= d->pos);
-
-			remain = d->range_end - d->pos;
-			speed_avg = download_speed_avg(d);
-
-			if (speed_avg && remain / speed_avg > DOWNLOAD_MAX_IGN_TIME)
-				goto abort_download;
-
-			if (remain > DOWNLOAD_MAX_IGN_DATA)
-				goto abort_download;
-
-			/*
-			 * We're going to purely ignore the data until we reach the end
-			 * of this request, at which time we'll issue a new request,
-			 * possibly somewhere else: we don't know for sure whether the
-			 * source is bad or the data we had at the resuming point were
-			 * faulty, hence we have to leave that to randomness -- we take
-			 * our chances with the source..
-			 */
-
-			download_backout(d);	/* Forget some bytes at mismatch point */
-
-			(void) rx_replace_data_ind(d->rx, download_ignore_data_ind);
-			d->status = GTA_DL_IGNORING;
-
-			if (download_debug > 1)
-				g_message("will be ignoring next %s bytes of data for \"%s\"",
-					uint64_to_string(remain), download_outname(d));
-					
+		if (
+			d->mismatches <= DOWNLOAD_MAX_IGN_REQS &&
+			d->keep_alive &&
+			download_can_ignore(d)
+		) {
 			success = TRUE;			/* Act as if overlapping was OK */
 			goto out;
 		}
 
-	abort_download:
-
 		download_bad_source(d);	/* Until proven otherwise if we resume it */
-		download_backout(d);	/* Forget some bytes at mismatch point */
 
 		/*
 		 * Don't always keep this source, and since there is doubt,
@@ -6338,13 +6353,14 @@ download_write_data(struct download *d)
 			 * where a competing download is busy (aggressive swarming on),
 			 * and since we cannot tell the remote HTTP server that we wish
 			 * to interrupt the current download, we have no choice but to
-			 * requeue the download, thereby loosing the slot.
+			 * requeue the download, thereby loosing the slot, unless there
+			 * is little enough data to grab still and we can ignore them.
 			 */
 			if (fi->done >= fi->size)
 				goto done;
 			else if (d->pos == d->range_end)
 				goto partial_done;
-			else
+			else if (!download_can_ignore(d))
 				download_queue(d, _("Requeued by competing download"));
 			break;
 		case DL_CHUNK_BUSY:
