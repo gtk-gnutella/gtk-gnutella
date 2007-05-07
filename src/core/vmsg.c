@@ -1691,40 +1691,40 @@ head_ping_timer(cqueue_t *cq, gpointer unused_udata)
 	head_ping_expire(FALSE);
 }
 
-static gboolean
-head_ping_register(const gchar *muid,
+static struct head_ping_source * 
+head_ping_register_intern(const gchar *muid,
 	const struct sha1 *sha1, const node_id_t node_id)
 {
 	struct head_ping_source *source;
-	struct gnutella_node *n = NULL;
 	guint length;
 
 	g_assert(muid);
-	g_return_val_if_fail(head_pings, FALSE);
+	g_return_val_if_fail(head_pings, NULL);
 
 	if (!node_id_self(node_id)) {
-		n = node_active_by_id(node_id);
+		struct gnutella_node *n = node_active_by_id(node_id);
 		if (!n || (NODE_IS_UDP(n) && !host_is_valid(n->addr, n->port))) {
-			return FALSE;
+			return NULL;
 		}
 	}
 	if (hash_list_contains(head_pings, muid, NULL)) {
 		/* Probably a duplicate */
-		return FALSE;
+		return NULL;
 	}
 
 	/* random early drop */
 	length = hash_list_length(head_pings);
 	if (length >= HEAD_PING_MAX) {
-		return FALSE;
+		return NULL;
 	} else if (length > (HEAD_PING_MAX / 4) * 3) {
 		if ((random_raw() % HEAD_PING_MAX) < length)
-			return FALSE;
+			return NULL;
 	}
 
 	source = walloc(sizeof *source);
 	memcpy(source->muid, muid, GUID_RAW_SIZE);
 	source->added = tm_time();
+	hash_list_append(head_pings, source);
 	
 	/*
 	 * We don't need the SHA-1 for routing, thus only record it
@@ -1735,17 +1735,58 @@ head_ping_register(const gchar *muid,
 	} else {
 		source->ping.sha1 = NULL;
 	}
-	if (n && NODE_IS_UDP(n)) {
-		source->ping.node_id = node_id_ref(NODE_ID_SELF);
-		source->ping.addr = n->addr;
-		source->ping.port = n->port;
+	source->ping.node_id = node_id_ref(node_id);
+	return source;
+}
+
+static gboolean
+head_ping_register_own(const gchar *muid,
+	const struct sha1 *sha1, struct gnutella_node *target)
+{
+	struct head_ping_source *source;
+
+	g_return_val_if_fail(muid, FALSE);
+	g_return_val_if_fail(sha1, FALSE);
+	g_return_val_if_fail(target, FALSE);
+	
+	source = head_ping_register_intern(muid, sha1, NODE_ID_SELF);
+	if (source) {
+		if (NODE_IS_UDP(target)) {
+			source->ping.addr = target->addr;
+			source->ping.port = target->port;
+		} else {
+			source->ping.addr = zero_host_addr;
+			source->ping.port = 0;
+		}
+		return TRUE;
 	} else {
-		source->ping.node_id = node_id_ref(node_id);
-		source->ping.addr = zero_host_addr;
-		source->ping.port = 0;
+		return FALSE;
 	}
-	hash_list_append(head_pings, source);
-	return TRUE;
+}
+
+static gboolean
+head_ping_register_forwarded(const gchar *muid,
+	const struct sha1 *sha1, struct gnutella_node *sender)
+{
+	struct head_ping_source *source;
+	
+	g_return_val_if_fail(muid, FALSE);
+	g_return_val_if_fail(sha1, FALSE);
+	g_return_val_if_fail(sender, FALSE);
+	
+	source = head_ping_register_intern(muid, sha1, NODE_ID(sender));
+	if (source) {
+		if (NODE_IS_UDP(sender)) {
+			source->ping.addr = sender->addr;
+			source->ping.port = sender->port;
+		} else {
+			source->ping.addr = zero_host_addr;
+			source->ping.port = 0;
+		}
+		return TRUE;
+	} else {
+		return FALSE;
+	}
 }
 
 static struct head_ping_source *
@@ -1821,7 +1862,7 @@ vmsg_send_head_ping(
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
-	if (head_ping_register(muid, sha1, NODE_ID_SELF)) {
+	if (head_ping_register_own(muid, sha1, n)) {
 		if (vmsg_debug) {
 			g_message(
 				"Sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
@@ -1992,9 +2033,9 @@ handle_head_ping(struct gnutella_node *n,
 			gnutella_header_set_hops(&header, 1);
 			muid = gnutella_header_get_muid(header);
 
-			if (head_ping_register(muid, &sha1, NODE_ID(n))) {
+			if (head_ping_register_forwarded(muid, &sha1, n)) {
 				if (vmsg_debug) {
-					g_message("Forwarding HEAD Ping to %s", node_addr(n));
+					g_message("Forwarding HEAD Ping to %s", node_addr(target));
 				}
 				gmsg_split_sendto_one(target, header, n->data, n->size);
 			}
@@ -2137,6 +2178,7 @@ handle_head_pong(struct gnutella_node *n,
 	code = peek_u8(&payload[1]);
 	queue = 0;
 	vendor = "?";
+	/* LimeWire sends only code and flags if the file was not found */
 
 	p = &payload[2];
 	if (endptr - p >= 4) {
@@ -2166,8 +2208,9 @@ handle_head_pong(struct gnutella_node *n,
 
 	switch (code & VMSG_HEAD_CODE_MASK) {
 	case VMSG_HEAD_CODE_NOT_FOUND:
-		/* LimeWire sends only code and flags if the file was not found */
-		if (node_id_self(source->ping.node_id)) {
+		if (node_id_self(source->ping.node_id) && source->ping.port) {
+			/* We only have address and port if the Ping was sent
+			 * over UDP. */
 			dmesh_remove_alternate(source->ping.sha1,
 				source->ping.addr, source->ping.port);
 		}
@@ -2175,8 +2218,9 @@ handle_head_pong(struct gnutella_node *n,
 
 	case VMSG_HEAD_CODE_COMPLETE:
 	case VMSG_HEAD_CODE_PARTIAL:
-		/* LimeWire sends only code and flags if the file was not found */
-		if (node_id_self(source->ping.node_id)) {
+		if (node_id_self(source->ping.node_id) && source->ping.port) {
+			/* We only have address and port if the Ping was sent
+			 * over UDP. */
 			dmesh_add_alternate(source->ping.sha1,
 				source->ping.addr, source->ping.port);
 		}
