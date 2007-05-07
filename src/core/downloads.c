@@ -6764,14 +6764,15 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		return;
 	}
 
-	g_message("Tigertree value is %s", tth_base32(tth));
-
 	if (d->file_info->tth) {
 		if (!tth_eq(tth, d->file_info->tth)) {
 			g_warning("X-Thex-Uri causes TTH mismatch");
 			return;
 		}
 	} else {
+		if (tigertree_debug) {
+			g_message("Tigertree value is %s", tth_base32(tth));
+		}
 		file_info_got_tth(d->file_info, tth);
 	}
 

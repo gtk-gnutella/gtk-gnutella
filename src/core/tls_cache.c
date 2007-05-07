@@ -367,7 +367,9 @@ tls_cache_load(void)
 		
 		tls_cache_parse(f);
 		n = hash_list_length(tls_hosts);
-		g_message("Loaded %u items from the TLS cache", n);
+		if (tls_debug) {
+			g_message("Loaded %u items from the TLS cache", n);
+		}
 		fclose(f);
 	}
 }

@@ -213,7 +213,9 @@ request_tigertree(struct shared_file *sf, gboolean high_priority)
 		
 		ret = tth_cache_lookup(tth, shared_file_size(sf));
 		if (ret > 0) {
-			g_message("TTH %s is already cached", tth_base32(tth));
+			if (tigertree_debug > 1) {
+				g_message("TTH %s is already cached", tth_base32(tth));
+			}
 		} else {
 			huge_update_hashes(sf, shared_file_sha1(sf), NULL);
 		}
