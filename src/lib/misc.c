@@ -2563,15 +2563,20 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 {
 	gchar filename_buf[FILENAME_MAXBYTES];
 	gchar name_buf[FILENAME_MAXBYTES];
+	gchar mid_buf[32];
 	gchar ext_buf[32];
+	const gchar *mid;
 	gchar *pathname;
-	size_t name_len, ext_len;
+	size_t name_len, mid_len, ext_len;
 	gint i;
 
 	g_assert(path);
 	g_assert(name);
 	g_assert(ext);
 	g_assert(is_absolute_path(path));
+
+	STATIC_ASSERT(sizeof filename_buf >
+		sizeof mid_buf + sizeof ext_buf + GUID_HEX_SIZE);
 
 	/**
 	 * NOTE: The generated filename must not exceed FILENAME_MAXBYTES
@@ -2584,16 +2589,35 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 
 	name_len = strlen(name);
 	name_len = MIN(name_len, sizeof name_buf - 1);
+
+	/* Because "ext" can be an additional extension like .BAD rather than
+	 * one that indicates the filetype, try to preserve the next "extension"
+	 * as well, if there's any. */
+	mid = strrchr(name, '.');
+	if (NULL == mid || mid == name) {
+		mid = strchr(name, '\0');
+	}
+	mid_len = strlen(mid);
+	name_len -= mid_len;
+	mid_len = MIN(mid_len, sizeof mid_buf - 1);
+
 	ext_len = strlen(ext);
 	ext_len = MIN(ext_len, sizeof ext_buf - 1);
 
-	if (name_len + ext_len >= sizeof filename_buf) {
+	if (name_len + mid_len + ext_len >= sizeof filename_buf) {
 		name_len -= ext_len;
 	}
 	utf8_strlcpy(name_buf, name, name_len + 1);
-	utf8_strlcpy(ext_buf, ext, ext_len + 1);
+	name_len = strlen(name_buf);
 
-	gm_snprintf(filename_buf, sizeof filename_buf, "%s%s", name_buf, ext_buf);
+	utf8_strlcpy(mid_buf, mid, mid_len + 1);
+	mid_len = strlen(mid_buf);
+	
+	utf8_strlcpy(ext_buf, ext, ext_len + 1);
+	ext_len = strlen(ext_buf);
+
+	gm_snprintf(filename_buf, sizeof filename_buf, "%s%s%s",
+		name_buf, mid_buf, ext_buf);
 
 	pathname = unique_pathname(path, filename_buf, name_is_uniq);
 	if (pathname)
@@ -2604,14 +2628,14 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	 * .01, etc... until .99.
 	 */
 
-	while (name_len + ext_len + 3 >= sizeof filename_buf) {
+	while (name_len + mid_len + ext_len + 3 >= sizeof filename_buf) {
 		name_len--;
 	}
 	utf8_strlcpy(name_buf, name, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
-		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%02u%s",
-			name_buf, i, ext_buf);
+		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%02u%s%s",
+			name_buf, i, mid_buf, ext_buf);
 
 		pathname = unique_pathname(path, filename_buf, name_is_uniq);
 		if (pathname)
@@ -2622,14 +2646,14 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	 * OK, no luck.  Try with a few random numbers then.
 	 */
 
-	while (name_len + ext_len + 9 >= sizeof filename_buf) {
+	while (name_len + mid_len + ext_len + 9 >= sizeof filename_buf) {
 		name_len--;
 	}
 	utf8_strlcpy(name_buf, name, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
-		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%x%s",
-			name_buf, (unsigned) random_raw(), ext_buf);
+		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%x%s%s",
+			name_buf, (unsigned) random_raw(), mid_buf, ext_buf);
 
 		pathname = unique_pathname(path, filename_buf, name_is_uniq);
 		if (pathname)
@@ -2640,7 +2664,9 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	 * Bad luck.  Allocate a random GUID then.
 	 */
 
-	while (name_len + ext_len + GUID_RAW_SIZE + 1 >= sizeof filename_buf) {
+	while (
+		name_len + mid_len + ext_len + GUID_HEX_SIZE + 1 >= sizeof filename_buf
+	) {
 		name_len--;
 	}
 	utf8_strlcpy(name_buf, name, name_len + 1);
@@ -2649,8 +2675,8 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 		gchar xuid[GUID_RAW_SIZE];
 
 		guid_random_fill(xuid);
-		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%s%s",
-			name_buf, guid_hex_str(xuid), ext_buf);
+		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%s%s%s",
+			name_buf, guid_hex_str(xuid), mid_buf, ext_buf);
 	}
 
 	pathname = unique_pathname(path, filename_buf, name_is_uniq);
