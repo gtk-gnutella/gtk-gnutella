@@ -2122,6 +2122,25 @@ block_length(const struct array array)
 	return -1;
 }
 
+static void
+fetch_alt_locs(const struct sha1 *sha1, const struct array array)
+{
+	g_return_if_fail(sha1);
+	
+	while (array.size >= 6) {
+		host_addr_t addr;
+		guint16 port;
+
+		/* IPv4 address (BE) + Port (LE) */
+		addr = host_addr_peek_ipv4(&array.data[0]);
+		port = peek_le16(&array.data[4]);
+		array.data += 6;
+		array.size -= 6;
+
+		dmesh_add_alternate(sha1, addr, port);
+	}
+}
+
 /**
  * Handle reception of an Head Pong
  */
@@ -2284,22 +2303,10 @@ handle_head_pong(struct gnutella_node *n,
 				g_message("HEAD Pong carries %u alt-locs", len / 6);
 
 			p += 2;				/* Skip length indication */
-
 			if (node_id_self(source->ping.node_id) && source->ping.sha1) {
-				gint i;
-
-				for (i = len / 6; i > 0; i--) {
-					host_addr_t addr;
-					guint16 port;
-
-					/* IPv4 address (BE) + Port (LE) */
-					addr = host_addr_peek_ipv4(&p[0]);
-					port = peek_le16(&p[4]);
-					p += 6;
-
-					dmesh_add_alternate(source->ping.sha1, addr, port);
-				}
+				fetch_alt_locs(source->ping.sha1, array_init(p, len));
 			}
+			p += len;
 		}
 	}
 
