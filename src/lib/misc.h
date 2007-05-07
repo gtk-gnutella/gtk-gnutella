@@ -557,6 +557,7 @@ void ascii_strlower(gchar *dst, const gchar *src);
 gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 gint ascii_strcasecmp_delimit(const gchar *a, const gchar *b,
 		const gchar *delimit);
+size_t filename_shrink(const gchar *filename, gchar *buf, size_t size);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext,
 		gboolean (*name_is_uniq)(const gchar *pathname));
 gchar *hex_escape(const gchar *name, gboolean strict);

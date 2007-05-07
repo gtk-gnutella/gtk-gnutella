@@ -585,45 +585,18 @@ gchar *
 gm_sanitize_filename(const gchar *filename,
 		gboolean no_spaces, gboolean no_evil)
 {
-	const gchar *s = filename;
+	const gchar *s;
 	gchar *q = NULL;
 
 	g_assert(filename);
 
-/** Maximum bytes in filename i.e., including NUL */
-#define	FILENAME_MAXBYTES 256
-
 	/* Make sure the filename isn't too long */
 	if (strlen(s) >= FILENAME_MAXBYTES) {
-		size_t ext_size = 0;
-		gchar *ext;
-
 		q = g_malloc(FILENAME_MAXBYTES);
-
-		/* Try to preserve the filename extension */
-		ext = strrchr(s, '.');
-		if (ext) {
-			ext_size = strlen(ext) + 1;	/* Include NUL */
-			if (ext_size >= FILENAME_MAXBYTES) {
-				/*
-				 * If it's too long, assume it's not extension at all.
-				 * We must truncate the "extension" anyway and also
-				 * preserve the UTF-8 encoding by all means.
-				 */
-				ext_size = 0;
-				ext = NULL;
-			}
-		}
-
-		g_assert(ext_size < FILENAME_MAXBYTES);
-		utf8_strlcpy(q, s, FILENAME_MAXBYTES - ext_size);
-
-		/* Append the filename extension */
-		if (ext)
-			g_strlcat(q, ext, FILENAME_MAXBYTES);
-
-		g_assert(strlen(q) < FILENAME_MAXBYTES);
+		filename_shrink(s, q, FILENAME_MAXBYTES);
 		s = q;
+	} else {
+		s = filename;
 	}
 
 	/* Replace shell meta characters and likely problematic characters */

@@ -2485,6 +2485,50 @@ guid_random_fill(gchar *xuid)
 }
 
 /**
+ * Shrinks a filename so that it fits into the given buffer. The function
+ * tries to preserve the filename extension if there is any. The UTF-8
+ * encoding is also preserved.
+ *
+ * @return The length of the resulting filename.
+ */
+size_t
+filename_shrink(const gchar *filename, gchar *buf, size_t size)
+{
+	const gchar *ext;
+	size_t ext_size = 0, ret;
+
+	g_assert(filename);
+	g_assert(buf);
+	
+	/* Try to preserve the filename extension */
+	ext = strrchr(filename, '.');
+	if (ext) {
+		ext_size = strlen(ext) + 1;	/* Include NUL */
+		if (ext_size >= size) {
+			/*
+			 * If it's too long, assume it's not extension at all.
+			 * We must truncate the "extension" anyway and also
+			 * preserve the UTF-8 encoding by all means.
+			 */
+			ext_size = 0;
+			ext = NULL;
+		}
+	}
+
+	g_assert(ext_size < size);
+	utf8_strlcpy(buf, filename, size - ext_size);
+
+	/* Append the filename extension */
+	if (ext) {
+		g_strlcat(buf, ext, size);
+	}
+
+	ret = strlen(buf);
+	g_assert(ret < size);
+	return ret;
+}
+
+/**
  * Determine unique filename for `file' in `path', with optional trailing
  * extension `ext'.  If no `ext' is wanted, one must supply an empty string.
  *
@@ -2539,7 +2583,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext,
 	}
 
 	/*
-	 * Append the extension to the filenae, then try to see whether
+	 * Append the extension to the filename, then try to see whether
 	 * this filename is unique.
 	 */
 
