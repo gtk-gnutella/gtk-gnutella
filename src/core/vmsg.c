@@ -2123,7 +2123,7 @@ block_length(const struct array array)
 }
 
 static void
-fetch_alt_locs(const struct sha1 *sha1, const struct array array)
+fetch_alt_locs(const struct sha1 *sha1, struct array array)
 {
 	g_return_if_fail(sha1);
 	
