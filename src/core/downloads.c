@@ -8705,19 +8705,20 @@ error:
 static gboolean
 download_ignore_data(struct download *d, pmsg_t *mb)
 {
-	fileinfo_t *fi;
-	gint r;
-
 	download_check(d);
 	g_assert(d->file_info->recvcount > 0);
 	g_assert(d->socket);
 	g_assert(d->file_info);
 
 	d->last_update = tm_time();
-	r = pmsg_size(mb);
-	fi = d->file_info;
-	fi->recv_amount += r;
-	d->pos += r;
+	d->pos += pmsg_size(mb);
+
+	/*
+	 * Do not increment fi->recv_amount here, because we're ignoring the
+	 * data we're receiving: if we account it, it will lower the ETA for
+	 * completion even more, wrongly.
+	 *		--RAM, 2007-05-07
+	 */
 
 	gcu_gui_update_download(d, FALSE);
 
