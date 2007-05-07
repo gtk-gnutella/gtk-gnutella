@@ -170,6 +170,11 @@ hash_list_new(GHashFunc hash_func, GEqualFunc eq_func)
 
 /**
  * Dispose of the data structure, but not of the items it holds.
+ *
+ * @param hl_ptr	pointer to the variable containing the address of the list
+ *
+ * As a side effect, the variable containing the address of the list
+ * is nullified, since it is no longer allowed to refer to the structure.
  */
 void
 hash_list_free(hash_list_t **hl_ptr)
