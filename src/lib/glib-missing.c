@@ -593,7 +593,7 @@ gm_sanitize_filename(const gchar *filename,
 	/* Make sure the filename isn't too long */
 	if (strlen(filename) >= FILENAME_MAXBYTES) {
 		q = g_malloc(FILENAME_MAXBYTES);
-		filename_shrink(s, q, FILENAME_MAXBYTES);
+		filename_shrink(filename, q, FILENAME_MAXBYTES);
 		s = q;
 	} else {
 		s = filename;
