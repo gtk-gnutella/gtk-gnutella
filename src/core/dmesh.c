@@ -210,6 +210,32 @@ dmesh_entry_free(struct dmesh_entry *dme)
 }
 
 /**
+ * Fill URL info from externally supplied sha1, addr, port, idx and name.
+ * If sha1 is NULL, we use the name, otherwise the urn:sha1.
+ *
+ * WARNING: fills structure with pointers to static data.
+ */
+static void
+dmesh_fill_info(dmesh_urlinfo_t *info,
+	const struct sha1 *sha1, const host_addr_t addr,
+	guint16 port, guint idx, const gchar *name)
+{
+	static const gchar urnsha1[] = "urn:sha1:";
+	static gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
+
+	info->addr = addr;
+	info->port = port;
+	info->idx = idx;
+
+	if (sha1) {
+		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), (void *) 0);
+		info->name = urn;
+	} else {
+		info->name = name;
+	}
+}
+
+/**
  * Free a dmesh_urlinfo_t structure.
  */
 static void
@@ -222,14 +248,11 @@ dmesh_urlinfo_free(dmesh_urlinfo_t *info)
 }
 
 /**
- * Called from callout queue when it's time to expire the URL ban.
+ * Remove entry from banned mesh.
  */
 static void
-dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
+dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 {
-	struct dmesh_banned *dmb = obj;
-
-	(void) unused_cq;
 	g_assert(dmb);
 	g_assert(dmb == g_hash_table_lookup(ban_mesh, dmb->info));
 
@@ -263,6 +286,18 @@ dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
 	g_hash_table_remove(ban_mesh, dmb->info);
 	dmesh_urlinfo_free(dmb->info);
 	wfree(dmb, sizeof *dmb);
+}
+
+/**
+ * Called from callout queue when it's time to expire the URL ban.
+ */
+static void
+dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
+{
+	struct dmesh_banned *dmb = obj;
+
+	(void) unused_cq;
+	dmesh_ban_remove_entry(dmb);
 }
 
 /**
@@ -344,6 +379,22 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 		dmb->ctime = stamp;
 		cq_resched(callout_queue, dmb->cq_ev, lifetime * 1000);
 	}
+}
+
+/**
+ * Forcefully remove an entry from the banned mesh.
+ */
+static void
+dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, guint16 port)
+{
+	dmesh_urlinfo_t info;
+	struct dmesh_banned *dmb;
+
+	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
+	dmb = g_hash_table_lookup(ban_mesh, &info);
+
+	if (dmb)
+		dmesh_ban_remove_entry(dmb);
 }
 
 /**
@@ -677,30 +728,6 @@ dmesh_dispose(const struct sha1 *sha1)
 	g_hash_table_remove(mesh, sha1);
 	atom_sha1_free(key);
 	dm_free(dm);
-}
-
-/**
- * Fill URL info from externally supplied sha1, addr, port, idx and name.
- * If sha1 is NULL, we use the name, otherwise the urn:sha1.
- */
-static void
-dmesh_fill_info(dmesh_urlinfo_t *info,
-	const struct sha1 *sha1, const host_addr_t addr,
-	guint16 port, guint idx, const gchar *name)
-{
-	static const gchar urnsha1[] = "urn:sha1:";
-	static gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
-
-	info->addr = addr;
-	info->port = port;
-	info->idx = idx;
-
-	if (sha1) {
-		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), (void *) 0);
-		info->name = urn;
-	} else {
-		info->name = name;
-	}
 }
 
 /**
@@ -1057,13 +1084,38 @@ dmesh_good_mark(const struct sha1 *sha1,
 	struct dmesh *dm;
 	struct packed_host packed;
 	struct dmesh_entry *dme;
+	gboolean retried = FALSE;
 
 	dm = g_hash_table_lookup(mesh, sha1);
 	if (dm == NULL)
 		return;			/* Weird, but it doesn't matter */
 
 	packed = host_pack(addr, port);
+
+retry:
 	dme = g_hash_table_lookup(dm->by_host, &packed);
+
+	if (dme == NULL) {
+		/*
+		 * Weird, we may have expired this entry.  Recreate it if it's good.
+		 * If it still not appears, maybe it's rejected for some reason
+		 * by the dmesh_raw_add() routine.  Warn and bail out.
+		 */
+
+		if (retried) {
+			g_warning("cannot mark %s as being a good source for urn:sha1:%s",
+				host_addr_port_to_string(addr, port), sha1_base32(sha1));
+			return;
+		}
+
+		if (good) {
+			dmesh_ban_remove(sha1, addr, port);
+			dmesh_add_alternate(sha1, addr, port);
+			retried = TRUE;
+			goto retry;
+		} else
+			return;
+	}
 
 	g_assert(dme->url.port == port);
 	g_assert(host_addr_equal(dme->url.addr, addr));
