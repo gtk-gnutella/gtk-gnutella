@@ -2333,7 +2333,7 @@ handle_head_pong(struct gnutella_node *n,
 			gnutella_header_set_hops(&header,
 				gnutella_header_get_hops(&header) + 1);
 		
-			mb = gmsg_split_to_pmsg(header, n->data, n->size);
+			mb = gmsg_split_to_pmsg(header, n->data, n->size + GTA_HEADER_SIZE);
 			vmsg_send_reply(target, mb);	/* Forward to destination */
 		}
 	}
