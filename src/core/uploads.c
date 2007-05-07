@@ -2194,6 +2194,22 @@ upload_file_present(const struct shared_file *sf)
 }
 
 /**
+ * Collect alternate locations.
+ */
+static void
+upload_collect_locations(
+	gnutella_upload_t *u, const struct sha1 *sha1, header_t *header)
+{
+	gchar *buf;
+
+	huge_collect_locations(sha1, header);
+
+	buf = header_get(header, "X-Nalt");
+	if (buf)
+		dmesh_collect_negative_locations(sha1, buf, u->addr);
+}
+
+/**
  * Get the shared_file to upload. "/get/<index>/" has already been extracted,
  * ``uri'' points to the filename after this. The same holds for the
  * file index, which is passed as ``idx''.
@@ -2266,7 +2282,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 		 *		--RAM, 19/06/2002
 		 */
 
-		huge_collect_locations(&sha1, header);
+		upload_collect_locations(u, &sha1, header);
 
 		/*
 		 * They can share serveral clones of the same files, i.e. bearing
@@ -2487,7 +2503,7 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 		goto not_found;
 	}
 
-	huge_collect_locations(&sha1, header);
+	upload_collect_locations(u, &sha1, header);
 
 	sf = shared_file_by_sha1(&sha1);
 

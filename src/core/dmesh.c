@@ -130,6 +130,9 @@ struct dmesh_banned {
 	time_t ctime;			/**< Last time we saw this banned URL */
 };
 
+typedef void (*dmesh_add_t)(
+	const struct sha1 *sha1, host_addr_t addr, guint16 port, gpointer udata);
+
 /**
  * This table stores the banned entries by SHA1.
  */
@@ -951,12 +954,10 @@ dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
 void
 dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 {
-	if (host_is_valid(addr, port)) {
-		dmesh_urlinfo_t info;
+	dmesh_urlinfo_t info;
 
-		dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
-		(void) dmesh_raw_add(sha1, &info, tm_time());
-	}
+	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
+	(void) dmesh_raw_add(sha1, &info, tm_time());
 }
 
 /**
@@ -1995,13 +1996,19 @@ dmesh_collect_sha1(const gchar *value, struct sha1 *sha1)
 }
 
 /**
- * Parse the value of the "X-Alt" header to extract alternate sources
- * for a given SHA1 key given in the new compact form.
+ * Parse a list of addr:port, such as typically found in "X-Alt" or "X-Nalt"
+ * headers to extract alternate sources.
+ *
+ * For each value found, invoke the supplied callback `func' as:
+ *
+ *		func(sha1, addr, port, udata);
+ *
+ * where udata is opaque user-supplied data.
  */
-void
-dmesh_collect_compact_locations(const struct sha1 *sha1, const gchar *value)
+static void
+dmesh_parse_addr_port_list(const struct sha1 *sha1, const gchar *value,
+	dmesh_add_t func, gpointer udata)
 {
-	time_t now = tm_time();
 	const gchar *p = value;
 
 	do {
@@ -2036,22 +2043,57 @@ dmesh_collect_compact_locations(const struct sha1 *sha1, const gchar *value)
 		}
 		
 		if (ok) {
-			dmesh_urlinfo_t info;
-
-			dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
-			ok = dmesh_raw_add(sha1, &info, now);
-
-			if (dmesh_debug > 4)
-				g_message("MESH %s: %s compact \"%s\", stamp=%u",
-						sha1_base32(sha1),
-						ok ? "added" : "rejected",
-						dmesh_urlinfo_to_string(&info), (guint) now);
+			(*func)(sha1, addr, port, udata);
 		} else if (dmesh_debug) {
 			g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 		}
 
 		p = '\0' != *endptr ? &endptr[1] : NULL;
 	} while (p);
+}
+
+static void
+dmesh_collect_compact_locations_cback(
+	const struct sha1 *sha1, host_addr_t addr, guint16 port,
+	gpointer unused_udata)
+{
+	(void) unused_udata;
+	(void) dmesh_add_alternate(sha1, addr, port);
+}
+
+/**
+ * Parse the value of the "X-Alt" header to extract alternate sources
+ * for a given SHA1 key given in the new compact form.
+ */
+void
+dmesh_collect_compact_locations(const struct sha1 *sha1, const gchar *value)
+{
+	dmesh_parse_addr_port_list(sha1, value,
+		dmesh_collect_compact_locations_cback, NULL);
+}
+
+static void
+dmesh_collect_negative_locations_cback(
+	const struct sha1 *sha1, host_addr_t addr, guint16 port,
+	gpointer udata)
+{
+	host_addr_t *reporter = udata;
+
+	dmesh_negative_alt(sha1, *reporter, addr, port);
+}
+
+/**
+ * Parse the value of the "X-Nalt" header to extract bad sources
+ * for a given SHA1 key, given in the new compact form.
+ *
+ * @param reporter	the address of the host supplying the X-Nalt header
+ */
+void
+dmesh_collect_negative_locations(
+	const struct sha1 *sha1, const gchar *value, host_addr_t reporter)
+{
+	dmesh_parse_addr_port_list(sha1, value,
+		dmesh_collect_negative_locations_cback, &reporter);
 }
 
 /**

@@ -7122,6 +7122,11 @@ collect_locations:
 
 	huge_collect_locations(d->sha1 ? d->sha1 : d->file_info->sha1, header);
 
+	buf = header_get(header, "X-Nalt");
+	if (buf)
+		dmesh_collect_negative_locations(
+			d->sha1 ? d->sha1 : d->file_info->sha1, buf, download_addr(d));
+
 	return TRUE;
 }
 

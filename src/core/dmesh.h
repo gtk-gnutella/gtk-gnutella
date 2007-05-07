@@ -109,6 +109,8 @@ void dmesh_collect_locations(const struct sha1 *sha1,
 		const gchar *value, gboolean defer);
 void dmesh_collect_compact_locations(const struct sha1 *sha1,
 		const gchar *value);
+void dmesh_collect_negative_locations(const struct sha1 *sha1,
+	const gchar *value, host_addr_t reporter);
 gint dmesh_fill_alternate(const struct sha1 *sha1,
 		gnet_host_t *hvec, gint hcnt);
 
