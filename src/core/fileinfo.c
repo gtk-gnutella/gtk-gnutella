@@ -80,7 +80,8 @@ RCSID("$Id$")
 #include "lib/override.h"			/* Must be the last header included */
 
 #define FI_MIN_CHUNK_SPLIT	512		/**< Smallest chunk we can split */
-#define FI_MAX_FIELD_LEN	8192	/**< Max field length we accept to save */
+/**< Max field length we accept to save */
+#define FI_MAX_FIELD_LEN	(TTH_RAW_SIZE * TTH_MAX_LEAVES)
 
 enum dl_file_chunk_magic {
 	DL_FILE_CHUNK_MAGIC = 0xd63b483dU
