@@ -2528,6 +2528,22 @@ filename_shrink(const gchar *filename, gchar *buf, size_t size)
 	return ret;
 }
 
+static gchar *
+unique_pathname(const gchar *path, const gchar *filename,
+		gboolean (*name_is_uniq)(const gchar *pathname))
+{
+	gchar *pathname;
+	
+	if (!name_is_uniq) {
+		name_is_uniq = file_does_not_exist;
+	}
+	pathname = make_pathname(path, filename);
+	if (!name_is_uniq(pathname)) {
+		G_FREE_NULL(pathname);
+	}
+	return pathname;
+}
+
 /**
  * Determine unique filename for `file' in `path', with optional trailing
  * extension `ext'.  If no `ext' is wanted, one must supply an empty string.
@@ -2542,96 +2558,113 @@ filename_shrink(const gchar *filename, gchar *buf, size_t size)
  * freed.
  */
 gchar *
-unique_filename(const gchar *path, const gchar *file, const gchar *ext,
+unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 		gboolean (*name_is_uniq)(const gchar *pathname))
 {
-	static const gchar extra_bytes[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-	size_t avail;
-	gchar *filename, *endptr;
+	gchar filename_buf[FILENAME_MAXBYTES];
+	gchar name_buf[FILENAME_MAXBYTES];
+	gchar ext_buf[32];
+	gchar *pathname;
+	size_t name_len, ext_len;
 	gint i;
 
 	g_assert(path);
-	g_assert(file);
+	g_assert(name);
 	g_assert(ext);
+	g_assert(is_absolute_path(path));
 
-	if (!name_is_uniq) {
-		name_is_uniq = file_does_not_exist;
-	}
-
-	/* Use extra_bytes so we can easily append a few chars later */
-	{
-		size_t size, len;
-		const gchar *sep;
-
-		sep = strrchr(path, G_DIR_SEPARATOR);
-		g_assert(sep);	/* This is supposed to an absolute path */
-		/* Insert G_DIR_SEPARATOR_S only if necessary */
-		sep = sep[1] != '\0' ? G_DIR_SEPARATOR_S : "";
-
-		filename = g_strconcat(path, sep, file, extra_bytes, ext, (void *) 0);
-		size = strlen(filename);
-		len = strlen(path) + strlen(sep) + strlen(file);
-		g_assert(size - CONST_STRLEN(extra_bytes) - strlen(ext) == len);
-		
-		/* These much bytes can be append to create a unique name */
-		avail = size - len;
-		g_assert(avail >= CONST_STRLEN(extra_bytes));
-
-		endptr = &filename[len];
-		g_assert(endptr[0] == extra_bytes[0]);
-		*endptr = '\0';
-	}
-
-	/*
-	 * Append the extension to the filename, then try to see whether
-	 * this filename is unique.
+	/**
+	 * NOTE: The generated filename must not exceed FILENAME_MAXBYTES
+	 *		 because such a file cannot be created. In reality, it depends
+	 *		 on the filesystem as well and the limit might be even smaller.
+	 *		 In any case, we don't want to cut-off arbitrary bytes but
+	 *		 at least preserve the filename extension and the (potential)
+	 *		 UTF-8 encoding.
 	 */
 
-	g_strlcpy(endptr, ext, avail);
-	if (name_is_uniq(filename))
-		return filename;
+	name_len = strlen(name);
+	name_len = MIN(name_len, sizeof name_buf - 1);
+	ext_len = strlen(ext);
+	ext_len = MIN(ext_len, sizeof ext_buf - 1);
+
+	if (name_len + ext_len >= sizeof filename_buf) {
+		name_len -= ext_len;
+	}
+	utf8_strlcpy(name_buf, name, name_len + 1);
+	utf8_strlcpy(ext_buf, ext, ext_len + 1);
+
+	gm_snprintf(filename_buf, sizeof filename_buf, "%s%s", name_buf, ext_buf);
+
+	pathname = unique_pathname(path, filename_buf, name_is_uniq);
+	if (pathname)
+		goto finish;
 
 	/*
 	 * Looks like we need to make the filename more unique.  Append .00, then
 	 * .01, etc... until .99.
 	 */
 
+	while (name_len + ext_len + 3 >= sizeof filename_buf) {
+		name_len--;
+	}
+	utf8_strlcpy(name_buf, name, name_len + 1);
+
 	for (i = 0; i < 100; i++) {
-		gm_snprintf(endptr, avail, ".%02d%s", i, ext);
-		if (name_is_uniq(filename))
-			return filename;
+		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%02u%s",
+			name_buf, i, ext_buf);
+
+		pathname = unique_pathname(path, filename_buf, name_is_uniq);
+		if (pathname)
+			goto finish;
 	}
 
 	/*
 	 * OK, no luck.  Try with a few random numbers then.
 	 */
 
+	while (name_len + ext_len + 9 >= sizeof filename_buf) {
+		name_len--;
+	}
+	utf8_strlcpy(name_buf, name, name_len + 1);
+
 	for (i = 0; i < 100; i++) {
-		guint32 rnum = random_raw();
-		gm_snprintf(endptr, avail, ".%x%s", rnum, ext);
-		if (name_is_uniq(filename))
-			return filename;
+		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%x%s",
+			name_buf, (unsigned) random_raw(), ext_buf);
+
+		pathname = unique_pathname(path, filename_buf, name_is_uniq);
+		if (pathname)
+			goto finish;
 	}
 
 	/*
 	 * Bad luck.  Allocate a random GUID then.
 	 */
+
+	while (name_len + ext_len + GUID_RAW_SIZE + 1 >= sizeof filename_buf) {
+		name_len--;
+	}
+	utf8_strlcpy(name_buf, name, name_len + 1);
+
 	{
 		gchar xuid[GUID_RAW_SIZE];
 
 		guid_random_fill(xuid);
-		concat_strings(endptr, avail, ".", guid_hex_str(xuid), ext, (void *) 0);
+		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%s%s",
+			name_buf, guid_hex_str(xuid), ext_buf);
 	}
 
-	if (name_is_uniq(filename))
-		return filename;
+	pathname = unique_pathname(path, filename_buf, name_is_uniq);
+	if (pathname)
+		goto finish;
 
 	/*
 	 * This may also be the result of permission problems or inode
 	 * exhaustion.
 	 */
 	g_warning("no luck with random number generator");
-	return NULL;
+
+finish:
+	return pathname;
 }
 
 static const gchar escape_char = '\\';
