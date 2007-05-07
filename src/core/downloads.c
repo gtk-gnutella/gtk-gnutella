@@ -30,7 +30,7 @@
  * Handle downloads.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2007
  */
 
 #include "common.h"
@@ -7724,6 +7724,7 @@ http_version_nofix:
 					if (!d->always_push && d->sha1 && !d->uri) {
 						dmesh_add(d->sha1, addr, port, d->record_index,
 							d->file_name, 0);
+						dmesh_good_mark(d->sha1, addr, port, TRUE);
 					}
 					return;
 
@@ -7777,9 +7778,11 @@ http_version_nofix:
 			file_info_clear_download(d, TRUE);		/* `d' is running */
 
 			/* Update mesh -- we're about to return */
-			if (!d->always_push && d->sha1 && !d->uri)
+			if (!d->always_push && d->sha1 && !d->uri) {
 				dmesh_add(d->sha1, addr, port,
 					d->record_index, d->file_name, 0);
+				dmesh_good_mark(d->sha1, addr, port, TRUE);
+			}
 
 			if (!download_start_prepare_running(d))
 				return;
@@ -7902,8 +7905,10 @@ http_version_nofix:
 
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* OK -- Update mesh */
-		if (!d->always_push && d->sha1 && !d->uri)
+		if (!d->always_push && d->sha1 && !d->uri) {
 			dmesh_add(d->sha1, addr, port, d->record_index, d->file_name, 0);
+			dmesh_good_mark(d->sha1, addr, port, TRUE);
+		}
 
 		download_passively_queued(d, FALSE);
 		download_actively_queued(d, FALSE);
@@ -7962,6 +7967,8 @@ http_version_nofix:
 				"%sHTTP %u %s", short_read, ack_code, ack_message);
 			return;
 #else
+			if (d->sha1 && !d->uri)
+				dmesh_good_mark(d->sha1, addr, port, FALSE);
 			break;
 #endif
 		case 416:				/* Requested range not available */
@@ -7979,9 +7986,11 @@ http_version_nofix:
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
 			/* Update mesh */
-			if (!d->always_push && d->sha1 && !d->uri)
+			if (!d->always_push && d->sha1 && !d->uri) {
 				dmesh_add(d->sha1, addr, port, d->record_index,
 					d->file_name, 0);
+				dmesh_good_mark(d->sha1, addr, port, TRUE);
+			}
 
 			/*
 			 * We did a fall through on a 503, however, the download could be
@@ -9141,6 +9150,10 @@ picked:
 				if (fi_alive_count(file_info) > FI_LOW_SRC_COUNT)
 					file_info = NULL;
 			}
+
+			/*
+			 * Emit X-Alt: and possibly X-Nalt: headers.
+			 */
 
 			wmesh = dmesh_alternate_location(sha1,
 				&dl_tmp[rw], altloc_size,
