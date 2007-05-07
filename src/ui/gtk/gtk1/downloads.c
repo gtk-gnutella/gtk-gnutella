@@ -1047,7 +1047,10 @@ gui_update_download(struct download *d, gboolean force)
 
 			if (
 				parent_gui_needs_update(d, now) &&
-				!downloads_gui_any_status(d, GTA_DL_RECEIVING)
+				(
+					!downloads_gui_any_status(d, GTA_DL_RECEIVING) ||
+					!downloads_gui_any_status(d, GTA_DL_IGNORING)
+				)
 			)
 				downloads_gui_update_parent_status(d, now, _("Queued"));
 		}
@@ -1446,7 +1449,10 @@ gui_update_download(struct download *d, gboolean force)
 							c_dl_status, a);
 						record_parent_gui_update(key, now);
 
-					} else if (GTA_DL_RECEIVING == d->status) {
+					} else if (
+						GTA_DL_RECEIVING == d->status ||
+						GTA_DL_IGNORING == d->status
+					) {
 						guint32 s;
 
 						active_src = fi->recvcount;
