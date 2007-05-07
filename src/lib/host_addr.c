@@ -1147,6 +1147,7 @@ packed_host_addr_unpack(const struct packed_host_addr paddr)
 	case NET_TYPE_IPV6:
 		return host_addr_peek_ipv6(paddr.addr);
 	case NET_TYPE_LOCAL:
+		return local_host_addr;
 	case NET_TYPE_NONE:
 		return zero_host_addr;
 	}
@@ -1196,6 +1197,10 @@ packed_host_unpack(const struct packed_host phost,
 		}
 		return TRUE;
 	case NET_TYPE_LOCAL:
+		if (addr_ptr) {
+			*addr_ptr = local_host_addr;
+		}
+		return TRUE;
 	case NET_TYPE_NONE:
 		if (addr_ptr) {
 			*addr_ptr = zero_host_addr;

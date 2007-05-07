@@ -168,6 +168,11 @@ static const host_addr_t ipv6_6to4 = {			/* 2002::/16 */
 };
 
 
+static const host_addr_t local_host_addr = {
+	NET_TYPE_LOCAL,
+	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+};
+
 static const host_addr_t zero_host_addr;
 
 gboolean host_addr_convert(const host_addr_t from, host_addr_t *to,
