@@ -586,17 +586,18 @@ gm_sanitize_filename(const gchar *filename,
 		gboolean no_spaces, gboolean no_evil)
 {
 	const gchar *s;
-	gchar *q = NULL;
+	gchar *q;
 
 	g_assert(filename);
 
 	/* Make sure the filename isn't too long */
-	if (strlen(s) >= FILENAME_MAXBYTES) {
+	if (strlen(filename) >= FILENAME_MAXBYTES) {
 		q = g_malloc(FILENAME_MAXBYTES);
 		filename_shrink(s, q, FILENAME_MAXBYTES);
 		s = q;
 	} else {
 		s = filename;
+		q = NULL;
 	}
 
 	/* Replace shell meta characters and likely problematic characters */
