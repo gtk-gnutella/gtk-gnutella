@@ -1260,7 +1260,7 @@ packed_host_eq_func(gconstpointer p, gconstpointer q)
 	if (asize != bsize)
 		return FALSE;
 
-	return 0 == memcpy(a, b, asize);
+	return 0 == memcmp(a, b, asize);
 }
 
 /**
