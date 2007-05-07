@@ -105,6 +105,7 @@ gm_hash_table_replace_const(GHashTable *ht,
 }
 
 GSList *gm_hash_table_all_keys(GHashTable *ht);
+void gm_hash_table_foreach_key(GHashTable *ht, GFunc func, gpointer user_data);
 
 /*
  * The G_*LIST_FOREACH_* macros are supposed to be used with ``func'' being

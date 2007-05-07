@@ -703,12 +703,45 @@ gm_hash_table_all_keys_helper(gpointer key,
 	*sl_ptr = g_slist_prepend(*sl_ptr, key);
 }
 
+/**
+ * @return list of all the hash table keys.
+ */
 GSList *
 gm_hash_table_all_keys(GHashTable *ht)
 {
 	GSList *keys = NULL;
 	g_hash_table_foreach(ht, gm_hash_table_all_keys_helper, &keys);
 	return keys;
+}
+
+struct gm_hash_table_foreach_keys_helper {
+	GFunc func;			/* Function to call on each key */
+	gpointer udata;		/* Original user data */
+};
+
+static void
+gm_hash_table_foreach_keys_helper(gpointer key,
+	gpointer unused_value, gpointer udata)
+{
+	struct gm_hash_table_foreach_keys_helper *hp = udata;
+	
+	(void) unused_value;
+	(*hp->func)(key, hp->udata);
+}
+
+
+/**
+ * Apply function to all the keys of the hash table.
+ */
+void
+gm_hash_table_foreach_key(GHashTable *ht, GFunc func, gpointer user_data)
+{
+	struct gm_hash_table_foreach_keys_helper hp;
+
+	hp.func = func;
+	hp.udata = user_data;
+
+	g_hash_table_foreach(ht, gm_hash_table_foreach_keys_helper, &hp);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
