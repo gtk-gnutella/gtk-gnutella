@@ -462,17 +462,23 @@ str_str(gconstpointer v)
 }
 
 /**
- * Hash `len' bytes (multiple of 4) starting from `key'.
+ * Hash `len' bytes starting from `key'.
  */
 guint
 binary_hash(const guchar *key, guint len)
 {
 	guint hash = len;
 	guint i;
+	guint remain;
+	guint t4;
 
-	g_assert(0 == (len & 0x3));		/* Multiple of 4 */
+	remain = len & 0x3;
+	t4 = len & ~0x3U;
 
-	for (i = 0; i < len; i += 4) {
+	g_assert(remain + t4 == len);
+	g_assert(remain <= 3);
+
+	for (i = 0; i < t4; i += 4) {
 		static const guint32 x[] = {
 			0xb0994420, 0x01fa96e3, 0x05066d0e, 0x50c3c22a,
 			0xec99f01f, 0xc0eaa79d, 0x157d4257, 0xde2b8419
@@ -482,6 +488,12 @@ binary_hash(const guchar *key, guint len)
 			((guint) key[i + 2] << 16) |
 			((guint) key[i + 3] << 24);
 		hash += x[(i >> 2) & 0x7];
+		hash = (hash << 24) ^ (hash >> 8);
+	}
+
+	for (i = 0; i < remain; i++) {
+		hash += key[t4 + i];
+		hash ^= key[t4 + i] << (i * 8);
 		hash = (hash << 24) ^ (hash >> 8);
 	}
 
