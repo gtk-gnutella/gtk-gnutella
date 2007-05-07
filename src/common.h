@@ -595,6 +595,9 @@ G_STMT_START {			\
 									 **  includes dot between sha1 and tiger */
 #define BITPRINT_RAW_SIZE		44	/**< 352 bits in binary representation */
 
+/** Maximum bytes in filename i.e., including NUL */
+#define	FILENAME_MAXBYTES 256
+
 /*
  * Forbidden glib calls.
  */
