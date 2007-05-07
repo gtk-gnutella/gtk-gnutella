@@ -558,6 +558,10 @@ struct packed_host host_pack(const host_addr_t addr, guint16 port);
 gboolean packed_host_unpack(const struct packed_host phost,
 		host_addr_t *addr_ptr, guint16 *port_ptr);
 
+guint packed_host_hash_func(gconstpointer key);
+gboolean packed_host_eq_func(gconstpointer p, gconstpointer q);
+gpointer walloc_packed_host(const host_addr_t addr, guint16 port);
+void wfree_packed_host(gpointer key, gpointer unused_data);
 
 #endif /* _host_addr_h_ */
 /* vi: set ts=4 sw=4 cindent: */

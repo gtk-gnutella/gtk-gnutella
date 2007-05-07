@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include <netdb.h>				/* For gethostbyname() */
 #endif /* I_NETDB */
 
+#include "atoms.h"				/* For binary_hash */
 #include "host_addr.h"
 #include "misc.h"
 #include "endian.h"
@@ -1205,11 +1206,13 @@ packed_host_unpack(const struct packed_host phost,
 	return FALSE;
 }
 
-
-guint
-packed_host_size(const struct packed_host phost)
+/**
+ * Significant size of a packed host (serialization size), given by address.
+ */
+static inline guint
+packed_host_size_ptr(const struct packed_host *phost)
 {
-	switch (phost.ha.net) {
+	switch (phost->ha.net) {
 	case NET_TYPE_IPV4:	 return 1 + 4 + 2;
 	case NET_TYPE_IPV6:  return 1 + 16 + 2;
 	case NET_TYPE_LOCAL: return 1 + 2;
@@ -1217,6 +1220,78 @@ packed_host_size(const struct packed_host phost)
 	}
 	g_assert_not_reached();
 	return 0;
+}
+
+
+/**
+ * Significant size of a packed host (serialization size).
+ */
+guint
+packed_host_size(const struct packed_host phost)
+{
+	return packed_host_size_ptr(&phost);
+}
+
+/***
+ *** The following routines are meant to be used for hash tables indexed
+ *** by packed_host structures, which are variable-sized entities.
+ ***/
+
+/**
+ * Hash a packed host buffer (variable-sized).
+ */
+guint
+packed_host_hash_func(gconstpointer key)
+{
+	const struct packed_host *p = key;
+	return binary_hash(key, packed_host_size_ptr(p));
+}
+
+/**
+ * Compare two packed host buffers (variable-sized).
+ */
+gboolean
+packed_host_eq_func(gconstpointer p, gconstpointer q)
+{
+	const struct packed_host *a = p, *b = q;
+	guint asize = packed_host_size_ptr(a);
+	guint bsize = packed_host_size_ptr(b);
+
+	if (asize != bsize)
+		return FALSE;
+
+	return 0 == memcpy(a, b, asize);
+}
+
+/**
+ * Allocate a packed_host key.
+ */
+gpointer
+walloc_packed_host(const host_addr_t addr, guint16 port)
+{
+	struct packed_host packed;
+	gpointer key;
+	guint len;
+
+	packed = host_pack(addr, port);
+	len = packed_host_size_ptr(&packed);
+	key = walloc(len);
+	memcpy(key, &packed, len);
+
+	return key;
+}
+
+/**
+ * Release packed_host key.
+ */
+void
+wfree_packed_host(gpointer key, gpointer unused_data)
+{
+	const struct packed_host *p = key;
+
+	(void) unused_data;
+
+	wfree(key, packed_host_size_ptr(p));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
