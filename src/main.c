@@ -877,7 +877,7 @@ static struct {
 	OPTION(help, 			NONE, "Print this message."),
 	OPTION(log_stderr,		PATH, "Log standard output to a file."),
 	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
-	OPTION(no_xshm,			NONE, "Disabled MIT shared memory extension."),
+	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
