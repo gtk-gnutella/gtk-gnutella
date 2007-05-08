@@ -304,7 +304,6 @@ enum {
 #define download_filesize(d)	((d)->file_info->size)
 #define download_filedone(d)	((d)->file_info->done + (d)->file_info->buffered)
 #define download_buffered(d)	((d)->buffers == NULL ? 0 : (d)->buffers->held)
-#define download_speed_avg(d)	((d)->server->speed_avg)
 
 /*
  * Sorted list of http_range_t objects, telling us about the available ranges
@@ -442,6 +441,7 @@ struct download *src_get_download(gnet_src_t src_handle);
 void src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
 	frequency_t t, guint32 interval);
 void src_remove_listener(src_listener_t cb, gnet_src_ev_t ev);
+guint download_speed_avg(struct download *d);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_downloads_h_ */

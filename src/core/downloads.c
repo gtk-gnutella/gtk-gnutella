@@ -11461,6 +11461,26 @@ download_handle_http(const gchar *url)
 }
 
 /**
+ * @return average download speed overall for the server, and if not available
+ * yet, for this particular source if it is active.
+ */
+guint
+download_speed_avg(struct download *d)
+{
+	guint speed_avg;
+	guint source_avg = 0;
+
+	download_check(d);
+	g_assert(d->server);
+
+	speed_avg = d->server->speed_avg;
+	if (d->bio)
+		source_avg = bio_avg_bps(d->bio);
+
+	return MAX(source_avg, speed_avg);
+}
+
+/**
  * @return Whether download is stalled, not having received data for some
  * time now.
  */
