@@ -94,7 +94,7 @@ struct dmesh_entry {
 };
 
 #define MAX_LIFETIME	86400		/**< 1 day */
-#define MAX_ENTRIES		64			/**< Max amount of entries kept in list */
+#define MAX_ENTRIES		256			/**< Max amount of entries kept per SHA1 */
 
 #define MIN_PFSP_SIZE	524288		/**< 512K, min size for PFSP advertising */
 #define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
