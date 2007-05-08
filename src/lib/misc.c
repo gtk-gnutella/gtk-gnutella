@@ -2545,6 +2545,29 @@ unique_pathname(const gchar *path, const gchar *filename,
 }
 
 /**
+ * Copies a string into a buffer whereas the string is potentially
+ * truncated but the UTF-8 encoding is preserved.
+ *
+ * @param src The string to copy.
+ * @param dst The destination buffer.
+ * @param size The size of "dst" in bytes.
+ * @return The length of the truncated string in bytes.
+ */
+static size_t
+utf8_truncate(const gchar *src, gchar *dst, size_t size)
+{
+	g_assert(src);
+	g_assert(0 == size || NULL != dst);
+
+	if (size > 0) {
+		utf8_strlcpy(dst, src, size);
+		return strlen(dst);
+	} else {
+		return 0;
+	}
+}
+
+/**
  * Determine unique filename for `file' in `path', with optional trailing
  * extension `ext'.  If no `ext' is wanted, one must supply an empty string.
  *
@@ -2587,9 +2610,6 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	 *		 UTF-8 encoding.
 	 */
 
-	name_len = strlen(name);
-	name_len = MIN(name_len, sizeof name_buf - 1);
-
 	/* Because "ext" can be an additional extension like .BAD rather than
 	 * one that indicates the filetype, try to preserve the next "extension"
 	 * as well, if there's any. */
@@ -2597,24 +2617,24 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	if (NULL == mid || mid == name) {
 		mid = strchr(name, '\0');
 	}
-	mid_len = strlen(mid);
-	name_len -= mid_len;
-	mid_len = MIN(mid_len, sizeof mid_buf - 1);
 
 	ext_len = strlen(ext);
+	mid_len = strlen(mid);
+	name_len = strlen(name) - mid_len;
+
 	ext_len = MIN(ext_len, sizeof ext_buf - 1);
+	mid_len = MIN(mid_len, sizeof mid_buf - 1);
+	name_len = MIN(name_len, sizeof name_buf - 1);
 
 	if (name_len + mid_len + ext_len >= sizeof filename_buf) {
+		g_assert(name_len >= ext_len);
 		name_len -= ext_len;
 	}
-	utf8_strlcpy(name_buf, name, name_len + 1);
-	name_len = strlen(name_buf);
 
-	utf8_strlcpy(mid_buf, mid, mid_len + 1);
-	mid_len = strlen(mid_buf);
-	
-	utf8_strlcpy(ext_buf, ext, ext_len + 1);
-	ext_len = strlen(ext_buf);
+	/* Truncate strings so that an UTF-8 encoding is preserved */
+	ext_len = utf8_truncate(ext, ext_buf, ext_len + 1);
+	mid_len = utf8_truncate(mid, mid_buf, mid_len + 1);
+	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	gm_snprintf(filename_buf, sizeof filename_buf, "%s%s%s",
 		name_buf, mid_buf, ext_buf);
@@ -2629,9 +2649,10 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	 */
 
 	while (name_len + mid_len + ext_len + 3 >= sizeof filename_buf) {
+		g_assert(name_len > 0);
 		name_len--;
 	}
-	utf8_strlcpy(name_buf, name, name_len + 1);
+	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
 		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%02u%s%s",
@@ -2647,9 +2668,10 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	 */
 
 	while (name_len + mid_len + ext_len + 9 >= sizeof filename_buf) {
+		g_assert(name_len > 0);
 		name_len--;
 	}
-	utf8_strlcpy(name_buf, name, name_len + 1);
+	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
 		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%x%s%s",
@@ -2667,9 +2689,10 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	while (
 		name_len + mid_len + ext_len + GUID_HEX_SIZE + 1 >= sizeof filename_buf
 	) {
+		g_assert(name_len > 0);
 		name_len--;
 	}
-	utf8_strlcpy(name_buf, name, name_len + 1);
+	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	{
 		gchar xuid[GUID_RAW_SIZE];
