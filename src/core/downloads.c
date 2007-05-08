@@ -6831,7 +6831,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	}
 
 	if (
-		0 == (DL_F_GOT_TIGERTREE & d->flags)
+		0 == (DL_F_GOT_TIGERTREE & d->flags) &&
 		0 == d->file_info->tigertree.num_leaves &&
 		tt_good_depth(download_filesize(d)) > 0
 	) {
