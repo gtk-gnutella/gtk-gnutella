@@ -3941,6 +3941,7 @@ file_info_size_known(struct download *d, filesize_t size)
 	fi->file_size_known = TRUE;
 	fi->use_swarming = TRUE;
 	fi->size = size;
+	atom_filesize_free_null(&fi->size_atom);
 	fi->size_atom = atom_filesize_get(&fi->size);
 	fi->dirty = TRUE;
 
