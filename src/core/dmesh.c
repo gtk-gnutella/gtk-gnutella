@@ -393,8 +393,10 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
 	dmb = g_hash_table_lookup(ban_mesh, &info);
 
-	if (dmb)
+	if (dmb) {
+		cq_cancel(callout_queue, &dmb->cq_ev);
 		dmesh_ban_remove_entry(dmb);
+	}
 }
 
 /**
