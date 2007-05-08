@@ -515,10 +515,10 @@ static gboolean
 has_blank_guid(const struct download *d)
 {
 	const gchar *g = download_guid(d);
-	gint i;
+	guint i;
 
-	for (i = 0; i < 16; i++)
-		if (*g++)
+	for (i = 0; i < GUID_RAW_SIZE; i++)
+		if (g[i])
 			return FALSE;
 
 	return TRUE;
@@ -2965,7 +2965,7 @@ download_redirect_to_server(struct download *d,
 
 	list_idx = d->list_idx;			/* Save index, before removal from server */
 
-	memcpy(old_guid, download_guid(d), 16);
+	memcpy(old_guid, download_guid(d), GUID_RAW_SIZE);
 	download_remove_from_server(d, TRUE);
 
 	/*
@@ -4622,7 +4622,7 @@ create_download(
 	 * the push flag. --RAM, 18/08/2002.
 	 */
 
-	if (d->server->attrs & DLS_A_PUSH_IGN) {
+	if ((d->server->attrs & DLS_A_PUSH_IGN) || guid_eq(guid, blank_guid)) {
 		cflags &= ~SOCK_F_PUSH;
 	}
 
@@ -4780,9 +4780,10 @@ download_auto_new(const gchar *file_name,
 	 */
 
 	if (0 == (SOCK_F_PUSH & flags) && !host_is_valid(addr, port)) {
-		flags |= SOCK_F_PUSH;
-		if (guid_eq(guid, blank_guid))
+		/* We cannot send a PUSH without a valid GUID */
+		if (NULL == guid || guid_eq(guid, blank_guid))
 			return;
+		flags |= SOCK_F_PUSH;
 	}
 
 	/*
