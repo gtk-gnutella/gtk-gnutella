@@ -549,6 +549,57 @@ has_good_sha1(const struct download *d)
 /* ----------------------------------------- */
 
 /**
+ * Sets proper timeout delay, with exponential back-off and min/max enforcement.
+ *
+ * NB: This routine must be invoked before download_stop() is called because
+ * it uses the d->start_date field which is reset there.
+ */
+static void
+download_update_timeout_delay(struct download *d)
+{
+	download_check(d);
+
+	/*
+	 * The d->timeout_delay flag is reset to 0 each time we have a successful
+	 * connection to the server.  So when we come here with a non-zero time,
+	 * we make sure we increase the time we're going to spend waiting, until
+	 * we finally get a successful connection.
+	 */
+
+	if (d->timeout_delay == 0)
+		d->timeout_delay = download_retry_timeout_min;
+	else {
+		d->timeout_delay *= 2;
+		if (d->start_date) {
+			/* We forgive a little while the download is working */
+			d->timeout_delay -= delta_time(tm_time(), d->start_date) / 10;
+		}
+	}
+
+	if (d->timeout_delay < download_retry_timeout_min)
+		d->timeout_delay = download_retry_timeout_min;
+	if (d->timeout_delay > download_retry_timeout_max)
+		d->timeout_delay = download_retry_timeout_max;
+}
+
+/**
+ * Called to request retry of a download after a timeout, with exponential
+ * back-off timeout delay, up to a maximum.
+ */
+static void
+download_retry(struct download *d)
+{
+	download_check(d);
+
+	/*
+	 * download_stop() sets the time, so all we need to do is set the delay.
+	 */
+
+	download_update_timeout_delay(d);
+	download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
+}
+
+/**
  * Return the total progress of a download.  The range
  * on the return value should be 0..1 but there is no
  * guarantee.
@@ -3102,6 +3153,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 		break;
 	}
 
+	d->start_date = 0;		/* Download no longer running */
+
 	if (reason && no_reason != reason) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
 		d->remove_msg = d->error_str;
@@ -3277,7 +3330,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		gcu_download_gui_remove(d);
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
+		download_retry(d);
 	else
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 
@@ -9698,31 +9751,6 @@ download_push_ack(struct gnutella_socket *s)
 discard:
 	g_assert(s->resource.download == NULL);	/* Hence socket_free() below */
 	socket_free_null(&s);
-}
-
-void
-download_retry(struct download *d)
-{
-	download_check(d);
-
-	/* download_stop() sets the time, so all we need to do is set the delay */
-
-	if (d->timeout_delay == 0)
-		d->timeout_delay = download_retry_timeout_min;
-	else {
-		d->timeout_delay *= 2;
-		if (d->start_date) {
-			/* We forgive a little while the download is working */
-			d->timeout_delay -= delta_time(tm_time(), d->start_date) / 10;
-		}
-	}
-
-	if (d->timeout_delay < download_retry_timeout_min)
-		d->timeout_delay = download_retry_timeout_min;
-	if (d->timeout_delay > download_retry_timeout_max)
-		d->timeout_delay = download_retry_timeout_max;
-
-	download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
 }
 
 /**
