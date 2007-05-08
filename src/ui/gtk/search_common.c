@@ -2328,10 +2328,9 @@ search_gui_history_add(const gchar *s)
         }
         cur_hist = g_list_next(cur_hist);
     }
-	new_hist = g_list_reverse(new_hist);
 
-    /* put the new item on top */
     new_hist = g_list_prepend(new_hist, g_strdup(s));
+	new_hist = g_list_reverse(new_hist);
 
     /* set new history */
     gtk_combo_set_popdown_strings(
@@ -2340,7 +2339,6 @@ search_gui_history_add(const gchar *s)
 
     /* free old list structure */
     g_list_free(list_search_history);
-
     list_search_history = new_hist;
 }
 
