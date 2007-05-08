@@ -2614,7 +2614,7 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	 * one that indicates the filetype, try to preserve the next "extension"
 	 * as well, if there's any. */
 	mid = strrchr(name, '.');
-	if (NULL == mid || mid == name) {
+	if (NULL == mid || mid == name || strlen(mid) >= sizeof mid_buf) {
 		mid = strchr(name, '\0');
 	}
 
