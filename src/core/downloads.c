@@ -6831,12 +6831,20 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	}
 
 	if (
-		tt_good_depth(download_filesize(d)) > 0 &&
-		0 == d->file_info->tigertree.num_leaves
+		0 == (DL_F_GOT_TIGERTREE & d->flags)
+		0 == d->file_info->tigertree.num_leaves &&
+		tt_good_depth(download_filesize(d)) > 0
 	) {
 		guint32 cflags = 0;
-		
-		
+
+		/*
+		 * Remember that we fetched tigertree data from this one, so
+		 * that we don't retry frequently if they sent no or insufficient
+		 * data.
+		 */
+
+		d->flags |= DL_F_GOT_TIGERTREE;
+
 		if (d->always_push && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
 			cflags |= SOCK_F_PUSH;
 		}

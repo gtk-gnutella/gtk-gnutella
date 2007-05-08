@@ -268,6 +268,7 @@ enum {
 	DL_F_PAUSED			= 1 << 16,	/**< Paused by user */
 	DL_F_THEX			= 1 << 17,	/**< THEX download */
 	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
+	DL_F_GOT_TIGERTREE	= 1 << 19	/**< We fetched tigertree data from it */
 };
 
 /*
