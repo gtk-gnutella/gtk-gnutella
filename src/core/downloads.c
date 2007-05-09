@@ -11514,7 +11514,15 @@ download_speed_avg(struct download *d)
 	if (d->bio)
 		source_avg = bio_avg_bps(d->bio);
 
-	return MAX(source_avg, speed_avg);
+	speed_avg = MAX(source_avg, speed_avg);
+
+	/*
+	 * If download is stalled, we arbitrarily decimate the average speed
+	 * by an arbitrary factor instead of forcefully returning 0, as the
+	 * stalling may be temporary.
+	 */
+
+	return download_is_stalled(d) ? speed_avg / 50 : speed_avg;
 }
 
 /**
