@@ -4673,6 +4673,76 @@ fi_missing_coverage(struct download *d)
 }
 
 /**
+ * Find the largest busy chunk.
+ *
+ * @return largest chunk found in the fileinfo, or NULL if there are no
+ * busy chunks.
+ */
+static const struct dl_file_chunk *
+fi_find_largest(const fileinfo_t *fi)
+{
+	GSList *fclist;
+	const struct dl_file_chunk *largest = NULL;
+
+	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+		const struct dl_file_chunk *fc = fclist->data;
+
+		dl_file_chunk_check(fc);
+
+		if (DL_CHUNK_BUSY != fc->status)
+			continue;
+
+		if (
+			largest == NULL ||
+			(fc->to - fc->from) > (largest->to - largest->from)
+		)
+			largest = fc;
+	}
+
+	return largest;
+}
+
+/**
+ * Find the largest busy chunk served by the host with the smallest uploading
+ * rate.
+ *
+ * @return chunk found in the fileinfo, or NULL if there are no busy chunks.
+ */
+static const struct dl_file_chunk *
+fi_find_slowest(const fileinfo_t *fi)
+{
+	GSList *fclist;
+	const struct dl_file_chunk *slowest = NULL;
+	guint slowest_speed_avg = MAX_INT_VAL(guint);
+
+	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+		const struct dl_file_chunk *fc = fclist->data;
+		guint speed_avg;
+
+		dl_file_chunk_check(fc);
+
+		if (DL_CHUNK_BUSY != fc->status)
+			continue;
+
+		speed_avg = download_speed_avg(fc->download);
+
+		if (
+			slowest == NULL ||
+			speed_avg < slowest_speed_avg ||
+			(
+				speed_avg == slowest_speed_avg &&
+				(fc->to - fc->from) > (slowest->to - slowest->from)
+			)
+		) {
+			slowest = fc;
+			slowest_speed_avg = speed_avg;
+		}
+	}
+
+	return slowest;
+}
+
+/**
  * Find the spot we could download at the tail of an already active chunk
  * to be aggressively completing the file ASAP.
  *
@@ -4689,12 +4759,11 @@ fi_find_aggressive_candidate(
 	struct download *d, guint busy, filesize_t *from, filesize_t *to)
 {
 	fileinfo_t *fi = d->file_info;
-	filesize_t longest_from = 0, longest_to = 0;
+	const struct dl_file_chunk *fc;
 	gint starving;
 	filesize_t minchunk;
-	struct download *longest_dl = NULL;
 	gboolean can_be_aggressive = FALSE;
-	GSList *fclist;
+	gdouble missing_coverage;
 
 	/*
 	 * Compute minimum chunk size for splitting.  When we're told to
@@ -4711,26 +4780,15 @@ fi_find_aggressive_candidate(
 	if (minchunk < FI_MIN_CHUNK_SPLIT)
 		minchunk = FI_MIN_CHUNK_SPLIT;
 
-	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
-		const struct dl_file_chunk *fc = fclist->data;
+	fc = fi_find_largest(fi);
 
-		dl_file_chunk_check(fc);
-
-		if (DL_CHUNK_BUSY != fc->status) continue;
-		if ((fc->to - fc->from) < minchunk) continue;
-
-		if ((fc->to - fc->from) > (longest_to - longest_from)) {
-			longest_from = fc->from;
-			longest_to = fc->to;
-			longest_dl = fc->download;
-		}
-	}
+	if (fc->to - fc->from < minchunk)
+		fc = NULL;
 
 	/*
 	 * Do not let a slow uploading server interrupt a chunk served by
-	 * a faster server, because when the faster reaches the interrupting
-	 * point, we'll have no choice but to abort the connection with that
-	 * fast server.
+	 * a faster server if the time it will take to complete the chunk is
+	 * larger than what the currently serving host would perform alone!
 	 *
 	 * However, if the slower server covers 100% of the missing chunks we
 	 * need, whereas the faster server does not have 100% of them, it would
@@ -4738,37 +4796,60 @@ fi_find_aggressive_candidate(
 	 * take into account the missing chunk coverage rate as well.
 	 */
 
-	if (longest_to) {
-		gdouble longest_missing_coverage = fi_missing_coverage(longest_dl);
-		gdouble missing_coverage = fi_missing_coverage(d);
+	missing_coverage = fi_missing_coverage(d);
+
+	if (fc) {
+		gdouble longest_missing_coverage = fi_missing_coverage(fc->download);
+
+		download_check(fc->download);
 
 		can_be_aggressive =
 			missing_coverage > longest_missing_coverage ||
 			(
 				missing_coverage == longest_missing_coverage &&
-				(
-					download_speed_avg(d) > download_speed_avg(longest_dl) ||
-					download_is_stalled(longest_dl)
-				)
+				download_speed_avg(d) > download_speed_avg(fc->download)
 			);
 
 		if (download_debug > 1)
 			g_message("will %s be aggressive for \"%s\" given d/l speed "
-				"of %s%u B/s for chunk owner and %u B/s for stealer, and a "
-				"coverage of missing chunks of %.2f%% and %.2f%% respectively",
+				"of %s%u B/s for largest chunk owner and %u B/s for stealer, "
+				"and a coverage of missing chunks of %.2f%% and "
+				"%.2f%% respectively",
 				can_be_aggressive ? "really" : "not",
 				download_outname(d),
-				download_is_stalled(longest_dl) ? "stalling " : "",
-				download_speed_avg(longest_dl), download_speed_avg(d),
+				download_is_stalled(fc->download) ? "stalling " : "",
+				download_speed_avg(fc->download), download_speed_avg(d),
 				longest_missing_coverage * 100.0, missing_coverage * 100.0);
+	}
+
+	if (!can_be_aggressive && (fc = fi_find_slowest(fi))) {
+		/*
+		 * We couldn't be aggressive with the largest chunk.
+		 * Try to see if we're faster than the slowest serving host and have
+		 * a larger coverage of the missing chunks.
+		 */
+
+		can_be_aggressive =
+			missing_coverage >= fi_missing_coverage(fc->download);
+
+		if (can_be_aggressive && download_debug > 1)
+			g_message("will instead be aggressive for \"%s\" given d/l speed "
+				"of %s%u B/s for slowest chunk owner and %u B/s for stealer, "
+				"and a coverage of missing chunks of %.2f%% and "
+				"%.2f%% respectively",
+				download_outname(d),
+				download_is_stalled(fc->download) ? "stalling " : "",
+				download_speed_avg(fc->download), download_speed_avg(d),
+				fi_missing_coverage(fc->download) * 100.0,
+				missing_coverage * 100.0);
 	}
 
 	if (!can_be_aggressive)
 		return FALSE;
 
-	/* Start in the middle of the longest range. */
-	*from = (longest_from + longest_to) / 2;
-	*to = longest_to;
+	/* Start in the middle of the selected range. */
+	*from = (fc->from + fc->to) / 2;
+	*to = fc->to;
 
 	if (download_debug > 1)
 		g_message("aggressively requesting %s@%s for \"%s\" using %s source",
