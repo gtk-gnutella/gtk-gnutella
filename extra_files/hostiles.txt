@@ -965,3 +965,7 @@
 64.89.16.0/23
 64.89.27.0/24
 
+# Respond with non-existing files; server listen but send no reply;
+# standard port
+64.93.89.192/26
+
