@@ -1392,6 +1392,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		rc->size = size;
 		rc->name = atom_str_get(filename);
 
+		/* Some spammers get this wrong */
+		if (0 == rc->file_index) {
+			set_flags(rc->flags, SR_SPAM);
+		}
+
 		if (is_evil_filename(rc->name)) {
 			if (search_debug) {
 				g_message("get_results_set(): Ignoring evil filename \"%s\"",
