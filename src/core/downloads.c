@@ -1191,8 +1191,9 @@ download_timer(time_t now)
 							download_port(d), TRUE);
 					}
 				}
-			} else if (now != d->last_gui_update)
+			} else if (now != d->last_gui_update) {
 				gcu_gui_update_download(d, TRUE);
+			}
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
 			if (!is_inet_connected) {
@@ -3500,7 +3501,7 @@ download_send_head_ping(struct download *d)
 	g_assert(d->file_info);
 	g_assert(d->server);
 
-	if (NULL == d->file_info->sha1)
+	if (NULL == d->file_info->sha1 || !d->file_info->use_swarming)
 		return;
 
 	if (!udp_active() || is_firewalled || is_udp_firewalled)
