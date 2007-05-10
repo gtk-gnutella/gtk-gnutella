@@ -48,6 +48,7 @@ RCSID("$Id$")
 
 #include "halloc.h"
 #include "hashtable.h"
+#include "pagetable.h"
 #include "misc.h"
 #include "walloc.h"
 
@@ -66,15 +67,94 @@ static size_t bytes_allocated;	/* Amount of bytes allocated */
 static size_t chunks_allocated;	/* Amount of chunks allocated */
 
 #if !defined(USE_MALLOC)
-static hash_table_t *hallocations;
+
+static int use_page_table;
+static page_table_t *pt_pages;
+static hash_table_t *ht_pages;
+size_t page_threshold;
+
+union align {
+  size_t	size;
+  char		bytes[MEM_ALIGNBYTES];
+};
+
+static inline size_t
+page_lookup(void *p)
+{
+	if (use_page_table) {
+		return page_table_lookup(pt_pages, p);
+	} else {
+		return (size_t) hash_table_lookup(ht_pages, p);
+	}
+}
+
+static inline int
+page_insert(void *p, size_t size)
+{
+	if (use_page_table) {
+		return page_table_insert(pt_pages, p, size);
+	} else {
+		return hash_table_insert(ht_pages, p, (void *) size);
+	}
+}
+
+static inline int
+page_remove(void *p)
+{
+	if (use_page_table) {
+		return page_table_remove(pt_pages, p);
+	} else {
+		return hash_table_remove(ht_pages, p);
+	}
+}
+
+static void
+hdestroy_page_table_item(void *key, size_t size, void *unused_udata)
+{
+	(void) unused_udata;
+	RUNTIME_ASSERT(size > 0);
+	hfree(key);
+}
+
+static void
+hdestroy_hash_table_item(void *key, void *value, void *unused_udata)
+{
+	(void) unused_udata;
+	RUNTIME_ASSERT((size_t) value > 0);
+	hfree(key);
+}
+
+static inline void
+page_destroy(void)
+{
+	if (use_page_table) {
+		page_table_foreach(pt_pages, hdestroy_page_table_item, NULL);
+		page_table_destroy(pt_pages);
+		pt_pages = NULL;
+	} else {
+		hash_table_foreach(ht_pages, hdestroy_hash_table_item, NULL);
+		hash_table_destroy(ht_pages);
+		ht_pages = NULL;
+	}
+}
 
 static inline size_t
 halloc_get_size(void *p)
 {
-	void *value;
+	size_t size;
 
-	value = hash_table_lookup(hallocations, p);
-	return (size_t) value;		
+	size = page_lookup(p);
+	if (size) {
+		RUNTIME_ASSERT(size >= page_threshold);
+	} else {
+		union align *head = p;
+
+		head--;
+		RUNTIME_ASSERT(head->size > 0);
+		RUNTIME_ASSERT(head->size < page_threshold);
+		size = head->size;
+	}
+	return size;
 }
 
 /**
@@ -85,23 +165,27 @@ halloc_get_size(void *p)
 void *
 halloc(size_t size)
 {
-	if (size > 0) {
-		gboolean inserted;
-		void *p;
+	void *p;
 
-		if (size < compat_pagesize()) {
-			p = walloc(size);
-		} else {
-			p = alloc_pages(size);
-		}
-		bytes_allocated += size;
-		chunks_allocated++;
-		inserted = hash_table_insert(hallocations, p, (void *) size);
-		RUNTIME_ASSERT(inserted);
-		return p;
-	} else {
+	if (0 == size)
 		return NULL;
+
+	if (size < page_threshold) {
+		union align *head;
+
+		head = walloc(size + sizeof head[0]);
+		head->size = size;
+		p = &head[1];
+	} else {
+		int inserted;
+
+		p = alloc_pages(size);
+		inserted = page_insert(p, size);
+		RUNTIME_ASSERT(inserted);
 	}
+	bytes_allocated += size;
+	chunks_allocated++;
+	return p;
 }
 
 /**
@@ -130,10 +214,14 @@ hfree(void *p)
 
 	size = halloc_get_size(p);
 	RUNTIME_ASSERT(size > 0);
-	hash_table_remove(hallocations, p);
-	if (size < compat_pagesize()) {
-		wfree(p, size);
+
+	if (size < page_threshold) {
+		union align *head = p;
+
+		head--;
+		wfree(head, size + sizeof(union align));
 	} else {
+		page_remove(p);
 		free_pages(p, size);
 	}
 	bytes_allocated -= size;
@@ -150,26 +238,25 @@ hrealloc(void *old, size_t new_size)
 {
 	void *p;
 
-	p = new_size > 0 ? halloc(new_size) : NULL;
+	if (new_size > 0) {
+		p = halloc(new_size);
+		RUNTIME_ASSERT(NULL != p);
+	} else {
+		p = NULL;
+	}
+
 	if (old) {
+		size_t old_size;
+		
+		old_size = halloc_get_size(old);
+		RUNTIME_ASSERT(old_size > 0);
+
 		if (p) {
-			size_t old_size;
-		   
-			old_size = halloc_get_size(old);
-			RUNTIME_ASSERT(old_size > 0);
 			memcpy(p, old, MIN(new_size, old_size));
 		}
 		hfree(old);
 	}
 	return p;
-}
-
-static void
-hdestroy_item(void *key, void *value, void *unused_udata)
-{
-	(void) unused_udata;
-	RUNTIME_ASSERT(value);
-	hfree(key);
 }
 
 /**
@@ -178,11 +265,7 @@ hdestroy_item(void *key, void *value, void *unused_udata)
 void
 hdestroy(void)
 {
-	if (hallocations) {
-		hash_table_foreach(hallocations, hdestroy_item, NULL);
-		hash_table_destroy(hallocations);
-		hallocations = NULL;
-	}
+	page_destroy();
 }
 
 gpointer
@@ -204,16 +287,10 @@ gm_free(gpointer p)
 }
 
 static void
-halloc_init_vtable(void)
+halloc_glib12_check(void)
 {
-	static GMemVTable vtable;
+#if !GLIB_CHECK_VERSION(2,0,0)
 	gpointer p;
-
-	vtable.malloc = gm_malloc;
-	vtable.realloc = gm_realloc;
-	vtable.free = gm_free;
-
-	g_mem_set_vtable(&vtable);
 
 	/*
 	 * Check whether the remapping is effective. This may not be
@@ -228,6 +305,21 @@ halloc_init_vtable(void)
 	} else {
 		G_FREE_NULL(p);
 	}
+#endif	/* GLib < 2.0.0 */
+}
+
+static void
+halloc_init_vtable(void)
+{
+	static GMemVTable vtable;
+
+	vtable.malloc = gm_malloc;
+	vtable.realloc = gm_realloc;
+	vtable.free = gm_free;
+
+	g_mem_set_vtable(&vtable);
+
+	halloc_glib12_check();
 }
 
 void
@@ -238,10 +330,21 @@ halloc_init(void)
 	 *	     This happens at least on some Linux systems.
 	 */
 	static char variable[] = "G_SLICE=always-malloc";
+	static int initialized;
 
-	RUNTIME_ASSERT(!hallocations);
+	RUNTIME_ASSERT(!initialized);
+	initialized = TRUE;
+
 	putenv(variable);
-	hallocations = hash_table_new();
+	
+	use_page_table = (size_t)-1 == (guint32)-1 && compat_pagesize() == 4096;
+	page_threshold = compat_pagesize() - sizeof(union align);
+
+	if (use_page_table) {
+		pt_pages = page_table_new();
+	} else {
+		ht_pages = hash_table_new();
+	}
 	halloc_init_vtable();
 }
 
