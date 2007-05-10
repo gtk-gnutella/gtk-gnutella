@@ -62,7 +62,7 @@ print_number(char *dst, size_t size, unsigned long value)
  *       even use assertions in signal handlers. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-static void NON_NULL_PARAM((1)) REGPARM(1)
+static void
 assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[22], pid_buf[22];
