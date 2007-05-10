@@ -40,60 +40,79 @@ RCSID("$Id$")
 #include "lib/fast_assert.h"
 #include "lib/override.h"			/* Must be the last header included */
 
+static inline const char *
+print_number(char *dst, size_t size, unsigned long value)
+{
+	char *p = &dst[size];
+
+	if (size > 0) {
+		*--p = '\0';
+	}
+	while (p != dst) {
+		*--p = (value % 10) + '0';
+		value /= 10;
+		if (0 == value)
+			break;
+	}
+	return p;
+}
+
 /**
  * @note For maximum safety this is kept signal-safe, so that we can
  *       even use assertions in signal handlers. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-void NON_NULL_PARAM((1)) REGPARM(1)
-assertion_warning(const assertion_data * const data)
+static void NON_NULL_PARAM((1)) REGPARM(1)
+assertion_message(const assertion_data * const data, int fatal)
 {
-	char line_buf[22], *line_ptr = &line_buf[sizeof line_buf - 1];
+	char line_buf[22], pid_buf[22];
 	struct iovec iov[16];
-	guint n = 0;
-
-	{
-		unsigned line_no = data->line;
-
-		*line_ptr = '\0';
-		do {
-			*--line_ptr = (line_no % 10) + '0';
-			line_no /= 10;
-		} while (line_no && line_ptr != line_buf);
-	}
+	guint iov_cnt = 0;
 
 #define print_str(x) \
 G_STMT_START { \
-	if (n < G_N_ELEMENTS(iov)) { \
+	if (iov_cnt < G_N_ELEMENTS(iov)) { \
 		const char *ptr = (x); \
-		iov[n].iov_base = (char *) ptr; \
-		iov[n].iov_len = strlen(ptr); \
-		n++; \
+		iov[iov_cnt].iov_base = (char *) ptr; \
+		iov[iov_cnt].iov_len = strlen(ptr); \
+		iov_cnt++; \
 	} \
 } G_STMT_END
 
-	if (data->expr) {
-		print_str("Assertion failure (");
+	if (fatal) {
+		print_str("CRASH (pid=");
+		print_str(print_number(pid_buf, sizeof pid_buf, getpid()));
+		print_str("): ");
 	} else {
-		print_str("Code should not have been reached (");
+		print_str("WARNING: ");
+	}
+	if (data->expr) {
+		print_str("Assertion failure in ");
+	} else {
+		print_str("Code should not have been reached in ");
 	}
 	print_str(data->file);
 	print_str(":");
-	print_str(line_ptr);
-	print_str(")");
+	print_str(print_number(line_buf, sizeof line_buf, data->line));
 	if (data->expr) {
-		print_str(" \"");
+		print_str(": \"");
 		print_str(data->expr);
 		print_str("\"");
 	}
 	print_str("\n");
-	writev(STDERR_FILENO, iov, n);
+	writev(STDERR_FILENO, iov, iov_cnt);
+}
+
+void NON_NULL_PARAM((1)) REGPARM(1)
+assertion_warning(const assertion_data * const data)
+{
+	assertion_message(data, FALSE);
 }
 
 void G_GNUC_NORETURN NON_NULL_PARAM((1)) REGPARM(1)
 assertion_failure(const assertion_data * const data)
 {
-	assertion_warning(data);
+	assertion_message(data, TRUE);
 	abort();
 }
 
