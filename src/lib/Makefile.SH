@@ -122,6 +122,7 @@ LSRC = \
 	magnet.c \
 	malloc.c \
 	misc.c \
+	pagetable.c \
 	palloc.c \
 	pattern.c \
 	prop.c \
@@ -182,6 +183,7 @@ LOBJ = \
 	magnet.o \
 	malloc.o \
 	misc.o \
+	pagetable.o \
 	palloc.o \
 	pattern.o \
 	prop.o \

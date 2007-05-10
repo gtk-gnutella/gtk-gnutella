@@ -570,6 +570,8 @@ src/lib/malloc.h
 src/lib/misc.c
 src/lib/misc.h
 src/lib/override.h
+src/lib/pagetable.c
+src/lib/pagetable.h
 src/lib/palloc.c
 src/lib/palloc.h
 src/lib/pattern.c
