@@ -236,26 +236,29 @@ hfree(void *p)
 void *
 hrealloc(void *old, size_t new_size)
 {
+	size_t old_size;
 	void *p;
 
-	if (new_size > 0) {
-		p = halloc(new_size);
-		RUNTIME_ASSERT(NULL != p);
-	} else {
-		p = NULL;
-	}
+	if (NULL == old)
+		return halloc(new_size);
 
-	if (old) {
-		size_t old_size;
-		
-		old_size = halloc_get_size(old);
-		RUNTIME_ASSERT(old_size > 0);
-
-		if (p) {
-			memcpy(p, old, MIN(new_size, old_size));
-		}
+	if (0 == new_size) {
 		hfree(old);
+		return NULL;
 	}
+
+	old_size = halloc_get_size(old);
+	RUNTIME_ASSERT(old_size > 0);
+
+	if (old_size >= new_size && old_size / 2 < new_size)
+		return old;
+
+	p = halloc(new_size);
+	RUNTIME_ASSERT(NULL != p);
+
+	memcpy(p, old, MIN(new_size, old_size));
+	hfree(old);
+
 	return p;
 }
 
