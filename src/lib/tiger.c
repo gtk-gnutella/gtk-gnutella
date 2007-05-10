@@ -91,32 +91,32 @@ RCSID("$Id$")
       b *= mul;
 
 #define pass(a,b,c,mul) \
-      round(a,b,c,x0,mul) \
-      round(b,c,a,x1,mul) \
-      round(c,a,b,x2,mul) \
-      round(a,b,c,x3,mul) \
-      round(b,c,a,x4,mul) \
-      round(c,a,b,x5,mul) \
-      round(a,b,c,x6,mul) \
-      round(b,c,a,x7,mul)
+      round(a,b,c,x[0],mul) \
+      round(b,c,a,x[1],mul) \
+      round(c,a,b,x[2],mul) \
+      round(a,b,c,x[3],mul) \
+      round(b,c,a,x[4],mul) \
+      round(c,a,b,x[5],mul) \
+      round(a,b,c,x[6],mul) \
+      round(b,c,a,x[7],mul)
 
 #define key_schedule \
-      x0 -= x7 ^ U64_FROM_2xU32(0xA5A5A5A5UL, 0xA5A5A5A5UL); \
-      x1 ^= x0; \
-      x2 += x1; \
-      x3 -= x2 ^ ((~x1)<<19); \
-      x4 ^= x3; \
-      x5 += x4; \
-      x6 -= x5 ^ ((~x4)>>23); \
-      x7 ^= x6; \
-      x0 += x7; \
-      x1 -= x0 ^ ((~x7)<<19); \
-      x2 ^= x1; \
-      x3 += x2; \
-      x4 -= x3 ^ ((~x2)>>23); \
-      x5 ^= x4; \
-      x6 += x5; \
-      x7 -= x6 ^ U64_FROM_2xU32(0x01234567UL,  0x89ABCDEFUL);
+      x[0] -= x[7] ^ U64_FROM_2xU32(0xA5A5A5A5UL, 0xA5A5A5A5UL); \
+      x[1] ^= x[0]; \
+      x[2] += x[1]; \
+      x[3] -= x[2] ^ ((~x[1])<<19); \
+      x[4] ^= x[3]; \
+      x[5] += x[4]; \
+      x[6] -= x[5] ^ ((~x[4])>>23); \
+      x[7] ^= x[6]; \
+      x[0] += x[7]; \
+      x[1] -= x[0] ^ ((~x[7])<<19); \
+      x[2] ^= x[1]; \
+      x[3] += x[2]; \
+      x[4] -= x[3] ^ ((~x[2])>>23); \
+      x[5] ^= x[4]; \
+      x[6] += x[5]; \
+      x[7] -= x[6] ^ U64_FROM_2xU32(0x01234567UL,  0x89ABCDEFUL);
 
 #define feedforward \
       a ^= aa; \
@@ -141,15 +141,14 @@ RCSID("$Id$")
 { \
   guint64 a, b, c, tmpa; \
   guint64 aa, bb, cc; \
-  guint64 x0, x1, x2, x3, x4, x5, x6, x7; \
-  int pass_no; \
+  guint64 x[8]; \
+  int pass_no, i; \
 \
   a = state[0]; \
   b = state[1]; \
   c = state[2]; \
 \
-  x0=str[0]; x1=str[1]; x2=str[2]; x3=str[3]; \
-  x4=str[4]; x5=str[5]; x6=str[6]; x7=str[7]; \
+  for (i = 0; i < 8; i++) x[i] = str[i]; \
 \
   compress; \
 \
