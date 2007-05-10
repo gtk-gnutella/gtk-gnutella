@@ -3154,7 +3154,14 @@ download_stop_v(struct download *d, download_status_t new_status,
 		break;
 	}
 
-	d->start_date = 0;		/* Download no longer running */
+	/*
+	 * Do not reset the start_date field when the dowmload is completed.
+	 * The GUI is going to use this field to compute the average download
+	 * speed.  And it does not matter now for this request.
+	 */
+
+	if (new_status != GTA_DL_COMPLETED)
+		d->start_date = 0;		/* Download no longer running */
 
 	if (reason && no_reason != reason) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
