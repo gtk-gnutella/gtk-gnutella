@@ -4782,10 +4782,13 @@ create_download(
 			reason = _("Paused");
 		} else if (count_running_downloads() >= max_downloads) {
 			reason = _("Max. number of downloads reached");
+			download_send_head_ping(d);
 		} else if (count_running_on_server(d->server) >= max_host_downloads) {
 			reason = _("Max. number of downloads for this host reached");
+			download_send_head_ping(d);
 		} else if (download_has_enough_active_sources(d)) {
 			reason = _("Has already enough active sources");
+			download_send_head_ping(d);		/* Keep the mesh fresh anyway */
 		} else {
 			download_start(d, FALSE);		/* Start the download immediately */
 			return d;
