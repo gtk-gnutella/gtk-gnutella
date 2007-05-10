@@ -4782,7 +4782,7 @@ fi_find_aggressive_candidate(
 
 	fc = fi_find_largest(fi);
 
-	if (fc->to - fc->from < minchunk)
+	if (fc && fc->to - fc->from < minchunk)
 		fc = NULL;
 
 	/*
