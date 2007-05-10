@@ -969,3 +969,8 @@
 # standard port
 64.93.89.192/26
 
+# 62.90.175.146; hosted by Barak I.T.C;
+# LimeWire; emits LIME/12v2 with zero count; trying to stop the query?
+# shares diverse infectived files and spam
+62.90.175.0/24
+
