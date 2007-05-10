@@ -116,7 +116,7 @@ page_table_insert(page_table_t *tab, void *p, size_t size)
 		i = k >> SLICE_BITSHIFT;
 		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
 		if (NULL == tab->slice[i]) {
-			tab->slice[i] = alloc_pages(sizeof tab->slice[i][0]);
+			tab->slice[i] = alloc_pages0(sizeof tab->slice[i][0]);
 		}
 		tab->slice[i]->size[j] = size;
 		return TRUE;
@@ -137,13 +137,6 @@ page_table_remove(page_table_t *tab, void *p)
 	} else {
 		return FALSE;
 	}
-}
-
-void
-page_table_replace(page_table_t *tab, void *p, size_t size)
-{
-	page_table_remove(tab, p);
-	page_table_insert(tab, p, size);
 }
 
 void

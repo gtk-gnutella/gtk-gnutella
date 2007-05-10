@@ -44,7 +44,6 @@ page_table_t *page_table_new(void);
 void page_table_destroy(page_table_t *ht);
 
 int page_table_insert(page_table_t *ht, void *p, size_t size);
-void page_table_replace(page_table_t *ht, void *p, size_t size);
 size_t page_table_lookup(page_table_t *ht, void *p);
 int page_table_remove(page_table_t *ht, void *p);
 void page_table_foreach(page_table_t *ht, page_table_foreach_func func,

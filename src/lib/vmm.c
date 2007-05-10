@@ -55,7 +55,7 @@ RCSID("$Id$")
  * system can recycle them without ever paging them out as we don't care about
  * the data in them anymore.
  */
-/* #define VMM_INVALIDATE_FREE_PAGES 1 */
+#define VMM_INVALIDATE_FREE_PAGES 1
 
 /*
  * With VMM_PROTECT_FREE_PAGES freed pages are completely protected. This may
@@ -399,6 +399,19 @@ alloc_pages(size_t size)
 		RUNTIME_ASSERT(NULL != p);	/* Out of memory */
 		return p;
 	}
+}
+
+void *
+alloc_pages0(size_t size)
+{
+	void *p;
+
+	/* FIXME: If the pages are freshly mapped they are already clean */
+	p = alloc_pages(size);
+	if (p) {
+		memset(p, 0, size);
+	}
+	return p;	
 }
 
 static void
