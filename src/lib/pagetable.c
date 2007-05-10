@@ -44,17 +44,17 @@
  *		 large pages. This is not efficient or useful for 64-bit systems.
  */
 #define POINTER_WIDTH	32
-#define SLICE_SHIFT		24
-#define SLICE_MASK		((size_t)-1 << SLICE_SHIFT)
-#define PAGE_SHIFT		12
-#define PAGE_MASK		((size_t)-1 << PAGE_SHIFT)
+#define SLICE_BITSHIFT		24
+#define SLICE_BITMASK		((size_t)-1 << SLICE_BITSHIFT)
+#define PAGE_BITSHIFT		12
+#define PAGE_BITMASK		((size_t)-1 << PAGE_BITSHIFT)
 
 struct slice {
-	size_t size[1 << PAGE_SHIFT];
+	size_t size[1 << PAGE_BITSHIFT];
 };
 
 struct page_table {
-	struct slice *slice[1 << (POINTER_WIDTH - SLICE_SHIFT)];
+	struct slice *slice[1 << (POINTER_WIDTH - SLICE_BITSHIFT)];
 };
 
 page_table_t *
@@ -64,7 +64,7 @@ page_table_new(void)
 	struct page_table *tab;
 
 	g_assert((size_t)-1 == (guint32)-1);
-	g_assert(compat_pagesize() == (1 << PAGE_SHIFT));
+	g_assert(compat_pagesize() == (1 << PAGE_BITSHIFT));
 
 	tab = malloc(sizeof *tab);
 	*tab = zero_page_table;
@@ -88,11 +88,11 @@ size_t
 page_table_lookup(page_table_t *tab, void *p)
 {
 	size_t k = (size_t) p;
-	if (k && 0 == (k & ~PAGE_MASK)) {
+	if (k && 0 == (k & ~PAGE_BITMASK)) {
 		size_t i, j;
 
-		i = k >> SLICE_SHIFT;
-		j = (k & ~SLICE_MASK) >> PAGE_SHIFT;
+		i = k >> SLICE_BITSHIFT;
+		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
 		return tab->slice[i] ? tab->slice[i]->size[j] : 0;
 	} else {
 		return 0;
@@ -106,15 +106,15 @@ page_table_insert(page_table_t *tab, void *p, size_t size)
 
 	RUNTIME_ASSERT(NULL != p);
 	RUNTIME_ASSERT(size > 0);
-	RUNTIME_ASSERT(0 == (k & ~PAGE_MASK));
+	RUNTIME_ASSERT(0 == (k & ~PAGE_BITMASK));
 
 	if (page_table_lookup(tab, p)) {
 		return FALSE;
 	} else {
 		size_t i, j;
 
-		i = k >> SLICE_SHIFT;
-		j = (k & ~SLICE_MASK) >> PAGE_SHIFT;
+		i = k >> SLICE_BITSHIFT;
+		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
 		if (NULL == tab->slice[i]) {
 			tab->slice[i] = alloc_pages(sizeof tab->slice[i][0]);
 		}
@@ -130,8 +130,8 @@ page_table_remove(page_table_t *tab, void *p)
 		size_t k = (size_t) p;
 		size_t i, j;
 
-		i = k >> SLICE_SHIFT;
-		j = (k & ~SLICE_MASK) >> PAGE_SHIFT;
+		i = k >> SLICE_BITSHIFT;
+		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
 		tab->slice[i]->size[j] = 0;
 		return TRUE;
 	} else {
@@ -157,7 +157,7 @@ page_table_foreach(page_table_t *tab, page_table_foreach_func func, void *data)
 
 			for (j = 0; j < G_N_ELEMENTS(tab->slice[i]->size); j++) {
 				if (tab->slice[i]->size[j]) {
-					size_t p = (i << SLICE_SHIFT) + (j << PAGE_SHIFT);
+					size_t p = (i << SLICE_BITSHIFT) + (j << PAGE_BITSHIFT);
 
 					(*func)((void *) p, tab->slice[i]->size[j], data);
 				}
