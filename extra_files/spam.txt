@@ -1,0 +1,22 @@
+# Verified SHA-1 checksums of spam files
+#
+# $Id: spam.txt 13581 2007-05-09 23:47:42Z cbiere $
+#
+# In order to filter all the listed items, this file must by copied
+# or better symlinked to ~/.gtk-gnutella/spam.txt.
+
+
+#
+# Keep name patterns at the end of the file because gtk-gnutella < 0.96.4
+# aborts parsing as soon as it sees unknown items.
+#
+# ifreeclub dot com; visual noise; bogus results 
+NAME [iI][fF][rR][eE][eE][cC][lL][uU][bB][.][cC][oO][mM]
+ADDED 2007-01-09
+END
+
+# ifreeclub dot com and sharewarning; visual noise; bogus results 
+NAME ^(FREE|WARNING|URGENT|GET A FREE|[.]).*-----------------------------------
+ADDED 2007-01-09
+END
+
