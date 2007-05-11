@@ -2268,7 +2268,7 @@ get_file_to_upload_from_index(gnutella_upload_t *u, header_t *header,
 	if (sent_sha1) {
 		struct shared_file *sfn;
 		
-		if (spam_check_sha1(&sha1)) {
+		if (spam_sha1_check(&sha1)) {
 			goto not_found;
 		}
 
@@ -2499,7 +2499,7 @@ get_file_to_upload_from_urn(gnutella_upload_t *u, header_t *header,
 		goto malformed;
 	}
 
-	if (spam_check_sha1(&sha1)) {
+	if (spam_sha1_check(&sha1)) {
 		goto not_found;
 	}
 
@@ -2587,7 +2587,7 @@ get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
 		goto malformed;
 	}
 
-	if (spam_check_sha1(&sha1)) {
+	if (spam_sha1_check(&sha1)) {
 		goto not_found;
 	}
 

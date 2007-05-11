@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003, Markus Goetz & Raphael Manfredi
+ * Copyright (c) 2007, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,23 +29,23 @@
  *
  * SHA-1 based spam filtering.
  *
- * @author Markus Goetz
- * @author Raphael Manfredi
- * @date 2003
  * @author Christian Biere
- * @date 2006
+ * @date 2007
  */
 
-#ifndef _core_spam_h_
-#define _core_spam_h_
+#ifndef _core_spam_sha1_h_
+#define _core_spam_sha1_h_
 
 #include "common.h"
-#include "spam_sha1.h"
 
-gboolean spam_check_filename_and_size(const gchar *filename, filesize_t size);
-void spam_init(void);
-void spam_close(void);
+struct sha1;
 
-#endif /* _core_spam_h_ */
+gboolean spam_sha1_check(const struct sha1 *sha1);
+void spam_sha1_add(const struct sha1 *sha1);
+void spam_sha1_sync(void);
+void spam_sha1_init(void);
+void spam_sha1_close(void);
+
+#endif /* _core_spam_sha1_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

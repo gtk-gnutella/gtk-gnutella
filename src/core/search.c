@@ -276,9 +276,8 @@ count_sha1(const struct sha1 *sha1)
 	gpointer key, value;
 	guint n;
 
-	if (spam_check_sha1(sha1)) {
+	if (spam_sha1_check(sha1))
 		return;
-	}
 
 	if (!ht_sha1) {
 		ht_sha1 = g_hash_table_new_full(NULL, NULL, free_sha1, NULL);
@@ -1454,7 +1453,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						gboolean is_spam;
 						
 						count_sha1(&sha1_digest);
-						is_spam = spam_check_sha1(&sha1_digest);
+						is_spam = spam_sha1_check(&sha1_digest);
 						if (is_spam) {
 							rs->status |= ST_URN_SPAM;
 						}
@@ -1495,7 +1494,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							gboolean is_spam;
 							
 							count_sha1(&sha1_digest);
-							is_spam = spam_check_sha1(&sha1_digest);
+							is_spam = spam_sha1_check(&sha1_digest);
 							if (is_spam) {
 								rs->status |= ST_URN_SPAM;
 							}
@@ -1532,7 +1531,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						
 						has_hash = TRUE;
 						count_sha1(&sha1_digest);
-						is_spam = spam_check_sha1(&sha1_digest);
+						is_spam = spam_sha1_check(&sha1_digest);
 						if (is_spam) {
 							rs->status |= ST_URN_SPAM;
 						}

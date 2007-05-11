@@ -346,7 +346,7 @@ ignore_is_requested(const gchar *filename, filesize_t size,
 		const struct shared_file *sf;
 		if (g_hash_table_lookup(by_sha1, sha1))
 			return IGNORE_SHA1;
-		if (spam_check_sha1(sha1))
+		if (spam_sha1_check(sha1))
 			return IGNORE_SPAM;
 		sf = shared_file_by_sha1(sha1);
 		if (sf && sf != SHARE_REBUILDING && !shared_file_is_partial(sf))

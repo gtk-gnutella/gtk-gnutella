@@ -439,7 +439,7 @@ huge_update_hashes(struct shared_file *sf,
 		return request_sha1(sf);					/* Retry! */
 	}
 
-	if (spam_check_sha1(sha1)) {
+	if (spam_sha1_check(sha1)) {
 		g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 		shared_file_remove(sf);
 		return FALSE;
@@ -619,7 +619,7 @@ request_sha1(struct shared_file *sf)
 
 	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
 	if (cached && cached_entry_up_to_date(cached, sf)) {
-		if (spam_check_sha1(cached->sha1)) {
+		if (spam_sha1_check(cached->sha1)) {
 			g_warning("file \"%s\" is listed as spam", shared_file_path(sf));
 			shared_file_remove(sf);
 			return FALSE;

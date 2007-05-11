@@ -54,7 +54,6 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
-#include "lib/sorted_array.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/utf8.h"
@@ -70,7 +69,6 @@ static const gchar spam_what[] = "Spam database";
 
 struct spam_lut {
 	GSList *sl_names;	/* List of g_malloc()ed regex_t items */
-	struct sorted_array *tab;
 };
 
 static struct spam_lut spam_lut;
@@ -123,40 +121,6 @@ spam_string_to_tag(const gchar *s)
 #undef GET_ITEM
 	return SPAM_TAG_UNKNOWN;
 }
-
-static inline int
-sha1_cmp_func(const void *a, const void *b)
-{
-	return sha1_cmp(a, b);
-}
-
-static void
-spam_add_sha1(const struct sha1 *sha1)
-{
-	g_return_if_fail(sha1);
-	if (NULL == spam_lut.tab) {
-		spam_lut.tab = sorted_array_new(sizeof *sha1, sha1_cmp_func);
-	}
-	sorted_array_add(spam_lut.tab, sha1);
-}
-
-int
-sha1_collision(const void *a, const void *b)
-{
-	(void) a;
-	g_warning("spam_sha1_sync(): Removing duplicate SHA-1 %s",
-		sha1_base32(b));
-	return 1;
-}
-
-void
-spam_sha1_sync(void)
-{
-	if (spam_lut.tab) {
-		sorted_array_sync(spam_lut.tab, sha1_collision);
-	}
-}
-
 
 struct namesize_item {
 	regex_t		pattern;
@@ -375,14 +339,8 @@ spam_load(FILE *f)
 
 		if (item.done && !item.damaged) {
 			if (bit_array_get(tag_used, SPAM_TAG_SHA1)) {
-				if (spam_check_sha1(cast_to_gpointer(item.sha1.data))) {
-					g_warning(
-						"Ignoring duplicate spam item around line %u (sha1=%s)",
-						line_no, sha1_base32(cast_to_gpointer(item.sha1.data)));
-				} else {
-					spam_add_sha1(&item.sha1);
-					item_count++;
-				}
+				spam_sha1_add(&item.sha1);
+				item_count++;
 			}
 			if (bit_array_get(tag_used, SPAM_TAG_NAME)) {
 				if (!bit_array_get(tag_used, SPAM_TAG_SIZE)) {
@@ -494,6 +452,7 @@ spam_retrieve(void)
 void
 spam_init(void)
 {
+	spam_sha1_init();
 	spam_retrieve();
 }
 
@@ -505,8 +464,6 @@ spam_close(void)
 {
 	GSList *sl;
 
-	sorted_array_free(&spam_lut.tab);
-
 	for (sl = spam_lut.sl_names; NULL != sl; sl = g_slist_next(sl)) {
 		struct namesize_item *item = sl->data;
 
@@ -516,19 +473,7 @@ spam_close(void)
 	}
 	g_slist_free(spam_lut.sl_names);
 	spam_lut.sl_names = NULL;
-}
-
-/**
- * Check the given SHA-1 against the spam database.
- *
- * @param sha1 the SHA-1 to check.
- * @returns TRUE if found, and FALSE if not.
- */
-gboolean
-spam_check_sha1(const struct sha1 *sha1)
-{
-	g_return_val_if_fail(sha1, FALSE);
-	return spam_lut.tab && NULL != sorted_array_lookup(spam_lut.tab, sha1);
+	spam_sha1_close();
 }
 
 /**

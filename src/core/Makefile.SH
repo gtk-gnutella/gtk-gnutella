@@ -146,6 +146,7 @@ SRC = \
 	shell.c \
 	sockets.c \
 	spam.c \
+	spam_sha1.c \
 	sq.c \
 	thex_download.c \
 	thex_upload.c \
@@ -233,6 +234,7 @@ OBJ = \
 	shell.o \
 	sockets.o \
 	spam.o \
+	spam_sha1.o \
 	sq.o \
 	thex_download.o \
 	thex_upload.o \
