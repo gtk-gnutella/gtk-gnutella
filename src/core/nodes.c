@@ -101,6 +101,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
+#include "lib/socket.h"		/* For socket_set_nonblocking() */
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -6220,22 +6221,42 @@ static void
 node_dump_packet(const struct gnutella_node *node)
 {
 	static FILE *f;
+	static const char *dump = "packets_rx.dump";
 	
 	if (dump_received_gnutella_packets) {
 		if (!f) {
 			gchar *pathname;
 
-			pathname = make_pathname(settings_config_dir(), "packets_rx.dump");
+			pathname = make_pathname(settings_config_dir(), dump);
 			f = file_fopen_missing(pathname, "a");
 			G_FREE_NULL(pathname);
+
+			/*
+			 * If the dump "file" is actually a named pipe, we'd block quickly
+			 * if there was no reader.  So set the file as non-blocking and
+			 * we'll disable dumping as soon as we can't write all the data
+			 * we want.
+			 */
+
+			if (f)
+				socket_set_nonblocking(fileno(f));
 		}
 		if (f) {
 			struct dump_header dh;
+			size_t written;
 
 			dump_header_set(&dh, node);
-			fwrite(dh.data, sizeof dh.data, 1, f);
-			fwrite(node->header, sizeof node->header, 1, f);
-			fwrite(node->data, node->size, 1, f);
+			written = fwrite(dh.data, sizeof dh.data, 1, f);
+			written += fwrite(node->header, sizeof node->header, 1, f);
+			written += fwrite(node->data, node->size, 1, f);
+
+			if (written != sizeof dh.data + sizeof node->header + node->size) {
+				g_warning("incomplete write to %s, disabling dumping", dump);
+				gnet_prop_set_boolean_val(
+					PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
+				fclose(f);
+				f = NULL;
+			}
 		}
 	} else if (f) {
 		fclose(f);
