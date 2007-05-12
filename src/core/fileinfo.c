@@ -4441,7 +4441,7 @@ get_random_offset(filesize_t size)
 
 	STATIC_ASSERT(IS_POWER_OF_2(TTH_BLOCKSIZE));
 
-	return offset & ~(filesize_t) TTH_BLOCKSIZE;
+	return offset & ~((filesize_t) TTH_BLOCKSIZE - 1);
 }
 
 /**
