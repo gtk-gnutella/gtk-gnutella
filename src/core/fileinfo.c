@@ -4429,7 +4429,9 @@ get_random_offset(filesize_t size)
 		}
 		offset %= size - 1;
 	}
-	return (offset / TTH_BLOCKSIZE) * TTH_BLOCKSIZE;
+	
+	STATIC_ASSERT(IS_POWER_OF_2(TTH_BLOCKSIZE));
+	return offset & ~(filesize_t) TTH_BLOCKSIZE;
 }
 
 /**
