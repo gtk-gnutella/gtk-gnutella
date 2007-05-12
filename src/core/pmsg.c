@@ -708,5 +708,36 @@ pmsg_slist_discard(slist_t *slist, size_t n_bytes)
 	slist_iter_free(&iter);
 }
 
+/**
+ * Appends `n_bytes' to the pmsg_t buffer. If the last pmsg_t is writable
+ * it is filled with as much data as space is still available. Otherwise
+ * or if this space is not sufficient another pmsg_t is created and
+ * append to the list.
+ */
+void
+pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes)
+{
+	pmsg_t *mb;
+
+	g_assert(slist);
+
+	if (0 == n_bytes)
+		return;
+	g_assert(NULL != data);
+
+	mb = slist_tail(slist);
+	if (mb && pmsg_is_writable(mb)) {
+		size_t n;
+
+		n = pmsg_write(mb, data, n_bytes);
+		data = (const char *) data + n;
+		n_bytes -= n;
+	}
+	if (n_bytes > 0) {
+		mb = pmsg_new(PMSG_P_DATA, NULL, n_bytes);
+		pmsg_write(mb, data, n_bytes);
+		slist_append(slist, mb);
+	}
+}
 
 /* vi: set ts=4 sw=4 cindent: */

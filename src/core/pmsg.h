@@ -180,6 +180,7 @@ void pdata_unref(pdata_t *db);
 struct iovec *pmsg_slist_to_iovec(slist_t *slist,
 				gint *iovcnt_ptr, size_t *size_ptr);
 void pmsg_slist_discard(slist_t *slist, size_t n_bytes);
+void pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes);
 
 #endif	/* _core_pmsg_h_ */
 
