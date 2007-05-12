@@ -6236,6 +6236,11 @@ node_dump_packet(const struct gnutella_node *node)
 			pathname = make_pathname(settings_config_dir(), dump);
 			fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NDELAY);
 			G_FREE_NULL(pathname);
+
+			if (fd < 0) {
+				g_warning("can't open %s -- disabling dumping", dump);
+				goto disable;
+			}
 		}
 		if (fd >= 0) {
 			struct dump_header dh;
@@ -6258,16 +6263,20 @@ node_dump_packet(const struct gnutella_node *node)
 			if (written != sizeof dh.data + sizeof node->header + node->size) {
 				g_warning("incomplete write to %s: %s -- disabling dumping",
 					dump, g_strerror(errno));
-				gnet_prop_set_boolean_val(
-					PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
-				close(fd);
-				fd = -1;
+				goto disable;
 			}
 		}
 	} else if (fd >= 0) {
 		close(fd);
 		fd = -1;
 	}
+
+	return;
+
+disable:
+	gnet_prop_set_boolean_val(PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
+	close(fd);
+	fd = -1;
 }
 
 /**
