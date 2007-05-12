@@ -1559,7 +1559,6 @@ static void
 shell_write(gnutella_shell_t *sh, const gchar *text)
 {
 	size_t len;
-	pmsg_t *mb;
 
 	shell_check(sh);
 	g_return_if_fail(sh->output);
@@ -1574,20 +1573,7 @@ shell_write(gnutella_shell_t *sh, const gchar *text)
 		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
 	}
 
-	mb = slist_tail(sh->output);
-	if (mb && pmsg_writable_length(mb) > 0) {
-		size_t n;
-
-		n = pmsg_writable_length(mb);
-		pmsg_write(mb, text, n);
-		text += n;
-		len -= n;
-	}
-	if (len > 0) {
-		mb = pmsg_new(PMSG_P_DATA, NULL, len);
-		pmsg_write(mb, text, len);
-		slist_append(sh->output, mb);
-	}
+	pmsg_slist_append(sh->output, text, len);
 }
 
 /**
