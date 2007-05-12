@@ -95,6 +95,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
+#include "lib/iovec.h"
 #include "lib/endian.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
@@ -6219,12 +6220,21 @@ dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
 static void
 node_dump_packet(const struct gnutella_node *node)
 {
-	static gint fd = -1;
-	static const char *dump = "packets_rx.dump";
+	static int fd = -1;
 	
 	if (dump_received_gnutella_packets) {
+		static const char dump[] = "packets_rx.dump";
+		struct dump_header dh;
+		struct iovec iov[3];
+		ssize_t written;
+		size_t size;
+
 		if (fd < 0) {
 			gchar *pathname;
+
+			pathname = make_pathname(settings_config_dir(), dump);
+			fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NONBLOCK);
+			G_FREE_NULL(pathname);
 
 			/*
 			 * If the dump "file" is actually a named pipe, we'd block quickly
@@ -6233,50 +6243,44 @@ node_dump_packet(const struct gnutella_node *node)
 			 * we want.
 			 */
 
-			pathname = make_pathname(settings_config_dir(), dump);
-			fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NDELAY);
-			G_FREE_NULL(pathname);
-
 			if (fd < 0) {
 				g_warning("can't open %s -- disabling dumping", dump);
 				goto disable;
 			}
+			file_set_nonblocking(fd);
 		}
-		if (fd >= 0) {
-			struct dump_header dh;
-			size_t written = 0;
-			ssize_t rw;
 
-			dump_header_set(&dh, node);
-			rw = write(fd, dh.data, sizeof dh.data);
-			if (rw > 0) {
-				written += rw;
-				rw = write(fd, node->header, sizeof node->header);
-			}
-			if (rw > 0) {
-				written += rw;
-				rw = write(fd, node->data, node->size);
-			}
-			if (rw > 0)
-				written += rw;
+		dump_header_set(&dh, node);
+		iov[0].iov_base = &dh.data;
+		iov[0].iov_len = sizeof dh.data;
+			
+		iov[1].iov_base = node->header;
+		iov[1].iov_len = sizeof node->header;
+			
+		iov[2].iov_base = node->data;
+		iov[2].iov_len = node->size;
 
-			if (written != sizeof dh.data + sizeof node->header + node->size) {
-				g_warning("incomplete write to %s: %s -- disabling dumping",
-					dump, g_strerror(errno));
-				goto disable;
-			}
+		size = iov_calculate_size(iov, G_N_ELEMENTS(iov));
+		written = writev(fd, iov, G_N_ELEMENTS(iov));
+		if ((size_t) written != size) {
+			g_warning("error writing to %s: %s -- disabling dumping",
+				dump,
+				written < 0 ? g_strerror(errno) : "partial write");
+			goto disable;
 		}
-	} else if (fd >= 0) {
-		close(fd);
-		fd = -1;
+	} else {
+		goto disabled;
 	}
-
 	return;
 
 disable:
 	gnet_prop_set_boolean_val(PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
-	close(fd);
-	fd = -1;
+
+disabled:
+	if (fd >= 0) {
+		close(fd);
+		fd = -1;
+	}
 }
 
 /**
