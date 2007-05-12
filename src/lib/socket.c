@@ -27,7 +27,10 @@
 
 RCSID("$Id$")
 
-#include "socket.h"
+#include "lib/socket.h"
+#include "lib/file.h"
+
+#include "lib/override.h"		/* Must be the last header included */
 
 /**
  *  Sets a socket to non-blocking behaviour
@@ -43,12 +46,7 @@ socket_set_nonblocking(gint fd)
 }
 #else
 {
-	gint ret, flags;
-
-	ret = fcntl(fd, F_GETFL, 0);
-	flags = ret | VAL_O_NONBLOCK;
-	if (flags != ret)
-		fcntl(fd, F_SETFL, flags);
+	file_set_nonblocking(fd);
 }
 #endif
 
