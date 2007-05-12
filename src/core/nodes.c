@@ -101,7 +101,6 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/listener.h"
 #include "lib/misc.h"
-#include "lib/socket.h"		/* For socket_set_nonblocking() */
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -6220,16 +6219,12 @@ dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
 static void
 node_dump_packet(const struct gnutella_node *node)
 {
-	static FILE *f;
+	static gint fd = -1;
 	static const char *dump = "packets_rx.dump";
 	
 	if (dump_received_gnutella_packets) {
-		if (!f) {
+		if (fd < 0) {
 			gchar *pathname;
-
-			pathname = make_pathname(settings_config_dir(), dump);
-			f = file_fopen_missing(pathname, "a");
-			G_FREE_NULL(pathname);
 
 			/*
 			 * If the dump "file" is actually a named pipe, we'd block quickly
@@ -6238,29 +6233,34 @@ node_dump_packet(const struct gnutella_node *node)
 			 * we want.
 			 */
 
-			if (f)
-				socket_set_nonblocking(fileno(f));
+			pathname = make_pathname(settings_config_dir(), dump);
+			fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NDELAY);
+			G_FREE_NULL(pathname);
 		}
-		if (f) {
+		if (fd >= 0) {
 			struct dump_header dh;
-			size_t written;
+			size_t written = 0;
+			ssize_t rw;
 
 			dump_header_set(&dh, node);
-			written = fwrite(dh.data, sizeof dh.data, 1, f);
-			written += fwrite(node->header, sizeof node->header, 1, f);
-			written += fwrite(node->data, node->size, 1, f);
+			rw = write(fd, dh.data, sizeof dh.data);
+			if (rw > 0) written += rw;
+			rw = write(fd, node->header, sizeof node->header);
+			if (rw > 0) written += rw;
+			rw = write(fd, node->data, node->size);
+			if (rw > 0) written += rw;
 
 			if (written != sizeof dh.data + sizeof node->header + node->size) {
 				g_warning("incomplete write to %s, disabling dumping", dump);
 				gnet_prop_set_boolean_val(
 					PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
-				fclose(f);
-				f = NULL;
+				close(fd);
+				fd = -1;
 			}
 		}
-	} else if (f) {
-		fclose(f);
-		f = NULL;
+	} else if (fd >= 0) {
+		close(fd);
+		fd = -1;
 	}
 }
 
