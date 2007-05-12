@@ -70,5 +70,7 @@ gint file_create(const gchar *path, gint flags, gint mode);
 FILE *file_fopen(const gchar *path, const gchar *mode);
 FILE *file_fopen_missing(const gchar *path, const gchar *mode);
 
+void file_set_nonblocking(gint fd);
+
 #endif /* _file_ */
 /* vi: set ts=4 sw=4 cindent: */

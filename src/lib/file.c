@@ -506,4 +506,15 @@ file_fopen_missing(const gchar *path, const gchar *mode)
 	return do_fopen(path, mode, TRUE);
 }
 
+void
+file_set_nonblocking(gint fd)
+{
+	gint ret, flags;
+
+	ret = fcntl(fd, F_GETFL, 0);
+	flags = ret | VAL_O_NONBLOCK;
+	if (flags != ret)
+		fcntl(fd, F_SETFL, flags);
+}
+
 /* vi: set ts=4: */
