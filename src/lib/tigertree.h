@@ -68,6 +68,12 @@
 #define TTH_MAX_DEPTH	11
 #define TTH_MAX_LEAVES	(1 << TTH_MAX_DEPTH)
 
+/*
+ * size of each block independently tiger-hashed,
+ * not counting leaf 0x00 prefix
+ */
+#define TTH_BLOCKSIZE	1024
+
 
 struct TTH_CONTEXT;
 typedef struct TTH_CONTEXT TTH_CONTEXT;

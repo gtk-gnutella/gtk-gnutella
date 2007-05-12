@@ -4429,7 +4429,7 @@ get_random_offset(filesize_t size)
 		}
 		offset %= size - 1;
 	}
-	return offset;
+	return (offset / TTH_BLOCKSIZE) * TTH_BLOCKSIZE;
 }
 
 /**
