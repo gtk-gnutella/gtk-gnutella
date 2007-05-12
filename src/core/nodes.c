@@ -6244,14 +6244,20 @@ node_dump_packet(const struct gnutella_node *node)
 
 			dump_header_set(&dh, node);
 			rw = write(fd, dh.data, sizeof dh.data);
-			if (rw > 0) written += rw;
-			rw = write(fd, node->header, sizeof node->header);
-			if (rw > 0) written += rw;
-			rw = write(fd, node->data, node->size);
-			if (rw > 0) written += rw;
+			if (rw > 0) {
+				written += rw;
+				rw = write(fd, node->header, sizeof node->header);
+			}
+			if (rw > 0) {
+				written += rw;
+				rw = write(fd, node->data, node->size);
+			}
+			if (rw > 0)
+				written += rw;
 
 			if (written != sizeof dh.data + sizeof node->header + node->size) {
-				g_warning("incomplete write to %s, disabling dumping", dump);
+				g_warning("incomplete write to %s: %s -- disabling dumping",
+					dump, g_strerror(errno));
 				gnet_prop_set_boolean_val(
 					PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
 				close(fd);
