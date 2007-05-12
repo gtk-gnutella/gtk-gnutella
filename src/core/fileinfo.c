@@ -4415,6 +4415,9 @@ fi_busy_count(fileinfo_t *fi, struct download *d)
 	return count;
 }
 
+/**
+ * @return a random offset within the file, aligned on a TTH block boundary.
+ */
 static filesize_t
 get_random_offset(filesize_t size)
 {
@@ -4429,8 +4432,15 @@ get_random_offset(filesize_t size)
 		}
 		offset %= size - 1;
 	}
-	
+
+	/*
+	 * Aligning blocks is just a convenience here, to make it easier later to
+	 * validate the file against the TTH, and also because it is likely to be
+	 * slightly more efficient when doing aligned disk I/Os.
+	 */
+
 	STATIC_ASSERT(IS_POWER_OF_2(TTH_BLOCKSIZE));
+
 	return offset & ~(filesize_t) TTH_BLOCKSIZE;
 }
 
