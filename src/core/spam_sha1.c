@@ -107,9 +107,9 @@ spam_sha1_sync(void)
  * The current file format is as follows:
  *
  * # Comment
- * SHA1 <SHA-1>
- * ADDED <date>
- * END
+ * <SHA1 #1>
+ * <SHA1 #2>
+ * etc...
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
