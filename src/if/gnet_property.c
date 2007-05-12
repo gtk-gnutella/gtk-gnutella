@@ -6163,7 +6163,7 @@ gnet_prop_init(void) {
     gnet_property->props[288].name = "dump_received_gnutella_packets";
     gnet_property->props[288].desc = _("If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx.dump.");
     gnet_property->props[288].ev_changed = event_new("dump_received_gnutella_packets_changed");
-    gnet_property->props[288].save = TRUE;
+    gnet_property->props[288].save = FALSE;
     gnet_property->props[288].vector_size = 1;
 
     /* Type specific data: */

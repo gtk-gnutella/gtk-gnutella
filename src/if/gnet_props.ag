@@ -3348,6 +3348,7 @@ prop = {
     desc = "If enabled, all received packets are dumped to "
 			"$GTK_GNUTELLA_DIR/packets_rx.dump.";
 	type = boolean;
+	save = FALSE;
 	data = {
 		default = FALSE;
 	};
