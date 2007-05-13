@@ -663,12 +663,16 @@ download_restore_state(void)
 	 * The order of the following calls matters.
 	 */
 
+	download_freeze_queue();
+
 	file_info_retrieve();					/* Get all fileinfos */
 	file_info_scandir(save_file_path);		/* Pick up orphaned files */
 	download_retrieve();					/* Restore downloads */
 	file_info_spot_completed_orphans();		/* 100% done orphans => fake dl. */
 	download_resume_bg_tasks();				/* Reschedule SHA1 and moving */
 	file_info_store();
+
+	download_thaw_queue();
 }
 
 /* ----------------------------------------- */
@@ -3507,6 +3511,9 @@ download_send_head_ping(struct download *d)
 	download_check(d);
 	g_assert(d->file_info);
 	g_assert(d->server);
+
+	if (download_queue_is_frozen())
+		return;
 
 	if (NULL == d->file_info->sha1 || !d->file_info->use_swarming)
 		return;
