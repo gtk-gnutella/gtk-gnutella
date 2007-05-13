@@ -570,8 +570,7 @@ uploads_gui_init(void)
 
     guc_upload_add_upload_added_listener(upload_added);
     guc_upload_add_upload_removed_listener(upload_removed);
-    guc_upload_add_upload_info_changed_listener
-		(upload_info_changed);
+    guc_upload_add_upload_info_changed_listener(upload_info_changed);
 
 	g_signal_connect(GTK_OBJECT(treeview_uploads), "button_press_event",
 		G_CALLBACK(on_button_press_event), NULL);
