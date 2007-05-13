@@ -974,3 +974,22 @@
 # shares diverse infectived files and spam
 62.90.175.0/24
 
+# LimeWire/4.9.11 and LimeWire/4.10.9; GUID switchers; further these seem to
+# abuse searches for discovery
+83.142.225.0/24
+87.117.250.0/24
+66.90.78.0/24
+69.72.161.0/24
+208.98.50.0/24
+
+# LimeWire/4.13.4; GUID switchers
+68.239.124.60
+124.186.130.190
+75.34.28.32
+
+# Shareaza 2.2.5.0; GUID switchers; potentially just buggy
+81.179.65.141
+84.60.17.116
+82.239.141.113
+151.68.163.253
+
