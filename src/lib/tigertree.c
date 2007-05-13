@@ -88,12 +88,6 @@ RCSID("$Id$")
 #include "tigertree.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
- * size of each block independently tiger-hashed,
- * not counting leaf 0x00 prefix
- */
-#define TTH_BLOCKSIZE	1024
-
 /* size of input to each non-leaf hash-tree node, not counting node 0x01 prefix */
 #define TTH_NODESIZE	(TIGERSIZE * 2)
 
@@ -168,6 +162,17 @@ tt_good_depth(filesize_t filesize)
 			break;
 	}
 	return i;
+}
+
+filesize_t
+tt_good_slice_size(filesize_t filesize)
+{
+	filesize_t n_blocks;
+	size_t n_nodes;
+	
+	n_blocks = tt_block_count(filesize);
+   	n_nodes = (1 << tt_good_depth(filesize));
+	return (n_blocks / n_nodes) * TTH_BLOCKSIZE;
 }
 
 filesize_t 
