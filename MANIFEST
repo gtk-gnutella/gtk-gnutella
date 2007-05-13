@@ -378,6 +378,8 @@ src/core/sockets.c
 src/core/sockets.h
 src/core/spam.c
 src/core/spam.h
+src/core/spam_sha1.c
+src/core/spam_sha1.h
 src/core/special_upload.h
 src/core/sq.c
 src/core/sq.h
