@@ -1370,20 +1370,10 @@ shell_exec(gnutella_shell_t *sh, const gchar *line)
 }
 
 static void
-shell_discard_output_helper(gpointer key, gpointer unused_data)
-{
-	(void) unused_data;
-	pmsg_free(key);
-}
-
-static void
 shell_discard_output(gnutella_shell_t *sh)
 {
 	shell_check(sh);
-	if (sh->output) {
-		slist_foreach(sh->output, shell_discard_output_helper, NULL);
-		slist_free(&sh->output);
-	}
+	pmsg_slist_free(&sh->output);
 }
 
 /**
