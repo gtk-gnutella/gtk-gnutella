@@ -740,4 +740,22 @@ pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes)
 	}
 }
 
+/**
+ * Frees all pmsg_t buffers, the slist itself and nullifies the pointer.
+ */
+void
+pmsg_slist_free(slist_t **ptr)
+{
+	slist_t *slist = *ptr;
+
+	if (slist) {
+		pmsg_t *mb;
+
+		while (NULL != (mb = slist_shift(slist))) {
+			pmsg_free(mb);
+		}
+		slist_free(ptr);
+	}
+}
+
 /* vi: set ts=4 sw=4 cindent: */
