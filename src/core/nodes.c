@@ -6323,7 +6323,8 @@ node_dump_packet(const struct gnutella_node *node)
 				node_dump_disable();
 			}
 			if (dump.fill >= 256 * 1024UL) {
-				g_warning("queue is full: %s -- disabling dumping", dump.filename);
+				g_warning(
+					"queue is full: %s -- disabling dumping", dump.filename);
 				node_dump_disable();
 			}
 			break;
