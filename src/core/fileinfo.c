@@ -4419,7 +4419,7 @@ fi_busy_count(fileinfo_t *fi, struct download *d)
  * @return a random offset within the file, aligned on a TTH block boundary.
  */
 static filesize_t
-get_random_offset(filesize_t size)
+get_random_offset(const filesize_t size)
 {
 	filesize_t offset;
 
@@ -4439,9 +4439,7 @@ get_random_offset(filesize_t size)
 	 * slightly more efficient when doing aligned disk I/Os.
 	 */
 
-	STATIC_ASSERT(IS_POWER_OF_2(TTH_BLOCKSIZE));
-
-	return offset & ~((filesize_t) TTH_BLOCKSIZE - 1);
+	return offset & ~((filesize_t)128 * 1024 - 1);
 }
 
 /**
