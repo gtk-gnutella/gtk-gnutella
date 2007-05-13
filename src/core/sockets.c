@@ -3059,7 +3059,6 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
 
 	socket_set_linger(s->file_desc);
-	socket_set_accept_filters(s);
 
 	/* listen() the socket */
 
@@ -3068,6 +3067,8 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
 	}
+
+	socket_set_accept_filters(s);
 
 	/* Get the port of the socket, if needed */
 
