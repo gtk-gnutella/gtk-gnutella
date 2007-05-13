@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "columns.h"
+#include "downloads_common.h"
 #include "filter.h"
 #include "gtk-missing.h"
 #include "html_view.h"
@@ -2584,6 +2585,49 @@ clock_skew_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     gtk_label_set_text(GTK_LABEL(gui_dlg_prefs_lookup("label_clock_skew")),
 		short_time(val));
+    return FALSE;
+}
+
+/**
+ *	Checks if the download queue is frozen, if so update the freeze queue
+ *  widgets and display a message on the statusbar
+ */
+static gboolean
+update_queue_frozen(property_t prop)
+{
+	static gboolean was_frozen;
+	gboolean is_frozen;
+
+	(void) prop;
+
+	is_frozen = guc_download_queue_is_frozen();
+	if (was_frozen != is_frozen) {
+#if 0
+    	static statusbar_msgid_t id;
+    	GtkWidget *button;
+
+		if (is_frozen) {
+			gtk_widget_hide(gui_main_window_lookup("vbox_queue_freeze"));
+			gtk_widget_show(gui_main_window_lookup("vbox_queue_thaw"));
+			id = statusbar_gui_message(0, _("Queue frozen"));
+		} else {
+			gtk_widget_show(gui_main_window_lookup("vbox_queue_freeze"));
+			gtk_widget_hide(gui_main_window_lookup("vbox_queue_thaw"));
+			statusbar_gui_remove(id);
+		}
+
+		button = gui_main_window_lookup("togglebutton_queue_freeze");
+		gtk_signal_handler_block_by_func(GTK_OBJECT(button),
+			GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled), NULL);
+
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), is_frozen);
+
+		gtk_signal_handler_unblock_by_func(GTK_OBJECT(button),
+			GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled), NULL);
+#endif
+	}
+	was_frozen = is_frozen;
+
     return FALSE;
 }
 
@@ -5503,6 +5547,14 @@ static prop_map_t property_map[] = {
         update_entry,
         TRUE,
         "entry_config_ipv6_trt_prefix",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_DOWNLOAD_QUEUE_FROZEN,
+        update_queue_frozen,
+        TRUE,
+       	NULL, 
         FREQ_UPDATES, 0
     ),
 };

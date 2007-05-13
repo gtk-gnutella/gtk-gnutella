@@ -3390,9 +3390,10 @@ download_queue(struct download *d, const gchar *fmt, ...)
 void
 download_freeze_queue(void)
 {
+	g_return_if_fail(download_queue_frozen < (guint32)-1);
+
 	gnet_prop_set_guint32_val(PROP_DOWNLOAD_QUEUE_FROZEN,
 		download_queue_frozen + 1);
-	gcu_gui_update_queue_frozen();
 }
 
 /**
@@ -3406,7 +3407,6 @@ download_thaw_queue(void)
 
 	gnet_prop_set_guint32_val(PROP_DOWNLOAD_QUEUE_FROZEN,
 		download_queue_frozen - 1);
-	gcu_gui_update_queue_frozen();
 }
 
 /**

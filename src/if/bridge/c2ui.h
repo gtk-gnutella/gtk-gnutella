@@ -63,7 +63,6 @@ void gcu_gui_update_download_host(struct download *d);
 void gcu_gui_update_download_abort_resume(void);
 void gcu_gui_update_download_clear(void);
 void gcu_gui_update_download_clear_now(void);
-void gcu_gui_update_queue_frozen(void);
 void gcu_download_gui_add(struct download *d);
 void gcu_download_gui_remove(struct download *d);
 

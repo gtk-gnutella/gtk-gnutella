@@ -53,7 +53,6 @@
 #define gui_update_download_abort_resume()
 #define gui_update_download_clear()
 #define	gui_update_download_clear_now()
-#define gui_update_queue_frozen()
 #define	download_gui_add(d) ((void) d)
 #define	download_gui_remove(d) ((void) d)
 #define	gui_update_files_scanned()
@@ -134,12 +133,6 @@ void
 gcu_gui_update_download_clear_now(void)
 {
 	gui_update_download_clear_now();
-}
-
-void
-gcu_gui_update_queue_frozen(void)
-{
-	gui_update_queue_frozen();
 }
 
 void

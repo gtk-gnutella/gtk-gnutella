@@ -75,56 +75,6 @@ gui_update_download_clear_now(void)
 }
 
 /**
- *	Checks if the download queue is frozen, if so update the freeze queue
- *  widgets and display a message on the statusbar
- */
-void
-gui_update_queue_frozen(void)
-{
-    static gboolean msg_displayed = FALSE;
-    static statusbar_msgid_t id = {0, 0};
-    GtkWidget *togglebutton_queue_freeze;
-
-    togglebutton_queue_freeze =
-        gui_main_window_lookup("togglebutton_queue_freeze");
-
-    if (gui_debug >= 3)
-		g_message("frozen %i, msg %i\n",
-			(gint) guc_download_queue_is_frozen(),
-	    	(gint) msg_displayed);
-
-    if (guc_download_queue_is_frozen()) {
-    	gtk_widget_hide(gui_main_window_lookup("vbox_queue_freeze"));
-    	gtk_widget_show(gui_main_window_lookup("vbox_queue_thaw"));
-        if (!msg_displayed) {
-            msg_displayed = TRUE;
-          	id = statusbar_gui_message(0, _("Queue frozen"));
-        }
-    } else {
-    	gtk_widget_show(gui_main_window_lookup("vbox_queue_freeze"));
-    	gtk_widget_hide(gui_main_window_lookup("vbox_queue_thaw"));
-        if (msg_displayed) {
-            msg_displayed = FALSE;
-            statusbar_gui_remove(id);
-        }
-	}
-
-    gtk_signal_handler_block_by_func(
-        GTK_OBJECT(togglebutton_queue_freeze),
-        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
-        NULL);
-
-    gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON(togglebutton_queue_freeze),
-        guc_download_queue_is_frozen());
-
-    gtk_signal_handler_unblock_by_func(
-        GTK_OBJECT(togglebutton_queue_freeze),
-        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
-        NULL);
-}
-
-/**
  * Enable the "start now" menu entry for queued items.
  */
 void
