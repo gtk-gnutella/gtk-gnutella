@@ -510,6 +510,19 @@ search_append_detail(GtkTreeModel *model,
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
 }
 
+gchar *
+search_details_get_text(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+
+	g_return_val_if_fail(model, NULL);
+	g_return_val_if_fail(iter, NULL);
+
+	gtk_tree_model_get_value(model, iter, 1, &value);
+	return g_strdup(g_value_get_string(&value));
+}
+
 /* Display XML data from the result if any */
 static void
 search_set_xml_metadata(const record_t *rc)

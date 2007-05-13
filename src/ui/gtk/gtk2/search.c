@@ -82,7 +82,6 @@ static gboolean search_gui_shutting_down = FALSE;
  */
 static void gui_search_create_tree_view(GtkWidget ** sw,
 				GtkTreeView ** tv, gpointer udata);
-static void search_gui_init_dnd(GtkTreeView *tv);
 
 /*
  * If no search are currently allocated
@@ -94,7 +93,107 @@ GtkWidget *default_scrolled_window = NULL;
 /** For cyclic updates of the tooltip. */
 static tree_view_motion_t *tvm_search;
 
-/* ----------------------------------------- */
+typedef gchar *(* dnd_get_text_cb)(GtkTreeModel *, GtkTreeIter *);
+
+struct dnd_context {
+	dnd_get_text_cb get_text;
+	gchar *text;
+};
+
+static void
+drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
+{
+	struct dnd_context *ctx = udata;
+	GtkTreeView *tv;
+	GtkTreePath *path;
+
+	(void) unused_drag_ctx;
+
+	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
+
+	g_return_if_fail(ctx);
+	g_return_if_fail(ctx->get_text);
+
+	G_FREE_NULL(ctx->text);
+
+	tv = GTK_TREE_VIEW(widget);
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+
+	if (path) {
+		GtkTreeIter iter;
+		GtkTreeModel *model;
+
+		model = gtk_tree_view_get_model(tv);
+		if (gtk_tree_model_get_iter(model, &iter, path)) {
+			ctx->text = ctx->get_text(model, &iter); 
+		}
+		gtk_tree_path_free(path);
+	}
+}
+
+static void
+drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
+	GtkSelectionData *data, guint unused_info, guint unused_stamp,
+	gpointer udata)
+{
+	struct dnd_context *ctx = udata;
+
+	(void) unused_drag_ctx;
+	(void) unused_info;
+	(void) unused_stamp;
+
+	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-data-get");
+
+	g_return_if_fail(ctx);
+	g_return_if_fail(ctx->get_text);
+
+	if (ctx->text) {
+		gtk_selection_data_set_text(data, ctx->text, -1);
+		G_FREE_NULL(ctx->text);
+	}
+}
+
+static void
+drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
+{
+	struct dnd_context *ctx = udata;
+
+	(void) unused_drag_ctx;
+
+	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-end");
+
+	g_return_if_fail(ctx);
+	g_return_if_fail(ctx->get_text);
+
+	G_FREE_NULL(ctx->text);
+}
+
+static void
+dnd_init(GtkWidget *widget, dnd_get_text_cb callback)
+{
+    static const GtkTargetEntry targets[] = {
+        { "STRING", 0, 23 },
+        { "text/plain", 0, 23 },
+    };
+	static const struct dnd_context zero_ctx;
+	struct dnd_context *ctx;
+
+	g_return_if_fail(widget);
+	g_return_if_fail(callback);
+
+	ctx = walloc(sizeof *ctx);
+	*ctx = zero_ctx;
+	ctx->get_text = callback;
+
+	/* Initialize drag support */
+	gtk_drag_source_set(widget,
+		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
+		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
+
+    g_signal_connect(widget, "drag-data-get", G_CALLBACK(drag_data_get), ctx);
+    g_signal_connect(widget, "drag-begin",	  G_CALLBACK(drag_begin), ctx);
+    g_signal_connect(widget, "drag-end",	  G_CALLBACK(drag_end), ctx);
+}
 
 struct result_data {
 	GtkTreeIter iter;
@@ -602,6 +701,32 @@ search_gui_restore_sorting(search_t *sch)
 	}
 }
 
+static gchar *
+get_local_file_url(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	const struct result_data *data;
+	const gchar *pathname;
+	gchar *escaped, *url;
+
+	g_return_val_if_fail(model, NULL);
+	g_return_val_if_fail(iter, NULL);
+		
+	data = get_result_data(model, iter);
+	if (!(ST_LOCAL & data->record->results_set->status))
+		return NULL;
+	
+	pathname = data->record->tag;
+	if (NULL == pathname)
+		return NULL;
+	
+	escaped = url_escape(pathname);
+	url = g_strconcat("file://", escaped, (void *) 0);
+	if (escaped != pathname) {
+		G_FREE_NULL(escaped);
+	}
+	return url;
+}
+
 
 /**
  * @returns TRUE if search was sucessfully created and FALSE if an error
@@ -765,7 +890,7 @@ search_gui_new_search_full(const gchar *query_str,
 	}
 	search_gui_query_free(&query);
 	if (search_gui_is_local(sch)) {
-		search_gui_init_dnd(GTK_TREE_VIEW(sch->tree));
+		dnd_init(GTK_WIDGET(sch->tree), get_local_file_url);
 	}
 
 	return TRUE;
@@ -1630,108 +1755,6 @@ create_searches_model(void)
 	return GTK_TREE_MODEL(store);
 }
 
-static void
-drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
-{
-	GtkTreeView *tv;
-	GtkTreePath *path;
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	gchar **url_ptr = udata;
-
-	(void) unused_drag_ctx;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
-
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
-
-	tv = GTK_TREE_VIEW(widget);
-	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path)
-		return;
-
-	model = gtk_tree_view_get_model(tv);
-	if (gtk_tree_model_get_iter(model, &iter, path)) {
-		const struct result_data *data;
-		
-		data = get_result_data(model, &iter);
-		if (ST_LOCAL & data->record->results_set->status) {
-			const gchar *pathname;
-			gchar *escaped;
-
-			pathname = data->record->tag;
-			if (pathname) {
-				escaped = url_escape(pathname);
-				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-				if (escaped != pathname) {
-					G_FREE_NULL(escaped);
-				}
-			}
-		}
-	}
-
-	gtk_tree_path_free(path);
-}
-
-static void
-drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
-	GtkSelectionData *data, guint unused_info, guint unused_stamp,
-	gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_drag_ctx;
-	(void) unused_info;
-	(void) unused_stamp;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-data-get");
-
-	g_assert(url_ptr != NULL);
-	if (NULL == *url_ptr)
-		return;
-
-	gtk_selection_data_set_text(data, *url_ptr, -1);
-	G_FREE_NULL(*url_ptr);
-}
-
-static void
-drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_drag_ctx;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-end");
-
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
-}
-
-static void
-search_gui_init_dnd(GtkTreeView *tv)
-{
-    static const GtkTargetEntry targets[] = {
-        { "STRING", 0, 23 },
-        { "text/plain", 0, 23 },
-    };
-	static gchar *dnd_url; /* Holds the URL to set the drag data */
-
-	g_return_if_fail(tv);
-
-	/* Initialize drag support */
-	gtk_drag_source_set(GTK_WIDGET(tv),
-		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
-		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
-
-    g_signal_connect(G_OBJECT(tv), "drag-data-get",
-        G_CALLBACK(drag_data_get), &dnd_url);
-    g_signal_connect(G_OBJECT(tv), "drag-begin",
-        G_CALLBACK(drag_begin), &dnd_url);
-    g_signal_connect(G_OBJECT(tv), "drag-end",
-        G_CALLBACK(drag_end), &dnd_url);
-}
-
 /***
  *** Public functions
  ***/
@@ -1786,6 +1809,9 @@ search_gui_init(void)
 	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
+
+	dnd_init(gui_main_window_lookup("treeview_search_details"),
+		search_details_get_text);
 }
 
 void
