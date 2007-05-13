@@ -81,6 +81,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Query text had no trailing NUL"),/**< MSG_DROP_QUERY_NO_NUL */
 		N_("Query text too short"),			 /**< MSG_DROP_QUERY_TOO_SHORT */
 		N_("Query had unnecessary overhead"),/**< MSG_DROP_QUERY_OVERHEAD */
+		N_("Query had bad URN"),			 /**< MSG_DROP_BAD_URN */
 		N_("Message with malformed SHA1"),	 /**< MSG_DROP_MALFORMED_SHA1 */
 		N_("Message with malformed UTF-8"),	 /**< MSG_DROP_MALFORMED_UTF_8 */
 		N_("Malformed Query Hit"),			 /**< MSG_DROP_BAD_RESULT */

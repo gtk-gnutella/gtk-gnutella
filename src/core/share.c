@@ -1674,7 +1674,7 @@ do {												\
 		*p = '\0'; /* terminate mangled query */
 
 	if (share_debug > 4)
-		g_message("mangled: [%s]", search);
+		g_message("mangled:  [%s]", search);
 
 	/* search does no longer contain unnecessary whitespace */
 	return p - search;
@@ -1965,6 +1965,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				drop_it = TRUE;
 				break;
 
+			case EXT_T_URN_BAD:
+				if (share_debug) {
+					dump_hex(stderr, "Query Packet has bad URN",
+						search, MIN(n->size - 2, 256));
+				}
+				gnet_stats_count_dropped(n, MSG_DROP_BAD_URN);
+				drop_it = TRUE;
+				break;
+
 			case EXT_T_GGEP_NP:
 				/* This may override LIME/13v1 */
 				may_oob_proxy = FALSE;
@@ -2039,6 +2048,16 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				last_sha1_digest = sha1;
 				break;
 
+			case EXT_T_UNKNOWN_GGEP:
+				if (share_debug > 4) {
+					g_message("Unknown GGEP extension in query");
+				}
+				break;
+			case EXT_T_UNKNOWN:
+				if (share_debug > 4) {
+					g_message("Unknown extension in query");
+				}
+				break;
 			default:
 				if (share_debug > 4) {
 					g_message("Unhandled extension in query");

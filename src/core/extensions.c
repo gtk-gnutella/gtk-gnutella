@@ -568,6 +568,46 @@ abort:
 	return 0;		/* Cannot be a GGEP block: leave parsing pointer intact */
 }
 
+static gint
+ext_urn_bad_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+{
+	const gchar *p = *retp;
+	const gchar *lastp = p;				/* Last parsed point */
+	extdesc_t *d;
+
+	g_assert(exvcnt > 0);
+	g_assert(exv->opaque == NULL);
+
+	if (len != 3)
+		return 0;
+	p = is_strcaseprefix(p, "urn");
+	if (!p)
+		return 0;
+
+	/*
+	 * Encapsulate as one big opaque chunk.
+	 */
+
+	d = walloc(sizeof(*d));
+
+	d->ext_phys_payload = lastp;
+	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
+	d->ext_payload = d->ext_phys_payload;
+	d->ext_paylen = d->ext_phys_paylen;
+
+	exv->opaque = d;
+	exv->ext_type = EXT_NONE;
+	exv->ext_name = NULL;
+	exv->ext_token = EXT_T_URN_BAD;
+
+	g_assert(p - lastp == d->ext_phys_len);
+
+	*retp = p;			/* Points to first byte after what we parsed */
+
+	return 1;
+}
+
+
 /**
  * Parses a URN block (one URN only).
  */
@@ -591,7 +631,7 @@ ext_huge_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 */
 
 	if (len < 4)
-		return 0;
+		return ext_urn_bad_parse(retp, len, exv, exvcnt);
 
 	/*
 	 * Recognize "urn:".
