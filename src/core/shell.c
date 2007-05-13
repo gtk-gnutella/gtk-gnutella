@@ -392,6 +392,10 @@ shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		goto error;
 	}
 
+	shell_write(sh, "100-Previous value was ");
+	shell_write(sh, gnet_prop_to_string(prop));
+	shell_write(sh, "\n");
+
 	gnet_prop_set_from_string(prop,	argv[2]);
 	sh->msg = _("Value found and set");
 	return REPLY_READY;
