@@ -600,6 +600,17 @@ search_set_details(const record_t *rc)
 	search_append_detail(model, _("SHA-1"),
 		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
 	search_append_detail(model, _("Size"), search_gui_nice_size(rc));
+
+	if (rc->sha1) {
+		static const gchar base_url[] = "http://bitzi.com/lookup/";
+		gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
+
+		concat_strings(buf, sizeof buf,
+			base_url, sha1_base32(rc->sha1),
+			(void *)0);
+		search_append_detail(model, _("Bitzi URL"), buf);
+	}
+	
 	search_append_detail(model, _("Index"), uint32_to_string(rc->file_index));
 	search_append_detail(model, _("Owned"),
 		(SR_OWNED   & rc->flags)  ? _("owned") :
