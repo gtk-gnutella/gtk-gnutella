@@ -188,6 +188,29 @@ round_grow(size_t x)
  * Low level trailer buffer read/write macros.
  */
 
+static void
+tbuf_check(void)
+{
+	if (tbuf.arena) {
+		g_assert(NULL != tbuf.end);
+		g_assert(tbuf.size > 0);
+		g_assert(&tbuf.arena[tbuf.size] == tbuf.end);
+		if (tbuf.rptr) {
+			g_assert((size_t) tbuf.rptr >= (size_t) tbuf.arena);
+			g_assert((size_t) tbuf.rptr <= (size_t) tbuf.end);
+		}
+		if (tbuf.wptr) {
+			g_assert((size_t) tbuf.wptr >= (size_t) tbuf.arena);
+			g_assert((size_t) tbuf.wptr <= (size_t) tbuf.end);
+		}
+	} else {
+		g_assert(NULL == tbuf.end);
+		g_assert(NULL == tbuf.rptr);
+		g_assert(NULL == tbuf.wptr);
+		g_assert(0 == tbuf.size);
+	}
+}
+
 /**
  * Make sure there is enough room in the buffer for `x' more bytes.
  * If `writing' is TRUE, we update the write pointer.
@@ -196,51 +219,66 @@ static void
 tbuf_extend(size_t x, gboolean writing)
 {
 	size_t new_size = round_grow(x + tbuf.size);
-	size_t offset = tbuf.wptr - tbuf.arena;
+	size_t offset;
+
+	tbuf_check();
+
+	offset = (writing && tbuf.wptr) ? (tbuf.wptr - tbuf.arena) : 0;
+	g_assert(offset <= tbuf.size);
 
 	tbuf.arena = g_realloc(tbuf.arena, new_size);
 	tbuf.end = &tbuf.arena[new_size];
 	tbuf.size = new_size;
-
-	if (writing)
-		tbuf.wptr = &tbuf.arena[offset];
+	tbuf.wptr = writing ? &tbuf.arena[offset] : NULL;
+	tbuf.rptr = writing ? NULL : tbuf.arena;
 }
 
 static inline void
 TBUF_INIT_READ(size_t size)
 {
-	if ((size_t) (tbuf.end - tbuf.arena) < size) {
+	tbuf_check();
+
+	if (NULL == tbuf.arena || (size_t) (tbuf.end - tbuf.arena) < size) {
 		tbuf_extend(size, FALSE);
 	}
-	tbuf.wptr = NULL;
 	tbuf.rptr = tbuf.arena;
-	tbuf.end = &tbuf.arena[size];
+	tbuf.wptr = NULL;
 }
 
 static inline void
 TBUF_INIT_WRITE(void)
 {
+	tbuf_check();
+
+	if (NULL == tbuf.arena) {
+		tbuf_extend(TBUF_SIZE, TRUE);
+	}
 	tbuf.rptr = NULL;
 	tbuf.wptr = tbuf.arena;
-	tbuf.end = &tbuf.arena[tbuf.size];
 }
 
 static inline size_t
 TBUF_WRITTEN_LEN(void)
 {
+	tbuf_check();
+
 	return tbuf.wptr - tbuf.arena;
 }
 
 static inline void
 TBUF_CHECK(size_t size)
 {
-	if ((size_t) (tbuf.end - tbuf.wptr) < size)
+	tbuf_check();
+
+	if (NULL == tbuf.arena || (size_t) (tbuf.end - tbuf.wptr) < size)
 		tbuf_extend(size, TRUE);
 }
 
 static WARN_UNUSED_RESULT gboolean
 TBUF_GETCHAR(guint8 *x)
 {
+	tbuf_check();
+	
 	if ((size_t) (tbuf.end - tbuf.rptr) >= sizeof *x) {
 		*x = *tbuf.rptr;
 		tbuf.rptr += sizeof *x;
@@ -253,6 +291,8 @@ TBUF_GETCHAR(guint8 *x)
 static WARN_UNUSED_RESULT gboolean
 TBUF_GET_UINT32(guint32 *x)
 {
+	tbuf_check();
+
 	if ((size_t) (tbuf.end - tbuf.rptr) >= sizeof *x) {
 		memcpy(x, tbuf.rptr, sizeof *x);
 		tbuf.rptr += sizeof *x;
@@ -265,6 +305,8 @@ TBUF_GET_UINT32(guint32 *x)
 static WARN_UNUSED_RESULT gboolean
 TBUF_READ(gchar *x, size_t size)
 {
+	tbuf_check();
+
 	if ((size_t) (tbuf.end - tbuf.rptr) >= size) {
 		memcpy(x, tbuf.rptr, size);
 		tbuf.rptr += size;
@@ -456,6 +498,7 @@ tbuf_write(const struct file_object *fo, filesize_t offset)
 
 	g_assert(fo);
 	g_assert(size > 0);
+	g_assert(size <= tbuf.size);
 
 	ret = file_object_pwrite(fo, tbuf.arena, size, offset);
 	if ((ssize_t) -1 == ret || (size_t) ret != size) {
@@ -6115,8 +6158,6 @@ fi_update_seen_on_network(gnet_src_t srcid)
 void
 file_info_init(void)
 {
-	tbuf.arena = g_malloc(TBUF_SIZE);
-	tbuf.size = TBUF_SIZE;
 
 #define bs_nop(x)	(x)
 
