@@ -4706,7 +4706,7 @@ create_download(
 	d->size = size;					/* Will be changed if range requested */
 	d->record_stamp = stamp;
 	download_set_sha1(d, sha1);
-	d->always_push = 0 != (SOCK_F_PUSH & cflags) && !has_blank_guid(d);
+	d->always_push = 0 != (SOCK_F_PUSH & cflags);
 	if (d->always_push) {
 		download_push_insert(d);
 	} else {
