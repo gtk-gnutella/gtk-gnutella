@@ -6217,69 +6217,126 @@ dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
 	poke_be16(&dh->data[17], node->port);
 }
 
+static struct {
+	const char * const filename;
+	slist_t *slist;
+	size_t fill;
+	int fd;
+	int initialized;
+} dump = {
+	"packets_rx.dump", NULL, 0, -1, FALSE
+};
+
+static void
+node_dump_disable(void)
+{
+	if (dump.slist) {
+		pmsg_slist_free(&dump.slist);
+		dump.fill = 0;
+	}
+	if (dump.fd >= 0) {
+		close(dump.fd);
+		dump.fd = -1;
+	}
+	dump.initialized = FALSE;
+	if (dump_received_gnutella_packets) {
+		gnet_prop_set_boolean_val(PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
+	}
+}
+
+static void
+node_dump_init(void)
+{
+	gchar *pathname;
+
+	if (dump.initialized)
+		return;
+
+	pathname = make_pathname(settings_config_dir(), dump.filename);
+	dump.fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NONBLOCK);
+	G_FREE_NULL(pathname);
+
+	/*
+	 * If the dump "file" is actually a named pipe, we'd block quickly
+	 * if there was no reader.  So set the file as non-blocking and
+	 * we'll disable dumping as soon as we can't write all the data
+	 * we want.
+	 */
+
+	if (dump.fd < 0) {
+		g_warning("can't open %s -- disabling dumping", dump.filename);
+		node_dump_disable();
+		return;
+	}
+
+	file_set_nonblocking(dump.fd);
+
+	dump.slist = slist_new();
+	dump.fill = 0;
+	dump.initialized = TRUE;
+	return;
+}
+
+static void
+node_dump_append(const void *data, size_t size)
+{
+	g_return_if_fail(dump.slist);
+
+	pmsg_slist_append(dump.slist, data, size);
+	dump.fill += size;
+}
+
 static void
 node_dump_packet(const struct gnutella_node *node)
 {
-	static int fd = -1;
-	
-	if (dump_received_gnutella_packets) {
-		static const char dump[] = "packets_rx.dump";
-		struct dump_header dh;
-		struct iovec iov[3];
-		ssize_t written;
-		size_t size;
+	struct dump_header dh;	
 
-		if (fd < 0) {
-			gchar *pathname;
-
-			pathname = make_pathname(settings_config_dir(), dump);
-			fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NONBLOCK);
-			G_FREE_NULL(pathname);
-
-			/*
-			 * If the dump "file" is actually a named pipe, we'd block quickly
-			 * if there was no reader.  So set the file as non-blocking and
-			 * we'll disable dumping as soon as we can't write all the data
-			 * we want.
-			 */
-
-			if (fd < 0) {
-				g_warning("can't open %s -- disabling dumping", dump);
-				goto disable;
-			}
-			file_set_nonblocking(fd);
+	if (!dump_received_gnutella_packets) {
+		if (dump.initialized) {
+			node_dump_disable();
 		}
-
-		dump_header_set(&dh, node);
-		iov[0].iov_base = &dh.data;
-		iov[0].iov_len = sizeof dh.data;
-			
-		iov[1].iov_base = node->header;
-		iov[1].iov_len = sizeof node->header;
-			
-		iov[2].iov_base = node->data;
-		iov[2].iov_len = node->size;
-
-		size = iov_calculate_size(iov, G_N_ELEMENTS(iov));
-		written = writev(fd, iov, G_N_ELEMENTS(iov));
-		if ((size_t) written != size) {
-			g_warning("error writing to %s: %s -- disabling dumping",
-				dump,
-				written < 0 ? g_strerror(errno) : "partial write");
-			goto disable;
-		}
-	} else {
-		goto disabled;
+		return;
 	}
-	return;
 
-disable:
-	gnet_prop_set_boolean_val(PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
+	node_dump_init();
+	if (!dump.initialized)
+		return;
 
-disabled:
-	if (fd >= 0) {
-		close(fd);
-		fd = -1;
+	dump_header_set(&dh, node);
+	node_dump_append(dh.data, sizeof dh.data);
+	node_dump_append(node->header, sizeof node->header);
+	node_dump_append(node->data, node->size);
+
+	while (dump.fill > 0) {
+		ssize_t written;
+		struct iovec *iov;
+		int iov_cnt;
+
+		iov = pmsg_slist_to_iovec(dump.slist, &iov_cnt, NULL);
+		written = writev(dump.fd, iov, iov_cnt);
+		G_FREE_NULL(iov);
+
+		if ((ssize_t)-1 == written) {
+			if (!is_temporary_error(errno)) {
+				g_warning("error writing to %s: %s -- disabling dumping",
+					dump.filename, g_strerror(errno));
+				node_dump_disable();
+			}
+			if (dump.fill >= 256 * 1024UL) {
+				g_warning("queue is full: %s -- disabling dumping", dump.filename);
+				node_dump_disable();
+			}
+			break;
+		} else if (0 == written) {
+			g_warning("error writing to %s: hang up -- disabling dumping",
+				dump.filename);
+			node_dump_disable();
+			break;
+		} else {
+			g_assert(dump.fill >= (size_t) written);
+			dump.fill -= written;
+			pmsg_slist_discard(dump.slist, written);
+		}
 	}
 }
 
@@ -8001,6 +8058,8 @@ node_close(void)
 	GSList *sl;
 
 	g_assert(in_shutdown);
+
+	node_dump_disable();
 
 	/*
 	 * Clean up memory used for determining unstable ips / servents
