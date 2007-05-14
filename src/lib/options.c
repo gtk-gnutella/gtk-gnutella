@@ -126,7 +126,7 @@ options_parse(
 
 	for (current = NULL, i = 1; i < argc; i++) {
 		const gchar *arg = argv[i];
-		gchar c;
+		gint c;
 
 		if (0 == strcmp(arg, "--")) {		/* End of options */
 			if (current) {					/* This option lacks its argument */
@@ -165,8 +165,7 @@ options_parse(
 		g_assert(current == NULL);
 
 		while ((c = *arg++)) {
-			gint idx = c;
-			guint8 valid = options[idx];
+			guint8 valid = options[c];
 			option_t *opt;
 
 			if (!valid) {
