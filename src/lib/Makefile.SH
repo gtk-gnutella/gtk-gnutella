@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11337 2006-07-18 05:24:58Z cbiere $
+# $X-Id: Jmakefile 13646 2007-05-14 19:29:41Z rmanfredi $
 
 LSRC = \
 	socket.c \
@@ -122,6 +122,7 @@ LSRC = \
 	magnet.c \
 	malloc.c \
 	misc.c \
+	options.c \
 	pagetable.c \
 	palloc.c \
 	pattern.c \
@@ -183,6 +184,7 @@ LOBJ = \
 	magnet.o \
 	malloc.o \
 	misc.o \
+	options.o \
 	pagetable.o \
 	palloc.o \
 	pattern.o \
