@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
+#include "lib/options.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -142,6 +143,30 @@ shell_token_end(const gchar *s)
 	}
 
 	return s;
+}
+
+/**
+ * Analyze command options.
+ *
+ * @return TRUE if OK, FALSE if we can't parse them, with error message
+ * emitted to the user.
+ */
+static gboolean
+shell_options_parse(
+	gnutella_shell_t *sh,
+	gint argc, const gchar *argv[], option_t *ovec, gint ovcnt, gint *end)
+{
+	gchar *error;
+
+	if (!options_parse(argc, argv, ovec, ovcnt, end, &error)) {
+		shell_write(sh, "400-Syntax error: ");
+		shell_write(sh, error);
+		shell_write(sh, "\n");
+		sh->msg = _("Invalid command syntax");
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static enum shell_reply
@@ -371,32 +396,56 @@ static enum shell_reply
 shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	property_t prop;
+	gchar *verbose;
+	const gchar **args;
+	gint end;
+	option_t options[] = {
+		{ "v", &verbose },
+	};
 
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (argc < 2) {
+	if (
+		!shell_options_parse(sh,
+			argc, argv, options, G_N_ELEMENTS(options), &end)
+	)
+		return REPLY_ERROR;
+
+	args = &argv[end];		/* args[0] is first command argument */
+	argc -= end;			/* counts only command arguments now */
+
+	if (argc < 1) {
 		sh->msg = _("Property missing");
 		goto error;
 	}
 
-	prop = gnet_prop_get_by_name(argv[1]);
+	prop = gnet_prop_get_by_name(args[0]);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
 	}
 
-	if (argc < 3) {
+	if (argc < 2) {
 		sh->msg = _("Value missing");
 		goto error;
 	}
 
-	shell_write(sh, "100-Previous value was ");
-	shell_write(sh, gnet_prop_to_string(prop));
-	shell_write(sh, "\n");
+	if (verbose) {
+		shell_write(sh, "100-Previous value was ");
+		shell_write(sh, gnet_prop_to_string(prop));
+		shell_write(sh, "\n");
+	}
 
-	gnet_prop_set_from_string(prop,	argv[2]);
+	gnet_prop_set_from_string(prop,	args[1]);
+
+	if (verbose) {
+		shell_write(sh, "100-New value is ");
+		shell_write(sh, gnet_prop_to_string(prop));
+		shell_write(sh, "\n");
+	}
+
 	sh->msg = _("Value found and set");
 	return REPLY_READY;
 
@@ -1153,7 +1202,7 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		"quit\n"
 		"rescan\n"
 		"search add <query>\n"
-		"set <property> <value>\n"
+		"set [-v] <property> <value>\n"
 		"shutdown\n"
 		"status\n"
 		"uploads\n"
