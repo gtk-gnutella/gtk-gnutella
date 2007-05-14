@@ -571,6 +571,8 @@ src/lib/malloc.c
 src/lib/malloc.h
 src/lib/misc.c
 src/lib/misc.h
+src/lib/options.c
+src/lib/options.h
 src/lib/override.h
 src/lib/pagetable.c
 src/lib/pagetable.h
