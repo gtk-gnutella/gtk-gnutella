@@ -108,7 +108,7 @@ options_parse(
 		gint idx;
 
 		g_assert(o->letter);
-		idx = (gint) o->letter[0];
+		idx = o->letter[0];
 		g_assert(!options[idx]);			/* No duplicates */
 
 		options[idx] = 0x1;					/* Signals: valid */
@@ -132,7 +132,7 @@ options_parse(
 			if (current) {					/* This option lacks its argument */
 				gm_snprintf(error, sizeof error,
 					"missing value for -%c", current->letter[0]);
-				*end = (gint) current->letter[0];
+				*end = current->letter[0];
 				goto error;
 			}
 			*end = i + 1;					/* Skip "--" */
@@ -165,13 +165,13 @@ options_parse(
 		g_assert(current == NULL);
 
 		while ((c = *arg++)) {
-			gint idx = (gint) c;
+			gint idx = c;
 			guint8 valid = options[idx];
 			option_t *opt;
 
 			if (!valid) {
 				gm_snprintf(error, sizeof error, "invalid -%c switch", c);
-				*end = (gint) c;
+				*end = c;
 				goto error;
 			}
 
