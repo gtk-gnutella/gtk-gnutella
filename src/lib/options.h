@@ -51,12 +51,11 @@
  */
 typedef struct option {
 	const gchar *letter;		/* Option letter */
-	gchar **value;				/* Variable where option value will be put */
+	const gchar **value;		/* Variable where option value will be put */
 } option_t;
 
-gboolean options_parse(
-	gint argc, const gchar *argv[], option_t *ovec,
-	gint osize, gint *end, gchar **errptr);
+gint options_parse(const gchar *argv[], option_t *ovec, gint osize);
+const gchar *options_parse_last_error(void);
 
 #endif /* _options_h_ */
 

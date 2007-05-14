@@ -42,6 +42,11 @@ RCSID("$Id$")
 #include "misc.h"
 #include "override.h"		/* Must be the last header included */
 
+enum {
+	OPTION_F_VALID	= 1 << 0,	/* Signals: valid */
+	OPTION_F_VALUE	= 1 << 1	/* Signals: value expected */
+};
+
 /**
  * Locate the option letter in the vector array, returning the pointer
  * to the entry if found, or NULL if it wasn't.
@@ -63,6 +68,14 @@ option_lookup(gchar letter, option_t *ovec, gint osize)
 	return NULL;
 }
 
+static gchar error_string[80];
+
+const gchar *
+options_parse_last_error(void)
+{
+	return error_string;
+}
+
 /**
  * Parse the arguments, looking for specific single-letter options.  Whenever
  * an option is found, the value in the option_t vector is set.  The `end'
@@ -77,43 +90,45 @@ option_lookup(gchar letter, option_t *ovec, gint osize)
  * Unrecognized options or missing arguments stop processing: `end' is set with
  * the ASCII value of the bad option, and FALSE is returned.
  * 
- * @param argc		the initial argument count
  * @param argv		the initial argument vector
  * @param ovec		the single-letter option description vector
  * @param osize		the amount of entries in ovec
- * @param end		where the offset of the first non-option in argv is written
- * @param errptr	where a pointer to the error will be written (static string)
  *
- * @return TRUE if options were processed and validated, FALSE on error.
+ * @return The number of options processed and validated, -1 on error.
  */
-gboolean
-options_parse(
-	gint argc, const gchar *argv[], option_t *ovec,
-	gint osize, gint *end, gchar **errptr)
+gint
+options_parse(const gchar *argv[], option_t *ovec, gint osize)
 {
-	guint8 options[256];
+	guchar options[127];	/* ASCII only */
 	option_t *current;
 	gint i;
-	static gchar error[80];
-	static gchar *empty = "";
+
+	g_assert(argv);
+	g_assert(osize >= 0);
+	g_assert(0 == osize || NULL != ovec);
 
 	/*
 	 * Compile valid options.
 	 */
 
 	memset(options, 0, sizeof options);
+	error_string[0] = '\0';
 
 	for (i = 0; i < osize; i++) {
 		option_t *o = &ovec[i];
-		gint idx;
+		guchar idx;
 
 		g_assert(o->letter);
 		idx = o->letter[0];
+		if (UNSIGNED(idx) >= G_N_ELEMENTS(options)) {
+			g_assert_not_reached();
+			goto error; /* ASCII only */
+		}
 		g_assert(!options[idx]);			/* No duplicates */
 
-		options[idx] = 0x1;					/* Signals: valid */
+		options[idx] = OPTION_F_VALID;
 		if (o->letter[1] == ':')
-			options[idx] |= 0x2;			/* Signals: value expected */
+			options[idx] |= OPTION_F_VALUE;
 
 		if (o->value)
 			*o->value = NULL;
@@ -124,19 +139,21 @@ options_parse(
 	 * (argv[0] is the command name).
 	 */
 
-	for (current = NULL, i = 1; i < argc; i++) {
+	current = NULL;
+	for (i = 0; NULL != argv[i]; i++) {
 		const gchar *arg = argv[i];
-		gint c;
+		guchar c;
+
+		if (0 == i)
+			continue;
 
 		if (0 == strcmp(arg, "--")) {		/* End of options */
 			if (current) {					/* This option lacks its argument */
-				gm_snprintf(error, sizeof error,
+				gm_snprintf(error_string, sizeof error_string,
 					"missing value for -%c", current->letter[0]);
-				*end = current->letter[0];
 				goto error;
 			}
-			*end = i + 1;					/* Skip "--" */
-			return TRUE;
+			return i + 1;
 		}
 
 		if (current) {
@@ -146,15 +163,14 @@ options_parse(
 			 */
 			
 			if (current->value)
-				*current->value = deconstify_gpointer(arg);
+				*current->value = arg;
 
 			current = NULL;
 			continue;
 		}
 
 		if (*arg++ != '-') {				/* Non-option found */
-			*end = i;						/* First non-option argument */
-			return TRUE;
+			return i; /* First non-option argument */
 		}
 
 		/*
@@ -165,39 +181,42 @@ options_parse(
 		g_assert(current == NULL);
 
 		while ((c = *arg++)) {
-			guint8 valid = options[c];
 			option_t *opt;
+			gint flags;
 
-			if (!valid) {
-				gm_snprintf(error, sizeof error, "invalid -%c switch", c);
-				*end = c;
+			if (UNSIGNED(c) >= G_N_ELEMENTS(options)) {
+				gm_snprintf(error_string, sizeof error_string,
+					"invalid non-ASCII switch");
+				goto error;
+			}
+
+			flags = options[c];
+			if (!(flags & OPTION_F_VALID)) {
+				gm_snprintf(error_string, sizeof error_string,
+					"invalid -%c switch", c);
 				goto error;
 			}
 
 			opt = option_lookup(c, ovec, osize);
 			g_assert(opt);					/* Must have been found */
 
-			if (valid & 0x2) {				/* A value is expected */
+			if (flags & OPTION_F_VALUE) {	/* A value is expected */
 				if (*arg) {					/* And it follows */
 					if (opt->value)
-						*opt->value = deconstify_gpointer(arg);
+						*opt->value = arg;
 				} else
 					current = opt;			/* Expecting value as next arg */
 			} else {
 				if (opt->value)
-					*opt->value = empty;	/* Signals option was present */
+					*opt->value = "";	/* Signals option was present */
 			}
 		}
 	}
 
-	*end = argc;
-	return TRUE;
+	return i;
 
 error:
-	if (errptr)
-		*errptr = error;
-
-	return FALSE;
+	return -1;
 }
 
 /* vi: set sw=4 ts=4: */

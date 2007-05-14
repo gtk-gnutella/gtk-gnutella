@@ -147,26 +147,24 @@ shell_token_end(const gchar *s)
 
 /**
  * Analyze command options.
+ * If we can't parse them an error message is sent to the user.
  *
- * @return TRUE if OK, FALSE if we can't parse them, with error message
- * emitted to the user.
+ * @return The number of arguments parsed, -1 on error.
  */
-static gboolean
-shell_options_parse(
-	gnutella_shell_t *sh,
-	gint argc, const gchar *argv[], option_t *ovec, gint ovcnt, gint *end)
+static gint
+shell_options_parse(gnutella_shell_t *sh,
+	const gchar *argv[], option_t *ovec, gint ovcnt)
 {
-	gchar *error;
+	gint ret;
 
-	if (!options_parse(argc, argv, ovec, ovcnt, end, &error)) {
+	ret = options_parse(argv, ovec, ovcnt);
+	if (ret < 0) {
 		shell_write(sh, "400-Syntax error: ");
-		shell_write(sh, error);
+		shell_write(sh, options_parse_last_error());
 		shell_write(sh, "\n");
 		sh->msg = _("Invalid command syntax");
-		return FALSE;
 	}
-
-	return TRUE;
+	return ret;
 }
 
 static enum shell_reply
@@ -396,9 +394,8 @@ static enum shell_reply
 shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
 	property_t prop;
-	gchar *verbose;
-	const gchar **args;
-	gint end;
+	const gchar *verbose;
+	gint parsed;
 	option_t options[] = {
 		{ "v", &verbose },
 	};
@@ -407,21 +404,19 @@ shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (
-		!shell_options_parse(sh,
-			argc, argv, options, G_N_ELEMENTS(options), &end)
-	)
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
 		return REPLY_ERROR;
 
-	args = &argv[end];		/* args[0] is first command argument */
-	argc -= end;			/* counts only command arguments now */
+	argv += parsed;	/* args[0] is first command argument */
+	argc -= parsed;	/* counts only command arguments now */
 
 	if (argc < 1) {
 		sh->msg = _("Property missing");
 		goto error;
 	}
 
-	prop = gnet_prop_get_by_name(args[0]);
+	prop = gnet_prop_get_by_name(argv[0]);
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
@@ -438,7 +433,7 @@ shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		shell_write(sh, "\n");
 	}
 
-	gnet_prop_set_from_string(prop,	args[1]);
+	gnet_prop_set_from_string(prop,	argv[1]);
 
 	if (verbose) {
 		shell_write(sh, "100-New value is ");
@@ -1309,7 +1304,7 @@ static gint
 shell_parse_command(const gchar *line, const gchar ***argv_ptr)
 {
 	const gchar **argv = NULL;
-	guint argc;
+	guint argc = 0;
 	gint pos = 0;
 	size_t n = 0;
 
@@ -1320,17 +1315,24 @@ shell_parse_command(const gchar *line, const gchar ***argv_ptr)
 	 * The limit of 1024 is arbitrary. However, note that 'n' must not
 	 * overflow.
 	 */
-	for (argc = 0; argc < 1024; argc++) {
+	for (;;) {
 		gchar *token;
 
-		token = shell_get_token(line, &pos);
 		if (argc >= n) {
-			n = 4 * MAX(16, n);
+			n = 2 * MAX(16, n);
 			argv = g_realloc(argv, n * sizeof argv[0]);
 		}	
+		token = shell_get_token(line, &pos);
 		argv[argc] = token;
-		if (!token)
+		if (NULL == token)
 			break;
+
+		argc++;
+		if (argc > 1024) {
+			G_FREE_NULL(argv);
+			argc = 0;
+			break;
+		}
 	}
 
 	*argv_ptr = argv;
@@ -1342,10 +1344,10 @@ shell_free_argv(const gchar ***argv_ptr)
 {
 	if (*argv_ptr) {
 		gchar **argv = deconstify_gpointer(*argv_ptr);
-		guint i;
 
-		for (i = 0; NULL != argv[i]; i++) {
-			G_FREE_NULL(argv[i]);
+		while (NULL != argv[0]) {
+			G_FREE_NULL(argv[0]);
+			argv++;
 		}
 		G_FREE_NULL(*argv_ptr);
 	}
