@@ -144,8 +144,7 @@ base32_encode(char *dst, size_t size, const void *data, size_t len)
 			break;
 		}
 
-	}
-	while (i < len);
+	} while (i < len);
 
 	return q - dst;
 }
