@@ -70,6 +70,9 @@ option_lookup(gchar letter, option_t *ovec, gint osize)
 
 static gchar error_string[80];
 
+/**
+ * Returns error string resulting from the last call to options_parse().
+ */
 const gchar *
 options_parse_last_error(void)
 {
@@ -78,17 +81,14 @@ options_parse_last_error(void)
 
 /**
  * Parse the arguments, looking for specific single-letter options.  Whenever
- * an option is found, the value in the option_t vector is set.  The `end'
- * parameter is filled with the offset in argv[] of the first non-option
- * argument.
+ * an option is found, the value in the option_t vector is set.
  *
  * Options start with a "-" and option parsing stops when "--" is encountered.
  * Several argumentless options can be concatenated together after the initial
  * "-".  The value of the option can immediately follow the option letter,
  * or be given by the next argument.
  *
- * Unrecognized options or missing arguments stop processing: `end' is set with
- * the ASCII value of the bad option, and FALSE is returned.
+ * Unrecognized options or missing arguments stop processing.
  * 
  * @param argv		the initial argument vector
  * @param ovec		the single-letter option description vector
@@ -122,7 +122,7 @@ options_parse(const gchar *argv[], option_t *ovec, gint osize)
 		idx = o->letter[0];
 		if (UNSIGNED(idx) >= G_N_ELEMENTS(options)) {
 			g_assert_not_reached();
-			goto error; /* ASCII only */
+			return -1; /* ASCII only */
 		}
 		g_assert(!options[idx]);			/* No duplicates */
 
@@ -151,7 +151,7 @@ options_parse(const gchar *argv[], option_t *ovec, gint osize)
 			if (current) {					/* This option lacks its argument */
 				gm_snprintf(error_string, sizeof error_string,
 					"missing value for -%c", current->letter[0]);
-				goto error;
+				return -1;
 			}
 			return i + 1;
 		}
@@ -187,14 +187,14 @@ options_parse(const gchar *argv[], option_t *ovec, gint osize)
 			if (UNSIGNED(c) >= G_N_ELEMENTS(options)) {
 				gm_snprintf(error_string, sizeof error_string,
 					"invalid non-ASCII switch");
-				goto error;
+				return -1;
 			}
 
 			flags = options[c];
 			if (!(flags & OPTION_F_VALID)) {
 				gm_snprintf(error_string, sizeof error_string,
 					"invalid -%c switch", c);
-				goto error;
+				return -1;
 			}
 
 			opt = option_lookup(c, ovec, osize);
@@ -214,9 +214,6 @@ options_parse(const gchar *argv[], option_t *ovec, gint osize)
 	}
 
 	return i;
-
-error:
-	return -1;
 }
 
 /* vi: set sw=4 ts=4: */
