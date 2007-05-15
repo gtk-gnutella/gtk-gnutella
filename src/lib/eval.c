@@ -247,6 +247,11 @@ get_home(void)
 	const char *dir;
 
 	dir = getenv("HOME");
+
+	if (dir && !is_absolute_path(dir)) {
+		/* Ignore $HOME if it's empty or a relative path */
+		dir = NULL;
+	}
 	
 #if defined(HAS_GETUID)
 	if (!dir) {
