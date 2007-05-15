@@ -433,6 +433,17 @@ file_create(const gchar *path, gint flags, gint mode)
 }
 
 /**
+ * Create file, returning file descriptor or -1 on error with errno set.
+ * Errors are logged as a warning, unless the error is ENOENT which means
+ * the directory does not exist.
+ */
+gint
+file_create_missing(const gchar *path, gint flags, gint mode)
+{
+	return do_open(path, flags | O_CREAT, mode, TRUE);
+}
+
+/**
  * Open file, returning FILE pointer if success or NULL on error.
  * Errors are logged as a warning, unless error is ENOENT and `missing'
  * is TRUE.
