@@ -2864,9 +2864,17 @@ shared_file_remove(struct shared_file *sf)
 }
 
 void
+shared_file_set_path(struct shared_file *sf, const gchar *pathname)
+{
+	shared_file_check(sf);
+	atom_str_change(&sf->file_path, pathname);
+}
+
+void
 shared_file_from_fileinfo(fileinfo_t *fi)
 {
 	shared_file_t *sf;
+	gchar *pathname;
 
 	file_info_check(fi);
 
@@ -2893,14 +2901,11 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 		return;
 	}
 
-	{
-		gchar *path = make_pathname(fi->path, fi->file_name);
-		sf->file_path = atom_str_get(path);
-		G_FREE_NULL(path);
-	}
+	pathname = make_pathname(fi->path, fi->file_name);
+	sf->file_path = atom_str_get(pathname);
+	G_FREE_NULL(pathname);
 
 	sf->fi = fi;		/* Signals it's a partially downloaded file */
-
 	fi->sf = shared_file_ref(sf);
 }
 
