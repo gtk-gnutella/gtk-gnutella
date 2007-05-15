@@ -102,7 +102,7 @@ tth_cache_file_create(const struct tth *tth)
 
 	accmode = O_WRONLY | O_TRUNC;
 	pathname = tth_cache_pathname(tth);
-	fd = file_create(pathname, accmode, TTH_FILE_MODE);
+	fd = file_create_missing(pathname, accmode, TTH_FILE_MODE);
 	if (fd < 0 && ENOENT == errno) {
 		char *dir = filepath_directory(pathname);
 		if (0 == create_directory(dir, DEFAULT_DIRECTORY_MODE)) {
@@ -178,34 +178,27 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 }
 
 static size_t
-tth_cache_leave_count(const struct tth *tth, int fd)
+tth_cache_leave_count(const struct tth *tth, const struct stat *sb)
 {
-	struct stat sb;
-
 	g_return_val_if_fail(tth, 0);
-	g_return_val_if_fail(fd >= 0, 0);
+	g_return_val_if_fail(sb, 0);
 
-	if (fstat(fd, &sb)) {
-		g_warning("tth_cache_leave_count(%s): fstat() failed: %s",
-			tth_base32(tth), g_strerror(errno));
-		return 0;
-	}
-	if (!S_ISREG(sb.st_mode)) {
+	if (!S_ISREG(sb->st_mode)) {
 		g_warning("tth_cache_leave_count(%s): Not a regular file",
 			tth_base32(tth));
 		return 0;
 	}
 	if (
-		sb.st_size % TTH_RAW_SIZE ||
-		sb.st_size < TTH_RAW_SIZE ||
-		sb.st_size > TTH_MAX_LEAVES * TTH_RAW_SIZE
+		sb->st_size % TTH_RAW_SIZE ||
+		sb->st_size < TTH_RAW_SIZE ||
+		sb->st_size > TTH_MAX_LEAVES * TTH_RAW_SIZE
 	) {
 		g_warning("tth_cache_leave_count(%s): Bad filesize %s",
-			tth_base32(tth), off_t_to_string(sb.st_size));
+			tth_base32(tth), off_t_to_string(sb->st_size));
 		return 0;
 	}
 
-	return sb.st_size / TTH_RAW_SIZE;
+	return sb->st_size / TTH_RAW_SIZE;
 }
 
 /**
@@ -215,17 +208,25 @@ size_t
 tth_cache_lookup(const struct tth *tth, filesize_t filesize)
 {
 	size_t expected, leave_count = 0;
-	int fd;
 	
 	g_return_val_if_fail(tth, 0);
 
 	expected = tt_good_node_count(filesize);
 	if (expected > 1) {
-		fd = tth_cache_file_open(tth);
-		if (fd >= 0) {
-			leave_count = tth_cache_leave_count(tth, fd);
-			close(fd);
+		struct stat sb;
+		char *pathname;
+
+		pathname = tth_cache_pathname(tth);
+		if (stat(pathname, &sb)) {
+			leave_count = 0;
+			if (ENOENT != errno) {
+				g_warning("tth_cache_lookup(%s): stat() failed: %s",
+					tth_base32(tth), g_strerror(errno));
+			}
+		} else {
+			leave_count = tth_cache_leave_count(tth, &sb);
 		}
+		G_FREE_NULL(pathname);
 	} else {
 		leave_count = 1;
 	}
@@ -255,21 +256,27 @@ tth_cache_get_leaves(const struct tth *tth,
 
 	fd = tth_cache_file_open(tth);
 	if (fd >= 0) {
-		size_t n_leaves;
+		struct stat sb;
+
+		if (fstat(fd, &sb)) {
+			g_warning("tth_cache_get_leaves(%s): fstat() failed: %s",
+				tth_base32(tth), g_strerror(errno));
+		} else {
+			size_t n_leaves;
 		
-		n_leaves = tth_cache_leave_count(tth, fd);
-		n_leaves = MIN(n, n_leaves);
+			n_leaves = tth_cache_leave_count(tth, &sb);
+			n_leaves = MIN(n, n_leaves);
+			if (n_leaves > 0) {
+				size_t size;
+				ssize_t ret;
 
-		if (n_leaves > 0) {
-			size_t size;
-			ssize_t ret;
+				STATIC_ASSERT(TTH_RAW_SIZE == sizeof(leaves[0]));
 
-			STATIC_ASSERT(TTH_RAW_SIZE == sizeof(leaves[0]));
-
-			size = TTH_RAW_SIZE * n_leaves;
-			ret = read(fd, &leaves[0].data, size);
-			if ((size_t) ret == size) {
-				num_leaves = n_leaves;
+				size = TTH_RAW_SIZE * n_leaves;
+				ret = read(fd, &leaves[0].data, size);
+				if ((size_t) ret == size) {
+					num_leaves = n_leaves;
+				}
 			}
 		}
 		close(fd);
