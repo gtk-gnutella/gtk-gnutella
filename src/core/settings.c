@@ -329,10 +329,20 @@ settings_early_init(void)
 {
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	home_dir = g_strdup(eval_subst("~"));
-	if (!home_dir)
-		g_warning(_("Can't find your home directory!"));
-	if (!config_dir && home_dir)
+	if (home_dir) {
+		if (!is_absolute_path(home_dir)) {
+			g_error("$HOME must point to an absolute path!");
+		}
+	} else {
+		g_error(_("Can't find your home directory!"));
+	}
+	if (config_dir) {
+		if (!is_absolute_path(config_dir)) {
+			g_error("$GTK_GNUTELLA_DIR must point to an absolute path!");
+		}
+	} else { 
 		config_dir = make_pathname(home_dir, ".gtk-gnutella");
+	}
 }
 
 /**
@@ -1350,7 +1360,7 @@ file_path_changed(property_t prop)
 	if (!is_directory(s)) {
 		g_message("Attempt to create directory \"%s\"", s);
 
-		if (0 != create_directory(s))
+		if (0 != create_directory(s, DEFAULT_DIRECTORY_MODE))
 			g_message("Attempt failed: \"%s\"", g_strerror(errno));
 	}
 
