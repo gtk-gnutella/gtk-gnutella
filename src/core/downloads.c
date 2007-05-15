@@ -4011,6 +4011,7 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->file_info->lifecount > 0);
 	g_return_if_fail(d->file_info->lifecount <= d->file_info->refcount);
 	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	addr = download_addr(d);
 	port = download_port(d);
@@ -4125,6 +4126,9 @@ void
 download_pause(struct download *d)
 {
 	download_check(d);
+
+	g_return_if_fail(d->file_info);
+	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	d->flags |= DL_F_PAUSED;
 	if (d->file_info && !(FI_F_PAUSED & d->file_info->flags)) {
@@ -5462,6 +5466,9 @@ void
 download_resume(struct download *d)
 {
 	download_check(d);
+
+	g_return_if_fail(d->file_info);
+	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	d->flags &= ~DL_F_PAUSED;
 	if (d->file_info && (FI_F_PAUSED & d->file_info->flags)) {
@@ -10403,6 +10410,7 @@ error:
 renamed:
 
 	file_info_strip_binary_from_file(fi, dest);
+	file_info_moved(fi, dir, filepath_basename(dest));
 	download_move_done(d, 0);
 	goto cleanup;
 
@@ -10465,8 +10473,18 @@ download_move_done(struct download *d, guint elapsed)
 	 * or by the moving daemon task upon success.
 	 */
 
-	if (!has_good_sha1(d))
+	if (has_good_sha1(d)) {
+		if (
+			pfsp_server &&
+			fi->sha1 &&
+			fi->size >= pfsp_minimum_filesize &&
+			!(FI_F_TRANSIENT & fi->flags)
+		) {
+			fi->flags |= FI_F_SEEDING;
+		}
+	} else {
 		download_moved_with_bad_sha1(d);
+	}
 }
 
 /**
@@ -10743,7 +10761,7 @@ download_resume_bg_tasks(void)
 		 * we had a fi->cha1 in the record...
 		 */
 
-		if (fi->flags & (FI_F_SUSPEND | FI_F_PAUSED)) {
+		if (fi->flags & (FI_F_SUSPEND | FI_F_PAUSED | FI_F_SEEDING)) {
 			/* Already computing SHA1, moving or paused by user */
 			continue;
 		}
@@ -10778,7 +10796,9 @@ download_resume_bg_tasks(void)
 				download_move(d, move_file_path, DL_OK_EXT);
 			else
 				download_move(d, bad_file_path, DL_BAD_EXT);
-			to_remove = g_slist_prepend(to_remove, d->file_info);
+			
+			if (!(fi->flags & FI_F_SEEDING))
+				to_remove = g_slist_prepend(to_remove, d->file_info);
 		}
 
 		gcu_gui_update_download(d, TRUE);

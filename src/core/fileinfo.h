@@ -55,7 +55,8 @@ enum {
 	FI_F_DISCARD	= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
 	FI_F_TRANSIENT	= 1 << 2,	/**< Don't persist to disk */
 	FI_F_MARK		= 1 << 3,	/**< Marked during traversal */
-	FI_F_PAUSED		= 1 << 4	/**< Paused by user */
+	FI_F_PAUSED		= 1 << 4,	/**< Paused by user */
+	FI_F_SEEDING	= 1 << 5	/**< Seeding after successful download */
 };
 
 /*
@@ -121,6 +122,8 @@ fileinfo_t *file_info_has_identical(const gchar *file, filesize_t size,
 fileinfo_t *file_info_get_transient(const gchar *name);
 fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
+void file_info_moved(fileinfo_t *fi,
+		const gchar *path, const gchar *filename);
 
 /***
  *** Inlined routines.

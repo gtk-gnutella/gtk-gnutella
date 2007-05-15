@@ -86,37 +86,21 @@ drag_begin(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
 
 		/* Allow partials but not unstarted files */
 		if (fis.done > 0) {
-			const gchar *path;
-			gchar *save_path = NULL;
-
 			fi = guc_fi_get_info(last_shown);
 			g_assert(fi != NULL);
-			if (fis.done < fis.size) {
-				path = fi->path;
-			} else {
-				/* XXX: This is a hack since the final destination might
-				 *		might be different e.g., due to a filename clash
-				 *		or because the PROP_MOVE_FILE_PATH changed in the
-				 *		meantime. */
-				save_path = gnet_prop_get_string(PROP_MOVE_FILE_PATH, NULL, 0);
-				path = save_path;
-			}
 
-			if (path && fi->file_name) {
+			if (fi->path && fi->file_name) {
 				gchar *escaped;
 				gchar *pathname;
 
-				pathname = make_pathname(path, fi->file_name);
+				pathname = make_pathname(fi->path, fi->file_name);
 				escaped = url_escape(pathname);
-				if (escaped != pathname)
+				if (escaped != pathname) {
 					G_FREE_NULL(pathname);
-
+				}
 				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-
 				G_FREE_NULL(escaped);
 			}
-			G_FREE_NULL(save_path);
-
     		guc_fi_free_info(fi);
 		}
 	}
@@ -245,7 +229,7 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
 		gint rw;
 
 		rw = gm_snprintf(fi_status, sizeof(fi_status),
-				"%s", _("Finished"));
+				"%s", s.seeding ? _("Seeding") : _("Finished"));
 
 		if (s.has_sha1) {
 			if (s.sha1_hashed == s.size)

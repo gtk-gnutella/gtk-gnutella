@@ -71,6 +71,7 @@ typedef struct gnet_fi_status {
 	gboolean	has_sha1;
 	gboolean	sha1_matched;
 	gboolean	paused;
+	gboolean	seeding;
 } gnet_fi_status_t;
 
 typedef struct gnet_fi_chunks {

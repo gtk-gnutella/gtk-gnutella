@@ -62,18 +62,17 @@ RCSID("$Id$")
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 
-static GtkTreeView *treeview_downloads = NULL;
-static GtkTreeView *treeview_fi_aliases = NULL;
-static GtkEntry *entry_fi_filename = NULL;
-static GtkLabel *label_fi_sha1 = NULL;
-static GtkLabel *label_fi_size = NULL;
+static GtkTreeView *treeview_downloads;
+static GtkTreeView *treeview_fi_aliases;
+static GtkEntry *entry_fi_filename;
+static GtkLabel *label_fi_sha1;
+static GtkLabel *label_fi_size;
 
-static GtkTreeStore *store_fileinfo = NULL;
-static GtkListStore *store_aliases = NULL;
-static GHashTable *fi_handles = NULL;
-static GHashTable *fi_updates = NULL;
-
-static GHashTable *fi_downloads = NULL;
+static GtkTreeStore *store_fileinfo;
+static GtkListStore *store_aliases;
+static GHashTable *fi_handles;
+static GHashTable *fi_updates;
+static GHashTable *fi_downloads;
 
 struct fileinfo_data {
 	GtkTreeIter iter;
@@ -94,7 +93,9 @@ struct fileinfo_data {
 		guint actively_queued, passively_queued, life_count, recv_count;
 		gnet_fi_t handle;
 		gboolean paused;
-	}	file;
+		gboolean hashed;
+		gboolean seeding;
+	} file;
 };
 
 static void
@@ -486,7 +487,7 @@ fi_get_status_string(gnet_fi_status_t s)
 		}
 
 		concat_strings(buf, sizeof buf,
-			_("Finished"),
+			s.seeding ? _("Seeding") : _("Finished"),
 			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
 			'\0' != msg_copy[0] ? "; " : "", msg_copy,
 			(void *) 0);
@@ -522,6 +523,8 @@ fi_gui_fill_status(struct fileinfo_data *data)
 	data->file.passively_queued = s.pqueued_count;
 	data->file.life_count = s.lifecount;
 	data->file.paused = s.paused;
+	data->file.hashed = s.sha1_hashed;
+	data->file.seeding = s.seeding;
 	data->size = s.size;
 	data->done = s.done;
 
@@ -579,8 +582,8 @@ fi_gui_fi_added(gnet_fi_t handle)
 static void
 fi_gui_fi_status_changed(gnet_fi_t handle)
 {
-	g_hash_table_insert(fi_updates,
-		GUINT_TO_POINTER(handle), GINT_TO_POINTER(1));
+	gpointer key = GUINT_TO_POINTER(handle);
+	g_hash_table_insert(fi_updates, key, key);
 }
 
 static void
@@ -619,6 +622,8 @@ fileinfo_numeric_status(const struct fileinfo_data *data)
 
 	v = fi_gui_relative_done(data, TRUE);
 	if (!data->is_download) {
+		v |= data->file.seeding ? (1 << 13) : 0;
+		v |= data->file.hashed ? (1 << 12) : 0;
 		v |= data->size > 0 && data->size == data->done ? (1 << 11) : 0;
 		v |= data->file.recv_count > 0 ? (1 << 10) : 0;
 		v |= (data->file.actively_queued || data->file.passively_queued)
@@ -851,39 +856,23 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 
 		/* Allow partials but not unstarted files */
 		if (fis.done > 0) {
-			const gchar *path;
-			gchar *save_path = NULL;
 			gnet_fi_info_t *info;
 
 			info = guc_fi_get_info(handle);
 			g_assert(info);
 			
-			if (fis.done < fis.size) {
-				path = info->path;
-			} else {
-				/* XXX: This is a hack since the final destination might
-				 *		might be different e.g., due to a filename clash
-				 *		or because the PROP_MOVE_FILE_PATH changed in the
-				 *		meantime. */
-				save_path = gnet_prop_get_string(PROP_MOVE_FILE_PATH, NULL, 0);
-				path = save_path;
-			}
-
-			if (path && info->file_name) {
+			if (info->path && info->file_name) {
 				gchar *escaped;
 				gchar *pathname;
 
-				pathname = make_pathname(path, info->file_name);
+				pathname = make_pathname(info->path, info->file_name);
 				escaped = url_escape(pathname);
 				if (escaped != pathname) {
 					G_FREE_NULL(pathname);
 				}
 				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-
 				G_FREE_NULL(escaped);
 			}
-			G_FREE_NULL(save_path);
-
     		guc_fi_free_info(info);
 		}
 	}

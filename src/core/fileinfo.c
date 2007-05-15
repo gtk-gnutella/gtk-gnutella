@@ -2486,6 +2486,8 @@ file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
 {
 	upload_stop_all(fi, reason);
 	shared_file_unref(&fi->sf);
+	fi->flags &= ~FI_F_SEEDING;
+	file_info_changed(fi);
 }
 
 /**
@@ -3598,6 +3600,41 @@ fi_rename_dead(fileinfo_t *fi,
 done:
 	G_FREE_NULL(dead);
 	G_FREE_NULL(pathname);
+}
+
+void
+file_info_moved(fileinfo_t *fi, const gchar *path, const gchar *filename)
+{
+	gpointer value;
+	
+	file_info_check(fi);
+	g_assert(path);
+	g_assert(filename);
+
+	value = g_hash_table_lookup(fi_by_outname, fi->file_name);
+	g_assert(NULL == value || value == fi);
+	g_hash_table_remove(fi_by_outname, fi->file_name);
+
+	atom_str_change(&fi->path, path);
+	atom_str_change(&fi->file_name, filename);
+	gm_hash_table_insert_const(fi_by_outname, fi->file_name, fi);
+
+	if (fi->sf) {
+		gchar *pathname;
+		struct stat sb;
+	   
+		pathname = make_pathname(fi->path, fi->file_name);
+		shared_file_set_path(fi->sf, pathname);
+		if (
+			stat(pathname, &sb) ||
+			fi->size + (off_t)0 != sb.st_size + (filesize_t)0
+		) {
+			sb.st_mtime = 0;
+		}
+		shared_file_set_modification_time(fi->sf, sb.st_mtime);
+		G_FREE_NULL(pathname);
+	}
+	file_info_changed(fi);
 }
 
 /**
@@ -5465,6 +5502,7 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->aqueued_count  = fi->aqueued_count;
     s->pqueued_count  = fi->pqueued_count;
 	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
+	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
 
 	s->copied 		  = 0;
 	s->sha1_hashed    = FALSE;

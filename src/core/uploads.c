@@ -2175,22 +2175,41 @@ upload_http_version(gnutella_upload_t *u, const gchar *request, size_t len)
  * @return TRUE if OK, FALSE otherwise with the upload removed.
  */
 static gboolean
-upload_file_present(const struct shared_file *sf)
+upload_file_present(struct shared_file *sf)
 {
+	fileinfo_t *fi;
 	struct stat sb;
 
-	if (0 == stat(shared_file_path(sf), &sb) && S_ISREG(sb.st_mode)) {
-		return TRUE;
-	} else {
-		/*
-		 * Probably a file shared via PFS, or they changed their library
-		 * and did not rescan yet.  It's important to detect this now in
-		 * case they are queued: no need to wait for them to get their
-		 * upload slot to discover the file is not there!
-		 *		--RAM, 2005-08-04
-		 */
-		return FALSE;
+	fi = shared_file_fileinfo(sf);
+	if (stat(shared_file_path(sf), &sb))
+		goto failure;
+
+	if (!S_ISREG(sb.st_mode))
+		goto failure;
+		
+	if (delta_time(shared_file_modification_time(sf), sb.st_mtime)) {
+		shared_file_set_modification_time(sf, sb.st_mtime);
+		if (NULL == fi) {
+			request_sha1(sf);
+		}
+		if (NULL == fi && (fi->flags & FI_F_SEEDING))
+			goto failure;
 	}
+	return TRUE;
+
+failure:
+	/*
+	 * Probably a file shared via PFS, or they changed their library
+	 * and did not rescan yet.  It's important to detect this now in
+	 * case they are queued: no need to wait for them to get their
+	 * upload slot to discover the file is not there!
+	 *		--RAM, 2005-08-04
+	 */
+
+	if (fi) {
+		file_info_upload_stop(fi, "File was modified");
+	}
+	return FALSE;
 }
 
 /**
@@ -2977,7 +2996,7 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 	gboolean range_unavailable = FALSE, replaced_stalling = FALSE;
 	const struct sha1 *sha1 = NULL;
 	const gchar *buf;
-	time_t now = tm_time(), mtime;
+	time_t now = tm_time();
 	gboolean parq_allows = FALSE;
     guint32 idx = 0;
 
@@ -3326,62 +3345,46 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 		parq_upload_busy(u, u->parq_ul);
 	}
 
-	{
-		struct stat statbuf;
-		const gchar *fpath;
+	/*
+	 * Ensure that a given persistent connection never requests more than
+	 * the total file length.  Add 10% to account for partial overlapping
+	 * ranges.
+	 */
 
-		fpath = shared_file_path(u->sf);
-		if (-1 == stat(fpath, &statbuf)) {
-			upload_error_not_found(u, u->request);
-			return;
-		}
+	u->total_requested += range_end - range_skip + 1;
 
-		/*
-		 * Prepare date and modification time of file.
-		 */
-
-		mtime = statbuf.st_mtime;
-		if (delta_time(mtime, now) > 0) {
-			mtime = now;			/* Clock skew on file server */
-		}
-
-		/*
-		 * Ensure that a given persistent connection never requests more than
-		 * the total file length.  Add 10% to account for partial overlapping
-		 * ranges.
-		 */
-
-		u->total_requested += range_end - range_skip + 1;
-
-		if (!u->head_only && (u->total_requested / 11) * 10 > u->file_size) {
-			if (upload_debug) g_warning(
+	if (!u->head_only && (u->total_requested / 11) * 10 > u->file_size) {
+		if (upload_debug) g_warning(
 				"host %s (%s) requesting more than there is to %u (%s)",
 				host_addr_to_string(u->socket->addr), upload_vendor_str(u),
 				u->file_index, u->name);
-			upload_error_remove(u, 400, "Requesting Too Much");
-			return;
-		}
+		upload_error_remove(u, 400, "Requesting Too Much");
+		return;
+	}
 
-		g_assert(NULL == u->file);		/* File opened each time */
+	g_assert(NULL == u->file);		/* File opened each time */
 
-		/* Open the file for reading. */
-		u->file = file_object_open(fpath, O_RDONLY);
-		if (!u->file) {
-			gint fd, accmode;
+	/* Open the file for reading. */
+	u->file = file_object_open(shared_file_path(u->sf), O_RDONLY);
+	if (!u->file) {
+		gint fd, accmode;
 
-			/* If this is a partial file, we open it with O_RDWR so that
-			 * the file descriptor can be shared with download operations
-			 * for the same file. */
-			accmode = u->file_info ? O_RDWR : O_RDONLY;
-			fd = file_open(fpath, accmode);
-			if (fd >= 0) {
-				u->file = file_object_new(fd, fpath, accmode);
-			}
+		/* If this is a partial file, we open it with O_RDWR so that
+		 * the file descriptor can be shared with download operations
+		 * for the same file. */
+		if (NULL == u->file_info || (u->file_info->flags & FI_F_SEEDING)) {
+			accmode = O_RDONLY;
+		} else {
+			accmode = O_RDWR;
 		}
-		if (!u->file) {
-			upload_error_not_found(u, NULL);
-			return;
+		fd = file_open(shared_file_path(u->sf), accmode);
+		if (fd >= 0) {
+			u->file = file_object_new(fd, shared_file_path(u->sf), accmode);
 		}
+	}
+	if (!u->file) {
+		upload_error_not_found(u, NULL);
+		return;
 	}
 
 	/*
@@ -3407,7 +3410,7 @@ upload_request_for_shared_file(gnutella_upload_t *u, header_t *header)
 		 */
 
 		u->cb_status_arg.u = u;
-		u->cb_status_arg.mtime = mtime;
+		u->cb_status_arg.mtime = shared_file_modification_time(u->sf);
 		upload_http_extra_callback_add(u,
 			upload_http_status, &u->cb_status_arg);
 	}
