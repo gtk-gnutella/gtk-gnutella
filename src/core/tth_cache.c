@@ -86,7 +86,8 @@ tth_cache_pathname(const struct tth *tth)
 	g_assert(tth);
 	
 	hash = tth_base32(tth);
-	return g_strdup_printf("%s%c%2.2s%c%s", tth_cache_directory(), G_DIR_SEPARATOR,
+	return g_strdup_printf("%s%c%2.2s%c%s",
+			tth_cache_directory(), G_DIR_SEPARATOR,
 			&hash[0], G_DIR_SEPARATOR, &hash[2]);
 }
 
@@ -122,7 +123,7 @@ tth_cache_file_open(const struct tth *tth)
 	g_return_val_if_fail(tth, -1);
 
 	pathname = tth_cache_pathname(tth);
-	fd = file_open(pathname, O_RDONLY);
+	fd = file_open_missing(pathname, O_RDONLY);
 	G_FREE_NULL(pathname);
 	return fd;
 }
