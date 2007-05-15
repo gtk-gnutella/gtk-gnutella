@@ -2979,7 +2979,8 @@ download_reparent(struct download *d, struct dl_server *new_server)
 	download_remove_from_server(d, FALSE);	/* Server reclaimed later */
 	download_reclaim_server(d, TRUE);		/* Delays free if empty */
 	d->server = new_server;
-	new_server->refcnt++;
+	d->server->refcnt++;
+	d->always_push = d->always_push && !has_blank_guid(d);
 
 	/*
 	 * Insert download in new server, in the same list.
@@ -3030,7 +3031,8 @@ download_redirect_to_server(struct download *d,
 
 	server = get_server(old_guid, addr, port, TRUE);
 	d->server = server;
-	server->refcnt++;
+	d->server->refcnt++;
+	d->always_push = d->always_push && !has_blank_guid(d);
 
 	/*
 	 * Insert download in new server, in the same list.
@@ -4685,9 +4687,7 @@ create_download(
 
 	d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
-	server->refcnt++;
-	d->list_idx = DL_LIST_INVALID;
-	d->cflags = cflags;
+	d->server->refcnt++;
 
 	/*
 	 * If we know that this server can be directly connected to, ignore
@@ -4697,7 +4697,10 @@ create_download(
 	if ((d->server->attrs & DLS_A_PUSH_IGN) || guid_eq(guid, blank_guid)) {
 		cflags &= ~SOCK_F_PUSH;
 	}
+	d->cflags = cflags;
+	d->always_push = 0 != (SOCK_F_PUSH & d->cflags);
 
+	d->list_idx = DL_LIST_INVALID;
 	d->file_name = file_name;
 	d->escaped_name = download_escape_name(d->file_name);
 	d->uri = uri ? atom_str_get(uri) : NULL;
@@ -4710,7 +4713,6 @@ create_download(
 	d->size = size;					/* Will be changed if range requested */
 	d->record_stamp = stamp;
 	download_set_sha1(d, sha1);
-	d->always_push = 0 != (SOCK_F_PUSH & cflags);
 	if (d->always_push) {
 		download_push_insert(d);
 	} else {
