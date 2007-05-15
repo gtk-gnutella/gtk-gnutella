@@ -635,7 +635,7 @@ search_set_details(const record_t *rc)
 		search_append_detail(model, _("Source"),
 			host_addr_port_to_string(rs->addr, rs->port));
 		search_append_detail(model, _("Browsable"),
-			ST_BROWSE & rs->status ? _("Yes") : _("No"));
+			ST_BH & rs->status ? _("Yes") : _("No"));
 		search_append_detail(model, _("Spam"),
 			(SR_SPAM & rc->flags) ? _("Yes") :
 			(ST_SPAM & rs->status) ? _("Maybe") :
