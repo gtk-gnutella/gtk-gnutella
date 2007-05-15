@@ -569,7 +569,17 @@ gchar *absolute_pathname(const gchar *file);
 gchar *make_pathname(const gchar *dir, const gchar *file);
 gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
-gint create_directory(const gchar *dir);
+
+#if defined(S_IROTH) && defined(S_IXOTH)
+/* 0755 */
+#define DEFAULT_DIRECTORY_MODE (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
+#else
+/* 0750 */
+#define DEFAULT_DIRECTORY_MODE (S_IRWXU | S_IRGRP | S_IXGRP)
+#endif /* S_IROTH && S_IXOTH */
+
+gint create_directory(const gchar *dir, mode_t mode);
+gint compat_mkdir(const gchar *path, mode_t mode);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
 const gchar * filepath_basename(const gchar *pathname);
 gchar * filepath_directory(const gchar *pathname);
@@ -598,7 +608,6 @@ guint32 html_decode_entity(const gchar *src, const gchar **endptr);
 gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
 void close_file_descriptors(const int first_fd);
-gint compat_mkdir(const gchar *path, mode_t mode);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
 void set_close_on_exec(gint fd);

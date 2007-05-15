@@ -3050,73 +3050,53 @@ short_filename(gchar *fullname)
  *
  * @return On success, zero is returned. On failure, -1 is returned and
  *         errno indicates the reason.
- *
- * @bug
- * FIXME: This might fail with ``fancy'' file permissions. The
- *        directories should be created from leaf to root instead of
- *        vice-versa.
  */
 gint
-create_directory(const gchar *dir)
+create_directory(const gchar *dir, mode_t mode)
 {
-	static const mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP
-#if defined(S_IROTH) && defined(S_IXOTH)
-		| S_IROTH | S_IXOTH;	/* 0755 */
-#else
-		;	/* 0750 */
-#endif /* S_IROTH && S_IXOTH */
-	gchar *path = NULL;
-	size_t len, i;
+	gint error = 0;
 
-	g_assert(dir != NULL);
-
-	if (*dir != '/') {
-		errno = EPERM;
+	if (NULL == dir) {
+		error = EINVAL;
+		goto failure;
+	}
+	if (!is_absolute_path(dir)) {
+		error = EPERM;
 		goto failure;
 	}
 
-	len = strlen(dir);
-	path = g_malloc0(len + 1);
-	memcpy(path, dir, len);
-	path[len] = '\0';
-	i = 0;
+	g_message("mkdir(\"%s\")", dir);
+	if (compat_mkdir(dir, mode)) {
+		error = errno;
+		if (EEXIST == error) {
+			goto finish;
+		} else if (ENOENT == error) {
+			gchar *upper = filepath_directory(dir);
 
-	do {
-		const gchar *p;
-
-		path[i++] = '/';
-		p = strchr(&path[i], '/');
-		if (p != NULL) {
-			i = p - path;
-			g_assert(i > 0 && i < len);
-			g_assert(path[i] == '/');
-			path[i] = '\0';
-		} else {
-			i = len;
-			g_assert(path[i] == '\0');
-		}
-
-		g_message("stat(\"%s\")", path);
-		if (!is_directory(path)) {
-			g_message("stat() failed: %s", g_strerror(errno));
-			if (errno != ENOENT)
-				goto failure;
-
-			g_message("mkdir(\"%s\")", path);
-			if (compat_mkdir(path, mode)) {
-				g_message("mkdir() failed: %s", g_strerror(errno));
-				goto failure;
+			if (create_directory(upper, mode)) {
+				error = errno;
+		 	} else {
+				g_message("mkdir(\"%s\")", dir);
+				if (compat_mkdir(dir, mode)) {
+					error = errno;
+				} else {
+					error = 0;
+				}
 			}
+			G_FREE_NULL(upper);
+		} else {
+			goto failure;
 		}
+	}
+	if (error && EEXIST != error)
+		goto failure;
 
-	} while (i < len);
-
-	G_FREE_NULL(path);
+finish:
 	return is_directory(dir) ? 0 : -1;
 
 failure:
-
-	G_FREE_NULL(path);
+	g_message("mkdir(\"%s\") failed: %s", dir, g_strerror(error));
+	errno = error;
 	return -1;
 }
 
@@ -3151,10 +3131,25 @@ filepath_basename(const gchar *pathname)
 	return p;
 }
 
+static const gchar *
+filepath_directory_end(const gchar *pathname, gchar separator)
+{
+	const gchar *p;
+	
+	p = strrchr(pathname, separator);
+	if (p) {
+		while (p != pathname && ('/' == p[-1] || G_DIR_SEPARATOR == p[-1])) {
+			p--;
+		}
+	}
+	return p;
+}
+
 /**
  * Creates a copy with the given pathname with the basename cut off. A slash
  * is always considered a separator but G_DIR_SEPARATOR is considered as
- * well. Thus "/whatever/blah\\yadda" returns "/whatever/blah".
+ * well. Thus "/whatever/blah\\yadda" returns "/whatever/blah" if G_DIR_SEPARATOR
+ * is a backslash, otherwise "/whatever" is returned.
  *
  * @return	A newly allocated string holding the given pathname with the
  *			basename cut off. If the string contained no directory separator,
@@ -3163,14 +3158,28 @@ filepath_basename(const gchar *pathname)
 gchar *
 filepath_directory(const gchar *pathname)
 {
-	const gchar *sep, *slash;
+	const gchar *sep;
+	gchar *dir;
 
-	slash = strrchr(pathname, '/');
-	sep = strrchr(slash ? slash : pathname, G_DIR_SEPARATOR);
-	if (!sep) {
-		sep = slash;
+	sep = filepath_directory_end(pathname, '/');
+	if (G_DIR_SEPARATOR != '/') {
+		const gchar *alt;
+
+		alt = filepath_directory_end(pathname, G_DIR_SEPARATOR);
+		if (sep && alt) {
+			sep = (sep - pathname > alt - pathname) ? sep : alt;
+		} else if (alt) {
+			sep = alt;
+		}
 	}
-	return sep ? g_strndup(pathname, sep - pathname) : NULL;
+	if (sep == pathname) {
+		dir = g_strdup(G_DIR_SEPARATOR_S);
+	} else if (sep) {
+		dir = g_strndup(pathname, sep - pathname);
+	} else {
+		dir = NULL;
+	}
+	return dir;
 }
 
 /**
