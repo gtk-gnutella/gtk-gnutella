@@ -29,10 +29,16 @@
  *
  * Caching of tigertree data.
  *
- * The TTH data for each file is stored in
- * $GTK_GNUTELLA_DIR/tth_cache/<base-32 TTH> in raw binary form. Only the
- * leaves at TTH_MAX_DEPTH or above are stored. The root hash and the nodes at
- * each level between above these leaves can be calculated from the leaves.
+ * The tigertree data for each shared file is stored in a file in the directory
+ * GTK_GNUTELLA_DIR/tth_cache/ in raw binary form. For example, if the root
+ * hash is 5EDB4PUVFGY2UKVISQ2DMACSPNRODTTODBS52RQ, the tigertree data is
+ * stored in
+ * $GTK_GNUTELLA_DIR/tth_cache/5E/DB4PUVFGY2UKVISQ2DMACSPNRODTTODBS52RQ.
+ * This avoids storing too many files per directory.
+ * 
+ * Only the leaves at TTH_MAX_DEPTH or above are stored. The root hash and the
+ * nodes at each level between above these leaves can be calculated from the
+ * leaves.
  *
  * If the depth is 1 (root only), nothing is stored.
  *
@@ -75,8 +81,13 @@ tth_cache_directory(void)
 static char *
 tth_cache_pathname(const struct tth *tth)
 {
+	const char *hash;
+	
 	g_assert(tth);
-	return make_pathname(tth_cache_directory(), tth_base32(tth));
+	
+	hash = tth_base32(tth);
+	return g_strdup_printf("%s%c%2.2s%c%s", tth_cache_directory(), G_DIR_SEPARATOR,
+			&hash[0], G_DIR_SEPARATOR, &hash[2]);
 }
 
 static int
@@ -92,9 +103,11 @@ tth_cache_file_create(const struct tth *tth)
 	pathname = tth_cache_pathname(tth);
 	fd = file_create(pathname, accmode, TTH_FILE_MODE);
 	if (fd < 0 && ENOENT == errno) {
-		if (0 == create_directory(tth_cache_directory())) {
+		char *dir = filepath_directory(pathname);
+		if (0 == create_directory(dir, DEFAULT_DIRECTORY_MODE)) {
 			fd = file_create(pathname, accmode, TTH_FILE_MODE);
 		}
+		G_FREE_NULL(dir);
 	}
 	G_FREE_NULL(pathname);
 	return fd;
