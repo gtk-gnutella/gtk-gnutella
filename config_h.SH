@@ -123,6 +123,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_uname HAS_UNAME		/**/
 
+/* HAS_GETLOGIN:
+ *	This symbol, if defined, indicates that the getlogin routine is
+ *	available to get the login name.
+ */
+#$d_getlogin HAS_GETLOGIN		/**/
+
 /* HAS_GNULIBC:
  *	This symbol, if defined, indicates to the C program that 
  *	the GNU C library is being used.  A better check is to use

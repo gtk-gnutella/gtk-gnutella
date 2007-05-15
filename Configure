@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu May  3 20:28:36 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Tue May 15 03:35:17 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -289,6 +289,7 @@ d_phostname=''
 d_uname=''
 d_getifaddrs=''
 d_getinvent=''
+d_getlogin=''
 d_gettext=''
 d_getuid=''
 d_gnulibc=''
@@ -4539,6 +4540,22 @@ EOC
 set d_getinvent
 eval $trylink
 
+: see if getlogin exists
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static char ret;
+	ret |= *getlogin();
+	return ret ? 0 : 1;
+}
+EOC
+set d_getlogin
+eval $trylink
+
 : compute shared library extension
 case "$so" in
 '')
@@ -8727,6 +8744,7 @@ d_geteuid='$d_geteuid'
 d_gethname='$d_gethname'
 d_getifaddrs='$d_getifaddrs'
 d_getinvent='$d_getinvent'
+d_getlogin='$d_getlogin'
 d_gettblsz='$d_gettblsz'
 d_gettext='$d_gettext'
 d_getuid='$d_getuid'

@@ -253,9 +253,24 @@ get_home(void)
 		dir = NULL;
 	}
 	
+#if defined(HAS_GETLOGIN)
+	if (!dir) {
+		const char *name;
+		
+		name = getlogin();
+		if (name) {
+			static const struct passwd *pp;
+
+			pp = getpwnam(name);
+			if (pp)
+				dir = pp->pw_dir;
+		}
+	}
+#endif
+
 #if defined(HAS_GETUID)
 	if (!dir) {
-		static struct passwd *pp;
+		static const struct passwd *pp;
 		
 		pp = getpwuid(getuid());
 		if (pp)
