@@ -190,6 +190,7 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
     static gchar fi_status[256];
     static gchar fi_done[SIZE_FIELD_MAX+10];
     static gchar fi_size[SIZE_FIELD_MAX];
+    static gchar fi_uploaded[SIZE_FIELD_MAX];
     gnet_fi_status_t s;
 
     guc_fi_get_status(fih, &s);
@@ -209,10 +210,17 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
         titles[c_fi_done] = "-";
     }
 
-    g_strlcpy(fi_size, short_size(s.size, show_metric_units()),
-		sizeof(fi_size));
-    titles[c_fi_size]    = fi_size;
+    g_strlcpy(fi_size, short_size(s.size, show_metric_units()), sizeof fi_size);
+    titles[c_fi_size] = fi_size;
 
+    if (s.uploaded) {
+    	g_strlcpy(fi_uploaded, short_size(s.uploaded, show_metric_units()),
+			sizeof fi_uploaded);
+        titles[c_fi_uploaded] = fi_uploaded;
+    } else {
+        titles[c_fi_uploaded] = "-";
+    }
+	
     if (s.recvcount) {
 		guint32 secs = 0;
 
