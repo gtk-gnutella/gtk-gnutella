@@ -58,6 +58,7 @@ typedef struct gnet_fi_status {
 	guint32  	lifecount;
 	filesize_t  size;
 	filesize_t  done;
+	filesize_t  uploaded;
 	guint32  	recv_last_rate;
 	guint32  	aqueued_count;
 	guint32  	pqueued_count;
@@ -112,6 +113,7 @@ typedef struct dl_file_info {
 	time_t last_dmesh;		/**< When last dmesh query was used */
 	filesize_t done;		/**< Total number of bytes completed (flushed) */
 	filesize_t buffered;	/**< Amount of buffered data (unflushed) */
+	filesize_t uploaded;	/**< Amount of bytes uploaded */
 	GSList *chunklist;		/**< List of ranges within file */
 	GSList *seen_on_network;  /**< List of ranges available on network */
 	guint32 generation;		/**< Generation number, incremented on disk update */
@@ -203,6 +205,8 @@ void fi_purge_by_handle_list(const GSList *list);
 
 const gchar *file_info_readable_filename(const struct dl_file_info *fi);
 gchar *file_info_build_magnet(gnet_fi_t fih);
+
+void fi_increase_uploaded(fileinfo_t *fi, size_t amount);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_fileinfo_h_ */

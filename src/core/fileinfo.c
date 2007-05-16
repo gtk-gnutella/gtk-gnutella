@@ -5481,6 +5481,13 @@ fi_free_info(gnet_fi_info_t *info)
     wfree(info, sizeof *info);
 }
 
+void
+fi_increase_uploaded(fileinfo_t *fi, size_t amount)
+{
+	file_info_check(fi);
+	fi->uploaded += amount;	
+}
+
 /**
  * Fill in the fileinfo status structure "s" using the fileinfo associated
  * with the fileinfo handle "fih".
@@ -5497,6 +5504,7 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->refcount       = fi->refcount;
     s->lifecount      = fi->lifecount;
     s->done           = fi->done;
+	s->uploaded		  = fi->uploaded;
     s->recv_last_rate = fi->recv_last_rate;
     s->size           = fi->size;
     s->aqueued_count  = fi->aqueued_count;

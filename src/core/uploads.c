@@ -2191,9 +2191,14 @@ upload_file_present(struct shared_file *sf)
 		shared_file_set_modification_time(sf, sb.st_mtime);
 		if (NULL == fi) {
 			request_sha1(sf);
-		}
-		if (NULL != fi && (fi->flags & FI_F_SEEDING))
 			goto failure;
+		} else if (fi->flags & FI_F_SEEDING) {
+			/*
+			 * If the download is finished, we must stop seeding as soon
+			 * as the file is modified.
+			 */
+			goto failure;
+		}
 	}
 	return TRUE;
 
@@ -4359,6 +4364,9 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	u->last_update = tm_time();
 	u->sent += written;
+	if (u->file_info) {
+		fi_increase_uploaded(u->file_info, written);
+	}
 
 	/* This upload is complete */
 	if (u->pos > u->end) {
