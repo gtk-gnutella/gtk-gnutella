@@ -4608,6 +4608,16 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 
+	/* Don't start an download if it's already finished. */
+	if (file_info) {
+		if (FILE_INFO_COMPLETE(file_info))
+			return NULL;
+	} else if (sha1) {
+		fileinfo_t *xfi = file_info_by_sha1(sha1);
+		if (xfi && FILE_INFO_COMPLETE(xfi))
+			return NULL;
+	}
+
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
     /*
