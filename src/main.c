@@ -1090,13 +1090,9 @@ handle_arguments(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if (
-		options[main_arg_exec_on_crash].used ||
-		options[main_arg_pause_on_crash].used
-	) {
-		crash_init(options[main_arg_exec_on_crash].arg, argv0,
-			options[main_arg_pause_on_crash].used);
-	}
+	crash_init(options[main_arg_exec_on_crash].arg, argv0,
+		options[main_arg_pause_on_crash].used);
+
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
 	}
