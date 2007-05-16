@@ -1918,7 +1918,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 
 	file_info_check(fi);
 
-	if (fi->flags & FI_F_TRANSIENT)
+	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING))
 		return;
 
 	if (fi->use_swarming && fi->dirty)
@@ -5486,6 +5486,7 @@ fi_increase_uploaded(fileinfo_t *fi, size_t amount)
 {
 	file_info_check(fi);
 	fi->uploaded += amount;	
+	file_info_changed(fi);
 }
 
 /**
