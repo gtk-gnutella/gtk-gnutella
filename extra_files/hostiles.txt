@@ -967,7 +967,7 @@
 
 # Respond with non-existing files; server listen but send no reply;
 # standard port
-64.93.88.112
+64.93.88.64/26
 64.93.89.192/26
 
 # 62.90.175.146; hosted by Barak I.T.C;
@@ -978,7 +978,7 @@
 # LimeWire/4.9.11 and LimeWire/4.10.9; GUID switchers; further these seem to
 # abuse searches for discovery
 83.142.225.0/24
-87.117.250.0/24
+87.117.250.0/23
 66.90.78.0/24
 69.72.161.0/24
 208.98.50.0/24
