@@ -674,6 +674,8 @@ fi_gui_init(void)
 
     gtk_clist_set_column_justification(clist_fileinfo,
         c_fi_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(clist_fileinfo,
+        c_fi_uploaded, GTK_JUSTIFY_RIGHT);
 
     gtk_clist_column_titles_active(clist_fileinfo);
 
@@ -839,6 +841,23 @@ fi_gui_cmp_done(GtkCList *unused_clist,
 }
 
 static gint 
+fi_gui_cmp_uploaded(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_status_t a, b;
+    gnet_fi_t fi_a, fi_b;
+
+	(void) unused_clist;
+	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    fi_b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+    guc_fi_get_status(fi_a, &a);
+    guc_fi_get_status(fi_b, &b);
+
+	return CMP(a.uploaded, b.uploaded);
+}
+
+static gint 
 fi_gui_cmp_sources(GtkCList *unused_clist,
 	gconstpointer ptr1, gconstpointer ptr2)
 {
@@ -898,6 +917,7 @@ on_clist_fileinfo_click_column(GtkCList *clist, gint column,
 	CASE(filename)
 	CASE(size)
 	CASE(done)
+	CASE(uploaded)
 	CASE(sources)
 	CASE(status)
 #undef CASE

@@ -4571,8 +4571,8 @@
 			  <handler>on_clist_fileinfo_click_column</handler>
 			  <last_modification_time>Sat, 23 Sep 2006 20:31:07 GMT</last_modification_time>
 			</signal>
-			<columns>5</columns>
-			<column_widths>80,80,80,80,80</column_widths>
+			<columns>6</columns>
+			<column_widths>80,80,80,80,80,80</column_widths>
 			<selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 			<show_titles>True</show_titles>
 			<shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -4580,11 +4580,11 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <child_name>CList:title</child_name>
-			  <name>label512</name>
+			  <name>label_file</name>
 			  <label>File</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
-			  <xalign>7.45058e-09</xalign>
+			  <xalign>0</xalign>
 			  <yalign>0.5</yalign>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
@@ -4593,7 +4593,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <child_name>CList:title</child_name>
-			  <name>label513</name>
+			  <name>label_size</name>
 			  <label>Size</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
@@ -4606,7 +4606,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <child_name>CList:title</child_name>
-			  <name>label514</name>
+			  <name>label_done</name>
 			  <label>Done</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
@@ -4619,7 +4619,20 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <child_name>CList:title</child_name>
-			  <name>label515</name>
+			  <name>label_uploaded</name>
+			  <label>Uploaded</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label_sources</name>
 			  <label>Sources</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
@@ -4632,7 +4645,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <child_name>CList:title</child_name>
-			  <name>label516</name>
+			  <name>label_status</name>
 			  <label>Status</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>

@@ -95,6 +95,7 @@ struct fileinfo_data {
 		gboolean paused;
 		gboolean hashed;
 		gboolean seeding;
+		filesize_t uploaded;
 	} file;
 };
 
@@ -215,6 +216,13 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 			text = 0 != data->size
 				? compact_size(data->size, show_metric_units())
 				: "?";
+		}
+		break;
+	case c_fi_uploaded:
+		if (data->is_download) {
+			text = NULL;
+		} else {
+			text = compact_size(data->file.uploaded, show_metric_units());
 		}
 		break;
 	case c_fi_sources:
@@ -525,6 +533,7 @@ fi_gui_fill_status(struct fileinfo_data *data)
 	data->file.paused = s.paused;
 	data->file.hashed = s.sha1_hashed;
 	data->file.seeding = s.seeding;
+	data->file.uploaded = s.uploaded;
 	data->size = s.size;
 	data->done = s.done;
 
@@ -652,6 +661,9 @@ fileinfo_data_cmp(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
 		break;
 	case c_fi_size:
 		ret = CMP(a->size, b->size);
+		break;
+	case c_fi_uploaded:
+		ret = CMP(a->file.uploaded, b->file.uploaded);
 		break;
 	case c_fi_done:
 		ret = CMP(fi_gui_relative_done(a, FALSE),
@@ -937,6 +949,7 @@ fi_gui_init(void)
 		{ c_fi_filename, N_("File"),	 0.0 },
     	{ c_fi_size,	 N_("Size"),	 1.0 },
     	{ c_fi_done,	 N_("Progress"), 1.0 },
+    	{ c_fi_uploaded, N_("Uploaded"), 1.0 },
     	{ c_fi_sources,  N_("Sources"),  0.0 },
     	{ c_fi_status,   N_("Status"),	 0.0 }
 	};

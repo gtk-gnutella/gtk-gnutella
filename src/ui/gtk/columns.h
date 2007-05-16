@@ -136,6 +136,7 @@ enum c_fi {
 	c_fi_filename = 0,
 	c_fi_size,
 	c_fi_done,
+	c_fi_uploaded,
 	c_fi_sources,
 	c_fi_status,
 #define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_status + 1)

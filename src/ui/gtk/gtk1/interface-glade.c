@@ -359,11 +359,12 @@ create_main_window (void)
   GtkWidget *vbox111;
   GtkWidget *scrolledwindow42;
   GtkWidget *clist_fileinfo;
-  GtkWidget *label512;
-  GtkWidget *label513;
-  GtkWidget *label514;
-  GtkWidget *label515;
-  GtkWidget *label516;
+  GtkWidget *label_file;
+  GtkWidget *label_size;
+  GtkWidget *label_done;
+  GtkWidget *label_uploaded;
+  GtkWidget *label_sources;
+  GtkWidget *label_status;
   GtkWidget *hbox196;
   GtkWidget *label656;
   GtkWidget *entry_fi_regex;
@@ -3714,7 +3715,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox111), scrolledwindow42, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow42), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
-  clist_fileinfo = gtk_clist_new (5);
+  clist_fileinfo = gtk_clist_new (6);
   gtk_widget_set_name (clist_fileinfo, "clist_fileinfo");
   gtk_widget_ref (clist_fileinfo);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_fileinfo", clist_fileinfo,
@@ -3726,49 +3727,58 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 2, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 3, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 4, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 5, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (clist_fileinfo), GTK_SELECTION_EXTENDED);
   gtk_clist_column_titles_show (GTK_CLIST (clist_fileinfo));
 
-  label512 = gtk_label_new (_("File"));
-  gtk_widget_set_name (label512, "label512");
-  gtk_widget_ref (label512);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label512", label512,
+  label_file = gtk_label_new (_("File"));
+  gtk_widget_set_name (label_file, "label_file");
+  gtk_widget_ref (label_file);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_file", label_file,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label512);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 0, label512);
-  gtk_misc_set_alignment (GTK_MISC (label512), 7.45058e-09, 0.5);
+  gtk_widget_show (label_file);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 0, label_file);
+  gtk_misc_set_alignment (GTK_MISC (label_file), 0, 0.5);
 
-  label513 = gtk_label_new (_("Size"));
-  gtk_widget_set_name (label513, "label513");
-  gtk_widget_ref (label513);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label513", label513,
+  label_size = gtk_label_new (_("Size"));
+  gtk_widget_set_name (label_size, "label_size");
+  gtk_widget_ref (label_size);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_size", label_size,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label513);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 1, label513);
+  gtk_widget_show (label_size);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 1, label_size);
 
-  label514 = gtk_label_new (_("Done"));
-  gtk_widget_set_name (label514, "label514");
-  gtk_widget_ref (label514);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label514", label514,
+  label_done = gtk_label_new (_("Done"));
+  gtk_widget_set_name (label_done, "label_done");
+  gtk_widget_ref (label_done);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_done", label_done,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label514);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 2, label514);
+  gtk_widget_show (label_done);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 2, label_done);
 
-  label515 = gtk_label_new (_("Sources"));
-  gtk_widget_set_name (label515, "label515");
-  gtk_widget_ref (label515);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label515", label515,
+  label_uploaded = gtk_label_new (_("Uploaded"));
+  gtk_widget_set_name (label_uploaded, "label_uploaded");
+  gtk_widget_ref (label_uploaded);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_uploaded", label_uploaded,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label515);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 3, label515);
+  gtk_widget_show (label_uploaded);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 3, label_uploaded);
 
-  label516 = gtk_label_new (_("Status"));
-  gtk_widget_set_name (label516, "label516");
-  gtk_widget_ref (label516);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label516", label516,
+  label_sources = gtk_label_new (_("Sources"));
+  gtk_widget_set_name (label_sources, "label_sources");
+  gtk_widget_ref (label_sources);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_sources", label_sources,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label516);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 4, label516);
+  gtk_widget_show (label_sources);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 4, label_sources);
+
+  label_status = gtk_label_new (_("Status"));
+  gtk_widget_set_name (label_status, "label_status");
+  gtk_widget_ref (label_status);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_status", label_status,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_status);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 5, label_status);
 
   hbox196 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox196, "hbox196");
