@@ -53,82 +53,124 @@ static struct {
 	int pause_process;
 } vars;
 
-static const int signals[] = {
+static const struct {
+	const char name[16];
+	int signo;
+} signals[] = {
+#define D(x) { #x, x }
 #ifdef SIGBUS
-	SIGBUS,
+	D(SIGBUS),
 #endif
 #ifdef SIGTRAP
-	SIGTRAP,
+	D(SIGTRAP),
 #endif
-	SIGABRT,
-	SIGFPE,
-	SIGILL,
-	SIGSEGV
+	D(SIGABRT),
+	D(SIGFPE),
+	D(SIGILL),
+	D(SIGSEGV)
+#undef D
 };
+
+#define print_str(x) \
+G_STMT_START { \
+	if (iov_cnt < G_N_ELEMENTS(iov)) { \
+		const char *ptr = (x); \
+		if (ptr) { \
+			iov[iov_cnt].iov_base = (char *) ptr; \
+			iov[iov_cnt].iov_len = strlen(ptr); \
+			iov_cnt++; \
+		} \
+	} \
+} G_STMT_END
+
+static void
+crash_message(const char *reason)
+{
+	struct iovec iov[5];
+	unsigned iov_cnt = 0;
+	char pid_buf[22];
+	
+	print_str("CRASH (pid=");
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));
+	print_str(") by ");
+	print_str(reason);
+	print_str("\n");
+	writev(STDERR_FILENO, iov, iov_cnt);
+}
+
 
 static void
 crash_exec(const char *pathname, const char *argv0)
 {
-	char pid_buf[32], *pid_ptr;
+   	const char *pid_str;
+	char pid_buf[22];
 	pid_t pid;
 
-	pid = getpid();
-	pid_ptr = &pid_buf[sizeof pid_buf - 1];
-	*pid_ptr = '\0';
-	do {
-		*--pid_ptr = (pid % 10) + '0';
-		pid /= 10;
-	} while (pid && pid_ptr != pid_buf);
+	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
 
 	pid = fork();
-	if (0 == pid) {
-		char const *argv[8];
+	switch (pid) {
+	case 0:
+		{
+			char const *argv[8];
 
-		argv[0] = pathname;
-		argv[1] = argv0;
-		argv[2] = pid_ptr;
-		argv[3] = NULL;
+			argv[0] = pathname;
+			argv[1] = argv0;
+			argv[2] = pid_str;
+			argv[3] = NULL;
 
-		/* Assign stdin, stdout and stdout to /dev/null */
-		if (
-			close(STDIN_FILENO) ||
-			close(STDOUT_FILENO) ||
-			close(STDERR_FILENO) ||
-			STDIN_FILENO  != open("/dev/null", O_RDONLY, 0) ||
-			STDOUT_FILENO != open("/dev/null", O_WRONLY, 0) ||
-			STDERR_FILENO != dup(STDOUT_FILENO) ||
-			-1 == setsid() || 
-			execve(argv[0], (const void *) argv, NULL)
-		) {
-			_exit(EXIT_FAILURE);
+			/* Assign stdin, stdout and stdout to /dev/null */
+			if (
+					close(STDIN_FILENO) ||
+					close(STDOUT_FILENO) ||
+					close(STDERR_FILENO) ||
+					STDIN_FILENO  != open("/dev/null", O_RDONLY, 0) ||
+					STDOUT_FILENO != open("/dev/null", O_WRONLY, 0) ||
+					STDERR_FILENO != dup(STDOUT_FILENO) ||
+					-1 == setsid() || 
+					execve(argv[0], (const void *) argv, NULL)
+			   ) {
+				_exit(EXIT_FAILURE);
+			}
 		}
-	} else if ((pid_t) -1 != pid) {
-		int status;
-		waitpid(pid, &status, 0);
+		break;
+	case -1:
+		break;
+	default:
+		{
+			int status;
+			waitpid(pid, &status, 0);
+		}
 	}
 }
 
 static void
 crash_handler(int signo)
 {
+	const char *name = NULL;
 	unsigned i;
 
 	(void) signo;
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		set_signal(signals[i], SIG_DFL);
+		set_signal(signals[i].signo, SIG_DFL);
+		if (signals[i].signo == signo) {
+			name = signals[i].name;
+		}
 	}
+	crash_message(name);
 	if (vars.pathname) {
 		crash_exec(vars.pathname, vars.argv0);
 	}
 	if (vars.pause_process) {
 		sigset_t oset;
 
-		sigprocmask(SIG_BLOCK, NULL, &oset);
-		sigsuspend(&oset);
+		if (sigprocmask(SIG_BLOCK, NULL, &oset) != -1) {
+			sigsuspend(&oset);
+		}
 	}
 	_exit(EXIT_FAILURE);
 }
@@ -149,7 +191,7 @@ crash_init(const char *pathname, const char *argv0, int pause_process)
 	vars.pause_process = pause_process;
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		set_signal(signals[i], crash_handler);
+		set_signal(signals[i].signo, crash_handler);
 	}
 }
 

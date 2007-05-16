@@ -38,24 +38,20 @@
 RCSID("$Id$")
 
 #include "lib/fast_assert.h"
+#include "lib/misc.h"
 #include "lib/override.h"			/* Must be the last header included */
 
-static inline const char *
-print_number(char *dst, size_t size, unsigned long value)
-{
-	char *p = &dst[size];
-
-	if (size > 0) {
-		*--p = '\0';
-	}
-	while (p != dst) {
-		*--p = (value % 10) + '0';
-		value /= 10;
-		if (0 == value)
-			break;
-	}
-	return p;
-}
+#define print_str(x) \
+G_STMT_START { \
+	if (iov_cnt < G_N_ELEMENTS(iov)) { \
+		const char *ptr = (x); \
+		if (ptr) { \
+			iov[iov_cnt].iov_base = (char *) ptr; \
+			iov[iov_cnt].iov_len = strlen(ptr); \
+			iov_cnt++; \
+		} \
+	} \
+} G_STMT_END
 
 /**
  * @note For maximum safety this is kept signal-safe, so that we can
@@ -65,27 +61,11 @@ print_number(char *dst, size_t size, unsigned long value)
 static void
 assertion_message(const assertion_data * const data, int fatal)
 {
-	char line_buf[22], pid_buf[22];
+	char line_buf[22];
 	struct iovec iov[16];
-	guint iov_cnt = 0;
+	unsigned iov_cnt = 0;
 
-#define print_str(x) \
-G_STMT_START { \
-	if (iov_cnt < G_N_ELEMENTS(iov)) { \
-		const char *ptr = (x); \
-		iov[iov_cnt].iov_base = (char *) ptr; \
-		iov[iov_cnt].iov_len = strlen(ptr); \
-		iov_cnt++; \
-	} \
-} G_STMT_END
-
-	if (fatal) {
-		print_str("CRASH (pid=");
-		print_str(print_number(pid_buf, sizeof pid_buf, getpid()));
-		print_str("): ");
-	} else {
-		print_str("WARNING: ");
-	}
+	print_str(fatal ? "FATAL: " : "WARNING: ");
 	if (data->expr) {
 		print_str("Assertion failure in ");
 	} else {
