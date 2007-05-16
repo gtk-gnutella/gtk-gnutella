@@ -260,7 +260,7 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 
 			found = g_hash_table_lookup_extended(vp_info_hash,
 				GUINT_TO_POINTER(fih), NULL, &value);
-			g_assert(found);
+    		g_return_if_fail(found);
 			g_assert(value);
 
 			v = value;
@@ -424,7 +424,7 @@ vp_gui_fi_removed(gnet_fi_t fih)
 
     found = g_hash_table_lookup_extended(vp_info_hash,
 		GUINT_TO_POINTER(fih), NULL, &value);
-    g_assert(found);
+	g_return_if_fail(found);
     g_assert(value);
 
 	v = value;
@@ -542,7 +542,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 
     found = g_hash_table_lookup_extended(vp_info_hash,
 		GUINT_TO_POINTER(fih), NULL, &value);
-    g_assert(found);
+	g_return_if_fail(found);
     g_assert(value);
 	v = value;
 
@@ -740,7 +740,7 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
 
     found = g_hash_table_lookup_extended(vp_info_hash,
 		GUINT_TO_POINTER(fih), NULL, &value);
-    g_assert(found);
+    g_return_if_fail(found);
     g_assert(value);
 	v = value;
 
