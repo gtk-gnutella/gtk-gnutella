@@ -4608,12 +4608,20 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 
-	/* Don't start an download if it's already finished. */
-	if (file_info) {
-		if (FILE_INFO_COMPLETE(file_info))
-			return NULL;
-	} else if (sha1) {
-		fileinfo_t *xfi = file_info_by_sha1(sha1);
+	/*
+	 * Don't start an download if it's already finished. We let orphaned
+	 * downloads pass though as we might have to finish the download (stripping
+	 * trailer and moving).
+	 */
+	if (NULL == file_info || file_info->refcount > 0) {
+		fileinfo_t *xfi;
+		if (file_info) {
+			xfi = file_info;			
+		} else if (sha1) {
+			xfi = file_info_by_sha1(sha1);
+		} else {
+			xfi = NULL;
+		}
 		if (xfi && FILE_INFO_COMPLETE(xfi))
 			return NULL;
 	}
