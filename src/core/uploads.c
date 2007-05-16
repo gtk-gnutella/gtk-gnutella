@@ -2192,7 +2192,7 @@ upload_file_present(struct shared_file *sf)
 		if (NULL == fi) {
 			request_sha1(sf);
 		}
-		if (NULL == fi && (fi->flags & FI_F_SEEDING))
+		if (NULL != fi && (fi->flags & FI_F_SEEDING))
 			goto failure;
 	}
 	return TRUE;
