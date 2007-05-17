@@ -741,6 +741,17 @@ file_info_store_binary(fileinfo_t *fi)
 		file_object_release(&fo);
 	}
 }
+/**
+ * Record that the fileinfo trailer has been stripped.
+ */
+void
+file_info_mark_stripped(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	g_return_if_fail(!(FI_F_STRIPPED & fi->flags));
+
+	fi->flags |= FI_F_STRIPPED;
+}
 
 /**
  * Strips the file metainfo trailer off a file.
@@ -748,11 +759,15 @@ file_info_store_binary(fileinfo_t *fi)
 void
 file_info_strip_binary(fileinfo_t *fi)
 {
-	g_assert(!(fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING)));
+	file_info_check(fi);
+	g_assert(!((FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED) & fi->flags));
 
-	if (-1 == truncate(fi->pathname, fi->size))
+	if (-1 == truncate(fi->pathname, fi->size)) {
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
 			fi->pathname, g_strerror(errno));
+	} else {
+		file_info_mark_stripped(fi);
+	}
 }
 
 /**
@@ -872,13 +887,6 @@ fi_free(fileinfo_t *fi)
 		g_assert(NULL == fi->sf);
 	}
 
-	atom_filesize_free_null(&fi->size_atom);
-	atom_guid_free_null(&fi->guid);
-	atom_str_free_null(&fi->pathname);
-	atom_tth_free_null(&fi->tth);
-	atom_sha1_free_null(&fi->sha1);
-	atom_sha1_free_null(&fi->cha1);
-
 	if (fi->chunklist) {
 		g_assert(file_info_check_chunklist(fi, TRUE));
 		file_info_chunklist_free(fi);
@@ -897,6 +905,13 @@ fi_free(fileinfo_t *fi)
 		fi_free_ranges(fi->seen_on_network);
 	}
 	fi_tigertree_free(fi);
+
+	atom_filesize_free_null(&fi->size_atom);
+	atom_guid_free_null(&fi->guid);
+	atom_str_free_null(&fi->pathname);
+	atom_tth_free_null(&fi->tth);
+	atom_sha1_free_null(&fi->sha1);
+	atom_sha1_free_null(&fi->cha1);
 
 	fi->magic = 0;
 	wfree(fi, sizeof *fi);
@@ -1904,7 +1919,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 
 	file_info_check(fi);
 
-	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING))
+	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED))
 		return;
 
 	if (fi->use_swarming && fi->dirty)
@@ -3357,6 +3372,9 @@ file_info_retrieve(void)
 		continue;
 
 	reset:
+		if (NULL == fi->pathname) {
+			fi->pathname = atom_str_get("/non-existent");
+		}
 		fi_free(fi);
 		fi = NULL;
 		atom_str_free_null(&filename);
@@ -3364,6 +3382,9 @@ file_info_retrieve(void)
 	}
 
 	if (fi) {
+		if (NULL == fi->pathname) {
+			fi->pathname = atom_str_get("/non-existent");
+		}
 		fi_free(fi);
 		fi = NULL;
 		if (!empty)

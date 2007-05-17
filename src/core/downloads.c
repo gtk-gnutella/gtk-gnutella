@@ -4613,24 +4613,6 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 
-	/*
-	 * Don't start an download if it's already finished. We let orphaned
-	 * downloads pass though as we might have to finish the download (stripping
-	 * trailer and moving).
-	 */
-	if (NULL == file_info || file_info->refcount > 0) {
-		fileinfo_t *xfi;
-		if (file_info) {
-			xfi = file_info;			
-		} else if (sha1) {
-			xfi = file_info_by_sha1(sha1);
-		} else {
-			xfi = NULL;
-		}
-		if (xfi && FILE_INFO_COMPLETE(xfi))
-			return NULL;
-	}
-
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
     /*
@@ -4702,6 +4684,15 @@ create_download(
 		return NULL;
 	}
 
+	fi = file_info == NULL
+		? file_info_get(file_name, save_file_path, size, sha1, 0 != size)
+		: file_info;
+
+	if (fi && (FI_F_SEEDING & fi->flags)) {
+		atom_str_free_null(&file_name);
+		return NULL;
+	}
+
 	/*
 	 * Initialize download.
 	 */
@@ -4752,10 +4743,6 @@ create_download(
 	 * That's why we still accept downloads for that fileinfo, but do not
 	 * schedule them: we wait for the outcome of the SHA1 verification process.
 	 */
-
-	fi = file_info == NULL ?
-		file_info_get(d->file_name, save_file_path, size, sha1, 0 != size)
-		: file_info;
 
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;

@@ -149,6 +149,8 @@ file_info_check(const fileinfo_t *fi)
 	g_assert(fi);
 	g_assert(FI_MAGIC == fi->magic);
 	g_assert(fi->refcount >= 0);
+	g_assert(fi->pathname);
+	g_assert(is_absolute_path(fi->pathname));
 }
 
 static inline gboolean

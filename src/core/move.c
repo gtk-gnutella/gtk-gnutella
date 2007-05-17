@@ -304,6 +304,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 
 finish:
 	if (md->error == 0) {
+		file_info_mark_stripped(d->file_info);
 		download_move_done(d, md->target, elapsed);
 	} else
 		download_move_error(d);

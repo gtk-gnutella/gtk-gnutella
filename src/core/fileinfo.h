@@ -56,7 +56,8 @@ enum {
 	FI_F_TRANSIENT	= 1 << 2,	/**< Don't persist to disk */
 	FI_F_MARK		= 1 << 3,	/**< Marked during traversal */
 	FI_F_PAUSED		= 1 << 4,	/**< Paused by user */
-	FI_F_SEEDING	= 1 << 5	/**< Seeding after successful download */
+	FI_F_SEEDING	= 1 << 5,	/**< Seeding after successful download */
+	FI_F_STRIPPED	= 1 << 6	/**< Fileinfo trailler has been stripped */
 };
 
 /*
@@ -123,6 +124,7 @@ fileinfo_t *file_info_get_transient(const gchar *name);
 fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
 void file_info_moved(fileinfo_t *fi, const gchar *pathname);
+void file_info_mark_stripped(fileinfo_t *fi);
 
 /***
  *** Inlined routines.
