@@ -2363,7 +2363,7 @@ prop = {
 			"Don't set it too large.";
     type = guint32;
     data = {
-        default = 524288; /* 512 KiB */
+        default = 1048576; /* 1 MiB */
     };
 };
 
