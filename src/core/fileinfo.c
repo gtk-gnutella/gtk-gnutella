@@ -2312,13 +2312,13 @@ file_info_hash_insert(fileinfo_t *fi)
 	 */
 
 	xfi = g_hash_table_lookup(fi_by_outname, filepath_basename(fi->pathname));
-
-	if (NULL != xfi && xfi != fi)			/* See comment above */
-		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
-
-	if (NULL == xfi)
+	if (xfi) {
+		file_info_check(xfi);
+		g_assert(xfi == fi);
+	} else { 
 		gm_hash_table_insert_const(fi_by_outname,
 			filepath_basename(fi->pathname), fi);
+	}
 
 	/*
 	 * Likewise, there can be only ONE entry per given SHA1, but the SHA1
@@ -2373,6 +2373,7 @@ transient:
 static void
 file_info_hash_remove(fileinfo_t *fi)
 {
+	gpointer xfi;
 	namesize_t nsk;
 	gboolean found;
 
@@ -2413,7 +2414,12 @@ file_info_hash_remove(fileinfo_t *fi)
 	 * Remove from plain hash tables: by output name, by SHA1 and by GUID.
 	 */
 
-	g_hash_table_remove(fi_by_outname, filepath_basename(fi->pathname));
+	xfi = g_hash_table_lookup(fi_by_outname, filepath_basename(fi->pathname));
+	if (xfi) {
+		file_info_check(xfi);
+		g_assert(xfi == fi);
+		g_hash_table_remove(fi_by_outname, filepath_basename(fi->pathname));
+	}
 
 	if (fi->sha1)
 		g_hash_table_remove(fi_by_sha1, fi->sha1);
@@ -3474,9 +3480,10 @@ file_info_new_outname(const gchar *dir, const gchar *name)
 		 */
 		filename = filepath_basename(uniq);
 		g_assert('\0' != filename[0]);
-		g_assert(!g_hash_table_lookup(fi_by_outname, filename));
+		g_assert(NULL == g_hash_table_lookup(fi_by_outname, filename));
 
 		result = atom_str_get(uniq);
+		G_FREE_NULL(uniq);
 	}
 
 	G_FREE_NULL(to_free);
@@ -3618,8 +3625,11 @@ file_info_moved(fileinfo_t *fi, const gchar *pathname)
 
 	filename = filepath_basename(fi->pathname);
 	value = g_hash_table_lookup(fi_by_outname, filename);
-	g_assert(NULL == value || value == fi);
-	g_hash_table_remove(fi_by_outname, filename);
+	if (value) {
+		file_info_check(value);
+		g_assert(value == fi);
+		g_hash_table_remove(fi_by_outname, filename);
+	}
 
 	atom_str_change(&fi->pathname, pathname);
 	filename = filepath_basename(fi->pathname);
