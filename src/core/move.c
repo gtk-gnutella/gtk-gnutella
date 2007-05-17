@@ -313,12 +313,16 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 			download_outname(md->d), (gulong) md->size / elapsed, md->error);
 
 finish:
-	G_FREE_NULL(md->target);
-
-	if (md->error == 0)
+	if (md->error == 0) {
+		const gchar *basename = filepath_basename(md->target);
+		gchar *dirname = filepath_directory(md->target);
+		file_info_moved(d->file_info, dirname, basename);
 		download_move_done(d, elapsed);
-	else
+		G_FREE_NULL(dirname);
+	} else
 		download_move_error(d);
+
+	G_FREE_NULL(md->target);
 }
 
 /**
