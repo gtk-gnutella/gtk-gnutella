@@ -811,7 +811,7 @@
 # Elemental Codeworks Inc; LimeWire; nodes share thousands of aliases of a
 # couple of almost identical MOV files (adult.mov) which is about 8 MB large;
 # these files link to bang hypen sluts dot com.
-64.59.71.0/24
+64.59.70.0/23
 64.59.72.0/24
 64.59.122.0/24
 64.72.117.0/24
@@ -993,4 +993,8 @@
 84.60.17.116
 82.239.141.113
 151.68.163.253
+
+# gtk-gnutella; MOV spam;
+# p2pads dot com; ptopads dot com; redlightcenter dot com
+85.92.157.148
 
