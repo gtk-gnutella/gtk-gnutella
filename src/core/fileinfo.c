@@ -3602,6 +3602,12 @@ done:
 	G_FREE_NULL(pathname);
 }
 
+/**
+ * Called to update the fileinfo information with the new path and possibly
+ * filename information, once the downloaded file has been moved/renamed.
+ * This prepares for possible seeding of the file once it has been completed,
+ * to continue "partial-file-sharing" it now that it is fully available...
+ */
 void
 file_info_moved(fileinfo_t *fi, const gchar *path, const gchar *filename)
 {
@@ -3610,6 +3616,7 @@ file_info_moved(fileinfo_t *fi, const gchar *path, const gchar *filename)
 	file_info_check(fi);
 	g_assert(path);
 	g_assert(filename);
+	g_assert(!(fi->flags & FI_F_SEEDING));
 
 	value = g_hash_table_lookup(fi_by_outname, fi->file_name);
 	g_assert(NULL == value || value == fi);
