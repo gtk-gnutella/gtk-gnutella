@@ -92,6 +92,7 @@ guc_download_auto_new(const gchar *filename,
 
 gchar *guc_download_build_url(const struct download *d);
 gchar *guc_file_info_build_magnet(gnet_fi_t handle);
+gchar *guc_file_info_get_file_url(gnet_fi_t handle);
 gint guc_download_get_http_req_percent(const struct download *d);
 void guc_download_fallback_to_push(struct download *d, gboolean on_timeout,
 		gboolean user_request);

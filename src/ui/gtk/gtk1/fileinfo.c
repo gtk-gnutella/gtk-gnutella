@@ -37,12 +37,13 @@
 
 RCSID("$Id$")
 
-#include "gtk/filter.h"
-#include "gtk/statusbar.h"
-#include "gtk/visual_progress.h"
 #include "gtk/columns.h"
+#include "gtk/drag.h"
+#include "gtk/filter.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/settings.h"
+#include "gtk/statusbar.h"
+#include "gtk/visual_progress.h"
 
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
@@ -53,93 +54,25 @@ RCSID("$Id$")
 
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
-static GHashTable *fi_updates = NULL;
+static GHashTable *fi_updates;
+static struct drag_context *drag_file_url;
 
 /*
  * Together visible_fi and hidden_fi are a list of all fileinfo handles
  * the the gui knows about.
  */
-static GSList *visible_fi = NULL;
-static GSList *hidden_fi  = NULL;
+static GSList *visible_fi;
+static GSList *hidden_fi;
 
 static regex_t filter_re;
 
-static GtkCList *clist_fileinfo = NULL;		/* Cached lookup_widget() */
+static GtkCList *clist_fileinfo;		/* Cached lookup_widget() */
 
-static void
-drag_begin(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
-	gpointer udata)
+static gchar *
+fi_gui_get_file_url(GtkWidget *unused_widget)
 {
-	gchar **url_ptr = udata;
-
 	(void) unused_widget;
-	(void) unused_drag_ctx;
-
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
-	
-	if (last_shown_valid) {
-		gnet_fi_info_t *fi = NULL;
-    	gnet_fi_status_t fis;
-
-    	guc_fi_get_status(last_shown, &fis);
-
-		/* Allow partials but not unstarted files */
-		if (fis.done > 0) {
-			fi = guc_fi_get_info(last_shown);
-			g_assert(fi != NULL);
-
-			if (fi->path && fi->file_name) {
-				gchar *escaped;
-				gchar *pathname;
-
-				pathname = make_pathname(fi->path, fi->file_name);
-				escaped = url_escape(pathname);
-				if (escaped != pathname) {
-					G_FREE_NULL(pathname);
-				}
-				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-				G_FREE_NULL(escaped);
-			}
-    		guc_fi_free_info(fi);
-		}
-	}
-}
-
-static void
-drag_data_get(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
-	GtkSelectionData *data, guint unused_info, guint unused_stamp,
-	gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_widget;
-	(void) unused_drag_ctx;
-	(void) unused_info;
-	(void) unused_stamp;
-
-	g_assert(url_ptr != NULL);
-	if (*url_ptr) {
-		const gchar *drag_data = *url_ptr;
-		
-    	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
-			8 /* CHAR_BIT */, cast_to_gconstpointer(drag_data),
-			strlen(drag_data));
-		G_FREE_NULL(*url_ptr);
-	}
-}
-
-static void
-drag_end(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
-	gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_widget;
-	(void) unused_drag_ctx;
-
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
+	return last_shown_valid ? guc_file_info_get_file_url(last_shown) : NULL;
 }
 
 void
@@ -689,18 +622,9 @@ fi_gui_init(void)
 
     /* Initialize the row filter */
     fi_gui_set_filter_regex(NULL);
-	
-	/* Initialize drag support */
-	gtk_drag_source_set(GTK_WIDGET(clist_fileinfo),
-		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
-		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
 
-    gtk_signal_connect(GTK_OBJECT(clist_fileinfo), "drag-data-get",
-        drag_data_get, &dnd_url);
-    gtk_signal_connect(GTK_OBJECT(clist_fileinfo), "drag-begin",
-        drag_begin, &dnd_url);
-    gtk_signal_connect(GTK_OBJECT(clist_fileinfo), "drag-end",
-        drag_end, &dnd_url);
+	drag_file_url = drag_new();	
+	drag_attach(drag_file_url, GTK_WIDGET(clist_fileinfo), fi_gui_get_file_url);
 }
 
 void

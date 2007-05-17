@@ -5437,7 +5437,6 @@ fi_get_info(gnet_fi_t fih)
 
     info = walloc(sizeof *info);
 
-    info->path = fi->path ? atom_str_get(fi->path) : NULL;
     info->file_name = fi->file_name ? atom_str_get(fi->file_name) : NULL;
 	sha1 = fi->sha1 ? fi->sha1 : fi->cha1;
     info->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
@@ -5467,7 +5466,6 @@ fi_free_info(gnet_fi_info_t *info)
 
     g_assert(NULL != info);
 
-	atom_str_free_null(&info->path);
 	atom_str_free_null(&info->file_name);
 	atom_sha1_free_null(&info->sha1);
 
@@ -6019,6 +6017,8 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 /**
  * Creates a URL which points to a downloads (e.g. you can move this to a
  * browser and download the file there with this URL).
+ *
+ * @return A newly allocated string.
  */
 gchar *
 file_info_build_magnet(gnet_fi_t handle)
@@ -6061,6 +6061,38 @@ file_info_build_magnet(gnet_fi_t handle)
 
 	url = magnet_to_string(magnet);
 	magnet_resource_free(&magnet);
+	return url;
+}
+
+/**
+ * Creates a file:// URL which points to the file on the local filesystem.
+ * If the file has not been created yet, NULL is returned.
+ *
+ * @return A newly allocated string or NULL.
+ */
+gchar *
+file_info_get_file_url(gnet_fi_t handle)
+{
+	gchar *url = NULL;
+	fileinfo_t *fi;
+	
+	fi = file_info_find_by_handle(handle);
+	g_return_val_if_fail(fi, NULL);
+	file_info_check(fi);
+	
+	/* Allow partials but not unstarted files */
+	if (fi->done > 0) {
+		gchar *escaped;
+		gchar *pathname;
+
+		pathname = make_pathname(fi->path, fi->file_name);
+		escaped = url_escape(pathname);
+		if (escaped != pathname) {
+			G_FREE_NULL(pathname);
+		}
+		url = g_strconcat("file://", escaped, (void *) 0);
+		G_FREE_NULL(escaped);
+	}
 	return url;
 }
 

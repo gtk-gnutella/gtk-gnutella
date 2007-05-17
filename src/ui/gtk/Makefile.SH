@@ -88,6 +88,7 @@ all:: .FORCE_DEPEND
 LSRC = \
 	bitzi.c \
 	downloads_common.c \
+	drag.c \
 	drop.c \
 	filter.c \
 	filter_cb.c \
@@ -115,6 +116,7 @@ LSRC = \
 LOBJ = \
 	bitzi.o \
 	downloads_common.o \
+	drag.o \
 	drop.o \
 	filter.o \
 	filter_cb.o \

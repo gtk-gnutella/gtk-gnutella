@@ -37,15 +37,16 @@
  */
 #include "common.h"
 
-#include "gtk/gui.h"
 #include "gtk/bitzi.h"
-#include "gtk/search.h"
-#include "gtk/gtk-missing.h"
-#include "gtk/settings.h"
-#include "gtk/statusbar.h"
 #include "gtk/columns.h"
+#include "gtk/drag.h"
+#include "gtk/gtk-missing.h"
+#include "gtk/gui.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
+#include "gtk/search.h"
+#include "gtk/settings.h"
+#include "gtk/statusbar.h"
 #include "search_cb.h"
 
 #include "if/gui_property_priv.h"
@@ -68,7 +69,9 @@ RCSID("$Id$")
 
 static gchar tmpstr[4096];
 
-static GList *searches = NULL;		/* List of search structs */
+static GList *searches;		/* List of search structs */
+
+static struct drag_context *drag_file_url;
 
 /**
  * Characteristics of data in search results columns, used for sorting.
@@ -92,13 +95,12 @@ static gint search_results_compare_func
 #endif
 static void set_search_color(struct search *sch);
 static void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree);
-static void search_gui_init_dnd(GtkCTree *ctree);
 
 /*
  * If no searches are currently allocated
  */
-GtkCTree *default_search_ctree = NULL;
-static GtkWidget *default_scrolled_window = NULL;
+GtkCTree *default_search_ctree;
+static GtkWidget *default_scrolled_window;
 
 
 /* ----------------------------------------- */
@@ -287,6 +289,59 @@ search_gui_close_search(search_t *sch)
 	G_FREE_NULL(sch);
 }
 
+static gint search_gui_cursor_x, search_gui_cursor_y;
+
+/**
+ * Sets the last known position of the (mouse) cursor. This is necessary
+ * to map the cursor coordinates to a row in the tree for DND. This
+ * should be called from the "button-press-event" signal handler with
+ * the event coordinates.
+ */
+void
+search_gui_set_cursor_position(gint x, gint y)
+{
+	search_gui_cursor_x = x;
+	search_gui_cursor_y = y;
+}
+
+
+static gchar * 
+search_gui_get_file_url(GtkWidget *widget)
+{
+	GtkCTreeNode *node;
+	gui_record_t *grc;
+	record_t *record;
+	gint row = -1;
+	gchar *url = NULL;
+
+	if (
+		!gtk_clist_get_selection_info(GTK_CLIST(widget),
+			search_gui_cursor_x, search_gui_cursor_y, &row, NULL)
+	) {
+		return NULL;
+	}
+
+	if (row < 0)
+		return NULL;
+	
+	node = gtk_ctree_node_nth(GTK_CTREE(widget), row);
+	grc = gtk_ctree_node_get_row_data(GTK_CTREE(widget), node);
+	record = grc->shared_record;
+	if (ST_LOCAL & record->results_set->status) {
+		const gchar *pathname = record->tag;
+		if (pathname) {
+			gchar *escaped;
+
+			escaped = url_escape(pathname);
+			url = g_strconcat("file://", escaped, (void *) 0);
+			if (escaped != pathname) {
+				G_FREE_NULL(escaped);
+			}
+		}
+	}
+	return url;
+}
+
 /**
  * Create a new search and start it.
  *
@@ -449,7 +504,11 @@ search_gui_new_search_full(const gchar *query_str,
 	}
 	search_gui_query_free(&query);
 	if (search_gui_is_local(sch)) {
-		search_gui_init_dnd(GTK_CTREE(sch->tree));
+		if (NULL == drag_file_url){
+			drag_file_url = drag_new();
+		}
+		drag_attach(drag_file_url, GTK_WIDGET(sch->tree),
+			search_gui_get_file_url);
 	}
 	set_search_color(sch);
 	
@@ -1919,121 +1978,6 @@ search_gui_search_results_col_visible_changed(property_t prop)
 
     G_FREE_NULL(val);
     return FALSE;
-}
-
-static gint search_gui_cursor_x, search_gui_cursor_y;
-
-/**
- * Sets the last known position of the (mouse) cursor. This is necessary
- * to map the cursor coordinates to a row in the tree for DND. This
- * should be called from the "button-press-event" signal handler with
- * the event coordinates.
- */
-void
-search_gui_set_cursor_position(gint x, gint y)
-{
-	search_gui_cursor_x = x;
-	search_gui_cursor_y = y;
-}
-
-static void
-drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
-{
-	GtkCTreeNode *node;
-	gui_record_t *grc;
-	record_t *record;
-	gchar **url_ptr = udata;
-	gint row = -1;
-
-	(void) unused_drag_ctx;
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
-
-	if (
-		!gtk_clist_get_selection_info(GTK_CLIST(widget),
-			search_gui_cursor_x, search_gui_cursor_y, &row, NULL)
-	) {
-		return;
-	}
-
-	if (row < 0)
-		return;
-	
-	node = gtk_ctree_node_nth(GTK_CTREE(widget), row);
-	grc = gtk_ctree_node_get_row_data(GTK_CTREE(widget), node);
-	record = grc->shared_record;
-	if (ST_LOCAL & record->results_set->status) {
-		const gchar *pathname = record->tag;
-		if (pathname) {
-			gchar *escaped;
-
-			escaped = url_escape(pathname);
-			*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-			if (escaped != pathname) {
-				G_FREE_NULL(escaped);
-			}
-		}
-	}
-}
-
-static void
-drag_data_get(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
-	GtkSelectionData *data, guint unused_info, guint unused_stamp,
-	gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_widget;
-	(void) unused_drag_ctx;
-	(void) unused_info;
-	(void) unused_stamp;
-
-	g_assert(url_ptr != NULL);
-	if (*url_ptr) {
-		const gchar *drag_data = *url_ptr;
-		
-    	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
-			8 /* CHAR_BIT */, cast_to_gconstpointer(drag_data),
-			strlen(drag_data));
-		G_FREE_NULL(*url_ptr);
-	}
-}
-
-static void
-drag_end(GtkWidget *unused_widget, GdkDragContext *unused_drag_ctx,
-	gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_widget;
-	(void) unused_drag_ctx;
-
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
-}
-
-static void
-search_gui_init_dnd(GtkCTree *ctree)
-{
-	static const GtkTargetEntry targets[] = {
-        { "STRING", 0, 23 },
-        { "text/plain", 0, 23 },
-    };
-	static gchar *dnd_url; /* Holds the URL to set the drag data */
-
-	g_return_if_fail(ctree);
-
-	/* Initialize drag support */
-	gtk_drag_source_set(GTK_WIDGET(ctree),
-		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
-		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
-
-	gtk_signal_connect(GTK_OBJECT(ctree), "drag-data-get",
-		drag_data_get, &dnd_url);
-	gtk_signal_connect(GTK_OBJECT(ctree), "drag-begin",
-		drag_begin, &dnd_url);
-	gtk_signal_connect(GTK_OBJECT(ctree), "drag-end",
-		drag_end, &dnd_url);
 }
 
 /***

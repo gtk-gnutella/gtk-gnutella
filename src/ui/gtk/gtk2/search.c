@@ -39,12 +39,13 @@
 #include "search_cb.h"
 
 #include "gtk/bitzi.h"
-#include "gtk/search.h"
-#include "gtk/gtk-missing.h"
-#include "gtk/settings.h"
 #include "gtk/columns.h"
+#include "gtk/drag.h"
+#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
+#include "gtk/search.h"
+#include "gtk/settings.h"
 #include "gtk/statusbar.h"
 
 #include "if/gui_property.h"
@@ -69,11 +70,14 @@ RCSID("$Id$")
 
 #define MAX_TAG_SHOWN	60		/**< Show only first chars of tag */
 
-static GList *searches = NULL;	/**< List of search structs */
+static GList *searches;	/**< List of search structs */
 
-static GtkTreeView *tree_view_search = NULL;
-static GtkNotebook *notebook_search_results = NULL;
-static GtkButton *button_search_clear = NULL;
+static GtkTreeView *tree_view_search;
+static GtkNotebook *notebook_search_results;
+static GtkButton *button_search_clear;
+
+static struct drag_context *drag_detail;
+static struct drag_context *drag_file_url;
 
 static gboolean search_gui_shutting_down = FALSE;
 
@@ -92,108 +96,6 @@ GtkWidget *default_scrolled_window = NULL;
 
 /** For cyclic updates of the tooltip. */
 static tree_view_motion_t *tvm_search;
-
-typedef gchar *(* dnd_get_text_cb)(GtkTreeModel *, GtkTreeIter *);
-
-struct dnd_context {
-	dnd_get_text_cb get_text;
-	gchar *text;
-};
-
-static void
-drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
-{
-	struct dnd_context *ctx = udata;
-	GtkTreeView *tv;
-	GtkTreePath *path;
-
-	(void) unused_drag_ctx;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
-
-	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->get_text);
-
-	G_FREE_NULL(ctx->text);
-
-	tv = GTK_TREE_VIEW(widget);
-	gtk_tree_view_get_cursor(tv, &path, NULL);
-
-	if (path) {
-		GtkTreeIter iter;
-		GtkTreeModel *model;
-
-		model = gtk_tree_view_get_model(tv);
-		if (gtk_tree_model_get_iter(model, &iter, path)) {
-			ctx->text = ctx->get_text(model, &iter); 
-		}
-		gtk_tree_path_free(path);
-	}
-}
-
-static void
-drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
-	GtkSelectionData *data, guint unused_info, guint unused_stamp,
-	gpointer udata)
-{
-	struct dnd_context *ctx = udata;
-
-	(void) unused_drag_ctx;
-	(void) unused_info;
-	(void) unused_stamp;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-data-get");
-
-	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->get_text);
-
-	if (ctx->text) {
-		gtk_selection_data_set_text(data, ctx->text, -1);
-		G_FREE_NULL(ctx->text);
-	}
-}
-
-static void
-drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
-{
-	struct dnd_context *ctx = udata;
-
-	(void) unused_drag_ctx;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-end");
-
-	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->get_text);
-
-	G_FREE_NULL(ctx->text);
-}
-
-static void
-dnd_init(GtkWidget *widget, dnd_get_text_cb callback)
-{
-    static const GtkTargetEntry targets[] = {
-        { "STRING", 0, 23 },
-        { "text/plain", 0, 23 },
-    };
-	static const struct dnd_context zero_ctx;
-	struct dnd_context *ctx;
-
-	g_return_if_fail(widget);
-	g_return_if_fail(callback);
-
-	ctx = walloc(sizeof *ctx);
-	*ctx = zero_ctx;
-	ctx->get_text = callback;
-
-	/* Initialize drag support */
-	gtk_drag_source_set(widget,
-		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
-		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
-
-    g_signal_connect(widget, "drag-data-get", G_CALLBACK(drag_data_get), ctx);
-    g_signal_connect(widget, "drag-begin",	  G_CALLBACK(drag_begin), ctx);
-    g_signal_connect(widget, "drag-end",	  G_CALLBACK(drag_end), ctx);
-}
 
 struct result_data {
 	GtkTreeIter iter;
@@ -702,16 +604,19 @@ search_gui_restore_sorting(search_t *sch)
 }
 
 static gchar *
-get_local_file_url(GtkTreeModel *model, GtkTreeIter *iter)
+get_local_file_url(GtkWidget *widget)
 {
 	const struct result_data *data;
 	const gchar *pathname;
 	gchar *escaped, *url;
+	GtkTreeModel *model;
+   	GtkTreeIter iter;
 
-	g_return_val_if_fail(model, NULL);
-	g_return_val_if_fail(iter, NULL);
-		
-	data = get_result_data(model, iter);
+	g_return_val_if_fail(widget, NULL);
+	if (!drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter))
+		return NULL;
+
+	data = get_result_data(model, &iter);
 	if (!(ST_LOCAL & data->record->results_set->status))
 		return NULL;
 	
@@ -890,9 +795,11 @@ search_gui_new_search_full(const gchar *query_str,
 	}
 	search_gui_query_free(&query);
 	if (search_gui_is_local(sch)) {
-		dnd_init(GTK_WIDGET(sch->tree), get_local_file_url);
+		if (NULL == drag_file_url){
+			drag_file_url = drag_new();
+		}
+		drag_attach(drag_file_url, GTK_WIDGET(sch->tree), get_local_file_url);
 	}
-
 	return TRUE;
 }
 
@@ -1765,6 +1672,8 @@ search_gui_init(void)
     GtkTreeView *tv;
 	search_t *current_search;
 
+	drag_detail = drag_new();
+
     tree_view_search =
 		GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
     button_search_clear =
@@ -1810,7 +1719,7 @@ search_gui_init(void)
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
 
-	dnd_init(gui_main_window_lookup("treeview_search_details"),
+	drag_attach(drag_detail, gui_main_window_lookup("treeview_search_details"),
 		search_details_get_text);
 }
 

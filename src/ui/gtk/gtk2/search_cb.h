@@ -57,6 +57,6 @@ gpointer search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter);
 gboolean search_gui_update_rank(GtkTreeModel *model,
 		GtkTreePath *path, GtkTreeIter *iter, gpointer udata);
 gchar *search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter);
-gchar *search_details_get_text(GtkTreeModel *model, GtkTreeIter *iter);
+gchar *search_details_get_text(GtkWidget *widget);
 
 #endif /* _gtk2_search_cb_h_ */

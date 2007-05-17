@@ -102,6 +102,12 @@ guc_file_info_build_magnet(gnet_fi_t handle)
 	return file_info_build_magnet(handle);
 }
 
+gchar *
+guc_file_info_get_file_url(gnet_fi_t handle)
+{
+	return file_info_get_file_url(handle);
+}
+
 gint
 guc_download_get_http_req_percent(const struct download *d)
 {

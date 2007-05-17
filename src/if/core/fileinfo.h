@@ -46,8 +46,7 @@ typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
-	const gchar *path;		/**< Path of the directory of the file on disk */
-	const gchar *file_name;	/**< Name of the file on disk */
+	const gchar *file_name; /**< Name of the file on disk */
 	const struct sha1 *sha1;/**< SHA1 (binary) of the file or NULL */
 	GSList *aliases;		/**< List of aliases (NULL if none) */
 } gnet_fi_info_t;
@@ -205,6 +204,7 @@ void fi_purge_by_handle_list(const GSList *list);
 
 const gchar *file_info_readable_filename(const struct dl_file_info *fi);
 gchar *file_info_build_magnet(gnet_fi_t fih);
+gchar *file_info_get_file_url(gnet_fi_t fih);
 
 void fi_increase_uploaded(fileinfo_t *fi, size_t amount);
 

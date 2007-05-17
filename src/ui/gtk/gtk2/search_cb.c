@@ -42,14 +42,15 @@ RCSID("$Id$")
 
 #include "search_cb.h"
 
-#include "gtk/gtkcolumnchooser.h"
-#include "gtk/search.h"
-#include "gtk/statusbar.h"
-#include "gtk/misc.h"
 #include "gtk/columns.h"
-#include "gtk/notebooks.h"
+#include "gtk/drag.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/gtkcolumnchooser.h"
+#include "gtk/misc.h"
+#include "gtk/notebooks.h"
+#include "gtk/search.h"
 #include "gtk/settings.h"
+#include "gtk/statusbar.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -511,16 +512,22 @@ search_append_detail(GtkTreeModel *model,
 }
 
 gchar *
-search_details_get_text(GtkTreeModel *model, GtkTreeIter *iter)
+search_details_get_text(GtkWidget *widget)
 {
 	static const GValue zero_value;
-	GValue value = zero_value;
+	GValue value;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
 
-	g_return_val_if_fail(model, NULL);
-	g_return_val_if_fail(iter, NULL);
+	g_return_val_if_fail(widget, NULL);
 
-	gtk_tree_model_get_value(model, iter, 1, &value);
-	return g_strdup(g_value_get_string(&value));
+	if (drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter)) {
+		value = zero_value;
+		gtk_tree_model_get_value(model, &iter, 1, &value);
+		return g_strdup(g_value_get_string(&value));
+	} else {
+		return NULL;
+	}
 }
 
 /* Display XML data from the result if any */

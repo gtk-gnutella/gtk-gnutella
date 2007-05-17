@@ -39,13 +39,14 @@ RCSID("$Id$")
 
 #include "downloads_cb.h"
 
-#include "gtk/filter.h"
-#include "gtk/visual_progress.h"
 #include "gtk/columns.h"
+#include "gtk/drag.h"
+#include "gtk/filter.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
+#include "gtk/visual_progress.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -61,6 +62,8 @@ RCSID("$Id$")
 
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
+
+static struct drag_context *drag;
 
 static GtkTreeView *treeview_downloads;
 static GtkTreeView *treeview_fi_aliases;
@@ -222,7 +225,9 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		if (data->is_download) {
 			text = NULL;
 		} else {
-			text = compact_size(data->file.uploaded, show_metric_units());
+			text = data->file.uploaded > 0 
+					? compact_size(data->file.uploaded, show_metric_units())
+					: "-";
 		}
 		break;
 	case c_fi_sources:
@@ -837,93 +842,23 @@ add_column(GtkTreeView *tv, GtkTreeCellDataFunc cell_data_func,
 	return column;
 }
 
-static void
-drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
+static gchar *
+fi_gui_get_file_url(GtkWidget *widget)
 {
-	GtkTreeView *tv;
-	GtkTreePath *tpath;
-	GtkTreeIter iter;
 	GtkTreeModel *model;
-	gchar **url_ptr = udata;
+	GtkTreeIter iter;
 
-	(void) unused_drag_ctx;
+	g_return_val_if_fail(widget, NULL);
 
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-begin");
-
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
-
-	tv = GTK_TREE_VIEW(treeview_downloads);
-	gtk_tree_view_get_cursor(tv, &tpath, NULL);
-	if (!tpath)
-		return;
-
-	model = gtk_tree_view_get_model(tv);
-	if (gtk_tree_model_get_iter(model, &iter, tpath)) {
-    	gnet_fi_status_t fis;
+	if (drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter)) {
+		gnet_fi_status_t fis;
 		gnet_fi_t handle;
 
 		handle = fi_gui_get_handle(model, &iter);
-    	guc_fi_get_status(handle, &fis);
+		guc_fi_get_status(handle, &fis);
 
-		/* Allow partials but not unstarted files */
-		if (fis.done > 0) {
-			gnet_fi_info_t *info;
-
-			info = guc_fi_get_info(handle);
-			g_assert(info);
-			
-			if (info->path && info->file_name) {
-				gchar *escaped;
-				gchar *pathname;
-
-				pathname = make_pathname(info->path, info->file_name);
-				escaped = url_escape(pathname);
-				if (escaped != pathname) {
-					G_FREE_NULL(pathname);
-				}
-				*url_ptr = g_strconcat("file://", escaped, (void *) 0);
-				G_FREE_NULL(escaped);
-			}
-    		guc_fi_free_info(info);
-		}
 	}
-
-	gtk_tree_path_free(tpath);
-}
-
-static void
-drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
-	GtkSelectionData *data, guint unused_info, guint unused_stamp,
-	gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_drag_ctx;
-	(void) unused_info;
-	(void) unused_stamp;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-data-get");
-
-	g_assert(url_ptr != NULL);
-	if (NULL == *url_ptr)
-		return;
-
-	gtk_selection_data_set_text(data, *url_ptr, -1);
-	G_FREE_NULL(*url_ptr);
-}
-
-static void
-drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
-{
-	gchar **url_ptr = udata;
-
-	(void) unused_drag_ctx;
-
-	g_signal_stop_emission_by_name(G_OBJECT(widget), "drag-end");
-
-	g_assert(url_ptr != NULL);
-	G_FREE_NULL(*url_ptr);
+	return NULL;
 }
 
 void
@@ -953,11 +888,6 @@ fi_gui_init(void)
     	{ c_fi_sources,  N_("Sources"),  0.0 },
     	{ c_fi_status,   N_("Status"),	 0.0 }
 	};
-    static const GtkTargetEntry targets[] = {
-        { "STRING", 0, 23 },
-        { "text/plain", 0, 23 },
-    };
-	static gchar *dnd_url; /* Holds the URL to set the drag data */
 	guint i;
 
 	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
@@ -1010,17 +940,8 @@ fi_gui_init(void)
 	store_aliases = gtk_list_store_new(1, G_TYPE_STRING);
 	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
 
-	/* Initialize drag support */
-	gtk_drag_source_set(GTK_WIDGET(treeview_downloads),
-		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
-		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
-
-    g_signal_connect(G_OBJECT(treeview_downloads), "drag-data-get",
-        G_CALLBACK(drag_data_get), &dnd_url);
-    g_signal_connect(G_OBJECT(treeview_downloads), "drag-begin",
-        G_CALLBACK(drag_begin), &dnd_url);
-    g_signal_connect(G_OBJECT(treeview_downloads), "drag-end",
-        G_CALLBACK(drag_end), &dnd_url);
+	drag = drag_new();
+	drag_attach(drag, GTK_WIDGET(treeview_downloads), fi_gui_get_file_url);
 
     add_column(treeview_fi_aliases, NULL, 0, _("Aliases"), 0.0);
 
@@ -1088,6 +1009,8 @@ fi_gui_shutdown(void)
 	fi_handles = NULL;
 	g_hash_table_destroy(fi_updates);
 	fi_updates = NULL;
+
+	drag_free(&drag);
 }
 
 void
