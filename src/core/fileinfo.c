@@ -753,21 +753,30 @@ file_info_mark_stripped(fileinfo_t *fi)
 	fi->flags |= FI_F_STRIPPED;
 }
 
+static void
+file_info_strip_trailer(fileinfo_t *fi, const gchar *pathname)
+{
+	file_info_check(fi);
+	g_assert(!((FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED) & fi->flags));
+	
+	if (-1 == truncate(pathname, fi->size)) {
+		if (ENOENT == errno) {
+			file_info_mark_stripped(fi);
+		}
+		g_warning("could not chop fileinfo trailer off \"%s\": %s",
+			pathname, g_strerror(errno));
+	} else {
+		file_info_mark_stripped(fi);
+	}
+}
+
 /**
  * Strips the file metainfo trailer off a file.
  */
 void
 file_info_strip_binary(fileinfo_t *fi)
 {
-	file_info_check(fi);
-	g_assert(!((FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED) & fi->flags));
-
-	if (-1 == truncate(fi->pathname, fi->size)) {
-		g_warning("could not chop fileinfo trailer off \"%s\": %s",
-			fi->pathname, g_strerror(errno));
-	} else {
-		file_info_mark_stripped(fi);
-	}
+	file_info_strip_trailer(fi, fi->pathname);
 }
 
 /**
@@ -779,7 +788,7 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *pathname)
 	fileinfo_t *dfi;
 
 	g_assert(is_absolute_path(pathname));
-	g_assert(!(fi->flags & FI_F_TRANSIENT));
+	g_assert(!(fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED)));
 
 	/*
 	 * Before truncating the file, we must be really sure it is reasonnably
@@ -805,10 +814,9 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *pathname)
 			"different than expected (%s bytes done instead of %s/%s)",
 			pathname, buf,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size));
-	} else if (-1 == truncate(pathname, fi->size))
-		g_warning("could not chop fileinfo trailer off \"%s\": %s",
-			pathname, g_strerror(errno));
-
+	} else {
+		file_info_strip_trailer(fi, pathname);
+	}
 	fi_free(dfi);
 }
 
@@ -3581,12 +3589,8 @@ fi_rename_dead(fileinfo_t *fi, const gchar *pathname)
 
 	path = filepath_directory(pathname);
 	dead = unique_filename(path, filepath_basename(pathname), ".DEAD", NULL);
-	if (NULL == dead || -1 == rename(pathname, dead)) {
-
-		if (-1 == truncate(dead, fi->size))
-			g_warning("could not chop fileinfo trailer off \"%s\": %s",
-				dead, g_strerror(errno));
-
+	if (dead && 0 == rename(pathname, dead)) {
+		file_info_strip_trailer(fi, dead);
 	} else {
 		g_warning("cannot rename \"%s\" as \"%s\": %s",
 			pathname, NULL_STRING(dead), g_strerror(errno));
