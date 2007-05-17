@@ -851,14 +851,13 @@ fi_gui_get_file_url(GtkWidget *widget)
 	g_return_val_if_fail(widget, NULL);
 
 	if (drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter)) {
-		gnet_fi_status_t fis;
 		gnet_fi_t handle;
 
 		handle = fi_gui_get_handle(model, &iter);
-		guc_fi_get_status(handle, &fis);
-
+		return guc_file_info_get_file_url(handle);
+	} else {
+		return NULL;
 	}
-	return NULL;
 }
 
 void
