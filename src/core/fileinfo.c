@@ -2917,6 +2917,12 @@ file_info_retrieve(void)
 			if (!(filename && path)) /* There's an incomplete fileinfo record */
 				goto reset;
 
+			{
+				gchar *pathname = make_pathname(path, filename);
+				fi->pathname = atom_str_get(pathname);
+				G_FREE_NULL(pathname);
+			}
+
 			/*
 			 * There can't be duplicates!
 			 */
