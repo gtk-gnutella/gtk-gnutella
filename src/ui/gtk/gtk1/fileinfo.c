@@ -596,12 +596,6 @@ on_entry_fi_regex_activate(GtkEditable *editable, gpointer unused_udata)
 void
 fi_gui_init(void)
 {
-    static const GtkTargetEntry targets[] = {
-        { "STRING", 0, 23 },
-        { "text/plain", 0, 23 },
-    };
-	static gchar *dnd_url; /* Holds the URL to set the drag data */
-
 	fi_updates = g_hash_table_new(NULL, NULL);
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
