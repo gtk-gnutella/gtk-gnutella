@@ -1338,7 +1338,7 @@ file_info_lookup_dup(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(fi->pathname);
 
-	dfi = g_hash_table_lookup(fi_by_outname, filepath_basename(fi->pathname));
+	dfi = g_hash_table_lookup(fi_by_outname, fi->pathname);
 	if (dfi) {
 		file_info_check(dfi);
 		return dfi;
@@ -2202,7 +2202,7 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 	file_info_check(fi);
 
 	/* name shared with fi's, don't free */
-	g_assert(name == filepath_basename(fi->pathname));
+	g_assert(name == fi->pathname);
 
 	/*
 	 * This table is the last one to be freed, and it is also guaranteed to
@@ -2283,7 +2283,7 @@ file_info_close(void)
 static void
 file_info_hash_insert(fileinfo_t *fi)
 {
-	fileinfo_t *xfi;
+	const fileinfo_t *xfi;
 
 	file_info_check(fi);
 	g_assert(!fi->hashed);
@@ -2311,13 +2311,12 @@ file_info_hash_insert(fileinfo_t *fi)
 	 *		--RAM, 01/09/2002
 	 */
 
-	xfi = g_hash_table_lookup(fi_by_outname, filepath_basename(fi->pathname));
+	xfi = g_hash_table_lookup(fi_by_outname, fi->pathname);
 	if (xfi) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
 	} else { 
-		gm_hash_table_insert_const(fi_by_outname,
-			filepath_basename(fi->pathname), fi);
+		gm_hash_table_insert_const(fi_by_outname, fi->pathname, fi);
 	}
 
 	/*
@@ -2373,7 +2372,7 @@ transient:
 static void
 file_info_hash_remove(fileinfo_t *fi)
 {
-	gpointer xfi;
+	const fileinfo_t *xfi;
 	namesize_t nsk;
 	gboolean found;
 
@@ -2414,11 +2413,11 @@ file_info_hash_remove(fileinfo_t *fi)
 	 * Remove from plain hash tables: by output name, by SHA1 and by GUID.
 	 */
 
-	xfi = g_hash_table_lookup(fi_by_outname, filepath_basename(fi->pathname));
+	xfi = g_hash_table_lookup(fi_by_outname, fi->pathname);
 	if (xfi) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
-		g_hash_table_remove(fi_by_outname, filepath_basename(fi->pathname));
+		g_hash_table_remove(fi_by_outname, fi->pathname);
 	}
 
 	if (fi->sha1)
@@ -2956,8 +2955,7 @@ file_info_retrieve(void)
 			 * There can't be duplicates!
 			 */
 
-			dfi = g_hash_table_lookup(fi_by_outname,
-						filepath_basename(fi->pathname));
+			dfi = g_hash_table_lookup(fi_by_outname, fi->pathname);
 			if (NULL != dfi) {
 				g_warning("discarding DUPLICATE fileinfo entry for \"%s\"",
 					filepath_basename(fi->pathname));
@@ -3413,12 +3411,7 @@ file_info_retrieve(void)
 static gboolean
 file_info_name_is_uniq(const gchar *pathname)
 {
-	const gchar *filename;
-	
-	g_assert(pathname);
-
-	filename = filepath_basename(pathname);
-	return !g_hash_table_lookup(fi_by_outname, filename) &&
+	return !g_hash_table_lookup(fi_by_outname, pathname) &&
 	   	file_does_not_exist(pathname);
 }
 
@@ -3430,8 +3423,7 @@ file_info_name_is_uniq(const gchar *pathname)
 static const gchar *
 file_info_new_outname(const gchar *dir, const gchar *name)
 {
-	const gchar *result;
-	gchar *to_free = NULL;
+	gchar *uniq, *to_free = NULL;
 
 	g_assert(dir);
 	g_assert(name);
@@ -3456,38 +3448,24 @@ file_info_new_outname(const gchar *dir, const gchar *name)
 	 * If `name' (sanitized form) is not taken yet, it will do.
 	 */
 
-	if (
-		NULL == g_hash_table_lookup(fi_by_outname, name) &&
-		!filepath_exists(dir, name)
-	) {
-		gchar *pathname;
+	uniq = unique_filename(dir, name, "", file_info_name_is_uniq);
+	G_FREE_NULL(to_free);
 
-		pathname = make_pathname(dir, name);
-		result = atom_str_get(pathname);
-		G_FREE_NULL(pathname);
-	} else {
-		const gchar *filename;
-		gchar *uniq;
-
-		uniq = unique_filename(dir, name, "", file_info_name_is_uniq);
-		if (!uniq) {
-			/* Should NOT happen */
-			g_error("no luck with random number generator");
-		}
+	if (uniq) {
+		const gchar *pathname;
 		/*
 		 * unique_filename() returns a full pathname, thus we
 		 * have to extract the basename here.
 		 */
-		filename = filepath_basename(uniq);
-		g_assert('\0' != filename[0]);
-		g_assert(NULL == g_hash_table_lookup(fi_by_outname, filename));
-
-		result = atom_str_get(uniq);
+		pathname = atom_str_get(uniq);
 		G_FREE_NULL(uniq);
+		g_assert(NULL == g_hash_table_lookup(fi_by_outname, pathname));
+		return pathname;
+	} else {
+		/* Should NOT happen */
+		g_error("no luck with random number generator");
+		return NULL;
 	}
-
-	G_FREE_NULL(to_free);
-	return result;
 }
 
 /**
@@ -3615,25 +3593,22 @@ fi_rename_dead(fileinfo_t *fi, const gchar *pathname)
 void
 file_info_moved(fileinfo_t *fi, const gchar *pathname)
 {
-	const char *filename;
-	gpointer value;
+	const fileinfo_t *xfi;
 	
 	file_info_check(fi);
 	g_assert(pathname);
 	g_assert(is_absolute_path(pathname));
 	g_assert(!(fi->flags & FI_F_SEEDING));
 
-	filename = filepath_basename(fi->pathname);
-	value = g_hash_table_lookup(fi_by_outname, filename);
-	if (value) {
-		file_info_check(value);
-		g_assert(value == fi);
-		g_hash_table_remove(fi_by_outname, filename);
+	xfi = g_hash_table_lookup(fi_by_outname, fi->pathname);
+	if (xfi) {
+		file_info_check(xfi);
+		g_assert(xfi == fi);
+		g_hash_table_remove(fi_by_outname, fi->pathname);
 	}
 
 	atom_str_change(&fi->pathname, pathname);
-	filename = filepath_basename(fi->pathname);
-	gm_hash_table_insert_const(fi_by_outname, filename, fi);
+	gm_hash_table_insert_const(fi_by_outname, fi->pathname, fi);
 
 	if (fi->sf) {
 		struct stat sb;
@@ -5380,14 +5355,12 @@ file_info_scandir(const gchar *dir)
 static void
 fi_spot_completed_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *filename;
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
 	file_info_check(fi);
 
-	filename = filepath_basename(fi->pathname);
-	g_assert(key == filename); /* name shared with fi's, don't free */
+	g_assert(key == fi->pathname); /* name shared with fi's, don't free */
 
 	if (fi->refcount)					/* Attached to a download */
 		return;
@@ -5399,8 +5372,10 @@ fi_spot_completed_kv(gpointer key, gpointer val, gpointer unused_x)
 	 * as any complete download.
 	 */
 
-	if (FILE_INFO_COMPLETE(fi))
-		download_orphan_new(filename, fi->size, fi->sha1, fi);
+	if (FILE_INFO_COMPLETE(fi)) {
+		download_orphan_new(filepath_basename(fi->pathname),
+			fi->size, fi->sha1, fi);
+	}
 }
 
 /**
