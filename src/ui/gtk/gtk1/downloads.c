@@ -1048,7 +1048,7 @@ gui_update_download(struct download *d, gboolean force)
 			if (
 				parent_gui_needs_update(d, now) &&
 				(
-					!downloads_gui_any_status(d, GTA_DL_RECEIVING) ||
+					!downloads_gui_any_status(d, GTA_DL_RECEIVING) &&
 					!downloads_gui_any_status(d, GTA_DL_IGNORING)
 				)
 			)
