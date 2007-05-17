@@ -369,6 +369,9 @@ download_check(const struct download * const d)
 	g_assert(DOWNLOAD_MAGIC == d->magic);
 }
 
+const gchar *download_pathname(const struct download *d);
+const gchar *download_basename(const struct download *d);
+
 /*
  * Public interface, visible only from the bridge.
  */
@@ -441,9 +444,6 @@ void src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
 	frequency_t t, guint32 interval);
 void src_remove_listener(src_listener_t cb, gnet_src_ev_t ev);
 guint download_speed_avg(struct download *d);
-
-const gchar *download_pathname(const struct download *d);
-const gchar *download_basename(const struct download *d);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_downloads_h_ */

@@ -1077,7 +1077,7 @@ on_entry_queue_regex_activate(GtkEditable *editable, gpointer unused_udata)
 
 					n = regexec(&re, dtemp->file_name, 0, NULL, 0);
 					if (0 != n) {
-						n = regexec(&re, download_outname(dtemp), 0, NULL, 0);
+						n = regexec(&re, download_basename(dtemp), 0, NULL, 0);
 					}
 					if (0 == n) {
 						gtk_ctree_select(ctree_downloads_queue(), child);
@@ -1099,7 +1099,7 @@ on_entry_queue_regex_activate(GtkEditable *editable, gpointer unused_udata)
 			/* Not a header entry */
             if (
 				(n = regexec(&re, d->file_name, 0, NULL, 0)) == 0 ||
-				(n = regexec(&re, download_outname(d), 0, NULL, 0)) == 0
+				(n = regexec(&re, download_basename(d), 0, NULL, 0)) == 0
 			) {
                 gtk_ctree_select(ctree_downloads_queue(), node);
                 m ++;
