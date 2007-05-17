@@ -5986,6 +5986,7 @@ download_overlap_check(struct download *d)
 	fi = d->file_info;
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
+	g_assert(d->buffers->held >= d->overlap_size);
 
 	{
 		gchar *path = make_pathname(fi->path, fi->file_name);
@@ -6072,6 +6073,7 @@ download_overlap_check(struct download *d)
         }
 
 		d->pos += d->buffers->held;	/* Keep track of what we read so far */
+		d->pos -= d->overlap_size;	/* Overlap did not count as chunk data */
 		d->mismatches++;
 		buffers_discard(d);			/* Discard everything we read so far */
 
