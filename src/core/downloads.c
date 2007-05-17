@@ -2104,6 +2104,14 @@ download_has_enough_active_sources(struct download *d)
 {
 	guint n;
 
+	/*
+	 * Disabled: this is broken logic.  Indeed, near the end, when only a
+	 * few small holes remain, most of the source don't get scheduled, and
+	 * the few partial ones that do get a slot may not have the chunks we
+	 * need, resulting in an endless catch-22.
+	 *		--RAM, 2007-05-17
+	 */
+#if 0
 	if (d->file_info->use_swarming) {
 		filesize_t m = download_filesize(d) - download_filedone(d);
 
@@ -2117,6 +2125,9 @@ download_has_enough_active_sources(struct download *d)
 	} else {
 		n = 1;
 	}
+#else
+	n = max_simultaneous_downloads_per_file;
+#endif
 	return count_running_downloads_with_name(download_basename(d)) >= n;
 }
 
