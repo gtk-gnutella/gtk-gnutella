@@ -1359,6 +1359,9 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 #if 0	/* XXX not yet */
 		if (!dme->good)
 			continue;			/* Only propagate good alt locs */
+#else
+		if (dme->bad)			/* Don't progagate with negative feedback */
+			continue;
 #endif
 
 		if (NET_TYPE_IPV4 != host_addr_net(dme->url.addr))
@@ -1654,6 +1657,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 #if 0	/* XXX not yet */
 		if (!dme->good)			/* Only report sources we've checked */
+			continue;
+#else
+		if (dme->bad)			/* Don't progagate with negative feedback */
 			continue;
 #endif
 
