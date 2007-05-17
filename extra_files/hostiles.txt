@@ -431,7 +431,8 @@
 
 # Range belong to Level 3; seems to be related to the peers by Cisco Systems
 65.57.247.0/24
-65.59.209.0/29
+65.59.209.0/24
+65.59.210.0/24
 
 # Another range of Level 3; many fake clients emitting arbitrary spam files;
 # MP3s contain only noise or beeps
