@@ -439,12 +439,11 @@ struct trailer {
 	fi_magic_t magic;		/**< Magic number */
 };
 
-static fileinfo_t *file_info_retrieve_binary(
-	const gchar *file, const gchar *path);
+static fileinfo_t *file_info_retrieve_binary(const gchar *pathname);
 static void fi_free(fileinfo_t *fi);
 static void file_info_hash_remove(fileinfo_t *fi);
 static void fi_update_seen_on_network(gnet_src_t srcid);
-static const gchar *file_info_new_outname(const gchar *name, const gchar *dir);
+static const gchar *file_info_new_outname(const gchar *dir, const gchar *name);
 static gboolean looks_like_urn(const gchar *filename);
 
 static idtable_t *fi_handle_map = NULL;
@@ -721,7 +720,7 @@ file_info_store_binary(fileinfo_t *fi)
 {
 	struct file_object *fo;
 
-	g_assert(!(fi->flags & FI_F_TRANSIENT));
+	g_assert(!(fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING)));
 
 	/*
 	 * We don't create the file if it does not already exist.  That way,
@@ -729,17 +728,12 @@ file_info_store_binary(fileinfo_t *fi)
 	 * since then we'll go directly to file_info_fd_store_binary().
 	 */
 
-	{
-		char *path = make_pathname(fi->path, fi->file_name);
-
-		fo = file_object_open(path, O_WRONLY);
-		if (!fo) {
-			gint fd = file_open_missing(path, O_WRONLY);
-			if (fd >= 0) {
-				fo = file_object_new(fd, path, O_WRONLY);
-			}
+	fo = file_object_open(fi->pathname, O_WRONLY);
+	if (!fo) {
+		gint fd = file_open_missing(fi->pathname, O_WRONLY);
+		if (fd >= 0) {
+			fo = file_object_new(fd, fi->pathname, O_WRONLY);
 		}
-		G_FREE_NULL(path);
 	}
 	if (fo) {
 		fi->stamp = tm_time();
@@ -754,26 +748,22 @@ file_info_store_binary(fileinfo_t *fi)
 void
 file_info_strip_binary(fileinfo_t *fi)
 {
-	char *path;
+	g_assert(!(fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING)));
 
-	g_assert(!(fi->flags & FI_F_TRANSIENT));
-
-	path = make_pathname(fi->path, fi->file_name);
-	if (-1 == truncate(path, fi->size))
+	if (-1 == truncate(fi->pathname, fi->size))
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
-			path, g_strerror(errno));
-	G_FREE_NULL(path);
+			fi->pathname, g_strerror(errno));
 }
 
 /**
  * Strips the file metainfo trailer off specified file.
  */
 void
-file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file)
+file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *pathname)
 {
 	fileinfo_t *dfi;
 
-	g_assert(G_DIR_SEPARATOR == file[0]);	/* Absolute path given */
+	g_assert(is_absolute_path(pathname));
 	g_assert(!(fi->flags & FI_F_TRANSIENT));
 
 	/*
@@ -782,11 +772,11 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file)
 	 * trailer, and check size / completion.
 	 */
 
-	dfi = file_info_retrieve_binary(file, "");
+	dfi = file_info_retrieve_binary(pathname);
 
 	if (NULL == dfi) {
 		g_warning("could not chop fileinfo trailer off \"%s\": file does "
-			"not seem to have a valid trailer", file);
+			"not seem to have a valid trailer", pathname);
 		return;
 	}
 
@@ -798,10 +788,11 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file)
 			uint64_to_string2(dfi->size), (void *) 0);
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
 			"different than expected (%s bytes done instead of %s/%s)",
-			file, buf, uint64_to_string(fi->done), uint64_to_string2(fi->size));
-	} else if (-1 == truncate(file, fi->size))
+			pathname, buf,
+			uint64_to_string(fi->done), uint64_to_string2(fi->size));
+	} else if (-1 == truncate(pathname, fi->size))
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
-			file, g_strerror(errno));
+			pathname, g_strerror(errno));
 
 	fi_free(dfi);
 }
@@ -883,8 +874,7 @@ fi_free(fileinfo_t *fi)
 
 	atom_filesize_free_null(&fi->size_atom);
 	atom_guid_free_null(&fi->guid);
-	atom_str_free_null(&fi->file_name);
-	atom_str_free_null(&fi->path);
+	atom_str_free_null(&fi->pathname);
 	atom_tth_free_null(&fi->tth);
 	atom_sha1_free_null(&fi->sha1);
 	atom_sha1_free_null(&fi->cha1);
@@ -1323,9 +1313,9 @@ file_info_lookup_dup(fileinfo_t *fi)
 	fileinfo_t *dfi;
 
 	file_info_check(fi);
-	g_assert(fi->file_name);
+	g_assert(fi->pathname);
 
-	dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+	dfi = g_hash_table_lookup(fi_by_outname, filepath_basename(fi->pathname));
 	if (dfi) {
 		file_info_check(dfi);
 		return dfi;
@@ -1405,10 +1395,12 @@ const gchar *
 file_info_readable_filename(const fileinfo_t *fi)
 {
 	const GSList *sl;
+	const gchar *filename;
 
 	file_info_check(fi);
 
-	if (looks_like_urn(fi->file_name)) {
+	filename = filepath_basename(fi->pathname);
+	if (looks_like_urn(filename)) {
 		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
 			const gchar *name = sl->data;
 			if (!looks_like_urn(name))
@@ -1416,7 +1408,7 @@ file_info_readable_filename(const fileinfo_t *fi)
 		}
 	}
 
-	return fi->file_name;
+	return filename;
 }
 
 /**
@@ -1566,7 +1558,7 @@ discard:
  * @returns a pointer to the info structure if found, and NULL otherwise.
  */
 static fileinfo_t *
-file_info_retrieve_binary(const gchar *file, const gchar *path)
+file_info_retrieve_binary(const gchar *pathname)
 {
 	guint32 tmpchunk[5];
 	guint32 tmpguint;
@@ -1575,7 +1567,6 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	enum dl_file_info_field field;
 	gchar tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
 	const gchar *reason;
-	gchar *pathname;
 	gint fd;
 	guint32 version;
 	struct trailer trailer;
@@ -1589,13 +1580,11 @@ G_STMT_START {				\
 	/* NOTREACHED */		\
 } G_STMT_END
 
-	g_assert(NULL != file);
-	g_assert(NULL != path);
+	g_assert(NULL != pathname);
+	g_assert(is_absolute_path(pathname));
 
-	pathname = make_pathname(path, file);
 	fd = file_open_missing(pathname, O_RDONLY);
 	if (fd < 0) {
-		G_FREE_NULL(pathname);
 		return NULL;
 	}
 
@@ -1644,8 +1633,7 @@ G_STMT_START {				\
 	fi = walloc0(sizeof *fi);
 
 	fi->magic = FI_MAGIC;
-	fi->file_name = atom_str_get(file);
-	fi->path = atom_str_get(path);
+	fi->pathname = atom_str_get(pathname);
 	fi->size = trailer.filesize;
 	fi->size_atom = atom_filesize_get(&fi->size);
 	fi->generation = trailer.generation;
@@ -1717,7 +1705,7 @@ G_STMT_START {				\
 			 */
 			if (version >= 3)
 				g_warning("found NAME field in fileinfo v%u for \"%s\"",
-					version, file);
+					version, pathname);
 			else
 				fi_alias(fi, tmp, FALSE);	/* Pre-v3 lacked NAME in ALIA */
 			break;
@@ -1729,7 +1717,7 @@ G_STMT_START {				\
 				fi->guid = atom_guid_get(tmp);
 			else
 				g_warning("bad length %d for GUID in fileinfo v%u for \"%s\"",
-					tmpguint, version, file);
+					tmpguint, version, pathname);
 			break;
 		case FILE_INFO_FIELD_TTH:
 			if (TTH_RAW_SIZE == tmpguint) {
@@ -1738,7 +1726,7 @@ G_STMT_START {				\
 				file_info_got_tth(fi, &tth);
 			} else {
 				g_warning("bad length %d for TTH in fileinfo v%u for \"%s\"",
-					tmpguint, version, file);
+					tmpguint, version, pathname);
 			}
 			break;
 		case FILE_INFO_FIELD_TIGERTREE:
@@ -1751,7 +1739,7 @@ G_STMT_START {				\
 			} else {
 				g_warning("bad length %d for TIGERTREE in fileinfo v%u "
 					"for \"%s\"",
-					tmpguint, version, file);
+					tmpguint, version, pathname);
 			}
 			break;
 		case FILE_INFO_FIELD_SHA1:
@@ -1761,7 +1749,7 @@ G_STMT_START {				\
 				fi->sha1 = atom_sha1_get(&sha1);
 			} else
 				g_warning("bad length %d for SHA1 in fileinfo v%u for \"%s\"",
-					tmpguint, version, file);
+					tmpguint, version, pathname);
 			break;
 		case FILE_INFO_FIELD_CHA1:
 			if (SHA1_RAW_SIZE == tmpguint) {
@@ -1770,7 +1758,7 @@ G_STMT_START {				\
 				fi->cha1 = atom_sha1_get(&sha1);
 			} else
 				g_warning("bad length %d for CHA1 in fileinfo v%u for \"%s\"",
-					tmpguint, version, file);
+					tmpguint, version, pathname);
 			break;
 		case FILE_INFO_FIELD_CHUNK:
 			{
@@ -1875,6 +1863,7 @@ G_STMT_START {				\
 	}
 
 	close(fd);
+	fd = -1;
 
 	fi_tigertree_check(fi);
 	file_info_merge_adjacent(fi);	/* Update fi->done */
@@ -1884,17 +1873,13 @@ G_STMT_START {				\
 			"good trailer info (v%u, %s bytes) in \"%s\"",
 			version, uint64_to_string(trailer.length), pathname);
 
-	G_FREE_NULL(pathname);
 	return fi;
 
 bailout:
 
-	g_warning("file_info_retrieve_binary(): %s in %s%s%s",
-		reason, path, G_DIR_SEPARATOR == path[strlen(path) - 1]
-						? "" : G_DIR_SEPARATOR_S, file);
+	g_warning("file_info_retrieve_binary(): %s in \"%s\"", reason, pathname);
 
 eof:
-	G_FREE_NULL(pathname);
 	if (fi) {
 		fi_free(fi);
 		fi = NULL;
@@ -1915,6 +1900,7 @@ static void
 file_info_store_one(FILE *f, fileinfo_t *fi)
 {
 	const GSList *sl;
+	gchar *path;
 
 	file_info_check(fi);
 
@@ -1931,16 +1917,13 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 
 	if (0 == fi->refcount && fi->done == fi->size) {
 		struct stat st;
-		gchar *path;
 
-		path = make_pathname(fi->path, fi->file_name);
-		if (-1 == stat(path, &st)) {
-			G_FREE_NULL(path);
+		if (-1 == stat(fi->pathname, &st)) {
 			return; 	/* Skip: not referenced, and file no longer exists */
 		}
-		G_FREE_NULL(path);
 	}
 
+	path = filepath_directory(fi->pathname);
 	fprintf(f,
 		"# refcount %u\n"
 		"NAME %s\n"
@@ -1948,10 +1931,11 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		"GUID %s\n"
 		"GENR %u\n",
 		fi->refcount,
-		fi->file_name,
-		fi->path,
+		filepath_basename(fi->pathname),
+		path,
 		guid_hex_str(fi->guid),
 		fi->generation);
+	G_FREE_NULL(path);
 
 	for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
 		const gchar *alias = sl->data;
@@ -1959,8 +1943,8 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		g_assert(NULL != alias);
 		if (looks_like_urn(alias)) {
 			g_warning("skipping fileinfo alias which looks like a urn: "
-				"\"%s\" (file_name=\"%s\")",
-				alias, fi->file_name);
+				"\"%s\" (filename=\"%s\")",
+				alias, filepath_basename(fi->pathname));
 		} else
 			fprintf(f, "ALIA %s\n", alias);
 	}
@@ -2092,7 +2076,7 @@ fi_dispose(fileinfo_t *fi)
 
 	if (fi->refcount)
 		g_warning("fi_dispose() refcount = %u for \"%s\"",
-			fi->refcount, fi->file_name);
+			fi->refcount, fi->pathname);
 
     event_trigger(fi_events[EV_FI_REMOVED],
         T_NORMAL(fi_listener_t, (fi->fi_handle)));
@@ -2193,7 +2177,9 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 
 	(void) unused_x;
 	file_info_check(fi);
-	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
+
+	/* name shared with fi's, don't free */
+	g_assert(name == filepath_basename(fi->pathname));
 
 	/*
 	 * This table is the last one to be freed, and it is also guaranteed to
@@ -2284,7 +2270,7 @@ file_info_hash_insert(fileinfo_t *fi)
 	if (fileinfo_debug > 4)
 		g_message("FILEINFO insert 0x%p \"%s\" "
 			"(%s/%s bytes done) sha1=%s",
-			cast_to_gconstpointer(fi), fi->file_name,
+			cast_to_gconstpointer(fi), fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 
@@ -2302,13 +2288,14 @@ file_info_hash_insert(fileinfo_t *fi)
 	 *		--RAM, 01/09/2002
 	 */
 
-	xfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+	xfi = g_hash_table_lookup(fi_by_outname, filepath_basename(fi->pathname));
 
 	if (NULL != xfi && xfi != fi)			/* See comment above */
 		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
 
 	if (NULL == xfi)
-		gm_hash_table_insert_const(fi_by_outname, fi->file_name, fi);
+		gm_hash_table_insert_const(fi_by_outname,
+			filepath_basename(fi->pathname), fi);
 
 	/*
 	 * Likewise, there can be only ONE entry per given SHA1, but the SHA1
@@ -2374,7 +2361,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	if (fileinfo_debug > 4) {
 		g_message("FILEINFO remove 0x%lx \"%s\" "
 			"(%s/%s bytes done) sha1=%s\n",
-			(gulong) fi, fi->file_name,
+			(gulong) fi, fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}
@@ -2403,7 +2390,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	 * Remove from plain hash tables: by output name, by SHA1 and by GUID.
 	 */
 
-	g_hash_table_remove(fi_by_outname, fi->file_name);
+	g_hash_table_remove(fi_by_outname, filepath_basename(fi->pathname));
 
 	if (fi->sha1)
 		g_hash_table_remove(fi_by_sha1, fi->sha1);
@@ -2496,11 +2483,9 @@ file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
 void
 file_info_unlink(fileinfo_t *fi)
 {
-	char *path;
-
 	file_info_check(fi);
 
-	if (fi->flags & FI_F_TRANSIENT)
+	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING))
 		return;
 
 	/*
@@ -2512,20 +2497,17 @@ file_info_unlink(fileinfo_t *fi)
 	if (fi->file_size_known && fi->size == fi->done)
 		return;
 
-	path = make_pathname(fi->path, fi->file_name);
-
-	if (NULL == path || -1 == unlink(path)) {
+	if (-1 == unlink(fi->pathname)) {
 		/*
 		 * File might not exist on disk yet if nothing was downloaded.
 		 */
 
 		if (fi->done)
-			g_warning("cannot unlink \"%s%s%s\": %s",
-				fi->path, G_DIR_SEPARATOR_S, fi->file_name,
-				NULL == path ?  "Out of memory" : g_strerror(errno));
+			g_warning("cannot unlink \"%s\": %s",
+				fi->pathname, g_strerror(errno));
 	} else {
 		g_warning("unlinked \"%s\" (%s/%s bytes or %d%% done, %s SHA1%s%s)",
-			fi->file_name,
+			fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			(gint) (fi->done * 100 / (fi->size == 0 ? 1 : fi->size)),
 			fi->sha1 ? "with" : "no",
@@ -2540,8 +2522,6 @@ file_info_unlink(fileinfo_t *fi)
 
 	if (NULL != fi->sf)
 		file_info_upload_stop(fi, "Partial file removed");
-
-	G_FREE_NULL(path);
 }
 
 /**
@@ -2553,9 +2533,10 @@ file_info_reparent_all(fileinfo_t *from, fileinfo_t *to)
 	file_info_check(from);
 	file_info_check(to);
 	g_assert(0 == from->done);
-	g_assert(0 != strcmp(from->file_name, to->file_name));
+	g_assert(0 != strcmp(filepath_basename(from->pathname),
+					filepath_basename(to->pathname)));
 
-	g_warning("about to unlink() for reparenting: \"%s\"", from->file_name);
+	g_warning("about to unlink() for reparenting: \"%s\"", from->pathname);
 	file_info_unlink(from);
 	download_info_change_all(from, to);
 
@@ -2616,7 +2597,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 			uint64_to_string2(xfi->size), (void *) 0);
 		g_message("CONFLICT found same SHA1 %s in \"%s\" "
 			"(%s bytes done) and \"%s\" (%s/%s bytes done)\n",
-			sha1_base32(sha1), xfi->file_name, buf, fi->file_name,
+			sha1_base32(sha1), xfi->pathname, buf, fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size));
 	}
 
@@ -2628,7 +2609,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 			uint64_to_string2(xfi->size), (void *) 0);
 		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
 			"(%s/%s bytes done) -- aborting last one",
-			sha1_base32(sha1), xfi->file_name, buf, fi->file_name,
+			sha1_base32(sha1), xfi->pathname, buf, fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size));
 		return FALSE;
 	}
@@ -2865,6 +2846,8 @@ file_info_retrieve(void)
 	gboolean last_was_truncated = FALSE;
 	file_path_t fp;
 	const gchar *old_filename = NULL;	/* In case we must rename the file */
+	const gchar *path = NULL;
+	const gchar *filename = NULL;
 
 	/*
 	 * We have a complex interaction here: each time a new entry within the
@@ -2931,24 +2914,19 @@ file_info_retrieve(void)
 			gboolean upgraded;
 			gboolean reload_chunks = FALSE;
 
-			if (!(fi->file_name && fi->path)) {
-				/* There's an incomplete fileinfo record */
-				fi_free(fi);
-				fi = NULL;
-				continue;
-			}
+			if (!(filename && path)) /* There's an incomplete fileinfo record */
+				goto reset;
 
 			/*
 			 * There can't be duplicates!
 			 */
 
-			dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+			dfi = g_hash_table_lookup(fi_by_outname,
+						filepath_basename(fi->pathname));
 			if (NULL != dfi) {
 				g_warning("discarding DUPLICATE fileinfo entry for \"%s\"",
-					fi->file_name);
-				fi_free(fi);
-				fi = NULL;
-				continue;
+					filepath_basename(fi->pathname));
+				goto reset;
 			}
 
 			if (0 == fi->size) {
@@ -2982,13 +2960,13 @@ file_info_retrieve(void)
 
 			if (NULL == fi->chunklist) {
 				if (fi->file_size_known)
-					g_warning("no CHNK info for \"%s\"", fi->file_name);
+					g_warning("no CHNK info for \"%s\"", fi->pathname);
 				fi_reset_chunks(fi);
 				reload_chunks = TRUE;	/* Will try to grab from trailer */
 			} else if (!file_info_check_chunklist(fi, FALSE)) {
 				if (fi->file_size_known)
 					g_warning("invalid set of CHNK info for \"%s\"",
-						fi->file_name);
+						fi->pathname);
 				fi_reset_chunks(fi);
 				reload_chunks = TRUE;	/* Will try to grab from trailer */
 			}
@@ -3004,39 +2982,31 @@ file_info_retrieve(void)
 			 */
 
 			if (NULL != old_filename) {
-				const gchar *new_filename;
-				gchar *old_pathname;
-				gchar *new_pathname;
+				const gchar *new_pathname;
+				gchar *old_path;
 				gboolean renamed = TRUE;
 
-				new_filename = file_info_new_outname(fi->file_name, fi->path);
-				atom_str_free_null(&fi->file_name);
-
-				old_pathname = make_pathname(fi->path, old_filename);
-				new_pathname = make_pathname(fi->path, new_filename);
+				old_path = filepath_directory(fi->pathname);
+				new_pathname = file_info_new_outname(old_path,
+									filepath_basename(fi->pathname));
+				G_FREE_NULL(old_path);
 
 				/*
 				 * If fi->done == 0, the file might not exist on disk.
 				 */
 
-				if (-1 == rename(old_pathname, new_pathname) && 0 != fi->done)
+				if (-1 == rename(fi->pathname, new_pathname) && 0 != fi->done)
 					renamed = FALSE;
 
 				if (renamed) {
-					g_warning("renamed \"%s\" into sanitized \"%s\" in \"%s\"",
-						old_filename, new_filename, fi->path);
-					fi->file_name = new_filename;	/* Already an atom */
-					atom_str_free_null(&old_filename);
+					g_warning("renamed \"%s\" into sanitized \"%s\"",
+						fi->pathname, new_pathname);
+					atom_str_change(&fi->pathname, new_pathname);
 				} else {
-					g_warning("cannot rename \"%s\" into \"%s\" in \"%s\": %s",
-						old_filename, new_filename, fi->path,
-						g_strerror(errno));
-					fi->file_name = old_filename;	/* Already an atom */
-					atom_str_free_null(&new_filename);
+					g_warning("cannot rename \"%s\" into \"%s\": %s",
+						fi->pathname, new_pathname, g_strerror(errno));
 				}
-
-				G_FREE_NULL(old_pathname);
-				G_FREE_NULL(new_pathname);
+				atom_str_free_null(&new_pathname);
 			}
 
 			/*
@@ -3045,7 +3015,7 @@ file_info_retrieve(void)
 			 * information.
 			 */
 
-			dfi = file_info_retrieve_binary(fi->file_name, fi->path);
+			dfi = file_info_retrieve_binary(fi->pathname);
 
 			/*
 			 * If we resetted the CHNK list above, grab those from the
@@ -3058,10 +3028,10 @@ file_info_retrieve(void)
 				fi_copy_chunks(fi, dfi);
 				if (fi->chunklist) g_message(
 					"recovered %lu downloaded bytes from trailer of \"%s\"",
-						(gulong) fi->done, fi->file_name);
+						(gulong) fi->done, fi->pathname);
 			} else if (reload_chunks)
 				g_warning("lost all CHNK info for \"%s\" -- downloading again",
-					fi->file_name);
+					fi->pathname);
 
 			g_assert(file_info_check_chunklist(fi, TRUE));
 
@@ -3076,12 +3046,9 @@ file_info_retrieve(void)
 				upgraded = TRUE;
 
 			if (NULL == dfi) {
-				gchar *pathname;
-
-				pathname = make_pathname(fi->path, fi->file_name);
-				if (is_regular(pathname)) {
+				if (is_regular(fi->pathname)) {
 					g_warning("got metainfo in fileinfo cache, "
-						"but none in \"%s\"", pathname);
+						"but none in \"%s\"", fi->pathname);
 					upgraded = FALSE;			/* No need to flush twice */
 					file_info_store_binary(fi);			/* Create metainfo */
 				} else {
@@ -3089,23 +3056,17 @@ file_info_retrieve(void)
 					if (fi->done > 0) {
 						g_warning("discarding cached metainfo for \"%s\": "
 							"file had %s bytes downloaded "
-							"but is now gone!", pathname,
+							"but is now gone!", fi->pathname,
 							uint64_to_string(fi->done));
-						G_FREE_NULL(pathname);
-						fi_free(fi);
-						fi = NULL;
-						continue;
+						goto reset;
 					}
 				}
-				G_FREE_NULL(pathname);
 			} else if (dfi->generation > fi->generation) {
-				g_warning("found more recent metainfo in \"%s%s%s\"",
-					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
+				g_warning("found more recent metainfo in \"%s\"", fi->pathname);
 				fi_free(fi);
 				fi = dfi;
 			} else if (dfi->generation < fi->generation) {
-				g_warning("found OUTDATED metainfo in \"%s%s%s\"",
-					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
+				g_warning("found OUTDATED metainfo in \"%s\"", fi->pathname);
 				fi_free(dfi);
 				dfi = NULL;
 				upgraded = FALSE;				/* No need to flush twice */
@@ -3125,11 +3086,9 @@ file_info_retrieve(void)
 			if (NULL != dfi) {
 				g_warning("found DUPLICATE entry for \"%s\" "
 					"(%s bytes) with \"%s\" (%s bytes)",
-					fi->file_name, uint64_to_string(fi->size),
-					dfi->file_name, uint64_to_string2(dfi->size));
-				fi_free(fi);
-				fi = NULL;
-				continue;
+					fi->pathname, uint64_to_string(fi->size),
+					dfi->pathname, uint64_to_string2(dfi->size));
+				goto reset;
 			}
 
 			/*
@@ -3138,8 +3097,7 @@ file_info_retrieve(void)
 			 */
 
 			if (upgraded) {
-				g_warning("flushing upgraded metainfo in \"%s%s%s\"",
-					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
+				g_warning("flushing upgraded metainfo in \"%s\"", fi->pathname);
 				file_info_store_binary(fi);		/* Resync metainfo */
 			}
 
@@ -3205,7 +3163,7 @@ file_info_retrieve(void)
 
 				s = gm_sanitize_filename(value,
 					convert_spaces, convert_evil_chars);
-				fi->file_name = atom_str_get(s);
+				filename = atom_str_get(s);
 				if (s != value) {
 
 					if (0 != strcmp(s, value)) {
@@ -3223,13 +3181,14 @@ file_info_retrieve(void)
 
 					G_FREE_NULL(s);
 				}
-			} else
-				fi->file_name = atom_str_get(value);
+			} else {
+				filename = atom_str_get(value);
+			}
 			break;
 		case FI_TAG_PATH:
-			/* XXX: Check the pathname more thoroughly */
+			/* FIXME: Check the pathname more thoroughly */
 			damaged = !is_absolute_path(value);
-			fi->path = damaged ? NULL : atom_str_get(value);
+			path = damaged ? NULL : atom_str_get(value);
 			break;
 		case FI_TAG_PAUS:
 			v = parse_uint32(value, &ep, 10, &error);
@@ -3239,8 +3198,8 @@ file_info_retrieve(void)
 		case FI_TAG_ALIA:
 			if (looks_like_urn(value)) {
 				g_warning("skipping alias which looks like a urn in "
-					"fileinfo database: \"%s\" (file_name=\"%s\")", value,
-					NULL_STRING(fi->file_name));
+					"fileinfo database: \"%s\" (pathname=\"%s\")", value,
+					NULL_STRING(fi->pathname));
 			} else {
 				gchar *s;
 
@@ -3389,13 +3348,23 @@ file_info_retrieve(void)
 
 		if (damaged)
 			g_warning("damaged entry in fileinfo line: \"%s %s\"", line, value);
+		continue;
+
+	reset:
+		fi_free(fi);
+		fi = NULL;
+		atom_str_free_null(&filename);
+		atom_str_free_null(&path);
 	}
 
 	if (fi) {
 		fi_free(fi);
+		fi = NULL;
 		if (!empty)
 			g_warning("file info repository was truncated!");
 	}
+	atom_str_free_null(&filename);
+	atom_str_free_null(&path);
 
 	fclose(f);
 }
@@ -3415,13 +3384,17 @@ file_info_name_is_uniq(const gchar *pathname)
 /**
  * Allocate unique output name for file `name', stored in `dir'.
  *
- * @returns filename atom.
+ * @returns The full pathname (string atom).
  */
 static const gchar *
-file_info_new_outname(const gchar *name, const gchar *dir)
+file_info_new_outname(const gchar *dir, const gchar *name)
 {
 	const gchar *result;
 	gchar *to_free = NULL;
+
+	g_assert(dir);
+	g_assert(name);
+	g_assert(is_absolute_path(dir));
 
 	{
 		gchar *s;
@@ -3446,7 +3419,11 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 		NULL == g_hash_table_lookup(fi_by_outname, name) &&
 		!filepath_exists(dir, name)
 	) {
-		result = atom_str_get(name);
+		gchar *pathname;
+
+		pathname = make_pathname(dir, name);
+		result = atom_str_get(pathname);
+		G_FREE_NULL(pathname);
 	} else {
 		const gchar *filename;
 		gchar *uniq;
@@ -3464,9 +3441,7 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 		g_assert('\0' != filename[0]);
 		g_assert(!g_hash_table_lookup(fi_by_outname, filename));
 
-		result = atom_str_get(filename);
-
-		G_FREE_NULL(uniq);
+		result = atom_str_get(uniq);
 	}
 
 	G_FREE_NULL(to_free);
@@ -3484,14 +3459,12 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 {
 	fileinfo_t *fi;
 	struct stat st;
-	char *pathname;
 
 	fi = walloc0(sizeof *fi);
 	fi->magic = FI_MAGIC;
 
 	/* Get unique file name */
-	fi->file_name = file_info_new_outname(file, path);
-	fi->path = atom_str_get(path);
+	fi->pathname = file_info_new_outname(path, file);
 
 	/* Get unique ID */
 	fi->guid = fi_random_guid_atom();
@@ -3505,13 +3478,12 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 	fi->ctime = tm_time();
 	fi->seen_on_network = NULL;
 
-	pathname = make_pathname(fi->path, fi->file_name);
-	if (NULL != pathname && -1 != stat(pathname, &st) && S_ISREG(st.st_mode)) {
+	if (-1 != stat(fi->pathname, &st) && S_ISREG(st.st_mode)) {
 		struct dl_file_chunk *fc;
 
 		g_warning("file_info_create(): "
 			"assuming file \"%s\" is complete up to %s bytes",
-			pathname, uint64_to_string(st.st_size));
+			fi->pathname, uint64_to_string(st.st_size));
 
 		fc = dl_file_chunk_alloc();
 		fc->from = 0;
@@ -3520,7 +3492,6 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 		fi->dirty = TRUE;
 	}
-	G_FREE_NULL(pathname);
 
 	fi->size_atom = atom_filesize_get(&fi->size); /* Set now, for fi_resize() */
 
@@ -3539,12 +3510,14 @@ fileinfo_t *
 file_info_get_transient(const gchar *name)
 {
 	fileinfo_t *fi;
+	gchar *path;
 
 	fi = walloc0(sizeof *fi);
 	fi->magic = FI_MAGIC;
 
-	fi->file_name = atom_str_get(name);
-	fi->path = atom_str_get("/non-existent");
+	path = make_pathname("/non-existent", name);
+	fi->pathname = atom_str_get(path);
+	G_FREE_NULL(path);
 
 	/* Get unique ID */
 	fi->guid = fi_random_guid_atom();
@@ -3573,33 +3546,26 @@ file_info_get_transient(const gchar *name)
  * trailer so that we do not try to reparent it at a later time.
  */
 static void
-fi_rename_dead(fileinfo_t *fi,
-	const gchar *path, const gchar *filename)
+fi_rename_dead(fileinfo_t *fi, const gchar *pathname)
 {
-	gchar *dead;
-	gchar *pathname;
+	gchar *path, *dead;
 
 	file_info_check(fi);
-	pathname = make_pathname(path, filename);
-	dead = g_strconcat(pathname, ".DEAD", (void *) 0);
 
-	if (
-		NULL != pathname &&
-		NULL != dead &&
-		-1 == rename(pathname, dead)
-	) {
+	path = filepath_directory(pathname);
+	dead = unique_filename(path, filepath_basename(pathname), ".DEAD", NULL);
+	if (NULL == dead || -1 == rename(pathname, dead)) {
+
+		if (-1 == truncate(dead, fi->size))
+			g_warning("could not chop fileinfo trailer off \"%s\": %s",
+				dead, g_strerror(errno));
+
+	} else {
 		g_warning("cannot rename \"%s\" as \"%s\": %s",
-			pathname, dead, g_strerror(errno));
-		goto done;
+			pathname, NULL_STRING(dead), g_strerror(errno));
 	}
-
-	if (-1 == truncate(dead, fi->size))
-		g_warning("could not chop fileinfo trailer off \"%s\": %s",
-			dead, g_strerror(errno));
-
-done:
 	G_FREE_NULL(dead);
-	G_FREE_NULL(pathname);
+	G_FREE_NULL(path);
 }
 
 /**
@@ -3609,37 +3575,36 @@ done:
  * to continue "partial-file-sharing" it now that it is fully available...
  */
 void
-file_info_moved(fileinfo_t *fi, const gchar *path, const gchar *filename)
+file_info_moved(fileinfo_t *fi, const gchar *pathname)
 {
+	const char *filename;
 	gpointer value;
 	
 	file_info_check(fi);
-	g_assert(path);
-	g_assert(filename);
+	g_assert(pathname);
+	g_assert(is_absolute_path(pathname));
 	g_assert(!(fi->flags & FI_F_SEEDING));
 
-	value = g_hash_table_lookup(fi_by_outname, fi->file_name);
+	filename = filepath_basename(fi->pathname);
+	value = g_hash_table_lookup(fi_by_outname, filename);
 	g_assert(NULL == value || value == fi);
-	g_hash_table_remove(fi_by_outname, fi->file_name);
+	g_hash_table_remove(fi_by_outname, filename);
 
-	atom_str_change(&fi->path, path);
-	atom_str_change(&fi->file_name, filename);
-	gm_hash_table_insert_const(fi_by_outname, fi->file_name, fi);
+	atom_str_change(&fi->pathname, pathname);
+	filename = filepath_basename(fi->pathname);
+	gm_hash_table_insert_const(fi_by_outname, filename, fi);
 
 	if (fi->sf) {
-		gchar *pathname;
 		struct stat sb;
 	   
-		pathname = make_pathname(fi->path, fi->file_name);
-		shared_file_set_path(fi->sf, pathname);
+		shared_file_set_path(fi->sf, fi->pathname);
 		if (
-			stat(pathname, &sb) ||
+			stat(fi->pathname, &sb) ||
 			fi->size + (off_t)0 != sb.st_size + (filesize_t)0
 		) {
 			sb.st_mtime = 0;
 		}
 		shared_file_set_modification_time(fi->sf, sb.st_mtime);
-		G_FREE_NULL(pathname);
 	}
 	file_info_changed(fi);
 }
@@ -3659,7 +3624,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	const struct sha1 *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
-	const gchar *outname;
+	const gchar *pathname;
    	gchar *to_free = NULL;
 
 	/*
@@ -3687,7 +3652,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 			g_assert(sha1);
 
 			g_warning("file \"%s\" (SHA1 %s) was %s bytes, resizing to %s",
-				fi->file_name, sha1_base32(fi->sha1),
+				fi->pathname, sha1_base32(fi->sha1),
 				uint64_to_string(fi->size), uint64_to_string2(size));
 
 			file_info_hash_remove(fi);
@@ -3724,14 +3689,15 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	 * will be exactly `file'.  Otherwise, it will be a variant.
 	 */
 
-	outname = file_info_new_outname(file, path);
+	pathname = file_info_new_outname(path, file);
 
 	/*
 	 * Check whether the file exists and has embedded meta info.
 	 * Note that we use the new `outname', not `file'.
 	 */
 
-	if (NULL != (fi = file_info_retrieve_binary(outname, path))) {
+	fi = file_info_retrieve_binary(pathname);
+	if (fi) {
 		/*
 		 * File exists, and is NOT currently in use, otherwise `outname' would
 		 * not have been selected as an output name.
@@ -3748,22 +3714,20 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 		 */
 
 		if (NULL != fi->sha1 && (NULL == sha1 || !sha1_eq(sha1, fi->sha1))) {
-			g_warning("found DEAD file \"%s\" in %s bearing SHA1 %s",
-				outname, path, sha1_base32(fi->sha1));
+			g_warning("found DEAD file \"%s\" bearing SHA1 %s",
+				pathname, sha1_base32(fi->sha1));
 
-			fi_rename_dead(fi, path, outname);
+			fi_rename_dead(fi, pathname);
 			fi_free(fi);
 			fi = NULL;
-		}
-		else if (NULL != g_hash_table_lookup(fi_by_guid, fi->guid)) {
-			g_warning("found DEAD file \"%s\" in %s with conflicting ID %s",
-				outname, path, guid_hex_str(fi->guid));
+		} else if (NULL != g_hash_table_lookup(fi_by_guid, fi->guid)) {
+			g_warning("found DEAD file \"%s\" with conflicting ID %s",
+				pathname, guid_hex_str(fi->guid));
 
-			fi_rename_dead(fi, path, outname);
+			fi_rename_dead(fi, pathname);
 			fi_free(fi);
 			fi = NULL;
-		}
-		else if (fi->size < size) {
+		} else if (fi->size < size) {
 			/*
 			 * Existing file is smaller than the total size of this file.
 			 * Trust the larger size, because it's the only sane thing to do.
@@ -3771,7 +3735,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 			 */
 
 			g_warning("found existing file \"%s\" size=%s, increasing to %s",
-				outname, uint64_to_string(fi->size), uint64_to_string2(size));
+				pathname, uint64_to_string(fi->size), uint64_to_string2(size));
 
 			fi_resize(fi, size);
 		}
@@ -3791,7 +3755,8 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	 */
 
 	if (NULL == fi) {
-		fi = file_info_create(outname, path, size, sha1, file_size_known);
+		fi = file_info_create(filepath_basename(pathname), path,
+				size, sha1, file_size_known);
 		fi_alias(fi, file, FALSE);
 	}
 
@@ -3800,7 +3765,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	if (sha1)
 		dmesh_multiple_downloads(sha1, size, fi);
 
-	atom_str_free_null(&outname);
+	atom_str_free_null(&pathname);
 	G_FREE_NULL(to_free);
 
 	return fi;
@@ -4249,7 +4214,7 @@ again:
 		/* Should never happen. */
 		g_warning("file_info_update(): "
 			"(%s) Didn't find matching chunk for <%s-%s> (%u)",
-			fi->file_name, uint64_to_string(from),
+			fi->pathname, uint64_to_string(from),
 			uint64_to_string2(to), status);
 
 		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
@@ -4432,7 +4397,7 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 	if (pos > fi->size)
 		g_warning("file_info_pos_status(): unreachable position %s "
 			"in %s-byte file \"%s\"", uint64_to_string(pos),
-			uint64_to_string2(fi->size), fi->file_name);
+			uint64_to_string2(fi->size), fi->pathname);
 
 #if 0
 	if (start)
@@ -4455,7 +4420,6 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos /* XXX,
 static void
 fi_check_file(fileinfo_t *fi)
 {
-	char *path;
 	struct stat buf;
 
 	file_info_check(fi);
@@ -4465,12 +4429,10 @@ fi_check_file(fileinfo_t *fi)
 	 * File should exist since fi->done > 0, and it was not completed.
 	 */
 
-	path = make_pathname(fi->path, fi->file_name);
-	if (-1 == do_stat(path, &buf) && ENOENT == errno) {
-		g_warning("file %s removed, resetting swarming", path);
+	if (-1 == do_stat(fi->pathname, &buf) && ENOENT == errno) {
+		g_warning("file %s removed, resetting swarming", fi->pathname);
 		file_info_reset(fi);
 	}
-	G_FREE_NULL(path);
 }
 
 /**
@@ -4913,7 +4875,7 @@ fi_find_aggressive_candidate(
 				"and a coverage of missing chunks of %.2f%% and "
 				"%.2f%% respectively",
 				can_be_aggressive ? "really" : "not",
-				download_outname(d),
+				fi->pathname,
 				download_is_stalled(fc->download) ? "stalling " : "",
 				download_speed_avg(fc->download), download_speed_avg(d),
 				longest_missing_coverage * 100.0, missing_coverage * 100.0);
@@ -4934,7 +4896,7 @@ fi_find_aggressive_candidate(
 				"of %s%u B/s for slowest chunk owner and %u B/s for stealer, "
 				"and a coverage of missing chunks of %.2f%% and "
 				"%.2f%% respectively",
-				download_outname(d),
+				fi->pathname,
 				download_is_stalled(fc->download) ? "stalling " : "",
 				download_speed_avg(fc->download), download_speed_avg(d),
 				fi_missing_coverage(fc->download) * 100.0,
@@ -4951,7 +4913,7 @@ fi_find_aggressive_candidate(
 	if (download_debug > 1)
 		g_message("aggressively requesting %s@%s for \"%s\" using %s source",
 			filesize_to_string(*to - *from), short_size(*from, FALSE),
-			download_outname(d),
+			fi->pathname,
 			d->ranges != NULL ? "partial" : "complete");
 
 	return TRUE;
@@ -5006,7 +4968,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	if (fi->size < d->file_size) {
 		g_warning("fi->size=%s < d->file_size=%s for \"%s\"",
 			uint64_to_string(fi->size), uint64_to_string2(d->file_size),
-			fi->file_name);
+			fi->pathname);
 	}
 
 	g_assert(fi->lifecount > 0);
@@ -5292,7 +5254,7 @@ file_info_try_to_swarm_with(
 		return;
 
 	file_info_check(fi);
-	download_auto_new(file_name ? file_name : fi->file_name,
+	download_auto_new(file_name ? file_name : filepath_basename(fi->pathname),
 		fi->size,
 		addr,
 		port,
@@ -5302,7 +5264,7 @@ file_info_try_to_swarm_with(
 		tm_time(),
 		fi,
 		NULL,	/* proxies */
-		/* XXX: TLS? */ 0);
+		/* FIXME: TLS? */ 0);
 }
 
 /**
@@ -5315,7 +5277,7 @@ file_info_scandir(const gchar *dir)
 	DIR *d;
 	struct dirent *dentry;
 	fileinfo_t *fi;
-	gchar *filename = NULL;
+	gchar *pathname = NULL;
 
 	d = opendir(dir);
 	if (NULL == d) {
@@ -5326,7 +5288,7 @@ file_info_scandir(const gchar *dir)
 	while (NULL != (dentry = readdir(d))) {
 		struct stat buf;
 
-		G_FREE_NULL(filename);
+		G_FREE_NULL(pathname);
 
 		if (
 			0 == strcmp(dentry->d_name, ".") ||
@@ -5335,20 +5297,21 @@ file_info_scandir(const gchar *dir)
 				continue;					/* Skip "." and ".." */
 		}
 
-		filename = make_pathname(dir, dentry->d_name);
-		if (-1 == stat(filename, &buf)) {
-			g_warning("cannot stat %s: %s", filename, g_strerror(errno));
+		pathname = make_pathname(dir, dentry->d_name);
+		if (-1 == stat(pathname, &buf)) {
+			g_warning("cannot stat %s: %s", pathname, g_strerror(errno));
 			continue;
 		}
 
 		if (!S_ISREG(buf.st_mode))			/* Only regular files */
 			continue;
 
-		fi = file_info_retrieve_binary(dentry->d_name, dir);
+		fi = file_info_retrieve_binary(pathname);
 		if (NULL == fi)
 			continue;
 
-		if (file_info_lookup_dup(fi)) {		/* Already know about this */
+		if (file_info_lookup_dup(fi)) {
+			/* Already know about this */
 			fi_free(fi);
 			fi = NULL;
 			continue;
@@ -5363,10 +5326,10 @@ file_info_scandir(const gchar *dir)
 
 		g_warning("reactivated orphan entry (%.02f%% done, %s SHA1): %s",
 			fi->done * 100.0 / (0 == fi->size ? 1 : fi->size),
-			fi->sha1 ? "with" : "no", filename);
+			fi->sha1 ? "with" : "no", pathname);
 	}
 
-	G_FREE_NULL(filename);
+	G_FREE_NULL(pathname);
 	closedir(d);
 }
 
@@ -5376,12 +5339,14 @@ file_info_scandir(const gchar *dir)
 static void
 fi_spot_completed_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *name = key;
+	const gchar *filename;
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
 	file_info_check(fi);
-	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
+
+	filename = filepath_basename(fi->pathname);
+	g_assert(key == filename); /* name shared with fi's, don't free */
 
 	if (fi->refcount)					/* Attached to a download */
 		return;
@@ -5394,7 +5359,7 @@ fi_spot_completed_kv(gpointer key, gpointer val, gpointer unused_x)
 	 */
 
 	if (FILE_INFO_COMPLETE(fi))
-		download_orphan_new(fi->file_name, fi->size, fi->sha1, fi);
+		download_orphan_new(filename, fi->size, fi->sha1, fi);
 }
 
 /**
@@ -5444,7 +5409,7 @@ fi_get_info(gnet_fi_t fih)
 
     info = walloc(sizeof *info);
 
-    info->file_name = fi->file_name ? atom_str_get(fi->file_name) : NULL;
+    info->file_name = atom_str_get(filepath_basename(fi->pathname));
 	sha1 = fi->sha1 ? fi->sha1 : fi->cha1;
     info->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
     info->fi_handle = fi->fi_handle;
@@ -6041,14 +6006,12 @@ file_info_build_magnet(gnet_fi_t handle)
 	file_info_check(fi);
 
 	magnet = magnet_resource_new();
+	magnet_set_display_name(magnet, filepath_basename(fi->pathname));
 	if (fi->sha1) {
 		magnet_set_sha1(magnet, fi->sha1);
 	}
 	if (fi->tth) {
 		magnet_set_tth(magnet, fi->tth);
-	}
-	if (fi->file_name) {
-		magnet_set_display_name(magnet, fi->file_name);
 	}
 	if (fi->file_size_known && fi->size) {
 		magnet_set_filesize(magnet, fi->size);
@@ -6090,15 +6053,12 @@ file_info_get_file_url(gnet_fi_t handle)
 	/* Allow partials but not unstarted files */
 	if (fi->done > 0) {
 		gchar *escaped;
-		gchar *pathname;
 
-		pathname = make_pathname(fi->path, fi->file_name);
-		escaped = url_escape(pathname);
-		if (escaped != pathname) {
-			G_FREE_NULL(pathname);
-		}
+		escaped = url_escape(fi->pathname);
 		url = g_strconcat("file://", escaped, (void *) 0);
-		G_FREE_NULL(escaped);
+		if (escaped != fi->pathname) {
+			G_FREE_NULL(escaped);
+		}
 	}
 	return url;
 }
@@ -6164,7 +6124,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	 * overall ranges info for this file.
 	 */
 	if (fileinfo_debug > 5)
-		printf("*** Fileinfo: %s\n", d->file_info->file_name);
+		printf("*** Fileinfo: %s\n", d->file_info->pathname);
 
 	for (sl = d->file_info->sources; sl; sl = g_slist_next(sl)) {
 		struct download *src = sl->data;

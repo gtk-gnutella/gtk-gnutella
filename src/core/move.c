@@ -183,7 +183,6 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	struct moved *md = ctx;
 	struct work *we = item;
 	struct download *d = we->d;
-	gchar *source = NULL;
 	struct stat buf;
 	const gchar *name;
 
@@ -195,11 +194,8 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	download_move_start(d);
 	bg_task_signal(h, BG_SIG_TERM, d_sighandler);
 
-	source = make_pathname(download_path(d), download_outname(d));
-	g_return_if_fail(NULL != source);
-
 	md->d = we->d;
-	md->rd = file_open(source, O_RDONLY);
+	md->rd = file_open(download_pathname(d), O_RDONLY);
 
 	if (md->rd == -1) {
 		md->error = errno;
@@ -208,12 +204,13 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 	if (-1 == fstat(md->rd, &buf)) {
 		md->error = errno;
-		g_warning("can't fstat \"%s\": %s", source, g_strerror(errno));
+		g_warning("can't fstat \"%s\": %s",
+			download_pathname(d), g_strerror(errno));
 		goto abort_read;
 	}
 
 	if (!S_ISREG(buf.st_mode)) {
-		g_warning("file \"%s\" is not a regular file", source);
+		g_warning("file \"%s\" is not a regular file", download_pathname(d));
 		goto abort_read;
 	}
 
@@ -239,9 +236,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 	if (dbg > 1)
 		g_message("Moving \"%s\" to \"%s\"",
-				download_outname(d), md->target);
-
-	G_FREE_NULL(source);
+				download_basename(d), md->target);
 
 	return;
 
@@ -251,8 +246,7 @@ abort_read:
 		close(md->rd);
 		md->rd = -1;
 	}
-	g_warning("can't copy \"%s\" to \"%s\"", source, we->dest);
-	G_FREE_NULL(source);
+	g_warning("can't copy \"%s\" to \"%s\"", download_pathname(d), we->dest);
 	return;
 }
 
@@ -290,15 +284,11 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	 */
 
 	if (md->error == 0) {
-		gchar *source;
-
 		g_assert(md->copied == md->size);
 
-		source = make_pathname(download_path(md->d), download_outname(md->d));
-		if (NULL == source || -1 == unlink(source))
+		if (-1 == unlink(download_pathname(md->d)))
 			g_warning("cannot unlink \"%s\": %s",
-				download_outname(md->d), g_strerror(errno));
-		G_FREE_NULL(source);
+				download_basename(md->d), g_strerror(errno));
 	} else {
 		if (md->target != NULL && -1 == unlink(md->target))
 			g_warning("cannot unlink \"%s\": %s",
@@ -310,15 +300,11 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 
 	if (dbg > 1)
 		printf("Moved file \"%s\" at %lu bytes/sec [error=%d]\n",
-			download_outname(md->d), (gulong) md->size / elapsed, md->error);
+			download_basename(md->d), (gulong) md->size / elapsed, md->error);
 
 finish:
 	if (md->error == 0) {
-		const gchar *basename = filepath_basename(md->target);
-		gchar *dirname = filepath_directory(md->target);
-		file_info_moved(d->file_info, dirname, basename);
-		download_move_done(d, elapsed);
-		G_FREE_NULL(dirname);
+		download_move_done(d, md->target, elapsed);
 	} else
 		download_move_error(d);
 
@@ -365,11 +351,11 @@ d_step_copy(struct bgtask *h, gpointer u, gint ticks)
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while reading \"%s\" for moving: %s",
-			download_outname(md->d), g_strerror(errno));
+			download_basename(md->d), g_strerror(errno));
 		return BGR_DONE;
 	} else if (r == 0) {
 		g_warning("EOF while reading \"%s\" for moving!",
-			download_outname(md->d));
+			download_basename(md->d));
 		md->error = -1;
 		return BGR_DONE;
 	}
@@ -388,11 +374,11 @@ d_step_copy(struct bgtask *h, gpointer u, gint ticks)
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while writing for moving \"%s\": %s",
-			download_outname(md->d), g_strerror(errno));
+			download_basename(md->d), g_strerror(errno));
 		return BGR_DONE;
 	} else if ((size_t) r < amount) {
 		md->error = -1;
-		g_warning("short write whilst moving \"%s\"", download_outname(md->d));
+		g_warning("short write whilst moving \"%s\"", download_basename(md->d));
 		return BGR_DONE;
 	}
 

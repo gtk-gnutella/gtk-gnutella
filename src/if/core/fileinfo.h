@@ -90,8 +90,7 @@ typedef struct dl_file_info {
     gnet_fi_t fi_handle;    /**< Handle */
 	const gchar *guid;		/**< Unique fileinfo ID */
 	guint32 flags;			/**< Operating flags */
-	const gchar *file_name;	/**< Output file name (atom) */
-	const gchar *path;		/**< Output file path (atom) */
+	const gchar *pathname;	/**< Output pathname (atom) */
 	GSList *alias;			/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
 	const filesize_t *size_atom;/**< File size (atom) */

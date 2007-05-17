@@ -2561,10 +2561,9 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
 			g_message("ALT-LOC queuing from MESH: %s",
 				dmesh_urlinfo_to_string(p));
 
-		filename = URN_INDEX == p->idx && fi && fi->file_name
-			? fi->file_name
-			: p->name;
-		download_auto_new(p->name,
+		filename = URN_INDEX == p->idx && fi
+			? filepath_basename(fi->pathname) : p->name;
+		download_auto_new(filename,
 			size,
 			p->addr,
 			p->port,

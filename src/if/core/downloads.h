@@ -300,8 +300,6 @@ enum {
 #define download_vendor_str(d) \
 	((d)->server->vendor ? (d)->server->vendor : "")
 
-#define download_path(d)		((d)->file_info->path)
-#define download_outname(d)		((d)->file_info->file_name)
 #define download_filesize(d)	((d)->file_info->size)
 #define download_filedone(d)	((d)->file_info->done + (d)->file_info->buffered)
 #define download_buffered(d)	((d)->buffers == NULL ? 0 : (d)->buffers->held)
@@ -443,6 +441,9 @@ void src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
 	frequency_t t, guint32 interval);
 void src_remove_listener(src_listener_t cb, gnet_src_ev_t ev);
 guint download_speed_avg(struct download *d);
+
+const gchar *download_pathname(const struct download *d);
+const gchar *download_basename(const struct download *d);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_downloads_h_ */

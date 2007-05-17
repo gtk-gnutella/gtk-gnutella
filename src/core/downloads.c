@@ -156,6 +156,20 @@ static gboolean download_dirty = FALSE;
 static void download_store(void);
 static void download_retrieve(void);
 
+const gchar *
+download_pathname(const struct download *d)
+{
+	download_check(d);
+	file_info_check(d->file_info);
+	return d->file_info->pathname;
+}
+
+const gchar *
+download_basename(const struct download *d)
+{
+	return filepath_basename(download_pathname(d));
+}
+
 /*
  * Download structures.
  *
@@ -1235,7 +1249,7 @@ download_timer(time_t now)
 		case GTA_DL_PASSIVE_QUEUED:
 		case GTA_DL_QUEUED:
 			g_error("found queued download in sl_unqueued list: \"%s\"",
-				download_outname(d));
+				download_pathname(d));
 			break;
 		case GTA_DL_INVALID:
 			g_assert_not_reached();
@@ -2103,7 +2117,7 @@ download_has_enough_active_sources(struct download *d)
 	} else {
 		n = 1;
 	}
-	return count_running_downloads_with_name(download_outname(d)) >= n;
+	return count_running_downloads_with_name(download_basename(d)) >= n;
 }
 
 /**
@@ -2172,19 +2186,10 @@ download_passively_queued(struct download *d, gboolean queued)
 gboolean
 download_file_exists(const struct download *d)
 {
-	gboolean ret;
-	gchar *path;
-	struct stat buf;
+	struct stat sb;
 
 	download_check(d);
-
-	path = make_pathname(download_path(d), download_outname(d));
-	g_return_val_if_fail(NULL != path, FALSE);
-
-	ret = -1 != stat(path, &buf);
-	G_FREE_NULL(path);
-
-	return ret;
+	return -1 != stat(download_pathname(d), &sb) && S_ISREG(sb.st_mode);
 }
 
 /**
@@ -2360,7 +2365,7 @@ download_info_reget(struct download *d)
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_remove(d);
 
-	downloads_with_name_dec(download_outname(d));	/* File name can change! */
+	downloads_with_name_dec(download_basename(d));	/* File name can change! */
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
 	file_size_known = fi->file_size_known;		/* This should not change */
 
@@ -2379,7 +2384,7 @@ download_info_reget(struct download *d)
 	if (fi->flags & FI_F_PAUSED)
 		d->flags |= DL_F_PAUSED;
 
-	downloads_with_name_inc(download_outname(d));
+	downloads_with_name_inc(download_basename(d));
 }
 
 /**
@@ -2815,10 +2820,10 @@ download_move_to_list(struct download *d, enum dl_list idx)
 			g_assert(dl_establishing > 0);
 			dl_establishing--;
 		}
-		downloads_with_name_dec(download_outname(d));
+		downloads_with_name_dec(download_basename(d));
 	} else if (idx == DL_LIST_RUNNING) {
 		dl_establishing++;
-		downloads_with_name_inc(download_outname(d));
+		downloads_with_name_inc(download_basename(d));
 	}
 
 	g_assert(dl_active <= INT_MAX && dl_establishing <= INT_MAX);
@@ -3608,7 +3613,7 @@ download_ignore_requested(struct download *d)
 	}
 
 	if (reason == IGNORE_FALSE)
-		reason = ignore_is_requested(download_outname(d), fi->size, fi->sha1);
+		reason = ignore_is_requested(download_basename(d), fi->size, fi->sha1);
 
 	if (reason != IGNORE_FALSE) {
 		const gchar *s_reason;
@@ -3903,7 +3908,7 @@ download_pick_available(struct download *d)
 			g_message("PFSP no interesting chunks from %s for \"%s\", "
 				"available was: %s",
 				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_outname(d), http_range_to_string(d->ranges));
+				download_basename(d), http_range_to_string(d->ranges));
 
 		return FALSE;
 	}
@@ -3934,7 +3939,7 @@ download_pick_available(struct download *d)
 			"from %s for \"%s\", available was: %s",
 			uint64_to_string(from), uint64_to_string2(to - 1), d->overlap_size,
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_outname(d), http_range_to_string(d->ranges));
+			download_basename(d), http_range_to_string(d->ranges));
 
 	return TRUE;
 }
@@ -4485,7 +4490,7 @@ download_fallback_to_push(struct download *d,
 
 	if (!d->socket) {
 		g_warning("download_fallback_to_push(): no socket for '%s'",
-			download_outname(d));
+			download_basename(d));
     } else {
 		/*
 		 * If a DNS lookup error occurred, discard the hostname we have.
@@ -4799,7 +4804,7 @@ create_download(
 				"downloaded for %s",
 				sha1_base32(d->sha1), uint64_to_string(fi->done),
 				fi->done == 1 ? "" : "s",
-				download_outname(d));
+				download_basename(d));
 			if (DOWNLOAD_IS_QUEUED(d)) {	/* file_info_got_sha1() can queue */
 				return d;
 			}
@@ -4886,7 +4891,7 @@ download_auto_new(const gchar *file_name,
 	 */
 
 	ign_reason = ignore_is_requested(
-		fi ? fi->file_name : file_name,
+		fi ? filepath_basename(fi->pathname) : file_name,
 		fi ? fi->size : size,
 		fi ? fi->sha1 : sha1);
 
@@ -5054,7 +5059,7 @@ download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
 				 * name, but some peers might not bother.
 				 */
 				g_message("stopping request for \"%s\": index changed",
-					download_outname(d));
+					download_basename(d));
 				to_stop = g_slist_prepend(to_stop, d);
 				break;
 			case GTA_DL_RECEIVING:
@@ -5063,7 +5068,7 @@ download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
 				 * requested the file.	There's nothing we can do now.
 				 */
 				g_message("index of \"%s\" changed during reception",
-					download_outname(d));
+					download_basename(d));
 				break;
 			default:
 				/*
@@ -5072,7 +5077,7 @@ download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
 				if (download_debug > 3) {
 					g_message("noted index change "
 						"from %u to %u at %s for \"%s\"",
-						from, to, guid_hex_str(guid), download_outname(d));
+						from, to, guid_hex_str(guid), download_basename(d));
                 }
 				break;
 			}
@@ -5928,7 +5933,7 @@ download_can_ignore(struct download *d)
 
 	if (download_debug > 1)
 		g_message("will be ignoring next %s bytes of data for \"%s\"",
-			uint64_to_string(remain), download_outname(d));
+			uint64_to_string(remain), download_basename(d));
 
 	return TRUE;
 }
@@ -5963,7 +5968,7 @@ download_backout(struct download *d)
 	file_info_update(d, begin, end, DL_CHUNK_EMPTY);
 	g_message("resuming data mismatch on %s, backed out %u bytes block"
 		" from %s to %s",
-		 download_outname(d), (guint) backout,
+		 download_basename(d), (guint) backout,
 		 uint64_to_string(begin), uint64_to_string2(end));
 }
 
@@ -5988,23 +5993,18 @@ download_overlap_check(struct download *d)
 	g_assert(fi->lifecount <= fi->refcount);
 	g_assert(d->buffers->held >= d->overlap_size);
 
-	{
-		gchar *path = make_pathname(fi->path, fi->file_name);
-
-		fo = file_object_open(path, O_RDONLY);
-		if (!fo) {
-			gint fd = file_open(path, O_RDONLY);
-			if (fd >= 0) {
-				fo = file_object_new(fd, path, O_RDONLY);
-			} else {
-				const gchar *error = g_strerror(errno);
-				g_message("cannot check resuming for \"%s\": %s",
-						fi->file_name, error);
-				download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s",
-						error);
-			}
+	fo = file_object_open(fi->pathname, O_RDONLY);
+	if (!fo) {
+		gint fd = file_open(fi->pathname, O_RDONLY);
+		if (fd >= 0) {
+			fo = file_object_new(fd, fi->pathname, O_RDONLY);
+		} else {
+			const gchar *error = g_strerror(errno);
+			g_message("cannot check resuming for \"%s\": %s",
+				filepath_basename(fi->pathname), error);
+			download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s",
+				error);
 		}
-		G_FREE_NULL(path);
 	}
 
 	if (!fo) {
@@ -6017,7 +6017,7 @@ download_overlap_check(struct download *d)
 		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
 			/* Should never happen */
 			const gchar *error = g_strerror(errno);
-			g_message("cannot stat opened \"%s\": %s", fi->file_name, error);
+			g_message("cannot stat opened \"%s\": %s", fi->pathname, error);
 			download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
 			goto out;
 		}
@@ -6029,7 +6029,7 @@ download_overlap_check(struct download *d)
 
 		if (!fi->use_swarming && d->skip != fi->done) {
 			g_message("file '%s' changed size (now %s, but was %s)",
-					fi->file_name, uint64_to_string(sb.st_size),
+					fi->pathname, uint64_to_string(sb.st_size),
 					uint64_to_string2(d->skip));
 			download_queue_delay(d, download_retry_stopped_delay,
 					_("Stopped (Output file size changed)"));
@@ -6048,13 +6048,13 @@ download_overlap_check(struct download *d)
 		if ((ssize_t) -1 == r) {
 			const gchar *error = g_strerror(errno);
 			g_message("cannot read resuming data for \"%s\": %s",
-					fi->file_name, error);
+					fi->pathname, error);
 			download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
 			goto out;
 		} else if ((size_t) r != d->overlap_size) {
 			g_message(
 				"short read (%u instead of %u bytes) on resuming data for "
-				"\"%s\"", (guint) r, (guint) d->overlap_size, fi->file_name);
+				"\"%s\"", (guint) r, (guint) d->overlap_size, fi->pathname);
 			download_stop(d, GTA_DL_ERROR, "Short read on resume data");
 			goto out;
 		}
@@ -6069,7 +6069,7 @@ download_overlap_check(struct download *d)
 			g_message("%u overlapping bytes UNMATCHED at offset %s for \"%s\"",
 				(guint) d->overlap_size,
 				uint64_to_string(d->skip - d->overlap_size),
-				download_outname(d));
+				download_basename(d));
         }
 
 		d->pos += d->buffers->held;	/* Keep track of what we read so far */
@@ -6135,7 +6135,7 @@ download_overlap_check(struct download *d)
 		g_message("%u overlapping bytes MATCHED "
 			"at offset %s for \"%s\"",
 			(guint) d->overlap_size,
-			uint64_to_string(d->skip - d->overlap_size), download_outname(d));
+			uint64_to_string(d->skip - d->overlap_size), download_basename(d));
 
 	success = TRUE;
 
@@ -6168,7 +6168,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	if (download_debug > 10)
 		g_message("flushing %lu bytes (%u buffers) for \"%s\"%s",
 			(gulong) b->held, slist_length(b->list),
-			download_outname(d), may_stop ? "" : " on stop");
+			download_basename(d), may_stop ? "" : " on stop");
 
 	/*
 	 * We can't have data going farther than what we requested from the
@@ -6183,7 +6183,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 			"server %s (%s) gave us %s more byte%s than requested for \"%s\"",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d), uint64_to_string(extra),
-			extra == 1 ? "" : "s", download_outname(d));
+			extra == 1 ? "" : "s", download_basename(d));
 
 		buffers_check_held(d);
 		buffers_strip_trailing(d, extra);
@@ -6263,7 +6263,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	
 	   	error = g_strerror(errno);
 		g_warning("write of %lu bytes to file \"%s\" failed: %s",
-			(gulong) b->held, download_outname(d), error);
+			(gulong) b->held, download_basename(d), error);
 
 		/* FIXME: We should never discard downloaded data! This
 		 * causes a re-download of the same data. Instead we should
@@ -6282,7 +6282,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 
 	if (b->held > 0) {
 		g_warning("Partial write (written=%lu, b->held=%lu) to file \"%s\"",
-			(gulong) written, (gulong) b->held, download_outname(d));
+			(gulong) written, (gulong) b->held, download_basename(d));
 
 		if (may_stop)
 			download_queue_delay(d, download_retry_busy_delay,
@@ -6421,7 +6421,7 @@ download_write_data(struct download *d)
 		g_message(
 			"%sflushing pending %lu bytes for \"%s\", pos=%s, range_end=%s",
 			should_flush ? "" : "NOT ",
-			(gulong) b->held, download_outname(d),
+			(gulong) b->held, download_basename(d),
 			uint64_to_string(d->pos),
 			uint64_to_string2(d->range_end));
 	}
@@ -6559,12 +6559,12 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	if (!host_addr_equal(info.addr, addr) || info.port != port) {
 		g_warning("server %s (file \"%s\") redirecting us to alien %s",
-			host_addr_port_to_string(addr, port), download_outname(d), buf);
+			host_addr_port_to_string(addr, port), download_basename(d), buf);
     }
 
 	if (!is_host_addr(info.addr)) {
 		g_warning("server %s (file \"%s\") would redirect us to invalid %s",
-			host_addr_port_to_string(addr, port), download_outname(d), buf);
+			host_addr_port_to_string(addr, port), download_basename(d), buf);
 		atom_str_free_null(&info.name);
 		return FALSE;
 	}
@@ -6581,7 +6581,7 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	if (URN_INDEX == info.idx) {
 		g_message("server %s (file \"%s\") would redirect us to %s",
-			host_addr_port_to_string(addr, port), download_outname(d), buf);
+			host_addr_port_to_string(addr, port), download_basename(d), buf);
 		atom_str_free_null(&info.name);
 		return FALSE;
 	}
@@ -7172,7 +7172,7 @@ check_content_urn(struct download *d, header_t *header)
 		if (d->file_info->sha1 != d->sha1) {
 			g_message("discovered SHA1 %s on the fly for %s "
 				"(fileinfo has %s)",
-				sha1_base32(d->sha1), download_outname(d),
+				sha1_base32(d->sha1), download_basename(d),
 				d->file_info->sha1 ? "another" : "none");
 
 			/*
@@ -7587,7 +7587,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar short_read[80];
 	guint delay;
 	guint hold = 0;
-	gchar *path = NULL;
 	gboolean refusing;
 
 	download_check(d);
@@ -7896,7 +7895,7 @@ http_version_nofix:
 						uint64_to_string2(d->range_end - 1),
 						host_addr_port_to_string(download_addr(d),
 								download_port(d)),
-						download_outname(d), http_range_to_string(d->ranges));
+						download_basename(d), http_range_to_string(d->ranges));
 
 				break;
 			}
@@ -8331,7 +8330,7 @@ http_version_nofix:
 			if (content_size == fi->size) {
 				g_message("file \"%s\": server seems to have "
 					"ignored our range request of %s-%s.",
-					download_outname(d),
+					download_basename(d),
 					uint64_to_string(d->skip - d->overlap_size),
 					uint64_to_string2(d->range_end - 1));
 				download_bad_source(d);
@@ -8365,7 +8364,7 @@ http_version_nofix:
                     g_message(
 						"file \"%s\" on %s (%s): total size mismatch: got %s, "
 						"for a served content of %s",
-                        download_outname(d),
+                        download_basename(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -8381,7 +8380,7 @@ http_version_nofix:
                 if (download_debug)
                     g_message("file \"%s\" on %s (%s): start byte mismatch: "
 						"wanted %s, got %s",
-                        download_outname(d),
+                        download_basename(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -8396,7 +8395,7 @@ http_version_nofix:
                 if (download_debug) {
                         g_message("file \"%s\" on %s (%s): file size mismatch:"
 						" expected %s, got %s",
-                        download_outname(d),
+                        download_basename(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -8410,7 +8409,7 @@ http_version_nofix:
                 if (download_debug) {
                     g_message("file \"%s\" on %s (%s): end byte too large: "
 						"expected %s, got %s",
-                        download_outname(d),
+                        download_basename(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -8440,7 +8439,7 @@ http_version_nofix:
 
 				g_message("file \"%s\" on %s (%s): "
 					"Range mismatch: wanted %s - %s, %s",
-					download_outname(d),
+					download_basename(d),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d),
@@ -8455,7 +8454,7 @@ http_version_nofix:
                     g_message(
 						"file \"%s\" on %s (%s): end byte short: wanted %s, "
 						"got %s (continuing anyway)",
-                        download_outname(d),
+                        download_basename(d),
                         host_addr_port_to_string(download_addr(d),
 							download_port(d)),
                         download_vendor_str(d),
@@ -8496,7 +8495,7 @@ http_version_nofix:
 		} else {
             if (download_debug) {
                 g_message("file \"%s\" on %s (%s): malformed Content-Range: %s",
-					download_outname(d),
+					download_basename(d),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d), buf);
@@ -8511,7 +8510,7 @@ http_version_nofix:
 
 	if (check_content_range != 0) {
 		g_message("file \"%s\": expected content of %s, server %s (%s) said %s",
-			download_outname(d), uint64_to_string(requested_size),
+			download_basename(d), uint64_to_string(requested_size),
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d),
 			uint64_to_string2(check_content_range));
@@ -8699,13 +8698,11 @@ http_version_nofix:
 
 	g_assert(NULL == d->out_file);
 
-	path = make_pathname(fi->path, fi->file_name);
-
-	d->out_file = file_object_open(path, O_WRONLY);
+	d->out_file = file_object_open(fi->pathname, O_WRONLY);
 	if (!d->out_file) {
-		gint fd = file_open_missing(path, O_RDWR);
+		gint fd = file_open_missing(fi->pathname, O_RDWR);
 		if (fd >= 0) {
-			d->out_file = file_object_new(fd, path, O_RDWR);
+			d->out_file = file_object_new(fd, fi->pathname, O_RDWR);
 		}
 	}
 	if (d->out_file) {
@@ -8713,30 +8710,26 @@ http_version_nofix:
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->skip)) {
 			g_message("File '%s' changed size (now %s, but was %s)",
-				fi->file_name, uint64_to_string(fi->done),
+				fi->pathname, uint64_to_string(fi->done),
 				uint64_to_string2(d->skip));
 			download_queue_delay(d, download_retry_stopped_delay,
 				_("Stopped (Output file size changed)"));
-			G_FREE_NULL(path);
 			return;
 		}
 	} else if (!fi->use_swarming && d->skip) {
 		download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
-		G_FREE_NULL(path);
 		return;
 	} else {
-		gint fd = file_create(path, O_RDWR, DOWNLOAD_FILE_MODE);
+		gint fd = file_create(fi->pathname, O_RDWR, DOWNLOAD_FILE_MODE);
 		if (fd >= 0) {
-			d->out_file = file_object_new(fd, path, O_RDWR);
+			d->out_file = file_object_new(fd, fi->pathname, O_RDWR);
 		}
 		if (!d->out_file) {
 			const gchar *error = g_strerror(errno);
 			download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
-			G_FREE_NULL(path);
 			return;
 		}
 	}
-	G_FREE_NULL(path);
 
 	g_assert(d->out_file);
 
@@ -9009,7 +9002,7 @@ download_send_request(struct download *d)
 
 	if (!s)
 		g_error("download_send_request(): no socket for \"%s\"",
-			download_outname(d));
+			download_basename(d));
 
 	/*
 	 * If we have a hostname for this server, check the IP address of the
@@ -9401,7 +9394,7 @@ download_push_ready(struct download *d, getline_t *empty)
 
 	if (len != 0) {
 		g_message("file \"%s\": push reply was not followed by an empty line",
-			download_outname(d));
+			download_basename(d));
 		dump_hex(stderr, "Extra GIV data", getline_str(empty), MIN(len, 80));
 		download_stop(d, GTA_DL_ERROR, "Malformed push reply");
 		return;
@@ -9471,7 +9464,7 @@ select_push_download(GSList *servers)
 			if (d->socket == NULL) {
 				if (download_debug > 1) g_message(
 					"GIV: selected active download \"%s\" from %s at %s <%s>",
-					download_outname(d), guid_hex_str(server->key->guid),
+					download_basename(d), guid_hex_str(server->key->guid),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d));
@@ -9517,7 +9510,7 @@ select_push_download(GSList *servers)
 
 			if (download_debug > 2) g_message(
 				"GIV: will try alternate download \"%s\" from %s at %s <%s>",
-				download_outname(d), guid_hex_str(server->key->guid),
+				download_basename(d), guid_hex_str(server->key->guid),
 				host_addr_port_to_string(download_addr(d),
 					download_port(d)),
 				download_vendor_str(d));
@@ -9557,7 +9550,7 @@ select_push_download(GSList *servers)
 
 				if (download_debug > 1) g_message("GIV: "
 					"selected alternate download \"%s\" from %s at %s <%s>",
-					download_outname(d), guid_hex_str(server->key->guid),
+					download_basename(d), guid_hex_str(server->key->guid),
 					host_addr_port_to_string(download_addr(d),
 						download_port(d)),
 					download_vendor_str(d));
@@ -9763,7 +9756,7 @@ download_push_ack(struct gnutella_socket *s)
 
 	if (download_debug)
 		g_message("mapped GIV \"%s\" to \"%s\" from %s <%s>",
-			giv, download_outname(d), host_addr_to_string(s->addr),
+			giv, download_basename(d), host_addr_to_string(s->addr),
 			download_vendor_str(d));
 
 	if (d->io_opaque) {
@@ -9876,12 +9869,10 @@ download_build_magnet(const struct download *d)
 		const gchar *parq_id;
 	
 		magnet = magnet_resource_new();
+		magnet_set_display_name(magnet, filepath_basename(fi->pathname));
 		sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
 		if (sha1) {
 			magnet_set_sha1(magnet, sha1);
-		}
-		if (fi->file_name) {
-			magnet_set_display_name(magnet, fi->file_name);
 		}
 		if (fi->file_size_known && fi->size) {
 			magnet_set_filesize(magnet, fi->size);
@@ -10319,10 +10310,10 @@ download_moved_with_bad_sha1(struct download *d)
 
 	if (is_faked_download(d)) {
 		g_message("SHA1 mismatch for \"%s\", and cannot restart download",
-			download_outname(d));
+			download_basename(d));
 	} else {
 		g_message("SHA1 mismatch for \"%s\", will be restarting download",
-			download_outname(d));
+			download_basename(d));
 
 		d->file_info->lifecount++;				/* Reactivate download */
 		file_info_reset(d->file_info);
@@ -10353,7 +10344,6 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 {
 	fileinfo_t *fi;
 	gchar *dest = NULL;
-	gchar *src = NULL;
 	gboolean common_dir;
 	const gchar *name;
 
@@ -10363,10 +10353,6 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 
 	d->status = GTA_DL_MOVING;
 	fi = d->file_info;
-
-	src = make_pathname(fi->path, fi->file_name);
-	if (NULL == src)
-		goto error;
 
 	/*
 	 * Don't keep an URN-like name when the file is done, if possible.
@@ -10378,12 +10364,21 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	 * If the target directory is the same as the source directory, we'll
 	 * use the supplied extension and simply rename the file.
 	 */
+	{
+		gboolean same_dir;
+		gchar *path;
 
-	if (0 == strcmp(dir, fi->path)) {
-		dest = unique_filename(dir, name, ext, NULL);
-		if (NULL == dest || -1 == rename(src, dest))
-			goto error;
-		goto renamed;
+		/* FIXME: This could be done without copying. */
+		path = filepath_directory(fi->pathname);
+		same_dir = 0 == strcmp(dir, path);
+		G_FREE_NULL(path);
+
+		if (same_dir) {
+			dest = unique_filename(dir, name, ext, NULL);
+			if (NULL == dest || -1 == rename(fi->pathname, dest))
+				goto error;
+			goto renamed;
+		}
 	}
 
 	/*
@@ -10399,7 +10394,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	if (NULL == dest)
 		goto error;
 
-	if (-1 != rename(src, dest))
+	if (-1 != rename(fi->pathname, dest))
 		goto renamed;
 
 	/*
@@ -10425,20 +10420,19 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	goto cleanup;
 
 error:
-	g_message("Cannot rename %s as %s: %s", src, dest, g_strerror(errno));
+	g_message("Cannot rename %s as %s: %s",
+		fi->pathname, dest, g_strerror(errno));
 	download_move_error(d);
 	goto cleanup;
 
 renamed:
 
 	file_info_strip_binary_from_file(fi, dest);
-	file_info_moved(fi, dir, filepath_basename(dest));
-	download_move_done(d, 0);
+	download_move_done(d, dest, 0);
 	goto cleanup;
 
 cleanup:
 
-	G_FREE_NULL(src);
 	G_FREE_NULL(dest);
 	return;
 }
@@ -10475,7 +10469,7 @@ download_move_progress(struct download *d, filesize_t copied)
  * Called when file has been moved/renamed with its fileinfo trailer stripped.
  */
 void
-download_move_done(struct download *d, guint elapsed)
+download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 {
 	fileinfo_t *fi;
 
@@ -10485,6 +10479,7 @@ download_move_done(struct download *d, guint elapsed)
 	d->status = GTA_DL_DONE;
 	d->last_update = tm_time();
 	fi = d->file_info;
+	file_info_moved(fi, pathname);
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
 	file_info_changed(fi);
@@ -10504,6 +10499,9 @@ download_move_done(struct download *d, guint elapsed)
 		) {
 			fi->flags |= FI_F_SEEDING;
 		}
+
+		/* Send a notification */
+		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, download_pathname(d));
 	} else {
 		download_moved_with_bad_sha1(d);
 	}
@@ -10516,10 +10514,8 @@ void
 download_move_error(struct download *d)
 {
 	fileinfo_t *fi;
-	const gchar *ext;
-	gchar *src;
-	gchar *dest;
-	const gchar *name;
+	const gchar *ext, *name;
+	gchar *dest, *path;
 
 	download_check(d);
 	g_assert(d->status == GTA_DL_MOVING);
@@ -10534,21 +10530,21 @@ download_move_error(struct download *d)
 	fi = d->file_info;
 	name = file_info_readable_filename(fi);
 
-	src = make_pathname(fi->path, fi->file_name);
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
-	dest = unique_filename(fi->path, name, ext, NULL);
+	path = filepath_directory(fi->pathname);
+	dest = unique_filename(path, name, ext, NULL);
+	G_FREE_NULL(path);
 
 	file_info_strip_binary(fi);
 
-	if (NULL == src || NULL == dest || -1 == rename(src, dest)) {
+	if (NULL == dest || -1 == rename(fi->pathname, dest)) {
 		g_message("Could not rename \"%s\" as \"%s\": %s",
-			src, dest, g_strerror(errno));
+			fi->pathname, dest, g_strerror(errno));
 		d->status = GTA_DL_DONE;
 	} else {
 		g_message("Completed \"%s\" left at \"%s\"", name, dest);
-		download_move_done(d, 0);
+		download_move_done(d, dest, 0);
 	}
-	G_FREE_NULL(src);
 	G_FREE_NULL(dest);
 }
 
@@ -10594,7 +10590,6 @@ download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
 {
 	fileinfo_t *fi;
 	const gchar *name;
-	gchar *src = NULL;
 
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFYING);
@@ -10618,11 +10613,6 @@ download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
 		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, move_file_path, DL_OK_EXT);
-
-		/* Send a notification */
-		src = make_pathname(move_file_path, download_outname(d));
-		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, src);
-		G_FREE_NULL(src);
 	} else {
 		download_move(d, bad_file_path, DL_BAD_EXT);
 		/* Will go to download_moved_with_bad_sha1() upon completion */
@@ -10644,11 +10634,11 @@ download_verify_error(struct download *d)
 	fi = d->file_info;
 	name = file_info_readable_filename(fi);
 
-	if (0 == strcmp(fi->file_name, name))
-		g_message("error while verifying SHA1 for \"%s\"", fi->file_name);
+	if (0 == strcmp(filepath_basename(fi->pathname), name))
+		g_message("error while verifying SHA1 for \"%s\"", fi->pathname);
 	else {
 		g_message("error while verifying SHA1 for \"%s\" (aka \"%s\")",
-			fi->file_name, name);
+			fi->pathname, name);
     }
 
 	d->status = GTA_DL_VERIFIED;
@@ -10699,8 +10689,6 @@ download_verify_callback(const struct verify *ctx, enum verify_status status,
 static void
 download_verify_sha1(struct download *d)
 {
-	gchar *pathname;
-
 	download_check(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
@@ -10719,13 +10707,9 @@ download_verify_sha1(struct download *d)
 	 */
 
 	d->status = GTA_DL_VERIFY_WAIT;
-
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
-
-	pathname = make_pathname(download_path(d), download_outname(d));
-	verify_sha1_prepend(pathname, download_filesize(d),
+	verify_sha1_prepend(download_pathname(d), download_filesize(d),
 			download_verify_callback, d);
-	G_FREE_NULL(pathname);
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_add(d);
@@ -11136,7 +11120,8 @@ download_browse_start(const gchar *hostname,
 		G_FREE_NULL(dname);
 	}
 
-	d = create_download(fi->file_name, "/", 0, addr, port, guid, hostname,
+	d = create_download(filepath_basename(fi->pathname), "/",
+			0, addr, port, guid, hostname,
 			NULL, tm_time(), fi, proxies, flags, NULL);
 
 	if (d) {
@@ -11224,7 +11209,7 @@ download_thex_start(const gchar *uri,
 		G_FREE_NULL(dname);
 	}
 
-	d = create_download(fi->file_name,
+	d = create_download(filepath_basename(fi->pathname),
 			uri,
 			0,			/* filesize */
 			addr,

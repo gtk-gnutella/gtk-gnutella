@@ -914,7 +914,7 @@ print_download_info(gnutella_shell_t *sh, const struct download *d)
 		compact_size(download_filesize(d), display_metric_units),
 		download_total_progress(d) * 100.0,
 		status,
-		download_outname(d));
+		download_basename(d));
 
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */

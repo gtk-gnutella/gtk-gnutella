@@ -80,7 +80,8 @@ void download_actively_queued(struct download *d, gboolean queued);
 
 void download_move_start(struct download *d);
 void download_move_progress(struct download *d, filesize_t copied);
-void download_move_done(struct download *d, guint elapsed);
+void download_move_done(struct download *d, const gchar *pathname,
+		guint elapsed);
 void download_move_error(struct download *d);
 
 guint extract_retry_after(struct download *d, const header_t *header);

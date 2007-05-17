@@ -1763,7 +1763,7 @@ upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 
 	if (upload_debug)
 		g_warning("stopping %d uploads for \"%s\": %s",
-			count, fi->file_name, reason);
+			count, fi->pathname, reason);
 
 	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
 		gnutella_upload_t *up = sl->data;

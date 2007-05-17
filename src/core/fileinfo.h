@@ -122,8 +122,7 @@ fileinfo_t *file_info_has_identical(const gchar *file, filesize_t size,
 fileinfo_t *file_info_get_transient(const gchar *name);
 fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
-void file_info_moved(fileinfo_t *fi,
-		const gchar *path, const gchar *filename);
+void file_info_moved(fileinfo_t *fi, const gchar *pathname);
 
 /***
  *** Inlined routines.

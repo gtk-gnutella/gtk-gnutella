@@ -2874,7 +2874,6 @@ void
 shared_file_from_fileinfo(fileinfo_t *fi)
 {
 	shared_file_t *sf;
-	gchar *pathname;
 
 	file_info_check(fi);
 
@@ -2901,9 +2900,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 		return;
 	}
 
-	pathname = make_pathname(fi->path, fi->file_name);
-	sf->file_path = atom_str_get(pathname);
-	G_FREE_NULL(pathname);
+	sf->file_path = atom_str_get(fi->pathname);
 
 	sf->fi = fi;		/* Signals it's a partially downloaded file */
 	fi->sf = shared_file_ref(sf);
