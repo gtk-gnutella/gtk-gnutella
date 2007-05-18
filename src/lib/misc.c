@@ -2538,7 +2538,7 @@ unique_pathname(const gchar *path, const gchar *filename,
 		name_is_uniq = file_does_not_exist;
 	}
 	pathname = make_pathname(path, filename);
-	if (!name_is_uniq(pathname)) {
+	if (!(*name_is_uniq)(pathname)) {
 		G_FREE_NULL(pathname);
 	}
 	return pathname;
