@@ -2602,7 +2602,6 @@ update_queue_frozen(property_t prop)
 
 	is_frozen = guc_download_queue_is_frozen();
 	if (was_frozen != is_frozen) {
-#if 0
     	static statusbar_msgid_t id;
     	GtkWidget *button;
 
@@ -2624,7 +2623,6 @@ update_queue_frozen(property_t prop)
 
 		gtk_signal_handler_unblock_by_func(GTK_OBJECT(button),
 			GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled), NULL);
-#endif
 	}
 	was_frozen = is_frozen;
 
