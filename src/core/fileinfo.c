@@ -4324,6 +4324,8 @@ file_info_reset(fileinfo_t *fi)
 	if (NULL != fi->sf)				/* File possibly shared */
 		file_info_upload_stop(fi, "File info being reset");
 
+	fi->flags &= ~FI_F_STRIPPED;
+
 restart:
 	for (list = fi->chunklist; list; list = g_slist_next(list)) {
 		struct dl_file_chunk *fc = list->data;
