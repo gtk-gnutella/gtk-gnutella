@@ -63,6 +63,7 @@ PIXMAPS = \
 	booklib.xpm \
 	booksha.xpm \
 	bookshav.xpm \
+	booktth.xpm \
 	chip.xpm \
 	clanbomber_red.xpm \
 	clanbomber_yellow.xpm \
