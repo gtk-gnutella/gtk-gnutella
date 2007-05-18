@@ -662,6 +662,8 @@ guint32  thex_files_served     = 0;
 guint32  thex_files_served_def = 0;
 guint32  tigertree_debug     = 0;
 guint32  tigertree_debug_def = 0;
+gboolean tth_rebuilding     = FALSE;
+gboolean tth_rebuilding_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -6344,6 +6346,23 @@ gnet_prop_init(void) {
     gnet_property->props[297].data.guint32.choices = NULL;
     gnet_property->props[297].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[297].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_TTH_REBUILDING:
+     *
+     * General data:
+     */
+    gnet_property->props[298].name = "tth_rebuilding";
+    gnet_property->props[298].desc = _("Whether gtk-gnutella is currently computing TTH of shared files in the background.");
+    gnet_property->props[298].ev_changed = event_new("tth_rebuilding_changed");
+    gnet_property->props[298].save = FALSE;
+    gnet_property->props[298].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[298].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[298].data.boolean.def   = &tth_rebuilding_def;
+    gnet_property->props[298].data.boolean.value = &tth_rebuilding;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

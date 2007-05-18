@@ -8746,6 +8746,27 @@
 
 	  <widget>
 	    <class>GtkEventBox</class>
+	    <name>eventbox_image_tth</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_tth</name>
+	      <filename>booktth.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>1</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>True</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
 	    <name>eventbox_image_lib</name>
 	    <child>
 	      <padding>0</padding>

@@ -3445,4 +3445,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "tth_rebuilding";
+    desc = "Whether gtk-gnutella is currently computing TTH of shared "
+           "files in the background.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

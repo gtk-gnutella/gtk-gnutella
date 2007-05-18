@@ -2316,6 +2316,12 @@ sha1_verifying_changed(property_t prop)
 }
 
 static gboolean
+tth_rebuilding_changed(property_t prop)
+{
+	return widget_set_sensitive("image_tth", prop);
+}
+
+static gboolean
 library_rebuilding_changed(property_t prop)
 {
 	return widget_set_sensitive("image_lib", prop);
@@ -4771,6 +4777,14 @@ static prop_map_t property_map[] = {
         sha1_verifying_changed,
         TRUE,
         "eventbox_image_shav", /* need eventbox because image has no tooltip */
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_TTH_REBUILDING,
+        tth_rebuilding_changed,
+        TRUE,
+        "eventbox_image_tth", /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

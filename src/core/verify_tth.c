@@ -170,6 +170,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
+		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
 		return TRUE;
 	case VERIFY_PROGRESS:
 		return TRUE;
@@ -185,6 +186,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	case VERIFY_ERROR:
 	case VERIFY_SHUTDOWN:
 		shared_file_unref(&sf);
+		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, FALSE);
 		return TRUE;
 	case VERIFY_INVALID:
 		break;

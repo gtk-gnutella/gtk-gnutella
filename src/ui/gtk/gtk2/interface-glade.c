@@ -1737,6 +1737,8 @@ create_main_window (void)
   GtkWidget *image_sha;
   GtkWidget *eventbox_image_shav;
   GtkWidget *image_shav;
+  GtkWidget *eventbox_image_tth;
+  GtkWidget *image_tth;
   GtkWidget *eventbox_image_lib;
   GtkWidget *image_lib;
   GtkWidget *hbox147;
@@ -2314,6 +2316,16 @@ create_main_window (void)
   gtk_widget_show (image_shav);
   gtk_container_add (GTK_CONTAINER (eventbox_image_shav), image_shav);
   gtk_misc_set_padding (GTK_MISC (image_shav), 1, 0);
+
+  eventbox_image_tth = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_tth, "eventbox_image_tth");
+  gtk_widget_show (eventbox_image_tth);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_tth, TRUE, TRUE, 0);
+
+  image_tth = create_pixmap (main_window, "booktth.xpm");
+  gtk_widget_set_name (image_tth, "image_tth");
+  gtk_widget_show (image_tth);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_tth), image_tth);
 
   eventbox_image_lib = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
@@ -3118,6 +3130,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_shav, "eventbox_image_shav");
   GLADE_HOOKUP_OBJECT (main_window, image_shav, "image_shav");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_tth, "eventbox_image_tth");
+  GLADE_HOOKUP_OBJECT (main_window, image_tth, "image_tth");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_lib, "eventbox_image_lib");
   GLADE_HOOKUP_OBJECT (main_window, image_lib, "image_lib");
   GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
