@@ -2562,8 +2562,7 @@ file_info_reparent_all(fileinfo_t *from, fileinfo_t *to)
 	file_info_check(from);
 	file_info_check(to);
 	g_assert(0 == from->done);
-	g_assert(0 != strcmp(filepath_basename(from->pathname),
-					filepath_basename(to->pathname)));
+	g_assert(0 != strcmp(from->pathname, to->pathname));
 
 	file_info_unlink(from);
 	download_info_change_all(from, to);
@@ -3453,10 +3452,7 @@ file_info_new_outname(const gchar *dir, const gchar *name)
 
 	if (uniq) {
 		const gchar *pathname;
-		/*
-		 * unique_filename() returns a full pathname, thus we
-		 * have to extract the basename here.
-		 */
+
 		pathname = atom_str_get(uniq);
 		G_FREE_NULL(uniq);
 		g_assert(NULL == g_hash_table_lookup(fi_by_outname, pathname));
