@@ -47,7 +47,7 @@ RCSID("$Id$")
 
 struct drag_context {
 	drag_get_text_cb get_text;
-	gchar *text;
+	char *text;
 };
 
 #if GTK_CHECK_VERSION(2,0,0)
@@ -73,6 +73,9 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 
 #define signal_stop_emission_by_name g_signal_stop_emission_by_name
 
+#define selection_set_text(data, text) \
+	   	gtk_selection_data_set_text((data), (text), (-1));
+
 #else	/* Gtk < 2 */
 
 #define signal_connect(widget, name, func, data) \
@@ -80,14 +83,21 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 
 #define signal_stop_emission_by_name(widget, name) \
 G_STMT_START { \
-	(void) widget; \
-	(void) name; \
+	(void) (widget); \
+	(void) (name); \
 } G_STMT_END
+
+static inline void
+selection_set_text(GtkSelectionData *data, const char *text)
+{
+   	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING, 8 /* CHAR_BIT */,
+		cast_to_gconstpointer(text), strlen(text));
+}
 
 #endif /* Gtk+ >= 2 */
 
 static void
-drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
+drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 {
 	struct drag_context *ctx = udata;
 
@@ -105,8 +115,8 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
 
 static void
 drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
-	GtkSelectionData *data, guint unused_info, guint unused_stamp,
-	gpointer udata)
+	GtkSelectionData *data, unsigned unused_info, unsigned unused_stamp,
+	void *udata)
 {
 	struct drag_context *ctx = udata;
 
@@ -120,15 +130,13 @@ drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
 	g_return_if_fail(ctx->get_text);
 
 	if (ctx->text) {
-	   	gtk_selection_data_set(data,
-			GDK_SELECTION_TYPE_STRING, 8 /* CHAR_BIT */,
-			cast_to_gconstpointer(ctx->text), strlen(ctx->text));
+		selection_set_text(data, ctx->text);
 		G_FREE_NULL(ctx->text);
 	}
 }
 
 static void
-drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, gpointer udata)
+drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 {
 	struct drag_context *ctx = udata;
 
