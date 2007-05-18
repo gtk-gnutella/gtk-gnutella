@@ -2513,7 +2513,7 @@ file_info_unlink(fileinfo_t *fi)
 {
 	file_info_check(fi);
 
-	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING))
+	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED))
 		return;
 
 	/*
@@ -2525,6 +2525,7 @@ file_info_unlink(fileinfo_t *fi)
 	if (fi->file_size_known && fi->size == fi->done)
 		return;
 
+	g_warning("about to unlink(): \"%s\"", fi->pathname);
 	if (-1 == unlink(fi->pathname)) {
 		/*
 		 * File might not exist on disk yet if nothing was downloaded.
@@ -2564,7 +2565,6 @@ file_info_reparent_all(fileinfo_t *from, fileinfo_t *to)
 	g_assert(0 != strcmp(filepath_basename(from->pathname),
 					filepath_basename(to->pathname)));
 
-	g_warning("about to unlink() for reparenting: \"%s\"", from->pathname);
 	file_info_unlink(from);
 	download_info_change_all(from, to);
 
