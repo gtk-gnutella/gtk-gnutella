@@ -45,7 +45,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/bg.h"
-#include "lib/slist.h"
+#include "lib/hashlist.h"
 #include "lib/file.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -63,7 +63,7 @@ enum verify_magic { VERIFY_MAGIC = 0x2dc84379U };
  */
 struct verify {
 	enum verify_magic magic;	/**< Magic number. */
-	slist_t *files_to_hash;
+	hash_list_t *files_to_hash;
 	struct bgtask *task;
 	struct verify_hash hash;
 	struct file_object *file;	/**< The file object to access the file. */
@@ -246,6 +246,35 @@ verify_elapsed(const struct verify *ctx)
 	return d;
 }
 
+static guint
+verify_item_hash(gconstpointer key)
+{
+	const struct verify_file *ctx = key;
+
+	verify_file_check(ctx);
+	
+	return g_str_hash(ctx->pathname)
+		^ uint64_hash(&ctx->offset)
+		^ uint64_hash(&ctx->amount)
+		^ pointer_hash_func(ctx->callback)
+		^ pointer_hash_func(ctx->user_data);
+}
+
+static gint
+verify_item_equal(gconstpointer p, gconstpointer q)
+{
+	const struct verify_file *a = p, *b = q;
+
+	verify_file_check(a);
+	verify_file_check(b);
+
+	return 0 == strcmp(a->pathname, b->pathname) &&
+			a->offset == b->offset &&
+			a->amount == b->amount &&
+			a->callback == b->callback &&
+			a->user_data == b->user_data;
+}
+
 struct verify *
 verify_new(const struct verify_hash *hash)
 {
@@ -260,7 +289,7 @@ verify_new(const struct verify_hash *hash)
 	ctx->buffer_size = HASH_BUF_SIZE;
 	ctx->buffer = g_malloc(ctx->buffer_size);
 	ctx->hash = *hash;
-	ctx->files_to_hash = slist_new();
+	ctx->files_to_hash = hash_list_new(verify_item_hash, verify_item_equal);
 	return ctx;
 }
 
@@ -279,11 +308,11 @@ verify_free(struct verify **ptr)
 		if (ctx->files_to_hash) {
 			struct verify_file *item;
 
-			while (NULL != (item = slist_shift(ctx->files_to_hash))) {
+			while (NULL != (item = hash_list_shift(ctx->files_to_hash))) {
 				item->callback(NULL, VERIFY_SHUTDOWN, item->user_data);
 				verify_file_free(&item);
 			}
-			slist_free(&ctx->files_to_hash);
+			hash_list_free(&ctx->files_to_hash);
 		}
 		file_object_release(&ctx->file);
 		G_FREE_NULL(ctx->buffer);
@@ -310,7 +339,7 @@ verify_next_file(struct verify *ctx)
 
 	verify_check(ctx);
 
-	item = ctx->files_to_hash ? slist_shift(ctx->files_to_hash) : NULL;
+	item = ctx->files_to_hash ? hash_list_shift(ctx->files_to_hash) : NULL;
 	if (item) {
 		verify_file_check(item);
 
@@ -443,7 +472,7 @@ verify_step_compute(struct bgtask *bt, void *data, int ticks)
 		if (ctx->file) {
 			verify_update(ctx);
 		}
-		if (NULL == ctx->file && 0 == slist_length(ctx->files_to_hash))
+		if (NULL == ctx->file && 0 == hash_list_length(ctx->files_to_hash))
 			break;
 
 		tm_now_exact(&t1);
@@ -452,7 +481,7 @@ verify_step_compute(struct bgtask *bt, void *data, int ticks)
 			break;
 	}
 	
-	if (ctx->file || slist_length(ctx->files_to_hash) > 0) {
+	if (ctx->file || hash_list_length(ctx->files_to_hash) > 0) {
 		return BGR_MORE;
 	} else {
 		return BGR_DONE;
@@ -489,10 +518,17 @@ verify_enqueue(struct verify *ctx,
 	g_return_if_fail(callback);
 
 	item = verify_file_new(pathname, offset, amount, callback, user_data);
-	if (append) {
-		slist_append(ctx->files_to_hash, item);
+	if (hash_list_contains(ctx->files_to_hash, item, NULL)) {
+		if (!append) {
+			hash_list_moveto_head(ctx->files_to_hash, item);
+		}
+		verify_file_free(&item);
 	} else {
-		slist_prepend(ctx->files_to_hash, item);
+		if (append) {
+			hash_list_append(ctx->files_to_hash, item);
+		} else {
+			hash_list_prepend(ctx->files_to_hash, item);
+		}
 	}
 	verify_create_task(ctx);
 }
