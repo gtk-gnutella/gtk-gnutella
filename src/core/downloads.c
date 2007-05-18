@@ -10500,6 +10500,7 @@ download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 		/* Send a notification */
 		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, download_pathname(d));
 	} else {
+		file_object_revoke(fi->pathname);
 		download_moved_with_bad_sha1(d);
 	}
 	file_info_changed(fi);

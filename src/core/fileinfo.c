@@ -3602,6 +3602,7 @@ file_info_moved(fileinfo_t *fi, const gchar *pathname)
 		g_assert(xfi == fi);
 		g_hash_table_remove(fi_by_outname, fi->pathname);
 	}
+	file_object_revoke(fi->pathname);
 
 	atom_str_change(&fi->pathname, pathname);
 	gm_hash_table_insert_const(fi_by_outname, fi->pathname, fi);
