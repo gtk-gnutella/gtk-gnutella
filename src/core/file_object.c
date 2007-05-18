@@ -109,6 +109,7 @@ struct file_object {
 	int ref_count;
 	int fd;
 	int accmode;	/* O_RDONLY, O_WRONLY, O_RDWR */
+	int removed;
 	enum file_object_magic magic;
 };
 
@@ -259,6 +260,7 @@ file_object_find(const char * const pathname, int accmode)
 		file_object_check(fo);
 		g_assert(0 == strcmp(pathname, fo->pathname));
 		g_assert(accmode_is_valid(fo->fd, accmode));
+		g_assert(!fo->removed);
 	}
 
 	return fo;
@@ -295,17 +297,37 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 }
 
 static void
+file_object_remove(struct file_object * const fo)
+{
+	const struct file_object *xfo;
+	
+	file_object_check(fo);
+	g_return_if_fail(!fo->removed);
+
+	xfo = file_object_find(fo->pathname, fo->accmode);
+	g_assert(xfo == fo);
+
+	g_hash_table_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
+	fo->removed = TRUE;
+}
+
+static void
 file_object_free(struct file_object * const fo)
 {
 	g_return_if_fail(fo);
+	file_object_check(fo);
 	g_return_if_fail(1 == fo->ref_count);
 	g_return_if_fail(fo->fd >= 0);
-	g_return_if_fail(file_object_find(fo->pathname, fo->accmode));
 
-	file_object_check(fo);
-	g_hash_table_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
-	g_assert(!g_hash_table_lookup(file_object_mode_get_table(fo->accmode),
-				fo->pathname));
+	if (fo->removed) {
+		const struct file_object *xfo;
+
+		xfo = g_hash_table_lookup(file_object_mode_get_table(fo->accmode),
+				fo->pathname);
+		g_assert(xfo != fo);
+	} else {
+		file_object_remove(fo);
+	}
 
 	close(fo->fd);
 	fo->fd = -1;
@@ -382,6 +404,32 @@ file_object_release(struct file_object **fo_ptr)
 		}
 
 		*fo_ptr = NULL;
+	}
+}
+
+/**
+ * Revokes all file objects associated with the pathname. This is useful
+ * after moving a file to prevent that file_object_open() returns a file
+ * object associated with the now removed file.
+ *
+ * @param pathname An absolute pathname.
+ */
+void
+file_object_revoke(const char * const pathname)
+{
+	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
+	unsigned i;
+
+	g_return_if_fail(pathname);
+	g_return_if_fail(is_absolute_path(pathname));
+
+	for (i = 0; i < G_N_ELEMENTS(accmodes); i++) {
+		struct file_object *fo;
+
+		fo = file_object_find(pathname, accmodes[i]);
+		if (fo) {
+			file_object_remove(fo);
+		}
 	}
 }
 
@@ -678,4 +726,4 @@ file_object_close(void)
 #undef D
 }
 
- /* vi: set ts=4 sw=4 cindent: */
+/* vi: set ts=4 sw=4 cindent: */
