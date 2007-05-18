@@ -10477,11 +10477,8 @@ download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 	d->status = GTA_DL_DONE;
 	d->last_update = tm_time();
 	fi = d->file_info;
-	file_info_moved(fi, pathname);
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
-	file_info_changed(fi);
-	gcu_gui_update_download(d, TRUE);
 
 	/*
 	 * File was unlinked by rename() if we were on the same filesystem,
@@ -10489,6 +10486,8 @@ download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 	 */
 
 	if (has_good_sha1(d)) {
+		file_info_moved(fi, pathname);
+
 		if (
 			pfsp_server &&
 			fi->sha1 &&
@@ -10503,6 +10502,8 @@ download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 	} else {
 		download_moved_with_bad_sha1(d);
 	}
+	file_info_changed(fi);
+	gcu_gui_update_download(d, TRUE);
 }
 
 /**
