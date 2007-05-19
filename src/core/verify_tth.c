@@ -212,7 +212,7 @@ request_tigertree(struct shared_file *sf, gboolean high_priority)
 						shared_file_path(sf), 0, shared_file_size(sf),
 						request_tigertree_callback, shared_file_ref(sf));
 		if (!inserted) {
-			shared_file_unref(sf);
+			shared_file_unref(&sf);
 		}
 	}
 }
