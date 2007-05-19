@@ -6213,6 +6213,108 @@ fi_update_seen_on_network(gnet_src_t srcid)
         T_NORMAL(fi_listener_t, (d->file_info->fi_handle)));
 }
 
+struct file_info_foreach {
+	file_info_foreach_cb callback;
+	gpointer udata;
+};
+
+static void
+file_info_foreach_helper(gpointer unused_key, gpointer value, gpointer udata)
+{
+	struct file_info_foreach *data = udata;
+    fileinfo_t *fi = value;
+
+	(void) unused_key;
+
+	file_info_check(fi);
+	data->callback(fi->fi_handle, data->udata);
+}
+
+void
+file_info_foreach(file_info_foreach_cb callback, gpointer udata)
+{
+	struct file_info_foreach data;
+	
+	g_return_if_fail(fi_by_outname);
+	g_return_if_fail(callback);
+
+	data.callback = callback;
+	data.udata = udata;
+	g_hash_table_foreach(fi_by_outname, file_info_foreach_helper, &data);
+}
+
+const char *
+file_info_status_to_string(const gnet_fi_status_t *status)
+{
+	static gchar buf[4096];
+
+	g_return_val_if_fail(status, NULL);
+
+    if (status->recvcount) {
+		guint32 secs;
+
+		if (status->recv_last_rate) {
+			secs = (status->size - status->done) / status->recv_last_rate;
+		} else {
+			secs = 0;
+		}
+
+        gm_snprintf(buf, sizeof buf,
+            _("Downloading (%s)  TR: %s"),
+			short_rate(status->recv_last_rate, display_metric_units),
+			secs ? short_time(secs) : "-");
+		return buf;
+    } else if (status->size && status->done == status->size) {
+		static gchar msg_sha1[1024], msg_copy[1024];
+
+		if (status->has_sha1) {
+			if (status->sha1_hashed == status->size) {
+				gm_snprintf(msg_sha1, sizeof msg_sha1, "SHA1 %s",
+					status->sha1_matched ? _("OK") : _("failed"));
+			} else if (status->sha1_hashed == 0) {
+				gm_snprintf(msg_sha1, sizeof msg_sha1,
+						"%s", _("Waiting for SHA1 check"));
+			} else {
+				gm_snprintf(msg_sha1, sizeof msg_sha1,
+						"%s %s (%.1f%%)", _("Computing SHA1"),
+						short_size(status->sha1_hashed, display_metric_units),
+						((gdouble) status->sha1_hashed / status->size) * 100.0);
+			}
+		} else {
+			msg_sha1[0] = '\0';
+		}
+
+		if (status->copied > 0 && status->copied < status->size) {
+			gm_snprintf(msg_copy, sizeof msg_copy,
+				"; %s %s (%.1f%%)", _("Moving"),
+				short_size(status->copied, display_metric_units),
+				((gfloat) status->copied / status->size) * 100.0);
+		} else {
+			msg_copy[0] = '\0';
+		}
+
+		concat_strings(buf, sizeof buf,
+			status->seeding ? _("Seeding") : _("Finished"),
+			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
+			'\0' != msg_copy[0] ? "; " : "", msg_copy,
+			(void *) 0);
+
+		return buf;
+    } else if (0 == status->lifecount) {
+		return _("No sources");
+    } else if (status->aqueued_count || status->pqueued_count) {
+        gm_snprintf(buf, sizeof buf,
+            _("Queued (%u active, %u passive)"),
+            status->aqueued_count, status->aqueued_count);
+		return buf;
+    } else if (status->paused) {
+        return _("Paused");
+    } else {
+        return _("Waiting");
+    }
+}
+
+
 /**
  * Initialize fileinfo handling.
  */

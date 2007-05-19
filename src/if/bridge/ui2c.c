@@ -108,6 +108,12 @@ guc_file_info_get_file_url(gnet_fi_t handle)
 	return file_info_get_file_url(handle);
 }
 
+const gchar *
+guc_file_info_status_to_string(const gnet_fi_status_t *status)
+{
+	return file_info_status_to_string(status);
+}
+
 gint
 guc_download_get_http_req_percent(const struct download *d)
 {
