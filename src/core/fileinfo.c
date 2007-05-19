@@ -6235,12 +6235,12 @@ file_info_foreach(file_info_foreach_cb callback, gpointer udata)
 {
 	struct file_info_foreach data;
 	
-	g_return_if_fail(fi_by_outname);
+	g_return_if_fail(fi_by_guid);
 	g_return_if_fail(callback);
 
 	data.callback = callback;
 	data.udata = udata;
-	g_hash_table_foreach(fi_by_outname, file_info_foreach_helper, &data);
+	g_hash_table_foreach(fi_by_guid, file_info_foreach_helper, &data);
 }
 
 const char *
