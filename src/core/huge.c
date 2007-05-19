@@ -572,10 +572,16 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 static void
 queue_shared_file_for_sha1_computation(struct shared_file *sf)
 {
+	int inserted;
+	
  	shared_file_check(sf);
 
-	verify_sha1_append(shared_file_path(sf), shared_file_size(sf),
-		huge_verify_callback, shared_file_ref(sf));
+	inserted = verify_sha1_enqueue(FALSE, shared_file_path(sf),
+					shared_file_size(sf), huge_verify_callback,
+					shared_file_ref(sf));
+	if (!inserted) {
+		shared_file_unref(&sf);
+	}
 }
 
 /**

@@ -40,9 +40,8 @@
 
 #include "verify.h"
 
-void verify_sha1_append(const char *pathname, filesize_t filesize,
-	verify_callback callback, void *user_data);
-void verify_sha1_prepend(const char *pathname, filesize_t filesize,
+int verify_sha1_enqueue(int high_priority,
+	const char *pathname, filesize_t filesize,
 	verify_callback callback, void *user_data);
 
 const struct sha1 *verify_sha1_digest(const struct verify *);

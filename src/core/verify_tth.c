@@ -102,22 +102,6 @@ static const struct verify_hash verify_hash_tth = {
 	verify_tth_final,
 };
 
-void
-verify_tth_append(const char *pathname, filesize_t offset, filesize_t amount,
-	verify_callback callback, void *user_data)
-{
-	verify_append(verify_tth.verify,
-		pathname, offset, amount, callback, user_data);
-}
-
-void
-verify_tth_prepend(const char *pathname, filesize_t offset, filesize_t amount,
-	verify_callback callback, void *user_data)
-{
-	verify_prepend(verify_tth.verify,
-		pathname, offset, amount, callback, user_data);
-}
-
 const struct tth *
 verify_tth_digest(const struct verify *ctx)
 {
@@ -222,13 +206,13 @@ request_tigertree(struct shared_file *sf, gboolean high_priority)
 			huge_update_hashes(sf, shared_file_sha1(sf), NULL);
 		}
 	} else {
-
-		if (high_priority) {
-			verify_tth_prepend(shared_file_path(sf), 0, shared_file_size(sf),
-				request_tigertree_callback, shared_file_ref(sf));
-		} else {
-			verify_tth_append(shared_file_path(sf), 0, shared_file_size(sf),
-				request_tigertree_callback, shared_file_ref(sf));
+		int inserted;
+		
+		inserted = verify_enqueue(verify_tth.verify, high_priority,
+						shared_file_path(sf), 0, shared_file_size(sf),
+						request_tigertree_callback, shared_file_ref(sf));
+		if (!inserted) {
+			shared_file_unref(sf);
 		}
 	}
 }

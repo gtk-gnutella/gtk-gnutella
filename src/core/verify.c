@@ -503,56 +503,43 @@ verify_create_task(struct verify *ctx)
 	}
 }
 
-static void
-verify_enqueue(struct verify *ctx,
+/**
+ * @return	TRUE if the item was enqueued, FALSE if an equivalent item
+ *			was already enqueued.
+ */
+int
+verify_enqueue(struct verify *ctx, int high_priority,
 	const char *pathname, filesize_t offset, filesize_t amount,
-	verify_callback callback, void *user_data,
-	int append)
+	verify_callback callback, void *user_data)
 {
 	struct verify_file *item;
+	int inserted;
 
 	verify_check(ctx);
-	g_return_if_fail(ctx->files_to_hash);
+	g_return_val_if_fail(ctx->files_to_hash, FALSE);
 
-	g_return_if_fail(pathname);
-	g_return_if_fail(callback);
+	g_return_val_if_fail(pathname, FALSE);
+	g_return_val_if_fail(callback, FALSE);
 
 	item = verify_file_new(pathname, offset, amount, callback, user_data);
 	if (hash_list_contains(ctx->files_to_hash, item, NULL)) {
-		if (!append) {
+		if (high_priority) {
 			hash_list_moveto_head(ctx->files_to_hash, item);
+			inserted = FALSE;
+		} else {
+			inserted = TRUE;
 		}
 		verify_file_free(&item);
 	} else {
-		if (append) {
-			hash_list_append(ctx->files_to_hash, item);
-		} else {
+		if (high_priority) {
 			hash_list_prepend(ctx->files_to_hash, item);
+		} else {
+			hash_list_append(ctx->files_to_hash, item);
 		}
+		inserted = TRUE;
 	}
 	verify_create_task(ctx);
-}
-
-/**
- * Enqueue a file for verification at the tail of the queue.
- */
-void
-verify_append(struct verify *ctx, const char *pathname,
-	filesize_t offset, filesize_t amount,
-	verify_callback callback, void *user_data)
-{
-	verify_enqueue(ctx, pathname, offset, amount, callback, user_data, TRUE);
-}
-
-/**
- * Enqueue a file for verification at the head of the queue.
- */
-void
-verify_prepend(struct verify *ctx, const char *pathname,
-	filesize_t offset, filesize_t amount,
-	verify_callback callback, void *user_data)
-{
-	verify_enqueue(ctx, pathname, offset, amount, callback, user_data, FALSE);
+	return inserted;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

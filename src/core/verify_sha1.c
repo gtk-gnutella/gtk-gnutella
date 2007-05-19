@@ -91,19 +91,12 @@ static const struct verify_hash verify_hash_sha1 = {
 	verify_sha1_final,
 };
 
-void
-verify_sha1_append(const char *pathname, filesize_t filesize,
+int
+verify_sha1_enqueue(int high_priority,
+	const char *pathname, filesize_t filesize,
 	verify_callback callback, void *user_data)
 {
-	verify_append(verify_sha1.verify,
-		pathname, 0, filesize, callback, user_data);
-}
-
-void
-verify_sha1_prepend(const char *pathname, filesize_t filesize,
-	verify_callback callback, void *user_data)
-{
-	verify_prepend(verify_sha1.verify,
+	return verify_enqueue(verify_sha1.verify, high_priority,
 		pathname, 0, filesize, callback, user_data);
 }
 

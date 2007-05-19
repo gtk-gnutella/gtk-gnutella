@@ -10689,6 +10689,8 @@ download_verify_callback(const struct verify *ctx, enum verify_status status,
 static void
 download_verify_sha1(struct download *d)
 {
+	gboolean inserted;
+
 	download_check(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
@@ -10708,8 +10710,9 @@ download_verify_sha1(struct download *d)
 
 	d->status = GTA_DL_VERIFY_WAIT;
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
-	verify_sha1_prepend(download_pathname(d), download_filesize(d),
-			download_verify_callback, d);
+	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
+					download_filesize(d), download_verify_callback, d);
+	g_assert(inserted); /* There should be no duplicates */
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_add(d);

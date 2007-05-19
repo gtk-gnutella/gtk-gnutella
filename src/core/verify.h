@@ -66,11 +66,8 @@ struct verify_hash {
 struct verify *verify_new(const struct verify_hash *);
 void verify_free(struct verify **ptr);
 
-void verify_append(struct verify *, const char *pathname,
-	filesize_t offset, filesize_t filesize,
-	verify_callback callback, void *user_data);
-void verify_prepend(struct verify *, const char *pathname,
-	filesize_t offset, filesize_t filesize,
+int verify_enqueue(struct verify *, int high_priority,
+	const char *pathname, filesize_t offset, filesize_t filesize,
 	verify_callback callback, void *user_data);
 
 enum verify_status verify_status(const struct verify *);
