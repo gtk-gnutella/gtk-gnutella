@@ -1248,6 +1248,7 @@ locale_get_charset(void)
 #endif /* USE_GLIB2 */
 
 		cs = g_strdup(cs);
+		initialized = TRUE;
 	}
 
 	return charset ? charset : cs;
