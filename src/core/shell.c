@@ -893,31 +893,48 @@ get_download_status_string(const struct download *d)
 	return "unknown";
 }
 
+
 static void
-print_download_info(gnutella_shell_t *sh, const struct download *d)
+print_download_info(gnet_fi_t handle, void *udata)
 {
+	gnutella_shell_t *sh = udata;
+	gnet_fi_status_t status;
+	gnet_fi_info_t *info;
 	gchar buf[1024];
-	gchar status[256];
 
-	g_return_if_fail(sh);
-	download_check(d);
+	shell_check(sh);
 
-	if (GTA_DL_RECEIVING == d->status) {
-		gm_snprintf(status, sizeof status, "receiving (%2.0f%%)",
-				download_source_progress(d) * 100.0);
-	} else {
-		g_strlcpy(status, get_download_status_string(d), sizeof status);
-	}
-	gm_snprintf(buf, sizeof buf, "%-25.40s %s %11s %2.0f%% [%s] \"%s\"",
-		download_get_hostname(d),
-		iso3166_country_cc(download_country(d)),
-		compact_size(download_filesize(d), display_metric_units),
-		download_total_progress(d) * 100.0,
-		status,
-		download_basename(d));
+	info = guc_fi_get_info(handle);
+	g_return_if_fail(info);
+	guc_fi_get_status(handle, &status);
 
+	gm_snprintf(buf, sizeof buf, "Filename: \"%s\"", info->file_name);
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
+	
+	gm_snprintf(buf, sizeof buf, "Hash: %s",
+		info->sha1 ? sha1_to_urn_string(info->sha1) : "<none>");
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+
+	gm_snprintf(buf, sizeof buf, "Status: %s",
+		file_info_status_to_string(&status));
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+
+	gm_snprintf(buf, sizeof buf, "Size: %s",
+		compact_size(status.size, display_metric_units));
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+	
+	gm_snprintf(buf, sizeof buf, "Done: %u%% (%s)",
+		filesize_per_100(status.size, status.done),
+		compact_size(status.done, display_metric_units));
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+	
+	shell_write(sh, "--\n");
+	guc_fi_free_info(info);
 }
 
 /**
@@ -926,8 +943,6 @@ print_download_info(gnutella_shell_t *sh, const struct download *d)
 static enum shell_reply
 shell_exec_downloads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
-	const GSList *sl;
-	
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
@@ -936,9 +951,7 @@ shell_exec_downloads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 	shell_write(sh, "100~ \n");
 
-	for (sl = downloads_get_list(); NULL != sl; sl = g_slist_next(sl)) {
-		print_download_info(sh, sl->data);
-	}
+	file_info_foreach(print_download_info, sh);
 
 	shell_write(sh, ".\n");	/* Terminate message body */
 
