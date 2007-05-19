@@ -451,99 +451,30 @@ fi_gui_fill_info(struct fileinfo_data *data)
 	G_FREE_NULL(to_free);
 }
 
-const char *
-fi_get_status_string(gnet_fi_status_t s)
-{
-	static gchar buf[4096];
-
-    if (s.recvcount) {
-		guint32 secs;
-
-		if (s.recv_last_rate) {
-			secs = (s.size - s.done) / s.recv_last_rate;
-		} else {
-			secs = 0;
-		}
-
-        gm_snprintf(buf, sizeof buf,
-            _("Downloading (%s)  TR: %s"),
-			short_rate(s.recv_last_rate, show_metric_units()),
-			secs ? short_time(secs) : "-");
-		return buf;
-    } else if (s.size && s.done == s.size) {
-		static gchar msg_sha1[1024], msg_copy[1024];
-
-		if (s.has_sha1) {
-			if (s.sha1_hashed == s.size) {
-				gm_snprintf(msg_sha1, sizeof msg_sha1,
-						"SHA1 %s", s.sha1_matched ? _("OK") : _("failed"));
-			} else if (s.sha1_hashed == 0) {
-				gm_snprintf(msg_sha1, sizeof msg_sha1,
-						"%s", _("Waiting for SHA1 check"));
-			} else {
-				gm_snprintf(msg_sha1, sizeof msg_sha1,
-						"%s %s (%.1f%%)", _("Computing SHA1"),
-						short_size(s.sha1_hashed, show_metric_units()),
-						((gdouble) s.sha1_hashed / s.size) * 100.0);
-			}
-		} else {
-			msg_sha1[0] = '\0';
-		}
-
-		if (s.copied > 0 && s.copied < s.size) {
-			gm_snprintf(msg_copy, sizeof msg_copy,
-				"; %s %s (%.1f%%)", _("Moving"),
-				short_size(s.copied, show_metric_units()),
-				((gfloat) s.copied / s.size) * 100.0);
-		} else {
-			msg_copy[0] = '\0';
-		}
-
-		concat_strings(buf, sizeof buf,
-			s.seeding ? _("Seeding") : _("Finished"),
-			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
-			'\0' != msg_copy[0] ? "; " : "", msg_copy,
-			(void *) 0);
-
-		return buf;
-    } else if (0 == s.lifecount) {
-		return _("No sources");
-    } else if (s.aqueued_count || s.pqueued_count) {
-        gm_snprintf(buf, sizeof buf,
-            _("Queued (%u active, %u passive)"),
-            s.aqueued_count, s.aqueued_count);
-		return buf;
-    } else if (s.paused) {
-        return _("Paused");
-    } else {
-        return _("Waiting");
-    }
-}
-
-/* XXX -- factorize this code with GTK1's one */
+/* FIXME -- factorize this code with GTK1's one */
 static void
 fi_gui_fill_status(struct fileinfo_data *data)
 {
-    gnet_fi_status_t s;
+    gnet_fi_status_t status;
 
 	g_return_if_fail(data);
 	g_return_if_fail(!data->is_download);
 
-    guc_fi_get_status(data->file.handle, &s);
+    guc_fi_get_status(data->file.handle, &status);
 
-	data->file.recv_count = s.recvcount;
-	data->file.actively_queued = s.aqueued_count;
-	data->file.passively_queued = s.pqueued_count;
-	data->file.life_count = s.lifecount;
-	data->file.paused = s.paused;
-	data->file.hashed = s.sha1_hashed;
-	data->file.seeding = s.seeding;
-	data->file.uploaded = s.uploaded;
-	data->size = s.size;
-	data->done = s.done;
+	data->file.recv_count = status.recvcount;
+	data->file.actively_queued = status.aqueued_count;
+	data->file.passively_queued = status.pqueued_count;
+	data->file.life_count = status.lifecount;
+	data->file.paused = status.paused;
+	data->file.hashed = status.sha1_hashed;
+	data->file.seeding = status.seeding;
+	data->file.uploaded = status.uploaded;
+	data->size = status.size;
+	data->done = status.done;
 
 	G_FREE_NULL(data->status);	
-	data->status = g_strdup(fi_get_status_string(s));
+	data->status = g_strdup(guc_file_info_status_to_string(&status));
 }
 
 static void
