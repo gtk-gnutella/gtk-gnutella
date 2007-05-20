@@ -128,7 +128,6 @@ void file_info_mark_stripped(fileinfo_t *fi);
 
 typedef void (*file_info_foreach_cb)(gnet_fi_t fi_handle, gpointer udata);
 void file_info_foreach(file_info_foreach_cb callback, gpointer udata);
-const char *file_info_status_to_string(const gnet_fi_status_t *status);
 
 /***
  *** Inlined routines.
