@@ -3261,6 +3261,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 
 	file_info_clear_download(d, FALSE);
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
+	file_info_changed(d->file_info);		/* Update status! */
 
 	download_actively_queued(d, FALSE);
 
