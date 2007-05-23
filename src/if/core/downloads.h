@@ -216,6 +216,7 @@ struct download {
 	guint32 timeout_delay;
 	guint32 served_reqs;		/**< Amount of served requests on connection */
 	guint32 mismatches;			/**< Amount of resuming data mismatches */
+	guint32 header_read_eof;	/**< EOF errors with empty headers */
 
 	const gchar *remove_msg;
 

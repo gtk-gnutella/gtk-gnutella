@@ -113,6 +113,7 @@ RCSID("$Id$")
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
 #define DOWNLOAD_STALLED		60		/**< Consider stalled after 60 secs */
 #define DOWNLOAD_PING_DELAY		300		/**< Minimum delay for 2 HEAD pings */
+#define DOWNLOAD_MAX_HEADER_EOF	5		/**< Max # of EOF in headers we allow */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -5820,6 +5821,19 @@ err_header_read_eof(gpointer o)
 		download_get_server_name(d, header);
 	}
 
+	if (++d->header_read_eof >= DOWNLOAD_MAX_HEADER_EOF) {
+		/*
+		 * Seen too many errors whilst connecting, probably because
+		 * the remote end is closing the connection immediately when it
+		 * sees our IP address.  Fair enough, but we can't allow that
+		 * host from getting replies from us either, for some time.
+		 *		--RAM, 2007-05-23
+		 */
+
+		ban_record(download_addr(d), "IP probably denying uploads");
+		upload_kill_addr(download_addr(d));
+	}
+
 	if (d->retries < download_max_retries) {
 		d->retries++;
 		download_queue_delay(d, download_retry_stopped_delay,
@@ -7679,6 +7693,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (ack_message)
 		ack_message = lazy_ack_message_to_ui_string(ack_message);
 
+	if (ok)
+		d->header_read_eof = 0;	/* Reset counter: we got full headers */
 	d->retries = 0;				/* Retry successful, we managed to connect */
 	d->flags |= DL_F_REPLIED;
 
