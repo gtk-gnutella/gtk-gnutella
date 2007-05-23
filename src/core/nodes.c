@@ -8252,6 +8252,7 @@ void
 node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 {
 	struct node_rxfc_mon *rxfc;
+	gint old_hops_flow = n->hops_flow;
 
 	n->hops_flow = hops;
 
@@ -8268,6 +8269,19 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 
 	if (n->peermode == NODE_P_LEAF) {
 		n->leaf_flowc_start = hops <= 1 ? tm_time() : 0;
+
+		/*
+		 * If the value is less than NODE_LEAF_MIN_FLOW, the node is not
+		 * fully searcheable either and we'll not want to include this node's
+		 * QRP in the merged inter-UP QRP table: ask for a recomputation.
+		 *		--RAM, 2007-05-23
+		 */
+
+		if (hops < NODE_LEAF_MIN_FLOW)
+			qrp_leaf_changed();			/* Will be skipped from inter-UP QRP */
+		else if (old_hops_flow < NODE_LEAF_MIN_FLOW)
+			qrp_leaf_changed();			/* Can include this leaf now */
+
 		goto fire;
 	}
 

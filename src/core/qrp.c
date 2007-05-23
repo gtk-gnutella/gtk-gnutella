@@ -950,6 +950,16 @@ mrg_step_get_list(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 			continue;
 
 		/*
+		 * Do not include leaves whose hops-flow is set to a value less
+		 * than NODE_LEAF_MIN_FLOW because they are not fully searcheable
+		 * by remote ultrapeers.
+		 *		--RAM, 2007-05-23
+		 */
+
+		if (dn->hops_flow < NODE_LEAF_MIN_FLOW)
+			continue;
+
+		/*
 		 * At this point we're snapshoting the list of tables and we take
 		 * a reference on the table of the node.  Later on, the node can be
 		 * removed, but then we'll know because we'll be the only one

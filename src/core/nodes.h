@@ -84,6 +84,13 @@ struct node_rxfc_mon {
 
 #define CACHE_HOP_IDX(h)	(((h) > MAX_CACHE_HOPS) ? MAX_CACHE_HOPS : (h))
 
+/**
+ * @def NODE_LEAF_MIN_FLOW
+ * The value of the hops-flow under which the leaf is not fully searcheable,
+ * and which will NOT have its QRP included in the inter-UP QRP table.
+ */
+#define NODE_LEAF_MIN_FLOW		3	  /**< Or leaf is not fully searcheable */
+
 /*
  * Throttle periods for ping reception, depending on the peer mode.
  * This is applicable for regular pings, not alive pings.
