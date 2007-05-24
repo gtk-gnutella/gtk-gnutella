@@ -4868,6 +4868,10 @@ fi_find_aggressive_candidate(
 	 * need, whereas the faster server does not have 100% of them, it would
 	 * be a shame to lose the connection to this slower server.  So we
 	 * take into account the missing chunk coverage rate as well.
+	 *
+	 * We always interrupt a chunk covered by a non-active download, i.e.
+	 * when that chunk is only being requested and is not yet served, as we
+	 * don't know whether that request will succeed.
 	 */
 
 	missing_coverage = fi_missing_coverage(d);
@@ -4878,6 +4882,7 @@ fi_find_aggressive_candidate(
 		download_check(fc->download);
 
 		can_be_aggressive =
+			!DOWNLOAD_IS_ACTIVE(fc->download) ||
 			missing_coverage > longest_missing_coverage ||
 			(
 				missing_coverage == longest_missing_coverage &&
@@ -4904,6 +4909,7 @@ fi_find_aggressive_candidate(
 		 */
 
 		can_be_aggressive =
+			!DOWNLOAD_IS_ACTIVE(fc->download) ||
 			missing_coverage >= fi_missing_coverage(fc->download);
 
 		if (can_be_aggressive && download_debug > 1)
