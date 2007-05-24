@@ -8277,10 +8277,12 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 		 *		--RAM, 2007-05-23
 		 */
 
-		if (hops < NODE_LEAF_MIN_FLOW)
-			qrp_leaf_changed();			/* Will be skipped from inter-UP QRP */
-		else if (old_hops_flow < NODE_LEAF_MIN_FLOW)
+		if (hops < NODE_LEAF_MIN_FLOW) {
+			if (old_hops_flow >= NODE_LEAF_MIN_FLOW)
+				qrp_leaf_changed();		/* Will be skipped from inter-UP QRP */
+		} else if (old_hops_flow < NODE_LEAF_MIN_FLOW) {
 			qrp_leaf_changed();			/* Can include this leaf now */
+		}
 
 		goto fire;
 	}
