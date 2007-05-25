@@ -117,7 +117,7 @@ static void shell_handle_data(gpointer data, gint unused_source,
 typedef enum shell_reply (*shell_cmd_handler_t)(
 				gnutella_shell_t *sh, gint argc, const gchar **argv);
 
-typedef struct shell_help {
+typedef const struct shell_help {
 	const gchar *usage;
 	const gchar *summary;
 	const gchar *help;
