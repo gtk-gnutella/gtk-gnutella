@@ -53,7 +53,7 @@ enum bgtask_magic {
 	BGTASK_DEAD_MAGIC = 0x6f5c8a03U
 };
 
-#define MAX_LIFE		150000			/**< In useconds, MUST be << 1 sec */
+#define MAX_LIFE		250000			/**< In useconds, MUST be << 1 sec */
 #define MIN_LIFE		40000			/**< Min lifetime per task, in usecs */
 #define DELTA_FACTOR	4				/**< Max variations are 400% */
 
