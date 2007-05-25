@@ -139,7 +139,11 @@ shell_print_help(gnutella_shell_t *sh, shell_help_t *help)
 	shell_write(sh, "\n  ");
 	shell_write(sh, help->summary);
 	shell_write(sh, "\n");
-	shell_write(sh, help->help);
+
+	if (help->help && strlen(help->help)) {
+		shell_write(sh, help->help);
+		shell_write(sh, "\n");
+	}
 }
 
 /**
@@ -328,7 +332,6 @@ shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		shell_write(sh, "\n");
 	}
 
-	sh->msg = "";
 	return REPLY_READY;
 
 error:
@@ -371,6 +374,18 @@ error:
 	return REPLY_ERROR;
 }
 
+static shell_help_t shell_help_search = {
+	"search add",
+	"adds a search",
+	"",
+};
+
+static shell_help_t shell_help_search_add = {
+	"search add",
+	"adds a search",
+	"",
+};
+
 static enum shell_reply
 shell_exec_search(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
@@ -406,6 +421,12 @@ error:
 	return REPLY_ERROR;
 }
 
+static shell_help_t shell_help_print = {
+	"print <property>",
+	"prints the value of given property",
+	"",
+};
+
 static enum shell_reply
 shell_exec_print(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
@@ -436,6 +457,12 @@ shell_exec_print(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 error:
 	return REPLY_ERROR;
 }
+
+static shell_help_t shell_help_set = {
+	"set [-v] <property> <value>",
+	"sets the value of given property",
+	"-v : be verbose, printing old and new values",
+};
 
 static enum shell_reply
 shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
@@ -494,6 +521,12 @@ shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 error:
 	return REPLY_ERROR;
 }
+
+static shell_help_t shell_help_whatis = {
+	"whatis <property>",
+	"show description of property",
+	NULL,
+};
 
 /**
  * Takes a whatis command and tries to execute it.
@@ -1512,9 +1545,16 @@ shell_cmd_get_help(const gchar *cmd)
 		shell_help_t *help;
 	} commands[] = {
 #define HELP(x)	{ #x, &shell_help_ ## x }
+		HELP(node),
 		HELP(node_add),
 		HELP(node_drop),
-		HELP(node),
+		HELP(print),
+		HELP(search),
+		HELP(search_add),
+		HELP(set),
+		HELP(whatis),
+
+		/* Above line intentionally left blank for sorting */
 	};
 	guint i;
 
@@ -1573,6 +1613,9 @@ shell_exec(gnutella_shell_t *sh, const gchar *line)
 			reply_code = (*handler)(sh, argc, argv);
 			if (REPLY_ERROR == reply_code && !sh->msg) {
 				sh->msg = _("Malformed command");
+			}
+			if (REPLY_READY == reply_code && !sh->msg) {
+				sh->msg = _("OK");
 			}
 		} else {
 			sh->msg = _("Unknown command");
@@ -1726,11 +1769,10 @@ shell_read_data(gnutella_shell_t *sh)
 			 */
 
 			if (REPLY_ERROR == reply_code && !sh->interactive) {
-				size = w_concat_strings(&buf, uint32_to_string(reply_code),
-					"-", "Error for: \"", getline_str(s->getline), "\"\n",
-					(void *) 0);
-				shell_write(sh, buf); /* XXX: Let shell_write() own ``buf'' */
-				wfree(buf, size);
+				shell_write(sh, uint32_to_string(reply_code));
+				shell_write(sh, "-Error for: \"");
+				shell_write(sh, getline_str(s->getline));
+				shell_write(sh, "\"\n");
 			}
 
 			size = w_concat_strings(&buf, uint32_to_string(reply_code),
