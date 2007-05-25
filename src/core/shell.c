@@ -117,6 +117,31 @@ static void shell_handle_data(gpointer data, gint unused_source,
 typedef enum shell_reply (*shell_cmd_handler_t)(
 				gnutella_shell_t *sh, gint argc, const gchar **argv);
 
+typedef struct shell_help {
+	const gchar *usage;
+	const gchar *summary;
+	const gchar *help;
+} shell_help_t;
+
+static shell_help_t *shell_cmd_get_help(const gchar *cmd);
+
+/**
+ * Emit detail help message.
+ */
+static void
+shell_print_help(gnutella_shell_t *sh, shell_help_t *help)
+{
+	g_return_if_fail(sh);
+	g_return_if_fail(help);
+
+	shell_write(sh, "100~\n");
+	shell_write(sh, help->usage);
+	shell_write(sh, "\n  ");
+	shell_write(sh, help->summary);
+	shell_write(sh, "\n");
+	shell_write(sh, help->help);
+}
+
 /**
  * @returns a pointer to the end of the first token within s. If
  * s only consists of a single token, it returns a pointer to the
@@ -167,6 +192,12 @@ shell_options_parse(gnutella_shell_t *sh,
 	}
 	return ret;
 }
+
+static shell_help_t shell_help_node_add = {
+	"node add <ip>[:<port>]",
+	"add connection to specified <ip>[:<port>]",
+	"",
+};
 
 static enum shell_reply
 shell_exec_node_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
@@ -234,6 +265,12 @@ error:
 	return REPLY_ERROR;
 }
 
+static shell_help_t shell_help_node_drop = {
+	"node drop <ip>[:<port>]",
+	"drop connection to specified <ip>[:<port>]",
+	"",
+};
+
 static enum shell_reply
 shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
@@ -298,6 +335,15 @@ error:
 	return REPLY_ERROR;
 }
 
+static shell_help_t shell_help_node = {
+	"node add | drop <args>",
+	"add / drop connection to node",
+	"Use \"help node add\" or \"help node drop\" for additional information",
+};
+
+/**
+ * Handle the "NODE" command.
+ */
 static enum shell_reply
 shell_exec_node(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
@@ -1218,30 +1264,45 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	shell_write(sh,
-		"100~ \n"
-		"The following commands are available:\n"
-		"download add <URL>|<magnet>\n"
-		"downloads\n"
-		"help\n"
-		"horizon [all]\n"
-		"intr\n"
-		"node add <ip>[:][port]\n"
-		"node drop <ip>[:][port]\n"
-		"nodes\n"
-		"offline\n"
-		"online\n"
-		"print <property>\n"
-		"props [<regex>]\n"
-		"quit\n"
-		"rescan\n"
-		"search add <query>\n"
-		"set [-v] <property> <value>\n"
-		"shutdown\n"
-		"status\n"
-		"uploads\n"
-		"whatis <property>\n"
-	);
+	if (argc == 1) {
+		shell_write(sh,
+			"100~\n"
+			"The following commands are available:\n"
+			"download add <URL>|<magnet>\n"
+			"downloads\n"
+			"help\n"
+			"horizon [all]\n"
+			"intr\n"
+			"node add <ip>[:port]\n"
+			"node drop <ip>[:port]\n"
+			"nodes\n"
+			"offline\n"
+			"online\n"
+			"print <property>\n"
+			"props [<regex>]\n"
+			"quit\n"
+			"rescan\n"
+			"search add <query>\n"
+			"set [-v] <property> <value>\n"
+			"shutdown\n"
+			"status\n"
+			"uploads\n"
+			"whatis <property>\n"
+			"Use \"help <cmd>\" for additional help about a command.\n"
+		);
+	} else {
+		gchar *cmd = g_strjoinv(" ", (gchar **) &argv[1]);
+		shell_help_t *help = shell_cmd_get_help(cmd);
+
+		g_free(cmd);
+
+		if (help)
+			shell_print_help(sh, help);
+		else {
+			sh->msg = _("No help available");
+			return REPLY_ERROR;
+		}
+	}
 	shell_write(sh, ".\n");
 	return REPLY_READY;
 }
@@ -1392,7 +1453,10 @@ shell_free_argv(const gchar ***argv_ptr)
 	}
 }
 
-shell_cmd_handler_t
+/**
+ * @return command handler based on command name (case-insensitive).
+ */
+static shell_cmd_handler_t
 shell_cmd_get_handler(const gchar *cmd)
 {
 	static const struct {
@@ -1429,6 +1493,61 @@ shell_cmd_get_handler(const gchar *cmd)
 			return commands[i].handler;
 	}
 	return NULL;
+}
+
+/**
+ * Find the help structure associated with a command, if any.
+ * A command can be given as several words, as in "node add".
+ *
+ * @return help based on the case-insensitive command name.
+ */
+static shell_help_t *
+shell_cmd_get_help(const gchar *cmd)
+{
+	gchar *dup;
+	shell_help_t *found = NULL;
+
+	static const struct {
+		const gchar * const cmd;
+		shell_help_t *help;
+	} commands[] = {
+#define HELP(x)	{ #x, &shell_help_ ## x }
+		HELP(node_add),
+		HELP(node_drop),
+		HELP(node),
+	};
+	guint i;
+
+	g_return_val_if_fail(cmd, NULL);
+
+	/*
+	 * Replace any space in the command name with '_".
+	 */
+
+	dup = deconstify_gchar(cmd);
+	if (strchr(cmd, ' ')) {
+		char c;
+		char *p;
+
+		dup = g_strdup(cmd);
+		
+		for (p = dup, c = *p; c; c = *(++p)) {
+			if (c == ' ')
+				*p = '_';
+		}
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(commands); i++) {
+		if (ascii_strcasecmp(commands[i].cmd, dup) == 0) {
+			found = commands[i].help;
+			break;
+		}
+	}
+
+	if (dup != cmd)
+		g_free(dup);
+
+	return found;
 }
 
 /**
