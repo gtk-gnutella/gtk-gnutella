@@ -70,6 +70,8 @@ RCSID("$Id$")
 #define MAX_BAN			10800	/**< 3 hours */
 #define BAN_REMIND		5		/**< Every so many attemps, tell them about it */
 
+#define ban_reason(p)	((p)->ban_msg ? (p)->ban_msg : "N/A")
+
 static GHashTable *info;		/**< Info by IP address */
 static zone_t *ipf_zone;		/**< Zone for addr_info allocation */
 
@@ -159,7 +161,8 @@ ipf_destroy(cqueue_t *unused_cq, gpointer obj)
 	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
 
 	if (ban_debug > 8)
-		g_message("disposing of BAN %s", host_addr_to_string(ipf->addr));
+		g_message("disposing of BAN %s: %s",
+			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	g_hash_table_remove(info, &ipf->addr);
 	ipf->cq_ev = NULL;
@@ -190,8 +193,8 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	ipf->ctime = now;
 
 	if (ban_debug > 4)
-		g_message("removing BAN for %s, counter = %.3f",
-			host_addr_to_string(ipf->addr), ipf->counter);
+		g_message("removing BAN for %s (%s), counter = %.3f",
+			host_addr_to_string(ipf->addr), ban_reason(ipf), ipf->counter);
 
 	/**
 	 * Compute new scheduling delay.
@@ -207,7 +210,8 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 
 	if (delay <= 0) {
 		if (ban_debug > 8)
-			g_message("disposing of BAN %s", host_addr_to_string(ipf->addr));
+			g_message("disposing of BAN %s: %s",
+				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 		g_hash_table_remove(info, &ipf->addr);
 		ipf->cq_ev = NULL;
@@ -216,6 +220,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	}
 
 	ipf->banned = FALSE;
+	atom_str_free_null(&ipf->ban_msg);
 	ipf->cq_ev = cq_insert(callout_queue, delay, ipf_destroy, ipf);
 }
 
@@ -316,6 +321,7 @@ ban_allow(const host_addr_t addr)
 		cq_cancel(callout_queue, &ipf->cq_ev);	/* Cancel ipf_destroy */
 
 		ipf->banned = TRUE;
+		atom_str_change(&ipf->ban_msg, "Too frequent connections");
 
 		if (ipf->ban_delay)
 			ipf->ban_delay *= 2;
@@ -364,11 +370,13 @@ ban_record(const host_addr_t addr, const gchar *msg)
 		g_hash_table_insert(info, &ipf->addr, ipf);
 	}
 
-	if (ipf->ban_msg != NULL)
-		atom_str_free(ipf->ban_msg);
-
-	ipf->ban_msg = atom_str_get(msg);
+	atom_str_change(&ipf->ban_msg, msg);
 	ipf->ban_delay = MAX_BAN;
+
+	if (ban_debug)
+		g_message("BAN %s record %s: %s",
+			ipf->banned ? "new" : "updating",
+			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	if (ipf->banned)
 		cq_resched(callout_queue, ipf->cq_ev, MAX_BAN * 1000);
