@@ -5813,6 +5813,7 @@ err_header_read_eof(gpointer o)
 		 */
 
 		d->server->attrs |= DLS_A_MINIMAL_HTTP;
+		d->header_read_eof++;		/* Will count twice: no header is bad */
 	} else {
 		/*
 		 * As some header lines were read, we could at least try to get the
@@ -5831,8 +5832,14 @@ err_header_read_eof(gpointer o)
 		 *		--RAM, 2007-05-23
 		 */
 
+		d->server->attrs |= DLS_A_BANNING;		/* Probably... */
 		ban_record(download_addr(d), "IP probably denying uploads");
 		upload_kill_addr(download_addr(d));
+
+		if (download_debug)
+			g_message("server \"%s\" at %s might be banning us (too many EOF)",
+				download_vendor_str(d),
+				host_addr_port_to_string(download_addr(d), download_port(d)));
 	}
 
 	if (d->retries < download_max_retries) {
@@ -11591,7 +11598,7 @@ download_speed_avg(struct download *d)
 }
 
 /**
- * @return Whether download is stalled, not having received data for some
+ * @return whether download is stalled, not having received data for some
  * time now.
  */
 gboolean
