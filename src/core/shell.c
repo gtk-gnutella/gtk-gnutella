@@ -68,7 +68,7 @@ static GSList *sl_shells = NULL;
 
 /*
  * guc_share_scan() causes dispatching of I/O events, so we must not call
- * it whilst in an even callback (all commands are) because if the shell
+ * it whilst in an event callback (all commands are) because if the shell
  * connection dies, the shell context will no longer be valid. Therefore,
  * we just record the request and call guc_share_scan() from shell_timer().
  */
@@ -82,9 +82,10 @@ typedef struct gnutella_shell {
 	enum shell_magic	magic;
 	struct gnutella_socket *socket;
 	slist_t *output;
-	const gchar *msg;   /**< Additional information to reply code */
-	time_t last_update; /**< Last update (needed for timeout) */
-	gboolean shutdown;  /**< In shutdown mode? */
+	const gchar *msg;   	/**< Additional information to reply code */
+	time_t last_update; 	/**< Last update (needed for timeout) */
+	gboolean shutdown;  	/**< In shutdown mode? */
+	gboolean interactive;	/**< Interactive mode? */
 } gnutella_shell_t;
 
 static inline void
@@ -1727,7 +1728,35 @@ shell_add(struct gnutella_socket *s)
 
 	if (socket_is_local(s)) {
 		if (enable_local_socket) {
+			size_t r;
 			granted = TRUE;
+
+			if (shell_debug > 1)
+				g_message("shell command is \"%s\"", getline_str(s->getline));
+
+			/*
+			 * An empty INTR command is sent by the local shell only
+			 * when running inter-actively on the terminal.
+			 *
+			 * First swallow the initial HELO command.
+			 */
+
+			getline_reset(s->getline); /* remove HELO command */
+
+			if (READ_DONE == getline_read(s->getline, s->buf, s->pos, &r)) {
+				if (shell_debug > 1)
+					g_message("next shell command is \"%s\"",
+						getline_str(s->getline));
+
+				if (0 == strcmp(getline_str(s->getline), "INTR")) {
+					/* Swallow INTR */
+					if (s->pos != r)
+						memmove(s->buf, &s->buf[r], s->pos - r);
+					s->pos -= r;
+
+					sh->interactive = TRUE;
+				}
+			}
 		} else {
 			g_warning("local shell control interface disabled");
 			shell_write(sh, "401 Disabled\n");
@@ -1738,6 +1767,7 @@ shell_add(struct gnutella_socket *s)
 		if (enable_shell) {
 		   	if (shell_auth(getline_str(s->getline))) {
 				granted = TRUE;
+				sh->interactive = TRUE;
 			} else {
 				g_warning("invalid credentials");
 				shell_write(sh, "400 Invalid credentials\n");
@@ -1754,15 +1784,15 @@ shell_add(struct gnutella_socket *s)
 #endif	/* USE_REMOTE_CTRL */
 	}
 
-	if (!sh->shutdown && granted) {
+	getline_reset(s->getline); /* clear AUTH command from buffer */
+
+	if (!sh->shutdown && granted && sh->interactive) {
 		shell_write(sh, "100 Welcome to ");
 		shell_write(sh, version_short_string);
 		shell_write(sh, "\n");
 	}
 
-	getline_reset(s->getline); /* clear AUTH command from buffer */
-
-	if (!shell_has_pending_output(sh) && sh->shutdown) {
+	if (!shell_has_pending_output(sh) && sh->shutdown && !granted) {
 		shell_destroy(sh);
 	}
 }

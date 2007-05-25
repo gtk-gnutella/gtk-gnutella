@@ -87,9 +87,18 @@ RCSID("$Id$");
 
 #endif	/* LOCAL_SHELL_STANDALONE */
 
+/* Fallback on select() if they miss poll() */
+#ifndef HAS_POLL
+#ifdef HAS_SELECT
+#define USE_SELECT_FOR_SHELL
+#endif
+#endif
+
 #if defined(__APPLE__) && defined(__MACH__)
 /* poll() seems to be broken on Darwin */
+#ifndef USE_SELECT_FOR_SHELL
 #define USE_SELECT_FOR_SHELL
+#endif
 #endif	/* Darwin */
 
 #ifdef USE_READLINE
@@ -330,8 +339,9 @@ static int
 local_shell_mainloop(int fd)
 {
 	static struct shell_buf client, server;
+	int tty = isatty(STDIN_FILENO);
 #ifdef USE_READLINE
-	int use_readline = isatty(STDIN_FILENO);
+	int use_readline = tty;
 #else
 	int use_readline = 0;
 #endif	/* USE_READLINE */
@@ -339,13 +349,24 @@ local_shell_mainloop(int fd)
 	{
 		static char client_buf[4096], server_buf[4096];
 		static const char helo[] = "HELO\n";
+		static const char interactive[] = "HELO\nINTR\n";
 
 		server.buf = server_buf;
 		server.size = sizeof server_buf;
 		client.buf = client_buf;
 		client.size = sizeof client_buf;
-		memcpy(client_buf, helo, sizeof helo - 1);
-		client.fill = sizeof helo - 1;
+
+		/*
+		 * Only send the empty INTR command when interactive.
+		 */
+
+		if (tty) {
+			client.fill = sizeof interactive - 1;
+			memcpy(client_buf, interactive, client.fill);
+		} else {
+			client.fill = sizeof helo - 1;
+			memcpy(client_buf, helo, client.fill);
+		}
 	}
 
 	for (;;) {
@@ -443,7 +464,7 @@ local_shell_mainloop(int fd)
  */
 void
 local_shell(const char *socket_path)
-#ifdef HAS_POLL
+#if defined(HAS_POLL) || defined(HAS_SELECT)
 {
 	struct sockaddr_un addr;
 	int fd;
@@ -496,12 +517,12 @@ local_shell(const char *socket_path)
 failure:
 	exit(EXIT_FAILURE);
 }
-#else	/* !HAS_POLL */
+#else	/* !HAS_POLL && !HAS_SELECT*/
 {
 	fprintf(stderr, "No shell for you!\n");
 	exit(EXIT_FAILURE);
 }
-#endif	/* HAS_POLL */
+#endif	/* HAS_POLL || HAS_SELECT */
 
 #ifdef LOCAL_SHELL_STANDALONE
 static char *
