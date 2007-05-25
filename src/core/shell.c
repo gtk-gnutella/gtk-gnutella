@@ -1538,7 +1538,6 @@ shell_cmd_get_handler(const gchar *cmd)
 static shell_help_t *
 shell_cmd_get_help(const gchar *cmd)
 {
-	gchar *dupcmd;
 	shell_help_t *found = NULL;
 
 	static const struct {
@@ -1546,14 +1545,15 @@ shell_cmd_get_help(const gchar *cmd)
 		shell_help_t *help;
 	} commands[] = {
 #define HELP(x)	{ #x, &shell_help_ ## x }
+#define HELP2(x,y) { #x " " #y , &shell_help_ ## x ## _ ## y }
 		HELP(horizon),
 		HELP(node),
-		HELP(node_add),
-		HELP(node_drop),
+		HELP2(node,add),
+		HELP2(node,drop),
 		HELP(print),
 		HELP(rescan),
 		HELP(search),
-		HELP(search_add),
+		HELP2(search,add),
 		HELP(set),
 		HELP(whatis),
 
@@ -1563,32 +1563,12 @@ shell_cmd_get_help(const gchar *cmd)
 
 	g_return_val_if_fail(cmd, NULL);
 
-	/*
-	 * Replace any space in the command name with '_".
-	 */
-
-	dupcmd = deconstify_gchar(cmd);
-	if (strchr(cmd, ' ')) {
-		char c;
-		char *p;
-
-		dupcmd = g_strdup(cmd);
-		
-		for (p = dupcmd, c = *p; c; c = *(++p)) {
-			if (c == ' ')
-				*p = '_';
-		}
-	}
-
 	for (i = 0; i < G_N_ELEMENTS(commands); i++) {
-		if (ascii_strcasecmp(commands[i].cmd, dupcmd) == 0) {
+		if (ascii_strcasecmp(commands[i].cmd, cmd) == 0) {
 			found = commands[i].help;
 			break;
 		}
 	}
-
-	if (dupcmd != cmd)
-		g_free(dupcmd);
 
 	return found;
 }
