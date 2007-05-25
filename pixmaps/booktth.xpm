@@ -4,7 +4,7 @@ static char * booktth_xpm[] = {
 " 	c None",
 ".	c #848484",
 "+	c #000000",
-"@	c #EE82EE",
+"@	c #FFe000",
 "#	c #C6C6C6",
 "$	c #4C4C4C",
 "%	c #C0C0C0",
