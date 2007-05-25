@@ -960,6 +960,30 @@ shell_exec_downloads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 }
 
 /**
+ * The "INTR" command.
+ */
+static enum shell_reply
+shell_exec_intr(gnutella_shell_t *sh, gint argc, const gchar *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	sh->interactive = !sh->interactive;
+
+	if (sh->interactive)
+		sh->msg = _("Interactive mode turned on.");
+	else {
+		/* Always give them feedback on that command! */
+		shell_write(sh, "100 ");
+		shell_write(sh, _("Interactive mode turned off."));
+		shell_write(sh, "\n");
+	}
+
+	return REPLY_READY;
+}
+
+/**
  * Displays assorted status information
  */
 static enum shell_reply
@@ -1201,6 +1225,7 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		"downloads\n"
 		"help\n"
 		"horizon [all]\n"
+		"intr\n"
 		"node add <ip>[:][port]\n"
 		"node drop <ip>[:][port]\n"
 		"nodes\n"
@@ -1242,7 +1267,7 @@ shell_exec_shutdown(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	
 	sh->msg = _("Shutdown sequence initiated.");
 	/*
-	 * Don't use gtk_gnutella_exit() because we want at least send
+	 * Don't use gtk_gnutella_exit() because we want to at least send
 	 * some feedback before terminating. 
 	 */
 	gtk_gnutella_request_shutdown();
@@ -1379,6 +1404,7 @@ shell_cmd_get_handler(const gchar *cmd)
 		CMD(downloads),
 		CMD(help),
 		CMD(horizon),
+		CMD(intr),
 		CMD(node),
 		CMD(nodes),
 		CMD(offline),
