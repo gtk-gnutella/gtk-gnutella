@@ -11013,11 +11013,11 @@ download_build_url(const struct download *d)
 		url = download_url_for_uri(d, "/");
 	} else if (d->uri) {
 		url = download_url_for_uri(d, d->uri);
-	} else if (d->sha1) {
+	} else if (URN_INDEX == d->record_index && download_get_sha1(d)) {
 		gchar uri[128];
 
 		concat_strings(uri, sizeof uri,
-			"/uri-res/N2R?urn:sha1:", sha1_base32(d->sha1),
+			"/uri-res/N2R?urn:sha1:", sha1_base32(download_get_sha1(d)),
 			(void *) 0);
 		url = download_url_for_uri(d, uri);
 	} else {
