@@ -1226,7 +1226,7 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		leaf_out = short_rate_get_string(bw_stats.average, metric);
 
 		gm_snprintf(buf, sizeof buf,
-			"| Bandwidth:           GNet          HTTP          Leaf   |\n"
+			"| Bandwidth:           Gnutella      HTTP          Leaf   |\n"
 			"|---------------------------------------------------------|\n"
 			"|        In:    %11s   %11s   %11s   |\n"
 			"|       Out:    %11s   %11s   %11s   |\n",
@@ -1260,12 +1260,12 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 static shell_help_t shell_help_offline = {
 	"offline",
-	"take the node offline",
-	"Use \"online\" to turn it back on",
+	"disconnect from the Gnutella network",
+	"Use \"online\" to re-connect to the Gnutella network",
 };
 
 /**
- * Close GNet connections
+ * Close Gnutella connections
  */
 static enum shell_reply
 shell_exec_offline(gnutella_shell_t *sh, gint argc, const gchar *argv[])
@@ -1275,7 +1275,7 @@ shell_exec_offline(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	g_assert(argc > 0);
 
 	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, FALSE);
-	shell_write(sh, "Closing GNet connections\n");
+	shell_write(sh, "Closing Gnutella connections\n");
 
 	return REPLY_READY;
 }
@@ -1287,7 +1287,7 @@ static shell_help_t shell_help_online = {
 };
 
 /**
- * Open GNet connections
+ * Open Gnutella connections
  */
 static enum shell_reply
 shell_exec_online(gnutella_shell_t *sh, gint argc, const gchar *argv[])
@@ -1297,7 +1297,7 @@ shell_exec_online(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	g_assert(argc > 0);
 
 	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, TRUE);
-	shell_write(sh, "Opening GNet connections\n");
+	shell_write(sh, "Opening Gnutella connections\n");
 
 	return REPLY_READY;
 }
@@ -1428,8 +1428,8 @@ shell_exec_quit(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 static shell_help_t shell_help_shutdown = {
 	"shutdown",
-	"initiates a node shutdown",
-	"This will promply disconnect you as a side effect...",
+	"initiates a shutdown of gtk-gnutella",
+	"As a side effect the shell connection is closed as well.",
 };
 
 static enum shell_reply
@@ -1597,6 +1597,7 @@ shell_cmd_get_handler(const gchar *cmd)
 		CMD(status),
 		CMD(uploads),
 		CMD(whatis),
+#undef CMD
 	};
 	guint i;
 
@@ -1618,8 +1619,6 @@ shell_cmd_get_handler(const gchar *cmd)
 static shell_help_t *
 shell_cmd_get_help(const gchar *cmd)
 {
-	shell_help_t *found = NULL;
-
 	static const struct {
 		const gchar * const cmd;
 		shell_help_t *help;
@@ -1651,7 +1650,10 @@ shell_cmd_get_help(const gchar *cmd)
 		HELP2(search,add),
 
 		/* Above line intentionally left blank for sorting */
+#undef HELP2
+#undef HELP
 	};
+	shell_help_t *found = NULL;
 	guint i;
 
 	g_return_val_if_fail(cmd, NULL);
