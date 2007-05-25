@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue May 15 03:35:17 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Fri May 25 16:10:47 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -326,6 +326,7 @@ d_random=''
 d_regparm=''
 d_rusage=''
 d_sa_interrupt=''
+d_select=''
 d_sendfile=''
 d_setproctitle=''
 d_sigaction=''
@@ -6060,6 +6061,21 @@ EOC
 set d_sa_interrupt
 eval $trylink
 
+: see if select exists
+$cat >try.c <<EOC
+#include <sys/select.h>
+int main(void)
+{
+	static int ret, n;
+	static struct fd_set r, w, x;
+	static struct timeval timeout;
+	ret |= select(n, &r, &w, &x, &timeout);
+	return ret ? 0 : 1;
+}
+EOC
+set d_select
+eval $trylink
+
 : see if sendfile exists
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -8797,6 +8813,7 @@ d_regparm='$d_regparm'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
 d_sa_interrupt='$d_sa_interrupt'
+d_select='$d_select'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'
