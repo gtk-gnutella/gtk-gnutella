@@ -200,7 +200,7 @@ shell_options_parse(gnutella_shell_t *sh,
 static shell_help_t shell_help_node_add = {
 	"node add <ip>[:<port>]",
 	"add connection to specified <ip>[:<port>]",
-	"",
+	NULL,
 };
 
 static enum shell_reply
@@ -272,7 +272,7 @@ error:
 static shell_help_t shell_help_node_drop = {
 	"node drop <ip>[:<port>]",
 	"drop connection to specified <ip>[:<port>]",
-	"",
+	NULL,
 };
 
 static enum shell_reply
@@ -377,13 +377,13 @@ error:
 static shell_help_t shell_help_search = {
 	"search add",
 	"adds a search",
-	"",
+	NULL,
 };
 
 static shell_help_t shell_help_search_add = {
 	"search add",
 	"adds a search",
-	"",
+	NULL,
 };
 
 static enum shell_reply
@@ -424,7 +424,7 @@ error:
 static shell_help_t shell_help_print = {
 	"print <property>",
 	"prints the value of given property",
-	"",
+	NULL,
 };
 
 static enum shell_reply
@@ -562,6 +562,12 @@ error:
 	return REPLY_ERROR;
 }
 
+static shell_help_t shell_help_rescan = {
+	"rescan",
+	"rescan the library to update shared file information",
+	NULL,
+};
+
 /**
  * Rescan the shared directories for added/removed files.
  */
@@ -581,7 +587,6 @@ shell_exec_rescan(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	} else {
 		library_rescan_requested = TRUE;
 		shell_write(sh, "100-Scheduling library rescan\n");
-		sh->msg = "";
 		return REPLY_READY;
 	}
 }
@@ -683,6 +688,12 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 }
 
+static shell_help_t shell_help_horizon = {
+	"horizon [-a]",
+	"show horizon information collected via nodes supporting HSEP",
+	"-a: show all the information we have, not just a summary",
+};
+
 /**
  * Displays horizon size information.
  */
@@ -692,26 +703,19 @@ shell_exec_horizon(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	gchar buf[200];
 	hsep_triple globaltable[HSEP_N_MAX + 1];
 	hsep_triple non_hsep[1];
-	gboolean all;
+	const gchar *all;
+	gint parsed;
+	option_t options[] = {
+		{ "a", &all },
+	};
 
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-    if (argc > 1) {
-		shell_write(sh, argv[1]);
-		shell_write(sh, "\n");
-		if (0 == ascii_strcasecmp(argv[1], "all")) {
-			all = TRUE;
-		} else {
-        	sh->msg = _("Unknown parameter");
-	        goto error;
-		}
-	} else {
-		all = FALSE;
-	}
-
-	sh->msg = "";
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
 
 	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
 	hsep_get_non_hsep_triple(non_hsep);
@@ -752,9 +756,6 @@ shell_exec_horizon(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	}
 
 	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
 }
 
 static void
@@ -1304,7 +1305,7 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 			"download add <URL>|<magnet>\n"
 			"downloads\n"
 			"help\n"
-			"horizon [all]\n"
+			"horizon [-a]\n"
 			"intr\n"
 			"node add <ip>[:port]\n"
 			"node drop <ip>[:port]\n"
@@ -1537,7 +1538,7 @@ shell_cmd_get_handler(const gchar *cmd)
 static shell_help_t *
 shell_cmd_get_help(const gchar *cmd)
 {
-	gchar *dup;
+	gchar *dupcmd;
 	shell_help_t *found = NULL;
 
 	static const struct {
@@ -1545,10 +1546,12 @@ shell_cmd_get_help(const gchar *cmd)
 		shell_help_t *help;
 	} commands[] = {
 #define HELP(x)	{ #x, &shell_help_ ## x }
+		HELP(horizon),
 		HELP(node),
 		HELP(node_add),
 		HELP(node_drop),
 		HELP(print),
+		HELP(rescan),
 		HELP(search),
 		HELP(search_add),
 		HELP(set),
@@ -1564,28 +1567,28 @@ shell_cmd_get_help(const gchar *cmd)
 	 * Replace any space in the command name with '_".
 	 */
 
-	dup = deconstify_gchar(cmd);
+	dupcmd = deconstify_gchar(cmd);
 	if (strchr(cmd, ' ')) {
 		char c;
 		char *p;
 
-		dup = g_strdup(cmd);
+		dupcmd = g_strdup(cmd);
 		
-		for (p = dup, c = *p; c; c = *(++p)) {
+		for (p = dupcmd, c = *p; c; c = *(++p)) {
 			if (c == ' ')
 				*p = '_';
 		}
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(commands); i++) {
-		if (ascii_strcasecmp(commands[i].cmd, dup) == 0) {
+		if (ascii_strcasecmp(commands[i].cmd, dupcmd) == 0) {
 			found = commands[i].help;
 			break;
 		}
 	}
 
-	if (dup != cmd)
-		g_free(dup);
+	if (dupcmd != cmd)
+		g_free(dupcmd);
 
 	return found;
 }
