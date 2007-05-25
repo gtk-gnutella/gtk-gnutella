@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "parq.h"
 #include "settings.h"
+#include "search.h"		/* for QUERY_FW2FW_FILE_INDEX */
 #include "share.h"
 #include "sockets.h"
 #include "spam.h"
@@ -774,7 +775,15 @@ handle_push_request(struct gnutella_node *n)
 	 * We'll let the remote end figure out what to do.
 	 *		--RAM. 18/07/2003
 	 */
-	{
+
+	if (file_index == QUERY_FW2FW_FILE_INDEX) {
+		file_name = "<RUDP connection request>";
+		if (upload_debug)
+			g_warning(
+				"PUSH request (hops=%d, ttl=%d) for RUDP connection request",
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header));
+	} else {
 		const struct shared_file *req_file;
 
 		req_file = shared_file(file_index);
