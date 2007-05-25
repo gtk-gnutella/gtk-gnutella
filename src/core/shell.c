@@ -1561,12 +1561,32 @@ shell_read_data(gnutella_shell_t *sh)
 
 		/*
 		 * We come here everytime we get a full line.
+		 *
+		 * When command returns REPLY_READY, meaning it was executed
+		 * properly, do not show them any feedback if not running
+		 * interactively.
 		 */
 
 		reply_code = shell_exec(sh, getline_str(s->getline));
-		if (REPLY_NONE != reply_code) {
+		if (
+			REPLY_NONE != reply_code &&
+			!(!sh->interactive && REPLY_READY == reply_code)
+		) {
 			gchar *buf = NULL;
 			size_t size;
+
+			/*
+			 * On error, when running non-interactively, remind them
+			 * about the command that failed first.
+			 */
+
+			if (REPLY_ERROR == reply_code && !sh->interactive) {
+				size = w_concat_strings(&buf, uint32_to_string(reply_code),
+					"-", "Error for: \"", getline_str(s->getline), "\"\n",
+					(void *) 0);
+				shell_write(sh, buf); /* XXX: Let shell_write() own ``buf'' */
+				wfree(buf, size);
+			}
 
 			size = w_concat_strings(&buf, uint32_to_string(reply_code),
 					" ", sh->msg ? sh->msg : "", "\n", (void *) 0);
