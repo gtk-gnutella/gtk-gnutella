@@ -814,6 +814,12 @@ print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
 	shell_write(sh, "\n");	/* Terminate line */
 }
 
+static shell_help_t shell_help_nodes = {
+	"nodes",
+	"displays all connected nodes",
+	NULL,
+};
+
 /**
  * Displays all connected nodes
  */
@@ -863,6 +869,12 @@ print_upload_info(gnutella_shell_t *sh, const struct gnet_upload_info *info)
 	shell_write(sh, "\n");	/* Terminate line */
 }
 
+static shell_help_t shell_help_uploads = {
+	"uploads",
+	"displays all active uploads",
+	NULL,
+};
+
 /**
  * Displays all active uploads
  */
@@ -890,6 +902,18 @@ shell_exec_uploads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 	return REPLY_READY;
 }
+
+static shell_help_t shell_help_download = {
+	"download add <URL>|<magnet>",
+	"add a download by URL or magnet",
+	NULL,
+};
+
+static shell_help_t shell_help_download_add = {
+	"download add <URL>|<magnet>",
+	"add a download by URL or magnet",
+	NULL,
+};
 
 /**
  * Handles the download command.
@@ -1018,6 +1042,12 @@ print_download_info(gnet_fi_t handle, void *udata)
 	guc_fi_free_info(info);
 }
 
+static shell_help_t shell_help_downloads = {
+	"downloads",
+	"displays all active downloads",
+	NULL,
+};
+
 /**
  * Displays all active downloads.
  */
@@ -1038,6 +1068,13 @@ shell_exec_downloads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 	return REPLY_READY;
 }
+
+static shell_help_t shell_help_intr = {
+	"intr",
+	"toggles interactive mode",
+	"By default, interactive mode is automatically turned\n"
+	"on when running \"gtk-gnutella --shell\" from a terminal",
+};
 
 /**
  * The "INTR" command.
@@ -1062,6 +1099,12 @@ shell_exec_intr(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 	return REPLY_READY;
 }
+
+static shell_help_t shell_help_status = {
+	"status",
+	"displays a nicely formatted general status report",
+	NULL,
+};
 
 /**
  * Displays assorted status information
@@ -1215,6 +1258,12 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 }
 
+static shell_help_t shell_help_offline = {
+	"offline",
+	"take the node offline",
+	"Use \"online\" to turn it back on",
+};
+
 /**
  * Close GNet connections
  */
@@ -1231,6 +1280,12 @@ shell_exec_offline(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 }
 
+static shell_help_t shell_help_online = {
+	"online",
+	"put the node back online",
+	"See also \"offline\"",
+};
+
 /**
  * Open GNet connections
  */
@@ -1246,6 +1301,12 @@ shell_exec_online(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 
 	return REPLY_READY;
 }
+
+static shell_help_t shell_help_props = {
+	"props [<regexp>]",
+	"display all properties, or those matching the regular expression supplied",
+	NULL,
+};
 
 /**
  * Display all properties
@@ -1291,6 +1352,12 @@ shell_exec_props(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 }
 
+static shell_help_t shell_help_help = {
+	"help [<cmd>]",
+	"displays command summary, or give detailed help about specific command",
+	NULL,
+};
+
 static enum shell_reply
 shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
@@ -1313,7 +1380,7 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 			"offline\n"
 			"online\n"
 			"print <property>\n"
-			"props [<regex>]\n"
+			"props [<regexp>]\n"
 			"quit\n"
 			"rescan\n"
 			"search add <query>\n"
@@ -1341,6 +1408,12 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	return REPLY_READY;
 }
 
+static shell_help_t shell_help_quit = {
+	"quit",
+	"close the shell connection",
+	NULL,
+};
+
 static enum shell_reply
 shell_exec_quit(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 {
@@ -1352,6 +1425,12 @@ shell_exec_quit(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	shell_shutdown(sh);
 	return REPLY_GOOD_BYE;
 }
+
+static shell_help_t shell_help_shutdown = {
+	"shutdown",
+	"initiates a node shutdown",
+	"This will promply disconnect you as a side effect...",
+};
 
 static enum shell_reply
 shell_exec_shutdown(gnutella_shell_t *sh, gint argc, const gchar *argv[])
@@ -1504,6 +1583,7 @@ shell_cmd_get_handler(const gchar *cmd)
 		CMD(horizon),
 		CMD(intr),
 		CMD(node),
+		CMD(quit),
 		CMD(nodes),
 		CMD(offline),
 		CMD(online),
@@ -1546,16 +1626,29 @@ shell_cmd_get_help(const gchar *cmd)
 	} commands[] = {
 #define HELP(x)	{ #x, &shell_help_ ## x }
 #define HELP2(x,y) { #x " " #y , &shell_help_ ## x ## _ ## y }
+		HELP(download),
+		HELP(downloads),
+		HELP(help),
 		HELP(horizon),
+		HELP(intr),
 		HELP(node),
-		HELP2(node,add),
-		HELP2(node,drop),
+		HELP(nodes),
+		HELP(offline),
+		HELP(online),
 		HELP(print),
+		HELP(props),
+		HELP(quit),
 		HELP(rescan),
 		HELP(search),
-		HELP2(search,add),
 		HELP(set),
+		HELP(shutdown),
+		HELP(status),
+		HELP(uploads),
 		HELP(whatis),
+		HELP2(download,add),
+		HELP2(node,add),
+		HELP2(node,drop),
+		HELP2(search,add),
 
 		/* Above line intentionally left blank for sorting */
 	};
