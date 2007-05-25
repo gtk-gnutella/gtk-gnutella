@@ -1226,7 +1226,7 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		leaf_out = short_rate_get_string(bw_stats.average, metric);
 
 		gm_snprintf(buf, sizeof buf,
-			"| Bandwidth:           Gnutella      HTTP          Leaf   |\n"
+			"| Bandwidth:       Gnutella          HTTP          Leaf   |\n"
 			"|---------------------------------------------------------|\n"
 			"|        In:    %11s   %11s   %11s   |\n"
 			"|       Out:    %11s   %11s   %11s   |\n",
