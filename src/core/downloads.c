@@ -1114,17 +1114,6 @@ download_timer(time_t now)
 
 		sl = g_slist_next(sl);
 
-		if (d->thex && !DOWNLOAD_IS_STOPPED(d)) {
-			fileinfo_t *fi;
-
-			fi = file_info_by_sha1(thex_download_get_sha1(d->thex));
-			if (NULL == fi || fi->tigertree.leaves) {
-				download_stop(d, GTA_DL_ERROR,
-					"THEX download no longer required");
-				continue;
-			}
-		}
-
 		switch (d->status) {
 		case GTA_DL_RECEIVING:
 		case GTA_DL_IGNORING:
@@ -2658,6 +2647,52 @@ download_remove_all_with_sha1(const struct sha1 *sha1)
 		struct download *d = sl->data;
 		file_info_set_discard(d->file_info, TRUE);
 		download_abort(d);
+	}
+
+	g_slist_free(to_remove);
+
+	return n;
+}
+
+/**
+ * Remove all THEX downloads for a given sha1.
+ */
+static gint
+download_remove_all_thex(const struct sha1 *sha1)
+{
+	GSList *sl;
+	GSList *to_remove = NULL;
+	gint n = 0;
+
+	g_return_val_if_fail(sha1 != NULL, 0);
+
+	/*
+	 * First pass: spot THEX downloads aimed at the given sha1.
+	 */
+
+	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+
+		download_check(d);
+
+		if (d->thex) {
+			const struct sha1 *d_sha1 = thex_download_get_sha1(d->thex);
+
+			if (sha1_eq(sha1, d_sha1)) {
+				n++;
+				to_remove = g_slist_prepend(to_remove, d);
+			}
+		}
+	}
+
+	/*
+	 * Abort all found downloads.
+	 */
+
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+
+		download_forget(d, FALSE);
 	}
 
 	g_slist_free(to_remove);
@@ -11335,13 +11370,17 @@ download_rx_done(struct download *d)
 		gcu_gui_update_download_size(d);
 	}
 
-	if (d->thex) {
+	if (d->thex)
 		thex_download_finished(d->thex);
-	}
+
 	download_stop(d, GTA_DL_COMPLETED, no_reason);
 
-	if (!d->browse && !d->thex && fi->file_size_known) {
+	if (!d->browse && !d->thex && fi->file_size_known)
 		download_verify_sha1(d);
+
+	if (d->thex) {
+		const struct sha1 *sha1 = thex_download_get_sha1(d->thex);
+		download_remove_all_thex(sha1);
 	}
 }
 
