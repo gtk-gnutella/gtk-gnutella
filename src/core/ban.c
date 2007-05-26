@@ -192,8 +192,8 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	ipf->counter -= delta_time(now, ipf->ctime) * decay_coeff;
 	ipf->ctime = now;
 
-	if (ban_debug > 4)
-		g_message("removing BAN for %s (%s), counter = %.3f",
+	if (ban_debug > 2)
+		g_message("lifting BAN for %s (%s), counter = %.3f",
 			host_addr_to_string(ipf->addr), ban_reason(ipf), ipf->counter);
 
 	/**
@@ -375,7 +375,7 @@ ban_record(const host_addr_t addr, const gchar *msg)
 
 	if (ban_debug)
 		g_message("BAN %s record %s: %s",
-			ipf->banned ? "new" : "updating",
+			ipf->banned ? "updating" : "new",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	if (ipf->banned)
