@@ -500,6 +500,7 @@ search_gui_free_r_set(results_set_t *rs)
 	atom_guid_free_null(&rs->guid);
 	atom_str_free_null(&rs->version);
 	atom_str_free_null(&rs->hostname);
+	atom_str_free_null(&rs->query);
 	search_gui_free_proxies(rs);
 
 	g_slist_free(rs->records);
