@@ -114,6 +114,7 @@ RCSID("$Id$")
 #define DOWNLOAD_STALLED		60		/**< Consider stalled after 60 secs */
 #define DOWNLOAD_PING_DELAY		300		/**< Minimum delay for 2 HEAD pings */
 #define DOWNLOAD_MAX_HEADER_EOF	5		/**< Max # of EOF in headers we allow */
+#define DOWNLOAD_DATA_TIMEOUT	5		/**< Max # of data timeouts we allow */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -1169,6 +1170,9 @@ download_timer(time_t now)
 			}
 
 			if (delta_time(now, d->last_update) > (time_delta_t) t) {
+				if (DOWNLOAD_IS_ACTIVE(d))
+					d->data_timeouts++;
+
 				/*
 				 * When the 'timeout' has expired, first check whether the
 				 * download was activly queued. If so, tell parq to retry the
@@ -1187,7 +1191,10 @@ download_timer(time_t now)
 				else {
 					if (d->retries++ < download_max_retries)
 						download_retry(d);
-					else {
+					else if (d->data_timeouts > DOWNLOAD_DATA_TIMEOUT) {
+						download_unavailable(d, GTA_DL_ERROR,
+							_("Too many data timeouts"));
+					} else {
 						/*
 						 * Host is down, probably.  Abort all other downloads
 						 * queued for that host as well.
