@@ -184,9 +184,6 @@ request_tigertree(struct shared_file *sf, gboolean high_priority)
 {
 	const struct tth *tth;
 
-	if (!experimental_tigertree_support)
-		return;
-
 	verify_tth_init();
 
 	g_return_if_fail(sf);

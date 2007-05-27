@@ -2483,9 +2483,6 @@ not_found:
 static void
 upload_request_tth(struct shared_file *sf)
 {
-	if (!experimental_tigertree_support)
-		return;
-
 	if (!shared_file_is_partial(sf) && NULL == shared_file_tth(sf)) {
 		request_tigertree(sf, TRUE);
 	}
@@ -2494,9 +2491,6 @@ upload_request_tth(struct shared_file *sf)
 static gboolean
 upload_request_tth_matches(struct shared_file *sf, const struct tth *tth)
 {
-	if (!experimental_tigertree_support)
-		return TRUE;
-
 	if (NULL == tth || NULL == shared_file_tth(sf)) {
 		return TRUE;
 	} else {
@@ -2603,9 +2597,6 @@ get_thex_file_to_upload_from_urn(gnutella_upload_t *u, const gchar *uri)
 
 	g_assert(u);
 	g_assert(NULL == u->sf);
-
-	if (!experimental_tigertree_support)
-		goto not_found;
 
 	if (!uri)
 		goto malformed;
