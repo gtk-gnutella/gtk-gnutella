@@ -1252,7 +1252,7 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		gm_snprintf(buf, sizeof buf, "| %-55s |\n", line);
 		shell_write(sh, buf);
 		shell_write(sh,
-			"+_________________________________________________________+\n");
+			"+---------------------------------------------------------+\n");
 	}
 
 	return REPLY_READY;
