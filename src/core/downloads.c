@@ -3207,6 +3207,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 					server->speed_avg += (avg >> 1) - (server->speed_avg >> 1);
 			}
 		}
+		d->data_timeouts = 0;		/* Got a full chunk all right */
 		/* FALL THROUGH */
 	case GTA_DL_ABORTED:
 	case GTA_DL_ERROR:
