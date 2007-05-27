@@ -2796,7 +2796,11 @@ download_clear_stopped(gboolean complete,
 			delta_time(current_time, d->last_update) >
 				(time_delta_t) entry_removal_timeout
 		) {
-			download_remove(d);
+			if (d->flags & DL_F_TRANSIENT) {
+				file_info_purge(d->file_info);
+			} else {
+				download_remove(d);
+			}
 		}
 	}
 
