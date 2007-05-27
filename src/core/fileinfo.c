@@ -5759,12 +5759,11 @@ file_info_timer(void)
  * use, e.g. when it is being verified.
  * 		-- JA 25/10/03
  */
-static gboolean
-fi_purge(gnet_fi_t fih)
+gboolean
+file_info_purge(fileinfo_t *fi)
 {
 	GSList *sl;
 	GSList *csl;
-	fileinfo_t *fi = file_info_find_by_handle(fih);
 	gboolean do_remove;
 
 	file_info_check(fi);
@@ -5802,6 +5801,12 @@ fi_purge(gnet_fi_t fih)
 	}
 
 	return TRUE;
+}
+
+static gboolean
+fi_purge(gnet_fi_t fih)
+{
+	return file_info_purge(file_info_find_by_handle(fih));
 }
 
 /**
