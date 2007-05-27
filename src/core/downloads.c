@@ -5533,6 +5533,7 @@ download_resume(struct download *d)
 	if (d->file_info && (FI_F_PAUSED & d->file_info->flags)) {
 		d->file_info->flags &= ~FI_F_PAUSED;
 		file_info_changed(d->file_info);
+		return;
 	}
 
 	if (
