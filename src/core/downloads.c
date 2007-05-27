@@ -2657,14 +2657,12 @@ download_remove_all_with_sha1(const struct sha1 *sha1)
 /**
  * Remove all THEX downloads for a given sha1.
  */
-static gint
+static void
 download_remove_all_thex(const struct sha1 *sha1)
 {
-	GSList *sl;
-	GSList *to_remove = NULL;
-	gint n = 0;
+	GSList *sl, *to_remove = NULL;
 
-	g_return_val_if_fail(sha1 != NULL, 0);
+	g_return_if_fail(sha1 != NULL);
 
 	/*
 	 * First pass: spot THEX downloads aimed at the given sha1.
@@ -2679,7 +2677,6 @@ download_remove_all_thex(const struct sha1 *sha1)
 			const struct sha1 *d_sha1 = thex_download_get_sha1(d->thex);
 
 			if (sha1_eq(sha1, d_sha1)) {
-				n++;
 				to_remove = g_slist_prepend(to_remove, d);
 			}
 		}
@@ -2696,8 +2693,6 @@ download_remove_all_thex(const struct sha1 *sha1)
 	}
 
 	g_slist_free(to_remove);
-
-	return n;
 }
 
 /**
@@ -11225,6 +11220,7 @@ download_thex_success(const struct sha1 *sha1, const struct tth *tth,
 		return;
 	}
 	file_info_got_tigertree(fi, leaves, num_leaves);
+	download_remove_all_thex(sha1);
 }
 	
 /**
@@ -11377,11 +11373,6 @@ download_rx_done(struct download *d)
 
 	if (!d->browse && !d->thex && fi->file_size_known)
 		download_verify_sha1(d);
-
-	if (d->thex) {
-		const struct sha1 *sha1 = thex_download_get_sha1(d->thex);
-		download_remove_all_thex(sha1);
-	}
 }
 
 /**
