@@ -7758,6 +7758,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		if (0 == strcmp(buf, "deflate")) {
 			content_encoding = HTTP_CONTENT_ENCODING_DEFLATE;
 		} else {
+			download_bad_source(d);
 			download_stop(d, GTA_DL_ERROR,
 				"No support for Content-Encoding (%s)", buf);
 			return;
@@ -11370,7 +11371,8 @@ download_rx_done(struct download *d)
 	if (d->thex)
 		thex_download_finished(d->thex);
 
-	download_stop(d, GTA_DL_COMPLETED, no_reason);
+	if (!DOWNLOAD_IS_STOPPED(d))
+		download_stop(d, GTA_DL_COMPLETED, no_reason);
 
 	if (!d->browse && !d->thex && fi->file_size_known)
 		download_verify_sha1(d);
