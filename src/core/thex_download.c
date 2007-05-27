@@ -660,6 +660,8 @@ thex_download_free(struct thex_download **ptr)
 		}
 		G_FREE_NULL(ctx->hashtree_id);
 		G_FREE_NULL(ctx->data);
+		atom_sha1_free_null(&ctx->sha1);
+		atom_tth_free_null(&ctx->tth);
 		wfree(ctx, sizeof *ctx);
 		*ptr = NULL;
 	}
