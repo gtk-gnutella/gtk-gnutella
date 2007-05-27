@@ -10664,6 +10664,7 @@ download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
 	ignore_add_sha1(name, fi->cha1);
 
 	if (has_good_sha1(d)) {
+		download_remove_all_thex(sha1);
 		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, move_file_path, DL_OK_EXT);
