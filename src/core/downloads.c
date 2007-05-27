@@ -8673,43 +8673,33 @@ http_version_nofix:
 	getline_free(s->getline);		/* No longer need this */
 	s->getline = NULL;
 
-	/*
-	 * Done for a browse-host request.
-	 */
-
-	if (d->flags & DL_F_BROWSE) {
-		download_mark_active(d);
-
-		/*
-		 * If we have something in the socket buffer, feed it to the RX stack.
-	 	 */
-
-		if (s->pos > 0) {
-			fi->recv_amount += s->pos;
-			browse_host_dl_write(d->browse, s->buf, s->pos);
-		}
-		return;
-	}
-
-	if (d->flags & DL_F_THEX) {
-		download_mark_active(d);
-
-		/*
-		 * If we have something in the socket buffer, feed it to the RX stack.
-	 	 */
-
-		if (s->pos > 0) {
-			fi->recv_amount += s->pos;
-			thex_download_write(d->thex, s->buf, s->pos);
-		}
-		return;
-	}
-
 	if (d->flags & DL_F_PREFIX_HEAD) {
 		d->flags &= ~DL_F_PREFIX_HEAD;
 		d->status = GTA_DL_CONNECTING;
 		file_info_clear_download(d, TRUE);
 		download_send_request(d);
+		return;
+	}
+
+	/*
+	 * Done for a browse-host request.
+	 */
+
+	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
+		download_mark_active(d);
+
+		/*
+		 * If we have something in the socket buffer, feed it to the RX stack.
+	 	 */
+
+		if (s->pos > 0) {
+			fi->recv_amount += s->pos;
+			if (d->flags & DL_F_BROWSE) {
+				browse_host_dl_write(d->browse, s->buf, s->pos);
+			} else if (d->flags & DL_F_THEX) {
+				thex_download_write(d->thex, s->buf, s->pos);
+			}
+		}
 		return;
 	}
 
