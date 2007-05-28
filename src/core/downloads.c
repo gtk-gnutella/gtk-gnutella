@@ -3140,28 +3140,6 @@ download_stop_v(struct download *d, download_status_t new_status,
 
 		d->file_info->recvcount--;
 		d->file_info->dirty_status = TRUE;
-
-		/*
-		 * Dismantle RX stack for browse host or THEX downloads.
-		 */
-
-		if (d->flags & DL_F_BROWSE) {
-			browse_host_dl_close(d->browse);
-			d->bio = NULL;		/* Was a copy via browse_host_io_source() */
-		}
-
-		if (d->flags & DL_F_THEX) {
-			thex_download_close(d->thex);
-			d->bio = NULL;		/* Was a copy via thex_download_io_source() */
-		}
-
-		/*
-		 * Dismantle RX stack for normal downloads.
-		 */
-		if (d->rx) {
-			rx_disable(d->rx);
-			d->bio = NULL;		/* Was a copy via rx_bio_source() */
-		}
 	}
 
 	g_assert(d->buffers == NULL);
@@ -3234,10 +3212,26 @@ download_stop_v(struct download *d, download_status_t new_status,
 	} else
 		d->remove_msg = NULL;
 
+	/*
+	 * Disable RX stacks to stop reception and clean up I/O structures.
+	 */
+
+	if (d->flags & DL_F_BROWSE) {
+		browse_host_dl_close(d->browse);
+		d->bio = NULL;		/* Was a copy via browse_host_io_source() */
+	}
+
+	if (d->flags & DL_F_THEX) {
+		thex_download_close(d->thex);
+		d->bio = NULL;		/* Was a copy via thex_download_io_source() */
+	}
+
 	if (d->rx) {
 		rx_free(d->rx);
+		d->bio = NULL;		/* Was a copy via rx_bio_source() */
 		d->rx = NULL;
 	}
+
 	if (d->bio) {
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
