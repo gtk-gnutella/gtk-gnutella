@@ -80,8 +80,6 @@ browse_host_dl_create(gpointer owner, gnet_host_t *host, gnet_search_t sh)
 	bc->owner = owner;
 	bc->host = *host;			/* Struct copy */
 	bc->sh = sh;
-	bc->data = g_malloc(BH_DL_DEFAULT_SIZE);
-	bc->data_size = BH_DL_DEFAULT_SIZE;
 
 	return bc;
 }
@@ -135,8 +133,8 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 		 */
 
 		if (bc->size > bc->data_size) {
-			bc->data = g_realloc(bc->data, bc->size);
-			bc->data_size = bc->size;
+			bc->data_size = MAX(BH_DL_DEFAULT_SIZE, bc->size);
+			bc->data = g_realloc(bc->data, bc->data_size);
 		}
 
 		bc->pos = 0;
@@ -399,7 +397,7 @@ void
 browse_host_dl_close(struct browse_ctx *bc)
 {
 	g_assert(bc != NULL);
-	g_assert(bc->rx != NULL);
+	g_return_if_fail(bc->rx != NULL);
 
 	rx_disable(bc->rx);
 }
@@ -414,8 +412,10 @@ browse_host_dl_free(struct browse_ctx **ptr)
 
 	if (bc) {	
 		atom_str_free_null(&bc->vendor);
-		if (bc->rx)
+		if (bc->rx) {
 			rx_free(bc->rx);
+			bc->rx = NULL;
+		}
 		if (!bc->closed)
 			search_dissociate_browse(bc->sh, bc->owner);
 		G_FREE_NULL(bc->data);
