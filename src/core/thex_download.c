@@ -392,6 +392,7 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 
 	if (ctx->callback) {
 		ctx->callback(ctx->sha1, ctx->tth, nodes, n_leaves);
+		ctx->callback = NULL;
 	}
 
 	result = TRUE;
@@ -640,7 +641,7 @@ void
 thex_download_close(struct thex_download *ctx)
 {
 	g_assert(ctx != NULL);
-	g_assert(ctx->rx != NULL);
+	g_return_if_fail(ctx->rx != NULL);
 
 	rx_disable(ctx->rx);
 }
