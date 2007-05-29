@@ -431,6 +431,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 	struct pmsg_info *pmi = arg;
 	dquery_t *dq = pmi->dq;
 
+	dquery_check(dq);
 	g_assert(pmsg_is_extended(mb));
 
 	/*
@@ -2317,15 +2318,19 @@ dq_close(void)
 {
 	g_hash_table_foreach(dqueries, free_query, NULL);
 	g_hash_table_destroy(dqueries);
+	dqueries = NULL;
 
 	g_hash_table_foreach(by_node_id, free_query_list, NULL);
 	g_hash_table_destroy(by_node_id);
+	by_node_id = NULL;
 
 	g_hash_table_foreach(by_muid, free_muid, NULL);
 	g_hash_table_destroy(by_muid);
+	by_muid = NULL;
 
 	g_hash_table_foreach(by_leaf_muid, free_leaf_muid, NULL);
 	g_hash_table_destroy(by_leaf_muid);
+	by_leaf_muid = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
