@@ -457,7 +457,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 * removing enough data from the queue.
 		 */
 
-		for (ttl = GNET_PROPERTY(hard_ttl_limit); ttl > 0; ttl--) {
+		for (ttl = GNET_PROPERTY(hard_ttl_limit); ttl >= 0; ttl--) {
 			gint old_size;
 
 			if (needed <= 0)
