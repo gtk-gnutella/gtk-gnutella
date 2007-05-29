@@ -2469,13 +2469,10 @@ socket_set_accept_filters(struct gnutella_socket *s)
 	g_assert(s->file_desc >= 0);
 
 #if defined(TCP_DEFER_ACCEPT)
-	if (tcp_defer_accept_timeout > 0) {
+	if (GNET_PROPERTY(tcp_defer_accept_timeout) > 0) {
 		gint timeout;
 
-		/* Assured by the property framework which enforces a maximum value */
-		g_assert(tcp_defer_accept_timeout <= INT_MAX);
-		timeout = tcp_defer_accept_timeout;
-
+		timeout = MIN(GNET_PROPERTY(tcp_defer_accept_timeout), (guint) INT_MAX);
 		if (
 			setsockopt(s->file_desc, sol_tcp(), TCP_DEFER_ACCEPT,
 				&timeout, sizeof timeout)
