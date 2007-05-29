@@ -304,6 +304,8 @@ dq_get_horizon(gint degree, gint ttl)
 static guint32
 dq_kept_results(dquery_t *dq)
 {
+	dquery_check(dq);
+
 	/*
 	 * For local queries, see how many results we kept so far.
 	 *
@@ -343,6 +345,7 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
 	gdouble hosts_to_reach_via_node;
 	gint ttl;
 
+	dquery_check(dq);
 	g_assert(connections > 0);
 
 	results = dq_kept_results(dq);
@@ -387,6 +390,8 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl, const node_id_t node_id)
 	struct pmsg_info *pmi;
 	const node_id_t key = node_id_ref(node_id);	
 
+	dquery_check(dq);
+
 	pmi = walloc(sizeof(*pmi));
 	pmi->dq = dq;
 	pmi->qid = dq->qid;
@@ -416,10 +421,12 @@ dq_pmi_free(struct pmsg_info *pmi)
 static gboolean
 dq_alive(dquery_t *dq, guint32 qid)
 {
-	if (!g_hash_table_lookup(dqueries, dq))
-		return FALSE;
+	dquery_check(dq);
 
-	return dq->qid == qid;		/* In case it reused the same address */
+	if (g_hash_table_lookup(dqueries, dq))
+		return dq->qid == qid;		/* In case it reused the same address */
+	else
+		return FALSE;
 }
 
 /**
@@ -517,6 +524,7 @@ dq_pmsg_by_ttl(dquery_t *dq, gint ttl)
 	pdata_t *db;
 	gint len;
 
+	dquery_check(dq);
 	g_assert(ttl > 0 && ttl <= DQ_MAX_TTL);
 
 	mb = dq->by_ttl[ttl - 1];
@@ -570,6 +578,8 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 	const GSList *sl;
 	gint i = 0;
 
+	dquery_check(dq);
+
 	GM_SLIST_FOREACH(node_all_nodes(), sl) {
 		struct gnutella_node *n;
 
@@ -611,7 +621,7 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 static void
 dq_free_next_up(dquery_t *dq)
 {
-	g_assert(dq);
+	dquery_check(dq);
 	g_assert(dq->nv_count >= 0);
 	g_assert(dq->nv_count >= dq->nv_found);
 	g_assert((NULL == dq->nv) ^ (dq->nv_count > 0));
@@ -644,6 +654,8 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 	const GSList *sl;
 	gint i = 0;
 	GHashTable *old = NULL;
+
+	dquery_check(dq);
 
 	/*
 	 * To save time and avoid too many calls to qrp_node_can_route(), we
@@ -752,6 +764,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	gconstpointer head;
 	GSList *nodes;
 
+	dquery_check(dq);
 	head = cast_to_gconstpointer(pmsg_start(dq->mb));
 	nodes = qrt_build_query_target(dq->qhv,
 				gnutella_header_get_hops(head),
@@ -1234,6 +1247,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 	struct pmsg_info *pmi;
 	pmsg_t *mb;
 
+	dquery_check(dq);
 	g_assert(!g_hash_table_lookup(dq->queried, NODE_ID(n)));
 	g_assert(NODE_IS_WRITABLE(n));
 
@@ -1281,6 +1295,7 @@ dq_send_next(dquery_t *dq)
 	gboolean sent = FALSE;
 	guint32 results;
 
+	dquery_check(dq);
 	g_assert(dq->results_ev == NULL);
 
 	/*
@@ -1466,6 +1481,7 @@ dq_send_probe(dquery_t *dq)
 	gint ttl = dq->ttl;
 	gint i;
 
+	dquery_check(dq);
 	g_assert(dq->results_ev == NULL);
 
 	nv = walloc(ncount * sizeof nv[0]);
@@ -1537,6 +1553,7 @@ dq_common_init(dquery_t *dq)
 {
 	gconstpointer head;
 
+	dquery_check(dq);
 	dq->qid = dyn_query_id++;
 	dq->queried = g_hash_table_new(node_id_hash, node_id_eq_func);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
@@ -1851,6 +1868,8 @@ dq_node_removed(const node_id_t node_id)
 	GM_SLIST_FOREACH(value, sl) {
 		dquery_t *dq = sl->data;
 
+		dquery_check(dq);
+
 		if (GNET_PROPERTY(dq_debug))
 			g_message("DQ[%d] terminated by node #%s removal (queried %u UP%s)",
 				dq->qid, node_id_to_string(dq->node_id),
@@ -1890,6 +1909,7 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
 
 	if (dq == NULL)
 		return TRUE;
+	dquery_check(dq);
 
 	/*
 	 * If we got actual results (not an OOB indication) and if we see that
@@ -2016,6 +2036,7 @@ dq_oob_results_got(const gchar *muid, guint count)
 
 	if (dq == NULL)
 		return;
+	dquery_check(dq);
 
 	/*
 	 * Don't assert, as a remote node could lie and advertise n hits,
@@ -2058,6 +2079,7 @@ dq_got_query_status(const gchar *muid, const node_id_t node_id, guint16 kept)
 
 	if (dq == NULL)
 		return;
+	dquery_check(dq);
 
 	if (!node_id_eq(dq->node_id, node_id))
 		return;
@@ -2146,6 +2168,7 @@ dq_cancel_local(gpointer key, gpointer unused_value, gpointer udata)
 	dquery_t *dq = key;
 
 	(void) unused_value;
+	dquery_check(dq);
 	if (node_id_self(dq->node_id) && dq->sh == ctx->handle) {
 		ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
 	}
@@ -2192,6 +2215,7 @@ dq_get_results_wanted(const gchar *muid, guint32 *wanted)
 
 	if (dq == NULL)
 		return FALSE;
+	dquery_check(dq);
 
 	if (dq->flags & DQ_F_USR_CANCELLED)
 		*wanted = 0;
@@ -2247,6 +2271,7 @@ free_query(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
 	dquery_t *dq = key;
 
+	dquery_check(dq);
 	(void) unused_value;
 	(void) unused_udata;
 
@@ -2272,6 +2297,7 @@ free_query_list(gpointer key, gpointer value, gpointer unused_udata)
 	GM_SLIST_FOREACH(list, sl) {
 		dquery_t *dq = sl->data;
 
+		dquery_check(dq);
 		/* Don't remove query from the table we're traversing in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
 		dq_free(dq);
