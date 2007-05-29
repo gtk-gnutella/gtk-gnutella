@@ -298,7 +298,7 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 {
 	gnutella_node_t *n = udata;
 	gnutella_header_t *packet_head = data;
-	guint8 ttl;
+	guint ttl;
 
 	if (GNET_PROPERTY(dbg) > 3) {
 		g_message("flushing query hit (%u entr%s, %u bytes sofar) to %s",

@@ -1376,9 +1376,8 @@ send_cached_pongs(
 static void
 send_demultiplexed_pongs(gnutella_node_t *n)
 {
-	gint h;
-	guint8 ttl;
 	enum ping_flag flags;
+	guint h, ttl;
 
 	/*
 	 * Look whether the "ping" they sent bore the "SCP" extension, meaning
@@ -1410,7 +1409,7 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 	 * vector that is filled, and we'll have to send the pong afterwards.
 	 */
 
-	ttl = gnutella_header_get_hops(&n->header) + 1;
+	ttl = gnutella_header_get_hops(&n->header) + 1U;
 	ttl = MIN(ttl, GNET_PROPERTY(max_ttl));
 
 	for (h = 0; n->pong_missing; h++) {

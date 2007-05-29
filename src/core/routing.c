@@ -1286,10 +1286,12 @@ forward_message(
 			) {
 				gint ttl_max;
 			   
-				ttl_max = GNET_PROPERTY(max_ttl)
-							- gnutella_header_get_hops(&sender->header);
 				/* Trim down */
-				gnutella_header_set_ttl(&sender->header, MAX(ttl_max, 1));
+				ttl_max = GNET_PROPERTY(max_ttl);
+				ttl_max -= gnutella_header_get_hops(&sender->header);
+				ttl_max = MAX(ttl_max, 1);
+
+				gnutella_header_set_ttl(&sender->header, ttl_max);
 
 				if (gnutella_header_get_ttl(&sender->header) == 1) {
 					/* TTL expired, message stops here */
