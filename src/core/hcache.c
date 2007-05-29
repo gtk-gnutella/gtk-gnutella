@@ -536,6 +536,9 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 	g_assert(UNSIGNED(type) < HCACHE_MAX);
 	g_assert(type != HCACHE_NONE);
 
+	if (GNET_PROPERTY(stop_host_get))
+		return FALSE;
+
 	/*
 	 * Don't add anything to the "unstable" cache if they don't want to
 	 * monitor unstable servents or when we're low on pongs (thereby
