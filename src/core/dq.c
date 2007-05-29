@@ -72,7 +72,7 @@ RCSID("$Id$")
 
 #define DQ_MAX_LIFETIME		600000 /**< 10 minutes, in ms */
 #define DQ_PROBE_TIMEOUT  	1500   /**< 1.5 s extra per connection */
-#define DQ_PENDING_TIMEOUT 	1200   /**< 1.2 s extra per pending message */
+#define DQ_PENDING_TIMEOUT 	1200U  /**< 1.2 s extra per pending message */
 #define DQ_QUERY_TIMEOUT	3700   /**< 3.7 s */
 #define DQ_TIMEOUT_ADJUST	100	   /**< 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500   /**< 1.5 s at least between queries */
@@ -453,7 +453,6 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		goto cleanup;
 
 	g_assert(dq->pending > 0);
-
 	dq->pending--;
 
 	if (!pmsg_was_sent(mb)) {
@@ -801,6 +800,7 @@ dq_free(dquery_t *dq)
 	gint i;
 
 	dquery_check(dq);
+	g_return_if_fail(0 == dq->pending);
 	g_assert(g_hash_table_lookup(dqueries, dq));
 
 	if (GNET_PROPERTY(dq_debug) > 19)
@@ -1453,8 +1453,12 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	timeout = dq->result_timeout;
-	if (dq->pending > 1)
-		timeout += (dq->pending - 1) * DQ_PENDING_TIMEOUT;
+	if (dq->pending > 1) {
+		guint t = timeout;
+
+		t += (dq->pending - 1) * DQ_PENDING_TIMEOUT;
+		timeout = t > UNSIGNED(timeout) ? t : INT_MAX;
+	}
 
 	if (GNET_PROPERTY(dq_debug) > 1)
 		g_message("DQ[%d] (%d secs) timeout set to %d ms (pending=%d)",
