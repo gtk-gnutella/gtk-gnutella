@@ -11404,20 +11404,22 @@ download_rx_done(struct download *d)
 	fi = d->file_info;
 	g_assert(fi != NULL);
 
-	if (!d->browse && !d->thex && !fi->file_size_known) {
-		file_info_size_known(d, fi->done);
-		d->size = fi->size;
-		d->range_end = download_filesize(d);	/* New upper boundary */
-		gcu_gui_update_download_size(d);
+	if (!(d->flags & DL_F_TRANSIENT)){
+	   	if (!fi->file_size_known) {
+			file_info_size_known(d, fi->done);
+			d->size = fi->size;
+			d->range_end = download_filesize(d);	/* New upper boundary */
+			gcu_gui_update_download_size(d);
+		}
+	} else {
+		if (d->thex)
+			thex_download_finished(d->thex);
 	}
-
-	if (d->thex)
-		thex_download_finished(d->thex);
 
 	if (!DOWNLOAD_IS_STOPPED(d))
 		download_stop(d, GTA_DL_COMPLETED, no_reason);
 
-	if (!d->browse && !d->thex && fi->file_size_known)
+	if (!(d->flags & DL_F_TRANSIENT) && fi->file_size_known)
 		download_verify_sha1(d);
 }
 
