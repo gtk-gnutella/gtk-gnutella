@@ -3235,9 +3235,9 @@ parq_upload_add_x_queued_header(gchar *buf, size_t size,
 	size_t rw = 0, len;
 
 	/* Reserve space for the trailing \r\n */	
-	if (CONST_STRLEN("\r\n") >= size)
+	if (sizeof "\r\n" >= size)
 		return 0;
-	size -= CONST_STRLEN("\r\n");
+	size -= sizeof "\r\n";
 
 	len = concat_strings(&buf[rw], size,
 			"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
@@ -3283,7 +3283,7 @@ parq_upload_add_x_queued_header(gchar *buf, size_t size,
 			}
 		}
 
-		len = concat_strings(&buf[rw], CONST_STRLEN("\r\n"),
+		len = concat_strings(&buf[rw], sizeof "\r\n",
 				"\r\n",
 				(void *) 0);
 		rw += len;
