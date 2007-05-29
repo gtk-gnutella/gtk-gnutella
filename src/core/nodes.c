@@ -632,10 +632,11 @@ can_become_ultra(time_t now)
 	avg_ip_uptime =
 		get_average_ip_lifetime(now, NET_TYPE_IPV4) >= NODE_MIN_AVG_UPTIME ||
 		get_average_ip_lifetime(now, NET_TYPE_IPV6) >= NODE_MIN_AVG_UPTIME;
-	node_uptime = delta_time(now, start_stamp) > NODE_MIN_UPTIME;
+	node_uptime = delta_time(now, GNET_PROPERTY(start_stamp)) > NODE_MIN_UPTIME;
 
 	/* Connectivity requirements */
-	not_firewalled = !is_firewalled && !is_udp_firewalled;
+	not_firewalled = !GNET_PROPERTY(is_firewalled) &&
+		!GNET_PROPERTY(is_udp_firewalled);
 
 	/*
 	 * Require proper UDP support to be enabled. An efficient UP must be
@@ -645,7 +646,7 @@ can_become_ultra(time_t now)
 	 */
 
 	good_udp_support = 
-		proxy_oob_queries &&
+		GNET_PROPERTY(proxy_oob_queries) &&
 		udp_active() && (
 		 	host_is_valid(listen_addr(), socket_listen_port()) ||
 			host_is_valid(listen_addr6(), socket_listen_port())
@@ -665,23 +666,27 @@ can_become_ultra(time_t now)
 	 * those have one also two fd (for the connection and the file).
 	 */
 
-	enough_fd = (max_leaves + max_connections
-			+ max_downloads + (max_downloads / 4)
-			+ (max_uploads * (1 + NODE_UPLOAD_QUEUE_FD)) + max_uploads
-			+ (max_banned_fd / 10) + NODE_CASUAL_FD) < sys_nofile;
-	enough_mem = (max_leaves * NODE_AVG_LEAF_MEM +
-		(max_leaves + max_connections) * node_sendqueue_size)
-		< 1024 / 2 * sys_physmem;
+	enough_fd = (GNET_PROPERTY(max_leaves) + GNET_PROPERTY(max_connections)
+			+ GNET_PROPERTY(max_downloads) + (GNET_PROPERTY(max_downloads) / 4)
+			+ (GNET_PROPERTY(max_uploads) * (1 + NODE_UPLOAD_QUEUE_FD))
+		   	+ GNET_PROPERTY(max_uploads)
+			+ (GNET_PROPERTY(max_banned_fd) / 10) + NODE_CASUAL_FD)
+					< GNET_PROPERTY(sys_nofile);
+
+	enough_mem = (GNET_PROPERTY(max_leaves) * NODE_AVG_LEAF_MEM +
+		(GNET_PROPERTY(max_leaves) + GNET_PROPERTY(max_connections))
+			* GNET_PROPERTY(node_sendqueue_size))
+		< 1024 / 2 * GNET_PROPERTY(sys_physmem);
 
 	/* Bandwidth requirements */
 	enough_bw = bsched_enough_up_bandwidth();
 
 	/* Connection requirements */
-	enough_conn = up_connections >= NODE_MIN_UP_CONNECTIONS;
+	enough_conn = GNET_PROPERTY(up_connections) >= NODE_MIN_UP_CONNECTIONS;
 
 #define OK(b)	((b) ? ok : no)
 
-	if (node_debug > 3) {
+	if (GNET_PROPERTY(node_debug) > 3) {
 		g_message("Checking Ultrapeer criteria:");
 		g_message("> Sufficient average uptime   : %s", OK(avg_servent_uptime));
 		g_message("> Sufficient IP address uptime: %s", OK(avg_ip_uptime));
@@ -715,7 +720,8 @@ can_become_ultra(time_t now)
 	return avg_servent_uptime && avg_ip_uptime && node_uptime &&
 		not_firewalled && enough_fd && enough_mem && enough_bw &&
 		good_udp_support &&
-		!ancient_version;		/* Old versions don't become ultra nodes */
+		!GNET_PROPERTY(ancient_version);
+		/* Old versions don't become ultrapeers */
 }
 
 /**
@@ -749,8 +755,8 @@ node_slow_timer(time_t now)
 	 * record the first time at which we came here with no leaf connected.
 	 */
 
-	if (current_peermode == NODE_P_ULTRA) {
-		if (node_leaf_count)
+	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+		if (GNET_PROPERTY(node_leaf_count))
 			no_leaves_connected = 0;
 		else if (no_leaves_connected == 0)
 			no_leaves_connected = now;
@@ -768,10 +774,10 @@ node_slow_timer(time_t now)
 	 */
 
 	if (
-		(configured_peermode == NODE_P_AUTO ||
-			configured_peermode == NODE_P_ULTRA) &&
-		current_peermode == NODE_P_LEAF &&
-		delta_time(now, node_last_ultra_leaf_switch) >
+		(GNET_PROPERTY(configured_peermode) == NODE_P_AUTO ||
+			GNET_PROPERTY(configured_peermode) == NODE_P_ULTRA) &&
+		GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
+		delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch)) >
 			(time_delta_t) leaf_to_up_switch &&
 		can_become_ultra(now)
 	) {
@@ -793,9 +799,10 @@ node_slow_timer(time_t now)
 	 */
 
 	if (
-		configured_peermode == NODE_P_AUTO &&
-		current_peermode == NODE_P_ULTRA &&
-		delta_time(now, node_last_ultra_leaf_switch) > NODE_AUTO_SWITCH_MIN &&
+		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
+		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+		delta_time(now, GNET_PROPERTY(node_last_ultra_leaf_switch))
+			> NODE_AUTO_SWITCH_MIN &&
 		!can_become_ultra(now)
 	) {
 		leaf_to_up_switch *= 2;
@@ -817,9 +824,9 @@ node_slow_timer(time_t now)
 	 */
 
 	if (
-		configured_peermode == NODE_P_AUTO &&
-		current_peermode == NODE_P_ULTRA &&
-		is_firewalled
+		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
+		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+		GNET_PROPERTY(is_firewalled)
 	) {
 		g_warning("firewalled node being demoted from Ultrapeer status");
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
@@ -839,7 +846,7 @@ node_slow_timer(time_t now)
 	 */
 
 	if (
-		current_peermode == NODE_P_ULTRA &&
+		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
 		no_leaves_connected != 0 &&
 		delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
 	) {
@@ -875,7 +882,7 @@ node_error_cleanup(void)
 		g_assert(bad_node != NULL);
 		g_assert(bad_node->vendor != NULL);
 
-		if (node_debug > 1)
+		if (GNET_PROPERTY(node_debug) > 1)
 			g_warning("[nodes up] Unbanning client: %s", bad_node->vendor);
 
 		g_hash_table_remove(unstable_servent, bad_node->vendor);
@@ -937,11 +944,11 @@ node_timer(time_t now)
 		 * No timeout during shutdowns, or when `stop_host_get' is set.
 		 */
 
-		if (!(in_shutdown || stop_host_get)) {
+		if (!(in_shutdown || GNET_PROPERTY(stop_host_get))) {
 			if (n->status == GTA_NODE_REMOVING) {
 				if (
 					delta_time(now, n->last_update) >
-						(time_delta_t) entry_removal_timeout
+						(time_delta_t) GNET_PROPERTY(entry_removal_timeout)
 				) {
 					node_real_remove(n);
 					continue;
@@ -949,7 +956,7 @@ node_timer(time_t now)
 			} else if (NODE_IS_CONNECTING(n)) {
 				if (
 					delta_time(now, n->last_update) >
-						(time_delta_t) node_connecting_timeout
+						(time_delta_t) GNET_PROPERTY(node_connecting_timeout)
 				) {
 					node_send_udp_ping(n);
 					node_remove(n, _("Timeout"));
@@ -963,7 +970,7 @@ node_timer(time_t now)
 					node_remove(n, _("Shutdown (%s)"), reason);
 				}
 			} else if (
-				current_peermode == NODE_P_ULTRA &&
+				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
 				NODE_IS_ULTRA(n)
 			) {
 				time_delta_t quiet = delta_time(now, n->last_tx);
@@ -978,7 +985,8 @@ node_timer(time_t now)
 				 */
 
 				if (
-					quiet > (time_delta_t) node_connected_timeout &&
+					quiet >
+						(time_delta_t) GNET_PROPERTY(node_connected_timeout) &&
 					NODE_MQUEUE_COUNT(n)
 				) {
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0,
@@ -987,13 +995,13 @@ node_timer(time_t now)
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
 					delta_time(now, n->tx_flowc_date) >
-						(time_delta_t) node_tx_flowc_timeout
+						(time_delta_t) GNET_PROPERTY(node_tx_flowc_timeout)
 				) {
                     hcache_add(HCACHE_UNSTABLE, n->addr, 0,
                         "flow-controlled too long");
 					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
-						node_tx_flowc_timeout,
-						node_tx_flowc_timeout == 1 ? "" : "s");
+						GNET_PROPERTY(node_tx_flowc_timeout),
+						GNET_PROPERTY(node_tx_flowc_timeout) == 1 ? "" : "s");
 				}
 			}
 		}
@@ -1032,9 +1040,10 @@ node_timer(time_t now)
 			 */
 
 			if (
-				node_connected_timeout > 2*NODE_TSYNC_CHECK &&
+				GNET_PROPERTY(node_connected_timeout) > 2*NODE_TSYNC_CHECK &&
 				MAX(tx_quiet, rx_quiet) >
-					(time_delta_t) node_connected_timeout - NODE_TSYNC_CHECK &&
+					(time_delta_t) GNET_PROPERTY(node_connected_timeout) -
+									NODE_TSYNC_CHECK &&
 				(n->attrs & NODE_A_TIME_SYNC) &&
 				!(n->flags & NODE_F_TSYNC_WAIT)
 			) {
@@ -1114,8 +1123,9 @@ node_timer(time_t now)
 					 * a non-null window to send our queries, that's fine.
 					 */
 
-					max_ratio = current_peermode == NODE_P_LEAF ? 95 :
-						node_rx_flowc_ratio;
+					max_ratio = GNET_PROPERTY(current_peermode) == NODE_P_LEAF
+								? 95
+								: GNET_PROPERTY(node_rx_flowc_ratio);
 
 					if (rxfc->fc_start) {		/* In flow control */
 						rxfc->fc_accumulator += delta_time(now, rxfc->fc_start);
@@ -1156,7 +1166,7 @@ node_timer(time_t now)
 		if (
 			n->qrelayed != NULL &&
 			delta_time(now, n->qrelayed_created) >=
-				(time_delta_t) node_queries_half_life
+				(time_delta_t) GNET_PROPERTY(node_queries_half_life)
 		) {
 			GHashTable *new;
 
@@ -1333,7 +1343,8 @@ connected_nodes(void)
 guint
 node_count(void)
 {
-	return connected_node_count - shutdown_nodes - node_leaf_count;
+	return connected_node_count - shutdown_nodes -
+			GNET_PROPERTY(node_leaf_count);
 }
 
 /**
@@ -1346,13 +1357,16 @@ node_keep_missing(void)
 {
 	gint missing;
 
-	switch ((node_peer_t) current_peermode) {
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
 	case NODE_P_LEAF:
-		missing = max_ultrapeers - node_ultra_count;
+		missing = GNET_PROPERTY(max_ultrapeers)
+					- GNET_PROPERTY(node_ultra_count);
 		return MAX(0, missing);
 	case NODE_P_NORMAL:
 	case NODE_P_ULTRA:
-		missing = up_connections - (node_ultra_count + node_normal_count);
+		missing = GNET_PROPERTY(up_connections)
+					- (GNET_PROPERTY(node_ultra_count)
+							+ GNET_PROPERTY(node_normal_count));
 		return MAX(0, missing);
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
@@ -1375,13 +1389,16 @@ node_missing(void)
 {
 	gint missing;
 
-	switch ((node_peer_t) current_peermode) {
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
 	case NODE_P_LEAF:
-		missing = max_ultrapeers - node_ultra_count;
+		missing = GNET_PROPERTY(max_ultrapeers)
+					- GNET_PROPERTY(node_ultra_count);
 		return MAX(0, missing);
 	case NODE_P_NORMAL:
 	case NODE_P_ULTRA:
-		missing = max_connections - (node_ultra_count + node_normal_count);
+		missing = GNET_PROPERTY(max_connections)
+					- (GNET_PROPERTY(node_ultra_count)
+							+ GNET_PROPERTY(node_normal_count));
 		return MAX(0, missing);
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
@@ -1402,10 +1419,10 @@ node_leaves_missing(void)
 {
 	gint missing;
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 		return 0;
 
-	missing = max_leaves - node_leaf_count;
+	missing = GNET_PROPERTY(max_leaves) - GNET_PROPERTY(node_leaf_count);
 
 	return MAX(0, missing);
 }
@@ -1417,12 +1434,12 @@ node_leaves_missing(void)
 guint
 node_outdegree(void)
 {
-	switch ((node_peer_t) current_peermode) {
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
 	case NODE_P_LEAF:
-		return max_ultrapeers;
+		return GNET_PROPERTY(max_ultrapeers);
 	case NODE_P_NORMAL:
 	case NODE_P_ULTRA:
-		return max_connections;
+		return GNET_PROPERTY(max_connections);
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
@@ -1447,9 +1464,9 @@ get_protocol_version(const gchar *handshake, guint *major, guint *minor)
 	if (0 == parse_major_minor(s, NULL, major, minor))
 		return;
 
-	if (node_debug)
+	if (GNET_PROPERTY(node_debug))
 		g_warning("Unable to parse version number in HELLO, assuming 0.4");
-	if (node_debug > 2) {
+	if (GNET_PROPERTY(node_debug) > 2) {
 		guint len = strlen(handshake);
 		dump_hex(stderr, "First HELLO Line", handshake, MIN(len, 80));
 	}
@@ -1466,19 +1483,16 @@ node_type_count_dec(struct gnutella_node *n)
 {
 	switch (n->peermode) {
 	case NODE_P_LEAF:
-		g_assert(node_leaf_count > 0);
-		gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
-			node_leaf_count - 1);
+		g_assert(GNET_PROPERTY(node_leaf_count) > 0);
+		gnet_prop_decr_guint32(PROP_NODE_LEAF_COUNT);
 		return;
 	case NODE_P_NORMAL:
-		g_assert(node_normal_count > 0);
-		gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
-			node_normal_count - 1);
+		g_assert(GNET_PROPERTY(node_normal_count) > 0);
+		gnet_prop_decr_guint32(PROP_NODE_NORMAL_COUNT);
 		return;
 	case NODE_P_ULTRA:
-		g_assert(node_ultra_count > 0);
-		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
-			node_ultra_count - 1);
+		g_assert(GNET_PROPERTY(node_ultra_count) > 0);
+		gnet_prop_decr_guint32(PROP_NODE_ULTRA_COUNT);
 		return;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
@@ -1594,11 +1608,11 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	} else if (n->status != GTA_NODE_SHUTDOWN)	/* Preserve shutdown error */
 		n->remove_msg = NULL;
 
-	if (node_debug > 3)
+	if (GNET_PROPERTY(node_debug) > 3)
 		g_message("Node %s <%s> removed: %s", node_addr(n), node_vendor(n),
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
-	if (node_debug > 4) {
+	if (GNET_PROPERTY(node_debug) > 4) {
 		g_message("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) "
 			"Dup=%d Bad=%d W=%d",
 			n->proto_major, n->proto_minor, node_addr(n), node_vendor(n),
@@ -1801,14 +1815,14 @@ node_is_bad(struct gnutella_node *n)
 
 	node_check(n);
 
-	if (!node_monitor_unstable_ip)
+	if (!GNET_PROPERTY(node_monitor_unstable_ip))
 		return NODE_BAD_OK;		/* User disabled monitoring of unstable IPs */
 
 	if (host_low_on_pongs)
 		return NODE_BAD_OK;		/* Can't refuse connection */
 
 	if (n->vendor == NULL) {
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_warning("no vendor name in %s node headers from %s",
 				NODE_IS_LEAF(n) ? "leaf" :
 				NODE_IS_ULTRA(n) ? "ultra" : "legacy",
@@ -1820,14 +1834,14 @@ node_is_bad(struct gnutella_node *n)
 	g_assert(is_host_addr(n->addr));
 
     if (hcache_node_is_bad(n->addr)) {
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_warning("[nodes up] Unstable peer %s (%s)",
 				host_addr_to_string(n->addr),
 				n->vendor);
 		return NODE_BAD_IP;
     }
 
-	if (!node_monitor_unstable_servents)
+	if (!GNET_PROPERTY(node_monitor_unstable_servents))
 		return NODE_BAD_OK;	/* No monitoring of unstable servents */
 
 	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
@@ -1836,7 +1850,7 @@ node_is_bad(struct gnutella_node *n)
 		return NODE_BAD_OK;
 
 	if (bad_client->errors > node_error_threshold) {
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_warning("[nodes up] Banned client: %s", n->vendor);
 		return NODE_BAD_VENDOR;
 	}
@@ -1864,7 +1878,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 	 * are actually connecting to the same IP over and over again
 	 */
 
-	if (!node_monitor_unstable_ip)
+	if (!GNET_PROPERTY(node_monitor_unstable_ip))
 		return;
 
 	node_check(n);
@@ -1893,7 +1907,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 		delta_time(now, n->connect_date) >
 			node_error_cleanup_timer / node_error_threshold
 	) {
-		if (node_debug > 1)
+		if (GNET_PROPERTY(node_debug) > 1)
 			g_message("[nodes up] "
 				  "%s not marking as bad. Connected for: %d (min: %d)",
 				host_addr_to_string(n->addr),
@@ -1904,7 +1918,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 
     hcache_add(HCACHE_UNSTABLE, n->addr, 0, "vendor banned");
 
-	if (!node_monitor_unstable_servents)
+	if (!GNET_PROPERTY(node_monitor_unstable_servents))
 		return;	/* The user doesn't want us to monitor unstable servents. */
 
 	if (n->vendor == NULL)
@@ -1926,7 +1940,7 @@ node_mark_bad_vendor(struct gnutella_node *n)
 
 	bad_client->errors++;
 
-	if (node_debug)
+	if (GNET_PROPERTY(node_debug))
 		g_warning("[nodes up] Increased error counter (%d) for client: %s",
 			bad_client->errors,
 			n->vendor);
@@ -1951,12 +1965,16 @@ node_avoid_monopoly(struct gnutella_node *n)
 	guint normal_cnt = 0;
 	GSList *sl;
 
-	g_assert((gint) unique_nodes >= 0 && unique_nodes <= 100);
+	g_assert(UNSIGNED(GNET_PROPERTY(unique_nodes) <= 100));
 
 	if (host_low_on_pongs)
 		return FALSE;
 
-	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || unique_nodes == 100)
+	if (
+		!n->vendor ||
+		(n->flags & NODE_F_CRAWLER) ||
+		GNET_PROPERTY(unique_nodes) == 100
+	)
 		return FALSE;
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -1992,31 +2010,44 @@ node_avoid_monopoly(struct gnutella_node *n)
 	else
 		normal_cnt++;
 
-	switch ((node_peer_t) current_peermode) {
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
 	case NODE_P_ULTRA:
 		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
-			gint max = max_connections - normal_connections;
-			if (max > 1 && up_cnt * 100 > max * unique_nodes)
+			gint max;
+
+			max = GNET_PROPERTY(max_connections)
+					- GNET_PROPERTY(normal_connections);
+			if (max > 1 && up_cnt * 100 > max * GNET_PROPERTY(unique_nodes))
 				return TRUE;	/* Disallow */
 		} else if (n->flags & NODE_F_LEAF) {
-			if (max_leaves > 1 && leaf_cnt * 100 > max_leaves * unique_nodes)
+			if (
+				GNET_PROPERTY(max_leaves) > 1 &&
+				leaf_cnt * 100 > GNET_PROPERTY(max_leaves)
+									* GNET_PROPERTY(unique_nodes)
+			)
 				return TRUE;
 		} else {
 			if (
-				normal_connections > 1 &&
-				normal_cnt * 100 > normal_connections * unique_nodes
+				GNET_PROPERTY(normal_connections) > 1 &&
+				normal_cnt * 100 > GNET_PROPERTY(normal_connections)
+									* GNET_PROPERTY(unique_nodes)
 			)
 				return TRUE;
 		}
 		return FALSE;
 	case NODE_P_LEAF:
-		if (max_ultrapeers > 1 && up_cnt * 100 > max_ultrapeers * unique_nodes)
+		if (
+			GNET_PROPERTY(max_ultrapeers) > 1 &&
+			up_cnt * 100 > GNET_PROPERTY(max_ultrapeers)
+							* GNET_PROPERTY(unique_nodes)
+		)
 			return TRUE;	/* Dissallow */
 		return FALSE;
 	case NODE_P_NORMAL:
 		if (
-			max_connections > 1 &&
-			normal_cnt * 100 > max_connections * unique_nodes
+			GNET_PROPERTY(max_connections) > 1 &&
+			normal_cnt * 100 > GNET_PROPERTY(max_connections)
+								* GNET_PROPERTY(unique_nodes)
 		)
 			return TRUE;
 		return FALSE;
@@ -2047,12 +2078,16 @@ node_reserve_slot(struct gnutella_node *n)
 	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
 
-	g_assert((gint) reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);
+	g_assert(UNSIGNED(GNET_PROPERTY(reserve_gtkg_nodes)) <= 100);
 
 	if (node_is_gtkg(n))
 		return FALSE;
 
-	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || !reserve_gtkg_nodes)
+	if (
+		!n->vendor ||
+		(n->flags & NODE_F_CRAWLER) ||
+		!GNET_PROPERTY(reserve_gtkg_nodes)
+	)
 		return FALSE;
 
 	for (sl = sl_nodes; sl; sl = sl->next) {
@@ -2089,11 +2124,10 @@ node_reserve_slot(struct gnutella_node *n)
 	 * when `x' >= max - g*max/100 + y.
 	 */
 
-	switch ((node_peer_t) current_peermode) {
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
 	case NODE_P_ULTRA:
 		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
-			gint max = max_connections - normal_connections;
-			gint gtkg_min = reserve_gtkg_nodes * max / 100;
+			gint max, gtkg_min;
 
 			/*
 			 * If we would reserve a slot to GTKG but we can get rid of
@@ -2102,17 +2136,21 @@ node_reserve_slot(struct gnutella_node *n)
 			 * the current connection.
 			 */
 
-			if (node_ultra_count >= max + up_cnt - gtkg_min) {
+			max = GNET_PROPERTY(max_connections)
+					- GNET_PROPERTY(normal_connections);
+			gtkg_min = GNET_PROPERTY(reserve_gtkg_nodes) * max / 100;
+
+			if (GNET_PROPERTY(node_ultra_count) >= max + up_cnt - gtkg_min) {
 				gboolean is_gtkg;
 
 				if (node_remove_useless_ultra(&is_gtkg) && is_gtkg)
 					up_cnt--;
 			}
 
-			if (node_ultra_count >= max + up_cnt - gtkg_min)
+			if (GNET_PROPERTY(node_ultra_count) >= max + up_cnt - gtkg_min)
 				return TRUE;
 		} else if (n->flags & NODE_F_LEAF) {
-			gint gtkg_min = reserve_gtkg_nodes * max_leaves / 100;
+			gint gtkg_min;
 
 			/*
 			 * If we would reserve a slot to GTKG but we can get rid of
@@ -2121,31 +2159,55 @@ node_reserve_slot(struct gnutella_node *n)
 			 * the current connection.
 			 */
 
-			if (node_leaf_count >= max_leaves + leaf_cnt - gtkg_min) {
+			gtkg_min = GNET_PROPERTY(reserve_gtkg_nodes)
+							* GNET_PROPERTY(max_leaves) / 100;
+			if (
+				GNET_PROPERTY(node_leaf_count)
+					>= GNET_PROPERTY(max_leaves) + leaf_cnt - gtkg_min
+			) {
 				gboolean is_gtkg;
 				if (node_remove_useless_leaf(&is_gtkg) && is_gtkg)
 					leaf_cnt--;
 			}
 
-			if (node_leaf_count >= max_leaves + leaf_cnt - gtkg_min)
+			if (
+				GNET_PROPERTY(node_leaf_count)
+					>= GNET_PROPERTY(max_leaves) + leaf_cnt - gtkg_min
+			)
 				return TRUE;
+
 		} else {
-			gint gtkg_min = reserve_gtkg_nodes * normal_connections / 100;
-			if (node_normal_count >= normal_connections + normal_cnt - gtkg_min)
+			gint gtkg_min;
+
+			gtkg_min = GNET_PROPERTY(reserve_gtkg_nodes)
+							* GNET_PROPERTY(normal_connections) / 100;
+			if (
+				GNET_PROPERTY(node_normal_count) >=
+					GNET_PROPERTY(normal_connections) + normal_cnt - gtkg_min
+			)
 				return TRUE;
 		}
 		return FALSE;
 	case NODE_P_LEAF:
-		if (max_ultrapeers > 0 ) {
-			gint gtkg_min = reserve_gtkg_nodes * max_ultrapeers / 100;
-			if (node_ultra_count >= max_ultrapeers + up_cnt - gtkg_min)
+		if (GNET_PROPERTY(max_ultrapeers) > 0 ) {
+			gint gtkg_min;
+			gtkg_min = GNET_PROPERTY(reserve_gtkg_nodes)
+						* GNET_PROPERTY(max_ultrapeers) / 100;
+			if (GNET_PROPERTY(node_ultra_count)
+					>= GNET_PROPERTY(max_ultrapeers) + up_cnt - gtkg_min)
 				return TRUE;
 		}
 		return FALSE;
 	case NODE_P_NORMAL:
-		if (max_connections > 0) {
-			gint gtkg_min = reserve_gtkg_nodes * max_connections / 100;
-			if (node_normal_count >= max_connections + normal_cnt - gtkg_min)
+		if (GNET_PROPERTY(max_connections) > 0) {
+			gint gtkg_min;
+
+			gtkg_min = GNET_PROPERTY(reserve_gtkg_nodes)
+						* GNET_PROPERTY(max_connections) / 100;
+			if (
+				GNET_PROPERTY(node_normal_count) >=
+					GNET_PROPERTY(max_connections) + normal_cnt - gtkg_min
+			)
 				return TRUE;
 		}
 		return FALSE;
@@ -2238,7 +2300,7 @@ node_eof_v(struct gnutella_node *n, const gchar *reason, va_list args)
 
 	if (n->flags & NODE_F_BYE_SENT) {
 		g_assert(n->status == GTA_NODE_SHUTDOWN);
-		if (node_debug > 4) {
+		if (GNET_PROPERTY(node_debug) > 4) {
 			va_list dbargs;
 
 			printf("EOF-style error during BYE to %s:\n (BYE) ", node_addr(n));
@@ -2473,14 +2535,14 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	 */
 
 	if (mq_pending(n->outq) == 0) {
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_message("successfully sent BYE %d \"%s\" to %s (%s)",
 				code, n->error_str, node_addr(n), node_vendor(n));
 
 			sock_tx_shutdown(n->socket);
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_message("delayed sending of BYE %d \"%s\" to %s (%s)",
 				code, n->error_str, node_addr(n), node_vendor(n));
 
@@ -2657,7 +2719,7 @@ node_inflate_payload(gnutella_node_t *n)
 	gnet_stats_count_general(GNR_UDP_RX_COMPRESSED, 1);
 
 	if (!zlib_is_valid_header(n->data, n->size)) {
-		if (udp_debug)
+		if (GNET_PROPERTY(udp_debug))
 			g_warning("UDP got %s with non-deflated payload from %s",
 				gmsg_infostr_full_split(&n->header, n->data), node_addr(n));
 		gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
@@ -2670,7 +2732,7 @@ node_inflate_payload(gnutella_node_t *n)
 
 	ret = zlib_inflate_into(n->data, n->size, payload_inflate_buffer, &outlen);
 	if (ret != Z_OK) {
-		if (udp_debug)
+		if (GNET_PROPERTY(udp_debug))
 			g_warning("UDP cannot inflate %s from %s: %s",
 				gmsg_infostr_full_split(&n->header, n->data), node_addr(n),
 				zlib_strerror(ret));
@@ -2687,7 +2749,7 @@ node_inflate_payload(gnutella_node_t *n)
 		gnutella_header_get_ttl(&n->header) & ~GTA_UDP_DEFLATED);
 	gnutella_header_set_size(&n->header, outlen);
 
-	if (udp_debug)
+	if (GNET_PROPERTY(udp_debug))
 		g_message("UDP inflated %d-byte payload from %s into %s",
 			n->size, node_addr(n),
 			gmsg_infostr_full_split(&n->header, n->data));
@@ -2708,8 +2770,8 @@ node_crawler_headers(struct gnutella_node *n)
 	static gchar buf[8192];				/* 8 KB */
 	gnutella_node_t **ultras = NULL;	/* Array of ultra nodes */
 	gnutella_node_t **leaves = NULL;	/* Array of `leaves' */
-	gint ultras_len = 0;				/* Size of `ultras' */
-	gint leaves_len = 0;				/* Size of `leaves' */
+	size_t ultras_len = 0;				/* Size of `ultras' */
+	size_t leaves_len = 0;				/* Size of `leaves' */
 	gint ux = 0;						/* Index in `ultras' */
 	gint lx = 0;						/* Index in `leaves' */
 	gint uw = 0;						/* Amount of ultras written */
@@ -2719,13 +2781,13 @@ node_crawler_headers(struct gnutella_node *n)
 	gint rw;
 	gint count;
 
-	if (node_ultra_count) {
-		ultras_len = node_ultra_count * sizeof(gnutella_node_t *);
+	if (GNET_PROPERTY(node_ultra_count)) {
+		ultras_len = GNET_PROPERTY(node_ultra_count) * sizeof ultras[0];
 		ultras = walloc(ultras_len);
 	}
 
-	if (node_leaf_count) {
-		leaves_len = node_leaf_count * sizeof(gnutella_node_t *);
+	if (GNET_PROPERTY(node_leaf_count)) {
+		leaves_len = GNET_PROPERTY(node_leaf_count) * sizeof leaves[0];
 		leaves = walloc(leaves_len);
 	}
 
@@ -2739,13 +2801,13 @@ node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (NODE_IS_ULTRA(cn)) {
-			g_assert((guint) ux < node_ultra_count);
+			g_assert((guint) ux < GNET_PROPERTY(node_ultra_count));
 			ultras[ux++] = cn;
 			continue;
 		}
 
 		if (NODE_IS_LEAF(cn)) {
-			g_assert((guint) lx < node_leaf_count);
+			g_assert((guint) lx < GNET_PROPERTY(node_leaf_count));
 			leaves[lx++] = cn;
 			continue;
 		}
@@ -2791,7 +2853,7 @@ node_crawler_headers(struct gnutella_node *n)
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
-	if (current_peermode != NODE_P_ULTRA || rw >= maxsize)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA || rw >= maxsize)
 		goto cleanup;
 
 	/*
@@ -2817,7 +2879,7 @@ node_crawler_headers(struct gnutella_node *n)
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
-	if (node_debug) g_message(
+	if (GNET_PROPERTY(node_debug)) g_message(
 		"TCP crawler sending %d/%d ultra%s and %d/%d lea%s to %s",
 			uw, ux, uw == 1 ? "" : "s",
 			lw, lx, lw == 1 ? "f" : "ves",
@@ -2925,12 +2987,12 @@ send_error(
 		"%s"		/* X-Try-Ultrapeers */
 		"\r\n",
 		code, msg_tmp, version, host_addr_to_string(s->addr), xtoken, xlive,
-		current_peermode == NODE_P_NORMAL ? "" :
-		current_peermode == NODE_P_LEAF ?
+		GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ? "" :
+		GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-		(current_peermode == NODE_P_NORMAL && pongs) ?
+		(GNET_PROPERTY(current_peermode) == NODE_P_NORMAL && pongs) ?
 			formatted_connection_pongs("X-Try", HOST_ANY, pongs) : "",
-		(current_peermode != NODE_P_NORMAL && pongs) ?
+		(GNET_PROPERTY(current_peermode) != NODE_P_NORMAL && pongs) ?
 			formatted_connection_pongs("X-Try-Ultrapeers", HOST_ULTRA, pongs)
 			: ""
 	);
@@ -2939,16 +3001,16 @@ send_error(
 
 	sent = bws_write(BSCHED_BWS_GOUT, &s->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg_tmp, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
-		if (node_debug) {
+		if (GNET_PROPERTY(node_debug)) {
 			g_warning("Only sent %d out of %d bytes of error %d (%s) "
 				"to node %s: %s", (int) sent, (int) rw, code, msg_tmp,
 				host_addr_to_string(s->addr), g_strerror(errno));
 		}
-	} else if (node_debug > 2) {
+	} else if (GNET_PROPERTY(node_debug) > 2) {
 		g_message("----Sent error %d to node %s (%d bytes):\n%.*s----",
 			code, host_addr_to_string(s->addr),
 			(int) rw, (int) rw, gnet_response);
@@ -2991,11 +3053,11 @@ static void
 send_proxy_request(gnutella_node_t *n)
 {
 	g_assert(n->attrs & NODE_A_CAN_VENDOR);
-	g_assert(is_firewalled);
+	g_assert(GNET_PROPERTY(is_firewalled));
 	g_assert(!is_host_addr(n->proxy_addr));		/* Not proxying us yet */
 
 	n->flags |= NODE_F_PROXY;
-	vmsg_send_proxy_req(n, servent_guid); /* XXX: servent_guid is a property */
+	vmsg_send_proxy_req(n, GNET_PROPERTY(servent_guid));
 }
 
 /**
@@ -3008,7 +3070,7 @@ node_became_firewalled(void)
 	GSList *sl;
 	guint sent = 0;
 
-	g_assert(is_firewalled);
+	g_assert(GNET_PROPERTY(is_firewalled));
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
@@ -3017,7 +3079,7 @@ node_became_firewalled(void)
 			vmsg_send_tcp_connect_back(n, socket_listen_port());
 			sent++;
 
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				g_message("sent TCP connect back request to %s",
 					host_addr_port_to_string(n->addr, n->port));
 		}
@@ -3040,7 +3102,7 @@ node_became_udp_firewalled(void)
 	GSList *sl;
 	guint sent = 0;
 
-	g_assert(is_udp_firewalled);
+	g_assert(GNET_PROPERTY(is_udp_firewalled));
 
 	if (0 == socket_listen_port())
 		return;
@@ -3052,7 +3114,7 @@ node_became_udp_firewalled(void)
 			continue;
 
 		vmsg_send_udp_connect_back(n, socket_listen_port());
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_message("sent UDP connect back request to %s",
 				host_addr_port_to_string(n->addr, n->port));
 
@@ -3266,7 +3328,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 */
 
 	peermode_changed =
-		n->start_peermode != current_peermode ||
+		n->start_peermode != GNET_PROPERTY(current_peermode) ||
 		n->start_peermode != peermode.new;
 
 	/*
@@ -3279,17 +3341,17 @@ node_is_now_connected(struct gnutella_node *n)
 	n->peermode = NODE_P_NORMAL;
 
 	if (n->flags & NODE_F_ULTRA) {
-		if (current_peermode != NODE_P_NORMAL)
+		if (GNET_PROPERTY(current_peermode) != NODE_P_NORMAL)
 			n->peermode = NODE_P_ULTRA;
 	} else if (n->flags & NODE_F_LEAF) {
-		if (current_peermode == NODE_P_ULTRA)
+		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 			n->peermode = NODE_P_LEAF;
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->peermode = NODE_P_ULTRA;
 
 	/* If peermode did not change, current_peermode = leaf => node is Ultra */
 	g_assert(peermode_changed ||
-		current_peermode != NODE_P_LEAF || NODE_IS_ULTRA(n));
+		GNET_PROPERTY(current_peermode) != NODE_P_LEAF || NODE_IS_ULTRA(n));
 
 	/*
 	 * Update state, and mark node as valid.
@@ -3307,16 +3369,14 @@ node_is_now_connected(struct gnutella_node *n)
 
 	switch (n->peermode) {
 	case NODE_P_LEAF:
-		gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
-			node_leaf_count + 1);
+		gnet_prop_incr_guint32(PROP_NODE_LEAF_COUNT);
 		break;
 	case NODE_P_NORMAL:
-		gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
-			node_normal_count + 1);
+		gnet_prop_incr_guint32(PROP_NODE_NORMAL_COUNT);
 		break;
 	case NODE_P_ULTRA:
 		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
-			node_ultra_count + 1);
+			GNET_PROPERTY(node_ultra_count) + 1);
 		break;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
@@ -3332,7 +3392,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	n->ping_throttle = PING_REG_THROTTLE;
 
-	switch ((node_peer_t) current_peermode) {
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
 	case NODE_P_NORMAL:
 		n->alive_period = ALIVE_PERIOD;
 		break;
@@ -3350,7 +3410,7 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_UNKNOWN:
-		g_error("Invalid peer mode %d", current_peermode);
+		g_error("Invalid peer mode %d", GNET_PROPERTY(current_peermode));
 		break;
 	}
 
@@ -3374,7 +3434,7 @@ node_is_now_connected(struct gnutella_node *n)
 	if (n->attrs & NODE_A_RX_INFLATE) {
 		struct rx_inflate_args args;
 
-		if (node_debug > 4)
+		if (GNET_PROPERTY(node_debug) > 4)
 			g_message("receiving compressed data from node %s", node_addr(n));
 
 		args.cb = &node_rx_inflate_cb;
@@ -3413,7 +3473,7 @@ node_is_now_connected(struct gnutella_node *n)
 		struct tx_deflate_args args;
 		txdrv_t *ctx;
 
-		if (node_debug > 4)
+		if (GNET_PROPERTY(node_debug) > 4)
 			g_message("sending compressed data to node %s", node_addr(n));
 
 		args.cq = callout_queue;
@@ -3435,7 +3495,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	g_assert(tx);
 
-	n->outq = mq_tcp_make(node_sendqueue_size, n, tx);
+	n->outq = mq_tcp_make(GNET_PROPERTY(node_sendqueue_size), n, tx);
 	n->flags |= NODE_F_WRITABLE;
 	n->alive_pings = alive_make(n, n->alive_period == ALIVE_PERIOD ?
 		ALIVE_MAX_PENDING : ALIVE_MAX_PENDING_LEAF);
@@ -3445,7 +3505,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * dynamic querying, so there is no need for a per-node search queue.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 		n->searchq = sq_make(n);
 
 	/*
@@ -3464,8 +3524,9 @@ node_is_now_connected(struct gnutella_node *n)
 
 	if (
 		NODE_IS_ULTRA(n) &&
-			(current_peermode == NODE_P_LEAF ||
-			(current_peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP)))
+			(GNET_PROPERTY(current_peermode) == NODE_P_LEAF ||
+			(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+			 (n->attrs & NODE_A_UP_QRP)))
 	) {
 		struct routing_table *qrt = qrt_get_table();
 
@@ -3490,7 +3551,7 @@ node_is_now_connected(struct gnutella_node *n)
 	sock_send_buf(n->socket, NODE_IS_LEAF(n) ?
 		NODE_SEND_LEAF_BUFSIZE : NODE_SEND_BUFSIZE, TRUE);
 
-	sock_recv_buf(n->socket, node_rx_size * 1024, TRUE);
+	sock_recv_buf(n->socket, GNET_PROPERTY(node_rx_size) * 1024, TRUE);
 
 	/*
 	 * If we have an incoming connection, send an "alive" ping.
@@ -3511,16 +3572,19 @@ node_is_now_connected(struct gnutella_node *n)
 
 	if (n->attrs & NODE_A_CAN_VENDOR) {
 		vmsg_send_messages_supported(n);
-		if (is_firewalled) {
+		if (GNET_PROPERTY(is_firewalled)) {
 			if (0 != socket_listen_port())
 				vmsg_send_tcp_connect_back(n, socket_listen_port());
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
 		}
 		if (udp_active()) {
-			if (!recv_solicited_udp)
+			if (!GNET_PROPERTY(recv_solicited_udp))
 				udp_send_ping(NULL, n->addr, n->port, FALSE);
-			else if (is_udp_firewalled && 0 != socket_listen_port())
+			else if (
+				GNET_PROPERTY(is_udp_firewalled) &&
+				0 != socket_listen_port()
+			)
 				vmsg_send_udp_connect_back(n, socket_listen_port());
 		}
 	}
@@ -3530,11 +3594,11 @@ node_is_now_connected(struct gnutella_node *n)
 	 * our leaves and by our neighbours.
 	 */
 
-	if (current_peermode != NODE_P_LEAF) {
+	if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
 		if (NODE_IS_LEAF(n))
 			n->qseen = g_hash_table_new(g_str_hash, g_str_equal);
 		else {
-			if (node_watch_similar_queries) {
+			if (GNET_PROPERTY(node_watch_similar_queries)) {
 				n->qrelayed = g_hash_table_new(g_str_hash, g_str_equal);
 				n->qrelayed_created = tm_time();
 			}
@@ -3602,7 +3666,7 @@ node_got_bye(struct gnutella_node *n)
 	for (cnt = 0, p = message; cnt < message_len; cnt++, p++) {
 		c = *p;
 		if (c == '\0') {			/* NUL marks the end of the message */
-			if (node_debug && cnt != message_len - 1)
+			if (GNET_PROPERTY(node_debug) && cnt != message_len - 1)
 				g_warning("BYE message %u from %s <%s> has early NUL",
 					code, node_addr(n), node_vendor(n));
 			break;
@@ -3621,7 +3685,7 @@ node_got_bye(struct gnutella_node *n)
 		}
 		if (c && c < ' ' && !warned) {
 			warned = TRUE;
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				g_warning("BYE message %u from %s <%s> contains control chars",
 					code, node_addr(n), node_vendor(n));
 		}
@@ -3629,12 +3693,12 @@ node_got_bye(struct gnutella_node *n)
 
 	if (!is_plain_message) {
 		/* XXX parse header */
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			g_message("----Bye Message from %s:\n%.*s----",
 				node_addr(n), (gint) n->size - 2, message);
 	}
 
-	if (node_debug)
+	if (GNET_PROPERTY(node_debug))
 		g_warning("%s node %s (%s) sent us BYE %d %.*s",
 			node_type(n), node_addr(n), node_vendor(n),
 			code, (int) MIN(120, message_len), message);
@@ -3706,7 +3770,7 @@ node_set_current_peermode(node_peer_t mode)
 	const gchar *msg = NULL;
 
 	if (NODE_P_UNKNOWN == old_mode)
-		old_mode = configured_peermode;
+		old_mode = GNET_PROPERTY(configured_peermode);
 
 	switch (mode) {
 	case NODE_P_NORMAL:
@@ -3734,7 +3798,7 @@ node_set_current_peermode(node_peer_t mode)
 	}
 
 	g_assert(msg != NULL);
-	if (node_debug > 2)
+	if (GNET_PROPERTY(node_debug) > 2)
 		g_message("Switching to \"%s\" peer mode", msg);
 
 	if (old_mode != NODE_P_UNKNOWN) {	/* Not at init time */
@@ -3861,7 +3925,7 @@ feed_host_cache_from_headers(header_t *header,
 			r = feed_host_cache_from_string(val, type, name);
 			n += r;
 
-			if (node_debug > 0) {
+			if (GNET_PROPERTY(node_debug) > 0) {
 				if (r > 0)
 					g_message("peer %s sent %u pong%s in %s header",
 						host_addr_to_string(peer), r, 1 == r ? "" : "s", name);
@@ -3937,14 +4001,14 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
 	 *		--RAM, 13/01/2002
 	 */
 
-	if (force_local_ip)
+	if (GNET_PROPERTY(force_local_ip))
 		return;
 
 	addr = extract_my_addr(head);
 	if (!is_host_addr(addr) || is_my_address(addr))
 		return;
 
-	if (node_debug > 0) {
+	if (GNET_PROPERTY(node_debug) > 0) {
 		const gchar *ua;
 
 		ua = header_get(head, "User-Agent");
@@ -3997,13 +4061,13 @@ analyse_status(struct gnutella_node *n, gint *code)
 	if (code)
 		*code = ack_code;
 
-	if (node_debug)
+	if (GNET_PROPERTY(node_debug))
 		g_message("%s: code=%d, message=\"%s\", proto=%u.%u",
 			incoming ? "ACK" : "REPLY",
 			ack_code, ack_message, major, minor);
 
 	if (ack_code == -1) {
-		if (node_debug) {
+		if (GNET_PROPERTY(node_debug)) {
 			if (incoming || 0 != strcmp(status, "GNUTELLA OK")) {
 				g_warning("weird GNUTELLA %s status line from %s",
 					what, host_addr_to_string(n->addr));
@@ -4020,7 +4084,7 @@ analyse_status(struct gnutella_node *n, gint *code)
 	}
 
 	if (ack_ok && (major != n->proto_major || minor != n->proto_minor)) {
-		if (node_debug) {
+		if (GNET_PROPERTY(node_debug)) {
 			if (incoming)
 				g_warning("node %s handshaked at %d.%d and now acks at %d.%d, "
 					"adjusting", host_addr_to_string(n->addr),
@@ -4102,7 +4166,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	 * Hence we can do >= tests against the limits.
 	 */
 
-	switch ((node_peer_t) current_peermode) {
+	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
 	case NODE_P_ULTRA:
 
 		if (n->flags & NODE_F_FORCE)
@@ -4123,8 +4187,9 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 * 		-- JA, 08/06/2003
 			 */
 			if (
-				prefer_compressed_gnet &&
-				up_connections <= node_leaf_count - compressed_leaf_cnt &&
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				GNET_PROPERTY(up_connections) <=
+					GNET_PROPERTY(node_leaf_count) - compressed_leaf_cnt &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
@@ -4138,18 +4203,25 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 * running out of slots.
 			 */
 
-			if (node_leaf_count >= max_leaves)
+			if (GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves))
 				(void) node_remove_useless_leaf(NULL);
 
-			if (handshaking && node_leaf_count >= max_leaves) {
-				node_send_error(n, 503,
-					"Too many leaf connections (%d max)", max_leaves);
-				node_remove(n, _("Too many leaves (%d max)"), max_leaves);
+			if (
+				handshaking &&
+				GNET_PROPERTY(node_leaf_count) >= GNET_PROPERTY(max_leaves)
+			) {
+				node_send_error(n, 503, "Too many leaf connections (%d max)",
+					GNET_PROPERTY(max_leaves));
+				node_remove(n, _("Too many leaves (%d max)"),
+					GNET_PROPERTY(max_leaves));
 				return FALSE;
 			}
-			if (!handshaking && node_leaf_count > max_leaves) {
-				node_bye(n, 503,
-					"Too many leaf connections (%d max)", max_leaves);
+			if (
+				!handshaking &&
+				GNET_PROPERTY(node_leaf_count) > GNET_PROPERTY(max_leaves)
+			) {
+				node_bye(n, 503, "Too many leaf connections (%d max)",
+					GNET_PROPERTY(max_leaves));
 				return FALSE;
 			}
 		} else if (n->attrs & NODE_A_ULTRA) {
@@ -4160,9 +4232,10 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 * 		-- JA, 08/06/2003
 			 */
 			if (
-				prefer_compressed_gnet &&
-				up_connections <= node_ultra_count -
-					(compressed_node_cnt - compressed_leaf_cnt) &&
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				GNET_PROPERTY(up_connections) <=
+					GNET_PROPERTY(node_ultra_count) -
+						(compressed_node_cnt - compressed_leaf_cnt) &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
@@ -4171,22 +4244,22 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				return FALSE;
 			}
 
-			ultra_max = max_connections > normal_connections
-				? max_connections - normal_connections : 0;
+			ultra_max = GNET_PROPERTY(max_connections) > GNET_PROPERTY(normal_connections)
+				? GNET_PROPERTY(max_connections) - GNET_PROPERTY(normal_connections) : 0;
 
-			if (node_ultra_count >= ultra_max)
+			if (GNET_PROPERTY(node_ultra_count) >= ultra_max)
 				(void) node_remove_useless_ultra(NULL);
 
 			if (
 				handshaking &&
-				node_ultra_count >= ultra_max
+				GNET_PROPERTY(node_ultra_count) >= ultra_max
 			) {
 				node_send_error(n, 503,
 					"Too many ultra connections (%d max)", ultra_max);
 				node_remove(n, _("Too many ultra nodes (%d max)"), ultra_max);
 				return FALSE;
 			}
-			if (!handshaking && node_ultra_count > ultra_max) {
+			if (!handshaking && GNET_PROPERTY(node_ultra_count) > ultra_max) {
 				node_bye(n, 503,
 					"Too many ultra connections (%d max)", ultra_max);
 				return FALSE;
@@ -4198,14 +4271,17 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 		 */
 
 		if (handshaking) {
-			guint connected = node_normal_count + node_ultra_count;
+			guint connected;
+
+			connected = GNET_PROPERTY(node_normal_count)
+							+ GNET_PROPERTY(node_ultra_count);
 
             if (
-				prefer_compressed_gnet &&
+				GNET_PROPERTY(prefer_compressed_gnet) &&
 				!(n->attrs & NODE_A_CAN_INFLATE) &&
 				(
 					((n->flags & NODE_F_INCOMING) &&
-					connected >= up_connections &&
+					connected >= GNET_PROPERTY(up_connections) &&
 					connected > compressed_node_cnt)
 					||
 					(n->flags & NODE_F_LEAF)
@@ -4225,15 +4301,16 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 		if (
 			handshaking &&
 			(n->attrs & NODE_A_NO_ULTRA) &&
-			node_normal_count >= normal_connections
+			GNET_PROPERTY(node_normal_count)
+				>= GNET_PROPERTY(normal_connections)
 		) {
-			if (normal_connections)
-				node_send_error(n, 503,
-					"Too many normal nodes (%d max)", normal_connections);
+			if (GNET_PROPERTY(normal_connections))
+				node_send_error(n, 503, "Too many normal nodes (%d max)",
+					GNET_PROPERTY(normal_connections));
 			else
 				node_send_error(n, 403, "Normal nodes refused");
 			node_remove(n, _("Rejected normal node (%d max)"),
-				normal_connections);
+				GNET_PROPERTY(normal_connections));
 			return FALSE;
 		}
 
@@ -4243,7 +4320,10 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			return TRUE;
 
 		if (handshaking) {
-			guint connected = node_normal_count + node_ultra_count;
+			guint connected;
+
+			connected = GNET_PROPERTY(node_normal_count)
+							+ GNET_PROPERTY(node_ultra_count);
 			if (
 				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA
 			) {
@@ -4251,17 +4331,18 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				node_remove(n, _("Rejected leaf node"));
 				return FALSE;
 			}
-			if (connected >= max_connections) {
-				node_send_error(n, 503,
-					"Too many Gnet connections (%d max)", max_connections);
-				node_remove(n, _("Too many nodes (%d max)"), max_connections);
+			if (connected >= GNET_PROPERTY(max_connections)) {
+				node_send_error(n, 503, "Too many Gnet connections (%d max)",
+					GNET_PROPERTY(max_connections));
+				node_remove(n, _("Too many nodes (%d max)"),
+					GNET_PROPERTY(max_connections));
 				return FALSE;
 			}
 			if (
-				prefer_compressed_gnet &&
+				GNET_PROPERTY(prefer_compressed_gnet) &&
 				(n->flags & NODE_F_INCOMING) &&
 				!(n->attrs & NODE_A_CAN_INFLATE) &&
-				connected >= up_connections &&
+				connected >= GNET_PROPERTY(up_connections) &&
 				connected > compressed_node_cnt
 			) {
 				node_send_error(n, 403,
@@ -4269,9 +4350,12 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
-		} else if (node_normal_count + node_ultra_count > max_connections) {
-			node_bye(n, 503,
-				"Too many Gnet connections (%d max)", max_connections);
+		} else if (
+			GNET_PROPERTY(node_normal_count) + GNET_PROPERTY(node_ultra_count)
+				> GNET_PROPERTY(max_connections)
+		) {
+			node_bye(n, 503, "Too many Gnet connections (%d max)",
+				GNET_PROPERTY(max_connections));
 			return FALSE;
 		}
 		break;
@@ -4296,8 +4380,8 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 */
 
 			if (!(n->attrs & NODE_A_ULTRA)) {
-				node_send_error(n, 204,
-					"Shielded leaf node (%d peers max)", max_ultrapeers);
+				node_send_error(n, 204, "Shielded leaf node (%d peers max)",
+					GNET_PROPERTY(max_ultrapeers));
 				node_remove(n, _("Sent shielded indication"));
 				return FALSE;
 			}
@@ -4308,11 +4392,13 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				return FALSE;
 			}
 
-			if (node_ultra_count >= max_ultrapeers) {
-				node_send_error(n, 503,
-					"Too many ultra connections (%d max)", max_ultrapeers);
+			if (
+				GNET_PROPERTY(node_ultra_count) >= GNET_PROPERTY(max_ultrapeers)
+			) {
+				node_send_error(n, 503, "Too many ultra connections (%d max)",
+					GNET_PROPERTY(max_ultrapeers));
 				node_remove(n, _("Too many ultra nodes (%d max)"),
-					max_ultrapeers);
+					GNET_PROPERTY(max_ultrapeers));
 				return FALSE;
 			}
 
@@ -4322,8 +4408,9 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 * 		-- JA 24/5/2003
 			 */
 			if (
-				prefer_compressed_gnet &&
-				up_connections <= node_ultra_count - compressed_node_cnt &&
+				GNET_PROPERTY(prefer_compressed_gnet) &&
+				GNET_PROPERTY(up_connections)
+					<= GNET_PROPERTY(node_ultra_count) - compressed_node_cnt &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
 				node_send_error(n, 403,
@@ -4331,9 +4418,11 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
-		} else if (node_ultra_count > max_ultrapeers) {
-			node_bye(n, 503,
-				"Too many ultra connections (%d max)", max_ultrapeers);
+		} else if (
+			GNET_PROPERTY(node_ultra_count) > GNET_PROPERTY(max_ultrapeers)
+		) {
+			node_bye(n, 503, "Too many ultra connections (%d max)",
+				GNET_PROPERTY(max_ultrapeers));
 			return FALSE;
 		}
 		break;
@@ -4405,7 +4494,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "Accept");
 	if (field) {
 		if (
-			current_peermode != NODE_P_LEAF &&
+			GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
 			!(n->flags & NODE_F_LEAF) &&
 			strstr(field, "application/x-gnutella2") /* XXX parse the "," */
 		) {
@@ -4434,7 +4523,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	socket_check(s);
 
-	if (node_debug) {
+	if (GNET_PROPERTY(node_debug)) {
 		g_message("got final acknowledgment headers from node %s:",
 			host_addr_to_string(n->addr));
 		dump_hex(stdout, "Status Line", getline_str(s->getline),
@@ -4469,7 +4558,10 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 	}
 
-	if (!gnet_deflate_enabled && (n->attrs & NODE_A_RX_INFLATE)) {
+	if (
+		!GNET_PROPERTY(gnet_deflate_enabled) &&
+		(n->attrs & NODE_A_RX_INFLATE)
+	) {
 		g_warning("Content-Encoding \"deflate\" although disabled - from"
 			   " node %s <%s>", node_addr(n), node_vendor(n));
         node_bye(n, 400, "Compression was not accepted");
@@ -4482,9 +4574,9 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Ultrapeer");
 	if (field && 0 == ascii_strcasecmp(field, "false")) {
 		n->attrs &= ~NODE_A_ULTRA;
-		if (current_peermode == NODE_P_ULTRA) {
+		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
 			n->flags |= NODE_F_LEAF;		/* Remote accepted to become leaf */
-			if (node_debug) g_warning(
+			if (GNET_PROPERTY(node_debug)) g_warning(
 				"node %s <%s> accepted to become our leaf",
 				node_addr(n), node_vendor(n));
 		}
@@ -4508,7 +4600,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major >= n->qrp_major || minor >= n->qrp_minor)
-			if (node_debug) g_warning(
+			if (GNET_PROPERTY(node_debug)) g_warning(
 				"node %s <%s> now claims QRP version %u.%u, "
 				"but advertised %u.%u earlier",
 				node_addr(n), node_vendor(n), major, minor,
@@ -4534,7 +4626,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	 * support the right version for the necessary protocols.
 	 */
 
-	if (current_peermode != NODE_P_NORMAL) {
+	if (GNET_PROPERTY(current_peermode) != NODE_P_NORMAL) {
 		/*
 		 * Only BYE them if they finally declared to use a protocol we
 		 * don't support yet, despite their knowing that we only support
@@ -4576,7 +4668,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		pdata_t *db;
 		pmsg_t *mb;
 
-		if (node_debug > 4)
+		if (GNET_PROPERTY(node_debug) > 4)
 			g_message("read %d Gnet bytes from node %s after handshake",
 				(int) s->pos, node_addr(n));
 
@@ -4655,9 +4747,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	gboolean incoming = (n->flags & NODE_F_INCOMING);
 	const gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 	const gchar *compressing = "Content-Encoding: deflate\r\n";
-	const gchar *empty = "";
 
-	if (node_debug) {
+	if (GNET_PROPERTY(node_debug)) {
 		g_message("got %s handshaking headers from node %s:",
 			incoming ? "incoming" : "outgoing",
 			host_addr_to_string(n->addr));
@@ -4742,7 +4833,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major != 0 && minor != 1)
-			if (node_debug) g_warning(
+			if (GNET_PROPERTY(node_debug)) g_warning(
 				"node %s claims Pong-Caching version %u.%u",
 				node_addr(n), major, minor);
 		n->attrs |= NODE_A_PONG_CACHING;
@@ -4756,7 +4847,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if (0 == ascii_strcasecmp(field, "true"))
 			n->attrs |= NODE_A_ULTRA;
 		else if (0 == ascii_strcasecmp(field, "false")) {
-			if (current_peermode == NODE_P_ULTRA)
+			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 				n->flags |= NODE_F_LEAF;
 		}
 	} else {
@@ -4823,7 +4914,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major != 0 || minor != 1)
-			if (node_debug) g_warning(
+			if (GNET_PROPERTY(node_debug)) g_warning(
 				"node %s <%s> claims Bye-Packet version %u.%u",
 				node_addr(n), node_vendor(n), major, minor);
 		n->attrs |= NODE_A_BYE_PACKET;
@@ -4837,8 +4928,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || (major == 0 && minor > 2))
-			if (node_debug) g_warning("node %s <%s> claims Vendor-Message "
-				"version %u.%u",
+			if (GNET_PROPERTY(node_debug))
+				g_warning("node %s <%s> claims Vendor-Message version %u.%u",
 				node_addr(n), node_vendor(n), major, minor);
 
 		n->attrs |= NODE_A_CAN_VENDOR;
@@ -4884,7 +4975,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 	}
 
-	if (gnet_deflate_enabled) {
+	if (GNET_PROPERTY(gnet_deflate_enabled)) {
 		/*
 	 	 * Accept-Encoding -- decompression support on the remote side
 	 	 */
@@ -4918,8 +5009,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	if (field) {
 
 		n->flags |= NODE_F_CRAWLER;
-        gnet_prop_set_guint32_val(PROP_CRAWLER_VISIT_COUNT,
-            crawler_visit_count + 1);
+        gnet_prop_incr_guint32(PROP_CRAWLER_VISIT_COUNT);
 
 		/*
 		 * Make sure they're not crawling us too often.
@@ -4987,7 +5077,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * (otherwise, node_can_accept_connection() would have triggered)
 	 */
 
-	if (current_peermode == NODE_P_LEAF) {
+	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF) {
 		g_assert((n->flags & NODE_F_CRAWLER) || (n->attrs & NODE_A_ULTRA));
 		if (!(n->flags & NODE_F_CRAWLER))
 			n->flags |= NODE_F_ULTRA;			/* This is our ultranode */
@@ -5003,7 +5093,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 2)
-			if (node_debug) g_warning("node %s <%s> claims QRP version %u.%u",
+			if (GNET_PROPERTY(node_debug))
+				g_warning("node %s <%s> claims QRP version %u.%u",
 				node_addr(n), node_vendor(n), major, minor);
 		n->qrp_major = (guint8) major;
 		n->qrp_minor = (guint8) minor;
@@ -5019,7 +5110,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1)
-			if (node_debug) g_warning(
+			if (GNET_PROPERTY(node_debug)) g_warning(
 				"node %s <%s> claims Ultra QRP version %u.%u",
 				node_addr(n), node_vendor(n), major, minor);
 		n->uqrp_major = (guint8) major;
@@ -5038,7 +5129,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1)
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				g_warning("node %s <%s> claims dynamic querying version %u.%u",
 					node_addr(n), node_vendor(n), major, minor);
 		if (n->attrs & NODE_A_ULTRA)
@@ -5054,12 +5145,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		value = parse_uint32(field, NULL, 10, &error);
 		if (error || value < 1 || value > 255) {
-			value = max_ttl;
-			if (node_debug) g_warning(
+			value = GNET_PROPERTY(max_ttl);
+			if (GNET_PROPERTY(node_debug)) g_warning(
 				"node %s <%s> request bad Max-TTL %s, using %u",
 				node_addr(n), node_vendor(n), field, value);
 		}
-		n->max_ttl = MIN(max_ttl, value);
+		n->max_ttl = MIN(GNET_PROPERTY(max_ttl), value);
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->max_ttl = NODE_LEGACY_TTL;
 
@@ -5072,10 +5163,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		value = parse_uint32(field, NULL, 10, &error);
 		if (value < 1 || value > 200) {
-			if (node_debug) g_warning(
+			if (GNET_PROPERTY(node_debug)) g_warning(
 				"node %s <%s> advertises weird degree %s",
 				node_addr(n), node_vendor(n), field);
-			value = max_connections;	/* Assume something reasonable! */
+			/* Assume something reasonable! */
+			value = GNET_PROPERTY(max_connections);
 		}
 		n->degree = value;
 	} else if (n->attrs & NODE_A_ULTRA)
@@ -5094,9 +5186,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (node_avoid_monopoly(n)) {
-		node_send_error(n, 409,
-			"Vendor would exceed %d%% of our slots", unique_nodes);
-		node_remove(n, _("Vendor would exceed %d%% of our slots"), unique_nodes);
+		node_send_error(n, 409, "Vendor would exceed %d%% of our slots",
+			GNET_PROPERTY(unique_nodes));
+		node_remove(n, _("Vendor would exceed %d%% of our slots"),
+			GNET_PROPERTY(unique_nodes));
 		return;
 	}
 
@@ -5156,11 +5249,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (
-		current_peermode == NODE_P_LEAF &&
+		GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
 		!(n->flags & NODE_F_CRAWLER) &&
 		(n->degree < 2 * NODE_LEGACY_DEGREE || !(n->attrs & NODE_A_DYN_QUERY))
 	) {
-		static const gchar msg[] = N_("High Outdegree and Dynamic Querying Required");
+		static const gchar msg[] =
+			N_("High Outdegree and Dynamic Querying Required");
 
 		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "%s", _(msg));
@@ -5201,11 +5295,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 			if (n->attrs & NODE_A_ULTRA) {
 				if (
-					current_peermode == NODE_P_ULTRA &&
-					configured_peermode != NODE_P_ULTRA &&
-					node_leaf_count == 0 &&
+					GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+					GNET_PROPERTY(configured_peermode) != NODE_P_ULTRA &&
+					GNET_PROPERTY(node_leaf_count) == 0 &&
 					n->up_date != 0 &&
-					delta_time(n->up_date, start_stamp) < 0
+					delta_time(n->up_date, GNET_PROPERTY(start_stamp)) < 0
 				) {
 					g_warning("accepting request from %s <%s> to become a leaf",
 						node_addr(n), node_vendor(n));
@@ -5215,10 +5309,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					mode_changed = TRUE;
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
-				} else if (current_peermode != NODE_P_LEAF) {
+				} else if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
 					static const gchar msg[] = N_("Not becoming a leaf node");
 
-					if (node_debug > 2) g_warning(
+					if (GNET_PROPERTY(node_debug) > 2) g_warning(
 						"denying request from %s <%s> to become a leaf",
 						node_addr(n), node_vendor(n));
 
@@ -5247,7 +5341,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 * Prepare our final acknowledgment.
 		 */
 
-		g_assert(!mode_changed || current_peermode == NODE_P_LEAF);
+		g_assert(!mode_changed ||
+			GNET_PROPERTY(current_peermode) == NODE_P_LEAF);
 
 		rw = gm_snprintf(gnet_response, gnet_response_max,
 			"GNUTELLA/0.6 200 OK\r\n"
@@ -5255,8 +5350,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			"%s"			/* X-Ultrapeer */
 			"%s"			/* X-Query-Routing (tells version we'll use) */
 			"\r\n",
-			gnet_deflate_enabled && (n->attrs & NODE_A_TX_DEFLATE)
-				? compressing : empty,
+			GNET_PROPERTY(gnet_deflate_enabled) &&
+				(n->attrs & NODE_A_TX_DEFLATE) ? compressing : "",
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
 			(n->qrp_major > 0 || n->qrp_minor > 2) ?
 				"X-Query-Routing: 0.2\r\n" : "");
@@ -5267,8 +5362,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 * Welcome the incoming node.
 		 */
 
-		ultra_max = max_connections > normal_connections
-			? max_connections - normal_connections : 0;
+		ultra_max = GNET_PROPERTY(max_connections)
+						> GNET_PROPERTY(normal_connections)
+			? GNET_PROPERTY(max_connections) - GNET_PROPERTY(normal_connections)
+			: 0;
 
 		if (n->flags & NODE_F_CRAWLER)
 			rw = gm_snprintf(gnet_response, gnet_response_max,
@@ -5295,19 +5392,21 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 *		--RAM, 2004-08-05
 			 */
 
-			if (current_peermode == NODE_P_ULTRA)
+			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 				gm_snprintf(degree, sizeof(degree),
 					"X-Degree: %d\r\n"
 					"X-Max-TTL: %d\r\n",
-					(up_connections + max_connections - normal_connections) / 2,
-					max_ttl);
+					(GNET_PROPERTY(up_connections)
+					 + GNET_PROPERTY(max_connections)
+					 - GNET_PROPERTY(normal_connections)) / 2,
+					GNET_PROPERTY(max_ttl));
 			else if (!is_strprefix(node_vendor(n), gtkg_vendor))
 				gm_snprintf(degree, sizeof(degree),
 					"X-Dynamic-Querying: 0.1\r\n"
 					"X-Ultrapeer-Query-Routing: 0.1\r\n"
 					"X-Degree: 32\r\n"
 					"X-Max-TTL: %d\r\n",
-					max_ttl);
+					GNET_PROPERTY(max_ttl));
 			else
 				degree[0] = '\0';
 
@@ -5332,25 +5431,28 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"X-Live-Since: %s\r\n",
 				version_string,
 				host_addr_to_string(n->socket->addr),
-				gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
-				(gnet_deflate_enabled && (n->attrs & NODE_A_TX_DEFLATE))
-					? compressing : empty,
-				current_peermode == NODE_P_NORMAL ? "" :
-				current_peermode == NODE_P_LEAF ?
+				GNET_PROPERTY(gnet_deflate_enabled)
+					? "Accept-Encoding: deflate\r\n" : "",
+				(GNET_PROPERTY(gnet_deflate_enabled)
+				 	&& (n->attrs & NODE_A_TX_DEFLATE)) ? compressing : "",
+				GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ? "" :
+				GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
 					"X-Ultrapeer: False\r\n" :
 					"X-Ultrapeer: True\r\n",
-				current_peermode != NODE_P_ULTRA ? "" :
-				node_ultra_count < ultra_max ? "X-Ultrapeer-Needed: True\r\n" :
-				node_leaf_count < max_leaves ? "X-Ultrapeer-Needed: False\r\n" :
-					"",
-				current_peermode != NODE_P_NORMAL ?
+				GNET_PROPERTY(current_peermode) != NODE_P_ULTRA ? "" :
+				GNET_PROPERTY(node_ultra_count) < ultra_max
+					? "X-Ultrapeer-Needed: True\r\n"
+					: GNET_PROPERTY(node_leaf_count) < GNET_PROPERTY(max_leaves)
+						? "X-Ultrapeer-Needed: False\r\n"
+						: "",
+				GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
 					node_query_routing_header(n) : "",
-				current_peermode == NODE_P_ULTRA ?
+				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 					"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 				degree,
-				current_peermode == NODE_P_ULTRA ?
+				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 					"X-Dynamic-Querying: 0.1\r\n" : "",
-				current_peermode == NODE_P_LEAF ?
+				GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
 	 				"X-Requeries: False\r\n" : "",
 	 			token ? "X-Token: " : "",
 				token ? token : "",
@@ -5374,18 +5476,19 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	sent = bws_write(BSCHED_BWS_GOUT, &n->socket->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		int errcode = errno;
-		if (node_debug) g_warning("Unable to send back %s to node %s: %s",
+		if (GNET_PROPERTY(node_debug))
+			g_warning("Unable to send back %s to node %s: %s",
 			what, host_addr_to_string(n->addr), g_strerror(errcode));
 		node_remove(n, _("Failed (Cannot send %s: %s)"),
 			what, g_strerror(errcode));
 		goto free_gnet_response;
 	} else if ((size_t) sent < rw) {
-		if (node_debug) g_warning(
+		if (GNET_PROPERTY(node_debug)) g_warning(
 			"Could only send %d out of %d bytes of %s to node %s",
 			(int) sent, (int) rw, what, host_addr_to_string(n->addr));
 		node_remove(n, _("Failed (Cannot send %s atomically)"), what);
 		goto free_gnet_response;
-	} else if (node_debug > 2) {
+	} else if (GNET_PROPERTY(node_debug) > 2) {
 		g_message("----Sent OK %s to %s (%d bytes):\n%.*s----",
 			what, host_addr_to_string(n->addr),
 			(int) rw, (int) rw, gnet_response);
@@ -5543,8 +5646,8 @@ node_browse_create(void)
 	n->routing_data = NULL;
 	n->status = GTA_NODE_CONNECTED;
 	n->flags = NODE_F_ESTABLISHED | NODE_F_READABLE | NODE_F_VALID;
-	n->up_date = start_stamp;
-	n->connect_date = start_stamp;
+	n->up_date = GNET_PROPERTY(start_stamp);
+	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 
 	return n;
@@ -5602,7 +5705,7 @@ node_udp_create(enum net_type net)
 	n = node_alloc();
 	n->addr = listen_addr_by_net(net);
     n->id = node_id_new(n);
-	n->port = listen_port;
+	n->port = GNET_PROPERTY(listen_port);
 	n->proto_major = 0;
 	n->proto_minor = 6;
 	n->peermode = NODE_P_UDP;
@@ -5621,8 +5724,8 @@ node_udp_create(enum net_type net)
 	n->status = GTA_NODE_CONNECTED;
 	n->flags = NODE_F_ESTABLISHED |
 		NODE_F_READABLE | NODE_F_WRITABLE | NODE_F_VALID;
-	n->up_date = start_stamp;
-	n->connect_date = start_stamp;
+	n->up_date = GNET_PROPERTY(start_stamp);
+	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 	n->country = gip_country(n->addr);
 
@@ -5672,7 +5775,7 @@ node_udp_enable_by_net(enum net_type net)
 		n->outq = NULL;
 	}
 	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
-	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
+	n->outq = mq_udp_make(GNET_PROPERTY(node_sendqueue_size), n, tx);
 	n->flags |= NODE_F_WRITABLE;
 	
     node_fire_node_added(n);
@@ -5893,7 +5996,7 @@ node_add_by_name(const gchar *host, guint16 port, guint32 flags)
 		!adns_resolve(host, settings_dns_net(), &node_add_by_name_helper, data)
 	) {
 		/*	node_add_by_name_helper() was already invoked! */
-		if (node_debug > 0)
+		if (GNET_PROPERTY(node_debug) > 0)
 			g_warning("node_add_by_name: "
 				"adns_resolve() failed in synchronous mode");
 		return;
@@ -5971,16 +6074,17 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
     if (
-		(current_peermode == NODE_P_LEAF &&
-		 	node_ultra_count >= max_ultrapeers) ||
-		(current_peermode != NODE_P_LEAF &&
-			node_ultra_count + node_normal_count >= max_connections)
+		(GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
+	 	 GNET_PROPERTY(node_ultra_count) >= GNET_PROPERTY(max_ultrapeers)) ||
+		(GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
+		 GNET_PROPERTY(node_ultra_count) + GNET_PROPERTY(node_normal_count)
+		 	>= GNET_PROPERTY(max_connections))
 	) {
         if (!already_connected) {
 			if (forced || whitelist_check(addr)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
 				(void) node_remove_worst(FALSE);
-			} else if (use_netmasks && host_is_nearby(addr)) {
+			} else if (GNET_PROPERTY(use_netmasks) && host_is_nearby(addr)) {
 				 /* We are preferring local hosts, remove a non-local node */
 				(void) node_remove_worst(TRUE);
 			}
@@ -5998,7 +6102,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	n->proto_major = major;
 	n->proto_minor = minor;
 	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
-	n->start_peermode = (node_peer_t) current_peermode;
+	n->start_peermode = (node_peer_t) GNET_PROPERTY(current_peermode);
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = tm_time();
 	n->country = gip_country(addr);
@@ -6142,7 +6246,7 @@ node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 	if (n->extcount == MAX_EXTVEC) {
 		g_warning("%s has %d extensions!",
 			gmsg_infostr(&n->header), n->extcount);
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
 		return FALSE;
 	}
@@ -6153,7 +6257,7 @@ node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 
 	for (i = 0; i < n->extcount; i++) {
 		if (n->extvec[i].ext_type != EXT_GGEP) {
-			if (node_debug) {
+			if (GNET_PROPERTY(node_debug)) {
 				g_warning("%s has non-GGEP extensions!",
 					gmsg_infostr(&n->header));
 				ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
@@ -6162,7 +6266,7 @@ node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 		}
 	}
 
-	if (node_debug > 3) {
+	if (GNET_PROPERTY(node_debug) > 3) {
 		g_message("%s has GGEP extensions:", gmsg_infostr(&n->header));
 		ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
 	}
@@ -6239,7 +6343,7 @@ node_dump_disable(void)
 		dump.fd = -1;
 	}
 	dump.initialized = FALSE;
-	if (dump_received_gnutella_packets) {
+	if (GNET_PROPERTY(dump_received_gnutella_packets)) {
 		gnet_prop_set_boolean_val(PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
 	}
 }
@@ -6291,7 +6395,7 @@ node_dump_packet(const struct gnutella_node *node)
 {
 	struct dump_header dh;	
 
-	if (!dump_received_gnutella_packets) {
+	if (!GNET_PROPERTY(dump_received_gnutella_packets)) {
 		if (dump.initialized) {
 			node_dump_disable();
 		}
@@ -6429,7 +6533,7 @@ node_parse(struct gnutella_node *node)
 		) {
 			n->n_bad++;
 			drop = TRUE;
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		}
@@ -6443,7 +6547,7 @@ node_parse(struct gnutella_node *node)
 			drop = TRUE;
             gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
         }
-		else if (n->size > search_queries_forward_size) {
+		else if (n->size > GNET_PROPERTY(search_queries_forward_size)) {
 			drop = TRUE;
             gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
         }
@@ -6458,7 +6562,7 @@ node_parse(struct gnutella_node *node)
 		 */
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
-        if (n->size > search_answers_forward_size) {
+        if (n->size > GNET_PROPERTY(search_answers_forward_size)) {
             drop = TRUE;
             gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
         }
@@ -6485,7 +6589,7 @@ node_parse(struct gnutella_node *node)
 			) {
 				n->n_bad++;
 				drop = TRUE;
-				if (node_debug)
+				if (GNET_PROPERTY(node_debug))
 					gmsg_log_bad(n, "expected hops=0 and TTL<=1");
 				gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 			} else {
@@ -6502,11 +6606,11 @@ node_parse(struct gnutella_node *node)
 		) {
 			n->n_bad++;
 			drop = TRUE;
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (
-			current_peermode != NODE_P_ULTRA ||
+			GNET_PROPERTY(current_peermode) != NODE_P_ULTRA ||
 			!(
 				n->peermode == NODE_P_LEAF ||
 				(n->peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP))
@@ -6514,7 +6618,7 @@ node_parse(struct gnutella_node *node)
 		) {
 			drop = TRUE;
 			n->n_bad++;
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				gmsg_log_bad(n, "unexpected QRP message");
 			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 		}
@@ -6526,13 +6630,13 @@ node_parse(struct gnutella_node *node)
 		) {
 			n->n_bad++;
 			drop = TRUE;
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
 			gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (!(n->attrs & NODE_A_CAN_HSEP)) {
 			drop = TRUE;
 			n->n_bad++;
-			if (node_debug)
+			if (GNET_PROPERTY(node_debug))
 				gmsg_log_bad(n, "unexpected HSEP message");
 			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 		}
@@ -6542,7 +6646,7 @@ node_parse(struct gnutella_node *node)
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
 		n->n_bad++;
-		if (node_debug)
+		if (GNET_PROPERTY(node_debug))
 			gmsg_log_bad(n, "unknown message type");
         gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
 		break;
@@ -6683,7 +6787,7 @@ route_only:
 			 * even if its TTL expired here.
              */
 
-			if (current_peermode == NODE_P_ULTRA) {
+			if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
 				qhv = query_hashvec;
 				qhvec_reset(qhv);
 			}
@@ -6711,7 +6815,7 @@ route_only:
 			 * Therefore, if we come here and we don't have flags, something
 			 * is wrong.
 			 */
-			if (node_debug && !n->header_flags)
+			if (GNET_PROPERTY(node_debug) && !n->header_flags)
 				message_dump(n);
 			break;
 		}
@@ -6724,7 +6828,7 @@ route_only:
 		goto dropped;
 
 	if (qhv != NULL && NODE_IS_LEAF(n)) {
-		g_assert(current_peermode == NODE_P_ULTRA);
+		g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
 
 		/*
 		 * For leaf nodes, undo decrement of TTL: act as if we were
@@ -6751,7 +6855,7 @@ route_only:
 
 		dq_launch_net(n, qhv);
 
-	} else if (current_peermode != NODE_P_LEAF) {
+	} else if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF) {
 		/*
 		 * Propagate message, if needed
 		 */
@@ -6781,7 +6885,7 @@ route_only:
 			 */
 
 			if (
-				current_peermode == NODE_P_NORMAL ||
+				GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ||
 				gnutella_header_get_ttl(&n->header) > 1
 			)
 				gmsg_sendto_route(n, &dest);
@@ -6921,7 +7025,7 @@ node_udp_process(struct gnutella_socket *s)
 	 */
 
 	if (drop_hostile && hostiles_check(n->addr)) {
-		if (udp_debug)
+		if (GNET_PROPERTY(udp_debug))
 			g_warning("UDP got %s from hostile %s -- dropped",
 				gmsg_infostr_full(s->buf), node_addr(n));
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
@@ -6940,7 +7044,7 @@ node_udp_process(struct gnutella_socket *s)
 
 	g_assert(!(gnutella_header_get_ttl(&n->header) & GTA_UDP_DEFLATED));
 
-	if (oob_proxy_debug > 1) {
+	if (GNET_PROPERTY(oob_proxy_debug) > 1) {
 		if (GTA_MSG_SEARCH_RESULTS == gnutella_header_get_function(&n->header))
 			printf("QUERY OOB results for %s from %s\n",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -6986,12 +7090,13 @@ node_init_outgoing(struct gnutella_node *n)
 		n->hello.size = MAX_LINE_SIZE;
 		n->hello.ptr = walloc(n->hello.size);
 
-		if (current_peermode == NODE_P_ULTRA)
+		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 			gm_snprintf(degree, sizeof(degree),
 				"X-Degree: %d\r\n"
 				"X-Max-TTL: %d\r\n",
-				(up_connections + max_connections - normal_connections) / 2,
-				max_ttl);
+				(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)
+				 	- GNET_PROPERTY(normal_connections)) / 2,
+				GNET_PROPERTY(max_ttl));
 		else
 			gm_snprintf(degree, sizeof(degree),
 				"X-Dynamic-Querying: 0.1\r\n"
@@ -7043,19 +7148,21 @@ node_init_outgoing(struct gnutella_node *n)
 			my_addr, my_addr[0] && my_addr_v6[0] ? ", " : "", my_addr_v6,
 			host_addr_to_string(n->addr),
 			version_string,
-			gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
+			GNET_PROPERTY(gnet_deflate_enabled)
+				? "Accept-Encoding: deflate\r\n" : "",
 			tok_version(),
 			start_rfc822_date,
-			current_peermode == NODE_P_NORMAL ? "" :
-				current_peermode == NODE_P_LEAF ?
+			GNET_PROPERTY(current_peermode) == NODE_P_NORMAL ? "" :
+				GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
 				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : "",
-			current_peermode == NODE_P_ULTRA ?
+			GNET_PROPERTY(current_peermode) != NODE_P_NORMAL
+				? "X-Query-Routing: 0.2\r\n" : "",
+			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 				"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 			degree,
-			current_peermode == NODE_P_ULTRA ?
+			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 				"X-Dynamic-Querying: 0.1\r\n" : "",
-			current_peermode == NODE_P_LEAF ?
+			GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
 				"X-Requeries: False\r\n" : ""
 		);
 
@@ -7117,7 +7224,7 @@ node_init_outgoing(struct gnutella_node *n)
 	n->last_update = tm_time();
 	node_fire_node_info_changed(n);
 
-	if (node_debug > 2) {
+	if (GNET_PROPERTY(node_debug) > 2) {
 		gint len = strlen(n->hello.ptr);
 
 		g_message("----Sent HELLO request to %s (%d bytes):\n%.*s----",
@@ -7219,7 +7326,7 @@ node_tx_enter_flowc(struct gnutella_node *n)
 void
 node_tx_leave_flowc(struct gnutella_node *n)
 {
-	if (node_debug > 4) {
+	if (GNET_PROPERTY(node_debug) > 4) {
 		gint spent = delta_time(tm_time(), n->tx_flowc_date);
 
 		g_message("node %s spent %d second%s in TX FLOWC",
@@ -7264,7 +7371,7 @@ node_disable_read(struct gnutella_node *n)
 static void
 node_bye_sent(struct gnutella_node *n)
 {
-	if (node_debug)
+	if (GNET_PROPERTY(node_debug))
 		g_message("finally sent BYE \"%s\" to %s (%s)",
 			n->error_str, node_addr(n), node_vendor(n));
 
@@ -7373,17 +7480,17 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			break;
 
 		case GTA_MSG_SEARCH:
-			if (n->size > search_queries_kick_size)
+			if (n->size > GNET_PROPERTY(search_queries_kick_size))
 				kick = TRUE;
 			break;
 
 		case GTA_MSG_SEARCH_RESULTS:
-			if (n->size > search_answers_kick_size)
+			if (n->size > GNET_PROPERTY(search_answers_kick_size))
 				kick = TRUE;
 			break;
 
 		default:
-			if (n->size > other_messages_kick_size)
+			if (n->size > GNET_PROPERTY(other_messages_kick_size))
 				kick = TRUE;
 			break;
 		}
@@ -7511,14 +7618,14 @@ node_sent_ttl0(struct gnutella_node *n)
 	 * Ignore if we're a leaf node -- we'll even handle the message.
 	 */
 
-	if (current_peermode == NODE_P_LEAF)
+	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
 		return;
 
 	gnet_stats_count_dropped(n, MSG_DROP_TTL0);
 
 	n->n_bad++;
 
-	if (node_debug)
+	if (GNET_PROPERTY(node_debug))
 		gmsg_log_bad(n, "message received with TTL=0");
 }
 
@@ -7723,7 +7830,7 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 	 * Only operate when we're an ultra node ourselves.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 		return FALSE;
 
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -7855,7 +7962,7 @@ node_remove_worst(gboolean non_local)
 static void
 node_send_qrt(struct gnutella_node *n, struct routing_table *query_table)
 {
-	g_assert(current_peermode != NODE_P_NORMAL);
+	g_assert(GNET_PROPERTY(current_peermode) != NODE_P_NORMAL);
 	g_assert(NODE_IS_ULTRA(n));
 	g_assert(NODE_IS_CONNECTED(n));
 	g_assert(query_table != NULL);
@@ -7898,7 +8005,7 @@ node_send_patch_step(struct gnutella_node *n)
 
 	ok = qrt_update_was_ok(n->qrt_update);
 
-	if (node_debug > 2)
+	if (GNET_PROPERTY(node_debug) > 2)
 		g_message("QRP %spatch sending to %s done (%s)",
 			(n->flags & NODE_F_STALE_QRP) ? "stale " : "",
 			node_addr(n), ok ? "OK" : "FAILED");
@@ -7998,7 +8105,7 @@ node_qrt_changed(struct routing_table *query_table)
 	 * the inter-UP QRP for last-hop queries).
 	 */
 
-	if (current_peermode == NODE_P_NORMAL)
+	if (GNET_PROPERTY(current_peermode) == NODE_P_NORMAL)
 		return;
 
 	/*
@@ -8009,7 +8116,7 @@ node_qrt_changed(struct routing_table *query_table)
 	 * patch was stale.
 	 */
 
-	if (current_peermode == NODE_P_LEAF) {
+	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF) {
 		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 			n = sl->data;
 			if (n->qrt_update != NULL) {
@@ -8032,7 +8139,10 @@ node_qrt_changed(struct routing_table *query_table)
 		if (!NODE_IS_WRITABLE(n) || !NODE_IS_ULTRA(n))
 			continue;
 
-		if (current_peermode == NODE_P_ULTRA && !(n->attrs & NODE_A_UP_QRP))
+		if (
+			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+			!(n->attrs & NODE_A_UP_QRP)
+		)
 			continue;
 
 		/*
@@ -8181,14 +8291,17 @@ node_set_guid(struct gnutella_node *n, const gchar *guid)
 	g_return_val_if_fail(guid, TRUE);
 	g_return_val_if_fail(!n->guid, TRUE);
 
-	if (guid_eq(guid, servent_guid)) {
+	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
 		g_warning("Node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
 		return TRUE;
 	}
 
 	owner = node_by_guid(guid);
 	if (owner) {
-		if (node_debug > 0 || !host_addr_equal(n->addr, owner->addr)) {
+		if (
+			GNET_PROPERTY(node_debug) > 0 ||
+			!host_addr_equal(n->addr, owner->addr)
+		) {
 			g_warning("Node %s (%s) uses same GUID as %s (%s)",
 				node_addr(n), node_vendor(n),
 				node_addr2(owner), node_vendor(n));
@@ -8383,7 +8496,7 @@ node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
 
 	if (info->is_pseudo) {
     	info->addr = node == udp_node ? listen_addr() : listen_addr6();
-    	info->port = listen_port;
+    	info->port = GNET_PROPERTY(listen_port);
 		info->gnet_addr = info->addr;
 		info->gnet_port = info->port;
 	} else if (host_addr_initialized(node->gnet_addr)) {
@@ -8448,7 +8561,7 @@ node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags)
 		else if (node->recv_query_table != NULL)
 			flags->qrt_state = QRT_S_RECEIVED;
 	} else if (node->peermode == NODE_P_ULTRA) {
-		if (current_peermode == NODE_P_ULTRA) {
+		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
 			/* Remote ultranode connected to us, ultranode */
 			if (node->qrt_receive != NULL)
 				flags->qrt_state = node->recv_query_table != NULL ?
@@ -8548,7 +8661,7 @@ node_get_status(const node_id_t node_id, gnet_node_status_t *status)
 
 	status->qrp_efficiency =
 		(gfloat) node->qrp_matches / (gfloat) MAX(1, node->qrp_queries);
-	status->has_qrp = current_peermode == NODE_P_LEAF &&
+	status->has_qrp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
 		node_ultra_received_qrp(node);
 
 	if (node->qrt_info != NULL) {
@@ -8685,7 +8798,7 @@ node_connected_back(struct gnutella_socket *s)
 {
 	static gchar msg[] = "\n\n";
 
-	if (node_debug > 4)
+	if (GNET_PROPERTY(node_debug) > 4)
 		g_message("connected back to %s",
 			host_addr_port_to_string(s->addr, s->port));
 
@@ -8727,8 +8840,8 @@ node_proxying_add(gnutella_node_t *n, const gchar *guid)
 	 * If we're firewalled, we can't accept.
 	 */
 
-	if (is_firewalled) {
-		if (node_debug) g_warning(
+	if (GNET_PROPERTY(is_firewalled)) {
+		if (GNET_PROPERTY(node_debug)) g_warning(
 			"denying push-proxyfication for %s <%s>: firewalled",
 			node_addr(n), node_vendor(n));
 		return FALSE;
@@ -8742,7 +8855,7 @@ node_proxying_add(gnutella_node_t *n, const gchar *guid)
 		!host_is_valid(listen_addr(), socket_listen_port()) &&
 		!host_is_valid(listen_addr6(), socket_listen_port())
 	) {
-		if (node_debug) g_warning(
+		if (GNET_PROPERTY(node_debug)) g_warning(
 			"denying push-proxyfication for %s <%s>: "
 			"current IPs %s/%s are invalid",
 			node_addr(n), node_vendor(n),
@@ -8761,7 +8874,7 @@ node_proxying_add(gnutella_node_t *n, const gchar *guid)
 	 */
 
 	if (NODE_F_PROXIED & n->flags) {
-		if (node_debug) {
+		if (GNET_PROPERTY(node_debug)) {
 			g_warning("spurious push-proxyfication request from %s <%s>",
 				node_addr(n), node_vendor(n));
 		}
@@ -8770,7 +8883,7 @@ node_proxying_add(gnutella_node_t *n, const gchar *guid)
 
 	if (node_guid(n)) {
 		if (!guid_eq(node_guid(n), guid)) {
-			if (node_debug) {
+			if (GNET_PROPERTY(node_debug)) {
 				gchar guid_buf[GUID_HEX_SIZE + 1];
 
 				guid_to_string_buf(guid, guid_buf, sizeof guid_buf);
@@ -8789,7 +8902,7 @@ node_proxying_add(gnutella_node_t *n, const gchar *guid)
 		node_fire_node_flags_changed(n);
 		return TRUE;
 	} else {
-		if (node_debug) {
+		if (GNET_PROPERTY(node_debug)) {
 			g_warning("push-proxyfication failed for %s <%s>: "
 				"conflicting GUID %s",
 				node_addr(n), node_vendor(n), guid_hex_str(guid));
@@ -8812,7 +8925,7 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port)
 
 	n->flags &= ~NODE_F_PROXY;
 
-	if (!is_firewalled) {
+	if (!GNET_PROPERTY(is_firewalled)) {
 		g_warning("ignoring push-proxy ack from %s <%s>: no longer firewalled",
 			node_addr(n), node_vendor(n));
 		return;
@@ -8823,7 +8936,7 @@ node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port)
 	 */
 
 	if (
-		node_debug &&
+		GNET_PROPERTY(node_debug) &&
 		is_host_addr(n->gnet_addr) &&
 		(!host_addr_equal(addr, n->gnet_addr) || port != n->gnet_port)
 	)
@@ -8882,7 +8995,7 @@ node_http_proxies_add(gchar *buf, size_t size,
 	(void) unused_arg;
 	(void) unused_flags;
 
-	if (is_firewalled && sl_proxies != NULL) {
+	if (GNET_PROPERTY(is_firewalled) && sl_proxies != NULL) {
 		header_t *fmt = header_fmt_make("X-Push-Proxy", ", ", 0);
 		GSList *sl;
 		size_t len;
@@ -9146,8 +9259,8 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 {
 	gnutella_node_t **ultras = NULL;	/* Array  of ultra nodes		*/
 	gnutella_node_t **leaves = NULL;	/* Array  of `leaves'			*/
-	gint ultras_len = 0;				/* Size   of `ultras'			*/
-	gint leaves_len = 0;				/* Size   of `leaves'			*/
+	size_t ultras_len = 0;				/* Size   of `ultras'			*/
+	size_t leaves_len = 0;				/* Size   of `leaves'			*/
 	gint ux = 0;						/* Index  in `ultras'			*/
 	gint lx = 0;						/* Index  in `leaves'			*/
 	gint ui;							/* Iterating index in `ultras'	*/
@@ -9167,8 +9280,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	g_assert(ucnt >= 0 && ucnt <= 255);
 	g_assert(lcnt >= 0 && lcnt <= 255);
 
-	gnet_prop_set_guint32_val(PROP_UDP_CRAWLER_VISIT_COUNT,
-		udp_crawler_visit_count + 1);
+	gnet_prop_incr_guint32(PROP_UDP_CRAWLER_VISIT_COUNT);
 
 	/*
 	 * Make sure they're not crawling us too often.
@@ -9186,13 +9298,13 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	 * Build an array of candidate nodes.
 	 */
 
-	if (ucnt && node_ultra_count) {
-		ultras_len = node_ultra_count * sizeof(gnutella_node_t *);
+	if (ucnt && GNET_PROPERTY(node_ultra_count)) {
+		ultras_len = GNET_PROPERTY(node_ultra_count) * sizeof ultras[0];
 		ultras = walloc(ultras_len);
 	}
 
-	if (lcnt && node_leaf_count) {
-		leaves_len = node_leaf_count * sizeof(gnutella_node_t *);
+	if (lcnt && GNET_PROPERTY(node_leaf_count)) {
+		leaves_len = GNET_PROPERTY(node_leaf_count) * sizeof leaves[0];
 		leaves = walloc(leaves_len);
 	}
 
@@ -9209,13 +9321,13 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 			continue;
 
 		if (ucnt && NODE_IS_ULTRA(cn)) {
-			g_assert((guint) ux < node_ultra_count);
+			g_assert((guint) ux < GNET_PROPERTY(node_ultra_count));
 			ultras[ux++] = cn;
 			continue;
 		}
 
 		if (lcnt && NODE_IS_LEAF(cn)) {
-			g_assert((guint) lx < node_leaf_count);
+			g_assert((guint) lx < GNET_PROPERTY(node_leaf_count));
 			leaves[lx++] = cn;
 			continue;
 		}
@@ -9361,7 +9473,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 			gint dlen = zlib_deflater_outlen(zd);
 			gint remains;
 
-			if (node_debug) g_message(
+			if (GNET_PROPERTY(node_debug)) g_message(
 				"crawler compressed %d bytes user-agent string into %d",
 				(gint) (agents->len - 1), dlen);
 
@@ -9383,7 +9495,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 		zlib_deflater_free(zd, TRUE);
 	}
 
-	if (node_debug) g_message(
+	if (GNET_PROPERTY(node_debug)) g_message(
 		"UDP crawler sending data for %u/%u ultras and %u/%u leaves: %d bytes, "
 		"features=0x%x to %s",
 		payload[0], ux, payload[1], lx, pmsg_size(mb), payload[2],

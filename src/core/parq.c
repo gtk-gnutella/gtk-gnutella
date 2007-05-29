@@ -781,7 +781,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 				" send X-Queued",
 				host_addr_port_to_string(download_addr(d), download_port(d)),
 				major, minor);
-			if (parq_debug) {
+			if (GNET_PROPERTY(parq_debug)) {
 				g_warning("[PARQ DL]: header dump:");
 				header_dump(header, stderr);
 			}
@@ -844,7 +844,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 	if (retry < (gint) parq_dl->retry_delay)
 		retry = parq_dl->retry_delay;
 
-	if (parq_debug > 2)
+	if (GNET_PROPERTY(parq_debug) > 2)
 		g_message("Queue version: %d.%d, position %d out of %d,"
 			" retry in %ds within [%d, %d]",
 			major, minor, parq_dl->position, parq_dl->length,
@@ -908,10 +908,14 @@ parq_download_add_header(
 	 * we're claiming is "valid".
 	 */
 
-	if (!is_firewalled && host_is_valid(listen_addr(), socket_listen_port()))
+	if (
+		!GNET_PROPERTY(is_firewalled) &&
+		host_is_valid(listen_addr(), socket_listen_port())
+	) {
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n",
 			  host_addr_port_to_string(listen_addr(), socket_listen_port()));
+	}
 }
 
 /**
@@ -943,7 +947,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 	gnet_stats_count_general(GNR_QUEUE_CALLBACKS, 1);
 
-	if (parq_debug > 2 || download_debug > 2) {
+	if (GNET_PROPERTY(parq_debug) > 2 || GNET_PROPERTY(download_debug) > 2) {
 		g_message("--- Got QUEUE from %s:\n%s\n---",
 			host_addr_to_string(s->addr), queue);
 	}
@@ -984,7 +988,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 */
 
 	if (dl == NULL) {
-        if (parq_debug) {
+        if (GNET_PROPERTY(parq_debug)) {
             g_message("[PARQ DL] could not locate QUEUE id '%s' from %s",
                 id, host_addr_port_to_string(addr, port));
         }
@@ -993,7 +997,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 			dl = download_find_waiting_unparq(addr, port);
 
 			if (dl != NULL) {
-                if (parq_debug) {
+                if (GNET_PROPERTY(parq_debug)) {
                     g_message("[PARQ DL] elected '%s' from %s for QUEUE"
                         " id '%s'",
                         dl->file_name,
@@ -1021,7 +1025,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 			g_warning("[PARQ DL] Watch it! Download already running.");
 			break;
 		case DL_LIST_STOPPED:
-			if (parq_debug) {
+			if (GNET_PROPERTY(parq_debug)) {
 				g_warning(
 					"[PARQ DL] Watch it! Download was stopped (Hashing?)");
 			}
@@ -1122,13 +1126,14 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			struct parq_ul_queued *parq_ul = l->data;
 
 			if (parq_ul->has_slot) {		/* Recompute ETA */
-				eta += parq_ul->file_size / avg_bps * max_uploads;
+				eta += (parq_ul->file_size / avg_bps)
+							* GNET_PROPERTY(max_uploads);
 				break;
 			}
 		}
 	}
 
-	if (eta == 0 && ul_running > max_uploads) {
+	if (eta == 0 && GNET_PROPERTY(ul_running) > GNET_PROPERTY(max_uploads)) {
 		/* We don't have an upload slot available, so a start ETA (for position
 		 * 1) is necessary.
 		 * Use the eta of another queue. First by the queue which uses more than
@@ -1163,11 +1168,11 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			continue;			/* Skip already uploading uploads */
 
 		/* Recalculate ETA */
-		if (parq_optimistic)
-			eta += (parq_ul->file_size / avg_bps * max_uploads) /
+		if (GNET_PROPERTY(parq_optimistic))
+			eta += (parq_ul->file_size / avg_bps * GNET_PROPERTY(max_uploads)) /
 				(parq_ul->sha1 != NULL ? dmesh_count(parq_ul->sha1) + 1 : 1);
 		else
-			eta += parq_ul->file_size / avg_bps * max_uploads;
+			eta += parq_ul->file_size / avg_bps * GNET_PROPERTY(max_uploads);
 
 	}
 }
@@ -1342,7 +1347,7 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	wfree(parq_ul, sizeof *parq_ul);
 	parq_ul = NULL;
 
-	if (parq_debug > 3)
+	if (GNET_PROPERTY(parq_debug) > 3)
 		g_message("PARQ UL: Entry freed from memory");
 }
 
@@ -1362,7 +1367,7 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	GList *l = NULL;
 	guint avg_bps;
 
-	if (parq_optimistic) {
+	if (GNET_PROPERTY(parq_optimistic)) {
 		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
@@ -1379,7 +1384,8 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 
 			g_assert(parq_ul_prev != NULL);
 
-			fast_result = parq_ul_prev->chunk_size / avg_bps * max_uploads;
+			fast_result = (parq_ul_prev->chunk_size / avg_bps)
+							* GNET_PROPERTY(max_uploads);
 
 			result = MIN(result, fast_result);
 		}
@@ -1410,7 +1416,7 @@ parq_upload_new_queue(void)
 
 	ul_parqs = g_list_append(ul_parqs, queue);
 
-	if (parq_debug)
+	if (GNET_PROPERTY(parq_debug))
 		g_message("PARQ UL: Created new queue %d",
 			g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
 
@@ -1446,14 +1452,14 @@ parq_upload_which_queue(gnutella_upload_t *u)
 	 * into the last queue implicitly.
 	 */
 
-	for (slot = 1 ; slot < max_uploads; slot++) {
+	for (slot = 1 ; slot < GNET_PROPERTY(max_uploads); slot++) {
 		if (u->file_size > size)
 			break;
 		size = size / 2;
 	}
 
 	/* if necessary, create missing queues */
-	while (g_list_length(ul_parqs) < max_uploads)
+	while (g_list_length(ul_parqs) < GNET_PROPERTY(max_uploads))
 		parq_upload_new_queue();
 
 	queue = g_list_nth_data(ul_parqs, slot - 1);
@@ -1528,20 +1534,25 @@ parq_upload_create(gnutella_upload_t *u)
 
 		eta = parq_ul_prev->eta;
 
-		if (max_uploads <= 0) {
+		if (GNET_PROPERTY(max_uploads) <= 0) {
 			eta = (guint) -1;
 		} else if (parq_ul_prev->is_alive) {
 			guint avg_bps;
+			guint d;
 
 			avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 			avg_bps = MAX(1, avg_bps);
 
-			if (parq_optimistic)
-				eta += (parq_ul_prev->file_size / avg_bps * max_uploads) / 
-					(parq_ul_prev->sha1 != NULL ? 
-					 	dmesh_count(parq_ul_prev->sha1) + 1 : 1);
-			else
-				eta += parq_ul_prev->file_size / avg_bps * max_uploads;
+			d = parq_ul_prev->file_size / avg_bps * GNET_PROPERTY(max_uploads);
+			if (GNET_PROPERTY(parq_optimistic)) {
+				guint n;
+
+				n = parq_ul_prev->sha1 ? dmesh_count(parq_ul_prev->sha1) : 0;
+				if (n > 1) {
+					d /= n;
+				}
+			}
+			eta += d;
 		}
 	}
 
@@ -1598,7 +1609,7 @@ parq_upload_create(gnutella_upload_t *u)
 	parq_ul_queue->by_rel_pos =
 		g_list_append(parq_ul_queue->by_rel_pos, parq_ul);
 
-	if (parq_debug > 3) {
+	if (GNET_PROPERTY(parq_debug) > 3) {
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): New: %s \"%s\"; ID=\"%s\"",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -1662,7 +1673,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	g_assert(queue->active_uploads == 0);
 	g_assert(queue->active == FALSE);
 
-	if (parq_debug)
+	if (GNET_PROPERTY(parq_debug))
 		g_message("PARQ UL: Removing inactive queue %d",
 				g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
 
@@ -1695,7 +1706,7 @@ parq_upload_find_id(header_t *header)
 			 * it in most cases unless it contains character that clash
 			 * with parsing (NULL, control chars, etc.).
 			 */
-			if (parq_debug) {
+			if (GNET_PROPERTY(parq_debug)) {
 				g_message("parq_upload_find_id(): hex_to_guid() failed, "
 					"retrying with bug workaround");
 			}
@@ -1703,7 +1714,7 @@ parq_upload_find_id(header_t *header)
 			return g_hash_table_lookup(ul_all_parq_by_id, id);
 		}
 		g_warning("[PARQ UL] missing ID in PARQ request");
-		if (parq_debug) {
+		if (GNET_PROPERTY(parq_debug)) {
 			g_warning("[PARQ UL] header dump:");
 			header_dump(header, stderr);
 		}
@@ -1727,7 +1738,7 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 	if (parq_ul->sha1) {
 		sf = shared_file_by_sha1(parq_ul->sha1);
 		if (NULL == sf) {
-			if (parq_debug)
+			if (GNET_PROPERTY(parq_debug))
 				g_message("[PARQ UL] We no longer share this file: "
 					"SHA1=%s \"%s\"",
 					sha1_base32(parq_ul->sha1), parq_ul->name);
@@ -1751,7 +1762,7 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 					sha1_base32(parq_ul->sha1), parq_ul->name);
 				return TRUE;
 			} else {
-				if (parq_debug)
+				if (GNET_PROPERTY(parq_debug))
 					g_message("[PARQ UL] We no longer share this file \"%s\"",
 						parq_ul->name);
 				return FALSE;
@@ -1773,7 +1784,7 @@ parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 
 	/* No known connect back port / ip */
 	if (parq_ul->port == 0 || !is_host_addr(parq_ul->addr)) {
-		if (parq_debug > 2) {
+		if (GNET_PROPERTY(parq_debug) > 2) {
 			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 				"No port to send QUEUE: %s '%s'",
 				  g_list_position(ul_parqs,
@@ -1838,7 +1849,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 		time_advance(now, QUEUE_PERIOD * (1 + (parq_ul->queue_sent - 1) / 2.0));
 	parq_ul->by_addr->last_queue_sent = now;
 
-	if (parq_debug)
+	if (GNET_PROPERTY(parq_debug))
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 			"Sending QUEUE #%d to %s: '%s'",
 			  g_list_position(ul_parqs,
@@ -1986,7 +1997,7 @@ parq_upload_timer(time_t now)
 		 * NB: if max_uploads == 0, they disabled sharing: don't send QUEUE.
 		 */
 
-		if ((now % 60) == 0 && max_uploads > 0) {
+		if ((now % 60) == 0 && GNET_PROPERTY(max_uploads) > 0) {
 			for (dl = queue->by_date_dead; dl != NULL; dl = g_list_next(dl)) {
 				struct parq_ul_queued *parq_ul = dl->data;
 
@@ -2019,7 +2030,7 @@ parq_upload_timer(time_t now)
 				delta_time(parq_ul->send_next_queue, now) < 0 &&
 				parq_ul->queue_sent < MAX_QUEUE &&
 				parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
-				max_uploads > 0 &&
+				GNET_PROPERTY(max_uploads) > 0 &&
 				!ban_is_banned(parq_ul->remote_addr) &&
 				parq_still_sharing(parq_ul)
 			)
@@ -2031,7 +2042,7 @@ parq_upload_timer(time_t now)
 				!parq_ul->has_slot &&
 				!(parq_ul->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
 			) {
-				if (parq_debug > 3)
+				if (GNET_PROPERTY(parq_debug) > 3)
 					g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 						"Timeout: %s '%s'",
 						g_list_position(ul_parqs,
@@ -2056,10 +2067,7 @@ parq_upload_timer(time_t now)
 		/*
 		 * Mark queue as inactive when there are less uploads slots available.
 		 */
-		if (queue_selected > max_uploads)
-			queue->active = FALSE;
-		else
-			queue->active = TRUE;
+		queue->active = queue_selected <= GNET_PROPERTY(max_uploads);
 	}
 
 
@@ -2090,7 +2098,7 @@ parq_upload_timer(time_t now)
 	if (print_q_size++ >= 60) {
 		print_q_size = 0;
 
-		if (parq_debug) {
+		if (GNET_PROPERTY(parq_debug)) {
 
 			for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 				struct parq_ul_queue *queue = queues->data;
@@ -2132,7 +2140,11 @@ parq_upload_timer(time_t now)
 
 	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
 
-	if (!rebuilding && ul_parq_queue != NULL && max_uploads > 0) {
+	if (
+		!rebuilding &&
+		ul_parq_queue != NULL &&
+		GNET_PROPERTY(max_uploads) > 0
+	) {
 		GList *queue_cmd_remove = NULL;
 		GList *queue_cmd_list = NULL;
 
@@ -2142,7 +2154,7 @@ parq_upload_timer(time_t now)
 			gboolean has_timeout;
 
 			has_timeout = delta_time(now, parq_ul->by_addr->last_queue_sent)
-								>= (gint) upload_connecting_timeout
+					>= (time_delta_t) GNET_PROPERTY(upload_connecting_timeout)
 					&& delta_time(parq_ul->by_addr->last_queue_sent,
 							parq_ul->by_addr->last_queue_connected) > 0;
 
@@ -2156,7 +2168,7 @@ parq_upload_timer(time_t now)
 				delta_time(parq_ul->send_next_queue, now) < 0
 			) {
 
-				if (parq_debug > 3) {
+				if (GNET_PROPERTY(parq_debug) > 3) {
 					g_message("PARQ UL: Removing QUEUE command due to other "
 						"failed QUEUE command for ip: %s",
 						host_addr_to_string(parq_ul->by_addr->addr));
@@ -2172,7 +2184,7 @@ parq_upload_timer(time_t now)
 			 * QUEUE.
 			 */
 			if (has_timeout) {
-				if (parq_debug > 3) {
+				if (GNET_PROPERTY(parq_debug) > 3) {
 					g_message("PARQ UL: Not sending QUEUE command due to "
 						"another pending QUEUE command for ip: %s",
 						host_addr_to_string(parq_ul->by_addr->addr));
@@ -2184,7 +2196,7 @@ parq_upload_timer(time_t now)
 			queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
 			parq_ul->flags &= ~PARQ_UL_QUEUE;
 		} while (
-			ul_registered < MAX_UPLOADS &&
+			GNET_PROPERTY(ul_registered) < MAX_UPLOADS &&
 			(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL &&
 			bws_can_connect(SOCK_TYPE_UPLOAD)
 		);
@@ -2220,7 +2232,7 @@ parq_upload_queue_full(gnutella_upload_t *u)
 
 	g_assert(q_ul->by_date_dead != NULL);
 
-	if (parq_debug > 2)
+	if (GNET_PROPERTY(parq_debug) > 2)
 		g_message("PARQ UL: Removing a 'dead' upload");
 
 	parq_ul = g_list_first(q_ul->by_date_dead)->data;
@@ -2259,7 +2271,7 @@ parq_upload_addr_can_proceed(const gnutella_upload_t *u)
 
 	g_assert(uq != NULL);
 
-	return ((guint32) uq->by_addr->uploading >= max_uploads_ip) ? FALSE : TRUE;
+	return (guint32) uq->by_addr->uploading < GNET_PROPERTY(max_uploads_ip);
 }
 
 /**
@@ -2283,10 +2295,10 @@ parq_upload_quick_continue(struct parq_ul_queued *uq)
 
 	total = uq->uploaded_size + uq->chunk_size;
 
-	if (total < parq_size_always_continue)
+	if (total < GNET_PROPERTY(parq_size_always_continue))
 		return TRUE;
 
-	if (parq_time_always_continue > 0) {
+	if (GNET_PROPERTY(parq_time_always_continue) > 0) {
 		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
@@ -2295,7 +2307,10 @@ parq_upload_quick_continue(struct parq_ul_queued *uq)
 		 * number of used_slots to also include this upload in the
 		 * calculation.
 		 */
-		if ((total * (ul_running + 1)) / avg_bps <= parq_time_always_continue)
+		if (
+			(total * (GNET_PROPERTY(ul_running) + 1)) / avg_bps
+				<= GNET_PROPERTY(parq_time_always_continue)
+		)
 			return TRUE;
 	}
 
@@ -2309,7 +2324,7 @@ static gboolean
 parq_upload_continue(struct parq_ul_queued *uq)
 {
 	GList *l = NULL;
-	gint slots_free = max_uploads;	/* Free slot calculater */
+	gint slots_free = GNET_PROPERTY(max_uploads);	/* Free slot calculater */
 	gboolean quick_allowed = FALSE;
 	gint allowed_max_uploads;
 
@@ -2321,7 +2336,7 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	 */
 	allowed_max_uploads = -1;
 
-	if (ul_running >= max_uploads) {
+	if (GNET_PROPERTY(ul_running) >= GNET_PROPERTY(max_uploads)) {
 		/*
 		 * If there are no free upload slots the queued upload isn't allowed an
 		 * upload slot anyway. So we might just as well abort here.
@@ -2329,19 +2344,19 @@ parq_upload_continue(struct parq_ul_queued *uq)
 		goto check_quick;
 	}
 
-	if (parq_debug >= 5) {
+	if (GNET_PROPERTY(parq_debug) >= 5) {
 		g_message("[PARQ UL] parq_upload_continue, free_slots=%d",
-			max_uploads - ul_running);
+			GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running));
 	}
 
 	/*
 	 * Don't allow more than max_uploads_ip per single host (IP)
 	 */
-	if ((guint32) uq->by_addr->uploading >= max_uploads_ip) {
-		if (parq_debug >= 5)
+	if ((guint32) uq->by_addr->uploading >= GNET_PROPERTY(max_uploads_ip)) {
+		if (GNET_PROPERTY(parq_debug) >= 5)
 			g_message("[PARQ UL] parq_upload_continue, "
 				"max_uploads_ip per single host reached %d/%d",
-				uq->by_addr->uploading, max_uploads_ip);
+				uq->by_addr->uploading, GNET_PROPERTY(max_uploads_ip));
 		goto check_quick;
 	}
 
@@ -2357,7 +2372,7 @@ parq_upload_continue(struct parq_ul_queued *uq)
 		struct parq_ul_queue *queue = l->data;
 		if (!queue->active && queue->alive > 0) {
 			if (uq->queue->active) {
-				if (parq_debug)
+				if (GNET_PROPERTY(parq_debug))
 					g_message("[PARQ UL] Upload in inactive queue first");
 				goto check_quick;
 			}
@@ -2400,11 +2415,11 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	if (slots_free < 0)
 		slots_free = 0;
 
-	if (parq_optimistic)
+	if (GNET_PROPERTY(parq_optimistic))
 		slots_free = 0;
 
 	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
-		if (parq_debug >= 5)
+		if (GNET_PROPERTY(parq_debug) >= 5)
 			g_message("[PARQ UL] parq_upload_continue max_uploads reached "
 				"(%d-%d)/%d",
 				uq->queue->active_uploads, slots_free,
@@ -2429,7 +2444,7 @@ parq_upload_continue(struct parq_ul_queued *uq)
 			) {
 			/* Another upload in the current queue is allowed first */
 			if (slots_free < 0) {
-				if (parq_debug >= 4)
+				if (GNET_PROPERTY(parq_debug) >= 4)
 					g_message("[PARQ UL] Another upload in other queue first");
 				goto check_quick;
 			}
@@ -2446,7 +2461,7 @@ parq_upload_continue(struct parq_ul_queued *uq)
 			 * we check if the requesting host has another queued item which
 			 * is allowed to continue. We will just use that position here then.
 			 */
-			if (parq_debug)
+			if (GNET_PROPERTY(parq_debug))
 				g_message("[PARQ UL] Allowing upload");
 			return TRUE;
 		}
@@ -2467,15 +2482,15 @@ check_quick:
 	 * add to the clogging of the output link.
 	 */
 
-	if (uploads_stalling && quick_allowed) {
-		if (parq_debug)
+	if (GNET_PROPERTY(uploads_stalling) && quick_allowed) {
+		if (GNET_PROPERTY(parq_debug))
 			g_message("[PARQ UL] No quick upload of %ld bytes (stalling)",
 				(gulong) uq->chunk_size);
 		quick_allowed = FALSE;
 	}
 
 	if (quick_allowed) {
-		if (parq_debug)
+		if (GNET_PROPERTY(parq_debug))
 			g_message("[PARQ UL] Allowed quick upload (%ld bytes)",
 				(gulong) uq->chunk_size);
 		uq->quick = TRUE;
@@ -2597,7 +2612,7 @@ parq_upload_get(gnutella_upload_t *u, header_t *header, gboolean replacing)
 
 		g_assert(parq_ul != NULL);
 
-		if (parq_debug >= 3)
+		if (GNET_PROPERTY(parq_debug) >= 3)
 			g_message("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "
 				"ETA: %s Added: %s '%s'",
 				g_list_position(ul_parqs,
@@ -2717,7 +2732,7 @@ parq_upload_request_force(gnutella_upload_t *u, struct parq_ul_queued *handle)
 	 * move other queued items after the current item up one position in the
 	 * queue
 	 */
-	if (max_uploads > ul_running) {
+	if (GNET_PROPERTY(max_uploads) > GNET_PROPERTY(ul_running)) {
 		/* Again no!. We are not out of upload slots yet. So there is no reason
 		 * to let it continue now */
 		return FALSE;
@@ -2756,18 +2771,18 @@ parq_upload_request(gnutella_upload_t *u)
 
 	g_assert(parq_ul->retry >= now);
 
-	if (parq_optimistic) {
+	if (GNET_PROPERTY(parq_optimistic)) {
 		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
 		/* If the chunk sizes are really small, expire them sooner */
 		parq_ul->expire = parq_ul->retry +
-			parq_ul->chunk_size / avg_bps * max_uploads;
+			parq_ul->chunk_size / avg_bps * GNET_PROPERTY(max_uploads);
 		parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
 	} else
 		parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
 
-	if (parq_debug > 1)
+	if (GNET_PROPERTY(parq_debug) > 1)
 		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: "
 			"chunk=%lu, now=%d, retry=%d, expire=%d, quick=%s, has_slot=%s, "
 			"uploaded=%lu",
@@ -2795,24 +2810,28 @@ parq_upload_request(gnutella_upload_t *u)
 		 * we are not going to allow this download. Whether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
-		if (parq_debug) g_warning("[PARQ UL] "
+		if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
 			"host %s (%s) re-requested \"%s\" too soon (%d secs early)",
 			host_addr_port_to_string(u->socket->addr, u->socket->port),
 			upload_vendor_str(u),
 			u->name, (gint) (org_retry - now));
 
-		if (parq_ul->ban_timeout > now &&
-			parq_ban_bad_maxcountwait != 0)
+		if (
+			parq_ul->ban_timeout > now &&
+			GNET_PROPERTY(parq_ban_bad_maxcountwait) != 0
+		)
 			parq_ul->ban_countwait++;
 		
-		if (parq_ul->ban_timeout > now &&
-			parq_ul->ban_countwait >= parq_ban_bad_maxcountwait) {
+		if (
+			delta_time(parq_ul->ban_timeout, now) > 0 &&
+			parq_ul->ban_countwait >= GNET_PROPERTY(parq_ban_bad_maxcountwait)
+		) {
 			/*
 			 * Bye bye, the client did it again, and is removed from the PARQ
 		 	 * queue now.
 			 */
 
-			if (parq_debug) g_warning(
+			if (GNET_PROPERTY(parq_debug)) g_warning(
 				"[PARQ UL] "
 				"punishing %s (%s) for re-requesting \"%s\" %d secs early",
 				host_addr_port_to_string(u->socket->addr, u->socket->port),
@@ -2848,7 +2867,7 @@ parq_upload_request(gnutella_upload_t *u)
 	if (parq_ul->has_slot) {
 		if (!parq_ul->quick || parq_upload_quick_continue(parq_ul))
 			return TRUE;
-		if (parq_debug)
+		if (GNET_PROPERTY(parq_debug))
 			g_message("[PARQ UL] Fully checking quick upload slot");
 		/* FALL THROUGH */
 	}
@@ -2880,7 +2899,7 @@ parq_upload_request(gnutella_upload_t *u)
 		if (
 			(u->push &&
 			  parq_ul->relative_position <= parq_upload_active_size) ||
-			  parq_ul->relative_position <= max_uploads + 2
+			  parq_ul->relative_position <= GNET_PROPERTY(max_uploads) + 2
 		) {
 			if (parq_ul->minor > 0 || parq_ul->major > 0) {
 				if (!parq_ul->active_queued) {
@@ -2913,7 +2932,7 @@ parq_upload_busy(gnutella_upload_t *u, struct parq_ul_queued *handle)
 
 	g_assert(parq_ul != NULL);
 
-	if (parq_debug > 2) {
+	if (GNET_PROPERTY(parq_debug) > 2) {
 		g_message("PARQ UL: Upload %d[%d] is busy",
 		  	  parq_ul->position, parq_ul->relative_position);
 	}
@@ -3032,7 +3051,7 @@ parq_upload_remove(gnutella_upload_t *u)
 	 *		--RAM, 17/05/2003
 	 */
 
-	if (parq_debug > 2 && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
+	if (GNET_PROPERTY(parq_debug) > 2 && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
 		g_message("PARQ UL Q %d/%d: "
 			"QUEUE #%d sent [refused=%d], u->status = %d",
 			g_list_position(ul_parqs,
@@ -3048,7 +3067,7 @@ parq_upload_remove(gnutella_upload_t *u)
 	parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	if (parq_ul->has_slot && u->keep_alive && UPLOAD_WAITING_FOLLOWUP(u)) {
-		if (parq_debug) g_message(
+		if (GNET_PROPERTY(parq_debug)) g_message(
 			"**** PARQ UL Q %d/%d: Not removed, waiting for new request",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -3079,7 +3098,7 @@ parq_upload_remove(gnutella_upload_t *u)
 
 	parq_ul->active_queued = FALSE;
 
-	if (parq_debug > 3)
+	if (GNET_PROPERTY(parq_debug) > 3)
 		g_message("PARQ UL Q %d/%d: Upload removed",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -3088,7 +3107,7 @@ parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul->has_slot) {
 		GList *lnext = NULL;
 
-		if (parq_debug > 2)
+		if (GNET_PROPERTY(parq_debug) > 2)
 			g_message("PARQ UL: Freed an upload slot");
 
 		g_assert(parq_ul->by_addr != NULL);
@@ -3602,7 +3621,7 @@ parq_upload_send_queue_conf(gnutella_upload_t *u)
 			"Only sent %lu out of %lu bytes of QUEUE for \"%s\" to %s: %s",
 			  (gulong) sent, (gulong) rw, u->name,
 			  host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
-	} else if (parq_debug > 2) {
+	} else if (GNET_PROPERTY(parq_debug) > 2) {
 		g_message("PARQ UL: Sent #%d to %s: %s",
 			  parq_ul->queue_sent, host_addr_port_to_string(s->addr, s->port),
 			  queue);
@@ -3646,7 +3665,7 @@ parq_store(gpointer data, gpointer file_ptr)
 		return;
 
 	g_assert(NULL != f);
-	if (parq_debug > 5)
+	if (GNET_PROPERTY(parq_debug) > 5)
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
 			  g_list_position(ul_parqs,
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -3712,7 +3731,7 @@ parq_upload_save_queue(void)
 	time_t now = tm_time();
 	GList *queues;
 
-	if (parq_debug > 3)
+	if (GNET_PROPERTY(parq_debug) > 3)
 		g_message("PARQ UL: Trying to save all queue info");
 
 	file_path_set(&fp, settings_config_dir(), file_parq_file);
@@ -3733,7 +3752,7 @@ parq_upload_save_queue(void)
 
 	file_config_close(f, &fp);
 
-	if (parq_debug > 3)
+	if (GNET_PROPERTY(parq_debug) > 3)
 		g_message("PARQ UL: All saved");
 
 }
@@ -3848,7 +3867,7 @@ parq_upload_load_queue(void)
 	if (!f)
 		return;
 
-	if (parq_debug)
+	if (GNET_PROPERTY(parq_debug))
 		g_warning("[PARQ UL] Loading queue information");
 
 	/* Reset state */
@@ -4081,7 +4100,7 @@ parq_upload_load_queue(void)
 			memcpy(parq_ul->id, entry.id, sizeof parq_ul->id);
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
-			if (parq_debug > 2)
+			if (GNET_PROPERTY(parq_debug) > 2)
 				g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
 					"Restored: %s '%s'",
 					g_list_position(ul_parqs,
@@ -4094,7 +4113,7 @@ parq_upload_load_queue(void)
 					host_addr_to_string(parq_ul->remote_addr),
 					parq_ul->name);
 
-			if (max_uploads > 0)
+			if (GNET_PROPERTY(max_uploads) > 0)
 				parq_upload_register_send_queue(parq_ul);
 
 			/* Reset state */

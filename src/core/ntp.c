@@ -113,7 +113,7 @@ ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
 	(void) unused_cq;
 	(void) unused_udata;
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		printf("NTP no reply from localhost\n");
 
 	/*
@@ -202,7 +202,7 @@ ntp_send_probes(void)
 			/* Send probes to all addresses because a successful sendto()
 			 * does not guarantee anything. */
 			sent = TRUE;
-		} else if (dbg) {
+		} else if (GNET_PROPERTY(dbg)) {
 			g_message("ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %s",
 				hosts[i].addr,
 				host_addr_to_string(addr),
@@ -227,7 +227,7 @@ ntp_probe(void)
 	 * Arm timer to see whether we get a reply in the next NTP_WAIT_MS.
 	 */
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		printf("NTP sent probe to localhost\n");
 
 	cq_cancel(callout_queue, &wait_ev);
@@ -266,7 +266,7 @@ ntp_got_reply(struct gnutella_socket *s)
 		return;
 	}
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		printf("NTP got %s reply from NTP-%u server, stratum %u\n",
 			s->pos == NTP_MINSIZE ? "regular" : "auth", version, m->stratum);
 
@@ -295,7 +295,7 @@ ntp_got_reply(struct gnutella_socket *s)
 
 	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		printf("NTP local clock offset is %.6f secs\n",
 			(double) clock_offset);
 

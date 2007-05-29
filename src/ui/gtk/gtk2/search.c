@@ -784,7 +784,7 @@ search_gui_new_search_full(const gchar *query_str,
 	
 	if (
 		is_only_search ||
-		(!search_gui_is_browse(sch) && search_jump_to_created)
+		(!search_gui_is_browse(sch) && GUI_PROPERTY(search_jump_to_created))
 	) {
 		search_gui_set_current_search(sch);
 	} else {

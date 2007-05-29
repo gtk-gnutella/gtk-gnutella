@@ -160,7 +160,7 @@ ipf_destroy(cqueue_t *unused_cq, gpointer obj)
 	g_assert(!ipf->banned);
 	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
 
-	if (ban_debug > 8)
+	if (GNET_PROPERTY(ban_debug) > 8)
 		g_message("disposing of BAN %s: %s",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
@@ -192,7 +192,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	ipf->counter -= delta_time(now, ipf->ctime) * decay_coeff;
 	ipf->ctime = now;
 
-	if (ban_debug > 2)
+	if (GNET_PROPERTY(ban_debug) > 2)
 		g_message("lifting BAN for %s (%s), counter = %.3f",
 			host_addr_to_string(ipf->addr), ban_reason(ipf), ipf->counter);
 
@@ -209,7 +209,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	 */
 
 	if (delay <= 0) {
-		if (ban_debug > 8)
+		if (GNET_PROPERTY(ban_debug) > 8)
 			g_message("disposing of BAN %s: %s",
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
@@ -280,7 +280,7 @@ ban_allow(const host_addr_t addr)
 	ipf->counter += 1.0;
 	ipf->ctime = now;
 
-	if (ban_debug > 4)
+	if (GNET_PROPERTY(ban_debug) > 4)
 		g_message("BAN %s, counter = %.3f (%s)",
 			host_addr_to_string(ipf->addr), ipf->counter,
 			ipf->banned ? "already banned" :
@@ -373,7 +373,7 @@ ban_record(const host_addr_t addr, const gchar *msg)
 	atom_str_change(&ipf->ban_msg, msg);
 	ipf->ban_delay = MAX_BAN;
 
-	if (ban_debug)
+	if (GNET_PROPERTY(ban_debug))
 		g_message("BAN %s record %s: %s",
 			ipf->banned ? "updating" : "new",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
@@ -413,16 +413,16 @@ reclaim_fd(void)
 
 	if (banned_tail == NULL) {
 		g_assert(banned_head == NULL);
-		g_assert(banned_count == 0);
+		g_assert(GNET_PROPERTY(banned_count) == 0);
 		return FALSE;					/* Empty list */
 	}
 
 	g_assert(banned_head != NULL);
-	g_assert(banned_count > 0);
+	g_assert(GNET_PROPERTY(banned_count) > 0);
 
 	(void) close(GPOINTER_TO_INT(banned_tail->data));	/* Reclaim fd */
 
-	if (ban_debug > 9)
+	if (GNET_PROPERTY(ban_debug) > 9)
 		g_message("closed BAN fd #%d", GPOINTER_TO_INT(banned_tail->data));
 
 	prev = g_list_previous(banned_tail);
@@ -430,7 +430,7 @@ reclaim_fd(void)
 	g_list_free_1(banned_tail);
 	banned_tail = prev;
 
-	gnet_prop_set_guint32_val(PROP_BANNED_COUNT, banned_count - 1);
+	gnet_prop_decr_guint32(PROP_BANNED_COUNT);
 
 	return TRUE;
 }
@@ -477,9 +477,10 @@ ban_force(struct gnutella_socket *s)
 {
 	gint fd = s->file_desc;
 
-	if (banned_count >= max_banned_fd) {
+	if (GNET_PROPERTY(banned_count) >= GNET_PROPERTY(max_banned_fd)) {
 		g_assert(banned_tail);
-		g_assert(max_banned_fd <= 1 || (banned_tail != banned_head));
+		g_assert(GNET_PROPERTY(max_banned_fd) <= 1 ||
+			banned_tail != banned_head);
 
 		reclaim_fd();
 	}
@@ -507,7 +508,7 @@ ban_force(struct gnutella_socket *s)
 	if (banned_tail == NULL)
 		banned_tail = banned_head;
 
-	gnet_prop_set_guint32_val(PROP_BANNED_COUNT, banned_count + 1);
+	gnet_prop_incr_guint32(PROP_BANNED_COUNT);
 }
 
 /**
@@ -573,10 +574,11 @@ ban_max_recompute(void)
 {
 	guint32 max;
 
-	max = MIN(ban_max_fds, sys_nofile * ban_ratio_fds / 100);
+	max = (GNET_PROPERTY(sys_nofile) * GNET_PROPERTY(ban_ratio_fds)) / 100;
+	max = MIN(GNET_PROPERTY(ban_max_fds), max);
 	max = MAX(1, max);
 
-	if (ban_debug)
+	if (GNET_PROPERTY(ban_debug))
 		g_message("will use at most %d file descriptor%s for banning",
 			max, max == 1 ? "" : "s");
 

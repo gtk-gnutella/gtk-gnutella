@@ -44,8 +44,6 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-extern guint32 lib_debug;
-
 #define ESCAPE_CHAR		'%'
 
 /**
@@ -453,8 +451,7 @@ url_safe_char(gchar c, url_policy_t p)
 			!is_ascii_digit(c) &&
 			NULL == strchr("/._-~", c)
 		) {
-			if (lib_debug)
-      			g_warning("Unsafe character in GWC URL; rejected");
+      		/* Unsafe character in GWC URL; rejected */
       		return FALSE;
     	}
 	}
@@ -486,11 +483,9 @@ url_normalize(gchar *url, url_policy_t pol)
 
 	g_assert(url);
 
-	if (NULL == (q = is_strcaseprefix(url, http_prefix))) {
-		if (lib_debug)
-			g_warning("URL \"%s\" isn't preceded by \"%s\"", url, http_prefix);
+	if (NULL == (q = is_strcaseprefix(url, http_prefix)))
 		return NULL;
-	}
+
 	/* Make sure the prefix is all-lowercase */
 	memcpy(url, http_prefix, CONST_STRLEN(http_prefix));
 
@@ -545,10 +540,6 @@ url_normalize(gchar *url, url_policy_t pol)
 			} else if ('\0' == c || '/' == c || ':' == c) {
 				break;
 			} else {
-				if (lib_debug)
-					g_warning("Bad URL \"%s\": "
-						"invalid character '%c' in ``host:port'' part.",
-						url, is_ascii_print(c) ? c : '?');
 				return NULL;
 			}
 		}
@@ -665,14 +656,9 @@ url_normalize(gchar *url, url_policy_t pol)
 		url = s;
 	}
 
-	if (lib_debug > 1)
-		g_message("url=\"%s\"", url);
-
 	return url;
 
 bad:
-	if (lib_debug)
-		g_warning("invalid URL \"%s\": %s", url, warn);
 	return NULL;
 }
 

@@ -198,7 +198,7 @@ alive_ping_can_send(pmsg_t *mb, const mqueue_t *q)
 
 	alive_ping_drop(a, muid);
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		printf("ALIVE node %s (%s) dropped old alive ping %s, %d remain\n",
 			node_addr(a->node), node_vendor(a->node),
 			guid_hex_str(muid), a->count);
@@ -218,7 +218,7 @@ alive_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	if (pmsg_was_sent(mb)) {
 		n->n_ping_sent++;
-		if (dbg > 1)
+		if (GNET_PROPERTY(dbg) > 1)
 			printf("ALIVE sent ping %s to node %s (%s)\n",
 				guid_hex_str(pmsg_start(mb)), node_addr(n), node_vendor(n));
 	} else {
@@ -310,7 +310,7 @@ ap_ack(const struct alive_ping *ap, struct alive *a)
 
 	a->avg_rt += (delay >> 2) - (a->avg_rt >> 2);
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		printf("ALIVE node %s (%s) "
 		"delay=%dms min=%dms, max=%dms, agv=%dms [%d queued]\n",
 			node_addr(a->node), node_vendor(a->node),
@@ -353,7 +353,7 @@ alive_ack_ping(gpointer obj, const gchar *muid)
 		const struct alive_ping *ap = sl->data;
 
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
-			if (dbg > 1)
+			if (GNET_PROPERTY(dbg) > 1)
 				printf("ALIVE got alive pong %s from %s (%s)\n",
 					guid_hex_str(muid), node_addr(a->node),
 					node_vendor(a->node));
@@ -397,7 +397,7 @@ alive_ack_first(gpointer obj, const gchar *muid)
 
 	ap = sl->data;
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		printf("ALIVE TTL=0 ping from %s (%s), assuming it acks %s\n",
 			node_addr(a->node), node_vendor(a->node), guid_hex_str(ap->muid));
 

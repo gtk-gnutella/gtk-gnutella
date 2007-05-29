@@ -124,14 +124,14 @@ dht_route_init(void)
 	}
 
 	if (need_kuid) {
-		if (dht_debug) g_message("generating new DHT node ID");
+		if (GNET_PROPERTY(dht_debug)) g_message("generating new DHT node ID");
 		kuid_random_fill(&buf);
 		gnet_prop_set_storage(PROP_SERVENT_KUID, buf.v, sizeof buf.v);
 	}
 
 	our_kuid = kuid_get_atom(&buf);
 
-	if (dht_debug)
+	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT local node ID is %s", kuid_to_string(our_kuid));
 
 	/*
@@ -296,7 +296,7 @@ dht_add(kuid_t *id, host_addr_t addr, guint16 port)
 		if (kn->flags & KNODE_F_VERIFYING)
 			return;			/* Already verifying address */
 
-		if (dht_debug)
+		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT node %s was at %s, now %s:%u -- verifying",
 				kuid_to_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),

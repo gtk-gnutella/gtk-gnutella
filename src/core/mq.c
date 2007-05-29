@@ -422,7 +422,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 
 		gnutella_header_set_function(&q->header, GTA_MSG_SEARCH);
 		gnutella_header_set_hops(&q->header, 1);
-		gnutella_header_set_ttl(&q->header, max_ttl);
+		gnutella_header_set_ttl(&q->header, GNET_PROPERTY(max_ttl));
 
 		if (needed > 0)
 			make_room_header(q, (gchar*) &q->header, PMSG_P_DATA, needed, NULL);
@@ -457,10 +457,15 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 * removing enough data from the queue.
 		 */
 
-		for (ttl = hard_ttl_limit; needed > 0 && ttl >= 0; ttl--) {
-			gint old_size = q->size;
+		for (ttl = GNET_PROPERTY(hard_ttl_limit); ttl >= 0; ttl--) {
+			gint old_size;
 
-			gnutella_header_set_hops(&q->header, hard_ttl_limit - ttl);
+			if (needed <= 0)
+				break;
+
+			old_size = q->size;
+			gnutella_header_set_hops(&q->header,
+				GNET_PROPERTY(hard_ttl_limit) - ttl);
 			gnutella_header_set_ttl(&q->header, ttl);
 
 			if (
@@ -549,7 +554,7 @@ mq_enter_flowc(mqueue_t *q)
 
 	node_tx_enter_flowc(q->node);	/* Signal flow control */
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		printf("entering FLOWC for node %s (%d bytes queued)\n",
 			node_addr(q->node), q->size);
 }
@@ -562,7 +567,7 @@ mq_leave_flowc(mqueue_t *q)
 {
 	g_assert(q->flags & MQ_FLOWC);
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		printf("leaving %s for node %s (%d bytes queued)\n",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			node_addr(q->node), q->size);
@@ -1039,7 +1044,7 @@ make_room_header(
 	g_assert(needed > 0);
 	mq_check(q, 0);
 
-	if (dbg > 5)
+	if (GNET_PROPERTY(dbg) > 5)
 		printf("%s try to make room for %d bytes in queue 0x%lx (node %s)\n",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			needed, (gulong) q, node_addr(q->node));
@@ -1154,7 +1159,7 @@ restart:
 		 * Drop message.
 		 */
 
-		if (dbg > 4)
+		if (GNET_PROPERTY(dbg) > 4)
 			gmsg_log_dropped(pmsg_start(cmb),
 				"to %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
@@ -1177,7 +1182,7 @@ restart:
 	if (dropped)
 		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
 
-	if (dbg > 5)
+	if (GNET_PROPERTY(dbg) > 5)
 		printf("%s end purge: %d bytes (count=%d) for node %s, need=%d\n",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			q->size, q->count, node_addr(q->node), needed);
@@ -1237,7 +1242,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		!make_room(q, mb, msize, &qlink_offset)
 	) {
 		g_assert(pmsg_is_unread(mb));			/* Not partially written */
-		if (dbg > 4)
+		if (GNET_PROPERTY(dbg) > 4)
 			gmsg_log_dropped(pmsg_start(mb),
 				"to FLOWC node %s, %d bytes queued",
 				node_addr(q->node), q->size);
@@ -1275,14 +1280,14 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		gnet_stats_count_flowc(pmsg_start(mb));
 
 		if (has_normal_prio) {
-			if (dbg > 4)
+			if (GNET_PROPERTY(dbg) > 4)
 				gmsg_log_dropped(pmsg_start(mb),
 					"to FLOWC node %s, %d bytes queued [FULL]",
 					node_addr(q->node), q->size);
 
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 		} else {
-			if (dbg > 4)
+			if (GNET_PROPERTY(dbg) > 4)
 				gmsg_log_dropped(pmsg_start(mb),
 					"to FLOWC node %s, %d bytes queued [KILLING]",
 					node_addr(q->node), q->size);

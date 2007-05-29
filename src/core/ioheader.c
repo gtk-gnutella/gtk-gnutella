@@ -268,7 +268,7 @@ nextline:
 		return;
 		/* NOTREACHED */
 	default:					/* Error, but try to continue */
-		if (dbg) {
+		if (GNET_PROPERTY(dbg)) {
 			g_warning("io_header_parse: %s, from %s",
 				header_strerror(error), host_addr_to_string(s->addr));
 			dump_hex(stderr, "Header Line",
@@ -286,7 +286,7 @@ nextline:
 	 */
 
 	if ((ih->flags & IO_HEAD_ONLY) && s->pos) {
-        if (dbg) {
+        if (GNET_PROPERTY(dbg)) {
             g_message("remote %s sent extra bytes after headers",
                 host_addr_to_string(s->addr));
             dump_hex(stderr, "Extra Data", s->buf, MIN(s->pos, 512));

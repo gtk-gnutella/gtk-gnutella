@@ -455,7 +455,7 @@ search_store_xml(void)
     } else {
 		gchar *filename;
 
-        if (gui_debug >= 3)
+        if (GUI_PROPERTY(gui_debug) >= 3)
             g_message("saved searches file: %s", filename_new);
 
 		filename = make_pathname(settings_gui_config_dir(), search_file_xml);
@@ -577,7 +577,7 @@ search_retrieve_xml(void)
      * shadows.
      */
 
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("resolving UIDs");
 
     for (f = filters; f != NULL; f = f_next) {
@@ -588,7 +588,7 @@ search_retrieve_xml(void)
 
 		f_next = g_list_next(f);
 
-        if (gui_debug >= 6) {
+        if (GUI_PROPERTY(gui_debug) >= 6) {
             g_message("\n\nresolving on filter:");
             dump_filter(filter);
         }
@@ -618,7 +618,7 @@ search_retrieve_xml(void)
                  * We circumvent the shadows, so we must do refcounting
                  * manually here.
                  */
-                if (gui_debug >= 7) {
+                if (GUI_PROPERTY(gui_debug) >= 7) {
                     g_message("increasing refcount on \"%s\" to %d",
                         rule->target->name, rule->target->refcount + 1);
 				}
@@ -627,7 +627,7 @@ search_retrieve_xml(void)
             }
         }
 
-        if (gui_debug >= 6) {
+        if (GUI_PROPERTY(gui_debug) >= 6) {
 			g_message("resolved filter:");
             dump_filter(filter);
         }
@@ -648,14 +648,14 @@ search_retrieve_xml(void)
         gboolean borked = FALSE;
         const GList *s;
 
-        if (gui_debug >= 6)
+        if (GUI_PROPERTY(gui_debug) >= 6)
             g_message("verifying bindings...");
 
         for (s = search_gui_get_searches(); s != NULL; s = g_list_next(s)) {
             search_t *search = s->data;
 
             if (search->filter->search == search) {
-                if (gui_debug >= 6)
+                if (GUI_PROPERTY(gui_debug) >= 6)
                     g_message("binding ok for: %s", search_gui_query(search));
             } else {
                 g_warning("binding broken for: %s", search_gui_query(search));
@@ -721,7 +721,7 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 	if (search_gui_is_browse(s) || search_gui_is_local(s))
 		return;			/* Don't persist "browse host" searches. */
 
-    if (gui_debug >= 6) {
+    if (GUI_PROPERTY(gui_debug) >= 6) {
         g_message(
 			"saving search: %s (%p enabled=%d)\n"
 			"  -- filter is bound to: %p\n"
@@ -765,12 +765,12 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
      * Don't store the builtin targets or bound rulesets
      */
     if (filter_is_builtin(f) || filter_is_bound(f)) {
-        if (gui_debug >= 7)
+        if (GUI_PROPERTY(gui_debug) >= 7)
             g_message("not saving bound/builtin: %s", f->name);
         return;
     }
 
-    if (gui_debug >= 6) {
+    if (GUI_PROPERTY(gui_debug) >= 6) {
 		g_message(
 			"saving filter: %s\n"
 			"  -- bound   : %p",
@@ -1097,7 +1097,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 	if (0 == lifetime && 0 == (flags & SEARCH_F_PASSIVE))
 		flags &= ~SEARCH_F_ENABLED;
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("adding new %s %s search: %s",
 			(flags & SEARCH_F_ENABLED) ? "enabled" : "disabled",
 			(flags & SEARCH_F_PASSIVE) ? "passive" : "active",
@@ -1167,7 +1167,7 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 			goto failure;
         }
     } else {
-        if (gui_debug >= 4)
+        if (GUI_PROPERTY(gui_debug) >= 4)
             g_message("adding new filter: %s", name);
         filter = filter_new(name);
         filters = g_list_append(filters, filter);
@@ -1260,7 +1260,7 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
     rule = filter_new_text_rule(match, type, case_sensitive, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
@@ -1329,7 +1329,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
     rule = filter_new_ip_rule(addr, mask, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
@@ -1393,7 +1393,7 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
     rule = filter_new_size_rule(lower, upper, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
@@ -1432,7 +1432,7 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
     rule = filter_new_jump_rule(target,flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
@@ -1489,7 +1489,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
     rule = filter_new_sha1_rule(sha1, filename, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
@@ -1569,7 +1569,7 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
     rule = filter_new_flag_rule(stable, busy, push, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}
@@ -1636,7 +1636,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
     rule = filter_new_state_rule(display, download, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
             filter->name, cast_to_gconstpointer(rule->target));
 	}

@@ -222,7 +222,7 @@ browse_host_read_html(struct special_upload *ctx,
 					shared_files_scanned() == 1 ? "" : "s",
 					" ",
 					short_kb_size(shared_kbytes_scanned(),
-						display_metric_units),
+						GNET_PROPERTY(display_metric_units)),
 					" total</h3>\r\n"
 					"<ul>\r\n", (void *) 0);
 				bh->b_data = bh->w_buf;
@@ -296,7 +296,8 @@ browse_host_read_html(struct special_upload *ctx,
 							"<li><a href=\"/uri-res/N2R?urn:sha1:",
 							sha1_base32(sha1),
 							"\">", html_name, "</a>&nbsp;[",
-							short_html_size(file_size, display_metric_units),
+							short_html_size(file_size,
+								GNET_PROPERTY(display_metric_units)),
 							"]</li>\r\n",
 							(void *) 0);
 					} else {
@@ -308,7 +309,8 @@ browse_host_read_html(struct special_upload *ctx,
 							uint32_to_string(shared_file_index(sf)),
 							"/", escaped, "\">", html_name, "</a>"
 							"&nbsp;[",
-							short_html_size(file_size, display_metric_units),
+							short_html_size(file_size,
+								GNET_PROPERTY(display_metric_units)),
 							"]</li>\r\n", (void *) 0);
 
 						if (escaped != name_nfc) {
@@ -538,11 +540,9 @@ browse_host_close(struct special_upload *ctx, gboolean fully_served)
 
 	if (fully_served) {
 		if (bh->flags & BH_F_HTML) {
-			gnet_prop_set_guint32_val(PROP_HTML_BROWSE_SERVED,
-				html_browse_served + 1);
+			gnet_prop_incr_guint32(PROP_HTML_BROWSE_SERVED);
 		} else if (bh->flags & BH_F_QHITS) {
-			gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_SERVED,
-				qhits_browse_served + 1);
+			gnet_prop_incr_guint32(PROP_QHITS_BROWSE_SERVED);
 		}
 	}
 
@@ -644,11 +644,9 @@ browse_host_open(
 	 */
 
 	if (flags & BH_F_HTML) {
-		gnet_prop_set_guint32_val(PROP_HTML_BROWSE_COUNT,
-			html_browse_count + 1);
+		gnet_prop_incr_guint32(PROP_HTML_BROWSE_COUNT);
 	} else if (flags & BH_F_QHITS) {
-		gnet_prop_set_guint32_val(PROP_QHITS_BROWSE_COUNT,
-			qhits_browse_count + 1);
+		gnet_prop_incr_guint32(PROP_QHITS_BROWSE_COUNT);
 	}
 	return &bh->special;
 }

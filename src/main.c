@@ -222,37 +222,37 @@ gboolean
 debugging(guint t)
 {
 	return
-		ban_debug > t ||
-		bitzi_debug > t ||
-		bootstrap_debug > t ||
-		dbg > t ||
-		dh_debug > t ||
-		dht_debug > t ||
-		dmesh_debug > t ||
-		download_debug > t ||
-		dq_debug > t ||
-		fileinfo_debug > t ||
-		ggep_debug > t ||
-		gmsg_debug > t ||
-		hsep_debug > t ||
-		http_debug > t ||
-		lib_debug > t ||
-		node_debug > t ||
-		oob_proxy_debug > t ||
-		parq_debug > t ||
-		pcache_debug > t ||
-		qrp_debug > t ||
-		query_debug > t ||
-		routing_debug > t ||
-		rudp_debug > t ||
-		search_debug > t ||
-		share_debug > t ||
-		socket_debug > t ||
-		tls_debug > t ||
-		udp_debug > t ||
-		upload_debug > t ||
-		url_debug > t ||
-		vmsg_debug > t ||
+		GNET_PROPERTY(ban_debug) > t ||
+		GNET_PROPERTY(bitzi_debug) > t ||
+		GNET_PROPERTY(bootstrap_debug) > t ||
+		GNET_PROPERTY(dbg) > t ||
+		GNET_PROPERTY(dh_debug) > t ||
+		GNET_PROPERTY(dht_debug) > t ||
+		GNET_PROPERTY(dmesh_debug) > t ||
+		GNET_PROPERTY(download_debug) > t ||
+		GNET_PROPERTY(dq_debug) > t ||
+		GNET_PROPERTY(fileinfo_debug) > t ||
+		GNET_PROPERTY(ggep_debug) > t ||
+		GNET_PROPERTY(gmsg_debug) > t ||
+		GNET_PROPERTY(hsep_debug) > t ||
+		GNET_PROPERTY(http_debug) > t ||
+		GNET_PROPERTY(lib_debug) > t ||
+		GNET_PROPERTY(node_debug) > t ||
+		GNET_PROPERTY(oob_proxy_debug) > t ||
+		GNET_PROPERTY(parq_debug) > t ||
+		GNET_PROPERTY(pcache_debug) > t ||
+		GNET_PROPERTY(qrp_debug) > t ||
+		GNET_PROPERTY(query_debug) > t ||
+		GNET_PROPERTY(routing_debug) > t ||
+		GNET_PROPERTY(rudp_debug) > t ||
+		GNET_PROPERTY(search_debug) > t ||
+		GNET_PROPERTY(share_debug) > t ||
+		GNET_PROPERTY(socket_debug) > t ||
+		GNET_PROPERTY(tls_debug) > t ||
+		GNET_PROPERTY(udp_debug) > t ||
+		GNET_PROPERTY(upload_debug) > t ||
+		GNET_PROPERTY(url_debug) > t ||
+		GNET_PROPERTY(vmsg_debug) > t ||
 
 		/* Above line left blank for easy "!}sort" under vi */
 		0;
@@ -422,7 +422,7 @@ gtk_gnutella_exit(gint n)
 	 * have more connections to flush.
 	 */
 
-	if (current_peermode == NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 		exit_grace *= 2;
 
 	while (node_bye_pending()) {
@@ -520,7 +520,7 @@ slow_main_timer(time_t now)
 {
 	static guint i = 0;
 
-	if (cpu_debug) {
+	if (GNET_PROPERTY(cpu_debug)) {
 		static tm_t since = { 0, 0 };
 		static gdouble user = 0.0;
 		static gdouble sys = 0.0;
@@ -629,7 +629,7 @@ check_cpu_usage(void)
 	load_avg += (load >> 3) - (load_avg >> 3);
 	avg = load_avg / 100;
 
-	if (cpu_debug > 1 && last_cpu)
+	if (GNET_PROPERTY(cpu_debug) > 1 && last_cpu)
 		g_message("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
 			cpu - last_cpu, elapsed, cpu_percent, coverage, avg);
 
@@ -646,12 +646,12 @@ check_cpu_usage(void)
 	 * the average load enough to disable the "overloaded" condition.
 	 */
 
-	if (avg >= LOAD_HIGH_WATERMARK && !overloaded_cpu) {
+	if (avg >= LOAD_HIGH_WATERMARK && !GNET_PROPERTY(overloaded_cpu)) {
 		if (debugging(0))
 			g_message("high average CPU load (%d%%), entering overloaded state",
 				avg);
 		gnet_prop_set_boolean_val(PROP_OVERLOADED_CPU, TRUE);
-	} else if (overloaded_cpu && avg < LOAD_LOW_WATERMARK) {
+	} else if (GNET_PROPERTY(overloaded_cpu) && avg < LOAD_LOW_WATERMARK) {
 		if (debugging(0))
 			g_message("average CPU load (%d%%) low, leaving overloaded state",
 				avg);
@@ -729,11 +729,11 @@ main_timer(gpointer p)
 	 * detected a high CPU load.
 	 */
 
-	if (!overloaded_cpu) {
+	if (!GNET_PROPERTY(overloaded_cpu)) {
 		icon_timer();
 	}
 
-	bg_sched_timer(overloaded_cpu);			/* Background tasks */
+	bg_sched_timer(GNET_PROPERTY(overloaded_cpu));	/* Background tasks */
 
 	return TRUE;
 }

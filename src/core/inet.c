@@ -195,7 +195,10 @@ is_local_addr(const host_addr_t addr)
 	 *		 cause blocking of several seconds which is not acceptable
 	 *		 except during the startup phase.
 	 */
-	if (NET_USE_IPV4 == network_protocol || NET_USE_BOTH == network_protocol) {
+	if (
+		NET_USE_IPV4 == GNET_PROPERTY(network_protocol) ||
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol)
+	) {
 		if (!is_host_addr(our_addr)) {
 			static gboolean tried;
 
@@ -222,7 +225,10 @@ is_local_addr(const host_addr_t addr)
 		}
 	}
 	
-	if (NET_USE_IPV6 == network_protocol || NET_USE_BOTH == network_protocol) {
+	if (
+		NET_USE_IPV6 == GNET_PROPERTY(network_protocol) ||
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol)
+	) {
 		if (!is_host_addr(our_addr_v6)) {
 			static gboolean tried;
 
@@ -302,7 +308,7 @@ got_no_udp_solicited(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		g_message("FW: got no solicited UDP traffic for %d secs",
 			FW_SOLICITED_WINDOW);
 
@@ -321,7 +327,7 @@ inet_udp_got_solicited(void)
 	if (solicited_udp_ev == NULL) {
 		cq_insert(callout_queue,
 			FW_SOLICITED_WINDOW * 1000, got_no_udp_solicited, NULL);
-		if (dbg)
+		if (GNET_PROPERTY(dbg))
 			g_message("FW: got solicited UDP traffic");
 	} else
 		cq_resched(callout_queue,
@@ -338,7 +344,7 @@ got_no_connection(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		g_message("FW: got no connection to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
@@ -356,7 +362,7 @@ got_no_udp_unsolicited(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		g_message("FW: got no unsolicited UDP datagram to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
@@ -374,7 +380,7 @@ inet_not_firewalled(void)
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, FALSE);
 	node_proxy_cancel_all();
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		g_message("FW: we're not TCP-firewalled for port %u",
 			socket_listen_port());
 }
@@ -387,7 +393,7 @@ inet_udp_not_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, FALSE);
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		g_message("FW: we're not UDP-firewalled for port %u",
 			socket_listen_port());
 }
@@ -408,7 +414,7 @@ inet_got_incoming(const host_addr_t addr)
 
 	activity_seen = TRUE;				/* In case we have a timer set */
 
-	if (!is_inet_connected)
+	if (!GNET_PROPERTY(is_inet_connected))
 		inet_set_is_connected(TRUE);
 
 	/*
@@ -417,7 +423,7 @@ inet_got_incoming(const host_addr_t addr)
 	 * got an incoming connection.
 	 */
 
-	if (!is_firewalled) {
+	if (!GNET_PROPERTY(is_firewalled)) {
 		g_assert(incoming_ev);
 		cq_resched(callout_queue, incoming_ev, FW_INCOMING_WINDOW * 1000);
 		return;
@@ -451,7 +457,7 @@ inet_udp_got_unsolicited_incoming(void)
 	 * got an incoming connection.
 	 */
 
-	if (!is_udp_firewalled) {
+	if (!GNET_PROPERTY(is_udp_firewalled)) {
 		g_assert(incoming_udp_ev);
 		cq_resched(callout_queue, incoming_udp_ev, FW_INCOMING_WINDOW * 1000);
 		return;
@@ -476,7 +482,7 @@ inet_udp_got_incoming(const host_addr_t addr)
 
 	activity_seen = TRUE;				/* In case we have a timer set */
 
-	if (!is_inet_connected)
+	if (!GNET_PROPERTY(is_inet_connected))
 		inet_set_is_connected(TRUE);
 
 	/*
@@ -522,8 +528,9 @@ inet_can_answer_ping(void)
 {
 	gint elapsed;
 
-	if (!is_firewalled)
-		return current_peermode != NODE_P_LEAF;	/* Leaves don't send pongs */
+	/* Leaves don't send pongs */
+	if (!GNET_PROPERTY(is_firewalled))
+		return GNET_PROPERTY(current_peermode) != NODE_P_LEAF;
 
 	if (!is_host_addr(listen_addr()) && !is_host_addr(listen_addr6()))
 		return FALSE;		/* We don't know our local IP, we can't reply */
@@ -564,7 +571,7 @@ inet_set_is_connected(gboolean val)
 {
 	gnet_prop_set_boolean_val(PROP_IS_INET_CONNECTED, val);
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		g_message("FW: we're %sconnected to the Internet",
 			val ? "" : "no longer ");
 }
@@ -629,7 +636,7 @@ inet_connection_succeeded(const host_addr_t addr)
 
 	activity_seen = TRUE;
 
-	if (!is_inet_connected)
+	if (!GNET_PROPERTY(is_inet_connected))
 		inet_set_is_connected(TRUE);
 }
 
@@ -657,7 +664,7 @@ inet_init(void)
 	 * If we persisted "is_firewalled" to FALSE, arm the no-connection timer.
 	 */
 
-	if (!is_firewalled)
+	if (!GNET_PROPERTY(is_firewalled))
 		incoming_ev = cq_insert(
 			callout_queue, FW_INCOMING_WINDOW * 1000,
 			got_no_connection, NULL);
@@ -666,7 +673,7 @@ inet_init(void)
 	 * If we persisted "is_udp_firewalled" to FALSE, idem.
 	 */
 
-	if (!is_udp_firewalled)
+	if (!GNET_PROPERTY(is_udp_firewalled))
 		incoming_udp_ev = cq_insert(
 			callout_queue, FW_INCOMING_WINDOW * 1000,
 			got_no_udp_unsolicited, NULL);
@@ -675,7 +682,7 @@ inet_init(void)
 	 * If we persisted "recv_solicited_udp" to TRUE, idem.
 	 */
 
-	if (recv_solicited_udp)
+	if (GNET_PROPERTY(recv_solicited_udp))
 		solicited_udp_ev = cq_insert(
 			callout_queue, FW_SOLICITED_WINDOW * 1000,
 			got_no_udp_solicited, NULL);

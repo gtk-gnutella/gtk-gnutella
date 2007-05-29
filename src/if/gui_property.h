@@ -190,14 +190,17 @@ void gui_prop_set_boolean(
 gboolean *gui_prop_get_boolean(
     property_t, gboolean *, size_t, size_t);
 
-#define gui_prop_set_boolean_val(p, v) G_STMT_START { \
-	gboolean value = v; \
-	gui_prop_set_boolean(p, &value, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_set_boolean_val(property_t p, gboolean value)
+{
+	gui_prop_set_boolean(p, &value, 0, 1);
+}
 
-#define gui_prop_get_boolean_val(p, v) G_STMT_START { \
-	gui_prop_get_boolean(p, v, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_get_boolean_val(property_t p, gboolean *value_ptr)
+{
+	gui_prop_get_boolean(p, value_ptr, 0, 1);
+}
 
 
 void gui_prop_set_string(property_t, const gchar *);
@@ -208,56 +211,86 @@ void gui_prop_set_guint32(
 guint32 *gui_prop_get_guint32(
     property_t, guint32 *, size_t, size_t);
 
-#define gui_prop_set_guint32_val(p, v) G_STMT_START { \
-	guint32 value = v; \
-	gui_prop_set_guint32(p, &value, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_set_guint32_val(property_t p, guint32 value)
+{
+	gui_prop_set_guint32(p, &value, 0, 1);
+}
 
-#define gui_prop_get_guint32_val(p, v) G_STMT_START { \
-	gui_prop_get_guint32(p, v, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_get_guint32_val(property_t p, guint32 *value_ptr)
+{
+	gui_prop_get_guint32(p, value_ptr, 0, 1);
+}
+
+static inline void
+gui_prop_incr_guint32(property_t p)
+{
+	guint32 value;
+	gui_prop_get_guint32_val(p, &value);
+	value++;
+	gui_prop_set_guint32_val(p, value);
+}
+
+static inline void
+gui_prop_decr_guint32(property_t p)
+{
+	guint32 value;
+	gui_prop_get_guint32_val(p, &value);
+	value--;
+	gui_prop_set_guint32_val(p, value);
+}
 
 void gui_prop_set_guint64(
     property_t, const guint64 *, size_t, size_t);
 guint64 *gui_prop_get_guint64(
     property_t, guint64 *, size_t, size_t);
 
-#define gui_prop_set_guint64_val(p, v) G_STMT_START { \
-	guint64 value = v; \
-	gui_prop_set_guint64(p, &value, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_set_guint64_val(property_t p, guint64 value)
+{
+	gui_prop_set_guint64(p, &value, 0, 1);
+}
 
-#define gui_prop_get_guint64_val(p, v) G_STMT_START { \
-	gui_prop_get_guint64(p, v, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_get_guint64_val(property_t p, guint64 *value_ptr)
+{
+	gui_prop_get_guint64(p, value_ptr, 0, 1);
+}
 
 void gui_prop_set_timestamp(
     property_t, const time_t *, size_t, size_t);
 time_t *gui_prop_get_timestamp(
     property_t, time_t *, size_t, size_t);
 
-#define gui_prop_set_timestamp_val(p, v) G_STMT_START { \
-	time_t value = v; \
-	gui_prop_set_timestamp(p, &value, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_set_timestamp_val(property_t p, time_t value)
+{
+	gui_prop_set_timestamp(p, &value, 0, 1);
+}
 
-#define gui_prop_get_timestamp_val(p, v) G_STMT_START { \
-	gui_prop_get_timestamp(p, v, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_get_timestamp_val(property_t p, time_t *value_ptr)
+{
+	gui_prop_get_timestamp(p, value_ptr, 0, 1);
+}
 
 void gui_prop_set_ip(
     property_t, const host_addr_t *, size_t, size_t);
 host_addr_t *gui_prop_get_ip(
     property_t, host_addr_t *, size_t, size_t);
 
-#define gui_prop_set_ip_val(p, v) G_STMT_START { \
-	host_addr_t value = v; \
-	gui_prop_set_ip(p, &value, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_set_ip_val(property_t p, host_addr_t value)
+{
+	gui_prop_set_ip(p, &value, 0, 1);
+}
 
-#define gui_prop_get_ip_val(p, v) G_STMT_START { \
-	gui_prop_get_ip(p, v, 0, 1); \
-} G_STMT_END
+static inline void
+gui_prop_get_ip_val(property_t p, host_addr_t *value_ptr)
+{
+	gui_prop_get_ip(p, value_ptr, 0, 1);
+}
 
 void gui_prop_set_storage(property_t, gconstpointer, size_t);
 gpointer gui_prop_get_storage(property_t, gpointer, size_t);

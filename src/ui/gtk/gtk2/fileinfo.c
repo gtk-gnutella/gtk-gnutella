@@ -1034,13 +1034,13 @@ void
 fi_gui_select_by_regex(const gchar *regex)
 {
 	struct select_by_regex ctx;
-    gint err;
+    gint err, flags;
 
 	ctx.matches = 0;
 	ctx.total_nodes = 0;
-    err = regcomp(&ctx.re, regex,
-			REG_EXTENDED |REG_NOSUB | (queue_regex_case ? 0 : REG_ICASE));
-
+	flags = REG_EXTENDED | REG_NOSUB;
+   	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
+    err = regcomp(&ctx.re, regex, flags);
    	if (err) {
         gchar buf[1024];
 

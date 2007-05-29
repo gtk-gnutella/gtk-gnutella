@@ -142,7 +142,7 @@ hostiles_load(FILE *f, hostiles_t which)
 			break;
 			/* FALL THROUGH */
 		default:
-			if (dbg > 0 || error != IPR_ERR_RANGE_SUBNET) {
+			if (GNET_PROPERTY(dbg) > 0 || error != IPR_ERR_RANGE_SUBNET) {
 				g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
 					hostiles_file, linenum, line, ip_to_string(ip), bits,
 					iprange_strerror(error));
@@ -153,7 +153,7 @@ hostiles_load(FILE *f, hostiles_t which)
 
 	iprange_sync(hostile_db[which]);
 
-	if (dbg) {
+	if (GNET_PROPERTY(dbg)) {
 		g_message("loaded %u hostile IP addresses/netmasks (%u hosts)",
 			iprange_get_item_count(hostile_db[which]),
 			iprange_get_host_count(hostile_db[which]));
@@ -284,7 +284,7 @@ use_global_hostiles_txt_changed(property_t unused_prop)
 {
 	(void) unused_prop;
 
-	if (use_global_hostiles_txt && !hostile_db[HOSTILE_GLOBAL]) {
+	if (GNET_PROPERTY(use_global_hostiles_txt) && !hostile_db[HOSTILE_GLOBAL]) {
 		hostiles_retrieve(HOSTILE_GLOBAL);
 	}
 
@@ -336,7 +336,7 @@ hostiles_check(const host_addr_t ha)
 		ip = host_addr_ipv4(to);
 
 		for (i = 0; i < NUM_HOSTILES; i++) {
-			if (i == HOSTILE_GLOBAL && !use_global_hostiles_txt)
+			if (i == HOSTILE_GLOBAL && !GNET_PROPERTY(use_global_hostiles_txt))
 				continue;
 
 			if (

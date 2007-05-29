@@ -284,8 +284,10 @@ search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
 	if (!(SEARCH_F_PASSIVE & flags))
 		query = lazy_ui_string_to_utf8(query);
 
-    ret = search_gui_new_search_full(query, tm_time(), search_lifetime, timeout,
-			search_sort_default_column, search_sort_default_order,
+    ret = search_gui_new_search_full(query, tm_time(),
+			GUI_PROPERTY(search_lifetime), timeout,
+			GUI_PROPERTY(search_sort_default_column),
+			GUI_PROPERTY(search_sort_default_order),
 			flags | SEARCH_F_ENABLED, search);
 
 	return ret;
@@ -693,7 +695,7 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 		 */
 
 		if (rc->file_index != old_rc->file_index) {
-			if (gui_debug) {
+			if (GUI_PROPERTY(gui_debug)) {
 				g_warning("Index changed from %u to %u at %s for %s",
 					old_rc->file_index, rc->file_index,
 					guid_hex_str(rc->results_set->guid), rc->name);
@@ -727,7 +729,7 @@ search_gui_find(gnet_search_t sh)
 		search_t *s = l->data;
 
         if (s->search_handle == sh) {
-            if (gui_debug >= 15) {
+            if (GUI_PROPERTY(gui_debug) >= 15) {
                 g_message("search [%s] matched handle %x",
 					search_gui_query(s), sh);
 			}
@@ -1202,7 +1204,8 @@ search_matched(search_t *sch, results_set_t *rs)
     g_assert(rs != NULL);
 
 	max_results = search_gui_is_browse(sch)
-		? browse_host_max_results : search_max_results;
+		? GUI_PROPERTY(browse_host_max_results)
+		: GUI_PROPERTY(search_max_results);
 
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
@@ -1251,7 +1254,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		skip_records = (!send_pushes || is_firewalled) && (flags & SOCK_F_PUSH);
 	}
 
-	if (gui_debug > 6)
+	if (GUI_PROPERTY(gui_debug) > 6)
 		printf("search_matched: [%s] got hit with %d record%s (from %s) "
 			"need_push=%d, skipping=%d\n",
 			search_gui_query(sch), rs->num_recs, rs->num_recs == 1 ? "" : "s",
@@ -1265,7 +1268,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		g_assert(rc->magic == RECORD_MAGIC);
 		g_assert(rc->refcount >= 0);
 
-        if (gui_debug > 7)
+        if (GUI_PROPERTY(gui_debug) > 7)
             printf("search_matched: [%s] considering %s (%s)\n",
 				search_gui_query(sch), rc->name, vinfo->str);
 
@@ -1308,8 +1311,11 @@ search_matched(search_t *sch, results_set_t *rs)
 
 			if (
 				rc->size == 0 ||
-				(!rc->sha1 && search_discard_hashless) ||
-				((spam_score > 1 || is_hostile) && search_discard_spam)
+				(!rc->sha1 && GUI_PROPERTY(search_discard_hashless)) ||
+				(
+				 	(spam_score > 1 || is_hostile) &&
+					GUI_PROPERTY(search_discard_spam)
+				)
 			) {
 				sch->ignored++;
 				continue;
@@ -1346,7 +1352,10 @@ search_matched(search_t *sch, results_set_t *rs)
 			 * Don't show something we downloaded if they don't want it.
 			 */
 
-			if ((SR_DOWNLOADED & rc->flags) && search_hide_downloaded) {
+			if (
+				(SR_DOWNLOADED & rc->flags) &&
+				GUI_PROPERTY(search_hide_downloaded)
+			) {
 				results_kept++;
 				sch->hidden++;
 				continue;
@@ -1535,7 +1544,7 @@ search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
      */
     rs = search_gui_create_results_set(schl, r_set);
 
-    if (gui_debug >= 12)
+    if (GUI_PROPERTY(gui_debug) >= 12)
         printf("got incoming results...\n");
 
 #if 0
@@ -1551,7 +1560,7 @@ search_gui_flush_info(void)
 {
     guint rs_count = slist_length(accumulated_rs);
 
-    if (gui_debug >= 6 && rs_count > 0) {
+    if (GUI_PROPERTY(gui_debug) >= 6 && rs_count > 0) {
         const results_set_t *rs;
 		slist_iter_t *iter;
         guint recs = 0;
@@ -1622,7 +1631,7 @@ search_gui_flush(time_t now, gboolean force)
                 	frozen = g_slist_prepend(frozen, sch);
 				}
                 search_matched(sch, rs);
-            } else if (gui_debug >= 6) {
+            } else if (GUI_PROPERTY(gui_debug) >= 6) {
 				g_message(
 					"no search for cached search result while dispatching");
 			}
@@ -1635,7 +1644,7 @@ search_gui_flush(time_t now, gboolean force)
          * removing it will cause its destruction.
          */
 
-        if (gui_debug >= 15)
+        if (GUI_PROPERTY(gui_debug) >= 15)
             printf("cleaning phase\n");
 
         if (rs->refcount == 0) {
@@ -1646,7 +1655,7 @@ search_gui_flush(time_t now, gboolean force)
 
         search_gui_clean_r_set(rs);
 
-        if (gui_debug >= 15)
+        if (GUI_PROPERTY(gui_debug) >= 15)
             printf("trash phase\n");
 
         /*
@@ -1670,7 +1679,7 @@ search_gui_flush(time_t now, gboolean force)
 
                 if (sch) {
                     search_gui_remove_r_set(sch, rs);
-				} else if (gui_debug >= 6) {
+				} else if (GUI_PROPERTY(gui_debug) >= 6) {
 					g_message(
 						"no search for cached search result while cleaning");
 				}
@@ -1689,7 +1698,7 @@ search_gui_flush(time_t now, gboolean force)
     g_slist_free(frozen);
 	frozen = NULL;
 
-	if (gui_debug) {
+	if (GUI_PROPERTY(gui_debug)) {
 		tm_now_exact(&t1);
 		tm_elapsed(&dt, &t1, &t0);
 		g_message("dispatching results took %lu ms", (gulong) tm2ms(&dt));
@@ -1746,7 +1755,7 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 
 			word = g_strndup(p, n + 1);
 			g_strchomp(word);
-			if (gui_debug) {
+			if (GUI_PROPERTY(gui_debug)) {
 				g_message("neg: \"%s\"", word);
 			}
 
@@ -1762,7 +1771,7 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 				*dst++ = ' ';
 			}
 			g_strlcpy(dst, p, n + 1);
-			if (gui_debug) {
+			if (GUI_PROPERTY(gui_debug)) {
 				g_message("pos: \"%s\"", dst);
 			}
 			dst += n;
@@ -1984,7 +1993,8 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 		search_t *search;
 
 		success = search_gui_new_search_full(text, tm_time(), 0, 0,
-			 		search_sort_default_column, search_sort_default_order,
+			 		GUI_PROPERTY(search_sort_default_column),
+					GUI_PROPERTY(search_sort_default_order),
 			 		SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
 					&search);
 		if (success && search) {
@@ -2449,7 +2459,8 @@ search_gui_new_browse_host(
 	}
 
 	(void) search_gui_new_search_full(host_and_port, tm_time(), 0, 0,
-			 	search_sort_default_column, search_sort_default_order,
+			 	GUI_PROPERTY(search_sort_default_column),
+				GUI_PROPERTY(search_sort_default_order),
 			 	SEARCH_F_BROWSE | SEARCH_F_ENABLED, &search);
 
 	if (search) {
@@ -2498,7 +2509,7 @@ search_gui_duplicate_search(search_t *search)
     /* FIXME: should properly duplicate passive searches. */
 
 	search_gui_new_search_full(search_gui_query(search),
-		tm_time(), search_lifetime,
+		tm_time(), GUI_PROPERTY(search_lifetime),
 		timeout, search->sort_col, search->sort_order,
 		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);
 }

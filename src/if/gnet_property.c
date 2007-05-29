@@ -43,629 +43,632 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 
-gboolean reading_hostfile     = FALSE;
-gboolean reading_hostfile_def = FALSE;
-gboolean reading_ultrafile     = FALSE;
-gboolean reading_ultrafile_def = FALSE;
-gboolean ancient_version     = FALSE;
-gboolean ancient_version_def = FALSE;
-gchar   *new_version_str     = NULL;
-gchar   *new_version_str_def = NULL;
-guint32  up_connections     = 32;
-guint32  up_connections_def = 32;
-guint32  normal_connections     = 0;
-guint32  normal_connections_def = 0;
-guint32  max_connections     = 40;
-guint32  max_connections_def = 40;
-guint32  node_leaf_count     = 0;
-guint32  node_leaf_count_def = 0;
-guint32  node_normal_count     = 0;
-guint32  node_normal_count_def = 0;
-guint32  node_ultra_count     = 0;
-guint32  node_ultra_count_def = 0;
-guint32  max_downloads     = 100;
-guint32  max_downloads_def = 100;
-guint32  max_host_downloads     = 1;
-guint32  max_host_downloads_def = 1;
-guint32  max_uploads     = 4;
-guint32  max_uploads_def = 4;
-guint32  max_uploads_ip     = 1;
-guint32  max_uploads_ip_def = 1;
-host_addr_t   local_ip;
-host_addr_t   local_ip6;
-time_t  current_ip_stamp     = 0;
-time_t  current_ip_stamp_def = 0;
-time_t  current_ip6_stamp     = 0;
-time_t  current_ip6_stamp_def = 0;
-guint32  average_ip_uptime     = 0;
-guint32  average_ip_uptime_def = 0;
-guint32  average_ip6_uptime     = 0;
-guint32  average_ip6_uptime_def = 0;
-time_t  start_stamp     = 0;
-time_t  start_stamp_def = 0;
-guint32  average_servent_uptime     = 0;
-guint32  average_servent_uptime_def = 0;
-guint32  listen_port     = 1;
-guint32  listen_port_def = 1;
-host_addr_t   forced_local_ip;
-host_addr_t   forced_local_ip6;
-guint32  connection_speed     = 0;
-guint32  connection_speed_def = 0;
-gboolean compute_connection_speed     = TRUE;
-gboolean compute_connection_speed_def = TRUE;
-guint32  search_max_items     = 50;
-guint32  search_max_items_def = 50;
-guint32  ul_usage_min_percentage     = 70;
-guint32  ul_usage_min_percentage_def = 70;
-guint32  download_connecting_timeout     = 90;
-guint32  download_connecting_timeout_def = 90;
-guint32  download_push_sent_timeout     = 90;
-guint32  download_push_sent_timeout_def = 90;
-guint32  download_connected_timeout     = 180;
-guint32  download_connected_timeout_def = 180;
-guint32  download_retry_timeout_min     = 20;
-guint32  download_retry_timeout_min_def = 20;
-guint32  download_retry_timeout_max     = 300;
-guint32  download_retry_timeout_max_def = 300;
-guint32  download_max_retries     = 16;
-guint32  download_max_retries_def = 16;
-guint32  download_retry_timeout_delay     = 1200;
-guint32  download_retry_timeout_delay_def = 1200;
-guint32  download_retry_busy_delay     = 60;
-guint32  download_retry_busy_delay_def = 60;
-guint32  download_retry_refused_delay     = 1800;
-guint32  download_retry_refused_delay_def = 1800;
-guint32  download_retry_stopped_delay     = 15;
-guint32  download_retry_stopped_delay_def = 15;
-guint32  download_overlap_range     = 512;
-guint32  download_overlap_range_def = 512;
-guint32  upload_connecting_timeout     = 90;
-guint32  upload_connecting_timeout_def = 90;
-guint32  upload_connected_timeout     = 180;
-guint32  upload_connected_timeout_def = 180;
-guint32  search_reissue_timeout     = 3600;
-guint32  search_reissue_timeout_def = 3600;
-guint32  ban_ratio_fds     = 25;
-guint32  ban_ratio_fds_def = 25;
-guint32  ban_max_fds     = 100;
-guint32  ban_max_fds_def = 100;
-guint32  banned_count     = 0;
-guint32  banned_count_def = 0;
-guint32  max_banned_fd     = 100;
-guint32  max_banned_fd_def = 100;
-guint32  incoming_connecting_timeout     = 60;
-guint32  incoming_connecting_timeout_def = 60;
-guint32  node_connecting_timeout     = 30;
-guint32  node_connecting_timeout_def = 30;
-guint32  node_connected_timeout     = 180;
-guint32  node_connected_timeout_def = 180;
-guint32  node_sendqueue_size     = 98304;
-guint32  node_sendqueue_size_def = 98304;
-guint32  node_tx_flowc_timeout     = 180;
-guint32  node_tx_flowc_timeout_def = 180;
-guint32  node_rx_flowc_ratio     = 70;
-guint32  node_rx_flowc_ratio_def = 70;
-guint32  max_ttl     = 4;
-guint32  max_ttl_def = 4;
-guint32  my_ttl     = 4;
-guint32  my_ttl_def = 4;
-guint32  hard_ttl_limit     = 15;
-guint32  hard_ttl_limit_def = 15;
-guint32  dbg     = 0;
-guint32  dbg_def = 0;
-guint32  ban_debug     = 0;
-guint32  ban_debug_def = 0;
-guint32  cpu_debug     = 0;
-guint32  cpu_debug_def = 0;
-guint32  dmesh_debug     = 0;
-guint32  dmesh_debug_def = 0;
-guint32  gmsg_debug     = 0;
-guint32  gmsg_debug_def = 0;
-guint32  share_debug     = 0;
-guint32  share_debug_def = 0;
-guint32  node_debug     = 0;
-guint32  node_debug_def = 0;
-guint32  socket_debug     = 0;
-guint32  socket_debug_def = 0;
-guint32  bootstrap_debug     = 0;
-guint32  bootstrap_debug_def = 0;
-guint32  http_debug     = 0;
-guint32  http_debug_def = 0;
-guint32  download_debug     = 0;
-guint32  download_debug_def = 0;
-guint32  fileinfo_debug     = 0;
-guint32  fileinfo_debug_def = 0;
-guint32  upload_debug     = 0;
-guint32  upload_debug_def = 0;
-guint32  lib_debug     = 0;
-guint32  lib_debug_def = 0;
-guint32  bitzi_debug     = 0;
-guint32  bitzi_debug_def = 0;
-guint32  url_debug     = 0;
-guint32  url_debug_def = 0;
-guint32  dh_debug     = 0;
-guint32  dh_debug_def = 0;
-guint32  dq_debug     = 0;
-guint32  dq_debug_def = 0;
-guint32  vmsg_debug     = 0;
-guint32  vmsg_debug_def = 0;
-guint32  query_debug     = 0;
-guint32  query_debug_def = 0;
-guint32  search_debug     = 0;
-guint32  search_debug_def = 0;
-guint32  udp_debug     = 0;
-guint32  udp_debug_def = 0;
-guint32  qrp_debug     = 0;
-guint32  qrp_debug_def = 0;
-guint32  routing_debug     = 0;
-guint32  routing_debug_def = 0;
-guint32  ggep_debug     = 0;
-guint32  ggep_debug_def = 0;
-guint32  pcache_debug     = 0;
-guint32  pcache_debug_def = 0;
-guint32  hsep_debug     = 0;
-guint32  hsep_debug_def = 0;
-guint32  tls_debug     = 0;
-guint32  tls_debug_def = 0;
-guint32  parq_debug     = 0;
-guint32  parq_debug_def = 0;
-gboolean parq_optimistic     = TRUE;
-gboolean parq_optimistic_def = TRUE;
-guint32  parq_size_always_continue     = 8192;
-guint32  parq_size_always_continue_def = 8192;
-guint32  parq_time_always_continue     = 5;
-guint32  parq_time_always_continue_def = 5;
-guint32  parq_ban_bad_maxcountwait     = 1;
-guint32  parq_ban_bad_maxcountwait_def = 1;
-guint32  track_props     = 0;
-guint32  track_props_def = 0;
-gboolean stop_host_get     = FALSE;
-gboolean stop_host_get_def = FALSE;
-gboolean bws_in_enabled     = FALSE;
-gboolean bws_in_enabled_def = FALSE;
-gboolean bws_out_enabled     = FALSE;
-gboolean bws_out_enabled_def = FALSE;
-gboolean bws_gin_enabled     = FALSE;
-gboolean bws_gin_enabled_def = FALSE;
-gboolean bws_glin_enabled     = FALSE;
-gboolean bws_glin_enabled_def = FALSE;
-gboolean bws_gout_enabled     = FALSE;
-gboolean bws_gout_enabled_def = FALSE;
-gboolean bws_glout_enabled     = FALSE;
-gboolean bws_glout_enabled_def = FALSE;
-gboolean bw_ul_usage_enabled     = FALSE;
-gboolean bw_ul_usage_enabled_def = FALSE;
-gboolean bw_allow_stealing     = TRUE;
-gboolean bw_allow_stealing_def = TRUE;
-gboolean clear_complete_downloads     = FALSE;
-gboolean clear_complete_downloads_def = FALSE;
-gboolean clear_failed_downloads     = FALSE;
-gboolean clear_failed_downloads_def = FALSE;
-gboolean clear_unavailable_downloads     = TRUE;
-gboolean clear_unavailable_downloads_def = TRUE;
-gboolean search_remove_downloaded     = FALSE;
-gboolean search_remove_downloaded_def = FALSE;
-gboolean force_local_ip     = FALSE;
-gboolean force_local_ip_def = FALSE;
-gboolean force_local_ip6     = FALSE;
-gboolean force_local_ip6_def = FALSE;
-gboolean bind_to_forced_local_ip     = FALSE;
-gboolean bind_to_forced_local_ip_def = FALSE;
-gboolean bind_to_forced_local_ip6     = FALSE;
-gboolean bind_to_forced_local_ip6_def = FALSE;
-gboolean use_netmasks     = FALSE;
-gboolean use_netmasks_def = FALSE;
-gboolean allow_private_network_connection     = FALSE;
-gboolean allow_private_network_connection_def = FALSE;
-gboolean use_ip_tos     = FALSE;
-gboolean use_ip_tos_def = FALSE;
-gboolean download_delete_aborted     = TRUE;
-gboolean download_delete_aborted_def = TRUE;
-gboolean proxy_auth     = FALSE;
-gboolean proxy_auth_def = FALSE;
-gchar   *socks_user     = "username";
-gchar   *socks_user_def = "username";
-gchar   *socks_pass     = "password";
-gchar   *socks_pass_def = "password";
-host_addr_t   proxy_addr;
-gchar   *proxy_hostname     = "";
-gchar   *proxy_hostname_def = "";
-guint32  proxy_port     = 0x0000;
-guint32  proxy_port_def = 0x0000;
-guint32  proxy_protocol     = PROXY_NONE;
-guint32  proxy_protocol_def = PROXY_NONE;
-prop_def_choice_t proxy_protocol_choices[] = { 
+gboolean gnet_property_variable_reading_hostfile     = FALSE;
+static const gboolean gnet_property_variable_reading_hostfile_default = FALSE;
+gboolean gnet_property_variable_reading_ultrafile     = FALSE;
+static const gboolean gnet_property_variable_reading_ultrafile_default = FALSE;
+gboolean gnet_property_variable_ancient_version     = FALSE;
+static const gboolean gnet_property_variable_ancient_version_default = FALSE;
+gchar   *gnet_property_variable_new_version_str     = NULL;
+static const gchar   *gnet_property_variable_new_version_str_default = NULL;
+guint32  gnet_property_variable_up_connections     = 32;
+static const guint32  gnet_property_variable_up_connections_default = 32;
+guint32  gnet_property_variable_normal_connections     = 0;
+static const guint32  gnet_property_variable_normal_connections_default = 0;
+guint32  gnet_property_variable_max_connections     = 40;
+static const guint32  gnet_property_variable_max_connections_default = 40;
+guint32  gnet_property_variable_node_leaf_count     = 0;
+static const guint32  gnet_property_variable_node_leaf_count_default = 0;
+guint32  gnet_property_variable_node_normal_count     = 0;
+static const guint32  gnet_property_variable_node_normal_count_default = 0;
+guint32  gnet_property_variable_node_ultra_count     = 0;
+static const guint32  gnet_property_variable_node_ultra_count_default = 0;
+guint32  gnet_property_variable_max_downloads     = 100;
+static const guint32  gnet_property_variable_max_downloads_default = 100;
+guint32  gnet_property_variable_max_host_downloads     = 1;
+static const guint32  gnet_property_variable_max_host_downloads_default = 1;
+guint32  gnet_property_variable_max_uploads     = 4;
+static const guint32  gnet_property_variable_max_uploads_default = 4;
+guint32  gnet_property_variable_max_uploads_ip     = 1;
+static const guint32  gnet_property_variable_max_uploads_ip_default = 1;
+host_addr_t  gnet_property_variable_local_ip;
+host_addr_t  gnet_property_variable_local_ip6;
+time_t  gnet_property_variable_current_ip_stamp     = 0;
+static const time_t  gnet_property_variable_current_ip_stamp_default = 0;
+time_t  gnet_property_variable_current_ip6_stamp     = 0;
+static const time_t  gnet_property_variable_current_ip6_stamp_default = 0;
+guint32  gnet_property_variable_average_ip_uptime     = 0;
+static const guint32  gnet_property_variable_average_ip_uptime_default = 0;
+guint32  gnet_property_variable_average_ip6_uptime     = 0;
+static const guint32  gnet_property_variable_average_ip6_uptime_default = 0;
+time_t  gnet_property_variable_start_stamp     = 0;
+static const time_t  gnet_property_variable_start_stamp_default = 0;
+guint32  gnet_property_variable_average_servent_uptime     = 0;
+static const guint32  gnet_property_variable_average_servent_uptime_default = 0;
+guint32  gnet_property_variable_listen_port     = 1;
+static const guint32  gnet_property_variable_listen_port_default = 1;
+host_addr_t  gnet_property_variable_forced_local_ip;
+host_addr_t  gnet_property_variable_forced_local_ip6;
+guint32  gnet_property_variable_connection_speed     = 0;
+static const guint32  gnet_property_variable_connection_speed_default = 0;
+gboolean gnet_property_variable_compute_connection_speed     = TRUE;
+static const gboolean gnet_property_variable_compute_connection_speed_default = TRUE;
+guint32  gnet_property_variable_search_max_items     = 50;
+static const guint32  gnet_property_variable_search_max_items_default = 50;
+guint32  gnet_property_variable_ul_usage_min_percentage     = 70;
+static const guint32  gnet_property_variable_ul_usage_min_percentage_default = 70;
+guint32  gnet_property_variable_download_connecting_timeout     = 90;
+static const guint32  gnet_property_variable_download_connecting_timeout_default = 90;
+guint32  gnet_property_variable_download_push_sent_timeout     = 90;
+static const guint32  gnet_property_variable_download_push_sent_timeout_default = 90;
+guint32  gnet_property_variable_download_connected_timeout     = 180;
+static const guint32  gnet_property_variable_download_connected_timeout_default = 180;
+guint32  gnet_property_variable_download_retry_timeout_min     = 20;
+static const guint32  gnet_property_variable_download_retry_timeout_min_default = 20;
+guint32  gnet_property_variable_download_retry_timeout_max     = 300;
+static const guint32  gnet_property_variable_download_retry_timeout_max_default = 300;
+guint32  gnet_property_variable_download_max_retries     = 16;
+static const guint32  gnet_property_variable_download_max_retries_default = 16;
+guint32  gnet_property_variable_download_retry_timeout_delay     = 1200;
+static const guint32  gnet_property_variable_download_retry_timeout_delay_default = 1200;
+guint32  gnet_property_variable_download_retry_busy_delay     = 60;
+static const guint32  gnet_property_variable_download_retry_busy_delay_default = 60;
+guint32  gnet_property_variable_download_retry_refused_delay     = 1800;
+static const guint32  gnet_property_variable_download_retry_refused_delay_default = 1800;
+guint32  gnet_property_variable_download_retry_stopped_delay     = 15;
+static const guint32  gnet_property_variable_download_retry_stopped_delay_default = 15;
+guint32  gnet_property_variable_download_overlap_range     = 512;
+static const guint32  gnet_property_variable_download_overlap_range_default = 512;
+guint32  gnet_property_variable_upload_connecting_timeout     = 90;
+static const guint32  gnet_property_variable_upload_connecting_timeout_default = 90;
+guint32  gnet_property_variable_upload_connected_timeout     = 180;
+static const guint32  gnet_property_variable_upload_connected_timeout_default = 180;
+guint32  gnet_property_variable_search_reissue_timeout     = 3600;
+static const guint32  gnet_property_variable_search_reissue_timeout_default = 3600;
+guint32  gnet_property_variable_ban_ratio_fds     = 25;
+static const guint32  gnet_property_variable_ban_ratio_fds_default = 25;
+guint32  gnet_property_variable_ban_max_fds     = 100;
+static const guint32  gnet_property_variable_ban_max_fds_default = 100;
+guint32  gnet_property_variable_banned_count     = 0;
+static const guint32  gnet_property_variable_banned_count_default = 0;
+guint32  gnet_property_variable_max_banned_fd     = 100;
+static const guint32  gnet_property_variable_max_banned_fd_default = 100;
+guint32  gnet_property_variable_incoming_connecting_timeout     = 60;
+static const guint32  gnet_property_variable_incoming_connecting_timeout_default = 60;
+guint32  gnet_property_variable_node_connecting_timeout     = 30;
+static const guint32  gnet_property_variable_node_connecting_timeout_default = 30;
+guint32  gnet_property_variable_node_connected_timeout     = 180;
+static const guint32  gnet_property_variable_node_connected_timeout_default = 180;
+guint32  gnet_property_variable_node_sendqueue_size     = 98304;
+static const guint32  gnet_property_variable_node_sendqueue_size_default = 98304;
+guint32  gnet_property_variable_node_tx_flowc_timeout     = 180;
+static const guint32  gnet_property_variable_node_tx_flowc_timeout_default = 180;
+guint32  gnet_property_variable_node_rx_flowc_ratio     = 70;
+static const guint32  gnet_property_variable_node_rx_flowc_ratio_default = 70;
+guint32  gnet_property_variable_max_ttl     = 4;
+static const guint32  gnet_property_variable_max_ttl_default = 4;
+guint32  gnet_property_variable_my_ttl     = 4;
+static const guint32  gnet_property_variable_my_ttl_default = 4;
+guint32  gnet_property_variable_hard_ttl_limit     = 15;
+static const guint32  gnet_property_variable_hard_ttl_limit_default = 15;
+guint32  gnet_property_variable_dbg     = 0;
+static const guint32  gnet_property_variable_dbg_default = 0;
+guint32  gnet_property_variable_ban_debug     = 0;
+static const guint32  gnet_property_variable_ban_debug_default = 0;
+guint32  gnet_property_variable_cpu_debug     = 0;
+static const guint32  gnet_property_variable_cpu_debug_default = 0;
+guint32  gnet_property_variable_dmesh_debug     = 0;
+static const guint32  gnet_property_variable_dmesh_debug_default = 0;
+guint32  gnet_property_variable_gmsg_debug     = 0;
+static const guint32  gnet_property_variable_gmsg_debug_default = 0;
+guint32  gnet_property_variable_share_debug     = 0;
+static const guint32  gnet_property_variable_share_debug_default = 0;
+guint32  gnet_property_variable_node_debug     = 0;
+static const guint32  gnet_property_variable_node_debug_default = 0;
+guint32  gnet_property_variable_socket_debug     = 0;
+static const guint32  gnet_property_variable_socket_debug_default = 0;
+guint32  gnet_property_variable_bootstrap_debug     = 0;
+static const guint32  gnet_property_variable_bootstrap_debug_default = 0;
+guint32  gnet_property_variable_http_debug     = 0;
+static const guint32  gnet_property_variable_http_debug_default = 0;
+guint32  gnet_property_variable_download_debug     = 0;
+static const guint32  gnet_property_variable_download_debug_default = 0;
+guint32  gnet_property_variable_fileinfo_debug     = 0;
+static const guint32  gnet_property_variable_fileinfo_debug_default = 0;
+guint32  gnet_property_variable_upload_debug     = 0;
+static const guint32  gnet_property_variable_upload_debug_default = 0;
+guint32  gnet_property_variable_lib_debug     = 0;
+static const guint32  gnet_property_variable_lib_debug_default = 0;
+guint32  gnet_property_variable_bitzi_debug     = 0;
+static const guint32  gnet_property_variable_bitzi_debug_default = 0;
+guint32  gnet_property_variable_url_debug     = 0;
+static const guint32  gnet_property_variable_url_debug_default = 0;
+guint32  gnet_property_variable_dh_debug     = 0;
+static const guint32  gnet_property_variable_dh_debug_default = 0;
+guint32  gnet_property_variable_dq_debug     = 0;
+static const guint32  gnet_property_variable_dq_debug_default = 0;
+guint32  gnet_property_variable_vmsg_debug     = 0;
+static const guint32  gnet_property_variable_vmsg_debug_default = 0;
+guint32  gnet_property_variable_query_debug     = 0;
+static const guint32  gnet_property_variable_query_debug_default = 0;
+guint32  gnet_property_variable_search_debug     = 0;
+static const guint32  gnet_property_variable_search_debug_default = 0;
+guint32  gnet_property_variable_udp_debug     = 0;
+static const guint32  gnet_property_variable_udp_debug_default = 0;
+guint32  gnet_property_variable_qrp_debug     = 0;
+static const guint32  gnet_property_variable_qrp_debug_default = 0;
+guint32  gnet_property_variable_routing_debug     = 0;
+static const guint32  gnet_property_variable_routing_debug_default = 0;
+guint32  gnet_property_variable_ggep_debug     = 0;
+static const guint32  gnet_property_variable_ggep_debug_default = 0;
+guint32  gnet_property_variable_pcache_debug     = 0;
+static const guint32  gnet_property_variable_pcache_debug_default = 0;
+guint32  gnet_property_variable_hsep_debug     = 0;
+static const guint32  gnet_property_variable_hsep_debug_default = 0;
+guint32  gnet_property_variable_tls_debug     = 0;
+static const guint32  gnet_property_variable_tls_debug_default = 0;
+guint32  gnet_property_variable_parq_debug     = 0;
+static const guint32  gnet_property_variable_parq_debug_default = 0;
+gboolean gnet_property_variable_parq_optimistic     = TRUE;
+static const gboolean gnet_property_variable_parq_optimistic_default = TRUE;
+guint32  gnet_property_variable_parq_size_always_continue     = 8192;
+static const guint32  gnet_property_variable_parq_size_always_continue_default = 8192;
+guint32  gnet_property_variable_parq_time_always_continue     = 5;
+static const guint32  gnet_property_variable_parq_time_always_continue_default = 5;
+guint32  gnet_property_variable_parq_ban_bad_maxcountwait     = 1;
+static const guint32  gnet_property_variable_parq_ban_bad_maxcountwait_default = 1;
+guint32  gnet_property_variable_track_props     = 0;
+static const guint32  gnet_property_variable_track_props_default = 0;
+gboolean gnet_property_variable_stop_host_get     = FALSE;
+static const gboolean gnet_property_variable_stop_host_get_default = FALSE;
+gboolean gnet_property_variable_bws_in_enabled     = FALSE;
+static const gboolean gnet_property_variable_bws_in_enabled_default = FALSE;
+gboolean gnet_property_variable_bws_out_enabled     = FALSE;
+static const gboolean gnet_property_variable_bws_out_enabled_default = FALSE;
+gboolean gnet_property_variable_bws_gin_enabled     = FALSE;
+static const gboolean gnet_property_variable_bws_gin_enabled_default = FALSE;
+gboolean gnet_property_variable_bws_glin_enabled     = FALSE;
+static const gboolean gnet_property_variable_bws_glin_enabled_default = FALSE;
+gboolean gnet_property_variable_bws_gout_enabled     = FALSE;
+static const gboolean gnet_property_variable_bws_gout_enabled_default = FALSE;
+gboolean gnet_property_variable_bws_glout_enabled     = FALSE;
+static const gboolean gnet_property_variable_bws_glout_enabled_default = FALSE;
+gboolean gnet_property_variable_bw_ul_usage_enabled     = FALSE;
+static const gboolean gnet_property_variable_bw_ul_usage_enabled_default = FALSE;
+gboolean gnet_property_variable_bw_allow_stealing     = TRUE;
+static const gboolean gnet_property_variable_bw_allow_stealing_default = TRUE;
+gboolean gnet_property_variable_clear_complete_downloads     = FALSE;
+static const gboolean gnet_property_variable_clear_complete_downloads_default = FALSE;
+gboolean gnet_property_variable_clear_failed_downloads     = FALSE;
+static const gboolean gnet_property_variable_clear_failed_downloads_default = FALSE;
+gboolean gnet_property_variable_clear_unavailable_downloads     = TRUE;
+static const gboolean gnet_property_variable_clear_unavailable_downloads_default = TRUE;
+gboolean gnet_property_variable_search_remove_downloaded     = FALSE;
+static const gboolean gnet_property_variable_search_remove_downloaded_default = FALSE;
+gboolean gnet_property_variable_force_local_ip     = FALSE;
+static const gboolean gnet_property_variable_force_local_ip_default = FALSE;
+gboolean gnet_property_variable_force_local_ip6     = FALSE;
+static const gboolean gnet_property_variable_force_local_ip6_default = FALSE;
+gboolean gnet_property_variable_bind_to_forced_local_ip     = FALSE;
+static const gboolean gnet_property_variable_bind_to_forced_local_ip_default = FALSE;
+gboolean gnet_property_variable_bind_to_forced_local_ip6     = FALSE;
+static const gboolean gnet_property_variable_bind_to_forced_local_ip6_default = FALSE;
+gboolean gnet_property_variable_use_netmasks     = FALSE;
+static const gboolean gnet_property_variable_use_netmasks_default = FALSE;
+gboolean gnet_property_variable_allow_private_network_connection     = FALSE;
+static const gboolean gnet_property_variable_allow_private_network_connection_default = FALSE;
+gboolean gnet_property_variable_use_ip_tos     = FALSE;
+static const gboolean gnet_property_variable_use_ip_tos_default = FALSE;
+gboolean gnet_property_variable_download_delete_aborted     = TRUE;
+static const gboolean gnet_property_variable_download_delete_aborted_default = TRUE;
+gboolean gnet_property_variable_proxy_auth     = FALSE;
+static const gboolean gnet_property_variable_proxy_auth_default = FALSE;
+gchar   *gnet_property_variable_socks_user     = "username";
+static const gchar   *gnet_property_variable_socks_user_default = "username";
+gchar   *gnet_property_variable_socks_pass     = "password";
+static const gchar   *gnet_property_variable_socks_pass_default = "password";
+host_addr_t  gnet_property_variable_proxy_addr;
+gchar   *gnet_property_variable_proxy_hostname     = "";
+static const gchar   *gnet_property_variable_proxy_hostname_default = "";
+guint32  gnet_property_variable_proxy_port     = 0x0000;
+static const guint32  gnet_property_variable_proxy_port_default = 0x0000;
+guint32  gnet_property_variable_proxy_protocol     = PROXY_NONE;
+static const guint32  gnet_property_variable_proxy_protocol_default = PROXY_NONE;
+prop_def_choice_t gnet_property_variable_proxy_protocol_choices[] = { 
     {N_("No proxy"), PROXY_NONE},
     {N_("HTTP"), PROXY_HTTP},
     {N_("SOCKS v4"), PROXY_SOCKSV4},
     {N_("SOCKS v5"), PROXY_SOCKSV5},
     {NULL, 0}
 };
-guint32  network_protocol     = NET_USE_IPV4;
-guint32  network_protocol_def = NET_USE_IPV4;
-prop_def_choice_t network_protocol_choices[] = { 
+guint32  gnet_property_variable_network_protocol     = NET_USE_IPV4;
+static const guint32  gnet_property_variable_network_protocol_default = NET_USE_IPV4;
+prop_def_choice_t gnet_property_variable_network_protocol_choices[] = { 
     {N_("IPv4 only"), NET_USE_IPV4},
     {N_("IPv6 only"), NET_USE_IPV6},
     {N_("IPv4 and IPv6"), NET_USE_BOTH},
     {NULL, 0}
 };
-gboolean use_ipv6_trt     = FALSE;
-gboolean use_ipv6_trt_def = FALSE;
-host_addr_t   ipv6_trt_prefix;
-guint32  hosts_in_catcher     = 0;
-guint32  hosts_in_catcher_def = 0;
-guint32  hosts_in_ultra_catcher     = 0;
-guint32  hosts_in_ultra_catcher_def = 0;
-guint32  hosts_in_bad_catcher     = 0;
-guint32  hosts_in_bad_catcher_def = 0;
-guint32  max_hosts_cached     = 10000;
-guint32  max_hosts_cached_def = 10000;
-guint32  max_ultra_hosts_cached     = 10000;
-guint32  max_ultra_hosts_cached_def = 10000;
-guint32  max_bad_hosts_cached     = 8000;
-guint32  max_bad_hosts_cached_def = 8000;
-guint32  max_high_ttl_msg     = 10;
-guint32  max_high_ttl_msg_def = 10;
-guint32  max_high_ttl_radius     = 2;
-guint32  max_high_ttl_radius_def = 2;
-guint32  bw_http_in     = 8192;
-guint32  bw_http_in_def = 8192;
-guint32  bw_http_out     = 8192;
-guint32  bw_http_out_def = 8192;
-guint32  bw_gnet_in     = 8192;
-guint32  bw_gnet_in_def = 8192;
-guint32  bw_gnet_out     = 8192;
-guint32  bw_gnet_out_def = 8192;
-guint32  bw_gnet_lin     = 3072;
-guint32  bw_gnet_lin_def = 3072;
-guint32  bw_gnet_lout     = 2048;
-guint32  bw_gnet_lout_def = 2048;
-guint32  search_queries_forward_size     = 256;
-guint32  search_queries_forward_size_def = 256;
-guint32  search_queries_kick_size     = 1024;
-guint32  search_queries_kick_size_def = 1024;
-guint32  search_answers_forward_size     = 16384;
-guint32  search_answers_forward_size_def = 16384;
-guint32  search_answers_kick_size     = 65536;
-guint32  search_answers_kick_size_def = 65536;
-guint32  search_muid_track_amount     = 0;
-guint32  search_muid_track_amount_def = 0;
-guint32  other_messages_kick_size     = 40960;
-guint32  other_messages_kick_size_def = 40960;
-guint32  hops_random_factor     = 0;
-guint32  hops_random_factor_def = 0;
-gboolean send_pushes     = TRUE;
-gboolean send_pushes_def = TRUE;
-guint32  min_dup_msg     = 5;
-guint32  min_dup_msg_def = 5;
-guint32  min_dup_ratio     = 150;
-guint32  min_dup_ratio_def = 150;
-gchar   *scan_extensions     = "aac;avi;bin;bz2;cue;deb;divx;doc;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;ogg;ogm;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;srt;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
-gchar   *scan_extensions_def = "aac;avi;bin;bz2;cue;deb;divx;doc;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;ogg;ogm;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;srt;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
-gboolean scan_ignore_symlink_dirs     = FALSE;
-gboolean scan_ignore_symlink_dirs_def = FALSE;
-gboolean scan_ignore_symlink_regfiles     = FALSE;
-gboolean scan_ignore_symlink_regfiles_def = FALSE;
-gchar   *save_file_path     = "~/gtk-gnutella-downloads/incomplete";
-gchar   *save_file_path_def = "~/gtk-gnutella-downloads/incomplete";
-gchar   *move_file_path     = "~/gtk-gnutella-downloads/complete";
-gchar   *move_file_path_def = "~/gtk-gnutella-downloads/complete";
-gchar   *bad_file_path     = "~/gtk-gnutella-downloads/corrupt";
-gchar   *bad_file_path_def = "~/gtk-gnutella-downloads/corrupt";
-gchar   *shared_dirs_paths     = "";
-gchar   *shared_dirs_paths_def = "";
-gchar   *local_netmasks_string     = "";
-gchar   *local_netmasks_string_def = "";
-guint32  total_downloads     = 0;
-guint32  total_downloads_def = 0;
-guint32  ul_running     = 0;
-guint32  ul_running_def = 0;
-guint32  ul_registered     = 0;
-guint32  ul_registered_def = 0;
-guint32  total_uploads     = 0;
-guint32  total_uploads_def = 0;
-gchar   servent_guid[GUID_RAW_SIZE];
-gchar   servent_kuid[KUID_RAW_SIZE];
-gboolean use_swarming     = TRUE;
-gboolean use_swarming_def = TRUE;
-gboolean use_aggressive_swarming     = TRUE;
-gboolean use_aggressive_swarming_def = TRUE;
-guint32  dl_minchunksize     = 512*1024;
-guint32  dl_minchunksize_def = 512*1024;
-guint32  dl_maxchunksize     = 10*1024*1024;
-guint32  dl_maxchunksize_def = 10*1024*1024;
-gboolean auto_download_identical     = TRUE;
-gboolean auto_download_identical_def = TRUE;
-gboolean auto_feed_download_mesh     = TRUE;
-gboolean auto_feed_download_mesh_def = TRUE;
-gboolean strict_sha1_matching     = TRUE;
-gboolean strict_sha1_matching_def = TRUE;
-gboolean use_fuzzy_matching     = FALSE;
-gboolean use_fuzzy_matching_def = FALSE;
-guint32  fuzzy_threshold     = 70;
-guint32  fuzzy_threshold_def = 70;
-gboolean is_firewalled     = TRUE;
-gboolean is_firewalled_def = TRUE;
-gboolean is_inet_connected     = TRUE;
-gboolean is_inet_connected_def = TRUE;
-gboolean is_udp_firewalled     = TRUE;
-gboolean is_udp_firewalled_def = TRUE;
-gboolean recv_solicited_udp     = FALSE;
-gboolean recv_solicited_udp_def = FALSE;
-gboolean gnet_compact_query     = TRUE;
-gboolean gnet_compact_query_def = TRUE;
-gboolean download_optimistic_start     = FALSE;
-gboolean download_optimistic_start_def = FALSE;
-gboolean library_rebuilding     = FALSE;
-gboolean library_rebuilding_def = FALSE;
-gboolean sha1_rebuilding     = FALSE;
-gboolean sha1_rebuilding_def = FALSE;
-gboolean sha1_verifying     = FALSE;
-gboolean sha1_verifying_def = FALSE;
-gboolean file_moving     = FALSE;
-gboolean file_moving_def = FALSE;
-gboolean prefer_compressed_gnet     = TRUE;
-gboolean prefer_compressed_gnet_def = TRUE;
-gboolean online_mode     = TRUE;
-gboolean online_mode_def = TRUE;
-gboolean download_require_urn     = FALSE;
-gboolean download_require_urn_def = FALSE;
-gboolean download_require_server_name     = TRUE;
-gboolean download_require_server_name_def = TRUE;
-guint32  max_ultrapeers     = 3;
-guint32  max_ultrapeers_def = 3;
-guint32  quick_connect_pool_size     = 10;
-guint32  quick_connect_pool_size_def = 10;
-guint32  max_leaves     = 150;
-guint32  max_leaves_def = 150;
-guint32  search_handle_ignored_files     = 0;
-guint32  search_handle_ignored_files_def = 0;
-prop_def_choice_t search_handle_ignored_files_choices[] = { 
+gboolean gnet_property_variable_use_ipv6_trt     = FALSE;
+static const gboolean gnet_property_variable_use_ipv6_trt_default = FALSE;
+host_addr_t  gnet_property_variable_ipv6_trt_prefix;
+guint32  gnet_property_variable_hosts_in_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_catcher_default = 0;
+guint32  gnet_property_variable_hosts_in_ultra_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_ultra_catcher_default = 0;
+guint32  gnet_property_variable_hosts_in_bad_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_bad_catcher_default = 0;
+guint32  gnet_property_variable_max_hosts_cached     = 10000;
+static const guint32  gnet_property_variable_max_hosts_cached_default = 10000;
+guint32  gnet_property_variable_max_ultra_hosts_cached     = 10000;
+static const guint32  gnet_property_variable_max_ultra_hosts_cached_default = 10000;
+guint32  gnet_property_variable_max_bad_hosts_cached     = 8000;
+static const guint32  gnet_property_variable_max_bad_hosts_cached_default = 8000;
+guint32  gnet_property_variable_max_high_ttl_msg     = 10;
+static const guint32  gnet_property_variable_max_high_ttl_msg_default = 10;
+guint32  gnet_property_variable_max_high_ttl_radius     = 2;
+static const guint32  gnet_property_variable_max_high_ttl_radius_default = 2;
+guint32  gnet_property_variable_bw_http_in     = 8192;
+static const guint32  gnet_property_variable_bw_http_in_default = 8192;
+guint32  gnet_property_variable_bw_http_out     = 8192;
+static const guint32  gnet_property_variable_bw_http_out_default = 8192;
+guint32  gnet_property_variable_bw_gnet_in     = 8192;
+static const guint32  gnet_property_variable_bw_gnet_in_default = 8192;
+guint32  gnet_property_variable_bw_gnet_out     = 8192;
+static const guint32  gnet_property_variable_bw_gnet_out_default = 8192;
+guint32  gnet_property_variable_bw_gnet_lin     = 3072;
+static const guint32  gnet_property_variable_bw_gnet_lin_default = 3072;
+guint32  gnet_property_variable_bw_gnet_lout     = 2048;
+static const guint32  gnet_property_variable_bw_gnet_lout_default = 2048;
+guint32  gnet_property_variable_search_queries_forward_size     = 256;
+static const guint32  gnet_property_variable_search_queries_forward_size_default = 256;
+guint32  gnet_property_variable_search_queries_kick_size     = 1024;
+static const guint32  gnet_property_variable_search_queries_kick_size_default = 1024;
+guint32  gnet_property_variable_search_answers_forward_size     = 16384;
+static const guint32  gnet_property_variable_search_answers_forward_size_default = 16384;
+guint32  gnet_property_variable_search_answers_kick_size     = 65536;
+static const guint32  gnet_property_variable_search_answers_kick_size_default = 65536;
+guint32  gnet_property_variable_search_muid_track_amount     = 0;
+static const guint32  gnet_property_variable_search_muid_track_amount_default = 0;
+guint32  gnet_property_variable_other_messages_kick_size     = 40960;
+static const guint32  gnet_property_variable_other_messages_kick_size_default = 40960;
+guint32  gnet_property_variable_hops_random_factor     = 0;
+static const guint32  gnet_property_variable_hops_random_factor_default = 0;
+gboolean gnet_property_variable_send_pushes     = TRUE;
+static const gboolean gnet_property_variable_send_pushes_default = TRUE;
+guint32  gnet_property_variable_min_dup_msg     = 5;
+static const guint32  gnet_property_variable_min_dup_msg_default = 5;
+guint32  gnet_property_variable_min_dup_ratio     = 150;
+static const guint32  gnet_property_variable_min_dup_ratio_default = 150;
+gchar   *gnet_property_variable_scan_extensions     = "aac;avi;bin;bz2;cue;deb;divx;doc;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;ogg;ogm;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;srt;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
+static const gchar   *gnet_property_variable_scan_extensions_default = "aac;avi;bin;bz2;cue;deb;divx;doc;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;ogg;ogm;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;srt;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
+gboolean gnet_property_variable_scan_ignore_symlink_dirs     = FALSE;
+static const gboolean gnet_property_variable_scan_ignore_symlink_dirs_default = FALSE;
+gboolean gnet_property_variable_scan_ignore_symlink_regfiles     = FALSE;
+static const gboolean gnet_property_variable_scan_ignore_symlink_regfiles_default = FALSE;
+gchar   *gnet_property_variable_save_file_path     = "~/gtk-gnutella-downloads/incomplete";
+static const gchar   *gnet_property_variable_save_file_path_default = "~/gtk-gnutella-downloads/incomplete";
+gchar   *gnet_property_variable_move_file_path     = "~/gtk-gnutella-downloads/complete";
+static const gchar   *gnet_property_variable_move_file_path_default = "~/gtk-gnutella-downloads/complete";
+gchar   *gnet_property_variable_bad_file_path     = "~/gtk-gnutella-downloads/corrupt";
+static const gchar   *gnet_property_variable_bad_file_path_default = "~/gtk-gnutella-downloads/corrupt";
+gchar   *gnet_property_variable_shared_dirs_paths     = "";
+static const gchar   *gnet_property_variable_shared_dirs_paths_default = "";
+gchar   *gnet_property_variable_local_netmasks_string     = "";
+static const gchar   *gnet_property_variable_local_netmasks_string_default = "";
+guint32  gnet_property_variable_total_downloads     = 0;
+static const guint32  gnet_property_variable_total_downloads_default = 0;
+guint32  gnet_property_variable_ul_running     = 0;
+static const guint32  gnet_property_variable_ul_running_default = 0;
+guint32  gnet_property_variable_ul_registered     = 0;
+static const guint32  gnet_property_variable_ul_registered_default = 0;
+guint32  gnet_property_variable_total_uploads     = 0;
+static const guint32  gnet_property_variable_total_uploads_default = 0;
+gchar   gnet_property_variable_servent_guid[GUID_RAW_SIZE];
+static const gchar   gnet_property_variable_servent_guid_default[GUID_RAW_SIZE];
+
+gchar   gnet_property_variable_servent_kuid[KUID_RAW_SIZE];
+static const gchar   gnet_property_variable_servent_kuid_default[KUID_RAW_SIZE];
+
+gboolean gnet_property_variable_use_swarming     = TRUE;
+static const gboolean gnet_property_variable_use_swarming_default = TRUE;
+gboolean gnet_property_variable_use_aggressive_swarming     = TRUE;
+static const gboolean gnet_property_variable_use_aggressive_swarming_default = TRUE;
+guint32  gnet_property_variable_dl_minchunksize     = 512*1024;
+static const guint32  gnet_property_variable_dl_minchunksize_default = 512*1024;
+guint32  gnet_property_variable_dl_maxchunksize     = 10*1024*1024;
+static const guint32  gnet_property_variable_dl_maxchunksize_default = 10*1024*1024;
+gboolean gnet_property_variable_auto_download_identical     = TRUE;
+static const gboolean gnet_property_variable_auto_download_identical_default = TRUE;
+gboolean gnet_property_variable_auto_feed_download_mesh     = TRUE;
+static const gboolean gnet_property_variable_auto_feed_download_mesh_default = TRUE;
+gboolean gnet_property_variable_strict_sha1_matching     = TRUE;
+static const gboolean gnet_property_variable_strict_sha1_matching_default = TRUE;
+gboolean gnet_property_variable_use_fuzzy_matching     = FALSE;
+static const gboolean gnet_property_variable_use_fuzzy_matching_default = FALSE;
+guint32  gnet_property_variable_fuzzy_threshold     = 70;
+static const guint32  gnet_property_variable_fuzzy_threshold_default = 70;
+gboolean gnet_property_variable_is_firewalled     = TRUE;
+static const gboolean gnet_property_variable_is_firewalled_default = TRUE;
+gboolean gnet_property_variable_is_inet_connected     = TRUE;
+static const gboolean gnet_property_variable_is_inet_connected_default = TRUE;
+gboolean gnet_property_variable_is_udp_firewalled     = TRUE;
+static const gboolean gnet_property_variable_is_udp_firewalled_default = TRUE;
+gboolean gnet_property_variable_recv_solicited_udp     = FALSE;
+static const gboolean gnet_property_variable_recv_solicited_udp_default = FALSE;
+gboolean gnet_property_variable_gnet_compact_query     = TRUE;
+static const gboolean gnet_property_variable_gnet_compact_query_default = TRUE;
+gboolean gnet_property_variable_download_optimistic_start     = FALSE;
+static const gboolean gnet_property_variable_download_optimistic_start_default = FALSE;
+gboolean gnet_property_variable_library_rebuilding     = FALSE;
+static const gboolean gnet_property_variable_library_rebuilding_default = FALSE;
+gboolean gnet_property_variable_sha1_rebuilding     = FALSE;
+static const gboolean gnet_property_variable_sha1_rebuilding_default = FALSE;
+gboolean gnet_property_variable_sha1_verifying     = FALSE;
+static const gboolean gnet_property_variable_sha1_verifying_default = FALSE;
+gboolean gnet_property_variable_file_moving     = FALSE;
+static const gboolean gnet_property_variable_file_moving_default = FALSE;
+gboolean gnet_property_variable_prefer_compressed_gnet     = TRUE;
+static const gboolean gnet_property_variable_prefer_compressed_gnet_default = TRUE;
+gboolean gnet_property_variable_online_mode     = TRUE;
+static const gboolean gnet_property_variable_online_mode_default = TRUE;
+gboolean gnet_property_variable_download_require_urn     = FALSE;
+static const gboolean gnet_property_variable_download_require_urn_default = FALSE;
+gboolean gnet_property_variable_download_require_server_name     = TRUE;
+static const gboolean gnet_property_variable_download_require_server_name_default = TRUE;
+guint32  gnet_property_variable_max_ultrapeers     = 3;
+static const guint32  gnet_property_variable_max_ultrapeers_default = 3;
+guint32  gnet_property_variable_quick_connect_pool_size     = 10;
+static const guint32  gnet_property_variable_quick_connect_pool_size_default = 10;
+guint32  gnet_property_variable_max_leaves     = 150;
+static const guint32  gnet_property_variable_max_leaves_default = 150;
+guint32  gnet_property_variable_search_handle_ignored_files     = 0;
+static const guint32  gnet_property_variable_search_handle_ignored_files_default = 0;
+prop_def_choice_t gnet_property_variable_search_handle_ignored_files_choices[] = { 
     {N_("displayed normally"), 0},
     {N_("displayed marked"), 1},
     {N_("not displayed"), 2},
     {NULL, 0}
 };
-guint32  configured_peermode     = NODE_P_AUTO;
-guint32  configured_peermode_def = NODE_P_AUTO;
-prop_def_choice_t configured_peermode_choices[] = { 
+guint32  gnet_property_variable_configured_peermode     = NODE_P_AUTO;
+static const guint32  gnet_property_variable_configured_peermode_default = NODE_P_AUTO;
+prop_def_choice_t gnet_property_variable_configured_peermode_choices[] = { 
     {N_("auto (recommended)"), NODE_P_AUTO},
     {N_("ultra node"), NODE_P_ULTRA},
     {N_("leaf node"), NODE_P_LEAF},
     {NULL, 0}
 };
-guint32  current_peermode     = 0;
-guint32  current_peermode_def = 0;
-prop_def_choice_t current_peermode_choices[] = { 
-    {N_("ultra node"), 2},
-    {N_("normal node"), 1},
-    {N_("leaf node"), 0},
+guint32  gnet_property_variable_current_peermode     = 0;
+static const guint32  gnet_property_variable_current_peermode_default = 0;
+prop_def_choice_t gnet_property_variable_current_peermode_choices[] = { 
+    {N_("ultra node"), NODE_P_ULTRA},
+    {N_("leaf node"), NODE_P_LEAF},
     {NULL, 0}
 };
-guint32  sys_nofile     = 1024;
-guint32  sys_nofile_def = 1024;
-guint64  sys_physmem     = 65536;
-guint64  sys_physmem_def = 65536;
-guint32  dl_queue_count     = 0;
-guint32  dl_queue_count_def = 0;
-guint32  dl_running_count     = 0;
-guint32  dl_running_count_def = 0;
-guint32  dl_active_count     = 0;
-guint32  dl_active_count_def = 0;
-guint32  dl_aqueued_count     = 0;
-guint32  dl_aqueued_count_def = 0;
-guint32  dl_pqueued_count     = 0;
-guint32  dl_pqueued_count_def = 0;
-guint32  fi_all_count     = 0;
-guint32  fi_all_count_def = 0;
-guint32  fi_with_source_count     = 0;
-guint32  fi_with_source_count_def = 0;
-guint32  dl_qalive_count     = 0;
-guint32  dl_qalive_count_def = 0;
-guint64  dl_byte_count     = 0;
-guint64  dl_byte_count_def = 0;
-guint64  ul_byte_count     = 0;
-guint64  ul_byte_count_def = 0;
-gboolean pfsp_server     = TRUE;
-gboolean pfsp_server_def = TRUE;
-guint32  pfsp_first_chunk     = 524288;
-guint32  pfsp_first_chunk_def = 524288;
-guint32  pfsp_minimum_filesize     = 1048576;
-guint32  pfsp_minimum_filesize_def = 1048576;
-gboolean fuzzy_filter_dmesh     = FALSE;
-gboolean fuzzy_filter_dmesh_def = FALSE;
-guint32  crawler_visit_count     = 0;
-guint32  crawler_visit_count_def = 0;
-guint32  udp_crawler_visit_count     = 0;
-guint32  udp_crawler_visit_count_def = 0;
-gboolean host_runs_ntp     = FALSE;
-gboolean host_runs_ntp_def = FALSE;
-gboolean ntp_detected     = FALSE;
-gboolean ntp_detected_def = FALSE;
-guint32  clock_skew     = 0;
-guint32  clock_skew_def = 0;
-gboolean node_monitor_unstable_ip     = TRUE;
-gboolean node_monitor_unstable_ip_def = TRUE;
-gboolean node_monitor_unstable_servents     = FALSE;
-gboolean node_monitor_unstable_servents_def = FALSE;
-gboolean dl_remove_file_on_mismatch     = FALSE;
-gboolean dl_remove_file_on_mismatch_def = FALSE;
-guint32  dl_mismatch_backout     = 50000;
-guint32  dl_mismatch_backout_def = 50000;
-gchar   *server_hostname     = "";
-gchar   *server_hostname_def = "";
-gboolean give_server_hostname     = FALSE;
-gboolean give_server_hostname_def = FALSE;
-guint32  reserve_gtkg_nodes     = 0;
-guint32  reserve_gtkg_nodes_def = 0;
-guint32  unique_nodes     = 100;
-guint32  unique_nodes_def = 100;
-guint32  download_rx_size     = 64;
-guint32  download_rx_size_def = 64;
-guint32  node_rx_size     = 16;
-guint32  node_rx_size_def = 16;
-guint32  dl_http_latency     = 0;
-guint32  dl_http_latency_def = 0;
-time_t  node_last_ultra_check     = 0;
-time_t  node_last_ultra_check_def = 0;
-time_t  node_last_ultra_leaf_switch     = 0;
-time_t  node_last_ultra_leaf_switch_def = 0;
-gboolean up_req_avg_servent_uptime     = FALSE;
-gboolean up_req_avg_servent_uptime_def = FALSE;
-gboolean up_req_avg_ip_uptime     = FALSE;
-gboolean up_req_avg_ip_uptime_def = FALSE;
-gboolean up_req_node_uptime     = FALSE;
-gboolean up_req_node_uptime_def = FALSE;
-gboolean up_req_not_firewalled     = FALSE;
-gboolean up_req_not_firewalled_def = FALSE;
-gboolean up_req_enough_conn     = FALSE;
-gboolean up_req_enough_conn_def = FALSE;
-gboolean up_req_enough_fd     = FALSE;
-gboolean up_req_enough_fd_def = FALSE;
-gboolean up_req_enough_mem     = FALSE;
-gboolean up_req_enough_mem_def = FALSE;
-gboolean up_req_enough_bw     = FALSE;
-gboolean up_req_enough_bw_def = FALSE;
-gboolean up_req_good_udp     = FALSE;
-gboolean up_req_good_udp_def = FALSE;
-guint32  search_queue_size     = 256;
-guint32  search_queue_size_def = 256;
-guint32  search_queue_spacing     = 10;
-guint32  search_queue_spacing_def = 10;
-gboolean enable_shell     = FALSE;
-gboolean enable_shell_def = FALSE;
-guint32  remote_shell_timeout     = 180;
-guint32  remote_shell_timeout_def = 180;
-guint32  entry_removal_timeout     = 5;
-guint32  entry_removal_timeout_def = 5;
-gboolean node_watch_similar_queries     = TRUE;
-gboolean node_watch_similar_queries_def = TRUE;
-guint32  node_queries_half_life     = 5;
-guint32  node_queries_half_life_def = 5;
-guint32  node_requery_threshold     = 1700;
-guint32  node_requery_threshold_def = 1700;
-time_t  library_rescan_started     = 0;
-time_t  library_rescan_started_def = 0;
-time_t  library_rescan_finished     = 0;
-time_t  library_rescan_finished_def = 0;
-guint32  library_rescan_duration     = 0;
-guint32  library_rescan_duration_def = 0;
-time_t  qrp_indexing_started     = 0;
-time_t  qrp_indexing_started_def = 0;
-guint32  qrp_indexing_duration     = 0;
-guint32  qrp_indexing_duration_def = 0;
-guint32  qrp_memory     = 0;
-guint32  qrp_memory_def = 0;
-time_t  qrp_timestamp     = 0;
-time_t  qrp_timestamp_def = 0;
-guint32  qrp_computation_time     = 0;
-guint32  qrp_computation_time_def = 0;
-time_t  qrp_patch_timestamp     = 0;
-time_t  qrp_patch_timestamp_def = 0;
-guint32  qrp_patch_computation_time     = 0;
-guint32  qrp_patch_computation_time_def = 0;
-guint32  qrp_generation     = 0;
-guint32  qrp_generation_def = 0;
-guint32  qrp_slots     = 0;
-guint32  qrp_slots_def = 0;
-guint32  qrp_slots_filled     = 0;
-guint32  qrp_slots_filled_def = 0;
-guint32  qrp_fill_ratio     = 0;
-guint32  qrp_fill_ratio_def = 0;
-guint32  qrp_conflict_ratio     = 0;
-guint32  qrp_conflict_ratio_def = 0;
-guint32  qrp_hashed_keywords     = 0;
-guint32  qrp_hashed_keywords_def = 0;
-guint32  qrp_patch_raw_length     = 0;
-guint32  qrp_patch_raw_length_def = 0;
-guint32  qrp_patch_length     = 0;
-guint32  qrp_patch_length_def = 0;
-guint32  qrp_patch_comp_ratio     = 0;
-guint32  qrp_patch_comp_ratio_def = 0;
-guint32  ancient_version_left_days     = 365;
-guint32  ancient_version_left_days_def = 365;
-gboolean file_descriptor_shortage     = FALSE;
-gboolean file_descriptor_shortage_def = FALSE;
-gboolean file_descriptor_runout     = FALSE;
-gboolean file_descriptor_runout_def = FALSE;
-gboolean convert_spaces     = FALSE;
-gboolean convert_spaces_def = FALSE;
-gboolean convert_evil_chars     = TRUE;
-gboolean convert_evil_chars_def = TRUE;
-gboolean convert_old_filenames     = FALSE;
-gboolean convert_old_filenames_def = FALSE;
-gboolean tls_enforce     = FALSE;
-gboolean tls_enforce_def = FALSE;
-gboolean gnet_deflate_enabled     = TRUE;
-gboolean gnet_deflate_enabled_def = TRUE;
-gboolean enable_udp     = TRUE;
-gboolean enable_udp_def = TRUE;
-gboolean process_oob_queries     = TRUE;
-gboolean process_oob_queries_def = TRUE;
-gboolean send_oob_queries     = TRUE;
-gboolean send_oob_queries_def = TRUE;
-gboolean proxy_oob_queries     = TRUE;
-gboolean proxy_oob_queries_def = TRUE;
-gboolean uploads_stalling     = FALSE;
-gboolean uploads_stalling_def = FALSE;
-gboolean use_global_hostiles_txt     = TRUE;
-gboolean use_global_hostiles_txt_def = TRUE;
-gboolean use_so_linger     = FALSE;
-gboolean use_so_linger_def = FALSE;
-guint32  tcp_defer_accept_timeout     = 10;
-guint32  tcp_defer_accept_timeout_def = 10;
-gboolean browse_host_enabled     = FALSE;
-gboolean browse_host_enabled_def = FALSE;
-guint32  html_browse_count     = 0;
-guint32  html_browse_count_def = 0;
-guint32  html_browse_served     = 0;
-guint32  html_browse_served_def = 0;
-guint32  qhits_browse_count     = 0;
-guint32  qhits_browse_count_def = 0;
-guint32  qhits_browse_served     = 0;
-guint32  qhits_browse_served_def = 0;
-gboolean overloaded_cpu     = FALSE;
-gboolean overloaded_cpu_def = FALSE;
-guint32  download_buffer_size     = 32768;
-guint32  download_buffer_size_def = 32768;
-gboolean browse_copied_to_passive     = FALSE;
-gboolean browse_copied_to_passive_def = FALSE;
-gboolean display_metric_units     = FALSE;
-gboolean display_metric_units_def = FALSE;
-guint32  rudp_debug     = 0;
-guint32  rudp_debug_def = 0;
-guint32  dht_debug     = 0;
-guint32  dht_debug_def = 0;
-guint32  oob_proxy_debug     = 0;
-guint32  oob_proxy_debug_def = 0;
-gboolean enable_local_socket     = TRUE;
-gboolean enable_local_socket_def = TRUE;
-guint32  max_simultaneous_downloads_per_file     = 40;
-guint32  max_simultaneous_downloads_per_file_def = 40;
-gboolean dump_received_gnutella_packets     = FALSE;
-gboolean dump_received_gnutella_packets_def = FALSE;
-gboolean search_results_expose_relative_paths     = FALSE;
-gboolean search_results_expose_relative_paths_def = FALSE;
-guint32  shell_debug     = 0;
-guint32  shell_debug_def = 0;
-guint32  download_queue_frozen     = 0;
-guint32  download_queue_frozen_def = 0;
-guint32  sq_debug     = 0;
-guint32  sq_debug_def = 0;
-guint32  push_proxy_debug     = 0;
-guint32  push_proxy_debug_def = 0;
-gboolean experimental_tigertree_support     = FALSE;
-gboolean experimental_tigertree_support_def = FALSE;
-guint32  thex_files_requested     = 0;
-guint32  thex_files_requested_def = 0;
-guint32  thex_files_served     = 0;
-guint32  thex_files_served_def = 0;
-guint32  tigertree_debug     = 0;
-guint32  tigertree_debug_def = 0;
-gboolean tth_rebuilding     = FALSE;
-gboolean tth_rebuilding_def = FALSE;
+guint32  gnet_property_variable_sys_nofile     = 1024;
+static const guint32  gnet_property_variable_sys_nofile_default = 1024;
+guint64  gnet_property_variable_sys_physmem     = 65536;
+static const guint64  gnet_property_variable_sys_physmem_default = 65536;
+guint32  gnet_property_variable_dl_queue_count     = 0;
+static const guint32  gnet_property_variable_dl_queue_count_default = 0;
+guint32  gnet_property_variable_dl_running_count     = 0;
+static const guint32  gnet_property_variable_dl_running_count_default = 0;
+guint32  gnet_property_variable_dl_active_count     = 0;
+static const guint32  gnet_property_variable_dl_active_count_default = 0;
+guint32  gnet_property_variable_dl_aqueued_count     = 0;
+static const guint32  gnet_property_variable_dl_aqueued_count_default = 0;
+guint32  gnet_property_variable_dl_pqueued_count     = 0;
+static const guint32  gnet_property_variable_dl_pqueued_count_default = 0;
+guint32  gnet_property_variable_fi_all_count     = 0;
+static const guint32  gnet_property_variable_fi_all_count_default = 0;
+guint32  gnet_property_variable_fi_with_source_count     = 0;
+static const guint32  gnet_property_variable_fi_with_source_count_default = 0;
+guint32  gnet_property_variable_dl_qalive_count     = 0;
+static const guint32  gnet_property_variable_dl_qalive_count_default = 0;
+guint64  gnet_property_variable_dl_byte_count     = 0;
+static const guint64  gnet_property_variable_dl_byte_count_default = 0;
+guint64  gnet_property_variable_ul_byte_count     = 0;
+static const guint64  gnet_property_variable_ul_byte_count_default = 0;
+gboolean gnet_property_variable_pfsp_server     = TRUE;
+static const gboolean gnet_property_variable_pfsp_server_default = TRUE;
+guint32  gnet_property_variable_pfsp_first_chunk     = 524288;
+static const guint32  gnet_property_variable_pfsp_first_chunk_default = 524288;
+guint32  gnet_property_variable_pfsp_minimum_filesize     = 1048576;
+static const guint32  gnet_property_variable_pfsp_minimum_filesize_default = 1048576;
+gboolean gnet_property_variable_fuzzy_filter_dmesh     = FALSE;
+static const gboolean gnet_property_variable_fuzzy_filter_dmesh_default = FALSE;
+guint32  gnet_property_variable_crawler_visit_count     = 0;
+static const guint32  gnet_property_variable_crawler_visit_count_default = 0;
+guint32  gnet_property_variable_udp_crawler_visit_count     = 0;
+static const guint32  gnet_property_variable_udp_crawler_visit_count_default = 0;
+gboolean gnet_property_variable_host_runs_ntp     = FALSE;
+static const gboolean gnet_property_variable_host_runs_ntp_default = FALSE;
+gboolean gnet_property_variable_ntp_detected     = FALSE;
+static const gboolean gnet_property_variable_ntp_detected_default = FALSE;
+guint32  gnet_property_variable_clock_skew     = 0;
+static const guint32  gnet_property_variable_clock_skew_default = 0;
+gboolean gnet_property_variable_node_monitor_unstable_ip     = TRUE;
+static const gboolean gnet_property_variable_node_monitor_unstable_ip_default = TRUE;
+gboolean gnet_property_variable_node_monitor_unstable_servents     = FALSE;
+static const gboolean gnet_property_variable_node_monitor_unstable_servents_default = FALSE;
+gboolean gnet_property_variable_dl_remove_file_on_mismatch     = FALSE;
+static const gboolean gnet_property_variable_dl_remove_file_on_mismatch_default = FALSE;
+guint32  gnet_property_variable_dl_mismatch_backout     = 50000;
+static const guint32  gnet_property_variable_dl_mismatch_backout_default = 50000;
+gchar   *gnet_property_variable_server_hostname     = "";
+static const gchar   *gnet_property_variable_server_hostname_default = "";
+gboolean gnet_property_variable_give_server_hostname     = FALSE;
+static const gboolean gnet_property_variable_give_server_hostname_default = FALSE;
+guint32  gnet_property_variable_reserve_gtkg_nodes     = 0;
+static const guint32  gnet_property_variable_reserve_gtkg_nodes_default = 0;
+guint32  gnet_property_variable_unique_nodes     = 100;
+static const guint32  gnet_property_variable_unique_nodes_default = 100;
+guint32  gnet_property_variable_download_rx_size     = 64;
+static const guint32  gnet_property_variable_download_rx_size_default = 64;
+guint32  gnet_property_variable_node_rx_size     = 16;
+static const guint32  gnet_property_variable_node_rx_size_default = 16;
+guint32  gnet_property_variable_dl_http_latency     = 0;
+static const guint32  gnet_property_variable_dl_http_latency_default = 0;
+time_t  gnet_property_variable_node_last_ultra_check     = 0;
+static const time_t  gnet_property_variable_node_last_ultra_check_default = 0;
+time_t  gnet_property_variable_node_last_ultra_leaf_switch     = 0;
+static const time_t  gnet_property_variable_node_last_ultra_leaf_switch_default = 0;
+gboolean gnet_property_variable_up_req_avg_servent_uptime     = FALSE;
+static const gboolean gnet_property_variable_up_req_avg_servent_uptime_default = FALSE;
+gboolean gnet_property_variable_up_req_avg_ip_uptime     = FALSE;
+static const gboolean gnet_property_variable_up_req_avg_ip_uptime_default = FALSE;
+gboolean gnet_property_variable_up_req_node_uptime     = FALSE;
+static const gboolean gnet_property_variable_up_req_node_uptime_default = FALSE;
+gboolean gnet_property_variable_up_req_not_firewalled     = FALSE;
+static const gboolean gnet_property_variable_up_req_not_firewalled_default = FALSE;
+gboolean gnet_property_variable_up_req_enough_conn     = FALSE;
+static const gboolean gnet_property_variable_up_req_enough_conn_default = FALSE;
+gboolean gnet_property_variable_up_req_enough_fd     = FALSE;
+static const gboolean gnet_property_variable_up_req_enough_fd_default = FALSE;
+gboolean gnet_property_variable_up_req_enough_mem     = FALSE;
+static const gboolean gnet_property_variable_up_req_enough_mem_default = FALSE;
+gboolean gnet_property_variable_up_req_enough_bw     = FALSE;
+static const gboolean gnet_property_variable_up_req_enough_bw_default = FALSE;
+gboolean gnet_property_variable_up_req_good_udp     = FALSE;
+static const gboolean gnet_property_variable_up_req_good_udp_default = FALSE;
+guint32  gnet_property_variable_search_queue_size     = 256;
+static const guint32  gnet_property_variable_search_queue_size_default = 256;
+guint32  gnet_property_variable_search_queue_spacing     = 10;
+static const guint32  gnet_property_variable_search_queue_spacing_default = 10;
+gboolean gnet_property_variable_enable_shell     = FALSE;
+static const gboolean gnet_property_variable_enable_shell_default = FALSE;
+guint32  gnet_property_variable_remote_shell_timeout     = 180;
+static const guint32  gnet_property_variable_remote_shell_timeout_default = 180;
+guint32  gnet_property_variable_entry_removal_timeout     = 5;
+static const guint32  gnet_property_variable_entry_removal_timeout_default = 5;
+gboolean gnet_property_variable_node_watch_similar_queries     = TRUE;
+static const gboolean gnet_property_variable_node_watch_similar_queries_default = TRUE;
+guint32  gnet_property_variable_node_queries_half_life     = 5;
+static const guint32  gnet_property_variable_node_queries_half_life_default = 5;
+guint32  gnet_property_variable_node_requery_threshold     = 1700;
+static const guint32  gnet_property_variable_node_requery_threshold_default = 1700;
+time_t  gnet_property_variable_library_rescan_started     = 0;
+static const time_t  gnet_property_variable_library_rescan_started_default = 0;
+time_t  gnet_property_variable_library_rescan_finished     = 0;
+static const time_t  gnet_property_variable_library_rescan_finished_default = 0;
+guint32  gnet_property_variable_library_rescan_duration     = 0;
+static const guint32  gnet_property_variable_library_rescan_duration_default = 0;
+time_t  gnet_property_variable_qrp_indexing_started     = 0;
+static const time_t  gnet_property_variable_qrp_indexing_started_default = 0;
+guint32  gnet_property_variable_qrp_indexing_duration     = 0;
+static const guint32  gnet_property_variable_qrp_indexing_duration_default = 0;
+guint32  gnet_property_variable_qrp_memory     = 0;
+static const guint32  gnet_property_variable_qrp_memory_default = 0;
+time_t  gnet_property_variable_qrp_timestamp     = 0;
+static const time_t  gnet_property_variable_qrp_timestamp_default = 0;
+guint32  gnet_property_variable_qrp_computation_time     = 0;
+static const guint32  gnet_property_variable_qrp_computation_time_default = 0;
+time_t  gnet_property_variable_qrp_patch_timestamp     = 0;
+static const time_t  gnet_property_variable_qrp_patch_timestamp_default = 0;
+guint32  gnet_property_variable_qrp_patch_computation_time     = 0;
+static const guint32  gnet_property_variable_qrp_patch_computation_time_default = 0;
+guint32  gnet_property_variable_qrp_generation     = 0;
+static const guint32  gnet_property_variable_qrp_generation_default = 0;
+guint32  gnet_property_variable_qrp_slots     = 0;
+static const guint32  gnet_property_variable_qrp_slots_default = 0;
+guint32  gnet_property_variable_qrp_slots_filled     = 0;
+static const guint32  gnet_property_variable_qrp_slots_filled_default = 0;
+guint32  gnet_property_variable_qrp_fill_ratio     = 0;
+static const guint32  gnet_property_variable_qrp_fill_ratio_default = 0;
+guint32  gnet_property_variable_qrp_conflict_ratio     = 0;
+static const guint32  gnet_property_variable_qrp_conflict_ratio_default = 0;
+guint32  gnet_property_variable_qrp_hashed_keywords     = 0;
+static const guint32  gnet_property_variable_qrp_hashed_keywords_default = 0;
+guint32  gnet_property_variable_qrp_patch_raw_length     = 0;
+static const guint32  gnet_property_variable_qrp_patch_raw_length_default = 0;
+guint32  gnet_property_variable_qrp_patch_length     = 0;
+static const guint32  gnet_property_variable_qrp_patch_length_default = 0;
+guint32  gnet_property_variable_qrp_patch_comp_ratio     = 0;
+static const guint32  gnet_property_variable_qrp_patch_comp_ratio_default = 0;
+guint32  gnet_property_variable_ancient_version_left_days     = 365;
+static const guint32  gnet_property_variable_ancient_version_left_days_default = 365;
+gboolean gnet_property_variable_file_descriptor_shortage     = FALSE;
+static const gboolean gnet_property_variable_file_descriptor_shortage_default = FALSE;
+gboolean gnet_property_variable_file_descriptor_runout     = FALSE;
+static const gboolean gnet_property_variable_file_descriptor_runout_default = FALSE;
+gboolean gnet_property_variable_convert_spaces     = FALSE;
+static const gboolean gnet_property_variable_convert_spaces_default = FALSE;
+gboolean gnet_property_variable_convert_evil_chars     = TRUE;
+static const gboolean gnet_property_variable_convert_evil_chars_default = TRUE;
+gboolean gnet_property_variable_convert_old_filenames     = FALSE;
+static const gboolean gnet_property_variable_convert_old_filenames_default = FALSE;
+gboolean gnet_property_variable_tls_enforce     = FALSE;
+static const gboolean gnet_property_variable_tls_enforce_default = FALSE;
+gboolean gnet_property_variable_gnet_deflate_enabled     = TRUE;
+static const gboolean gnet_property_variable_gnet_deflate_enabled_default = TRUE;
+gboolean gnet_property_variable_enable_udp     = TRUE;
+static const gboolean gnet_property_variable_enable_udp_default = TRUE;
+gboolean gnet_property_variable_process_oob_queries     = TRUE;
+static const gboolean gnet_property_variable_process_oob_queries_default = TRUE;
+gboolean gnet_property_variable_send_oob_queries     = TRUE;
+static const gboolean gnet_property_variable_send_oob_queries_default = TRUE;
+gboolean gnet_property_variable_proxy_oob_queries     = TRUE;
+static const gboolean gnet_property_variable_proxy_oob_queries_default = TRUE;
+gboolean gnet_property_variable_uploads_stalling     = FALSE;
+static const gboolean gnet_property_variable_uploads_stalling_default = FALSE;
+gboolean gnet_property_variable_use_global_hostiles_txt     = TRUE;
+static const gboolean gnet_property_variable_use_global_hostiles_txt_default = TRUE;
+gboolean gnet_property_variable_use_so_linger     = FALSE;
+static const gboolean gnet_property_variable_use_so_linger_default = FALSE;
+guint32  gnet_property_variable_tcp_defer_accept_timeout     = 10;
+static const guint32  gnet_property_variable_tcp_defer_accept_timeout_default = 10;
+gboolean gnet_property_variable_browse_host_enabled     = FALSE;
+static const gboolean gnet_property_variable_browse_host_enabled_default = FALSE;
+guint32  gnet_property_variable_html_browse_count     = 0;
+static const guint32  gnet_property_variable_html_browse_count_default = 0;
+guint32  gnet_property_variable_html_browse_served     = 0;
+static const guint32  gnet_property_variable_html_browse_served_default = 0;
+guint32  gnet_property_variable_qhits_browse_count     = 0;
+static const guint32  gnet_property_variable_qhits_browse_count_default = 0;
+guint32  gnet_property_variable_qhits_browse_served     = 0;
+static const guint32  gnet_property_variable_qhits_browse_served_default = 0;
+gboolean gnet_property_variable_overloaded_cpu     = FALSE;
+static const gboolean gnet_property_variable_overloaded_cpu_default = FALSE;
+guint32  gnet_property_variable_download_buffer_size     = 32768;
+static const guint32  gnet_property_variable_download_buffer_size_default = 32768;
+gboolean gnet_property_variable_browse_copied_to_passive     = FALSE;
+static const gboolean gnet_property_variable_browse_copied_to_passive_default = FALSE;
+gboolean gnet_property_variable_display_metric_units     = FALSE;
+static const gboolean gnet_property_variable_display_metric_units_default = FALSE;
+guint32  gnet_property_variable_rudp_debug     = 0;
+static const guint32  gnet_property_variable_rudp_debug_default = 0;
+guint32  gnet_property_variable_dht_debug     = 0;
+static const guint32  gnet_property_variable_dht_debug_default = 0;
+guint32  gnet_property_variable_oob_proxy_debug     = 0;
+static const guint32  gnet_property_variable_oob_proxy_debug_default = 0;
+gboolean gnet_property_variable_enable_local_socket     = TRUE;
+static const gboolean gnet_property_variable_enable_local_socket_default = TRUE;
+guint32  gnet_property_variable_max_simultaneous_downloads_per_file     = 40;
+static const guint32  gnet_property_variable_max_simultaneous_downloads_per_file_default = 40;
+gboolean gnet_property_variable_dump_received_gnutella_packets     = FALSE;
+static const gboolean gnet_property_variable_dump_received_gnutella_packets_default = FALSE;
+gboolean gnet_property_variable_search_results_expose_relative_paths     = FALSE;
+static const gboolean gnet_property_variable_search_results_expose_relative_paths_default = FALSE;
+guint32  gnet_property_variable_shell_debug     = 0;
+static const guint32  gnet_property_variable_shell_debug_default = 0;
+guint32  gnet_property_variable_download_queue_frozen     = 0;
+static const guint32  gnet_property_variable_download_queue_frozen_default = 0;
+guint32  gnet_property_variable_sq_debug     = 0;
+static const guint32  gnet_property_variable_sq_debug_default = 0;
+guint32  gnet_property_variable_push_proxy_debug     = 0;
+static const guint32  gnet_property_variable_push_proxy_debug_default = 0;
+gboolean gnet_property_variable_experimental_tigertree_support     = FALSE;
+static const gboolean gnet_property_variable_experimental_tigertree_support_default = FALSE;
+guint32  gnet_property_variable_thex_files_requested     = 0;
+static const guint32  gnet_property_variable_thex_files_requested_default = 0;
+guint32  gnet_property_variable_thex_files_served     = 0;
+static const guint32  gnet_property_variable_thex_files_served_default = 0;
+guint32  gnet_property_variable_tigertree_debug     = 0;
+static const guint32  gnet_property_variable_tigertree_debug_default = 0;
+gboolean gnet_property_variable_tth_rebuilding     = FALSE;
+static const gboolean gnet_property_variable_tth_rebuilding_default = FALSE;
 
-static prop_set_t *gnet_property = NULL;
+static prop_set_t *gnet_property;
 
 prop_set_t *
 gnet_prop_init(void) {
@@ -696,8 +699,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[0].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[0].data.boolean.def   = &reading_hostfile_def;
-    gnet_property->props[0].data.boolean.value = &reading_hostfile;
+    gnet_property->props[0].data.boolean.def   = (void *) &gnet_property_variable_reading_hostfile_default;
+    gnet_property->props[0].data.boolean.value = (void *) &gnet_property_variable_reading_hostfile;
 
 
     /*
@@ -713,8 +716,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[1].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[1].data.boolean.def   = &reading_ultrafile_def;
-    gnet_property->props[1].data.boolean.value = &reading_ultrafile;
+    gnet_property->props[1].data.boolean.def   = (void *) &gnet_property_variable_reading_ultrafile_default;
+    gnet_property->props[1].data.boolean.value = (void *) &gnet_property_variable_reading_ultrafile;
 
 
     /*
@@ -730,8 +733,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[2].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[2].data.boolean.def   = &ancient_version_def;
-    gnet_property->props[2].data.boolean.value = &ancient_version;
+    gnet_property->props[2].data.boolean.def   = (void *) &gnet_property_variable_ancient_version_default;
+    gnet_property->props[2].data.boolean.value = (void *) &gnet_property_variable_ancient_version;
 
 
     /*
@@ -747,8 +750,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[3].type               = PROP_TYPE_STRING;
-    gnet_property->props[3].data.string.def    = &new_version_str_def;
-    gnet_property->props[3].data.string.value  = &new_version_str;
+    gnet_property->props[3].data.string.def    = (void *) &gnet_property_variable_new_version_str_default;
+    gnet_property->props[3].data.string.value  = (void *) &gnet_property_variable_new_version_str;
     if (gnet_property->props[3].data.string.def) {
         *gnet_property->props[3].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[3].data.string.def));
@@ -768,8 +771,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[4].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[4].data.guint32.def   = &up_connections_def;
-    gnet_property->props[4].data.guint32.value = &up_connections;
+    gnet_property->props[4].data.guint32.def   = (void *) &gnet_property_variable_up_connections_default;
+    gnet_property->props[4].data.guint32.value = (void *) &gnet_property_variable_up_connections;
     gnet_property->props[4].data.guint32.choices = NULL;
     gnet_property->props[4].data.guint32.max   = 100;
     gnet_property->props[4].data.guint32.min   = 0;
@@ -788,8 +791,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[5].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[5].data.guint32.def   = &normal_connections_def;
-    gnet_property->props[5].data.guint32.value = &normal_connections;
+    gnet_property->props[5].data.guint32.def   = (void *) &gnet_property_variable_normal_connections_default;
+    gnet_property->props[5].data.guint32.value = (void *) &gnet_property_variable_normal_connections;
     gnet_property->props[5].data.guint32.choices = NULL;
     gnet_property->props[5].data.guint32.max   = 1;
     gnet_property->props[5].data.guint32.min   = 0;
@@ -808,8 +811,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[6].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[6].data.guint32.def   = &max_connections_def;
-    gnet_property->props[6].data.guint32.value = &max_connections;
+    gnet_property->props[6].data.guint32.def   = (void *) &gnet_property_variable_max_connections_default;
+    gnet_property->props[6].data.guint32.value = (void *) &gnet_property_variable_max_connections;
     gnet_property->props[6].data.guint32.choices = NULL;
     gnet_property->props[6].data.guint32.max   = 100;
     gnet_property->props[6].data.guint32.min   = 20;
@@ -828,8 +831,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[7].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[7].data.guint32.def   = &node_leaf_count_def;
-    gnet_property->props[7].data.guint32.value = &node_leaf_count;
+    gnet_property->props[7].data.guint32.def   = (void *) &gnet_property_variable_node_leaf_count_default;
+    gnet_property->props[7].data.guint32.value = (void *) &gnet_property_variable_node_leaf_count;
     gnet_property->props[7].data.guint32.choices = NULL;
     gnet_property->props[7].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[7].data.guint32.min   = 0x00000000;
@@ -848,8 +851,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[8].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[8].data.guint32.def   = &node_normal_count_def;
-    gnet_property->props[8].data.guint32.value = &node_normal_count;
+    gnet_property->props[8].data.guint32.def   = (void *) &gnet_property_variable_node_normal_count_default;
+    gnet_property->props[8].data.guint32.value = (void *) &gnet_property_variable_node_normal_count;
     gnet_property->props[8].data.guint32.choices = NULL;
     gnet_property->props[8].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[8].data.guint32.min   = 0x00000000;
@@ -868,8 +871,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[9].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[9].data.guint32.def   = &node_ultra_count_def;
-    gnet_property->props[9].data.guint32.value = &node_ultra_count;
+    gnet_property->props[9].data.guint32.def   = (void *) &gnet_property_variable_node_ultra_count_default;
+    gnet_property->props[9].data.guint32.value = (void *) &gnet_property_variable_node_ultra_count;
     gnet_property->props[9].data.guint32.choices = NULL;
     gnet_property->props[9].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[9].data.guint32.min   = 0x00000000;
@@ -888,8 +891,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[10].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[10].data.guint32.def   = &max_downloads_def;
-    gnet_property->props[10].data.guint32.value = &max_downloads;
+    gnet_property->props[10].data.guint32.def   = (void *) &gnet_property_variable_max_downloads_default;
+    gnet_property->props[10].data.guint32.value = (void *) &gnet_property_variable_max_downloads;
     gnet_property->props[10].data.guint32.choices = NULL;
     gnet_property->props[10].data.guint32.max   = 5000;
     gnet_property->props[10].data.guint32.min   = 0;
@@ -908,8 +911,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[11].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[11].data.guint32.def   = &max_host_downloads_def;
-    gnet_property->props[11].data.guint32.value = &max_host_downloads;
+    gnet_property->props[11].data.guint32.def   = (void *) &gnet_property_variable_max_host_downloads_default;
+    gnet_property->props[11].data.guint32.value = (void *) &gnet_property_variable_max_host_downloads;
     gnet_property->props[11].data.guint32.choices = NULL;
     gnet_property->props[11].data.guint32.max   = 10;
     gnet_property->props[11].data.guint32.min   = 1;
@@ -928,8 +931,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[12].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[12].data.guint32.def   = &max_uploads_def;
-    gnet_property->props[12].data.guint32.value = &max_uploads;
+    gnet_property->props[12].data.guint32.def   = (void *) &gnet_property_variable_max_uploads_default;
+    gnet_property->props[12].data.guint32.value = (void *) &gnet_property_variable_max_uploads;
     gnet_property->props[12].data.guint32.choices = NULL;
     gnet_property->props[12].data.guint32.max   = 100;
     gnet_property->props[12].data.guint32.min   = 0;
@@ -948,8 +951,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[13].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[13].data.guint32.def   = &max_uploads_ip_def;
-    gnet_property->props[13].data.guint32.value = &max_uploads_ip;
+    gnet_property->props[13].data.guint32.def   = (void *) &gnet_property_variable_max_uploads_ip_default;
+    gnet_property->props[13].data.guint32.value = (void *) &gnet_property_variable_max_uploads_ip;
     gnet_property->props[13].data.guint32.choices = NULL;
     gnet_property->props[13].data.guint32.max   = 100;
     gnet_property->props[13].data.guint32.min   = 1;
@@ -968,7 +971,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[14].type               = PROP_TYPE_IP;
-    gnet_property->props[14].data.ip.value = &local_ip;
+    gnet_property->props[14].data.ip.value = (void *) &gnet_property_variable_local_ip;
 
 
     /*
@@ -984,7 +987,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[15].type               = PROP_TYPE_IP;
-    gnet_property->props[15].data.ip.value = &local_ip6;
+    gnet_property->props[15].data.ip.value = (void *) &gnet_property_variable_local_ip6;
 
 
     /*
@@ -1000,8 +1003,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[16].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[16].data.timestamp.def   = &current_ip_stamp_def;
-    gnet_property->props[16].data.timestamp.value = &current_ip_stamp;
+    gnet_property->props[16].data.timestamp.def   = (void *) &gnet_property_variable_current_ip_stamp_default;
+    gnet_property->props[16].data.timestamp.value = (void *) &gnet_property_variable_current_ip_stamp;
     gnet_property->props[16].data.timestamp.choices = NULL;
     gnet_property->props[16].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[16].data.timestamp.min   = 0x0000000000000000;
@@ -1020,8 +1023,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[17].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[17].data.timestamp.def   = &current_ip6_stamp_def;
-    gnet_property->props[17].data.timestamp.value = &current_ip6_stamp;
+    gnet_property->props[17].data.timestamp.def   = (void *) &gnet_property_variable_current_ip6_stamp_default;
+    gnet_property->props[17].data.timestamp.value = (void *) &gnet_property_variable_current_ip6_stamp;
     gnet_property->props[17].data.timestamp.choices = NULL;
     gnet_property->props[17].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[17].data.timestamp.min   = 0x0000000000000000;
@@ -1040,8 +1043,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[18].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[18].data.guint32.def   = &average_ip_uptime_def;
-    gnet_property->props[18].data.guint32.value = &average_ip_uptime;
+    gnet_property->props[18].data.guint32.def   = (void *) &gnet_property_variable_average_ip_uptime_default;
+    gnet_property->props[18].data.guint32.value = (void *) &gnet_property_variable_average_ip_uptime;
     gnet_property->props[18].data.guint32.choices = NULL;
     gnet_property->props[18].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[18].data.guint32.min   = 0x00000000;
@@ -1060,8 +1063,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[19].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[19].data.guint32.def   = &average_ip6_uptime_def;
-    gnet_property->props[19].data.guint32.value = &average_ip6_uptime;
+    gnet_property->props[19].data.guint32.def   = (void *) &gnet_property_variable_average_ip6_uptime_default;
+    gnet_property->props[19].data.guint32.value = (void *) &gnet_property_variable_average_ip6_uptime;
     gnet_property->props[19].data.guint32.choices = NULL;
     gnet_property->props[19].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[19].data.guint32.min   = 0x00000000;
@@ -1080,8 +1083,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[20].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[20].data.timestamp.def   = &start_stamp_def;
-    gnet_property->props[20].data.timestamp.value = &start_stamp;
+    gnet_property->props[20].data.timestamp.def   = (void *) &gnet_property_variable_start_stamp_default;
+    gnet_property->props[20].data.timestamp.value = (void *) &gnet_property_variable_start_stamp;
     gnet_property->props[20].data.timestamp.choices = NULL;
     gnet_property->props[20].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[20].data.timestamp.min   = 0x0000000000000000;
@@ -1100,8 +1103,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[21].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[21].data.guint32.def   = &average_servent_uptime_def;
-    gnet_property->props[21].data.guint32.value = &average_servent_uptime;
+    gnet_property->props[21].data.guint32.def   = (void *) &gnet_property_variable_average_servent_uptime_default;
+    gnet_property->props[21].data.guint32.value = (void *) &gnet_property_variable_average_servent_uptime;
     gnet_property->props[21].data.guint32.choices = NULL;
     gnet_property->props[21].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[21].data.guint32.min   = 0x00000000;
@@ -1120,8 +1123,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[22].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[22].data.guint32.def   = &listen_port_def;
-    gnet_property->props[22].data.guint32.value = &listen_port;
+    gnet_property->props[22].data.guint32.def   = (void *) &gnet_property_variable_listen_port_default;
+    gnet_property->props[22].data.guint32.value = (void *) &gnet_property_variable_listen_port;
     gnet_property->props[22].data.guint32.choices = NULL;
     gnet_property->props[22].data.guint32.max   = 0xFFFF;
     gnet_property->props[22].data.guint32.min   = 0x0000;
@@ -1140,7 +1143,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[23].type               = PROP_TYPE_IP;
-    gnet_property->props[23].data.ip.value = &forced_local_ip;
+    gnet_property->props[23].data.ip.value = (void *) &gnet_property_variable_forced_local_ip;
 
 
     /*
@@ -1156,7 +1159,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[24].type               = PROP_TYPE_IP;
-    gnet_property->props[24].data.ip.value = &forced_local_ip6;
+    gnet_property->props[24].data.ip.value = (void *) &gnet_property_variable_forced_local_ip6;
 
 
     /*
@@ -1172,8 +1175,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[25].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[25].data.guint32.def   = &connection_speed_def;
-    gnet_property->props[25].data.guint32.value = &connection_speed;
+    gnet_property->props[25].data.guint32.def   = (void *) &gnet_property_variable_connection_speed_default;
+    gnet_property->props[25].data.guint32.value = (void *) &gnet_property_variable_connection_speed;
     gnet_property->props[25].data.guint32.choices = NULL;
     gnet_property->props[25].data.guint32.max   = 2000;
     gnet_property->props[25].data.guint32.min   = 0;
@@ -1192,8 +1195,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[26].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[26].data.boolean.def   = &compute_connection_speed_def;
-    gnet_property->props[26].data.boolean.value = &compute_connection_speed;
+    gnet_property->props[26].data.boolean.def   = (void *) &gnet_property_variable_compute_connection_speed_default;
+    gnet_property->props[26].data.boolean.value = (void *) &gnet_property_variable_compute_connection_speed;
 
 
     /*
@@ -1209,8 +1212,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[27].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[27].data.guint32.def   = &search_max_items_def;
-    gnet_property->props[27].data.guint32.value = &search_max_items;
+    gnet_property->props[27].data.guint32.def   = (void *) &gnet_property_variable_search_max_items_default;
+    gnet_property->props[27].data.guint32.value = (void *) &gnet_property_variable_search_max_items;
     gnet_property->props[27].data.guint32.choices = NULL;
     gnet_property->props[27].data.guint32.max   = 500;
     gnet_property->props[27].data.guint32.min   = 1;
@@ -1229,8 +1232,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[28].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[28].data.guint32.def   = &ul_usage_min_percentage_def;
-    gnet_property->props[28].data.guint32.value = &ul_usage_min_percentage;
+    gnet_property->props[28].data.guint32.def   = (void *) &gnet_property_variable_ul_usage_min_percentage_default;
+    gnet_property->props[28].data.guint32.value = (void *) &gnet_property_variable_ul_usage_min_percentage;
     gnet_property->props[28].data.guint32.choices = NULL;
     gnet_property->props[28].data.guint32.max   = 100;
     gnet_property->props[28].data.guint32.min   = 0;
@@ -1249,8 +1252,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[29].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[29].data.guint32.def   = &download_connecting_timeout_def;
-    gnet_property->props[29].data.guint32.value = &download_connecting_timeout;
+    gnet_property->props[29].data.guint32.def   = (void *) &gnet_property_variable_download_connecting_timeout_default;
+    gnet_property->props[29].data.guint32.value = (void *) &gnet_property_variable_download_connecting_timeout;
     gnet_property->props[29].data.guint32.choices = NULL;
     gnet_property->props[29].data.guint32.max   = 100000;
     gnet_property->props[29].data.guint32.min   = 60;
@@ -1269,8 +1272,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[30].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[30].data.guint32.def   = &download_push_sent_timeout_def;
-    gnet_property->props[30].data.guint32.value = &download_push_sent_timeout;
+    gnet_property->props[30].data.guint32.def   = (void *) &gnet_property_variable_download_push_sent_timeout_default;
+    gnet_property->props[30].data.guint32.value = (void *) &gnet_property_variable_download_push_sent_timeout;
     gnet_property->props[30].data.guint32.choices = NULL;
     gnet_property->props[30].data.guint32.max   = 100000;
     gnet_property->props[30].data.guint32.min   = 60;
@@ -1289,8 +1292,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[31].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[31].data.guint32.def   = &download_connected_timeout_def;
-    gnet_property->props[31].data.guint32.value = &download_connected_timeout;
+    gnet_property->props[31].data.guint32.def   = (void *) &gnet_property_variable_download_connected_timeout_default;
+    gnet_property->props[31].data.guint32.value = (void *) &gnet_property_variable_download_connected_timeout;
     gnet_property->props[31].data.guint32.choices = NULL;
     gnet_property->props[31].data.guint32.max   = 100000;
     gnet_property->props[31].data.guint32.min   = 120;
@@ -1309,8 +1312,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[32].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[32].data.guint32.def   = &download_retry_timeout_min_def;
-    gnet_property->props[32].data.guint32.value = &download_retry_timeout_min;
+    gnet_property->props[32].data.guint32.def   = (void *) &gnet_property_variable_download_retry_timeout_min_default;
+    gnet_property->props[32].data.guint32.value = (void *) &gnet_property_variable_download_retry_timeout_min;
     gnet_property->props[32].data.guint32.choices = NULL;
     gnet_property->props[32].data.guint32.max   = 100000;
     gnet_property->props[32].data.guint32.min   = 5;
@@ -1329,8 +1332,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[33].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[33].data.guint32.def   = &download_retry_timeout_max_def;
-    gnet_property->props[33].data.guint32.value = &download_retry_timeout_max;
+    gnet_property->props[33].data.guint32.def   = (void *) &gnet_property_variable_download_retry_timeout_max_default;
+    gnet_property->props[33].data.guint32.value = (void *) &gnet_property_variable_download_retry_timeout_max;
     gnet_property->props[33].data.guint32.choices = NULL;
     gnet_property->props[33].data.guint32.max   = 100000;
     gnet_property->props[33].data.guint32.min   = 5;
@@ -1349,8 +1352,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[34].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[34].data.guint32.def   = &download_max_retries_def;
-    gnet_property->props[34].data.guint32.value = &download_max_retries;
+    gnet_property->props[34].data.guint32.def   = (void *) &gnet_property_variable_download_max_retries_default;
+    gnet_property->props[34].data.guint32.value = (void *) &gnet_property_variable_download_max_retries;
     gnet_property->props[34].data.guint32.choices = NULL;
     gnet_property->props[34].data.guint32.max   = 100;
     gnet_property->props[34].data.guint32.min   = 1;
@@ -1369,8 +1372,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[35].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[35].data.guint32.def   = &download_retry_timeout_delay_def;
-    gnet_property->props[35].data.guint32.value = &download_retry_timeout_delay;
+    gnet_property->props[35].data.guint32.def   = (void *) &gnet_property_variable_download_retry_timeout_delay_default;
+    gnet_property->props[35].data.guint32.value = (void *) &gnet_property_variable_download_retry_timeout_delay;
     gnet_property->props[35].data.guint32.choices = NULL;
     gnet_property->props[35].data.guint32.max   = 100000;
     gnet_property->props[35].data.guint32.min   = 15;
@@ -1389,8 +1392,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[36].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[36].data.guint32.def   = &download_retry_busy_delay_def;
-    gnet_property->props[36].data.guint32.value = &download_retry_busy_delay;
+    gnet_property->props[36].data.guint32.def   = (void *) &gnet_property_variable_download_retry_busy_delay_default;
+    gnet_property->props[36].data.guint32.value = (void *) &gnet_property_variable_download_retry_busy_delay;
     gnet_property->props[36].data.guint32.choices = NULL;
     gnet_property->props[36].data.guint32.max   = 100000;
     gnet_property->props[36].data.guint32.min   = 15;
@@ -1409,8 +1412,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[37].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[37].data.guint32.def   = &download_retry_refused_delay_def;
-    gnet_property->props[37].data.guint32.value = &download_retry_refused_delay;
+    gnet_property->props[37].data.guint32.def   = (void *) &gnet_property_variable_download_retry_refused_delay_default;
+    gnet_property->props[37].data.guint32.value = (void *) &gnet_property_variable_download_retry_refused_delay;
     gnet_property->props[37].data.guint32.choices = NULL;
     gnet_property->props[37].data.guint32.max   = 100000;
     gnet_property->props[37].data.guint32.min   = 15;
@@ -1429,8 +1432,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[38].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[38].data.guint32.def   = &download_retry_stopped_delay_def;
-    gnet_property->props[38].data.guint32.value = &download_retry_stopped_delay;
+    gnet_property->props[38].data.guint32.def   = (void *) &gnet_property_variable_download_retry_stopped_delay_default;
+    gnet_property->props[38].data.guint32.value = (void *) &gnet_property_variable_download_retry_stopped_delay;
     gnet_property->props[38].data.guint32.choices = NULL;
     gnet_property->props[38].data.guint32.max   = 100000;
     gnet_property->props[38].data.guint32.min   = 15;
@@ -1449,8 +1452,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[39].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[39].data.guint32.def   = &download_overlap_range_def;
-    gnet_property->props[39].data.guint32.value = &download_overlap_range;
+    gnet_property->props[39].data.guint32.def   = (void *) &gnet_property_variable_download_overlap_range_default;
+    gnet_property->props[39].data.guint32.value = (void *) &gnet_property_variable_download_overlap_range;
     gnet_property->props[39].data.guint32.choices = NULL;
     gnet_property->props[39].data.guint32.max   = SOCK_BUFSZ;
     gnet_property->props[39].data.guint32.min   = 0;
@@ -1469,8 +1472,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[40].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[40].data.guint32.def   = &upload_connecting_timeout_def;
-    gnet_property->props[40].data.guint32.value = &upload_connecting_timeout;
+    gnet_property->props[40].data.guint32.def   = (void *) &gnet_property_variable_upload_connecting_timeout_default;
+    gnet_property->props[40].data.guint32.value = (void *) &gnet_property_variable_upload_connecting_timeout;
     gnet_property->props[40].data.guint32.choices = NULL;
     gnet_property->props[40].data.guint32.max   = 100000;
     gnet_property->props[40].data.guint32.min   = 60;
@@ -1489,8 +1492,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[41].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[41].data.guint32.def   = &upload_connected_timeout_def;
-    gnet_property->props[41].data.guint32.value = &upload_connected_timeout;
+    gnet_property->props[41].data.guint32.def   = (void *) &gnet_property_variable_upload_connected_timeout_default;
+    gnet_property->props[41].data.guint32.value = (void *) &gnet_property_variable_upload_connected_timeout;
     gnet_property->props[41].data.guint32.choices = NULL;
     gnet_property->props[41].data.guint32.max   = 100000;
     gnet_property->props[41].data.guint32.min   = 120;
@@ -1509,8 +1512,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[42].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[42].data.guint32.def   = &search_reissue_timeout_def;
-    gnet_property->props[42].data.guint32.value = &search_reissue_timeout;
+    gnet_property->props[42].data.guint32.def   = (void *) &gnet_property_variable_search_reissue_timeout_default;
+    gnet_property->props[42].data.guint32.value = (void *) &gnet_property_variable_search_reissue_timeout;
     gnet_property->props[42].data.guint32.choices = NULL;
     gnet_property->props[42].data.guint32.max   = 9999;
     gnet_property->props[42].data.guint32.min   = 0;
@@ -1529,8 +1532,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[43].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[43].data.guint32.def   = &ban_ratio_fds_def;
-    gnet_property->props[43].data.guint32.value = &ban_ratio_fds;
+    gnet_property->props[43].data.guint32.def   = (void *) &gnet_property_variable_ban_ratio_fds_default;
+    gnet_property->props[43].data.guint32.value = (void *) &gnet_property_variable_ban_ratio_fds;
     gnet_property->props[43].data.guint32.choices = NULL;
     gnet_property->props[43].data.guint32.max   = 100;
     gnet_property->props[43].data.guint32.min   = 0;
@@ -1549,8 +1552,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[44].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[44].data.guint32.def   = &ban_max_fds_def;
-    gnet_property->props[44].data.guint32.value = &ban_max_fds;
+    gnet_property->props[44].data.guint32.def   = (void *) &gnet_property_variable_ban_max_fds_default;
+    gnet_property->props[44].data.guint32.value = (void *) &gnet_property_variable_ban_max_fds;
     gnet_property->props[44].data.guint32.choices = NULL;
     gnet_property->props[44].data.guint32.max   = 10000;
     gnet_property->props[44].data.guint32.min   = 0;
@@ -1569,8 +1572,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[45].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[45].data.guint32.def   = &banned_count_def;
-    gnet_property->props[45].data.guint32.value = &banned_count;
+    gnet_property->props[45].data.guint32.def   = (void *) &gnet_property_variable_banned_count_default;
+    gnet_property->props[45].data.guint32.value = (void *) &gnet_property_variable_banned_count;
     gnet_property->props[45].data.guint32.choices = NULL;
     gnet_property->props[45].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[45].data.guint32.min   = 0x00000000;
@@ -1589,8 +1592,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[46].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[46].data.guint32.def   = &max_banned_fd_def;
-    gnet_property->props[46].data.guint32.value = &max_banned_fd;
+    gnet_property->props[46].data.guint32.def   = (void *) &gnet_property_variable_max_banned_fd_default;
+    gnet_property->props[46].data.guint32.value = (void *) &gnet_property_variable_max_banned_fd;
     gnet_property->props[46].data.guint32.choices = NULL;
     gnet_property->props[46].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[46].data.guint32.min   = 0x00000000;
@@ -1609,8 +1612,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[47].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[47].data.guint32.def   = &incoming_connecting_timeout_def;
-    gnet_property->props[47].data.guint32.value = &incoming_connecting_timeout;
+    gnet_property->props[47].data.guint32.def   = (void *) &gnet_property_variable_incoming_connecting_timeout_default;
+    gnet_property->props[47].data.guint32.value = (void *) &gnet_property_variable_incoming_connecting_timeout;
     gnet_property->props[47].data.guint32.choices = NULL;
     gnet_property->props[47].data.guint32.max   = 300;
     gnet_property->props[47].data.guint32.min   = 30;
@@ -1629,8 +1632,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[48].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[48].data.guint32.def   = &node_connecting_timeout_def;
-    gnet_property->props[48].data.guint32.value = &node_connecting_timeout;
+    gnet_property->props[48].data.guint32.def   = (void *) &gnet_property_variable_node_connecting_timeout_default;
+    gnet_property->props[48].data.guint32.value = (void *) &gnet_property_variable_node_connecting_timeout;
     gnet_property->props[48].data.guint32.choices = NULL;
     gnet_property->props[48].data.guint32.max   = 100000;
     gnet_property->props[48].data.guint32.min   = 15;
@@ -1649,8 +1652,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[49].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[49].data.guint32.def   = &node_connected_timeout_def;
-    gnet_property->props[49].data.guint32.value = &node_connected_timeout;
+    gnet_property->props[49].data.guint32.def   = (void *) &gnet_property_variable_node_connected_timeout_default;
+    gnet_property->props[49].data.guint32.value = (void *) &gnet_property_variable_node_connected_timeout;
     gnet_property->props[49].data.guint32.choices = NULL;
     gnet_property->props[49].data.guint32.max   = 100000;
     gnet_property->props[49].data.guint32.min   = 120;
@@ -1669,8 +1672,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[50].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[50].data.guint32.def   = &node_sendqueue_size_def;
-    gnet_property->props[50].data.guint32.value = &node_sendqueue_size;
+    gnet_property->props[50].data.guint32.def   = (void *) &gnet_property_variable_node_sendqueue_size_default;
+    gnet_property->props[50].data.guint32.value = (void *) &gnet_property_variable_node_sendqueue_size;
     gnet_property->props[50].data.guint32.choices = NULL;
     gnet_property->props[50].data.guint32.max   = 256000;
     gnet_property->props[50].data.guint32.min   = 98305;
@@ -1689,8 +1692,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[51].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[51].data.guint32.def   = &node_tx_flowc_timeout_def;
-    gnet_property->props[51].data.guint32.value = &node_tx_flowc_timeout;
+    gnet_property->props[51].data.guint32.def   = (void *) &gnet_property_variable_node_tx_flowc_timeout_default;
+    gnet_property->props[51].data.guint32.value = (void *) &gnet_property_variable_node_tx_flowc_timeout;
     gnet_property->props[51].data.guint32.choices = NULL;
     gnet_property->props[51].data.guint32.max   = 7200;
     gnet_property->props[51].data.guint32.min   = 90;
@@ -1709,8 +1712,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[52].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[52].data.guint32.def   = &node_rx_flowc_ratio_def;
-    gnet_property->props[52].data.guint32.value = &node_rx_flowc_ratio;
+    gnet_property->props[52].data.guint32.def   = (void *) &gnet_property_variable_node_rx_flowc_ratio_default;
+    gnet_property->props[52].data.guint32.value = (void *) &gnet_property_variable_node_rx_flowc_ratio;
     gnet_property->props[52].data.guint32.choices = NULL;
     gnet_property->props[52].data.guint32.max   = 100;
     gnet_property->props[52].data.guint32.min   = 30;
@@ -1729,8 +1732,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[53].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[53].data.guint32.def   = &max_ttl_def;
-    gnet_property->props[53].data.guint32.value = &max_ttl;
+    gnet_property->props[53].data.guint32.def   = (void *) &gnet_property_variable_max_ttl_default;
+    gnet_property->props[53].data.guint32.value = (void *) &gnet_property_variable_max_ttl;
     gnet_property->props[53].data.guint32.choices = NULL;
     gnet_property->props[53].data.guint32.max   = 5;
     gnet_property->props[53].data.guint32.min   = 4;
@@ -1749,8 +1752,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[54].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[54].data.guint32.def   = &my_ttl_def;
-    gnet_property->props[54].data.guint32.value = &my_ttl;
+    gnet_property->props[54].data.guint32.def   = (void *) &gnet_property_variable_my_ttl_default;
+    gnet_property->props[54].data.guint32.value = (void *) &gnet_property_variable_my_ttl;
     gnet_property->props[54].data.guint32.choices = NULL;
     gnet_property->props[54].data.guint32.max   = 4;
     gnet_property->props[54].data.guint32.min   = 1;
@@ -1769,8 +1772,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[55].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[55].data.guint32.def   = &hard_ttl_limit_def;
-    gnet_property->props[55].data.guint32.value = &hard_ttl_limit;
+    gnet_property->props[55].data.guint32.def   = (void *) &gnet_property_variable_hard_ttl_limit_default;
+    gnet_property->props[55].data.guint32.value = (void *) &gnet_property_variable_hard_ttl_limit;
     gnet_property->props[55].data.guint32.choices = NULL;
     gnet_property->props[55].data.guint32.max   = 25;
     gnet_property->props[55].data.guint32.min   = 9;
@@ -1789,8 +1792,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[56].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[56].data.guint32.def   = &dbg_def;
-    gnet_property->props[56].data.guint32.value = &dbg;
+    gnet_property->props[56].data.guint32.def   = (void *) &gnet_property_variable_dbg_default;
+    gnet_property->props[56].data.guint32.value = (void *) &gnet_property_variable_dbg;
     gnet_property->props[56].data.guint32.choices = NULL;
     gnet_property->props[56].data.guint32.max   = 20;
     gnet_property->props[56].data.guint32.min   = 0;
@@ -1809,8 +1812,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[57].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[57].data.guint32.def   = &ban_debug_def;
-    gnet_property->props[57].data.guint32.value = &ban_debug;
+    gnet_property->props[57].data.guint32.def   = (void *) &gnet_property_variable_ban_debug_default;
+    gnet_property->props[57].data.guint32.value = (void *) &gnet_property_variable_ban_debug;
     gnet_property->props[57].data.guint32.choices = NULL;
     gnet_property->props[57].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[57].data.guint32.min   = 0x00000000;
@@ -1829,8 +1832,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[58].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[58].data.guint32.def   = &cpu_debug_def;
-    gnet_property->props[58].data.guint32.value = &cpu_debug;
+    gnet_property->props[58].data.guint32.def   = (void *) &gnet_property_variable_cpu_debug_default;
+    gnet_property->props[58].data.guint32.value = (void *) &gnet_property_variable_cpu_debug;
     gnet_property->props[58].data.guint32.choices = NULL;
     gnet_property->props[58].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[58].data.guint32.min   = 0x00000000;
@@ -1849,8 +1852,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[59].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[59].data.guint32.def   = &dmesh_debug_def;
-    gnet_property->props[59].data.guint32.value = &dmesh_debug;
+    gnet_property->props[59].data.guint32.def   = (void *) &gnet_property_variable_dmesh_debug_default;
+    gnet_property->props[59].data.guint32.value = (void *) &gnet_property_variable_dmesh_debug;
     gnet_property->props[59].data.guint32.choices = NULL;
     gnet_property->props[59].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[59].data.guint32.min   = 0x00000000;
@@ -1869,8 +1872,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[60].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[60].data.guint32.def   = &gmsg_debug_def;
-    gnet_property->props[60].data.guint32.value = &gmsg_debug;
+    gnet_property->props[60].data.guint32.def   = (void *) &gnet_property_variable_gmsg_debug_default;
+    gnet_property->props[60].data.guint32.value = (void *) &gnet_property_variable_gmsg_debug;
     gnet_property->props[60].data.guint32.choices = NULL;
     gnet_property->props[60].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[60].data.guint32.min   = 0x00000000;
@@ -1889,8 +1892,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[61].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[61].data.guint32.def   = &share_debug_def;
-    gnet_property->props[61].data.guint32.value = &share_debug;
+    gnet_property->props[61].data.guint32.def   = (void *) &gnet_property_variable_share_debug_default;
+    gnet_property->props[61].data.guint32.value = (void *) &gnet_property_variable_share_debug;
     gnet_property->props[61].data.guint32.choices = NULL;
     gnet_property->props[61].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[61].data.guint32.min   = 0x00000000;
@@ -1909,8 +1912,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[62].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[62].data.guint32.def   = &node_debug_def;
-    gnet_property->props[62].data.guint32.value = &node_debug;
+    gnet_property->props[62].data.guint32.def   = (void *) &gnet_property_variable_node_debug_default;
+    gnet_property->props[62].data.guint32.value = (void *) &gnet_property_variable_node_debug;
     gnet_property->props[62].data.guint32.choices = NULL;
     gnet_property->props[62].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[62].data.guint32.min   = 0x00000000;
@@ -1929,8 +1932,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[63].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[63].data.guint32.def   = &socket_debug_def;
-    gnet_property->props[63].data.guint32.value = &socket_debug;
+    gnet_property->props[63].data.guint32.def   = (void *) &gnet_property_variable_socket_debug_default;
+    gnet_property->props[63].data.guint32.value = (void *) &gnet_property_variable_socket_debug;
     gnet_property->props[63].data.guint32.choices = NULL;
     gnet_property->props[63].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[63].data.guint32.min   = 0x00000000;
@@ -1949,8 +1952,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[64].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[64].data.guint32.def   = &bootstrap_debug_def;
-    gnet_property->props[64].data.guint32.value = &bootstrap_debug;
+    gnet_property->props[64].data.guint32.def   = (void *) &gnet_property_variable_bootstrap_debug_default;
+    gnet_property->props[64].data.guint32.value = (void *) &gnet_property_variable_bootstrap_debug;
     gnet_property->props[64].data.guint32.choices = NULL;
     gnet_property->props[64].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[64].data.guint32.min   = 0x00000000;
@@ -1969,8 +1972,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[65].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[65].data.guint32.def   = &http_debug_def;
-    gnet_property->props[65].data.guint32.value = &http_debug;
+    gnet_property->props[65].data.guint32.def   = (void *) &gnet_property_variable_http_debug_default;
+    gnet_property->props[65].data.guint32.value = (void *) &gnet_property_variable_http_debug;
     gnet_property->props[65].data.guint32.choices = NULL;
     gnet_property->props[65].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[65].data.guint32.min   = 0x00000000;
@@ -1989,8 +1992,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[66].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[66].data.guint32.def   = &download_debug_def;
-    gnet_property->props[66].data.guint32.value = &download_debug;
+    gnet_property->props[66].data.guint32.def   = (void *) &gnet_property_variable_download_debug_default;
+    gnet_property->props[66].data.guint32.value = (void *) &gnet_property_variable_download_debug;
     gnet_property->props[66].data.guint32.choices = NULL;
     gnet_property->props[66].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[66].data.guint32.min   = 0x00000000;
@@ -2009,8 +2012,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[67].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[67].data.guint32.def   = &fileinfo_debug_def;
-    gnet_property->props[67].data.guint32.value = &fileinfo_debug;
+    gnet_property->props[67].data.guint32.def   = (void *) &gnet_property_variable_fileinfo_debug_default;
+    gnet_property->props[67].data.guint32.value = (void *) &gnet_property_variable_fileinfo_debug;
     gnet_property->props[67].data.guint32.choices = NULL;
     gnet_property->props[67].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[67].data.guint32.min   = 0x00000000;
@@ -2029,8 +2032,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[68].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[68].data.guint32.def   = &upload_debug_def;
-    gnet_property->props[68].data.guint32.value = &upload_debug;
+    gnet_property->props[68].data.guint32.def   = (void *) &gnet_property_variable_upload_debug_default;
+    gnet_property->props[68].data.guint32.value = (void *) &gnet_property_variable_upload_debug;
     gnet_property->props[68].data.guint32.choices = NULL;
     gnet_property->props[68].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[68].data.guint32.min   = 0x00000000;
@@ -2049,8 +2052,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[69].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[69].data.guint32.def   = &lib_debug_def;
-    gnet_property->props[69].data.guint32.value = &lib_debug;
+    gnet_property->props[69].data.guint32.def   = (void *) &gnet_property_variable_lib_debug_default;
+    gnet_property->props[69].data.guint32.value = (void *) &gnet_property_variable_lib_debug;
     gnet_property->props[69].data.guint32.choices = NULL;
     gnet_property->props[69].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[69].data.guint32.min   = 0x00000000;
@@ -2069,8 +2072,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[70].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[70].data.guint32.def   = &bitzi_debug_def;
-    gnet_property->props[70].data.guint32.value = &bitzi_debug;
+    gnet_property->props[70].data.guint32.def   = (void *) &gnet_property_variable_bitzi_debug_default;
+    gnet_property->props[70].data.guint32.value = (void *) &gnet_property_variable_bitzi_debug;
     gnet_property->props[70].data.guint32.choices = NULL;
     gnet_property->props[70].data.guint32.max   = 20;
     gnet_property->props[70].data.guint32.min   = 0;
@@ -2089,8 +2092,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[71].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[71].data.guint32.def   = &url_debug_def;
-    gnet_property->props[71].data.guint32.value = &url_debug;
+    gnet_property->props[71].data.guint32.def   = (void *) &gnet_property_variable_url_debug_default;
+    gnet_property->props[71].data.guint32.value = (void *) &gnet_property_variable_url_debug;
     gnet_property->props[71].data.guint32.choices = NULL;
     gnet_property->props[71].data.guint32.max   = 20;
     gnet_property->props[71].data.guint32.min   = 0;
@@ -2109,8 +2112,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[72].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[72].data.guint32.def   = &dh_debug_def;
-    gnet_property->props[72].data.guint32.value = &dh_debug;
+    gnet_property->props[72].data.guint32.def   = (void *) &gnet_property_variable_dh_debug_default;
+    gnet_property->props[72].data.guint32.value = (void *) &gnet_property_variable_dh_debug;
     gnet_property->props[72].data.guint32.choices = NULL;
     gnet_property->props[72].data.guint32.max   = 20;
     gnet_property->props[72].data.guint32.min   = 0;
@@ -2129,8 +2132,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[73].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[73].data.guint32.def   = &dq_debug_def;
-    gnet_property->props[73].data.guint32.value = &dq_debug;
+    gnet_property->props[73].data.guint32.def   = (void *) &gnet_property_variable_dq_debug_default;
+    gnet_property->props[73].data.guint32.value = (void *) &gnet_property_variable_dq_debug;
     gnet_property->props[73].data.guint32.choices = NULL;
     gnet_property->props[73].data.guint32.max   = 20;
     gnet_property->props[73].data.guint32.min   = 0;
@@ -2149,8 +2152,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[74].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[74].data.guint32.def   = &vmsg_debug_def;
-    gnet_property->props[74].data.guint32.value = &vmsg_debug;
+    gnet_property->props[74].data.guint32.def   = (void *) &gnet_property_variable_vmsg_debug_default;
+    gnet_property->props[74].data.guint32.value = (void *) &gnet_property_variable_vmsg_debug;
     gnet_property->props[74].data.guint32.choices = NULL;
     gnet_property->props[74].data.guint32.max   = 20;
     gnet_property->props[74].data.guint32.min   = 0;
@@ -2169,8 +2172,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[75].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[75].data.guint32.def   = &query_debug_def;
-    gnet_property->props[75].data.guint32.value = &query_debug;
+    gnet_property->props[75].data.guint32.def   = (void *) &gnet_property_variable_query_debug_default;
+    gnet_property->props[75].data.guint32.value = (void *) &gnet_property_variable_query_debug;
     gnet_property->props[75].data.guint32.choices = NULL;
     gnet_property->props[75].data.guint32.max   = 20;
     gnet_property->props[75].data.guint32.min   = 0;
@@ -2189,8 +2192,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[76].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[76].data.guint32.def   = &search_debug_def;
-    gnet_property->props[76].data.guint32.value = &search_debug;
+    gnet_property->props[76].data.guint32.def   = (void *) &gnet_property_variable_search_debug_default;
+    gnet_property->props[76].data.guint32.value = (void *) &gnet_property_variable_search_debug;
     gnet_property->props[76].data.guint32.choices = NULL;
     gnet_property->props[76].data.guint32.max   = 20;
     gnet_property->props[76].data.guint32.min   = 0;
@@ -2209,8 +2212,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[77].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[77].data.guint32.def   = &udp_debug_def;
-    gnet_property->props[77].data.guint32.value = &udp_debug;
+    gnet_property->props[77].data.guint32.def   = (void *) &gnet_property_variable_udp_debug_default;
+    gnet_property->props[77].data.guint32.value = (void *) &gnet_property_variable_udp_debug;
     gnet_property->props[77].data.guint32.choices = NULL;
     gnet_property->props[77].data.guint32.max   = 20;
     gnet_property->props[77].data.guint32.min   = 0;
@@ -2229,8 +2232,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[78].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[78].data.guint32.def   = &qrp_debug_def;
-    gnet_property->props[78].data.guint32.value = &qrp_debug;
+    gnet_property->props[78].data.guint32.def   = (void *) &gnet_property_variable_qrp_debug_default;
+    gnet_property->props[78].data.guint32.value = (void *) &gnet_property_variable_qrp_debug;
     gnet_property->props[78].data.guint32.choices = NULL;
     gnet_property->props[78].data.guint32.max   = 20;
     gnet_property->props[78].data.guint32.min   = 0;
@@ -2249,8 +2252,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[79].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[79].data.guint32.def   = &routing_debug_def;
-    gnet_property->props[79].data.guint32.value = &routing_debug;
+    gnet_property->props[79].data.guint32.def   = (void *) &gnet_property_variable_routing_debug_default;
+    gnet_property->props[79].data.guint32.value = (void *) &gnet_property_variable_routing_debug;
     gnet_property->props[79].data.guint32.choices = NULL;
     gnet_property->props[79].data.guint32.max   = 20;
     gnet_property->props[79].data.guint32.min   = 0;
@@ -2269,8 +2272,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[80].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[80].data.guint32.def   = &ggep_debug_def;
-    gnet_property->props[80].data.guint32.value = &ggep_debug;
+    gnet_property->props[80].data.guint32.def   = (void *) &gnet_property_variable_ggep_debug_default;
+    gnet_property->props[80].data.guint32.value = (void *) &gnet_property_variable_ggep_debug;
     gnet_property->props[80].data.guint32.choices = NULL;
     gnet_property->props[80].data.guint32.max   = 20;
     gnet_property->props[80].data.guint32.min   = 0;
@@ -2289,8 +2292,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[81].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[81].data.guint32.def   = &pcache_debug_def;
-    gnet_property->props[81].data.guint32.value = &pcache_debug;
+    gnet_property->props[81].data.guint32.def   = (void *) &gnet_property_variable_pcache_debug_default;
+    gnet_property->props[81].data.guint32.value = (void *) &gnet_property_variable_pcache_debug;
     gnet_property->props[81].data.guint32.choices = NULL;
     gnet_property->props[81].data.guint32.max   = 20;
     gnet_property->props[81].data.guint32.min   = 0;
@@ -2309,8 +2312,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[82].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[82].data.guint32.def   = &hsep_debug_def;
-    gnet_property->props[82].data.guint32.value = &hsep_debug;
+    gnet_property->props[82].data.guint32.def   = (void *) &gnet_property_variable_hsep_debug_default;
+    gnet_property->props[82].data.guint32.value = (void *) &gnet_property_variable_hsep_debug;
     gnet_property->props[82].data.guint32.choices = NULL;
     gnet_property->props[82].data.guint32.max   = 20;
     gnet_property->props[82].data.guint32.min   = 0;
@@ -2329,8 +2332,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[83].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[83].data.guint32.def   = &tls_debug_def;
-    gnet_property->props[83].data.guint32.value = &tls_debug;
+    gnet_property->props[83].data.guint32.def   = (void *) &gnet_property_variable_tls_debug_default;
+    gnet_property->props[83].data.guint32.value = (void *) &gnet_property_variable_tls_debug;
     gnet_property->props[83].data.guint32.choices = NULL;
     gnet_property->props[83].data.guint32.max   = 20;
     gnet_property->props[83].data.guint32.min   = 0;
@@ -2349,8 +2352,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[84].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[84].data.guint32.def   = &parq_debug_def;
-    gnet_property->props[84].data.guint32.value = &parq_debug;
+    gnet_property->props[84].data.guint32.def   = (void *) &gnet_property_variable_parq_debug_default;
+    gnet_property->props[84].data.guint32.value = (void *) &gnet_property_variable_parq_debug;
     gnet_property->props[84].data.guint32.choices = NULL;
     gnet_property->props[84].data.guint32.max   = 20;
     gnet_property->props[84].data.guint32.min   = 0;
@@ -2369,8 +2372,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[85].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[85].data.boolean.def   = &parq_optimistic_def;
-    gnet_property->props[85].data.boolean.value = &parq_optimistic;
+    gnet_property->props[85].data.boolean.def   = (void *) &gnet_property_variable_parq_optimistic_default;
+    gnet_property->props[85].data.boolean.value = (void *) &gnet_property_variable_parq_optimistic;
 
 
     /*
@@ -2386,8 +2389,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[86].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[86].data.guint32.def   = &parq_size_always_continue_def;
-    gnet_property->props[86].data.guint32.value = &parq_size_always_continue;
+    gnet_property->props[86].data.guint32.def   = (void *) &gnet_property_variable_parq_size_always_continue_default;
+    gnet_property->props[86].data.guint32.value = (void *) &gnet_property_variable_parq_size_always_continue;
     gnet_property->props[86].data.guint32.choices = NULL;
     gnet_property->props[86].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[86].data.guint32.min   = 0x00000000;
@@ -2406,8 +2409,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[87].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[87].data.guint32.def   = &parq_time_always_continue_def;
-    gnet_property->props[87].data.guint32.value = &parq_time_always_continue;
+    gnet_property->props[87].data.guint32.def   = (void *) &gnet_property_variable_parq_time_always_continue_default;
+    gnet_property->props[87].data.guint32.value = (void *) &gnet_property_variable_parq_time_always_continue;
     gnet_property->props[87].data.guint32.choices = NULL;
     gnet_property->props[87].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[87].data.guint32.min   = 0x00000000;
@@ -2426,8 +2429,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[88].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[88].data.guint32.def   = &parq_ban_bad_maxcountwait_def;
-    gnet_property->props[88].data.guint32.value = &parq_ban_bad_maxcountwait;
+    gnet_property->props[88].data.guint32.def   = (void *) &gnet_property_variable_parq_ban_bad_maxcountwait_default;
+    gnet_property->props[88].data.guint32.value = (void *) &gnet_property_variable_parq_ban_bad_maxcountwait;
     gnet_property->props[88].data.guint32.choices = NULL;
     gnet_property->props[88].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[88].data.guint32.min   = 0x00000000;
@@ -2446,8 +2449,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[89].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[89].data.guint32.def   = &track_props_def;
-    gnet_property->props[89].data.guint32.value = &track_props;
+    gnet_property->props[89].data.guint32.def   = (void *) &gnet_property_variable_track_props_default;
+    gnet_property->props[89].data.guint32.value = (void *) &gnet_property_variable_track_props;
     gnet_property->props[89].data.guint32.choices = NULL;
     gnet_property->props[89].data.guint32.max   = 20;
     gnet_property->props[89].data.guint32.min   = 0;
@@ -2466,8 +2469,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[90].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[90].data.boolean.def   = &stop_host_get_def;
-    gnet_property->props[90].data.boolean.value = &stop_host_get;
+    gnet_property->props[90].data.boolean.def   = (void *) &gnet_property_variable_stop_host_get_default;
+    gnet_property->props[90].data.boolean.value = (void *) &gnet_property_variable_stop_host_get;
 
 
     /*
@@ -2483,8 +2486,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[91].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[91].data.boolean.def   = &bws_in_enabled_def;
-    gnet_property->props[91].data.boolean.value = &bws_in_enabled;
+    gnet_property->props[91].data.boolean.def   = (void *) &gnet_property_variable_bws_in_enabled_default;
+    gnet_property->props[91].data.boolean.value = (void *) &gnet_property_variable_bws_in_enabled;
 
 
     /*
@@ -2500,8 +2503,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[92].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[92].data.boolean.def   = &bws_out_enabled_def;
-    gnet_property->props[92].data.boolean.value = &bws_out_enabled;
+    gnet_property->props[92].data.boolean.def   = (void *) &gnet_property_variable_bws_out_enabled_default;
+    gnet_property->props[92].data.boolean.value = (void *) &gnet_property_variable_bws_out_enabled;
 
 
     /*
@@ -2517,8 +2520,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[93].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[93].data.boolean.def   = &bws_gin_enabled_def;
-    gnet_property->props[93].data.boolean.value = &bws_gin_enabled;
+    gnet_property->props[93].data.boolean.def   = (void *) &gnet_property_variable_bws_gin_enabled_default;
+    gnet_property->props[93].data.boolean.value = (void *) &gnet_property_variable_bws_gin_enabled;
 
 
     /*
@@ -2534,8 +2537,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[94].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[94].data.boolean.def   = &bws_glin_enabled_def;
-    gnet_property->props[94].data.boolean.value = &bws_glin_enabled;
+    gnet_property->props[94].data.boolean.def   = (void *) &gnet_property_variable_bws_glin_enabled_default;
+    gnet_property->props[94].data.boolean.value = (void *) &gnet_property_variable_bws_glin_enabled;
 
 
     /*
@@ -2551,8 +2554,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[95].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[95].data.boolean.def   = &bws_gout_enabled_def;
-    gnet_property->props[95].data.boolean.value = &bws_gout_enabled;
+    gnet_property->props[95].data.boolean.def   = (void *) &gnet_property_variable_bws_gout_enabled_default;
+    gnet_property->props[95].data.boolean.value = (void *) &gnet_property_variable_bws_gout_enabled;
 
 
     /*
@@ -2568,8 +2571,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[96].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[96].data.boolean.def   = &bws_glout_enabled_def;
-    gnet_property->props[96].data.boolean.value = &bws_glout_enabled;
+    gnet_property->props[96].data.boolean.def   = (void *) &gnet_property_variable_bws_glout_enabled_default;
+    gnet_property->props[96].data.boolean.value = (void *) &gnet_property_variable_bws_glout_enabled;
 
 
     /*
@@ -2585,8 +2588,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[97].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[97].data.boolean.def   = &bw_ul_usage_enabled_def;
-    gnet_property->props[97].data.boolean.value = &bw_ul_usage_enabled;
+    gnet_property->props[97].data.boolean.def   = (void *) &gnet_property_variable_bw_ul_usage_enabled_default;
+    gnet_property->props[97].data.boolean.value = (void *) &gnet_property_variable_bw_ul_usage_enabled;
 
 
     /*
@@ -2602,8 +2605,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[98].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[98].data.boolean.def   = &bw_allow_stealing_def;
-    gnet_property->props[98].data.boolean.value = &bw_allow_stealing;
+    gnet_property->props[98].data.boolean.def   = (void *) &gnet_property_variable_bw_allow_stealing_default;
+    gnet_property->props[98].data.boolean.value = (void *) &gnet_property_variable_bw_allow_stealing;
 
 
     /*
@@ -2619,8 +2622,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[99].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[99].data.boolean.def   = &clear_complete_downloads_def;
-    gnet_property->props[99].data.boolean.value = &clear_complete_downloads;
+    gnet_property->props[99].data.boolean.def   = (void *) &gnet_property_variable_clear_complete_downloads_default;
+    gnet_property->props[99].data.boolean.value = (void *) &gnet_property_variable_clear_complete_downloads;
 
 
     /*
@@ -2636,8 +2639,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[100].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[100].data.boolean.def   = &clear_failed_downloads_def;
-    gnet_property->props[100].data.boolean.value = &clear_failed_downloads;
+    gnet_property->props[100].data.boolean.def   = (void *) &gnet_property_variable_clear_failed_downloads_default;
+    gnet_property->props[100].data.boolean.value = (void *) &gnet_property_variable_clear_failed_downloads;
 
 
     /*
@@ -2653,8 +2656,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[101].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[101].data.boolean.def   = &clear_unavailable_downloads_def;
-    gnet_property->props[101].data.boolean.value = &clear_unavailable_downloads;
+    gnet_property->props[101].data.boolean.def   = (void *) &gnet_property_variable_clear_unavailable_downloads_default;
+    gnet_property->props[101].data.boolean.value = (void *) &gnet_property_variable_clear_unavailable_downloads;
 
 
     /*
@@ -2670,8 +2673,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[102].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[102].data.boolean.def   = &search_remove_downloaded_def;
-    gnet_property->props[102].data.boolean.value = &search_remove_downloaded;
+    gnet_property->props[102].data.boolean.def   = (void *) &gnet_property_variable_search_remove_downloaded_default;
+    gnet_property->props[102].data.boolean.value = (void *) &gnet_property_variable_search_remove_downloaded;
 
 
     /*
@@ -2687,8 +2690,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[103].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[103].data.boolean.def   = &force_local_ip_def;
-    gnet_property->props[103].data.boolean.value = &force_local_ip;
+    gnet_property->props[103].data.boolean.def   = (void *) &gnet_property_variable_force_local_ip_default;
+    gnet_property->props[103].data.boolean.value = (void *) &gnet_property_variable_force_local_ip;
 
 
     /*
@@ -2704,8 +2707,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[104].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[104].data.boolean.def   = &force_local_ip6_def;
-    gnet_property->props[104].data.boolean.value = &force_local_ip6;
+    gnet_property->props[104].data.boolean.def   = (void *) &gnet_property_variable_force_local_ip6_default;
+    gnet_property->props[104].data.boolean.value = (void *) &gnet_property_variable_force_local_ip6;
 
 
     /*
@@ -2721,8 +2724,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[105].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[105].data.boolean.def   = &bind_to_forced_local_ip_def;
-    gnet_property->props[105].data.boolean.value = &bind_to_forced_local_ip;
+    gnet_property->props[105].data.boolean.def   = (void *) &gnet_property_variable_bind_to_forced_local_ip_default;
+    gnet_property->props[105].data.boolean.value = (void *) &gnet_property_variable_bind_to_forced_local_ip;
 
 
     /*
@@ -2738,8 +2741,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[106].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[106].data.boolean.def   = &bind_to_forced_local_ip6_def;
-    gnet_property->props[106].data.boolean.value = &bind_to_forced_local_ip6;
+    gnet_property->props[106].data.boolean.def   = (void *) &gnet_property_variable_bind_to_forced_local_ip6_default;
+    gnet_property->props[106].data.boolean.value = (void *) &gnet_property_variable_bind_to_forced_local_ip6;
 
 
     /*
@@ -2755,8 +2758,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[107].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[107].data.boolean.def   = &use_netmasks_def;
-    gnet_property->props[107].data.boolean.value = &use_netmasks;
+    gnet_property->props[107].data.boolean.def   = (void *) &gnet_property_variable_use_netmasks_default;
+    gnet_property->props[107].data.boolean.value = (void *) &gnet_property_variable_use_netmasks;
 
 
     /*
@@ -2772,8 +2775,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[108].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[108].data.boolean.def   = &allow_private_network_connection_def;
-    gnet_property->props[108].data.boolean.value = &allow_private_network_connection;
+    gnet_property->props[108].data.boolean.def   = (void *) &gnet_property_variable_allow_private_network_connection_default;
+    gnet_property->props[108].data.boolean.value = (void *) &gnet_property_variable_allow_private_network_connection;
 
 
     /*
@@ -2789,8 +2792,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[109].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[109].data.boolean.def   = &use_ip_tos_def;
-    gnet_property->props[109].data.boolean.value = &use_ip_tos;
+    gnet_property->props[109].data.boolean.def   = (void *) &gnet_property_variable_use_ip_tos_default;
+    gnet_property->props[109].data.boolean.value = (void *) &gnet_property_variable_use_ip_tos;
 
 
     /*
@@ -2806,8 +2809,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[110].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[110].data.boolean.def   = &download_delete_aborted_def;
-    gnet_property->props[110].data.boolean.value = &download_delete_aborted;
+    gnet_property->props[110].data.boolean.def   = (void *) &gnet_property_variable_download_delete_aborted_default;
+    gnet_property->props[110].data.boolean.value = (void *) &gnet_property_variable_download_delete_aborted;
 
 
     /*
@@ -2823,8 +2826,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[111].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[111].data.boolean.def   = &proxy_auth_def;
-    gnet_property->props[111].data.boolean.value = &proxy_auth;
+    gnet_property->props[111].data.boolean.def   = (void *) &gnet_property_variable_proxy_auth_default;
+    gnet_property->props[111].data.boolean.value = (void *) &gnet_property_variable_proxy_auth;
 
 
     /*
@@ -2840,8 +2843,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[112].type               = PROP_TYPE_STRING;
-    gnet_property->props[112].data.string.def    = &socks_user_def;
-    gnet_property->props[112].data.string.value  = &socks_user;
+    gnet_property->props[112].data.string.def    = (void *) &gnet_property_variable_socks_user_default;
+    gnet_property->props[112].data.string.value  = (void *) &gnet_property_variable_socks_user;
     if (gnet_property->props[112].data.string.def) {
         *gnet_property->props[112].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[112].data.string.def));
@@ -2861,8 +2864,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[113].type               = PROP_TYPE_STRING;
-    gnet_property->props[113].data.string.def    = &socks_pass_def;
-    gnet_property->props[113].data.string.value  = &socks_pass;
+    gnet_property->props[113].data.string.def    = (void *) &gnet_property_variable_socks_pass_default;
+    gnet_property->props[113].data.string.value  = (void *) &gnet_property_variable_socks_pass;
     if (gnet_property->props[113].data.string.def) {
         *gnet_property->props[113].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[113].data.string.def));
@@ -2882,7 +2885,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[114].type               = PROP_TYPE_IP;
-    gnet_property->props[114].data.ip.value = &proxy_addr;
+    gnet_property->props[114].data.ip.value = (void *) &gnet_property_variable_proxy_addr;
 
 
     /*
@@ -2898,8 +2901,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[115].type               = PROP_TYPE_STRING;
-    gnet_property->props[115].data.string.def    = &proxy_hostname_def;
-    gnet_property->props[115].data.string.value  = &proxy_hostname;
+    gnet_property->props[115].data.string.def    = (void *) &gnet_property_variable_proxy_hostname_default;
+    gnet_property->props[115].data.string.value  = (void *) &gnet_property_variable_proxy_hostname;
     if (gnet_property->props[115].data.string.def) {
         *gnet_property->props[115].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[115].data.string.def));
@@ -2919,8 +2922,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[116].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[116].data.guint32.def   = &proxy_port_def;
-    gnet_property->props[116].data.guint32.value = &proxy_port;
+    gnet_property->props[116].data.guint32.def   = (void *) &gnet_property_variable_proxy_port_default;
+    gnet_property->props[116].data.guint32.value = (void *) &gnet_property_variable_proxy_port;
     gnet_property->props[116].data.guint32.choices = NULL;
     gnet_property->props[116].data.guint32.max   = 0xFFFF;
     gnet_property->props[116].data.guint32.min   = 0x0000;
@@ -2939,11 +2942,11 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[117].type               = PROP_TYPE_MULTICHOICE;
-    gnet_property->props[117].data.guint32.def   = &proxy_protocol_def;
-    gnet_property->props[117].data.guint32.value = &proxy_protocol;
+    gnet_property->props[117].data.guint32.def   = (void *) &gnet_property_variable_proxy_protocol_default;
+    gnet_property->props[117].data.guint32.value = (void *) &gnet_property_variable_proxy_protocol;
     gnet_property->props[117].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[117].data.guint32.min   = 0x00000000;
-    gnet_property->props[117].data.guint32.choices = proxy_protocol_choices;
+    gnet_property->props[117].data.guint32.choices = (void *) &gnet_property_variable_proxy_protocol_choices;
 
 
     /*
@@ -2959,11 +2962,11 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[118].type               = PROP_TYPE_MULTICHOICE;
-    gnet_property->props[118].data.guint32.def   = &network_protocol_def;
-    gnet_property->props[118].data.guint32.value = &network_protocol;
+    gnet_property->props[118].data.guint32.def   = (void *) &gnet_property_variable_network_protocol_default;
+    gnet_property->props[118].data.guint32.value = (void *) &gnet_property_variable_network_protocol;
     gnet_property->props[118].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[118].data.guint32.min   = 0x00000000;
-    gnet_property->props[118].data.guint32.choices = network_protocol_choices;
+    gnet_property->props[118].data.guint32.choices = (void *) &gnet_property_variable_network_protocol_choices;
 
 
     /*
@@ -2979,8 +2982,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[119].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[119].data.boolean.def   = &use_ipv6_trt_def;
-    gnet_property->props[119].data.boolean.value = &use_ipv6_trt;
+    gnet_property->props[119].data.boolean.def   = (void *) &gnet_property_variable_use_ipv6_trt_default;
+    gnet_property->props[119].data.boolean.value = (void *) &gnet_property_variable_use_ipv6_trt;
 
 
     /*
@@ -2996,7 +2999,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[120].type               = PROP_TYPE_IP;
-    gnet_property->props[120].data.ip.value = &ipv6_trt_prefix;
+    gnet_property->props[120].data.ip.value = (void *) &gnet_property_variable_ipv6_trt_prefix;
 
 
     /*
@@ -3012,8 +3015,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[121].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[121].data.guint32.def   = &hosts_in_catcher_def;
-    gnet_property->props[121].data.guint32.value = &hosts_in_catcher;
+    gnet_property->props[121].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_catcher_default;
+    gnet_property->props[121].data.guint32.value = (void *) &gnet_property_variable_hosts_in_catcher;
     gnet_property->props[121].data.guint32.choices = NULL;
     gnet_property->props[121].data.guint32.max   = 999999;
     gnet_property->props[121].data.guint32.min   = 0;
@@ -3032,8 +3035,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[122].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[122].data.guint32.def   = &hosts_in_ultra_catcher_def;
-    gnet_property->props[122].data.guint32.value = &hosts_in_ultra_catcher;
+    gnet_property->props[122].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_ultra_catcher_default;
+    gnet_property->props[122].data.guint32.value = (void *) &gnet_property_variable_hosts_in_ultra_catcher;
     gnet_property->props[122].data.guint32.choices = NULL;
     gnet_property->props[122].data.guint32.max   = 999999;
     gnet_property->props[122].data.guint32.min   = 0;
@@ -3052,8 +3055,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[123].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[123].data.guint32.def   = &hosts_in_bad_catcher_def;
-    gnet_property->props[123].data.guint32.value = &hosts_in_bad_catcher;
+    gnet_property->props[123].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_bad_catcher_default;
+    gnet_property->props[123].data.guint32.value = (void *) &gnet_property_variable_hosts_in_bad_catcher;
     gnet_property->props[123].data.guint32.choices = NULL;
     gnet_property->props[123].data.guint32.max   = 999999;
     gnet_property->props[123].data.guint32.min   = 0;
@@ -3072,8 +3075,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[124].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[124].data.guint32.def   = &max_hosts_cached_def;
-    gnet_property->props[124].data.guint32.value = &max_hosts_cached;
+    gnet_property->props[124].data.guint32.def   = (void *) &gnet_property_variable_max_hosts_cached_default;
+    gnet_property->props[124].data.guint32.value = (void *) &gnet_property_variable_max_hosts_cached;
     gnet_property->props[124].data.guint32.choices = NULL;
     gnet_property->props[124].data.guint32.max   = 50000;
     gnet_property->props[124].data.guint32.min   = 100;
@@ -3092,8 +3095,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[125].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[125].data.guint32.def   = &max_ultra_hosts_cached_def;
-    gnet_property->props[125].data.guint32.value = &max_ultra_hosts_cached;
+    gnet_property->props[125].data.guint32.def   = (void *) &gnet_property_variable_max_ultra_hosts_cached_default;
+    gnet_property->props[125].data.guint32.value = (void *) &gnet_property_variable_max_ultra_hosts_cached;
     gnet_property->props[125].data.guint32.choices = NULL;
     gnet_property->props[125].data.guint32.max   = 50000;
     gnet_property->props[125].data.guint32.min   = 100;
@@ -3112,8 +3115,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[126].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[126].data.guint32.def   = &max_bad_hosts_cached_def;
-    gnet_property->props[126].data.guint32.value = &max_bad_hosts_cached;
+    gnet_property->props[126].data.guint32.def   = (void *) &gnet_property_variable_max_bad_hosts_cached_default;
+    gnet_property->props[126].data.guint32.value = (void *) &gnet_property_variable_max_bad_hosts_cached;
     gnet_property->props[126].data.guint32.choices = NULL;
     gnet_property->props[126].data.guint32.max   = 50000;
     gnet_property->props[126].data.guint32.min   = 100;
@@ -3132,8 +3135,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[127].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[127].data.guint32.def   = &max_high_ttl_msg_def;
-    gnet_property->props[127].data.guint32.value = &max_high_ttl_msg;
+    gnet_property->props[127].data.guint32.def   = (void *) &gnet_property_variable_max_high_ttl_msg_default;
+    gnet_property->props[127].data.guint32.value = (void *) &gnet_property_variable_max_high_ttl_msg;
     gnet_property->props[127].data.guint32.choices = NULL;
     gnet_property->props[127].data.guint32.max   = 10000;
     gnet_property->props[127].data.guint32.min   = 0;
@@ -3152,8 +3155,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[128].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[128].data.guint32.def   = &max_high_ttl_radius_def;
-    gnet_property->props[128].data.guint32.value = &max_high_ttl_radius;
+    gnet_property->props[128].data.guint32.def   = (void *) &gnet_property_variable_max_high_ttl_radius_default;
+    gnet_property->props[128].data.guint32.value = (void *) &gnet_property_variable_max_high_ttl_radius;
     gnet_property->props[128].data.guint32.choices = NULL;
     gnet_property->props[128].data.guint32.max   = 10;
     gnet_property->props[128].data.guint32.min   = 0;
@@ -3172,8 +3175,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[129].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[129].data.guint32.def   = &bw_http_in_def;
-    gnet_property->props[129].data.guint32.value = &bw_http_in;
+    gnet_property->props[129].data.guint32.def   = (void *) &gnet_property_variable_bw_http_in_default;
+    gnet_property->props[129].data.guint32.value = (void *) &gnet_property_variable_bw_http_in;
     gnet_property->props[129].data.guint32.choices = NULL;
     gnet_property->props[129].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[129].data.guint32.min   = 1024;
@@ -3192,8 +3195,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[130].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[130].data.guint32.def   = &bw_http_out_def;
-    gnet_property->props[130].data.guint32.value = &bw_http_out;
+    gnet_property->props[130].data.guint32.def   = (void *) &gnet_property_variable_bw_http_out_default;
+    gnet_property->props[130].data.guint32.value = (void *) &gnet_property_variable_bw_http_out;
     gnet_property->props[130].data.guint32.choices = NULL;
     gnet_property->props[130].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[130].data.guint32.min   = 1024;
@@ -3212,8 +3215,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[131].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[131].data.guint32.def   = &bw_gnet_in_def;
-    gnet_property->props[131].data.guint32.value = &bw_gnet_in;
+    gnet_property->props[131].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_in_default;
+    gnet_property->props[131].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_in;
     gnet_property->props[131].data.guint32.choices = NULL;
     gnet_property->props[131].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[131].data.guint32.min   = 1024;
@@ -3232,8 +3235,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[132].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[132].data.guint32.def   = &bw_gnet_out_def;
-    gnet_property->props[132].data.guint32.value = &bw_gnet_out;
+    gnet_property->props[132].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_out_default;
+    gnet_property->props[132].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_out;
     gnet_property->props[132].data.guint32.choices = NULL;
     gnet_property->props[132].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[132].data.guint32.min   = 1024;
@@ -3252,8 +3255,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[133].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[133].data.guint32.def   = &bw_gnet_lin_def;
-    gnet_property->props[133].data.guint32.value = &bw_gnet_lin;
+    gnet_property->props[133].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_lin_default;
+    gnet_property->props[133].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_lin;
     gnet_property->props[133].data.guint32.choices = NULL;
     gnet_property->props[133].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[133].data.guint32.min   = 1024;
@@ -3272,8 +3275,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[134].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[134].data.guint32.def   = &bw_gnet_lout_def;
-    gnet_property->props[134].data.guint32.value = &bw_gnet_lout;
+    gnet_property->props[134].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_lout_default;
+    gnet_property->props[134].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_lout;
     gnet_property->props[134].data.guint32.choices = NULL;
     gnet_property->props[134].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[134].data.guint32.min   = 1024;
@@ -3292,8 +3295,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[135].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[135].data.guint32.def   = &search_queries_forward_size_def;
-    gnet_property->props[135].data.guint32.value = &search_queries_forward_size;
+    gnet_property->props[135].data.guint32.def   = (void *) &gnet_property_variable_search_queries_forward_size_default;
+    gnet_property->props[135].data.guint32.value = (void *) &gnet_property_variable_search_queries_forward_size;
     gnet_property->props[135].data.guint32.choices = NULL;
     gnet_property->props[135].data.guint32.max   = 256;
     gnet_property->props[135].data.guint32.min   = 128;
@@ -3312,8 +3315,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[136].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[136].data.guint32.def   = &search_queries_kick_size_def;
-    gnet_property->props[136].data.guint32.value = &search_queries_kick_size;
+    gnet_property->props[136].data.guint32.def   = (void *) &gnet_property_variable_search_queries_kick_size_default;
+    gnet_property->props[136].data.guint32.value = (void *) &gnet_property_variable_search_queries_kick_size;
     gnet_property->props[136].data.guint32.choices = NULL;
     gnet_property->props[136].data.guint32.max   = 1024;
     gnet_property->props[136].data.guint32.min   = 256;
@@ -3332,8 +3335,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[137].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[137].data.guint32.def   = &search_answers_forward_size_def;
-    gnet_property->props[137].data.guint32.value = &search_answers_forward_size;
+    gnet_property->props[137].data.guint32.def   = (void *) &gnet_property_variable_search_answers_forward_size_default;
+    gnet_property->props[137].data.guint32.value = (void *) &gnet_property_variable_search_answers_forward_size;
     gnet_property->props[137].data.guint32.choices = NULL;
     gnet_property->props[137].data.guint32.max   = 65536;
     gnet_property->props[137].data.guint32.min   = 4096;
@@ -3352,8 +3355,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[138].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[138].data.guint32.def   = &search_answers_kick_size_def;
-    gnet_property->props[138].data.guint32.value = &search_answers_kick_size;
+    gnet_property->props[138].data.guint32.def   = (void *) &gnet_property_variable_search_answers_kick_size_default;
+    gnet_property->props[138].data.guint32.value = (void *) &gnet_property_variable_search_answers_kick_size;
     gnet_property->props[138].data.guint32.choices = NULL;
     gnet_property->props[138].data.guint32.max   = 65536;
     gnet_property->props[138].data.guint32.min   = 16384;
@@ -3372,8 +3375,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[139].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[139].data.guint32.def   = &search_muid_track_amount_def;
-    gnet_property->props[139].data.guint32.value = &search_muid_track_amount;
+    gnet_property->props[139].data.guint32.def   = (void *) &gnet_property_variable_search_muid_track_amount_default;
+    gnet_property->props[139].data.guint32.value = (void *) &gnet_property_variable_search_muid_track_amount;
     gnet_property->props[139].data.guint32.choices = NULL;
     gnet_property->props[139].data.guint32.max   = 1000000;
     gnet_property->props[139].data.guint32.min   = 0;
@@ -3392,8 +3395,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[140].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[140].data.guint32.def   = &other_messages_kick_size_def;
-    gnet_property->props[140].data.guint32.value = &other_messages_kick_size;
+    gnet_property->props[140].data.guint32.def   = (void *) &gnet_property_variable_other_messages_kick_size_default;
+    gnet_property->props[140].data.guint32.value = (void *) &gnet_property_variable_other_messages_kick_size;
     gnet_property->props[140].data.guint32.choices = NULL;
     gnet_property->props[140].data.guint32.max   = 65536;
     gnet_property->props[140].data.guint32.min   = 1024;
@@ -3412,8 +3415,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[141].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[141].data.guint32.def   = &hops_random_factor_def;
-    gnet_property->props[141].data.guint32.value = &hops_random_factor;
+    gnet_property->props[141].data.guint32.def   = (void *) &gnet_property_variable_hops_random_factor_default;
+    gnet_property->props[141].data.guint32.value = (void *) &gnet_property_variable_hops_random_factor;
     gnet_property->props[141].data.guint32.choices = NULL;
     gnet_property->props[141].data.guint32.max   = 3;
     gnet_property->props[141].data.guint32.min   = 0;
@@ -3432,8 +3435,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[142].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[142].data.boolean.def   = &send_pushes_def;
-    gnet_property->props[142].data.boolean.value = &send_pushes;
+    gnet_property->props[142].data.boolean.def   = (void *) &gnet_property_variable_send_pushes_default;
+    gnet_property->props[142].data.boolean.value = (void *) &gnet_property_variable_send_pushes;
 
 
     /*
@@ -3449,8 +3452,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[143].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[143].data.guint32.def   = &min_dup_msg_def;
-    gnet_property->props[143].data.guint32.value = &min_dup_msg;
+    gnet_property->props[143].data.guint32.def   = (void *) &gnet_property_variable_min_dup_msg_default;
+    gnet_property->props[143].data.guint32.value = (void *) &gnet_property_variable_min_dup_msg;
     gnet_property->props[143].data.guint32.choices = NULL;
     gnet_property->props[143].data.guint32.max   = 99;
     gnet_property->props[143].data.guint32.min   = 1;
@@ -3469,8 +3472,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[144].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[144].data.guint32.def   = &min_dup_ratio_def;
-    gnet_property->props[144].data.guint32.value = &min_dup_ratio;
+    gnet_property->props[144].data.guint32.def   = (void *) &gnet_property_variable_min_dup_ratio_default;
+    gnet_property->props[144].data.guint32.value = (void *) &gnet_property_variable_min_dup_ratio;
     gnet_property->props[144].data.guint32.choices = NULL;
     gnet_property->props[144].data.guint32.max   = 10000;
     gnet_property->props[144].data.guint32.min   = 0;
@@ -3489,8 +3492,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[145].type               = PROP_TYPE_STRING;
-    gnet_property->props[145].data.string.def    = &scan_extensions_def;
-    gnet_property->props[145].data.string.value  = &scan_extensions;
+    gnet_property->props[145].data.string.def    = (void *) &gnet_property_variable_scan_extensions_default;
+    gnet_property->props[145].data.string.value  = (void *) &gnet_property_variable_scan_extensions;
     if (gnet_property->props[145].data.string.def) {
         *gnet_property->props[145].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[145].data.string.def));
@@ -3510,8 +3513,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[146].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[146].data.boolean.def   = &scan_ignore_symlink_dirs_def;
-    gnet_property->props[146].data.boolean.value = &scan_ignore_symlink_dirs;
+    gnet_property->props[146].data.boolean.def   = (void *) &gnet_property_variable_scan_ignore_symlink_dirs_default;
+    gnet_property->props[146].data.boolean.value = (void *) &gnet_property_variable_scan_ignore_symlink_dirs;
 
 
     /*
@@ -3527,8 +3530,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[147].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[147].data.boolean.def   = &scan_ignore_symlink_regfiles_def;
-    gnet_property->props[147].data.boolean.value = &scan_ignore_symlink_regfiles;
+    gnet_property->props[147].data.boolean.def   = (void *) &gnet_property_variable_scan_ignore_symlink_regfiles_default;
+    gnet_property->props[147].data.boolean.value = (void *) &gnet_property_variable_scan_ignore_symlink_regfiles;
 
 
     /*
@@ -3544,8 +3547,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[148].type               = PROP_TYPE_STRING;
-    gnet_property->props[148].data.string.def    = &save_file_path_def;
-    gnet_property->props[148].data.string.value  = &save_file_path;
+    gnet_property->props[148].data.string.def    = (void *) &gnet_property_variable_save_file_path_default;
+    gnet_property->props[148].data.string.value  = (void *) &gnet_property_variable_save_file_path;
     if (gnet_property->props[148].data.string.def) {
         *gnet_property->props[148].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[148].data.string.def));
@@ -3565,8 +3568,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[149].type               = PROP_TYPE_STRING;
-    gnet_property->props[149].data.string.def    = &move_file_path_def;
-    gnet_property->props[149].data.string.value  = &move_file_path;
+    gnet_property->props[149].data.string.def    = (void *) &gnet_property_variable_move_file_path_default;
+    gnet_property->props[149].data.string.value  = (void *) &gnet_property_variable_move_file_path;
     if (gnet_property->props[149].data.string.def) {
         *gnet_property->props[149].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[149].data.string.def));
@@ -3586,8 +3589,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[150].type               = PROP_TYPE_STRING;
-    gnet_property->props[150].data.string.def    = &bad_file_path_def;
-    gnet_property->props[150].data.string.value  = &bad_file_path;
+    gnet_property->props[150].data.string.def    = (void *) &gnet_property_variable_bad_file_path_default;
+    gnet_property->props[150].data.string.value  = (void *) &gnet_property_variable_bad_file_path;
     if (gnet_property->props[150].data.string.def) {
         *gnet_property->props[150].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[150].data.string.def));
@@ -3607,8 +3610,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[151].type               = PROP_TYPE_STRING;
-    gnet_property->props[151].data.string.def    = &shared_dirs_paths_def;
-    gnet_property->props[151].data.string.value  = &shared_dirs_paths;
+    gnet_property->props[151].data.string.def    = (void *) &gnet_property_variable_shared_dirs_paths_default;
+    gnet_property->props[151].data.string.value  = (void *) &gnet_property_variable_shared_dirs_paths;
     if (gnet_property->props[151].data.string.def) {
         *gnet_property->props[151].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[151].data.string.def));
@@ -3628,8 +3631,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[152].type               = PROP_TYPE_STRING;
-    gnet_property->props[152].data.string.def    = &local_netmasks_string_def;
-    gnet_property->props[152].data.string.value  = &local_netmasks_string;
+    gnet_property->props[152].data.string.def    = (void *) &gnet_property_variable_local_netmasks_string_default;
+    gnet_property->props[152].data.string.value  = (void *) &gnet_property_variable_local_netmasks_string;
     if (gnet_property->props[152].data.string.def) {
         *gnet_property->props[152].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[152].data.string.def));
@@ -3649,8 +3652,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[153].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[153].data.guint32.def   = &total_downloads_def;
-    gnet_property->props[153].data.guint32.value = &total_downloads;
+    gnet_property->props[153].data.guint32.def   = (void *) &gnet_property_variable_total_downloads_default;
+    gnet_property->props[153].data.guint32.value = (void *) &gnet_property_variable_total_downloads;
     gnet_property->props[153].data.guint32.choices = NULL;
     gnet_property->props[153].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[153].data.guint32.min   = 0x00000000;
@@ -3669,8 +3672,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[154].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[154].data.guint32.def   = &ul_running_def;
-    gnet_property->props[154].data.guint32.value = &ul_running;
+    gnet_property->props[154].data.guint32.def   = (void *) &gnet_property_variable_ul_running_default;
+    gnet_property->props[154].data.guint32.value = (void *) &gnet_property_variable_ul_running;
     gnet_property->props[154].data.guint32.choices = NULL;
     gnet_property->props[154].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[154].data.guint32.min   = 0x00000000;
@@ -3689,8 +3692,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[155].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[155].data.guint32.def   = &ul_registered_def;
-    gnet_property->props[155].data.guint32.value = &ul_registered;
+    gnet_property->props[155].data.guint32.def   = (void *) &gnet_property_variable_ul_registered_default;
+    gnet_property->props[155].data.guint32.value = (void *) &gnet_property_variable_ul_registered;
     gnet_property->props[155].data.guint32.choices = NULL;
     gnet_property->props[155].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[155].data.guint32.min   = 0x00000000;
@@ -3709,8 +3712,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[156].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[156].data.guint32.def   = &total_uploads_def;
-    gnet_property->props[156].data.guint32.value = &total_uploads;
+    gnet_property->props[156].data.guint32.def   = (void *) &gnet_property_variable_total_uploads_default;
+    gnet_property->props[156].data.guint32.value = (void *) &gnet_property_variable_total_uploads;
     gnet_property->props[156].data.guint32.choices = NULL;
     gnet_property->props[156].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[156].data.guint32.min   = 0x00000000;
@@ -3729,8 +3732,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[157].type               = PROP_TYPE_STORAGE;
-    gnet_property->props[157].data.storage.value = servent_guid;
-    memset(servent_guid, 0, gnet_property->props[157].vector_size);
+    gnet_property->props[157].data.storage.value = gnet_property_variable_servent_guid;
 
 
     /*
@@ -3746,8 +3748,7 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[158].type               = PROP_TYPE_STORAGE;
-    gnet_property->props[158].data.storage.value = servent_kuid;
-    memset(servent_kuid, 0, gnet_property->props[158].vector_size);
+    gnet_property->props[158].data.storage.value = gnet_property_variable_servent_kuid;
 
 
     /*
@@ -3763,8 +3764,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[159].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[159].data.boolean.def   = &use_swarming_def;
-    gnet_property->props[159].data.boolean.value = &use_swarming;
+    gnet_property->props[159].data.boolean.def   = (void *) &gnet_property_variable_use_swarming_default;
+    gnet_property->props[159].data.boolean.value = (void *) &gnet_property_variable_use_swarming;
 
 
     /*
@@ -3780,8 +3781,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[160].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[160].data.boolean.def   = &use_aggressive_swarming_def;
-    gnet_property->props[160].data.boolean.value = &use_aggressive_swarming;
+    gnet_property->props[160].data.boolean.def   = (void *) &gnet_property_variable_use_aggressive_swarming_default;
+    gnet_property->props[160].data.boolean.value = (void *) &gnet_property_variable_use_aggressive_swarming;
 
 
     /*
@@ -3797,8 +3798,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[161].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[161].data.guint32.def   = &dl_minchunksize_def;
-    gnet_property->props[161].data.guint32.value = &dl_minchunksize;
+    gnet_property->props[161].data.guint32.def   = (void *) &gnet_property_variable_dl_minchunksize_default;
+    gnet_property->props[161].data.guint32.value = (void *) &gnet_property_variable_dl_minchunksize;
     gnet_property->props[161].data.guint32.choices = NULL;
     gnet_property->props[161].data.guint32.max   = 100*1024*1024;
     gnet_property->props[161].data.guint32.min   = 64*1024;
@@ -3817,8 +3818,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[162].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[162].data.guint32.def   = &dl_maxchunksize_def;
-    gnet_property->props[162].data.guint32.value = &dl_maxchunksize;
+    gnet_property->props[162].data.guint32.def   = (void *) &gnet_property_variable_dl_maxchunksize_default;
+    gnet_property->props[162].data.guint32.value = (void *) &gnet_property_variable_dl_maxchunksize;
     gnet_property->props[162].data.guint32.choices = NULL;
     gnet_property->props[162].data.guint32.max   = 1000*1024*1024;
     gnet_property->props[162].data.guint32.min   = 64*1024;
@@ -3837,8 +3838,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[163].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[163].data.boolean.def   = &auto_download_identical_def;
-    gnet_property->props[163].data.boolean.value = &auto_download_identical;
+    gnet_property->props[163].data.boolean.def   = (void *) &gnet_property_variable_auto_download_identical_default;
+    gnet_property->props[163].data.boolean.value = (void *) &gnet_property_variable_auto_download_identical;
 
 
     /*
@@ -3854,8 +3855,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[164].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[164].data.boolean.def   = &auto_feed_download_mesh_def;
-    gnet_property->props[164].data.boolean.value = &auto_feed_download_mesh;
+    gnet_property->props[164].data.boolean.def   = (void *) &gnet_property_variable_auto_feed_download_mesh_default;
+    gnet_property->props[164].data.boolean.value = (void *) &gnet_property_variable_auto_feed_download_mesh;
 
 
     /*
@@ -3871,8 +3872,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[165].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[165].data.boolean.def   = &strict_sha1_matching_def;
-    gnet_property->props[165].data.boolean.value = &strict_sha1_matching;
+    gnet_property->props[165].data.boolean.def   = (void *) &gnet_property_variable_strict_sha1_matching_default;
+    gnet_property->props[165].data.boolean.value = (void *) &gnet_property_variable_strict_sha1_matching;
 
 
     /*
@@ -3888,8 +3889,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[166].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[166].data.boolean.def   = &use_fuzzy_matching_def;
-    gnet_property->props[166].data.boolean.value = &use_fuzzy_matching;
+    gnet_property->props[166].data.boolean.def   = (void *) &gnet_property_variable_use_fuzzy_matching_default;
+    gnet_property->props[166].data.boolean.value = (void *) &gnet_property_variable_use_fuzzy_matching;
 
 
     /*
@@ -3905,8 +3906,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[167].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[167].data.guint32.def   = &fuzzy_threshold_def;
-    gnet_property->props[167].data.guint32.value = &fuzzy_threshold;
+    gnet_property->props[167].data.guint32.def   = (void *) &gnet_property_variable_fuzzy_threshold_default;
+    gnet_property->props[167].data.guint32.value = (void *) &gnet_property_variable_fuzzy_threshold;
     gnet_property->props[167].data.guint32.choices = NULL;
     gnet_property->props[167].data.guint32.max   = 100;
     gnet_property->props[167].data.guint32.min   = 50;
@@ -3925,8 +3926,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[168].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[168].data.boolean.def   = &is_firewalled_def;
-    gnet_property->props[168].data.boolean.value = &is_firewalled;
+    gnet_property->props[168].data.boolean.def   = (void *) &gnet_property_variable_is_firewalled_default;
+    gnet_property->props[168].data.boolean.value = (void *) &gnet_property_variable_is_firewalled;
 
 
     /*
@@ -3942,8 +3943,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[169].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[169].data.boolean.def   = &is_inet_connected_def;
-    gnet_property->props[169].data.boolean.value = &is_inet_connected;
+    gnet_property->props[169].data.boolean.def   = (void *) &gnet_property_variable_is_inet_connected_default;
+    gnet_property->props[169].data.boolean.value = (void *) &gnet_property_variable_is_inet_connected;
 
 
     /*
@@ -3959,8 +3960,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[170].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[170].data.boolean.def   = &is_udp_firewalled_def;
-    gnet_property->props[170].data.boolean.value = &is_udp_firewalled;
+    gnet_property->props[170].data.boolean.def   = (void *) &gnet_property_variable_is_udp_firewalled_default;
+    gnet_property->props[170].data.boolean.value = (void *) &gnet_property_variable_is_udp_firewalled;
 
 
     /*
@@ -3976,8 +3977,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[171].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[171].data.boolean.def   = &recv_solicited_udp_def;
-    gnet_property->props[171].data.boolean.value = &recv_solicited_udp;
+    gnet_property->props[171].data.boolean.def   = (void *) &gnet_property_variable_recv_solicited_udp_default;
+    gnet_property->props[171].data.boolean.value = (void *) &gnet_property_variable_recv_solicited_udp;
 
 
     /*
@@ -3993,8 +3994,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[172].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[172].data.boolean.def   = &gnet_compact_query_def;
-    gnet_property->props[172].data.boolean.value = &gnet_compact_query;
+    gnet_property->props[172].data.boolean.def   = (void *) &gnet_property_variable_gnet_compact_query_default;
+    gnet_property->props[172].data.boolean.value = (void *) &gnet_property_variable_gnet_compact_query;
 
 
     /*
@@ -4010,8 +4011,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[173].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[173].data.boolean.def   = &download_optimistic_start_def;
-    gnet_property->props[173].data.boolean.value = &download_optimistic_start;
+    gnet_property->props[173].data.boolean.def   = (void *) &gnet_property_variable_download_optimistic_start_default;
+    gnet_property->props[173].data.boolean.value = (void *) &gnet_property_variable_download_optimistic_start;
 
 
     /*
@@ -4027,8 +4028,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[174].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[174].data.boolean.def   = &library_rebuilding_def;
-    gnet_property->props[174].data.boolean.value = &library_rebuilding;
+    gnet_property->props[174].data.boolean.def   = (void *) &gnet_property_variable_library_rebuilding_default;
+    gnet_property->props[174].data.boolean.value = (void *) &gnet_property_variable_library_rebuilding;
 
 
     /*
@@ -4044,8 +4045,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[175].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[175].data.boolean.def   = &sha1_rebuilding_def;
-    gnet_property->props[175].data.boolean.value = &sha1_rebuilding;
+    gnet_property->props[175].data.boolean.def   = (void *) &gnet_property_variable_sha1_rebuilding_default;
+    gnet_property->props[175].data.boolean.value = (void *) &gnet_property_variable_sha1_rebuilding;
 
 
     /*
@@ -4061,8 +4062,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[176].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[176].data.boolean.def   = &sha1_verifying_def;
-    gnet_property->props[176].data.boolean.value = &sha1_verifying;
+    gnet_property->props[176].data.boolean.def   = (void *) &gnet_property_variable_sha1_verifying_default;
+    gnet_property->props[176].data.boolean.value = (void *) &gnet_property_variable_sha1_verifying;
 
 
     /*
@@ -4078,8 +4079,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[177].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[177].data.boolean.def   = &file_moving_def;
-    gnet_property->props[177].data.boolean.value = &file_moving;
+    gnet_property->props[177].data.boolean.def   = (void *) &gnet_property_variable_file_moving_default;
+    gnet_property->props[177].data.boolean.value = (void *) &gnet_property_variable_file_moving;
 
 
     /*
@@ -4095,8 +4096,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[178].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[178].data.boolean.def   = &prefer_compressed_gnet_def;
-    gnet_property->props[178].data.boolean.value = &prefer_compressed_gnet;
+    gnet_property->props[178].data.boolean.def   = (void *) &gnet_property_variable_prefer_compressed_gnet_default;
+    gnet_property->props[178].data.boolean.value = (void *) &gnet_property_variable_prefer_compressed_gnet;
 
 
     /*
@@ -4112,8 +4113,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[179].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[179].data.boolean.def   = &online_mode_def;
-    gnet_property->props[179].data.boolean.value = &online_mode;
+    gnet_property->props[179].data.boolean.def   = (void *) &gnet_property_variable_online_mode_default;
+    gnet_property->props[179].data.boolean.value = (void *) &gnet_property_variable_online_mode;
 
 
     /*
@@ -4129,8 +4130,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[180].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[180].data.boolean.def   = &download_require_urn_def;
-    gnet_property->props[180].data.boolean.value = &download_require_urn;
+    gnet_property->props[180].data.boolean.def   = (void *) &gnet_property_variable_download_require_urn_default;
+    gnet_property->props[180].data.boolean.value = (void *) &gnet_property_variable_download_require_urn;
 
 
     /*
@@ -4146,8 +4147,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[181].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[181].data.boolean.def   = &download_require_server_name_def;
-    gnet_property->props[181].data.boolean.value = &download_require_server_name;
+    gnet_property->props[181].data.boolean.def   = (void *) &gnet_property_variable_download_require_server_name_default;
+    gnet_property->props[181].data.boolean.value = (void *) &gnet_property_variable_download_require_server_name;
 
 
     /*
@@ -4163,8 +4164,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[182].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[182].data.guint32.def   = &max_ultrapeers_def;
-    gnet_property->props[182].data.guint32.value = &max_ultrapeers;
+    gnet_property->props[182].data.guint32.def   = (void *) &gnet_property_variable_max_ultrapeers_default;
+    gnet_property->props[182].data.guint32.value = (void *) &gnet_property_variable_max_ultrapeers;
     gnet_property->props[182].data.guint32.choices = NULL;
     gnet_property->props[182].data.guint32.max   = 4;
     gnet_property->props[182].data.guint32.min   = 0;
@@ -4183,8 +4184,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[183].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[183].data.guint32.def   = &quick_connect_pool_size_def;
-    gnet_property->props[183].data.guint32.value = &quick_connect_pool_size;
+    gnet_property->props[183].data.guint32.def   = (void *) &gnet_property_variable_quick_connect_pool_size_default;
+    gnet_property->props[183].data.guint32.value = (void *) &gnet_property_variable_quick_connect_pool_size;
     gnet_property->props[183].data.guint32.choices = NULL;
     gnet_property->props[183].data.guint32.max   = 80;
     gnet_property->props[183].data.guint32.min   = 4;
@@ -4203,8 +4204,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[184].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[184].data.guint32.def   = &max_leaves_def;
-    gnet_property->props[184].data.guint32.value = &max_leaves;
+    gnet_property->props[184].data.guint32.def   = (void *) &gnet_property_variable_max_leaves_default;
+    gnet_property->props[184].data.guint32.value = (void *) &gnet_property_variable_max_leaves;
     gnet_property->props[184].data.guint32.choices = NULL;
     gnet_property->props[184].data.guint32.max   = 1000;
     gnet_property->props[184].data.guint32.min   = 25;
@@ -4223,11 +4224,11 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[185].type               = PROP_TYPE_MULTICHOICE;
-    gnet_property->props[185].data.guint32.def   = &search_handle_ignored_files_def;
-    gnet_property->props[185].data.guint32.value = &search_handle_ignored_files;
+    gnet_property->props[185].data.guint32.def   = (void *) &gnet_property_variable_search_handle_ignored_files_default;
+    gnet_property->props[185].data.guint32.value = (void *) &gnet_property_variable_search_handle_ignored_files;
     gnet_property->props[185].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[185].data.guint32.min   = 0x00000000;
-    gnet_property->props[185].data.guint32.choices = search_handle_ignored_files_choices;
+    gnet_property->props[185].data.guint32.choices = (void *) &gnet_property_variable_search_handle_ignored_files_choices;
 
 
     /*
@@ -4243,11 +4244,11 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[186].type               = PROP_TYPE_MULTICHOICE;
-    gnet_property->props[186].data.guint32.def   = &configured_peermode_def;
-    gnet_property->props[186].data.guint32.value = &configured_peermode;
+    gnet_property->props[186].data.guint32.def   = (void *) &gnet_property_variable_configured_peermode_default;
+    gnet_property->props[186].data.guint32.value = (void *) &gnet_property_variable_configured_peermode;
     gnet_property->props[186].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[186].data.guint32.min   = 0x00000000;
-    gnet_property->props[186].data.guint32.choices = configured_peermode_choices;
+    gnet_property->props[186].data.guint32.choices = (void *) &gnet_property_variable_configured_peermode_choices;
 
 
     /*
@@ -4263,11 +4264,11 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[187].type               = PROP_TYPE_MULTICHOICE;
-    gnet_property->props[187].data.guint32.def   = &current_peermode_def;
-    gnet_property->props[187].data.guint32.value = &current_peermode;
+    gnet_property->props[187].data.guint32.def   = (void *) &gnet_property_variable_current_peermode_default;
+    gnet_property->props[187].data.guint32.value = (void *) &gnet_property_variable_current_peermode;
     gnet_property->props[187].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[187].data.guint32.min   = 0x00000000;
-    gnet_property->props[187].data.guint32.choices = current_peermode_choices;
+    gnet_property->props[187].data.guint32.choices = (void *) &gnet_property_variable_current_peermode_choices;
 
 
     /*
@@ -4283,8 +4284,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[188].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[188].data.guint32.def   = &sys_nofile_def;
-    gnet_property->props[188].data.guint32.value = &sys_nofile;
+    gnet_property->props[188].data.guint32.def   = (void *) &gnet_property_variable_sys_nofile_default;
+    gnet_property->props[188].data.guint32.value = (void *) &gnet_property_variable_sys_nofile;
     gnet_property->props[188].data.guint32.choices = NULL;
     gnet_property->props[188].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[188].data.guint32.min   = 0x00000000;
@@ -4303,8 +4304,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[189].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[189].data.guint64.def   = &sys_physmem_def;
-    gnet_property->props[189].data.guint64.value = &sys_physmem;
+    gnet_property->props[189].data.guint64.def   = (void *) &gnet_property_variable_sys_physmem_default;
+    gnet_property->props[189].data.guint64.value = (void *) &gnet_property_variable_sys_physmem;
     gnet_property->props[189].data.guint64.choices = NULL;
     gnet_property->props[189].data.guint64.max   = (guint64) -1;
     gnet_property->props[189].data.guint64.min   = 0x0000000000000000;
@@ -4323,8 +4324,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[190].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[190].data.guint32.def   = &dl_queue_count_def;
-    gnet_property->props[190].data.guint32.value = &dl_queue_count;
+    gnet_property->props[190].data.guint32.def   = (void *) &gnet_property_variable_dl_queue_count_default;
+    gnet_property->props[190].data.guint32.value = (void *) &gnet_property_variable_dl_queue_count;
     gnet_property->props[190].data.guint32.choices = NULL;
     gnet_property->props[190].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[190].data.guint32.min   = 0x00000000;
@@ -4343,8 +4344,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[191].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[191].data.guint32.def   = &dl_running_count_def;
-    gnet_property->props[191].data.guint32.value = &dl_running_count;
+    gnet_property->props[191].data.guint32.def   = (void *) &gnet_property_variable_dl_running_count_default;
+    gnet_property->props[191].data.guint32.value = (void *) &gnet_property_variable_dl_running_count;
     gnet_property->props[191].data.guint32.choices = NULL;
     gnet_property->props[191].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[191].data.guint32.min   = 0x00000000;
@@ -4363,8 +4364,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[192].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[192].data.guint32.def   = &dl_active_count_def;
-    gnet_property->props[192].data.guint32.value = &dl_active_count;
+    gnet_property->props[192].data.guint32.def   = (void *) &gnet_property_variable_dl_active_count_default;
+    gnet_property->props[192].data.guint32.value = (void *) &gnet_property_variable_dl_active_count;
     gnet_property->props[192].data.guint32.choices = NULL;
     gnet_property->props[192].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[192].data.guint32.min   = 0x00000000;
@@ -4383,8 +4384,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[193].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[193].data.guint32.def   = &dl_aqueued_count_def;
-    gnet_property->props[193].data.guint32.value = &dl_aqueued_count;
+    gnet_property->props[193].data.guint32.def   = (void *) &gnet_property_variable_dl_aqueued_count_default;
+    gnet_property->props[193].data.guint32.value = (void *) &gnet_property_variable_dl_aqueued_count;
     gnet_property->props[193].data.guint32.choices = NULL;
     gnet_property->props[193].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[193].data.guint32.min   = 0x00000000;
@@ -4403,8 +4404,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[194].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[194].data.guint32.def   = &dl_pqueued_count_def;
-    gnet_property->props[194].data.guint32.value = &dl_pqueued_count;
+    gnet_property->props[194].data.guint32.def   = (void *) &gnet_property_variable_dl_pqueued_count_default;
+    gnet_property->props[194].data.guint32.value = (void *) &gnet_property_variable_dl_pqueued_count;
     gnet_property->props[194].data.guint32.choices = NULL;
     gnet_property->props[194].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[194].data.guint32.min   = 0x00000000;
@@ -4423,8 +4424,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[195].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[195].data.guint32.def   = &fi_all_count_def;
-    gnet_property->props[195].data.guint32.value = &fi_all_count;
+    gnet_property->props[195].data.guint32.def   = (void *) &gnet_property_variable_fi_all_count_default;
+    gnet_property->props[195].data.guint32.value = (void *) &gnet_property_variable_fi_all_count;
     gnet_property->props[195].data.guint32.choices = NULL;
     gnet_property->props[195].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[195].data.guint32.min   = 0x00000000;
@@ -4443,8 +4444,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[196].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[196].data.guint32.def   = &fi_with_source_count_def;
-    gnet_property->props[196].data.guint32.value = &fi_with_source_count;
+    gnet_property->props[196].data.guint32.def   = (void *) &gnet_property_variable_fi_with_source_count_default;
+    gnet_property->props[196].data.guint32.value = (void *) &gnet_property_variable_fi_with_source_count;
     gnet_property->props[196].data.guint32.choices = NULL;
     gnet_property->props[196].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[196].data.guint32.min   = 0x00000000;
@@ -4463,8 +4464,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[197].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[197].data.guint32.def   = &dl_qalive_count_def;
-    gnet_property->props[197].data.guint32.value = &dl_qalive_count;
+    gnet_property->props[197].data.guint32.def   = (void *) &gnet_property_variable_dl_qalive_count_default;
+    gnet_property->props[197].data.guint32.value = (void *) &gnet_property_variable_dl_qalive_count;
     gnet_property->props[197].data.guint32.choices = NULL;
     gnet_property->props[197].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[197].data.guint32.min   = 0x00000000;
@@ -4483,8 +4484,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[198].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[198].data.guint64.def   = &dl_byte_count_def;
-    gnet_property->props[198].data.guint64.value = &dl_byte_count;
+    gnet_property->props[198].data.guint64.def   = (void *) &gnet_property_variable_dl_byte_count_default;
+    gnet_property->props[198].data.guint64.value = (void *) &gnet_property_variable_dl_byte_count;
     gnet_property->props[198].data.guint64.choices = NULL;
     gnet_property->props[198].data.guint64.max   = (guint64) -1;
     gnet_property->props[198].data.guint64.min   = 0x0000000000000000;
@@ -4503,8 +4504,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[199].type               = PROP_TYPE_GUINT64;
-    gnet_property->props[199].data.guint64.def   = &ul_byte_count_def;
-    gnet_property->props[199].data.guint64.value = &ul_byte_count;
+    gnet_property->props[199].data.guint64.def   = (void *) &gnet_property_variable_ul_byte_count_default;
+    gnet_property->props[199].data.guint64.value = (void *) &gnet_property_variable_ul_byte_count;
     gnet_property->props[199].data.guint64.choices = NULL;
     gnet_property->props[199].data.guint64.max   = (guint64) -1;
     gnet_property->props[199].data.guint64.min   = 0x0000000000000000;
@@ -4523,8 +4524,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[200].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[200].data.boolean.def   = &pfsp_server_def;
-    gnet_property->props[200].data.boolean.value = &pfsp_server;
+    gnet_property->props[200].data.boolean.def   = (void *) &gnet_property_variable_pfsp_server_default;
+    gnet_property->props[200].data.boolean.value = (void *) &gnet_property_variable_pfsp_server;
 
 
     /*
@@ -4540,8 +4541,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[201].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[201].data.guint32.def   = &pfsp_first_chunk_def;
-    gnet_property->props[201].data.guint32.value = &pfsp_first_chunk;
+    gnet_property->props[201].data.guint32.def   = (void *) &gnet_property_variable_pfsp_first_chunk_default;
+    gnet_property->props[201].data.guint32.value = (void *) &gnet_property_variable_pfsp_first_chunk;
     gnet_property->props[201].data.guint32.choices = NULL;
     gnet_property->props[201].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[201].data.guint32.min   = 0x00000000;
@@ -4560,8 +4561,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[202].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[202].data.guint32.def   = &pfsp_minimum_filesize_def;
-    gnet_property->props[202].data.guint32.value = &pfsp_minimum_filesize;
+    gnet_property->props[202].data.guint32.def   = (void *) &gnet_property_variable_pfsp_minimum_filesize_default;
+    gnet_property->props[202].data.guint32.value = (void *) &gnet_property_variable_pfsp_minimum_filesize;
     gnet_property->props[202].data.guint32.choices = NULL;
     gnet_property->props[202].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[202].data.guint32.min   = 0x00000000;
@@ -4580,8 +4581,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[203].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[203].data.boolean.def   = &fuzzy_filter_dmesh_def;
-    gnet_property->props[203].data.boolean.value = &fuzzy_filter_dmesh;
+    gnet_property->props[203].data.boolean.def   = (void *) &gnet_property_variable_fuzzy_filter_dmesh_default;
+    gnet_property->props[203].data.boolean.value = (void *) &gnet_property_variable_fuzzy_filter_dmesh;
 
 
     /*
@@ -4597,8 +4598,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[204].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[204].data.guint32.def   = &crawler_visit_count_def;
-    gnet_property->props[204].data.guint32.value = &crawler_visit_count;
+    gnet_property->props[204].data.guint32.def   = (void *) &gnet_property_variable_crawler_visit_count_default;
+    gnet_property->props[204].data.guint32.value = (void *) &gnet_property_variable_crawler_visit_count;
     gnet_property->props[204].data.guint32.choices = NULL;
     gnet_property->props[204].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[204].data.guint32.min   = 0x00000000;
@@ -4617,8 +4618,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[205].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[205].data.guint32.def   = &udp_crawler_visit_count_def;
-    gnet_property->props[205].data.guint32.value = &udp_crawler_visit_count;
+    gnet_property->props[205].data.guint32.def   = (void *) &gnet_property_variable_udp_crawler_visit_count_default;
+    gnet_property->props[205].data.guint32.value = (void *) &gnet_property_variable_udp_crawler_visit_count;
     gnet_property->props[205].data.guint32.choices = NULL;
     gnet_property->props[205].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[205].data.guint32.min   = 0x00000000;
@@ -4637,8 +4638,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[206].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[206].data.boolean.def   = &host_runs_ntp_def;
-    gnet_property->props[206].data.boolean.value = &host_runs_ntp;
+    gnet_property->props[206].data.boolean.def   = (void *) &gnet_property_variable_host_runs_ntp_default;
+    gnet_property->props[206].data.boolean.value = (void *) &gnet_property_variable_host_runs_ntp;
 
 
     /*
@@ -4654,8 +4655,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[207].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[207].data.boolean.def   = &ntp_detected_def;
-    gnet_property->props[207].data.boolean.value = &ntp_detected;
+    gnet_property->props[207].data.boolean.def   = (void *) &gnet_property_variable_ntp_detected_default;
+    gnet_property->props[207].data.boolean.value = (void *) &gnet_property_variable_ntp_detected;
 
 
     /*
@@ -4671,8 +4672,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[208].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[208].data.guint32.def   = &clock_skew_def;
-    gnet_property->props[208].data.guint32.value = &clock_skew;
+    gnet_property->props[208].data.guint32.def   = (void *) &gnet_property_variable_clock_skew_default;
+    gnet_property->props[208].data.guint32.value = (void *) &gnet_property_variable_clock_skew;
     gnet_property->props[208].data.guint32.choices = NULL;
     gnet_property->props[208].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[208].data.guint32.min   = 0x00000000;
@@ -4691,8 +4692,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[209].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[209].data.boolean.def   = &node_monitor_unstable_ip_def;
-    gnet_property->props[209].data.boolean.value = &node_monitor_unstable_ip;
+    gnet_property->props[209].data.boolean.def   = (void *) &gnet_property_variable_node_monitor_unstable_ip_default;
+    gnet_property->props[209].data.boolean.value = (void *) &gnet_property_variable_node_monitor_unstable_ip;
 
 
     /*
@@ -4708,8 +4709,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[210].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[210].data.boolean.def   = &node_monitor_unstable_servents_def;
-    gnet_property->props[210].data.boolean.value = &node_monitor_unstable_servents;
+    gnet_property->props[210].data.boolean.def   = (void *) &gnet_property_variable_node_monitor_unstable_servents_default;
+    gnet_property->props[210].data.boolean.value = (void *) &gnet_property_variable_node_monitor_unstable_servents;
 
 
     /*
@@ -4725,8 +4726,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[211].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[211].data.boolean.def   = &dl_remove_file_on_mismatch_def;
-    gnet_property->props[211].data.boolean.value = &dl_remove_file_on_mismatch;
+    gnet_property->props[211].data.boolean.def   = (void *) &gnet_property_variable_dl_remove_file_on_mismatch_default;
+    gnet_property->props[211].data.boolean.value = (void *) &gnet_property_variable_dl_remove_file_on_mismatch;
 
 
     /*
@@ -4742,8 +4743,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[212].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[212].data.guint32.def   = &dl_mismatch_backout_def;
-    gnet_property->props[212].data.guint32.value = &dl_mismatch_backout;
+    gnet_property->props[212].data.guint32.def   = (void *) &gnet_property_variable_dl_mismatch_backout_default;
+    gnet_property->props[212].data.guint32.value = (void *) &gnet_property_variable_dl_mismatch_backout;
     gnet_property->props[212].data.guint32.choices = NULL;
     gnet_property->props[212].data.guint32.max   = 250000;
     gnet_property->props[212].data.guint32.min   = 0;
@@ -4762,8 +4763,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[213].type               = PROP_TYPE_STRING;
-    gnet_property->props[213].data.string.def    = &server_hostname_def;
-    gnet_property->props[213].data.string.value  = &server_hostname;
+    gnet_property->props[213].data.string.def    = (void *) &gnet_property_variable_server_hostname_default;
+    gnet_property->props[213].data.string.value  = (void *) &gnet_property_variable_server_hostname;
     if (gnet_property->props[213].data.string.def) {
         *gnet_property->props[213].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[213].data.string.def));
@@ -4783,8 +4784,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[214].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[214].data.boolean.def   = &give_server_hostname_def;
-    gnet_property->props[214].data.boolean.value = &give_server_hostname;
+    gnet_property->props[214].data.boolean.def   = (void *) &gnet_property_variable_give_server_hostname_default;
+    gnet_property->props[214].data.boolean.value = (void *) &gnet_property_variable_give_server_hostname;
 
 
     /*
@@ -4800,8 +4801,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[215].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[215].data.guint32.def   = &reserve_gtkg_nodes_def;
-    gnet_property->props[215].data.guint32.value = &reserve_gtkg_nodes;
+    gnet_property->props[215].data.guint32.def   = (void *) &gnet_property_variable_reserve_gtkg_nodes_default;
+    gnet_property->props[215].data.guint32.value = (void *) &gnet_property_variable_reserve_gtkg_nodes;
     gnet_property->props[215].data.guint32.choices = NULL;
     gnet_property->props[215].data.guint32.max   = 90;
     gnet_property->props[215].data.guint32.min   = 0;
@@ -4820,8 +4821,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[216].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[216].data.guint32.def   = &unique_nodes_def;
-    gnet_property->props[216].data.guint32.value = &unique_nodes;
+    gnet_property->props[216].data.guint32.def   = (void *) &gnet_property_variable_unique_nodes_default;
+    gnet_property->props[216].data.guint32.value = (void *) &gnet_property_variable_unique_nodes;
     gnet_property->props[216].data.guint32.choices = NULL;
     gnet_property->props[216].data.guint32.max   = 100;
     gnet_property->props[216].data.guint32.min   = 10;
@@ -4840,8 +4841,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[217].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[217].data.guint32.def   = &download_rx_size_def;
-    gnet_property->props[217].data.guint32.value = &download_rx_size;
+    gnet_property->props[217].data.guint32.def   = (void *) &gnet_property_variable_download_rx_size_default;
+    gnet_property->props[217].data.guint32.value = (void *) &gnet_property_variable_download_rx_size;
     gnet_property->props[217].data.guint32.choices = NULL;
     gnet_property->props[217].data.guint32.max   = 128;
     gnet_property->props[217].data.guint32.min   = 2;
@@ -4860,8 +4861,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[218].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[218].data.guint32.def   = &node_rx_size_def;
-    gnet_property->props[218].data.guint32.value = &node_rx_size;
+    gnet_property->props[218].data.guint32.def   = (void *) &gnet_property_variable_node_rx_size_default;
+    gnet_property->props[218].data.guint32.value = (void *) &gnet_property_variable_node_rx_size;
     gnet_property->props[218].data.guint32.choices = NULL;
     gnet_property->props[218].data.guint32.max   = 128;
     gnet_property->props[218].data.guint32.min   = 2;
@@ -4880,8 +4881,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[219].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[219].data.guint32.def   = &dl_http_latency_def;
-    gnet_property->props[219].data.guint32.value = &dl_http_latency;
+    gnet_property->props[219].data.guint32.def   = (void *) &gnet_property_variable_dl_http_latency_default;
+    gnet_property->props[219].data.guint32.value = (void *) &gnet_property_variable_dl_http_latency;
     gnet_property->props[219].data.guint32.choices = NULL;
     gnet_property->props[219].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[219].data.guint32.min   = 0x00000000;
@@ -4900,8 +4901,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[220].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[220].data.timestamp.def   = &node_last_ultra_check_def;
-    gnet_property->props[220].data.timestamp.value = &node_last_ultra_check;
+    gnet_property->props[220].data.timestamp.def   = (void *) &gnet_property_variable_node_last_ultra_check_default;
+    gnet_property->props[220].data.timestamp.value = (void *) &gnet_property_variable_node_last_ultra_check;
     gnet_property->props[220].data.timestamp.choices = NULL;
     gnet_property->props[220].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[220].data.timestamp.min   = 0x0000000000000000;
@@ -4920,8 +4921,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[221].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[221].data.timestamp.def   = &node_last_ultra_leaf_switch_def;
-    gnet_property->props[221].data.timestamp.value = &node_last_ultra_leaf_switch;
+    gnet_property->props[221].data.timestamp.def   = (void *) &gnet_property_variable_node_last_ultra_leaf_switch_default;
+    gnet_property->props[221].data.timestamp.value = (void *) &gnet_property_variable_node_last_ultra_leaf_switch;
     gnet_property->props[221].data.timestamp.choices = NULL;
     gnet_property->props[221].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[221].data.timestamp.min   = 0x0000000000000000;
@@ -4940,8 +4941,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[222].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[222].data.boolean.def   = &up_req_avg_servent_uptime_def;
-    gnet_property->props[222].data.boolean.value = &up_req_avg_servent_uptime;
+    gnet_property->props[222].data.boolean.def   = (void *) &gnet_property_variable_up_req_avg_servent_uptime_default;
+    gnet_property->props[222].data.boolean.value = (void *) &gnet_property_variable_up_req_avg_servent_uptime;
 
 
     /*
@@ -4957,8 +4958,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[223].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[223].data.boolean.def   = &up_req_avg_ip_uptime_def;
-    gnet_property->props[223].data.boolean.value = &up_req_avg_ip_uptime;
+    gnet_property->props[223].data.boolean.def   = (void *) &gnet_property_variable_up_req_avg_ip_uptime_default;
+    gnet_property->props[223].data.boolean.value = (void *) &gnet_property_variable_up_req_avg_ip_uptime;
 
 
     /*
@@ -4974,8 +4975,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[224].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[224].data.boolean.def   = &up_req_node_uptime_def;
-    gnet_property->props[224].data.boolean.value = &up_req_node_uptime;
+    gnet_property->props[224].data.boolean.def   = (void *) &gnet_property_variable_up_req_node_uptime_default;
+    gnet_property->props[224].data.boolean.value = (void *) &gnet_property_variable_up_req_node_uptime;
 
 
     /*
@@ -4991,8 +4992,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[225].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[225].data.boolean.def   = &up_req_not_firewalled_def;
-    gnet_property->props[225].data.boolean.value = &up_req_not_firewalled;
+    gnet_property->props[225].data.boolean.def   = (void *) &gnet_property_variable_up_req_not_firewalled_default;
+    gnet_property->props[225].data.boolean.value = (void *) &gnet_property_variable_up_req_not_firewalled;
 
 
     /*
@@ -5008,8 +5009,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[226].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[226].data.boolean.def   = &up_req_enough_conn_def;
-    gnet_property->props[226].data.boolean.value = &up_req_enough_conn;
+    gnet_property->props[226].data.boolean.def   = (void *) &gnet_property_variable_up_req_enough_conn_default;
+    gnet_property->props[226].data.boolean.value = (void *) &gnet_property_variable_up_req_enough_conn;
 
 
     /*
@@ -5025,8 +5026,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[227].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[227].data.boolean.def   = &up_req_enough_fd_def;
-    gnet_property->props[227].data.boolean.value = &up_req_enough_fd;
+    gnet_property->props[227].data.boolean.def   = (void *) &gnet_property_variable_up_req_enough_fd_default;
+    gnet_property->props[227].data.boolean.value = (void *) &gnet_property_variable_up_req_enough_fd;
 
 
     /*
@@ -5042,8 +5043,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[228].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[228].data.boolean.def   = &up_req_enough_mem_def;
-    gnet_property->props[228].data.boolean.value = &up_req_enough_mem;
+    gnet_property->props[228].data.boolean.def   = (void *) &gnet_property_variable_up_req_enough_mem_default;
+    gnet_property->props[228].data.boolean.value = (void *) &gnet_property_variable_up_req_enough_mem;
 
 
     /*
@@ -5059,8 +5060,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[229].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[229].data.boolean.def   = &up_req_enough_bw_def;
-    gnet_property->props[229].data.boolean.value = &up_req_enough_bw;
+    gnet_property->props[229].data.boolean.def   = (void *) &gnet_property_variable_up_req_enough_bw_default;
+    gnet_property->props[229].data.boolean.value = (void *) &gnet_property_variable_up_req_enough_bw;
 
 
     /*
@@ -5076,8 +5077,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[230].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[230].data.boolean.def   = &up_req_good_udp_def;
-    gnet_property->props[230].data.boolean.value = &up_req_good_udp;
+    gnet_property->props[230].data.boolean.def   = (void *) &gnet_property_variable_up_req_good_udp_default;
+    gnet_property->props[230].data.boolean.value = (void *) &gnet_property_variable_up_req_good_udp;
 
 
     /*
@@ -5093,8 +5094,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[231].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[231].data.guint32.def   = &search_queue_size_def;
-    gnet_property->props[231].data.guint32.value = &search_queue_size;
+    gnet_property->props[231].data.guint32.def   = (void *) &gnet_property_variable_search_queue_size_default;
+    gnet_property->props[231].data.guint32.value = (void *) &gnet_property_variable_search_queue_size;
     gnet_property->props[231].data.guint32.choices = NULL;
     gnet_property->props[231].data.guint32.max   = 512;
     gnet_property->props[231].data.guint32.min   = 32;
@@ -5113,8 +5114,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[232].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[232].data.guint32.def   = &search_queue_spacing_def;
-    gnet_property->props[232].data.guint32.value = &search_queue_spacing;
+    gnet_property->props[232].data.guint32.def   = (void *) &gnet_property_variable_search_queue_spacing_default;
+    gnet_property->props[232].data.guint32.value = (void *) &gnet_property_variable_search_queue_spacing;
     gnet_property->props[232].data.guint32.choices = NULL;
     gnet_property->props[232].data.guint32.max   = 60;
     gnet_property->props[232].data.guint32.min   = 10;
@@ -5133,8 +5134,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[233].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[233].data.boolean.def   = &enable_shell_def;
-    gnet_property->props[233].data.boolean.value = &enable_shell;
+    gnet_property->props[233].data.boolean.def   = (void *) &gnet_property_variable_enable_shell_default;
+    gnet_property->props[233].data.boolean.value = (void *) &gnet_property_variable_enable_shell;
 
 
     /*
@@ -5150,8 +5151,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[234].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[234].data.guint32.def   = &remote_shell_timeout_def;
-    gnet_property->props[234].data.guint32.value = &remote_shell_timeout;
+    gnet_property->props[234].data.guint32.def   = (void *) &gnet_property_variable_remote_shell_timeout_default;
+    gnet_property->props[234].data.guint32.value = (void *) &gnet_property_variable_remote_shell_timeout;
     gnet_property->props[234].data.guint32.choices = NULL;
     gnet_property->props[234].data.guint32.max   = 31536000;
     gnet_property->props[234].data.guint32.min   = 0;
@@ -5170,8 +5171,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[235].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[235].data.guint32.def   = &entry_removal_timeout_def;
-    gnet_property->props[235].data.guint32.value = &entry_removal_timeout;
+    gnet_property->props[235].data.guint32.def   = (void *) &gnet_property_variable_entry_removal_timeout_default;
+    gnet_property->props[235].data.guint32.value = (void *) &gnet_property_variable_entry_removal_timeout;
     gnet_property->props[235].data.guint32.choices = NULL;
     gnet_property->props[235].data.guint32.max   = 60;
     gnet_property->props[235].data.guint32.min   = 1;
@@ -5190,8 +5191,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[236].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[236].data.boolean.def   = &node_watch_similar_queries_def;
-    gnet_property->props[236].data.boolean.value = &node_watch_similar_queries;
+    gnet_property->props[236].data.boolean.def   = (void *) &gnet_property_variable_node_watch_similar_queries_default;
+    gnet_property->props[236].data.boolean.value = (void *) &gnet_property_variable_node_watch_similar_queries;
 
 
     /*
@@ -5207,8 +5208,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[237].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[237].data.guint32.def   = &node_queries_half_life_def;
-    gnet_property->props[237].data.guint32.value = &node_queries_half_life;
+    gnet_property->props[237].data.guint32.def   = (void *) &gnet_property_variable_node_queries_half_life_default;
+    gnet_property->props[237].data.guint32.value = (void *) &gnet_property_variable_node_queries_half_life;
     gnet_property->props[237].data.guint32.choices = NULL;
     gnet_property->props[237].data.guint32.max   = 10;
     gnet_property->props[237].data.guint32.min   = 1;
@@ -5227,8 +5228,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[238].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[238].data.guint32.def   = &node_requery_threshold_def;
-    gnet_property->props[238].data.guint32.value = &node_requery_threshold;
+    gnet_property->props[238].data.guint32.def   = (void *) &gnet_property_variable_node_requery_threshold_default;
+    gnet_property->props[238].data.guint32.value = (void *) &gnet_property_variable_node_requery_threshold;
     gnet_property->props[238].data.guint32.choices = NULL;
     gnet_property->props[238].data.guint32.max   = 1800;
     gnet_property->props[238].data.guint32.min   = 1200;
@@ -5247,8 +5248,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[239].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[239].data.timestamp.def   = &library_rescan_started_def;
-    gnet_property->props[239].data.timestamp.value = &library_rescan_started;
+    gnet_property->props[239].data.timestamp.def   = (void *) &gnet_property_variable_library_rescan_started_default;
+    gnet_property->props[239].data.timestamp.value = (void *) &gnet_property_variable_library_rescan_started;
     gnet_property->props[239].data.timestamp.choices = NULL;
     gnet_property->props[239].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[239].data.timestamp.min   = 0x0000000000000000;
@@ -5267,8 +5268,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[240].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[240].data.timestamp.def   = &library_rescan_finished_def;
-    gnet_property->props[240].data.timestamp.value = &library_rescan_finished;
+    gnet_property->props[240].data.timestamp.def   = (void *) &gnet_property_variable_library_rescan_finished_default;
+    gnet_property->props[240].data.timestamp.value = (void *) &gnet_property_variable_library_rescan_finished;
     gnet_property->props[240].data.timestamp.choices = NULL;
     gnet_property->props[240].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[240].data.timestamp.min   = 0x0000000000000000;
@@ -5287,8 +5288,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[241].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[241].data.guint32.def   = &library_rescan_duration_def;
-    gnet_property->props[241].data.guint32.value = &library_rescan_duration;
+    gnet_property->props[241].data.guint32.def   = (void *) &gnet_property_variable_library_rescan_duration_default;
+    gnet_property->props[241].data.guint32.value = (void *) &gnet_property_variable_library_rescan_duration;
     gnet_property->props[241].data.guint32.choices = NULL;
     gnet_property->props[241].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[241].data.guint32.min   = 0x00000000;
@@ -5307,8 +5308,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[242].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[242].data.timestamp.def   = &qrp_indexing_started_def;
-    gnet_property->props[242].data.timestamp.value = &qrp_indexing_started;
+    gnet_property->props[242].data.timestamp.def   = (void *) &gnet_property_variable_qrp_indexing_started_default;
+    gnet_property->props[242].data.timestamp.value = (void *) &gnet_property_variable_qrp_indexing_started;
     gnet_property->props[242].data.timestamp.choices = NULL;
     gnet_property->props[242].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[242].data.timestamp.min   = 0x0000000000000000;
@@ -5327,8 +5328,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[243].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[243].data.guint32.def   = &qrp_indexing_duration_def;
-    gnet_property->props[243].data.guint32.value = &qrp_indexing_duration;
+    gnet_property->props[243].data.guint32.def   = (void *) &gnet_property_variable_qrp_indexing_duration_default;
+    gnet_property->props[243].data.guint32.value = (void *) &gnet_property_variable_qrp_indexing_duration;
     gnet_property->props[243].data.guint32.choices = NULL;
     gnet_property->props[243].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[243].data.guint32.min   = 0x00000000;
@@ -5347,8 +5348,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[244].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[244].data.guint32.def   = &qrp_memory_def;
-    gnet_property->props[244].data.guint32.value = &qrp_memory;
+    gnet_property->props[244].data.guint32.def   = (void *) &gnet_property_variable_qrp_memory_default;
+    gnet_property->props[244].data.guint32.value = (void *) &gnet_property_variable_qrp_memory;
     gnet_property->props[244].data.guint32.choices = NULL;
     gnet_property->props[244].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[244].data.guint32.min   = 0x00000000;
@@ -5367,8 +5368,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[245].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[245].data.timestamp.def   = &qrp_timestamp_def;
-    gnet_property->props[245].data.timestamp.value = &qrp_timestamp;
+    gnet_property->props[245].data.timestamp.def   = (void *) &gnet_property_variable_qrp_timestamp_default;
+    gnet_property->props[245].data.timestamp.value = (void *) &gnet_property_variable_qrp_timestamp;
     gnet_property->props[245].data.timestamp.choices = NULL;
     gnet_property->props[245].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[245].data.timestamp.min   = 0x0000000000000000;
@@ -5387,8 +5388,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[246].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[246].data.guint32.def   = &qrp_computation_time_def;
-    gnet_property->props[246].data.guint32.value = &qrp_computation_time;
+    gnet_property->props[246].data.guint32.def   = (void *) &gnet_property_variable_qrp_computation_time_default;
+    gnet_property->props[246].data.guint32.value = (void *) &gnet_property_variable_qrp_computation_time;
     gnet_property->props[246].data.guint32.choices = NULL;
     gnet_property->props[246].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[246].data.guint32.min   = 0x00000000;
@@ -5407,8 +5408,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[247].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[247].data.timestamp.def   = &qrp_patch_timestamp_def;
-    gnet_property->props[247].data.timestamp.value = &qrp_patch_timestamp;
+    gnet_property->props[247].data.timestamp.def   = (void *) &gnet_property_variable_qrp_patch_timestamp_default;
+    gnet_property->props[247].data.timestamp.value = (void *) &gnet_property_variable_qrp_patch_timestamp;
     gnet_property->props[247].data.timestamp.choices = NULL;
     gnet_property->props[247].data.timestamp.max   = (time_t) ((1U << 31) - 1);
     gnet_property->props[247].data.timestamp.min   = 0x0000000000000000;
@@ -5427,8 +5428,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[248].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[248].data.guint32.def   = &qrp_patch_computation_time_def;
-    gnet_property->props[248].data.guint32.value = &qrp_patch_computation_time;
+    gnet_property->props[248].data.guint32.def   = (void *) &gnet_property_variable_qrp_patch_computation_time_default;
+    gnet_property->props[248].data.guint32.value = (void *) &gnet_property_variable_qrp_patch_computation_time;
     gnet_property->props[248].data.guint32.choices = NULL;
     gnet_property->props[248].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[248].data.guint32.min   = 0x00000000;
@@ -5447,8 +5448,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[249].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[249].data.guint32.def   = &qrp_generation_def;
-    gnet_property->props[249].data.guint32.value = &qrp_generation;
+    gnet_property->props[249].data.guint32.def   = (void *) &gnet_property_variable_qrp_generation_default;
+    gnet_property->props[249].data.guint32.value = (void *) &gnet_property_variable_qrp_generation;
     gnet_property->props[249].data.guint32.choices = NULL;
     gnet_property->props[249].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[249].data.guint32.min   = 0x00000000;
@@ -5467,8 +5468,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[250].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[250].data.guint32.def   = &qrp_slots_def;
-    gnet_property->props[250].data.guint32.value = &qrp_slots;
+    gnet_property->props[250].data.guint32.def   = (void *) &gnet_property_variable_qrp_slots_default;
+    gnet_property->props[250].data.guint32.value = (void *) &gnet_property_variable_qrp_slots;
     gnet_property->props[250].data.guint32.choices = NULL;
     gnet_property->props[250].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[250].data.guint32.min   = 0x00000000;
@@ -5487,8 +5488,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[251].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[251].data.guint32.def   = &qrp_slots_filled_def;
-    gnet_property->props[251].data.guint32.value = &qrp_slots_filled;
+    gnet_property->props[251].data.guint32.def   = (void *) &gnet_property_variable_qrp_slots_filled_default;
+    gnet_property->props[251].data.guint32.value = (void *) &gnet_property_variable_qrp_slots_filled;
     gnet_property->props[251].data.guint32.choices = NULL;
     gnet_property->props[251].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[251].data.guint32.min   = 0x00000000;
@@ -5507,8 +5508,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[252].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[252].data.guint32.def   = &qrp_fill_ratio_def;
-    gnet_property->props[252].data.guint32.value = &qrp_fill_ratio;
+    gnet_property->props[252].data.guint32.def   = (void *) &gnet_property_variable_qrp_fill_ratio_default;
+    gnet_property->props[252].data.guint32.value = (void *) &gnet_property_variable_qrp_fill_ratio;
     gnet_property->props[252].data.guint32.choices = NULL;
     gnet_property->props[252].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[252].data.guint32.min   = 0x00000000;
@@ -5527,8 +5528,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[253].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[253].data.guint32.def   = &qrp_conflict_ratio_def;
-    gnet_property->props[253].data.guint32.value = &qrp_conflict_ratio;
+    gnet_property->props[253].data.guint32.def   = (void *) &gnet_property_variable_qrp_conflict_ratio_default;
+    gnet_property->props[253].data.guint32.value = (void *) &gnet_property_variable_qrp_conflict_ratio;
     gnet_property->props[253].data.guint32.choices = NULL;
     gnet_property->props[253].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[253].data.guint32.min   = 0x00000000;
@@ -5547,8 +5548,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[254].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[254].data.guint32.def   = &qrp_hashed_keywords_def;
-    gnet_property->props[254].data.guint32.value = &qrp_hashed_keywords;
+    gnet_property->props[254].data.guint32.def   = (void *) &gnet_property_variable_qrp_hashed_keywords_default;
+    gnet_property->props[254].data.guint32.value = (void *) &gnet_property_variable_qrp_hashed_keywords;
     gnet_property->props[254].data.guint32.choices = NULL;
     gnet_property->props[254].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[254].data.guint32.min   = 0x00000000;
@@ -5567,8 +5568,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[255].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[255].data.guint32.def   = &qrp_patch_raw_length_def;
-    gnet_property->props[255].data.guint32.value = &qrp_patch_raw_length;
+    gnet_property->props[255].data.guint32.def   = (void *) &gnet_property_variable_qrp_patch_raw_length_default;
+    gnet_property->props[255].data.guint32.value = (void *) &gnet_property_variable_qrp_patch_raw_length;
     gnet_property->props[255].data.guint32.choices = NULL;
     gnet_property->props[255].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[255].data.guint32.min   = 0x00000000;
@@ -5587,8 +5588,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[256].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[256].data.guint32.def   = &qrp_patch_length_def;
-    gnet_property->props[256].data.guint32.value = &qrp_patch_length;
+    gnet_property->props[256].data.guint32.def   = (void *) &gnet_property_variable_qrp_patch_length_default;
+    gnet_property->props[256].data.guint32.value = (void *) &gnet_property_variable_qrp_patch_length;
     gnet_property->props[256].data.guint32.choices = NULL;
     gnet_property->props[256].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[256].data.guint32.min   = 0x00000000;
@@ -5607,8 +5608,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[257].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[257].data.guint32.def   = &qrp_patch_comp_ratio_def;
-    gnet_property->props[257].data.guint32.value = &qrp_patch_comp_ratio;
+    gnet_property->props[257].data.guint32.def   = (void *) &gnet_property_variable_qrp_patch_comp_ratio_default;
+    gnet_property->props[257].data.guint32.value = (void *) &gnet_property_variable_qrp_patch_comp_ratio;
     gnet_property->props[257].data.guint32.choices = NULL;
     gnet_property->props[257].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[257].data.guint32.min   = 0x00000000;
@@ -5627,8 +5628,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[258].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[258].data.guint32.def   = &ancient_version_left_days_def;
-    gnet_property->props[258].data.guint32.value = &ancient_version_left_days;
+    gnet_property->props[258].data.guint32.def   = (void *) &gnet_property_variable_ancient_version_left_days_default;
+    gnet_property->props[258].data.guint32.value = (void *) &gnet_property_variable_ancient_version_left_days;
     gnet_property->props[258].data.guint32.choices = NULL;
     gnet_property->props[258].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[258].data.guint32.min   = 0x00000000;
@@ -5647,8 +5648,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[259].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[259].data.boolean.def   = &file_descriptor_shortage_def;
-    gnet_property->props[259].data.boolean.value = &file_descriptor_shortage;
+    gnet_property->props[259].data.boolean.def   = (void *) &gnet_property_variable_file_descriptor_shortage_default;
+    gnet_property->props[259].data.boolean.value = (void *) &gnet_property_variable_file_descriptor_shortage;
 
 
     /*
@@ -5664,8 +5665,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[260].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[260].data.boolean.def   = &file_descriptor_runout_def;
-    gnet_property->props[260].data.boolean.value = &file_descriptor_runout;
+    gnet_property->props[260].data.boolean.def   = (void *) &gnet_property_variable_file_descriptor_runout_default;
+    gnet_property->props[260].data.boolean.value = (void *) &gnet_property_variable_file_descriptor_runout;
 
 
     /*
@@ -5681,8 +5682,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[261].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[261].data.boolean.def   = &convert_spaces_def;
-    gnet_property->props[261].data.boolean.value = &convert_spaces;
+    gnet_property->props[261].data.boolean.def   = (void *) &gnet_property_variable_convert_spaces_default;
+    gnet_property->props[261].data.boolean.value = (void *) &gnet_property_variable_convert_spaces;
 
 
     /*
@@ -5698,8 +5699,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[262].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[262].data.boolean.def   = &convert_evil_chars_def;
-    gnet_property->props[262].data.boolean.value = &convert_evil_chars;
+    gnet_property->props[262].data.boolean.def   = (void *) &gnet_property_variable_convert_evil_chars_default;
+    gnet_property->props[262].data.boolean.value = (void *) &gnet_property_variable_convert_evil_chars;
 
 
     /*
@@ -5715,8 +5716,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[263].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[263].data.boolean.def   = &convert_old_filenames_def;
-    gnet_property->props[263].data.boolean.value = &convert_old_filenames;
+    gnet_property->props[263].data.boolean.def   = (void *) &gnet_property_variable_convert_old_filenames_default;
+    gnet_property->props[263].data.boolean.value = (void *) &gnet_property_variable_convert_old_filenames;
 
 
     /*
@@ -5732,8 +5733,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[264].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[264].data.boolean.def   = &tls_enforce_def;
-    gnet_property->props[264].data.boolean.value = &tls_enforce;
+    gnet_property->props[264].data.boolean.def   = (void *) &gnet_property_variable_tls_enforce_default;
+    gnet_property->props[264].data.boolean.value = (void *) &gnet_property_variable_tls_enforce;
 
 
     /*
@@ -5749,8 +5750,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[265].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[265].data.boolean.def   = &gnet_deflate_enabled_def;
-    gnet_property->props[265].data.boolean.value = &gnet_deflate_enabled;
+    gnet_property->props[265].data.boolean.def   = (void *) &gnet_property_variable_gnet_deflate_enabled_default;
+    gnet_property->props[265].data.boolean.value = (void *) &gnet_property_variable_gnet_deflate_enabled;
 
 
     /*
@@ -5766,8 +5767,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[266].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[266].data.boolean.def   = &enable_udp_def;
-    gnet_property->props[266].data.boolean.value = &enable_udp;
+    gnet_property->props[266].data.boolean.def   = (void *) &gnet_property_variable_enable_udp_default;
+    gnet_property->props[266].data.boolean.value = (void *) &gnet_property_variable_enable_udp;
 
 
     /*
@@ -5783,8 +5784,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[267].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[267].data.boolean.def   = &process_oob_queries_def;
-    gnet_property->props[267].data.boolean.value = &process_oob_queries;
+    gnet_property->props[267].data.boolean.def   = (void *) &gnet_property_variable_process_oob_queries_default;
+    gnet_property->props[267].data.boolean.value = (void *) &gnet_property_variable_process_oob_queries;
 
 
     /*
@@ -5800,8 +5801,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[268].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[268].data.boolean.def   = &send_oob_queries_def;
-    gnet_property->props[268].data.boolean.value = &send_oob_queries;
+    gnet_property->props[268].data.boolean.def   = (void *) &gnet_property_variable_send_oob_queries_default;
+    gnet_property->props[268].data.boolean.value = (void *) &gnet_property_variable_send_oob_queries;
 
 
     /*
@@ -5817,8 +5818,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[269].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[269].data.boolean.def   = &proxy_oob_queries_def;
-    gnet_property->props[269].data.boolean.value = &proxy_oob_queries;
+    gnet_property->props[269].data.boolean.def   = (void *) &gnet_property_variable_proxy_oob_queries_default;
+    gnet_property->props[269].data.boolean.value = (void *) &gnet_property_variable_proxy_oob_queries;
 
 
     /*
@@ -5834,8 +5835,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[270].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[270].data.boolean.def   = &uploads_stalling_def;
-    gnet_property->props[270].data.boolean.value = &uploads_stalling;
+    gnet_property->props[270].data.boolean.def   = (void *) &gnet_property_variable_uploads_stalling_default;
+    gnet_property->props[270].data.boolean.value = (void *) &gnet_property_variable_uploads_stalling;
 
 
     /*
@@ -5851,8 +5852,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[271].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[271].data.boolean.def   = &use_global_hostiles_txt_def;
-    gnet_property->props[271].data.boolean.value = &use_global_hostiles_txt;
+    gnet_property->props[271].data.boolean.def   = (void *) &gnet_property_variable_use_global_hostiles_txt_default;
+    gnet_property->props[271].data.boolean.value = (void *) &gnet_property_variable_use_global_hostiles_txt;
 
 
     /*
@@ -5868,8 +5869,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[272].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[272].data.boolean.def   = &use_so_linger_def;
-    gnet_property->props[272].data.boolean.value = &use_so_linger;
+    gnet_property->props[272].data.boolean.def   = (void *) &gnet_property_variable_use_so_linger_default;
+    gnet_property->props[272].data.boolean.value = (void *) &gnet_property_variable_use_so_linger;
 
 
     /*
@@ -5885,8 +5886,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[273].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[273].data.guint32.def   = &tcp_defer_accept_timeout_def;
-    gnet_property->props[273].data.guint32.value = &tcp_defer_accept_timeout;
+    gnet_property->props[273].data.guint32.def   = (void *) &gnet_property_variable_tcp_defer_accept_timeout_default;
+    gnet_property->props[273].data.guint32.value = (void *) &gnet_property_variable_tcp_defer_accept_timeout;
     gnet_property->props[273].data.guint32.choices = NULL;
     gnet_property->props[273].data.guint32.max   = 600;
     gnet_property->props[273].data.guint32.min   = 0;
@@ -5905,8 +5906,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[274].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[274].data.boolean.def   = &browse_host_enabled_def;
-    gnet_property->props[274].data.boolean.value = &browse_host_enabled;
+    gnet_property->props[274].data.boolean.def   = (void *) &gnet_property_variable_browse_host_enabled_default;
+    gnet_property->props[274].data.boolean.value = (void *) &gnet_property_variable_browse_host_enabled;
 
 
     /*
@@ -5922,8 +5923,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[275].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[275].data.guint32.def   = &html_browse_count_def;
-    gnet_property->props[275].data.guint32.value = &html_browse_count;
+    gnet_property->props[275].data.guint32.def   = (void *) &gnet_property_variable_html_browse_count_default;
+    gnet_property->props[275].data.guint32.value = (void *) &gnet_property_variable_html_browse_count;
     gnet_property->props[275].data.guint32.choices = NULL;
     gnet_property->props[275].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[275].data.guint32.min   = 0x00000000;
@@ -5942,8 +5943,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[276].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[276].data.guint32.def   = &html_browse_served_def;
-    gnet_property->props[276].data.guint32.value = &html_browse_served;
+    gnet_property->props[276].data.guint32.def   = (void *) &gnet_property_variable_html_browse_served_default;
+    gnet_property->props[276].data.guint32.value = (void *) &gnet_property_variable_html_browse_served;
     gnet_property->props[276].data.guint32.choices = NULL;
     gnet_property->props[276].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[276].data.guint32.min   = 0x00000000;
@@ -5962,8 +5963,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[277].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[277].data.guint32.def   = &qhits_browse_count_def;
-    gnet_property->props[277].data.guint32.value = &qhits_browse_count;
+    gnet_property->props[277].data.guint32.def   = (void *) &gnet_property_variable_qhits_browse_count_default;
+    gnet_property->props[277].data.guint32.value = (void *) &gnet_property_variable_qhits_browse_count;
     gnet_property->props[277].data.guint32.choices = NULL;
     gnet_property->props[277].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[277].data.guint32.min   = 0x00000000;
@@ -5982,8 +5983,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[278].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[278].data.guint32.def   = &qhits_browse_served_def;
-    gnet_property->props[278].data.guint32.value = &qhits_browse_served;
+    gnet_property->props[278].data.guint32.def   = (void *) &gnet_property_variable_qhits_browse_served_default;
+    gnet_property->props[278].data.guint32.value = (void *) &gnet_property_variable_qhits_browse_served;
     gnet_property->props[278].data.guint32.choices = NULL;
     gnet_property->props[278].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[278].data.guint32.min   = 0x00000000;
@@ -6002,8 +6003,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[279].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[279].data.boolean.def   = &overloaded_cpu_def;
-    gnet_property->props[279].data.boolean.value = &overloaded_cpu;
+    gnet_property->props[279].data.boolean.def   = (void *) &gnet_property_variable_overloaded_cpu_default;
+    gnet_property->props[279].data.boolean.value = (void *) &gnet_property_variable_overloaded_cpu;
 
 
     /*
@@ -6019,8 +6020,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[280].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[280].data.guint32.def   = &download_buffer_size_def;
-    gnet_property->props[280].data.guint32.value = &download_buffer_size;
+    gnet_property->props[280].data.guint32.def   = (void *) &gnet_property_variable_download_buffer_size_default;
+    gnet_property->props[280].data.guint32.value = (void *) &gnet_property_variable_download_buffer_size;
     gnet_property->props[280].data.guint32.choices = NULL;
     gnet_property->props[280].data.guint32.max   = 131072;
     gnet_property->props[280].data.guint32.min   = 0;
@@ -6039,8 +6040,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[281].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[281].data.boolean.def   = &browse_copied_to_passive_def;
-    gnet_property->props[281].data.boolean.value = &browse_copied_to_passive;
+    gnet_property->props[281].data.boolean.def   = (void *) &gnet_property_variable_browse_copied_to_passive_default;
+    gnet_property->props[281].data.boolean.value = (void *) &gnet_property_variable_browse_copied_to_passive;
 
 
     /*
@@ -6056,8 +6057,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[282].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[282].data.boolean.def   = &display_metric_units_def;
-    gnet_property->props[282].data.boolean.value = &display_metric_units;
+    gnet_property->props[282].data.boolean.def   = (void *) &gnet_property_variable_display_metric_units_default;
+    gnet_property->props[282].data.boolean.value = (void *) &gnet_property_variable_display_metric_units;
 
 
     /*
@@ -6073,8 +6074,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[283].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[283].data.guint32.def   = &rudp_debug_def;
-    gnet_property->props[283].data.guint32.value = &rudp_debug;
+    gnet_property->props[283].data.guint32.def   = (void *) &gnet_property_variable_rudp_debug_default;
+    gnet_property->props[283].data.guint32.value = (void *) &gnet_property_variable_rudp_debug;
     gnet_property->props[283].data.guint32.choices = NULL;
     gnet_property->props[283].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[283].data.guint32.min   = 0x00000000;
@@ -6093,8 +6094,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[284].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[284].data.guint32.def   = &dht_debug_def;
-    gnet_property->props[284].data.guint32.value = &dht_debug;
+    gnet_property->props[284].data.guint32.def   = (void *) &gnet_property_variable_dht_debug_default;
+    gnet_property->props[284].data.guint32.value = (void *) &gnet_property_variable_dht_debug;
     gnet_property->props[284].data.guint32.choices = NULL;
     gnet_property->props[284].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[284].data.guint32.min   = 0x00000000;
@@ -6113,8 +6114,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[285].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[285].data.guint32.def   = &oob_proxy_debug_def;
-    gnet_property->props[285].data.guint32.value = &oob_proxy_debug;
+    gnet_property->props[285].data.guint32.def   = (void *) &gnet_property_variable_oob_proxy_debug_default;
+    gnet_property->props[285].data.guint32.value = (void *) &gnet_property_variable_oob_proxy_debug;
     gnet_property->props[285].data.guint32.choices = NULL;
     gnet_property->props[285].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[285].data.guint32.min   = 0x00000000;
@@ -6133,8 +6134,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[286].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[286].data.boolean.def   = &enable_local_socket_def;
-    gnet_property->props[286].data.boolean.value = &enable_local_socket;
+    gnet_property->props[286].data.boolean.def   = (void *) &gnet_property_variable_enable_local_socket_default;
+    gnet_property->props[286].data.boolean.value = (void *) &gnet_property_variable_enable_local_socket;
 
 
     /*
@@ -6150,8 +6151,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[287].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[287].data.guint32.def   = &max_simultaneous_downloads_per_file_def;
-    gnet_property->props[287].data.guint32.value = &max_simultaneous_downloads_per_file;
+    gnet_property->props[287].data.guint32.def   = (void *) &gnet_property_variable_max_simultaneous_downloads_per_file_default;
+    gnet_property->props[287].data.guint32.value = (void *) &gnet_property_variable_max_simultaneous_downloads_per_file;
     gnet_property->props[287].data.guint32.choices = NULL;
     gnet_property->props[287].data.guint32.max   = INT_MAX;
     gnet_property->props[287].data.guint32.min   = 1;
@@ -6170,8 +6171,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[288].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[288].data.boolean.def   = &dump_received_gnutella_packets_def;
-    gnet_property->props[288].data.boolean.value = &dump_received_gnutella_packets;
+    gnet_property->props[288].data.boolean.def   = (void *) &gnet_property_variable_dump_received_gnutella_packets_default;
+    gnet_property->props[288].data.boolean.value = (void *) &gnet_property_variable_dump_received_gnutella_packets;
 
 
     /*
@@ -6187,8 +6188,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[289].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[289].data.boolean.def   = &search_results_expose_relative_paths_def;
-    gnet_property->props[289].data.boolean.value = &search_results_expose_relative_paths;
+    gnet_property->props[289].data.boolean.def   = (void *) &gnet_property_variable_search_results_expose_relative_paths_default;
+    gnet_property->props[289].data.boolean.value = (void *) &gnet_property_variable_search_results_expose_relative_paths;
 
 
     /*
@@ -6204,8 +6205,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[290].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[290].data.guint32.def   = &shell_debug_def;
-    gnet_property->props[290].data.guint32.value = &shell_debug;
+    gnet_property->props[290].data.guint32.def   = (void *) &gnet_property_variable_shell_debug_default;
+    gnet_property->props[290].data.guint32.value = (void *) &gnet_property_variable_shell_debug;
     gnet_property->props[290].data.guint32.choices = NULL;
     gnet_property->props[290].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[290].data.guint32.min   = 0x00000000;
@@ -6224,8 +6225,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[291].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[291].data.guint32.def   = &download_queue_frozen_def;
-    gnet_property->props[291].data.guint32.value = &download_queue_frozen;
+    gnet_property->props[291].data.guint32.def   = (void *) &gnet_property_variable_download_queue_frozen_default;
+    gnet_property->props[291].data.guint32.value = (void *) &gnet_property_variable_download_queue_frozen;
     gnet_property->props[291].data.guint32.choices = NULL;
     gnet_property->props[291].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[291].data.guint32.min   = 0x00000000;
@@ -6244,8 +6245,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[292].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[292].data.guint32.def   = &sq_debug_def;
-    gnet_property->props[292].data.guint32.value = &sq_debug;
+    gnet_property->props[292].data.guint32.def   = (void *) &gnet_property_variable_sq_debug_default;
+    gnet_property->props[292].data.guint32.value = (void *) &gnet_property_variable_sq_debug;
     gnet_property->props[292].data.guint32.choices = NULL;
     gnet_property->props[292].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[292].data.guint32.min   = 0x00000000;
@@ -6264,8 +6265,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[293].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[293].data.guint32.def   = &push_proxy_debug_def;
-    gnet_property->props[293].data.guint32.value = &push_proxy_debug;
+    gnet_property->props[293].data.guint32.def   = (void *) &gnet_property_variable_push_proxy_debug_default;
+    gnet_property->props[293].data.guint32.value = (void *) &gnet_property_variable_push_proxy_debug;
     gnet_property->props[293].data.guint32.choices = NULL;
     gnet_property->props[293].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[293].data.guint32.min   = 0x00000000;
@@ -6284,8 +6285,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[294].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[294].data.boolean.def   = &experimental_tigertree_support_def;
-    gnet_property->props[294].data.boolean.value = &experimental_tigertree_support;
+    gnet_property->props[294].data.boolean.def   = (void *) &gnet_property_variable_experimental_tigertree_support_default;
+    gnet_property->props[294].data.boolean.value = (void *) &gnet_property_variable_experimental_tigertree_support;
 
 
     /*
@@ -6301,8 +6302,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[295].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[295].data.guint32.def   = &thex_files_requested_def;
-    gnet_property->props[295].data.guint32.value = &thex_files_requested;
+    gnet_property->props[295].data.guint32.def   = (void *) &gnet_property_variable_thex_files_requested_default;
+    gnet_property->props[295].data.guint32.value = (void *) &gnet_property_variable_thex_files_requested;
     gnet_property->props[295].data.guint32.choices = NULL;
     gnet_property->props[295].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[295].data.guint32.min   = 0x00000000;
@@ -6321,8 +6322,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[296].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[296].data.guint32.def   = &thex_files_served_def;
-    gnet_property->props[296].data.guint32.value = &thex_files_served;
+    gnet_property->props[296].data.guint32.def   = (void *) &gnet_property_variable_thex_files_served_default;
+    gnet_property->props[296].data.guint32.value = (void *) &gnet_property_variable_thex_files_served;
     gnet_property->props[296].data.guint32.choices = NULL;
     gnet_property->props[296].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[296].data.guint32.min   = 0x00000000;
@@ -6341,8 +6342,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[297].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[297].data.guint32.def   = &tigertree_debug_def;
-    gnet_property->props[297].data.guint32.value = &tigertree_debug;
+    gnet_property->props[297].data.guint32.def   = (void *) &gnet_property_variable_tigertree_debug_default;
+    gnet_property->props[297].data.guint32.value = (void *) &gnet_property_variable_tigertree_debug;
     gnet_property->props[297].data.guint32.choices = NULL;
     gnet_property->props[297].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[297].data.guint32.min   = 0x00000000;
@@ -6361,8 +6362,8 @@ gnet_prop_init(void) {
 
     /* Type specific data: */
     gnet_property->props[298].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[298].data.boolean.def   = &tth_rebuilding_def;
-    gnet_property->props[298].data.boolean.value = &tth_rebuilding;
+    gnet_property->props[298].data.boolean.def   = (void *) &gnet_property_variable_tth_rebuilding_default;
+    gnet_property->props[298].data.boolean.value = (void *) &gnet_property_variable_tth_rebuilding;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

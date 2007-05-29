@@ -75,16 +75,17 @@ monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
 
 	gtk_clist_freeze(GTK_CLIST(clist_monitor));
 
-	for (/* empty */; monitor_items >= monitor_max_items; monitor_items--) {
+	while (monitor_items >= GUI_PROPERTY(monitor_max_items)) {
 		gint row = GTK_CLIST(clist_monitor)->rows - 1;
 
 		if (row < 0)
 			break;
 
        	gtk_clist_remove(GTK_CLIST(clist_monitor), row);
+		monitor_items--;
 	}
 
-	if (monitor_max_items > 0) {
+	if (GUI_PROPERTY(monitor_max_items) > 0) {
     	gchar *titles[1];
     	gchar tmpstr[100];
 

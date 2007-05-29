@@ -1234,7 +1234,7 @@ ext_ggep_decode(const extvec_t *e)
 
 		if (!d->ext_ggep_deflate) {
 			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
-				if (ggep_debug)
+				if (GNET_PROPERTY(ggep_debug))
 					g_warning("unable to decode COBS buffer");
 				goto out;
 			}
@@ -1248,7 +1248,7 @@ ext_ggep_decode(const extvec_t *e)
 			return;
 		} else {
 			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
-				if (ggep_debug)
+				if (GNET_PROPERTY(ggep_debug))
 					g_warning("unable to decode COBS buffer");
 				goto out;
 			}
@@ -1290,7 +1290,7 @@ out:
 	 */
 
 	if (d->ext_payload == NULL) {
-		if (dbg || ggep_debug)
+		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(ggep_debug))
 			g_warning("unable to get GGEP \"%s\" %d-byte payload (%s)",
 				d->ext_ggep_id, d->ext_phys_paylen,
 				(d->ext_ggep_deflate && d->ext_ggep_cobs) ? "COBS + deflated" :

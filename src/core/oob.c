@@ -176,7 +176,7 @@ results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to,
 
 	g_assert(num_oob_records >= 0);
 	num_oob_records++;
-	if (query_debug > 1)
+	if (GNET_PROPERTY(query_debug) > 1)
 		g_message("results_make: num_oob_records=%d", num_oob_records);
 
 	return r;
@@ -220,7 +220,7 @@ results_free_remove(struct oob_results *r)
 
 		g_assert(num_oob_records > 0);
 		num_oob_records--;
-		if (query_debug > 2)
+		if (GNET_PROPERTY(query_debug) > 2)
 			g_message("results_free: num_oob_records=%d", num_oob_records);
 
 		r->magic = 0;
@@ -239,7 +239,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 	oob_results_check(r);
 
-	if (query_debug)
+	if (GNET_PROPERTY(query_debug))
 		g_message("OOB query %s from %s expired with unclaimed %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
@@ -263,7 +263,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 	oob_results_check(r);
 
-	if (query_debug)
+	if (GNET_PROPERTY(query_debug))
 		g_message("OOB query %s, no ACK from %s to claim %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
@@ -319,7 +319,7 @@ servent_service(cqueue_t *cq, gpointer obj)
 	if (q == NULL)
 		goto udp_disabled;
 
-	if (udp_debug > 19)
+	if (GNET_PROPERTY(udp_debug) > 19)
 		g_message("UDP queuing OOB %s to %s for %s",
 			gmsg_infostr_full(pmsg_start(mb)), gnet_host_to_string(s->host),
 			guid_hex_str(pmsg_start(mb)));
@@ -436,7 +436,7 @@ oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
 
 	if (r == NULL) {
 		gnet_stats_count_general(GNR_SPURIOUS_OOB_HIT_CLAIM, 1);
-		if (query_debug)
+		if (GNET_PROPERTY(query_debug))
 			g_warning("OOB got spurious LIME/11 from %s for %s, "
 				"asking for %d hit%s",
 				node_addr(n), guid_hex_str(muid),
@@ -514,7 +514,7 @@ oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
 
 	deliver_count = (wanted == 255) ? r->count : MIN(wanted, r->count);
 
-	if (query_debug || udp_debug)
+	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
 		g_message("OOB query %s: host %s wants %d hit%s, delivering %d",
 			guid_hex_str(r->muid), node_addr(n), wanted, wanted == 1 ? "" : "s",
 			deliver_count);
@@ -573,7 +573,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 			results_free_remove(r);
 		} else {
 
-			if (query_debug || udp_debug)
+			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
 				g_message("OOB query %s, notified %s about %d hit%s",
 					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 					r->count, r->count == 1 ? "" : "s");
@@ -591,7 +591,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 		 * If we were not able to send the message,
 		 */
 
-		if (query_debug)
+		if (GNET_PROPERTY(query_debug))
 			g_message("OOB query %s, previous LIME12/v2 #%d was dropped",
 					guid_hex_str(r->muid), r->notify_requeued);
 
@@ -623,7 +623,7 @@ oob_send_reply_ind(struct oob_results *r)
 	r->refcount++;
 	pmsg_free(mb);
 
-	if (query_debug || udp_debug)
+	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
 		g_message("OOB query %s, notifying %s about %d hit%s, try #%d",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s", r->notify_requeued);

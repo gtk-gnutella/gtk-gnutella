@@ -203,8 +203,8 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 
 	/* try to keep the number of infrequent terms down */
 	if (
-		((gfloat) val->total_cnt / (val->periods + 2.0)) * 100 <
-			search_stats_delcoef
+		(1.0 * val->total_cnt / (val->periods + 2.0)) * 100 <
+			GUI_PROPERTY(search_stats_delcoef)
 	) {
 		atom_str_free(key);
 		wfree(val, sizeof *val);
@@ -427,7 +427,7 @@ void
 search_stats_gui_update(time_t now)
 {
 	static time_t last_update = 0;
-	const time_delta_t interval = search_stats_update_interval;
+	const time_delta_t interval = GUI_PROPERTY(search_stats_update_interval);
 
     if (delta_time(now, last_update) < interval)
         return;

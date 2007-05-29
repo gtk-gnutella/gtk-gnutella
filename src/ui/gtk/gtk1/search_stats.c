@@ -212,8 +212,8 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 
 	/* try to keep the number of infrequent terms down */
 	if (
-		((gfloat) val->total_cnt / (val->periods + 2.0)) * 100 <
-			search_stats_delcoef
+		(1.0 * val->total_cnt / (val->periods + 2.0)) * 100 <
+			GUI_PROPERTY(search_stats_delcoef)
 	) {
 		G_FREE_NULL(key);
 		G_FREE_NULL(val);
@@ -376,7 +376,7 @@ search_stats_gui_update(time_t now)
 
     if (
 		delta_time(now, last_update) <
-			(time_delta_t) search_stats_update_interval
+			(time_delta_t) GUI_PROPERTY(search_stats_update_interval)
 	)
         return;
 

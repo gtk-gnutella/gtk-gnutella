@@ -166,7 +166,7 @@ not:
 	/* FALL THROUGH */
 
 log:
-	if (udp_debug) {
+	if (GNET_PROPERTY(udp_debug)) {
 		g_warning("got invalid Gnutella packet from UDP (%s): %s",
 			host_addr_port_to_string(s->addr, s->port), msg);
 		if (s->pos)
@@ -232,7 +232,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	if (bogons_check(s->addr)) {
 		bogus = TRUE;
 
-		if (udp_debug) {
+		if (GNET_PROPERTY(udp_debug)) {
 			g_warning("UDP %sdatagram (%d byte%s) received from bogus IP %s",
 				truncated ? "truncated " : "",
 				(gint) s->pos, s->pos == 1 ? "" : "s",
@@ -249,7 +249,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 * another node, only we'll use a special "pseudo UDP node" as origin.
 	 */
 
-	if (udp_debug > 19)
+	if (GNET_PROPERTY(udp_debug) > 19)
 		g_message("UDP got %s from %s%s", gmsg_infostr_full(s->buf),
 			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
@@ -292,7 +292,7 @@ void
 udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 {
 	if (udp_send_ping(muid, addr, port, FALSE)) {
-		if (udp_debug > 19)
+		if (GNET_PROPERTY(udp_debug) > 19)
 			g_message("UDP queued connect-back PING %s to %s\n",
 				guid_hex_str(muid), host_addr_port_to_string(addr, port));
 	}

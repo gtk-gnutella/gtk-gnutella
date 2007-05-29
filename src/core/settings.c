@@ -70,8 +70,6 @@
 
 RCSID("$Id$")
 
-#define debug dbg
-
 static const gchar config_file[] = "config_gnet";
 static const gchar ul_stats_file[] = "upload_stats";
 
@@ -116,7 +114,9 @@ host_addr_t
 listen_addr(void)
 {
 	if (s_tcp_listen) {
-		return force_local_ip ? forced_local_ip : local_ip;
+		return GNET_PROPERTY(force_local_ip)
+				? GNET_PROPERTY(forced_local_ip)
+				: GNET_PROPERTY(local_ip);
 	} else {
 		return zero_host_addr;
 	}
@@ -129,7 +129,9 @@ host_addr_t
 listen_addr6(void)
 {
 	if (s_tcp_listen6) {
-		return force_local_ip6 ? forced_local_ip6 : local_ip6;
+		return GNET_PROPERTY(force_local_ip6)
+				? GNET_PROPERTY(forced_local_ip6)
+				: GNET_PROPERTY(local_ip6);
 	} else {
 		return zero_host_addr;
 	}
@@ -157,7 +159,7 @@ is_my_address(const host_addr_t addr)
 gboolean
 is_my_address_and_port(const host_addr_t addr, guint16 port)
 {
-	return port == listen_port && is_my_address(addr);
+	return port == GNET_PROPERTY(listen_port) && is_my_address(addr);
 }
 
 
@@ -409,7 +411,7 @@ settings_init(void)
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, max_fd);
 	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
 
-	memset(deconstify_gpointer(servent_guid), 0, sizeof servent_guid);
+	memset(deconstify_gpointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
 	if (NULL == config_dir || '\0' == config_dir[0])
 		goto no_config_dir;
@@ -434,9 +436,9 @@ settings_init(void)
 
 	if (debugging(0)) {
 		g_message("detected amount of physical RAM: %s",
-			short_size(memory, display_metric_units));
+			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_message("process can use at maximum: %s",
-			short_kb_size(amount, display_metric_units));
+			short_kb_size(amount, GNET_PROPERTY(display_metric_units)));
 		g_message("process can use %u file descriptors", max_fd);
 		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
 	}
@@ -452,18 +454,18 @@ settings_init(void)
 
 	/* watch for filter_file defaults */
 
-	if (hard_ttl_limit < max_ttl) {
-		*(guint32 *) &hard_ttl_limit = max_ttl;
+	if (GNET_PROPERTY(hard_ttl_limit) < GNET_PROPERTY(max_ttl)) {
+		*(guint32 *) &GNET_PROPERTY(hard_ttl_limit) = GNET_PROPERTY(max_ttl);
 		g_warning("hard_ttl_limit was too small, adjusted to %u",
-			hard_ttl_limit);
+			GNET_PROPERTY(hard_ttl_limit));
 	}
 
 	/* Flow control depends on this being not too small */
-	if (node_sendqueue_size < 1.5 * settings_max_msg_size()) {
-		*(guint32 *) &node_sendqueue_size =
+	if (GNET_PROPERTY(node_sendqueue_size) < 1.5 * settings_max_msg_size()) {
+		*(guint32 *) &GNET_PROPERTY(node_sendqueue_size) =
 			(guint32) (1.5 * settings_max_msg_size());
 		g_warning("node_sendqueue_size was too small, adjusted to %u",
-			node_sendqueue_size);
+			GNET_PROPERTY(node_sendqueue_size));
 	}
 
     settings_callbacks_init();
@@ -530,7 +532,7 @@ settings_local_socket_path(void)
 enum net_type
 settings_dns_net(void)
 {
-	switch (network_protocol) {
+	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH: return NET_TYPE_NONE;
 	case NET_USE_IPV4: return NET_TYPE_IPV4;
 	case NET_USE_IPV6:
@@ -572,7 +574,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(new_addr));
 	g_return_if_fail(NET_TYPE_IPV4 == host_addr_net(peer));
 
-	if (force_local_ip)
+	if (GNET_PROPERTY(force_local_ip))
 		return;
 
 	/*
@@ -611,7 +613,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 		peers[i] = zero_host_addr;
 	}
 
-	if (host_addr_equal(new_addr, local_ip))
+	if (host_addr_equal(new_addr, GNET_PROPERTY(local_ip)))
 		return;
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP, new_addr);
@@ -627,7 +629,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(new_addr));
 	g_return_if_fail(NET_TYPE_IPV6 == host_addr_net(peer));
 
-	if (force_local_ip6)
+	if (GNET_PROPERTY(force_local_ip6))
 		return;
 
 	/*
@@ -666,7 +668,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 		peers[i] = zero_host_addr;
 	}
 
-	if (host_addr_equal(new_addr, local_ip6))
+	if (host_addr_equal(new_addr, GNET_PROPERTY(local_ip6)))
 		return;
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP6, new_addr);
@@ -743,8 +745,9 @@ settings_max_msg_size(void)
 
 	guint32 maxsize;
 
-	maxsize = MAX(search_queries_kick_size, search_answers_kick_size);
-	maxsize = MAX(maxsize, other_messages_kick_size);
+	maxsize = GNET_PROPERTY(search_queries_kick_size);
+	maxsize = MAX(maxsize, GNET_PROPERTY(search_answers_kick_size));
+	maxsize = MAX(maxsize, GNET_PROPERTY(other_messages_kick_size));
 
 	return maxsize;
 }
@@ -799,28 +802,28 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
 
     switch (type) {
     case BW_GNET_IN:
-		bw_stats(s, bws_gin_enabled, BSCHED_BWS_GIN);
+		bw_stats(s, GNET_PROPERTY(bws_gin_enabled), BSCHED_BWS_GIN);
 		return;
     case BW_GNET_OUT:
-		bw_stats(s, bws_gout_enabled, BSCHED_BWS_GOUT);
+		bw_stats(s, GNET_PROPERTY(bws_gout_enabled), BSCHED_BWS_GOUT);
 		return;
     case BW_GNET_UDP_IN:
-		bw_stats(s, bws_gin_enabled, BSCHED_BWS_GIN_UDP);
+		bw_stats(s, GNET_PROPERTY(bws_gin_enabled), BSCHED_BWS_GIN_UDP);
 		return;
     case BW_GNET_UDP_OUT:
-		bw_stats(s, bws_gout_enabled, BSCHED_BWS_GOUT_UDP);
+		bw_stats(s, GNET_PROPERTY(bws_gout_enabled), BSCHED_BWS_GOUT_UDP);
 		return;
     case BW_HTTP_IN:
-		bw_stats(s, bws_in_enabled, BSCHED_BWS_IN);
+		bw_stats(s, GNET_PROPERTY(bws_in_enabled), BSCHED_BWS_IN);
 		return;
     case BW_HTTP_OUT:
-		bw_stats(s, bws_out_enabled, BSCHED_BWS_OUT);
+		bw_stats(s, GNET_PROPERTY(bws_out_enabled), BSCHED_BWS_OUT);
 		return;
     case BW_LEAF_IN:
-		bw_stats(s, bws_glin_enabled, BSCHED_BWS_GLIN);
+		bw_stats(s, GNET_PROPERTY(bws_glin_enabled), BSCHED_BWS_GLIN);
 		return;
     case BW_LEAF_OUT:
-		bw_stats(s, bws_glout_enabled, BSCHED_BWS_GLOUT);
+		bw_stats(s, GNET_PROPERTY(bws_glout_enabled), BSCHED_BWS_GLOUT);
 		return;
     }
 	g_assert_not_reached();
@@ -842,12 +845,12 @@ get_average_ip_lifetime(time_t now, enum net_type net)
 
 	switch (net) {
 	case NET_TYPE_IPV4: 
-		stamp = current_ip_stamp;
-		average = average_ip_uptime;
+		stamp = GNET_PROPERTY(current_ip_stamp);
+		average = GNET_PROPERTY(average_ip_uptime);
 		break;
 	case NET_TYPE_IPV6: 
-		stamp = current_ip6_stamp;
-		average = average_ip6_uptime;
+		stamp = GNET_PROPERTY(current_ip6_stamp);
+		average = GNET_PROPERTY(average_ip6_uptime);
 		break;
 	default:
 		return 0;
@@ -884,7 +887,7 @@ update_address_lifetime(void)
 	addr = listen_addr();
 	if (!is_host_addr(old_addr)) {				/* First time */
 		old_addr = addr;
-		if (0 == current_ip_stamp) {
+		if (0 == GNET_PROPERTY(current_ip_stamp)) {
 			gnet_prop_set_timestamp_val(PROP_CURRENT_IP_STAMP, now);
 		}
 	}
@@ -895,7 +898,7 @@ update_address_lifetime(void)
 		 */
 
 		old_addr = addr;
-		if (current_ip_stamp) {
+		if (GNET_PROPERTY(current_ip_stamp)) {
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
 				get_average_ip_lifetime(now, host_addr_net(addr)));
 		}
@@ -905,7 +908,7 @@ update_address_lifetime(void)
 	addr = listen_addr6();
 	if (!is_host_addr(old_addr_v6)) {				/* First time */
 		old_addr_v6 = addr;
-		if (0 == current_ip6_stamp) {
+		if (0 == GNET_PROPERTY(current_ip6_stamp)) {
 			gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, now);
 		}
 	}
@@ -916,7 +919,7 @@ update_address_lifetime(void)
 		 */
 
 		old_addr_v6 = addr;
-		if (current_ip6_stamp) {
+		if (GNET_PROPERTY(current_ip6_stamp)) {
 			gnet_prop_set_guint32_val(PROP_AVERAGE_IP6_UPTIME,
 				get_average_ip_lifetime(now, host_addr_net(addr)));
 		}
@@ -935,7 +938,7 @@ get_average_servent_uptime(time_t now)
 	time_delta_t d;
 	glong uptime;
 
-	d = delta_time(now, start_stamp);
+	d = delta_time(now, GNET_PROPERTY(start_stamp));
 	uptime = MAX(0, d);
 
 	/*
@@ -943,7 +946,7 @@ get_average_servent_uptime(time_t now)
 	 * The smoothing factor sm=2/(7+1) is therefore 0.25.
 	 */
 
-	avg = average_servent_uptime;
+	avg = GNET_PROPERTY(average_servent_uptime);
 	avg += (uptime >> 2) - (avg >> 2);
 
 	return avg;
@@ -975,8 +978,9 @@ up_connections_changed(property_t prop)
 {
 	g_assert(PROP_UP_CONNECTIONS == prop);
 
-    if (up_connections > max_connections) {
-        gnet_prop_set_guint32_val(PROP_MAX_CONNECTIONS, up_connections);
+    if (GNET_PROPERTY(up_connections) > GNET_PROPERTY(max_connections)) {
+        gnet_prop_set_guint32_val(PROP_MAX_CONNECTIONS,
+			GNET_PROPERTY(up_connections));
 	}
     return FALSE;
 }
@@ -986,8 +990,9 @@ max_connections_changed(property_t prop)
 {
 	g_assert(PROP_MAX_CONNECTIONS == prop);
 
-    if (up_connections > max_connections) {
-        gnet_prop_set_guint32_val(PROP_UP_CONNECTIONS, max_connections);
+    if (GNET_PROPERTY(up_connections) > GNET_PROPERTY(max_connections)) {
+        gnet_prop_set_guint32_val(PROP_UP_CONNECTIONS,
+			GNET_PROPERTY(max_connections));
 	}
     return FALSE;
 }
@@ -1028,20 +1033,25 @@ get_bind_addr(enum net_type net)
 	
 	switch (net) {
 	case NET_TYPE_IPV4:
-		addr = force_local_ip ? forced_local_ip : local_ip;
+		addr = GNET_PROPERTY(force_local_ip)
+				? GNET_PROPERTY(forced_local_ip)
+				: GNET_PROPERTY(local_ip);
+
 		if (
-			!force_local_ip ||
-			!bind_to_forced_local_ip ||
+			!GNET_PROPERTY(force_local_ip) ||
+			!GNET_PROPERTY(bind_to_forced_local_ip) ||
 			!host_addr_initialized(addr)
 		) {
 			addr = ipv4_unspecified;
 		}
 		break;
 	case NET_TYPE_IPV6:
-		addr = force_local_ip6 ? forced_local_ip6 : local_ip6;
+		addr = GNET_PROPERTY(force_local_ip6)
+				? GNET_PROPERTY(forced_local_ip6)
+				: GNET_PROPERTY(local_ip6);
 		if (
-			!force_local_ip6 ||
-			!bind_to_forced_local_ip6 ||
+			!GNET_PROPERTY(force_local_ip6) ||
+			!GNET_PROPERTY(bind_to_forced_local_ip6) ||
 			!host_addr_initialized(addr)
 		) {
 			addr = ipv6_unspecified;
@@ -1064,7 +1074,7 @@ enable_udp_changed(property_t prop)
 		if (s_tcp_listen) {
 			g_assert(!s_udp_listen);
 			s_udp_listen = socket_udp_listen(get_bind_addr(NET_TYPE_IPV4),
-								listen_port);
+								GNET_PROPERTY(listen_port));
 			if (!s_udp_listen) {
 				gcu_statusbar_warning(_("Failed to create IPv4 UDP socket"));
 			}
@@ -1072,7 +1082,7 @@ enable_udp_changed(property_t prop)
 		if (s_tcp_listen6) {
 			g_assert(!s_udp_listen6);
 			s_udp_listen6 = socket_udp_listen(get_bind_addr(NET_TYPE_IPV6),
-								listen_port);
+								GNET_PROPERTY(listen_port));
 			if (!s_udp_listen6) {
 				gcu_statusbar_warning(_("Failed to create IPv6 UDP socket"));
 			}
@@ -1145,11 +1155,14 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	if (0 == port)
 		return;
 
-	if (NET_USE_BOTH == network_protocol || NET_USE_IPV4 == network_protocol) {
+	if (
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol) ||
+		NET_USE_IPV4 == GNET_PROPERTY(network_protocol)
+	) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV4);
 
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
-		if (enable_udp) {
+		if (GNET_PROPERTY(enable_udp)) {
 			g_assert(!s_udp_listen);
 			s_udp_listen = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen) {
@@ -1157,11 +1170,14 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 			}
 		}
 	}
-	if (NET_USE_BOTH == network_protocol || NET_USE_IPV6 == network_protocol) {
+	if (
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol) ||
+		NET_USE_IPV6 == GNET_PROPERTY(network_protocol)
+	) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV6);
 
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
-		if (enable_udp) {
+		if (GNET_PROPERTY(enable_udp)) {
 			g_assert(!s_udp_listen6);
 			s_udp_listen6 = socket_udp_listen(bind_addr, port);
 			if (!s_udp_listen6) {
@@ -1174,7 +1190,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	 * If UDP is enabled, also listen on the same UDP port.
 	 */
 
-	if (enable_udp) {
+	if (GNET_PROPERTY(enable_udp)) {
 		node_update_udp_socket();
 	}
 
@@ -1193,21 +1209,24 @@ listen_port_changed(property_t prop)
 	 * If port did not change values, do nothing.
 	 */
 
-	if (listen_port == old_port && listen_port != 0)
+	if (
+		GNET_PROPERTY(listen_port) == old_port &&
+		GNET_PROPERTY(listen_port) != 0
+	)
 		return FALSE;
-	old_port = listen_port;
+	old_port = GNET_PROPERTY(listen_port);
 
 	/*
 	 * 1 is a magic port number for us, which means "pick a random port"
 	 * whereas 0 means "don't listen on any port".
 	 */
 
-	if (1 != listen_port) {
-		request_new_sockets(listen_port, FALSE);
+	if (1 != GNET_PROPERTY(listen_port)) {
+		request_new_sockets(GNET_PROPERTY(listen_port), FALSE);
 	} else {
 		bit_array_t tried[BIT_ARRAY_SIZE(65536)];
 		guint num_tried = 0;
-    	guint32 port = listen_port;
+    	guint32 port = GNET_PROPERTY(listen_port);
 
 		/* Mark ports below 1024 as already tried, these ports can
 		 * be configured manually but we don't want to pick one of
@@ -1245,7 +1264,7 @@ listen_port_changed(property_t prop)
 		gnet_prop_set_guint32_val(prop, port);
 	}
 
-	if (is_firewalled || !settings_init_running) {
+	if (GNET_PROPERTY(is_firewalled) || !settings_init_running) {
 		inet_firewalled();
 		inet_udp_firewalled();
 	}
@@ -1254,12 +1273,12 @@ listen_port_changed(property_t prop)
      * If socket allocation failed, reset the property
      */
 
-    if (s_tcp_listen == NULL && listen_port != 0) {
+    if (s_tcp_listen == NULL && GNET_PROPERTY(listen_port) != 0) {
 		gcu_statusbar_warning(_("Failed to create listening sockets"));
 		old_port = (guint32) -1;
         return TRUE;
     } else {
-		old_port = listen_port;
+		old_port = GNET_PROPERTY(listen_port);
 	}
 
     return FALSE;
@@ -1270,7 +1289,8 @@ network_protocol_changed(property_t prop)
 {
 
 	(void) prop;
-	request_new_sockets(listen_port, is_firewalled || !settings_init_running);
+	request_new_sockets(GNET_PROPERTY(listen_port),
+		GNET_PROPERTY(is_firewalled) || !settings_init_running);
 	return FALSE;
 }
 
@@ -1330,7 +1350,7 @@ node_sendqueue_size_changed(property_t unused_prop)
     guint32 min = 1.5 * settings_max_msg_size();
 
 	(void) unused_prop;
-    if (node_sendqueue_size < min) {
+    if (GNET_PROPERTY(node_sendqueue_size) < min) {
         gnet_prop_set_guint32_val(PROP_NODE_SENDQUEUE_SIZE, min);
         return TRUE;
     }
@@ -1401,8 +1421,8 @@ hard_ttl_limit_changed(property_t prop)
 {
 	g_assert(PROP_HARD_TTL_LIMIT == prop);
 
-    if (hard_ttl_limit < max_ttl) {
-        gnet_prop_set_guint32_val(PROP_MAX_TTL, hard_ttl_limit);
+    if (GNET_PROPERTY(hard_ttl_limit) < GNET_PROPERTY(max_ttl)) {
+        gnet_prop_set_guint32_val(PROP_MAX_TTL, GNET_PROPERTY(hard_ttl_limit));
 	}
     return FALSE;
 }
@@ -1412,8 +1432,8 @@ max_ttl_changed(property_t prop)
 {
 	g_assert(PROP_MAX_TTL == prop);
 
-    if (hard_ttl_limit < max_ttl) {
-        gnet_prop_set_guint32_val(PROP_HARD_TTL_LIMIT, max_ttl);
+    if (GNET_PROPERTY(hard_ttl_limit) < GNET_PROPERTY(max_ttl)) {
+        gnet_prop_set_guint32_val(PROP_HARD_TTL_LIMIT, GNET_PROPERTY(max_ttl));
 	}
     return FALSE;
 }
@@ -1426,7 +1446,7 @@ bw_http_in_changed(property_t prop)
 	g_assert(PROP_BW_HTTP_IN == prop);
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_IN, val);
-	bsched_set_peermode(current_peermode);
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
 }
@@ -1438,7 +1458,7 @@ bw_http_out_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_OUT, val);
-	bsched_set_peermode(current_peermode);
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
 }
@@ -1451,7 +1471,7 @@ bw_gnet_in_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GIN, val / 2);
     bsched_set_bandwidth(BSCHED_BWS_GIN_UDP, val / 2);
-	bsched_set_peermode(current_peermode);
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
 }
@@ -1464,7 +1484,7 @@ bw_gnet_out_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GOUT, val / 2);
     bsched_set_bandwidth(BSCHED_BWS_GOUT_UDP, val / 2);
-	bsched_set_peermode(current_peermode);
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
 }
@@ -1476,7 +1496,7 @@ bw_gnet_lin_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLIN, val);
-	bsched_set_peermode(current_peermode);
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
 }
@@ -1488,7 +1508,7 @@ bw_gnet_lout_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLOUT, val);
-	bsched_set_peermode(current_peermode);
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
 }
@@ -1534,10 +1554,10 @@ static gboolean
 forced_local_ip_changed(property_t prop)
 {
 	(void) prop;
-	if (force_local_ip || force_local_ip6) {
+	if (GNET_PROPERTY(force_local_ip) || GNET_PROPERTY(force_local_ip6)) {
 		update_address_lifetime();
-		request_new_sockets(listen_port,
-			is_firewalled || !settings_init_running);
+		request_new_sockets(GNET_PROPERTY(listen_port),
+			GNET_PROPERTY(is_firewalled) || !settings_init_running);
 	}
     return FALSE;
 }
@@ -1623,7 +1643,7 @@ configured_peermode_changed(property_t prop)
 	switch (val) {
 	case NODE_P_NORMAL:
 	case NODE_P_ULTRA:
-		if (is_firewalled) {
+		if (GNET_PROPERTY(is_firewalled)) {
 			val = NODE_P_AUTO;
 			forced = TRUE;
 			g_warning("must run as a leaf when TCP-firewalled");
@@ -1653,8 +1673,8 @@ current_peermode_changed(property_t prop)
 {
 	(void) prop;
 
-	node_current_peermode_changed(current_peermode);
-	bsched_set_peermode(current_peermode);
+	node_current_peermode_changed(GNET_PROPERTY(current_peermode));
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
 }
@@ -2030,7 +2050,7 @@ settings_callbacks_init(void)
     for (n = 0; n < GNET_PROPERTY_NUM; n ++)
         init_list[n] = FALSE;
 
-    if (debug >= 2) {
+    if (GNET_PROPERTY(dbg) >= 2) {
         printf("settings_callbacks_init: property_map size: %u\n",
             (guint) PROPERTY_MAP_SIZE);
     }
@@ -2050,13 +2070,13 @@ settings_callbacks_init(void)
                 property_map[n].prop,
                 property_map[n].cb,
                 property_map[n].init);
-        } else if (debug >= 10) {
+        } else if (GNET_PROPERTY(dbg) >= 10) {
             printf("settings_callbacks_init: property ignored: %s\n",
 				gnet_prop_name(prop));
         }
     }
 
-    if (debug >= 1) {
+    if (GNET_PROPERTY(dbg) >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (!init_list[n])
                 printf("settings_callbacks_init: unmapped property: %s\n",

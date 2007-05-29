@@ -190,7 +190,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	if (n->size < expected_size) {
 		gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
-		if (dbg || vmsg_debug)
+		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(vmsg_debug))
 			gmsg_log_bad(n, "message has only %u bytes, needs at least %u",
 				(unsigned) n->size, expected_size);
 		return;
@@ -202,7 +202,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	vm = find_message(vc, id, version);
 
-	if (vmsg_debug > 4)
+	if (GNET_PROPERTY(vmsg_debug) > 4)
 		g_message("VMSG %s \"%s\": %s/%uv%u from %s",
 			gmsg_infostr(&n->header), vm == NULL ? "UNKNOWN" : vm->name,
 			vendor_code_str(ntohl(vc.be32)), id, version,
@@ -218,7 +218,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	if (vm == NULL) {
 		gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
-		if (dbg || vmsg_debug)
+		if (GNET_PROPERTY(dbg) || GNET_PROPERTY(vmsg_debug))
 			gmsg_log_bad(n, "unknown vendor message");
 		return;
 	}
@@ -300,7 +300,7 @@ vmsg_bad_payload(struct gnutella_node *n,
 	n->n_bad++;
 	gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 
-	if (dbg || vmsg_debug)
+	if (GNET_PROPERTY(dbg) || GNET_PROPERTY(vmsg_debug))
 		gmsg_log_bad(n, "Bad payload size %lu for %s/%dv%d (%s), expected %lu",
 			(gulong) size, vendor_code_str(vmsg->vendor), vmsg->id,
 			vmsg->version, vmsg->name, (gulong) expected);
@@ -325,7 +325,7 @@ handle_features_supported(struct gnutella_node *n,
 
 	count = peek_le16(payload);
 
-	if (vmsg_debug)
+	if (GNET_PROPERTY(vmsg_debug))
 		g_message("VMSG node %s <%s> supports %u extra feature%s",
 			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
@@ -347,7 +347,7 @@ handle_features_supported(struct gnutella_node *n,
 		version = peek_le16(&description[4]);
 		description += 6;
 
-		if (vmsg_debug > 1)
+		if (GNET_PROPERTY(vmsg_debug) > 1)
 			g_message("VMSG node %s <%s> supports feature %s/%u",
 				node_addr(n), node_vendor(n),
 				vendor_code_str(ntohl(vendor.be32)), version);
@@ -409,7 +409,7 @@ handle_tcp_connect_back(struct gnutella_node *n,
 
 	port = peek_le16(payload);
 	if (port == 0) {
-		if (vmsg_debug) {
+		if (GNET_PROPERTY(vmsg_debug)) {
 			g_warning("got improper port #%d in %s from %s <%s>",
 				port, vmsg->name, node_addr(n), node_vendor(n));
 		}
@@ -464,7 +464,7 @@ handle_udp_connect_back(struct gnutella_node *n,
 
 	port = peek_le16(payload);
 	if (0 == port) {
-		if (vmsg_debug) {
+		if (GNET_PROPERTY(vmsg_debug)) {
 			g_warning("got improper port #%d in %s from %s <%s>",
 				port, vmsg->name, node_addr(n), node_vendor(n));
 		}
@@ -507,7 +507,7 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
 	payload = vmsg_fill_type(v_tmp_data, T_GTKG, 7, 1);
 
 	payload = poke_le16(payload, port);
-	memcpy(payload, servent_guid, 16);
+	memcpy(payload, GNET_PROPERTY(servent_guid), GUID_RAW_SIZE);
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 }
@@ -603,7 +603,7 @@ vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid)
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
-	if (vmsg_debug > 2)
+	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_message("sent proxy REQ to %s <%s>", node_addr(n), node_vendor(n));
 }
 
@@ -632,7 +632,7 @@ handle_proxy_ack(struct gnutella_node *n,
 
 	port = peek_le16(payload);
 
-	if (vmsg_debug > 2)
+	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_message("got proxy ACK from %s <%s>: proxy at %s",
 			node_addr(n), node_vendor(n), host_addr_port_to_string(ha, port));
 
@@ -672,7 +672,7 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
 		 * side goofed, or they closed the search.
 		 */
 
-		if (vmsg_debug) {
+		if (GNET_PROPERTY(vmsg_debug)) {
 			g_warning("Could not find matching search");
 		}
 		kept = 0xffffU;		/* Magic value telling them to stop the search */
@@ -741,7 +741,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, const gchar *muid, guint16 hits)
 
 	poke_le16(payload, hits);
 
-	if (vmsg_debug > 2)
+	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_message("VMSG sending %s with hits=%u to %s <%s>",
 			gmsg_infostr_full(v_tmp), hits, node_addr(n), node_vendor(n));
 
@@ -785,7 +785,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
-	if (vmsg_debug > 2)
+	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_message("sent proxy CANCEL to %s <%s>", node_addr(n), node_vendor(n));
 }
 
@@ -871,7 +871,7 @@ vmsg_build_oob_reply_ind(const gchar *muid, guint8 hits, gboolean secure)
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 12, secure ? 3 : 2);
 
 	payload[0] = hits;
-	payload[1] = is_udp_firewalled ? 0x0 : 0x1;
+	payload[1] = GNET_PROPERTY(is_udp_firewalled) ? 0x0 : 0x1;
 
 	return gmsg_to_pmsg(v_tmp, msgsize);
 }
@@ -895,10 +895,10 @@ extract_token(const gchar *data, size_t size, gchar token[MAX_OOB_TOKEN_SIZE])
 			size_t len = ext_paylen(e);
 
 			if (len < 1) {
-				if (vmsg_debug)
+				if (GNET_PROPERTY(vmsg_debug))
 					g_warning("Empty GGEP \"SO\"");
 			} else if (len > MAX_OOB_TOKEN_SIZE) {
-				if (vmsg_debug)
+				if (GNET_PROPERTY(vmsg_debug))
 					g_warning("GGEP \"SO\" too large");
 				len = MAX_OOB_TOKEN_SIZE;	/* truncate it */
 			}
@@ -1008,7 +1008,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 
 	udp_send_msg(n, v_tmp, msgsize);
 
-	if (vmsg_debug > 2)
+	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_message("sent OOB reply ACK %s to %s for %u hit%s",
 			guid_hex_str(muid), node_addr(n), want, want == 1 ? "" : "s");
 }
@@ -1319,7 +1319,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 
 	memcpy(payload, pmsg_start(mb), paysize);
 
-	if (vmsg_debug > 2) {
+	if (GNET_PROPERTY(vmsg_debug) > 2) {
 		guint8 nup = peek_u8(&payload[0]);
 		guint8 nleaves = peek_u8(&payload[1]);
 
@@ -1560,10 +1560,12 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	} else {
 		guint32 slots;
 
-		code |= is_firewalled ? VMSG_HEAD_STATUS_FIREWALLED : 0;
+		code |= GNET_PROPERTY(is_firewalled) ? VMSG_HEAD_STATUS_FIREWALLED : 0;
 
-		slots = upload_is_enabled() ? max_uploads - ul_running : 0;
-		slots = MIN(max_uploads, slots);
+		slots = upload_is_enabled()
+				? GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running)
+				: 0;
+		slots = MIN(GNET_PROPERTY(max_uploads), slots);
 		slots = MIN(0x7eU, slots);
 		if (0 == slots) {
 			slots = 0x7f; /* Busy */
@@ -1608,7 +1610,7 @@ vmsg_send_head_pong(struct gnutella_node *n, const struct sha1 *sha1,
 	poke_u8(&payload[0], flags);	/* Update flags */
 	paysize = p - payload;
 
-	if (vmsg_debug) {
+	if (GNET_PROPERTY(vmsg_debug)) {
 		g_message("Sending HEAD Pong to %s (%u bytes)", node_addr(n), paysize);
 	}
 
@@ -1730,7 +1732,7 @@ head_ping_register_intern(const gchar *muid,
 	 * We don't need the SHA-1 for routing, thus only record it
  	 * for debugging purposes or if we are the origin.
 	 */
-	if (node_id_self(node_id) || vmsg_debug) {
+	if (node_id_self(node_id) || GNET_PROPERTY(vmsg_debug)) {
 		source->ping.sha1 = atom_sha1_get(sha1);
 	} else {
 		source->ping.sha1 = NULL;
@@ -1863,7 +1865,7 @@ vmsg_send_head_ping(
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
 	if (head_ping_register_own(muid, sha1, n)) {
-		if (vmsg_debug) {
+		if (GNET_PROPERTY(vmsg_debug)) {
 			g_message(
 				"Sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
 					node_addr(n), paysize, sha1_base32(sha1));
@@ -1892,7 +1894,7 @@ extract_guid(const gchar *data, size_t size, gchar guid[GUID_RAW_SIZE])
 			 * not contain an array of PUSH proxies as usual.
 			 */
 			if (ext_paylen(e) < GUID_RAW_SIZE) {
-				if (vmsg_debug) {
+				if (GNET_PROPERTY(vmsg_debug)) {
 					g_warning("GUID too short in HEAD Ping");
 				}
 			} else {
@@ -1922,7 +1924,7 @@ head_ping_target_by_guid(const gchar *guid)
 	n = node_by_guid(guid);
 	if (n) {
 	   	if (!(NODE_A_CAN_HEAD & n->attrs)) {
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("HEAD Ping target %s does not support HEAD pings",
 					node_addr(n));
 			}
@@ -1959,7 +1961,7 @@ handle_head_ping(struct gnutella_node *n,
 	if (VMSG_CHECK_SIZE(n, vmsg, size, expect_size))
 		return;
 
-	if (vmsg_debug) {
+	if (GNET_PROPERTY(vmsg_debug)) {
 		g_message("Got %s from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			node_addr(n),
@@ -1974,11 +1976,11 @@ handle_head_ping(struct gnutella_node *n,
 		is_strcaseprefix(&payload[1], urn_prefix) &&
 		urn_get_sha1(&payload[1], &sha1)
 	) {
-		if (vmsg_debug) {
+		if (GNET_PROPERTY(vmsg_debug)) {
 			g_message("HEAD Ping for %s%s", urn_prefix, sha1_to_string(sha1));
 		}
 	} else {
-		if (vmsg_debug) {
+		if (GNET_PROPERTY(vmsg_debug)) {
 			g_warning("No SHA-1 in HEAD Ping");
 		}
 		return;
@@ -1997,27 +1999,27 @@ handle_head_ping(struct gnutella_node *n,
 			has_guid = extract_guid(p, p - &payload[1], guid);
 		}
 		if (has_guid) {
-		   	if (vmsg_debug) {
+		   	if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("HEAD Ping carries GUID %s", guid_hex_str(guid));
 			}
 		} else {
-		   	if (vmsg_debug) {
+		   	if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("No GUID in HEAD Ping");
 			}
 		}
 	}
 
-	if (has_guid && !guid_eq(guid, servent_guid)) {
+	if (has_guid && !guid_eq(guid, GNET_PROPERTY(servent_guid))) {
 		struct gnutella_node *target;
 
-		if (NODE_P_LEAF == current_peermode) {
-		   	if (vmsg_debug) {
+		if (NODE_P_LEAF == GNET_PROPERTY(current_peermode)) {
+		   	if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("Not forwarding HEAD Ping as leaf");
 			}
 			return;
 		}
 		if (gnutella_header_get_hops(&n->header) > 0) {
-		   	if (vmsg_debug) {
+		   	if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("Not forwarding forwarded HEAD Ping");
 			}
 			return;
@@ -2034,13 +2036,13 @@ handle_head_ping(struct gnutella_node *n,
 			muid = gnutella_header_get_muid(header);
 
 			if (head_ping_register_forwarded(muid, &sha1, n)) {
-				if (vmsg_debug) {
+				if (GNET_PROPERTY(vmsg_debug)) {
 					g_message("Forwarding HEAD Ping to %s", node_addr(target));
 				}
 				gmsg_split_sendto_one(target, header, n->data, n->size);
 			}
 		} else {
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("No route found for HEAD Ping");
 			}
 		}
@@ -2056,7 +2058,7 @@ handle_head_ping(struct gnutella_node *n,
 			 * HTTP we would also claim "Busy" (503) instead of "Not found"
 			 * (404).
 			 */
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("HEAD Ping whilst rebuilding library");
 			}
 		} else {
@@ -2066,10 +2068,10 @@ handle_head_ping(struct gnutella_node *n,
 				shared_file_check(sf);
 				fi = shared_file_fileinfo(sf);
 				if (fi) {
-					if (vmsg_debug) {
+					if (GNET_PROPERTY(vmsg_debug)) {
 						g_message("HEAD Ping for partial file");
 					}
-					if (pfsp_server) {
+					if (GNET_PROPERTY(pfsp_server)) {
 						code = VMSG_HEAD_CODE_PARTIAL;
 						if (fi->recvcount > 0) {
 							code |= VMSG_HEAD_STATUS_DOWNLOADING;
@@ -2078,13 +2080,13 @@ handle_head_ping(struct gnutella_node *n,
 						code = VMSG_HEAD_CODE_NOT_FOUND;
 					}
 				}  else {
-					if (vmsg_debug) {
+					if (GNET_PROPERTY(vmsg_debug)) {
 						g_message("HEAD Ping for shared file");
 					}
 					code = VMSG_HEAD_CODE_COMPLETE;
 				}
 			} else {
-				if (vmsg_debug) {
+				if (GNET_PROPERTY(vmsg_debug)) {
 					g_message("HEAD Ping for unknown file");
 				}
 				code = VMSG_HEAD_CODE_NOT_FOUND;
@@ -2157,7 +2159,7 @@ handle_head_pong(struct gnutella_node *n,
 	if (VMSG_CHECK_SIZE(n, vmsg, size, expected_size))
 		return;
 
-	if (vmsg_debug) {
+	if (GNET_PROPERTY(vmsg_debug)) {
 		g_message("Got %s from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			node_addr(n),
@@ -2170,7 +2172,7 @@ handle_head_pong(struct gnutella_node *n,
 	muid = gnutella_header_get_muid(&n->header);
 	source = head_ping_is_registered(muid);
 	if (!source) {
-		if (vmsg_debug) {
+		if (GNET_PROPERTY(vmsg_debug)) {
 			g_warning("HEAD Pong MUID is not registered");
 		}
 		return;
@@ -2209,7 +2211,7 @@ handle_head_pong(struct gnutella_node *n,
 		}
 	}
 
-	if (vmsg_debug) {
+	if (GNET_PROPERTY(vmsg_debug)) {
 		g_message(
 			"HEAD Pong vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
 			vendor,
@@ -2252,12 +2254,12 @@ handle_head_pong(struct gnutella_node *n,
 
 		len = block_length(array_init(p, endptr - p));
 		if (len < 0 || len % 8) {
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_warning("HEAD Pong carries truncated ranges");
 			}
 			goto out;
 		} else {
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("HEAD Pong carries ranges (%u bytes)", len);
 			}
 			p += 2;
@@ -2271,12 +2273,12 @@ handle_head_pong(struct gnutella_node *n,
 		
 		len = block_length(array_init(p, endptr - p));
 		if (len != 0 && (len < 23 || (len - 23) % 6)) {
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_warning("HEAD Pong carries truncated firewalled alt-locs");
 			}
 			goto out;
 		} else {
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_message("HEAD Pong carries firewalled alt-locs (%u bytes)",
 					len);
 			}
@@ -2294,12 +2296,12 @@ handle_head_pong(struct gnutella_node *n,
 		
 		len = block_length(array_init(p, endptr - p));
 		if (len < 0 || len % 6) {
-			if (vmsg_debug) {
+			if (GNET_PROPERTY(vmsg_debug)) {
 				g_warning("HEAD Pong carries truncated alt-locs");
 			}
 			goto out;
 		} else {
-			if (vmsg_debug)
+			if (GNET_PROPERTY(vmsg_debug))
 				g_message("HEAD Pong carries %u alt-locs", len / 6);
 
 			p += 2;				/* Skip length indication */
@@ -2318,9 +2320,9 @@ handle_head_pong(struct gnutella_node *n,
 	 */
 
 	if (
-		NODE_P_LEAF != current_peermode &&
+		NODE_P_LEAF != GNET_PROPERTY(current_peermode) &&
 		gnutella_header_get_ttl(&n->header) > 0 &&
-		gnutella_header_get_hops(&n->header) < max_ttl
+		gnutella_header_get_hops(&n->header) < GNET_PROPERTY(max_ttl)
 	) {
 		struct gnutella_node *target;
 
@@ -2389,7 +2391,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 	count = peek_le16(payload);
 
-	if (vmsg_debug)
+	if (GNET_PROPERTY(vmsg_debug))
 		g_message("VMSG node %s <%s> supports %u vendor message%s",
 			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
@@ -2416,14 +2418,14 @@ handle_messages_supported(struct gnutella_node *n,
 		vm = find_message(vendor, id, version);
 
 		if (vm == NULL) {
-			if (vmsg_debug > 1)
+			if (GNET_PROPERTY(vmsg_debug) > 1)
 				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d",
 					node_addr(n), node_vendor(n),
 					vendor_code_str(ntohl(vendor.be32)), id, version);
 			continue;
 		}
 
-		if (vmsg_debug > 2)
+		if (GNET_PROPERTY(vmsg_debug) > 2)
 			g_message("VMSG ...%s/%dv%d",
 				vendor_code_str(ntohl(vendor.be32)), id, version);
 

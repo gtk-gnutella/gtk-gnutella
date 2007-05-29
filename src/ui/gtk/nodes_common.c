@@ -82,7 +82,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 		if (n->sent || n->received) {
 			size_t slen = 0;
 
-			if (!node_show_detailed_info) {
+			if (!GUI_PROPERTY(node_show_detailed_info)) {
 				gm_snprintf(gui_tmp, sizeof(gui_tmp),
 					"TX=%d RX=%d Q=%d,%d%% %s",
 					n->sent, n->received,
@@ -93,26 +93,29 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 				break;
 			}
 
-			if (n->tx_compressed && show_gnet_info_txc)
+			if (n->tx_compressed && GUI_PROPERTY(show_gnet_info_txc))
 				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
 					(gint) n->sent, (gint) (n->tx_compression_ratio * 100));
 			else
 				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d",
 							(gint) n->sent);
 
-			if (show_gnet_info_tx_speed || show_gnet_info_tx_wire) {
+			if (
+				GUI_PROPERTY(show_gnet_info_tx_speed) ||
+				GUI_PROPERTY(show_gnet_info_tx_wire)
+			) {
 				gboolean is_first = TRUE;
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" (" /* ')' */);
 
-				if (show_gnet_info_tx_wire) {
+				if (GUI_PROPERTY(show_gnet_info_tx_wire)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					"%s", compact_size(n->tx_written, show_metric_units()));
 					is_first = FALSE;
 				}
 
-				if (show_gnet_info_tx_speed)
+				if (GUI_PROPERTY(show_gnet_info_tx_speed))
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s%s", is_first ? "" : ", ",
 						compact_rate(n->tx_bps, show_metric_units()));
@@ -121,7 +124,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 					/* '(' */ ")");
 			}
 
-			if (n->rx_compressed && show_gnet_info_rxc)
+			if (n->rx_compressed && GUI_PROPERTY(show_gnet_info_rxc))
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RXc=%d,%d%%",
 					(gint) n->received, (gint) (n->rx_compression_ratio * 100));
@@ -129,19 +132,22 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RX=%d", (gint) n->received);
 
-			if (show_gnet_info_rx_speed || show_gnet_info_rx_wire) {
+			if (
+				GUI_PROPERTY(show_gnet_info_rx_speed) ||
+				GUI_PROPERTY(show_gnet_info_rx_wire)
+			) {
 				gboolean is_first = TRUE;
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" (" /* ')' */);
 
-				if (show_gnet_info_rx_wire) {
+				if (GUI_PROPERTY(show_gnet_info_rx_wire)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s", compact_size(n->rx_given, show_metric_units()));
 					is_first = FALSE;
 				}
 
-				if (show_gnet_info_rx_speed)
+				if (GUI_PROPERTY(show_gnet_info_rx_speed))
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s%s", is_first ? "" : ", ",
 						compact_rate(n->rx_bps, show_metric_units()));
@@ -151,30 +157,32 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			}
 
 			if (
-				show_gnet_info_tx_queries || show_gnet_info_rx_queries ||
-				show_gnet_info_gen_queries || show_gnet_info_sq_queries
+				GUI_PROPERTY(show_gnet_info_tx_queries) ||
+				GUI_PROPERTY(show_gnet_info_rx_queries) ||
+				GUI_PROPERTY(show_gnet_info_gen_queries) ||
+				GUI_PROPERTY(show_gnet_info_sq_queries)
 			) {
 				gboolean is_first = TRUE;
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" Query(" /* ')' */);
 
-				if (show_gnet_info_gen_queries) {
+				if (GUI_PROPERTY(show_gnet_info_gen_queries)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"Gen=%d", n->squeue_sent);
 					is_first = FALSE;
 				}
-				if (show_gnet_info_sq_queries) {
+				if (GUI_PROPERTY(show_gnet_info_sq_queries)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sQ=%d", is_first ? "" : ", ", n->squeue_count);
 					is_first = FALSE;
 				}
-				if (show_gnet_info_tx_queries) {
+				if (GUI_PROPERTY(show_gnet_info_tx_queries)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sTX=%u", is_first ? "" : ", ", n->tx_queries);
 					is_first = FALSE;
 				}
-				if (show_gnet_info_rx_queries)
+				if (GUI_PROPERTY(show_gnet_info_rx_queries))
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sRX=%u", is_first ? "" : ", ", n->rx_queries);
 
@@ -182,18 +190,21 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 					/* '(' */ ")");
 			}
 
-			if (show_gnet_info_tx_hits || show_gnet_info_rx_hits) {
+			if (
+				GUI_PROPERTY(show_gnet_info_tx_hits) ||
+				GUI_PROPERTY(show_gnet_info_rx_hits)
+			) {
 				gboolean is_first = TRUE;
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" QHit(" /* ')' */);
 
-				if (show_gnet_info_tx_hits) {
+				if (GUI_PROPERTY(show_gnet_info_tx_hits)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"TX=%u", n->tx_qhits);
 					is_first = FALSE;
 				}
-				if (show_gnet_info_rx_hits)
+				if (GUI_PROPERTY(show_gnet_info_rx_hits))
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sRX=%u", is_first ? "" : ", ", n->rx_qhits);
 
@@ -201,18 +212,21 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 					/* '(' */ ")");
 			}
 
-			if (show_gnet_info_tx_dropped || show_gnet_info_rx_dropped) {
+			if (
+				GUI_PROPERTY(show_gnet_info_tx_dropped) ||
+				GUI_PROPERTY(show_gnet_info_rx_dropped)
+			) {
 				gboolean is_first = TRUE;
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" Drop(" /* ')' */);
 
-				if (show_gnet_info_tx_dropped) {
+				if (GUI_PROPERTY(show_gnet_info_tx_dropped)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"TX=%u", n->tx_dropped);
 					is_first = FALSE;
 				}
-				if (show_gnet_info_rx_dropped)
+				if (GUI_PROPERTY(show_gnet_info_rx_dropped))
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sRX=%u", is_first ? "" : ", ", n->rx_dropped);
 
@@ -220,28 +234,37 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 					/* '(' */ ")");
 			}
 
-			if (show_gnet_info_shared_size || show_gnet_info_shared_files) {
+			if (
+				GUI_PROPERTY(show_gnet_info_shared_size) ||
+				GUI_PROPERTY(show_gnet_info_shared_files)
+			) {
 				gboolean is_first = TRUE;
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" Lib(" /* ')' */);
 
-				if (show_gnet_info_shared_size && n->gnet_info_known) {
+				if (
+					GUI_PROPERTY(show_gnet_info_shared_size) &&
+					n->gnet_info_known
+				) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s",
 						compact_kb_size(n->gnet_files_count
 							? n->gnet_kbytes_count : 0, show_metric_units()));
 					is_first = FALSE;
 				}
-				if (show_gnet_info_shared_files && n->gnet_info_known)
+				if (
+					GUI_PROPERTY(show_gnet_info_shared_files) &&
+					n->gnet_info_known
+				) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s#=%u", is_first ? "" : ", ", n->gnet_files_count);
-
+				}
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ "%s)", n->gnet_info_known ? "" : "?");
 			}
 
-			if (show_gnet_info_qrp_stats) {
+			if (GUI_PROPERTY(show_gnet_info_qrp_stats)) {
 				if (n->has_qrp)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						" QRP=%u%%",
@@ -256,13 +279,13 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 						(guint) (n->qrp_efficiency * 100.0));
 			}
 
-			if (show_gnet_info_dbw)
+			if (GUI_PROPERTY(show_gnet_info_dbw))
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Dup=%u Bad=%u W=%u H=%u S=%u E=%u",
 				n->n_dups, n->n_bad, n->n_weird,
 				n->n_hostile, n->n_spam, n->n_evil);
 
-			if (show_gnet_info_rt) {
+			if (GUI_PROPERTY(show_gnet_info_rt)) {
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" RT(avg=%d, last=%d", n->rt_avg, n->rt_last);	/* ) */
 				if (n->tcp_rtt)

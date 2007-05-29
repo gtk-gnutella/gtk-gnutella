@@ -234,7 +234,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	md->copied = 0;
 	md->error = 0;
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		g_message("Moving \"%s\" to \"%s\"",
 				download_basename(d), md->target);
 
@@ -298,7 +298,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	elapsed = delta_time(tm_time(), md->start);
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		printf("Moved file \"%s\" at %lu bytes/sec [error=%d]\n",
 			download_basename(md->d), (gulong) md->size / elapsed, md->error);
 

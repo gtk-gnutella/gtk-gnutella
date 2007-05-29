@@ -159,13 +159,13 @@ host_addr_t
 socket_ipv6_trt_map(const host_addr_t addr)
 {
 	if (
-		use_ipv6_trt &&
+		GNET_PROPERTY(use_ipv6_trt) &&
 		NET_TYPE_IPV4 == host_addr_net(addr) &&
-		NET_TYPE_IPV6 == host_addr_net(ipv6_trt_prefix)
+		NET_TYPE_IPV6 == host_addr_net(GNET_PROPERTY(ipv6_trt_prefix))
 	) {
 		host_addr_t ret;
 
-		ret = ipv6_trt_prefix;
+		ret = GNET_PROPERTY(ipv6_trt_prefix);
 		poke_be32(&ret.addr.ipv6[12], host_addr_ipv4(addr));
 		return ret;
 	}
@@ -233,7 +233,7 @@ socket_evt_set(struct gnutella_socket *s,
 	s->tls.cb_handler = handler;
 	s->tls.cb_data = data;
 
-	if (tls_debug > 1)
+	if (GNET_PROPERTY(tls_debug) > 1)
 		g_message("socket_evt_set: fd=%d, cond=%s, handler=%p",
 			fd, inputevt_cond_to_string(cond), handler);
 #endif /* HAS_GNUTLS */
@@ -252,7 +252,7 @@ socket_evt_clear(struct gnutella_socket *s)
 
 	if (s->gdk_tag) {
 #ifdef HAS_GNUTLS
-		if (tls_debug > 1) {
+		if (GNET_PROPERTY(tls_debug) > 1) {
 			gint fd = socket_evt_fd(s);
 			g_message("socket_evt_clear: fd=%d, cond=%s, handler=%p",
 				fd, inputevt_cond_to_string(s->tls.cb_cond), s->tls.cb_handler);
@@ -379,7 +379,7 @@ socket_tos(const struct gnutella_socket *s, gint tos)
 	g_return_val_if_fail(NET_TYPE_NONE != s->net, 0);
 
 	if (
-		use_ip_tos &&
+		GNET_PROPERTY(use_ip_tos) &&
 		NET_TYPE_IPV4 == s->net &&
 		-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)
 	) {
@@ -504,10 +504,11 @@ proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
 	if (n > 0) {
 		/* Just pick the first address */
 		gnet_prop_set_ip_val(PROP_PROXY_ADDR, addr[0]);
-		g_message("Resolved proxy name \"%s\" to %s", proxy_hostname,
-			host_addr_to_string(addr[0]));
+		g_message("Resolved proxy name \"%s\" to %s",
+			GNET_PROPERTY(proxy_hostname), host_addr_to_string(addr[0]));
 	} else {
-		g_message("Could not resolve proxy name \"%s\"", proxy_hostname);
+		g_message("Could not resolve proxy name \"%s\"",
+			GNET_PROPERTY(proxy_hostname));
 	}
 }
 
@@ -519,19 +520,22 @@ proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
 static gboolean
 proxy_is_enabled(void)
 {
-	switch ((enum proxy_protocol) proxy_protocol) {
-	case PROXY_NONE:	return FALSE;
+	switch ((enum proxy_protocol) GNET_PROPERTY(proxy_protocol)) {
+	case PROXY_NONE:
+		return FALSE;
 	case PROXY_HTTP:
 	case PROXY_SOCKSV4:
 	case PROXY_SOCKSV5:
-		return 0 != proxy_port && '\0' != proxy_hostname[0];
+		return 0 != GNET_PROPERTY(proxy_port) &&
+				'\0' != GNET_PROPERTY(proxy_hostname)[0];
 	}
 	g_assert_not_reached();
 }
 
 /*
- * The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun Clowes
- * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
+ * The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun
+ * Clowes It was modified to work with gtk_gnutella and non-blocking sockets.
+ * --DW
  */
 static int
 proxy_connect(int fd)
@@ -540,11 +544,12 @@ proxy_connect(int fd)
 	socket_addr_t server;
 	socklen_t len;
 
-	if (!is_host_addr(proxy_addr) && proxy_is_enabled()) {
+	if (!is_host_addr(GNET_PROPERTY(proxy_addr)) && proxy_is_enabled()) {
 		if (!in_progress) {
 			in_progress = TRUE;
-			g_warning("Resolving proxy name \"%s\"", proxy_hostname);
-			adns_resolve(proxy_hostname, settings_dns_net(),
+			g_warning("Resolving proxy name \"%s\"",
+				GNET_PROPERTY(proxy_hostname));
+			adns_resolve(GNET_PROPERTY(proxy_hostname), settings_dns_net(),
 				proxy_connect_helper, &in_progress);
 		}
 
@@ -554,12 +559,16 @@ proxy_connect(int fd)
 		}
 	}
 
-	if (!is_host_addr(proxy_addr) || !proxy_port) {
+	if (
+		!is_host_addr(GNET_PROPERTY(proxy_addr)) ||
+		!GNET_PROPERTY(proxy_port)
+	) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	len = socket_addr_set(&server, proxy_addr, proxy_port);
+	len = socket_addr_set(&server,
+			GNET_PROPERTY(proxy_addr), GNET_PROPERTY(proxy_port));
 	return connect(fd, socket_addr_get_const_sockaddr(&server), len);
 }
 
@@ -904,7 +913,11 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 
-		if (s->buf[1] == 2 && socks_user != NULL && socks_user[0] != '\0') {
+		if (
+			s->buf[1] == 2 &&
+			GNET_PROPERTY(socks_user) != NULL &&
+			GNET_PROPERTY(socks_user)[0] != '\0'
+		) {
 		   	/* has provided user info */
 			s->pos++;
 		} else {
@@ -915,8 +928,8 @@ connect_socksv5(struct gnutella_socket *s)
 		/* If the socks server chose username/password authentication */
 		/* (method 2) then do that */
 
-		if (socks_user != NULL) {
-			name = socks_user;
+		if (GNET_PROPERTY(socks_user) != NULL) {
+			name = GNET_PROPERTY(socks_user);
 		} else {
 			const struct passwd *pw;
 
@@ -930,19 +943,21 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 
-		if (socks_pass == NULL) {
+		if (GNET_PROPERTY(socks_pass) == NULL) {
 			g_warning("No Password to authenticate with.");
 			return ECONNREFUSED;
 		}
 
-		if (strlen(name) > 255 || strlen(socks_pass) > 255) {
+		if (strlen(name) > 255 || strlen(GNET_PROPERTY(socks_pass)) > 255) {
 			g_warning("Username or password exceeds 255 characters.");
 			return ECONNREFUSED;
 		}
 
 		size = gm_snprintf(s->buf, s->buf_size, "\x01%c%s%c%s",
-					(guchar) strlen(name), name,
-					(guchar) strlen(socks_pass), socks_pass);
+					(guchar) strlen(name),
+					name,
+					(guchar) strlen(GNET_PROPERTY(socks_pass)),
+					GNET_PROPERTY(socks_pass));
 
 		/* Send out the authentication */
 		ret = write(sockid, s->buf, size);
@@ -1028,7 +1043,7 @@ connect_socksv5(struct gnutella_socket *s)
 				g_strerror(errno));
 			return ECONNREFUSED;
 		}
-		if (socket_debug)
+		if (GNET_PROPERTY(socket_debug))
 			g_message("connect_socksv5: Step 5, bytes recv'd %d\n", (int) ret);
 		if ((size_t) ret != size) {
 			g_warning("Short reply from SOCKS server");
@@ -1083,14 +1098,14 @@ connect_socksv5(struct gnutella_socket *s)
 static void
 socket_check_ipv6_address(void)
 {
-	switch (network_protocol) {
+	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_IPV4:
 		return;
 	case NET_USE_BOTH:
 	case NET_USE_IPV6:
 		break;
 	}
-	if (!force_local_ip6) {
+	if (!GNET_PROPERTY(force_local_ip6)) {
 		GSList *sl_addrs, *sl;
 		host_addr_t addr, old_addr, first_addr;
 
@@ -1148,7 +1163,7 @@ socket_timer(time_t now)
 
 	for (l = sl_incoming; l; l = g_slist_next(l)) {
 		struct gnutella_socket *s = l->data;
-		gint32 delta;
+		time_delta_t delta;
 
 		socket_check(s);
 		g_assert(s->last_update);
@@ -1157,8 +1172,8 @@ socket_timer(time_t now)
 		 * to avoid dropping the connection
 		 */
 		delta = delta_time(now, s->last_update);
-		if (delta > (gint32) incoming_connecting_timeout) {
-			if (socket_debug) {
+		if (delta > (time_delta_t) GNET_PROPERTY(incoming_connecting_timeout)) {
+			if (GNET_PROPERTY(socket_debug)) {
 				g_warning("connection from %s timed out (%d bytes read)",
 					  host_addr_to_string(s->addr), (int) s->pos);
 				if (s->pos > 0)
@@ -1493,7 +1508,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			} else {
 				g_assert(1 == ret);
 
-				if (tls_debug > 2)
+				if (GNET_PROPERTY(tls_debug) > 2)
 					g_message("socket_read(): c=0x%02x", c);
 
 				if (is_ascii_alnum(c) || '\n' == c || '\r' == c) {
@@ -1622,7 +1637,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		{
 			const gchar *msg = ban_message(s->addr);
 
-            if (socket_debug) {
+            if (GNET_PROPERTY(socket_debug)) {
                 g_message("rejecting connection from banned %s (%s still): %s",
                     host_addr_to_string(s->addr),
 					short_time(ban_delay(s->addr)), msg);
@@ -1663,7 +1678,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	banlimit = parq_banned_source_expire(s->addr);
 	if (banlimit) {
-		if (socket_debug)
+		if (GNET_PROPERTY(socket_debug))
 			g_warning("[sockets] PARQ has banned host %s until %s",
 				host_addr_to_string(s->addr), timestamp_to_string(banlimit));
 		ban_force(s);
@@ -1682,7 +1697,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 		socket_disable_token(s);
 
-		if (socket_debug)
+		if (GNET_PROPERTY(socket_debug))
 			g_warning("denying connection from hostile %s: \"%s\"",
 				host_addr_to_string(s->addr), first);
 		if (is_strprefix(first, GNUTELLA_HELLO))
@@ -1729,7 +1744,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	return;
 
 unknown:
-	if (socket_debug) {
+	if (GNET_PROPERTY(socket_debug)) {
 		size_t len = getline_length(s->getline);
 		g_warning("socket_read(): got unknown incoming connection from %s, "
 			"dropping!", host_addr_to_string(s->addr));
@@ -1791,31 +1806,30 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		) {
 			socket_evt_clear(s);
 
-			if (proxy_protocol == PROXY_SOCKSV4) {
+			switch ((enum proxy_protocol) GNET_PROPERTY(proxy_protocol)) {
+			case PROXY_SOCKSV4:
 				if (recv_socks4(s) != 0) {
 					socket_destroy(s, "Error receiving from SOCKS 4 proxy");
 					return;
 				}
-
 				s->direction = SOCK_CONN_OUTGOING;
 				socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				return;
-			} else if (proxy_protocol == PROXY_SOCKSV5) {
+
+			case PROXY_SOCKSV5:
 				if (connect_socksv5(s) != 0) {
 					socket_destroy(s, "Error conneting to SOCKS 5 proxy");
 					return;
 				}
-
 				if (s->pos > 5) {
 					s->direction = SOCK_CONN_OUTGOING;
 					socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				} else {
 					socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 				}
-
 				return;
 
-			} else if (proxy_protocol == PROXY_HTTP) {
+			case PROXY_HTTP:
 				if (connect_http(s) != 0) {
 					socket_destroy(s, "Unable to connect to HTTP proxy");
 					return;
@@ -1828,6 +1842,9 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 					socket_evt_set(s, INPUT_EVENT_RX, socket_connected, s);
 				}
 				return;
+
+			case PROXY_NONE:
+				g_assert_not_reached();
 			}
 		}
 	}
@@ -1848,7 +1865,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			if (
 				s->type == SOCK_TYPE_DOWNLOAD &&
 				s->resource.download &&
-				!(is_firewalled || !send_pushes)
+				!(GNET_PROPERTY(is_firewalled) || !GNET_PROPERTY(send_pushes))
 			)
 				download_fallback_to_push(s->resource.download, FALSE, FALSE);
 			else
@@ -1860,23 +1877,30 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			proxy_is_enabled() &&
 			s->direction == SOCK_CONN_PROXY_OUTGOING
 		) {
-			if (proxy_protocol == PROXY_SOCKSV4) {
-
+			switch ((enum proxy_protocol) GNET_PROPERTY(proxy_protocol)) {
+			case PROXY_SOCKSV4:
 				if (send_socks4(s) != 0) {
 					socket_destroy(s, "Error sending to SOCKS 4 proxy");
 					return;
 				}
-			} else if (proxy_protocol == PROXY_SOCKSV5) {
+				break;
+
+			case PROXY_SOCKSV5:
 				if (connect_socksv5(s) != 0) {
 					socket_destroy(s, "Error connecting to SOCKS 5 proxy");
 					return;
 				}
+				break;
 
-			} else if (proxy_protocol == PROXY_HTTP) {
+			case PROXY_HTTP:
 				if (connect_http(s) != 0) {
 					socket_destroy(s, "Error connecting to HTTP proxy");
 					return;
 				}
+				break;
+
+			case PROXY_NONE:
+				g_assert_not_reached();
 			}
 
 			socket_evt_set(s, INPUT_EVENT_RX, socket_connected, s);
@@ -2121,7 +2145,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	t->tls.ctx = NULL;
 	t->tls.snarf = 0;
 
-	if (tls_debug > 2)
+	if (GNET_PROPERTY(tls_debug) > 2)
 		g_message("Incoming connection");
 #endif	/* HAS_GNUTLS */
         
@@ -2159,7 +2183,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 
 	inet_got_incoming(t->addr);	/* Signal we got an incoming connection */
-	if (!force_local_ip)
+	if (!GNET_PROPERTY(force_local_ip))
 		guess_local_addr(t);
 }
 
@@ -2214,7 +2238,7 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 			}
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		} else {
-			if (socket_debug)
+			if (GNET_PROPERTY(socket_debug))
 				g_message("socket_udp_extract_dst_addr(): "
 					"CMSG type=%u, level=%u, len=%u",
 					(unsigned) p->cmsg_type,
@@ -2312,7 +2336,7 @@ socket_udp_accept(struct gnutella_socket *s)
 		truncated = FALSE;	/* We can't detect truncation with recvfrom() */
 #endif /* HAS_MSGHDR_MSG_FLAGS */
 
-		if ((ssize_t) -1 != r && !force_local_ip) {
+		if ((ssize_t) -1 != r && !GNET_PROPERTY(force_local_ip)) {
 			has_dst_addr = socket_udp_extract_dst_addr(&msg, &dst_addr);
 		}
 	}
@@ -2340,9 +2364,12 @@ socket_udp_accept(struct gnutella_socket *s)
 		/* Show the destination address only when it differs from
 		 * the last seen or if the debug level is higher than 1.
 		 */
-		if (socket_debug > 1 || !host_addr_equal(last_addr, dst_addr)) {
+		if (
+			GNET_PROPERTY(socket_debug) > 1 ||
+			!host_addr_equal(last_addr, dst_addr)
+		) {
 			last_addr = dst_addr;
-			if (socket_debug)
+			if (GNET_PROPERTY(socket_debug))
 				g_message("socket_udp_accept(): dst_addr=%s",
 					host_addr_to_string(dst_addr));
 		}
@@ -2409,7 +2436,7 @@ socket_set_linger(gint fd)
 {
 	g_assert(fd >= 0);
 
-	if (!use_so_linger)
+	if (!GNET_PROPERTY(use_so_linger))
 		return;
 
 #ifdef TCP_LINGER2
@@ -2473,7 +2500,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 		) {
 			/* This is usually not supported for IPv6. Thus suppress
 			 * the warning by default. */
-			if (NET_TYPE_IPV6 != s->net || socket_debug > 0) {
+			if (NET_TYPE_IPV6 != s->net || GNET_PROPERTY(socket_debug) > 0) {
 				g_warning("Cannot set SO_ACCEPTFILTER (%s): %s",
 					name, g_strerror(errno));
 			}
@@ -2553,7 +2580,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	s->flags |= SOCK_F_TCP | flags;
 
 #ifdef HAS_GNUTLS
-	s->tls.enabled = tls_enforce || (SOCK_F_TLS & flags);
+	s->tls.enabled = GNET_PROPERTY(tls_enforce) || (SOCK_F_TLS & flags);
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.ctx = NULL;
 	s->tls.snarf = 0;
@@ -2606,17 +2633,17 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	 * Now we check if we're forcing a local IP, and make it happen if so.
 	 *   --JSL
 	 */
-	if (force_local_ip || force_local_ip6) {
+	if (GNET_PROPERTY(force_local_ip) || GNET_PROPERTY(force_local_ip6)) {
 		host_addr_t bind_addr = zero_host_addr;
 
 		switch (s->net) {
 		case NET_TYPE_IPV4:
-			if (force_local_ip) {
+			if (GNET_PROPERTY(force_local_ip)) {
 				bind_addr = listen_addr();
 			}
 			break;
 		case NET_TYPE_IPV6:
-			if (force_local_ip6) {
+			if (GNET_PROPERTY(force_local_ip6)) {
 				bind_addr = listen_addr6();
 			}
 			break;
@@ -2650,10 +2677,10 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	}
 
 	if (-1 == res && EINPROGRESS != errno) {
-		if (proxy_is_enabled() && !is_host_addr(proxy_addr)) {
+		if (proxy_is_enabled() && !is_host_addr(GNET_PROPERTY(proxy_addr))) {
 			if (!is_temporary_error(errno)) {
 				g_warning("Proxy isn't properly configured (%s:%u)",
-					proxy_hostname, proxy_port);
+					GNET_PROPERTY(proxy_hostname), GNET_PROPERTY(proxy_port));
 			}
 			socket_destroy(s, "Check the proxy configuration");
 			return -1;
@@ -2797,7 +2824,7 @@ socket_connect_by_name(const gchar *host, guint16 port,
 		&& (s->adns & SOCK_ADNS_FAILED)
 	) {
 		/*	socket_connect_by_name_helper() was already invoked! */
-		if (socket_debug > 0)
+		if (GNET_PROPERTY(socket_debug) > 0)
 			g_warning("socket_connect_by_name: "
 				"adns_resolve() failed in synchronous mode");
 		socket_destroy(s, s->adns_msg);
@@ -3253,7 +3280,7 @@ sock_cork(struct gnutella_socket *s, gboolean on)
 	socket_check(s);
 	(void) on;
 
-	if (!warned && socket_debug) {
+	if (!warned && GNET_PROPERTY(socket_debug)) {
 		warned = TRUE;
 		g_warning("TCP_CORK is not implemented on this system");
 	}
@@ -3286,7 +3313,7 @@ sock_set_intern(gint fd, gint option, gint size,
 #endif
 
 	if (!shrink && old_len >= size) {
-		if (socket_debug > 5)
+		if (GNET_PROPERTY(socket_debug) > 5)
 			g_message(
 				"socket %s buffer on fd #%d NOT shrank to %d bytes (is %d)",
 				type, fd, size, old_len);
@@ -3306,7 +3333,7 @@ sock_set_intern(gint fd, gint option, gint size,
 	new_len >>= 1;		/* Linux returns twice the real amount */
 #endif
 
-	if (socket_debug > 5)
+	if (GNET_PROPERTY(socket_debug) > 5)
 		g_message("socket %s buffer on fd #%d: %d -> %d bytes (now %d) %s",
 			type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
@@ -3455,7 +3482,7 @@ socket_plain_sendto(
 	ret = sendto(s->file_desc, buf, size, 0,
 			socket_addr_get_const_sockaddr(&addr), len);
 
-	if ((ssize_t) -1 == ret && udp_debug) {
+	if ((ssize_t) -1 == ret && GNET_PROPERTY(udp_debug)) {
 		gint e = errno;
 
 		g_warning("sendto() failed: %s", g_strerror(e));

@@ -87,8 +87,9 @@ on_clist_nodes_resize_column(GtkCList *unused_clist, gint column,
 {
 	(void) unused_clist;
 	(void) unused_udata;
-	g_assert(column >= 0 && column <= (gint) G_N_ELEMENTS(nodes_col_widths));
-    *(guint32 *) &nodes_col_widths[column] = width; /* override const */
+	g_assert(UNSIGNED(column) < G_N_ELEMENTS(GUI_PROPERTY(nodes_col_widths)));
+	/* override const */
+    *(guint32 *) &GUI_PROPERTY(nodes_col_widths)[column] = width;
 }
 
 gboolean

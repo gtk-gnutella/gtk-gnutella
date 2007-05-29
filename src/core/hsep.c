@@ -429,7 +429,7 @@ hsep_connection_init(struct gnutella_node *n)
 
 	g_assert(n);
 
-	if (hsep_debug > 1)
+	if (GNET_PROPERTY(hsep_debug) > 1)
 		printf("HSEP: Initializing node %s\n",
 			host_addr_port_to_string(n->addr, n->port));
 
@@ -521,7 +521,7 @@ hsep_connection_close(struct gnutella_node *n)
 	g_assert(n);
 	g_assert(n->hsep);
 
-	if (hsep_debug > 1)
+	if (GNET_PROPERTY(hsep_debug) > 1)
 		printf("HSEP: Deinitializing node %s\n",
 			host_addr_port_to_string(n->addr, n->port));
 
@@ -542,7 +542,7 @@ hsep_connection_close(struct gnutella_node *n)
 	wfree(n->hsep, sizeof *n->hsep);
 	n->hsep = NULL;
 
-	if (hsep_debug > 1)
+	if (GNET_PROPERTY(hsep_debug) > 1)
 		hsep_dump_table();
 
 	hsep_fire_global_table_changed(tm_time());
@@ -594,7 +594,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	messaget = cast_to_gpointer(n->data);
 
 	if (length == 0) {   /* error, at least 1 triple must be present */
-		if (hsep_debug > 1)
+		if (GNET_PROPERTY(hsep_debug) > 1)
 			printf("HSEP: Node %s sent empty message\n",
 				host_addr_port_to_string(n->addr, n->port));
 
@@ -602,7 +602,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	}
 
 	if (length % 24) {   /* error, # of triples not an integer */
-		if (hsep_debug > 1)
+		if (GNET_PROPERTY(hsep_debug) > 1)
 			printf("HSEP: Node %s sent broken message\n",
 				host_addr_port_to_string(n->addr, n->port));
 
@@ -613,7 +613,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	msgmax = length / 24;
 
 	if (NODE_IS_LEAF(n) && msgmax > 1) {
-		if (hsep_debug > 1) {
+		if (GNET_PROPERTY(hsep_debug) > 1) {
 			printf(
 				"HSEP: Node %s is a leaf, but sent %u triples instead of 1\n",
 				host_addr_port_to_string(n->addr, n->port), msgmax);
@@ -630,21 +630,21 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 	 */
 
 	if (messaget[0][HSEP_IDX_NODES] != 1) { /* # of nodes for 1 hop must be 1 */
-		if (hsep_debug > 1)
+		if (GNET_PROPERTY(hsep_debug) > 1)
 			printf("HSEP: Node %s's message's #nodes for 1 hop is not 1\n",
 				host_addr_port_to_string(n->addr, n->port));
 		return;
 	}
 
 	if (!hsep_check_monotony(messaget, max)) {
-		if (hsep_debug > 1)
+		if (GNET_PROPERTY(hsep_debug) > 1)
 			printf("HSEP: Node %s's message's monotony check failed\n",
 				host_addr_port_to_string(n->addr, n->port));
 
 		return;
 	}
 
-	if (hsep_debug > 1) {
+	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Received %d %s from node %s (msg #%u): ", max,
 		    max == 1 ? "triple" : "triples",
 			host_addr_port_to_string(n->addr, n->port),
@@ -657,7 +657,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 
 	for (k = 0, i = 1; k < max; k++, i++) {
 
-		if (hsep_debug > 1) {
+		if (GNET_PROPERTY(hsep_debug) > 1) {
 			gchar buf[G_N_ELEMENTS(messaget[0])][32];
 
 			for (j = 0; j < G_N_ELEMENTS(buf); j++)
@@ -673,7 +673,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 		}
 	}
 
-	if (hsep_debug > 1)
+	if (GNET_PROPERTY(hsep_debug) > 1)
 		puts("\n");
 
 	/*
@@ -702,7 +702,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 
 	hsep->last_received = now;
 
-	if (hsep_debug > 1)
+	if (GNET_PROPERTY(hsep_debug) > 1)
 		hsep_dump_table();
 
 	hsep_fire_global_table_changed(now);
@@ -736,7 +736,9 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	 * it contains only our own triple, which is correct.
 	 */
 
-	triples = NODE_P_LEAF == current_peermode ? 1 : G_N_ELEMENTS(tmp);
+	triples = NODE_P_LEAF == GNET_PROPERTY(current_peermode)
+				? 1
+				: G_N_ELEMENTS(tmp);
 
 	/*
 	 * Allocate and initialize message to send.
@@ -799,7 +801,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	/* optimize number of triples to send */
 	opttriples = hsep_triples_to_send(cast_to_gpointer(tmp), triples);
 
-	if (hsep_debug > 1) {
+	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Sending %d %s to node %s (msg #%u): ", opttriples,
 		    opttriples == 1 ? "triple" : "triples",
 			host_addr_port_to_string(n->addr, n->port),
@@ -807,7 +809,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	}
 
 	for (i = 0; i < opttriples; i++) {
-		if (hsep_debug > 1) {
+		if (GNET_PROPERTY(hsep_debug) > 1) {
 			gchar buf[G_N_ELEMENTS(hsep_own)][32];
 
 			for (j = 0; j < G_N_ELEMENTS(buf); j++) {
@@ -822,7 +824,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 		}
 	}
 
-	if (hsep_debug > 1)
+	if (GNET_PROPERTY(hsep_debug) > 1)
 		puts("\n");
 
 	/* write message size */
@@ -866,7 +868,7 @@ hsep_notify_shared(guint64 own_files, guint64 own_kibibytes)
 		own_kibibytes != hsep_own[HSEP_IDX_KIB]
 	) {
 
-		if (hsep_debug) {
+		if (GNET_PROPERTY(hsep_debug)) {
 			printf("HSEP: Shared files changed to %s (%s KiB)\n",
 			    uint64_to_string(own_files), uint64_to_string2(own_kibibytes));
 		}
@@ -1043,7 +1045,9 @@ hsep_get_static_str(gint row, gint column)
 			/* Make a copy because concurrent usage of short_kb_size()
 	 	 	 * could be hard to discover. */
 			v = hsep_table[row][HSEP_IDX_KIB] + other[0][HSEP_IDX_KIB];
-			g_strlcpy(buf, short_kb_size(v, display_metric_units), sizeof buf);
+			g_strlcpy(buf,
+				short_kb_size(v, GNET_PROPERTY(display_metric_units)),
+				sizeof buf);
   			ret = buf;
 		}
 		break;

@@ -238,7 +238,7 @@ st_initialize(search_table_t *table)
 	table->bins = NULL;
 	table->all_entries.vals = 0;
 
-	if (dbg > 3)
+	if (GNET_PROPERTY(dbg) > 3)
 		printf("search table will use max of %d bins (%d indexing chars)\n",
 			table->nbins, table->nchars);
 }
@@ -490,7 +490,7 @@ st_search(
 		}
 	}
 
-	if (dbg > 6)
+	if (GNET_PROPERTY(dbg) > 6)
 		printf("st_search(): str=\"%s\", len=%d, best_bin_size=%d\n",
 			search, len, best_bin_size);
 
@@ -604,7 +604,7 @@ st_search(
 		scanned++;
 
 		if (entry_match(e->string, canonic_len, pattern, wovec, wocnt)) {
-			if (dbg > 5)
+			if (GNET_PROPERTY(dbg) > 5)
 				printf("MATCH: %s\n", shared_file_name_nfc(sf));
 
 			callback(ctx, sf);
@@ -614,7 +614,7 @@ st_search(
 		}
 	}
 
-	if (dbg > 6)
+	if (GNET_PROPERTY(dbg) > 6)
 		printf("st_search(): scanned %d entry from the %d in bin, %d matches\n",
 			scanned, best_bin_size, nres);
 

@@ -117,7 +117,7 @@ on_ctree_downloads_resize_column(GtkCList *unused_clist,
 {
 	(void) unused_clist;
 	(void) unused_udata;
-	*(gint *) &dl_active_col_widths[column] = width;
+	*(gint *) &GUI_PROPERTY(dl_active_col_widths)[column] = width;
 }
 
 gboolean
@@ -1004,21 +1004,17 @@ on_entry_queue_regex_activate(GtkEditable *editable, gpointer unused_udata)
 	GtkCTreeRow *row;
 	struct download *d, *dtemp;
 	gboolean child_selected, node_expanded;
-    gint i;
-  	gint n;
-    gint m = 0;
-    gint  err;
-    gchar * regex;
+    gint i, n, m = 0, err, flags;
+    gchar *regex;
 	regex_t re;
 
 	(void) unused_udata;
     regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
 	g_return_if_fail(regex != NULL);
 
-    err = regcomp(&re,
-                  regex,
-                  REG_EXTENDED|REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
-
+	flags = REG_EXTENDED | REG_NOSUB;
+	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
+    err = regcomp(&re, regex, flags);
    	if (err) {
         char buf[1024];
 		regerror(err, &re, buf, sizeof buf);
@@ -1182,7 +1178,7 @@ on_ctree_downloads_queue_resize_column(GtkCList *unused_clist,
 {
 	(void) unused_clist;
 	(void) unused_udata;
-	*(gint *) &dl_queued_col_widths[column] = width;
+	*(gint *) &GUI_PROPERTY(dl_queued_col_widths)[column] = width;
 }
 
 void

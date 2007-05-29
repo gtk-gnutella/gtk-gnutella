@@ -516,7 +516,7 @@ huge_need_sha1(struct shared_file *sf)
 			cached->size + (off_t) 0 == sb.st_size + (filesize_t) 0 &&
 			cached->mtime == sb.st_mtime
 		) {
-			if (dbg > 1) {
+			if (GNET_PROPERTY(dbg) > 1) {
 				g_warning("ignoring duplicate SHA1 work for \"%s\"",
 					shared_file_path(sf));
 			}
@@ -639,7 +639,7 @@ request_sha1(struct shared_file *sf)
 		}
 	} else {
 
-		if (dbg > 4) {
+		if (GNET_PROPERTY(dbg) > 4) {
 			if (cached)
 				g_message("Cached SHA1 entry for \"%s\" outdated: "
 					"had mtime %lu, now %lu",
@@ -760,7 +760,7 @@ huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
 	 */
 
 	if (huge_improbable_sha1(sha1->data, sizeof sha1->data)) {
-		if (dbg) {
+		if (GNET_PROPERTY(dbg)) {
 			if (is_printable(buf, len)) {
 				g_warning("%s has bad SHA1 (len=%d): %.*s, hex: %s",
 					gmsg_infostr(header), (gint) len, (gint) len, buf,
@@ -774,7 +774,7 @@ huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
 	return TRUE;
 
 bad:
-	if (dbg) {
+	if (GNET_PROPERTY(dbg)) {
 		if (is_printable(buf, len)) {
 			g_warning("%s has bad SHA1 (len=%d): %.*s",
 				gmsg_infostr(header), (gint) len, (gint) len, buf);

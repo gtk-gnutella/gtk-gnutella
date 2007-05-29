@@ -578,7 +578,7 @@ shell_exec_rescan(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (library_rebuilding) {
+	if (GNET_PROPERTY(library_rebuilding)) {
 		sh->msg = _("The library is currently being rebuilt.");
 		return REPLY_ERROR;
 	} else if (library_rescan_requested) {
@@ -675,7 +675,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 		s1 = uint64_to_string(t[i][HSEP_IDX_NODES] + non_hsep[HSEP_IDX_NODES]);
 		s2 = uint64_to_string2(t[i][HSEP_IDX_FILES] + non_hsep[HSEP_IDX_FILES]);
 		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB],
-				display_metric_units);
+				GNET_PROPERTY(display_metric_units));
 
 		gm_snprintf(buf, sizeof buf, "%*d  %*s  %*s  %*s\n",
 			maxlen[0], i + 1,
@@ -859,8 +859,10 @@ print_upload_info(gnutella_shell_t *sh, const struct gnet_upload_info *info)
 		info->encrypted ? "(E)" : "",
 		host_addr_to_string(info->addr),
 		iso3166_country_cc(info->country),
-		compact_size(info->range_end - info->range_start, display_metric_units),
-		short_size(info->range_start, display_metric_units),
+		compact_size(info->range_end - info->range_start,
+			GNET_PROPERTY(display_metric_units)),
+		short_size(info->range_start,
+			GNET_PROPERTY(display_metric_units)),
 		info->name ? "\"" : "<",
 		info->name ? info->name : "none",
 		info->name ? "\"" : ">");
@@ -1028,13 +1030,13 @@ print_download_info(gnet_fi_t handle, void *udata)
 	shell_write(sh, "\n");	/* Terminate line */
 
 	gm_snprintf(buf, sizeof buf, "Size: %s",
-		compact_size(status.size, display_metric_units));
+		compact_size(status.size, GNET_PROPERTY(display_metric_units)));
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 	
 	gm_snprintf(buf, sizeof buf, "Done: %u%% (%s)",
 		filesize_per_100(status.size, status.done),
-		compact_size(status.done, display_metric_units));
+		compact_size(status.done, GNET_PROPERTY(display_metric_units)));
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 	
@@ -1132,14 +1134,16 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		short_string_t leaf_switch;
 		short_string_t ultra_check;
 	
-		leaf_switch = timestamp_get_string(node_last_ultra_leaf_switch);
-		ultra_check = timestamp_get_string(node_last_ultra_check);
+		leaf_switch = timestamp_get_string(
+						GNET_PROPERTY(node_last_ultra_leaf_switch));
+		ultra_check = timestamp_get_string(
+						GNET_PROPERTY(node_last_ultra_check));
 
-		if (is_firewalled && is_udp_firewalled)
+		if (GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(is_udp_firewalled))
 			blackout = "TCP,UDP";
-		else if (is_firewalled)
+		else if (GNET_PROPERTY(is_firewalled))
 			blackout = "TCP";
-		else if (is_udp_firewalled)
+		else if (GNET_PROPERTY(is_udp_firewalled))
 			blackout = "UDP";
 		else
 			blackout = "No";
@@ -1149,30 +1153,32 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 			"| Uptime: %-9s   Last Check: %-19s     |\n"
 			"|   Port: %-5u         Blackout: %-7s                 |\n"
 			"|=========================================================|\n",
-			online_mode
-				? guc_node_peermode_to_string(current_peermode)
+			GNET_PROPERTY(online_mode)
+				? guc_node_peermode_to_string(GNET_PROPERTY(current_peermode))
 				: "offline",
-			node_last_ultra_leaf_switch ? leaf_switch.str : "never",
-			short_time(delta_time(now, start_stamp)),
-			node_last_ultra_check ? ultra_check.str : "never",
+			GNET_PROPERTY(node_last_ultra_leaf_switch)
+				? leaf_switch.str : "never",
+			short_time(delta_time(now, GNET_PROPERTY(start_stamp))),
+			GNET_PROPERTY(node_last_ultra_check)
+				? ultra_check.str : "never",
 			socket_listen_port(),
 			blackout);
 		shell_write(sh, buf);
 	}
 
 	/* IPv4 info */ 
-	switch (network_protocol) {
+	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
 	case NET_USE_IPV4:
 		gm_snprintf(buf, sizeof buf,
 			"| IPv4 Address: %-17s Last Change: %-9s  |\n",
 			host_addr_to_string(listen_addr()),
-			short_time(delta_time(now, current_ip_stamp)));
+			short_time(delta_time(now, GNET_PROPERTY(current_ip_stamp))));
 		shell_write(sh, buf);
 	}
 
 	/* IPv6 info */ 
-	switch (network_protocol) {
+	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
 		shell_write(sh,
 			"|---------------------------------------------------------|\n");
@@ -1182,7 +1188,7 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 			"| IPv6 Address: %-39s   |\n"
 			"|                                 Last Change: %-9s  |\n",
 			host_addr_to_string(listen_addr6()),
-			short_time(delta_time(now, current_ip6_stamp)));
+			short_time(delta_time(now, GNET_PROPERTY(current_ip6_stamp))));
 		shell_write(sh, buf);
 	}
 
@@ -1192,18 +1198,22 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		"| Connected Peers: %-4u                                   |\n"
 		"|    Ultra %4u/%-4u   Leaf %4u/%-4u   Legacy %4u/%-4u  |\n"
 		"|=========================================================|\n",
-		node_ultra_count + node_leaf_count + node_normal_count,
-		node_ultra_count,
-		NODE_P_ULTRA == current_peermode ? max_connections : max_ultrapeers,
-		node_leaf_count,
-		max_leaves,
-		node_normal_count,
-		normal_connections);
+		GNET_PROPERTY(node_ultra_count)
+			+ GNET_PROPERTY(node_leaf_count)
+			+ GNET_PROPERTY(node_normal_count),
+		GNET_PROPERTY(node_ultra_count),
+		NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
+			? GNET_PROPERTY(max_connections)
+			: GNET_PROPERTY(max_ultrapeers),
+		GNET_PROPERTY(node_leaf_count),
+		GNET_PROPERTY(max_leaves),
+		GNET_PROPERTY(node_normal_count),
+		GNET_PROPERTY(normal_connections));
 	shell_write(sh, buf);
 
 	/* Bandwidths */
 	{	
-		const gboolean metric = display_metric_units;
+		const gboolean metric = GNET_PROPERTY(display_metric_units);
 		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
 		gnet_bw_stats_t bw_stats;
 
@@ -1246,7 +1256,8 @@ shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 			" file",
 			shared_files_scanned() == 1 ? "" : "s",
 			" ",
-			short_kb_size(shared_kbytes_scanned(), display_metric_units),
+			short_kb_size(shared_kbytes_scanned(),
+				GNET_PROPERTY(display_metric_units)),
 			" total",
 			(void *) 0);
 		gm_snprintf(buf, sizeof buf, "| %-55s |\n", line);
@@ -1787,7 +1798,7 @@ shell_read_data(gnutella_shell_t *sh)
 		ret = s->wio.read(&s->wio, &s->buf[s->pos], size);
 		if (0 == ret) {
 			if (0 == s->pos) {
-				if (shell_debug) {
+				if (GNET_PROPERTY(shell_debug)) {
 					g_message("shell connection closed: EOF");
 				}
 				shell_destroy(sh);
@@ -1964,7 +1975,7 @@ shell_destroy(gnutella_shell_t *sh)
 {
 	shell_check(sh);
 
-	if (dbg > 0)
+	if (GNET_PROPERTY(dbg) > 0)
 		g_message("shell_destroy");
 
 	sl_shells = g_slist_remove(sl_shells, sh);
@@ -1996,7 +2007,7 @@ shell_add(struct gnutella_socket *s)
 	g_assert(0 == s->gdk_tag);
 	g_assert(s->getline);
 
-	if (shell_debug) {
+	if (GNET_PROPERTY(shell_debug)) {
 		g_message("Incoming shell connection from %s",
 			host_addr_port_to_string(s->addr, s->port));
 	}
@@ -2012,11 +2023,11 @@ shell_add(struct gnutella_socket *s)
 	sl_shells = g_slist_prepend(sl_shells, sh);
 
 	if (socket_is_local(s)) {
-		if (enable_local_socket) {
+		if (GNET_PROPERTY(enable_local_socket)) {
 			size_t r;
 			granted = TRUE;
 
-			if (shell_debug > 1)
+			if (GNET_PROPERTY(shell_debug) > 1)
 				g_message("shell command is \"%s\"", getline_str(s->getline));
 
 			/*
@@ -2029,7 +2040,7 @@ shell_add(struct gnutella_socket *s)
 			getline_reset(s->getline); /* remove HELO command */
 
 			if (READ_DONE == getline_read(s->getline, s->buf, s->pos, &r)) {
-				if (shell_debug > 1)
+				if (GNET_PROPERTY(shell_debug) > 1)
 					g_message("next shell command is \"%s\"",
 						getline_str(s->getline));
 
@@ -2085,7 +2096,7 @@ shell_add(struct gnutella_socket *s)
 void
 shell_timer(time_t now)
 {
-	time_delta_t timeout = remote_shell_timeout;
+	time_delta_t timeout = GNET_PROPERTY(remote_shell_timeout);
 
 	if (timeout > 0) {
 		GSList *sl, *to_remove = NULL;
@@ -2131,7 +2142,7 @@ shell_auth(const gchar *str)
 	tok_helo = shell_get_token(str, &pos);
 	tok_cookie = shell_get_token(str, &pos);
 
-	if (shell_debug) {
+	if (GNET_PROPERTY(shell_debug)) {
 		g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
 	}
 

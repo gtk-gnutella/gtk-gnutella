@@ -180,9 +180,9 @@ pkt_stat_str(const guint64 *val_tbl, gint type)
     static gchar strbuf[UINT64_DEC_BUFLEN];
 
     if (val_tbl[type] == 0)
-        return gnet_stats_perc ? "-  " : "-";
+        return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
-    if (gnet_stats_perc)
+    if (GUI_PROPERTY(gnet_stats_perc))
         gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     else
@@ -199,14 +199,14 @@ byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 	guint64 size = val_tbl[type];
 
     if (val_tbl[type] == 0)
-        return gnet_stats_perc ? "-  " : "-";
+        return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
-	if (!gnet_stats_with_headers)
+	if (!GUI_PROPERTY(gnet_stats_with_headers))
 		size -= nb_packets[type] * GTA_HEADER_SIZE;
 
-    if (gnet_stats_perc) {
+    if (GUI_PROPERTY(gnet_stats_perc)) {
 		guint64 total_size = val_tbl[MSG_TOTAL];
-		if (!gnet_stats_with_headers)
+		if (!GUI_PROPERTY(gnet_stats_with_headers))
 			size -= nb_packets[MSG_TOTAL] * GTA_HEADER_SIZE;
         gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) size / total_size * 100.0);
@@ -220,12 +220,12 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
 {
     static gchar strbuf[UINT64_DEC_BUFLEN];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
-	guint i = gnet_stats_drop_reasons_type;
+	guint i = GUI_PROPERTY(gnet_stats_drop_reasons_type);
 
     if (stats->drop_reason[reason][i] == 0)
-        return gnet_stats_perc ? "-  " : "-";
+        return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
-    if (gnet_stats_perc)
+    if (GUI_PROPERTY(gnet_stats_perc))
         gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) stats->drop_reason[reason][i] / total * 100);
     else
@@ -257,9 +257,9 @@ flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
     static gchar strbuf[UINT64_DEC_BUFLEN];
 
     if (val_tbl[type] == 0)
-        return gnet_stats_perc ? "-  " : "-";
+        return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
-	if (gnet_stats_perc) {
+	if (GUI_PROPERTY(gnet_stats_perc)) {
 		gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
@@ -275,9 +275,9 @@ flowc_stat_str_byte(const guint64 *val_tbl, gint type)
     static gchar strbuf[UINT64_DEC_BUFLEN];
 
     if (val_tbl[type] == 0)
-        return gnet_stats_perc ? "-  " : "-";
+        return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
-	if (gnet_stats_perc) {
+	if (GUI_PROPERTY(gnet_stats_perc)) {
 		gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
@@ -452,7 +452,7 @@ gnet_stats_gui_update(time_t now)
     gtk_clist_freeze(clist_stats_fc_ttl);
     gtk_clist_freeze(clist_stats_fc_hops);
 
-	switch (gnet_stats_source) {
+	switch (GUI_PROPERTY(gnet_stats_source)) {
 	case GNET_STATS_FULL:
 		xstats = &stats;
 		break;
@@ -472,45 +472,45 @@ gnet_stats_gui_update(time_t now)
         int m;
 
         gtk_clist_set_text(clist_stats_msg, n, c_gs_received,
-            gnet_stats_bytes ?
+            GUI_PROPERTY(gnet_stats_bytes) ?
                 byte_stat_str(xstats->byte.received, xstats->pkg.received, n) :
                 pkt_stat_str(xstats->pkg.received, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_gen_queued,
-            gnet_stats_bytes ?
+            GUI_PROPERTY(gnet_stats_bytes) ?
                 byte_stat_str(xstats->byte.gen_queued,
 					xstats->pkg.gen_queued, n) :
                 pkt_stat_str(xstats->pkg.gen_queued, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_generated,
-            gnet_stats_bytes ?
+            GUI_PROPERTY(gnet_stats_bytes) ?
                 byte_stat_str(xstats->byte.generated,
 					xstats->pkg.generated, n) :
                 pkt_stat_str(xstats->pkg.generated, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_dropped,
-            gnet_stats_bytes ?
+            GUI_PROPERTY(gnet_stats_bytes) ?
                 byte_stat_str(xstats->byte.dropped, xstats->pkg.dropped, n) :
                 pkt_stat_str(xstats->pkg.dropped, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_expired,
-            gnet_stats_bytes ?
+            GUI_PROPERTY(gnet_stats_bytes) ?
                 byte_stat_str(xstats->byte.expired, xstats->pkg.expired, n) :
                 pkt_stat_str(xstats->pkg.expired, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_queued,
-            gnet_stats_bytes ?
+            GUI_PROPERTY(gnet_stats_bytes) ?
                 byte_stat_str(xstats->byte.queued, xstats->pkg.queued, n) :
                 pkt_stat_str(xstats->pkg.queued, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_relayed,
-            gnet_stats_bytes ?
+            GUI_PROPERTY(gnet_stats_bytes) ?
                 byte_stat_str(xstats->byte.relayed, xstats->pkg.relayed, n) :
                 pkt_stat_str(xstats->pkg.relayed, n));
 
         for (m = 0; m < 9; m ++)
             gtk_clist_set_text(clist_stats_fc_ttl, n, m+1,
-                gnet_stats_bytes ?
+                GUI_PROPERTY(gnet_stats_bytes) ?
                     flowc_stat_str_byte(stats.byte.flowc_ttl[m], n) :
                     flowc_stat_str_pkg(stats.pkg.flowc_ttl[m], n));
 
         for (m = 0; m < 9; m ++)
             gtk_clist_set_text(clist_stats_fc_hops, n, m+1,
-                gnet_stats_bytes ?
+                GUI_PROPERTY(gnet_stats_bytes) ?
                     flowc_stat_str_byte(stats.byte.flowc_hops[m], n) :
                     flowc_stat_str_pkg(stats.pkg.flowc_hops[m], n));
     }

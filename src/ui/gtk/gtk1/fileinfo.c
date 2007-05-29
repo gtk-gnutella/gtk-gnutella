@@ -81,7 +81,7 @@ on_clist_fileinfo_resize_column(GtkCList *unused_clist,
 {
 	(void) unused_clist;
 	(void) unused_udata;
-    *(gint *) &file_info_col_widths[column] = width;
+    *(gint *) &GUI_PROPERTY(file_info_col_widths)[column] = width;
 }
 
 /* Cache for fi_gui_fill_info. This is global so it can be freed
@@ -389,21 +389,19 @@ fi_gui_remove_row(gnet_fi_t fih, gboolean hide)
 static void
 fi_gui_set_filter_regex(gchar *s)
 {
-    gint err;
-    GSList *sl;
-    gint row;
-    GSList *old_hidden = g_slist_copy(hidden_fi);
+    GSList *sl, *old_hidden = g_slist_copy(hidden_fi);
     GtkCList *clist_fi;
     char *fallback_re = ".";
+    gint err, flags, row;
 
     if (s == NULL) {
         s = fallback_re;
     }
 
     /* Recompile the row filter*/
-    err = regcomp(&filter_re, s,
-                  REG_EXTENDED|REG_NOSUB|(fi_regex_case ? 0 : REG_ICASE));
-
+	flags = REG_EXTENDED | REG_NOSUB;
+	flags |= GUI_PROPERTY(fi_regex_case) ? 0 : REG_ICASE;
+    err = regcomp(&filter_re, s, flags);
    	if (err) {
         gchar buf[1024];
 		regerror(err, &filter_re, buf, sizeof buf);

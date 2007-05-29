@@ -339,7 +339,7 @@ on_ctree_filter_filters_resize_column(GtkCList *unused_clist, gint column,
 	(void) unused_clist;
 	(void) unused_udata;
 
-    *(gint *) &filter_filters_col_widths[column] = width;
+    *(gint *) &GUI_PROPERTY(filter_filters_col_widths)[column] = width;
 }
 
 void
@@ -349,7 +349,7 @@ on_clist_filter_rules_resize_column(GtkCList *unused_clist, gint column,
 	(void) unused_clist;
 	(void) unused_udata;
 
-    *(gint *) &filter_rules_col_widths[column] = width;
+    *(gint *) &GUI_PROPERTY(filter_rules_col_widths)[column] = width;
 }
 
 void

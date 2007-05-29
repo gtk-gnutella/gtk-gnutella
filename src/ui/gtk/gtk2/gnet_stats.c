@@ -232,7 +232,8 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 		gchar buf[32];
 
 		drop_stat_str(buf, sizeof buf, stats, n,
-			gnet_stats_drop_reasons_type, gnet_stats_bytes);
+			GUI_PROPERTY(gnet_stats_drop_reasons_type),
+			GUI_PROPERTY(gnet_stats_bytes));
 		gtk_list_store_set(store, &iter, 1, buf, (-1));
 		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
 			break;
@@ -717,7 +718,7 @@ gnet_stats_gui_update(time_t now)
 		gnet_stats_update_horizon();
 		goto cleanup;
 	case GNET_STATS_NB_PAGE_MESSAGES:
-		switch (gnet_stats_source) {
+		switch (GUI_PROPERTY(gnet_stats_source)) {
 		case GNET_STATS_FULL:
 			break;
 		case GNET_STATS_TCP_ONLY:

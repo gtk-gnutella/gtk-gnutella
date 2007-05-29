@@ -138,13 +138,13 @@ tls_cache_insert_intern(const struct tls_cache_item *item)
 		struct tls_cache_item *item_ptr = deconstify_gpointer(key);
 
 		/* We'll move the host to the end of the list */
-		if (tls_debug) {
+		if (GNET_PROPERTY(tls_debug)) {
 			g_message("Refreshing TLS host %s",
 				gnet_host_to_string(&item->host));
 		}
 		item_ptr->seen = item->seen;
 	} else {
-		if (tls_debug) {
+		if (GNET_PROPERTY(tls_debug)) {
 			g_message("Adding TLS host %s", gnet_host_to_string(&item->host));
 		}
 		key = wcopy(item, sizeof *item);
@@ -367,7 +367,7 @@ tls_cache_load(void)
 		
 		tls_cache_parse(f);
 		n = hash_list_length(tls_hosts);
-		if (tls_debug) {
+		if (GNET_PROPERTY(tls_debug)) {
 			g_message("Loaded %u items from the TLS cache", n);
 		}
 		fclose(f);

@@ -443,7 +443,7 @@ ignore_timer(time_t unused_now)
 	if (f != NULL) {
 		if (stamp > ignore_sha1_mtime) {
 			ignore_sha1_mtime = stamp;
-			if (dbg)
+			if (GNET_PROPERTY(dbg))
 				printf("RELOAD %s\n", ignore_sha1);
 			sha1_parse(f, ignore_sha1);
 		}
@@ -454,7 +454,7 @@ ignore_timer(time_t unused_now)
 	if (f != NULL) {
 		if (stamp > ignore_namesize_mtime) {
 			ignore_namesize_mtime = stamp;
-			if (dbg)
+			if (GNET_PROPERTY(dbg))
 				printf("RELOAD %s\n", ignore_namesize);
 			namesize_parse(f, ignore_namesize);
 		}

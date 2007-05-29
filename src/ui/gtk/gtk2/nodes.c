@@ -755,7 +755,7 @@ nodes_gui_update_nodes_display(time_t now)
 	static GtkNotebook *notebook = NULL;
     GtkTreeModel *model;
 
-	if (gui_debug > 0) {
+	if (GUI_PROPERTY(gui_debug) > 0) {
     	g_message("recorded changed: flags: %d info: %d",
         	g_hash_table_size(ht_node_flags_changed),
         	g_hash_table_size(ht_node_info_changed));
@@ -817,7 +817,7 @@ nodes_gui_update_nodes_display(time_t now)
 static void
 nodes_gui_node_removed(const node_id_t node_id)
 {
-    if (gui_debug >= 5)
+    if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("nodes_gui_node_removed(%s)\n", node_id_to_string(node_id));
 
     nodes_gui_remove_node(node_id);
@@ -833,7 +833,7 @@ nodes_gui_node_added(const node_id_t node_id)
 {
     gnet_node_info_t *info;
 
-    if (gui_debug >= 5)
+    if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("nodes_gui_node_added(%s)\n", node_id_to_string(node_id));
 
     info = guc_node_get_info(node_id);

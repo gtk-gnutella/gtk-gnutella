@@ -194,7 +194,7 @@ pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
 		}
 	}
 
-	if (push_proxy_debug > 0) {
+	if (GNET_PROPERTY(push_proxy_debug) > 0) {
 		g_message("push-proxy: ending request from %s (%s): %s",
 			pp->socket ? host_addr_to_string(pp->socket->addr) : "<no socket>",
 			pproxy_vendor_str(pp),
@@ -270,7 +270,7 @@ pproxy_timer(time_t now)
 
 		if (
 			delta_time(now, pp->last_update) >
-				(time_delta_t) upload_connecting_timeout
+				(time_delta_t) GNET_PROPERTY(upload_connecting_timeout)
 		) {
 			to_remove = g_slist_prepend(to_remove, pp);
 		}
@@ -425,7 +425,7 @@ get_params(struct pproxy *pp, const gchar *request,
 			goto error;
 		}
 
-		if (push_proxy_debug > 0)
+		if (GNET_PROPERTY(push_proxy_debug) > 0)
 			g_message("PUSH-PROXY: decoding %s=%s as base32", attr, value);
 
 		guid = base32_to_guid(value);
@@ -450,7 +450,7 @@ get_params(struct pproxy *pp, const gchar *request,
 			goto error;
 		}
 
-		if (push_proxy_debug > 0)
+		if (GNET_PROPERTY(push_proxy_debug) > 0)
 			g_message("PUSH-PROXY: decoding %s=%s as hexadecimal", attr, value);
 
 		if (!hex_to_guid(value, guid)) {
@@ -630,7 +630,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	GSList *nodes;
 	gboolean supports_tls;
 
-	if (push_proxy_debug > 0) {
+	if (GNET_PROPERTY(push_proxy_debug) > 0) {
 		g_message("----Push-proxy request from %s:\n%s",
 			host_addr_to_string(s->addr), request);
 		header_dump(header, stderr);
@@ -653,7 +653,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (!get_params(pp, request, &pp->guid, &pp->file_idx))
 		return;				/* Already reported the error in get_params() */
 
-	if (push_proxy_debug > 0)
+	if (GNET_PROPERTY(push_proxy_debug) > 0)
 		g_message("PUSH-PROXY: %s requesting a push to %s for file #%d",
 			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
 			pp->file_idx);
@@ -759,7 +759,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		 * it does not come from our node really.
 		 */
 
-		packet = build_push(max_ttl - 1, 1, pp->guid,
+		packet = build_push(GNET_PROPERTY(max_ttl) - 1, 1, pp->guid,
 					pp->addr_v4, pp->addr_v6, pp->port,
 					pp->file_idx, supports_tls);
 
@@ -795,7 +795,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		 * it does not come from our node really.
 		 */
 
-		packet = build_push(max_ttl - 1, 1, pp->guid,
+		packet = build_push(GNET_PROPERTY(max_ttl) - 1, 1, pp->guid,
 					pp->addr_v4, pp->addr_v6, pp->port,
 					pp->file_idx, supports_tls);
 
@@ -831,7 +831,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 * sending a GIV back.
 	 */
 
-	if (guid_eq(pp->guid, servent_guid)) {
+	if (guid_eq(pp->guid, GNET_PROPERTY(servent_guid))) {
 		upload_send_giv(pp->addr_v4, pp->port, 0, 1, 0,
 			"<from push-proxy>", FALSE, pp->flags);
 
@@ -1102,7 +1102,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
 		break;
 	}
 
-	if (push_proxy_debug > 0 && cp->sent)
+	if (GNET_PROPERTY(push_proxy_debug) > 0 && cp->sent)
 		g_message("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s",
 			host_addr_port_to_string(cp->addr, cp->port), cproxy_vendor_str(cp),
 			guid_hex_str(cp->guid), cp->file_idx,
@@ -1143,14 +1143,14 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
 	addr = listen_addr();
 	if (is_host_addr(addr)) {
 		gm_snprintf(addr_buf, sizeof addr_buf, "X-Node: %s\r\n",
-			host_addr_port_to_string(addr, listen_port));
+			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)));
 	} else {
 		addr_buf[0] = '\0';
 	}
 	addr = listen_addr6();
 	if (is_host_addr(addr)) {
 		gm_snprintf(addr_v6_buf, sizeof addr_v6_buf, "X-Node: %s\r\n",
-			host_addr_port_to_string(addr, listen_port));
+			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)));
 	} else {
 		addr_v6_buf[0] = '\0';
 	}

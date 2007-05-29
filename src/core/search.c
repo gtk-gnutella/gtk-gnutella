@@ -932,7 +932,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	token = 0;
 
 	if (open_size > trailer_size - 4) {
-		if (search_debug) {
+		if (GNET_PROPERTY(search_debug)) {
 			g_warning("Trailer is too small for open size field");
 		}
 		return TRUE;
@@ -960,11 +960,11 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			if (status & 0x20) rs->status |= ST_GGEP;
 			rs->status |= ST_PARSED_TRAILER;
 		} else if (rs->status  & ST_KNOWN_VENDOR) {
-			if (search_debug > 1)
+			if (GNET_PROPERTY(search_debug) > 1)
 				g_warning("vendor %s changed # of open data bytes to %d",
 						vendor, open_size);
 		} else if (vendor) {
-			if (search_debug > 1)
+			if (GNET_PROPERTY(search_debug) > 1)
 				g_warning("ignoring %d open data byte%s from "
 						"unknown vendor %s",
 						open_size, open_size == 1 ? "" : "s", vendor);
@@ -1025,7 +1025,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					ret = ggept_gtkg_ipv6_extract(e, &addr);
 					if (GGEP_OK == ret) {
 						if (
-							NET_TYPE_IPV4 != network_protocol &&
+							NET_TYPE_IPV4 != GNET_PROPERTY(network_protocol) &&
 							is_host_addr(addr) &&
 							!hostiles_check(rs->addr) &&
 							!hostiles_check(addr)
@@ -1033,7 +1033,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 							rs->addr = addr;
 						}
 					} else if (ret == GGEP_INVALID) {
-						if (search_debug > 3 || ggep_debug > 3) {
+						if (
+							GNET_PROPERTY(search_debug) > 3 ||
+							GNET_PROPERTY(ggep_debug) > 3
+						) {
 							g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1062,7 +1065,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 						rs->version = atom_str_get(version_str(&ver));
 					} else if (ret == GGEP_INVALID) {
-						if (search_debug > 3 || ggep_debug > 3) {
+						if (
+							GNET_PROPERTY(search_debug) > 3 ||
+							GNET_PROPERTY(ggep_debug) > 3
+						) {
 							g_warning("%s bad GGEP \"GTKGV1\" (dumping)",
 									gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1084,7 +1090,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					if (ret == GGEP_OK) {
 						rs->proxies = hvec;
 					} else {
-						if (search_debug > 3 || ggep_debug > 3) {
+						if (
+							GNET_PROPERTY(search_debug) > 3 ||
+							GNET_PROPERTY(ggep_debug) > 3
+						) {
 							g_warning("%s bad GGEP \"PUSH\" (dumping)",
 									gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1100,7 +1109,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					if (ret == GGEP_OK)
 						rs->hostname = atom_str_get(hostname);
 					else {
-						if (search_debug > 3 || ggep_debug > 3) {
+						if (
+							GNET_PROPERTY(search_debug) > 3 ||
+							GNET_PROPERTY(ggep_debug) > 3
+						) {
 							g_warning("%s bad GGEP \"HNAME\" (dumping)",
 									gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1134,7 +1146,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				}
 				break;
 			case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
-				if (search_debug > 3 || ggep_debug > 3) {
+				if (
+					GNET_PROPERTY(search_debug) > 3 ||
+					GNET_PROPERTY(ggep_debug) > 3
+				) {
 					g_warning("%s unknown GGEP \"%s\" in trailer (dumping)",
 							gmsg_infostr(&n->header), ext_ggep_id_str(e));
 					ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1148,15 +1163,15 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		if (exvcnt == MAX_EXTVEC) {
 			g_warning("%s from %s has %d trailer extensions!",
 					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
-			if (search_debug > 2)
+			if (GNET_PROPERTY(search_debug) > 2)
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-			if (search_debug > 3 && priv)
+			if (GNET_PROPERTY(search_debug) > 3 && priv)
 				dump_hex(stderr, "Query Hit private data", priv, privlen);
-		} else if (!seen_ggep && ggep_debug) {
+		} else if (!seen_ggep && GNET_PROPERTY(ggep_debug)) {
 			g_warning("%s from %s claimed GGEP extensions in trailer, "
 					"seen none",
 					gmsg_infostr(&n->header), vendor ? vendor : "????");
-		} else if (search_debug > 2) {
+		} else if (GNET_PROPERTY(search_debug) > 2) {
 			g_message("%s from %s has %d trailer extensions:",
 					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
 			ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
@@ -1184,7 +1199,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		} else {
 			rs->status |= ST_UNREQUESTED;
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
-			if (search_debug) {
+			if (GNET_PROPERTY(search_debug)) {
 				g_message("Received unrequested query hit from %s",
                 	host_addr_port_to_string(n->addr, n->port));
 			}
@@ -1289,7 +1304,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	/* Check for hostile IP addresses */
 
 	if (hostiles_check(n->addr) || hostiles_check(rs->addr)) {
-        if (dbg || search_debug) {
+        if (GNET_PROPERTY(dbg) || GNET_PROPERTY(search_debug)) {
             g_message("dropping query hit from hostile IP %s",
                 host_addr_to_string(rs->addr));
         }
@@ -1311,7 +1326,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (is_private_addr(rs->addr))
 		rs->status |= ST_FIREWALL;
 	else if (rs->port == 0 || bogons_check(rs->addr)) {
-        if (dbg || search_debug) {
+        if (GNET_PROPERTY(dbg) || GNET_PROPERTY(search_debug)) {
             g_warning("query hit advertising bogus IP %s",
 				host_addr_port_to_string(rs->addr, rs->port));
         }
@@ -1325,7 +1340,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		goto bad_packet;
 	}
 
-	if (search_debug > 7)
+	if (GNET_PROPERTY(search_debug) > 7)
 		dump_hex(stdout, "Query Hit Data", n->data, n->size);
 
 	while (endptr - s > 10 && nr < rs->num_recs) {
@@ -1397,7 +1412,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 
 		if (is_evil_filename(rc->name)) {
-			if (search_debug) {
+			if (GNET_PROPERTY(search_debug)) {
 				g_message("get_results_set(): Ignoring evil filename \"%s\"",
 					rc->name);
 			}
@@ -1466,7 +1481,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							set_flags(rc->flags, SR_SPAM);
 						}
 					} else {
-						if (search_debug > 0) {
+						if (GNET_PROPERTY(search_debug) > 0) {
 							g_message("huge_sha1_extract32() failed");
 						}
 						sha1_errors++;
@@ -1502,7 +1517,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							if (huge_improbable_sha1(sha1_digest.data,
 									sizeof sha1_digest.data)
 							) {
-								if (search_debug > 0) {
+								if (GNET_PROPERTY(search_debug) > 0) {
 									g_message("Improbable SHA-1 detected");
 								}
 								sha1_errors++;
@@ -1516,7 +1531,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 									set_flags(rc->flags, SR_SPAM);
 							}
 						} else {
-							if (search_debug > 0) {
+							if (GNET_PROPERTY(search_debug) > 0) {
 								g_message("urn_get_sha1_no_prefix() failed");
 							}
 							sha1_errors++;
@@ -1539,7 +1554,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						if (huge_improbable_sha1(sha1_digest.data,
 								sizeof sha1_digest.data)
 						) {
-							if (search_debug > 0) {
+							if (GNET_PROPERTY(search_debug) > 0) {
 								g_message("Improbable SHA-1 detected");
 							}
 							sha1_errors++;
@@ -1555,13 +1570,19 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						seen_ggep_h = TRUE;
 					} else if (ret == GGEP_INVALID) {
 						sha1_errors++;
-						if (search_debug > 3 || ggep_debug > 3) {
+						if (
+							GNET_PROPERTY(search_debug) > 3 ||
+							GNET_PROPERTY(ggep_debug) > 3
+						) {
 							g_warning("%s bad GGEP \"H\" (dumping)",
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
 						}
 					} else {
-						if (search_debug > 3 || ggep_debug > 3) {
+						if (
+							GNET_PROPERTY(search_debug) > 3 ||
+							GNET_PROPERTY(ggep_debug) > 3
+						) {
 							g_warning("%s GGEP \"H\" with no SHA1 (dumping)",
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1582,7 +1603,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						}
 					} else {
 						alt_errors++;
-						if (search_debug > 3) {
+						if (GNET_PROPERTY(search_debug) > 3) {
 							g_warning("%s bad GGEP \"ALT\" (dumping)",
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1640,7 +1661,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						if (GGEP_OK == ret) {
 							rc->create_time = stamp;
 						} else {
-							if (search_debug > 3 || ggep_debug > 3) {
+							if (
+								GNET_PROPERTY(search_debug) > 3 ||
+								GNET_PROPERTY(ggep_debug) > 3
+							) {
 								g_warning("%s bad GGEP \"CT\" (dumping)",
 										gmsg_infostr(&n->header));
 								ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1649,7 +1673,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					}
 					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
-					if (search_debug > 3 || ggep_debug > 3) {
+					if (
+						GNET_PROPERTY(search_debug) > 3 ||
+						GNET_PROPERTY(ggep_debug) > 3
+					) {
 						g_warning("%s unknown GGEP \"%s\" (dumping)",
 							gmsg_infostr(&n->header), ext_ggep_id_str(e));
 						ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -1678,20 +1705,20 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			}
 
 			if (has_unknown) {
-				if (search_debug > 2) {
+				if (GNET_PROPERTY(search_debug) > 2) {
 					g_warning("%s hit record #%d/%d has unknown extensions!",
 						gmsg_infostr(&n->header), nr, rs->num_recs);
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
 				}
 			} else if (exvcnt == MAX_EXTVEC) {
-				if (search_debug > 2) {
+				if (GNET_PROPERTY(search_debug) > 2) {
 					g_warning("%s hit record #%d/%d has %d extensions!",
 						gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
 				}
-			} else if (search_debug > 3) {
+			} else if (GNET_PROPERTY(search_debug) > 3) {
 				g_message("%s hit record #%d/%d has %d extensions:",
 					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
@@ -1761,14 +1788,14 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				rs->status |= ST_KNOWN_VENDOR;
 			}
 		} else {
-			if (search_debug) {
+			if (GNET_PROPERTY(search_debug)) {
 				g_warning(
 					"UNKNOWN %d-byte trailer at offset %d in %s from %s "
 					"(%u/%u records parsed)",
 					(gint) tlen, (gint) (s - n->data), gmsg_infostr(&n->header),
 					node_addr(n), (guint) nr, (guint) rs->num_recs);
 			}
-			if (search_debug > 1) {
+			if (GNET_PROPERTY(search_debug) > 1) {
 				dump_hex(stderr, "Query Hit Data (non-empty UNKNOWN trailer?)",
 					n->data, n->size);
 				dump_hex(stderr, "UNKNOWN trailer part", s, tlen);
@@ -1785,7 +1812,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	/* We now have the GUID of the node */
 
 	rs->guid = atom_guid_get(endptr);
-	if (guid_eq(rs->guid, servent_guid)) {
+	if (guid_eq(rs->guid, GNET_PROPERTY(servent_guid))) {
         gnet_stats_count_dropped(n, MSG_DROP_OWN_RESULT);
 		goto bad_packet;		
 	}
@@ -1804,7 +1831,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
 	if (sha1_errors) {
-		if (search_debug) g_warning(
+		if (GNET_PROPERTY(search_debug)) g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %d SHA1 error%s over %u record%s",
 				gmsg_infostr(&n->header), vendor ? vendor : "????",
@@ -1820,7 +1847,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 * do not drop.
 	 */
 
-	if (alt_errors && search_debug) {
+	if (alt_errors && GNET_PROPERTY(search_debug)) {
 		g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %d ALT error%s over %u record%s",
@@ -1830,7 +1857,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				nr, nr == 1 ? "" : "s");
 	}
 
-	if (alt_without_hash && search_debug) {
+	if (alt_without_hash && GNET_PROPERTY(search_debug)) {
 		g_warning(
 				"%s from %s (via \"%s\" at %s) "
 				"had %d ALT extension%s with no hash over %u record%s",
@@ -1840,14 +1867,14 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				nr, nr == 1 ? "" : "s");
 	}
 
-	if (search_debug > 1) {
-		if (seen_ggep_h && search_debug > 3)
+	if (GNET_PROPERTY(search_debug) > 1) {
+		if (seen_ggep_h && GNET_PROPERTY(search_debug) > 3)
 			g_message("%s from %s used GGEP \"H\" extension",
 					gmsg_infostr(&n->header), vendor ? vendor : "????");
-		if (seen_ggep_alt && search_debug > 3)
+		if (seen_ggep_alt && GNET_PROPERTY(search_debug) > 3)
 			g_message("%s from %s used GGEP \"ALT\" extension",
 					gmsg_infostr(&n->header), vendor ? vendor : "????");
-		if (seen_bitprint && search_debug > 3)
+		if (seen_bitprint && GNET_PROPERTY(search_debug) > 3)
 			g_message("%s from %s used urn:bitprint",
 					gmsg_infostr(&n->header), vendor ? vendor : "????");
 		if (multiple_sha1)
@@ -1911,12 +1938,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
   bad_packet:
-	if (search_debug > 2) {
+	if (GNET_PROPERTY(search_debug) > 2) {
 		g_warning(
 			"BAD %s from %s (via \"%s\" at %s) -- %u/%u records parsed",
 			 gmsg_infostr(&n->header), vendor ? vendor : "????",
 			 node_vendor(n), node_addr(n), nr, rs->num_recs);
-		if (search_debug > 1)
+		if (GNET_PROPERTY(search_debug) > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
 
@@ -1942,7 +1969,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
 			n->n_weird++;
-			if (search_debug > 1) g_warning("[weird #%d] "
+			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
 				"node %s (%s) had no tag in its query hits, now has %s in %s",
 				n->n_weird,
 				node_addr(n), node_vendor(n), vendor, gmsg_infostr(&n->header));
@@ -1961,7 +1988,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 		if (n->vcode.be32 != 0 && vendor == NULL) {
 			n->n_weird++;
-			if (search_debug > 1) g_warning("[weird #%d] "
+			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
 				"node %s (%s) had tag %4.4s in its query hits, "
 				"now has none in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
@@ -1979,7 +2006,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 		if (n->vcode.be32 != 0 && n->vcode.be32 != rs->vcode.be32) {
 			n->n_weird++;
-			if (search_debug > 1) g_warning("[weird #%d] "
+			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
 				"node %s (%s) moved from tag %4.4s to %4.4s in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
 				cast_to_gchar_ptr(&n->vcode.be32),
@@ -1998,7 +2025,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	if (node_guid(n)) {
 		if (!guid_eq(node_guid(n), rs->guid)) {
 			n->n_weird++;
-			if (search_debug > 1) {
+			if (GNET_PROPERTY(search_debug) > 1) {
 				gchar guid_buf[GUID_HEX_SIZE + 1];
 
 				guid_to_string_buf(rs->guid, guid_buf, sizeof guid_buf);
@@ -2039,7 +2066,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			)
 		) {
 			n->n_weird++;
-			if (search_debug > 1) g_warning("[weird #%d] "
+			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
 				"node %s (%s) advertised %s but now says Query Hits from %s",
 				n->n_weird, node_addr(n), node_vendor(n),
 				host_addr_to_string(is_host_addr(n->gnet_qhit_addr) ?
@@ -2049,7 +2076,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		n->gnet_qhit_addr = rs->addr;
 	}
 
-	if (search_debug > 3 && old_weird != n->n_weird)
+	if (GNET_PROPERTY(search_debug) > 3 && old_weird != n->n_weird)
 		dump_hex(stderr, "Query Hit Data (weird)", n->data, n->size);
 }
 
@@ -2086,20 +2113,24 @@ build_search_msg(search_ctrl_t *sch)
 	/* Use the first MUID on the list (the last one allocated) */
 	{
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
+		guint8 hops;
 		
+		hops = GNET_PROPERTY(hops_random_factor) &&
+			GNET_PROPERTY(current_peermode) != NODE_P_LEAF
+			? random_value(GNET_PROPERTY(hops_random_factor))
+			: 0;
+
 		gnutella_header_set_muid(header, sch->muids->data);
 		gnutella_header_set_function(header, GTA_MSG_SEARCH);
-		gnutella_header_set_ttl(header, my_ttl);
-		gnutella_header_set_hops(header,
-				(hops_random_factor && current_peermode != NODE_P_LEAF) ?
-				random_value(hops_random_factor) : 0);
+		gnutella_header_set_ttl(header, GNET_PROPERTY(my_ttl));
+		gnutella_header_set_hops(header, hops);
 
 		if (
 			(guint32) gnutella_header_get_ttl(header) +
-				gnutella_header_get_hops(header) > hard_ttl_limit
+			   gnutella_header_get_hops(header) > GNET_PROPERTY(hard_ttl_limit)
 		) {
 			gnutella_header_set_ttl(header,
-				hard_ttl_limit - gnutella_header_get_hops(header));
+			  GNET_PROPERTY(hard_ttl_limit) - gnutella_header_get_hops(header));
 		}
 	}
 
@@ -2122,7 +2153,7 @@ build_search_msg(search_ctrl_t *sch)
 	 */
 
 	speed = QUERY_SPEED_MARK;			/* Indicates: special speed field */
-	if (is_firewalled)
+	if (GNET_PROPERTY(is_firewalled))
 		speed |= QUERY_SPEED_FIREWALLED;
 	speed |= QUERY_SPEED_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
 	speed |= QUERY_SPEED_GGEP_H;		/* GTKG understands GGEP "H" in hits */
@@ -2135,7 +2166,11 @@ build_search_msg(search_ctrl_t *sch)
 	 * the already chosen MUID is valid according to our current IP:port.
 	 */
 
-	if (udp_active() && send_oob_queries && !is_udp_firewalled) {
+	if (
+		udp_active() &&
+		GNET_PROPERTY(send_oob_queries) &&
+		!GNET_PROPERTY(is_udp_firewalled)
+	) {
 		host_addr_t addr;
 		guint16 port;
 
@@ -2183,7 +2218,7 @@ build_search_msg(search_ctrl_t *sch)
 
 			if (new_len < len) {
 				len = new_len;
-				if (search_debug > 1)
+				if (GNET_PROPERTY(search_debug) > 1)
 					g_message("compacted query \"%s\" into \"%s\"",
 						sch->query, &msg.bytes[size]);
 			}
@@ -2247,16 +2282,16 @@ build_search_msg(search_ctrl_t *sch)
 		size += ggep_stream_close(&gs);
 	}
 
-	if (size - GTA_HEADER_SIZE > search_queries_forward_size) {
+	if (size - GTA_HEADER_SIZE > GNET_PROPERTY(search_queries_forward_size)) {
 		g_warning("not sending query \"%s\": larger than max query size (%d)",
-			sch->query, search_queries_forward_size);
+			sch->query, GNET_PROPERTY(search_queries_forward_size));
 		goto error;
 	}
 
 	gnutella_header_set_size(gnutella_msg_search_header(&msg.data),
 		size - GTA_HEADER_SIZE);
 
-	if (search_debug > 3)
+	if (GNET_PROPERTY(search_debug) > 3)
 		g_message("%squery \"%s\" message built with MUID %s",
 			is_sha1_search ? "URN " : "", sch->query,
 			guid_hex_str(gnutella_header_get_muid(
@@ -2284,7 +2319,7 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 
     g_assert(sch != NULL);
     g_assert(qhv != NULL);
-	g_assert(current_peermode == NODE_P_ULTRA);
+	g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
 
 	qhvec_reset(qhv);
 
@@ -2355,7 +2390,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 * XXX Drop support for regular nodes after 0.95 --RAM, 2004-08-31.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA) {
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
 		mark_search_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(
 			node_all_nodes(), sch->search_handle, (gchar *) msg, size);
@@ -2396,7 +2431,7 @@ node_added_callback(gpointer data)
 	 * If we're in UP mode, we're using dynamic querying for our own queries.
 	 */
 
-	if (current_peermode == NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 		return;
 
 	/*
@@ -2534,7 +2569,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * and set a new timer with the searches's reissue_timeout.
 	 */
 
-	if (search_debug > 2)
+	if (GNET_PROPERTY(search_debug) > 2)
 		g_message("updating search \"%s\" with timeout %u.", sch->query, tm);
 
 	sch->reissue_timeout_id = g_timeout_add(
@@ -2570,7 +2605,7 @@ search_send_query_status(search_ctrl_t *sch,
 	if (n == NULL)
 		return;					/* Node disconnected already */
 
-	if (search_debug > 1)
+	if (GNET_PROPERTY(search_debug) > 1)
 		g_message("SCH reporting %u kept results so far for \"%s\" to %s",
 			kept, sch->query, node_addr(n));
 
@@ -2677,7 +2712,7 @@ search_dequeue_all_nodes(gnet_search_t sh)
 	 * continue sending queries on our behalf.
 	 */
 
-	if (current_peermode == NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 		dq_search_closed(sh);
 	else
 		search_notify_closed(sh);
@@ -2770,7 +2805,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	 * searches, since they may have customized filters.
      */
 
-	if (browse_copied_to_passive) {
+	if (GNET_PROPERTY(browse_copied_to_passive)) {
 		guint32 max_items = search_max_results_for_ui();
 
 		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
@@ -2907,7 +2942,10 @@ search_results(gnutella_node_t *n, gint *results)
 		 */
 
 		if (forward_it) {
-			if (proxy_oob_queries && oob_proxy_got_results(n, rs->num_recs))
+			if (
+				GNET_PROPERTY(proxy_oob_queries) &&
+				oob_proxy_got_results(n, rs->num_recs)
+			)
 				forward_it = FALSE;
 			else
 				dh_got_results(gnutella_header_get_muid(&n->header),
@@ -2918,7 +2956,7 @@ search_results(gnutella_node_t *n, gint *results)
 		 * Look for records that match entries in the download queue.
 		 */
 
-		if (auto_download_identical)
+		if (GNET_PROPERTY(auto_download_identical))
 			search_check_results_set(rs);
 
 		/*
@@ -2926,7 +2964,7 @@ search_results(gnutella_node_t *n, gint *results)
 		 * those entries to the mesh.
 		 */
 
-		if (auto_feed_download_mesh)
+		if (GNET_PROPERTY(auto_feed_download_mesh))
 			dmesh_check_results_set(rs);
 	}
 
@@ -2936,7 +2974,7 @@ search_results(gnutella_node_t *n, gint *results)
 
     if (
 		selected_searches != NULL &&
-		search_handle_ignored_files != SEARCH_IGN_DISPLAY_AS_IS
+		GNET_PROPERTY(search_handle_ignored_files) != SEARCH_IGN_DISPLAY_AS_IS
 	) {
         for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
             gnet_record_t *rc = sl->data;
@@ -2944,7 +2982,10 @@ search_results(gnutella_node_t *n, gint *results)
 
             ival = ignore_is_requested(rc->name, rc->size, rc->sha1);
             if (ival != IGNORE_FALSE) {
-				if (search_handle_ignored_files == SEARCH_IGN_NO_DISPLAY)
+				if (
+					GNET_PROPERTY(search_handle_ignored_files)
+						== SEARCH_IGN_NO_DISPLAY
+				)
 					set_flags(rc->flags, SR_DONT_SHOW);
 				else
 					set_flags(rc->flags, SR_IGNORED);
@@ -2970,7 +3011,8 @@ final_cleanup:
 		!NODE_IS_UDP(n)
 	) {
 		n->n_weird++;
-		if (search_debug > 1) g_warning("[weird #%d] dropped %s from %s (%s)",
+		if (GNET_PROPERTY(search_debug) > 1)
+			g_warning("[weird #%d] dropped %s from %s (%s)",
 			n->n_weird, gmsg_infostr(&n->header), node_addr(n), node_vendor(n));
 	}
 
@@ -3338,14 +3380,14 @@ search_reissue(gnet_search_t sh)
 	 */
 
 	if (search_expired(sch)) {
-		if (search_debug)
+		if (GNET_PROPERTY(search_debug))
 			g_message("expired search \"%s\" (queries broadcasted: %d)",
 				sch->query, sch->query_emitted);
 		sch->frozen = sbool_set(TRUE);
 		goto done;
 	}
 
-	if (search_debug)
+	if (GNET_PROPERTY(search_debug))
 		g_message("reissuing search \"%s\" (queries broadcasted: %d)",
 			sch->query, sch->query_emitted);
 
@@ -3541,7 +3583,7 @@ search_add_kept(gnet_search_t sh, guint32 kept)
 
 	sch->kept_results += kept;
 
-	if (search_debug > 1)
+	if (GNET_PROPERTY(search_debug) > 1)
 		g_message("SCH GUI reported %u new kept results for \"%s\", has %u now",
 			kept, sch->query, sch->kept_results);
 
@@ -3550,7 +3592,10 @@ search_add_kept(gnet_search_t sh, guint32 kept)
 	 * to which we're connected) about the amount of results we got so far.
 	 */
 
-	if (!sbool_get(sch->active) || current_peermode != NODE_P_LEAF)
+	if (
+		!sbool_get(sch->active) ||
+		GNET_PROPERTY(current_peermode) != NODE_P_LEAF
+	)
 		return;
 
 	search_update_results(sch);
@@ -3625,12 +3670,12 @@ search_get_kept_results(const gchar *muid, guint32 *kept)
 		return FALSE;
 
 	if (sbool_get(sch->frozen)) {
-		if (search_debug)
+		if (GNET_PROPERTY(search_debug))
 			g_message("Ignoring results because search is stopped");
 		return FALSE;
 	}
 
-	if (search_debug > 1)
+	if (GNET_PROPERTY(search_debug) > 1)
 		g_message("SCH reporting %u kept results for \"%s\"",
 			sch->kept_results, sch->query);
 
@@ -3695,18 +3740,18 @@ search_oob_pending_results(
 		 */
 
 		if (
-			proxy_oob_queries &&
+			GNET_PROPERTY(proxy_oob_queries) &&
 			oob_proxy_pending_results(n, muid, hits, udp_firewalled,
 				&token_opaque)
 		) {
 			goto record_token;	
 		}
 
-		if (search_debug)
+		if (GNET_PROPERTY(search_debug))
 			g_warning("got OOB indication of %d hit%s for unknown search %s",
 				hits, hits == 1 ? "" : "s", guid_hex_str(muid));
 
-		if (search_debug > 3)
+		if (GNET_PROPERTY(search_debug) > 3)
 			gmsg_log_bad(n, "unexpected OOB hit indication");
 
 		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
@@ -3714,7 +3759,7 @@ search_oob_pending_results(
 		return;
 	}
 
-	if (search_debug || udp_debug)
+	if (GNET_PROPERTY(search_debug) || GNET_PROPERTY(udp_debug))
 		g_message("has %d pending OOB hit%s for search %s at %s",
 			hits, hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
 
@@ -3725,7 +3770,7 @@ search_oob_pending_results(
 	 */
 
 	if (kept > search_max_results_for_ui() * 0.15) {
-		if (search_debug)
+		if (GNET_PROPERTY(search_debug))
 			g_message("ignoring %d OOB hit%s for search %s (already got %u)",
 				hits, hits == 1 ? "" : "s", guid_hex_str(muid), kept);
 		return;
@@ -3750,7 +3795,7 @@ search_oob_pending_results(
 	 */
 
 	ask = MIN(hits, 254);
-	ask = MIN((guint) ask, search_max_items);
+	ask = MIN((guint) ask, GNET_PROPERTY(search_max_items));
 	g_assert(ask < 255);
 
 	/*
@@ -4005,17 +4050,17 @@ search_locally(gnet_search_t sh, const gchar *query)
 	if (!is_host_addr(rs->addr)) {
 		rs->addr = listen_addr6();
 	}
-	rs->port = listen_port;
+	rs->port = GNET_PROPERTY(listen_port);
 	rs->last_hop = zero_host_addr;
 	rs->country = -1;
-	rs->guid = atom_guid_get(servent_guid);
+	rs->guid = atom_guid_get(GNET_PROPERTY(servent_guid));
 	poke_be32(&rs->vcode.be32, T_GTKG);
     rs->status |= ST_LOCAL | ST_KNOWN_VENDOR;
 
-	if (is_firewalled)
+	if (GNET_PROPERTY(is_firewalled))
 		rs->status |= ST_FIREWALL;
 	
-	if (is_firewalled || !host_is_valid(rs->addr, rs->port)) {
+	if (GNET_PROPERTY(is_firewalled) || !host_is_valid(rs->addr, rs->port)) {
 		const GSList *nodes = node_push_proxies();
 
 		if (nodes) {

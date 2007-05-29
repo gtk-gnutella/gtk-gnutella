@@ -120,7 +120,7 @@ bogons_load(FILE *f)
 
 	iprange_sync(bogons_db);
 
-	if (dbg) {
+	if (GNET_PROPERTY(dbg)) {
 		g_message("loaded %u bogus IP ranges (%u hosts)",
 			iprange_get_item_count(bogons_db),
 			iprange_get_host_count(bogons_db));

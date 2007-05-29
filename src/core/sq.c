@@ -105,7 +105,7 @@ sq_pmsg_free(pmsg_t *mb, gpointer arg)
 	 * query for it to the specified node ID.
 	 */
 
-	if (current_peermode == NODE_P_LEAF)
+	if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
 		search_notify_sent(smi->search, smi->id, smi->node_id);
 
 	node_id_unref(smi->node_id);
@@ -268,7 +268,7 @@ sq_clear(squeue_t *sq)
 
 	g_assert(sq);
 
-	if (sq_debug > 3)
+	if (GNET_PROPERTY(sq_debug) > 3)
 		g_message("clearing sq node %s (sent=%d, dropped=%d)",
 			sq->node ? node_addr(sq->node) : "GLOBAL",
 			sq->n_sent, sq->n_dropped);
@@ -318,7 +318,7 @@ sq_puthere(squeue_t *sq, gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 	sq->searches = g_list_prepend(sq->searches, sb);
 	sq->count++;
 
-	if (sq->count > search_queue_size)
+	if (sq->count > GNET_PROPERTY(search_queue_size))
 		cap_queue(sq);
 }
 
@@ -361,7 +361,7 @@ sq_global_putq(gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 void
 sq_process(squeue_t *sq, time_t now)
 {
-    time_delta_t spacing = search_queue_spacing;
+    time_delta_t spacing = GNET_PROPERTY(search_queue_spacing);
 	GList *item;
 	smsg_t *sb;
 	struct gnutella_node *n;
@@ -407,10 +407,10 @@ retry:
 		 * Processing the global SQ.
 		 */
 
-		if (current_peermode != NODE_P_ULTRA)
+		if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 			return;
 
-		if (node_keep_missing() * 3 > 2 * up_connections)
+		if (node_keep_missing() * 3 > 2 * GNET_PROPERTY(up_connections))
 			return;							/* Not enough nodes for querying */
 	}
 
@@ -431,7 +431,7 @@ retry:
 	if (n == NULL) {
 		g_assert(sb->qhv != NULL);		/* Enqueued via sq_global_putq() */
 
-		if (sq_debug > 2)
+		if (GNET_PROPERTY(sq_debug) > 2)
 			g_message("sq GLOBAL, queuing \"%s\" (%u left, %d sent)",
 				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
@@ -446,7 +446,7 @@ retry:
 
 		g_assert(sb->qhv == NULL);		/* Enqueued via sq_putq() */
 
-		if (sq_debug > 2)
+		if (GNET_PROPERTY(sq_debug) > 2)
 			g_message("sq for node %s, queuing \"%s\" (%u left, %d sent)",
 				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
@@ -458,13 +458,13 @@ retry:
 		 * queries that go out.
 		 */
 
-		if (current_peermode == NODE_P_LEAF)
+		if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
 			smsg_mutate(sb, n);
 
 		mq_putq(n->outq, sb->mb);
 
 	} else {
-		if (sq_debug > 4)
+		if (GNET_PROPERTY(sq_debug) > 4)
 			g_message("sq for node %s, ignored \"%s\" (%u left, %d sent)",
 				node_addr(n), gnutella_msg_search_get_text(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
@@ -500,7 +500,7 @@ retry:
 static void
 cap_queue(squeue_t *sq)
 {
-    while (sq->count > search_queue_size) {
+    while (sq->count > GNET_PROPERTY(search_queue_size)) {
     	GList *item = g_list_last(sq->searches);
 		smsg_t *sb = item->data;
 
@@ -510,7 +510,7 @@ cap_queue(squeue_t *sq)
 		sq->count--;
 		sq->n_dropped++;
 
-		if (sq_debug > 4)
+		if (GNET_PROPERTY(sq_debug) > 4)
 			g_message("sq for node %s, dropped \"%s\" (%u left, %d dropped)",
 				node_addr(sq->node),
 				gnutella_msg_search_get_text(pmsg_start(sb->mb)),
@@ -544,7 +544,7 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 		sq->count--;
 		sq->searches = g_list_remove_link(sq->searches, l);
 
-		if (sq_debug > 4)
+		if (GNET_PROPERTY(sq_debug) > 4)
 			g_message("sq for node %s, dropped \"%s\" on search close (%u left)",
 				sq->node ? node_addr(sq->node) : "GLOBAL",
 				gnutella_msg_search_get_text(pmsg_start(sb->mb)), sq->count);

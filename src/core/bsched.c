@@ -397,28 +397,28 @@ void
 bsched_early_init(void)
 {
 	bws_set[BSCHED_BWS_OUT] = bsched_make("out",
-		BS_T_STREAM, BS_F_WRITE, bw_http_out, 1000);
+		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_http_out), 1000);
 
 	bws_set[BSCHED_BWS_GOUT] = bsched_make("G TCP out",
-		BS_T_STREAM, BS_F_WRITE, bw_gnet_out / 2, 1000);
+		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_out) / 2, 1000);
 
 	bws_set[BSCHED_BWS_GOUT_UDP] = bsched_make("G UDP out",
-		BS_T_STREAM, BS_F_WRITE, bw_gnet_out / 2, 1000);
+		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_out) / 2, 1000);
 
 	bws_set[BSCHED_BWS_GLOUT] = bsched_make("GL out",
-		BS_T_STREAM, BS_F_WRITE, bw_gnet_lout, 1000);
+		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_lout), 1000);
 
 	bws_set[BSCHED_BWS_IN] = bsched_make("in",
-		BS_T_STREAM, BS_F_READ, bw_http_in, 1000);
+		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_http_in), 1000);
 
 	bws_set[BSCHED_BWS_GIN] = bsched_make("G TCP in",
-		BS_T_STREAM, BS_F_READ, bw_gnet_in / 2, 1000);
+		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_in) / 2, 1000);
 
 	bws_set[BSCHED_BWS_GIN_UDP] = bsched_make("G UDP in",
-		BS_T_STREAM, BS_F_READ, bw_gnet_in / 2, 1000);
+		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_in) / 2, 1000);
 
 	bws_set[BSCHED_BWS_GLIN] = bsched_make("GL in",
-		BS_T_STREAM, BS_F_READ, bw_gnet_lin, 1000);
+		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_lin), 1000);
 
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
@@ -468,12 +468,12 @@ bsched_init(void)
 	 * two traffic types.
 	 */
 
-	if (bw_allow_stealing)
+	if (GNET_PROPERTY(bw_allow_stealing))
 		bsched_config_steal_http_gnet();
 	else
 		bsched_config_steal_gnet();
 
-	bsched_set_peermode(current_peermode);
+	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 }
 
 /**
@@ -521,8 +521,8 @@ bsched_set_peermode(node_peer_t mode)
 	case NODE_P_LEAF:
 		bsched_set_bandwidth(BSCHED_BWS_GLIN, 1);		/* 0 would disable it */
 		bsched_set_bandwidth(BSCHED_BWS_GLOUT, 1);
-		bsched_set_bandwidth(BSCHED_BWS_IN, bw_http_in);
-		bsched_set_bandwidth(BSCHED_BWS_OUT, bw_http_out);
+		bsched_set_bandwidth(BSCHED_BWS_IN, GNET_PROPERTY(bw_http_in));
+		bsched_set_bandwidth(BSCHED_BWS_OUT, GNET_PROPERTY(bw_http_out));
 		break;
 	case NODE_P_ULTRA:
 		/*
@@ -530,28 +530,38 @@ bsched_set_peermode(node_peer_t mode)
 		 * Otherwise, bandwidth is unlimited.
 		 */
 
-		steal = MIN(bw_http_in, bw_gnet_lin);
-		if (bws_glin_enabled && steal) {
+		steal = MIN(GNET_PROPERTY(bw_http_in), GNET_PROPERTY(bw_gnet_lin));
+		if (GNET_PROPERTY(bws_glin_enabled) && steal) {
 			bsched_set_bandwidth(BSCHED_BWS_GLIN, steal);
-			bsched_set_bandwidth(BSCHED_BWS_IN, MAX(1, bw_http_in - steal));
+			bsched_set_bandwidth(BSCHED_BWS_IN,
+				MAX(1, GNET_PROPERTY(bw_http_in) - steal));
 		} else {
 			bsched_set_bandwidth(BSCHED_BWS_GLIN, 0);			/* Disables */
-			bsched_set_bandwidth(BSCHED_BWS_IN, bw_http_in);
+			bsched_set_bandwidth(BSCHED_BWS_IN, GNET_PROPERTY(bw_http_in));
 		}
 
-		steal = MIN(bw_http_out, bw_gnet_lout);
-		if (bws_glout_enabled && steal) {
+		steal = MIN(GNET_PROPERTY(bw_http_out), GNET_PROPERTY(bw_gnet_lout));
+		if (GNET_PROPERTY(bws_glout_enabled) && steal) {
 			bsched_set_bandwidth(BSCHED_BWS_GLOUT, steal);
-			bsched_set_bandwidth(BSCHED_BWS_OUT, MAX(1, bw_http_out - steal));
+			bsched_set_bandwidth(BSCHED_BWS_OUT,
+				MAX(1, GNET_PROPERTY(bw_http_out) - steal));
 		} else {
 			bsched_set_bandwidth(BSCHED_BWS_GLOUT, 0);			/* Disables */
-			bsched_set_bandwidth(BSCHED_BWS_OUT, bw_http_out);
+			bsched_set_bandwidth(BSCHED_BWS_OUT, GNET_PROPERTY(bw_http_out));
 		}
 
-		if (bsched_bw_per_second(BSCHED_BWS_GLIN) && bws_glin_enabled)
+		if (
+			bsched_bw_per_second(BSCHED_BWS_GLIN) &&
+			GNET_PROPERTY(bws_glin_enabled)
+		) {
 			bsched_enable(BSCHED_BWS_GLIN);
-		if (bsched_bw_per_second(BSCHED_BWS_GLOUT) && bws_glout_enabled)
+		}
+		if (
+			bsched_bw_per_second(BSCHED_BWS_GLOUT) &&
+			GNET_PROPERTY(bws_glout_enabled)
+		) {
 			bsched_enable(BSCHED_BWS_GLOUT);
+		}
 		break;
 	default:
 		g_error("unhandled peer mode %d", mode);
@@ -585,27 +595,46 @@ bsched_disable(bsched_bws_t bws)
 void
 bsched_enable_all(void)
 {
-	if (bsched_bw_per_second(BSCHED_BWS_OUT) && bws_out_enabled)
+	if (
+		bsched_bw_per_second(BSCHED_BWS_OUT) &&
+		GNET_PROPERTY(bws_out_enabled)
+	) {
 		bsched_enable(BSCHED_BWS_OUT);
-
-	if (bsched_bw_per_second(BSCHED_BWS_GOUT) && bws_gout_enabled) {
+	}
+	if (
+		bsched_bw_per_second(BSCHED_BWS_GOUT) &&
+		GNET_PROPERTY(bws_gout_enabled)
+	) {
 		bsched_enable(BSCHED_BWS_GOUT);
 		bsched_enable(BSCHED_BWS_GOUT_UDP);
 	}
 
-	if (bsched_bw_per_second(BSCHED_BWS_GLOUT) && bws_glout_enabled)
+	if (
+		bsched_bw_per_second(BSCHED_BWS_GLOUT) &&
+		GNET_PROPERTY(bws_glout_enabled)
+	) {
 		bsched_enable(BSCHED_BWS_GLOUT);
-
-	if (bsched_bw_per_second(BSCHED_BWS_IN) && bws_in_enabled)
+	}
+	if (
+		bsched_bw_per_second(BSCHED_BWS_IN) &&
+		GNET_PROPERTY(bws_in_enabled)
+	) {
 		bsched_enable(BSCHED_BWS_IN);
-
-	if (bsched_bw_per_second(BSCHED_BWS_GIN) && bws_gin_enabled) {
+	}
+	if (
+		bsched_bw_per_second(BSCHED_BWS_GIN) &&
+		GNET_PROPERTY(bws_gin_enabled)
+	) {
 		bsched_enable(BSCHED_BWS_GIN);
 		bsched_enable(BSCHED_BWS_GIN_UDP);
 	}
 
-	if (bsched_bw_per_second(BSCHED_BWS_GLIN) && bws_glin_enabled)
+	if (
+		bsched_bw_per_second(BSCHED_BWS_GLIN) &&
+		GNET_PROPERTY(bws_glin_enabled)
+	) {
 		bsched_enable(BSCHED_BWS_GLIN);
+	}
 }
 
 /**
@@ -1059,7 +1088,7 @@ bw_available(bio_source_t *bio, gint len)
 
 	available = bs->bw_max + bs->bw_stolen - bs->bw_actual;
 
-	if (dbg > 8)
+	if (GNET_PROPERTY(dbg) > 8)
 		printf("bw_available: "
 			"[fd #%d] max=%d, stolen=%d, actual=%d => avail=%d\n",
 			bio->wio->fd(bio->wio), bs->bw_max, bs->bw_stolen, bs->bw_actual,
@@ -1083,7 +1112,7 @@ bw_available(bio_source_t *bio, gint len)
 	used = bio->flags & BIO_F_USED;
 	active = bio->flags & BIO_F_ACTIVE;
 
-	if (dbg > 8)
+	if (GNET_PROPERTY(dbg) > 8)
 		printf("\tcapped=%s, used=%s, active=%s => avail=%d\n",
 			capped ? "y" : "n", used ? "y" : "n", active ? "y" : "n",
 			available);
@@ -1141,7 +1170,7 @@ bw_available(bio_source_t *bio, gint len)
 			bs->bw_slot = BW_SLOT_MIN;
 		}
 
-		if (dbg > 7)
+		if (GNET_PROPERTY(dbg) > 7)
 			printf("bw_availble: new slot=%d for \"%s\" (%scapped)\n",
 				bs->bw_slot, bs->name, capped ? "" : "un");
 	}
@@ -1215,7 +1244,7 @@ bw_available(bio_source_t *bio, gint len)
 		if (adj > available)
 			adj = available;
 
-		if (dbg > 4)
+		if (GNET_PROPERTY(dbg) > 4)
 			printf("bw_available: \"%s\" adding %d to %d"
 				" (len=%d, capped=%d [%d-%d/%d], available=%d, used=%c)\n",
 				bs->name, adj, result, len, bs->bw_last_capped,
@@ -1313,7 +1342,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 
 	amount = len > available ? available : len;
 
-	if (dbg > 7)
+	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_write(wio=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
@@ -1425,7 +1454,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (dbg > 7)
+	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_writev(fd=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
@@ -1501,7 +1530,7 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 		return -1;
 	}
 
-	if (dbg > 7)
+	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_sendto(wio=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
@@ -1638,7 +1667,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 	amount = len > available ? available : len;
 
-	if (dbg > 7)
+	if (GNET_PROPERTY(dbg) > 7)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
@@ -1854,7 +1883,7 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 	}
 
 	amount = len > available ? available : len;
-	if (dbg > 7)
+	if (GNET_PROPERTY(dbg) > 7)
 		printf("bsched_read(fd=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
@@ -1954,7 +1983,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (dbg > 7)
+	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_readv(fd=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
@@ -2304,7 +2333,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	delay = (gint) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
 
-	if (dbg > 9)
+	if (GNET_PROPERTY(dbg) > 9)
 		printf("[%s] tv = %d,%d  bs = %d,%d, delay = %d\n",
 			bs->name, (gint) tv->tv_sec, (gint) tv->tv_usec,
 			(gint) bs->last_period.tv_sec, (gint) bs->last_period.tv_usec,
@@ -2326,12 +2355,12 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	 */
 
 	if (delay < bs->min_period) {
-		if (dbg && bs->last_period.tv_sec)
+		if (GNET_PROPERTY(dbg) && bs->last_period.tv_sec)
 			g_warning("heartbeat (%s) noticed time jumped backwards (~%d ms)",
 				bs->name, bs->period - delay);
 		delay = bs->period;
 	} else if (delay > bs->max_period) {
-		if (dbg && bs->last_period.tv_sec)
+		if (GNET_PROPERTY(dbg) && bs->last_period.tv_sec)
 			g_warning("heartbeat (%s) noticed time jumped forwards (~%d ms)",
 				bs->name, delay - bs->period);
 		delay = bs->period;
@@ -2447,7 +2476,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 
 	bs->last_used = last_used;
 
-	if (dbg > 4) {
+	if (GNET_PROPERTY(dbg) > 4) {
 		printf("bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
 			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d "
 			"capped=%d (%d) used %d/%d\n",
@@ -2577,7 +2606,7 @@ bsched_stealbeat(bsched_t *bs)
 			bsched_t *xbs = l->data;
 			xbs->bw_stolen += underused / steal_count;
 
-			if (dbg > 4)
+			if (GNET_PROPERTY(dbg) > 4)
 				printf("b/w sched \"%s\" evenly giving %d bytes to \"%s\"\n",
 					bs->name, underused / steal_count, xbs->name);
 		}
@@ -2596,7 +2625,7 @@ bsched_stealbeat(bsched_t *bs)
 			else
 				xbs->bw_stolen += (gint) amount;
 
-			if (dbg > 4)
+			if (GNET_PROPERTY(dbg) > 4)
 				printf("b/w sched \"%s\" giving %d bytes to \"%s\"\n",
 					bs->name, (gint) amount, xbs->name);
 		}
@@ -2658,7 +2687,7 @@ bsched_timer(void)
 
 	bws_out_ema += (out_used >> 6) - (bws_out_ema >> 6);	/* Slow EMA */
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		printf("Outgoing b/w EMA = %d bytes/s\n", bws_out_ema);
 
 	for (l = bws_in_list; l; l = g_slist_next(l)) {
@@ -2675,7 +2704,7 @@ bsched_timer(void)
 
 	bws_in_ema += (in_used >> 6) - (bws_in_ema >> 6);		/* Slow EMA */
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		printf("Incoming b/w EMA = %d bytes/s\n", bws_in_ema);
 
 	/*
@@ -2692,7 +2721,7 @@ bsched_timer(void)
 static gboolean
 true_expr(const gchar *expr)
 {
-	if (dbg > 0) {
+	if (GNET_PROPERTY(dbg) > 0) {
 		g_message("%s", expr);
 	}
 	return TRUE;
@@ -2734,32 +2763,33 @@ bsched_enough_up_bandwidth(void)
 
 	if (
 		noisy_check(
-			bws_glout_enabled &&
-			bws_out_enabled &&
-			bw_gnet_lout >= bw_http_out &&
+			GNET_PROPERTY(bws_glout_enabled) &&
+			GNET_PROPERTY(bws_out_enabled) &&
+			GNET_PROPERTY(bw_gnet_lout) >= GNET_PROPERTY(bw_http_out) &&
 			upload_is_enabled())
 	)
 		return FALSE;		/* 2. */
 
 	if (
 		noisy_check(
-			bws_gout_enabled &&
-			bw_gnet_out < BW_OUT_GNET_MIN *
-				(up_connections + max_connections) / 2)
+			GNET_PROPERTY(bws_gout_enabled) &&
+			GNET_PROPERTY(bw_gnet_out) < BW_OUT_GNET_MIN *
+		(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)) / 2)
 	)
 		return FALSE;		/* 3. */
 
-	if (bws_gout_enabled)
-		total += bw_gnet_out;
+	if (GNET_PROPERTY(bws_gout_enabled))
+		total += GNET_PROPERTY(bw_gnet_out);
 
-	if (bws_out_enabled)
-		total += bw_http_out;		/* Leaf b/w stolen from HTTP traffic */
-	else if (bws_glout_enabled)
-		total += bw_gnet_lout;
+	if (GNET_PROPERTY(bws_out_enabled)) /* Leaf b/w stolen from HTTP traffic */
+		total += GNET_PROPERTY(bw_http_out);
+	else if (GNET_PROPERTY(bws_glout_enabled))
+		total += GNET_PROPERTY(bw_gnet_lout);
 
 	if (
 		noisy_check(total <
-			(BW_OUT_GNET_MIN * max_connections + BW_OUT_LEAF_MIN * max_leaves))
+			(BW_OUT_GNET_MIN * GNET_PROPERTY(max_connections) +
+			 BW_OUT_LEAF_MIN * GNET_PROPERTY(max_leaves)))
 	) {
 		return FALSE;		/* 4. */
 	}

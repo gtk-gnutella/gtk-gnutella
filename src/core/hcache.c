@@ -196,7 +196,8 @@ static GHashTable * ht_known_hosts = NULL;
 static void
 hcache_update_low_on_pongs(void)
 {
-    host_low_on_pongs = hcache_size(HOST_ANY) < (max_hosts_cached / 8);
+    host_low_on_pongs = hcache_size(HOST_ANY) <
+							(GNET_PROPERTY(max_hosts_cached) / 8);
 }
 
 /***
@@ -499,14 +500,15 @@ hcache_slots_left(hcache_type_t type)
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_VALID_ANY:
-        return max_hosts_cached - hcache_size(HOST_ANY);
+        return GNET_PROPERTY(max_hosts_cached) - hcache_size(HOST_ANY);
     case HCACHE_FRESH_ULTRA:
     case HCACHE_VALID_ULTRA:
-        return max_ultra_hosts_cached - hcache_size(HOST_ULTRA);
+        return GNET_PROPERTY(max_ultra_hosts_cached) - hcache_size(HOST_ULTRA);
 	case HCACHE_NONE:
 		g_assert_not_reached();
     default:
-        return max_bad_hosts_cached - hash_list_length(caches[type]->hostlist);
+        return GNET_PROPERTY(max_bad_hosts_cached) -
+					hash_list_length(caches[type]->hostlist);
     }
 }
 
@@ -531,7 +533,8 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 	hostcache_t *hc;
 	hostcache_entry_t *hce;
 
-	g_assert((guint) type < HCACHE_MAX && type != HCACHE_NONE);
+	g_assert(UNSIGNED(type) < HCACHE_MAX);
+	g_assert(type != HCACHE_NONE);
 
 	/*
 	 * Don't add anything to the "unstable" cache if they don't want to
@@ -542,7 +545,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 	 */
 
     if (type == HCACHE_UNSTABLE) {
-    	if (!node_monitor_unstable_ip || host_low_on_pongs)
+    	if (!GNET_PROPERTY(node_monitor_unstable_ip) || host_low_on_pongs)
 			return FALSE;
 	}
 
@@ -682,7 +685,7 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
     hcache_prune(hc->type);
     hcache_update_low_on_pongs();
 
-    if (dbg > 8) {
+    if (GNET_PROPERTY(dbg) > 8) {
         printf("Added %s %s (%s)\n", what, gnet_host_to_string(host),
             (type == HCACHE_FRESH_ANY || type == HCACHE_VALID_ANY) ?
                 (host_low_on_pongs ? "LOW" : "OK") : "");
@@ -1165,7 +1168,8 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 	 */
 
 	if (
-		use_netmasks && number_local_networks &&
+		GNET_PROPERTY(use_netmasks) &&
+		number_local_networks &&
 		hcache_find_nearby(type, addr, port)
 	)
 		return TRUE;
@@ -1346,7 +1350,7 @@ hcache_timer(time_t now)
 {
     hcache_expire_all(now);
 
-    if (dbg >= 15) {
+    if (GNET_PROPERTY(dbg) >= 15) {
         hcache_dump_info(caches[HCACHE_FRESH_ANY],   "timer");
         hcache_dump_info(caches[HCACHE_VALID_ANY],   "timer");
 

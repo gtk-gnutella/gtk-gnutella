@@ -74,7 +74,7 @@ tls_socket_get_session(struct gnutella_socket *s)
 static inline void
 tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
 {
-	if (tls_debug > 1) {
+	if (GNET_PROPERTY(tls_debug) > 1) {
 		int saved_errno = errno;
 		gboolean error = (ssize_t) -1 == ret;
 
@@ -131,7 +131,7 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 	if (cond != s->tls.cb_cond) {
 		int saved_errno = errno;
 
-		if (tls_debug > 1) {
+		if (GNET_PROPERTY(tls_debug) > 1) {
 			int fd = socket_evt_fd(s);
 			g_message("tls_socket_evt_change: fd=%d, cond=%s -> %s, handler=%p",
 				fd, inputevt_cond_to_string(s->tls.cb_cond),
@@ -253,11 +253,11 @@ tls_handshake(struct gnutella_socket *s)
 	ret = gnutls_handshake(session);
 	switch (ret) {
 	case 0:
-		if (tls_debug) {
+		if (GNET_PROPERTY(tls_debug)) {
 			g_message("TLS handshake succeeded");
 		}
 		tls_socket_evt_change(s, INPUT_EVENT_W);
-		if (tls_debug) {
+		if (GNET_PROPERTY(tls_debug)) {
 			tls_print_session_info(s->addr, s->port, session);
 		}
 		return TLS_HANDSHAKE_FINISHED;
@@ -268,11 +268,11 @@ tls_handshake(struct gnutella_socket *s)
 		return TLS_HANDSHAKE_RETRY;
 	case GNUTLS_E_PULL_ERROR:
 	case GNUTLS_E_PUSH_ERROR:
-		if (tls_debug) {
+		if (GNET_PROPERTY(tls_debug)) {
 			switch (errno) {
 			case EPIPE:
 			case ECONNRESET:
-				if (tls_debug < 2)
+				if (GNET_PROPERTY(tls_debug) < 2)
 					break;
 			default:
 				g_message("gnutls_handshake() failed: host=%s errno=\"%s\"",
@@ -430,11 +430,11 @@ tls_bye(tls_context_t ctx, gboolean is_incoming)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (tls_debug) {
+			if (GNET_PROPERTY(tls_debug)) {
 				switch (errno) {
 				case EPIPE:
 				case ECONNRESET:
-					if (tls_debug < 2)
+					if (GNET_PROPERTY(tls_debug) < 2)
 						break;
 				default:
 					g_message("gnutls_bye() failed: host=%s errno=\"%s\"",
@@ -557,7 +557,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (tls_debug) {
+			if (GNET_PROPERTY(tls_debug)) {
 				g_message("tls_write(): socket_tls_write() failed: "
 					"host=%s errno=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
@@ -567,7 +567,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 			ret = -1;
 			break;
 		default:
-			if (tls_debug) {
+			if (GNET_PROPERTY(tls_debug)) {
 				g_warning("tls_write(): gnutls_record_send() failed: "
 					"host=%s error=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
@@ -615,7 +615,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (tls_debug) {
+			if (GNET_PROPERTY(tls_debug)) {
 				g_message("tls_read(): socket_tls_read() failed: "
 					"host=%s errno=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
@@ -624,7 +624,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 			errno = EIO;
 			break;
 		default:
-			if (tls_debug) {
+			if (GNET_PROPERTY(tls_debug)) {
 				g_warning("tls_read(): gnutls_record_recv() failed: "
 					"host=%s error=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
@@ -676,7 +676,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
-				if (tls_debug) {
+				if (GNET_PROPERTY(tls_debug)) {
 					g_message("tls_writev() failed: "
 						"host=%s errno=\"%s\"",
 						host_addr_port_to_string(s->addr, s->port),
@@ -685,7 +685,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				errno = EIO;
 				break;
 			default:
-				if (tls_debug) {
+				if (GNET_PROPERTY(tls_debug)) {
 					g_warning("tls_writev(): gnutls_record_send() failed: "
 						"host=%s error=\"%s\"",
 						host_addr_port_to_string(s->addr, s->port),
@@ -719,7 +719,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				break;
 			case GNUTLS_E_PULL_ERROR:
 			case GNUTLS_E_PUSH_ERROR:
-				if (tls_debug) {
+				if (GNET_PROPERTY(tls_debug)) {
 					g_message("tls_writev() failed: "
 						"host=%s errno=\"%s\"",
 						host_addr_port_to_string(s->addr, s->port),
@@ -728,7 +728,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				ret = -1;
 				break;
 			default:
-				if (tls_debug) {
+				if (GNET_PROPERTY(tls_debug)) {
 					g_warning("gnutls_record_send() failed: "
 						"host=%s error=\"%s\"",
 						host_addr_port_to_string(s->addr, s->port),
@@ -800,7 +800,7 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 			break;
 		case GNUTLS_E_PULL_ERROR:
 		case GNUTLS_E_PUSH_ERROR:
-			if (tls_debug) {
+			if (GNET_PROPERTY(tls_debug)) {
 				g_message("tls_readv(): socket_tls_readv() failed: "
 					"host=%s errno=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
@@ -810,7 +810,7 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 			ret = -1;
 			break;
 		default:
-			if (tls_debug) {
+			if (GNET_PROPERTY(tls_debug)) {
 				g_warning("tls_readv(): gnutls_record_recv() failed: "
 					"host=%s error=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),

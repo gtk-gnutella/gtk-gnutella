@@ -289,7 +289,7 @@ clist_collect_data(GtkCList *clist, gboolean allow_null, GCompareFunc cfn)
         if ((data != NULL) || allow_null) {
             if (cfn != NULL) {
                 if (g_slist_find_custom(result_list, data, cfn) != NULL) {
-                    if (gui_debug >= 3) {
+                    if (GUI_PROPERTY(gui_debug) >= 3) {
                         const gchar *name =
                             gtk_widget_get_name(GTK_WIDGET(clist));
                         printf("%s has duplicate data: %p\n",
@@ -303,7 +303,7 @@ clist_collect_data(GtkCList *clist, gboolean allow_null, GCompareFunc cfn)
             result_list = g_slist_prepend(result_list, data);
             to_unselect = g_slist_prepend(to_unselect, GINT_TO_POINTER(row));
         } else {
-            if (gui_debug >= 3) {
+            if (GUI_PROPERTY(gui_debug) >= 3) {
                 const gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
                 printf("%s contains NULL data in row %d\n",
                     (name != NULL) ? name : "<UNKNOWN>", row);
@@ -400,7 +400,7 @@ tree_selection_collect_data_record(GtkTreeModel *model, GtkTreeIter *iter,
 
 	if (NULL != cdata->cfn &&
 		NULL != g_slist_find_custom(cdata->results, data, cdata->cfn)) {
-		if (gui_debug >= 3)
+		if (GUI_PROPERTY(gui_debug) >= 3)
 			g_warning("%s has duplicate data: %p", cdata->name, data);
 		return;
 	}
@@ -462,7 +462,7 @@ tree_selection_collect_data(GtkTreeSelection *selection,
 	cdata.cfn = cfn;
 	cdata.gdf = gdf;
 	cdata.tv = gtk_tree_selection_get_tree_view(selection);
-	if (gui_debug >= 3) {
+	if (GUI_PROPERTY(gui_debug) >= 3) {
 		cdata.name = gtk_widget_get_name(
 			GTK_WIDGET(gtk_tree_selection_get_tree_view(selection)));
 		if (NULL == cdata.name)

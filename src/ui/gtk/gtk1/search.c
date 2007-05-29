@@ -493,7 +493,7 @@ search_gui_new_search_full(const gchar *query_str,
 	 */
 	if (
 		is_only_search ||
-		(!search_gui_is_browse(sch) && search_jump_to_created)
+		(!search_gui_is_browse(sch) && GUI_PROPERTY(search_jump_to_created))
 	) {
 		search_gui_set_current_search(sch);
 	} else {
@@ -548,7 +548,7 @@ search_gui_compare_records(gint sort_col,
 
         switch ((enum c_sr_columns) sort_col) {
         case c_sr_filename:
-			if (search_sort_casesense) {
+			if (GUI_PROPERTY(search_sort_casesense)) {
             	result = strcmp(r1->utf8_name, r2->utf8_name);
 			} else {
             	result = ascii_strcasecmp(r1->utf8_name, r2->utf8_name);
@@ -2359,7 +2359,7 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 
 	for (i = 0; i < c_sr_num; i++)
 		gtk_clist_set_column_width(GTK_CLIST(*ctree), i,
-			search_results_col_widths[i]);
+			GUI_PROPERTY(search_results_col_widths)[i]);
 
 	gtk_clist_set_selection_mode(GTK_CLIST(*ctree), GTK_SELECTION_EXTENDED);
 	gtk_clist_column_titles_show(GTK_CLIST(*ctree));

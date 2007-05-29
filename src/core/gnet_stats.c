@@ -312,7 +312,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	default: ;
 	}
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
 			node_addr(n), node_vendor(n),
 			gnet_stats_drop_reason_to_string(reason));
@@ -340,7 +340,7 @@ gnet_stats_count_dropped_nosize(
 	/* Data part of message not read */
 	DROP_STATS(stats, type, sizeof(n->header));
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
 			node_addr(n), node_vendor(n),
 			gnet_stats_drop_reason_to_string(reason));

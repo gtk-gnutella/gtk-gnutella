@@ -219,9 +219,9 @@ found_set_header(void)
 	 * Compute connection speed dynamically if requested.
 	 */
 
-	connect_speed = connection_speed;
-	if (compute_connection_speed) {
-		if (max_uploads > 0) {
+	connect_speed = GNET_PROPERTY(connection_speed);
+	if (GNET_PROPERTY(compute_connection_speed)) {
+		if (GNET_PROPERTY(max_uploads) > 0) {
 			connect_speed = bsched_avg_bps(BSCHED_BWS_OUT);
 			connect_speed = MAX(connect_speed,
 								bsched_bw_per_second(BSCHED_BWS_OUT));
@@ -234,7 +234,7 @@ found_set_header(void)
 			connect_speed = 0;
 		}
 	}
-	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
+	connect_speed /= MAX(1, GNET_PROPERTY(max_uploads));	/* Upload speed expected per slot */
 
 	gnutella_msg_search_results_set_host_port(msg, socket_listen_port());
 	gnutella_msg_search_results_set_host_ip(msg, host_addr_ipv4(listen_addr()));
@@ -298,8 +298,9 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 {
 	gnutella_node_t *n = udata;
 	gnutella_header_t *packet_head = data;
+	guint8 ttl;
 
-	if (dbg > 3) {
+	if (GNET_PROPERTY(dbg) > 3) {
 		g_message("flushing query hit (%u entr%s, %u bytes sofar) to %s",
 			(guint) found_file_count(),
 			found_file_count() == 1 ? "y" : "ies",
@@ -324,8 +325,9 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 		gnutella_header_set_hops(&n->header, 1);
 	}
 
-	gnutella_header_set_ttl(packet_head,
-		MIN((guint) gnutella_header_get_hops(&n->header) + 5, hard_ttl_limit));
+	ttl = gnutella_header_get_hops(&n->header) + 5U;
+	ttl = MIN(ttl, GNET_PROPERTY(hard_ttl_limit));
+	gnutella_header_set_ttl(packet_head, ttl);
 
 	gmsg_sendto_one(n, data, len);
 }
@@ -351,11 +353,11 @@ flush_match(void)
 	trailer[5] = 0x04 | 0x08 | 0x20;	/* Valid flags we set */
 	trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
 
-	if (ul_running >= max_uploads)
+	if (GNET_PROPERTY(ul_running) >= GNET_PROPERTY(max_uploads))
 		trailer[6] |= 0x04;			/* Busy flag */
-	if (total_uploads > 0)
+	if (GNET_PROPERTY(total_uploads) > 0)
 		trailer[6] |= 0x08;			/* One file uploaded, at least */
-	if (is_firewalled)
+	if (GNET_PROPERTY(is_firewalled))
 		trailer[5] |= 0x01;			/* Firewall bit set in enabling byte */
 
 	/*
@@ -432,7 +434,7 @@ flush_match(void)
 	 * our current push proxies.  Prepare payload in `proxies'.
 	 */
 
-	if (is_firewalled) {
+	if (GNET_PROPERTY(is_firewalled)) {
 		GSList *nodes = node_push_proxies();
 
 		if (nodes != NULL) {
@@ -470,11 +472,16 @@ flush_match(void)
 	 * server's hostname.
 	 */
 
-	if (!is_firewalled && give_server_hostname && '\0' != server_hostname[0]) {
+	if (
+		!GNET_PROPERTY(is_firewalled) &&
+		'\0' != GNET_PROPERTY(server_hostname)[0]
+	) {
 		gboolean ok;
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(HNAME),
-				server_hostname, strlen(server_hostname), 0);
+				GNET_PROPERTY(server_hostname),
+				strlen(GNET_PROPERTY(server_hostname)),
+				0);
 
 		if (!ok)
 			g_warning("could not write GGEP \"HNAME\" extension "
@@ -504,7 +511,7 @@ flush_match(void)
 	 * enabled.
      */
 
-	if (browse_host_enabled) {
+	if (GNET_PROPERTY(browse_host_enabled)) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(BH), NULL, 0, 0))
 			g_warning("could not write GGEP \"BH\" extension into query hit");
 	}
@@ -519,7 +526,7 @@ flush_match(void)
 	 * Store the GUID in the last 16 bytes of the query hit.
 	 */
 
-	if (!found_write(servent_guid, 16))
+	if (!found_write(GNET_PROPERTY(servent_guid), GUID_RAW_SIZE))
 		goto failure;
 
 	found_set_header();
@@ -580,7 +587,7 @@ add_file(const struct shared_file *sf)
 
 	if (
 		found_size() + needed + QHIT_MIN_TRAILER_LEN
-			> search_answers_forward_size
+			> GNET_PROPERTY(search_answers_forward_size)
 	)
 		return FALSE;
 
@@ -838,7 +845,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
 
 	g_slist_free(files);
 
-	if (dbg > 3)
+	if (GNET_PROPERTY(dbg) > 3)
 		g_message("sent %d/%d hits to %s", sent, count, node_addr(n));
 }
 

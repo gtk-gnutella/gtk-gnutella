@@ -232,11 +232,11 @@ shadow_find(filter_t *f)
 
     l = g_list_find_custom(shadow_filters, f, shadow_filter_eq);
     if (l != NULL) {
-        if (gui_debug >= 6)
+        if (GUI_PROPERTY(gui_debug) >= 6)
             g_message("shadow found for: %s", f->name);
         return l->data;
     } else {
-        if (gui_debug >= 6)
+        if (GUI_PROPERTY(gui_debug) >= 6)
             g_message("no shadow found for: %s", f->name);
         return NULL;
     }
@@ -256,7 +256,7 @@ shadow_new(filter_t *f)
     g_assert(f != NULL);
     g_assert(f->name != NULL);
 
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("creating shadow for: %s", f->name);
 
     shadow = g_new0(shadow_t, 1);
@@ -292,7 +292,7 @@ shadow_cancel(shadow_t *shadow)
     g_assert(shadow != NULL);
     g_assert(shadow->filter != NULL);
 
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("cancel shadow for filter: %s", shadow->filter->name);
 
     for (r = shadow->added; r != NULL; r = r->next)
@@ -329,7 +329,7 @@ shadow_commit(shadow_t *shadow)
 
     realf = shadow->filter;
 
-    if (gui_debug >= 6) {
+    if (GUI_PROPERTY(gui_debug) >= 6) {
         g_message("committing shadow for filter:");
         dump_shadow(shadow);
     }
@@ -382,7 +382,7 @@ shadow_commit(shadow_t *shadow)
     shadow_filters = g_list_remove(shadow_filters, shadow);
     G_FREE_NULL(shadow);
 
-    if (gui_debug >= 6) {
+    if (GUI_PROPERTY(gui_debug) >= 6) {
         g_message("after commit filter looks like this");
         dump_filter(realf);
     }
@@ -464,7 +464,7 @@ filter_close_dialog(gboolean commit)
 
         gui_prop_set_guint32(PROP_FILTER_DLG_COORDS, (guint32 *) coord, 0, 4);
 
-        *(guint32 *) &filter_main_divider_pos =
+        *(guint32 *) &GUI_PROPERTY(filter_main_divider_pos) =
             gtk_paned_get_position
                 (GTK_PANED(gui_filter_dialog_lookup("hpaned_filter_main")));
 
@@ -789,7 +789,7 @@ filter_close_search(search_t *s)
     g_assert(s != NULL);
     g_assert(s->filter != NULL);
 
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("closing search (freeing filter): %s", search_gui_query(s));
 
     shadow = shadow_find(s->filter);
@@ -881,7 +881,7 @@ filter_revert_changes(void)
 {
     GList *iter;
 
-    if (gui_debug >= 5)
+    if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("Canceling all changes to filters/rules");
 
     filter_gui_freeze_filters();
@@ -1395,7 +1395,7 @@ filter_free_rule(rule_t *r)
 {
     g_assert(r != NULL);
 
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("freeing rule: %s", filter_rule_to_string(r));
 
     switch (r->type) {
@@ -1474,7 +1474,7 @@ filter_add_rule(filter_t *f, rule_t * const r, filter_add_rule_func_t func)
      */
     f->ruleset = (*func)(f->ruleset, r);
     r->target->refcount ++;
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("increased refcount on \"%s\" to %d",
             r->target->name, r->target->refcount);
 
@@ -1490,7 +1490,7 @@ filter_add_rule(filter_t *f, rule_t * const r, filter_add_rule_func_t func)
     if (target_shadow != NULL) {
         target_shadow->refcount ++;
 
-        if (gui_debug >= 6)
+        if (GUI_PROPERTY(gui_debug) >= 6)
             g_message("increased refcount on shadow of \"%s\" to %d",
                 target_shadow->filter->name, target_shadow->refcount);
     }
@@ -1542,7 +1542,7 @@ filter_append_rule_to_session(filter_t *f, rule_t * const r)
     g_assert(f != NULL);
     g_assert(r->target != NULL);
 
-    if (gui_debug >= 4)
+    if (GUI_PROPERTY(gui_debug) >= 4)
         g_message("appending rule to filter: %s <- %s (%p)",
             f->name, filter_rule_to_string(r),
 			cast_to_gconstpointer(r->target));
@@ -1581,7 +1581,7 @@ filter_append_rule_to_session(filter_t *f, rule_t * const r)
         target_shadow = shadow_new(r->target);
 
     target_shadow->refcount ++;
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("increased refcount on shadow of \"%s\" to %d",
             target_shadow->filter->name, target_shadow->refcount);
 
@@ -1704,7 +1704,7 @@ filter_remove_rule(filter_t *f, rule_t *r)
     if (in_filter) {
         r->target->refcount --;
 
-        if (gui_debug >= 6)
+        if (GUI_PROPERTY(gui_debug) >= 6)
             g_message("decreased refcount on \"%s\" to %d",
                 r->target->name, r->target->refcount);
     }
@@ -1713,7 +1713,7 @@ filter_remove_rule(filter_t *f, rule_t *r)
         if (target_shadow != NULL) {
             target_shadow->refcount --;
 
-            if (gui_debug >= 6)
+            if (GUI_PROPERTY(gui_debug) >= 6)
                 g_message("decreased refcount on shadow of \"%s\" to %d",
                     target_shadow->filter->name, target_shadow->refcount);
         }
@@ -1757,7 +1757,7 @@ filter_remove_rule_from_session(filter_t *f, rule_t * const r)
     g_assert(r != NULL);
     g_assert(f != NULL);
 
-    if (gui_debug >= 4)
+    if (GUI_PROPERTY(gui_debug) >= 4)
         g_message("removing rule in filter: %s -> %s",
             f->name, filter_rule_to_string(r));
 
@@ -1782,7 +1782,7 @@ filter_remove_rule_from_session(filter_t *f, rule_t * const r)
         target_shadow = shadow_new(r->target);
 
     target_shadow->refcount --;
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("decreased refcount on shadow of \"%s\" to %d",
             target_shadow->filter->name, target_shadow->refcount);
 
@@ -1793,7 +1793,7 @@ filter_remove_rule_from_session(filter_t *f, rule_t * const r)
          * not committed. We removed it from the added list
          * and free the ressources.
          */
-        if (gui_debug >= 4)
+        if (GUI_PROPERTY(gui_debug) >= 4)
             g_message("while removing from %s: removing from added: %s",
                 f->name, filter_rule_to_string(r));
         shadow->added = g_list_remove(shadow->added, r);
@@ -1805,7 +1805,7 @@ filter_remove_rule_from_session(filter_t *f, rule_t * const r)
          */
         g_assert(g_list_find(shadow->removed, r) == NULL);
 
-        if (gui_debug >= 4)
+        if (GUI_PROPERTY(gui_debug) >= 4)
             g_message("while removing from %s: adding to removed: %s",
                 f->name, filter_rule_to_string(r));
 
@@ -1857,7 +1857,7 @@ filter_replace_rule_in_session(filter_t *f,
     filter = g_list_find(shadow->current, old_rule);
     g_assert(filter != NULL);
 
-    if (gui_debug >= 4) {
+    if (GUI_PROPERTY(gui_debug) >= 4) {
         gchar f1[4096];
 		const gchar *f2;
 
@@ -1876,7 +1876,7 @@ filter_replace_rule_in_session(filter_t *f,
         target_shadow = shadow_new(old_rule->target);
 
     target_shadow->refcount --;
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("decreased refcount on shadow of \"%s\" to %d",
             target_shadow->filter->name, target_shadow->refcount);
 
@@ -1916,7 +1916,7 @@ filter_replace_rule_in_session(filter_t *f,
         target_shadow = shadow_new(new_rule->target);
 
     target_shadow->refcount ++;
-    if (gui_debug >= 6)
+    if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("increased refcount on shadow of \"%s\" to %d",
             target_shadow->filter->name, target_shadow->refcount);
 
@@ -2041,7 +2041,7 @@ do {																\
     (r)->match_count++;												\
     (prop_count)++;													\
     (r)->target->match_count++;										\
-    if (gui_debug >= 10)											\
+    if (GUI_PROPERTY(gui_debug) >= 10)											\
         g_message("matched rule: %s", filter_rule_to_string((r)));	\
 } while (0)
 
@@ -2084,7 +2084,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 		gint i;
 
         r = list->data;
-        if (gui_debug >= 10)
+        if (GUI_PROPERTY(gui_debug) >= 10)
             g_message("trying to match against: %s", filter_rule_to_string(r));
 
         if (RULE_IS_ACTIVE(r)) {
@@ -2429,7 +2429,7 @@ filter_shutdown(void)
 {
     GList *f;
 
-    if (gui_debug >= 5)
+    if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("shutting down filters");
 
     /*

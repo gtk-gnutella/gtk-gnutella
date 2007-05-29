@@ -60,9 +60,6 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/* Uncomment to override debug level for this file. */
-/* #define gui_debug 10 */
-
 /*
  * This file has five parts:
  *
@@ -224,7 +221,7 @@ update_entry(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -249,7 +246,7 @@ update_label(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -277,7 +274,7 @@ update_spinbutton(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -314,7 +311,7 @@ update_togglebutton(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("update_togglebutton - widget not found: [%s]",
 				 map_entry->wid);
         return FALSE;
@@ -351,7 +348,7 @@ update_multichoice(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -400,7 +397,7 @@ update_entry_duration(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -425,7 +422,7 @@ update_size_entry(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -567,7 +564,7 @@ update_clist_col_widths(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -612,7 +609,7 @@ update_window_geometry(property_t prop)
     w = top;
 
     if (!w->window) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - top level window not available (NULL)",
 				 G_GNUC_PRETTY_FUNCTION);
         return FALSE;
@@ -658,7 +655,7 @@ update_bandwidth_spinbutton(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -982,7 +979,7 @@ update_byte_size_entry(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -1042,7 +1039,7 @@ update_label_date(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -1078,7 +1075,7 @@ update_label_duration(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -1104,7 +1101,7 @@ update_label_yes_or_no(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
-		if (gui_debug)
+		if (GUI_PROPERTY(gui_debug))
 			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
@@ -1846,7 +1843,7 @@ search_results_show_tabs_changed(property_t prop)
 	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(w), val);
 
 	w = gui_main_window_lookup("sw_searches");
-	if (search_results_show_tabs)
+	if (GUI_PROPERTY(search_results_show_tabs))
     	gtk_widget_hide(w);
 	else
     	gtk_widget_show(w);
@@ -1854,7 +1851,7 @@ search_results_show_tabs_changed(property_t prop)
 #ifdef USE_GTK1
     gtk_notebook_set_page(
         GTK_NOTEBOOK(gui_main_window_lookup("notebook_sidebar")),
-        search_results_show_tabs ? 1 : 0);
+        GUI_PROPERTY(search_results_show_tabs) ? 1 : 0);
 #endif /* USE_GTK1 */
 
     return FALSE;
@@ -2756,7 +2753,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
     g_assert(def != NULL);
 
     if (map->cb != IGNORE) {
-        if (gui_debug >= 8)
+        if (GUI_PROPERTY(gui_debug) >= 8)
             printf("settings_gui_config_widget: %s\n", def->name);
 
         /*
@@ -2786,7 +2783,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 #endif /* USE_GTK2 */
 			{
             	gtk_tooltips_set_tip(tooltips, w, def->desc, "");
-				if (gui_debug >= 9)
+				if (GUI_PROPERTY(gui_debug) >= 9)
 					printf("\t...added tooltip\n");
 			}
 
@@ -2838,7 +2835,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     (GtkSignalFunc) spinbutton_adjustment_value_changed,
                     (gpointer) map);
 
-				if (gui_debug >= 9)
+				if (GUI_PROPERTY(gui_debug) >= 9)
 					printf("\t...adjusted lower=%f, upper=%f\n",
 						adj->lower, adj->upper);
             }
@@ -2851,7 +2848,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     (GtkSignalFunc) togglebutton_state_changed,
                     map);
 
-				if (gui_debug >= 9)
+				if (GUI_PROPERTY(gui_debug) >= 9)
 					printf("\t...connected toggle signal\n");
             }
 
@@ -2862,11 +2859,11 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     GTK_SIGNAL_FUNC(multichoice_item_selected),
                     def, map);
 
-				if (gui_debug >= 9)
+				if (GUI_PROPERTY(gui_debug) >= 9)
 					printf("\t...connected multichoice signal\n");
 			}
         }
-        if (gui_debug >= 8)
+        if (GUI_PROPERTY(gui_debug) >= 8)
             printf("\t...all done for %s.\n", def->name);
 
     }
@@ -5622,7 +5619,7 @@ settings_gui_init_prop_map(void)
 {
     guint n;
 
-    if (gui_debug >= 2) {
+    if (GUI_PROPERTY(gui_debug) >= 2) {
         printf("settings_gui_init_prop_map: property_map size: %u\n",
             (guint) G_N_ELEMENTS(property_map));
     }
@@ -5686,7 +5683,7 @@ settings_gui_init_prop_map(void)
             /*
              * Add listener
              */
-            if (gui_debug >= 10)
+            if (GUI_PROPERTY(gui_debug) >= 10)
                 printf("settings_gui_init_prop_map: adding changes listener "
                     "[%s]\n", def ->name);
             property_map[n].stub->prop_changed_listener.add_full(
@@ -5695,17 +5692,17 @@ settings_gui_init_prop_map(void)
                 property_map[n].init,
                 property_map[n].f_type,
                 property_map[n].f_interval);
-            if (gui_debug >= 10)
+            if (GUI_PROPERTY(gui_debug) >= 10)
                 printf("settings_gui_init_prop_map: adding changes listener "
                     "[%s][done]\n", def->name);
-        } else if (gui_debug >= 10) {
+        } else if (GUI_PROPERTY(gui_debug) >= 10) {
             printf("settings_gui_init_prop_map: "
                 "property ignored: %s\n", def->name);
         }
         prop_free_def(def);
     }
 
-    if (gui_debug >= 1) {
+    if (GUI_PROPERTY(gui_debug) >= 1) {
         for (n = 0; n < GUI_PROPERTY_NUM; n++) {
             if (gui_init_list[n] == NOT_IN_MAP) {
                 printf("settings_gui_init_prop_map: "
@@ -5715,7 +5712,7 @@ settings_gui_init_prop_map(void)
         }
     }
 
-    if (gui_debug >= 1) {
+    if (GUI_PROPERTY(gui_debug) >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (gnet_init_list[n] == NOT_IN_MAP) {
                 printf("settings_gui_init_prop_map:"

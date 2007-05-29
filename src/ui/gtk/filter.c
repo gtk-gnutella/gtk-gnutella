@@ -251,11 +251,11 @@ filter_gui_init(void)
 		gtk_clist_set_reorderable(clist_filter_rules, TRUE);
 		for (i = 0; i < 4; i++)
 			gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
-					filter_rules_col_widths[i]);
+					GUI_PROPERTY(filter_rules_col_widths)[i]);
 
 		for (i = 0; i < 3; i++)
 			gtk_clist_set_column_width(GTK_CLIST(ctree_filter_filters), i,
-					filter_filters_col_widths[i]);
+					GUI_PROPERTY(filter_filters_col_widths)[i]);
 	}
 #endif /* USE_GTK1 */
 #ifdef USE_GTK2
@@ -294,11 +294,11 @@ filter_gui_init(void)
 #if 0
 		for (i = 0; i < 4; i++)
 			gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
-					filter_rules_col_widths[i]);
+					GUI_PROPERTY(filter_rules_col_widths)[i]);
 
 		for (i = 0; i < 3; i++)
 			gtk_clist_set_column_width(GTK_CLIST(ctree_filter_filters), i,
-					filter_filters_col_widths[i]);
+					GUI_PROPERTY(filter_filters_col_widths)[i]);
 #endif
 	}
 #endif /* USE_GTK2 */
@@ -349,7 +349,7 @@ filter_gui_show_dialog(void)
 
     gtk_paned_set_position(
         GTK_PANED(gui_filter_dialog_lookup("hpaned_filter_main")),
-        filter_main_divider_pos);
+        GUI_PROPERTY(filter_main_divider_pos));
 
     gtk_widget_show(gui_filter_dialog());
     gdk_window_raise(gui_filter_dialog()->window);
@@ -752,7 +752,7 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
 
         filter_gui_filter_set_enabled(f, active);
 
-        if (gui_debug >= 5)
+        if (GUI_PROPERTY(gui_debug) >= 5)
             printf("showing ruleset for filter: %s\n", f->name);
         filter_gui_set_ruleset(ruleset);
 
@@ -1757,7 +1757,7 @@ filter_gui_set_ruleset(GList *ruleset)
         gui_filter_dialog_lookup("button_filter_clear"),
         count != 0);
 
-    if (gui_debug >= 5)
+    if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("updated %d items\n", count);
 }
 #endif
@@ -1809,7 +1809,7 @@ filter_gui_set_ruleset(GList *ruleset)
         gui_filter_dialog_lookup("button_filter_clear"),
         count != 0);
 
-    if (gui_debug >= 5)
+    if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("updated %d items\n", count);
 }
 #endif /* USE_GTK2 */
@@ -1860,7 +1860,7 @@ filter_gui_get_rule(void)
         r = NULL;
     };
 
-    if (r != NULL && gui_debug >= 5)
+    if (r != NULL && GUI_PROPERTY(gui_debug) >= 5)
         printf("got rule: %s\n", filter_rule_to_string(r));
 
     return r;

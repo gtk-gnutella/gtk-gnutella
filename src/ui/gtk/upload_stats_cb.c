@@ -192,7 +192,7 @@ on_clist_ul_stats_resize_column(GtkCList *unused_clist,
 	(void) unused_clist;
 	(void) unused_udata;
     /* FIXME: use properties */
-	*(gint *) &ul_stats_col_widths[column] = width;
+	*(gint *) &GUI_PROPERTY(ul_stats_col_widths)[column] = width;
 }
 
 #endif /* USE_GTK1 */

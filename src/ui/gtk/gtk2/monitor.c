@@ -74,13 +74,13 @@ monitor_gui_add(query_type_t type, const gchar *item,
 	 * show, that's why we don't just the remove the first item. */
 	n = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(monitor_model), NULL);
 
-	if (n > 0 && (guint) n >= monitor_max_items) {
+	if (n > 0 && (guint) n >= GUI_PROPERTY(monitor_max_items)) {
 		GtkTreeIter iter;
 		gboolean ok;
 
 		/* Children are enumerated from 0 to number-1 */
 		ok = gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(monitor_model),
-					&iter, NULL, MAX(1, monitor_max_items) - 1);
+					&iter, NULL, MAX(1, GUI_PROPERTY(monitor_max_items)) - 1);
 		while (ok) {
 			GtkTreeIter next = iter;
 			ok = gtk_tree_model_iter_next(GTK_TREE_MODEL(monitor_model), &next);
@@ -89,7 +89,7 @@ monitor_gui_add(query_type_t type, const gchar *item,
 		}
 	}
 
-	if (monitor_max_items > 0) {
+	if (GUI_PROPERTY(monitor_max_items) > 0) {
 		const gchar *charset_ptr, *s;
 		gchar *dbuf;
 		GtkTreeIter iter;

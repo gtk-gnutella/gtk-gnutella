@@ -86,7 +86,7 @@ static GHashTable *used;		/**< Records the IP address used */
  * local time is only used when the host is not running NTP.  Otherwise,
  * we compute the skew just for the fun of it.
  */
-gpointer datapoints = NULL;
+static struct statx *datapoints;
 
 /**
  * Dispose of the value from the `used' table.
@@ -205,7 +205,7 @@ clock_adjust(void)
 	for (k = 0; k < CLEAN_STEPS; k++) {
 		gdouble *value = statx_data(datapoints);
 
-		if (dbg > 1)
+		if (GNET_PROPERTY(dbg) > 1)
 			printf("CLOCK before #%d: n=%d avg=%.2f sdev=%.2f\n",
 				k, n, avg, sdev);
 
@@ -236,7 +236,7 @@ clock_adjust(void)
 		avg = statx_avg(datapoints);
 		sdev = statx_sdev(datapoints);
 
-		if (dbg > 1)
+		if (GNET_PROPERTY(dbg) > 1)
 			printf("CLOCK after #%d: kept n=%d avg=%.2f sdev=%.2f\n",
 				k, n, avg, sdev);
 
@@ -253,18 +253,18 @@ clock_adjust(void)
 	 */
 
 	if (sdev > MAX_SDEV || n < MIN_DATA) {
-		if (dbg > 1)
+		if (GNET_PROPERTY(dbg) > 1)
 			printf("CLOCK will continue collecting data\n");
 		return;
 	}
 
 	statx_clear(datapoints);
 
-	new_skew = clock_skew + (gint32) avg;
+	new_skew = GNET_PROPERTY(clock_skew) + (gint32) avg;
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		printf("CLOCK with n=%d avg=%.2f sdev=%.2f => SKEW old=%d new=%d\n",
-			n, avg, sdev, (gint32) clock_skew, (gint32) new_skew);
+			n, avg, sdev, (gint32) GNET_PROPERTY(clock_skew), (gint32) new_skew);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
 }
@@ -303,14 +303,14 @@ clock_update(time_t update, gint precision, const host_addr_t addr)
 	}
 
 	now = tm_time();
-	delta = delta_time(update, (now + (gint32) clock_skew));
+	delta = delta_time(update, (now + (gint32) GNET_PROPERTY(clock_skew)));
 
 	statx_add(datapoints, (gdouble) (delta + precision));
 	statx_add(datapoints, (gdouble) (delta - precision));
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		printf("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%.2f sdev=%.2f)\n",
-			(gint32) clock_skew, delta, precision, host_addr_to_string(addr),
+			(gint32) GNET_PROPERTY(clock_skew), delta, precision, host_addr_to_string(addr),
 			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
 
 	if (statx_n(datapoints) >= ENOUGH_DATA)
@@ -323,10 +323,10 @@ clock_update(time_t update, gint precision, const host_addr_t addr)
 time_t
 clock_loc2gmt(time_t stamp)
 {
-	if (host_runs_ntp)
+	if (GNET_PROPERTY(host_runs_ntp))
 		return stamp;
 
-	return stamp + (gint32) clock_skew;
+	return stamp + (gint32) GNET_PROPERTY(clock_skew);
 }
 
 /**
@@ -335,10 +335,10 @@ clock_loc2gmt(time_t stamp)
 time_t
 clock_gmt2loc(time_t stamp)
 {
-	if (host_runs_ntp)
+	if (GNET_PROPERTY(host_runs_ntp))
 		return stamp;
 
-	return stamp - (gint32) clock_skew;
+	return stamp - (gint32) GNET_PROPERTY(clock_skew);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

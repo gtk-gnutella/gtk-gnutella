@@ -575,7 +575,7 @@ file_info_check_chunklist(const fileinfo_t *fi, gboolean assertion)
 	 * are run.  Do that only when debugging.
 	 */
 
-	if (assertion && !fileinfo_debug)
+	if (assertion && !GNET_PROPERTY(fileinfo_debug))
 		return TRUE;
 
 	file_info_check(fi);
@@ -1213,10 +1213,10 @@ file_info_has_filename(fileinfo_t *fi, const gchar *file)
 			return TRUE;
 	}
 
-	if (use_fuzzy_matching) {
+	if (GNET_PROPERTY(use_fuzzy_matching)) {
 		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
 			gulong score = 100 * fuzzy_compare(sl->data, file);
-			if (score >= (fuzzy_threshold << FUZZY_SHIFT)) {
+			if (score >= (GNET_PROPERTY(fuzzy_threshold) << FUZZY_SHIFT)) {
 				g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
 					cast_to_gchar_ptr(sl->data), file, score / 100.0);
 				fi_alias(fi, file, TRUE);
@@ -1266,7 +1266,7 @@ file_info_lookup(const gchar *name, filesize_t size, const struct sha1 *sha1)
 		 * nothing can be found for this SHA1.
 		 */
 
-		if (strict_sha1_matching)
+		if (GNET_PROPERTY(strict_sha1_matching))
 			return NULL;
 	}
 
@@ -1451,7 +1451,7 @@ file_info_shared_sha1(const struct sha1 *sha1)
 	fi = g_hash_table_lookup(fi_by_sha1, sha1);
 	if (fi) {
 		file_info_check(fi);
-		if (fi->done > 0 && fi->size >= pfsp_minimum_filesize) {
+		if (fi->done > 0 && fi->size >= GNET_PROPERTY(pfsp_minimum_filesize)) {
 			g_assert(NULL != fi->sha1);
 
 			/*
@@ -1891,7 +1891,7 @@ G_STMT_START {				\
 	fi_tigertree_check(fi);
 	file_info_merge_adjacent(fi);	/* Update fi->done */
 
-	if (fileinfo_debug > 3)
+	if (GNET_PROPERTY(fileinfo_debug) > 3)
 		g_message("FILEINFO: "
 			"good trailer info (v%u, %s bytes) in \"%s\"",
 			version, uint64_to_string(trailer.length), pathname);
@@ -2290,7 +2290,7 @@ file_info_hash_insert(fileinfo_t *fi)
 	g_assert(fi->size_atom);
 	g_assert(fi->guid);
 
-	if (fileinfo_debug > 4)
+	if (GNET_PROPERTY(fileinfo_debug) > 4)
 		g_message("FILEINFO insert 0x%p \"%s\" "
 			"(%s/%s bytes done) sha1=%s",
 			cast_to_gconstpointer(fi), fi->pathname,
@@ -2360,7 +2360,7 @@ transient:
 	fi->hashed = TRUE;
     fi->fi_handle = file_info_request_handle(fi);
 
-	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count + 1);
+	gnet_prop_incr_guint32(PROP_FI_ALL_COUNT);
 
     event_trigger(fi_events[EV_FI_ADDED],
         T_NORMAL(fi_listener_t, (fi->fi_handle)));
@@ -2381,7 +2381,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	g_assert(fi->size_atom);
 	g_assert(fi->guid);
 
-	if (fileinfo_debug > 4) {
+	if (GNET_PROPERTY(fileinfo_debug) > 4) {
 		g_message("FILEINFO remove 0x%lx \"%s\" "
 			"(%s/%s bytes done) sha1=%s\n",
 			(gulong) fi, fi->pathname,
@@ -2399,8 +2399,8 @@ file_info_hash_remove(fileinfo_t *fi)
 
     file_info_drop_handle(fi->fi_handle);
 
-	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count - 1);
-	g_assert((gint) fi_all_count >= 0);
+	g_assert(GNET_PROPERTY(fi_all_count) > 0);
+	gnet_prop_decr_guint32(PROP_FI_ALL_COUNT);
 
 	/*
 	 * Transient fileinfo is only recorded in the GUID hash table.
@@ -2616,7 +2616,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	 * XXX		--RAM, 05/09/2002
 	 */
 
-	if (fileinfo_debug > 3) {
+	if (GNET_PROPERTY(fileinfo_debug) > 3) {
 		gchar buf[64];
 
 		concat_strings(buf, sizeof buf,
@@ -3190,11 +3190,12 @@ file_info_retrieve(void)
 		damaged = FALSE;
 		switch (file_info_string_to_tag(line)) {
 		case FI_TAG_NAME:
-			if (convert_old_filenames) {
+			if (GNET_PROPERTY(convert_old_filenames)) {
 				gchar *s;
 
 				s = gm_sanitize_filename(value,
-					convert_spaces, convert_evil_chars);
+						GNET_PROPERTY(convert_spaces),
+						GNET_PROPERTY(convert_evil_chars));
 				filename = atom_str_get(s);
 				if (s != value) {
 
@@ -3431,7 +3432,9 @@ file_info_new_outname(const gchar *dir, const gchar *name)
 	{
 		gchar *s;
 
-		s = gm_sanitize_filename(name, convert_spaces, convert_evil_chars);
+		s = gm_sanitize_filename(name,
+				GNET_PROPERTY(convert_spaces),
+				GNET_PROPERTY(convert_evil_chars));
 		if (name != s) {
 			to_free = s;
 			name = s;
@@ -3490,7 +3493,7 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 	fi->size = 0;	/* Will be updated by fi_resize() */
 	fi->file_size_known = file_size_known;
 	fi->done = 0;
-	fi->use_swarming = use_swarming && file_size_known;
+	fi->use_swarming = GNET_PROPERTY(use_swarming) && file_size_known;
 	fi->ctime = tm_time();
 	fi->seen_on_network = NULL;
 
@@ -3799,7 +3802,7 @@ file_info_has_identical(const gchar *file, filesize_t size,
 	fileinfo_t *fi;
 	namesize_t nsk;
 
-	if (strict_sha1_matching) {
+	if (GNET_PROPERTY(strict_sha1_matching)) {
 		if (!sha1)
 			return NULL;
 		return file_info_lookup(file, size, sha1);
@@ -4529,7 +4532,10 @@ list_clone_shift(fileinfo_t *fi)
 		fc = fi->chunklist->data;		/* First chunk */
 		dl_file_chunk_check(fc);
 
-		if (DL_CHUNK_DONE != fc->status || fc->to < pfsp_first_chunk)
+		if (
+			DL_CHUNK_DONE != fc->status ||
+			fc->to < GNET_PROPERTY(pfsp_first_chunk)
+		)
 			return fi->chunklist;
 	}
 
@@ -4668,8 +4674,10 @@ fi_chunksize(fileinfo_t *fi)
 	 * they want to enforce.
 	 */
 
-	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
-	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
+	if (chunksize < GNET_PROPERTY(dl_minchunksize))
+		chunksize = GNET_PROPERTY(dl_minchunksize);
+	if (chunksize > GNET_PROPERTY(dl_maxchunksize))
+		chunksize = GNET_PROPERTY(dl_maxchunksize);
 
 	return chunksize;
 }
@@ -4850,9 +4858,9 @@ fi_find_aggressive_candidate(
 	 */
 
 	starving = fi->lifecount - busy;	/* Starving downloads */
-	minchunk = MIN(dl_minchunksize, fi->size - fi->done) / (2 * starving);
-	if (minchunk < FI_MIN_CHUNK_SPLIT)
-		minchunk = FI_MIN_CHUNK_SPLIT;
+	minchunk = (fi->size - fi->done) / (2 * starving);
+	minchunk = MIN(minchunk, GNET_PROPERTY(dl_minchunksize));
+	minchunk = MAX(minchunk, minchunk);
 
 	fc = fi_find_largest(fi);
 
@@ -4889,7 +4897,7 @@ fi_find_aggressive_candidate(
 				download_speed_avg(d) > download_speed_avg(fc->download)
 			);
 
-		if (download_debug > 1)
+		if (GNET_PROPERTY(download_debug) > 1)
 			g_message("will %s be aggressive for \"%s\" given d/l speed "
 				"of %s%u B/s for largest chunk owner and %u B/s for stealer, "
 				"and a coverage of missing chunks of %.2f%% and "
@@ -4912,7 +4920,7 @@ fi_find_aggressive_candidate(
 			!DOWNLOAD_IS_ACTIVE(fc->download) ||
 			missing_coverage >= fi_missing_coverage(fc->download);
 
-		if (can_be_aggressive && download_debug > 1)
+		if (can_be_aggressive && GNET_PROPERTY(download_debug) > 1)
 			g_message("will instead be aggressive for \"%s\" given d/l speed "
 				"of %s%u B/s for slowest chunk owner and %u B/s for stealer, "
 				"and a coverage of missing chunks of %.2f%% and "
@@ -4931,7 +4939,7 @@ fi_find_aggressive_candidate(
 	*from = (fc->from + fc->to) / 2;
 	*to = fc->to;
 
-	if (download_debug > 1)
+	if (GNET_PROPERTY(download_debug) > 1)
 		g_message("aggressively requesting %s@%s for \"%s\" using %s source",
 			filesize_to_string(*to - *from), short_size(*from, FALSE),
 			fi->pathname,
@@ -5011,7 +5019,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	chunksize = fi_chunksize(fi);
 
 	if (
-		pfsp_server && d->served_reqs == 0 &&
+		GNET_PROPERTY(pfsp_server) && d->served_reqs == 0 &&
 		fi_alive_count(fi) <= FI_LOW_SRC_COUNT		/* Not enough sources */
 	) {
 		/*
@@ -5020,13 +5028,14 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 		 * to advertise ourselves as soon as possible.
 		 */
 
-		if (fi->size >= pfsp_minimum_filesize)
-			chunksize = dl_minchunksize;
+		if (fi->size >= GNET_PROPERTY(pfsp_minimum_filesize))
+			chunksize = GNET_PROPERTY(dl_minchunksize);
 		else {
-			filesize_t missing = pfsp_minimum_filesize - fi->size;
-
+			filesize_t missing;
+		   
+			missing = GNET_PROPERTY(pfsp_minimum_filesize) - fi->size;
 			chunksize = MAX(chunksize, missing);
-			chunksize = MIN(chunksize, dl_maxchunksize);
+			chunksize = MIN(chunksize, GNET_PROPERTY(dl_maxchunksize));
 		}
 	}
 
@@ -5037,7 +5046,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	 *		--RAM, 11/10/2003
 	 */
 
-	if (pfsp_server) {
+	if (GNET_PROPERTY(pfsp_server)) {
 		cklist = list_clone_shift(fi);
 		if (cklist != fi->chunklist)
 			cloned = TRUE;
@@ -5066,7 +5075,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 
 	g_assert(fi->lifecount > (gint32) busy); /* Or we'd found a chunk before */
 
-	if (use_aggressive_swarming) {
+	if (GNET_PROPERTY(use_aggressive_swarming)) {
 		filesize_t start, end;
 
 		if (fi_find_aggressive_candidate(d, busy, &start, &end)) {
@@ -5142,7 +5151,7 @@ file_info_find_available_hole(
 	 *		--RAM, 11/10/2003
 	 */
 
-	if (pfsp_server) {
+	if (GNET_PROPERTY(pfsp_server)) {
 		cklist = list_clone_shift(fi);
 		if (cklist != fi->chunklist)
 			cloned = TRUE;
@@ -5187,7 +5196,7 @@ file_info_find_available_hole(
 		}
 	}
 
-	if (use_aggressive_swarming) {
+	if (GNET_PROPERTY(use_aggressive_swarming)) {
 		filesize_t start, end;
 
 		if (fi_find_aggressive_candidate(d, busy, &start, &end)) {
@@ -5664,9 +5673,9 @@ file_info_add_source(fileinfo_t *fi, struct download *dl)
     fi->sources = g_slist_prepend(fi->sources, dl);
 
 	if (1 == fi->refcount) {
-		gnet_prop_set_guint32_val(PROP_FI_WITH_SOURCE_COUNT,
-			fi_with_source_count + 1);
-		g_assert(fi_with_source_count <= fi_all_count);
+		g_assert(GNET_PROPERTY(fi_with_source_count)
+				< GNET_PROPERTY(fi_all_count));
+		gnet_prop_incr_guint32(PROP_FI_WITH_SOURCE_COUNT);
 	}
 
     event_trigger(fi_events[EV_FI_SRC_ADDED],
@@ -5706,9 +5715,8 @@ file_info_remove_source(
 	 */
 
     if (0 == fi->refcount) {
-		gnet_prop_set_guint32_val(PROP_FI_WITH_SOURCE_COUNT,
-			fi_with_source_count - 1);
-		g_assert((gint) fi_with_source_count >= 0);
+		g_assert(GNET_PROPERTY(fi_with_source_count) > 0);
+		gnet_prop_decr_guint32(PROP_FI_WITH_SOURCE_COUNT);
 
 		if (discard || (fi->flags & FI_F_DISCARD)) {
 			file_info_hash_remove(fi);
@@ -6149,7 +6157,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	 * Look at all the download sources for this fileinfo and calculate the
 	 * overall ranges info for this file.
 	 */
-	if (fileinfo_debug > 5)
+	if (GNET_PROPERTY(fileinfo_debug) > 5)
 		printf("*** Fileinfo: %s\n", d->file_info->pathname);
 
 	for (sl = d->file_info->sources; sl; sl = g_slist_next(sl)) {
@@ -6169,7 +6177,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				GTA_DL_DONE      == src->status
 			)
 		) {
-			if (fileinfo_debug > 5)
+			if (GNET_PROPERTY(fileinfo_debug) > 5)
 				printf("    %s:%d replied (%x, %x), ",
 					host_addr_to_string(src->server->key->addr),
 					src->server->key->port, src->flags, src->status);
@@ -6186,7 +6194,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				 * believe that currently a 404 will also trigger a
 				 * whole file is available event...
 				*/
-				if (fileinfo_debug > 5)
+				if (GNET_PROPERTY(fileinfo_debug) > 5)
 					printf("whole file available.\n");
 
 				{
@@ -6198,7 +6206,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				}
 			} else {
 				/* Merge in the new ranges */
-				if (fileinfo_debug > 5)
+				if (GNET_PROPERTY(fileinfo_debug) > 5)
 					printf(" ranges %s available\n",
 						http_range_to_string(src->ranges));
 				new_r = http_range_merge(r, src->ranges);
@@ -6209,7 +6217,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	}
 	d->file_info->seen_on_network = r;
 
-	if (fileinfo_debug > 5)
+	if (GNET_PROPERTY(fileinfo_debug) > 5)
 		printf("    Final ranges: %s\n\n", http_range_to_string(r));
 
 	/*
@@ -6272,7 +6280,8 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
         gm_snprintf(buf, sizeof buf,
             _("Downloading (%s)  TR: %s"),
-			short_rate(status->recv_last_rate, display_metric_units),
+			short_rate(status->recv_last_rate,
+				GNET_PROPERTY(display_metric_units)),
 			secs ? short_time(secs) : "-");
 		return buf;
     } else if (status->size && status->done == status->size) {
@@ -6288,7 +6297,8 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 			} else {
 				gm_snprintf(msg_sha1, sizeof msg_sha1,
 						"%s %s (%.1f%%)", _("Computing SHA1"),
-						short_size(status->sha1_hashed, display_metric_units),
+						short_size(status->sha1_hashed,
+							GNET_PROPERTY(display_metric_units)),
 						((gdouble) status->sha1_hashed / status->size) * 100.0);
 			}
 		} else {
@@ -6298,7 +6308,8 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		if (status->copied > 0 && status->copied < status->size) {
 			gm_snprintf(msg_copy, sizeof msg_copy,
 				"; %s %s (%.1f%%)", _("Moving"),
-				short_size(status->copied, display_metric_units),
+				short_size(status->copied,
+					GNET_PROPERTY(display_metric_units)),
 				((gfloat) status->copied / status->size) * 100.0);
 		} else {
 			msg_copy[0] = '\0';

@@ -268,7 +268,7 @@ fill_hosts(void)
 		for (j = 1; j < MAX_TTL; j++) {
 			hosts[i][j] = hosts[i][j-1] + pow(i, j);
 
-			if (dq_debug > 19)
+			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message("horizon(degree=%d, ttl=%d) = %d",
 					i+1, j+1, hosts[i][j]);
 		}
@@ -462,7 +462,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		g_hash_table_remove(dq->queried, key);
 		node_id_unref(key);
 
-		if (dq_debug > 19)
+		if (GNET_PROPERTY(dq_debug) > 19)
 			g_message("DQ[%d] %snode #%s degree=%d dropped message TTL=%d",
 				dq->qid, node_id_self(dq->node_id) ? "(local) " : "",
 				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl);
@@ -487,7 +487,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		dq->horizon += dq_get_horizon(pmi->degree, pmi->ttl);
 		dq->up_sent++;
 
-		if (dq_debug > 19) {
+		if (GNET_PROPERTY(dq_debug) > 19) {
 			g_message("DQ[%d] %snode #%s degree=%d sent message TTL=%d",
 				dq->qid, node_id_self(dq->node_id) ? "(local) " : "",
 				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl);
@@ -757,12 +757,12 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 				MAX(gnutella_header_get_ttl(head), 2),
 				source);
 
-	if (dq_debug > 4)
+	if (GNET_PROPERTY(dq_debug) > 4)
 		g_message("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
 			gmsg_infostr_full(head), dq->qhv->count,
 			dq->qhv->count == 1 ? "" : "s",
 			dq->qhv->has_urn ? " + URN" : "",
-			g_slist_length(nodes), node_leaf_count);
+			g_slist_length(nodes), GNET_PROPERTY(node_leaf_count));
 
 	gmsg_mb_sendto_all(nodes, dq->mb);
 
@@ -789,7 +789,7 @@ dq_free(dquery_t *dq)
 	dquery_check(dq);
 	g_assert(g_hash_table_lookup(dqueries, dq));
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] %s(%d secs; +%d secs) node #%s ending: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d+%d",
 			dq->qid, node_id_self(dq->node_id) ? "local " : "",
@@ -941,7 +941,7 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] expired", dq->qid);
 
 	dq->expire_ev = NULL;	/* Indicates callback fired */
@@ -996,7 +996,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 		was_waiting = TRUE;
 		dq->stat_timeouts++;
 
-		if (dq_debug > 19)
+		if (GNET_PROPERTY(dq_debug) > 19)
 			g_message("DQ[%d] (%d secs) timeout #%u waiting for status results",
 				dq->qid, (gint) (tm_time() - dq->start), dq->stat_timeouts);
 		dq->flags &= ~DQ_F_WAITING;
@@ -1008,7 +1008,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 			dq->flags &= ~DQ_F_LEAF_GUIDED;		/* Probably not supported */
 			node_set_leaf_guidance(dq->node_id, FALSE);
 
-			if (dq_debug > 19)
+			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message(
 					"DQ[%d] (%d secs) turned off leaf-guidance for node #%s",
 					dq->qid, (gint) (tm_time() - dq->start),
@@ -1026,7 +1026,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	 */
 
 	if (!(dq->flags & (DQ_F_LEAF_GUIDED|DQ_F_ROUTING_HITS))) {
-		if (dq_debug)
+		if (GNET_PROPERTY(dq_debug))
 			g_message(
 				"DQ[%d] terminating unguided & unrouted (queried %u UP%s)",
 				dq->qid, dq->up_sent, dq->up_sent == 1 ? "" : "s");
@@ -1071,7 +1071,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	n = node_active_by_id(dq->node_id);
 
 	if (n == NULL) {
-		if (dq_debug > 19)
+		if (GNET_PROPERTY(dq_debug) > 19)
 			g_message("DQ[%d] (%d secs) node #%s appears to be dead",
 				dq->qid, (gint) (tm_time() - dq->start),
 				node_id_to_string(dq->node_id));
@@ -1079,7 +1079,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 		return;
 	}
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] (%d secs) requesting node #%s for status (kept=%u)",
 			dq->qid, (gint) (tm_time() - dq->start),
 			node_id_to_string(dq->node_id), dq->kept_results);
@@ -1103,7 +1103,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	timeout = (avg + last) / 2000;		/* An average, converted to seconds */
 	timeout = MAX(timeout, DQ_STATUS_TIMEOUT);
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] status reply timeout set to %d s", dq->qid,
 			timeout / 1000);
 
@@ -1140,7 +1140,7 @@ dq_terminate(dquery_t *dq)
 	dq->flags |= DQ_F_LINGER;
 	dq->stop = tm_time();
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] (%d secs) node #%s lingering: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d",
 			dq->qid, (gint) (tm_time() - dq->start),
@@ -1252,7 +1252,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 	mb = dq_pmsg_by_ttl(dq, pmi->ttl);
 	mb = pmsg_clone_extend(mb, dq_pmsg_free, pmi);
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] (%d secs) queuing ttl=%d to #%s %s <%s> Q=%d bytes",
 			dq->qid, (gint) delta_time(tm_time(), dq->start),
 			pmi->ttl, node_id_to_string(NODE_ID(n)),
@@ -1272,7 +1272,7 @@ static void
 dq_send_next(dquery_t *dq)
 {
 	struct next_up *nv;
-	gint ncount = max_connections;
+	gint ncount = GNET_PROPERTY(max_connections);
 	gint found;
 	gint ttl;
 	gint timeout;
@@ -1286,8 +1286,8 @@ dq_send_next(dquery_t *dq)
 	 * Terminate query immediately if we're no longer an UP.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA) {
-		if (dq_debug)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+		if (GNET_PROPERTY(dq_debug))
 			g_message("DQ[%d] terminating (no longer an ultra node)", dq->qid);
 		goto terminate;
 	}
@@ -1300,7 +1300,7 @@ dq_send_next(dquery_t *dq)
 	results = dq_kept_results(dq);
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
-		if (dq_debug)
+		if (GNET_PROPERTY(dq_debug))
 			g_message("DQ[%d] terminating "
 				"(UPs=%u, horizon=%u >= %d, %s results=%u >= %u)",
 				dq->qid, dq->up_sent, dq->horizon, DQ_MAX_HORIZON,
@@ -1318,7 +1318,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->results + dq->oob_results > dq->fin_results) {
-		if (dq_debug)
+		if (GNET_PROPERTY(dq_debug))
 			g_message("DQ[%d] terminating "
 				"(UPs=%u, seen=%u + OOB=%u >= %u -- %s kept=%u)",
 				dq->qid, dq->up_sent,
@@ -1333,10 +1333,15 @@ dq_send_next(dquery_t *dq)
 	 * stop the query.
 	 */
 
-	if (dq->up_sent >= max_connections - normal_connections) {
-		if (dq_debug)
+	if (
+		dq->up_sent >=
+			GNET_PROPERTY(max_connections) - GNET_PROPERTY(normal_connections)
+	) {
+		if (GNET_PROPERTY(dq_debug))
 			g_message("DQ[%d] terminating (queried UPs=%u >= %u)",
-				dq->qid, dq->up_sent, max_connections - normal_connections);
+				dq->qid, dq->up_sent,
+				GNET_PROPERTY(max_connections) -
+					GNET_PROPERTY(normal_connections));
 		goto terminate;
 	}
 
@@ -1348,7 +1353,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->pending >= DQ_MAX_PENDING) {
-		if (dq_debug > 19)
+		if (GNET_PROPERTY(dq_debug) > 19)
 			g_message("DQ[%d] waiting for %u ms (pending=%u)",
 				dq->qid, dq->result_timeout, dq->pending);
 		dq->results_ev = cq_insert(callout_queue,
@@ -1361,7 +1366,7 @@ dq_send_next(dquery_t *dq)
 
 	g_assert(dq->nv == nv);		/* Saved for next time */
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] still %d UP%s to query (results %sso far: %u)",
 			dq->qid, found, found == 1 ? "" : "s",
 			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
@@ -1396,7 +1401,7 @@ dq_send_next(dquery_t *dq)
 			ttl == 1 && NODE_UP_QRP(node) &&
 			!qrp_node_can_route(node, dq->qhv)
 		) {
-			if (dq_debug > 19)
+			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message("DQ[%d] TTL=1, skipping node #%s: can't route query!",
 					dq->qid, node_id_to_string(NODE_ID(node)));
 
@@ -1435,7 +1440,7 @@ dq_send_next(dquery_t *dq)
 	if (dq->pending > 1)
 		timeout += (dq->pending - 1) * DQ_PENDING_TIMEOUT;
 
-	if (dq_debug > 1)
+	if (GNET_PROPERTY(dq_debug) > 1)
 		g_message("DQ[%d] (%d secs) timeout set to %d ms (pending=%d)",
 			dq->qid, (gint) (tm_time() - dq->start), timeout, dq->pending);
 
@@ -1455,7 +1460,7 @@ static void
 dq_send_probe(dquery_t *dq)
 {
 	gnutella_node_t **nv;
-	gint ncount = max_connections;
+	gint ncount = GNET_PROPERTY(max_connections);
 	gint found;
 	gint ttl = dq->ttl;
 	gint i;
@@ -1465,7 +1470,7 @@ dq_send_probe(dquery_t *dq)
 	nv = walloc(ncount * sizeof nv[0]);
 	found = dq_fill_probe_up(dq, nv, ncount);
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%d] found %d UP%s to probe",
 			dq->qid, found, found == 1 ? "" : "s");
 
@@ -1601,7 +1606,7 @@ dq_common_init(dquery_t *dq)
 				deconstify_gpointer(dq->lmuid), dq);
 	}
 
-	if (search_muid_track_amount > 0) {
+	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
 		gconstpointer packet;
 
 		packet = pmsg_start(dq->mb);
@@ -1609,7 +1614,7 @@ dq_common_init(dquery_t *dq)
 			gnutella_msg_search_get_text(packet));
 	}
 
-	if (dq_debug) {
+	if (GNET_PROPERTY(dq_debug)) {
 		const gchar *start = pmsg_start(dq->mb);
 		guint16 req_speed;
 
@@ -1689,8 +1694,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		NULL == oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 	) {
 		if (
-			!is_udp_firewalled &&
-			proxy_oob_queries &&
+			!GNET_PROPERTY(is_udp_firewalled) &&
+			GNET_PROPERTY(proxy_oob_queries) &&
 			udp_active() &&
 			host_is_valid(listen_addr(), socket_listen_port())
 			/* NOTE: IPv6 OOB proxying won't work, so don't check for IPv6 */
@@ -1701,7 +1706,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 			 * they get by routing the results ourselves to the leaf.
 			 */
 
-			if (dq_debug > 19)
+			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message("DQ node #%s %s <%s> OOB-proxying query \"%s\" (%s)",
 					node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
 					n->data + 2,
@@ -1720,7 +1725,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 			query_strip_oob_flag(n, n->data);
 			req_speed = peek_le16(n->data);	/* Refresh our cache */
 
-			if (dq_debug > 19)
+			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message(
 					"DQ node #%s %s <%s> stripped OOB on query \"%s\" (%s)",
 					node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
@@ -1758,7 +1763,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	if (leaf_muid != NULL)
 		dq->lmuid = atom_guid_get(leaf_muid);
 
-	if (dq_debug > 19)
+	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ node #%s %s <%s> (%s leaf-guidance) %s%squeries \"%s\"",
 			node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
@@ -1789,8 +1794,8 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	 * If we're no longer an ultra node, ignore the request.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA) {
-		if (dq_debug)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
+		if (GNET_PROPERTY(dq_debug))
 			g_warning("ignoring dynamic query \"%s\": no longer an ultra node",
 				gnutella_msg_search_get_text(pmsg_start(mb)));
 
@@ -1815,7 +1820,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	else
 		dq->max_results = DQ_LOCAL_RESULTS;
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
-	dq->ttl = MIN(my_ttl, DQ_MAX_TTL);
+	dq->ttl = MIN(GNET_PROPERTY(my_ttl), DQ_MAX_TTL);
 	dq->alive = NULL;
 	dq->flags = DQ_F_ROUTING_HITS;		/* We get our own hits! */
 
@@ -1845,7 +1850,7 @@ dq_node_removed(const node_id_t node_id)
 	GM_SLIST_FOREACH(value, sl) {
 		dquery_t *dq = sl->data;
 
-		if (dq_debug)
+		if (GNET_PROPERTY(dq_debug))
 			g_message("DQ[%d] terminated by node #%s removal (queried %u UP%s)",
 				dq->qid, node_id_to_string(dq->node_id),
 				dq->up_sent, dq->up_sent == 1 ? "" : "s");
@@ -1910,7 +1915,7 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
 			(dq->query_flags & QUERY_SPEED_FIREWALLED)
 		))
 	) {
-		if (dq_debug > 19) {
+		if (GNET_PROPERTY(dq_debug) > 19) {
 			if (dq->flags & DQ_F_LINGER)
 				g_message("DQ[%d] %s(%d secs; +%d secs) +%d ignored (firewall)",
 					dq->qid, node_id_self(dq->node_id) ? "local " : "",
@@ -1936,7 +1941,7 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
 		dq->new_results += count;
 	}
 
-	if (dq_debug > 19) {
+	if (GNET_PROPERTY(dq_debug) > 19) {
 		if (node_id_self(dq->node_id))
 			dq->kept_results = search_get_kept_results_by_handle(dq->sh);
 		if (dq->flags & DQ_F_LINGER)
@@ -2068,7 +2073,7 @@ dq_got_query_status(const gchar *muid, const node_id_t node_id, guint16 kept)
 			node_set_leaf_guidance(node_id, TRUE);
 			dq->flags |= DQ_F_LEAF_GUIDED;
 
-			if (dq_debug > 19)
+			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message(
 					"DQ[%d] (%d secs) turned on leaf-guidance for node #%s",
 					dq->qid, (gint) (tm_time() - dq->start),
@@ -2076,7 +2081,7 @@ dq_got_query_status(const gchar *muid, const node_id_t node_id, guint16 kept)
 		}
 	}
 
-	if (dq_debug > 19) {
+	if (GNET_PROPERTY(dq_debug) > 19) {
 		if (dq->flags & DQ_F_LINGER)
 			g_message("DQ[%d] (%d secs; +%d secs) kept_results=%d",
 				dq->qid, (gint) (tm_time() - dq->start),
@@ -2096,7 +2101,7 @@ dq_got_query_status(const gchar *muid, const node_id_t node_id, guint16 kept)
 	 */
 
 	if (kept == 0xffff) {
-		if (dq_debug)
+		if (GNET_PROPERTY(dq_debug))
 			g_message("DQ[%d] terminating at user's request (queried %u UP%s)",
 				dq->qid, dq->up_sent, dq->up_sent == 1 ? "" : "s");
 

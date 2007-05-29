@@ -2195,15 +2195,11 @@ prop = {
     };
     choice = {
         name = "ultra node";
-        value = 2;
-    };
-    choice = {
-        name = "normal node";
-        value = 1;
+        value = NODE_P_ULTRA;
     };
     choice = {
         name = "leaf node";
-        value = 0;
+        value = NODE_P_LEAF;
     };
 };
 

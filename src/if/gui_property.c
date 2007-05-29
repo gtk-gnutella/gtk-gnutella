@@ -44,182 +44,182 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 
-gboolean monitor_enabled     = FALSE;
-gboolean monitor_enabled_def = FALSE;
-guint32  monitor_max_items     = 25;
-guint32  monitor_max_items_def = 25;
-gboolean queue_regex_case     = FALSE;
-gboolean queue_regex_case_def = FALSE;
-gboolean fi_regex_case     = FALSE;
-gboolean fi_regex_case_def = FALSE;
-gboolean search_hide_downloaded     = FALSE;
-gboolean search_hide_downloaded_def = FALSE;
-guint32  nodes_col_widths[NODES_VISIBLE_COLUMNS]     = { 130, 50, 120, 20, 30, 30, 80 };
-guint32  nodes_col_widths_def[NODES_VISIBLE_COLUMNS] = { 130, 50, 120, 20, 30, 30, 80 };
-gboolean nodes_col_visible[NODES_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,1};
-gboolean nodes_col_visible_def[NODES_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1};
-guint32  dl_active_col_widths[DOWNLOADS_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80, 80 };
-guint32  dl_active_col_widths_def[DOWNLOADS_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80, 80 };
-gboolean dl_active_col_visible[DOWNLOADS_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
-gboolean dl_active_col_visible_def[DOWNLOADS_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
-guint32  dl_queued_col_widths[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80 };
-guint32  dl_queued_col_widths_def[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80 };
-gboolean dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1 };
-gboolean dl_queued_col_visible_def[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1 };
-guint32  file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]     = { 240, 80, 80, 80, 80 };
-guint32  file_info_col_widths_def[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80 };
-guint32  search_list_col_widths[SEARCH_LIST_VISIBLE_COLUMNS]     = { 80, 20, 20 };
-guint32  search_list_col_widths_def[SEARCH_LIST_VISIBLE_COLUMNS] = { 80, 20, 20 };
-gboolean search_results_col_visible[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0 };
-gboolean search_results_col_visible_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0 };
-guint32  search_results_col_widths[SEARCH_RESULTS_VISIBLE_COLUMNS]     = {  210, 30, 50, 80, 30, 120, 90, 40,   40, 40, 40, 40, 40,  40, 40, 40};
-guint32  search_results_col_widths_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = {  210, 30, 50, 80, 30, 120, 90, 40,   40, 40, 40, 40, 40,  40, 40, 40};
-guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
-guint32  search_stats_col_widths_def[3] = { 200, 80, 80 };
-guint32  ul_stats_col_widths[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 200, 80, 80, 80, 80 };
-guint32  ul_stats_col_widths_def[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 200, 80, 80, 80, 80 };
-gboolean ul_stats_col_visible[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1 };
-gboolean ul_stats_col_visible_def[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1 };
-guint32  uploads_col_widths[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 200, 120, 36, 80, 80, 80, 80 };
-guint32  uploads_col_widths_def[UPLOADS_GUI_VISIBLE_COLUMNS] = { 200, 120, 36, 80, 80, 80, 80 };
-gboolean uploads_col_visible[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
-gboolean uploads_col_visible_def[UPLOADS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
-guint32  filter_rules_col_widths[4]     = { 10, 240, 80, 40 };
-guint32  filter_rules_col_widths_def[4] = { 10, 240, 80, 40 };
-guint32  filter_filters_col_widths[3]     = { 80, 40, 20 };
-guint32  filter_filters_col_widths_def[3] = { 80, 40, 20 };
-guint32  gnet_stats_msg_col_widths[8]     = { 60, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_msg_col_widths_def[8] = { 60, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_fc_ttl_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_fc_ttl_col_widths_def[10] = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_fc_hops_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_fc_hops_col_widths_def[10] = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_fc_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_fc_col_widths_def[10] = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_horizon_col_widths[4]     = { 30, 40, 40, 40 };
-guint32  gnet_stats_horizon_col_widths_def[4] = { 30, 40, 40, 40 };
-guint32  gnet_stats_drop_reasons_col_widths[2]     = { 60, 20 };
-guint32  gnet_stats_drop_reasons_col_widths_def[2] = { 60, 20 };
-guint32  gnet_stats_recv_col_widths[10]     = { 60, 40, 40, 40, 40, 40, 40, 40, 40, 40 };
-guint32  gnet_stats_recv_col_widths_def[10] = { 60, 40, 40, 40, 40, 40, 40, 40, 40, 40 };
-guint32  hcache_col_widths[4]     = { 60, 40, 40, 40 };
-guint32  hcache_col_widths_def[4] = { 60, 40, 40, 40 };
-guint32  window_coords[4]     = { 0, 0, 0, 0 };
-guint32  window_coords_def[4] = { 0, 0, 0, 0 };
-guint32  filter_dlg_coords[4]     = { 0, 0, 0, 0 };
-guint32  filter_dlg_coords_def[4] = { 0, 0, 0, 0 };
-guint32  prefs_dlg_coords[4]     = { 0, 0, 0, 0 };
-guint32  prefs_dlg_coords_def[4] = { 0, 0, 0, 0 };
-guint32  fileinfo_divider_pos     = 305;
-guint32  fileinfo_divider_pos_def = 305;
-guint32  main_divider_pos     = 140;
-guint32  main_divider_pos_def = 140;
-guint32  gnet_stats_divider_pos     = 300;
-guint32  gnet_stats_divider_pos_def = 300;
-guint32  side_divider_pos     = 100;
-guint32  side_divider_pos_def = 100;
-guint32  results_divider_pos     = 400;
-guint32  results_divider_pos_def = 400;
-guint32  search_max_results     = 1000;
-guint32  search_max_results_def = 1000;
-guint32  browse_host_max_results     = 10000;
-guint32  browse_host_max_results_def = 10000;
-guint32  gui_debug     = 0;
-guint32  gui_debug_def = 0;
-guint32  filter_main_divider_pos     = 140;
-guint32  filter_main_divider_pos_def = 140;
-gboolean search_results_show_tabs     = FALSE;
-gboolean search_results_show_tabs_def = FALSE;
-gboolean searchbar_visible     = TRUE;
-gboolean searchbar_visible_def = TRUE;
-gboolean sidebar_visible     = TRUE;
-gboolean sidebar_visible_def = TRUE;
-gboolean navtree_visible     = TRUE;
-gboolean navtree_visible_def = TRUE;
-gboolean toolbar_visible     = FALSE;
-gboolean toolbar_visible_def = FALSE;
-gboolean statusbar_visible     = TRUE;
-gboolean statusbar_visible_def = TRUE;
-gboolean progressbar_uploads_visible     = TRUE;
-gboolean progressbar_uploads_visible_def = TRUE;
-gboolean progressbar_downloads_visible     = TRUE;
-gboolean progressbar_downloads_visible_def = TRUE;
-gboolean progressbar_connections_visible     = TRUE;
-gboolean progressbar_connections_visible_def = TRUE;
-gboolean progressbar_bws_in_visible     = TRUE;
-gboolean progressbar_bws_in_visible_def = TRUE;
-gboolean progressbar_bws_out_visible     = TRUE;
-gboolean progressbar_bws_out_visible_def = TRUE;
-gboolean progressbar_bws_gin_visible     = TRUE;
-gboolean progressbar_bws_gin_visible_def = TRUE;
-gboolean progressbar_bws_gout_visible     = TRUE;
-gboolean progressbar_bws_gout_visible_def = TRUE;
-gboolean progressbar_bws_glin_visible     = TRUE;
-gboolean progressbar_bws_glin_visible_def = TRUE;
-gboolean progressbar_bws_glout_visible     = TRUE;
-gboolean progressbar_bws_glout_visible_def = TRUE;
-gboolean autohide_bws_gleaf     = TRUE;
-gboolean autohide_bws_gleaf_def = TRUE;
-gboolean progressbar_bws_in_avg     = TRUE;
-gboolean progressbar_bws_in_avg_def = TRUE;
-gboolean progressbar_bws_out_avg     = TRUE;
-gboolean progressbar_bws_out_avg_def = TRUE;
-gboolean progressbar_bws_gin_avg     = TRUE;
-gboolean progressbar_bws_gin_avg_def = TRUE;
-gboolean progressbar_bws_gout_avg     = TRUE;
-gboolean progressbar_bws_gout_avg_def = TRUE;
-gboolean progressbar_bws_glin_avg     = TRUE;
-gboolean progressbar_bws_glin_avg_def = TRUE;
-gboolean progressbar_bws_glout_avg     = TRUE;
-gboolean progressbar_bws_glout_avg_def = TRUE;
-gboolean search_sort_casesense     = FALSE;
-gboolean search_sort_casesense_def = FALSE;
-guint32  search_sort_default_order     = 0;
-guint32  search_sort_default_order_def = 0;
-guint32  search_sort_default_column     = -1;
-guint32  search_sort_default_column_def = -1;
-gboolean search_discard_spam     = TRUE;
-gboolean search_discard_spam_def = TRUE;
-gboolean search_discard_hashless     = TRUE;
-gboolean search_discard_hashless_def = TRUE;
-gboolean search_jump_to_created     = TRUE;
-gboolean search_jump_to_created_def = TRUE;
-guint32  search_stats_mode     = 0;
-guint32  search_stats_mode_def = 0;
-prop_def_choice_t search_stats_mode_choices[] = { 
+gboolean gui_property_variable_monitor_enabled     = FALSE;
+static const gboolean gui_property_variable_monitor_enabled_default = FALSE;
+guint32  gui_property_variable_monitor_max_items     = 25;
+static const guint32  gui_property_variable_monitor_max_items_default = 25;
+gboolean gui_property_variable_queue_regex_case     = FALSE;
+static const gboolean gui_property_variable_queue_regex_case_default = FALSE;
+gboolean gui_property_variable_fi_regex_case     = FALSE;
+static const gboolean gui_property_variable_fi_regex_case_default = FALSE;
+gboolean gui_property_variable_search_hide_downloaded     = FALSE;
+static const gboolean gui_property_variable_search_hide_downloaded_default = FALSE;
+guint32  gui_property_variable_nodes_col_widths[NODES_VISIBLE_COLUMNS]     = { 130, 50, 120, 20, 30, 30, 80 };
+static const guint32  gui_property_variable_nodes_col_widths_default[NODES_VISIBLE_COLUMNS] = { 130, 50, 120, 20, 30, 30, 80 };
+gboolean gui_property_variable_nodes_col_visible[NODES_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,1};
+static const gboolean gui_property_variable_nodes_col_visible_default[NODES_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1};
+guint32  gui_property_variable_dl_active_col_widths[DOWNLOADS_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80, 80 };
+static const guint32  gui_property_variable_dl_active_col_widths_default[DOWNLOADS_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80, 80 };
+gboolean gui_property_variable_dl_active_col_visible[DOWNLOADS_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
+static const gboolean gui_property_variable_dl_active_col_visible_default[DOWNLOADS_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
+guint32  gui_property_variable_dl_queued_col_widths[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80 };
+static const guint32  gui_property_variable_dl_queued_col_widths_default[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80 };
+gboolean gui_property_variable_dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1 };
+static const gboolean gui_property_variable_dl_queued_col_visible_default[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1 };
+guint32  gui_property_variable_file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]     = { 240, 80, 80, 80, 80 };
+static const guint32  gui_property_variable_file_info_col_widths_default[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80 };
+guint32  gui_property_variable_search_list_col_widths[SEARCH_LIST_VISIBLE_COLUMNS]     = { 80, 20, 20 };
+static const guint32  gui_property_variable_search_list_col_widths_default[SEARCH_LIST_VISIBLE_COLUMNS] = { 80, 20, 20 };
+gboolean gui_property_variable_search_results_col_visible[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0 };
+static const gboolean gui_property_variable_search_results_col_visible_default[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0 };
+guint32  gui_property_variable_search_results_col_widths[SEARCH_RESULTS_VISIBLE_COLUMNS]     = {  210, 30, 50, 80, 30, 120, 90, 40,   40, 40, 40, 40, 40,  40, 40, 40};
+static const guint32  gui_property_variable_search_results_col_widths_default[SEARCH_RESULTS_VISIBLE_COLUMNS] = {  210, 30, 50, 80, 30, 120, 90, 40,   40, 40, 40, 40, 40,  40, 40, 40};
+guint32  gui_property_variable_search_stats_col_widths[3]     = { 200, 80, 80 };
+static const guint32  gui_property_variable_search_stats_col_widths_default[3] = { 200, 80, 80 };
+guint32  gui_property_variable_ul_stats_col_widths[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 200, 80, 80, 80, 80 };
+static const guint32  gui_property_variable_ul_stats_col_widths_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 200, 80, 80, 80, 80 };
+gboolean gui_property_variable_ul_stats_col_visible[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1 };
+static const gboolean gui_property_variable_ul_stats_col_visible_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1 };
+guint32  gui_property_variable_uploads_col_widths[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 200, 120, 36, 80, 80, 80, 80 };
+static const guint32  gui_property_variable_uploads_col_widths_default[UPLOADS_GUI_VISIBLE_COLUMNS] = { 200, 120, 36, 80, 80, 80, 80 };
+gboolean gui_property_variable_uploads_col_visible[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
+static const gboolean gui_property_variable_uploads_col_visible_default[UPLOADS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
+guint32  gui_property_variable_filter_rules_col_widths[4]     = { 10, 240, 80, 40 };
+static const guint32  gui_property_variable_filter_rules_col_widths_default[4] = { 10, 240, 80, 40 };
+guint32  gui_property_variable_filter_filters_col_widths[3]     = { 80, 40, 20 };
+static const guint32  gui_property_variable_filter_filters_col_widths_default[3] = { 80, 40, 20 };
+guint32  gui_property_variable_gnet_stats_msg_col_widths[8]     = { 60, 20, 20, 20, 20, 20, 20, 20 };
+static const guint32  gui_property_variable_gnet_stats_msg_col_widths_default[8] = { 60, 20, 20, 20, 20, 20, 20, 20 };
+guint32  gui_property_variable_gnet_stats_fc_ttl_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
+static const guint32  gui_property_variable_gnet_stats_fc_ttl_col_widths_default[10] = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
+guint32  gui_property_variable_gnet_stats_fc_hops_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
+static const guint32  gui_property_variable_gnet_stats_fc_hops_col_widths_default[10] = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
+guint32  gui_property_variable_gnet_stats_fc_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
+static const guint32  gui_property_variable_gnet_stats_fc_col_widths_default[10] = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
+guint32  gui_property_variable_gnet_stats_horizon_col_widths[4]     = { 30, 40, 40, 40 };
+static const guint32  gui_property_variable_gnet_stats_horizon_col_widths_default[4] = { 30, 40, 40, 40 };
+guint32  gui_property_variable_gnet_stats_drop_reasons_col_widths[2]     = { 60, 20 };
+static const guint32  gui_property_variable_gnet_stats_drop_reasons_col_widths_default[2] = { 60, 20 };
+guint32  gui_property_variable_gnet_stats_recv_col_widths[10]     = { 60, 40, 40, 40, 40, 40, 40, 40, 40, 40 };
+static const guint32  gui_property_variable_gnet_stats_recv_col_widths_default[10] = { 60, 40, 40, 40, 40, 40, 40, 40, 40, 40 };
+guint32  gui_property_variable_hcache_col_widths[4]     = { 60, 40, 40, 40 };
+static const guint32  gui_property_variable_hcache_col_widths_default[4] = { 60, 40, 40, 40 };
+guint32  gui_property_variable_window_coords[4]     = { 0, 0, 0, 0 };
+static const guint32  gui_property_variable_window_coords_default[4] = { 0, 0, 0, 0 };
+guint32  gui_property_variable_filter_dlg_coords[4]     = { 0, 0, 0, 0 };
+static const guint32  gui_property_variable_filter_dlg_coords_default[4] = { 0, 0, 0, 0 };
+guint32  gui_property_variable_prefs_dlg_coords[4]     = { 0, 0, 0, 0 };
+static const guint32  gui_property_variable_prefs_dlg_coords_default[4] = { 0, 0, 0, 0 };
+guint32  gui_property_variable_fileinfo_divider_pos     = 305;
+static const guint32  gui_property_variable_fileinfo_divider_pos_default = 305;
+guint32  gui_property_variable_main_divider_pos     = 140;
+static const guint32  gui_property_variable_main_divider_pos_default = 140;
+guint32  gui_property_variable_gnet_stats_divider_pos     = 300;
+static const guint32  gui_property_variable_gnet_stats_divider_pos_default = 300;
+guint32  gui_property_variable_side_divider_pos     = 100;
+static const guint32  gui_property_variable_side_divider_pos_default = 100;
+guint32  gui_property_variable_results_divider_pos     = 400;
+static const guint32  gui_property_variable_results_divider_pos_default = 400;
+guint32  gui_property_variable_search_max_results     = 1000;
+static const guint32  gui_property_variable_search_max_results_default = 1000;
+guint32  gui_property_variable_browse_host_max_results     = 10000;
+static const guint32  gui_property_variable_browse_host_max_results_default = 10000;
+guint32  gui_property_variable_gui_debug     = 0;
+static const guint32  gui_property_variable_gui_debug_default = 0;
+guint32  gui_property_variable_filter_main_divider_pos     = 140;
+static const guint32  gui_property_variable_filter_main_divider_pos_default = 140;
+gboolean gui_property_variable_search_results_show_tabs     = FALSE;
+static const gboolean gui_property_variable_search_results_show_tabs_default = FALSE;
+gboolean gui_property_variable_searchbar_visible     = TRUE;
+static const gboolean gui_property_variable_searchbar_visible_default = TRUE;
+gboolean gui_property_variable_sidebar_visible     = TRUE;
+static const gboolean gui_property_variable_sidebar_visible_default = TRUE;
+gboolean gui_property_variable_navtree_visible     = TRUE;
+static const gboolean gui_property_variable_navtree_visible_default = TRUE;
+gboolean gui_property_variable_toolbar_visible     = FALSE;
+static const gboolean gui_property_variable_toolbar_visible_default = FALSE;
+gboolean gui_property_variable_statusbar_visible     = TRUE;
+static const gboolean gui_property_variable_statusbar_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_uploads_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_uploads_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_downloads_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_downloads_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_connections_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_connections_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_in_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_in_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_out_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_out_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_gin_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_gin_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_gout_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_gout_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_glin_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_glin_visible_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_glout_visible     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_glout_visible_default = TRUE;
+gboolean gui_property_variable_autohide_bws_gleaf     = TRUE;
+static const gboolean gui_property_variable_autohide_bws_gleaf_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_in_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_in_avg_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_out_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_out_avg_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_gin_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_gin_avg_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_gout_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_gout_avg_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_glin_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_glin_avg_default = TRUE;
+gboolean gui_property_variable_progressbar_bws_glout_avg     = TRUE;
+static const gboolean gui_property_variable_progressbar_bws_glout_avg_default = TRUE;
+gboolean gui_property_variable_search_sort_casesense     = FALSE;
+static const gboolean gui_property_variable_search_sort_casesense_default = FALSE;
+guint32  gui_property_variable_search_sort_default_order     = 0;
+static const guint32  gui_property_variable_search_sort_default_order_default = 0;
+guint32  gui_property_variable_search_sort_default_column     = -1;
+static const guint32  gui_property_variable_search_sort_default_column_default = -1;
+gboolean gui_property_variable_search_discard_spam     = TRUE;
+static const gboolean gui_property_variable_search_discard_spam_default = TRUE;
+gboolean gui_property_variable_search_discard_hashless     = TRUE;
+static const gboolean gui_property_variable_search_discard_hashless_default = TRUE;
+gboolean gui_property_variable_search_jump_to_created     = TRUE;
+static const gboolean gui_property_variable_search_jump_to_created_default = TRUE;
+guint32  gui_property_variable_search_stats_mode     = 0;
+static const guint32  gui_property_variable_search_stats_mode_default = 0;
+prop_def_choice_t gui_property_variable_search_stats_mode_choices[] = { 
     {N_("disable"), 0},
     {N_("by words"), 1},
     {N_("by whole query"), 2},
     {N_("by router"), 3},
     {NULL, 0}
 };
-guint32  search_stats_update_interval     = 200;
-guint32  search_stats_update_interval_def = 200;
-guint32  search_stats_delcoef     = 25;
-guint32  search_stats_delcoef_def = 25;
-gboolean confirm_quit     = TRUE;
-gboolean confirm_quit_def = TRUE;
-gboolean show_tooltips     = TRUE;
-gboolean show_tooltips_def = TRUE;
-gboolean expert_mode     = FALSE;
-gboolean expert_mode_def = FALSE;
-gboolean gnet_stats_perc     = FALSE;
-gboolean gnet_stats_perc_def = FALSE;
-gboolean gnet_stats_bytes     = FALSE;
-gboolean gnet_stats_bytes_def = FALSE;
-gboolean gnet_stats_hops     = FALSE;
-gboolean gnet_stats_hops_def = FALSE;
-guint32  gnet_stats_source     = 0;
-guint32  gnet_stats_source_def = 0;
-prop_def_choice_t gnet_stats_source_choices[] = { 
+guint32  gui_property_variable_search_stats_update_interval     = 200;
+static const guint32  gui_property_variable_search_stats_update_interval_default = 200;
+guint32  gui_property_variable_search_stats_delcoef     = 25;
+static const guint32  gui_property_variable_search_stats_delcoef_default = 25;
+gboolean gui_property_variable_confirm_quit     = TRUE;
+static const gboolean gui_property_variable_confirm_quit_default = TRUE;
+gboolean gui_property_variable_show_tooltips     = TRUE;
+static const gboolean gui_property_variable_show_tooltips_default = TRUE;
+gboolean gui_property_variable_expert_mode     = FALSE;
+static const gboolean gui_property_variable_expert_mode_default = FALSE;
+gboolean gui_property_variable_gnet_stats_perc     = FALSE;
+static const gboolean gui_property_variable_gnet_stats_perc_default = FALSE;
+gboolean gui_property_variable_gnet_stats_bytes     = FALSE;
+static const gboolean gui_property_variable_gnet_stats_bytes_default = FALSE;
+gboolean gui_property_variable_gnet_stats_hops     = FALSE;
+static const gboolean gui_property_variable_gnet_stats_hops_default = FALSE;
+guint32  gui_property_variable_gnet_stats_source     = 0;
+static const guint32  gui_property_variable_gnet_stats_source_default = 0;
+prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = { 
     {N_("TCP & UDP"), GNET_STATS_FULL},
     {N_("TCP only"), GNET_STATS_TCP_ONLY},
     {N_("UDP only"), GNET_STATS_UDP_ONLY},
     {NULL, 0}
 };
-guint32  gnet_stats_drop_reasons_type     = MSG_TOTAL;
-guint32  gnet_stats_drop_reasons_type_def = MSG_TOTAL;
-prop_def_choice_t gnet_stats_drop_reasons_type_choices[] = { 
+guint32  gui_property_variable_gnet_stats_drop_reasons_type     = MSG_TOTAL;
+static const guint32  gui_property_variable_gnet_stats_drop_reasons_type_default = MSG_TOTAL;
+prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_type_choices[] = { 
     {N_("Unknown"), MSG_UNKNOWN},
     {N_("Ping"), MSG_INIT},
     {N_("Pong"), MSG_INIT_RESPONSE},
@@ -235,80 +235,80 @@ prop_def_choice_t gnet_stats_drop_reasons_type_choices[] = {
     {N_("Total"), MSG_TOTAL},
     {NULL, 0}
 };
-gboolean gnet_stats_with_headers     = TRUE;
-gboolean gnet_stats_with_headers_def = TRUE;
-gboolean gnet_stats_drop_perc     = FALSE;
-gboolean gnet_stats_drop_perc_def = FALSE;
-guint32  gnet_stats_general_col_widths[2]     = { 60, 20 };
-guint32  gnet_stats_general_col_widths_def[2] = { 60, 20 };
-gboolean clear_uploads_complete     = TRUE;
-gboolean clear_uploads_complete_def = TRUE;
-gboolean clear_uploads_failed     = TRUE;
-gboolean clear_uploads_failed_def = TRUE;
-gboolean node_show_uptime     = TRUE;
-gboolean node_show_uptime_def = TRUE;
-gboolean node_show_handshake_version     = FALSE;
-gboolean node_show_handshake_version_def = FALSE;
-gboolean node_show_detailed_info     = FALSE;
-gboolean node_show_detailed_info_def = FALSE;
-gboolean show_gnet_info_txc     = FALSE;
-gboolean show_gnet_info_txc_def = FALSE;
-gboolean show_gnet_info_rxc     = FALSE;
-gboolean show_gnet_info_rxc_def = FALSE;
-gboolean show_gnet_info_tx_wire     = FALSE;
-gboolean show_gnet_info_tx_wire_def = FALSE;
-gboolean show_gnet_info_rx_wire     = FALSE;
-gboolean show_gnet_info_rx_wire_def = FALSE;
-gboolean show_gnet_info_tx_speed     = FALSE;
-gboolean show_gnet_info_tx_speed_def = FALSE;
-gboolean show_gnet_info_rx_speed     = FALSE;
-gboolean show_gnet_info_rx_speed_def = FALSE;
-gboolean show_gnet_info_tx_queries     = FALSE;
-gboolean show_gnet_info_tx_queries_def = FALSE;
-gboolean show_gnet_info_rx_queries     = FALSE;
-gboolean show_gnet_info_rx_queries_def = FALSE;
-gboolean show_gnet_info_tx_hits     = FALSE;
-gboolean show_gnet_info_tx_hits_def = FALSE;
-gboolean show_gnet_info_rx_hits     = FALSE;
-gboolean show_gnet_info_rx_hits_def = FALSE;
-gboolean show_gnet_info_gen_queries     = FALSE;
-gboolean show_gnet_info_gen_queries_def = FALSE;
-gboolean show_gnet_info_sq_queries     = FALSE;
-gboolean show_gnet_info_sq_queries_def = FALSE;
-gboolean show_gnet_info_tx_dropped     = FALSE;
-gboolean show_gnet_info_tx_dropped_def = FALSE;
-gboolean show_gnet_info_rx_dropped     = FALSE;
-gboolean show_gnet_info_rx_dropped_def = FALSE;
-gboolean show_gnet_info_qrp_stats     = FALSE;
-gboolean show_gnet_info_qrp_stats_def = FALSE;
-gboolean show_gnet_info_dbw     = FALSE;
-gboolean show_gnet_info_dbw_def = FALSE;
-gboolean show_gnet_info_rt     = FALSE;
-gboolean show_gnet_info_rt_def = FALSE;
-gboolean show_gnet_info_shared_size     = FALSE;
-gboolean show_gnet_info_shared_size_def = FALSE;
-gboolean show_gnet_info_shared_files     = FALSE;
-gboolean show_gnet_info_shared_files_def = FALSE;
-guint32  search_accumulation_period     = 5;
-guint32  search_accumulation_period_def = 5;
-guint32  treemenu_nodes_expanded[nb_main_page_num]     = { 1, 1, 1, 1, 1, 1, 1, 1,  };
-guint32  treemenu_nodes_expanded_def[nb_main_page_num] = { 1, 1, 1, 1, 1, 1, 1, 1,  };
-guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_pkg_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_byte_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
-guint32  config_toolbar_style     = 4;
-guint32  config_toolbar_style_def = 4;
-prop_def_choice_t config_toolbar_style_choices[] = { 
+gboolean gui_property_variable_gnet_stats_with_headers     = TRUE;
+static const gboolean gui_property_variable_gnet_stats_with_headers_default = TRUE;
+gboolean gui_property_variable_gnet_stats_drop_perc     = FALSE;
+static const gboolean gui_property_variable_gnet_stats_drop_perc_default = FALSE;
+guint32  gui_property_variable_gnet_stats_general_col_widths[2]     = { 60, 20 };
+static const guint32  gui_property_variable_gnet_stats_general_col_widths_default[2] = { 60, 20 };
+gboolean gui_property_variable_clear_uploads_complete     = TRUE;
+static const gboolean gui_property_variable_clear_uploads_complete_default = TRUE;
+gboolean gui_property_variable_clear_uploads_failed     = TRUE;
+static const gboolean gui_property_variable_clear_uploads_failed_default = TRUE;
+gboolean gui_property_variable_node_show_uptime     = TRUE;
+static const gboolean gui_property_variable_node_show_uptime_default = TRUE;
+gboolean gui_property_variable_node_show_handshake_version     = FALSE;
+static const gboolean gui_property_variable_node_show_handshake_version_default = FALSE;
+gboolean gui_property_variable_node_show_detailed_info     = FALSE;
+static const gboolean gui_property_variable_node_show_detailed_info_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_txc     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_txc_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_rxc     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_rxc_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_tx_wire     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_tx_wire_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_rx_wire     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_rx_wire_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_tx_speed     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_tx_speed_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_rx_speed     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_rx_speed_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_tx_queries     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_tx_queries_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_rx_queries     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_rx_queries_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_tx_hits     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_tx_hits_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_rx_hits     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_rx_hits_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_gen_queries     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_gen_queries_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_sq_queries     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_sq_queries_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_tx_dropped     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_tx_dropped_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_rx_dropped     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_rx_dropped_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_qrp_stats     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_qrp_stats_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_dbw     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_dbw_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_rt     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_rt_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_shared_size     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_shared_size_default = FALSE;
+gboolean gui_property_variable_show_gnet_info_shared_files     = FALSE;
+static const gboolean gui_property_variable_show_gnet_info_shared_files_default = FALSE;
+guint32  gui_property_variable_search_accumulation_period     = 5;
+static const guint32  gui_property_variable_search_accumulation_period_default = 5;
+guint32  gui_property_variable_treemenu_nodes_expanded[nb_main_page_num]     = { 1, 1, 1, 1, 1, 1, 1, 1,  };
+static const guint32  gui_property_variable_treemenu_nodes_expanded_default[nb_main_page_num] = { 1, 1, 1, 1, 1, 1, 1, 1,  };
+guint32  gui_property_variable_gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
+static const guint32  gui_property_variable_gnet_stats_pkg_col_widths_default[6] = { 60, 20, 20, 20, 20, 20 };
+guint32  gui_property_variable_gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
+static const guint32  gui_property_variable_gnet_stats_byte_col_widths_default[6] = { 60, 20, 20, 20, 20, 20 };
+guint32  gui_property_variable_config_toolbar_style     = 4;
+static const guint32  gui_property_variable_config_toolbar_style_default = 4;
+prop_def_choice_t gui_property_variable_config_toolbar_style_choices[] = { 
     {N_("Icons"), 1},
     {N_("Text"), 2},
     {N_("Both (vertical)"), 3},
     {N_("Both (horizontal)"), 4},
     {NULL, 0}
 };
-guint32  search_lifetime     = 0;
-guint32  search_lifetime_def = 0;
-prop_def_choice_t search_lifetime_choices[] = { 
+guint32  gui_property_variable_search_lifetime     = 0;
+static const guint32  gui_property_variable_search_lifetime_default = 0;
+prop_def_choice_t gui_property_variable_search_lifetime_choices[] = { 
     {N_("This session"), 0},
     {N_("1 hour"), 1},
     {N_("4 hours"), 4},
@@ -319,7 +319,7 @@ prop_def_choice_t search_lifetime_choices[] = {
     {NULL, 0}
 };
 
-static prop_set_t *gui_property = NULL;
+static prop_set_t *gui_property;
 
 prop_set_t *
 gui_prop_init(void) {
@@ -350,8 +350,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[0].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[0].data.boolean.def   = &monitor_enabled_def;
-    gui_property->props[0].data.boolean.value = &monitor_enabled;
+    gui_property->props[0].data.boolean.def   = (void *) &gui_property_variable_monitor_enabled_default;
+    gui_property->props[0].data.boolean.value = (void *) &gui_property_variable_monitor_enabled;
 
 
     /*
@@ -367,8 +367,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[1].type               = PROP_TYPE_GUINT32;
-    gui_property->props[1].data.guint32.def   = &monitor_max_items_def;
-    gui_property->props[1].data.guint32.value = &monitor_max_items;
+    gui_property->props[1].data.guint32.def   = (void *) &gui_property_variable_monitor_max_items_default;
+    gui_property->props[1].data.guint32.value = (void *) &gui_property_variable_monitor_max_items;
     gui_property->props[1].data.guint32.choices = NULL;
     gui_property->props[1].data.guint32.max   = 100;
     gui_property->props[1].data.guint32.min   = 0;
@@ -387,8 +387,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[2].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[2].data.boolean.def   = &queue_regex_case_def;
-    gui_property->props[2].data.boolean.value = &queue_regex_case;
+    gui_property->props[2].data.boolean.def   = (void *) &gui_property_variable_queue_regex_case_default;
+    gui_property->props[2].data.boolean.value = (void *) &gui_property_variable_queue_regex_case;
 
 
     /*
@@ -404,8 +404,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[3].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[3].data.boolean.def   = &fi_regex_case_def;
-    gui_property->props[3].data.boolean.value = &fi_regex_case;
+    gui_property->props[3].data.boolean.def   = (void *) &gui_property_variable_fi_regex_case_default;
+    gui_property->props[3].data.boolean.value = (void *) &gui_property_variable_fi_regex_case;
 
 
     /*
@@ -421,8 +421,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[4].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[4].data.boolean.def   = &search_hide_downloaded_def;
-    gui_property->props[4].data.boolean.value = &search_hide_downloaded;
+    gui_property->props[4].data.boolean.def   = (void *) &gui_property_variable_search_hide_downloaded_default;
+    gui_property->props[4].data.boolean.value = (void *) &gui_property_variable_search_hide_downloaded;
 
 
     /*
@@ -438,8 +438,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[5].type               = PROP_TYPE_GUINT32;
-    gui_property->props[5].data.guint32.def   = nodes_col_widths_def;
-    gui_property->props[5].data.guint32.value = nodes_col_widths;
+    gui_property->props[5].data.guint32.def   = (void *) gui_property_variable_nodes_col_widths_default;
+    gui_property->props[5].data.guint32.value = gui_property_variable_nodes_col_widths;
     gui_property->props[5].data.guint32.choices = NULL;
     gui_property->props[5].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[5].data.guint32.min   = 0x00000000;
@@ -458,8 +458,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[6].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[6].data.boolean.def   = nodes_col_visible_def;
-    gui_property->props[6].data.boolean.value = nodes_col_visible;
+    gui_property->props[6].data.boolean.def   = (void *) gui_property_variable_nodes_col_visible_default;
+    gui_property->props[6].data.boolean.value = gui_property_variable_nodes_col_visible;
 
 
     /*
@@ -475,8 +475,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[7].type               = PROP_TYPE_GUINT32;
-    gui_property->props[7].data.guint32.def   = dl_active_col_widths_def;
-    gui_property->props[7].data.guint32.value = dl_active_col_widths;
+    gui_property->props[7].data.guint32.def   = (void *) gui_property_variable_dl_active_col_widths_default;
+    gui_property->props[7].data.guint32.value = gui_property_variable_dl_active_col_widths;
     gui_property->props[7].data.guint32.choices = NULL;
     gui_property->props[7].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[7].data.guint32.min   = 0x00000000;
@@ -495,8 +495,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[8].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[8].data.boolean.def   = dl_active_col_visible_def;
-    gui_property->props[8].data.boolean.value = dl_active_col_visible;
+    gui_property->props[8].data.boolean.def   = (void *) gui_property_variable_dl_active_col_visible_default;
+    gui_property->props[8].data.boolean.value = gui_property_variable_dl_active_col_visible;
 
 
     /*
@@ -512,8 +512,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[9].type               = PROP_TYPE_GUINT32;
-    gui_property->props[9].data.guint32.def   = dl_queued_col_widths_def;
-    gui_property->props[9].data.guint32.value = dl_queued_col_widths;
+    gui_property->props[9].data.guint32.def   = (void *) gui_property_variable_dl_queued_col_widths_default;
+    gui_property->props[9].data.guint32.value = gui_property_variable_dl_queued_col_widths;
     gui_property->props[9].data.guint32.choices = NULL;
     gui_property->props[9].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[9].data.guint32.min   = 0x00000000;
@@ -532,8 +532,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[10].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[10].data.boolean.def   = dl_queued_col_visible_def;
-    gui_property->props[10].data.boolean.value = dl_queued_col_visible;
+    gui_property->props[10].data.boolean.def   = (void *) gui_property_variable_dl_queued_col_visible_default;
+    gui_property->props[10].data.boolean.value = gui_property_variable_dl_queued_col_visible;
 
 
     /*
@@ -549,8 +549,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[11].type               = PROP_TYPE_GUINT32;
-    gui_property->props[11].data.guint32.def   = file_info_col_widths_def;
-    gui_property->props[11].data.guint32.value = file_info_col_widths;
+    gui_property->props[11].data.guint32.def   = (void *) gui_property_variable_file_info_col_widths_default;
+    gui_property->props[11].data.guint32.value = gui_property_variable_file_info_col_widths;
     gui_property->props[11].data.guint32.choices = NULL;
     gui_property->props[11].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[11].data.guint32.min   = 0x00000000;
@@ -569,8 +569,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[12].type               = PROP_TYPE_GUINT32;
-    gui_property->props[12].data.guint32.def   = search_list_col_widths_def;
-    gui_property->props[12].data.guint32.value = search_list_col_widths;
+    gui_property->props[12].data.guint32.def   = (void *) gui_property_variable_search_list_col_widths_default;
+    gui_property->props[12].data.guint32.value = gui_property_variable_search_list_col_widths;
     gui_property->props[12].data.guint32.choices = NULL;
     gui_property->props[12].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[12].data.guint32.min   = 0x00000000;
@@ -589,8 +589,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[13].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[13].data.boolean.def   = search_results_col_visible_def;
-    gui_property->props[13].data.boolean.value = search_results_col_visible;
+    gui_property->props[13].data.boolean.def   = (void *) gui_property_variable_search_results_col_visible_default;
+    gui_property->props[13].data.boolean.value = gui_property_variable_search_results_col_visible;
 
 
     /*
@@ -606,8 +606,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[14].type               = PROP_TYPE_GUINT32;
-    gui_property->props[14].data.guint32.def   = search_results_col_widths_def;
-    gui_property->props[14].data.guint32.value = search_results_col_widths;
+    gui_property->props[14].data.guint32.def   = (void *) gui_property_variable_search_results_col_widths_default;
+    gui_property->props[14].data.guint32.value = gui_property_variable_search_results_col_widths;
     gui_property->props[14].data.guint32.choices = NULL;
     gui_property->props[14].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[14].data.guint32.min   = 0x00000000;
@@ -626,8 +626,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[15].type               = PROP_TYPE_GUINT32;
-    gui_property->props[15].data.guint32.def   = search_stats_col_widths_def;
-    gui_property->props[15].data.guint32.value = search_stats_col_widths;
+    gui_property->props[15].data.guint32.def   = (void *) gui_property_variable_search_stats_col_widths_default;
+    gui_property->props[15].data.guint32.value = gui_property_variable_search_stats_col_widths;
     gui_property->props[15].data.guint32.choices = NULL;
     gui_property->props[15].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[15].data.guint32.min   = 0x00000000;
@@ -646,8 +646,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[16].type               = PROP_TYPE_GUINT32;
-    gui_property->props[16].data.guint32.def   = ul_stats_col_widths_def;
-    gui_property->props[16].data.guint32.value = ul_stats_col_widths;
+    gui_property->props[16].data.guint32.def   = (void *) gui_property_variable_ul_stats_col_widths_default;
+    gui_property->props[16].data.guint32.value = gui_property_variable_ul_stats_col_widths;
     gui_property->props[16].data.guint32.choices = NULL;
     gui_property->props[16].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[16].data.guint32.min   = 0x00000000;
@@ -666,8 +666,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[17].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[17].data.boolean.def   = ul_stats_col_visible_def;
-    gui_property->props[17].data.boolean.value = ul_stats_col_visible;
+    gui_property->props[17].data.boolean.def   = (void *) gui_property_variable_ul_stats_col_visible_default;
+    gui_property->props[17].data.boolean.value = gui_property_variable_ul_stats_col_visible;
 
 
     /*
@@ -683,8 +683,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[18].type               = PROP_TYPE_GUINT32;
-    gui_property->props[18].data.guint32.def   = uploads_col_widths_def;
-    gui_property->props[18].data.guint32.value = uploads_col_widths;
+    gui_property->props[18].data.guint32.def   = (void *) gui_property_variable_uploads_col_widths_default;
+    gui_property->props[18].data.guint32.value = gui_property_variable_uploads_col_widths;
     gui_property->props[18].data.guint32.choices = NULL;
     gui_property->props[18].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[18].data.guint32.min   = 0x00000000;
@@ -703,8 +703,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[19].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[19].data.boolean.def   = uploads_col_visible_def;
-    gui_property->props[19].data.boolean.value = uploads_col_visible;
+    gui_property->props[19].data.boolean.def   = (void *) gui_property_variable_uploads_col_visible_default;
+    gui_property->props[19].data.boolean.value = gui_property_variable_uploads_col_visible;
 
 
     /*
@@ -720,8 +720,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[20].type               = PROP_TYPE_GUINT32;
-    gui_property->props[20].data.guint32.def   = filter_rules_col_widths_def;
-    gui_property->props[20].data.guint32.value = filter_rules_col_widths;
+    gui_property->props[20].data.guint32.def   = (void *) gui_property_variable_filter_rules_col_widths_default;
+    gui_property->props[20].data.guint32.value = gui_property_variable_filter_rules_col_widths;
     gui_property->props[20].data.guint32.choices = NULL;
     gui_property->props[20].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[20].data.guint32.min   = 0x00000000;
@@ -740,8 +740,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[21].type               = PROP_TYPE_GUINT32;
-    gui_property->props[21].data.guint32.def   = filter_filters_col_widths_def;
-    gui_property->props[21].data.guint32.value = filter_filters_col_widths;
+    gui_property->props[21].data.guint32.def   = (void *) gui_property_variable_filter_filters_col_widths_default;
+    gui_property->props[21].data.guint32.value = gui_property_variable_filter_filters_col_widths;
     gui_property->props[21].data.guint32.choices = NULL;
     gui_property->props[21].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[21].data.guint32.min   = 0x00000000;
@@ -760,8 +760,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[22].type               = PROP_TYPE_GUINT32;
-    gui_property->props[22].data.guint32.def   = gnet_stats_msg_col_widths_def;
-    gui_property->props[22].data.guint32.value = gnet_stats_msg_col_widths;
+    gui_property->props[22].data.guint32.def   = (void *) gui_property_variable_gnet_stats_msg_col_widths_default;
+    gui_property->props[22].data.guint32.value = gui_property_variable_gnet_stats_msg_col_widths;
     gui_property->props[22].data.guint32.choices = NULL;
     gui_property->props[22].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[22].data.guint32.min   = 0x00000000;
@@ -780,8 +780,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[23].type               = PROP_TYPE_GUINT32;
-    gui_property->props[23].data.guint32.def   = gnet_stats_fc_ttl_col_widths_def;
-    gui_property->props[23].data.guint32.value = gnet_stats_fc_ttl_col_widths;
+    gui_property->props[23].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_ttl_col_widths_default;
+    gui_property->props[23].data.guint32.value = gui_property_variable_gnet_stats_fc_ttl_col_widths;
     gui_property->props[23].data.guint32.choices = NULL;
     gui_property->props[23].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[23].data.guint32.min   = 0x00000000;
@@ -800,8 +800,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[24].type               = PROP_TYPE_GUINT32;
-    gui_property->props[24].data.guint32.def   = gnet_stats_fc_hops_col_widths_def;
-    gui_property->props[24].data.guint32.value = gnet_stats_fc_hops_col_widths;
+    gui_property->props[24].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_hops_col_widths_default;
+    gui_property->props[24].data.guint32.value = gui_property_variable_gnet_stats_fc_hops_col_widths;
     gui_property->props[24].data.guint32.choices = NULL;
     gui_property->props[24].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[24].data.guint32.min   = 0x00000000;
@@ -820,8 +820,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[25].type               = PROP_TYPE_GUINT32;
-    gui_property->props[25].data.guint32.def   = gnet_stats_fc_col_widths_def;
-    gui_property->props[25].data.guint32.value = gnet_stats_fc_col_widths;
+    gui_property->props[25].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_col_widths_default;
+    gui_property->props[25].data.guint32.value = gui_property_variable_gnet_stats_fc_col_widths;
     gui_property->props[25].data.guint32.choices = NULL;
     gui_property->props[25].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[25].data.guint32.min   = 0x00000000;
@@ -840,8 +840,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[26].type               = PROP_TYPE_GUINT32;
-    gui_property->props[26].data.guint32.def   = gnet_stats_horizon_col_widths_def;
-    gui_property->props[26].data.guint32.value = gnet_stats_horizon_col_widths;
+    gui_property->props[26].data.guint32.def   = (void *) gui_property_variable_gnet_stats_horizon_col_widths_default;
+    gui_property->props[26].data.guint32.value = gui_property_variable_gnet_stats_horizon_col_widths;
     gui_property->props[26].data.guint32.choices = NULL;
     gui_property->props[26].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[26].data.guint32.min   = 0x00000000;
@@ -860,8 +860,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[27].type               = PROP_TYPE_GUINT32;
-    gui_property->props[27].data.guint32.def   = gnet_stats_drop_reasons_col_widths_def;
-    gui_property->props[27].data.guint32.value = gnet_stats_drop_reasons_col_widths;
+    gui_property->props[27].data.guint32.def   = (void *) gui_property_variable_gnet_stats_drop_reasons_col_widths_default;
+    gui_property->props[27].data.guint32.value = gui_property_variable_gnet_stats_drop_reasons_col_widths;
     gui_property->props[27].data.guint32.choices = NULL;
     gui_property->props[27].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[27].data.guint32.min   = 0x00000000;
@@ -880,8 +880,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[28].type               = PROP_TYPE_GUINT32;
-    gui_property->props[28].data.guint32.def   = gnet_stats_recv_col_widths_def;
-    gui_property->props[28].data.guint32.value = gnet_stats_recv_col_widths;
+    gui_property->props[28].data.guint32.def   = (void *) gui_property_variable_gnet_stats_recv_col_widths_default;
+    gui_property->props[28].data.guint32.value = gui_property_variable_gnet_stats_recv_col_widths;
     gui_property->props[28].data.guint32.choices = NULL;
     gui_property->props[28].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[28].data.guint32.min   = 0x00000000;
@@ -900,8 +900,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[29].type               = PROP_TYPE_GUINT32;
-    gui_property->props[29].data.guint32.def   = hcache_col_widths_def;
-    gui_property->props[29].data.guint32.value = hcache_col_widths;
+    gui_property->props[29].data.guint32.def   = (void *) gui_property_variable_hcache_col_widths_default;
+    gui_property->props[29].data.guint32.value = gui_property_variable_hcache_col_widths;
     gui_property->props[29].data.guint32.choices = NULL;
     gui_property->props[29].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[29].data.guint32.min   = 0x00000000;
@@ -920,8 +920,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[30].type               = PROP_TYPE_GUINT32;
-    gui_property->props[30].data.guint32.def   = window_coords_def;
-    gui_property->props[30].data.guint32.value = window_coords;
+    gui_property->props[30].data.guint32.def   = (void *) gui_property_variable_window_coords_default;
+    gui_property->props[30].data.guint32.value = gui_property_variable_window_coords;
     gui_property->props[30].data.guint32.choices = NULL;
     gui_property->props[30].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[30].data.guint32.min   = 0x00000000;
@@ -940,8 +940,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[31].type               = PROP_TYPE_GUINT32;
-    gui_property->props[31].data.guint32.def   = filter_dlg_coords_def;
-    gui_property->props[31].data.guint32.value = filter_dlg_coords;
+    gui_property->props[31].data.guint32.def   = (void *) gui_property_variable_filter_dlg_coords_default;
+    gui_property->props[31].data.guint32.value = gui_property_variable_filter_dlg_coords;
     gui_property->props[31].data.guint32.choices = NULL;
     gui_property->props[31].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[31].data.guint32.min   = 0x00000000;
@@ -960,8 +960,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[32].type               = PROP_TYPE_GUINT32;
-    gui_property->props[32].data.guint32.def   = prefs_dlg_coords_def;
-    gui_property->props[32].data.guint32.value = prefs_dlg_coords;
+    gui_property->props[32].data.guint32.def   = (void *) gui_property_variable_prefs_dlg_coords_default;
+    gui_property->props[32].data.guint32.value = gui_property_variable_prefs_dlg_coords;
     gui_property->props[32].data.guint32.choices = NULL;
     gui_property->props[32].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[32].data.guint32.min   = 0x00000000;
@@ -980,8 +980,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[33].type               = PROP_TYPE_GUINT32;
-    gui_property->props[33].data.guint32.def   = &fileinfo_divider_pos_def;
-    gui_property->props[33].data.guint32.value = &fileinfo_divider_pos;
+    gui_property->props[33].data.guint32.def   = (void *) &gui_property_variable_fileinfo_divider_pos_default;
+    gui_property->props[33].data.guint32.value = (void *) &gui_property_variable_fileinfo_divider_pos;
     gui_property->props[33].data.guint32.choices = NULL;
     gui_property->props[33].data.guint32.max   = 0xFFFF;
     gui_property->props[33].data.guint32.min   = 0x0000;
@@ -1000,8 +1000,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[34].type               = PROP_TYPE_GUINT32;
-    gui_property->props[34].data.guint32.def   = &main_divider_pos_def;
-    gui_property->props[34].data.guint32.value = &main_divider_pos;
+    gui_property->props[34].data.guint32.def   = (void *) &gui_property_variable_main_divider_pos_default;
+    gui_property->props[34].data.guint32.value = (void *) &gui_property_variable_main_divider_pos;
     gui_property->props[34].data.guint32.choices = NULL;
     gui_property->props[34].data.guint32.max   = 0xFFFF;
     gui_property->props[34].data.guint32.min   = 0x0000;
@@ -1020,8 +1020,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[35].type               = PROP_TYPE_GUINT32;
-    gui_property->props[35].data.guint32.def   = &gnet_stats_divider_pos_def;
-    gui_property->props[35].data.guint32.value = &gnet_stats_divider_pos;
+    gui_property->props[35].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_divider_pos_default;
+    gui_property->props[35].data.guint32.value = (void *) &gui_property_variable_gnet_stats_divider_pos;
     gui_property->props[35].data.guint32.choices = NULL;
     gui_property->props[35].data.guint32.max   = 0xFFFF;
     gui_property->props[35].data.guint32.min   = 0x0000;
@@ -1040,8 +1040,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[36].type               = PROP_TYPE_GUINT32;
-    gui_property->props[36].data.guint32.def   = &side_divider_pos_def;
-    gui_property->props[36].data.guint32.value = &side_divider_pos;
+    gui_property->props[36].data.guint32.def   = (void *) &gui_property_variable_side_divider_pos_default;
+    gui_property->props[36].data.guint32.value = (void *) &gui_property_variable_side_divider_pos;
     gui_property->props[36].data.guint32.choices = NULL;
     gui_property->props[36].data.guint32.max   = 0xFFFF;
     gui_property->props[36].data.guint32.min   = 0x0000;
@@ -1060,8 +1060,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[37].type               = PROP_TYPE_GUINT32;
-    gui_property->props[37].data.guint32.def   = &results_divider_pos_def;
-    gui_property->props[37].data.guint32.value = &results_divider_pos;
+    gui_property->props[37].data.guint32.def   = (void *) &gui_property_variable_results_divider_pos_default;
+    gui_property->props[37].data.guint32.value = (void *) &gui_property_variable_results_divider_pos;
     gui_property->props[37].data.guint32.choices = NULL;
     gui_property->props[37].data.guint32.max   = 0xFFFF;
     gui_property->props[37].data.guint32.min   = 0x0000;
@@ -1080,8 +1080,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[38].type               = PROP_TYPE_GUINT32;
-    gui_property->props[38].data.guint32.def   = &search_max_results_def;
-    gui_property->props[38].data.guint32.value = &search_max_results;
+    gui_property->props[38].data.guint32.def   = (void *) &gui_property_variable_search_max_results_default;
+    gui_property->props[38].data.guint32.value = (void *) &gui_property_variable_search_max_results;
     gui_property->props[38].data.guint32.choices = NULL;
     gui_property->props[38].data.guint32.max   = 100000;
     gui_property->props[38].data.guint32.min   = 10;
@@ -1100,8 +1100,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[39].type               = PROP_TYPE_GUINT32;
-    gui_property->props[39].data.guint32.def   = &browse_host_max_results_def;
-    gui_property->props[39].data.guint32.value = &browse_host_max_results;
+    gui_property->props[39].data.guint32.def   = (void *) &gui_property_variable_browse_host_max_results_default;
+    gui_property->props[39].data.guint32.value = (void *) &gui_property_variable_browse_host_max_results;
     gui_property->props[39].data.guint32.choices = NULL;
     gui_property->props[39].data.guint32.max   = 500000;
     gui_property->props[39].data.guint32.min   = 100;
@@ -1120,8 +1120,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[40].type               = PROP_TYPE_GUINT32;
-    gui_property->props[40].data.guint32.def   = &gui_debug_def;
-    gui_property->props[40].data.guint32.value = &gui_debug;
+    gui_property->props[40].data.guint32.def   = (void *) &gui_property_variable_gui_debug_default;
+    gui_property->props[40].data.guint32.value = (void *) &gui_property_variable_gui_debug;
     gui_property->props[40].data.guint32.choices = NULL;
     gui_property->props[40].data.guint32.max   = 20;
     gui_property->props[40].data.guint32.min   = 0;
@@ -1140,8 +1140,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[41].type               = PROP_TYPE_GUINT32;
-    gui_property->props[41].data.guint32.def   = &filter_main_divider_pos_def;
-    gui_property->props[41].data.guint32.value = &filter_main_divider_pos;
+    gui_property->props[41].data.guint32.def   = (void *) &gui_property_variable_filter_main_divider_pos_default;
+    gui_property->props[41].data.guint32.value = (void *) &gui_property_variable_filter_main_divider_pos;
     gui_property->props[41].data.guint32.choices = NULL;
     gui_property->props[41].data.guint32.max   = 0xFFFF;
     gui_property->props[41].data.guint32.min   = 0x0000;
@@ -1160,8 +1160,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[42].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[42].data.boolean.def   = &search_results_show_tabs_def;
-    gui_property->props[42].data.boolean.value = &search_results_show_tabs;
+    gui_property->props[42].data.boolean.def   = (void *) &gui_property_variable_search_results_show_tabs_default;
+    gui_property->props[42].data.boolean.value = (void *) &gui_property_variable_search_results_show_tabs;
 
 
     /*
@@ -1177,8 +1177,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[43].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[43].data.boolean.def   = &searchbar_visible_def;
-    gui_property->props[43].data.boolean.value = &searchbar_visible;
+    gui_property->props[43].data.boolean.def   = (void *) &gui_property_variable_searchbar_visible_default;
+    gui_property->props[43].data.boolean.value = (void *) &gui_property_variable_searchbar_visible;
 
 
     /*
@@ -1194,8 +1194,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[44].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[44].data.boolean.def   = &sidebar_visible_def;
-    gui_property->props[44].data.boolean.value = &sidebar_visible;
+    gui_property->props[44].data.boolean.def   = (void *) &gui_property_variable_sidebar_visible_default;
+    gui_property->props[44].data.boolean.value = (void *) &gui_property_variable_sidebar_visible;
 
 
     /*
@@ -1211,8 +1211,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[45].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[45].data.boolean.def   = &navtree_visible_def;
-    gui_property->props[45].data.boolean.value = &navtree_visible;
+    gui_property->props[45].data.boolean.def   = (void *) &gui_property_variable_navtree_visible_default;
+    gui_property->props[45].data.boolean.value = (void *) &gui_property_variable_navtree_visible;
 
 
     /*
@@ -1228,8 +1228,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[46].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[46].data.boolean.def   = &toolbar_visible_def;
-    gui_property->props[46].data.boolean.value = &toolbar_visible;
+    gui_property->props[46].data.boolean.def   = (void *) &gui_property_variable_toolbar_visible_default;
+    gui_property->props[46].data.boolean.value = (void *) &gui_property_variable_toolbar_visible;
 
 
     /*
@@ -1245,8 +1245,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[47].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[47].data.boolean.def   = &statusbar_visible_def;
-    gui_property->props[47].data.boolean.value = &statusbar_visible;
+    gui_property->props[47].data.boolean.def   = (void *) &gui_property_variable_statusbar_visible_default;
+    gui_property->props[47].data.boolean.value = (void *) &gui_property_variable_statusbar_visible;
 
 
     /*
@@ -1262,8 +1262,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[48].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[48].data.boolean.def   = &progressbar_uploads_visible_def;
-    gui_property->props[48].data.boolean.value = &progressbar_uploads_visible;
+    gui_property->props[48].data.boolean.def   = (void *) &gui_property_variable_progressbar_uploads_visible_default;
+    gui_property->props[48].data.boolean.value = (void *) &gui_property_variable_progressbar_uploads_visible;
 
 
     /*
@@ -1279,8 +1279,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[49].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[49].data.boolean.def   = &progressbar_downloads_visible_def;
-    gui_property->props[49].data.boolean.value = &progressbar_downloads_visible;
+    gui_property->props[49].data.boolean.def   = (void *) &gui_property_variable_progressbar_downloads_visible_default;
+    gui_property->props[49].data.boolean.value = (void *) &gui_property_variable_progressbar_downloads_visible;
 
 
     /*
@@ -1296,8 +1296,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[50].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[50].data.boolean.def   = &progressbar_connections_visible_def;
-    gui_property->props[50].data.boolean.value = &progressbar_connections_visible;
+    gui_property->props[50].data.boolean.def   = (void *) &gui_property_variable_progressbar_connections_visible_default;
+    gui_property->props[50].data.boolean.value = (void *) &gui_property_variable_progressbar_connections_visible;
 
 
     /*
@@ -1313,8 +1313,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[51].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[51].data.boolean.def   = &progressbar_bws_in_visible_def;
-    gui_property->props[51].data.boolean.value = &progressbar_bws_in_visible;
+    gui_property->props[51].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_in_visible_default;
+    gui_property->props[51].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_in_visible;
 
 
     /*
@@ -1330,8 +1330,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[52].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[52].data.boolean.def   = &progressbar_bws_out_visible_def;
-    gui_property->props[52].data.boolean.value = &progressbar_bws_out_visible;
+    gui_property->props[52].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_out_visible_default;
+    gui_property->props[52].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_out_visible;
 
 
     /*
@@ -1347,8 +1347,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[53].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[53].data.boolean.def   = &progressbar_bws_gin_visible_def;
-    gui_property->props[53].data.boolean.value = &progressbar_bws_gin_visible;
+    gui_property->props[53].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gin_visible_default;
+    gui_property->props[53].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gin_visible;
 
 
     /*
@@ -1364,8 +1364,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[54].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[54].data.boolean.def   = &progressbar_bws_gout_visible_def;
-    gui_property->props[54].data.boolean.value = &progressbar_bws_gout_visible;
+    gui_property->props[54].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gout_visible_default;
+    gui_property->props[54].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gout_visible;
 
 
     /*
@@ -1381,8 +1381,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[55].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[55].data.boolean.def   = &progressbar_bws_glin_visible_def;
-    gui_property->props[55].data.boolean.value = &progressbar_bws_glin_visible;
+    gui_property->props[55].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glin_visible_default;
+    gui_property->props[55].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glin_visible;
 
 
     /*
@@ -1398,8 +1398,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[56].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[56].data.boolean.def   = &progressbar_bws_glout_visible_def;
-    gui_property->props[56].data.boolean.value = &progressbar_bws_glout_visible;
+    gui_property->props[56].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glout_visible_default;
+    gui_property->props[56].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glout_visible;
 
 
     /*
@@ -1415,8 +1415,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[57].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[57].data.boolean.def   = &autohide_bws_gleaf_def;
-    gui_property->props[57].data.boolean.value = &autohide_bws_gleaf;
+    gui_property->props[57].data.boolean.def   = (void *) &gui_property_variable_autohide_bws_gleaf_default;
+    gui_property->props[57].data.boolean.value = (void *) &gui_property_variable_autohide_bws_gleaf;
 
 
     /*
@@ -1432,8 +1432,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[58].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[58].data.boolean.def   = &progressbar_bws_in_avg_def;
-    gui_property->props[58].data.boolean.value = &progressbar_bws_in_avg;
+    gui_property->props[58].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_in_avg_default;
+    gui_property->props[58].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_in_avg;
 
 
     /*
@@ -1449,8 +1449,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[59].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[59].data.boolean.def   = &progressbar_bws_out_avg_def;
-    gui_property->props[59].data.boolean.value = &progressbar_bws_out_avg;
+    gui_property->props[59].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_out_avg_default;
+    gui_property->props[59].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_out_avg;
 
 
     /*
@@ -1466,8 +1466,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[60].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[60].data.boolean.def   = &progressbar_bws_gin_avg_def;
-    gui_property->props[60].data.boolean.value = &progressbar_bws_gin_avg;
+    gui_property->props[60].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gin_avg_default;
+    gui_property->props[60].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gin_avg;
 
 
     /*
@@ -1483,8 +1483,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[61].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[61].data.boolean.def   = &progressbar_bws_gout_avg_def;
-    gui_property->props[61].data.boolean.value = &progressbar_bws_gout_avg;
+    gui_property->props[61].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gout_avg_default;
+    gui_property->props[61].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gout_avg;
 
 
     /*
@@ -1500,8 +1500,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[62].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[62].data.boolean.def   = &progressbar_bws_glin_avg_def;
-    gui_property->props[62].data.boolean.value = &progressbar_bws_glin_avg;
+    gui_property->props[62].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glin_avg_default;
+    gui_property->props[62].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glin_avg;
 
 
     /*
@@ -1517,8 +1517,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[63].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[63].data.boolean.def   = &progressbar_bws_glout_avg_def;
-    gui_property->props[63].data.boolean.value = &progressbar_bws_glout_avg;
+    gui_property->props[63].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glout_avg_default;
+    gui_property->props[63].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glout_avg;
 
 
     /*
@@ -1534,8 +1534,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[64].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[64].data.boolean.def   = &search_sort_casesense_def;
-    gui_property->props[64].data.boolean.value = &search_sort_casesense;
+    gui_property->props[64].data.boolean.def   = (void *) &gui_property_variable_search_sort_casesense_default;
+    gui_property->props[64].data.boolean.value = (void *) &gui_property_variable_search_sort_casesense;
 
 
     /*
@@ -1551,8 +1551,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[65].type               = PROP_TYPE_GUINT32;
-    gui_property->props[65].data.guint32.def   = &search_sort_default_order_def;
-    gui_property->props[65].data.guint32.value = &search_sort_default_order;
+    gui_property->props[65].data.guint32.def   = (void *) &gui_property_variable_search_sort_default_order_default;
+    gui_property->props[65].data.guint32.value = (void *) &gui_property_variable_search_sort_default_order;
     gui_property->props[65].data.guint32.choices = NULL;
     gui_property->props[65].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[65].data.guint32.min   = 0x00000000;
@@ -1571,8 +1571,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[66].type               = PROP_TYPE_GUINT32;
-    gui_property->props[66].data.guint32.def   = &search_sort_default_column_def;
-    gui_property->props[66].data.guint32.value = &search_sort_default_column;
+    gui_property->props[66].data.guint32.def   = (void *) &gui_property_variable_search_sort_default_column_default;
+    gui_property->props[66].data.guint32.value = (void *) &gui_property_variable_search_sort_default_column;
     gui_property->props[66].data.guint32.choices = NULL;
     gui_property->props[66].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[66].data.guint32.min   = 0x00000000;
@@ -1591,8 +1591,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[67].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[67].data.boolean.def   = &search_discard_spam_def;
-    gui_property->props[67].data.boolean.value = &search_discard_spam;
+    gui_property->props[67].data.boolean.def   = (void *) &gui_property_variable_search_discard_spam_default;
+    gui_property->props[67].data.boolean.value = (void *) &gui_property_variable_search_discard_spam;
 
 
     /*
@@ -1608,8 +1608,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[68].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[68].data.boolean.def   = &search_discard_hashless_def;
-    gui_property->props[68].data.boolean.value = &search_discard_hashless;
+    gui_property->props[68].data.boolean.def   = (void *) &gui_property_variable_search_discard_hashless_default;
+    gui_property->props[68].data.boolean.value = (void *) &gui_property_variable_search_discard_hashless;
 
 
     /*
@@ -1625,8 +1625,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[69].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[69].data.boolean.def   = &search_jump_to_created_def;
-    gui_property->props[69].data.boolean.value = &search_jump_to_created;
+    gui_property->props[69].data.boolean.def   = (void *) &gui_property_variable_search_jump_to_created_default;
+    gui_property->props[69].data.boolean.value = (void *) &gui_property_variable_search_jump_to_created;
 
 
     /*
@@ -1642,11 +1642,11 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[70].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[70].data.guint32.def   = &search_stats_mode_def;
-    gui_property->props[70].data.guint32.value = &search_stats_mode;
+    gui_property->props[70].data.guint32.def   = (void *) &gui_property_variable_search_stats_mode_default;
+    gui_property->props[70].data.guint32.value = (void *) &gui_property_variable_search_stats_mode;
     gui_property->props[70].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[70].data.guint32.min   = 0x00000000;
-    gui_property->props[70].data.guint32.choices = search_stats_mode_choices;
+    gui_property->props[70].data.guint32.choices = (void *) &gui_property_variable_search_stats_mode_choices;
 
 
     /*
@@ -1662,8 +1662,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[71].type               = PROP_TYPE_GUINT32;
-    gui_property->props[71].data.guint32.def   = &search_stats_update_interval_def;
-    gui_property->props[71].data.guint32.value = &search_stats_update_interval;
+    gui_property->props[71].data.guint32.def   = (void *) &gui_property_variable_search_stats_update_interval_default;
+    gui_property->props[71].data.guint32.value = (void *) &gui_property_variable_search_stats_update_interval;
     gui_property->props[71].data.guint32.choices = NULL;
     gui_property->props[71].data.guint32.max   = 50000;
     gui_property->props[71].data.guint32.min   = 0;
@@ -1682,8 +1682,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[72].type               = PROP_TYPE_GUINT32;
-    gui_property->props[72].data.guint32.def   = &search_stats_delcoef_def;
-    gui_property->props[72].data.guint32.value = &search_stats_delcoef;
+    gui_property->props[72].data.guint32.def   = (void *) &gui_property_variable_search_stats_delcoef_default;
+    gui_property->props[72].data.guint32.value = (void *) &gui_property_variable_search_stats_delcoef;
     gui_property->props[72].data.guint32.choices = NULL;
     gui_property->props[72].data.guint32.max   = 100;
     gui_property->props[72].data.guint32.min   = 0;
@@ -1702,8 +1702,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[73].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[73].data.boolean.def   = &confirm_quit_def;
-    gui_property->props[73].data.boolean.value = &confirm_quit;
+    gui_property->props[73].data.boolean.def   = (void *) &gui_property_variable_confirm_quit_default;
+    gui_property->props[73].data.boolean.value = (void *) &gui_property_variable_confirm_quit;
 
 
     /*
@@ -1719,8 +1719,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[74].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[74].data.boolean.def   = &show_tooltips_def;
-    gui_property->props[74].data.boolean.value = &show_tooltips;
+    gui_property->props[74].data.boolean.def   = (void *) &gui_property_variable_show_tooltips_default;
+    gui_property->props[74].data.boolean.value = (void *) &gui_property_variable_show_tooltips;
 
 
     /*
@@ -1736,8 +1736,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[75].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[75].data.boolean.def   = &expert_mode_def;
-    gui_property->props[75].data.boolean.value = &expert_mode;
+    gui_property->props[75].data.boolean.def   = (void *) &gui_property_variable_expert_mode_default;
+    gui_property->props[75].data.boolean.value = (void *) &gui_property_variable_expert_mode;
 
 
     /*
@@ -1753,8 +1753,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[76].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[76].data.boolean.def   = &gnet_stats_perc_def;
-    gui_property->props[76].data.boolean.value = &gnet_stats_perc;
+    gui_property->props[76].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_perc_default;
+    gui_property->props[76].data.boolean.value = (void *) &gui_property_variable_gnet_stats_perc;
 
 
     /*
@@ -1770,8 +1770,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[77].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[77].data.boolean.def   = &gnet_stats_bytes_def;
-    gui_property->props[77].data.boolean.value = &gnet_stats_bytes;
+    gui_property->props[77].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_bytes_default;
+    gui_property->props[77].data.boolean.value = (void *) &gui_property_variable_gnet_stats_bytes;
 
 
     /*
@@ -1787,8 +1787,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[78].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[78].data.boolean.def   = &gnet_stats_hops_def;
-    gui_property->props[78].data.boolean.value = &gnet_stats_hops;
+    gui_property->props[78].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_hops_default;
+    gui_property->props[78].data.boolean.value = (void *) &gui_property_variable_gnet_stats_hops;
 
 
     /*
@@ -1804,11 +1804,11 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[79].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[79].data.guint32.def   = &gnet_stats_source_def;
-    gui_property->props[79].data.guint32.value = &gnet_stats_source;
+    gui_property->props[79].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_source_default;
+    gui_property->props[79].data.guint32.value = (void *) &gui_property_variable_gnet_stats_source;
     gui_property->props[79].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[79].data.guint32.min   = 0x00000000;
-    gui_property->props[79].data.guint32.choices = gnet_stats_source_choices;
+    gui_property->props[79].data.guint32.choices = (void *) &gui_property_variable_gnet_stats_source_choices;
 
 
     /*
@@ -1824,11 +1824,11 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[80].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[80].data.guint32.def   = &gnet_stats_drop_reasons_type_def;
-    gui_property->props[80].data.guint32.value = &gnet_stats_drop_reasons_type;
+    gui_property->props[80].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_drop_reasons_type_default;
+    gui_property->props[80].data.guint32.value = (void *) &gui_property_variable_gnet_stats_drop_reasons_type;
     gui_property->props[80].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[80].data.guint32.min   = 0x00000000;
-    gui_property->props[80].data.guint32.choices = gnet_stats_drop_reasons_type_choices;
+    gui_property->props[80].data.guint32.choices = (void *) &gui_property_variable_gnet_stats_drop_reasons_type_choices;
 
 
     /*
@@ -1844,8 +1844,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[81].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[81].data.boolean.def   = &gnet_stats_with_headers_def;
-    gui_property->props[81].data.boolean.value = &gnet_stats_with_headers;
+    gui_property->props[81].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_with_headers_default;
+    gui_property->props[81].data.boolean.value = (void *) &gui_property_variable_gnet_stats_with_headers;
 
 
     /*
@@ -1861,8 +1861,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[82].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[82].data.boolean.def   = &gnet_stats_drop_perc_def;
-    gui_property->props[82].data.boolean.value = &gnet_stats_drop_perc;
+    gui_property->props[82].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_drop_perc_default;
+    gui_property->props[82].data.boolean.value = (void *) &gui_property_variable_gnet_stats_drop_perc;
 
 
     /*
@@ -1878,8 +1878,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[83].type               = PROP_TYPE_GUINT32;
-    gui_property->props[83].data.guint32.def   = gnet_stats_general_col_widths_def;
-    gui_property->props[83].data.guint32.value = gnet_stats_general_col_widths;
+    gui_property->props[83].data.guint32.def   = (void *) gui_property_variable_gnet_stats_general_col_widths_default;
+    gui_property->props[83].data.guint32.value = gui_property_variable_gnet_stats_general_col_widths;
     gui_property->props[83].data.guint32.choices = NULL;
     gui_property->props[83].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[83].data.guint32.min   = 0x00000000;
@@ -1898,8 +1898,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[84].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[84].data.boolean.def   = &clear_uploads_complete_def;
-    gui_property->props[84].data.boolean.value = &clear_uploads_complete;
+    gui_property->props[84].data.boolean.def   = (void *) &gui_property_variable_clear_uploads_complete_default;
+    gui_property->props[84].data.boolean.value = (void *) &gui_property_variable_clear_uploads_complete;
 
 
     /*
@@ -1915,8 +1915,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[85].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[85].data.boolean.def   = &clear_uploads_failed_def;
-    gui_property->props[85].data.boolean.value = &clear_uploads_failed;
+    gui_property->props[85].data.boolean.def   = (void *) &gui_property_variable_clear_uploads_failed_default;
+    gui_property->props[85].data.boolean.value = (void *) &gui_property_variable_clear_uploads_failed;
 
 
     /*
@@ -1932,8 +1932,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[86].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[86].data.boolean.def   = &node_show_uptime_def;
-    gui_property->props[86].data.boolean.value = &node_show_uptime;
+    gui_property->props[86].data.boolean.def   = (void *) &gui_property_variable_node_show_uptime_default;
+    gui_property->props[86].data.boolean.value = (void *) &gui_property_variable_node_show_uptime;
 
 
     /*
@@ -1949,8 +1949,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[87].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[87].data.boolean.def   = &node_show_handshake_version_def;
-    gui_property->props[87].data.boolean.value = &node_show_handshake_version;
+    gui_property->props[87].data.boolean.def   = (void *) &gui_property_variable_node_show_handshake_version_default;
+    gui_property->props[87].data.boolean.value = (void *) &gui_property_variable_node_show_handshake_version;
 
 
     /*
@@ -1966,8 +1966,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[88].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[88].data.boolean.def   = &node_show_detailed_info_def;
-    gui_property->props[88].data.boolean.value = &node_show_detailed_info;
+    gui_property->props[88].data.boolean.def   = (void *) &gui_property_variable_node_show_detailed_info_default;
+    gui_property->props[88].data.boolean.value = (void *) &gui_property_variable_node_show_detailed_info;
 
 
     /*
@@ -1983,8 +1983,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[89].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[89].data.boolean.def   = &show_gnet_info_txc_def;
-    gui_property->props[89].data.boolean.value = &show_gnet_info_txc;
+    gui_property->props[89].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_txc_default;
+    gui_property->props[89].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_txc;
 
 
     /*
@@ -2000,8 +2000,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[90].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[90].data.boolean.def   = &show_gnet_info_rxc_def;
-    gui_property->props[90].data.boolean.value = &show_gnet_info_rxc;
+    gui_property->props[90].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rxc_default;
+    gui_property->props[90].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rxc;
 
 
     /*
@@ -2017,8 +2017,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[91].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[91].data.boolean.def   = &show_gnet_info_tx_wire_def;
-    gui_property->props[91].data.boolean.value = &show_gnet_info_tx_wire;
+    gui_property->props[91].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_wire_default;
+    gui_property->props[91].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_wire;
 
 
     /*
@@ -2034,8 +2034,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[92].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[92].data.boolean.def   = &show_gnet_info_rx_wire_def;
-    gui_property->props[92].data.boolean.value = &show_gnet_info_rx_wire;
+    gui_property->props[92].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_wire_default;
+    gui_property->props[92].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_wire;
 
 
     /*
@@ -2051,8 +2051,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[93].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[93].data.boolean.def   = &show_gnet_info_tx_speed_def;
-    gui_property->props[93].data.boolean.value = &show_gnet_info_tx_speed;
+    gui_property->props[93].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_speed_default;
+    gui_property->props[93].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_speed;
 
 
     /*
@@ -2068,8 +2068,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[94].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[94].data.boolean.def   = &show_gnet_info_rx_speed_def;
-    gui_property->props[94].data.boolean.value = &show_gnet_info_rx_speed;
+    gui_property->props[94].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_speed_default;
+    gui_property->props[94].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_speed;
 
 
     /*
@@ -2085,8 +2085,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[95].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[95].data.boolean.def   = &show_gnet_info_tx_queries_def;
-    gui_property->props[95].data.boolean.value = &show_gnet_info_tx_queries;
+    gui_property->props[95].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_queries_default;
+    gui_property->props[95].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_queries;
 
 
     /*
@@ -2102,8 +2102,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[96].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[96].data.boolean.def   = &show_gnet_info_rx_queries_def;
-    gui_property->props[96].data.boolean.value = &show_gnet_info_rx_queries;
+    gui_property->props[96].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_queries_default;
+    gui_property->props[96].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_queries;
 
 
     /*
@@ -2119,8 +2119,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[97].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[97].data.boolean.def   = &show_gnet_info_tx_hits_def;
-    gui_property->props[97].data.boolean.value = &show_gnet_info_tx_hits;
+    gui_property->props[97].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_hits_default;
+    gui_property->props[97].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_hits;
 
 
     /*
@@ -2136,8 +2136,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[98].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[98].data.boolean.def   = &show_gnet_info_rx_hits_def;
-    gui_property->props[98].data.boolean.value = &show_gnet_info_rx_hits;
+    gui_property->props[98].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_hits_default;
+    gui_property->props[98].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_hits;
 
 
     /*
@@ -2153,8 +2153,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[99].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[99].data.boolean.def   = &show_gnet_info_gen_queries_def;
-    gui_property->props[99].data.boolean.value = &show_gnet_info_gen_queries;
+    gui_property->props[99].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_gen_queries_default;
+    gui_property->props[99].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_gen_queries;
 
 
     /*
@@ -2170,8 +2170,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[100].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[100].data.boolean.def   = &show_gnet_info_sq_queries_def;
-    gui_property->props[100].data.boolean.value = &show_gnet_info_sq_queries;
+    gui_property->props[100].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_sq_queries_default;
+    gui_property->props[100].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_sq_queries;
 
 
     /*
@@ -2187,8 +2187,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[101].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[101].data.boolean.def   = &show_gnet_info_tx_dropped_def;
-    gui_property->props[101].data.boolean.value = &show_gnet_info_tx_dropped;
+    gui_property->props[101].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_dropped_default;
+    gui_property->props[101].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_dropped;
 
 
     /*
@@ -2204,8 +2204,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[102].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[102].data.boolean.def   = &show_gnet_info_rx_dropped_def;
-    gui_property->props[102].data.boolean.value = &show_gnet_info_rx_dropped;
+    gui_property->props[102].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_dropped_default;
+    gui_property->props[102].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_dropped;
 
 
     /*
@@ -2221,8 +2221,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[103].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[103].data.boolean.def   = &show_gnet_info_qrp_stats_def;
-    gui_property->props[103].data.boolean.value = &show_gnet_info_qrp_stats;
+    gui_property->props[103].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_qrp_stats_default;
+    gui_property->props[103].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_qrp_stats;
 
 
     /*
@@ -2238,8 +2238,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[104].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[104].data.boolean.def   = &show_gnet_info_dbw_def;
-    gui_property->props[104].data.boolean.value = &show_gnet_info_dbw;
+    gui_property->props[104].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_dbw_default;
+    gui_property->props[104].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_dbw;
 
 
     /*
@@ -2255,8 +2255,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[105].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[105].data.boolean.def   = &show_gnet_info_rt_def;
-    gui_property->props[105].data.boolean.value = &show_gnet_info_rt;
+    gui_property->props[105].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rt_default;
+    gui_property->props[105].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rt;
 
 
     /*
@@ -2272,8 +2272,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[106].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[106].data.boolean.def   = &show_gnet_info_shared_size_def;
-    gui_property->props[106].data.boolean.value = &show_gnet_info_shared_size;
+    gui_property->props[106].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_shared_size_default;
+    gui_property->props[106].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_shared_size;
 
 
     /*
@@ -2289,8 +2289,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[107].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[107].data.boolean.def   = &show_gnet_info_shared_files_def;
-    gui_property->props[107].data.boolean.value = &show_gnet_info_shared_files;
+    gui_property->props[107].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_shared_files_default;
+    gui_property->props[107].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_shared_files;
 
 
     /*
@@ -2306,8 +2306,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[108].type               = PROP_TYPE_GUINT32;
-    gui_property->props[108].data.guint32.def   = &search_accumulation_period_def;
-    gui_property->props[108].data.guint32.value = &search_accumulation_period;
+    gui_property->props[108].data.guint32.def   = (void *) &gui_property_variable_search_accumulation_period_default;
+    gui_property->props[108].data.guint32.value = (void *) &gui_property_variable_search_accumulation_period;
     gui_property->props[108].data.guint32.choices = NULL;
     gui_property->props[108].data.guint32.max   = 30;
     gui_property->props[108].data.guint32.min   = 1;
@@ -2326,8 +2326,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[109].type               = PROP_TYPE_GUINT32;
-    gui_property->props[109].data.guint32.def   = treemenu_nodes_expanded_def;
-    gui_property->props[109].data.guint32.value = treemenu_nodes_expanded;
+    gui_property->props[109].data.guint32.def   = (void *) gui_property_variable_treemenu_nodes_expanded_default;
+    gui_property->props[109].data.guint32.value = gui_property_variable_treemenu_nodes_expanded;
     gui_property->props[109].data.guint32.choices = NULL;
     gui_property->props[109].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[109].data.guint32.min   = 0x00000000;
@@ -2346,8 +2346,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[110].type               = PROP_TYPE_GUINT32;
-    gui_property->props[110].data.guint32.def   = gnet_stats_pkg_col_widths_def;
-    gui_property->props[110].data.guint32.value = gnet_stats_pkg_col_widths;
+    gui_property->props[110].data.guint32.def   = (void *) gui_property_variable_gnet_stats_pkg_col_widths_default;
+    gui_property->props[110].data.guint32.value = gui_property_variable_gnet_stats_pkg_col_widths;
     gui_property->props[110].data.guint32.choices = NULL;
     gui_property->props[110].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[110].data.guint32.min   = 0x00000000;
@@ -2366,8 +2366,8 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[111].type               = PROP_TYPE_GUINT32;
-    gui_property->props[111].data.guint32.def   = gnet_stats_byte_col_widths_def;
-    gui_property->props[111].data.guint32.value = gnet_stats_byte_col_widths;
+    gui_property->props[111].data.guint32.def   = (void *) gui_property_variable_gnet_stats_byte_col_widths_default;
+    gui_property->props[111].data.guint32.value = gui_property_variable_gnet_stats_byte_col_widths;
     gui_property->props[111].data.guint32.choices = NULL;
     gui_property->props[111].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[111].data.guint32.min   = 0x00000000;
@@ -2386,11 +2386,11 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[112].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[112].data.guint32.def   = &config_toolbar_style_def;
-    gui_property->props[112].data.guint32.value = &config_toolbar_style;
+    gui_property->props[112].data.guint32.def   = (void *) &gui_property_variable_config_toolbar_style_default;
+    gui_property->props[112].data.guint32.value = (void *) &gui_property_variable_config_toolbar_style;
     gui_property->props[112].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[112].data.guint32.min   = 0x00000000;
-    gui_property->props[112].data.guint32.choices = config_toolbar_style_choices;
+    gui_property->props[112].data.guint32.choices = (void *) &gui_property_variable_config_toolbar_style_choices;
 
 
     /*
@@ -2406,11 +2406,11 @@ gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[113].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[113].data.guint32.def   = &search_lifetime_def;
-    gui_property->props[113].data.guint32.value = &search_lifetime;
+    gui_property->props[113].data.guint32.def   = (void *) &gui_property_variable_search_lifetime_default;
+    gui_property->props[113].data.guint32.value = (void *) &gui_property_variable_search_lifetime;
     gui_property->props[113].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[113].data.guint32.min   = 0x00000000;
-    gui_property->props[113].data.guint32.choices = search_lifetime_choices;
+    gui_property->props[113].data.guint32.choices = (void *) &gui_property_variable_search_lifetime_choices;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

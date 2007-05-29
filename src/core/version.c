@@ -324,7 +324,7 @@ version_parse(const gchar *str, version_t *ver)
 			ver->build = (guint32) atoi(p);
 	}
 
-	if (dbg > 6)
+	if (GNET_PROPERTY(dbg) > 6)
 		version_dump(str, ver, "#");
 
 	return TRUE;
@@ -472,7 +472,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 
 	cmp = version_cmp(target_version, &their_version);
 
-	if (dbg > 6)
+	if (GNET_PROPERTY(dbg) > 6)
 		version_dump(str, &their_version,
 			cmp == 0 ? "=" :
 			cmp > 0 ? "-" : "+");
@@ -483,7 +483,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 
 	version_stamp(str, &their_version);
 
-	if (dbg > 6)
+	if (GNET_PROPERTY(dbg) > 6)
 		printf("VERSION time=%d\n", (gint) their_version.timestamp);
 
 	/*
@@ -495,7 +495,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 		tok_error_t error;
 
 		if (token == NULL) {
-            if (dbg) {
+            if (GNET_PROPERTY(dbg)) {
                 g_message("got GTKG vendor string \"%s\" without token!", str);
             }
 			return FALSE;	/* Can't be correct */
@@ -518,7 +518,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 			error = TOK_OK;		/* Our keys have expired, cannot validate */
 
 		if (error != TOK_OK) {
-            if (dbg) {
+            if (GNET_PROPERTY(dbg)) {
                 g_message("vendor string \"%s\" [%s] has wrong token "
                     "\"%s\": %s ", str, host_addr_to_string(addr), token,
                     tok_strerror(error));
@@ -548,11 +548,11 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 			|| their_version.build > target_version->build) &&
 		target_version == &last_rel_version
 	) {
-		if (dbg > 6)
+		if (GNET_PROPERTY(dbg) > 6)
 			printf("VERSION is a SVN update of a release\n");
 
 		if (version_build_cmp(&last_dev_version, &their_version) > 0) {
-			if (dbg > 6)
+			if (GNET_PROPERTY(dbg) > 6)
 				printf("VERSION is less recent than latest dev we know\n");
 			return TRUE;
 		}
@@ -583,7 +583,7 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
 	 * We found a more recent version than the last version seen.
 	 */
 
-	if (dbg > 4)
+	if (GNET_PROPERTY(dbg) > 4)
 		printf("more recent %s VERSION \"%s\"\n",
 			target_version == &last_dev_version ? "dev" : "rel", str);
 
@@ -734,7 +734,7 @@ version_init(void)
 		(our_version.tag &&
 			delta_time(now, our_version.timestamp) > VERSION_UNSTABLE_WARN)
 	) {
-		*deconstify_gboolean(&ancient_version) = TRUE;
+		*deconstify_gboolean(&GNET_PROPERTY(ancient_version)) = TRUE;
 	}
 }
 

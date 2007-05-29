@@ -106,8 +106,8 @@ typedef guint64 *(*prop_get_guint64_t)
     (property_t, guint64 *, size_t, size_t);
 
 typedef struct prop_def_timestamp {
-    time_t *def;		/**< default value */
-    time_t *value;		/**< current value */
+    time_t *def;	/**< default value */
+    time_t *value;	/**< current value */
     time_t min;		/**< minimal value */
     time_t max;		/**< maximal value */
     prop_def_choice_t *choices;

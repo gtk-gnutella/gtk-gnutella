@@ -101,7 +101,7 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		printf("TSYNC expiring time %d.%d\n",
 			(gint) ts->sent.tv_sec, (gint) ts->sent.tv_usec);
 
@@ -153,7 +153,7 @@ tsync_send(struct gnutella_node *n, const node_id_t node_id)
 
 	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
 
-	vmsg_send_time_sync_req(n, ntp_detected, &ts->sent);
+	vmsg_send_time_sync_req(n, GNET_PROPERTY(ntp_detected), &ts->sent);
 }
 
 /**
@@ -169,7 +169,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 {
 	struct tsync *ts;
 
-	if (dbg > 1) {
+	if (GNET_PROPERTY(dbg) > 1) {
 		tm_t elapsed = *final;
 		tm_sub(&elapsed, orig);
 		printf("TSYNC request %d.%d sent at %d.%d (delay = %.6f secs)\n",
@@ -180,7 +180,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 
 	ts = g_hash_table_lookup(tsync_by_time, orig);
 	if (ts == NULL) {
-		if (dbg > 1)
+		if (GNET_PROPERTY(dbg) > 1)
 			printf("TSYNC request %d.%d not found, expired already?\n",
 				(gint) orig->tv_sec, (gint) orig->tv_usec);
 		return;
@@ -212,7 +212,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 void
 tsync_got_request(struct gnutella_node *n, tm_t *got)
 {
-	vmsg_send_time_sync_reply(n, ntp_detected, got);
+	vmsg_send_time_sync_reply(n, GNET_PROPERTY(ntp_detected), got);
 }
 
 /**
@@ -240,7 +240,7 @@ tsync_got_reply(struct gnutella_node *n,
 
 	rtt = tm2f(&delay);
 
-	if (dbg > 1)
+	if (GNET_PROPERTY(dbg) > 1)
 		printf("TSYNC RTT for %d.%d with %s via %s is: %.6f secs\n",
 			(gint) sent->tv_sec, (gint) sent->tv_usec,
 			node_addr(n), NODE_IS_UDP(n) ? "UDP" : "TCP", (double) rtt);
@@ -253,7 +253,7 @@ tsync_got_reply(struct gnutella_node *n,
 	ts = g_hash_table_lookup(tsync_by_time, sent);
 
 	if (ts == NULL) {
-		if (dbg > 1)
+		if (GNET_PROPERTY(dbg) > 1)
 			printf("TSYNC sending time %d.%d not found (expired?)\n",
 				(gint) sent->tv_sec, (gint) sent->tv_usec);
 	} else {
@@ -275,7 +275,7 @@ tsync_got_reply(struct gnutella_node *n,
 
 		clock_offset = tm2f(&offset) / 2;
 
-		if (dbg > 1)
+		if (GNET_PROPERTY(dbg) > 1)
 			printf("TSYNC offset between %s clock at %s and ours: %.6f secs\n",
 				ntp ? "NTP" : "regular", node_addr(n), (double) clock_offset);
 

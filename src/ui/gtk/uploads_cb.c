@@ -126,7 +126,7 @@ on_clist_uploads_resize_column(GtkCList *unused_clist,
 	(void) unused_udata;
 
     /* FIXME: use properties */
-	*(gint *) &uploads_col_widths[column] = width;
+	*(gint *) &GUI_PROPERTY(uploads_col_widths)[column] = width;
 }
 
 void

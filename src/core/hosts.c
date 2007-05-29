@@ -270,11 +270,11 @@ host_timer(void)
 	host_type_t htype;
 	guint max_nodes;
 
-	if (in_shutdown || !online_mode)
+	if (in_shutdown || !GNET_PROPERTY(online_mode))
 		return;
 
-	max_nodes = (current_peermode == NODE_P_LEAF) ?
-		max_ultrapeers : max_connections;
+	max_nodes = (GNET_PROPERTY(current_peermode) == NODE_P_LEAF) ?
+		GNET_PROPERTY(max_ultrapeers) : GNET_PROPERTY(max_connections);
 	count = node_count();
 	missing = node_keep_missing();
 
@@ -284,7 +284,7 @@ host_timer(void)
 	 * Also, we don't connect each time we are called.
 	 */
 
-	if (!is_inet_connected && missing) {
+	if (!GNET_PROPERTY(is_inet_connected) && missing) {
 		if (0 == (called++ & 0xf))		/* Once every 16 attempts */
 			missing = 1;
 		else
@@ -297,10 +297,10 @@ host_timer(void)
 	 * than quick_connect_pool_size   This is the "greedy mode".
 	 */
 
-	if (count >= quick_connect_pool_size) {
-		if (dbg > 10) {
+	if (count >= GNET_PROPERTY(quick_connect_pool_size)) {
+		if (GNET_PROPERTY(dbg) > 10) {
 			g_message("host_timer - count %d >= pool size %d",
-				count, quick_connect_pool_size);
+				count, GNET_PROPERTY(quick_connect_pool_size));
 		}
 		return;
 	}
@@ -308,7 +308,7 @@ host_timer(void)
 	if (count < max_nodes)
 		missing -= whitelist_connect();
 
-	if (dbg > 10 && missing > 0)
+	if (GNET_PROPERTY(dbg) > 10 && missing > 0)
 		g_message("host_timer - missing %d host%s",
 			missing, missing == 1 ? "" : "s");
 
@@ -317,13 +317,14 @@ host_timer(void)
 	 * to the connection list
 	 */
 
-	htype = (current_peermode == NODE_P_NORMAL) ?
+	htype = (GNET_PROPERTY(current_peermode) == NODE_P_NORMAL) ?
         HOST_ANY : HOST_ULTRA;
 
 	if (
-        current_peermode == NODE_P_ULTRA &&
-        node_normal_count < normal_connections &&
-        node_ultra_count >= (up_connections - normal_connections)
+        GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
+        GNET_PROPERTY(node_normal_count) < GNET_PROPERTY(normal_connections) &&
+        GNET_PROPERTY(node_ultra_count) >=
+			(GNET_PROPERTY(up_connections) - GNET_PROPERTY(normal_connections))
 	) {
 		htype = HOST_ANY;
     }
@@ -331,14 +332,13 @@ host_timer(void)
 	if (hcache_size(htype) == 0)
 		htype = HOST_ANY;
 
-    if (!stop_host_get) {
+    if (!GNET_PROPERTY(stop_host_get)) {
         if (missing > 0) {
-            guint fan;
-            guint max_pool = MAX(quick_connect_pool_size, max_nodes);
-            guint to_add;
+            guint fan, max_pool, to_add;
 
-            fan = (missing * quick_connect_pool_size) / max_nodes;
-            to_add = is_inet_connected ? fan : (guint) missing;
+            max_pool = MAX(GNET_PROPERTY(quick_connect_pool_size), max_nodes);
+            fan = (missing * GNET_PROPERTY(quick_connect_pool_size))/ max_nodes;
+            to_add = GNET_PROPERTY(is_inet_connected) ? fan : (guint) missing;
 
             /*
              * Make sure that we never use more connections then the
@@ -347,11 +347,11 @@ host_timer(void)
             if (to_add + count > max_pool)
                 to_add = max_pool - count;
 
-            if (dbg > 10) {
+            if (GNET_PROPERTY(dbg) > 10) {
                 g_message("host_timer - connecting - add: %d fan:%d  miss:%d "
                      "max_hosts:%d   count:%d   extra:%d",
 					 to_add, fan, missing, max_nodes, count,
-					 quick_connect_pool_size);
+					 GNET_PROPERTY(quick_connect_pool_size));
             }
 
             missing = to_add;
@@ -365,13 +365,13 @@ host_timer(void)
 			if (missing > 0) {
 				if (!uhc_is_waiting()) {
 					uhc_get_hosts();	/* Get from UDP pong caches */
-				} else if (bootstrap_debug > 2)
+				} else if (GNET_PROPERTY(bootstrap_debug) > 2)
 					g_message("BOOT host_timer - waiting for reply from %s",
 						uhc_is_waiting() ? "UDP host cache" : "web cache");
 			}
 		}
 
-	} else if (use_netmasks) {
+	} else if (GNET_PROPERTY(use_netmasks)) {
 		/* Try to find better hosts */
 		if (hcache_find_nearby(htype, &addr, &port)) {
 			if (node_remove_worst(TRUE))
@@ -436,7 +436,7 @@ host_is_valid(const host_addr_t addr, guint16 port)
 void
 host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
 {
-	if (!hcache_add_caught(HOST_ANY, addr, port, "pong"))
+	if (!do_connect || !hcache_add_caught(HOST_ANY, addr, port, "pong"))
 		return;
 
 	/*
@@ -452,17 +452,17 @@ host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
 	 */
 
 
-	if (do_connect) {
-		if (node_keep_missing() > 0)
-				node_add(addr, port, 0);
-		else {
-			/* If we are above the max connections, delete a non-nearby
-			 * connection before adding this better one
-			 */
-			if (use_netmasks && host_is_nearby(addr) && node_remove_worst(TRUE))
-				node_add(addr, port, 0);
-		}
-
+	if (node_keep_missing() > 0)
+		node_add(addr, port, 0);
+	else if (
+		GNET_PROPERTY(use_netmasks) &&
+		host_is_nearby(addr) &&
+		node_remove_worst(TRUE)
+	) {
+		/* If we are above the max connections, delete a non-nearby
+		 * connection before adding this better one
+		 */
+		node_add(addr, port, 0);
 	}
 }
 

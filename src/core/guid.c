@@ -157,7 +157,7 @@ guid_init(void)
 	gtkg_version_mark =
 		guid_gtkg_encode_version(GTA_VERSION, GTA_SUBVERSION, *rev == '\0');
 
-	if (dbg)
+	if (GNET_PROPERTY(dbg))
 		printf("GTKG version mark is 0x%x\n", gtkg_version_mark);
 }
 

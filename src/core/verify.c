@@ -373,7 +373,7 @@ verify_next_file(struct verify *ctx)
 	}
 
 	if (ctx->file) {
-		if (dbg > 1) {
+		if (GNET_PROPERTY(dbg) > 1) {
 			g_message("Verifying %s digest for %s",
 				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
 		}

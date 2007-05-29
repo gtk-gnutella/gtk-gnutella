@@ -133,7 +133,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 	(void) unused_widget;
 	(void) unused_udata;
 
-	if (gui_debug > 0)
+	if (GUI_PROPERTY(gui_debug) > 0)
 		g_message("drag_data_received: x=%d, y=%d, info=%u, t=%u",
 			x, y, info, stamp);
 	if (data->length > 0 && data->format == 8) {
@@ -141,7 +141,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 		size_t len;
 		guint i;
 
-		if (gui_debug > 0)
+		if (GUI_PROPERTY(gui_debug) > 0)
 			g_message("drag_data_received: url=\"%s\"", url);
 
 

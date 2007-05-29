@@ -159,7 +159,7 @@ bitzi_create(void)
 static void
 bitzi_destroy(bitzi_data_t *data)
 {
-	if (bitzi_debug) {
+	if (GNET_PROPERTY(bitzi_debug)) {
 		g_message("bitzi_destroy: %p", cast_to_gconstpointer(data));
 	}
 
@@ -167,7 +167,7 @@ bitzi_destroy(bitzi_data_t *data)
 	G_FREE_NULL(data->mime_type);
 	G_FREE_NULL(data->mime_desc);
 
-	if (bitzi_debug) {
+	if (GNET_PROPERTY(bitzi_debug)) {
 		g_message("bitzi_destroy: freeing data");
 	}
 	wfree(data, sizeof *data);
@@ -337,7 +337,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	s = xml_get_string(node, "fileGoodness");
 	if (s) {
 		data->goodness = g_strtod(s, NULL);
-		if (bitzi_debug)
+		if (GNET_PROPERTY(bitzi_debug))
 			g_message("fileGoodness is %s/%f", s, data->goodness);
 	} else {
 		data->goodness = 0;
@@ -424,7 +424,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	 ** For debugging/development - dump all the attributes
 	 */
 
-	if (bitzi_debug) {
+	if (GNET_PROPERTY(bitzi_debug)) {
 		xmlAttr *cur_attr;
 
 		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
@@ -450,7 +450,7 @@ process_bitzi_ticket(xmlNode *a_node, bitzi_data_t *data)
 
 	for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
 		if (cur_node->type == XML_ELEMENT_NODE) {
-			if (bitzi_debug)
+			if (GNET_PROPERTY(bitzi_debug))
 				g_message("node type: Element, name: %s, children %p",
 					cur_node->name, cast_to_gconstpointer(cur_node->children));
 
@@ -475,7 +475,7 @@ process_meta_data(bitzi_request_t *request)
 	xmlNode	*root;
 	gint result;
 
-	if (bitzi_debug)
+	if (GNET_PROPERTY(bitzi_debug))
 		g_message("process_meta_data: %p", cast_to_gconstpointer(request));
 
 	g_assert(request != NULL);
@@ -488,7 +488,7 @@ process_meta_data(bitzi_request_t *request)
 	result = request->ctxt->wellFormed;
 	xmlFreeParserCtxt(request->ctxt);
 
-	if (bitzi_debug)
+	if (GNET_PROPERTY(bitzi_debug))
 		g_message("process_meta_data: doc = %p, result = %d",
 			cast_to_gconstpointer(doc), result);
 
@@ -520,7 +520,7 @@ process_meta_data(bitzi_request_t *request)
 				(time_t) -1 == data->expiry ||
 				delta_time(data->expiry, tm_time()) <= 0
 			) {
-				if (bitzi_debug) 
+				if (GNET_PROPERTY(bitzi_debug)) 
 					g_message("process_meta_data: stale bitzi data");
 			} else if (bitzi_cache_add(data)) {
 				if (bitzi_cache_file) {
@@ -553,7 +553,7 @@ process_meta_data(bitzi_request_t *request)
 static gboolean
 do_metadata_query(bitzi_request_t *req)
 {
-	if (bitzi_debug)
+	if (GNET_PROPERTY(bitzi_debug))
 		g_message("do_metadata_query: %p", cast_to_gconstpointer(req));
 
 	/*
@@ -594,7 +594,7 @@ do_metadata_query(bitzi_request_t *req)
 					current_bitzi_request->bitzi_url,
 					http_async_strerror(http_async_errno));
 		} else {
-			if (bitzi_debug)
+			if (GNET_PROPERTY(bitzi_debug))
 				g_message("do_metadata_query: request %s launched",
 					current_bitzi_request->bitzi_url);
 			return TRUE;
@@ -639,7 +639,7 @@ bitzi_cache_add(bitzi_data_t *data)
 	gm_hash_table_insert_const(bitzi_cache_ht, data->sha1, data);
 	bitzi_cache = g_list_insert_sorted(bitzi_cache, data, bitzi_date_compare);
 
-	if (bitzi_debug)
+	if (GNET_PROPERTY(bitzi_debug))
 		g_message("bitzi_cache_add: data %p, now %u entries",
 			cast_to_gconstpointer(data), g_hash_table_size(bitzi_cache_ht));
 
@@ -649,7 +649,7 @@ bitzi_cache_add(bitzi_data_t *data)
 static void
 bitzi_cache_remove(bitzi_data_t * data)
 {
-	if (bitzi_debug)
+	if (GNET_PROPERTY(bitzi_debug))
 		g_message("bitzi_cache_remove: %p", cast_to_gconstpointer(data));
 
 	g_assert(data);
@@ -769,7 +769,7 @@ bitzi_query_by_sha1(const struct sha1 *sha1)
 		g_assert(len < sizeof request->bitzi_url);
 
 		bitzi_rq = g_slist_append(bitzi_rq, request);
-		if (bitzi_debug) {
+		if (GNET_PROPERTY(bitzi_debug)) {
 			g_message("bitzi_query_by_sha1: queued query, %d in queue",
 				g_slist_position(bitzi_rq, g_slist_last(bitzi_rq)) + 1);
 		}
@@ -778,7 +778,7 @@ bitzi_query_by_sha1(const struct sha1 *sha1)
 		 * the heartbeat will pick up the request
 		 */
 	} else {
-		if (bitzi_debug)
+		if (GNET_PROPERTY(bitzi_debug))
 			g_message("bitzi_query_by_sha1: result already in cache");
 				gcu_bitzi_result(data);
 	}
@@ -895,7 +895,7 @@ bitzi_load_cache(void)
 		fclose(old_data);
 	} /* if (old_data) */
 
-	if (bitzi_debug)
+	if (GNET_PROPERTY(bitzi_debug))
 		g_message("Loaded %d bitzi ticket(s) from \"%s\"",
 			ticket_count, oldpath);
 

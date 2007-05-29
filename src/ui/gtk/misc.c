@@ -204,21 +204,27 @@ gui_update_traffic_stats(void)
 	 */
 
     guc_gnet_get_bw_stats(BW_HTTP_IN, &s);
-    update_stat(&http_in_max, pg_http_in, &s, progressbar_bws_in_avg, 1);
+    update_stat(&http_in_max, pg_http_in, &s,
+		GUI_PROPERTY(progressbar_bws_in_avg), 1);
     guc_gnet_get_bw_stats(BW_HTTP_OUT, &s);
-    update_stat(&http_out_max, pg_http_out, &s, progressbar_bws_out_avg, 0);
+    update_stat(&http_out_max, pg_http_out, &s,
+		GUI_PROPERTY(progressbar_bws_out_avg), 0);
     guc_gnet_get_bw_stats(BW_GNET_IN, &s);
     guc_gnet_get_bw_stats(BW_GNET_UDP_IN, &s2);
 	gnet_bw_stats_sum(&s, &s2);
-    update_stat(&gnet_in_max, pg_gnet_in, &s, progressbar_bws_gin_avg, 1);
+    update_stat(&gnet_in_max, pg_gnet_in, &s,
+		GUI_PROPERTY(progressbar_bws_gin_avg), 1);
     guc_gnet_get_bw_stats(BW_GNET_OUT, &s);
     guc_gnet_get_bw_stats(BW_GNET_UDP_OUT, &s2);
 	gnet_bw_stats_sum(&s, &s2);
-    update_stat(&gnet_out_max, pg_gnet_out, &s, progressbar_bws_gout_avg, 0);
+    update_stat(&gnet_out_max, pg_gnet_out, &s,
+		GUI_PROPERTY(progressbar_bws_gout_avg), 0);
     guc_gnet_get_bw_stats(BW_LEAF_IN, &s);
-    update_stat(&leaf_in_max, pg_leaf_in, &s, progressbar_bws_glin_avg, 1);
+    update_stat(&leaf_in_max, pg_leaf_in, &s,
+		GUI_PROPERTY(progressbar_bws_glin_avg), 1);
     guc_gnet_get_bw_stats(BW_LEAF_OUT, &s);
-    update_stat(&leaf_out_max, pg_leaf_out, &s, progressbar_bws_glout_avg, 0);
+    update_stat(&leaf_out_max, pg_leaf_out, &s,
+		GUI_PROPERTY(progressbar_bws_glout_avg), 0);
 }
 
 void
@@ -237,19 +243,28 @@ gui_update_stats_frames(void)
 
    	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
-    if (progressbar_bws_in_visible || progressbar_bws_out_visible)
+    if (
+		GUI_PROPERTY(progressbar_bws_in_visible) ||
+		GUI_PROPERTY(progressbar_bws_out_visible)
+	)
         gtk_widget_show(frame_bws_inout);
     else
         gtk_widget_hide(frame_bws_inout);
 
-    if (progressbar_bws_gin_visible || progressbar_bws_gout_visible)
+    if (
+		GUI_PROPERTY(progressbar_bws_gin_visible) ||
+		GUI_PROPERTY(progressbar_bws_gout_visible)
+	)
         gtk_widget_show(frame_bws_ginout);
     else
         gtk_widget_hide(frame_bws_ginout);
 
     if (
-		(progressbar_bws_glin_visible || progressbar_bws_glout_visible) &&
-        (peermode == NODE_P_ULTRA || !autohide_bws_gleaf)
+		(
+			GUI_PROPERTY(progressbar_bws_glin_visible) ||
+			GUI_PROPERTY(progressbar_bws_glout_visible)
+		) &&
+        (peermode == NODE_P_ULTRA || !GUI_PROPERTY(autohide_bws_gleaf))
 	)
         gtk_widget_show(frame_bws_glinout);
     else
@@ -267,7 +282,7 @@ gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
     result = strcmp(((const record_t *) rec1)->name,
        ((const record_t *) rec2)->name);
 
-	if (gui_debug > 4)
+	if (GUI_PROPERTY(gui_debug) > 4)
     	g_message("[%s] == [%s] -> %d\n", ((const record_t *) rec1)->name,
 			((const record_t *) rec2)->name, result);
 
@@ -347,14 +362,14 @@ gui_fix_coords(guint32 *coord)
 
 	screen_w = gdk_screen_width();
 	screen_h = gdk_screen_height();
-	if (gui_debug)
+	if (GUI_PROPERTY(gui_debug))
 		g_message("screen: %dx%d", screen_w, screen_h);
 
 	x = coord[0];
 	y = coord[1];
 	w = coord[2];
 	h = coord[3];
-	if (gui_debug)
+	if (GUI_PROPERTY(gui_debug))
 		g_message("before: %dx%d+%d+%d", w, h, x, y);
 
 	if (w < 200)
@@ -374,7 +389,7 @@ gui_fix_coords(guint32 *coord)
 	coord[1] = y;
 	coord[2] = w;
 	coord[3] = h;
-	if (gui_debug)
+	if (GUI_PROPERTY(gui_debug))
 		g_message("after: %dx%d+%d+%d", w, h, x, y);
 }
 

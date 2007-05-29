@@ -223,7 +223,7 @@ dh_timer(time_t now)
 
 	last_rotation = now;
 
-	if (dh_debug > 19)
+	if (GNET_PROPERTY(dh_debug) > 19)
 		printf("DH rotated tables, current has %d, old has %d\n",
 			g_hash_table_size(by_muid), g_hash_table_size(by_muid_old));
 }
@@ -282,8 +282,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 {
 	g_assert(mq != NULL);
 
-	if (dh_debug > 19) printf("DH ");
-	if (dh_debug > 19 && test) printf("[test] ");
+	if (GNET_PROPERTY(dh_debug) > 19) printf("DH ");
+	if (GNET_PROPERTY(dh_debug) > 19 && test) printf("[test] ");
 
 	/*
 	 * The heart of the "dynamic hit routing" algorithm is here.
@@ -300,7 +300,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		mq_size(mq) > mq_hiwat(mq) &&		/* Implies we're flow-controlled */
 		(dh->hits_sent >= DH_THRESH_HITS || dh->hits_queued >= DH_MIN_HITS)
 	) {
-		if (dh_debug > 19) printf("queue size > hiwat, dropping\n");
+		if (GNET_PROPERTY(dh_debug) > 19)
+			printf("queue size > hiwat, dropping\n");
 		return DH_DROP_FC;
 	}
 
@@ -315,7 +316,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		mq_is_swift_controlled(mq) &&
 		(dh->hits_sent >= DH_MIN_HITS || dh->hits_queued >= DH_MIN_HITS)
 	) {
-		if (dh_debug > 19) printf("queue in SWIFT mode, dropping\n");
+		if (GNET_PROPERTY(dh_debug) > 19)
+			printf("queue in SWIFT mode, dropping\n");
 		return DH_DROP_FC;
 	}
 
@@ -333,7 +335,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 			 (dh->hits_sent + dh->hits_queued) >= DH_MIN_HITS + DH_THRESH_HITS)
 		)
 	) {
-		if (dh_debug > 19) printf("queue in FLOWC mode, dropping\n");
+		if (GNET_PROPERTY(dh_debug) > 19)
+			printf("queue in FLOWC mode, dropping\n");
 		return DH_DROP_FC;
 	}
 
@@ -348,7 +351,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		dh->hits_sent >= DH_POPULAR_HITS &&
 		dh->hits_queued >= (DH_MIN_HITS / 2)
 	) {
-		if (dh_debug > 19) printf("queue size > lowat, dropping\n");
+		if (GNET_PROPERTY(dh_debug) > 19)
+			printf("queue size > lowat, dropping\n");
 		return DH_DROP_FC;
 	}
 
@@ -361,7 +365,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		dh->hits_sent >= DH_POPULAR_HITS &&
 		dh->hits_queued >= DH_MIN_HITS
 	) {
-		if (dh_debug > 19) printf("enough hits queued, throttling\n");
+		if (GNET_PROPERTY(dh_debug) > 19)
+			printf("enough hits queued, throttling\n");
 		return DH_DROP_THROTTLE;
 	}
 
@@ -375,7 +380,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 		dh->hits_sent < DH_MAX_HITS &&
 		dh->hits_queued > (DH_MIN_HITS / 2) &&
 		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS) {
-		if (dh_debug > 19) printf("enough queued, nearing max, throttling\n");
+		if (GNET_PROPERTY(dh_debug) > 19)
+			printf("enough queued, nearing max, throttling\n");
 		return DH_DROP_THROTTLE;
 	}
 
@@ -385,11 +391,12 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
 	 */
 
 	if (dh->hits_sent >= DH_MAX_HITS && dh->hits_queued) {
-		if (dh_debug > 19) printf("max sendable hits reached, throttling\n");
+		if (GNET_PROPERTY(dh_debug) > 19)
+			printf("max sendable hits reached, throttling\n");
 		return DH_DROP_THROTTLE;
 	}
 
-	if (dh_debug > 19) printf("forwarding\n");
+	if (GNET_PROPERTY(dh_debug) > 19) printf("forwarding\n");
 
 	return DH_FORWARD;
 }
@@ -418,7 +425,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 
 	g_assert(dh != NULL);		/* Must have called dh_got_results() first! */
 
-	if (dh_debug > 19) {
+	if (GNET_PROPERTY(dh_debug) > 19) {
 		printf("DH %s got %d hit%s: "
 			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u\n",
 			guid_hex_str(muid), count, count == 1 ? "" : "s",
@@ -467,7 +474,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 
 	mq_putq(mq, mb);
 
-	if (dh_debug > 19)
+	if (GNET_PROPERTY(dh_debug) > 19)
 		printf("DH enqueued %d hit%s for %s\n",
 			count, count == 1 ? "" : "s", guid_hex_str(muid));
 

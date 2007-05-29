@@ -330,8 +330,7 @@ thex_upload_close(struct special_upload *special_upload, gboolean fully_served)
 	 */
 
 	if (fully_served) {
-		gnet_prop_set_guint32_val(PROP_THEX_FILES_SERVED,
-			thex_files_served + 1);
+		gnet_prop_incr_guint32(PROP_THEX_FILES_SERVED);
 	}
 	
 	tx_free(ctx->tx);
@@ -408,8 +407,7 @@ thex_upload_open(
 	 * Update statistics.
 	 */
 
-	gnet_prop_set_guint32_val(PROP_THEX_FILES_REQUESTED,
-		thex_files_requested + 1);
+	gnet_prop_incr_guint32(PROP_THEX_FILES_REQUESTED);
 	return &ctx->special_upload;
 }
 

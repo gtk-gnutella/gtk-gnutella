@@ -608,7 +608,7 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	g_assert(dm);
 	g_assert(list_length(dm->entries) > 0);
 
-	if (dmesh_debug)
+	if (GNET_PROPERTY(dmesh_debug))
 		g_message("dmesh entry removed for urn:sha1:%s at %s",
 			sha1_base32(dm->sha1),
 			host_addr_port_to_string(dme->url.addr, dme->url.port));
@@ -648,7 +648,7 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
 	if (!found)
 		return;
 
-	if (dmesh_debug)
+	if (GNET_PROPERTY(dmesh_debug))
 		g_message("dmesh entry removed for urn:sha1:%s at %s",
 			sha1_base32(dm->sha1), host_addr_port_to_string(addr, port));
 
@@ -688,7 +688,7 @@ dm_expire(struct dmesh *dm, glong agemax)
 		 * XXX to see whether the entry is still valid.
 		 */
 
-		if (dmesh_debug > 4)
+		if (GNET_PROPERTY(dmesh_debug) > 4)
 			g_message("MESH %s: EXPIRED \"%s\", age=%d",
 				sha1_base32(dm->sha1),
 				dmesh_urlinfo_to_string(&dme->url),
@@ -895,7 +895,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		if (stamp > dme->stamp)		/* Don't move stamp back in the past */
 			dme->stamp = stamp;
 
-		if (dmesh_debug)
+		if (GNET_PROPERTY(dmesh_debug))
 			g_message("dmesh entry reused for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 	} else {
@@ -914,7 +914,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		dme->bad = NULL;
 		dme->good = FALSE;
 
-		if (dmesh_debug)
+		if (GNET_PROPERTY(dmesh_debug))
 			g_message("dmesh entry created for urn:sha1:%s at %s",
 				sha1_base32(sha1), host_addr_port_to_string(addr, port));
 
@@ -948,7 +948,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 	return TRUE;			/* We added the entry */
 
 rejected:
-	if (dmesh_debug > 4)
+	if (GNET_PROPERTY(dmesh_debug) > 4)
 		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%d: %s",
 			sha1_base32(sha1),
 			dmesh_urlinfo_to_string(info), (guint) stamp,
@@ -1584,8 +1584,8 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		fi->size != 0 &&
 		fi->file_size_known &&
 		fi->done != 0 &&
-		pfsp_server &&
-		!is_firewalled &&
+		GNET_PROPERTY(pfsp_server) &&
+		!GNET_PROPERTY(is_firewalled) &&
 		is_host_addr(listen_addr()) &&
 		(
 			fi->done >= MIN_PFSP_SIZE ||
@@ -1601,7 +1601,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		ourselves.inserted = now;
 		ourselves.stamp = now;
 		ourselves.url.addr = listen_addr();
-		ourselves.url.port = listen_port;
+		ourselves.url.port = GNET_PROPERTY(listen_port);
 		ourselves.url.idx = URN_INDEX;
 		ourselves.url.name = NULL;
 
@@ -1816,7 +1816,7 @@ dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
     defer->dmesh_url->name = atom_str_get(url->name);
     defer->stamp = stamp;
 
-	if (dmesh_debug)
+	if (GNET_PROPERTY(dmesh_debug))
 		g_message("defering nonurn altloc str=%px:%s",
 			defer->dmesh_url->name, defer->dmesh_url->name);
 
@@ -1868,7 +1868,7 @@ dmesh_check_deferred_against_existing(const struct sha1 *sha1,
 		dmesh_deferred_url_t *d = def->data;
 		matches = 0;
 
-		if (dmesh_debug > 4)
+		if (GNET_PROPERTY(dmesh_debug) > 4)
 			g_message("checking deferred url %p (str=%p:%s)",
 				cast_to_gconstpointer(d),
 				cast_to_gconstpointer(d->dmesh_url->name),
@@ -1893,7 +1893,7 @@ dmesh_check_deferred_against_existing(const struct sha1 *sha1,
 			adding = g_slist_prepend(adding, d);
 		else {
 			dmesh_urlinfo_t *url = d->dmesh_url;
-			if (dmesh_debug)
+			if (GNET_PROPERTY(dmesh_debug))
 				g_warning("dumped potential dmesh entry:\n%s\n\t"
 					"(only matched %d of the others, needed %d)",
 					url->name, matches, threshold);
@@ -1907,7 +1907,7 @@ dmesh_check_deferred_against_existing(const struct sha1 *sha1,
 
 		ok = dmesh_raw_add(sha1, url, d->stamp);
 
-		if (dmesh_debug > 4) {
+		if (GNET_PROPERTY(dmesh_debug) > 4) {
 			g_message("MESH %s: %s deferred \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
@@ -1939,7 +1939,7 @@ dmesh_check_deferred_against_themselves(const struct sha1 *sha1,
     sl = g_slist_next(sl);
 
 	if (NULL == sl) { /* It's probably correct, should we bin it? */
-		if (dmesh_debug > 4)
+		if (GNET_PROPERTY(dmesh_debug) > 4)
 			g_message("only one altloc to check, currently dumping:\n%s",
 				first->dmesh_url->name);
 		return;
@@ -1952,7 +1952,7 @@ dmesh_check_deferred_against_themselves(const struct sha1 *sha1,
 		score = fuzzy_compare(first->dmesh_url->name, current->dmesh_url->name);
 		if (score < FUZZY_DROP) {
 			/* When anything fails, it's all over */
-			if (dmesh_debug > 4)
+			if (GNET_PROPERTY(dmesh_debug) > 4)
 				g_message("dmesh_check_deferred_against_themselves failed with:"
 					" %s\n\t"
 					"(only scoring %lu against:\n\t"
@@ -1970,7 +1970,7 @@ dmesh_check_deferred_against_themselves(const struct sha1 *sha1,
 
 		ok = dmesh_raw_add(sha1, url, def->stamp);
 
-		if (dmesh_debug > 4) {
+		if (GNET_PROPERTY(dmesh_debug) > 4) {
 			g_message("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
@@ -2104,7 +2104,7 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const gchar *value,
 		
 		if (ok) {
 			(*func)(sha1, addr, port, udata);
-		} else if (dmesh_debug) {
+		} else if (GNET_PROPERTY(dmesh_debug)) {
 			g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 		}
 
@@ -2262,10 +2262,10 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 			url = g_strndup(url_start, p - url_start);
 			ok = dmesh_url_parse(url, &info);
 
-			if (dmesh_debug > 6)
+			if (GNET_PROPERTY(dmesh_debug) > 6)
 				g_message("MESH (parsed=%d): \"%s\"", ok, url);
 
-			if (!ok && (dmesh_debug > 1 || !is_strprefix(url, "ed2kftp://"))) {
+			if (!ok && (GNET_PROPERTY(dmesh_debug) > 1 || !is_strprefix(url, "ed2kftp://"))) {
 				g_warning("cannot parse Alternate-Location URL \"%s\": %s",
 					url, dmesh_url_strerror(dmesh_url_errno));
 			}
@@ -2335,7 +2335,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 			date = g_strndup(date_start, p - date_start);
 			stamp = date2time(date, now);
 
-			if (dmesh_debug > 6)
+			if (GNET_PROPERTY(dmesh_debug) > 6)
 				g_message("MESH (stamp=%s): \"%s\"",
 					timestamp_to_string(stamp), date);
 
@@ -2377,7 +2377,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 			ok = dmesh_raw_add(sha1, &info, stamp);
 
 		} else {
-			if (fuzzy_filter_dmesh && defer) {
+			if (GNET_PROPERTY(fuzzy_filter_dmesh) && defer) {
 				/*
 				 * For named altlocs, defer so we can check they are ok,
 				 * all in one block.
@@ -2390,7 +2390,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 		}
 
 	skip_add:
-		if (dmesh_debug > 4)
+		if (GNET_PROPERTY(dmesh_debug) > 4)
 			g_message("MESH %s: %s \"%s\", stamp=%u age=%d",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
@@ -2413,7 +2413,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 	 * Once everyone is done we can sort out deferred urls, if any.
 	 */
 
-	if (fuzzy_filter_dmesh && defer) {
+	if (GNET_PROPERTY(fuzzy_filter_dmesh) && defer) {
 		/*
 		 * We only defer when collection from live headers.
 		 */
@@ -2557,7 +2557,7 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
 	for (p = buffer; n > 0; n--, p++) {
 		const gchar *filename;
 
-		if (dmesh_debug > 2)
+		if (GNET_PROPERTY(dmesh_debug) > 2)
 			g_message("ALT-LOC queuing from MESH: %s",
 				dmesh_urlinfo_to_string(p));
 
@@ -2714,7 +2714,7 @@ dmesh_retrieve(void)
 		str_chomp(tmp, 0);		/* Remove final "\n" */
 
 		if (has_sha1) {
-			if (dmesh_debug)
+			if (GNET_PROPERTY(dmesh_debug))
 				g_message("dmesh_retrieve(): parsing %s", tmp);
 			dmesh_collect_locations(&sha1, tmp, FALSE);
 		} else {

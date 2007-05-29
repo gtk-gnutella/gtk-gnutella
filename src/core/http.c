@@ -247,18 +247,18 @@ http_send_status(
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, header, rw);
 	if ((ssize_t) -1 == sent) {
 		socket_eof(s);
-		if (http_debug > 1)
+		if (GNET_PROPERTY(http_debug) > 1)
 			g_warning("unable to send back HTTP status %d (%s) to %s: %s",
 			code, status_msg, host_addr_to_string(s->addr), g_strerror(errno));
 		return FALSE;
 	} else if ((size_t) sent < rw) {
-		if (http_debug) g_warning(
+		if (GNET_PROPERTY(http_debug)) g_warning(
 			"only sent %lu out of %lu bytes of status %d (%s) to %s",
 			(gulong) sent, (gulong) rw, code, status_msg,
 			host_addr_to_string(s->addr));
 		return FALSE;
 	} else {
-		if (http_debug > 2)
+		if (GNET_PROPERTY(http_debug) > 2)
 			g_message("----Sent HTTP Status to %s (%lu bytes):\n%.*s\n----",
 				host_addr_to_string(s->addr), (gulong) rw,
 				(int) MIN(rw, INT_MAX), header);
@@ -281,11 +281,11 @@ http_hostname_add(gchar *buf, size_t size, gpointer unused_arg, guint32 flags)
 
 	if (flags & HTTP_CBF_SMALL_REPLY)
 		return 0;
-	if (NULL == server_hostname || server_hostname[0])
+	if (GNET_PROPERTY(server_hostname)[0])
 		return 0;
 
 	len = concat_strings(buf, size,
-			"X-Hostname: ", server_hostname, "\r\n",
+			"X-Hostname: ", GNET_PROPERTY(server_hostname), "\r\n",
 			(void *) 0);
 	return len < size ? len : 0;
 }
@@ -473,7 +473,7 @@ http_extract_version(
 
 	limit = sizeof("X / HTTP/1.0") - 1;
 
-	if (http_debug > 4)
+	if (GNET_PROPERTY(http_debug) > 4)
 		g_message("HTTP req (%lu bytes): %s", (gulong) len, request);
 
 	if (len < limit)
@@ -489,7 +489,7 @@ http_extract_version(
 			break;
 	}
 
-	if (http_debug > 4)
+	if (GNET_PROPERTY(http_debug) > 4)
 		g_message("HTTP i = %lu, limit = %lu", (gulong) i, (gulong) limit);
 
 	if (i == limit)
@@ -506,13 +506,13 @@ http_extract_version(
 		NULL == (p = is_strprefix(p, "HTTP/")) ||
 		0 != parse_major_minor(p, NULL, major, minor)
 	) {
-		if (http_debug > 1)
+		if (GNET_PROPERTY(http_debug) > 1)
 			g_message("HTTP req (%lu bytes): no protocol tag: %s",
 				(gulong) len, request);
 		return FALSE;
 	}
 
-	if (http_debug > 4)
+	if (GNET_PROPERTY(http_debug) > 4)
 		g_message("HTTP req OK (%u.%u)", *major, *minor);
 
 	/*
@@ -644,7 +644,7 @@ http_url_parse(const gchar *url, guint16 *port, const gchar **host,
 		return FALSE;
 	}
 
-	if (http_debug > 4) {
+	if (GNET_PROPERTY(http_debug) > 4) {
 		g_message("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
 			url, *host, (unsigned) *port, *path);
 	}
@@ -969,14 +969,14 @@ http_range_parse(
 			}
 
 			if (!minus_seen) {
-				if (http_debug) g_warning(
+				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d (no range?): "
 					"%s", field, vendor, (gint) (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-				if (http_debug) g_warning(
+				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(incomplete negative range): %s",
 					field, vendor, (gint) (str - value) - 1, value);
@@ -984,7 +984,7 @@ http_range_parse(
 			}
 
 			if (start > end) {
-				if (http_debug) g_warning(
+				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(swapped range?): %s", field, vendor,
 					(gint) (str - value) - 1, value);
@@ -996,7 +996,7 @@ http_range_parse(
 			count++;
 
 			if (ignored) {
-				if (http_debug) g_warning(
+				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(ignored range #%d): %s",
 					field, vendor, (gint) (str - value) - 1, count,
@@ -1011,7 +1011,7 @@ http_range_parse(
 
 		if (c == '-') {
 			if (minus_seen) {
-				if (http_debug) g_warning(
+				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d (spurious '-'): %s",
 					field, vendor, (gint) (str - value) - 1, value);
 				goto resync;
@@ -1019,7 +1019,7 @@ http_range_parse(
 			minus_seen = TRUE;
 			if (!has_start) {		/* Negative range */
 				if (!request) {
-					if (http_debug)
+					if (GNET_PROPERTY(http_debug))
 						g_warning("weird %s header from <%s>, offset %d "
 							"(negative range in reply): %s",
 							field, vendor, (gint) (str - value) - 1, value);
@@ -1042,7 +1042,7 @@ http_range_parse(
 			str = dend;		/* Skip number */
 
 			if (has_end) {
-				if (http_debug)
+				if (GNET_PROPERTY(http_debug))
 					g_warning("weird %s header from <%s>, offset %d "
 						"(spurious boundary %s): %s",
 						field, vendor, (gint) (str - value) - 1,
@@ -1060,7 +1060,7 @@ http_range_parse(
 
 			if (has_start) {
 				if (!minus_seen) {
-					if (http_debug)
+					if (GNET_PROPERTY(http_debug))
 						g_warning("weird %s header from <%s>, offset %d "
 							"(no '-' before boundary %s): %s",
 							field, vendor, (gint) (str - value) - 1,
@@ -1081,7 +1081,8 @@ http_range_parse(
 			continue;
 		}
 
-		if (http_debug) g_warning("weird %s header from <%s>, offset %d "
+		if (GNET_PROPERTY(http_debug))
+			g_warning("weird %s header from <%s>, offset %d "
 			"(unexpected char '%c'): %s",
 			field, vendor, (gint) (str - value) - 1, c, value);
 
@@ -1103,14 +1104,16 @@ http_range_parse(
 
 	if (minus_seen) {
 		if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-			if (http_debug) g_warning("weird %s header from <%s>, offset %d "
+			if (GNET_PROPERTY(http_debug))
+				g_warning("weird %s header from <%s>, offset %d "
 				"(incomplete trailing negative range): %s",
 				field, vendor, (gint) (str - value) - 1, value);
 			goto final;
 		}
 
 		if (start > end) {
-			if (http_debug) g_warning("weird %s header from <%s>, offset %d "
+			if (GNET_PROPERTY(http_debug))
+				g_warning("weird %s header from <%s>, offset %d "
 				"(swapped trailing range?): %s", field, vendor,
 				(gint) (str - value) - 1, value);
 			goto final;
@@ -1120,7 +1123,8 @@ http_range_parse(
 		count++;
 
 		if (ignored)
-			if (http_debug) g_warning("weird %s header from <%s>, offset %d "
+			if (GNET_PROPERTY(http_debug))
+				g_warning("weird %s header from <%s>, offset %d "
 				"(ignored final range #%d): %s",
 				field, vendor, (gint) (str - value) - 1, count,
 				value);
@@ -1128,7 +1132,7 @@ http_range_parse(
 
 final:
 
-	if (http_debug > 4) {
+	if (GNET_PROPERTY(http_debug) > 4) {
 		GSList *l;
 
 		g_message("Saw %d ranges in %s %s: %s",
@@ -1142,7 +1146,7 @@ final:
 		}
 	}
 
-	if (ranges == NULL && http_debug)
+	if (ranges == NULL && GNET_PROPERTY(http_debug))
 		g_warning("retained no ranges in %s header from <%s>: %s",
 			field, vendor, value);
 
@@ -2201,7 +2205,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	gchar *buf;
 	guint http_major = 0, http_minor = 0;
 
-	if (http_debug > 2) {
+	if (GNET_PROPERTY(http_debug) > 2) {
 		g_message("----Got HTTP reply from %s:\n",
 			host_addr_to_string(s->addr));
 		g_message("%s", status);
@@ -2263,7 +2267,7 @@ http_got_header(struct http_async *ha, header_t *header)
 			ack_code != 302 ||
 			(ack_code == 302 && (ha->type == HTTP_GET || ha->type == HTTP_HEAD))
 		) {
-			if (http_debug > 2)
+			if (GNET_PROPERTY(http_debug) > 2)
 				g_message("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"",
 					http_verb[ha->type], ack_code, ack_message, ha->url, buf);
 
@@ -2442,7 +2446,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	} else if ((size_t) sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (http_debug > 2) {
+	} else if (GNET_PROPERTY(http_debug) > 2) {
 		g_message("----"
 			"Sent HTTP request completely to %s (%d bytes):\n%.*s\n----\n",
 			host_addr_port_to_string(s->addr, s->port), http_buffer_length(r),
@@ -2453,7 +2457,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	 * HTTP request was completely sent.
 	 */
 
-	if (http_debug)
+	if (GNET_PROPERTY(http_debug))
 		g_warning("flushed partially written HTTP request to %s (%d bytes)",
 			host_addr_port_to_string(s->addr, s->port),
 			http_buffer_length(r));
@@ -2525,7 +2529,7 @@ http_async_connected(gpointer handle)
 		socket_evt_set(s, INPUT_EVENT_WX, http_async_write_request, ha);
 
 		return;
-	} else if (http_debug > 2) {
+	} else if (GNET_PROPERTY(http_debug) > 2) {
 		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s\n----",
 			host_addr_port_to_string(s->addr, s->port), (int) rw, (int) rw, req);
 	}
@@ -2604,7 +2608,7 @@ http_async_log_error_dbg(
 void
 http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 {
-	return http_async_log_error_dbg(handle, type, v, http_debug);
+	return http_async_log_error_dbg(handle, type, v, GNET_PROPERTY(http_debug));
 }
 
 /***
@@ -2670,9 +2674,9 @@ retry:
 	for (l = sl_outgoing; l; l = l->next) {
 		struct http_async *ha = l->data;
 		gint elapsed = delta_time(now, ha->last_update);
-		gint timeout = ha->bio ?
-			download_connected_timeout :
-			download_connecting_timeout;
+		gint timeout = ha->bio
+			? GNET_PROPERTY(download_connected_timeout)
+			: GNET_PROPERTY(download_connecting_timeout);
 
 		if (ha->flags & HA_F_SUBREQ)
 			continue;

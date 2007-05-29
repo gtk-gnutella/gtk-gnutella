@@ -217,7 +217,7 @@ on_clist_search_stats_resize_column(GtkCList *unused_clist, gint column,
 {
 	(void) unused_clist;
 	(void) unused_udata;
-	*(gint *) &search_stats_col_widths[column] = width;
+	*(gint *) &GUI_PROPERTY(search_stats_col_widths)[column] = width;
 }
 
 /***
@@ -522,7 +522,7 @@ on_clist_search_resize_column(GtkCList *unused_clist, gint column,
 {
 	(void) unused_clist;
 	(void) unused_udata;
-    *(gint *) &search_list_col_widths[column] = width;
+    *(gint *) &GUI_PROPERTY(search_list_col_widths)[column] = width;
 }
 
 void

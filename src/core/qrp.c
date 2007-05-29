@@ -323,9 +323,9 @@ qrt_compact(struct routing_table *rt)
 	g_assert(0 == (rt->slots & 0x7));	/* Multiple of 8 */
 	g_assert(!rt->compacted);
 
-	if (qrp_debug > 4) {
+	if (GNET_PROPERTY(qrp_debug) > 4) {
 		g_message("dumping QRT before compaction...");
-		token = qrt_dump(stderr, rt, qrp_debug > 19);
+		token = qrt_dump(stderr, rt, GNET_PROPERTY(qrp_debug) > 19);
 	}
 
 	nsize = rt->slots / 8;
@@ -366,10 +366,10 @@ qrt_compact(struct routing_table *rt)
 	rt->arena = (guchar *) narena;
 	rt->compacted = TRUE;
 
-	if (qrp_debug > 4) {
+	if (GNET_PROPERTY(qrp_debug) > 4) {
 		guint32 token2;
 		g_message("dumping QRT after compaction...");
-		token2 = qrt_dump(stderr, rt, qrp_debug > 19);
+		token2 = qrt_dump(stderr, rt, GNET_PROPERTY(qrp_debug) > 19);
 
 		if (token2 != token)
 			g_warning("BUG in QRT compaction!");
@@ -583,7 +583,7 @@ qrt_step_compress(struct bgtask *h, gpointer u, gint ticks)
 
 	chunklen = ticks * QRT_TICK_CHUNK;
 
-	if (qrp_debug > 4)
+	if (GNET_PROPERTY(qrp_debug) > 4)
 		g_message("QRP qrt_step_compress: ticks = %d => chunk = %d bytes",
 			ticks, chunklen);
 
@@ -599,7 +599,7 @@ qrt_step_compress(struct bgtask *h, gpointer u, gint ticks)
 		 * Install compressed routing patch if it's smaller than the original.
 		 */
 
-		if (qrp_debug > 2) {
+		if (GNET_PROPERTY(qrp_debug) > 2) {
 			g_message("QRP patch: len=%d, compressed=%d (ratio %.2f%%)",
 				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
@@ -741,12 +741,13 @@ qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
 	qrt_compact(rt);
 
 	gnet_prop_set_guint32_val(PROP_QRP_GENERATION, (guint32) rt->generation);
-	gnet_prop_set_guint32_val(PROP_QRP_MEMORY, qrp_memory + slots / 8);
+	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
+		GNET_PROPERTY(qrp_memory) + slots / 8);
 
-	if (qrp_debug > 2)
+	if (GNET_PROPERTY(qrp_debug) > 2)
 		rt->digest = atom_sha1_get(qrt_sha1(rt));
 
-	if (qrp_debug > 1)
+	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_message("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s",
 			rt->name, rt->generation, rt->slots,
 			rt->digest ? sha1_base32(rt->digest) : "<not computed>");
@@ -780,8 +781,8 @@ qrt_free(struct routing_table *rt)
 	G_FREE_NULL(rt->arena);
 	G_FREE_NULL(rt->name);
 
-	gnet_prop_set_guint32_val(PROP_QRP_MEMORY, qrp_memory -
-		(rt->compacted ? rt->slots / 8 : rt->slots));
+	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
+	  GNET_PROPERTY(qrp_memory) - (rt->compacted ? rt->slots / 8 : rt->slots));
 
 	rt->magic = 0;				/* Prevent accidental reuse */
 	wfree(rt, sizeof *rt);
@@ -1048,7 +1049,7 @@ mrg_step_merge_one(struct bgtask *unused_h, gpointer u, gint ticks)
 	 * immediately.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 		return BGR_DONE;
 
 	while (ctx->tables != NULL && ticks_used < ticks) {
@@ -1089,7 +1090,7 @@ mrg_step_install_table(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 	 * not make sense.
 	 */
 
-	if (current_peermode == NODE_P_ULTRA) {
+	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
 		struct routing_table *mt;
 		if (ctx->slots != 0)
 			mt = qrt_create("Merged table",
@@ -1268,7 +1269,7 @@ qrp_add_file(struct shared_file *sf)
 			g_hash_table_insert(ht_seen_words, p, (gpointer) n);
 		}
 
-		if (qrp_debug > 8)
+		if (GNET_PROPERTY(qrp_debug) > 8)
 			g_message("new QRP word \"%s\" [from %s]",
 				word, shared_file_name_nfc(sf));
 	}
@@ -1528,7 +1529,7 @@ qrp_step_substring(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 
 	dispose_ht_seen_words();
 
-	if (qrp_debug > 1)
+	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_message("QRP unique subwords: %d", ctx->substrings);
 
 	return BGR_NEXT;		/* All done for this step */
@@ -1608,7 +1609,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, gint unused_ticks)
 		if (table[idx] == LOCAL_INFINITY) {
 			table[idx] = 1;
 			filled++;
-			if (qrp_debug > 7)
+			if (GNET_PROPERTY(qrp_debug) > 7)
 				g_message("QRP added subword: \"%s\"", word);
 		}
 
@@ -1628,7 +1629,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, gint unused_ticks)
 	conflict_ratio = ctx->substrings == 0 ? 0 :
 		(gint) (100.0 * (ctx->substrings - filled) / ctx->substrings);
 
-	if (qrp_debug > 1)
+	if (GNET_PROPERTY(qrp_debug) > 1)
 		g_message("QRP [seqno=%d] size=%d, filled=%d, hashed=%d, "
 			"ratio=%d%%, conflicts=%d%%%s",
 			bg_task_seqno(h), slots, filled, hashed,
@@ -1643,7 +1644,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, gint unused_ticks)
 		bits >= MAX_TABLE_BITS ||
 		(!full && conflict_ratio < MAX_CONFLICT_RATIO)
 	) {
-		if (qrp_debug)
+		if (GNET_PROPERTY(qrp_debug))
 			g_message("QRP final table size: %d bytes", slots);
 
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS, (guint32) slots);
@@ -1663,7 +1664,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, gint unused_ticks)
 		 */
 
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
-			if (qrp_debug)
+			if (GNET_PROPERTY(qrp_debug))
 				g_message("no change in QRP table");
 			G_FREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
@@ -1720,7 +1721,7 @@ qrp_step_create_table(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 		*ctx->rpp = NULL;
 	}
 
-	elapsed = delta_time(tm_time(), (time_t) qrp_timestamp);
+	elapsed = delta_time(tm_time(), (time_t) GNET_PROPERTY(qrp_timestamp));
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_COMPUTATION_TIME, elapsed);
 
@@ -1751,7 +1752,7 @@ qrp_step_install_leaf(struct bgtask *unused_h, gpointer u, gint unused_ticks)
 	 * from our leaves with ours, before proceeding with the patch computation.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA) {
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
 		install_routing_table(*ctx->rtp);
 		install_merged_table(NULL);			/* We're not an ultra node */
 		qrt_patch_compute(routing_table, ctx->rpp);
@@ -1779,7 +1780,7 @@ qrp_step_wait_for_merged_table(struct bgtask *h, gpointer u, gint unused_ticks)
 	 * catch this.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 		return BGR_NEXT;
 
 	/*
@@ -1857,7 +1858,7 @@ qrp_step_merge_with_leaves(struct bgtask *unused_h, gpointer u, gint ticks)
 	 * catch this.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 		return BGR_NEXT;
 
 	g_assert(st != NULL && lt != NULL);
@@ -1906,7 +1907,7 @@ qrp_step_install_ultra(struct bgtask *h, gpointer u, gint ticks)
 	 * "leaf install" mode.
 	 */
 
-	if (current_peermode != NODE_P_ULTRA)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 		return qrp_step_install_leaf(h, u, ticks);
 
 	/*
@@ -2100,7 +2101,7 @@ qrt_patch_computed(struct bgtask *unused_h, gpointer unused_u,
 	g_assert(ctx == qrt_patch_ctx);
 	g_assert(ctx->rpp != NULL);
 
-	if (qrp_debug > 2)
+	if (GNET_PROPERTY(qrp_debug) > 2)
 		g_message("QRP global default patch computed (status = %d)", status);
 
 	qrt_patch_ctx = NULL;			/* Indicates that we're done */
@@ -2114,14 +2115,16 @@ qrt_patch_computed(struct bgtask *unused_h, gpointer unused_u,
 
 		*ctx->rpp = ctx->rp;
 
-		elapsed = delta_time(now, (time_t) qrp_patch_timestamp);
+		elapsed = delta_time(now, (time_t) GNET_PROPERTY(qrp_patch_timestamp));
 		elapsed = MAX(0, elapsed);
 		gnet_prop_set_guint32_val(PROP_QRP_PATCH_COMPUTATION_TIME, elapsed);
 		gnet_prop_set_guint32_val(PROP_QRP_PATCH_LENGTH,
 			(guint32) ctx->rp->len);
 		gnet_prop_set_guint32_val(PROP_QRP_PATCH_COMP_RATIO,
-			(guint32) (100.0 * (qrp_patch_raw_length - qrp_patch_length) /
-				MAX(qrp_patch_raw_length, 1)));
+			(guint32) (100.0 *
+			(GNET_PROPERTY(qrp_patch_raw_length)
+				   - GNET_PROPERTY(qrp_patch_length))) /
+						MAX(GNET_PROPERTY(qrp_patch_raw_length), 1));
 	}
 
 	ctx->magic = 0;					/* Prevent accidental reuse */
@@ -2282,7 +2285,7 @@ qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 
 	gmsg_sendto_one(n, &msg, sizeof msg);
 
-	if (qrp_debug > 4)
+	if (GNET_PROPERTY(qrp_debug) > 4)
 		g_message("QRP sent RESET slots=%d, infinity=%d to %s",
 			slots, infinity, node_addr(n));
 }
@@ -2334,7 +2337,7 @@ qrp_send_patch(struct gnutella_node *n,
 
 	G_FREE_NULL(msg);
 
-	if (qrp_debug > 4)
+	if (GNET_PROPERTY(qrp_debug) > 4)
 		g_message("QRP sent PATCH #%d/%d (%d bytes) to %s",
 			seqno, seqsize, len, node_addr(n));
 }
@@ -2488,7 +2491,7 @@ qrt_compressed(struct bgtask *unused_h, gpointer unused_u,
 	 */
 
 	if (routing_patch != NULL && qup->patch->len > routing_patch->len) {
-		if (qrp_debug)
+		if (GNET_PROPERTY(qrp_debug))
 			g_warning("incremental query routing patch for node %s is %d "
 				"bytes, bigger than the default patch (%d bytes) -- "
 				"using latter",
@@ -2573,7 +2576,7 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	if (qrp_debug > 2)
+	if (GNET_PROPERTY(qrp_debug) > 2)
 		g_message("QRP global routing patch %s (node %s)",
 			rp == NULL ? "computation was cancelled" : "is now available",
 			node_addr(qup->node));
@@ -2616,7 +2619,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 		g_assert(old->magic == QRP_ROUTE_MAGIC);
 
 		if (old->slots != routing_table->slots) {
-			if (qrp_debug)
+			if (GNET_PROPERTY(qrp_debug))
 				g_warning("old QRT for %s had %d slots, new one has %d",
 					node_addr(n), old->slots, routing_table->slots);
 			old_table = NULL;
@@ -2638,7 +2641,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 		 */
 
 		if (routing_patch != NULL) {
-			if (qrp_debug > 2)
+			if (GNET_PROPERTY(qrp_debug) > 2)
 				g_message(
 					"QRP default routing patch is already there (node %s)",
 					node_addr(n));
@@ -2646,7 +2649,7 @@ qrt_update_create(struct gnutella_node *n, struct routing_table *query_table)
 			qup->patch = qrt_patch_ref(routing_patch);
 			qrt_compressed(NULL, NULL, BGS_OK, qup);
 		} else {
-			if (qrp_debug > 2)
+			if (GNET_PROPERTY(qrp_debug) > 2)
 				g_message("QRP must wait for routing patch (node %s)",
 					node_addr(n));
 
@@ -3007,9 +3010,11 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
 			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
-			compact_size(rt->client_slots, display_metric_units));
+			compact_size(rt->client_slots,
+				GNET_PROPERTY(display_metric_units)));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots, display_metric_units));
+			compact_size(rt->client_slots,
+				GNET_PROPERTY(display_metric_units)));
 		return FALSE;
 	}
 
@@ -3176,10 +3181,12 @@ qrt_apply_patch(struct qrt_receive *qrcv, const guchar *data, gint len)
 					g_warning(
 						"%s node %s <%s> overflowed its QRP patch of %s slots",
 						node_type(n), node_addr(n), node_vendor(n),
-						compact_size(rt->client_slots, display_metric_units));
+						compact_size(rt->client_slots,
+							GNET_PROPERTY(display_metric_units)));
 					node_bye_if_writable(n, 413,
 						"QRP patch overflowed table (%s slots)",
-						compact_size(rt->client_slots, display_metric_units));
+						compact_size(rt->client_slots,
+							GNET_PROPERTY(display_metric_units)));
 					return FALSE;
 				}
 			}
@@ -3210,9 +3217,11 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, gint len, gint slots_per_byte)
 		struct gnutella_node *n = qrcv->node;
 		g_warning("%s node %s <%s> overflowed its QRP patch of %s slots"
 			" (spurious message?)", node_type(n), node_addr(n), node_vendor(n),
-			compact_size(rt->client_slots, display_metric_units));
+			compact_size(rt->client_slots,
+				GNET_PROPERTY(display_metric_units)));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots, display_metric_units));
+			compact_size(rt->client_slots,
+				GNET_PROPERTY(display_metric_units)));
 		return FALSE;
 	}
 
@@ -3225,9 +3234,11 @@ qrt_patch_is_valid(struct qrt_receive *qrcv, gint len, gint slots_per_byte)
 		g_warning(
 			"%s node %s <%s> overflowed its QRP patch of %s slots",
 			node_type(n), node_addr(n), node_vendor(n),
-			compact_size(rt->client_slots, display_metric_units));
+			compact_size(rt->client_slots,
+				GNET_PROPERTY(display_metric_units)));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
-			compact_size(rt->client_slots, display_metric_units));
+			compact_size(rt->client_slots,
+				GNET_PROPERTY(display_metric_units)));
 		return FALSE;
 	}
 	
@@ -3436,7 +3447,7 @@ qrt_handle_reset(
 		qrcv->shrink_factor <<= 1;
 	}
 
-	if (qrp_debug && qrcv->shrink_factor > 1)
+	if (GNET_PROPERTY(qrp_debug) && qrcv->shrink_factor > 1)
 		g_warning("QRT from %s <%s> will be shrunk by a factor of %d",
 			node_addr(n), node_vendor(n), qrcv->shrink_factor);
 
@@ -3457,7 +3468,8 @@ qrt_handle_reset(
 	slots = rt->slots / 8;			/* 8 bits per byte, table is compacted */
 	rt->arena = g_malloc0(slots);
 
-	gnet_prop_set_guint32_val(PROP_QRP_MEMORY, qrp_memory + slots);
+	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
+		GNET_PROPERTY(qrp_memory) + slots);
 
 	/*
 	 * We're now ready to handle PATCH messages.
@@ -3657,7 +3669,7 @@ qrt_handle_patch(
 		g_assert(qrcv->current_index == rt->slots);
 		atom_sha1_free_null(&rt->digest);
 
-		if (qrp_debug > 2)
+		if (GNET_PROPERTY(qrp_debug) > 2)
 			rt->digest = atom_sha1_get(qrt_sha1(rt));
 
 		rt->fill_ratio = (gint) (100.0 * rt->set_count / rt->slots);
@@ -3692,7 +3704,7 @@ qrt_handle_patch(
 		else
 			rt->pass_throw = 100;		/* Always forward if QRT says so */
 
-		if (qrp_debug > 2)
+		if (GNET_PROPERTY(qrp_debug) > 2)
 			g_message("QRP got whole %d-bit patch "
 				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
 				"from %s %s <%s>: SHA1=%s",
@@ -3714,8 +3726,8 @@ qrt_handle_patch(
 		if (NODE_IS_LEAF(n))
 			qrp_leaf_changed();
 
-		if (qrp_debug > 1)
-			(void) qrt_dump(stdout, rt, qrp_debug > 19);
+		if (GNET_PROPERTY(qrp_debug) > 1)
+			(void) qrt_dump(stdout, rt, GNET_PROPERTY(qrp_debug) > 19);
 	}
 
 	return TRUE;
@@ -3807,7 +3819,7 @@ qrp_monitor(cqueue_t *unused_cq, gpointer unused_obj)
 	 * is already running, don't bother...
 	 */
 
-	if (current_peermode != NODE_P_ULTRA || merge_comp != NULL)
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA || merge_comp != NULL)
 		return;
 
 	/*
@@ -3909,7 +3921,7 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 	guint32 result;
 	gint i;
 
-	if (qrp_debug > 0) {
+	if (GNET_PROPERTY(qrp_debug) > 0) {
 		fprintf(f, "------ Query Routing Table \"%s\" "
 			"(gen=%d, slots=%d, %scompacted)\n",
 			rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
@@ -3960,7 +3972,7 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 
 	result = sha1_hash(&digest);
 
-	if (qrp_debug > 0) {
+	if (GNET_PROPERTY(qrp_debug) > 0) {
 		fprintf(f, "------ End Routing Table \"%s\" "
 			"(gen=%d, SHA1=%s, token=0x%x)\n",
 			rt->name, rt->generation, sha1_base32(&digest), result);
@@ -4189,7 +4201,7 @@ qrt_build_query_target(
 	g_assert(hops >= 0);
 
 	if (qhvec->count == 0) {
-		if (qrp_debug) {
+		if (GNET_PROPERTY(qrp_debug)) {
 			if (source != NULL)
 				g_warning("QRP %s had empty hash vector",
 					gmsg_infostr(&source->header));
@@ -4323,7 +4335,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	if (nodes == NULL)
 		return;
 
-	if (qrp_debug > 4) {
+	if (GNET_PROPERTY(qrp_debug) > 4) {
 		GSList *sl;
 		gint leaves = 0;
 		gint ultras = 0;
@@ -4341,7 +4353,8 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 			"QRP %s (%d word%s%s) forwarded to %d/%d leaves, %d ultra%s",
 			gmsg_infostr(&n->header),
 			qhvec->count, qhvec->count == 1 ? "" : "s",
-			qhvec->has_urn ? " + URN" : "", leaves, node_leaf_count,
+			qhvec->has_urn ? " + URN" : "", leaves,
+			GNET_PROPERTY(node_leaf_count),
 			ultras, ultras == 1 ? "" : "s");
 	}
 
