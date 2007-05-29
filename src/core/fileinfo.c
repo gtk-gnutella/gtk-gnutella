@@ -4860,7 +4860,7 @@ fi_find_aggressive_candidate(
 	starving = fi->lifecount - busy;	/* Starving downloads */
 	minchunk = (fi->size - fi->done) / (2 * starving);
 	minchunk = MIN(minchunk, GNET_PROPERTY(dl_minchunksize));
-	minchunk = MAX(minchunk, minchunk);
+	minchunk = MAX(minchunk, FI_MIN_CHUNK_SPLIT);
 
 	fc = fi_find_largest(fi);
 
