@@ -2525,7 +2525,6 @@ file_info_unlink(fileinfo_t *fi)
 	if (fi->file_size_known && fi->size == fi->done)
 		return;
 
-	g_warning("about to unlink(): \"%s\"", fi->pathname);
 	if (-1 == unlink(fi->pathname)) {
 		/*
 		 * File might not exist on disk yet if nothing was downloaded.
