@@ -1817,6 +1817,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		goto bad_packet;		
 	}
 
+	/* Very funny */
+	if (guid_eq(rs->guid, gnutella_header_get_muid(&n->header))) {
+		gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+		goto bad_packet;		
+	}
+
 	if (
 		trailer &&
 		search_results_handle_trailer(n, rs, trailer, endptr - trailer)
