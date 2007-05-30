@@ -421,12 +421,14 @@ dq_pmi_free(struct pmsg_info *pmi)
 static gboolean
 dq_alive(dquery_t *dq, guint32 qid)
 {
-	dquery_check(dq);
-
-	if (g_hash_table_lookup(dqueries, dq))
+	/* NOTE: dqueries might have been freed already, as dq_pmsg_free()
+	 *		 might still call this function after dq_close().
+	 */
+	if (dqueries && g_hash_table_lookup(dqueries, dq)) {
+		dquery_check(dq);
 		return dq->qid == qid;		/* In case it reused the same address */
-	else
-		return FALSE;
+	}
+	return FALSE;
 }
 
 /**
@@ -438,7 +440,10 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 	struct pmsg_info *pmi = arg;
 	dquery_t *dq = pmi->dq;
 
-	dquery_check(dq);
+	/* NOTE: No dquery_check() because the memory might have been freed
+	 *		 already! See dq_alive and the comment below.
+	 */
+	
 	g_assert(pmsg_is_extended(mb));
 
 	/*
@@ -800,7 +805,6 @@ dq_free(dquery_t *dq)
 	gint i;
 
 	dquery_check(dq);
-	g_return_if_fail(0 == dq->pending);
 	g_assert(g_hash_table_lookup(dqueries, dq));
 
 	if (GNET_PROPERTY(dq_debug) > 19)
