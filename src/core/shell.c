@@ -2060,7 +2060,7 @@ shell_add(struct gnutella_socket *s)
 		}
 	} else {
 #ifdef USE_REMOTE_CTRL
-		if (enable_shell) {
+		if (GNET_PROPERTY(enable_shell)) {
 		   	if (shell_auth(getline_str(s->getline))) {
 				granted = TRUE;
 				sh->interactive = TRUE;
