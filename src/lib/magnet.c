@@ -436,6 +436,7 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 		atom_str_free_null(&res->display_name);
 		atom_sha1_free_null(&res->sha1);
 		atom_tth_free_null(&res->tth);
+		atom_str_free_null(&res->parq_id);
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
