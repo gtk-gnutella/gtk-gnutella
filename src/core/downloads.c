@@ -9977,6 +9977,7 @@ download_build_magnet(const struct download *d)
 			magnet_set_parq_id(magnet, parq_id);
 		}
 		magnet_add_source_by_url(magnet, dl_url);
+		G_FREE_NULL(dl_url);
 		url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
 	} else {
@@ -11021,7 +11022,7 @@ download_close(void)
 	 */
 }
 
-gchar *
+static gchar *
 download_url_for_uri(const struct download *d, const gchar *uri)
 {
 	const gchar *prefix, *hostname = NULL;
