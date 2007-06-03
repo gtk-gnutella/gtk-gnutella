@@ -72,6 +72,7 @@ static gchar tmpstr[4096];
 static GList *searches;		/* List of search structs */
 
 static struct drag_context *drag_file_url;
+static struct drag_context *drag_detail;
 
 /**
  * Characteristics of data in search results columns, used for sorting.
@@ -2064,6 +2065,20 @@ search_gui_init(void)
 			GTK_SIGNAL_FUNC(on_search_list_button_press_event), NULL);
 		gtk_signal_connect_after(GTK_OBJECT(clist), "row-move",
 			GTK_SIGNAL_FUNC(on_search_list_row_move_event), NULL);
+	}
+
+	{
+		GtkCList *clist;
+		
+		clist = GTK_CLIST(gui_main_window_lookup("clist_search_details"));
+		gtk_signal_connect(GTK_OBJECT(clist), "select-row",
+			GTK_SIGNAL_FUNC(on_clist_search_details_select_row), NULL);
+		gtk_signal_connect(GTK_OBJECT(clist), "unselect-row",
+			GTK_SIGNAL_FUNC(on_clist_search_details_unselect_row), NULL);
+
+		drag_detail = drag_new();
+		drag_attach(drag_detail, gui_main_window_lookup("clist_search_details"),
+			search_details_get_text);
 	}
 }
 

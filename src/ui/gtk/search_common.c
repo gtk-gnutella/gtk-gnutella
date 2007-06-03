@@ -749,7 +749,7 @@ search_gui_find(gnet_search_t sh)
  * @return NULL if there's no filename extension, otherwise a pointer
  *         to a static string holding the lowercased extension.
  */
-gchar *
+const gchar *
 search_gui_get_filename_extension(const gchar *filename_utf8)
 {
 	const gchar *p = strrchr(filename_utf8, '.');
@@ -2862,5 +2862,69 @@ search_gui_is_passive(const search_t *search)
 	g_assert(search);
 	return guc_search_is_passive(search->search_handle);
 }
+
+const gchar *
+search_gui_nice_size(const record_t *rc)
+{
+	static gchar buf[256];
+	gchar bytes[UINT64_DEC_BUFLEN];
+
+	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
+	gm_snprintf(buf, sizeof buf,
+		_("%s (%s bytes)"), short_size(rc->size, show_metric_units()),
+		bytes);
+	return buf;
+}
+
+const gchar *
+search_gui_get_vendor(const struct results_set *rs)
+{
+	const gchar *vendor;
+
+	g_assert(rs);
+
+	vendor = lookup_vendor_name(rs->vcode);
+	if (vendor) {
+		if (rs->version) {
+			static gchar buf[128];
+
+			concat_strings(buf, sizeof buf, vendor, "/", rs->version,
+				(void *) 0);
+			vendor = buf;
+		}
+	} else {
+		vendor = _("Unknown");
+	}
+	return vendor;
+}
+
+/* FIXME: This doesn't belong here. gnet_host_vec functions should be
+ *		  under lib not core.
+ */
+gchar *
+gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
+{
+	GString *gs;
+	guint i, n;
+
+	g_return_val_if_fail(hvec, NULL);
+
+	gs = g_string_new("");
+	n = gnet_host_vec_count(hvec);
+	for (i = 0; i < n; i++) {
+		gnet_host_t host;
+		gchar buf[128];
+
+		if (i > 0) {
+			g_string_append(gs, ", ");
+		}
+		host = gnet_host_vec_get(hvec, i);
+		host_addr_port_to_string_buf(gnet_host_get_addr(&host),
+			gnet_host_get_port(&host), buf, sizeof buf);
+		g_string_append(gs, buf);
+	}
+	return gm_string_finalize(gs);
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

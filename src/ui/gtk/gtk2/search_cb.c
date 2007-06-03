@@ -418,28 +418,6 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gtk_tree_view_column_set_clickable(column, TRUE);
 }
 
-static const gchar *
-search_gui_get_vendor(const struct results_set *rs)
-{
-	const gchar *vendor;
-
-	g_assert(rs);
-
-	vendor = lookup_vendor_name(rs->vcode);
-	if (vendor) {
-		if (rs->version) {
-			static gchar buf[128];
-
-			concat_strings(buf, sizeof buf, vendor, "/", rs->version,
-				(void *) 0);
-			vendor = buf;
-		}
-	} else {
-		vendor = _("Unknown");
-	}
-	return vendor;
-}
-
 void
 search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
@@ -557,51 +535,11 @@ search_set_xml_metadata(const record_t *rc)
 	G_FREE_NULL(xml_txt);
 }
 
-static const gchar *
-search_gui_nice_size(const record_t *rc)
-{
-	static gchar buf[256];
-	gchar bytes[UINT64_DEC_BUFLEN];
-
-	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
-	gm_snprintf(buf, sizeof buf,
-		_("%s (%s bytes)"), short_size(rc->size, show_metric_units()),
-		bytes);
-	return buf;
-}
-
-gchar *
-gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
-{
-	GString *gs;
-	guint i, n;
-
-	g_return_val_if_fail(hvec, NULL);
-
-	gs = g_string_new("");
-	n = gnet_host_vec_count(hvec);
-	for (i = 0; i < n; i++) {
-		gnet_host_t host;
-		gchar buf[128];
-
-		if (i > 0) {
-			g_string_append(gs, ", ");
-		}
-		host = gnet_host_vec_get(hvec, i);
-		host_addr_port_to_string_buf(gnet_host_get_addr(&host),
-			gnet_host_get_port(&host), buf, sizeof buf);
-		g_string_append(gs, buf);
-	}
-	return gm_string_finalize(gs);
-}
-
 static void
 search_set_details(const record_t *rc)
 {
-	const struct results_set *rs;
 	GtkTreeModel *model;
 	GtkTreeView *tv;
-	gchar *hosts;
 
 	g_return_if_fail(rc);
 
@@ -613,71 +551,77 @@ search_set_details(const record_t *rc)
 
 	gtk_list_store_clear(GTK_LIST_STORE(model));
 
-	rs = rc->results_set;
+	if (rc) {
+		const struct results_set *rs;
+		gchar *hosts;
+		rs = rc->results_set;
 
-	search_append_detail(model, _("Filename"), rc->utf8_name);
-	search_append_detail(model, _("Extension"), rc->ext);
-	search_append_detail(model, _("SHA-1"),
-		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
-	search_append_detail(model, _("Size"), search_gui_nice_size(rc));
+		search_append_detail(model, _("Filename"), rc->utf8_name);
+		search_append_detail(model, _("Extension"), rc->ext);
+		search_append_detail(model, _("SHA-1"),
+				rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
+		search_append_detail(model, _("Size"), search_gui_nice_size(rc));
 
-	if (rc->sha1) {
-		static const gchar base_url[] = "http://bitzi.com/lookup/";
-		gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
+		if (rc->sha1) {
+			static const gchar base_url[] = "http://bitzi.com/lookup/";
+			gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
 
-		concat_strings(buf, sizeof buf,
-			base_url, sha1_base32(rc->sha1),
-			(void *)0);
-		search_append_detail(model, _("Bitzi URL"), buf);
-	}
-	
-	search_append_detail(model, _("Index"), uint32_to_string(rc->file_index));
-	search_append_detail(model, _("Owned"),
-		(SR_OWNED   & rc->flags)  ? _("owned") :
-		(SR_PARTIAL & rc->flags) ? _("partial") :
-		(SR_SHARED  & rc->flags)  ? _("shared") :
-		_("No"));
+			concat_strings(buf, sizeof buf,
+					base_url, sha1_base32(rc->sha1),
+					(void *)0);
+			search_append_detail(model, _("Bitzi URL"), buf);
+		}
 
-	if (!(ST_LOCAL & rs->status)) {
-		search_append_detail(model, _("Source"),
-			host_addr_port_to_string(rs->addr, rs->port));
-		search_append_detail(model, _("Browsable"),
-			ST_BH & rs->status ? _("Yes") : _("No"));
-		search_append_detail(model, _("Spam"),
-			(SR_SPAM & rc->flags) ? _("Yes") :
-			(ST_SPAM & rs->status) ? _("Maybe") :
+		search_append_detail(model, _("Index"),
+			uint32_to_string(rc->file_index));
+		search_append_detail(model, _("Owned"),
+			(SR_OWNED   & rc->flags)  ? _("owned") :
+			(SR_PARTIAL & rc->flags) ? _("partial") :
+			(SR_SHARED  & rc->flags)  ? _("shared") :
 			_("No"));
-		search_append_detail(model, _("Hostile"),
-			ST_HOSTILE & rs->status ? _("Yes") : _("No"));
-		search_append_detail(model, _("Created"),
-			timestamp_to_string(rc->create_time));
-		search_append_detail(model, _("Hostname"), rs->hostname);
-		search_append_detail(model, _("Servent ID"), guid_to_string(rs->guid));
-		search_append_detail(model, _("Vendor"), search_gui_get_vendor(rs));
-		search_append_detail(model, _("Route"), search_gui_get_route(rs));
 
-		search_append_detail(model, _("Protocol"),
-			ST_UDP & rs->status ? "UDP" : "TCP");
+		if (!(ST_LOCAL & rs->status)) {
+			search_append_detail(model, _("Source"),
+				host_addr_port_to_string(rs->addr, rs->port));
+			search_append_detail(model, _("Browsable"),
+				ST_BH & rs->status ? _("Yes") : _("No"));
+			search_append_detail(model, _("Spam"),
+				(SR_SPAM & rc->flags) ? _("Yes") :
+				(ST_SPAM & rs->status) ? _("Maybe") :
+				_("No"));
+			search_append_detail(model, _("Hostile"),
+				ST_HOSTILE & rs->status ? _("Yes") : _("No"));
+			search_append_detail(model, _("Created"),
+				rc->create_time
+				? timestamp_to_string(rc->create_time)
+				: _("Unknown"));
+			search_append_detail(model, _("Hostname"), rs->hostname);
+			search_append_detail(model, _("Servent ID"),
+				guid_to_string(rs->guid));
+			search_append_detail(model, _("Vendor"), search_gui_get_vendor(rs));
+			search_append_detail(model, _("Route"), search_gui_get_route(rs));
 
-		search_append_detail(model, _("Hops"), uint32_to_string(rs->hops));
-		search_append_detail(model, _("TTL"), uint32_to_string(rs->ttl));
+			search_append_detail(model, _("Protocol"),
+				ST_UDP & rs->status ? "UDP" : "TCP");
 
-		search_append_detail(model, _("Query"),
-			lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
-				UNI_NORM_GUI,
-			NULL));
-		search_append_detail(model,
-			_("Received"), timestamp_to_string(rs->stamp));
+			search_append_detail(model, _("Hops"), uint32_to_string(rs->hops));
+			search_append_detail(model, _("TTL"), uint32_to_string(rs->ttl));
+
+			search_append_detail(model, _("Query"),
+				lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+					UNI_NORM_GUI, NULL));
+			search_append_detail(model,
+				_("Received"), timestamp_to_string(rs->stamp));
+		}
+
+		hosts = rc->alt_locs ? gnet_host_vec_to_string(rc->alt_locs) : NULL;
+		search_append_detail(model, _("Alt-Locs"), hosts);
+		G_FREE_NULL(hosts);
+
+		hosts = rs->proxies ? gnet_host_vec_to_string(rs->proxies) : NULL;
+		search_append_detail(model, _("Push-proxies"), hosts);
+		G_FREE_NULL(hosts);
 	}
-
-	hosts = rc->alt_locs ? gnet_host_vec_to_string(rc->alt_locs) : NULL;
-	search_append_detail(model, _("Alt-Locs"), hosts);
-	G_FREE_NULL(hosts);
-	
-	hosts = rs->proxies ? gnet_host_vec_to_string(rs->proxies) : NULL;
-	search_append_detail(model, _("Push-proxies"), hosts);
-	G_FREE_NULL(hosts);
-
 	search_set_xml_metadata(rc);
 }
 

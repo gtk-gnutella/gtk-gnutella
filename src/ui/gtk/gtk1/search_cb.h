@@ -54,5 +54,12 @@ void on_ctree_search_results_select_row(GtkCTree *ctree, GList *node, gint colum
 void on_ctree_search_results_unselect_row(GtkCTree *ctree, GList *node, gint column, gpointer user_data);
 void on_ctree_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
+gchar *search_details_get_text(GtkWidget *widget);
+void on_clist_search_details_select_row(GtkCList *unused_clist,
+	gint row, gint unused_column, GdkEventButton *unused_event,
+	gpointer unused_udata);
+void on_clist_search_details_unselect_row(GtkCList *unused_clist,
+	gint unused_row, gint unused_column, GdkEventButton *unused_event,
+	gpointer unused_udata);
 
 #endif /* _gtk1_search_cb_h_ */

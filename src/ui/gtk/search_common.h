@@ -159,7 +159,7 @@ void search_gui_remove_r_set(search_t *sch, results_set_t *rs);
 gboolean search_gui_result_is_dup(search_t *sch, record_t *rc);
 const gchar *search_gui_get_route(const struct results_set *rs);
 search_t *search_gui_find(gnet_search_t sh);
-gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
+const gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 void search_gui_set_sort_defaults(void);
 void search_gui_store_searches(void);
@@ -277,6 +277,11 @@ gboolean search_gui_is_local(const search_t *search);
 gboolean search_gui_is_passive(const search_t *search);
 
 void search_gui_download(record_t *rc);
+const gchar *search_gui_nice_size(const record_t *rc);
+const gchar *search_gui_get_vendor(const struct results_set *rs);
+
+/* FIXME: This does not belong here. */
+gchar *gnet_host_vec_to_string(const gnet_host_vec_t *hvec);
 
 #endif /* _gtk_search_common_h_ */
 

@@ -69,10 +69,60 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+static gint search_details_selected_row = -1;
+
+gchar * 
+search_details_get_text(GtkWidget *widget)
+{
+	gchar *text = NULL;
+
+	if (
+		search_details_selected_row >= 0 &&
+		gtk_clist_get_text(GTK_CLIST(widget), search_details_selected_row, 1,
+			&text)
+	) {
+		return g_strdup(text);
+	} else {
+		return NULL;
+	}
+}
+
 /***
  *** Private functions
  ***/
 
+/* Display XML data from the result if any */
+static void
+search_set_xml_metadata(const record_t *rc)
+{
+	GtkText *xml;
+
+	xml = GTK_TEXT(gui_main_window_lookup("text_result_info_xml"));
+	gtk_text_freeze(xml);
+	gtk_text_set_point(xml, 0);
+	gtk_text_forward_delete(xml, gtk_text_get_length(xml));
+	if (rc) {
+		gchar *text;
+	
+		text = rc->xml ? search_xml_indent(rc->xml) : NULL;
+		gtk_text_set_point(xml, 0);
+		gtk_text_insert(xml, NULL, NULL, NULL,
+			text ? lazy_utf8_to_ui_string(text) : "", (-1));
+		G_FREE_NULL(text);
+	}
+	gtk_text_thaw(xml);
+}
+
+static void
+search_append_detail(GtkCList *clist, const gchar *name, const gchar *value)
+{
+    const gchar *titles[2];
+
+	titles[0] = name;
+	titles[1] = EMPTY_STRING(value);
+    gtk_clist_append(clist, (gchar **) titles);
+}
+	
 /**
  *	Activates/deactivates buttons and popups based on what is selected
  */
@@ -82,163 +132,88 @@ RCSID("$Id$")
 static void
 search_gui_set_details(const record_t *rc)
 {
-	enum info_idx {
-		info_filename = 0,
-		info_sha1,
-		info_source,
-		info_size,
-		info_guid,
-		info_timestamp,
-		info_vendor,
-		info_index,
-		info_tag,
-		info_country,
-		info_speed,
+	GtkCList *clist;
 
-		num_infos
-	};
-	static GtkEntry *entry[num_infos];
-	static GtkText *xml;
-	static gboolean initialized;
-	guint j;
+	clist = GTK_CLIST(gui_main_window_lookup("clist_search_details"));
+	g_return_if_fail(clist);
 
-	if (!initialized) {
-		static const struct {
-			const gchar *name;
-		} widgets[] = {
-#define D(x) STRINGIFY(CAT2(entry_result_,x))
-			{ D(info_filename) },
-			{ D(info_sha1) },
-			{ D(info_source) },
-			{ D(info_size) },
-			{ D(info_guid) },
-			{ D(info_timestamp) },
-			{ D(info_vendor) },
-			{ D(info_index) },
-			{ D(info_tag) },
-			{ D(info_country) },
-			{ D(info_speed) },
-#undef D
-		};
-		guint i;
-		
-		STATIC_ASSERT(G_N_ELEMENTS(widgets) == G_N_ELEMENTS(entry));
-		STATIC_ASSERT(G_N_ELEMENTS(widgets) == num_infos);
-		
-		initialized = TRUE;
+    gtk_clist_freeze(clist);
+	gtk_clist_clear(clist);
 
-		for (i = 0; i < G_N_ELEMENTS(entry); i++)
-			entry[i] = GTK_ENTRY(gui_main_window_lookup(widgets[i].name));
+	if (rc) {
+		const struct results_set *rs;
+		gchar *hosts;
 
-		xml = GTK_TEXT(gui_main_window_lookup(
-							STRINGIFY(CAT2(text_result_,info_xml))));
-	}
+		rs = rc->results_set;
 
-	if (NULL == rc) {
-		guint i;
+		search_append_detail(clist, _("Filename"), rc->utf8_name);
+		search_append_detail(clist, _("Extension"), rc->ext);
+		search_append_detail(clist, _("SHA-1"),
+				rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
+		search_append_detail(clist, _("Size"), search_gui_nice_size(rc));
 
-		for (i = 0; i < G_N_ELEMENTS(entry); i++)
-			gtk_entry_set_text(entry[i], "");
+		if (rc->sha1) {
+			static const gchar base_url[] = "http://bitzi.com/lookup/";
+			gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
 
-		gtk_text_freeze(xml);
-		gtk_text_set_point(xml, 0);
-		gtk_text_forward_delete(xml, gtk_text_get_length(xml));
-		gtk_text_thaw(xml);
-
-		return;
-	}
-
-	for (j = 0; j < num_infos; j++) {
-		GtkEntry *e = entry[j];
-
-		switch ((enum info_idx) j) {
-		case info_filename:
-			gtk_entry_set_text(e, lazy_utf8_to_ui_string(rc->utf8_name));
-			break;
-			
-		case info_sha1:
-			gtk_entry_printf(e, "%s%s",
-				rc->sha1 ? "urn:sha1:" : _("<no SHA1 known>"),
-				rc->sha1 ? sha1_base32(rc->sha1) : "");
-			break;
-			
-		case info_source:
-			gtk_entry_printf(e, "%s%s%s%s",
-				host_addr_port_to_string(rc->results_set->addr,
-					rc->results_set->port),
-				rc->results_set->hostname ? " (" : "",
-				rc->results_set->hostname ? rc->results_set->hostname : "",
-				rc->results_set->hostname ? ")" : "");
-			break;
-
-		case info_country:
-			gtk_entry_printf(e, "%s (%s)",
-				iso3166_country_name(rc->results_set->country),
-				iso3166_country_cc(rc->results_set->country));
-			break;
-
-		case info_size:
-			{
-				gchar bytes[32];
-				
-				uint64_to_string_buf(rc->size, bytes, sizeof bytes);
-				gtk_entry_printf(e, _("%s (%s bytes)"),
-					short_size(rc->size, show_metric_units()), bytes);
-			}
-			break;
-
-		case info_guid:
-			gtk_entry_set_text(e, guid_hex_str(rc->results_set->guid));
-			break;
-
-		case info_timestamp:
-			/* The ".24" is there to discard the trailing '\n' (see ctime(3) */
-			gtk_entry_printf(entry[info_timestamp], "%24.24s",
-				ctime(&rc->results_set->stamp));
-			break;
-
-		case info_vendor:
-			{	
-				const gchar *vendor, *ver;
-
-				vendor = lookup_vendor_name(rc->results_set->vcode);
-				ver = vendor ? rc->results_set->version : NULL;
-				gtk_entry_printf(e, "%s%s%s",
-					EMPTY_STRING(vendor),
-					ver ? "/" : "",
-					EMPTY_STRING(ver));
-			}
-			break;
-
-		case info_index:
-			gtk_entry_printf(e, "%lu", (gulong) rc->file_index);
-			break;
-
-		case info_tag:
-			gtk_entry_set_text(e, EMPTY_STRING(rc->results_set->query));
-			break;
-			
-		case info_speed:
-			gtk_entry_printf(e, "%u", rc->results_set->speed);
-			break;
-
-		case num_infos:
-			g_assert_not_reached();
+			concat_strings(buf, sizeof buf,
+					base_url, sha1_base32(rc->sha1),
+					(void *)0);
+			search_append_detail(clist, _("Bitzi URL"), buf);
 		}
-	}
 
-	{
-		gchar *xml_text;
-	   
-		xml_text = rc->xml ? search_xml_indent(rc->xml) : NULL;
-		gtk_text_freeze(xml);
-		gtk_text_set_point(xml, 0);
-		gtk_text_insert(xml, NULL, NULL, NULL,
-			xml_text ? lazy_utf8_to_ui_string(xml_text) : "",
-			-1);
-		gtk_text_thaw(xml);
-		G_FREE_NULL(xml_text);
+		search_append_detail(clist, _("Index"),
+			uint32_to_string(rc->file_index));
+		search_append_detail(clist, _("Owned"),
+			(SR_OWNED   & rc->flags)  ? _("owned") :
+			(SR_PARTIAL & rc->flags) ? _("partial") :
+			(SR_SHARED  & rc->flags)  ? _("shared") :
+			_("No"));
+
+		if (!(ST_LOCAL & rs->status)) {
+			search_append_detail(clist, _("Source"),
+				host_addr_port_to_string(rs->addr, rs->port));
+			search_append_detail(clist, _("Browsable"),
+				ST_BH & rs->status ? _("Yes") : _("No"));
+			search_append_detail(clist, _("Spam"),
+				(SR_SPAM & rc->flags) ? _("Yes") :
+				(ST_SPAM & rs->status) ? _("Maybe") :
+				_("No"));
+			search_append_detail(clist, _("Hostile"),
+				ST_HOSTILE & rs->status ? _("Yes") : _("No"));
+			search_append_detail(clist, _("Created"),
+				rc->create_time
+					? timestamp_to_string(rc->create_time)
+					: _("Unknown"));
+			search_append_detail(clist, _("Hostname"), rs->hostname);
+			search_append_detail(clist, _("Servent ID"),
+				guid_to_string(rs->guid));
+			search_append_detail(clist, _("Vendor"), search_gui_get_vendor(rs));
+			search_append_detail(clist, _("Route"), search_gui_get_route(rs));
+
+			search_append_detail(clist, _("Protocol"),
+				ST_UDP & rs->status ? "UDP" : "TCP");
+
+			search_append_detail(clist, _("Hops"), uint32_to_string(rs->hops));
+			search_append_detail(clist, _("TTL"), uint32_to_string(rs->ttl));
+
+			search_append_detail(clist, _("Query"),
+				lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+					UNI_NORM_GUI, NULL));
+			search_append_detail(clist,
+				_("Received"), timestamp_to_string(rs->stamp));
+		}
+
+		hosts = rc->alt_locs ? gnet_host_vec_to_string(rc->alt_locs) : NULL;
+		search_append_detail(clist, _("Alt-Locs"), hosts);
+		G_FREE_NULL(hosts);
+
+		hosts = rs->proxies ? gnet_host_vec_to_string(rs->proxies) : NULL;
+		search_append_detail(clist, _("Push-proxies"), hosts);
+		G_FREE_NULL(hosts);
 	}
+    gtk_clist_thaw(clist);
+	search_set_xml_metadata(rc);
 }
 
 /**
@@ -592,6 +567,30 @@ on_clist_search_results_click_column(GtkCList *clist, gint column,
 	search_gui_sort_column(search, column); /* Sort column, draw arrow */
 }
 
+void
+on_clist_search_details_select_row(GtkCList *unused_clist,
+	gint row, gint unused_column, GdkEventButton *unused_event,
+	gpointer unused_udata)
+{
+	(void) unused_clist;
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
+	search_details_selected_row = row;
+}
+
+void
+on_clist_search_details_unselect_row(GtkCList *unused_clist,
+	gint unused_row, gint unused_column, GdkEventButton *unused_event,
+	gpointer unused_udata)
+{
+	(void) unused_clist;
+	(void) unused_row;
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
+	search_details_selected_row = -1;
+}
 
 /**
  *	This function is called when the user selects a row in the
