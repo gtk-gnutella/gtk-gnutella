@@ -2322,36 +2322,25 @@ search_xml_indent(const gchar *s)
  * it's moved to the beginning of the history list.
  */
 static void
-search_gui_history_add(const gchar *s)
+search_gui_history_add(const gchar *text)
 {
-    GList *new_hist = NULL, *cur_hist = list_search_history;
-    guint n = 0;
+    const GList *last;
 
-    g_return_if_fail(s);
+    g_return_if_fail(text);
 
-    while (cur_hist != NULL) {
-        if (n < 9 && 0 != g_ascii_strcasecmp(s, cur_hist->data)) {
-            /* copy up to the first 9 items */
-            new_hist = g_list_prepend(new_hist, cur_hist->data);
-            n++;
-        } else {
-            /* and free the rest */
-            G_FREE_NULL(cur_hist->data);
-        }
-        cur_hist = g_list_next(cur_hist);
-    }
-
-    new_hist = g_list_prepend(new_hist, g_strdup(s));
-	new_hist = g_list_reverse(new_hist);
-
-    /* set new history */
-    gtk_combo_set_popdown_strings(
-        GTK_COMBO(gui_main_window_lookup("combo_search")),
-        new_hist);
-
-    /* free old list structure */
-    g_list_free(list_search_history);
-    list_search_history = new_hist;
+	last = g_list_last(list_search_history);
+	if (NULL == last || 0 != strcmp(text, last->data)) {
+		if (g_list_length(list_search_history) >= 50) {
+			gpointer data = list_search_history->data;
+			list_search_history = g_list_remove(list_search_history, data);
+			G_FREE_NULL(data);
+		}
+		list_search_history = g_list_append(list_search_history,
+								g_strdup(text));
+		gtk_combo_set_popdown_strings(
+			GTK_COMBO(gui_main_window_lookup("combo_search")),
+			list_search_history);
+	}
 }
 
 /**
