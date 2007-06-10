@@ -492,14 +492,15 @@ search_append_detail(GtkTreeModel *model,
 gchar *
 search_details_get_text(GtkWidget *widget)
 {
-	static const GValue zero_value;
-	GValue value;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 
 	g_return_val_if_fail(widget, NULL);
 
 	if (drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter)) {
+		static const GValue zero_value;
+		GValue value;
+
 		value = zero_value;
 		gtk_tree_model_get_value(model, &iter, 1, &value);
 		return g_strdup(g_value_get_string(&value));
