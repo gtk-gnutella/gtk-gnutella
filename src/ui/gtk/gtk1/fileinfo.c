@@ -562,20 +562,22 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 
 	(void) unused_button;
 	(void) unused_udata;
+	
+    gtk_clist_freeze(clist);
     sl_handles = clist_collect_data(clist, TRUE, NULL);
     if (sl_handles) {
 		GSList *sl;
 
-		for (sl = sl_handles; sl != NULL; sl = g_slist_next(sl))
+		for (sl = sl_handles; sl != NULL; sl = g_slist_next(sl)) {
 			if (GPOINTER_TO_UINT(sl->data) == last_shown) {
 				last_shown_valid = FALSE;
 				break;
 			}
-
+		}
         guc_fi_purge_by_handle_list(sl_handles);
     }
-
     g_slist_free(sl_handles);
+    gtk_clist_thaw(clist);
 }
 
 void
