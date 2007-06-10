@@ -73,8 +73,14 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 
 #define signal_stop_emission_by_name g_signal_stop_emission_by_name
 
-#define selection_set_text(data, text) \
-	   	gtk_selection_data_set_text((data), (text), (-1));
+static inline void
+selection_set_text(GtkSelectionData *data, const char *text)
+{
+	size_t len = strlen(text);
+
+	len = len < INT_MAX ? len : 0;
+	gtk_selection_data_set_text(data, text, len);
+}
 
 #else	/* Gtk < 2 */
 
@@ -90,8 +96,11 @@ G_STMT_START { \
 static inline void
 selection_set_text(GtkSelectionData *data, const char *text)
 {
+	size_t len = strlen(text);
+	
+	len = len < INT_MAX ? len : 0;
    	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING, 8 /* CHAR_BIT */,
-		cast_to_gconstpointer(text), strlen(text));
+		cast_to_gconstpointer(text), len);
 }
 
 #endif /* Gtk+ >= 2 */
@@ -175,8 +184,12 @@ drag_attach(struct drag_context *ctx,
 	GtkWidget *widget, drag_get_text_cb callback)
 {
     static const GtkTargetEntry targets[] = {
-        { "STRING", 0, 23 },
-        { "text/plain", 0, 23 },
+        { "STRING",			0, 1 },
+        { "text/plain",		0, 2 },
+#if GTK_CHECK_VERSION(2,0,0)
+        { "UTF8_STRING",	0, 3 },
+        { "text/plain;charset=utf-8",	0, 4 },
+#endif	/* Gtk+ >= 2.0 */
     };
 
 	g_return_if_fail(ctx);
