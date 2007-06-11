@@ -61,7 +61,7 @@ subscriber_destroy(struct subscriber *s)
 	wfree(s, sizeof *s);
 }
 
-inline struct event *
+struct event *
 event_new(const gchar *name)
 {
     struct event *evt;

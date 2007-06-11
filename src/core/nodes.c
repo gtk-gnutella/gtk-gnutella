@@ -8240,21 +8240,21 @@ node_close(void)
 	rxbuf_close();
 }
 
-inline void
+void
 node_add_sent(gnutella_node_t *n, gint x)
 {
    	n->last_update = n->last_tx = tm_time();
 	n->sent += x;
 }
 
-inline void
+void
 node_add_txdrop(gnutella_node_t *n, gint x)
 {
 	n->last_update = tm_time();
 	n->tx_dropped += x;
 }
 
-inline void
+void
 node_add_rxdrop(gnutella_node_t *n, gint x)
 {
    	n->last_update = tm_time();
