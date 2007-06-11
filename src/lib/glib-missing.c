@@ -50,7 +50,7 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#ifdef USE_GLIB1
+#if defined(USE_GLIB1) && !defined(USE_MALLOC)
 static GMemVTable gm_vtable;
 
 #define GM_VTABLE_METHOD(method, params) \
@@ -104,6 +104,9 @@ gm_try_realloc(gpointer p, gulong size)
  *** Remap g_malloc() and friends to be able to emulate g_mem_set_vtable()
  *** with GTK1.  Fortunately, glib1.x placed the allocation routines in
  *** a dedicated mem.o file, so we may safely redefine them here.
+ ***
+ *** NOTE: This a hack and does not work on some platforms. Defining
+ ***       USE_MALLOC disables use of this hack.
  ***/
 
 gpointer

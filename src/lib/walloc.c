@@ -302,6 +302,7 @@ wdestroy(void)
 {
 	size_t i;
 
+#ifndef USE_MALLOC
 	/*
 	 * We cannot do this currently for GLib 2.0 because g_malloc() is
 	 * mapped to halloc() and a g_warning() or other GLib functions may
@@ -314,6 +315,7 @@ wdestroy(void)
 
 	if (!g_mem_is_system_malloc())
 		return;
+#endif	/* USE_MALLOC */
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {
