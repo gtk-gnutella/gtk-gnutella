@@ -19,6 +19,7 @@ build_localedir=
 build_nls=
 build_official=
 build_prefix=
+build_socker=
 build_ui=
 build_yacc=
 
@@ -30,6 +31,7 @@ while [ $# -gt 0 ]; do
 	--disable-gnutls)	build_gnutls='-U d_gnutls';;
 	--disable-ipv6)		build_ipv6='-U d_ipv6';;
 	--disable-nls)		build_nls='-U d_enablenls';;
+	--disable-socker)	build_socker='-U d_socker_get';;
 	--gtk1)			build_ui='gtkversion=1';;
 	--gtk2)			build_ui='gtkversion=2';;
 	--localedir=*)		build_localedir="${1##--*=}";;
@@ -51,6 +53,7 @@ echo '  --disable-dbus   Do not use D-Bus even if available.'
 echo '  --disable-gnutls Do not use GNU TLS even if available.'
 echo '  --disable-ipv6   Do not use IPv6 even if supported.'
 echo '  --disable-nls    Disable NLS (native language support).'
+echo '  --disable-socker Disable support for Socker.'
 echo '  --yacc=TOOL      yacc, bison or some compatible tool.'
 echo '  --bindir=PATH    Directory for installing executables. [$prefix/bin]'
 echo '  --datadir=PATH   Directory for installing application data. [$prefix/share]'
@@ -127,6 +130,7 @@ rm -f config.sh
 	${build_dbus:+"$build_dbus"} \
 	${build_gnutls:+"$build_gnutls"} \
 	${build_ipv6:+"$build_ipv6"} \
+	${build_socker:+"$build_socker"} \
 	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
 
 ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }

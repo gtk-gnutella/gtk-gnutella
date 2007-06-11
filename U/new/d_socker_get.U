@@ -24,6 +24,10 @@
 ?LINT:change ccflags ldflags
 ?LINT:set d_socker_get
 : determine whether socker_get is available
+
+case "$d_socker_get" in
+"$undef") ;;
+*)
 $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <socker.h>
@@ -48,4 +52,6 @@ eval $trylink
 
 ccflags=$saved_ccflags
 ldflags=$saved_ldflags
+;;
+esac
 

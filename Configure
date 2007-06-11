@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri May 25 16:10:47 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Mon Jun 11 19:20:14 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6175,6 +6175,10 @@ eval $setvar
 $rm -f set.c set
 
 : determine whether socker_get is available
+
+case "$d_socker_get" in
+"$undef") ;;
+*)
 $cat >try.c <<'EOC'
 #include <sys/types.h>
 #include <socker.h>
@@ -6199,6 +6203,8 @@ eval $trylink
 
 ccflags=$saved_ccflags
 ldflags=$saved_ldflags
+;;
+esac
 
 : see if srandom exists
 $cat >try.c <<EOC
