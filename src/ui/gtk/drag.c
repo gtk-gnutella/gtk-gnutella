@@ -47,7 +47,6 @@ RCSID("$Id$")
 
 struct drag_context {
 	drag_get_text_cb get_text;
-	char *text;
 };
 
 #if GTK_CHECK_VERSION(2,0,0)
@@ -76,8 +75,9 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 static inline void
 selection_set_text(GtkSelectionData *data, const char *text)
 {
-	size_t len = strlen(text);
+	size_t len;
 
+	len = text ? strlen(text) : 0;
 	len = len < INT_MAX ? len : 0;
 	gtk_selection_data_set_text(data, text, len);
 }
@@ -96,8 +96,9 @@ G_STMT_START { \
 static inline void
 selection_set_text(GtkSelectionData *data, const char *text)
 {
-	size_t len = strlen(text);
+	size_t len;
 	
+	len = text ? strlen(text) : 0;
 	len = len < INT_MAX ? len : 0;
    	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING, 8 /* CHAR_BIT */,
 		cast_to_gconstpointer(text), len);
@@ -116,9 +117,6 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 
 	g_return_if_fail(ctx);
 	g_return_if_fail(ctx->get_text);
-
-	G_FREE_NULL(ctx->text);
-	ctx->text = ctx->get_text(widget);
 }
 
 
@@ -128,6 +126,7 @@ drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
 	void *udata)
 {
 	struct drag_context *ctx = udata;
+	char *text;
 
 	(void) unused_drag_ctx;
 	(void) unused_info;
@@ -138,10 +137,9 @@ drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
 	g_return_if_fail(ctx);
 	g_return_if_fail(ctx->get_text);
 
-	if (ctx->text) {
-		selection_set_text(data, ctx->text);
-		G_FREE_NULL(ctx->text);
-	}
+	text = ctx->get_text(widget);
+	selection_set_text(data, text);
+	G_FREE_NULL(text);
 }
 
 static void
@@ -155,8 +153,6 @@ drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 
 	g_return_if_fail(ctx);
 	g_return_if_fail(ctx->get_text);
-
-	G_FREE_NULL(ctx->text);
 }
 
 /**

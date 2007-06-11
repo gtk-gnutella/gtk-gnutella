@@ -2071,6 +2071,7 @@ search_gui_init(void)
 		GtkCList *clist;
 		
 		clist = GTK_CLIST(gui_main_window_lookup("clist_search_details"));
+		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
 		gtk_signal_connect(GTK_OBJECT(clist), "select-row",
 			GTK_SIGNAL_FUNC(on_clist_search_details_select_row), NULL);
 		gtk_signal_connect(GTK_OBJECT(clist), "unselect-row",
