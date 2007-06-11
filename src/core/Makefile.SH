@@ -107,7 +107,6 @@ SRC = \
 	gmsg.c \
 	gnet_stats.c \
 	guid.c \
-	hashtree.c \
 	hcache.c \
 	hostiles.c \
 	hosts.c \
@@ -195,7 +194,6 @@ OBJ = \
 	gmsg.o \
 	gnet_stats.o \
 	guid.o \
-	hashtree.o \
 	hcache.o \
 	hostiles.o \
 	hosts.o \

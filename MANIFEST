@@ -301,8 +301,6 @@ src/core/gnet_stats.h
 src/core/gnutella.h
 src/core/guid.c
 src/core/guid.h
-src/core/hashtree.c
-src/core/hashtree.h
 src/core/hcache.c
 src/core/hcache.h
 src/core/hostiles.c
