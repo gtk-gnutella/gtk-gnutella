@@ -1009,3 +1009,6 @@
 # shares thousands of malware ZIPs
 66.36.243.127
 
+# WMV spam; giFT-based
+85.233.199.128/25
+
