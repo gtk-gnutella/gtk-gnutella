@@ -1849,9 +1849,6 @@ shell_read_data(gnutella_shell_t *sh)
 			REPLY_NONE != reply_code &&
 			!(!sh->interactive && REPLY_READY == reply_code)
 		) {
-			gchar *buf = NULL;
-			size_t size;
-
 			/*
 			 * On error, when running non-interactively, remind them
 			 * about the command that failed first.
@@ -1864,12 +1861,12 @@ shell_read_data(gnutella_shell_t *sh)
 				shell_write(sh, "\"\n");
 			}
 
-			size = w_concat_strings(&buf, uint32_to_string(reply_code),
-					" ", sh->msg ? sh->msg : "", "\n", (void *) 0);
-
-			shell_write(sh, buf); /* XXX: Let shell_write() own ``buf'' */
-			wfree(buf, size);
-			buf = NULL;
+			shell_write(sh, uint32_to_string(reply_code));
+			if (sh->msg) {
+				shell_write(sh, " ");
+				shell_write(sh, sh->msg);
+			}
+			shell_write(sh, "\n");
 		}
 
 		sh->msg = NULL;
@@ -1921,14 +1918,14 @@ shell_write(gnutella_shell_t *sh, const gchar *text)
 
 	len = strlen(text);
 	g_return_if_fail(len < (size_t) -1);
-	g_return_if_fail(len > 0);
 
-	if (!shell_has_pending_output(sh)) {
-		socket_evt_clear(sh->socket);
-		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
+	if (len > 0) {
+		if (!shell_has_pending_output(sh)) {
+			socket_evt_clear(sh->socket);
+			socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
+		}
+		pmsg_slist_append(sh->output, text, len);
 	}
-
-	pmsg_slist_append(sh->output, text, len);
 }
 
 /**
