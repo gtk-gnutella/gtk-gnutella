@@ -306,6 +306,7 @@
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
 38.101.225.0/24
 63.216.80.0/24
+74.205.125.0/24
 205.177.5.0/24
 205.252.3.0/24
 206.161.30.0/24
