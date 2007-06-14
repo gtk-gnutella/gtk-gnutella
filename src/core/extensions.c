@@ -152,11 +152,12 @@ static const struct rwtable urntable[] =
 /** GGEP extension table (sorted) */
 static const struct rwtable ggeptable[] =
 {
-#define GGEP_ID(x) { #x, CAT2(EXT_T_GGEP_,x) }
-#define GGEP_GTKG_ID(x) { "GTKG." #x, CAT2(EXT_T_GGEP_GTKG_,x) }
+#define GGEP_ID(x) { #x, EXT_T_GGEP_ ## x }
+#define GGEP_GTKG_ID(x) { "GTKG." #x, EXT_T_GGEP_GTKG_ ## x }
 
 	{ "<", EXT_T_GGEP_LIME_XML }, /**< '<' is less that 'A' */
 	GGEP_ID(ALT),		/**< Alt-locs in qhits */
+	GGEP_ID(ALT_TLS),	/**< TLS-capability bitmap for GGEP ALT */
 	GGEP_ID(BH),		/**< Browseable host indication */
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DU),		/**< Average servent uptime */
@@ -176,9 +177,11 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(PATH),		/**< Shared file path, in query hits */
 	GGEP_ID(PHC),		/**< Packed host caches (UHC) in pongs */
 	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
+	GGEP_ID(PUSH_TLS),	/**< TLS-capability bitmap for GGEP PUSH */
 	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
 	GGEP_ID(SO),		/**< Secure OOB */
 	GGEP_ID(T),			/**< Textual information in qhits */
+	GGEP_ID(TLS),		/**< TLS support indication */
 	GGEP_ID(UA),		/**< User-Agent string */
 	GGEP_ID(UDPHC),		/**< Is an UDP hostcache (UHC) , in pongs */
 	GGEP_ID(UP),		/**< Ultrapeer information about free slots */

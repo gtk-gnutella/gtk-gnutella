@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "settings.h"		/* For listen_addr() */
 #include "sockets.h"		/* For socket_listen_addr() */
 #include "tsync.h"
+#include "tls_cache.h"
 #include "udp.h"
 #include "uploads.h"
 #include "vmsg.h"
@@ -340,19 +341,23 @@ handle_features_supported(struct gnutella_node *n,
 	 */
 
 	while (count-- > 0) {
-		vendor_code_t vendor;
+		gchar feature[5];
 		guint16 version;
 
-		memcpy(&vendor, &description[0], 4);
+		memcpy(feature, &description[0], 4);
+		feature[4] = '\0';
 		version = peek_le16(&description[4]);
 		description += 6;
 
 		if (GNET_PROPERTY(vmsg_debug) > 1)
 			g_message("VMSG node %s <%s> supports feature %s/%u",
 				node_addr(n), node_vendor(n),
-				vendor_code_str(ntohl(vendor.be32)), version);
+				feature, version);
 
-		/* XXX -- look for specific features not present in handshake */
+		if (0 == strcmp(feature, "TLS!")) {
+			n->flags |= NODE_F_CAN_TLS;
+			tls_cache_insert(n->gnet_addr, n->gnet_port);
+		}
 	}
 }
 
@@ -2605,6 +2610,40 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 	poke_le16(count_ptr, count);
 
 	paysize = count * VMS_ITEM_SIZE	+ sizeof count;
+	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
+
+	gmsg_sendto_one(n, v_tmp, msgsize);
+}
+
+void
+vmsg_send_features_supported(struct gnutella_node *n)
+{
+	static const struct {
+		char name[4];
+		guint16 version;
+	} features[] = {
+		{ "TLS!", 1 },
+	};
+	guint32 paysize;
+	guint32 msgsize;
+	gchar *payload;
+	guint i;
+
+	payload = vmsg_fill_type(v_tmp_data, T_0000, 10, 0);
+
+	/*
+	 * First 2 bytes is the number of entries in the vector.
+	 */
+
+	payload = poke_le16(payload, G_N_ELEMENTS(features));
+
+	for (i = 0; i < G_N_ELEMENTS(features); i++) {
+		memcpy(payload, features[i].name, 4);
+		payload += 4;
+		payload = poke_le16(payload, features[i].version);
+	}
+
+	paysize = 2 + G_N_ELEMENTS(features) * 6;
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 
 	gmsg_sendto_one(n, v_tmp, msgsize);

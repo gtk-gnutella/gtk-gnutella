@@ -313,7 +313,7 @@ pproxy_create(struct gnutella_socket *s)
  */
 static gboolean
 get_params(struct pproxy *pp, const gchar *request,
-	const gchar **guid_atom, guint32 *file_idx)
+	const gchar **guid_atom, guint32 *file_idx, gboolean *supports_tls)
 {
 	static const struct {
 		const gchar *req;
@@ -335,6 +335,7 @@ get_params(struct pproxy *pp, const gchar *request,
 	g_assert(request);
 	g_assert(guid_atom);
 	g_assert(file_idx);
+	g_assert(supports_tls);
 	
 	/*
 	 * Move to the start of the requested path.  Note that sizeof("GET")
@@ -469,11 +470,20 @@ get_params(struct pproxy *pp, const gchar *request,
 	 */
 
 	value = url_params_get(up, "file");
-	{
+	if (value) {
 		gint error;
 
 		/* Ignore errors; parse_uint32() returns 0 on error. */
-		*file_idx = value ? parse_uint32(value, NULL, 10, &error) : 0;
+		*file_idx = parse_uint32(value, NULL, 10, &error);
+	} else {
+		*file_idx = 0;
+	}
+
+	value = url_params_get(up, "tls");
+	if (value) {
+		*supports_tls = 0 == ascii_strcasecmp(value, "true");
+	} else {
+		*supports_tls = FALSE;
 	}
 
 	url_params_free(up);
@@ -630,7 +640,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	gchar *token;
 	gchar *user_agent;
 	GSList *nodes;
-	gboolean supports_tls;
+	gboolean supports_tls = FALSE;
 
 	if (GNET_PROPERTY(push_proxy_debug) > 0) {
 		g_message("----Push-proxy request from %s:\n%s",
@@ -652,16 +662,16 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 * Determine the servent ID.
 	 */
 
-	if (!get_params(pp, request, &pp->guid, &pp->file_idx))
+	if (!get_params(pp, request, &pp->guid, &pp->file_idx, &supports_tls))
 		return;				/* Already reported the error in get_params() */
+
+	supports_tls |= header_get_feature("tls", header, NULL, NULL);
 
 	if (GNET_PROPERTY(push_proxy_debug) > 0)
 		g_message("PUSH-PROXY: %s requesting a push to %s for file #%d",
 			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
 			pp->file_idx);
 
-	supports_tls = header_get_feature("tls", header, NULL, NULL);
-			
 	/*
 	 * Make sure they provide an X-Node header so we know whom to set up
 	 * as the originator of the push.  Then validate the address.

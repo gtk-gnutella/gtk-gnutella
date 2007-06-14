@@ -754,6 +754,7 @@ handle_push_request(struct gnutella_node *n)
 					}
 				}
 				break;
+			case EXT_T_GGEP_TLS:
 			case EXT_T_GGEP_GTKG_TLS:
 				flags |= SOCK_F_TLS;
 				break;

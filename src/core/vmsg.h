@@ -53,6 +53,7 @@ void vmsg_handle(struct gnutella_node *n);
 const gchar *vmsg_infostr(gconstpointer data, size_t size);
 
 void vmsg_send_messages_supported(struct gnutella_node *n);
+void vmsg_send_features_supported(struct gnutella_node *n);
 void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops);
 void vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port);
 void vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port);

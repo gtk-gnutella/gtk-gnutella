@@ -1009,6 +1009,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			case EXT_T_GGEP_FW:
 				rs->status |= ST_FW2FW;
 				break;
+			case EXT_T_GGEP_TLS:
 			case EXT_T_GGEP_GTKG_TLS:
 				rs->status |= ST_TLS;
 				break;
@@ -1609,6 +1610,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
 						}
 					}
+					break;
+				case EXT_T_GGEP_ALT_TLS:	/* TLS-capability bitmap for ALT */
+					/* FIXME: Handle this */	
 					break;
 				case EXT_T_GGEP_LF:			/* Large File */
 					{

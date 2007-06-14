@@ -926,7 +926,7 @@ node_timer(time_t now)
  		sl = g_slist_next(sl);
 
 		if (n->flags & NODE_F_CAN_TLS) {
-			tls_cache_insert(n->addr, n->port);
+			tls_cache_insert(n->gnet_addr, n->gnet_port);
 		}
 
 		/*
@@ -3572,6 +3572,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	if (n->attrs & NODE_A_CAN_VENDOR) {
 		vmsg_send_messages_supported(n);
+		vmsg_send_features_supported(n);
 		if (GNET_PROPERTY(is_firewalled)) {
 			if (0 != socket_listen_port())
 				vmsg_send_tcp_connect_back(n, socket_listen_port());
@@ -4906,6 +4907,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 	}
 
+	if (header_get_feature("tls", head, NULL, NULL)) {
+		n->flags |= NODE_F_CAN_TLS;
+		tls_cache_insert(n->gnet_addr, n->gnet_port);
+	}
+
 	/* Bye-Packet -- support for final notification */
 
 	field = header_get(head, "Bye-Packet");
@@ -5230,17 +5236,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
  		if (header_get_feature("sflag", head, &major, &minor))
 			n->attrs |= NODE_A_CAN_SFLAG;
-	}
-
-	/*
-	 * For incoming connections it's not clear whether the
-	 * given address is correct, it could be a proxy.
-	 */
-	if (0 == (NODE_F_INCOMING & n->flags)) {
-		if (header_get_feature("tls", head, NULL, NULL)) {
-			n->flags |= NODE_F_CAN_TLS;
-			tls_cache_insert(n->addr, n->port);
-		}
 	}
 
 	/*

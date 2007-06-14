@@ -37,17 +37,18 @@
 
 RCSID("$Id$")
 
-#include "qhit.h"
-#include "gnutella.h"
+#include "bsched.h"
+#include "dmesh.h"		/* For dmesh_fill_alternate() */
 #include "ggep.h"
 #include "ggep_type.h"
 #include "gmsg.h"
-#include "share.h"
+#include "gnutella.h"
 #include "nodes.h"
-#include "bsched.h"
-#include "dmesh.h"		/* For dmesh_fill_alternate() */
-#include "uploads.h"	/* For count_uploads */
+#include "qhit.h"
 #include "settings.h"	/* For listen_ip() */
+#include "share.h"
+#include "tls_cache.h"
+#include "uploads.h"	/* For count_uploads */
 
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"			/* For main_get_build() */
@@ -438,12 +439,15 @@ flush_match(void)
 		GSList *nodes = node_push_proxies();
 
 		if (nodes != NULL) {
+			guchar tls_bytes[(QHIT_MAX_PROXIES >> 3)  + 1];
+			guint tls_index = 0;
 			GSList *l;
 			gint count;
-			gchar proxy[6];
 			gboolean ok;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(PUSH), 0);
+			memset(tls_bytes, 0, sizeof tls_bytes);
+			tls_index = 0;
 
 			for (
 				l = nodes, count = 0;
@@ -453,9 +457,15 @@ flush_match(void)
 				struct gnutella_node *n = l->data;
 
 				if (NET_TYPE_IPV4 == host_addr_net(n->proxy_addr)) {
+					gchar proxy[6];
+
 					poke_be32(&proxy[0], host_addr_ipv4(n->proxy_addr));
 					poke_le16(&proxy[4], n->proxy_port);
 					ok = ggep_stream_write(&gs, proxy, sizeof proxy);
+					if (NODE_F_CAN_TLS & n->flags) {
+						tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
+					}
+					tls_index++;
 				}
 			}
 
@@ -464,6 +474,16 @@ flush_match(void)
 			if (!ok)
 				g_warning("could not write GGEP \"PUSH\" extension "
 					"in query hit");
+
+			if (ok && tls_index > 0) {
+				guint length;
+
+				length = (tls_index + 7) / 8;
+				ok = ggep_stream_pack(&gs, GGEP_NAME(PUSH_TLS),
+						tls_bytes, length, 0);
+				if (!ok)
+					g_warning("could not write GGEP \"PUSH_TLS\" extension");
+			}
 		}
 	}
 
@@ -501,6 +521,8 @@ flush_match(void)
 	}
 
 #ifdef HAS_GNUTLS
+	if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0))
+		g_warning("could not write GGEP \"TLS\" extension into query hit");
 	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
 		g_warning("could not write GGEP \"GTKG.TLS\" extension into query hit");
 #endif /* HAS_GNUTLS */
@@ -691,21 +713,33 @@ add_file(const struct shared_file *sf)
 	 */
 
 	if (hcnt > 0) {
+		guchar tls_bytes[(QHIT_MAX_ALT + 7) / 8];
+		guint tls_index;
 		gint i;
 
 		g_assert(hcnt <= QHIT_MAX_ALT);
+		memset(tls_bytes, 0, sizeof tls_bytes);
+		tls_index = 0;
 
 		ok = ggep_stream_begin(&gs, GGEP_NAME(ALT), GGEP_W_COBS);
 
 		for (i = 0; ok && i < hcnt; i++) {
 			g_assert(start == gs.outbuf);
 			if (NET_TYPE_IPV4 == gnet_host_get_net(&hvec[i])) {
+				host_addr_t addr;
+				guint16 port;
 				gchar alt[6];
-			
-				poke_be32(&alt[0],
-					host_addr_ipv4(gnet_host_get_addr(&hvec[i])));
-				poke_le16(&alt[4], gnet_host_get_port(&hvec[i]));
+		
+				addr = gnet_host_get_addr(&hvec[i]);
+				port = gnet_host_get_port(&hvec[i]);
+				poke_be32(&alt[0], host_addr_ipv4(addr));
+				poke_le16(&alt[4], port);
 				ok = ggep_stream_write(&gs, &alt, sizeof alt);
+
+				if (tls_cache_lookup(addr, port)) {
+					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
+				}
+				tls_index++;
 			}
 		}
 
@@ -713,6 +747,16 @@ add_file(const struct shared_file *sf)
 
 		if (!ok)
 			g_warning("could not write GGEP \"ALT\" extension in query hit");
+
+		if (ok && tls_index > 0) {
+			guint length;
+
+			length = (tls_index + 7) / 8;
+			ok = ggep_stream_pack(&gs, GGEP_NAME(ALT_TLS),
+					tls_bytes, length, GGEP_W_COBS);
+			if (!ok)
+				g_warning("could not write GGEP \"ALT_TLS\" extension");
+		}
 	}
 
 	{

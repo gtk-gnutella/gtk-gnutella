@@ -76,6 +76,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_LIME_XML,	/**< LimeWire XML metadata, in query hits */
 	/* sort below */
 	EXT_T_GGEP_ALT,			/**< Alternate locations in query hits */
+	EXT_T_GGEP_ALT_TLS,		/**< TLS-capability bitmap for GGEP ALT */
 	EXT_T_GGEP_BH,			/**< Browseable host indication */
 	EXT_T_GGEP_CT,			/**< Resource creation time */
 	EXT_T_GGEP_DU,			/**< Daily Uptime */
@@ -96,9 +97,11 @@ typedef enum ext_token {
 	EXT_T_GGEP_PATH,		/**< Shared file path, in query hits */
 	EXT_T_GGEP_PHC,			/**< Packed HostCaches, in pongs (UHC) */
 	EXT_T_GGEP_PUSH,		/**< Push proxy info, in query hits */
+	EXT_T_GGEP_PUSH_TLS,	/**< TLS-capability bitmap for GGEP PUSH */
 	EXT_T_GGEP_SCP,			/**< Support Cached Pongs, in pings (UHC) */
 	EXT_T_GGEP_SO,			/**< Secure OOB */
 	EXT_T_GGEP_T,			/**< Textual information in query hits */
+	EXT_T_GGEP_TLS,			/**< Supports TLS */
 	EXT_T_GGEP_UA,			/**< User-Agent string */
 	EXT_T_GGEP_UDPHC,		/**< UDP HostCache, in pongs (UHC) */
 	EXT_T_GGEP_UP,			/**< UltraPeer information */
@@ -109,8 +112,8 @@ typedef enum ext_token {
 	EXT_T_TOKEN_COUNT
 } ext_token_t;
 
-#define GGEP_NAME(x) ext_ggep_name(CAT2(EXT_T_GGEP_,x))
-#define GGEP_GTKG_NAME(x) ext_ggep_name(CAT2(EXT_T_GGEP_GTKG_,x))
+#define GGEP_NAME(x) ext_ggep_name(EXT_T_GGEP_ ## x)
+#define GGEP_GTKG_NAME(x) ext_ggep_name(EXT_T_GGEP_GTKG_ ## x)
 
 /**
  * A public extension descriptor.
